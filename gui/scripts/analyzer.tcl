@@ -124,7 +124,7 @@ itcl::body Rappture::Analyzer::destructor {} {
 # USAGE: simulate
 #
 # If the simulation page is showing, this kicks off the simulator
-# by executing the executable.command associated with the -tool.  While
+# by executing the tool.command associated with the -tool.  While
 # the simulation is running, it shows status.  When the simulation is
 # finished, it switches automatically to "analyze" mode and shows
 # the results.
@@ -136,6 +136,7 @@ itcl::body Rappture::Analyzer::simulate {} {
             -command {set ::Rappture::Analyzer::job(control) abort}
 
         set job(control) ""
+        set job(error) ""
 
         # if the hold window is set, then put up a busy cursor
         if {$itk_option(-holdwindow) != ""} {
@@ -151,14 +152,14 @@ itcl::body Rappture::Analyzer::simulate {} {
             set xml [$itk_option(-tool) xml]
             set xml2 [$itk_option(-device) xml]
             regsub -all {&} $xml2 {\\\&} xml2
-            regsub {</tool>} $xml "$xml2</tool>" xml
+            regsub {</run>} $xml "$xml2</run>" xml
             puts $fid $xml
             close $fid
         } result]
 
         # execute the tool using the path from the tool description
         if {$status == 0} {
-            set cmd [$itk_option(-tool) get executable.command]
+            set cmd [$itk_option(-tool) get tool.command]
 
             set status [catch {eval blt::bgexec \
                 ::Rappture::Analyzer::job(control) \
@@ -210,7 +211,7 @@ itcl::body Rappture::Analyzer::reset {} {
     $itk_component(notebook) current simulate
 
     # if control mode is "auto", then simulate right away
-    if {$_control == "auto"} {
+    if {[string match auto* $_control]} {
         simulate
     }
 }
@@ -230,11 +231,11 @@ itcl::body Rappture::Analyzer::load {file} {
     }
 
     # try to load new results from the given file
-    set _run [Rappture::Library::open $file]
+    set _run [Rappture::library $file]
 
     # go through the analysis and create widgets to display results
     foreach item [array names _widgets] {
-        $_widgets($item) configure -run $_run
+        $_widgets($item) configure -output $_run
     }
 }
 
@@ -253,12 +254,12 @@ itcl::body Rappture::Analyzer::_fixResult {} {
 # ----------------------------------------------------------------------
 # CONFIGURATION OPTION: -tool
 #
-# Set to the Rappture::Library object representing the tool being
+# Set to the Rappture::library object representing the tool being
 # run in this analyzer.
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::Analyzer::tool {
     if {![Rappture::library isvalid $itk_option(-tool)]} {
-        error "bad value \"$itk_option(-tool)\": should be Rappture::Library"
+        error "bad value \"$itk_option(-tool)\": should be Rappture::library"
     }
 
     $itk_component(info) configure -state normal
@@ -270,13 +271,13 @@ itcl::configbody Rappture::Analyzer::tool {
 # ----------------------------------------------------------------------
 # CONFIGURATION OPTION: -device
 #
-# Set to the Rappture::Library object representing the device being
+# Set to the Rappture::library object representing the device being
 # run in this analyzer.
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::Analyzer::device {
     if {$itk_option(-device) != ""
           && ![Rappture::library isvalid $itk_option(-device)]} {
-        error "bad value \"$itk_option(-device)\": should be Rappture::Library"
+        error "bad value \"$itk_option(-device)\": should be Rappture::library"
     }
     reset
 }
@@ -284,12 +285,12 @@ itcl::configbody Rappture::Analyzer::device {
 # ----------------------------------------------------------------------
 # CONFIGURATION OPTION: -analysis
 #
-# Set to the Rappture::Library object representing the analysis that
+# Set to the Rappture::library object representing the analysis that
 # should be shown in this analyzer.
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::Analyzer::analysis {
     if {![Rappture::library isvalid $itk_option(-analysis)]} {
-        error "bad value \"$itk_option(-analysis)\": should be Rappture::Library"
+        error "bad value \"$itk_option(-analysis)\": should be Rappture::library"
     }
     set _control [$itk_option(-analysis) get control]
 
@@ -310,6 +311,17 @@ itcl::configbody Rappture::Analyzer::analysis {
                     $name $label
 
                 set _widgets($item) [Rappture::Xyplot $page.#auto \
+                    -layout [$itk_option(-analysis) element -flavor object $item]]
+                pack $_widgets($item) -expand yes -fill both
+            }
+            elevels* {
+                set name "page[incr counter]"
+
+                set page [$itk_component(results) insert end $name]
+                $itk_component(resultselector) choices insert end \
+                    $name "Energy Levels"
+
+                set _widgets($item) [Rappture::EnergyLevels $page.#auto \
                     -layout [$itk_option(-analysis) element -flavor object $item]]
                 pack $_widgets($item) -expand yes -fill both
             }

@@ -3,7 +3,7 @@
 #
 #  This widget is an X/Y plot, meant to view line graphs produced
 #  as output from the run of a Rappture tool.  It takes a -layout
-#  object describing what should be plotted, and a -run object
+#  object describing what should be plotted, and an -output object
 #  containing the data.  This widget puts it all together, and lets
 #  the user explore the results.
 # ======================================================================
@@ -22,14 +22,14 @@ itcl::class Rappture::Xyplot {
     inherit itk::Widget
 
     itk_option define -layout layout Layout ""
-    itk_option define -run run Run ""
+    itk_option define -output output Output ""
 
     constructor {args} { # defined below }
     destructor { # defined below }
 
     protected method _rebuild {}
 
-    private variable _device ""  ;# device contained in -run
+    private variable _device ""  ;# device contained in -output
     private variable _path2obj   ;# maps field/curve name => object
 }
                                                                                 
@@ -81,7 +81,7 @@ itcl::body Rappture::Xyplot::destructor {} {
 itcl::body Rappture::Xyplot::_rebuild {} {
     set g $itk_component(plot)
     set layout $itk_option(-layout)
-    set run $itk_option(-run)
+    set run $itk_option(-output)
 
     # first clear out the widget
     eval $g element delete [$g element names]
@@ -219,7 +219,7 @@ itcl::configbody Rappture::Xyplot::layout {
 }
 
 # ----------------------------------------------------------------------
-# CONFIGURATION OPTION: -run
+# CONFIGURATION OPTION: -output
 #
 # Set to the Rappture::Library object representing the data being
 # displayed in the plot.
@@ -229,11 +229,11 @@ itcl::configbody Rappture::Xyplot::run {
         itcl::delete object $_device
         set _device ""
     }
-    if {$itk_option(-run) != ""} {
-        if {![Rappture::library isvalid $itk_option(-run)]} {
-            error "bad value \"$itk_option(-run)\": should be Rappture::Library"
+    if {$itk_option(-output) != ""} {
+        if {![Rappture::library isvalid $itk_option(-output)]} {
+            error "bad value \"$itk_option(-output)\": should be Rappture::Library"
         }
-        set _device [$itk_option(-run) element -flavor object device]
+        set _device [$itk_option(-output) element -flavor object device]
     }
     after cancel [itcl::code $this _rebuild]
     after idle [itcl::code $this _rebuild]
