@@ -149,10 +149,12 @@ proc align_arrow {win} {
 set w $win.input
 set dfirst ""
 set dlist [$config children -type structure controls]
+puts "device: $dlist"
 if {"" != $dlist} {
     foreach dname $dlist {
         set obj [$config element -flavor object controls.$dname]
         set name [$obj get label]
+puts " => $name = $obj"
         set devs($name) $obj
     }
     set devlist [lsort [array names devs]]
@@ -174,8 +176,18 @@ if {"" != $dlist} {
 
     set first [lindex $devlist 0]
     set dfirst $devs($first)
-    Rappture::DeviceViewer1D $w.device -device $devs($first) \
-        -tool $tool -library $lib
+    set tags [$dfirst children]
+    set i [lsearch $tags label]
+    if {$i >= 0} {set tags [lreplace $tags $i $i]}
+
+puts "first device: tags = $tags"
+    if {$tags == "molecule"} {
+        Rappture::MoleculeViewer $w.device -device $devs($first) \
+            -library $lib
+    } else {
+        Rappture::DeviceViewer1D $w.device -device $devs($first) \
+            -tool $tool -library $lib
+    }
     pack $w.device -expand yes -fill both
 
     bind $w.device <<Edit>> [list $win.output.analyze reset]
@@ -197,7 +209,7 @@ foreach access [$config children -type access controls] {
     set name [$config get controls.$access]
     switch -glob -- $name {
         parameters.ambient* - structure* {
-            $win.input.device controls add $name
+##            $win.input.device controls add $name
         }
     }
 }

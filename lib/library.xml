@@ -27,6 +27,28 @@
     </number>
   </group>
 </parameters>
+<elements>
+  <atom id="H">
+    <color>white</color>
+    <scale>0.7</scale>
+  </atom>
+  <atom id="C">
+    <color>green</color>
+    <scale>1.0</scale>
+  </atom>
+  <atom id="O">
+    <color>red</color>
+    <scale>1.0</scale>
+  </atom>
+  <atom id="N">
+    <color>blue</color>
+    <scale>1.0</scale>
+  </atom>
+  <atom id="S">
+    <color>yellow</color>
+    <scale>1.0</scale>
+  </atom>
+</elements>
 <materials>
   <material name="GaAs">
     <formula>GaAs</formula>

@@ -56,10 +56,14 @@ proc Rappture::library {args} {
         set fname [file join $Rappture::installdir lib $fname]
     }
 
-    # otherwise, try to open the file and create its LibraryObj
-    set fid [::open $fname r]
-    set info [read $fid]
-    close $fid
+    if {[regexp {^<\?[Xx][Mm][Ll]} $fname]} {
+        set info $fname
+    } else {
+        # otherwise, try to open the file and create its LibraryObj
+        set fid [::open $fname r]
+        set info [read $fid]
+        close $fid
+    }
 
     set obj [Rappture::LibraryObj ::#auto $info]
     return $obj
