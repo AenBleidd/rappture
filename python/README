@@ -1,0 +1,93 @@
+------------------------------------------------------------------------
+ Rappture - Rapid APPlication infrastrucTURE
+------------------------------------------------------------------------
+ The Rappture toolkit provides the basic building blocks for many
+ scientific applications.  These blocks can be composed using C++, or
+ a high-level language, such as Python.  Having a set of blocks for
+ basic I/O, meshing, and numerical methods, a scientist can then
+ focus on developing his core algorithm.
+------------------------------------------------------------------------
+ AUTHORS:
+   Michael J. McLennan, Purdue University
+------------------------------------------------------------------------
+ Copyright (c) 2004  Purdue Research Foundation, West Lafayette, IN
+ See the file "license.terms" for information on usage and
+ redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+------------------------------------------------------------------------
+
+
+ INSTALLATION
+------------------------------------------------------------------------
+ This part of the Rappture toolkit works with Python.  If you need to
+ install Python on your system, visit the Download section of the site
+ http://www.python.org.
+
+ Assuming you already have Python installed, you can install Rappture
+ as follows:
+
+   % cd rappture/python
+   % python setup.py install
+
+ This will make Rappture a part of your normal Python installation, so
+ you can use it in your own Python scripts, as shown below.
+
+
+ GETTING STARTED
+------------------------------------------------------------------------
+ Here is a quick tutorial to get you started using Rappture in your
+ Python scripts.
+
+ Rappture applications load their data from a library object.  You can
+ load a library as follows:
+
+   import Rappture
+   lib = Rappture.library('example.xml')
+   print lib.xml()
+ 
+ The "import" statement loads the Rappture toolkit into your Python
+ application.  The next line creates a library object representing
+ the data in the "example.xml" file.  The last line prints the
+ contents of the XML library to the screen.
+
+ You can access values within the XML by using the get() method.
+ For example,
+
+   import Rappture
+   lib = Rappture.library('example.xml')
+   tval = lib.get('group(ambient).number(temp).current')
+
+ The get() method follows a path through the XML.  In this example,
+ it looks for a <group id="ambient"> tag, and then finds the
+ <number id="temp"> tag within it, then finds the <current> tag
+ within it, and then returns the text between that and the closing
+ </current> tag.
+
+ You can also add new data to the XML by using the put() method.
+ For example, we could change the temperature value that we queried
+ above as follows:
+
+   tval += 10
+   lib.put('group(ambient).number(temp).current',str(tval))
+
+ This changes the text within the <current>...</current> tag,
+ replacing it with the new value.  Note that the value must be a
+ string, so we use str(tval), rather than tval itself, when inserting
+ a value.
+
+ You can also append to an existing value.  For example,
+
+   lib.put('group(ambient).number(temp).current', 'more text', append=1)
+
+ This adds the string 'more text' after the value (tval) within the 
+ <current>...</current> tag.
+
+ Suppose we wanted to add another number to the "ambient" group.
+ We could do that by requesting "number#".  The # sign indicates
+ that you'd like to create a new number element (number1, number2,
+ etc.).  For example, we could add a number for a damping factor:
+
+   lib.put('group(ambient).number#(damping).current','0.25')
+
+ This creates a new element <number id="damping"> within
+ <group id="ambient">, positioned just after the existing
+ <number id="temp">.

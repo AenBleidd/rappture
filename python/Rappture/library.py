@@ -20,7 +20,7 @@ class library:
 
     re_xml = re.compile('<\?[Xx][Mm][Ll]')
     re_dots = re.compile('(\([^\)]*)\.([^\)]*\))')
-    re_pathElem = re.compile('^(([a-zA-Z_]+)([0-9]*))?(\(([^\)]+)\))?$')
+    re_pathElem = re.compile('^(([a-zA-Z_]+#?)([0-9]*))?(\(([^\)]+)\))?$')
     re_pathCreateElem = re.compile('^([^\(]+)\(([^\)]+)\)$')
 
     # ------------------------------------------------------------------
@@ -50,9 +50,9 @@ class library:
 
         By default, this method returns an object representing the
         DOM node referenced by the path.  This is changed by setting
-        the "flavor" argument to "name" (for name of the tail element),
+        the "flavor" argument to "id" (for name of the tail element),
         to "type" (for the type of the tail element), to "component"
-        (for the component name "type(name)"), or to "object"
+        (for the component name "type(id)"), or to "object"
         for the default (an object representing the tail element).
         """
 
@@ -64,12 +64,12 @@ class library:
             return library(node)
         elif flavor == 'component':
             return self._node2comp(node)
-        elif flavor == 'name':
+        elif flavor == 'id':
             return self._node2name(node)
         elif flavor == 'type':
             return node.tagName
 
-        raise ValueError, "bad flavor '%s': should be object, name, type" % flavor
+        raise ValueError, "bad flavor '%s': should be object, id, type" % flavor
 
     # ------------------------------------------------------------------
     def children(self, path="", flavor="object", type=None):
@@ -83,7 +83,7 @@ class library:
 
         By default, this method returns a list of objects representing
         the children.  This is changed by setting the "flavor" argument
-        to "name" (for tail names of all children), to "type" (for the
+        to "id" (for tail names of all children), to "type" (for the
         types of all children), to "component" (for the path component
         names of all children), or to "object" for the default (a list
         child objects).
@@ -102,7 +102,7 @@ class library:
             return [library(n) for n in nlist]
         elif flavor == 'component':
             return [self._node2comp(n) for n in nlist]
-        elif flavor == 'name':
+        elif flavor == 'id':
             return [self._node2name(n) for n in nlist]
         elif flavor == 'type':
             return [n.tagName for n in nlist]
@@ -223,7 +223,7 @@ class library:
     def _node2comp(self, node):
         """
         Used internally to create a path component name for the
-        specified node.  A path component name has the form "type(name)"
+        specified node.  A path component name has the form "type(id)"
         or just "type##" if the node doesn't have a name.  This name
         can be used in a path to uniquely address the component.
         """
@@ -253,16 +253,22 @@ class library:
         """
         Used internally to find a particular element within the
         root node according to the path, which is a string of
-        the form "type##(name).type##(name). ...", where each
-        "type" is a tag <type>; if the optional ## is specified,
+        the form "typeNN(id).typeNN(id). ...", where each
+        "type" is a tag <type>; if the optional NN is specified,
         it indicates an index for the <type> tag within its parent;
-        if the optional (name) part is included, it indicates a
-        tag of the form <type id="name">.
+        if the optional (id) part is included, it indicates a
+        tag of the form <type id="id">.
 
         By default, it looks for an element along the path and
         returns None if not found.  If the create flag is set,
         it creates various elements along the path as it goes.
         This is useful for "put" operations.
+
+        If you include "#" instead of a specific number, a node
+        will be created automatically with a new number.  For example, 
+        the path "foo.bar#" called the first time will create "foo.bar",
+        the second time "foo.bar1", the third time "foo.bar2" and
+        so forth.
 
         Returns an object representing the element indicated by
         the path, or None if the path is not found.
@@ -279,11 +285,11 @@ class library:
         node = lastnode = self.node
         for part in path:
             #
-            # Pick apart "type123(name)" for this part.
+            # Pick apart "type123(id)" for this part.
             #
             match = self.re_pathElem.search(part)
             if not match:
-                raise ValueError, "bad path component '%s': should have the form 'type123(name)'" % part
+                raise ValueError, "bad path component '%s': should have the form 'type123(id)'" % part
 
             (dummy, type, index, dummy, name) = match.groups()
 
@@ -305,9 +311,9 @@ class library:
                     node = None
             else:
                 #
-                # If the name is like "type(name)", then look for elements
+                # If the name is like "type(id)", then look for elements
                 # that match the type and see if one has the requested name.
-                # if the name is like "(name)", then look for any elements
+                # if the name is like "(id)", then look for any elements
                 # with the requested name.
                 #
                 if type:
@@ -332,7 +338,9 @@ class library:
 
                 #
                 # If the "create" flag is set, then create a node
-                # with the specified "type(name)" and continue on.
+                # with the specified "type(id)" and continue on.
+                # If the type is "type#", then create a node with
+                # an automatic number.
                 #
                 match = self.re_pathCreateElem.search(part)
                 if match:
@@ -341,11 +349,28 @@ class library:
                     type = part
                     name = ""
 
-                node = self.doc.createElement(type)
-                lastnode.appendChild(node)
+                if type.endswith('#'):
+                    type = type.rstrip('#')
+                    node = self.doc.createElement(type)
+
+                    # find the last node of same type and append there
+                    pos = None
+                    for n in lastnode.childNodes:
+                        if n.nodeName == type:
+                            pos = n
+                    if pos:
+                        pos = pos.nextSibling
+
+                    if pos:
+                        lastnode.insertBefore(node,pos)
+                    else:
+                        lastnode.appendChild(node)
+                else:
+                    node = self.doc.createElement(type)
+                    lastnode.appendChild(node)
 
                 if name:
-                    node.setAttribute("name",name)
+                    node.setAttribute("id",name)
 
             lastnode = node
 
