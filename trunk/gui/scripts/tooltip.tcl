@@ -1,0 +1,286 @@
+# ----------------------------------------------------------------------
+#  COMPONENT: tooltip - help information that pops up beneath a widget
+#
+#  This file provides support for tooltips, which are little bits
+#  of help information that pop up beneath a widget.
+#
+#  Tooltips can be registered for various widgets as follows:
+#
+#    Rappture::Tooltip::for .w "Some help text."
+#    Rappture::Tooltip::for .x.y "Some more help text."
+#
+#  Tooltips can also be popped up as an error cue beneath a widget
+#  with bad information:
+#
+#    Rappture::Tooltip::cue .w "Bad data in this widget."
+#
+# ======================================================================
+#  AUTHOR:  Michael McLennan, Purdue University
+#  Copyright (c) 2004  Purdue Research Foundation, West Lafayette, IN
+# ======================================================================
+package require Itk
+
+option add *Tooltip.background white widgetDefault
+option add *Tooltip.outline black widgetDefault
+option add *Tooltip.borderwidth 1 widgetDefault
+option add *Tooltip.font -*-helvetica-medium-r-normal-*-*-120-* widgetDefault
+option add *Tooltip.wrapLength 3i widgetDefault
+
+itcl::class Rappture::Tooltip {
+    inherit itk::Toplevel
+
+    itk_option define -outline outline Outline ""
+    itk_option define -icon icon Icon ""
+    itk_option define -message message Message ""
+
+    constructor {args} { # defined below }
+
+    public method show {where}
+    public method hide {}
+
+    public proc for {widget args}
+    private common catalog    ;# maps widget => message
+
+    public proc tooltip {option {widget ""}}
+    private common pending "" ;# after ID for pending "tooltip show"
+
+    public proc cue {option args}
+
+    bind RapptureTooltip <Enter> \
+        [list ::Rappture::Tooltip::tooltip pending %W]
+    bind RapptureTooltip <Leave> \
+        [list ::Rappture::Tooltip::tooltip cancel]
+    bind RapptureTooltip <ButtonPress> \
+        [list ::Rappture::Tooltip::tooltip cancel]
+    bind RapptureTooltip <KeyPress> \
+        [list ::Rappture::Tooltip::tooltip cancel]
+
+    private common icons
+    set dir [file dirname [info script]]
+    set icons(cue) [image create photo -file [file join $dir images cue24.gif]]
+}
+
+itk::usual Tooltip {
+    keep -background -outline -cursor -font
+}
+
+# ----------------------------------------------------------------------
+# CONSTRUCTOR
+# ----------------------------------------------------------------------
+itcl::body Rappture::Tooltip::constructor {args} {
+    wm overrideredirect $itk_component(hull) yes
+    wm withdraw $itk_component(hull)
+
+    component hull configure -borderwidth 1 -background black
+    itk_option remove hull.background hull.borderwidth
+
+    itk_component add icon {
+        label $itk_interior.icon -anchor n
+    }
+
+    itk_component add text {
+        label $itk_interior.text -justify left
+    } {
+        usual
+        keep -wraplength
+    }
+    pack $itk_component(text) -expand yes -fill both -ipadx 4 -ipady 4
+
+    eval itk_initialize $args
+}
+
+# ----------------------------------------------------------------------
+# USAGE: show @<x>,<y>|<widget>
+#
+# Clients use this to pop up the tooltip on the screen.  The position
+# should be either a <widget> name (tooltip pops up beneath widget)
+# or a specific root window coordinate of the form @x,y.
+#
+# If the -message has the form "@command", then the command is executed
+# now, just before the tooltip is popped up, to build the message
+# on-the-fly.
+# ----------------------------------------------------------------------
+itcl::body Rappture::Tooltip::show {where} {
+    if {[regexp {^@([0-9]+),([0-9]+)$} $where match x y]} {
+        set xpos $x
+        set ypos $y
+    } elseif {[winfo exists $where]} {
+        set xpos [expr {[winfo rootx $where]+10}]
+        set ypos [expr {[winfo rooty $where]+[winfo height $where]}]
+    } else {
+        error "bad position \"$where\": should be widget name or @x,y"
+    }
+
+    if {[string index $itk_option(-message) 0] == "@"} {
+        set cmd [string range $itk_option(-message) 1 end]
+        if {[catch $cmd mesg] != 0} {
+            bgerror $mesg
+            return
+        }
+    } else {
+        set mesg $itk_option(-message)
+    }
+
+    $itk_component(text) configure -text $mesg
+
+    wm geometry $itk_component(hull) +$xpos+$ypos
+    update
+
+    wm deiconify $itk_component(hull)
+    raise $itk_component(hull)
+}
+
+# ----------------------------------------------------------------------
+# USAGE: hide
+#
+# Takes down the tooltip, if it is showing on the screen.
+# ----------------------------------------------------------------------
+itcl::body Rappture::Tooltip::hide {} {
+    wm withdraw $itk_component(hull)
+}
+
+# ----------------------------------------------------------------------
+# USAGE: for <widget> <text>
+#
+# Used to register the tooltip <text> for a particular <widget>.
+# This sets up bindings on the widget so that, when the mouse pointer
+# lingers over the widget, the tooltip pops up automatically after
+# a small delay.  When the mouse pointer leaves the widget or the
+# user clicks on the widget, it cancels the tip.
+#
+# If the <text> has the form "@command", then the command is executed
+# just before the tip pops up to build the message on-the-fly.
+# ----------------------------------------------------------------------
+itcl::body Rappture::Tooltip::for {widget text} {
+    set catalog($widget) $text
+
+    set btags [bindtags $widget]
+    set i [lsearch $btags RapptureTooltip]
+    if {$i < 0} {
+        set i [lsearch $btags [winfo class $widget]]
+        if {$i < 0} {set i 0}
+        set btags [linsert $btags $i RapptureTooltip]
+        bindtags $widget $btags
+    }
+}
+
+# ----------------------------------------------------------------------
+# USAGE: tooltip pending <widget>
+# USAGE: tooltip show
+# USAGE: tooltip cancel
+#
+# This is invoked automatically whenever the user clicks somewhere
+# inside or outside of the editor.  If the <X>,<Y> coordinate is
+# outside the editor, then we assume the user is done and wants to
+# take the editor down.  Otherwise, we do nothing, and let the entry
+# bindings take over.
+# ----------------------------------------------------------------------
+itcl::body Rappture::Tooltip::tooltip {option {widget ""}} {
+    switch -- $option {
+        pending {
+            if {![info exists catalog($widget)]} {
+                error "can't find tooltip for $widget"
+            }
+            if {$pending != ""} {
+                after cancel $pending
+            }
+            set pending [after 1500 [itcl::code tooltip show $widget]]
+        }
+        show {
+            if {[winfo exists $widget]} {
+                .rappturetooltip configure -message $catalog($widget)
+                .rappturetooltip show $widget
+            }
+        }
+        cancel {
+            if {$pending != ""} {
+                after cancel $pending
+                set pending ""
+            }
+            .rappturetooltip hide
+        }
+        default {
+            error "bad option \"$option\": should be show, pending, cancel"
+        }
+    }
+}
+
+# ----------------------------------------------------------------------
+# USAGE: cue <location> <message>
+# USAGE: cue hide
+#
+# Clients use this to show a <message> in a tooltip cue at the
+# specified <location>, which can be a widget name or a root coordinate
+# at @x,y.
+# ----------------------------------------------------------------------
+itcl::body Rappture::Tooltip::cue {option args} {
+    if {"hide" == $option} {
+        grab release .rappturetoolcue
+        .rappturetoolcue hide
+    } elseif {[regexp {^@[0-9]+,[0-9]+$} $option] || [winfo exists $option]} {
+        if {[llength $args] != 1} {
+            error "wrong # args: should be \"cue location message\""
+        }
+        set loc $option
+        set mesg [lindex $args 0]
+
+        .rappturetoolcue configure -message $mesg
+        .rappturetoolcue show $loc
+
+        #
+        # Add a binding to all widgets so that any keypress will
+        # take this cue down.
+        #
+        set cmd [bind all <KeyPress>]
+        if {![regexp {Rappture::Tooltip::cue} $cmd]} {
+            bind all <KeyPress> "+[list ::Rappture::Tooltip::cue hide]"
+            bind all <KeyPress-Return> "+ "
+        }
+
+        #
+        # If nobody has the pointer, then grab it.  Otherwise,
+        # we assume the pop-up editor or someone like that has
+        # the grab, so we don't need to impose a grab here.
+        #
+        if {"" == [grab current]} {
+            update
+            while {[catch {grab set -global .rappturetoolcue}]} {
+                after 100
+            }
+        }
+    } else {
+        error "bad option \"$option\": should be hide, a widget name, or @x,y"
+    }
+}
+
+# ----------------------------------------------------------------------
+# CONFIGURATION OPTION: -icon
+# ----------------------------------------------------------------------
+itcl::configbody Rappture::Tooltip::icon {
+    if {"" == $itk_option(-icon)} {
+        $itk_component(icon) configure -image ""
+        pack forget $itk_component(icon)
+    } else {
+        $itk_component(icon) configure -image $itk_option(-icon)
+        pack $itk_component(icon) -before $itk_component(text) \
+            -side left -fill y
+    }
+}
+
+# ----------------------------------------------------------------------
+# CONFIGURATION OPTION: -outline
+# ----------------------------------------------------------------------
+itcl::configbody Rappture::Tooltip::outline {
+    component hull configure -background $itk_option(-outline)
+}
+
+# create a tooltip widget to show tool tips
+Rappture::Tooltip .rappturetooltip
+
+# create a tooltip widget to show error cues
+Rappture::Tooltip .rappturetoolcue \
+    -icon $Rappture::Tooltip::icons(cue) \
+    -background black -outline #333333 -foreground white
+
+# when cue is up, it has a grab, and any click brings it down
+bind .rappturetoolcue <ButtonPress> [list ::Rappture::Tooltip::cue hide]
