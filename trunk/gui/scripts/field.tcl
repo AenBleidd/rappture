@@ -42,20 +42,20 @@ itcl::class Rappture::Field {
 # CONSTRUCTOR
 # ----------------------------------------------------------------------
 itcl::body Rappture::Field::constructor {devobj libobj path} {
-    if {![Rappture::Library::valid $devobj]} {
+    if {![Rappture::library isvalid $devobj]} {
         error "bad value \"$devobj\": should be LibraryObj"
     }
-    if {![Rappture::Library::valid $libobj]} {
+    if {![Rappture::library isvalid $libobj]} {
         error "bad value \"$libobj\": should be LibraryObj"
     }
     set _device $devobj
     set _libobj $libobj
-    set _field [$libobj get -object $path]
+    set _field [$libobj element -flavor object $path]
     set _units [$_field get units]
 
     # determine the overall size of the device
     set z0 [set z1 0]
-    foreach elem [$_device get -children recipe] {
+    foreach elem [$_device children recipe] {
         switch -glob -- $elem {
             slab* - molecule* {
                 if {![regexp {[0-9]$} $elem]} {
@@ -191,14 +191,13 @@ itcl::body Rappture::Field::_build {} {
     # Scan through the components of the field and create
     # vectors for each part.
     #
-    set max [$_field get -count component]
-    for {set i 0} {$i < $max} {incr i} {
+    foreach cname [$_field children -type component] {
         set xv ""
         set yv ""
 
-        set val [$_field get component$i.constant]
+        set val [$_field get $cname.constant]
         if {$val != ""} {
-            set domain [$_field get component$i.domain]
+            set domain [$_field get $cname.domain]
             if {$domain == "" || ![info exists _limits($domain)]} {
                 set z0 0
                 set z1 $_zmax
@@ -216,10 +215,10 @@ itcl::body Rappture::Field::_build {} {
             $yv append $val $val
 
             set zm [expr {0.5*($z0+$z1)}]
-            set _comp2cntls(component$i) \
-                [list component$i.constant $zm $val "$val$_units"]
+            set _comp2cntls($cname) \
+                [list $cname.constant $zm $val "$val$_units"]
         } else {
-            set xydata [$_field get component$i.xy]
+            set xydata [$_field get $cname.xy]
             if {"" != $xydata} {
                 set xv [blt::vector create x$_counter]
                 set yv [blt::vector create y$_counter]
@@ -234,7 +233,7 @@ itcl::body Rappture::Field::_build {} {
         }
 
         if {$xv != "" && $yv != ""} {
-            set _comp2vecs(component$i) [list $xv $yv]
+            set _comp2vecs($cname) [list $xv $yv]
             incr _counter
         }
     }

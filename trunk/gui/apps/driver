@@ -81,21 +81,21 @@ while {[llength $argv] > 0} {
 }
 
 # open the XML file containing the material library
-set lib [Rappture::Library::open -std library.xml]
+set lib [Rappture::library -std library.xml]
                                                                                 
 # open the XML file containing the tool parameters
 if {![file exists $toolfile]} {
     puts stderr "tool file \"$toolfile\" doesn't exist"
     exit 1
 }
-set tool [Rappture::Library::open $toolfile]
+set tool [Rappture::library $toolfile]
                                                                                 
 # open the XML file containing the configuration for this application
 if {![file exists $configfile]} {
     puts stderr "config file \"$configfile\" doesn't exist"
     exit 1
 }
-set config [Rappture::Library::open $configfile]
+set config [Rappture::library $configfile]
 
 # ----------------------------------------------------------------------
 # From here on, run in the directory containing the tool.xml file,
@@ -147,16 +147,17 @@ proc align_arrow {win} {
 # INPUT AREA
 # ----------------------------------------------------------------------
 set w $win.input
-set ndevs [$config get -count controls.device]
-if {$ndevs > 0} {
-    for {set i 0} {$i < $ndevs} {incr i} {
-        set obj [$config get -object controls.device$i]
+set dfirst ""
+set dlist [$config children -type structure controls]
+if {"" != $dlist} {
+    foreach dname $dlist {
+        set obj [$config element -flavor object controls.$dname]
         set name [$obj get label]
         set devs($name) $obj
     }
     set devlist [lsort [array names devs]]
 
-    if {$ndevs > 1} {
+    if {[array size devs] > 1} {
         frame $w.devsel
         pack $w.devsel -side top -fill x
         label $w.devsel.l -text "Device:"
@@ -172,6 +173,7 @@ if {$ndevs > 0} {
     }
 
     set first [lindex $devlist 0]
+    set dfirst $devs($first)
     Rappture::DeviceViewer1D $w.device -device $devs($first) \
         -tool $tool -library $lib
     pack $w.device -expand yes -fill both
@@ -184,18 +186,17 @@ if {$ndevs > 0} {
 # ----------------------------------------------------------------------
 set w $win.output
 Rappture::Analyzer $w.analyze -holdwindow $win.input \
-    -tool $tool -analysis [$config get -object analysis] \
-    -device $devs($first)
+    -tool $tool -analysis [$config element -flavor object analysis] \
+    -device $dfirst
 pack $w.analyze -expand yes -fill both
 
 # ----------------------------------------------------------------------
 # HOOK UP ANY CONTROLS CALLED OUT IN CONFIG.XML
 # ----------------------------------------------------------------------
-set ncntls [$config get -count controls.access]
-for {set i 0} {$i < $ncntls} {incr i} {
-    set name [$config get access$i]
+foreach access [$config children -type access controls] {
+    set name [$config get controls.$access]
     switch -glob -- $name {
-        parameters.ambient* - device* {
+        parameters.ambient* - structure* {
             $win.input.device controls add $name
         }
     }

@@ -257,7 +257,7 @@ itcl::body Rappture::Analyzer::_fixResult {} {
 # run in this analyzer.
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::Analyzer::tool {
-    if {![Rappture::Library::valid $itk_option(-tool)]} {
+    if {![Rappture::library isvalid $itk_option(-tool)]} {
         error "bad value \"$itk_option(-tool)\": should be Rappture::Library"
     }
 
@@ -275,7 +275,7 @@ itcl::configbody Rappture::Analyzer::tool {
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::Analyzer::device {
     if {$itk_option(-device) != ""
-          && ![Rappture::Library::valid $itk_option(-device)]} {
+          && ![Rappture::library isvalid $itk_option(-device)]} {
         error "bad value \"$itk_option(-device)\": should be Rappture::Library"
     }
     reset
@@ -288,7 +288,7 @@ itcl::configbody Rappture::Analyzer::device {
 # should be shown in this analyzer.
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::Analyzer::analysis {
-    if {![Rappture::Library::valid $itk_option(-analysis)]} {
+    if {![Rappture::library isvalid $itk_option(-analysis)]} {
         error "bad value \"$itk_option(-analysis)\": should be Rappture::Library"
     }
     set _control [$itk_option(-analysis) get control]
@@ -298,7 +298,7 @@ itcl::configbody Rappture::Analyzer::analysis {
     catch {unset _widgets}
 
     set counter 0
-    foreach item [$itk_option(-analysis) get -children] {
+    foreach item [$itk_option(-analysis) children] {
         switch -glob -- $item {
             xyplot* {
                 set name "page[incr counter]"
@@ -310,7 +310,7 @@ itcl::configbody Rappture::Analyzer::analysis {
                     $name $label
 
                 set _widgets($item) [Rappture::Xyplot $page.#auto \
-                    -layout [$itk_option(-analysis) get -object $item]]
+                    -layout [$itk_option(-analysis) element -flavor object $item]]
                 pack $_widgets($item) -expand yes -fill both
             }
         }

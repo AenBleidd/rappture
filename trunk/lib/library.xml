@@ -1,0 +1,54 @@
+<?xml version="1.0"?>
+<library>
+<parameters>
+  <group name="ambient">
+    <number name="temperature">
+      <label>Ambient temperature</label>
+      <units>K</units>
+      <min>0</min>
+      <max>500K</max>
+      <default>300K</default>
+      <preset>
+        <value>300K</value>
+        <label>300K (room temperature)</label>
+      </preset>
+      <preset>
+        <value>77K</value>
+        <label>77K (liquid nitrogen)</label>
+      </preset>
+      <preset>
+        <value>4.2K</value>
+        <label>4.2K (liquid helium)</label>
+      </preset>
+      <preset>
+        <value>0K</value>
+        <label>0 (absolute zero)</label>
+      </preset>
+    </number>
+  </group>
+</parameters>
+<materials>
+  <material name="GaAs">
+    <formula>GaAs</formula>
+    <bandgap>1.422eV</bandgap>
+    <color>#ccccff</color>
+    <electronAffinity>4.070eV</electronAffinity>
+    <dielectricConstant>12.847</dielectricConstant>
+    <NcEffDensityOfStates>0.462e18/cm3</NcEffDensityOfStates>
+    <NvEffDensityOfStates>0.942e19/cm3</NvEffDensityOfStates>
+  </material>
+  <material name="Al(0.3)Ga(0.7)As">
+    <formula>Al(0.3)Ga(0.7)As</formula>
+    <color>#9999ff</color>
+    <bandgap>1.797eV</bandgap>
+    <electronAffinity>3.827eV</electronAffinity>
+    <dielectricConstant>11.9</dielectricConstant>
+    <NcEffDensityOfStates>0.857e18/cm3</NcEffDensityOfStates>
+    <NvEffDensityOfStates>0.111e20/cm3</NvEffDensityOfStates>
+  </material>
+  <material name="Au">
+    <formula>Au</formula>
+    <color>#ffff66</color>
+  </material>
+</materials>
+</library>

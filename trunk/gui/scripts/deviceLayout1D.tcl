@@ -181,7 +181,7 @@ itcl::body Rappture::DeviceLayout1D::_layout {} {
 
     # see if any of the slabs has a label
     if {$_device != ""} {
-        foreach nn [$_device get -children recipe] {
+        foreach nn [$_device children recipe] {
             if {"" != [$_device get recipe.$nn.label]} {
                 set extra [expr {1.2*[font metrics $fnt -linespace]}] 
                 set h [expr {$h+$extra}]
@@ -191,7 +191,7 @@ itcl::body Rappture::DeviceLayout1D::_layout {} {
     }
 
     # a little extra height for the molecule image
-    if {[$_device get -exists recipe.molecule]} {
+    if {"" != [$_device element recipe.molecule]} {
         set h [expr {$h+15}]
     }
 
@@ -209,7 +209,7 @@ itcl::body Rappture::DeviceLayout1D::_layout {} {
 
     set z 0
     if {$_device != ""} {
-        foreach nn [$_device get -children recipe] {
+        foreach nn [$_device children recipe] {
             switch -glob -- $nn {
                 slab* - molecule* {
                     set tval [$_device get recipe.$nn.thickness]
@@ -309,7 +309,7 @@ itcl::body Rappture::DeviceLayout1D::_drawLayer {index x0 x1} {
     set c $itk_component(area)
     set h [expr {[winfo height $c]-1}]
     # a little extra height for the molecule image
-    if {[$_device get -exists recipe.molecule]} {
+    if {"" != [$_device element recipe.molecule]} {
         set h [expr {$h-15}]
     }
 
@@ -360,7 +360,7 @@ itcl::body Rappture::DeviceLayout1D::_drawMolecule {index x0 x1} {
     set c $itk_component(area)
     set h [expr {[winfo height $c]-1}]
     # a little extra height for the molecule image
-    if {[$_device get -exists recipe.molecule]} {
+    if {"" != [$_device element recipe.molecule]} {
         set h [expr {$h-15}]
     }
 
@@ -394,7 +394,7 @@ itcl::body Rappture::DeviceLayout1D::_drawAnnotation {index x0 x1} {
     set c $itk_component(area)
     set h [expr {[winfo height $c]-1}]
     # a little extra height for the molecule image
-    if {[$_device get -exists recipe.molecule]} {
+    if {"" != [$_device element recipe.molecule]} {
         set h [expr {$h-15}]
     }
 
@@ -447,7 +447,7 @@ itcl::body Rappture::DeviceLayout1D::_drawAnnotation {index x0 x1} {
     # If there's a <label> for this layer, then draw it.
     #
     if {"" != $_device} {
-        set label [$_device get "$elem.label"]
+        set label [$_device get $elem.label]
         if {"" != $label} {
             set y [expr {$y-0.5*$lh}]
             $c create text [expr {0.5*($x0p+$x1p)}] $y -anchor s \
@@ -490,7 +490,7 @@ itcl::configbody Rappture::DeviceLayout1D::font {
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::DeviceLayout1D::library {
     if {$itk_option(-library) != ""} {
-        if {![Rappture::Library::valid $itk_option(-library)]} {
+        if {![Rappture::library isvalid $itk_option(-library)]} {
             error "bad value \"$itk_option(-library)\": should be Rappture::Library"
         }
     }
@@ -507,7 +507,7 @@ itcl::configbody Rappture::DeviceLayout1D::library {
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::DeviceLayout1D::device {
     if {$itk_option(-device) != ""} {
-        if {![Rappture::Library::valid $itk_option(-device)]} {
+        if {![Rappture::library isvalid $itk_option(-device)]} {
             error "bad value \"$itk_option(-device)\": should be Rappture::Library"
         }
     }
