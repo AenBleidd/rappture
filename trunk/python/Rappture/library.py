@@ -121,10 +121,15 @@ class library:
             return None
 
         clist = node.childNodes
-        if len(clist) == 1 and isinstance(clist[0],minidom.Text):
-            return clist[0].nodeValue.strip()
-
-        return None
+        rval = None
+        for node in [n for n in clist if isinstance(n,minidom.Text)]:
+            if rval == None:
+                rval = node.nodeValue
+            else:
+                rval += node.nodeValue
+        if rval:
+            rval = rval.strip()
+        return rval
 
     # ------------------------------------------------------------------
     def put(self, path="", value="", id=None, append=0):
