@@ -127,7 +127,7 @@ Rappture::MainWin .main -borderwidth 0
 
 # build everything inside this main window
 set win [.main component app]
-$win configure -background #a6a6a6
+#$win configure -background #a6a6a6
 
 frame $win.input -borderwidth 12 -relief flat
 pack $win.input -side left -expand yes -fill both -padx {0 5}
@@ -136,12 +136,12 @@ frame $win.output -borderwidth 12 -relief flat
 pack $win.output -side left -expand yes -fill both -padx {5 0}
 
 # make an arrow that goes from input to output side
-label $win.arrow -borderwidth 0 -image in2out
-place $win.arrow -y 2 -anchor n
-bind $win.input <Configure> [list align_arrow $win]
-proc align_arrow {win} {
-    place $win.arrow -x [expr {[winfo width $win.input]+5}]
-}
+#label $win.arrow -borderwidth 0 -image in2out
+#place $win.arrow -y 2 -anchor n
+#bind $win.input <Configure> [list align_arrow $win]
+#proc align_arrow {win} {
+#    place $win.arrow -x [expr {[winfo width $win.input]+5}]
+#}
 
 # ----------------------------------------------------------------------
 # INPUT AREA
@@ -149,12 +149,10 @@ proc align_arrow {win} {
 set w $win.input
 set dfirst ""
 set dlist [$config children -type structure controls]
-puts "device: $dlist"
 if {"" != $dlist} {
     foreach dname $dlist {
         set obj [$config element -flavor object controls.$dname]
         set name [$obj get label]
-puts " => $name = $obj"
         set devs($name) $obj
     }
     set devlist [lsort [array names devs]]
@@ -176,11 +174,10 @@ puts " => $name = $obj"
 
     set first [lindex $devlist 0]
     set dfirst $devs($first)
-    set tags [$dfirst children]
+    set tags [$dfirst children components]
     set i [lsearch $tags label]
     if {$i >= 0} {set tags [lreplace $tags $i $i]}
 
-puts "first device: tags = $tags"
     if {$tags == "molecule"} {
         Rappture::MoleculeViewer $w.device -device $devs($first) \
             -library $lib

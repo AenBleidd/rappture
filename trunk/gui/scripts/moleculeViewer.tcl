@@ -163,103 +163,103 @@ itcl::configbody Rappture::MoleculeViewer::library {
     _render
 }
 
-package require Rappture
-Rappture::MoleculeViewer .e -library [Rappture::library -std library.xml]
-pack .e -expand yes -fill both
-
-set dev [Rappture::library {<?xml version="1.0"?>
-<structure>
-<components>
-<molecule id="Aspirin">
-  <formula>???</formula>
-  <info>Aspirin molecule</info>
-  <atom id="1">
-    <symbol>C</symbol>
-    <xyz>-1.892  -0.992  -1.578</xyz>
-  </atom>
-  <atom id="2">
-    <symbol>C</symbol>
-    <xyz>-1.370  -2.149  -0.990</xyz>
-  </atom>
-  <atom id="3">
-    <symbol>C</symbol>
-    <xyz>-0.079  -2.146  -0.464</xyz>
-  </atom>
-  <atom id="4">
-    <symbol>C</symbol>
-    <xyz>0.708  -0.986  -0.521</xyz>
-  </atom>
-  <atom id="5">
-    <symbol>C</symbol>
-    <xyz>0.203   0.156  -1.196</xyz>
-  </atom>
-  <atom id="6">
-    <symbol>C</symbol>
-    <xyz>-1.108   0.161  -1.654</xyz>
-  </atom>
-  <atom id="7">
-    <symbol>C</symbol>
-    <xyz>2.085  -1.030   0.104</xyz>
-  </atom>
-  <atom id="8">
-    <symbol>O</symbol>
-    <xyz>2.533  -2.034   0.636</xyz>
-  </atom>
-  <atom id="9">
-    <symbol>O</symbol>
-    <xyz>2.879   0.025   0.112</xyz>
-  </atom>
-  <atom id="10">
-    <symbol>O</symbol>
-    <xyz>0.753   1.334  -1.084</xyz>
-  </atom>
-  <atom id="11">
-    <symbol>C</symbol>
-    <xyz>0.668   2.025   0.034</xyz>
-  </atom>
-  <atom id="12">
-    <symbol>O</symbol>
-    <xyz>1.300   3.063   0.152</xyz>
-  </atom>
-  <atom id="13">
-    <symbol>C</symbol>
-    <xyz>-0.243   1.577   1.144</xyz>
-  </atom>
-  <atom id="14">
-    <symbol>H</symbol>
-    <xyz>-2.879  -0.962  -1.985</xyz>
-  </atom>
-  <atom id="15">
-    <symbol>H</symbol>
-    <xyz>-1.988  -3.037  -0.955</xyz>
-  </atom>
-  <atom id="16">
-    <symbol>H</symbol>
-    <xyz>0.300  -3.063  -0.005</xyz>
-  </atom>
-  <atom id="17">
-    <symbol>H</symbol>
-    <xyz>-1.489   1.084  -2.059</xyz>
-  </atom>
-  <atom id="18">
-    <symbol>H</symbol>
-    <xyz>2.566   0.782  -0.326</xyz>
-  </atom>
-  <atom id="19">
-    <symbol>H</symbol>
-    <xyz>-0.761   0.636   0.933</xyz>
-  </atom>
-  <atom id="20">
-    <symbol>H</symbol>
-    <xyz>-1.009   2.349   1.290</xyz>
-  </atom>
-  <atom id="21">
-    <symbol>H</symbol>
-    <xyz>0.346   1.435   2.059</xyz>
-  </atom>
-</molecule>
-</components>
-</structure>}]
+#package require Rappture
+#Rappture::MoleculeViewer .e -library [Rappture::library -std library.xml]
+#pack .e -expand yes -fill both
+#
+#set dev [Rappture::library {<?xml version="1.0"?>
+#<structure>
+#<components>
+#<molecule id="Aspirin">
+#  <formula>???</formula>
+#  <info>Aspirin molecule</info>
+#  <atom id="1">
+#    <symbol>C</symbol>
+#    <xyz>-1.892  -0.992  -1.578</xyz>
+#  </atom>
+#  <atom id="2">
+#    <symbol>C</symbol>
+#    <xyz>-1.370  -2.149  -0.990</xyz>
+#  </atom>
+#  <atom id="3">
+#    <symbol>C</symbol>
+#    <xyz>-0.079  -2.146  -0.464</xyz>
+#  </atom>
+#  <atom id="4">
+#    <symbol>C</symbol>
+#    <xyz>0.708  -0.986  -0.521</xyz>
+#  </atom>
+#  <atom id="5">
+#    <symbol>C</symbol>
+#    <xyz>0.203   0.156  -1.196</xyz>
+#  </atom>
+#  <atom id="6">
+#    <symbol>C</symbol>
+#    <xyz>-1.108   0.161  -1.654</xyz>
+#  </atom>
+#  <atom id="7">
+#    <symbol>C</symbol>
+#    <xyz>2.085  -1.030   0.104</xyz>
+#  </atom>
+#  <atom id="8">
+#    <symbol>O</symbol>
+#    <xyz>2.533  -2.034   0.636</xyz>
+#  </atom>
+#  <atom id="9">
+#    <symbol>O</symbol>
+#    <xyz>2.879   0.025   0.112</xyz>
+#  </atom>
+#  <atom id="10">
+#    <symbol>O</symbol>
+#    <xyz>0.753   1.334  -1.084</xyz>
+#  </atom>
+#  <atom id="11">
+#    <symbol>C</symbol>
+#    <xyz>0.668   2.025   0.034</xyz>
+#  </atom>
+#  <atom id="12">
+#    <symbol>O</symbol>
+#    <xyz>1.300   3.063   0.152</xyz>
+#  </atom>
+#  <atom id="13">
+#    <symbol>C</symbol>
+#    <xyz>-0.243   1.577   1.144</xyz>
+#  </atom>
+#  <atom id="14">
+#    <symbol>H</symbol>
+#    <xyz>-2.879  -0.962  -1.985</xyz>
+#  </atom>
+#  <atom id="15">
+#    <symbol>H</symbol>
+#    <xyz>-1.988  -3.037  -0.955</xyz>
+#  </atom>
+#  <atom id="16">
+#    <symbol>H</symbol>
+#    <xyz>0.300  -3.063  -0.005</xyz>
+#  </atom>
+#  <atom id="17">
+#    <symbol>H</symbol>
+#    <xyz>-1.489   1.084  -2.059</xyz>
+#  </atom>
+#  <atom id="18">
+#    <symbol>H</symbol>
+#    <xyz>2.566   0.782  -0.326</xyz>
+#  </atom>
+#  <atom id="19">
+#    <symbol>H</symbol>
+#    <xyz>-0.761   0.636   0.933</xyz>
+#  </atom>
+#  <atom id="20">
+#    <symbol>H</symbol>
+#    <xyz>-1.009   2.349   1.290</xyz>
+#  </atom>
+#  <atom id="21">
+#    <symbol>H</symbol>
+#    <xyz>0.346   1.435   2.059</xyz>
+#  </atom>
+#</molecule>
+#</components>
+#</structure>}]
 # add connectivity at some point...
 #CONECT    1    2    6   14                   
 #CONECT    2    1    3   15                   
@@ -283,4 +283,4 @@ set dev [Rappture::library {<?xml version="1.0"?>
 #CONECT   20   13                             
 #CONECT   21   13                
 
-.e configure -device $dev
+#.e configure -device $dev
