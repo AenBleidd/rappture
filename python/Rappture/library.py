@@ -116,11 +116,7 @@ class library:
         specified by the path.
         """
 
-        if path == "":
-            node = self.node
-        else:
-            node = self._find(path)
-
+        node = self._find(path)
         if not node:
             return None
 
@@ -129,6 +125,65 @@ class library:
             return clist[0].nodeValue.strip()
 
         return None
+
+    # ------------------------------------------------------------------
+    def put(self, path="", value="", id=None, append=0):
+        """
+        Clients use this to set the value of a node.  If the path
+        is not specified, it sets the value for the root node.
+        Otherwise, it sets the value for the element specified
+        by the path.  If the value is a string, then it is treated
+        as the text within the tag at the tail of the path.  If it
+        is a DOM node or a library, then it is inserted into the
+        tree at the specified path.
+
+        If the optional id is specified, then it sets the identifier
+        for the tag at the tail of the path.  If the optional append
+        flag is specified, then the value is appended to the current
+        value.  Otherwise, the value replaces the current value.
+        """
+
+        node = self._find(path,create=1)
+
+        if append:
+            nlist = [n for n in node.childNodes
+                       if not n.nodeType == n.TEXT_NODE]
+        else:
+            nlist = node.childNodes
+
+        for n in nlist:
+            node.removeChild(n)
+
+        if value:
+            # if there's a value, then add it to the node
+            if isinstance(value, library):
+                node.appendChild(value.node)
+            elif isinstance(value, minidom.Node):
+                node.appendChild(value)
+            elif value and value != '':
+                n = self.doc.createTextNode(value)
+                node.appendChild(n)
+
+        # if there's an id, then set it on the node
+        if id:
+            node.setAttribute("id",id)
+
+    # ------------------------------------------------------------------
+    def remove(self, path=""):
+        """
+        Clients use this to remove the specified node.  Removes the
+        node from the tree and returns it as an element, so you can
+        put it somewhere else if you like.
+        """
+
+        node = self._find(path)
+        if not node:
+            return None
+
+        rval = library('<?xml version="1.0"?>' + node.toxml())
+        node.parentNode.removeChild(node)
+
+        return rval
 
     # ------------------------------------------------------------------
     def xml(self):
