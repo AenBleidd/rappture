@@ -37,11 +37,11 @@ itcl::class Rappture::Curve {
 # CONSTRUCTOR
 # ----------------------------------------------------------------------
 itcl::body Rappture::Curve::constructor {libobj path} {
-    if {![Rappture::Library::valid $libobj]} {
+    if {![Rappture::library isvalid $libobj]} {
         error "bad value \"$libobj\": should be LibraryObj"
     }
     set _libobj $libobj
-    set _curve [$libobj get -object $path]
+    set _curve [$libobj element -flavor object $path]
 
     # build up vectors for various components of the curve
     _build
@@ -143,12 +143,11 @@ itcl::body Rappture::Curve::_build {} {
     # Scan through the components of the curve and create
     # vectors for each part.
     #
-    set max [$_curve get -count component]
-    for {set i 0} {$i < $max} {incr i} {
+    foreach cname [$_curve children -type component] {
         set xv ""
         set yv ""
 
-        set xydata [$_curve get component$i.xy]
+        set xydata [$_curve get $cname.xy]
         if {"" != $xydata} {
             set xv [blt::vector create x$_counter]
             set yv [blt::vector create y$_counter]
@@ -162,7 +161,7 @@ itcl::body Rappture::Curve::_build {} {
         }
 
         if {$xv != "" && $yv != ""} {
-            set _comp2vecs(component$i) [list $xv $yv]
+            set _comp2vecs($cname) [list $xv $yv]
             incr _counter
         }
     }

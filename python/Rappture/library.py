@@ -363,6 +363,7 @@ class library:
                     for n in lastnode.childNodes:
                         if n.nodeName == type:
                             pos = n
+
                     if pos:
                         pos = pos.nextSibling
 

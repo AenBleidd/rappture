@@ -185,7 +185,7 @@ itcl::body Rappture::DeviceViewer1D::_fixTabs {} {
     # fields.  Create a tab for each field.
     #
     if {$_device != ""} {
-        foreach nn [$_device get -children] {
+        foreach nn [$_device children] {
             if {[string match field* $nn]} {
                 set name [$_device get $nn.label]
                 if {$name == ""} {
@@ -515,11 +515,10 @@ itcl::body Rappture::DeviceViewer1D::_marker {option {name ""} {path ""}} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::DeviceViewer1D::_controlCreate {container libObj path} {
     set presets ""
-    set npre [$libObj get -count $path.preset]
-    for {set i 0} {$i < $npre} {incr i} {
+    foreach pre [$libObj children -type preset $path] {
         lappend presets \
-            [$libObj get $path.preset$i.value] \
-            [$libObj get $path.preset$i.label]
+            [$libObj get $path.$pre.value] \
+            [$libObj get $path.$pre.label]
     }
 
     set type Rappture::Gauge
@@ -605,7 +604,7 @@ itcl::body Rappture::DeviceViewer1D::_controlSet {widget libObj path} {
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::DeviceViewer1D::device {
     if {$itk_option(-device) != ""} {
-        if {![Rappture::Library::valid $itk_option(-device)]} {
+        if {![Rappture::library isvalid $itk_option(-device)]} {
             error "bad value \"$itk_option(-device)\": should be Rappture::Library"
         }
     }
@@ -622,7 +621,7 @@ itcl::configbody Rappture::DeviceViewer1D::device {
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::DeviceViewer1D::tool {
     if {$itk_option(-tool) != ""} {
-        if {![Rappture::Library::valid $itk_option(-tool)]} {
+        if {![Rappture::library isvalid $itk_option(-tool)]} {
             error "bad value \"$itk_option(-tool)\": should be Rappture::Library"
         }
     }

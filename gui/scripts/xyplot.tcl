@@ -95,7 +95,7 @@ itcl::body Rappture::Xyplot::_rebuild {} {
     # now extract any new data and plot it
     if {$layout != "" && $run != ""} {
         set count 0
-        foreach item [$layout get -children] {
+        foreach item [$layout children] {
           switch -glob -- $item {
             title {
                 $g configure -title [$layout get title]
@@ -117,7 +117,7 @@ itcl::body Rappture::Xyplot::_rebuild {} {
             }
             field* {
               set name [$layout get $item]
-              if {[$run get -exists output.$name]} {
+              if {"" != [$run element output.$name]} {
                   set fobj [Rappture::Field ::#auto $_device $run output.$name]
                   set _path2obj($name) $fobj
                   foreach {xv yv} [$fobj vectors component0] { break }
@@ -143,7 +143,7 @@ itcl::body Rappture::Xyplot::_rebuild {} {
             }
             curve* {
               set name [$layout get $item]
-              if {[$run get -exists output.$name]} {
+              if {"" != [$run get element output.$name]} {
                   set cobj [Rappture::Curve ::#auto $run output.$name]
                   set _path2obj($name) $cobj
                   foreach {xv yv} [$cobj vectors component0] { break }
@@ -210,7 +210,7 @@ itcl::body Rappture::Xyplot::_rebuild {} {
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::Xyplot::layout {
     if {$itk_option(-layout) != ""} {
-        if {![Rappture::Library::valid $itk_option(-layout)]} {
+        if {![Rappture::library isvalid $itk_option(-layout)]} {
             error "bad value \"$itk_option(-layout)\": should be Rappture::Library"
         }
     }
@@ -230,10 +230,10 @@ itcl::configbody Rappture::Xyplot::run {
         set _device ""
     }
     if {$itk_option(-run) != ""} {
-        if {![Rappture::Library::valid $itk_option(-run)]} {
+        if {![Rappture::library isvalid $itk_option(-run)]} {
             error "bad value \"$itk_option(-run)\": should be Rappture::Library"
         }
-        set _device [$itk_option(-run) get -object device]
+        set _device [$itk_option(-run) element -flavor object device]
     }
     after cancel [itcl::code $this _rebuild]
     after idle [itcl::code $this _rebuild]
