@@ -72,12 +72,14 @@ class library:
         raise ValueError, "bad flavor '%s': should be object, name, type" % flavor
 
     # ------------------------------------------------------------------
-    def children(self, path="", flavor="object"):
+    def children(self, path="", flavor="object", type=None):
         """
         Clients use this to query the children of a particular element
         within the entire data structure.  This is just like the
         element() method, but it returns the children of the element
-        instead of the element itself.
+        instead of the element itself.  If the optional type argument
+        is specified, then the return list is restricted to children
+        of the specified type.
 
         By default, this method returns a list of objects representing
         the children.  This is changed by setting the "flavor" argument
@@ -92,6 +94,9 @@ class library:
             return None
 
         nlist = [n for n in node.childNodes if not n.nodeName.startswith('#')]
+
+        if type:
+            nlist = [n for n in nlist if n.nodeName == type]
 
         if flavor == 'object':
             return [library(n) for n in nlist]
