@@ -62,34 +62,6 @@ itcl::body Rappture::EnergyLevels::constructor {args} {
     }
     pack $itk_component(title) -side top
 
-    #
-    # Add labels showing level stats at bottom.
-    #
-    itk_component add stats {
-        frame $itk_interior.stats
-    }
-    pack $itk_component(stats) -side bottom -fill x
-
-    itk_component add numvall {
-        label $itk_component(stats).numvall -text "Number of valence electrons:"
-    }
-    grid $itk_component(numvall) -row 0 -column 0 -sticky e
-
-    itk_component add numvalv {
-        label $itk_component(stats).numvalv
-    }
-    grid $itk_component(numvalv) -row 0 -column 1 -sticky w
-
-    itk_component add numbasl {
-        label $itk_component(stats).numbasl -text "Number of basis functions:"
-    }
-    grid $itk_component(numbasl) -row 1 -column 0 -sticky e
-
-    itk_component add numbasv {
-        label $itk_component(stats).numbasv
-    }
-    grid $itk_component(numbasv) -row 1 -column 1 -sticky w
-
 
     itk_component add cntls {
         frame $itk_interior.cntls
@@ -204,7 +176,7 @@ itcl::body Rappture::EnergyLevels::_render {} {
         set title [$itk_option(-layout) get label]
     }
     if {"" != $title} {
-        pack $itk_component(title) -side top -before $itk_component(stats)
+        pack $itk_component(title) -side top -before $graph
         $itk_component(title) configure -text $title
     } else {
         pack forget $itk_component(title)
@@ -234,7 +206,7 @@ itcl::body Rappture::EnergyLevels::_render {} {
     # Update the graph to show the current set of levels.
     #
     set n 0
-    set nlumo 0
+    set nlumo -1
     set emax ""
     set emin ""
     set ehomo ""
@@ -247,17 +219,21 @@ itcl::body Rappture::EnergyLevels::_render {} {
         } elseif {$lval == "LUMO" || $n == $nlumo} {
             set elumo $eval
             set lval "LUMO = $eval $units"
+        } else {
+            set lval ""
         }
 
         set elem "elem[incr n]"
         $graph element create $elem \
             -xdata {0 1} -ydata [list $eval $eval] \
-            -color $itk_option(-levelcolor) -symbol "" -linewidth 2
+            -color $itk_option(-levelcolor) -symbol "" -linewidth 1
 
-        $graph marker create text -coords [list 0.5 $eval] \
-            -text $lval -anchor c \
-            -foreground $itk_option(-leveltextforeground) \
-            -background $itk_option(-leveltextbackground)
+        if {$lval != ""} {
+            $graph marker create text -coords [list 0.5 $eval] \
+                -text $lval -anchor c \
+                -foreground $itk_option(-leveltextforeground) \
+                -background $itk_option(-leveltextbackground)
+        }
 
         if {$emax == ""} {
             set emax $eval
@@ -280,10 +256,6 @@ itcl::body Rappture::EnergyLevels::_render {} {
     set emin [expr {$emin-($emax-$emin)*$h/150.0}]
     set emax [expr {$emax+($emax-$emin)*$h/150.0}]
     $graph yaxis configure -min $emin -max $emax
-
-    # fill in the stats at the bottom
-    $itk_component(numvalv) configure -text $nlumo
-    $itk_component(numbasv) configure -text $n
 
     #
     # If we found HOMO/LUMO levels, then add the band gap at

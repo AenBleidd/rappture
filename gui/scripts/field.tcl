@@ -55,13 +55,13 @@ itcl::body Rappture::Field::constructor {devobj libobj path} {
 
     # determine the overall size of the device
     set z0 [set z1 0]
-    foreach elem [$_device children recipe] {
+    foreach elem [$_device children components] {
         switch -glob -- $elem {
             slab* - molecule* {
                 if {![regexp {[0-9]$} $elem]} {
                     set elem "${elem}0"
                 }
-                set tval [$_device get recipe.$elem.thickness]
+                set tval [$_device get components.$elem.thickness]
                 set tval [Rappture::Units::convert $tval \
                     -context um -to um -units off]
                 set z1 [expr {$z0+$tval}]
@@ -114,6 +114,9 @@ itcl::body Rappture::Field::components {{pattern *}} {
 # overall field (sum of all components).
 # ----------------------------------------------------------------------
 itcl::body Rappture::Field::vectors {{what -overall}} {
+    if {$what == "component0"} {
+        set what "component"
+    }
     if {[info exists _comp2vecs($what)]} {
         return $_comp2vecs($what)
     }

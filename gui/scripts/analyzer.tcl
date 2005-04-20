@@ -150,9 +150,11 @@ itcl::body Rappture::Analyzer::simulate {} {
             set fid [open driver.xml w]
             puts $fid "<?xml version=\"1.0\"?>"
             set xml [$itk_option(-tool) xml]
-            set xml2 [$itk_option(-device) xml]
-            regsub -all {&} $xml2 {\\\&} xml2
-            regsub {</run>} $xml "$xml2</run>" xml
+            if {$itk_option(-device) != ""} {
+                set xml2 [$itk_option(-device) xml]
+                regsub -all {&} $xml2 {\\\&} xml2
+                regsub {</run>} $xml "$xml2</run>" xml
+            }
             puts $fid $xml
             close $fid
         } result]
@@ -264,7 +266,7 @@ itcl::configbody Rappture::Analyzer::tool {
 
     $itk_component(info) configure -state normal
     $itk_component(info) delete 1.0 end
-    $itk_component(info) insert end [$itk_option(-tool) get executable.about]
+    $itk_component(info) insert end [$itk_option(-tool) get tool.about]
     $itk_component(info) configure -state disabled
 }
 

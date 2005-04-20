@@ -26,7 +26,7 @@ exec wish "$0" $*
 
 package require Rappture
 
-option add *MainWin.mode web startupFile
+option add *MainWin.mode desktop startupFile
 option add *MainWin.borderWidth 0 startupFile
 option add *MainWin.anchor center startupFile
 
@@ -40,6 +40,7 @@ option add *MainWin.bgScript {
 # "clean" look
 option add *MainWin.bgScript "" startupFile
 option add *MainWin.bgColor white startupFile
+option add *Tooltip.background white
 
 image create photo in2out \
     -file [file join $Rappture::installdir scripts images in2out.gif]
@@ -123,7 +124,7 @@ proc main_device_select {} {
 wm withdraw .
 Rappture::MainWin .main -borderwidth 0
 
-#.main configure -title [$config get title]
+.main configure -title [$config get title]
 
 # build everything inside this main window
 set win [.main component app]
@@ -202,11 +203,88 @@ pack $w.analyze -expand yes -fill both
 # ----------------------------------------------------------------------
 # HOOK UP ANY CONTROLS CALLED OUT IN CONFIG.XML
 # ----------------------------------------------------------------------
-foreach access [$config children -type access controls] {
-    set name [$config get controls.$access]
-    switch -glob -- $name {
-        parameters.ambient* - structure* {
-##            $win.input.device controls add $name
+proc controls_add {container libObj path} {
+    set presets ""
+    foreach pre [$libObj children -type preset $path] {
+        lappend presets \
+            [$libObj get $path.$pre.value] \
+            [$libObj get $path.$pre.label]
+    }
+
+    set type Rappture::Gauge
+    set units [$libObj get $path.units]
+    if {$units != ""} {
+        set desc [Rappture::Units::description $units]
+        if {[string match temperature* $desc]} {
+            set type Rappture::TemperatureGauge
         }
     }
+
+    set counter 0
+    set w "$container.gauge[incr counter]"
+    while {[winfo exists $w]} {
+        set w "$container.gauge[incr counter]"
+    }
+
+    # create the widget
+    $type $w -units $units -presets $presets
+    pack $w -side top -anchor w
+#    bind $w <<Value>> [itcl::code $this _controlSet $w $libObj $path]
+
+    set min [$libObj get $path.min]
+    if {"" != $min} { $w configure -minvalue $min }
+
+    set max [$libObj get $path.max]
+    if {"" != $max} { $w configure -maxvalue $max }
+
+    set str [$libObj get $path.default]
+    if {$str != ""} { $w value $str }
+
+    if {$type == "Rappture::Gauge" && "" != $min && "" != $max} {
+        set color [$libObj get $path.color]
+        if {$color == ""} {
+            set color blue
+        }
+        if {$units != ""} {
+            set min [Rappture::Units::convert $min -to $units -units off]
+            set max [Rappture::Units::convert $max -to $units -units off]
+        }
+        $w configure -spectrum [Rappture::Spectrum ::#auto [list \
+            $min white $max $color] -units $units]
+    }
+
+    set str [$libObj get $path.label]
+    if {$str != ""} {
+        set help [$libObj get $path.help]
+        if {"" != $help} {
+            append str "\n$help"
+        }
+        if {$units != ""} {
+            set desc [Rappture::Units::description $units]
+            append str "\n(units of $desc)"
+        }
+        Rappture::Tooltip::for $w $str
+    }
+
+    set str [$libObj get $path.icon]
+    if {$str != ""} {
+        $w configure -image [image create photo -data $str]
+    }
+}
+
+if {[winfo exists $win.input.device]} {
+    foreach access [$config children -type access controls] {
+        set name [$config get controls.$access]
+        switch -glob -- $name {
+            input.(ambient)* - structure* {
+                $win.input.device controls add $name
+            }
+        }
+    }
+} else {
+    foreach access [$config children -type access controls] {
+        set name [$config get controls.$access]
+        controls_add $win.input $tool $name
+    }
+    $w.analyze simulate
 }

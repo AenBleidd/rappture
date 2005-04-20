@@ -149,7 +149,7 @@ itcl::body Rappture::Spectrum::get {args} {
     set what "-color"
     while {[llength $args] > 0} {
         set first [lindex $args 0]
-        if {[string index $first 0] == "-"} {
+        if {[regexp {^-[a-zA-Z]} $first]} {
             set what $first
             set args [lrange $args 1 end]
         } else {

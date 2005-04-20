@@ -426,7 +426,7 @@ itcl::body Rappture::LibraryObj::find {args} {
     set lastnode $_node
     set node $lastnode
     foreach part $path {
-        if {![regexp {^(([a-zA-Z_]+#?)([0-9]*))?(\(([^\)]+)\))?$} $part \
+        if {![regexp {^(([a-zA-Z_]+#?)([0-9]*))?(\((.*)\))?$} $part \
                match dummy type index dummy name]} {
             error "bad path component \"$part\""
         }
