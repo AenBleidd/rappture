@@ -117,8 +117,8 @@ itcl::body Rappture::Xyplot::_rebuild {} {
             }
             field* {
               set name [$layout get $item]
-              if {"" != [$run element output.$name]} {
-                  set fobj [Rappture::Field ::#auto $_device $run output.$name]
+              if {"" != [$run element output.($name)]} {
+                  set fobj [Rappture::Field ::#auto $_device $run output.($name)]
                   set _path2obj($name) $fobj
                   foreach {xv yv} [$fobj vectors component0] { break }
 
@@ -143,10 +143,10 @@ itcl::body Rappture::Xyplot::_rebuild {} {
             }
             curve* {
               set name [$layout get $item]
-              if {"" != [$run get element output.$name]} {
-                  set cobj [Rappture::Curve ::#auto $run output.$name]
+              if {"" != [$run element output.($name)]} {
+                  set cobj [Rappture::Curve ::#auto $run output.($name)]
                   set _path2obj($name) $cobj
-                  foreach {xv yv} [$cobj vectors component0] { break }
+                  foreach {xv yv} [$cobj vectors component] { break }
 
                   set elem "elem[incr count]"
                   set label [$cobj hints label]
@@ -224,7 +224,7 @@ itcl::configbody Rappture::Xyplot::layout {
 # Set to the Rappture::Library object representing the data being
 # displayed in the plot.
 # ----------------------------------------------------------------------
-itcl::configbody Rappture::Xyplot::run {
+itcl::configbody Rappture::Xyplot::output {
     if {$_device != ""} {
         itcl::delete object $_device
         set _device ""
@@ -233,7 +233,7 @@ itcl::configbody Rappture::Xyplot::run {
         if {![Rappture::library isvalid $itk_option(-output)]} {
             error "bad value \"$itk_option(-output)\": should be Rappture::Library"
         }
-        set _device [$itk_option(-output) element -flavor object device]
+        set _device [$itk_option(-output) element -flavor object structure]
     }
     after cancel [itcl::code $this _rebuild]
     after idle [itcl::code $this _rebuild]

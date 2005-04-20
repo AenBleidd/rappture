@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <library>
 <parameters>
-  <group name="ambient">
-    <number name="temperature">
+  <group id="ambient">
+    <number id="temperature">
       <label>Ambient temperature</label>
       <units>K</units>
       <min>0</min>
@@ -50,7 +50,7 @@
   </atom>
 </elements>
 <materials>
-  <material name="GaAs">
+  <material id="GaAs">
     <formula>GaAs</formula>
     <bandgap>1.422eV</bandgap>
     <color>#ccccff</color>
@@ -59,7 +59,7 @@
     <NcEffDensityOfStates>0.462e18/cm3</NcEffDensityOfStates>
     <NvEffDensityOfStates>0.942e19/cm3</NvEffDensityOfStates>
   </material>
-  <material name="Al(0.3)Ga(0.7)As">
+  <material id="Al(0.3)Ga(0.7)As">
     <formula>Al(0.3)Ga(0.7)As</formula>
     <color>#9999ff</color>
     <bandgap>1.797eV</bandgap>
@@ -68,7 +68,7 @@
     <NcEffDensityOfStates>0.857e18/cm3</NcEffDensityOfStates>
     <NvEffDensityOfStates>0.111e20/cm3</NvEffDensityOfStates>
   </material>
-  <material name="Au">
+  <material id="Au">
     <formula>Au</formula>
     <color>#ffff66</color>
   </material>

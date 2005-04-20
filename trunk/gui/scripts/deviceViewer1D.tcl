@@ -68,8 +68,9 @@ itcl::body Rappture::DeviceViewer1D::constructor {args} {
         keep -background -cursor -font
         rename -highlightbackground -background background Background
         keep -highlightcolor -highlightthickness
-        keep -selectbackground -selectforeground
         keep -tabbackground -tabforeground
+        rename -selectbackground -background background Background
+        rename -selectforeground -foreground foreground Foreground
     }
     pack $itk_component(tabs) -expand yes -fill both
 
@@ -136,7 +137,8 @@ itcl::body Rappture::DeviceViewer1D::destructor {} {
 # Clients use this to add a control to the internal panels of this
 # widget.  If the <parameter> is ambient*, then the control is added
 # to the top, so it goes along with the layout of the device.  If
-# it is device.field*, then it goes in one of the field panels.
+# it is structure.fields.field*, then it goes in one of the field
+# panels.
 # ----------------------------------------------------------------------
 itcl::body Rappture::DeviceViewer1D::controls {option args} {
     switch -- $option {
@@ -145,8 +147,8 @@ itcl::body Rappture::DeviceViewer1D::controls {option args} {
                 error "wrong # args: should be \"controls add parameter\""
             }
             set path [lindex $args 0]
-            if {[string match device.field* $path]} {
-            } elseif {[string match device.recipe* $path]} {
+            if {[string match structure.fields.field* $path]} {
+            } elseif {[string match structure.components* $path]} {
                 $itk_component(layout) controls add $path
             } else {
                 _controlCreate $itk_component(ambient) $_tool $path
@@ -185,7 +187,7 @@ itcl::body Rappture::DeviceViewer1D::_fixTabs {} {
     # fields.  Create a tab for each field.
     #
     if {$_device != ""} {
-        foreach nn [$_device children] {
+        foreach nn [$_device children fields] {
             if {[string match field* $nn]} {
                 set name [$_device get $nn.label]
                 if {$name == ""} {
@@ -226,7 +228,8 @@ itcl::body Rappture::DeviceViewer1D::_fixTabs {} {
         pack $itk_component(graph) -expand yes -fill both
 
         foreach name $tabs {
-            $itk_component(tabs) insert end $name
+            $itk_component(tabs) insert end $name \
+                -activebackground $itk_option(-background)
         }
         $itk_component(tabs) select 0
     }
@@ -318,7 +321,7 @@ itcl::body Rappture::DeviceViewer1D::_changeTabs {} {
 
             foreach {path x y val} [$fobj controls get $comp] {
                 $graph marker create text -coords [list $x $y] \
-                    -text $val -anchor s -name $comp.$x
+                    -text $val -anchor s -name $comp.$x -background ""
                 $graph marker bind $comp.$x <Enter> \
                     [itcl::code $this _marker enter $comp.$x]
                 $graph marker bind $comp.$x <Leave> \

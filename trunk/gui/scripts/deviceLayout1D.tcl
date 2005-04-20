@@ -135,8 +135,8 @@ itcl::body Rappture::DeviceLayout1D::extents {what} {
 # USAGE: controls add <path>
 #
 # Clients use this to add hints about the controls that should be
-# added to the layout area.  Common paths are recipe.slab#.material
-# and recipe.slab#.thickness.
+# added to the layout area.  Common paths are components.slab#.material
+# and components.slab#.thickness.
 # ----------------------------------------------------------------------
 itcl::body Rappture::DeviceLayout1D::controls {option args} {
     switch -- $option {
@@ -181,8 +181,8 @@ itcl::body Rappture::DeviceLayout1D::_layout {} {
 
     # see if any of the slabs has a label
     if {$_device != ""} {
-        foreach nn [$_device children recipe] {
-            if {"" != [$_device get recipe.$nn.label]} {
+        foreach nn [$_device children components] {
+            if {"" != [$_device get components.$nn.about.label]} {
                 set extra [expr {1.2*[font metrics $fnt -linespace]}] 
                 set h [expr {$h+$extra}]
                 break
@@ -191,7 +191,7 @@ itcl::body Rappture::DeviceLayout1D::_layout {} {
     }
 
     # a little extra height for the molecule image
-    if {"" != [$_device element recipe.molecule]} {
+    if {"" != [$_device element components.molecule]} {
         set h [expr {$h+15}]
     }
 
@@ -209,16 +209,16 @@ itcl::body Rappture::DeviceLayout1D::_layout {} {
 
     set z 0
     if {$_device != ""} {
-        foreach nn [$_device children recipe] {
+        foreach nn [$_device children components] {
             switch -glob -- $nn {
                 slab* - molecule* {
-                    set tval [$_device get recipe.$nn.thickness]
+                    set tval [$_device get components.$nn.thickness]
                     set tval [Rappture::Units::convert $tval \
                         -context um -to um -units off]
-                    lappend slabs recipe.$nn
+                    lappend slabs components.$nn
                     lappend z0 $z
                     lappend zthick $tval
-                    lappend maters [$_device get recipe.$nn.material]
+                    lappend maters [$_device get components.$nn.material]
 
                     set z [expr {$z+$tval}]
                 }
@@ -309,7 +309,7 @@ itcl::body Rappture::DeviceLayout1D::_drawLayer {index x0 x1} {
     set c $itk_component(area)
     set h [expr {[winfo height $c]-1}]
     # a little extra height for the molecule image
-    if {"" != [$_device element recipe.molecule]} {
+    if {"" != [$_device element components.molecule]} {
         set h [expr {$h-15}]
     }
 
@@ -360,7 +360,7 @@ itcl::body Rappture::DeviceLayout1D::_drawMolecule {index x0 x1} {
     set c $itk_component(area)
     set h [expr {[winfo height $c]-1}]
     # a little extra height for the molecule image
-    if {"" != [$_device element recipe.molecule]} {
+    if {"" != [$_device element components.molecule]} {
         set h [expr {$h-15}]
     }
 
@@ -394,7 +394,7 @@ itcl::body Rappture::DeviceLayout1D::_drawAnnotation {index x0 x1} {
     set c $itk_component(area)
     set h [expr {[winfo height $c]-1}]
     # a little extra height for the molecule image
-    if {"" != [$_device element recipe.molecule]} {
+    if {"" != [$_device element components.molecule]} {
         set h [expr {$h-15}]
     }
 
@@ -414,7 +414,7 @@ itcl::body Rappture::DeviceLayout1D::_drawAnnotation {index x0 x1} {
     # If there's a .thickness control for this slab, draw it here.
     #
     set elem [lindex $_slabs $index]
-    set path "device.$elem.thickness"
+    set path "structure.$elem.thickness"
     if {[info exists _controls($path)] && $_controls($path)} {
         set zthick [lindex $_zthick $index]
         set zthick [Rappture::Units::convert $zthick -context um -to um]
@@ -431,7 +431,7 @@ itcl::body Rappture::DeviceLayout1D::_drawAnnotation {index x0 x1} {
     # If there's a .material control for this slab, draw it here.
     #
     set elem [lindex $_slabs $index]
-    set path "device.$elem.material"
+    set path "structure.$elem.material"
     if {[info exists _controls($path)] && $_controls($path)} {
         set mater [lindex $_maters $index]
         set w [expr {12+[font measure $fnt $mater]}]
@@ -447,7 +447,7 @@ itcl::body Rappture::DeviceLayout1D::_drawAnnotation {index x0 x1} {
     # If there's a <label> for this layer, then draw it.
     #
     if {"" != $_device} {
-        set label [$_device get $elem.label]
+        set label [$_device get $elem.about.label]
         if {"" != $label} {
             set y [expr {$y-0.5*$lh}]
             $c create text [expr {0.5*($x0p+$x1p)}] $y -anchor s \
@@ -464,7 +464,7 @@ itcl::body Rappture::DeviceLayout1D::_drawAnnotation {index x0 x1} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::DeviceLayout1D::_mater2color {mater} {
     if {$_library != ""} {
-        set color [$_library get materials.$mater.color]
+        set color [$_library get materials.($mater).color]
         if {$color != ""} {
             return $color
         }
