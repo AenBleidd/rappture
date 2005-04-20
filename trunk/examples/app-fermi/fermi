@@ -1,0 +1,46 @@
+#!/bin/sh
+# ----------------------------------------------------------------------
+#  Energy Levels WRAPPER
+#
+#  This wrapper computes the energy levels of an isolated molecule.
+# ======================================================================
+#  AUTHOR:  Michael McLennan, Purdue University
+#  Copyright (c) 2004  Purdue Research Foundation, West Lafayette, IN
+# ======================================================================
+#\
+exec tclsh "$0" "*$"
+# ----------------------------------------------------------------------
+# tclsh executes everything from here on...
+
+package require Rappture
+
+# open the XML file containing the run parameters
+set driver [Rappture::library driver.xml]
+
+set T 300
+set Ef -5.5
+
+set kT [expr {8.61734e-5 * $T}]
+set Emin [expr {$Ef - 10*$kT}]
+set Emax [expr {$Ef + 10*$kT}]
+
+set xy ""
+set E $Emin
+set dE [expr {0.005*($Emax-$Emin)}]
+while {$E < $Emax} {
+    set f [expr {1.0/(1.0 + exp(($E - $Ef)/$kT))}]
+    append xy "$f $E\n"
+    set E [expr {$E + $dE}]
+}
+
+$driver put output.curve(f12).label "Fermi-Dirac Factor"
+$driver put output.curve(f12).component.xy $xy
+
+#
+# Save the updated XML describing the run...
+# Be sure to do this back in the original directory
+#
+set fid [open run.xml w]
+puts $fid "<?xml version=\"1.0\"?>"
+puts $fid [$driver xml]
+close $fid
