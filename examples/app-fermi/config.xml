@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<application>
+<title>Fermi Level Simulator</title>
+<controls>
+
+<access>input.(ambient).(temperature)</access>
+<access>input.(Ef)</access>
+
+</controls>
+
+<analysis>
+  <control>auto</control>
+  <xyplot>
+    <title>Fermi-Dirac Distribution</title>
+    <xaxis>f</xaxis>
+    <yaxis>Energy (eV)</yaxis>
+    <curve>f12<style>-color blue</style></curve>
+  </xyplot>
+</analysis>
+
+</application>
