@@ -225,14 +225,14 @@ itcl::body Rappture::Analyzer::constructor {tool args} {
     $itk_component(toolinfo) configure -state disabled
     $itk_component(notebook) current about
 
-    # reset everything to a clean state
-    reset
-
     # tool can run on "manual" (default) or "auto"
     set cntl [$tool xml get tool.control]
     if {"" != $cntl} {
         set _control $cntl
     }
+
+    # reset everything to a clean state
+    reset
 }
 
 # ----------------------------------------------------------------------
@@ -457,6 +457,7 @@ itcl::body Rappture::Analyzer::clear {} {
 
     _simState on
     _fixSimControl
+    reset
 }
 
 # ----------------------------------------------------------------------

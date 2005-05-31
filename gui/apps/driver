@@ -134,7 +134,15 @@ if {[llength [$win.pager page]] == 2} {
     # if only two windows and they're small enough, put them up side-by-side
     if {$w0+$w1 < $screenw && $style != "wizard"} {
         $win.pager configure -arrangement side-by-side
-        $f.analyze configure -holdwindow [$win.pager page @0] -simcontrol on
+        $f.analyze configure -holdwindow [$win.pager page @0]
+
+        if {[$tool xml get tool.control] == "auto"} {
+            # in "auto" mode, we don't need a simulate button
+            $f.analyze configure -simcontrol off
+        } else {
+            # not in "auto" mode but side-by-side, we always need the button
+            $f.analyze configure -simcontrol on
+        }
     }
 }
 wm deiconify .main
