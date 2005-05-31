@@ -8,7 +8,8 @@
 #  allows any collection of widgets to be scrolled.
 # ======================================================================
 #  AUTHOR:  Michael McLennan, Purdue University
-#  Copyright (c) 2004  Purdue Research Foundation, West Lafayette, IN
+#  Copyright (c) 2004-2005
+#  Purdue Research Foundation, West Lafayette, IN
 # ======================================================================
 package require Itk
 
@@ -31,7 +32,7 @@ itcl::class Rappture::Scroller {
 
     protected method _widget2sbar {which args}
     protected method _fixsbar {which {state ""}}
-    protected method _fixframe {}
+    protected method _fixframe {which}
     protected method _lock {option}
 
     private variable _contents ""   ;# widget being controlled
@@ -99,8 +100,11 @@ itcl::body Rappture::Scroller::contents {{widget "!@#query"}} {
     #
     if {$widget == "frame"} {
         if {$_frame == ""} {
-            set _frame [canvas $itk_component(hull).ifr]
-            bind $_frame <Configure> [itcl::code $this _resizeframe]
+            set _frame [canvas $itk_component(hull).ifr -highlightthickness 0]
+            frame $_frame.f
+            $_frame create window 0 0 -anchor nw -window $_frame.f -tags frame
+            bind $_frame.f <Configure> [itcl::code $this _fixframe inner]
+            bind $_frame <Configure> [itcl::code $this _fixframe outer]
         }
         set widget $_frame
     }
@@ -118,6 +122,9 @@ itcl::body Rappture::Scroller::contents {{widget "!@#query"}} {
     $itk_component(ysbar) configure -command [list $widget yview]
     set _contents $widget
 
+    if {$widget == $_frame} {
+        return $_frame.f
+    }
     return $widget
 }
 
@@ -148,7 +155,7 @@ itcl::body Rappture::Scroller::_widget2sbar {which args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Scroller::_fixsbar {which {state ""}} {
     if {$state == ""} {
-        switch -- $itk_option(-${which}scrollmode) {
+        switch -- [string tolower $itk_option(-${which}scrollmode)] {
             on - 1 - true - yes  { set state 1 }
             off - 0 - false - no { set state 0 }
             auto {
@@ -159,6 +166,9 @@ itcl::body Rappture::Scroller::_fixsbar {which {state ""}} {
                         set state 1
                     }
                 }
+            }
+            default {
+                set state 0
             }
         }
     }
@@ -186,14 +196,21 @@ itcl::body Rappture::Scroller::_fixsbar {which {state ""}} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: _fixframe
+# USAGE: _fixframe <which>
 #
 # Invoked automatically whenever the canvas representing the "frame"
 # keyword is resized.  Updates the scrolling limits for the canvas
 # to the new size.
 # ----------------------------------------------------------------------
-itcl::body Rappture::Scroller::_fixframe {} {
-    $_frame configure -scrollregion [$_frame bbox all]
+itcl::body Rappture::Scroller::_fixframe {which} {
+    switch -- $which {
+        inner {
+            $_frame configure -scrollregion [$_frame bbox all]
+        }
+        outer {
+            $_frame itemconfigure frame -width [winfo width $_frame]
+        }
+    }
 }
 
 # ----------------------------------------------------------------------
@@ -247,7 +264,7 @@ itcl::configbody Rappture::Scroller::yscrollmode {
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::Scroller::width {
     if {$itk_option(-width) == "0"} {
-        if {$itk_option(-width) == "0"} {
+        if {$itk_option(-height) == "0"} {
             grid propagate $itk_component(hull) yes
         } else {
             component hull configure -width 1i
@@ -263,7 +280,7 @@ itcl::configbody Rappture::Scroller::width {
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::Scroller::height {
     if {$itk_option(-height) == "0"} {
-        if {$itk_option(-height) == "0"} {
+        if {$itk_option(-width) == "0"} {
             grid propagate $itk_component(hull) yes
         } else {
             component hull configure -height 1i

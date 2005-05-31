@@ -10,18 +10,22 @@
 package require tdom
 package require Itcl
 
-namespace eval Rappture { # forward declaration }
+namespace eval Rappture {
+    variable stdlib ""
+}
 
 # ----------------------------------------------------------------------
-# USAGE: library ?-std? <file>
+# USAGE: library <file>
+# USAGE: library standard
 # USAGE: library isvalid <object>
 #
 # Used to open a <file> containing an XML description of tool
 # parameters.  Loads the file and returns the name of the LibraryObj
 # file that represents it.
 #
-# If the -std flag is included, then the file is treated as the
-# name of a standard file, which is part of the Rappture installation.
+# If you use the word "standard" in place of the file name, this
+# function returns the standard Rappture library object, which
+# contains material definitions.
 #
 # The isvalid operation checks an <object> to see if it is a valid
 # library object.  Returns 1 if so, and 0 otherwise.
@@ -39,21 +43,24 @@ proc Rappture::library {args} {
         return 0
     }
 
-    # handle the open operation...
-    set stdfile 0
-    while {[llength $args] > 1} {
-        set switch [lindex $args 0]
-        set args [lrange $args 1 end]
-        if {$switch == "-std"} {
-            set stdfile 1
-        } else {
-            error "bad option \"$switch\": should be -std"
-        }
+    if {[llength $args] != 1} {
+        error "wrong # args: should be \"library file\" or \"library isvalid object\""
     }
     set fname [lindex $args 0]
 
-    if {$stdfile && [file pathtype $fname] != "absolute"} {
-        set fname [file join $Rappture::installdir lib $fname]
+    if {$fname == "standard"} {
+        variable stdlib
+        if {$stdlib != ""} {
+            return $stdlib
+        }
+        set fname [file join $Rappture::installdir lib library.xml]
+
+        set fid [::open $fname r]
+        set info [read $fid]
+        close $fid
+
+        set stdlib [Rappture::LibraryObj ::#auto $info]
+        return $stdlib
     }
 
     if {[regexp {^<\?[Xx][Mm][Ll]} $fname]} {
@@ -70,21 +77,102 @@ proc Rappture::library {args} {
 }
 
 # ----------------------------------------------------------------------
+# USAGE: entities ?-as <fval>? <object> <path>
+#
+# Used to sift through an XML <object> for "entities" within the
+# Rappture description.  Entities are things like strings, numbers,
+# etc., which show up in the GUI as controls.
+#
+# Returns a list of all entities found beneath <path>.
+#
+# By default, this method returns the component name "type(id)".
+# This is changed by setting the -as argument to "id" (for name
+# of the tail element), to "type" (for the type of the tail element),
+# to "object" (for an object representing the DOM node referenced by
+# the path.
+# ----------------------------------------------------------------------
+proc Rappture::entities {args} {
+    array set params {
+        -as component
+    }
+    while {[llength $args] > 1} {
+        set first [lindex $args 0]
+        if {[string index $first 0] == "-"} {
+            set choices [array names params]
+            if {[lsearch $choices $first] < 0} {
+                error "bad option \"$first\": should be [join [lsort $choices] {, }]"
+            }
+            set params($first) [lindex $args 1]
+            set args [lrange $args 2 end]
+        } else {
+            break
+        }
+    }
+    if {[llength $args] > 2} {
+        error "wrong # args: should be \"entities ?-as fval? obj ?path?\""
+    }
+    set xmlobj [lindex $args 0]
+    set path [lindex $args 1]
+
+    set rlist ""
+    lappend queue $path
+    while {[llength $queue] > 0} {
+        set path [lindex $queue 0]
+        set queue [lrange $queue 1 end]
+
+        foreach cpath [$xmlobj children -as path $path] {
+            switch -- [$xmlobj element -as type $cpath] {
+                group {
+                    lappend queue $cpath
+                }
+                structure {
+                    if {[$xmlobj element $cpath.current.parameters] != ""} {
+                        lappend queue $cpath.current.parameters
+                    }
+                }
+                default {
+                    # add this to the return list with the right flavor
+                    if {$params(-as) == "component"} {
+                        lappend rlist $cpath
+                    } else {
+                        lappend rlist [$xmlobj element -as $params(-as) $cpath]
+                    }
+
+                    # if this element has embedded groups, add them to the queue
+                    foreach ccpath [$xmlobj children -as path $cpath] {
+                        if {[$xmlobj element -as type $ccpath] == "group"} {
+                            lappend queue $ccpath
+                        }
+                    }
+                }
+            }
+        }
+    }
+    return $rlist
+}
+
+# ----------------------------------------------------------------------
 itcl::class Rappture::LibraryObj {
     constructor {info} { # defined below }
     destructor { # defined below }
 
     public method element {args}
+    public method parent {args}
     public method children {args}
     public method get {{path ""}}
     public method put {args}
     public method remove {{path ""}}
     public method xml {}
 
+    public method diff {libobj}
+    public proc value {libobj path}
+
     protected method find {path}
     protected method path2list {path}
     protected method node2name {node}
     protected method node2comp {node}
+    protected method node2path {node}
+    protected method childnodes {node type}
 
     private variable _root 0       ;# non-zero => this obj owns document
     private variable _document ""  ;# XML DOM tree
@@ -118,7 +206,7 @@ itcl::body Rappture::LibraryObj::destructor {} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: element ?-flavor <fval>? ?<path>?
+# USAGE: element ?-as <fval>? ?<path>?
 #
 # Clients use this to query a particular element within the entire
 # data structure.  The path is a string of the form
@@ -127,14 +215,14 @@ itcl::body Rappture::LibraryObj::destructor {} {
 # which must be found at the top level within this document.
 #
 # By default, this method returns the component name "type(id)".
-# This is changed by setting the -flavor argument to "id" (for name
+# This is changed by setting the -as argument to "id" (for name
 # of the tail element), to "type" (for the type of the tail element),
 # to "object" (for an object representing the DOM node referenced by
-# the path.
+# the path).
 # ----------------------------------------------------------------------
 itcl::body Rappture::LibraryObj::element {args} {
     array set params {
-        -flavor component
+        -as component
     }
     while {[llength $args] > 1} {
         set first [lindex $args 0]
@@ -150,7 +238,7 @@ itcl::body Rappture::LibraryObj::element {args} {
         }
     }
     if {[llength $args] > 1} {
-        error "wrong # args: should be \"element ?-flavor fval? ?path?\""
+        error "wrong # args: should be \"element ?-as fval? ?path?\""
     }
     set path [lindex $args 0]
 
@@ -159,7 +247,7 @@ itcl::body Rappture::LibraryObj::element {args} {
         return ""
     }
 
-    switch -- $params(-flavor) {
+    switch -- $params(-as) {
       object {
           return [::Rappture::LibraryObj ::#auto $node]
       }
@@ -169,17 +257,83 @@ itcl::body Rappture::LibraryObj::element {args} {
       id {
           return [node2name $node]
       }
+      path {
+          return [node2path $node]
+      }
       type {
           return [$node nodeName]
       }
       default {
-          error "bad flavor \"$params(-flavor)\": should be object, id, type, component"
+          error "bad flavor \"$params(-as)\": should be component, id, object, path, type"
       }
     }
 }
 
 # ----------------------------------------------------------------------
-# USAGE: children ?-flavor <fval>? ?-type <name>? ?<path>?
+# USAGE: parent ?-as <fval>? ?<path>?
+#
+# Clients use this to query the parent of a particular element.
+# This is just like the "element" method, but it returns the parent
+# of the element instead of the element itself.
+#
+# By default, this method returns a list of component names "type(id)".
+# This is changed by setting the -as argument to "id" (for tail
+# names of all children), to "type" (for the types of all children),
+# to "object" (for a list of objects representing the DOM nodes for
+# all children).
+# ----------------------------------------------------------------------
+itcl::body Rappture::LibraryObj::parent {args} {
+    array set params {
+        -as component
+    }
+    while {[llength $args] > 1} {
+        set first [lindex $args 0]
+        if {[string index $first 0] == "-"} {
+            set choices [array names params]
+            if {[lsearch $choices $first] < 0} {
+                error "bad option \"$first\": should be [join [lsort $choices] {, }]"
+            }
+            set params($first) [lindex $args 1]
+            set args [lrange $args 2 end]
+        } else {
+            break
+        }
+    }
+    if {[llength $args] > 1} {
+        error "wrong # args: should be \"parent ?-as fval? ?path?\""
+    }
+    set path [lindex $args 0]
+
+    set node [find $path]
+    if {$node == ""} {
+        return ""
+    }
+    set node [$node parentNode]
+
+    switch -- $params(-as) {
+      object {
+          return [::Rappture::LibraryObj ::#auto $node]
+      }
+      component {
+          return [node2comp $node]
+      }
+      id {
+          return [node2name $node]
+      }
+      path {
+          return [node2path $node]
+      }
+      type {
+          return [$node nodeName]
+      }
+      default {
+          error "bad flavor \"$params(-as)\": should be component, id, object, path, type"
+      }
+    }
+}
+
+# ----------------------------------------------------------------------
+# USAGE: children ?-as <fval>? ?-type <name>? ?<path>?
 #
 # Clients use this to query the children of a particular element
 # within the entire data structure.  This is just like the "element"
@@ -188,14 +342,14 @@ itcl::body Rappture::LibraryObj::element {args} {
 # the return list is restricted to children of the specified type.
 #
 # By default, this method returns a list of component names "type(id)".
-# This is changed by setting the -flavor argument to "id" (for tail
+# This is changed by setting the -as argument to "id" (for tail
 # names of all children), to "type" (for the types of all children),
 # to "object" (for a list of objects representing the DOM nodes for
 # all children).
 # ----------------------------------------------------------------------
 itcl::body Rappture::LibraryObj::children {args} {
     array set params {
-        -flavor component
+        -as component
         -type ""
     }
     while {[llength $args] > 1} {
@@ -212,7 +366,7 @@ itcl::body Rappture::LibraryObj::children {args} {
         }
     }
     if {[llength $args] > 1} {
-        error "wrong # args: should be \"children ?-flavor fval? ?-type name? ?path?\""
+        error "wrong # args: should be \"children ?-as fval? ?-type name? ?path?\""
     }
     set path [lindex $args 0]
 
@@ -234,7 +388,7 @@ itcl::body Rappture::LibraryObj::children {args} {
     }
 
     set rlist ""
-    switch -- $params(-flavor) {
+    switch -- $params(-as) {
       object {
           foreach n $nlist {
               lappend rlist [::Rappture::LibraryObj ::#auto $n]
@@ -250,13 +404,18 @@ itcl::body Rappture::LibraryObj::children {args} {
               lappend rlist [node2name $n]
           }
       }
+      path {
+          foreach n $nlist {
+              lappend rlist [node2path $n]
+          }
+      }
       type {
           foreach n $nlist {
               lappend rlist [$n nodeName]
           }
       }
       default {
-          error "bad flavor \"$params(-flavor)\": should be object, id, type, component"
+          error "bad flavor \"$params(-as)\": should be component, id, object, type"
       }
     }
     return $rlist
@@ -343,7 +502,9 @@ itcl::body Rappture::LibraryObj::put {args} {
     }
 
     if {[Rappture::library isvalid $str]} {
-        error "not yet implemented"
+        foreach n [[$str info variable _node -value] childNodes] {
+            $node appendXML [$n asXML]
+        }
     } else {
         set n [$_document createText $str]
         $node appendChild $n
@@ -375,6 +536,115 @@ itcl::body Rappture::LibraryObj::remove {{path ""}} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::LibraryObj::xml {} {
     return [$_node asXML]
+}
+
+# ----------------------------------------------------------------------
+# USAGE: diff <libobj>
+#
+# Compares the entities in this object to those in another and
+# returns a list of differences.  The result is a list of the form:
+# {op1 path1 oldval1 newval1 ...} where each "op" is +/-/c for
+# added/subtracted/changed, "path" is the path within the library
+# that is different, and "oldval"/"newval" give the values for the
+# object at the path.
+# ----------------------------------------------------------------------
+itcl::body Rappture::LibraryObj::diff {libobj} {
+    set rlist ""
+
+    # query the values for all entities in both objects
+    set thisv [Rappture::entities $this input]
+    set otherv [Rappture::entities $libobj input]
+
+    # scan through values for this object, and compare against other one
+    foreach path $thisv {
+        set i [lsearch -exact $otherv $path]
+        if {$i < 0} {
+            foreach {raw norm} [value $this $path] break
+            lappend rlist - $path $raw ""
+        } else {
+            foreach {traw tnorm} [value $this $path] break
+            foreach {oraw onorm} [value $libobj $path] break
+            if {![string equal $tnorm $onorm]} {
+                lappend rlist c $path $traw $oraw
+            }
+            set otherv [lreplace $otherv $i $i]
+        }
+    }
+
+    # add any values left over in the other object
+    foreach path $otherv {
+        foreach {oraw onorm} [value $libobj $path] break
+        lappend rlist + $path "" $oraw
+    }
+    return $rlist
+}
+
+# ----------------------------------------------------------------------
+# USAGE: value <object> <path>
+#
+# Used to query the "value" associated with the <path> in an XML
+# <object>.  This is a little more complicated than the object's
+# "get" method.  It handles things like structures and values
+# with normalized units.
+#
+# Returns a list of two items:  {raw norm} where "raw" is the raw
+# value from the "get" method and "norm" is the normalized value
+# produced by this routine.  Example:  {300K 300}
+#
+# Right now, it is a handy little utility used by the "diff" method.
+# Eventually, it should be moved to a better object-oriented
+# implementation, where each Rappture type could overload the
+# various bits of processing below.  So we leave it as a "proc"
+# now instead of a method, since it should be deprecated soon.
+# ----------------------------------------------------------------------
+itcl::body Rappture::LibraryObj::value {libobj path} {
+    switch -- [$libobj element -as type $path] {
+        structure {
+            set raw $path
+            # try to find a label to represent the structure
+            set val [$libobj get $path.about.label]
+            if {"" == $val} {
+                set val [$libobj get $path.current.about.label]
+            }
+            if {"" == $val} {
+                if {[$libobj element $path.current] != ""} {
+                    set comps [$libobj children $path.current.components]
+                    set val "<structure> with [llength $comps] components"
+                } else {
+                    set val "<structure>"
+                }
+            }
+            return [list $raw $val]
+        }
+        number {
+            # get the usual value...
+            set raw ""
+            if {"" != [$libobj element $path.current]} {
+                set raw [$libobj get $path.current]
+            } elseif {"" != [$libobj element $path.default]} {
+                set raw [$libobj get $path.default]
+            }
+            if {"" != $raw} {
+                set val $raw
+                # then normalize to default units
+                set units [$libobj get $path.units]
+                if {"" != $units} {
+                    set val [Rappture::Units::convert $val \
+                        -context $units -to $units -units off]
+                }
+            }
+            return [list $raw $val]
+        }
+    }
+
+    # for all other types, get the value (current, or maybe default)
+    set raw ""
+    if {"" != [$libobj element $path.current]} {
+        set raw [$libobj get $path.current]
+    } elseif {"" != [$libobj element $path.default]} {
+        set raw [$libobj get $path.default]
+    }
+    return [list $raw $raw]
 }
 
 # ----------------------------------------------------------------------
@@ -439,7 +709,7 @@ itcl::body Rappture::LibraryObj::find {args} {
             if {$index == ""} {
                 set index 0
             }
-            set nlist [$node getElementsByTagName $type]
+            set nlist [childnodes $node $type]
             set node [lindex $nlist $index]
         } else {
             #
@@ -449,7 +719,7 @@ itcl::body Rappture::LibraryObj::find {args} {
             # with the requested name.
             #
             if {$type != ""} {
-                set nlist [$node getElementsByTagName $type]
+                set nlist [childnodes $node $type]
             } else {
                 set nlist [$node childNodes]
             }
@@ -553,7 +823,7 @@ itcl::body Rappture::LibraryObj::node2name {node} {
             return ""
         }
         set type [$node nodeName]
-        set siblings [$pnode getElementsByTagName $type]
+        set siblings [childnodes $pnode $type]
         set index [lsearch $siblings $node]
         if {$index == 0} {
             set name $type
@@ -580,7 +850,7 @@ itcl::body Rappture::LibraryObj::node2comp {node} {
         if {$pnode == ""} {
             return ""
         }
-        set siblings [$pnode getElementsByTagName $type]
+        set siblings [childnodes $pnode $type]
         set index [lsearch $siblings $node]
         if {$index == 0} {
             set name $type
@@ -591,4 +861,38 @@ itcl::body Rappture::LibraryObj::node2comp {node} {
         set name "${type}($name)"
     }
     return $name
+}
+
+# ----------------------------------------------------------------------
+# USAGE: node2path <node>
+#
+# Used internally to create a full path name for the specified node.
+# The path is relative to the current object, so it stops when the
+# parent is the root node for this object.
+# ----------------------------------------------------------------------
+itcl::body Rappture::LibraryObj::node2path {node} {
+    set path [node2comp $node]
+    set node [$node parentNode]
+    while {$node != "" && $node != $_node} {
+        set path "[node2comp $node].$path"
+        set node [$node parentNode]
+    }
+    return $path
+}
+
+# ----------------------------------------------------------------------
+# USAGE: childnodes <node> <type>
+#
+# Used internally to return a list of children for the given <node>
+# that match a specified <type>.  Similar to XML getElementsByTagName,
+# but returns only direct children of the <node>.
+# ----------------------------------------------------------------------
+itcl::body Rappture::LibraryObj::childnodes {node type} {
+    set rlist ""
+    foreach cnode [$node childNodes] {
+        if {[$cnode nodeName] == $type} {
+            lappend rlist $cnode
+        }
+    }
+    return $rlist
 }

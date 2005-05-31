@@ -8,7 +8,8 @@
 #  of material layers.
 # ======================================================================
 #  AUTHOR:  Michael McLennan, Purdue University
-#  Copyright (c) 2004  Purdue Research Foundation, West Lafayette, IN
+#  Copyright (c) 2004-2005
+#  Purdue Research Foundation, West Lafayette, IN
 # ======================================================================
 package require Itk
 package require BLT
@@ -24,7 +25,6 @@ itcl::class Rappture::DeviceLayout1D {
     inherit itk::Widget
 
     itk_option define -font font Font ""
-    itk_option define -library library Library ""
     itk_option define -device device Device ""
     itk_option define -devicesize deviceSize DeviceSize 0
     itk_option define -deviceoutline deviceOutline DeviceOutline ""
@@ -39,34 +39,32 @@ itcl::class Rappture::DeviceLayout1D {
     protected method _layout {}
     protected method _redraw {}
     protected method _drawLayer {index x0 x1}
-    protected method _drawMolecule {index x0 x1}
+    protected method _drawIcon {index x0 x1 imh}
     protected method _drawAnnotation {index x0 x1}
     protected method _mater2color {mater}
 
     private variable _dispatcher "" ;# dispatcher for !events
     private variable _sizes         ;# maps size name => pixels
 
-    private variable _library ""    ;# LibraryObj for library information
     private variable _device ""     ;# LibraryObj for device representation
     private variable _slabs ""      ;# list of node names for slabs in device
     private variable _z0 ""         ;# list parallel to _slabs with z0
                                     ;#   coord for lhs of each slab
-    private variable _zthick ""     ;# list parallel to _slabs with thickness
-                                    ;#   for each slab
+    private variable _z1 ""         ;# list parallel to _slabs with z1
+                                    ;#   coord for rhs of each slab
     private variable _maters ""     ;# list parallel to _slabs with material
+                                    ;#   for each slab
+    private variable _colors ""     ;# list parallel to _slabs with color
                                     ;#   for each slab
 
     private variable _controls      ;# maps control path => status on/off
 
-    private common _icons
-    set _icons(molecule) [image create photo -file \
-        [file join $Rappture::installdir scripts images molecule.gif]]
+    private variable _icons         ;# maps icon data => image handle
 }
                                                                                 
 itk::usual DeviceLayout1D {
     keep -background -cursor
-    keep -library -device
-    keep -deviceoutline -devicesize
+    keep -device -deviceoutline -devicesize
     keep -selectbackground -selectforeground -selectborderwidth
     keep -width
 }
@@ -111,7 +109,7 @@ itcl::body Rappture::DeviceLayout1D::limits {} {
         _layout
     }
     set zmin [lindex $_z0 0]
-    set zmax [lindex $_z0 end]
+    set zmax [lindex $_z1 end]
     return [list $zmin $zmax]
 }
 
@@ -165,18 +163,16 @@ itcl::body Rappture::DeviceLayout1D::controls {option args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::DeviceLayout1D::_layout {} {
     # first, recompute the overall height of this widget
-    set h [expr {$_sizes(bar)+$_sizes(bar45)+20}]
+    set h [expr {$_sizes(bar)+$_sizes(bar45)+2}]
 
     set fnt $itk_option(-font)
-    if {[regexp {\.material} [array names _controls]]} {
-        # one of the slabs has its material displayed
-        set extra [expr {1.2*[font metrics $fnt -linespace]}] 
-        set h [expr {$h+$extra}]
-    }
-    if {[regexp {\.thickness} [array names _controls]]} {
-        # one of the slabs has its thickness displayed
-        set extra [expr {1.2*[font metrics $fnt -linespace]}] 
-        set h [expr {$h+$extra}]
+    # see if any of the slabs has a material
+    foreach m $_maters {
+        if {"" != $m} {
+            set extra [expr {1.5*[font metrics $fnt -linespace]}] 
+            set h [expr {$h+$extra}]
+            break
+        }
     }
 
     # see if any of the slabs has a label
@@ -190,11 +186,6 @@ itcl::body Rappture::DeviceLayout1D::_layout {} {
         }
     }
 
-    # a little extra height for the molecule image
-    if {"" != [$_device element components.molecule]} {
-        set h [expr {$h+15}]
-    }
-
     set oldh [component hull cget -height]
     if {$h != $oldh} {
         component hull configure -height $h
@@ -204,23 +195,44 @@ itcl::body Rappture::DeviceLayout1D::_layout {} {
     # next, scan through the device and compute layer positions
     set slabs ""
     set z0 ""
-    set zthick ""
+    set z1 ""
     set maters ""
+    set colors ""
 
-    set z 0
     if {$_device != ""} {
+        # get the default system of units
+        set units [set defunits [$_device get units]]
+        if {$units == "arbitrary"} {
+            set defunits "m"
+            set units "um"
+        }
+
         foreach nn [$_device children components] {
             switch -glob -- $nn {
-                slab* - molecule* {
-                    set tval [$_device get components.$nn.thickness]
-                    set tval [Rappture::Units::convert $tval \
-                        -context um -to um -units off]
-                    lappend slabs components.$nn
-                    lappend z0 $z
-                    lappend zthick $tval
-                    lappend maters [$_device get components.$nn.material]
+                box* {
+                    # get x-coord for each corner
+                    set c0 [lindex [$_device get components.$nn.corner0] 0]
+                    set c0 [Rappture::Units::convert $c0 \
+                        -context $defunits -to $units -units off]
 
-                    set z [expr {$z+$tval}]
+                    set c1 [lindex [$_device get components.$nn.corner1] 0]
+                    set c1 [Rappture::Units::convert $c1 \
+                        -context $defunits -to $units -units off]
+
+                    lappend slabs components.$nn
+                    lappend z0 $c0
+                    lappend z1 $c1
+
+                    set m [$_device get components.$nn.material]
+                    lappend maters $m
+
+                    if {"" != $m} {
+                        set c [_mater2color $m]
+                    } else {
+                        set c [$_device get components.$nn.about.color]
+                    }
+                    if {"" == $c} { set c gray }
+                    lappend colors $c
                 }
                 default {
                     # element not recognized -- skip it
@@ -228,16 +240,17 @@ itcl::body Rappture::DeviceLayout1D::_layout {} {
             }
         }
     }
-    lappend z0 $z
 
     # something change? then store new layout and redraw
     if {![string equal $z0 $_z0]
-          || ![string equal $zthick $_zthick]
-          || ![string equal $maters $_maters]} {
+          || ![string equal $z1 $_z1]
+          || ![string equal $maters $_maters]
+          || ![string equal $colors $_colors]} {
         set _slabs $slabs
         set _z0 $z0
-        set _zthick $zthick
+        set _z1 $z1
         set _maters $maters
+        set _colors $colors
 
         $_dispatcher event -idle !redraw
     }
@@ -253,9 +266,6 @@ itcl::body Rappture::DeviceLayout1D::_redraw {} {
     set c $itk_component(area)
 
     # clean up images and delete all other items
-    foreach item [$c find withtag image] {
-        image delete [$c itemcget $item -image]
-    }
     $c delete all
 
     set w [expr {[winfo width $c]-1 - $_sizes(lm) - $_sizes(rm)}]
@@ -263,38 +273,30 @@ itcl::body Rappture::DeviceLayout1D::_redraw {} {
     set x0 $_sizes(lm)
     set x1 [expr {$x0 + $w}]
 
-    set zmax [lindex $_z0 end]
+    set zmax [lindex $_z1 end]
     set xx0 $x0
     set xx1 $x1
 
-    set drewslab 0
     for {set i 0} {$i < [llength $_slabs]} {incr i} {
         set name [lindex $_slabs $i]
-        if {[regexp {slab[0-9]*$} $name]} {
-            set z0 [lindex $_z0 $i]
-            set zthick [lindex $_zthick $i]
-            set xx0 [expr {double($z0)/$zmax * ($x1-$x0) + $x0}]
-            set xx1 [expr {double($z0+$zthick)/$zmax * ($x1-$x0) + $x0}]
-            _drawLayer $i $xx0 $xx1
-            _drawAnnotation $i $xx0 $xx1
-            set drewslab 1
+        set z0 [lindex $_z0 $i]
+        set z1 [lindex $_z1 $i]
+        set xx0 [expr {double($z0)/$zmax * ($x1-$x0) + $x0}]
+        set xx1 [expr {double($z1)/$zmax * ($x1-$x0) + $x0}]
+
+        set icon [$_device get $name.about.icon]
+        if {"" != $icon} {
+            if {[info exists _icons($icon)]} {
+                set imh $_icons($icon)
+            } else {
+                set imh [image create photo -data $icon]
+                set _icons($icon) $imh
+            }
+            _drawIcon $i $xx0 $xx1 $imh
         } else {
-            if {$drewslab} {
-                _drawLayer cap $xx0 $xx1  ;# draw the end cap
-                set drewslab 0
-            }
-            if {[regexp {molecule[0-9]*$} $name]} {
-                set z0 [lindex $_z0 $i]
-                set zthick [lindex $_zthick $i]
-                set xx0 [expr {double($z0)/$zmax * ($x1-$x0) + $x0}]
-                set xx1 [expr {double($z0+$zthick)/$zmax * ($x1-$x0) + $x0}]
-                _drawMolecule $i $xx0 $xx1
-                _drawAnnotation $i $xx0 $xx1
-            }
+            _drawLayer $i $xx0 $xx1
         }
-    }
-    if {[llength $_slabs] > 0} {
-        _drawLayer cap $xx0 $xx1  ;# draw the end cap
+        _drawAnnotation $i $xx0 $xx1
     }
 }
 
@@ -308,10 +310,6 @@ itcl::body Rappture::DeviceLayout1D::_redraw {} {
 itcl::body Rappture::DeviceLayout1D::_drawLayer {index x0 x1} {
     set c $itk_component(area)
     set h [expr {[winfo height $c]-1}]
-    # a little extra height for the molecule image
-    if {"" != [$_device element components.molecule]} {
-        set h [expr {$h-15}]
-    }
 
     set y0 $h
     set y0p [expr {$y0-$_sizes(bar45)}]
@@ -323,14 +321,8 @@ itcl::body Rappture::DeviceLayout1D::_drawLayer {index x0 x1} {
 
     set lcolor $itk_option(-deviceoutline)
 
-    if {$index == "cap"} {
-        #
-        # Draw the outline around the end cap
-        #
-        $c create line $x1 $y0  $x1 $y1p  $x1p $y1 -fill $lcolor
-
-    } elseif {$index < [llength $_slabs]} {
-        set fcolor [_mater2color [lindex $_maters $index]]
+    if {$index < [llength $_slabs]} {
+        set fcolor [lindex $_colors $index]
 
         #
         # Draw one segment of the bar in the canvas:
@@ -346,41 +338,41 @@ itcl::body Rappture::DeviceLayout1D::_drawLayer {index x0 x1} {
             $x0 $y0  $x1 $y0  $x1p $y0p  $x1p $y1  $x0p $y1  $x0 $y1p  $x0 $y0 \
             -outline $lcolor -fill $fcolor
         $c create line $x0 $y1p  $x1 $y1p -fill $lcolor
+
+        #
+        # Draw the outline around the end cap
+        #
+        $c create line $x1 $y0  $x1 $y1p  $x1p $y1 -fill $lcolor
     }
 }
 
 # ----------------------------------------------------------------------
-# USAGE: _drawMolecule <index> <x0> <x1>
+# USAGE: _drawIcon <index> <x0> <x1> <imh>
 #
-# Used internally within _redraw to draw one molecule layer at the
-# <index> within the slab list into the active area.  The layer is
-# drawn between coordinates <x0> and <x1> on the canvas.
+# Used internally within _redraw to draw a material layer that is
+# represented by an icon.  The layer sits at <index> within the slab
+# list into the active area.  The layer is drawn between coordinates
+# <x0> and <x1> on the canvas.
 # ----------------------------------------------------------------------
-itcl::body Rappture::DeviceLayout1D::_drawMolecule {index x0 x1} {
+itcl::body Rappture::DeviceLayout1D::_drawIcon {index x0 x1 imh} {
     set c $itk_component(area)
     set h [expr {[winfo height $c]-1}]
-    # a little extra height for the molecule image
-    if {"" != [$_device element components.molecule]} {
-        set h [expr {$h-15}]
-    }
 
     set y0 $h
     set y0p [expr {$y0-$_sizes(bar45)}]
     set y1p [expr {$y0-$_sizes(bar)}]
     set y1 [expr {$y1p-$_sizes(bar45)}]
     set x0p [expr {$x0+$_sizes(bar45)}]
+    set x1p [expr {$x1+$_sizes(bar45)}]
 
-    set x [expr {0.5*($x0+$x0p)}]
+    set xx0 [expr {0.5*($x0+$x0p)}]
+    set xx1 [expr {0.5*($x1+$x1p)}]
     set y [expr {0.5*($y0+$y0p) + 0.5*($y1-$y0p)}]
 
-    set w [image width $_icons(molecule)]
-    set h [image height $_icons(molecule)]
-    set dx [expr {round($x1-$x0)}]
-    set dy [expr {round(double($x1-$x0)/$w*$h)}]
-    set imh [image create photo -width $dx -height $dy]
-    blt::winop resample $_icons(molecule) $imh
+    ##set lcolor $itk_option(-deviceoutline)
+    ##$c create line $xx0 $y $xx1 $y -width 3
 
-    $c create image $x $y -anchor w -image $imh -tags image
+    $c create image [expr {0.5*($xx0+$xx1)}] $y -anchor c -image $imh
 }
 
 # ----------------------------------------------------------------------
@@ -393,10 +385,6 @@ itcl::body Rappture::DeviceLayout1D::_drawMolecule {index x0 x1} {
 itcl::body Rappture::DeviceLayout1D::_drawAnnotation {index x0 x1} {
     set c $itk_component(area)
     set h [expr {[winfo height $c]-1}]
-    # a little extra height for the molecule image
-    if {"" != [$_device element components.molecule]} {
-        set h [expr {$h-15}]
-    }
 
     set y0 $h
     set y1 [expr {$y0-$_sizes(bar)-$_sizes(bar45)}]
@@ -408,39 +396,22 @@ itcl::body Rappture::DeviceLayout1D::_drawAnnotation {index x0 x1} {
     set fnt $itk_option(-font)
     set lh [font metrics $fnt -linespace]
     set ymid [expr {$y1-2-0.5*$lh}]
-    set y [expr {$y1-2}]
-
-    #
-    # If there's a .thickness control for this slab, draw it here.
-    #
-    set elem [lindex $_slabs $index]
-    set path "structure.$elem.thickness"
-    if {[info exists _controls($path)] && $_controls($path)} {
-        set zthick [lindex $_zthick $index]
-        set zthick [Rappture::Units::convert $zthick -context um -to um]
-
-        $c create line $x0p $y $x0p [expr {$y-$lh}]
-        $c create line $x1p $y $x1p [expr {$y-$lh}]
-
-        $c create line $x0p $ymid $x1p $ymid -arrow both
-        $c create text $xmid [expr {$ymid-2}] -anchor s -text $zthick
-        set y [expr {$y-2.0*$lh}]
-    }
+    set y [expr {$y1-4}]
 
     #
     # If there's a .material control for this slab, draw it here.
     #
     set elem [lindex $_slabs $index]
-    set path "structure.$elem.material"
-    if {[info exists _controls($path)] && $_controls($path)} {
-        set mater [lindex $_maters $index]
-        set w [expr {12+[font measure $fnt $mater]}]
-        set x [expr {$x1p - 0.5*($x1p-$x0p-$w)}]
-        $c create rectangle [expr {$x-10}] [expr {$y-10}] \
-            $x $y -outline black -fill [_mater2color $mater]
-        $c create text [expr {$x-12}] [expr {$y-5}] -anchor e \
+    set mater [lindex $_maters $index]
+    if {"" != $mater} {
+        set x $x1p
+        $c create rectangle [expr {$x-10}] [expr {$y-14}] \
+            [expr {$x-0}] [expr {$y-4}] \
+            -outline black -fill [_mater2color $mater]
+        set x [expr {$x-12}]
+        $c create text $x [expr {$y-7}] -anchor e \
             -text $mater
-        set y [expr {$y-1.2*$lh}]
+        set y [expr {$y-1.5*$lh}]
     }
 
     #
@@ -449,7 +420,6 @@ itcl::body Rappture::DeviceLayout1D::_drawAnnotation {index x0 x1} {
     if {"" != $_device} {
         set label [$_device get $elem.about.label]
         if {"" != $label} {
-            set y [expr {$y-0.5*$lh}]
             $c create text [expr {0.5*($x0p+$x1p)}] $y -anchor s \
                 -text $label
         }
@@ -463,11 +433,10 @@ itcl::body Rappture::DeviceLayout1D::_drawAnnotation {index x0 x1} {
 # should be used to represent it in the viewer.
 # ----------------------------------------------------------------------
 itcl::body Rappture::DeviceLayout1D::_mater2color {mater} {
-    if {$_library != ""} {
-        set color [$_library get materials.($mater).color]
-        if {$color != ""} {
-            return $color
-        }
+    set lib [Rappture::library standard]
+    set color [$lib get materials.($mater).color]
+    if {$color != ""} {
+        return $color
     }
     return gray
 }
@@ -480,22 +449,6 @@ itcl::body Rappture::DeviceLayout1D::_mater2color {mater} {
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::DeviceLayout1D::font {
     $_dispatcher event -idle !layout
-}
-
-# ----------------------------------------------------------------------
-# CONFIGURATION OPTION: -library
-#
-# Set to the Rappture::Library object representing the library with
-# material properties and other info.
-# ----------------------------------------------------------------------
-itcl::configbody Rappture::DeviceLayout1D::library {
-    if {$itk_option(-library) != ""} {
-        if {![Rappture::library isvalid $itk_option(-library)]} {
-            error "bad value \"$itk_option(-library)\": should be Rappture::Library"
-        }
-    }
-    set _library $itk_option(-library)
-    $_dispatcher event -idle !redraw
 }
 
 # ----------------------------------------------------------------------

@@ -13,7 +13,8 @@
 #    }
 # ======================================================================
 #  AUTHOR:  Michael McLennan, Purdue University
-#  Copyright (c) 2004  Purdue Research Foundation, West Lafayette, IN
+#  Copyright (c) 2004-2005
+#  Purdue Research Foundation, West Lafayette, IN
 # ======================================================================
 package require Itk
 
@@ -159,10 +160,12 @@ itcl::body Rappture::Spectrum::get {args} {
     if {[llength $args] != 1} {
         error "wrong # args: should be \"get ?-color|-fraction? ?value?\""
     }
-    set value [lindex $args 0]
 
-    set value [Rappture::Units::convert $value \
-        -context $units -to $units -units off]
+    set value [lindex $args 0]
+    if {$units != ""} {
+        set value [Rappture::Units::convert $value \
+            -context $units -to $units -units off]
+    }
 
     switch -- $what {
         -color {

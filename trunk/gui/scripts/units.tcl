@@ -6,7 +6,8 @@
 #  another.
 # ======================================================================
 #  AUTHOR:  Michael McLennan, Purdue University
-#  Copyright (c) 2004  Purdue Research Foundation, West Lafayette, IN
+#  Copyright (c) 2004-2005
+#  Purdue Research Foundation, West Lafayette, IN
 # ======================================================================
 package require Itcl
 
@@ -473,4 +474,6 @@ Rappture::Units::define C -type temperature -metric no
 Rappture::Units::define K->C {K-273.15} {C+273.15}
 Rappture::Units::define F->C {(F-32)/1.8} {(1.8*C)+32}
 
-Rappture::Units::define eV -type potential -metric yes
+Rappture::Units::define eV -type energy -metric yes
+
+Rappture::Units::define V -type voltage -metric yes

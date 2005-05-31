@@ -16,7 +16,8 @@
 #
 # ======================================================================
 #  AUTHOR:  Michael McLennan, Purdue University
-#  Copyright (c) 2004  Purdue Research Foundation, West Lafayette, IN
+#  Copyright (c) 2004-2005
+#  Purdue Research Foundation, West Lafayette, IN
 # ======================================================================
 package require Itk
 
@@ -24,7 +25,7 @@ option add *Tooltip.background white widgetDefault
 option add *Tooltip.outline black widgetDefault
 option add *Tooltip.borderwidth 1 widgetDefault
 option add *Tooltip.font -*-helvetica-medium-r-normal-*-*-120-* widgetDefault
-option add *Tooltip.wrapLength 3i widgetDefault
+option add *Tooltip.wrapLength 4i widgetDefault
 
 itcl::class Rappture::Tooltip {
     inherit itk::Toplevel
@@ -39,9 +40,10 @@ itcl::class Rappture::Tooltip {
     public method hide {}
 
     public proc for {widget args}
+    public proc text {widget args}
     private common catalog    ;# maps widget => message
 
-    public proc tooltip {option {widget ""}}
+    public proc tooltip {option args}
     private common pending "" ;# after ID for pending "tooltip show"
 
     public proc cue {option args}
@@ -90,25 +92,31 @@ itcl::body Rappture::Tooltip::constructor {args} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: show @<x>,<y>|<widget>
+# USAGE: show @<x>,<y>|<widget>+<x>,<y>
 #
 # Clients use this to pop up the tooltip on the screen.  The position
-# should be either a <widget> name (tooltip pops up beneath widget)
-# or a specific root window coordinate of the form @x,y.
+# should be either a <widget> name with an optional offset +<x>,<y>
+# (tooltip pops up beneath widget by default), or a specific root
+# window coordinate of the form @x,y.
 #
 # If the -message has the form "@command", then the command is executed
 # now, just before the tooltip is popped up, to build the message
 # on-the-fly.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Tooltip::show {where} {
+    set hull $itk_component(hull)
+
     if {[regexp {^@([0-9]+),([0-9]+)$} $where match x y]} {
         set xpos $x
         set ypos $y
+    } elseif {[regexp {^(.*)\+([0-9]+),([0-9]+)$} $where match win x y]} {
+        set xpos [expr {[winfo rootx $win]+$x}]
+        set ypos [expr {[winfo rooty $win]+$y}]
     } elseif {[winfo exists $where]} {
         set xpos [expr {[winfo rootx $where]+10}]
         set ypos [expr {[winfo rooty $where]+[winfo height $where]}]
     } else {
-        error "bad position \"$where\": should be widget name or @x,y"
+        error "bad position \"$where\": should be widget name, +x,y, or @x,y"
     }
 
     if {[string index $itk_option(-message) 0] == "@"} {
@@ -121,13 +129,39 @@ itcl::body Rappture::Tooltip::show {where} {
         set mesg $itk_option(-message)
     }
 
+    # strings can't be too big, or they'll go off screen!
+    if {[string length $mesg] > 1000} {
+        set mesg "[string range $mesg 0 1000]..."
+    }
+    set pos 0
+    ::for {set i 0} {$pos >= 0 && $i < 5} {incr i} {
+        incr pos
+        set pos [string first \n $mesg $pos]
+    }
+    if {$pos > 0} {
+        set mesg "[string range $mesg 0 $pos]..."
+    }
     $itk_component(text) configure -text $mesg
 
-    wm geometry $itk_component(hull) +$xpos+$ypos
+    #
+    # Make sure the tooltip doesn't go off screen.  Then, put it up.
+    #
+    update
+    if {$xpos+[winfo reqwidth $hull] > [winfo screenwidth $hull]} {
+        set xpos [expr {[winfo screenwidth $hull]-[winfo reqwidth $hull]}]
+    }
+    if {$xpos < 0} { set xpos 0 }
+
+    if {$ypos+[winfo reqheight $hull] > [winfo screenheight $hull]} {
+        set ypos [expr {[winfo screenheight $hull]-[winfo reqheight $hull]}]
+    }
+    if {$ypos < 0} { set ypos 0 }
+
+    wm geometry $hull +$xpos+$ypos
     update
 
-    wm deiconify $itk_component(hull)
-    raise $itk_component(hull)
+    wm deiconify $hull
+    raise $hull
 }
 
 # ----------------------------------------------------------------------
@@ -165,8 +199,29 @@ itcl::body Rappture::Tooltip::for {widget text} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: tooltip pending <widget>
-# USAGE: tooltip show
+# USAGE: text <widget> ?<text>?
+#
+# Used to query or set the text used for the tooltip for a widget.
+# This is done automatically when you call the "for" proc, but it
+# is sometimes handy to query or change the text later.
+# ----------------------------------------------------------------------
+itcl::body Rappture::Tooltip::text {widget args} {
+    if {[llength $args] == 0} {
+        if {[info exists catalog($widget)]} {
+            return $catalog($widget)
+        }
+        return ""
+    } elseif {[llength $args] == 1} {
+        set str [lindex $args 0]
+        set catalog($widget) $str
+    } else {
+        error "wrong # args: should be \"text widget ?str?\""
+    }
+}
+
+# ----------------------------------------------------------------------
+# USAGE: tooltip pending <widget> ?@<x>,<y>|+<x>,<y>?
+# USAGE: tooltip show <widget> ?@<x>,<y>|+<x>,<y>?
 # USAGE: tooltip cancel
 #
 # This is invoked automatically whenever the user clicks somewhere
@@ -175,21 +230,39 @@ itcl::body Rappture::Tooltip::for {widget text} {
 # take the editor down.  Otherwise, we do nothing, and let the entry
 # bindings take over.
 # ----------------------------------------------------------------------
-itcl::body Rappture::Tooltip::tooltip {option {widget ""}} {
+itcl::body Rappture::Tooltip::tooltip {option args} {
     switch -- $option {
         pending {
+            if {[llength $args] < 1 || [llength $args] > 2} {
+                error "wrong # args: should be \"tooltip pending widget ?@x,y?\""
+            }
+            set widget [lindex $args 0]
+            set loc [lindex $args 1]
+
             if {![info exists catalog($widget)]} {
                 error "can't find tooltip for $widget"
             }
             if {$pending != ""} {
                 after cancel $pending
             }
-            set pending [after 1500 [itcl::code tooltip show $widget]]
+            set pending [after 1500 [itcl::code tooltip show $widget $loc]]
         }
         show {
+            if {[llength $args] < 1 || [llength $args] > 2} {
+                error "wrong # args: should be \"tooltip pending widget ?@x,y?\""
+            }
+            set widget [lindex $args 0]
+            set loc [lindex $args 1]
+
             if {[winfo exists $widget]} {
                 .rappturetooltip configure -message $catalog($widget)
-                .rappturetooltip show $widget
+                if {[string index $loc 0] == "@"} {
+                    .rappturetooltip show $loc
+                } elseif {[string index $loc 0] == "+"} {
+                    .rappturetooltip show $widget$loc
+                } else {
+                    .rappturetooltip show $widget
+                }
             }
         }
         cancel {

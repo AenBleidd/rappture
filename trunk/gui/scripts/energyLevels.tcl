@@ -8,7 +8,8 @@
 #  graph.
 # ======================================================================
 #  AUTHOR:  Michael McLennan, Purdue University
-#  Copyright (c) 2004  Purdue Research Foundation, West Lafayette, IN
+#  Copyright (c) 2004-2005
+#  Purdue Research Foundation, West Lafayette, IN
 # ======================================================================
 package require Itk
 package require BLT
@@ -342,7 +343,8 @@ itcl::body Rappture::EnergyLevels::_adjust {what val} {
 # and the column within the table containing the energies.
 # ----------------------------------------------------------------------
 itcl::body Rappture::EnergyLevels::_getColumn {name} {
-    if {$itk_option(-layout) == "" || $itk_option(-output) == ""} {
+puts "_getColumn $name"
+    if {$itk_option(-output) == ""} {
         return
     }
 
@@ -351,22 +353,39 @@ itcl::body Rappture::EnergyLevels::_getColumn {name} {
     # Then, find that table and extract the column.  Figure out
     # the position of the column from the list of all column names.
     #
-    set table [$itk_option(-layout) get $name.table]
-    set col [$itk_option(-layout) get $name.column]
+    if {$itk_option(-layout) != ""} {
+        set table [$itk_option(-layout) get $name.table]
+        set col [$itk_option(-layout) get $name.column]
 
-    set clist ""
-    foreach c [$itk_option(-output) children -type column $table] {
-        lappend clist [$itk_option(-output) get $table.$c.label]
+        set clist ""
+        foreach c [$itk_option(-output) children -type column $table] {
+            lappend clist [$itk_option(-output) get $table.$c.label]
+        }
+        set ipos [lsearch $clist $col]
+        if {$ipos < 0} {
+            return  ;# can't find data -- bail out!
+        }
+        set units [$itk_option(-output) get $table.column$ipos.units]
+        set path "$table.data"
+    } else {
+        set clist ""
+        foreach c [$itk_option(-output) children -type column] {
+            lappend clist [$itk_option(-output) get $c.units]
+        }
+        if {$name == "energies"} {
+            set units "eV"
+        } else {
+            set units ""
+        }
+        set ipos [lsearch -exact $clist $units]
+        if {$ipos < 0} {
+            return  ;# can't find data -- bail out!
+        }
+        set path "data"
     }
-    set ipos [lsearch $clist $col]
-    if {$ipos < 0} {
-        return  ;# can't find data -- bail out!
-    }
-
-    set units [$itk_option(-output) get $table.column$ipos.units]
 
     set rlist ""
-    foreach line [split [$itk_option(-output) get $table.data] "\n"] {
+    foreach line [split [$itk_option(-output) get $path] "\n"] {
         if {"" != [string trim $line]} {
             set val [lindex $line $ipos]
 
@@ -390,7 +409,7 @@ itcl::body Rappture::EnergyLevels::_getColumn {name} {
 # and the column within the table containing the units.
 # ----------------------------------------------------------------------
 itcl::body Rappture::EnergyLevels::_getUnits {name} {
-    if {$itk_option(-layout) == "" || $itk_option(-output) == ""} {
+    if {$itk_option(-output) == ""} {
         return
     }
 
@@ -399,19 +418,27 @@ itcl::body Rappture::EnergyLevels::_getUnits {name} {
     # Then, find that table and extract the column.  Figure out
     # the position of the column from the list of all column names.
     #
-    set table [$itk_option(-layout) get $name.table]
-    set col [$itk_option(-layout) get $name.column]
+    if {$itk_option(-layout) != ""} {
+        set table [$itk_option(-layout) get $name.table]
+        set col [$itk_option(-layout) get $name.column]
 
-    set clist ""
-    foreach c [$itk_option(-output) children -type column $table] {
-        lappend clist [$itk_option(-output) get $table.$c.label]
+        set clist ""
+        foreach c [$itk_option(-output) children -type column $table] {
+            lappend clist [$itk_option(-output) get $table.$c.label]
+        }
+        set ipos [lsearch $clist $col]
+        if {$ipos < 0} {
+            return  ;# can't find data -- bail out!
+        }
+        set units [$itk_option(-output) get $table.column$ipos.units]
+    } else {
+        if {$name == "energies"} {
+            set units "eV"
+        } else {
+            set units ""
+        }
     }
-    set ipos [lsearch $clist $col]
-    if {$ipos < 0} {
-        return  ;# can't find data -- bail out!
-    }
-
-    return [$itk_option(-output) get $table.column$ipos.units]
+    return $units
 }
 
 # ----------------------------------------------------------------------

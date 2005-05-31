@@ -6,7 +6,8 @@
 #  representation for a <molecule>.
 # ======================================================================
 #  AUTHOR:  Michael McLennan, Purdue University
-#  Copyright (c) 2004  Purdue Research Foundation, West Lafayette, IN
+#  Copyright (c) 2004-2005
+#  Purdue Research Foundation, West Lafayette, IN
 # ======================================================================
 package require Itk
 package require vtk
@@ -21,14 +22,14 @@ itcl::class Rappture::MoleculeViewer {
 
     itk_option define -backdrop backdrop Backdrop "black"
     itk_option define -device device Device ""
-    itk_option define -library library Library ""
 
-    constructor {args} { # defined below }
+    constructor {tool args} { # defined below }
     destructor { # defined below }
 
     protected method _render {}
     protected method _color2rgb {color}
 
+    private variable _tool ""    ;# tool containing this viewer
     private variable _actors ""  ;# list of actors in renderer
 }
                                                                                 
@@ -38,7 +39,9 @@ itk::usual MoleculeViewer {
 # ----------------------------------------------------------------------
 # CONSTRUCTOR
 # ----------------------------------------------------------------------
-itcl::body Rappture::MoleculeViewer::constructor {args} {
+itcl::body Rappture::MoleculeViewer::constructor {tool args} {
+    set _tool $tool
+
     itk_option add hull.width hull.height
     pack propagate $itk_component(hull) no
 
@@ -92,6 +95,8 @@ itcl::body Rappture::MoleculeViewer::_render {} {
 
     if {$itk_option(-device) != ""} {
         set dev $itk_option(-device)
+        set lib [Rappture::library standard]
+
         set counter 0
         foreach atom [$dev children -type atom components.molecule] {
             set symbol [$dev get components.molecule.$atom.symbol]
@@ -104,16 +109,14 @@ itcl::body Rappture::MoleculeViewer::_render {} {
             eval $aname SetPosition $xyz
             $this-ren AddActor $aname
 
-            if {$itk_option(-library) != ""} {
-                set sfac 0.7
-                set scale [$itk_option(-library) get elements.($symbol).scale]
-                if {$scale != ""} {
-                    $aname SetScale [expr {$sfac*$scale}]
-                }
-                set color [$itk_option(-library) get elements.($symbol).color]
-                if {$color != ""} {
-                    eval [$aname GetProperty] SetColor [_color2rgb $color]
-                }
+            set sfac 0.7
+            set scale [$lib get elements.($symbol).scale]
+            if {$scale != ""} {
+                $aname SetScale [expr {$sfac*$scale}]
+            }
+            set color [$lib get elements.($symbol).color]
+            if {$color != ""} {
+                eval [$aname GetProperty] SetColor [_color2rgb $color]
             }
 
             lappend _actors $aname
@@ -156,15 +159,8 @@ itcl::configbody Rappture::MoleculeViewer::device {
     after idle [itcl::code $this _render]
 }
 
-# ----------------------------------------------------------------------
-# OPTION: -library
-# ----------------------------------------------------------------------
-itcl::configbody Rappture::MoleculeViewer::library {
-    _render
-}
-
 #package require Rappture
-#Rappture::MoleculeViewer .e -library [Rappture::library -std library.xml]
+#Rappture::MoleculeViewer .e
 #pack .e -expand yes -fill both
 #
 #set dev [Rappture::library {<?xml version="1.0"?>
