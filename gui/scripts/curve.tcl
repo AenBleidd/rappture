@@ -8,7 +8,8 @@
 #  extracting data vectors that represent the curve.
 # ======================================================================
 #  AUTHOR:  Michael McLennan, Purdue University
-#  Copyright (c) 2004  Purdue Research Foundation, West Lafayette, IN
+#  Copyright (c) 2004-2005
+#  Purdue Research Foundation, West Lafayette, IN
 # ======================================================================
 package require Itcl
 package require BLT
@@ -16,19 +17,20 @@ package require BLT
 namespace eval Rappture { # forward declaration }
 
 itcl::class Rappture::Curve {
-    constructor {libobj path} { # defined below }
+    constructor {xmlobj path} { # defined below }
     destructor { # defined below }
 
     public method components {{pattern *}}
-    public method vectors {{what -overall}}
-    public method controls {option args}
+    public method mesh {{what -overall}}
+    public method values {{what -overall}}
+    public method limits {which}
     public method hints {{key ""}}
 
     protected method _build {}
 
-    private variable _libobj ""  ;# ref to lib obj with curve data
+    private variable _xmlobj ""  ;# ref to lib obj with curve data
     private variable _curve ""   ;# lib obj representing this curve
-    private variable _comp2vecs  ;# maps component name => x,y vectors
+    private variable _comp2xy    ;# maps component name => x,y vectors
 
     private common _counter 0    ;# counter for unique vector names
 }
@@ -36,12 +38,12 @@ itcl::class Rappture::Curve {
 # ----------------------------------------------------------------------
 # CONSTRUCTOR
 # ----------------------------------------------------------------------
-itcl::body Rappture::Curve::constructor {libobj path} {
-    if {![Rappture::library isvalid $libobj]} {
-        error "bad value \"$libobj\": should be LibraryObj"
+itcl::body Rappture::Curve::constructor {xmlobj path} {
+    if {![Rappture::library isvalid $xmlobj]} {
+        error "bad value \"$xmlobj\": should be LibraryObj"
     }
-    set _libobj $libobj
-    set _curve [$libobj element -flavor object $path]
+    set _xmlobj $xmlobj
+    set _curve [$xmlobj element -as object $path]
 
     # build up vectors for various components of the curve
     _build
@@ -52,10 +54,10 @@ itcl::body Rappture::Curve::constructor {libobj path} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Curve::destructor {} {
     itcl::delete object $_curve
-    # don't destroy the _libobj! we don't own it!
+    # don't destroy the _xmlobj! we don't own it!
 
-    foreach name [array names _comp2vecs] {
-        eval blt::vector destroy $_comp2vecs($name)
+    foreach name [array names _comp2xy] {
+        eval blt::vector destroy $_comp2xy($name)
     }
 }
 
@@ -68,7 +70,7 @@ itcl::body Rappture::Curve::destructor {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Curve::components {{pattern *}} {
     set rlist ""
-    foreach name [array names _comp2vecs] {
+    foreach name [array names _comp2xy] {
         if {[string match $pattern $name]} {
             lappend rlist $name
         }
@@ -77,17 +79,63 @@ itcl::body Rappture::Curve::components {{pattern *}} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: vectors ?<name>?
+# USAGE: mesh ?<name>?
 #
-# Returns a list {xvec yvec} for the specified curve component <name>.
+# Returns the xvec for the specified curve component <name>.
 # If the name is not specified, then it returns the vectors for the
 # overall curve (sum of all components).
 # ----------------------------------------------------------------------
-itcl::body Rappture::Curve::vectors {{what -overall}} {
-    if {[info exists _comp2vecs($what)]} {
-        return $_comp2vecs($what)
+itcl::body Rappture::Curve::mesh {{what -overall}} {
+    if {[info exists _comp2xy($what)]} {
+        return [lindex $_comp2xy($what) 0]  ;# return xv
     }
-    error "bad option \"$what\": should be [join [lsort [array names _comp2vecs]] {, }]"
+    error "bad option \"$what\": should be [join [lsort [array names _comp2xy]] {, }]"
+}
+
+# ----------------------------------------------------------------------
+# USAGE: values ?<name>?
+#
+# Returns the xvec for the specified curve component <name>.
+# If the name is not specified, then it returns the vectors for the
+# overall curve (sum of all components).
+# ----------------------------------------------------------------------
+itcl::body Rappture::Curve::values {{what -overall}} {
+    if {[info exists _comp2xy($what)]} {
+        return [lindex $_comp2xy($what) 1]  ;# return yv
+    }
+    error "bad option \"$what\": should be [join [lsort [array names _comp2xy]] {, }]"
+}
+
+# ----------------------------------------------------------------------
+# USAGE: limits x|y
+#
+# Returns the {min max} limits for the specified axis.
+# ----------------------------------------------------------------------
+itcl::body Rappture::Curve::limits {which} {
+    set min ""
+    set max ""
+    switch -- $which {
+        x { set pos 0 }
+        y { set pos 1 }
+        default {
+            error "bad option \"$which\": should be x or y"
+        }
+    }
+    foreach comp [array names _comp2xy] {
+        set vname [lindex $_comp2xy($comp) $pos]
+        $vname variable vec
+        if {"" == $min} {
+            set min $vec(min)
+        } elseif {$vec(min) < $min} {
+            set min $vec(min)
+        }
+        if {"" == $max} {
+            set max $vec(max)
+        } elseif {$vec(max) > $max} {
+            set max $vec(max)
+        }
+    }
+    return [list $min $max]
 }
 
 # ----------------------------------------------------------------------
@@ -115,6 +163,15 @@ itcl::body Rappture::Curve::hints {{keyword ""}} {
         }
     }
 
+    if {[info exists hints(xlabel)] && "" != $hints(xlabel)
+          && [info exists hints(xunits)] && "" != $hints(xunits)} {
+        set hints(xlabel) "$hints(xlabel) ($hints(xunits))"
+    }
+    if {[info exists hints(ylabel)] && "" != $hints(ylabel)
+          && [info exists hints(yunits)] && "" != $hints(yunits)} {
+        set hints(ylabel) "$hints(ylabel) ($hints(yunits))"
+    }
+
     if {$keyword != ""} {
         if {[info exists hints($keyword)]} {
             return $hints($keyword)
@@ -134,10 +191,10 @@ itcl::body Rappture::Curve::hints {{keyword ""}} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Curve::_build {} {
     # discard any existing data
-    foreach name [array names _comp2vecs] {
-        eval blt::vector destroy $_comp2vecs($name)
+    foreach name [array names _comp2xy] {
+        eval blt::vector destroy $_comp2xy($name)
     }
-    catch {unset _comp2vecs}
+    catch {unset _comp2xy}
 
     #
     # Scan through the components of the curve and create
@@ -161,7 +218,7 @@ itcl::body Rappture::Curve::_build {} {
         }
 
         if {$xv != "" && $yv != ""} {
-            set _comp2vecs($cname) [list $xv $yv]
+            set _comp2xy($cname) [list $xv $yv]
             incr _counter
         }
     }

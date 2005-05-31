@@ -9,7 +9,8 @@
 #  forth.
 # ======================================================================
 #  AUTHOR:  Michael McLennan, Purdue University
-#  Copyright (c) 2004  Purdue Research Foundation, West Lafayette, IN
+#  Copyright (c) 2004-2005
+#  Purdue Research Foundation, West Lafayette, IN
 # ======================================================================
 package require Itk
 package require BLT
@@ -24,14 +25,13 @@ itcl::class Rappture::DeviceViewer1D {
     inherit itk::Widget
 
     itk_option define -device device Device ""
-    itk_option define -tool tool Tool ""
 
-    constructor {args} { # defined below }
+    constructor {tool args} { # defined below }
     destructor { # defined below }
 
     public method controls {option args}
                                                                                 
-    protected method _fixTabs {}
+    protected method _loadDevice {}
     protected method _changeTabs {}
     protected method _fixAxes {}
     protected method _align {}
@@ -41,9 +41,10 @@ itcl::class Rappture::DeviceViewer1D {
     protected method _controlCreate {container libObj path}
     protected method _controlSet {widget libObj path}
 
-    private variable _device ""     ;# LibraryObj for device rep
-    private variable _tool ""       ;# LibraryObj for tool parameters
+    private variable _tool ""       ;# tool controlling this viewer
+    private variable _device ""     ;# XML library with <structure>
     private variable _tab2fields    ;# maps tab name => list of fields
+    private variable _field2parm    ;# maps field path => parameter name
     private variable _units ""      ;# units for field being edited
     private variable _restrict ""   ;# restriction expr for field being edited
     private variable _marker        ;# marker currently being edited
@@ -55,7 +56,9 @@ itk::usual DeviceViewer1D {
 # ----------------------------------------------------------------------
 # CONSTRUCTOR
 # ----------------------------------------------------------------------
-itcl::body Rappture::DeviceViewer1D::constructor {args} {
+itcl::body Rappture::DeviceViewer1D::constructor {tool args} {
+    set _tool $tool
+
     itk_option add hull.width hull.height
     pack propagate $itk_component(hull) no
 
@@ -78,10 +81,10 @@ itcl::body Rappture::DeviceViewer1D::constructor {args} {
         frame $itk_component(tabs).inner
     }
 
-    itk_component add ambient {
-        frame $itk_component(inner).ambient
+    itk_component add top {
+        frame $itk_component(inner).top
     }
-    pack $itk_component(ambient) -side top -fill x
+    pack $itk_component(top) -fill x
 
     itk_component add layout {
         Rappture::DeviceLayout1D $itk_component(inner).layout
@@ -100,7 +103,7 @@ itcl::body Rappture::DeviceViewer1D::constructor {args} {
 
     bind $itk_component(graph) <Configure> "
         after cancel [itcl::code $this _fixAxes]
-        after idle [itcl::code $this _fixAxes]
+        after 100 [itcl::code $this _fixAxes]
     "
 
     itk_component add geditor {
@@ -131,49 +134,40 @@ itcl::body Rappture::DeviceViewer1D::destructor {} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: controls add <parameter>
-# USAGE: controls remove <parameter>|all
+# USAGE: controls insert <pos> <xmlobj> <path>
 #
 # Clients use this to add a control to the internal panels of this
-# widget.  If the <parameter> is ambient*, then the control is added
-# to the top, so it goes along with the layout of the device.  If
-# it is structure.fields.field*, then it goes in one of the field
-# panels.
+# widget.  Such controls are usually placed at the top of the widget,
+# but if possible, they are integrated directly onto the device
+# layout or the field area.
 # ----------------------------------------------------------------------
 itcl::body Rappture::DeviceViewer1D::controls {option args} {
     switch -- $option {
-        add {
-            if {[llength $args] != 1} {
-                error "wrong # args: should be \"controls add parameter\""
+        insert {
+            if {[llength $args] != 3} {
+                error "wrong # args: should be \"controls insert pos xmlobj path\""
             }
-            set path [lindex $args 0]
-            if {[string match structure.fields.field* $path]} {
+            set pos [lindex $args 0]
+            set xmlobj [lindex $args 1]
+            set path [lindex $args 2]
+            if {[string match *structure.parameters* $path]} {
             } elseif {[string match structure.components* $path]} {
-                $itk_component(layout) controls add $path
-            } else {
-                _controlCreate $itk_component(ambient) $_tool $path
+                $itk_component(layout) controls insert $pos $xmlobj $path
             }
-        }
-        remove {
-            error "not yet implemented"
         }
         default {
-            error "bad option \"$option\": should be add or remove"
+            error "bad option \"$option\": should be insert"
         }
     }
 }
 
 # ----------------------------------------------------------------------
-# USAGE: _fixTabs
+# USAGE: _loadDevice
 #
 # Used internally to search for fields and create corresponding
 # tabs whenever a device is installed into this viewer.
-#
-# If there are no tabs, then the widget is packed so that it appears
-# directly.  Otherwise, the interior reconfigured and assigned to
-# the current tab.
 # ----------------------------------------------------------------------
-itcl::body Rappture::DeviceViewer1D::_fixTabs {} {
+itcl::body Rappture::DeviceViewer1D::_loadDevice {} {
     #
     # Release any info left over from the last device.
     #
@@ -181,6 +175,7 @@ itcl::body Rappture::DeviceViewer1D::_fixTabs {} {
         eval itcl::delete object $_tab2fields($name)
     }
     catch {unset _tab2fields}
+    catch {unset _field2parm}
 
     #
     # Scan through the current device and extract the list of
@@ -188,15 +183,13 @@ itcl::body Rappture::DeviceViewer1D::_fixTabs {} {
     #
     if {$_device != ""} {
         foreach nn [$_device children fields] {
-            if {[string match field* $nn]} {
-                set name [$_device get $nn.label]
-                if {$name == ""} {
-                    set name $nn
-                }
-
-                set fobj [Rappture::Field ::#auto $_device $_device $nn]
-                lappend _tab2fields($name) $fobj
+            set name [$_device get fields.$nn.about.label]
+            if {$name == ""} {
+                set name $nn
             }
+
+            set fobj [Rappture::Field ::#auto $_device fields.$nn]
+            lappend _tab2fields($name) $fobj
         }
     }
     set tabs [lsort [array names _tab2fields]]
@@ -206,6 +199,9 @@ itcl::body Rappture::DeviceViewer1D::_fixTabs {} {
     }
 
     if {[llength $tabs] <= 0} {
+        #
+        # == DEPRECATED FUNCTIONALITY ==
+        # (I like the look of the tab, even if there's only one)
         #
         # No fields or one field?  Then we don't need to bother
         # with tabs.  Just pack the inner frame directly.  If
@@ -233,6 +229,58 @@ itcl::body Rappture::DeviceViewer1D::_fixTabs {} {
         }
         $itk_component(tabs) select 0
     }
+
+    #
+    # Scan through and look for any parameters in the <structure>.
+    # Register any parameters associated with fields, so we can
+    # add them as active controls whenever we install new fields.
+    # Create controls for any remaining parameters, so the user
+    # can see that there's something to adjust.
+    #
+    if {$_device != ""} {
+        foreach cname [$_device children parameters] {
+            set handled 0
+            if {[$_device element -as type parameters.$cname] == "number"} {
+                set name [$_device element -as id parameters.$cname]
+
+                # look for a field that uses this parameter
+                set found ""
+                foreach fname [$_device children fields] {
+                    foreach comp [$_device children fields.$fname] {
+                        set v [$_device get fields.$fname.$comp.constant]
+                        if {[string equal $v $name]} {
+                            set found "fields.$fname.$comp"
+                            break
+                        }
+                    }
+                    if {"" != $found} break
+                }
+
+                if {"" != $found} {
+                    set _field2parm($found) $name
+                    set handled 1
+                }
+            }
+
+            #
+            # Any parameter that was not handled above should be handled
+            # here, by adding it to a control panel above the device
+            # layout area.
+            #
+            if {!$handled} {
+                set t $itk_component(top)
+                if {![winfo exists $t.cntls]} {
+                    Rappture::Controls $t.cntls $_tool
+                    pack $t.cntls -expand yes -fill both
+                }
+                $t.cntls insert end $_device parameters.$cname
+            }
+        }
+    }
+
+    #
+    # Install the first tab
+    #
     _changeTabs
 
     #
@@ -272,8 +320,17 @@ itcl::body Rappture::DeviceViewer1D::_changeTabs {} {
     eval $graph marker delete [$graph marker names]
 
     foreach {zmin zmax} [$itk_component(layout) limits] { break }
-    if {$zmax > $zmin} {
-        $graph axis configure x -min $zmin -max $zmax -title "Position (um)"
+    if {$_device != ""} {
+        set units [$_device get units]
+        if {$units != "arbitrary" && $zmax > $zmin} {
+            $graph axis configure x -hide no -min $zmin -max $zmax \
+                -title "Position ($units)"
+        } else {
+            $graph axis configure x -hide yes
+        }
+    } else {
+        $graph axis configure x -hide no -min $zmin -max $zmax \
+            -title "Position"
     }
 
     # turn on auto limits
@@ -311,30 +368,41 @@ itcl::body Rappture::DeviceViewer1D::_changeTabs {} {
         }
 
         foreach comp [$fobj components] {
+            # can only handle 1D meshes here
+            if {[$fobj components -dimensions $comp] != "1D"} {
+                continue
+            }
+
             set elem "elem[incr n]"
-            foreach {xv yv} [$fobj vectors $comp] { break }
-            $graph element create $elem -x $xv -y $yv -symbol "" -linewidth 2
+            set xv [$fobj mesh $comp]
+            set yv [$fobj values $comp]
+
+            $graph element create $elem -x $xv -y $yv \
+                -color black -symbol "" -linewidth 2
 
             if {[info exists hints(color)]} {
                 $graph element configure $elem -color $hints(color)
             }
 
             foreach {path x y val} [$fobj controls get $comp] {
-                $graph marker create text -coords [list $x $y] \
-                    -text $val -anchor s -name $comp.$x -background ""
-                $graph marker bind $comp.$x <Enter> \
-                    [itcl::code $this _marker enter $comp.$x]
-                $graph marker bind $comp.$x <Leave> \
-                    [itcl::code $this _marker leave $comp.$x]
-                $graph marker bind $comp.$x <ButtonPress> \
-                    [itcl::code $this _marker edit $comp.$x $fobj/$path]
+                if {$path != ""} {
+                    set id "control[incr n]"
+                    $graph marker create text -coords [list $x $y] \
+                        -text $val -anchor s -name $id -background ""
+                    $graph marker bind $id <Enter> \
+                        [itcl::code $this _marker enter $id]
+                    $graph marker bind $id <Leave> \
+                        [itcl::code $this _marker leave $id]
+                    $graph marker bind $id <ButtonPress> \
+                        [itcl::code $this _marker edit $id $fobj/$path]
+                }
             }
         }
     }
 
     # let the widget settle, then fix the axes to "nice" values
     after cancel [itcl::code $this _fixAxes]
-    after 20 [itcl::code $this _fixAxes]
+    after 100 [itcl::code $this _fixAxes]
 }
 
 # ----------------------------------------------------------------------
@@ -346,6 +414,11 @@ itcl::body Rappture::DeviceViewer1D::_changeTabs {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::DeviceViewer1D::_fixAxes {} {
     set graph $itk_component(graph)
+    if {![winfo ismapped $graph]} {
+        after cancel [itcl::code $this _fixAxes]
+        after 100 [itcl::code $this _fixAxes]
+        return
+    }
 
     #
     # HACK ALERT!
@@ -355,6 +428,7 @@ itcl::body Rappture::DeviceViewer1D::_fixAxes {} {
     # limits.
     #
     set log [$graph axis cget y -logscale]
+    $graph axis configure y -min "" -max ""
     foreach {min max} [$graph axis limits y] { break }
 
     if {$log} {
@@ -502,6 +576,7 @@ itcl::body Rappture::DeviceViewer1D::_marker {option {name ""} {path ""}} {
             }
 
             $_marker(fobj) controls put $_marker(path) $value
+            $_tool changed $_marker(path)
             event generate $itk_component(hull) <<Edit>>
 
             _changeTabs
@@ -612,21 +687,5 @@ itcl::configbody Rappture::DeviceViewer1D::device {
         }
     }
     set _device $itk_option(-device)
-    _fixTabs
-}
-
-# ----------------------------------------------------------------------
-# CONFIGURATION OPTION: -tool
-#
-# Set to the Rappture::Library object containing tool parameters.
-# Needed only if controls are added to the widget, so the controls
-# can update the tool parameters.
-# ----------------------------------------------------------------------
-itcl::configbody Rappture::DeviceViewer1D::tool {
-    if {$itk_option(-tool) != ""} {
-        if {![Rappture::library isvalid $itk_option(-tool)]} {
-            error "bad value \"$itk_option(-tool)\": should be Rappture::Library"
-        }
-    }
-    set _tool $itk_option(-tool)
+    _loadDevice
 }

@@ -8,7 +8,8 @@
 #  drops down from the value.
 # ======================================================================
 #  AUTHOR:  Michael McLennan, Purdue University
-#  Copyright (c) 2004  Purdue Research Foundation, West Lafayette, IN
+#  Copyright (c) 2004-2005
+#  Purdue Research Foundation, West Lafayette, IN
 # ======================================================================
 package require Itk
 package require BLT
@@ -145,29 +146,38 @@ itcl::body Rappture::Gauge::value {args} {
         # value to that system of units.  Also, make sure that
         # the value is bound by any min/max value constraints.
         #
-        set newval [lindex $args 0]
-        if {$itk_option(-units) != ""} {
-            set units $itk_option(-units)
-            set newval [Rappture::Units::convert $newval -context $units]
-            set nv [Rappture::Units::convert $newval \
+        set newval [set nv [lindex $args 0]]
+        set units $itk_option(-units)
+        if {$units != ""} {
+            set newval [Rappture::Units::convert $newval \
+                -context $units]
+            set nv [Rappture::Units::convert $nv \
                 -context $units -to $units -units off]
+        }
 
-            if {"" != $itk_option(-minvalue)} {
-                set minv [Rappture::Units::convert $itk_option(-minvalue) \
+        if {"" != $itk_option(-minvalue)} {
+            set minv $itk_option(-minvalue)
+            if {$units != ""} {
+                set minv [Rappture::Units::convert $minv \
                     -context $units -to $units -units off]
-                if {$nv < $minv} {
-                    error "minimum value allowed here is $itk_option(-minvalue)"
-                }
             }
+            if {$nv < $minv} {
+                error "minimum value allowed here is $itk_option(-minvalue)"
+            }
+        }
 
-            if {"" != $itk_option(-maxvalue)} {
-                set maxv [Rappture::Units::convert $itk_option(-maxvalue) \
+        if {"" != $itk_option(-maxvalue)} {
+            set maxv $itk_option(-maxvalue)
+            if {$units != ""} {
+                set maxv [Rappture::Units::convert $maxv \
                     -context $units -to $units -units off]
-                if {$nv > $maxv} {
-                    error "maximum value allowed here is $itk_option(-maxvalue)"
-                }
             }
-        } elseif {![string is double -strict $newval]} {
+            if {$nv > $maxv} {
+                error "maximum value allowed here is $itk_option(-maxvalue)"
+            }
+        }
+
+        if {![string is double -strict $nv]} {
             error "Should be a real number"
         }
 

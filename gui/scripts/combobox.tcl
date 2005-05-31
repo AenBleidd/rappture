@@ -8,7 +8,8 @@
 #  type anything in the entry area.
 # ======================================================================
 #  AUTHOR:  Michael McLennan, Purdue University
-#  Copyright (c) 2004  Purdue Research Foundation, West Lafayette, IN
+#  Copyright (c) 2004-2005
+#  Purdue Research Foundation, West Lafayette, IN
 # ======================================================================
 package require Itk
 package require BLT
@@ -120,7 +121,7 @@ itcl::body Rappture::Combobox::value {args} {
             $itk_component(entry) configure -state disabled
         }
 
-        event generate $itk_component(hull) <<Value>>
+        after 10 [list event generate $itk_component(hull) <<Value>>]
     } elseif {[llength $args] != 0} {
         error "wrong # args: should be \"value ?newval?\""
     }

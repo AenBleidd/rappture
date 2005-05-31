@@ -39,7 +39,7 @@ class library:
             self.node = self.doc.documentElement
 
     # ------------------------------------------------------------------
-    def element(self, path="", flavor="object"):
+    def element(self, path="", as="object"):
         """
         Clients use this to query a particular element within the
         entire data structure.  The path is a string of the form
@@ -50,7 +50,7 @@ class library:
 
         By default, this method returns an object representing the
         DOM node referenced by the path.  This is changed by setting
-        the "flavor" argument to "id" (for name of the tail element),
+        the "as" argument to "id" (for name of the tail element),
         to "type" (for the type of the tail element), to "component"
         (for the component name "type(id)"), or to "object"
         for the default (an object representing the tail element).
@@ -60,19 +60,19 @@ class library:
         if not node:
             return None
 
-        if flavor == 'object':
+        if as == 'object':
             return library(node)
-        elif flavor == 'component':
+        elif as == 'component':
             return self._node2comp(node)
-        elif flavor == 'id':
+        elif as == 'id':
             return self._node2name(node)
-        elif flavor == 'type':
+        elif as == 'type':
             return node.tagName
 
-        raise ValueError, "bad flavor '%s': should be object, id, type" % flavor
+        raise ValueError, "bad as value '%s': should be component, id, object, type" % as
 
     # ------------------------------------------------------------------
-    def children(self, path="", flavor="object", type=None):
+    def children(self, path="", as="object", type=None):
         """
         Clients use this to query the children of a particular element
         within the entire data structure.  This is just like the
@@ -82,7 +82,7 @@ class library:
         of the specified type.
 
         By default, this method returns a list of objects representing
-        the children.  This is changed by setting the "flavor" argument
+        the children.  This is changed by setting the "as" argument
         to "id" (for tail names of all children), to "type" (for the
         types of all children), to "component" (for the path component
         names of all children), or to "object" for the default (a list
@@ -98,14 +98,16 @@ class library:
         if type:
             nlist = [n for n in nlist if n.nodeName == type]
 
-        if flavor == 'object':
+        if as == 'object':
             return [library(n) for n in nlist]
-        elif flavor == 'component':
+        elif as == 'component':
             return [self._node2comp(n) for n in nlist]
-        elif flavor == 'id':
+        elif as == 'id':
             return [self._node2name(n) for n in nlist]
-        elif flavor == 'type':
+        elif as == 'type':
             return [n.tagName for n in nlist]
+
+        raise ValueError, "bad as value '%s': should be component, id, object, type" % as
 
     # ------------------------------------------------------------------
     def get(self, path=""):

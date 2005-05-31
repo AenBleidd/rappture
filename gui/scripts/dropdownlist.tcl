@@ -6,7 +6,8 @@
 #
 # ======================================================================
 #  AUTHOR:  Michael McLennan, Purdue University
-#  Copyright (c) 2004  Purdue Research Foundation, West Lafayette, IN
+#  Copyright (c) 2004-2005
+#  Purdue Research Foundation, West Lafayette, IN
 # ======================================================================
 package require Itk
 
@@ -134,6 +135,7 @@ itcl::body Rappture::Dropdownlist::delete {first {last ""}} {
 
     set _values [lreplace $_values $first $last]
     set _labels [lreplace $_labels $first $last]
+    $itk_component(list) delete $first $last
 }
 
 # ----------------------------------------------------------------------
@@ -272,7 +274,7 @@ itcl::body Rappture::Dropdownlist::_adjust {{widget ""}} {
     if {$widget != ""} {
         if {$maxw < [winfo width $widget]} { set maxw [winfo width $widget] }
     }
-    set avg [font measure $fnt "x"]
+    set avg [font measure $fnt "n"]
     $itk_component(list) configure -width [expr {round($maxw/double($avg))+1}]
 
     if {$widget != ""} {

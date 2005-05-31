@@ -7,7 +7,8 @@
 #  the pages within it.
 # ======================================================================
 #  AUTHOR:  Michael McLennan, Purdue University
-#  Copyright (c) 2004  Purdue Research Foundation, West Lafayette, IN
+#  Copyright (c) 2004-2005
+#  Purdue Research Foundation, West Lafayette, IN
 # ======================================================================
 package require Itk
 
@@ -32,6 +33,7 @@ itcl::class Rappture::Notebook {
     protected method _fixSize {}
 
     private variable _count 0       ;# counter for unique names
+    private variable _dispatcher "" ;# dispatcher for !events
     private variable _pages ""      ;# list of page frames
     private variable _name2page     ;# maps name => frame for page
     private variable _current ""    ;# page currently shown
@@ -46,14 +48,12 @@ itk::usual Notebook {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Notebook::constructor {args} {
     pack propagate $itk_component(hull) no
-    eval itk_initialize $args
-}
 
-# ----------------------------------------------------------------------
-# DESTRUCTOR
-# ----------------------------------------------------------------------
-itcl::body Rappture::Notebook::destructor {} {
-    after cancel [itcl::code $this _fixSize]
+    Rappture::dispatcher _dispatcher
+    $_dispatcher register !fixsize
+    $_dispatcher dispatch $this !fixsize "[itcl::code $this _fixSize]; list"
+
+    eval itk_initialize $args
 }
 
 # ----------------------------------------------------------------------
@@ -76,10 +76,8 @@ itcl::body Rappture::Notebook::insert {pos args} {
         set _pages [linsert $_pages $pos $name]
         set _name2page($name) $itk_component($pname)
 
-        bind $itk_component($pname) <Configure> [itcl::code $this _fixSize]
-
-        after cancel [itcl::code $this _fixSize]
-        after idle [itcl::code $this _fixSize]
+        bind $itk_component($pname) <Configure> \
+            [itcl::code $_dispatcher event -after 100 !fixsize]
 
         lappend rlist $itk_component($pname)
     }
@@ -138,12 +136,12 @@ itcl::body Rappture::Notebook::page {name} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: current ?<name>|next>>|<<prev?
+# USAGE: current ?<name>|next>|<back?
 #
 # Used to query/set the current page in the notebook.  With no args,
 # it returns the name of the current page.  Otherwise, it sets the
-# current page.  The special token "next>>" is used to set the notebook
-# to the next logical page, and "<<prev" sets to the previous.
+# current page.  The special token "next>" is used to set the notebook
+# to the next logical page, and "<back" sets to the previous.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Notebook::current {args} {
     switch -- [llength $args] {
@@ -153,7 +151,7 @@ itcl::body Rappture::Notebook::current {args} {
         1 {
             set name [lindex $args 0]
             set index 0
-            if {$name == "next>>"} {
+            if {$name == "next>"} {
                 if {$_current == ""} {
                     set index 0
                 } else {
@@ -163,7 +161,7 @@ itcl::body Rappture::Notebook::current {args} {
                         set index [expr {[llength $_pages]-1}]
                     }
                 }
-            } elseif {$name == "<<prev"} {
+            } elseif {$name == "<back"} {
                 if {$_current == ""} {
                     set index end
                 } else {
@@ -188,7 +186,7 @@ itcl::body Rappture::Notebook::current {args} {
             pack $_name2page($_current) -expand yes -fill both
         }
         default {
-            error "wrong # args: should be \"current name|next>>|<<prev\""
+            error "wrong # args: should be \"current name|next>|<back\""
         }
     }
 }
@@ -229,14 +227,12 @@ itcl::body Rappture::Notebook::_fixSize {} {
 # OPTION: -width
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::Notebook::width {
-    after cancel [itcl::code $this _fixSize]
-    after idle [itcl::code $this _fixSize]
+    $_dispatcher event -idle !fixsize
 }
 
 # ----------------------------------------------------------------------
 # OPTION: -height
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::Notebook::height {
-    after cancel [itcl::code $this _fixSize]
-    after idle [itcl::code $this _fixSize]
+    $_dispatcher event -idle !fixsize
 }

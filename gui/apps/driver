@@ -3,17 +3,15 @@
 #  USER INTERFACE DRIVER
 #
 #  This driver program loads a tool description from a tool.xml file,
-#  and a UI configuration from a config.xml file, and produces a
-#  user interface automatically to drive an application.  The user
-#  can set up input, click and button to launch a tool, and browse
-#  through output.
+#  and produces a user interface automatically to drive an application.
+#  The user can set up input, click and button to launch a tool, and
+#  browse through output.
 #
 #  RUN AS FOLLOWS:
-#    driver ?-tool <toolfile>? ?-config <configfile>?
+#    driver ?-tool <toolfile>?
 #
-#  If the <toolfile> is not specified, this program looks for a
-#  file called "tool.xml" in the current directory.  If the <configfile>
-#  is not specified, it looks for "config.xml" in the current directory.
+#  If the <toolfile> is not specified, it defaults to "tool.xml" in
+#  the current working directory.
 #
 # ======================================================================
 #  AUTHOR:  Michael McLennan, Purdue University
@@ -41,250 +39,102 @@ option add *MainWin.bgScript {
 option add *MainWin.bgScript "" startupFile
 option add *MainWin.bgColor white startupFile
 option add *Tooltip.background white
-
-image create photo in2out \
-    -file [file join $Rappture::installdir scripts images in2out.gif]
+option add *Editor.background white
+option add *Gauge.textBackground white
+option add *TemperatureGauge.textBackground white
 
 #
 # Process command line args to get the names of files to load...
 #
-set toolfile "tool.xml"
-set configfile "config.xml"
-
-while {[llength $argv] > 0} {
-    set first [lindex $argv 0]
-    set argv [lrange $argv 1 end]
-
-    switch -- $first {
-        -tool {
-            if {[llength $argv] > 0} {
-                set toolfile [lindex $argv 0]
-                set argv [lrange $argv 1 end]
-            } else {
-                puts stderr "$argv0: missing value for -tool"
-                exit 1
-            }
-        }
-        -config {
-            if {[llength $argv] > 0} {
-                set configfile [lindex $argv 0]
-                set argv [lrange $argv 1 end]
-            } else {
-                puts stderr "$argv0: missing value for -tool"
-                exit 1
-            }
-        }
-        default {
-            puts stderr "usage: $argv0 ?-tool file? ?-config file?"
-            exit 1
-        }
-    }
+Rappture::getopts argv params {
+    value -tool tool.xml
 }
 
-# open the XML file containing the material library
-set lib [Rappture::library -std library.xml]
-                                                                                
 # open the XML file containing the tool parameters
-if {![file exists $toolfile]} {
-    puts stderr "tool file \"$toolfile\" doesn't exist"
+if {![file exists $params(-tool)]} {
+    puts stderr "can't find tool \"$params(-tool)\""
     exit 1
 }
-set tool [Rappture::library $toolfile]
-                                                                                
-# open the XML file containing the configuration for this application
-if {![file exists $configfile]} {
-    puts stderr "config file \"$configfile\" doesn't exist"
-    exit 1
-}
-set config [Rappture::library $configfile]
+set xmlobj [Rappture::library $params(-tool)]
 
-# ----------------------------------------------------------------------
-# From here on, run in the directory containing the tool.xml file,
-# so driver.xml files, etc., are created there
-# ----------------------------------------------------------------------
-cd [file dirname $toolfile]
-
-# ----------------------------------------------------------------------
-# USAGE: main_device_select
-#
-# Invoked automatically when a user selects a new device from the
-# "Devices:" combobox.  Plugs the new device into the device viewer.
-# ----------------------------------------------------------------------
-proc main_device_select {} {
-    set win [.main component app]
-    set val [$win.input.devsel.dev value]
-    set val [$win.input.devsel.dev translate $val]
-    $win.input.device configure -device $val
-    $win.output.analyze configure -device $val
+set installdir [file dirname $params(-tool)]
+if {"." == $installdir} {
+    set installdir [pwd]
 }
+
+set tool [Rappture::Tool ::#auto $xmlobj $installdir]
 
 # ----------------------------------------------------------------------
 # MAIN WINDOW
 # ----------------------------------------------------------------------
 wm withdraw .
 Rappture::MainWin .main -borderwidth 0
+.main configure -title [$tool xml get tool.title]
+wm withdraw .main
 
-.main configure -title [$config get title]
-
-# build everything inside this main window
+#
+# The main window has a pager that acts as a notebook for the
+# various parts.  This notebook as at least two pages--an input
+# page and an output (analysis) page.  If there are <phase>'s
+# for input, then there are more pages in the notebook.
+#
 set win [.main component app]
-#$win configure -background #a6a6a6
+Rappture::Pager $win.pager
+pack $win.pager -expand yes -fill both
 
-frame $win.input -borderwidth 12 -relief flat
-pack $win.input -side left -expand yes -fill both -padx {0 5}
-
-frame $win.output -borderwidth 12 -relief flat
-pack $win.output -side left -expand yes -fill both -padx {5 0}
-
-# make an arrow that goes from input to output side
-#label $win.arrow -borderwidth 0 -image in2out
-#place $win.arrow -y 2 -anchor n
-#bind $win.input <Configure> [list align_arrow $win]
-#proc align_arrow {win} {
-#    place $win.arrow -x [expr {[winfo width $win.input]+5}]
-#}
-
-# ----------------------------------------------------------------------
-# INPUT AREA
-# ----------------------------------------------------------------------
-set w $win.input
-set dfirst ""
-set dlist [$config children -type structure controls]
-if {"" != $dlist} {
-    foreach dname $dlist {
-        set obj [$config element -flavor object controls.$dname]
-        set name [$obj get label]
-        set devs($name) $obj
+set phases [$tool xml children -type phase input]
+if {[llength $phases] > 0} {
+    set plist ""
+    foreach name $phases {
+        lappend plist input.$name
     }
-    set devlist [lsort [array names devs]]
+    set phases $plist
+} else {
+    set phases input
+}
 
-    if {[array size devs] > 1} {
-        frame $w.devsel
-        pack $w.devsel -side top -fill x
-        label $w.devsel.l -text "Device:"
-        pack $w.devsel.l -side left
-        Rappture::Combobox $w.devsel.dev -width 30 -editable no
-        pack $w.devsel.dev -side left
-        bind $w.devsel.dev <<Value>> main_device_select
-
-        foreach name $devlist {
-            $w.devsel.dev choices insert end $devs($name) $name
-        }
-        $w.devsel.dev value [lindex $devlist 0]
+foreach comp $phases {
+    set title [$tool xml get $comp.about.label]
+    if {$title == ""} {
+        set title "Input #auto"
     }
+    $win.pager insert end -name $comp -title $title
 
-    set first [lindex $devlist 0]
-    set dfirst $devs($first)
-    set tags [$dfirst children components]
-    set i [lsearch $tags label]
-    if {$i >= 0} {set tags [lreplace $tags $i $i]}
-
-    if {$tags == "molecule"} {
-        Rappture::MoleculeViewer $w.device -device $devs($first) \
-            -library $lib
-    } else {
-        Rappture::DeviceViewer1D $w.device -device $devs($first) \
-            -tool $tool -library $lib
-    }
-    pack $w.device -expand yes -fill both
-
-    bind $w.device <<Edit>> [list $win.output.analyze reset]
+    #
+    # Build the page of input controls for this phase.
+    #
+    set f [$win.pager page $comp]
+    Rappture::Page $f.cntls $tool $comp
+    pack $f.cntls -expand yes -fill both
 }
 
 # ----------------------------------------------------------------------
 # OUTPUT AREA
 # ----------------------------------------------------------------------
-set w $win.output
-Rappture::Analyzer $w.analyze -holdwindow $win.input \
-    -tool $tool -analysis [$config element -flavor object analysis] \
-    -device $dfirst
-pack $w.analyze -expand yes -fill both
+$win.pager insert end -name analyzer -title "Results"
+set f [$win.pager page analyzer]
+$win.pager page analyzer -command [list $f.analyze simulate -ifneeded]
+
+Rappture::Analyzer $f.analyze $tool -simcontrol auto
+pack $f.analyze -expand yes -fill both
+
+$tool configure -analyzer $f.analyze
 
 # ----------------------------------------------------------------------
-# HOOK UP ANY CONTROLS CALLED OUT IN CONFIG.XML
+# Finalize the arrangement
 # ----------------------------------------------------------------------
-proc controls_add {container libObj path} {
-    set presets ""
-    foreach pre [$libObj children -type preset $path] {
-        lappend presets \
-            [$libObj get $path.$pre.value] \
-            [$libObj get $path.$pre.label]
-    }
+if {[llength [$win.pager page]] == 2} {
+    set style [$xmlobj get tool.layout]
+    set screenw [winfo screenwidth .]
 
-    set type Rappture::Gauge
-    set units [$libObj get $path.units]
-    if {$units != ""} {
-        set desc [Rappture::Units::description $units]
-        if {[string match temperature* $desc]} {
-            set type Rappture::TemperatureGauge
-        }
-    }
+    update idletasks
+    set w0 [winfo reqwidth [$win.pager page @0]]
+    set w1 [winfo reqwidth [$win.pager page @1]]
 
-    set counter 0
-    set w "$container.gauge[incr counter]"
-    while {[winfo exists $w]} {
-        set w "$container.gauge[incr counter]"
-    }
-
-    # create the widget
-    $type $w -units $units -presets $presets
-    pack $w -side top -anchor w
-#    bind $w <<Value>> [itcl::code $this _controlSet $w $libObj $path]
-
-    set min [$libObj get $path.min]
-    if {"" != $min} { $w configure -minvalue $min }
-
-    set max [$libObj get $path.max]
-    if {"" != $max} { $w configure -maxvalue $max }
-
-    set str [$libObj get $path.default]
-    if {$str != ""} { $w value $str }
-
-    if {$type == "Rappture::Gauge" && "" != $min && "" != $max} {
-        set color [$libObj get $path.color]
-        if {$color == ""} {
-            set color blue
-        }
-        if {$units != ""} {
-            set min [Rappture::Units::convert $min -to $units -units off]
-            set max [Rappture::Units::convert $max -to $units -units off]
-        }
-        $w configure -spectrum [Rappture::Spectrum ::#auto [list \
-            $min white $max $color] -units $units]
-    }
-
-    set str [$libObj get $path.label]
-    if {$str != ""} {
-        set help [$libObj get $path.help]
-        if {"" != $help} {
-            append str "\n$help"
-        }
-        if {$units != ""} {
-            set desc [Rappture::Units::description $units]
-            append str "\n(units of $desc)"
-        }
-        Rappture::Tooltip::for $w $str
-    }
-
-    set str [$libObj get $path.icon]
-    if {$str != ""} {
-        $w configure -image [image create photo -data $str]
+    # if only two windows and they're small enough, put them up side-by-side
+    if {$w0+$w1 < $screenw && $style != "wizard"} {
+        $win.pager configure -arrangement side-by-side
+        $f.analyze configure -holdwindow [$win.pager page @0] -simcontrol on
     }
 }
-
-if {[winfo exists $win.input.device]} {
-    foreach access [$config children -type access controls] {
-        set name [$config get controls.$access]
-        switch -glob -- $name {
-            input.(ambient)* - structure* {
-                $win.input.device controls add $name
-            }
-        }
-    }
-} else {
-    foreach access [$config children -type access controls] {
-        set name [$config get controls.$access]
-        controls_add $win.input $tool $name
-    }
-    $w.analyze simulate
-}
+wm deiconify .main

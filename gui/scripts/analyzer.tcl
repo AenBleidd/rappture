@@ -9,34 +9,60 @@
 #  XML data.
 # ======================================================================
 #  AUTHOR:  Michael McLennan, Purdue University
-#  Copyright (c) 2004  Purdue Research Foundation, West Lafayette, IN
+#  Copyright (c) 2004-2005
+#  Purdue Research Foundation, West Lafayette, IN
 # ======================================================================
 package require Itk
-package require BLT
 
+option add *Analyzer.width 5i widgetDefault
+option add *Analyzer.height 5i widgetDefault
+option add *Analyzer.simControl "auto" widgetDefault
+option add *Analyzer.simControlBackground "" widgetDefault
+option add *Analyzer.simControlOutline gray widgetDefault
+option add *Analyzer.simControlActiveBackground #ffffcc widgetDefault
+option add *Analyzer.simControlActiveOutline black widgetDefault
+
+option add *Analyzer.font \
+    -*-helvetica-medium-r-normal-*-*-120-* widgetDefault
 option add *Analyzer.textFont \
     -*-helvetica-medium-r-normal-*-*-120-* widgetDefault
+option add *Analyzer.boldTextFont \
+    -*-helvetica-bold-r-normal-*-*-120-* widgetDefault
 
 itcl::class Rappture::Analyzer {
     inherit itk::Widget
 
-    itk_option define -tool tool Tool ""
-    itk_option define -device device Device ""
-    itk_option define -analysis analysis Analysis ""
+    itk_option define -textfont textFont Font ""
+    itk_option define -boldtextfont boldTextFont Font ""
+    itk_option define -simcontrol simControl SimControl ""
+    itk_option define -simcontroloutline simControlOutline Background ""
+    itk_option define -simcontrolbackground simControlBackground Background ""
+    itk_option define -simcontrolactiveoutline simControlActiveOutline Background ""
+    itk_option define -simcontrolactivebackground simControlActiveBackground Background ""
     itk_option define -holdwindow holdWindow HoldWindow ""
 
-    constructor {args} { # defined below }
+    constructor {tool args} { # defined below }
     destructor { # defined below }
 
-    public method simulate {}
+    public method simulate {args}
     public method reset {}
     public method load {file}
+    public method clear {}
 
+    protected method _plot {args}
+    protected method _reorder {comps}
+    protected method _autoLabel {xmlobj path title cntVar}
     protected method _fixResult {}
+    protected method _fixSize {}
+    protected method _fixSimControl {}
+    protected method _simState {state args}
 
-    private variable _run ""           ;# results from last run
+    private variable _tool ""          ;# belongs to this tool
     private variable _control "manual" ;# start mode
-    private variable _widgets          ;# maps analyze section => widget
+    private variable _runs ""          ;# list of XML objects with results
+    private variable _pages 0          ;# number of pages for result sets
+    private variable _label2page       ;# maps output label => result set
+    private variable _plotlist ""      ;# items currently being plotted
 
     private common job                 ;# array var used for blt::bgexec jobs
 }
@@ -48,36 +74,86 @@ itk::usual Analyzer {
 # ----------------------------------------------------------------------
 # CONSTRUCTOR
 # ----------------------------------------------------------------------
-itcl::body Rappture::Analyzer::constructor {args} {
+itcl::body Rappture::Analyzer::constructor {tool args} {
+    set _tool $tool
+
+    itk_option add hull.width hull.height
+    pack propagate $itk_component(hull) no
+
+    frame $itk_interior.simol -borderwidth 1 -relief flat
+    pack $itk_interior.simol -fill x
+
+    frame $itk_interior.simol.simbg -borderwidth 0
+    pack $itk_interior.simol.simbg -expand yes -fill both
+
+    itk_component add simulate {
+        button $itk_interior.simol.simbg.simulate -text "Simulate" \
+            -command [itcl::code $this simulate]
+    }
+    pack $itk_component(simulate) -side left -padx 4 -pady 4
+
+    itk_component add simstatus {
+        text $itk_interior.simol.simbg.simstatus -borderwidth 0 \
+            -highlightthickness 0 -height 1 -width 1 -wrap none \
+            -state disabled
+    } {
+        usual
+        ignore -highlightthickness
+        rename -font -textfont textFont Font
+    }
+    pack $itk_component(simstatus) -side left -expand yes -fill x
+
+    $itk_component(simstatus) tag configure popup \
+        -underline 1 -foreground blue
+
+    $itk_component(simstatus) tag bind popup \
+        <Enter> {%W configure -cursor center_ptr}
+    $itk_component(simstatus) tag bind popup \
+        <Leave> {%W configure -cursor ""}
+    $itk_component(simstatus) tag bind popup \
+        <ButtonPress> {after idle {Rappture::Tooltip::tooltip show %W}}
+
+
     itk_component add notebook {
         Rappture::Notebook $itk_interior.nb
     }
     pack $itk_interior.nb -expand yes -fill both
 
     # ------------------------------------------------------------------
+    # ABOUT PAGE
+    # ------------------------------------------------------------------
+    set w [$itk_component(notebook) insert end about]
+
+    Rappture::Scroller $w.info -xscrollmode off -yscrollmode auto
+    pack $w.info -expand yes -fill both -padx 4 -pady 20
+    itk_component add toolinfo {
+        text $w.info.text -width 1 -height 1 -wrap word \
+            -borderwidth 0 -highlightthickness 0
+    } {
+        usual
+        ignore -borderwidth -relief
+        rename -font -textfont textFont Font
+    }
+    $w.info contents $w.info.text
+
+    # ------------------------------------------------------------------
     # SIMULATION PAGE
     # ------------------------------------------------------------------
     set w [$itk_component(notebook) insert end simulate]
     frame $w.cntls
-    pack $w.cntls -side top -fill x -padx {20 2}
+    pack $w.cntls -side bottom -fill x -pady 12
+    frame $w.cntls.sep -background black -height 1
+    pack $w.cntls.sep -side top -fill x
 
-    itk_component add simulate {
-        button $w.cntls.sim -text "Simulate" \
-            -command [itcl::code $this simulate]
+    itk_component add abort {
+        button $w.cntls.abort -text "Abort" \
+            -command [itcl::code $_tool abort]
     }
-    pack $itk_component(simulate) -side left
-
-    itk_component add status {
-        label $w.cntls.info -width 1 -text "" -anchor w
-    } {
-        usual
-        rename -font -textfont textFont Font
-    }
-    pack $itk_component(status) -side left -expand yes -fill both
+    pack $itk_component(abort) -side left -expand yes -padx 4 -pady 4
 
     Rappture::Scroller $w.info -xscrollmode off -yscrollmode auto
-    pack $w.info -expand yes -fill both -padx {20 2} -pady {20 2}
-    itk_component add info {
+    pack $w.info -expand yes -fill both -padx 4 -pady 4
+    itk_component add runinfo {
         text $w.info.text -width 1 -height 1 -wrap word \
             -borderwidth 0 -highlightthickness 0 \
             -state disabled
@@ -93,111 +169,155 @@ itcl::body Rappture::Analyzer::constructor {args} {
     # ------------------------------------------------------------------
     set w [$itk_component(notebook) insert end analyze]
 
+    frame $w.top
+    pack $w.top -side top -fill x -pady 8
+    label $w.top.l -text "Result:" -font $itk_option(-font)
+    pack $w.top.l -side left
+
     itk_component add resultselector {
-        Rappture::Combobox $w.sel -width 30 -editable no
+        Rappture::Combobox $w.top.sel -width 50 -editable no
     } {
         usual
         rename -font -textfont textFont Font
     }
-    pack $itk_component(resultselector) -side top -fill x -padx {20 2}
+    pack $itk_component(resultselector) -side left -expand yes -fill x
     bind $itk_component(resultselector) <<Value>> [itcl::code $this _fixResult]
 
     itk_component add results {
-        Rappture::Notebook $w.nb
+        Rappture::Panes $w.pane
     }
-    pack $itk_component(results) -expand yes -fill both -pady 4
+    pack $itk_component(results) -expand yes -fill both
+    set f [$itk_component(results) pane 0]
+
+    itk_component add resultpages {
+        Rappture::Notebook $f.nb
+    }
+    pack $itk_component(resultpages) -expand yes -fill both
+
+    set f [$itk_component(results) insert end -fraction 0.1]
+    itk_component add resultset {
+        Rappture::ResultSet $f.rset \
+            -clearcommand [itcl::code $this clear] \
+            -settingscommand [itcl::code $this _plot] \
+            -promptcommand [itcl::code $this _simState]
+    }
+    pack $itk_component(resultset) -expand yes -fill both
+    bind $itk_component(resultset) <<Control>> [itcl::code $this _fixSize]
 
     eval itk_initialize $args
+
+    #
+    # Load up tool info on the first page.
+    #
+    $itk_component(toolinfo) tag configure title \
+        -font $itk_option(-boldtextfont)
+
+    set mesg [$tool xml get tool.title]
+    if {"" != $mesg} {
+        $itk_component(toolinfo) insert end $mesg title
+        $itk_component(toolinfo) insert end "\n\n"
+    }
+
+    set mesg [$tool xml get tool.about]
+    if {"" != $mesg} {
+        $itk_component(toolinfo) insert end $mesg
+    }
+    $itk_component(toolinfo) configure -state disabled
+    $itk_component(notebook) current about
+
+    # reset everything to a clean state
     reset
+
+    # tool can run on "manual" (default) or "auto"
+    set cntl [$tool xml get tool.control]
+    if {"" != $cntl} {
+        set _control $cntl
+    }
 }
 
 # ----------------------------------------------------------------------
 # DESTRUCTOR
 # ----------------------------------------------------------------------
 itcl::body Rappture::Analyzer::destructor {} {
-    if {$_run != ""} {
-        itcl::delete object $_run
+    foreach obj $_runs {
+        itcl::delete object $obj
     }
+    after cancel [itcl::code $this simulate]
 }
 
 # ----------------------------------------------------------------------
-# USAGE: simulate
+# USAGE: simulate ?-ifneeded?
+# USAGE: simulate ?<path1> <value1> <path2> <value2> ...?
 #
-# If the simulation page is showing, this kicks off the simulator
-# by executing the tool.command associated with the -tool.  While
-# the simulation is running, it shows status.  When the simulation is
-# finished, it switches automatically to "analyze" mode and shows
-# the results.
+# Kicks off the simulator by executing the tool.command associated
+# with the tool.  If any arguments are specified, they are used to
+# set parameters for the simulation.  While the simulation is running,
+# it shows status.  When the simulation is finished, it switches
+# automatically to "analyze" mode and shows the results.
 # ----------------------------------------------------------------------
-itcl::body Rappture::Analyzer::simulate {} {
-    if {[$itk_component(notebook) current] == "simulate"} {
-        $itk_component(status) configure -text "Running simulation..."
-        $itk_component(simulate) configure -text "Abort" \
-            -command {set ::Rappture::Analyzer::job(control) abort}
-
-        set job(control) ""
-        set job(error) ""
-
-        # if the hold window is set, then put up a busy cursor
-        if {$itk_option(-holdwindow) != ""} {
-            blt::busy hold $itk_option(-holdwindow)
-            raise $itk_component(hull)
-            update
-        }
-
-        # write out the driver.xml file for the tool
-        set status [catch {
-            set fid [open driver.xml w]
-            puts $fid "<?xml version=\"1.0\"?>"
-            set xml [$itk_option(-tool) xml]
-            if {$itk_option(-device) != ""} {
-                set xml2 [$itk_option(-device) xml]
-                regsub -all {&} $xml2 {\\\&} xml2
-                regsub {</run>} $xml "$xml2</run>" xml
-            }
-            puts $fid $xml
-            close $fid
-        } result]
-
-        # execute the tool using the path from the tool description
-        if {$status == 0} {
-            set cmd [$itk_option(-tool) get tool.command]
-
-            set status [catch {eval blt::bgexec \
-                ::Rappture::Analyzer::job(control) \
-                -output ::Rappture::Analyzer::job(output) \
-                -error ::Rappture::Analyzer::job(error) $cmd} result]
-        }
-
-        # read back the results from run.xml
-        if {$status == 0} {
-            set status [catch {load run.xml} result]
-        }
-
-        # back to normal
-        if {$itk_option(-holdwindow) != ""} {
-            blt::busy release $itk_option(-holdwindow)
-        }
-        $itk_component(status) configure -text ""
-        $itk_component(simulate) configure -text "Simulate" \
-            -command [itcl::code $this simulate]
-
-        # if anything went wrong, tell the user; otherwise, analyze
-        if {[regexp {^KILLED} $job(control)]} {
-            # job aborted -- do nothing
-        } elseif {$status != 0} {
-            $itk_component(info) configure -state normal
-            $itk_component(info) delete 1.0 end
-            $itk_component(info) insert end "Problem launching job:\n"
-            if {[string length $job(error)] > 0} {
-                $itk_component(info) insert end $job(error)
-            } else {
-                $itk_component(info) insert end $result
-            }
-            $itk_component(info) configure -state disabled
-        } else {
+itcl::body Rappture::Analyzer::simulate {args} {
+    if {$args == "-ifneeded"} {
+        # check to see if simulation is really needed
+        $_tool sync
+        if {[$itk_component(resultset) contains [$_tool xml object]]} {
+            # not needed -- show results and return
             $itk_component(notebook) current analyze
+            return
         }
+        set args ""
+    }
+
+    # simulation is needed -- go to simulation page
+    $itk_component(notebook) current simulate
+
+    _simState off
+    $itk_component(runinfo) configure -state normal
+    $itk_component(runinfo) delete 1.0 end
+    $itk_component(runinfo) insert end "Running simulation..."
+    $itk_component(runinfo) configure -state disabled
+
+    # if the hold window is set, then put up a busy cursor
+    if {$itk_option(-holdwindow) != ""} {
+        blt::busy hold $itk_option(-holdwindow)
+        raise $itk_component(hull)
+        update
+    }
+
+    # execute the job
+    foreach {status result} [eval $_tool run $args] break
+
+    # if job was aborted, then allow simulation again
+    if {$result == "ABORT"} {
+        _simState on "Aborted"
+    }
+
+    # read back the results from run.xml
+    if {$status == 0 && $result != "ABORT"} {
+        if {[regexp {=RAPPTURE-RUN=>([^\n]+)} $result match file]} {
+            set status [catch {load $file} msg]
+            if {$status != 0} {
+                set result $msg
+            }
+        } else {
+            set status 1
+            set result "Can't find result file in output:\n\n$result"
+        }
+    }
+
+    # back to normal
+    if {$itk_option(-holdwindow) != ""} {
+        blt::busy release $itk_option(-holdwindow)
+    }
+    $itk_component(abort) configure -state disabled
+
+    if {$status != 0} {
+        $itk_component(runinfo) configure -state normal
+        $itk_component(runinfo) delete 1.0 end
+        $itk_component(runinfo) insert end "Problem launching job:\n\n"
+        $itk_component(runinfo) insert end $result
+        $itk_component(runinfo) configure -state disabled
+    } else {
+        $itk_component(notebook) current analyze
     }
 }
 
@@ -210,35 +330,213 @@ itcl::body Rappture::Analyzer::simulate {} {
 # to "auto", the simulation is invoked immediately.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Analyzer::reset {} {
-    $itk_component(notebook) current simulate
+    # check to see if simulation is really needed
+    $_tool sync
+    if {![$itk_component(resultset) contains [$_tool xml object]]} {
+        # if control mode is "auto", then simulate right away
+        if {[string match auto* $_control]} {
+            # auto control -- don't need button
+            pack forget $itk_interior.simol
 
-    # if control mode is "auto", then simulate right away
-    if {[string match auto* $_control]} {
-        simulate
+            after cancel [itcl::code $this simulate]
+            after idle [itcl::code $this simulate]
+        } else {
+            _simState on "new input parameters"
+        }
+    } else {
+        _simState off
     }
 }
 
 # ----------------------------------------------------------------------
 # USAGE: load <file>
 #
-# Used to reset the analyzer whenever the input to a simulation has
-# changed.  Sets the mode back to "simulate", so the user has to
-# simulate again to see the output.
+# Loads the data from the given <file> into the appropriate results
+# sets.  If necessary, new results sets are created to store the data.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Analyzer::load {file} {
-    # clear any old results
-    if {$_run != ""} {
-        itcl::delete object $_run
-        set _run ""
-    }
-
     # try to load new results from the given file
-    set _run [Rappture::library $file]
+    set xmlobj [Rappture::library $file]
+    lappend _runs $xmlobj
 
-    # go through the analysis and create widgets to display results
-    foreach item [array names _widgets] {
-        $_widgets($item) configure -output $_run
+    # go through the analysis and find all result sets
+    set haveresults 0
+    foreach item [_reorder [$xmlobj children output]] {
+        switch -glob -- $item {
+            log* {
+                _autoLabel $xmlobj output.$item "Output Log" counters
+            }
+            curve* - field* {
+                _autoLabel $xmlobj output.$item "Plot" counters
+            }
+            table* {
+                _autoLabel $xmlobj output.$item "Energy Levels" counters
+            }
+        }
+        set label [$xmlobj get output.$item.about.label]
+
+        if {"" != $label} {
+            set haveresults 1
+        }
     }
+
+    # if there are any valid results, add them to the resultset
+    if {$haveresults} {
+        set size [$itk_component(resultset) size]
+        set op [$itk_component(resultset) add $xmlobj]
+
+        # add each result to a result viewer
+        foreach item [_reorder [$xmlobj children output]] {
+            set label [$xmlobj get output.$item.about.label]
+
+            if {"" != $label} {
+                if {![info exists _label2page($label)]} {
+                    set name "page[incr _pages]"
+                    set page [$itk_component(resultpages) insert end $name]
+                    set _label2page($label) $page
+                    Rappture::ResultViewer $page.rviewer
+                    pack $page.rviewer -expand yes -fill both -pady 4
+
+                    $itk_component(resultselector) choices insert end \
+                        $name $label
+
+                    #
+                    # NOTE:
+                    #
+                    # If this result is showing up late in the game, then
+                    # we must fill the resultviewer with a series of blank
+                    # entries, so the latest result will align with (have
+                    # the same index as) results in all other viewers.
+                    #
+                    for {set i 0} {$i < $size} {incr i} {
+                        $page.rviewer add $xmlobj ""
+                    }
+                }
+
+                # add/replace the latest result into this viewer
+                set page $_label2page($label)
+                eval $page.rviewer $op [list $xmlobj output.$item]
+            }
+        }
+    }
+
+    # if there is only one result page, take down the selector
+    set w [$itk_component(notebook) page analyze]
+    if {[$itk_component(resultselector) choices size] <= 1} {
+        pack forget $w.top
+    } else {
+        pack $w.top -before $itk_component(results) -side top -fill x
+    }
+
+    # show the first page by default
+    set first [$itk_component(resultselector) choices get -label 0]
+    if {$first != ""} {
+        $itk_component(resultpages) current page1
+        $itk_component(resultselector) value $first
+    }
+}
+
+# ----------------------------------------------------------------------
+# USAGE: clear
+#
+# Discards all results previously loaded into the analyzer.
+# ----------------------------------------------------------------------
+itcl::body Rappture::Analyzer::clear {} {
+    foreach obj $_runs {
+        itcl::delete object $obj
+    }
+    set _runs ""
+
+    foreach label [array names _label2page] {
+        set page $_label2page($label)
+        $page.rviewer clear
+    }
+
+    $itk_component(resultset) clear
+    $itk_component(results) fraction end 0.1
+
+    _simState on
+    _fixSimControl
+}
+
+# ----------------------------------------------------------------------
+# USAGE: _plot ?<index> <options> <index> <options>...?
+#
+# Used internally to update the plot shown in the current result
+# viewer whenever the resultset settings have changed.  Causes the
+# desired results to show up on screen.
+# ----------------------------------------------------------------------
+itcl::body Rappture::Analyzer::_plot {args} {
+    set _plotlist $args
+
+    set page [$itk_component(resultselector) value]
+    set page [$itk_component(resultselector) translate $page]
+    set f [$itk_component(resultpages) page $page]
+    $f.rviewer plot clear
+    foreach {index opts} $_plotlist {
+        $f.rviewer plot add $index $opts
+    }
+}
+
+# ----------------------------------------------------------------------
+# USAGE: _reorder
+#
+# Used internally to change the order of a series of output components
+# found in the <output> section.  Moves the <log> elements to the end
+# and returns the updated list.
+# ----------------------------------------------------------------------
+itcl::body Rappture::Analyzer::_reorder {comps} {
+    set i 0
+    set max [llength $comps]
+    while {$i < $max} {
+        set c [lindex $comps $i]
+        if {[string match log* $c]} {
+            set comps [lreplace $comps $i $i]
+            lappend comps $c
+            incr max -1
+        } else {
+            incr i
+        }
+    }
+    return $comps
+}
+
+# ----------------------------------------------------------------------
+# USAGE: _autoLabel <xmlobj> <path> <title> <cntVar>
+#
+# Used internally to check for an about.label property at the <path>
+# in <xmlobj>.  If this object doesn't have a label, then one is
+# supplied using the given <title>.  The <cntVar> is an array of
+# counters in the calling scopes for titles that have been used
+# in the past.  This is used to create titles like "Plot #2" the
+# second time it is encountered.
+#
+# The <xmlobj> is updated so that the label is inserted directly in
+# the tree.
+# ----------------------------------------------------------------------
+itcl::body Rappture::Analyzer::_autoLabel {xmlobj path title cntVar} {
+    upvar $cntVar counters
+
+    set label [$xmlobj get $path.about.label]
+    if {"" == $label} {
+        # no label -- make one up using the title specified
+        if {![info exists counters($title)]} {
+            set counters($title) 1
+            set label $title
+        } else {
+            set label "$title #[incr counters($title)]"
+        }
+        $xmlobj put $path.about.label $label
+    } else {
+        # handle the case of two identical labels in <output>
+        if {![info exists counters($label)]} {
+            set counters($label) 1
+        } else {
+            set label "$label #[incr counters($label)]"
+            $xmlobj put $path.about.label $label
+        }
+    }
+    return $label
 }
 
 # ----------------------------------------------------------------------
@@ -250,98 +548,150 @@ itcl::body Rappture::Analyzer::load {file} {
 itcl::body Rappture::Analyzer::_fixResult {} {
     set page [$itk_component(resultselector) value]
     set page [$itk_component(resultselector) translate $page]
-    $itk_component(results) current $page
+    $itk_component(resultpages) current $page
+
+    set f [$itk_component(resultpages) page $page]
+    $f.rviewer plot clear
+    eval $f.rviewer plot add $_plotlist
 }
 
 # ----------------------------------------------------------------------
-# CONFIGURATION OPTION: -tool
+# USAGE: _fixSize
 #
-# Set to the Rappture::library object representing the tool being
-# run in this analyzer.
+# Used internally to change the size of the result set area whenever
+# a new control appears.  Adjusts the size available for the result
+# set up to some maximum.
 # ----------------------------------------------------------------------
-itcl::configbody Rappture::Analyzer::tool {
-    if {![Rappture::library isvalid $itk_option(-tool)]} {
-        error "bad value \"$itk_option(-tool)\": should be Rappture::library"
+itcl::body Rappture::Analyzer::_fixSize {} {
+    set f [$itk_component(results) fraction end]
+    if {$f < 0.4} {
+        $itk_component(results) fraction end [expr {$f+0.15}]
     }
-
-    $itk_component(info) configure -state normal
-    $itk_component(info) delete 1.0 end
-    $itk_component(info) insert end [$itk_option(-tool) get tool.about]
-    $itk_component(info) configure -state disabled
+    _fixSimControl
 }
 
 # ----------------------------------------------------------------------
-# CONFIGURATION OPTION: -device
+# USAGE: _simState <boolean> ?<message>? ?<settings>?
 #
-# Set to the Rappture::library object representing the device being
-# run in this analyzer.
+# Used internally to change the "Simulation" button on or off.
+# If the <boolean> is on, then any <message> and <settings> are
+# displayed as well.  The <message> is a note to the user about
+# what will be simulated, and the <settings> are a list of
+# tool parameter settings of the form {path1 val1 path2 val2 ...}.
+# When these are in place, the next Simulate operation will use
+# these settings.  This helps fill in missing data values.
 # ----------------------------------------------------------------------
-itcl::configbody Rappture::Analyzer::device {
-    if {$itk_option(-device) != ""
-          && ![Rappture::library isvalid $itk_option(-device)]} {
-        error "bad value \"$itk_option(-device)\": should be Rappture::library"
-    }
-    reset
-}
+itcl::body Rappture::Analyzer::_simState {state args} {
+    if {$state} {
+        $itk_interior.simol configure \
+            -background $itk_option(-simcontrolactiveoutline)
+        $itk_interior.simol.simbg configure \
+            -background $itk_option(-simcontrolactivebackground)
+        $itk_component(simulate) configure \
+            -highlightbackground $itk_option(-simcontrolactivebackground)
+        $itk_component(simstatus) configure \
+            -background $itk_option(-simcontrolactivebackground)
 
-# ----------------------------------------------------------------------
-# CONFIGURATION OPTION: -analysis
-#
-# Set to the Rappture::library object representing the analysis that
-# should be shown in this analyzer.
-# ----------------------------------------------------------------------
-itcl::configbody Rappture::Analyzer::analysis {
-    if {![Rappture::library isvalid $itk_option(-analysis)]} {
-        error "bad value \"$itk_option(-analysis)\": should be Rappture::library"
-    }
-    set _control [$itk_option(-analysis) get control]
+        $itk_component(abort) configure -state disabled
+        $itk_component(simulate) configure -state normal \
+            -command [itcl::code $this simulate]
 
-    # go through the analysis and create widgets to display results
-    $itk_component(results) delete -all
-    catch {unset _widgets}
+        #
+        # If there's a special message, then put it up next to the button.
+        #
+        set mesg [lindex $args 0]
+        if {"" != $mesg} {
+            $itk_component(simstatus) configure -state normal
+            $itk_component(simstatus) delete 1.0 end
+            $itk_component(simstatus) insert end $mesg
 
-    set counter 0
-    foreach item [$itk_option(-analysis) children] {
-        switch -glob -- $item {
-            xyplot* {
-                set name "page[incr counter]"
-                set label [$itk_option(-analysis) get $item.label]
-                if {$label == ""} { set label $name }
+            #
+            # If there are any settings, then install them in the
+            # "Simulate" button.  Also, pop them up as a tooltip
+            # for the message.
+            #
+            set settings [lindex $args 1]
+            if {[llength $settings] > 0} {
+                $itk_component(simulate) configure \
+                    -command [eval itcl::code $this simulate $settings]
 
-                set page [$itk_component(results) insert end $name]
-                $itk_component(resultselector) choices insert end \
-                    $name $label
+                set details ""
+                foreach {path val} $settings {
+                    set str [$_tool xml get $path.about.label]
+                    if {"" == $str} {
+                        set str [$_tool xml element -as id $path]
+                    }
+                    append details "$str = $val\n"
+                }
+                set details [string trim $details]
 
-                set _widgets($item) [Rappture::Xyplot $page.#auto \
-                    -layout [$itk_option(-analysis) element -flavor object $item]]
-                pack $_widgets($item) -expand yes -fill both
+                Rappture::Tooltip::for $itk_component(simstatus) $details
+                $itk_component(simstatus) insert end " "
+                $itk_component(simstatus) insert end "(details...)" popup
             }
-            elevels* {
-                set name "page[incr counter]"
+            $itk_component(simstatus) configure -state disabled
+        }
+    } else {
+        if {"" != $itk_option(-simcontrolbackground)} {
+            set simcbg $itk_option(-simcontrolbackground)
+        } else {
+            set simcbg $itk_option(-background)
+        }
+        $itk_interior.simol configure \
+            -background $itk_option(-simcontroloutline)
+        $itk_interior.simol.simbg configure -background $simcbg
+        $itk_component(simulate) configure -highlightbackground $simcbg
+        $itk_component(simstatus) configure -background $simcbg
 
-                set page [$itk_component(results) insert end $name]
-                $itk_component(resultselector) choices insert end \
-                    $name "Energy Levels"
+        $itk_component(simulate) configure -state disabled
+        $itk_component(abort) configure -state normal
 
-                set _widgets($item) [Rappture::EnergyLevels $page.#auto \
-                    -layout [$itk_option(-analysis) element -flavor object $item]]
-                pack $_widgets($item) -expand yes -fill both
+        $itk_component(simstatus) configure -state normal
+        $itk_component(simstatus) delete 1.0 end
+        $itk_component(simstatus) configure -state disabled
+        Rappture::Tooltip::for $itk_component(simstatus) ""
+    }
+}
+
+# ----------------------------------------------------------------------
+# USAGE: _fixSimControl
+#
+# Used internally to add or remove the simulation control at the
+# top of the analysis area.  This is controlled by the -simcontrol
+# option.
+# ----------------------------------------------------------------------
+itcl::body Rappture::Analyzer::_fixSimControl {} {
+    switch -- $itk_option(-simcontrol) {
+        on {
+            pack $itk_interior.simol -fill x -before $itk_interior.nb
+        }
+        off {
+            pack forget $itk_interior.simol
+        }
+        auto {
+            #
+            # If we have two or more radiodials, then there is a
+            # chance of encountering a combination of parameters
+            # with no data, requiring simulation.
+            #
+            if {[$itk_component(resultset) size -controls] >= 2} {
+                pack $itk_interior.simol -fill x -before $itk_interior.nb
+            } else {
+                pack forget $itk_interior.simol
             }
         }
+        default {
+            error "bad value \"$itk_option(-simcontrol)\": should be on, off, auto"
+        }
     }
+}
 
-    # if there is only one page, take down the selector
-    if {[$itk_component(resultselector) choices size] <= 1} {
-        pack forget $itk_component(resultselector)
-    } else {
-        pack $itk_component(resultselector) -before $itk_component(results) \
-            -side top -fill x -padx {20 2}
-    }
-
-    # show the first page by default
-    set first [$itk_component(resultselector) choices get -label 0]
-    if {$first != ""} {
-        $itk_component(results) current page1
-        $itk_component(resultselector) value $first
-    }
+# ----------------------------------------------------------------------
+# CONFIGURATION OPTION: -simcontrol
+#
+# Controls whether or not the Simulate button is showing.  In some
+# cases, it is not needed.
+# ----------------------------------------------------------------------
+itcl::configbody Rappture::Analyzer::simcontrol {
+    _fixSimControl
 }
