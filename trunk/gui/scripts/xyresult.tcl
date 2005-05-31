@@ -192,11 +192,6 @@ itcl::body Rappture::XyResult::_rebuild {} {
     # extract axis information from the first curve
     set xydata [lindex $_clist 0]
     if {$xydata != ""} {
-        set title [$xydata hints label]
-        if {"" != $title} {
-            $g configure -title $title
-        }
-
         set legend [$xydata hints legend]
         if {"" != $legend} {
             if {$legend == "off"} {
