@@ -13,7 +13,7 @@ package require Itk
 
 option add *ResultSet.width 4i widgetDefault
 option add *ResultSet.height 4i widgetDefault
-option add *ResultSet.colors {blue #000066} widgetDefault
+option add *ResultSet.colors {blue magenta} widgetDefault
 option add *ResultSet.toggleBackground gray widgetDefault
 option add *ResultSet.toggleForeground white widgetDefault
 option add *ResultSet.textFont \
@@ -129,9 +129,9 @@ itcl::body Rappture::ResultSet::destructor {} {
 #
 # Adds a new result to this result set.  Scans through all existing
 # results to look for a difference compared to previous results.
-# Returns an instruction to the caller, indicating how the various
+# Returns the index of this new result to the caller.  The various
 # data objects for this result set should be added to their result
-# viewers.
+# viewers at the same index.
 # ----------------------------------------------------------------------
 itcl::body Rappture::ResultSet::add {xmlobj} {
     # make sure we fix up controls at some point
@@ -148,7 +148,7 @@ itcl::body Rappture::ResultSet::add {xmlobj} {
         set _recent $xmlobj
         $itk_component(status) configure -text "1 result"
         $itk_component(clear) configure -state normal
-        return "add"
+        return 0
     }
 
     #
@@ -172,7 +172,6 @@ itcl::body Rappture::ResultSet::add {xmlobj} {
     }
 
     # build a tuple for this new object
-    set op "add"
     set cols ""
     set tuple ""
     foreach col [lrange [$_results column names] 1 end] {
@@ -197,12 +196,11 @@ itcl::body Rappture::ResultSet::add {xmlobj} {
         }
 
         # overwrite the first matching entry
-        set i [lindex $ilist 0]
-        $_results put $i $tuple
+        set index [lindex $ilist 0]
+        $_results put $index $tuple
         set _recent $xmlobj
-        set op "replace $i"
-
     } else {
+        set index [$_results size]
         $_results insert end $tuple
         set _recent $xmlobj
     }
@@ -214,7 +212,7 @@ itcl::body Rappture::ResultSet::add {xmlobj} {
     }
     $itk_component(clear) configure -state normal
 
-    return $op
+    return $index
 }
 
 # ----------------------------------------------------------------------
@@ -231,6 +229,7 @@ itcl::body Rappture::ResultSet::clear {} {
         destroy $w
     }
     catch {unset _col2widget}
+    set _plotall ""
     set _counter 0
 
     # don't need to scroll adjustor controls right now

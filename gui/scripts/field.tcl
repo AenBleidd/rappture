@@ -256,11 +256,23 @@ itcl::body Rappture::Field::controls {option args} {
 # the hint for that <keyword>, if it exists.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Field::hints {{keyword ""}} {
-    foreach key {label scale color units} {
-        set str [$_field get $key]
+    foreach {key path} {
+        group   about.group
+        label   about.label
+        color   about.color
+        style   about.style
+        scale   about.scale
+        units   units
+    } {
+        set str [$_field get $path]
         if {"" != $str} {
             set hints($key) $str
         }
+    }
+
+    if {[info exists hints(group)] && [info exists hints(label)]} {
+        # pop-up help for each curve
+        set hints(tooltip) $hints(label)
     }
 
     if {$keyword != ""} {
@@ -356,6 +368,9 @@ itcl::body Rappture::Field::_build {} {
             }
 
             if {$xv != "" && $yv != ""} {
+                # sort x-coords in increasing order
+                $xv sort $yv
+
                 set _comp2dims($cname) "1D"
                 set _comp2xy($cname) [list $xv $yv]
                 incr _counter
@@ -369,20 +384,57 @@ itcl::body Rappture::Field::_build {} {
             set path [$_field get $cname.mesh]
             if {[$_xmlobj element $path] != ""} {
                 set cobj [Rappture::Cloud::fetch $_xmlobj $path]
-                set values [$_field get $cname.values]
-                set farray [vtkFloatArray ::vals$_counter]
+                if {[$cobj dimensions] > 1} {
+                    #
+                    # 2D/3D data
+                    # Store cloud/field as components
+                    #
+                    set values [$_field get $cname.values]
+                    set farray [vtkFloatArray ::vals$_counter]
 
-                foreach v $values {
-                    if {"" != $_units} {
-                        set v [Rappture::Units::convert $v \
-                            -context $_units -to $_units -units off]
+                    foreach v $values {
+                        if {"" != $_units} {
+                            set v [Rappture::Units::convert $v \
+                                -context $_units -to $_units -units off]
+                        }
+                        $farray InsertNextValue $v
                     }
-                    $farray InsertNextValue $v
-                }
 
-                set _comp2dims($cname) "[$cobj dimensions]D"
-                set _comp2vtk($cname) [list $cobj $farray]
-                incr _counter
+                    set _comp2dims($cname) "[$cobj dimensions]D"
+                    set _comp2vtk($cname) [list $cobj $farray]
+                    incr _counter
+                } else {
+                    #
+                    # OOPS!  This is 1D data
+                    # Forget the cloud/field -- store BLT vectors
+                    #
+                    set xv [blt::vector create x$_counter]
+                    set yv [blt::vector create y$_counter]
+
+                    set vtkpts [$cobj points]
+                    set max [$vtkpts GetNumberOfPoints]
+                    for {set i 0} {$i < $max} {incr i} {
+                        set xval [lindex [$vtkpts GetPoint $i] 0]
+                        $xv append $xval
+                    }
+                    Rappture::Cloud::release $cobj
+
+                    set values [$_field get $cname.values]
+                    foreach yval $values {
+                        if {"" != $_units} {
+                            set yval [Rappture::Units::convert $yval \
+                                -context $_units -to $_units -units off]
+                        }
+                        $yv append $yval
+                    }
+
+                    # sort x-coords in increasing order
+                    $xv sort $yv
+
+                    set _comp2dims($cname) "1D"
+                    set _comp2xy($cname) [list $xv $yv]
+                    incr _counter
+                }
             } else {
                 puts "WARNING: can't find mesh $path for field component"
             }

@@ -15,33 +15,49 @@ package require BLT
 option add *XyResult.width 4i widgetDefault
 option add *XyResult.height 4i widgetDefault
 option add *XyResult.gridColor #d9d9d9 widgetDefault
+option add *XyResult.hiliteColor black widgetDefault
+option add *XyResult.controlBackground gray widgetDefault
 option add *XyResult.font \
     -*-helvetica-medium-r-normal-*-*-120-* widgetDefault
+
+blt::bitmap define ContourResult-reset {
+#define reset_width 12
+#define reset_height 12
+static unsigned char reset_bits[] = {
+   0x00, 0x00, 0x00, 0x00, 0xfc, 0x03, 0x04, 0x02, 0x04, 0x02, 0x04, 0x02,
+   0x04, 0x02, 0x04, 0x02, 0x04, 0x02, 0xfc, 0x03, 0x00, 0x00, 0x00, 0x00};
+}
 
 itcl::class Rappture::XyResult {
     inherit itk::Widget
 
     itk_option define -gridcolor gridColor GridColor ""
+    itk_option define -hilitecolor hiliteColor HiliteColor ""
 
     constructor {args} { # defined below }
     destructor { # defined below }
 
     public method add {curve {settings ""}}
+    public method get {}
     public method delete {args}
     public method scale {args}
 
     protected method _rebuild {}
     protected method _fixLimits {}
+    protected method _zoom {option args}
+    protected method _hilite {state x y}
 
     private variable _clist ""     ;# list of curve objects
     private variable _curve2color  ;# maps curve => plotting color
     private variable _curve2width  ;# maps curve => line width
+    private variable _curve2dashes ;# maps curve => BLT -dashes list
     private variable _curve2raise  ;# maps curve => raise flag 0/1
-    private variable _curve2elems  ;# maps curve => elements on graph
+    private variable _elem2curve   ;# maps graph element => curve
     private variable _xmin ""      ;# autoscale min for x-axis
     private variable _xmax ""      ;# autoscale max for x-axis
     private variable _ymin ""      ;# autoscale min for y-axis
     private variable _ymax ""      ;# autoscale max for y-axis
+    private variable _hilite ""    ;# info from last _hilite operation
 }
                                                                                 
 itk::usual XyResult {
@@ -55,6 +71,28 @@ itcl::body Rappture::XyResult::constructor {args} {
     option add hull.width hull.height
     pack propagate $itk_component(hull) no
 
+    itk_component add controls {
+        frame $itk_interior.cntls
+    } {
+        usual
+        rename -background -controlbackground controlBackground Background
+    }
+    pack $itk_component(controls) -side right -fill y
+
+    itk_component add reset {
+        button $itk_component(controls).reset \
+            -borderwidth 1 -padx 1 -pady 1 \
+            -bitmap ContourResult-reset \
+            -command [itcl::code $this _zoom reset]
+    } {
+        usual
+        ignore -borderwidth
+        rename -highlightbackground -controlbackground controlBackground Background
+    }
+    pack $itk_component(reset) -padx 4 -pady 4
+    Rappture::Tooltip::for $itk_component(reset) "Reset the view to the default zoom level"
+
+
     itk_component add plot {
         blt::graph $itk_interior.plot \
             -highlightthickness 0 -plotpadx 0 -plotpady 0 \
@@ -63,6 +101,12 @@ itcl::body Rappture::XyResult::constructor {args} {
         keep -background -foreground -cursor -font
     }
     pack $itk_component(plot) -expand yes -fill both
+
+    # special pen for highlighting active traces
+    $itk_component(plot) element bind all <Enter> \
+        [itcl::code $this _hilite on %x %y]
+    $itk_component(plot) element bind all <Leave> \
+        [itcl::code $this _hilite off %x %y]
 
     Blt_ZoomStack $itk_component(plot)
     $itk_component(plot) legend configure -hide yes
@@ -80,14 +124,16 @@ itcl::body Rappture::XyResult::destructor {} {
 # USAGE: add <curve> ?<settings>?
 #
 # Clients use this to add a curve to the plot.  The optional <settings>
-# are used to configure the plot.  Allowed settings are -color, -width,
-# and -raise.
+# are used to configure the plot.  Allowed settings are -color,
+# -brightness, -width, -linestyle and -raise.
 # ----------------------------------------------------------------------
 itcl::body Rappture::XyResult::add {curve {settings ""}} {
     array set params {
         -color black
+        -brightness 0
         -width 1
         -raise 0
+        -linestyle solid
     }
     foreach {opt val} $settings {
         if {![info exists params($opt)]} {
@@ -96,16 +142,51 @@ itcl::body Rappture::XyResult::add {curve {settings ""}} {
         set params($opt) $val
     }
 
+    # convert -linestyle to BLT -dashes
+    switch -- $params(-linestyle) {
+        dashed { set params(-linestyle) {4 4} }
+        dotted { set params(-linestyle) {2 4} }
+        default { set params(-linestyle) {} }
+    }
+
+    # if -brightness is set, then update the color
+    if {$params(-brightness) != 0} {
+        set params(-color) [Rappture::color::brightness \
+            $params(-color) $params(-brightness)]
+    }
+
     set pos [lsearch -exact $curve $_clist]
     if {$pos < 0} {
         lappend _clist $curve
         set _curve2color($curve) $params(-color)
         set _curve2width($curve) $params(-width)
+        set _curve2dashes($curve) $params(-linestyle)
         set _curve2raise($curve) $params(-raise)
 
         after cancel [itcl::code $this _rebuild]
         after idle [itcl::code $this _rebuild]
     }
+}
+
+# ----------------------------------------------------------------------
+# USAGE: get
+#
+# Clients use this to query the list of objects being plotted, in
+# order from bottom to top of this result.
+# ----------------------------------------------------------------------
+itcl::body Rappture::XyResult::get {} {
+    # put the dataobj list in order according to -raise options
+    set clist $_clist
+    foreach obj $clist {
+        if {[info exists _curve2raise($obj)] && $_curve2raise($obj)} {
+            set i [lsearch -exact $clist $obj]
+            if {$i >= 0} {
+                set clist [lreplace $clist $i $i]
+                lappend clist $obj
+            }
+        }
+    }
+    return $clist
 }
 
 # ----------------------------------------------------------------------
@@ -127,8 +208,13 @@ itcl::body Rappture::XyResult::delete {args} {
             set _clist [lreplace $_clist $pos $pos]
             catch {unset _curve2color($curve)}
             catch {unset _curve2width($curve)}
+            catch {unset _curve2dashes($curve)}
             catch {unset _curve2raise($curve)}
-            catch {unset _curve2elems($curve)}
+            foreach elem [array names _elem2curve] {
+                if {$_elem2curve($elem) == $curve} {
+                    unset _elem2curve($elem)
+                }
+            }
             set changed 1
         }
     }
@@ -190,7 +276,8 @@ itcl::body Rappture::XyResult::_rebuild {} {
     $g axis configure y -min "" -max ""
 
     # extract axis information from the first curve
-    set xydata [lindex $_clist 0]
+    set clist [get]
+    set xydata [lindex $clist 0]
     if {$xydata != ""} {
         set legend [$xydata hints legend]
         if {"" != $legend} {
@@ -215,9 +302,7 @@ itcl::body Rappture::XyResult::_rebuild {} {
 
     # plot all of the curves
     set count 0
-    foreach xydata $_clist {
-        set _curve2elems($xydata) ""
-
+    foreach xydata $clist {
         foreach comp [$xydata components] {
             set xv [$xydata mesh $comp]
             set yv [$xydata values $comp]
@@ -237,35 +322,27 @@ itcl::body Rappture::XyResult::_rebuild {} {
                 set lwidth 2
             }
 
+            if {[info exists _curve2dashes($xydata)]} {
+                set dashes $_curve2dashes($xydata)
+            } else {
+                set dashes ""
+            }
+
+            if {[$xv length] <= 1} {
+                set sym square
+            } else {
+                set sym ""
+            }
+
             set elem "elem[incr count]"
-            lappend _curve2elems($xydata) $elem
+            set _elem2curve($elem) $xydata
 
             set label [$xydata hints label]
             $g element create $elem -x $xv -y $yv \
-                -symbol "" -linewidth $lwidth -label $label -color $color
-
-            set style [$xydata hints style]
-            if {$style != ""} {
-                eval $g element configure $elem $style
-            }
+                -symbol $sym -pixels 6 -linewidth $lwidth -label $label \
+                -color $color -dashes $dashes
         }
     }
-
-    # raise those tagged to be on top
-    set dlist [$g element show]
-    foreach xydata $_clist {
-        if {[info exists _curve2raise($xydata)] && $_curve2raise($xydata)} {
-            foreach elem $_curve2elems($xydata) {
-                set i [lsearch -exact $dlist $elem]
-                if {$i >= 0} {
-                    # move element to end of display list
-                    set dlist [lreplace $dlist $i $i]
-                    lappend dlist $elem
-                }
-            }
-        }
-    }
-    $g element show $dlist
 
     _fixLimits
 }
@@ -286,7 +363,11 @@ itcl::body Rappture::XyResult::_fixLimits {} {
     # set to a "nice" number slightly above or below the min/max
     # limits.
     #
-    $g axis configure x -min $_xmin -max $_xmax
+    if {$_xmin != $_xmax} {
+        $g axis configure x -min $_xmin -max $_xmax
+    } else {
+        $g axis configure x -min "" -max ""
+    }
 
     if {"" != $_ymin && "" != $_ymax} {
         set min $_ymin
@@ -311,9 +392,78 @@ itcl::body Rappture::XyResult::_fixLimits {} {
                 set max [expr {0.95*$max}]
             }
         }
-        $g axis configure y -min $min -max $max
+        if {$min != $max} {
+            $g axis configure y -min $min -max $max
+        } else {
+            $g axis configure y -min "" -max ""
+        }
     } else {
         $g axis configure y -min "" -max ""
+    }
+}
+
+# ----------------------------------------------------------------------
+# USAGE: _zoom reset
+#
+# Called automatically when the user clicks on one of the zoom
+# controls for this widget.  Changes the zoom for the current view.
+# ----------------------------------------------------------------------
+itcl::body Rappture::XyResult::_zoom {option args} {
+    switch -- $option {
+        reset {
+            _fixLimits
+        }
+    }
+}
+
+# ----------------------------------------------------------------------
+# USAGE: _hilite <state> <x> <y>
+#
+# Called automatically when the user brushes one of the elements
+# on the plot.  Causes the element to highlight and a tooltip to
+# pop up with element info.
+# ----------------------------------------------------------------------
+itcl::body Rappture::XyResult::_hilite {state x y} {
+    set elem [$itk_component(plot) element get current]
+    if {$state} {
+        #
+        # Highlight ON:
+        # - fatten line
+        # - change color
+        # - pop up tooltip about data
+        #
+        set t [$itk_component(plot) element cget $elem -linewidth]
+        $itk_component(plot) element configure $elem -linewidth [expr {$t+2}]
+
+        set _hilite [$itk_component(plot) element cget $elem -color]
+        $itk_component(plot) element configure $elem \
+            -color $itk_option(-hilitecolor)
+
+        set tip ""
+        if {[info exists _elem2curve($elem)]} {
+            set curve $_elem2curve($elem)
+            set tip [$curve hints tooltip]
+        }
+        if {"" != $tip} {
+            set x [expr {$x+4}]  ;# move the tooltip over a bit
+            set y [expr {$y+4}]
+            Rappture::Tooltip::text $itk_component(plot) $tip
+            Rappture::Tooltip::tooltip show $itk_component(plot) +$x,$y
+        }
+    } else {
+        #
+        # Highlight OFF:
+        # - put line width back to normal
+        # - put color back to normal
+        # - take down tooltip
+        #
+        set t [$itk_component(plot) element cget $elem -linewidth]
+        $itk_component(plot) element configure $elem -linewidth [expr {$t-2}]
+
+        if {"" != $_hilite} {
+            $itk_component(plot) element configure $elem -color $_hilite
+        }
+        Rappture::Tooltip::tooltip cancel
     }
 }
 

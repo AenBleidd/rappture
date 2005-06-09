@@ -122,7 +122,7 @@ proc Rappture::entities {args} {
 
         foreach cpath [$xmlobj children -as path $path] {
             switch -- [$xmlobj element -as type $cpath] {
-                group {
+                group - phase {
                     lappend queue $cpath
                 }
                 structure {
@@ -140,7 +140,8 @@ proc Rappture::entities {args} {
 
                     # if this element has embedded groups, add them to the queue
                     foreach ccpath [$xmlobj children -as path $cpath] {
-                        if {[$xmlobj element -as type $ccpath] == "group"} {
+                        set cctype [$xmlobj element -as type $ccpath]
+                        if {$cctype == "group" || $cctype == "phase"} {
                             lappend queue $ccpath
                         }
                     }

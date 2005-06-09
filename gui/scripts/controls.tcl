@@ -20,7 +20,7 @@ itcl::class Rappture::Controls {
 
     itk_option define -padding padding Padding 0
 
-    constructor {tool args} { # defined below }
+    constructor {owner args} { # defined below }
 
     public method insert {pos xmlobj path}
     public method delete {first {last ""}}
@@ -31,7 +31,7 @@ itcl::class Rappture::Controls {
     protected method _controlChanged {path}
     protected method _formatLabel {str}
 
-    private variable _tool ""        ;# controls belong to this tool
+    private variable _owner ""       ;# controls belong to this owner
     private variable _counter 0      ;# counter for control names
     private variable _dispatcher ""  ;# dispatcher for !events
     private variable _controls ""    ;# list of known controls
@@ -44,12 +44,12 @@ itk::usual Controls {
 # ----------------------------------------------------------------------
 # CONSTRUCTOR
 # ----------------------------------------------------------------------
-itcl::body Rappture::Controls::constructor {tool args} {
+itcl::body Rappture::Controls::constructor {owner args} {
     Rappture::dispatcher _dispatcher
     $_dispatcher register !layout
     $_dispatcher dispatch $this !layout "[itcl::code $this _layout]; list"
 
-    set _tool $tool
+    set _owner $owner
 
     eval itk_initialize $args
 }
@@ -90,11 +90,15 @@ itcl::body Rappture::Controls::insert {pos xmlobj path} {
             Rappture::GroupEntry $w $xmlobj $path
         }
         loader {
-            Rappture::Loader $w $xmlobj $path -tool $_tool
+            Rappture::Loader $w $xmlobj $path -tool [$_owner tool]
             bind $w <<Value>> [itcl::code $this _controlChanged $path]
         }
         number {
             Rappture::NumberEntry $w $xmlobj $path
+            bind $w <<Value>> [itcl::code $this _controlChanged $path]
+        }
+        boolean {
+            Rappture::BooleanEntry $w $xmlobj $path
             bind $w <<Value>> [itcl::code $this _controlChanged $path]
         }
         string {
@@ -105,7 +109,7 @@ itcl::body Rappture::Controls::insert {pos xmlobj path} {
             error "don't know how to add control type \"$type\""
         }
     }
-    $_tool widgetfor $path $w
+    $_owner widgetfor $path $w
 
     # make a label for this control
     set label [$w label]
@@ -288,8 +292,8 @@ itcl::body Rappture::Controls::_layout {} {
 # controlling this panel.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Controls::_controlChanged {path} {
-    if {"" != $_tool} {
-        $_tool changed $path
+    if {"" != $_owner} {
+        $_owner changed $path
     }
 }
 

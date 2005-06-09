@@ -24,9 +24,9 @@ exec wish "$0" $*
 
 package require Rappture
 
-option add *MainWin.mode desktop startupFile
+option add *MainWin.mode web startupFile
 option add *MainWin.borderWidth 0 startupFile
-option add *MainWin.anchor center startupFile
+option add *MainWin.anchor nw startupFile
 
 # "web site" look
 option add *MainWin.bgScript {
@@ -42,6 +42,7 @@ option add *Tooltip.background white
 option add *Editor.background white
 option add *Gauge.textBackground white
 option add *TemperatureGauge.textBackground white
+option add *Switch.textBackground white
 
 #
 # Process command line args to get the names of files to load...

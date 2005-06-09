@@ -18,15 +18,22 @@ option add *DeviceEditor.height 5i widgetDefault
 itcl::class Rappture::DeviceEditor {
     inherit itk::Widget
 
-    constructor {tool args} { # defined below }
+    constructor {owner args} { # defined below }
 
     public method value {args}
+
+    # used for syncing embedded widgets
+    public method widgetfor {path {widget ""}}
+    public method changed {path}
+    public method sync {}
+    public method tool {}
 
     protected method _redraw {}
     protected method _type {xmlobj}
 
-    private variable _tool ""        ;# tool containing this editor
+    private variable _owner ""       ;# owner containing this editor
     private variable _xmlobj ""      ;# XML <structure> object
+    private variable _path2widget    ;# maps path => widget in this editor
 }
                                                                                 
 itk::usual DeviceEditor {
@@ -35,8 +42,8 @@ itk::usual DeviceEditor {
 # ----------------------------------------------------------------------
 # CONSTRUCTOR
 # ----------------------------------------------------------------------
-itcl::body Rappture::DeviceEditor::constructor {tool args} {
-    set _tool $tool
+itcl::body Rappture::DeviceEditor::constructor {owner args} {
+    set _owner $owner
 
     itk_option add hull.width hull.height
     pack propagate $itk_component(hull) no
@@ -91,10 +98,74 @@ itcl::body Rappture::DeviceEditor::value {args} {
         _redraw
         event generate $itk_component(hull) <<Value>>
 
-    } elseif {[llength $args] != 0} {
+    } elseif {[llength $args] == 0} {
+        sync  ;# querying -- must sync controls with the value
+    } else {
         error "wrong # args: should be \"value ?-check? ?newval?\""
     }
     return $_xmlobj
+}
+
+# ----------------------------------------------------------------------
+# USAGE: widgetfor <path> ?<widget>?
+#
+# Used by embedded widgets such as a Controls panel to register the
+# various controls associated with this page.  That way, this editor
+# knows what widgets to look at when syncing itself to the underlying
+# XML data.
+# ----------------------------------------------------------------------
+itcl::body Rappture::DeviceEditor::widgetfor {path {widget ""}} {
+    # if this is a query operation, then look for the path
+    if {"" == $widget} {
+        if {[info exists _path2widget($path)]} {
+            return $_path2widget($path)
+        }
+        return ""
+    }
+
+    # otherwise, associate the path with the given widget
+    if {[info exists _path2widget($path)]} {
+        error "$path already associated with widget $_path2widget($path)"
+    }
+    set _path2widget($path) $widget
+}
+
+# ----------------------------------------------------------------------
+# USAGE: changed <path>
+#
+# Invoked automatically by the various widgets associated with this
+# editor whenever their value changes.  If this tool has a -analyzer,
+# then it is notified that input has changed, so it can reset itself
+# for a new analysis.
+# ----------------------------------------------------------------------
+itcl::body Rappture::DeviceEditor::changed {path} {
+    if {"" != $_owner} {
+        $_owner changed $path
+    }
+}
+
+# ----------------------------------------------------------------------
+# USAGE: sync
+#
+# Used by descendents such as a Controls panel to register the
+# various controls associated with this page.  That way, this Tool
+# knows what widgets to look at when syncing itself to the underlying
+# XML data.
+# ----------------------------------------------------------------------
+itcl::body Rappture::DeviceEditor::sync {} {
+    foreach path [array names _path2widget] {
+        $_xmlobj put $path.current [$_path2widget($path) value]
+    }
+}
+
+# ----------------------------------------------------------------------
+# USAGE: tool
+#
+# Clients use this to figure out which tool is associated with
+# this object.  Returns the tool containing this editor.
+# ----------------------------------------------------------------------
+itcl::body Rappture::Tool::tool {} {
+    return [$_owner tool]
 }
 
 # ----------------------------------------------------------------------
@@ -110,7 +181,7 @@ itcl::body Rappture::DeviceEditor::_redraw {} {
         molecule {
             if {[catch {$itk_component(editors) page molecule} p]} {
                 set p [$itk_component(editors) insert end molecule]
-                Rappture::MoleculeViewer $p.mol $_tool
+                Rappture::MoleculeViewer $p.mol $this
                 pack $p.mol -expand yes -fill both
             }
             $p.mol configure -device $_xmlobj
@@ -119,7 +190,7 @@ itcl::body Rappture::DeviceEditor::_redraw {} {
         device1D {
             if {[catch {$itk_component(editors) page device1D} p]} {
                 set p [$itk_component(editors) insert end device1D]
-                Rappture::DeviceViewer1D $p.dev $_tool
+                Rappture::DeviceViewer1D $p.dev $this
                 pack $p.dev -expand yes -fill both
             }
             $p.dev configure -device $_xmlobj

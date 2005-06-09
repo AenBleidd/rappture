@@ -16,44 +16,150 @@ package require BLT
 
 option add *EnergyLevels.width 4i widgetDefault
 option add *EnergyLevels.height 4i widgetDefault
-option add *EnergyLevels.levelColor blue widgetDefault
-option add *EnergyLevels.levelTextForeground blue widgetDefault
-option add *EnergyLevels.levelTextBackground #d9d9d9 widgetDefault
+option add *EnergyLevels.padding 4 widgetDefault
+option add *EnergyLevels.controlBackground gray widgetDefault
+option add *EnergyLevels.shadeColor gray widgetDefault
+option add *EnergyLevels.levelColor black widgetDefault
+option add *EnergyLevels.levelTextForeground black widgetDefault
+option add *EnergyLevels.levelTextBackground white widgetDefault
 
 option add *EnergyLevels.font \
     -*-helvetica-medium-r-normal-*-*-120-* widgetDefault
 
-option add *EnergyLevels.detailFont \
-    -*-helvetica-medium-r-normal-*-*-100-* widgetDefault
+blt::bitmap define EnergyLevels-reset {
+#define reset_width 12
+#define reset_height 12
+static unsigned char reset_bits[] = {
+   0x00, 0x00, 0x00, 0x00, 0xfc, 0x03, 0x04, 0x02, 0x04, 0x02, 0x04, 0x02,
+   0x04, 0x02, 0x04, 0x02, 0x04, 0x02, 0xfc, 0x03, 0x00, 0x00, 0x00, 0x00};
+}
+
+blt::bitmap define EnergyLevels-zoomin {
+#define zoomin_width 12
+#define zoomin_height 12
+static unsigned char zoomin_bits[] = {
+   0x7c, 0x00, 0x82, 0x00, 0x11, 0x01, 0x11, 0x01, 0x7d, 0x01, 0x11, 0x01,
+   0x11, 0x01, 0x82, 0x03, 0xfc, 0x07, 0x80, 0x0f, 0x00, 0x0f, 0x00, 0x06};
+}
+
+blt::bitmap define EnergyLevels-zoomout {
+#define zoomout_width 12
+#define zoomout_height 12
+static unsigned char zoomout_bits[] = {
+   0x7c, 0x00, 0x82, 0x00, 0x01, 0x01, 0x01, 0x01, 0x7d, 0x01, 0x01, 0x01,
+   0x01, 0x01, 0x82, 0x03, 0xfc, 0x07, 0x80, 0x0f, 0x00, 0x0f, 0x00, 0x06};
+}
+
+blt::bitmap define EnergyLevels-rdiag {
+#define rdiag_width 8
+#define rdiag_height 8
+static unsigned char rdiag_bits[] = {
+   0x66, 0x33, 0x99, 0xcc, 0x66, 0x33, 0x99, 0xcc};
+}
+
 
 itcl::class Rappture::EnergyLevels {
     inherit itk::Widget
 
-    itk_option define -layout layout Layout ""
-    itk_option define -output output Output ""
+    itk_option define -padding padding Padding 0
+    itk_option define -shadecolor shadeColor ShadeColor ""
     itk_option define -levelcolor levelColor LevelColor ""
     itk_option define -leveltextforeground levelTextForeground Foreground ""
     itk_option define -leveltextbackground levelTextBackground Background ""
 
     constructor {args} { # defined below }
-    destructor { # defined below }
 
-    protected method _render {}
-    protected method _adjust {what val}
-    protected method _getColumn {name}
-    protected method _getUnits {name}
-    protected method _getMidPt {elist pos}
+    public proc columns {table}
+
+    public method add {table {settings ""}}
+    public method delete {args}
+    public method scale {args}
+
+    protected method _redraw {{what all}}
+    protected method _zoom {option args}
+    protected method _view {midE delE}
+    protected method _hilite {option args}
+    protected method _getLayout {}
+
+    private variable _dispatcher "" ;# dispatcher for !events
+
+    private variable _dlist ""     ;# list of data objects
+    private variable _dobj2color   ;# maps data obj => color option
+    private variable _dobj2raise   ;# maps data obj => raise option
+    private variable _dobj2cols    ;# maps data obj => column names
+    private variable _emin ""      ;# autoscale min for energy
+    private variable _emax ""      ;# autoscale max for energy
+    private variable _eviewmin ""  ;# min for "zoom" view
+    private variable _eviewmax ""  ;# max for "zoom" view
+    private variable _edefmin ""   ;# min for default "zoom" view
+    private variable _edefmax ""   ;# max for default "zoom" view
+    private variable _ehomo ""     ;# energy of HOMO level in topmost dataset
+    private variable _elumo ""     ;# energy of LUMO level in topmost dataset
+    private variable _hilite ""    ;# item currently highlighted
 }
 
 itk::usual EnergyLevels {
+    keep -background -foreground -cursor -font
 }
 
 # ----------------------------------------------------------------------
 # CONSTRUCTOR
 # ----------------------------------------------------------------------
 itcl::body Rappture::EnergyLevels::constructor {args} {
+    Rappture::dispatcher _dispatcher
+    $_dispatcher register !redraw
+    $_dispatcher dispatch $this !redraw "[itcl::code $this _redraw all]; list"
+    $_dispatcher register !zoom
+    $_dispatcher dispatch $this !zoom "[itcl::code $this _redraw zoom]; list"
+
     itk_option add hull.width hull.height
     pack propagate $itk_component(hull) no
+
+    itk_component add controls {
+        frame $itk_interior.cntls
+    } {
+        usual
+        rename -background -controlbackground controlBackground Background
+    }
+    pack $itk_component(controls) -side right -fill y
+
+    itk_component add reset {
+        button $itk_component(controls).reset \
+            -borderwidth 1 -padx 1 -pady 1 \
+            -bitmap EnergyLevels-reset \
+            -command [itcl::code $this _zoom reset]
+    } {
+        usual
+        ignore -borderwidth
+        rename -highlightbackground -controlbackground controlBackground Background }
+    pack $itk_component(reset) -padx 4 -pady 4
+    Rappture::Tooltip::for $itk_component(reset) "Reset the view to the default zoom level"
+
+    itk_component add zoomin {
+        button $itk_component(controls).zin \
+            -borderwidth 1 -padx 1 -pady 1 \
+            -bitmap EnergyLevels-zoomin \
+            -command [itcl::code $this _zoom in]
+    } {
+        usual
+        ignore -borderwidth
+        rename -highlightbackground -controlbackground controlBackground Background
+    }
+    pack $itk_component(zoomin) -padx 4 -pady 4
+    Rappture::Tooltip::for $itk_component(zoomin) "Zoom in"
+
+    itk_component add zoomout {
+        button $itk_component(controls).zout \
+            -borderwidth 1 -padx 1 -pady 1 \
+            -bitmap EnergyLevels-zoomout \
+            -command [itcl::code $this _zoom out]
+    } {
+        usual
+        ignore -borderwidth
+        rename -highlightbackground -controlbackground controlBackground Background
+    }
+    pack $itk_component(zoomout) -padx 4 -pady 4
+    Rappture::Tooltip::for $itk_component(zoomout) "Zoom out"
 
     #
     # Add label for the title.
@@ -63,444 +169,737 @@ itcl::body Rappture::EnergyLevels::constructor {args} {
     }
     pack $itk_component(title) -side top
 
-
-    itk_component add cntls {
-        frame $itk_interior.cntls
-    }
-    pack $itk_component(cntls) -side right -fill y
-    grid rowconfigure $itk_component(cntls) 0 -weight 1
-    grid rowconfigure $itk_component(cntls) 1 -minsize 10
-    grid rowconfigure $itk_component(cntls) 2 -weight 1
-
-    #
-    # Add MORE/FEWER levels control for TOP of graph
-    #
-    itk_component add upperE {
-        frame $itk_component(cntls).upperE
-    }
-
-    itk_component add upperEmore {
-        label $itk_component(upperE).morel -text "More"
-    } {
-        usual
-        rename -font -detailfont detailFont Font
-    }
-    pack $itk_component(upperEmore) -side top
-
-    itk_component add upperEfewer {
-        label $itk_component(upperE).fewerl -text "Fewer"
-    } {
-        usual
-        rename -font -detailfont detailFont Font
-    }
-    pack $itk_component(upperEfewer) -side bottom
-
-    itk_component add upperEcntl {
-        scale $itk_component(upperE).cntl -orient vertical -showvalue 0 \
-            -command [itcl::code $this _adjust upper]
-    }
-    pack $itk_component(upperEcntl) -side top -fill y
-
-    #
-    # Add MORE/FEWER levels control for BOTTOM of graph
-    #
-    itk_component add lowerE {
-        frame $itk_component(cntls).lowerE
-    }
-
-    itk_component add lowerEmore {
-        label $itk_component(lowerE).morel -text "More"
-    } {
-        usual
-        rename -font -detailfont detailFont Font
-    }
-    pack $itk_component(lowerEmore) -side bottom
-
-    itk_component add lowerEfewer {
-        label $itk_component(lowerE).fewerl -text "Fewer"
-    } {
-        usual
-        rename -font -detailfont detailFont Font
-    }
-    pack $itk_component(lowerEfewer) -side top
-
-    itk_component add lowerEcntl {
-        scale $itk_component(lowerE).cntl -orient vertical -showvalue 0 \
-            -command [itcl::code $this _adjust lower]
-    }
-    pack $itk_component(lowerEcntl) -side top -fill y
-
     #
     # Add graph showing levels
     #
     itk_component add graph {
-        blt::graph $itk_interior.graph \
-            -highlightthickness 0 -plotpadx 0 -plotpady 0 \
-            -width 3i -height 3i
+        canvas $itk_interior.graph -highlightthickness 0
     } {
-        keep -background -foreground -cursor -font
+        usual
+        ignore -highlightthickness
     }
     pack $itk_component(graph) -expand yes -fill both
-    $itk_component(graph) legend configure -hide yes
+
+    bind $itk_component(graph) <Configure> \
+        [list $_dispatcher event -idle !redraw]
+
+    bind $itk_component(graph) <ButtonPress-1> \
+        [itcl::code $this _zoom at %x %y]
+    bind $itk_component(graph) <B1-Motion> \
+        [itcl::code $this _zoom at %x %y]
+
+    bind $itk_component(graph) <Motion> \
+        [itcl::code $this _hilite brush %x %y]
+    bind $itk_component(graph) <Leave> \
+        [itcl::code $this _hilite hide]
+
+    bind $itk_component(graph) <KeyPress-Up> \
+        [itcl::code $this _zoom nudge 1]
+    bind $itk_component(graph) <KeyPress-Right> \
+        [itcl::code $this _zoom nudge 1]
+    bind $itk_component(graph) <KeyPress-plus> \
+        [itcl::code $this _zoom nudge 1]
+
+    bind $itk_component(graph) <KeyPress-Down> \
+        [itcl::code $this _zoom nudge -1]
+    bind $itk_component(graph) <KeyPress-Left> \
+        [itcl::code $this _zoom nudge -1]
+    bind $itk_component(graph) <KeyPress-minus> \
+        [itcl::code $this _zoom nudge -1]
 
     eval itk_initialize $args
 }
 
 # ----------------------------------------------------------------------
-# DESTRUCTOR
-# ----------------------------------------------------------------------
-itcl::body Rappture::EnergyLevels::destructor {} {
-}
-
-# ----------------------------------------------------------------------
-# USAGE: _render
+# USAGE: columns <table>
 #
-# Used internally to load a list of energy levels from a <table> within
-# the -output XML object.  The -layout object indicates how information
-# should be extracted from the table.  The <layout> should have an
-# <energies> tag and perhaps a <labels> tag, which indicates the table
-# and the column within the table containing the energies.
+# Clients use this to scan a <table> XML object and see if it contains
+# columns for energy levels.  If so, it returns a list of two column
+# names: {labels energies}.
 # ----------------------------------------------------------------------
-itcl::body Rappture::EnergyLevels::_render {} {
-    #
-    # Clear any information shown in the graph.
-    #
-    set graph $itk_component(graph)
-    eval $graph element delete [$graph element names]
-    eval $graph marker delete [$graph marker names]
-
-    #
-    # Plug in the title from the layout
-    #
-    set title ""
-    if {$itk_option(-layout) != ""} {
-        set title [$itk_option(-layout) get label]
-    }
-    if {"" != $title} {
-        pack $itk_component(title) -side top -before $graph
-        $itk_component(title) configure -text $title
-    } else {
-        pack forget $itk_component(title)
-    }
-
-    #
-    # Look through the layout and figure out what to extract
-    # from the table.
-    #
-    set elist [_getColumn energies]
-    if {[llength $elist] == 0} {
-        return
-    }
-    set units [_getUnits energies]
-
-    set llist [_getColumn names]
-    if {[llength $llist] == 0} {
-        # no labels? then invent some
-        set i 0
-        foreach name $elist {
-            lappend llist "E$i"
-            incr i
+itcl::body Rappture::EnergyLevels::columns {dataobj} {
+    set names [$dataobj columns -component]
+    set epos [lsearch -exact $names column(levels)]
+    if {$epos >= 0} {
+        set units [$dataobj columns -units $epos]
+        if {![string match energy* [Rappture::Units::description $units]]} {
+            set epos -1
         }
     }
 
-    #
-    # Update the graph to show the current set of levels.
-    #
-    set n 0
-    set nlumo -1
-    set emax ""
-    set emin ""
-    set ehomo ""
-    set elumo ""
-    foreach eval $elist lval $llist {
-        if {$lval == "HOMO"} {
-            set ehomo $eval
-            set lval "HOMO = $eval $units"
-            set nlumo [expr {$n+1}]
-        } elseif {$lval == "LUMO" || $n == $nlumo} {
-            set elumo $eval
-            set lval "LUMO = $eval $units"
-        } else {
-            set lval ""
-        }
-
-        set elem "elem[incr n]"
-        $graph element create $elem \
-            -xdata {0 1} -ydata [list $eval $eval] \
-            -color $itk_option(-levelcolor) -symbol "" -linewidth 1
-
-        if {$lval != ""} {
-            $graph marker create text -coords [list 0.5 $eval] \
-                -text $lval -anchor c \
-                -foreground $itk_option(-leveltextforeground) \
-                -background $itk_option(-leveltextbackground)
-        }
-
-        if {$emax == ""} {
-            set emax $eval
-            set emin $eval
-        } else {
-            if {$eval > $emax} {set emax $eval}
-            if {$eval < $emin} {set emin $eval}
-        }
-    }
-    $graph xaxis configure -min 0 -max 1 -showticks off -linewidth 0
-    if {$units != ""} {
-        $graph yaxis configure -title "Energy ($units)"
-    } else {
-        $graph yaxis configure -title "Energy"
-    }
-
-    # bump the limits so they are big enough to show labels
-    set fnt $itk_option(-font)
-    set h [expr {0.5*([font metrics $fnt -linespace] + 5)}]
-    set emin [expr {$emin-($emax-$emin)*$h/150.0}]
-    set emax [expr {$emax+($emax-$emin)*$h/150.0}]
-    $graph yaxis configure -min $emin -max $emax
-
-    #
-    # If we found HOMO/LUMO levels, then add the band gap at
-    # that point.  Also, fix the controls for energy range.
-    #
-    if {$ehomo != "" && $elumo != ""} {
-        set id [$graph marker create line \
-            -coords [list 0.2 $elumo 0.2 $ehomo]]
-        $graph marker after $id
-
-        set egap [expr {$elumo-$ehomo}]
-        set emid [expr {0.5*($ehomo+$elumo)}]
-        $graph marker create text \
-            -coords [list 0.21 $emid] -background "" \
-            -text "Eg = [format %.2g $egap] $units" -anchor w
-
-        # fix the limits for the lower scale
-        set elim [_getMidPt $elist [expr {$nlumo-1}]]
-        if {"" != $elim} {
-            $itk_component(lowerEcntl) configure -from $elim -to $emin \
-                -resolution [expr {0.02*($elim-$emin)}]
-            grid $itk_component(lowerE) -row 2 -column 0 -sticky ns
-
-            set e0 [_getMidPt $elist [expr {$nlumo-3}]]
-            if {"" != $e0} {
-                $itk_component(lowerEcntl) set $e0
-            } else {
-                $itk_component(lowerEcntl) set $elim
+    # can't find column named "levels"? then look for column with energies
+    if {$epos < 0} {
+        set index 0
+        foreach units [$dataobj columns -units] {
+            if {[string match energy* [Rappture::Units::description $units]]} {
+                if {$epos >= 0} {
+                    # more than one energy column -- bail out
+                    set epos -1
+                    break
+                }
+                set epos $index
             }
-        } else {
-            grid forget $itk_component(lowerE)
+            incr index
         }
+    }
 
-        # fix the limits for the upper scale
-        set elim [_getMidPt $elist [expr {$nlumo+1}]]
-        if {"" != $elim} {
-            $itk_component(upperEcntl) configure -from $emax -to $elim \
-                -resolution [expr {0.02*($emax-$elim)}]
-            grid $itk_component(upperE) -row 0 -column 0 -sticky ns
-
-            set e0 [_getMidPt $elist [expr {$nlumo+3}]]
-            if {"" != $e0} {
-                $itk_component(upperEcntl) set $e0
-            } else {
-                $itk_component(upperEcntl) set $elim
+    # look for a column with labels
+    set lpos -1
+    set index 0
+    foreach units [$dataobj columns -units] {
+        if {"" == $units} {
+            set vals [$dataobj values -column $index]
+            if {[regexp {(^|[[:space:]])HOMO([[:space:]]|$)} $vals]} {
+                if {$lpos >= 0} {
+                    # more than one labels column -- bail out
+                    set lpos -1
+                    break
+                }
+                set lpos $index
             }
-        } else {
-            grid forget $itk_component(upperE)
         }
-    } else {
-        grid forget $itk_component(upperE)
-        grid forget $itk_component(lowerE)
-    }
-}
-
-# ----------------------------------------------------------------------
-# USAGE: _adjust <what> <val>
-#
-# Used internally to adjust the upper/lower limits of the graph
-# as the user drags the slider from "More" to "Fewer".  Sets
-# the specified limit to the given value.
-# ----------------------------------------------------------------------
-itcl::body Rappture::EnergyLevels::_adjust {what val} {
-    switch -- $what {
-        upper {
-            $itk_component(graph) yaxis configure -max $val
-        }
-        lower {
-            $itk_component(graph) yaxis configure -min $val
-        }
-        default {
-            error "bad limit \"$what\": should be upper or lower"
-        }
-    }
-}
-
-# ----------------------------------------------------------------------
-# USAGE: _getColumn <name>
-#
-# Used internally to load a list of energy levels from a <table> within
-# the -output XML object.  The -layout object indicates how information
-# should be extracted from the table.  The <layout> should have an
-# <energies> tag and perhaps a <labels> tag, which indicates the table
-# and the column within the table containing the energies.
-# ----------------------------------------------------------------------
-itcl::body Rappture::EnergyLevels::_getColumn {name} {
-puts "_getColumn $name"
-    if {$itk_option(-output) == ""} {
-        return
+        incr index
     }
 
-    #
-    # Figure out which column in which table contains the data.
-    # Then, find that table and extract the column.  Figure out
-    # the position of the column from the list of all column names.
-    #
-    if {$itk_option(-layout) != ""} {
-        set table [$itk_option(-layout) get $name.table]
-        set col [$itk_option(-layout) get $name.column]
-
-        set clist ""
-        foreach c [$itk_option(-output) children -type column $table] {
-            lappend clist [$itk_option(-output) get $table.$c.label]
-        }
-        set ipos [lsearch $clist $col]
-        if {$ipos < 0} {
-            return  ;# can't find data -- bail out!
-        }
-        set units [$itk_option(-output) get $table.column$ipos.units]
-        set path "$table.data"
-    } else {
-        set clist ""
-        foreach c [$itk_option(-output) children -type column] {
-            lappend clist [$itk_option(-output) get $c.units]
-        }
-        if {$name == "energies"} {
-            set units "eV"
-        } else {
-            set units ""
-        }
-        set ipos [lsearch -exact $clist $units]
-        if {$ipos < 0} {
-            return  ;# can't find data -- bail out!
-        }
-        set path "data"
-    }
-
-    set rlist ""
-    foreach line [split [$itk_option(-output) get $path] "\n"] {
-        if {"" != [string trim $line]} {
-            set val [lindex $line $ipos]
-
-            if {$units != ""} {
-                set val [Rappture::Units::convert $val \
-                    -context $units -to $units -units off]
-            }
-            lappend rlist $val
-        }
-    }
-    return $rlist
-}
-
-# ----------------------------------------------------------------------
-# USAGE: _getUnits <name>
-#
-# Used internally to extract the units from a <table> within the
-# -output XML object.  The -layout object indicates how information
-# should be extracted from the table.  The <layout> should have an
-# <energies> tag and perhaps a <labels> tag, which indicates the table
-# and the column within the table containing the units.
-# ----------------------------------------------------------------------
-itcl::body Rappture::EnergyLevels::_getUnits {name} {
-    if {$itk_option(-output) == ""} {
-        return
-    }
-
-    #
-    # Figure out which column in which table contains the data.
-    # Then, find that table and extract the column.  Figure out
-    # the position of the column from the list of all column names.
-    #
-    if {$itk_option(-layout) != ""} {
-        set table [$itk_option(-layout) get $name.table]
-        set col [$itk_option(-layout) get $name.column]
-
-        set clist ""
-        foreach c [$itk_option(-output) children -type column $table] {
-            lappend clist [$itk_option(-output) get $table.$c.label]
-        }
-        set ipos [lsearch $clist $col]
-        if {$ipos < 0} {
-            return  ;# can't find data -- bail out!
-        }
-        set units [$itk_option(-output) get $table.column$ipos.units]
-    } else {
-        if {$name == "energies"} {
-            set units "eV"
-        } else {
-            set units ""
-        }
-    }
-    return $units
-}
-
-# ----------------------------------------------------------------------
-# USAGE: _getMidPt <elist> <pos>
-#
-# Used internally to compute the midpoint between two energy levels
-# at <pos> and <pos-1> in the <elist>.  Returns a number representing
-# the mid-point (average value) or "" if the levels involved do
-# no exist in <elist>.
-# ----------------------------------------------------------------------
-itcl::body Rappture::EnergyLevels::_getMidPt {elist pos} {
-    if {$pos < [llength $elist] && $pos > 1} {
-        set e1 [lindex $elist $pos]
-        set e0 [lindex $elist [expr {$pos-1}]]
-        return [expr {0.5*($e0+$e1)}]
+    if {$epos >= 0 || $lpos >= 0} {
+        return [list [lindex $names $lpos] [lindex $names $epos]]
     }
     return ""
 }
 
 # ----------------------------------------------------------------------
-# OPTION: -layout
+# USAGE: add <dataobj> ?<settings>?
+#
+# Clients use this to add a data object to the plot.  The optional
+# <settings> are used to configure the plot.  Allowed settings are
+# -color, -brightness, -width, -linestyle and -raise.
 # ----------------------------------------------------------------------
-itcl::configbody Rappture::EnergyLevels::layout {
-    if {$itk_option(-layout) != ""
-          && ![Rappture::library isvalid $itk_option(-layout)]} {
-        error "bad value \"$itk_option(-layout)\": should be Rappture::library object"
+itcl::body Rappture::EnergyLevels::add {dataobj {settings ""}} {
+    #
+    # Make sure this table contains energy levels.
+    #
+    set cols [Rappture::EnergyLevels::columns $dataobj]
+    if {"" == $cols} {
+        error "table \"$dataobj\" does not contain energy levels"
     }
-    after idle [itcl::code $this _render]
+
+    #
+    # Scan through the settings and resolve all values.
+    #
+    array set params {
+        -color black
+        -brightness 0
+        -width 1
+        -raise 0
+        -linestyle solid
+    }
+    foreach {opt val} $settings {
+        if {![info exists params($opt)]} {
+            error "bad setting \"$opt\": should be [join [lsort [array names params]] {, }]"
+        }
+        set params($opt) $val
+    }
+
+    # convert -linestyle to BLT -dashes
+    switch -- $params(-linestyle) {
+        dashed { set params(-linestyle) {4 4} }
+        dotted { set params(-linestyle) {2 4} }
+        default { set params(-linestyle) {} }
+    }
+
+    # if -brightness is set, then update the color
+    if {$params(-brightness) != 0} {
+        set params(-color) [Rappture::color::brightness \
+            $params(-color) $params(-brightness)]
+    }
+
+    set pos [lsearch -exact $dataobj $_dlist]
+    if {$pos < 0} {
+        lappend _dlist $dataobj
+        set _dobj2color($dataobj) $params(-color)
+        set _dobj2raise($dataobj) $params(-raise)
+
+        foreach {lcol ecol} $cols break
+        set _dobj2cols($dataobj-label) $lcol
+        set _dobj2cols($dataobj-energy) $ecol
+
+        $_dispatcher event -idle !redraw
+    }
 }
 
 # ----------------------------------------------------------------------
-# OPTION: -output
+# USAGE: delete ?<dataobj1> <dataobj2> ...?
+#
+# Clients use this to delete a dataobj from the plot.  If no dataobjs
+# are specified, then all dataobjs are deleted.
 # ----------------------------------------------------------------------
-itcl::configbody Rappture::EnergyLevels::output {
-    if {$itk_option(-output) != ""
-          && ![Rappture::library isvalid $itk_option(-output)]} {
-        error "bad value \"$itk_option(-output)\": should be Rappture::library object"
+itcl::body Rappture::EnergyLevels::delete {args} {
+    if {[llength $args] == 0} {
+        set args $_dlist
+        set _eviewmin ""
+        set _eviewmax ""
     }
-    after cancel [itcl::code $this _render]
-    after idle [itcl::code $this _render]
+
+    # delete all specified data objs
+    set changed 0
+    foreach dataobj $args {
+        set pos [lsearch -exact $_dlist $dataobj]
+        if {$pos >= 0} {
+            set _dlist [lreplace $_dlist $pos $pos]
+            catch {unset _dobj2color($dataobj)}
+            catch {unset _dobj2raise($dataobj)}
+            catch {unset _dobj2cols($dataobj-label)}
+            catch {unset _dobj2cols($dataobj-energy)}
+            set changed 1
+        }
+    }
+
+    # if anything changed, then rebuild the plot
+    if {$changed} {
+        $_dispatcher event -idle !redraw
+    }
+}
+
+# ----------------------------------------------------------------------
+# USAGE: scale ?<dataobj1> <dataobj2> ...?
+#
+# Sets the default limits for the overall plot according to the
+# limits of the data for all of the given <dataobj> objects.  This
+# accounts for all dataobjs--even those not showing on the screen.
+# Because of this, the limits are appropriate for all data as
+# the user scans through data in the ResultSet viewer.
+# ----------------------------------------------------------------------
+itcl::body Rappture::EnergyLevels::scale {args} {
+    set _emin ""
+    set _emax ""
+    foreach obj $args {
+        if {![info exists _dobj2cols($obj-energy)]} {
+            # don't recognize this object? then ignore it
+            continue
+        }
+        foreach {min max} [$obj limits $_dobj2cols($obj-energy)] break
+
+        if {"" != $min && "" != $max} {
+            if {"" == $_emin} {
+                set _emin $min
+                set _emax $max
+            } else {
+                if {$min < $_emin} { set _emin $min }
+                if {$max > $_emax} { set _emax $max }
+            }
+        }
+    }
+}
+
+# ----------------------------------------------------------------------
+# USAGE: _redraw
+#
+# Used internally to load a list of energy levels from a <table> within
+# the data objects.
+# ----------------------------------------------------------------------
+itcl::body Rappture::EnergyLevels::_redraw {{what all}} {
+    # scale data now, if we haven't already
+    if {"" == $_emin || "" == $_emax} {
+        eval scale $_dlist
+    }
+
+    # put the dataobj list in order according to -raise options
+    set dlist $_dlist
+    foreach obj $dlist {
+        if {[info exists _dobj2raise($obj)] && $_dobj2raise($obj)} {
+            set i [lsearch -exact $dlist $obj]
+            if {$i >= 0} {
+                set dlist [lreplace $dlist $i $i]
+                lappend dlist $obj
+            }
+        }
+    }
+    set topdobj [lindex $dlist end]
+
+    _getLayout
+
+    #
+    # Redraw the overall layout
+    #
+    if {$what == "all"} {
+        $c delete all
+        if {[llength $dlist] == 0} {
+            return
+        }
+
+        #
+        # Scan through all data objects and plot them in order from
+        # the bottom up.
+        #
+        set e2y [expr {($y1-$y0)/($_emax-$_emin)}]
+
+        set title ""
+        set dataobj ""
+        foreach dataobj $dlist {
+            if {"" == $title} {
+                set title [$dataobj hints label]
+            }
+
+            set ecol $_dobj2cols($dataobj-energy)
+            set color $_dobj2color($dataobj)
+            if {"" == $color} {
+                set color $itk_option(-levelcolor)
+            }
+            set color [Rappture::color::brightness $color 0.7]
+
+            foreach eval [$dataobj values -column $ecol] {
+                set y [expr {($eval-$_emin)*$e2y + $y0}]
+                $c create line $xx0 $y $xx1 $y -fill $color -width 1
+            }
+        }
+
+        #
+        # Scan through the data and look for HOMO/LUMO levels.
+        # Set the default view to the energy just above and
+        # just below the HOMO/LUMO levels.
+        #
+        set _edefmin [expr {0.4*($_emax-$_emin) + $_emin}]
+        set _edefmax [expr {0.6*($_emax-$_emin) + $_emin}]
+
+        set nlumo -1
+        set nhomo -1
+
+        set dataobj [lindex $dlist end]
+        if {"" != $dataobj} {
+            set lcol $_dobj2cols($dataobj-label)
+            set ecol $_dobj2cols($dataobj-energy)
+            set units [$dataobj columns -units $ecol]
+
+            set n 0
+            foreach eval [$dataobj values -column $ecol] \
+                    lval [$dataobj values -column $lcol] {
+
+                if {$lval == "HOMO"} {
+                    set nhomo $n
+                    set nlumo [expr {$n+1}]
+                } elseif {$lval == "LUMO"} {
+                    set nlumo $n
+                }
+                incr n
+            }
+
+            if {$nhomo >= 0 && $nlumo >= 0} {
+                set elist [$dataobj values -column $ecol]
+                set _ehomo [lindex $elist $nhomo]
+                set _elumo [lindex $elist $nlumo]
+                set gap [expr {$_elumo - $_ehomo}]
+                set _edefmin [expr {$_ehomo - 0.3*$gap}]
+                set _edefmax [expr {$_elumo + 0.3*$gap}]
+
+                set y [expr {($_ehomo-$_emin)*$e2y + $y0}]
+                set id [$c create rectangle $xx0 $y $xx1 $y0 \
+                    -stipple EnergyLevels-rdiag \
+                    -outline "" -fill $itk_option(-shadecolor)]
+                $c lower $id
+            }
+        }
+        if {"" == $_eviewmin || "" == $_eviewmax} {
+            set _eviewmin $_edefmin
+            set _eviewmax $_edefmax
+        }
+
+        if {"" != $title} {
+            pack $itk_component(title) -side top -before $c
+            $itk_component(title) configure -text $title
+        } else {
+            pack forget $itk_component(title)
+        }
+
+        # draw the lines for the "zoom" view (fixed up below)
+        set color $itk_option(-foreground)
+        $c create line $x0 $y0 $x1 $y0 -fill $color -tags zmin
+        $c create line $x0 $y0 $x1 $y0 -fill $color -tags zmax
+
+        $c create line $x1 $y0 $x2 $y0 -fill $color -tags zoomup
+        $c create line $x1 $y0 $x2 $y1 -fill $color -tags zoomdn
+
+        $c create line $x2 $y0 $x3 $y0 -fill $color
+        $c create line $x2 $y1 $x3 $y1 -fill $color
+    }
+
+    #
+    # Redraw the "zoom" area on the right side
+    #
+    if {$what == "zoom" || $what == "all"} {
+        set e2y [expr {($y1-$y0)/($_emax-$_emin)}]
+
+        set y [expr {($_eviewmin-$_emin)*$e2y + $y0}]
+        $c coords zmin $x0 $y $x1 $y
+        $c coords zoomup $x1 $y $x2 $y0
+
+        set y [expr {($_eviewmax-$_emin)*$e2y + $y0}]
+        $c coords zmax $x0 $y $x1 $y
+        $c coords zoomdn $x1 $y $x2 $y1
+
+        # redraw all levels in the current view
+        $c delete zlevels zlabels
+
+        set e2y [expr {($y1-$y0)/($_eviewmax-$_eviewmin)}]
+        foreach dataobj $dlist {
+            set ecol $_dobj2cols($dataobj-energy)
+            set color $_dobj2color($dataobj)
+            if {"" == $color} {
+                set color $itk_option(-levelcolor)
+            }
+
+            set n 0
+            foreach eval [$dataobj values -column $ecol] {
+                if {$eval >= $_eviewmin && $eval <= $_eviewmax} {
+                    set y [expr {($eval-$_eviewmin)*$e2y + $y0}]
+                    set id [$c create line $xx2 $y $xx3 $y \
+                        -fill $color -width 1 \
+                        -tags [list zlevels $dataobj-$n]]
+                }
+                incr n
+            }
+        }
+
+        if {"" != $_ehomo && "" != $_elumo} {
+            set ecol $_dobj2cols($topdobj-energy)
+            set units [$topdobj columns -units $ecol]
+
+            set yy0 [expr {($_ehomo-$_eviewmin)*$e2y + $y0}]
+            set yy1 [expr {($_elumo-$_eviewmin)*$e2y + $y0}]
+            $c create line [expr {$x3-10}] $yy0 [expr {$x3-10}] $yy1 \
+                -arrow both -fill $itk_option(-foreground) \
+                -tags zlabels
+            $c create text [expr {$x3-15}] [expr {0.5*($yy0+$yy1)}] \
+                -anchor e -text "Eg = [expr {$_elumo-$_ehomo}] $units" \
+                -tags zlabels
+
+            # label the HOMO level
+            set tid [$c create text [expr {0.5*($x2+$x3)}] $yy0 -anchor c \
+                -text "HOMO = $_ehomo $units" \
+                -fill $itk_option(-leveltextforeground) \
+                -tags zlabels]
+
+            foreach {xb0 yb0 xb1 yb1} [$c bbox $tid] break
+            set tid2 [$c create rectangle \
+                [expr {$xb0-1}] [expr {$yb0-1}] \
+                [expr {$xb1+1}] [expr {$yb1+1}] \
+                -outline $itk_option(-leveltextforeground) \
+                -fill $itk_option(-leveltextbackground) \
+                -tags zlabels]
+            $c lower $tid2 $tid
+
+            # label the LUMO level
+            set tid [$c create text [expr {0.5*($x2+$x3)}] $yy1 -anchor c \
+                -text "LUMO = $_elumo $units" \
+                -fill $itk_option(-leveltextforeground) \
+                -tags zlabels]
+
+            foreach {xb0 yb0 xb1 yb1} [$c bbox $tid] break
+            set tid2 [$c create rectangle \
+                [expr {$xb0-1}] [expr {$yb0-1}] \
+                [expr {$xb1+1}] [expr {$yb1+1}] \
+                -outline $itk_option(-leveltextforeground) \
+                -fill $itk_option(-leveltextbackground) \
+                -tags zlabels]
+            $c lower $tid2 $tid
+
+            set id [$c create rectangle $xx2 $yy0 $xx3 $y0 \
+                -stipple EnergyLevels-rdiag \
+                -outline "" -fill $itk_option(-shadecolor) \
+                -tags zlabels]
+            $c lower $id
+        }
+    }
+}
+
+# ----------------------------------------------------------------------
+# USAGE: _zoom in
+# USAGE: _zoom out
+# USAGE: _zoom reset
+# USAGE: _zoom at <x> <y>
+# USAGE: _zoom nudge <dir>
+#
+# Called automatically when the user clicks on one of the zoom
+# controls for this widget.  Changes the zoom for the current view.
+# ----------------------------------------------------------------------
+itcl::body Rappture::EnergyLevels::_zoom {option args} {
+    switch -- $option {
+        in {
+            set midE [expr {0.5*($_eviewmax + $_eviewmin)}]
+            set delE [expr {0.8*($_eviewmax - $_eviewmin)}]
+            _view $midE $delE
+        }
+        out {
+            set midE [expr {0.5*($_eviewmax + $_eviewmin)}]
+            set delE [expr {1.25*($_eviewmax - $_eviewmin)}]
+            _view $midE $delE
+        }
+        reset {
+            set _eviewmin $_edefmin
+            set _eviewmax $_edefmax
+            $_dispatcher event -idle !zoom
+        }
+        at {
+            if {[llength $args] != 2} {
+                error "wrong # args: should be \"_zoom at x y\""
+            }
+            set x [lindex $args 0]
+            set y [lindex $args 1]
+
+            _getLayout
+            set y2e [expr {($_emax-$_emin)/($y1-$y0)}]
+
+            if {$x > $x1} {
+                return
+            }
+            set midE [expr {($y-$y0)*$y2e + $_emin}]
+            set delE [expr {$_eviewmax - $_eviewmin}]
+            _view $midE $delE
+        }
+        nudge {
+            if {[llength $args] != 1} {
+                error "wrong # args: should be \"_zoom nudge dir\""
+            }
+            set dir [lindex $args 0]
+
+            set midE [expr {0.5*($_eviewmax + $_eviewmin)}]
+            set delE [expr {$_eviewmax - $_eviewmin}]
+            set midE [expr {$midE + $dir*0.25*$delE}]
+            _view $midE $delE
+        }
+    }
+    focus $itk_component(graph)
+}
+
+# ----------------------------------------------------------------------
+# USAGE: _view <midE> <delE>
+#
+# Called automatically when the user clicks/drags on the left side
+# of the widget where energy levels are displayed.  Sets the zoom
+# view so that it's centered on the <y> coordinate.
+# ----------------------------------------------------------------------
+itcl::body Rappture::EnergyLevels::_view {midE delE} {
+    if {$delE > $_emax-$_emin} {
+        set delE [expr {$_emax - $_emin}]
+    }
+    if {$midE - 0.5*$delE < $_emin} {
+        set _eviewmin $_emin
+        set _eviewmax [expr {$_eviewmin+$delE}]
+    } elseif {$midE + 0.5*$delE > $_emax} {
+        set _eviewmax $_emax
+        set _eviewmin [expr {$_eviewmax-$delE}]
+    } else {
+        set _eviewmin [expr {$midE - 0.5*$delE}]
+        set _eviewmax [expr {$midE + 0.5*$delE}]
+    }
+    $_dispatcher event -idle !zoom
+}
+
+# ----------------------------------------------------------------------
+# USAGE: _hilite brush <x> <y>
+# USAGE: _hilite show <dataobj> <level>
+# USAGE: _hilite hide
+#
+# Used internally to highlight energy levels in the zoom view and
+# show their associated energy.  The "brush" operation is called
+# as the mouse moves in the zoom view, to see if the <x>,<y>
+# coordinate is touching a level.  The show/hide operations are
+# then used to show/hide level info.
+# ----------------------------------------------------------------------
+itcl::body Rappture::EnergyLevels::_hilite {option args} {
+    switch -- $option {
+        brush {
+            if {[llength $args] != 2} {
+                error "wrong # args: should be \"_hilite brush x y\""
+            }
+            set x [lindex $args 0]
+            set y [lindex $args 1]
+
+            _getLayout
+            if {$x < $x2 || $x > $x3} {
+                return   ;# pointer must be in "zoom" area
+            }
+
+            set c $itk_component(graph)
+            set id [$c find withtag current]
+
+            # touching a line? then find the level and show its info
+            if {"" != $id} {
+                set e2y [expr {($y1-$y0)/($_eviewmax-$_eviewmin)}]
+
+                # put the dataobj list in order according to -raise options
+                set dlist $_dlist
+                foreach obj $dlist {
+                    if {[info exists _dobj2raise($obj)] && $_dobj2raise($obj)} {
+                        set i [lsearch -exact $dlist $obj]
+                        if {$i >= 0} {
+                            set dlist [lreplace $dlist $i $i]
+                            lappend dlist $obj
+                        }
+                    }
+                }
+
+                set found 0
+                foreach dataobj $dlist {
+                    set ecol $_dobj2cols($dataobj-energy)
+                    set n 0
+                    foreach eval [$dataobj values -column $ecol] {
+                        set ylevel [expr {($eval-$_eviewmin)*$e2y + $y0}]
+                        if {$y >= $ylevel-3 && $y <= $ylevel+3} {
+                            set found 1
+                            break
+                        }
+                        incr n
+                    }
+                    if {$found} break
+                }
+                if {$found} {
+                    _hilite show $dataobj $n
+                } else {
+                    _hilite hide
+                }
+            } else {
+                _hilite hide
+            }
+        }
+        show {
+            if {[llength $args] != 2} {
+                error "wrong # args: should be \"_hilite show dataobj level\""
+            }
+            set dataobj [lindex $args 0]
+            set level [lindex $args 1]
+
+            if {$_hilite == "$dataobj $level"} {
+                return
+            }
+            _hilite hide
+
+            set lcol $_dobj2cols($dataobj-label)
+            set lval [lindex [$dataobj values -column $lcol] $level]
+            set ecol $_dobj2cols($dataobj-energy)
+            set eval [lindex [$dataobj values -column $ecol] $level]
+            set units [$dataobj columns -units $ecol]
+
+            if {$eval == $_ehomo || $eval == $_elumo} {
+                # don't pop up info for the HOMO/LUMO levels
+                return
+            }
+
+            _getLayout
+            set e2y [expr {($y1-$y0)/($_eviewmax-$_eviewmin)}]
+            set y [expr {($eval-$_eviewmin)*$e2y + $y0}]
+
+            set tid [$c create text [expr {0.5*($x2+$x3)}] $y -anchor c \
+                -text "$lval = $eval $units" \
+                -fill $itk_option(-leveltextforeground) \
+                -tags hilite]
+
+            foreach {x0 y0 x1 y1} [$c bbox $tid] break
+            set tid2 [$c create rectangle \
+                [expr {$x0-1}] [expr {$y0-1}] \
+                [expr {$x1+1}] [expr {$y1+1}] \
+                -outline $itk_option(-leveltextforeground) \
+                -fill $itk_option(-leveltextbackground) \
+                -tags hilite]
+            $c lower $tid2 $tid
+
+            $c itemconfigure $dataobj-$level -width 2
+            set _hilite "$dataobj $level"
+        }
+        hide {
+            if {"" != $_hilite} {
+                $itk_component(graph) delete hilite
+                $itk_component(graph) itemconfigure zlevels -width 1
+                set _hilite ""
+            }
+        }
+        default {
+            error "bad option \"$option\": should be brush, show, hide"
+        }
+    }
+}
+
+# ----------------------------------------------------------------------
+# USAGE: _getLayout
+#
+# Used internally to compute a series of variables used when redrawing
+# the widget.  Creates the variables with the proper values in the
+# calling context.
+# ----------------------------------------------------------------------
+itcl::body Rappture::EnergyLevels::_getLayout {} {
+    upvar c c
+    set c $itk_component(graph)
+
+    upvar w w
+    set w [winfo width $c]
+
+    upvar h h
+    set h [winfo height $c]
+
+    #
+    # Measure the size of a typical label and use that to size
+    # the left/right portions.  If the label is too big, leave
+    # at least a little room for the labels.
+    #
+    set size [font measure $itk_option(-font) "HOMO = X.XXXXXXe-XX eV"]
+    set size [expr {$size + 6*$itk_option(-padding)}]
+
+    if {$size > $w-20} {
+        set size [expr {$w-20}]
+    } elseif {$size < 0.66*$w} {
+        set size [expr {0.66*$w}]
+    }
+    set xm [expr {$w - $size}]
+
+    upvar x0 x0
+    set x0 $itk_option(-padding)
+
+    upvar x1 x1
+    set x1 [expr {$xm - $itk_option(-padding)}]
+
+    upvar x2 x2
+    set x2 [expr {$xm + $itk_option(-padding)}]
+
+    upvar x3 x3
+    set x3 [expr {$w - $itk_option(-padding)}]
+
+
+    upvar xx0 xx0
+    set xx0 [expr {$x0 + $itk_option(-padding)}]
+
+    upvar xx1 xx1
+    set xx1 [expr {$x1 - $itk_option(-padding)}]
+
+    upvar xx2 xx2
+    set xx2 [expr {$x2 + $itk_option(-padding)}]
+
+    upvar xx3 xx3
+    set xx3 [expr {$x3 - $itk_option(-padding)}]
+
+
+    upvar y0 y0
+    set y0 [expr {$h - $itk_option(-padding)}]
+
+    upvar y1 y1
+    set y1 $itk_option(-padding)
 }
 
 # ----------------------------------------------------------------------
 # OPTION: -levelColor
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::EnergyLevels::levelcolor {
-    after cancel [itcl::code $this _render]
-    after idle [itcl::code $this _render]
+    $_dispatcher event -idle !redraw
 }
 
 # ----------------------------------------------------------------------
 # OPTION: -leveltextforeground
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::EnergyLevels::leveltextforeground {
-    after cancel [itcl::code $this _render]
-    after idle [itcl::code $this _render]
+    $_dispatcher event -idle !redraw
 }
 
 # ----------------------------------------------------------------------
 # OPTION: -leveltextbackground
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::EnergyLevels::leveltextbackground {
-    after cancel [itcl::code $this _render]
-    after idle [itcl::code $this _render]
+    $_dispatcher event -idle !redraw
 }

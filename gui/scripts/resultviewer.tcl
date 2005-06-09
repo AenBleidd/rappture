@@ -25,9 +25,8 @@ itcl::class Rappture::ResultViewer {
     constructor {args} { # defined below }
     destructor { # defined below }
 
-    public method add {xmlobj path}
-    public method replace {index xmlobj path}
-    public method clear {}
+    public method add {index xmlobj path}
+    public method clear {{index ""}}
 
     public method plot {option args}
 
@@ -38,8 +37,8 @@ itcl::class Rappture::ResultViewer {
     private variable _dispatcher ""  ;# dispatchers for !events
     private variable _mode ""        ;# current plotting mode (xy, etc.)
     private variable _mode2widget    ;# maps plotting mode => widget
-    private variable _dataobjs ""    ;# list of all data objects in this widget
-    private variable _plotlist ""    ;# list of indices plotted in _dataobjs
+    private variable _dataslots ""   ;# list of all data objects in this widget
+    private variable _plotlist ""    ;# list of indices plotted in _dataslots
 }
                                                                                 
 itk::usual ResultViewer {
@@ -66,58 +65,65 @@ itcl::body Rappture::ResultViewer::constructor {args} {
 # DESTRUCTOR
 # ----------------------------------------------------------------------
 itcl::body Rappture::ResultViewer::destructor {} {
-    foreach obj $_dataobjs {
-        itcl::delete object $obj
+    foreach slot $_dataslots {
+        foreach obj $slot {
+            itcl::delete object $obj
+        }
     }
 }
 
 # ----------------------------------------------------------------------
-# USAGE: add <xmlobj> <path>
+# USAGE: add <index> <xmlobj> <path>
 #
-# Adds a new result to this result viewer.  Scans through all existing
-# results to look for a difference compared to previous results.
+# Adds a new result to this result viewer at the specified <index>.
+# Data is taken from the <xmlobj> object at the <path>.
 # ----------------------------------------------------------------------
-itcl::body Rappture::ResultViewer::add {xmlobj path} {
+itcl::body Rappture::ResultViewer::add {index xmlobj path} {
     if {$path != ""} {
         set dobj [_xml2data $xmlobj $path]
     } else {
         set dobj ""
     }
-    lappend _dataobjs $dobj
+
+    #
+    # If the index doesn't exist, then fill in empty slots and
+    # make it exist.
+    #
+    for {set i [llength $_dataslots]} {$i <= $index} {incr i} {
+        lappend _dataslots ""
+    }
+    set slot [lindex $_dataslots $index]
+    lappend slot $dobj
+    set _dataslots [lreplace $_dataslots $index $index $slot]
 
     $_dispatcher event -idle !scale
 }
 
 # ----------------------------------------------------------------------
-# USAGE: replace <index> <xmlobj> <path>
+# USAGE: clear ?<index>?
 #
-# Stores a new result to this result viewer, overwriting the previous
-# result at position <index>.
+# Clears one or all results in this result viewer.
 # ----------------------------------------------------------------------
-itcl::body Rappture::ResultViewer::replace {index xmlobj path} {
-    set dobj [lindex $_dataobjs $index]
-    if {"" != $dobj} {
-        itcl::delete object $dobj
+itcl::body Rappture::ResultViewer::clear {{index ""}} {
+    if {"" != $index} {
+        # clear one result
+        if {$index >= 0 && $index < [llength $_dataslots]} {
+            set slot [lindex $_dataslots $index]
+            foreach dobj $slot {
+                itcl::delete object $dobj
+            }
+            set _dataslots [lreplace $_dataslots $index $index ""]
+        }
+    } else {
+        # clear all results
+        plot clear
+        foreach slot $_dataslots {
+            foreach dobj $slot {
+                itcl::delete object $dobj
+            }
+        }
+        set _dataslots ""
     }
-
-    set dobj [_xml2data $xmlobj $path]
-    set _dataobjs [lreplace $_dataobjs $index $index $dobj]
-
-    $_dispatcher event -idle !scale
-}
-
-# ----------------------------------------------------------------------
-# USAGE: clear
-#
-# Clears all results in this result viewer.
-# ----------------------------------------------------------------------
-itcl::body Rappture::ResultViewer::clear {} {
-    plot clear
-
-    foreach obj $_dataobjs {
-        itcl::delete object $obj
-    }
-    set _dataobjs ""
 }
 
 # ----------------------------------------------------------------------
@@ -135,9 +141,16 @@ itcl::body Rappture::ResultViewer::plot {option args} {
     switch -- $option {
         add {
             foreach {index opts} $args {
-                set dobj [lindex $_dataobjs $index]
-                if {"" != $dobj} {
-                    _plotAdd $dobj $opts
+                set slot [lindex $_dataslots $index]
+                foreach dobj $slot {
+                    # start with default settings from data object
+                    if {[catch {$dobj hints style} settings]} {
+                        set settings ""
+                    }
+                    # add override settings passed in here
+                    eval lappend settings $opts
+
+                    _plotAdd $dobj $settings
                 }
             }
         }
@@ -185,13 +198,24 @@ itcl::body Rappture::ResultViewer::_plotAdd {dataobj {settings ""}} {
                 2D {
                     set mode "contour"
                     if {![info exists _mode2widget($mode)]} {
-                        set w $itk_interior.xy
+                        set w $itk_interior.contour
                         Rappture::ContourResult $w
                         set _mode2widget($mode) $w
                     }
                 }
                 default {
                     error "can't handle [$dataobj components -dimensions] field"
+                }
+            }
+        }
+        ::Rappture::Table {
+            set cols [Rappture::EnergyLevels::columns $dataobj]
+            if {"" != $cols} {
+                set mode "energies"
+                if {![info exists _mode2widget($mode)]} {
+                    set w $itk_interior.energies
+                    Rappture::EnergyLevels $w
+                    set _mode2widget($mode) $w
                 }
             }
         }
@@ -205,15 +229,6 @@ itcl::body Rappture::ResultViewer::_plotAdd {dataobj {settings ""}} {
                         set _mode2widget($mode) $w
                     }
                 }
-                table {
-                    # table for now -- should have a Table object!
-                    set mode "energies"
-                    if {![info exists _mode2widget($mode)]} {
-                        set w $itk_interior.energies
-                        Rappture::EnergyLevels $w
-                        set _mode2widget($mode) $w
-                    }
-                }
             }
         }
         default {
@@ -222,7 +237,10 @@ itcl::body Rappture::ResultViewer::_plotAdd {dataobj {settings ""}} {
     }
 
     if {$mode != $_mode && $_mode != ""} {
-        return  ;# mixing data that doesn't mix -- ignore it!
+        set nactive [llength [$_mode2widget($_mode) get]]
+        if {$nactive > 0} {
+            return  ;# mixing data that doesn't mix -- ignore it!
+        }
     }
 
     # are we plotting in a new mode? then change widgets
@@ -249,7 +267,13 @@ itcl::body Rappture::ResultViewer::_plotAdd {dataobj {settings ""}} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::ResultViewer::_fixScale {args} {
     if {"" != $_mode} {
-        eval $_mode2widget($_mode) scale $_dataobjs
+        set dlist ""
+        foreach slot $_dataslots {
+            foreach dobj $slot {
+                lappend dlist $dobj
+            }
+        }
+        eval $_mode2widget($_mode) scale $dlist
     }
 }
 
@@ -269,7 +293,7 @@ itcl::body Rappture::ResultViewer::_xml2data {xmlobj path} {
             return [Rappture::Field ::#auto $xmlobj $path]
         }
         table {
-            return [$xmlobj element -as object $path]
+            return [Rappture::Table ::#auto $xmlobj $path]
         }
         log {
             return [$xmlobj element -as object $path]

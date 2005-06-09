@@ -23,12 +23,13 @@ itcl::class Rappture::Tool {
     public method xml {args}
 
     public method load {xmlobj}
-    public method changed {path}
     public method run {args}
     public method abort {}
 
     public method widgetfor {path {widget ""}}
+    public method changed {path}
     public method sync {}
+    public method tool {}
 
     private variable _xmlobj ""      ;# XML overall <run> object
     private variable _installdir ""  ;# installation directory for this tool
@@ -154,7 +155,7 @@ itcl::body Rappture::Tool::abort {} {
 # ----------------------------------------------------------------------
 # USAGE: widgetfor <path> ?<widget>?
 #
-# Used by descendents such as a Controls panel to register the
+# Used by embedded widgets such as a Controls panel to register the
 # various controls associated with this page.  That way, this Tool
 # knows what widgets to look at when syncing itself to the underlying
 # XML data.
@@ -225,4 +226,14 @@ itcl::body Rappture::Tool::sync {} {
     foreach path [array names _path2widget] {
         $_xmlobj put $path.current [$_path2widget($path) value]
     }
+}
+
+# ----------------------------------------------------------------------
+# USAGE: tool
+#
+# Clients use this to figure out which tool is associated with
+# this object.  Since this is a tool, it returns itself.
+# ----------------------------------------------------------------------
+itcl::body Rappture::Tool::tool {} {
+    return $this
 }

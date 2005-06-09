@@ -1,6 +1,5 @@
-#!/bin/sh
 # ----------------------------------------------------------------------
-#  USAGE: tclsh install
+#  USAGE: tclsh install.tcl
 #
 #  Use this script to install the Rappture toolkit into an existing
 #  Tcl installation.
@@ -8,10 +7,6 @@
 #  AUTHOR:  Michael McLennan, Purdue University
 #  Copyright (c) 2004  Purdue Research Foundation, West Lafayette, IN
 # ======================================================================
-#\
-exec tclsh "$0" "$*"
-# ----------------------------------------------------------------------
-# tclsh executes everything from here on...
 
 # run this script from directory containing it
 cd [file dirname [info script]]
@@ -35,6 +30,13 @@ proc mkindex {dir} {
     auto_mkindex $dir *.tcl
 }
 
+proc fixperms {target perms} {
+    global tcl_platform
+    if {$tcl_platform(platform) == "unix"} {
+        file attributes $target -permissions $perms
+    }
+}
+
 
 set dir [file dirname [info library]]
 set targetdir [file join $dir $package$version]
@@ -53,11 +55,11 @@ foreach context {. ../gui} {
         if {[file isdirectory $file]} {
             puts "making directory $target..."
             catch {file mkdir $target}
-            file attributes $target -permissions ugo+rx
+            fixperms $target ugo+rx
         } else {
             puts "installing $target..."
             file copy -force $file $target
-            file attributes $target -permissions ugo+r
+            fixperms $target ugo+r
         }
     }
 }
@@ -69,11 +71,11 @@ foreach file [find ./lib] {
     if {[file isdirectory $file]} {
         puts "making directory $target..."
         catch {file mkdir $target}
-        file attributes $target -permissions ugo+rx
+        fixperms $target ugo+rx
     } else {
         puts "installing $target..."
         file copy -force $file $target
-        file attributes $target -permissions ugo+r
+        fixperms $target ugo+r
     }
 }
 
@@ -83,11 +85,17 @@ set fid [open [file join $targetdir pkgIndex.tcl] w]
 puts $fid "# Tcl package index file"
 puts $fid "package ifneeded $package $version \""
 puts $fid "  \[list lappend auto_path \[file join \$dir scripts\]\]"
-puts $fid "  namespace eval Rappture \[list variable installdir \$dir\]"
+puts $fid "  namespace eval \[list Rappture \[list variable installdir \$dir\]\]"
 puts $fid "  package provide $package $version"
 puts $fid "\""
 close $fid
 
 mkindex [file join $targetdir scripts]
 
-puts "== $package-$version INSTALLED"
+if {[catch {package require Tk}] == 0} {
+    wm withdraw .
+    tk_messageBox -icon info -message "$package-$version INSTALLED"
+} else {
+    puts "== $package-$version INSTALLED"
+}
+exit 0
