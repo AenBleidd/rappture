@@ -85,7 +85,7 @@ itcl::body Rappture::Loader::constructor {xmlobj path args} {
     set _counter 1
     foreach ftail $flist {
         set fpath [file join $fdir examples $ftail]
-        foreach fname [glob -nocomplain $fpath] {
+        foreach fname [lsort [glob -nocomplain $fpath]] {
             if {[file exists $fname]} {
                 if {[catch {set obj [Rappture::library $fname]} result]} {
                     puts stderr "WARNING: can't load example file \"$fname\""

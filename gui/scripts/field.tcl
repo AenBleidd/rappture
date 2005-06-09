@@ -270,6 +270,9 @@ itcl::body Rappture::Field::hints {{keyword ""}} {
         }
     }
 
+    # to be compatible with curve objects
+    set hints(xlabel) "Position"
+
     if {[info exists hints(group)] && [info exists hints(label)]} {
         # pop-up help for each curve
         set hints(tooltip) $hints(label)
