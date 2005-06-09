@@ -66,16 +66,26 @@ itcl::body Rappture::Loader::constructor {xmlobj path args} {
     #
     set defval [$xmlobj get $path.default]
 
-    set _counter 1
+    set flist ""
     foreach comp [$xmlobj children -type example $path] {
-        if {$itk_option(-tool) != ""} {
-            set fdir [$itk_option(-tool) installdir]
-        } else {
-            set fdir "."
-        }
-        set ftail [$xmlobj get $path.$comp]
-        if {"" != $ftail} {
-            set fname [file join $fdir examples $ftail]
+        lappend flist [$xmlobj get $path.$comp]
+    }
+
+    # if there are no examples, then look for *.xml
+    if {[llength $flist] == 0} {
+        set flist *.xml
+    }
+
+    if {$itk_option(-tool) != ""} {
+        set fdir [$itk_option(-tool) installdir]
+    } else {
+        set fdir "."
+    }
+
+    set _counter 1
+    foreach ftail $flist {
+        set fpath [file join $fdir examples $ftail]
+        foreach fname [glob -nocomplain $fpath] {
             if {[file exists $fname]} {
                 if {[catch {set obj [Rappture::library $fname]} result]} {
                     puts stderr "WARNING: can't load example file \"$fname\""
@@ -87,7 +97,7 @@ itcl::body Rappture::Loader::constructor {xmlobj path args} {
                     }
                     $itk_component(combo) choices insert end $obj $label
 
-                    if {[string equal $defval $ftail]} {
+                    if {[string equal $defval [file tail $fname]]} {
                         $xmlobj put $path.default $label
                     }
                 }

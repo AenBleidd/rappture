@@ -56,6 +56,7 @@ itcl::class Rappture::ContourResult {
     destructor { # defined below }
 
     public method add {dataobj {settings ""}}
+    public method get {}
     public method delete {args}
     public method scale {args}
 
@@ -107,6 +108,7 @@ itcl::body Rappture::ContourResult::constructor {args} {
             -bitmap ContourResult-reset \
             -command [itcl::code $this _zoom reset]
     } {
+        usual
         ignore -borderwidth
         rename -highlightbackground -controlbackground controlBackground Background
     }
@@ -119,6 +121,7 @@ itcl::body Rappture::ContourResult::constructor {args} {
             -bitmap ContourResult-zoomin \
             -command [itcl::code $this _zoom in]
     } {
+        usual
         ignore -borderwidth
         rename -highlightbackground -controlbackground controlBackground Background
     }
@@ -131,6 +134,7 @@ itcl::body Rappture::ContourResult::constructor {args} {
             -bitmap ContourResult-zoomout \
             -command [itcl::code $this _zoom out]
     } {
+        usual
         ignore -borderwidth
         rename -highlightbackground -controlbackground controlBackground Background
     }
@@ -200,12 +204,14 @@ itcl::body Rappture::ContourResult::destructor {} {
 #
 # Clients use this to add a data object to the plot.  The optional
 # <settings> are used to configure the plot.  Allowed settings are
-# -color, -width, and -raise.
+# -color, -brightness, -width, -linestyle, and -raise.
 # ----------------------------------------------------------------------
 itcl::body Rappture::ContourResult::add {dataobj {settings ""}} {
     array set params {
         -color black
         -width 1
+        -linestyle solid
+        -brightness 0
         -raise 0
     }
     foreach {opt val} $settings {
@@ -225,6 +231,27 @@ itcl::body Rappture::ContourResult::add {dataobj {settings ""}} {
         after cancel [itcl::code $this _rebuild]
         after idle [itcl::code $this _rebuild]
     }
+}
+
+# ----------------------------------------------------------------------
+# USAGE: get
+#
+# Clients use this to query the list of objects being plotted, in
+# order from bottom to top of this result.
+# ----------------------------------------------------------------------
+itcl::body Rappture::ContourResult::get {} {
+    # put the dataobj list in order according to -raise options
+    set dlist $_dlist
+    foreach obj $dlist {
+        if {[info exists _obj2raise($obj)] && $_obj2raise($obj)} {
+            set i [lsearch -exact $dlist $obj]
+            if {$i >= 0} {
+                set dlist [lreplace $dlist $i $i]
+                lappend dlist $obj
+            }
+        }
+    }
+    return $dlist
 }
 
 # ----------------------------------------------------------------------
@@ -317,21 +344,9 @@ itcl::body Rappture::ContourResult::_rebuild {} {
         set _obj2vtk($dataobj) ""
     }
 
-    # put the dataobj list in order according to -raise options
-    set dlist $_dlist
-    foreach obj $dlist {
-        if {[info exists _obj2raise($obj)] && $_obj2raise($obj)} {
-            set i [lsearch -exact $dlist $obj]
-            if {$i >= 0} {
-                set dlist [lreplace $dlist $i $i]
-                lappend dlist $obj
-            }
-        }
-    }
-
     # scan through all data objects and build the contours
     set _counter 0
-    foreach dataobj $dlist {
+    foreach dataobj [get] {
         foreach comp [$dataobj components] {
             set pd $this-polydata$_counter
             vtkPolyData $pd
@@ -500,22 +515,27 @@ itcl::body Rappture::ContourResult::_move {option x y} {
             set _click(y) $y
         }
         drag {
-            set w [winfo width $itk_component(plot)]
-            set h [winfo height $itk_component(plot)]
-            set dx [expr {double($x-$_click(x))/$w}]
-            set dy [expr {double($y-$_click(y))/$h}]
-            foreach actor $_actors($this-ren) {
-                foreach {ax ay az} [$actor GetPosition] break
-                $actor SetPosition [expr {$ax+$dx}] [expr {$ay-$dy}] 0
-            }
-            $this-renWin Render
+            if {[array size _click] == 0} {
+                _move click $x $y
+            } else {
+                set w [winfo width $itk_component(plot)]
+                set h [winfo height $itk_component(plot)]
+                set dx [expr {double($x-$_click(x))/$w}]
+                set dy [expr {double($y-$_click(y))/$h}]
+                foreach actor $_actors($this-ren) {
+                    foreach {ax ay az} [$actor GetPosition] break
+                    $actor SetPosition [expr {$ax+$dx}] [expr {$ay-$dy}] 0
+                }
+                $this-renWin Render
 
-            set _click(x) $x
-            set _click(y) $y
+                set _click(x) $x
+                set _click(y) $y
+            }
         }
         release {
             _move drag $x $y
             blt::busy configure $itk_component(area) -cursor left_ptr
+            catch {unset _click}
         }
         default {
             error "bad option \"$option\": should be click, drag, release"

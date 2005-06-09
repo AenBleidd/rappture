@@ -22,8 +22,11 @@ itcl::class Rappture::TextResult {
     constructor {args} { # defined below }
 
     public method add {dataobj {settings ""}}
+    public method get {}
     public method delete {args}
     public method scale {args}
+
+    set _dataobj ""  ;# data object currently being displayed
 }
                                                                                 
 itk::usual TextResult {
@@ -57,12 +60,15 @@ itcl::body Rappture::TextResult::constructor {args} {
 #
 # Clients use this to add a data object to the plot.  If the optional
 # <settings> are specified, then the are applied to the data.  Allowed
-# settings are -color and -width/-raise (ignored).
+# settings are -color and -brightness, -width, -linestyle and -raise.
+# (Many of these are ignored.)
 # ----------------------------------------------------------------------
 itcl::body Rappture::TextResult::add {dataobj {settings ""}} {
     array set params {
         -color ""
+        -brightness ""
         -width ""
+        -linestyle ""
         -raise ""
     }
     foreach {opt val} $settings {
@@ -91,6 +97,17 @@ itcl::body Rappture::TextResult::add {dataobj {settings ""}} {
     }
 
     $itk_component(text) configure -state disabled
+    set _dataobj $dataobj
+}
+
+# ----------------------------------------------------------------------
+# USAGE: get
+#
+# Clients use this to query the list of objects being plotted, in
+# order from bottom to top of this result.
+# ----------------------------------------------------------------------
+itcl::body Rappture::TextResult::get {} {
+    return $_dataobj
 }
 
 # ----------------------------------------------------------------------
@@ -103,6 +120,7 @@ itcl::body Rappture::TextResult::delete {args} {
     $itk_component(text) configure -state normal
     $itk_component(text) delete 1.0 end
     $itk_component(text) configure -state disabled
+    set _dataobj ""
 }
 
 # ----------------------------------------------------------------------

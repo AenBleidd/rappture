@@ -147,9 +147,10 @@ itcl::body Rappture::Curve::limits {which} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Curve::hints {{keyword ""}} {
     foreach {key path} {
-        label   label
-        color   color
-        color   style
+        group   about.group
+        label   about.label
+        color   about.color
+        style   about.style
         xlabel  xaxis.label
         xunits  xaxis.units
         xscale  xaxis.scale
@@ -170,6 +171,11 @@ itcl::body Rappture::Curve::hints {{keyword ""}} {
     if {[info exists hints(ylabel)] && "" != $hints(ylabel)
           && [info exists hints(yunits)] && "" != $hints(yunits)} {
         set hints(ylabel) "$hints(ylabel) ($hints(yunits))"
+    }
+
+    if {[info exists hints(group)] && [info exists hints(label)]} {
+        # pop-up help for each curve
+        set hints(tooltip) $hints(label)
     }
 
     if {$keyword != ""} {

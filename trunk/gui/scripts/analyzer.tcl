@@ -373,7 +373,10 @@ itcl::body Rappture::Analyzer::load {file} {
                 _autoLabel $xmlobj output.$item "Energy Levels" counters
             }
         }
-        set label [$xmlobj get output.$item.about.label]
+        set label [$xmlobj get output.$item.about.group]
+        if {"" == $label} {
+            set label [$xmlobj get output.$item.about.label]
+        }
 
         if {"" != $label} {
             set haveresults 1
@@ -383,11 +386,14 @@ itcl::body Rappture::Analyzer::load {file} {
     # if there are any valid results, add them to the resultset
     if {$haveresults} {
         set size [$itk_component(resultset) size]
-        set op [$itk_component(resultset) add $xmlobj]
+        set index [$itk_component(resultset) add $xmlobj]
 
         # add each result to a result viewer
         foreach item [_reorder [$xmlobj children output]] {
-            set label [$xmlobj get output.$item.about.label]
+            set label [$xmlobj get output.$item.about.group]
+            if {"" == $label} {
+                set label [$xmlobj get output.$item.about.label]
+            }
 
             if {"" != $label} {
                 if {![info exists _label2page($label)]} {
@@ -399,23 +405,16 @@ itcl::body Rappture::Analyzer::load {file} {
 
                     $itk_component(resultselector) choices insert end \
                         $name $label
-
-                    #
-                    # NOTE:
-                    #
-                    # If this result is showing up late in the game, then
-                    # we must fill the resultviewer with a series of blank
-                    # entries, so the latest result will align with (have
-                    # the same index as) results in all other viewers.
-                    #
-                    for {set i 0} {$i < $size} {incr i} {
-                        $page.rviewer add $xmlobj ""
-                    }
                 }
 
                 # add/replace the latest result into this viewer
                 set page $_label2page($label)
-                eval $page.rviewer $op [list $xmlobj output.$item]
+
+                if {![info exists reset($page)]} {
+                    $page.rviewer clear $index
+                    set reset($page) 1
+                }
+                $page.rviewer add $index $xmlobj output.$item
             }
         }
     }
@@ -431,7 +430,8 @@ itcl::body Rappture::Analyzer::load {file} {
     # show the first page by default
     set first [$itk_component(resultselector) choices get -label 0]
     if {$first != ""} {
-        $itk_component(resultpages) current page1
+        set page [$itk_component(resultselector) choices get -value 0]
+        $itk_component(resultpages) current $page
         $itk_component(resultselector) value $first
     }
 }
@@ -447,13 +447,26 @@ itcl::body Rappture::Analyzer::clear {} {
     }
     set _runs ""
 
+    $itk_component(resultset) clear
+    $itk_component(results) fraction end 0.1
+
     foreach label [array names _label2page] {
         set page $_label2page($label)
         $page.rviewer clear
     }
+    $itk_component(resultselector) value ""
+    $itk_component(resultselector) choices delete 0 end
+    catch {unset _label2page}
+    set _plotlist ""
 
-    $itk_component(resultset) clear
-    $itk_component(results) fraction end 0.1
+    #
+    # HACK ALERT!!
+    # The following statement should be in place, but it causes
+    # vtk to dump core.  Leave it out until we can fix the core dump.
+    # In the mean time, we leak memory...
+    #
+    #$itk_component(resultpages) delete -all
+    #set _pages 0
 
     _simState on
     _fixSimControl
@@ -480,7 +493,7 @@ itcl::body Rappture::Analyzer::_plot {args} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: _reorder
+# USAGE: _reorder <compList>
 #
 # Used internally to change the order of a series of output components
 # found in the <output> section.  Moves the <log> elements to the end
@@ -518,22 +531,23 @@ itcl::body Rappture::Analyzer::_reorder {comps} {
 itcl::body Rappture::Analyzer::_autoLabel {xmlobj path title cntVar} {
     upvar $cntVar counters
 
+    set group [$xmlobj get $path.about.group]
     set label [$xmlobj get $path.about.label]
     if {"" == $label} {
         # no label -- make one up using the title specified
-        if {![info exists counters($title)]} {
-            set counters($title) 1
+        if {![info exists counters($group-$title)]} {
+            set counters($group-$title) 1
             set label $title
         } else {
-            set label "$title #[incr counters($title)]"
+            set label "$title (#[incr counters($group-$title)])"
         }
         $xmlobj put $path.about.label $label
     } else {
         # handle the case of two identical labels in <output>
-        if {![info exists counters($label)]} {
-            set counters($label) 1
+        if {![info exists counters($group-$label)]} {
+            set counters($group-$label) 1
         } else {
-            set label "$label #[incr counters($label)]"
+            set label "$label (#[incr counters($group-$label)])"
             $xmlobj put $path.about.label $label
         }
     }
@@ -549,11 +563,13 @@ itcl::body Rappture::Analyzer::_autoLabel {xmlobj path title cntVar} {
 itcl::body Rappture::Analyzer::_fixResult {} {
     set page [$itk_component(resultselector) value]
     set page [$itk_component(resultselector) translate $page]
-    $itk_component(resultpages) current $page
+    if {$page != ""} {
+        $itk_component(resultpages) current $page
 
-    set f [$itk_component(resultpages) page $page]
-    $f.rviewer plot clear
-    eval $f.rviewer plot add $_plotlist
+        set f [$itk_component(resultpages) page $page]
+        $f.rviewer plot clear
+        eval $f.rviewer plot add $_plotlist
+    }
 }
 
 # ----------------------------------------------------------------------

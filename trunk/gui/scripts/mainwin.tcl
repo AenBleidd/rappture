@@ -137,70 +137,42 @@ itcl::body Rappture::MainWin::_redraw {} {
             set clip 1
         }
 
-        set titleh 0
-        set fnt [option get $itk_component(hull) titleFont Font]
-        if {$itk_option(-title) != "" && $fnt != ""} {
-            set titleh [expr {[font metrics $fnt -linespace]+2}]
-        }
-        if {$h+$titleh > $sh} {
-            set $h [expr {$sh-$titleh}]
-            set clip 1
-        }
-
         switch -- $itk_option(-anchor) {
             n {
                 set x [expr {$sw/2}]
-                set y $titleh
-                set tx [expr {$x-$w/2}]
-                set ty $titleh
+                set y 0
             }
             s {
                 set x [expr {$sw/2}]
                 set y $sh
-                set tx [expr {$x-$w/2}]
-                set ty [expr {$sh-$h}]
             }
             center {
                 set x [expr {$sw/2}]
                 set y [expr {$sh/2}]
-                set tx [expr {$x-$w/2}]
-                set ty [expr {$y-$h/2}]
             }
             w {
                 set x 0
                 set y [expr {$sh/2}]
-                set tx 0
-                set ty [expr {$y-$h/2}]
             }
             e {
                 set x $sw
                 set y [expr {$sh/2}]
-                set tx [expr {$sw-$w}]
-                set ty [expr {$y-$h/2}]
             }
             nw {
                 set x 0
-                set y $titleh
-                set tx 0
-                set ty $titleh
+                set y 0
             }
             ne {
                 set x $sw
-                set y $titleh
-                set tx [expr {$sw-$w}]
-                set ty $titleh
+                set y 0
             }
             sw {
                 set x 0
                 set y $sh
-                set tx 0
-                set ty [expr {$sh-$h}]
             }
             se {
                 set x $sw
                 set y $sh
-                set tx [expr {$sw-$w}]
-                set ty [expr {$sh-$h}]
             }
         }
 
@@ -213,11 +185,6 @@ itcl::body Rappture::MainWin::_redraw {} {
         $itk_component(area) create window $x $y \
             -anchor $itk_option(-anchor) -window $itk_component(app) \
             -width $w -height $h
-
-        if {$itk_option(-title) != "" && $fnt != ""} {
-            $itk_component(area) create text $tx [expr {$ty-2}] \
-                -anchor sw -text $itk_option(-title) -font $fnt
-        }
     }
 }
 

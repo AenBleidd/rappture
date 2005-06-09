@@ -1,7 +1,7 @@
 # ----------------------------------------------------------------------
 #  COMPONENT: table - extracts data from an XML description of a table
 #
-#  This object represents one table in an XML description of a device.
+#  This object represents one table in an XML description of a table.
 #  It simplifies the process of extracting data representing columns
 #  in the table.
 # ======================================================================
@@ -10,106 +10,194 @@
 #  Purdue Research Foundation, West Lafayette, IN
 # ======================================================================
 package require Itcl
-package require BLT
 
 namespace eval Rappture { # forward declaration }
 
 itcl::class Rappture::Table {
-    constructor {libobj path} { # defined below }
+    constructor {xmlobj path} { # defined below }
     destructor { # defined below }
 
     public method rows {}
-    public method columns {{pattern *}}
-    public method vectors {{what -overall}}
+    public method columns {args}
+    public method values {args}
+    public method limits {col}
     public method hints {{key ""}}
 
-    protected method _build {}
-
-    private variable _units ""   ;# system of units for this table
-    private variable _limits     ;# maps slab name => {z0 z1} limits
-    private variable _zmax 0     ;# length of the device
-
+    private variable _xmlobj ""  ;# ref to lib obj with curve data
     private variable _table ""   ;# lib obj representing this table
-    private variable _tree ""    ;# BLT tree used to contain table data
-
-    private common _counter 0    ;# counter for unique vector names
+    private variable _tuples ""  ;# list of tuples with table data
 }
 
 # ----------------------------------------------------------------------
 # CONSTRUCTOR
 # ----------------------------------------------------------------------
-itcl::body Rappture::Table::constructor {libobj path} {
-    if {![Rappture::library isvalid $libobj]} {
-        error "bad value \"$libobj\": should be LibraryObj"
+itcl::body Rappture::Table::constructor {xmlobj path} {
+    if {![Rappture::library isvalid $xmlobj]} {
+        error "bad value \"$xmlobj\": should be Rappture::library"
     }
-    set _table [$libobj element -as object $path]
-    set _units [$_table get units]
+    set _table [$xmlobj element -as object $path]
 
-    # determine the overall size of the device
-    set z0 [set z1 0]
-    foreach elem [$_device children recipe] {
-        switch -glob -- $elem {
-            slab* - molecule* {
-                if {![regexp {[0-9]$} $elem]} {
-                    set elem "${elem}0"
-                }
-                set tval [$_device get recipe.$elem.thickness]
-                set tval [Rappture::Units::convert $tval \
-                    -context um -to um -units off]
-                set z1 [expr {$z0+$tval}]
-                set _limits($elem) [list $z0 $z1]
+    #
+    # Load data from the table and store in the tuples.
+    #
+    set _tuples [Rappture::Tuples ::#auto]
+    foreach cname [$_table children -type column] {
+        set label [$_table get $cname.label]
+        $_tuples column insert end -name $cname -label $label
+    }
 
-                set z0 $z1
-            }
+    set cols [llength [$_tuples column names]]
+    set nline 1
+    foreach line [split [$_table get data] \n] {
+        if {[llength $line] == 0} {
+            continue
         }
+        if {[llength $line] != $cols} {
+            error "bad data at line $nline: expected $cols columns but got \"[string trim $line]\""
+        }
+        $_tuples insert end $line
+        incr nline
     }
-    set _zmax $z1
-
-    # build up vectors for various components of the table
-    _build
 }
 
 # ----------------------------------------------------------------------
 # DESTRUCTOR
 # ----------------------------------------------------------------------
 itcl::body Rappture::Table::destructor {} {
+    itcl::delete object $_tuples
     itcl::delete object $_table
-    # don't destroy the _device! we don't own it!
-
-    foreach name [array names _comp2vecs] {
-        eval blt::vector destroy $_comp2vecs($name)
-    }
+    # don't destroy the _xmlobj! we don't own it!
 }
 
 # ----------------------------------------------------------------------
-# USAGE: components ?<pattern>?
+# USAGE: rows
 #
-# Returns a list of names for the various components of this table.
-# If the optional glob-style <pattern> is specified, then it returns
-# only the component names matching the pattern.
+# Returns the number of rows of information in this table.
 # ----------------------------------------------------------------------
-itcl::body Rappture::Table::components {{pattern *}} {
+itcl::body Rappture::Table::rows {} {
+    return [$_tuples size]
+}
+
+# ----------------------------------------------------------------------
+# USAGE: columns ?-component|-label|-units? ?<pos>?
+#
+# Returns information about the columns associated with this table.
+# ----------------------------------------------------------------------
+itcl::body Rappture::Table::columns {args} {
+    Rappture::getopts args params {
+        flag switch -component
+        flag switch -label default
+        flag switch -units
+    }
+    if {[llength $args] == 0} {
+        set cols [llength [$_tuples column names]]
+        set plist ""
+        for {set i 0} {$i < $cols} {incr i} {
+            lappend plist $i
+        }
+    } elseif {[llength $args] == 1} {
+        set p [lindex $args 0]
+        if {[string is integer $p]} {
+            lappend plist $p
+        } else {
+            set pos [lsearch -exact [$_tuples column names] $p]
+            if {$pos < 0} {
+                error "bad column \"$p\": should be column name or integer index"
+            }
+            lappend plist $pos
+        }
+    } else {
+        error "wrong # args: should be \"columns ?-component|-label|-units? ?pos?\""
+    }
+
     set rlist ""
-    foreach name [array names _comp2vecs] {
-        if {[string match $pattern $name]} {
-            lappend rlist $name
+    switch -- $params(switch) {
+        -component {
+            set names [$_tuples column names]
+            foreach p $plist {
+                lappend rlist [lindex $names $p]
+            }
+        }
+        -label {
+            set names [$_tuples column names]
+            foreach p $plist {
+                set name [lindex $names $p]
+                catch {unset opts}
+                array set opts [$_tuples column info $name]
+                lappend rlist $opts(-label)
+            }
+        }
+        -units {
+            set names [$_tuples column names]
+            foreach p $plist {
+                set comp [lindex $names $p]
+                lappend rlist [$_table get $comp.units]
+            }
         }
     }
     return $rlist
 }
 
 # ----------------------------------------------------------------------
-# USAGE: vectors ?<name>?
+# USAGE: values ?-row <index>? ?-column <index>?
 #
-# Returns a list {xvec yvec} for the specified table component <name>.
-# If the name is not specified, then it returns the vectors for the
-# overall table (sum of all components).
+# Returns a single value or a list of values for data in this table.
+# If a particular -row and -column is specified, then it returns
+# a single value for that row/column.  If either the -row or the
+# -column is specified, then it returns a list of values in that
+# row or column.  With no args, it returns all values in the table.
 # ----------------------------------------------------------------------
-itcl::body Rappture::Table::vectors {{what -overall}} {
-    if {[info exists _comp2vecs($what)]} {
-        return $_comp2vecs($what)
+itcl::body Rappture::Table::values {args} {
+    Rappture::getopts args params {
+        value -row ""
+        value -column ""
     }
-    error "bad option \"$what\": should be [join [lsort [array names _comp2vecs]] {, }]"
+    if {[llength $args] > 0} {
+        error "wrong # args: should be \"values ?-row r? ?-column c?\""
+    }
+    if {"" == $params(-row) && "" == $params(-column)} {
+        return [$_tuples get]
+    } elseif {"" == $params(-column)} {
+        return [lindex [$_tuples get $params(-row)] 0]
+    }
+
+    if {[string is integer $params(-column)]} {
+        set col [lindex [$_tuples column names] $params(-column)]
+    } else {
+        set col $params(-column)
+        if {"" == [$_tuples column names $col]} {
+            error "bad column name \"$col\": should be [join [$_tuples column names] {, }]"
+        }
+    }
+
+    if {"" == $params(-row)} {
+        # return entire column
+        return [$_tuples get -format $col]
+    }
+    # return a particular cell
+    return [$_tuples get -format $col $params(-row)]
+}
+
+# ----------------------------------------------------------------------
+# USAGE: limits <column>
+#
+# Returns the {min max} limits of the numerical values in the
+# specified <column>, which can be either an integer index to
+# a column or a column name.
+# ----------------------------------------------------------------------
+itcl::body Rappture::Table::limits {column} {
+    set min ""
+    set max ""
+    foreach v [values -column $column] {
+        if {"" == $min} {
+            set min $v
+            set max $v
+        } else {
+            if {$v < $min} { set min $v }
+            if {$v > $max} { set max $v }
+        }
+    }
+    return [list $min $max]
 }
 
 # ----------------------------------------------------------------------
@@ -120,8 +208,12 @@ itcl::body Rappture::Table::vectors {{what -overall}} {
 # the hint for that <keyword>, if it exists.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Table::hints {{keyword ""}} {
-    foreach key {label scale color units restrict} {
-        set str [$_table get $key]
+    foreach {key path} {
+        label   about.label
+        color   about.color
+        style   about.style
+    } {
+        set str [$_table get $path]
         if {"" != $str} {
             set hints($key) $str
         }
@@ -134,69 +226,4 @@ itcl::body Rappture::Table::hints {{keyword ""}} {
         return ""
     }
     return [array get hints]
-}
-
-# ----------------------------------------------------------------------
-# USAGE: _build
-#
-# Used internally to build up the vector representation for the
-# table when the object is first constructed, or whenever the table
-# data changes.  Discards any existing vectors and builds everything
-# from scratch.
-# ----------------------------------------------------------------------
-itcl::body Rappture::Table::_build {} {
-    # discard any existing data
-    foreach name [array names _comp2vecs] {
-        eval blt::vector destroy $_comp2vecs($name)
-    }
-    catch {unset _comp2vecs}
-
-    #
-    # Scan through the components of the table and create
-    # vectors for each part.
-    #
-    foreach cname [$_table children -type component] {
-        set xv ""
-        set yv ""
-
-        set val [$_table get $cname.constant]
-        if {$val != ""} {
-            set domain [$_table get $cname.domain]
-            if {$domain == "" || ![info exists _limits($domain)]} {
-                set z0 0
-                set z1 $_zmax
-            } else {
-                foreach {z0 z1} $_limits($domain) { break }
-            }
-            set xv [blt::vector create x$_counter]
-            $xv append $z0 $z1
-
-            if {$_units != ""} {
-                set val [Rappture::Units::convert $val \
-                    -context $_units -to $_units -units off]
-            }
-            set yv [blt::vector create y$_counter]
-            $yv append $val $val
-
-            set zm [expr {0.5*($z0+$z1)}]
-        } else {
-            set xydata [$_table get $cname.xy]
-            if {"" != $xydata} {
-                set xv [blt::vector create x$_counter]
-                set yv [blt::vector create y$_counter]
-
-                foreach line [split $xydata \n] {
-                    if {[scan $line {%g %g} xval yval] == 2} {
-                        $xv append $xval
-                        $yv append $yval
-                    }
-                }
-            }
-        }
-
-        if {$xv != "" && $yv != ""} {
-            set _comp2vecs($cname) [list $xv $yv]
-            incr _counter
-        }
-    }
 }
