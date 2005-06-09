@@ -208,6 +208,21 @@ itcl::body Rappture::ResultViewer::_plotAdd {dataobj {settings ""}} {
                 }
             }
         }
+        ::Rappture::Mesh {
+            switch -- [$dataobj dimensions] {
+                2 {
+                    set mode "mesh"
+                    if {![info exists _mode2widget($mode)]} {
+                        set w $itk_interior.mesh
+                        Rappture::MeshResult $w
+                        set _mode2widget($mode) $w
+                    }
+                }
+                default {
+                    error "can't handle [$dataobj dimensions]D field"
+                }
+            }
+        }
         ::Rappture::Table {
             set cols [Rappture::EnergyLevels::columns $dataobj]
             if {"" != $cols} {
@@ -291,6 +306,9 @@ itcl::body Rappture::ResultViewer::_xml2data {xmlobj path} {
         }
         field {
             return [Rappture::Field ::#auto $xmlobj $path]
+        }
+        mesh {
+            return [Rappture::Mesh ::#auto $xmlobj $path]
         }
         table {
             return [Rappture::Table ::#auto $xmlobj $path]

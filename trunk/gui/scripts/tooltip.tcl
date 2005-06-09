@@ -350,6 +350,10 @@ itcl::configbody Rappture::Tooltip::outline {
 # create a tooltip widget to show tool tips
 Rappture::Tooltip .rappturetooltip
 
+# any click on any widget takes down the tooltip
+bind all <Leave> [list ::Rappture::Tooltip::tooltip cancel]
+bind all <ButtonPress> [list ::Rappture::Tooltip::tooltip cancel]
+
 # create a tooltip widget to show error cues
 Rappture::Tooltip .rappturetoolcue \
     -icon $Rappture::Tooltip::icons(cue) \
