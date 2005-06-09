@@ -300,6 +300,7 @@ itcl::body Rappture::MeshResult::_rebuild {} {
     }
 
     set multiple [expr {[llength $dlist] > 1}]
+    catch {unset _mrkr2tip}
 
     # plot all of the dataobjs
     set count 0
