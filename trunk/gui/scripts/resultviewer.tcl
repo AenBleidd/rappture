@@ -195,7 +195,7 @@ itcl::body Rappture::ResultViewer::_plotAdd {dataobj {settings ""}} {
                         set _mode2widget($mode) $w
                     }
                 }
-                2D {
+                2D - 3D {
                     set mode "contour"
                     if {![info exists _mode2widget($mode)]} {
                         set w $itk_interior.contour
