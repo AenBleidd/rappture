@@ -169,9 +169,12 @@ itcl::body Rappture::Cloud::size {} {
 # Returns the number of dimensions for this object: 1, 2, or 3.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Cloud::dimensions {} {
+puts "dimensions for cloud [$_cloud element -as id]"
+puts [string range [$_cloud xml] 0 300]
     # count the dimensions with real limits
     set dims 0
     foreach d {x y z} {
+puts "checking dims: $d => $_limits(${d}min) $_limits(${d}max)"
         if {$_limits(${d}min) != $_limits(${d}max)} {
             incr dims
         }

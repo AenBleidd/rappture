@@ -179,7 +179,7 @@ itcl::body Rappture::Field::values {{what -overall}} {
 # axis.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Field::limits {axis} {
-    foreach val {xmin xmax ymin ymax zmin zmax} {
+    foreach val {xmin xmax ymin ymax zmin zmax vmin vmax} {
         set results($val) ""
     }
     foreach comp [array names _comp2dims] {
@@ -191,27 +191,30 @@ itcl::body Rappture::Field::limits {axis} {
                 set lims(xmin) $x(min)
                 set lims(xmax) $x(max)
 
-                $yv variable y
-                set lims(ymin) $y(min)
-                set lims(ymax) $y(max)
-
+                set lims(ymin) 0
+                set lims(ymax) 0
                 set lims(zmin) 0
                 set lims(zmax) 0
+
+                $yv variable v
+                set lims(vmin) $v(min)
+                set lims(vmax) $v(max)
             }
             2D - 3D {
                 foreach {xv yv} $_comp2vtk($comp) break
 
                 foreach {lims(xmin) lims(xmax)} [$xv limits x] break
                 foreach {lims(ymin) lims(ymax)} [$xv limits y] break
-                foreach {lims(zmin) lims(zmax)} [$yv GetRange] break
+                foreach {lims(zmin) lims(zmax)} [$xv limits z] break
+                foreach {lims(vmin) lims(vmax)} [$yv GetRange] break
             }
         }
-        foreach val {xmin ymin zmin} {
+        foreach val {xmin ymin zmin vmin} {
             if {"" == $results($val) || $lims($val) < $results($val)} {
                 set results($val) $lims($val)
             }
         }
-        foreach val {xmax ymax zmax} {
+        foreach val {xmax ymax zmax vmax} {
             if {"" == $results($val) || $lims($val) > $results($val)} {
                 set results($val) $lims($val)
             }

@@ -55,8 +55,8 @@ itcl::class Rappture::XyResult {
     private variable _elem2curve   ;# maps graph element => curve
     private variable _xmin ""      ;# autoscale min for x-axis
     private variable _xmax ""      ;# autoscale max for x-axis
-    private variable _ymin ""      ;# autoscale min for y-axis
-    private variable _ymax ""      ;# autoscale max for y-axis
+    private variable _vmin ""      ;# autoscale min for y-axis
+    private variable _vmax ""      ;# autoscale max for y-axis
     private variable _hilite ""    ;# info from last _hilite operation
 }
                                                                                 
@@ -241,10 +241,10 @@ itcl::body Rappture::XyResult::delete {args} {
 itcl::body Rappture::XyResult::scale {args} {
     set _xmin ""
     set _xmax ""
-    set _ymin ""
-    set _ymax ""
+    set _vmin ""
+    set _vmax ""
     foreach obj $args {
-        foreach axis {x y} {
+        foreach axis {x v} {
             foreach {min max} [$obj limits $axis] break
             if {"" != $min && "" != $max} {
                 if {"" == [set _${axis}min]} {
@@ -372,9 +372,9 @@ itcl::body Rappture::XyResult::_fixLimits {} {
         $g axis configure x -min "" -max ""
     }
 
-    if {"" != $_ymin && "" != $_ymax} {
-        set min $_ymin
-        set max $_ymax
+    if {"" != $_vmin && "" != $_vmax} {
+        set min $_vmin
+        set max $_vmax
         set log [$g axis cget y -logscale]
         if {$log} {
             if {$min == $max} {
