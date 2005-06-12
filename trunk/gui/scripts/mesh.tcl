@@ -22,7 +22,8 @@ itcl::class Rappture::Mesh {
 
     public method points {}
     public method elements {}
-    public method size {}
+    public method mesh {}
+    public method size {{what -points}}
     public method dimensions {}
     public method limits {which}
     public method hints {{key ""}}
@@ -35,8 +36,6 @@ itcl::class Rappture::Mesh {
 
     private variable _units "m"  ;# system of units for this mesh
     private variable _limits     ;# limits xmin, xmax, ymin, ymax, ...
-    private variable _npts 0     ;# number of points
-    private variable _nelems 0   ;# number of elements
 
     private common _xp2obj       ;# used for fetch/release ref counting
     private common _obj2ref      ;# used for fetch/release ref counting
@@ -104,10 +103,18 @@ itcl::body Rappture::Mesh::constructor {xmlobj path} {
         set _units $u
     }
 
+    # create the vtk objects containing points and connectivity
+    vtkPoints $this-points
+    vtkVoxel $this-vox
+    vtkUnstructuredGrid $this-grid
+
     foreach lim {xmin xmax ymin ymax zmin zmax} {
         set _limits($lim) ""
     }
 
+    #
+    # Extract each node and add it to the points list.
+    #
     foreach comp [$xmlobj children -type node $path] {
         set xyz [$xmlobj get $path.$comp]
 
@@ -132,9 +139,23 @@ itcl::body Rappture::Mesh::constructor {xmlobj path} {
                 if {$v > $_limits(${dim}max)} { set _limits(${dim}max) $v }
             }
         }
-        incr _npts
+        $this-points InsertNextPoint $x $y $z
     }
-    set _nelems [llength [$xmlobj children -type element $path]]
+    $this-grid SetPoints $this-points
+
+    #
+    # Extract each element and add it to the mesh.
+    #
+    foreach comp [$xmlobj children -type element $path] {
+        set nlist [$_mesh get $comp.nodes]
+        set i 0
+        foreach n $nlist {
+            [$this-vox GetPointIds] SetId $i $n
+            incr i
+        }
+        $this-grid InsertNextCell [$this-vox GetCellType] \
+            [$this-vox GetPointIds]
+    }
 }
 
 # ----------------------------------------------------------------------
@@ -143,6 +164,10 @@ itcl::body Rappture::Mesh::constructor {xmlobj path} {
 itcl::body Rappture::Mesh::destructor {} {
     # don't destroy the _xmlobj! we don't own it!
     itcl::delete object $_mesh
+
+    rename $this-points ""
+    rename $this-vox ""
+    rename $this-grid ""
 }
 
 # ----------------------------------------------------------------------
@@ -152,7 +177,7 @@ itcl::body Rappture::Mesh::destructor {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Mesh::points {} {
     # not implemented
-    return ""
+    return $this-points
 }
 
 # ----------------------------------------------------------------------
@@ -197,12 +222,31 @@ itcl::body Rappture::Mesh::elements {} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: size
+# USAGE: mesh
+#
+# Returns the vtk object representing the mesh.
+# ----------------------------------------------------------------------
+itcl::body Rappture::Mesh::mesh {} {
+    return $this-grid
+}
+
+# ----------------------------------------------------------------------
+# USAGE: size ?-points|-elements?
 #
 # Returns the number of points in this mesh.
 # ----------------------------------------------------------------------
-itcl::body Rappture::Mesh::size {} {
-    return $_npts
+itcl::body Rappture::Mesh::size {{what -points}} {
+    switch -- $what {
+        -points {
+            return [$this-points GetNumberOfPoints]
+        }
+        -elements {
+            return [$this-points GetNumberOfCells]
+        }
+        default {
+            error "bad option \"$what\": should be -points or -elements"
+        }
+    }
 }
 
 # ----------------------------------------------------------------------

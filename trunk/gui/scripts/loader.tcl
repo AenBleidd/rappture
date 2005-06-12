@@ -95,10 +95,15 @@ itcl::body Rappture::Loader::constructor {xmlobj path args} {
                     if {$label == ""} {
                         set label "Example #$_counter"
                     }
-                    $itk_component(combo) choices insert end $obj $label
 
-                    if {[string equal $defval [file tail $fname]]} {
-                        $xmlobj put $path.default $label
+                    # if this is new, add it
+                    set i [$itk_component(combo) choices index -label $label]
+                    if {$i < 0} {
+                        $itk_component(combo) choices insert end $obj $label
+
+                        if {[string equal $defval [file tail $fname]]} {
+                            $xmlobj put $path.default $label
+                        }
                     }
                 }
             } else {

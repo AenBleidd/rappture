@@ -37,6 +37,7 @@ itcl::class Rappture::Gauge {
     constructor {args} { # defined below }
 
     public method value {args}
+    public method edit {option}
 
     protected method _redraw {}
     protected method _resize {}
@@ -86,6 +87,26 @@ itcl::body Rappture::Gauge::constructor {args} {
 
     bind $itk_component(value) <Enter> [itcl::code $this _hilite value on]
     bind $itk_component(value) <Leave> [itcl::code $this _hilite value off]
+
+    bind $itk_component(value) <<Cut>> [itcl::code $this edit cut]
+    bind $itk_component(value) <<Copy>> [itcl::code $this edit copy]
+    bind $itk_component(value) <<Paste>> [itcl::code $this edit paste]
+
+    itk_component add emenu {
+        menu $itk_component(value).menu -tearoff 0
+    } {
+        usual
+        ignore -tearoff
+    }
+    $itk_component(emenu) add command -label "Cut" -accelerator "^X" \
+        -command [list event generate $itk_component(value) <<Cut>>]
+    $itk_component(emenu) add command -label "Copy" -accelerator "^C" \
+        -command [list event generate $itk_component(value) <<Copy>>]
+    $itk_component(emenu) add command -label "Paste" -accelerator "^V" \
+        -command [list event generate $itk_component(value) <<Paste>>]
+    bind $itk_component(value) <<PopupMenu>> {
+        tk_popup %W.menu %X %Y
+    }
 
     itk_component add editor {
         Rappture::Editor $itk_interior.editor \
@@ -192,6 +213,38 @@ itcl::body Rappture::Gauge::value {args} {
         error "wrong # args: should be \"value ?-check? ?newval?\""
     }
     return $_value
+}
+
+# ----------------------------------------------------------------------
+# USAGE: edit cut
+# USAGE: edit copy
+# USAGE: edit paste
+#
+# Used internally to handle cut/copy/paste operations for the current
+# value.  Usually invoked by <<Cut>>, <<Copy>>, <<Paste>> events, but
+# can also be called directly through this method.
+# ----------------------------------------------------------------------
+itcl::body Rappture::Gauge::edit {option} {
+    switch -- $option {
+        cut {
+            edit copy
+            _editor popup
+            $itk_component(editor) value ""
+            $itk_component(editor) deactivate
+        }
+        copy {
+            clipboard clear
+            clipboard append $_value
+        }
+        paste {
+            _editor popup
+            $itk_component(editor) value [clipboard get]
+            $itk_component(editor) deactivate
+        }
+        default {
+            error "bad option \"$option\": should be cut, copy, paste"
+        }
+    }
 }
 
 # ----------------------------------------------------------------------

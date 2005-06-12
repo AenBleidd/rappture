@@ -378,7 +378,10 @@ itcl::body Rappture::Analyzer::load {file} {
             set label [$xmlobj get output.$item.about.label]
         }
 
-        if {"" != $label} {
+        set hidden [$xmlobj get output.$item.hide]
+        set hidden [expr {"" != $hidden && $hidden}]
+
+        if {"" != $label && !$hidden} {
             set haveresults 1
         }
     }
@@ -395,7 +398,10 @@ itcl::body Rappture::Analyzer::load {file} {
                 set label [$xmlobj get output.$item.about.label]
             }
 
-            if {"" != $label} {
+            set hidden [$xmlobj get output.$item.hide]
+            set hidden [expr {"" != $hidden && $hidden}]
+
+            if {"" != $label && !$hidden} {
                 if {![info exists _label2page($label)]} {
                     set name "page[incr _pages]"
                     set page [$itk_component(resultpages) insert end $name]

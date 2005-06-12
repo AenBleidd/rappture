@@ -190,7 +190,8 @@ itcl::body Rappture::Tool::load {newobj} {
     foreach path [array names _path2widget] {
         if {"" != [$newobj element -as type $path.current]} {
             set val [$newobj get $path.current]
-            if {[string length $val] > 0} {
+            if {[string length $val] > 0
+                  || [llength [$newobj children $path.current]] == 0} {
                 $_path2widget($path) value $val
             } else {
                 set obj [$newobj element -as object $path.current]

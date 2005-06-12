@@ -108,17 +108,29 @@ itcl::body Rappture::TextEntry::value {args} {
         set newval [lindex $args 0]
         if {$_mode == "entry"} {
             $itk_component(entry) configure -state normal
+            $itk_component(emenu) entryconfigure "Cut" -state normal
+            $itk_component(emenu) entryconfigure "Copy" -state normal
+            $itk_component(emenu) entryconfigure "Paste" -state normal
             $itk_component(entry) delete 0 end
             $itk_component(entry) insert 0 $newval
             if {!$itk_option(-editable)} {
                 $itk_component(entry) configure -state disabled
+                $itk_component(emenu) entryconfigure "Cut" -state disabled
+                $itk_component(emenu) entryconfigure "Copy" -state disabled
+                $itk_component(emenu) entryconfigure "Paste" -state disabled
             }
         } elseif {$_mode == "text"} {
             $itk_component(text) configure -state normal
+            $itk_component(tmenu) entryconfigure "Cut" -state normal
+            $itk_component(tmenu) entryconfigure "Copy" -state normal
+            $itk_component(tmenu) entryconfigure "Paste" -state normal
             $itk_component(text) delete 1.0 end
             $itk_component(text) insert end $newval
             if {!$itk_option(-editable)} {
                 $itk_component(text) configure -state disabled
+                $itk_component(tmenu) entryconfigure "Cut" -state disabled
+                $itk_component(tmenu) entryconfigure "Copy" -state disabled
+                $itk_component(tmenu) entryconfigure "Paste" -state disabled
             }
         }
         $_dispatcher event -idle !layout
@@ -230,6 +242,19 @@ itcl::body Rappture::TextEntry::_layout {} {
                 -background $itk_option(-textbackground) \
                 -foreground $itk_option(-textforeground)
 
+            itk_component add emenu {
+                menu $itk_component(entry).menu -tearoff 0
+            }
+            $itk_component(emenu) add command -label "Cut" -accelerator "^X" \
+                -command [list event generate $itk_component(entry) <<Cut>>]
+            $itk_component(emenu) add command -label "Copy" -accelerator "^C" \
+                -command [list event generate $itk_component(entry) <<Copy>>]
+            $itk_component(emenu) add command -label "Paste" -accelerator "^V" \
+                -command [list event generate $itk_component(entry) <<Paste>>]
+            bind $itk_component(entry) <<PopupMenu>> {
+                tk_popup %W.menu %X %Y
+            }
+
             $itk_component(entry) insert end $val
             if {!$itk_option(-editable)} {
                 $itk_component(entry) configure -state disabled
@@ -269,9 +294,25 @@ itcl::body Rappture::TextEntry::_layout {} {
                 -foreground $itk_option(-textforeground)
             $itk_component(scrollbars) contents $itk_component(text)
 
+            itk_component add tmenu {
+                menu $itk_component(text).menu -tearoff 0
+            }
+            $itk_component(tmenu) add command -label "Cut" -accelerator "^X" \
+                -command [list event generate $itk_component(text) <<Cut>>]
+            $itk_component(tmenu) add command -label "Copy" -accelerator "^C" \
+                -command [list event generate $itk_component(text) <<Copy>>]
+            $itk_component(tmenu) add command -label "Paste" -accelerator "^V" \
+                -command [list event generate $itk_component(text) <<Paste>>]
+            bind $itk_component(text) <<PopupMenu>> {
+                tk_popup %W.menu %X %Y
+            }
+
             $itk_component(text) insert end $val
             if {!$itk_option(-editable)} {
                 $itk_component(text) configure -state disabled
+                $itk_component(menu) entryconfigure "Cut" -state disabled
+                $itk_component(menu) entryconfigure "Copy" -state disabled
+                $itk_component(menu) entryconfigure "Paste" -state disabled
             }
             set _mode "text"
         }
@@ -305,8 +346,14 @@ itcl::configbody Rappture::TextEntry::editable {
     }
     if {$_mode == "entry"} {
         $itk_component(editor) configure -state $state
+        $itk_component(emenu) entryconfigure "Cut" -state $state
+        $itk_component(emenu) entryconfigure "Copy" -state $state
+        $itk_component(emenu) entryconfigure "Paste" -state $state
     } elseif {$_mode == "text"} {
         $itk_component(text) configure -state $state
+        $itk_component(tmenu) entryconfigure "Cut" -state $state
+        $itk_component(tmenu) entryconfigure "Copy" -state $state
+        $itk_component(tmenu) entryconfigure "Paste" -state $state
     }
 }
 

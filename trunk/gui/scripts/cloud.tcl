@@ -19,6 +19,7 @@ itcl::class Rappture::Cloud {
     destructor { # defined below }
 
     public method points {}
+    public method mesh {}
     public method size {}
     public method dimensions {}
     public method limits {which}
@@ -155,6 +156,15 @@ itcl::body Rappture::Cloud::points {} {
 }
 
 # ----------------------------------------------------------------------
+# USAGE: mesh
+#
+# Returns the vtk object representing the mesh.
+# ----------------------------------------------------------------------
+itcl::body Rappture::Cloud::mesh {} {
+    return $this-points
+}
+
+# ----------------------------------------------------------------------
 # USAGE: size
 #
 # Returns the number of points in this cloud.
@@ -169,12 +179,9 @@ itcl::body Rappture::Cloud::size {} {
 # Returns the number of dimensions for this object: 1, 2, or 3.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Cloud::dimensions {} {
-puts "dimensions for cloud [$_cloud element -as id]"
-puts [string range [$_cloud xml] 0 300]
     # count the dimensions with real limits
     set dims 0
     foreach d {x y z} {
-puts "checking dims: $d => $_limits(${d}min) $_limits(${d}max)"
         if {$_limits(${d}min) != $_limits(${d}max)} {
             incr dims
         }
