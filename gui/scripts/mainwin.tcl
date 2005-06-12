@@ -12,6 +12,7 @@
 #  Purdue Research Foundation, West Lafayette, IN
 # ======================================================================
 package require Itk
+package require BLT
 
 option add *MainWin.mode desktop widgetDefault
 option add *MainWin.borderWidth 0 widgetDefault
@@ -30,10 +31,12 @@ itcl::class Rappture::MainWin {
     constructor {args} { # defined below }
 
     public method draw {option args}
+    public method syncCutBuffer {option args}
 
     protected method _redraw {}
 
     private variable _contents ""  ;# frame containing app
+    private variable _sync         ;# to sync current selection and cut buffer
     private variable _bgscript ""  ;# script of background drawing cmds
     private variable _bgparser ""  ;# parser for bgscript
 }
@@ -95,6 +98,89 @@ itcl::body Rappture::MainWin::constructor {args} {
     bind RapptureMainWin <Destroy> { exit }
     set btags [bindtags $itk_component(hull)]
     bindtags $itk_component(hull) [lappend btags RapptureMainWin]
+
+    set _sync(cutbuffer) ""
+    set _sync(selection) ""
+    syncCutBuffer ifneeded
+}
+
+# ----------------------------------------------------------------------
+# USAGE: syncCutBuffer ifneeded
+# USAGE: syncCutBuffer transfer <offset> <maxchars>
+# USAGE: syncCutBuffer lostselection
+#
+# Invoked automatically whenever the mouse pointer enters or leaves
+# a main window to sync the cut buffer with the primary selection.
+# This helps applications work properly with the "Copy/Paste with
+# Desktop" option on the VNC applet for the nanoHUB.
+#
+# The "ifneeded" option syncs the cutbuffer and the primary selection
+# if either one has new data.
+#
+# The "fromselection" option syncs from the primary selection to the
+# cut buffer.  If there's a primary selection, it gets copied to the
+# cut buffer.
+# ----------------------------------------------------------------------
+itcl::body Rappture::MainWin::syncCutBuffer {option args} {
+    set mainwin $itk_component(hull)
+    switch -- $option {
+        ifneeded {
+            #
+            # See if the incoming cut buffer has changed.
+            # If so, then sync the new input to the primary selection.
+            #
+            set s [blt::cutbuffer get]
+            if {"" != $s && ![string equal $s $_sync(cutbuffer)]} {
+                set _sync(cutbuffer) $s
+
+                if {![string equal $s $_sync(selection)]
+                      && [selection own -selection PRIMARY] != $mainwin} {
+                    set _sync(selection) $s
+
+                    clipboard clear
+                    clipboard append -- $s
+                    selection handle -selection PRIMARY $mainwin \
+                        [itcl::code $this syncCutBuffer transfer]
+                    selection own -selection PRIMARY -command \
+                        [itcl::code $this syncCutBuffer lostselection] \
+                        $mainwin
+                }
+            }
+
+            #
+            # See if the selection has changed.  If so, then sync
+            # the new input to the cut buffer, so it's available
+            # outside the VNC client.
+            #
+            set s ""
+            if {[catch {selection get -selection PRIMARY} s] || "" == $s} {
+                if {[catch {clipboard get} s]} {
+                    set s ""
+                }
+            }
+            if {"" != $s && ![string equal $s $_sync(selection)]} {
+                set _sync(selection) $s
+                blt::cutbuffer set $s
+            }
+
+            # do this again soon
+            after 1000 [itcl::code $this syncCutBuffer ifneeded]
+        }
+        transfer {
+            if {[llength $args] != 2} {
+                error "wrong # args: should be \"syncCutBuffer transfer offset max\""
+            }
+            set offset [lindex $args 0]
+            set maxchars [lindex $args 1]
+            return [string range $_currseln $offset [expr {$offset+$maxchars-1}]]
+        }
+        lostselection {
+            # nothing to do
+        }
+        default {
+            error "bad option \"$option\": should be ifneeded, transfer, or lostselection"
+        }
+    }
 }
 
 # ----------------------------------------------------------------------
@@ -126,53 +212,54 @@ itcl::body Rappture::MainWin::_redraw {} {
             bgerror "$result\n    (while redrawing application background)"
         }
 
+        set bd 0  ;# optional border
         set sw [winfo width $itk_component(area)]
         set sh [winfo height $itk_component(area)]
 
         set clip 0
         set w [winfo reqwidth $itk_component(app)]
         set h [winfo reqheight $itk_component(app)]
-        if {$w > $sw} {
-            set $w $sw
+        if {$w > $sw-2*$bd} {
+            set $w [expr {$sw-2*$bd}]
             set clip 1
         }
 
         switch -- $itk_option(-anchor) {
             n {
                 set x [expr {$sw/2}]
-                set y 0
+                set y $bd
             }
             s {
                 set x [expr {$sw/2}]
-                set y $sh
+                set y [expr {$sh-$bd}]
             }
             center {
                 set x [expr {$sw/2}]
                 set y [expr {$sh/2}]
             }
             w {
-                set x 0
+                set x $bd
                 set y [expr {$sh/2}]
             }
             e {
-                set x $sw
+                set x [expr {$sw-$bd}]
                 set y [expr {$sh/2}]
             }
             nw {
-                set x 0
-                set y 0
+                set x $bd
+                set y $bd
             }
             ne {
-                set x $sw
-                set y 0
+                set x [expr {$sw-$bd}]
+                set y $bd
             }
             sw {
-                set x 0
-                set y $sh
+                set x $bd
+                set y [expr {$sh-$bd}]
             }
             se {
-                set x $sw
-                set y $sh
+                set x [expr {$sw-$bd}]
+                set y [expr {$sh-$bd}]
             }
         }
 

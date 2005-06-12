@@ -44,6 +44,15 @@ option add *Gauge.textBackground white
 option add *TemperatureGauge.textBackground white
 option add *Switch.textBackground white
 
+switch $tcl_platform(platform) {
+    unix - windows {
+        event add <<PopupMenu>> <ButtonPress-3>
+    }
+    macintosh {
+        event add <<PopupMenu>> <Control-ButtonPress-1>
+    }
+}
+
 #
 # Process command line args to get the names of files to load...
 #

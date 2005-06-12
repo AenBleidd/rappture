@@ -91,8 +91,9 @@ itcl::body Rappture::Field::destructor {} {
         eval blt::vector destroy $_comp2xy($name)
     }
     foreach name [array names _comp2vtk] {
-        set cobj [lindex $_comp2vtk($name) 0]
-        Rappture::Cloud::release $cobj
+        set mobj [lindex $_comp2vtk($name) 0]
+        set class [$mobj info class]
+        ${class}::release $mobj
 
         set fobj [lindex $_comp2vtk($name) 1]
         rename $fobj ""
@@ -146,8 +147,8 @@ itcl::body Rappture::Field::mesh {{what -overall}} {
         return [lindex $_comp2xy($what) 0]  ;# return xv
     }
     if {[info exists _comp2vtk($what)]} {
-        set cobj [lindex $_comp2vtk($what) 0]
-        return [$cobj points]
+        set mobj [lindex $_comp2vtk($what) 0]
+        return [$mobj mesh]
     }
     error "bad option \"$what\": should be [join [lsort [array names _comp2dims]] {, }]"
 }
@@ -304,8 +305,9 @@ itcl::body Rappture::Field::_build {} {
         eval blt::vector destroy $_comp2xy($name)
     }
     foreach name [array names _comp2vtk] {
-        set cobj [lindex $_comp2vtk($name) 0]
-        Rappture::Cloud::release $cobj
+        set mobj [lindex $_comp2vtk($name) 0]
+        set class [$mobj info class]
+        ${class}::release $mobj
 
         set fobj [lindex $_comp2vtk($name) 1]
         rename $fobj ""
@@ -389,8 +391,16 @@ itcl::body Rappture::Field::_build {} {
             #
             set path [$_field get $cname.mesh]
             if {[$_xmlobj element $path] != ""} {
-                set cobj [Rappture::Cloud::fetch $_xmlobj $path]
-                if {[$cobj dimensions] > 1} {
+                switch -- [$_xmlobj element -as type $path] {
+                    cloud {
+                        set mobj [Rappture::Cloud::fetch $_xmlobj $path]
+                    }
+                    mesh {
+                        set mobj [Rappture::Mesh::fetch $_xmlobj $path]
+                    }
+                }
+
+                if {[$mobj dimensions] > 1} {
                     #
                     # 2D/3D data
                     # Store cloud/field as components
@@ -406,8 +416,8 @@ itcl::body Rappture::Field::_build {} {
                         $farray InsertNextValue $v
                     }
 
-                    set _comp2dims($cname) "[$cobj dimensions]D"
-                    set _comp2vtk($cname) [list $cobj $farray]
+                    set _comp2dims($cname) "[$mobj dimensions]D"
+                    set _comp2vtk($cname) [list $mobj $farray]
                     incr _counter
                 } else {
                     #
@@ -417,13 +427,14 @@ itcl::body Rappture::Field::_build {} {
                     set xv [blt::vector create x$_counter]
                     set yv [blt::vector create y$_counter]
 
-                    set vtkpts [$cobj points]
+                    set vtkpts [$mobj points]
                     set max [$vtkpts GetNumberOfPoints]
                     for {set i 0} {$i < $max} {incr i} {
                         set xval [lindex [$vtkpts GetPoint $i] 0]
                         $xv append $xval
                     }
-                    Rappture::Cloud::release $cobj
+                    set class [$mobj info class]
+                    ${class}::release $mobj
 
                     set values [$_field get $cname.values]
                     foreach yval $values {

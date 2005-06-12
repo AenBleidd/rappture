@@ -90,6 +90,23 @@ itcl::body Rappture::Editor::constructor {args} {
     bind $itk_component(editor) <ButtonPress> \
         [itcl::code $this _click %X %Y]
 
+    itk_component add emenu {
+        menu $itk_component(editor).menu -tearoff 0
+    } {
+        usual
+        ignore -tearoff
+        ignore -background -foreground
+    }
+    $itk_component(emenu) add command -label "Cut" -accelerator "^X" \
+        -command [list event generate $itk_component(editor) <<Cut>>]
+    $itk_component(emenu) add command -label "Copy" -accelerator "^C" \
+        -command [list event generate $itk_component(editor) <<Copy>>]
+    $itk_component(emenu) add command -label "Paste" -accelerator "^V" \
+        -command [list event generate $itk_component(editor) <<Paste>>]
+    bind $itk_component(editor) <<PopupMenu>> {
+        tk_popup %W.menu %X %Y
+    }
+
     eval itk_initialize $args
 }
 
@@ -103,6 +120,9 @@ itcl::body Rappture::Editor::constructor {args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Editor::activate {} {
     set e $itk_component(editor)
+    if {[winfo ismapped $e]} {
+        return  ;# already mapped -- nothing to do
+    }
 
     set info ""
     if {[string length $itk_option(-activatecommand)] > 0} {
@@ -233,6 +253,10 @@ itcl::body Rappture::Editor::value {newval} {
 itcl::body Rappture::Editor::_click {x y} {
     if {[winfo containing $x $y] != $itk_component(editor)} {
         deactivate
+    } else {
+        # make sure the editor has keyboard focus!
+        # it loses focus sometimes during cut/copy/paste operations
+        focus -force $itk_component(editor)
     }
 }
 

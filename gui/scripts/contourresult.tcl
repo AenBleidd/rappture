@@ -85,21 +85,26 @@ itcl::class Rappture::ContourResult {
     public method scale {args}
 
     protected method _rebuild {}
+    protected method _clear {}
     protected method _zoom {option}
     protected method _move {option x y}
     protected method _slice {option args}
+    protected method _3dView {theta phi}
     protected method _fixLimits {}
     protected method _color2rgb {color}
 
     private variable _dlist ""     ;# list of data objects
+    private variable _dims ""      ;# dimensionality of data objects
     private variable _obj2color    ;# maps dataobj => plotting color
     private variable _obj2width    ;# maps dataobj => line width
     private variable _obj2raise    ;# maps dataobj => raise flag 0/1
     private variable _obj2vtk      ;# maps dataobj => vtk objects
     private variable _actors       ;# list of actors for each renderer
+    private variable _lights       ;# list of lights for each renderer
     private variable _click        ;# info used for _move operations
     private variable _slicer       ;# vtk transform used for 3D slice plane
     private variable _limits       ;# autoscale min/max for all axes
+    private variable _view         ;# view params for 3D view
 
     private common _counter 0      ;# used for auto-generated names
 }
@@ -116,8 +121,10 @@ itcl::body Rappture::ContourResult::constructor {args} {
     pack propagate $itk_component(hull) no
 
     set _slicer(axis) ""
-    set _slicer(xform) ""
+    set _slicer(plane) ""
     set _slicer(readout) ""
+    set _view(theta) 0
+    set _view(phi) 0
 
     itk_component add controls {
         frame $itk_interior.cntls
@@ -262,6 +269,9 @@ itcl::body Rappture::ContourResult::constructor {args} {
 # DESTRUCTOR
 # ----------------------------------------------------------------------
 itcl::body Rappture::ContourResult::destructor {} {
+    _clear
+    after cancel [itcl::code $this _rebuild]
+
     rename $this-renWin ""
     rename $this-ren ""
     rename $this-iren ""
@@ -269,8 +279,6 @@ itcl::body Rappture::ContourResult::destructor {} {
     rename $this-renWin2 ""
     rename $this-ren2 ""
     rename $this-iren2 ""
-
-    after cancel [itcl::code $this _rebuild]
 }
 
 # ----------------------------------------------------------------------
@@ -401,41 +409,24 @@ itcl::body Rappture::ContourResult::scale {args} {
 # widget to display new data.
 # ----------------------------------------------------------------------
 itcl::body Rappture::ContourResult::_rebuild {} {
-    # clear out any old constructs
-    foreach ren [array names _actors] {
-        foreach actor $_actors($ren) {
-            $ren RemoveActor $actor
-        }
-        set _actors($ren) ""
-    }
-    foreach dataobj [array names _obj2vtk] {
-        foreach cmd $_obj2vtk($dataobj) {
-            rename $cmd ""
-        }
-        set _obj2vtk($dataobj) ""
-    }
-    set _slicer(axis) ""
-    set _slicer(xform) ""
-    set _slicer(readout) ""
+    _clear
 
     # determine the dimensionality from the topmost (raised) object
     set dlist [get]
     set dataobj [lindex $dlist end]
     if {$dataobj != ""} {
-        set dims [$dataobj components -dimensions]
+        set _dims [$dataobj components -dimensions]
     } else {
-        set dims "0D"
+        set _dims "0D"
     }
 
     # scan through all data objects and build the contours
     set _counter 0
     foreach dataobj [get] {
         foreach comp [$dataobj components] {
-            set pd $this-polydata$_counter
-            vtkPolyData $pd
-            $pd SetPoints [$dataobj mesh $comp]
-            [$pd GetPointData] SetScalars [$dataobj values $comp]
-
+            #
+            # LOOKUP TABLE FOR COLOR CONTOURS
+            #
             # use vmin/vmax if possible, otherwise get from data
             if {$_limits(vmin) == "" || $_limits(vmax) == ""} {
                 foreach {v0 v1} [$pd GetScalarRange] break
@@ -444,58 +435,146 @@ itcl::body Rappture::ContourResult::_rebuild {} {
                 set v1 $_limits(vmax)
             }
 
-            set tr $this-triangles$_counter
-            vtkDelaunay$dims $tr
-            $tr SetInput $pd
-            $tr SetTolerance 0.0000000000001
-
             set lu $this-lookup$_counter
             vtkLookupTable $lu
             $lu SetTableRange $v0 $v1
             $lu SetHueRange 0.66667 0.0
             $lu Build
 
-            lappend _obj2vtk($dataobj) $pd $tr $lu
+            lappend _obj2vtk($dataobj) $lu
 
             #
             # Add color contours.
             #
             if {$_counter == 0} {
-                if {$dims == "3D"} {
+                if {$_dims == "3D"} {
                     pack $itk_component(slicer) -side bottom -padx 4 -pady 4
                     pack $itk_component(zslice) -side bottom -padx 4 -pady 4
                     pack $itk_component(yslice) -side bottom -padx 4 -pady 4
                     pack $itk_component(xslice) -side bottom -padx 4 -pady 4
 
                     #
+                    # 3D LIGHTS (on both sides of all three axes)
+                    #
+                    set xm [expr {0.5*($_limits(xmax)+$_limits(xmin))}]
+                    set ym [expr {0.5*($_limits(ymax)+$_limits(ymin))}]
+                    set zm [expr {0.5*($_limits(zmax)+$_limits(zmin))}]
+                    set xr [expr {$_limits(xmax)-$_limits(xmin)}]
+                    set yr [expr {$_limits(ymax)-$_limits(ymin)}]
+                    set zr [expr {$_limits(zmax)-$_limits(zmin)}]
+
+                    set lt $this-lightxm$_counter
+                    vtkLight $lt
+                    $lt SetColor 1 1 1
+                    $lt SetAttenuationValues 0 0 0
+                    $lt SetFocalPoint $xm $ym $zm
+                    $lt SetPosition [expr {$xm-$xr}] 0 0
+                    $this-ren AddLight $lt
+                    lappend _lights($this-ren) $lt
+
+                    set lt $this-lightxp$_counter
+                    vtkLight $lt
+                    $lt SetColor 1 1 1
+                    $lt SetAttenuationValues 0 0 0
+                    $lt SetFocalPoint $xm $ym $zm
+                    $lt SetPosition [expr {$xm+$xr}] 0 0
+                    $this-ren AddLight $lt
+                    lappend _lights($this-ren) $lt
+
+                    set lt $this-lightym$_counter
+                    vtkLight $lt
+                    $lt SetColor 1 1 1
+                    $lt SetAttenuationValues 0 0 0
+                    $lt SetFocalPoint $xm $ym $zm
+                    $lt SetPosition 0 [expr {$ym-$yr}] 0
+                    $this-ren AddLight $lt
+                    lappend _lights($this-ren) $lt
+
+                    set lt $this-lightyp$_counter
+                    vtkLight $lt
+                    $lt SetColor 1 1 1
+                    $lt SetAttenuationValues 0 0 0
+                    $lt SetFocalPoint $xm $ym $zm
+                    $lt SetPosition 0 [expr {$ym+$yr}] 0
+                    $this-ren AddLight $lt
+                    lappend _lights($this-ren) $lt
+
+                    set lt $this-lightzm$_counter
+                    vtkLight $lt
+                    $lt SetColor 1 1 1
+                    $lt SetAttenuationValues 0 0 0
+                    $lt SetFocalPoint $xm $ym $zm
+                    $lt SetPosition 0 0 [expr {$zm-$zr}]
+                    $this-ren AddLight $lt
+                    lappend _lights($this-ren) $lt
+
+                    set lt $this-lightzp$_counter
+                    vtkLight $lt
+                    $lt SetColor 1 1 1
+                    $lt SetAttenuationValues 0 0 0
+                    $lt SetFocalPoint $xm $ym $zm
+                    $lt SetPosition 0 0 [expr {$zm+$zr}]
+                    $this-ren AddLight $lt
+                    lappend _lights($this-ren) $lt
+
+                    #
+                    # 3D DATA SET
+                    #
+                    set mesh [$dataobj mesh $comp]
+                    switch -- [$mesh GetClassName] {
+                      vtkPoints {
+                        # handle cloud of 3D points
+                        set pd $this-polydata$_counter
+                        vtkPolyData $pd
+                        $pd SetPoints $mesh
+                        [$pd GetPointData] SetScalars [$dataobj values $comp]
+
+                        set tr $this-triangles$_counter
+                        vtkDelaunay3D $tr
+                        $tr SetInput $pd
+                        $tr SetTolerance 0.0000000000001
+                        set source [$tr GetOutput]
+
+                        set mp $this-mapper$_counter
+                        vtkPolyDataMapper $mp
+
+                        lappend _obj2vtk($dataobj) $pd $tr $mp
+                      }
+                      vtkUnstructuredGrid {
+                        # handle 3D grid with connectivity
+                        set gr $this-grdata$_counter
+                        vtkUnstructuredGrid $gr
+                        $gr ShallowCopy $mesh
+                        [$gr GetPointData] SetScalars [$dataobj values $comp]
+                        set source $gr
+
+                        lappend _obj2vtk($dataobj) $gr
+                      }
+                      default {
+                        error "don't know how to handle [$mesh GetClassName] data"
+                      }
+                    }
+
+                    #
                     # 3D CUT PLANE
                     #
                     set pl $this-cutplane$_counter
-                    vtkPlaneSource $pl
-                    $pl SetResolution 50 50
-
-                    set xf $this-cpxform$_counter
-                    vtkTransform $xf
-                    set _slicer(xform) $xf
+                    vtkPlane $pl
+                    set _slicer(plane) $pl
                     _slice axis "z"
 
-                    set pdf $this-cpfilter$_counter
-                    vtkTransformPolyDataFilter $pdf
-                    $pdf SetInput [$pl GetOutput]
-                    $pdf SetTransform $xf
+                    set ct $this-cutter$_counter
+                    vtkCutter $ct
+                    $ct SetInput $source
+                    $ct SetCutFunction $pl
 
-                    set pb $this-cpprobe$_counter
-                    vtkProbeFilter $pb
-                    $pb SetInput [$pdf GetOutput]
-                    $pb SetSource [$tr GetOutput]
-
-                    lappend _obj2vtk($dataobj) $pl $xf $pdf $pb
-
-                    set mp $this-mapper$_counter
+                    set mp $this-cutmapper$_counter
                     vtkPolyDataMapper $mp
-                    $mp SetInput [$pb GetOutput]
+                    $mp SetInput [$ct GetOutput]
                     $mp SetScalarRange $v0 $v1
                     $mp SetLookupTable $lu
+
+                    lappend _obj2vtk($dataobj) $pl $ct $mp
 
                     set ac $this-actor$_counter
                     vtkActor $ac
@@ -504,12 +583,11 @@ itcl::body Rappture::ContourResult::_rebuild {} {
                     [$ac GetProperty] SetColor 0 0 0
                     $this-ren AddActor $ac
                     lappend _actors($this-ren) $ac
-
-                    lappend _obj2vtk($dataobj) $mp $ac
+                    lappend _obj2vtk($dataobj) $ac
 
                     set olf $this-3dolfilter$_counter
                     vtkOutlineFilter $olf
-                    $olf SetInput [$tr GetOutput]
+                    $olf SetInput $source
 
                     set olm $this-3dolmapper$_counter
                     vtkPolyDataMapper $olm
@@ -551,9 +629,20 @@ itcl::body Rappture::ContourResult::_rebuild {} {
                     pack forget $itk_component(zslice)
                     pack forget $itk_component(slicer)
 
+                    set pd $this-polydata$_counter
+                    vtkPolyData $pd
+                    $pd SetPoints [$dataobj mesh $comp]
+                    [$pd GetPointData] SetScalars [$dataobj values $comp]
+
+                    set tr $this-triangles$_counter
+                    vtkDelaunay2D $tr
+                    $tr SetInput $pd
+                    $tr SetTolerance 0.0000000000001
+                    set source [$tr GetOutput]
+
                     set mp $this-mapper$_counter
                     vtkPolyDataMapper $mp
-                    $mp SetInput [$tr GetOutput]
+                    $mp SetInput $source
                     $mp SetScalarRange $v0 $v1
                     $mp SetLookupTable $lu
 
@@ -565,7 +654,7 @@ itcl::body Rappture::ContourResult::_rebuild {} {
                     $this-ren AddActor $ac
                     lappend _actors($this-ren) $ac
 
-                    lappend _obj2vtk($dataobj) $mp $ac
+                    lappend _obj2vtk($dataobj) $pd $tr $mp $ac
                 }
             }
 
@@ -575,7 +664,7 @@ itcl::body Rappture::ContourResult::_rebuild {} {
             if {$_counter > 0} {
                 set cf $this-clfilter$_counter
                 vtkContourFilter $cf
-                $cf SetInput [$tr GetOutput]
+                $cf SetInput $source
                 $cf GenerateValues 20 $v0 $v1
 
                 set mp $this-clmapper$_counter
@@ -600,7 +689,7 @@ itcl::body Rappture::ContourResult::_rebuild {} {
             #
             set olf $this-olfilter$_counter
             vtkOutlineFilter $olf
-            $olf SetInput [$tr GetOutput]
+            $olf SetInput $source
 
             set olm $this-olmapper$_counter
             vtkPolyDataMapper $olm
@@ -644,19 +733,46 @@ itcl::body Rappture::ContourResult::_rebuild {} {
     _fixLimits
     _zoom reset
 
-    if {$dims == "3D"} {
-        # allow interactions in 3D
-        catch {blt::busy release $itk_component(area)}
-    } else {
-        # prevent interactions in 2D
-        blt::busy hold $itk_component(area) -cursor left_ptr
-        bind $itk_component(area)_Busy <ButtonPress> \
-            [itcl::code $this _move click %x %y]
-        bind $itk_component(area)_Busy <B1-Motion> \
-            [itcl::code $this _move drag %x %y]
-        bind $itk_component(area)_Busy <ButtonRelease> \
-            [itcl::code $this _move release %x %y]
+    # prevent interactions -- use our own
+    blt::busy hold $itk_component(area) -cursor left_ptr
+    bind $itk_component(area)_Busy <ButtonPress> \
+        [itcl::code $this _move click %x %y]
+    bind $itk_component(area)_Busy <B1-Motion> \
+        [itcl::code $this _move drag %x %y]
+    bind $itk_component(area)_Busy <ButtonRelease> \
+        [itcl::code $this _move release %x %y]
+}
+
+# ----------------------------------------------------------------------
+# USAGE: _clear
+#
+# Used internally to clear the drawing area and tear down all vtk
+# objects in the current scene.
+# ----------------------------------------------------------------------
+itcl::body Rappture::ContourResult::_clear {} {
+    # clear out any old constructs
+    foreach ren [array names _actors] {
+        foreach actor $_actors($ren) {
+            $ren RemoveActor $actor
+        }
+        set _actors($ren) ""
     }
+    foreach ren [array names _lights] {
+        foreach light $_lights($ren) {
+            $ren RemoveLight $light
+            rename $light ""
+        }
+        set _lights($ren) ""
+    }
+    foreach dataobj [array names _obj2vtk] {
+        foreach cmd $_obj2vtk($dataobj) {
+            rename $cmd ""
+        }
+        set _obj2vtk($dataobj) ""
+    }
+    set _slicer(axis) ""
+    set _slicer(plane) ""
+    set _slicer(readout) ""
 }
 
 # ----------------------------------------------------------------------
@@ -670,18 +786,22 @@ itcl::body Rappture::ContourResult::_rebuild {} {
 itcl::body Rappture::ContourResult::_zoom {option} {
     switch -- $option {
         in {
-            set camera [$this-ren GetActiveCamera]
-            set zoom [$camera Zoom 1.25]
+            [$this-ren GetActiveCamera] Zoom 1.25
             $this-renWin Render
         }
         out {
-            set camera [$this-ren GetActiveCamera]
-            set zoom [$camera Zoom 0.8]
+            [$this-ren GetActiveCamera] Zoom 0.8
             $this-renWin Render
         }
         reset {
-            $this-ren ResetCamera
-            [$this-ren GetActiveCamera] Zoom 1.5
+            if {$_dims == "3D"} {
+                [$this-ren GetActiveCamera] SetViewAngle 30
+                $this-ren ResetCamera
+                _3dView 45 45
+            } else {
+                $this-ren ResetCamera
+                [$this-ren GetActiveCamera] Zoom 1.5
+            }
             $this-renWin Render
             $this-renWin2 Render
         }
@@ -702,6 +822,8 @@ itcl::body Rappture::ContourResult::_move {option x y} {
             blt::busy configure $itk_component(area) -cursor fleur
             set _click(x) $x
             set _click(y) $y
+            set _click(theta) $_view(theta)
+            set _click(phi) $_view(phi)
         }
         drag {
             if {[array size _click] == 0} {
@@ -711,12 +833,28 @@ itcl::body Rappture::ContourResult::_move {option x y} {
                 set h [winfo height $itk_component(plot)]
                 set dx [expr {double($x-$_click(x))/$w}]
                 set dy [expr {double($y-$_click(y))/$h}]
-                foreach actor $_actors($this-ren) {
-                    foreach {ax ay az} [$actor GetPosition] break
-                    $actor SetPosition [expr {$ax+$dx}] [expr {$ay-$dy}] 0
-                }
-                $this-renWin Render
 
+                if {$_dims == "2D"} {
+                    #
+                    # Shift the contour plot in 2D
+                    #
+                    foreach actor $_actors($this-ren) {
+                        foreach {ax ay az} [$actor GetPosition] break
+                        $actor SetPosition [expr {$ax+$dx}] [expr {$ay-$dy}] 0
+                    }
+                    $this-renWin Render
+                } elseif {$_dims == "3D"} {
+                    #
+                    # Rotate the camera in 3D
+                    #
+                    set theta [expr {$_view(theta) - $dy*180}]
+                    if {$theta < 2} { set theta 2 }
+                    if {$theta > 178} { set theta 178 }
+                    set phi [expr {$_view(phi) - $dx*360}]
+
+                    _3dView $theta $phi
+                    $this-renWin Render
+                }
                 set _click(x) $x
                 set _click(y) $y
             }
@@ -742,7 +880,7 @@ itcl::body Rappture::ContourResult::_move {option x y} {
 # data set.
 # ----------------------------------------------------------------------
 itcl::body Rappture::ContourResult::_slice {option args} {
-    if {$_slicer(xform) == ""} {
+    if {$_slicer(plane) == ""} {
         # no slicer? then bail out!
         return
     }
@@ -752,6 +890,15 @@ itcl::body Rappture::ContourResult::_slice {option args} {
                 error "wrong # args: should be \"_slice axis xyz\""
             }
             set axis [lindex $args 0]
+
+            switch -- $axis {
+                x { $_slicer(plane) SetNormal 1 0 0 }
+                y { $_slicer(plane) SetNormal 0 1 0 }
+                z { $_slicer(plane) SetNormal 0 0 1 }
+                default {
+                    error "bad axis \"$axis\": should be x, y, z"
+                }
+            }
 
             set _slicer(axis) $axis
             $itk_component(slicer) set 50
@@ -769,56 +916,29 @@ itcl::body Rappture::ContourResult::_slice {option args} {
             }
             set newval [lindex $args 0]
 
-            switch -- $_slicer(axis) {
-                x {
-                    # Rotate 90 around x-axis -- switch y/z scales
-                    # limit z-motion according to y-scale
-                    set min ymin; set max ymax
-                    # switch scales for y/z
-                    set sx [expr {$_limits(xmax)-$_limits(xmin)}]
-                    set sy [expr {$_limits(zmax)-$_limits(zmin)}]
-                    set sz [expr {$_limits(ymax)-$_limits(ymin)}]
-                }
-                y {
-                    # Rotate 90 around x-axis -- switch x/z scales
-                    # limit z-motion according to x-scale
-                    set min xmin; set max xmax
-                    # switch scales for x/z
-                    set sx [expr {$_limits(zmax)-$_limits(zmin)}]
-                    set sy [expr {$_limits(ymax)-$_limits(ymin)}]
-                    set sz [expr {$_limits(xmax)-$_limits(xmin)}]
-                }
-                z {
-                    # No rotation -- treat z-axis normally
-                    set min zmin; set max zmax
-                    set sx [expr {$_limits(xmax)-$_limits(xmin)}]
-                    set sy [expr {$_limits(ymax)-$_limits(ymin)}]
-                    set sz [expr {$_limits(zmax)-$_limits(zmin)}]
-                }
-            }
+            set xm [expr {0.5*($_limits(xmax)+$_limits(xmin))}]
+            set ym [expr {0.5*($_limits(ymax)+$_limits(ymin))}]
+            set zm [expr {0.5*($_limits(zmax)+$_limits(zmin))}]
 
-            set zval [expr {0.01*($newval-50)
-                *($_limits($max)-$_limits($min))
-                  + 0.5*($_limits($max)+$_limits($min))}]
-
-            $_slicer(xform) Identity
-            switch -- $_slicer(axis) {
-                x { $_slicer(xform) RotateX 90 }
-                y { $_slicer(xform) RotateY 90 }
-                z { # all set }
-                default { error "bad axis \"$axis\": should be x, y, z" }
-            }
-            $_slicer(xform) Translate 0 0 $zval
-            $_slicer(xform) Scale $sx $sy $sz
+            set a $_slicer(axis)
+            set newval [expr {0.01*($newval-50)
+                *($_limits(${a}max)-$_limits(${a}min))
+                  + 0.5*($_limits(${a}max)+$_limits(${a}min))}]
 
             # show the current value in the readout
             if {$_slicer(readout) != ""} {
-                set a $_slicer(axis)
-                set newval [expr {0.01*($newval-50)
-                    *($_limits(${a}max)-$_limits(${a}min))
-                      + 0.5*($_limits(${a}max)+$_limits(${a}min))}]
                 $_slicer(readout) SetInput "$a = $newval"
             }
+
+            # keep a little inside the volume, or the slice will disappear!
+            if {$newval == $_limits(${a}min)} {
+                set range [expr {$_limits(${a}max)-$_limits(${a}min)}]
+                set newval [expr {$newval + 1e-6*$range}]
+            }
+
+            # xfer new value to the proper dimension and move the cut plane
+            set ${a}m $newval
+            $_slicer(plane) SetOrigin $xm $ym $zm
 
             $this-renWin Render
         }
@@ -826,6 +946,40 @@ itcl::body Rappture::ContourResult::_slice {option args} {
             error "bad option \"$option\": should be axis or move"
         }
     }
+}
+
+# ----------------------------------------------------------------------
+# USAGE: _3dView <theta> <phi>
+#
+# Used internally to change the position of the camera for 3D data
+# sets.  Sets the camera according to the angles <theta> (angle from
+# the z-axis) and <phi> (angle from the x-axis in the x-y plane).
+# Both angles are in degrees.
+# ----------------------------------------------------------------------
+itcl::body Rappture::ContourResult::_3dView {theta phi} {
+    set deg2rad 0.0174532927778
+    set xn [expr {sin($theta*$deg2rad)*cos($phi*$deg2rad)}]
+    set yn [expr {sin($theta*$deg2rad)*sin($phi*$deg2rad)}]
+    set zn [expr {cos($theta*$deg2rad)}]
+
+    set xm [expr {0.5*($_limits(xmax)+$_limits(xmin))}]
+    set ym [expr {0.5*($_limits(ymax)+$_limits(ymin))}]
+    set zm [expr {0.5*($_limits(zmax)+$_limits(zmin))}]
+
+    set cam [$this-ren GetActiveCamera]
+    set zoom [$cam GetViewAngle]
+    $cam SetViewAngle 30
+
+    $cam SetFocalPoint $xm $ym $zm
+    $cam SetPosition [expr {$xm-$xn}] [expr {$ym-$yn}] [expr {$zm+$zn}]
+    $cam ComputeViewPlaneNormal
+    $cam SetViewUp 0 0 1  ;# z-dir is up
+    $cam OrthogonalizeViewUp
+    $this-ren ResetCamera
+    $cam SetViewAngle $zoom
+
+    set _view(theta) $theta
+    set _view(phi) $phi
 }
 
 # ----------------------------------------------------------------------

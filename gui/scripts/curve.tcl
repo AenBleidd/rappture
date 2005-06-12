@@ -116,7 +116,7 @@ itcl::body Rappture::Curve::limits {which} {
     set max ""
     switch -- $which {
         x { set pos 0 }
-        y { set pos 1 }
+        y - v { set pos 1 }
         default {
             error "bad option \"$which\": should be x or y"
         }
