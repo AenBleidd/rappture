@@ -512,9 +512,23 @@ itcl::body Rappture::DeviceViewer1D::_marker {option {name ""} {path ""}} {
     switch -- $option {
         enter {
             $itk_component(graph) marker configure $name -background #e5e5e5
+            #
+            # BE CAREFUL:  Need an update here to force the graph to
+            #   refresh itself or else a subsequent click on the
+            #   marker will ignore the text that was recently changed,
+            #   and fail to generate a <ButtonPress> event!
+            #
+            update idletasks
         }
         leave {
             $itk_component(graph) marker configure $name -background ""
+            #
+            # BE CAREFUL:  Need an update here to force the graph to
+            #   refresh itself or else a subsequent click on the
+            #   marker will ignore the text that was recently changed,
+            #   and fail to generate a <ButtonPress> event!
+            #
+            update idletasks
         }
         edit {
             set _marker(name) $name
