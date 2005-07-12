@@ -1,7 +1,4 @@
-// #include <stdio.h>
-// #include <assert.h>
-// #include <python2.3/Python.h> // "/usr/include/python2.3/Python.h" //  
-#include "python2.4/Python.h" // "/usr/include/python2.3/Python.h" //  
+#include "python2.4/Python.h"
 
 /*
 #ifdef _cplusplus 

@@ -2,8 +2,8 @@
 // #include "../include/RpDictCFInterface.h"
 // #include <stdio.h>
 
-#include "../include/RpUnits.h"
-#include "../include/RpDict.h"
+#include "RpUnits.h"
+#include "RpDict.h"
 #include "string.h"
 
 #ifdef COMPNAME_ADD1UNDERSCORE

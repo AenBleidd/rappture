@@ -1,4 +1,4 @@
-#include "../include/rappture_interface.h"
+#include "rappture_interface.h"
 
 /**********************************************************************/
 // FUNCTION: PyObject* importRappture()
