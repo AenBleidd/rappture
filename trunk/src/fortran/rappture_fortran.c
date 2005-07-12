@@ -1,5 +1,5 @@
-#include "../include/rappture_interface.h"
-#include "../include/RpDict.h"
+#include "rappture_interface.h"
+#include "RpDict.h"
 #include <string.h>
 
 /*

@@ -4,10 +4,8 @@
 #include <stdlib.h>
 #include <errno.h>
 
-// #include "../include/RpDebug.h"
-#include "../include/RpDict.h"
-#include "../include/RpUnitsStd.h"
-// #include "../include/expr_eval_simple.h"
+#include "RpDict.h"
+#include "RpUnitsStd.h"
 
 #ifndef _RpUNITS_H 
 #define _RpUNITS_H

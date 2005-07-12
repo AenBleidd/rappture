@@ -311,6 +311,6 @@ template <typename KeyType, typename ValType> class RpDict
 /*--------------------------------------------------------------------------*/
 /*--------------------------------------------------------------------------*/
 
-#include "../src/RpDict.cc"
+#include "../../src/core/RpDict.cc"
 
 #endif

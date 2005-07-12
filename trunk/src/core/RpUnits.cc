@@ -1,5 +1,5 @@
  #ifndef _RpUNITS_H
-     #include "../include/RpUnits.h"
+     #include "RpUnits.h"
  #endif
 
 // dict pointer

@@ -1,5 +1,5 @@
-#include "../include/RpUnits.h"
-#include "../include/RpUnitsCInterface.h"
+#include "RpUnits.h"
+#include "RpUnitsCInterface.h"
 
 #ifdef __cplusplus
 extern "C" {
