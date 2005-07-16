@@ -227,6 +227,9 @@ itcl::body Rappture::Analyzer::constructor {tool args} {
 
     # tool can run on "manual" (default) or "auto"
     set cntl [$tool xml get tool.control]
+    if {"" == $cntl} {
+        set cntl [$tool xml get tool.control.type]
+    }
     if {"" != $cntl} {
         set _control $cntl
     }
@@ -368,6 +371,9 @@ itcl::body Rappture::Analyzer::load {file} {
             }
             curve* - field* {
                 _autoLabel $xmlobj output.$item "Plot" counters
+            }
+            structure* {
+                _autoLabel $xmlobj output.$item "Structure" counters
             }
             table* {
                 _autoLabel $xmlobj output.$item "Energy Levels" counters

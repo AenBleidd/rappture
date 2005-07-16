@@ -81,13 +81,13 @@ itcl::body Rappture::Pager::constructor {args} {
     }
 
     itk_component add next {
-        button $itk_component(controls).next -width 6 -text "Next >" \
+        button $itk_component(controls).next -text "Next >" \
             -command [itcl::code $this current next>]
     }
     pack $itk_component(next) -side right
 
     itk_component add back {
-        button $itk_component(controls).back -width 6 -text "< Back" \
+        button $itk_component(controls).back -text "< Back" \
             -command [itcl::code $this current <back]
     }
     pack $itk_component(back) -side left
@@ -168,6 +168,9 @@ itcl::body Rappture::Pager::insert {pos args} {
     #bind $win <Configure> \
     #    [itcl::code $_dispatcher event -idle !fixsize]
 
+    # the number of pages affects the arrangment -- force an update
+    configure -arrangement $itk_option(-arrangement)
+
     $_dispatcher event -idle !layout
 
     return $params(-name)
@@ -203,6 +206,9 @@ itcl::body Rappture::Pager::delete {first {last ""}} {
         }
     }
     set _pages [lreplace $_pages $first $last]
+
+    # the number of pages affects the arrangment -- force an update
+    configure -arrangement $itk_option(-arrangement)
 
     $_dispatcher event -idle !layout
 }

@@ -10,8 +10,8 @@
 # ======================================================================
 package require Itk
 
-option add *TemperatureGauge.width 30 widgetDefault
-option add *TemperatureGauge.height 0 widgetDefault
+option add *TemperatureGauge.sampleWidth 30 widgetDefault
+option add *TemperatureGauge.sampleHeight 20 widgetDefault
 option add *TemperatureGauge.textBackground #cccccc widgetDefault
 option add *TemperatureGauge.valuePosition "right" widgetDefault
 option add *TemperatureGauge.editable yes widgetDefault
@@ -114,8 +114,8 @@ itcl::body Rappture::TemperatureGauge::_redraw {} {
 # option or the size of the text.
 # ----------------------------------------------------------------------
 itcl::body Rappture::TemperatureGauge::_resize {} {
-    if {$itk_option(-width) > 0} {
-        set w $itk_option(-width)
+    if {$itk_option(-samplewidth) > 0} {
+        set w $itk_option(-samplewidth)
     } else {
         set w [winfo reqheight $itk_component(value)]
     }
@@ -123,8 +123,8 @@ itcl::body Rappture::TemperatureGauge::_resize {} {
         set w [expr {$w+[image width $itk_option(-image)]+4}]
     }
 
-    if {$itk_option(-height) > 0} {
-        set h $itk_option(-height)
+    if {$itk_option(-sampleheight) > 0} {
+        set h $itk_option(-sampleheight)
     } else {
         if {$itk_option(-image) != ""} {
             set h [expr {[image height $itk_option(-image)]+4}]

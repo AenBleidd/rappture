@@ -14,14 +14,14 @@ package require Itk
 itcl::class Rappture::GroupEntry {
     inherit itk::Widget
 
-    constructor {xmlobj path args} { # defined below }
+    constructor {owner path args} { # defined below }
 
     public method value {args}
 
     public method label {}
     public method tooltip {}
 
-    private variable _xmlobj ""   ;# XML containing description
+    private variable _owner ""    ;# thing managing this control
     private variable _path ""     ;# path in XML to this number
 }
 
@@ -35,11 +35,11 @@ itk::usual GroupEntry {
 # ----------------------------------------------------------------------
 # CONSTRUCTOR
 # ----------------------------------------------------------------------
-itcl::body Rappture::GroupEntry::constructor {xmlobj path args} {
-    if {![Rappture::library isvalid $xmlobj]} {
-        error "bad value \"$xmlobj\": should be Rappture::library"
+itcl::body Rappture::GroupEntry::constructor {owner path args} {
+    if {[catch {$owner isa Rappture::ControlOwner} valid] != 0 || !$valid} {
+        error "bad object \"$owner\": should be Rappture::ControlOwner"
     }
-    set _xmlobj $xmlobj
+    set _owner $owner
     set _path $path
 
     eval itk_initialize $args
@@ -66,7 +66,7 @@ itcl::body Rappture::GroupEntry::value {args} {
 # Reaches into the XML and pulls out the appropriate label string.
 # ----------------------------------------------------------------------
 itcl::body Rappture::GroupEntry::label {} {
-    return [$_xmlobj get $_path.about.label]
+    return [$_owner xml get $_path.about.label]
 }
 
 # ----------------------------------------------------------------------
@@ -78,5 +78,5 @@ itcl::body Rappture::GroupEntry::label {} {
 # Rappture::Tooltip facility.
 # ----------------------------------------------------------------------
 itcl::body Rappture::GroupEntry::tooltip {} {
-    return [$_xmlobj get $_path.about.description]
+    return [$_owner xml get $_path.about.description]
 }

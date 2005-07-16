@@ -21,6 +21,13 @@ option add *TextEntry.hintForeground gray50 widgetDefault
 option add *TextEntry.hintFont \
     -*-helvetica-medium-r-normal-*-*-100-* widgetDefault
 
+#
+# Tk text widget doesn't honor Ctrl-V by default.  Get rid
+# of the default binding so that Ctrl-V works for <<Paste>>
+# as expected.
+#
+bind Text <Control-KeyPress-v> {}
+
 itcl::class Rappture::TextEntry {
     inherit itk::Widget
 
@@ -28,7 +35,7 @@ itcl::class Rappture::TextEntry {
     itk_option define -width width Width 0
     itk_option define -height height Height 0
 
-    constructor {xmlobj path args} { # defined below }
+    constructor {owner path args} { # defined below }
 
     public method value {args}
 
@@ -39,7 +46,7 @@ itcl::class Rappture::TextEntry {
     protected method _layout {}
 
     private variable _dispatcher "" ;# dispatcher for !events
-    private variable _xmlobj ""   ;# XML containing description
+    private variable _owner ""    ;# thing managing this control
     private variable _path ""     ;# path in XML to this number
 
     private variable _mode ""       ;# entry or text mode
@@ -52,20 +59,20 @@ itk::usual TextEntry {
 # ----------------------------------------------------------------------
 # CONSTRUCTOR
 # ----------------------------------------------------------------------
-itcl::body Rappture::TextEntry::constructor {xmlobj path args} {
-    if {![Rappture::library isvalid $xmlobj]} {
-        error "bad value \"$xmlobj\": should be Rappture::library"
+itcl::body Rappture::TextEntry::constructor {owner path args} {
+    if {[catch {$owner isa Rappture::ControlOwner} valid] != 0 || !$valid} {
+        error "bad object \"$owner\": should be Rappture::ControlOwner"
     }
-    set _xmlobj $xmlobj
+    set _owner $owner
     set _path $path
 
     Rappture::dispatcher _dispatcher
     $_dispatcher register !layout
     $_dispatcher dispatch $this !layout "[itcl::code $this _layout]; list"
 
-    set _size [$xmlobj get $path.size]
+    set _size [$_owner xml get $path.size]
 
-    set hints [$xmlobj get $path.about.hints]
+    set hints [$_owner xml get $path.about.hints]
     if {[string length $hints] > 0} {
         itk_component add hints {
             label $itk_interior.hints -anchor w -text $hints
@@ -79,7 +86,7 @@ itcl::body Rappture::TextEntry::constructor {xmlobj path args} {
 
     eval itk_initialize $args
 
-    set str [$xmlobj get $path.default]
+    set str [$_owner xml get $path.default]
     if {"" != $str} { value $str }
 }
 
@@ -159,7 +166,7 @@ itcl::body Rappture::TextEntry::value {args} {
 # Reaches into the XML and pulls out the appropriate label string.
 # ----------------------------------------------------------------------
 itcl::body Rappture::TextEntry::label {} {
-    set label [$_xmlobj get $_path.about.label]
+    set label [$_owner xml get $_path.about.label]
     if {"" == $label} {
         set label "String"
     }
@@ -175,7 +182,7 @@ itcl::body Rappture::TextEntry::label {} {
 # Rappture::Tooltip facility.
 # ----------------------------------------------------------------------
 itcl::body Rappture::TextEntry::tooltip {} {
-    set str [$_xmlobj get $_path.about.description]
+    set str [$_owner xml get $_path.about.description]
     return [string trim $str]
 }
 

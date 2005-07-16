@@ -48,6 +48,14 @@
     <color>yellow</color>
     <scale>1.0</scale>
   </atom>
+  <atom id="Au">
+    <color>#cccc00</color>
+    <scale>1.5</scale>
+  </atom>
+  <atom id="AU">
+    <color>#cccc00</color>
+    <scale>1.5</scale>
+  </atom>
 </elements>
 <materials>
   <material id="GaAs">

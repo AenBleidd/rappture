@@ -14,8 +14,8 @@
 package require Itk
 package require BLT
 
-option add *Gauge.width 30 widgetDefault
-option add *Gauge.height 20 widgetDefault
+option add *Gauge.sampleWidth 30 widgetDefault
+option add *Gauge.sampleHeight 20 widgetDefault
 option add *Gauge.valuePosition "right" widgetDefault
 option add *Gauge.textBackground #cccccc widgetDefault
 option add *Gauge.editable yes widgetDefault
@@ -25,27 +25,43 @@ itcl::class Rappture::Gauge {
 
     itk_option define -editable editable Editable ""
     itk_option define -spectrum spectrum Spectrum ""
+    itk_option define -type type Type "real"
     itk_option define -units units Units ""
     itk_option define -minvalue minValue MinValue ""
     itk_option define -maxvalue maxValue MaxValue ""
     itk_option define -presets presets Presets ""
     itk_option define -valueposition valuePosition ValuePosition ""
     itk_option define -image image Image ""
-    itk_option define -width width Width 0
-    itk_option define -height height Height 0
+    itk_option define -samplewidth sampleWidth SampleWidth 0
+    itk_option define -sampleheight sampleHeight SampleHeight 0
 
     constructor {args} { # defined below }
 
     public method value {args}
     public method edit {option}
+    public method bump {delta}
 
     protected method _redraw {}
     protected method _resize {}
     protected method _hilite {comp state}
     protected method _editor {option args}
     protected method _presets {option}
+    protected method _layout {}
 
     private variable _value 0  ;# value for this widget
+
+    blt::bitmap define GaugeArrow-up {
+        #define up_width 8
+        #define up_height 4
+        static unsigned char up_bits[] = {
+           0x10, 0x38, 0x7c, 0xfe};
+    }
+    blt::bitmap define GaugeArrow-down {
+        #define arrow_width 8
+        #define arrow_height 4
+        static unsigned char arrow_bits[] = {
+           0xfe, 0x7c, 0x38, 0x10};
+    }
 
     blt::bitmap define GaugeArrow {
         #define arrow_width 9
@@ -116,6 +132,32 @@ itcl::body Rappture::Gauge::constructor {args} {
     }
     bind $itk_component(value) <ButtonPress> \
         [itcl::code $this _editor popup]
+
+
+    itk_component add spinner {
+        frame $itk_component(vframe).spinner
+    }
+
+    itk_component add spinup {
+        button $itk_component(spinner).up -bitmap GaugeArrow-up \
+            -borderwidth 1 -relief raised -highlightthickness 0 \
+            -command [itcl::code $this bump 1]
+    } {
+        usual
+        ignore -borderwidth -highlightthickness
+    }
+    pack $itk_component(spinup) -side top -expand yes -fill both
+
+    itk_component add spindn {
+        button $itk_component(spinner).down -bitmap GaugeArrow-down \
+            -borderwidth 1 -relief raised -highlightthickness 0 \
+            -command [itcl::code $this bump -1]
+    } {
+        usual
+        ignore -borderwidth -highlightthickness
+    }
+    pack $itk_component(spindn) -side bottom -expand yes -fill both
+
 
     itk_component add presets {
         button $itk_component(vframe).psbtn -bitmap GaugeArrow \
@@ -198,8 +240,17 @@ itcl::body Rappture::Gauge::value {args} {
             }
         }
 
-        if {![string is double -strict $nv]} {
-            error "Should be a real number"
+        switch -- $itk_option(-type) {
+            integer {
+                if {![string is integer -strict $nv]} {
+                    error "Should be an integer value"
+                }
+            }
+            real {
+                if {![string is double -strict $nv]} {
+                    error "Should be a real number"
+                }
+            }
         }
 
         if {$onlycheck} {
@@ -248,6 +299,21 @@ itcl::body Rappture::Gauge::edit {option} {
 }
 
 # ----------------------------------------------------------------------
+# USAGE: bump <delta>
+#
+# Changes the current value up/down by the <delta> value.  Used
+# internally by the up/down spinner buttons when the value is
+# -type integer.
+# ----------------------------------------------------------------------
+itcl::body Rappture::Gauge::bump {delta} {
+    set val $_value
+    if {$val == ""} {
+        set val 0
+    }
+    value [expr {$val+$delta}]
+}
+
+# ----------------------------------------------------------------------
 # USAGE: _redraw
 #
 # Used internally to redraw the gauge on the internal canvas based
@@ -286,27 +352,34 @@ itcl::body Rappture::Gauge::_redraw {} {
 # option or the size of the text.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Gauge::_resize {} {
-    if {$itk_option(-width) > 0} {
-        set w $itk_option(-width)
-    } else {
-        if {$itk_option(-image) != ""} {
-            set w [expr {[image width $itk_option(-image)]+4}]
+    set w 0
+    set h 0
+
+    if {"" != $itk_option(-image) || "" != $itk_option(-spectrum)} {
+        if {$itk_option(-samplewidth) > 0} {
+            set w $itk_option(-samplewidth)
         } else {
-            set w [winfo reqheight $itk_component(value)]
+            if {$itk_option(-image) != ""} {
+                set w [expr {[image width $itk_option(-image)]+4}]
+            } else {
+                set w [winfo reqheight $itk_component(value)]
+            }
+        }
+
+        if {$itk_option(-sampleheight) > 0} {
+            set h $itk_option(-sampleheight)
+        } else {
+            if {$itk_option(-image) != ""} {
+                set h [expr {[image height $itk_option(-image)]+4}]
+            } else {
+                set h [winfo reqheight $itk_component(value)]
+            }
         }
     }
 
-    if {$itk_option(-height) > 0} {
-        set h $itk_option(-height)
-    } else {
-        if {$itk_option(-image) != ""} {
-            set h [expr {[image height $itk_option(-image)]+4}]
-        } else {
-            set h [winfo reqheight $itk_component(value)]
-        }
+    if {$w > 0 && $h > 0} {
+        $itk_component(icon) configure -width $w -height $h
     }
-
-    $itk_component(icon) configure -width $w -height $h
 }
 
 # ----------------------------------------------------------------------
@@ -419,6 +492,35 @@ itcl::body Rappture::Gauge::_presets {option} {
 }
 
 # ----------------------------------------------------------------------
+# USAGE: _layout
+#
+# Used internally to fix the layout of widgets whenever there is a
+# change in the options that affect layout.  Puts the value in the
+# proper position according to the -valueposition option.  Also,
+# adds or removes the icon if it needs to be shown.
+# ----------------------------------------------------------------------
+itcl::body Rappture::Gauge::_layout {} {
+    foreach w [pack slaves $itk_component(hull)] {
+        pack forget $w
+    }
+
+    array set side2anchor {
+        left   e
+        right  w
+        top    s
+        bottom n
+    }
+    set pos $itk_option(-valueposition)
+    pack $itk_component(vframe) -side $pos \
+        -expand yes -fill both -ipadx 2
+    $itk_component(value) configure -anchor $side2anchor($pos)
+
+    if {"" != $itk_option(-image) || "" != $itk_option(-spectrum)} {
+        pack $itk_component(icon) -side $pos
+    }
+}
+
+# ----------------------------------------------------------------------
 # CONFIGURATION OPTION: -editable
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::Gauge::editable {
@@ -439,6 +541,7 @@ itcl::configbody Rappture::Gauge::spectrum {
                || !$valid)} {
         error "bad option \"$itk_option(-spectrum)\": should be Rappture::Spectrum object"
     }
+    _layout
     _redraw
 }
 
@@ -451,6 +554,7 @@ itcl::configbody Rappture::Gauge::image {
         error "bad value \"$itk_option(-image)\": should be Tk image"
     }
     _resize
+    _layout
     $itk_component(icon) itemconfigure bimage -image $itk_option(-image)
 }
 
@@ -468,19 +572,12 @@ itcl::configbody Rappture::Gauge::units {
 # CONFIGURATION OPTION: -valueposition
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::Gauge::valueposition {
-    array set side2anchor {
-        left   e
-        right  w
-        top    s
-        bottom n
-    }
     set pos $itk_option(-valueposition)
-    if {![info exists side2anchor($pos)]} {
-        error "bad value \"$pos\": should be [join [lsort [array names side2anchor]] {, }]"
+    set opts {left right top bottom}
+    if {[lsearch -exact $opts $pos] < 0} {
+        error "bad value \"$pos\": should be [join $opts {, }]"
     }
-    pack $itk_component(vframe) -before $itk_component(icon) \
-        -side $pos -expand yes -fill both -ipadx 2
-    $itk_component(value) configure -anchor $side2anchor($pos)
+    _layout
 }
 
 # ----------------------------------------------------------------------
@@ -495,10 +592,32 @@ itcl::configbody Rappture::Gauge::presets {
         } else {
             set s "right"
         }
-        pack $itk_component(presets) -before $itk_component(value) \
-            -side $s -fill y
+        set first [lindex [pack slaves $itk_component(vframe)] 0]
+        pack $itk_component(presets) -before $first -side $s -fill y
 
         $itk_component(presetlist) delete 0 end
         $itk_component(presetlist) insert end $itk_option(-presets)
+    }
+}
+
+# ----------------------------------------------------------------------
+# CONFIGURATION OPTION: -type
+# ----------------------------------------------------------------------
+itcl::configbody Rappture::Gauge::type {
+    switch -- $itk_option(-type) {
+        integer {
+            set first [lindex [pack slaves $itk_component(vframe)] 0]
+            if {$first == $itk_component(presets)} {
+                pack $itk_component(spinner) -after $first -side left -fill y
+            } else {
+                pack $itk_component(spinner) -before $first -side right -fill y
+            }
+        }
+        real {
+            pack forget $itk_component(spinner)
+        }
+        default {
+            error "bad number type \"$itk_option(-type)\": should be integer or real"
+        }
     }
 }

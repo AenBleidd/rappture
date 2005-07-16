@@ -164,7 +164,7 @@ class library:
         if value:
             # if there's a value, then add it to the node
             if isinstance(value, library):
-                node.appendChild(value.node)
+                node.appendChild(value.node.cloneNode(1))
             elif isinstance(value, minidom.Node):
                 node.appendChild(value)
             elif value and value != '':

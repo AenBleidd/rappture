@@ -13,7 +13,7 @@ package require Itk
 itcl::class Rappture::NumberEntry {
     inherit itk::Widget
 
-    constructor {xmlobj path args} { # defined below }
+    constructor {owner path args} { # defined below }
 
     public method value {args}
 
@@ -22,7 +22,7 @@ itcl::class Rappture::NumberEntry {
 
     protected method _newValue {}
 
-    private variable _xmlobj ""   ;# XML containing description
+    private variable _owner ""    ;# thing managing this control
     private variable _path ""     ;# path in XML to this number
 }
 
@@ -36,25 +36,25 @@ itk::usual NumberEntry {
 # ----------------------------------------------------------------------
 # CONSTRUCTOR
 # ----------------------------------------------------------------------
-itcl::body Rappture::NumberEntry::constructor {xmlobj path args} {
-    if {![Rappture::library isvalid $xmlobj]} {
-        error "bad value \"$xmlobj\": should be Rappture::library"
+itcl::body Rappture::NumberEntry::constructor {owner path args} {
+    if {[catch {$owner isa Rappture::ControlOwner} valid] != 0 || !$valid} {
+        error "bad object \"$owner\": should be Rappture::ControlOwner"
     }
-    set _xmlobj $xmlobj
+    set _owner $owner
     set _path $path
 
     #
     # Figure out what sort of control to create
     #
     set presets ""
-    foreach pre [$xmlobj children -type preset $path] {
+    foreach pre [$_owner xml children -type preset $path] {
         lappend presets \
-            [$xmlobj get $path.$pre.value] \
-            [$xmlobj get $path.$pre.label]
+            [$_owner xml get $path.$pre.value] \
+            [$_owner xml get $path.$pre.label]
     }
 
     set class Rappture::Gauge
-    set units [$xmlobj get $path.units]
+    set units [$_owner xml get $path.units]
     if {$units != ""} {
         set desc [Rappture::Units::description $units]
         if {[string match temperature* $desc]} {
@@ -72,14 +72,14 @@ itcl::body Rappture::NumberEntry::constructor {xmlobj path args} {
     pack $itk_component(gauge) -expand yes -fill both
     bind $itk_component(gauge) <<Value>> [itcl::code $this _newValue]
 
-    set min [$xmlobj get $path.min]
+    set min [$_owner xml get $path.min]
     if {"" != $min} { $itk_component(gauge) configure -minvalue $min }
 
-    set max [$xmlobj get $path.max]
+    set max [$_owner xml get $path.max]
     if {"" != $max} { $itk_component(gauge) configure -maxvalue $max }
 
     if {$class == "Rappture::Gauge" && "" != $min && "" != $max} {
-        set color [$xmlobj get $path.color]
+        set color [$_owner xml get $path.color]
         if {$color == ""} {
             set color blue
         }
@@ -93,7 +93,7 @@ itcl::body Rappture::NumberEntry::constructor {xmlobj path args} {
     }
 
     # if the control has an icon, plug it in
-    set str [$xmlobj get $path.about.icon]
+    set str [$_owner xml get $path.about.icon]
     if {$str != ""} {
         $itk_component(gauge) configure -image [image create photo -data $str]
     }
@@ -103,7 +103,7 @@ itcl::body Rappture::NumberEntry::constructor {xmlobj path args} {
     #
     # Assign the default value to this widget, if there is one.
     #
-    set str [$xmlobj get $path.default]
+    set str [$_owner xml get $path.default]
     if {"" != $str != ""} { $itk_component(gauge) value $str }
 }
 
@@ -150,7 +150,7 @@ itcl::body Rappture::NumberEntry::value {args} {
 # Reaches into the XML and pulls out the appropriate label string.
 # ----------------------------------------------------------------------
 itcl::body Rappture::NumberEntry::label {} {
-    set label [$_xmlobj get $_path.about.label]
+    set label [$_owner xml get $_path.about.label]
     if {"" == $label} {
         set label "Number"
     }
@@ -166,11 +166,11 @@ itcl::body Rappture::NumberEntry::label {} {
 # Rappture::Tooltip facility.
 # ----------------------------------------------------------------------
 itcl::body Rappture::NumberEntry::tooltip {} {
-    set str [$_xmlobj get $_path.about.description]
+    set str [$_owner xml get $_path.about.description]
 
-    set units [$_xmlobj get $_path.units]
-    set min [$_xmlobj get $_path.min]
-    set max [$_xmlobj get $_path.max]
+    set units [$_owner xml get $_path.units]
+    set min [$_owner xml get $_path.min]
+    set max [$_owner xml get $_path.max]
 
     if {$units != "" || $min != "" || $max != ""} {
         append str "\n\nEnter a number"
