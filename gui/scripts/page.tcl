@@ -16,11 +16,12 @@ package require Itk
 itcl::class Rappture::Page {
     inherit itk::Widget
 
-    constructor {tool path args} { # defined below }
+    constructor {owner path args} { # defined below }
 
     protected method _buildGroup {frame xmlobj path}
+    protected method _link {xmlobj path widget path2}
 
-    private variable _tool ""        ;# tool controlling this page
+    private variable _owner ""       ;# thing managing this page
 }
                                                                                 
 itk::usual Page {
@@ -29,12 +30,12 @@ itk::usual Page {
 # ----------------------------------------------------------------------
 # CONSTRUCTOR
 # ----------------------------------------------------------------------
-itcl::body Rappture::Page::constructor {tool path args} {
-    if {[catch {$tool isa Rappture::Tool} valid] || !$valid} {
-        error "object \"$tool\" is not a Rappture Tool"
+itcl::body Rappture::Page::constructor {owner path args} {
+    if {[catch {$owner isa Rappture::ControlOwner} valid] || !$valid} {
+        error "object \"$owner\" is not a Rappture::ControlOwner"
     }
-    set _tool $tool
-    set xmlobj [$tool xml object]
+    set _owner $owner
+    set xmlobj [$owner xml object]
 
     set type [$xmlobj element -as type $path]
     if {$type != "input" && $type != "phase"} {
@@ -55,15 +56,31 @@ itcl::body Rappture::Page::constructor {tool path args} {
 # The controls are added to the given <frame>.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Page::_buildGroup {frame xmlobj path} {
+    frame $frame.results
+    pack $frame.results -side right -fill y
+
     set deveditor ""
 
     #
-    # Scan through all input elements in this group and look
-    # for a <loader>.  Add those first, at the top of the group.
+    # Scan through all remaining input elements.  If there is an
+    # ambient group, then add its children to the device editor,
+    # if there is one.
     #
     set num 0
-    foreach cname [$xmlobj children $path] {
-        if {[$xmlobj element -as type $path.$cname] == "loader"} {
+    set clist [$xmlobj children $path]
+    while {[llength $clist] > 0} {
+        set cname [lindex $clist 0]
+        set clist [lrange $clist 1 end]
+
+        set type [$xmlobj element -as type $path.$cname]
+        if {$type == "about"} {
+            continue
+        }
+
+        if {$type == "loader"} {
+            #
+            # Add <loader>'s at the top of the page.
+            #
             if {![winfo exists $frame.loaders]} {
                 frame $frame.loaders
                 pack $frame.loaders -side top -fill x
@@ -73,23 +90,18 @@ itcl::body Rappture::Page::_buildGroup {frame xmlobj path} {
                 pack $frame.loaders.sep -side bottom -fill x -pady 4
             }
             set w "$frame.loaders.l[incr num]"
-            Rappture::Controls $w $_tool
+            Rappture::Controls $w $_owner
             pack $w -fill x
-            $w insert end $xmlobj $path.$cname
-        }
-    }
-
-    #
-    # Scan through all input elements and look for any top-level
-    # <structure> elements.  Create these next.
-    #
-    set num 0
-    foreach cname [$xmlobj children $path] {
-        if {[$xmlobj element -as type $path.$cname] == "structure"} {
+            $w insert end $path.$cname
+        } elseif {$type == "structure"} {
+            #
+            # Add <structure>'s as the central element of the page.
+            #
             set w "$frame.device[incr num]"
-            Rappture::DeviceEditor $w $_tool
+            Rappture::DeviceEditor $w $_owner
             pack $w -expand yes -fill both
-            $_tool widgetfor $path.$cname $w
+            $_owner widgetfor $path.$cname $w
+            bind $w <<Value>> [list $_owner changed $path.$cname]
 
             if {"" == $deveditor} {
                 set deveditor $w
@@ -100,29 +112,78 @@ itcl::body Rappture::Page::_buildGroup {frame xmlobj path} {
                 set val [$xmlobj get $path.$cname.default]
                 if {[string length $val] > 0} {
                     $w value $val
+                    $xmlobj put $path.$cname.current $val
                 } else {
                     set obj [$xmlobj element -as object $path.$cname.default]
                     $w value $obj
+                    $xmlobj put $path.$cname.current $obj
                 }
             }
-        }
-    }
 
-    #
-    # Scan through all remaining input elements.  If there is an
-    # ambient group, then add its children to the device editor,
-    # if there is one.
-    #
-    foreach cname [$xmlobj children $path] {
-        if {[string match "about*" $cname]} {
-            continue
-        }
+            # if there's a link, then set up a callback to load from it
+            set link [$xmlobj get $path.$cname.link]
+            if {"" != $link} {
+                $_owner notify add $this $link \
+                    [itcl::code $this _link $xmlobj $link $w $path.$cname]
+            }
+        } elseif {$type == "tool"} {
+            set service [Rappture::Service ::#auto $_owner $path.$cname]
+            #
+            # Scan through all extra inputs associated with this subtool
+            # and create corresponding inputs in the top-level tool.
+            # Then, add the input names to the list being processed here,
+            # so that we'll create the controls during subsequent passes
+            # through the loop.
+            #
+            set extra ""
+            foreach obj [$service input] {
+                set cname [$obj element]
+                $xmlobj copy $path.$cname from $obj ""
+                lappend extra $cname
+            }
 
-        if {[$_tool widgetfor $path.$cname] == ""} {
+            #
+            # If there's a control for this service, then add it
+            # to the end of the extra controls added above.
+            #
+            foreach obj [$service control] {
+                set cname [$obj element]
+                $xmlobj copy $path.$cname from $obj ""
+                $xmlobj put $path.$cname.service $service
+                lappend extra $cname
+            }
+            if {[llength $extra] > 0} {
+                set clist [eval linsert [list $clist] 0 $extra]
+            }
+
+            #
+            # Scan through all outputs associated with this subtool
+            # and create any corresponding feedback widgets.
+            #
+            foreach obj [$service output] {
+                set cname [$obj element]
+                $xmlobj copy $cname from $obj ""
+
+                # pick a good size based on output type
+                set w $frame.results.result[incr num]
+                set type [$obj element -as type]
+                switch -- $type {
+                    number - integer - boolean - choice {
+                        Rappture::ResultViewer $w -width 0 -height 0
+                        pack $w -fill x -padx 4 -pady 4
+                    }
+                    default {
+                        Rappture::ResultViewer $w -width 4i -height 4i
+                        pack $w -expand yes -fill both -padx 4 -pady 4
+                    }
+                }
+                $service output for $obj $w
+            }
+        } else {
             # create a control panel, if necessary
             if {![winfo exists $frame.cntls]} {
-                Rappture::Controls $frame.cntls $_tool
-                pack $frame.cntls -fill x
+                Rappture::Controls $frame.cntls $_owner
+                pack $frame.cntls -fill x -pady 4
             }
 
             # if this is a group, then build that group
@@ -131,13 +192,33 @@ itcl::body Rappture::Page::_buildGroup {frame xmlobj path} {
                        && $deveditor != ""} {
                     set w [$deveditor component top]
                 } else {
-                    set c [$frame.cntls insert end $xmlobj $path.$cname]
-                    set w [$frame.cntls control $c]
+                    if {[catch {$frame.cntls insert end $path.$cname} c]} {
+                        error $c "$c\n    (while building control for $path.$cname)"
+                    } else {
+                        set w [$frame.cntls control $c]
+                    }
                 }
                 _buildGroup $w $xmlobj $path.$cname
             } else {
-                $frame.cntls insert end $xmlobj $path.$cname
+                if {[catch {$frame.cntls insert end $path.$cname} c]} {
+                    error $c "$c\n    (while building control for $path.$cname)"
+                }
             }
         }
     }
+}
+
+itcl::body Rappture::Page::_link {xmlobj path w path2} {
+    if {"" != [$xmlobj element -as type $path.current]} {
+        set val [$xmlobj get $path.current]
+        if {[string length $val] > 0} {
+            $w value $val
+            $xmlobj put $path.current $val
+        } else {
+            set obj [$xmlobj element -as object $path.current]
+            $w value $obj
+            $xmlobj put $path.current $obj
+        }
+    }
+    $_owner changed $path2
 }

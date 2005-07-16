@@ -18,7 +18,7 @@ itcl::class Rappture::Loader {
 
     itk_option define -tool tool Tool ""
 
-    constructor {xmlobj path args} { # defined below }
+    constructor {owner path args} { # defined below }
 
     public method value {args}
 
@@ -28,7 +28,7 @@ itcl::class Rappture::Loader {
     protected method _newValue {}
     protected method _tooltip {}
 
-    private variable _xmlobj ""   ;# XML containing description
+    private variable _owner ""    ;# thing managing this control
     private variable _path ""     ;# path in XML to this loader
 }
 
@@ -42,11 +42,11 @@ itk::usual Loader {
 # ----------------------------------------------------------------------
 # CONSTRUCTOR
 # ----------------------------------------------------------------------
-itcl::body Rappture::Loader::constructor {xmlobj path args} {
-    if {![Rappture::library isvalid $xmlobj]} {
-        error "bad value \"$xmlobj\": should be Rappture::library"
+itcl::body Rappture::Loader::constructor {owner path args} {
+    if {[catch {$owner isa Rappture::ControlOwner} valid] != 0 || !$valid} {
+        error "bad object \"$owner\": should be Rappture::ControlOwner"
     }
-    set _xmlobj $xmlobj
+    set _owner $owner
     set _path $path
 
     itk_component add combo {
@@ -64,11 +64,11 @@ itcl::body Rappture::Loader::constructor {xmlobj path args} {
     # Scan through and extract example objects, and load them into
     # the combobox.
     #
-    set defval [$xmlobj get $path.default]
+    set defval [$_owner xml get $path.default]
 
     set flist ""
-    foreach comp [$xmlobj children -type example $path] {
-        lappend flist [$xmlobj get $path.$comp]
+    foreach comp [$_owner xml children -type example $path] {
+        lappend flist [$_owner xml get $path.$comp]
     }
 
     # if there are no examples, then look for *.xml
@@ -102,7 +102,7 @@ itcl::body Rappture::Loader::constructor {xmlobj path args} {
                         $itk_component(combo) choices insert end $obj $label
 
                         if {[string equal $defval [file tail $fname]]} {
-                            $xmlobj put $path.default $label
+                            $_owner xml put $path.default $label
                         }
                     }
                 }
@@ -115,7 +115,7 @@ itcl::body Rappture::Loader::constructor {xmlobj path args} {
     #
     # Assign the default value to this widget, if there is one.
     #
-    set str [$xmlobj get $path.default]
+    set str [$_owner xml get $path.default]
     if {$str != ""} { after 500 [itcl::code $this value $str] }
 }
 
@@ -162,7 +162,7 @@ itcl::body Rappture::Loader::value {args} {
 # Reaches into the XML and pulls out the appropriate label string.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Loader::label {} {
-    set label [$_xmlobj get $_path.about.label]
+    set label [$_owner xml get $_path.about.label]
     if {"" == $label} {
         set label "Example"
     }
@@ -207,7 +207,7 @@ itcl::body Rappture::Loader::_newValue {} {
 # facility whenever it is about to pop up a tooltip for this widget.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Loader::_tooltip {} {
-    set str [string trim [$_xmlobj get $_path.about.description]]
+    set str [string trim [$_owner xml get $_path.about.description]]
 
     # get the description for the current choice, if there is one
     set newval [$itk_component(combo) value]

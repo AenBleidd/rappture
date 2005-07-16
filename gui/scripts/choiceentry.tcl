@@ -13,17 +13,19 @@ package require Itk
 itcl::class Rappture::ChoiceEntry {
     inherit itk::Widget
 
-    constructor {xmlobj path args} { # defined below }
+    constructor {owner path args} { # defined below }
+    destructor { # defined below }
 
     public method value {args}
 
     public method label {}
     public method tooltip {}
 
+    protected method _rebuild {}
     protected method _newValue {}
     protected method _tooltip {}
 
-    private variable _xmlobj ""   ;# XML containing description
+    private variable _owner ""    ;# thing managing this control
     private variable _path ""     ;# path in XML to this number
 }
 
@@ -37,11 +39,11 @@ itk::usual ChoiceEntry {
 # ----------------------------------------------------------------------
 # CONSTRUCTOR
 # ----------------------------------------------------------------------
-itcl::body Rappture::ChoiceEntry::constructor {xmlobj path args} {
-    if {![Rappture::library isvalid $xmlobj]} {
-        error "bad value \"$xmlobj\": should be Rappture::library"
+itcl::body Rappture::ChoiceEntry::constructor {owner path args} {
+    if {[catch {$owner isa Rappture::ControlOwner} valid] != 0 || !$valid} {
+        error "bad object \"$owner\": should be Rappture::ControlOwner"
     }
-    set _xmlobj $xmlobj
+    set _owner $owner
     set _path $path
 
     #
@@ -56,26 +58,14 @@ itcl::body Rappture::ChoiceEntry::constructor {xmlobj path args} {
 
     eval itk_initialize $args
 
-    #
-    # Plug in the various choices for this widget.
-    #
-    # plug in the various options for the choice
-    set max 10
-    foreach cname [$xmlobj children -type option $path] {
-        set str [string trim [$xmlobj get $path.$cname.label]]
-        if {"" != $str} {
-            $itk_component(choice) choices insert end $path.$cname $str
-            set len [string length $str]
-            if {$len > $max} { set max $len }
-        }
-    }
-    $itk_component(choice) configure -width $max
+    _rebuild
+}
 
-    #
-    # Assign the default value to this widget, if there is one.
-    #
-    set str [$xmlobj get $path.default]
-    if {"" != $str != ""} { $itk_component(choice) value $str }
+# ----------------------------------------------------------------------
+# DESTRUCTOR
+# ----------------------------------------------------------------------
+itcl::body Rappture::ChoiceEntry::destructor {} {
+    $_owner notify remove $this
 }
 
 # ----------------------------------------------------------------------
@@ -121,7 +111,7 @@ itcl::body Rappture::ChoiceEntry::value {args} {
 # Reaches into the XML and pulls out the appropriate label string.
 # ----------------------------------------------------------------------
 itcl::body Rappture::ChoiceEntry::label {} {
-    set label [$_xmlobj get $_path.about.label]
+    set label [$_owner xml get $_path.about.label]
     if {"" == $label} {
         set label "Number"
     }
@@ -142,6 +132,91 @@ itcl::body Rappture::ChoiceEntry::tooltip {} {
 }
 
 # ----------------------------------------------------------------------
+# USAGE: _rebuild
+#
+# Used internally to rebuild the contents of this choice widget
+# whenever something that it depends on changes.  Scans through the
+# information in the XML spec and builds a list of choices for the
+# widget.
+# ----------------------------------------------------------------------
+itcl::body Rappture::ChoiceEntry::_rebuild {} {
+    # get rid of any existing choices
+    $itk_component(choice) choices delete 0 end
+
+    #
+    # Plug in the various options for the choice.
+    #
+    set max 10
+    foreach cname [$_owner xml children -type option $_path] {
+        set path [string trim [$_owner xml get $_path.$cname.path]]
+        if {"" != $path} {
+            # look for the input element controlling this path
+            set found 0
+            foreach cntl [Rappture::entities [$_owner xml object] "input"] {
+                set len [string length $cntl]
+                if {[string equal -length $len $cntl $path]} {
+                    set found 1
+                    break
+                }
+            }
+            if {$found} {
+                #
+                # Choice comes from a list of matching entities at
+                # a particular XML path.  Use the <label> as a template
+                # for each item on the path.
+                #
+                $_owner notify add $this $cntl [itcl::code $this _rebuild]
+
+                set label [string trim [$_owner xml get $_path.$cname.about.label]]
+                if {"" == $label} {
+                    set label "%type #%n"
+                }
+
+                set ppath [Rappture::LibraryObj::path2list $path]
+                set leading [join [lrange $ppath 0 end-1] .]
+                set tail [lindex $ppath end]
+                set n 1
+                foreach ccname [$_owner xml children $leading] {
+                    if {[string match $tail $ccname]} {
+                        set subst(%n) $n
+                        set subst(%type) [$_owner xml element -as type $leading.$ccname]
+                        set subst(%id) [$_owner xml element -as id $leading.$ccname]
+                        foreach detail [$_owner xml children $leading.$ccname] {
+                            set subst(%$detail) [$_owner xml get $leading.$ccname.$detail]
+                        }
+                        set str [string map [array get subst] $label]
+                        $itk_component(choice) choices insert end \
+                            $leading.$ccname $str
+                        incr n
+                    }
+                }
+                $itk_component(choice) value ""
+            } else {
+                puts "can't find controlling entity for path \"$path\""
+            }
+        } else {
+            #
+            # Choice is an ordinary LABEL.
+            # Add the label as-is into the list of choices.
+            #
+            set str [string trim [$_owner xml get $_path.$cname.about.label]]
+            if {"" != $str} {
+                $itk_component(choice) choices insert end $_path.$cname $str
+                set len [string length $str]
+                if {$len > $max} { set max $len }
+            }
+        }
+    }
+    $itk_component(choice) configure -width $max
+
+    #
+    # Assign the default value to this widget, if there is one.
+    #
+    set str [$_owner xml get $_path.default]
+    if {"" != $str} { $itk_component(choice) value $str }
+}
+
+# ----------------------------------------------------------------------
 # USAGE: _newValue
 #
 # Invoked automatically whenever the value in the choice changes.
@@ -159,7 +234,7 @@ itcl::body Rappture::ChoiceEntry::_newValue {} {
 # facility whenever it is about to pop up a tooltip for this widget.
 # ----------------------------------------------------------------------
 itcl::body Rappture::ChoiceEntry::_tooltip {} {
-    set tip [string trim [$_xmlobj get $_path.about.description]]
+    set tip [string trim [$_owner xml get $_path.about.description]]
 
     # get the description for the current choice, if there is one
     set str [$itk_component(choice) value]
@@ -169,7 +244,7 @@ itcl::body Rappture::ChoiceEntry::_tooltip {} {
         append tip "\n\n$str:"
 
         if {$path != ""} {
-            set desc [$_xmlobj get $path.description]
+            set desc [$_owner xml get $path.description]
             if {[string length $desc] > 0} {
                 append tip "\n$desc"
             }

@@ -1,8 +1,8 @@
 # ----------------------------------------------------------------------
-#  COMPONENT: BooleanEntry - widget for entering boolean values
+#  COMPONENT: IntegerEntry - widget for entering integer values
 #
-#  This widget represents a <boolean> entry on a control panel.
-#  It is used to enter yes/no or on/off values.
+#  This widget represents an <integer> entry on a control panel.
+#  It is used to enter integral values with no units.
 # ======================================================================
 #  AUTHOR:  Michael McLennan, Purdue University
 #  Copyright (c) 2004-2005
@@ -10,7 +10,7 @@
 # ======================================================================
 package require Itk
 
-itcl::class Rappture::BooleanEntry {
+itcl::class Rappture::IntegerEntry {
     inherit itk::Widget
 
     constructor {owner path args} { # defined below }
@@ -26,7 +26,7 @@ itcl::class Rappture::BooleanEntry {
     private variable _path ""     ;# path in XML to this number
 }
 
-itk::usual BooleanEntry {
+itk::usual IntegerEntry {
     keep -cursor -font
     keep -foreground -background
     keep -textbackground
@@ -36,7 +36,7 @@ itk::usual BooleanEntry {
 # ----------------------------------------------------------------------
 # CONSTRUCTOR
 # ----------------------------------------------------------------------
-itcl::body Rappture::BooleanEntry::constructor {owner path args} {
+itcl::body Rappture::IntegerEntry::constructor {owner path args} {
     if {[catch {$owner isa Rappture::ControlOwner} valid] != 0 || !$valid} {
         error "bad object \"$owner\": should be Rappture::ControlOwner"
     }
@@ -47,21 +47,35 @@ itcl::body Rappture::BooleanEntry::constructor {owner path args} {
     # Create the widget and configure it properly based on other
     # hints in the XML.
     #
-    itk_component add switch {
-        Rappture::Switch $itk_interior.switch
+    itk_component add spinner {
+        Rappture::Gauge $itk_interior.spinner -type integer
     }
-    pack $itk_component(switch) -expand yes -fill both
-    bind $itk_component(switch) <<Value>> [itcl::code $this _newValue]
+    pack $itk_component(spinner) -expand yes -fill both
+    bind $itk_component(spinner) <<Value>> [itcl::code $this _newValue]
 
+    # if there are min/max values, plug them in.
+    set min [$_owner xml get $path.min]
+    if {"" != $min} {
+        $itk_component(spinner) configure -minvalue $min
+    }
+
+    set max [$_owner xml get $path.max]
+    if {"" != $max} {
+        $itk_component(spinner) configure -maxvalue $max
+    }
+
+    # if there is a color, use it for the min/max spectrum
     set color [$_owner xml get $path.about.color]
-    if {$color != ""} {
-        $itk_component(switch) configure -oncolor $color
+    if {$color != "" && $min != "" && $max != ""} {
+        $itk_component(spinner) configure \
+            -spectrum [Rappture::Spectrum ::#auto [list \
+                $min white $max $color]]
     }
 
     # if the control has an icon, plug it in
     set str [$_owner xml get $path.about.icon]
     if {$str != ""} {
-        $itk_component(switch) configure -onimage \
+        $itk_component(spinner) configure -image \
             [image create photo -data $str]
     }
 
@@ -71,7 +85,7 @@ itcl::body Rappture::BooleanEntry::constructor {owner path args} {
     # Assign the default value to this widget, if there is one.
     #
     set str [$_owner xml get $path.default]
-    if {"" != $str != ""} { $itk_component(switch) value $str }
+    if {"" != $str != ""} { $itk_component(spinner) value $str }
 }
 
 # ----------------------------------------------------------------------
@@ -83,7 +97,7 @@ itcl::body Rappture::BooleanEntry::constructor {owner path args} {
 # sends a <<Value>> event.  If the -check flag is included, the
 # new value is not actually applied, but just checked for correctness.
 # ----------------------------------------------------------------------
-itcl::body Rappture::BooleanEntry::value {args} {
+itcl::body Rappture::IntegerEntry::value {args} {
     set onlycheck 0
     set i [lsearch -exact $args -check]
     if {$i >= 0} {
@@ -97,7 +111,7 @@ itcl::body Rappture::BooleanEntry::value {args} {
             return
         }
         set newval [lindex $args 0]
-        $itk_component(switch) value $newval
+        $itk_component(spinner) value $newval
         return $newval
 
     } elseif {[llength $args] != 0} {
@@ -107,7 +121,7 @@ itcl::body Rappture::BooleanEntry::value {args} {
     #
     # Query the value and return.
     #
-    return [$itk_component(switch) value]
+    return [$itk_component(spinner) value]
 }
 
 # ----------------------------------------------------------------------
@@ -116,10 +130,10 @@ itcl::body Rappture::BooleanEntry::value {args} {
 # Clients use this to query the label associated with this widget.
 # Reaches into the XML and pulls out the appropriate label string.
 # ----------------------------------------------------------------------
-itcl::body Rappture::BooleanEntry::label {} {
+itcl::body Rappture::IntegerEntry::label {} {
     set label [$_owner xml get $_path.about.label]
     if {"" == $label} {
-        set label "Boolean"
+        set label "Integer"
     }
     return $label
 }
@@ -132,15 +146,14 @@ itcl::body Rappture::BooleanEntry::label {} {
 # string.  Returns the string that should be used with the
 # Rappture::Tooltip facility.
 # ----------------------------------------------------------------------
-itcl::body Rappture::BooleanEntry::tooltip {} {
+itcl::body Rappture::IntegerEntry::tooltip {} {
     set str [$_owner xml get $_path.about.description]
 
-    set units [$_owner xml get $_path.units]
     set min [$_owner xml get $_path.min]
     set max [$_owner xml get $_path.max]
 
-    if {$units != "" || $min != "" || $max != ""} {
-        append str "\n\nEnter a number"
+    if {$min != "" || $max != ""} {
+        append str "\n\nEnter an integer"
 
         if {$min != "" && $max != ""} {
             append str " between $min and $max"
@@ -148,11 +161,6 @@ itcl::body Rappture::BooleanEntry::tooltip {} {
             append str " greater than $min"
         } elseif {$max != ""} {
             append str " less than $max"
-        }
-
-        if {$units != ""} {
-            set desc [Rappture::Units::description $units]
-            append str " with units of $desc"
         }
     }
     return [string trim $str]
@@ -164,6 +172,6 @@ itcl::body Rappture::BooleanEntry::tooltip {} {
 # Invoked automatically whenever the value in the gauge changes.
 # Sends a <<Value>> event to notify clients of the change.
 # ----------------------------------------------------------------------
-itcl::body Rappture::BooleanEntry::_newValue {} {
+itcl::body Rappture::IntegerEntry::_newValue {} {
     event generate $itk_component(hull) <<Value>>
 }

@@ -24,9 +24,9 @@ exec wish "$0" $*
 
 package require Rappture
 
-option add *MainWin.mode web startupFile
+option add *MainWin.mode desktop startupFile
 option add *MainWin.borderWidth 0 startupFile
-option add *MainWin.anchor nw startupFile
+option add *MainWin.anchor center startupFile
 
 # "web site" look
 option add *MainWin.bgScript {
@@ -128,7 +128,7 @@ $win.pager page analyzer -command [list $f.analyze simulate -ifneeded]
 Rappture::Analyzer $f.analyze $tool -simcontrol auto
 pack $f.analyze -expand yes -fill both
 
-$tool configure -analyzer $f.analyze
+$tool notify add analyzer * [list $f.analyze reset]
 
 # ----------------------------------------------------------------------
 # Finalize the arrangement
@@ -146,7 +146,12 @@ if {[llength [$win.pager page]] == 2} {
         $win.pager configure -arrangement side-by-side
         $f.analyze configure -holdwindow [$win.pager page @0]
 
-        if {[$tool xml get tool.control] == "auto"} {
+        set type [$tool xml get tool.control]
+        if {$type == ""} {
+            set type [$tool xml get tool.control.type]
+        }
+
+        if {$type == "auto"} {
             # in "auto" mode, we don't need a simulate button
             $f.analyze configure -simcontrol off
         } else {

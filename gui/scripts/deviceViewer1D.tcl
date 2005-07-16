@@ -26,7 +26,7 @@ itcl::class Rappture::DeviceViewer1D {
 
     itk_option define -device device Device ""
 
-    constructor {tool args} { # defined below }
+    constructor {owner args} { # defined below }
     destructor { # defined below }
 
     public method controls {option args}
@@ -41,7 +41,7 @@ itcl::class Rappture::DeviceViewer1D {
     protected method _controlCreate {container libObj path}
     protected method _controlSet {widget libObj path}
 
-    private variable _tool ""       ;# tool controlling this viewer
+    private variable _owner ""      ;# thing managing this control
     private variable _device ""     ;# XML library with <structure>
     private variable _tab2fields    ;# maps tab name => list of fields
     private variable _field2parm    ;# maps field path => parameter name
@@ -56,8 +56,8 @@ itk::usual DeviceViewer1D {
 # ----------------------------------------------------------------------
 # CONSTRUCTOR
 # ----------------------------------------------------------------------
-itcl::body Rappture::DeviceViewer1D::constructor {tool args} {
-    set _tool $tool
+itcl::body Rappture::DeviceViewer1D::constructor {owner args} {
+    set _owner $owner
 
     itk_option add hull.width hull.height
     pack propagate $itk_component(hull) no
@@ -270,10 +270,10 @@ itcl::body Rappture::DeviceViewer1D::_loadDevice {} {
             if {!$handled} {
                 set t $itk_component(top)
                 if {![winfo exists $t.cntls]} {
-                    Rappture::Controls $t.cntls $_tool
+                    Rappture::Controls $t.cntls $_owner
                     pack $t.cntls -expand yes -fill both
                 }
-                $t.cntls insert end $_device parameters.$cname
+                $t.cntls insert end parameters.$cname
             }
         }
     }
@@ -590,7 +590,7 @@ itcl::body Rappture::DeviceViewer1D::_marker {option {name ""} {path ""}} {
             }
 
             $_marker(fobj) controls put $_marker(path) $value
-            $_tool changed $_marker(path)
+            $_owner changed $_marker(path)
             event generate $itk_component(hull) <<Edit>>
 
             _changeTabs

@@ -126,6 +126,13 @@ proc Rappture::entities {args} {
                     lappend queue $cpath
                 }
                 structure {
+                    # add this to the return list with the right flavor
+                    if {$params(-as) == "component"} {
+                        lappend rlist $cpath
+                    } else {
+                        lappend rlist [$xmlobj element -as $params(-as) $cpath]
+                    }
+
                     if {[$xmlobj element $cpath.current.parameters] != ""} {
                         lappend queue $cpath.current.parameters
                     }
@@ -162,14 +169,15 @@ itcl::class Rappture::LibraryObj {
     public method children {args}
     public method get {{path ""}}
     public method put {args}
+    public method copy {path from args}
     public method remove {{path ""}}
     public method xml {}
 
     public method diff {libobj}
     public proc value {libobj path}
 
+    public proc path2list {path}
     protected method find {path}
-    protected method path2list {path}
     protected method node2name {node}
     protected method node2comp {node}
     protected method node2path {node}
@@ -514,6 +522,37 @@ itcl::body Rappture::LibraryObj::put {args} {
         }
     }
     return ""
+}
+
+# ----------------------------------------------------------------------
+# USAGE: copy <path> from ?<xmlobj>? <path>
+#
+# Clients use this to copy the value from one xmlobj/path to another.
+# If the <xmlobj> is not specified, it is assumed to be the same as
+# the current object.
+# ----------------------------------------------------------------------
+itcl::body Rappture::LibraryObj::copy {path from args} {
+    if {[llength $args] == 1} {
+        set xmlobj $this
+        set fpath [lindex $args 0]
+    } elseif {[llength $args] == 2} {
+        set xmlobj [lindex $args 0]
+        set fpath [lindex $args 1]
+    } else {
+        error "wrong # args: should be \"copy path from ?xmlobj? path\""
+    }
+    if {$from != "from"} {
+        error "bad syntax: should be \"copy path from ?xmlobj? path\""
+    }
+
+    if {[llength [$xmlobj children $fpath]] == 0} {
+        set val [$xmlobj get $fpath]
+        put $path $val
+    } else {
+        set obj [$xmlobj element -as object $fpath]
+        put $path $obj
+        itcl::delete object $obj
+    }
 }
 
 # ----------------------------------------------------------------------

@@ -12,12 +12,11 @@
 # ======================================================================
 package require Itk
 
-option add *ResultViewer.width 4i widgetDefault
-option add *ResultViewer.height 4i widgetDefault
-
 itcl::class Rappture::ResultViewer {
     inherit itk::Widget
 
+    itk_option define -width width Width 4i
+    itk_option define -height height Height 4i
     itk_option define -colors colors Colors ""
     itk_option define -clearcommand clearCommand ClearCommand ""
     itk_option define -simulatecommand simulateCommand SimulateCommand ""
@@ -27,6 +26,7 @@ itcl::class Rappture::ResultViewer {
 
     public method add {index xmlobj path}
     public method clear {{index ""}}
+    public method value {xmlobj}
 
     public method plot {option args}
 
@@ -49,9 +49,6 @@ itk::usual ResultViewer {
 # CONSTRUCTOR
 # ----------------------------------------------------------------------
 itcl::body Rappture::ResultViewer::constructor {args} {
-    option add hull.width hull.height
-    pack propagate $itk_component(hull) no
-
     # create a dispatcher for events
     Rappture::dispatcher _dispatcher
     $_dispatcher register !scale
@@ -79,11 +76,7 @@ itcl::body Rappture::ResultViewer::destructor {} {
 # Data is taken from the <xmlobj> object at the <path>.
 # ----------------------------------------------------------------------
 itcl::body Rappture::ResultViewer::add {index xmlobj path} {
-    if {$path != ""} {
-        set dobj [_xml2data $xmlobj $path]
-    } else {
-        set dobj ""
-    }
+    set dobj [_xml2data $xmlobj $path]
 
     #
     # If the index doesn't exist, then fill in empty slots and
@@ -123,6 +116,22 @@ itcl::body Rappture::ResultViewer::clear {{index ""}} {
             }
         }
         set _dataslots ""
+    }
+}
+
+# ----------------------------------------------------------------------
+# USAGE: value <xmlobj>
+#
+# Convenience method for showing a single value.  Loads the value
+# into the widget via add/clear, then immediately plots the value.
+# This makes the widget consistent with other widgets, such as
+# the DeviceEditor, etc.
+# ----------------------------------------------------------------------
+itcl::body Rappture::ResultViewer::value {xmlobj} {
+    clear
+    if {"" != $xmlobj} {
+        add 0 $xmlobj ""
+        plot add 0 ""
     }
 }
 
@@ -244,6 +253,22 @@ itcl::body Rappture::ResultViewer::_plotAdd {dataobj {settings ""}} {
                         set _mode2widget($mode) $w
                     }
                 }
+                structure {
+                    set mode "structure"
+                    if {![info exists _mode2widget($mode)]} {
+                        set w $itk_interior.struct
+                        Rappture::DeviceResult $w
+                        set _mode2widget($mode) $w
+                    }
+                }
+                number - integer - boolean - choice {
+                    set mode "value"
+                    if {![info exists _mode2widget($mode)]} {
+                        set w $itk_interior.value
+                        Rappture::ValueResult $w
+                        set _mode2widget($mode) $w
+                    }
+                }
             }
         }
         default {
@@ -316,9 +341,43 @@ itcl::body Rappture::ResultViewer::_xml2data {xmlobj path} {
         log {
             return [$xmlobj element -as object $path]
         }
+        structure {
+            return [$xmlobj element -as object $path]
+        }
+        number - integer - boolean - choice {
+            return [$xmlobj element -as object $path]
+        }
         time - status {
             return ""
         }
     }
     error "don't know how to plot <$type> data"
+}
+
+# ----------------------------------------------------------------------
+# CONFIGURATION OPTION: -width
+# ----------------------------------------------------------------------
+itcl::configbody Rappture::ResultViewer::width {
+    set w [winfo pixels $itk_component(hull) $itk_option(-width)]
+    set h [winfo pixels $itk_component(hull) $itk_option(-height)]
+    if {$w == 0 || $h == 0} {
+        pack propagate $itk_component(hull) yes
+    } else {
+        component hull configure -width $w -height $h
+        pack propagate $itk_component(hull) no
+    }
+}
+
+# ----------------------------------------------------------------------
+# CONFIGURATION OPTION: -height
+# ----------------------------------------------------------------------
+itcl::configbody Rappture::ResultViewer::height {
+    set h [winfo pixels $itk_component(hull) $itk_option(-height)]
+    set w [winfo pixels $itk_component(hull) $itk_option(-width)]
+    if {$w == 0 || $h == 0} {
+        pack propagate $itk_component(hull) yes
+    } else {
+        component hull configure -width $w -height $h
+        pack propagate $itk_component(hull) no
+    }
 }

@@ -1,0 +1,112 @@
+# ----------------------------------------------------------------------
+#  COMPONENT: DeviceResult - output for <structure>
+#
+#  This widget is used to show <structure> output.  It is similar
+#  to a DeviceEditor, but does not allow editing.
+# ======================================================================
+#  AUTHOR:  Michael McLennan, Purdue University
+#  Copyright (c) 2004-2005
+#  Purdue Research Foundation, West Lafayette, IN
+# ======================================================================
+package require Itk
+package require BLT
+
+option add *DeviceResult.width 4i widgetDefault
+option add *DeviceResult.height 4i widgetDefault
+option add *DeviceResult.font \
+    -*-courier-medium-r-normal-*-*-120-* widgetDefault
+
+itcl::class Rappture::DeviceResult {
+    inherit itk::Widget
+
+    constructor {args} { # defined below }
+
+    public method add {dataobj {settings ""}}
+    public method get {}
+    public method delete {args}
+    public method scale {args}
+
+    set _dataobj ""  ;# data object currently being displayed
+}
+                                                                                
+itk::usual DeviceResult {
+    keep -background -foreground -cursor -font
+}
+
+# ----------------------------------------------------------------------
+# CONSTRUCTOR
+# ----------------------------------------------------------------------
+itcl::body Rappture::DeviceResult::constructor {args} {
+    option add hull.width hull.height
+    pack propagate $itk_component(hull) no
+
+    itk_component add viewer {
+        # turn off auto-cleanup -- resultset swaps results in and out
+        Rappture::DeviceEditor $itk_interior.dev "" -autocleanup no
+    }
+    pack $itk_component(viewer) -expand yes -fill both
+
+    eval itk_initialize $args
+}
+
+# ----------------------------------------------------------------------
+# USAGE: add <dataobj> ?<settings>?
+#
+# Clients use this to add a data object to the plot.  If the optional
+# <settings> are specified, then the are applied to the data.  Allowed
+# settings are -color and -brightness, -width, -linestyle and -raise.
+# (Many of these are ignored.)
+# ----------------------------------------------------------------------
+itcl::body Rappture::DeviceResult::add {dataobj {settings ""}} {
+    array set params {
+        -color ""
+        -brightness ""
+        -width ""
+        -linestyle ""
+        -raise ""
+    }
+    foreach {opt val} $settings {
+        if {![info exists params($opt)]} {
+            error "bad setting \"$opt\": should be [join [lsort [array names params]] {, }]"
+        }
+        set params($opt) $val
+    }
+
+    $itk_component(viewer) value $dataobj
+
+    set _dataobj $dataobj
+}
+
+# ----------------------------------------------------------------------
+# USAGE: get
+#
+# Clients use this to query the list of objects being plotted, in
+# order from bottom to top of this result.
+# ----------------------------------------------------------------------
+itcl::body Rappture::DeviceResult::get {} {
+    return $_dataobj
+}
+
+# ----------------------------------------------------------------------
+# USAGE: delete ?<dataobj1> <dataobj2> ...?
+#
+# Clients use this to delete a dataobj from the plot.  If no dataobjs
+# are specified, then all dataobjs are deleted.
+# ----------------------------------------------------------------------
+itcl::body Rappture::DeviceResult::delete {args} {
+    $itk_component(viewer) value ""
+    set _dataobj ""
+}
+
+# ----------------------------------------------------------------------
+# USAGE: scale ?<dataobj1> <dataobj2> ...?
+#
+# Sets the default limits for the overall plot according to the
+# limits of the data for all of the given <dataobj> objects.  This
+# accounts for all dataobjs--even those not showing on the screen.
+# Because of this, the limits are appropriate for all dataobjs as
+# the user scans through data in the ResultSet viewer.
+# ----------------------------------------------------------------------
+itcl::body Rappture::DeviceResult::scale {args} {
+    # nothing to do for structures
+}

@@ -22,7 +22,7 @@ itcl::class Rappture::Controls {
 
     constructor {owner args} { # defined below }
 
-    public method insert {pos xmlobj path}
+    public method insert {pos path}
     public method delete {first {last ""}}
     public method index {name}
     public method control {args}
@@ -55,17 +55,17 @@ itcl::body Rappture::Controls::constructor {owner args} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: insert <pos> <xmlobj> <path>
+# USAGE: insert <pos> <path>
 #
 # Clients use this to insert a control into this panel.  The control
 # is inserted into the list at position <pos>, which can be an integer
 # starting from 0 or the keyword "end".  Information about the control
-# is taken from the <xmlobj> object at the specified <path>.
+# is taken from the specified <path>.
 #
 # Returns a name that can be used to identify the control in other
 # methods.
 # ----------------------------------------------------------------------
-itcl::body Rappture::Controls::insert {pos xmlobj path} {
+itcl::body Rappture::Controls::insert {pos path} {
     if {"end" == $pos} {
         set pos [llength $_controls]
     } elseif {![string is integer $pos]} {
@@ -75,59 +75,71 @@ itcl::body Rappture::Controls::insert {pos xmlobj path} {
     incr _counter
     set name "control$_counter"
 
-    set _name2info($name-xmlobj) $xmlobj
     set _name2info($name-path) $path
     set _name2info($name-label) ""
     set _name2info($name-value) [set w $itk_interior.v$name]
 
-    set type [$xmlobj element -as type $path]
+    set type [$_owner xml element -as type $path]
     switch -- $type {
         choice {
-            Rappture::ChoiceEntry $w $xmlobj $path
+            Rappture::ChoiceEntry $w $_owner $path
             bind $w <<Value>> [itcl::code $this _controlChanged $path]
         }
         group {
-            Rappture::GroupEntry $w $xmlobj $path
+            Rappture::GroupEntry $w $_owner $path
         }
         loader {
-            Rappture::Loader $w $xmlobj $path -tool [$_owner tool]
+            Rappture::Loader $w $_owner $path -tool [$_owner tool]
             bind $w <<Value>> [itcl::code $this _controlChanged $path]
         }
         number {
-            Rappture::NumberEntry $w $xmlobj $path
+            Rappture::NumberEntry $w $_owner $path
+            bind $w <<Value>> [itcl::code $this _controlChanged $path]
+        }
+        integer {
+            Rappture::IntegerEntry $w $_owner $path
             bind $w <<Value>> [itcl::code $this _controlChanged $path]
         }
         boolean {
-            Rappture::BooleanEntry $w $xmlobj $path
+            Rappture::BooleanEntry $w $_owner $path
             bind $w <<Value>> [itcl::code $this _controlChanged $path]
         }
         string {
-            Rappture::TextEntry $w $xmlobj $path
+            Rappture::TextEntry $w $_owner $path
             bind $w <<Value>> [itcl::code $this _controlChanged $path]
+        }
+        control {
+            set label [$_owner xml get $path.label]
+            if {"" == $label} { set label "Simulate" }
+            set service [$_owner xml get $path.service]
+            button $w -text $label -command [list $service run]
         }
         default {
             error "don't know how to add control type \"$type\""
         }
     }
-    $_owner widgetfor $path $w
 
-    # make a label for this control
-    set label [$w label]
-    if {"" != $label} {
-        set _name2info($name-label) $itk_interior.l$name
-        set font [option get $itk_component(hull) labelFont Font]
-        label $_name2info($name-label) -text [_formatLabel $label] \
-            -font $font
-    }
+    if {$type != "control"} {
+        $_owner widgetfor $path $w
 
-    # register the tooltip for this control
-    set tip [$w tooltip]
-    if {"" != $tip} {
-        Rappture::Tooltip::for $w $tip
+        # make a label for this control
+        set label [$w label]
+        if {"" != $label} {
+            set _name2info($name-label) $itk_interior.l$name
+            set font [option get $itk_component(hull) labelFont Font]
+            label $_name2info($name-label) -text [_formatLabel $label] \
+                -font $font
+        }
 
-        # add the tooltip to the label too, if there is one
-        if {$_name2info($name-label) != ""} {
-            Rappture::Tooltip::for $_name2info($name-label) $tip
+        # register the tooltip for this control
+        set tip [$w tooltip]
+        if {"" != $tip} {
+            Rappture::Tooltip::for $w $tip
+
+            # add the tooltip to the label too, if there is one
+            if {$_name2info($name-label) != ""} {
+                Rappture::Tooltip::for $_name2info($name-label) $tip
+            }
         }
     }
 
@@ -168,7 +180,6 @@ itcl::body Rappture::Controls::delete {first {last ""}} {
         if {"" != $_name2info($name-value)} {
             destroy $_name2info($name-value)
         }
-        unset _name2info($name-xmlobj)
         unset _name2info($name-path)
         unset _name2info($name-label)
         unset _name2info($name-value)
@@ -196,14 +207,13 @@ itcl::body Rappture::Controls::index {name} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: control ?-label|-value|-xmlobj|-path? ?<name>|@n?
+# USAGE: control ?-label|-value|-path? ?<name>|@n?
 #
 # Clients use this to get information about controls.  With no args, it
 # returns a list of all control names.  Otherwise, it returns the frame
 # associated with a control name.  The -label option requests the label
-# widget instead of the value widget.  The -xmlobj option requests the
-# XML object associated with the control, and the -path option requests
-# the path within the XML that the control affects.
+# widget instead of the value widget.  The -path option requests the
+# path within the XML that the control affects.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Controls::control {args} {
     if {[llength $args] == 0} {
@@ -212,7 +222,6 @@ itcl::body Rappture::Controls::control {args} {
     Rappture::getopts args params {
         flag switch -value default
         flag switch -label
-        flag switch -xmlobj
         flag switch -path
     }
     if {[llength $args] == 0} {

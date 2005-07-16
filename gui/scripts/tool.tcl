@@ -15,26 +15,18 @@
 package require BLT
 
 itcl::class Rappture::Tool {
-    public variable analyzer ""
+    inherit Rappture::ControlOwner
 
-    constructor {xmlobj installdir args} { # defined below }
+    constructor {xmlobj installdir args} {
+        Rappture::ControlOwner::constructor ""
+    } { # defined below }
 
     public method installdir {} { return $_installdir }
-    public method xml {args}
 
-    public method load {xmlobj}
     public method run {args}
     public method abort {}
 
-    public method widgetfor {path {widget ""}}
-    public method changed {path}
-    public method sync {}
-    public method tool {}
-
-    private variable _xmlobj ""      ;# XML overall <run> object
     private variable _installdir ""  ;# installation directory for this tool
-    private variable _path2widget    ;# maps path => widget on this page
-
     private common job               ;# array var used for blt::bgexec jobs
 }
                                                                                 
@@ -53,22 +45,6 @@ itcl::body Rappture::Tool::constructor {xmlobj installdir args} {
     set _installdir $installdir
 
     eval configure $args
-}
-
-# ----------------------------------------------------------------------
-# USAGE: xml <subcommand> ?<arg> <arg> ...?
-# USAGE: xml object
-#
-# Used by clients to manipulate the underlying XML data for this
-# tool.  The <subcommand> can be any operation supported by a
-# Rappture::library object.  Clients can also request the XML object
-# directly by using the "object" subcommand.
-# ----------------------------------------------------------------------
-itcl::body Rappture::Tool::xml {args} {
-    if {"object" == $args} {
-        return $_xmlobj
-    }
-    return [eval $_xmlobj $args]
 }
 
 # ----------------------------------------------------------------------
@@ -150,91 +126,4 @@ itcl::body Rappture::Tool::run {args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Tool::abort {} {
     set job(control) "abort"
-}
-
-# ----------------------------------------------------------------------
-# USAGE: widgetfor <path> ?<widget>?
-#
-# Used by embedded widgets such as a Controls panel to register the
-# various controls associated with this page.  That way, this Tool
-# knows what widgets to look at when syncing itself to the underlying
-# XML data.
-# ----------------------------------------------------------------------
-itcl::body Rappture::Tool::widgetfor {path {widget ""}} {
-    # if this is a query operation, then look for the path
-    if {"" == $widget} {
-        if {[info exists _path2widget($path)]} {
-            return $_path2widget($path)
-        }
-        return ""
-    }
-
-    # otherwise, associate the path with the given widget
-    if {[info exists _path2widget($path)]} {
-        error "$path already associated with widget $_path2widget($path)"
-    }
-    set _path2widget($path) $widget
-}
-
-# ----------------------------------------------------------------------
-# USAGE: load <xmlobj>
-#
-# Loads the contents of a Rappture <xmlobj> into the controls
-# associated with this tool.
-# ----------------------------------------------------------------------
-itcl::body Rappture::Tool::load {newobj} {
-    if {![Rappture::library isvalid $newobj]} {
-        error "\"$newobj\" is not a Rappture::library"
-    }
-
-    foreach path [array names _path2widget] {
-        if {"" != [$newobj element -as type $path.current]} {
-            set val [$newobj get $path.current]
-            if {[string length $val] > 0
-                  || [llength [$newobj children $path.current]] == 0} {
-                $_path2widget($path) value $val
-            } else {
-                set obj [$newobj element -as object $path.current]
-                $_path2widget($path) value $obj
-            }
-        }
-    }
-}
-
-# ----------------------------------------------------------------------
-# USAGE: changed <path>
-#
-# Invoked automatically by the various widgets associated with this
-# tool whenever their value changes.  If this tool has a -analyzer,
-# then it is notified that input has changed, so it can reset itself
-# for a new analysis.
-# ----------------------------------------------------------------------
-itcl::body Rappture::Tool::changed {path} {
-    if {"" != $analyzer} {
-        $analyzer reset
-    }
-}
-
-# ----------------------------------------------------------------------
-# USAGE: sync
-#
-# Used by descendents such as a Controls panel to register the
-# various controls associated with this page.  That way, this Tool
-# knows what widgets to look at when syncing itself to the underlying
-# XML data.
-# ----------------------------------------------------------------------
-itcl::body Rappture::Tool::sync {} {
-    foreach path [array names _path2widget] {
-        $_xmlobj put $path.current [$_path2widget($path) value]
-    }
-}
-
-# ----------------------------------------------------------------------
-# USAGE: tool
-#
-# Clients use this to figure out which tool is associated with
-# this object.  Since this is a tool, it returns itself.
-# ----------------------------------------------------------------------
-itcl::body Rappture::Tool::tool {} {
-    return $this
 }
