@@ -276,7 +276,8 @@ itcl::body Rappture::XyResult::_rebuild {} {
 
     # first clear out the widget
     eval $g element delete [$g element names]
-    $g axis configure y -min "" -max ""
+    $g axis configure x -min "" -max "" -logscale 0
+    $g axis configure y -min "" -max "" -logscale 0
 
     # extract axis information from the first curve
     set clist [get]
@@ -303,18 +304,26 @@ itcl::body Rappture::XyResult::_rebuild {} {
         }
     }
 
+    foreach lim {xmin xmax ymin ymax} {
+        set limits($lim) ""
+    }
+
     # plot all of the curves
     set count 0
     foreach xydata $clist {
         foreach comp [$xydata components] {
+            catch {unset hints}
+            array set hints [$xydata hints]
+
             set xv [$xydata mesh $comp]
             set yv [$xydata values $comp]
 
             if {[info exists _curve2color($xydata)]} {
                 set color $_curve2color($xydata)
             } else {
-                set color [$xydata hints color]
-                if {"" == $color} {
+                if {[info exists hints(color)]} {
+                    set color $hints(color)
+                } else {
                     set color black
                 }
             }
@@ -340,13 +349,37 @@ itcl::body Rappture::XyResult::_rebuild {} {
             set elem "elem[incr count]"
             set _elem2curve($elem) $xydata
 
-            set label [$xydata hints label]
+            if {[info exists hints(label)]} {
+                set label $hints(label)
+            } else {
+                set label ""
+            }
             $g element create $elem -x $xv -y $yv \
                 -symbol $sym -pixels 6 -linewidth $lwidth -label $label \
                 -color $color -dashes $dashes
+
+            if {[info exists hints(xscale)] && $hints(xscale) == "log"} {
+                $g xaxis configure -logscale 1
+            }
+            if {[info exists hints(yscale)] && $hints(yscale) == "log"} {
+                $g yaxis configure -logscale 1
+            }
+
+            # see if there are any hints on limit
+            foreach lim {xmin xmax ymin ymax} {
+                if {[info exists hints($lim)] && "" != $hints($lim)} {
+                    set limits($lim) $hints($lim)
+                }
+            }
         }
     }
 
+    # add any limit directives from the curve objects
+    foreach lim {xmin xmax ymin ymax} var {_xmin _xmax _vmin _vmax} {
+        if {"" != $limits($lim)} {
+            set $var $limits($lim)
+        }
+    }
     _fixLimits
 }
 

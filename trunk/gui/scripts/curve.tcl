@@ -154,9 +154,13 @@ itcl::body Rappture::Curve::hints {{keyword ""}} {
         xlabel  xaxis.label
         xunits  xaxis.units
         xscale  xaxis.scale
+        xmin    xaxis.min
+        xmax    xaxis.max
         ylabel  yaxis.label
         yunits  yaxis.units
         yscale  yaxis.scale
+        ymin    yaxis.min
+        ymax    yaxis.max
     } {
         set str [$_curve get $path]
         if {"" != $str} {
