@@ -89,11 +89,14 @@ itcl::body Rappture::DeviceLayout1D::constructor {args} {
         ignore -borderwidth -relief
         ignore -highlightthickness -highlightbackground -highlightcolor
     }
-    pack $itk_component(area) -fill both
+    pack $itk_component(area) -expand yes -fill both
     bind $itk_component(area) <Configure> \
         [list $_dispatcher event -idle !redraw]
 
     eval itk_initialize $args
+
+    set _sizes(header) 1
+    set _sizes(bararea) 1
 }
 
 # ----------------------------------------------------------------------
@@ -162,15 +165,39 @@ itcl::body Rappture::DeviceLayout1D::controls {option args} {
 # _redraw.
 # ----------------------------------------------------------------------
 itcl::body Rappture::DeviceLayout1D::_layout {} {
-    # first, recompute the overall height of this widget
-    set h [expr {$_sizes(bar)+$_sizes(bar45)+2}]
+    #
+    # First, recompute the overall height of this widget...
+    #
+    # size of an ordinary material bar:
+    set hmax [expr {$_sizes(bar)+$_sizes(bar45)+2}]
+
+    # add the maximum size of any embedded icons:
+    if {$_device != ""} {
+        foreach nn [$_device children components] {
+            set icon [$_device get components.$nn.about.icon]
+            if {"" != $icon} {
+                if {[info exists _icons($icon)]} {
+                    set imh $_icons($icon)
+                } else {
+                    set imh [image create photo -data $icon]
+                    set _icons($icon) $imh
+                }
+
+                set h [image height $_icons($icon)]
+                if {$h > $hmax} {
+                    set hmax $h
+                }
+            }
+        }
+    }
+    set _sizes(bararea) $hmax
 
     set fnt $itk_option(-font)
     # see if any of the slabs has a material
     foreach m $_maters {
         if {"" != $m} {
             set extra [expr {1.5*[font metrics $fnt -linespace]}] 
-            set h [expr {$h+$extra}]
+            set hmax [expr {$hmax+$extra}]
             break
         }
     }
@@ -180,17 +207,18 @@ itcl::body Rappture::DeviceLayout1D::_layout {} {
         foreach nn [$_device children components] {
             if {"" != [$_device get components.$nn.about.label]} {
                 set extra [expr {1.2*[font metrics $fnt -linespace]}] 
-                set h [expr {$h+$extra}]
+                set hmax [expr {$hmax+$extra}]
                 break
             }
         }
     }
 
     set oldh [component hull cget -height]
-    if {$h != $oldh} {
-        component hull configure -height $h
+    if {$hmax != $oldh} {
+        component hull configure -height $hmax
         $_dispatcher event -idle !redraw
     }
+    set _sizes(header) [expr {$hmax - $_sizes(bararea)}]
 
     # next, scan through the device and compute layer positions
     set slabs ""
@@ -313,9 +341,10 @@ itcl::body Rappture::DeviceLayout1D::_redraw {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::DeviceLayout1D::_drawLayer {index x0 x1} {
     set c $itk_component(area)
-    set h [expr {[winfo height $c]-1}]
+    set h [expr {$_sizes(header) + $_sizes(bararea) - 1}]
 
-    set y0 $h
+    set bsize [expr {$_sizes(bar)+$_sizes(bar45)+2}]
+    set y0 [expr {$h - 0.5*$_sizes(bararea) + 0.5*$bsize}]
     set y0p [expr {$y0-$_sizes(bar45)}]
     set y1p [expr {$y0-$_sizes(bar)}]
     set y1 [expr {$y1p-$_sizes(bar45)}]
@@ -360,9 +389,10 @@ itcl::body Rappture::DeviceLayout1D::_drawLayer {index x0 x1} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::DeviceLayout1D::_drawIcon {index x0 x1 imh} {
     set c $itk_component(area)
-    set h [expr {[winfo height $c]-1}]
+    set h [expr {$_sizes(header) + $_sizes(bararea) - 1}]
 
-    set y0 $h
+    set bsize [expr {$_sizes(bar)+$_sizes(bar45)+2}]
+    set y0 [expr {$h - 0.5*$_sizes(bararea) + 0.5*$bsize}]
     set y0p [expr {$y0-$_sizes(bar45)}]
     set y1p [expr {$y0-$_sizes(bar)}]
     set y1 [expr {$y1p-$_sizes(bar45)}]
@@ -372,9 +402,6 @@ itcl::body Rappture::DeviceLayout1D::_drawIcon {index x0 x1 imh} {
     set xx0 [expr {0.5*($x0+$x0p)}]
     set xx1 [expr {0.5*($x1+$x1p)}]
     set y [expr {0.5*($y0+$y0p) + 0.5*($y1-$y0p)}]
-
-    ##set lcolor $itk_option(-deviceoutline)
-    ##$c create line $xx0 $y $xx1 $y -width 3
 
     $c create image [expr {0.5*($xx0+$xx1)}] $y -anchor c -image $imh
 }
@@ -388,19 +415,16 @@ itcl::body Rappture::DeviceLayout1D::_drawIcon {index x0 x1 imh} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::DeviceLayout1D::_drawAnnotation {index x0 x1} {
     set c $itk_component(area)
-    set h [expr {[winfo height $c]-1}]
 
-    set y0 $h
-    set y1 [expr {$y0-$_sizes(bar)-$_sizes(bar45)}]
-
+    set ytop [expr {$_sizes(header)+1}]
     set x0p [expr {$x0+$_sizes(bar45)}]
     set x1p [expr {$x1+$_sizes(bar45)}]
     set xmid [expr {0.5*($x0p+$x1p)}]
 
     set fnt $itk_option(-font)
     set lh [font metrics $fnt -linespace]
-    set ymid [expr {$y1-2-0.5*$lh}]
-    set y [expr {$y1-4}]
+    set ymid [expr {$ytop-2-0.5*$lh}]
+    set y [expr {$ytop-4}]
 
     #
     # If there's a .material control for this slab, draw it here.

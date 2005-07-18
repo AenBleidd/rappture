@@ -14,8 +14,8 @@ package require vtk
 package require vtkinteraction
 package require BLT
 
-option add *MoleculeViewer.width 4i widgetDefault
-option add *MoleculeViewer.height 4i widgetDefault
+option add *MoleculeViewer.width 5i widgetDefault
+option add *MoleculeViewer.height 5i widgetDefault
 option add *MoleculeViewer.backdrop black widgetDefault
 
 blt::bitmap define MoleculeViewer-reset {

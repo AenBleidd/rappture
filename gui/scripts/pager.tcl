@@ -165,8 +165,8 @@ itcl::body Rappture::Pager::insert {pos args} {
     set _page2info($params(-name)-command) $params(-command)
     set _pages [linsert $_pages $pos $params(-name)]
 
-    #bind $win <Configure> \
-    #    [itcl::code $_dispatcher event -idle !fixsize]
+    bind $win <Configure> \
+        [itcl::code $_dispatcher event -idle !fixsize]
 
     # the number of pages affects the arrangment -- force an update
     configure -arrangement $itk_option(-arrangement)

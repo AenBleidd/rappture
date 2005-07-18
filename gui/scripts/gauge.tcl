@@ -81,7 +81,8 @@ itk::usual Gauge {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Gauge::constructor {args} {
     itk_component add icon {
-        canvas $itk_interior.icon -borderwidth 0 -highlightthickness 0
+        canvas $itk_interior.icon -width 1 -height 1 \
+            -borderwidth 0 -highlightthickness 0
     } {
         usual
         ignore -highlightthickness -highlightbackground -highlightcolor
@@ -541,6 +542,7 @@ itcl::configbody Rappture::Gauge::spectrum {
                || !$valid)} {
         error "bad option \"$itk_option(-spectrum)\": should be Rappture::Spectrum object"
     }
+    _resize
     _layout
     _redraw
 }
