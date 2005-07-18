@@ -12,8 +12,6 @@
 # ======================================================================
 package require Itk
 
-option add *DeviceEditor.width 5i widgetDefault
-option add *DeviceEditor.height 5i widgetDefault
 option add *DeviceEditor.autoCleanUp yes widgetDefault
 
 itcl::class Rappture::DeviceEditor {
@@ -40,9 +38,6 @@ itk::usual DeviceEditor {
 # CONSTRUCTOR
 # ----------------------------------------------------------------------
 itcl::body Rappture::DeviceEditor::constructor {owner args} {
-    itk_option add hull.width hull.height
-    pack propagate $itk_component(hull) no
-
     itk_component add top {
         frame $itk_interior.top
     }

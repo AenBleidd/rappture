@@ -15,8 +15,6 @@
 package require Itk
 package require BLT
 
-option add *DeviceViewer1D.width 4i widgetDefault
-option add *DeviceViewer1D.height 4i widgetDefault
 option add *DeviceViewer1D.padding 4 widgetDefault
 option add *DeviceViewer1D.deviceSize 0.25i widgetDefault
 option add *DeviceViewer1D.deviceOutline black widgetDefault
@@ -33,6 +31,7 @@ itcl::class Rappture::DeviceViewer1D {
                                                                                 
     protected method _loadDevice {}
     protected method _changeTabs {}
+    protected method _fixSize {}
     protected method _fixAxes {}
     protected method _align {}
 
@@ -59,7 +58,6 @@ itk::usual DeviceViewer1D {
 itcl::body Rappture::DeviceViewer1D::constructor {owner args} {
     set _owner $owner
 
-    itk_option add hull.width hull.height
     pack propagate $itk_component(hull) no
 
     itk_component add tabs {
@@ -94,7 +92,7 @@ itcl::body Rappture::DeviceViewer1D::constructor {owner args} {
     itk_component add graph {
         blt::graph $itk_component(inner).graph \
             -highlightthickness 0 -plotpadx 0 -plotpady 0 \
-            -width 3i -height 3i
+            -width 4i -height 2i
     } {
         keep -background -foreground -cursor -font
     }
@@ -119,6 +117,8 @@ itcl::body Rappture::DeviceViewer1D::constructor {owner args} {
     pack $itk_component(devcntls) -side bottom -fill x
 
     eval itk_initialize $args
+
+    _fixSize
 }
 
 # ----------------------------------------------------------------------
@@ -293,6 +293,8 @@ itcl::body Rappture::DeviceViewer1D::_loadDevice {} {
     #
     $itk_component(graph) configure \
         -rightmargin [$itk_component(layout) extents bar3D]
+
+    _fixSize
 }
 
 # ----------------------------------------------------------------------
@@ -407,6 +409,21 @@ itcl::body Rappture::DeviceViewer1D::_changeTabs {} {
     # let the widget settle, then fix the axes to "nice" values
     after cancel [itcl::code $this _fixAxes]
     after 100 [itcl::code $this _fixAxes]
+}
+
+# ----------------------------------------------------------------------
+# USAGE: _fixSize
+#
+# Used internally to fix the overall size of this widget based on
+# the various parts inside.  Sets the requested width/height of the
+# widget so that it is big enough to display the device and its
+# fields.
+# ----------------------------------------------------------------------
+itcl::body Rappture::DeviceViewer1D::_fixSize {} {
+    update idletasks
+    set w [winfo reqwidth $itk_component(tabs)]
+    set h [winfo reqheight $itk_component(tabs)]
+    component hull configure -width $w -height $h
 }
 
 # ----------------------------------------------------------------------
