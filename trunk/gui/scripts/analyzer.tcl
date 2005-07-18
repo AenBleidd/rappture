@@ -56,6 +56,7 @@ itcl::class Rappture::Analyzer {
     protected method _fixSize {}
     protected method _fixSimControl {}
     protected method _simState {state args}
+    protected method _simOutput {message}
 
     private variable _tool ""          ;# belongs to this tool
     private variable _control "manual" ;# start mode
@@ -163,6 +164,12 @@ itcl::body Rappture::Analyzer::constructor {tool args} {
         rename -font -textfont textFont Font
     }
     $w.info contents $w.info.text
+
+    $itk_component(runinfo) tag configure ERROR -foreground red
+
+    itk_component add progress {
+        Rappture::Progress $w.progress
+    }
 
     # ------------------------------------------------------------------
     # ANALYZE PAGE
@@ -273,10 +280,14 @@ itcl::body Rappture::Analyzer::simulate {args} {
     # simulation is needed -- go to simulation page
     $itk_component(notebook) current simulate
 
+    # no progress messages yet
+    pack forget $itk_component(progress)
+    lappend args -output [itcl::code $this _simOutput]
+
     _simState off
     $itk_component(runinfo) configure -state normal
     $itk_component(runinfo) delete 1.0 end
-    $itk_component(runinfo) insert end "Running simulation..."
+    $itk_component(runinfo) insert end "Running simulation...\n\n"
     $itk_component(runinfo) configure -state disabled
 
     # if the hold window is set, then put up a busy cursor
@@ -680,6 +691,77 @@ itcl::body Rappture::Analyzer::_simState {state args} {
         $itk_component(simstatus) configure -state disabled
         Rappture::Tooltip::for $itk_component(simstatus) ""
     }
+}
+
+# ----------------------------------------------------------------------
+# USAGE: _simOutput <message>
+#
+# Invoked automatically whenever output comes in while running the
+# tool.  Extracts any =RAPPTURE-???=> messages from the output and
+# sends the output to the display.  For example, any
+# =RAPPTURE-PROGRESS=> message pops up the progress meter and updates
+# it to show the latest progress message.  This is useful for
+# long-running tools, to let the user know how much longer the
+# simulation will take.
+# ----------------------------------------------------------------------
+itcl::body Rappture::Analyzer::_simOutput {message} {
+    #
+    # Scan through and pick out any =RAPPTURE-PROGRESS=> messages first.
+    #
+    while {[regexp -indices \
+               {=RAPPTURE-PROGRESS=>([0-9]+) +([^\n]*)(\n|$)} $message \
+                match percent mesg]} {
+
+        foreach {i0 i1} $percent break
+        set percent [string range $message $i0 $i1]
+
+        foreach {i0 i1} $mesg break
+        set mesg [string range $message $i0 $i1]
+
+        pack $itk_component(progress) -fill x -padx 10 -pady 10
+        $itk_component(progress) settings -percent $percent -message $mesg
+
+        foreach {i0 i1} $match break
+        set message [string replace $message $i0 $i1]
+    }
+
+    #
+    # Break up the remaining lines according to =RAPPTURE-ERROR=> messages.
+    # Show errors in a special color.
+    #
+    $itk_component(runinfo) configure -state normal
+
+    while {[regexp -indices \
+               {=RAPPTURE-([a-zA-Z]+)=>([^\n]*)(\n|$)} $message \
+                match type mesg]} {
+
+        foreach {i0 i1} $match break
+        set first [string range $message 0 [expr {$i0-1}]]
+        if {[string length $first] > 0} {
+            $itk_component(runinfo) insert end $first
+            $itk_component(runinfo) insert end \n
+        }
+
+        foreach {t0 t1} $type break
+        set type [string range $message $t0 $t1]
+        foreach {m0 m1} $mesg break
+        set mesg [string range $message $m0 $m1]
+        if {[string length $mesg] > 0 && $type != "RUN"} {
+            $itk_component(runinfo) insert end $mesg $type
+            $itk_component(runinfo) insert end \n $type
+        }
+
+        set message [string range $message [expr {$i1+1}] end]
+    }
+
+    if {[string length $message] > 0} {
+        $itk_component(runinfo) insert end $message
+        if {[$itk_component(runinfo) get end-2char] != "\n"} {
+            $itk_component(runinfo) insert end "\n"
+        }
+        $itk_component(runinfo) see end
+    }
+    $itk_component(runinfo) configure -state disabled
 }
 
 # ----------------------------------------------------------------------

@@ -180,6 +180,8 @@ itcl::body Rappture::Controls::delete {first {last ""}} {
         if {"" != $_name2info($name-value)} {
             destroy $_name2info($name-value)
         }
+        $_owner widgetfor $_name2info($name-path) ""
+
         unset _name2info($name-path)
         unset _name2info($name-label)
         unset _name2info($name-value)

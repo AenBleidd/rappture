@@ -43,6 +43,7 @@ option add *Editor.background white
 option add *Gauge.textBackground white
 option add *TemperatureGauge.textBackground white
 option add *Switch.textBackground white
+option add *Progress.barColor #ffffcc
 
 switch $tcl_platform(platform) {
     unix - windows {

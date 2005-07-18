@@ -108,13 +108,18 @@ itcl::body Rappture::Page::_buildGroup {frame xmlobj path} {
             }
 
             # if there's a default value, load it now
-            if {"" != [$xmlobj element -as type $path.$cname.default]} {
-                set val [$xmlobj get $path.$cname.default]
+            if {"" != [$xmlobj element -as type $path.$cname.current]} {
+                set elem $path.$cname.current
+            } else {
+                set elem $path.$cname.default
+            }
+            if {"" != [$xmlobj element -as type $elem]} {
+                set val [$xmlobj get $elem]
                 if {[string length $val] > 0} {
                     $w value $val
                     $xmlobj put $path.$cname.current $val
                 } else {
-                    set obj [$xmlobj element -as object $path.$cname.default]
+                    set obj [$xmlobj element -as object $elem]
                     $w value $obj
                     $xmlobj put $path.$cname.current $obj
                 }
