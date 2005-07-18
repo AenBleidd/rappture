@@ -202,7 +202,7 @@ itcl::body Rappture::DeviceLayout1D::_layout {} {
     if {$_device != ""} {
         # get the default system of units
         set units [set defunits [$_device get units]]
-        if {$units == "arbitrary"} {
+        if {$units == "arbitrary" || $units == ""} {
             set defunits "m"
             set units "um"
         }
@@ -211,11 +211,15 @@ itcl::body Rappture::DeviceLayout1D::_layout {} {
             switch -glob -- $nn {
                 box* {
                     # get x-coord for each corner
-                    set c0 [lindex [$_device get components.$nn.corner0] 0]
+                    set c0 [$_device get components.$nn.corner0]
+                    regsub -all , $c0 { } c0
+                    set c0 [lindex $c0 0]
                     set c0 [Rappture::Units::convert $c0 \
                         -context $defunits -to $units -units off]
 
-                    set c1 [lindex [$_device get components.$nn.corner1] 0]
+                    set c1 [$_device get components.$nn.corner1]
+                    regsub -all , $c1 { } c1
+                    set c1 [lindex $c1 0]
                     set c1 [Rappture::Units::convert $c1 \
                         -context $defunits -to $units -units off]
 

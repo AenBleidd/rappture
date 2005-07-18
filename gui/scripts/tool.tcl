@@ -26,7 +26,10 @@ itcl::class Rappture::Tool {
     public method run {args}
     public method abort {}
 
+    protected method _output {data}
+
     private variable _installdir ""  ;# installation directory for this tool
+    private variable _outputcb ""    ;# callback for tool output
     private common job               ;# array var used for blt::bgexec jobs
 }
                                                                                 
@@ -48,12 +51,21 @@ itcl::body Rappture::Tool::constructor {xmlobj installdir args} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: run ?<path1> <value1> <path2> <value2> ...?
+# USAGE: run ?<path1> <value1> <path2> <value2> ...? ?-output <callbk>?
 #
 # This method causes the tool to run.  All widgets are synchronized
 # to the current XML representation, and a "driver.xml" file is
 # created as the input for the run.  That file is fed to the tool
 # according to the <tool><command> string, and the job is executed.
+#
+# Any "<path> <value>" arguments are used to override the current
+# settings from the GUI.  This is useful, for example, when filling
+# in missing simulation results from the analyzer.
+#
+# If the -output argument is included, then the next arg is a
+# callback command for output messages.  Any output that comes in
+# while the tool is running is sent back to the caller, so the user
+# can see progress running the tool.
 #
 # Returns a list of the form {status result}, where status is an
 # integer status code (0=success) and result is the output from the
@@ -68,8 +80,13 @@ itcl::body Rappture::Tool::run {args} {
     sync
 
     # if there are any args, use them to override parameters
+    set _outputcb ""
     foreach {path val} $args {
-        $_xmlobj put $path.current $val
+        if {$path == "-output"} {
+            set _outputcb $val
+        } else {
+            $_xmlobj put $path.current $val
+        }
     }
 
     foreach item {control output error} { set job($item) "" }
@@ -91,6 +108,7 @@ itcl::body Rappture::Tool::run {args} {
 
         set status [catch {eval blt::bgexec \
             ::Rappture::Tool::job(control) \
+            -onoutput [list [itcl::code $this _output]] \
             -output ::Rappture::Tool::job(output) \
             -error ::Rappture::Tool::job(error) $cmd} result]
     } else {
@@ -126,4 +144,16 @@ itcl::body Rappture::Tool::run {args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Tool::abort {} {
     set job(control) "abort"
+}
+
+# ----------------------------------------------------------------------
+# USAGE: _output <data>
+#
+# Used internally to send each bit of output <data> coming from the
+# tool onto the caller, so the user can see progress.
+# ----------------------------------------------------------------------
+itcl::body Rappture::Tool::_output {data} {
+    if {[string length $_outputcb] > 0} {
+        uplevel #0 [list $_outputcb $data]
+    }
 }

@@ -52,6 +52,8 @@ itcl::body Rappture::TextResult::constructor {args} {
     $itk_component(scroller) contents $itk_component(text)
     $itk_component(text) configure -state disabled
 
+    $itk_component(text) tag configure ERROR -foreground red
+
     eval itk_initialize $args
 }
 
@@ -82,17 +84,40 @@ itcl::body Rappture::TextResult::add {dataobj {settings ""}} {
     $itk_component(text) delete 1.0 end
 
     if {"" != $dataobj} {
-        set txt [$dataobj get]
-        if {"" != $params(-color)} {
-#
-# ignore color for now -- may use it some day
-#
-#            $itk_component(text) insert end $txt special
-#            $itk_component(text) tag configure special \
-#                -foreground $params(-color)
-            $itk_component(text) insert end $txt
+        if {[$dataobj element -as type] == "log"} {
+            # log output -- remove special =RAPPTURE-???=> messages
+            set message [$dataobj get]
+            while {[regexp -indices \
+                       {=RAPPTURE-([a-zA-Z]+)=>([^\n]*)(\n|$)} $message \
+                        match type mesg]} {
+
+                foreach {i0 i1} $match break
+                set first [string range $message 0 [expr {$i0-1}]]
+                if {[string length $first] > 0} {
+                    $itk_component(text) insert end $first
+                }
+
+                foreach {t0 t1} $type break
+                set type [string range $message $t0 $t1]
+                foreach {m0 m1} $mesg break
+                set mesg [string range $message $m0 $m1]
+                if {[string length $mesg] > 0
+                       && $type != "RUN" && $type != "PROGRESS"} {
+                    $itk_component(text) insert end $mesg $type
+                    $itk_component(text) insert end \n $type
+                }
+                set message [string range $message [expr {$i1+1}] end]
+            }
+
+            if {[string length $message] > 0} {
+                $itk_component(text) insert end $message
+                if {[$itk_component(text) get end-2char] != "\n"} {
+                    $itk_component(text) insert end "\n"
+                }
+            }
         } else {
-            $itk_component(text) insert end $txt
+            # any other string output -- add it directly
+            $itk_component(text) insert end [$dataobj get]
         }
     }
 

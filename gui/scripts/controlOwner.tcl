@@ -19,7 +19,7 @@ itcl::class Rappture::ControlOwner {
     public method xml {args}
 
     public method load {newobj}
-    public method widgetfor {path {widget ""}}
+    public method widgetfor {path args}
     public method changed {path}
     public method notify {option owner args}
     public method sync {}
@@ -63,9 +63,9 @@ itcl::body Rappture::ControlOwner::xml {args} {
 # ControlOwner knows what widgets to look at when syncing itself
 # to the underlying XML data.
 # ----------------------------------------------------------------------
-itcl::body Rappture::ControlOwner::widgetfor {path {widget ""}} {
+itcl::body Rappture::ControlOwner::widgetfor {path args} {
     # if this is a query operation, then look for the path
-    if {"" == $widget} {
+    if {[llength $args] == 0} {
         if {[info exists _path2widget($path)]} {
             return $_path2widget($path)
         }
@@ -73,10 +73,15 @@ itcl::body Rappture::ControlOwner::widgetfor {path {widget ""}} {
     }
 
     # otherwise, associate the path with the given widget
-    if {[info exists _path2widget($path)]} {
-        error "$path already associated with widget $_path2widget($path)"
+    set widget [lindex $args 0]
+    if {"" != $widget} {
+        if {[info exists _path2widget($path)]} {
+            error "$path already associated with widget $_path2widget($path)"
+        }
+        set _path2widget($path) $widget
+    } else {
+        unset _path2widget($path)
     }
-    set _path2widget($path) $widget
 }
 
 # ----------------------------------------------------------------------

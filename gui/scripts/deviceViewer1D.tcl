@@ -177,6 +177,10 @@ itcl::body Rappture::DeviceViewer1D::_loadDevice {} {
     catch {unset _tab2fields}
     catch {unset _field2parm}
 
+    if {[winfo exists $itk_component(top).cntls]} {
+        $itk_component(top).cntls delete 0 end
+    }
+
     #
     # Scan through the current device and extract the list of
     # fields.  Create a tab for each field.
