@@ -200,7 +200,8 @@ itcl::body Rappture::Page::_buildGroup {frame xmlobj path} {
                     if {[catch {$frame.cntls insert end $path.$cname} c]} {
                         error $c "$c\n    (while building control for $path.$cname)"
                     } else {
-                        set w [$frame.cntls control $c]
+                        set gentry [$frame.cntls control $c]
+                        set w [$gentry component inner]
                     }
                 }
                 _buildGroup $w $xmlobj $path.$cname

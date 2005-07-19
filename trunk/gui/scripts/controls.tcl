@@ -10,6 +10,7 @@
 #  Purdue Research Foundation, West Lafayette, IN
 # ======================================================================
 package require Itk
+package require BLT
 
 option add *Controls.padding 4 widgetDefault
 option add *Controls.labelFont \
@@ -30,8 +31,11 @@ itcl::class Rappture::Controls {
     protected method _layout {}
     protected method _controlChanged {path}
     protected method _formatLabel {str}
+    protected method _changeTabs {}
 
     private variable _owner ""       ;# controls belong to this owner
+    private variable _tabs ""        ;# optional tabset for groups
+    private variable _frame ""       ;# pack controls into this frame
     private variable _counter 0      ;# counter for control names
     private variable _dispatcher ""  ;# dispatcher for !events
     private variable _controls ""    ;# list of known controls
@@ -50,6 +54,18 @@ itcl::body Rappture::Controls::constructor {owner args} {
     $_dispatcher dispatch $this !layout "[itcl::code $this _layout]; list"
 
     set _owner $owner
+
+    Rappture::Scroller $itk_interior.sc -xscrollmode none -yscrollmode auto
+    pack $itk_interior.sc -expand yes -fill both
+    set f [$itk_interior.sc contents frame]
+
+    set _tabs [blt::tabset $f.tabs -borderwidth 0 -relief flat \
+        -side top -tearoff 0 -highlightthickness 0 \
+        -selectbackground $itk_option(-background) \
+        -selectcommand [itcl::code $this _changeTabs]]
+
+    set _frame [frame $f.inner]
+    pack $_frame -expand yes -fill both
 
     eval itk_initialize $args
 }
@@ -77,7 +93,7 @@ itcl::body Rappture::Controls::insert {pos path} {
 
     set _name2info($name-path) $path
     set _name2info($name-label) ""
-    set _name2info($name-value) [set w $itk_interior.v$name]
+    set _name2info($name-value) [set w $_frame.v$name]
 
     set type [$_owner xml element -as type $path]
     switch -- $type {
@@ -125,7 +141,7 @@ itcl::body Rappture::Controls::insert {pos path} {
         # make a label for this control
         set label [$w label]
         if {"" != $label} {
-            set _name2info($name-label) $itk_interior.l$name
+            set _name2info($name-label) $_frame.l$name
             set font [option get $itk_component(hull) labelFont Font]
             label $_name2info($name-label) -text [_formatLabel $label] \
                 -font $font
@@ -256,42 +272,130 @@ itcl::body Rappture::Controls::_layout {} {
             }
         }
     }
+    if {[$_tabs size] > 0} {
+        $_tabs delete 0 end
+    }
 
     #
-    # Lay out the widgets in a simple "Label: Value" scheme...
+    # Decide on a layout scheme:
+    #   tabs ...... best if all elements within are groups
+    #   hlabels ... horizontal labels (label: value)
     #
-    set row 0
-    foreach name $_controls {
-        set wl $_name2info($name-label)
-        if {$wl != "" && [winfo exists $wl]} {
-            grid $wl -row $row -column 0 -sticky e
+    if {[llength $_controls] >= 2} {
+        # assume tabs for multiple groups
+        set scheme tabs
+        foreach name $_controls {
+            set w $_name2info($name-value)
+
+            if {[winfo class $w] != "GroupEntry"} {
+                # something other than a group? then fall back on hlabels
+                set scheme hlabels
+                break
+            }
+        }
+    } else {
+        set scheme hlabels
+    }
+
+    switch -- $scheme {
+      tabs {
+        #
+        # SCHEME: tabs
+        # put a series of groups into a tabbed notebook
+        #
+
+        # use inner frame within tabs to show current group
+        pack $_tabs -before $_frame -fill x
+
+        set gn 1
+        foreach name $_controls {
+            set wv $_name2info($name-value)
+            $wv configure -heading no
+
+            set label [$wv component heading cget -text]
+            if {"" == $label} {
+                set label "Group #$gn"
+            }
+            set _name2info($name-label) $label
+
+            $_tabs insert end $label \
+                -activebackground $itk_option(-background)
+
+            incr gn
         }
 
-        set wv $_name2info($name-value)
-        if {$wv != "" && [winfo exists $wv]} {
-            grid $wv -row $row -column 1 -sticky ew
+        # compute the overall size
+        # BE CAREFUL: do this after setting "-heading no" above
+        set maxw 0
+        set maxh 0
+        update idletasks
+        foreach name $_controls {
+            set w [winfo reqwidth $wv]
+            if {$w > $maxw} { set maxw $w }
+            set h [winfo reqheight $wv]
+            if {$h > $maxh} { set maxh $h }
+        }
+        $_frame configure -width $maxw -height $maxh
 
-            set frame [winfo parent $wv]
-            grid rowconfigure $frame $row -weight 0
-            grid rowconfigure $frame $row -weight 0
+        grid propagate $_frame off
+        grid columnconfigure $_frame 0 -weight 1
+        grid rowconfigure $_frame 0 -weight 1
 
-            switch -- [winfo class $wv] {
-                TextEntry {
-                    if {[regexp {[0-9]+x[0-9]+} [$wv size]]} {
-                        grid $wl -sticky n -pady 4
-                        grid $wv -sticky nsew
-                        grid rowconfigure $frame $row -weight 1
-                        grid columnconfigure $frame 1 -weight 1
+        $_tabs select 0; _changeTabs
+      }
+
+      hlabels {
+        #
+        # SCHEME: hlabels
+        # simple "Label: Value" layout
+        #
+        pack forget $_tabs
+        grid propagate $_frame on
+        grid columnconfigure $_frame 0 -weight 0
+        grid rowconfigure $_frame 0 -weight 0
+
+        set row 0
+        foreach name $_controls {
+            set wl $_name2info($name-label)
+            if {$wl != "" && [winfo exists $wl]} {
+                grid $wl -row $row -column 0 -sticky e
+            }
+
+            set wv $_name2info($name-value)
+            if {$wv != "" && [winfo exists $wv]} {
+                if {$wl != ""} {
+                    grid $wv -row $row -column 1 -sticky ew
+                } else {
+                    grid $wv -row $row -column 0 -columnspan 2 -sticky ew
+                }
+
+                set frame [winfo parent $wv]
+                grid rowconfigure $frame $row -weight 0
+                grid rowconfigure $frame $row -weight 0
+
+                switch -- [winfo class $wv] {
+                    TextEntry {
+                        if {[regexp {[0-9]+x[0-9]+} [$wv size]]} {
+                            grid $wl -sticky n -pady 4
+                            grid $wv -sticky nsew
+                            grid rowconfigure $frame $row -weight 1
+                            grid columnconfigure $frame 1 -weight 1
+                        }
+                    }
+                    GroupEntry {
+                        $wv configure -heading yes
                     }
                 }
+                grid columnconfigure $frame 1 -weight 1
             }
-            grid columnconfigure $frame 1 -weight 1
+
+
+            incr row
+            grid rowconfigure [winfo parent $w] $row \
+                -minsize $itk_option(-padding)
+            incr row
         }
-
-
-        incr row
-        grid rowconfigure [winfo parent $w] $row -minsize $itk_option(-padding)
-        incr row
+      }
     }
 }
 
@@ -321,6 +425,27 @@ itcl::body Rappture::Controls::_formatLabel {str} {
         append str ":"
     }
     return $str
+}
+
+# ----------------------------------------------------------------------
+# USAGE: _changeTabs
+#
+# Used internally to change tabs when the user clicks on a tab
+# in the "tabs" layout mode.  This mode is used when the widget
+# contains nothing but groups, as a compact way of representing
+# the groups.
+# ----------------------------------------------------------------------
+itcl::body Rappture::Controls::_changeTabs {} {
+    set i [$_tabs index select]
+    set name [lindex $_controls $i]
+    if {"" != $name} {
+        foreach w [grid slaves $_frame] {
+            grid forget $w
+        }
+
+        set wv $_name2info($name-value)
+        grid $wv -row 0 -column 0 -sticky new
+    }
 }
 
 # ----------------------------------------------------------------------

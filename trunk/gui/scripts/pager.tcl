@@ -400,10 +400,12 @@ itcl::body Rappture::Pager::_layout {} {
 # Otherwise, it passes the size request onto the hull.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Pager::_fixSize {} {
+    set sw [expr {[winfo screenwidth $itk_component(hull)]-200}]
+    set sh [expr {[winfo screenheight $itk_component(hull)]-200}]
+
     switch -- $itk_option(-arrangement) {
         pages {
             if {$itk_option(-width) <= 0} {
-                update idletasks
                 set maxw [expr {
                     [winfo reqwidth $itk_component(next)]
                     + 10
@@ -414,19 +416,20 @@ itcl::body Rappture::Pager::_fixSize {} {
                     if {$w > $maxw} { set maxw $w }
                 }
                 set maxw [expr {$maxw + 2*$itk_option(-padding)}]
+                if {$maxw > $sw} { set maxw $sw }
                 $itk_component(inside) configure -width $maxw
             } else {
                 $itk_component(inside) configure -width $itk_option(-width)
             }
 
             if {$itk_option(-height) <= 0} {
-                update idletasks
                 set maxh 0
                 foreach name $_pages {
                     set h [winfo reqheight $_page2info($name-frame)]
                     if {$h > $maxh} { set maxh $h }
                 }
                 set maxh [expr {$maxh + 2*$itk_option(-padding)}]
+                if {$maxh > $sh} { set maxh $sh }
                 $itk_component(inside) configure -height $maxh
             } else {
                 $itk_component(inside) configure -height $itk_option(-height)
@@ -434,7 +437,6 @@ itcl::body Rappture::Pager::_fixSize {} {
         }
         side-by-side {
             if {$itk_option(-width) <= 0} {
-                update idletasks
                 set maxw [expr {
                     [winfo reqwidth $itk_component(next)]
                     + 10
@@ -446,19 +448,20 @@ itcl::body Rappture::Pager::_fixSize {} {
                     set wtotal [expr {$wtotal + $w + 2*$itk_option(-padding)}]
                 }
                 if {$wtotal > $maxw} { set maxw $wtotal }
+                if {$maxw > $sw} { set maxw $sw }
                 $itk_component(inside) configure -width $maxw
             } else {
                 $itk_component(inside) configure -width $itk_option(-width)
             }
 
             if {$itk_option(-height) <= 0} {
-                update idletasks
                 set maxh 0
                 foreach name $_pages {
                     set h [winfo reqheight $_page2info($name-frame)]
                     if {$h > $maxh} { set maxh $h }
                 }
                 set maxh [expr {$maxh + 2*$itk_option(-padding)}]
+                if {$maxh > $sh} { set maxh $sh }
                 $itk_component(inside) configure -height $maxh
             } else {
                 $itk_component(inside) configure -height $itk_option(-height)

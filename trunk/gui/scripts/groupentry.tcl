@@ -11,8 +11,14 @@
 # ======================================================================
 package require Itk
 
+option add *GroupEntry.headingBackground #cccccc widgetDefault
+option add *GroupEntry.headingForeground white widgetDefault
+option add *GroupEntry.font -*-helvetica-medium-r-normal-*-*-120-* widgetDefault
+
 itcl::class Rappture::GroupEntry {
     inherit itk::Widget
+
+    itk_option define -heading heading Heading 1
 
     constructor {owner path args} { # defined below }
 
@@ -20,6 +26,8 @@ itcl::class Rappture::GroupEntry {
 
     public method label {}
     public method tooltip {}
+
+    protected method _fixheading {}
 
     private variable _owner ""    ;# thing managing this control
     private variable _path ""     ;# path in XML to this number
@@ -41,6 +49,36 @@ itcl::body Rappture::GroupEntry::constructor {owner path args} {
     }
     set _owner $owner
     set _path $path
+
+    itk_component add heading {
+        ::label $itk_interior.heading -anchor w
+    } {
+        usual
+        rename -background -headingbackground headingBackground Background
+        rename -foreground -headingforeground headingForeground Foreground
+    }
+
+    $itk_component(heading) configure \
+        -text [$_owner xml get $_path.about.label]
+    Rappture::Tooltip::for $itk_component(heading) \
+        [$_owner xml get $_path.about.description]
+
+    itk_component add outline {
+        frame $itk_interior.outline -borderwidth 1
+    } {
+        usual
+        ignore -borderwidth
+        rename -background -headingbackground headingBackground Background
+    }
+    pack $itk_component(outline) -expand yes -fill both
+
+    itk_component add inner {
+        frame $itk_component(outline).inner -borderwidth 3
+    } {
+        usual
+        ignore -borderwidth
+    }
+    pack $itk_component(inner) -expand yes -fill both
 
     eval itk_initialize $args
 }
@@ -66,7 +104,7 @@ itcl::body Rappture::GroupEntry::value {args} {
 # Reaches into the XML and pulls out the appropriate label string.
 # ----------------------------------------------------------------------
 itcl::body Rappture::GroupEntry::label {} {
-    return [$_owner xml get $_path.about.label]
+    return ""  ;# manage the label inside this group
 }
 
 # ----------------------------------------------------------------------
@@ -79,4 +117,27 @@ itcl::body Rappture::GroupEntry::label {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::GroupEntry::tooltip {} {
     return [$_owner xml get $_path.about.description]
+}
+
+# ----------------------------------------------------------------------
+# CONFIGURATION OPTION: -heading
+# Turns the heading bar at the top of this group on/off.
+# ----------------------------------------------------------------------
+itcl::configbody Rappture::GroupEntry::heading {
+    if {![string is boolean -strict $itk_option(-heading)]} {
+        error "bad value \"$itk_option(-heading)\": should be boolean"
+    }
+
+    set str [$itk_component(heading) cget -text]
+    if {$itk_option(-heading) && "" != $str} {
+        eval pack forget [pack slaves $itk_component(hull)]
+        pack $itk_component(heading) -side top -fill x
+        pack $itk_component(outline) -expand yes -fill both
+        $itk_component(outline) configure -borderwidth 1
+        $itk_component(inner) configure -borderwidth 3
+    } else {
+        pack forget $itk_component(heading)
+        $itk_component(outline) configure -borderwidth 0
+        $itk_component(inner) configure -borderwidth 0
+    }
 }

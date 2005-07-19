@@ -204,12 +204,9 @@ itcl::body Rappture::DeviceViewer1D::_loadDevice {} {
 
     if {[llength $tabs] <= 0} {
         #
-        # == DEPRECATED FUNCTIONALITY ==
-        # (I like the look of the tab, even if there's only one)
-        #
-        # No fields or one field?  Then we don't need to bother
-        # with tabs.  Just pack the inner frame directly.  If
-        # there are no fields, get rid of the graph.
+        # No fields?  Then we don't need to bother with tabs.
+        # Just pack the inner frame directly.  If there are no
+        # fields, get rid of the graph.
         #
         pack $itk_component(inner) -expand yes -fill both
         if {[llength $tabs] > 0} {

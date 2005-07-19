@@ -129,6 +129,11 @@ itcl::body Rappture::Tooltip::show {where} {
         set mesg $itk_option(-message)
     }
 
+    # if there's no message to show, forget it
+    if {[string length $mesg] == 0} {
+        return
+    }
+
     # strings can't be too big, or they'll go off screen!
     if {[string length $mesg] > 1000} {
         set mesg "[string range $mesg 0 1000]..."
