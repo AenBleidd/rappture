@@ -33,8 +33,10 @@ itcl::class Rappture::Scroller {
     protected method _widget2sbar {which args}
     protected method _fixsbar {which {state ""}}
     protected method _fixframe {which}
+    protected method _fixsize {}
     protected method _lock {option}
 
+    private variable _dispatcher "" ;# dispatcher for !events
     private variable _contents ""   ;# widget being controlled
     private variable _frame ""      ;# for "contents frame" calls
     private variable _lock 0        ;# for _lock on x-scrollbar
@@ -51,6 +53,20 @@ itk::usual Scroller {
 # CONSTRUCTOR
 # ----------------------------------------------------------------------
 itcl::body Rappture::Scroller::constructor {args} {
+    Rappture::dispatcher _dispatcher
+
+    $_dispatcher register !fixframe-inner
+    $_dispatcher dispatch $this !fixframe-inner \
+        "[itcl::code $this _fixframe inner]; list"
+
+    $_dispatcher register !fixframe-outer
+    $_dispatcher dispatch $this !fixframe-outer \
+        "[itcl::code $this _fixframe outer]; list"
+
+    $_dispatcher register !fixsize
+    $_dispatcher dispatch $this !fixsize \
+        "[itcl::code $this _fixsize]; list"
+
     itk_component add xsbar {
         scrollbar $itk_interior.xsbar -orient horizontal
     }
@@ -103,8 +119,10 @@ itcl::body Rappture::Scroller::contents {{widget "!@#query"}} {
             set _frame [canvas $itk_component(hull).ifr -highlightthickness 0]
             frame $_frame.f
             $_frame create window 0 0 -anchor nw -window $_frame.f -tags frame
-            bind $_frame.f <Configure> [itcl::code $this _fixframe inner]
-            bind $_frame <Configure> [itcl::code $this _fixframe outer]
+            bind $_frame.f <Configure> \
+                [itcl::code $_dispatcher event -idle !fixframe-inner]
+            bind $_frame <Configure> \
+                [itcl::code $_dispatcher event -idle !fixframe-outer]
         }
         set widget $_frame
     }
@@ -206,10 +224,35 @@ itcl::body Rappture::Scroller::_fixframe {which} {
     switch -- $which {
         inner {
             $_frame configure -scrollregion [$_frame bbox all]
+            $_dispatcher event -idle !fixsize
         }
         outer {
             $_frame itemconfigure frame -width [winfo width $_frame]
         }
+    }
+}
+
+# ----------------------------------------------------------------------
+# USAGE: _fixsize
+#
+# Used internally to update the size options for the widget
+# whenever the -width/-height options change.
+# ----------------------------------------------------------------------
+itcl::body Rappture::Scroller::_fixsize {} {
+    if {$itk_option(-width) == "0" && $itk_option(-height) == "0"} {
+        # for default size, let the frame being controlled set the size
+        grid propagate $itk_component(hull) yes
+        if {$_frame == "$itk_component(hull).ifr"} {
+            set w [winfo reqwidth $_frame.f]
+            set h [winfo reqheight $_frame.f]
+            $_frame configure -width $w -height $h
+        }
+    } else {
+        # for specific size, set the overall size of the widget
+        grid propagate $itk_component(hull) no
+        set w $itk_option(-width); if {$w == "0"} { set w 1i }
+        set h $itk_option(-height); if {$h == "0"} { set h 1i }
+        component hull configure -width $w -height $h
     }
 }
 
@@ -263,30 +306,18 @@ itcl::configbody Rappture::Scroller::yscrollmode {
 # OPTION: -width
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::Scroller::width {
-    if {$itk_option(-width) == "0"} {
-        if {$itk_option(-height) == "0"} {
-            grid propagate $itk_component(hull) yes
-        } else {
-            component hull configure -width 1i
-        }
-    } else {
-        grid propagate $itk_component(hull) no
-        component hull configure -width $itk_option(-width)
-    }
+    # check for proper value
+    winfo pixels $itk_component(hull) $itk_option(-width)
+
+    $_dispatcher event -idle !fixsize
 }
 
 # ----------------------------------------------------------------------
 # OPTION: -height
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::Scroller::height {
-    if {$itk_option(-height) == "0"} {
-        if {$itk_option(-width) == "0"} {
-            grid propagate $itk_component(hull) yes
-        } else {
-            component hull configure -height 1i
-        }
-    } else {
-        grid propagate $itk_component(hull) no
-        component hull configure -height $itk_option(-height)
-    }
+    # check for proper value
+    winfo pixels $itk_component(hull) $itk_option(-height)
+
+    $_dispatcher event -idle !fixsize
 }
