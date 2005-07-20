@@ -319,6 +319,10 @@ int rp_lib(const char* filePath, int filePath_len)
     int handle = -1;
     char* inFilePath = NULL;
 
+    long int fileLength = 0;
+    char* fileContents = NULL;
+    FILE* fp = NULL;
+
     if (!rapptureStarted) {
         rp_init();
     }
@@ -332,8 +336,19 @@ int rp_lib(const char* filePath, int filePath_len)
     rpClass = getObject(0);
 
     if (rpClass) {
+
+        fp = fopen(inFilePath,"rb");
+        if (fp) {
+            fseek(fp, 0, SEEK_END);
+            fileLength = ftell(fp);
+            rewind(fp);
+        }
+        fileContents = (char*) calloc(fileLength,sizeof(char));
+        fread((void*)fileContents,sizeof(char),fileLength,fp);
+
         // create a RapptureIO object and store in dictionary
-        lib = createRapptureObj(rpClass, inFilePath);
+        // lib = createRapptureObj(rpClass, inFilePath);
+        lib = createRapptureObj(rpClass, fileContents);
 
         if (lib) {
             handle = storeObject(lib);
