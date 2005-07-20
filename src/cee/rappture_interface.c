@@ -101,31 +101,58 @@ PyObject* createRapptureObj (PyObject* rpObj, const char* path)
     PyObject* lib       = NULL;      /* results from fxn call */
     PyObject* retVal    = NULL;      /* fxn return value */
 
+    long int fileLength = 0;
+    char* fileContents = NULL;
+    FILE* fp = NULL;
+
 
     if (rpObj) {
         if (path) {
-            // setup our arguments in a Python tuple
-            args = PyTuple_New(1);
-            stringarg = PyString_FromString(path);
-            PyTuple_SetItem(args, 0, stringarg);
-                    
-            // call the class ... lib = Rappture.library("...")
-            lib = PyObject_CallObject(rpObj, args);
-            
-            // following line could cause a segfault if used in place of above
-            // maybe path could == NULL or bad memory
-            // lib = PyObject_CallFunction(rpObj,"(s)", path);
 
-            if (lib) {
-                // return the Rappture instantiation.
-                retVal = lib;
+            fp = fopen(path,"rb");
+            if (fp) {
+                fseek(fp, 0, SEEK_END);
+                fileLength = ftell(fp);
+                rewind(fp);
+            }
+            fileContents = (char*) calloc(fileLength,sizeof(char));
+
+            if (fp && fileContents) {
+                fread((void*)fileContents,sizeof(char),fileLength,fp);
+                fclose(fp);
+                fp = NULL;
+
+                // setup our arguments in a Python tuple
+                args = PyTuple_New(1);
+                stringarg = PyString_FromString(fileContents);
+                
+                // clean up used memory
+                free (fileContents);
+                fileContents = NULL;
+                
+                PyTuple_SetItem(args, 0, stringarg);
+                        
+                // call the class ... lib = Rappture.library("...")
+                lib = PyObject_CallObject(rpObj, args);
+                
+                // following line could cause a segfault if used in place of above
+                // maybe path could == NULL or bad memory
+                // lib = PyObject_CallFunction(rpObj,"(s)", path);
+
+                if (lib) {
+                    // return the Rappture instantiation.
+                    retVal = lib;
+                }
+                else {
+                    // lib was not successfully created
+                }
+
+                Py_DECREF(stringarg);
+                Py_DECREF(args);
             }
             else {
-                // lib was not successfully created
+                // fp or fileContents were NULL;
             }
-
-            Py_DECREF(stringarg);
-            Py_DECREF(args);
         }
         else {
             // path was null
