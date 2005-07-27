@@ -8,17 +8,19 @@
 #  Copyright (c) 2004  Purdue Research Foundation, West Lafayette, IN
 # ======================================================================
 #\
-exec tclsh "$0" "*$"
+exec tclsh "$0" "$*"
 # ----------------------------------------------------------------------
 # tclsh executes everything from here on...
 
 package require Rappture
 
 # open the XML file containing the run parameters
-set driver [Rappture::library driver.xml]
+set driver [Rappture::library [lindex $argv 0]]
 
-set T 300
-set Ef -5.5
+set T [$driver get input.(temperature).current]
+set T [Rappture::Units::convert $T -to K -units off]
+set Ef [$driver get input.(Ef).current]
+set Ef [Rappture::Units::convert $Ef -to eV -units off]
 
 set kT [expr {8.61734e-5 * $T}]
 set Emin [expr {$Ef - 10*$kT}]
@@ -33,14 +35,19 @@ while {$E < $Emax} {
     set E [expr {$E + $dE}]
 }
 
-$driver put output.curve(f12).label "Fermi-Dirac Factor"
+$driver put output.curve(f12).about.label "Fermi-Dirac Factor"
+$driver put output.curve(f12).xaxis.label "Energy"
+$driver put output.curve(f12).xaxis.units "eV"
 $driver put output.curve(f12).component.xy $xy
 
 #
 # Save the updated XML describing the run...
 # Be sure to do this back in the original directory
 #
-set fid [open run.xml w]
+set rfile "run[clock seconds].xml"
+set fid [open $rfile w]
 puts $fid "<?xml version=\"1.0\"?>"
 puts $fid [$driver xml]
 close $fid
+
+puts "=RAPPTURE-RUN=>$rfile"
