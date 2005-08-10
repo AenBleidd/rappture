@@ -5,29 +5,31 @@
         <command> @tool/fermi @driver</command>
     </tool>
     <input>
-        <group id="ambient">
-            <number id="temperature">
+        <number id="temperature">
+            <about>
                 <label>Ambient temperature</label>
-                <units>K</units>
-                <min>120K</min>
-                <max>500K</max>
-                <default>300K</default>
-                <preset>
-                    <value>400K</value>
-                    <label>400K (hot)</label>
-                </preset>
-                <preset>
-                    <value>300K</value>
-                    <label>300K (room temperature)</label>
-                </preset>
-                <preset>
-                    <value>200K</value>
-                    <label>200K (cold)</label>
-                </preset>
-            </number>
-        </group>
+            </about>
+            <units>K</units>
+            <min>120K</min>
+            <max>500K</max>
+            <default>300K</default>
+            <preset>
+                <value>400K</value>
+                <label>400K (hot)</label>
+            </preset>
+            <preset>
+                <value>300K</value>
+                <label>300K (room temperature)</label>
+            </preset>
+            <preset>
+                <value>200K</value>
+                <label>200K (cold)</label>
+            </preset>
+        </number>
         <number id="Ef">
-            <label>Fermi Level</label>
+            <about>
+                <label>Fermi Level</label>
+            </about>
             <units>eV</units>
             <min>-10eV</min>
             <max>10eV</max>
