@@ -7,7 +7,7 @@ c   file fermi_example.f
             real*8 rp_lib_get_double
             
             CHARACTER*100 inFile, outFile
-            character*100 T_path, Ef_path, outPath
+            character*100 T_path, Ef_path, outPath, outPath2,outPath3
             character*40 xy
             integer handle
             real*8 T,Ef,kT,Emin,Emax,dE,f,E,kTconstExp
@@ -49,6 +49,8 @@ c            kT = 8.61734e-5 * T
                 call rp_lib_put_str(handle,outPath,xy,1)
  15         continue
 
+            outPath = "output.curve(f13).about.group"
+            call rp_lib_put_str(handle,outPath,"group1",1)
             outPath = "output.curve(f13).xaxis.label"
             call rp_lib_put_str(handle,outPath,"f13 x label",1)
             outPath = "output.curve(f13).yaxis.label"
@@ -56,10 +58,24 @@ c            kT = 8.61734e-5 * T
 
             outPath = "output.curve(f13).component.xy"
 
+            outPath2 = "output.curve(f14).about.group"
+            call rp_lib_put_str(handle,outPath2,"group1",1)
+            outPath2 = "output.curve(f14).component.xy"
+
+            outPath3 = "output.curve(f15).about.group"
+            call rp_lib_put_str(handle,outPath3,"group1",1)
+            outPath3 = "output.curve(f15).component.xy"
+
             do 16,E = Emin,Emax,dE
                 f = -1.0/(1.0+exp((E-Ef)/kT))
                 write(xy,'(E20.12,F13.9,A)')f,E,char(10)
                 call rp_lib_put_str(handle,outPath,xy,1)
+                f = -4.0/(1.0+exp((E-Ef)/kT))
+                write(xy,'(E20.12,F13.9,A)')f,E,char(10)
+                call rp_lib_put_str(handle,outPath2,xy,1)
+                f = 1.0/(1.0+exp((E-Ef)/kT))
+                write(xy,'(E20.12,F13.9,A)')f,E,char(10)
+                call rp_lib_put_str(handle,outPath3,xy,1)
  16         continue
 
             

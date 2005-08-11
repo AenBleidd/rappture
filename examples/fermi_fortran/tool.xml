@@ -7,7 +7,9 @@
     <input>
         <group id="ambient">
             <number id="temperature">
-                <label>Ambient temperature</label>
+                <about>
+                    <label>Ambient temperature</label>
+                </about>
                 <units>K</units>
                 <min>120K</min>
                 <max>500K</max>
@@ -27,7 +29,9 @@
             </number>
         </group>
         <number id="Ef">
-            <label>Fermi Level</label>
+            <about>
+                <label>Fermi Level</label>
+            </about>
             <units>eV</units>
             <min>-10eV</min>
             <max>10eV</max>
