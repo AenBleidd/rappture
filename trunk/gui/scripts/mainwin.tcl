@@ -21,6 +21,51 @@ option add *MainWin.anchor center widgetDefault
 option add *MainWin.titleFont \
     -*-helvetica-bold-o-normal-*-*-140-* widgetDefault
 
+#
+# Tk text widget doesn't honor Ctrl-V by default.  Get rid
+# of the default binding so that Ctrl-V works for <<Paste>>
+# as expected.
+#
+bind Text <Control-KeyPress-v> {}
+
+#
+# Fix the built-in <<Paste>> bindings to work properly even
+# for the X11 windowing system.  By default, Tk won't replace
+# selected text in X11.  What kind of stupid nonsense is that?
+#
+bind Entry <<Paste>> {
+    catch {
+        # always replace existing selection
+        catch { %W delete sel.first sel.last }
+
+        %W insert insert [::tk::GetSelection %W CLIPBOARD]
+        tk::EntrySeeInsert %W
+    }
+}
+proc ::tk_textPaste w {
+    global tcl_platform
+    if {![catch {::tk::GetSelection $w CLIPBOARD} sel]} {
+        if {[catch {$w cget -autoseparators} oldSeparator]} {
+            # in case we're using an older version of Tk
+            set oldSeparator 0
+        }
+        if { $oldSeparator } {
+            $w configure -autoseparators 0
+            $w edit separator
+        }
+
+        # always replace existing selection
+        catch { $w delete sel.first sel.last }
+        $w insert insert $sel
+
+        if { $oldSeparator } {
+            $w edit separator
+            $w configure -autoseparators 1
+        }
+    }
+}
+
+# ======================================================================
 itcl::class Rappture::MainWin {
     inherit itk::Toplevel
 
@@ -101,7 +146,13 @@ itcl::body Rappture::MainWin::constructor {args} {
 
     set _sync(cutbuffer) ""
     set _sync(selection) ""
-    syncCutBuffer ifneeded
+
+    global tcl_platform
+    if {$tcl_platform(platform) == "unix"} {
+        # this sync stuff only works for X windows
+        blt::cutbuffer set ""
+        syncCutBuffer ifneeded
+    }
 }
 
 # ----------------------------------------------------------------------
