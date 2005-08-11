@@ -21,12 +21,6 @@ option add *TextEntry.hintForeground gray50 widgetDefault
 option add *TextEntry.hintFont \
     -*-helvetica-medium-r-normal-*-*-100-* widgetDefault
 
-#
-# Tk text widget doesn't honor Ctrl-V by default.  Get rid
-# of the default binding so that Ctrl-V works for <<Paste>>
-# as expected.
-#
-bind Text <Control-KeyPress-v> {}
 
 itcl::class Rappture::TextEntry {
     inherit itk::Widget
