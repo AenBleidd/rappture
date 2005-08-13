@@ -31,10 +31,10 @@ template <typename KeyType, typename ValType> class RpDictIterator
         // virtual RpDict<KeyType,ValType>& getTable();
 
         // send the search iterator to the beginning of the hash table
-        virtual RpDictEntry<KeyType,ValType>* first();
+        /*virtual*/ RpDictEntry<KeyType,ValType>* first();
 
         // send the search iterator to the next element of the hash table
-        virtual RpDictEntry<KeyType,ValType>* next();
+        /*virtual*/ RpDictEntry<KeyType,ValType>* next();
 /*
         RpDictIterator(RpDict* table_Ptr)
             : tablePtr( (RpDict&) *table_Ptr),
@@ -194,33 +194,33 @@ template <typename KeyType, typename ValType> class RpDict
         // functionality for the user to access/adjust data members
         
         // checks table size
-        virtual const int size() const;
+        /*virtual*/ const int size() const;
 
         // insert new object into table
         // returns 0 on success (object inserted or already exists)
         // returns !0 on failure (object cannot be inserted or dne)
         //
-        virtual RpDict<KeyType,ValType>& 
+        /*virtual*/ RpDict<KeyType,ValType>& 
                         set(    KeyType& key, 
                                 ValType& value, 
                                 int *newPtr=NULL );   
 
         // find an RpUnits object that should exist in RpUnitsTable
         // 
-        virtual RpDictEntry<KeyType,ValType>& 
+        /*virtual*/ RpDictEntry<KeyType,ValType>& 
                         find( KeyType& key );
 
-        virtual RpDictEntry<KeyType,ValType>& operator[]( KeyType& key) 
+        /*virtual*/ RpDictEntry<KeyType,ValType>& operator[]( KeyType& key) 
         { 
             return find(key); 
         }
 
         // clear the entire table
         // iterate through the table and call erase on each element
-        virtual RpDict<KeyType,ValType>& clear();
+        /*virtual*/ RpDict<KeyType,ValType>& clear();
 
         // get the nullEntry hash entry for initialization of references
-        virtual RpDictEntry<KeyType,ValType>& getNullEntry();
+        /*virtual*/ RpDictEntry<KeyType,ValType>& getNullEntry();
 
         // template <KeyType, ValType> friend class RpDictEntry;
         // template <KeyType, ValType> friend class RpDictIterator;
@@ -257,7 +257,7 @@ template <typename KeyType, typename ValType> class RpDict
         // RpDict& operator=(const RpDict& dict);
 
         // destructor
-        virtual ~RpDict() 
+        /*virtual*/ ~RpDict() 
         {
             // probably need to delete all the entries as well
             delete nullEntry;
