@@ -1,8 +1,14 @@
+
 /*
+ * because templates are compiled on demand the interface and the 
+ * implementation in different files. they must both be included
+ * when compiling a file that wants to use the template.
+ *
 #ifndef _RpDICT_H
-    #include "../include/RpDict.h"
+    #include "RpDict.h"
 #endif
 */
+
 
 /**************************************************************************/
 
