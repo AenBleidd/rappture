@@ -4,7 +4,10 @@
 #include <stdlib.h>
 #include <errno.h>
 
-#include "RpDict.h"
+#ifndef _RpDICT_H
+    #include "RpDict.h"
+#endif
+
 #include "RpUnitsStd.h"
 
 #ifndef _RpUNITS_H 
