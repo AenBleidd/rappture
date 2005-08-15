@@ -11,6 +11,14 @@ PROGS			= 	libRpUnits_CInterface 	\
 					libRpUnits_FInterface 	\
 					librappture				\
 					libRapptureIO			\
+					libRpUnits				\
+					libRpVariable			\
+					libRpNumber				\
+					libRpString				\
+					libRpBoolean			\
+					libRpChoice				\
+					libRpOption				
+					
 
 # define our compiling environment
 # 
@@ -42,12 +50,12 @@ DEBUG_PLUS 		= -g -DDEBUG
 #
 #
 
-CFLAGS 			= -DCOMPNAME_ADD1UNDERSCORE
+CFLAGS 			= -DCOMPNAME_ADD2UNDERSCORE
 
-#F77		        = g77
+F77		        = g77
 #F77				= f77
 #F77				= ifort
-F77				= /opt/mpich-1.2.6/p4-intel/bin/mpif90
+#F77				= /opt/mpich-1.2.6/p4-intel/bin/mpif90
 
 LN              = ln
 
@@ -66,6 +74,21 @@ PY_SRC			= $(SRC_DIR)/python
 
 #LIB_RPUNITS 	= -Wl,-rpath,$(LIB_DIR) -L$(LIB_DIR) -lRpUnits
 #LIB_RPDICT 		= -Wl,-rpath,$(LIB_DIR) -L$(LIB_DIR) -lRpDict
+
+LIB_INC_PREFIX	= -Wl,-rpath,$(LIB_DIR) -L$(LIB_DIR)
+
+#LIB_RPUNITS_C   = $(LIB_INC_PREFIX) -lRpUnits_CInterface
+#LIB_RAPPTUREIO  = $(LIB_INC_PREFIX) -lrappture
+
+LIB_RP_UNITS 	= $(LIB_INC_PREFIX) -lRpUnits
+LIB_RP_VARIABLE = $(LIB_INC_PREFIX) -lRpVariable
+LIB_RP_NUMBER 	= $(LIB_INC_PREFIX) -lRpNumber
+LIB_RP_STRING 	= $(LIB_INC_PREFIX) -lRpString
+LIB_RP_BOOLEAN 	= $(LIB_INC_PREFIX) -lRpBoolean
+LIB_RP_OPTION 	= $(LIB_INC_PREFIX) -lRpOption
+LIB_RP_CHOICE 	= $(LIB_INC_PREFIX) -lRpChoice
+LIB_RP_PRESET 	= $(LIB_INC_PREFIX) -lRpPreset
+
 
 LIB_RPUNITS_C 	= -Wl,-rpath,$(LIB_DIR) -L$(LIB_DIR) -lRpUnits_CInterface
 LIB_RPUNITS_F 	= -Wl,-rpath,$(LIB_DIR) -L$(LIB_DIR) -lRpUnits_FInterface
@@ -107,7 +130,6 @@ include $(CEE_SRC)/make.inc
 # include fortran binding definitions
 include $(FORT_SRC)/make.inc
 
-    
 #### CLEAN UP ############################################################
 clean: 
 	- rm -f $(BIN_DIR)/* $(WORK_DIR)/*.o $(LIB_DIR)/librappture.* $(LIB_DIR)/libR*.so* 
