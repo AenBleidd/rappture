@@ -38,6 +38,7 @@ itcl::class Rappture::TextEntry {
     public method size {} { return $_size }
 
     protected method _layout {}
+    protected method _newValue {}
 
     private variable _dispatcher "" ;# dispatcher for !events
     private variable _owner ""    ;# thing managing this control
@@ -69,7 +70,7 @@ itcl::body Rappture::TextEntry::constructor {owner path args} {
     set hints [$_owner xml get $path.about.hints]
     if {[string length $hints] > 0} {
         itk_component add hints {
-            label $itk_interior.hints -anchor w -text $hints
+            ::label $itk_interior.hints -anchor w -text $hints
         } {
             usual
             rename -foreground -hintforeground hintForeground Foreground
@@ -243,6 +244,8 @@ itcl::body Rappture::TextEntry::_layout {} {
                 -background $itk_option(-textbackground) \
                 -foreground $itk_option(-textforeground)
 
+            bind $itk_component(entry) <KeyPress> [itcl::code $this _newValue]
+
             itk_component add emenu {
                 menu $itk_component(entry).menu -tearoff 0
             }
@@ -295,6 +298,8 @@ itcl::body Rappture::TextEntry::_layout {} {
                 -foreground $itk_option(-textforeground)
             $itk_component(scrollbars) contents $itk_component(text)
 
+            bind $itk_component(text) <KeyPress> [itcl::code $this _newValue]
+
             itk_component add tmenu {
                 menu $itk_component(text).menu -tearoff 0
             }
@@ -330,6 +335,16 @@ itcl::body Rappture::TextEntry::_layout {} {
         component hull configure \
             -width $itk_option(-width) -height $itk_option(-width)
     }
+}
+
+# ----------------------------------------------------------------------
+# USAGE: _newValue
+#
+# Invoked automatically whenever the value in the entry changes.
+# Sends a <<Value>> event to notify clients of the change.
+# ----------------------------------------------------------------------
+itcl::body Rappture::TextEntry::_newValue {} {
+    event generate $itk_component(hull) <<Value>>
 }
 
 # ----------------------------------------------------------------------

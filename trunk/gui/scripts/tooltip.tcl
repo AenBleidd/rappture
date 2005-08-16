@@ -92,10 +92,10 @@ itcl::body Rappture::Tooltip::constructor {args} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: show @<x>,<y>|<widget>+<x>,<y>
+# USAGE: show @<x>,<y>|<widget>+/-<x>,<y>
 #
 # Clients use this to pop up the tooltip on the screen.  The position
-# should be either a <widget> name with an optional offset +<x>,<y>
+# should be either a <widget> name with an optional offset +/-<x>,<y>
 # (tooltip pops up beneath widget by default), or a specific root
 # window coordinate of the form @x,y.
 #
@@ -105,18 +105,21 @@ itcl::body Rappture::Tooltip::constructor {args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Tooltip::show {where} {
     set hull $itk_component(hull)
+    set signx "+"
+    set signy "+"
 
     if {[regexp {^@([0-9]+),([0-9]+)$} $where match x y]} {
         set xpos $x
         set ypos $y
-    } elseif {[regexp {^(.*)\+([0-9]+),([0-9]+)$} $where match win x y]} {
-        set xpos [expr {[winfo rootx $win]+$x}]
-        set ypos [expr {[winfo rooty $win]+$y}]
+    } elseif {[regexp {^(.*)([-+])([0-9]+),([-+]?)([0-9]+)$} $where match win signx x signy y]} {
+        if {$signy == ""} { set signy $signx }
+        set xpos [expr {[winfo rootx $win] + $x}]
+        set ypos [expr {[winfo rooty $win] + $y}]
     } elseif {[winfo exists $where]} {
         set xpos [expr {[winfo rootx $where]+10}]
         set ypos [expr {[winfo rooty $where]+[winfo height $where]}]
     } else {
-        error "bad position \"$where\": should be widget name, +x,y, or @x,y"
+        error "bad position \"$where\": should be widget+x,y, or @x,y"
     }
 
     if {[string index $itk_option(-message) 0] == "@"} {
@@ -151,18 +154,32 @@ itcl::body Rappture::Tooltip::show {where} {
     #
     # Make sure the tooltip doesn't go off screen.  Then, put it up.
     #
-    update
-    if {$xpos+[winfo reqwidth $hull] > [winfo screenwidth $hull]} {
-        set xpos [expr {[winfo screenwidth $hull]-[winfo reqwidth $hull]}]
+    update idletasks
+    if {$signx == "+"} {
+        if {$xpos+[winfo reqwidth $hull] > [winfo screenwidth $hull]} {
+            set xpos [expr {[winfo screenwidth $hull]-[winfo reqwidth $hull]}]
+        }
+        if {$xpos < 0} { set xpos 0 }
+    } else {
+        if {$xpos-[winfo reqwidth $hull] < 0} {
+            set xpos [expr {[winfo screenwidth $hull]-[winfo reqwidth $hull]}]
+        }
+        set xpos [expr {[winfo screenwidth $hull]-$xpos}]
     }
-    if {$xpos < 0} { set xpos 0 }
 
-    if {$ypos+[winfo reqheight $hull] > [winfo screenheight $hull]} {
-        set ypos [expr {[winfo screenheight $hull]-[winfo reqheight $hull]}]
+    if {$signy == "+"} {
+        if {$ypos+[winfo reqheight $hull] > [winfo screenheight $hull]} {
+            set ypos [expr {[winfo screenheight $hull]-[winfo reqheight $hull]}]
+        }
+        if {$ypos < 0} { set ypos 0 }
+    } else {
+        if {$ypos-[winfo reqheight $hull] < 0} {
+            set ypos [expr {[winfo screenheight $hull]-[winfo reqheight $hull]}]
+        }
+        set ypos [expr {[winfo screenheight $hull]-$ypos}]
     }
-    if {$ypos < 0} { set ypos 0 }
 
-    wm geometry $hull +$xpos+$ypos
+    wm geometry $hull $signx$xpos$signy$ypos
     update
 
     wm deiconify $hull
@@ -263,7 +280,7 @@ itcl::body Rappture::Tooltip::tooltip {option args} {
                 .rappturetooltip configure -message $catalog($widget)
                 if {[string index $loc 0] == "@"} {
                     .rappturetooltip show $loc
-                } elseif {[string index $loc 0] == "+"} {
+                } elseif {[regexp {^[-+]} $loc]} {
                     .rappturetooltip show $widget$loc
                 } else {
                     .rappturetooltip show $widget

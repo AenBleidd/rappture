@@ -8,7 +8,7 @@
 #  Copyright (c) 2005  Purdue Research Foundation, West Lafayette, IN
 # ======================================================================
 from xml.dom import minidom
-import re, string
+import re, string, time
 
 class library:
     """
