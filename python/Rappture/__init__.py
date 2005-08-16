@@ -2,3 +2,4 @@
 from library import library
 from interface import interface
 from number import number
+from result import result

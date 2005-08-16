@@ -15,7 +15,6 @@ package require BLT
 option add *XyResult.width 4i widgetDefault
 option add *XyResult.height 4i widgetDefault
 option add *XyResult.gridColor #d9d9d9 widgetDefault
-option add *XyResult.hiliteColor black widgetDefault
 option add *XyResult.controlBackground gray widgetDefault
 option add *XyResult.font \
     -*-helvetica-medium-r-normal-*-*-120-* widgetDefault
@@ -32,7 +31,6 @@ itcl::class Rappture::XyResult {
     inherit itk::Widget
 
     itk_option define -gridcolor gridColor GridColor ""
-    itk_option define -hilitecolor hiliteColor HiliteColor ""
 
     constructor {args} { # defined below }
     destructor { # defined below }
@@ -57,7 +55,7 @@ itcl::class Rappture::XyResult {
     private variable _xmax ""      ;# autoscale max for x-axis
     private variable _vmin ""      ;# autoscale min for y-axis
     private variable _vmax ""      ;# autoscale max for y-axis
-    private variable _hilite ""    ;# info from last _hilite operation
+    private variable _hilite       ;# info from last _hilite operation
 }
                                                                                 
 itk::usual XyResult {
@@ -103,13 +101,18 @@ itcl::body Rappture::XyResult::constructor {args} {
     pack $itk_component(plot) -expand yes -fill both
 
     # special pen for highlighting active traces
-    $itk_component(plot) element bind all <Enter> \
-        [itcl::code $this _hilite on %x %y]
-    $itk_component(plot) element bind all <Leave> \
-        [itcl::code $this _hilite off %x %y]
-
+    #$itk_component(plot) element bind all <Enter> \
+    #    [itcl::code $this _hilite on %x %y]
+    #$itk_component(plot) element bind all <Leave> \
+    #    [itcl::code $this _hilite off %x %y]
+    array set _hilite {
+        elem ""
+        color ""
+    }
+    bind $itk_component(plot) <Motion> \
+        [itcl::code $this _hilite at %x %y]
     bind $itk_component(plot) <Leave> \
-        [list Rappture::Tooltip::tooltip cancel]
+        [itcl::code $this _hilite off %x %y]
 
     Blt_ZoomStack $itk_component(plot)
     $itk_component(plot) legend configure -hide yes
@@ -460,31 +463,60 @@ itcl::body Rappture::XyResult::_zoom {option args} {
 # pop up with element info.
 # ----------------------------------------------------------------------
 itcl::body Rappture::XyResult::_hilite {state x y} {
-    set elem [$itk_component(plot) element get current]
+    set g $itk_component(plot)
+    if {$state == "at"} {
+        if {[$g element closest $x $y info]} {
+            set elem $info(name)
+            set x [$g axis transform x $info(x)]
+            set y [$g axis transform y $info(y)]
+            set state 1
+        } else {
+            set state 0
+        }
+    }
+
     if {$state} {
+        $g crosshairs configure -hide no -position @$x,$y
         #
         # Highlight ON:
         # - fatten line
         # - change color
         # - pop up tooltip about data
         #
-        set t [$itk_component(plot) element cget $elem -linewidth]
-        $itk_component(plot) element configure $elem -linewidth [expr {$t+2}]
-
-        set _hilite [$itk_component(plot) element cget $elem -color]
-        $itk_component(plot) element configure $elem \
-            -color $itk_option(-hilitecolor)
+        if {"" == $_hilite(elem)} {
+            set t [$g element cget $elem -linewidth]
+            $g element configure $elem -linewidth [expr {$t+2}]
+            set _hilite(elem) $elem
+        }
 
         set tip ""
         if {[info exists _elem2curve($elem)]} {
             set curve $_elem2curve($elem)
             set tip [$curve hints tooltip]
+            if {[info exists info(y)]} {
+                set units [$curve hints yunits]
+                append tip "\n$info(y)$units"
+
+                if {[info exists info(x)]} {
+                    set units [$curve hints xunits]
+                    append tip " @ $info(x)$units"
+                }
+            }
+            set tip [string trim $tip]
         }
         if {"" != $tip} {
-            set x [expr {$x+4}]  ;# move the tooltip over a bit
-            set y [expr {$y+4}]
-            Rappture::Tooltip::text $itk_component(plot) $tip
-            Rappture::Tooltip::tooltip show $itk_component(plot) +$x,$y
+            if {$x > 0.5*[winfo width $g]} {
+                set x "-[expr {$x-4}]"  ;# move tooltip to the left
+            } else {
+                set x "+[expr {$x+4}]"  ;# move tooltip to the right
+            }
+            if {$y > 0.5*[winfo height $g]} {
+                set y "-[expr {$y-4}]"  ;# move tooltip to the top
+            } else {
+                set y "+[expr {$y+4}]"  ;# move tooltip to the bottom
+            }
+            Rappture::Tooltip::text $g $tip
+            Rappture::Tooltip::tooltip show $g $x,$y
         }
     } else {
         #
@@ -493,11 +525,12 @@ itcl::body Rappture::XyResult::_hilite {state x y} {
         # - put color back to normal
         # - take down tooltip
         #
-        set t [$itk_component(plot) element cget $elem -linewidth]
-        $itk_component(plot) element configure $elem -linewidth [expr {$t-2}]
+        $g crosshairs configure -hide yes
 
-        if {"" != $_hilite} {
-            $itk_component(plot) element configure $elem -color $_hilite
+        if {"" != $_hilite(elem)} {
+            set t [$g element cget $_hilite(elem) -linewidth]
+            $g element configure $_hilite(elem) -linewidth [expr {$t-2}]
+            set _hilite(elem) ""
         }
         Rappture::Tooltip::tooltip cancel
     }

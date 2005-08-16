@@ -62,6 +62,6 @@ proc Rappture::_exec_out {channel message} {
         set message [string trimright $newmesg \n]
     }
 
-    puts $message
-    append execout $message "\n"
+    puts -nonewline $message
+    append execout $message
 }

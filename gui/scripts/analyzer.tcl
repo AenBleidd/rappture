@@ -310,7 +310,8 @@ itcl::body Rappture::Analyzer::simulate {args} {
         if {[regexp {=RAPPTURE-RUN=>([^\n]+)} $result match file]} {
             set status [catch {load $file} msg]
             if {$status != 0} {
-                set result $msg
+                global errorInfo
+                set result "$msg\n$errorInfo"
             }
         } else {
             set status 1
@@ -328,8 +329,9 @@ itcl::body Rappture::Analyzer::simulate {args} {
         $itk_component(runinfo) configure -state normal
         $itk_component(runinfo) delete 1.0 end
         $itk_component(runinfo) insert end "Problem launching job:\n\n"
-        $itk_component(runinfo) insert end $result
+        _simOutput $result
         $itk_component(runinfo) configure -state disabled
+        $itk_component(runinfo) see 1.0
     } else {
         $itk_component(notebook) current analyze
     }
@@ -369,6 +371,11 @@ itcl::body Rappture::Analyzer::reset {} {
 # sets.  If necessary, new results sets are created to store the data.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Analyzer::load {file} {
+    # only show the last result? then clear first
+    if {[$_tool xml get tool.analyzer] == "last"} {
+        clear
+    }
+
     # try to load new results from the given file
     set xmlobj [Rappture::library $file]
     lappend _runs $xmlobj
@@ -508,10 +515,12 @@ itcl::body Rappture::Analyzer::_plot {args} {
 
     set page [$itk_component(resultselector) value]
     set page [$itk_component(resultselector) translate $page]
-    set f [$itk_component(resultpages) page $page]
-    $f.rviewer plot clear
-    foreach {index opts} $_plotlist {
-        $f.rviewer plot add $index $opts
+    if {"" != $page} {
+        set f [$itk_component(resultpages) page $page]
+        $f.rviewer plot clear
+        foreach {index opts} $_plotlist {
+            $f.rviewer plot add $index $opts
+        }
     }
 }
 
