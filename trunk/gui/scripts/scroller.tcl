@@ -228,6 +228,11 @@ itcl::body Rappture::Scroller::_fixframe {which} {
         }
         outer {
             $_frame itemconfigure frame -width [winfo width $_frame]
+            if {[winfo height $_frame] > [winfo reqheight $_frame.f]} {
+                $_frame itemconfigure frame -height [winfo height $_frame]
+            } else {
+                $_frame itemconfigure frame -height 0
+            }
         }
     }
 }
