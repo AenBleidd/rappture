@@ -26,7 +26,7 @@ package require Rappture
 
 option add *MainWin.mode desktop startupFile
 option add *MainWin.borderWidth 0 startupFile
-option add *MainWin.anchor center startupFile
+option add *MainWin.anchor fill startupFile
 
 # "web site" look
 option add *MainWin.bgScript {

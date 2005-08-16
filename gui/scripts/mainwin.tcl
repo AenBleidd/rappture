@@ -275,6 +275,7 @@ itcl::body Rappture::MainWin::_redraw {} {
             set clip 1
         }
 
+        set anchor $itk_option(-anchor)
         switch -- $itk_option(-anchor) {
             n {
                 set x [expr {$sw/2}]
@@ -312,6 +313,14 @@ itcl::body Rappture::MainWin::_redraw {} {
                 set x [expr {$sw-$bd}]
                 set y [expr {$sh-$bd}]
             }
+            fill {
+                set anchor nw
+                set x $bd
+                set y $bd
+                set w [expr {$sw-2*$bd}]
+                set h [expr {$sh-2*$bd}]
+                set clip 1
+            }
         }
 
         # if the app is too big, use w/h. otherwise, 0,0 for default size
@@ -321,7 +330,7 @@ itcl::body Rappture::MainWin::_redraw {} {
         }
 
         $itk_component(area) create window $x $y \
-            -anchor $itk_option(-anchor) -window $itk_component(app) \
+            -anchor $anchor -window $itk_component(app) \
             -width $w -height $h
     }
 }
@@ -361,7 +370,7 @@ itcl::configbody Rappture::MainWin::bgscript {
 # OPTION: -anchor
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::MainWin::anchor {
-    if {[lsearch {n s e w ne nw se sw center} $itk_option(-anchor)] < 0} {
+    if {[lsearch {n s e w ne nw se sw center fill} $itk_option(-anchor)] < 0} {
         error "bad anchor \"$itk_option(-anchor)\""
     }
     _redraw
