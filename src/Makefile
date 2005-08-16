@@ -66,6 +66,7 @@ INCLUDES_DIR 	= $(RP_BASE)/include
 BIN_DIR			= $(RP_BASE)/bin
 LIB_DIR			= $(RP_BASE)/lib
 SRC_DIR			= $(RP_BASE)/src
+TEST_DIR		= $(RP_BASE)/test
 
 CORE_SRC 		= $(SRC_DIR)/core
 FORT_SRC		= $(SRC_DIR)/fortran
@@ -129,6 +130,9 @@ include $(CEE_SRC)/make.inc
 
 # include fortran binding definitions
 include $(FORT_SRC)/make.inc
+
+# include test programs
+include $(TEST_DIR)/make.inc
 
 #### CLEAN UP ############################################################
 clean: 

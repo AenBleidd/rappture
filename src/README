@@ -27,3 +27,7 @@ To compile the Rappture Library, the following must be done:
 4) Make a library
     
     make librappture
+
+5) Make the Rappture Test programs
+
+    make test
