@@ -287,7 +287,7 @@ itcl::body Rappture::TextEntry::_layout {} {
 
             itk_component add text {
                 text $itk_component(scrollbars).text \
-                    -width 1 -height 1 -wrap word
+                    -width 1 -height 1 -wrap char
             } {
                 usual
                 rename -background -textbackground textBackground Background
