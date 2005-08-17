@@ -149,7 +149,7 @@ itcl::body Rappture::MainWin::constructor {args} {
 
     global tcl_platform
     if {$tcl_platform(platform) == "unix"} {
-        # this sync stuff only works for X windows
+        # this sync stuff works only for X windows
         blt::cutbuffer set ""
         syncCutBuffer ifneeded
     }
@@ -203,11 +203,8 @@ itcl::body Rappture::MainWin::syncCutBuffer {option args} {
             # the new input to the cut buffer, so it's available
             # outside the VNC client.
             #
-            set s ""
-            if {[catch {selection get -selection PRIMARY} s] || "" == $s} {
-                if {[catch {clipboard get} s]} {
-                    set s ""
-                }
+            if {[catch {selection get -selection PRIMARY} s]} {
+                set s ""
             }
             if {"" != $s && ![string equal $s $_sync(selection)]} {
                 set _sync(selection) $s
