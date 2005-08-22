@@ -126,7 +126,9 @@ itcl::body Rappture::Balloon::activate {where placement} {
             set py [expr {$y+$sh-3}]
         }
     }
-    shape set $s -bound photo $_masks($placement)
+    if {[info exists _masks($placement)]} {
+        shape set $s -bound photo $_masks($placement)
+    }
 
     wm geometry $p +$px+$py
     wm deiconify $p
@@ -365,6 +367,9 @@ itcl::body Rappture::Balloon::_createStems {} {
                 -borderwidth 1 -relief solid -background black]
             wm withdraw $_stems($dir)
             wm overrideredirect $_stems($dir) yes
+
+            # create this for size, even though we don't really use it
+            set _fills($dir) [image create photo -width $w -height $h]
         }
     }
 }
