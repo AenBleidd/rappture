@@ -13,7 +13,10 @@ package require BLT
 
 option add *TextResult.width 4i widgetDefault
 option add *TextResult.height 4i widgetDefault
+option add *TextResult.textBackground white widgetDefault
 option add *TextResult.font \
+    -*-helvetica-medium-r-normal-*-*-120-* widgetDefault
+option add *TextResult.textFont \
     -*-courier-medium-r-normal-*-*-120-* widgetDefault
 
 itcl::class Rappture::TextResult {
@@ -26,7 +29,15 @@ itcl::class Rappture::TextResult {
     public method delete {args}
     public method scale {args}
 
+    public method select {option args}
+    public method find {option}
+
     set _dataobj ""  ;# data object currently being displayed
+
+    private common icons
+    set dir [file dirname [info script]]
+    set icons(up) [image create photo -file [file join $dir images findup.gif]]
+    set icons(down) [image create photo -file [file join $dir images finddn.gif]]
 }
                                                                                 
 itk::usual TextResult {
@@ -40,6 +51,69 @@ itcl::body Rappture::TextResult::constructor {args} {
     option add hull.width hull.height
     pack propagate $itk_component(hull) no
 
+    #
+    # CONTROL BAR with find/select functions
+    #
+    itk_component add controls {
+        frame $itk_interior.cntls
+    }
+    pack $itk_component(controls) -side bottom -fill x -pady {4 0}
+
+    itk_component add selectall {
+        button $itk_component(controls).selall -text "Select All" \
+            -command [itcl::code $this select all]
+    }
+    pack $itk_component(selectall) -side right -fill y
+
+    itk_component add findl {
+        label $itk_component(controls).findl -text "Find:"
+    }
+    pack $itk_component(findl) -side left
+
+    itk_component add find {
+        entry $itk_component(controls).find -width 20
+    }
+    pack $itk_component(find) -side left
+
+    itk_component add finddown {
+        button $itk_component(controls).finddown -image $icons(down) \
+            -relief flat -overrelief raised \
+            -command [itcl::code $this find down]
+    } {
+        usual
+        ignore -relief
+    }
+    pack $itk_component(finddown) -side left
+
+    itk_component add findup {
+        button $itk_component(controls).findup -image $icons(up) \
+            -relief flat -overrelief raised \
+            -command [itcl::code $this find up]
+    } {
+        usual
+        ignore -relief
+    }
+    pack $itk_component(findup) -side left
+
+    itk_component add findstatus {
+        label $itk_component(controls).finds -width 10 -anchor w
+    }
+    pack $itk_component(findstatus) -side left -expand yes -fill x
+
+    # shortcut for Return in search field
+    bind $itk_component(find) <KeyPress-Return> "
+        $itk_component(finddown) configure -relief sunken
+        update idletasks
+        after 200
+        $itk_component(finddown) configure -relief flat
+        $itk_component(finddown) invoke
+    "
+    bind $itk_component(find) <KeyPress> \
+        [itcl::code $this find reset]
+
+    #
+    # TEXT AREA
+    #
     itk_component add scroller {
         Rappture::Scroller $itk_interior.scroller \
             -xscrollmode auto -yscrollmode auto
@@ -48,6 +122,10 @@ itcl::body Rappture::TextResult::constructor {args} {
 
     itk_component add text {
         text $itk_component(scroller).text -width 1 -height 1 -wrap none
+    } {
+        usual
+        rename -background -textbackground textBackground Background
+        rename -font -textfont textFont Font
     }
     $itk_component(scroller) contents $itk_component(text)
     $itk_component(text) configure -state disabled
@@ -159,4 +237,88 @@ itcl::body Rappture::TextResult::delete {args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::TextResult::scale {args} {
     # nothing to do for text
+}
+
+# ----------------------------------------------------------------------
+# USAGE: select all
+#
+# Handles various selection operations within the text.
+# ----------------------------------------------------------------------
+itcl::body Rappture::TextResult::select {option args} {
+    switch -- $option {
+        all {
+            $itk_component(text) tag add sel 1.0 end
+        }
+        default {
+            error "bad option \"$option\": should be all"
+        }
+    }
+}
+
+# ----------------------------------------------------------------------
+# USAGE: find up
+# USAGE: find down
+# USAGE: find reset
+#
+# Handles various find operations within the text.  These find a
+# bit of text and highlight it within the widget.  The find operation
+# starts from the end of the currently highlighted text, or from the
+# beginning if there is no highlight.
+# ----------------------------------------------------------------------
+itcl::body Rappture::TextResult::find {option} {
+    # handle the reset case...
+    $itk_component(find) configure \
+        -background $itk_option(-background) \
+        -foreground $itk_option(-foreground)
+    $itk_component(findstatus) configure -text ""
+
+    if {$option == "reset"} {
+        return
+    }
+
+    # handle the up/down cases...
+    set t $itk_component(text)
+    set pattern [string trim [$itk_component(find) get]]
+
+    if {"" == $pattern} {
+        $itk_component(find) configure -background red -foreground white
+        $itk_component(findstatus) configure -text "<< Enter a search string"
+        return
+    }
+
+    # find the starting point for the search
+    set seln [$t tag nextrange sel 1.0]
+    if {$seln == ""} {
+        set t0 1.0
+        set t1 end
+    } else {
+        foreach {t0 t1} $seln break
+    }
+    $t tag remove sel 1.0 end
+
+    # search up or down
+    switch -- $option {
+        up {
+            set start [$t index $t0-1char]
+            set next [$t search -backwards -nocase -- $pattern $start]
+        }
+        down {
+            set start [$t index $t1+1char]
+            set next [$t search -forwards -nocase -- $pattern $start]
+        }
+    }
+
+    if {"" != $next} {
+        set len [string length $pattern]
+        $t tag add sel $next $next+${len}chars
+        $t see $next
+        set lnum [lindex [split $next .] 0]
+        set lines [lindex [split [$t index end] .] 0]
+        set percent [expr {round(100.0*$lnum/$lines)}]
+        set status "line $lnum   --$percent%--"
+    } else {
+        set status "Not found"
+        $itk_component(find) configure -background red -foreground white
+    }
+    $itk_component(findstatus) configure -text $status
 }
