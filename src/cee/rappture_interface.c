@@ -721,20 +721,20 @@ PyObject* rpRemove(PyObject* lib, const char* path)
  * Notes: The argument (lib) is not optional. If it is NULL, 
  *          NULL will be returned.
  *
- * Returns pointer (const char*) to the c style string representing the
+ * Returns pointer (char*) to the c style string representing the
  *          xml text of the Rappture object if successful, or 
  *          NULL if something goes wrong.
  *
- *          The return value's contents should not be changed because 
- *          it is a pointer being borrowed from python's buffer space
- *          (hence the _const_)
+ *          return value no longer needs to be const because i copy it
+ *          to tmp space but it will need to be free'd now
  */
 
 
-const char* rpXml(PyObject* lib)
+char* rpXml(PyObject* lib)
 {
     PyObject* mbr_fxn   = NULL;      /* pointer to fxn of class lib */
     PyObject* rslt      = NULL;      /* results from fxn call */
+    char* tmpretVal     = NULL;      /* return value */
     char* retVal        = NULL;      /* return value */
 
     if (lib) {
@@ -749,7 +749,9 @@ const char* rpXml(PyObject* lib)
                 rslt = PyObject_CallFunction(mbr_fxn,NULL);
                 if (rslt) {
                     // convert the result to c style strings
-                    retVal = PyString_AsString(rslt);
+                    tmpretVal = PyString_AsString(rslt);
+                    retVal = (char*) calloc(strlen(tmpretVal),sizeof(char));
+                    strcpy(retVal,tmpretVal);
                     Py_DECREF(rslt);
                 }
                 
@@ -761,6 +763,6 @@ const char* rpXml(PyObject* lib)
         // lib was set to NULL
     }
 
-    return (const char*) retVal;
+    return retVal;
     
 }

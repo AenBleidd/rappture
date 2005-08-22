@@ -25,7 +25,7 @@ void        rpPutObj    (PyObject* lib,
                             int append );
 
 PyObject*   rpRemove    (PyObject* lib, const char* path);
-const char* rpXml       (PyObject* lib);
+char* rpXml       (PyObject* lib);
 
 /*
 #ifdef _cplusplus 
