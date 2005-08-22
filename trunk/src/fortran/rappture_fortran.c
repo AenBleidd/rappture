@@ -1175,7 +1175,7 @@ int rp_lib_remove (int* handle, char* path, int path_len)
 int rp_lib_xml_len (int* handle)
 {
     int length = -1;
-    const char* xmlText = NULL;
+    char* xmlText = NULL;
 
     PyObject* lib = NULL;
 
@@ -1189,6 +1189,7 @@ int rp_lib_xml_len (int* handle)
 
                 if (xmlText) {
                     length = strlen(xmlText) + 1;
+                    free(xmlText);
                     // printf("len = :%d:\n",length);
                 }
             }
@@ -1202,7 +1203,7 @@ void  rp_lib_xml(int* handle, char* retText, int retText_len)
     int length_in = 0;
     int length_out = 0;
     int i = 0;
-    const char* xmlText = NULL;
+    char* xmlText = NULL;
 
     PyObject* lib = NULL;
     
@@ -1213,18 +1214,23 @@ void  rp_lib_xml(int* handle, char* retText, int retText_len)
             if (lib) {
                 xmlText = rpXml(lib);
                 
-                length_in = strlen(xmlText);
-                length_out = retText_len;
+                if (xmlText) {
+                    length_in = strlen(xmlText);
+                    length_out = retText_len;
 
-                strncpy(retText, xmlText, length_out);
+                    strncpy(retText, xmlText, length_out);
 
-                // fortran-ify the string
-                if (length_in < length_out) {
-                      for (i = length_in; i < length_out; i++) {
-                          retText[i] = ' ';
-                      }
+                    // fortran-ify the string
+                    if (length_in < length_out) {
+                          for (i = length_in; i < length_out; i++) {
+                              retText[i] = ' ';
+                          }
+                    }
+                    *(retText+length_out-1) = ' ';
+
+                    free(xmlText);
                 }
-                *(retText+length_out-1) = ' ';
+                
             }
         }
     }
@@ -1232,11 +1238,11 @@ void  rp_lib_xml(int* handle, char* retText, int retText_len)
 
 int rp_lib_write_xml(int* handle, char* outFile, int outFile_len)
 {
-    int retVal = 0;
+    int retVal = -1;
     PyObject* lib = NULL;
     FILE* outFH = NULL;
     char* inOutFile = NULL;
-    const char* xmlText = NULL;
+    char* xmlText = NULL;
 
     inOutFile = null_terminate(outFile, outFile_len);
 
@@ -1250,7 +1256,10 @@ int rp_lib_write_xml(int* handle, char* outFile, int outFile_len)
 
             if (lib) {
                 xmlText = rpXml(lib);
-                retVal = fputs(xmlText,outFH);
+                if (xmlText) {
+                    retVal = fputs(xmlText,outFH);
+                    free(xmlText);
+                }
             }
         }
     }
