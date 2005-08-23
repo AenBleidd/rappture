@@ -12,7 +12,7 @@ PyObject* createRapptureObj (PyObject* rpObj, const char* path);
 void*       rpElement   (PyObject* lib, const char* path, const char* flavor);
 void**      rpChildren  (PyObject* lib, const char* path, const char* flavor);
 PyObject*   rpChildren_f  (PyObject* lib, const char* path, const char* flavor);
-const char* rpGet       (PyObject* lib, const char* path);
+char* rpGet       (PyObject* lib, const char* path);
 void        rpPut       (PyObject* lib, 
                             const char* path, 
                             const char* value, 

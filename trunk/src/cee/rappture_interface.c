@@ -186,8 +186,9 @@ PyObject* createRapptureObj (PyObject* rpObj, const char* path)
  *          If (flavor == type) || (flavor == id) || (flavor == component),
  *          1) the return object will need to be cast as a char*
  *             to use it.
+ *          2) It is the caller's responsibility to free the returned pointer
  *        
- *        The Arguments lib and pathare not optional.
+ *        The Arguments lib and path are not optional.
  *          If either value is NULL, NULL will be returned.
  *
  * Returns pointer (char*) to the c style string representing the
@@ -199,7 +200,10 @@ void* rpElement(PyObject* lib, const char* path, const char* flavor)
 {
     PyObject* mbr_fxn   = NULL;      /* pointer to fxn of class lib */
     PyObject* rslt      = NULL;      /* results from fxn call */
+    char* tmpRetVal     = NULL;      /* fxn return value */
+    char* tmpString     = NULL;      /* fxn return value */
     void* retVal        = NULL;      /* fxn return value */
+    int retValSize      = 0;
 
     if (lib && path) {
         
@@ -235,7 +239,20 @@ void* rpElement(PyObject* lib, const char* path, const char* flavor)
                     {
                         // return a char*
                         // convert the result to c style strings
-                        retVal = (void*) PyString_AsString(rslt);
+                        // retVal = (void*) PyString_AsString(rslt);
+                        tmpRetVal = PyString_AsString(rslt);
+                        if (tmpRetVal) {
+                            // get str length, add 1 for null termination
+                            retValSize = strlen(tmpRetVal) + 1;
+                            tmpString = (char*) calloc(retValSize,sizeof(char));
+                            if (tmpString) {
+                                strncpy(tmpString,tmpRetVal,retValSize);
+                                retVal = (void*) tmpString;
+                            }
+                            else {
+                                // raise error, out of memory
+                            } 
+                        }
                         Py_DECREF(rslt);
                     }
                     else {
@@ -279,6 +296,8 @@ void* rpElement(PyObject* lib, const char* path, const char* flavor)
  *          If (flavor == "type")||(flavor == "id")||(flavor == "component"),
  *          1) the return object will need to be case as a char*
  *             to use it.
+ *          2) It is the caller's responsibility to free the contents of 
+ *              the returned pointer (ie. free(*retVal))
  *        
  *        The Arguments lib and pathare not optional.
  *          If either value is NULL, NULL will be returned.
@@ -298,6 +317,10 @@ void** rpChildren(PyObject* lib, const char* path, const char* flavor)
     int index           = 0;
     char** rslt_arr_c   = NULL;
     void** rslt_arr  = NULL;
+    char*  tmpRetVal    = NULL;
+    char*  tmpString    = 0;
+    int retValSize      = 0;
+    
 
     if (lib && path) {
         
@@ -372,8 +395,22 @@ void** rpChildren(PyObject* lib, const char* path, const char* flavor)
                                 list_item = PyList_GetItem(rslt,index);
                                 // we cannot deallocate the results of 
                                 // PyString_AsString()
-                                rslt_arr_c[index] = PyString_AsString(list_item);
-                                index++;
+
+                                tmpRetVal = PyString_AsString(list_item);
+                                if (tmpRetVal) {
+                                    // get str length, add 1 for null termination
+                                    retValSize = strlen(tmpRetVal) + 1;
+                                    tmpString = (char*) calloc(retValSize,sizeof(char));
+                                    if (tmpString) {
+                                        strncpy(tmpString,tmpRetVal,retValSize);
+                                        rslt_arr_c[index] = tmpString;
+                                        tmpString = NULL;
+                                        index++;
+                                    }
+                                }
+
+                                // rslt_arr_c[index] = PyString_AsString(list_item);
+                                // index++;
                                 
                             }
                             // *(rslt_arr[index]) = NULL;
@@ -516,19 +553,21 @@ PyObject* rpChildren_f(PyObject* lib, const char* path, const char* flavor)
  * Notes: The argument (lib) is not optional. If it is NULL, 
  *          NULL will be returned.
  *
- * Returns pointer (const char*) to the c style string representing the
+ * Returns pointer (char*) to the c style string representing the
  *          xml text provided by the path of the Rappture object if 
  *          successful, or NULL if something goes wrong.
  *
- *          The return value's contents should not be changed because 
- *          it is a pointer being borrowed from python's buffer space
- *          (hence the _const_)
+ *          It is the responsibility of the caller to free the 
+ *          returned pointer
+ *
  */
-const char* rpGet(PyObject* lib, const char* path)
+char* rpGet(PyObject* lib, const char* path)
 {
     PyObject* mbr_fxn   = NULL;      /* pointer to fxn of class lib */
     PyObject* rslt      = NULL;      /* results from fxn call */
+    char* tmpRetVal     = NULL;      /* return value */
     char* retVal        = NULL;      /* return value */
+    int retValSize      = 0;
 
     if (lib) {
         // retrieve the lib.get() function
@@ -542,8 +581,21 @@ const char* rpGet(PyObject* lib, const char* path)
                 rslt = PyObject_CallFunction(mbr_fxn,"(s)", path);
                 if (rslt) {
                     // convert the result to c style strings
-                    retVal = PyString_AsString(rslt);
-                    // Py_DECREF(rslt);
+                    tmpRetVal = PyString_AsString(rslt);
+
+                    if (tmpRetVal) {
+                        // get str length, add 1 for null termination
+                        retValSize = strlen(tmpRetVal) + 1;
+                        retVal = (char*) calloc(retValSize,sizeof(char));
+                        if (retVal) {
+                            strncpy(retVal,tmpRetVal,retValSize);
+                        }
+                        else {
+                            // raise error, out of memory
+                        }                           
+                    }
+
+                    Py_DECREF(rslt);
                 }
                 
             }
@@ -554,7 +606,7 @@ const char* rpGet(PyObject* lib, const char* path)
         // lib was set to NULL
     }
 
-    return (const char*) retVal;
+    return retVal;
     
 }
 
@@ -736,6 +788,7 @@ char* rpXml(PyObject* lib)
     PyObject* rslt      = NULL;      /* results from fxn call */
     char* tmpretVal     = NULL;      /* return value */
     char* retVal        = NULL;      /* return value */
+    int retValSize      = 0;
 
     if (lib) {
         // retrieve the lib.xml() function
@@ -750,8 +803,17 @@ char* rpXml(PyObject* lib)
                 if (rslt) {
                     // convert the result to c style strings
                     tmpretVal = PyString_AsString(rslt);
-                    retVal = (char*) calloc(strlen(tmpretVal),sizeof(char));
-                    strcpy(retVal,tmpretVal);
+                    if (tmpretVal) {
+                        // get str length, add 1 for null termination
+                        retValSize = strlen(tmpretVal) + 1;
+                        retVal = (char*) calloc(retValSize,sizeof(char));
+                        if (retVal) {
+                            strncpy(retVal,tmpretVal,retValSize);
+                        }
+                        else {
+                            // raise error, out of memory
+                        }
+                    }
                     Py_DECREF(rslt);
                 }
                 

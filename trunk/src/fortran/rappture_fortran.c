@@ -513,7 +513,9 @@ void rp_lib_element_str(  int* handle, /* integer handle of library */
                               }
                         }
                         *(retText+length_out-1) = ' ';
-
+                        
+                        free(retObj);
+                        retObj = NULL;
                     }
                     else {
                         
