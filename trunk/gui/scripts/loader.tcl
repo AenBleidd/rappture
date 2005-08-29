@@ -85,7 +85,9 @@ itcl::body Rappture::Loader::constructor {owner path args} {
     set _counter 1
     foreach ftail $flist {
         set fpath [file join $fdir examples $ftail]
-        foreach fname [lsort [glob -nocomplain $fpath]] {
+
+        catch {unset entries}
+        foreach fname [glob -nocomplain $fpath] {
             if {[file exists $fname]} {
                 if {[catch {set obj [Rappture::library $fname]} result]} {
                     puts stderr "WARNING: can't load example file \"$fname\""
@@ -97,18 +99,22 @@ itcl::body Rappture::Loader::constructor {owner path args} {
                     }
 
                     # if this is new, add it
-                    set i [$itk_component(combo) choices index -label $label]
-                    if {$i < 0} {
-                        $itk_component(combo) choices insert end $obj $label
+                    if {![info exists entries($label)]} {
+                        set entries($label) $obj
+                    }
 
-                        if {[string equal $defval [file tail $fname]]} {
-                            $_owner xml put $path.default $label
-                        }
+                    # translate default file name => default label
+                    if {[string equal $defval [file tail $fname]]} {
+                        $_owner xml put $path.default $label
                     }
                 }
             } else {
                 puts stderr "WARNING: missing example file \"$fname\""
             }
+        }
+
+        foreach label [lsort -dictionary [array names entries]] {
+            $itk_component(combo) choices insert end $entries($label) $label
         }
     }
 

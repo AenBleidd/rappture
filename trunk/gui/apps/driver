@@ -76,6 +76,15 @@ if {"." == $installdir} {
 set tool [Rappture::Tool ::#auto $xmlobj $installdir]
 
 # ----------------------------------------------------------------------
+# INITIALIZE THE DESKTOP CONNECTION
+#
+# If there's a SESSION ID, then this must be running within the
+# nanoHUB.  Try to initialize the server handling the desktop
+# connection.
+# ----------------------------------------------------------------------
+Rappture::filexfer::init
+
+# ----------------------------------------------------------------------
 # MAIN WINDOW
 # ----------------------------------------------------------------------
 wm withdraw .
