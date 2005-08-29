@@ -41,6 +41,7 @@ itcl::class Rappture::MeshResult {
     public method get {}
     public method delete {args}
     public method scale {args}
+    public method download {}
 
     protected method _rebuild {}
     protected method _fixLimits {}
@@ -256,6 +257,34 @@ itcl::body Rappture::MeshResult::scale {args} {
         }
     }
     _fixLimits
+}
+
+# ----------------------------------------------------------------------
+# USAGE: download
+#
+# Clients use this method to create a downloadable representation
+# of the plot.  Returns a list of the form {ext string}, where
+# "ext" is the file extension (indicating the type of data) and
+# "string" is the data itself.
+# ----------------------------------------------------------------------
+itcl::body Rappture::MeshResult::download {} {
+    set psdata [$itk_component(plot) postscript output -maxpect 1]
+
+    set cmds {
+        set fout "mesh[pid].pdf"
+        exec ps2pdf - $fout << $psdata
+
+        set fid [open $fout r]
+        fconfigure $fid -translation binary -encoding binary
+        set pdfdata [read $fid]
+        close $fid
+
+        file delete -force $fout
+    }
+    if {[catch $cmds result] == 0} {
+        return [list .pdf $pdfdata]
+    }
+    return [list .ps $psdata]
 }
 
 # ----------------------------------------------------------------------

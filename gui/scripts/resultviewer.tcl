@@ -29,6 +29,7 @@ itcl::class Rappture::ResultViewer {
     public method value {xmlobj}
 
     public method plot {option args}
+    public method download {}
 
     protected method _plotAdd {xmlobj {settings ""}}
     protected method _fixScale {args}
@@ -315,6 +316,21 @@ itcl::body Rappture::ResultViewer::_fixScale {args} {
         }
         eval $_mode2widget($_mode) scale $dlist
     }
+}
+
+# ----------------------------------------------------------------------
+# USAGE: download
+#
+# Clients use this method to create a downloadable representation
+# of the plot.  Returns a list of the form {ext string}, where
+# "ext" is the file extension (indicating the type of data) and
+# "string" is the data itself.
+# ----------------------------------------------------------------------
+itcl::body Rappture::ResultViewer::download {} {
+    if {"" == $_mode} {
+        return ""
+    }
+    return [$_mode2widget($_mode) download]
 }
 
 # ----------------------------------------------------------------------

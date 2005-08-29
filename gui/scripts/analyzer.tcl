@@ -48,6 +48,7 @@ itcl::class Rappture::Analyzer {
     public method reset {}
     public method load {file}
     public method clear {}
+    public method download {}
 
     protected method _plot {args}
     protected method _reorder {comps}
@@ -189,6 +190,15 @@ itcl::body Rappture::Analyzer::constructor {tool args} {
     }
     pack $itk_component(resultselector) -side left -expand yes -fill x
     bind $itk_component(resultselector) <<Value>> [itcl::code $this _fixResult]
+
+    if {[Rappture::filexfer::enabled]} {
+        itk_component add download {
+            button $w.top.dl -text "Download..." \
+                -command [itcl::code $this download]
+        }
+        pack $itk_component(download) -side right -padx {4 0}
+        Rappture::Tooltip::for $itk_component(download) "Downloads the current result to a new web browser window on your desktop.  From there, you can easily print or save results."
+    }
 
     itk_component add results {
         Rappture::Panes $w.pane
@@ -449,14 +459,6 @@ itcl::body Rappture::Analyzer::load {file} {
         }
     }
 
-    # if there is only one result page, take down the selector
-    set w [$itk_component(notebook) page analyze]
-    if {[$itk_component(resultselector) choices size] <= 1} {
-        pack forget $w.top
-    } else {
-        pack $w.top -before $itk_component(results) -side top -fill x
-    }
-
     # show the first page by default
     set first [$itk_component(resultselector) choices get -label 0]
     if {$first != ""} {
@@ -501,6 +503,43 @@ itcl::body Rappture::Analyzer::clear {} {
     _simState on
     _fixSimControl
     reset
+}
+
+# ----------------------------------------------------------------------
+# USAGE: download
+#
+# Spools the current result so the user can download it.
+# ----------------------------------------------------------------------
+itcl::body Rappture::Analyzer::download {} {
+    if {[Rappture::filexfer::enabled]} {
+        set title [$itk_component(resultselector) value]
+        set page [$itk_component(resultselector) translate $title]
+        if {$page != ""} {
+            set ext ""
+            set f [$itk_component(resultpages) page $page]
+            foreach {ext data} [$f.rviewer download] break
+            if {"" == $ext} {
+                Rappture::Tooltip::cue $itk_component(download) \
+                    "Can't download this result."
+                return
+            }
+            regsub -all {[\ -\/\:-\@\{-\~]} $title {} title
+            set file "$title$ext"
+        } else {
+            # this shouldn't happen
+            set file error.html
+            set data "<h1>Not Found</h1>There is no result selected."
+        }
+
+        if {[catch {Rappture::filexfer::spool $data $file} result]} {
+            if {"no clients" == $result} {
+                Rappture::Tooltip::cue $itk_component(download) \
+                    "Can't download this result.  Looks like you might be having trouble with the version of Java installed for your browser."
+            } else {
+                error $result "    (while spooling result \"$title\")"
+            }
+        }
+    }
 }
 
 # ----------------------------------------------------------------------

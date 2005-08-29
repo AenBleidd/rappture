@@ -52,6 +52,7 @@ itcl::class Rappture::XyResult {
     public method get {}
     public method delete {args}
     public method scale {args}
+    public method download {}
 
     protected method _rebuild {}
     protected method _fixLimits {}
@@ -351,6 +352,34 @@ itcl::body Rappture::XyResult::scale {args} {
 }
 
 # ----------------------------------------------------------------------
+# USAGE: download
+#
+# Clients use this method to create a downloadable representation
+# of the plot.  Returns a list of the form {ext string}, where
+# "ext" is the file extension (indicating the type of data) and
+# "string" is the data itself.
+# ----------------------------------------------------------------------
+itcl::body Rappture::XyResult::download {} {
+    set psdata [$itk_component(plot) postscript output -maxpect 1]
+
+    set cmds {
+        set fout "xy[pid].pdf"
+        exec ps2pdf - $fout << $psdata
+
+        set fid [open $fout r]
+        fconfigure $fid -translation binary -encoding binary
+        set pdfdata [read $fid]
+        close $fid
+
+        file delete -force $fout
+    }
+    if {[catch $cmds result] == 0} {
+        return [list .pdf $pdfdata]
+    }
+    return [list .ps $psdata]
+}
+
+# ----------------------------------------------------------------------
 # USAGE: _rebuild
 #
 # Called automatically whenever something changes that affects the
@@ -452,7 +481,7 @@ itcl::body Rappture::XyResult::_rebuild {} {
                 _axis scale x log
             }
             if {[info exists hints(yscale)] && $hints(yscale) == "log"} {
-                _axis scale x log
+                _axis scale y log
             }
 
             # see if there are any hints on limit

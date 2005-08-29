@@ -96,7 +96,7 @@ proc Rappture::getopts {listVar returnVar spec} {
             break
         }
         if {![info exists params($first)]} {
-            error "bad option \"$first\": should be [join [lsort $opts]] {, }]"
+            error "bad option \"$first\": should be [join [lsort $opts] {, }]"
         }
         switch -- [lindex $flags($first) 0] {
             value {

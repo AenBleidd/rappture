@@ -28,6 +28,7 @@ itcl::class Rappture::TextResult {
     public method get {}
     public method delete {args}
     public method scale {args}
+    public method download {}
 
     public method select {option args}
     public method find {option}
@@ -237,6 +238,18 @@ itcl::body Rappture::TextResult::delete {args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::TextResult::scale {args} {
     # nothing to do for text
+}
+
+# ----------------------------------------------------------------------
+# USAGE: download
+#
+# Clients use this method to create a downloadable representation
+# of the plot.  Returns a list of the form {ext string}, where
+# "ext" is the file extension (indicating the type of data) and
+# "string" is the data itself.
+# ----------------------------------------------------------------------
+itcl::body Rappture::TextResult::download {} {
+    return [list .txt [$itk_component(text) get 1.0 end]]
 }
 
 # ----------------------------------------------------------------------
