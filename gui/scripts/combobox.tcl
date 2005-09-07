@@ -20,13 +20,18 @@ option add *Combobox.width 10 widgetDefault
 option add *Combobox.editable yes widgetDefault
 option add *Combobox.textBackground white widgetDefault
 option add *Combobox.textForeground black widgetDefault
+option add *Combobox.disabledBackground white widgetDefault
+option add *Combobox.disabledForeground gray widgetDefault
 option add *Combobox.font -*-helvetica-medium-r-normal-*-*-120-* widgetDefault
 
 itcl::class Rappture::Combobox {
     inherit itk::Widget
 
     itk_option define -editable editable Editable ""
+    itk_option define -state state State "normal"
     itk_option define -width width Width 0
+    itk_option define -disabledbackground disabledBackground DisabledBackground ""
+    itk_option define -disabledforeground disabledForeground DisabledForeground ""
 
     constructor {args} { # defined below }
 
@@ -36,6 +41,7 @@ itcl::class Rappture::Combobox {
 
     protected method _entry {option}
     protected method _dropdown {option}
+    protected method _fixState {}
 
     blt::bitmap define ComboboxArrow {
         #define arrow_width 8
@@ -174,12 +180,12 @@ itcl::body Rappture::Combobox::choices {option args} {
 itcl::body Rappture::Combobox::_entry {option} {
     switch -- $option {
         apply {
-            if {$itk_option(-editable)} {
+            if {$itk_option(-editable) && $itk_option(-state) == "normal"} {
                 event generate $itk_component(hull) <<Value>>
             }
         }
         click {
-            if {!$itk_option(-editable)} {
+            if {!$itk_option(-editable) && $itk_option(-state) == "normal"} {
                 $itk_component(button) configure -relief sunken
                 update idletasks; after 100
                 $itk_component(button) configure -relief raised
@@ -232,18 +238,63 @@ itcl::body Rappture::Combobox::_dropdown {option} {
 }
 
 # ----------------------------------------------------------------------
+# USAGE: _fixState
+#
+# Used internally to fix the widget state when the -editable/-state
+# options change.
+# ----------------------------------------------------------------------
+itcl::body Rappture::Combobox::_fixState {} {
+    if {$itk_option(-state) == "normal"} {
+        $itk_component(button) configure -state normal
+        $itk_component(entry) configure \
+            -background $itk_option(-textbackground) \
+            -foreground $itk_option(-textforeground) \
+            -disabledbackground $itk_option(-textbackground) \
+            -disabledforeground $itk_option(-textforeground)
+    } else {
+        $itk_component(button) configure -state disabled
+        $itk_component(entry) configure \
+            -background $itk_option(-disabledbackground) \
+            -foreground $itk_option(-disabledforeground) \
+            -disabledbackground $itk_option(-disabledbackground) \
+            -disabledforeground $itk_option(-disabledforeground)
+    }
+
+    if {$itk_option(-editable)} {
+        if {$itk_option(-state) == "normal"} {
+            $itk_component(entry) configure -state normal
+        } else {
+            $itk_component(entry) configure -state disabled
+        }
+    } else {
+        $itk_component(entry) configure -state disabled
+    }
+
+    if {!$itk_option(-editable) || $itk_option(-state) != "normal"} {
+        # can't keep focus here -- move it along to the next widget
+        if {[focus] == $itk_component(entry)} {
+            focus [tk_focusNext [focus]]
+        }
+    }
+}
+
+# ----------------------------------------------------------------------
 # CONFIGURATION OPTION: -editable
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::Combobox::editable {
     if {![string is boolean -strict $itk_option(-editable)]} {
         error "bad value \"$itk_option(-editable)\": should be boolean"
     }
-    if {$itk_option(-editable)} {
-        $itk_component(entry) configure -state normal
-    } else {
-        $itk_component(entry) configure -state disabled
-        if {[focus] == $itk_component(entry)} {
-            focus [tk_focusNext [focus]]
-        }
+    _fixState
+}
+
+# ----------------------------------------------------------------------
+# CONFIGURATION OPTION: -state
+# ----------------------------------------------------------------------
+itcl::configbody Rappture::Combobox::state {
+    set valid {normal disabled}
+    if {[lsearch -exact $valid $itk_option(-state)] < 0} {
+        error "bad value \"$itk_option(-state)\": should be [join $valid {, }]"
     }
+    _fixState
 }

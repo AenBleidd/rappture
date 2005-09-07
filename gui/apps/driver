@@ -54,6 +54,9 @@ switch $tcl_platform(platform) {
     }
 }
 
+# fix the "grab" command to support a stack of grab windows
+Rappture::grab::init
+
 #
 # Process command line args to get the names of files to load...
 #
@@ -99,6 +102,9 @@ wm withdraw .main
 # for input, then there are more pages in the notebook.
 #
 set win [.main component app]
+Rappture::Postern $win.postern
+pack $win.postern -side bottom -fill x
+
 Rappture::Pager $win.pager
 pack $win.pager -expand yes -fill both
 
@@ -131,7 +137,7 @@ foreach comp $phases {
 # ----------------------------------------------------------------------
 # OUTPUT AREA
 # ----------------------------------------------------------------------
-$win.pager insert end -name analyzer -title "Results"
+$win.pager insert end -name analyzer -title "Run"
 set f [$win.pager page analyzer]
 $win.pager page analyzer -command [list $f.analyze simulate -ifneeded]
 

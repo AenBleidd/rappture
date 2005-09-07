@@ -22,6 +22,7 @@ itcl::class Rappture::Balloon {
     inherit itk::Toplevel
 
     itk_option define -stemlength stemLength StemLength 20
+    itk_option define -deactivatecommand deactivateCommand DeactivateCommand ""
 
     constructor {args} { # defined below }
 
@@ -152,6 +153,10 @@ itcl::body Rappture::Balloon::activate {where placement} {
 # Clients use this to take down the balloon panel if it is on screen.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Balloon::deactivate {} {
+    if {[string length $itk_option(-deactivatecommand)] > 0} {
+        uplevel #0 $itk_option(-deactivatecommand)
+    }
+
     grab release $itk_component(hull)
 
     wm withdraw $itk_component(hull)

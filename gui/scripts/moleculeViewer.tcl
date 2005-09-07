@@ -59,11 +59,13 @@ itcl::class Rappture::MoleculeViewer {
     constructor {tool args} { # defined below }
     destructor { # defined below }
 
+    public method emblems {option}
+
+    protected method _clear {}
     protected method _render {}
     protected method _zoom {option}
     protected method _move {option x y}
     protected method _3dView {theta phi}
-    protected method _fixLabels {{option position}}
     protected method _color2rgb {color}
 
     private variable _tool ""    ;# tool containing this viewer
@@ -166,7 +168,7 @@ itcl::body Rappture::MoleculeViewer::constructor {tool args} {
     pack $itk_component(labels) -padx 4 -pady 8 -ipadx 1 -ipady 1
     Rappture::Tooltip::for $itk_component(labels) "Show/hide the labels on atoms"
     bind $itk_component(labels) <ButtonPress> \
-        [itcl::code $this _fixLabels toggle]
+        [itcl::code $this emblems toggle]
 
     #
     # RENDERING AREA
@@ -176,7 +178,7 @@ itcl::body Rappture::MoleculeViewer::constructor {tool args} {
     }
     pack $itk_component(area) -expand yes -fill both
     bind $itk_component(area) <Configure> \
-        [itcl::code $this _fixLabels]
+        [itcl::code $this emblems fixPosition]
 
     itk_component add renderer {
         vtkTkRenderWidget $itk_component(area).ren -rw $this-renWin
@@ -195,13 +197,15 @@ itcl::body Rappture::MoleculeViewer::constructor {tool args} {
     bind $itk_component(area)_Busy <ButtonRelease> \
         [itcl::code $this _move release %x %y]
 
-    _fixLabels on
+    emblems on
 }
 
 # ----------------------------------------------------------------------
 # DESTRUCTOR
 # ----------------------------------------------------------------------
 itcl::body Rappture::MoleculeViewer::destructor {} {
+    after cancel [itcl::code $this _render]
+
     rename $this-renWin ""
     rename $this-ren ""
     rename $this-int ""
@@ -211,12 +215,11 @@ itcl::body Rappture::MoleculeViewer::destructor {} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: _render
+# USAGE: _clear
 #
-# Used internally to rebuild the scene whenever options within this
-# widget change.  Destroys all actors and rebuilds them from scratch.
+# Used internally to clear the scene whenever it is about to change.
 # ----------------------------------------------------------------------
-itcl::body Rappture::MoleculeViewer::_render {} {
+itcl::body Rappture::MoleculeViewer::_clear {} {
     foreach a $_actors {
         $this-ren RemoveActor $a
         rename $a ""
@@ -227,6 +230,19 @@ itcl::body Rappture::MoleculeViewer::_render {} {
     foreach lim {xmin xmax ymin ymax zmin zmax} {
         set _limits($lim) ""
     }
+
+    $this-ren ResetCamera
+    $this-renWin Render
+}
+
+# ----------------------------------------------------------------------
+# USAGE: _render
+#
+# Used internally to rebuild the scene whenever options within this
+# widget change.  Destroys all actors and rebuilds them from scratch.
+# ----------------------------------------------------------------------
+itcl::body Rappture::MoleculeViewer::_render {} {
+    _clear
 
     if {$itk_option(-device) != ""} {
         set dev $itk_option(-device)
@@ -288,7 +304,7 @@ itcl::body Rappture::MoleculeViewer::_render {} {
             lappend _actors $lname
         }
         if {[$itk_component(labels) cget -relief] == "sunken"} {
-            _fixLabels on
+            emblems on
         }
         after cancel [list catch [itcl::code $this _zoom reset]]
         after 200 [list catch [itcl::code $this _zoom reset]]
@@ -309,12 +325,12 @@ itcl::body Rappture::MoleculeViewer::_zoom {option} {
     switch -- $option {
         in {
             [$this-ren GetActiveCamera] Zoom 1.25
-            _fixLabels
+            emblems fixPosition
             $this-renWin Render
         }
         out {
             [$this-ren GetActiveCamera] Zoom 0.8
-            _fixLabels
+            emblems fixPosition
             $this-renWin Render
         }
         reset {
@@ -324,8 +340,8 @@ itcl::body Rappture::MoleculeViewer::_zoom {option} {
             _3dView 45 45
             $this-renWin Render
 
-            after cancel [list catch [itcl::code $this _fixLabels]]
-            after 2000 [list catch [itcl::code $this _fixLabels]]
+            after cancel [list catch [itcl::code $this emblems fixPosition]]
+            after 2000 [list catch [itcl::code $this emblems fixPosition]]
         }
     }
 }
@@ -365,7 +381,7 @@ itcl::body Rappture::MoleculeViewer::_move {option x y} {
                 set phi [expr {$_view(phi) - $dx*360}]
 
                 _3dView $theta $phi
-                _fixLabels
+                emblems fixPosition
                 $this-renWin Render
 
                 set _click(x) $x
@@ -414,22 +430,22 @@ itcl::body Rappture::MoleculeViewer::_3dView {theta phi} {
     $cam SetViewAngle $zoom
 
     # fix up the labels so they sit over the new atom positions
-    _fixLabels
+    emblems fixPosition
 
     set _view(theta) $theta
     set _view(phi) $phi
 }
 
 # ----------------------------------------------------------------------
-# USAGE: _fixLabels on
-# USAGE: _fixLabels off
-# USAGE: _fixLabels toggle
-# USAGE: _fixLabels position
+# USAGE: emblems on
+# USAGE: emblems off
+# USAGE: emblems toggle
+# USAGE: emblems fixPosition
 #
 # Used internally to turn labels associated with atoms on/off, and to
 # update the positions of the labels so they sit on top of each atom.
 # ----------------------------------------------------------------------
-itcl::body Rappture::MoleculeViewer::_fixLabels {{option position}} {
+itcl::body Rappture::MoleculeViewer::emblems {option} {
     switch -- $option {
         on {
             set state 1
@@ -444,7 +460,7 @@ itcl::body Rappture::MoleculeViewer::_fixLabels {{option position}} {
                 set state 1
             }
         }
-        position {
+        fixPosition {
             foreach lname [array names _label2atom] {
                 set aname $_label2atom($lname)
                 set xyz [$aname GetPosition]
@@ -455,7 +471,7 @@ itcl::body Rappture::MoleculeViewer::_fixLabels {{option position}} {
             return
         }
         default {
-            error "bad option \"$option\": should be on, off, toggle, position"
+            error "bad option \"$option\": should be on, off, toggle, fixPosition"
         }
     }
 
@@ -464,7 +480,7 @@ itcl::body Rappture::MoleculeViewer::_fixLabels {{option position}} {
         foreach lname [array names _label2atom] {
             catch {$this-ren AddActor2D $lname}
         }
-        _fixLabels position
+        emblems fixPosition
     } else {
         $itk_component(labels) configure -relief raised
         foreach lname [array names _label2atom] {
@@ -503,6 +519,16 @@ itcl::configbody Rappture::MoleculeViewer::device {
     if {$itk_option(-device) != ""
           && ![Rappture::library isvalid $itk_option(-device)]} {
         error "bad value \"$itk_option(-device)\": should be Rappture::library object"
+    }
+    _clear
+
+    if {$itk_option(-device) != ""} {
+        set state [$itk_option(-device) get components.molecule.about.emblems]
+        if {$state == "" || ![string is boolean $state] || !$state} {
+            emblems off
+        } else {
+            emblems on
+        }
     }
     after idle [itcl::code $this _render]
 }

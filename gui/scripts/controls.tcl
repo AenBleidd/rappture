@@ -330,6 +330,7 @@ itcl::body Rappture::Controls::_layout {} {
         set maxh 0
         update idletasks
         foreach name $_controls {
+            set wv $_name2info($name-value)
             set w [winfo reqwidth $wv]
             if {$w > $maxw} { set maxw $w }
             set h [winfo reqheight $wv]
