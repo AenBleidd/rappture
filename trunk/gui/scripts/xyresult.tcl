@@ -115,6 +115,11 @@ itcl::body Rappture::XyResult::constructor {args} {
         keep -background -foreground -cursor -font
     }
     pack $itk_component(plot) -expand yes -fill both
+    $itk_component(plot) pen configure activeLine -symbol square -pixels 5
+    $itk_component(plot) element bind all <Enter> \
+        {%W element activate [%W element get current]}
+    $itk_component(plot) element bind all <Leave> \
+        {%W element deactivate [%W element get current]}
 
     #
     # Add bindings so you can mouse over points to see values:
@@ -143,34 +148,35 @@ itcl::body Rappture::XyResult::constructor {args} {
         "
     grid $inner.dismiss -row 0 -column 1 -sticky e
 
+    label $inner.labell -text "Label:"
+    entry $inner.label -width 15 -highlightbackground $itk_option(-background)
+    grid $inner.labell -row 1 -column 0 -sticky e
+    grid $inner.label -row 1 -column 1 -sticky ew -pady 4
+
     label $inner.minl -text "Minimum:"
     entry $inner.min -width 15 -highlightbackground $itk_option(-background)
-    grid $inner.minl -row 1 -column 0 -sticky e
-    grid $inner.min -row 1 -column 1 -sticky ew -pady 4
+    grid $inner.minl -row 2 -column 0 -sticky e
+    grid $inner.min -row 2 -column 1 -sticky ew -pady 4
 
     label $inner.maxl -text "Maximum:"
     entry $inner.max -width 15 -highlightbackground $itk_option(-background)
-    grid $inner.maxl -row 2 -column 0 -sticky e
-    grid $inner.max -row 2 -column 1 -sticky ew -pady 4
+    grid $inner.maxl -row 3 -column 0 -sticky e
+    grid $inner.max -row 3 -column 1 -sticky ew -pady 4
 
-    #
-    # The grab imposed by this combobox messes up the grab for the
-    # balloon panel.  Skip this for now.
-    #
-    #label $inner.formatl -text "Format:"
-    #Rappture::Combobox $inner.format -width 15 -editable no
-    #$inner.format choices insert end \
-    #    "%.3g"  "Auto"         \
-    #    "%.1f"  "X.X"          \
-    #    "%.2f"  "X.XX"         \
-    #    "%.3f"  "X.XXX"        \
-    #    "%.6f"  "X.XXXXXX"     \
-    #    "%.1e"  "X.Xe+XX"      \
-    #    "%.2e"  "X.XXe+XX"     \
-    #    "%.3e"  "X.XXXe+XX"    \
-    #    "%.6e"  "X.XXXXXXe+XX"
-    #grid $inner.formatl -row 3 -column 0 -sticky e
-    #grid $inner.format -row 3 -column 1 -sticky ew -pady 4
+    label $inner.formatl -text "Format:"
+    Rappture::Combobox $inner.format -width 15 -editable no
+    $inner.format choices insert end \
+        "%.3g"  "Auto"         \
+        "%.1f"  "X.X"          \
+        "%.2f"  "X.XX"         \
+        "%.3f"  "X.XXX"        \
+        "%.6f"  "X.XXXXXX"     \
+        "%.1e"  "X.Xe+XX"      \
+        "%.2e"  "X.XXe+XX"     \
+        "%.3e"  "X.XXXe+XX"    \
+        "%.6e"  "X.XXXXXXe+XX"
+    grid $inner.formatl -row 4 -column 0 -sticky e
+    grid $inner.format -row 4 -column 1 -sticky ew -pady 4
 
     label $inner.scalel -text "Scale:"
     frame $inner.scales
@@ -180,8 +186,8 @@ itcl::body Rappture::XyResult::constructor {args} {
     radiobutton $inner.scales.log -text "Logarithmic" \
         -variable [itcl::scope _axis(scale)] -value "log"
     pack $inner.scales.log -side left
-    grid $inner.scalel -row 4 -column 0 -sticky e
-    grid $inner.scales -row 4 -column 1 -sticky ew -pady 4
+    grid $inner.scalel -row 5 -column 0 -sticky e
+    grid $inner.scales -row 5 -column 1 -sticky ew -pady 4
 
     foreach axis {x y} {
         $itk_component(plot) axis bind $axis <Enter> \
@@ -610,12 +616,14 @@ itcl::body Rappture::XyResult::_hilite {state x y} {
             set curve $_elem2curve($elem)
             set tip [$curve hints tooltip]
             if {[info exists info(y)]} {
+                set val [_axis format y dummy $info(y)]
                 set units [$curve hints yunits]
-                append tip "\n$info(y)$units"
+                append tip "\n$val$units"
 
                 if {[info exists info(x)]} {
+                    set val [_axis format x dummy $info(x)]
                     set units [$curve hints xunits]
-                    append tip " @ $info(x)$units"
+                    append tip " @ $val$units"
                 }
             }
             set tip [string trim $tip]
@@ -692,6 +700,19 @@ itcl::body Rappture::XyResult::_axis {option args} {
             set axis [lindex $args 0]
             set _axis(current) $axis
 
+            # apply last value when deactivating
+            $itk_component(hull).axes configure -deactivatecommand \
+                [itcl::code $this _axis changed $axis focus]
+
+            # fix axis label controls...
+            set label [$itk_component(plot) axis cget $axis -title]
+            $inner.label delete 0 end
+            $inner.label insert end $label
+            bind $inner.label <KeyPress-Return> \
+                [itcl::code $this _axis changed $axis label]
+            bind $inner.label <FocusOut> \
+                [itcl::code $this _axis changed $axis label]
+
             # fix min/max controls...
             foreach {min max} [$itk_component(plot) axis limits $axis] break
             $inner.min delete 0 end
@@ -709,19 +730,21 @@ itcl::body Rappture::XyResult::_axis {option args} {
                 [itcl::code $this _axis changed $axis max]
 
             # fix format control...
-            #set fmts [$inner.format choices get -value]
-            #set i [lsearch -exact $fmts $_axis(format-$axis)]
-            #if {$i < 0} { set i 0 }  ;# use Auto choice
-            #$inner.format value [$inner.format choices get -label $i]
-            #
-            #bind $inner.format <<Value>> \
-            #    [itcl::code $this _axis changed $axis format]
+            set fmts [$inner.format choices get -value]
+            set i [lsearch -exact $fmts $_axis(format-$axis)]
+            if {$i < 0} { set i 0 }  ;# use Auto choice
+            $inner.format value [$inner.format choices get -label $i]
+
+            bind $inner.format <<Value>> \
+                [itcl::code $this _axis changed $axis format]
 
             # fix scale control...
             if {[$itk_component(plot) axis cget $axis -logscale]} {
                 set _axis(scale) "log"
+                $inner.format configure -state disabled
             } else {
                 set _axis(scale) "linear"
+                $inner.format configure -state normal
             }
             $inner.scales.linear configure \
                 -command [itcl::code $this _axis changed $axis scale]
@@ -756,8 +779,18 @@ itcl::body Rappture::XyResult::_axis {option args} {
             }
             set axis [lindex $args 0]
             set what [lindex $args 1]
+            if {$what == "focus"} {
+                set what [focus]
+                if {[winfo exists $what]} {
+                    set what [winfo name $what]
+                }
+            }
 
             switch -- $what {
+                label {
+                    set val [$inner.label get]
+                    $itk_component(plot) axis configure $axis -title $val
+                }
                 min {
                     set val [$inner.min get]
                     if {![string is double -strict $val]} {
@@ -803,21 +836,30 @@ itcl::body Rappture::XyResult::_axis {option args} {
                     $inner.max insert end $max
                 }
                 format {
-                #    set fmt [$inner.format translate [$inner.format value]]
-                #    set _axis(format-$axis) $fmt
-                #
-                #    # force a refresh
-                #    $itk_component(plot) axis configure $axis -min \
-                #        [$itk_component(plot) axis cget $axis -min]
+                    set fmt [$inner.format translate [$inner.format value]]
+                    set _axis(format-$axis) $fmt
+
+                    # force a refresh
+                    $itk_component(plot) axis configure $axis -min \
+                        [$itk_component(plot) axis cget $axis -min]
                 }
                 scale {
                     _axis scale $axis $_axis(scale)
+
+                    if {$_axis(scale) == "log"} {
+                        $inner.format configure -state disabled
+                    } else {
+                        $inner.format configure -state normal
+                    }
 
                     foreach {min max} [$itk_component(plot) axis limits $axis] break
                     $inner.min delete 0 end
                     $inner.min insert end $min
                     $inner.max delete 0 end
                     $inner.max insert end $max
+                }
+                default {
+                    # be lenient so we can handle the "focus" case
                 }
             }
         }
@@ -827,7 +869,13 @@ itcl::body Rappture::XyResult::_axis {option args} {
             }
             set axis [lindex $args 0]
             set value [lindex $args 2]
-            return [format $_axis(format-$axis) $value]
+
+            if {[$itk_component(plot) axis cget $axis -logscale]} {
+                set fmt "%.3g"
+            } else {
+                set fmt $_axis(format-$axis)
+            }
+            return [format $fmt $value]
         }
         scale {
             if {[llength $args] != 2} {
@@ -839,15 +887,12 @@ itcl::body Rappture::XyResult::_axis {option args} {
             if {$type == "log"} {
                 catch {$itk_component(plot) axis configure $axis -logscale 1}
                 # leave format alone in log mode
-                $itk_component(plot) axis configure x -command ""
-                $itk_component(plot) axis configure y -command ""
+                $itk_component(plot) axis configure $axis -command ""
             } else {
                 catch {$itk_component(plot) axis configure $axis -logscale 0}
                 # use special formatting for linear mode
-                $itk_component(plot) axis configure x -command \
-                    [itcl::code $this _axis format x]
-                $itk_component(plot) axis configure y -command \
-                    [itcl::code $this _axis format y]
+                $itk_component(plot) axis configure $axis -command \
+                    [itcl::code $this _axis format $axis]
             }
         }
         default {
