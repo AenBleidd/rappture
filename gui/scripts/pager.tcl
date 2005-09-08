@@ -403,6 +403,7 @@ itcl::body Rappture::Pager::_fixSize {} {
     set sw [expr {[winfo screenwidth $itk_component(hull)]-200}]
     set sh [expr {[winfo screenheight $itk_component(hull)]-200}]
 
+    update  ;# force layout changes so sizes are correct
     switch -- $itk_option(-arrangement) {
         pages {
             if {$itk_option(-width) <= 0} {
