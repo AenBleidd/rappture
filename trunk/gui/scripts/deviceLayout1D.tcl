@@ -26,6 +26,7 @@ itcl::class Rappture::DeviceLayout1D {
 
     itk_option define -font font Font ""
     itk_option define -device device Device ""
+    itk_option define -width width Width 0
     itk_option define -devicesize deviceSize DeviceSize 0
     itk_option define -deviceoutline deviceOutline DeviceOutline ""
     itk_option define -leftmargin leftMargin LeftMargin 0
@@ -79,7 +80,6 @@ itcl::body Rappture::DeviceLayout1D::constructor {args} {
     $_dispatcher register !redraw
     $_dispatcher dispatch $this !redraw "[itcl::code $this _redraw]; list"
 
-    itk_option add hull.width
     pack propagate $itk_component(hull) no
 
     itk_component add area {
@@ -166,8 +166,12 @@ itcl::body Rappture::DeviceLayout1D::controls {option args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::DeviceLayout1D::_layout {} {
     #
-    # First, recompute the overall height of this widget...
+    # First, recompute the overall width/height of this widget...
     #
+    # requested minimum size
+    set wmax [winfo pixels $itk_component(hull) $itk_option(-width)]
+    if {$wmax <= 0} { set wmax 100 }
+
     # size of an ordinary material bar:
     set hmax [expr {$_sizes(bar)+$_sizes(bar45)+2}]
 
@@ -181,6 +185,11 @@ itcl::body Rappture::DeviceLayout1D::_layout {} {
                 } else {
                     set imh [image create photo -data $icon]
                     set _icons($icon) $imh
+                }
+
+                set w [image width $_icons($icon)]
+                if {$w > $wmax} {
+                    set wmax $w
                 }
 
                 set h [image height $_icons($icon)]
@@ -213,9 +222,10 @@ itcl::body Rappture::DeviceLayout1D::_layout {} {
         }
     }
 
+    set oldw [component hull cget -width]
     set oldh [component hull cget -height]
-    if {$hmax != $oldh} {
-        component hull configure -height $hmax
+    if {$wmax != $oldw || $hmax != $oldh} {
+        component hull configure -width $wmax -height $hmax
         $_dispatcher event -idle !redraw
     }
     set _sizes(header) [expr {$hmax - $_sizes(bararea)}]
@@ -494,6 +504,20 @@ itcl::configbody Rappture::DeviceLayout1D::device {
     }
     set _device $itk_option(-device)
     $_dispatcher event -idle !redraw
+}
+
+# ----------------------------------------------------------------------
+# CONFIGURATION OPTION: -width
+#
+# Sets the minimum overall width of the widget.
+# ----------------------------------------------------------------------
+itcl::configbody Rappture::DeviceLayout1D::width {
+    if {[catch {
+          winfo pixels $itk_component(hull) $itk_option(-width)
+      } pixels]} {
+        error "bad screen distance \"$itk_option(-width)\""
+    }
+    $_dispatcher event -idle !layout
 }
 
 # ----------------------------------------------------------------------
