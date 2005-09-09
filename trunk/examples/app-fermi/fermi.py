@@ -25,7 +25,15 @@ Emax = Ef + 10*kT
 
 E = Emin; dE = 0.005*(Emax-Emin)
 
+Rappture.driver.put("output.curve(f12).about.label", "Fermi-Dirac Factor")
+Rappture.driver.put("output.curve(f12).xaxis.label", "Energy")
+Rappture.driver.put("output.curve(f12).xaxis.units", "eV")
+path = "output.curve(f12).component.xy"
+
 while E < Emax:
     f = 1.0/(1.0 + exp((E - Ef)/kT))
-    result.append( [E,f] )
+    # result.append( [E,f] )
+    value = "%s  %s\n" % (f,E)
+    Rappture.driver.put(path,value,append=1)
     E += dE
+

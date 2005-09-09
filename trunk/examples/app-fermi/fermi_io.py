@@ -17,10 +17,10 @@ import Rappture
 #Ef = -5.5
 #result = []
 
-T = Rappture.number('input.temperature', units='K', default=300)
-Ef = Rappture.number('input.Ef', units='eV', default=-5.5)
+T = Rappture.number('input', id="temperature", units='K', default=300)
+Ef = Rappture.number('input', id="Ef", units='eV', default=-5.5)
 
 #result = Rappture.table('output.result') \
 #           .column('Energy (eV)',units='eV') \
 #           .column('Fermi-Dirac Factor')
-result = []
+#result = []

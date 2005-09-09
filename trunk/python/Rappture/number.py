@@ -8,12 +8,14 @@
 import Rappture
 
 class number:
-    def __init__(self,path,**kwargs):
+    def __init__(self,path,id,**kwargs):
         """
         Blah, blah...
         """
 
-        self.path = path
+        self.basePath = path
+        self.path = path + ".number(" + id + ")"
+        self.id = id
         self.attribs = kwargs
 
     def put(self,lib):
@@ -22,5 +24,10 @@ class number:
             lib.put(self.path+'.'+key, str(val))
 
     def __coerce__(self,other):
-        s = Rappture.driver.get(self.path+'.current')
+        attrList = Rappture.driver.children(self.path, "id")
+        attrName = 'default'
+        for attr in attrList:
+            if attr == 'current':
+                attrName = attr
+        s = Rappture.driver.get(self.path+'.'+attrName)
         return (float(s),other)

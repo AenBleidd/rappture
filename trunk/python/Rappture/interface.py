@@ -43,7 +43,9 @@ def interface(argv,*args):
             # Launch the GUI.  Start by loading the various modules
             # and interrogating them for symbols.
             #
-            lib = Rappture.library('<?xml version="1.0"?><run></run>')
+            lib = Rappture.library('<?xml version="1.0"?><run><tool>' +
+                    '<about>Press Simulate to view results.</about>' +
+                    '<command>' +argv[0]+ ' -d @driver</command></tool></run>')
 
             for module in args:
                 for symbol in dir(module):
@@ -75,6 +77,8 @@ def finish():
     any results in the global driver to the "run.xml" file
     representing the entire run.
     """
-    f = open("run.xml","w")
-    f.write( Rappture.driver.xml() )
-    f.close()
+#    f = open("run.xml","w")
+#    f.write( Rappture.driver.xml() )
+#    f.close()
+
+    Rappture.result(Rappture.driver)
