@@ -1,0 +1,90 @@
+#! /bin/sh
+# ----------------------------------------------------------------------
+#  rerun
+#  
+#  script to view the output of a previously created run.xml file
+#  rerunning the simulation with new data is outside of the scope
+#  of this script. it is currently only for viewing the output
+#  of a previously created run.xml file.
+#  
+#
+#  RUN AS FOLLOWS:
+#    rerun [-h | -d driver_path] <run.xml-file>
+#
+#      -h | --help                  - print the help menu
+#      -d | --driver driver_path    - specify the path to the driver 
+#                                     program. You will need to specify
+#                                     the path if the driver program is
+#                                     not in your PATH environment 
+#                                     variable.
+#
+#      <run.xml-file> - the run.xml file you containing an output 
+#                       section you would like to re-generate.
+#
+# ======================================================================
+#  AUTHOR:  Derrick Kearney, Purdue University
+#  Copyright (c) 2005  Purdue Research Foundation, West Lafayette, IN
+# ======================================================================
+#
+#
+""":"
+exec python $0 ${1+"$@"}
+"""
+
+import getopt, shutil, re, os, sys
+
+def printHelp():
+    print """rerun [-h | -d driver_path] runFile
+
+      -h | --help                  - print the help menu
+      -d | --driver driver_path    - specify the path to the driver
+                                     program. You will need to specify
+                                     the path if the driver program is
+                                     not in your PATH environment
+                                     variable.
+
+      <run.xml-file> - the run.xml file you containing an output
+                       section you would like to re-generate.
+"""
+    sys.exit()
+
+
+if __name__ == '__main__' :
+
+    longOpts = ["driver=","help"]
+    shortOpts = "d:h"
+    opts, args = getopt.getopt(sys.argv[1:], shortOpts, longOpts)
+
+    driverPath = 'driver'
+    runFile = args[0]
+
+    # match options
+    for o, v in opts:
+        if o in ("-d", "--driver"):
+            driverPath = v
+        elif o in ("-h", "--help"):
+            printHelp()
+
+    # look for the text <command> (any characters) </command>
+    re_command = re.compile(r'<command>.*</command>', re.I|re.DOTALL)
+
+    # prepare text variables
+    outTmpFileName = '/tmp/rerun_' + os.path.basename(runFile)
+    outCmd = '<command>echo =RAPPTURE-RUN=>%s</command>' % outTmpFileName
+
+    # do the file <command> switheroo!
+    xmlfile = open(runFile, "rb").read()
+    tmpfile = open(outTmpFileName, "wb")
+    outText = re_command.sub(outCmd,xmlfile)
+    tmpfile.write(outText)
+    tmpfile.close()
+
+    # run driver on the temporary run file
+    systemCmd = '%s -tool %s' % (driverPath, outTmpFileName)
+    os.system(systemCmd)
+    
+    # presto-change-o 
+    
+    # clean up our tmp file
+    os.remove(outTmpFileName)
+    sys.exit()
