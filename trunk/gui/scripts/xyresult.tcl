@@ -67,9 +67,13 @@ itcl::class Rappture::XyResult {
     private variable _curve2raise  ;# maps curve => raise flag 0/1
     private variable _elem2curve   ;# maps graph element => curve
     private variable _xmin ""      ;# autoscale min for x-axis
+    private variable _xlogmin ""   ;# autoscale min for x-axis (log scale)
     private variable _xmax ""      ;# autoscale max for x-axis
+    private variable _xlogmax ""   ;# autoscale max for x-axis (log scale)
     private variable _vmin ""      ;# autoscale min for y-axis
+    private variable _vlogmin ""   ;# autoscale min for y-axis (log scale)
     private variable _vmax ""      ;# autoscale max for y-axis
+    private variable _vlogmax ""   ;# autoscale max for y-axis (log scale)
     private variable _hilite       ;# info from last _hilite operation
     private variable _axis         ;# info for axis being edited
 }
@@ -333,11 +337,15 @@ itcl::body Rappture::XyResult::delete {args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::XyResult::scale {args} {
     set _xmin ""
+    set _xlogmin ""
     set _xmax ""
+    set _xlogmax ""
     set _vmin ""
+    set _vlogmin ""
     set _vmax ""
+    set _vlogmax ""
     foreach obj $args {
-        foreach axis {x v} {
+        foreach axis {x xlog v vlog} {
             foreach {min max} [$obj limits $axis] break
             if {"" != $min && "" != $max} {
                 if {"" == [set _${axis}min]} {
@@ -525,23 +533,65 @@ itcl::body Rappture::XyResult::_fixLimits {} {
     # limits.
     #
     if {$_xmin != $_xmax} {
-        $g axis configure x -min $_xmin -max $_xmax
+        set log [$g axis cget x -logscale]
+        if {$log} {
+            set min $_xlogmin
+            set max $_xlogmax
+            if {$min == $max} {
+                set min [expr {0.9*$min}]
+                set max [expr {1.1*$max}]
+            }
+            set v [expr {floor(log10($min))}]
+            if {$v > 0} {
+                set min [expr {pow(10.0,$v)}]
+            }
+            set v [expr {floor(log10($max))}]
+            if {$v > 0} {
+                set max [expr {pow(10.0,$v)}]
+            }
+        } else {
+            set min $_xmin
+            set max $_xmax
+            if {$min > 0} {
+                set min [expr {0.95*$min}]
+            } else {
+                set min [expr {1.05*$min}]
+            }
+            if {$max > 0} {
+                set max [expr {1.05*$max}]
+            } else {
+                set max [expr {0.95*$max}]
+            }
+        }
+        if {$min != $max} {
+            $g axis configure x -min $min -max $max
+        } else {
+            $g axis configure x -min "" -max ""
+        }
     } else {
         $g axis configure x -min "" -max ""
     }
 
     if {"" != $_vmin && "" != $_vmax} {
-        set min $_vmin
-        set max $_vmax
         set log [$g axis cget y -logscale]
         if {$log} {
+            set min $_vlogmin
+            set max $_vlogmax
             if {$min == $max} {
                 set min [expr {0.9*$min}]
                 set max [expr {1.1*$max}]
             }
-            set min [expr {pow(10.0,floor(log10($min)))}]
-            set max [expr {pow(10.0,ceil(log10($max)))}]
+            set v [expr {floor(log10($min))}]
+            if {$v > 0} {
+                set min [expr {pow(10.0,$v)}]
+            }
+            set v [expr {floor(log10($max))}]
+            if {$v > 0} {
+                set max [expr {pow(10.0,$v)}]
+            }
         } else {
+            set min $_vmin
+            set max $_vmax
             if {$min > 0} {
                 set min [expr {0.95*$min}]
             } else {

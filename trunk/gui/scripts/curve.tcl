@@ -107,7 +107,7 @@ itcl::body Rappture::Curve::values {{what -overall}} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: limits x|y
+# USAGE: limits x|xlog|y|ylog
 #
 # Returns the {min max} limits for the specified axis.
 # ----------------------------------------------------------------------
@@ -115,26 +115,47 @@ itcl::body Rappture::Curve::limits {which} {
     set min ""
     set max ""
     switch -- $which {
-        x { set pos 0 }
-        y - v { set pos 1 }
+        x { set pos 0; set log 0 }
+        xlog { set pos 0; set log 1 }
+        y - v { set pos 1; set log 0 }
+        ylog - vlog { set pos 1; set log 1 }
         default {
-            error "bad option \"$which\": should be x or y"
+            error "bad option \"$which\": should be x, xlog, y, ylog, v, vlog"
         }
     }
+
+    blt::vector create tmp zero
     foreach comp [array names _comp2xy] {
         set vname [lindex $_comp2xy($comp) $pos]
         $vname variable vec
+
+        if {$log} {
+            # on a log scale, use abs value and ignore 0's
+            $vname dup tmp
+            $vname dup zero
+            zero expr {tmp == 0}            ;# find the 0's
+            tmp expr {abs(tmp)}             ;# get the abs value
+            tmp expr {tmp + zero*max(tmp)}  ;# replace 0's with abs max
+            set vmin [blt::vector expr min(tmp)]
+            set vmax [blt::vector expr max(tmp)]
+        } else {
+            set vmin $vec(min)
+            set vmax $vec(max)
+        }
+
         if {"" == $min} {
-            set min $vec(min)
-        } elseif {$vec(min) < $min} {
-            set min $vec(min)
+            set min $vmin
+        } elseif {$vmin < $min} {
+            set min $vmin
         }
         if {"" == $max} {
-            set max $vec(max)
-        } elseif {$vec(max) > $max} {
-            set max $vec(max)
+            set max $vmax
+        } elseif {$vmax > $max} {
+            set max $vmax
         }
     }
+    blt::vector destroy tmp zero
+
     return [list $min $max]
 }
 

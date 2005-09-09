@@ -62,11 +62,13 @@ itcl::class Rappture::MoleculeViewer {
     public method emblems {option}
 
     protected method _clear {}
-    protected method _render {}
+    protected method _redraw {}
     protected method _zoom {option}
     protected method _move {option x y}
     protected method _3dView {theta phi}
     protected method _color2rgb {color}
+
+    private variable _dispatcher "" ;# dispatcher for !events
 
     private variable _tool ""    ;# tool containing this viewer
     private variable _actors ""  ;# list of actors in renderer
@@ -84,6 +86,15 @@ itk::usual MoleculeViewer {
 # ----------------------------------------------------------------------
 itcl::body Rappture::MoleculeViewer::constructor {tool args} {
     set _tool $tool
+
+    Rappture::dispatcher _dispatcher
+    $_dispatcher register !redraw
+    $_dispatcher dispatch $this !redraw "[itcl::code $this _redraw]; list"
+    $_dispatcher register !render
+    $_dispatcher dispatch $this !render "$this-renWin Render; list"
+    $_dispatcher register !fixsize
+    $_dispatcher dispatch $this !fixsize \
+        "[itcl::code $this emblems fixPosition]; list"
 
     itk_option add hull.width hull.height
     pack propagate $itk_component(hull) no
@@ -178,7 +189,7 @@ itcl::body Rappture::MoleculeViewer::constructor {tool args} {
     }
     pack $itk_component(area) -expand yes -fill both
     bind $itk_component(area) <Configure> \
-        [itcl::code $this emblems fixPosition]
+        [list $_dispatcher event -idle !fixsize]
 
     itk_component add renderer {
         vtkTkRenderWidget $itk_component(area).ren -rw $this-renWin
@@ -204,8 +215,6 @@ itcl::body Rappture::MoleculeViewer::constructor {tool args} {
 # DESTRUCTOR
 # ----------------------------------------------------------------------
 itcl::body Rappture::MoleculeViewer::destructor {} {
-    after cancel [itcl::code $this _render]
-
     rename $this-renWin ""
     rename $this-ren ""
     rename $this-int ""
@@ -232,16 +241,18 @@ itcl::body Rappture::MoleculeViewer::_clear {} {
     }
 
     $this-ren ResetCamera
-    $this-renWin Render
+    $_dispatcher event -now !render
 }
 
 # ----------------------------------------------------------------------
-# USAGE: _render
+# USAGE: _redraw
 #
 # Used internally to rebuild the scene whenever options within this
 # widget change.  Destroys all actors and rebuilds them from scratch.
 # ----------------------------------------------------------------------
-itcl::body Rappture::MoleculeViewer::_render {} {
+itcl::body Rappture::MoleculeViewer::_redraw {} {
+    blt::busy hold $itk_component(hull); update
+
     _clear
 
     if {$itk_option(-device) != ""} {
@@ -306,11 +317,12 @@ itcl::body Rappture::MoleculeViewer::_render {} {
         if {[$itk_component(labels) cget -relief] == "sunken"} {
             emblems on
         }
-        after cancel [list catch [itcl::code $this _zoom reset]]
-        after 200 [list catch [itcl::code $this _zoom reset]]
+        _zoom reset
     }
     $this-ren ResetCamera
-    $this-renWin Render
+    $_dispatcher event -idle !render
+
+    blt::busy release $itk_component(hull)
 }
 
 # ----------------------------------------------------------------------
@@ -325,25 +337,17 @@ itcl::body Rappture::MoleculeViewer::_zoom {option} {
     switch -- $option {
         in {
             [$this-ren GetActiveCamera] Zoom 1.25
-            emblems fixPosition
-            $this-renWin Render
         }
         out {
             [$this-ren GetActiveCamera] Zoom 0.8
-            emblems fixPosition
-            $this-renWin Render
         }
         reset {
-            [$this-ren GetActiveCamera] SetViewAngle 30
             $this-ren ResetCamera
-            [$this-ren GetActiveCamera] Zoom 1.25
             _3dView 45 45
-            $this-renWin Render
-
-            after cancel [list catch [itcl::code $this emblems fixPosition]]
-            after 2000 [list catch [itcl::code $this emblems fixPosition]]
         }
     }
+    $_dispatcher event -later !fixsize
+    $_dispatcher event -idle !render
 }
 
 # ----------------------------------------------------------------------
@@ -369,6 +373,9 @@ itcl::body Rappture::MoleculeViewer::_move {option x y} {
             } else {
                 set w [winfo width $itk_component(renderer)]
                 set h [winfo height $itk_component(renderer)]
+                if {$w <= 0 || $h <= 0} {
+                    return
+                }
                 set dx [expr {double($x-$_click(x))/$w}]
                 set dy [expr {double($y-$_click(y))/$h}]
 
@@ -382,7 +389,7 @@ itcl::body Rappture::MoleculeViewer::_move {option x y} {
 
                 _3dView $theta $phi
                 emblems fixPosition
-                $this-renWin Render
+                $_dispatcher event -idle !render
 
                 set _click(x) $x
                 set _click(y) $y
@@ -487,7 +494,7 @@ itcl::body Rappture::MoleculeViewer::emblems {option} {
             catch {$this-ren RemoveActor $lname}
         }
     }
-    $this-renWin Render
+    $_dispatcher event -idle !render
 }
 
 # ----------------------------------------------------------------------
@@ -509,7 +516,7 @@ itcl::body Rappture::MoleculeViewer::_color2rgb {color} {
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::MoleculeViewer::backdrop {
     eval $this-ren SetBackground [_color2rgb $itk_option(-backdrop)]
-    $this-renWin Render
+    $_dispatcher event -idle !render
 }
 
 # ----------------------------------------------------------------------
@@ -530,5 +537,5 @@ itcl::configbody Rappture::MoleculeViewer::device {
             emblems on
         }
     }
-    after idle [itcl::code $this _render]
+    $_dispatcher event -idle !redraw
 }
