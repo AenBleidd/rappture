@@ -115,10 +115,10 @@ itcl::body Rappture::Curve::limits {which} {
     set min ""
     set max ""
     switch -- $which {
-        x { set pos 0; set log 0 }
-        xlog { set pos 0; set log 1 }
-        y - v { set pos 1; set log 0 }
-        ylog - vlog { set pos 1; set log 1 }
+        x { set pos 0; set log 0; set axis xaxis }
+        xlog { set pos 0; set log 1; set axis xaxis }
+        y - v { set pos 1; set log 0; set axis yaxis }
+        ylog - vlog { set pos 1; set log 1; set axis yaxis }
         default {
             error "bad option \"$which\": should be x, xlog, y, ylog, v, vlog"
         }
@@ -155,6 +155,22 @@ itcl::body Rappture::Curve::limits {which} {
         }
     }
     blt::vector destroy tmp zero
+
+    set val [$_curve get $axis.min]
+    if {"" != $val && "" != $min} {
+        if {$val > $min} {
+            # tool specified this min -- don't go any lower
+            set min $val
+        }
+    }
+
+    set val [$_curve get $axis.max]
+    if {"" != $val && "" != $max} {
+        if {$val < $max} {
+            # tool specified this max -- don't go any higher
+            set max $val
+        }
+    }
 
     return [list $min $max]
 }

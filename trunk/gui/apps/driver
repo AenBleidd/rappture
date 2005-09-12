@@ -95,6 +95,11 @@ Rappture::MainWin .main -borderwidth 0
 .main configure -title [$tool xml get tool.title]
 wm withdraw .main
 
+# if the FULLSCREEN variable is set, then nanoHUB wants us to go full screen
+if {[info exists env(FULLSCREEN)]} {
+    .main configure -mode web
+}
+
 #
 # The main window has a pager that acts as a notebook for the
 # various parts.  This notebook as at least two pages--an input

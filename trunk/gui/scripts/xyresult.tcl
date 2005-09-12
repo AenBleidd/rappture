@@ -552,16 +552,6 @@ itcl::body Rappture::XyResult::_fixLimits {} {
         } else {
             set min $_xmin
             set max $_xmax
-            if {$min > 0} {
-                set min [expr {0.95*$min}]
-            } else {
-                set min [expr {1.05*$min}]
-            }
-            if {$max > 0} {
-                set max [expr {1.05*$max}]
-            } else {
-                set max [expr {0.95*$max}]
-            }
         }
         if {$min != $max} {
             $g axis configure x -min $min -max $max
@@ -578,30 +568,37 @@ itcl::body Rappture::XyResult::_fixLimits {} {
             set min $_vlogmin
             set max $_vlogmax
             if {$min == $max} {
-                set min [expr {0.9*$min}]
-                set max [expr {1.1*$max}]
+                set logmin [expr {floor(log10(abs(0.9*$min)))}]
+                set logmax [expr {ceil(log10(abs(1.1*$max)))}]
+            } else {
+                # add a little padding
+                set logmin [expr {floor(log10(abs($min)))}]
+                set logmax [expr {ceil(log10(abs($max)))}]
+                set delta [expr {$logmax-$logmin}]
+                set logmin [expr {$logmin-0.05*$delta}]
+                set logmax [expr {$logmax+0.05*$delta}]
             }
-            set v [expr {floor(log10($min))}]
-            if {$v > 0} {
-                set min [expr {pow(10.0,$v)}]
+            if {$logmin < -300} {
+                set min 1e-300
+            } elseif {$logmin > 300} {
+                set min 1e+300
+            } else {
+                set min [expr {pow(10.0,$logmin)}]
             }
-            set v [expr {floor(log10($max))}]
-            if {$v > 0} {
-                set max [expr {pow(10.0,$v)}]
+
+            if {$logmax < -300} {
+                set max 1e-300
+            } elseif {$logmax > 300} {
+                set max 1e+300
+            } else {
+                set max [expr {pow(10.0,$logmax)}]
             }
         } else {
             set min $_vmin
             set max $_vmax
-            if {$min > 0} {
-                set min [expr {0.95*$min}]
-            } else {
-                set min [expr {1.05*$min}]
-            }
-            if {$max > 0} {
-                set max [expr {1.05*$max}]
-            } else {
-                set max [expr {0.95*$max}]
-            }
+            set delta [expr {$max-$min}]
+            set min [expr {$min-0.05*$delta}]
+            set max [expr {$max+0.05*$delta}]
         }
         if {$min != $max} {
             $g axis configure y -min $min -max $max
