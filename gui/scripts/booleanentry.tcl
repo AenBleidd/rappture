@@ -134,27 +134,7 @@ itcl::body Rappture::BooleanEntry::label {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::BooleanEntry::tooltip {} {
     set str [$_owner xml get $_path.about.description]
-
-    set units [$_owner xml get $_path.units]
-    set min [$_owner xml get $_path.min]
-    set max [$_owner xml get $_path.max]
-
-    if {$units != "" || $min != "" || $max != ""} {
-        append str "\n\nEnter a number"
-
-        if {$min != "" && $max != ""} {
-            append str " between $min and $max"
-        } elseif {$min != ""} {
-            append str " greater than $min"
-        } elseif {$max != ""} {
-            append str " less than $max"
-        }
-
-        if {$units != ""} {
-            set desc [Rappture::Units::description $units]
-            append str " with units of $desc"
-        }
-    }
+    append str "\n\nEnter a boolean value (1/0, on/off, yes/no, true/false)"
     return [string trim $str]
 }
 

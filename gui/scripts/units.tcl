@@ -477,3 +477,5 @@ Rappture::Units::define F->C {(F-32)/1.8} {(1.8*C)+32}
 Rappture::Units::define eV -type energy -metric yes
 
 Rappture::Units::define V -type voltage -metric yes
+
+Rappture::Units::define s -type seconds -metric yes
