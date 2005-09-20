@@ -2,7 +2,7 @@
 <run>
     <tool>
         <about>Press Simulate to view results.</about>
-        <command> @tool/fermi @driver</command>
+        <command>tclsh @tool/fermi.tcl @driver</command>
     </tool>
     <input>
         <number id="temperature">

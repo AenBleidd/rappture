@@ -16,6 +16,7 @@ option add *XyResult.width 4i widgetDefault
 option add *XyResult.height 4i widgetDefault
 option add *XyResult.gridColor #d9d9d9 widgetDefault
 option add *XyResult.activeColor blue widgetDefault
+option add *XyResult.dimColor gray widgetDefault
 option add *XyResult.controlBackground gray widgetDefault
 option add *XyResult.font \
     -*-helvetica-medium-r-normal-*-*-120-* widgetDefault
@@ -44,6 +45,7 @@ itcl::class Rappture::XyResult {
 
     itk_option define -gridcolor gridColor GridColor ""
     itk_option define -activecolor activeColor ActiveColor ""
+    itk_option define -dimcolor dimColor DimColor ""
 
     constructor {args} { # defined below }
     destructor { # defined below }
@@ -59,6 +61,9 @@ itcl::class Rappture::XyResult {
     protected method _zoom {option args}
     protected method _hilite {state x y}
     protected method _axis {option args}
+    protected method _getAxes {xydata}
+
+    private variable _dispatcher "" ;# dispatcher for !events
 
     private variable _clist ""     ;# list of curve objects
     private variable _curve2color  ;# maps curve => plotting color
@@ -66,16 +71,11 @@ itcl::class Rappture::XyResult {
     private variable _curve2dashes ;# maps curve => BLT -dashes list
     private variable _curve2raise  ;# maps curve => raise flag 0/1
     private variable _elem2curve   ;# maps graph element => curve
-    private variable _xmin ""      ;# autoscale min for x-axis
-    private variable _xlogmin ""   ;# autoscale min for x-axis (log scale)
-    private variable _xmax ""      ;# autoscale max for x-axis
-    private variable _xlogmax ""   ;# autoscale max for x-axis (log scale)
-    private variable _vmin ""      ;# autoscale min for y-axis
-    private variable _vlogmin ""   ;# autoscale min for y-axis (log scale)
-    private variable _vmax ""      ;# autoscale max for y-axis
-    private variable _vlogmax ""   ;# autoscale max for y-axis (log scale)
-    private variable _hilite       ;# info from last _hilite operation
-    private variable _axis         ;# info for axis being edited
+    private variable _label2axis   ;# maps axis label => axis ID
+    private variable _limits       ;# axis limits:  x-min, x-max, etc.
+
+    private variable _hilite       ;# info for element currently highlighted
+    private variable _axisPopup    ;# info for axis being edited
 }
                                                                                 
 itk::usual XyResult {
@@ -86,6 +86,10 @@ itk::usual XyResult {
 # CONSTRUCTOR
 # ----------------------------------------------------------------------
 itcl::body Rappture::XyResult::constructor {args} {
+    Rappture::dispatcher _dispatcher
+    $_dispatcher register !rebuild
+    $_dispatcher dispatch $this !rebuild "[itcl::code $this _rebuild]; list"
+
     option add hull.width hull.height
     pack propagate $itk_component(hull) no
 
@@ -119,19 +123,12 @@ itcl::body Rappture::XyResult::constructor {args} {
         keep -background -foreground -cursor -font
     }
     pack $itk_component(plot) -expand yes -fill both
-    $itk_component(plot) pen configure activeLine -symbol square -pixels 5
-    $itk_component(plot) element bind all <Enter> \
-        {%W element activate [%W element get current]}
-    $itk_component(plot) element bind all <Leave> \
-        {%W element deactivate [%W element get current]}
+    $itk_component(plot) pen configure activeLine \
+        -symbol square -pixels 3 -linewidth 2 -color black
 
     #
     # Add bindings so you can mouse over points to see values:
     #
-    array set _hilite {
-        elem ""
-        color ""
-    }
     bind $itk_component(plot) <Motion> \
         [itcl::code $this _hilite at %x %y]
     bind $itk_component(plot) <Leave> \
@@ -185,25 +182,17 @@ itcl::body Rappture::XyResult::constructor {args} {
     label $inner.scalel -text "Scale:"
     frame $inner.scales
     radiobutton $inner.scales.linear -text "Linear" \
-        -variable [itcl::scope _axis(scale)] -value "linear"
+        -variable [itcl::scope _axisPopup(scale)] -value "linear"
     pack $inner.scales.linear -side left
     radiobutton $inner.scales.log -text "Logarithmic" \
-        -variable [itcl::scope _axis(scale)] -value "log"
+        -variable [itcl::scope _axisPopup(scale)] -value "log"
     pack $inner.scales.log -side left
     grid $inner.scalel -row 5 -column 0 -sticky e
     grid $inner.scales -row 5 -column 1 -sticky ew -pady 4
 
     foreach axis {x y} {
-        $itk_component(plot) axis bind $axis <Enter> \
-            [itcl::code $this _axis hilite $axis on]
-        $itk_component(plot) axis bind $axis <Leave> \
-            [itcl::code $this _axis hilite $axis off]
-        $itk_component(plot) axis bind $axis <ButtonPress> \
-            [itcl::code $this _axis edit $axis]
+        set _axisPopup(format-$axis) "%.3g"
     }
-
-    set _axis(format-x) "%.3g"
-    set _axis(format-y) "%.3g"
     _axis scale x linear
     _axis scale y linear
 
@@ -212,6 +201,8 @@ itcl::body Rappture::XyResult::constructor {args} {
     $itk_component(plot) legend configure -hide yes
 
     eval itk_initialize $args
+
+    set _hilite(elem) ""
 }
 
 # ----------------------------------------------------------------------
@@ -263,8 +254,7 @@ itcl::body Rappture::XyResult::add {curve {settings ""}} {
         set _curve2dashes($curve) $params(-linestyle)
         set _curve2raise($curve) $params(-raise)
 
-        after cancel [itcl::code $this _rebuild]
-        after idle [itcl::code $this _rebuild]
+        $_dispatcher event -idle !rebuild
     }
 }
 
@@ -321,8 +311,7 @@ itcl::body Rappture::XyResult::delete {args} {
 
     # if anything changed, then rebuild the plot
     if {$changed} {
-        after cancel [itcl::code $this _rebuild]
-        after idle [itcl::code $this _rebuild]
+        $_dispatcher event -idle !rebuild
     }
 }
 
@@ -336,27 +325,28 @@ itcl::body Rappture::XyResult::delete {args} {
 # the user scans through data in the ResultSet viewer.
 # ----------------------------------------------------------------------
 itcl::body Rappture::XyResult::scale {args} {
-    set _xmin ""
-    set _xlogmin ""
-    set _xmax ""
-    set _xlogmax ""
-    set _vmin ""
-    set _vlogmin ""
-    set _vmax ""
-    set _vlogmax ""
-    foreach obj $args {
-        foreach axis {x xlog v vlog} {
-            foreach {min max} [$obj limits $axis] break
-            if {"" != $min && "" != $max} {
-                if {"" == [set _${axis}min]} {
-                    set _${axis}min $min
-                    set _${axis}max $max
-                } else {
-                    if {$min < [set _${axis}min]} {
-                        set _${axis}min $min
-                    }
-                    if {$max > [set _${axis}max]} {
-                        set _${axis}max $max
+    catch {unset _limits}
+    foreach xydata $args {
+        # find the axes for this curve (e.g., {x y2})
+        foreach {map(x) map(y)} [_getAxes $xydata] break
+
+        foreach axis {x y} {
+            # get defaults for both linear and log scales
+            foreach type {lin log} {
+                # store results -- ex: _limits(x2log-min)
+                set id $map($axis)$type
+                foreach {min max} [$xydata limits $axis$type] break
+                if {"" != $min && "" != $max} {
+                    if {![info exists _limits($id-min)]} {
+                        set _limits($id-min) $min
+                        set _limits($id-max) $max
+                    } else {
+                        if {$min < $_limits($id-min)} {
+                            set _limits($id-min) $min
+                        }
+                        if {$max > $_limits($id-max)} {
+                            set _limits($id-max) $max
+                        }
                     }
                 }
             }
@@ -405,58 +395,92 @@ itcl::body Rappture::XyResult::_rebuild {} {
 
     # first clear out the widget
     eval $g element delete [$g element names]
+    foreach axis [$g axis names] {
+        $g axis configure $axis -hide yes
+    }
+    catch {unset _label2axis}
 
-    $g axis configure x -min "" -max ""
+    $g axis configure x -min "" -max "" -hide no
     _axis scale x linear
 
-    $g axis configure y -min "" -max ""
+    $g axis configure y -min "" -max "" -hide no
     _axis scale y linear
 
-    # extract axis information from the first curve
-    set clist [get]
-    set xydata [lindex $clist 0]
-    if {$xydata != ""} {
-        set legend [$xydata hints legend]
-        if {"" != $legend} {
-            if {$legend == "off"} {
-                $g legend configure -hide yes
-            } else {
-                $g legend configure -hide no \
-                    -position plotarea -anchor $legend -borderwidth 0
+    #
+    # Scan through all objects and create a list of all axes.
+    # The first x-axis gets mapped to "x".  The second, to "x2".
+    # Beyond that, we must create new axes "x3", "x4", etc.
+    # We do the same for y.
+    #
+    set anum(x) 0
+    set anum(y) 0
+    foreach xydata [get] {
+        foreach ax {x y} {
+            set label [$xydata hints ${ax}label]
+            if {"" != $label} {
+                if {![info exists _label2axis($ax-$label)]} {
+                    switch [incr anum($ax)] {
+                        1 { set axis $ax }
+                        2 { set axis ${ax}2 }
+                        default {
+                            set axis $ax$anum($ax)
+                            catch {$g axis create $axis}
+                        }
+                    }
+                    $g axis configure $axis -title $label -hide no
+                    set _label2axis($ax-$label) $axis
+                }
             }
         }
+    }
 
-        set xlabel [$xydata hints xlabel]
-        if {"" != $xlabel} {
-            $g xaxis configure -title $xlabel
+    #
+    # All of the extra axes get mapped to the x2/y2 (top/right)
+    # position.
+    #
+    set all ""
+    foreach ax {x y} {
+        lappend all $ax
+
+        set extra ""
+        for {set i 2} {$i <= $anum($ax)} {incr i} {
+            lappend extra ${ax}$i
         }
-
-        set ylabel [$xydata hints ylabel]
-        if {"" != $ylabel} {
-            $g yaxis configure -title $ylabel
+        eval lappend all $extra
+        $g ${ax}2axis use $extra
+        if {$ax == "y"} {
+            $g configure -rightmargin [expr {($extra == "") ? 10 : 0}]
         }
     }
 
-    foreach lim {xmin xmax ymin ymax} {
-        set limits($lim) ""
+    foreach axis $all {
+        set _axisPopup(format-$axis) "%.3g"
+
+        $g axis bind $axis <Enter> \
+            [itcl::code $this _axis hilite $axis on]
+        $g axis bind $axis <Leave> \
+            [itcl::code $this _axis hilite $axis off]
+        $g axis bind $axis <ButtonPress> \
+            [itcl::code $this _axis edit $axis]
     }
 
-    # plot all of the curves
+    #
+    # Plot all of the curves.
+    #
     set count 0
-    foreach xydata $clist {
-        foreach comp [$xydata components] {
-            catch {unset hints}
-            array set hints [$xydata hints]
+    foreach xydata $_clist {
+        set label [$xydata hints label]
+        foreach {mapx mapy} [_getAxes $xydata] break
 
+        foreach comp [$xydata components] {
             set xv [$xydata mesh $comp]
             set yv [$xydata values $comp]
 
             if {[info exists _curve2color($xydata)]} {
                 set color $_curve2color($xydata)
             } else {
-                if {[info exists hints(color)]} {
-                    set color $hints(color)
-                } else {
+                set color [$xydata hints color]
+                if {"" == $color} {
                     set color black
                 }
             }
@@ -482,37 +506,20 @@ itcl::body Rappture::XyResult::_rebuild {} {
             set elem "elem[incr count]"
             set _elem2curve($elem) $xydata
 
-            if {[info exists hints(label)]} {
-                set label $hints(label)
-            } else {
-                set label ""
-            }
             $g element create $elem -x $xv -y $yv \
                 -symbol $sym -pixels 6 -linewidth $lwidth -label $label \
-                -color $color -dashes $dashes
+                -color $color -dashes $dashes \
+                -mapx $mapx -mapy $mapy
 
-            if {[info exists hints(xscale)] && $hints(xscale) == "log"} {
+            if {[$xydata hints xscale] == "log"} {
                 _axis scale x log
             }
-            if {[info exists hints(yscale)] && $hints(yscale) == "log"} {
+            if {[$xydata hints yscale] == "log"} {
                 _axis scale y log
             }
-
-            # see if there are any hints on limit
-            foreach lim {xmin xmax ymin ymax} {
-                if {[info exists hints($lim)] && "" != $hints($lim)} {
-                    set limits($lim) $hints($lim)
-                }
-            }
         }
     }
 
-    # add any limit directives from the curve objects
-    foreach lim {xmin xmax ymin ymax} var {_xmin _xmax _vmin _vmax} {
-        if {"" != $limits($lim)} {
-            set $var $limits($lim)
-        }
-    }
     _fixLimits
 }
 
@@ -532,81 +539,59 @@ itcl::body Rappture::XyResult::_fixLimits {} {
     # set to a "nice" number slightly above or below the min/max
     # limits.
     #
-    if {$_xmin != $_xmax} {
-        set log [$g axis cget x -logscale]
-        if {$log} {
-            set min $_xlogmin
-            set max $_xlogmax
-            if {$min == $max} {
-                set min [expr {0.9*$min}]
-                set max [expr {1.1*$max}]
-            }
-            set v [expr {floor(log10($min))}]
-            if {$v > 0} {
-                set min [expr {pow(10.0,$v)}]
-            }
-            set v [expr {floor(log10($max))}]
-            if {$v > 0} {
-                set max [expr {pow(10.0,$v)}]
-            }
-        } else {
-            set min $_xmin
-            set max $_xmax
-        }
-        if {$min != $max} {
-            $g axis configure x -min $min -max $max
-        } else {
-            $g axis configure x -min "" -max ""
-        }
-    } else {
-        $g axis configure x -min "" -max ""
-    }
+    foreach axis [$g axis names] {
+        if {[info exists _limits(${axis}lin-min)]} {
+            set log [$g axis cget $axis -logscale]
+            if {$log} {
+                set min $_limits(${axis}log-min)
+                set max $_limits(${axis}log-max)
+                if {$min == $max} {
+                    set logmin [expr {floor(log10(abs(0.9*$min)))}]
+                    set logmax [expr {ceil(log10(abs(1.1*$max)))}]
+                } else {
+                    set logmin [expr {floor(log10(abs($min)))}]
+                    set logmax [expr {ceil(log10(abs($max)))}]
+                    if {[string match y* $axis]} {
+                        # add a little padding
+                        set delta [expr {$logmax-$logmin}]
+                        set logmin [expr {$logmin-0.05*$delta}]
+                        set logmax [expr {$logmax+0.05*$delta}]
+                    }
+                }
+                if {$logmin < -300} {
+                    set min 1e-300
+                } elseif {$logmin > 300} {
+                    set min 1e+300
+                } else {
+                    set min [expr {pow(10.0,$logmin)}]
+                }
 
-    if {"" != $_vmin && "" != $_vmax} {
-        set log [$g axis cget y -logscale]
-        if {$log} {
-            set min $_vlogmin
-            set max $_vlogmax
-            if {$min == $max} {
-                set logmin [expr {floor(log10(abs(0.9*$min)))}]
-                set logmax [expr {ceil(log10(abs(1.1*$max)))}]
+                if {$logmax < -300} {
+                    set max 1e-300
+                } elseif {$logmax > 300} {
+                    set max 1e+300
+                } else {
+                    set max [expr {pow(10.0,$logmax)}]
+                }
             } else {
-                # add a little padding
-                set logmin [expr {floor(log10(abs($min)))}]
-                set logmax [expr {ceil(log10(abs($max)))}]
-                set delta [expr {$logmax-$logmin}]
-                set logmin [expr {$logmin-0.05*$delta}]
-                set logmax [expr {$logmax+0.05*$delta}]
-            }
-            if {$logmin < -300} {
-                set min 1e-300
-            } elseif {$logmin > 300} {
-                set min 1e+300
-            } else {
-                set min [expr {pow(10.0,$logmin)}]
-            }
+                set min $_limits(${axis}lin-min)
+                set max $_limits(${axis}lin-max)
 
-            if {$logmax < -300} {
-                set max 1e-300
-            } elseif {$logmax > 300} {
-                set max 1e+300
+                if {[string match y* $axis]} {
+                    # add a little padding
+                    set delta [expr {$max-$min}]
+                    set min [expr {$min-0.05*$delta}]
+                    set max [expr {$max+0.05*$delta}]
+                }
+            }
+            if {$min != $max} {
+                $g axis configure $axis -min $min -max $max
             } else {
-                set max [expr {pow(10.0,$logmax)}]
+                $g axis configure $axis -min "" -max ""
             }
         } else {
-            set min $_vmin
-            set max $_vmax
-            set delta [expr {$max-$min}]
-            set min [expr {$min-0.05*$delta}]
-            set max [expr {$max+0.05*$delta}]
+            $g axis configure $axis -min "" -max ""
         }
-        if {$min != $max} {
-            $g axis configure y -min $min -max $max
-        } else {
-            $g axis configure y -min "" -max ""
-        }
-    } else {
-        $g axis configure y -min "" -max ""
     }
 }
 
@@ -633,11 +618,36 @@ itcl::body Rappture::XyResult::_zoom {option args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::XyResult::_hilite {state x y} {
     set g $itk_component(plot)
+    set elem ""
     if {$state == "at"} {
-        if {[$g element closest $x $y info]} {
+        if {[$g element closest $x $y info -interpolate yes]} {
             set elem $info(name)
-            set x [$g axis transform x $info(x)]
-            set y [$g axis transform y $info(y)]
+            foreach {mapx mapy} [_getAxes $_elem2curve($elem)] break
+
+            # search again for an exact point -- this time don't interpolate
+            set tip ""
+            if {[$g element closest $x $y info -interpolate no]
+                  && $info(name) == $elem} {
+                set x [$g axis transform $mapx $info(x)]
+                set y [$g axis transform $mapy $info(y)]
+
+                if {[info exists _elem2curve($elem)]} {
+                    set curve $_elem2curve($elem)
+                    set tip [$curve hints tooltip]
+                    if {[info exists info(y)]} {
+                        set val [_axis format y dummy $info(y)]
+                        set units [$curve hints yunits]
+                        append tip "\n$val$units"
+
+                        if {[info exists info(x)]} {
+                            set val [_axis format x dummy $info(x)]
+                            set units [$curve hints xunits]
+                            append tip " @ $val$units"
+                        }
+                    }
+                    set tip [string trim $tip]
+                }
+            }
             set state 1
         } else {
             set state 0
@@ -645,46 +655,77 @@ itcl::body Rappture::XyResult::_hilite {state x y} {
     }
 
     if {$state} {
-        $g crosshairs configure -hide no -position @$x,$y
         #
         # Highlight ON:
-        # - fatten line
-        # - change color
+        # - activate trace
+        # - multiple axes? dim other axes
         # - pop up tooltip about data
         #
-        if {"" == $_hilite(elem)} {
-            set t [$g element cget $elem -linewidth]
-            $g element configure $elem -linewidth [expr {$t+2}]
-            set _hilite(elem) $elem
+        if {$_hilite(elem) != "" && $_hilite(elem) != $elem} {
+            $g element deactivate $_hilite(elem)
+            $g crosshairs configure -hide yes
+            Rappture::Tooltip::tooltip cancel
         }
+        $g element activate $elem
+        set _hilite(elem) $elem
 
-        set tip ""
-        if {[info exists _elem2curve($elem)]} {
-            set curve $_elem2curve($elem)
-            set tip [$curve hints tooltip]
-            if {[info exists info(y)]} {
-                set val [_axis format y dummy $info(y)]
-                set units [$curve hints yunits]
-                append tip "\n$val$units"
+        foreach {mapx mapy} [_getAxes $_elem2curve($elem)] break
 
-                if {[info exists info(x)]} {
-                    set val [_axis format x dummy $info(x)]
-                    set units [$curve hints xunits]
-                    append tip " @ $val$units"
+        set allx [$g x2axis use]
+        if {[llength $allx] > 0} {
+            lappend allx x  ;# fix main x-axis too
+            foreach axis $allx {
+                if {$axis == $mapx} {
+                    $g axis configure $axis -color $itk_option(-foreground) \
+                        -titlecolor $itk_option(-foreground)
+                } else {
+                    $g axis configure $axis -color $itk_option(-dimcolor) \
+                        -titlecolor $itk_option(-dimcolor)
                 }
             }
-            set tip [string trim $tip]
         }
+        set ally [$g y2axis use]
+        if {[llength $ally] > 0} {
+            lappend ally y  ;# fix main y-axis too
+            foreach axis $ally {
+                if {$axis == $mapy} {
+                    $g axis configure $axis -color $itk_option(-foreground) \
+                        -titlecolor $itk_option(-foreground)
+                } else {
+                    $g axis configure $axis -color $itk_option(-dimcolor) \
+                        -titlecolor $itk_option(-dimcolor)
+                }
+            }
+        }
+
         if {"" != $tip} {
+            $g crosshairs configure -hide no -position @$x,$y
+
             if {$x > 0.5*[winfo width $g]} {
-                set x "-[expr {$x-4}]"  ;# move tooltip to the left
+                if {$x < 4} {
+                    set x "-0"
+                } else {
+                    set x "-[expr {$x-4}]"  ;# move tooltip to the left
+                }
             } else {
-                set x "+[expr {$x+4}]"  ;# move tooltip to the right
+                if {$x < -4} {
+                    set x "+0"
+                } else {
+                    set x "+[expr {$x+4}]"  ;# move tooltip to the right
+                }
             }
             if {$y > 0.5*[winfo height $g]} {
-                set y "-[expr {$y-4}]"  ;# move tooltip to the top
+                if {$y < 4} {
+                    set y "-0"
+                } else {
+                    set y "-[expr {$y-4}]"  ;# move tooltip to the top
+                }
             } else {
-                set y "+[expr {$y+4}]"  ;# move tooltip to the bottom
+                if {$y < -4} {
+                    set y "+0"
+                } else {
+                    set y "+[expr {$y+4}]"  ;# move tooltip to the bottom
+                }
             }
             Rappture::Tooltip::text $g $tip
             Rappture::Tooltip::tooltip show $g $x,$y
@@ -692,18 +733,37 @@ itcl::body Rappture::XyResult::_hilite {state x y} {
     } else {
         #
         # Highlight OFF:
-        # - put line width back to normal
-        # - put color back to normal
+        # - deactivate (color back to normal)
+        # - put all axes back to normal color
         # - take down tooltip
         #
-        $g crosshairs configure -hide yes
-
         if {"" != $_hilite(elem)} {
-            set t [$g element cget $_hilite(elem) -linewidth]
-            $g element configure $_hilite(elem) -linewidth [expr {$t-2}]
-            set _hilite(elem) ""
+            $g element deactivate $_hilite(elem)
+
+            set allx [$g x2axis use]
+            if {[llength $allx] > 0} {
+                lappend allx x  ;# fix main x-axis too
+                foreach axis $allx {
+                    $g axis configure $axis -color $itk_option(-foreground) \
+                        -titlecolor $itk_option(-foreground)
+                }
+            }
+
+            set ally [$g y2axis use]
+            if {[llength $ally] > 0} {
+                lappend ally y  ;# fix main y-axis too
+                foreach axis $ally {
+                    $g axis configure $axis -color $itk_option(-foreground) \
+                        -titlecolor $itk_option(-foreground)
+                }
+            }
         }
+
+        $g crosshairs configure -hide yes
         Rappture::Tooltip::tooltip cancel
+
+        # there is no currently highlighted element
+        set _hilite(elem) ""
     }
 }
 
@@ -745,7 +805,7 @@ itcl::body Rappture::XyResult::_axis {option args} {
                 error "wrong # args: should be \"_axis edit axis\""
             }
             set axis [lindex $args 0]
-            set _axis(current) $axis
+            set _axisPopup(current) $axis
 
             # apply last value when deactivating
             $itk_component(hull).axes configure -deactivatecommand \
@@ -778,7 +838,7 @@ itcl::body Rappture::XyResult::_axis {option args} {
 
             # fix format control...
             set fmts [$inner.format choices get -value]
-            set i [lsearch -exact $fmts $_axis(format-$axis)]
+            set i [lsearch -exact $fmts $_axisPopup(format-$axis)]
             if {$i < 0} { set i 0 }  ;# use Auto choice
             $inner.format value [$inner.format choices get -label $i]
 
@@ -787,10 +847,10 @@ itcl::body Rappture::XyResult::_axis {option args} {
 
             # fix scale control...
             if {[$itk_component(plot) axis cget $axis -logscale]} {
-                set _axis(scale) "log"
+                set _axisPopup(scale) "log"
                 $inner.format configure -state disabled
             } else {
-                set _axis(scale) "linear"
+                set _axisPopup(scale) "linear"
                 $inner.format configure -state normal
             }
             $inner.scales.linear configure \
@@ -806,16 +866,33 @@ itcl::body Rappture::XyResult::_axis {option args} {
             set w [winfo width $itk_component(plot)]
             set h [winfo height $itk_component(plot)]
             foreach {x0 y0 pw ph} [$itk_component(plot) extents plotarea] break
-            switch -- $axis {
+            switch -glob -- $axis {
                 x {
                     set x [expr {round($x + $x0+0.5*$pw)}]
                     set y [expr {round($y + $y0+$ph + 0.5*($h-$y0-$ph))}]
                     set dir "above"
                 }
+                x* {
+                    set x [expr {round($x + $x0+0.5*$pw)}]
+                    set dir "below"
+                    set allx [$itk_component(plot) x2axis use]
+                    set max [llength $allx]
+                    set i [lsearch -exact $allx $axis]
+                    set y [expr {round($y + ($i+0.5)*$y0/double($max))}]
+                }
                 y {
                     set x [expr {round($x + 0.5*$x0)}]
                     set y [expr {round($y + $y0+0.5*$ph)}]
                     set dir "right"
+                }
+                y* {
+                    set y [expr {round($y + $y0+0.5*$ph)}]
+                    set dir "left"
+                    set ally [$itk_component(plot) y2axis use]
+                    set max [llength $ally]
+                    set i [lsearch -exact $ally $axis]
+                    set y [expr {round($y + ($i+0.5)*$y0/double($max))}]
+                    set x [expr {round($x+$x0+$pw + ($i+0.5)*($w-$x0-$pw)/double($max))}]
                 }
             }
             $itk_component(hull).axes activate @$x,$y $dir
@@ -884,16 +961,16 @@ itcl::body Rappture::XyResult::_axis {option args} {
                 }
                 format {
                     set fmt [$inner.format translate [$inner.format value]]
-                    set _axis(format-$axis) $fmt
+                    set _axisPopup(format-$axis) $fmt
 
                     # force a refresh
                     $itk_component(plot) axis configure $axis -min \
                         [$itk_component(plot) axis cget $axis -min]
                 }
                 scale {
-                    _axis scale $axis $_axis(scale)
+                    _axis scale $axis $_axisPopup(scale)
 
-                    if {$_axis(scale) == "log"} {
+                    if {$_axisPopup(scale) == "log"} {
                         $inner.format configure -state disabled
                     } else {
                         $inner.format configure -state normal
@@ -920,7 +997,7 @@ itcl::body Rappture::XyResult::_axis {option args} {
             if {[$itk_component(plot) axis cget $axis -logscale]} {
                 set fmt "%.3g"
             } else {
-                set fmt $_axis(format-$axis)
+                set fmt $_axisPopup(format-$axis)
             }
             return [format $fmt $value]
         }
@@ -946,6 +1023,39 @@ itcl::body Rappture::XyResult::_axis {option args} {
             error "bad option \"$option\": should be changed, edit, hilite, or format"
         }
     }
+}
+
+# ----------------------------------------------------------------------
+# USAGE: _getAxes <curveObj>
+#
+# Used internally to figure out the axes used to plot the given
+# <curveObj>.  Returns a list of the form {x y}, where x is the
+# x-axis name (x, x2, x3, etc.), and y is the y-axis name.
+# ----------------------------------------------------------------------
+itcl::body Rappture::XyResult::_getAxes {xydata} {
+    # rebuild if needed, so we know about the axes
+    if {[$_dispatcher ispending !rebuild]} {
+        $_dispatcher cancel !rebuild
+        $_dispatcher event -now !rebuild
+    }
+
+    # what is the x axis?  x? x2? x3? ...
+    set xlabel [$xydata hints xlabel]
+    if {[info exists _label2axis(x-$xlabel)]} {
+        set mapx $_label2axis(x-$xlabel)
+    } else {
+        set mapx "x"
+    }
+
+    # what is the y axis?  y? y2? y3? ...
+    set ylabel [$xydata hints ylabel]
+    if {[info exists _label2axis(y-$ylabel)]} {
+        set mapy $_label2axis(y-$ylabel)
+    } else {
+        set mapy "y"
+    }
+
+    return [list $mapx $mapy]
 }
 
 # ----------------------------------------------------------------------

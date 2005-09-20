@@ -42,12 +42,6 @@ $driver put output.curve(f12).component.xy $xy
 
 #
 # Save the updated XML describing the run...
-# Be sure to do this back in the original directory
 #
-set rfile "run[clock seconds].xml"
-set fid [open $rfile w]
-puts $fid "<?xml version=\"1.0\"?>"
-puts $fid [$driver xml]
-close $fid
-
-puts "=RAPPTURE-RUN=>$rfile"
+Rappture::result $driver
+exit 0

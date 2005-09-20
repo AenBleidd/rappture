@@ -89,7 +89,8 @@ itcl::body Rappture::ValueResult::add {dataobj {settings ""}} {
         $itk_component(label) configure -text $label
 
         # find the value and assign it with the proper coloring
-        if {"" != $params(-color) && $params(-brightness) != 0} {
+        if {"" != $params(-color) && "" != $params(-brightness)
+              && $params(-brightness) != 0} {
             set params(-color) [Rappture::color::brightness \
                 $params(-color) $params(-brightness)]
         }

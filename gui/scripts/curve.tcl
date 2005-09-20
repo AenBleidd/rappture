@@ -31,6 +31,7 @@ itcl::class Rappture::Curve {
     private variable _xmlobj ""  ;# ref to lib obj with curve data
     private variable _curve ""   ;# lib obj representing this curve
     private variable _comp2xy    ;# maps component name => x,y vectors
+    private variable _hints      ;# cache of hints stored in XML
 
     private common _counter 0    ;# counter for unique vector names
 }
@@ -107,7 +108,7 @@ itcl::body Rappture::Curve::values {{what -overall}} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: limits x|xlog|y|ylog
+# USAGE: limits x|xlin|xlog|y|ylin|ylog
 #
 # Returns the {min max} limits for the specified axis.
 # ----------------------------------------------------------------------
@@ -115,12 +116,12 @@ itcl::body Rappture::Curve::limits {which} {
     set min ""
     set max ""
     switch -- $which {
-        x { set pos 0; set log 0; set axis xaxis }
+        x - xlin { set pos 0; set log 0; set axis xaxis }
         xlog { set pos 0; set log 1; set axis xaxis }
-        y - v { set pos 1; set log 0; set axis yaxis }
+        y - ylin - v - vlin { set pos 1; set log 0; set axis yaxis }
         ylog - vlog { set pos 1; set log 1; set axis yaxis }
         default {
-            error "bad option \"$which\": should be x, xlog, y, ylog, v, vlog"
+            error "bad option \"$which\": should be x, xlin, xlog, y, ylin, ylog, v, vlin, vlog"
         }
     }
 
@@ -183,49 +184,51 @@ itcl::body Rappture::Curve::limits {which} {
 # the hint for that <keyword>, if it exists.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Curve::hints {{keyword ""}} {
-    foreach {key path} {
-        group   about.group
-        label   about.label
-        color   about.color
-        style   about.style
-        xlabel  xaxis.label
-        xunits  xaxis.units
-        xscale  xaxis.scale
-        xmin    xaxis.min
-        xmax    xaxis.max
-        ylabel  yaxis.label
-        yunits  yaxis.units
-        yscale  yaxis.scale
-        ymin    yaxis.min
-        ymax    yaxis.max
-    } {
-        set str [$_curve get $path]
-        if {"" != $str} {
-            set hints($key) $str
+    if {![info exists _hints]} {
+        foreach {key path} {
+            group   about.group
+            label   about.label
+            color   about.color
+            style   about.style
+            xlabel  xaxis.label
+            xunits  xaxis.units
+            xscale  xaxis.scale
+            xmin    xaxis.min
+            xmax    xaxis.max
+            ylabel  yaxis.label
+            yunits  yaxis.units
+            yscale  yaxis.scale
+            ymin    yaxis.min
+            ymax    yaxis.max
+        } {
+            set str [$_curve get $path]
+            if {"" != $str} {
+                set _hints($key) $str
+            }
         }
-    }
 
-    if {[info exists hints(xlabel)] && "" != $hints(xlabel)
-          && [info exists hints(xunits)] && "" != $hints(xunits)} {
-        set hints(xlabel) "$hints(xlabel) ($hints(xunits))"
-    }
-    if {[info exists hints(ylabel)] && "" != $hints(ylabel)
-          && [info exists hints(yunits)] && "" != $hints(yunits)} {
-        set hints(ylabel) "$hints(ylabel) ($hints(yunits))"
-    }
+        if {[info exists _hints(xlabel)] && "" != $_hints(xlabel)
+              && [info exists _hints(xunits)] && "" != $_hints(xunits)} {
+            set _hints(xlabel) "$_hints(xlabel) ($_hints(xunits))"
+        }
+        if {[info exists _hints(ylabel)] && "" != $_hints(ylabel)
+              && [info exists _hints(yunits)] && "" != $_hints(yunits)} {
+            set _hints(ylabel) "$_hints(ylabel) ($_hints(yunits))"
+        }
 
-    if {[info exists hints(group)] && [info exists hints(label)]} {
-        # pop-up help for each curve
-        set hints(tooltip) $hints(label)
+        if {[info exists _hints(group)] && [info exists _hints(label)]} {
+            # pop-up help for each curve
+            set _hints(tooltip) $_hints(label)
+        }
     }
 
     if {$keyword != ""} {
-        if {[info exists hints($keyword)]} {
-            return $hints($keyword)
+        if {[info exists _hints($keyword)]} {
+            return $_hints($keyword)
         }
         return ""
     }
-    return [array get hints]
+    return [array get _hints]
 }
 
 # ----------------------------------------------------------------------
