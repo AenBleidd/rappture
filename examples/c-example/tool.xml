@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<run>
+    <tool>
+        <title>SIN(x) Graph</title>
+        <about>Press Simulate to view results.</about>
+        <command> @tool/plot @driver</command>
+    </tool>
+    <input>
+        <number id="min">
+            <about> <label>From x</label> </about>
+            <default>0</default>
+        </number>
+        <number id="max">
+            <about> <label>To x</label> </about>
+            <default> 10</default>
+        </number>
+    </input>
+    <output>
+        <curve id="result">
+            <about> <label>Formula: Y vs X</label> </about>
+        </curve>
+    </output>
+</run>
