@@ -1,18 +1,25 @@
 <?xml version="1.0"?>
 <run>
     <tool>
-        <title>SIN(x) Graph</title>
+        <title>Graphing Calculator</title>
         <about>Press Simulate to view results.</about>
-        <command> @tool/plot @driver</command>
+        <command>python @tool/graph.py @driver</command>
     </tool>
     <input>
+        <string id="formula">
+            <about>
+                <label>Formula</label>
+                <hints>Example: 2*x + 1</hints>
+            </about>
+            <size>30x5</size>
+        </string>
         <number id="min">
             <about> <label>From x</label> </about>
             <default>0</default>
         </number>
         <number id="max">
             <about> <label>To x</label> </about>
-            <default> 10</default>
+            <default>1</default>
         </number>
     </input>
     <output>
