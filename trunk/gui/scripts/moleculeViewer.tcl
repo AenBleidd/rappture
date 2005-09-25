@@ -65,7 +65,7 @@ itcl::class Rappture::MoleculeViewer {
     protected method _redraw {}
     protected method _zoom {option}
     protected method _move {option x y}
-    protected method _3dView {theta phi}
+    protected method _3dView {theta phi psi}
     protected method _color2rgb {color}
 
     private variable _dispatcher "" ;# dispatcher for !events
@@ -119,6 +119,7 @@ itcl::body Rappture::MoleculeViewer::constructor {tool args} {
 
     set _view(theta) 0
     set _view(phi) 0
+    set _view(psi) 0
 
     itk_component add controls {
         frame $itk_interior.cntls
@@ -343,7 +344,7 @@ itcl::body Rappture::MoleculeViewer::_zoom {option} {
         }
         reset {
             $this-ren ResetCamera
-            _3dView 45 45
+            _3dView 45 45 0
         }
     }
     $_dispatcher event -later !fixsize
@@ -366,6 +367,7 @@ itcl::body Rappture::MoleculeViewer::_move {option x y} {
             set _click(y) $y
             set _click(theta) $_view(theta)
             set _click(phi) $_view(phi)
+            set _click(psi) $_view(psi)
         }
         drag {
             if {[array size _click] == 0} {
@@ -376,18 +378,41 @@ itcl::body Rappture::MoleculeViewer::_move {option x y} {
                 if {$w <= 0 || $h <= 0} {
                     return
                 }
-                set dx [expr {double($x-$_click(x))/$w}]
-                set dy [expr {double($y-$_click(y))/$h}]
+
+                if {[catch {
+                    # this fails sometimes for no apparent reason
+                    set dx [expr {double($x-$_click(x))/$w}]
+                    set dy [expr {double($y-$_click(y))/$h}]
+                }]} {
+                    return
+                }
 
                 #
                 # Rotate the camera in 3D
                 #
+                if {$_view(psi) > 90 || $_view(psi) < -90} {
+                    # when psi is flipped around, theta moves backwards
+                    set dy [expr {-$dy}]
+                }
                 set theta [expr {$_view(theta) - $dy*180}]
-                if {$theta < 2} { set theta 2 }
-                if {$theta > 178} { set theta 178 }
-                set phi [expr {$_view(phi) - $dx*360}]
+                while {$theta < 0} { set theta [expr {$theta+180}] }
+                while {$theta > 180} { set theta [expr {$theta-180}] }
+                #if {$theta < 2} { set theta 2 }
+                #if {$theta > 178} { set theta 178 }
 
-                _3dView $theta $phi
+                if {$theta > 45 && $theta < 135} {
+                    set phi [expr {$_view(phi) - $dx*360}]
+                    while {$phi < 0} { set phi [expr {$phi+360}] }
+                    while {$phi > 360} { set phi [expr {$phi-360}] }
+                    set psi $_view(psi)
+                } else {
+                    set phi $_view(phi)
+                    set psi [expr {$_view(psi) - $dx*360}]
+                    while {$psi < -180} { set psi [expr {$psi+360}] }
+                    while {$psi > 180} { set psi [expr {$psi-360}] }
+                }
+
+                _3dView $theta $phi $psi
                 emblems fixPosition
                 $_dispatcher event -idle !render
 
@@ -407,18 +432,18 @@ itcl::body Rappture::MoleculeViewer::_move {option x y} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: _3dView <theta> <phi>
+# USAGE: _3dView <theta> <phi> <psi>
 #
 # Used internally to change the position of the camera for 3D data
 # sets.  Sets the camera according to the angles <theta> (angle from
 # the z-axis) and <phi> (angle from the x-axis in the x-y plane).
 # Both angles are in degrees.
 # ----------------------------------------------------------------------
-itcl::body Rappture::MoleculeViewer::_3dView {theta phi} {
+itcl::body Rappture::MoleculeViewer::_3dView {theta phi psi} {
     set deg2rad 0.0174532927778
-    set xn [expr {sin($theta*$deg2rad)*cos($phi*$deg2rad)}]
-    set yn [expr {sin($theta*$deg2rad)*sin($phi*$deg2rad)}]
-    set zn [expr {cos($theta*$deg2rad)}]
+    set xp [expr {sin($theta*$deg2rad)*cos($phi*$deg2rad)}]
+    set yp [expr {sin($theta*$deg2rad)*sin($phi*$deg2rad)}]
+    set zp [expr {cos($theta*$deg2rad)}]
 
     set xm [expr {0.5*($_limits(xmax)+$_limits(xmin))}]
     set ym [expr {0.5*($_limits(ymax)+$_limits(ymin))}]
@@ -429,10 +454,11 @@ itcl::body Rappture::MoleculeViewer::_3dView {theta phi} {
     $cam SetViewAngle 30
 
     $cam SetFocalPoint $xm $ym $zm
-    $cam SetPosition [expr {$xm-$xn}] [expr {$ym-$yn}] [expr {$zm+$zn}]
+    $cam SetPosition [expr {$xm-$xp}] [expr {$ym-$yp}] [expr {$zm+$zp}]
     $cam ComputeViewPlaneNormal
     $cam SetViewUp 0 0 1  ;# z-dir is up
     $cam OrthogonalizeViewUp
+    $cam Azimuth $psi
     $this-ren ResetCamera
     $cam SetViewAngle $zoom
 
@@ -441,6 +467,7 @@ itcl::body Rappture::MoleculeViewer::_3dView {theta phi} {
 
     set _view(theta) $theta
     set _view(phi) $phi
+    set _view(psi) $psi
 }
 
 # ----------------------------------------------------------------------

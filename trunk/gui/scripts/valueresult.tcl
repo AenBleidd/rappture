@@ -77,6 +77,10 @@ itcl::body Rappture::ValueResult::add {dataobj {settings ""}} {
         }
         set params($opt) $val
     }
+    if {$params(-color) == "auto" || $params(-color) == "autoreset"} {
+        # can't handle -autocolors yet
+        set params(-color) black
+    }
 
     $itk_component(label) configure -text ""
     $itk_component(value) configure -text ""

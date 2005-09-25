@@ -21,6 +21,13 @@ option add *XyResult.controlBackground gray widgetDefault
 option add *XyResult.font \
     -*-helvetica-medium-r-normal-*-*-120-* widgetDefault
 
+option add *XyResult.autoColors {
+    #0000ff #ff0000 #00cc00
+    #cc00cc #ff9900 #cccc00
+    #000080 #800000 #006600
+    #660066 #996600 #666600
+} widgetDefault
+
 option add *XyResult*Balloon*Entry.background white widgetDefault
 
 blt::bitmap define XyResult-reset {
@@ -46,6 +53,7 @@ itcl::class Rappture::XyResult {
     itk_option define -gridcolor gridColor GridColor ""
     itk_option define -activecolor activeColor ActiveColor ""
     itk_option define -dimcolor dimColor DimColor ""
+    itk_option define -autocolors autoColors AutoColors ""
 
     constructor {args} { # defined below }
     destructor { # defined below }
@@ -57,7 +65,7 @@ itcl::class Rappture::XyResult {
     public method download {}
 
     protected method _rebuild {}
-    protected method _fixLimits {}
+    protected method _resetLimits {}
     protected method _zoom {option args}
     protected method _hilite {state x y}
     protected method _axis {option args}
@@ -73,6 +81,7 @@ itcl::class Rappture::XyResult {
     private variable _elem2curve   ;# maps graph element => curve
     private variable _label2axis   ;# maps axis label => axis ID
     private variable _limits       ;# axis limits:  x-min, x-max, etc.
+    private variable _autoColorI 0 ;# index for next "-color auto"
 
     private variable _hilite       ;# info for element currently highlighted
     private variable _axisPopup    ;# info for axis being edited
@@ -220,7 +229,7 @@ itcl::body Rappture::XyResult::destructor {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::XyResult::add {curve {settings ""}} {
     array set params {
-        -color black
+        -color auto
         -brightness 0
         -width 1
         -raise 0
@@ -231,6 +240,21 @@ itcl::body Rappture::XyResult::add {curve {settings ""}} {
             error "bad setting \"$opt\": should be [join [lsort [array names params]] {, }]"
         }
         set params($opt) $val
+    }
+
+    # if the color is "auto", then select a color from -autocolors
+    if {$params(-color) == "auto" || $params(-color) == "autoreset"} {
+        if {$params(-color) == "autoreset"} {
+            set _autoColorI 0
+        }
+        set color [lindex $itk_option(-autocolors) $_autoColorI]
+        if {"" == $color} { set color black }
+        set params(-color) $color
+
+        # set up for next auto color
+        if {[incr _autoColorI] >= [llength $itk_option(-autocolors)]} {
+            set _autoColorI 0
+        }
     }
 
     # convert -linestyle to BLT -dashes
@@ -244,6 +268,16 @@ itcl::body Rappture::XyResult::add {curve {settings ""}} {
     if {$params(-brightness) != 0} {
         set params(-color) [Rappture::color::brightness \
             $params(-color) $params(-brightness)]
+
+        set bg [$itk_component(plot) cget -plotbackground]
+        foreach {h s v} [Rappture::color::RGBtoHSV $bg] break
+        if {$v > 0.5} {
+            set params(-color) [Rappture::color::brightness_max \
+                $params(-color) 0.8]
+        } else {
+            set params(-color) [Rappture::color::brightness_min \
+                $params(-color) 0.2]
+        }
     }
 
     set pos [lsearch -exact $curve $_clist]
@@ -313,6 +347,11 @@ itcl::body Rappture::XyResult::delete {args} {
     if {$changed} {
         $_dispatcher event -idle !rebuild
     }
+
+    # nothing left? then start over with auto colors
+    if {[llength $_clist] == 0} {
+        set _autoColorI 0
+    }
 }
 
 # ----------------------------------------------------------------------
@@ -325,6 +364,18 @@ itcl::body Rappture::XyResult::delete {args} {
 # the user scans through data in the ResultSet viewer.
 # ----------------------------------------------------------------------
 itcl::body Rappture::XyResult::scale {args} {
+    set allx [$itk_component(plot) x2axis use]
+    lappend allx x  ;# fix main x-axis too
+    foreach axis $allx {
+        _axis scale $axis linear
+    }
+
+    set ally [$itk_component(plot) y2axis use]
+    lappend ally y  ;# fix main y-axis too
+    foreach axis $ally {
+        _axis scale $axis linear
+    }
+
     catch {unset _limits}
     foreach xydata $args {
         # find the axes for this curve (e.g., {x y2})
@@ -350,9 +401,13 @@ itcl::body Rappture::XyResult::scale {args} {
                     }
                 }
             }
+
+            if {[$xydata hints ${axis}scale] == "log"} {
+                _axis scale $map($axis) log
+            }
         }
     }
-    _fixLimits
+    _resetLimits
 }
 
 # ----------------------------------------------------------------------
@@ -399,12 +454,6 @@ itcl::body Rappture::XyResult::_rebuild {} {
         $g axis configure $axis -hide yes
     }
     catch {unset _label2axis}
-
-    $g axis configure x -min "" -max "" -hide no
-    _axis scale x linear
-
-    $g axis configure y -min "" -max "" -hide no
-    _axis scale y linear
 
     #
     # Scan through all objects and create a list of all axes.
@@ -510,26 +559,17 @@ itcl::body Rappture::XyResult::_rebuild {} {
                 -symbol $sym -pixels 6 -linewidth $lwidth -label $label \
                 -color $color -dashes $dashes \
                 -mapx $mapx -mapy $mapy
-
-            if {[$xydata hints xscale] == "log"} {
-                _axis scale x log
-            }
-            if {[$xydata hints yscale] == "log"} {
-                _axis scale y log
-            }
         }
     }
-
-    _fixLimits
 }
 
 # ----------------------------------------------------------------------
-# USAGE: _fixLimits
+# USAGE: _resetLimits
 #
 # Used internally to apply automatic limits to the axes for the
 # current plot.
 # ----------------------------------------------------------------------
-itcl::body Rappture::XyResult::_fixLimits {} {
+itcl::body Rappture::XyResult::_resetLimits {} {
     set g $itk_component(plot)
 
     #
@@ -604,7 +644,7 @@ itcl::body Rappture::XyResult::_fixLimits {} {
 itcl::body Rappture::XyResult::_zoom {option args} {
     switch -- $option {
         reset {
-            _fixLimits
+            _resetLimits
         }
     }
 }
@@ -668,6 +708,14 @@ itcl::body Rappture::XyResult::_hilite {state x y} {
         }
         $g element activate $elem
         set _hilite(elem) $elem
+
+        set dlist [$g element show]
+        set i [lsearch -exact $dlist $elem]
+        if {$i >= 0} {
+            set dlist [lreplace $dlist $i $i]
+            lappend dlist $elem
+            $g element show $dlist
+        }
 
         foreach {mapx mapy} [_getAxes $_elem2curve($elem)] break
 
@@ -1067,5 +1115,19 @@ itcl::configbody Rappture::XyResult::gridcolor {
     } else {
         $itk_component(plot) grid configure -color $itk_option(-gridcolor)
         $itk_component(plot) grid on
+    }
+}
+
+# ----------------------------------------------------------------------
+# CONFIGURATION OPTION: -autocolors
+# ----------------------------------------------------------------------
+itcl::configbody Rappture::XyResult::autocolors {
+    foreach c $itk_option(-autocolors) {
+        if {[catch {winfo rgb $itk_component(hull) $c}]} {
+            error "bad color \"$c\""
+        }
+    }
+    if {$_autoColorI >= [llength $itk_option(-autocolors)]} {
+        set _autoColorI 0
     }
 }

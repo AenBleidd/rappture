@@ -1,0 +1,9 @@
+#!/bin/sh
+#
+# If you install Rappture elsewhere, edit the line below:
+RAPPTURE_INSTALL_DIR=/opt/rappture
+
+# no need to edit the rest...
+export PATH=$RAPPTURE_INSTALL_DIR/bin:$PATH
+export LD_LIBRARY_PATH=$RAPPTURE_INSTALL_DIR/lib:$LD_LIBRARY_PATH
+exec $RAPPTURE_INSTALL_DIR/bin/driver $*

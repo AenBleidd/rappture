@@ -397,6 +397,9 @@ itcl::body Rappture::Analyzer::load {file} {
             log* {
                 _autoLabel $xmlobj output.$item "Output Log" counters
             }
+            string* {
+                _autoLabel $xmlobj output.$item "String" counters
+            }
             curve* - field* {
                 _autoLabel $xmlobj output.$item "Plot" counters
             }
@@ -635,11 +638,13 @@ itcl::body Rappture::Analyzer::_fixResult {} {
     set page [$itk_component(resultselector) value]
     set page [$itk_component(resultselector) translate $page]
     if {$page != ""} {
+        blt::busy hold [winfo toplevel $itk_component(hull)]; update idletasks
         $itk_component(resultpages) current $page
 
         set f [$itk_component(resultpages) page $page]
         $f.rviewer plot clear
         eval $f.rviewer plot add $_plotlist
+        blt::busy release [winfo toplevel $itk_component(hull)]
     }
 }
 

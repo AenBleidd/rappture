@@ -179,49 +179,107 @@ itcl::body Rappture::Field::values {{what -overall}} {
 # Returns a list {min max} representing the limits for the specified
 # axis.
 # ----------------------------------------------------------------------
-itcl::body Rappture::Field::limits {axis} {
-    foreach val {xmin xmax ymin ymax zmin zmax vmin vmax} {
-        set results($val) ""
-    }
+itcl::body Rappture::Field::limits {which} {
+    set min ""
+    set max ""
+
+    blt::vector create tmp zero
     foreach comp [array names _comp2dims] {
         switch -- $_comp2dims($comp) {
             1D {
-                foreach {xv yv} $_comp2xy($comp) break
+                switch -- $which {
+                    x - xlin { set pos 0; set log 0; set axis xaxis }
+                    xlog { set pos 0; set log 1; set axis xaxis }
+                    y - ylin - v - vlin { set pos 1; set log 0; set axis yaxis }
+                    ylog - vlog { set pos 1; set log 1; set axis yaxis }
+                    default {
+                        error "bad option \"$which\": should be x, xlin, xlog, y, ylin, ylog, v, vlin, vlog"
+                    }
+                }
 
-                $xv variable x
-                set lims(xmin) $x(min)
-                set lims(xmax) $x(max)
+                set vname [lindex $_comp2xy($comp) $pos]
+                $vname variable vec
 
-                set lims(ymin) 0
-                set lims(ymax) 0
-                set lims(zmin) 0
-                set lims(zmax) 0
+                if {$log} {
+                    # on a log scale, use abs value and ignore 0's
+                    $vname dup tmp
+                    $vname dup zero
+                    zero expr {tmp == 0}            ;# find the 0's
+                    tmp expr {abs(tmp)}             ;# get the abs value
+                    tmp expr {tmp + zero*max(tmp)}  ;# replace 0's with abs max
+                    set vmin [blt::vector expr min(tmp)]
+                    set vmax [blt::vector expr max(tmp)]
+                } else {
+                    set vmin $vec(min)
+                    set vmax $vec(max)
+                }
 
-                $yv variable v
-                set lims(vmin) $v(min)
-                set lims(vmax) $v(max)
+                if {"" == $min} {
+                    set min $vmin
+                } elseif {$vmin < $min} {
+                    set min $vmin
+                }
+                if {"" == $max} {
+                    set max $vmax
+                } elseif {$vmax > $max} {
+                    set max $vmax
+                }
             }
             2D - 3D {
                 foreach {xv yv} $_comp2vtk($comp) break
-
-                foreach {lims(xmin) lims(xmax)} [$xv limits x] break
-                foreach {lims(ymin) lims(ymax)} [$xv limits y] break
-                foreach {lims(zmin) lims(zmax)} [$xv limits z] break
-                foreach {lims(vmin) lims(vmax)} [$yv GetRange] break
+                switch -- $which {
+                    x - xlin - xlog {
+                        foreach {vmin vmax} [$xv limits x] break
+                        set axis xaxis
+                    }
+                    y - ylin - ylog {
+                        foreach {vmin vmax} [$xv limits y] break
+                        set axis yaxis
+                    }
+                    z - zlin - zlog {
+                        foreach {vmin vmax} [$xv limits z] break
+                        set axis zaxis
+                    }
+                    v - vlin - vlog {
+                        foreach {vmin vmax} [$yv GetRange] break
+                        set axis vaxis
+                    }
+                    default {
+                        error "bad option \"$which\": should be x, xlin, xlog, y, ylin, ylog, v, vlin, vlog"
+                    }
+                }
             }
         }
-        foreach val {xmin ymin zmin vmin} {
-            if {"" == $results($val) || $lims($val) < $results($val)} {
-                set results($val) $lims($val)
-            }
+        if {"" == $min} {
+            set min $vmin
+        } elseif {$vmin < $min} {
+            set min $vmin
         }
-        foreach val {xmax ymax zmax vmax} {
-            if {"" == $results($val) || $lims($val) > $results($val)} {
-                set results($val) $lims($val)
-            }
+        if {"" == $max} {
+            set max $vmax
+        } elseif {$vmax > $max} {
+            set max $vmax
         }
     }
-    return [list $results(${axis}min) $results(${axis}max)]
+    blt::vector destroy tmp zero
+
+    set val [$_field get $axis.min]
+    if {"" != $val && "" != $min} {
+        if {$val > $min} {
+            # tool specified this min -- don't go any lower
+            set min $val
+        }
+    }
+
+    set val [$_field get $axis.max]
+    if {"" != $val && "" != $max} {
+        if {$val < $max} {
+            # tool specified this max -- don't go any higher
+            set max $val
+        }
+    }
+
+    return [list $min $max]
 }
 
 # ----------------------------------------------------------------------

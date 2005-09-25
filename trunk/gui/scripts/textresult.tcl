@@ -194,6 +194,9 @@ itcl::body Rappture::TextResult::add {dataobj {settings ""}} {
                     $itk_component(text) insert end "\n"
                 }
             }
+        } elseif {[$dataobj element -as type] == "string"} {
+            # add string values
+            $itk_component(text) insert end [$dataobj get current]
         } else {
             # any other string output -- add it directly
             $itk_component(text) insert end [$dataobj get]

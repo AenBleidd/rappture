@@ -28,6 +28,7 @@ proc Rappture::exec {args} {
 
     set execout ""
     eval blt::bgexec control \
+        -keepnewline yes \
         -onoutput {{::Rappture::_exec_out stdout}} \
         -onerror {{::Rappture::_exec_out stderr}} \
         $args

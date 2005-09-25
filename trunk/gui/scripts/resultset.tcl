@@ -13,7 +13,6 @@ package require Itk
 
 option add *ResultSet.width 4i widgetDefault
 option add *ResultSet.height 4i widgetDefault
-option add *ResultSet.colors {blue magenta} widgetDefault
 option add *ResultSet.toggleBackground gray widgetDefault
 option add *ResultSet.toggleForeground white widgetDefault
 option add *ResultSet.textFont \
@@ -24,7 +23,6 @@ option add *ResultSet.boldFont \
 itcl::class Rappture::ResultSet {
     inherit itk::Widget
 
-    itk_option define -colors colors Colors ""
     itk_option define -togglebackground toggleBackground Background ""
     itk_option define -toggleforeground toggleForeground Foreground ""
     itk_option define -textfont textFont Font ""
@@ -53,7 +51,6 @@ itcl::class Rappture::ResultSet {
     private variable _recent ""      ;# most recent result in _results
     private variable _plotall ""     ;# column with "All" active
     private variable _col2widget     ;# maps column name => control widget
-    private variable _spectrum ""    ;# color spectrum for "All" active
     private variable _counter 0      ;# counter for unique control names
 }
                                                                                 
@@ -108,12 +105,6 @@ itcl::body Rappture::ResultSet::constructor {args} {
     pack $itk_component(scroller) -expand yes -fill both
 
     eval itk_initialize $args
-
-    # color spectrum for plotting "All" results
-    set c1 [lindex $itk_option(-colors) 0]
-    set c0 [lindex $itk_option(-colors) 1]
-    if {"" == $c0} { set c0 #d9d9d9 }
-    set _spectrum [Rappture::Spectrum ::#auto [list 0 $c0 1 $c1]]
 }
 
 # ----------------------------------------------------------------------
@@ -121,7 +112,6 @@ itcl::body Rappture::ResultSet::constructor {args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::ResultSet::destructor {} {
     itcl::delete object $_results
-    itcl::delete object $_spectrum
 }
 
 # ----------------------------------------------------------------------
@@ -419,8 +409,7 @@ itcl::body Rappture::ResultSet::_fixControls {args} {
             }
 
             set w $f.cntl$_counter
-            Rappture::Radiodial $w \
-                -activelinecolor [lindex $itk_option(-colors) 0]
+            Rappture::Radiodial $w
             grid $w -row $_counter -column 1 -sticky ew
             bind $w <<Value>> \
                 [itcl::code $_dispatcher event -after 100 !settings]
@@ -512,8 +501,7 @@ itcl::body Rappture::ResultSet::_fixSettings {args} {
         }
         1 {
             # only one data set? then plot it
-            set color [lindex $itk_option(-colors) 0]
-            _doSettings [list 0 [list -color $color -width 2]]
+            _doSettings [list 0 [list -width 2]]
             return
         }
     }
@@ -557,8 +545,7 @@ itcl::body Rappture::ResultSet::_fixSettings {args} {
         if {[llength $ilist] == 1} {
             # single result -- always use active color
             set i [lindex $ilist 0]
-            set color [lindex $itk_option(-colors) 0]
-            set plist [list $i [list -color $color -width 2]]
+            set plist [list $i [list -width 2]]
         } else {
             #
             # Get the color for all points according to
@@ -566,13 +553,10 @@ itcl::body Rappture::ResultSet::_fixSettings {args} {
             #
             set plist ""
             foreach i $ilist {
-                set v [lindex [$_results get -format $_plotall $i] 0]
-                set color [$_col2widget($_plotall) color $v]
-
                 if {$i == $icurr} {
-                    lappend plist $i [list -color $color -width 3 -raise 1]
+                    lappend plist $i [list -width 3 -raise 1]
                 } else {
-                    lappend plist $i [list -color $color -width 1]
+                    lappend plist $i [list -brightness 0.7 -width 1]
                 }
             }
         }
@@ -624,16 +608,8 @@ itcl::body Rappture::ResultSet::_toggleAll {path widget} {
             -background $itk_option(-background) \
             -foreground $itk_option(-foreground)
 
-        set color [lindex $itk_option(-colors) 0]
-        $_col2widget($path) configure -activelinecolor $color
-
         set _plotall ""
     } else {
-        if {"" != $_plotall} {
-            set color [lindex $itk_option(-colors) 0]
-            $_col2widget($_plotall) configure -activelinecolor $color
-        }
-
         # pop out all other "All" buttons
         set f [$itk_component(scroller) contents frame]
         for {set i 0} {$i < $_counter} {incr i} {
@@ -651,21 +627,6 @@ itcl::body Rappture::ResultSet::_toggleAll {path widget} {
 
         # switch the "All" context to this path
         set _plotall $path
-        $_col2widget($path) configure -activelinecolor $_spectrum
     }
     $_dispatcher event -idle !settings
-}
-
-# ----------------------------------------------------------------------
-# CONFIGURATION OPTION: -colors
-# ----------------------------------------------------------------------
-itcl::configbody Rappture::ResultSet::colors {
-    if {"" != $_spectrum} {
-        set c1 [lindex $itk_option(-colors) 0]
-        set c0 [lindex $itk_option(-colors) 1]
-        if {"" == $c0} { set c0 #d9d9d9 }
-
-        $_spectrum delete 0 end
-        $_spectrum insert end 0 $c0 1 $c1
-    }
 }

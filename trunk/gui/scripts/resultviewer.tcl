@@ -151,11 +151,18 @@ itcl::body Rappture::ResultViewer::plot {option args} {
     switch -- $option {
         add {
             foreach {index opts} $args {
+                set reset "-color autoreset"
                 set slot [lindex $_dataslots $index]
                 foreach dobj $slot {
-                    # start with default settings from data object
-                    if {[catch {$dobj hints style} settings]} {
-                        set settings ""
+                    set settings ""
+                    # start with color reset, only for first object in series
+                    if {"" != $reset} {
+                        set settings $reset
+                        set reset ""
+                    }
+                    # add default settings from data object
+                    if {[catch {$dobj hints style} style] == 0} {
+                        eval lappend settings $style
                     }
                     # add override settings passed in here
                     eval lappend settings $opts
@@ -246,7 +253,7 @@ itcl::body Rappture::ResultViewer::_plotAdd {dataobj {settings ""}} {
         }
         ::Rappture::LibraryObj {
             switch -- [$dataobj element -as type] {
-                log {
+                string - log {
                     set mode "log"
                     if {![info exists _mode2widget($mode)]} {
                         set w $itk_interior.log
@@ -354,7 +361,7 @@ itcl::body Rappture::ResultViewer::_xml2data {xmlobj path} {
         table {
             return [Rappture::Table ::#auto $xmlobj $path]
         }
-        log {
+        string - log {
             return [$xmlobj element -as object $path]
         }
         structure {

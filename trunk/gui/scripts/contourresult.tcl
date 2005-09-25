@@ -291,7 +291,7 @@ itcl::body Rappture::ContourResult::destructor {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::ContourResult::add {dataobj {settings ""}} {
     array set params {
-        -color black
+        -color auto
         -width 1
         -linestyle solid
         -brightness 0
@@ -302,6 +302,10 @@ itcl::body Rappture::ContourResult::add {dataobj {settings ""}} {
             error "bad setting \"$opt\": should be [join [lsort [array names params]] {, }]"
         }
         set params($opt) $val
+    }
+    if {$params(-color) == "auto" || $params(-color) == "autoreset"} {
+        # can't handle -autocolors yet
+        set params(-color) black
     }
 
     set pos [lsearch -exact $dataobj $_dlist]

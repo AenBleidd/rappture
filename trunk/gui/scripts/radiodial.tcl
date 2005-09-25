@@ -16,7 +16,7 @@ option add *Radiodial.length 2i widgetDefault
 option add *Radiodial.dialOutlineColor black widgetDefault
 option add *Radiodial.dialFillColor white widgetDefault
 option add *Radiodial.lineColor gray widgetDefault
-option add *Radiodial.activeLineColor red widgetDefault
+option add *Radiodial.activeLineColor black widgetDefault
 option add *Radiodial.valueWidth 10 widgetDefault
 option add *Radiodial.font \
     -*-helvetica-medium-r-normal-*-*-120-* widgetDefault
@@ -191,12 +191,20 @@ itcl::body Rappture::Radiodial::get {args} {
             value {
                 $op rlist [lindex $_values $i]
             }
+            position {
+                foreach {min max} [_limits] break
+                set v [lindex $_values $i]
+                set frac [expr {double($v-$min)/($max-$min)}]
+                $op rlist $frac
+            }
             all {
                 set v [lindex $_values $i]
-                $op rlist [list $_val2label($v) $v]
+                foreach {min max} [_limits] break
+                set frac [expr {double($v-$min)/($max-$min)}]
+                $op rlist [list $_val2label($v) $v $frac]
             }
             default {
-                error "bad value \"$v\": should be label, value, all"
+                error "bad value \"$v\": should be label, value, position, all"
             }
         }
     }
