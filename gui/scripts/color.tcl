@@ -38,6 +38,36 @@ proc Rappture::color::brightness {color frac} {
 }
 
 # ---------------------------------------------------------------------
+# USAGE: brightness_min <color> <min>
+#
+# Used to make sure a color is not too dim.  If the value is less
+# than the <min>, then it is capped at that value.  That way, the
+# return color shows up against black.
+# ----------------------------------------------------------------------
+proc Rappture::color::brightness_min {color min} {
+    foreach {h s v} [Rappture::color::RGBtoHSV $color] { break }
+    if {$v < $min} {
+        set v $min
+    }
+    return [Rappture::color::HSVtoRGB $h $s $v]
+}
+
+# ---------------------------------------------------------------------
+# USAGE: brightness_max <color> <max>
+#
+# Used to make sure a color is not too dim.  If the value is less
+# than the <min>, then it is capped at that value.  That way, the
+# return color shows up against black.
+# ----------------------------------------------------------------------
+proc Rappture::color::brightness_max {color max} {
+    foreach {h s v} [Rappture::color::RGBtoHSV $color] { break }
+    if {$v > $max} {
+        set v $max
+    }
+    return [Rappture::color::HSVtoRGB $h $s $v]
+}
+
+# ---------------------------------------------------------------------
 # USAGE: RGBtoHSV <color>
 #
 # Used to convert a Tk <color> value to hue, saturation, value

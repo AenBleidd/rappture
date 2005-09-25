@@ -142,7 +142,7 @@ foreach comp $phases {
 # ----------------------------------------------------------------------
 # OUTPUT AREA
 # ----------------------------------------------------------------------
-$win.pager insert end -name analyzer -title "Run"
+$win.pager insert end -name analyzer -title "Simulate"
 set f [$win.pager page analyzer]
 $win.pager page analyzer -command [list $f.analyze simulate -ifneeded]
 

@@ -131,7 +131,7 @@ itcl::body Rappture::MeshResult::destructor {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::MeshResult::add {dataobj {settings ""}} {
     array set params {
-        -color black
+        -color auto
         -brightness 0
         -width 1
         -raise 0
@@ -142,6 +142,10 @@ itcl::body Rappture::MeshResult::add {dataobj {settings ""}} {
             error "bad setting \"$opt\": should be [join [lsort [array names params]] {, }]"
         }
         set params($opt) $val
+    }
+    if {$params(-color) == "auto" || $params(-color) == "autoreset"} {
+        # can't handle -autocolors yet
+        set params(-color) black
     }
 
     # convert -linestyle to BLT -dashes
