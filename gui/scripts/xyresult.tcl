@@ -84,7 +84,8 @@ itcl::class Rappture::XyResult {
     private variable _autoColorI 0 ;# index for next "-color auto"
 
     private variable _hilite       ;# info for element currently highlighted
-    private variable _axisPopup    ;# info for axis being edited
+    private variable _axis         ;# info for axis manipulations
+    private variable _axisPopup    ;# info for axis being edited in popup
 }
                                                                                 
 itk::usual XyResult {
@@ -510,7 +511,11 @@ itcl::body Rappture::XyResult::_rebuild {} {
         $g axis bind $axis <Leave> \
             [itcl::code $this _axis hilite $axis off]
         $g axis bind $axis <ButtonPress> \
-            [itcl::code $this _axis edit $axis]
+            [itcl::code $this _axis click $axis %x %y]
+        $g axis bind $axis <B1-Motion> \
+            [itcl::code $this _axis drag $axis %x %y]
+        $g axis bind $axis <ButtonRelease> \
+            [itcl::code $this _axis release $axis %x %y]
     }
 
     #
@@ -817,6 +822,11 @@ itcl::body Rappture::XyResult::_hilite {state x y} {
 
 # ----------------------------------------------------------------------
 # USAGE: _axis hilite <axis> <state>
+#
+# USAGE: _axis click <axis> <x> <y>
+# USAGE: _axis drag <axis> <x> <y>
+# USAGE: _axis release <axis> <x> <y>
+#
 # USAGE: _axis edit <axis>
 # USAGE: _axis changed <axis> <what>
 # USAGE: _axis format <axis> <widget> <value>
@@ -847,6 +857,98 @@ itcl::body Rappture::XyResult::_axis {option args} {
                     -color $itk_option(-foreground) \
                     -titlecolor $itk_option(-foreground)
             }
+        }
+        click {
+            if {[llength $args] != 3} {
+                error "wrong # args: should be \"_axis click axis x y\""
+            }
+            set axis [lindex $args 0]
+            set x [lindex $args 1]
+            set y [lindex $args 2]
+            set g $itk_component(plot)
+
+            set _axis(moved) 0
+            set _axis(click-x) $x
+            set _axis(click-y) $y
+            foreach {min max} [$g axis limits $axis] break
+            set _axis(min0) $min
+            set _axis(max0) $max
+        }
+        drag {
+            if {[llength $args] != 3} {
+                error "wrong # args: should be \"_axis drag axis x y\""
+            }
+            set axis [lindex $args 0]
+            set x [lindex $args 1]
+            set y [lindex $args 2]
+            set g $itk_component(plot)
+
+            if {[info exists _axis(click-x)] && [info exists _axis(click-y)]} {
+                foreach {x0 y0 pw ph} [$g extents plotarea] break
+                switch -glob $axis {
+                  x* {
+                    set pix $x
+                    set pix0 $_axis(click-x)
+                    set pixmin $x0
+                    set pixmax [expr {$x0+$pw}]
+                  }
+                  y* {
+                    set pix $y
+                    set pix0 $_axis(click-y)
+                    set pixmin [expr {$y0+$ph}]
+                    set pixmax $y0
+                  }
+                }
+                set log [$g axis cget $axis -logscale]
+                set min $_axis(min0)
+                set max $_axis(max0)
+                set dpix [expr {abs($pix-$pix0)}]
+                set v0 [$g axis invtransform $axis $pixmin]
+                set v1 [$g axis invtransform $axis [expr {$pixmin+$dpix}]]
+                if {$log} {
+                    set v0 [expr {log10($v0)}]
+                    set v1 [expr {log10($v1)}]
+                    set min [expr {log10($min)}]
+                    set max [expr {log10($max)}]
+                }
+
+                if {$pix > $pix0} {
+                    set delta [expr {$v1-$v0}]
+                } else {
+                    set delta [expr {$v0-$v1}]
+                }
+                set min [expr {$min-$delta}]
+                set max [expr {$max-$delta}]
+                if {$log} {
+                    set min [expr {pow(10.0,$min)}]
+                    set max [expr {pow(10.0,$max)}]
+                }
+                $g axis configure $axis -min $min -max $max
+
+                # move axis, don't edit on release
+                set _axis(move) 1
+            }
+        }
+        release {
+            if {[llength $args] != 3} {
+                error "wrong # args: should be \"_axis release axis x y\""
+            }
+            set axis [lindex $args 0]
+            set x [lindex $args 1]
+            set y [lindex $args 2]
+
+            if {![info exists _axis(moved)] || !$_axis(moved)} {
+                # small movement? then treat as click -- pop up axis editor
+                set dx [expr {abs($x-$_axis(click-x))}]
+                set dy [expr {abs($y-$_axis(click-y))}]
+                if {$dx < 2 && $dy < 2} {
+                    _axis edit $axis
+                }
+            } else {
+                # one last movement
+                _axis drag $axis $x $y
+            }
+            catch {unset _axis}
         }
         edit {
             if {[llength $args] != 1} {
