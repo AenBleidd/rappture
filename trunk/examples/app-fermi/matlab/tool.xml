@@ -8,33 +8,47 @@
         <number id="temperature">
             <about>
                 <label>Ambient temperature</label>
+                <description>Temperature of the environment.</description>
             </about>
             <units>K</units>
-            <min>120K</min>
+            <min>0K</min>
             <max>500K</max>
             <default>300K</default>
-            <preset>
-                <value>400K</value>
-                <label>400K (hot)</label>
-            </preset>
             <preset>
                 <value>300K</value>
                 <label>300K (room temperature)</label>
             </preset>
             <preset>
-                <value>200K</value>
-                <label>200K (cold)</label>
+                <value>77K</value>
+                <label>77K (liquid nitrogen)</label>
+            </preset>
+            <preset>
+                <value>4.2K</value>
+                <label>4.2K (liquid helium)</label>
             </preset>
         </number>
         <number id="Ef">
             <about>
                 <label>Fermi Level</label>
+                <description>Energy at center of distribution.</description>
             </about>
             <units>eV</units>
             <min>-10eV</min>
             <max>10eV</max>
-            <default>-5.5eV</default>
+            <default>0eV</default>
         </number>
     </input>
+    <output>
+        <curve id="f12">
+            <about><label>Fermi-Dirac Factor</label></about>
+            <xaxis>
+              <label>Fermi-Dirac Factor</label>
+            </xaxis>
+            <yaxis>
+              <label>Energy</label>
+              <units>eV</units>
+            </yaxis>
+        </curve>
+    </output>
 </run>
 

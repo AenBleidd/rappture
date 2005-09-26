@@ -31,6 +31,7 @@
 #   define rp_lib_write_xml        rp_lib_write_xml_
 #   define rp_lib_xml              rp_lib_xml_
 #   define rp_quit                 rp_quit_
+#   define rp_result               rp_result_
 #elif defined(COMPNAME_ADD2UNDERSCORE)
 #   define rp_init                 rp_init__
 #   define rp_lib                  rp_lib__
@@ -56,6 +57,7 @@
 #   define rp_lib_write_xml        rp_lib_write_xml__
 #   define rp_lib_xml              rp_lib_xml__
 #   define rp_quit                 rp_quit__
+#   define rp_result               rp_result__
 #elif defined(COMPNAME_NOCHANGE)
 #   define rp_init                 rp_init
 #   define rp_lib                  rp_lib
@@ -81,6 +83,7 @@
 #   define rp_lib_write_xml        rp_lib_write_xml
 #   define rp_lib_xml              rp_lib_xml
 #   define rp_quit                 rp_quit
+#   define rp_result               rp_result
 #elif defined(COMPNAME_UPPERCASE)
 #   define rp_init                 RP_INIT
 #   define rp_lib                  RP_LIB
@@ -106,6 +109,7 @@
 #   define rp_lib_write_xml        RP_LIB_WRITE_XML
 #   define rp_lib_xml              RP_LIB_XML
 #   define rp_quit                 RP_QUIT
+#   define rp_result               RP_RESULT
 #endif
 
 
@@ -274,6 +278,9 @@ int rp_lib_write_xml(     int* handle,
                             int outFile_len);
 extern "C"
 void rp_quit();
+
+extern "C"
+void rp_result(int* handle);
 
 
 /**********************************************************/
@@ -1305,6 +1312,18 @@ void rp_quit()
 
     rapptureStarted = 0;
     // Py_Finalize();
+}
+
+void rp_result(int* handle) {
+    PyObject* lib = NULL;
+
+    if (rapptureStarted && handle && *handle != 0) {
+        lib = getObject(*handle);
+        if (lib) {
+            rpResult(lib);
+        }
+    }
+    rp_quit();
 }
 
 int objType( char* flavor) 
