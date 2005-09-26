@@ -13,6 +13,7 @@ package require Itk
 
 option add *ResultSet.width 4i widgetDefault
 option add *ResultSet.height 4i widgetDefault
+option add *ResultSet.missingData skip widgetDefault
 option add *ResultSet.toggleBackground gray widgetDefault
 option add *ResultSet.toggleForeground white widgetDefault
 option add *ResultSet.textFont \
@@ -27,6 +28,7 @@ itcl::class Rappture::ResultSet {
     itk_option define -toggleforeground toggleForeground Foreground ""
     itk_option define -textfont textFont Font ""
     itk_option define -boldfont boldFont Font ""
+    itk_option define -missingdata missingData MissingData ""
     itk_option define -clearcommand clearCommand ClearCommand ""
     itk_option define -settingscommand settingsCommand SettingsCommand ""
     itk_option define -promptcommand promptCommand PromptCommand ""
@@ -412,7 +414,7 @@ itcl::body Rappture::ResultSet::_fixControls {args} {
             Rappture::Radiodial $w
             grid $w -row $_counter -column 1 -sticky ew
             bind $w <<Value>> \
-                [itcl::code $_dispatcher event -after 100 !settings]
+                [itcl::code $_dispatcher event -after 100 !settings column $col widget $w]
             set _col2widget($col) $w
 
             incr _counter
@@ -565,7 +567,51 @@ itcl::body Rappture::ResultSet::_fixSettings {args} {
         # Load up the matching plots
         #
         _doSettings $plist
-    } else {
+    } elseif {$itk_option(-missingdata) == "skip"} {
+        #
+        # No data for these settings.  Try leaving the next
+        # column open, then the next, and so forth, until
+        # we find some data.
+        #
+        array set eventdata $args
+        if {[info exists eventdata(column)]} {
+            set changed $eventdata(column)
+            set allcols [lrange [$_results column names] 1 end]
+            set i [lsearch -exact $allcols $changed]
+            set search [concat \
+                [lrange $allcols [expr {$i+1}] end] \
+                [lrange $allcols 0 [expr {$i-1}]] \
+            ]
+            set nsearch [llength $search]
+
+            set tweak(widget) ""
+            set tweak(value) ""
+            for {set i 0} {$i < $nsearch} {incr i} {
+                set format $eventdata(column)
+                set tuple [$eventdata(widget) get current]
+                for {set j [expr {$i+1}]} {$j < $nsearch} {incr j} {
+                    set col [lindex $search $j]
+                    set w $_col2widget($col)
+                    lappend format $col
+                    lappend tuple [$w get current]
+                }
+                set ilist [$_results find -format $format -- $tuple]
+                if {[llength $ilist] > 0} {
+                    set col [lindex $search $i]
+                    set tweak(widget) $_col2widget($col)
+                    set first [lindex $ilist 0]
+                    set tweak(value) [$_results get -format $col -- $first]
+                    break
+                }
+            }
+
+            # set the value to the next valid result
+            if {$tweak(widget) != ""} {
+                $tweak(widget) current $tweak(value)
+            }
+        }
+
+    } elseif {$itk_option(-missingdata) == "prompt"} {
         # prompt the user to simulate these settings
         _doPrompt on
     }
@@ -629,4 +675,14 @@ itcl::body Rappture::ResultSet::_toggleAll {path widget} {
         set _plotall $path
     }
     $_dispatcher event -idle !settings
+}
+
+# ----------------------------------------------------------------------
+# OPTION: -missingdata
+# ----------------------------------------------------------------------
+itcl::configbody Rappture::ResultSet::missingdata {
+    set opts {prompt skip}
+    if {[lsearch -exact $opts $itk_option(-missingdata)] < 0} {
+        error "bad value \"$itk_option(-missingdata)\": should be [join $opts {, }]"
+    }
 }

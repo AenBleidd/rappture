@@ -233,6 +233,11 @@ itcl::body Rappture::Radiodial::current {args} {
             error "bad value \"$newval\""
         }
         set _current $newval
+
+        after cancel [itcl::code $this _redraw]
+        after idle [itcl::code $this _redraw]
+        event generate $itk_component(hull) <<Value>>
+
         return $_current
     }
     error "wrong # args: should be \"current ?newval?\""
