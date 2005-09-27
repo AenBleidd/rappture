@@ -130,6 +130,8 @@ double base2peta (double base)
 
 /****************************************
  * METRIC TO NON-METRIC CONVERSIONS
+ * LENGTH CONVERSIONS
+ * http://www.nodc.noaa.gov/dsdt/ucg/
  ****************************************/
 
 double angstrom2meter (double angstrom)
@@ -140,6 +142,36 @@ double angstrom2meter (double angstrom)
 double meter2angstrom (double meters)
 {
         return meters*1.0e10;
+}
+
+double meter2inch (double m)
+{
+        return (m*39.37008);
+}
+
+double inch2meter (double in)
+{
+        return (in/39.37008);
+}
+
+double meter2feet (double m)
+{
+        return (m*3.280840);
+}
+
+double feet2meter (double ft)
+{
+        return (ft/3.280840);
+}
+
+double meter2yard (double m)
+{
+        return (m*1.093613);
+}
+
+double yard2meter (double yd)
+{
+        return (yd/1.093613);
 }
 
 /****************************************
@@ -166,6 +198,39 @@ double kelvin2centigrade (double K)
         return (K-273.15);
 }
 
+double rankine2kelvin (double R)
+{
+        return ((9.0/5.0)*R);
+}
+
+double kelvin2rankine (double K)
+{
+        return ((5.0/9.0)*K);
+}
+
+double fahrenheit2kelvin (double F)
+{
+        return ((F+459.67)*(5.0/9.0));
+}
+
+double kelvin2fahrenheit (double K)
+{
+        return (((9.0/5.0)*K)-459.67);
+}
+
+/****************************************
+ * ENERGY CONVERSIONS
+ ****************************************/
+
+double electronVolt2joule (double eV)
+{
+        return (eV*1.602177e-19);
+}
+
+double joule2electronVolt (double J)
+{
+        return (J*1.602177e19);
+}
 
 #ifdef __cplusplus
 }

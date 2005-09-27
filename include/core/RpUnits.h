@@ -200,6 +200,11 @@ class RpUnits
                                 int showUnits = 0, 
                                 int* result = NULL  ); 
 
+        static std::string convert ( std::string val,
+                                     std::string toUnits,
+                                     int showUnits,
+                                     int* result = NULL );
+
         // dictionary to store the units.
         // static RpDict<std::string,RpUnits> dict;
 
@@ -252,6 +257,17 @@ class RpUnits
                                 void* convForwData,
                                 void* (*convBackFxnPtr)(void*, void*),
                                 void* convBackData);
+
+        // populate the dictionary with a set of units specified by group
+        // if group equals......................then load................
+        //      "all"                       load all available units
+        //      "energy"                    load units related to length
+        //      "length"                    load units related to length
+        //      "temp"                      load units related to temperature
+        //      "time"                      load units related to time
+        //  (no other groups have been created)
+
+        static int addPresets (std::string group);
 
         // undefining a relation rule is probably not needed 
         // int undefine(); // delete a relation
@@ -434,6 +450,12 @@ class RpUnits
                       double &  exponent,
                       RpUnits * basis
                      );
+
+        static int addPresetAll();
+        static int addPresetEnergy();
+        static int addPresetLength();
+        static int addPresetTemp();
+        static int addPresetTime();
 
 
 };

@@ -34,6 +34,13 @@ double base2peta    (double base);
 
 double angstrom2meter (double angstrom);
 double meter2angstrom (double meters);
+double meter2inch (double m);
+double inch2meter (double in);
+double meter2feet (double m);
+double feet2meter (double ft);
+double meter2yard (double m);
+double yard2meter (double yd);
+
 
 
 
@@ -41,6 +48,24 @@ double fahrenheit2centigrade (double F);
 double centigrade2fahrenheit (double C);
 double centigrade2kelvin (double C);
 double kelvin2centigrade (double K);
+double rankine2kelvin (double R);
+double kelvin2rankine (double K);
+double fahrenheit2kelvin (double F);
+double kelvin2fahrenheit (double K);
+
+
+
+double electronVolt2joule (double eV);
+double joule2electronVolt (double J);
+
+
+
+
+
+
+
+
+
 
 
 #ifdef __cplusplus

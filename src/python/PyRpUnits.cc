@@ -412,10 +412,10 @@ RpUnits_find(PyObject *self, PyObject *args)
 }
 
 PyDoc_STRVAR(RpUnits_makeMetric_doc, 
-"find(name) -> RpUnitsObject \n\
+"makeMetric (newBasis) -> PyInt \n\
 \n\
-search the dictionary of created RpUnits for a unit matching \n\
-the string 'name'");
+Create the metric extentions and conversion functions for \n\
+the unit 'newBasis', thus making it a new basis.");
 
 static PyObject*
 RpUnits_makeMetric(PyObject *self, PyObject *args)
@@ -437,6 +437,63 @@ RpUnits_makeMetric(PyObject *self, PyObject *args)
     return PyInt_FromLong((long)result);
 }
 
+PyDoc_STRVAR(RpUnits_convert_doc, 
+"convert (fromVal, to, units) -> PyString \n\
+\n\
+Convert the value 'fromVal', to the units listed in 'to', \n\
+and return the value as a string. The string 'fromVal' must have a \n\
+numeric value with units attached to the end. If 'units' is set to \n\
+'off' then the returned string will not have units. The default \n\
+behavior is to show units.");
+
+static PyObject*
+RpUnits_convert(PyObject *self, PyObject *args, PyObject *keywds)
+{
+    // RpUnitsObject* units = NULL;
+    char* fromVal = NULL;
+    char* to = NULL;
+    char* units = NULL;
+    std::string fromVal_S = "";
+    std::string to_S = "";
+    std::string tmpUnits_S = "";
+    int unitsVal = 1;
+    int result = 0;
+    std::string retStr = "";
+
+    static char *kwlist[] = {"fromVal", "to", "units", NULL};
+    
+    if (PyTuple_Size(args) > 0) {
+        // PyArg_ParseTuple(args, "ss|s", &fromVal, &to, &units);
+        if (!PyArg_ParseTupleAndKeywords(args, keywds, "ss|s", 
+                    kwlist, &fromVal, &to, &units)) {
+            return NULL; 
+        }
+    }
+    else {
+        return NULL;
+    }
+
+    fromVal_S = std::string(fromVal);
+    to_S = std::string(to);
+    if (units) {
+        tmpUnits_S = std::string(units);
+        if(tmpUnits_S.compare("off") == 0) {
+            unitsVal = 0;
+        }
+        else {
+            unitsVal = 1;
+        }
+    }
+
+    retStr = RpUnits::convert(fromVal_S,to_S,unitsVal,&result);
+
+    if (!retStr.empty()) {
+
+    }
+        
+    return PyString_FromString(retStr.c_str());
+}
+
 /* ---------- */
 
 
@@ -455,6 +512,9 @@ static PyMethodDef RpUnits_Methods[] = {
 
 	{"makeMetric", RpUnits_makeMetric, METH_VARARGS,
         RpUnits_makeMetric_doc},
+    
+	{"convert", (PyCFunction)RpUnits_convert, METH_VARARGS|METH_KEYWORDS,
+        RpUnits_convert_doc},
     
 	{NULL,		NULL}		/* sentinel */
 };
@@ -485,5 +545,11 @@ initRpUnits(void)
 	}
 	Py_INCREF(ErrorObject);
 	PyModule_AddObject(m, "error", ErrorObject);
+
+
+    // add some standard units definitions and conversions.
+
+    RpUnits::addPresets("all");
+
 
 }

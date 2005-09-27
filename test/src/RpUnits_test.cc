@@ -16,6 +16,7 @@ void fail()
 int main()
 {
     double value = 0.0;
+    std::string strValue;
     // int failTest = 0;
     int result = 0;
     // std::list<double,RpUnits *> 
@@ -224,6 +225,31 @@ int main()
     (value == 2) ? success() : fail();
     printf("2 m = :%f: meters\n", value);
 
+    printf ("=============== TEST 5 ===============\n");
+
+    strValue = RpUnits::convert("72F","C",1);
+    std::cout << "result = " << result << std::endl;
+    std::cout << "strValue convert(72F,C,1) = " << strValue << std::endl;
+
+    strValue = RpUnits::convert("72F","C",0);
+    std::cout << "result = " << result << std::endl;
+    std::cout << "strValue convert(72F,C,0) = " << strValue << std::endl;
+
+    strValue = RpUnits::convert("20C","K",1);
+    std::cout << "result = " << result << std::endl;
+    std::cout << "strValue convert(20C,K,1) = " << strValue << std::endl;
+
+    strValue = RpUnits::convert("20C","K",0);
+    std::cout << "result = " << result << std::endl;
+    std::cout << "strValue convert(20C,K,1) = " << strValue << std::endl;
+
+    strValue = RpUnits::convert("300K","C",1);
+    std::cout << "result = " << result << std::endl;
+    std::cout << "strValue convert(300K,C,1) = " << strValue << std::endl;
+
+    strValue = RpUnits::convert("300K","C",0);
+    std::cout << "result = " << result << std::endl;
+    std::cout << "strValue convert(300K,C,0) = " << strValue << std::endl;
 
     return 0;
 }
