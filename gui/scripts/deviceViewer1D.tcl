@@ -18,6 +18,8 @@ package require BLT
 option add *DeviceViewer1D.padding 4 widgetDefault
 option add *DeviceViewer1D.deviceSize 0.25i widgetDefault
 option add *DeviceViewer1D.deviceOutline black widgetDefault
+option add *DeviceViewer1D*graph.width 3i widgetDefault
+option add *DeviceViewer1D*graph.height 2i widgetDefault
 
 itcl::class Rappture::DeviceViewer1D {
     inherit itk::Widget
@@ -91,8 +93,7 @@ itcl::body Rappture::DeviceViewer1D::constructor {owner args} {
 
     itk_component add graph {
         blt::graph $itk_component(inner).graph \
-            -highlightthickness 0 -plotpadx 0 -plotpady 0 \
-            -width 4i -height 2i
+            -highlightthickness 0 -plotpadx 0 -plotpady 0
     } {
         keep -background -foreground -cursor -font
     }
