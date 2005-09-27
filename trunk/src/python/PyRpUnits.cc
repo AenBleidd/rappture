@@ -4,28 +4,9 @@
 static PyObject *ErrorObject;
 
 typedef struct {
-	PyObject_HEAD
-	RpUnits* rp_unit;
+    PyObject_HEAD
+    RpUnits* rp_unit;
 } RpUnitsObject;
-
-// static PyTypeObject RpUnitsObjectType;
-
-/* Xxo methods */
-/*
- * moved this below because forward declaration of RpUnitsObjectType
- * was causing compiler errors ???
- *
-static RpUnitsObject*
-newRpUnitsObject(PyObject *arg)
-{
-	RpUnitsObject* self;
-	self = PyObject_New(RpUnitsObject, &RpUnitsObjectType);
-	if (self == NULL)
-		return NULL;
-	self->rp_unit = NULL;
-	return self;
-}
-*/
 
 static void
 RpUnitsObject_dealloc(RpUnitsObject *self)
@@ -35,8 +16,7 @@ RpUnitsObject_dealloc(RpUnitsObject *self)
             // cant call this right now because destructor is private
             // delete(self->rp_unit);
         }
-    
-	    PyObject_Del(self);
+        PyObject_Del(self);
     }
 }
 
@@ -117,71 +97,71 @@ static PyMethodDef RpUnitsObject_methods[] = {
      "Return the whole (base and exponent) name of the RpUnitsObject" },
     {"getExponent", (PyCFunction)RpUnitsObject_getExponent, METH_NOARGS,
      "Return the exponent of the RpUnitsObject" },
-	{"convert", (PyCFunction)RpUnitsObject_convert, METH_VARARGS,
-	 "convert a value from one RpUnits Object to another" },
-	{"makeBasis", (PyCFunction)RpUnitsObject_makeBasis, METH_VARARGS,
-	 "return the basis value of the value provided" },
+    {"convert", (PyCFunction)RpUnitsObject_convert, METH_VARARGS,
+     "convert a value from one RpUnits Object to another" },
+    {"makeBasis", (PyCFunction)RpUnitsObject_makeBasis, METH_VARARGS,
+     "return the basis value of the value provided" },
     
     {NULL}  /* Sentinel */
 };
 
 static PyTypeObject RpUnitsObjectType = {
-	/* The ob_type field must be initialized in the module init function
-	 * to be portable to Windows without using C++. */
-	PyObject_HEAD_INIT(NULL)
-	0,			                        /*ob_size*/
-	"RpUnits.RpUnitsObject",		    /*tp_name*/
-	sizeof(RpUnitsObject),	            /*tp_basicsize*/
-	0,			                        /*tp_itemsize*/
-	/* methods */
-	(destructor)RpUnitsObject_dealloc,  /*tp_dealloc*/
-	0,			                        /*tp_print*/
-	0,                                  /*tp_getattr*/
-	0,                                  /*tp_setattr*/
-	0,			                        /*tp_compare*/
-	0,			                        /*tp_repr*/
-	0,			                        /*tp_as_number*/
-	0,			                        /*tp_as_sequence*/
-	0,			                        /*tp_as_mapping*/
-	0,			                        /*tp_hash*/
-    0,                                  /*tp_call*/
-    0,                                  /*tp_str*/
-    0,                                  /*tp_getattro*/
-    0,                                  /*tp_setattro*/
-    0,                                  /*tp_as_buffer*/
-    Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,     /*tp_flags*/
-    "RpUnits Object",                   /*tp_doc*/
-    0,                                  /*tp_traverse*/
-    0,                                  /*tp_clear*/
-    0,                                  /*tp_richcompare*/
-    0,                                  /*tp_weaklistoffset*/
-    0,                                  /*tp_iter*/
-    0,                                  /*tp_iternext*/
-    RpUnitsObject_methods,              /* tp_methods */
-    0,                                  /*tp_members*/
-    0,                                  /*tp_getset*/
-    0,                                  /*tp_base*/
-    0,                                  /*tp_dict*/
-    0,                                  /*tp_descr_get*/
-    0,                                  /*tp_descr_set*/
-    0,                                  /*tp_dictoffset*/
-    0,                                  /*tp_init*/
-    0,                                  /*tp_alloc*/
-    // RpUnitsObject_new,                  /*tp_new*/
-    0,                                  /*tp_new*/
-    0,                                  /*tp_free*/
-    0,                                  /*tp_is_gc*/
+    /* The ob_type field must be initialized in the module init function
+     * to be portable to Windows without using C++. */
+    PyObject_HEAD_INIT(NULL)
+    0,                                    /*ob_size*/
+    "RpUnits.RpUnitsObject",              /*tp_name*/
+    sizeof(RpUnitsObject),                /*tp_basicsize*/
+    0,                                    /*tp_itemsize*/
+    /* methods */
+    (destructor)RpUnitsObject_dealloc,    /*tp_dealloc*/
+    0,                                    /*tp_print*/
+    0,                                    /*tp_getattr*/
+    0,                                    /*tp_setattr*/
+    0,                                    /*tp_compare*/
+    0,                                    /*tp_repr*/
+    0,                                    /*tp_as_number*/
+    0,                                    /*tp_as_sequence*/
+    0,                                    /*tp_as_mapping*/
+    0,                                    /*tp_hash*/
+    0,                                    /*tp_call*/
+    0,                                    /*tp_str*/
+    0,                                    /*tp_getattro*/
+    0,                                    /*tp_setattro*/
+    0,                                    /*tp_as_buffer*/
+    Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,   /*tp_flags*/
+    "RpUnits Object",                     /*tp_doc*/
+    0,                                    /*tp_traverse*/
+    0,                                    /*tp_clear*/
+    0,                                    /*tp_richcompare*/
+    0,                                    /*tp_weaklistoffset*/
+    0,                                    /*tp_iter*/
+    0,                                    /*tp_iternext*/
+    RpUnitsObject_methods,                /* tp_methods */
+    0,                                    /*tp_members*/
+    0,                                    /*tp_getset*/
+    0,                                    /*tp_base*/
+    0,                                    /*tp_dict*/
+    0,                                    /*tp_descr_get*/
+    0,                                    /*tp_descr_set*/
+    0,                                    /*tp_dictoffset*/
+    0,                                    /*tp_init*/
+    0,                                    /*tp_alloc*/
+    // RpUnitsObject_new,                 /*tp_new*/
+    0,                                    /*tp_new*/
+    0,                                    /*tp_free*/
+    0,                                    /*tp_is_gc*/
 };
 
 static RpUnitsObject*
 newRpUnitsObject(PyObject *arg)
 {
-	RpUnitsObject* self;
-	self = PyObject_New(RpUnitsObject, &RpUnitsObjectType);
-	if (self == NULL)
-		return NULL;
-	self->rp_unit = NULL;
-	return self;
+    RpUnitsObject* self;
+    self = PyObject_New(RpUnitsObject, &RpUnitsObjectType);
+    if (self == NULL)
+        return NULL;
+    self->rp_unit = NULL;
+    return self;
 }
 
 static PyObject *
@@ -247,7 +227,7 @@ being created");
 static PyObject *
 RpUnits_define(PyObject *self, PyObject *args)
 {
-	RpUnitsObject* newRpUnit;
+    RpUnitsObject* newRpUnit;
     RpUnitsObject* basis = NULL;
     char* unitsName;
 
@@ -259,10 +239,10 @@ RpUnits_define(PyObject *self, PyObject *args)
         return Py_None;
     }
 
-	newRpUnit = newRpUnitsObject(args);
+    newRpUnit = newRpUnitsObject(args);
 
-	if (newRpUnit == NULL)
-		return NULL;
+    if (newRpUnit == NULL)
+        return NULL;
 
 
     if (basis && basis->rp_unit) {
@@ -279,7 +259,7 @@ RpUnits_define(PyObject *self, PyObject *args)
         return NULL;
     }
 
-	return (PyObject *)newRpUnit;
+    return (PyObject *)newRpUnit;
 }
 
 void* PyCallback (void* fxnPtr, void* args)
@@ -287,12 +267,6 @@ void* PyCallback (void* fxnPtr, void* args)
     PyObject* retVal = NULL;
     
     if ((PyObject*)fxnPtr != NULL) {
-        /*
-        retVal = PyObject_CallFunctionObjArgs(  (PyObject*)fxnPtr,
-                                                (PyObject*)args, 
-                                                NULL    );
-        */
-
         retVal = PyObject_CallObject((PyObject*)fxnPtr,(PyObject*)args);
     }
 
@@ -310,8 +284,8 @@ being created");
 static PyObject *
 RpUnits_defineConv(PyObject *self, PyObject *args)
 {
-	RpUnitsObject* fromUnit = NULL;
-	RpUnitsObject* toUnit = NULL;
+    RpUnitsObject* fromUnit = NULL;
+    RpUnitsObject* toUnit = NULL;
     PyObject* forwConvFxnStr = NULL;
     PyObject* backConvFxnStr = NULL;
 
@@ -372,7 +346,7 @@ RpUnits_defineConv(PyObject *self, PyObject *args)
         }
     }
 
-	return (PyObject *)newRpUnit;
+    return (PyObject *)newRpUnit;
 }
 
 PyDoc_STRVAR(RpUnits_find_doc, 
@@ -385,7 +359,7 @@ static PyObject *
 RpUnits_find(PyObject *self, PyObject *args)
 {
     char* searchUnits = NULL;
-	RpUnits* foundUnits = NULL;
+    RpUnits* foundUnits = NULL;
     RpUnitsObject* returnUnits = NULL;
 
     if (PyTuple_Size(args) > 0) {
@@ -501,22 +475,22 @@ RpUnits_convert(PyObject *self, PyObject *args, PyObject *keywds)
 
 static PyMethodDef RpUnits_Methods[] = {
 
-	{"define", RpUnits_define, METH_VARARGS,
+    {"define", RpUnits_define, METH_VARARGS,
         RpUnits_define_doc},
 
-	{"defineConv", RpUnits_defineConv, METH_VARARGS,
+    {"defineConv", RpUnits_defineConv, METH_VARARGS,
         RpUnits_defineConv_doc},
     
-	{"find", RpUnits_find, METH_VARARGS,
+    {"find", RpUnits_find, METH_VARARGS,
         RpUnits_find_doc},
 
-	{"makeMetric", RpUnits_makeMetric, METH_VARARGS,
+    {"makeMetric", RpUnits_makeMetric, METH_VARARGS,
         RpUnits_makeMetric_doc},
     
-	{"convert", (PyCFunction)RpUnits_convert, METH_VARARGS|METH_KEYWORDS,
+    {"convert", (PyCFunction)RpUnits_convert, METH_VARARGS|METH_KEYWORDS,
         RpUnits_convert_doc},
     
-	{NULL,		NULL}		/* sentinel */
+    {NULL,        NULL}        /* sentinel */
 };
 
 PyDoc_STRVAR(module_doc, "RpUnits Module for Python.");
@@ -524,32 +498,29 @@ PyDoc_STRVAR(module_doc, "RpUnits Module for Python.");
 /* Initialization function for the module */
 
 PyMODINIT_FUNC
-initRpUnits(void)
+initUnits(void)
 {
-	PyObject *m;
+    PyObject *m;
 
-	/* Finalize the type object including setting type of the new type
-	 * object; doing it here is required for portability to Windows 
-	 * without requiring C++. */
-	if (PyType_Ready(&RpUnitsObjectType) < 0)
-		return;
+    /* Finalize the type object including setting type of the new type
+     * object; doing it here is required for portability to Windows 
+     * without requiring C++. */
+    if (PyType_Ready(&RpUnitsObjectType) < 0)
+        return;
 
-	/* Create the module and add the functions */
-	m = Py_InitModule3("RpUnits", RpUnits_Methods, module_doc);
+    /* Create the module and add the functions */
+    m = Py_InitModule3("Units", RpUnits_Methods, module_doc);
 
-	/* Add some symbolic constants to the module */
-	if (ErrorObject == NULL) {
-		ErrorObject = PyErr_NewException("RpUnits.error", NULL, NULL);
-		if (ErrorObject == NULL)
-			return;
-	}
-	Py_INCREF(ErrorObject);
-	PyModule_AddObject(m, "error", ErrorObject);
-
+    /* Add some symbolic constants to the module */
+    if (ErrorObject == NULL) {
+        ErrorObject = PyErr_NewException("RpUnits.error", NULL, NULL);
+        if (ErrorObject == NULL)
+            return;
+    }
+    Py_INCREF(ErrorObject);
+    PyModule_AddObject(m, "error", ErrorObject);
 
     // add some standard units definitions and conversions.
 
     RpUnits::addPresets("all");
-
-
 }
