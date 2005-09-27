@@ -539,6 +539,91 @@ int RpUnits::makeMetric(RpUnits * basis) {
     return (1);
 }
 
+// convert function so people can just send in two strings and 
+// we'll see if the units exists and do a conversion 
+// strVal = RpUnits::convert("300K","C",1);
+std::string 
+RpUnits::convert (  std::string val, 
+                    std::string toUnitsName, 
+                    int showUnits,
+                    int* result ) {
+
+    int valLen = 0;
+    RpUnits* toUnits = NULL;
+    RpUnits* fromUnits = NULL;
+    std::string tmpNumVal = "";
+    std::string fromUnitsName = "";
+    std::string convVal = "";
+    double numVal = 0;
+    int idx = 0;
+    int convResult = 0;
+
+
+    // set  default result flag/error code
+    if (result) {
+        *result = 0;
+    }
+    
+    toUnits = find(toUnitsName);   
+
+    // did we find the unit in the dictionary?
+    if (toUnits == NULL) {
+        // toUnitsName was not found in the dictionary
+        return val;
+    }
+    
+    valLen = val.length();
+
+    // search our string to see where the numeric part stops 
+    // and the units part starts
+    // make sure not to stop searching if we encounter '.', '-', '+'
+    for (idx=0; idx < valLen; idx++) {
+        if ( !((val[idx] >= '0') && (val[idx] <= '9')) ) {
+            if ( (val[idx] != '.')&&(val[idx] != '-')&&(val[idx] != '+') ) {
+                break;
+            }
+        }
+    }
+
+    if ( (idx < valLen) && (idx > 0) ) {
+        tmpNumVal = val.substr(0,idx);
+        if (!tmpNumVal.empty()) {
+            numVal = atof(tmpNumVal.c_str());
+        }
+        else {
+            // tmpNumVal was empty string?
+            // set error code here and return error
+
+            if (result) {
+                *result = 1;
+            }
+        }
+        fromUnitsName = val.substr(idx, valLen-idx+1);
+    }
+    else {
+        // return error, no units or no number in the val string?
+        if (result) {
+            *result = 1;
+        }
+    }
+    
+    fromUnits = find(fromUnitsName);   
+
+    // did we find the unit in the dictionary?
+    if (fromUnits == NULL) {
+        // fromUnitsName was not found in the dictionary
+        return val;
+    }
+
+    convVal = fromUnits->convert(toUnits, numVal, showUnits, &convResult);
+    
+    if ( (result) && (*result == 0) ) {
+        *result = convResult;
+    }
+
+    return convVal;
+
+}
 
 std::string RpUnits::convert (   RpUnits* toUnits, 
                         double val, 
@@ -981,6 +1066,109 @@ void RpUnits::connectConversion(RpUnits* myRpUnit)
 
 }
 
+// return codes: 0 success, anything else is error
+int 
+RpUnits::addPresets (std::string group) {
+    int retVal = 1;
+    if (group.compare("all") == 0) {
+        retVal = addPresetAll();
+    }
+    else if (group.compare("energy") == 0) {
+        retVal = addPresetEnergy();
+    }
+    else if (group.compare("length") == 0) {
+        retVal = addPresetLength();
+    }
+    else if (group.compare("temp") == 0) {
+        retVal = addPresetTemp();
+    }
+    else if (group.compare("time") == 0) {
+        retVal = addPresetTime();
+    }
+    
+    return retVal;
+}
+    
+// return codes: 0 success, anything else is error
+int 
+RpUnits::addPresetAll () {
+
+    // RpUnits* volt       = RpUnits::define("V", NULL);
+    
+    RpUnits::define("V", NULL);
+
+    addPresetTime();
+    addPresetTemp();
+    addPresetLength();
+    addPresetEnergy();
+
+    return 0;
+}
+
+// return codes: 0 success, anything else is error
+int 
+RpUnits::addPresetTime () {
+
+    RpUnits* seconds    = RpUnits::define("s", NULL);
+    
+    RpUnits::makeMetric(seconds);
+    
+    // add time definitions
+
+    return 0;
+}
+
+// return codes: 0 success, anything else is error
+int 
+RpUnits::addPresetTemp () {
+
+    RpUnits* fahrenheit = RpUnits::define("F", NULL);
+    RpUnits* celcius    = RpUnits::define("C", NULL);
+    RpUnits* kelvin     = RpUnits::define("K", NULL);
+    RpUnits* rankine    = RpUnits::define("R", NULL);
+    
+    // add temperature definitions
+    RpUnits::define(fahrenheit, celcius, fahrenheit2centigrade, centigrade2fahrenheit);
+    RpUnits::define(celcius, kelvin, centigrade2kelvin, kelvin2centigrade);
+    RpUnits::define(fahrenheit, kelvin, fahrenheit2kelvin, kelvin2fahrenheit);
+    RpUnits::define(rankine, kelvin, rankine2kelvin, kelvin2rankine);
+
+    return 0;
+}
+
+// return codes: 0 success, anything else is error
+int 
+RpUnits::addPresetLength () {
+
+    RpUnits* meters     = RpUnits::define("m", NULL);
+    RpUnits* angstrom   = RpUnits::define("A", NULL);
+    RpUnits* inch       = RpUnits::define("in", NULL);
+    RpUnits* feet       = RpUnits::define("ft", NULL);
+    RpUnits* yard       = RpUnits::define("yd", NULL);
+    
+    RpUnits::makeMetric(meters);
+
+    // add length definitions
+    RpUnits::define(angstrom, meters, angstrom2meter, meter2angstrom);
+    RpUnits::define(inch, meters, inch2meter, meter2inch);
+    RpUnits::define(feet, meters, feet2meter, meter2feet);
+    RpUnits::define(yard, meters, yard2meter, meter2yard);
+
+    return 0;
+}
+
+// return codes: 0 success, anything else is error
+int 
+RpUnits::addPresetEnergy () {
+
+    RpUnits* electrVolt = RpUnits::define("eV", NULL);
+    RpUnits* joule      = RpUnits::define("J", NULL);
+    
+    // add energy definitions
+    RpUnits::define(electrVolt,joule,electronVolt2joule,joule2electronVolt);
+
+    return 0;
+}
 
 // -------------------------------------------------------------------- //
 
