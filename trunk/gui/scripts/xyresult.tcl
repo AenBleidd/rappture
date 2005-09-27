@@ -12,8 +12,8 @@
 package require Itk
 package require BLT
 
-option add *XyResult.width 4i widgetDefault
-option add *XyResult.height 4i widgetDefault
+option add *XyResult.width 3i widgetDefault
+option add *XyResult.height 3i widgetDefault
 option add *XyResult.gridColor #d9d9d9 widgetDefault
 option add *XyResult.activeColor blue widgetDefault
 option add *XyResult.dimColor gray widgetDefault

@@ -130,12 +130,16 @@ itcl::body Rappture::Controls::insert {pos path} {
             set service [$_owner xml get $path.service]
             button $w -text $label -command [list $service run]
         }
+        separator {
+            # no widget to create
+            set _name2info($name-value) "--"
+        }
         default {
             error "don't know how to add control type \"$type\""
         }
     }
 
-    if {$type != "control"} {
+    if {$type != "control" && $type != "separator"} {
         $_owner widgetfor $path $w
 
         # make a label for this control
@@ -388,8 +392,9 @@ itcl::body Rappture::Controls::_layout {} {
                     }
                 }
                 grid columnconfigure $frame 1 -weight 1
+            } elseif {$wv == "--"} {
+                grid rowconfigure $frame $row -minsize 10
             }
-
 
             incr row
             grid rowconfigure [winfo parent $w] $row \

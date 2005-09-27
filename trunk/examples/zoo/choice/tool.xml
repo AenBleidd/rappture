@@ -1,0 +1,33 @@
+<?xml version="1.0"?>
+<run>
+<tool>
+  <title>choice</title>
+  <about>Example of a Rappture &lt;choice&gt; object.
+
+Choices are a set of mutually exclusive options.
+The description appears in a tooltip when you hover over the choice control with your mouse.
+
+When you click the Simulate button, the input choice will be used to generate the output choice.  An output choice is constant, just like a number, boolean, etc.
+  </about>
+  <command>
+    tclsh @tool/choice.tcl @driver
+  </command>
+</tool>
+<input>
+  <choice id="stats">
+    <about>
+      <label>Carrier Statistics</label>
+      <description>Determines the model for carrier statistics used in bandgap narrowing calculations.</description>
+    </about>
+    <option> <about><label>Boltzmann</label></about> </option>
+    <option> <about><label>Fermi</label></about> </option>
+    <option> <about><label>2D Gas</label></about> </option>
+    <default>Boltzmann</default>
+  </choice>
+</input>
+<output>
+  <choice id="outs">
+    <about><label>Echo of choice</label></about>
+  </choice>
+</output>
+</run>

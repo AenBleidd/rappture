@@ -82,7 +82,10 @@ itcl::body Rappture::TextEntry::constructor {owner path args} {
     eval itk_initialize $args
 
     set str [$_owner xml get $path.default]
-    if {"" != $str} { value $str }
+    if {"" != $str} {
+        _layout  ;# must fix layout or value won't take
+        value $str
+    }
 }
 
 # ----------------------------------------------------------------------
