@@ -9,6 +9,7 @@
 #  Purdue Research Foundation, West Lafayette, IN
 # ======================================================================
 import Rappture
+import Rappture.Units
 import sys
 from math import *
 
@@ -16,10 +17,10 @@ from math import *
 driver = Rappture.library(sys.argv[1])
 
 Tstr = driver.get('input.(temperature).current')
-T = Rappture.Units.convert(Tstr, to=K, units=off)
+T = Rappture.Units.convert(Tstr, to="K", units="off")
 
 Efstr = driver.get('input.(Ef).current')
-Ef = Rappture.Units.convert(Efstr, to=eV, units=off)
+Ef = Rappture.Units.convert(Efstr, to="eV", units="off")
 
 kT = 8.61734e-5 * T
 Emin = Ef - 10*kT
