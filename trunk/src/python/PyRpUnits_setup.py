@@ -12,14 +12,14 @@ from distutils.core import setup, Extension
 #                   library_dirs = ['../lib'],
 #                   sources = [  'PyRpUnits.cc' ])
 
-module = Extension('RpUnits',
+module = Extension('Rappture.Units',
                    include_dirs = [ '../../include/cee',
                                     '../../include/core'],
                    sources = [  '../core/RpUnitsStd.cc',
                                 '../core/RpUnits.cc',
                                 'PyRpUnits.cc' ])
 
-setup(name="RpUnits",
+setup(name="Rappture.Units",
       version="0.1",
       description="module for converting Rappture Units",
       ext_modules=[module]
