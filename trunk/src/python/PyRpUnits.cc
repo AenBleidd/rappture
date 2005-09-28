@@ -427,12 +427,14 @@ RpUnits_convert(PyObject *self, PyObject *args, PyObject *keywds)
     char* fromVal = NULL;
     char* to = NULL;
     char* units = NULL;
+    char* tmpRetStr = NULL;
     std::string fromVal_S = "";
     std::string to_S = "";
     std::string tmpUnits_S = "";
     int unitsVal = 1;
     int result = 0;
     std::string retStr = "";
+    PyObject* retVal = NULL;
 
     static char *kwlist[] = {"fromVal", "to", "units", NULL};
     
@@ -461,11 +463,34 @@ RpUnits_convert(PyObject *self, PyObject *args, PyObject *keywds)
 
     retStr = RpUnits::convert(fromVal_S,to_S,unitsVal,&result);
 
-    if (!retStr.empty()) {
-
+    if ( (!retStr.empty()) && (result == 1) ) {
+        if (unitsVal) {
+            retVal = PyString_FromString(retStr.c_str());   
+        }
+        else {
+            // convert to an integer and return that if 
+            // the units were turned off
+            tmpRetStr = (char*) calloc(retStr.length(), sizeof(char));
+            if (tmpRetStr) {
+                strncpy(tmpRetStr,retStr.c_str(),retStr.length());
+                retVal = PyInt_FromString(tmpRetStr, NULL, 0);
+                free(tmpRetStr);
+                tmpRetStr = NULL;
+            }
+        }
     }
-        
-    return PyString_FromString(retStr.c_str());
+    else {
+        //keeping this around in case you want string returned instead of None
+        //if (fromVal) {
+        //    retVal = PyString_FromString(fromVal);   
+        //}
+        //else {
+        retVal = Py_None;
+        Py_INCREF(retVal);
+        //}
+    }
+    
+    return retVal;
 }
 
 /* ---------- */

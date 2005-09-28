@@ -151,6 +151,7 @@ int main()
     // printf("100 cm = :%f: meters\n", value);
 
 */
+
     printf ("=============== TEST 4.4 ===============\n");
 
     RpUnits * millimeter = RpUnits::find("mm");
@@ -251,5 +252,31 @@ int main()
     std::cout << "result = " << result << std::endl;
     std::cout << "strValue convert(300K,C,0) = " << strValue << std::endl;
 
+
+
+
+    RpUnits* eV  = RpUnits::define("eV", NULL);
+    RpUnits* joules  = RpUnits::define("J", NULL);
+    
+    RpUnits::define(eV, joules, electronVolt2joule, joule2electronVolt);
+    
+    value = joules->convert(eV,1,&result);
+    std::cout << "1 joule = " << value << " electronVolts" << std::endl;
+    
+    value = eV->convert(joules,1,&result);
+    std::cout << "1 electronVolt = " << value << " joules" << std::endl;
+    
+    strValue = RpUnits::convert("10eV","J",1);
+    std::cout << "strValue convert(10eV,J,1) = " << strValue << std::endl;
+
+    strValue = RpUnits::convert("1eV","J",0);
+    std::cout << "strValue convert(1eV,J,0) = " << strValue << std::endl;
+    
+    strValue = RpUnits::convert("10J","eV",1);
+    std::cout << "strValue convert(10J,eV,1) = " << strValue << std::endl;
+
+    strValue = RpUnits::convert("1J","eV",0);
+    std::cout << "strValue convert(1J,eV,0) = " << strValue << std::endl;
+    
     return 0;
 }

@@ -1,22 +1,11 @@
-# define the top of our directory structure
-# replace this with the full path of the directory
-# containing the rappture directory
-TOP_DIR         = ../../..
+#
+# Replace this with the location of your rappture installation:
+RAPPTURE_DIR = /opt/rappture
 
-# define the top of the rappture directory structure
-RP_BASE   = $(TOP_DIR)/rappture
-
-# define which programs can be made
 PROGS			= 	fermi_example
 
 # define our compiling environment
 # 
-AR				= ar
-CC 				= gcc
-CPP				= g++
-DEBUG	 		= -g -Wall
-DEBUG_PLUS 		= -g -DDEBUG
-
 # FORTRAN BINDINGS COMPILER FLAGS 
 #
 # available flags
@@ -39,77 +28,24 @@ DEBUG_PLUS 		= -g -DDEBUG
 #
 #
 
-CFLAGS 			= -DCOMPNAME_ADD1UNDERSCORE
+CFLAGS 			= -DCOMPNAME_ADD2UNDERSCORE
 
-#F77		        = g77
+F77		        = g77
 #F77				= f77
 #F77				= ifort
-F77				= /opt/mpich-1.2.6/p4-intel/bin/mpif90
+#F77				= /opt/mpich-1.2.6/p4-intel/bin/mpif90
 
-LN              = ln
 
-# define our directories
-#
-WORK_DIR 		= $(RP_BASE)/work
-INCLUDES_DIR 	= $(RP_BASE)/include
-BIN_DIR			= $(RP_BASE)/bin
-LIB_DIR			= $(RP_BASE)/lib
-SRC_DIR			= $(RP_BASE)/src
-
-CORE_SRC 		= $(SRC_DIR)/core
-FORT_SRC		= $(SRC_DIR)/fortran
-CEE_SRC			= $(SRC_DIR)/cee
-PY_SRC			= $(SRC_DIR)/python
-
-#LIB_RPUNITS 	= -Wl,-rpath,$(LIB_DIR) -L$(LIB_DIR) -lRpUnits
-#LIB_RPDICT 		= -Wl,-rpath,$(LIB_DIR) -L$(LIB_DIR) -lRpDict
-
-LIB_RPUNITS_C 	= -Wl,-rpath,$(LIB_DIR) -L$(LIB_DIR) -lRpUnits_CInterface
-LIB_RPUNITS_F 	= -Wl,-rpath,$(LIB_DIR) -L$(LIB_DIR) -lRpUnits_FInterface
+LIB_DIR = $(RAPPTURE_DIR)/lib
 LIB_RAPPTURE 	= -Wl,-rpath,$(LIB_DIR) -L$(LIB_DIR) -lrappture
-LIB_RAPPTUREIO	= -Wl,-rpath,$(LIB_DIR) -L$(LIB_DIR) -lRapptureIO
-
-INCL_CORE 		= -I $(INCLUDES_DIR)/core
-INCL_CEE		= -I $(INCLUDES_DIR)/cee
-INCL_FORTRAN	= -I $(INCLUDES_DIR)/fortran
-INCL_PY			= -I $(INCLUDES_DIR)/python
-
-# you need to change this to where your version of python is installed.
-EMB_PY_FLAGS    = -L$(LIB_DIR) -lpython2.4
-
-# tell make where to find files of each specific type
-#
-vpath %.o $(WORK_DIR)
-vpath %.so $(LIB_DIR)
-vpath %.h $(INCLUDES_DIR)
-#vpath %.c $(CORE_SRC)
-#vpath %.cc $(CORE_SRC)
-#vpath %.tcc $(CORE_SRC)
-#vpath %.cpp $(CORE_SRC)
-
-
-# default: 
 
 all: ${PROGS}
 
-# include rappture library definitions
-include $(SRC_DIR)/make.inc
-
-# include core source files
-include $(CORE_SRC)/make.inc
-
-# include cee binding definitions
-include $(CEE_SRC)/make.inc
-
-# include fortran binding definitions
-include $(FORT_SRC)/make.inc
-
-    
 #### fermi_example ########################################################
 
-fermi_example: fermi_example.f libRapptureIO
-	$(F77) -g -Wall $(LIB_RAPPTUREIO) -o $@ $<
+fermi_example: fermi_example.f
+	$(F77) -g -Wall $(LIB_RAPPTURE) -o $@ $<
 
 #### CLEAN UP ############################################################
 clean: 
-	- rm -f $(BIN_DIR)/* $(WORK_DIR)/*.o $(LIB_DIR)/librappture.* $(LIB_DIR)/libR*.so* 
+	- rm -f ${PROGS}

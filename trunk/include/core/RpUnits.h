@@ -216,7 +216,7 @@ class RpUnits
         
         static int makeMetric(RpUnits * basis);
 
-        // find an RpUnits object that should exist in RpUnitsTable
+        // find a RpUnits object that should exist in RpUnitsTable
         // returns 0 on success (object was found)
         // returns !0 on failure (object not found)
         static RpUnits* find(std::string key)
@@ -243,6 +243,7 @@ class RpUnits
         //
         // add RpUnits Object
         static RpUnits * define(const std::string units, RpUnits * basis);
+        static RpUnits * defineCmplx(const std::string units,RpUnits * basis);
         //
         // add relation rule 
 

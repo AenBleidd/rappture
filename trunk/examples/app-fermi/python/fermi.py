@@ -35,4 +35,4 @@ while E < Emax:
     E = E + dE
 
 Rappture.result(driver)
-exit(0)
+sys.exit()

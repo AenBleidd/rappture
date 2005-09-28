@@ -1,76 +1,76 @@
 #### librappture shared object ###########################################
 
-libRpUnits_CInterface: $(WORK_DIR)/RpUnitsCInterface.o $(WORK_DIR)/RpUnitsStd.o $(WORK_DIR)/RpUnits.o
-	$(CPP) $(DEGUG) -shared -Wl,-rpath,../lib \
-		-Wl,-soname,$@.so -o $(LIB_DIR)/$@.so.0.0 $^ -lc
+libRpUnits_CInterface: RpUnitsCInterface.o RpUnitsStd.o RpUnits.o
+	$(CPP) $(DEGUG) -shared -Wl,-rpath,./ \
+		-Wl,-soname,$@.so -o $@.so.0.0 $^ -lc
 	
-	/sbin/ldconfig -n $(LIB_DIR)
+	/sbin/ldconfig -n ./
 
-libRpUnits_FInterface: $(WORK_DIR)/RpUnitsStd.o $(WORK_DIR)/RpUnits.o $(WORK_DIR)/RpUnits_fortran.o 
-	$(CPP) $(DEBUG) -shared -Wl,-rpath,../lib \
-        -Wl,-soname,$@.so -o $(LIB_DIR)/$@.so.0.0 $^ -lstdc++
+libRpUnits_FInterface: RpUnitsStd.o RpUnits.o RpUnits_fortran.o 
+	$(CPP) $(DEBUG) -shared -Wl,-rpath,./ \
+        -Wl,-soname,$@.so -o $@.so.0.0 $^ -lstdc++
 	
-	/sbin/ldconfig -n $(LIB_DIR)
+	/sbin/ldconfig -n ./
 
-librappture: $(WORK_DIR)/rappture_fortran.o $(WORK_DIR)/rappture_interface.o
-	$(CC) $(DEGUG) -shared -Wl,-rpath,../lib \
-		-Wl,-soname,$@.so -o $(LIB_DIR)/$@.so.0.0 $^ $(EMB_PY_FLAGS) -lstdc++
+librappture: rappture_fortran.o rappture_interface.o
+	$(CC) $(DEGUG) -shared -Wl,-rpath,./ \
+		-Wl,-soname,$@.so -o $@.so.0.0 $^ $(EMB_PY_FLAGS) -lstdc++
 		
-	/sbin/ldconfig -n $(LIB_DIR)
+	/sbin/ldconfig -n ./
     
-libRapptureIO: $(WORK_DIR)/rappture_fortran.o $(WORK_DIR)/rappture_interface.o
-	$(CC) $(DEGUG) -shared -Wl,-rpath,../lib \
-		-Wl,-soname,$@.so -o $(LIB_DIR)/$@.so.0.0 $^ $(EMB_PY_FLAGS) -lstdc++ 
+libRapptureIO: rappture_fortran.o rappture_interface.o
+	$(CC) $(DEGUG) -shared -Wl,-rpath,./ \
+		-Wl,-soname,$@.so -o $@.so.0.0 $^ $(EMB_PY_FLAGS) -lstdc++ 
 		
-	/sbin/ldconfig -n $(LIB_DIR)
+	/sbin/ldconfig -n ./
 
 
 #### libRpUnits ###########################################################
-libRpUnits: $(WORK_DIR)/RpUnits.o $(WORK_DIR)/RpUnitsStd.o
-	$(CPP) $(DEGUG) -shared -Wl,-rpath,../lib \
-		-Wl,-soname,$@.so -o $(LIB_DIR)/$@.so.0.0 $^ -lc
+libRpUnits: RpUnits.o RpUnitsStd.o
+	$(CPP) $(DEGUG) -shared -Wl,-rpath,./ \
+		-Wl,-soname,$@.so -o $@.so.0.0 $^ -lc
 			    
-	/sbin/ldconfig -n $(LIB_DIR)
+	/sbin/ldconfig -n ./
 
 #### libRpVariable ########################################################
-libRpVariable: $(WORK_DIR)/RpVariable.o $(WORK_DIR)/RpAbout.o
-	$(CPP) $(DEGUG) -shared -Wl,-rpath,../lib \
-		-Wl,-soname,$@.so -o $(LIB_DIR)/$@.so.0.0 $^ -lc
+libRpVariable: RpVariable.o RpAbout.o
+	$(CPP) $(DEGUG) -shared -Wl,-rpath,./ \
+		-Wl,-soname,$@.so -o $@.so.0.0 $^ -lc
 			    
-	/sbin/ldconfig -n $(LIB_DIR)
+	/sbin/ldconfig -n ./
 
 #### libRpNumber ##########################################################
-libRpNumber: $(WORK_DIR)/RpNumber.o libRpUnits libRpVariable
-	$(CPP) $(DEGUG) -shared -Wl,-rpath,../lib \
-		-Wl,-soname,$@.so -o $(LIB_DIR)/$@.so.0.0 $< -lc $(LIB_RP_UNITS) $(LIB_RP_VARIABLE)
+libRpNumber: RpNumber.o libRpUnits libRpVariable
+	$(CPP) $(DEGUG) -shared -Wl,-rpath,./ \
+		-Wl,-soname,$@.so -o $@.so.0.0 $< -lc $(LIB_RP_UNITS) $(LIB_RP_VARIABLE)
 			    
-	/sbin/ldconfig -n $(LIB_DIR)
+	/sbin/ldconfig -n ./
 
 #### libRpString ##########################################################
-libRpString: $(WORK_DIR)/RpString.o libRpVariable
-	$(CPP) $(DEGUG) -shared -Wl,-rpath,../lib \
-		-Wl,-soname,$@.so -o $(LIB_DIR)/$@.so.0.0 $< -lc $(LIB_RP_VARIABLE)
+libRpString: RpString.o libRpVariable
+	$(CPP) $(DEGUG) -shared -Wl,-rpath,./ \
+		-Wl,-soname,$@.so -o $@.so.0.0 $< -lc $(LIB_RP_VARIABLE)
 			    
-	/sbin/ldconfig -n $(LIB_DIR)
+	/sbin/ldconfig -n ./
 
 #### libRpBoolean ##########################################################
-libRpBoolean: $(WORK_DIR)/RpBoolean.o libRpVariable
-	$(CPP) $(DEGUG) -shared -Wl,-rpath,../lib \
-		-Wl,-soname,$@.so -o $(LIB_DIR)/$@.so.0.0 $< -lc $(LIB_RP_VARIABLE)
+libRpBoolean: RpBoolean.o libRpVariable
+	$(CPP) $(DEGUG) -shared -Wl,-rpath,./ \
+		-Wl,-soname,$@.so -o $@.so.0.0 $< -lc $(LIB_RP_VARIABLE)
 			    
-	/sbin/ldconfig -n $(LIB_DIR)
+	/sbin/ldconfig -n ./
 
 #### libRpChoice ##########################################################
-libRpChoice: $(WORK_DIR)/RpChoice.o libRpVariable libRpOption
-	$(CPP) $(DEGUG) -shared -Wl,-rpath,../lib \
-		-Wl,-soname,$@.so -o $(LIB_DIR)/$@.so.0.0 $< -lc $(LIB_RP_VARIABLE) $(LIB_RP_OPTION)
+libRpChoice: RpChoice.o libRpVariable libRpOption
+	$(CPP) $(DEGUG) -shared -Wl,-rpath,./ \
+		-Wl,-soname,$@.so -o $@.so.0.0 $< -lc $(LIB_RP_VARIABLE) $(LIB_RP_OPTION)
 			    
-	/sbin/ldconfig -n $(LIB_DIR)
+	/sbin/ldconfig -n ./
 
 #### libRpOption ##########################################################
-libRpOption: $(WORK_DIR)/RpOption.o $(WORK_DIR)/RpAbout.o 
-	$(CPP) $(DEGUG) -shared -Wl,-rpath,../lib \
-		-Wl,-soname,$@.so -o $(LIB_DIR)/$@.so.0.0 $< -lc $(LIB_RP_ABOUT)
+libRpOption: RpOption.o RpAbout.o 
+	$(CPP) $(DEGUG) -shared -Wl,-rpath,./ \
+		-Wl,-soname,$@.so -o $@.so.0.0 $< -lc $(LIB_RP_ABOUT)
 			    
-	/sbin/ldconfig -n $(LIB_DIR)
+	/sbin/ldconfig -n ./
 

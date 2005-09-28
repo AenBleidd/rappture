@@ -1,4 +1,8 @@
-#include "python2.4/Python.h"
+#include "Python.h"
+#include <stdlib.h>
+#include <time.h>
+
+// #include "Python.h"
 
 /*
 #ifdef _cplusplus 
