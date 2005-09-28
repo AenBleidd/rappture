@@ -1,3 +1,16 @@
+# you need to change this to where your version of python is installed.
+# tell make where to find python header files
+PY_SRC_HEADERS	= /opt/rappture/include/python2.4
+
+# tell make where to find the python shared library
+EMB_PY_LIB_FLAG = -lpython2.4
+EMB_PY_LIB_DIR 	= /opt/rappture/lib
+
+EMB_PY_FLAGS 	= -Wl,-rpath,$(EMB_PY_LIB_DIR) -L$(EMB_PY_LIB_DIR) $(EMB_PY_LIB_FLAG)
+
+# everything below should be ok, but check to make sure
+# especially check the fortran flags, if youre using fortran
+#
 # define the top of our directory structure
 # replace this with the full path of the directory
 # containing the rappture directory
@@ -7,22 +20,11 @@ TOP_DIR         = ../..
 RP_BASE   = $(TOP_DIR)/rappture
 
 # define which programs can be made
-PROGS			= 	libRpUnits_CInterface 	\
-					libRpUnits_FInterface 	\
-					librappture				\
-					libRapptureIO			\
-					libRpUnits				\
-					libRpVariable			\
-					libRpNumber				\
-					libRpString				\
-					libRpBoolean			\
-					libRpChoice				\
-					libRpOption				
-					
+PROGS			= 	librappture				\
+					libRpObjects			\
 
 # define our compiling environment
 # 
-AR				= ar
 CC 				= gcc
 CPP				= g++
 DEBUG	 		= -g -Wall
@@ -61,10 +63,9 @@ LN              = ln
 
 # define our directories
 #
-WORK_DIR 		= $(RP_BASE)/work
 INCLUDES_DIR 	= $(RP_BASE)/include
 BIN_DIR			= $(RP_BASE)/bin
-LIB_DIR			= $(RP_BASE)/lib
+LIB_DIR			= $(RP_BASE)/src
 SRC_DIR			= $(RP_BASE)/src
 TEST_DIR		= $(RP_BASE)/test
 
@@ -73,46 +74,14 @@ FORT_SRC		= $(SRC_DIR)/fortran
 CEE_SRC			= $(SRC_DIR)/cee
 PY_SRC			= $(SRC_DIR)/python
 
-#LIB_RPUNITS 	= -Wl,-rpath,$(LIB_DIR) -L$(LIB_DIR) -lRpUnits
-#LIB_RPDICT 		= -Wl,-rpath,$(LIB_DIR) -L$(LIB_DIR) -lRpDict
-
 LIB_INC_PREFIX	= -Wl,-rpath,$(LIB_DIR) -L$(LIB_DIR)
-
-#LIB_RPUNITS_C   = $(LIB_INC_PREFIX) -lRpUnits_CInterface
-#LIB_RAPPTUREIO  = $(LIB_INC_PREFIX) -lrappture
-
-LIB_RP_UNITS 	= $(LIB_INC_PREFIX) -lRpUnits
-LIB_RP_VARIABLE = $(LIB_INC_PREFIX) -lRpVariable
-LIB_RP_NUMBER 	= $(LIB_INC_PREFIX) -lRpNumber
-LIB_RP_STRING 	= $(LIB_INC_PREFIX) -lRpString
-LIB_RP_BOOLEAN 	= $(LIB_INC_PREFIX) -lRpBoolean
-LIB_RP_OPTION 	= $(LIB_INC_PREFIX) -lRpOption
-LIB_RP_CHOICE 	= $(LIB_INC_PREFIX) -lRpChoice
-LIB_RP_PRESET 	= $(LIB_INC_PREFIX) -lRpPreset
-
-
-LIB_RPUNITS_C 	= -Wl,-rpath,$(LIB_DIR) -L$(LIB_DIR) -lRpUnits_CInterface
-LIB_RPUNITS_F 	= -Wl,-rpath,$(LIB_DIR) -L$(LIB_DIR) -lRpUnits_FInterface
+LIB_RP_OBJECTS  = $(LIB_INC_PREFIX) -lRpObjects
 LIB_RAPPTURE 	= -Wl,-rpath,$(LIB_DIR) -L$(LIB_DIR) -lrappture
-LIB_RAPPTUREIO	= -Wl,-rpath,$(LIB_DIR) -L$(LIB_DIR) -lRapptureIO
 
 INCL_CORE 		= -I $(INCLUDES_DIR)/core
-INCL_CEE		= -I $(INCLUDES_DIR)/cee
+INCL_CEE		= -I $(INCLUDES_DIR)/cee -I $(PY_SRC_HEADERS)
 INCL_FORTRAN	= -I $(INCLUDES_DIR)/fortran
 INCL_PY			= -I $(INCLUDES_DIR)/python
-
-# you need to change this to where your version of python is installed.
-EMB_PY_FLAGS    = -L$(LIB_DIR) -lpython2.4
-
-# tell make where to find files of each specific type
-#
-vpath %.o $(WORK_DIR)
-vpath %.so $(LIB_DIR)
-vpath %.h $(INCLUDES_DIR)
-#vpath %.c $(CORE_SRC)
-#vpath %.cc $(CORE_SRC)
-#vpath %.tcc $(CORE_SRC)
-#vpath %.cpp $(CORE_SRC)
 
 
 # default: 
@@ -120,20 +89,45 @@ vpath %.h $(INCLUDES_DIR)
 all: ${PROGS}
 
 # include rappture library definitions
-include $(SRC_DIR)/make.inc
+
+#### librappture shared object ###########################################
+
+librappture: rappture_fortran.o rappture_interface.o RpUnitsCInterface.o RpUnitsStd.o RpUnits.o
+	$(CPP) $(DEGUG) -shared -Wl,-rpath,$(LIB_DIR)/ \
+		-Wl,-soname,$@.so -o $(LIB_DIR)/$@.so.0.0 $^ $(EMB_PY_FLAGS)
+
+	/sbin/ldconfig -n $(LIB_DIR)
+
+
+#### libRpObjects ########################################################
+libRpObjects: RpVariable.o RpAbout.o RpNumber.o RpString.o RpBoolean.o RpChoice.o RpOption.o RpUnitsStd.o RpUnits.o
+	$(CPP) $(DEGUG) -shared -Wl,-rpath,$(LIB_DIR)/ \
+		-Wl,-soname,$@.so -o $(LIB_DIR)/$@.so.0.0 $^ -lc
+	
+	/sbin/ldconfig -n $(LIB_DIR)
+
 
 # include core source files
-include $(CORE_SRC)/make.inc
+
+Rp%.o: $(CORE_SRC)/Rp%.cc 
+	$(CPP) -fPIC $(DEBUG) $(INCL_CORE) -o $@ -c $?
 
 # include cee binding definitions
-include $(CEE_SRC)/make.inc
+
+rappture_interface.o: $(CEE_SRC)/rappture_interface.c
+	$(CPP) -fPIC $(DEBUG) $(INCL_CEE) $(INCL_PY) -o $@ -c $<
+
+RpUnitsCInterface.o: $(CEE_SRC)/RpUnitsCInterface.cc
+	$(CPP) $(CFLAGS) -fPIC $(DEBUG) $(INCL_CORE) $(INCL_CEE) -o $@ -c $?
 
 # include fortran binding definitions
-include $(FORT_SRC)/make.inc
 
-# include test programs
-include $(TEST_DIR)/make.inc
+RpUnits_fortran.o: $(FORT_SRC)/RpUnits_fortran.c
+	$(CPP) $(CFLAGS) -fPIC $(DEBUG) $(INCL_CORE) -o $@ -c $?
+
+rappture_fortran.o: $(FORT_SRC)/rappture_fortran.c
+	$(CPP) $(CFLAGS) -fPIC $(DEBUG) $(INCL_CORE) $(INCL_CEE) $(INCL_PY) -o $@ -c $<
 
 #### CLEAN UP ############################################################
 clean: 
-	- rm -f $(BIN_DIR)/* $(WORK_DIR)/*.o $(LIB_DIR)/librappture.* $(LIB_DIR)/libR*.so* 
+	- rm -f $(BIN_DIR)/* *.o librappture.* libR*.so* 
