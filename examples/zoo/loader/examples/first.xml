@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<run>
+<about>
+  <label>Change first</label>
+  <description>This example changes only the first input to the value "hello"</description>
+</about>
+
+<tool>
+  <title>loader</title>
+</tool>
+<input>
+  <loader>
+    <about>
+      <label>Example</label>
+      <description>Use this to load examples.</description>
+    </about>
+    <example>*.xml</example>
+  </loader>
+
+  <string id="one">
+    <about>
+      <label>Input #1</label>
+    </about>
+    <current>hello</current>
+  </string>
+</input>
+</run>
