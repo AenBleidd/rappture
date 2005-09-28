@@ -1,0 +1,33 @@
+<?xml version="1.0"?>
+<run>
+<about>
+  <label>Change both</label>
+  <description>This example changes both inputs, #1 to "first" and #2 to "second"</description>
+</about>
+
+<tool>
+  <title>loader</title>
+</tool>
+<input>
+  <loader>
+    <about>
+      <label>Example</label>
+      <description>Use this to load examples.</description>
+    </about>
+    <example>*.xml</example>
+  </loader>
+
+  <string id="one">
+    <about>
+      <label>Input #1</label>
+    </about>
+    <current>first</current>
+  </string>
+  <string id="two">
+    <about>
+      <label>Input #2</label>
+    </about>
+    <current>second</current>
+  </string>
+</input>
+</run>
