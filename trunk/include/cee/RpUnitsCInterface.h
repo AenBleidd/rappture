@@ -29,24 +29,42 @@ extern "C" {
     int makeMetric(RpUnits* basis);
 
     // convert functions 
-    const char* convert_str(    RpUnits* fromUnits, 
-                                RpUnits* toUnits, 
-                                double val,
-                                int showUnits   );
+
+    const char* convert (   const char* fromVal,
+                            const char* toUnitsName,
+                            int showUnits,
+                            int* result );
     
-    const char* convert_str_result( RpUnits* fromUnits, 
+    const char* convert_str (   const char* fromVal,
+                                const char* toUnitsName,
+                                int showUnits,
+                                int* result );
+    
+    const char* convert_obj_str (   RpUnits* fromUnits, 
                                     RpUnits* toUnits, 
-                                    double val, 
-                                    int showUnits,
-                                    int* result );
+                                    double val,
+                                    int showUnits   );
+    
+    const char* convert_obj_str_result( RpUnits* fromUnits, 
+                                        RpUnits* toUnits, 
+                                        double val, 
+                                        int showUnits,
+                                        int* result );
 
-    double convert_double(RpUnits* fromUnits, RpUnits* toUnits, double val);
+    double convert_dbl (    const char* fromVal,
+                            const char* toUnitsName,
+                            int* result );
+    
+    double convert_obj_double ( RpUnits* fromUnits, 
+                                RpUnits* toUnits, 
+                                double val  );
 
-    double convert_double_result(   RpUnits* fromUnits, 
-                                    RpUnits* toUnits, 
-                                    double val, 
-                                    int* result );
+    double convert_obj_double_result (  RpUnits* fromUnits, 
+                                        RpUnits* toUnits, 
+                                        double val, 
+                                        int* result );
 
+    int add_presets(const char* presetName);
 
 #ifdef __cplusplus
 }

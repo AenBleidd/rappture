@@ -1,3 +1,14 @@
+//----------------------------------------------------------------------
+// TEST: Cee's interface to RpUnits.
+//
+// Basic units conversion tests for the RpUnits portion of Rappture
+// written in Cee.
+//======================================================================
+// AUTHOR:  Derrick Kearney, Purdue University
+// Copyright (c) 2004-2005
+// Purdue Research Foundation, West Lafayette, IN
+//======================================================================
+//
 #include "RpUnitsCInterface.h"
 #include <stdio.h>
 
@@ -62,7 +73,8 @@ int main()
     int result = 0;
     int showUnits = 0;
 
-    const char* nm_conv_str;
+    const char* nm_conv_str = NULL;
+    const char* retStr = NULL;
     
     makeMetric(meters);
     centimeters = find("cm");
@@ -91,18 +103,18 @@ int main()
 
     if (nanometers) {
 
-        nm_conv = convert_double_result(nanometers,meters,1.0e9,&result);
+        nm_conv = convert_obj_double_result(nanometers,meters,1.0e9,&result);
         printf("1.0e9 nm = %f m\tresult = %d\n",nm_conv,result);
 
-        nm_conv = convert_double(nanometers,meters,1.0e9);
+        nm_conv = convert_obj_double(nanometers,meters,1.0e9);
         printf("1.0e9 nm = %f m\n",nm_conv);
 
         showUnits = 1;
-        nm_conv_str = convert_str(nanometers,meters,1.588e9,showUnits);
+        nm_conv_str = convert_obj_str(nanometers,meters,1.588e9,showUnits);
         printf("1.588e9 nm = %s\n",nm_conv_str);
 
         showUnits = 0;
-        nm_conv_str = convert_str(nanometers,meters,1.588e9,showUnits);
+        nm_conv_str = convert_obj_str(nanometers,meters,1.588e9,showUnits);
         printf("1.588e9 nm = %s\n",nm_conv_str);
     }
     else {
@@ -110,10 +122,10 @@ int main()
     }
 
     if (meters && angstrom && centimeters) {
-        value = convert_double_result(angstrom,meters,1.0,&result);
+        value = convert_obj_double_result(angstrom,meters,1.0,&result);
         printf("1 angstrom = %e meters\n",value);
 
-        value = convert_double_result(centimeters,angstrom,1e-8,&result);
+        value = convert_obj_double_result(centimeters,angstrom,1e-8,&result);
         printf("1.0e-8 centimeter = %f angstroms\n",value);
     }
     else {
@@ -122,10 +134,10 @@ int main()
 
 
     if (fahrenheit && celcius) {
-        value = convert_double_result(fahrenheit,celcius,72,&result);
+        value = convert_obj_double_result(fahrenheit,celcius,72,&result);
         printf("72 degrees fahrenheit = %f degrees celcius\n",value);
     
-        value = convert_double_result(celcius,fahrenheit,value,&result);
+        value = convert_obj_double_result(celcius,fahrenheit,value,&result);
         printf("22.222 degrees celcius = %f degrees fahrenheit\n",value);
     }
     else {
@@ -133,15 +145,39 @@ int main()
     }
         
     if (celcius && kelvin) {
-        value = convert_double_result(celcius,kelvin,20,&result);
+        value = convert_obj_double_result(celcius,kelvin,20,&result);
         printf("20 degrees celcius = %f kelvin\n",value);
 
-        value = convert_double_result(kelvin,celcius,300,&result);
+        value = convert_obj_double_result(kelvin,celcius,300,&result);
         printf("300 kelvin = %f degrees celcius\n", value);
     }
     else {
         printf("celcius or kelvin is NULL\n");
     }
 
+    printf("====== adding all preset units ======\n");
+    add_presets("all");
+
+    printf("====== TESTING STATIC CONVERT FXNS ======\n");
+
+    retStr = convert("72F","C",1,&result);
+    printf("72F = %s\tresult = %d\n", retStr,result);
+
+    retStr = convert("300K","F",1,&result);
+    printf("300K = %s\tresult = %d\n", retStr,result);
+
+    retStr = convert("1eV","J",0,&result);
+    printf("1eV = %s (no units)\tresult = %d\n", retStr,result);
+
+    retStr = convert_str("300K","R",1,&result);
+    printf("300K = %s\tresult = %d\n", retStr,result);
+
+    retStr = convert_str("5m","ft",1,&result);
+    printf("5m = %s\tresult = %d\n", retStr,result);
+
+    value = convert_dbl("5000mV","V",&result);
+    printf("5V = %f (double value)\n", value);
+
+    
     return 0;
 }

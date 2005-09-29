@@ -320,7 +320,18 @@ class RpUnits
             head = tmp;
                 
         };
+        
+        /*
+        RpUnits& operator= (const RpUnits& myRpUnit) {
 
+            if ( this != &myRpUnit ) {
+                delete head;
+                delete convList;
+                delete conv;
+            }
+        }
+        */
+        
     private:
 
         // i hope to replace these vars with a small class representing a
@@ -347,8 +358,6 @@ class RpUnits
         conversion* conv;
 
         // dictionary to store the units.
-        // dict pointer
-        // static RpDict<std::string,RpUnits*> dict;
         static RpDict<std::string,RpUnits*>* dict;
 
         // create a units element
@@ -358,6 +367,9 @@ class RpUnits
         // 3) pointer to RpUnits object describing the basis 
         //      of the units (the fundamental unit)
         //
+
+
+
         RpUnits ( 
                     const std::string& units, 
                     double& exponent, 
@@ -371,6 +383,9 @@ class RpUnits
 
         // create a conversion element
 
+
+
+        
         RpUnits ( 
                     RpUnits* from,
                     RpUnits* to,
@@ -388,6 +403,10 @@ class RpUnits
             connectConversion(to);
         };
 
+
+
+
+        
         RpUnits ( 
                     RpUnits* from,
                     RpUnits* to,
@@ -413,7 +432,6 @@ class RpUnits
 
         // default destructor
         //
-        //~RpUnits ();
         ~RpUnits ()
         {
             // clean up dynamic memory
