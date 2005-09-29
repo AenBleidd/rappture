@@ -510,7 +510,6 @@ std::string RpUnits::getUnitsName()
 double RpUnits::getExponent() 
 { 
     return head->getExponent();
-    return 0; 
 }
 
 /************************************************************************
@@ -791,7 +790,7 @@ double RpUnits::convert(RpUnits* toUnit, double val, int* result)
     // ie. meters->meters
     if (this->getUnits() == toUnit->getUnits()) {
         if (result) {
-            *result = 1;
+            *result = 0;
         }
         return val;
     }
@@ -842,7 +841,7 @@ double RpUnits::convert(RpUnits* toUnit, double val, int* result)
 
             value = p->conv->convForwFxnPtr(value);
             if (result) {
-                *result = 1;
+                *result = 0;
             }
             break;
         }
@@ -853,7 +852,7 @@ double RpUnits::convert(RpUnits* toUnit, double val, int* result)
 
             value = p->conv->convBackFxnPtr(value);
             if (result) {
-                *result = 1;
+                *result = 0;
             }
             break;
         }
@@ -897,7 +896,7 @@ void* RpUnits::convert(RpUnits* toUnit, void* val, int* result)
     // ie. meters->meters
     if (this->getUnits() == toUnit->getUnits()) {
         if (result) {
-            *result = 1;
+            *result = 0;
         }
         return val;
     }
@@ -949,7 +948,7 @@ void* RpUnits::convert(RpUnits* toUnit, void* val, int* result)
             value = p->conv->convForwFxnPtrVoid(p->conv->convForwData,value);
 
             if (result) {
-                *result = 1;
+                *result = 0;
             }
             break;
         }
@@ -960,7 +959,7 @@ void* RpUnits::convert(RpUnits* toUnit, void* val, int* result)
 
             value = p->conv->convBackFxnPtrVoid(p->conv->convBackData,value);
             if (result) {
-                *result = 1;
+                *result = 0;
             }
             break;
         }
@@ -1146,7 +1145,7 @@ void RpUnits::connectConversion(RpUnits* myRpUnit)
 // return codes: 0 success, anything else is error
 int 
 RpUnits::addPresets (std::string group) {
-    int retVal = 1;
+    int retVal = -1;
     if (group.compare("all") == 0) {
         retVal = addPresetAll();
     }
@@ -1170,11 +1169,12 @@ RpUnits::addPresets (std::string group) {
 int 
 RpUnits::addPresetAll () {
 
+    int result = 0;
 
-    addPresetTime();
-    addPresetTemp();
-    addPresetLength();
-    addPresetEnergy();
+    result += addPresetTime();
+    result += addPresetTemp();
+    result += addPresetLength();
+    result += addPresetEnergy();
 
     return 0;
 }

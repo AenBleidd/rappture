@@ -26,7 +26,7 @@ PROGS			= 	librappture				\
 # define our compiling environment
 # 
 CC 				= gcc
-CPP				= g++
+CXX				= g++
 DEBUG	 		= -g -Wall
 DEBUG_PLUS 		= -g -DDEBUG
 
@@ -92,8 +92,8 @@ all: ${PROGS}
 
 #### librappture shared object ###########################################
 
-librappture: rappture_fortran.o rappture_interface.o RpUnitsCInterface.o RpUnitsStd.o RpUnits.o
-	$(CPP) $(DEGUG) -shared -Wl,-rpath,$(LIB_DIR)/ \
+librappture: rappture_fortran.o rappture_interface.o RpUnitsCInterface.o RpUnitsFInterface.o RpFortranCommon.o RpUnitsStd.o RpUnits.o
+	$(CXX) $(DEGUG) -shared -Wl,-rpath,$(LIB_DIR)/ \
 		-Wl,-soname,$@.so -o $(LIB_DIR)/$@.so.0.0 $^ $(EMB_PY_FLAGS)
 
 	/sbin/ldconfig -n $(LIB_DIR)
@@ -101,7 +101,7 @@ librappture: rappture_fortran.o rappture_interface.o RpUnitsCInterface.o RpUnits
 
 #### libRpObjects ########################################################
 libRpObjects: RpVariable.o RpAbout.o RpNumber.o RpString.o RpBoolean.o RpChoice.o RpOption.o RpUnitsStd.o RpUnits.o
-	$(CPP) $(DEGUG) -shared -Wl,-rpath,$(LIB_DIR)/ \
+	$(CXX) $(DEGUG) -shared -Wl,-rpath,$(LIB_DIR)/ \
 		-Wl,-soname,$@.so -o $(LIB_DIR)/$@.so.0.0 $^ -lc
 	
 	/sbin/ldconfig -n $(LIB_DIR)
@@ -109,24 +109,60 @@ libRpObjects: RpVariable.o RpAbout.o RpNumber.o RpString.o RpBoolean.o RpChoice.
 
 # include core source files
 
-Rp%.o: $(CORE_SRC)/Rp%.cc 
-	$(CPP) -fPIC $(DEBUG) $(INCL_CORE) -o $@ -c $?
+RpVariable.o: $(CORE_SRC)/RpVariable.cc 
+	$(CXX) -fPIC $(DEBUG) $(INCL_CORE) -o $@ -c $?
+
+RpAbout.o: $(CORE_SRC)/RpAbout.cc 
+	$(CXX) -fPIC $(DEBUG) $(INCL_CORE) -o $@ -c $?
+
+RpNumber.o: $(CORE_SRC)/RpNumber.cc 
+	$(CXX) -fPIC $(DEBUG) $(INCL_CORE) -o $@ -c $?
+
+RpString.o: $(CORE_SRC)/RpString.cc 
+	$(CXX) -fPIC $(DEBUG) $(INCL_CORE) -o $@ -c $?
+
+RpBoolean.o: $(CORE_SRC)/RpBoolean.cc 
+	$(CXX) -fPIC $(DEBUG) $(INCL_CORE) -o $@ -c $?
+
+RpChoice.o: $(CORE_SRC)/RpChoice.cc 
+	$(CXX) -fPIC $(DEBUG) $(INCL_CORE) -o $@ -c $?
+
+RpOption.o: $(CORE_SRC)/RpOption.cc 
+	$(CXX) -fPIC $(DEBUG) $(INCL_CORE) -o $@ -c $?
+
+RpUnitsStd.o: $(CORE_SRC)/RpUnitsStd.cc 
+	$(CXX) -fPIC $(DEBUG) $(INCL_CORE) -o $@ -c $?
+
+RpUnits.o: $(CORE_SRC)/RpUnits.cc 
+	$(CXX) -fPIC $(DEBUG) $(INCL_CORE) -o $@ -c $?
+
+
+
 
 # include cee binding definitions
 
 rappture_interface.o: $(CEE_SRC)/rappture_interface.c
-	$(CPP) -fPIC $(DEBUG) $(INCL_CEE) $(INCL_PY) -o $@ -c $<
+	$(CXX) -fPIC $(DEBUG) $(INCL_CEE) $(INCL_PY) -o $@ -c $<
 
 RpUnitsCInterface.o: $(CEE_SRC)/RpUnitsCInterface.cc
-	$(CPP) $(CFLAGS) -fPIC $(DEBUG) $(INCL_CORE) $(INCL_CEE) -o $@ -c $?
+	$(CXX) $(CFLAGS) -fPIC $(DEBUG) $(INCL_CORE) $(INCL_CEE) -o $@ -c $?
+
+
+
 
 # include fortran binding definitions
 
-RpUnits_fortran.o: $(FORT_SRC)/RpUnits_fortran.c
-	$(CPP) $(CFLAGS) -fPIC $(DEBUG) $(INCL_CORE) -o $@ -c $?
-
 rappture_fortran.o: $(FORT_SRC)/rappture_fortran.c
-	$(CPP) $(CFLAGS) -fPIC $(DEBUG) $(INCL_CORE) $(INCL_CEE) $(INCL_PY) -o $@ -c $<
+	$(CXX) $(CFLAGS) -fPIC $(DEBUG) $(INCL_FORTRAN) $(INCL_CORE) $(INCL_CEE) $(INCL_PY) -o $@ -c $<
+
+RpUnitsFInterface.o: $(FORT_SRC)/RpUnitsFInterface.cc
+	$(CXX) $(CFLAGS) -fPIC $(DEBUG) $(INCL_CORE) $(INCL_FORTRAN) -o $@ -c $?
+
+RpFortranCommon.o: $(FORT_SRC)/RpFortranCommon.c
+	$(CC) $(CFLAGS) -fPIC $(DEBUG) $(INCL_FORTRAN) -o $@ -c $<
+
+
+
 
 #### CLEAN UP ############################################################
 clean: 

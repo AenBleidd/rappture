@@ -1,4 +1,5 @@
 #include "rappture_interface.h"
+#include "RpFortranCommon.h"
 #include "RpDict.h"
 #include <string.h>
 
@@ -293,7 +294,7 @@ int objType( char* flavor);
 
 int storeObject(PyObject* objectName);
 PyObject* getObject(int objKey);
-char* null_terminate(char* inStr, int len);
+// char* null_terminate(char* inStr, int len);
 
 // global vars
 // dictionary to hold the python objects that 
@@ -482,9 +483,9 @@ void rp_lib_element_str(  int* handle, /* integer handle of library */
                             int retText_len /* length of return text buffer */
                         )
 {
-    int length_in = 0;
-    int length_out = 0;
-    int i = 0;
+    // int length_in = 0;
+    // int length_out = 0;
+    // int i = 0;
     const char* xmlText = NULL;
 
     PyObject* lib = NULL;
@@ -508,6 +509,9 @@ void rp_lib_element_str(  int* handle, /* integer handle of library */
                     if (retObj) {
                         xmlText = retObj;
                     
+                        fortranify(xmlText, retText, retText_len);
+            
+                        /*
                         length_in = strlen(xmlText);
                         length_out = retText_len;
 
@@ -520,6 +524,7 @@ void rp_lib_element_str(  int* handle, /* integer handle of library */
                               }
                         }
                         *(retText+length_out-1) = ' ';
+                        */
                         
                         free(retObj);
                         retObj = NULL;
@@ -767,8 +772,8 @@ int rp_lib_child_str (    int* handle,    /* integer handle of library */
                        )
 {
     int retVal = 0;
-    int i = 0;
-    int length_in = 0;
+    // int i = 0;
+    // int length_in = 0;
 
     PyObject* lib = NULL;
     PyObject* list = NULL;
@@ -801,6 +806,9 @@ int rp_lib_child_str (    int* handle,    /* integer handle of library */
                             Py_DECREF(list);
                             // printf("xmlChild = :%s:\n",xmlChild);
                             if (xmlChild) {
+                                fortranify(xmlChild, retText, retText_len);
+
+                                /*
                                 strncpy(retText, xmlChild, retText_len);
                                 length_in = strlen(xmlChild);
 
@@ -811,6 +819,7 @@ int rp_lib_child_str (    int* handle,    /* integer handle of library */
                                       }
                                 }
                                 // *(retText+retText_len-1) = ' ';
+                                */
                             }
                         }
                     }
@@ -900,9 +909,9 @@ void rp_lib_get( int* handle, /* integer handle of library */
                    int retText_len /* length of return text buffer */
                  )
 {
-    int length_in = 0;
-    int length_out = 0;
-    int i = 0;
+    // int length_in = 0;
+    // int length_out = 0;
+    // int i = 0;
     const char* xmlText = NULL;
 
     PyObject* lib = NULL;
@@ -922,6 +931,9 @@ void rp_lib_get( int* handle, /* integer handle of library */
                 
                 if (xmlText) {
 
+                    fortranify(xmlText, retText, retText_len);
+                    
+                    /*
                     length_in = strlen(xmlText);
                     length_out = retText_len;
 
@@ -934,6 +946,7 @@ void rp_lib_get( int* handle, /* integer handle of library */
                           }
                     }
                     *(retText+length_out-1) = ' ';
+                    */
                 }
 
             }
@@ -1209,9 +1222,9 @@ int rp_lib_xml_len (int* handle)
 
 void  rp_lib_xml(int* handle, char* retText, int retText_len)
 {
-    int length_in = 0;
-    int length_out = 0;
-    int i = 0;
+    // int length_in = 0;
+    // int length_out = 0;
+    // int i = 0;
     char* xmlText = NULL;
 
     PyObject* lib = NULL;
@@ -1224,6 +1237,10 @@ void  rp_lib_xml(int* handle, char* retText, int retText_len)
                 xmlText = rpXml(lib);
                 
                 if (xmlText) {
+
+                    fortranify(xmlText, retText, retText_len);
+
+                    /*
                     length_in = strlen(xmlText);
                     length_out = retText_len;
 
@@ -1236,6 +1253,7 @@ void  rp_lib_xml(int* handle, char* retText, int retText_len)
                           }
                     }
                     *(retText+length_out-1) = ' ';
+                    */
 
                     free(xmlText);
                 }
@@ -1378,44 +1396,4 @@ PyObject* getObject(int objKey) {
 
    return retVal;
 
-}
-
-/* fix buffer overflow possibility*/
-char* null_terminate(char* inStr, int len)
-{
-    int retVal = 0;
-    char* newStr = NULL;
-    char* current = NULL;
-
-    if (inStr) {
-
-        current = inStr+len-1;
-
-        while ((len > 0) && (isspace(*(current)))) {
-            // dont strip off newlines
-
-            if ( (*(current) == '\f')
-              || (*(current) == '\n')
-              || (*(current) == '\r')
-              || (*(current) == '\t')
-              || (*(current) == '\v') )
-            {
-                break;
-            }
-
-            if (--len) {
-                current--;
-            }
-        }
-
-        newStr = (char*) calloc(len+1,(sizeof(char)));
-        strncpy(newStr,inStr,len);
-        *(newStr+len) = '\0';
-
-        retVal++;
-    }
-
-    // return retVal;
-
-    return newStr;
 }
