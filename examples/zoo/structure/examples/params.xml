@@ -1,0 +1,47 @@
+<?xml version="1.0"?>
+<run>
+<about>
+  <label>Structure with Parameters</label>
+  <description>This simple structure has a few parameters that are specific to the structure.</description>
+</about>
+<tool>
+  <title>structure</title>
+</tool>
+<input>
+  <structure>
+    <current>
+      <parameters>
+        <number>
+          <about><label>Anode:</label></about>
+          <units>V</units>
+          <default>0V</default>
+        </number>
+        <number>
+          <about><label>Cathode:</label></about>
+          <units>V</units>
+          <default>1V</default>
+        </number>
+      </parameters>
+
+      <components>
+        <box>
+          <about>
+            <label>P-type</label>
+            <color>purple</color>
+          </about>
+          <corner>0</corner>
+          <corner>0.1um</corner>
+        </box>
+        <box>
+          <about>
+            <label>N-type</label>
+            <color>green</color>
+          </about>
+          <corner>0.1um</corner>
+          <corner>0.2um</corner>
+        </box>
+      </components>
+    </current>
+  </structure>
+</input>
+</run>

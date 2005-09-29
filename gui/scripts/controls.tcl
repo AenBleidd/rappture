@@ -67,6 +67,12 @@ itcl::body Rappture::Controls::constructor {owner args} {
     set _frame [frame $f.inner]
     pack $_frame -expand yes -fill both
 
+    #
+    # Put this frame in whenever the control frame is empty.
+    # It forces the size to contract back now when controls are deleted.
+    #
+    frame $_frame.empty -width 1 -height 1
+
     eval itk_initialize $args
 }
 
@@ -279,6 +285,7 @@ itcl::body Rappture::Controls::_layout {} {
     if {[$_tabs size] > 0} {
         $_tabs delete 0 end
     }
+    grid forget $_frame.empty
 
     #
     # Decide on a layout scheme:
@@ -401,6 +408,7 @@ itcl::body Rappture::Controls::_layout {} {
                 -minsize $itk_option(-padding)
             incr row
         }
+        grid $_frame.empty -row $row
       }
     }
 }

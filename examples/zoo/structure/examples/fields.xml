@@ -1,0 +1,65 @@
+<?xml version="1.0"?>
+<run>
+<about>
+  <label>Structure with Fields</label>
+  <description>This simple structure has numerical fields for doping and effective mass as a function of position throughout the structure.</description>
+</about>
+<tool>
+  <title>structure</title>
+</tool>
+<input>
+  <structure>
+    <current>
+      <units>um</units>
+      <parameters>
+        <number id="doping">
+          <about><label>Doping</label></about>
+          <units>/cm3</units>
+          <default>1.0e18/cm3</default>
+        </number>
+        <number id="emass">
+          <about><label>Effective Mass</label></about>
+          <default>0.067</default>
+        </number>
+      </parameters>
+
+      <components>
+        <box>
+          <about>
+            <label>Bulk Material</label>
+          </about>
+          <material>GaAs</material>
+          <corner>0</corner>
+          <corner>1um</corner>
+        </box>
+      </components>
+
+      <fields>
+        <field>
+          <about>
+            <label>Doping</label>
+            <color>black</color>
+            <scale>log</scale>
+          </about>
+          <units>/cm3</units>
+          <component>
+            <constant>doping</constant>
+            <domain>box0</domain>
+          </component>
+        </field>
+
+        <field>
+          <about>
+            <label>Effective Mass</label>
+            <color>blue</color>
+          </about>
+          <component>
+            <constant>emass</constant>
+            <domain>box0</domain>
+          </component>
+        </field>
+      </fields>
+    </current>
+  </structure>
+</input>
+</run>
