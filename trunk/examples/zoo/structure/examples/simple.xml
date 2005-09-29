@@ -1,0 +1,42 @@
+<?xml version="1.0"?>
+<run>
+<about>
+  <label>Simple Structure</label>
+  <description>This simple 1D structure has three &lt;box&gt; elements representing material layers in a semiconductor heterostructure device.</description>
+</about>
+<tool>
+  <title>structure</title>
+</tool>
+<input>
+  <structure>
+    <current>
+      <components>
+        <box>
+          <about>
+            <label>GaAs</label>
+            <color>green</color>
+          </about>
+          <corner>0</corner>
+          <corner>100A</corner>
+        </box>
+        <box>
+          <about>
+            <label>AlGaAs</label>
+            <color>white</color>
+          </about>
+          <corner>100A</corner>
+          <corner>110A</corner>
+        </box>
+        <box>
+          <about>
+            <label>GaAs</label>
+            <color>green</color>
+          </about>
+          <corner>110A</corner>
+          <corner>200A</corner>
+        </box>
+      </components>
+    </current>
+  </structure>
+</input>
+</run>

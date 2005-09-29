@@ -1,0 +1,78 @@
+<?xml version="1.0"?>
+<run>
+<about>
+  <label>Molecular Structure</label>
+  <description>This structure has a molecule with a collection of atoms.</description>
+</about>
+<tool>
+  <title>structure</title>
+</tool>
+<input>
+  <structure>
+    <current>
+      <components>
+        <molecule>
+          <about><emblems>on</emblems></about>
+          <formula>pdt</formula>
+          <atom id="0">
+            <symbol>H</symbol>
+            <xyz>-1.24935 -3.41562 0.0</xyz>
+          </atom>
+          <atom id="1">
+            <symbol>S</symbol>
+            <xyz>0.08092 -3.19426 0.0</xyz>
+          </atom>
+          <atom id="2">
+            <symbol>C</symbol>
+            <xyz>0.00055 -1.40789 0.0</xyz>
+          </atom>
+          <atom id="3">
+            <symbol>H</symbol>
+            <xyz>2.15434 -1.22709 0.0</xyz>
+          </atom>
+          <atom id="4">
+            <symbol>H</symbol>
+            <xyz>-2.1543 -1.22326 0.0</xyz>
+          </atom>
+          <atom id="5">
+            <symbol>C</symbol>
+            <xyz>1.20684 -0.69505 0.0</xyz>
+          </atom>
+          <atom id="6">
+            <symbol>C</symbol>
+            <xyz>-1.20381 -0.69647 0.0</xyz>
+          </atom>
+          <atom id="7">
+            <symbol>C</symbol>
+            <xyz>-1.20385 0.69776 0.0</xyz>
+          </atom>
+          <atom id="8">
+            <symbol>C</symbol>
+            <xyz>1.20676 0.69618 0.0</xyz>
+          </atom>
+          <atom id="9">
+            <symbol>H</symbol>
+            <xyz>-2.15434 1.22458 0.0</xyz>
+          </atom>
+          <atom id="10">
+            <symbol>H</symbol>
+            <xyz>2.15422 1.22819 0.0</xyz>
+          </atom>
+          <atom id="11">
+            <symbol>C</symbol>
+            <xyz>0.00054 1.40909 0.0</xyz>
+          </atom>
+          <atom id="12">
+            <symbol>S</symbol>
+            <xyz>0.08111 3.19538 0.0</xyz>
+          </atom>
+          <atom id="13">
+            <symbol>H</symbol>
+            <xyz>-1.24934 3.41562 0.0</xyz>
+          </atom>
+        </molecule>
+      </components>
+    </current>
+  </structure>
+</input>
+</run>

@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<run>
+<tool>
+  <title>structure</title>
+  <about>Example of a Rappture &lt;structure&gt; object.
+
+A structure is a collection of geometrical objects describing a physical structure.  A structure can have embedded parameters (such as the size of certain parts of the structure) along with fields that represent numerical quantities defined within the structure.
+
+This example uses a loader element to load various structure definitions from example files.  You can see the real action here by selecting various examples from the loader.  The simulate button doesn't do very much.  It just copies the input parameters in the structure (if there are any) to the output log.
+  </about>
+  <command>
+    tclsh @tool/structure.tcl @driver
+  </command>
+</tool>
+<input>
+  <loader>
+    <about>
+      <label>Example</label>
+      <description>Use this to load examples.</description>
+    </about>
+    <example>*.xml</example>
+    <default>simple.xml</default>
+  </loader>
+
+  <structure>
+    <!-- examples get loaded in here by loader -->
+  </structure>
+</input>
+</run>

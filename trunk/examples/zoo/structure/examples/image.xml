@@ -1,0 +1,101 @@
+<?xml version="1.0"?>
+<run>
+<about>
+  <label>Structure with Image</label>
+  <description>Rappture doesn't have good support right now for 2D/3D geometries.  But you can fake that support by including a 1D box region with an icon showing the 2D/3D geometry.</description>
+</about>
+<tool>
+  <title>structure</title>
+</tool>
+<input>
+  <structure>
+    <current>
+      <parameters>
+        <number id="w">
+          <about><label>Channel Width W</label></about>
+          <units>nm</units>
+          <default>10nm</default>
+        </number>
+        <number id="l">
+          <about><label>Channel Length L</label></about>
+          <units>nm</units>
+          <default>200nm</default>
+        </number>
+      </parameters>
+
+      <components>
+        <box>
+          <about>
+            <icon>
+R0lGODlhvAB4AMZ8AAAAAAwA/w0B/w8D/xAE/xEF/xcL/xgL/xcM/xgM/xgN/xoP/yIX/yMX/yIY
+/yMY/ywi/y0i/y4i/y0j/y4j/zMp/zQq/zgu/zku/zgv/zkv/zow/z40/z82/0M5/0M6/0Q6/05F
+/09F/05G/09G/1hQ/1lR/1pR/1lS/1pS/1tT/15W/2Rc/2Vc/2Rd/2Vd/25n/29o/3Bo/29p/3Bp
+/35+fnNs/3Vu/3dw/3hx/3pz/3tz/3p0/3t0/4V//4Z//4WA/4aA/5CL/5GL/5CM/5GM/5uW/5yW
+/5uX/5yX/6Gc/6Sf/6ai/6ei/6aj/6ej/6ik/7Gt/7Kt/7Gu/7Ku/7Ov/7Sw/7Wx/7y5/725/7y6
+/726/8C9/8fF/8jF/8fG/8jG/9LQ/9PQ/9LR/9PR/93c/97c/93d/97d/+Lh/+fm/+jn/+nn/+jo
+/+no/+rp/+vq/+zr/+3s/+/u//Pz//Tz//P0//T0//X1//j4//n5//r6/////////////////yH+
+FUNyZWF0ZWQgd2l0aCBUaGUgR0lNUAAsAAAAALwAeAAAB/6AfIKDhIWGh4iJiouMjY6PkJGSk5SV
+lpeYmZqbnJ2en6ChoqOkpaanqKmqq6ytrq+wsbKztLW2t7ilAbu8vb6/wAYMExkfIycsMzw/QklN
+VFheZGhud5N1bGZhXVlTTUdDQD00LiYhHxcTDAjA7e6+uY3v88EMERfGJi4xPEBCSE2maJFGrc41
+N2bGeMkSxUmScOPKkQCRjoEBehh7xWOUMaMBBxM0fBBh4kWMHUH+PYs2xky1g9q8aKHCBJy4GCxS
+iKA4wQG7jhg3LgJKTxiFDCBIsuDH7EjALNLKvJRUByGZhVKYIBHiowfOE+c0RLBIlJ5QRWXfIRiG
+7xgLGf49fhRJwoTKQDEuDVJ1c+bqFioOiXSlwcIECXTqLqZ1dzbR4nZGi43QR6OHjyHOpAwkY4aN
+tb1m/NI8IgQIjxguToxA7PNxu8aIXP9aS+xDCBT7ePhoFnBLF7xt9Ea6Y9XLlihPjAz5cTr1xAtj
+FcvWCNvQ9F4fJ1wAMTk3kCFImEjZIi3vJOKhjVNpYoRIEB0zyq2uKP16gOrW7QdA4CBCsRD6xGBZ
+EUY8AxVnbggHSVVokMENFU8gsRwP5JjzAQbR6bcLfoVouNZRxpzwggwoNeMEFb5N49kkdBS3hRRN
+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
+uZd82Zd++ZeAGZiCSQiBAAA7
+            </icon>
+          </about>
+          <corner>0</corner>
+          <corner>1</corner>
+        </box>
+      </components>
+    </current>
+  </structure>
+</input>
+</run>
