@@ -36,19 +36,59 @@ char* null_terminate(char* inStr, int len) {
     return newStr;
 }
 
+std::string null_terminate_str(const char* inStr, int len)
+{
+    int retVal = 0;
+    std::string newStr = "";
+    const char* current = NULL;
+
+    if (inStr) {
+
+        current = inStr+len-1;
+
+        while ((len > 0) && (isspace(*(current)))) {
+            // dont strip off newlines
+
+            if ( (*(current) == '\f')
+              || (*(current) == '\n')
+              || (*(current) == '\r')
+              || (*(current) == '\t')
+              || (*(current) == '\v') )
+            {
+                break;
+            }
+
+            if (--len) {
+                current--;
+            }
+        }
+
+        newStr = std::string(inStr,len);
+
+        retVal++;
+    }
+
+    // return retVal;
+
+    return newStr;
+}             
+
+
 void fortranify(const char* inBuff, char* retText, int retTextLen) {
 
     int inBuffLen = 0;
     int i = 0;
 
-    inBuffLen = strlen(inBuff);
+    if (inBuff && retText && (retTextLen > 0)) {
+        inBuffLen = strlen(inBuff);
 
-    strncpy(retText, inBuff, retTextLen);
+        strncpy(retText, inBuff, retTextLen);
 
-    // fortran-ify the string
-    if (inBuffLen < retTextLen) {
-        for (i = inBuffLen; i < retTextLen; i++) {
-            retText[i] = ' ';
+        // fortran-ify the string
+        if (inBuffLen < retTextLen) {
+            for (i = inBuffLen; i < retTextLen; i++) {
+                retText[i] = ' ';
+            }
         }
     }
 }

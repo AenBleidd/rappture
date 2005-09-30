@@ -8,6 +8,14 @@ EMB_PY_LIB_DIR 	= /opt/rappture/lib
 
 EMB_PY_FLAGS 	= -Wl,-rpath,$(EMB_PY_LIB_DIR) -L$(EMB_PY_LIB_DIR) $(EMB_PY_LIB_FLAG)
 
+
+# tell make where to find the libscew sources
+SCEW_HEADERS	= /opt/rappture/include/scew
+LIB_SCEW_INCL	= -I $(SCEW_HEADERS)
+LIB_SCEW_FLAG	= -L/opt/rappture/lib -lscew
+#LIB_SCEW_FLAG	= -static -L/opt/rappture/lib -lscew
+
+
 # everything below should be ok, but check to make sure
 # especially check the fortran flags, if youre using fortran
 #
@@ -22,6 +30,7 @@ RP_BASE   = $(TOP_DIR)/rappture
 # define which programs can be made
 PROGS			= 	librappture				\
 					libRpObjects			\
+					librappture_test
 
 # define our compiling environment
 # 
@@ -77,6 +86,7 @@ PY_SRC			= $(SRC_DIR)/python
 LIB_INC_PREFIX	= -Wl,-rpath,$(LIB_DIR) -L$(LIB_DIR)
 LIB_RP_OBJECTS  = $(LIB_INC_PREFIX) -lRpObjects
 LIB_RAPPTURE 	= -Wl,-rpath,$(LIB_DIR) -L$(LIB_DIR) -lrappture
+LIB_RAPPTURE_T 	= -Wl,-rpath,$(LIB_DIR) -L$(LIB_DIR) -lrappture_test
 
 INCL_CORE 		= -I $(INCLUDES_DIR)/core
 INCL_CEE		= -I $(INCLUDES_DIR)/cee -I $(PY_SRC_HEADERS)
@@ -88,6 +98,10 @@ INCL_PY			= -I $(INCLUDES_DIR)/python
 
 all: ${PROGS}
 
+RP_IO_DEPS 		= RpLibrary.o RpLibraryCInterface.o RpLibraryFInterface.o scew_extras.o 
+RP_UNITS_DEPS 	=  RpUnitsStd.o RpUnits.o RpUnitsCInterface.o RpUnitsFInterface.o
+RP_OTHER_DEPS	= RpFortranCommon.o
+
 # include rappture library definitions
 
 #### librappture shared object ###########################################
@@ -98,16 +112,27 @@ librappture: rappture_fortran.o rappture_interface.o RpUnitsCInterface.o RpUnits
 
 	/sbin/ldconfig -n $(LIB_DIR)
 
+librappture_test: $(RP_IO_DEPS) $(RP_UNITS_DEPS) $(RP_OTHER_DEPS)
+	$(CXX) $(DEGUG) -shared -Wl,-rpath,$(LIB_DIR)/ \
+		-Wl,-soname,$@.so -o $(LIB_DIR)/$@.so.0.0 $^ $(LIB_SCEW_FLAG)
+
+	/sbin/ldconfig -n $(LIB_DIR)
 
 #### libRpObjects ########################################################
 libRpObjects: RpVariable.o RpAbout.o RpNumber.o RpString.o RpBoolean.o RpChoice.o RpOption.o RpUnitsStd.o RpUnits.o
 	$(CXX) $(DEGUG) -shared -Wl,-rpath,$(LIB_DIR)/ \
-		-Wl,-soname,$@.so -o $(LIB_DIR)/$@.so.0.0 $^ -lc
+		-Wl,-soname,$@.so -o $(LIB_DIR)/$@.so.0.0 $^
 	
 	/sbin/ldconfig -n $(LIB_DIR)
 
 
 # include core source files
+
+RpLibrary.o: $(CORE_SRC)/RpLibrary.cc 
+	$(CXX) -fPIC $(DEBUG) $(INCL_CORE) $(LIB_SCEW_INCL) -o $@ -c $?
+
+scew_extras.o: $(CORE_SRC)/scew_extras.c 
+	$(CC) -fPIC $(DEBUG) $(INCL_CORE) $(LIB_SCEW_INCL) -o $@ -c $?
 
 RpVariable.o: $(CORE_SRC)/RpVariable.cc 
 	$(CXX) -fPIC $(DEBUG) $(INCL_CORE) -o $@ -c $?
@@ -145,7 +170,10 @@ rappture_interface.o: $(CEE_SRC)/rappture_interface.c
 	$(CXX) -fPIC $(DEBUG) $(INCL_CEE) $(INCL_PY) -o $@ -c $<
 
 RpUnitsCInterface.o: $(CEE_SRC)/RpUnitsCInterface.cc
-	$(CXX) $(CFLAGS) -fPIC $(DEBUG) $(INCL_CORE) $(INCL_CEE) -o $@ -c $?
+	$(CXX) -fPIC $(DEBUG) $(INCL_CORE) $(INCL_CEE) -o $@ -c $?
+
+RpLibraryCInterface.o: $(CEE_SRC)/RpLibraryCInterface.cc 
+	$(CXX) -fPIC $(DEBUG) $(INCL_CORE) $(INCL_CEE) $(LIB_SCEW_INCL) -o $@ -c $?
 
 
 
@@ -159,11 +187,14 @@ RpUnitsFInterface.o: $(FORT_SRC)/RpUnitsFInterface.cc
 	$(CXX) $(CFLAGS) -fPIC $(DEBUG) $(INCL_CORE) $(INCL_FORTRAN) -o $@ -c $?
 
 RpFortranCommon.o: $(FORT_SRC)/RpFortranCommon.c
-	$(CC) $(CFLAGS) -fPIC $(DEBUG) $(INCL_FORTRAN) -o $@ -c $<
+	$(CXX) $(CFLAGS) -fPIC $(DEBUG) $(INCL_FORTRAN) -o $@ -c $<
+
+RpLibraryFInterface.o: $(FORT_SRC)/RpLibraryFInterface.cc 
+	$(CXX) $(CFLAGS) -fPIC $(DEBUG) $(INCL_CORE) $(INCL_FORTRAN) $(LIB_SCEW_INCL) -o $@ -c $?
 
 
 
 
 #### CLEAN UP ############################################################
 clean: 
-	- rm -f $(BIN_DIR)/* *.o librappture.* libR*.so* 
+	- rm -f *.o librappture*.so* libRp*.so*
