@@ -1,6 +1,6 @@
 To compile the Rappture Library, the following must be done:
 
-1) Adjust the Makefile.
+1)  Adjust the Makefile.
 
     Change Makefile variables as needed. Pay particular attention to
     compilers, CFLAGS, directory names, and where python components
@@ -9,25 +9,60 @@ To compile the Rappture Library, the following must be done:
     library is located. It can be placed in the lib directory directly
     above this directory.
 
-2) Adjust the file 'include/cee/rappture_interface.h'
+    Check the Following variables:
+        
+        PY_SRC_HEADERS  = /opt/rappture/include/python2.4
+        EMB_PY_LIB_FLAG = -lpython2.4
+        EMB_PY_LIB_DIR  = /opt/rappture/lib
 
-    Line 1 of rappture_interface.h includes 'python2.4/Python.h'.
-    Make sure this file (and all of its supporting files) exist
-    in the directory 'include/cee/'. Replace 'python2.4/Python.h'
-    with the version of python being used and the location where
-    Python.h can be found. Python.h and all of its suppoting files
-    can be downloaded from http://www.python.org/download/. You
-    will only need the header files to fulfill this task.
-    If you do not have a python object library, you will need to
-    compile python with the appropriate flags (--enable-shared) to
-    get it. 
-    
-3) Make sure the Rappture module is installed in Python.
+        # tell make where to find the libscew sources
+        SCEW_HEADERS    = /opt/rappture/include/scew
+        LIB_SCEW_INCL   = -I $(SCEW_HEADERS)
+        LIB_SCEW_FLAG   = -L/opt/rappture/lib -lscew
 
-4) Make a library
-    
-    make librappture
+        # define the top of our directory structure
+        # replace this with the full path of the directory
+        # containing the rappture directory
+        TOP_DIR
 
-5) Make the Rappture Test programs
+        CFLAGS          
 
-    make test
+2) Make the Rappture library
+
+    To make the Rappture Library, you will need to make sure the Scew
+    library header files are installed and the makefile variable
+    SCEW_HEADERS is properly defined. The following scew related header 
+    files must be available in the library search path, preferably in 
+    same directory as the scew header files.
+
+     |  Header File Name  |   Provider   | 
+    -+--------------------+--------------+-
+     |   xelement.h       | scew source  | 
+     |   xattribute.h     | scew source  | 
+     |   xerror.h         | scew source  | 
+    -+--------------------|--------------+- 
+     |   attribute.h      | scew source  | 
+     |   element.h        | scew source  |
+     |   error.h          | scew source  | 
+     |   parser.h         | scew source  |
+     |   scew.h           | scew source  |
+     |   str.h            | scew source  | 
+     |   tree.h           | scew source  |
+     |   writer.h         | scew source  |
+    -+--------------------+--------------+-
+     |   expat.h          | expat source |
+     |   expat_external.h | expat source |
+    -+--------------------+--------------+-
+
+    Once You've verified that these header files are available, 
+    issue the following commands:
+        cd rappture/src
+        make 
+
+3)  Installing Python's Rappture.Units module.
+        cd rappture/python
+        python setup.py install
+
+4)  Make the Rappture Test programs
+        cd rappture/test
+        make

@@ -1,3 +1,10 @@
+
+# tell make where to find the libscew sources
+SCEW_HEADERS    = /opt/rappture/include/scew
+LIB_SCEW_INCL   = -I $(SCEW_HEADERS)
+LIB_SCEW_FLAG   = -L/opt/rappture/lib -lscew
+#LIB_SCEW_FLAG  = -static -L/opt/rappture/lib -lscew
+
 # define the top of our directory structure
 # replace this with the full path of the directory
 # containing the rappture directory
@@ -15,7 +22,9 @@ TEST_PROGS          = RpBoolean_test    \
                       RpUnits_test      \
                       RpVariable_test   \
                       RpUnitsC_test		\
-                      RpUnitsF_test
+                      RpUnitsF_test		\
+					  RpLibrary_test	\
+					  RpLibraryCInterface_test
 
 # define our compiling environment
 # 
@@ -64,6 +73,7 @@ LIB_INC_PREFIX	= -Wl,-rpath,$(LIB_DIR) -L$(LIB_DIR)
 
 LIB_RP_OBJECTS 	= $(LIB_INC_PREFIX) -lRpObjects
 LIB_RAPPTURE 	= -Wl,-rpath,$(LIB_DIR) -L$(LIB_DIR) -lrappture
+LIB_RAPPTURE_T 	= -Wl,-rpath,$(LIB_DIR) -L$(LIB_DIR) -lrappture_test
 
 INCL_CORE 		= -I $(INCLUDES_DIR)/core
 INCL_CEE		= -I $(INCLUDES_DIR)/cee
@@ -99,10 +109,16 @@ RpVariable_test: $(SRC_TEST)/RpVariable_test.cc
 	$(CXX) $(DEBUG) $(INCL_CORE) -o $@ $< $(LIB_RP_OBJECTS)
 
 RpUnitsC_test: $(SRC_TEST)/RpUnitsC_test.c
-	$(CC) $(DEBUG) $(INCL_CEE) $(INCL_CORE) -o $@ $^ $(LIB_RAPPTURE)
+	$(CC) $(DEBUG) $(INCL_CEE) $(INCL_CORE) -o $@ $^ $(LIB_RAPPTURE_T)
+
+RpLibrary_test: $(SRC_TEST)/RpLibrary_test.cc
+	$(CXX) $(DEBUG) $(INCL_CEE) $(INCL_CORE) $(LIB_SCEW_INCL) -o $@ $^ $(LIB_RAPPTURE_T)
+
+RpLibraryCInterface_test: $(SRC_TEST)/RpLibraryCInterface_test.c
+	$(CC) $(DEBUG) $(INCL_CEE) $(INCL_CORE) $(LIB_SCEW_INCL) -o $@ $^ $(LIB_RAPPTURE_T)
 
 RpUnitsF_test: $(SRC_TEST)/RpUnitsF_test.f
-	$(F77) $(DEBUG) -o $@ $^ $(LIB_RAPPTURE)
+	$(F77) $(DEBUG) -o $@ $^ $(LIB_RAPPTURE_T)
 
 
 #### CLEAN UP ############################################################
