@@ -427,7 +427,7 @@ RpUnits_convert(PyObject *self, PyObject *args, PyObject *keywds)
     char* fromVal = NULL;
     char* to = NULL;
     char* units = NULL;
-    char* tmpRetStr = NULL;
+    // char* tmpRetStr = NULL;
     std::string fromVal_S = "";
     std::string to_S = "";
     std::string tmpUnits_S = "";
@@ -435,6 +435,7 @@ RpUnits_convert(PyObject *self, PyObject *args, PyObject *keywds)
     int result = 0;
     std::string retStr = "";
     PyObject* retVal = NULL;
+    PyObject* tmpPyStr = NULL;
 
     static char *kwlist[] = {"fromVal", "to", "units", NULL};
     
@@ -463,20 +464,19 @@ RpUnits_convert(PyObject *self, PyObject *args, PyObject *keywds)
 
     retStr = RpUnits::convert(fromVal_S,to_S,unitsVal,&result);
 
-    if ( (!retStr.empty()) && (result == 1) ) {
+    if ( (!retStr.empty()) && (result == 0) ) {
         if (unitsVal) {
             retVal = PyString_FromString(retStr.c_str());   
         }
         else {
-            // convert to an integer and return that if 
+            // convert to a double and return that if 
             // the units were turned off
-            tmpRetStr = (char*) calloc(retStr.length(), sizeof(char));
-            if (tmpRetStr) {
-                strncpy(tmpRetStr,retStr.c_str(),retStr.length());
-                retVal = PyInt_FromString(tmpRetStr, NULL, 0);
-                free(tmpRetStr);
-                tmpRetStr = NULL;
-            }
+	    tmpPyStr = PyString_FromString(retStr.c_str());
+	    if (tmpPyStr) {
+                Py_INCREF(tmpPyStr);
+                retVal = PyFloat_FromString(tmpPyStr,NULL);
+                Py_DECREF(tmpPyStr);
+	    }
         }
     }
     else {
