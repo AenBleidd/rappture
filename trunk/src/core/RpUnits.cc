@@ -802,7 +802,7 @@ double RpUnits::convert(RpUnits* toUnit, double val, int* result)
     // 
     if ( (basis) && (basis->getUnits() != toUnit->getUnits()) ) {
         value = convert(basis,value,&my_result);
-        if (my_result) {
+        if (my_result == 0) {
             fromUnit = basis;
         }    
     }
@@ -908,7 +908,7 @@ void* RpUnits::convert(RpUnits* toUnit, void* val, int* result)
     // 
     if ( (basis) && (basis->getUnits() != toUnit->getUnits()) ) {
         value = convert(basis,value,&my_result);
-        if (my_result) {
+        if (my_result == 0) {
             fromUnit = basis;
         }    
     }
@@ -1236,13 +1236,14 @@ int
 RpUnits::addPresetEnergy () {
 
     RpUnits* volt       = RpUnits::define("V", NULL);
-    RpUnits* electrVolt = RpUnits::define("eV", NULL);
+    RpUnits* eVolt      = RpUnits::define("eV", NULL);
     RpUnits* joule      = RpUnits::define("J", NULL);
     
     RpUnits::makeMetric(volt);
+    RpUnits::makeMetric(eVolt);
 
     // add energy definitions
-    RpUnits::define(electrVolt,joule,electronVolt2joule,joule2electronVolt);
+    RpUnits::define(eVolt,joule,electronVolt2joule,joule2electronVolt);
 
     return 0;
 }
