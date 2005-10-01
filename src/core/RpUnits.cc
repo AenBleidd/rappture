@@ -776,6 +776,7 @@ double RpUnits::convert(RpUnits* toUnit, double val, int* result)
 
     double value = val;
     RpUnits* basis = this->getBasis();
+    RpUnits* toBasis = toUnit->getBasis();
     RpUnits* fromUnit = this;
     RpUnits* dictToUnit = NULL;
     convEntry *p;
@@ -808,8 +809,15 @@ double RpUnits::convert(RpUnits* toUnit, double val, int* result)
     }
 
     // find the toUnit in our dictionary.
-
-    dictToUnit = find(toUnit->getUnits());
+    // if the toUnits has a basis, we need to search for the basis
+    // and convert between basis' and then convert again back to the 
+    // original unit.
+    if ( (toBasis) && (toBasis->getUnits() != fromUnit->getUnits()) ) {
+        dictToUnit = find(toBasis->getUnits());
+    }
+    else {
+        dictToUnit = find(toUnit->getUnits());
+    }
 
     // did we find the unit in the dictionary?
     if (dictToUnit == NULL) {
@@ -840,8 +848,25 @@ double RpUnits::convert(RpUnits* toUnit, double val, int* result)
             // call the function pointer with value
 
             value = p->conv->convForwFxnPtr(value);
+            
+            // check to see if we converted to the actual requested unit
+            // or to the requested unit's basis.
+            // if we converted to the requested unit's basis. we need to
+            // do one last conversion from the requested unit's basis back 
+            // to the requested unit.
+            if ( (toBasis) && (toBasis->getUnits() != fromUnit->getUnits()) ) {
+                my_result = 0;
+                value = toBasis->convert(toUnit,value,&my_result);
+                if (my_result != 0) {
+                    if (result) {
+                        *result += 1;
+                    }
+                }
+            }
+            
+            // we can probably remove this
             if (result) {
-                *result = 0;
+                *result += 0;
             }
             break;
         }
@@ -851,8 +876,25 @@ double RpUnits::convert(RpUnits* toUnit, double val, int* result)
             // call the function pointer with value
 
             value = p->conv->convBackFxnPtr(value);
+            
+            // check to see if we converted to the actual requested unit
+            // or to the requested unit's basis.
+            // if we converted to the requested unit's basis. we need to
+            // do one last conversion from the requested unit's basis back 
+            // to the requested unit.
+            if ( (toBasis) && (toBasis->getUnits() != fromUnit->getUnits()) ) {
+                my_result = 0;
+                value = toBasis->convert(toUnit,value,&my_result);
+                if (my_result != 0) {
+                    if (result) {
+                        *result += 1;
+                    }
+                }
+            }
+            
+            // we can probably remove this
             if (result) {
-                *result = 0;
+                *result += 0;
             }
             break;
         }
@@ -864,6 +906,9 @@ double RpUnits::convert(RpUnits* toUnit, double val, int* result)
 
     if ( p == NULL) {
         // we did not find the conversion
+        if (result) {
+            *result += 1;
+        }
         return val;
     }
 
@@ -882,6 +927,7 @@ void* RpUnits::convert(RpUnits* toUnit, void* val, int* result)
 
     void* value = val;
     RpUnits* basis = this->getBasis();
+    RpUnits* toBasis = toUnit->getBasis();
     RpUnits* fromUnit = this;
     RpUnits* dictToUnit = NULL;
     convEntry *p;
@@ -914,8 +960,15 @@ void* RpUnits::convert(RpUnits* toUnit, void* val, int* result)
     }
 
     // find the toUnit in our dictionary.
-
-    dictToUnit = find(toUnit->getUnits());
+    // if the toUnits has a basis, we need to search for the basis
+    // and convert between basis' and then convert again back to the 
+    // original unit.
+    if ( (toBasis) && (toBasis->getUnits() != fromUnit->getUnits()) ) {
+        dictToUnit = find(toBasis->getUnits());
+    }
+    else {
+        dictToUnit = find(toUnit->getUnits());
+    }
 
     // did we find the unit in the dictionary?
     if (dictToUnit == NULL) {
@@ -947,6 +1000,22 @@ void* RpUnits::convert(RpUnits* toUnit, void* val, int* result)
 
             value = p->conv->convForwFxnPtrVoid(p->conv->convForwData,value);
 
+            // check to see if we converted to the actual requested unit
+            // or to the requested unit's basis.
+            // if we converted to the requested unit's basis. we need to
+            // do one last conversion from the requested unit's basis back 
+            // to the requested unit.
+            if ( (toBasis) && (toBasis->getUnits() != fromUnit->getUnits()) ) {
+                my_result = 0;
+                value = toBasis->convert(toUnit,value,&my_result);
+                if (my_result != 0) {
+                    if (result) {
+                        *result += 1;
+                    }
+                }
+            }
+            
+            // we can probably remove this
             if (result) {
                 *result = 0;
             }
@@ -958,6 +1027,23 @@ void* RpUnits::convert(RpUnits* toUnit, void* val, int* result)
             // call the function pointer with value
 
             value = p->conv->convBackFxnPtrVoid(p->conv->convBackData,value);
+
+            // check to see if we converted to the actual requested unit
+            // or to the requested unit's basis.
+            // if we converted to the requested unit's basis. we need to
+            // do one last conversion from the requested unit's basis back 
+            // to the requested unit.
+            if ( (toBasis) && (toBasis->getUnits() != fromUnit->getUnits()) ) {
+                my_result = 0;
+                value = toBasis->convert(toUnit,value,&my_result);
+                if (my_result != 0) {
+                    if (result) {
+                        *result += 1;
+                    }
+                }
+            }
+            
+            // we can probably remove this
             if (result) {
                 *result = 0;
             }
@@ -971,6 +1057,9 @@ void* RpUnits::convert(RpUnits* toUnit, void* val, int* result)
 
     if ( p == NULL) {
         // we did not find the conversion
+        if (result) {
+            *result += 1;
+        }
         return val;
     }
 
