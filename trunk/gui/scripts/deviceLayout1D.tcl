@@ -503,7 +503,7 @@ itcl::configbody Rappture::DeviceLayout1D::device {
         }
     }
     set _device $itk_option(-device)
-    $_dispatcher event -idle !redraw
+    $_dispatcher event -idle !layout
 }
 
 # ----------------------------------------------------------------------

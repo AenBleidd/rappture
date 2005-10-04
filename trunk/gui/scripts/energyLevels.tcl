@@ -287,7 +287,7 @@ itcl::body Rappture::EnergyLevels::add {dataobj {settings ""}} {
     # Scan through the settings and resolve all values.
     #
     array set params {
-        -color black
+        -color auto
         -brightness 0
         -width 1
         -raise 0
@@ -311,6 +311,10 @@ itcl::body Rappture::EnergyLevels::add {dataobj {settings ""}} {
     if {$params(-brightness) != 0} {
         set params(-color) [Rappture::color::brightness \
             $params(-color) $params(-brightness)]
+    }
+    if {$params(-color) == "auto" || $params(-color) == "autoreset"} {
+        # can't handle -autocolors yet
+        set params(-color) blue
     }
 
     set pos [lsearch -exact $dataobj $_dlist]
