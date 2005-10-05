@@ -324,17 +324,19 @@ itcl::body Rappture::DeviceViewer1D::_changeTabs {} {
     eval $graph marker delete [$graph marker names]
 
     foreach {zmin zmax} [$itk_component(layout) limits] { break }
+    if {$zmin != "" && $zmin < $zmax} {
+        $graph axis configure x -min $zmin -max $zmax
+    }
+
     if {$_device != ""} {
         set units [$_device get units]
-        if {$units != "arbitrary" && $zmax > $zmin} {
-            $graph axis configure x -hide no -min $zmin -max $zmax \
-                -title "Position ($units)"
+        if {$units != "arbitrary"} {
+            $graph axis configure x -hide no -title "Position ($units)"
         } else {
             $graph axis configure x -hide yes
         }
     } else {
-        $graph axis configure x -hide no -min $zmin -max $zmax \
-            -title "Position"
+        $graph axis configure x -hide no -title "Position"
     }
 
     # turn on auto limits
