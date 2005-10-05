@@ -298,7 +298,7 @@ itcl::body Rappture::Controls::_layout {} {
         foreach name $_controls {
             set w $_name2info($name-value)
 
-            if {[winfo class $w] != "GroupEntry"} {
+            if {$w == "--" || [winfo class $w] != "GroupEntry"} {
                 # something other than a group? then fall back on hlabels
                 set scheme hlabels
                 break
@@ -381,31 +381,29 @@ itcl::body Rappture::Controls::_layout {} {
                     grid $wv -row $row -column 0 -columnspan 2 -sticky ew
                 }
 
-                set frame [winfo parent $wv]
-                grid rowconfigure $frame $row -weight 0
-                grid rowconfigure $frame $row -weight 0
+                grid rowconfigure $_frame $row -weight 0
+                grid rowconfigure $_frame $row -weight 0
 
                 switch -- [winfo class $wv] {
                     TextEntry {
                         if {[regexp {[0-9]+x[0-9]+} [$wv size]]} {
                             grid $wl -sticky n -pady 4
                             grid $wv -sticky nsew
-                            grid rowconfigure $frame $row -weight 1
-                            grid columnconfigure $frame 1 -weight 1
+                            grid rowconfigure $_frame $row -weight 1
+                            grid columnconfigure $_frame 1 -weight 1
                         }
                     }
                     GroupEntry {
                         $wv configure -heading yes
                     }
                 }
-                grid columnconfigure $frame 1 -weight 1
+                grid columnconfigure $_frame 1 -weight 1
             } elseif {$wv == "--"} {
-                grid rowconfigure $frame $row -minsize 10
+                grid rowconfigure $_frame $row -minsize 10
             }
 
             incr row
-            grid rowconfigure [winfo parent $w] $row \
-                -minsize $itk_option(-padding)
+            grid rowconfigure $_frame $row -minsize $itk_option(-padding)
             incr row
         }
         grid $_frame.empty -row $row

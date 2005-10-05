@@ -71,7 +71,11 @@ itcl::body Rappture::BooleanEntry::constructor {owner path args} {
     # Assign the default value to this widget, if there is one.
     #
     set str [$_owner xml get $path.default]
-    if {"" != $str != ""} { $itk_component(switch) value $str }
+    if {"" != $str} {
+        $itk_component(switch) value $str
+    } else {
+        $itk_component(switch) value off
+    }
 }
 
 # ----------------------------------------------------------------------
