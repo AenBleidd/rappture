@@ -6,9 +6,9 @@ extern "C" {
  * METRIC CONVERSIONS
  ****************************************/
 
-double centi2base (double centi) 
+double centi2base (double centi)
 {
-   return centi*1e-2;    
+   return centi*1e-2;
 }
 
 double milli2base (double milli)
@@ -66,9 +66,9 @@ double peta2base (double peta)
     return peta*1e15;
 }
 
-double base2centi (double base) 
+double base2centi (double base)
 {
-    return base*1e2;    
+    return base*1e2;
 }
 
 double base2milli (double base)
@@ -229,7 +229,7 @@ double electronVolt2joule (double eV)
 
 double joule2electronVolt (double J)
 {
-        return (J*1.602177e19);
+        return (J/1.602177e-19);
 }
 
 #ifdef __cplusplus

@@ -1,3 +1,13 @@
+/*
+ * ----------------------------------------------------------------------
+ *  Rappture Library Source
+ *
+ * ======================================================================
+ *  AUTHOR:  Derrick Kearney, Purdue University
+ *  Copyright (c) 2005
+ *  Purdue Research Foundation, West Lafayette, IN
+ * ======================================================================
+ */
 
 #include "RpLibrary.h"
 
@@ -14,7 +24,8 @@ RpLibrary::_get_attribute(scew_element* element, std::string attributeName)
 
             while((attribute=scew_attribute_next(element, attribute)) != NULL)
             {
-                if (strcmp(scew_attribute_name(attribute),attributeName.c_str()) == 0){
+                if (    strcmp( scew_attribute_name(attribute),
+                                attributeName.c_str()) == 0     ){
                     attrVal = scew_attribute_value(attribute);
                 }
             }
@@ -27,7 +38,7 @@ RpLibrary::_get_attribute(scew_element* element, std::string attributeName)
     return attrVal;
 }
 
-int 
+int
 RpLibrary::_path2list (std::string& path, std::string** list, int listLen) 
 {
     std::string::size_type pos = 0;
@@ -42,7 +53,7 @@ RpLibrary::_path2list (std::string& path, std::string** list, int listLen)
     {
         list[index++] = new std::string(path.substr(start,pos-start));
         start = ++pos;
-    }    
+    }
 
     // add the last path to the list
     if (index < listLen) {
@@ -97,7 +108,7 @@ RpLibrary::_node2name (scew_element* node)
 
                     retVal << type;
                 }
-                
+
                 /*
                 if (retVal == NULL) {
                     // error with allocating space
@@ -108,13 +119,13 @@ RpLibrary::_node2name (scew_element* node)
         }
 
         scew_element_list_free(siblings);
-        
+
     }
     else {
-        
+
         retVal << name;
     }
-        
+
     return (retVal.str());
 }
 
@@ -166,7 +177,7 @@ RpLibrary::_node2comp (scew_element* node)
             // count == 0 ???
         }
         scew_element_list_free(siblings);
-        
+
     }
     else {
         // node has attribute id
@@ -174,13 +185,13 @@ RpLibrary::_node2comp (scew_element* node)
 
         // retVal = scew_strjoinXX(type,name);
         retVal << type << "(" << name << ")";
-        
+
     }
-        
+
     return (retVal.str());
 }
 
-int 
+int
 RpLibrary::_splitPath (std::string& path, std::string& tagName, int* idx, std::string& id )
 {
     int stop = 0;
@@ -248,14 +259,14 @@ RpLibrary::_find(std::string path, int create)
     scew_element* tmpElement = this->root;
     scew_element* node = NULL;
     scew_element** eleList = NULL;
-    
-    
+
+
     if (path.empty()) {
         //user gave an empty path
         // return this;
         return tmpElement;
     }
-    
+
     if (!list) {
         // error calloc'ing space for list
         return NULL;
@@ -274,7 +285,7 @@ RpLibrary::_find(std::string path, int create)
             # the type name and return the one with the given index.
             # If the name is like "type", then assume the index is 0.
             */
-            
+
             // eleList = scew_element_list(tmpElement, tagName->c_str(), &count);
             eleList = scew_element_list(tmpElement, tagName.c_str(), &count);
             tmpCount = count;
@@ -284,7 +295,7 @@ RpLibrary::_find(std::string path, int create)
             else {
                 /* there is no element with the specified index */
                 node = NULL;
-            }               
+            }
 
             scew_element_list_free(eleList);
             eleList = NULL;
@@ -327,9 +338,9 @@ RpLibrary::_find(std::string path, int create)
 
             scew_element_list_free(eleList);
             eleList = NULL;
-            
+
         }
-                
+
         if (node == NULL) {
             if (create == 0) {
                 // break out instead of returning because we still need to
@@ -341,7 +352,7 @@ RpLibrary::_find(std::string path, int create)
             else {
                 // create == 1
                 // we should create the rest of the path
-                
+
                 // create the new element
                 // need to figure out how to properly number the new element
                 // node = scew_element_add(tmpElement,tagName->c_str());
@@ -359,7 +370,7 @@ RpLibrary::_find(std::string path, int create)
             }
         }
 
-        
+
         // change this so youre not allocating and deallocating so much.
         // make it static or something.
         // if (tagName)    { delete (tagName); }
@@ -385,7 +396,7 @@ RpLibrary::_find(std::string path, int create)
         // free(list);
         // list = NULL;
     }
-    
+
 
     return tmpElement;
 }
@@ -402,14 +413,14 @@ RpLibrary::element (std::string path, std::string as)
     }
 
     scew_element* retNode = _find(path,0);
-    
+
     if (retNode == NULL) {
         // add error information as to why we are returning NULL
         return NULL;
     }
 
     retLib = new RpLibrary( retNode ); 
-    
+
     if (!retLib) {
         // add error information as to why we are returning NULL
         /* there was an error mallocing memory for a RpLibrary object */
@@ -439,7 +450,7 @@ RpLibrary::children (std::string path, std::string as, std::string type)
     else {
         parentNode = _find(path,0);
     }
-    
+
     if (parentNode == NULL) {
         // node not found
         // add error code here
@@ -479,7 +490,7 @@ RpLibrary::children (std::string path, std::string as, std::string type)
 
     std::cout << "childNum = " << childNum << std::endl;
     retLib[childNum] = NULL;
-        
+
     // how do you free this??
     return retLib;
 }
@@ -520,7 +531,7 @@ RpLibrary::children (   std::string path,
             }
         }
     }
-    
+
     old_path = path;
 
 
@@ -538,7 +549,7 @@ RpLibrary::children (   std::string path,
     }
 
     if ( (childNode = scew_element_next(parentNode,childNode)) ) {
-        
+
         if (!type.empty()) {
             childName = scew_element_name(childNode);
             if (type == childName) {
@@ -577,7 +588,7 @@ RpLibrary::get (std::string path)
     RpLibrary* retVal; 
 
     scew_element* retNode = _find(path,0);
-    
+
     if (retNode == NULL) {
         // need to raise error
         return NULL;
@@ -601,7 +612,7 @@ RpLibrary::getString (std::string path)
     */
 
     scew_element* retNode = _find(path,0);
-    
+
     if (retNode == NULL) {
         // need to raise error
         return "";
@@ -636,7 +647,7 @@ RpLibrary::put ( std::string path, std::string value, std::string id, int append
 
     if (! path.empty()) {
         retNode = _find(path,1);
-        
+
         if (retNode) {
 
             if (append) {
@@ -645,7 +656,7 @@ RpLibrary::put ( std::string path, std::string value, std::string id, int append
                 }
                 value = tmpVal + value;
             }
-           
+
             scew_element_set_contents(retNode,value.c_str());
         }
     }
@@ -684,7 +695,7 @@ RpLibrary::xml ()
 
     outString << "<?xml version=\"1.0\"?>\n";
     print_element(this->root, 0, outString);
-    
+
     return outString.str();
 }
 
@@ -704,6 +715,39 @@ std::string
 RpLibrary::nodeComp ()
 {
     return _node2comp(root);
+}
+
+/*
+ * ----------------------------------------------------------------------
+ *  FUNCTION: rpResult
+ *
+ *  Clients call this function at the end of their simulation, to
+ *  pass the simulation result back to the Rappture GUI.  It writes
+ *  out the given XML object to a runXXX.xml file, and then writes
+ *  out the name of that file to stdout.
+ * ======================================================================
+ *  AUTHOR:  Michael McLennan, Purdue University
+ *  Copyright (c) 2004-2005
+ *  Purdue Research Foundation, West Lafayette, IN
+ * ======================================================================
+ */
+void
+RpLibrary::result() {
+    std::stringstream outputFile;
+    std::fstream file;
+    std::string xmlText = "";
+    time_t t = 0;
+
+    outputFile << "run" << (int)time(&t) << ".xml";
+    file.open(outputFile.str().c_str(),std::ios::out);
+
+    if ( file.is_open() ) {
+        xmlText = xml();
+        if (!xmlText.empty()) {
+            file << xmlText;
+        }
+    }
+    std::cout << "=RAPPTURE-RUN=>" << outputFile.str() << std::endl;
 }
 
 void
@@ -744,8 +788,8 @@ RpLibrary::print_attributes(scew_element* element, std::stringstream& outString)
 
 
 void
-RpLibrary::print_element(   scew_element* element, 
-                            unsigned int indent, 
+RpLibrary::print_element(   scew_element* element,
+                            unsigned int indent,
                             std::stringstream& outString    )
 {
     scew_element* child = NULL;

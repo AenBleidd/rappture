@@ -1,3 +1,15 @@
+/*
+ * ----------------------------------------------------------------------
+ *  INTERFACE: Fortran Rappture Common Functions
+ *
+ *    Fortran functions common to all interfaces.
+ *
+ * ======================================================================
+ *  AUTHOR:  Derrick Kearney, Purdue University
+ *  Copyright (c) 2005
+ *  Purdue Research Foundation, West Lafayette, IN
+ * ======================================================================
+ */
 
 #include <stdlib.h>
 #include <ctype.h>
@@ -8,7 +20,7 @@
 #define _RpFORTRAN_COMMON_H
 
 
-#ifdef __cplusplus 
+#ifdef __cplusplus
 extern "C" {
 #endif
 
@@ -16,7 +28,7 @@ char* null_terminate(char* inStr, int len);
 std::string null_terminate_str(const char* inStr, int len);
 void fortranify(const char* inBuff, char* retText, int retTextLen);
 
-#ifdef __cplusplus 
+#ifdef __cplusplus
 }
 #endif
     

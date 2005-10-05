@@ -12,21 +12,25 @@ c ======================================================================
       program fermi
         IMPLICIT NONE
 
-        integer rp_lib
-        double precision rp_lib_get_double
+        integer rp_lib, rp_units_convert_dbl, rp_units_add_presets
 
-        integer driver
+        integer driver, ok
         double precision T, Ef, kT, Emin, Emax, dE, f, E
-        CHARACTER*100 inFile
+        CHARACTER*100 inFile, strVal
         character*40 xy
 
         call getarg(1,inFile)
         driver = rp_lib(inFile)
 
-        T = rp_lib_get_double(driver,
-     +        "input.number(temperature).current")
-        Ef = rp_lib_get_double(driver,
-     +        "input.number(Ef).current")
+        ok = rp_units_add_presets("all")
+
+        call rp_lib_get(driver,
+     +        "input.number(temperature).current", strVal)
+        ok = rp_units_convert_dbl(strVal,"K",T)
+
+        call rp_lib_get(driver,
+     +        "input.number(Ef).current", strVal)
+        ok = rp_units_convert_dbl(strVal,"K",Ef)
 
         kT = 8.61734e-5 * T
         Emin = Ef - 10*kT

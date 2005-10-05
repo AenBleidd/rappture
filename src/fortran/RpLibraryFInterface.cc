@@ -1,3 +1,14 @@
+/*
+ * ----------------------------------------------------------------------
+ *  INTERFACE: Fortran Rappture Library Source
+ *
+ * ======================================================================
+ *  AUTHOR:  Derrick Kearney, Purdue University
+ *  Copyright (c) 2005
+ *  Purdue Research Foundation, West Lafayette, IN
+ * ======================================================================
+ */
+
 #include "RpLibraryFInterface.h"
 
 int rp_lib(const char* filePath, int filePath_len) 
@@ -7,7 +18,7 @@ int rp_lib(const char* filePath, int filePath_len)
     std::string inFilePath = "";
 
     inFilePath = null_terminate_str(filePath, filePath_len);
-    
+
     // create a RapptureIO object and store in dictionary
     lib = new RpLibrary(inFilePath);
 
@@ -36,7 +47,7 @@ int rp_lib_element_obj(int* handle,     /* integer handle of library */
         lib = getObject_Lib(*handle);
         if (lib) {
             retObj = lib->element(inPath);
-            
+
             if (retObj) {
                 newObjHandle = storeObject_Lib(retObj);
             }
@@ -67,7 +78,7 @@ void rp_lib_element_comp( int* handle, /* integer handle of library */
             fortranify(retStr.c_str(),retText,retText_len);
         }
     }
-    
+
 }
 
 void rp_lib_element_id(   int* handle, /* integer handle of library */
@@ -94,7 +105,7 @@ void rp_lib_element_id(   int* handle, /* integer handle of library */
 }
 
 void rp_lib_element_type( int* handle, /* integer handle of library */
-                            char* path,      /* null terminated path */
+                            char* path,      /* search path inside xml */
                             char* retText,   /* return buffer for fortran*/
                             int path_len,
                             int retText_len /* length of return text buffer */
@@ -114,6 +125,54 @@ void rp_lib_element_type( int* handle, /* integer handle of library */
     }
 }
 
+int rp_lib_children (   int* handle, /* integer handle of library */
+                        char* path, /* search path of the xml */
+                        int* childHandle, /*integer hanlde of last returned child*/
+                        int path_len  /* length of the search path buffer */
+                    ) {
+
+    std::string inPath = "";
+    RpLibrary* lib = NULL;
+    RpLibrary* childNode = NULL;
+    int newObjHandle = -1;
+
+    inPath = null_terminate_str(path,path_len);
+
+    if (handle && (*handle >= 0) ) {
+        lib = getObject_Lib(*handle);
+        if (lib) {
+            if (*childHandle < 1) {
+                // check to see if there were any previously returned children
+                childNode = getObject_Lib(*childHandle);
+            }
+
+            // call the children base method
+            childNode = lib->children(path,childNode);
+
+            // store the childNode in the dictionary.
+            //
+            // because the base method is using static memory to get store the
+            // children we should be able to chekc and see if the childHandle 
+            // was valud.
+            // if so, then we can just return the childHandle back to the user
+            // if not, store the object in the dictionary and return the new
+            // handle.
+
+            if (childNode) {
+                if (*childHandle < 1) {
+                    newObjHandle = storeObject_Lib(childNode);
+                }
+                else {
+                    newObjHandle = *childHandle;
+                }
+            }
+        }
+    }
+
+    return newObjHandle;
+
+}
+
 /*
 int rp_lib_child_num( int* handle, 
                          char* path, 
@@ -127,7 +186,7 @@ int rp_lib_child_num( int* handle,
     char* inPath = NULL;
 
     inPath = null_terminate(path,path_len);
-    
+
     if (rapptureStarted) {
         if ((handle) && (*handle != 0)) {
             lib = getObject_Lib(*handle);
@@ -139,7 +198,7 @@ int rp_lib_child_num( int* handle,
                     Py_DECREF(list);
                 }
                 else {
-                    
+
                 }
             }
         }
@@ -393,14 +452,14 @@ void rp_lib_get( int* handle, /* integer handle of library */
     std::string xmlText = "";
 
     RpLibrary* lib = NULL;
-    
+
     std::string inPath = "";
 
     inPath = null_terminate_str(path,path_len);
 
     if ((handle) && (*handle != 0)) {
         lib = getObject_Lib(*handle);
-        
+
         if (lib) {
             xmlText = lib->getString(inPath);
             if (!xmlText.empty()) {
@@ -419,14 +478,14 @@ double rp_lib_get_double( int* handle,   /* integer handle of library */
     double retVal = 0.0;
 
     RpLibrary* lib = NULL;
-    
+
     std::string inPath = "";
 
     inPath = null_terminate_str(path,path_len);
 
     if ((handle) && (*handle != 0)) {
         lib = getObject_Lib(*handle);
-        
+
         if (lib) {
             retVal = lib->getDouble(inPath);
         }
@@ -442,7 +501,7 @@ void rp_lib_put_str( int* handle,
                         int* append,
                         int path_len,
                         int value_len
-                      ) 
+                      )
 {
     std::string inPath = "";
     std::string inValue = "";
@@ -458,9 +517,9 @@ void rp_lib_put_str( int* handle,
             lib->put(inPath,inValue,"",*append);
         }
     }
-    
+
     return;
-    
+
 }
 
 
@@ -475,7 +534,7 @@ void rp_lib_put_id_str ( int* handle,
                       ) 
 {
     RpLibrary* lib = NULL;
-    
+
     std::string inPath = "";
     std::string inValue = "";
     std::string inId = "";
@@ -486,7 +545,7 @@ void rp_lib_put_id_str ( int* handle,
 
     if ((handle) && (*handle != 0)) {
         lib = getObject_Lib(*handle);
-        
+
         if (lib) {
             lib->put(inPath,inValue,inId,*append);
         }
@@ -585,7 +644,7 @@ int rp_lib_remove (int* handle, char* path, int path_len)
 
     PyObject* lib = NULL;
     PyObject* removedObj = NULL;
-    
+
     char* inPath = NULL;
 
     inPath = null_terminate(path,path_len);
@@ -596,7 +655,7 @@ int rp_lib_remove (int* handle, char* path, int path_len)
 
             if (lib) {
                 removedObj = rpRemove(lib, inPath);
-                
+
                 if (removedObj) {
                     newObjHandle = storeObject_Lib(removedObj);
                     // Py_DECREF(removedObj);
@@ -605,7 +664,7 @@ int rp_lib_remove (int* handle, char* path, int path_len)
             }
         }
     }
-    
+
     if (inPath) {
         free(inPath);
         inPath = NULL;
@@ -643,24 +702,6 @@ int rp_lib_xml_len (int* handle)
 }
 */
 
-void  rp_lib_xml(int* handle, char* retText, int retText_len)
-{
-    std::string xmlText = "";
-
-    RpLibrary* lib = NULL;
-    
-    if ((handle) && (*handle != 0)) {
-        lib = getObject_Lib(*handle);
-
-        if (lib) {
-            xmlText = lib->xml();
-            if (!xmlText.empty()) {
-                fortranify(xmlText.c_str(), retText, retText_len);
-            }
-        }
-    }
-}
-
 int rp_lib_write_xml(int* handle, char* outFile, int outFile_len)
 {
     int retVal = -1;
@@ -694,21 +735,90 @@ int rp_lib_write_xml(int* handle, char* outFile, int outFile_len)
     return retVal;
 }
 
+void  rp_lib_xml(int* handle, char* retText, int retText_len)
+{
+    std::string xmlText = "";
+
+    RpLibrary* lib = NULL;
+
+    if ((handle) && (*handle != 0)) {
+        lib = getObject_Lib(*handle);
+
+        if (lib) {
+            xmlText = lib->xml();
+            if (!xmlText.empty()) {
+                fortranify(xmlText.c_str(), retText, retText_len);
+            }
+        }
+    }
+}
+
+void rp_lib_node_comp ( int* handle, char* retText, int retText_len ) {
+
+    std::string retStr = "";
+    RpLibrary* node = NULL;
+
+    if ((handle) && (*handle != 0)) {
+        node = getObject_Lib(*handle);
+
+        if (node) {
+            retStr = node->nodeComp();
+            if (!retStr.empty()) {
+                fortranify(retStr.c_str(), retText, retText_len);
+            }
+        }
+    }
+}
+
+void rp_lib_node_type ( int* handle, char* retText, int retText_len ) {
+
+    std::string retStr = "";
+    RpLibrary* node = NULL;
+
+    if ((handle) && (*handle != 0)) {
+        node = getObject_Lib(*handle);
+
+        if (node) {
+            retStr = node->nodeType();
+            if (!retStr.empty()) {
+                fortranify(retStr.c_str(), retText, retText_len);
+            }
+        }
+    }
+}
+
+void rp_lib_node_id ( int* handle, char* retText, int retText_len ) {
+
+    std::string retStr = "";
+    RpLibrary* node = NULL;
+
+    if ((handle) && (*handle != 0)) {
+        node = getObject_Lib(*handle);
+
+        if (node) {
+            retStr = node->nodeId();
+            if (!retStr.empty()) {
+                fortranify(retStr.c_str(), retText, retText_len);
+            }
+        }
+    }
+}
+
 void rp_quit()
 {
 
     // clean up the dictionary
 
     RpDictEntry DICT_TEMPLATE *hPtr;
-    // RpDictIterator DICT_TEMPLATE iter((RpDict&)*this);                     
+    // RpDictIterator DICT_TEMPLATE iter((RpDict&)*this);
     RpDictIterator DICT_TEMPLATE iter(fortObjDict_Lib);
-    
-    hPtr = iter.first();                                                      
-    
+
+    hPtr = iter.first();
+
     while (hPtr) {
         // Py_DECREF(*(hPtr->getValue()));
         hPtr->erase();
-        hPtr = iter.next();                                                   
+        hPtr = iter.next();
     }
 
     if (fortObjDict_Lib.size()) {
@@ -716,6 +826,17 @@ void rp_quit()
         // printf("\nWARNING: internal dictionary is not empty..deleting\n");
     }
 
+}
+
+void rp_result(int* handle) {
+    RpLibrary* lib = NULL;
+
+    if (handle && *handle != 0) {
+        lib = getObject_Lib(*handle);
+        if (lib) {
+            lib->result();
+        }
+    }
 }
 
 int objType( char* flavor) 
@@ -755,7 +876,7 @@ int storeObject_Lib(RpLibrary* objectName) {
         // the new entry.
         fortObjDict_Lib.set(dictKey,objectName, &newEntry); 
     }
-    
+
     retVal = dictKey;
     return retVal;
 }

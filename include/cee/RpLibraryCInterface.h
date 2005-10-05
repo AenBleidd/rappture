@@ -1,3 +1,13 @@
+/*
+ * ----------------------------------------------------------------------
+ *  INTERFACE: C Rappture Library Header
+ *
+ * ======================================================================
+ *  AUTHOR:  Derrick Kearney, Purdue University
+ *  Copyright (c) 2005
+ *  Purdue Research Foundation, West Lafayette, IN
+ * ======================================================================
+ */
 
 
 #ifdef __cplusplus
@@ -70,6 +80,8 @@ extern "C" {
     const char* nodeComp            (RpLibrary* node);
     const char* nodeType            (RpLibrary* node);
     const char* nodeId              (RpLibrary* node);
+
+    void        result              (RpLibrary* lib);
 
 #ifdef __cplusplus
 }

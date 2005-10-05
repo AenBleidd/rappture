@@ -13,6 +13,7 @@ EMB_PY_FLAGS 	= -Wl,-rpath,$(EMB_PY_LIB_DIR) -L$(EMB_PY_LIB_DIR) $(EMB_PY_LIB_FL
 SCEW_HEADERS	= /opt/rappture/include/scew
 LIB_SCEW_INCL	= -I $(SCEW_HEADERS)
 LIB_SCEW_FLAG	= -L/opt/rappture/lib -lscew
+#LIB_SCEW_FLAG	= /opt/rappture/lib/libscew.a
 #LIB_SCEW_FLAG	= -static -L/opt/rappture/lib -lscew
 
 
@@ -99,7 +100,7 @@ INCL_PY			= -I $(INCLUDES_DIR)/python
 all: ${PROGS}
 
 RP_IO_DEPS 		= RpLibrary.o RpLibraryCInterface.o RpLibraryFInterface.o scew_extras.o 
-RP_UNITS_DEPS 	=  RpUnitsStd.o RpUnits.o RpUnitsCInterface.o RpUnitsFInterface.o
+RP_UNITS_DEPS 	= RpUnitsStd.o RpUnits.o RpUnitsCInterface.o RpUnitsFInterface.o
 RP_OTHER_DEPS	= RpFortranCommon.o
 
 # include rappture library definitions
@@ -120,8 +121,10 @@ librappture_test: $(RP_IO_DEPS) $(RP_UNITS_DEPS) $(RP_OTHER_DEPS)
 
 #### libRpObjects ########################################################
 libRpObjects: RpVariable.o RpAbout.o RpNumber.o RpString.o RpBoolean.o RpChoice.o RpOption.o RpUnitsStd.o RpUnits.o
-	$(CXX) $(DEGUG) -shared -Wl,-rpath,$(LIB_DIR)/ \
-		-Wl,-soname,$@.so -o $(LIB_DIR)/$@.so.0.0 $^
+	$(CC) $(DEGUG) -shared -Wl,-rpath,$(LIB_DIR)/ \
+		-Wl,-soname,$@.so -o $(LIB_DIR)/$@.so.0.0 $^ -lstdc++
+#	$(CXX) $(DEGUG) -shared -Wl,-rpath,$(LIB_DIR)/ \
+#		-Wl,-soname,$@.so -o $(LIB_DIR)/$@.so.0.0 $^
 	
 	/sbin/ldconfig -n $(LIB_DIR)
 

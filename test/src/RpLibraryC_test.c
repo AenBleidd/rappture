@@ -105,7 +105,7 @@ int test_children (RpLibrary* lib, const char* path)
         comp = nodeComp(childEle);
         id   = nodeId(childEle);
         type = nodeType(childEle);
-        
+
         printf("childEle comp = :%s:\n",comp);
         printf("childEle   id = :%s:\n",id);
         printf("childEle type = :%s:\n",type);
@@ -131,7 +131,7 @@ int test_childrenByType (RpLibrary* lib, const char* path, const char* searchTyp
         comp = nodeComp(childEle);
         id   = nodeId(childEle);
         type = nodeType(childEle);
-        
+
         printf("childEle comp = :%s:\n",comp);
         printf("childEle   id = :%s:\n",id);
         printf("childEle type = :%s:\n",type);

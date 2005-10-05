@@ -1,3 +1,17 @@
+/*
+ * ----------------------------------------------------------------------
+ *  INTERFACE: Fortran Rappture Common Functions Source
+ *
+ *    Fortran functions common to all interfaces.
+ *
+ * ======================================================================
+ *  AUTHOR:  Derrick Kearney, Purdue University
+ *  Copyright (c) 2005
+ *  Purdue Research Foundation, West Lafayette, IN
+ * ======================================================================
+ */
+
+
 #include "RpFortranCommon.h"
 
 char* null_terminate(char* inStr, int len) {
