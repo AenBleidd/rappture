@@ -2,12 +2,12 @@
 # tell make where to find python header files
 RP_INSTALL_BASE = /opt/rappture
 
-# tell make where to find the libscew sources
-EXPAT_HEADERS	= /opt/rappture/include
-LIB_EXPAT_INCL	= -I $(EXPAT_HEADERS)
-SCEW_HEADERS    = /opt/rappture/include/scew
+# tell make where to find the expat & libscew sources
+EXPAT_HEADERS   = $(RP_INSTALL_BASE)/include
+LIB_EXPAT_INCL  = -I $(EXPAT_HEADERS)
+SCEW_HEADERS    = $(RP_INSTALL_BASE)/include/scew
 LIB_SCEW_INCL   = -I $(SCEW_HEADERS) -I $(EXPAT_HEADERS)
-LIB_SCEW_FLAG   = -L/opt/rappture/lib -lscew
+LIB_SCEW_FLAG   = -L$(RP_INSTALL_BASE)/lib -lscew
 #LIB_SCEW_FLAG   = /opt/rappture/lib/libscew.a
 #LIB_SCEW_FLAG   = -static -L/opt/rappture/lib -lscew
 
@@ -20,7 +20,7 @@ LIB_SCEW_FLAG   = -L/opt/rappture/lib -lscew
 TOP_DIR         = ../..
 
 # define the top of the rappture directory structure
-RP_BASE   = $(TOP_DIR)/svn.rappture
+RP_BASE   = $(TOP_DIR)/rappture
 
 # define which programs can be made
 PROGS           =   librappture   \
@@ -108,37 +108,37 @@ install_py: RpUnits.o RpUnitsStd.o
 
 # include core source files
 
-RpLibrary.o: $(CORE_SRC)/RpLibrary.cc 
+RpLibrary.o: $(CORE_SRC)/RpLibrary.cc
 	$(CXX) -fPIC $(DEBUG) $(INCL_CORE) $(LIB_SCEW_INCL) -o $@ -c $?
 
-scew_extras.o: $(CORE_SRC)/scew_extras.c 
+scew_extras.o: $(CORE_SRC)/scew_extras.c
 	$(CC) -fPIC $(DEBUG) $(INCL_CORE) $(LIB_SCEW_INCL) -o $@ -c $?
 
-RpVariable.o: $(CORE_SRC)/RpVariable.cc 
+RpVariable.o: $(CORE_SRC)/RpVariable.cc
 	$(CXX) -fPIC $(DEBUG) $(INCL_CORE) -o $@ -c $?
 
-RpAbout.o: $(CORE_SRC)/RpAbout.cc 
+RpAbout.o: $(CORE_SRC)/RpAbout.cc
 	$(CXX) -fPIC $(DEBUG) $(INCL_CORE) -o $@ -c $?
 
-RpNumber.o: $(CORE_SRC)/RpNumber.cc 
+RpNumber.o: $(CORE_SRC)/RpNumber.cc
 	$(CXX) -fPIC $(DEBUG) $(INCL_CORE) -o $@ -c $?
 
-RpString.o: $(CORE_SRC)/RpString.cc 
+RpString.o: $(CORE_SRC)/RpString.cc
 	$(CXX) -fPIC $(DEBUG) $(INCL_CORE) -o $@ -c $?
 
-RpBoolean.o: $(CORE_SRC)/RpBoolean.cc 
+RpBoolean.o: $(CORE_SRC)/RpBoolean.cc
 	$(CXX) -fPIC $(DEBUG) $(INCL_CORE) -o $@ -c $?
 
-RpChoice.o: $(CORE_SRC)/RpChoice.cc 
+RpChoice.o: $(CORE_SRC)/RpChoice.cc
 	$(CXX) -fPIC $(DEBUG) $(INCL_CORE) -o $@ -c $?
 
-RpOption.o: $(CORE_SRC)/RpOption.cc 
+RpOption.o: $(CORE_SRC)/RpOption.cc
 	$(CXX) -fPIC $(DEBUG) $(INCL_CORE) -o $@ -c $?
 
-RpUnitsStd.o: $(CORE_SRC)/RpUnitsStd.cc 
+RpUnitsStd.o: $(CORE_SRC)/RpUnitsStd.cc
 	$(CXX) -fPIC $(DEBUG) $(INCL_CORE) -o $@ -c $?
 
-RpUnits.o: $(CORE_SRC)/RpUnits.cc 
+RpUnits.o: $(CORE_SRC)/RpUnits.cc
 	$(CXX) -fPIC $(DEBUG) $(INCL_CORE) -o $@ -c $?
 
 
@@ -152,7 +152,7 @@ rappture_interface.o: $(CEE_SRC)/rappture_interface.c
 RpUnitsCInterface.o: $(CEE_SRC)/RpUnitsCInterface.cc
 	$(CXX) -fPIC $(DEBUG) $(INCL_CORE) $(INCL_CEE) -o $@ -c $?
 
-RpLibraryCInterface.o: $(CEE_SRC)/RpLibraryCInterface.cc 
+RpLibraryCInterface.o: $(CEE_SRC)/RpLibraryCInterface.cc
 	$(CXX) -fPIC $(DEBUG) $(INCL_CORE) $(INCL_CEE) $(LIB_SCEW_INCL) -o $@ -c $?
 
 
