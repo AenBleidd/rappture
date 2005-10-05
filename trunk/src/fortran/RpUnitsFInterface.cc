@@ -13,6 +13,7 @@
 #include "RpDict.h"
 #include "string.h"
 #include "RpUnitsFInterface.h"
+#include "RpUnitsFStubs.c"
 
 #define DICT_TEMPLATE <int,std::string>
 RpDict DICT_TEMPLATE fortObjDictUnits;
@@ -20,8 +21,9 @@ RpDict DICT_TEMPLATE fortObjDictUnits;
 int storeObject_UnitsStr(std::string objectName);
 RpUnits* getObject_UnitsInt(int objKey);
 
-int rp_define_unit( char* unitName, 
-                    int* basisName, 
+int
+rp_define_unit( char* unitName,
+                    int* basisName,
                     int unitName_len    ) {
 
     int result = -1;
@@ -43,7 +45,7 @@ int rp_define_unit( char* unitName,
 
     // newUnit = RpUnits::define(unitName, basis);
     newUnit = RpUnits::define(inText, basis);
-    
+
     if (newUnit) {
         result = storeObject_UnitsStr(newUnit->getUnitsName());
     }
@@ -56,7 +58,8 @@ int rp_define_unit( char* unitName,
 }
 
 
-int rp_find(char* searchName, int searchName_len)
+int
+rp_find(char* searchName, int searchName_len)
 {
 
     int result = -1;
@@ -78,7 +81,8 @@ int rp_find(char* searchName, int searchName_len)
     return result;
 }
 
-int rp_make_metric(int* basis)
+int
+rp_make_metric(int* basis)
 {
     int result = -1;
     RpUnits* newBasis = NULL;
@@ -94,7 +98,8 @@ int rp_make_metric(int* basis)
     return result;
 }
 
-int rp_get_units(int* unitRefVal, char* retText, int retText_len)
+int
+rp_get_units(int* unitRefVal, char* retText, int retText_len)
 {
     RpUnits* unitObj = NULL;
     std::string unitNameText = "";
@@ -111,7 +116,8 @@ int rp_get_units(int* unitRefVal, char* retText, int retText_len)
     return result;
 }
 
-int rp_get_units_name(int* unitRefVal, char* retText, int retText_len)
+int
+rp_get_units_name(int* unitRefVal, char* retText, int retText_len)
 {
     RpUnits* unitObj = NULL;
     std::string unitNameText = "";
@@ -124,11 +130,12 @@ int rp_get_units_name(int* unitRefVal, char* retText, int retText_len)
             fortranify(unitNameText.c_str(), retText, retText_len);
         }
     }
-    
+
     return result;
 }
 
-int rp_get_exponent(int* unitRefVal, double* retExponent)
+int
+rp_get_exponent(int* unitRefVal, double* retExponent)
 {
     RpUnits* unitObj = NULL;
     int result = 0;
@@ -143,7 +150,8 @@ int rp_get_exponent(int* unitRefVal, double* retExponent)
     return result;
 }
 
-int rp_get_basis(int* unitRefVal)
+int
+rp_get_basis(int* unitRefVal)
 {
     RpUnits* unitObj = NULL;
     RpUnits* basisObj = NULL;
@@ -154,7 +162,7 @@ int rp_get_basis(int* unitRefVal)
 
         if (unitObj) {
             basisObj = unitObj->getBasis();
-            
+
             if (basisObj) {
                 result = storeObject_UnitsStr(basisObj->getUnitsName());
             }
@@ -164,10 +172,11 @@ int rp_get_basis(int* unitRefVal)
     return result;
 }
 
-int rp_units_convert_dbl (  char* fromVal, 
-                            char* toUnitsName, 
-                            double* convResult, 
-                            int fromVal_len, 
+int
+rp_units_convert_dbl (  char* fromVal,
+                            char* toUnitsName,
+                            double* convResult,
+                            int fromVal_len,
                             int toUnitsName_len ) {
 
     char* inFromVal = NULL;
@@ -203,10 +212,11 @@ int rp_units_convert_dbl (  char* fromVal,
     return result;
 }
 
-int rp_units_convert_str (      char* fromVal, 
-                                char* toUnitsName, 
-                                char* retText, 
-                                int fromVal_len, 
+int
+rp_units_convert_str (      char* fromVal,
+                                char* toUnitsName,
+                                char* retText,
+                                int fromVal_len,
                                 int toUnitsName_len,
                                 int retText_len     ) {
 
@@ -246,11 +256,12 @@ int rp_units_convert_str (      char* fromVal,
     return result;
 }
 
-int rp_units_add_presets ( char* presetName, int presetName_len) {
-    
+int
+rp_units_add_presets ( char* presetName, int presetName_len) {
+
     char* inPresetName = NULL;
     int result = -1;
-    
+
     inPresetName = null_terminate(presetName,presetName_len);
 
     result = RpUnits::addPresets(inPresetName);
@@ -269,7 +280,8 @@ int rp_units_add_presets ( char* presetName, int presetName_len) {
 //**********************************************************************//
 
 
-int storeObject_UnitsStr(std::string objectName) {
+int
+storeObject_UnitsStr(std::string objectName) {
 
     int retVal = -1;
     int dictNextKey = fortObjDictUnits.size() + 1;
@@ -279,14 +291,15 @@ int storeObject_UnitsStr(std::string objectName) {
         // dictionary returns a reference to the inserted value
         // no error checking to make sure it was successful in entering
         // the new entry.
-        fortObjDictUnits.set(dictNextKey,objectName, &newEntry); 
+        fortObjDictUnits.set(dictNextKey,objectName, &newEntry);
     }
-    
+
     retVal = dictNextKey;
     return retVal;
 }
 
-RpUnits* getObject_UnitsInt(int objKey) {
+RpUnits*
+getObject_UnitsInt(int objKey) {
 
     std::string basisName = *(fortObjDictUnits.find(objKey).getValue());
 

@@ -10,6 +10,7 @@
  */
 
 #include "RpLibraryFInterface.h"
+#include "RpLibraryFStubs.c"
 
 int rp_lib(const char* filePath, int filePath_len) 
 {
