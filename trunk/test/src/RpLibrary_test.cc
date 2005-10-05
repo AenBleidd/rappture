@@ -187,6 +187,8 @@ main(int argc, char** argv)
     std::cout << "//////////////////// LIB 3 ////////////////////" << std::endl;
     std::cout << lib3.xml() << std::endl;
 
+    lib2.result();
+
     return 0;
 }
 

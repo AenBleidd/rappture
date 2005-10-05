@@ -1,3 +1,14 @@
+/*
+ * ----------------------------------------------------------------------
+ *  INTERFACE: Fortran Rappture Units Source
+ *
+ * ======================================================================
+ *  AUTHOR:  Derrick Kearney, Purdue University
+ *  Copyright (c) 2005
+ *  Purdue Research Foundation, West Lafayette, IN
+ * ======================================================================
+ */
+
 #include "RpUnits.h"
 #include "RpDict.h"
 #include "string.h"

@@ -1,4 +1,13 @@
-
+/*
+ * ----------------------------------------------------------------------
+ *  INTERFACE: C Rappture Units Header
+ *
+ * ======================================================================
+ *  AUTHOR:  Derrick Kearney, Purdue University
+ *  Copyright (c) 2005
+ *  Purdue Research Foundation, West Lafayette, IN
+ * ======================================================================
+ */
 
 #ifdef __cplusplus
 extern "C" {
@@ -19,9 +28,9 @@ extern "C" {
     const char* getUnits(RpUnits* unit);
 
     const char* getUnitsName(RpUnits* unit);
-    
+
     double getExponent(RpUnits* unit);
-    
+
     RpUnits* getBasis(RpUnits* unit);
 
     RpUnits* find(const char* unitSymbol);
@@ -34,17 +43,17 @@ extern "C" {
                             const char* toUnitsName,
                             int showUnits,
                             int* result );
-    
+
     const char* convert_str (   const char* fromVal,
                                 const char* toUnitsName,
                                 int showUnits,
                                 int* result );
-    
+
     const char* convert_obj_str (   RpUnits* fromUnits, 
                                     RpUnits* toUnits, 
                                     double val,
                                     int showUnits   );
-    
+
     const char* convert_obj_str_result( RpUnits* fromUnits, 
                                         RpUnits* toUnits, 
                                         double val, 
@@ -54,7 +63,7 @@ extern "C" {
     double convert_dbl (    const char* fromVal,
                             const char* toUnitsName,
                             int* result );
-    
+
     double convert_obj_double ( RpUnits* fromUnits, 
                                 RpUnits* toUnits, 
                                 double val  );

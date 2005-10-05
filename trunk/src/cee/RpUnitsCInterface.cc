@@ -1,3 +1,14 @@
+/*
+ * ----------------------------------------------------------------------
+ *  INTERFACE: C Rappture Units Source
+ *
+ * ======================================================================
+ *  AUTHOR:  Derrick Kearney, Purdue University
+ *  Copyright (c) 2005
+ *  Purdue Research Foundation, West Lafayette, IN
+ * ======================================================================
+ */
+
 #include "RpUnits.h"
 #include "RpUnitsCInterface.h"
 
@@ -6,7 +17,7 @@ extern "C" {
 #endif
 
     RpUnits* defineUnit(const char* unitSymbol, RpUnits* basis) {
-        
+
         return RpUnits::define(unitSymbol, basis);
     }
 
@@ -19,19 +30,19 @@ extern "C" {
     }
 
     RpUnits* find(const char* key) {
-        
+
         return RpUnits::find(key);
     }
 
     const char* getUnits(RpUnits* unit) {
-        
+
         static std::string retVal;
         retVal = unit->getUnits();
         return retVal.c_str();
     }
 
     const char* getUnitsName(RpUnits* unit) {
-        
+
         static std::string retVal;
         retVal = unit->getUnitsName();
         return retVal.c_str();
@@ -43,7 +54,7 @@ extern "C" {
     }
 
     RpUnits* getBasis(RpUnits* unit) {
-        
+
         return unit->getBasis();
     }
 
@@ -79,13 +90,13 @@ extern "C" {
 
         return convert_obj_str_result(fromUnits,toUnits,val,showUnits,NULL);
     }
-    
+
     const char* convert_obj_str_result( RpUnits* fromUnits, 
                                         RpUnits* toUnits, 
                                         double val, 
                                         int showUnits,
                                         int* result ) {
-        
+
         static std::string retVal;
         retVal = fromUnits->convert(toUnits,val,showUnits,result);
         return retVal.c_str();
@@ -118,7 +129,7 @@ extern "C" {
                                         RpUnits* toUnits, 
                                         double val, 
                                         int* result ) {
-        
+
         return fromUnits->convert(toUnits,val,result);
     }
 

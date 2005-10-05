@@ -1,3 +1,13 @@
+/*
+ * ----------------------------------------------------------------------
+ *  INTERFACE: Fortran Rappture Library Header
+ *
+ * ======================================================================
+ *  AUTHOR:  Derrick Kearney, Purdue University
+ *  Copyright (c) 2005
+ *  Purdue Research Foundation, West Lafayette, IN
+ * ======================================================================
+ */
 
 #include "RpLibrary.h"
 #include "RpDict.h"
@@ -35,6 +45,10 @@
 #   define rp_lib_xml_len          rp_lib_xml_len_
 #   define rp_lib_write_xml        rp_lib_write_xml_
 #   define rp_lib_xml              rp_lib_xml_
+#   define rp_lib_node_comp        rp_lib_node_comp_
+#   define rp_lib_node_type        rp_lib_node_type_
+#   define rp_lib_node_id          rp_lib_node_id_
+#   define rp_result               rp_result_
 #   define rp_quit                 rp_quit_
 #elif defined(COMPNAME_ADD2UNDERSCORE)
 #   define rp_init                 rp_init__
@@ -58,6 +72,10 @@
 #   define rp_lib_xml_len          rp_lib_xml_len__
 #   define rp_lib_write_xml        rp_lib_write_xml__
 #   define rp_lib_xml              rp_lib_xml__
+#   define rp_lib_node_comp        rp_lib_node_comp__
+#   define rp_lib_node_type        rp_lib_node_type__
+#   define rp_lib_node_id          rp_lib_node_id__
+#   define rp_result               rp_result__
 #   define rp_quit                 rp_quit__
 #elif defined(COMPNAME_NOCHANGE)
 #   define rp_init                 rp_init
@@ -81,6 +99,10 @@
 #   define rp_lib_xml_len          rp_lib_xml_len
 #   define rp_lib_write_xml        rp_lib_write_xml
 #   define rp_lib_xml              rp_lib_xml
+#   define rp_lib_node_comp        rp_lib_node_comp
+#   define rp_lib_node_type        rp_lib_node_type
+#   define rp_lib_node_id          rp_lib_node_id
+#   define rp_result               rp_result
 #   define rp_quit                 rp_quit
 #elif defined(COMPNAME_UPPERCASE)
 #   define rp_init                 RP_INIT
@@ -104,95 +126,70 @@
 #   define rp_lib_xml_len          RP_LIB_XML_LEN
 #   define rp_lib_write_xml        RP_LIB_WRITE_XML
 #   define rp_lib_xml              RP_LIB_XML
+#   define rp_lib_node_comp        RP_LIB_NODE_COMP
+#   define rp_lib_node_type        RP_LIB_NODE_TYPE
+#   define rp_lib_node_id          RP_LIB_NODE_ID
+#   define rp_result               RP_RESULT
 #   define rp_quit                 RP_QUIT
 #endif
 
 
 void rp_init();
 
-int rp_lib(const char* filePath, int filePath_len);
+int rp_lib ( const char* filePath, int filePath_len );
 
-void rp_lib_element_comp( int* handle, 
+void rp_lib_element_comp (  int* handle,
                             char* path,
                             char* retText,
                             int path_len,
                             int retText_len );
 
-void rp_lib_element_id(   int* handle, 
+void rp_lib_element_id (    int* handle,
                             char* path,
                             char* retText,
                             int path_len,
                             int retText_len );
 
-void rp_lib_element_type( int* handle,
+void rp_lib_element_type (  int* handle,
                             char* path,
                             char* retText,
                             int path_len,
                             int retText_len );
 
-int rp_lib_element_obj(   int* handle, 
+int rp_lib_element_obj (    int* handle,
                             char* path,
                             int path_len );
 
-int rp_lib_child_num(    int* handle, 
-                            char* path, 
+int rp_lib_child_num (      int* handle,
+                            char* path,
+                            int* childHandle,
                             int path_len);
 
-int rp_lib_child_comp(   int* handle,    /* integer handle of library */
-                            char* path,     /* DOM path of requested object */
-                            char* type,     /* specific name of element */
-                            int* childNum,  /* child number for iteration */
-                            char* retText,  /* buffer to store return text */
-                            int path_len,   /* length of path */
-                            int type_len,   /* length of type */
-                            int retText_len /* length of return text buffer */
-                       );
+int rp_lib_children (       int* handle, /* integer handle of library */
+                            char* path, /* search path of the xml */
+                            int* childHandle, /*int handle of last returned child*/
+                            int path_len  /*length of the search path buffer*/
+                    );
 
-int rp_lib_child_id(     int* handle,    /* integer handle of library */
-                            char* path,     /* DOM path of requested object */
-                            char* type,     /* specific name of element */
-                            int* childNum,  /* child number for iteration */
-                            char* retText,  /* buffer to store return text */
-                            int path_len,   /* length of path */
-                            int type_len,   /* length of type */
-                            int retText_len /* length of return text buffer */
-                       );
 
-int rp_lib_child_type(   int* handle,    /* integer handle of library */
-                            char* path,     /* DOM path of requested object */
-                            char* type,     /* specific name of element */
-                            int* childNum,  /* child number for iteration */
-                            char* retText,  /* buffer to store return text */
-                            int path_len,   /* length of path */
-                            int type_len,   /* length of type */
-                            int retText_len /* length of return text buffer */
-                       );
-
-int rp_lib_child_obj(    int* handle, 
-                            char* path, 
-                            char* type, 
-                            int path_len,
-                            int type_len
-                          );
-
-void rp_lib_get(          int* handle, 
+void rp_lib_get (           int* handle, 
                             char* path,
                             char* retText,
                             int path_len,
                             int retText_len );
 
-double rp_lib_get_double( int* handle, 
+double rp_lib_get_double (  int* handle, 
                             char* path,
                             int path_len);
 
-void rp_lib_put_str(     int* handle, 
+void rp_lib_put_str (       int* handle, 
                             char* path, 
                             char* value, 
                             int* append,
                             int path_len,
                             int value_len ); 
 
-void rp_lib_put_id_str(  int* handle, 
+void rp_lib_put_id_str (    int* handle, 
                             char* path, 
                             char* value, 
                             char* id, 
@@ -201,13 +198,13 @@ void rp_lib_put_id_str(  int* handle,
                             int value_len,
                             int id_len ); 
 
-void rp_lib_put_obj(     int* handle, 
+void rp_lib_put_obj (       int* handle, 
                             char* path, 
                             int* valHandle, 
                             int* append,
                             int path_len ); 
 
-void rp_lib_put_id_obj(  int* handle, 
+void rp_lib_put_id_obj (    int* handle, 
                             char* path, 
                             int* valHandle, 
                             char* id, 
@@ -215,19 +212,34 @@ void rp_lib_put_id_obj(  int* handle,
                             int path_len,
                             int id_len ); 
 
-int rp_lib_remove(       int* handle, 
-                            char* path, 
+int rp_lib_remove (         int* handle,
+                            char* path,
                             int path_len);
 
-int rp_lib_xml_len(      int* handle);
+int rp_lib_xml_len(         int* handle);
 
-void rp_lib_xml(         int* handle, 
-                            char* retText, 
+void rp_lib_xml(            int* handle,
+                            char* retText,
                             int retText_len);
 
-int rp_lib_write_xml(     int* handle, 
-                            char* outFile, 
+int rp_lib_write_xml(       int* handle,
+                            char* outFile,
                             int outFile_len);
+
+void rp_lib_node_comp (     int* handle,
+                            char* retText,
+                            int retText_len);
+
+void rp_lib_node_type (     int* handle,
+                            char* retText,
+                            int retText_len);
+
+void rp_lib_node_id (       int* handle,
+                            char* retText,
+                            int retText_len);
+
+void rp_result(             int* handle );
+
 void rp_quit();
 
 

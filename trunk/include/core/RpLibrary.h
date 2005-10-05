@@ -1,11 +1,23 @@
+/*
+ * ----------------------------------------------------------------------
+ *  Rappture Library Header
+ *
+ * ======================================================================
+ *  AUTHOR:  Derrick Kearney, Purdue University
+ *  Copyright (c) 2005
+ *  Purdue Research Foundation, West Lafayette, IN
+ * ======================================================================
+ */
 
 #include "scew.h"
 #include "scew_extras.h"
 #include <iostream>
 #include <string>
 #include <sstream>
+#include <fstream>
 #include <stdlib.h>
 #include <errno.h>
+#include <time.h>
 
 /* indentation size (in whitespaces) */
 #define INDENT_SIZE 4
@@ -16,20 +28,16 @@
 class RpLibrary
 {
     public:
-        
+
         // users member fxns
 
         RpLibrary* element (std::string path = "", std::string as = "object");
+
         // should return RpObject& but for simplicity right now it doesnt
         // RpObject will either be an Array, RpString, RpNumber ...
-        /*
-        RpLibrary** children (  std::string path = "", 
-                                std::string as = "object", 
-                                std::string type = ""   );
-        */
 
-        RpLibrary*  children (  std::string path = "", 
-                                RpLibrary* rpChildNode = NULL, 
+        RpLibrary*  children (  std::string path = "",
+                                RpLibrary* rpChildNode = NULL,
                                 std::string type = "",
                                 int* childCount = NULL  );
 
@@ -41,7 +49,7 @@ class RpLibrary
                             std::string value,
                             std::string id = "",
                             int append = 0  );
-        
+
         RpLibrary& put (    std::string path,
                             double value,
                             std::string id = "",
@@ -54,7 +62,8 @@ class RpLibrary
         std::string nodeType();
         std::string nodeId();
         std::string nodeComp();
-        
+
+        void result();
         const char* nodeTypeC();
         const char* nodeIdC();
         const char* nodeCompC();
@@ -66,7 +75,6 @@ class RpLibrary
             :   parser      (NULL),
                 tree        (NULL),
                 root        (NULL)
-                    
         {
             tree = scew_tree_create();
             freeTree = 1;
@@ -80,7 +88,7 @@ class RpLibrary
                 tree        (NULL),
                 root        (NULL)
         {
-            
+
             if (filePath.length() != 0) {
                 // file path should not be null or empty string unless we are
                 // creating a new xml file
@@ -104,9 +112,9 @@ class RpLibrary
 
                     if (code == scew_error_expat)
                     {
-                        enum XML_Error expat_code = 
+                        enum XML_Error expat_code =
                             scew_error_expat_code(parser);
-                        printf("Expat error #%d (line %d, column %d): %s\n", 
+                        printf("Expat error #%d (line %d, column %d): %s\n",
                                expat_code,
                                scew_error_expat_line(parser),
                                scew_error_expat_column(parser),
@@ -114,7 +122,7 @@ class RpLibrary
                     }
                     // should probably exit program or something
                     // return EXIT_FAILURE;
-                    
+
                 }
 
                 tree = scew_parser_tree(parser);
@@ -126,7 +134,7 @@ class RpLibrary
             }
         }
 
-        
+
         // copy constructor
         // for some reason making this a const gives me problems when calling xml()
         // need help looking into this
@@ -148,7 +156,7 @@ class RpLibrary
             // empty strings
             buffer = other.xml();
             buffLen = buffer.length();
-            
+
             if (buffLen > 0) {
                 if (!scew_parser_load_buffer(parser,buffer.c_str(),buffLen))
                 {
@@ -160,7 +168,7 @@ class RpLibrary
 
                     if (code == scew_error_expat)
                     {
-                        enum XML_Error expat_code = 
+                        enum XML_Error expat_code =
                             scew_error_expat_code(parser);
                         printf("Expat error #%d (line %d, column %d): %s\n",
                                expat_code,
@@ -171,7 +179,7 @@ class RpLibrary
 
                     // return an empty RpLibrary?
                     // return EXIT_FAILURE;
-                    
+
                     parser = NULL;
                 }
                 else {
@@ -213,11 +221,11 @@ class RpLibrary
                 scew_parser_ignore_whitespaces(parser, 1);
 
                 // Loads the XML from other
-                // the length cannot be 0 because xml() should not be returning 
+                // the length cannot be 0 because xml() should not be returning
                 // empty strings
                 buffer = other.xml();
                 buffLen = buffer.length();
-                
+
                 if (buffLen > 0) {
                     if (!scew_parser_load_buffer(parser,buffer.c_str(),buffLen))
                     {
@@ -241,7 +249,7 @@ class RpLibrary
                         // return things back to the way they used to be
                         // or maybe return an empty RpLibrary?
                         // return EXIT_FAILURE;
-                        
+
                         // return this object to its previous state.
                         parser = tmp_parser;
                     }
@@ -255,9 +263,9 @@ class RpLibrary
                         root = scew_tree_root(tree);
 
                         // free the current RpLibrary's data
-                        // we do the free so far down so we can see if 
+                        // we do the free so far down so we can see if
                         // parsing the other object's xml fails.
-                        // if the parsing fails, we can still return this 
+                        // if the parsing fails, we can still return this
                         // object to its previous state.
                         if (tmp_tree && tmp_freeTree) {
                             scew_tree_free(tmp_tree);
@@ -277,7 +285,7 @@ class RpLibrary
 
             return *this;
         } // end operator=
-                
+
 
         // default destructor
         virtual ~RpLibrary ()
@@ -303,10 +311,12 @@ class RpLibrary
         scew_parser* parser;
         scew_tree* tree;
         scew_element* root;
-        
-        // flag to tell if we are responsible for calling scew_tree_free 
-        // on the tree structure. if we get our tree by using the scew_tree_create
-        // fxn, we need to free it. if we get our tree using the scew_parser_tree
+
+        // flag to tell if we are responsible for calling scew_tree_free
+        // on the tree structure. if we get our tree by using the
+        // scew_tree_create
+        // fxn, we need to free it. if we get our tree using the
+        // scew_parser_tree
         // fxn, then it will be free'd when the parser is free'd.
         int freeTree;
 
@@ -315,7 +325,7 @@ class RpLibrary
             :   parser      (NULL),
                 tree        (NULL),
                 root        (node)
-                    
+
         {}
 
 
@@ -323,15 +333,15 @@ class RpLibrary
         int _path2list (std::string& path, std::string** list, int listLen);
         std::string _node2name (scew_element* node);
         std::string _node2comp (scew_element* node);
-        int _splitPath (std::string& path, 
-                        std::string& tagName, 
-                        int* idx, 
+        int _splitPath (std::string& path,
+                        std::string& tagName,
+                        int* idx,
                         std::string& id );
-        scew_element* _find (std::string path, int create); 
+        scew_element* _find (std::string path, int create);
         void print_indent (unsigned int indent, std::stringstream& outString);
         void print_attributes (scew_element* element, std::stringstream& outString);
-        void print_element( scew_element* element, 
-                            unsigned int indent, 
+        void print_element( scew_element* element,
+                            unsigned int indent,
                             std::stringstream& outString    );
 
 

@@ -13,7 +13,7 @@ CFLAGS = -DCOMPNAME_ADD2UNDERSCORE
 F77 = g77
 
 LIB_DIR = $(RAPPTURE_DIR)/lib
-LIB_RAPPTURE	= -Wl,-rpath,$(LIB_DIR) -L$(LIB_DIR) -lrappture
+LIB_RAPPTURE	= -Wl,-rpath,$(LIB_DIR) -L$(LIB_DIR) -lrappture_test
 
 all: $(PROGS)
 
