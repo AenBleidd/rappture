@@ -24,7 +24,8 @@ TEST_PROGS      = RpBoolean_test    \
                   RpUnitsC_test     \
                   RpUnitsF_test     \
                   RpLibrary_test    \
-                  RpLibraryC_test
+                  RpLibraryC_test   \
+                  RpLibraryF_test
 
 # define our compiling environment
 #
@@ -33,29 +34,7 @@ CXX             = g++
 DEBUG           = -g -Wall
 DEBUG_PLUS      = -g -DDEBUG
 
-# FORTRAN BINDINGS COMPILER FLAGS
-#
-# available flags
-#
-#   COMPNAME_NOCHANGE           No change to the Rappture Library function 
-#                                 name
-#   COMPNAME_UPPERCASE          Replace the Rappture Library function name 
-#                                 with an all uppercase version of the name
-#   COMPNAME_ADD1UNDERSCORE     Add 1 underscore to the end of the Rappture 
-#                                 Library function name
-#   COMPNAME_ADD2UNDERSCORE     Add 2 underscores to the end of the Rappture 
-#                                 Library function name
-#
-# when setting CFLAGS, use the following guide for help
-#
-# gnu's g77/f77         COMPNAME_ADD2UNDERSCORE
-# absoft's f77          COMPNAME_ADD1UNDERSCORE
-# intel's ifort         COMPNAME_ADD1UNDERSCORE
-# intel's mpif90        COMPNAME_ADD1UNDERSCORE
-#
-#
-
-CFLAGS          = -DCOMPNAME_ADD2UNDERSCORE
+PY              = python
 
 F77             = g77
 
@@ -73,7 +52,6 @@ LIB_INC_PREFIX  = -Wl,-rpath,$(LIB_DIR) -L$(LIB_DIR)
 
 LIB_RP_OBJECTS  = $(LIB_INC_PREFIX) -lRpObjects
 LIB_RAPPTURE    = -Wl,-rpath,$(LIB_DIR) -L$(LIB_DIR) -lrappture
-LIB_RAPPTURE_T  = -Wl,-rpath,$(LIB_DIR) -L$(LIB_DIR) -lrappture_test
 
 INCL_CORE       = -I $(INCLUDES_DIR)/core
 INCL_CEE        = -I $(INCLUDES_DIR)/cee
@@ -109,21 +87,21 @@ RpVariable_test: $(SRC_TEST)/RpVariable_test.cc
 	$(CXX) $(DEBUG) $(INCL_CORE) -o $@ $< $(LIB_RP_OBJECTS)
 
 RpUnitsC_test: $(SRC_TEST)/RpUnitsC_test.c
-	$(CC) $(DEBUG) $(INCL_CEE) $(INCL_CORE) -o $@ $^ $(LIB_RAPPTURE_T)
+	$(CC) $(DEBUG) $(INCL_CEE) $(INCL_CORE) -o $@ $^ $(LIB_RAPPTURE)
 
 RpLibrary_test: $(SRC_TEST)/RpLibrary_test.cc
-	$(CXX) $(DEBUG) $(INCL_CEE) $(INCL_CORE) $(LIB_SCEW_INCL) -o $@ $^ $(LIB_RAPPTURE_T)
+	$(CXX) $(DEBUG) $(INCL_CEE) $(INCL_CORE) $(LIB_SCEW_INCL) -o $@ $^ $(LIB_RAPPTURE)
 
 RpLibraryC_test: $(SRC_TEST)/RpLibraryC_test.c
-	$(CC) $(DEBUG) $(INCL_CEE) $(INCL_CORE) $(LIB_SCEW_INCL) -o $@ $^ $(LIB_RAPPTURE_T)
+	$(CC) $(DEBUG) $(INCL_CEE) $(INCL_CORE) $(LIB_SCEW_INCL) -o $@ $^ $(LIB_RAPPTURE)
 
 RpLibraryF_test: $(SRC_TEST)/RpLibraryF_test.f
-	$(F77) $(DEBUG) -o $@ $^ $(LIB_RAPPTURE_T)
+	$(F77) $(DEBUG) -o $@ $^ $(LIB_RAPPTURE)
 
 RpUnitsF_test: $(SRC_TEST)/RpUnitsF_test.f
-	$(F77) $(DEBUG) -o $@ $^ $(LIB_RAPPTURE_T)
+	$(F77) $(DEBUG) -o $@ $^ $(LIB_RAPPTURE)
 
 
 #### CLEAN UP ############################################################
 clean: 
-	- rm -f *.o $(TEST_PROGS) 
+	- rm -f *.o $(TEST_PROGS) run*.xml

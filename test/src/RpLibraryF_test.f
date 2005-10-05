@@ -40,6 +40,18 @@ c ======================================================================
         print *,"retText = ",retText
       END SUBROUTINE  test_get_str
 
+      SUBROUTINE  test_get_dbl(lib,path)
+        integer lib
+        double precision rslt, rp_lib_get_double
+        character*100 path, retText
+
+        print *,"TESTING GET: path = ",path
+
+        rslt = rp_lib_get_double(lib, path)
+
+        print *,"rslt = ",rslt
+      END SUBROUTINE  test_get_dbl
+
       program rplib_f_tests
         IMPLICIT NONE
 
@@ -64,9 +76,13 @@ c ======================================================================
         !call rp_lib_get(driver, path, strVal)
         !print *,"strVal = ",strVal
 
-        ! TESTING GET
+        ! TESTING GET STRING
         path = "input.number(min).current"
         call test_get_str(driver, path)
+
+        ! TESTING GET DOUBLE
+        path = "input.number(min).current"
+        call test_get_dbl(driver, path)
 
 
         call rp_result(driver)
