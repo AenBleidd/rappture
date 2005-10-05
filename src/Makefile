@@ -3,8 +3,10 @@
 RP_INSTALL_BASE = /opt/rappture
 
 # tell make where to find the libscew sources
+EXPAT_HEADERS	= /opt/rappture/include
+LIB_EXPAT_INCL	= -I $(EXPAT_HEADERS)
 SCEW_HEADERS    = /opt/rappture/include/scew
-LIB_SCEW_INCL   = -I $(SCEW_HEADERS)
+LIB_SCEW_INCL   = -I $(SCEW_HEADERS) -I $(EXPAT_HEADERS)
 LIB_SCEW_FLAG   = -L/opt/rappture/lib -lscew
 #LIB_SCEW_FLAG   = /opt/rappture/lib/libscew.a
 #LIB_SCEW_FLAG   = -static -L/opt/rappture/lib -lscew
@@ -18,7 +20,7 @@ LIB_SCEW_FLAG   = -L/opt/rappture/lib -lscew
 TOP_DIR         = ../..
 
 # define the top of the rappture directory structure
-RP_BASE         = $(TOP_DIR)/rappture
+RP_BASE   = $(TOP_DIR)/svn.rappture
 
 # define which programs can be made
 PROGS           =   librappture   \
