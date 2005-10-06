@@ -1,2 +1,11 @@
-To build the progrma "plot" in this directory, type:
+To build the programs "plot" and "plotc" in this directory, type:
 	% make
+To build the progrma "plot" in this directory, type:
+	% make plot
+To build the progrma "plot" in this directory, type:
+	% make plotc
+
+To run plot, type:
+    % driver &
+To run plotc, type:
+    % driver -tool tool2.xml &

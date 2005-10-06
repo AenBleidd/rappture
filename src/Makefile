@@ -3,11 +3,15 @@
 RP_INSTALL_BASE = /opt/rappture
 
 # tell make where to find the expat & libscew sources
-EXPAT_HEADERS   = $(RP_INSTALL_BASE)/include
-LIB_EXPAT_INCL  = -I $(EXPAT_HEADERS)
-SCEW_HEADERS    = $(RP_INSTALL_BASE)/include/scew
-LIB_SCEW_INCL   = -I $(SCEW_HEADERS) -I $(EXPAT_HEADERS)
+INCL_RP_DEPS    = -I $(RP_INSTALL_BASE)/include
+
+#EXPAT_HEADERS   = $(RP_INSTALL_BASE)/include
+#LIB_EXPAT_INCL  = -I $(EXPAT_HEADERS)
+#SCEW_HEADERS    = $(RP_INSTALL_BASE)/include/scew
+#LIB_SCEW_INCL   = -I $(SCEW_HEADERS) -I $(EXPAT_HEADERS)
+
 LIB_SCEW_FLAG   = -L$(RP_INSTALL_BASE)/lib -lscew
+
 #LIB_SCEW_FLAG   = /opt/rappture/lib/libscew.a
 #LIB_SCEW_FLAG   = -static -L/opt/rappture/lib -lscew
 
@@ -68,7 +72,7 @@ install: all install_py install_rappture install_rpobjs
 RP_IO_DEPS      = RpLibrary.o RpLibraryCInterface.o RpLibraryFInterface.o \
                   scew_extras.o
 RP_UNITS_DEPS   = RpUnitsStd.o RpUnits.o RpUnitsCInterface.o RpUnitsFInterface.o
-RP_OTHER_DEPS   = RpFortranCommon.o
+RP_OTHER_DEPS   = RpFortranCommon.o # RpBindingsDict.o
 RP_OBJS_DEP     = RpVariable.o RpAbout.o RpNumber.o RpString.o RpBoolean.o \
                   RpChoice.o RpOption.o RpUnitsStd.o RpUnits.o
 
@@ -109,10 +113,10 @@ install_py: RpUnits.o RpUnitsStd.o
 # include core source files
 
 RpLibrary.o: $(CORE_SRC)/RpLibrary.cc
-	$(CXX) -fPIC $(DEBUG) $(INCL_CORE) $(LIB_SCEW_INCL) -o $@ -c $?
+	$(CXX) -fPIC $(DEBUG) $(INCL_CORE) $(INCL_RP_DEPS) -o $@ -c $?
 
 scew_extras.o: $(CORE_SRC)/scew_extras.c
-	$(CC) -fPIC $(DEBUG) $(INCL_CORE) $(LIB_SCEW_INCL) -o $@ -c $?
+	$(CC) -fPIC $(DEBUG) $(INCL_CORE) $(INCL_RP_DEPS) -o $@ -c $?
 
 RpVariable.o: $(CORE_SRC)/RpVariable.cc
 	$(CXX) -fPIC $(DEBUG) $(INCL_CORE) -o $@ -c $?
@@ -141,6 +145,9 @@ RpUnitsStd.o: $(CORE_SRC)/RpUnitsStd.cc
 RpUnits.o: $(CORE_SRC)/RpUnits.cc
 	$(CXX) -fPIC $(DEBUG) $(INCL_CORE) -o $@ -c $?
 
+RpBindingsDict.o: $(CORE_SRC)/RpBindingsDict.cc
+	$(CXX) -fPIC $(DEBUG) $(INCL_CORE) -o $@ -c $?
+
 
 
 
@@ -153,7 +160,7 @@ RpUnitsCInterface.o: $(CEE_SRC)/RpUnitsCInterface.cc
 	$(CXX) -fPIC $(DEBUG) $(INCL_CORE) $(INCL_CEE) -o $@ -c $?
 
 RpLibraryCInterface.o: $(CEE_SRC)/RpLibraryCInterface.cc
-	$(CXX) -fPIC $(DEBUG) $(INCL_CORE) $(INCL_CEE) $(LIB_SCEW_INCL) -o $@ -c $?
+	$(CXX) -fPIC $(DEBUG) $(INCL_CORE) $(INCL_CEE) $(INCL_RP_DEPS) -o $@ -c $?
 
 
 
@@ -169,8 +176,8 @@ RpUnitsFInterface.o: $(FORT_SRC)/RpUnitsFInterface.cc
 RpFortranCommon.o: $(FORT_SRC)/RpFortranCommon.c
 	$(CXX) -fPIC $(DEBUG) $(INCL_FORTRAN) -o $@ -c $<
 
-RpLibraryFInterface.o: $(FORT_SRC)/RpLibraryFInterface.cc 
-	$(CXX) -fPIC $(DEBUG) $(INCL_CORE) $(INCL_FORTRAN) $(LIB_SCEW_INCL) -o $@ -c $?
+RpLibraryFInterface.o: $(FORT_SRC)/RpLibraryFInterface.cc
+	$(CXX) -fPIC $(DEBUG) $(INCL_CORE) $(INCL_FORTRAN) $(INCL_RP_DEPS) -o $@ -c $?
 
 
 
