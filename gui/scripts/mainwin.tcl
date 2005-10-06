@@ -182,6 +182,15 @@ itcl::body Rappture::MainWin::syncCutBuffer {option args} {
             #
             set s [blt::cutbuffer get]
             if {"" != $s && ![string equal $s $_sync(cutbuffer)]} {
+                #
+                # Convert any \r's in the cutbuffer to \n's.
+                #
+                if {[string first "\r" $s] >= 0} {
+                    regsub -all "\r\n" $s "\n" s
+                    regsub -all "\r" $s "\n" s
+                    blt::cutbuffer set $s
+                }
+
                 set _sync(cutbuffer) $s
 
                 if {![string equal $s $_sync(selection)]
