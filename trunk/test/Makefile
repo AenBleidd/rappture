@@ -1,9 +1,9 @@
+# you need to change this to where your version of python is installed.
+# tell make where to find python header files
+RP_INSTALL_BASE = /opt/rappture
 
-# tell make where to find the libscew sources
-SCEW_HEADERS    = /opt/rappture/include/scew
-LIB_SCEW_INCL   = -I $(SCEW_HEADERS)
-LIB_SCEW_FLAG   = -L/opt/rappture/lib -lscew
-#LIB_SCEW_FLAG  = -static -L/opt/rappture/lib -lscew
+# tell make where to find the rappture dependency include files
+INCL_RP_DEPS    = -I $(RP_INSTALL_BASE)/include
 
 # define the top of our directory structure
 # replace this with the full path of the directory
@@ -44,7 +44,7 @@ LN              = ln
 #
 INCLUDES_DIR    = $(RP_BASE)/include
 BIN_DIR         = $(RP_BASE)/bin
-LIB_DIR         = $(RP_BASE)/src
+LIB_DIR         = $(RP_INSTALL_BASE)/lib # $(RP_BASE)/src
 SRC_DIR         = $(RP_BASE)/src
 TEST_DIR        = $(RP_BASE)/test
 
@@ -90,10 +90,10 @@ RpUnitsC_test: $(SRC_TEST)/RpUnitsC_test.c
 	$(CC) $(DEBUG) $(INCL_CEE) $(INCL_CORE) -o $@ $^ $(LIB_RAPPTURE)
 
 RpLibrary_test: $(SRC_TEST)/RpLibrary_test.cc
-	$(CXX) $(DEBUG) $(INCL_CEE) $(INCL_CORE) $(LIB_SCEW_INCL) -o $@ $^ $(LIB_RAPPTURE)
+	$(CXX) $(DEBUG) $(INCL_CEE) $(INCL_CORE) $(INCL_RP_DEPS) -o $@ $^ $(LIB_RAPPTURE)
 
 RpLibraryC_test: $(SRC_TEST)/RpLibraryC_test.c
-	$(CC) $(DEBUG) $(INCL_CEE) $(INCL_CORE) $(LIB_SCEW_INCL) -o $@ $^ $(LIB_RAPPTURE)
+	$(CC) $(DEBUG) $(INCL_CEE) $(INCL_CORE) $(INCL_RP_DEPS) -o $@ $^ $(LIB_RAPPTURE)
 
 RpLibraryF_test: $(SRC_TEST)/RpLibraryF_test.f
 	$(F77) $(DEBUG) -o $@ $^ $(LIB_RAPPTURE)
