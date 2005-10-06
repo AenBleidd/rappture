@@ -1,7 +1,6 @@
-#include "scew.h"
-
-#include "xelement.h"
-#include "xerror.h"
+#include "scew/scew.h"
+#include "scew/xelement.h"
+#include "scew/xerror.h"
 
 #include <assert.h>
 
