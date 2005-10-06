@@ -54,6 +54,11 @@ itcl::body Rappture::Field::constructor {xmlobj path} {
     set _field [$xmlobj element -as object $path]
     set _units [$_field get units]
 
+    set xunits [$xmlobj get units]
+    if {"" == $xunits || "arbitrary" == $xunits} {
+        set xunits "um"
+    }
+
     # determine the overall size of the device
     set z0 [set z1 0]
     foreach elem [$_xmlobj children components] {
@@ -64,11 +69,11 @@ itcl::body Rappture::Field::constructor {xmlobj path} {
                 }
                 set z0 [$_xmlobj get components.$elem.corner0]
                 set z0 [Rappture::Units::convert $z0 \
-                    -context um -to um -units off]
+                    -context $xunits -to $xunits -units off]
 
                 set z1 [$_xmlobj get components.$elem.corner1]
                 set z1 [Rappture::Units::convert $z1 \
-                    -context um -to um -units off]
+                    -context $xunits -to $xunits -units off]
 
                 set _limits($elem) [list $z0 $z1]
             }

@@ -26,14 +26,20 @@ namespace eval Rappture { # forward declaration }
 proc Rappture::exec {args} {
     variable execout
 
-    set execout ""
+    set execout(output) ""
+    set execout(channel) ""
+    set execout(extra) ""
+
     eval blt::bgexec control \
         -keepnewline yes \
         -onoutput {{::Rappture::_exec_out stdout}} \
         -onerror {{::Rappture::_exec_out stderr}} \
         $args
 
-    return $execout
+    # add any extra stuff pending from the last stdout/stderr change
+    append execout(output) $execout(extra)
+
+    return $execout(output)
 }
 
 # ----------------------------------------------------------------------
@@ -53,16 +59,46 @@ proc Rappture::_exec_out {channel message} {
     #
     if {$channel == "stderr"} {
         set newmesg ""
-        if {[string length $execout] > 0
-              && [string index $execout end] != "\n"} {
-            set newmesg "\n"
-        }
         foreach line [split $message \n] {
             append newmesg "=RAPPTURE-ERROR=>$line\n"
         }
-        set message [string trimright $newmesg \n]
+        set message $newmesg
     }
 
-    puts -nonewline $message
-    append execout $message
+    #
+    # If this message is coming in on the same channel as the
+    # last, then fine, add it on.  But if it's coming in on a
+    # different channel, we must make sure that we're at a good
+    # breakpoint.  If there's not a line break at the end of the
+    # current output, then add the extra stuff onto a buffer
+    # that we will merge in later once we get to a good point.
+    #
+    if {$execout(channel) == ""} {
+        set execout(channel) $channel
+    }
+
+    set ready [expr {[string length $execout(output)] == 0
+        || [string index $execout(output) end] == "\n"}]
+
+    if {$channel != $execout(channel)} {
+        if {$ready} {
+            # changing channels...
+            if {[string length $execout(extra)] > 0} {
+                # any extra stuff on this new channel? put it out now
+                puts -nonewline $execout(extra)
+                append execout(output) $execout(extra)
+                set execout(extra) ""
+            }
+            puts -nonewline $message
+            append execout(output) $message
+            set execout(channel) $channel
+        } else {
+            # not ready to change channels -- keep this for later
+            append execout(extra) $message
+        }
+    } else {
+        # no need to change channels -- keep printing
+        puts -nonewline $message
+        append execout(output) $message
+    }
 }
