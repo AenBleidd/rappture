@@ -72,7 +72,7 @@ install: all install_py install_rappture install_rpobjs
 RP_IO_DEPS      = RpLibrary.o RpLibraryCInterface.o RpLibraryFInterface.o \
                   scew_extras.o
 RP_UNITS_DEPS   = RpUnitsStd.o RpUnits.o RpUnitsCInterface.o RpUnitsFInterface.o
-RP_OTHER_DEPS   = RpFortranCommon.o # RpBindingsDict.o
+RP_OTHER_DEPS   = RpFortranCommon.o RpBindingsDict.o
 RP_OBJS_DEP     = RpVariable.o RpAbout.o RpNumber.o RpString.o RpBoolean.o \
                   RpChoice.o RpOption.o RpUnitsStd.o RpUnits.o
 

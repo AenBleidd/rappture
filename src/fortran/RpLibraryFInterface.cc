@@ -10,6 +10,7 @@
  */
 
 #include "RpLibraryFInterface.h"
+#include "RpBindingsDict.h"
 #include "RpLibraryFStubs.c"
 
 int rp_lib(const char* filePath, int filePath_len) 
@@ -402,7 +403,7 @@ int rp_lib_child_obj ( int* handle,
 
     PyObject* lib = NULL;
     PyObject* list = NULL;
-    
+
     char* inPath = NULL;
     char* inType = NULL;
 
@@ -412,7 +413,7 @@ int rp_lib_child_obj ( int* handle,
     if (rapptureStarted) {
         if ((handle) && (*handle != 0)) {
             lib = getObject_Lib(*handle);
-            
+
             if (lib) {
                 list = rpChildren_f(lib, inPath, "object");
                 if (list) {
@@ -422,7 +423,7 @@ int rp_lib_child_obj ( int* handle,
                     // Py_DECREF(list);
                 }
                 else {
-                    
+
                 }
             }
         }
@@ -605,7 +606,7 @@ void rp_lib_put_id_obj ( int* handle,
 {
     PyObject* lib = NULL;
     PyObject* value = NULL;
-    
+
     char* inPath = NULL;
     char* inId = NULL;
 
@@ -616,7 +617,7 @@ void rp_lib_put_id_obj ( int* handle,
         if ((handle) && (*handle != 0)) {
             lib = getObject_Lib(*handle);
             value = getObject_Lib(*valHandle);
-            
+
             if (lib && value) {
                 // retObj is a borrowed object 
                 // whose contents must not be modified
@@ -810,9 +811,10 @@ void rp_quit()
 
     // clean up the dictionary
 
-    RpDictEntry DICT_TEMPLATE *hPtr;
-    // RpDictIterator DICT_TEMPLATE iter((RpDict&)*this);
-    RpDictIterator DICT_TEMPLATE iter(fortObjDict_Lib);
+    RpDictEntry DICT_TEMPLATE_L *hPtr;
+    // RpDictIterator DICT_TEMPLATE iter(fortObjDict_Lib);
+    // should rp_quit clean up the dict or some function in RpBindingsCommon.h
+    RpDictIterator DICT_TEMPLATE_L iter(ObjDict_Lib);
 
     hPtr = iter.first();
 
@@ -822,7 +824,8 @@ void rp_quit()
         hPtr = iter.next();
     }
 
-    if (fortObjDict_Lib.size()) {
+    // if (fortObjDict_Lib.size()) {
+    if (ObjDict_Lib.size()) {
         // probably want to change the warning sometime
         // printf("\nWARNING: internal dictionary is not empty..deleting\n");
     }
@@ -840,56 +843,3 @@ void rp_result(int* handle) {
     }
 }
 
-int objType( char* flavor) 
-{
-    if (flavor == NULL) {
-        // return a PyObject*
-        return 0;
-    }
-    else if((*flavor == 'o')&&(strncmp(flavor,"object", 6)==0)){
-        // return a PyObject*
-        return 0;
-    }
-    else if ( 
-      ((*flavor == 't')&&(strncmp(flavor,"type", 4) == 0)) 
-    ||((*flavor == 'i')&&(strncmp(flavor,"id", 2) == 0))
-    ||((*flavor == 'c')&&(strncmp(flavor,"component", 9) == 0)))
-    {
-        // return a char*
-        // convert the result to c style strings
-        return 1;
-    }
-    else {
-        // unrecognized format
-        return -1;
-    }
-}
-
-int storeObject_Lib(RpLibrary* objectName) {
-
-    int retVal = -1;
-    int dictKey = fortObjDict_Lib.size() + 1;
-    int newEntry = 0;
-
-    if (objectName) {
-        // dictionary returns a reference to the inserted value
-        // no error checking to make sure it was successful in entering
-        // the new entry.
-        fortObjDict_Lib.set(dictKey,objectName, &newEntry); 
-    }
-
-    retVal = dictKey;
-    return retVal;
-}
-
-RpLibrary* getObject_Lib(int objKey) {
-
-    RpLibrary* retVal = *(fortObjDict_Lib.find(objKey).getValue());
-
-    if (retVal == *(fortObjDict_Lib.getNullEntry().getValue())) {
-        retVal = NULL;
-    }
-
-   return retVal;
-
-}

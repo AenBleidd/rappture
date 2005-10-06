@@ -1,7 +1,6 @@
 #include "RpLibraryCInterface.h"
 
 //#include <stdlib.h>
-#include <time.h>
 #include <string.h>
 #include <stdio.h>
 
@@ -32,7 +31,7 @@ int main(int argc, char * argv[])
         printf("filePath: %s:\n", filePath);
 
     // create a rappture library from the file filePath
-    lib = library(argv[1]);
+    lib = rpLibrary(argv[1]);
 
     if (lib) {
         if(DEBUG) {
@@ -46,7 +45,7 @@ int main(int argc, char * argv[])
     }
 
     // get the xml that is stored in the rappture library lib
-    if( (xmltext = xml(lib)) ) {
+    if( (xmltext = rpXml(lib)) ) {
         if(DEBUG) {
         //printf("XML file content:\n");
         //printf("%s\n", xmltext);
@@ -58,7 +57,7 @@ int main(int argc, char * argv[])
     }
 
     // get the min
-    xmltext = getString (lib, "input.number(min).current");
+    xmltext = rpGetString (lib, "input.number(min).current");
 
     if (! (xmltext) ) {
         printf("getString(lib,input.number(xmin).current) returns null\n");
@@ -80,7 +79,7 @@ int main(int argc, char * argv[])
     }
 
     // get the max
-    fmax = getDouble(lib,"input.(max).current");
+    fmax = rpGetDouble(lib,"input.(max).current");
     if(DEBUG) {
         printf("max: %f\n", fmax);
     }
@@ -90,12 +89,16 @@ int main(int argc, char * argv[])
         fx = i* (fmax - fmin)/npts + fmin;
         fy = sin(fx);
         sprintf(str, "%f %f\n", fx, fy);
-        put(lib, "output.curve.component.xy", str, "result", 1);
+        rpPut(lib, "output.curve.component.xy", str, "result", 1);
     }
 
 
     // write output to run file and signal
-    result(lib);
+    rpResult(lib);
 
+    // free the rappture library
+    rpFreeLibrary(lib);
+
+    // exit program
     return 0;
 }

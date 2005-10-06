@@ -10,16 +10,10 @@
  */
 
 #include "RpUnits.h"
-#include "RpDict.h"
 #include "string.h"
 #include "RpUnitsFInterface.h"
 #include "RpUnitsFStubs.c"
-
-#define DICT_TEMPLATE <int,std::string>
-RpDict DICT_TEMPLATE fortObjDictUnits;
-
-int storeObject_UnitsStr(std::string objectName);
-RpUnits* getObject_UnitsInt(int objKey);
+#include "RpBindingsDict.h"
 
 int
 rp_define_unit( char* unitName,
@@ -36,7 +30,8 @@ rp_define_unit( char* unitName,
     inText = null_terminate(unitName,unitName_len);
 
     if (basisName && *basisName) {
-        basisStrName = fortObjDictUnits.find(*basisName);
+        // basisStrName = fortObjDictUnits.find(*basisName);
+        basisStrName = ObjDictUnits.find(*basisName);
 
         if (basisStrName != "") {
             basis = RpUnits::find(basisStrName);
@@ -88,7 +83,7 @@ rp_make_metric(int* basis)
     RpUnits* newBasis = NULL;
 
     if (basis && *basis) {
-        newBasis = getObject_UnitsInt(*basis);
+        newBasis = getObject_UnitsStr(*basis);
 
         if (newBasis) {
             result = RpUnits::makeMetric(newBasis);
@@ -106,7 +101,7 @@ rp_get_units(int* unitRefVal, char* retText, int retText_len)
     int result = 0;
 
     if (unitRefVal && *unitRefVal) {
-        unitObj = getObject_UnitsInt(*unitRefVal);
+        unitObj = getObject_UnitsStr(*unitRefVal);
         if (unitObj) {
             unitNameText = unitObj->getUnits();
             fortranify(unitNameText.c_str(), retText, retText_len);
@@ -124,7 +119,7 @@ rp_get_units_name(int* unitRefVal, char* retText, int retText_len)
     int result = 0;
 
     if (unitRefVal && *unitRefVal) {
-        unitObj = getObject_UnitsInt(*unitRefVal);
+        unitObj = getObject_UnitsStr(*unitRefVal);
         if (unitObj) {
             unitNameText = unitObj->getUnitsName();
             fortranify(unitNameText.c_str(), retText, retText_len);
@@ -141,7 +136,7 @@ rp_get_exponent(int* unitRefVal, double* retExponent)
     int result = 0;
 
     if (unitRefVal && *unitRefVal) {
-        unitObj = getObject_UnitsInt(*unitRefVal);
+        unitObj = getObject_UnitsStr(*unitRefVal);
         if (unitObj) {
             *retExponent = unitObj->getExponent();
         }
@@ -158,7 +153,7 @@ rp_get_basis(int* unitRefVal)
     int result = -1;
 
     if (unitRefVal && *unitRefVal) {
-        unitObj = getObject_UnitsInt(*unitRefVal);
+        unitObj = getObject_UnitsStr(*unitRefVal);
 
         if (unitObj) {
             basisObj = unitObj->getBasis();
@@ -274,40 +269,3 @@ rp_units_add_presets ( char* presetName, int presetName_len) {
     return result;
 }
 
-
-
-
-//**********************************************************************//
-
-
-int
-storeObject_UnitsStr(std::string objectName) {
-
-    int retVal = -1;
-    int dictNextKey = fortObjDictUnits.size() + 1;
-    int newEntry = 0;
-
-    if (objectName != "") {
-        // dictionary returns a reference to the inserted value
-        // no error checking to make sure it was successful in entering
-        // the new entry.
-        fortObjDictUnits.set(dictNextKey,objectName, &newEntry);
-    }
-
-    retVal = dictNextKey;
-    return retVal;
-}
-
-RpUnits*
-getObject_UnitsInt(int objKey) {
-
-    std::string basisName = *(fortObjDictUnits.find(objKey).getValue());
-
-    if (basisName == *(fortObjDictUnits.getNullEntry().getValue())) {
-        // basisName = "";
-        return NULL;
-    }
-
-   return RpUnits::find(basisName);
-
-}
