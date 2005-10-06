@@ -9,7 +9,7 @@
  * ======================================================================
  */
 
-#include "scew.h"
+#include "scew/scew.h"
 #include "scew_extras.h"
 #include <iostream>
 #include <string>
