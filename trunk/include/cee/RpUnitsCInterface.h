@@ -11,69 +11,60 @@
 
 #ifdef __cplusplus
 extern "C" {
-#endif 
+#endif
 
     typedef struct RpUnits RpUnits;
 
     // unit definition functions
-    RpUnits* defineUnit(const char* unitSymbol, RpUnits* basis);
+    RpUnits* rpDefineUnit        ( const char* unitSymbol, RpUnits* basis );
 
     // conversion definition functions
-    RpUnits* defineConv(    RpUnits* fromUnit,
-                            RpUnits* toUnit,
-                            double (*convForwFxnPtr)(double),
-                            double (*convBackFxnPtr)(double)    );
+    RpUnits* rpDefineConv        ( RpUnits* fromUnit,
+                                   RpUnits* toUnit,
+                                   double (*convForwFxnPtr)(double),
+                                   double (*convBackFxnPtr)(double)    );
 
     // unit attribute access functions
-    const char* getUnits(RpUnits* unit);
+    const char* rpGetUnits       ( RpUnits* unit );
 
-    const char* getUnitsName(RpUnits* unit);
+    const char* rpGetUnitsName   ( RpUnits* unit );
 
-    double getExponent(RpUnits* unit);
+    double rpGetExponent         ( RpUnits* unit );
 
-    RpUnits* getBasis(RpUnits* unit);
+    RpUnits* rpGetBasis          ( RpUnits* unit);
 
-    RpUnits* find(const char* unitSymbol);
+    RpUnits* rpFind              ( const char* unitSymbol);
 
-    int makeMetric(RpUnits* basis);
+    int rpMakeMetric             ( RpUnits* basis );
 
-    // convert functions 
+    // convert functions
 
-    const char* convert (   const char* fromVal,
-                            const char* toUnitsName,
-                            int showUnits,
-                            int* result );
+    const char* rpConvert        ( const char* fromVal,
+                                   const char* toUnitsName,
+                                   int showUnits,
+                                   int* result );
 
-    const char* convert_str (   const char* fromVal,
-                                const char* toUnitsName,
-                                int showUnits,
-                                int* result );
+    const char* rpConvertStr     ( const char* fromVal,
+                                   const char* toUnitsName,
+                                   int showUnits,
+                                   int* result );
 
-    const char* convert_obj_str (   RpUnits* fromUnits, 
-                                    RpUnits* toUnits, 
-                                    double val,
-                                    int showUnits   );
+    const char* rpConvert_ObjStr ( RpUnits* fromUnits,
+                                   RpUnits* toUnits,
+                                   double val,
+                                   int showUnits,
+                                   int* result );
 
-    const char* convert_obj_str_result( RpUnits* fromUnits, 
-                                        RpUnits* toUnits, 
-                                        double val, 
-                                        int showUnits,
-                                        int* result );
+    double rpConvertDbl          ( const char* fromVal,
+                                   const char* toUnitsName,
+                                   int* result );
 
-    double convert_dbl (    const char* fromVal,
-                            const char* toUnitsName,
-                            int* result );
+    double rpConvert_ObjDbl      ( RpUnits* fromUnits,
+                                   RpUnits* toUnits,
+                                   double val,
+                                   int* result );
 
-    double convert_obj_double ( RpUnits* fromUnits, 
-                                RpUnits* toUnits, 
-                                double val  );
-
-    double convert_obj_double_result (  RpUnits* fromUnits, 
-                                        RpUnits* toUnits, 
-                                        double val, 
-                                        int* result );
-
-    int add_presets(const char* presetName);
+    int rpAddPresets ( const char* presetName );
 
 #ifdef __cplusplus
 }

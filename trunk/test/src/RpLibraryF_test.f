@@ -4,7 +4,7 @@ c
 c  Simple tests of the Rappture Library Fortran Bindings
 c
 c ======================================================================
-c  AUTHOR:  Derrick Kearney, Purdue University
+c  AUTHOR:  Derrick S. Kearney, Purdue University
 c  Copyright (c) 2005
 c  Purdue Research Foundation, West Lafayette, IN
 c ======================================================================

@@ -17,32 +17,32 @@ extern "C" {
 #endif
 
     RpLibrary*
-    library (const char* path)
+    rpLibrary (const char* path)
     {
         return new RpLibrary(path);
     }
 
     void
-    freeLibrary (RpLibrary* lib)
+    rpFreeLibrary (RpLibrary* lib)
     {
         delete lib;
         lib = NULL;
     }
 
     RpLibrary*
-    element (RpLibrary* lib, const char* path)
+    rpElement (RpLibrary* lib, const char* path)
     {
         return lib->element(path);
     }
 
     RpLibrary*
-    elementAsObject (RpLibrary* lib, const char* path)
+    rpElementAsObject (RpLibrary* lib, const char* path)
     {
-        return element(lib,path);
+        return rpElement(lib,path);
     }
 
     const char*
-    elementAsType (RpLibrary* lib, const char* path)
+    rpElementAsType (RpLibrary* lib, const char* path)
     {
         static std::string retStr = "";
         RpLibrary* retLib = lib->element(path);
@@ -55,7 +55,7 @@ extern "C" {
     }
 
     const char*
-    elementAsComp (RpLibrary* lib, const char* path)
+    rpElementAsComp (RpLibrary* lib, const char* path)
     {
         static std::string retStr = "";
         RpLibrary* retLib = lib->element(path);
@@ -68,7 +68,7 @@ extern "C" {
     }
 
     const char*
-    elementAsId (RpLibrary* lib, const char* path)
+    rpElementAsId (RpLibrary* lib, const char* path)
     {
         static std::string retStr = "";
         RpLibrary* retLib = lib->element(path);
@@ -82,13 +82,13 @@ extern "C" {
 
 
     RpLibrary*
-    children (RpLibrary* lib, const char* path, RpLibrary* childEle   )
+    rpChildren (RpLibrary* lib, const char* path, RpLibrary* childEle   )
     {
         return lib->children(path,childEle);
     }
 
     RpLibrary*
-    childrenByType( RpLibrary* lib,
+    rpChildrenByType( RpLibrary* lib,
                     const char* path,
                     RpLibrary* childEle,
                     const char* type    )
@@ -97,13 +97,13 @@ extern "C" {
     }
 
     RpLibrary*
-    get (RpLibrary* lib, const char* path)
+    rpGet (RpLibrary* lib, const char* path)
     {
         return lib->get(path);
     }
 
     const char*
-    getString (RpLibrary* lib, const char* path)
+    rpGetString (RpLibrary* lib, const char* path)
     {
         static std::string retStr = "";
         retStr = lib->getString(path);
@@ -111,13 +111,13 @@ extern "C" {
     }
 
     double
-    getDouble (RpLibrary* lib, const char* path)
+    rpGetDouble (RpLibrary* lib, const char* path)
     {
         return lib->getDouble(path);
     }
 
     void
-    put         (RpLibrary* lib,
+    rpPut         (RpLibrary* lib,
                  const char* path,
                  const char* value,
                  const char* id,
@@ -127,7 +127,7 @@ extern "C" {
     }
 
     void
-    putStringId (RpLibrary* lib,
+    rpPutStringId (RpLibrary* lib,
                  const char* path,
                  const char* value,
                  const char* id,
@@ -137,7 +137,7 @@ extern "C" {
     }
 
     void
-    putString ( RpLibrary* lib,
+    rpPutString ( RpLibrary* lib,
                 const char* path,
                 const char* value,
                 int append          )
@@ -146,7 +146,7 @@ extern "C" {
     }
 
     void
-    putDoubleId (RpLibrary* lib,
+    rpPutDoubleId (RpLibrary* lib,
                  const char* path,
                  double value,
                  const char* id,
@@ -156,7 +156,7 @@ extern "C" {
     }
 
     void
-    putDouble   (RpLibrary* lib,
+    rpPutDouble   (RpLibrary* lib,
                  const char* path,
                  double value,
                  int append         )
@@ -165,7 +165,7 @@ extern "C" {
     }
 
     const char*
-    xml (RpLibrary* lib)
+    rpXml (RpLibrary* lib)
     {
         static std::string retStr = "";
         retStr = lib->xml();
@@ -173,7 +173,7 @@ extern "C" {
     }
 
     const char*
-    nodeComp (RpLibrary* node)
+    rpNodeComp (RpLibrary* node)
     {
         static std::string retStr = "";
         retStr = node->nodeComp();
@@ -181,7 +181,7 @@ extern "C" {
     }
 
     const char*
-    nodeType (RpLibrary* node)
+    rpNodeType (RpLibrary* node)
     {
         static std::string retStr = "";
         retStr = node->nodeType();
@@ -189,7 +189,7 @@ extern "C" {
     }
 
     const char*
-    nodeId (RpLibrary* node)
+    rpNodeId (RpLibrary* node)
     {
         static std::string retStr = "";
         retStr = node->nodeId();
@@ -197,7 +197,7 @@ extern "C" {
     }
 
     void
-    result (RpLibrary* lib)
+    rpResult (RpLibrary* lib)
     {
         lib->result();
     }

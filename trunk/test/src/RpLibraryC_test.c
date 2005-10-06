@@ -27,10 +27,10 @@ int test_element (RpLibrary* lib, const char* path )
 
     printf("TESTING ELEMENT: path = %s\n", path);
 
-    searchEle = element(lib,path);
-    type = elementAsType(lib,path);
-    comp = elementAsComp(lib,path);
-    id = elementAsId(lib,path);
+    searchEle = rpElement(lib,path);
+    type = rpElementAsType(lib,path);
+    comp = rpElementAsComp(lib,path);
+    id = rpElementAsId(lib,path);
 
     if (!searchEle) {
         printf("searchEle is NULL\n");
@@ -41,10 +41,10 @@ int test_element (RpLibrary* lib, const char* path )
         printf("searchEle   id = :%s:\n", id);
         printf("searchEle type = :%s:\n", type);
 
-        comp = nodeComp(searchEle);
-        id   = nodeId(searchEle);
-        type = nodeType(searchEle);
-        
+        comp = rpNodeComp(searchEle);
+        id   = rpNodeId(searchEle);
+        type = rpNodeType(searchEle);
+
         printf("searchEle comp = :%s:\n", comp);
         printf("searchEle   id = :%s:\n", id);
         printf("searchEle type = :%s:\n", type);
@@ -62,7 +62,7 @@ int test_getString (RpLibrary* lib, const char* path )
 
     printf("TESTING GET String: path = %s\n", path);
 
-    searchVal = getString(lib,path);
+    searchVal = rpGetString(lib,path);
 
     if (!searchVal || *searchVal == '\0') {
         printf("searchVal is EMPTY STRING\n");
@@ -83,7 +83,7 @@ int test_getDouble (RpLibrary* lib, const char* path )
 
     printf("TESTING GET Double: path = %s\n", path);
 
-    searchVal = getDouble(lib,path);
+    searchVal = rpGetDouble(lib,path);
 
     printf("searchVal = :%f:\n", searchVal);
     retVal = 0;
@@ -101,10 +101,10 @@ int test_children (RpLibrary* lib, const char* path)
 
     printf("TESTING CHILDREN: path = %s\n", path);
 
-    while ( (childEle = children(lib,path,childEle)) ) {
-        comp = nodeComp(childEle);
-        id   = nodeId(childEle);
-        type = nodeType(childEle);
+    while ( (childEle = rpChildren(lib,path,childEle)) ) {
+        comp = rpNodeComp(childEle);
+        id   = rpNodeId(childEle);
+        type = rpNodeType(childEle);
 
         printf("childEle comp = :%s:\n",comp);
         printf("childEle   id = :%s:\n",id);
@@ -127,10 +127,10 @@ int test_childrenByType (RpLibrary* lib, const char* path, const char* searchTyp
 
     printf("TESTING CHILDREN: path = %s\n", path);
 
-    while ( (childEle = childrenByType(lib,path,childEle,searchType)) ) {
-        comp = nodeComp(childEle);
-        id   = nodeId(childEle);
-        type = nodeType(childEle);
+    while ( (childEle = rpChildrenByType(lib,path,childEle,searchType)) ) {
+        comp = rpNodeComp(childEle);
+        id   = rpNodeId(childEle);
+        type = rpNodeType(childEle);
 
         printf("childEle comp = :%s:\n",comp);
         printf("childEle   id = :%s:\n",id);
@@ -150,8 +150,8 @@ int test_putString (RpLibrary* lib, const char* path, const char* value, int app
 
     printf("TESTING PUT String: path = %s\n", path);
 
-    putString(lib,path,value,append);
-    searchVal = getString(lib, path);
+    rpPutString(lib,path,value,append);
+    searchVal = rpGetString(lib, path);
 
     if (!searchVal || *searchVal == '\0') {
         printf("searchVal is EMPTY STRING\n");
@@ -172,8 +172,8 @@ int test_putDouble (RpLibrary* lib, const char* path, double value, int append)
 
     printf("TESTING PUT String: path = %s\n", path);
 
-    putDouble(lib,path,value,append);
-    searchVal = getDouble(lib, path);
+    rpPutDouble(lib,path,value,append);
+    searchVal = rpGetDouble(lib, path);
     printf("searchVal = :%f:\n", searchVal);
     retVal = 0;
 
@@ -185,13 +185,13 @@ main(int argc, char** argv)
 {
     RpLibrary* lib = NULL;
 
-    if (argc < 3)
+    if (argc < 2)
     {
-        printf("usage: RpLibrary_test infile.xml outfile.xml\n");
+        printf("usage: %s driver.xml\n", argv[0]);
         return -1;
     }
 
-    lib = library(argv[1]);
+    lib = rpLibrary(argv[1]);
 
     test_element(lib,"input.number(min)");
     test_element(lib,"input.number(max)");
@@ -216,9 +216,9 @@ main(int argc, char** argv)
     test_children(lib,"input.number(test)");
     test_childrenByType(lib,"input.number(test)","preset");
 
-    printf("XML = \n%s\n",xml(lib));
+    printf("XML = \n%s\n",rpXml(lib));
     
-    freeLibrary(lib);
+    rpFreeLibrary(lib);
 
     return 0;
 }

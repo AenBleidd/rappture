@@ -3,14 +3,13 @@
  *  INTERFACE: Fortran Rappture Library Header
  *
  * ======================================================================
- *  AUTHOR:  Derrick Kearney, Purdue University
+ *  AUTHOR:  Derrick S. Kearney, Purdue University
  *  Copyright (c) 2005
  *  Purdue Research Foundation, West Lafayette, IN
  * ======================================================================
  */
 
 #include "RpLibrary.h"
-#include "RpDict.h"
 #include <string.h>
 #include <fstream>
 #include "RpFortranCommon.h"
@@ -148,21 +147,6 @@ void rp_quit();
 
 
 /**********************************************************/
-
-/**********************************************************/
-
-// private member functions
-int objType( char* flavor);
-
-int storeObject_Lib(RpLibrary* objectName);
-RpLibrary* getObject_Lib(int objKey);
-
-// global vars
-// dictionary to hold the python objects that
-// cannot be sent to fortran
-
-#define DICT_TEMPLATE <int,RpLibrary*>
-RpDict DICT_TEMPLATE fortObjDict_Lib;
 
 #ifdef __cplusplus
     }
