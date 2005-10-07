@@ -1,0 +1,18 @@
+This is a brief example of using the rerun program and the 3D 
+capabilities within Rappture.
+
+In this example, the file 3d_test_run.xml is a run file generated 
+by the Rappture GUI some time ago from a tool called Prophet.
+
+For more information on Prophet check out 
+
+http://www.nanohub.org/simulation_tools/prophet_tool_information
+
+To use the rerun program type
+    % rerun 3d_test_run.xml
+
+Since rerun's purpose is to revisualize data from previously run
+input, changing the simulation parameters will not effect the
+data that will be displayed in the rerun simulator. Therefore
+you should proceed in clicking the "Simulate" button to see the
+stored graphs, outputs, and data.
