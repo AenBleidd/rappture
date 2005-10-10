@@ -34,12 +34,12 @@ itcl::class Rappture::Scroller {
     protected method _fixsbar {which {state ""}}
     protected method _fixframe {which}
     protected method _fixsize {}
-    protected method _lock {option}
+    protected method _lock {option which}
 
     private variable _dispatcher "" ;# dispatcher for !events
     private variable _contents ""   ;# widget being controlled
     private variable _frame ""      ;# for "contents frame" calls
-    private variable _lock 0        ;# for _lock on x-scrollbar
+    private variable _lock          ;# for _lock on x/y scrollbar
 }
                                                                                 
 itk::usual Scroller {
@@ -53,6 +53,8 @@ itk::usual Scroller {
 # CONSTRUCTOR
 # ----------------------------------------------------------------------
 itcl::body Rappture::Scroller::constructor {args} {
+    array set _lock { x 0 y 0 }
+
     Rappture::dispatcher _dispatcher
 
     $_dispatcher register !fixframe-inner
@@ -195,19 +197,22 @@ itcl::body Rappture::Scroller::_fixsbar {which {state ""}} {
     switch -- $which {
         x {
             if {$state} {
-                grid $itk_component(xsbar) -row 1 -column 0 -sticky ew
-                _lock set
-            } else {
-                if {![_lock active]} {
-                    grid forget $itk_component(xsbar)
+                if {![_lock active x]} {
+                    grid $itk_component(xsbar) -row 1 -column 0 -sticky ew
                 }
+            } else {
+                grid forget $itk_component(xsbar)
+                _lock set x
             }
         }
         y {
             if {$state} {
-                grid $itk_component(ysbar) -row 0 -column 1 -sticky ns
+                if {![_lock active y]} {
+                    grid $itk_component(ysbar) -row 0 -column 1 -sticky ns
+                }
             } else {
                 grid forget $itk_component(ysbar)
+                _lock set y
             }
         }
     }
@@ -262,9 +267,9 @@ itcl::body Rappture::Scroller::_fixsize {} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: _lock set
-# USAGE: _lock reset
-# USAGE: _lock active
+# USAGE: _lock set <which>
+# USAGE: _lock reset <which>
+# USAGE: _lock active <which>
 #
 # Used internally to lock out vibrations when the x-scrollbar pops
 # into view.  When the x-scrollbar pops up, it reduces the space
@@ -274,18 +279,18 @@ itcl::body Rappture::Scroller::_fixsize {} {
 # appeared, then its lock is active, signalling that it should stay
 # up.
 # ----------------------------------------------------------------------
-itcl::body Rappture::Scroller::_lock {option} {
+itcl::body Rappture::Scroller::_lock {option which} {
     switch -- $option {
         set {
-            set _lock 1
-            after cancel [itcl::code $this _lock reset]
-            after 50 [itcl::code $this _lock reset]
+            set _lock($which) 1
+            after cancel [itcl::code $this _lock reset $which]
+            after 50 [itcl::code $this _lock reset $which]
         }
         reset {
-            set _lock 0
+            set _lock($which) 0
         }
         active {
-            return $_lock
+            return $_lock($which)
         }
         default {
             error "bad option \"$option\": should be set, reset, active"

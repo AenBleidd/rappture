@@ -156,7 +156,7 @@ itcl::body Rappture::Analyzer::constructor {tool args} {
     Rappture::Scroller $w.info -xscrollmode off -yscrollmode auto
     pack $w.info -expand yes -fill both -padx 4 -pady 4
     itk_component add runinfo {
-        text $w.info.text -width 1 -height 1 -wrap word \
+        text $w.info.text -width 1 -height 1 -wrap none \
             -borderwidth 0 -highlightthickness 0 \
             -state disabled
     } {
