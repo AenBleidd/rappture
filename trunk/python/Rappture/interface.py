@@ -13,7 +13,7 @@
 #  AUTHOR:  Michael McLennan, Purdue University
 #  Copyright (c) 2005  Purdue Research Foundation, West Lafayette, IN
 # ======================================================================
-import getopt, sys
+import getopt, sys, os
 import atexit
 import Rappture
 
@@ -45,7 +45,7 @@ def interface(argv,*args):
             #
             lib = Rappture.library('<?xml version="1.0"?><run><tool>' +
                     '<about>Press Simulate to view results.</about>' +
-                    '<command>' +argv[0]+ ' -d @driver</command></tool></run>')
+                    '<command>python ' +argv[0]+ ' -d @driver</command></tool></run>')
 
             for module in args:
                 for symbol in dir(module):
@@ -53,11 +53,21 @@ def interface(argv,*args):
                     if isinstance(s, Rappture.number):
                         s.put(lib)
 
-            f = open("driver.xml","w")
+            toolFileName = "tool.xml"
+            f = open(toolFileName,"w")
             f.write( lib.xml() )
             f.close()
 
             print 'launch the gui...'
+            #
+            # this doesnt work, but needs to. when we 
+            # os.execvp('driver', driverArgs ) with following definition of 
+            # driverArgs (and we change the name of toolFileName), program
+            # does not send the driver program the arguments as expected.
+            #
+            #driverArgs = ('-tool', toolFileName)
+            driverArgs = ()
+            os.execvp('driver', driverArgs )
             sys.exit(0)
 
         elif opt in ('-d','--driver'):
