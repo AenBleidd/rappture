@@ -6,6 +6,7 @@
 #  Copyright (c) 2005  Purdue Research Foundation, West Lafayette, IN
 # ======================================================================
 import Rappture
+import Rappture.Units
 
 class number:
     def __init__(self,path,id,**kwargs):
@@ -30,4 +31,15 @@ class number:
             if attr == 'current':
                 attrName = attr
         s = Rappture.driver.get(self.path+'.'+attrName)
-        return (float(s),other)
+        # return (float(s),other)
+        #
+        # the following code doesnt work if the <units> tag does not exist
+        # becasue it sends an empty string to convert and it fails there
+        toUnit = Rappture.driver.get(self.path+'.units')
+        if (toUnit != None):
+            val = Rappture.Units.convert(s,to=toUnit,units="off")
+        else :
+            # you have to hope the user didn't put units onto the <default>
+            # value (which is unlikely in most cases, btw)
+            val = float(s)
+        return (val,other)
