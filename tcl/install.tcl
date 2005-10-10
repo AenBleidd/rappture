@@ -92,7 +92,8 @@ close $fid
 
 mkindex [file join $targetdir scripts]
 
-if {[catch {package require Tk}] == 0} {
+if {[string match wish* [file tail [info nameofexecutable]]]} {
+    package require Tk
     wm withdraw .
     tk_messageBox -icon info -message "$package-$version INSTALLED"
 } else {

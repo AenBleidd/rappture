@@ -34,8 +34,8 @@ itcl::class Rappture::Mesh {
     private variable _xmlobj ""  ;# ref to XML obj with device data
     private variable _mesh ""    ;# lib obj representing this mesh
 
-    private variable _units "m"  ;# system of units for this mesh
-    private variable _limits     ;# limits xmin, xmax, ymin, ymax, ...
+    private variable _units "m m m" ;# system of units for x, y, z
+    private variable _limits        ;# limits xmin, xmax, ymin, ymax, ...
 
     private common _xp2obj       ;# used for fetch/release ref counting
     private common _obj2ref      ;# used for fetch/release ref counting
@@ -100,6 +100,9 @@ itcl::body Rappture::Mesh::constructor {xmlobj path} {
 
     set u [$_mesh get units]
     if {"" != $u} {
+        while {[llength $u] < 3} {
+            lappend u [lindex $u end]
+        }
         set _units $u
     }
 
@@ -125,9 +128,9 @@ itcl::body Rappture::Mesh::constructor {xmlobj path} {
 
         # extract each point and add it to the points list
         foreach {x y z} $xyz break
-        foreach dim {x y z} {
+        foreach dim {x y z} units $_units {
             set v [Rappture::Units::convert [set $dim] \
-                -context $_units -to $_units -units off]
+                -context $units -to $units -units off]
 
             set $dim $v  ;# save back to real x/y/z variable
 
