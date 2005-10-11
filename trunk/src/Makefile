@@ -1,9 +1,9 @@
 # you need to change this to where your version of python is installed.
 # tell make where to find python header files
-RP_INSTALL_BASE = /opt/rappture
+RP_INSTALL_BASE = /autohome/u76/kearneyd/rappture
 
 # tell make where to find the expat & libscew sources
-INCL_RP_DEPS    = -I $(RP_INSTALL_BASE)/include
+INCL_RP_DEPS    = -I$(RP_INSTALL_BASE)/include
 
 #EXPAT_HEADERS   = $(RP_INSTALL_BASE)/include
 #LIB_EXPAT_INCL  = -I $(EXPAT_HEADERS)
@@ -24,16 +24,16 @@ LIB_SCEW_FLAG   = -L$(RP_INSTALL_BASE)/lib -lscew
 TOP_DIR         = ../..
 
 # define the top of the rappture directory structure
-RP_BASE   = $(TOP_DIR)/rappture
+RP_BASE   = $(TOP_DIR)/rappture_svn
 
 # define which programs can be made
 PROGS           =   librappture    \
                     libRpObjects   \
-                    Rappture.Units 
+                    Rappture.Units
 #                    RpMatlab
 
 # define our compiling environment
-# 
+#
 CC              = gcc
 CXX             = g++
 DEBUG           = -g -Wall
@@ -61,11 +61,11 @@ LIB_INC_PREFIX  = -Wl,-rpath,$(LIB_DIR) -L$(LIB_DIR)
 LIB_RP_OBJECTS  = $(LIB_INC_PREFIX) -lRpObjects
 LIB_RAPPTURE    = -Wl,-rpath,$(LIB_DIR) -L$(LIB_DIR) -lrappture
 
-INCL_CORE       = -I $(INCLUDES_DIR)/core
-INCL_CEE        = -I $(INCLUDES_DIR)/cee
-INCL_FORTRAN    = -I $(INCLUDES_DIR)/fortran
-INCL_PY         = -I $(INCLUDES_DIR)/python
-INCL_MATLAB     = -I $(INCLUDES_DIR)/matlab
+INCL_CORE       = -I$(INCLUDES_DIR)/core
+INCL_CEE        = -I$(INCLUDES_DIR)/cee
+INCL_FORTRAN    = -I$(INCLUDES_DIR)/fortran
+INCL_PY         = -I$(INCLUDES_DIR)/python
+INCL_MATLAB     = -I$(INCLUDES_DIR)/matlab
 
 
 # default:
@@ -190,7 +190,7 @@ RpLibraryFInterface.o: $(FORT_SRC)/RpLibraryFInterface.cc
 
 # matlab bindings
 MEX_INCLS = $(INCL_MATLAB) $(INCL_CORE) $(INCL_CEE) $(INCL_RP_DEPS)
-MATLAB_COMP_ARGS = $(MATLAB_SRC)/RpMatlabInterface.cc $(MEX_INCLS) $(LIB_RAPPTURE)
+MATLAB_COMP_ARGS = $(MATLAB_SRC)/RpMatlabInterface.cc $(MEX_INCLS) -L$(LIB_DIR) -lrappture
 
 RpMatlab:
 	$(MEX) $(MATLAB_SRC)/rpLib.cc              $(MATLAB_COMP_ARGS)
