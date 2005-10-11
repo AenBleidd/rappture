@@ -27,9 +27,10 @@ TOP_DIR         = ../..
 RP_BASE   = $(TOP_DIR)/rappture
 
 # define which programs can be made
-PROGS           =   librappture   \
-                    libRpObjects  \
-                    Rappture.Units
+PROGS           =   librappture    \
+                    libRpObjects   \
+                    Rappture.Units 
+#                    RpMatlab
 
 # define our compiling environment
 # 
@@ -38,6 +39,7 @@ CXX             = g++
 DEBUG           = -g -Wall
 DEBUG_PLUS      = -g -DDEBUG
 PY              = python
+MEX             = mex
 
 LN              = ln
 
@@ -53,6 +55,7 @@ CORE_SRC        = $(SRC_DIR)/core
 FORT_SRC        = $(SRC_DIR)/fortran
 CEE_SRC         = $(SRC_DIR)/cee
 PY_SRC          = $(SRC_DIR)/python
+MATLAB_SRC      = $(SRC_DIR)/python
 
 LIB_INC_PREFIX  = -Wl,-rpath,$(LIB_DIR) -L$(LIB_DIR)
 LIB_RP_OBJECTS  = $(LIB_INC_PREFIX) -lRpObjects
@@ -108,6 +111,10 @@ Rappture.Units: RpUnits.o RpUnitsStd.o
 install_py: RpUnits.o RpUnitsStd.o
 	$(PY) $(PY_SRC)/setup.py install
 
+
+#### Matlab ########################################################
+install_matlab: RpMatlab
+	cp -d $(MATLAB_SRC)/*.mex* $(RP_INSTALL_BASE)/lib
 
 
 # include core source files
@@ -180,9 +187,55 @@ RpLibraryFInterface.o: $(FORT_SRC)/RpLibraryFInterface.cc
 	$(CXX) -fPIC $(DEBUG) $(INCL_CORE) $(INCL_FORTRAN) $(INCL_RP_DEPS) -o $@ -c $?
 
 
+# matlab bindings
+INCL_MATLAB = $(INCL_CORE) $(INCL_CEE) $(INCL_RP_DEPS) $(LIB_RAPPTURE)
+MATLAB_COMP_ARGS = RpMatlabInterface.cc $(INCL_MATLAB) $(LIB_RAPPTURE)
+
+RpMatlab:
+	$(MEX) $(MATLAB_SRC)/rpLib.cc              $(MATLAB_COMP_ARGS)
+	$(MEX) $(MATLAB_SRC)/rpXml.cc              $(MATLAB_COMP_ARGS)
+	$(MEX) $(MATLAB_SRC)/rpElement.cc          $(MATLAB_COMP_ARGS)
+	$(MEX) $(MATLAB_SRC)/rpElementAsObject.cc  $(MATLAB_COMP_ARGS)
+	$(MEX) $(MATLAB_SRC)/rpElementAsType.cc    $(MATLAB_COMP_ARGS)
+	$(MEX) $(MATLAB_SRC)/rpElementAsComp.cc    $(MATLAB_COMP_ARGS)
+	$(MEX) $(MATLAB_SRC)/rpElementAsId.cc      $(MATLAB_COMP_ARGS)
+	$(MEX) $(MATLAB_SRC)/rpChildren.cc         $(MATLAB_COMP_ARGS)
+	$(MEX) $(MATLAB_SRC)/rpChildrenByType.cc   $(MATLAB_COMP_ARGS)
+#$(MEX) $(MATLAB_SRC)/rpChildrenAsObject.cc    $(MATLAB_COMP_ARGS)
+#$(MEX) $(MATLAB_SRC)/rpChildrenAsType.cc      $(MATLAB_COMP_ARGS)
+#$(MEX) $(MATLAB_SRC)/rpChildrenAsComp.cc      $(MATLAB_COMP_ARGS)
+#$(MEX) $(MATLAB_SRC)/rpChildrenAsId.cc        $(MATLAB_COMP_ARGS)
+	$(MEX) $(MATLAB_SRC)/rpGet.cc              $(MATLAB_COMP_ARGS)
+	$(MEX) $(MATLAB_SRC)/rpGet.cc              $(MATLAB_COMP_ARGS)
+	$(MEX) $(MATLAB_SRC)/rpGetString.cc        $(MATLAB_COMP_ARGS)
+	$(MEX) $(MATLAB_SRC)/rpGetDouble.cc        $(MATLAB_COMP_ARGS)
+	$(MEX) $(MATLAB_SRC)/rpPut.cc              $(MATLAB_COMP_ARGS)
+	$(MEX) $(MATLAB_SRC)/rpPutString.cc        $(MATLAB_COMP_ARGS)
+	$(MEX) $(MATLAB_SRC)/rpPutStringId.cc      $(MATLAB_COMP_ARGS)
+	$(MEX) $(MATLAB_SRC)/rpPutDouble.cc        $(MATLAB_COMP_ARGS)
+	$(MEX) $(MATLAB_SRC)/rpPutDoubleId.cc      $(MATLAB_COMP_ARGS)
+	$(MEX) $(MATLAB_SRC)/rpNodeComp.cc         $(MATLAB_COMP_ARGS)
+	$(MEX) $(MATLAB_SRC)/rpNodeType.cc         $(MATLAB_COMP_ARGS)
+	$(MEX) $(MATLAB_SRC)/rpNodeId.cc           $(MATLAB_COMP_ARGS)
+	$(MEX) $(MATLAB_SRC)/rpResult.cc           $(MATLAB_COMP_ARGS)
+	$(MEX) $(MATLAB_SRC)/rpDefineUnit.cc       $(MATLAB_COMP_ARGS)
+#$(MEX) $(MATLAB_SRC)/rpDefineConv.cc          $(MATLAB_COMP_ARGS)
+	$(MEX) $(MATLAB_SRC)/rpGetUnits.cc         $(MATLAB_COMP_ARGS)
+	$(MEX) $(MATLAB_SRC)/rpGetUnitsName.cc     $(MATLAB_COMP_ARGS)
+	$(MEX) $(MATLAB_SRC)/rpGetExponent.cc      $(MATLAB_COMP_ARGS)
+	$(MEX) $(MATLAB_SRC)/rpGetBasis.cc         $(MATLAB_COMP_ARGS)
+	$(MEX) $(MATLAB_SRC)/rpFind.cc             $(MATLAB_COMP_ARGS)
+	$(MEX) $(MATLAB_SRC)/rpMakeMetric.cc       $(MATLAB_COMP_ARGS)
+	$(MEX) $(MATLAB_SRC)/rpConvert.cc          $(MATLAB_COMP_ARGS)
+	$(MEX) $(MATLAB_SRC)/rpConvertStr.cc       $(MATLAB_COMP_ARGS)
+	$(MEX) $(MATLAB_SRC)/rpConvertObjStr.cc    $(MATLAB_COMP_ARGS)
+	$(MEX) $(MATLAB_SRC)/rpConvertDbl.cc       $(MATLAB_COMP_ARGS)
+	$(MEX) $(MATLAB_SRC)/rpConvertObjDbl.cc    $(MATLAB_COMP_ARGS)
+	$(MEX) $(MATLAB_SRC)/rpAddPresets.cc       $(MATLAB_COMP_ARGS)
+
 
 
 #### CLEAN UP ############################################################
 clean: 
-	- rm -f *.o librappture.so* libRp*.so*
+	- rm -f *.o librappture.so* libRp*.so* rp*.mex*
 	- rm -rf build

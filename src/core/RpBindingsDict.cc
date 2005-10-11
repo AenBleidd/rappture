@@ -45,6 +45,31 @@ getObject_Lib(int objKey) {
 
 }
 
+void
+cleanLibDict () {
+    // clean up the dictionary
+
+    RpDictEntry DICT_TEMPLATE_L *hPtr;
+    // RpDictIterator DICT_TEMPLATE iter(fortObjDict_Lib);
+    // should rp_quit clean up the dict or some function in RpBindingsCommon.h
+    RpDictIterator DICT_TEMPLATE_L iter(ObjDict_Lib);
+
+    hPtr = iter.first();
+
+    while (hPtr) {
+        // Py_DECREF(*(hPtr->getValue()));
+        hPtr->erase();
+        hPtr = iter.next();
+    }
+
+    // if (fortObjDict_Lib.size()) {
+    if (ObjDict_Lib.size()) {
+        // probably want to change the warning sometime
+        // printf("\nWARNING: internal dictionary is not empty..deleting\n");
+    }
+
+}
+
 int
 storeObject_UnitsStr(std::string objectName) {
 
@@ -74,5 +99,30 @@ getObject_UnitsStr(int objKey) {
     }
 
    return RpUnits::find(basisName);
+
+}
+
+void
+cleanUnitsDict () {
+    // clean up the dictionary
+
+    RpDictEntry DICT_TEMPLATE_U *hPtr;
+    // RpDictIterator DICT_TEMPLATE iter(fortObjDict_Lib);
+    // should rp_quit clean up the dict or some function in RpBindingsCommon.h
+    RpDictIterator DICT_TEMPLATE_U iter(ObjDictUnits);
+
+    hPtr = iter.first();
+
+    while (hPtr) {
+        // Py_DECREF(*(hPtr->getValue()));
+        hPtr->erase();
+        hPtr = iter.next();
+    }
+
+    // if (fortObjDict_Lib.size()) {
+    if (ObjDictUnits.size()) {
+        // probably want to change the warning sometime
+        // printf("\nWARNING: internal dictionary is not empty..deleting\n");
+    }
 
 }

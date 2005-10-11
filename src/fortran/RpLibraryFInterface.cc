@@ -811,6 +811,7 @@ void rp_quit()
 
     // clean up the dictionary
 
+/*
     RpDictEntry DICT_TEMPLATE_L *hPtr;
     // RpDictIterator DICT_TEMPLATE iter(fortObjDict_Lib);
     // should rp_quit clean up the dict or some function in RpBindingsCommon.h
@@ -829,7 +830,8 @@ void rp_quit()
         // probably want to change the warning sometime
         // printf("\nWARNING: internal dictionary is not empty..deleting\n");
     }
-
+*/
+    cleanLibDict();
 }
 
 void rp_result(int* handle) {
