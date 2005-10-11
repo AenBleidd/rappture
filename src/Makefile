@@ -55,7 +55,7 @@ CORE_SRC        = $(SRC_DIR)/core
 FORT_SRC        = $(SRC_DIR)/fortran
 CEE_SRC         = $(SRC_DIR)/cee
 PY_SRC          = $(SRC_DIR)/python
-MATLAB_SRC      = $(SRC_DIR)/python
+MATLAB_SRC      = $(SRC_DIR)/matlab
 
 LIB_INC_PREFIX  = -Wl,-rpath,$(LIB_DIR) -L$(LIB_DIR)
 LIB_RP_OBJECTS  = $(LIB_INC_PREFIX) -lRpObjects
@@ -65,6 +65,7 @@ INCL_CORE       = -I $(INCLUDES_DIR)/core
 INCL_CEE        = -I $(INCLUDES_DIR)/cee
 INCL_FORTRAN    = -I $(INCLUDES_DIR)/fortran
 INCL_PY         = -I $(INCLUDES_DIR)/python
+INCL_MATLAB     = -I $(INCLUDES_DIR)/matlab
 
 
 # default:
@@ -188,8 +189,8 @@ RpLibraryFInterface.o: $(FORT_SRC)/RpLibraryFInterface.cc
 
 
 # matlab bindings
-INCL_MATLAB = $(INCL_CORE) $(INCL_CEE) $(INCL_RP_DEPS) $(LIB_RAPPTURE)
-MATLAB_COMP_ARGS = RpMatlabInterface.cc $(INCL_MATLAB) $(LIB_RAPPTURE)
+MEX_INCLS = $(INCL_MATLAB) $(INCL_CORE) $(INCL_CEE) $(INCL_RP_DEPS)
+MATLAB_COMP_ARGS = $(MATLAB_SRC)/RpMatlabInterface.cc $(MEX_INCLS) $(LIB_RAPPTURE)
 
 RpMatlab:
 	$(MEX) $(MATLAB_SRC)/rpLib.cc              $(MATLAB_COMP_ARGS)
@@ -232,6 +233,8 @@ RpMatlab:
 	$(MEX) $(MATLAB_SRC)/rpConvertDbl.cc       $(MATLAB_COMP_ARGS)
 	$(MEX) $(MATLAB_SRC)/rpConvertObjDbl.cc    $(MATLAB_COMP_ARGS)
 	$(MEX) $(MATLAB_SRC)/rpAddPresets.cc       $(MATLAB_COMP_ARGS)
+
+
 
 
 
