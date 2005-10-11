@@ -24,7 +24,7 @@ LIB_SCEW_FLAG   = -L$(RP_INSTALL_BASE)/lib -lscew
 TOP_DIR         = ../..
 
 # define the top of the rappture directory structure
-RP_BASE   = $(TOP_DIR)/rappture_svn
+RP_BASE   = $(TOP_DIR)/rappture
 
 # define which programs can be made
 PROGS           =   librappture    \
@@ -71,7 +71,7 @@ INCL_MATLAB     = -I$(INCLUDES_DIR)/matlab
 # default:
 
 all: ${PROGS}
-install: all install_py install_rappture install_rpobjs
+install: all install_py install_rappture install_rpobjs #install_matlab
 
 RP_IO_DEPS      = RpLibrary.o RpLibraryCInterface.o RpLibraryFInterface.o \
                   scew_extras.o

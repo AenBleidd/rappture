@@ -754,16 +754,19 @@ void
 RpLibrary::print_indent(unsigned int indent, std::stringstream& outString)
 {
 
-    while ( (indent--) > 0)
-    {
-        outString << "\t";
-    }
+    // keep this around incase you want to use tabs instead of spaces
+    // while ( (indent--) > 0)
+    // {
+    //     outString << "\t";
+    // }
 
     // keep this around incase you want to use spaces instead of tabs
-    // while ( ((indent--)*4) > 0)
-    // {
-    //     outString << " ";
-    // }
+    int cnt = indent*INDENT_SIZE;
+    while ( (cnt--) > 0)
+    {
+        outString << " ";
+    }
+
 }
 
 void
