@@ -37,7 +37,7 @@ RpUnitsObject_getUnitsName(RpUnitsObject *self)
 {
     PyObject* rv = NULL;
 
-    if (self->rp_unit){ 
+    if (self->rp_unit){
         rv = PyString_FromString(self->rp_unit->getUnitsName().c_str());
     }
 
@@ -49,7 +49,7 @@ RpUnitsObject_getExponent(RpUnitsObject *self)
 {
     PyObject* rv = NULL;
 
-    if (self->rp_unit){ 
+    if (self->rp_unit){
         rv = PyFloat_FromDouble(self->rp_unit->getExponent());
     }
 
@@ -101,7 +101,7 @@ static PyMethodDef RpUnitsObject_methods[] = {
      "convert a value from one RpUnits Object to another" },
     {"makeBasis", (PyCFunction)RpUnitsObject_makeBasis, METH_VARARGS,
      "return the basis value of the value provided" },
-    
+
     {NULL}  /* Sentinel */
 };
 
@@ -182,7 +182,7 @@ RpUnitsObject_convert(RpUnitsObject *self, PyObject *args)
         PyTuple_SetItem(argList, 0, inVal);
         /*
          * need to make it so user can give any number of variables in arglist
-         * because the new argList is sent to the python conversion fxn where it 
+         * because the new argList is sent to the python conversion fxn where it
          * will be parsed in python when c++ calls the conv fxn.
         PyArg_ParseTuple(args, "O!", &RpUnitsObjectType, &toUnits);
         if (argTupleSize > 1) {
@@ -203,9 +203,9 @@ RpUnitsObject_convert(RpUnitsObject *self, PyObject *args)
     }
 
     if (self->rp_unit){ 
-        outVal = (PyObject*) self->rp_unit->convert(toUnits->rp_unit, 
-                                                    // (void*)&inVal, 
-                                                    (void*)argList, 
+        outVal = (PyObject*) self->rp_unit->convert(toUnits->rp_unit,
+                                                    // (void*)&inVal,
+                                                    (void*)argList,
                                                     &result );
         if (result) {
             rv = outVal;
@@ -265,7 +265,7 @@ RpUnits_define(PyObject *self, PyObject *args)
 void* PyCallback (void* fxnPtr, void* args)
 {
     PyObject* retVal = NULL;
-    
+
     if ((PyObject*)fxnPtr != NULL) {
         retVal = PyObject_CallObject((PyObject*)fxnPtr,(PyObject*)args);
     }
@@ -293,8 +293,8 @@ RpUnits_defineConv(PyObject *self, PyObject *args)
     RpUnits* newConv = NULL;
 
     if (PyTuple_Size(args) > 0) {
-        PyArg_ParseTuple(args, "O!O!O!O!",&RpUnitsObjectType, &fromUnit, 
-                                          &RpUnitsObjectType, &toUnit, 
+        PyArg_ParseTuple(args, "O!O!O!O!",&RpUnitsObjectType, &fromUnit,
+                                          &RpUnitsObjectType, &toUnit,
                                           &PyFunction_Type, &forwConvFxnStr,
                                           &PyFunction_Type, &backConvFxnStr);
     }
@@ -318,7 +318,7 @@ RpUnits_defineConv(PyObject *self, PyObject *args)
     }
 
     // make sure we get callable functions and non-null RpUnit Objects
-    if ( PyCallable_Check(forwConvFxnStr) && 
+    if ( PyCallable_Check(forwConvFxnStr) &&
          PyCallable_Check(backConvFxnStr) &&
          fromUnit->rp_unit &&
          toUnit->rp_unit) {
@@ -349,7 +349,7 @@ RpUnits_defineConv(PyObject *self, PyObject *args)
     return (PyObject *)newRpUnit;
 }
 
-PyDoc_STRVAR(RpUnits_find_doc, 
+PyDoc_STRVAR(RpUnits_find_doc,
 "find(name) -> RpUnitsObject \n\
 \n\
 search the dictionary of created RpUnits for a unit matching \n\
@@ -369,7 +369,7 @@ RpUnits_find(PyObject *self, PyObject *args)
         PyErr_SetString(PyExc_AttributeError, "incorrect input arguments");
         return NULL;
     }
-    
+
     foundUnits = RpUnits::find(searchUnits);
 
     if (foundUnits) {
@@ -377,12 +377,12 @@ RpUnits_find(PyObject *self, PyObject *args)
 
         if (returnUnits == NULL)
             return NULL;
-        
+
         returnUnits->rp_unit = foundUnits;
     }
 
     return (PyObject*) returnUnits;
-    
+
 }
 
 PyDoc_STRVAR(RpUnits_makeMetric_doc, 
@@ -403,7 +403,7 @@ RpUnits_makeMetric(PyObject *self, PyObject *args)
     else {
         return NULL;
     }
-    
+
     if (units->rp_unit) {
         result = RpUnits::makeMetric(units->rp_unit);
     }
@@ -411,7 +411,7 @@ RpUnits_makeMetric(PyObject *self, PyObject *args)
     return PyInt_FromLong((long)result);
 }
 
-PyDoc_STRVAR(RpUnits_convert_doc, 
+PyDoc_STRVAR(RpUnits_convert_doc,
 "convert (fromVal, to, units) -> PyString \n\
 \n\
 Convert the value 'fromVal', to the units listed in 'to', \n\
@@ -438,7 +438,7 @@ RpUnits_convert(PyObject *self, PyObject *args, PyObject *keywds)
     PyObject* tmpPyStr = NULL;
 
     static char *kwlist[] = {"fromVal", "to", "units", NULL};
-    
+
     if (PyTuple_Size(args) > 0) {
         // PyArg_ParseTuple(args, "ss|s", &fromVal, &to, &units);
         if (!PyArg_ParseTupleAndKeywords(args, keywds, "ss|s", 
@@ -466,30 +466,30 @@ RpUnits_convert(PyObject *self, PyObject *args, PyObject *keywds)
 
     if ( (!retStr.empty()) && (result == 0) ) {
         if (unitsVal) {
-            retVal = PyString_FromString(retStr.c_str());   
+            retVal = PyString_FromString(retStr.c_str());
         }
         else {
-            // convert to a double and return that if 
+            // convert to a double and return that if
             // the units were turned off
-	    tmpPyStr = PyString_FromString(retStr.c_str());
-	    if (tmpPyStr) {
-                Py_INCREF(tmpPyStr);
-                retVal = PyFloat_FromString(tmpPyStr,NULL);
-                Py_DECREF(tmpPyStr);
-	    }
+            tmpPyStr = PyString_FromString(retStr.c_str());
+            if (tmpPyStr) {
+                    Py_INCREF(tmpPyStr);
+                    retVal = PyFloat_FromString(tmpPyStr,NULL);
+                    Py_DECREF(tmpPyStr);
+            }
         }
     }
     else {
         //keeping this around in case you want string returned instead of None
         //if (fromVal) {
-        //    retVal = PyString_FromString(fromVal);   
+        //    retVal = PyString_FromString(fromVal);
         //}
         //else {
         retVal = Py_None;
         Py_INCREF(retVal);
         //}
     }
-    
+
     return retVal;
 }
 
@@ -505,16 +505,16 @@ static PyMethodDef RpUnits_Methods[] = {
 
     {"defineConv", RpUnits_defineConv, METH_VARARGS,
         RpUnits_defineConv_doc},
-    
+
     {"find", RpUnits_find, METH_VARARGS,
         RpUnits_find_doc},
 
     {"makeMetric", RpUnits_makeMetric, METH_VARARGS,
         RpUnits_makeMetric_doc},
-    
+
     {"convert", (PyCFunction)RpUnits_convert, METH_VARARGS|METH_KEYWORDS,
         RpUnits_convert_doc},
-    
+
     {NULL,        NULL}        /* sentinel */
 };
 
@@ -528,7 +528,7 @@ initUnits(void)
     PyObject *m;
 
     /* Finalize the type object including setting type of the new type
-     * object; doing it here is required for portability to Windows 
+     * object; doing it here is required for portability to Windows
      * without requiring C++. */
     if (PyType_Ready(&RpUnitsObjectType) < 0)
         return;

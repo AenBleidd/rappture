@@ -16,7 +16,7 @@ extern "C" {
 
     typedef struct RpLibrary RpLibrary;
 
-    // unit definition functions
+    // lib definition functions
     RpLibrary*  rpLibrary             (const char* path);
     void rpFreeLibrary                (RpLibrary* lib);
 
@@ -34,6 +34,7 @@ extern "C" {
                                      const char* path,
                                      RpLibrary* childEle,
                                      const char* type   );
+    /*
     RpLibrary* rpChildrenAsObject     (RpLibrary* lib,
                                      const char* path,
                                      const char* type   );
@@ -46,6 +47,7 @@ extern "C" {
     const char* rpChildrenAsId        (RpLibrary* lib,
                                      const char* path,
                                      const char* type   );
+     */
 
     RpLibrary*  rpGet                 (RpLibrary* lib, const char* path);
     const char* rpGetString           (RpLibrary* lib, const char* path);

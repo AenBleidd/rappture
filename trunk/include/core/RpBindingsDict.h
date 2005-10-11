@@ -42,6 +42,9 @@ int storeObject_UnitsStr(std::string objectName);
 RpLibrary* getObject_Lib(int objKey);
 RpUnits* getObject_UnitsStr(int objKey);
 
+void cleanLibDict();
+void cleanUnitsDict();
+
 #ifdef __cplusplus
 }
 #endif
