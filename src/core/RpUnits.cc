@@ -670,15 +670,16 @@ RpUnits::convert (  std::string val,
                     int showUnits,
                     int* result ) {
 
-    int valLen = 0;
     RpUnits* toUnits = NULL;
     RpUnits* fromUnits = NULL;
     std::string tmpNumVal = "";
     std::string fromUnitsName = "";
     std::string convVal = "";
     double numVal = 0;
-    int idx = 0;
+    // int idx = 0;
     int convResult = 0;
+    char* endptr = NULL;
+    std::stringstream outVal;
 
 
     // set  default result flag/error code
@@ -697,69 +698,42 @@ RpUnits::convert (  std::string val,
         return val;
     }
 
-    valLen = val.length();
-
     // search our string to see where the numeric part stops
     // and the units part starts
     //
-    // switched from the code that starts at the beginning of the string
-    // and check to see where the numeric part stops 
-    // to the uncommented code section below that starts at the end of the
-    // string checks to see where the alpha part starts. This approach
-    // seems to work better so we can parse and convert strings as follows:
     //  convert("5J", "neV") => 3.12075e+28neV
     //  convert("3.12075e+28neV", "J") => 4.99999J
     // now we can actually get the scientific notation portion of the string.
     //
-    // make sure not to stop searching if we encounter '.', '-', '+'
-    /*
-    for (idx=0; idx < valLen; idx++) {
-        if ( !((val[idx] >= '0') && (val[idx] <= '9')) ) {
-            if ( (val[idx] != '.')&&(val[idx] != '-')&&(val[idx] != '+') ) {
-                break;
-            }
-        }
-    }
-    */
 
-    // consider using stdtod because it does error checking
-    // supposedly according to man page?
-    for (idx=valLen-1; idx >= 0; idx--) {
-        if ( !(     ((val[idx] >= 'A') && (val[idx] <= 'Z'))
-                ||  ((val[idx] >= 'a') && (val[idx] <= 'z'))    ) ) {
+    numVal = strtod(val.c_str(),&endptr);
 
-            if ( (val[idx] != '.')&&(val[idx] != '-')&&(val[idx] != '+') ) {
-                break;
-            }
-        }
-    }
-
-    idx++;
-
-    if ( (idx < valLen) && (idx > 0) ) {
-        tmpNumVal = val.substr(0,idx);
-        if (!tmpNumVal.empty()) {
-            numVal = atof(tmpNumVal.c_str());
-        }
-        else {
-            // tmpNumVal was empty string?
-            // set error code here and return error
-
-            if (result) {
-                *result = 1;
-            }
-            // not a big fan of multiple returns, but...
-            return val;
-        }
-        fromUnitsName = val.substr(idx, valLen-idx);
-    }
-    else {
-        // return error, no units or no number in the val string?
+    if ( (numVal == 0) && (endptr == val.c_str()) ) {
+        // no conversion was done.
+        // number in incorrect format probably.
         if (result) {
             *result = 1;
         }
-        // not a big fan of multiple returns, but...
         return val;
+    }
+
+    fromUnitsName = std::string(endptr);
+    if ( fromUnitsName.empty() )  {
+        // there were no units in the input string
+        // assume fromUnitsName = toUnitsName
+        // return the correct value
+        if (result) {
+            *result = 0;
+        }
+
+        if (showUnits) {
+            outVal << val << toUnitsName;
+        }
+        else {
+            outVal << val;
+        }
+
+        return outVal.str();
     }
 
     fromUnits = find(fromUnitsName);
@@ -777,7 +751,7 @@ RpUnits::convert (  std::string val,
 
     if ( (result) && (*result == 0) ) {
         *result = convResult;
-    }
+   }
 
     return convVal;
 
