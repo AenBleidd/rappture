@@ -86,7 +86,7 @@ RP_OBJS_DEP     = RpVariable.o RpAbout.o RpNumber.o RpString.o RpBoolean.o \
 
 librappture: $(RP_IO_DEPS) $(RP_UNITS_DEPS) $(RP_OTHER_DEPS)
 	$(CXX) $(DEGUG) -shared -Wl,-rpath,$(LIB_DIR)/ \
-		-Wl,-soname,$@.so -o $(LIB_DIR)/$@.so.0.0 $^ $(LIB_SCEW_FLAG)
+		-Wl,-soname,$@.so -o $(LIB_DIR)/$@.so.0.0 $^ $(LIB_SCEW_FLAG) -lm
 
 	/sbin/ldconfig -n $(LIB_DIR)
 

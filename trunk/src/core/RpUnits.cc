@@ -443,6 +443,21 @@ RpUnits * RpUnits::define(  RpUnits* from,
 
 RpUnits * RpUnits::define(  RpUnits* from,
                             RpUnits* to,
+                            double (*convForwFxnPtr)(double,double),
+                            double (*convBackFxnPtr)(double,double))
+{
+    RpUnits* conv = new RpUnits(    from,
+                                    to,
+                                    convForwFxnPtr,
+                                    convBackFxnPtr,
+                                    NULL,
+                                    NULL);
+
+    return conv;
+}
+
+RpUnits * RpUnits::define(  RpUnits* from,
+                            RpUnits* to,
                             void* (*convForwFxnPtr)(void*, void*),
                             void* convForwData,
                             void* (*convBackFxnPtr)(void*, void*),
@@ -600,6 +615,7 @@ RpUnits& RpUnits::makeBasis(double* value, int* result)
  *  should only be used if this unit is of metric type
  *
  * **********************************************************************/
+/*
 int RpUnits::makeMetric(RpUnits * basis) {
 
     if (!basis) {
@@ -660,6 +676,87 @@ int RpUnits::makeMetric(RpUnits * basis) {
 
     return (1);
 }
+*/
+
+int RpUnits::makeMetric(RpUnits * basis) {
+
+    if (!basis) {
+        return 0;
+    }
+
+    std::string basisName = basis->getUnitsName();
+    std::string name;
+    std::string forw, back;
+
+    name = "c" + basisName;
+    RpUnits * centi = RpUnits::define(name, basis);
+    RpUnits::define(centi, basis, centi2base, base2centi);
+
+    name = "m" + basisName;
+    RpUnits * milli = RpUnits::define(name, basis);
+    RpUnits::define(milli, basis, milli2base, base2milli);
+
+    name = "u" + basisName;
+    RpUnits * micro = RpUnits::define(name, basis);
+    RpUnits::define(micro, basis, micro2base, base2micro);
+
+    name = "n" + basisName;
+    RpUnits * nano  = RpUnits::define(name, basis);
+    RpUnits::define(nano, basis, nano2base, base2nano);
+
+    name = "p" + basisName;
+    RpUnits * pico  = RpUnits::define(name, basis);
+    RpUnits::define(pico, basis, pico2base, base2pico);
+
+    name = "f" + basisName;
+    RpUnits * femto = RpUnits::define(name, basis);
+    RpUnits::define(femto, basis, femto2base, base2femto);
+
+    name = "a" + basisName;
+    RpUnits * atto  = RpUnits::define(name, basis);
+    RpUnits::define(atto, basis, atto2base, base2atto);
+
+    name = "k" + basisName;
+    RpUnits * kilo  = RpUnits::define(name, basis);
+    RpUnits::define(kilo, basis, kilo2base, base2kilo);
+
+    name = "M" + basisName;
+    RpUnits * mega  = RpUnits::define(name, basis);
+    RpUnits::define(mega, basis, mega2base, base2mega);
+
+    name = "G" + basisName;
+    RpUnits * giga  = RpUnits::define(name, basis);
+    RpUnits::define(giga, basis, giga2base, base2giga);
+
+    name = "T" + basisName;
+    RpUnits * tera  = RpUnits::define(name, basis);
+    RpUnits::define(tera, basis, tera2base, base2tera);
+
+    name = "P" + basisName;
+    RpUnits * peta  = RpUnits::define(name, basis);
+    RpUnits::define(peta, basis, peta2base, base2peta);
+
+    return (1);
+}
+
+
+RpUnits*
+RpUnits::find(std::string key)
+{
+    // dict.find seems to return a (RpUnits* const) so i had to
+    // cast it as a (RpUnits*)
+
+    // dict pointer
+    RpUnits* unitEntry = (RpUnits*) *(dict->find(key).getValue());
+
+    // dict pointer
+    if (unitEntry == (RpUnits*)dict->getNullEntry().getValue()) {
+        unitEntry = NULL;
+    }
+
+    return unitEntry;
+}
+
 
 // convert function so people can just send in two strings and
 // we'll see if the units exists and do a conversion
@@ -767,7 +864,7 @@ std::string RpUnits::convert (   RpUnits* toUnits,
 
 
     if (showUnits) {
-        unitText << retVal << toUnits->getUnits();
+        unitText << retVal << toUnits->getUnitsName();
     }
     else {
         unitText << retVal;
@@ -803,7 +900,7 @@ double RpUnits::convert(RpUnits* toUnit, double val, int* result)
 
     // guard against converting to the units you are converting from...
     // ie. meters->meters
-    if (this->getUnits() == toUnit->getUnits()) {
+    if (this->getUnitsName() == toUnit->getUnitsName()) {
         if (result) {
             *result = 0;
         }
@@ -815,7 +912,7 @@ double RpUnits::convert(RpUnits* toUnit, double val, int* result)
     // trying to avoid the recursive way of converting to the basis.
     // need to rethink this.
     // 
-    if ( (basis) && (basis->getUnits() != toUnit->getUnits()) ) {
+    if ( (basis) && (basis->getUnitsName() != toUnit->getUnitsName()) ) {
         value = convert(basis,value,&my_result);
         if (my_result == 0) {
             fromUnit = basis;
@@ -826,11 +923,11 @@ double RpUnits::convert(RpUnits* toUnit, double val, int* result)
     // if the toUnits has a basis, we need to search for the basis
     // and convert between basis' and then convert again back to the 
     // original unit.
-    if ( (toBasis) && (toBasis->getUnits() != fromUnit->getUnits()) ) {
-        dictToUnit = find(toBasis->getUnits());
+    if ( (toBasis) && (toBasis->getUnitsName() != fromUnit->getUnitsName()) ) {
+        dictToUnit = find(toBasis->getUnitsName());
     }
     else {
-        dictToUnit = find(toUnit->getUnits());
+        dictToUnit = find(toUnit->getUnitsName());
     }
 
     // did we find the unit in the dictionary?
@@ -861,14 +958,29 @@ double RpUnits::convert(RpUnits* toUnit, double val, int* result)
             // we found our conversion
             // call the function pointer with value
 
-            value = p->conv->convForwFxnPtr(value);
+            // this should probably be re thought out
+            // the problem is that convForwFxnPtr has the conversion for a
+            // one arg conv function pointer and convForwFxnPtrDD has the
+            // conversion for a two arg conv function pointer
+            // need to make this simpler, more logical maybe only allow 2 arg
+            if (       (p->conv->convForwFxnPtr) 
+                    && (! p->conv->convForwFxnPtrDD) ) {
+
+                value = p->conv->convForwFxnPtr(value);
+            }
+            else if (  (p->conv->convForwFxnPtrDD) 
+                    && (! p->conv->convForwFxnPtr) ) {
+
+                value = 
+                    p->conv->convForwFxnPtrDD(value, fromUnit->getExponent());
+            }
 
             // check to see if we converted to the actual requested unit
             // or to the requested unit's basis.
             // if we converted to the requested unit's basis. we need to
             // do one last conversion from the requested unit's basis back 
             // to the requested unit.
-            if ( (toBasis) && (toBasis->getUnits() != fromUnit->getUnits()) ) {
+            if ( (toBasis) && (toBasis->getUnitsName() != fromUnit->getUnitsName()) ) {
                 my_result = 0;
                 value = toBasis->convert(toUnit,value,&my_result);
                 if (my_result != 0) {
@@ -889,14 +1001,29 @@ double RpUnits::convert(RpUnits* toUnit, double val, int* result)
             // we found our conversion
             // call the function pointer with value
 
-            value = p->conv->convBackFxnPtr(value);
+            // this should probably be re thought out
+            // the problem is that convForwFxnPtr has the conversion for a
+            // one arg conv function pointer and convForwFxnPtrDD has the
+            // conversion for a two arg conv function pointer
+            // need to make this simpler, more logical maybe only allow 2 arg
+            if (       (p->conv->convBackFxnPtr) 
+                    && (! p->conv->convBackFxnPtrDD) ) {
+
+                value = p->conv->convBackFxnPtr(value);
+            }
+            else if (  (p->conv->convBackFxnPtrDD) 
+                    && (! p->conv->convBackFxnPtr) ) {
+
+                value = 
+                    p->conv->convBackFxnPtrDD(value, fromUnit->getExponent());
+            }
 
             // check to see if we converted to the actual requested unit
             // or to the requested unit's basis.
             // if we converted to the requested unit's basis. we need to
             // do one last conversion from the requested unit's basis back 
             // to the requested unit.
-            if ( (toBasis) && (toBasis->getUnits() != fromUnit->getUnits()) ) {
+            if ( (toBasis) && (toBasis->getUnitsName() != fromUnit->getUnitsName()) ) {
                 my_result = 0;
                 value = toBasis->convert(toUnit,value,&my_result);
                 if (my_result != 0) {
@@ -954,7 +1081,7 @@ void* RpUnits::convert(RpUnits* toUnit, void* val, int* result)
 
     // guard against converting to the units you are converting from...
     // ie. meters->meters
-    if (this->getUnits() == toUnit->getUnits()) {
+    if (this->getUnitsName() == toUnit->getUnitsName()) {
         if (result) {
             *result = 0;
         }
@@ -966,7 +1093,7 @@ void* RpUnits::convert(RpUnits* toUnit, void* val, int* result)
     // trying to avoid the recursive way of converting to the basis.
     // need to rethink this.
     //
-    if ( (basis) && (basis->getUnits() != toUnit->getUnits()) ) {
+    if ( (basis) && (basis->getUnitsName() != toUnit->getUnitsName()) ) {
         value = convert(basis,value,&my_result);
         if (my_result == 0) {
             fromUnit = basis;
@@ -977,11 +1104,11 @@ void* RpUnits::convert(RpUnits* toUnit, void* val, int* result)
     // if the toUnits has a basis, we need to search for the basis
     // and convert between basis' and then convert again back to the 
     // original unit.
-    if ( (toBasis) && (toBasis->getUnits() != fromUnit->getUnits()) ) {
-        dictToUnit = find(toBasis->getUnits());
+    if ( (toBasis) && (toBasis->getUnitsName() != fromUnit->getUnitsName()) ) {
+        dictToUnit = find(toBasis->getUnitsName());
     }
     else {
-        dictToUnit = find(toUnit->getUnits());
+        dictToUnit = find(toUnit->getUnitsName());
     }
 
     // did we find the unit in the dictionary?
@@ -1019,7 +1146,7 @@ void* RpUnits::convert(RpUnits* toUnit, void* val, int* result)
             // if we converted to the requested unit's basis. we need to
             // do one last conversion from the requested unit's basis back 
             // to the requested unit.
-            if ( (toBasis) && (toBasis->getUnits() != fromUnit->getUnits()) ) {
+            if ( (toBasis) && (toBasis->getUnitsName() != fromUnit->getUnitsName()) ) {
                 my_result = 0;
                 value = toBasis->convert(toUnit,value,&my_result);
                 if (my_result != 0) {
@@ -1047,7 +1174,7 @@ void* RpUnits::convert(RpUnits* toUnit, void* val, int* result)
             // if we converted to the requested unit's basis. we need to
             // do one last conversion from the requested unit's basis back 
             // to the requested unit.
-            if ( (toBasis) && (toBasis->getUnits() != fromUnit->getUnits()) ) {
+            if ( (toBasis) && (toBasis->getUnitsName() != fromUnit->getUnitsName()) ) {
                 my_result = 0;
                 value = toBasis->convert(toUnit,value,&my_result);
                 if (my_result != 0) {
@@ -1278,6 +1405,7 @@ RpUnits::addPresetAll () {
     result += addPresetTemp();
     result += addPresetLength();
     result += addPresetEnergy();
+    result += addPresetVolume();
 
     return 0;
 }
@@ -1348,6 +1476,24 @@ RpUnits::addPresetEnergy () {
 
     // add energy definitions
     RpUnits::define(eVolt,joule,electronVolt2joule,joule2electronVolt);
+
+    return 0;
+}
+
+// return codes: 0 success, anything else is error
+int
+RpUnits::addPresetVolume () {
+
+    RpUnits* cubic_meter  = RpUnits::define("m3", NULL);
+    RpUnits* cubic_feet   = RpUnits::define("ft3", NULL);
+    RpUnits* us_gallon    = RpUnits::define("gal", NULL);
+
+    RpUnits::makeMetric(cubic_meter);
+
+    // add energy definitions
+    RpUnits::define(cubic_meter,cubic_feet,meter2feet,feet2meter);
+    RpUnits::define(cubic_meter,us_gallon,cubicMeter2usGallon,usGallon2cubicMeter);
+    RpUnits::define(cubic_feet,us_gallon,cubicFeet2usGallon,usGallon2cubicFeet);
 
     return 0;
 }
