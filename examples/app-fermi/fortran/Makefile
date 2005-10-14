@@ -18,5 +18,8 @@ all: $(PROGS)
 fermi: fermi.f
 	$(F77) -g -Wall $(LIB_RAPPTURE) -o $@ $<
 
+mac: fermi.f
+	$(F77) -g -L$(LIB_DIR) -lrappture -lscew -o fermi $<
+
 clean: 
 	rm -f *.o $(PROGS) run*.xml
