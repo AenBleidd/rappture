@@ -80,30 +80,42 @@ RP_OTHER_DEPS   = RpFortranCommon.o RpBindingsDict.o
 RP_OBJS_DEP     = RpVariable.o RpAbout.o RpNumber.o RpString.o RpBoolean.o \
                   RpChoice.o RpOption.o RpUnitsStd.o RpUnits.o
 
+LDLIB_MACOSX = -dynamiclib -o $(LIB_DIR)/$@.dylib
+LDLIB_LINUX = -shared -Wl,-rpath,$(LIB_DIR)/ -Wl,-soname,$@.so -o $(LIB_DIR)/$@.so.0.0
 # include rappture library definitions
 
 #### librappture shared object ###########################################
 
 librappture: $(RP_IO_DEPS) $(RP_UNITS_DEPS) $(RP_OTHER_DEPS)
-	$(CXX) $(DEGUG) -shared -Wl,-rpath,$(LIB_DIR)/ \
-		-Wl,-soname,$@.so -o $(LIB_DIR)/$@.so.0.0 $^ $(LIB_SCEW_FLAG) -lm
-
-	/sbin/ldconfig -n $(LIB_DIR)
+	if test "`uname`" == "Darwin"; then \
+		$(CXX) $(DEGUG) $(LDLIB_MACOSX) $^ $(LIB_SCEW_FLAG) -lm; \
+	else \
+		$(CXX) $(DEGUG) $(LDLIB_LINUX) $^ $(LIB_SCEW_FLAG) -lm; \
+		/sbin/ldconfig -n $(LIB_DIR); \
+	fi
 
 install_rappture: librappture
-	cp -d $<.so* $(RP_INSTALL_BASE)/lib
+	if test "`uname`" == "Darwin"; then \
+		cp $<.dylib $(RP_INSTALL_BASE)/lib; \
+	else \
+		cp -d $<.so* $(RP_INSTALL_BASE)/lib; \
+	fi
 
 #### libRpObjects ########################################################
 libRpObjects: $(RP_OBJS_DEP)
-	$(CC) $(DEGUG) -shared -Wl,-rpath,$(LIB_DIR)/ \
-		-Wl,-soname,$@.so -o $(LIB_DIR)/$@.so.0.0 $^ -lstdc++
-#	$(CXX) $(DEGUG) -shared -Wl,-rpath,$(LIB_DIR)/ \
-#		-Wl,-soname,$@.so -o $(LIB_DIR)/$@.so.0.0 $^
-	
-	/sbin/ldconfig -n $(LIB_DIR)
+	if test "`uname`" == "Darwin"; then \
+		$(CXX) $(DEGUG) $(LDLIB_MACOSX) $^ -lstdc++; \
+	else \
+		$(CXX) $(DEGUG) $(LDLIB_LINUX) $^ -lstdc++; \
+		/sbin/ldconfig -n $(LIB_DIR); \
+	fi
 
 install_rpobjs: libRpObjects
-	cp -d $<.so* $(RP_INSTALL_BASE)/lib
+	if test "`uname`" == "Darwin"; then \
+		cp $<.dylib $(RP_INSTALL_BASE)/lib; \
+	else \
+		cp -d $<.so* $(RP_INSTALL_BASE)/lib; \
+	fi
 
 #### Python ########################################################
 Rappture.Units: RpUnits.o RpUnitsStd.o
