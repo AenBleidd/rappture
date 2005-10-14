@@ -21,7 +21,7 @@
 class RpNumber : public RpVariable
 {
     public:
-        
+
         // users member fxns
 
         /*
@@ -50,15 +50,15 @@ class RpNumber : public RpVariable
                         int storeResult, 
                         int* result = NULL  );
         double convert(std::string toUnitStr, int* result = NULL);
-        double convert(RpUnits* toUnit, int* result = NULL);
-        
+        double convert(const RpUnits* toUnit, int* result = NULL);
+
         // place the information from this object into the xml library 'lib'
         // virtual RpNumber& put(RpLibrary lib);
         // RpNumber& put() const;
 
-        
 
-        /* 
+
+        /*
          * user provides a 'path' for where this object lives in xml file
          * user calls define with standard hints as described in Number docs
          *  'units' - string providing units of the number
@@ -77,9 +77,9 @@ class RpNumber : public RpVariable
          *          then max will be set to default.
          *
          *
-         *          
+         *
          */
-        
+
         /* what about unit-less numbers */
         RpNumber (
                     std::string path, 
@@ -134,7 +134,7 @@ class RpNumber : public RpVariable
             }
 
         }
-        
+
         // copy constructor
         RpNumber ( const RpNumber& myRpNumber )
             :   RpVariable(myRpNumber),
@@ -154,7 +154,7 @@ class RpNumber : public RpVariable
     private:
 
         // std::string units;
-        RpUnits* units;
+        const RpUnits* units;
         double min;
         double max;
 

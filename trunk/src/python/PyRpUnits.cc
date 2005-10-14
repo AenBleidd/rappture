@@ -5,7 +5,7 @@ static PyObject *ErrorObject;
 
 typedef struct {
     PyObject_HEAD
-    RpUnits* rp_unit;
+    const RpUnits* rp_unit;
 } RpUnitsObject;
 
 static void
@@ -130,7 +130,7 @@ static PyTypeObject RpUnitsObjectType = {
     0,                                    /*tp_setattro*/
     0,                                    /*tp_as_buffer*/
     Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,   /*tp_flags*/
-    "RpUnits Object",                     /*tp_doc*/
+    "Rappture.Units Object",              /*tp_doc*/
     0,                                    /*tp_traverse*/
     0,                                    /*tp_clear*/
     0,                                    /*tp_richcompare*/
@@ -290,7 +290,7 @@ RpUnits_defineConv(PyObject *self, PyObject *args)
     PyObject* backConvFxnStr = NULL;
 
     RpUnitsObject* newRpUnit = NULL;
-    RpUnits* newConv = NULL;
+    const RpUnits* newConv = NULL;
 
     if (PyTuple_Size(args) > 0) {
         PyArg_ParseTuple(args, "O!O!O!O!",&RpUnitsObjectType, &fromUnit,
@@ -359,7 +359,7 @@ static PyObject *
 RpUnits_find(PyObject *self, PyObject *args)
 {
     char* searchUnits = NULL;
-    RpUnits* foundUnits = NULL;
+    const RpUnits* foundUnits = NULL;
     RpUnitsObject* returnUnits = NULL;
 
     if (PyTuple_Size(args) > 0) {

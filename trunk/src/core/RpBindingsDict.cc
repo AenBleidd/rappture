@@ -88,7 +88,7 @@ storeObject_UnitsStr(std::string objectName) {
     return retVal;
 }
 
-RpUnits*
+const RpUnits*
 getObject_UnitsStr(int objKey) {
 
     std::string basisName = *(ObjDictUnits.find(objKey).getValue());

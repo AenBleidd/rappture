@@ -21,8 +21,8 @@ rp_define_unit( char* unitName,
                     int unitName_len    ) {
 
     int result = -1;
-    RpUnits* newUnit = NULL;
-    RpUnits* basis = NULL;
+    const RpUnits* newUnit = NULL;
+    const RpUnits* basis = NULL;
     std::string basisStrName = "";
     std::string newUnitName = "";
     char* inText = NULL;
@@ -63,7 +63,7 @@ rp_find(char* searchName, int searchName_len)
     inText = null_terminate(searchName,searchName_len);
 
     // RpUnits* searchUnit = RpUnits::find(searchName);
-    RpUnits* searchUnit = RpUnits::find(inText);
+    const RpUnits* searchUnit = RpUnits::find(inText);
 
     if (searchUnit) {
         result = storeObject_UnitsStr(searchUnit->getUnitsName());
@@ -80,7 +80,7 @@ int
 rp_make_metric(int* basis)
 {
     int result = -1;
-    RpUnits* newBasis = NULL;
+    const RpUnits* newBasis = NULL;
 
     if (basis && *basis) {
         newBasis = getObject_UnitsStr(*basis);
@@ -96,7 +96,7 @@ rp_make_metric(int* basis)
 int
 rp_get_units(int* unitRefVal, char* retText, int retText_len)
 {
-    RpUnits* unitObj = NULL;
+    const RpUnits* unitObj = NULL;
     std::string unitNameText = "";
     int result = 0;
 
@@ -114,7 +114,7 @@ rp_get_units(int* unitRefVal, char* retText, int retText_len)
 int
 rp_get_units_name(int* unitRefVal, char* retText, int retText_len)
 {
-    RpUnits* unitObj = NULL;
+    const RpUnits* unitObj = NULL;
     std::string unitNameText = "";
     int result = 0;
 
@@ -132,7 +132,7 @@ rp_get_units_name(int* unitRefVal, char* retText, int retText_len)
 int
 rp_get_exponent(int* unitRefVal, double* retExponent)
 {
-    RpUnits* unitObj = NULL;
+    const RpUnits* unitObj = NULL;
     int result = 0;
 
     if (unitRefVal && *unitRefVal) {
@@ -148,8 +148,8 @@ rp_get_exponent(int* unitRefVal, double* retExponent)
 int
 rp_get_basis(int* unitRefVal)
 {
-    RpUnits* unitObj = NULL;
-    RpUnits* basisObj = NULL;
+    const RpUnits* unitObj = NULL;
+    const RpUnits* basisObj = NULL;
     int result = -1;
 
     if (unitRefVal && *unitRefVal) {
@@ -169,10 +169,10 @@ rp_get_basis(int* unitRefVal)
 
 int
 rp_units_convert_dbl (  char* fromVal,
-                            char* toUnitsName,
-                            double* convResult,
-                            int fromVal_len,
-                            int toUnitsName_len ) {
+                        char* toUnitsName,
+                        double* convResult,
+                        int fromVal_len,
+                        int toUnitsName_len ) {
 
     char* inFromVal = NULL;
     char* inToUnitsName = NULL;
@@ -209,11 +209,11 @@ rp_units_convert_dbl (  char* fromVal,
 
 int
 rp_units_convert_str (      char* fromVal,
-                                char* toUnitsName,
-                                char* retText,
-                                int fromVal_len,
-                                int toUnitsName_len,
-                                int retText_len     ) {
+                            char* toUnitsName,
+                            char* retText,
+                            int fromVal_len,
+                            int toUnitsName_len,
+                            int retText_len     ) {
 
     char* inFromVal = NULL;
     char* inToUnitsName = NULL;

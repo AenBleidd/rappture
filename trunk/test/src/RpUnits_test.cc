@@ -32,7 +32,7 @@ int main()
     // of units
     //
     printf ("=============== TEST 1 ===============\n");
-    RpUnits * meters = RpUnits::define("m", NULL);
+    const RpUnits * meters = RpUnits::define("m", NULL);
     // (meters) ? success() : fail();
     // RpUnits * centimeter = RpUnits::define("cm", NULL);
 
@@ -53,10 +53,10 @@ int main()
 
 */
     
-    RpUnits* mobility = RpUnits::define("cm2/Vs", NULL);
+    const RpUnits* mobility = RpUnits::defineCmplx("cm2/Vs", NULL);
     std::cout << "mobility = :" << mobility->getUnitsName() <<":"<< std::endl;
 
-    RpUnits* mobility2 = RpUnits::find("cm2V-1s-1");
+    const RpUnits* mobility2 = RpUnits::find("cm2V-1s-1");
     if (mobility2) { 
         std::cout << "mobility2 exists" << std::endl;
         std::cout << "mobility2 = :" << mobility2->getUnits() <<":"<< std::endl;
@@ -66,8 +66,8 @@ int main()
         std::cout << "mobility2 dn exists" << std::endl;
     }
 
-    RpUnits* cmeters = RpUnits::find("cm");
-    RpUnits* angstrom = RpUnits::define("A", NULL);
+    const RpUnits* cmeters = RpUnits::find("cm");
+    const RpUnits* angstrom = RpUnits::define("A", NULL);
     RpUnits::define(angstrom, meters, angstrom2meter, meter2angstrom);
 
     value = angstrom->convert(meters,1.0,&result);
@@ -78,9 +78,9 @@ int main()
     std::cout << "1.0e-8 centimeter = " << value << " angstroms" << std::endl;
 
 
-    RpUnits* fahrenheit  = RpUnits::define("F", NULL);
-    RpUnits* celcius  = RpUnits::define("C", NULL);
-    RpUnits* kelvin  = RpUnits::define("K", NULL);
+    const RpUnits* fahrenheit  = RpUnits::define("F", NULL);
+    const RpUnits* celcius  = RpUnits::define("C", NULL);
+    const RpUnits* kelvin  = RpUnits::define("K", NULL);
     
     RpUnits::define(fahrenheit, celcius, fahrenheit2centigrade, centigrade2fahrenheit);
     RpUnits::define(celcius, kelvin, centigrade2kelvin, kelvin2centigrade);
@@ -154,17 +154,17 @@ int main()
 
     printf ("=============== TEST 4.4 ===============\n");
 
-    RpUnits * millimeter = RpUnits::find("mm");
-    RpUnits * micrometer = RpUnits::find("um");
-    RpUnits * nanometer  = RpUnits::find("nm");
-    RpUnits * picometer  = RpUnits::find("pm");
-    RpUnits * femtometer = RpUnits::find("fm");
-    RpUnits * attometer  = RpUnits::find("am");
-    RpUnits * kilometer  = RpUnits::find("km");
-    RpUnits * megameter  = RpUnits::find("Mm");
-    RpUnits * gigameter  = RpUnits::find("Gm");
-    RpUnits * terameter  = RpUnits::find("Tm");
-    RpUnits * petameter  = RpUnits::find("Pm");
+    const RpUnits * millimeter = RpUnits::find("mm");
+    const RpUnits * micrometer = RpUnits::find("um");
+    const RpUnits * nanometer  = RpUnits::find("nm");
+    const RpUnits * picometer  = RpUnits::find("pm");
+    const RpUnits * femtometer = RpUnits::find("fm");
+    const RpUnits * attometer  = RpUnits::find("am");
+    const RpUnits * kilometer  = RpUnits::find("km");
+    const RpUnits * megameter  = RpUnits::find("Mm");
+    const RpUnits * gigameter  = RpUnits::find("Gm");
+    const RpUnits * terameter  = RpUnits::find("Tm");
+    const RpUnits * petameter  = RpUnits::find("Pm");
 
     value = 1.0e+3;
     millimeter->makeBasis(&value);
@@ -255,8 +255,8 @@ int main()
 
 
 
-    RpUnits* eV  = RpUnits::define("eV", NULL);
-    RpUnits* joules  = RpUnits::define("J", NULL);
+    const RpUnits* eV  = RpUnits::define("eV", NULL);
+    const RpUnits* joules  = RpUnits::define("J", NULL);
     
     RpUnits::define(eV, joules, electronVolt2joule, joule2electronVolt);
     

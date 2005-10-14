@@ -1,16 +1,17 @@
 #include "RpLibraryCInterface.h"
 
-//#include <stdlib.h>
+#include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <math.h>
 
 int main(int argc, char * argv[])
 {
 
     RpLibrary* lib = NULL;
 
-    char* filePath;
-    char* xmltext = NULL;
+    const char* filePath;
+    const char* xmltext = NULL;
     double fmin, fmax;
     char strFormula[100];
     int i;
@@ -41,7 +42,7 @@ int main(int argc, char * argv[])
     else {
         // cannot open file or out of memory
         printf("FAILED creating Rappture Library\n");
-        exit(1);
+        return(1);
     }
 
     // get the xml that is stored in the rappture library lib
@@ -53,7 +54,7 @@ int main(int argc, char * argv[])
     }
     else {
         printf("xml(lib) failed\n");
-        exit(1);
+        return(1);
     }
 
     // get the min
@@ -61,7 +62,7 @@ int main(int argc, char * argv[])
 
     if (! (xmltext) ) {
         printf("getString(lib,input.number(xmin).current) returns null\n");
-        exit(1);
+        return(1);
     }
 
     // if you want to keep the string around, you will need to malloc

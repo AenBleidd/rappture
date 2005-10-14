@@ -16,26 +16,27 @@ extern "C" {
     typedef struct RpUnits RpUnits;
 
     // unit definition functions
-    RpUnits* rpDefineUnit        ( const char* unitSymbol, RpUnits* basis );
+    const RpUnits* rpDefineUnit  ( const char* unitSymbol,
+                                   const RpUnits* basis );
 
     // conversion definition functions
-    RpUnits* rpDefineConv        ( RpUnits* fromUnit,
-                                   RpUnits* toUnit,
+    const RpUnits* rpDefineConv  ( const RpUnits* fromUnit,
+                                   const RpUnits* toUnit,
                                    double (*convForwFxnPtr)(double),
                                    double (*convBackFxnPtr)(double)    );
 
     // unit attribute access functions
-    const char* rpGetUnits       ( RpUnits* unit );
+    const char* rpGetUnits       ( const RpUnits* unit );
 
-    const char* rpGetUnitsName   ( RpUnits* unit );
+    const char* rpGetUnitsName   ( const RpUnits* unit );
 
-    double rpGetExponent         ( RpUnits* unit );
+    double rpGetExponent         ( const RpUnits* unit );
 
-    RpUnits* rpGetBasis          ( RpUnits* unit);
+    const RpUnits* rpGetBasis    ( const RpUnits* unit);
 
-    RpUnits* rpFind              ( const char* unitSymbol);
+    const RpUnits* rpFind        ( const char* unitSymbol);
 
-    int rpMakeMetric             ( RpUnits* basis );
+    int rpMakeMetric             ( const RpUnits* basis );
 
     // convert functions
 
@@ -49,8 +50,8 @@ extern "C" {
                                    int showUnits,
                                    int* result );
 
-    const char* rpConvert_ObjStr ( RpUnits* fromUnits,
-                                   RpUnits* toUnits,
+    const char* rpConvert_ObjStr ( const RpUnits* fromUnits,
+                                   const RpUnits* toUnits,
                                    double val,
                                    int showUnits,
                                    int* result );
@@ -59,8 +60,8 @@ extern "C" {
                                    const char* toUnitsName,
                                    int* result );
 
-    double rpConvert_ObjDbl      ( RpUnits* fromUnits,
-                                   RpUnits* toUnits,
+    double rpConvert_ObjDbl      ( const RpUnits* fromUnits,
+                                   const RpUnits* toUnits,
                                    double val,
                                    int* result );
 

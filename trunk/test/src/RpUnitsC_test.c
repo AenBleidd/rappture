@@ -50,16 +50,16 @@ double kelvin2centigrade (double K)
 int main()
 {
 
-    RpUnits* meters = rpDefineUnit("m",NULL);
+    const RpUnits* meters = rpDefineUnit("m",NULL);
 
-    RpUnits* centimeters = NULL;
-    RpUnits* nanometers = NULL;
-    RpUnits* cm_basis = NULL;
+    const RpUnits* centimeters = NULL;
+    const RpUnits* nanometers = NULL;
+    const RpUnits* cm_basis = NULL;
 
-    RpUnits* angstrom = rpDefineUnit("A",NULL);
-    RpUnits* fahrenheit = rpDefineUnit("F",NULL);
-    RpUnits* celcius = rpDefineUnit("C",NULL);
-    RpUnits* kelvin = rpDefineUnit("K",NULL);
+    const RpUnits* angstrom = rpDefineUnit("A",NULL);
+    const RpUnits* fahrenheit = rpDefineUnit("F",NULL);
+    const RpUnits* celcius = rpDefineUnit("C",NULL);
+    const RpUnits* kelvin = rpDefineUnit("K",NULL);
 
     rpDefineConv(angstrom, meters, angstrom2meter, meter2angstrom);
     rpDefineConv(fahrenheit, celcius, fahrenheit2centigrade, centigrade2fahrenheit);

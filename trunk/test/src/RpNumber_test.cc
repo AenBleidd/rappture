@@ -83,16 +83,16 @@ int test_convert(RpNumber* myNumber)
 
 void define_some_units()
 {
-    RpUnits * meters = RpUnits::define("m", NULL);
+    const RpUnits * meters = RpUnits::define("m", NULL);
     RpUnits::makeMetric(meters);
     RpUnits::define("V", NULL);
     RpUnits::define("s", NULL);
     RpUnits::define("cm2/Vs", NULL);
-    RpUnits* angstrom = RpUnits::define("A", NULL);
+    const RpUnits* angstrom = RpUnits::define("A", NULL);
     RpUnits::define(angstrom, meters, angstrom2meter, meter2angstrom);
-    RpUnits* fahrenheit = RpUnits::define("F", NULL);
-    RpUnits* celcius = RpUnits::define("C", NULL);
-    RpUnits* kelvin = RpUnits::define("K", NULL);
+    const RpUnits* fahrenheit = RpUnits::define("F", NULL);
+    const RpUnits* celcius = RpUnits::define("C", NULL);
+    const RpUnits* kelvin = RpUnits::define("K", NULL);
     RpUnits::define(fahrenheit, celcius, fahrenheit2centigrade, centigrade2fahrenheit);
     RpUnits::define(celcius, kelvin, centigrade2kelvin, kelvin2centigrade);
 }

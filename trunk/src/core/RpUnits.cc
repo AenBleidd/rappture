@@ -22,8 +22,9 @@ RpDict<std::string,RpUnits*>* RpUnits::dict = new RpDict<std::string,RpUnits*>()
  *
  ************************************************************************/
 
-RpUnits * RpUnits::define(const std::string units, RpUnits * basis)
-{
+RpUnits * 
+RpUnits::define(const std::string units, const RpUnits* basis) {
+
     RpUnits * newRpUnit = NULL;
 
     if (units == "") {
@@ -186,8 +187,9 @@ RpUnits * RpUnits::define(const std::string units, RpUnits * basis)
  *
  ************************************************************************/
 
-RpUnits * RpUnits::defineCmplx ( const std::string units, RpUnits * basis )
-{
+RpUnits *
+RpUnits::defineCmplx ( const std::string units, const RpUnits* basis ) {
+
     RpUnits * newRpUnit = NULL;
 
     if (units == "") {
@@ -426,11 +428,12 @@ RpUnits * RpUnits::defineCmplx ( const std::string units, RpUnits * basis )
  * add relation rule
  *
  ************************************************************************/
-RpUnits * RpUnits::define(  RpUnits* from,
-                            RpUnits* to,
-                            double (*convForwFxnPtr)(double),
-                            double (*convBackFxnPtr)(double))
-{
+RpUnits *
+RpUnits::define(  const RpUnits* from,
+                  const RpUnits* to,
+                  double (*convForwFxnPtr)(double),
+                  double (*convBackFxnPtr)(double)) {
+
     RpUnits* conv = new RpUnits(    from,
                                     to,
                                     convForwFxnPtr,
@@ -441,11 +444,12 @@ RpUnits * RpUnits::define(  RpUnits* from,
     return conv;
 }
 
-RpUnits * RpUnits::define(  RpUnits* from,
-                            RpUnits* to,
-                            double (*convForwFxnPtr)(double,double),
-                            double (*convBackFxnPtr)(double,double))
-{
+RpUnits *
+RpUnits::define(  const RpUnits* from,
+                  const RpUnits* to,
+                  double (*convForwFxnPtr)(double,double),
+                  double (*convBackFxnPtr)(double,double)) {
+
     RpUnits* conv = new RpUnits(    from,
                                     to,
                                     convForwFxnPtr,
@@ -456,13 +460,14 @@ RpUnits * RpUnits::define(  RpUnits* from,
     return conv;
 }
 
-RpUnits * RpUnits::define(  RpUnits* from,
-                            RpUnits* to,
-                            void* (*convForwFxnPtr)(void*, void*),
-                            void* convForwData,
-                            void* (*convBackFxnPtr)(void*, void*),
-                            void* convBackData)
-{
+RpUnits *
+RpUnits::define(  const RpUnits* from,
+                  const RpUnits* to,
+                  void* (*convForwFxnPtr)(void*, void*),
+                  void* convForwData,
+                  void* (*convBackFxnPtr)(void*, void*),
+                  void* convBackData) {
+
     RpUnits* conv = new RpUnits(    from,
                                     to,
                                     convForwFxnPtr,
@@ -479,9 +484,18 @@ RpUnits * RpUnits::define(  RpUnits* from,
  *
  * report the units this object represents back to the user
  *
- * **********************************************************************/
-std::string RpUnits::getUnits()
-{
+ ************************************************************************/
+
+/**********************************************************************/
+// METHOD: getUnits()
+// /// Report the text portion of the units of this object back to caller.
+// /**
+//  * See Also getUnitsName().
+//  */
+//
+std::string
+RpUnits::getUnits() const {
+
     std::stringstream unitText;
     unit* p = head;
 
@@ -497,9 +511,20 @@ std::string RpUnits::getUnits()
  *
  * report the units this object represents back to the user
  *
- * **********************************************************************/
-std::string RpUnits::getUnitsName()
-{
+ ************************************************************************/
+
+/**********************************************************************/
+// METHOD: getUnitsName()
+// /// Report the full name of the units of this object back to caller.
+// /**
+//  * Reports the full text and exponent of the units represented by this
+//  * object, back to the caller. Note that if the exponent == 1, no
+//  * exponent will be printed.
+//  */
+//
+std::string
+RpUnits::getUnitsName() const {
+
     std::stringstream unitText;
     unit* p = head;
     double exponent;
@@ -526,8 +551,18 @@ std::string RpUnits::getUnitsName()
  * report the exponent of the units of this object back to the user
  *
  * **********************************************************************/
-double RpUnits::getExponent()
-{
+/**********************************************************************/
+// METHOD: getExponent()
+// /// Report the exponent of the units of this object back to caller.
+// /**
+//  * Reports the exponent of the units represented by this
+//  * object, back to the caller. Note that if the exponent == 1, no
+//  * exponent will be printed.
+//  */
+//
+double
+RpUnits::getExponent() const {
+
     return head->getExponent();
 }
 
@@ -536,9 +571,22 @@ double RpUnits::getExponent()
  *  report the basis of this object to the user
  *
  * **********************************************************************/
-RpUnits * RpUnits::getBasis()
-{
+/**********************************************************************/
+// METHOD: getBasis()
+// /// Retrieve the RpUnits object representing the basis of this object.
+// /**
+//  * Returns a pointer to a RpUnits object which, on success, points to the 
+//  * RpUnits object that is the basis of the calling object.
+//  */
+//
+const RpUnits *
+RpUnits::getBasis() const {
+
     // check if head exists?
+    if (!head) {
+        // raise error for badly formed Rappture Units object
+    }
+
     return head->getBasis();
 }
 
@@ -552,10 +600,10 @@ RpUnits * RpUnits::getBasis()
  *      1) the prefix found does not have a built in factor associated.
  *
  ************************************************************************/
-double RpUnits::makeBasis(double value, int* result)
-{
+double
+RpUnits::makeBasis(double value, int* result) const {
 
-    RpUnits* basis = getBasis();
+    const RpUnits* basis = getBasis();
     double retVal = value;
 
     if (result) {
@@ -566,9 +614,9 @@ double RpUnits::makeBasis(double value, int* result)
         // this unit is a basis
         // do nothing
 
-        if (result) {
-            *result = 1;
-        }
+        // if (result) {
+        //     *result = 1;
+        // }
     }
     else {
         retVal = convert(basis,value,result);
@@ -577,9 +625,9 @@ double RpUnits::makeBasis(double value, int* result)
     return retVal;
 }
 
-RpUnits& RpUnits::makeBasis(double* value, int* result)
-{
-    RpUnits* basis = getBasis();
+const RpUnits&
+RpUnits::makeBasis(double* value, int* result) const {
+    const RpUnits* basis = getBasis();
     double retVal = *value;
     int convResult = 0;
 
@@ -587,9 +635,9 @@ RpUnits& RpUnits::makeBasis(double* value, int* result)
         // this unit is a basis
         // do nothing
 
-        if (result) {
-            *result = 1;
-        }
+        // if (result) {
+        //     *result = 1;
+        // }
     }
     else {
         retVal = convert(basis,retVal,&convResult);
@@ -603,8 +651,6 @@ RpUnits& RpUnits::makeBasis(double* value, int* result)
         *result = convResult;
     }
 
-
-
     return *this;
 }
 
@@ -615,70 +661,9 @@ RpUnits& RpUnits::makeBasis(double* value, int* result)
  *  should only be used if this unit is of metric type
  *
  * **********************************************************************/
-/*
-int RpUnits::makeMetric(RpUnits * basis) {
 
-    if (!basis) {
-        return 0;
-    }
-
-    std::string basisName = basis->getUnits();
-    std::string name;
-    std::string forw, back;
-
-    name = "c" + basisName;
-    RpUnits * centi = RpUnits::define(name, basis);
-    RpUnits::define(centi, basis, centi2base, base2centi);
-
-    name = "m" + basisName;
-    RpUnits * milli = RpUnits::define(name, basis);
-    RpUnits::define(milli, basis, milli2base, base2milli);
-
-    name = "u" + basisName;
-    RpUnits * micro = RpUnits::define(name, basis);
-    RpUnits::define(micro, basis, micro2base, base2micro);
-
-    name = "n" + basisName;
-    RpUnits * nano  = RpUnits::define(name, basis);
-    RpUnits::define(nano, basis, nano2base, base2nano);
-
-    name = "p" + basisName;
-    RpUnits * pico  = RpUnits::define(name, basis);
-    RpUnits::define(pico, basis, pico2base, base2pico);
-
-    name = "f" + basisName;
-    RpUnits * femto = RpUnits::define(name, basis);
-    RpUnits::define(femto, basis, femto2base, base2femto);
-
-    name = "a" + basisName;
-    RpUnits * atto  = RpUnits::define(name, basis);
-    RpUnits::define(atto, basis, atto2base, base2atto);
-
-    name = "k" + basisName;
-    RpUnits * kilo  = RpUnits::define(name, basis);
-    RpUnits::define(kilo, basis, kilo2base, base2kilo);
-
-    name = "M" + basisName;
-    RpUnits * mega  = RpUnits::define(name, basis);
-    RpUnits::define(mega, basis, mega2base, base2mega);
-
-    name = "G" + basisName;
-    RpUnits * giga  = RpUnits::define(name, basis);
-    RpUnits::define(giga, basis, giga2base, base2giga);
-
-    name = "T" + basisName;
-    RpUnits * tera  = RpUnits::define(name, basis);
-    RpUnits::define(tera, basis, tera2base, base2tera);
-
-    name = "P" + basisName;
-    RpUnits * peta  = RpUnits::define(name, basis);
-    RpUnits::define(peta, basis, peta2base, base2peta);
-
-    return (1);
-}
-*/
-
-int RpUnits::makeMetric(RpUnits * basis) {
+int
+RpUnits::makeMetric(const RpUnits * basis) {
 
     if (!basis) {
         return 0;
@@ -740,17 +725,17 @@ int RpUnits::makeMetric(RpUnits * basis) {
 }
 
 
-RpUnits*
-RpUnits::find(std::string key)
-{
+const RpUnits*
+RpUnits::find(std::string key) {
+
     // dict.find seems to return a (RpUnits* const) so i had to
     // cast it as a (RpUnits*)
 
     // dict pointer
-    RpUnits* unitEntry = (RpUnits*) *(dict->find(key).getValue());
+    const RpUnits* unitEntry = *(dict->find(key).getValue());
 
     // dict pointer
-    if (unitEntry == (RpUnits*)dict->getNullEntry().getValue()) {
+    if (unitEntry == *(dict->getNullEntry().getValue()) ) {
         unitEntry = NULL;
     }
 
@@ -767,8 +752,8 @@ RpUnits::convert (  std::string val,
                     int showUnits,
                     int* result ) {
 
-    RpUnits* toUnits = NULL;
-    RpUnits* fromUnits = NULL;
+    const RpUnits* toUnits = NULL;
+    const RpUnits* fromUnits = NULL;
     std::string tmpNumVal = "";
     std::string fromUnitsName = "";
     std::string convVal = "";
@@ -848,17 +833,18 @@ RpUnits::convert (  std::string val,
 
     if ( (result) && (*result == 0) ) {
         *result = convResult;
-   }
+    }
 
     return convVal;
 
 }
 
-std::string RpUnits::convert (   RpUnits* toUnits,
-                        double val,
-                        int showUnits,
-                        int* result )
-{
+std::string
+RpUnits::convert ( const  RpUnits* toUnits,
+                   double val,
+                   int showUnits,
+                   int* result )  const {
+
     double retVal = convert(toUnits,val,result);
     std::stringstream unitText;
 
@@ -879,17 +865,17 @@ std::string RpUnits::convert (   RpUnits* toUnits,
 // example
 //      cm.convert(meter,10)
 //      cm.convert(angstrum,100)
-double RpUnits::convert(RpUnits* toUnit, double val, int* result)
-{
+double
+RpUnits::convert(const RpUnits* toUnit, double val, int* result) const {
 
     // currently we convert this object to its basis and look for the
     // connection to the toUnit object from the basis.
 
     double value = val;
-    RpUnits* basis = this->getBasis();
-    RpUnits* toBasis = toUnit->getBasis();
-    RpUnits* fromUnit = this;
-    RpUnits* dictToUnit = NULL;
+    const RpUnits* basis = this->getBasis();
+    const RpUnits* toBasis = toUnit->getBasis();
+    const RpUnits* fromUnit = this;
+    const RpUnits* dictToUnit = NULL;
     convEntry *p;
     int my_result = 0;
 
@@ -1060,17 +1046,17 @@ double RpUnits::convert(RpUnits* toUnit, double val, int* result)
 }
 
 
-void* RpUnits::convert(RpUnits* toUnit, void* val, int* result)
-{
+void*
+RpUnits::convert(const RpUnits* toUnit, void* val, int* result) const {
 
     // currently we convert this object to its basis and look for the
     // connection ot the toUnit object from the basis.
 
     void* value = val;
-    RpUnits* basis = this->getBasis();
-    RpUnits* toBasis = toUnit->getBasis();
-    RpUnits* fromUnit = this;
-    RpUnits* dictToUnit = NULL;
+    const RpUnits* basis = this->getBasis();
+    const RpUnits* toBasis = toUnit->getBasis();
+    const RpUnits* fromUnit = this;
+    const RpUnits* dictToUnit = NULL;
     convEntry *p;
     int my_result = 0;
 
@@ -1210,11 +1196,11 @@ void* RpUnits::convert(RpUnits* toUnit, void* val, int* result)
 
 }
 
-void RpUnits::addUnit( const std::string& units,
-                       double&  exponent,
-                       RpUnits* basis
-                      )
-{
+void
+RpUnits::addUnit( const std::string& units,
+                  double&  exponent,
+                  const RpUnits* basis) {
+
     unit* p = NULL;
 
     // check if the list was created previously. if not, start the list
@@ -1230,8 +1216,9 @@ void RpUnits::addUnit( const std::string& units,
 
 }
 
-int RpUnits::insert(std::string key)
-{
+int
+RpUnits::insert(std::string key) {
+
     int newRecord = 0;
     RpUnits* val = this;
     // dict pointer
@@ -1240,8 +1227,8 @@ int RpUnits::insert(std::string key)
 }
 
 
-int RpUnits::pre_compare( std::string& units, RpUnits* basis )
-{
+int
+RpUnits::pre_compare( std::string& units, const RpUnits* basis ) {
 
     // compare the incomming units with the previously defined units.
     // compareStr will hold a copy of the incomming string.
@@ -1355,8 +1342,9 @@ int RpUnits::pre_compare( std::string& units, RpUnits* basis )
 }
 
 
-void RpUnits::connectConversion(RpUnits* myRpUnit) 
-{
+void 
+RpUnits::connectConversion(const RpUnits* myRpUnit) {
+
     convEntry* p = myRpUnit->convList;
 
     if (p == NULL) {
@@ -1389,6 +1377,9 @@ RpUnits::addPresets (std::string group) {
         retVal = addPresetTemp();
     }
     else if (group.compare("time") == 0) {
+        retVal = addPresetTime();
+    }
+    else if (group.compare("volume") == 0) {
         retVal = addPresetTime();
     }
 
