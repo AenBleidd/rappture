@@ -46,6 +46,9 @@ all: ${PROGS}
 fermi_example: fermi_example.f
 	$(F77) -g -Wall $(LIB_RAPPTURE) -o $@ $<
 
+mac: fermi_example.f
+	$(F77) -g -Wall -L$(LIB_DIR) -lrappture -lscew  -o fermi_example $<
+
 #### CLEAN UP ############################################################
 clean: 
 	- rm -f ${PROGS} run*.xml
