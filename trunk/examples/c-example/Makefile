@@ -27,9 +27,13 @@ all: $(PROGS)
 
 plot: plot.cc
 	$(CXX) $(DEBUG) -DDEBUG $(INCL_FILES) -o $@ $< $(LIB_RAPPTURE)
+mac: plot.cc
+	$(CXX) $(DEBUG) -DDEBUG $(INCL_FILES) -o plot $< -L$(LIB_DIR) -lrappture -lscew
 
 plotc: plotc.c
 	$(CC) $(DEBUG) -DDEBUG $(INCL_FILES) -o $@ $< $(LIB_RAPPTURE) -lm
+mac-plotc: plotc.c
+	$(CC) $(DEBUG) -DDEBUG $(INCL_FILES) -o plotc $< -L$(LIB_DIR) -lrappture -lscew
 
 #### CLEAN UP ############################################################
 clean:
