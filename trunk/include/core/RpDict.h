@@ -3,7 +3,7 @@
 #include <string>
 #include <stdlib.h>
 #include <errno.h>
-#include <malloc.h>
+//#include <malloc.h>
 
 #ifndef _RpDICT_H 
 #define _RpDICT_H
