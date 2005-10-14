@@ -48,4 +48,4 @@ fermi_example: fermi_example.f
 
 #### CLEAN UP ############################################################
 clean: 
-	- rm -f ${PROGS}
+	- rm -f ${PROGS} run*.xml

@@ -40,7 +40,7 @@ int storeObject_Lib(RpLibrary* objectName);
 int storeObject_UnitsStr(std::string objectName);
 
 RpLibrary* getObject_Lib(int objKey);
-RpUnits* getObject_UnitsStr(int objKey);
+const RpUnits* getObject_UnitsStr(int objKey);
 
 void cleanLibDict();
 void cleanUnitsDict();

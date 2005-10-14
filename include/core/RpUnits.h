@@ -35,14 +35,14 @@ class unit
 
         const std::string getUnits(){ return units; };
         double getExponent() {return exponent;};
-        RpUnits * getBasis() {return basis;};
+        const RpUnits * getBasis() {return basis;};
 
         friend class RpUnits;
 
     private:
         const std::string units;
         double exponent;
-        RpUnits* basis;
+        const RpUnits* basis;
 
         unit* prev;
         unit* next;
@@ -51,7 +51,7 @@ class unit
         unit (
                 const std::string& units,
                 double&            exponent,
-                RpUnits*           basis,
+                const RpUnits*     basis,
                 unit*              next
              )
             :   units    (units),
@@ -108,10 +108,12 @@ class conversion
 
     private:
 
-        RpUnits* fromPtr;
-        RpUnits* toPtr;
+        const RpUnits* fromPtr;
+        const RpUnits* toPtr;
         double (*convForwFxnPtr)(double);
         double (*convBackFxnPtr)(double);
+        double (*convForwFxnPtrDD)(double,double);
+        double (*convBackFxnPtrDD)(double,double);
         void* (*convForwFxnPtrVoid)(void*, void*);
         void* convForwData;
         void* (*convBackFxnPtrVoid)(void*, void*);
@@ -124,8 +126,8 @@ class conversion
         // private because i only want RpUnits to be able to
         // create a conversion
         conversion (
-                RpUnits* fromPtr,
-                RpUnits* toPtr,
+                const RpUnits* fromPtr,
+                const RpUnits* toPtr,
                 double (*convForwFxnPtr)(double),
                 double (*convBackFxnPtr)(double),
                 conversion* prev,
@@ -135,6 +137,8 @@ class conversion
                 toPtr               (toPtr),
                 convForwFxnPtr      (convForwFxnPtr),
                 convBackFxnPtr      (convBackFxnPtr),
+                convForwFxnPtrDD    (NULL),
+                convBackFxnPtrDD    (NULL),
                 convForwFxnPtrVoid  (NULL),
                 convForwData        (NULL),
                 convBackFxnPtrVoid  (NULL),
@@ -144,8 +148,30 @@ class conversion
             {};
 
         conversion (
-                RpUnits* fromPtr, 
-                RpUnits* toPtr, 
+                const RpUnits* fromPtr,
+                const RpUnits* toPtr,
+                double (*convForwFxnPtr)(double,double),
+                double (*convBackFxnPtr)(double,double),
+                conversion* prev,
+                conversion* next
+             )
+            :   fromPtr             (fromPtr),
+                toPtr               (toPtr),
+                convForwFxnPtr      (NULL),
+                convBackFxnPtr      (NULL),
+                convForwFxnPtrDD    (convForwFxnPtr),
+                convBackFxnPtrDD    (convBackFxnPtr),
+                convForwFxnPtrVoid  (NULL),
+                convForwData        (NULL),
+                convBackFxnPtrVoid  (NULL),
+                convBackData        (NULL),
+                prev                (prev),
+                next                (next)
+            {};
+
+        conversion (
+                const RpUnits* fromPtr,
+                const RpUnits* toPtr,
                 void* (*convForwFxnPtrVoid)(void*, void*),
                 void* convForwData,
                 void* (*convBackFxnPtrVoid)(void*, void*),
@@ -157,6 +183,8 @@ class conversion
                 toPtr               (toPtr),
                 convForwFxnPtr      (NULL),
                 convBackFxnPtr      (NULL),
+                convForwFxnPtrDD    (NULL),
+                convBackFxnPtrDD    (NULL),
                 convForwFxnPtrVoid  (convForwFxnPtrVoid),
                 convForwData        (convForwData),
                 convBackFxnPtrVoid  (convBackFxnPtrVoid),
@@ -217,22 +245,26 @@ class RpUnits
     public:
 
         // users member fxns
-        std::string getUnits();
-        std::string getUnitsName();
-        double getExponent();
-        RpUnits* getBasis();
+        std::string getUnits() const;
+        std::string getUnitsName() const;
+        double getExponent() const;
+        const RpUnits* getBasis() const;
 
         // convert from one RpUnits to another if the conversion is defined
-        double convert(RpUnits* toUnits, double val, int* result = NULL);
+        double convert(         const RpUnits* toUnits, 
+                                double val, 
+                                int* result=NULL    ) const;
         // convert from one RpUnits to another if the conversion is defined
-        void* convert(RpUnits* toUnits, void* val, int* result = NULL);
+        void* convert(          const RpUnits* toUnits, 
+                                void* val, 
+                                int* result=NULL) const;
         // convert from one RpUnits to another if the conversion is defined
-        double convert(std::string, double val);
+        // double convert(std::string, double val);
         // convert from one RpUnits to another if the conversion is defined
-        std::string convert (   RpUnits* toUnits,
+        std::string convert (   const RpUnits* toUnits,
                                 double val,
                                 int showUnits = 0,
-                                int* result = NULL  );
+                                int* result = NULL  ) const;
 
         static std::string convert ( std::string val,
                                      std::string toUnits,
@@ -245,45 +277,38 @@ class RpUnits
         // turn the current unit to the metric system
         // this should only be used for units that are part of the
         // metric system. doesnt deal with exponents, just prefixes
-        double makeBasis(double value, int* result = NULL);
-        RpUnits & makeBasis(double* value, int* result = NULL);
+        double makeBasis(double value, int* result = NULL) const;
+        const RpUnits & makeBasis(double* value, int* result = NULL) const;
 
-        static int makeMetric(RpUnits * basis);
+        static int makeMetric(const RpUnits * basis);
 
         // find a RpUnits object that should exist in RpUnitsTable
         // returns 0 on success (object was found)
         // returns !0 on failure (object not found)
-        static RpUnits* find(std::string key)
-        {
-            // dict.find seems to return a (RpUnits* const) so i had to
-            // cast it as a (RpUnits*)
-
-            // dict pointer
-            RpUnits* unitEntry = (RpUnits*) *(dict->find(key).getValue());
-
-            // dict pointer
-            if (unitEntry == (RpUnits*)dict->getNullEntry().getValue()) {
-                unitEntry = NULL;
-            }
-
-            return unitEntry;
-        };
+        static const RpUnits* find(std::string key);
 
         // user calls define to add a RpUnits object or to add a relation rule
         //
         // add RpUnits Object
-        static RpUnits * define(const std::string units, RpUnits * basis);
-        static RpUnits * defineCmplx(const std::string units,RpUnits * basis);
+        static RpUnits * define(const std::string units,
+                                const RpUnits* basis);
+        static RpUnits * defineCmplx(   const std::string units,
+                                        const RpUnits* basis);
         //
         // add relation rule
 
-        static RpUnits * define(RpUnits* from,
-                                RpUnits* to,
+        static RpUnits * define(const RpUnits* from,
+                                const RpUnits* to,
                                 double (*convForwFxnPtr)(double),
                                 double (*convBackFxnPtr)(double));
 
-        static RpUnits * define(RpUnits* from,
-                                RpUnits* to,
+        static RpUnits * define(const RpUnits* from,
+                                const RpUnits* to,
+                                double (*convForwFxnPtr)(double,double),
+                                double (*convBackFxnPtr)(double,double));
+
+        static RpUnits * define(const RpUnits* from,
+                                const RpUnits* to,
                                 void* (*convForwFxnPtr)(void*, void*),
                                 void* convForwData,
                                 void* (*convBackFxnPtr)(void*, void*),
@@ -296,6 +321,7 @@ class RpUnits
         //      "length"                    load units related to length
         //      "temp"                      load units related to temperature
         //      "time"                      load units related to time
+        //      "volume"                    load units related to volume
         //  (no other groups have been created)
 
         static int addPresets (std::string group);
@@ -383,7 +409,10 @@ class RpUnits
         unit* head;
 
         // linked list of units this RpUnit can convert to
-        convEntry* convList;
+        // its mutable because the connectConversion function takes in a
+        // const RpUnits* and attempts to change the convList variable
+        // within the RpUnits Object
+        mutable convEntry* convList;
 
         // used by the RpUnits when defining conversion elements
         conversion* conv;
@@ -404,7 +433,7 @@ class RpUnits
         RpUnits (
                     const std::string& units,
                     double& exponent,
-                    RpUnits* basis
+                    const RpUnits* basis
                 )
             :   head        ( new unit( units, exponent, basis, NULL) ),
                 convList    (NULL),
@@ -417,8 +446,8 @@ class RpUnits
 
 
         RpUnits (
-                    RpUnits* from,
-                    RpUnits* to,
+                    const RpUnits* from,
+                    const RpUnits* to,
                     double (*convForwFxnPtr)(double),
                     double (*convBackFxnPtr)(double),
                     conversion* prev,
@@ -434,12 +463,28 @@ class RpUnits
         };
 
 
+        RpUnits (
+                    const RpUnits* from,
+                    const RpUnits* to,
+                    double (*convForwFxnPtr)(double,double),
+                    double (*convBackFxnPtr)(double,double),
+                    conversion* prev,
+                    conversion* next
+                )
+            :   head (NULL),
+                convList (NULL),
+                conv (new conversion
+                        (from,to,convForwFxnPtr,convBackFxnPtr,prev,next))
+        {
+            connectConversion(from);
+            connectConversion(to);
+        };
 
 
 
         RpUnits (
-                    RpUnits* from,
-                    RpUnits* to,
+                    const RpUnits* from,
+                    const RpUnits* to,
                     void* (*convForwFxnPtr)(void*, void*),
                     void* convForwData,
                     void* (*convBackFxnPtr)(void*, void*),
@@ -474,7 +519,7 @@ class RpUnits
             }
         }
 
-        void RpUnits::connectConversion(RpUnits* myRpUnit);
+        void RpUnits::connectConversion(const RpUnits* myRpUnit);
 
         void RpUnits::fillMetricMap();
 
@@ -494,10 +539,12 @@ class RpUnits
         int RpUnits::link(RpUnits * unitA);
 
 
-        static int pre_compare( std::string& units, RpUnits* basis = NULL);
+        static int pre_compare( std::string& units,
+                                const RpUnits* basis = NULL);
+
         void addUnit( const std::string& units,
                       double &  exponent,
-                      RpUnits * basis
+                      const RpUnits * basis
                      );
 
         static int addPresetAll();
@@ -505,6 +552,7 @@ class RpUnits
         static int addPresetLength();
         static int addPresetTemp();
         static int addPresetTime();
+        static int addPresetVolume();
 
 
 };

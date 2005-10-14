@@ -16,29 +16,29 @@
 extern "C" {
 #endif
 
-RpUnits*
-rpDefineUnit(const char* unitSymbol, RpUnits* basis) {
+const RpUnits*
+rpDefineUnit(const char* unitSymbol, const RpUnits* basis) {
 
     return RpUnits::define(unitSymbol, basis);
 }
 
-RpUnits*
-rpDefineConv(    RpUnits* fromUnit,
-               RpUnits* toUnit,
+const RpUnits*
+rpDefineConv(  const RpUnits* fromUnit,
+               const RpUnits* toUnit,
                double (*convForwFxnPtr)(double),
                double (*convBackFxnPtr)(double)    ) {
 
     return RpUnits::define(fromUnit,toUnit,convForwFxnPtr,convBackFxnPtr);
 }
 
-RpUnits*
+const RpUnits*
 rpFind ( const char* key ) {
 
     return RpUnits::find(key);
 }
 
 const char*
-rpGetUnits ( RpUnits* unit ) {
+rpGetUnits ( const RpUnits* unit ) {
 
     static std::string retVal;
     retVal = unit->getUnits();
@@ -46,7 +46,7 @@ rpGetUnits ( RpUnits* unit ) {
 }
 
 const char*
-rpGetUnitsName ( RpUnits* unit ) {
+rpGetUnitsName ( const RpUnits* unit ) {
 
     static std::string retVal;
     retVal = unit->getUnitsName();
@@ -54,19 +54,19 @@ rpGetUnitsName ( RpUnits* unit ) {
 }
 
 double
-rpGetExponent ( RpUnits* unit ) {
+rpGetExponent ( const RpUnits* unit ) {
 
     return unit->getExponent();
 }
 
-RpUnits*
-rpGetBasis ( RpUnits* unit ) {
+const RpUnits*
+rpGetBasis ( const RpUnits* unit ) {
 
     return unit->getBasis();
 }
 
 int
-rpMakeMetric(RpUnits* basis) {
+rpMakeMetric(const RpUnits* basis) {
 
     return RpUnits::makeMetric(basis);
 }
@@ -94,8 +94,8 @@ rpConvertStr (   const char* fromVal,
 }
 
 const char*
-rpConvert_ObjStr ( RpUnits* fromUnits,
-                   RpUnits* toUnits,
+rpConvert_ObjStr ( const RpUnits* fromUnits,
+                   const RpUnits* toUnits,
                    double val,
                    int showUnits,
                    int* result ) {
@@ -123,8 +123,8 @@ rpConvertDbl (    const char* fromVal,
 }
 
 double
-rpConvert_ObjDbl (   RpUnits* fromUnits,
-                     RpUnits* toUnits,
+rpConvert_ObjDbl (   const RpUnits* fromUnits,
+                     const RpUnits* toUnits,
                      double val,
                      int* result ) {
 
