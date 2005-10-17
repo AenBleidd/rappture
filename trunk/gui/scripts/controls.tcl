@@ -145,7 +145,7 @@ itcl::body Rappture::Controls::insert {pos path} {
         }
     }
 
-    if {$type != "control" && $type != "separator"} {
+    if {$type != "control" && $type != "group" && $type != "separator"} {
         $_owner widgetfor $path $w
 
         # make a label for this control
