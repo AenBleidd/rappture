@@ -1,0 +1,52 @@
+<?xml version="1.0"?>
+<run>
+<tool>
+  <title>field</title>
+  <about>Example of a Rappture &lt;field&gt; object.
+
+Fields are a set of values defined on a mesh of some sort (see &lt;mesh&gt; and &lt;cloud&gt; elements for details).
+
+When you click the Simulate button, the inputs will be used to generate output fields.
+  </about>
+  <command>
+    tclsh @tool/field.tcl @driver
+  </command>
+</tool>
+<input>
+  <string id="formula">
+    <about>
+      <label>Formula</label>
+      <description>Formula used to calculate the value of the field.</description>
+      <hints>Example:  2*x*y + z</hints>
+    </about>
+    <default>x*y*z</default>
+  </string>
+</input>
+<output>
+  <cloud id="m2d">
+    <about><label>2D Mesh</label></about>
+    <units>um</units>
+    <hide>yes</hide>
+  </cloud>
+  <field id="f2d">
+    <about><label>2D Field</label></about>
+    <component>
+      <mesh>output.cloud(m2d)</mesh>
+      <values></values>
+    </component>
+  </field>
+
+  <mesh id="m3d">
+    <about><label>3D Mesh</label></about>
+    <units>um</units>
+    <hide>yes</hide>
+  </mesh>
+  <field id="f3d">
+    <about><label>3D Field</label></about>
+    <component>
+      <mesh>output.mesh(m3d)</mesh>
+      <values></values>
+    </component>
+  </field>
+</output>
+</run>
