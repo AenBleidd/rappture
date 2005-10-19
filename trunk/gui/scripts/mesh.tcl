@@ -31,8 +31,11 @@ itcl::class Rappture::Mesh {
     public proc fetch {xmlobj path}
     public proc release {obj}
 
+    private method _getVtkElement {npts}
+
     private variable _xmlobj ""  ;# ref to XML obj with device data
     private variable _mesh ""    ;# lib obj representing this mesh
+    private variable _pts2elem   ;# maps # points => vtk element
 
     private variable _units "m m m" ;# system of units for x, y, z
     private variable _limits        ;# limits xmin, xmax, ymin, ymax, ...
@@ -108,7 +111,6 @@ itcl::body Rappture::Mesh::constructor {xmlobj path} {
 
     # create the vtk objects containing points and connectivity
     vtkPoints $this-points
-    vtkVoxel $this-vox
     vtkUnstructuredGrid $this-grid
 
     foreach lim {xmin xmax ymin ymax zmin zmax} {
@@ -151,13 +153,14 @@ itcl::body Rappture::Mesh::constructor {xmlobj path} {
     #
     foreach comp [$xmlobj children -type element $path] {
         set nlist [$_mesh get $comp.nodes]
+        set elem [_getVtkElement [llength $nlist]]
+
         set i 0
         foreach n $nlist {
-            [$this-vox GetPointIds] SetId $i $n
+            [$elem GetPointIds] SetId $i $n
             incr i
         }
-        $this-grid InsertNextCell [$this-vox GetCellType] \
-            [$this-vox GetPointIds]
+        $this-grid InsertNextCell [$elem GetCellType] [$elem GetPointIds]
     }
 }
 
@@ -169,8 +172,11 @@ itcl::body Rappture::Mesh::destructor {} {
     itcl::delete object $_mesh
 
     rename $this-points ""
-    rename $this-vox ""
     rename $this-grid ""
+
+    foreach type [array names _pts2elem] {
+        rename $_pts2elem($type) ""
+    }
 }
 
 # ----------------------------------------------------------------------
@@ -302,4 +308,36 @@ itcl::body Rappture::Mesh::hints {{keyword ""}} {
         return ""
     }
     return [array get hints]
+}
+
+# ----------------------------------------------------------------------
+# USAGE: _getVtkElement <npts>
+#
+# Used internally to find (or allocate, if necessary) a vtk element
+# that can be used to build up a mesh.  The element depends on the
+# number of points passed in.  4 points is a tetrahedron, 5 points
+# is a pyramid, etc.
+# ----------------------------------------------------------------------
+itcl::body Rappture::Mesh::_getVtkElement {npts} {
+    if {![info exists _pts2elem($npts)]} {
+        switch -- $npts {
+            4 {
+                set _pts2elem($npts) $this-elem4
+                vtkTetra $_pts2elem($npts)
+            }
+            5 {
+                set _pts2elem($npts) $this-elem5
+                vtkPyramid $_pts2elem($npts)
+            }
+            6 {
+                set _pts2elem($npts) $this-elem6
+                vtkWedge $_pts2elem($npts)
+            }
+            8 {
+                set _pts2elem($npts) $this-elem8
+                vtkVoxel $_pts2elem($npts)
+            }
+        }
+    }
+    return $_pts2elem($npts)
 }
