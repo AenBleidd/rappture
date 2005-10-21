@@ -52,34 +52,37 @@ class unit
                 const std::string& units,
                 double&            exponent,
                 const RpUnits*     basis,
+                unit*              prev,
                 unit*              next
              )
             :   units    (units),
                 exponent (exponent),
                 basis    (basis),
-                prev     (NULL),
+                prev     (prev),
                 next     (next)
             {};
 
         /*
         // private copy constructor
-        unit ( unit& other )
-            :   units       (other.units),
-                exponent    (other.exponent),
-                basis       (other.basis),
-                prev        (other.prev),
-                next        (other.next)
+        unit ( const unit& other )
+            :   units        other.units,
+                exponent     other.exponent,
+                basis        other.basis,
+                prev         unit(other.prev),
+                next         unit(other.next)
             {};
 
         // copy assignment operator
-        unit& operator= (unit& other) {
-            units       = other.units;
-            exponent    = other.exponent;
-            basis       = other.basis;
-            prev        = other.prev;
-            next        = other.next;
-        }
+        unit& operator= (unit& other) 
+            :   units        other.units,
+                exponent     other.exponent,
+                basis        RpUnits(other.basis),
+                prev         unit(other.prev),
+                next         unit(other.next)
+        {}
+        */
 
+        /*
         // destructor (its not virtual yet, still testing)
         ~unit () {
 
@@ -106,6 +109,40 @@ class conversion
 
         friend class RpUnits;
 
+        // copy constructor
+        conversion ( conversion& other)
+            :   fromPtr             (other.fromPtr),
+                toPtr               (other.toPtr),
+                convForwFxnPtr      (other.convForwFxnPtr),
+                convBackFxnPtr      (other.convBackFxnPtr),
+                convForwFxnPtrDD    (other.convForwFxnPtrDD),
+                convBackFxnPtrDD    (other.convBackFxnPtrDD),
+                convForwFxnPtrVoid  (other.convForwFxnPtrVoid),
+                convForwData        (other.convForwData),
+                convBackFxnPtrVoid  (other.convBackFxnPtrVoid),
+                convBackData        (other.convBackData)
+            {};
+
+        // copy assignment operator
+        conversion& operator= ( conversion& other )
+            {
+                fromPtr             = other.fromPtr;
+                toPtr               = other.toPtr;
+                convForwFxnPtr      = other.convForwFxnPtr;
+                convBackFxnPtr      = other.convBackFxnPtr;
+                convForwFxnPtrDD    = other.convForwFxnPtrDD;
+                convBackFxnPtrDD    = other.convBackFxnPtrDD;
+                convForwFxnPtrVoid  = other.convForwFxnPtrVoid;
+                convForwData        = other.convForwData;
+                convBackFxnPtrVoid  = other.convBackFxnPtrVoid;
+                convBackData        = other.convBackData;
+                return *this;
+            }
+
+        // default destructor
+        virtual ~conversion ()
+        {}
+
     private:
 
         const RpUnits* fromPtr;
@@ -119,9 +156,6 @@ class conversion
         void* (*convBackFxnPtrVoid)(void*, void*);
         void* convBackData;
 
-        conversion* prev;
-        conversion* next;
-
         // constructor
         // private because i only want RpUnits to be able to
         // create a conversion
@@ -129,9 +163,7 @@ class conversion
                 const RpUnits* fromPtr,
                 const RpUnits* toPtr,
                 double (*convForwFxnPtr)(double),
-                double (*convBackFxnPtr)(double),
-                conversion* prev,
-                conversion* next
+                double (*convBackFxnPtr)(double)
              )
             :   fromPtr             (fromPtr),
                 toPtr               (toPtr),
@@ -142,18 +174,15 @@ class conversion
                 convForwFxnPtrVoid  (NULL),
                 convForwData        (NULL),
                 convBackFxnPtrVoid  (NULL),
-                convBackData        (NULL),
-                prev                (prev),
-                next                (next)
+                convBackData        (NULL)
             {};
 
+        // constructor for 2 argument conversion functions
         conversion (
                 const RpUnits* fromPtr,
                 const RpUnits* toPtr,
                 double (*convForwFxnPtr)(double,double),
-                double (*convBackFxnPtr)(double,double),
-                conversion* prev,
-                conversion* next
+                double (*convBackFxnPtr)(double,double)
              )
             :   fromPtr             (fromPtr),
                 toPtr               (toPtr),
@@ -164,20 +193,18 @@ class conversion
                 convForwFxnPtrVoid  (NULL),
                 convForwData        (NULL),
                 convBackFxnPtrVoid  (NULL),
-                convBackData        (NULL),
-                prev                (prev),
-                next                (next)
+                convBackData        (NULL)
             {};
 
+        // constructor for user defined void* returning 1 arg conversion fxns.
+        // the 1 arg is a user defined void* object
         conversion (
                 const RpUnits* fromPtr,
                 const RpUnits* toPtr,
                 void* (*convForwFxnPtrVoid)(void*, void*),
                 void* convForwData,
                 void* (*convBackFxnPtrVoid)(void*, void*),
-                void* convBackData,
-                conversion* prev,
-                conversion* next
+                void* convBackData
              )
             :   fromPtr             (fromPtr),
                 toPtr               (toPtr),
@@ -188,14 +215,9 @@ class conversion
                 convForwFxnPtrVoid  (convForwFxnPtrVoid),
                 convForwData        (convForwData),
                 convBackFxnPtrVoid  (convBackFxnPtrVoid),
-                convBackData        (convBackData),
-                prev                (prev),
-                next                (next)
+                convBackData        (convBackData)
             {};
 
-        // copy constructor
-
-        // destructor
 };
 
 // used by the RpUnits class to create a linked list of the conversions
@@ -210,6 +232,9 @@ class convEntry
     public:
 
         friend class RpUnits;
+
+        virtual ~convEntry()
+        {}
 
     private:
 
@@ -227,12 +252,6 @@ class convEntry
                 next    (next)
             {};
 
-        /*
-        ~convEntry()
-        {
-
-        }
-        */
 };
 
 class RpUnits
@@ -292,6 +311,7 @@ class RpUnits
         // add RpUnits Object
         static RpUnits * define(const std::string units,
                                 const RpUnits* basis);
+                                // unsigned int create=0);
         static RpUnits * defineCmplx(   const std::string units,
                                         const RpUnits* basis);
         //
@@ -317,21 +337,17 @@ class RpUnits
         // populate the dictionary with a set of units specified by group
         // if group equals......................then load................
         //      "all"                       load all available units
-        //      "energy"                    load units related to length
+        //      "energy"                    load units related to energy
         //      "length"                    load units related to length
         //      "temp"                      load units related to temperature
         //      "time"                      load units related to time
         //      "volume"                    load units related to volume
         //  (no other groups have been created)
 
-        static int addPresets (std::string group);
+        static int addPresets (const std::string group);
 
         // undefining a relation rule is probably not needed
         // int undefine(); // delete a relation
-
-        // convert fxn will be taken care of in the RpUnitsConversion class
-        // i think
-        // int convert(const char* from, const char* to);
 
         // why are these functions friends...
         // probably need to find a better way to let RpUnits
@@ -340,54 +356,111 @@ class RpUnits
         friend class RpDictEntry<std::string,RpUnits*>;
 
         // copy constructor
-        RpUnits ( const RpUnits& myRpUnit )
+        RpUnits (RpUnits &other)
+            : head (NULL),
+              convList (NULL)
         {
+            unit* p = NULL;
+            unit* current = NULL;
+            convEntry* q = NULL;
+            convEntry* curr2 = NULL;
 
-            /*
-            from = myRpUnit.from;
-            to = myRpUnit.to;
-            convertForw = myRpUnit.convertForw;
-            convertBack = myRpUnit.convertBack;
-            */
+            dict = other.dict;
 
-            // copy constructor for unit
-            unit* tmp = NULL;
-            unit* newUnit = NULL;
-            unit* p = myRpUnit.head;
+            if (other.head) {
+                p = other.head;
+                head = new unit(p->units, p->exponent, p->basis, NULL, NULL);
+                current = head;
 
-            while (p != NULL) {
-                newUnit = new unit(p->units, p->exponent,p->basis,NULL);
-
-                newUnit->prev = tmp;
-                if (tmp) {
-                    tmp->next = newUnit;
-                }
-
-                tmp = newUnit;
-                p = p->next;
-            }
-
-            if (tmp) {
-                while (tmp->prev != NULL) {
-                   tmp = tmp->prev;
+                while (p->next) {
+                    p = p->next;
+                    current->next = new unit( p->units,
+                                              p->exponent,
+                                              p->basis,
+                                              current,
+                                              NULL        );
+                    current = current->next;
                 }
             }
-
-            head = tmp;
-
-        };
-
-        /*
-        // copy assignment operator
-        RpUnits& operator= (const RpUnits& myRpUnit) {
-
-            if ( this != &myRpUnit ) {
-                delete head;
-                delete convList;
-                delete conv;
+            if (other.convList) {
+                q = other.convList;
+                convList = new convEntry (q->conv,NULL,NULL);
+                curr2 = convList;
+                while (q->next) {
+                    q = q->next;
+                    curr2->next = new convEntry (q->conv,curr2,NULL);
+                    curr2 = curr2->next;
+                }
             }
         }
-        */
+
+        // copy assignment operator
+        RpUnits& operator= (const RpUnits& other) {
+
+            unit* p = NULL;
+            unit* current = NULL;
+            convEntry* q = NULL;
+            convEntry* curr2 = NULL;
+
+            if ( this != &other ) {
+                delete head;
+                delete convList;
+            }
+
+            dict = other.dict;
+
+            if (other.head) {
+                p = other.head;
+                head = new unit(p->units, p->exponent, p->basis, NULL, NULL);
+                current = head;
+
+                while (p->next) {
+                    p = p->next;
+                    current->next = new unit( p->units,
+                                              p->exponent,
+                                              p->basis,
+                                              current,
+                                              NULL        );
+                    current = current->next;
+                }
+            }
+            if (other.convList) {
+                q = other.convList;
+                convList = new convEntry (q->conv,NULL,NULL);
+                curr2 = convList;
+                while (q->next) {
+                    q = q->next;
+                    curr2->next = new convEntry (q->conv,curr2,NULL);
+                    curr2 = curr2->next;
+                }
+            }
+
+            return *this;
+        }
+
+        // default destructor
+        //
+        ~RpUnits ()
+        {
+            // clean up dynamic memory
+
+            unit* p = head;
+            unit* tmp = p;
+            convEntry* p2 = convList;
+            convEntry* tmp2 = p2;
+
+            while (p != NULL) {
+                tmp = p;
+                p = p->next;
+                delete tmp;
+            }
+
+            while (p2 != NULL) {
+                tmp2 = p2;
+                p2 = p2->next;
+                delete tmp2;
+            }
+        }
 
     private:
 
@@ -414,8 +487,6 @@ class RpUnits
         // within the RpUnits Object
         mutable convEntry* convList;
 
-        // used by the RpUnits when defining conversion elements
-        conversion* conv;
 
         // dictionary to store the units.
         static RpDict<std::string,RpUnits*>* dict;
@@ -435,98 +506,11 @@ class RpUnits
                     double& exponent,
                     const RpUnits* basis
                 )
-            :   head        ( new unit( units, exponent, basis, NULL) ),
-                convList    (NULL),
-                conv        (NULL)
+            :   head        ( new unit( units, exponent, basis, NULL, NULL) ),
+                convList    (NULL)
         {};
 
-        // create a conversion element
-
-
-
-
-        RpUnits (
-                    const RpUnits* from,
-                    const RpUnits* to,
-                    double (*convForwFxnPtr)(double),
-                    double (*convBackFxnPtr)(double),
-                    conversion* prev,
-                    conversion* next
-                )
-            :   head (NULL),
-                convList (NULL),
-                conv (new conversion
-                        (from,to,convForwFxnPtr,convBackFxnPtr,prev,next))
-        {
-            connectConversion(from);
-            connectConversion(to);
-        };
-
-
-        RpUnits (
-                    const RpUnits* from,
-                    const RpUnits* to,
-                    double (*convForwFxnPtr)(double,double),
-                    double (*convBackFxnPtr)(double,double),
-                    conversion* prev,
-                    conversion* next
-                )
-            :   head (NULL),
-                convList (NULL),
-                conv (new conversion
-                        (from,to,convForwFxnPtr,convBackFxnPtr,prev,next))
-        {
-            connectConversion(from);
-            connectConversion(to);
-        };
-
-
-
-        RpUnits (
-                    const RpUnits* from,
-                    const RpUnits* to,
-                    void* (*convForwFxnPtr)(void*, void*),
-                    void* convForwData,
-                    void* (*convBackFxnPtr)(void*, void*),
-                    void* convBackData,
-                    conversion* prev,
-                    conversion* next
-                )
-            :   head (NULL),
-                convList (NULL),
-                conv (new conversion (  from, to,
-                                        convForwFxnPtr, convForwData,
-                                        convBackFxnPtr, convBackData,
-                                        prev, next
-                                     )
-                     )
-        {
-            connectConversion(from);
-            connectConversion(to);
-        };
-
-        // default destructor
-        //
-        ~RpUnits ()
-        {
-            // clean up dynamic memory
-
-            unit* p = head;
-            while (p != NULL) {
-                unit* tmp = p;
-                p = p->next;
-                delete tmp;
-            }
-        }
-
-        void RpUnits::connectConversion(const RpUnits* myRpUnit);
-
-        void RpUnits::fillMetricMap();
-
-        // create the container keeping track of defined units
-        // returns 0 on success (table created or already exists)
-        // returns !0 on failure (table not created or cannot exist)
-        int RpUnits::createUnitsTable();
+        void RpUnits::connectConversion(conversion* conv) const;
 
         // insert new RpUnits object into RpUnitsTable
         // returns 0 on success (object inserted or already exists)
@@ -536,7 +520,7 @@ class RpUnits
         // link two RpUnits objects that already exist in RpUnitsTable
         // returns 0 on success (linking within table was successful)
         // returns !0 on failure (linking was not successful)
-        int RpUnits::link(RpUnits * unitA);
+        // int RpUnits::link(RpUnits * unitA);
 
 
         static int pre_compare( std::string& units,
@@ -559,7 +543,5 @@ class RpUnits
 
 /*--------------------------------------------------------------------------*/
 /*--------------------------------------------------------------------------*/
-
-// #include "../src/RpUnits.cc"
 
 #endif

@@ -432,16 +432,24 @@ RpUnits *
 RpUnits::define(  const RpUnits* from,
                   const RpUnits* to,
                   double (*convForwFxnPtr)(double),
-                  double (*convBackFxnPtr)(double)) {
+                  double (*convBackFxnPtr)(double)  ) {
 
-    RpUnits* conv = new RpUnits(    from,
-                                    to,
-                                    convForwFxnPtr,
-                                    convBackFxnPtr,
-                                    NULL,
-                                    NULL);
+    // this is kinda the wrong way to get the job done...
+    // how do we only create 1 conversion object and share it between atleast two RpUnits
+    // objs so that when the RpUnits objs are deleted, we are not trying to delete already
+    // deleted memory.
+    // so for the sake of safety we get the following few lines of code.
 
-    return conv;
+    conversion* conv1 = NULL;
+    conversion* conv2 = NULL;
+
+    conv1 = new conversion (from,to,convForwFxnPtr,convBackFxnPtr);
+    conv2 = new conversion (from,to,convForwFxnPtr,convBackFxnPtr);
+
+    from->connectConversion(conv1);
+    to->connectConversion(conv2);
+
+    return NULL;
 }
 
 RpUnits *
@@ -450,14 +458,22 @@ RpUnits::define(  const RpUnits* from,
                   double (*convForwFxnPtr)(double,double),
                   double (*convBackFxnPtr)(double,double)) {
 
-    RpUnits* conv = new RpUnits(    from,
-                                    to,
-                                    convForwFxnPtr,
-                                    convBackFxnPtr,
-                                    NULL,
-                                    NULL);
+    // this is kinda the wrong way to get the job done...
+    // how do we only create 1 conversion object and share it between atleast two RpUnits
+    // objs so that when the RpUnits objs are deleted, we are not trying to delete already
+    // deleted memory.
+    // so for the sake of safety we get the following few lines of code.
 
-    return conv;
+    conversion* conv1 = NULL;
+    conversion* conv2 = NULL;
+
+    conv1 = new conversion (from,to,convForwFxnPtr,convBackFxnPtr);
+    conv2 = new conversion (from,to,convForwFxnPtr,convBackFxnPtr);
+
+    from->connectConversion(conv1);
+    to->connectConversion(conv2);
+
+    return NULL;
 }
 
 RpUnits *
@@ -468,16 +484,22 @@ RpUnits::define(  const RpUnits* from,
                   void* (*convBackFxnPtr)(void*, void*),
                   void* convBackData) {
 
-    RpUnits* conv = new RpUnits(    from,
-                                    to,
-                                    convForwFxnPtr,
-                                    convForwData,
-                                    convBackFxnPtr,
-                                    convBackData,
-                                    NULL,
-                                    NULL);
+    // this is kinda the wrong way to get the job done...
+    // how do we only create 1 conversion object and share it between atleast two RpUnits
+    // objs so that when the RpUnits objs are deleted, we are not trying to delete already
+    // deleted memory.
+    // so for the sake of safety we get the following few lines of code.
 
-    return conv;
+    conversion* conv1 = NULL;
+    conversion* conv2 = NULL;
+
+    conv1 = new conversion (from,to,convForwFxnPtr,convForwData,convBackFxnPtr,convBackData);
+    conv2 = new conversion (from,to,convForwFxnPtr,convForwData,convBackFxnPtr,convBackData);
+
+    from->connectConversion(conv1);
+    to->connectConversion(conv2);
+
+    return NULL;
 }
 
 /************************************************************************
@@ -629,7 +651,7 @@ const RpUnits&
 RpUnits::makeBasis(double* value, int* result) const {
     const RpUnits* basis = getBasis();
     double retVal = *value;
-    int convResult = 0;
+    int convResult = 1;
 
     if (basis == NULL) {
         // this unit is a basis
@@ -643,7 +665,7 @@ RpUnits::makeBasis(double* value, int* result) const {
         retVal = convert(basis,retVal,&convResult);
     }
 
-    if ( (convResult == 1) ) {
+    if ( (convResult == 0) ) {
         *value = retVal;
     }
 
@@ -1205,12 +1227,12 @@ RpUnits::addUnit( const std::string& units,
 
     // check if the list was created previously. if not, start the list
     if (head == 0) {
-        head = new unit(units,exponent,basis,NULL);
+        head = new unit(units,exponent,basis,NULL,NULL);
         return;
     }
 
     // now add a new node at the beginning of the list:
-    p = new unit(units,exponent,basis,head);
+    p = new unit(units,exponent,basis,NULL,head);
     head->prev = p;
     head = p;
 
@@ -1342,27 +1364,27 @@ RpUnits::pre_compare( std::string& units, const RpUnits* basis ) {
 }
 
 
-void 
-RpUnits::connectConversion(const RpUnits* myRpUnit) {
+void
+RpUnits::connectConversion(conversion* conv) const {
 
-    convEntry* p = myRpUnit->convList;
+    convEntry* p = convList;
 
     if (p == NULL) {
-        myRpUnit->convList = new convEntry (this->conv,NULL,NULL);
+        convList = new convEntry (conv,NULL,NULL);
     }
     else {
         while (p->next != NULL) {
             p = p->next;
         }
 
-        p->next = new convEntry (this->conv,p,NULL);
+        p->next = new convEntry (conv,p,NULL);
     }
 
 }
 
 // return codes: 0 success, anything else is error
 int
-RpUnits::addPresets (std::string group) {
+RpUnits::addPresets (const std::string group) {
     int retVal = -1;
     if (group.compare("all") == 0) {
         retVal = addPresetAll();
