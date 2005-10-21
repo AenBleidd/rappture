@@ -257,26 +257,62 @@ int main()
 
     const RpUnits* eV  = RpUnits::define("eV", NULL);
     const RpUnits* joules  = RpUnits::define("J", NULL);
-    
+
     RpUnits::define(eV, joules, electronVolt2joule, joule2electronVolt);
-    
+
     value = joules->convert(eV,1,&result);
     std::cout << "1 joule = " << value << " electronVolts" << std::endl;
-    
+
     value = eV->convert(joules,1,&result);
     std::cout << "1 electronVolt = " << value << " joules" << std::endl;
-    
+
     strValue = RpUnits::convert("10eV","J",1);
     std::cout << "strValue convert(10eV,J,1) = " << strValue << std::endl;
 
     strValue = RpUnits::convert("1eV","J",0);
     std::cout << "strValue convert(1eV,J,0) = " << strValue << std::endl;
-    
+
     strValue = RpUnits::convert("10J","eV",1);
     std::cout << "strValue convert(10J,eV,1) = " << strValue << std::endl;
 
     strValue = RpUnits::convert("1J","eV",0);
     std::cout << "strValue convert(1J,eV,0) = " << strValue << std::endl;
-    
+
+
+
+
+
+
+    std::cout << "TESTING COPY CONSTRUCTOR" << std::endl;
+
+    RpUnits *origRpUnits = RpUnits::define("obj2", NULL);
+    RpUnits copyRpUnits = *origRpUnits;
+
+    std::cout << "origRpUnits = " << origRpUnits->getUnitsName() << std::endl;
+    std::cout << "copyRpUnits = " << copyRpUnits.getUnitsName() << std::endl;
+    std::cout << "modifying origRpUnits" << std::endl;
+    delete origRpUnits;
+    origRpUnits = RpUnits::define("obj3",NULL);
+    std::cout << "origRpUnits = " << origRpUnits->getUnitsName() << std::endl;
+    std::cout << "copyRpUnits = " << copyRpUnits.getUnitsName() << std::endl;
+    std::cout << "deleting origRpUnits" << std::endl;
+    delete origRpUnits;
+    std::cout << "copyRpUnits = " << copyRpUnits.getUnitsName() << std::endl;
+
+    std::cout << "TESTING COPY ASSIGNMENT OPERATOR" << std::endl;
+
+    RpUnits *testRpUnits = RpUnits::define("test2", NULL);
+    copyRpUnits = *testRpUnits;
+
+    std::cout << "testRpUnits = " << testRpUnits->getUnitsName() << std::endl;
+    std::cout << "copyRpUnits = " << copyRpUnits.getUnitsName() << std::endl;
+    std::cout << "modifying testRpUnits" << std::endl;
+    delete testRpUnits;
+    testRpUnits = RpUnits::define("test3",NULL);
+    std::cout << "testRpUnits = " << testRpUnits->getUnitsName() << std::endl;
+    std::cout << "copyRpUnits = " << copyRpUnits.getUnitsName() << std::endl;
+    std::cout << "deleting testRpUnits" << std::endl;
+    delete testRpUnits;
+    std::cout << "copyRpUnits = " << copyRpUnits.getUnitsName() << std::endl;
     return 0;
 }
