@@ -8,8 +8,10 @@
  *  out the name of that file to stdout.
  * ======================================================================
  *  AUTHOR:  Michael McLennan, Purdue University
- *  Copyright (c) 2004-2005
- *  Purdue Research Foundation, West Lafayette, IN
+ *  Copyright (c) 2004-2005  Purdue Research Foundation
+ *
+ *  See the file "license.terms" for information on usage and
+ *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  * ======================================================================
  */
 #include <stdlib.h>

@@ -3,12 +3,16 @@ c  EXAMPLE: Fermi-Dirac function in Fortran.
 c
 c  This simple example shows how to use Rappture within a simulator
 c  written in Fortran.
+c
 c ======================================================================
 c  AUTHOR:  Michael McLennan, Purdue University
 c  AUTHOR:  Derrick Kearney, Purdue University
-c  Copyright (c) 2004-2005
-c  Purdue Research Foundation, West Lafayette, IN
+c  Copyright (c) 2004-2005  Purdue Research Foundation
+c
+c  See the file "license.terms" for information on usage and
+c  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 c ======================================================================
+
       program fermi
         IMPLICIT NONE
 
