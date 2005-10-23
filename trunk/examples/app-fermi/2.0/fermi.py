@@ -4,9 +4,13 @@
 #  This simple example shows how you can use the Rappture toolkit
 #  to handle I/O for a simple simulator--in this case, one that
 #  computes Fermi-Dirac statistics.
+#
 # ======================================================================
 #  AUTHOR:  Michael McLennan, Purdue University
-#  Copyright (c) 2005  Purdue Research Foundation, West Lafayette, IN
+#  Copyright (c) 2004-2005  Purdue Research Foundation
+#
+#  See the file "license.terms" for information on usage and
+#  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 # ======================================================================
 
 from math import *

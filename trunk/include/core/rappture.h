@@ -1,3 +1,11 @@
+/*
+ * ======================================================================
+ *  Copyright (c) 2004-2005  Purdue Research Foundation
+ *
+ *  See the file "license.terms" for information on usage and
+ *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+ * ======================================================================
+ */
 // include xml parser headers
 #include "RpLibrary.h"
 #include "../cee/RpLibraryCInterface.h"
