@@ -81,10 +81,6 @@ int RP_UNITS_CONVERT_STR   (char* fromVal,
                             int toUnitsName_len,
                             int retText_len     );
 
-int rp_units_add_presets_  (char* presetName, int presetName_len);
-int rp_units_add_presets__ (char* presetName, int presetName_len);
-int RP_UNITS_ADD_PRESETS   (char* presetName, int presetName_len);
-
 #ifdef __cplusplus
 }
 #endif

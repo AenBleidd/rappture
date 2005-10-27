@@ -125,7 +125,6 @@ void rp_lib_node_id_ (      int* handle,
 
 void rp_result_(            int* handle );
 
-void rp_quit_();
 
 /**********************************************************/
 
@@ -235,7 +234,6 @@ void rp_lib_node_id__ (     int* handle,
 
 void rp_result__(           int* handle );
 
-void rp_quit__();
 
 /**********************************************************/
 // INTERFACE STUB FUNCTIONS - ALL CAPS
@@ -346,7 +344,6 @@ void RP_LIB_NODE_ID (       int* handle,
 
 void RP_RESULT(             int* handle );
 
-void RP_QUIT();
 
 /**********************************************************/
 /**********************************************************/

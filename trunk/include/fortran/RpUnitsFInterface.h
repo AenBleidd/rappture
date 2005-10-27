@@ -48,8 +48,6 @@ int rp_units_convert_str (  char* fromVal,
                             int toUnitsName_len,
                             int retText_len     );
 
-int rp_units_add_presets ( char* presetName, int presetName_len);
-
 #ifdef __cplusplus
 }
 #endif

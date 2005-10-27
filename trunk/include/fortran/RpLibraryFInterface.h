@@ -45,21 +45,11 @@ int rp_lib_element_obj (    int* handle,
                             char* path,
                             int path_len );
 
-/*
- * rp_lib_child_num still needs to be written
- * keep function declaration around
-int rp_lib_child_num (      int* handle,
-                            char* path,
-                            int* childHandle,
-                            int path_len);
-*/
-
 int rp_lib_children (       int* handle, /* integer handle of library */
                             char* path, /* search path of the xml */
                             int* childHandle, /*int handle of last returned child*/
                             int path_len  /*length of the search path buffer*/
                     );
-
 
 void rp_lib_get (           int* handle,
                             char* path,
@@ -144,9 +134,6 @@ void rp_lib_node_id (       int* handle,
                             int retText_len);
 
 void rp_result(             int* handle );
-
-void rp_quit();
-
 
 /**********************************************************/
 

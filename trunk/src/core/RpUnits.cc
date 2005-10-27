@@ -241,11 +241,11 @@ RpUnits::define(  const RpUnits* from,
 
 /**********************************************************************/
 // METHOD: getUnits()
-// /// Report the text portion of the units of this object back to caller.
-// /**
-//  * See Also getUnitsName().
-//  */
-//
+/// Report the text portion of the units of this object back to caller.
+/**
+ * See Also getUnitsName().
+ */
+
 std::string
 RpUnits::getUnits() const {
 
@@ -260,13 +260,13 @@ RpUnits::getUnits() const {
 
 /**********************************************************************/
 // METHOD: getUnitsName()
-// /// Report the full name of the units of this object back to caller.
-// /**
-//  * Reports the full text and exponent of the units represented by this
-//  * object, back to the caller. Note that if the exponent == 1, no
-//  * exponent will be printed.
-//  */
-//
+/// Report the full name of the units of this object back to caller.
+/**
+ * Reports the full text and exponent of the units represented by this
+ * object, back to the caller. Note that if the exponent == 1, no
+ * exponent will be printed.
+ */
+
 std::string
 RpUnits::getUnitsName() const {
 
@@ -292,13 +292,13 @@ RpUnits::getUnitsName() const {
  * **********************************************************************/
 /**********************************************************************/
 // METHOD: getExponent()
-// /// Report the exponent of the units of this object back to caller.
-// /**
-//  * Reports the exponent of the units represented by this
-//  * object, back to the caller. Note that if the exponent == 1, no
-//  * exponent will be printed.
-//  */
-//
+/// Report the exponent of the units of this object back to caller.
+/**
+ * Reports the exponent of the units represented by this
+ * object, back to the caller. Note that if the exponent == 1, no
+ * exponent will be printed.
+ */
+
 double
 RpUnits::getExponent() const {
 
@@ -312,12 +312,12 @@ RpUnits::getExponent() const {
  * **********************************************************************/
 /**********************************************************************/
 // METHOD: getBasis()
-// /// Retrieve the RpUnits object representing the basis of this object.
-// /**
-//  * Returns a pointer to a RpUnits object which, on success, points to the 
-//  * RpUnits object that is the basis of the calling object.
-//  */
-//
+/// Retrieve the RpUnits object representing the basis of this object.
+/**
+ * Returns a pointer to a RpUnits object which, on success, points to the 
+ * RpUnits object that is the basis of the calling object.
+ */
+
 const RpUnits *
 RpUnits::getBasis() const {
 
@@ -765,10 +765,10 @@ RpUnits::convert (  std::string val,
         }
 
         if (showUnits) {
-            outVal << val << toUnitsName;
+            outVal << numVal << toUnitsName;
         }
         else {
-            outVal << val;
+            outVal << numVal;
         }
 
         return std::string(outVal.str());
@@ -890,109 +890,6 @@ RpUnits::convert (  std::string val,
     return std::string(outVal.str());
 
 }
-
-/*
- * this code will be removed after dsk does some more testing
- *
-// convert function so people can just send in two strings and
-// we'll see if the units exists and do a conversion
-// strVal = RpUnits::convert("300K","C",1);
-std::string
-RpUnits::convert (  std::string val,
-                    std::string toUnitsName,
-                    int showUnits,
-                    int* result ) {
-
-    RpUnitsList toUnitsList;
-    RpUnitsList fromUnitsList;
-
-    const RpUnits* toUnits = NULL;
-    const RpUnits* fromUnits = NULL;
-
-    std::string tmpNumVal = "";
-    std::string fromUnitsName = "";
-    std::string convVal = "";
-    double numVal = 0;
-    int convResult = 0;
-    char* endptr = NULL;
-    std::stringstream outVal;
-
-
-    // set  default result flag/error code
-    if (result) {
-        *result = 0;
-    }
-
-    toUnits = find(toUnitsName);
-
-    // did we find the unit in the dictionary?
-    if (toUnits == NULL) {
-        // toUnitsName was not found in the dictionary
-        if (result) {
-            *result = 1;
-        }
-        return val;
-    }
-
-    // search our string to see where the numeric part stops
-    // and the units part starts
-    //
-    //  convert("5J", "neV") => 3.12075e+28neV
-    //  convert("3.12075e+28neV", "J") => 4.99999J
-    // now we can actually get the scientific notation portion of the string.
-    //
-
-    numVal = strtod(val.c_str(),&endptr);
-
-    if ( (numVal == 0) && (endptr == val.c_str()) ) {
-        // no conversion was done.
-        // number in incorrect format probably.
-        if (result) {
-            *result = 1;
-        }
-        return val;
-    }
-
-    fromUnitsName = std::string(endptr);
-    if ( fromUnitsName.empty() )  {
-        // there were no units in the input string
-        // assume fromUnitsName = toUnitsName
-        // return the correct value
-        if (result) {
-            *result = 0;
-        }
-
-        if (showUnits) {
-            outVal << val << toUnitsName;
-        }
-        else {
-            outVal << val;
-        }
-
-        return std::string(outVal.str());
-    }
-
-    fromUnits = find(fromUnitsName);
-
-    // did we find the unit in the dictionary?
-    if (fromUnits == NULL) {
-        // fromUnitsName was not found in the dictionary
-        if (result) {
-            *result = 1;
-        }
-        return val;
-    }
-
-    convVal = fromUnits->convert(toUnits, numVal, showUnits, &convResult);
-
-    if ( (result) && (*result == 0) ) {
-        *result = convResult;
-    }
-
-    return convVal;
-
-}
-*/
 
 std::string
 RpUnits::convert ( const  RpUnits* toUnits,
