@@ -751,8 +751,13 @@ RpUnits::convert (  std::string val,
     }
 
     fromUnitsName = std::string(endptr);
-    if ( fromUnitsName.empty() )  {
-        // there were no units in the input string
+
+    // check if the fromUnitsName is empty or
+    // if the fromUnitsName == toUnitsName
+    // these are conditions where no conversion is needed
+    if ( (fromUnitsName.empty()) || (toUnitsName == fromUnitsName) )  {
+        // there were no units in the input 
+        // string or no conversion needed
         // assume fromUnitsName = toUnitsName
         // return the correct value
         if (result) {
@@ -771,11 +776,6 @@ RpUnits::convert (  std::string val,
 
     RpUnits::units2list(toUnitsName,toUnitsList);
     RpUnits::units2list(fromUnitsName,fromUnitsList);
-
-    // std::cout << "toUnitsList = ";
-    // RpUnits::printList(toUnitsList);
-    // std::cout << "fromUnitsList = ";
-    // RpUnits::printList(fromUnitsList);
 
     toIter = toUnitsList.begin();
 
