@@ -12,10 +12,12 @@
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  * ======================================================================
  */
+
 #include "RpUnits.h"
 
 // dict pointer
 RpDict<std::string,RpUnits*>* RpUnits::dict = new RpDict<std::string,RpUnits*>();
+static RpUnitsPreset loader;
 
 /************************************************************************
  *
@@ -24,174 +26,15 @@ RpDict<std::string,RpUnits*>* RpUnits::dict = new RpDict<std::string,RpUnits*>()
  ************************************************************************/
 
 RpUnits * 
-RpUnits::define(const std::string units, const RpUnits* basis) {
+RpUnits::define( const std::string units, const RpUnits* basis) {
 
-    RpUnits * newRpUnit = NULL;
+    RpUnits* newRpUnit = NULL;
 
-    if (units == "") {
-        // raise error, user sent null units!
-        return NULL;
-    }
-
-    // check to see if the user is trying to trick me!
-    if ( (basis) && (units == basis->getUnits()) ) {
-        // dont trick me!
-        return NULL;
-    }
-
-    double exp = 0.0;
-    double oldExponent = 0;
-    double newExponent = 0;
-    int digiSearch = 0; // flag to show we are searching digits
-    int alphaSearch = 0; // flag to show we are searching chars
-
-    std::string cmpStr = "";
-
-    std::string::size_type length = units.length();
-    int srchIndex = length;
-    std::string srchStr = units;
-
-    while ((srchStr.length() > 0)) {
-
-        srchIndex--;
-
-        if (srchIndex < 0) {
-            break;
-        }
-
-        if     ( isdigit(srchStr[srchIndex]) && !digiSearch && !alphaSearch) {
-            digiSearch = 1;
-        }
-        else if(!isdigit(srchStr[srchIndex]) &&  digiSearch && !alphaSearch) {
-
-            // convert our exponent to integer
-
-            // check to see if there is a + or - sign
-            if (  ( srchStr[srchIndex] == '+' )
-               || ( srchStr[srchIndex] == '-' ) ) {
-
-                // evaluate a '+' or '-' sign with the value
-                srchIndex--;
-            }
-
-            srchIndex++;
-
-            exp = atoi(&srchStr[srchIndex]);
-
-            // we are no longer in a digit search
-            digiSearch = 0;
-
-            // place null character where the number starts
-            // so we know what we've already parsed
-
-            srchStr.erase(srchIndex);
-            length = srchStr.length();
-
-        }
-        else if( isalpha(srchStr[srchIndex]) && !digiSearch && !alphaSearch) {
-            alphaSearch = 1;
-        }
-        else if(!isalpha(srchStr[srchIndex]) && !digiSearch && alphaSearch) {
-
-            // adjust the exponent if none was provided 
-            if (exp == 0) {
-                exp = 1;
-            }
-
-            // compare unit string to see if it is a recognized system
-
-
-            std::string cmpStr = srchStr.substr(srchIndex+1,length-srchIndex-1);
-            if (newRpUnit) {
-                 newRpUnit->addUnit( cmpStr, exp, basis);
-            }
-            else {
-                 newRpUnit= new RpUnits(cmpStr, exp, basis);
-            }
-
-            // place a null character at the end of the string
-            // so we know what we've parsed so far.
-
-            srchStr.erase(srchIndex);
-            length = srchStr.length();
-
-            // fix our searching flag
-            alphaSearch = 0;
-
-        }
-        else if( srchStr[srchIndex] == '/' ) {
-            // have to go back to all of the objects created and 
-            // multiply their exponents by -1.
-
-            if (newRpUnit) {
-                unit* p = newRpUnit->head;
-                while (p) {
-                    oldExponent = p->getExponent();
-                    newExponent = oldExponent*-1;
-                    p->newExponent(newExponent);
-                    p = p->next;
-                }
-            }
-
-            // place a null character at the end of the string
-            // so we know what we've parsed so far.
-
-            srchStr.erase(srchIndex);
-            length = srchStr.length();
-
-        }
-        else {
-            continue;
-        }
-
-
-    } // end while loop
-
-
-    // complete the last iteration
-    if (srchIndex < 0) {
-
-
-        if (digiSearch) {
-            // convert whatever is left
-            exp = atoi(&srchStr[srchIndex+1]);
-
-            // if we get here, that means units name starts with a digit
-            // normally we wont get here, but if we do, should we place
-            // the unit into the dictionary? i think not since digits are
-            // always considered exponents.
-        }
-        else if (alphaSearch) {
-            // adjust the exponent if none was provided 
-            if (exp == 0) {
-                exp = 1;
-            }
-
-            // compare unit string to see if it is a recognized system
-
-            std::string cmpStr = srchStr.substr(srchIndex+1,length-srchIndex-1);
-            newRpUnit= new RpUnits(cmpStr, exp, basis);
-            newRpUnit->insert(newRpUnit->getUnitsName());
-        }
-    }
-
-    // place the new object into the dictionary
-
-    // return a copy of the new object to user
-    return newRpUnit;
-}
-
-
-/************************************************************************
- *
- * add a complex RpUnits Object
- *
- ************************************************************************/
-
-RpUnits *
-RpUnits::defineCmplx ( const std::string units, const RpUnits* basis ) {
-
-    RpUnits * newRpUnit = NULL;
+    std::string searchStr = units;
+    std::string sendStr = "";
+    int len = searchStr.length();
+    int idx = len-1;
+    double exponent = 1;
 
     if (units == "") {
         // raise error, user sent null units!
@@ -204,224 +47,102 @@ RpUnits::defineCmplx ( const std::string units, const RpUnits* basis ) {
         return NULL;
     }
 
-    double exp = 0.0;
-    double oldExponent = 0;
-    double newExponent = 0;
-    int digiSearch = 0; // flag to show we are searching digits
-    int alphaSearch = 0; // flag to show we are searching chars
-    std::string dbText = "";
-
-    std::string cmpStr = "";
-    int cmpIndex = 0;
-
-    std::string::size_type length = units.length();
-    int srchIndex = length;
-    std::string srchStr = units;
-
-
-    while ((srchStr.length() > 0)) {
-
-        srchIndex--;
-
-        if (srchIndex < 0) {
-            break;
-        }
-
-        if     ( isdigit(srchStr[srchIndex]) && !digiSearch && !alphaSearch) {
-            digiSearch = 1;
-        }
-        else if(!isdigit(srchStr[srchIndex]) &&  digiSearch && !alphaSearch) {
-
-            // convert our exponent to integer
-
-            // check to see if there is a + or - sign
-            if (  ( srchStr[srchIndex] == '+' )
-               || ( srchStr[srchIndex] == '-' ) ) {
-
-                // evaluate a '+' or '-' sign with the value
-                srchIndex--;
-            }
-
-            srchIndex++;
-
-            exp = atoi(&srchStr[srchIndex]);
-
-            // we are no longer in a digit search
-            digiSearch = 0;
-
-            // place null character where the number starts
-            // so we know what we've already parsed
-
-            srchStr.erase(srchIndex);
-            length = srchStr.length();
-
-        }
-        else if( isalpha(srchStr[srchIndex]) && !digiSearch && !alphaSearch) {
-            alphaSearch = 1;
-        }
-        else if(!isalpha(srchStr[srchIndex]) && !digiSearch && alphaSearch) {
-
-            // adjust the exponent if none was provided 
-            if (exp == 0) {
-                exp = 1;
-            }
-
-            // compare unit string to see if it is a recognized system
-
-
-            std::string cmpStr = srchStr.substr(srchIndex+1,length-srchIndex-1);
-            cmpIndex = 0;
-
-            if ( (unsigned)(cmpIndex = pre_compare(cmpStr,basis)) == 
-                    std::string::npos ) {
-                alphaSearch = 0;
-
-                // there are units we did not recognize,
-                // right now we ignore them,
-                // we may want to deal with them differntly in the future
-
-                // erase only the last character and reprocess the string
-                // because our precompare doesnt take care of this yet.
-                srchStr.erase(srchStr.length()-1);
-                length = srchStr.length();
-                srchIndex = length;
-
-
-                // continue parsing characters
-                continue;
-            }
-
-            // the compare function was successful
-            // move the search pointer to one value infront of 
-            // where the units were found.
-            //
-            // cmpIndex tells us how far ahead of the srchIndex the matching
-            // unit was found. so we add srchIndex to get the real index.
-            cmpIndex += srchIndex+1;
-            srchIndex = cmpIndex;
-            std::string newUnitText = srchStr.substr(cmpIndex,length-cmpIndex);
-
-            // call the function to create the unit object
-
-            // we need pre-compare to return the basis of what it found.
-            if (newRpUnit) {
-                 newRpUnit->addUnit( newUnitText, exp, basis);
-            }
-            else {
-                 newRpUnit= new RpUnits(newUnitText, exp, basis);
-            }
-
-
-            // place a null character at the end of the string
-            // so we know what we've parsed so far.
-
-            srchStr.erase(srchIndex);
-            length = srchStr.length();
-
-            // fix our searching flag
-            alphaSearch = 0;
-
-        }
-        else if( srchStr[srchIndex] == '/' ) {
-            // have to go back to all of the objects created and 
-            // multiply their exponents by -1.
-
-            if (newRpUnit) {
-                unit* p = newRpUnit->head;
-                while (p) {
-                    oldExponent = p->getExponent();
-                    newExponent = oldExponent*-1;
-                    p->newExponent(newExponent);
-                    p = p->next;
-                }
-            }
-
-            // place a null character at the end of the string
-            // so we know what we've parsed so far.
-
-            srchStr.erase(srchIndex);
-            length = srchStr.length();
-
-        }
-        else {
-            continue;
-        }
-
-
-    } // end while loop
-
-
-    // complete the last iteration
-    if (srchIndex < 0) {
-
-
-        if (digiSearch) {
-            // convert whatever is left
-            exp = atoi(&srchStr[srchIndex+1]);
-
-            // if we get here, that means units name starts with a digit
-            // normally we wont get here, but if we do, should we place
-            // the unit into the dictionary? i think not since digits are
-            // always considered exponents.
-        }
-        else if (alphaSearch) {
-            // adjust the exponent if none was provided 
-            if (exp == 0) {
-                exp = 1;
-            }
-
-            // compare unit string to see if it is a recognized system
-
-            std::string cmpStr = srchStr.substr(srchIndex+1,length-srchIndex-1);
-            cmpIndex = 0;
-
-            if ( (cmpIndex = pre_compare(cmpStr,basis)) < 0 ) {
-                // no matches in the compare function
-
-                // there are units we did not recognize,
-
-                // create a new unit with basis of null to show its a 
-                // fundamental type
-                newRpUnit = new RpUnits(cmpStr, exp, basis);
-
-                // put the unit into the dictionary
-                //
-                newRpUnit->insert(newRpUnit->getUnitsName());
-
-
-            }
-            else {
-
-                // the compare function was successful
-                // move the search pointer to one value infront of 
-                // where the units were found.
-                // adjusting the search pointer to point to the units
-                std::string newUnitText = srchStr.substr(cmpIndex,length-cmpIndex);
-
-                // call the function to create the unit object
-
-                // we need pre-compare to return the basis of what it found.
-                if (newRpUnit) {
-                     newRpUnit->addUnit( newUnitText, exp, basis );
-                }
-                else {
-                     newRpUnit = new RpUnits(newUnitText, exp, basis);
-                }
-
-                // creating unit
-                //
-                // putting unit into dictionary
-                newRpUnit->insert(newRpUnit->getUnitsName());
-            }
-
-        }
+    // check to see if the said unit can already be found in the dictionary
+    if (RpUnits::find(units)) {
+        return NULL;
     }
 
-    // place the new object into the dictionary
+    //default exponent
+    exponent = 1;
+
+    // check to see if there is an exponent at the end 
+    // of the search string
+    idx = RpUnits::grabExponent(searchStr, &exponent);
+    searchStr.erase(idx);
+
+    // move idx pointer back to where last character was found
+    idx--;
+
+    if ( searchStr[0] == '/') {
+        // need to negate all of the previous exponents
+        exponent = -1*exponent;
+        sendStr = searchStr.c_str()+1;
+    }
+    else {
+        // sendStr = searchStr.substr(idx+1,);
+        // we have a unit string to parse
+        sendStr = searchStr;
+    }
+
+    newRpUnit = new RpUnits(sendStr, exponent, basis);
+    if (newRpUnit) {
+        insert(newRpUnit->getUnitsName(),newRpUnit);
+    }
 
     // return a copy of the new object to user
     return newRpUnit;
 }
+
+int
+RpUnits::grabExponent(const std::string& inStr, double* exp) {
+
+    int len = inStr.length();
+    int idx = len - 1;
+
+    *exp = 1;
+
+    while (isdigit(inStr[idx])) {
+        idx--;
+    }
+
+    if ( (inStr[idx] == '+') || (inStr[idx] == '-') ) {
+        idx--;
+    }
+
+    idx++;
+
+    if (idx != len) {
+        // process the exponent.
+        *exp = strtod(inStr.c_str()+idx,NULL);
+    }
+
+    return idx;
+}
+
+int
+RpUnits::grabUnitString ( const std::string& inStr ) {
+
+    int idx = inStr.length() - 1;
+
+    while (isalpha(inStr[idx])) {
+        idx--;
+    }
+
+    // move the index forward one position to
+    // represent the start of the unit string
+    idx++;
+
+    return idx;
+}
+
+const RpUnits*
+RpUnits::grabUnits ( std::string inStr, int* offset) {
+
+    const RpUnits* unit = NULL;
+    int len = inStr.length();
+
+    while ( ! inStr.empty() ) {
+        unit = RpUnits::find(inStr);
+        if (unit) {
+            *offset = len - inStr.length();
+            break;
+        }
+        inStr.erase(0,1);
+    }
+
+    return unit;
+}
+
 
 
 /************************************************************************
@@ -444,11 +165,14 @@ RpUnits::define(  const RpUnits* from,
     conversion* conv1 = NULL;
     conversion* conv2 = NULL;
 
-    conv1 = new conversion (from,to,convForwFxnPtr,convBackFxnPtr);
-    conv2 = new conversion (from,to,convForwFxnPtr,convBackFxnPtr);
+    if (from && to) {
 
-    from->connectConversion(conv1);
-    to->connectConversion(conv2);
+        conv1 = new conversion (from,to,convForwFxnPtr,convBackFxnPtr);
+        conv2 = new conversion (from,to,convForwFxnPtr,convBackFxnPtr);
+
+        from->connectConversion(conv1);
+        to->connectConversion(conv2);
+    }
 
     return NULL;
 }
@@ -460,19 +184,21 @@ RpUnits::define(  const RpUnits* from,
                   double (*convBackFxnPtr)(double,double)) {
 
     // this is kinda the wrong way to get the job done...
-    // how do we only create 1 conversion object and share it between atleast two RpUnits
-    // objs so that when the RpUnits objs are deleted, we are not trying to delete already
-    // deleted memory.
+    // how do we only create 1 conversion object and share it between 
+    // atleast two RpUnits objs so that when the RpUnits objs are 
+    // deleted, we are not trying to delete already deleted memory.
     // so for the sake of safety we get the following few lines of code.
 
     conversion* conv1 = NULL;
     conversion* conv2 = NULL;
 
-    conv1 = new conversion (from,to,convForwFxnPtr,convBackFxnPtr);
-    conv2 = new conversion (from,to,convForwFxnPtr,convBackFxnPtr);
+    if (from && to) {
+        conv1 = new conversion (from,to,convForwFxnPtr,convBackFxnPtr);
+        conv2 = new conversion (from,to,convForwFxnPtr,convBackFxnPtr);
 
-    from->connectConversion(conv1);
-    to->connectConversion(conv2);
+        from->connectConversion(conv1);
+        to->connectConversion(conv2);
+    }
 
     return NULL;
 }
@@ -486,19 +212,23 @@ RpUnits::define(  const RpUnits* from,
                   void* convBackData) {
 
     // this is kinda the wrong way to get the job done...
-    // how do we only create 1 conversion object and share it between atleast two RpUnits
-    // objs so that when the RpUnits objs are deleted, we are not trying to delete already
-    // deleted memory.
+    // how do we only create 1 conversion object and share it between at
+    // least two RpUnits objs so that when the RpUnits objs are deleted, 
+    // we are not trying to delete already deleted memory.
     // so for the sake of safety we get the following few lines of code.
 
     conversion* conv1 = NULL;
     conversion* conv2 = NULL;
 
-    conv1 = new conversion (from,to,convForwFxnPtr,convForwData,convBackFxnPtr,convBackData);
-    conv2 = new conversion (from,to,convForwFxnPtr,convForwData,convBackFxnPtr,convBackData);
+    if (from && to) {
+        conv1 = new conversion ( from, to, convForwFxnPtr,convForwData,
+                                 convBackFxnPtr,convBackData);
+        conv2 = new conversion ( from,to,convForwFxnPtr,convForwData,
+                                 convBackFxnPtr,convBackData);
 
-    from->connectConversion(conv1);
-    to->connectConversion(conv2);
+        from->connectConversion(conv1);
+        to->connectConversion(conv2);
+    }
 
     return NULL;
 }
@@ -519,15 +249,7 @@ RpUnits::define(  const RpUnits* from,
 std::string
 RpUnits::getUnits() const {
 
-    std::stringstream unitText;
-    unit* p = head;
-
-    while (p) {
-        unitText << p->getUnits() ;
-        p = p->next;
-    }
-
-    return (unitText.str());
+    return units;
 }
 
 /************************************************************************
@@ -549,24 +271,18 @@ std::string
 RpUnits::getUnitsName() const {
 
     std::stringstream unitText;
-    unit* p = head;
     double exponent;
 
-    while (p) {
+    exponent = getExponent();
 
-        exponent = p->getExponent();
-
-        if (exponent == 1) {
-            unitText << p->getUnits();
-        }
-        else {
-            unitText << p->getUnits() << p->getExponent();
-        }
-
-        p = p->next;
+    if (exponent == 1) {
+        unitText << units;
+    }
+    else {
+        unitText << units << exponent;
     }
 
-    return (unitText.str());
+    return (std::string(unitText.str()));
 }
 
 /************************************************************************
@@ -586,7 +302,7 @@ RpUnits::getUnitsName() const {
 double
 RpUnits::getExponent() const {
 
-    return head->getExponent();
+    return exponent;
 }
 
 /************************************************************************
@@ -605,12 +321,7 @@ RpUnits::getExponent() const {
 const RpUnits *
 RpUnits::getBasis() const {
 
-    // check if head exists?
-    if (!head) {
-        // raise error for badly formed Rappture Units object
-    }
-
-    return head->getBasis();
+    return basis;
 }
 
 /************************************************************************
@@ -626,7 +337,6 @@ RpUnits::getBasis() const {
 double
 RpUnits::makeBasis(double value, int* result) const {
 
-    const RpUnits* basis = getBasis();
     double retVal = value;
 
     if (result) {
@@ -636,10 +346,6 @@ RpUnits::makeBasis(double value, int* result) const {
     if (basis == NULL) {
         // this unit is a basis
         // do nothing
-
-        // if (result) {
-        //     *result = 1;
-        // }
     }
     else {
         retVal = convert(basis,value,result);
@@ -650,17 +356,12 @@ RpUnits::makeBasis(double value, int* result) const {
 
 const RpUnits&
 RpUnits::makeBasis(double* value, int* result) const {
-    const RpUnits* basis = getBasis();
     double retVal = *value;
     int convResult = 1;
 
     if (basis == NULL) {
         // this unit is a basis
         // do nothing
-
-        // if (result) {
-        //     *result = 1;
-        // }
     }
     else {
         retVal = convert(basis,retVal,&convResult);
@@ -686,7 +387,7 @@ RpUnits::makeBasis(double* value, int* result) const {
  * **********************************************************************/
 
 int
-RpUnits::makeMetric(const RpUnits * basis) {
+RpUnits::makeMetric(const RpUnits* basis) {
 
     if (!basis) {
         return 0;
@@ -694,7 +395,6 @@ RpUnits::makeMetric(const RpUnits * basis) {
 
     std::string basisName = basis->getUnitsName();
     std::string name;
-    std::string forw, back;
 
     name = "c" + basisName;
     RpUnits * centi = RpUnits::define(name, basis);
@@ -751,11 +451,21 @@ RpUnits::makeMetric(const RpUnits * basis) {
 const RpUnits*
 RpUnits::find(std::string key) {
 
-    // dict.find seems to return a (RpUnits* const) so i had to
-    // cast it as a (RpUnits*)
-
     // dict pointer
-    const RpUnits* unitEntry = *(dict->find(key).getValue());
+    const RpUnits* unitEntry = NULL;
+    double exponent = 1;
+    int idx = 0;
+    std::stringstream tmpKey;
+
+    if (key[0] == '/') {
+        // check to see if there is an exponent at the end
+        // of the search string
+        idx = RpUnits::grabExponent(key, &exponent);
+        tmpKey << key.substr(1,idx-1) << (-1*exponent);
+        key = tmpKey.str();
+    }
+
+    unitEntry = *(dict->find(key).getValue());
 
     // dict pointer
     if (unitEntry == *(dict->getNullEntry().getValue()) ) {
@@ -765,6 +475,221 @@ RpUnits::find(std::string key) {
     return unitEntry;
 }
 
+int
+RpUnits::negateListExponents(RpUnitsList& unitsList) {
+    RpUnitsListIter iter = unitsList.begin();
+    int nodeCnt = unitsList.size();
+
+    if (nodeCnt > 0) {
+        for (; iter != unitsList.end(); iter++) {
+            iter->negateExponent();
+            nodeCnt--;
+        }
+    }
+
+    return nodeCnt;
+}
+
+// negate the exponent
+void
+RpUnitsListEntry::negateExponent() const {
+    exponent = exponent * -1;
+    return;
+}
+
+// provide the caller with the name of this object
+std::string
+RpUnitsListEntry::name() const {
+    std::stringstream name;
+    name << unit->getUnits() << exponent;
+    return std::string(name.str());
+}
+
+// provide the caller with the basis of the RpUnits object being stored
+const RpUnits*
+RpUnitsListEntry::getBasis() const {
+    return unit->getBasis();
+}
+
+// get the RpUnits*
+const RpUnits*
+RpUnitsListEntry::getUnitsObj() const {
+    return unit;
+}
+
+// get the RpUnits*
+double
+RpUnitsListEntry::getExponent() const {
+    return exponent;
+}
+
+int
+RpUnits::printList(RpUnitsList& unitsList) {
+    RpUnitsListIter iter = unitsList.begin();
+    int nodeCnt = unitsList.size();
+
+    if (nodeCnt > 0) {
+        for (; iter != unitsList.end(); iter++) {
+            std::cout << iter->name() << " ";
+            nodeCnt--;
+        }
+        std::cout << std::endl;
+    }
+
+    return nodeCnt;
+}
+
+int
+RpUnits::units2list ( const std::string& inUnits,
+                      RpUnitsList& outList ) {
+
+    std::string myInUnits   = inUnits;
+    std::string sendUnitStr = "";
+    double exponent         = 1;
+    int offset              = 0;
+    int idx                 = 0;
+    int last                = 0;
+    const RpUnits* unit     = NULL;
+
+
+    while ( !myInUnits.empty() ) {
+
+        // check to see if we came across a '/' character
+        last = myInUnits.length()-1;
+        if (myInUnits[last] == '/') {
+            myInUnits.erase(last);
+            // multiply previous exponents by -1
+            if ( ! outList.empty() ) {
+                RpUnits::negateListExponents(outList);
+            }
+            continue;
+        }
+
+        // get the exponent
+        offset = RpUnits::grabExponent(myInUnits,&exponent);
+        myInUnits.erase(offset);
+        idx = offset - 1;
+
+        // grab the largest string we can find
+        offset = RpUnits::grabUnitString(myInUnits);
+        idx = offset;
+
+        // figure out if we have some defined units in that string
+        sendUnitStr = myInUnits.substr(offset,std::string::npos);
+        unit = grabUnits(sendUnitStr,&offset);
+        if (unit) {
+            // a unit was found
+            // add this unit to the list
+            // erase the found unit's name from our search string
+            outList.push_front(RpUnitsListEntry(unit,exponent));
+            myInUnits.erase(idx+offset);
+        }
+        else {
+            // we came across a unit we did not recognize
+            // raise error and delete character for now
+            myInUnits.erase(last);
+        }
+
+        // reset our vars
+        idx = 0;
+        offset = 0;
+        exponent = 1;
+    }
+
+    return 0;
+}
+
+int RpUnits::compareListEntryBasis ( RpUnitsList& fromList,
+                                     RpUnitsListIter& fromIter,
+                                     RpUnitsListIter& toIter ) {
+
+    const RpUnits* toBasis = NULL;
+    const RpUnits* fromBasis = NULL;
+    int retVal = 1;
+    double fromExp = 0;
+    double toExp = 0;
+
+    fromIter = fromList.begin();
+
+    // get the basis of the object being stored
+    // if the basis is NULL, then we'll compare the object
+    // itself because the object is the basis.
+    toBasis = toIter->getBasis();
+    if (toBasis == NULL) {
+        toBasis = toIter->getUnitsObj();
+    }
+
+    toExp   = toIter->getExponent();
+
+    while ( fromIter != fromList.end() ) {
+
+        fromExp = fromIter->getExponent();
+
+        // in order to convert, exponents must be equal.
+        if (fromExp == toExp) {
+
+            // get the basis of the object being stored
+            // if the basis is NULL, then we'll compare the object
+            // itself because the object is the basis.
+            fromBasis = fromIter->getBasis();
+            if (fromBasis == NULL) {
+                fromBasis = fromIter->getUnitsObj();
+            }
+
+            if (toBasis == fromBasis) {
+                // conversion needed between 2 units of the same basis.
+                // these two units could actually be the same unit (m->m)
+                retVal = 0;
+                break;
+            }
+        }
+
+        fromIter++;
+    }
+
+    return retVal;
+}
+
+int RpUnits::compareListEntrySearch ( RpUnitsList& fromList,
+                                     RpUnitsListIter& fromIter,
+                                     RpUnitsListIter& toIter ) {
+
+    const RpUnits* toBasis = NULL;
+    const RpUnits* fromBasis = NULL;
+    int retVal = 1;
+
+    fromIter = fromList.begin();
+
+    // get the basis of the object being stored
+    // if the basis is NULL, then we'll compare the object
+    // itself because the object is the basis.
+    toBasis = toIter->getBasis();
+    if (toBasis == NULL) {
+        toBasis = toIter->getUnitsObj();
+    }
+
+    while ( fromIter != fromList.end() ) {
+
+        // get the basis of the object being stored
+        // if the basis is NULL, then we'll compare the object
+        // itself because the object is the basis.
+        fromBasis = fromIter->getBasis();
+        if (fromBasis == NULL) {
+            fromBasis = fromIter->getUnitsObj();
+        }
+
+        if (toBasis == fromBasis) {
+            // conversion needed between 2 units of the same basis.
+            // these two units could actually be the same unit (m->m)
+            retVal = 0;
+            break;
+        }
+
+        fromIter++;
+    }
+
+    return retVal;
+}
 
 // convert function so people can just send in two strings and
 // we'll see if the units exists and do a conversion
@@ -775,13 +700,219 @@ RpUnits::convert (  std::string val,
                     int showUnits,
                     int* result ) {
 
+    RpUnitsList toUnitsList;
+    RpUnitsList fromUnitsList;
+
+    RpUnitsListIter toIter;
+    RpUnitsListIter fromIter;
+    RpUnitsListIter tempIter;
+
     const RpUnits* toUnits = NULL;
     const RpUnits* fromUnits = NULL;
+
+    std::string tmpNumVal = "";
+    std::string fromUnitsName = "";
+    std::string convVal = "";
+    double origNumVal = 0;
+    double numVal = 0;
+    double toExp = 0;
+    double fromExp = 0;
+    int convResult = 0;
+    char* endptr = NULL;
+    std::stringstream outVal;
+
+    int rv = 0;
+    double factor = 1;
+
+
+    // set  default result flag/error code
+    if (result) {
+        *result = 0;
+    }
+
+    // search our string to see where the numeric part stops
+    // and the units part starts
+    //
+    //  convert("5J", "neV") => 3.12075e+28neV
+    //  convert("3.12075e+28neV", "J") => 4.99999J
+    // now we can actually get the scientific notation portion of the string.
+    //
+
+    numVal = strtod(val.c_str(),&endptr);
+    origNumVal = numVal;
+
+    if ( (numVal == 0) && (endptr == val.c_str()) ) {
+        // no conversion was done.
+        // number in incorrect format probably.
+        if (result) {
+            *result = 1;
+        }
+        return val;
+    }
+
+    fromUnitsName = std::string(endptr);
+    if ( fromUnitsName.empty() )  {
+        // there were no units in the input string
+        // assume fromUnitsName = toUnitsName
+        // return the correct value
+        if (result) {
+            *result = 0;
+        }
+
+        if (showUnits) {
+            outVal << val << toUnitsName;
+        }
+        else {
+            outVal << val;
+        }
+
+        return std::string(outVal.str());
+    }
+
+    RpUnits::units2list(toUnitsName,toUnitsList);
+    RpUnits::units2list(fromUnitsName,fromUnitsList);
+
+    // std::cout << "toUnitsList = ";
+    // RpUnits::printList(toUnitsList);
+    // std::cout << "fromUnitsList = ";
+    // RpUnits::printList(fromUnitsList);
+
+    toIter = toUnitsList.begin();
+
+    // pass 1: compare basis' of objects to find intra-basis conversions
+    while ( toIter != toUnitsList.end() ) {
+        rv = RpUnits::compareListEntryBasis(fromUnitsList, fromIter, toIter);
+        if (rv == 0) {
+
+            // check the names of the units provided by the user
+            // if the names are the same, no need to do a conversion
+            if (fromIter->name() != toIter->name()) {
+
+                // do an intra-basis conversion
+                toUnits = toIter->getUnitsObj();
+                fromUnits = fromIter->getUnitsObj();
+
+                // do conversions
+                factor = 1;
+                factor = fromUnits->convert(toUnits, factor, &convResult);
+                numVal *= pow(factor,toIter->getExponent());
+            }
+
+            // remove the elements from the lists
+            tempIter = toIter;
+            toUnitsList.erase(tempIter);
+            toIter++;
+
+            tempIter = fromIter;
+            fromUnitsList.erase(tempIter);
+        }
+        else {
+            // this is not an intra-basis conversion.
+            // move onto the next toIter
+            toIter++;
+        }
+    }
+
+    toIter = toUnitsList.begin();
+    fromIter = fromUnitsList.begin();
+
+    // pass 2: look for inter-basis conversions
+    if (fromIter != fromUnitsList.end()) {
+        // double while loop to compare each toIter with each fromIter.
+        // the outter while checks the toIter and the inner while
+        // which is conveniently hidden, adjusts the fromIter and toIter
+        // (at the bottom in the else statement).
+        while (toIter != toUnitsList.end()) {
+
+            toUnits = toIter->getUnitsObj();
+            fromUnits = fromIter->getUnitsObj();
+
+            // do an inter-basis conversion...the slow way
+            // there has to be a better way to do this...
+            convResult = 1;
+
+            // in order to convert, exponents must be equal.
+            fromExp = fromIter->getExponent();
+            toExp   = toIter->getExponent();
+
+            if (fromExp == toExp) {
+                if (toExp == 1) {
+                    numVal = fromUnits->convert(toUnits, numVal, &convResult);
+                }
+                else {
+                    factor = 1;
+                    factor = fromUnits->convert(toUnits, factor, &convResult);
+                    numVal *= pow(factor,toExp);
+                }
+            }
+
+            if (convResult == 0) {
+                // successful conversion reported
+                // remove the elements from the lists
+                tempIter = toIter;
+                toUnitsList.erase(tempIter);
+                toIter++;
+
+                tempIter = fromIter;
+                fromUnitsList.erase(tempIter);
+
+                // conversion complete, jump out of the 
+                // while loop
+                break;
+            }
+            else {
+                // conversion was unsuccessful
+                // move onto the next fromIter
+                fromIter++;
+                if (fromIter == fromUnitsList.end()) {
+                    // this is not an inter-basis conversion.
+                    // move onto the next toIter
+                    fromIter = fromUnitsList.begin();
+                    toIter++;
+                }
+            } // end unsuccessful conversion
+        } // end toIter while loop
+    } // end
+
+
+
+    if ( (result) && (*result == 0) ) {
+        *result = convResult;
+    }
+
+    if (showUnits) {
+        outVal << numVal << toUnitsName;
+    }
+    else {
+        outVal << numVal;
+    }
+
+    return std::string(outVal.str());
+
+}
+
+/*
+ * this code will be removed after dsk does some more testing
+ *
+// convert function so people can just send in two strings and
+// we'll see if the units exists and do a conversion
+// strVal = RpUnits::convert("300K","C",1);
+std::string
+RpUnits::convert (  std::string val,
+                    std::string toUnitsName,
+                    int showUnits,
+                    int* result ) {
+
+    RpUnitsList toUnitsList;
+    RpUnitsList fromUnitsList;
+
+    const RpUnits* toUnits = NULL;
+    const RpUnits* fromUnits = NULL;
+
     std::string tmpNumVal = "";
     std::string fromUnitsName = "";
     std::string convVal = "";
     double numVal = 0;
-    // int idx = 0;
     int convResult = 0;
     char* endptr = NULL;
     std::stringstream outVal;
@@ -838,7 +969,7 @@ RpUnits::convert (  std::string val,
             outVal << val;
         }
 
-        return outVal.str();
+        return std::string(outVal.str());
     }
 
     fromUnits = find(fromUnitsName);
@@ -861,6 +992,7 @@ RpUnits::convert (  std::string val,
     return convVal;
 
 }
+*/
 
 std::string
 RpUnits::convert ( const  RpUnits* toUnits,
@@ -879,7 +1011,7 @@ RpUnits::convert ( const  RpUnits* toUnits,
         unitText << retVal;
     }
 
-    return (unitText.str()); 
+    return (std::string(unitText.str())); 
 
 }
 
@@ -895,7 +1027,6 @@ RpUnits::convert(const RpUnits* toUnit, double val, int* result) const {
     // connection to the toUnit object from the basis.
 
     double value = val;
-    const RpUnits* basis = this->getBasis();
     const RpUnits* toBasis = toUnit->getBasis();
     const RpUnits* fromUnit = this;
     const RpUnits* dictToUnit = NULL;
@@ -904,7 +1035,7 @@ RpUnits::convert(const RpUnits* toUnit, double val, int* result) const {
 
     // set *result to a default value
     if (result) {
-        *result = 0;
+        *result = 1;
     }
 
     // guard against converting to the units you are converting from...
@@ -999,9 +1130,14 @@ RpUnits::convert(const RpUnits* toUnit, double val, int* result) const {
                 }
             }
 
-            // we can probably remove this
-            if (result) {
-                *result += 0;
+            // change the result code to zero, a conversion was performed
+            // (we think)... its ture that it is possible to get to this 
+            // point and have skipped the conversion because the 
+            // conversion object was not properly created...
+            // ie. both fxn ptrs were null or neither fxn ptr was null
+            //
+            if (result && (*result == 1)) {
+                *result = 0;
             }
             break;
         }
@@ -1042,9 +1178,14 @@ RpUnits::convert(const RpUnits* toUnit, double val, int* result) const {
                 }
             }
 
-            // we can probably remove this
-            if (result) {
-                *result += 0;
+            // change the result code to zero, a conversion was performed
+            // (we think)... its ture that it is possible to get to this 
+            // point and have skipped the conversion because the 
+            // conversion object was not properly created...
+            // ie. both fxn ptrs were null or neither fxn ptr was null
+            //
+            if (result && (*result == 1)) {
+                *result = 0;
             }
             break;
         }
@@ -1076,7 +1217,6 @@ RpUnits::convert(const RpUnits* toUnit, void* val, int* result) const {
     // connection ot the toUnit object from the basis.
 
     void* value = val;
-    const RpUnits* basis = this->getBasis();
     const RpUnits* toBasis = toUnit->getBasis();
     const RpUnits* fromUnit = this;
     const RpUnits* dictToUnit = NULL;
@@ -1085,7 +1225,7 @@ RpUnits::convert(const RpUnits* toUnit, void* val, int* result) const {
 
     // set *result to a default value
     if (result) {
-        *result = 0;
+        *result = 1;
     }
 
     // guard against converting to the units you are converting from...
@@ -1165,8 +1305,13 @@ RpUnits::convert(const RpUnits* toUnit, void* val, int* result) const {
                 }
             }
 
-            // we can probably remove this
-            if (result) {
+            // change the result code to zero, a conversion was performed
+            // (we think)... its ture that it is possible to get to this 
+            // point and have skipped the conversion because the 
+            // conversion object was not properly created...
+            // ie. both fxn ptrs were null or neither fxn ptr was null
+            //
+            if (result && (*result == 1)) {
                 *result = 0;
             }
             break;
@@ -1193,8 +1338,13 @@ RpUnits::convert(const RpUnits* toUnit, void* val, int* result) const {
                 }
             }
 
-            // we can probably remove this
-            if (result) {
+            // change the result code to zero, a conversion was performed
+            // (we think)... its ture that it is possible to get to this 
+            // point and have skipped the conversion because the 
+            // conversion object was not properly created...
+            // ie. both fxn ptrs were null or neither fxn ptr was null
+            //
+            if (result && (*result == 1)) {
                 *result = 0;
             }
             break;
@@ -1219,151 +1369,16 @@ RpUnits::convert(const RpUnits* toUnit, void* val, int* result) const {
 
 }
 
-void
-RpUnits::addUnit( const std::string& units,
-                  double&  exponent,
-                  const RpUnits* basis) {
-
-    unit* p = NULL;
-
-    // check if the list was created previously. if not, start the list
-    if (head == 0) {
-        head = new unit(units,exponent,basis,NULL,NULL);
-        return;
-    }
-
-    // now add a new node at the beginning of the list:
-    p = new unit(units,exponent,basis,NULL,head);
-    head->prev = p;
-    head = p;
-
-}
-
 int
-RpUnits::insert(std::string key) {
+// RpUnits::insert(std::string key,RpUnits* val) {
+insert(std::string key,RpUnits* val) {
 
     int newRecord = 0;
-    RpUnits* val = this;
+    // RpUnits* val = this;
     // dict pointer
     RpUnits::dict->set(key,val,&newRecord);
     return newRecord;
 }
-
-
-int
-RpUnits::pre_compare( std::string& units, const RpUnits* basis ) {
-
-    // compare the incomming units with the previously defined units.
-    // compareStr will hold a copy of the incomming string.
-    // first look for the units as they are listed in the incomming variable
-    // next look move searchStr toward the end of the string,
-    // each time the pointer is moved, searchStr should be compared to all of
-    // the previously defined units.
-    // if searchStr is at the end of the string, then searchStr will be moved
-    // back to the beginning of the string.
-    // next it will traverse the string again, changing the case of the char
-    // it points to and the resultant string will be compared again to all 
-    // of the previously defined units.
-
-    int compareSuccess = 0;
-    // std::string::size_type units_len = units.length();
-    // char * retVal = NULL;
-    int retIndex = std::string::npos;
-    // std::string compareStr = units;
-    std::string searchStr = units;
-    std::string dbText = "";
-
-    // pass 1: look for exact match of units as they came into the function
-    //          move searchStr pointer through string to find match.
-    while ( ! compareSuccess &&
-            (searchStr.length() > 0) ) {
-
-        // dict pointer
-        if (dict->find(searchStr) == dict->getNullEntry()) {
-            // the string was not found, 
-            // keep incrementing the pointer
-            // searchStr (pass1)  does not match";
-        }
-        else {
-            // compare was successful, 
-            // searchStr (pass1)  found a match
-            compareSuccess++;
-            break;
-            // is it possible to create the unit here and 
-            // keep looking for units fro mthe provided string?
-        }
-
-        searchStr.erase(0,1);
-
-        if (basis) {
-            if ( (searchStr == basis->getUnits()) &&
-                 (searchStr.length() == basis->getUnits().length()) )
-            {
-                break;
-            }
-        }
-    }
-
-
-    if (compareSuccess == 0) {
-        // refresh our searchStr var.
-        searchStr = units;
-    }
-
-    // pass 2: capitolize the first letter of the search string and compare
-    //          for each letter in the string
-    while ( ! compareSuccess &&
-            (searchStr.length() > 0) ) {
-
-        if (islower((int)(searchStr[0]))) {
-            searchStr[0] = (char) toupper((int)(searchStr[0]));
-        }
-
-        // dict pointer
-        if (dict->find(searchStr) == dict->getNullEntry()) {
-            // the string was not found, 
-            // keep incrementing the pointer
-            // searchStr (pass2)  does not match
-        }
-        else {
-            // compare was successful, 
-            // searchStr (pass2)  found a match
-            compareSuccess++;
-            break;
-        }
-        searchStr.erase(0,1);
-
-        // check to see if we are at the basis.
-        if (basis) {
-            if ( (searchStr == basis->getUnits()) &&
-                 (searchStr.length() == basis->getUnits().length()) )
-            {
-                break;
-            }
-
-        }
-
-    }
-
-
-
-    // if we found a match, find the first occurance of the string which
-    // was used to get the match, in our original units string.
-    // this gets dicey for capitolizations.
-    if ( compareSuccess ) {
-        // need to think about if we want to search from the start
-        // or the end of the string (find or rfind)
-        // i think its the start because in this fxn (above)
-        // we start at the beginning of the string and work
-        // our way to the end. so if there is a second match at the
-        // end, we would have only seen the first match.
-        retIndex = units.find(searchStr);
-    }
-
-    return retIndex;
-
-}
-
 
 void
 RpUnits::connectConversion(conversion* conv) const {
@@ -1388,22 +1403,22 @@ int
 RpUnits::addPresets (const std::string group) {
     int retVal = -1;
     if (group.compare("all") == 0) {
-        retVal = addPresetAll();
+        retVal = RpUnitsPreset::addPresetAll();
     }
     else if (group.compare("energy") == 0) {
-        retVal = addPresetEnergy();
+        retVal = RpUnitsPreset::addPresetEnergy();
     }
     else if (group.compare("length") == 0) {
-        retVal = addPresetLength();
+        retVal = RpUnitsPreset::addPresetLength();
     }
     else if (group.compare("temp") == 0) {
-        retVal = addPresetTemp();
+        retVal = RpUnitsPreset::addPresetTemp();
     }
     else if (group.compare("time") == 0) {
-        retVal = addPresetTime();
+        retVal = RpUnitsPreset::addPresetTime();
     }
     else if (group.compare("volume") == 0) {
-        retVal = addPresetTime();
+        retVal = RpUnitsPreset::addPresetTime();
     }
 
     return retVal;
@@ -1411,7 +1426,7 @@ RpUnits::addPresets (const std::string group) {
 
 // return codes: 0 success, anything else is error
 int
-RpUnits::addPresetAll () {
+RpUnitsPreset::addPresetAll () {
 
     int result = 0;
 
@@ -1426,7 +1441,7 @@ RpUnits::addPresetAll () {
 
 // return codes: 0 success, anything else is error
 int
-RpUnits::addPresetTime () {
+RpUnitsPreset::addPresetTime () {
 
     RpUnits* seconds    = RpUnits::define("s", NULL);
 
@@ -1439,7 +1454,7 @@ RpUnits::addPresetTime () {
 
 // return codes: 0 success, anything else is error
 int
-RpUnits::addPresetTemp () {
+RpUnitsPreset::addPresetTemp () {
 
     RpUnits* fahrenheit = RpUnits::define("F", NULL);
     RpUnits* celcius    = RpUnits::define("C", NULL);
@@ -1457,7 +1472,7 @@ RpUnits::addPresetTemp () {
 
 // return codes: 0 success, anything else is error
 int
-RpUnits::addPresetLength () {
+RpUnitsPreset::addPresetLength () {
 
     RpUnits* meters     = RpUnits::define("m", NULL);
     RpUnits* angstrom   = RpUnits::define("A", NULL);
@@ -1478,7 +1493,7 @@ RpUnits::addPresetLength () {
 
 // return codes: 0 success, anything else is error
 int
-RpUnits::addPresetEnergy () {
+RpUnitsPreset::addPresetEnergy () {
 
     RpUnits* volt       = RpUnits::define("V", NULL);
     RpUnits* eVolt      = RpUnits::define("eV", NULL);
@@ -1496,9 +1511,10 @@ RpUnits::addPresetEnergy () {
 
 // return codes: 0 success, anything else is error
 int
-RpUnits::addPresetVolume () {
+RpUnitsPreset::addPresetVolume () {
 
     RpUnits* cubic_meter  = RpUnits::define("m3", NULL);
+    // RpUnits* pcubic_meter  = RpUnits::define("/m3", NULL);
     RpUnits* cubic_feet   = RpUnits::define("ft3", NULL);
     RpUnits* us_gallon    = RpUnits::define("gal", NULL);
 
