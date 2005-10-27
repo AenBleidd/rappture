@@ -29,6 +29,6 @@ c ======================================================================
         retVal = rp_units_convert_dbl("72F","C",dblVal)
         print *,"72F = ",dblVal, " (no units)"
         print *,"retVal = ",retVal
-        
+
       end program units_test
 

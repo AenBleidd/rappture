@@ -14,85 +14,43 @@
  */
 #include <iostream>
 #include <string>
+#include <list>
 #include <sstream>
 #include <stdlib.h>
 #include <errno.h>
+#include <math.h>
 
-#ifndef _RpDICT_H
-    #include "RpDict.h"
-#endif
-
+#include "RpDict.h"
 #include "RpUnitsStd.h"
 
 #ifndef _RpUNITS_H
 #define _RpUNITS_H
 
+#define LIST_TEMPLATE RpUnitsListEntry
+
+// should the define function:
+// 1. compare portions of inStr to unit names that have previously 
+//    been defined (you must parse in order for this option to work)
+#define COMPARE_MASK    1
+// 2. create a unit if no unit by the name exists.
+#define CREATE_MASK     2
+// 3. parse the unit name to try to find previously defined units.
+#define PARSE_MASK      4
+
 class RpUnits;
 
-class unit
-{
-
+class RpUnitsPreset {
     public:
+        RpUnitsPreset () {
+            addPresetAll();
+        };
 
-        const std::string getUnits(){ return units; };
-        double getExponent() {return exponent;};
-        const RpUnits * getBasis() {return basis;};
-
-        friend class RpUnits;
-
-    private:
-        const std::string units;
-        double exponent;
-        const RpUnits* basis;
-
-        unit* prev;
-        unit* next;
-
-        // private constructor
-        unit (
-                const std::string& units,
-                double&            exponent,
-                const RpUnits*     basis,
-                unit*              prev,
-                unit*              next
-             )
-            :   units    (units),
-                exponent (exponent),
-                basis    (basis),
-                prev     (prev),
-                next     (next)
-            {};
-
-        /*
-        // private copy constructor
-        unit ( const unit& other )
-            :   units        other.units,
-                exponent     other.exponent,
-                basis        other.basis,
-                prev         unit(other.prev),
-                next         unit(other.next)
-            {};
-
-        // copy assignment operator
-        unit& operator= (unit& other) 
-            :   units        other.units,
-                exponent     other.exponent,
-                basis        RpUnits(other.basis),
-                prev         unit(other.prev),
-                next         unit(other.next)
-        {}
-        */
-
-        /*
-        // destructor (its not virtual yet, still testing)
-        ~unit () {
-
-        }
-        */
-
-        void newExponent(double newExponent) {exponent = newExponent;};
-
-
+        static int addPresetAll();
+        static int addPresetEnergy();
+        static int addPresetLength();
+        static int addPresetTemp();
+        static int addPresetTime();
+        static int addPresetVolume();
 };
 
 // simple class to hold info about a conversion.
@@ -255,11 +213,63 @@ class convEntry
 
 };
 
+class RpUnitsListEntry
+{
+
+    public:
+
+        // constructor
+        RpUnitsListEntry (const RpUnits* unit, double exponent)
+            : unit     (unit),
+              exponent (exponent)
+        {};
+
+        // copy constructor
+        RpUnitsListEntry (const RpUnitsListEntry& other)
+            : unit     (other.unit),
+              exponent (other.exponent)
+        {};
+
+        // copy assignment operator
+        RpUnitsListEntry& operator= (const RpUnitsListEntry& other) {
+            unit = other.unit;
+            exponent = other.exponent;
+            return *this;
+        }
+
+        // negate the exponent
+        void negateExponent() const;
+
+        // print the name of the object
+        std::string name() const;
+
+        // report the basis of the RpUnits object being stored.
+        const RpUnits* getBasis() const;
+
+        // return the RpUnits*
+        const RpUnits* getUnitsObj() const;
+
+        // return the exponent
+        double getExponent() const;
+
+        // destructor
+        virtual ~RpUnitsListEntry ()
+        {}
+
+    private:
+
+        const RpUnits* unit;
+        mutable double exponent;
+};
+
 class RpUnits
 {
     /*
      * helpful units site
      * http://aurora.regenstrief.org/~gunther/units.html
+     * http://www.nodc.noaa.gov/dsdt/ucg/
+     * http://www.cellml.org/meeting_minutes/archive/
+     *        20010110_meeting_minutes.html
      */
 
     public:
@@ -271,8 +281,8 @@ class RpUnits
         const RpUnits* getBasis() const;
 
         // convert from one RpUnits to another if the conversion is defined
-        double convert(         const RpUnits* toUnits, 
-                                double val, 
+        double convert(         const RpUnits* toUnits,
+                                double val,
                                 int* result=NULL    ) const;
         // convert from one RpUnits to another if the conversion is defined
         void* convert(          const RpUnits* toUnits, 
@@ -290,6 +300,13 @@ class RpUnits
                                      std::string toUnits,
                                      int showUnits,
                                      int* result = NULL );
+
+        /*
+        static std::string convert ( std::string val,
+                                     std::string toUnits,
+                                     int showUnits,
+                                     int* result = NULL );
+        */
 
         // dictionary to store the units.
         // static RpDict<std::string,RpUnits> dict;
@@ -311,10 +328,9 @@ class RpUnits
         //
         // add RpUnits Object
         static RpUnits * define(const std::string units,
-                                const RpUnits* basis);
-                                // unsigned int create=0);
-        static RpUnits * defineCmplx(   const std::string units,
-                                        const RpUnits* basis);
+                                const RpUnits* basis=NULL   );
+        // static RpUnits * defineCmplx(   const std::string units,
+        //                                 const RpUnits* basis);
         //
         // add relation rule
 
@@ -356,41 +372,29 @@ class RpUnits
         friend class RpDict<std::string,RpUnits*>;
         friend class RpDictEntry<std::string,RpUnits*>;
 
+        friend int insert(std::string key,RpUnits* val);
+
+
         // copy constructor
         RpUnits (RpUnits &other)
-            : head (NULL),
+            : units    (other.units),
+              exponent (other.exponent),
+              basis    (other.basis),
               convList (NULL)
         {
-            unit* p = NULL;
-            unit* current = NULL;
             convEntry* q = NULL;
-            convEntry* curr2 = NULL;
+            convEntry* curr = NULL;
 
             dict = other.dict;
 
-            if (other.head) {
-                p = other.head;
-                head = new unit(p->units, p->exponent, p->basis, NULL, NULL);
-                current = head;
-
-                while (p->next) {
-                    p = p->next;
-                    current->next = new unit( p->units,
-                                              p->exponent,
-                                              p->basis,
-                                              current,
-                                              NULL        );
-                    current = current->next;
-                }
-            }
             if (other.convList) {
                 q = other.convList;
                 convList = new convEntry (q->conv,NULL,NULL);
-                curr2 = convList;
+                curr = convList;
                 while (q->next) {
                     q = q->next;
-                    curr2->next = new convEntry (q->conv,curr2,NULL);
-                    curr2 = curr2->next;
+                    curr->next = new convEntry (q->conv,curr,NULL);
+                    curr = curr->next;
                 }
             }
         }
@@ -398,41 +402,26 @@ class RpUnits
         // copy assignment operator
         RpUnits& operator= (const RpUnits& other) {
 
-            unit* p = NULL;
-            unit* current = NULL;
             convEntry* q = NULL;
-            convEntry* curr2 = NULL;
+            convEntry* curr = NULL;
 
             if ( this != &other ) {
-                delete head;
                 delete convList;
             }
 
             dict = other.dict;
+            units = other.units;
+            exponent = other.exponent;
+            basis = other.basis;
 
-            if (other.head) {
-                p = other.head;
-                head = new unit(p->units, p->exponent, p->basis, NULL, NULL);
-                current = head;
-
-                while (p->next) {
-                    p = p->next;
-                    current->next = new unit( p->units,
-                                              p->exponent,
-                                              p->basis,
-                                              current,
-                                              NULL        );
-                    current = current->next;
-                }
-            }
             if (other.convList) {
                 q = other.convList;
                 convList = new convEntry (q->conv,NULL,NULL);
-                curr2 = convList;
+                curr = convList;
                 while (q->next) {
                     q = q->next;
-                    curr2->next = new convEntry (q->conv,curr2,NULL);
-                    curr2 = curr2->next;
+                    curr->next = new convEntry (q->conv,curr,NULL);
+                    curr = curr->next;
                 }
             }
 
@@ -445,21 +434,13 @@ class RpUnits
         {
             // clean up dynamic memory
 
-            unit* p = head;
-            unit* tmp = p;
-            convEntry* p2 = convList;
-            convEntry* tmp2 = p2;
+            convEntry* p = convList;
+            convEntry* tmp = p;
 
             while (p != NULL) {
                 tmp = p;
                 p = p->next;
                 delete tmp;
-            }
-
-            while (p2 != NULL) {
-                tmp2 = p2;
-                p2 = p2->next;
-                delete tmp2;
             }
         }
 
@@ -479,8 +460,9 @@ class RpUnits
         // move through the linked list, only converting the metric elements.
         //
 
-        // used by the RpUnits when defining units elements
-        unit* head;
+        std::string units;
+        double exponent;
+        const RpUnits* basis;
 
         // linked list of units this RpUnit can convert to
         // its mutable because the connectConversion function takes in a
@@ -500,45 +482,44 @@ class RpUnits
         //      of the units (the fundamental unit)
         //
 
-
-
         RpUnits (
                     const std::string& units,
                     double& exponent,
                     const RpUnits* basis
                 )
-            :   head        ( new unit( units, exponent, basis, NULL, NULL) ),
+            :   units       (units),
+                exponent    (exponent),
+                basis       (basis),
                 convList    (NULL)
         {};
-
-        void RpUnits::connectConversion(conversion* conv) const;
 
         // insert new RpUnits object into RpUnitsTable
         // returns 0 on success (object inserted or already exists)
         // returns !0 on failure (object cannot be inserted or dne)
-        int RpUnits::insert(std::string key);
+        // int RpUnits::insert(std::string key) const;
 
-        // link two RpUnits objects that already exist in RpUnitsTable
-        // returns 0 on success (linking within table was successful)
-        // returns !0 on failure (linking was not successful)
-        // int RpUnits::link(RpUnits * unitA);
+        typedef std::list<LIST_TEMPLATE> RpUnitsList;
+        typedef RpUnitsList::iterator RpUnitsListIter;
 
+        void newExponent(double newExponent) {exponent = newExponent;};
 
-        static int pre_compare( std::string& units,
-                                const RpUnits* basis = NULL);
+        static int units2list( const std::string& inUnits,
+                               RpUnitsList& outList         );
+        static int grabExponent(const std::string& inStr, double* exp);
+        static int grabUnitString( const std::string& inStr);
+        static const RpUnits* grabUnits (std::string inStr, int* offset);
+        static int negateListExponents(RpUnitsList& unitsList);
+        static int RpUnits::printList(RpUnitsList& unitsList);
 
-        void addUnit( const std::string& units,
-                      double &  exponent,
-                      const RpUnits * basis
-                     );
+        static int RpUnits::compareListEntryBasis( RpUnitsList& fromList,
+                                                   RpUnitsListIter& fromIter,
+                                                   RpUnitsListIter& toIter);
 
-        static int addPresetAll();
-        static int addPresetEnergy();
-        static int addPresetLength();
-        static int addPresetTemp();
-        static int addPresetTime();
-        static int addPresetVolume();
+        static int RpUnits::compareListEntrySearch( RpUnitsList& fromList,
+                                                    RpUnitsListIter& fromIter,
+                                                    RpUnitsListIter& toIter);
 
+        void RpUnits::connectConversion(conversion* conv) const;
 
 };
 

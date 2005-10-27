@@ -18,124 +18,124 @@ extern "C" {
  ****************************************/
 
 
-double centi2base (double centi, double power)
+double centi2base (double centi)
 {
-   return centi*pow(1e-2,power);
+   return centi*1e-2;
 }
 
-double milli2base (double milli, double power)
+double milli2base (double milli)
 {
-    return milli*pow(1e-3,power);
+    return milli*1e-3;
 }
 
-double micro2base (double micro, double power)
+double micro2base (double micro)
 {
-    return micro*pow(1e-6,power);
+    return micro*1e-6;
 }
 
-double nano2base (double nano, double power)
+double nano2base (double nano)
 {
-    return nano*pow(1e-9,power);
+    return nano*1e-9;
 }
 
-double pico2base (double pico, double power)
+double pico2base (double pico)
 {
-    return pico*pow(1e-12,power);
+    return pico*1e-12;
 }
 
-double femto2base (double femto, double power)
+double femto2base (double femto)
 {
-    return femto*pow(1e-15,power);
+    return femto*1e-15;
 }
 
-double atto2base (double atto, double power)
+double atto2base (double atto)
 {
-    return atto*pow(1e-18,power);
+    return atto*1e-18;
 }
 
-double kilo2base (double kilo, double power)
+double kilo2base (double kilo)
 {
-    return kilo*pow(1e3,power);
+    return kilo*1e3;
 }
 
-double mega2base (double mega, double power)
+double mega2base (double mega)
 {
-    return mega*pow(1e6,power);
+    return mega*1e6;
 }
 
-double giga2base (double giga, double power)
+double giga2base (double giga)
 {
-    return giga*pow(1e9,power);
+    return giga*1e9;
 }
 
-double tera2base (double tera, double power)
+double tera2base (double tera)
 {
-    return tera*pow(1e12,power);
+    return tera*1e12;
 }
 
-double peta2base (double peta, double power)
+double peta2base (double peta)
 {
-    return peta*pow(1e15,power);
+    return peta*1e15;
 }
 
-double base2centi (double base, double power)
+double base2centi (double base)
 {
-    return base*pow(1e2,power);
+    return base*1e2;
 }
 
-double base2milli (double base, double power)
+double base2milli (double base)
 {
-    return base*pow(1e3,power);
+    return base*1e3;
 }
 
-double base2micro (double base, double power)
+double base2micro (double base)
 {
-    return base*pow(1e6,power);
+    return base*1e6;
 }
 
-double base2nano (double base, double power)
+double base2nano (double base)
 {
-    return base*pow(1e9,power);
+    return base*1e9;
 }
 
-double base2pico (double base, double power)
+double base2pico (double base)
 {
-    return base*pow(1e12,power);
+    return base*1e12;
 }
 
-double base2femto (double base, double power)
+double base2femto (double base)
 {
-    return base*pow(1e15,power);
+    return base*1e15;
 }
 
-double base2atto (double base, double power)
+double base2atto (double base)
 {
-    return base*pow(1e18,power);
+    return base*1e18;
 }
 
-double base2kilo (double base, double power)
+double base2kilo (double base)
 {
-    return base*pow(1e-3,power);
+    return base*1e-3;
 }
 
-double base2mega (double base, double power)
+double base2mega (double base)
 {
-    return base*pow(1e-6,power);
+    return base*1e-6;
 }
 
-double base2giga (double base, double power)
+double base2giga (double base)
 {
-    return base*pow(1e-9,power);
+    return base*1e-9;
 }
 
-double base2tera (double base, double power)
+double base2tera (double base)
 {
-    return base*pow(1e-12,power);
+    return base*1e-12;
 }
 
-double base2peta (double base, double power)
+double base2peta (double base)
 {
-    return base*pow(1e-15,power);
+    return base*1e-15;
 }
 
 /****************************************
@@ -144,44 +144,44 @@ double base2peta (double base, double power)
  * http://www.nodc.noaa.gov/dsdt/ucg/
  ****************************************/
 
-double angstrom2meter (double angstrom, double power)
+double angstrom2meter (double angstrom)
 {
-        return angstrom*(pow(1.0e-10,power));
+        return angstrom*(1.0e-10);
 }
 
-double meter2angstrom (double meters, double power)
+double meter2angstrom (double meter)
 {
-        return meters*(pow(1.0e10,power));
+        return meter*(1.0e10);
 }
 
-double meter2inch (double m, double power)
+double meter2inch (double meter)
 {
-        return (m*(pow(39.37008,power)));
+        return meter*(39.37008);
 }
 
-double inch2meter (double in, double power)
+double inch2meter (double in)
 {
-        return (in/(pow(39.37008,power)));
+        return (in/(39.37008));
 }
 
-double meter2feet (double m, double power)
+double meter2feet (double meter)
 {
-        return (m*(pow(3.280840,power)));
+        return (meter*(3.280840));
 }
 
-double feet2meter (double ft, double power)
+double feet2meter (double ft)
 {
-        return (ft/(pow(3.280840,power)));
+        return (ft/(3.280840));
 }
 
-double meter2yard (double m, double power)
+double meter2yard (double meter)
 {
-        return (m*(pow(1.093613,power)));
+        return (meter*(1.093613));
 }
 
-double yard2meter (double yd, double power)
+double yard2meter (double yd)
 {
-        return (yd/(pow(1.093613,power)));
+        return (yd/(1.093613));
 }
 
 /****************************************
@@ -246,24 +246,24 @@ double joule2electronVolt (double J)
  * MISC VOLUME CONVERSIONS
  ****************************************/
 
-double cubicMeter2usGallon (double m3, double none)
+double cubicMeter2usGallon (double m3)
 {
         return (m3*264.1721);
 }
 
-double usGallon2cubicMeter (double g, double none)
+double usGallon2cubicMeter (double gal)
 {
-        return (g/264.1721);
+        return (gal/264.1721);
 }
 
-double cubicFeet2usGallon (double ft3, double none)
+double cubicFeet2usGallon (double ft3)
 {
         return (ft3*7.48051);
 }
 
-double usGallon2cubicFeet (double g, double none)
+double usGallon2cubicFeet (double gal)
 {
-        return (g/7.48051);
+        return (gal/7.48051);
 }
 
 

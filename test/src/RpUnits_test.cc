@@ -40,14 +40,6 @@ int main()
     // of units
     //
     printf ("=============== TEST 1 ===============\n");
-    const RpUnits * meters = RpUnits::define("m", NULL);
-    // (meters) ? success() : fail();
-    // RpUnits * centimeter = RpUnits::define("cm", NULL);
-
-    RpUnits::makeMetric(meters);
-    RpUnits::define("V", NULL);
-    RpUnits::define("s", NULL);
-
 /*
     std::string srch_str = std::string("cm");
 
@@ -60,7 +52,8 @@ int main()
     std::cout << "complete"<< std::endl;
 
 */
-    
+
+/*
     const RpUnits* mobility = RpUnits::defineCmplx("cm2/Vs", NULL);
     std::cout << "mobility = :" << mobility->getUnitsName() <<":"<< std::endl;
 
@@ -73,32 +66,31 @@ int main()
     else {
         std::cout << "mobility2 dn exists" << std::endl;
     }
+*/
 
+    const RpUnits* meters = RpUnits::find("m");
     const RpUnits* cmeters = RpUnits::find("cm");
-    const RpUnits* angstrom = RpUnits::define("A", NULL);
-    RpUnits::define(angstrom, meters, angstrom2meter, meter2angstrom);
+    const RpUnits* angstrom = RpUnits::find("A");
 
     value = angstrom->convert(meters,1.0,&result);
     std::cout << "1 angstrom = " << value << " meters" << std::endl;
+    std::cout << "result = " << result << std::endl;
 
     result = 0;
     value = cmeters->convert(angstrom,1e-8,&result);
     std::cout << "1.0e-8 centimeter = " << value << " angstroms" << std::endl;
 
 
-    const RpUnits* fahrenheit  = RpUnits::define("F", NULL);
-    const RpUnits* celcius  = RpUnits::define("C", NULL);
-    const RpUnits* kelvin  = RpUnits::define("K", NULL);
-    
-    RpUnits::define(fahrenheit, celcius, fahrenheit2centigrade, centigrade2fahrenheit);
-    RpUnits::define(celcius, kelvin, centigrade2kelvin, kelvin2centigrade);
-    
+    const RpUnits* fahrenheit  = RpUnits::find("F");
+    const RpUnits* celcius  = RpUnits::find("C");
+    const RpUnits* kelvin  = RpUnits::find("K");
+
     value = fahrenheit->convert(celcius,72,&result);
     std::cout << "72 degrees fahrenheit = " << value << " degrees celcius" << std::endl;
-    
+
     value = celcius->convert(fahrenheit,value,&result);
     std::cout << "22.222 degrees celcius = " << value << " degrees fahrenheit" << std::endl;
-    
+
     value = celcius->convert(kelvin,20,&result);
     std::cout << "20 degrees celcius = " << value << " kelvin" << std::endl;
 
@@ -263,10 +255,8 @@ int main()
 
 
 
-    const RpUnits* eV  = RpUnits::define("eV", NULL);
-    const RpUnits* joules  = RpUnits::define("J", NULL);
-
-    RpUnits::define(eV, joules, electronVolt2joule, joule2electronVolt);
+    const RpUnits* eV  = RpUnits::find("eV");
+    const RpUnits* joules  = RpUnits::find("J");
 
     value = joules->convert(eV,1,&result);
     std::cout << "1 joule = " << value << " electronVolts" << std::endl;
@@ -322,5 +312,32 @@ int main()
     std::cout << "deleting testRpUnits" << std::endl;
     delete testRpUnits;
     std::cout << "copyRpUnits = " << copyRpUnits.getUnitsName() << std::endl;
+
+
+    // test deleting a const object
+
+    const RpUnits* myobj = RpUnits::define("myunit",NULL);
+    delete myobj;
+
+    // test /cm2
+    // std::cout << "convert (3m3 -> cm3)     = " << RpUnits::convert("3m3","cm3",0) << std::endl;
+    // std::cout << "convert (3/m3 -> /cm3)   = " << RpUnits::convert("3/m3","/cm3",0) << std::endl;
+    // std::cout << "convert (300cm3 -> m3)   = " << RpUnits::convert("300cm3","m3",0) << std::endl;
+    // std::cout << "convert (300/cm3 -> /m3) = " << RpUnits::convert("300/cm3","/m3",0) << std::endl;
+
+    std::cout << "convert (3m3 -> cm3)     = " << RpUnits::convert("3m3","cm3",0) << std::endl;
+    std::cout << "convert (3/m3 -> /cm3)   = " << RpUnits::convert("3/m3","/cm3",0) << std::endl;
+    std::cout << "convert (300cm3 -> m3)   = " << RpUnits::convert("300cm3","m3",0) << std::endl;
+    std::cout << "convert (300/cm3 -> /m3) = " << RpUnits::convert("300/cm3","/m3",0) << std::endl;
+    std::cout << "convert (72F -> 22.22C) = " << RpUnits::convert("72F","C",0) << std::endl;
+    std::cout << "convert (5J -> 3.12075e+28neV) = " << RpUnits::convert("5J","neV",0) << std::endl;
+    std::cout << "convert (5J2 -> 1.9478e+56neV2) = " << RpUnits::convert("5J2","neV2",0) << std::endl;
+
+    // testing complex units
+    std::cout << "convert (1cm2/Vs -> 0.0001m2/Vs) = " << RpUnits::convert("1cm2/Vs","m2/Vs",0) << std::endl;
+    std::cout << "convert (1cm2/Vs -> 0.1m2/kVs) = " << RpUnits::convert("1cm2/Vs","m2/kVs",0) << std::endl;
+    std::cout << "convert (1cm2/Vs -> 1e-7m2/kVus) = " << RpUnits::convert("1cm2/Vs","m2/kVus",0) << std::endl;
+
     return 0;
+
 }

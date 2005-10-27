@@ -11,44 +11,44 @@
 extern "C" {
 #endif
 
-double centi2base (double centi, double power);
-double milli2base (double milli, double power);
-double micro2base (double micro, double power);
-double nano2base (double nano, double power);
-double pico2base (double pico, double power);
-double femto2base (double femto, double power);
-double atto2base (double atto, double power);
-double kilo2base (double kilo, double power);
-double mega2base (double mega, double power);
-double giga2base (double giga, double power);
-double tera2base (double tera, double power);
-double peta2base (double peta, double power);
+double centi2base (double centi);
+double milli2base (double milli);
+double micro2base (double micro);
+double nano2base (double nano);
+double pico2base (double pico);
+double femto2base (double femto);
+double atto2base (double atto);
+double kilo2base (double kilo);
+double mega2base (double mega);
+double giga2base (double giga);
+double tera2base (double tera);
+double peta2base (double peta);
 
 
 
-double base2centi (double base, double power);
-double base2milli (double base, double power);
-double base2micro (double base, double power);
-double base2nano (double base, double power);
-double base2pico (double base, double power);
-double base2femto (double base, double power);
-double base2atto (double base, double power);
-double base2kilo (double base, double power);
-double base2mega (double base, double power);
-double base2giga (double base, double power);
-double base2tera (double base, double power);
-double base2peta (double base, double power);
+double base2centi (double base);
+double base2milli (double base);
+double base2micro (double base);
+double base2nano (double base);
+double base2pico (double base);
+double base2femto (double base);
+double base2atto (double base);
+double base2kilo (double base);
+double base2mega (double base);
+double base2giga (double base);
+double base2tera (double base);
+double base2peta (double base);
 
 
 
-double angstrom2meter (double angstrom, double power);
-double meter2angstrom (double meters, double power);
-double meter2inch (double m, double power);
-double inch2meter (double in, double power);
-double meter2feet (double m, double power);
-double feet2meter (double ft, double power);
-double meter2yard (double m, double power);
-double yard2meter (double yd, double power);
+double angstrom2meter (double angstrom);
+double meter2angstrom (double meter);
+double meter2inch (double meter);
+double inch2meter (double in);
+double meter2feet (double meter);
+double feet2meter (double ft);
+double meter2yard (double meter);
+double yard2meter (double yd);
 
 
 
@@ -70,10 +70,10 @@ double joule2electronVolt (double J);
 
 
 
-double cubicMeter2usGallon (double m3, double none);
-double usGallon2cubicMeter (double g, double none);
-double cubicFeet2usGallon (double ft3, double none);
-double usGallon2cubicFeet (double g, double none);
+double cubicMeter2usGallon (double m3);
+double usGallon2cubicMeter (double gal);
+double cubicFeet2usGallon (double ft3);
+double usGallon2cubicFeet (double gal);
 
 
 
