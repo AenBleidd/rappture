@@ -15,8 +15,14 @@
 #include "RpBindingsDict.h"
 #include "RpLibraryFStubs.c"
 
-int rp_lib(const char* filePath, int filePath_len) 
-{
+/**********************************************************************/
+// FUNCTION: rp_lib(const char* filePath, int filePath_len)
+/// Open the file at 'filePath' and return Rappture Library Object.
+/**
+ */
+
+int rp_lib(const char* filePath, int filePath_len) {
+
     RpLibrary* lib = NULL;
     int handle = -1;
     std::string inFilePath = "";
@@ -33,6 +39,11 @@ int rp_lib(const char* filePath, int filePath_len)
     return handle;
 }
 
+/**********************************************************************/
+// FUNCTION: rp_lib_element_obj()
+/// Return the node located at 'path'.
+/**
+ */
 int rp_lib_element_obj(int* handle,     /* integer handle of library */
                           char* path,     /* null terminated path */
                           int path_len
@@ -61,6 +72,11 @@ int rp_lib_element_obj(int* handle,     /* integer handle of library */
     return newObjHandle;
 }
 
+/**********************************************************************/
+// FUNCTION: rp_lib_element_comp()
+/// Return the component name of the node located at 'path'.
+/**
+ */
 void rp_lib_element_comp( int* handle, /* integer handle of library */
                             char* path,      /* null terminated path */
                             char* retText,   /* return buffer for fortran*/
@@ -85,11 +101,16 @@ void rp_lib_element_comp( int* handle, /* integer handle of library */
 
 }
 
-void rp_lib_element_id(   int* handle, /* integer handle of library */
-                            char* path,      /* null terminated path */
-                            char* retText,   /* return buffer for fortran*/
+/**********************************************************************/
+// FUNCTION: rp_lib_element_id()
+/// Return the 'id' of node located at 'path'.
+/**
+ */
+void rp_lib_element_id(   int* handle,       /* integer handle of library    */
+                            char* path,      /* path of element within xml   */
+                            char* retText,   /* return buffer for fortran    */
                             int path_len,
-                            int retText_len /* length of return text buffer */
+                            int retText_len  /* length of return text buffer */
                         ) 
 {
     std::string inPath = "";
@@ -108,11 +129,16 @@ void rp_lib_element_id(   int* handle, /* integer handle of library */
     }
 }
 
-void rp_lib_element_type( int* handle, /* integer handle of library */
+/**********************************************************************/
+// FUNCTION: rp_lib_element_type()
+/// Return the type of the node located at 'path'.
+/**
+ */
+void rp_lib_element_type( int* handle,       /* integer handle of library */
                             char* path,      /* search path inside xml */
                             char* retText,   /* return buffer for fortran*/
                             int path_len,
-                            int retText_len /* length of return text buffer */
+                            int retText_len  /* length of return text buffer */
                           )
 {
     std::string inPath = "";
@@ -129,6 +155,11 @@ void rp_lib_element_type( int* handle, /* integer handle of library */
     }
 }
 
+/**********************************************************************/
+// FUNCTION: rp_lib_children(const char* filePath, int filePath_len)
+/// Retrieve the next child of 'path' from the Rappture Library Object.
+/**
+ */
 int rp_lib_children (   int* handle, /* integer handle of library */
                         char* path, /* search path of the xml */
                         int* childHandle, /*integer hanlde of last returned child*/
@@ -177,46 +208,6 @@ int rp_lib_children (   int* handle, /* integer handle of library */
 
 }
 
-/*
-int rp_lib_child_num( int* handle, 
-                         char* path, 
-                         int path_len
-                       )
-{
-    int numChildren = 0;
-
-    PyObject* lib = NULL;
-    PyObject* list = NULL;
-    char* inPath = NULL;
-
-    inPath = null_terminate(path,path_len);
-
-    if (rapptureStarted) {
-        if ((handle) && (*handle != 0)) {
-            lib = getObject_Lib(*handle);
-
-            if (lib) {
-                list = rpChildren_f(lib, inPath, "type");
-                if (list) {
-                    numChildren = PyList_Size(list);
-                    Py_DECREF(list);
-                }
-                else {
-
-                }
-            }
-        }
-    }
-
-    if (inPath) {
-        free(inPath);
-        inPath = NULL;
-    }
-
-    return numChildren;
-
-}
-*/
 
 //int rp_lib_child_comp (   int* handle,    /* integer handle of library */
 //                            char* path,     /* DOM path of requested object */
@@ -446,6 +437,11 @@ int rp_lib_child_obj ( int* handle,
 }
 */
 
+/**********************************************************************/
+// FUNCTION: rp_lib()
+/// Get data located at 'path' and return it as a string value.
+/**
+ */
 void rp_lib_get( int* handle, /* integer handle of library */
                    char* path,      /* null terminated path */
                    char* retText,   /* return text buffer for fortran*/
@@ -474,6 +470,11 @@ void rp_lib_get( int* handle, /* integer handle of library */
     }
 }
 
+/**********************************************************************/
+// FUNCTION: rp_lib_get_double()
+/// Get data located at 'path' and return it as a double precision value.
+/**
+ */
 double rp_lib_get_double( int* handle,   /* integer handle of library */
                             char* path,    /* null terminated path */
                             int path_len
@@ -499,6 +500,11 @@ double rp_lib_get_double( int* handle,   /* integer handle of library */
 }
 
 
+/**********************************************************************/
+// FUNCTION: rp_lib_put_str()
+/// Put string into Rappture Library Object at location 'path'.
+/**
+ */
 void rp_lib_put_str( int* handle, 
                         char* path, 
                         char* value, 
@@ -527,6 +533,11 @@ void rp_lib_put_str( int* handle,
 }
 
 
+/**********************************************************************/
+// FUNCTION: rp_lib_put_id_str()
+/// Put string into Rappture Library Object at location 'path' with id = 'id'
+/**
+ */
 void rp_lib_put_id_str ( int* handle, 
                         char* path, 
                         char* value, 
@@ -706,6 +717,12 @@ int rp_lib_xml_len (int* handle)
 }
 */
 
+/**********************************************************************/
+// FUNCTION: rp_lib_write_xml()
+/// Write the xml text into a file.
+/**
+ * \sa {rp_result}
+ */
 int rp_lib_write_xml(int* handle, char* outFile, int outFile_len)
 {
     int retVal = -1;
@@ -739,6 +756,11 @@ int rp_lib_write_xml(int* handle, char* outFile, int outFile_len)
     return retVal;
 }
 
+/**********************************************************************/
+// FUNCTION: rp_lib_xml()
+/// Return this node's xml text
+/**
+ */
 void  rp_lib_xml(int* handle, char* retText, int retText_len)
 {
     std::string xmlText = "";
@@ -757,6 +779,11 @@ void  rp_lib_xml(int* handle, char* retText, int retText_len)
     }
 }
 
+/**********************************************************************/
+// FUNCTION: rp_lib_node_comp()
+/// Return this node's component name
+/**
+ */
 void rp_lib_node_comp ( int* handle, char* retText, int retText_len ) {
 
     std::string retStr = "";
@@ -774,6 +801,11 @@ void rp_lib_node_comp ( int* handle, char* retText, int retText_len ) {
     }
 }
 
+/**********************************************************************/
+// FUNCTION: rp_lib_node_type()
+/// Return this node's type
+/**
+ */
 void rp_lib_node_type ( int* handle, char* retText, int retText_len ) {
 
     std::string retStr = "";
@@ -791,6 +823,11 @@ void rp_lib_node_type ( int* handle, char* retText, int retText_len ) {
     }
 }
 
+/**********************************************************************/
+// FUNCTION: rp_lib_node_id()
+/// Return this node's id.
+/**
+ */
 void rp_lib_node_id ( int* handle, char* retText, int retText_len ) {
 
     std::string retStr = "";
@@ -808,34 +845,11 @@ void rp_lib_node_id ( int* handle, char* retText, int retText_len ) {
     }
 }
 
-void rp_quit()
-{
-
-    // clean up the dictionary
-
-/*
-    RpDictEntry DICT_TEMPLATE_L *hPtr;
-    // RpDictIterator DICT_TEMPLATE iter(fortObjDict_Lib);
-    // should rp_quit clean up the dict or some function in RpBindingsCommon.h
-    RpDictIterator DICT_TEMPLATE_L iter(ObjDict_Lib);
-
-    hPtr = iter.first();
-
-    while (hPtr) {
-        // Py_DECREF(*(hPtr->getValue()));
-        hPtr->erase();
-        hPtr = iter.next();
-    }
-
-    // if (fortObjDict_Lib.size()) {
-    if (ObjDict_Lib.size()) {
-        // probably want to change the warning sometime
-        // printf("\nWARNING: internal dictionary is not empty..deleting\n");
-    }
-*/
-    cleanLibDict();
-}
-
+/**********************************************************************/
+// FUNCTION: rp_result()
+/// Write xml text to a run.xml file and signal the program has completed
+/**
+ */
 void rp_result(int* handle) {
     RpLibrary* lib = NULL;
 
@@ -845,5 +859,8 @@ void rp_result(int* handle) {
             lib->result();
         }
     }
+
+    // do no delete this, still working on testing this
+    cleanLibDict();
 }
 

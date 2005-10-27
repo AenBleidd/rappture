@@ -16,7 +16,7 @@ c ======================================================================
       program fermi
         IMPLICIT NONE
 
-        integer rp_lib, rp_units_convert_dbl, rp_units_add_presets
+        integer rp_lib, rp_units_convert_dbl
 
         integer driver, ok
         double precision T, Ef, kT, Emin, Emax, dE, f, E
@@ -25,8 +25,6 @@ c ======================================================================
 
         call getarg(1,inFile)
         driver = rp_lib(inFile)
-
-        ok = rp_units_add_presets("all")
 
         call rp_lib_get(driver,
      +        "input.number(temperature).current", strVal)

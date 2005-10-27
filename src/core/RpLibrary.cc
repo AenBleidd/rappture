@@ -431,72 +431,6 @@ RpLibrary::element (std::string path, std::string as)
     return retLib;
 }
 
-/*
-// as not implemented, use nodeType, nodeId, nodeComp.
-RpLibrary**
-RpLibrary::children (std::string path, std::string as, std::string type)
-{
-    RpLibrary** retLib = NULL; 
-    int childCount = 0;
-    int childNum = 0;
-    scew_element* parentNode = NULL;
-    scew_element* childNode = NULL;
-    std::string childName = "";
-
-    if (path.empty()) {
-        // an empty path returns the current RpLibrary
-        // you can still get the children of the root node
-        parentNode = this->root;
-    }
-    else {
-        parentNode = _find(path,0);
-    }
-
-    if (parentNode == NULL) {
-        // node not found
-        // add error code here
-        return NULL;
-    }
-
-    childCount = scew_element_count(parentNode);
-
-    // even if there are no children, we can send back a null array
-    retLib = new RpLibrary*[childCount+1]; 
-
-    if (!retLib) {
-        // there was an error mallocing memory for a RpLibrary object
-        return NULL;
-    }
-
-    if (childCount) {
-
-        while ( (childNode = scew_element_next(parentNode,childNode)) ) {
-            if (childNode) {
-                if (!type.empty()) {
-                    childName = scew_element_name(childNode);
-                    if (type == childName) {
-                        retLib[childNum++] = new RpLibrary( childNode );
-                    }
-                }
-                else {
-                    retLib[childNum++] = new RpLibrary( childNode );
-                }
-            }
-            else {
-                // somthing happened within scew, get error code and display
-                return NULL;
-            }
-        }
-    }
-
-    std::cout << "childNum = " << childNum << std::endl;
-    retLib[childNum] = NULL;
-
-    // how do you free this??
-    return retLib;
-}
-*/
-
 RpLibrary*
 RpLibrary::children (   std::string path, 
                         RpLibrary* rpChildNode, 
@@ -720,7 +654,7 @@ RpLibrary::nodeComp ()
 
 /*
  * ----------------------------------------------------------------------
- *  FUNCTION: rpResult
+ *  FUNCTION: result
  *
  *  Clients call this function at the end of their simulation, to
  *  pass the simulation result back to the Rappture GUI.  It writes

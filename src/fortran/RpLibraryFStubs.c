@@ -576,20 +576,6 @@ void
 RP_RESULT (             int* handle ) {
     return rp_result(handle);
 }
-void
-rp_quit_ () {
-    return rp_quit();
-}
-
-void
-rp_quit__ () {
-    return rp_quit();
-}
-
-void
-RP_QUIT () {
-    return rp_quit();
-}
 
 
 /**********************************************************/

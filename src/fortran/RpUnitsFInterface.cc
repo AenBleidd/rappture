@@ -252,22 +252,3 @@ rp_units_convert_str (      char* fromVal,
     // return the same result from the RpUnits::convert call.
     return result;
 }
-
-int
-rp_units_add_presets ( char* presetName, int presetName_len) {
-
-    char* inPresetName = NULL;
-    int result = -1;
-
-    inPresetName = null_terminate(presetName,presetName_len);
-
-    result = RpUnits::addPresets(inPresetName);
-
-    if (inPresetName) {
-        free(inPresetName);
-        inPresetName = NULL;
-    }
-
-    return result;
-}
-
