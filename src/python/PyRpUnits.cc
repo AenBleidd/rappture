@@ -472,7 +472,6 @@ RpUnits_convert(PyObject *self, PyObject *args, PyObject *keywds)
 
     retStr = RpUnits::convert(fromVal_S,to_S,unitsVal,&result);
 
-    std::cout << result << std::endl;
     if ( (!retStr.empty()) && (result == 0) ) {
         if (unitsVal) {
             retVal = PyString_FromString(retStr.c_str());
