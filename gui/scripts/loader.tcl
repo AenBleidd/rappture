@@ -84,7 +84,7 @@ itcl::body Rappture::Loader::constructor {owner path args} {
         set fdir "."
     }
 
-    set _counter 1
+    set _counter 0
     foreach ftail $flist {
         set fpath [file join $fdir examples $ftail]
 
@@ -97,7 +97,7 @@ itcl::body Rappture::Loader::constructor {owner path args} {
                 } else {
                     set label [$obj get about.label]
                     if {$label == ""} {
-                        set label "Example #$_counter"
+                        set label "Example #[incr _counter]"
                     }
 
                     # if this is new, add it
