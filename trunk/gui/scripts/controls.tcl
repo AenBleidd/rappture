@@ -31,9 +31,11 @@ itcl::class Rappture::Controls {
     public method control {args}
 
     protected method _layout {}
+    protected method _monitor {name state}
     protected method _controlChanged {path}
     protected method _formatLabel {str}
     protected method _changeTabs {}
+    protected method _resize {}
 
     private variable _owner ""       ;# controls belong to this owner
     private variable _tabs ""        ;# optional tabset for groups
@@ -42,6 +44,7 @@ itcl::class Rappture::Controls {
     private variable _dispatcher ""  ;# dispatcher for !events
     private variable _controls ""    ;# list of known controls
     private variable _name2info      ;# maps control name => info
+    private variable _scheme ""      ;# layout scheme (tabs/hlabels)
 }
                                                                                 
 itk::usual Controls {
@@ -54,6 +57,8 @@ itcl::body Rappture::Controls::constructor {owner args} {
     Rappture::dispatcher _dispatcher
     $_dispatcher register !layout
     $_dispatcher dispatch $this !layout "[itcl::code $this _layout]; list"
+    $_dispatcher register !resize
+    $_dispatcher dispatch $this !resize "[itcl::code $this _resize]; list"
 
     set _owner $owner
 
@@ -74,6 +79,13 @@ itcl::body Rappture::Controls::constructor {owner args} {
     # It forces the size to contract back now when controls are deleted.
     #
     frame $_frame.empty -width 1 -height 1
+
+    #
+    # Set up a binding that all inserted widgets will use so that
+    # we can monitor their size changes.
+    #
+    bind Controls-$this <Configure> \
+        [list $_dispatcher event -idle !resize]
 
     eval itk_initialize $args
 }
@@ -173,6 +185,7 @@ itcl::body Rappture::Controls::insert {pos path} {
 
     # insert the new control onto the known list
     set _controls [linsert $_controls $pos $name]
+    _monitor $name on
 
     # now that we have a new control, we should fix the layout
     $_dispatcher event -idle !layout
@@ -202,6 +215,8 @@ itcl::body Rappture::Controls::delete {first {last ""}} {
     }
 
     foreach name [lrange $_controls $first $last] {
+        _monitor $name off
+
         if {"" != $_name2info($name-label)} {
             destroy $_name2info($name-label)
         }
@@ -296,21 +311,21 @@ itcl::body Rappture::Controls::_layout {} {
     #
     if {[llength $_controls] >= 2} {
         # assume tabs for multiple groups
-        set scheme tabs
+        set _scheme tabs
         foreach name $_controls {
             set w $_name2info($name-value)
 
             if {$w == "--" || [winfo class $w] != "GroupEntry"} {
                 # something other than a group? then fall back on hlabels
-                set scheme hlabels
+                set _scheme hlabels
                 break
             }
         }
     } else {
-        set scheme hlabels
+        set _scheme hlabels
     }
 
-    switch -- $scheme {
+    switch -- $_scheme {
       tabs {
         #
         # SCHEME: tabs
@@ -339,17 +354,7 @@ itcl::body Rappture::Controls::_layout {} {
 
         # compute the overall size
         # BE CAREFUL: do this after setting "-heading no" above
-        set maxw 0
-        set maxh 0
-        update idletasks
-        foreach name $_controls {
-            set wv $_name2info($name-value)
-            set w [winfo reqwidth $wv]
-            if {$w > $maxw} { set maxw $w }
-            set h [winfo reqheight $wv]
-            if {$h > $maxh} { set maxh $h }
-        }
-        $_frame configure -width $maxw -height $maxh
+        $_dispatcher event -now !resize
 
         grid propagate $_frame off
         grid columnconfigure $_frame 0 -weight 1
@@ -414,6 +419,32 @@ itcl::body Rappture::Controls::_layout {} {
 }
 
 # ----------------------------------------------------------------------
+# USAGE: _monitor <name> <state>
+#
+# Used internally to add/remove bindings that cause the widget
+# associated with <name> to notify this controls widget of size
+# changes.  Whenever there is a size change, this controls widget
+# should fix its layout.
+# ----------------------------------------------------------------------
+itcl::body Rappture::Controls::_monitor {name state} {
+    set tag "Controls-$this"
+    set wv $_name2info($name-value)
+    if {$wv == "--"} return
+    set btags [bindtags $wv]
+    set i [lsearch $btags $tag]
+
+    if {$state} {
+        if {$i < 0} {
+            bindtags $wv [linsert $btags 0 $tag]
+        }
+    } else {
+        if {$i >= 0} {
+            bindtags $wv [lreplace $btags $i $i]
+        }
+    }
+}
+
+# ----------------------------------------------------------------------
 # USAGE: _controlChanged <path>
 #
 # Invoked automatically whenever the value for the control with the
@@ -459,6 +490,34 @@ itcl::body Rappture::Controls::_changeTabs {} {
 
         set wv $_name2info($name-value)
         grid $wv -row 0 -column 0 -sticky new
+    }
+}
+
+# ----------------------------------------------------------------------
+# USAGE: _resize
+#
+# Used internally to resize the widget when its contents change.
+# ----------------------------------------------------------------------
+itcl::body Rappture::Controls::_resize {} {
+    switch -- $_scheme {
+        tabs {
+            # compute the overall size
+            # BE CAREFUL: do this after setting "-heading no" above
+            set maxw 0
+            set maxh 0
+            update idletasks
+            foreach name $_controls {
+                set wv $_name2info($name-value)
+                set w [winfo reqwidth $wv]
+                if {$w > $maxw} { set maxw $w }
+                set h [winfo reqheight $wv]
+                if {$h > $maxh} { set maxh $h }
+            }
+            $_frame configure -width $maxw -height $maxh
+        }
+        hlabels {
+            # do nothing
+        }
     }
 }
 
