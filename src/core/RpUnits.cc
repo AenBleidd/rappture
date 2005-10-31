@@ -19,13 +19,13 @@
 RpDict<std::string,RpUnits*>* RpUnits::dict = new RpDict<std::string,RpUnits*>();
 static RpUnitsPreset loader;
 
-/************************************************************************
- *
- * add RpUnits Object
- *
- ************************************************************************/
+/**********************************************************************/
+// METHOD: define()
+/// Define a unit type to be stored as a Rappture Unit.
+/**
+ */
 
-RpUnits * 
+RpUnits *
 RpUnits::define( const std::string units, const RpUnits* basis) {
 
     RpUnits* newRpUnit = NULL;
@@ -83,6 +83,12 @@ RpUnits::define( const std::string units, const RpUnits* basis) {
     return newRpUnit;
 }
 
+/**********************************************************************/
+// METHOD: grabExponent()
+/// Return exponent from a units string containing a unit name and exponent
+/**
+ */
+
 int
 RpUnits::grabExponent(const std::string& inStr, double* exp) {
 
@@ -109,6 +115,12 @@ RpUnits::grabExponent(const std::string& inStr, double* exp) {
     return idx;
 }
 
+/**********************************************************************/
+// METHOD: grabUnitString()
+/// Return units name from a units string containing a unit name and exponent
+/**
+ */
+
 int
 RpUnits::grabUnitString ( const std::string& inStr ) {
 
@@ -124,6 +136,12 @@ RpUnits::grabUnitString ( const std::string& inStr ) {
 
     return idx;
 }
+
+/**********************************************************************/
+// METHOD: grabUnits()
+/// Search for the provided units exponent pair in the dictionary.
+/**
+ */
 
 const RpUnits*
 RpUnits::grabUnits ( std::string inStr, int* offset) {
@@ -145,11 +163,12 @@ RpUnits::grabUnits ( std::string inStr, int* offset) {
 
 
 
-/************************************************************************
- *
- * add relation rule
- *
- ************************************************************************/
+/**********************************************************************/
+// METHOD: define()
+/// Define a unit conversion with one arg double function pointers.
+/**
+ */
+
 RpUnits *
 RpUnits::define(  const RpUnits* from,
                   const RpUnits* to,
@@ -177,6 +196,12 @@ RpUnits::define(  const RpUnits* from,
     return NULL;
 }
 
+/**********************************************************************/
+// METHOD: define()
+/// Define a unit conversion with two arg double function pointers.
+/**
+ */
+
 RpUnits *
 RpUnits::define(  const RpUnits* from,
                   const RpUnits* to,
@@ -202,6 +227,12 @@ RpUnits::define(  const RpUnits* from,
 
     return NULL;
 }
+
+/**********************************************************************/
+// METHOD: define()
+/// Define a unit conversion with two arg void* function pointers.
+/**
+ */
 
 RpUnits *
 RpUnits::define(  const RpUnits* from,
@@ -233,17 +264,12 @@ RpUnits::define(  const RpUnits* from,
     return NULL;
 }
 
-/************************************************************************
- *
- * report the units this object represents back to the user
- *
- ************************************************************************/
 
 /**********************************************************************/
 // METHOD: getUnits()
 /// Report the text portion of the units of this object back to caller.
 /**
- * See Also getUnitsName().
+ * \sa {getUnitsName}
  */
 
 std::string
@@ -251,12 +277,6 @@ RpUnits::getUnits() const {
 
     return units;
 }
-
-/************************************************************************
- *
- * report the units this object represents back to the user
- *
- ************************************************************************/
 
 /**********************************************************************/
 // METHOD: getUnitsName()
@@ -285,11 +305,6 @@ RpUnits::getUnitsName() const {
     return (std::string(unitText.str()));
 }
 
-/************************************************************************
- *
- * report the exponent of the units of this object back to the user
- *
- * **********************************************************************/
 /**********************************************************************/
 // METHOD: getExponent()
 /// Report the exponent of the units of this object back to caller.
@@ -305,11 +320,6 @@ RpUnits::getExponent() const {
     return exponent;
 }
 
-/************************************************************************
- *
- *  report the basis of this object to the user
- *
- * **********************************************************************/
 /**********************************************************************/
 // METHOD: getBasis()
 /// Retrieve the RpUnits object representing the basis of this object.
@@ -324,8 +334,10 @@ RpUnits::getBasis() const {
     return basis;
 }
 
-/************************************************************************
- *
+/**********************************************************************/
+// METHOD: makeBasis()
+/// Convert a value into its RpUnits's basis.
+/**
  *  convert the current unit to its basis units
  *
  *  Return Codes
@@ -333,7 +345,8 @@ RpUnits::getBasis() const {
  *          in some cases, this means the value is in its basis format
  *      1) the prefix found does not have a built in factor associated.
  *
- ************************************************************************/
+ */
+
 double
 RpUnits::makeBasis(double value, int* result) const {
 
@@ -353,6 +366,13 @@ RpUnits::makeBasis(double value, int* result) const {
 
     return retVal;
 }
+
+/**********************************************************************/
+// METHOD: makeBasis()
+/// Convert a value into its RpUnits's basis.
+/**
+ *
+ */
 
 const RpUnits&
 RpUnits::makeBasis(double* value, int* result) const {
@@ -378,13 +398,14 @@ RpUnits::makeBasis(double* value, int* result) const {
     return *this;
 }
 
-/************************************************************************
- *
+/**********************************************************************/
+// METHOD: makeMetric()
+/// Define a unit type to be stored as a Rappture Unit.
+/**
  *  static int makeMetric(RpUnits * basis);
  *  create the metric attachments for the given basis.
  *  should only be used if this unit is of metric type
- *
- * **********************************************************************/
+ */
 
 int
 RpUnits::makeMetric(const RpUnits* basis) {
@@ -448,6 +469,12 @@ RpUnits::makeMetric(const RpUnits* basis) {
 }
 
 
+/**********************************************************************/
+// METHOD: find()
+/// Find an RpUnits Object from the provided string.
+/**
+ */
+
 const RpUnits*
 RpUnits::find(std::string key) {
 
@@ -475,6 +502,12 @@ RpUnits::find(std::string key) {
     return unitEntry;
 }
 
+/**********************************************************************/
+// METHOD: define()
+/// Define a unit type to be stored as a Rappture Unit.
+/**
+ */
+
 int
 RpUnits::negateListExponents(RpUnitsList& unitsList) {
     RpUnitsListIter iter = unitsList.begin();
@@ -491,6 +524,12 @@ RpUnits::negateListExponents(RpUnitsList& unitsList) {
 }
 
 // negate the exponent
+/**********************************************************************/
+// METHOD: define()
+/// Define a unit type to be stored as a Rappture Unit.
+/**
+ */
+
 void
 RpUnitsListEntry::negateExponent() const {
     exponent = exponent * -1;
@@ -498,6 +537,12 @@ RpUnitsListEntry::negateExponent() const {
 }
 
 // provide the caller with the name of this object
+/**********************************************************************/
+// METHOD: define()
+/// Define a unit type to be stored as a Rappture Unit.
+/**
+ */
+
 std::string
 RpUnitsListEntry::name() const {
     std::stringstream name;
@@ -506,22 +551,44 @@ RpUnitsListEntry::name() const {
 }
 
 // provide the caller with the basis of the RpUnits object being stored
+/**********************************************************************/
+// METHOD: define()
+/// Define a unit type to be stored as a Rappture Unit.
+/**
+ */
+
 const RpUnits*
 RpUnitsListEntry::getBasis() const {
     return unit->getBasis();
 }
 
-// get the RpUnits*
+/**********************************************************************/
+// METHOD: getUnitsObj()
+/// Return the RpUnits Object from a RpUnitsListEntry.
+/**
+ */
+
 const RpUnits*
 RpUnitsListEntry::getUnitsObj() const {
     return unit;
 }
 
-// get the RpUnits*
+/**********************************************************************/
+// METHOD: getExponent()
+/// Return the exponent of an RpUnitsListEntry.
+/**
+ */
+
 double
 RpUnitsListEntry::getExponent() const {
     return exponent;
 }
+
+/**********************************************************************/
+// METHOD: printList()
+/// Traverse a RpUnitsList and print out the name of each element.
+/**
+ */
 
 int
 RpUnits::printList(RpUnitsList& unitsList) {
@@ -538,6 +605,16 @@ RpUnits::printList(RpUnitsList& unitsList) {
 
     return nodeCnt;
 }
+
+/**********************************************************************/
+// METHOD: units2list()
+/// Split a string of units into a list of base units with exponents.
+/**
+ * Splits a string of units like cm2/kVns into a list of units like
+ * cm2, kV1, ns1 where an exponent is provided for each list entry.
+ * List entries are found by comparing units strings to the names
+ * in the dictionary.
+ */
 
 int
 RpUnits::units2list ( const std::string& inUnits,
@@ -599,6 +676,21 @@ RpUnits::units2list ( const std::string& inUnits,
     return 0;
 }
 
+/**********************************************************************/
+// METHOD: compareListEntryBasis()
+/// Compare two RpUnits objects to see if they are related by a basis
+/**
+ * One step in converting between Rappture Units Objects is to check
+ * to see if the conversion is an intra-basis conversion. Intra-basis
+ * conversions include those where all conversions are done within
+ * the same basis.
+ *
+ * Examples of intra-basis conversions include:
+ *     m -> cm  ( meters to centimeters )
+ *     cm -> m  ( centimeters to meters )
+ *     cm -> nm ( centimenters to nanometers )
+ */
+
 int RpUnits::compareListEntryBasis ( RpUnitsList& fromList,
                                      RpUnitsListIter& fromIter,
                                      RpUnitsListIter& toIter ) {
@@ -650,6 +742,12 @@ int RpUnits::compareListEntryBasis ( RpUnitsList& fromList,
     return retVal;
 }
 
+/**********************************************************************/
+// METHOD: compareListEntrySearch()
+/// this function will soon be removed.
+/**
+ */
+
 int RpUnits::compareListEntrySearch ( RpUnitsList& fromList,
                                      RpUnitsListIter& fromIter,
                                      RpUnitsListIter& toIter ) {
@@ -691,9 +789,18 @@ int RpUnits::compareListEntrySearch ( RpUnitsList& fromList,
     return retVal;
 }
 
-// convert function so people can just send in two strings and
-// we'll see if the units exists and do a conversion
-// strVal = RpUnits::convert("300K","C",1);
+/**********************************************************************/
+// METHOD: convert()
+/// Convert between RpUnits return a string value with or without units
+/**
+ * Convert function so people can just send in two strings and
+ * we'll see if the units exists and do a conversion
+ * Example:
+ *     strVal = RpUnits::convert("300K","C",1);
+ *
+ * Returns a string with or without units.
+ */
+
 std::string
 RpUnits::convert (  std::string val,
                     std::string toUnitsName,
@@ -891,6 +998,13 @@ RpUnits::convert (  std::string val,
 
 }
 
+/**********************************************************************/
+// METHOD: convert()
+/// Convert between RpUnits return a string value with or without units
+/**
+ * Returns a string value with or without units.
+ */
+
 std::string
 RpUnits::convert ( const  RpUnits* toUnits,
                    double val,
@@ -912,11 +1026,19 @@ RpUnits::convert ( const  RpUnits* toUnits,
 
 }
 
-// user function to convert a value to the provided RpUnits* toUnits
-// if it exists as a conversion from the basis
-// example
-//      cm.convert(meter,10)
-//      cm.convert(angstrum,100)
+/**********************************************************************/
+// METHOD: convert()
+/// Convert between RpUnits using an RpUnits Object to describe toUnit.
+/**
+ * User function to convert a value to the provided RpUnits* toUnits
+ * if it exists as a conversion from the basis
+ * example
+ *      cm.convert(meter,10)
+ *      cm.convert(angstrum,100)
+ *
+ * Returns a double value without units.
+ */
+
 double
 RpUnits::convert(const RpUnits* toUnit, double val, int* result) const {
 
@@ -1107,6 +1229,12 @@ RpUnits::convert(const RpUnits* toUnit, double val, int* result) const {
 }
 
 
+/**********************************************************************/
+// METHOD: convert()
+/// Convert a value between RpUnits using user defined conversions
+/**
+ */
+
 void*
 RpUnits::convert(const RpUnits* toUnit, void* val, int* result) const {
 
@@ -1266,8 +1394,15 @@ RpUnits::convert(const RpUnits* toUnit, void* val, int* result) const {
 
 }
 
+/**********************************************************************/
+// METHOD: insert()
+/// Place an RpUnits Object into the Rappture Units Dictionary.
+/**
+ * Return whether the inserted key was new with a non-zero 
+ * value, or if the key already existed with a value of zero.
+ */
+
 int
-// RpUnits::insert(std::string key,RpUnits* val) {
 insert(std::string key,RpUnits* val) {
 
     int newRecord = 0;
@@ -1276,6 +1411,12 @@ insert(std::string key,RpUnits* val) {
     RpUnits::dict->set(key,val,&newRecord);
     return newRecord;
 }
+
+/**********************************************************************/
+// METHOD: connectConversion()
+/// Attach conversion information to a RpUnits Object.
+/**
+ */
 
 void
 RpUnits::connectConversion(conversion* conv) const {
@@ -1295,7 +1436,12 @@ RpUnits::connectConversion(conversion* conv) const {
 
 }
 
-// return codes: 0 success, anything else is error
+/**********************************************************************/
+// METHOD: addPresets()
+/// Add a specific set of predefined units to the dictionary
+/**
+ */
+
 int
 RpUnits::addPresets (const std::string group) {
     int retVal = -1;
@@ -1321,7 +1467,15 @@ RpUnits::addPresets (const std::string group) {
     return retVal;
 }
 
-// return codes: 0 success, anything else is error
+/**********************************************************************/
+// METHOD: addPresetAll()
+/// Call all of the addPreset* functions.
+/**
+ *
+ * Add all predefined units to the units dictionary
+ * Return codes: 0 success, anything else is error
+ */
+
 int
 RpUnitsPreset::addPresetAll () {
 
@@ -1336,7 +1490,16 @@ RpUnitsPreset::addPresetAll () {
     return 0;
 }
 
-// return codes: 0 success, anything else is error
+/**********************************************************************/
+// METHOD: addPresetTime()
+/// Add Time related units to the dictionary
+/**
+ * Defines the following units:
+ *   seconds  (s)
+ *
+ * Return codes: 0 success, anything else is error
+ */
+
 int
 RpUnitsPreset::addPresetTime () {
 
@@ -1349,7 +1512,19 @@ RpUnitsPreset::addPresetTime () {
     return 0;
 }
 
-// return codes: 0 success, anything else is error
+/**********************************************************************/
+// METHOD: addPresetTemp()
+/// Add Temperature related units to the dictionary
+/**
+ * Defines the following units:
+ *   fahrenheit  (F)
+ *   celcius     (C)
+ *   kelvin      (K)
+ *   rankine     (R)
+ *
+ * Return codes: 0 success, anything else is error
+ */
+
 int
 RpUnitsPreset::addPresetTemp () {
 
@@ -1367,7 +1542,20 @@ RpUnitsPreset::addPresetTemp () {
     return 0;
 }
 
-// return codes: 0 success, anything else is error
+/**********************************************************************/
+// METHOD: addPresetLength()
+/// Add Length related units to the dictionary
+/**
+ * Defines the following units:
+ *   meters         (m)
+ *   angstrom       (A)
+ *   inch           (in)
+ *   feet           (ft)
+ *   yard           (yd)
+ *
+ * Return codes: 0 success, anything else is error
+ */
+
 int
 RpUnitsPreset::addPresetLength () {
 
@@ -1388,7 +1576,18 @@ RpUnitsPreset::addPresetLength () {
     return 0;
 }
 
-// return codes: 0 success, anything else is error
+/**********************************************************************/
+// METHOD: addPresetEnergy()
+/// Add Energy related units to the dictionary
+/**
+ * Defines the following units:
+ *   volt          (V)
+ *   electron Volt (eV)
+ *   joule         (J)
+ *
+ * Return codes: 0 success, anything else is error
+ */
+
 int
 RpUnitsPreset::addPresetEnergy () {
 
@@ -1406,7 +1605,17 @@ RpUnitsPreset::addPresetEnergy () {
     return 0;
 }
 
-// return codes: 0 success, anything else is error
+/**********************************************************************/
+// METHOD: addPresetVolume()
+/// Add Volume related units to the dictionary
+/**
+ * Defines the following units:
+ *   cubic feet (ft3)
+ *   us gallons (gal)
+ *
+ * Return codes: 0 success, anything else is error
+ */
+
 int
 RpUnitsPreset::addPresetVolume () {
 

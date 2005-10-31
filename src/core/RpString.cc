@@ -1,20 +1,23 @@
 /*
+ * ----------------------------------------------------------------------
+ *  Rappture 2.0 String Object Source
+ *
  * ======================================================================
+ *  AUTHOR:  Derrick Kearney, Purdue University
  *  Copyright (c) 2004-2005  Purdue Research Foundation
  *
  *  See the file "license.terms" for information on usage and
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  * ======================================================================
  */
- #ifndef _RpSTRING_H
-     #include "RpString.h"
- #endif
 
-/************************************************************************
- *                                                                      
- * set the default value of this object
- *                                                                      
- ************************************************************************/
+#include "RpString.h"
+
+/**********************************************************************/
+// METHOD: setDefaultValue()
+/// set the default value of this object.
+/**
+ */
 
 RpString& 
 RpString::setDefaultValue(std::string newDefaultVal)
@@ -33,11 +36,11 @@ RpString::setDefaultValue(std::string newDefaultVal)
     return *this;
 }
 
-/************************************************************************
- *                                                                      
- * set the current value of this object
- *                                                                      
- ************************************************************************/
+/**********************************************************************/
+// METHOD: setCurrentValue()
+/// set the current value of this object
+/**
+ */
 
 RpString& 
 RpString::setCurrentValue(std::string newCurrentVal)
@@ -55,12 +58,12 @@ RpString::setCurrentValue(std::string newCurrentVal)
     return *this;
 }
 
+/**********************************************************************/
+// METHOD: setSize()
+/// set the size (width and height) of this object.
+/**
+ */
 
-/************************************************************************
- *                                                                      
- * set the size (width and height) of this object
- *                                                                      
- ************************************************************************/
 RpString& 
 RpString::setSize(std::string sizeWxH)
 {
@@ -79,11 +82,12 @@ RpString::setSize(std::string sizeWxH)
     return *this;
 }
 
-/************************************************************************
- *                                                                      
- * set the width of this object
- *                                                                      
- ************************************************************************/
+/**********************************************************************/
+// METHOD: setWidth()
+/// set the width of this object
+/**
+ */
+
 RpString& 
 RpString::setWidth(int newWidth)
 {
@@ -91,11 +95,12 @@ RpString::setWidth(int newWidth)
     return *this;
 }
 
-/************************************************************************
- *                                                                      
- * set the height of this object
- *                                                                      
- ************************************************************************/
+/**********************************************************************/
+// METHOD: setHeight()
+/// set the height of this object.
+/**
+ */
+
 RpString& 
 RpString::setHeight(int newHeight)
 {
@@ -104,58 +109,63 @@ RpString::setHeight(int newHeight)
 }
 
 
-/************************************************************************
- *                                                                      
- * report the default value of this object 
- *                                                                      
- ************************************************************************/
+/**********************************************************************/
+// METHOD: getDefaultValue()
+/// report the default value of this object.
+/**
+ */
+
 std::string
 RpString::getDefaultValue(void* null_val) const
 {
     return *((std::string*) RpVariable::getDefaultValue()); 
 }
 
-/************************************************************************
- *                                                                      
- * report the current value of this object 
- *                                                                      
- ************************************************************************/
+/**********************************************************************/
+// METHOD: getCurrentValue()
+/// report the current value of this object.
+/**
+ */
+
 std::string
 RpString::getCurrentValue(void* null_val) const
 {
     return *((std::string*) RpVariable::getCurrentValue()); 
 }
 
-/************************************************************************
- *                                                                      
- * report the size of this object  in the form  Height x Width
- *                                                                      
- ************************************************************************/
+/**********************************************************************/
+// METHOD: getSize()
+/// report the size of this object  in the form  Height x Width
+/**
+ */
+
 std::string
 RpString::getSize() const
 {
     std::stringstream tmpStr;
-    
+
     tmpStr << getWidth() << "x" << getHeight();
     return (tmpStr.str()); 
 }
 
-/************************************************************************
- *                                                                      
- * report the Height of this object 
- *                                                                      
- ************************************************************************/
+/**********************************************************************/
+// METHOD: getHeight()
+/// report the Height of this object.
+/**
+ */
+
 int
 RpString::getHeight() const
 {
     return height; 
 }
 
-/************************************************************************
- *                                                                      
- * report the Width of this object 
- *                                                                      
- ************************************************************************/
+/**********************************************************************/
+// METHOD: getWidth()
+/// report the Width of this object.
+/**
+ */
+
 int
 RpString::getWidth() const
 {

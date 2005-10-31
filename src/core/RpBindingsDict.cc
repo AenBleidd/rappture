@@ -15,6 +15,18 @@
 RpDict DICT_TEMPLATE_L ObjDict_Lib;
 RpDict DICT_TEMPLATE_U ObjDictUnits;
 
+/**********************************************************************/
+// FUNCTION: storeObject_Lib()
+/// Store an object into the library dictionary.
+/**
+ * This function stores the RpLibrary object pointed to by 'objectName'
+ * into the library dictionary. This is helpful for writing bindings
+ * for languages that can not accept pointers to provide back to the
+ * function's caller.
+ *
+ * Returns the key of the object in the dictionary
+ */
+
 int
 storeObject_Lib(RpLibrary* objectName) {
 
@@ -33,6 +45,18 @@ storeObject_Lib(RpLibrary* objectName) {
     return retVal;
 }
 
+/**********************************************************************/
+// FUNCTION: getObject_Lib()
+/// Get an object from the library dictionary.
+/**
+ * This function retrieves the RpLibrary object associated with the key
+ * 'objKey' from the library dictionary and returns its address to the
+ * caller. This is helpful for writing bindings for languages that can
+ * not accept pointers to provide back to the function's caller.
+ *
+ * Returns the address of the RpLibrary object in the dictionary
+ */
+
 RpLibrary*
 getObject_Lib(int objKey) {
 
@@ -45,6 +69,15 @@ getObject_Lib(int objKey) {
    return retVal;
 
 }
+
+/**********************************************************************/
+// FUNCTION: cleanLibDict()
+/// Clean the library dictionary, removing all entries in the dictionary
+/**
+ * This function removes all entries from the library dictionary.
+ *
+ * \sa {storeObject_Lib,getObject_Lib}
+ */
 
 void
 cleanLibDict () {
@@ -71,6 +104,18 @@ cleanLibDict () {
 
 }
 
+/**********************************************************************/
+// FUNCTION: storeObject_UnitsStr()
+/// Store an object into the UnitsStr dictionary.
+/**
+ * This function stores the RpUnits names specified by 'objectName'
+ * into the UnitsStr dictionary. This is helpful for writing bindings
+ * for languages that can not accept pointers to provide back to the 
+ * function's caller.
+ *
+ * Returns the key of the object in the dictionary
+ */
+
 int
 storeObject_UnitsStr(std::string objectName) {
 
@@ -89,6 +134,18 @@ storeObject_UnitsStr(std::string objectName) {
     return retVal;
 }
 
+/**********************************************************************/
+// FUNCTION: getObject_UnitsStr()
+/// Get an object from the UnitsStr dictionary.
+/**
+ * This function retrieves the RpUnits name referenced to by 'objKey'
+ * from the UnitsStr dictionary. This is helpful for writing bindings
+ * for languages that can not accept pointers to provide back to the 
+ * function's caller.
+ *
+ * Returns the key of the object in the dictionary
+ */
+
 const RpUnits*
 getObject_UnitsStr(int objKey) {
 
@@ -102,6 +159,15 @@ getObject_UnitsStr(int objKey) {
    return RpUnits::find(basisName);
 
 }
+
+/**********************************************************************/
+// FUNCTION: cleanUnitsDict()
+/// Clean the UnitsStr dictionary, removing all entries.
+/**
+ * This function removes all entries from the UnitsStr dictionary
+ *
+ * \sa {storeObject_UnitsStr,getObject_UnitsStr}
+ */
 
 void
 cleanUnitsDict () {

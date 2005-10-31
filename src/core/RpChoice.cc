@@ -1,26 +1,28 @@
 /*
+ *  RpChoice - Rappture 2.0 About XML object
+ *
  * ======================================================================
+ *  AUTHOR:  Derrick Kearney, Purdue University
  *  Copyright (c) 2004-2005  Purdue Research Foundation
  *
  *  See the file "license.terms" for information on usage and
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  * ======================================================================
  */
- #ifndef _RpCHOICE_H
-     #include "RpChoice.h"
- #endif
 
-/************************************************************************
- *                                                                      
- * set the default value of a RpChoice object
- *                                                                      
- ************************************************************************/
+#include "RpChoice.h"
+
+/**********************************************************************/
+// METHOD: setDefaultValue()
+/// Set the default value of a RpChoice object.
+/**
+ */
 
 RpChoice& 
 RpChoice::setDefaultValue(std::string newDefaultVal)
 {
     std::string* def = NULL;
-    
+
     def = (std::string*) RpVariable::getDefaultValue(); 
 
     if (!def) {
@@ -33,11 +35,11 @@ RpChoice::setDefaultValue(std::string newDefaultVal)
     return *this;
 }
 
-/************************************************************************
- *                                                                      
- * set the current value of a RpChoice object
- *                                                                      
- ************************************************************************/
+/**********************************************************************/
+// METHOD: setCurrentValue()
+/// Set the current value of a RpChoice object.
+/**
+ */
 
 RpChoice& 
 RpChoice::setCurrentValue(std::string newCurrentVal)
@@ -56,11 +58,11 @@ RpChoice::setCurrentValue(std::string newCurrentVal)
 }
 
 
-/************************************************************************
- *                                                                      
- * set an option for this object
- *                                                                      
- ************************************************************************/
+/**********************************************************************/
+// METHOD: setOption()
+/// Set an option for this object.
+/**
+ */
 
 RpChoice&
 RpChoice::setOption(std::string newOption)
@@ -69,11 +71,11 @@ RpChoice::setOption(std::string newOption)
     return *this;
 }
 
-/************************************************************************
- *                                                                      
- * delete the provided option from this object
- *                                                                      
- ************************************************************************/
+/**********************************************************************/
+// METHOD: deleteOption()
+/// Delete the provided option from this object.
+/**
+ */
 
 RpChoice& 
 RpChoice::deleteOption(std::string optionName)
@@ -98,11 +100,11 @@ RpChoice::deleteOption(std::string optionName)
     return *this;
 }
 
-/************************************************************************
- *                                                                      
- * report the default value of this object 
- *                                                                      
- ************************************************************************/
+/**********************************************************************/
+// METHOD: getDefaultValue()
+/// Report the default value of this object.
+/**
+ */
 
 std::string
 RpChoice::getDefaultValue(void* null_val) const
@@ -110,11 +112,11 @@ RpChoice::getDefaultValue(void* null_val) const
     return *((std::string*) RpVariable::getDefaultValue()); 
 }
 
-/************************************************************************
- *                                                                      
- * report the current value of the object 
- *                                                                      
- ************************************************************************/
+/**********************************************************************/
+// METHOD: getCurrentValue()
+/// Report the current value of the object.
+/**
+ */
 
 std::string
 RpChoice::getCurrentValue(void* null_val) const
@@ -129,6 +131,12 @@ RpChoice::getCurrentValue(void* null_val) const
  *                                                                      
  ************************************************************************/
 
+/**********************************************************************/
+// METHOD: setLabel()
+/// Set the label of this object.
+/**
+ */
+
 std::string
 RpChoice::getFirstOption()
 {
@@ -136,13 +144,12 @@ RpChoice::getFirstOption()
     return ((*optionsIter).getLabel()); 
 }
 
-/************************************************************************
- *                                                                      
- * report the next options of the object 
- *
- * if you get to the end of the options list, "" is returned.
- *                                                                      
- ************************************************************************/
+/**********************************************************************/
+// METHOD: getNextOption()
+/// Report the next options of the object.
+/**
+ * If you get to the end of the options list, "" is returned.
+ */
 
 std::string
 RpChoice::getNextOption()
@@ -154,16 +161,16 @@ RpChoice::getNextOption()
     return ((*optionsIter).getLabel()); 
 }
 
-/************************************************************************
- *                                                                      
- * report the number of options (items) in this object 
- *
- ************************************************************************/
+/**********************************************************************/
+// METHOD: getOptListSize()
+/// Report the number of options (items) in this object.
+/**
+ */
 
 unsigned int
 RpChoice::getOptListSize() const
 {
-    return options.size(); 
+    return options.size();
 }
 
 // -------------------------------------------------------------------- //

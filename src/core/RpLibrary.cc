@@ -10,7 +10,14 @@
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  * ======================================================================
  */
+
 #include "RpLibrary.h"
+
+/**********************************************************************/
+// METHOD: _get_attribute()
+/// Return the attribute value matching the provided attribute name.
+/**
+ */
 
 std::string
 RpLibrary::_get_attribute(scew_element* element, std::string attributeName)
@@ -38,6 +45,12 @@ RpLibrary::_get_attribute(scew_element* element, std::string attributeName)
 
     return attrVal;
 }
+
+/**********************************************************************/
+// METHOD: _path2list()
+/// Convert a path into a list of element names.
+/**
+ */
 
 int
 RpLibrary::_path2list (std::string& path, std::string** list, int listLen) 
@@ -72,6 +85,12 @@ RpLibrary::_path2list (std::string& path, std::string** list, int listLen)
 
     return retVal;
 }
+
+/**********************************************************************/
+// METHOD: _node2name()
+/// Retrieve the id of a node.
+/**
+ */
 
 std::string
 RpLibrary::_node2name (scew_element* node)
@@ -129,6 +148,12 @@ RpLibrary::_node2name (scew_element* node)
 
     return (retVal.str());
 }
+
+/**********************************************************************/
+// METHOD: _node2comp()
+/// Retrieve the component name of a node
+/**
+ */
 
 std::string
 RpLibrary::_node2comp (scew_element* node)
@@ -192,6 +217,12 @@ RpLibrary::_node2comp (scew_element* node)
     return (retVal.str());
 }
 
+/**********************************************************************/
+// METHOD: _splitPath()
+/// Split a path (component) name into its tag name, index, and id
+/**
+ */
+
 int
 RpLibrary::_splitPath (std::string& path, std::string& tagName, int* idx, std::string& id )
 {
@@ -239,6 +270,12 @@ RpLibrary::_splitPath (std::string& path, std::string& tagName, int* idx, std::s
 
     return 1;
 }
+
+/**********************************************************************/
+// METHOD: _find()
+/// Find or create a node and return it.
+/**
+ */
 
 scew_element*
 RpLibrary::_find(std::string path, int create) 
@@ -403,6 +440,12 @@ RpLibrary::_find(std::string path, int create)
 }
 
 
+/**********************************************************************/
+// METHOD: element()
+/// Search the path of a xml tree and return a RpLibrary node.
+/**
+ */
+
 RpLibrary*
 RpLibrary::element (std::string path, std::string as)
 {
@@ -430,6 +473,12 @@ RpLibrary::element (std::string path, std::string as)
 
     return retLib;
 }
+
+/**********************************************************************/
+// METHOD: children()
+/// Return the next child of the node located at 'path'
+/**
+ */
 
 RpLibrary*
 RpLibrary::children (   std::string path, 
@@ -517,6 +566,12 @@ RpLibrary::children (   std::string path,
 }
 
 
+/**********************************************************************/
+// METHOD: get()
+/// Return the RpLibrary object held at location 'path'
+/**
+ */
+
 RpLibrary*
 RpLibrary::get (std::string path)
 {
@@ -535,10 +590,16 @@ RpLibrary::get (std::string path)
     return retVal;
 }
 
+/**********************************************************************/
+// METHOD: getString()
+/// Return the string value of the object held at location 'path'
+/**
+ */
+
 std::string
 RpLibrary::getString (std::string path)
 {
-    std::string retVal; 
+    // std::string retVal; 
 
     /*
     if (path.empty()) {
@@ -553,25 +614,39 @@ RpLibrary::getString (std::string path)
         return "";
     }
 
-    retVal = std::string(scew_element_contents(retNode));
+    // retVal = std::string(scew_element_contents(retNode));
+    // return retVal;
 
-    return retVal;
+    return std::string(scew_element_contents(retNode));
 }
+
+/**********************************************************************/
+// METHOD: getDouble()
+/// Return the double value of the object held at location 'path'
+/**
+ */
 
 double
 RpLibrary::getDouble (std::string path)
 {
-    std::string retValStr = ""; 
-    double retValDbl = 0; 
+    std::string retValStr = "";
+    double retValDbl = 0;
 
     retValStr = this->getString(path); 
+    // think about changing this to strtod()
     retValDbl = atof(retValStr.c_str());
 
-    // how do we reaise error?
+    // how do we raise error?
     // currently we depend on getString to raise the error
     return retValDbl;
 }
 
+
+/**********************************************************************/
+// METHOD: put()
+/// Put a string value into the xml.
+/**
+ */
 
 RpLibrary&
 RpLibrary::put ( std::string path, std::string value, std::string id, int append )
@@ -599,6 +674,12 @@ RpLibrary::put ( std::string path, std::string value, std::string id, int append
     return *this;
 }
 
+/**********************************************************************/
+// METHOD: put()
+/// Put a double value into the xml.
+/**
+ */
+
 RpLibrary&
 RpLibrary::put ( std::string path, double value, std::string id, int append )
 {
@@ -623,6 +704,12 @@ RpLibrary::remove ( std::string path )
 }
 */
 
+/**********************************************************************/
+// METHOD: xml()
+/// Return the xml text held in this RpLibrary
+/**
+ */
+
 std::string
 RpLibrary::xml ()
 {
@@ -634,17 +721,35 @@ RpLibrary::xml ()
     return outString.str();
 }
 
+/**********************************************************************/
+// METHOD: nodeType()
+/// Return the type name of this node
+/**
+ */
+
 std::string
 RpLibrary::nodeType ()
 {
     return std::string(scew_element_name(root));
 }
 
+/**********************************************************************/
+// METHOD: nodeId()
+/// Return the id of this node.
+/**
+ */
+
 std::string
 RpLibrary::nodeId ()
 {
     return _node2name(root);
 }
+
+/**********************************************************************/
+// METHOD: nodeComp()
+/// Return the component name of this node.
+/**
+ */
 
 std::string
 RpLibrary::nodeComp ()
@@ -654,7 +759,7 @@ RpLibrary::nodeComp ()
 
 /*
  * ----------------------------------------------------------------------
- *  FUNCTION: result
+ *  METHOD: result
  *
  *  Clients call this function at the end of their simulation, to
  *  pass the simulation result back to the Rappture GUI.  It writes
@@ -685,6 +790,12 @@ RpLibrary::result() {
     std::cout << "=RAPPTURE-RUN=>" << outputFile.str() << std::endl;
 }
 
+/**********************************************************************/
+// METHOD: print_indent()
+/// Add indentations to the requested stringstream object.
+/**
+ */
+
 void
 RpLibrary::print_indent(unsigned int indent, std::stringstream& outString)
 {
@@ -703,6 +814,12 @@ RpLibrary::print_indent(unsigned int indent, std::stringstream& outString)
     }
 
 }
+
+/**********************************************************************/
+// METHOD: print_attributes()
+/// Print the attribute names and values for the provided xml node
+/**
+ */
 
 void
 RpLibrary::print_attributes(scew_element* element, std::stringstream& outString)
@@ -724,6 +841,12 @@ RpLibrary::print_attributes(scew_element* element, std::stringstream& outString)
     }
 }
 
+
+/**********************************************************************/
+// METHOD: print_element()
+/// Print the value of the node and its attributes to a stringstream object
+/**
+ */
 
 void
 RpLibrary::print_element(   scew_element* element,

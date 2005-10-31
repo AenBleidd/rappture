@@ -1,20 +1,25 @@
 /*
+ * ----------------------------------------------------------------------
+ *  RpVariable.cc
+ *
+ *   Rappture 2.0 Variable member functions
+ *
  * ======================================================================
+ *  AUTHOR:  Derrick Kearney, Purdue University
  *  Copyright (c) 2004-2005  Purdue Research Foundation
  *
  *  See the file "license.terms" for information on usage and
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  * ======================================================================
  */
- #ifndef _RpVARIABLE_H
-     #include "RpVariable.h"
- #endif
 
-/************************************************************************
- *                                                                      
- * set the path of this object 
- *                                                                      
- ************************************************************************/
+ #include "RpVariable.h"
+
+/**********************************************************************/
+// METHOD: setPath()
+/// Set the path of this object
+/**
+ */
 
 RpVariable&
 RpVariable::setPath(std::string newPath)
@@ -23,11 +28,11 @@ RpVariable::setPath(std::string newPath)
     return *this; 
 }
 
-/************************************************************************
- *                                                                      
- * set the default value of this object 
- *                                                                      
- ************************************************************************/
+/**********************************************************************/
+// METHOD: setDefaultValue()
+/// Set the default value of this object
+/**
+ */
 
 RpVariable&
 RpVariable::setDefaultValue(void* newDefaultVal)
@@ -37,11 +42,11 @@ RpVariable::setDefaultValue(void* newDefaultVal)
     return *this; 
 }
 
-/************************************************************************
- *                                                                      
- * set the current value of this object 
- *                                                                      
- ************************************************************************/
+/**********************************************************************/
+// METHOD: setCurrentValue()
+/// Set the current value of this object
+/**
+ */
 
 RpVariable&
 RpVariable::setCurrentValue(void* newCurrentVal)
@@ -51,11 +56,11 @@ RpVariable::setCurrentValue(void* newCurrentVal)
     return *this; 
 }
 
-/************************************************************************
- *                                                                      
- * set the label of this object 
- *                                                                      
- ************************************************************************/
+/**********************************************************************/
+// METHOD: setLabel()
+/// Set the label of this object
+/**
+ */
 
 RpVariable&
 RpVariable::setLabel(std::string newLabel)
@@ -64,11 +69,11 @@ RpVariable::setLabel(std::string newLabel)
     return *this; 
 }
 
-/************************************************************************
- *                                                                      
- * set the desc of this object 
- *                                                                      
- ************************************************************************/
+/**********************************************************************/
+// METHOD: setDesc()
+/// Set the desc of this object
+/**
+ */
 
 RpVariable& 
 RpVariable::setDesc(std::string newDesc)
@@ -77,11 +82,11 @@ RpVariable::setDesc(std::string newDesc)
     return *this; 
 }
 
-/************************************************************************
- *                                                                      
- * set the hints of this object 
- *                                                                      
- ************************************************************************/
+/**********************************************************************/
+// METHOD: setHints()
+/// Set the hints of this object
+/**
+ */
 
 RpVariable& 
 RpVariable::setHints(std::string newHints)
@@ -90,11 +95,11 @@ RpVariable::setHints(std::string newHints)
     return *this; 
 }
 
-/************************************************************************
- *                                                                      
- * set the color of this object 
- *                                                                      
- ************************************************************************/
+/**********************************************************************/
+// METHOD: setColor()
+/// Set the color of this object
+/**
+ */
 
 RpVariable& 
 RpVariable::setColor(std::string newColor)
@@ -103,11 +108,11 @@ RpVariable::setColor(std::string newColor)
     return *this; 
 }
 
-/************************************************************************
- *                                                                      
- * set the icon of this object 
- *                                                                      
- ************************************************************************/
+/**********************************************************************/
+// METHOD: setIcon()
+/// Set the icon of this object 
+/**
+ */
 
 RpVariable& 
 RpVariable::setIcon(std::string newIcon)
@@ -117,88 +122,96 @@ RpVariable::setIcon(std::string newIcon)
 }
 
 
-/************************************************************************
- *                                                                      
- * report the path of the object 
- *                                                                      
- ************************************************************************/
+/**********************************************************************/
+// METHOD: getPath()
+/// Report the path of this object
+/**
+ */
+
 std::string 
 RpVariable::getPath() const
 {
     return path; 
 }
 
-/************************************************************************
- *                                                                      
- * report the default value of the object 
- *                                                                      
- ************************************************************************/
+/**********************************************************************/
+// METHOD: getDefaultValue()
+/// Report the default value of the object
+/**
+ */
+
 void*
 RpVariable::getDefaultValue() const
 {
     return defaultVal; 
 }
 
-/************************************************************************
- *                                                                      
- * report the current value of the object 
- *                                                                      
- ************************************************************************/
+/**********************************************************************/
+// METHOD: getCurrentValue()
+/// Report the current value of the object
+/**
+ */
+
 void* 
 RpVariable::getCurrentValue() const
 {
     return currentVal; 
 }
 
-/************************************************************************
- *                                                                      
- * report the label of the object 
- *                                                                      
- ************************************************************************/
+/**********************************************************************/
+// METHOD: getLabel()
+/// Report the label of the object
+/**
+ */
+
 std::string 
 RpVariable::getLabel() const
 {
     return about.getLabel(); 
 }
 
-/************************************************************************
- *                                                                      
- * report the desc of the object 
- *                                                                      
- ************************************************************************/
+/**********************************************************************/
+// METHOD: getDesc()
+/// Report the desc of the object
+/**
+ */
+
 std::string 
 RpVariable::getDesc() const
 {
     return about.getDesc(); 
 }
 
-/************************************************************************
- *                                                                      
- * report the hints of this object 
- *                                                                      
- ************************************************************************/
+/**********************************************************************/
+// METHOD: getHints()
+/// Report the hints of this object
+/**
+ */
+
 std::string 
 RpVariable::getHints() const
 {
     return about.getHints(); 
 }
 
-/************************************************************************
- *                                                                      
- * report the color of this object 
- *                                                                      
- ************************************************************************/
+/**********************************************************************/
+// METHOD: getColor()
+/// Report the color of this object
+/**
+ */
+
 std::string 
 RpVariable::getColor() const
 {
     return about.getColor(); 
 }
 
-/************************************************************************
- *                                                                      
- * report the icon of this object 
- *                                                                      
- ************************************************************************/
+/**********************************************************************/
+// METHOD: getIcon()
+/// Report the icon of this object
+/**
+ */
+
 std::string 
 RpVariable::getIcon() const
 {
