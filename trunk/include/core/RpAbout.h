@@ -21,7 +21,7 @@
 class RpAbout
 {
     public:
-        
+
         // users member fxns
 
         virtual RpAbout& setLabel       (std::string newLabel);
@@ -78,9 +78,9 @@ class RpAbout
                 color       (color),
                 icon        (icon)
         {}
-        
+
         // copy constructor
-        RpAbout ( const RpAbout& myRpAbout ) 
+        RpAbout ( const RpAbout& myRpAbout )
             :   label       (myRpAbout.label),
                 desc        (myRpAbout.desc),
                 hints       (myRpAbout.hints),

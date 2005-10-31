@@ -1,20 +1,23 @@
 /*
+ * ----------------------------------------------------------------------
+ *  Rappture 2.0 Number Object Source
+ *
  * ======================================================================
+ *  AUTHOR:  Derrick Kearney, Purdue University
  *  Copyright (c) 2004-2005  Purdue Research Foundation
  *
  *  See the file "license.terms" for information on usage and
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  * ======================================================================
  */
- #ifndef _RpNUMBER_H
-     #include "RpNumber.h"
- #endif
 
-/************************************************************************
- *
- * set the default value of a RpNumber object
- *
- ************************************************************************/
+#include "RpNumber.h"
+
+/**********************************************************************/
+// METHOD: setDefaultValue()
+/// set the default value of a RpNumber object.
+/**
+ */
 
 RpNumber&
 RpNumber::setDefaultValue(double newDefaultVal) {
@@ -33,11 +36,11 @@ RpNumber::setDefaultValue(double newDefaultVal) {
     return *this;
 }
 
-/************************************************************************
- *
- * set the current value of a RpNumber object
- *
- ************************************************************************/
+/**********************************************************************/
+// METHOD: setCurrentValue()
+/// Set the current value of a RpNumber object.
+/**
+ */
 
 RpNumber&
 RpNumber::setCurrentValue(double newCurrentVal) {
@@ -56,33 +59,37 @@ RpNumber::setCurrentValue(double newCurrentVal) {
 }
 
 
-/************************************************************************
- *
- * set the min value of a RpNumber object
- *
- ************************************************************************/
+/**********************************************************************/
+// METHOD: setMin()
+/// Set the min value of a RpNumber object.
+/**
+ */
+
 RpNumber&
 RpNumber::setMin(double newMin) {
 
     min = newMin;
     return *this;
 }
-/************************************************************************
- *
- * set the min value of a RpNumber object
- *
- ************************************************************************/
+
+/**********************************************************************/
+// METHOD: setMax()
+/// set the min value of a RpNumber object
+/**
+ */
+
 RpNumber&
 RpNumber::setMax(double newMax) {
 
     max = newMax;
     return *this;
 }
-/************************************************************************
- *
- * report the units of the object 
- *
- ************************************************************************/
+
+/**********************************************************************/
+// METHOD: getUnits()
+/// Report the units of the object.
+/**
+ */
 
 std::string 
 RpNumber::getUnits() const {
@@ -91,56 +98,61 @@ RpNumber::getUnits() const {
 }
 
 
-/************************************************************************
- *
- * report the default value of the object 
- *
- ************************************************************************/
+/**********************************************************************/
+// METHOD: getDefaultValue()
+/// Report the default value of the object.
+/**
+ */
+
 double
 RpNumber::getDefaultValue(void* null_val) const {
 
     return *((double*) RpVariable::getDefaultValue()); 
 }
 
-/************************************************************************
- *
- * report the current value of the object 
- *
- ************************************************************************/
+/**********************************************************************/
+// METHOD: getCurrentValue()
+/// Report the current value of the object.
+/**
+ */
+
 double
 RpNumber::getCurrentValue(void* null_val) const {
 
     return *((double*) RpVariable::getCurrentValue()); 
 }
 
-/************************************************************************
- *
- * report the min of the object 
- *
- ************************************************************************/
+/**********************************************************************/
+// METHOD: getMin()
+/// Report the min of the object.
+/**
+ */
+
 double
 RpNumber::getMin() const {
 
     return min;
 }
 
-/************************************************************************
- *
- * report the max of the object 
- *
- ************************************************************************/
+/**********************************************************************/
+// METHOD: getMax()
+/// report the max of the object.
+/**
+ */
+
 double
 RpNumber::getMax() const {
 
     return max;
 }
 
-/************************************************************************
- *
- * convert the number object to another unit from string
- * store the result as the currentValue
- *
- ************************************************************************/
+/**********************************************************************/
+// METHOD: convert()
+/// Convert the number object to another unit from string
+/**
+ * Store the result as the currentValue.
+ */
+
 double
 RpNumber::convert(std::string toUnitStr, int storeResult, int* result) {
 
@@ -182,11 +194,12 @@ RpNumber::convert(std::string toUnitStr, int storeResult, int* result) {
     return retVal;
 }
 
-/************************************************************************
- *
- * convert the number object to another unit from string
- *
- ************************************************************************/
+/**********************************************************************/
+// METHOD: convert()
+/// Convert the number object to another unit from string.
+/**
+ */
+
 double
 RpNumber::convert(std::string toUnitStr, int* result) {
 
@@ -203,11 +216,12 @@ RpNumber::convert(std::string toUnitStr, int* result) {
     return convert(toUnit, result); 
 }
 
-/************************************************************************
- *
- * convert the number object to another unit from RpUnits object
- *
- ************************************************************************/
+/**********************************************************************/
+// METHOD: convert()
+/// Convert the number object to another unit from RpUnits object.
+/**
+ */
+
 double
 RpNumber::convert(const RpUnits* toUnit, int *result) {
 

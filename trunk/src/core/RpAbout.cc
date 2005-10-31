@@ -1,136 +1,143 @@
 /*
+ * ----------------------------------------------------------------------
+ *  RpAbout - Rappture 2.0 About XML object
+ *
  * ======================================================================
+ *  AUTHOR:  Derrick Kearney, Purdue University
  *  Copyright (c) 2004-2005  Purdue Research Foundation
  *
  *  See the file "license.terms" for information on usage and
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  * ======================================================================
  */
- #ifndef _RpABOUT_H
-     #include "RpAbout.h"
- #endif
 
-/************************************************************************
- *                                                                      
- * set the label of this object
- *                                                                      
- ************************************************************************/
+ #include "RpAbout.h"
+
+/**********************************************************************/
+// METHOD: setLabel()
+/// Set the label of this object.
+/**
+ */
 
 RpAbout&
-RpAbout::setLabel(std::string newLabel)
-{
+RpAbout::setLabel(std::string newLabel) {
+
     label = newLabel;
-    return *this; 
+    return *this;
 }
 
-/************************************************************************
- *                                                                      
- * set the description of this object 
- *                                                                      
- ************************************************************************/
+/**********************************************************************/
+// METHOD: setDesc()
+/// Set the description of this object.
+/**
+ */
 
 RpAbout&
-RpAbout::setDesc(std::string newDesc)
-{
-    desc = newDesc; 
-    return *this; 
+RpAbout::setDesc(std::string newDesc) {
+
+    desc = newDesc;
+    return *this;
 }
 
-/************************************************************************
- *                                                                      
- * set the hints of this object
- *                                                                      
- ************************************************************************/
+/**********************************************************************/
+// METHOD: setHints()
+/// Set the hints of this object.
+/**
+ */
 
 RpAbout&
-RpAbout::setHints(std::string newHints)
-{
-    hints = newHints; 
-    return *this; 
+RpAbout::setHints(std::string newHints) {
+
+    hints = newHints;
+    return *this;
 }
 
-/************************************************************************
- *                                                                      
- * set the color of this object
- *                                                                      
- ************************************************************************/
+/**********************************************************************/
+// METHOD: setColor()
+/// Set the color of this object.
+/**
+ */
 
 RpAbout&
-RpAbout::setColor(std::string newColor)
-{
-    color = newColor; 
-    return *this; 
+RpAbout::setColor(std::string newColor) {
+
+    color = newColor;
+    return *this;
 }
 
-/************************************************************************
- *                                                                      
- * set the icon of this object
- *                                                                      
- ************************************************************************/
+/**********************************************************************/
+// METHOD: setIcon()
+/// Set the icon of this object.
+/**
+ */
 
-RpAbout& 
-RpAbout::setIcon(std::string newIcon)
-{
-    icon = newIcon; 
-    return *this; 
+RpAbout&
+RpAbout::setIcon(std::string newIcon) {
+
+    icon = newIcon;
+    return *this;
 }
 
 
-/************************************************************************
- *                                                                      
- * report the label of this object 
- *                                                                      
- ************************************************************************/
-std::string 
-RpAbout::getLabel() const
-{
-    return label; 
-}
+/**********************************************************************/
+// METHOD: getLabel()
+/// Report the label of this object.
+/**
+ */
 
-/************************************************************************
- *                                                                      
- * report the description of this object
- *                                                                      
- ************************************************************************/
 std::string
-RpAbout::getDesc() const
-{
-    return desc; 
+RpAbout::getLabel() const {
+
+    return label;
 }
 
-/************************************************************************
- *                                                                      
- * report the hints of this object
- *                                                                      
- ************************************************************************/
+/**********************************************************************/
+// METHOD: getDesc()
+/// Report the description of this object.
+/**
+ */
+
 std::string
-RpAbout::getHints() const
-{
-    return hints; 
+RpAbout::getDesc() const {
+
+    return desc;
 }
 
-/************************************************************************
- *                                                                      
- * report the color of this object 
- *                                                                      
- ************************************************************************/
-std::string 
-RpAbout::getColor() const
-{
-    return color; 
+/**********************************************************************/
+// METHOD: getHints()
+/// Report the hints of this object.
+/**
+ */
+
+std::string
+RpAbout::getHints() const {
+
+    return hints;
 }
 
-/************************************************************************
- *                                                                      
- * report the icon of this object 
- *                                                                      
- ************************************************************************/
-std::string 
-RpAbout::getIcon() const
-{
-    return icon; 
+/**********************************************************************/
+// METHOD: getColor()
+/// Report the color of this object.
+/**
+ */
+
+std::string
+RpAbout::getColor() const {
+
+    return color;
+}
+
+/**********************************************************************/
+// METHOD: getIcon()
+/// Report the icon of this object.
+/**
+ */
+
+std::string
+RpAbout::getIcon() const {
+
+    return icon;
 }
 
 
 // -------------------------------------------------------------------- //
-
