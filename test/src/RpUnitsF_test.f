@@ -13,21 +13,21 @@ c ======================================================================
       program units_test
         IMPLICIT NONE
 
-        integer rp_units_convert_str, rp_units_add_presets
+        integer rp_units_convert_str
         integer rp_units_convert_dbl
 
         double precision dblVal
         character*40 retStr
         integer retVal
 
-        retVal = rp_units_add_presets("all")
-
         retVal = rp_units_convert_str("72F","C",retStr)
         print *,"72F = ",retStr
+        print *,"correct retVal = 22.222C",retVal
         print *,"retVal = ",retVal
 
         retVal = rp_units_convert_dbl("72F","C",dblVal)
         print *,"72F = ",dblVal, " (no units)"
+        print *,"correct retVal = 22.222",retVal
         print *,"retVal = ",retVal
 
       end program units_test

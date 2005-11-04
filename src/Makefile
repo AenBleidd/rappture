@@ -40,6 +40,7 @@ DEBUG           = -g -Wall
 DEBUG_PLUS      = -g -DDEBUG
 PY              = python
 MEX             = mex
+OCT             = mkoctfile
 
 LN              = ln
 
@@ -56,6 +57,7 @@ FORT_SRC        = $(SRC_DIR)/fortran
 CEE_SRC         = $(SRC_DIR)/cee
 PY_SRC          = $(SRC_DIR)/python
 MATLAB_SRC      = $(SRC_DIR)/matlab
+OCTAVE_SRC      = $(SRC_DIR)/octave
 
 LIB_INC_PREFIX  = -Wl,-rpath,$(LIB_DIR) -L$(LIB_DIR)
 LIB_RP_OBJECTS  = $(LIB_INC_PREFIX) -lRpObjects
@@ -66,12 +68,13 @@ INCL_CEE        = -I$(INCLUDES_DIR)/cee
 INCL_FORTRAN    = -I$(INCLUDES_DIR)/fortran
 INCL_PY         = -I$(INCLUDES_DIR)/python
 INCL_MATLAB     = -I$(INCLUDES_DIR)/matlab
+INCL_OCTAVE     = -I$(INCLUDES_DIR)/octave
 
 
 # default:
 
 all: ${PROGS}
-install: all install_py install_rappture install_rpobjs #install_matlab
+install: all install_py install_rappture install_rpobjs #install_matlab #install_octave
 
 RP_IO_DEPS      = RpLibrary.o RpLibraryCInterface.o RpLibraryFInterface.o \
                   scew_extras.o
@@ -129,6 +132,9 @@ install_py: RpUnits.o RpUnitsStd.o
 install_matlab: RpMatlab
 	cp -d $(MATLAB_SRC)/*.mex* $(RP_INSTALL_BASE)/lib
 
+#### Octave ########################################################
+install_octave: RpOctave
+	cp -d $(OCTAVE_SRC)/*.oct* $(RP_INSTALL_BASE)/lib
 
 # include core source files
 
@@ -246,11 +252,48 @@ RpMatlab:
 	$(MEX) $(MATLAB_SRC)/rpConvertObjDbl.cc    $(MATLAB_COMP_ARGS)
 	$(MEX) $(MATLAB_SRC)/rpAddPresets.cc       $(MATLAB_COMP_ARGS)
 
-
+OCT_INCLS = $(INCL_OCTAVE) $(INCL_CORE) $(INCL_RP_DEPS)
+OCTAVE_COMP_ARGS = $(OCT_INCLS) -L$(LIB_DIR) -lrappture
+RpOctave:
+	$(OCT) $(OCTAVE_SRC)/rpAddPresets.cc       $(OCTAVE_COMP_ARGS)
+	$(OCT) $(OCTAVE_SRC)/rpChildrenByType.cc   $(OCTAVE_COMP_ARGS)
+	$(OCT) $(OCTAVE_SRC)/rpChildren.cc         $(OCTAVE_COMP_ARGS)
+	$(OCT) $(OCTAVE_SRC)/rpConvert.cc          $(OCTAVE_COMP_ARGS)
+	$(OCT) $(OCTAVE_SRC)/rpConvertDbl.cc       $(OCTAVE_COMP_ARGS)
+	$(OCT) $(OCTAVE_SRC)/rpConvertStr.cc       $(OCTAVE_COMP_ARGS)
+	$(OCT) $(OCTAVE_SRC)/rpConvertObjDbl.cc    $(OCTAVE_COMP_ARGS)
+	$(OCT) $(OCTAVE_SRC)/rpConvertObjStr.cc    $(OCTAVE_COMP_ARGS)
+	$(OCT) $(OCTAVE_SRC)/rpDefineUnit.cc       $(OCTAVE_COMP_ARGS)
+	$(OCT) $(OCTAVE_SRC)/rpElementAsComp.cc    $(OCTAVE_COMP_ARGS)
+	$(OCT) $(OCTAVE_SRC)/rpElementAsId.cc      $(OCTAVE_COMP_ARGS)
+	$(OCT) $(OCTAVE_SRC)/rpElementAsObject.cc  $(OCTAVE_COMP_ARGS)
+	$(OCT) $(OCTAVE_SRC)/rpElementAsType.cc    $(OCTAVE_COMP_ARGS)
+	$(OCT) $(OCTAVE_SRC)/rpElement.cc          $(OCTAVE_COMP_ARGS)
+	$(OCT) $(OCTAVE_SRC)/rpFind.cc             $(OCTAVE_COMP_ARGS)
+	$(OCT) $(OCTAVE_SRC)/rpGetBasis.cc         $(OCTAVE_COMP_ARGS)
+	$(OCT) $(OCTAVE_SRC)/rpGet.cc              $(OCTAVE_COMP_ARGS)
+	$(OCT) $(OCTAVE_SRC)/rpGetString.cc        $(OCTAVE_COMP_ARGS)
+	$(OCT) $(OCTAVE_SRC)/rpGetDouble.cc        $(OCTAVE_COMP_ARGS)
+	$(OCT) $(OCTAVE_SRC)/rpGetExponent.cc      $(OCTAVE_COMP_ARGS)
+	$(OCT) $(OCTAVE_SRC)/rpGetUnits.cc         $(OCTAVE_COMP_ARGS)
+	$(OCT) $(OCTAVE_SRC)/rpGetUnitsName.cc     $(OCTAVE_COMP_ARGS)
+	$(OCT) $(OCTAVE_SRC)/rpLib.cc              $(OCTAVE_COMP_ARGS)
+	$(OCT) $(OCTAVE_SRC)/rpMakeMetric.cc       $(OCTAVE_COMP_ARGS)
+	$(OCT) $(OCTAVE_SRC)/rpNodeComp.cc         $(OCTAVE_COMP_ARGS)
+	$(OCT) $(OCTAVE_SRC)/rpNodeId.cc           $(OCTAVE_COMP_ARGS)
+	$(OCT) $(OCTAVE_SRC)/rpNodeType.cc         $(OCTAVE_COMP_ARGS)
+	$(OCT) $(OCTAVE_SRC)/rpPut.cc              $(OCTAVE_COMP_ARGS)
+	$(OCT) $(OCTAVE_SRC)/rpPutDouble.cc        $(OCTAVE_COMP_ARGS)
+	$(OCT) $(OCTAVE_SRC)/rpPutDoubleId.cc      $(OCTAVE_COMP_ARGS)
+	$(OCT) $(OCTAVE_SRC)/rpPutDoubleId.cc      $(OCTAVE_COMP_ARGS)
+	$(OCT) $(OCTAVE_SRC)/rpPutString.cc        $(OCTAVE_COMP_ARGS)
+	$(OCT) $(OCTAVE_SRC)/rpPutStringId.cc      $(OCTAVE_COMP_ARGS)
+	$(OCT) $(OCTAVE_SRC)/rpResult.cc           $(OCTAVE_COMP_ARGS)
+	$(OCT) $(OCTAVE_SRC)/rpXml.cc              $(OCTAVE_COMP_ARGS)
 
 
 
 #### CLEAN UP ############################################################
 clean: 
-	- rm -f *.o librappture.so* libRp*.so* rp*.mex*
+	- rm -f *.o librappture.so* libRp*.so* rp*.mex* $(OCTAVE_SRC)/rp*.o*
 	- rm -rf build

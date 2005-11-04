@@ -25,9 +25,7 @@ int main()
 {
     double value = 0.0;
     std::string strValue;
-    // int failTest = 0;
     int result = 0;
-    // std::list<double,RpUnits *> 
 
     //
     // use main to test class functionality
@@ -40,33 +38,6 @@ int main()
     // of units
     //
     printf ("=============== TEST 1 ===============\n");
-/*
-    std::string srch_str = std::string("cm");
-
-    RpUnits* meters2 = RpUnits::find("cm");
-    if (meters2) { 
-        std::cout << "meters2 exists" << std::endl;
-        std::cout << "meters2 = :" << meters2->getUnitsName() <<":"<< std::endl;
-    }
-
-    std::cout << "complete"<< std::endl;
-
-*/
-
-/*
-    const RpUnits* mobility = RpUnits::defineCmplx("cm2/Vs", NULL);
-    std::cout << "mobility = :" << mobility->getUnitsName() <<":"<< std::endl;
-
-    const RpUnits* mobility2 = RpUnits::find("cm2V-1s-1");
-    if (mobility2) { 
-        std::cout << "mobility2 exists" << std::endl;
-        std::cout << "mobility2 = :" << mobility2->getUnits() <<":"<< std::endl;
-        std::cout << "mobility2 = :" << mobility2->getUnitsName() <<":"<< std::endl;
-    }
-    else {
-        std::cout << "mobility2 dn exists" << std::endl;
-    }
-*/
 
     const RpUnits* meters = RpUnits::find("m");
     const RpUnits* cmeters = RpUnits::find("cm");

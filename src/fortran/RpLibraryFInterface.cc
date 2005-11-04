@@ -438,7 +438,7 @@ int rp_lib_child_obj ( int* handle,
 */
 
 /**********************************************************************/
-// FUNCTION: rp_lib()
+// FUNCTION: rp_lib_get()
 /// Get data located at 'path' and return it as a string value.
 /**
  */
