@@ -105,7 +105,7 @@ int main(int argc, char * argv[])
     rpResult(lib);
 
     // free the rappture library
-    rpFreeLibrary(lib);
+    rpFreeLibrary(&lib);
 
     // exit program
     return 0;

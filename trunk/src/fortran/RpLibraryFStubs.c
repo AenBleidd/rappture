@@ -237,6 +237,36 @@ RP_LIB_GET  (           int* handle,
     return rp_lib_get(handle,path,retText,path_len,retText_len);
 }
 
+void
+rp_lib_get_str_ (       int* handle,
+                        char* path,
+                        char* retText,
+                        int path_len,
+                        int retText_len ) {
+
+    return rp_lib_get_str(handle,path,retText,path_len,retText_len);
+}
+
+void
+rp_lib_get_str__ (      int* handle,
+                        char* path,
+                        char* retText,
+                        int path_len,
+                        int retText_len ) {
+
+    return rp_lib_get_str(handle,path,retText,path_len,retText_len);
+}
+
+void
+RP_LIB_GET_STR  (       int* handle,
+                        char* path,
+                        char* retText,
+                        int path_len,
+                        int retText_len ) {
+
+    return rp_lib_get_str(handle,path,retText,path_len,retText_len);
+}
+
 double
 rp_lib_get_double_ (    int* handle,
                         char* path,

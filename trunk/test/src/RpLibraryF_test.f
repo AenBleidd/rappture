@@ -31,13 +31,24 @@ c ======================================================================
         print *,"id = ",id
       END SUBROUTINE  test_element
 
+      SUBROUTINE  test_get(lib,path)
+        integer lib
+        character*100 path, retText
+
+        print *,"TESTING GET       : path = ",path
+
+        call rp_lib_get(lib, path, retText)
+
+        print *,"retText = ",retText
+      END SUBROUTINE  test_get
+
       SUBROUTINE  test_get_str(lib,path)
         integer lib
         character*100 path, retText
 
-        print *,"TESTING GET: path = ",path
+        print *,"TESTING GET STRING: path = ",path
 
-        call rp_lib_get(lib, path, retText)
+        call rp_lib_get_str(lib, path, retText)
 
         print *,"retText = ",retText
       END SUBROUTINE  test_get_str
@@ -45,9 +56,9 @@ c ======================================================================
       SUBROUTINE  test_get_dbl(lib,path)
         integer lib
         double precision rslt, rp_lib_get_double
-        character*100 path, retText
+        character*100 path
 
-        print *,"TESTING GET: path = ",path
+        print *,"TESTING GET DOUBLE: path = ",path
 
         rslt = rp_lib_get_double(lib, path)
 
@@ -57,26 +68,22 @@ c ======================================================================
       program rplib_f_tests
         IMPLICIT NONE
 
-        integer rp_lib, rp_units_convert_dbl, rp_units_add_presets
-        integer rp_lib_element_obj
+        integer rp_lib
 
-        integer driver, ok
-        double precision T, Ef, kT, Emin, Emax, dE, f, E
-        CHARACTER*100 inFile, strVal, path
-        character*40 xy
+        integer driver
+        CHARACTER*100 inFile, path
 
         call getarg(1,inFile)
         driver = rp_lib(inFile)
         ! print *,"dict key = ",driver
 
-        ok = rp_units_add_presets("all")
-
         ! TESTING ELEMENT
-        !call test_element(driver, "input.number(min)")
         path = "input.number(min)"
         call test_element(driver, path)
-        !call rp_lib_get(driver, path, strVal)
-        !print *,"strVal = ",strVal
+
+        ! TESTING GET
+        path = "input.number(min).current"
+        call test_get(driver, path)
 
         ! TESTING GET STRING
         path = "input.number(min).current"

@@ -63,6 +63,12 @@ void rp_lib_get_ (          int* handle,
                             int path_len,
                             int retText_len );
 
+void rp_lib_get_str_ (      int* handle,
+                            char* path,
+                            char* retText,
+                            int path_len,
+                            int retText_len );
+
 double rp_lib_get_double_ ( int* handle,
                             char* path,
                             int path_len);
@@ -167,6 +173,12 @@ int rp_lib_children__ (     int* handle, /* integer handle of library */
 
 
 void rp_lib_get__ (         int* handle,
+                            char* path,
+                            char* retText,
+                            int path_len,
+                            int retText_len );
+
+void rp_lib_get_str__ (     int* handle,
                             char* path,
                             char* retText,
                             int path_len,
@@ -277,6 +289,12 @@ int RP_LIB_CHILDREN (       int* handle, /* integer handle of library */
 
 
 void RP_LIB_GET (           int* handle,
+                            char* path,
+                            char* retText,
+                            int path_len,
+                            int retText_len );
+
+void RP_LIB_GET_STR (       int* handle,
                             char* path,
                             char* retText,
                             int path_len,

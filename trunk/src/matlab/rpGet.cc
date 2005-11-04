@@ -2,7 +2,7 @@
  * ----------------------------------------------------------------------
  *  INTERFACE: Matlab Rappture Library Source
  *
- *    nodeHandle = rpGet(libHandle,path)
+ *    retStr = rpGet(libHandle,path)
  *
  * ======================================================================
  *  AUTHOR:  Derrick Kearney, Purdue University
@@ -18,11 +18,11 @@
 void mexFunction(int nlhs, mxArray *plhs[],
                  int nrhs, const mxArray *prhs[])
 {
-    int         libIndex = 0;
+    int         libIndex    = 0;
     int         retLibIndex = 0;
-    RpLibrary*  lib = NULL;
-    RpLibrary*  retLib = NULL;
-    char*       path = NULL;
+    RpLibrary*  lib         = NULL;
+    char*       path        = NULL;
+    const char* retString   = NULL;
 
     /* Check for proper number of arguments. */
     if (nrhs != 2)
@@ -38,13 +38,12 @@ void mexFunction(int nlhs, mxArray *plhs[],
         lib = getObject_Lib(libIndex);
 
         if (lib) {
-            retLib = rpGet(lib,path);
-            retLibIndex = storeObject_Lib(retLib);
+            retString = rpGet(lib,path);
         }
     }
 
-    /* Set double scalar node handle to MATLAB mexFunction output*/
-    plhs[0] = mxCreateDoubleScalar(retLibIndex);
+    /* Set C-style string output_buf to MATLAB mexFunction output*/
+    plhs[0] = mxCreateString(retString);
 
     return;
 }

@@ -21,7 +21,7 @@ typedef struct RpLibrary RpLibrary;
 // lib definition functions
 //
 RpLibrary*  rpLibrary             (const char* path);
-void rpFreeLibrary                (RpLibrary* lib);
+void rpFreeLibrary                (RpLibrary** lib);
 
 // RpLibrary member functions
 RpLibrary*  rpElement             (RpLibrary* lib, const char* path);
@@ -52,7 +52,7 @@ const char* rpChildrenAsId        (RpLibrary* lib,
                                  const char* type   );
  */
 
-RpLibrary*  rpGet                 (RpLibrary* lib, const char* path);
+const char* rpGet                 (RpLibrary* lib, const char* path);
 const char* rpGetString           (RpLibrary* lib, const char* path);
 double      rpGetDouble           (RpLibrary* lib, const char* path);
 

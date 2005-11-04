@@ -25,10 +25,12 @@ extern "C" {
     }
 
     void
-    rpFreeLibrary (RpLibrary* lib)
+    rpFreeLibrary (RpLibrary** lib)
     {
-        delete lib;
-        lib = NULL;
+        if (lib && (*lib)) {
+            delete (*lib);
+            (*lib) = NULL;
+        }
     }
 
     RpLibrary*
@@ -98,10 +100,12 @@ extern "C" {
         return lib->children(path,childEle,type);
     }
 
-    RpLibrary*
+    const char*
     rpGet (RpLibrary* lib, const char* path)
     {
-        return lib->get(path);
+        static std::string retStr = "";
+        retStr = lib->getString(path);
+        return retStr.c_str();
     }
 
     const char*
@@ -201,6 +205,7 @@ extern "C" {
     void
     rpResult (RpLibrary* lib)
     {
+        // signal the processing is complete
         lib->result();
     }
 
