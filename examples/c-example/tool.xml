@@ -3,7 +3,7 @@
     <tool>
         <title>SIN(x) Graph</title>
         <about>Press Simulate to view results.</about>
-        <command> @tool/plotc @driver</command>
+        <command> @tool/plot @driver</command>
     </tool>
     <input>
         <number id="min">

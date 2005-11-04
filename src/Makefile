@@ -291,7 +291,14 @@ RpOctave:
 	$(OCT) $(OCTAVE_SRC)/rpResult.cc           $(OCTAVE_COMP_ARGS)
 	$(OCT) $(OCTAVE_SRC)/rpXml.cc              $(OCTAVE_COMP_ARGS)
 
-
+docs:
+	if test ! -d docs; then \
+		mkdir docs; \
+	fi
+	if test ! -d docs/doxygen; then \
+		mkdir docs/doxygen; \
+	fi
+	doxygen
 
 #### CLEAN UP ############################################################
 clean: 

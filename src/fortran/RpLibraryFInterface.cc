@@ -461,6 +461,39 @@ void rp_lib_get( int* handle, /* integer handle of library */
         lib = getObject_Lib(*handle);
 
         if (lib) {
+            xmlText = lib->get(inPath);
+            if (!xmlText.empty()) {
+                fortranify(xmlText.c_str(),retText,retText_len);
+            }
+
+        }
+    }
+}
+
+/**********************************************************************/
+// FUNCTION: rp_lib_get_str()
+/// Get data located at 'path' and return it as a string value.
+/**
+ */
+void rp_lib_get_str( int* handle, /* integer handle of library */
+                   char* path,      /* null terminated path */
+                   char* retText,   /* return text buffer for fortran*/
+                   int path_len,
+                   int retText_len /* length of return text buffer */
+                 )
+{
+    std::string xmlText = "";
+
+    RpLibrary* lib = NULL;
+
+    std::string inPath = "";
+
+    inPath = null_terminate_str(path,path_len);
+
+    if ((handle) && (*handle != 0)) {
+        lib = getObject_Lib(*handle);
+
+        if (lib) {
             xmlText = lib->getString(inPath);
             if (!xmlText.empty()) {
                 fortranify(xmlText.c_str(),retText,retText_len);
@@ -469,6 +502,7 @@ void rp_lib_get( int* handle, /* integer handle of library */
         }
     }
 }
+
 
 /**********************************************************************/
 // FUNCTION: rp_lib_get_double()

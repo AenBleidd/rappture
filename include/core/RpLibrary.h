@@ -33,19 +33,19 @@ class RpLibrary
 
         // users member fxns
 
-        RpLibrary* element (std::string path = "", std::string as = "object");
+        RpLibrary* element (std::string path = "");
 
         // should return RpObject& but for simplicity right now it doesnt
         // RpObject will either be an Array, RpString, RpNumber ...
 
-        RpLibrary*  children (  std::string path = "",
+        RpLibrary*  children  ( std::string path = "",
                                 RpLibrary* rpChildNode = NULL,
                                 std::string type = "",
                                 int* childCount = NULL  );
 
-        RpLibrary*  get (std::string path = "");
-        std::string getString (std::string path = "");
-        double      getDouble (std::string path = "");
+        std::string get       ( std::string path = "");
+        std::string getString ( std::string path = "");
+        double      getDouble ( std::string path = "");
 
         RpLibrary& put (    std::string path,
                             std::string value,
@@ -66,9 +66,6 @@ class RpLibrary
         std::string nodeComp();
 
         void result();
-        const char* nodeTypeC();
-        const char* nodeIdC();
-        const char* nodeCompC();
 
         // no arg constructor
         // used when we dont want to read an xml file to populate the xml tree
@@ -138,7 +135,8 @@ class RpLibrary
 
 
         // copy constructor
-        // for some reason making this a const gives me problems when calling xml()
+        // for some reason making this a const gives me problems 
+        // when calling xml()
         // need help looking into this
         // RpLibrary ( const RpLibrary& other )
         RpLibrary ( RpLibrary& other )
@@ -198,7 +196,9 @@ class RpLibrary
             } // end if (buffer.length() != 0) {
         }// end copy constructor
 
-        // for some reason making this a const gives me problems when calling xml()
+        // copy assignment operator
+        // for some reason making this a const gives me problems 
+        // when calling xml()
         // need help looking into this
         // RpLibrary& operator= (const RpLibrary& other) {
         RpLibrary& operator= (RpLibrary& other) {
@@ -223,8 +223,8 @@ class RpLibrary
                 scew_parser_ignore_whitespaces(parser, 1);
 
                 // Loads the XML from other
-                // the length cannot be 0 because xml() should not be returning
-                // empty strings
+                // the length cannot be 0 because xml() 
+                // should not be returning empty strings
                 buffer = other.xml();
                 buffLen = buffer.length();
 

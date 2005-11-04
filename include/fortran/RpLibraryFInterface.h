@@ -57,6 +57,12 @@ void rp_lib_get (           int* handle,
                             int path_len,
                             int retText_len );
 
+void rp_lib_get_str (       int* handle,
+                            char* path,
+                            char* retText,
+                            int path_len,
+                            int retText_len );
+
 double rp_lib_get_double (  int* handle,
                             char* path,
                             int path_len);

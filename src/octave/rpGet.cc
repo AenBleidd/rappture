@@ -61,7 +61,7 @@ Error code, err=0 on success, anything else is failure.")
                 lib = getObject_Lib(libHandle);
 
                 if (lib) {
-                    retStr = lib->getString(path);
+                    retStr = lib->get(path);
                     err = 0;
                 }
                 else {

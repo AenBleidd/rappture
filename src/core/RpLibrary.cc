@@ -447,7 +447,7 @@ RpLibrary::_find(std::string path, int create)
  */
 
 RpLibrary*
-RpLibrary::element (std::string path, std::string as)
+RpLibrary::element (std::string path)
 {
     RpLibrary* retLib; 
 
@@ -565,29 +565,23 @@ RpLibrary::children (   std::string path,
     return retLib;
 }
 
-
 /**********************************************************************/
 // METHOD: get()
-/// Return the RpLibrary object held at location 'path'
+/// Return the string value of the object held at location 'path'
 /**
  */
 
-RpLibrary*
+std::string
 RpLibrary::get (std::string path)
 {
-    RpLibrary* retVal; 
-
     scew_element* retNode = _find(path,0);
 
     if (retNode == NULL) {
         // need to raise error
-        return NULL;
+        return "";
     }
 
-    retVal = new RpLibrary(retNode);
-
-    //who delete's this memory?
-    return retVal;
+    return std::string(scew_element_contents(retNode));
 }
 
 /**********************************************************************/
@@ -599,23 +593,12 @@ RpLibrary::get (std::string path)
 std::string
 RpLibrary::getString (std::string path)
 {
-    // std::string retVal; 
-
-    /*
-    if (path.empty()) {
-        return "";
-    }
-    */
-
     scew_element* retNode = _find(path,0);
 
     if (retNode == NULL) {
         // need to raise error
         return "";
     }
-
-    // retVal = std::string(scew_element_contents(retNode));
-    // return retVal;
 
     return std::string(scew_element_contents(retNode));
 }

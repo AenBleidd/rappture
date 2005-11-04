@@ -15,6 +15,8 @@
 
 int test_element (RpLibrary* lib, std::string path );
 int test_get (RpLibrary* lib, std::string path );
+int test_getString (RpLibrary* lib, std::string path );
+int test_getDouble (RpLibrary* lib, std::string path );
 
 int test_element (RpLibrary* lib, std::string path )
 {
@@ -31,6 +33,25 @@ int test_element (RpLibrary* lib, std::string path )
         std::cout << "searchEle comp = :" << searchEle->nodeComp() << ":" << std::endl;
         std::cout << "searchEle   id = :" << searchEle->nodeId()   << ":" << std::endl;
         std::cout << "searchEle type = :" << searchEle->nodeType() << ":" << std::endl;
+        retVal = 0;
+    }
+
+    return retVal;
+}
+
+int test_get (RpLibrary* lib, std::string path )
+{
+    int retVal = 1;
+    std::string searchVal = lib->get(path);
+
+    std::cout << "TESTING GET       : path = " << path << std::endl;
+
+    if (searchVal.empty()) {
+        std::cout << "searchVal is EMPTY STRING" << std::endl;
+        retVal = 1;
+    }
+    else {
+        std::cout << "searchVal = :" << searchVal << ":" << std::endl;
         retVal = 0;
     }
 
@@ -134,9 +155,9 @@ main(int argc, char** argv)
     RpLibrary* lib = NULL;
     RpLibrary lib2;
 
-    if (argc < 3)
+    if (argc < 2)
     {
-        printf("usage: RpLibrary_test infile.xml outfile.xml\n");
+        printf("usage: RpLibrary_test infile.xml\n");
         return EXIT_FAILURE;
     }
 
@@ -151,6 +172,8 @@ main(int argc, char** argv)
     test_getString(lib, "input.number(max).current");
     test_getString(lib, "output.curve.about.label");
 
+    lib->put("input.number(test_one).default", "3000");
+    test_get(lib, "input.number(test_one).default");
     lib->put("input.number(test).default", "1000");
     test_getString(lib, "input.number(test).default");
     lib->put("input.number(test).current", 2000);
