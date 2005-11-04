@@ -128,9 +128,9 @@ storeObject_UnitsStr(std::string objectName) {
         // no error checking to make sure it was successful in entering
         // the new entry.
         ObjDictUnits.set(dictNextKey,objectName, &newEntry);
+        retVal = dictNextKey;
     }
 
-    retVal = dictNextKey;
     return retVal;
 }
 
