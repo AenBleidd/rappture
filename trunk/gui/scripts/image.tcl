@@ -35,7 +35,7 @@ itcl::body Rappture::Image::constructor {xmlobj path} {
         error "bad value \"$xmlobj\": should be LibraryObj"
     }
     set _xmlobj $xmlobj
-    set data [string trim [$xmlobj get $path.current.data]]
+    set data [string trim [$xmlobj get $path.current]]
     if {[string length $data] == 0} {
         set _image [image create photo]
     } else {

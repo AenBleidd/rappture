@@ -23,7 +23,7 @@ set imh [image create photo -data $data]
 set dest [image create photo]
 blt::winop image rotate $imh $dest $angle
 
-$driver put output.image.current.data [$dest data -format jpeg]
+$driver put output.image.current [$dest data -format jpeg]
 
 # save the updated XML describing the run...
 Rappture::result $driver
