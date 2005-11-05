@@ -144,6 +144,9 @@ itcl::body Rappture::Controls::insert {pos path} {
             Rappture::TextEntry $w $_owner $path
             bind $w <<Value>> [itcl::code $this _controlChanged $path]
         }
+        image {
+            Rappture::ImageEntry $w $_owner $path
+        }
         control {
             set label [$_owner xml get $path.label]
             if {"" == $label} { set label "Simulate" }

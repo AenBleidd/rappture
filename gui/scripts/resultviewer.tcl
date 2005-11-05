@@ -13,6 +13,7 @@
 #  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 # ======================================================================
 package require Itk
+package require Img
 
 itcl::class Rappture::ResultViewer {
     inherit itk::Widget
@@ -281,6 +282,14 @@ itcl::body Rappture::ResultViewer::_plotAdd {dataobj {settings ""}} {
                 }
             }
         }
+        ::Rappture::Image {
+            set mode "image"
+            if {![info exists _mode2widget($mode)]} {
+                set w $itk_interior.image
+                Rappture::ImageResult $w
+                set _mode2widget($mode) $w
+            }
+        }
         default {
             error "don't know how to plot <$type> data"
         }
@@ -362,6 +371,9 @@ itcl::body Rappture::ResultViewer::_xml2data {xmlobj path} {
         }
         table {
             return [Rappture::Table ::#auto $xmlobj $path]
+        }
+        image {
+            return [Rappture::Image ::#auto $xmlobj $path]
         }
         string - log {
             return [$xmlobj element -as object $path]
