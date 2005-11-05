@@ -1,0 +1,42 @@
+<?xml version="1.0"?>
+<run>
+<tool>
+  <title>image</title>
+  <about>Example of a Rappture &lt;image&gt; object.
+
+Images are used to decorate input and show output.
+
+When you click the Simulate button, the input image will be rotated to produce the output image.
+  </about>
+  <command>
+    tclsh @tool/image.tcl @driver
+  </command>
+</tool>
+<input>
+  <loader>
+    <about>
+      <label>Image</label>
+      <description>Use this to load different images.</description>
+    </about>
+    <example>*.xml</example>
+    <default>nanohub.xml</default>
+  </loader>
+  <image>
+    <about><diffs>ignore</diffs></about>
+  </image>
+  <number id="angle">
+    <about>
+      <label>Rotate</label>
+      <description>Rotate image by this amount in degrees.</description>
+    </about>
+    <min>0</min>
+    <max>360</max>
+    <default>0</default>
+  </number>
+</input>
+<output>
+  <image id="outi">
+    <about><label>Rotated Image</label></about>
+  </image>
+</output>
+</run>
