@@ -97,6 +97,7 @@ int main(int argc, char * argv[])
         fy = sin(fx);
         myStr << fx << " " << fy << std::endl;
         lib->put("output.curve.component.xy", myStr.str(), "result", 1);
+	myStr.str("");
     }
 
 
