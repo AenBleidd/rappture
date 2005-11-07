@@ -7,7 +7,7 @@
 #
 
 exdir=/opt/rappture/examples
-dirs="app-fermi/tcl app-fermi/python app-fermi/fortran c-example graph zoo/structure"
+dirs="app-fermi/tcl app-fermi/python app-fermi/fortran c-example graph zoo/structure zoo/image zoo/cloud"
 
 echo "7 examples will be shown-->"
 for i in $dirs

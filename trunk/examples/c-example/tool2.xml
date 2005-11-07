@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <run>
     <tool>
-        <title>SIN(x) Graph</title>
+        <title>SIN(x) Graph (C example)</title>
         <about>Press Simulate to view results.</about>
         <command> @tool/plotc @driver</command>
     </tool>
