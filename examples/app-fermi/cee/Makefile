@@ -27,8 +27,8 @@ all: $(PROGS)
 
 fermi: fermi.c
 	$(CC) $(DEBUG) -DDEBUG $(INCL_FILES) -o $@ $< $(LIB_RAPPTURE) -lm
-mac-fermi: fermi.c
-	$(CC) $(DEBUG) -DDEBUG $(INCL_FILES) -o plotc $< -L$(LIB_DIR) -lrappture -lscew
+mac: fermi.c
+	$(CC) $(DEBUG) -DDEBUG $(INCL_FILES) -o fermi $< -L$(LIB_DIR) -lrappture -lscew
 
 #### CLEAN UP ############################################################
 clean:
