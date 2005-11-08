@@ -318,7 +318,9 @@ itcl::body Rappture::ImageResult::_rebuild {args} {
     }
 
     if {$_scale(max) == "?"} {
-        _zoom rescale
+        if {![_zoom rescale]} {
+            return
+        }
     }
     if {$_scale(current) == "?"} {
         _zoom reset
@@ -393,11 +395,15 @@ itcl::body Rappture::ImageResult::_zoom {option args} {
             } else {
                 set w [winfo width $itk_component(image)]
                 set h [winfo height $itk_component(image)]
+                if {$w == 1 && $h == 1} {
+                    return 0
+                }
 
                 set wfac [expr {$_max(w)/double($w)}]
                 set hfac [expr {$_max(h)/double($h)}]
                 set _scale(max) [expr {($wfac > $hfac) ? $wfac : $hfac}]
             }
+            return 1
         }
         reset {
             set _scale(current) $_scale(max)
