@@ -591,7 +591,10 @@ itcl::body Rappture::XyResult::_resetLimits {} {
             set log [$g axis cget $axis -logscale]
             if {$log} {
                 set min $_limits(${axis}log-min)
+                if {$min == 0} { set min 1 }
                 set max $_limits(${axis}log-max)
+                if {$max == 0} { set max 1 }
+
                 if {$min == $max} {
                     set logmin [expr {floor(log10(abs(0.9*$min)))}]
                     set logmax [expr {ceil(log10(abs(1.1*$max)))}]
@@ -601,6 +604,7 @@ itcl::body Rappture::XyResult::_resetLimits {} {
                     if {[string match y* $axis]} {
                         # add a little padding
                         set delta [expr {$logmax-$logmin}]
+                        if {$delta == 0} { set delta 1 }
                         set logmin [expr {$logmin-0.05*$delta}]
                         set logmax [expr {$logmax+0.05*$delta}]
                     }
