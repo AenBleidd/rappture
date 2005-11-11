@@ -24,24 +24,29 @@ RpDict DICT_TEMPLATE_U ObjDictUnits;
  * for languages that can not accept pointers to provide back to the
  * function's caller.
  *
- * Returns the key of the object in the dictionary
+ * Returns the key of the object in the dictionary 
+ * On Error, returns 0 (which also means nothing can be stored at 0)
  */
 
 int
-storeObject_Lib(RpLibrary* objectName) {
+storeObject_Lib(RpLibrary* objectName, int key) {
 
-    int retVal = -1;
-    int dictKey = ObjDict_Lib.size() + 1;
+    int retVal = 0;
+    int dictKey = key;
     int newEntry = 0;
 
     if (objectName) {
         // dictionary returns a reference to the inserted value
         // no error checking to make sure it was successful in entering
         // the new entry.
+
+        if (dictKey == 0) {
+            dictKey = ObjDict_Lib.size() + 1;
+        }
         ObjDict_Lib.set(dictKey,objectName, &newEntry); 
+        retVal = dictKey;
     }
 
-    retVal = dictKey;
     return retVal;
 }
 
@@ -60,7 +65,10 @@ storeObject_Lib(RpLibrary* objectName) {
 RpLibrary*
 getObject_Lib(int objKey) {
 
-    RpLibrary* retVal = *(ObjDict_Lib.find(objKey).getValue());
+
+    RpLibrary* retVal = NULL;
+
+    retVal = *(ObjDict_Lib.find(objKey).getValue());
 
     if (retVal == *(ObjDict_Lib.getNullEntry().getValue())) {
         retVal = NULL;

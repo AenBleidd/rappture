@@ -228,6 +228,19 @@ RpNumber::convert(const RpUnits* toUnit, int *result) {
     return units->convert(toUnit,getCurrentValue(), result); 
 }
 
+/**********************************************************************/
+// METHOD: put()
+/// Store the information of this Rappture Object into the xml
+/**
+ */
+//
+//RpNumber&
+//RpNumber::put() const {
+//
+//    
+//    return *this; 
+//}
+
 
 // -------------------------------------------------------------------- //
 

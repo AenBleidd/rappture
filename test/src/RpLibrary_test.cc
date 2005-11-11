@@ -182,6 +182,8 @@ main(int argc, char** argv)
     
     test_children(lib,"","");
     test_children(lib,"input.number(test)","");
+    test_children(lib,"input","");
+    test_children(lib,"input","number");
 
     std::cout << lib->xml() << std::endl;
     

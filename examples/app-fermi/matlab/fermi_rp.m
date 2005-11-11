@@ -1,8 +1,8 @@
 % ----------------------------------------------------------------------
-%  EXAMPLE: Fermi-Dirac function in Matlab.
+%  EXAMPLE: Fermi-Dirac function in Octave.
 %
-%  This script represents a legacy application that will be left
-%  intact, but wrapped with a Rappture interface.
+%  This script represents a newly written application with rappture 
+%  bindings and interface.
 %
 % ======================================================================
 %  AUTHOR:  Michael McLennan, Purdue University
@@ -20,10 +20,10 @@ lib = rpLib(infile);
 
 % retrieve user specified data out of the input file 
 % convert values to correct units.
-Ef = rpGetString(lib,"input.number(Ef).current");
-[Ef,err] = rpConvertDbl(Ef,"eV");
-T = rpGetString(lib,"input.number(temperature).current");
-[T,err] = rpConvertDbl(T,"K");
+Ef = rpLibGetString(lib,"input.number(Ef).current");
+[Ef,err] = rpUnitsConvertDbl(Ef,"eV");
+T = rpLibGetString(lib,"input.number(temperature).current");
+[T,err] = rpUnitsConvertDbl(T,"K");
 
 % do fermi calculations (science)...
 kT = 8.61734e-5 * T;
@@ -35,16 +35,16 @@ f = 1.0 ./ (1.0 + exp((E - Ef)/kT));
 
 % prepare out output section
 % label graphs
-rpPutString(lib,"output.curve(f12).about.label","Fermi-Dirac Factor",0);
-rpPutString(lib,"output.curve(f12).xaxis.label","Fermi-Dirac Factor",0);
-rpPutString(lib,"output.curve(f12).yaxis.label","Energy",0);
-rpPutString(lib,"output.curve(f12).yaxis.units","eV",0);
+rpLibPutString(lib,"output.curve(f12).about.label","Fermi-Dirac Factor",0);
+rpLibPutString(lib,"output.curve(f12).xaxis.label","Fermi-Dirac Factor",0);
+rpLibPutString(lib,"output.curve(f12).yaxis.label","Energy",0);
+rpLibPutString(lib,"output.curve(f12).yaxis.units","eV",0);
 
 for j=1:200
   putStr = sprintf('%12g  %12g\n', f(j), E(j));
   % put the data into the xml file
-  rpPutString(lib,"output.curve(f12).component.xy",putStr,1);
+  rpLibPutString(lib,"output.curve(f12).component.xy",putStr,1);
 end
 
 % signal the end of processing
-rpResult(lib);
+rpLibResult(lib);

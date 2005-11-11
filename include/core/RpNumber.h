@@ -62,7 +62,8 @@ class RpNumber : public RpVariable
 
         // place the information from this object into the xml library 'lib'
         // virtual RpNumber& put(RpLibrary lib);
-        // RpNumber& put() const;
+        RpNumber& put() const;
+        RpNumber& put(double currentVal);
 
 
 

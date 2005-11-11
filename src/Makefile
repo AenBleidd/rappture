@@ -129,12 +129,18 @@ install_py: RpUnits.o RpUnitsStd.o
 
 
 #### Matlab ########################################################
-install_matlab: RpMatlab
-	cp -d $(MATLAB_SRC)/*.mex* $(RP_INSTALL_BASE)/lib
+install_matlab: librappture RpMatlab
+	if test ! -d $(RP_INSTALL_BASE)/lib/matlab; then \
+		mkdir $(RP_INSTALL_BASE)/lib/matlab; \
+	fi
+	cp -d $(MATLAB_SRC)/*.mex* $(RP_INSTALL_BASE)/lib/matlab
 
 #### Octave ########################################################
-install_octave: RpOctave
-	cp -d $(OCTAVE_SRC)/*.oct* $(RP_INSTALL_BASE)/lib
+install_octave: librappture RpOctave
+	if test ! -d $(RP_INSTALL_BASE)/lib/octave; then \
+		mkdir $(RP_INSTALL_BASE)/lib/octave; \
+	fi
+	cp -d $(OCTAVE_SRC)/*.oct* $(RP_INSTALL_BASE)/lib/octave
 
 # include core source files
 
@@ -179,9 +185,6 @@ RpBindingsDict.o: $(CORE_SRC)/RpBindingsDict.cc
 
 # include cee binding definitions
 
-rappture_interface.o: $(CEE_SRC)/rappture_interface.c
-	$(CXX) -fPIC $(DEBUG) $(INCL_CEE) $(INCL_PY) -o $@ -c $<
-
 RpUnitsCInterface.o: $(CEE_SRC)/RpUnitsCInterface.cc
 	$(CXX) -fPIC $(DEBUG) $(INCL_CORE) $(INCL_CEE) -o $@ -c $?
 
@@ -192,9 +195,6 @@ RpLibraryCInterface.o: $(CEE_SRC)/RpLibraryCInterface.cc
 
 
 # include fortran binding definitions
-
-rappture_fortran.o: $(FORT_SRC)/rappture_fortran.c
-	$(CXX) -fPIC $(DEBUG) $(INCL_FORTRAN) $(INCL_CORE) $(INCL_CEE) $(INCL_PY) -o $@ -c $<
 
 RpUnitsFInterface.o: $(FORT_SRC)/RpUnitsFInterface.cc
 	$(CXX) -fPIC $(DEBUG) $(INCL_CORE) $(INCL_FORTRAN) -o $@ -c $?
@@ -211,85 +211,84 @@ MEX_INCLS = $(INCL_MATLAB) $(INCL_CORE) $(INCL_CEE) $(INCL_RP_DEPS)
 MATLAB_COMP_ARGS = $(MATLAB_SRC)/RpMatlabInterface.cc $(MEX_INCLS) -L$(LIB_DIR) -lrappture
 
 RpMatlab:
-	$(MEX) $(MATLAB_SRC)/rpLib.cc              $(MATLAB_COMP_ARGS)
-	$(MEX) $(MATLAB_SRC)/rpXml.cc              $(MATLAB_COMP_ARGS)
-	$(MEX) $(MATLAB_SRC)/rpElement.cc          $(MATLAB_COMP_ARGS)
-	$(MEX) $(MATLAB_SRC)/rpElementAsObject.cc  $(MATLAB_COMP_ARGS)
-	$(MEX) $(MATLAB_SRC)/rpElementAsType.cc    $(MATLAB_COMP_ARGS)
-	$(MEX) $(MATLAB_SRC)/rpElementAsComp.cc    $(MATLAB_COMP_ARGS)
-	$(MEX) $(MATLAB_SRC)/rpElementAsId.cc      $(MATLAB_COMP_ARGS)
-	$(MEX) $(MATLAB_SRC)/rpChildren.cc         $(MATLAB_COMP_ARGS)
-	$(MEX) $(MATLAB_SRC)/rpChildrenByType.cc   $(MATLAB_COMP_ARGS)
-#$(MEX) $(MATLAB_SRC)/rpChildrenAsObject.cc    $(MATLAB_COMP_ARGS)
-#$(MEX) $(MATLAB_SRC)/rpChildrenAsType.cc      $(MATLAB_COMP_ARGS)
-#$(MEX) $(MATLAB_SRC)/rpChildrenAsComp.cc      $(MATLAB_COMP_ARGS)
-#$(MEX) $(MATLAB_SRC)/rpChildrenAsId.cc        $(MATLAB_COMP_ARGS)
-	$(MEX) $(MATLAB_SRC)/rpGet.cc              $(MATLAB_COMP_ARGS)
-	$(MEX) $(MATLAB_SRC)/rpGet.cc              $(MATLAB_COMP_ARGS)
-	$(MEX) $(MATLAB_SRC)/rpGetString.cc        $(MATLAB_COMP_ARGS)
-	$(MEX) $(MATLAB_SRC)/rpGetDouble.cc        $(MATLAB_COMP_ARGS)
-	$(MEX) $(MATLAB_SRC)/rpPut.cc              $(MATLAB_COMP_ARGS)
-	$(MEX) $(MATLAB_SRC)/rpPutString.cc        $(MATLAB_COMP_ARGS)
-	$(MEX) $(MATLAB_SRC)/rpPutStringId.cc      $(MATLAB_COMP_ARGS)
-	$(MEX) $(MATLAB_SRC)/rpPutDouble.cc        $(MATLAB_COMP_ARGS)
-	$(MEX) $(MATLAB_SRC)/rpPutDoubleId.cc      $(MATLAB_COMP_ARGS)
-	$(MEX) $(MATLAB_SRC)/rpNodeComp.cc         $(MATLAB_COMP_ARGS)
-	$(MEX) $(MATLAB_SRC)/rpNodeType.cc         $(MATLAB_COMP_ARGS)
-	$(MEX) $(MATLAB_SRC)/rpNodeId.cc           $(MATLAB_COMP_ARGS)
-	$(MEX) $(MATLAB_SRC)/rpResult.cc           $(MATLAB_COMP_ARGS)
-	$(MEX) $(MATLAB_SRC)/rpDefineUnit.cc       $(MATLAB_COMP_ARGS)
-#$(MEX) $(MATLAB_SRC)/rpDefineConv.cc          $(MATLAB_COMP_ARGS)
-	$(MEX) $(MATLAB_SRC)/rpGetUnits.cc         $(MATLAB_COMP_ARGS)
-	$(MEX) $(MATLAB_SRC)/rpGetUnitsName.cc     $(MATLAB_COMP_ARGS)
-	$(MEX) $(MATLAB_SRC)/rpGetExponent.cc      $(MATLAB_COMP_ARGS)
-	$(MEX) $(MATLAB_SRC)/rpGetBasis.cc         $(MATLAB_COMP_ARGS)
-	$(MEX) $(MATLAB_SRC)/rpFind.cc             $(MATLAB_COMP_ARGS)
-	$(MEX) $(MATLAB_SRC)/rpMakeMetric.cc       $(MATLAB_COMP_ARGS)
-	$(MEX) $(MATLAB_SRC)/rpConvert.cc          $(MATLAB_COMP_ARGS)
-	$(MEX) $(MATLAB_SRC)/rpConvertStr.cc       $(MATLAB_COMP_ARGS)
-	$(MEX) $(MATLAB_SRC)/rpConvertObjStr.cc    $(MATLAB_COMP_ARGS)
-	$(MEX) $(MATLAB_SRC)/rpConvertDbl.cc       $(MATLAB_COMP_ARGS)
-	$(MEX) $(MATLAB_SRC)/rpConvertObjDbl.cc    $(MATLAB_COMP_ARGS)
-	$(MEX) $(MATLAB_SRC)/rpAddPresets.cc       $(MATLAB_COMP_ARGS)
+	$(MEX) $(MATLAB_SRC)/rpLib.cc                   $(MATLAB_COMP_ARGS)
+	$(MEX) $(MATLAB_SRC)/rpLibXml.cc                $(MATLAB_COMP_ARGS)
+	$(MEX) $(MATLAB_SRC)/rpLibElement.cc            $(MATLAB_COMP_ARGS)
+	$(MEX) $(MATLAB_SRC)/rpLibElementAsObject.cc    $(MATLAB_COMP_ARGS)
+	$(MEX) $(MATLAB_SRC)/rpLibElementAsType.cc      $(MATLAB_COMP_ARGS)
+	$(MEX) $(MATLAB_SRC)/rpLibElementAsComp.cc      $(MATLAB_COMP_ARGS)
+	$(MEX) $(MATLAB_SRC)/rpLibElementAsId.cc        $(MATLAB_COMP_ARGS)
+	$(MEX) $(MATLAB_SRC)/rpLibChildren.cc           $(MATLAB_COMP_ARGS)
+	$(MEX) $(MATLAB_SRC)/rpLibChildrenByType.cc     $(MATLAB_COMP_ARGS)
+#$(MEX) $(MATLAB_SRC)/rpChildrenAsObject.cc         $(MATLAB_COMP_ARGS)
+#$(MEX) $(MATLAB_SRC)/rpChildrenAsType.cc           $(MATLAB_COMP_ARGS)
+#$(MEX) $(MATLAB_SRC)/rpChildrenAsComp.cc           $(MATLAB_COMP_ARGS)
+#$(MEX) $(MATLAB_SRC)/rpChildrenAsId.cc             $(MATLAB_COMP_ARGS)
+	$(MEX) $(MATLAB_SRC)/rpLibGet.cc                $(MATLAB_COMP_ARGS)
+	$(MEX) $(MATLAB_SRC)/rpLibGetString.cc          $(MATLAB_COMP_ARGS)
+	$(MEX) $(MATLAB_SRC)/rpLibGetDouble.cc          $(MATLAB_COMP_ARGS)
+	$(MEX) $(MATLAB_SRC)/rpLibPut.cc                $(MATLAB_COMP_ARGS)
+	$(MEX) $(MATLAB_SRC)/rpLibPutString.cc          $(MATLAB_COMP_ARGS)
+	$(MEX) $(MATLAB_SRC)/rpLibPutStringId.cc        $(MATLAB_COMP_ARGS)
+	$(MEX) $(MATLAB_SRC)/rpLibPutDouble.cc          $(MATLAB_COMP_ARGS)
+	$(MEX) $(MATLAB_SRC)/rpLibPutDoubleId.cc        $(MATLAB_COMP_ARGS)
+	$(MEX) $(MATLAB_SRC)/rpLibNodeComp.cc           $(MATLAB_COMP_ARGS)
+	$(MEX) $(MATLAB_SRC)/rpLibNodeType.cc           $(MATLAB_COMP_ARGS)
+	$(MEX) $(MATLAB_SRC)/rpLibNodeId.cc             $(MATLAB_COMP_ARGS)
+	$(MEX) $(MATLAB_SRC)/rpLibResult.cc             $(MATLAB_COMP_ARGS)
+	$(MEX) $(MATLAB_SRC)/rpUnitsDefineUnit.cc       $(MATLAB_COMP_ARGS)
+#$(MEX) $(MATLAB_SRC)/rpDefineConv.cc               $(MATLAB_COMP_ARGS)
+	$(MEX) $(MATLAB_SRC)/rpUnitsGetUnits.cc         $(MATLAB_COMP_ARGS)
+	$(MEX) $(MATLAB_SRC)/rpUnitsGetUnitsName.cc     $(MATLAB_COMP_ARGS)
+	$(MEX) $(MATLAB_SRC)/rpUnitsGetExponent.cc      $(MATLAB_COMP_ARGS)
+	$(MEX) $(MATLAB_SRC)/rpUnitsGetBasis.cc         $(MATLAB_COMP_ARGS)
+	$(MEX) $(MATLAB_SRC)/rpUnitsFind.cc             $(MATLAB_COMP_ARGS)
+	$(MEX) $(MATLAB_SRC)/rpUnitsMakeMetric.cc       $(MATLAB_COMP_ARGS)
+	$(MEX) $(MATLAB_SRC)/rpUnitsConvert.cc          $(MATLAB_COMP_ARGS)
+	$(MEX) $(MATLAB_SRC)/rpUnitsConvertStr.cc       $(MATLAB_COMP_ARGS)
+	$(MEX) $(MATLAB_SRC)/rpUnitsConvertObjStr.cc    $(MATLAB_COMP_ARGS)
+	$(MEX) $(MATLAB_SRC)/rpUnitsConvertDbl.cc       $(MATLAB_COMP_ARGS)
+	$(MEX) $(MATLAB_SRC)/rpUnitsConvertObjDbl.cc    $(MATLAB_COMP_ARGS)
+	$(MEX) $(MATLAB_SRC)/rpAddPresets.cc            $(MATLAB_COMP_ARGS)
 
 OCT_INCLS = $(INCL_OCTAVE) $(INCL_CORE) $(INCL_RP_DEPS)
 OCTAVE_COMP_ARGS = $(OCT_INCLS) -L$(LIB_DIR) -lrappture
 RpOctave:
-	$(OCT) $(OCTAVE_SRC)/rpAddPresets.cc       $(OCTAVE_COMP_ARGS)
-	$(OCT) $(OCTAVE_SRC)/rpChildrenByType.cc   $(OCTAVE_COMP_ARGS)
-	$(OCT) $(OCTAVE_SRC)/rpChildren.cc         $(OCTAVE_COMP_ARGS)
-	$(OCT) $(OCTAVE_SRC)/rpConvert.cc          $(OCTAVE_COMP_ARGS)
-	$(OCT) $(OCTAVE_SRC)/rpConvertDbl.cc       $(OCTAVE_COMP_ARGS)
-	$(OCT) $(OCTAVE_SRC)/rpConvertStr.cc       $(OCTAVE_COMP_ARGS)
-	$(OCT) $(OCTAVE_SRC)/rpConvertObjDbl.cc    $(OCTAVE_COMP_ARGS)
-	$(OCT) $(OCTAVE_SRC)/rpConvertObjStr.cc    $(OCTAVE_COMP_ARGS)
-	$(OCT) $(OCTAVE_SRC)/rpDefineUnit.cc       $(OCTAVE_COMP_ARGS)
-	$(OCT) $(OCTAVE_SRC)/rpElementAsComp.cc    $(OCTAVE_COMP_ARGS)
-	$(OCT) $(OCTAVE_SRC)/rpElementAsId.cc      $(OCTAVE_COMP_ARGS)
-	$(OCT) $(OCTAVE_SRC)/rpElementAsObject.cc  $(OCTAVE_COMP_ARGS)
-	$(OCT) $(OCTAVE_SRC)/rpElementAsType.cc    $(OCTAVE_COMP_ARGS)
-	$(OCT) $(OCTAVE_SRC)/rpElement.cc          $(OCTAVE_COMP_ARGS)
-	$(OCT) $(OCTAVE_SRC)/rpFind.cc             $(OCTAVE_COMP_ARGS)
-	$(OCT) $(OCTAVE_SRC)/rpGetBasis.cc         $(OCTAVE_COMP_ARGS)
-	$(OCT) $(OCTAVE_SRC)/rpGet.cc              $(OCTAVE_COMP_ARGS)
-	$(OCT) $(OCTAVE_SRC)/rpGetString.cc        $(OCTAVE_COMP_ARGS)
-	$(OCT) $(OCTAVE_SRC)/rpGetDouble.cc        $(OCTAVE_COMP_ARGS)
-	$(OCT) $(OCTAVE_SRC)/rpGetExponent.cc      $(OCTAVE_COMP_ARGS)
-	$(OCT) $(OCTAVE_SRC)/rpGetUnits.cc         $(OCTAVE_COMP_ARGS)
-	$(OCT) $(OCTAVE_SRC)/rpGetUnitsName.cc     $(OCTAVE_COMP_ARGS)
-	$(OCT) $(OCTAVE_SRC)/rpLib.cc              $(OCTAVE_COMP_ARGS)
-	$(OCT) $(OCTAVE_SRC)/rpMakeMetric.cc       $(OCTAVE_COMP_ARGS)
-	$(OCT) $(OCTAVE_SRC)/rpNodeComp.cc         $(OCTAVE_COMP_ARGS)
-	$(OCT) $(OCTAVE_SRC)/rpNodeId.cc           $(OCTAVE_COMP_ARGS)
-	$(OCT) $(OCTAVE_SRC)/rpNodeType.cc         $(OCTAVE_COMP_ARGS)
-	$(OCT) $(OCTAVE_SRC)/rpPut.cc              $(OCTAVE_COMP_ARGS)
-	$(OCT) $(OCTAVE_SRC)/rpPutDouble.cc        $(OCTAVE_COMP_ARGS)
-	$(OCT) $(OCTAVE_SRC)/rpPutDoubleId.cc      $(OCTAVE_COMP_ARGS)
-	$(OCT) $(OCTAVE_SRC)/rpPutDoubleId.cc      $(OCTAVE_COMP_ARGS)
-	$(OCT) $(OCTAVE_SRC)/rpPutString.cc        $(OCTAVE_COMP_ARGS)
-	$(OCT) $(OCTAVE_SRC)/rpPutStringId.cc      $(OCTAVE_COMP_ARGS)
-	$(OCT) $(OCTAVE_SRC)/rpResult.cc           $(OCTAVE_COMP_ARGS)
-	$(OCT) $(OCTAVE_SRC)/rpXml.cc              $(OCTAVE_COMP_ARGS)
+	$(OCT) $(OCTAVE_SRC)/rpAddPresets.cc            $(OCTAVE_COMP_ARGS)
+	$(OCT) $(OCTAVE_SRC)/rpLib.cc                   $(OCTAVE_COMP_ARGS)
+	$(OCT) $(OCTAVE_SRC)/rpLibChildrenByType.cc     $(OCTAVE_COMP_ARGS)
+	$(OCT) $(OCTAVE_SRC)/rpLibChildren.cc           $(OCTAVE_COMP_ARGS)
+	$(OCT) $(OCTAVE_SRC)/rpLibElementAsComp.cc      $(OCTAVE_COMP_ARGS)
+	$(OCT) $(OCTAVE_SRC)/rpLibElementAsId.cc        $(OCTAVE_COMP_ARGS)
+	$(OCT) $(OCTAVE_SRC)/rpLibElementAsObject.cc    $(OCTAVE_COMP_ARGS)
+	$(OCT) $(OCTAVE_SRC)/rpLibElementAsType.cc      $(OCTAVE_COMP_ARGS)
+	$(OCT) $(OCTAVE_SRC)/rpLibElement.cc            $(OCTAVE_COMP_ARGS)
+	$(OCT) $(OCTAVE_SRC)/rpLibGet.cc                $(OCTAVE_COMP_ARGS)
+	$(OCT) $(OCTAVE_SRC)/rpLibGetString.cc          $(OCTAVE_COMP_ARGS)
+	$(OCT) $(OCTAVE_SRC)/rpLibGetDouble.cc          $(OCTAVE_COMP_ARGS)
+	$(OCT) $(OCTAVE_SRC)/rpLibNodeComp.cc           $(OCTAVE_COMP_ARGS)
+	$(OCT) $(OCTAVE_SRC)/rpLibNodeId.cc             $(OCTAVE_COMP_ARGS)
+	$(OCT) $(OCTAVE_SRC)/rpLibNodeType.cc           $(OCTAVE_COMP_ARGS)
+	$(OCT) $(OCTAVE_SRC)/rpLibPut.cc                $(OCTAVE_COMP_ARGS)
+	$(OCT) $(OCTAVE_SRC)/rpLibPutDouble.cc          $(OCTAVE_COMP_ARGS)
+	$(OCT) $(OCTAVE_SRC)/rpLibPutDoubleId.cc        $(OCTAVE_COMP_ARGS)
+	$(OCT) $(OCTAVE_SRC)/rpLibPutDoubleId.cc        $(OCTAVE_COMP_ARGS)
+	$(OCT) $(OCTAVE_SRC)/rpLibPutString.cc          $(OCTAVE_COMP_ARGS)
+	$(OCT) $(OCTAVE_SRC)/rpLibPutStringId.cc        $(OCTAVE_COMP_ARGS)
+	$(OCT) $(OCTAVE_SRC)/rpLibResult.cc             $(OCTAVE_COMP_ARGS)
+	$(OCT) $(OCTAVE_SRC)/rpLibXml.cc                $(OCTAVE_COMP_ARGS)
+	$(OCT) $(OCTAVE_SRC)/rpUnitsConvert.cc          $(OCTAVE_COMP_ARGS)
+	$(OCT) $(OCTAVE_SRC)/rpUnitsConvertDbl.cc       $(OCTAVE_COMP_ARGS)
+	$(OCT) $(OCTAVE_SRC)/rpUnitsConvertStr.cc       $(OCTAVE_COMP_ARGS)
+	$(OCT) $(OCTAVE_SRC)/rpUnitsConvertObjDbl.cc    $(OCTAVE_COMP_ARGS)
+	$(OCT) $(OCTAVE_SRC)/rpUnitsConvertObjStr.cc    $(OCTAVE_COMP_ARGS)
+	$(OCT) $(OCTAVE_SRC)/rpUnitsDefineUnit.cc       $(OCTAVE_COMP_ARGS)
+	$(OCT) $(OCTAVE_SRC)/rpUnitsFind.cc             $(OCTAVE_COMP_ARGS)
+	$(OCT) $(OCTAVE_SRC)/rpUnitsGetBasis.cc         $(OCTAVE_COMP_ARGS)
+	$(OCT) $(OCTAVE_SRC)/rpUnitsGetExponent.cc      $(OCTAVE_COMP_ARGS)
+	$(OCT) $(OCTAVE_SRC)/rpUnitsGetUnits.cc         $(OCTAVE_COMP_ARGS)
+	$(OCT) $(OCTAVE_SRC)/rpUnitsGetUnitsName.cc     $(OCTAVE_COMP_ARGS)
+	$(OCT) $(OCTAVE_SRC)/rpUnitsMakeMetric.cc       $(OCTAVE_COMP_ARGS)
 
 docs:
 	if test ! -d docs; then \
