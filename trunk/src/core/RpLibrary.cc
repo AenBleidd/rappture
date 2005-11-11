@@ -477,6 +477,9 @@ RpLibrary::element (std::string path)
 /**********************************************************************/
 // METHOD: children()
 /// Return the next child of the node located at 'path'
+//
+// The lookup is reset when you send a NULL rpChilNode.
+// 
 /**
  */
 
@@ -502,7 +505,12 @@ RpLibrary::children (   std::string path,
         // check to see if this path is the same as the one set
         // in the last call to this function.
         // if so, then we dont need to reset the parentNode
-        if ( path.compare(old_path) == 0 ) {
+        //
+        // this check is probably more dependent on rpChildNode
+        // because we want to see if the person want to continue
+        // an old search or start from the beginning of the child list
+        //
+        if ( (path.compare(old_path) == 0) && (rpChildNode != NULL) ) {
             parentNode = NULL;
         }
         // we need to search for a new parentNode
@@ -525,7 +533,6 @@ RpLibrary::children (   std::string path,
 
     if (parentNode) {
         myChildCount = scew_element_count(parentNode);
-        std::cout << "myChildCount = " << myChildCount << std::endl;
     }
 
     if (childCount) {
@@ -536,19 +543,27 @@ RpLibrary::children (   std::string path,
 
         if (!type.empty()) {
             childName = scew_element_name(childNode);
+            // we are searching for a specific child name
+            // keep looking till we find a name that matches the type.
+            while (type != childName) {
+                childNode = scew_element_next(parentNode,childNode);
+                childName = scew_element_name(childNode);
+            }
             if (type == childName) {
+                // found a child with a name that matches type
                 // clean up old memory
-                if (retLib) {
-                    delete retLib;
-                }
+                delete retLib;
                 retLib = new RpLibrary( childNode );
+            }
+            else {
+                // no children with names that match 'type' were found
+                delete retLib;
+                retLib = NULL;
             }
         }
         else {
             // clean up old memory
-            if (retLib) {
-                delete retLib;
-            }
+            delete retLib;
             retLib = new RpLibrary( childNode );
         }
     }
@@ -556,9 +571,7 @@ RpLibrary::children (   std::string path,
         // somthing happened within scew, get error code and display
         // its probable there are no more child elements left to report
         // clean up old memory
-        if (retLib) {
-            delete retLib;
-        }
+        delete retLib;
         retLib = NULL;
     }
 

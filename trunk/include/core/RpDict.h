@@ -398,7 +398,7 @@ RpDict<KeyType,ValType>::set(   KeyType& key,
             }
 
             // adjust the value if it was provided
-            // memory management is left as an exercize for the caller
+            // memory management is left as an exercise for the caller
             if (&value) {
                 hPtr->setValue(value);
             }

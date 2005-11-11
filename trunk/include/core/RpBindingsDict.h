@@ -38,7 +38,7 @@ extern RpDict DICT_TEMPLATE_L ObjDict_Lib;
 extern RpDict DICT_TEMPLATE_U ObjDictUnits;
 
 
-int storeObject_Lib(RpLibrary* objectName);
+int storeObject_Lib(RpLibrary* objectName, int key=0);
 int storeObject_UnitsStr(std::string objectName);
 
 RpLibrary* getObject_Lib(int objKey);
