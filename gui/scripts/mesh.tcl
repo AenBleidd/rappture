@@ -33,6 +33,8 @@ itcl::class Rappture::Mesh {
     public proc fetch {xmlobj path}
     public proc release {obj}
 
+    private method _buildNodesElements {xmlobj path}
+    private method _buildRectMesh {xmlobj path}
     private method _getVtkElement {npts}
 
     private variable _xmlobj ""  ;# ref to XML obj with device data
@@ -41,6 +43,8 @@ itcl::class Rappture::Mesh {
 
     private variable _units "m m m" ;# system of units for x, y, z
     private variable _limits        ;# limits xmin, xmax, ymin, ymax, ...
+    private variable _pdata ""      ;# name of vtkPointData object
+    private variable _gdata ""      ;# name of vtkDataSet object
 
     private common _xp2obj       ;# used for fetch/release ref counting
     private common _obj2ref      ;# used for fetch/release ref counting
@@ -111,58 +115,16 @@ itcl::body Rappture::Mesh::constructor {xmlobj path} {
         set _units $u
     }
 
-    # create the vtk objects containing points and connectivity
-    vtkPoints $this-points
-    vtkUnstructuredGrid $this-grid
-
     foreach lim {xmin xmax ymin ymax zmin zmax} {
         set _limits($lim) ""
     }
 
-    #
-    # Extract each node and add it to the points list.
-    #
-    foreach comp [$xmlobj children -type node $path] {
-        set xyz [$xmlobj get $path.$comp]
-
-        # make sure we have x,y,z
-        while {[llength $xyz] < 3} {
-            lappend xyz "0"
-        }
-
-        # extract each point and add it to the points list
-        foreach {x y z} $xyz break
-        foreach dim {x y z} units $_units {
-            set v [Rappture::Units::convert [set $dim] \
-                -context $units -to $units -units off]
-
-            set $dim $v  ;# save back to real x/y/z variable
-
-            if {"" == $_limits(${dim}min)} {
-                set _limits(${dim}min) $v
-                set _limits(${dim}max) $v
-            } else {
-                if {$v < $_limits(${dim}min)} { set _limits(${dim}min) $v }
-                if {$v > $_limits(${dim}max)} { set _limits(${dim}max) $v }
-            }
-        }
-        $this-points InsertNextPoint $x $y $z
-    }
-    $this-grid SetPoints $this-points
-
-    #
-    # Extract each element and add it to the mesh.
-    #
-    foreach comp [$xmlobj children -type element $path] {
-        set nlist [$_mesh get $comp.nodes]
-        set elem [_getVtkElement [llength $nlist]]
-
-        set i 0
-        foreach n $nlist {
-            [$elem GetPointIds] SetId $i $n
-            incr i
-        }
-        $this-grid InsertNextCell [$elem GetCellType] [$elem GetPointIds]
+    if {[$_mesh element vtk] != ""} {
+        _buildRectMesh $xmlobj $path
+    } elseif {[$_mesh element node] != "" && [$_mesh element element] != ""} {
+        _buildNodesElements $xmlobj $path
+    } else {
+        error "can't find mesh data in $path"
     }
 }
 
@@ -173,8 +135,9 @@ itcl::body Rappture::Mesh::destructor {} {
     # don't destroy the _xmlobj! we don't own it!
     itcl::delete object $_mesh
 
-    rename $this-points ""
-    rename $this-grid ""
+    catch {rename $this-points ""}
+    catch {rename $this-grid ""}
+    catch {rename $this-dset ""}
 
     foreach type [array names _pts2elem] {
         rename $_pts2elem($type) ""
@@ -187,8 +150,7 @@ itcl::body Rappture::Mesh::destructor {} {
 # Returns the vtk object containing the points for this mesh.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Mesh::points {} {
-    # not implemented
-    return $this-points
+    return $_pdata
 }
 
 # ----------------------------------------------------------------------
@@ -238,7 +200,7 @@ itcl::body Rappture::Mesh::elements {} {
 # Returns the vtk object representing the mesh.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Mesh::mesh {} {
-    return $this-grid
+    return $_gdata
 }
 
 # ----------------------------------------------------------------------
@@ -249,10 +211,10 @@ itcl::body Rappture::Mesh::mesh {} {
 itcl::body Rappture::Mesh::size {{what -points}} {
     switch -- $what {
         -points {
-            return [$this-points GetNumberOfPoints]
+            return [$_pdata GetNumberOfPoints]
         }
         -elements {
-            return [$this-points GetNumberOfCells]
+            return [$_gdata GetNumberOfCells]
         }
         default {
             error "bad option \"$what\": should be -points or -elements"
@@ -310,6 +272,86 @@ itcl::body Rappture::Mesh::hints {{keyword ""}} {
         return ""
     }
     return [array get hints]
+}
+
+# ----------------------------------------------------------------------
+# USAGE: _buildNodesElements <xmlobj> <path>
+#
+# Used internally to build a mesh representation based on nodes and
+# elements stored in the XML.
+# ----------------------------------------------------------------------
+itcl::body Rappture::Mesh::_buildNodesElements {xmlobj path} {
+    # create the vtk objects containing points and connectivity
+    vtkPoints $this-points
+    set _pdata $this-points
+    vtkUnstructuredGrid $this-grid
+    set _gdata $this-grid
+
+    #
+    # Extract each node and add it to the points list.
+    #
+    foreach comp [$xmlobj children -type node $path] {
+        set xyz [$xmlobj get $path.$comp]
+
+        # make sure we have x,y,z
+        while {[llength $xyz] < 3} {
+            lappend xyz "0"
+        }
+
+        # extract each point and add it to the points list
+        foreach {x y z} $xyz break
+        foreach dim {x y z} units $_units {
+            set v [Rappture::Units::convert [set $dim] \
+                -context $units -to $units -units off]
+
+            set $dim $v  ;# save back to real x/y/z variable
+
+            if {"" == $_limits(${dim}min)} {
+                set _limits(${dim}min) $v
+                set _limits(${dim}max) $v
+            } else {
+                if {$v < $_limits(${dim}min)} { set _limits(${dim}min) $v }
+                if {$v > $_limits(${dim}max)} { set _limits(${dim}max) $v }
+            }
+        }
+        $this-points InsertNextPoint $x $y $z
+    }
+    $this-grid SetPoints $this-points
+
+    #
+    # Extract each element and add it to the mesh.
+    #
+    foreach comp [$xmlobj children -type element $path] {
+        set nlist [$_mesh get $comp.nodes]
+        set elem [_getVtkElement [llength $nlist]]
+
+        set i 0
+        foreach n $nlist {
+            [$elem GetPointIds] SetId $i $n
+            incr i
+        }
+        $this-grid InsertNextCell [$elem GetCellType] [$elem GetPointIds]
+    }
+}
+
+# ----------------------------------------------------------------------
+# USAGE: _buildRectMesh <xmlobj> <path>
+#
+# Used internally to build a mesh representation based on a native
+# VTK file for a rectangular mesh.
+# ----------------------------------------------------------------------
+itcl::body Rappture::Mesh::_buildRectMesh {xmlobj path} {
+    vtkRectilinearGridReader $this-gr
+    $this-gr ReadFromInputStringOn
+    $this-gr SetInputString [$xmlobj get $path.vtk]
+
+    set _gdata [$this-gr GetOutput]
+    set _pdata [$_gdata GetPointData]
+
+    $_gdata Update
+    foreach name {xmin xmax ymin ymax zmin zmax} val [$_gdata GetBounds] {
+        set _limits($name) $val
+    }
 }
 
 # ----------------------------------------------------------------------

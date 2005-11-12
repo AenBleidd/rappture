@@ -40,6 +40,7 @@ itcl::class Rappture::Field {
     private variable _comp2dims  ;# maps component name => dimensionality
     private variable _comp2xy    ;# maps component name => x,y vectors
     private variable _comp2vtk   ;# maps component name => vtkFloatArray
+    private variable _comp2style ;# maps component name => style settings
     private variable _comp2cntls ;# maps component name => x,y control points
 
     private common _counter 0    ;# counter for unique vector names
@@ -108,7 +109,7 @@ itcl::body Rappture::Field::destructor {} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: components ?-name|-dimensions? ?<pattern>?
+# USAGE: components ?-name|-dimensions|-style? ?<pattern>?
 #
 # Returns a list of names or types for the various components of
 # this field.  If the optional glob-style <pattern> is specified,
@@ -118,6 +119,7 @@ itcl::body Rappture::Field::components {args} {
     Rappture::getopts args params {
         flag what -name default
         flag what -dimensions
+        flag what -style
     }
 
     set pattern *
@@ -134,6 +136,7 @@ itcl::body Rappture::Field::components {args} {
         switch -- $params(what) {
             -name { lappend rlist $name }
             -dimensions { lappend rlist $_comp2dims($name) }
+            -style { lappend rlist $_comp2style($name) }
         }
     }
     return $rlist
@@ -248,7 +251,16 @@ itcl::body Rappture::Field::limits {which} {
                         set axis zaxis
                     }
                     v - vlin - vlog {
-                        foreach {vmin vmax} [$yv GetRange] break
+                        catch {unset style}
+                        array set style $_comp2style($comp)
+                        if {[info exists style(-min)] && [info exists style(-max)]} {
+                            # This component has its own hard-coded
+                            # min/max range.  Ignore it for overall limits.
+                            set vmin $min
+                            set vmax $max
+                        } else {
+                            foreach {vmin vmax} [$yv GetRange] break
+                        }
                         set axis vaxis
                     }
                     default {
@@ -380,6 +392,7 @@ itcl::body Rappture::Field::_build {} {
     catch {unset _comp2xy}
     catch {unset _comp2vtk}
     catch {unset _comp2dims}
+    catch {unset _comp2style}
 
     #
     # Scan through the components of the field and create
@@ -394,7 +407,11 @@ itcl::body Rappture::Field::_build {} {
         } elseif {[$_field element $cname.mesh] != ""
                     && [$_field element $cname.values] != ""} {
             set type "points-on-mesh"
+        } elseif {[$_field element $cname.vtk] != ""} {
+            set type "vtk"
         }
+
+        set _comp2style($cname) ""
 
         if {$type == "1D"} {
             #
@@ -483,6 +500,7 @@ itcl::body Rappture::Field::_build {} {
 
                     set _comp2dims($cname) "[$mobj dimensions]D"
                     set _comp2vtk($cname) [list $mobj $farray]
+                    set _comp2style($cname) [$_field get $cname.style]
                     incr _counter
                 } else {
                     #
@@ -520,6 +538,19 @@ itcl::body Rappture::Field::_build {} {
             } else {
                 puts "WARNING: can't find mesh $path for field component"
             }
+        } elseif {$type == "vtk"} {
+            #
+            # Extract native vtk data from the XML and use a reader
+            # to load it.
+            #
+            vtkRectilinearGridReader $this-gr
+            $this-gr SetInputString [$_field get $cname.vtk]
+
+
+            set _comp2dims($cname) "[$mobj dimensions]D"
+            set _comp2vtk($cname) [list $mobj $farray]
+            set _comp2style($cname) [$_field get $cname.style]
+            incr _counter
         }
     }
 }
