@@ -340,8 +340,6 @@ itcl::body Rappture::EnergyLevels::add {dataobj {settings ""}} {
 itcl::body Rappture::EnergyLevels::delete {args} {
     if {[llength $args] == 0} {
         set args $_dlist
-        set _eviewmin ""
-        set _eviewmax ""
     }
 
     # delete all specified data objs
@@ -393,6 +391,8 @@ itcl::body Rappture::EnergyLevels::scale {args} {
             }
         }
     }
+    set _eviewmin ""  ;# reset zoom view
+    set _eviewmax ""
 }
 
 # ----------------------------------------------------------------------
