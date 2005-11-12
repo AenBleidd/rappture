@@ -206,7 +206,8 @@ itcl::body Rappture::ResultViewer::_plotAdd {dataobj {settings ""}} {
             }
         }
         ::Rappture::Field {
-            switch -- [$dataobj components -dimensions] {
+            set dims [lindex [lsort [$dataobj components -dimensions]] end]
+            switch -- $dims {
                 1D {
                     set mode "xy"
                     if {![info exists _mode2widget($mode)]} {

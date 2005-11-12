@@ -96,7 +96,9 @@ itcl::class Rappture::EnergyLevels {
     private variable _edefmin ""   ;# min for default "zoom" view
     private variable _edefmax ""   ;# max for default "zoom" view
     private variable _ehomo ""     ;# energy of HOMO level in topmost dataset
+    private variable _lhomo ""     ;# label for HOMO level
     private variable _elumo ""     ;# energy of LUMO level in topmost dataset
+    private variable _llumo ""     ;# label for LUMO level
     private variable _hilite ""    ;# item currently highlighted
 }
 
@@ -251,13 +253,9 @@ itcl::body Rappture::EnergyLevels::columns {dataobj} {
     foreach units [$dataobj columns -units] {
         if {"" == $units} {
             set vals [$dataobj values -column $index]
-            if {[regexp {(^|[[:space:]])HOMO([[:space:]]|$)} $vals]} {
-                if {$lpos >= 0} {
-                    # more than one labels column -- bail out
-                    set lpos -1
-                    break
-                }
+            if {$lpos != $epos} {
                 set lpos $index
+                break
             }
         }
         incr index
@@ -437,7 +435,7 @@ itcl::body Rappture::EnergyLevels::_redraw {{what all}} {
         # Scan through all data objects and plot them in order from
         # the bottom up.
         #
-        set e2y [expr {($y1-$y0)/($_emax-$_emin)}]
+        set e2y [expr {($yzoom1-$yzoom0)/($_emax-$_emin)}]
 
         set title ""
         set dataobj ""
@@ -454,7 +452,7 @@ itcl::body Rappture::EnergyLevels::_redraw {{what all}} {
             set color [Rappture::color::brightness $color 0.7]
 
             foreach eval [$dataobj values -column $ecol] {
-                set y [expr {($eval-$_emin)*$e2y + $y0}]
+                set y [expr {($eval-$_emin)*$e2y + $yzoom0}]
                 $c create line $xx0 $y $xx1 $y -fill $color -width 1
             }
         }
@@ -480,11 +478,20 @@ itcl::body Rappture::EnergyLevels::_redraw {{what all}} {
             foreach eval [$dataobj values -column $ecol] \
                     lval [$dataobj values -column $lcol] {
 
-                if {$lval == "HOMO"} {
+                if {[string equal -nocase $lval "HOMO"]} {
                     set nhomo $n
+                    set _lhomo $lval
                     set nlumo [expr {$n+1}]
-                } elseif {$lval == "LUMO"} {
+                    set _llumo "LUMO"
+                } elseif {[string equal -nocase $lval "Ground State"]} {
+                    set nhomo $n
+                    set _lhomo $lval
+                    set nlumo [expr {$n+1}]
+                    set _llumo "1st Excited State"
+                } elseif {[string equal -nocase $lval "LUMO"]
+                      || [string equal -nocase $lval "1st Excited State"]} {
                     set nlumo $n
+                    set _llumo $lval
                 }
                 incr n
             }
@@ -497,7 +504,7 @@ itcl::body Rappture::EnergyLevels::_redraw {{what all}} {
                 set _edefmin [expr {$_ehomo - 0.3*$gap}]
                 set _edefmax [expr {$_elumo + 0.3*$gap}]
 
-                set y [expr {($_ehomo-$_emin)*$e2y + $y0}]
+                set y [expr {($_ehomo-$_emin)*$e2y + $yzoom0}]
                 set id [$c create rectangle $xx0 $y $xx1 $y0 \
                     -stipple EnergyLevels-rdiag \
                     -outline "" -fill $itk_option(-shadecolor)]
@@ -518,34 +525,34 @@ itcl::body Rappture::EnergyLevels::_redraw {{what all}} {
 
         # draw the lines for the "zoom" view (fixed up below)
         set color $itk_option(-foreground)
-        $c create line $x0 $y0 $x1 $y0 -fill $color -tags zmin
-        $c create line $x0 $y0 $x1 $y0 -fill $color -tags zmax
+        $c create line $x0 $yzoom0 $x1 $yzoom0 -fill $color -tags zmin
+        $c create line $x0 $yzoom0 $x1 $yzoom0 -fill $color -tags zmax
 
-        $c create line $x1 $y0 $x2 $y0 -fill $color -tags zoomup
-        $c create line $x1 $y0 $x2 $y1 -fill $color -tags zoomdn
+        $c create line $x1 $yzoom0 $x2 $yzoom0 -fill $color -tags zoomup
+        $c create line $x1 $yzoom0 $x2 $yzoom1 -fill $color -tags zoomdn
 
-        $c create line $x2 $y0 $x3 $y0 -fill $color
-        $c create line $x2 $y1 $x3 $y1 -fill $color
+        $c create line $x2 $yzoom0 $x3 $yzoom0 -fill $color
+        $c create line $x2 $yzoom1 $x3 $yzoom1 -fill $color
     }
 
     #
     # Redraw the "zoom" area on the right side
     #
     if {$what == "zoom" || $what == "all"} {
-        set e2y [expr {($y1-$y0)/($_emax-$_emin)}]
+        set e2y [expr {($yzoom1-$yzoom0)/($_emax-$_emin)}]
 
-        set y [expr {($_eviewmin-$_emin)*$e2y + $y0}]
+        set y [expr {($_eviewmin-$_emin)*$e2y + $yzoom0}]
         $c coords zmin $x0 $y $x1 $y
-        $c coords zoomup $x1 $y $x2 $y0
+        $c coords zoomup $x1 $y $x2 $yzoom0
 
-        set y [expr {($_eviewmax-$_emin)*$e2y + $y0}]
+        set y [expr {($_eviewmax-$_emin)*$e2y + $yzoom0}]
         $c coords zmax $x0 $y $x1 $y
-        $c coords zoomdn $x1 $y $x2 $y1
+        $c coords zoomdn $x1 $y $x2 $yzoom1
 
         # redraw all levels in the current view
         $c delete zlevels zlabels
 
-        set e2y [expr {($y1-$y0)/($_eviewmax-$_eviewmin)}]
+        set e2y [expr {($yzoom1-$yzoom0)/($_eviewmax-$_eviewmin)}]
         foreach dataobj $dlist {
             set ecol $_dobj2cols($dataobj-energy)
             set color $_dobj2color($dataobj)
@@ -555,8 +562,8 @@ itcl::body Rappture::EnergyLevels::_redraw {{what all}} {
 
             set n 0
             foreach eval [$dataobj values -column $ecol] {
-                if {$eval >= $_eviewmin && $eval <= $_eviewmax} {
-                    set y [expr {($eval-$_eviewmin)*$e2y + $y0}]
+                set y [expr {($eval-$_eviewmin)*$e2y + $yzoom0}]
+                if {$y >= $y1 && $y <= $y0} {
                     set id [$c create line $xx2 $y $xx3 $y \
                         -fill $color -width 1 \
                         -tags [list zlevels $dataobj-$n]]
@@ -569,50 +576,56 @@ itcl::body Rappture::EnergyLevels::_redraw {{what all}} {
             set ecol $_dobj2cols($topdobj-energy)
             set units [$topdobj columns -units $ecol]
 
-            set yy0 [expr {($_ehomo-$_eviewmin)*$e2y + $y0}]
-            set yy1 [expr {($_elumo-$_eviewmin)*$e2y + $y0}]
-            $c create line [expr {$x3-10}] $yy0 [expr {$x3-10}] $yy1 \
-                -arrow both -fill $itk_option(-foreground) \
-                -tags zlabels
-            $c create text [expr {$x3-15}] [expr {0.5*($yy0+$yy1)}] \
-                -anchor e -text "Eg = [expr {$_elumo-$_ehomo}] $units" \
-                -tags zlabels
+            set yy0 [expr {($_ehomo-$_eviewmin)*$e2y + $yzoom0}]
+            set yy1 [expr {($_elumo-$_eviewmin)*$e2y + $yzoom0}]
 
-            # label the HOMO level
-            set tid [$c create text [expr {0.5*($x2+$x3)}] $yy0 -anchor c \
-                -text "HOMO = $_ehomo $units" \
-                -fill $itk_option(-leveltextforeground) \
-                -tags zlabels]
+            set textht [font metrics $itk_option(-font) -linespace]
+            if {$yy0-$yy1 >= 1.5*$textht} {
+                $c create line [expr {$x3-10}] $yy0 [expr {$x3-10}] $yy1 \
+                    -arrow both -fill $itk_option(-foreground) \
+                    -tags zlabels
+                $c create text [expr {$x3-15}] [expr {0.5*($yy0+$yy1)}] \
+                    -anchor e -text "Eg = [expr {$_elumo-$_ehomo}] $units" \
+                    -tags zlabels
 
-            foreach {xb0 yb0 xb1 yb1} [$c bbox $tid] break
-            set tid2 [$c create rectangle \
-                [expr {$xb0-1}] [expr {$yb0-1}] \
-                [expr {$xb1+1}] [expr {$yb1+1}] \
-                -outline $itk_option(-leveltextforeground) \
-                -fill $itk_option(-leveltextbackground) \
-                -tags zlabels]
-            $c lower $tid2 $tid
+                # label the HOMO level
+                set tid [$c create text [expr {0.5*($x2+$x3)}] $yy0 -anchor c \
+                    -text "$_lhomo = $_ehomo $units" \
+                    -fill $itk_option(-leveltextforeground) \
+                    -tags zlabels]
 
-            # label the LUMO level
-            set tid [$c create text [expr {0.5*($x2+$x3)}] $yy1 -anchor c \
-                -text "LUMO = $_elumo $units" \
-                -fill $itk_option(-leveltextforeground) \
-                -tags zlabels]
+                foreach {xb0 yb0 xb1 yb1} [$c bbox $tid] break
+                set tid2 [$c create rectangle \
+                    [expr {$xb0-1}] [expr {$yb0-1}] \
+                    [expr {$xb1+1}] [expr {$yb1+1}] \
+                    -outline $itk_option(-leveltextforeground) \
+                    -fill $itk_option(-leveltextbackground) \
+                    -tags zlabels]
+                $c lower $tid2 $tid
 
-            foreach {xb0 yb0 xb1 yb1} [$c bbox $tid] break
-            set tid2 [$c create rectangle \
-                [expr {$xb0-1}] [expr {$yb0-1}] \
-                [expr {$xb1+1}] [expr {$yb1+1}] \
-                -outline $itk_option(-leveltextforeground) \
-                -fill $itk_option(-leveltextbackground) \
-                -tags zlabels]
-            $c lower $tid2 $tid
+                # label the LUMO level
+                set tid [$c create text [expr {0.5*($x2+$x3)}] $yy1 -anchor c \
+                    -text "$_llumo = $_elumo $units" \
+                    -fill $itk_option(-leveltextforeground) \
+                    -tags zlabels]
 
-            set id [$c create rectangle $xx2 $yy0 $xx3 $y0 \
-                -stipple EnergyLevels-rdiag \
-                -outline "" -fill $itk_option(-shadecolor) \
-                -tags zlabels]
-            $c lower $id
+                foreach {xb0 yb0 xb1 yb1} [$c bbox $tid] break
+                set tid2 [$c create rectangle \
+                    [expr {$xb0-1}] [expr {$yb0-1}] \
+                    [expr {$xb1+1}] [expr {$yb1+1}] \
+                    -outline $itk_option(-leveltextforeground) \
+                    -fill $itk_option(-leveltextbackground) \
+                    -tags zlabels]
+                $c lower $tid2 $tid
+            }
+
+            if {$yy0 < $y0} {
+                set id [$c create rectangle $xx2 $yy0 $xx3 $y0 \
+                    -stipple EnergyLevels-rdiag \
+                    -outline "" -fill $itk_option(-shadecolor) \
+                    -tags zlabels]
+                $c lower $id
+            }
         }
     }
 }
@@ -652,12 +665,12 @@ itcl::body Rappture::EnergyLevels::_zoom {option args} {
             set y [lindex $args 1]
 
             _getLayout
-            set y2e [expr {($_emax-$_emin)/($y1-$y0)}]
+            set y2e [expr {($_emax-$_emin)/($yzoom1-$yzoom0)}]
 
             if {$x > $x1} {
                 return
             }
-            set midE [expr {($y-$y0)*$y2e + $_emin}]
+            set midE [expr {($y-$yzoom0)*$y2e + $_emin}]
             set delE [expr {$_eviewmax - $_eviewmin}]
             _view $midE $delE
         }
@@ -730,7 +743,7 @@ itcl::body Rappture::EnergyLevels::_hilite {option args} {
 
             # touching a line? then find the level and show its info
             if {"" != $id} {
-                set e2y [expr {($y1-$y0)/($_eviewmax-$_eviewmin)}]
+                set e2y [expr {($yzoom1-$yzoom0)/($_eviewmax-$_eviewmin)}]
 
                 # put the dataobj list in order according to -raise options
                 set dlist $_dlist
@@ -749,7 +762,7 @@ itcl::body Rappture::EnergyLevels::_hilite {option args} {
                     set ecol $_dobj2cols($dataobj-energy)
                     set n 0
                     foreach eval [$dataobj values -column $ecol] {
-                        set ylevel [expr {($eval-$_eviewmin)*$e2y + $y0}]
+                        set ylevel [expr {($eval-$_eviewmin)*$e2y + $yzoom0}]
                         if {$y >= $ylevel-3 && $y <= $ylevel+3} {
                             set found 1
                             break
@@ -786,13 +799,15 @@ itcl::body Rappture::EnergyLevels::_hilite {option args} {
             set units [$dataobj columns -units $ecol]
 
             if {$eval == $_ehomo || $eval == $_elumo} {
+                $itk_component(graph) itemconfigure $dataobj-$level -width 2
+                set _hilite "$dataobj $level"
                 # don't pop up info for the HOMO/LUMO levels
                 return
             }
 
             _getLayout
-            set e2y [expr {($y1-$y0)/($_eviewmax-$_eviewmin)}]
-            set y [expr {($eval-$_eviewmin)*$e2y + $y0}]
+            set e2y [expr {($yzoom1-$yzoom0)/($_eviewmax-$_eviewmin)}]
+            set y [expr {($eval-$_eviewmin)*$e2y + $yzoom0}]
 
             set tid [$c create text [expr {0.5*($x2+$x3)}] $y -anchor c \
                 -text "$lval = $eval $units" \
@@ -846,8 +861,11 @@ itcl::body Rappture::EnergyLevels::_getLayout {} {
     # the left/right portions.  If the label is too big, leave
     # at least a little room for the labels.
     #
-    set size [font measure $itk_option(-font) "HOMO = X.XXXXXXe-XX eV"]
+    set size [font measure $itk_option(-font) "$_llumo = X.XXXXXXe-XX eV"]
     set size [expr {$size + 6*$itk_option(-padding)}]
+
+    set textht [font metrics $itk_option(-font) -linespace]
+    set ypad [expr {int(0.5*($textht + 6))}]
 
     if {$size > $w-20} {
         set size [expr {$w-20}]
@@ -885,8 +903,14 @@ itcl::body Rappture::EnergyLevels::_getLayout {} {
     upvar y0 y0
     set y0 [expr {$h - $itk_option(-padding)}]
 
+    upvar yzoom0 yzoom0
+    set yzoom0 [expr {$y0 - $ypad}]
+
     upvar y1 y1
     set y1 $itk_option(-padding)
+
+    upvar yzoom1 yzoom1
+    set yzoom1 [expr {$y1 + $ypad}]
 }
 
 # ----------------------------------------------------------------------

@@ -44,6 +44,7 @@ When you click the Simulate button, the inputs will be used to generate output f
   <field id="f3d">
     <about><label>3D Field</label></about>
     <component>
+      <style>-color yellow</style>
       <mesh>output.mesh(m3d)</mesh>
       <values></values>
     </component>
