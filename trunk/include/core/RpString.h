@@ -1,5 +1,6 @@
 /*
  * ======================================================================
+ *  AUTHOR: Derrick S. Kearney, Purdue University
  *  Copyright (c) 2004-2005  Purdue Research Foundation
  *
  *  See the file "license.terms" for information on usage and
@@ -85,7 +86,7 @@ class RpString : public RpVariable
         {
             setSize(sizeWxH);
         }
-        
+
         // copy constructor
         RpString ( const RpString& myRpString )
             :   RpVariable(myRpString),
@@ -104,7 +105,7 @@ class RpString : public RpVariable
         int height;
         std::string hints;
 
-        
+
 
 };
 
