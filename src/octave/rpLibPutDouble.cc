@@ -60,7 +60,7 @@ Error Codes: err = 0 is success, anything else is failure.")
 
         if ( args(0).is_real_scalar() &&
              args(1).is_string()      &&
-             args(2).is_string()      &&
+             args(2).is_real_scalar() &&
              args(3).is_real_scalar()   ) {
 
             libHandle = args(0).int_value ();

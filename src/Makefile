@@ -81,7 +81,8 @@ RP_IO_DEPS      = RpLibrary.o RpLibraryCInterface.o RpLibraryFInterface.o \
 RP_UNITS_DEPS   = RpUnitsStd.o RpUnits.o RpUnitsCInterface.o RpUnitsFInterface.o
 RP_OTHER_DEPS   = RpFortranCommon.o RpBindingsDict.o
 RP_OBJS_DEP     = RpVariable.o RpAbout.o RpNumber.o RpString.o RpBoolean.o \
-                  RpChoice.o RpOption.o RpUnitsStd.o RpUnits.o
+                  RpChoice.o RpOption.o RpUnitsStd.o RpUnits.o RpValue.o\
+                  RpValueDouble.o RpValueString.o
 
 LDLIB_MACOSX = -dynamiclib -o $(LIB_DIR)/$@.dylib
 LDLIB_LINUX = -shared -Wl,-rpath,$(LIB_DIR)/ -Wl,-soname,$@.so -o $(LIB_DIR)/$@.so.0.0
@@ -180,6 +181,14 @@ RpUnits.o: $(CORE_SRC)/RpUnits.cc
 RpBindingsDict.o: $(CORE_SRC)/RpBindingsDict.cc
 	$(CXX) -fPIC $(DEBUG) $(INCL_CORE) -o $@ -c $?
 
+RpValue.o: $(CORE_SRC)/RpValue.cc
+	$(CXX) -fPIC $(DEBUG) $(INCL_CORE) -o $@ -c $?
+
+RpValueDouble.o: $(CORE_SRC)/RpValueDouble.cc
+	$(CXX) -fPIC $(DEBUG) $(INCL_CORE) -o $@ -c $?
+
+RpValueString.o: $(CORE_SRC)/RpValueString.cc
+	$(CXX) -fPIC $(DEBUG) $(INCL_CORE) -o $@ -c $?
 
 
 

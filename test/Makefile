@@ -101,6 +101,9 @@ RpLibraryF_test: $(SRC_TEST)/RpLibraryF_test.f
 RpUnitsF_test: $(SRC_TEST)/RpUnitsF_test.f
 	$(F77) $(DEBUG) -o $@ $^ $(LIB_RAPPTURE)
 
+RpValue_test: $(SRC_TEST)/RpValue_test.cc
+	$(CXX) $(DEBUG) $(INCL_CORE) -o $@ $< $(LIB_RP_OBJECTS)
+
 
 #### CLEAN UP ############################################################
 clean: 

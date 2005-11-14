@@ -62,10 +62,17 @@ Error code, err=0 on success, anything else is failure.")
                         // store the basis
                         retHandle = 
                             storeObject_UnitsStr(myBasis->getUnitsName());
-                        // adjust error code
-                        if (retHandle >= 0) {
-                            err = 0;
-                        }
+                    }
+
+                    // adjust error code
+                    // if there is a basis retHandle will be a positive value
+                    // if storing was successful. retHandle will be zero if
+                    // storing failed. 
+                    // if there is no basis, myBasis will be null and
+                    // retHandle will not change from its original negative 
+                    // value
+                    if (retHandle != 0) {
+                        err = 0;
                     }
                 }
             }
