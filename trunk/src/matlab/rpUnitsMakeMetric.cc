@@ -18,10 +18,10 @@
 void mexFunction(int nlhs, mxArray *plhs[],
                  int nrhs, const mxArray *prhs[])
 {
-    RpUnits* basis = NULL;
-    int retVal = 0;
-    int basisHandle = 0;
-    int retIndex = 0;
+    const RpUnits* basis       = NULL;
+    int            retVal      = 0;
+    int            basisHandle = 0;
+    int            retIndex    = 0;
 
     /* Check for proper number of arguments. */
     if (nrhs != 1)

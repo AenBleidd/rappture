@@ -19,14 +19,14 @@
 void mexFunction(int nlhs, mxArray *plhs[],
                  int nrhs, const mxArray *prhs[])
 {
-    int         result        = 0;
-    std::string retStr        = "";
-    int         fromObjHandle = 0;
-    int         toObjHandle   = 0;
-    RpUnits*    fromObj       = NULL;
-    RpUnits*    toObj         = NULL;
-    double      value         = 0;
-    int         showUnits     = 0;
+    int            result        = 0;
+    std::string    retStr        = "";
+    int            fromObjHandle = 0;
+    int            toObjHandle   = 0;
+    const RpUnits* fromObj       = NULL;
+    const RpUnits* toObj         = NULL;
+    double         value         = 0;
+    int            showUnits     = 0;
 
     /* Check for proper number of arguments. */
     if (nrhs != 4)

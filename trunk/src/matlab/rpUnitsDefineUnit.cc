@@ -19,7 +19,7 @@ void mexFunction(int nlhs, mxArray *plhs[],
                  int nrhs, const mxArray *prhs[])
 {
     char *unitSymbol = NULL;
-    RpUnits* basis = NULL;
+    const RpUnits* basis = NULL;
     RpUnits* myUnit = NULL;
     int retHandle = 0;
     int basisHandle = 0;
