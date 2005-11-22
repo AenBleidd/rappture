@@ -219,14 +219,14 @@ main(int argc, char** argv)
     test_putDouble(lib, "input.number(test).preset(p4)", 400, 0);
     test_putDouble(lib, "input.number(test).preset(p5)", 500, 0);
 
-    
+
     test_children(lib,"");
     test_children(lib,"input.number(test)");
     test_childrenByType(lib,"input.number(test)","preset");
 
     printf("XML = \n%s\n",rpXml(lib));
-    
-    rpFreeLibrary(lib);
+
+    rpFreeLibrary(&lib);
 
     return 0;
 }
