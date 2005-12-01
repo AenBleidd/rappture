@@ -6,18 +6,19 @@
 # screen.
 #
 
-exdir=`pwd`
-echo "Current directory: $exdir"
+rpdir=/opt/rappture
+
+exdir=$rpdir/examples
 
 dirs="app-fermi/tcl app-fermi/python app-fermi/fortran c-example graph zoo/structure zoo/image zoo/cloud"
 
-echo "Multiple examples will be run in sequence -->"
+echo "7 examples will be shown-->"
 for i in $dirs
 do
 	echo $exdir/$i
 	cd $exdir/$i
-	rappture
+	$rpdir/bin/rappture
 done
 
 cd $exdir/3D
-rerun 3d_test_run.xml
+$rpdir/bin/rerun 3d_test_run.xml
