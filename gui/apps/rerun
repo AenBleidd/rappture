@@ -58,7 +58,7 @@ if __name__ == '__main__' :
     shortOpts = "d:h"
     opts, args = getopt.getopt(sys.argv[1:], shortOpts, longOpts)
 
-    driverPath = 'driver'
+    driverPath = 'rappture'
     runFile = args[0]
 
     # match options
