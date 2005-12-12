@@ -907,8 +907,9 @@ RpUnits::convert (  std::string val,
 
             // remove the elements from the lists
             tempIter = toIter;
-            toUnitsList.erase(tempIter);
-            toIter++;
+            toIter = toUnitsList.erase(tempIter);
+//            toUnitsList.erase(tempIter);
+//            toIter++;
 
             tempIter = fromIter;
             fromUnitsList.erase(tempIter);
