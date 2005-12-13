@@ -41,7 +41,6 @@ DEBUG_PLUS      = -g -DDEBUG
 PY              = python
 MEX             = mex
 OCT             = mkoctfile
-
 LN              = ln
 
 # define our directories
@@ -70,6 +69,7 @@ INCL_PY         = -I$(INCLUDES_DIR)/python
 INCL_MATLAB     = -I$(INCLUDES_DIR)/matlab
 INCL_OCTAVE     = -I$(INCLUDES_DIR)/octave
 
+CFLAGS = -fPIC
 
 # default:
 
@@ -86,6 +86,7 @@ RP_OBJS_DEP     = RpVariable.o RpAbout.o RpNumber.o RpString.o RpBoolean.o \
 
 LDLIB_MACOSX = -dynamiclib -o $(LIB_DIR)/$@.dylib
 LDLIB_LINUX = -shared -Wl,-rpath,$(LIB_DIR)/ -Wl,-soname,$@.so -o $(LIB_DIR)/$@.so.0.0
+
 # include rappture library definitions
 
 #### librappture shared object ###########################################
@@ -93,16 +94,22 @@ LDLIB_LINUX = -shared -Wl,-rpath,$(LIB_DIR)/ -Wl,-soname,$@.so -o $(LIB_DIR)/$@.
 librappture: $(RP_IO_DEPS) $(RP_UNITS_DEPS) $(RP_OTHER_DEPS)
 	if test "`uname`" == "Darwin"; then \
 		$(CXX) $(DEGUG) $(LDLIB_MACOSX) $^ $(LIB_SCEW_FLAG) -lm; \
+		ar -r $@.a $^; \
+		ranlib -s $@.a; \
 	else \
 		$(CXX) $(DEGUG) $(LDLIB_LINUX) $^ $(LIB_SCEW_FLAG) -lm; \
 		/sbin/ldconfig -n $(LIB_DIR); \
+		ar -r $@.a $^; \
+		ranlib $@.a; \
 	fi
 
 install_rappture: librappture
 	if test "`uname`" == "Darwin"; then \
 		cp $<.dylib $(RP_INSTALL_BASE)/lib; \
+		cp $<.a $(RP_INSTALL_BASE)/lib; \
 	else \
 		cp -d $<.so* $(RP_INSTALL_BASE)/lib; \
+		cp -d $<.a $(RP_INSTALL_BASE)/lib; \
 	fi
 
 #### libRpObjects ########################################################
@@ -143,62 +150,65 @@ install_octave: librappture RpOctave
 	fi
 	cp -d $(OCTAVE_SRC)/*.oct* $(RP_INSTALL_BASE)/lib/octave
 
+
+###############################################
+
 # include core source files
 
 RpLibrary.o: $(CORE_SRC)/RpLibrary.cc
-	$(CXX) -fPIC $(DEBUG) $(INCL_CORE) $(INCL_RP_DEPS) -o $@ -c $?
+	$(CXX) $(CFLAGS) $(DEBUG) $(INCL_CORE) $(INCL_RP_DEPS) -o $@ -c $?
 
 scew_extras.o: $(CORE_SRC)/scew_extras.c
-	$(CC) -fPIC $(DEBUG) $(INCL_CORE) $(INCL_RP_DEPS) -o $@ -c $?
+	$(CC) $(CFLAGS) $(DEBUG) $(INCL_CORE) $(INCL_RP_DEPS) -o $@ -c $?
 
 RpVariable.o: $(CORE_SRC)/RpVariable.cc
-	$(CXX) -fPIC $(DEBUG) $(INCL_CORE) -o $@ -c $?
+	$(CXX) $(CFLAGS) $(DEBUG) $(INCL_CORE) -o $@ -c $?
 
 RpAbout.o: $(CORE_SRC)/RpAbout.cc
-	$(CXX) -fPIC $(DEBUG) $(INCL_CORE) -o $@ -c $?
+	$(CXX) $(CFLAGS) $(DEBUG) $(INCL_CORE) -o $@ -c $?
 
 RpNumber.o: $(CORE_SRC)/RpNumber.cc
-	$(CXX) -fPIC $(DEBUG) $(INCL_CORE) -o $@ -c $?
+	$(CXX) $(CFLAGS) $(DEBUG) $(INCL_CORE) -o $@ -c $?
 
 RpString.o: $(CORE_SRC)/RpString.cc
-	$(CXX) -fPIC $(DEBUG) $(INCL_CORE) -o $@ -c $?
+	$(CXX) $(CFLAGS) $(DEBUG) $(INCL_CORE) -o $@ -c $?
 
 RpBoolean.o: $(CORE_SRC)/RpBoolean.cc
-	$(CXX) -fPIC $(DEBUG) $(INCL_CORE) -o $@ -c $?
+	$(CXX) $(CFLAGS) $(DEBUG) $(INCL_CORE) -o $@ -c $?
 
 RpChoice.o: $(CORE_SRC)/RpChoice.cc
-	$(CXX) -fPIC $(DEBUG) $(INCL_CORE) -o $@ -c $?
+	$(CXX) $(CFLAGS) $(DEBUG) $(INCL_CORE) -o $@ -c $?
 
 RpOption.o: $(CORE_SRC)/RpOption.cc
-	$(CXX) -fPIC $(DEBUG) $(INCL_CORE) -o $@ -c $?
+	$(CXX) $(CFLAGS) $(DEBUG) $(INCL_CORE) -o $@ -c $?
 
 RpUnitsStd.o: $(CORE_SRC)/RpUnitsStd.cc
-	$(CXX) -fPIC $(DEBUG) $(INCL_CORE) -o $@ -c $?
+	$(CXX) $(CFLAGS) $(DEBUG) $(INCL_CORE) -o $@ -c $?
 
 RpUnits.o: $(CORE_SRC)/RpUnits.cc
-	$(CXX) -fPIC $(DEBUG) $(INCL_CORE) -o $@ -c $?
+	$(CXX) $(CFLAGS) $(DEBUG) $(INCL_CORE) -o $@ -c $?
 
 RpBindingsDict.o: $(CORE_SRC)/RpBindingsDict.cc
-	$(CXX) -fPIC $(DEBUG) $(INCL_CORE) -o $@ -c $?
+	$(CXX) $(CFLAGS) $(DEBUG) $(INCL_CORE) -o $@ -c $?
 
 RpValue.o: $(CORE_SRC)/RpValue.cc
-	$(CXX) -fPIC $(DEBUG) $(INCL_CORE) -o $@ -c $?
+	$(CXX) $(CFLAGS) $(DEBUG) $(INCL_CORE) -o $@ -c $?
 
 RpValueDouble.o: $(CORE_SRC)/RpValueDouble.cc
-	$(CXX) -fPIC $(DEBUG) $(INCL_CORE) -o $@ -c $?
+	$(CXX) $(CFLAGS) $(DEBUG) $(INCL_CORE) -o $@ -c $?
 
 RpValueString.o: $(CORE_SRC)/RpValueString.cc
-	$(CXX) -fPIC $(DEBUG) $(INCL_CORE) -o $@ -c $?
+	$(CXX) $(CFLAGS) $(DEBUG) $(INCL_CORE) -o $@ -c $?
 
 
 
 # include cee binding definitions
 
 RpUnitsCInterface.o: $(CEE_SRC)/RpUnitsCInterface.cc
-	$(CXX) -fPIC $(DEBUG) $(INCL_CORE) $(INCL_CEE) -o $@ -c $?
+	$(CXX) $(CFLAGS) $(DEBUG) $(INCL_CORE) $(INCL_CEE) -o $@ -c $?
 
 RpLibraryCInterface.o: $(CEE_SRC)/RpLibraryCInterface.cc
-	$(CXX) -fPIC $(DEBUG) $(INCL_CORE) $(INCL_CEE) $(INCL_RP_DEPS) -o $@ -c $?
+	$(CXX) $(CFLAGS) $(DEBUG) $(INCL_CORE) $(INCL_CEE) $(INCL_RP_DEPS) -o $@ -c $?
 
 
 
@@ -206,13 +216,13 @@ RpLibraryCInterface.o: $(CEE_SRC)/RpLibraryCInterface.cc
 # include fortran binding definitions
 
 RpUnitsFInterface.o: $(FORT_SRC)/RpUnitsFInterface.cc
-	$(CXX) -fPIC $(DEBUG) $(INCL_CORE) $(INCL_FORTRAN) -o $@ -c $?
+	$(CXX) $(CFLAGS) $(DEBUG) $(INCL_CORE) $(INCL_FORTRAN) -o $@ -c $?
 
 RpFortranCommon.o: $(FORT_SRC)/RpFortranCommon.c
-	$(CXX) -fPIC $(DEBUG) $(INCL_FORTRAN) -o $@ -c $<
+	$(CXX) $(CFLAGS) $(DEBUG) $(INCL_FORTRAN) -o $@ -c $<
 
 RpLibraryFInterface.o: $(FORT_SRC)/RpLibraryFInterface.cc
-	$(CXX) -fPIC $(DEBUG) $(INCL_CORE) $(INCL_FORTRAN) $(INCL_RP_DEPS) -o $@ -c $?
+	$(CXX) $(CFLAGS) $(DEBUG) $(INCL_CORE) $(INCL_FORTRAN) $(INCL_RP_DEPS) -o $@ -c $?
 
 
 # matlab bindings
