@@ -449,7 +449,7 @@ itcl::body Rappture::Units::System::regularize {units} {
         return $units
     }
     # note: case-insensitive matching for metric prefix
-    if {[regexp {^(/?)([cCmMuUnNpPfFaAkKgGtT]?)([a-zA-Z].+)$} $units match slash prefix tail]} {
+    if {[regexp {^(/?)([cCmMuUnNpPfFaAkKgGtT]?)([a-zA-Z]+[0-9]+|[a-zA-Z]+)$} $units match slash prefix tail]} {
         if {[regexp {^[CUNFAK]$} $prefix]} {
             # we know that these should be lower case
             set prefix [string tolower $prefix]
