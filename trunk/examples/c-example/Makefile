@@ -20,20 +20,24 @@ INCL_RP_DEPS    = -I $(RP_BASE)/include
 INCL_FILES      = $(INCL_CEE) $(INCL_CORE) $(INCL_RP_DEPS)
 
 LIB_DIR         = $(RP_BASE)/lib
-LIB_INC_PREFIX  = -Wl,-rpath,$(LIB_DIR) -L$(LIB_DIR)
 LIB_RAPPTURE    = -Wl,-rpath,$(LIB_DIR) -L$(LIB_DIR) -lrappture
+LIB_RAPPTURE_MAC = -L$(LIB_DIR) -lrappture -lscew
 
 all: $(PROGS)
 
 plot: plot.cc
-	$(CXX) $(DEBUG) -DDEBUG $(INCL_FILES) -o $@ $< $(LIB_RAPPTURE)
-mac: plot.cc
-	$(CXX) $(DEBUG) -DDEBUG $(INCL_FILES) -o plot $< -L$(LIB_DIR) -lrappture -lscew
+	if test "`uname`" == "Darwin"; then \
+		$(CXX) $(DEBUG) -DDEBUG $(INCL_FILES) -o $@ $< $(LIB_RAPPTURE_MAC); \
+	else \
+		$(CXX) $(DEBUG) -DDEBUG $(INCL_FILES) -o $@ $< $(LIB_RAPPTURE); \
+	fi
 
 plotc: plotc.c
-	$(CC) $(DEBUG) -DDEBUG $(INCL_FILES) -o $@ $< $(LIB_RAPPTURE) -lm
-mac-plotc: plotc.c
-	$(CC) $(DEBUG) -DDEBUG $(INCL_FILES) -o plotc $< -L$(LIB_DIR) -lrappture -lscew
+	if test "`uname`" == "Darwin"; then \
+		$(CXX) $(DEBUG) -DDEBUG $(INCL_FILES) -o $@ $< $(LIB_RAPPTURE_MAC); \
+	else \
+		$(CC) $(DEBUG) -DDEBUG $(INCL_FILES) -o $@ $< $(LIB_RAPPTURE) -lm; \
+	fi
 
 #### CLEAN UP ############################################################
 clean:
