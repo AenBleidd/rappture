@@ -20,15 +20,16 @@ INCL_RP_DEPS    = -I $(RP_BASE)/include
 INCL_FILES      = $(INCL_CEE) $(INCL_CORE) $(INCL_RP_DEPS)
 
 LIB_DIR         = $(RP_BASE)/lib
-LIB_INC_PREFIX  = -Wl,-rpath,$(LIB_DIR) -L$(LIB_DIR)
 LIB_RAPPTURE    = -Wl,-rpath,$(LIB_DIR) -L$(LIB_DIR) -lrappture
 
 all: $(PROGS)
 
 fermi: fermi.c
-	$(CC) $(DEBUG) -DDEBUG $(INCL_FILES) -o $@ $< $(LIB_RAPPTURE) -lm
-mac: fermi.c
-	$(CC) $(DEBUG) -DDEBUG $(INCL_FILES) -o fermi $< -L$(LIB_DIR) -lrappture -lscew
+	if test "`uname`" == "Darwin"; then \
+		$(CC) $(DEBUG) -DDEBUG $(INCL_FILES) -o $@ $< -L$(LIB_DIR) -lrappture -lscew; \
+	else \
+		$(CC) $(DEBUG) -DDEBUG $(INCL_FILES) -o $@ $< $(LIB_RAPPTURE) -lm; \
+	fi
 
 #### CLEAN UP ############################################################
 clean:
