@@ -16,10 +16,12 @@ LIB_RAPPTURE = -Wl,-rpath,$(LIB_DIR) -L$(LIB_DIR) -lrappture
 all: $(PROGS)
 
 fermi: fermi.f
-	$(F77) -g -Wall $(LIB_RAPPTURE) -o $@ $<
+	if test "`uname`" == "Darwin"; then \
+		$(F77) -g -L$(LIB_DIR) -lrappture -lscew -o $@ $< ;\
+	else \
+		$(F77) -g -Wall $(LIB_RAPPTURE) -o $@ $< ;\
+	fi
 
-mac: fermi.f
-	$(F77) -g -L$(LIB_DIR) -lrappture -lscew -o fermi $<
 
 clean: 
 	rm -f *.o $(PROGS) run*.xml
