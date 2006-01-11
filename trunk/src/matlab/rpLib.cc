@@ -2,7 +2,7 @@
  * ----------------------------------------------------------------------
  *  INTERFACE: Matlab Rappture Library Source
  *
- *    libHandle = rpLib(fileName)
+ *    [libHandle,err] = rpLib(fileName)
  *
  * ======================================================================
  *  AUTHOR:  Derrick Kearney, Purdue University
@@ -15,12 +15,21 @@
 
 #include "RpMatlabInterface.h"
 
+/**********************************************************************/
+// METHOD: [libHandle,err] = rpLib (fileName)
+/// Opens a Rappture Library Object based on the xml file 'fileName'.
+/**
+ * Usually called in the beginning of a program to load an xml file
+ * for future reading.
+ */
+
 void mexFunction(int nlhs, mxArray *plhs[],
                  int nrhs, const mxArray *prhs[])
 {
     char *path;
     RpLibrary* lib = NULL;
     int libIndex = 0;
+    int err = 1;
 
     /* Check for proper number of arguments. */
     if (nrhs != 1)
@@ -33,11 +42,15 @@ void mexFunction(int nlhs, mxArray *plhs[],
     /* Call the C subroutine. */
     if (path) {
         lib = rpLibrary(path);
+        if (lib) {
+            err = 0;
+        }
     }
 
     libIndex = storeObject_Lib(lib);
     /* Set C-style string output_buf to MATLAB mexFunction output*/
     plhs[0] = mxCreateDoubleScalar(libIndex);
+    plhs[1] = mxCreateDoubleScalar(err);
 
     return;
 }

@@ -2,7 +2,7 @@
  * ----------------------------------------------------------------------
  *  INTERFACE: Matlab Rappture Library Source
  *
- *    retStr = rpLibNodeType(lib)
+ *    [retStr,err] = rpLibNodeType(lib)
  *
  * ======================================================================
  *  AUTHOR:  Derrick Kearney, Purdue University
@@ -15,17 +15,28 @@
 
 #include "RpMatlabInterface.h"
 
+/**********************************************************************/
+// METHOD: [retStr,err] = rpLibNodeType(nodeHandle)
+/// Return the type name of the node represented by 'nodeHandle'
+/**
+ * This method returns the type name of the node represented`
+ * by 'nodeHandle'.
+ * Error code, err=0 on success, anything else is failure.
+ */
+
+
 void mexFunction(int nlhs, mxArray *plhs[],
                  int nrhs, const mxArray *prhs[])
 {
     const char *output_buf;
     int libIndex = 0;
+    int err = 1;
     RpLibrary* lib = NULL;
 
     /* Check for proper number of arguments. */
     if (nrhs != 1)
         mexErrMsgTxt("One input required.");
-    else if (nlhs > 1)
+    else if (nlhs > 2)
         mexErrMsgTxt("Too many output arguments.");
 
     // grab the integer value of the library handle
@@ -36,11 +47,15 @@ void mexFunction(int nlhs, mxArray *plhs[],
         lib = getObject_Lib(libIndex);
         if (lib) {
             output_buf = rpNodeType(lib);
+            if (output_buf) {
+                err = 0;
+            }
         }
     }
 
     /* Set C-style string output_buf to MATLAB mexFunction output*/
     plhs[0] = mxCreateString(output_buf);
+    plhs[1] = mxCreateDoubleScalar(err);
 
     return;
 }

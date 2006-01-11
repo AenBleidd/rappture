@@ -16,6 +16,20 @@
 
 #include "RpMatlabInterface.h"
 
+/**********************************************************************/
+// METHOD: [retStr,err] = rpUnitsConvertObjStr(fromObjHandle,toObjHandle,value,showUnits)
+/// Convert between RpUnits return a string value with or without units
+/**
+ * Convert @var{value} from the units represented by the RpUnits object
+ * @var{fromObjHandle} to the units represented by the RpUnits object
+ * @var{toObjHandle}. If @var{showUnits} is set to 0, no units will be
+ * displayed in @var{retStr}, else units are displayed.`
+ * On success, the converted value is returned through
+ * @var{retStr}. The second return value, @var{err}, specifies whether`
+ * there was an error during conversion.
+ * Error code, err=0 on success, anything else is failure.
+ */
+
 void mexFunction(int nlhs, mxArray *plhs[],
                  int nrhs, const mxArray *prhs[])
 {

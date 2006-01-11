@@ -15,6 +15,18 @@
 
 #include "RpMatlabInterface.h"
 
+/**********************************************************************/
+// METHOD: [retStr,err] = rpUnitsConvert(fromVal,toUnitsName,showUnits)
+/// Convert between RpUnits return a string value with or without units
+/**
+ * Convert the value and units in the string @var{fromVal} to units specified
+ * in string @var{toUnitsName}. If @var{showUnits} is set to 1, then show the
+ * units in the returned string @var{retStr}, else leave the units off.
+ * The second return value @var{err} specifies whether there was an error
+ * during conversion.
+ * Error code, err=0 on success, anything else is failure.
+ */
+
 void mexFunction(int nlhs, mxArray *plhs[],
                  int nrhs, const mxArray *prhs[])
 {
