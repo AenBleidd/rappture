@@ -2,7 +2,7 @@
  * ----------------------------------------------------------------------
  *  INTERFACE: Matlab Rappture Library Source
  *
- *    rpLibResult(lib)
+ *    [err] = rpLibResult(lib)
  *
  * ======================================================================
  *  AUTHOR:  Derrick Kearney, Purdue University
@@ -15,17 +15,26 @@
 
 #include "RpMatlabInterface.h"
 
+/**********************************************************************/
+// METHOD: [err] = rpLibResult (libHandle)
+/// Write Rappture Library to run.xml and signal end of processing.
+/**
+ * Usually the last call of the program, this function signals to the gui
+ * that processing has completed and the output is ready to be
+ * displayed
+ */
+
 void mexFunction(int nlhs, mxArray *plhs[],
                  int nrhs, const mxArray *prhs[])
 {
-    const char *output_buf;
     int libIndex = 0;
+    int err = 1;
     RpLibrary* lib = NULL;
 
     /* Check for proper number of arguments. */
     if (nrhs != 1)
         mexErrMsgTxt("One input required.");
-    else if (nlhs > 0)
+    else if (nlhs > 1)
         mexErrMsgTxt("Too many output arguments.");
 
     // grab the integer value of the library handle
@@ -36,12 +45,12 @@ void mexFunction(int nlhs, mxArray *plhs[],
         lib = getObject_Lib(libIndex);
         if (lib) {
             rpResult(lib);
+            err = 0;
             // cleanLibDict();
         }
     }
 
-    /* Set C-style string output_buf to MATLAB mexFunction output*/
-    plhs[0] = mxCreateString(output_buf);
+    plhs[0] = mxCreateDoubleScalar(err);
 
     return;
 }

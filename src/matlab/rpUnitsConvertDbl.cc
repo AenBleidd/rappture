@@ -15,6 +15,17 @@
 
 #include "RpMatlabInterface.h"
 
+/**********************************************************************/
+// METHOD: [retVal,err] = rpUnitsConvertDbl(fromVal,toUnitsName)
+/// Convert between RpUnits return a double value without units
+/**
+ * Convert the value and units in the string @var{fromVal} to units specified
+ * in string @var{toUnitsName}. Units will not be shown in @var{retVal}.
+ * The second return value @var{err} specifies whether there was an error
+ * during conversion.
+ * Error code, err=0 on success, anything else is failure.
+ */
+
 void mexFunction(int nlhs, mxArray *plhs[],
                  int nrhs, const mxArray *prhs[])
 {

@@ -15,6 +15,16 @@
 
 #include "RpMatlabInterface.h"
 
+/**********************************************************************/
+// METHOD: [err] = rpUnitsMakeMetric(basisHandle)
+/// Create metric extensions for the Rappture Unit referenced by basisHandle
+/**
+ * Create the metric extensions for the Rappture Unit, referenced`
+ * by basisHandle, within Rappture's internal units dictionary.
+ * Return an error code, err, to specify success or failure.
+ * Error code, err=0 on success, anything else is failure.
+ */
+
 void mexFunction(int nlhs, mxArray *plhs[],
                  int nrhs, const mxArray *prhs[])
 {

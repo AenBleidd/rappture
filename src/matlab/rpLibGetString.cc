@@ -2,7 +2,7 @@
  * ----------------------------------------------------------------------
  *  INTERFACE: Matlab Rappture Library Source
  *
- *    retStr = rpLibGetString(libHandle,path)
+ *    [retStr,err] = rpLibGetString(libHandle,path)
  *
  * ======================================================================
  *  AUTHOR:  Derrick Kearney, Purdue University
@@ -15,11 +15,24 @@
 
 #include "RpMatlabInterface.h"
 
+/**********************************************************************/
+// METHOD: [retStr,err] = rpLibGetString(libHandle,path)
+/// Query the value of a node.
+/**
+ * Clients use this to query the value of a node.  If the path
+ * is not specified, it returns the value associated with the
+ * root node.  Otherwise, it returns the value for the element
+ * specified by the path. Values are returned as strings.
+ *
+ * Error code, err=0 on success, anything else is failure.
+ */
+
 void mexFunction(int nlhs, mxArray *plhs[],
                  int nrhs, const mxArray *prhs[])
 {
     int         libIndex    = 0;
     int         retLibIndex = 0;
+    int         err         = 1;
     RpLibrary*  lib         = NULL;
     char*       path        = NULL;
     const char* retString   = NULL;
@@ -27,7 +40,7 @@ void mexFunction(int nlhs, mxArray *plhs[],
     /* Check for proper number of arguments. */
     if (nrhs != 2)
         mexErrMsgTxt("Two input required.");
-    else if (nlhs > 1)
+    else if (nlhs > 2)
         mexErrMsgTxt("Too many output arguments.");
 
     libIndex = getIntInput(prhs[0]);
@@ -39,11 +52,15 @@ void mexFunction(int nlhs, mxArray *plhs[],
 
         if (lib) {
             retString = rpGetString(lib,path);
+            if (retString) {
+                err = 0;
+            }
         }
     }
 
     /* Set C-style string output_buf to MATLAB mexFunction output*/
     plhs[0] = mxCreateString(retString);
+    plhs[1] = mxCreateDoubleScalar(err);
 
     return;
 }
