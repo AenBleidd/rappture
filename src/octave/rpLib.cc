@@ -2,7 +2,7 @@
  * ----------------------------------------------------------------------
  *  INTERFACE: Octave Rappture Library Source
  *
- *    libHandle = rpLib(fileName)
+ *    [libHandle,err] = rpLib(fileName)
  *
  * ======================================================================
  *  AUTHOR:  Derrick Kearney, Purdue University
@@ -38,16 +38,17 @@ err = 0 is success, anything else is failure.")
     std::string path = "";
     RpLibrary* lib = NULL;
     int libIndex = 0;
+    int err = 1;
 
-    retval(1) = 1;
     retval(0) = -1;
+    retval(1) = err;
 
     if (nargin == 1) {
         if (args(0).is_string ()) {
             path = args(0).string_value ();
             if (!path.empty()) {
                 lib = new RpLibrary(path);
-                retval(1) = 0;
+                err = 0;
             }
         }
     }
@@ -56,6 +57,7 @@ err = 0 is success, anything else is failure.")
     }
 
     retval(0) = storeObject_Lib(lib);
+    retval(1) = err;
 
   return retval;
 }
