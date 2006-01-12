@@ -53,7 +53,9 @@ void mexFunction(int nlhs, mxArray *plhs[],
     childIndex = getIntInput(prhs[2]);
 
     /* Call the C subroutine. */
-    if ( (libIndex > 0) && (path) ) {
+    if ( (libIndex > 0)     &&
+         (path)             &&
+         (childIndex >= 0)      ) {
         lib = getObject_Lib(libIndex);
 
         if (childIndex > 0) {

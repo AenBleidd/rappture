@@ -18,7 +18,7 @@
 /// Write Rappture Library to run.xml and signal end of processing.
 /** 
  * Usually the last call of the program, this function signals to the gui
- * telling it that processing has completed and the output is ready to be
+ * that processing has completed and the output is ready to be
  * displayed
  */
 
@@ -27,7 +27,7 @@ DEFUN_DLD (rpLibResult, args, ,
 [err] = rpLibResult (@var{libHandle})\n\
 \n\
 Usually the last call of the program, this function signals to the gui\n\
-telling it that processing has completed and the output is ready to be\n\
+that processing has completed and the output is ready to be\n\
 displayed\n\
 Error Codes: @var{err} = 0 is success, anything else is failure.")
 {
