@@ -2,7 +2,7 @@
 <run>
     <tool>
         <about>Press Simulate to view results.</about>
-        <command>matlab -nodisplay @tool/fermi.m @driver</command>
+        <command>matlab -nodisplay -r infile=\'@driver\',fermi</command>
     </tool>
     <input>
         <number id="temperature">

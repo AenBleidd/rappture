@@ -14,16 +14,19 @@
 % ======================================================================
 
 % get out input file from the command line
+% invoke this script with the following command:
+% matlab -nodisplay -r infile=\'driver1234.xml\',fermi
+% the above command sets variable infile to the name 'driver1234.xml'
+
 % open our xml input file.
-infile = sprintf("%s",argv(1,:));
 lib = rpLib(infile);
 
-% retrieve user specified data out of the input file 
+% retrieve user specified data out of the input file
 % convert values to correct units.
-Ef = rpLibGetString(lib,"input.number(Ef).current");
-[Ef,err] = rpUnitsConvertDbl(Ef,"eV");
-T = rpLibGetString(lib,"input.number(temperature).current");
-[T,err] = rpUnitsConvertDbl(T,"K");
+Ef = rpLibGetString(lib,'input.number(Ef).current');
+[Ef,err] = rpUnitsConvertDbl(Ef,'eV');
+T = rpLibGetString(lib,'input.number(temperature).current');
+[T,err] = rpUnitsConvertDbl(T,'K');
 
 % do fermi calculations (science)...
 kT = 8.61734e-5 * T;
@@ -35,16 +38,18 @@ f = 1.0 ./ (1.0 + exp((E - Ef)/kT));
 
 % prepare out output section
 % label graphs
-rpLibPutString(lib,"output.curve(f12).about.label","Fermi-Dirac Factor",0);
-rpLibPutString(lib,"output.curve(f12).xaxis.label","Fermi-Dirac Factor",0);
-rpLibPutString(lib,"output.curve(f12).yaxis.label","Energy",0);
-rpLibPutString(lib,"output.curve(f12).yaxis.units","eV",0);
+rpLibPutString(lib,'output.curve(f12).about.label','Fermi-Dirac Factor',0);
+rpLibPutString(lib,'output.curve(f12).xaxis.label','Fermi-Dirac Factor',0);
+rpLibPutString(lib,'output.curve(f12).yaxis.label','Energy',0);
+rpLibPutString(lib,'output.curve(f12).yaxis.units','eV',0);
 
 for j=1:200
   putStr = sprintf('%12g  %12g\n', f(j), E(j));
   % put the data into the xml file
-  rpLibPutString(lib,"output.curve(f12).component.xy",putStr,1);
+  rpLibPutString(lib,'output.curve(f12).component.xy',putStr,1);
 end
 
 % signal the end of processing
 rpLibResult(lib);
+
+quit;

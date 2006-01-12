@@ -18,11 +18,11 @@
 % before you run this script you need to manually start up matlab and
 % add the src and src/matlab directories to your path
 % cd test
-% matlab -nodisplay
-% path(path,'src');
-% path(path,'src/matlab');
+% matlab -nodisplay -r path\(path,\'src\'\),infile=\'rplib_test.xml\',RpMatlab_test
 
-infile = sprintf('%s','rplib_test.xml');
+%path(path,src');
+path(path,'src/matlab');
+
 lib = rpLib(infile);
 err = test_element(lib,'input.number(min)');
 err = test_element_comp(lib,'input.number(min)');
@@ -58,4 +58,4 @@ err = test_put_str(lib,'output.curve(result).xy(f15)','110 111',1);
 err = test_xml(lib);
 err = test_result(lib);
 
-% quit
+quit;
