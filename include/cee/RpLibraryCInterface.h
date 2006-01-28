@@ -14,79 +14,69 @@
 
 #ifdef __cplusplus
 extern "C" {
-#endif 
+#endif
 
 typedef struct RpLibrary RpLibrary;
 
 // lib definition functions
 //
-RpLibrary*  rpLibrary             (const char* path);
-void rpFreeLibrary                (RpLibrary** lib);
+RpLibrary* rpLibrary  (const char* path);
+int rpFreeLibrary     (RpLibrary** lib);
 
 // RpLibrary member functions
-RpLibrary*  rpElement             (RpLibrary* lib, const char* path);
-RpLibrary*  rpElementAsObject     (RpLibrary* lib, const char* path);
-const char* rpElementAsType       (RpLibrary* lib, const char* path);
-const char* rpElementAsComp       (RpLibrary* lib, const char* path);
-const char* rpElementAsId         (RpLibrary* lib, const char* path);
+RpLibrary* rpElement (RpLibrary* lib, const char* path);
+RpLibrary* rpElementAsObject (RpLibrary* lib, const char* path);
+int rpElementAsType  (RpLibrary* lib, const char* path, const char** retCStr);
+int rpElementAsComp  (RpLibrary* lib, const char* path, const char** retCStr);
+int rpElementAsId    (RpLibrary* lib, const char* path, const char** retCStr);
 
-RpLibrary* rpChildren             (RpLibrary* lib,
-                                 const char* path,
-                                 RpLibrary* childEle);
-RpLibrary* rpChildrenByType       (RpLibrary* lib,
-                                 const char* path,
-                                 RpLibrary* childEle,
-                                 const char* type   );
+RpLibrary* rpChildren (RpLibrary* lib,
+                            const char* path,
+                            RpLibrary* childEle  );
+RpLibrary* rpChildrenByType  (RpLibrary* lib,
+                            const char* path,
+                            RpLibrary* childEle,
+                            const char* type     );
+
+int rpGet            (RpLibrary* lib, const char* path, const char** retCStr);
+int rpGetString      (RpLibrary* lib, const char* path, const char** retCStr);
+int rpGetDouble      (RpLibrary* lib, const char* path, double* retDVal);
+
+int rpPut             (RpLibrary* lib,
+                            const char* path,
+                            const char* value,
+                            const char* id,
+                            int append         );
 /*
-RpLibrary* rpChildrenAsObject     (RpLibrary* lib,
-                                 const char* path,
-                                 const char* type   );
-const char* rpChildrenAsType      (RpLibrary* lib,
-                                 const char* path,
-                                 const char* type   );
-const char* rpChildrenAsComp      (RpLibrary* lib,
-                                 const char* path,
-                                 const char* type   );
-const char* rpChildrenAsId        (RpLibrary* lib,
-                                 const char* path,
-                                 const char* type   );
- */
+int rpPutStringId     (RpLibrary* lib,
+                            const char* path,
+                            const char* value,
+                            const char* id,
+                            int append         );
+*/
+int rpPutString       (RpLibrary* lib,
+                            const char* path,
+                            const char* value,
+                            int append         );
+/*
+int rpPutDoubleId     (RpLibrary* lib,
+                            const char* path,
+                            double value,
+                            const char* id,
+                            int append         );
+*/
+int rpPutDouble       (RpLibrary* lib,
+                            const char* path,
+                            double value,
+                            int append         );
 
-const char* rpGet                 (RpLibrary* lib, const char* path);
-const char* rpGetString           (RpLibrary* lib, const char* path);
-double      rpGetDouble           (RpLibrary* lib, const char* path);
+int rpXml             (RpLibrary* lib, const char** retCStr);
 
-void        rpPut                 (RpLibrary* lib,
-                                 const char* path,
-                                 const char* value,
-                                 const char* id,
-                                 int append         );
-void        rpPutStringId         (RpLibrary* lib,
-                                 const char* path,
-                                 const char* value,
-                                 const char* id,
-                                 int append         );
-void        rpPutString           (RpLibrary* lib,
-                                 const char* path,
-                                 const char* value,
-                                 int append         );
-void        rpPutDoubleId         (RpLibrary* lib,
-                                 const char* path,
-                                 double value,
-                                 const char* id,
-                                 int append         );
-void        rpPutDouble           (RpLibrary* lib,
-                                 const char* path,
-                                 double value,
-                                 int append         );
+int rpNodeComp        (RpLibrary* node, const char** retCStr);
+int rpNodeType        (RpLibrary* node, const char** retCStr);
+int rpNodeId          (RpLibrary* node, const char** retCStr);
 
-const char* rpXml                 (RpLibrary* lib);
-
-const char* rpNodeComp            (RpLibrary* node);
-const char* rpNodeType            (RpLibrary* node);
-const char* rpNodeId              (RpLibrary* node);
-
-void        rpResult              (RpLibrary* lib);
+int rpResult          (RpLibrary* lib);
 
 #ifdef __cplusplus
 }
