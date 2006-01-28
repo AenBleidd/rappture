@@ -18,196 +18,277 @@
 extern "C" {
 #endif
 
-    RpLibrary*
-    rpLibrary (const char* path)
-    {
-        return new RpLibrary(path);
+RpLibrary*
+rpLibrary (const char* path)
+{
+    return (new RpLibrary(path));
+}
+
+int
+rpFreeLibrary (RpLibrary** lib)
+{
+    int retVal = 1;
+
+    if (lib && (*lib)) {
+        delete (*lib);
+        (*lib) = NULL;
+        retVal =  0;
     }
 
-    void
-    rpFreeLibrary (RpLibrary** lib)
-    {
-        if (lib && (*lib)) {
-            delete (*lib);
-            (*lib) = NULL;
-        }
+    return retVal;
+}
+
+RpLibrary*
+rpElement (RpLibrary* lib, const char* path)
+{
+    return (lib->element(path));
+}
+
+RpLibrary*
+rpElementAsObject (RpLibrary* lib, const char* path)
+{
+    return rpElement(lib,path);
+}
+
+
+int
+rpElementAsType (RpLibrary* lib, const char* path, const char** retCStr)
+{
+    int retVal = 1;
+    static std::string retStr = "";
+    RpLibrary* retLib = lib->element(path);
+
+    if (retLib) {
+        retStr = retLib->nodeType();
+        // check to see if retStr is empty
+        retVal = 0;
     }
 
-    RpLibrary*
-    rpElement (RpLibrary* lib, const char* path)
-    {
-        return lib->element(path);
+    *retCStr = retStr.c_str();
+
+    return retVal;
+}
+
+int
+rpElementAsComp (RpLibrary* lib, const char* path, const char** retCStr)
+{
+    int retVal = 1;
+    static std::string retStr = "";
+    RpLibrary* retLib = lib->element(path);
+
+    if (retLib) {
+        retStr = retLib->nodeComp();
+        // check to see if retStr is empty
+        retVal = 0;
     }
 
-    RpLibrary*
-    rpElementAsObject (RpLibrary* lib, const char* path)
-    {
-        return rpElement(lib,path);
+    *retCStr = retStr.c_str();
+    return retVal;
+}
+
+int
+rpElementAsId (RpLibrary* lib, const char* path, const char** retCStr)
+{
+    int retVal = 1;
+    static std::string retStr = "";
+    RpLibrary* retLib = lib->element(path);
+
+    if (retLib) {
+        retStr = retLib->nodeId();
+        // check to see if retStr is empty
+        retVal = 0;
     }
 
-    const char*
-    rpElementAsType (RpLibrary* lib, const char* path)
-    {
-        static std::string retStr = "";
-        RpLibrary* retLib = lib->element(path);
+    *retCStr = retStr.c_str();
+    return retVal;
+}
 
-        if (retLib) {
-            retStr = retLib->nodeType();
-        }
+RpLibrary*
+rpChildren (RpLibrary* lib, const char* path, RpLibrary* childEle )
+{
+    return ( lib->children(path,childEle) );
+}
 
-        return retStr.c_str();
-    }
-
-    const char*
-    rpElementAsComp (RpLibrary* lib, const char* path)
-    {
-        static std::string retStr = "";
-        RpLibrary* retLib = lib->element(path);
-
-        if (retLib) {
-            retStr = retLib->nodeComp();
-        }
-
-        return retStr.c_str();
-    }
-
-    const char*
-    rpElementAsId (RpLibrary* lib, const char* path)
-    {
-        static std::string retStr = "";
-        RpLibrary* retLib = lib->element(path);
-
-        if (retLib) {
-            retStr = retLib->nodeId();
-        }
-
-        return retStr.c_str();
-    }
-
-
-    RpLibrary*
-    rpChildren (RpLibrary* lib, const char* path, RpLibrary* childEle   )
-    {
-        return lib->children(path,childEle);
-    }
-
-    RpLibrary*
-    rpChildrenByType( RpLibrary* lib,
-                    const char* path,
-                    RpLibrary* childEle,
-                    const char* type    )
-    {
-        return lib->children(path,childEle,type);
-    }
-
-    const char*
-    rpGet (RpLibrary* lib, const char* path)
-    {
-        static std::string retStr = "";
-        retStr = lib->getString(path);
-        return retStr.c_str();
-    }
-
-    const char*
-    rpGetString (RpLibrary* lib, const char* path)
-    {
-        static std::string retStr = "";
-        retStr = lib->getString(path);
-        return retStr.c_str();
-    }
-
-    double
-    rpGetDouble (RpLibrary* lib, const char* path)
-    {
-        return lib->getDouble(path);
-    }
-
-    void
-    rpPut         (RpLibrary* lib,
-                 const char* path,
-                 const char* value,
-                 const char* id,
-                 int append         )
-    {
-        lib->put(path,value,id,append);
-    }
-
-    void
-    rpPutStringId (RpLibrary* lib,
-                 const char* path,
-                 const char* value,
-                 const char* id,
-                 int append          )
-    {
-        lib->put(path,value,id,append);
-    }
-
-    void
-    rpPutString ( RpLibrary* lib,
+RpLibrary*
+rpChildrenByType( RpLibrary* lib,
                 const char* path,
-                const char* value,
-                int append          )
-    {
-        lib->put(path,value,"",append);
-    }
+                RpLibrary* childEle,
+                const char* type )
+{
+    return ( lib->children(path,childEle,type) );
+}
 
-    void
-    rpPutDoubleId (RpLibrary* lib,
-                 const char* path,
-                 double value,
-                 const char* id,
-                 int append         )
-    {
-        lib->put(path,value,id,append);
-    }
+int
+rpGet (RpLibrary* lib, const char* path, const char** retCStr)
+{
+    return rpGetString(lib,path,retCStr);
+}
 
-    void
-    rpPutDouble   (RpLibrary* lib,
-                 const char* path,
-                 double value,
-                 int append         )
-    {
-        lib->put(path,value,"",append);
-    }
+int
+rpGetString (RpLibrary* lib, const char* path, const char** retCStr)
+{
+    int retVal = 0;
+    static std::string retStr = "";
 
-    const char*
-    rpXml (RpLibrary* lib)
-    {
-        static std::string retStr = "";
+    retStr = lib->getString(path);
+
+    *retCStr = retStr.c_str();
+    return retVal;
+}
+
+int
+rpGetDouble (RpLibrary* lib, const char* path, double* retDVal)
+{
+    int retVal = 0;
+    *retDVal = lib->getDouble(path);
+    return retVal;
+}
+
+int
+rpPut         (RpLibrary* lib,
+             const char* path,
+             const char* value,
+             const char* id,
+             int append         )
+{
+    int retVal = 0;
+    lib->put(path,value,id,append);
+    return retVal;
+}
+
+/*
+int
+rpPutStringId (RpLibrary* lib,
+             const char* path,
+             const char* value,
+             const char* id,
+             int append          )
+{
+    int retVal = 0;
+    lib->put(path,value,id,append);
+    return retVal;
+}
+*/
+
+int
+rpPutString ( RpLibrary* lib,
+            const char* path,
+            const char* value,
+            int append          )
+{
+    int retVal = 0;
+    lib->put(path,value,"",append);
+    return retVal;
+}
+
+/*
+int
+rpPutDoubleId (RpLibrary* lib,
+             const char* path,
+             double value,
+             const char* id,
+             int append         )
+{
+    int retVal = 0;
+    lib->put(path,value,id,append);
+    return retVal;
+}
+*/
+
+int
+rpPutDouble   (RpLibrary* lib,
+             const char* path,
+             double value,
+             int append         )
+{
+    int retVal = 0;
+    lib->put(path,value,"",append);
+    return retVal;
+}
+
+int
+rpXml (RpLibrary* lib, const char** retCStr)
+{
+    int retVal = 1;
+    static std::string retStr = "";
+
+    if (lib != NULL) {
+        retStr = "";
         retStr = lib->xml();
-        return retStr.c_str();
+
+        // string should never be empty after lib->xml fxn call
+        // lib->xml returns xml header at the very least.
+        if ( !retStr.empty() ) {
+            retVal = 0;
+        }
     }
 
-    const char*
-    rpNodeComp (RpLibrary* node)
-    {
-        static std::string retStr = "";
+    *retCStr = retStr.c_str();
+    return retVal;
+}
+
+int
+rpNodeComp (RpLibrary* node, const char** retCStr)
+{
+    int retVal = 1;
+    static std::string retStr = "";
+
+    if (node != NULL) {
+        retStr = "";
         retStr = node->nodeComp();
-        return retStr.c_str();
+        if ( !retStr.empty() ) {
+            retVal = 0;
+        }
+        *retCStr = retStr.c_str();
     }
 
-    const char*
-    rpNodeType (RpLibrary* node)
-    {
-        static std::string retStr = "";
+    return retVal;
+}
+
+int
+rpNodeType (RpLibrary* node, const char** retCStr)
+{
+    int retVal = 1;
+    static std::string retStr = "";
+
+    if (node != NULL) {
+        retStr = "";
         retStr = node->nodeType();
-        return retStr.c_str();
+        if ( !retStr.empty() ) {
+            retVal = 0;
+        }
+        *retCStr = retStr.c_str();
     }
 
-    const char*
-    rpNodeId (RpLibrary* node)
-    {
-        static std::string retStr = "";
+    return retVal;
+}
+
+int
+rpNodeId (RpLibrary* node, const char** retCStr)
+{
+    int retVal = 0;
+    static std::string retStr = "";
+
+    if (node != NULL) {
+        retStr = "";
         retStr = node->nodeId();
-        return retStr.c_str();
+        if ( !retStr.empty() ) {
+            retVal = 0;
+        }
+        *retCStr = retStr.c_str();
     }
 
-    void
-    rpResult (RpLibrary* lib)
-    {
-        // signal the processing is complete
-        lib->result();
-    }
+    return retVal;
+}
+
+int
+rpResult (RpLibrary* lib)
+{
+    int retVal = 0;
+    // signal the processing is complete
+    lib->result();
+    return retVal;
+}
 
 #ifdef __cplusplus
 }
