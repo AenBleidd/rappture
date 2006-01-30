@@ -26,6 +26,7 @@ exec wish "$0" $*
 # wish executes everything from here on...
 
 package require Rappture
+package require RapptureGUI
 
 option add *MainWin.mode desktop startupFile
 option add *MainWin.borderWidth 0 startupFile

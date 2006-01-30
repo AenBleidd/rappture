@@ -27,20 +27,28 @@ namespace eval Rappture { # forward declaration }
 # ----------------------------------------------------------------------
 proc Rappture::exec {args} {
     variable execout
+    variable execctl
 
     set execout(output) ""
     set execout(channel) ""
     set execout(extra) ""
 
-    eval blt::bgexec control \
+    set status [catch {eval blt::bgexec ::Rappture::execctl \
         -keepnewline yes \
         -onoutput {{::Rappture::_exec_out stdout}} \
         -onerror {{::Rappture::_exec_out stderr}} \
-        $args
+        $args} result]
 
     # add any extra stuff pending from the last stdout/stderr change
     append execout(output) $execout(extra)
 
+    if {$status != 0} {
+        if {[regexp {^KILLED} $execctl] && [llength $execctl] == 4} {
+            set reason [lindex $execctl end]
+            set result "job killed: $reason"
+        }
+        error $result
+    }
     return $execout(output)
 }
 

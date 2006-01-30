@@ -33,6 +33,7 @@ itcl::class Rappture::Tool {
     private variable _installdir ""  ;# installation directory for this tool
     private variable _outputcb ""    ;# callback for tool output
     private common job               ;# array var used for blt::bgexec jobs
+    private common jobnum 0          ;# counter for unique job number
 }
                                                                                 
 # ----------------------------------------------------------------------
@@ -102,11 +103,25 @@ itcl::body Rappture::Tool::run {args} {
         close $fid
     } result]
 
+    # set limits for cpu time and file size
+    set limit [$_xmlobj get tool.limits.cputime]
+    if {"" == $limit || [catch {Rappture::rlimit set cputime $limit}]} {
+        Rappture::rlimit set cputime 900  ;# 15 mins by default
+    }
+
+    set limit [$_xmlobj get tool.limits.filesize]
+    if {"" == $limit || [catch {Rappture::rlimit set filesize $limit}]} {
+        Rappture::rlimit set filesize 1000000  ;# 1MB by default
+    }
+
     # execute the tool using the path from the tool description
     if {$status == 0} {
         set cmd [$_xmlobj get tool.command]
         regsub -all @tool $cmd $_installdir cmd
         regsub -all @driver $cmd $file cmd
+
+        # starting job...
+        Rappture::rusage mark
 
         set status [catch {eval blt::bgexec \
             ::Rappture::Tool::job(control) \
@@ -114,6 +129,11 @@ itcl::body Rappture::Tool::run {args} {
             -onoutput [list [itcl::code $this _output]] \
             -output ::Rappture::Tool::job(output) \
             -error ::Rappture::Tool::job(error) $cmd} result]
+
+        # ...job is finished
+        array set times [Rappture::rusage measure]
+        puts stderr "MiddlewareTime: job=[incr jobnum] event=simulation start=$times(start) walltime=$times(walltime) cputime=$times(cputime) status=$status"
+
     } else {
         set job(error) "$result\n$errorInfo"
     }
