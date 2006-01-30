@@ -46,7 +46,7 @@ int main(int argc, char * argv[]) {
     }
 
 
-    data = rpGetString(lib,"input.(temperature).current");
+    rpGetString(lib,"input.(temperature).current",&data);
     T = rpConvertDbl(data, "K", &err);
     if (err) {
         printf ("Error while retrieving input.(temperature).current\n");
@@ -54,7 +54,7 @@ int main(int argc, char * argv[]) {
     }
 
 
-    data = rpGetString(lib,"input.(Ef).current");
+    rpGetString(lib,"input.(Ef).current",&data);
     Ef = rpConvertDbl(data, "eV", &err);
     if (err) {
         printf ("Error while retrieving input.(Ef).current\n");

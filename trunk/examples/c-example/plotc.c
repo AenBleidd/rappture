@@ -22,6 +22,7 @@ int main(int argc, char * argv[])
     double fmin, fmax;
     char strFormula[100];
     int i;
+    int err = 0;
 
     double fx, fy;
     int npts = 100;
@@ -53,11 +54,12 @@ int main(int argc, char * argv[])
     }
 
     // get the xml that is stored in the rappture library lib
-    if( (xmltext = rpXml(lib)) ) {
+    err = rpXml(lib,&xmltext);
+    if( !err ) {
         if(DEBUG) {
         //printf("XML file content:\n");
         //printf("%s\n", xmltext);
-    }
+        }
     }
     else {
         printf("xml(lib) failed\n");
@@ -65,7 +67,7 @@ int main(int argc, char * argv[])
     }
 
     // get the min
-    xmltext = rpGetString (lib, "input.number(min).current");
+    rpGetString (lib, "input.number(min).current",&xmltext);
 
     if (! (xmltext) ) {
         printf("getString(lib,input.number(xmin).current) returns null\n");
@@ -87,7 +89,7 @@ int main(int argc, char * argv[])
     }
 
     // get the max
-    fmax = rpGetDouble(lib,"input.(max).current");
+    rpGetDouble(lib,"input.(max).current",&fmax);
     if(DEBUG) {
         printf("max: %f\n", fmax);
     }
