@@ -68,6 +68,20 @@ foreach file {
     fixperms $target ugo+r
 }
 
+catch {file mkdir [file join $targetdir lib]}
+foreach file [find ../lib] {
+    set target [file join $targetdir $file]
+    if {[file isdirectory $file]} {
+        puts "making directory $target..."
+        catch {file mkdir $target}
+        fixperms $target ugo+rx
+    } else {
+        puts "installing $target..."
+        file copy -force $file $target
+        fixperms $target ugo+r
+    }
+}
+
 set fid [open [file join $targetdir pkgIndex.tcl] w]
 puts $fid "# Tcl package index file"
 puts $fid "package ifneeded $package $version \""
