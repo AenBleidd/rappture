@@ -15,7 +15,7 @@
 cd [file dirname [info script]]
 
 set package "Rappture"
-set version "0.9"
+set version "1.0"
 
 proc find {dir} {
     set flist ""
@@ -49,40 +49,24 @@ if {![file exists $targetdir]} {
     file mkdir $targetdir
 }
 
-set origdir [pwd]
-foreach context {. ../gui} {
-    cd $context
-
-    foreach file [find .] {
-        set target [file join $targetdir $file]
-        if {[file isdirectory $file]} {
-            puts "making directory $target..."
-            catch {file mkdir $target}
-            fixperms $target ugo+rx
-        } else {
-            puts "installing $target..."
-            file copy -force $file $target
-            fixperms $target ugo+r
-        }
-    }
+set sdir [file join $targetdir scripts]
+if {![file exists $sdir]} {
+    puts "making directory $sdir..."
+    catch {file mkdir $sdir}
+    fixperms $sdir ugo+rx
 }
 
-cd ..
-catch {file mkdir [file join $targetdir lib]}
-foreach file [find ./lib] {
-    set target [file join $targetdir $file]
-    if {[file isdirectory $file]} {
-        puts "making directory $target..."
-        catch {file mkdir $target}
-        fixperms $target ugo+rx
-    } else {
-        puts "installing $target..."
-        file copy -force $file $target
-        fixperms $target ugo+r
-    }
+foreach file {
+    ./scripts/library.tcl
+    ../gui/scripts/exec.tcl
+    ../gui/scripts/units.tcl
+    ../gui/scripts/result.tcl
+} {
+    set target [file join $targetdir scripts [file tail $file]]
+    puts "installing $target..."
+    file copy -force $file $target
+    fixperms $target ugo+r
 }
-
-cd $origdir
 
 set fid [open [file join $targetdir pkgIndex.tcl] w]
 puts $fid "# Tcl package index file"
