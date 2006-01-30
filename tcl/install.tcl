@@ -70,7 +70,7 @@ foreach file {
 
 catch {file mkdir [file join $targetdir lib]}
 foreach file [find ../lib] {
-    set target [file join $targetdir $file]
+    set target [file join $targetdir lib [file tail $file]]
     if {[file isdirectory $file]} {
         puts "making directory $target..."
         catch {file mkdir $target}
