@@ -38,27 +38,25 @@ void mexFunction(int nlhs, mxArray *plhs[],
     int         append = 0;
     int         err = 1;
     RpLibrary*  lib = NULL;
-    RpLibrary*  retLib = NULL;
-    char*       path = NULL;
-    char*       value = NULL;
+    std::string path = "";
+    std::string value = "";
 
     /* Check for proper number of arguments. */
-    if (nrhs != 4)
+    if (nrhs != 4) {
         mexErrMsgTxt("Two input required.");
-    else if (nlhs > 1)
-        mexErrMsgTxt("Too many output arguments.");
+    }
 
     libIndex = getIntInput(prhs[0]);
     path = getStringInput(prhs[1]);
     value = getStringInput(prhs[2]);
     append = getIntInput(prhs[3]);
 
-    /* Call the C subroutine. */
-    if ( (libIndex > 0) && path && value ) {
+    /* Call the C++ subroutine. */
+    if ( (libIndex > 0) && (!path.empty()) ) {
         lib = getObject_Lib(libIndex);
 
         if (lib) {
-            rpPutString(lib,path,value,append);
+            lib->put(path,value,"",append);
             err = 0;
         }
     }

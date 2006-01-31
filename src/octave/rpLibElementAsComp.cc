@@ -66,8 +66,10 @@ Error code, err=0 on success, anything else is failure.")
                     eleLib = lib->element(path);
                     if (eleLib) {
                         retStr = eleLib->nodeComp();
+                        if (!retStr.empty()) {
+                            err = 0;
+                        }
                     }
-                    err = 0;
                 }
                 else {
                     //error message

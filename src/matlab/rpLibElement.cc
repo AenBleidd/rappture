@@ -28,7 +28,6 @@
  * Error code, err=0 on success, anything else is failure.
  */
 
-
 void mexFunction(int nlhs, mxArray *plhs[],
                  int nrhs, const mxArray *prhs[])
 {
@@ -37,22 +36,21 @@ void mexFunction(int nlhs, mxArray *plhs[],
     int         err = 1;
     RpLibrary*  lib = NULL;
     RpLibrary*  retLib = NULL;
-    char*       path = NULL;
+    std::string path = "";
 
     /* Check for proper number of arguments. */
-    if (nrhs != 2)
+    if (nrhs != 2) {
         mexErrMsgTxt("Two input required.");
-    else if (nlhs > 2)
-        mexErrMsgTxt("Too many output arguments.");
+    }
 
     libIndex = getIntInput(prhs[0]);
     path = getStringInput(prhs[1]);
 
-    /* Call the C subroutine. */
-    if ( (libIndex > 0) && (path) ) {
+    /* Call the C++ subroutine. */
+    if ( (libIndex > 0) && (!path.empty()) ) {
         lib = getObject_Lib(libIndex);
         if (lib) {
-            retLib = rpElement(lib,path);
+            retLib = lib->element(path);
             retLibIndex = storeObject_Lib(retLib);
             if (retLibIndex) {
                 err = 0;

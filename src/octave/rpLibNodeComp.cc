@@ -54,7 +54,9 @@ Error code, err=0 on success, anything else is failure.")
                 lib = getObject_Lib(libHandle);
                 if (lib) {
                     retStr = lib->nodeComp();
-                    err = 0;
+                    if (!retStr.empty()) {
+                        err = 0;
+                    }
                 }
                 else {
                     // lib is NULL, not found in dictionary
