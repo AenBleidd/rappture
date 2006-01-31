@@ -2,7 +2,7 @@
  * ----------------------------------------------------------------------
  *  INTERFACE: Matlab Rappture Library Source
  *
- *    [err] = rpLibPut(libHandle,path,value,id,append)
+ *    [err] = rpLibPut(libHandle,path,value,append)
  *
  * ======================================================================
  *  AUTHOR:  Derrick Kearney, Purdue University
@@ -16,7 +16,7 @@
 #include "RpMatlabInterface.h"
 
 /**********************************************************************/
-// METHOD: [err] = rpLibPut (libHandle,path,value,id,append)
+// METHOD: [err] = rpLibPut (libHandle,path,value,append)
 /// Set the value of a node.
 /**
  * Clients use this to set the value of a node.  If the path
@@ -25,8 +25,7 @@
  * by the path.  The value is treated as the text within the`
  * tag at the tail of the path.
  *
- * 'id' is used to set the identifier field for the tag at the`
- * tail of the path.  If the append flag is set to 1, then the`
+ * If the append flag is set to 1, then the`
  * value is appended to the current value.  Otherwise, the`
  * value specified in the function call replaces the current value.
  *
@@ -39,29 +38,25 @@ void mexFunction(int nlhs, mxArray *plhs[],
     int         append = 0;
     int         err    = 1;
     RpLibrary*  lib = NULL;
-    RpLibrary*  retLib = NULL;
-    char*       path = NULL;
-    char*       value = NULL;
-    char*       id = NULL;
+    std::string path = "";
+    std::string value = "";
 
     /* Check for proper number of arguments. */
-    if (nrhs != 5)
+    if (nrhs != 4) {
         mexErrMsgTxt("Two input required.");
-    else if (nlhs > 1)
-        mexErrMsgTxt("Too many output arguments.");
+    }
 
     libIndex = getIntInput(prhs[0]);
     path = getStringInput(prhs[1]);
     value = getStringInput(prhs[2]);
-    id = getStringInput(prhs[3]);
-    append = getIntInput(prhs[4]);
+    append = getIntInput(prhs[3]);
 
-    /* Call the C subroutine. */
-    if ( (libIndex > 0) && path && value && id ) {
+    /* Call the C++ subroutine. */
+    if ( (libIndex > 0) && (!path.empty()) ) {
         lib = getObject_Lib(libIndex);
 
         if (lib) {
-            rpPut(lib,path,value,id,append);
+            lib->put(path,value,"",append);
             err = 0;
         }
     }

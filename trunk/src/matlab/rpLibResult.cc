@@ -32,10 +32,9 @@ void mexFunction(int nlhs, mxArray *plhs[],
     RpLibrary* lib = NULL;
 
     /* Check for proper number of arguments. */
-    if (nrhs != 1)
+    if (nrhs != 1) {
         mexErrMsgTxt("One input required.");
-    else if (nlhs > 1)
-        mexErrMsgTxt("Too many output arguments.");
+    }
 
     // grab the integer value of the library handle
     libIndex = getIntInput(prhs[0]);
@@ -44,7 +43,7 @@ void mexFunction(int nlhs, mxArray *plhs[],
     if (libIndex > 0) {
         lib = getObject_Lib(libIndex);
         if (lib) {
-            rpResult(lib);
+            lib->result();
             err = 0;
             // cleanLibDict();
         }

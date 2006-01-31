@@ -40,22 +40,21 @@ void mexFunction(int nlhs, mxArray *plhs[],
     RpLibrary*  lib = NULL;
     RpLibrary*  child = NULL;
     RpLibrary*  retLib = NULL;
-    char*       path = NULL;
-    char*       type = NULL;
+    std::string path = "";
+    std::string type = "";
 
     /* Check for proper number of arguments. */
-    if (nrhs != 4)
+    if (nrhs != 4) {
         mexErrMsgTxt("Four input required.");
-    else if (nlhs > 2)
-        mexErrMsgTxt("Too many output arguments.");
+    }
 
     libIndex = getIntInput(prhs[0]);
     path = getStringInput(prhs[1]);
     childIndex = getIntInput(prhs[2]);
     type = getStringInput(prhs[3]);
 
-    /* Call the C subroutine. */
-    if ( (libIndex > 0) && (path) && (type) ) {
+    /* Call the C++ subroutine. */
+    if ( (libIndex > 0) && (!path.empty()) && (!type.empty()) ) {
         lib = getObject_Lib(libIndex);
 
         if (childIndex > 0) {
@@ -63,7 +62,7 @@ void mexFunction(int nlhs, mxArray *plhs[],
         }
 
         if (lib) {
-            retLib = rpChildrenByType(lib,path,child,type);
+            retLib = lib->children(path,child,type);
             retLibIndex = storeObject_Lib(retLib);
             if (retLibIndex) {
                 err = 0;

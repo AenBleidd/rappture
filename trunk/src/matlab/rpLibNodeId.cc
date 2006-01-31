@@ -27,16 +27,15 @@
 void mexFunction(int nlhs, mxArray *plhs[],
                  int nrhs, const mxArray *prhs[])
 {
-    const char *output_buf;
     int libIndex = 0;
     int err = 1;
     RpLibrary* lib = NULL;
+    std::string retStr = "";
 
     /* Check for proper number of arguments. */
-    if (nrhs != 1)
+    if (nrhs != 1) {
         mexErrMsgTxt("One input required.");
-    else if (nlhs > 2)
-        mexErrMsgTxt("Too many output arguments.");
+    }
 
     // grab the integer value of the library handle
     libIndex = getIntInput(prhs[0]);
@@ -45,15 +44,13 @@ void mexFunction(int nlhs, mxArray *plhs[],
     if (libIndex > 0) {
         lib = getObject_Lib(libIndex);
         if (lib) {
-            output_buf = rpNodeId(lib);
-            if (output_buf) {
-                err = 0;
-            }
+            retStr = lib->nodeId();
+            err = 0;
         }
     }
 
     /* Set C-style string output_buf to MATLAB mexFunction output*/
-    plhs[0] = mxCreateString(output_buf);
+    plhs[0] = mxCreateString(retStr.c_str());
     plhs[1] = mxCreateDoubleScalar(err);
 
     return;

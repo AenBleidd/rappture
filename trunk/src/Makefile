@@ -1,6 +1,6 @@
 # you need to change this to where your version of python is installed.
 # tell make where to find python header files
-RP_INSTALL_BASE = /opt/rappture
+RP_INSTALL_BASE = /opt/rappture/20060130
 
 # tell make where to find the expat & libscew sources
 INCL_RP_DEPS    = -I$(RP_INSTALL_BASE)/include
@@ -248,9 +248,7 @@ RpMatlab:
 	$(MEX) $(MATLAB_SRC)/rpLibGetDouble.cc          $(MATLAB_COMP_ARGS)
 	$(MEX) $(MATLAB_SRC)/rpLibPut.cc                $(MATLAB_COMP_ARGS)
 	$(MEX) $(MATLAB_SRC)/rpLibPutString.cc          $(MATLAB_COMP_ARGS)
-	$(MEX) $(MATLAB_SRC)/rpLibPutStringId.cc        $(MATLAB_COMP_ARGS)
 	$(MEX) $(MATLAB_SRC)/rpLibPutDouble.cc          $(MATLAB_COMP_ARGS)
-	$(MEX) $(MATLAB_SRC)/rpLibPutDoubleId.cc        $(MATLAB_COMP_ARGS)
 	$(MEX) $(MATLAB_SRC)/rpLibNodeComp.cc           $(MATLAB_COMP_ARGS)
 	$(MEX) $(MATLAB_SRC)/rpLibNodeType.cc           $(MATLAB_COMP_ARGS)
 	$(MEX) $(MATLAB_SRC)/rpLibNodeId.cc             $(MATLAB_COMP_ARGS)
@@ -290,10 +288,7 @@ RpOctave:
 	$(OCT) $(OCTAVE_SRC)/rpLibNodeType.cc           $(OCTAVE_COMP_ARGS)
 	$(OCT) $(OCTAVE_SRC)/rpLibPut.cc                $(OCTAVE_COMP_ARGS)
 	$(OCT) $(OCTAVE_SRC)/rpLibPutDouble.cc          $(OCTAVE_COMP_ARGS)
-	$(OCT) $(OCTAVE_SRC)/rpLibPutDoubleId.cc        $(OCTAVE_COMP_ARGS)
-	$(OCT) $(OCTAVE_SRC)/rpLibPutDoubleId.cc        $(OCTAVE_COMP_ARGS)
 	$(OCT) $(OCTAVE_SRC)/rpLibPutString.cc          $(OCTAVE_COMP_ARGS)
-	$(OCT) $(OCTAVE_SRC)/rpLibPutStringId.cc        $(OCTAVE_COMP_ARGS)
 	$(OCT) $(OCTAVE_SRC)/rpLibResult.cc             $(OCTAVE_COMP_ARGS)
 	$(OCT) $(OCTAVE_SRC)/rpLibXml.cc                $(OCTAVE_COMP_ARGS)
 	$(OCT) $(OCTAVE_SRC)/rpUnitsConvert.cc          $(OCTAVE_COMP_ARGS)
