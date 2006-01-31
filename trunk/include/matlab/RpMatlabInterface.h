@@ -15,8 +15,9 @@
 #define _Rp_MATLAB_HELPER_H 
 
 #include "RpBindingsDict.h"
-#include "RpLibraryCInterface.h"
+// #include "RpLibraryCInterface.h"
 #include "RpUnits.h"
+#include "RpLibrary.h"
 
 // dont delete this, still working on making it happen
 //#include "rappture.h"

@@ -17,11 +17,14 @@
 
 % before you run this script you need to manually start up matlab and
 % add the src and src/matlab directories to your path
+% 
+% or do this:
+%
 % cd test
 % matlab -nodisplay -r path\(path,\'src\'\),infile=\'rplib_test.xml\',RpMatlab_test
 
 %path(path,src');
-path(path,'src/matlab');
+%path(path,'src/matlab');
 
 lib = rpLib(infile);
 err = test_element(lib,'input.number(min)');
