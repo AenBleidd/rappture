@@ -13,7 +13,7 @@
 %  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 % ======================================================================
 
-% get out input file from the command line
+% get input file from the command line
 % open our xml input file.
 infile = sprintf("%s",argv(1,:));
 lib = rpLib(infile);

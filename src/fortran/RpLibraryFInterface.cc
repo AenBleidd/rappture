@@ -176,19 +176,20 @@ int rp_lib_children (   int* handle, /* integer handle of library */
     if (handle && (*handle >= 0) ) {
         lib = getObject_Lib(*handle);
         if (lib) {
-            if (*childHandle < 1) {
+
+            if (*childHandle > 0) {
                 // check to see if there were any previously returned children
                 childNode = getObject_Lib(*childHandle);
             }
 
             // call the children base method
-            childNode = lib->children(path,childNode);
+            childNode = lib->children(inPath,childNode);
 
             // store the childNode in the dictionary.
             //
             // because the base method is using static memory to get store the
-            // children we should be able to chekc and see if the childHandle 
-            // was valud.
+            // children we should be able to check and see if the childHandle 
+            // was valid.
             // if so, then we can just return the childHandle back to the user
             // if not, store the object in the dictionary and return the new
             // handle.
@@ -198,7 +199,7 @@ int rp_lib_children (   int* handle, /* integer handle of library */
                     newObjHandle = storeObject_Lib(childNode);
                 }
                 else {
-                    newObjHandle = *childHandle;
+                    newObjHandle = storeObject_Lib(childNode,*childHandle);
                 }
             }
         }

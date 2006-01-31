@@ -227,7 +227,8 @@ RpLibraryFInterface.o: $(FORT_SRC)/RpLibraryFInterface.cc
 
 # matlab bindings
 MEX_INCLS = $(INCL_MATLAB) $(INCL_CORE) $(INCL_CEE) $(INCL_RP_DEPS)
-MATLAB_COMP_ARGS = $(MATLAB_SRC)/RpMatlabInterface.cc $(MEX_INCLS) -L$(LIB_DIR) -lrappture
+MEX_OPTS = -g -outdir $(MATLAB_SRC) -L$(LIB_DIR) -lrappture
+MATLAB_COMP_ARGS = $(MATLAB_SRC)/RpMatlabInterface.cc $(MEX_INCLS) $(MEX_OPTS)
 
 RpMatlab:
 	$(MEX) $(MATLAB_SRC)/rpLib.cc                   $(MATLAB_COMP_ARGS)

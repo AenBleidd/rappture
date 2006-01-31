@@ -51,10 +51,17 @@ void mexFunction(int nlhs, mxArray *plhs[],
 
             myBasis = myUnit->getBasis();
             if (myBasis) {
+                // there was a basis, store it an return
                 retHandle = storeObject_UnitsStr(myBasis->getUnitsName());
                 if (retHandle) {
                     err = 0;
                 }
+            }
+            else {
+                // there was no basis for this unit
+                // return negative handle and set err = 0
+                retHandle = -1;
+                err = 0;
             }
         }
     }

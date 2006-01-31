@@ -21,7 +21,7 @@
 % or do this:
 %
 % cd test
-% matlab -nodisplay -r path\(path,\'src\'\),infile=\'rplib_test.xml\',RpMatlab_test
+% matlab -nodisplay -r path\(path,\'src\'\),path\(path,\'src\/matlab\'\),infile=\'rplib_test.xml\',RpMatlab_test
 
 %path(path,src');
 %path(path,'src/matlab');
@@ -54,7 +54,7 @@ err = test_node_comp(lib,'input.number(min)');
 %err = test_node_comp(0,'input.nur(min)');
 err = test_node_id(lib,'input.number(min)');
 err = test_node_type(lib,'input.number(min)');
-err = test_put(lib,'output.curve(result).xy(f12)','12 13',' ',1);
+err = test_put(lib,'output.curve(result).xy(f12)','12 13',1);
 err = test_put_dbl(lib,'output.curve(result).xy(f13)',22,1);
 err = test_put_dbl(lib,'output.curve(result).xy(f14)',0,1);
 err = test_put_str(lib,'output.curve(result).xy(f15)','110 111',1);

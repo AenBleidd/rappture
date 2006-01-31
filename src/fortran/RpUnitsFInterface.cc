@@ -32,7 +32,6 @@ rp_define_unit( char* unitName,
     inText = null_terminate(unitName,unitName_len);
 
     if (basisName && *basisName) {
-        // basisStrName = fortObjDictUnits.find(*basisName);
         basisStrName = ObjDictUnits.find(*basisName);
 
         if (basisStrName != "") {
@@ -40,7 +39,6 @@ rp_define_unit( char* unitName,
         }
     }
 
-    // newUnit = RpUnits::define(unitName, basis);
     newUnit = RpUnits::define(inText, basis);
 
     if (newUnit) {
@@ -64,7 +62,6 @@ rp_find(char* searchName, int searchName_len)
 
     inText = null_terminate(searchName,searchName_len);
 
-    // RpUnits* searchUnit = RpUnits::find(searchName);
     const RpUnits* searchUnit = RpUnits::find(inText);
 
     if (searchUnit) {
@@ -88,10 +85,12 @@ rp_make_metric(int* basis)
         newBasis = getObject_UnitsStr(*basis);
 
         if (newBasis) {
+            // make the metric extensions and retrieve the error code
             result = RpUnits::makeMetric(newBasis);
         }
     }
 
+    // return the error code
     return result;
 }
 
@@ -100,13 +99,14 @@ rp_get_units(int* unitRefVal, char* retText, int retText_len)
 {
     const RpUnits* unitObj = NULL;
     std::string unitNameText = "";
-    int result = 0;
+    int result = 1;
 
     if (unitRefVal && *unitRefVal) {
         unitObj = getObject_UnitsStr(*unitRefVal);
         if (unitObj) {
             unitNameText = unitObj->getUnits();
             fortranify(unitNameText.c_str(), retText, retText_len);
+            result = 0;
         }
     }
 
@@ -118,13 +118,14 @@ rp_get_units_name(int* unitRefVal, char* retText, int retText_len)
 {
     const RpUnits* unitObj = NULL;
     std::string unitNameText = "";
-    int result = 0;
+    int result = 1;
 
     if (unitRefVal && *unitRefVal) {
         unitObj = getObject_UnitsStr(*unitRefVal);
         if (unitObj) {
             unitNameText = unitObj->getUnitsName();
             fortranify(unitNameText.c_str(), retText, retText_len);
+            result = 0;
         }
     }
 
@@ -135,12 +136,13 @@ int
 rp_get_exponent(int* unitRefVal, double* retExponent)
 {
     const RpUnits* unitObj = NULL;
-    int result = 0;
+    int result = 1;
 
     if (unitRefVal && *unitRefVal) {
         unitObj = getObject_UnitsStr(*unitRefVal);
         if (unitObj) {
             *retExponent = unitObj->getExponent();
+            result = 0;
         }
     }
 

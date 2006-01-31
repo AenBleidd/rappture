@@ -12,17 +12,12 @@
 %  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 % ======================================================================
 
-function [err] = test_put(libHandle,path,value,id,append)
+function [err] = test_put(libHandle,path,value,append)
     err = 1;
     disp(sprintf('\n\nTESTING rpLibPut\n'));
-    [err] = rpLibPut(libHandle,path,value,id,append);
+    [err] = rpLibPut(libHandle,path,value,append);
     if ~err
-        if ~strcmp(id,'')
-            pathID = [path,'(',id,')']
-        else
-            pathID = path
-        end
-        [retStr, err] = rpLibGet(libHandle,pathID);
+        [retStr, err] = rpLibGet(libHandle,path);
         disp(sprintf ('retStr = %s\n',retStr));
         if ~err
             if strcmp(retStr,value)

@@ -59,9 +59,16 @@ Error code, err=0 on success, anything else is failure.")
                     // get the basis
                     myBasis = myUnit->getBasis();
                     if (myBasis) {
+                        // this unit has a basis
                         // store the basis
                         retHandle = 
                             storeObject_UnitsStr(myBasis->getUnitsName());
+                    }
+                    else {
+                        // this unit does not have a basis
+                        // this unit is a basis
+                        // set handle to -1
+                        retHandle = -1;
                     }
 
                     // adjust error code
