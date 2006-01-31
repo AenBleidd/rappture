@@ -2,7 +2,7 @@
  * ----------------------------------------------------------------------
  *  INTERFACE: Matlab Rappture Library Source
  *
- *    [nodeHandle,err] = rpLibGetDouble(libHandle,path)
+ *    [retVal,err] = rpLibGetDouble(libHandle,path)
  *
  * ======================================================================
  *  AUTHOR:  Derrick Kearney, Purdue University
@@ -16,7 +16,7 @@
 #include "RpMatlabInterface.h"
 
 /**********************************************************************/
-// METHOD: [retStr,err] = rpLibGetDouble(libHandle,path)
+// METHOD: [retVal,err] = rpLibGetDouble(libHandle,path)
 /// Query the value of a node.
 /**
  * Clients use this to query the value of a node.  If the path

@@ -48,6 +48,11 @@ void mexFunction(int nlhs, mxArray *plhs[],
         if (basis) {
              retVal = RpUnits::makeMetric(basis);
         }
+        else {
+            std::string errMsg = "Error while retrieving basis handle.\n";
+            errMsg += "Possibly invalid handle?\n";
+            mexErrMsgTxt(errMsg.c_str());
+        }
     }
 
     /* Set C-style string output_buf to MATLAB mexFunction output*/

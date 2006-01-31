@@ -104,6 +104,9 @@ RpUnitsF_test: $(SRC_TEST)/RpUnitsF_test.f
 RpValue_test: $(SRC_TEST)/RpValue_test.cc
 	$(CXX) $(DEBUG) $(INCL_CORE) -o $@ $< $(LIB_RP_OBJECTS)
 
+RpFortranDocExamples: $(SRC_TEST)/RpFortranDocExamples.f
+	$(F77) $(DEBUG) -o $@ $^ $(LIB_RAPPTURE)
+
 
 #### CLEAN UP ############################################################
 clean: 

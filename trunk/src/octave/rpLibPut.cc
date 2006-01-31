@@ -2,7 +2,7 @@
  * ----------------------------------------------------------------------
  *  INTERFACE: Octave Rappture Library Source
  *
- *    [err] = rpLibPut(libHandle,path,value,id,append)
+ *    [err] = rpLibPut(libHandle,path,value,append)
  *
  * ======================================================================
  *  AUTHOR:  Derrick Kearney, Purdue University
@@ -32,7 +32,7 @@
 
 DEFUN_DLD (rpLibPut, args, ,
 "-*- texinfo -*-\n\
-[err] = rpLibPut(@var{libHandle},@var{path},@var{value},@var{id},@var{append})\n\
+[err] = rpLibPut(@var{libHandle},@var{path},@var{value},@var{append})\n\
 \n\
 Clients use this to set the value of a node.  If the @var{path}\n\
 is not specified (ie. empty string ""), it sets the value for the\n\
@@ -40,8 +40,7 @@ root node.  Otherwise, it sets the value for the element specified\n\
 by the path.  The @var{value} is treated as the text within the \n\
 tag at the tail of the @var{path}.\n\
 \n\
-@var{id} is used to set the identifier field for the tag at the \n\
-tail of the @var{path}.  If the @var{append} flag is set to 1, then the \n\
+If the @var{append} flag is set to 1, then the \n\
 @var{value} is appended to the current value.  Otherwise, the \n\
 @var{value} specified in the function call replaces the current value.\n\
 Error Codes: err = 0 is success, anything else is failure.")
@@ -55,23 +54,21 @@ Error Codes: err = 0 is success, anything else is failure.")
     int libHandle     = 0;
     std::string path  = "";
     std::string value = "";
-    std::string id    = "";
+    std::string id    = ""; // not used, kept for compatibility dsk-20060131
     int append        = 0;
     RpLibrary* lib    = NULL;
 
-    if (nargin == 5) {
+    if (nargin == 4) {
 
         if ( args(0).is_real_scalar() &&
              args(1).is_string()      &&
              args(2).is_string()      &&
-             args(3).is_string()      &&
-             args(4).is_real_scalar()   ) {
+             args(3).is_real_scalar()   ) {
 
             libHandle = args(0).int_value ();
             path      = args(1).string_value ();
             value     = args(2).string_value ();
-            id        = args(3).string_value ();
-            append    = args(4).int_value ();
+            append    = args(3).int_value ();
 
             /* Call the C subroutine. */
             // the only input that has restrictions is libHandle
