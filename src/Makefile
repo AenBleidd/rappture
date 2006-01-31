@@ -1,6 +1,6 @@
 # you need to change this to where your version of python is installed.
 # tell make where to find python header files
-RP_INSTALL_BASE = /opt/rappture/20060130
+RP_INSTALL_BASE = /opt/rappture
 
 # tell make where to find the expat & libscew sources
 INCL_RP_DEPS    = -I$(RP_INSTALL_BASE)/include
@@ -315,5 +315,5 @@ docs:
 
 #### CLEAN UP ############################################################
 clean: 
-	- rm -f *.o librappture.so* libRp*.so* rp*.mex* $(OCTAVE_SRC)/rp*.o*
+	- rm -f *.o librappture.so* librappture.a libRp*.so* rp*.mex* $(OCTAVE_SRC)/rp*.o*
 	- rm -rf build
