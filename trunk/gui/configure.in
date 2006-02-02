@@ -120,6 +120,8 @@ SC_PUBLIC_TCL_HEADERS
 
 SC_PATH_TCLCONFIG
 SC_LOAD_TCLCONFIG
+SC_PATH_TKCONFIG
+SC_LOAD_TKCONFIG
 
 #--------------------------------------------------------------------
 # Look for bltInt.h on the normal include path.  If not found, look
@@ -300,7 +302,7 @@ case "`uname -s`" in
 	;;
     *)
 	if test "${SHARED_BUILD}" = "1" ; then
-	    SHLIB_LD_LIBS="${TCL_STUB_LIB_SPEC}"
+	    SHLIB_LD_LIBS="${TCL_LIB_SPEC} ${TK_LIB_SPEC} -lBLT24"
 	    eval "${PACKAGE}_LIB_FILE=lib${PACKAGE}${SHARED_LIB_SUFFIX}"
 	    RANLIB=:
 	else
