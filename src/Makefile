@@ -30,7 +30,6 @@ RP_BASE   = $(TOP_DIR)/rappture
 PROGS           =   librappture    \
                     libRpObjects   \
                     Rappture.Units
-#                    RpMatlab
 
 # define our compiling environment
 #
@@ -74,7 +73,7 @@ CFLAGS = -fPIC
 # default:
 
 all: ${PROGS}
-install: all install_py install_rappture install_rpobjs #install_matlab #install_octave
+install: install_py install_rappture install_rpobjs install_matlab install_octave
 
 RP_IO_DEPS      = RpLibrary.o RpLibraryCInterface.o RpLibraryFInterface.o \
                   scew_extras.o
