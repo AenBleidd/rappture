@@ -78,6 +78,13 @@ itcl::body Rappture::Scroller::constructor {args} {
         scrollbar $itk_interior.ysbar -orient vertical
     }
 
+    # we don't fix scrollbars when window is withdrawn, so
+    # fix them whenever a window pops up
+    bind $itk_component(hull) <Map> "
+        [itcl::code $this _fixsbar x]
+        [itcl::code $this _fixsbar y]
+    "
+
     grid rowconfigure $itk_component(hull) 0 -weight 1
     grid columnconfigure $itk_component(hull) 0 -weight 1
 
@@ -176,6 +183,15 @@ itcl::body Rappture::Scroller::_widget2sbar {which args} {
 # it is displayed if needed for the current view.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Scroller::_fixsbar {which {state ""}} {
+    if {![winfo ismapped $itk_component(hull)]} {
+        #
+        # If we're not on yet screen, bail out!  This keeps bad
+        # numbers (from an empty or partially constructed widget)
+        # from prematurely influencing the scrollbar.
+        #
+        return
+    }
+
     if {$state == ""} {
         switch -- [string tolower $itk_option(-${which}scrollmode)] {
             on - 1 - true - yes  { set state 1 }

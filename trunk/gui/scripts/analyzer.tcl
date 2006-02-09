@@ -155,7 +155,7 @@ itcl::body Rappture::Analyzer::constructor {tool args} {
     }
     pack $itk_component(abort) -side left -expand yes -padx 4 -pady 4
 
-    Rappture::Scroller $w.info -xscrollmode off -yscrollmode auto
+    Rappture::Scroller $w.info -xscrollmode auto -yscrollmode auto
     pack $w.info -expand yes -fill both -padx 4 -pady 4
     itk_component add runinfo {
         text $w.info.text -width 1 -height 1 -wrap none \
@@ -347,6 +347,9 @@ itcl::body Rappture::Analyzer::simulate {args} {
     } else {
         $itk_component(notebook) current analyze
     }
+
+    # do this last -- after _simOutput above
+    pack forget $itk_component(progress)
 }
 
 # ----------------------------------------------------------------------
