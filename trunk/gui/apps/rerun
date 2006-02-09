@@ -34,7 +34,7 @@
 exec python $0 ${1+"$@"}
 """
 
-import getopt, shutil, re, os, sys
+import getopt, shutil, re, os, sys, tempfile
 
 def printHelp():
     print """rerun [-h | -d driver_path] runFile
@@ -72,22 +72,25 @@ if __name__ == '__main__' :
     re_command = re.compile(r'<command>.*</command>', re.I|re.DOTALL)
 
     # prepare text variables
-    outTmpFileName = '/tmp/rerun_' + os.path.basename(runFile)
-    outCmd = '<command>echo =RAPPTURE-RUN=>%s</command>' % outTmpFileName
+    myTmpFile = tempfile.NamedTemporaryFile()
+    outCmd = '<command>echo =RAPPTURE-RUN=>%s</command>' % myTmpFile.name
 
     # do the file <command> switheroo!
     xmlfile = open(runFile, "rb").read()
-    tmpfile = open(outTmpFileName, "wb")
     outText = re_command.sub(outCmd,xmlfile)
-    tmpfile.write(outText)
-    tmpfile.close()
+    myTmpFile.write(outText)
+    myTmpFile.flush()
 
     # run driver on the temporary run file
-    systemCmd = '%s -tool %s' % (driverPath, outTmpFileName)
+    print "myTmpFile.name = %s" % (myTmpFile.name)
+    systemCmd = '%s -tool %s' % (driverPath, myTmpFile.name)
     os.system(systemCmd)
-    
-    # presto-change-o 
-    
+
+    # presto-change-o
+
     # clean up our tmp file
-    os.remove(outTmpFileName)
+    # the tempfile module deletes the file automatically when closed
+    myTmpFile.close()
+
+    # exit gracefully
     sys.exit()
