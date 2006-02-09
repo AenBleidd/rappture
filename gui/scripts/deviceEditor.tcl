@@ -45,11 +45,6 @@ itcl::body Rappture::DeviceEditor::constructor {owner args} {
     }
     pack $itk_component(top) -fill x
 
-    itk_component add editors {
-        Rappture::Notebook $itk_interior.editors
-    }
-    pack $itk_component(editors) -expand yes -fill both
-
     eval itk_initialize $args
 }
 
@@ -116,26 +111,24 @@ itcl::body Rappture::DeviceEditor::_redraw {} {
     }
     switch -- [_type $_xmlobj] {
         molecule {
-            if {[catch {$itk_component(editors) page molecule} p]} {
-                set p [$itk_component(editors) insert end molecule]
-                Rappture::MoleculeViewer $p.mol $this
-                pack $p.mol -expand yes -fill both
+            if {![winfo exists $itk_component(hull).mol]} {
+                catch {destroy $itk_component(hull).dev}
+                Rappture::MoleculeViewer $itk_component(hull).mol $this
+                pack $itk_component(hull).mol -expand yes -fill both
             }
-            $p.mol configure -device $_xmlobj
-            $itk_component(editors) current molecule
+            $itk_component(hull).mol configure -device $_xmlobj
 
-            set _current $p.mol
+            set _current $itk_component(hull).mol
         }
         device1D {
-            if {[catch {$itk_component(editors) page device1D} p]} {
-                set p [$itk_component(editors) insert end device1D]
-                Rappture::DeviceViewer1D $p.dev $this
-                pack $p.dev -expand yes -fill both
+            if {![winfo exists $itk_component(hull).dev]} {
+                catch {destroy $itk_component(hull).mol}
+                Rappture::DeviceViewer1D $itk_component(hull).dev $this
+                pack $itk_component(hull).dev -expand yes -fill both
             }
-            $p.dev configure -device $_xmlobj
-            $itk_component(editors) current device1D
+            $itk_component(hull).dev configure -device $_xmlobj
 
-            set _current $p.dev
+            set _current $itk_component(hull).dev
         }
     }
 }

@@ -32,6 +32,7 @@ proc Rappture::exec {args} {
     set execout(output) ""
     set execout(channel) ""
     set execout(extra) ""
+    set execctl ""
 
     set status [catch {eval blt::bgexec ::Rappture::execctl \
         -keepnewline yes \
