@@ -26,6 +26,8 @@ option add *Analyzer.simControlActiveOutline black widgetDefault
 
 option add *Analyzer.font \
     -*-helvetica-medium-r-normal-*-*-120-* widgetDefault
+option add *Analyzer.codeFont \
+    -*-courier-medium-r-normal-*-*-120-* widgetDefault
 option add *Analyzer.textFont \
     -*-helvetica-medium-r-normal-*-*-120-* widgetDefault
 option add *Analyzer.boldTextFont \
@@ -34,6 +36,7 @@ option add *Analyzer.boldTextFont \
 itcl::class Rappture::Analyzer {
     inherit itk::Widget
 
+    itk_option define -codefont codeFont Font ""
     itk_option define -textfont textFont Font ""
     itk_option define -boldtextfont boldTextFont Font ""
     itk_option define -simcontrol simControl SimControl ""
@@ -164,11 +167,9 @@ itcl::body Rappture::Analyzer::constructor {tool args} {
     } {
         usual
         ignore -borderwidth -relief
-        rename -font -textfont textFont Font
+        rename -font -codefont codeFont Font
     }
     $w.info contents $w.info.text
-
-    $itk_component(runinfo) tag configure ERROR -foreground red
 
     itk_component add progress {
         Rappture::Progress $w.progress
@@ -224,6 +225,9 @@ itcl::body Rappture::Analyzer::constructor {tool args} {
     bind $itk_component(resultset) <<Control>> [itcl::code $this _fixSize]
 
     eval itk_initialize $args
+
+    $itk_component(runinfo) tag configure ERROR -foreground red
+    $itk_component(runinfo) tag configure text -font $itk_option(-textfont)
 
     #
     # Load up tool info on the first page.
@@ -299,7 +303,7 @@ itcl::body Rappture::Analyzer::simulate {args} {
     _simState off
     $itk_component(runinfo) configure -state normal
     $itk_component(runinfo) delete 1.0 end
-    $itk_component(runinfo) insert end "Running simulation...\n\n"
+    $itk_component(runinfo) insert end "Running simulation...\n\n" text
     $itk_component(runinfo) configure -state disabled
 
     # if the hold window is set, then put up a busy cursor
@@ -340,7 +344,7 @@ itcl::body Rappture::Analyzer::simulate {args} {
     if {$status != 0} {
         $itk_component(runinfo) configure -state normal
         $itk_component(runinfo) delete 1.0 end
-        $itk_component(runinfo) insert end "Problem launching job:\n\n"
+        $itk_component(runinfo) insert end "Problem launching job:\n\n" text
         _simOutput $result
         $itk_component(runinfo) configure -state disabled
         $itk_component(runinfo) see 1.0

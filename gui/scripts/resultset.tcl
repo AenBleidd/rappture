@@ -590,7 +590,7 @@ itcl::body Rappture::ResultSet::_fixSettings {args} {
             set tweak(value) ""
             for {set i 0} {$i < $nsearch} {incr i} {
                 set format $eventdata(column)
-                set tuple [$eventdata(widget) get current]
+                set tuple [list [$eventdata(widget) get current]]
                 for {set j [expr {$i+1}]} {$j < $nsearch} {incr j} {
                     set col [lindex $search $j]
                     set w $_col2widget($col)
@@ -602,7 +602,7 @@ itcl::body Rappture::ResultSet::_fixSettings {args} {
                     set col [lindex $search $i]
                     set tweak(widget) $_col2widget($col)
                     set first [lindex $ilist 0]
-                    set tweak(value) [$_results get -format $col -- $first]
+                    set tweak(value) [lindex [$_results get -format $col -- $first] 0]
                     break
                 }
             }
