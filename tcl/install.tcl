@@ -58,9 +58,9 @@ if {![file exists $sdir]} {
 
 foreach file {
     ./scripts/library.tcl
-    ../gui/scripts/exec.tcl
+    ./scripts/exec.tcl
+    ./scripts/result.tcl
     ../gui/scripts/units.tcl
-    ../gui/scripts/result.tcl
 } {
     set target [file join $targetdir scripts [file tail $file]]
     puts "installing $target..."

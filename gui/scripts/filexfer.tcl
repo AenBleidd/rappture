@@ -184,13 +184,20 @@ proc Rappture::filexfer::spool {string {filename "output.txt"}} {
         puts $fid $string
         close $fid
 
-        set cid [lindex $clients(order) 0]
-        if {$cid == ""} {
+        set sent 0
+        set access($filename) [bakeCookie]
+        foreach cid $clients(order) {
+            if {[info exists clients($cid)] && $clients($cid)} {
+                catch {
+                    puts $cid [format "url /spool/%s/%s?access=%s" \
+                        $env(SESSION) $filename $access($filename)]
+                }
+                set sent 1
+            }
+        }
+        if {!$sent} {
             error "no clients"
         }
-
-        set access($filename) [bakeCookie]
-        puts $cid "url /spool/$env(SESSION)/$filename?access=$access($filename)"
     }
 }
 
@@ -438,7 +445,7 @@ coming from the user.
         # Send back an applet file...
         #
         set url [string trimleft $url /]
-        set file [file join $Rappture::installdir filexfer $url]
+        set file [file join $RapptureGUI::library filexfer $url]
         response $cid file -path $file -connection $headers(Connection)
     } else {
         #
