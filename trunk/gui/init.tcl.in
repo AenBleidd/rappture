@@ -13,23 +13,21 @@
 # ======================================================================
 proc RapptureGUI_init {} {
     global auto_path
-    global rappture_library
 
     package require BLT
 
     set dir [file dirname [info script]]
-    
-    set rappture_library [file join $dir scripts]
-    lappend auto_path $rappture_library
+    lappend auto_path [file join $dir scripts]
 
     set suffix [info sharedlibextension]
     set library [file join $dir .. libRapptureGUI@VERSION@${suffix}]
     load $library RapptureGUI
 
-    namespace eval Rappture {
+    namespace eval RapptureGUI "
 	variable version @EXACT_VERSION@
 	variable patchlevel @PATCHLEVEL@
-    }
+	variable library $dir
+    "
 
     package provide RapptureGUI @VERSION@
     rename RapptureGUI_init ""    

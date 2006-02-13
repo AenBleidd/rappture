@@ -183,6 +183,7 @@ all: binaries libraries doc
 binaries: $(BINARIES)
 
 libraries:
+	cd filexfer; make all
 
 doc:
 
@@ -276,6 +277,7 @@ RpRusage.$(OBJEXT): $(srcdir)/src/RpRusage.c
 #========================================================================
 
 clean:  
+	cd filexfer; make clean
 	-test -z "$(BINARIES)" || rm -f $(BINARIES)
 	-rm -f *.o core *.core
 	-rm -f *.$(OBJEXT)
@@ -337,6 +339,12 @@ install-lib-binaries: installdirs
         done;
 	$(INSTALL_DATA) pkgIndex.tcl $(DESTDIR)$(pkglibdir)/pkgIndex.tcl
 	$(INSTALL_DATA) init.tcl $(DESTDIR)$(pkglibdir)/init.tcl
+	$(mkinstalldirs) $(pkglibdir)/filexfer
+	@for i in $(srcdir)/filexfer/filexfer.jar \
+	      $(srcdir)/filexfer/*.class; do \
+	    echo "Installing $$i" ; \
+	    $(INSTALL_DATA) $$i $(DESTDIR)$(pkglibdir)/filexfer ; \
+        done;
 
 #========================================================================
 # Install binary executables (e.g. .exe files)

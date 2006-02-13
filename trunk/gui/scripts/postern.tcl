@@ -131,6 +131,10 @@ itcl::body Rappture::Postern::constructor {args} {
     command prompt
 
     eval itk_initialize $args
+
+    # this makes it easier to find the magic spot
+    bind $itk_component(hull) <Alt-Enter> [list $itk_component(hull) configure -background $itk_option(-activecolor)]
+    bind $itk_component(hull) <Leave> [list $itk_component(hull) configure -background $itk_option(-background)]
 }
 
 # ----------------------------------------------------------------------

@@ -22,15 +22,11 @@ public class filexfer extends java.applet.Applet {
     public BufferedReader istream;
     public PrintStream ostream;
     public TextArea status;
-    public int port;
 
-    private Socket socket;
-    private monitor mon;
-
-    private String user;
-    private String cookie;
+    private monitor mon = null;
 
     public void init() {
+        int port = 0;
         String portstr = getParameter("port");
         if (portstr == null) {
             port = 9001;
@@ -38,24 +34,15 @@ public class filexfer extends java.applet.Applet {
             port = Integer.parseInt(portstr);
         }
 
+        String user = "";
         user = getParameter("user");
         if (user == null)
             user = "???";
 
+        String cookie = "";
         cookie = getParameter("cookie");
         if (cookie == null)
             cookie = "<missing>";
-
-        String mesg="OK";
-        try {
-            socket = new Socket(getCodeBase().getHost(), port);
-            istream = new BufferedReader(
-                new InputStreamReader(socket.getInputStream())
-            );
-            ostream = new PrintStream(socket.getOutputStream());
-        }
-        catch (UnknownHostException e) { mesg="Unknown host"; }
-        catch (Exception e) { mesg="Can't connect to server"; }
 
         String ipAddr = "";
         try {
@@ -67,11 +54,6 @@ public class filexfer extends java.applet.Applet {
         } catch (UnknownHostException e) {
             ipAddr = "???";
         }
-
-        try {
-            ostream.println("REGISTER "+user+" "+ipAddr+" "+cookie+" RAPPTURE");
-        }
-        catch (Exception e) { mesg="Can't talk to server"; }
 
         GridBagLayout gridbag = new GridBagLayout();
         setLayout(gridbag);
@@ -87,39 +69,21 @@ public class filexfer extends java.applet.Applet {
         status = new TextArea(8,60);
         gridbag.setConstraints(status, cons);
         add(status);
-	status.setText(mesg);
 
-        if (mesg == "OK") {
-            mon = new monitor(this);
-            mon.start();
-        }
+        mon = new monitor(this, getCodeBase().getHost(), port,
+            user, ipAddr, cookie);
+        mon.start();
     }
 
     public void destroy() {
-        try {
-            ostream.println("UNREGISTER RAPPTURE");
-            socket.close();
-        }
-        catch (Exception e) {
-            status.append("\nUNREGISTER notice failed");
-        }
+        mon.disconnect();
     }
 
     public void start() {
-        try {
-            ostream.println("ACTIVATE RAPPTURE");
-        }
-        catch (Exception e) {
-            status.append("\nACTIVATE notice failed");
-        }
+        mon.activate();
     }
 
     public void stop() {
-        try {
-            ostream.println("DEACTIVATE RAPPTURE");
-        }
-        catch (Exception e) {
-            status.append("\nDEACTIVATE notice failed");
-        }
+        mon.deactivate();
     }
 }
