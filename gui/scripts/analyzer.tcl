@@ -16,7 +16,7 @@
 # ======================================================================
 package require Itk
 
-option add *Analyzer.width 4i widgetDefault
+option add *Analyzer.width 3.5i widgetDefault
 option add *Analyzer.height 4i widgetDefault
 option add *Analyzer.simControl "auto" widgetDefault
 option add *Analyzer.simControlBackground "" widgetDefault
