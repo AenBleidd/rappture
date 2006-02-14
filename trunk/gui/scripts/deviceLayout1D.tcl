@@ -16,7 +16,7 @@
 package require Itk
 package require BLT
 
-option add *DeviceLayout1D.width 4i widgetDefault
+option add *DeviceLayout1D.width 3.5i widgetDefault
 option add *DeviceLayout1D.deviceSize 0.25i widgetDefault
 option add *DeviceLayout1D.deviceOutline black widgetDefault
 option add *DeviceLayout1D.annotate all widgetDefault
