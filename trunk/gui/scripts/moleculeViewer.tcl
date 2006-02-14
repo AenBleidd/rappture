@@ -447,9 +447,22 @@ itcl::body Rappture::MoleculeViewer::_3dView {theta phi psi} {
     set yp [expr {sin($theta*$deg2rad)*sin($phi*$deg2rad)}]
     set zp [expr {cos($theta*$deg2rad)}]
 
-    set xm [expr {0.5*($_limits(xmax)+$_limits(xmin))}]
-    set ym [expr {0.5*($_limits(ymax)+$_limits(ymin))}]
-    set zm [expr {0.5*($_limits(zmax)+$_limits(zmin))}]
+    set blank 0
+    foreach lim {xmin xmax ymin ymax zmin zmax} {
+        if {"" == $_limits($lim)} {
+            set blank 1
+            break
+        }
+    }
+    if {$blank} {
+        set xm 0
+        set ym 0
+        set zm 0
+    } else {
+        set xm [expr {0.5*($_limits(xmax)+$_limits(xmin))}]
+        set ym [expr {0.5*($_limits(ymax)+$_limits(ymin))}]
+        set zm [expr {0.5*($_limits(zmax)+$_limits(zmin))}]
+    }
 
     set cam [$this-ren GetActiveCamera]
     set zoom [$cam GetViewAngle]
