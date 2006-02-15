@@ -587,14 +587,7 @@ RpLibrary::children (   std::string path,
 std::string
 RpLibrary::get (std::string path)
 {
-    scew_element* retNode = _find(path,0);
-
-    if (retNode == NULL) {
-        // need to raise error
-        return "";
-    }
-
-    return std::string(scew_element_contents(retNode));
+    return (this->getString(path));
 }
 
 /**********************************************************************/
@@ -607,13 +600,20 @@ std::string
 RpLibrary::getString (std::string path)
 {
     scew_element* retNode = _find(path,0);
+    XML_Char const* retCStr = NULL;
 
     if (retNode == NULL) {
         // need to raise error
-        return "";
+        return std::string("");
     }
 
-    return std::string(scew_element_contents(retNode));
+    retCStr = scew_element_contents(retNode);
+
+    if (!retCStr) {
+        return std::string("");
+    }
+
+    return std::string(retCStr);
 }
 
 /**********************************************************************/
