@@ -81,11 +81,11 @@ RP_OTHER_DEPS   = RpFortranCommon.o RpBindingsDict.o
 RP_OBJS_DEP     = RpVariable.o RpAbout.o RpNumber.o RpString.o RpBoolean.o \
                   RpChoice.o RpOption.o RpUnitsStd.o RpUnits.o #RpValue.o\
                   # RpValueDouble.o RpValueString.o
-RP_MESH_DEPS = rp_defs.o grid1d.o grid1d_reg.o #grid2d.o mesh.o field.o 
+RP_MESH_DEPS = util.o grid1d.o grid1d_reg.o grid2d.o #mesh.o field.o endian.o
 
 LDLIB_MACOSX = -dynamiclib -o $(LIB_DIR)/$@.dylib
 LDLIB_LINUX = -shared -Wl,-rpath,$(LIB_DIR)/ -Wl,-soname,$@.so -o $(LIB_DIR)/$@.so.0.0
-LDLIB_LINUX_MESH = -shared -Wl,-rpath,../$(LIB_DIR)/mesh/ -Wl,-soname,$@.so -o ../$(LIB_DIR)/mesh/$@.so.0.0
+LDLIB_LINUX_MESH = -shared -Wl,-rpath,$(LIB_DIR)/mesh/ -Wl,-soname,$@.so -o $(LIB_DIR)/mesh/$@.so.0.0
 
 # include rappture library definitions
 
@@ -97,7 +97,7 @@ librpmesh: $(RP_MESH_DEPS)
 		ar -r $@.a $^; \
 		ranlib -s $@.a; \
 	else \
-		$(CXX) $(DEGUG) $(LDLIB_LINUX_MESH) $^ $(LIB_SCEW_FLAG) -lm; \
+		$(CXX) $(DEGUG) $(LDLIB_LINUX) $^ $(LIB_SCEW_FLAG) -lm; \
 		/sbin/ldconfig -n $(LIB_DIR); \
 		ar -r $@.a $^; \
 		ranlib $@.a; \
@@ -165,11 +165,15 @@ install_octave: librappture RpOctave
 ###############################################
 # include mesh objects
 #
+grid2d.o: grid2d.cc
+	$(CXX) $(CFLAGS) $(DEBUG) -c $?
 grid1d.o: grid1d.cc
 	$(CXX) $(CFLAGS) $(DEBUG) -c $?
 grid1d_reg.o: grid1d_reg.cc
 	$(CXX) $(CFLAGS) $(DEBUG) -c $?
-rp_defs.o: rp_defs.cc
+util.o: util.cc
+	$(CXX) $(CFLAGS) $(DEBUG) -c $?
+endian.o: endian.cc
 	$(CXX) $(CFLAGS) $(DEBUG) -c $?
 
 # include core source files
@@ -337,3 +341,7 @@ docs:
 clean: 
 	- rm -f *.o librappture.so* librappture.a libRp*.so* rp*.mex* $(OCTAVE_SRC)/rp*.o*
 	- rm -rf build
+
+#################
+endiantest: endiantest.o 
+	$(CXX) -o $@ $<

@@ -19,10 +19,10 @@ public:
 	void addPoint(double val);
 
 	// return number of points in grid
-	int size() { return m_data.size(); }
+	int numPoints() { return m_data.size(); }
 
 	// change the size of the grid after grid is constructed
-	void resize(int size) { m_data.resize(size); }
+	void resize(int npoints) { m_data.resize(npoints); }
 
 	// serialize data 
 	char * serialize(RP_ENCODE_ALG eflag=RP_NO_ENCODING, 
