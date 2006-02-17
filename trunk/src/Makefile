@@ -140,14 +140,16 @@ install_matlab: librappture RpMatlab
 	if test ! -d $(RP_INSTALL_BASE)/lib/matlab; then \
 		mkdir $(RP_INSTALL_BASE)/lib/matlab; \
 	fi
-	cp -d $(MATLAB_SRC)/*.mex* $(RP_INSTALL_BASE)/lib/matlab
+	cp $(MATLAB_SRC)/*.mex* $(RP_INSTALL_BASE)/lib/matlab
+#	cp -d $(MATLAB_SRC)/*.mex* $(RP_INSTALL_BASE)/lib/matlab
 
 #### Octave ########################################################
 install_octave: librappture RpOctave
 	if test ! -d $(RP_INSTALL_BASE)/lib/octave; then \
 		mkdir $(RP_INSTALL_BASE)/lib/octave; \
 	fi
-	cp -d $(OCTAVE_SRC)/*.oct* $(RP_INSTALL_BASE)/lib/octave
+	cp $(OCTAVE_SRC)/*.oct* $(RP_INSTALL_BASE)/lib/octave
+#	cp -d $(OCTAVE_SRC)/*.oct* $(RP_INSTALL_BASE)/lib/octave
 
 
 ###############################################
@@ -226,7 +228,7 @@ RpLibraryFInterface.o: $(FORT_SRC)/RpLibraryFInterface.cc
 
 # matlab bindings
 MEX_INCLS = $(INCL_MATLAB) $(INCL_CORE) $(INCL_CEE) $(INCL_RP_DEPS)
-MEX_OPTS = -g -outdir $(MATLAB_SRC) -L$(LIB_DIR) -lrappture
+MEX_OPTS = -g -outdir $(MATLAB_SRC) -L$(LIB_DIR) -lrappture $(LIB_SCEW_FLAG)
 MATLAB_COMP_ARGS = $(MATLAB_SRC)/RpMatlabInterface.cc $(MEX_INCLS) $(MEX_OPTS)
 
 RpMatlab:
@@ -269,7 +271,7 @@ RpMatlab:
 	$(MEX) $(MATLAB_SRC)/rpAddPresets.cc            $(MATLAB_COMP_ARGS)
 
 OCT_INCLS = $(INCL_OCTAVE) $(INCL_CORE) $(INCL_RP_DEPS)
-OCTAVE_COMP_ARGS = $(OCT_INCLS) -L$(LIB_DIR) -lrappture
+OCTAVE_COMP_ARGS = $(OCT_INCLS) -L$(LIB_DIR) -lrappture $(LIB_SCEW_FLAG)
 RpOctave:
 	$(OCT) $(OCTAVE_SRC)/rpAddPresets.cc            $(OCTAVE_COMP_ARGS)
 	$(OCT) $(OCTAVE_SRC)/rpLib.cc                   $(OCTAVE_COMP_ARGS)
