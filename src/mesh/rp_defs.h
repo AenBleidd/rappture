@@ -26,6 +26,16 @@ enum RP_ERROR_CODES {
 	RP_ERR_TIMEOUT
 };
 
+enum RP_ENCODE_ALG { 
+	RP_NO_ENCODING,
+	RP_UUENCODE
+}
+
+enum RP_COMPRESSION { 
+	RP_NO_COMPRESSION,
+	RP_ZLIB
+}
+
 using namespace std;
 
 extern string RpErrorStr;
