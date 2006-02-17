@@ -19,27 +19,40 @@ RpNode::set(int val, int index)
 	return err;
 }
 
+// 
+// set values in node "id"
+//
 void
-RpNode::setNode2d(int xval, int yval, const char* id)
+RpNode::setNode(int dim, int* val, int id)
 {
-	m_node.resize(2);
-
-	m_dim = 2;
-	m_node[0] = xval;
-	m_node[1] = yval;
+	m_dim = dim;
 	m_id = id;
+	m_node.resize(m_dim);
+
+	for (int i=0; i<m_dim; i++) {
+		m_node[i] = val[i];
+	}
 }
 
-void
-RpNode::setNode3d(int xval, int yval, int zval, const char* id)
+// 
+// get node values 
+// Input: 
+// 	node: array of int for storing coordinates
+// 	len:  length of 'node' array
+//
+RP_ERROR
+RpNode::get(int* node, int len)
 {
-	m_node.resize(3);
+	RP_ERROR err = RP_SUCCESS;
 
-	m_dim = 3;
-	m_node[0] = xval;
-	m_node[1] = yval;
-	m_node[2] = zval;
-	m_id = id;
+	if (node != NULL && len >= m_dim)
+		for (int i=0; i<m_dim; i++) {
+			node[i] = m_node[i];
+		}
+	else
+		err = RP_ERR_INVALID_ARRAY;
+
+	return err;
 }
 
 RP_ERROR 

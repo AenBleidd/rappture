@@ -8,8 +8,13 @@
 
 class RpNode {
 public:
-        // constructors (default to 2d node)
-        RpNode(int dim=2, const char* id=NULL):
+        // constructors, default size=3
+        RpNode()
+	{ 
+		m_node.resize(3);
+	};
+
+        RpNode(int dim, int id):
 		m_dim(dim),
 		m_id(id)
 	{ 
@@ -18,13 +23,15 @@ public:
 
 	// assign value to coordinate[index]
 	RP_ERROR set(int val, int index);
+
+	// get node values
 	RP_ERROR get(int& val, int index);
+	RP_ERROR get(int* val, int len);
 
-	void setNode2d(int x, int y, const char* id);
-	void setNode3d(int x, int y, int z, const char* id);
+	void setNode(int dim, int* val, int id);
 
-	const char* id() { return m_id.c_str(); };
-	void id(const char* id) { m_id = id; };
+	int id() { return m_id; };
+	void id(int id) { m_id = id; };
 
 	char* serialize();
 	void serialize(const char* buf, int buflen);
@@ -35,9 +42,9 @@ public:
         virtual ~RpNode() { };
 
 private:
-	vector<int> m_node;
 	int m_dim;
-	std::string m_id;
+	int m_id;
+	vector<int> m_node;
 };
 
 #endif
