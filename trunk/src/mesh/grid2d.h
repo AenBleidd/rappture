@@ -19,6 +19,7 @@ public:
 
 	// return number of points in grid
 	int numPoints() { return m_data.size() / 2; }
+	double* data(); // access data array
 
 	// change the size of the grid after grid is constructed
 	void resize(int npoints) { m_data.resize(npoints*2); }
