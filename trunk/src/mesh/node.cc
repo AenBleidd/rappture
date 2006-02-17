@@ -3,12 +3,52 @@
 //
 // assign value to coordinate[index]
 //
-RP_ERROR RpNode::set(int val, int index)
+RP_ERROR 
+RpNode::set(int val, int index)
 {
 	RP_ERROR err = RP_SUCCESS;
 
 	if (index < m_dim) 
 		m_node[index] = val;
+	else {
+		RpAppendErr("RpNode::set: index out of bound");
+		RpPrintErr();
+		err = RP_ERR_OUTOFBOUND_INDEX;
+	}
+
+	return err;
+}
+
+void
+RpNode::setNode2d(int xval, int yval, const char* id)
+{
+	m_node.resize(2);
+
+	m_dim = 2;
+	m_node[0] = xval;
+	m_node[1] = yval;
+	m_id = id;
+}
+
+void
+RpNode::setNode3d(int xval, int yval, int zval, const char* id)
+{
+	m_node.resize(3);
+
+	m_dim = 3;
+	m_node[0] = xval;
+	m_node[1] = yval;
+	m_node[2] = zval;
+	m_id = id;
+}
+
+RP_ERROR 
+RpNode::get(int& val, int index)
+{
+	RP_ERROR err = RP_SUCCESS;
+
+	if (index < m_dim) 
+		val =  m_node[index];
 	else {
 		RpAppendErr("RpNode::set: index out of bound");
 		RpPrintErr();
