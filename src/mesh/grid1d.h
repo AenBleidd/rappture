@@ -6,7 +6,7 @@
 //
 
 #include <vector>
-#include "rp_defs.h"
+#include "util.h"
 
 class RpGrid1d {
 public:
@@ -16,17 +16,17 @@ public:
 	RpGrid1d(double* data, int size); // makes a copy of data
 	RpGrid1d(const char* buf); // instantiate with byte stream
 
-	//int type() { return _type; }
-	//void type(int i) { _type = i; }
+	void addPoint(double val);
 
 	// return number of points in grid
-	int size() { return _points.size(); }
+	int size() { return m_data.size(); }
 
 	// change the size of the grid after grid is constructed
-	void resize(int size) { _points.resize(size); }
+	void resize(int size) { m_data.resize(size); }
 
 	// serialize data 
-	char * serialize();
+	char * serialize(RP_ENCODE_ALG eflag=RP_NO_ENCODING, 
+			 RP_COMPRESSION cflag=RP_NO_COMPRESSION);
 	int deserialize(const char* buf);
 
 	// destructor
@@ -37,8 +37,7 @@ public:
 	//virtual int xmlGet() { };
 
 private:
-	int _type;	// type of array elements: int, float, double, etc.
-	vector<double> _points; // array of doubles
+	vector<double> m_data; // array of doubles
 };
 
 #endif
