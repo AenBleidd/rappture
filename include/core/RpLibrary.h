@@ -34,6 +34,7 @@ class RpLibrary
         // users member fxns
 
         RpLibrary* element (std::string path = "");
+        RpLibrary* parent (std::string path = "");
 
         // should return RpObject& but for simplicity right now it doesnt
         // RpObject will either be an Array, RpString, RpNumber ...
@@ -42,6 +43,10 @@ class RpLibrary
                                 RpLibrary* rpChildNode = NULL,
                                 std::string type = "",
                                 int* childCount = NULL  );
+
+        RpLibrary& copy       ( std::string toPath,
+                                std::string fromPath,
+                                RpLibrary* fromObj = NULL);
 
         std::string get       ( std::string path = "");
         std::string getString ( std::string path = "");
@@ -57,6 +62,11 @@ class RpLibrary
                             std::string id = "",
                             int append = 0  );
 
+        RpLibrary& put (    std::string path,
+                            RpLibrary* value,
+                            std::string id = "",
+                            int append = 0  );
+
         RpLibrary& remove (std::string path = "");
 
         std::string xml();
@@ -64,6 +74,7 @@ class RpLibrary
         std::string nodeType();
         std::string nodeId();
         std::string nodeComp();
+        std::string nodePath();
 
         void result();
 
@@ -323,18 +334,22 @@ class RpLibrary
         int freeTree;
 
 
-        RpLibrary ( scew_element* node)
+        RpLibrary ( scew_element* node, scew_tree* tree)
             :   parser      (NULL),
-                tree        (NULL),
+                tree        (tree),
                 root        (node)
 
-        {}
+        {
+            freeTree = 0;
+        }
 
 
         std::string _get_attribute(scew_element* element, std::string attributeName);
         int _path2list (std::string& path, std::string** list, int listLen);
         std::string _node2name (scew_element* node);
         std::string _node2comp (scew_element* node);
+        std::string _node2path (scew_element* node);
+
         int _splitPath (std::string& path,
                         std::string& tagName,
                         int* idx,
