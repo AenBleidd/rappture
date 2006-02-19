@@ -6,11 +6,11 @@
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  * ======================================================================
  */
-#ifdef __cplusplus 
+#ifdef __cplusplus
 extern "C" {
 #endif
 
-extern scew_element* 
+extern scew_element*
 scew_element_parent(scew_element const* element);
 
 /**
@@ -22,7 +22,13 @@ scew_element_parent(scew_element const* element);
 extern scew_element**
 scew_element_list_all(scew_element const* parent, unsigned int* count);
 
-#ifdef __cplusplus 
+extern int
+scew_element_copy_attr(scew_element const* fromElement, scew_element* toElement);
+
+extern scew_element*
+scew_element_copy (scew_element* element);
+
+#ifdef __cplusplus
 }
 #endif
 

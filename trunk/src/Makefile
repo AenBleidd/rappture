@@ -1,5 +1,5 @@
-# you need to change this to where your version of python is installed.
-# tell make where to find python header files
+# you need to change this to where your version of rappture 
+# is (or should be) installed.
 RP_INSTALL_BASE = /opt/rappture
 
 # tell make where to find the expat & libscew sources

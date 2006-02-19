@@ -172,49 +172,73 @@ RpLibrary::_node2comp (scew_element* node)
     type = scew_element_name(node);
     parent = scew_element_parent(node);
 
-    // if (name == NULL) {
     if (name.empty()) {
         siblings = scew_element_list(parent, type, &count);
         if (count > 0) {
             tmpCount = count;
+            // figure out what the index value should be
             while ((index < tmpCount) && (siblings[index] != node)) {
                 index++;
             }
 
             if (index < tmpCount) {
-
                 if (index > 0) {
                     retVal << type << --index;
                 }
                 else {
                     retVal << type;
                 }
-
-                /*
-                if (retVal == NULL) {
-                    // error with allocating space
-                    return NULL;
-                }
-                */
             }
 
         }
         else {
-            // count == 0 ???
+            // count == 0 ??? this state should never be reached
         }
         scew_element_list_free(siblings);
 
     }
     else {
         // node has attribute id
-        //
-
-        // retVal = scew_strjoinXX(type,name);
         retVal << type << "(" << name << ")";
 
     }
 
     return (retVal.str());
+}
+
+/**********************************************************************/
+// METHOD: _node2path()
+/// Retrieve the full path name of a node
+/**
+ */
+
+std::string
+RpLibrary::_node2path (scew_element* node)
+{
+
+    std::stringstream path;
+    scew_element* snode = node;
+    scew_element* parent = NULL;
+
+    if (snode) {
+        parent = scew_element_parent(snode);
+        path.clear();
+
+        while (snode && parent) {
+
+            if (!path.str().empty()) {
+                path.str(_node2comp(snode) + "." + path.str());
+            }
+            else {
+                path.str(_node2comp(snode));
+            }
+
+            snode = scew_element_parent(snode);
+            parent = scew_element_parent(snode);
+        }
+    }
+
+    return (path.str());
 }
 
 /**********************************************************************/
@@ -449,29 +473,90 @@ RpLibrary::_find(std::string path, int create)
 RpLibrary*
 RpLibrary::element (std::string path)
 {
-    RpLibrary* retLib; 
+    RpLibrary* retLib = NULL;
+    scew_element* retNode = NULL;
 
     if (path.empty()) {
         // an empty path returns the current RpLibrary
         return this;
     }
 
-    scew_element* retNode = _find(path,0);
+    // get the node located at path
+    retNode = _find(path,0);
 
-    if (retNode == NULL) {
-        // add error information as to why we are returning NULL
-        return NULL;
-    }
-
-    retLib = new RpLibrary( retNode ); 
-
-    if (!retLib) {
-        // add error information as to why we are returning NULL
-        /* there was an error mallocing memory for a RpLibrary object */
-        return NULL;
+    // if the node exists, create a rappture library object for it.
+    if (retNode) {
+        retLib = new RpLibrary( retNode,this->tree );
     }
 
     return retLib;
+}
+
+/**********************************************************************/
+// METHOD: parent()
+/// Search the path of a xml tree and return its parent.
+/**
+ */
+
+RpLibrary*
+RpLibrary::parent (std::string path)
+{
+    RpLibrary* retLib = NULL;
+    std::string parentPath = "";
+    std::string::size_type pos = 0;
+    scew_element* retNode = NULL;
+
+    if (path.empty()) {
+        // an empty path returns the current RpLibrary
+        return this;
+    }
+
+    // get the path of the parent node
+    // check to see if the path lists a parent node.
+    pos = path.rfind(".",std::string::npos);
+    if (pos != std::string::npos) {
+        // there is a parent node, get the parent path.
+        parentPath = path.substr(0,pos);
+
+        // search for hte parent's node
+        retNode = _find(parentPath,0);
+
+        if (retNode) {
+            // allocate a new rappture library object for the node
+            retLib = new RpLibrary( retNode,this->tree ); 
+        }
+    }
+
+    return retLib;
+}
+
+/**********************************************************************/
+// METHOD: copy()
+/// Copy the value from fromPath to toPath.
+//  Copy the value from fromObj.fromPath to toPath 
+//  of the current rappture library object. This can copy rappture
+//  library elements within or between xml trees.
+/**
+ */
+
+RpLibrary&
+RpLibrary::copy (std::string toPath, std::string fromPath, RpLibrary* fromObj)
+{
+    RpLibrary* value = NULL;
+
+    if (fromObj == NULL) {
+        fromObj = this;
+    }
+
+    value = fromObj->element(fromPath);
+
+    if ( !value ) {
+        // need a good way to raise error, and this is not it.
+        return *this;
+    }
+
+    return (this->put(toPath,value));
+
 }
 
 /**********************************************************************/
@@ -539,39 +624,39 @@ RpLibrary::children (   std::string path,
         *childCount = myChildCount;
     }
 
+    // clean up old memory
+    delete retLib;
+
     if ( (childNode = scew_element_next(parentNode,childNode)) ) {
 
         if (!type.empty()) {
             childName = scew_element_name(childNode);
             // we are searching for a specific child name
             // keep looking till we find a name that matches the type.
-            while (type != childName) {
-                childNode = scew_element_next(parentNode,childNode);
+            // if the current name does not match out search type, 
+            // grab the next child and check to see if its null
+            // if its not null, get its name and test for type again
+            while (  (type != childName)
+                  && (childNode = scew_element_next(parentNode,childNode)) ) {
+
                 childName = scew_element_name(childNode);
             }
             if (type == childName) {
                 // found a child with a name that matches type
-                // clean up old memory
-                delete retLib;
-                retLib = new RpLibrary( childNode );
+                retLib = new RpLibrary( childNode,this->tree );
             }
             else {
                 // no children with names that match 'type' were found
-                delete retLib;
                 retLib = NULL;
             }
         }
         else {
-            // clean up old memory
-            delete retLib;
-            retLib = new RpLibrary( childNode );
+            retLib = new RpLibrary( childNode,this->tree );
         }
     }
     else {
         // somthing happened within scew, get error code and display
         // its probable there are no more child elements left to report
-        // clean up old memory
-        delete retLib;
         retLib = NULL;
     }
 
@@ -651,7 +736,7 @@ RpLibrary::put ( std::string path, std::string value, std::string id, int append
     std::string tmpVal = "";
     const char* contents = NULL;
 
-    if (! path.empty()) {
+//    if (! path.empty()) {
         retNode = _find(path,1);
 
         if (retNode) {
@@ -665,7 +750,7 @@ RpLibrary::put ( std::string path, std::string value, std::string id, int append
 
             scew_element_set_contents(retNode,value.c_str());
         }
-    }
+//    }
 
     return *this;
 }
@@ -685,6 +770,39 @@ RpLibrary::put ( std::string path, double value, std::string id, int append )
 
     return this->put(path,valStr.str(),id,append);
 }
+
+/**********************************************************************/
+// METHOD: put()
+/// Put a RpLibrary* value into the xml.
+// Append flag is ignored for this function.
+/**
+ */
+
+RpLibrary&
+RpLibrary::put ( std::string path, RpLibrary* value, std::string id, int append )
+{
+    scew_element* retNode = NULL;
+    scew_element* new_elem = NULL;
+    int retVal = 1;
+
+    retNode = _find(path,1);
+
+    if (value) {
+        // need to send back an error saying that user specified a null value
+        return *this;
+    }
+
+    if (retNode) {
+        if ((new_elem = scew_element_copy(value->root))) {
+            if (scew_element_add_elem(retNode, new_elem)) {
+                retVal = 0;
+            }
+        }
+    }
+
+    return *this;
+}
+
 
 /*
 RpLibrary&
@@ -751,6 +869,18 @@ std::string
 RpLibrary::nodeComp ()
 {
     return _node2comp(root);
+}
+
+/**********************************************************************/
+// METHOD: nodePath()
+/// Return the component name of this node's path.
+/**
+ */
+
+std::string
+RpLibrary::nodePath ()
+{
+    return _node2path(root);
 }
 
 /*

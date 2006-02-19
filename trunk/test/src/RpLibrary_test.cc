@@ -14,9 +14,14 @@
 #include "RpLibrary.h"
 
 int test_element (RpLibrary* lib, std::string path );
+int test_parent (RpLibrary* lib, std::string path );
 int test_get (RpLibrary* lib, std::string path );
 int test_getString (RpLibrary* lib, std::string path );
 int test_getDouble (RpLibrary* lib, std::string path );
+int test_putObj (RpLibrary* fromLib, std::string fromPath,
+                 RpLibrary* toLib, std::string toPath);
+int test_copy (RpLibrary* fromLib, std::string fromPath,
+               RpLibrary* toLib, std::string toPath);
 
 int test_element (RpLibrary* lib, std::string path )
 {
@@ -30,9 +35,32 @@ int test_element (RpLibrary* lib, std::string path )
         retVal = 1;
     }
     else {
+        std::cout << "searchEle path = :" << searchEle->nodePath() << ":" << std::endl;
         std::cout << "searchEle comp = :" << searchEle->nodeComp() << ":" << std::endl;
         std::cout << "searchEle   id = :" << searchEle->nodeId()   << ":" << std::endl;
         std::cout << "searchEle type = :" << searchEle->nodeType() << ":" << std::endl;
+        retVal = 0;
+    }
+
+    return retVal;
+}
+
+int test_parent (RpLibrary* lib, std::string path )
+{
+    int retVal = 1;
+    RpLibrary* searchEle = lib->parent(path);
+
+    std::cout << "TESTING PARENT: path = " << path << std::endl;
+
+    if (!searchEle) {
+        std::cout << "searchEle is NULL" << std::endl;
+        retVal = 1;
+    }
+    else {
+        std::cout << "searchParent path = :" << searchEle->nodePath() << ":" << std::endl;
+        std::cout << "searchParent comp = :" << searchEle->nodeComp() << ":" << std::endl;
+        std::cout << "searchParent   id = :" << searchEle->nodeId()   << ":" << std::endl;
+        std::cout << "searchParent type = :" << searchEle->nodeType() << ":" << std::endl;
         retVal = 0;
     }
 
@@ -90,6 +118,60 @@ int test_getDouble (RpLibrary* lib, std::string path )
     return retVal;
 }
 
+int test_putObj (   RpLibrary* fromLib, std::string fromPath,
+                    RpLibrary* toLib, std::string toPath)
+{
+    int retVal = 1;
+    RpLibrary* fromEle = fromLib->element(fromPath);
+    RpLibrary* foundEle = NULL;
+    std::string newNodeName = "";
+
+    std::cout << "TESTING PUT Object:" << std::endl;
+    std::cout << "fromPath = " << fromPath << std::endl;
+    std::cout << "toPath = " << toPath << std::endl;
+
+    // put the element into the new library/xmltree
+    toLib->put(toPath,fromEle);
+
+    // check the result
+    // create the name of where the element should be
+    newNodeName = toPath + "." + fromEle->nodeComp();
+    // grab the element
+    if ((foundEle = toLib->element(newNodeName))){
+        std::cout << "SUCCESS: foundEle was found" << std::endl;
+        retVal = 0;
+    }
+
+    return retVal;
+}
+
+int test_copy (   RpLibrary* fromLib, std::string fromPath,
+                    RpLibrary* toLib, std::string toPath)
+{
+    int retVal = 1;
+    RpLibrary* fromEle = fromLib->element(fromPath);
+    RpLibrary* foundEle = NULL;
+    std::string newNodeName = "";
+
+    std::cout << "TESTING COPY:" << std::endl;
+    std::cout << "fromPath = " << fromPath << std::endl;
+    std::cout << "toPath = " << toPath << std::endl;
+
+    // put the element into the new library/xmltree
+    toLib->copy(toPath,fromPath);
+
+    // check the result
+    // create the name of where the element should be
+    newNodeName = toPath + "." + fromEle->nodeComp();
+    // grab the element
+    if ((foundEle = toLib->element(newNodeName))){
+        std::cout << "SUCCESS: foundEle was found" << std::endl;
+        retVal = 0;
+    }
+
+    return retVal;
+}
+
 /*
 int test_children (RpLibrary* lib, std::string path, std::string type )
 {
@@ -135,6 +217,8 @@ int test_children (RpLibrary* lib, std::string path, std::string type )
 
     while ( (childEle = lib->children(path,childEle,type)) ) {
 
+        std::cout << "childEle path = :" << childEle->nodePath() 
+            << ":" << std::endl;
         std::cout << "childEle comp = :" << childEle->nodeComp() 
             << ":" << std::endl;
         std::cout << "childEle   id = :" << childEle->nodeId()   
@@ -167,6 +251,10 @@ main(int argc, char** argv)
     test_element(lib,"input.number(max)");
     test_element(lib,"output.curve(result)");
 
+    test_parent(lib,"input.number(min).current");
+    test_parent(lib,"input.number(max)");
+    test_parent(lib,"output");
+
     test_getString(lib, "input.number(min).default");
     test_getString(lib, "input.(min).current");
     test_getString(lib, "input.number(max).current");
@@ -179,14 +267,16 @@ main(int argc, char** argv)
     lib->put("input.number(test).current", 2000);
     test_getDouble(lib, "input.number(test).current");
 
-    
+    test_putObj(lib, "input.number(max)", lib, "input.test");
+    test_copy(lib, "input.number(min)", lib, "input.test");
+
     test_children(lib,"","");
     test_children(lib,"input.number(test)","");
     test_children(lib,"input","");
     test_children(lib,"input","number");
 
     std::cout << lib->xml() << std::endl;
-    
+
     // test copy assignment operator
     lib2 = *lib;
 
