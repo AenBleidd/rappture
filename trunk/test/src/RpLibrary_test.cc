@@ -22,6 +22,7 @@ int test_putObj (RpLibrary* fromLib, std::string fromPath,
                  RpLibrary* toLib, std::string toPath);
 int test_copy (RpLibrary* fromLib, std::string fromPath,
                RpLibrary* toLib, std::string toPath);
+int test_remove (RpLibrary* lib, std::string path);
 
 int test_element (RpLibrary* lib, std::string path )
 {
@@ -172,6 +173,31 @@ int test_copy (   RpLibrary* fromLib, std::string fromPath,
     return retVal;
 }
 
+int test_remove (RpLibrary* lib, std::string path)
+{
+    RpLibrary* getRslt = NULL;
+    int retVal = 1;
+    std::cout << "TESTING REMOVE:" << std::endl;
+    // std::cout << "lib's xml:" << std::endl << lib->xml() << std::endl;
+    if (lib) {
+        lib->remove(path);
+        if (lib) {
+            getRslt = lib->element(path);
+            if (getRslt) {
+                std::cout << "FAILURE: " << path << " not removed" << std::endl;
+                std::cout << "lib's xml:" << std::endl << lib->xml() << std::endl;
+            }
+            else {
+                std::cout << "SUCCESS: " << path << " removed" << std::endl;
+                retVal = 0;
+            }
+        }
+    }
+
+    return retVal;
+}
+
+
 /*
 int test_children (RpLibrary* lib, std::string path, std::string type )
 {
@@ -230,6 +256,10 @@ int test_children (RpLibrary* lib, std::string path, std::string type )
 
     }
 
+    if (!childEle) {
+        std::cout << "No more children" << std::endl;
+    }
+
     return retVal;
 }
 
@@ -275,6 +305,13 @@ main(int argc, char** argv)
     test_children(lib,"input","");
     test_children(lib,"input","number");
 
+    std::cout << lib->xml() << std::endl;
+
+    RpLibrary* remEle = lib->element("input.test.(min)");
+    test_remove(remEle,"");
+    remEle->remove();
+    test_remove(lib, "input.test.(min)");
+    test_remove(lib, "input.test.(max)");
     std::cout << lib->xml() << std::endl;
 
     // test copy assignment operator

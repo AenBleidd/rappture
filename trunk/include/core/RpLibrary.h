@@ -23,6 +23,8 @@
 
 /* indentation size (in whitespaces) */
 #define INDENT_SIZE 4
+#define CREATE_PATH 1
+#define NO_CREATE_PATH 0
 
 #ifndef _RpLIBRARY_H 
 #define _RpLIBRARY_H
@@ -67,7 +69,7 @@ class RpLibrary
                             std::string id = "",
                             int append = 0  );
 
-        RpLibrary& remove (std::string path = "");
+        RpLibrary* remove (std::string path = "");
 
         std::string xml();
 
@@ -84,10 +86,11 @@ class RpLibrary
         RpLibrary ()
             :   parser      (NULL),
                 tree        (NULL),
-                root        (NULL)
+                root        (NULL),
+                freeTree    (1),
+                freeRoot    (1)
         {
             tree = scew_tree_create();
-            freeTree = 1;
             root = scew_tree_add_root(tree, "run");
         }
 
@@ -96,7 +99,9 @@ class RpLibrary
                 )
             :   parser      (NULL),
                 tree        (NULL),
-                root        (NULL)
+                root        (NULL),
+                freeTree    (0),
+                freeRoot    (1)
         {
 
             if (filePath.length() != 0) {
@@ -153,7 +158,9 @@ class RpLibrary
         RpLibrary ( RpLibrary& other )
             : parser    (NULL),
               tree      (NULL),
-              root      (NULL)
+              root      (NULL),
+              freeTree  (0),
+              freeRoot  (1)
         {
             std::string buffer;
             int buffLen;
@@ -200,6 +207,7 @@ class RpLibrary
 
                     tree = scew_parser_tree(parser);
                     freeTree = 0;
+                    freeRoot = 1;
                     root = scew_tree_root(tree);
 
                 }
@@ -221,6 +229,7 @@ class RpLibrary
             scew_tree* tmp_tree;
             scew_element* tmp_root;
             int tmp_freeTree;
+            int tmp_freeRoot;
 
             if (this != &other) {
 
@@ -228,6 +237,7 @@ class RpLibrary
                 tmp_tree     = tree;
                 tmp_root     = root;
                 tmp_freeTree = freeTree;
+                tmp_freeRoot = freeRoot;
 
                 // fill in the current RpLibrary's data with other's data
                 parser = scew_parser_create();
@@ -273,6 +283,7 @@ class RpLibrary
 
                         tree = scew_parser_tree(parser);
                         freeTree = 0;
+                        freeRoot = 1;
                         root = scew_tree_root(tree);
 
                         // free the current RpLibrary's data
@@ -288,7 +299,7 @@ class RpLibrary
                             scew_parser_free(tmp_parser);
                             tmp_parser = NULL;
                         }
-                        if (tmp_root) {
+                        if (tmp_root && tmp_freeRoot) {
                             tmp_root = NULL;
                         }
                     }
@@ -313,8 +324,8 @@ class RpLibrary
                 scew_parser_free(parser);
                 parser = NULL;
             }
-            if (root) {
-                // scew_element_free(root);
+            if (root && freeRoot) {
+                scew_element_free(root);
                 root = NULL;
             }
         }
@@ -333,6 +344,19 @@ class RpLibrary
         // fxn, then it will be free'd when the parser is free'd.
         int freeTree;
 
+        // some object (like those returned from children() and element )
+        // are previously allocated scew objects with an artificial RpLibrary
+        // wrapper. these objects never really allocated any memory, they
+        // just point to memory. they should not free any memory when they 
+        // are deleted (because none was allocated when they were created).
+        // when the larger Rappture Library is deleted, they will have 
+        // pointers to bad/deleted memory...libscew has the same problem in 
+        // their implementation of a similar children() fxn.
+        //
+        // this flag tells the destructor that when above said object is
+        // deleted, dont act on the root pointer
+        int freeRoot;
+
 
         RpLibrary ( scew_element* node, scew_tree* tree)
             :   parser      (NULL),
@@ -341,6 +365,7 @@ class RpLibrary
 
         {
             freeTree = 0;
+            freeRoot = 0;
         }
 
 
