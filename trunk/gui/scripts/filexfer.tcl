@@ -517,7 +517,7 @@ coming from the user.
 </body>
 </html>
 } $port $user $cookie]
-    } elseif {[regexp {^/?spool\/([0-9]+)/(.+)$} $url match session tail]} {
+    } elseif {[regexp {^/?spool\/([^/]+)/(.+)$} $url match session tail]} {
         #
         # Send back a spooled file...
         #
@@ -706,7 +706,10 @@ proc Rappture::filexfer::request_POST {cid url headerVar postData} {
 <head>
   <title>Upload Complete</title>
   <script language="JavaScript">
-    setTimeout("window.close()",100);
+    function setup() {
+        setTimeout("window.close()",100);
+    }
+    window.onload = setup;
   </script>
 </head>
 <body>

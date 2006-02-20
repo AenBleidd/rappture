@@ -6,6 +6,12 @@
   <meta name="title" content="Upload"/>
   @STYLESHEET@
   <script language="JavaScript">
+  function setup() {
+    window.resizeTo(750,800);
+    showhide('textcntls','hidden');
+  }
+  window.onload = setup;
+
   function showhide(name,vis) {
     if (document.getElementById) {
       document.getElementById(name).style.visibility = vis;
@@ -40,7 +46,7 @@
       <div id="filecntls">
         File: <input type="file" name="file">
       </div>
-      <div id="textcntls" style="visibility:hidden; height:0">
+      <div id="textcntls">
         Text: <textarea rows="20" cols="80" name="text"></textarea>
       </div>
       <input type="hidden" name="callback" value="@COOKIE@">

@@ -162,7 +162,7 @@ itcl::body Rappture::ValueResult::download {option} {
         now {
             set lstr [$itk_component(label) cget -text]
             set vstr [$itk_component(value) cget -text]
-            return [list .txt "$lstr: $vstr"]
+            return [list .txt "$lstr $vstr"]
         }
         default {
             error "bad option \"$option\": should be coming, now"
