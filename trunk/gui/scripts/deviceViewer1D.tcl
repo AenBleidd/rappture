@@ -32,6 +32,7 @@ itcl::class Rappture::DeviceViewer1D {
     destructor { # defined below }
 
     public method controls {option args}
+    public method download {option}
                                                                                 
     protected method _loadDevice {}
     protected method _changeTabs {}
@@ -160,6 +161,30 @@ itcl::body Rappture::DeviceViewer1D::controls {option args} {
         }
         default {
             error "bad option \"$option\": should be insert"
+        }
+    }
+}
+
+
+# ----------------------------------------------------------------------
+# USAGE: download coming
+# USAGE: download now
+#
+# Clients use this method to create a downloadable representation
+# of the plot.  Returns a list of the form {ext string}, where
+# "ext" is the file extension (indicating the type of data) and
+# "string" is the data itself.
+# ----------------------------------------------------------------------
+itcl::body Rappture::DeviceViewer1D::download {option} {
+    switch $option {
+        coming {
+            # nothing to do
+        }
+        now {
+            return ""  ;# not implemented yet!
+        }
+        default {
+            error "bad option \"$option\": should be coming, now"
         }
     }
 }

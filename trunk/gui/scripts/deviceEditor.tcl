@@ -26,6 +26,7 @@ itcl::class Rappture::DeviceEditor {
     } { # defined below }
 
     public method value {args}
+    public method download {option}
 
     protected method _redraw {}
     protected method _type {xmlobj}
@@ -94,6 +95,22 @@ itcl::body Rappture::DeviceEditor::value {args} {
         error "wrong # args: should be \"value ?-check? ?newval?\""
     }
     return $_xmlobj
+}
+
+# ----------------------------------------------------------------------
+# USAGE: download coming
+# USAGE: download now
+#
+# Clients use this method to create a downloadable representation
+# of the plot.  Returns a list of the form {ext string}, where
+# "ext" is the file extension (indicating the type of data) and
+# "string" is the data itself.
+# ----------------------------------------------------------------------
+itcl::body Rappture::DeviceEditor::download {option} {
+    if {"" != $_current} {
+        return [$_current download $option]
+    }
+    return ""
 }
 
 # ----------------------------------------------------------------------

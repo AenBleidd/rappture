@@ -1,0 +1,53 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1"/>
+  <title>Upload</title>
+  <meta name="title" content="Upload"/>
+  @STYLESHEET@
+  <script language="JavaScript">
+  function showhide(name,vis) {
+    if (document.getElementById) {
+      document.getElementById(name).style.visibility = vis;
+      if (vis == 'hidden') {
+        document.getElementById(name).style.height = 0;
+      } else {
+        document.getElementById(name).style.height = '';
+      }
+    }
+  }
+  </script>
+ </head>
+ <body>
+  <div id="logo">
+    @LOGO@
+  </div>
+  <div id="main">
+    <h1>Upload</h1>
+    <p id="description">
+      @DESCRIPTION@
+    </p>
+
+    <form action="/upload" enctype="multipart/form-data" method="post">
+      <p id="description">
+      I want to:<br/>
+        <input type="radio" name="which" value="file" checked onclick="showhide('filecntls','visible'); showhide('textcntls','hidden')">
+        Upload a file from my desktop<br/>
+        <input type="radio" name="which" value="text" onclick="showhide('filecntls','hidden'); showhide('textcntls','visible')">
+        Copy and paste text<br/>
+      </p>
+
+      <div id="filecntls">
+        File: <input type="file" name="file">
+      </div>
+      <div id="textcntls" style="visibility:hidden; height:0">
+        Text: <textarea rows="20" cols="80" name="text"></textarea>
+      </div>
+      <input type="hidden" name="callback" value="@COOKIE@">
+      <div id="submit">
+        <input type="submit" value="Upload"/>
+      </div>
+    </form>
+  </div>
+ </body>
+</html>

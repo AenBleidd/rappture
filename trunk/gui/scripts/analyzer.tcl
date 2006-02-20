@@ -53,7 +53,7 @@ itcl::class Rappture::Analyzer {
     public method reset {}
     public method load {file}
     public method clear {}
-    public method download {}
+    public method download {option}
 
     protected method _plot {args}
     protected method _reorder {comps}
@@ -197,12 +197,15 @@ itcl::body Rappture::Analyzer::constructor {tool args} {
     if {[Rappture::filexfer::enabled]} {
         itk_component add download {
             button $w.top.dl -text "Download..." -anchor w \
-                -command [itcl::code $this download]
+                -command [itcl::code $this download now]
         }
         pack $itk_component(download) -side right -padx {4 0}
         Rappture::Tooltip::for $itk_component(download) "Downloads the current result to a new web browser window on your desktop.  From there, you can easily print or save results.
 
 NOTE:  Your web browser must allow pop-ups from this site.  If your output does not appear, look for a 'pop-up blocked' message and enable pop-ups."
+
+        bind $itk_component(download) <Enter> \
+            [itcl::code $this download coming]
     }
 
     itk_component add results {
@@ -520,37 +523,59 @@ itcl::body Rappture::Analyzer::clear {} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: download
+# USAGE: download coming
+# USAGE: download now
 #
 # Spools the current result so the user can download it.
 # ----------------------------------------------------------------------
-itcl::body Rappture::Analyzer::download {} {
+itcl::body Rappture::Analyzer::download {option} {
     if {[Rappture::filexfer::enabled]} {
         set title [$itk_component(resultselector) value]
         set page [$itk_component(resultselector) translate $title]
-        if {$page != ""} {
-            set ext ""
-            set f [$itk_component(resultpages) page $page]
-            foreach {ext data} [$f.rviewer download] break
-            if {"" == $ext} {
-                Rappture::Tooltip::cue $itk_component(download) \
-                    "Can't download this result."
-                return
-            }
-            regsub -all {[\ -\/\:-\@\{-\~]} $title {} title
-            set file "$title$ext"
-        } else {
-            # this shouldn't happen
-            set file error.html
-            set data "<h1>Not Found</h1>There is no result selected."
-        }
 
-        if {[catch {Rappture::filexfer::spool $data $file} result]} {
-            if {"no clients" == $result} {
-                Rappture::Tooltip::cue $itk_component(download) \
-                    "Can't download this result.  Looks like you might be having trouble with the version of Java installed for your browser."
-            } else {
-                error $result "    (while spooling result \"$title\")"
+        switch -- $option {
+            coming {
+                #
+                # Warn result that a download is coming, in case
+                # it needs to take a screen snap.
+                #
+                if {$page != ""} {
+                    set f [$itk_component(resultpages) page $page]
+                    $f.rviewer download coming
+                }
+            }
+            now {
+                #
+                # Perform the actual download.
+                #
+                if {$page != ""} {
+                    set ext ""
+                    set f [$itk_component(resultpages) page $page]
+                    foreach {ext data} [$f.rviewer download now] break
+                    if {"" == $ext} {
+                        Rappture::Tooltip::cue $itk_component(download) \
+                            "Can't download this result."
+                        return
+                    }
+                    regsub -all {[\ -\/\:-\@\{-\~]} $title {} title
+                    set file "$title$ext"
+                } else {
+                    # this shouldn't happen
+                    set file error.html
+                    set data "<h1>Not Found</h1>There is no result selected."
+                }
+
+                if {[catch {Rappture::filexfer::spool $data $file} result]} {
+                    if {"no clients" == $result} {
+                        Rappture::Tooltip::cue $itk_component(download) \
+                            "Can't download this result.  Looks like you might be having trouble with the version of Java installed for your browser."
+                    } else {
+                        error $result "    (while spooling result \"$title\")"
+                    }
+                }
+            }
+            default {
+                error "bad option \"$option\": should be coming, now"
             }
         }
     }

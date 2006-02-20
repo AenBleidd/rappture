@@ -28,10 +28,15 @@ itcl::class Rappture::Loader {
     public method tooltip {}
 
     protected method _newValue {}
+    protected method _uploadValue {string}
     protected method _tooltip {}
 
     private variable _owner ""    ;# thing managing this control
     private variable _path ""     ;# path in XML to this loader
+
+    private variable _uppath ""   ;# path to Upload... component
+    private variable _updesc ""   ;# description for Upload... data
+    private variable _upfilter "" ;# filter used for upload data
 }
 
 itk::usual Loader {
@@ -61,6 +66,31 @@ itcl::body Rappture::Loader::constructor {owner path args} {
     bind $itk_component(combo) <<Value>> [itcl::code $this _newValue]
 
     eval itk_initialize $args
+
+    #
+    # If this loader has an <upload> section, then create that
+    # entry first.
+    #
+    foreach comp [$_owner xml children -type upload $path] {
+        set topath [$_owner xml get $path.$comp.to]
+        if {"" != $topath} {
+            set _uppath $topath
+
+            set desc [$_owner xml get $path.$comp.prompt]
+            if {"" == $desc} {
+                set desc "Use this form to upload data"
+                set dest [$owner xml get $_uppath.about.label]
+                if {"" != $dest} {
+                    append desc " into the $dest area"
+                }
+                append desc "."
+            }
+            set _updesc $desc
+
+            $itk_component(combo) choices insert end @upload "Upload..."
+            break
+        }
+    }
 
     #
     # Scan through and extract example objects, and load them into
@@ -200,7 +230,23 @@ itcl::body Rappture::Loader::tooltip {} {
 itcl::body Rappture::Loader::_newValue {} {
     set newval [$itk_component(combo) value]
     set obj [$itk_component(combo) translate $newval]
-    if {$obj != "" && $itk_option(-tool) != ""} {
+    if {$obj == "@upload"} {
+        if {[Rappture::filexfer::enabled]} {
+            set status [catch {Rappture::filexfer::upload \
+                $_updesc [itcl::code $this _uploadValue]} result]
+            if {$status != 0} {
+                if {$result == "no clients"} {
+                    Rappture::Tooltip::cue $itk_component(combo) \
+                        "Can't upload files.  Looks like you might be having trouble with the version of Java installed for your browser."
+                } else {
+                    bgerror $result
+                }
+            }
+        } else {
+            Rappture::Tooltip::cue $itk_component(combo) \
+                "Can't upload data.  Upload is not enabled.  Is your SESSION variable set?  Is there an error in your session resources file?"
+        }
+    } elseif {$obj != "" && $itk_option(-tool) != ""} {
         $itk_option(-tool) load $obj
     }
 
@@ -221,22 +267,37 @@ itcl::body Rappture::Loader::_tooltip {} {
     set newval [$itk_component(combo) value]
     set obj [$itk_component(combo) translate $newval]
     if {$obj != ""} {
-        set label [$obj get about.label]
-        if {[string length $label] > 0} {
-            append str "\n\n$label"
-        }
-
-        set desc [$obj get about.description]
-        if {[string length $desc] > 0} {
+        if {$obj == "@upload"} {
+            append str "\n\nUse this option to upload data from your desktop."
+        } else {
+            set label [$obj get about.label]
             if {[string length $label] > 0} {
-                append str ":\n"
-            } else {
-                append str "\n\n"
+                append str "\n\n$label"
             }
-            append str $desc
+
+            set desc [$obj get about.description]
+            if {[string length $desc] > 0} {
+                if {[string length $label] > 0} {
+                    append str ":\n"
+                } else {
+                    append str "\n\n"
+                }
+                append str $desc
+            }
         }
     }
     return [string trim $str]
+}
+
+# ----------------------------------------------------------------------
+# USAGE: _uploadValue
+#
+# Invoked automatically whenever the user has uploaded data from
+# the "Upload..." option.  Takes the data value (passed as an
+# argument) and loads into the destination widget.
+# ----------------------------------------------------------------------
+itcl::body Rappture::Loader::_uploadValue {string} {
+    $itk_option(-tool) valuefor $_uppath $string
 }
 
 # ----------------------------------------------------------------------

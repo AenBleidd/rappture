@@ -32,6 +32,10 @@ namespace eval Rappture::filexfer {
     variable clients                   ;# maps client socket => status
     variable buffer                    ;# request buffer for each client
     variable access                    ;# maps spooled file => access cookie
+    variable uploadcmds                ;# callbacks for upload forms
+
+    variable sitelogo ""               ;# HTML for site logo in upload form
+    variable stylesheet ""             ;# URL for stylesheet address
 
     # used to generate cookies -- see bakeCookie for details
     variable cookieChars {
@@ -54,7 +58,7 @@ namespace eval Rappture::filexfer {
         text/plain                .txt    ascii
         text/html                 .html   ascii
         image/gif                 .gif    binary
-        image/jpeg                .jpeg   binary
+        image/jpeg                .jpg    binary
         application/postscript    .ps     ascii
         application/pdf           .pdf    binary
         application/octet-stream  .jar    binary
@@ -77,6 +81,8 @@ namespace eval Rappture::filexfer {
 
     $optionParser alias filexfer_port Rappture::filexfer::option_port
     $optionParser alias filexfer_cookie Rappture::filexfer::option_cookie
+    $optionParser alias filexfer_sitelogo Rappture::filexfer::option_sitelogo
+    $optionParser alias filexfer_stylesheet Rappture::filexfer::option_stylesheet
 }
 
 # ----------------------------------------------------------------------
@@ -128,6 +134,22 @@ proc Rappture::filexfer::init {} {
             exit 9
         }
         set enabled 1
+
+        #
+        # Clean up all spooled files when this program shuts down. 
+        # If we're running on nanoHUB, we'll get a SIGHUP signal
+        # when it's time to quit.  On the desktop, we'll get a
+        # <Destroy> event on the main window.
+        #
+        Rappture::signal SIGHUP filexfer Rappture::filexfer::cleanup
+
+        bind RapptureFilexfer <Destroy> Rappture::filexfer::cleanup
+        set btags [bindtags .]
+        set i [lsearch $btags RapptureFilexfer]
+        if {$i < 0} {
+            set btags [linsert $btags 0 RapptureFilexfer]
+            bindtags . $btags
+        }
     }
     return $enabled
 }
@@ -162,7 +184,12 @@ proc Rappture::filexfer::spool {string {filename "output.txt"}} {
     variable access
 
     if {$enabled} {
-        set dir ~/data/sessions/$env(SESSION)
+        # make a spool directory, if we don't have one already
+        set dir ~/data/sessions/$env(SESSION)/spool
+        if {![file exists $dir]} {
+            catch {file mkdir $dir}
+        }
+
         if {[file exists [file join $dir $filename]]} {
             #
             # Find a similar file name that doesn't conflict
@@ -181,7 +208,8 @@ proc Rappture::filexfer::spool {string {filename "output.txt"}} {
         }
 
         set fid [open [file join $dir $filename] w]
-        puts $fid $string
+        fconfigure $fid -encoding binary -translation binary
+        puts -nonewline $fid $string
         close $fid
 
         set sent 0
@@ -199,6 +227,58 @@ proc Rappture::filexfer::spool {string {filename "output.txt"}} {
             error "no clients"
         }
     }
+}
+
+# ----------------------------------------------------------------------
+# USAGE: Rappture::filexfer::upload <description> <callback>
+#
+# Clients use this to prompt the user to upload a file.  The string
+# <description> is sent to the user in a web form, and the user is
+# given the opportunity to upload a file.  If successful, the
+# <callback> is invoked to handle the uploaded information.
+# ----------------------------------------------------------------------
+proc Rappture::filexfer::upload {desc callback} {
+    variable enabled
+    variable sitelogo
+    variable stylesheet
+    variable uploadcmds
+
+    if {$enabled} {
+        set file [file join $RapptureGUI::library filexfer upload.html]
+        set fid [open $file r]
+        set html [read $fid]
+        close $fid
+
+        set cookie [bakeCookie]
+        set uploadcmds($cookie) $callback
+
+        set style ""
+        if {"" != $stylesheet} {
+            set style "<link rel=\"stylesheet\" type=\"text/css\" media=\"screen\" href=\"$stylesheet\"/>"
+        }
+
+        set html [string map [list \
+            @COOKIE@ $cookie \
+            @DESCRIPTION@ $desc \
+            @LOGO@ $sitelogo \
+            @STYLESHEET@ $style \
+        ] $html]
+
+        spool $html upload.html
+    }
+}
+
+# ----------------------------------------------------------------------
+# USAGE: Rappture::filexfer::cleanup
+#
+# Called when the application is shutting down to clean up
+# port and start acting like a filexfer server.  Returns 1 if the
+# server was enabled, and 0 otherwise.
+# ----------------------------------------------------------------------
+proc Rappture::filexfer::cleanup {} {
+    global env
+    set spool [file join ~/data/sessions $env(SESSION) spool]
+    file delete -force $spool
 }
 
 # ----------------------------------------------------------------------
@@ -222,13 +302,10 @@ proc Rappture::filexfer::accept {cid addr port} {
     } else {
         fileevent $cid readable [list Rappture::filexfer::handler $cid]
         #
-        # Use auto cr/lf translation for input, but always use
-        # binary mode for output.  Otherwise, we'll put out a
-        # particular byte count for the body of a response, and
-        # it will be wrong after Tcl transforms cr/lf.  Also, some
-        # of our data is binary, and it has to be left alone.
+        # Use binary mode for both input and output, so the
+        # byte counts (as in Content-Length:) are correct.
         #
-        fconfigure $cid -buffering line -translation {auto binary}
+        fconfigure $cid -buffering line -translation binary
     }
 }
 
@@ -243,8 +320,11 @@ proc Rappture::filexfer::handler {cid} {
 
     if {[gets $cid line] < 0} {
         # eof from client -- clean up
-        cleanup $cid
+        shutdown $cid
     } else {
+        # clip out trailing carriage returns
+        regsub -all {\r$} $line "" line
+
         #
         # Is the first line of the request?  Then make sure
         # that it's properly formed.
@@ -255,7 +335,17 @@ proc Rappture::filexfer::handler {cid} {
             return   ;# wait for more lines to dribble in...
         } elseif {[info exists buffer($cid)]} {
             set line [string trim $line]
-            if {"" != $line} {
+            if {"" == $line} {
+                regexp {^ *([A-Z]+) +} $buffer($cid) match type
+                if {$type == "POST"} {
+                    if {[regexp {Content-Length: *([0-9]+)} $buffer($cid) match len]} {
+                        set buffer($cid-post) [read $cid $len]
+                    }
+                    # finished post... process below...
+                } else {
+                    # finished get or other op... process below...
+                }
+            } else {
                 append buffer($cid) "\n" $line
                 return
             }
@@ -265,15 +355,13 @@ proc Rappture::filexfer::handler {cid} {
             # special Rappture request -- process below...
         } else {
             response $cid error -message "Your browser sent a request that this server could not understand.<P>Malformed request: $line"
-            cleanup $cid
+            shutdown $cid
             return
         }
 
         #
-        # If a buffer already exists, then we're adding on
-        # to it.  Look for optional header information.  Don't
-        # parse it now--just add it to the buffer.  When we see
-        # a blank line, we process the request all at once.
+        # We've seen a blank line at the end of a request.
+        # Time to process it...
         #
         set errmsg ""
         set lines [split $buffer($cid) \n]
@@ -317,6 +405,14 @@ proc Rappture::filexfer::handler {cid} {
                     GET {
                         request_GET $cid $url headers
                     }
+                    POST {
+                        set postdata ""
+                        if {[info exists buffer($cid-post)]} {
+                            set postdata $buffer($cid-post)
+                            unset buffer($cid-post)
+                        }
+                        request_POST $cid $url headers $postdata
+                    }
                     default {
                         response $cid header \
                             -status "400 Bad Request" \
@@ -326,7 +422,7 @@ proc Rappture::filexfer::handler {cid} {
                 }
             }
             if {$headers(Connection) == "close"} {
-                cleanup $cid
+                shutdown $cid
             }
         } elseif {$protocol == "RAPPTURE"} {
             #
@@ -374,7 +470,7 @@ proc Rappture::filexfer::request_GET {cid url headerVar} {
         foreach part [split $args &] {
             if {[llength [split $part =]] == 2} {
                 foreach {key val} [split $part =] break
-                set post($key) $val
+                set post($key) [urlDecode $val]
             }
         }
     }
@@ -421,11 +517,11 @@ coming from the user.
 </body>
 </html>
 } $port $user $cookie]
-    } elseif {[regexp {^/?spool\/(.+)$} $url match tail]} {
+    } elseif {[regexp {^/?spool\/([0-9]+)/(.+)$} $url match session tail]} {
         #
         # Send back a spooled file...
         #
-        set file [file join ~/data/sessions $tail]
+        set file [file join ~/data/sessions $session spool $tail]
         set fname [file tail $file]
 
         if {![info exists access($fname)]} {
@@ -437,8 +533,6 @@ coming from the user.
             response $cid error -status "401 Unauthorized" -message "You do not have the proper credentials to access file $fname."
         } else {
             response $cid file -path $file -connection $headers(Connection)
-            file delete -force $file
-            unset access($fname)
         }
     } elseif {[regexp {^/?[a-zA-Z0-9_]+\.[a-zA-Z]+$} $url match]} {
         #
@@ -447,6 +541,179 @@ coming from the user.
         set url [string trimleft $url /]
         set file [file join $RapptureGUI::library filexfer $url]
         response $cid file -path $file -connection $headers(Connection)
+    } else {
+        #
+        # BAD FILE REQUEST:
+        #   The user is trying to ask for a file outside of
+        #   the normal filexfer installation.  Treat it the
+        #   same as file not found.
+        response $cid header \
+            -status "404 Not Found" \
+            -connection $headers(Connection)
+        response $cid error -status "404 Not Found" -message "The requested URL $url was not found on this server."
+    }
+}
+
+# ----------------------------------------------------------------------
+# USAGE: Rappture::filexfer::request_POST <clientId> <url> \
+#          <headerVar> <postdata>
+#
+# Used internally to handle POST requests on this server.  Looks for
+# the requested <url> and sends it back to <clientId> according to
+# the headers in the <headerVar> array in the calling scope.
+# ----------------------------------------------------------------------
+proc Rappture::filexfer::request_POST {cid url headerVar postData} {
+    global env
+    variable access
+    upvar $headerVar headers
+
+    #
+    # Look for any ?foo=1&bar=2 data embedded in the URL...
+    #
+    if {[regexp -indices {\?[a-zA-Z0-9_]+\=} $url match]} {
+        foreach {s0 s1} $match break
+        set args [string range $url [expr {$s0+1}] end]
+        set url [string range $url 0 [expr {$s0-1}]]
+
+        foreach part [split $args &] {
+            if {[llength [split $part =]] == 2} {
+                foreach {key val} [split $part =] break
+                set post($key) [urlDecode $val]
+            }
+        }
+    } elseif {[string length $postData] > 0} {
+        #
+        # If we have explicit POST data, then it is one of two
+        # kinds.  It is either key=value&key=value&... or a
+        # multipart key/value assignment with -------boundary
+        # separators.
+        #
+        set part "single"
+        if {[info exists headers(Content-Type)]} {
+            set data $headers(Content-Type)
+            regsub -all { *; *} $data "\n" data
+            set type [lindex [split $data \n] 0]
+            if {$type == "multipart/form-data"} {
+                set part "multi"
+                foreach assmt [lrange [split $data \n] 1 end] {
+                    foreach {key val} [split $assmt =] break
+                    if {$key == "boundary"} {
+                        set boundary [string trimleft $val -]
+                    }
+                }
+            }
+        }
+
+        switch -- $part {
+            single {
+                # simple key=value&key=value&... case
+                foreach assmt [split $postData &] {
+                    if {[regexp {([^=]+)=(.*)} $assmt match key val]} {
+                        set post($key) [urlDecode $val]
+                    }
+                }
+            }
+            multi {
+                #
+                # Multipart data:
+                #  ----------------------------406765868666254505654602083
+                #  Content-Disposition: form-data; name="key"
+                #
+                #  value
+                #  ----------------------------406765868666254505654602083
+                #  ...
+                #
+                regsub -all {\r\n} $postData "\n" postData
+                set state "starting"
+                foreach line [split $postData \n] {
+                    switch $state {
+                      starting {
+                        if {[regexp "^-+$boundary" $line]} {
+                          catch {unset element}
+                          set state "header"
+                        }
+                      }
+                      header {
+                        if {"" == $line} {
+                          set state "body"
+                        } else {
+                          if {[regexp {Content-Disposition:} $line]} {
+                            regsub -all { *; *} $line "\n" line
+                            foreach assmt [lrange [split $line \n] 1 end] {
+                              foreach {key val} [split $assmt =] break
+                              set element($key) [string trim $val \"]
+                            }
+                          }
+                        }
+                      }
+                      body {
+                        if {[regexp "^-+$boundary" $line]} {
+                          if {[info exists element(name)]} {
+                            set post($element(name)) $element(data)
+                          }
+                          catch {unset element}
+                          set state "header"
+                        } else {
+                          if {[info exists element(data)]} {
+                            append element(data) "\n"
+                          }
+                          append element(data) $line
+                        }
+                      }
+                      default {
+                        error "unknown state $state in post data"
+                      }
+                    }
+                }
+            }
+            default {
+                error "unknown content type"
+            }
+        }
+    }
+
+    #
+    # Interpret the URL and fulfill the request...
+    #
+    if {$url == "/upload"} {
+        variable port
+        variable cookie
+        variable uploadcmds
+
+        if {[info exists post(callback)]
+              && [info exists uploadcmds($post(callback))]} {
+            # get the data -- either text or file
+            set data $post($post(which))
+
+            # get the upload callback command
+            set cmd $uploadcmds($post(callback))
+            if {[catch "$cmd [list $data]" result]} {
+                bgerror $result
+            }
+            unset uploadcmds($post(callback))
+        }
+
+        #
+        # Send back a response that closes the window that
+        # posted this form.
+        #
+        response $cid header -status "200 OK" \
+            -connection $headers(Connection)
+        set s [clock seconds]
+        set date [clock format $s -format {%a, %d %b %Y %H:%M:%S %Z}]
+        puts $cid "Last-Modified: $date"
+        response $cid body -type text/html -string {<html>
+<head>
+  <title>Upload Complete</title>
+  <script language="JavaScript">
+    setTimeout("window.close()",100);
+  </script>
+</head>
+<body>
+<b>Data uploaded successfully.  This window will now close.</b><br/>
+If this window doesn't close automatically, feel free to close it manually.
+</body>
+</html>}
     } else {
         #
         # BAD FILE REQUEST:
@@ -554,12 +821,12 @@ proc Rappture::filexfer::request_DEACTIVATE {cid} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: Rappture::filexfer::cleanup <clientId>
+# USAGE: Rappture::filexfer::shutdown <clientId>
 #
 # Used internally to close and clean up a client connection.
 # Clears any data associated with the client.
 # ----------------------------------------------------------------------
-proc Rappture::filexfer::cleanup {cid} {
+proc Rappture::filexfer::shutdown {cid} {
     variable clients
     variable buffer
 
@@ -714,6 +981,23 @@ Connection: %s" $params(-status) $date $params(-connection)]
 }
 
 # ----------------------------------------------------------------------
+# USAGE: Rappture::filexfer::urlDecode <string>
+#
+# Used internally to decode a string in URL-encoded form back to
+# its normal ASCII equivalent.  Returns the input string, but with
+# any %XX characters translated back to their ASCII equivalents.
+# ----------------------------------------------------------------------
+proc Rappture::filexfer::urlDecode {string} {
+    while {[regexp -indices {%[0-9A-Fa-f][0-9A-Fa-f]} $string match]} {
+        foreach {p0 p1} $match break
+        set hex [string range $string [expr {$p0+1}] $p1]
+        set char [binary format c [scan $hex "%x"]]
+        set string [string replace $string $p0 $p1 $char]
+    }
+    return $string
+}
+
+# ----------------------------------------------------------------------
 # USAGE: isbinary <string>
 #
 # Used internally to see if the given <string> has binary data.
@@ -766,4 +1050,30 @@ proc Rappture::filexfer::option_port {newport} {
 proc Rappture::filexfer::option_cookie {newcookie} {
     variable cookie
     set cookie $newcookie
+}
+
+# ----------------------------------------------------------------------
+# USAGE: Rappture::filexfer::option_sitelogo <html>
+#
+# Called when the "filexfer_sitelogo" directive is encountered while
+# parsing the "resources" file.  Stores the html text for later use
+# in the filexfer upload form.  The site logo appears at the top of
+# the form to identify the hub site that issued the form.
+# ----------------------------------------------------------------------
+proc Rappture::filexfer::option_sitelogo {html} {
+    variable sitelogo
+    set sitelogo $html
+}
+
+# ----------------------------------------------------------------------
+# USAGE: Rappture::filexfer::option_stylesheet <url>
+#
+# Called when the "filexfer_stylesheet" directive is encountered while
+# parsing the "resources" file.  Stores the url for later use in the
+# filexfer upload form.  The style sheet customizes the form to have
+# a particular look for the hub site that issued the form.
+# ----------------------------------------------------------------------
+proc Rappture::filexfer::option_stylesheet {url} {
+    variable stylesheet
+    set stylesheet $url
 }

@@ -27,7 +27,7 @@ itcl::class Rappture::DeviceResult {
     public method get {}
     public method delete {args}
     public method scale {args}
-    public method download {}
+    public method download {option}
 
     set _dataobj ""  ;# data object currently being displayed
 }
@@ -115,13 +115,14 @@ itcl::body Rappture::DeviceResult::scale {args} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: download
+# USAGE: download coming
+# USAGE: download now
 #
 # Clients use this method to create a downloadable representation
 # of the plot.  Returns a list of the form {ext string}, where
 # "ext" is the file extension (indicating the type of data) and
 # "string" is the data itself.
 # ----------------------------------------------------------------------
-itcl::body Rappture::DeviceResult::download {} {
-    return ""
+itcl::body Rappture::DeviceResult::download {option} {
+    return [$itk_component(viewer) download $option]
 }

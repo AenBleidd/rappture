@@ -43,7 +43,7 @@ itcl::class Rappture::MeshResult {
     public method get {}
     public method delete {args}
     public method scale {args}
-    public method download {}
+    public method download {option}
 
     protected method _rebuild {}
     protected method _fixLimits {}
@@ -273,24 +273,34 @@ itcl::body Rappture::MeshResult::scale {args} {
 # "ext" is the file extension (indicating the type of data) and
 # "string" is the data itself.
 # ----------------------------------------------------------------------
-itcl::body Rappture::MeshResult::download {} {
-    set psdata [$itk_component(plot) postscript output -maxpect 1]
+itcl::body Rappture::MeshResult::download {option} {
+    switch $option {
+        coming {
+            # nothing to do
+        }
+        now {
+            set psdata [$itk_component(plot) postscript output -maxpect 1]
 
-    set cmds {
-        set fout "mesh[pid].pdf"
-        exec ps2pdf - $fout << $psdata
+            set cmds {
+                set fout "mesh[pid].pdf"
+                exec ps2pdf - $fout << $psdata
 
-        set fid [open $fout r]
-        fconfigure $fid -translation binary -encoding binary
-        set pdfdata [read $fid]
-        close $fid
+                set fid [open $fout r]
+                fconfigure $fid -translation binary -encoding binary
+                set pdfdata [read $fid]
+                close $fid
 
-        file delete -force $fout
+                file delete -force $fout
+            }
+            if {[catch $cmds result] == 0} {
+                return [list .pdf $pdfdata]
+            }
+            return [list .ps $psdata]
+        }
+        default {
+            error "bad option \"$option\": should be coming, now"
+        }
     }
-    if {[catch $cmds result] == 0} {
-        return [list .pdf $pdfdata]
-    }
-    return [list .ps $psdata]
 }
 
 # ----------------------------------------------------------------------

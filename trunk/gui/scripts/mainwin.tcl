@@ -125,7 +125,7 @@ itcl::body Rappture::MainWin::constructor {args} {
     $itk_component(menu) add cascade -label "File" -underline 0 \
         -menu $itk_component(filemenu)
     $itk_component(filemenu) add command -label "Exit" -underline 1 \
-        -command exit
+        -command {destroy .}
 
     #
     # Create a parser for the -bgscript option that can
