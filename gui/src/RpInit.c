@@ -26,5 +26,8 @@ Rappturegui_Init(interp)
     if (RpRusage_Init(interp) != TCL_OK) {
         return TCL_ERROR;
     }
+    if (RpSignal_Init(interp) != TCL_OK) {
+        return TCL_ERROR;
+    }
     return TCL_OK;
 }

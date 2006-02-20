@@ -16,6 +16,7 @@ package require Itk
 package require vtk
 package require vtkinteraction
 package require BLT
+package require Img
 
 blt::bitmap define ContourResult-reset {
 #define reset_width 12
@@ -87,7 +88,7 @@ itcl::class Rappture::ContourResult {
     public method get {}
     public method delete {args}
     public method scale {args}
-    public method download {}
+    public method download {option}
 
     protected method _rebuild {}
     protected method _clear {}
@@ -111,6 +112,7 @@ itcl::class Rappture::ContourResult {
     private variable _slicer       ;# vtk transform used for 3D slice plane
     private variable _limits       ;# autoscale min/max for all axes
     private variable _view         ;# view params for 3D view
+    private variable _download ""  ;# snapshot for download
 }
 
 itk::usual ContourResult {
@@ -341,6 +343,11 @@ itcl::body Rappture::ContourResult::constructor {args} {
     }
     pack $itk_component(legend) -side bottom -fill x
 
+    #
+    # Create a photo for download snapshots
+    #
+    set _download [image create photo]
+
     eval itk_initialize $args
 }
 
@@ -358,6 +365,8 @@ itcl::body Rappture::ContourResult::destructor {} {
     rename $this-renWin2 ""
     rename $this-ren2 ""
     rename $this-iren2 ""
+
+    image delete $_download
 }
 
 # ----------------------------------------------------------------------
@@ -485,15 +494,38 @@ itcl::body Rappture::ContourResult::scale {args} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: download
+# USAGE: download coming
+# USAGE: download now
 #
 # Clients use this method to create a downloadable representation
 # of the plot.  Returns a list of the form {ext string}, where
 # "ext" is the file extension (indicating the type of data) and
 # "string" is the data itself.
 # ----------------------------------------------------------------------
-itcl::body Rappture::ContourResult::download {} {
-    return ""
+itcl::body Rappture::ContourResult::download {option} {
+    switch $option {
+        coming {
+            blt::winop snap $itk_component(area) $_download
+        }
+        now {
+            #
+            # Hack alert!  Need data in binary format,
+            # so we'll save to a file and read it back.
+            #
+            set tmpfile /tmp/image[pid].jpg
+            $_download write $tmpfile -format jpeg
+            set fid [open $tmpfile r]
+            fconfigure $fid -encoding binary -translation binary
+            set bytes [read $fid]
+            close $fid
+            file delete -force $tmpfile
+
+            return [list .jpg $bytes]
+        }
+        default {
+            error "bad option \"$option\": should be coming, now"
+        }
+    }
 }
 
 # ----------------------------------------------------------------------

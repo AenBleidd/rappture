@@ -27,7 +27,7 @@ itcl::class Rappture::ValueResult {
     public method get {}
     public method delete {args}
     public method scale {args}
-    public method download {}
+    public method download {option}
 
     set _dataobj ""  ;# data object currently being displayed
 }
@@ -146,13 +146,26 @@ itcl::body Rappture::ValueResult::scale {args} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: download
+# USAGE: download coming
+# USAGE: download now
 #
 # Clients use this method to create a downloadable representation
 # of the plot.  Returns a list of the form {ext string}, where
 # "ext" is the file extension (indicating the type of data) and
 # "string" is the data itself.
 # ----------------------------------------------------------------------
-itcl::body Rappture::ValueResult::download {} {
-    return ""
+itcl::body Rappture::ValueResult::download {option} {
+    switch $option {
+        coming {
+            # nothing to do
+        }
+        now {
+            set lstr [$itk_component(label) cget -text]
+            set vstr [$itk_component(value) cget -text]
+            return [list .txt "$lstr: $vstr"]
+        }
+        default {
+            error "bad option \"$option\": should be coming, now"
+        }
+    }
 }

@@ -22,6 +22,7 @@ itcl::class Rappture::ControlOwner {
 
     public method load {newobj}
     public method widgetfor {path args}
+    public method valuefor {path args}
     public method changed {path}
     public method notify {option owner args}
     public method sync {}
@@ -83,6 +84,35 @@ itcl::body Rappture::ControlOwner::widgetfor {path args} {
         set _path2widget($path) $widget
     } else {
         unset _path2widget($path)
+    }
+}
+
+# ----------------------------------------------------------------------
+# USAGE: valuefor <path> ?<newValue>?
+#
+# Used by embedded widgets such as a Loader to query or set the
+# value of another control.  With no extra args, it returns the
+# value of the widget at the <path> in the XML.  Otherwise, it
+# sets the value of the widget to <newValue>.
+# ----------------------------------------------------------------------
+itcl::body Rappture::ControlOwner::valuefor {path args} {
+    # if this is a query operation, then look for the path
+    if {[llength $args] == 0} {
+        if {[info exists _path2widget($path)]} {
+            return [$_path2widget($path) value]
+        }
+        return ""
+    }
+
+    # otherwise, set the value
+    if {[llength $args] > 1} {
+        error "wrong # args: should be \"valuefor path ?newValue?\""
+    }
+
+    if {[info exists _path2widget($path)]} {
+        $_path2widget($path) value [lindex $args 0]
+    } else {
+        error "bad path \"$path\": should be one of [join [lsort [array names _path2widget]] {, }]"
     }
 }
 

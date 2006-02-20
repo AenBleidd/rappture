@@ -13,6 +13,7 @@
 # ======================================================================
 package require Itk
 package require BLT
+package require Img
 
 option add *ImageResult.width 3i widgetDefault
 option add *ImageResult.height 3i widgetDefault
@@ -55,7 +56,7 @@ itcl::class Rappture::ImageResult {
     public method get {}
     public method delete {args}
     public method scale {args}
-    public method download {}
+    public method download {option}
 
     protected method _rebuild {args}
     protected method _topimage {}
@@ -288,19 +289,43 @@ itcl::body Rappture::ImageResult::scale {args} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: download
+# USAGE: download coming
+# USAGE: download now
 #
 # Clients use this method to create a downloadable representation
 # of the plot.  Returns a list of the form {ext string}, where
 # "ext" is the file extension (indicating the type of data) and
 # "string" is the data itself.
 # ----------------------------------------------------------------------
-itcl::body Rappture::ImageResult::download {} {
-    set top [_topimage]
-    if {$top == ""} {
-        return ""
+itcl::body Rappture::ImageResult::download {option} {
+    switch $option {
+        coming {
+            # nothing to do
+        }
+        now {
+            set top [_topimage]
+            if {$top == ""} {
+                return ""
+            }
+
+            #
+            # Hack alert!  Need data in binary format,
+            # so we'll save to a file and read it back.
+            #
+            set tmpfile /tmp/image[pid].jpg
+            $top write $tmpfile -format jpeg
+            set fid [open $tmpfile r]
+            fconfigure $fid -encoding binary -translation binary
+            set bytes [read $fid]
+            close $fid
+            file delete -force $tmpfile
+
+            return [list .jpg $bytes]
+        }
+        default {
+            error "bad option \"$option\": should be coming, now"
+        }
     }
-    return [list jpg [image data $top -format jpg]]
 }
 
 # ----------------------------------------------------------------------

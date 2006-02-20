@@ -15,6 +15,7 @@ package require Itk
 package require vtk
 package require vtkinteraction
 package require BLT
+package require Img
 
 option add *MoleculeViewer.width 3i widgetDefault
 option add *MoleculeViewer.height 3i widgetDefault
@@ -62,6 +63,7 @@ itcl::class Rappture::MoleculeViewer {
     destructor { # defined below }
 
     public method emblems {option}
+    public method download {option}
 
     protected method _clear {}
     protected method _redraw {}
@@ -78,6 +80,7 @@ itcl::class Rappture::MoleculeViewer {
     private variable _view       ;# view params for 3D view
     private variable _limits     ;# limits of x/y/z axes
     private variable _click      ;# info used for _move operations
+    private variable _download "";# snapshot for download
 }
                                                                                 
 itk::usual MoleculeViewer {
@@ -212,6 +215,9 @@ itcl::body Rappture::MoleculeViewer::constructor {tool args} {
         [itcl::code $this _move release %x %y]
 
     emblems on
+
+    # create a photo for download snapshots
+    set _download [image create photo]
 }
 
 # ----------------------------------------------------------------------
@@ -224,6 +230,43 @@ itcl::body Rappture::MoleculeViewer::destructor {} {
     rename $this-sphere ""
     rename $this-map ""
     rename $this-xyzconv ""
+
+    image delete $_download
+}
+
+# ----------------------------------------------------------------------
+# USAGE: download coming
+# USAGE: download now
+#
+# Clients use this method to create a downloadable representation
+# of the plot.  Returns a list of the form {ext string}, where
+# "ext" is the file extension (indicating the type of data) and
+# "string" is the data itself.
+# ----------------------------------------------------------------------
+itcl::body Rappture::MoleculeViewer::download {option} {
+    switch $option {
+        coming {
+            blt::winop snap $itk_component(area) $_download
+        }
+        now {
+            #
+            # Hack alert!  Need data in binary format,
+            # so we'll save to a file and read it back.
+            #
+            set tmpfile /tmp/image[pid].jpg
+            $_download write $tmpfile -format jpeg
+            set fid [open $tmpfile r]
+            fconfigure $fid -encoding binary -translation binary
+            set bytes [read $fid]
+            close $fid
+            file delete -force $tmpfile
+
+            return [list .jpg $bytes]
+        }
+        default {
+            error "bad option \"$option\": should be coming, now"
+        }
+    }
 }
 
 # ----------------------------------------------------------------------

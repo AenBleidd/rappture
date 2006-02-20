@@ -21,7 +21,8 @@ BINARIES=$(lib_BINARIES)
 RapptureGUI_SOURCES = \
   src/RpInit.c \
   src/RpRlimit.c \
-  src/RpRusage.c
+  src/RpRusage.c \
+  src/RpSignal.c
 SOURCES = $(RapptureGUI_SOURCES)
 
 #========================================================================
@@ -34,7 +35,8 @@ SOURCES = $(RapptureGUI_SOURCES)
 RapptureGUI_OBJECTS = \
   RpInit.$(OBJEXT) \
   RpRlimit.$(OBJEXT) \
-  RpRusage.$(OBJEXT)
+  RpRusage.$(OBJEXT) \
+  RpSignal.$(OBJEXT)
 OBJECTS = $(RapptureGUI_OBJECTS)
 
 #========================================================================
@@ -266,6 +268,9 @@ RpRlimit.$(OBJEXT): $(srcdir)/src/RpRlimit.c
 RpRusage.$(OBJEXT): $(srcdir)/src/RpRusage.c
 	$(COMPILE) -c `@CYGPATH@ $(srcdir)/src/RpRusage.c` -o $@
 
+RpSignal.$(OBJEXT): $(srcdir)/src/RpSignal.c
+	$(COMPILE) -c `@CYGPATH@ $(srcdir)/src/RpSignal.c` -o $@
+
 
 #========================================================================
 # End of user-definable section
@@ -341,7 +346,8 @@ install-lib-binaries: installdirs
 	$(INSTALL_DATA) init.tcl $(DESTDIR)$(pkglibdir)/init.tcl
 	$(mkinstalldirs) $(pkglibdir)/filexfer
 	@for i in $(srcdir)/filexfer/filexfer.jar \
-	      $(srcdir)/filexfer/*.class; do \
+	      $(srcdir)/filexfer/*.class \
+	      $(srcdir)/filexfer/upload.html; do \
 	    echo "Installing $$i" ; \
 	    $(INSTALL_DATA) $$i $(DESTDIR)$(pkglibdir)/filexfer ; \
         done;
