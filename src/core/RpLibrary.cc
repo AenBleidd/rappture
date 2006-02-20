@@ -61,7 +61,7 @@ RpLibrary::_path2list (std::string& path, std::string** list, int listLen)
     int retVal = 0;
 
     // listLen should be the highest index + 1
-    for (   pos = path.find(".",0);
+    for (   pos = path.find(".",NO_CREATE_PATH);
             (pos != std::string::npos) || (index >= listLen);
             pos = path.find(".",pos)   )
     {
@@ -404,7 +404,7 @@ RpLibrary::_find(std::string path, int create)
         }
 
         if (node == NULL) {
-            if (create == 0) {
+            if (create == NO_CREATE_PATH) {
                 // break out instead of returning because we still need to
                 // free the list variable
                 // return node;
@@ -412,7 +412,7 @@ RpLibrary::_find(std::string path, int create)
                 break;
             }
             else {
-                // create == 1
+                // create == CREATE_PATH
                 // we should create the rest of the path
 
                 // create the new element
@@ -468,6 +468,8 @@ RpLibrary::_find(std::string path, int create)
 // METHOD: element()
 /// Search the path of a xml tree and return a RpLibrary node.
 /**
+ * It is the user's responsibility to delete the object when 
+ * they are finished using it?, else i need to make this static
  */
 
 RpLibrary*
@@ -476,13 +478,18 @@ RpLibrary::element (std::string path)
     RpLibrary* retLib = NULL;
     scew_element* retNode = NULL;
 
+    if (!this->root) {
+        // library doesn't exist, do nothing;
+        return NULL;
+    }
+
     if (path.empty()) {
         // an empty path returns the current RpLibrary
         return this;
     }
 
     // get the node located at path
-    retNode = _find(path,0);
+    retNode = _find(path,NO_CREATE_PATH);
 
     // if the node exists, create a rappture library object for it.
     if (retNode) {
@@ -496,6 +503,8 @@ RpLibrary::element (std::string path)
 // METHOD: parent()
 /// Search the path of a xml tree and return its parent.
 /**
+ * It is the user's responsibility to delete the object when 
+ * they are finished using it?, else i need to make this static
  */
 
 RpLibrary*
@@ -505,6 +514,11 @@ RpLibrary::parent (std::string path)
     std::string parentPath = "";
     std::string::size_type pos = 0;
     scew_element* retNode = NULL;
+
+    if (!this->root) {
+        // library doesn't exist, do nothing;
+        return NULL;
+    }
 
     if (path.empty()) {
         // an empty path returns the current RpLibrary
@@ -519,7 +533,7 @@ RpLibrary::parent (std::string path)
         parentPath = path.substr(0,pos);
 
         // search for hte parent's node
-        retNode = _find(parentPath,0);
+        retNode = _find(parentPath,NO_CREATE_PATH);
 
         if (retNode) {
             // allocate a new rappture library object for the node
@@ -543,6 +557,11 @@ RpLibrary&
 RpLibrary::copy (std::string toPath, std::string fromPath, RpLibrary* fromObj)
 {
     RpLibrary* value = NULL;
+
+    if (!this->root) {
+        // library doesn't exist, do nothing;
+        return *this;
+    }
 
     if (fromObj == NULL) {
         fromObj = this;
@@ -581,6 +600,11 @@ RpLibrary::children (   std::string path,
     scew_element* childNode = NULL;
     std::string childName = "";
 
+    if (!this->root) {
+        // library doesn't exist, do nothing;
+        return NULL;
+    }
+
 
     if (path.empty()) {
         // an empty path uses the current RpLibrary as parent
@@ -600,7 +624,7 @@ RpLibrary::children (   std::string path,
         }
         // we need to search for a new parentNode
         else {
-            parentNode = _find(path,0);
+            parentNode = _find(path,NO_CREATE_PATH);
             if (parentNode == NULL) {
                 // node not found
                 // add error code here
@@ -684,8 +708,15 @@ RpLibrary::get (std::string path)
 std::string
 RpLibrary::getString (std::string path)
 {
-    scew_element* retNode = _find(path,0);
+    scew_element* retNode = NULL;
     XML_Char const* retCStr = NULL;
+
+    if (!this->root) {
+        // library doesn't exist, do nothing;
+        return std::string("");
+    }
+
+    retNode = _find(path,NO_CREATE_PATH);
 
     if (retNode == NULL) {
         // need to raise error
@@ -713,6 +744,11 @@ RpLibrary::getDouble (std::string path)
     std::string retValStr = "";
     double retValDbl = 0;
 
+    if (!this->root) {
+        // library doesn't exist, do nothing;
+        return retValDbl;
+    }
+
     retValStr = this->getString(path); 
     // think about changing this to strtod()
     retValDbl = atof(retValStr.c_str());
@@ -736,21 +772,24 @@ RpLibrary::put ( std::string path, std::string value, std::string id, int append
     std::string tmpVal = "";
     const char* contents = NULL;
 
-//    if (! path.empty()) {
-        retNode = _find(path,1);
+    if (!this->root) {
+        // library doesn't exist, do nothing;
+        return *this;
+    }
 
-        if (retNode) {
+    retNode = _find(path,CREATE_PATH);
 
-            if (append) {
-                if ( (contents = scew_element_contents(retNode)) ) {
-                    tmpVal = std::string(contents);
-                }
-                value = tmpVal + value;
+    if (retNode) {
+
+        if (append) {
+            if ( (contents = scew_element_contents(retNode)) ) {
+                tmpVal = std::string(contents);
             }
-
-            scew_element_set_contents(retNode,value.c_str());
+            value = tmpVal + value;
         }
-//    }
+
+        scew_element_set_contents(retNode,value.c_str());
+    }
 
     return *this;
 }
@@ -765,6 +804,11 @@ RpLibrary&
 RpLibrary::put ( std::string path, double value, std::string id, int append )
 {
     std::stringstream valStr;
+
+    if (!this->root) {
+        // library doesn't exist, do nothing;
+        return *this;
+    }
 
     valStr << value;
 
@@ -785,12 +829,18 @@ RpLibrary::put ( std::string path, RpLibrary* value, std::string id, int append 
     scew_element* new_elem = NULL;
     int retVal = 1;
 
-    retNode = _find(path,1);
+    if (!this->root) {
+        // library doesn't exist, do nothing;
+        return *this;
+    }
 
-    if (value) {
+    // you cannot put a null RpLibrary into the tree
+    if (!value) {
         // need to send back an error saying that user specified a null value
         return *this;
     }
+
+    retNode = _find(path,CREATE_PATH);
 
     if (retNode) {
         if ((new_elem = scew_element_copy(value->root))) {
@@ -804,19 +854,50 @@ RpLibrary::put ( std::string path, RpLibrary* value, std::string id, int append 
 }
 
 
-/*
-RpLibrary&
+/**********************************************************************/
+// METHOD: remove()
+/// Remove the provided path from this RpLibrary
+/**
+ */
+
+RpLibrary*
 RpLibrary::remove ( std::string path )
 {
-    scew_element* ele = _find(path,0);
-    RpLibrary* retLib;
-    if (ele) {
-        retLib = new RpLibrary(ele)
+    scew_element* ele = NULL;
+    int setNULL = 0;
+    RpLibrary* retLib = NULL;
+
+    if (!this->root) {
+        // library doesn't exist, do nothing;
+        return NULL;
     }
 
-    return *retLib
+    if ( !path.empty() ) {
+        ele = _find(path,NO_CREATE_PATH);
+    }
+    else {
+        // telling this function to remove "" is essentially destroying
+        // the object. most functions will fail after a call like this.
+        ele = this->root;
+        setNULL++;
+    }
+
+    if (ele) {
+        scew_element_free(ele);
+        if (setNULL) {
+            // this is the case where user specified an empty path.
+            // the object is useless, and will be deleted.
+            this->root = NULL;
+            delete this;
+            retLib = NULL;
+        }
+        else {
+            retLib = this;
+        }
+    }
+
+    return retLib;
 }
-*/
 
 /**********************************************************************/
 // METHOD: xml()
@@ -828,6 +909,11 @@ std::string
 RpLibrary::xml ()
 {
     std::stringstream outString;
+
+    if (!this->root) {
+        // library doesn't exist, do nothing;
+        return std::string("");
+    }
 
     outString << "<?xml version=\"1.0\"?>\n";
     print_element(this->root, 0, outString);
@@ -844,6 +930,11 @@ RpLibrary::xml ()
 std::string
 RpLibrary::nodeType ()
 {
+    if (!this->root) {
+        // library doesn't exist, do nothing;
+        return std::string("");
+    }
+
     return std::string(scew_element_name(root));
 }
 
@@ -856,6 +947,11 @@ RpLibrary::nodeType ()
 std::string
 RpLibrary::nodeId ()
 {
+    if (!this->root) {
+        // library doesn't exist, do nothing;
+        return std::string("");
+    }
+
     return _node2name(root);
 }
 
@@ -868,6 +964,11 @@ RpLibrary::nodeId ()
 std::string
 RpLibrary::nodeComp ()
 {
+    if (!this->root) {
+        // library doesn't exist, do nothing;
+        return std::string("");
+    }
+
     return _node2comp(root);
 }
 
@@ -880,6 +981,11 @@ RpLibrary::nodeComp ()
 std::string
 RpLibrary::nodePath ()
 {
+    if (!this->root) {
+        // library doesn't exist, do nothing;
+        return std::string("");
+    }
+
     return _node2path(root);
 }
 
@@ -904,16 +1010,18 @@ RpLibrary::result() {
     std::string xmlText = "";
     time_t t = 0;
 
-    outputFile << "run" << (int)time(&t) << ".xml";
-    file.open(outputFile.str().c_str(),std::ios::out);
+    if (this->root) {
+        outputFile << "run" << (int)time(&t) << ".xml";
+        file.open(outputFile.str().c_str(),std::ios::out);
 
-    if ( file.is_open() ) {
-        xmlText = xml();
-        if (!xmlText.empty()) {
-            file << xmlText;
+        if ( file.is_open() ) {
+            xmlText = xml();
+            if (!xmlText.empty()) {
+                file << xmlText;
+            }
         }
+        std::cout << "=RAPPTURE-RUN=>" << outputFile.str() << std::endl;
     }
-    std::cout << "=RAPPTURE-RUN=>" << outputFile.str() << std::endl;
 }
 
 /**********************************************************************/
