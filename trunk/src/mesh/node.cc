@@ -20,11 +20,14 @@ RpNode::set(int val, int index)
 }
 
 // 
-// set values in node "id"
+// assign node values 
 //
-void
-RpNode::setNode(int dim, int* val, int id)
+RP_ERROR
+RpNode::set(int dim, int* val, int id)
 {
+	if (val == NULL)
+		return RP_ERR_NULL_PTR;
+
 	m_dim = dim;
 	m_id = id;
 	m_node.resize(m_dim);
@@ -32,6 +35,8 @@ RpNode::setNode(int dim, int* val, int id)
 	for (int i=0; i<m_dim; i++) {
 		m_node[i] = val[i];
 	}
+
+	return RP_SUCCESS;
 }
 
 // 
@@ -96,9 +101,9 @@ RpNode::serialize()
 // 4 bytes: z (if 3d node)
 //
 void
-RpNode::serialize(const char* buf, int buflen)
+RpNode::serialize(char* buf, int buflen)
 {
-	char* ptr = (char*)buf;
+	char* ptr = buf;
 
 	// do nothing
 	if (buf == NULL || buflen < m_dim* ((signed int)sizeof(int))) {

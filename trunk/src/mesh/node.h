@@ -22,19 +22,19 @@ public:
 	}
 
 	// assign value to coordinate[index]
+	RP_ERROR set(int dim, int* val, int id);
 	RP_ERROR set(int val, int index);
 
 	// get node values
 	RP_ERROR get(int& val, int index);
 	RP_ERROR get(int* val, int len);
 
-	void setNode(int dim, int* val, int id);
 
 	int id() { return m_id; };
 	void id(int id) { m_id = id; };
 
 	char* serialize();
-	void serialize(const char* buf, int buflen);
+	void serialize(char* buf, int buflen);
 	void deserialize(const char* buf);
 
         void print();
