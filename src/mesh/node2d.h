@@ -30,7 +30,7 @@ public:
 	void get(int& xval, int& yval) 
 	{ xval = m_x; yval = m_y; };
 
-	void get(int * val) { val[0] = m_x; val[1] = m_y; );
+	void get(int * val) { val[0] = m_x; val[1] = m_y; };
 
 	int id() { return m_id; };
 	void id(int id) { m_id = id; };
