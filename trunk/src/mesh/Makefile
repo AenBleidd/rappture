@@ -21,7 +21,7 @@ LIB_SCEW_FLAG   = -L$(RP_INSTALL_BASE)/lib -lscew
 # define the top of our directory structure
 # replace this with the full path of the directory
 # containing the rappture directory
-TOP_DIR         = ../..
+TOP_DIR         = /home/cxsong
 
 # define the top of the rappture directory structure
 RP_BASE   = $(TOP_DIR)/rappture
@@ -59,6 +59,7 @@ OCTAVE_SRC      = $(SRC_DIR)/octave
 LIB_INC_PREFIX  = -Wl,-rpath,$(LIB_DIR) -L$(LIB_DIR)
 LIB_RP_OBJECTS  = $(LIB_INC_PREFIX) -lRpObjects
 LIB_RAPPTURE    = -Wl,-rpath,$(LIB_DIR) -L$(LIB_DIR) -lrappture
+LIB_RPMESH      = -Wl,-rpath,$(LIB_DIR) -L/$(LIB_DIR) -lrpmesh
 
 INCL_CORE       = -I$(INCLUDES_DIR)/core
 INCL_CEE        = -I$(INCLUDES_DIR)/cee
@@ -81,7 +82,7 @@ RP_OTHER_DEPS   = RpFortranCommon.o RpBindingsDict.o
 RP_OBJS_DEP     = RpVariable.o RpAbout.o RpNumber.o RpString.o RpBoolean.o \
                   RpChoice.o RpOption.o RpUnitsStd.o RpUnits.o #RpValue.o\
                   # RpValueDouble.o RpValueString.o
-RP_MESH_DEPS = util.o grid1d.o grid1d_reg.o grid2d.o #mesh.o field.o endian.o
+RP_MESH_DEPS = element.o util.o grid1d.o grid1d_reg.o grid2d.o node3d.o node2d.o #mesh.o field.o endian.o
 
 LDLIB_MACOSX = -dynamiclib -o $(LIB_DIR)/$@.dylib
 LDLIB_LINUX = -shared -Wl,-rpath,$(LIB_DIR)/ -Wl,-soname,$@.so -o $(LIB_DIR)/$@.so.0.0
@@ -97,7 +98,7 @@ librpmesh: $(RP_MESH_DEPS)
 		ar -r $@.a $^; \
 		ranlib -s $@.a; \
 	else \
-		$(CXX) $(DEGUG) $(LDLIB_LINUX) $^ $(LIB_SCEW_FLAG) -lm; \
+		$(CXX) $(DEGUG) $(LDLIB_LINUX) $^; \
 		/sbin/ldconfig -n $(LIB_DIR); \
 		ar -r $@.a $^; \
 		ranlib $@.a; \
@@ -173,7 +174,13 @@ grid1d_reg.o: grid1d_reg.cc
 	$(CXX) $(CFLAGS) $(DEBUG) -c $?
 util.o: util.cc
 	$(CXX) $(CFLAGS) $(DEBUG) -c $?
+node2d.o: node2d.cc
+	$(CXX) $(CFLAGS) $(DEBUG) -c $?
+node3d.o: node3d.cc
+	$(CXX) $(CFLAGS) $(DEBUG) -c $?
 endian.o: endian.cc
+	$(CXX) $(CFLAGS) $(DEBUG) -c $?
+element.o: element.cc
 	$(CXX) $(CFLAGS) $(DEBUG) -c $?
 
 # include core source files
@@ -343,5 +350,8 @@ clean:
 	- rm -rf build
 
 #################
+
 endiantest: endiantest.o 
 	$(CXX) -o $@ $<
+test_node: test_node.o 
+	$(CXX) -o $@ $< $(LIB_RPMESH)
