@@ -1,0 +1,8 @@
+to compile:
+./configure CC=g++ --prefix=/opt/rappture --with-tcl=/opt/rappture/lib --with-tclinclude=/opt/rappture/include
+make
+
+within tclsh
+    package require BLT
+    load libRapptureExt1.0.so
+
