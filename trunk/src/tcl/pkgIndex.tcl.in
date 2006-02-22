@@ -1,0 +1,2 @@
+# this file identifies Rappture as a Tcl package
+package ifneeded Rappture @VERSION@ [list source [file join $dir init.tcl]]
