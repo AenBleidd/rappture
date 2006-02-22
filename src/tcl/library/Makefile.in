@@ -10,7 +10,7 @@
 # This is the parameterized name of the library that we are building.
 #========================================================================
 
-lib_BINARIES=$(RapptureExt_LIB_FILE)
+lib_BINARIES=$(RapptureLibrary_LIB_FILE)
 BINARIES=$(lib_BINARIES)
 
 #========================================================================
@@ -18,9 +18,9 @@ BINARIES=$(lib_BINARIES)
 # This will be used when a dist target is added to the Makefile.
 #========================================================================
 
-RapptureExt_SOURCES = \
+RapptureLibrary_SOURCES = \
   src/RpLibraryTclInterface.cc
-SOURCES = $(RapptureExt_SOURCES)
+SOURCES = $(RapptureLibrary_SOURCES)
 
 #========================================================================
 # Enumerate the names of the object files included in this package.
@@ -29,20 +29,20 @@ SOURCES = $(RapptureExt_SOURCES)
 # above.
 #========================================================================
 
-RapptureExt_OBJECTS = \
+RapptureLibrary_OBJECTS = \
   RpLibraryTclInterface.$(OBJEXT)
-OBJECTS = $(RapptureExt_OBJECTS)
+OBJECTS = $(RapptureLibrary_OBJECTS)
 
 #========================================================================
-# The substitution of "RapptureExt_LIB_FILE" into the variable name below
+# The substitution of "RapptureLibrary_LIB_FILE" into the variable name below
 # let's us refer to the objects for the library without knowing the name
 # of the library in advance.  It also lets us use the "$@" variable in
 # the rule for building the library, so we can refer to both the list of 
 # objects and the library itself in a platform-independent manner.
 #========================================================================
 
-RapptureExt_LIB_FILE = @RapptureExt_LIB_FILE@
-$(RapptureExt_LIB_FILE)_OBJECTS = $(RapptureExt_OBJECTS)
+RapptureLibrary_LIB_FILE = @RapptureLibrary_LIB_FILE@
+$(RapptureLibrary_LIB_FILE)_OBJECTS = $(RapptureLibrary_OBJECTS)
 
 #========================================================================
 # This is a list of header files to be installed
@@ -227,7 +227,7 @@ depend:
 # most cases these object files will correspond to the source files
 # above.
 #
-# $(RapptureExt_LIB_FILE) should be listed as part of the BINARIES variable
+# $(RapptureLibrary_LIB_FILE) should be listed as part of the BINARIES variable
 # at the top of the Makefile.  That will ensure that this target is built
 # when you run "make binaries".
 #
@@ -235,10 +235,10 @@ depend:
 # name from "Rappture" to your package's name.
 #========================================================================
 
-$(RapptureExt_LIB_FILE): $(RapptureExt_OBJECTS)
-	-rm -f $(RapptureExt_LIB_FILE) 
+$(RapptureLibrary_LIB_FILE): $(RapptureLibrary_OBJECTS)
+	-rm -f $(RapptureLibrary_LIB_FILE) 
 	@MAKE_LIB@  -lrappture
-	$(RANLIB) $(RapptureExt_LIB_FILE) -lrappture
+	$(RANLIB) $(RapptureLibrary_LIB_FILE) -lrappture
 
 #========================================================================
 # We need to enumerate the list of .c to .o lines here.
@@ -319,17 +319,6 @@ install-lib-binaries: installdirs
 	    $(RANLIB) $(DESTDIR)$(bindir)/$$p; \
 	  else :; fi; \
 	done
-	$(mkinstalldirs) $(pkglibdir)/scripts
-	@for i in $(srcdir)/scripts/*.tcl; do \
-	    echo "Installing $$i" ; \
-	    $(INSTALL_DATA) $$i $(DESTDIR)$(pkglibdir)/scripts ; \
-        done;
-	$(TCLSH_PROG) $(srcdir)/cf/mkindex.tcl $(DESTDIR)$(pkglibdir)/scripts
-	$(mkinstalldirs) $(pkglibdir)/scripts/images
-	@for i in $(srcdir)/scripts/images/*.gif; do \
-	    echo "Installing $$i" ; \
-	    $(INSTALL_DATA) $$i $(DESTDIR)$(pkglibdir)/scripts/images ; \
-        done;
 	$(INSTALL_DATA) pkgIndex.tcl $(DESTDIR)$(pkglibdir)/pkgIndex.tcl
 	$(INSTALL_DATA) init.tcl $(DESTDIR)$(pkglibdir)/init.tcl
 

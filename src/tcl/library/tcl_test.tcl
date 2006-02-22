@@ -1,7 +1,6 @@
-package require BLT
-load libRapptureExt1.0.so
+package require RapptureLibrary
 
-Rappture::library_test "rplib_test.xml"
+Rappture::library "rplib_test.xml"
 
 puts [library0 get input.(max).current]
 puts [library0 get input.(max)]
@@ -69,3 +68,19 @@ library0 remove
 
 puts "Printing XML"
 puts [library0 xml]
+
+puts "opening new library"
+set libObj1 [Rappture::library "rplib_test.xml"]
+set libObj2 [Rappture::library "rplib_test.xml"]
+puts "libObj1 = "
+puts $libObj1
+
+puts "COPYING BETWEEN LIBS"
+$libObj1 copy "input.test" from libObj2 "input.(max)"
+puts [$libObj1 xml]
+
+#puts [$libObj xml]
+puts "isvalid test1: "
+# puts [Rappture::library isvalid $libObj1]
+puts "isvalid test2: "
+# puts [Rappture::library isvalid library0]
