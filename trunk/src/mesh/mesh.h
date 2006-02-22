@@ -2,6 +2,7 @@
 #define __RP_MESH3D_H__
 
 #include <string>
+#include "element.h"
 #include "util.h"
 
 
@@ -47,13 +48,13 @@ public:
         virtual ~RpMesh3d();
 
 private:
-	std:string m_id;
+	std::string m_id;
 	int m_numNodes;
 	int m_numElements;
 	int m_nodeIndex;
 	int m_elemIndex;
-	RpNode3d * m_nodeList;
-	RpElement * m_elemList;
+	RpNode3d * m_nodeList; // ptr to a list of node objects
+	RpElement ** m_elemList; // ptr to a list of ptrs to element objects
 };
 
 #endif
