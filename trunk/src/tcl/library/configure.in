@@ -23,7 +23,7 @@ AC_CONFIG_AUX_DIR(cf)
 # other systems.
 #--------------------------------------------------------------------
 
-PACKAGE=RapptureExt
+PACKAGE=RapptureLibrary
 
 MAJOR_VERSION=1
 MINOR_VERSION=0
@@ -315,7 +315,7 @@ esac
 # Change the name from exampeA_LIB_FILE to match your package name.
 #--------------------------------------------------------------------
 
-AC_SUBST(RapptureExt_LIB_FILE)
+AC_SUBST(RapptureLibrary_LIB_FILE)
 AC_SUBST(SHLIB_LD_LIBS)
 
 #--------------------------------------------------------------------

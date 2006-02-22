@@ -15,6 +15,8 @@
  * ======================================================================
  */
 #include <tcl.h>
+#include <stdexcept>
+// #include <typeinfo.h>
 #include "core/RpLibrary.h"
 
 #ifdef __cplusplus
@@ -23,7 +25,7 @@ extern "C" {
 
 #include "bltInt.h"
 
-EXTERN int Rapptureext_Init _ANSI_ARGS_((Tcl_Interp * interp));
+EXTERN int Rappturelibrary_Init _ANSI_ARGS_((Tcl_Interp * interp));
 
 static int RpLibraryCmd   _ANSI_ARGS_((   ClientData cdata, Tcl_Interp *interp,
                                         int argc, const char *argv[]    ));
@@ -31,19 +33,21 @@ static int RpLibraryCmd   _ANSI_ARGS_((   ClientData cdata, Tcl_Interp *interp,
 static int RpLibCallCmd   _ANSI_ARGS_(( ClientData cData, Tcl_Interp *interp,
                                         int argc, const char* argv[]    ));
 
-static int RpTclLibElem   _ANSI_ARGS_(( ClientData cdata, Tcl_Interp *interp,
-                                        int argc, const char *argv[]    ));
-static int RpTclLibParent _ANSI_ARGS_(( ClientData cdata, Tcl_Interp *interp,
-                                        int argc, const char *argv[]    ));
 static int RpTclLibChild  _ANSI_ARGS_(( ClientData cdata, Tcl_Interp *interp,
-                                        int argc, const char *argv[]    ));
-static int RpTclLibGet    _ANSI_ARGS_(( ClientData cdata, Tcl_Interp *interp,
-                                        int argc, const char *argv[]    ));
-static int RpTclLibPut    _ANSI_ARGS_(( ClientData cdata, Tcl_Interp *interp,
                                         int argc, const char *argv[]    ));
 static int RpTclLibCopy   _ANSI_ARGS_(( ClientData cdata, Tcl_Interp *interp,
                                         int argc, const char *argv[]    ));
+static int RpTclLibElem   _ANSI_ARGS_(( ClientData cdata, Tcl_Interp *interp,
+                                        int argc, const char *argv[]    ));
+static int RpTclLibGet    _ANSI_ARGS_(( ClientData cdata, Tcl_Interp *interp,
+                                        int argc, const char *argv[]    ));
+static int RpTclLibParent _ANSI_ARGS_(( ClientData cdata, Tcl_Interp *interp,
+                                        int argc, const char *argv[]    ));
+static int RpTclLibPut    _ANSI_ARGS_(( ClientData cdata, Tcl_Interp *interp,
+                                        int argc, const char *argv[]    ));
 static int RpTclLibRemove _ANSI_ARGS_(( ClientData cdata, Tcl_Interp *interp,
+                                        int argc, const char *argv[]    ));
+static int RpTclLibResult _ANSI_ARGS_(( ClientData cdata, Tcl_Interp *interp,
                                         int argc, const char *argv[]    ));
 static int RpTclLibXml    _ANSI_ARGS_(( ClientData cdata, Tcl_Interp *interp,
                                         int argc, const char *argv[]    ));
@@ -51,8 +55,6 @@ static int RpTclLibXml    _ANSI_ARGS_(( ClientData cdata, Tcl_Interp *interp,
 
 static std::string rpLib2command _ANSI_ARGS_(( Tcl_Interp *interp,
                                                RpLibrary* newRpLibObj   ));
-static int print_library_howto _ANSI_ARGS_((const char** argv));
-static int print_libcmds_howto _ANSI_ARGS_((const char** argv));
 
 // member function, function pointer mainly used in 'element' implementation
 typedef std::string (RpLibrary::*rpMbrFxnPtr) _ANSI_ARGS_(());
@@ -67,7 +69,8 @@ static Blt_OpSpec rpLibOps[] = {
     {"parent", 2, (Blt_Op)RpTclLibParent, 2, 5, "?-as <fval>? ?<path>?",},
     {"put", 2, (Blt_Op)RpTclLibPut, 2, 8,
         "?-append yes? ?-id num? ?<path>? <string>",},
-    {"remove", 1, (Blt_Op)RpTclLibRemove, 2, 3, "?<path>?",},
+    {"remove", 3, (Blt_Op)RpTclLibRemove, 2, 3, "?<path>?",},
+    {"result", 3, (Blt_Op)RpTclLibResult, 2, 2, "",},
     {"xml", 1, (Blt_Op)RpTclLibXml, 2, 2, "",},
 };
 
@@ -87,14 +90,22 @@ static int nRpLibOps = sizeof(rpLibOps) / sizeof(Blt_OpSpec);
  */
 
 int
-Rapptureext_Init(Tcl_Interp *interp)
+Rappturelibrary_Init(Tcl_Interp *interp)
 {
 
-    Tcl_CreateCommand(interp, "::Rappture::library_test",
+    Tcl_CreateCommand(interp, "::Rappture::library",
         RpLibraryCmd, (ClientData)NULL, (Tcl_CmdDeleteProc*)NULL);
 
     return TCL_OK;
 }
+
+/*
+ * 
+ * USAGE: library <file>
+ * USAGE: library standard
+ * USAGE: library isvalid <object>
+ *
+ */
 
 int
 RpLibraryCmd (  ClientData cData,
@@ -103,13 +114,52 @@ RpLibraryCmd (  ClientData cData,
                 const char* argv[]  )
 {
     RpLibrary *rpptr = NULL;
-    std::string libName = "";;
+    RpLibrary *testObj = NULL;
+    std::string libName = "";
+    int noerr = 0;
+    Tcl_CmdInfo* infoPtr = NULL;  // pointer to the command info
+
+    if ( (argc > 2) && (strncmp(argv[1],"isvalid",7) == 0) ) {
+        if (argc != 3) {
+            std::cout << "wrong # args: should be \"" << argv[0] 
+                << " isvalid object\"" << std::endl;
+            return TCL_ERROR;
+        }
+
+        libName = std::string(argv[2]);
+        std::cout << "argv[2] = " << argv[2] << std::endl;
+        std::cout << "interp = " << interp << std::endl;
+        noerr = Tcl_GetCommandInfo(interp, libName.c_str(), infoPtr);
+        std::cout << "interp = " << interp << std::endl;
+        if (noerr && infoPtr) {
+            testObj = (RpLibrary*) (infoPtr->clientData);
+            // if ( (testObj) && (typeid(RpLibrary) == typeid(testObj)) ) {
+            if (testObj) {
+                // return testObj->isvalid();
+                // need a way to try this and catch any errors
+                try {
+                    testObj->isvalid();
+                    return 1; // return true
+                }
+                catch (const std::exception& e) {
+                    return 0; // return false
+                }
+            }
+            else {
+                return 0; // return false
+            }
+        }
+        else {
+            return 0; // return false
+        }
+    }
 
     if (argc != 2) {
-        print_library_howto(argv);
+        std::cout << "usage: " << argv[0] << " <xmlfile>" << std::endl;
         return TCL_ERROR;
     }
 
+    // create a new command
     rpptr = new RpLibrary(argv[1]);
 
     libName = rpLib2command(interp,rpptr);
@@ -143,7 +193,7 @@ RpLibCallCmd (  ClientData cData,
     Blt_Op proc;
 
     if (argc < 2) {
-        print_libcmds_howto(argv);
+        std::cout <<"usage: "<< argv[0] <<" <command> <arg-list>"<< std::endl;
         return TCL_ERROR;
     }
 
@@ -155,211 +205,6 @@ RpLibCallCmd (  ClientData cData,
                                 }
     return (*proc)(cData, interp, argc, argv);
 
-}
-
-int print_library_howto (const char **argv)
-{
-    std::cout << "usage: " << argv[0] << " <xmlfile>" << std::endl;
-    return TCL_OK;
-}
-
-int print_libcmds_howto (const char **argv)
-{
-    std::cout << "usage: " << argv[0] << " <command> <arg-list>" << std::endl;
-
-    return TCL_OK;
-}
-
-int
-RpTclLibElem    (   ClientData cdata,
-                    Tcl_Interp *interp,
-                    int argc,
-                    const char *argv[]  )
-{
-    std::string path   = "";    // path of where to place data inside xml tree
-    std::string retStr = "";    // path of where to place data inside xml tree
-    int nextarg        = 2;     // start parsing using the '2'th argument
-    int opt_argc       = 1;     // max number of optional parameters
-    int argsLeft       = 0;     // temp variable for calculation
-
-    RpLibrary* node    = NULL;
-    rpMbrFxnPtr asProc = &RpLibrary::nodeComp;
-
-    // parse through -'d arguments
-    while (opt_argc--) {
-        if (nextarg < argc && *argv[nextarg] == '-') {
-            if (strncmp(argv[nextarg],"-as",3) == 0) {
-                nextarg++;
-                if (    (*argv[nextarg] == 'c') &&
-                        (strncmp(argv[nextarg],"component",9) == 0) ) {
-                    asProc = &RpLibrary::nodeComp;
-                    nextarg++;
-                }
-                else if ((*argv[nextarg] == 'i') &&
-                         (strncmp(argv[nextarg],"id",2) == 0 ) ) {
-                    asProc = &RpLibrary::nodeId;
-                    nextarg++;
-                }
-                else if ((*argv[nextarg] == 't') &&
-                         (strncmp(argv[nextarg],"type",4) == 0 ) ) {
-                    asProc = &RpLibrary::nodeType;
-                    nextarg++;
-                }
-                else if ((*argv[nextarg] == 'p') &&
-                         (strncmp(argv[nextarg],"path",4) == 0 ) ) {
-                    asProc = &RpLibrary::nodePath;
-                    nextarg++;
-                }
-                else if ((*argv[nextarg] == 'o') &&
-                         (strncmp(argv[nextarg],"object",6) == 0 ) ) {
-                    asProc = NULL;
-                    nextarg++;
-                }
-                else {
-                    Tcl_AppendResult(interp, "bad option \"", argv[nextarg],
-                        "\": should be -as <fval> where <fval> is ", 
-                        "\'component\', \'id\', \'type\',",
-                        "\'path\', \'object\'",
-                        (char*)NULL);
-                    return TCL_ERROR;
-                }
-            }
-            else {
-                Tcl_AppendResult(interp, "bad option \"", argv[nextarg],
-                    "\": should be -as", (char*)NULL);
-                return TCL_ERROR;
-            }
-        }
-    }
-
-    argsLeft = (argc-nextarg);
-    if (argsLeft == 1) {
-        path = std::string(argv[nextarg++]);
-    }
-    else {
-        Tcl_AppendResult(interp, "incorrect number of arguments \"", argv[nextarg],
-            "\":", (char*)NULL);
-        return TCL_ERROR;
-    }
-
-    // call the rappture library element function
-    node = ((RpLibrary*) cdata)->element(path);
-    if (node) {
-
-        // clear any previous result in the interpreter
-        Tcl_ResetResult(interp);
-
-        if (asProc) {
-            // evaluate the "-as" flag on the returned node
-            retStr = (node->*asProc)();
-        }
-        else {
-            // create a new command for the new rappture object
-            retStr = rpLib2command(interp, node);
-        }
-        // store the new result string in the interpreter
-        Tcl_AppendResult(interp, retStr.c_str(), (char*)NULL);
-    }
-
-
-    return TCL_OK;
-}
-
-int
-RpTclLibParent  (   ClientData cdata,
-                    Tcl_Interp *interp,
-                    int argc,
-                    const char *argv[]  )
-{
-
-    std::string path   = "";    // path of where to place data inside xml tree
-    std::string retStr = "";    // path of where to place data inside xml tree
-    int nextarg        = 2;     // start parsing using the '2'th argument
-    int opt_argc       = 1;     // max number of optional parameters
-    int argsLeft       = 0;     // temp variable for calculation
-
-    RpLibrary* node    = NULL;
-    rpMbrFxnPtr asProc = &RpLibrary::nodeComp;
-
-    // parse through -'d arguments
-    while (opt_argc--) {
-        if (nextarg < argc && *argv[nextarg] == '-') {
-            if (strncmp(argv[nextarg],"-as",3) == 0) {
-                nextarg++;
-                if (    (*argv[nextarg] == 'c') &&
-                        (strncmp(argv[nextarg],"component",9) == 0) ) {
-                    asProc = &RpLibrary::nodeComp;
-                    nextarg++;
-                }
-                else if ((*argv[nextarg] == 'i') &&
-                         (strncmp(argv[nextarg],"id",2) == 0 ) ) {
-                    asProc = &RpLibrary::nodeId;
-                    nextarg++;
-                }
-                else if ((*argv[nextarg] == 't') &&
-                         (strncmp(argv[nextarg],"type",4) == 0 ) ) {
-                    asProc = &RpLibrary::nodeType;
-                    nextarg++;
-                }
-                else if ((*argv[nextarg] == 'p') &&
-                         (strncmp(argv[nextarg],"path",4) == 0 ) ) {
-                    asProc = &RpLibrary::nodePath;
-                    nextarg++;
-                }
-                else if ((*argv[nextarg] == 'o') &&
-                         (strncmp(argv[nextarg],"object",6) == 0 ) ) {
-                    asProc = NULL;
-                    nextarg++;
-                }
-                else {
-                    Tcl_AppendResult(interp, "bad option \"", argv[nextarg],
-                        "\": should be -as <fval> where <fval> is ", 
-                        "\'component\', \'id\', \'type\',",
-                        "\'path\', \'object\'",
-                        (char*)NULL);
-                    return TCL_ERROR;
-                }
-            }
-            else {
-                Tcl_AppendResult(interp, "bad option \"", argv[nextarg],
-                    "\": should be -as", (char*)NULL);
-                return TCL_ERROR;
-            }
-        }
-    }
-
-    argsLeft = (argc-nextarg);
-    if (argsLeft == 1) {
-        path = std::string(argv[nextarg++]);
-    }
-    else {
-        Tcl_AppendResult(interp, "incorrect number of arguments \"", argv[nextarg],
-            "\":", (char*)NULL);
-        return TCL_ERROR;
-    }
-
-    // call the rappture library parent function
-    node = ((RpLibrary*) cdata)->parent(path);
-    if (node) {
-
-        // clear any previous result in the interpreter
-        Tcl_ResetResult(interp);
-
-        if (asProc) {
-            // evaluate the "-as" flag on the returned node
-            retStr = (node->*asProc)();
-        }
-        else {
-            // create a new command for the new rappture object
-            retStr = rpLib2command(interp, node);
-        }
-        // store the new result string in the interpreter
-        Tcl_AppendResult(interp, retStr.c_str(), (char*)NULL);
-
-    }
-
-
-    return TCL_OK;
 }
 
 int
@@ -465,6 +310,159 @@ RpTclLibChild   (   ClientData cdata,
 }
 
 int
+RpTclLibCopy    (   ClientData cdata,
+                    Tcl_Interp *interp,
+                    int argc,
+                    const char *argv[]  )
+{
+    std::string fromPath = "";    // path of where to copy data from
+    std::string toPath   = "";    // path of where to copy data to
+    std::string from     = "";    // string that should == "from"
+    std::string fromObjStr = "";  // string that represents the 
+                                  // string name of the object
+    RpLibrary* fromObj   = NULL;
+    int nextarg          = 2;     // start parsing using the '2'th argument
+    int argsLeft         = 0;     // temp variable for calculation
+    int noerr              = 0;     // err flag for Tcl_GetCommandInfo
+    Tcl_CmdInfo* infoPtr = NULL;  // pointer to the command info
+
+    toPath = std::string(argv[nextarg++]);
+    from = std::string(argv[nextarg++]);
+
+    argsLeft = (argc-nextarg);
+    if (argsLeft == 2) {
+        fromObjStr = std::string(argv[nextarg++]);
+        noerr = Tcl_GetCommandInfo(interp, fromObjStr.c_str(), infoPtr);
+        if (noerr && infoPtr) {
+            fromObj = (RpLibrary*) (infoPtr->clientData);
+        }
+        fromObj = NULL; // gotta figure out how to get the actual lib here
+        fromPath = std::string(argv[nextarg++]);
+    }
+    else if (argsLeft == 1) {
+        fromPath = std::string(argv[nextarg++]);
+    }
+    else {
+        Tcl_AppendResult(interp, 
+            "wrong # args: should be \"copy path from ?xmlobj? path\"",
+            (char*)NULL);
+        return TCL_ERROR;
+    }
+
+    if (from != "from") {
+        Tcl_AppendResult(interp,
+            "bad syntax: should be \"copy path from ?xmlobj? path\"",
+            (char*)NULL);
+        return TCL_ERROR;
+    }
+
+    // call the rappture library copy function
+    ((RpLibrary*) cdata)->copy(toPath, fromPath, fromObj);
+
+    // clear any previous result in the interpreter
+    // store the new result in the interpreter
+    Tcl_ResetResult(interp);
+    Tcl_AppendResult(interp, "", (char*)NULL);
+
+    return TCL_OK;
+}
+
+int
+RpTclLibElem    (   ClientData cdata,
+                    Tcl_Interp *interp,
+                    int argc,
+                    const char *argv[]  )
+{
+    std::string path   = "";    // path of where to place data inside xml tree
+    std::string retStr = "";    // path of where to place data inside xml tree
+    int nextarg        = 2;     // start parsing using the '2'th argument
+    int opt_argc       = 1;     // max number of optional parameters
+    int argsLeft       = 0;     // temp variable for calculation
+
+    RpLibrary* node    = NULL;
+    rpMbrFxnPtr asProc = &RpLibrary::nodeComp;
+
+    // parse through -'d arguments
+    while (opt_argc--) {
+        if (nextarg < argc && *argv[nextarg] == '-') {
+            if (strncmp(argv[nextarg],"-as",3) == 0) {
+                nextarg++;
+                if (    (*argv[nextarg] == 'c') &&
+                        (strncmp(argv[nextarg],"component",9) == 0) ) {
+                    asProc = &RpLibrary::nodeComp;
+                    nextarg++;
+                }
+                else if ((*argv[nextarg] == 'i') &&
+                         (strncmp(argv[nextarg],"id",2) == 0 ) ) {
+                    asProc = &RpLibrary::nodeId;
+                    nextarg++;
+                }
+                else if ((*argv[nextarg] == 't') &&
+                         (strncmp(argv[nextarg],"type",4) == 0 ) ) {
+                    asProc = &RpLibrary::nodeType;
+                    nextarg++;
+                }
+                else if ((*argv[nextarg] == 'p') &&
+                         (strncmp(argv[nextarg],"path",4) == 0 ) ) {
+                    asProc = &RpLibrary::nodePath;
+                    nextarg++;
+                }
+                else if ((*argv[nextarg] == 'o') &&
+                         (strncmp(argv[nextarg],"object",6) == 0 ) ) {
+                    asProc = NULL;
+                    nextarg++;
+                }
+                else {
+                    Tcl_AppendResult(interp, "bad option \"", argv[nextarg],
+                        "\": should be -as <fval> where <fval> is ", 
+                        "\'component\', \'id\', \'type\',",
+                        "\'path\', \'object\'",
+                        (char*)NULL);
+                    return TCL_ERROR;
+                }
+            }
+            else {
+                Tcl_AppendResult(interp, "bad option \"", argv[nextarg],
+                    "\": should be -as", (char*)NULL);
+                return TCL_ERROR;
+            }
+        }
+    }
+
+    argsLeft = (argc-nextarg);
+    if (argsLeft == 1) {
+        path = std::string(argv[nextarg++]);
+    }
+    else {
+        Tcl_AppendResult(interp, "incorrect number of arguments \"", argv[nextarg],
+            "\":", (char*)NULL);
+        return TCL_ERROR;
+    }
+
+    // call the rappture library element function
+    node = ((RpLibrary*) cdata)->element(path);
+    if (node) {
+
+        // clear any previous result in the interpreter
+        Tcl_ResetResult(interp);
+
+        if (asProc) {
+            // evaluate the "-as" flag on the returned node
+            retStr = (node->*asProc)();
+        }
+        else {
+            // create a new command for the new rappture object
+            retStr = rpLib2command(interp, node);
+        }
+        // store the new result string in the interpreter
+        Tcl_AppendResult(interp, retStr.c_str(), (char*)NULL);
+    }
+
+
+    return TCL_OK;
+}
+
+int
 RpTclLibGet     (   ClientData cdata,
                     Tcl_Interp *interp,
                     int argc,
@@ -485,6 +483,103 @@ RpTclLibGet     (   ClientData cdata,
     // store the new result in the interpreter
     Tcl_ResetResult(interp);
     Tcl_AppendResult(interp, retStr.c_str(), (char*)NULL);
+
+    return TCL_OK;
+}
+
+int
+RpTclLibParent  (   ClientData cdata,
+                    Tcl_Interp *interp,
+                    int argc,
+                    const char *argv[]  )
+{
+
+    std::string path   = "";    // path of where to place data inside xml tree
+    std::string retStr = "";    // path of where to place data inside xml tree
+    int nextarg        = 2;     // start parsing using the '2'th argument
+    int opt_argc       = 1;     // max number of optional parameters
+    int argsLeft       = 0;     // temp variable for calculation
+
+    RpLibrary* node    = NULL;
+    rpMbrFxnPtr asProc = &RpLibrary::nodeComp;
+
+    // parse through -'d arguments
+    while (opt_argc--) {
+        if (nextarg < argc && *argv[nextarg] == '-') {
+            if (strncmp(argv[nextarg],"-as",3) == 0) {
+                nextarg++;
+                if (    (*argv[nextarg] == 'c') &&
+                        (strncmp(argv[nextarg],"component",9) == 0) ) {
+                    asProc = &RpLibrary::nodeComp;
+                    nextarg++;
+                }
+                else if ((*argv[nextarg] == 'i') &&
+                         (strncmp(argv[nextarg],"id",2) == 0 ) ) {
+                    asProc = &RpLibrary::nodeId;
+                    nextarg++;
+                }
+                else if ((*argv[nextarg] == 't') &&
+                         (strncmp(argv[nextarg],"type",4) == 0 ) ) {
+                    asProc = &RpLibrary::nodeType;
+                    nextarg++;
+                }
+                else if ((*argv[nextarg] == 'p') &&
+                         (strncmp(argv[nextarg],"path",4) == 0 ) ) {
+                    asProc = &RpLibrary::nodePath;
+                    nextarg++;
+                }
+                else if ((*argv[nextarg] == 'o') &&
+                         (strncmp(argv[nextarg],"object",6) == 0 ) ) {
+                    asProc = NULL;
+                    nextarg++;
+                }
+                else {
+                    Tcl_AppendResult(interp, "bad option \"", argv[nextarg],
+                        "\": should be -as <fval> where <fval> is ", 
+                        "\'component\', \'id\', \'type\',",
+                        "\'path\', \'object\'",
+                        (char*)NULL);
+                    return TCL_ERROR;
+                }
+            }
+            else {
+                Tcl_AppendResult(interp, "bad option \"", argv[nextarg],
+                    "\": should be -as", (char*)NULL);
+                return TCL_ERROR;
+            }
+        }
+    }
+
+    argsLeft = (argc-nextarg);
+    if (argsLeft == 1) {
+        path = std::string(argv[nextarg++]);
+    }
+    else {
+        Tcl_AppendResult(interp, "incorrect number of arguments \"", argv[nextarg],
+            "\":", (char*)NULL);
+        return TCL_ERROR;
+    }
+
+    // call the rappture library parent function
+    node = ((RpLibrary*) cdata)->parent(path);
+    if (node) {
+
+        // clear any previous result in the interpreter
+        Tcl_ResetResult(interp);
+
+        if (asProc) {
+            // evaluate the "-as" flag on the returned node
+            retStr = (node->*asProc)();
+        }
+        else {
+            // create a new command for the new rappture object
+            retStr = rpLib2command(interp, node);
+        }
+        // store the new result string in the interpreter
+        Tcl_AppendResult(interp, retStr.c_str(), (char*)NULL);
+
+    }
+
 
     return TCL_OK;
 }
@@ -551,60 +646,6 @@ RpTclLibPut     (   ClientData cdata,
 }
 
 int
-RpTclLibCopy    (   ClientData cdata,
-                    Tcl_Interp *interp,
-                    int argc,
-                    const char *argv[]  )
-{
-    std::string fromPath = "";    // path of where to copy data from
-    std::string toPath   = "";    // path of where to copy data to
-    std::string from     = "";    // string that should == "from"
-    std::string fromObjStr = "";  // string that represents the 
-                                  // string name of the object
-    RpLibrary* fromObj   = NULL;
-    int nextarg          = 2;     // start parsing using the '2'th argument
-    int argsLeft         = 0;     // temp variable for calculation
-
-    toPath = std::string(argv[nextarg++]);
-    from = std::string(argv[nextarg++]);
-
-    argsLeft = (argc-nextarg);
-    if (argsLeft == 2) {
-        fromObjStr = std::string(argv[nextarg++]);
-        fromObj = NULL; // gotta figure out how to get the actual lib here
-        fromPath = std::string(argv[nextarg++]);
-    }
-    else if (argsLeft == 1) {
-        fromPath = std::string(argv[nextarg++]);
-    }
-    else {
-        Tcl_AppendResult(interp, 
-            "wrong # args: should be \"copy path from ?xmlobj? path\"",
-            (char*)NULL);
-        return TCL_ERROR;
-    }
-
-    if (from != "from") {
-        Tcl_AppendResult(interp,
-            "bad syntax: should be \"copy path from ?xmlobj? path\"",
-            (char*)NULL);
-        return TCL_ERROR;
-    }
-
-
-
-    // call the rappture library put function
-    ((RpLibrary*) cdata)->copy(toPath, fromPath,fromObj);
-
-    // clear any previous result in the interpreter
-    // store the new result in the interpreter
-    Tcl_ResetResult(interp);
-    Tcl_AppendResult(interp, "", (char*)NULL);
-
-    return TCL_OK;
-}
-
-int
 RpTclLibRemove  (   ClientData cdata,
                     Tcl_Interp *interp,
                     int argc,
@@ -628,8 +669,34 @@ RpTclLibRemove  (   ClientData cdata,
         return TCL_ERROR;
     }
 
-    // call the rappture library put function
+    // call the rappture library remove function
     ((RpLibrary*) cdata)->remove(path);
+
+    // clear any previous result in the interpreter
+    // store the new result in the interpreter
+    Tcl_ResetResult(interp);
+    Tcl_AppendResult(interp, "", (char*)NULL);
+
+    return TCL_OK;
+}
+
+int
+RpTclLibResult  (   ClientData cdata,
+                    Tcl_Interp *interp,
+                    int argc,
+                    const char *argv[]  )
+{
+    if (argc == 1) {
+        // call the rappture library result function
+        ((RpLibrary*) cdata)->result();
+    }
+    else {
+        Tcl_AppendResult(interp, 
+            "wrong # args: should be \"result \"",
+            (char*)NULL);
+        return TCL_ERROR;
+    }
+
 
     // clear any previous result in the interpreter
     // store the new result in the interpreter
@@ -648,7 +715,7 @@ RpTclLibXml     (   ClientData cdata,
 
     std::string retStr = ""; // return value of rappture get fxn
 
-    // call the Rappture Library Get Function
+    // call the Rappture Library xml Function
     retStr = ((RpLibrary*) cdata)->xml();
 
     // clear any previous result in the interpreter

@@ -1,37 +1,37 @@
 # ----------------------------------------------------------------------
-#  RapptureGUI - scripts and C extensions required for Rappture GUI
+#  RapptureLibrary - Tcl extensions to C++ core Rappture Library
 # ----------------------------------------------------------------------
 #  This file initializes the package when it is loaded by "package
 #  require".  It loads the dynamic library and sets up autoloading
 #  for other scripts.
 # ======================================================================
-#  AUTHOR:  Michael McLennan, Purdue University
-#  Copyright (c) 2004-2006  Purdue Research Foundation
+#  AUTHOR:  Derrick Kearney, Purdue University
+#  Copyright (c) 2005-2006  Purdue Research Foundation
 #
 #  See the file "license.terms" for information on usage and
 #  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 # ======================================================================
-proc RapptureGUI_init {} {
+proc RapptureLibrary_init {} {
     global auto_path
     global rappture_library
 
     package require BLT
 
     set dir [file dirname [info script]]
-    
-    set rappture_library [file join $dir scripts]
-    lappend auto_path $rappture_library
+
+    # set rappture_library [file join $dir scripts]
+    # lappend auto_path $rappture_library
 
     set suffix [info sharedlibextension]
-    set library [file join $dir .. libRapptureGUI@VERSION@${suffix}]
-    load $library RapptureGUI
+    set library [file join $dir .. libRapptureLibrary@VERSION@${suffix}]
+    load $library
 
     namespace eval Rappture {
-	variable version @EXACT_VERSION@
-	variable patchlevel @PATCHLEVEL@
+        variable version @EXACT_VERSION@
+        variable patchlevel @PATCHLEVEL@
     }
 
-    package provide RapptureGUI @VERSION@
-    rename RapptureGUI_init ""    
+    package provide RapptureLibrary @VERSION@
+    rename RapptureLibrary_init ""
 }
-RapptureGUI_init
+RapptureLibrary_init

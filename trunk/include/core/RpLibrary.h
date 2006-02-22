@@ -78,6 +78,8 @@ class RpLibrary
         std::string nodeComp();
         std::string nodePath();
 
+        int isvalid();
+
         void result();
 
         // no arg constructor

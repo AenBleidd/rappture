@@ -989,6 +989,23 @@ RpLibrary::nodePath ()
     return _node2path(root);
 }
 
+/**********************************************************************/
+// METHOD: isvalid()
+/// Returns true if the library is a valid Rappture Object with a document root
+/**
+ */
+
+int
+RpLibrary::isvalid ()
+{
+    if (!this->root) {
+        // library doesn't exist, return false;
+        return 0;
+    }
+
+    return 1;
+}
+
 /*
  * ----------------------------------------------------------------------
  *  METHOD: result
