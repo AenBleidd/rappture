@@ -1,4 +1,4 @@
-package require RapptureLibrary
+package require Rappture
 
 Rappture::library "rplib_test.xml"
 

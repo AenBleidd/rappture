@@ -11,7 +11,7 @@
 #  See the file "license.terms" for information on usage and
 #  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 # ======================================================================
-proc RapptureLibrary_init {} {
+proc Rappture_init {} {
     global auto_path
     global rappture_library
 
@@ -23,7 +23,7 @@ proc RapptureLibrary_init {} {
     # lappend auto_path $rappture_library
 
     set suffix [info sharedlibextension]
-    set library [file join $dir .. libRapptureLibrary@VERSION@${suffix}]
+    set library [file join $dir .. libRappture@VERSION@${suffix}]
     load $library
 
     namespace eval Rappture {
@@ -31,7 +31,7 @@ proc RapptureLibrary_init {} {
         variable patchlevel @PATCHLEVEL@
     }
 
-    package provide RapptureLibrary @VERSION@
-    rename RapptureLibrary_init ""
+    package provide Rappture @VERSION@
+    rename Rappture_init ""
 }
-RapptureLibrary_init
+Rappture_init
