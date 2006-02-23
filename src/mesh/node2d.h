@@ -23,8 +23,9 @@ public:
 	{ };
 
 	// assign value to coordinate[index]
+	void set(int id, int x, int y) { m_id = id; m_x = x; m_y = y; };
+	void set(int id, int* val) { m_id = id; m_x = val[0]; m_y = val[1]; };
 	void set(int x, int y) { m_x = x; m_y = y; };
-	void set(int* val) { m_x = val[0]; m_y = val[1]; };
 
 	// get node coordinates
 	void get(int& xval, int& yval) 
