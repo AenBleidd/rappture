@@ -144,7 +144,7 @@ itcl::body Rappture::Tooltip::show {where} {
         set mesg "[string range $mesg 0 1000]..."
     }
     set pos 0
-    ::for {set i 0} {$pos >= 0 && $i < 5} {incr i} {
+    ::for {set i 0} {$pos >= 0 && $i < 20} {incr i} {
         incr pos
         set pos [string first \n $mesg $pos]
     }

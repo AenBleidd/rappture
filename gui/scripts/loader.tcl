@@ -285,11 +285,15 @@ itcl::body Rappture::Loader::_newValue {} {
                 $_updesc [itcl::code $this _uploadValue]} result]
             if {$status == 0} {
                 Rappture::Tooltip::cue $itk_component(combo) \
-                    "Upload starting...\nA web browser page should pop up on your desktop.  Use that form to handle the upload operation."
+                    "Upload starting...\nA web browser page should pop up on your desktop.  Use that form to handle the upload operation.\n\nIf the upload form doesn't pop up, make sure that you're allowing pop ups from this site.  If it still doesn't pop up, you may be having trouble with the version of Java installed for your browser.  See our Support area for details.\n\nClick anywhere to dismiss this message."
             } else {
                 if {$result == "no clients"} {
                     Rappture::Tooltip::cue $itk_component(combo) \
                         "Can't upload files.  Looks like you might be having trouble with the version of Java installed for your browser."
+                } elseif {"old client" == $result} {
+                    Rappture::Tooltip::cue $itk_component(combo) "For this to work properly, you must first restart your Web browser.  You don't need to close down this session.  Simply shut down all windows for your Web browser, then restart the browser and navigate back to this page.  You'll find it on \"my nanoHUB\" listed under \"my sessions\".  Once the browser is restarted, the upload should work properly."
+                } elseif {"old clients" == $result} {
+                    Rappture::Tooltip::cue $itk_component(combo) "There are multiple browser pages connected to this session, and one of them has browser that needs to be restarted.\n\nWhoever didn't get the upload form should restart their Web browser.  You don't need to close down this session.  Simply shut down all windows for the Web browser, then restart the browser and navigate back to this page.  You'll find it on \"my nanoHUB\" listed under \"my sessions\".  Once the browser is restarted, the upload should work properly."
                 } else {
                     bgerror $result
                 }
@@ -313,6 +317,10 @@ itcl::body Rappture::Loader::_newValue {} {
                 if {$result == "no clients"} {
                     Rappture::Tooltip::cue $itk_component(combo) \
                         "Can't download data.  Looks like you might be having trouble with the version of Java installed for your browser."
+                } elseif {"old client" == $result} {
+                    Rappture::Tooltip::cue $itk_component(combo) "For this to work properly, you must first restart your Web browser.  You don't need to close down this session.  Simply shut down all windows for your Web browser, then restart the browser and navigate back to this page.  You'll find it on \"my nanoHUB\" listed under \"my sessions\".  Once the browser is restarted, the download should work properly."
+                } elseif {"old clients" == $result} {
+                    Rappture::Tooltip::cue $itk_component(combo) "There are multiple browser pages connected to this session, and one of them has browser that needs to be restarted.\n\nWhoever didn't get the download should restart their Web browser.  You don't need to close down this session.  Simply shut down all windows for the Web browser, then restart the browser and navigate back to this page.  You'll find it on \"my nanoHUB\" listed under \"my sessions\".  Once the browser is restarted, the download should work properly."
                 } else {
                     bgerror $result
                 }
@@ -379,20 +387,41 @@ itcl::body Rappture::Loader::_tooltip {} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: _uploadValue
+# USAGE: _uploadValue ?<key> <value> <key> <value> ...?
 #
 # Invoked automatically whenever the user has uploaded data from
 # the "Upload..." option.  Takes the data value (passed as an
 # argument) and loads into the destination widget.
 # ----------------------------------------------------------------------
-itcl::body Rappture::Loader::_uploadValue {string} {
+itcl::body Rappture::Loader::_uploadValue {args} {
     Rappture::Tooltip::cue hide  ;# take down the note about the popup window
+
+    array set data $args
+
+    if {[string length [string trim $data(data)]] == 0} {
+        switch -- $data(which) {
+            file {
+                set mesg "You indicated that you were uploading a file, but y"
+            }
+            text {
+                set mesg "You indicated that you were uploading text, but y"
+            }
+            default {
+                set mesg "Y"
+            }
+        }
+        Rappture::Tooltip::cue $itk_component(combo) \
+            "${mesg}ou didn't fill in any data on the upload form."
+        return
+    }
+
     #
     # BE CAREFUL:  This string may have binary characters that
     #   aren't appropriate for a string editor.  Right now, XML
     #   will barf on these characters.  Clip them out and be
     #   done with it.
     #
+    set string $data(data)
     regsub -all {[\000-\010\013\014\016-\037\177-\377]} $string {} string
     regsub -all "\r" $string "\n" string
     $itk_option(-tool) valuefor $_uppath $string
