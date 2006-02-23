@@ -53,7 +53,7 @@ itcl::class Rappture::Analyzer {
     public method reset {}
     public method load {file}
     public method clear {}
-    public method download {option}
+    public method download {option args}
 
     protected method _plot {args}
     protected method _reorder {comps}
@@ -69,9 +69,26 @@ itcl::class Rappture::Analyzer {
     private variable _runs ""          ;# list of XML objects with results
     private variable _pages 0          ;# number of pages for result sets
     private variable _label2page       ;# maps output label => result set
+    private variable _lastlabel ""     ;# label of last example loaded
     private variable _plotlist ""      ;# items currently being plotted
 
     private common job                 ;# array var used for blt::bgexec jobs
+
+    private common icons
+    set icons(download) [image create photo -data {
+R0lGODlhFAAUAMYBAAAAAP///+js9vL1+4yhxrbD21h6sFp8slx+tV6Bt2CFumSIvmOHvWaLwGyS
+yG6UynCRwWiOw2yUyXCZzm+XzG+Wy3Oc0XKaz3We1Hqk23mj2Xqk2nmi2ICex/T3+3Od0nqm3Hag
+1Xun3Iat3ZK56JK03t7n8uzy+PX4+/f5+/T4+/L3+vn7/Pj7/Pf7/Pb6+/n9/fz///r9/fn8/Pz+
+/vv9/fr8/Pz9/UGMfluegZzRp6XYqwWXC67frwCZAAKaAgOaAgOaAwWbBQabBQicCA6fDg6eDw+f
+Dw+fEA+eDxCfEF6/Xl+/X6TbpKbbpqzerK7frq3era/fr/z+/P3+/bXjsXjSbKrjotbw02bSVKvj
+olnSQYPfcJbjh5/jk1TSOV7XQm3bVIvidprmiKjqmXTgV4DjZrPuo7TupNb1zo/qc5nsf8L0s8Hz
+sar0j7L1mdD5wdH5wur+4eL91f///////////////////////////////////////////////yH5
+BAEAAH8ALAIAAgAQABAAAAfYgAUlIiAbHCEYHxcTFRIdBX8jJJOUlZQQfyKam5ycDX8ZAaKjpKMM
+fxoBLC0pHis7Rz5GOiYBCn8cATI2LC8oSFhVWEkCAQl/IQE3NTIzLj5aVlc+JwEIfxgBNDXLMD5e
+WV4+AwEHfxbaNNs1Pl1bXT4qAQZ/FAExPUo++1xfXPs+eEh5IIpJGjJjxIQBE0bMGDJpljgQFQUI
+GjNlMmY0c0bIEwIRGizAEYTNGjUo17QhkoPKn5cvnwSJ88bNGzhEmkyByfPJDzlz5AxxspMnTyix
+ijxx+TIQADs=
+}]
 }
                                                                                 
 itk::usual Analyzer {
@@ -193,11 +210,14 @@ itcl::body Rappture::Analyzer::constructor {tool args} {
     }
     pack $itk_component(resultselector) -side left -expand yes -fill x
     bind $itk_component(resultselector) <<Value>> [itcl::code $this _fixResult]
+    bind $itk_component(resultselector) <Enter> \
+        [itcl::code $this download coming]
 
     if {[Rappture::filexfer::enabled]} {
         itk_component add download {
-            button $w.top.dl -text "Download..." -anchor w \
-                -command [itcl::code $this download now]
+            button $w.top.dl -image $icons(download) -anchor e \
+                -borderwidth 1 -relief flat -overrelief raised \
+                -command [itcl::code $this download now $w.top.dl]
         }
         pack $itk_component(download) -side right -padx {4 0}
         Rappture::Tooltip::for $itk_component(download) "Downloads the current result to a new web browser window on your desktop.  From there, you can easily print or save results.
@@ -460,7 +480,12 @@ itcl::body Rappture::Analyzer::load {file} {
                     Rappture::ResultViewer $page.rviewer
                     pack $page.rviewer -expand yes -fill both -pady 4
 
-                    $itk_component(resultselector) choices insert end \
+                    set end [$itk_component(resultselector) \
+                        choices index -value ---]
+                    if {$end < 0} {
+                        set end "end"
+                    }
+                    $itk_component(resultselector) choices insert $end \
                         $name $label
                 }
 
@@ -477,11 +502,18 @@ itcl::body Rappture::Analyzer::load {file} {
     }
 
     # show the first page by default
-    set first [$itk_component(resultselector) choices get -label 0]
-    if {$first != ""} {
-        set page [$itk_component(resultselector) choices get -value 0]
-        $itk_component(resultpages) current $page
-        $itk_component(resultselector) value $first
+    set max [$itk_component(resultselector) choices size]
+    for {set i 0} {$i < $max} {incr i} {
+        set first [$itk_component(resultselector) choices get -label $i]
+        if {$first != ""} {
+            set page [$itk_component(resultselector) choices get -value $i]
+            set char [string index $page 0]
+            if {$char != "@" && $char != "-"} {
+                $itk_component(resultpages) current $page
+                $itk_component(resultselector) value $first
+                break
+            }
+        }
     }
 }
 
@@ -508,6 +540,13 @@ itcl::body Rappture::Analyzer::clear {} {
     catch {unset _label2page}
     set _plotlist ""
 
+    if {[Rappture::filexfer::enabled]} {
+        $itk_component(resultselector) choices insert end \
+            --- "---"
+        $itk_component(resultselector) choices insert end \
+            @download "Download..."
+    }
+
     #
     # HACK ALERT!!
     # The following statement should be in place, but it causes
@@ -524,11 +563,11 @@ itcl::body Rappture::Analyzer::clear {} {
 
 # ----------------------------------------------------------------------
 # USAGE: download coming
-# USAGE: download now
+# USAGE: download now ?widget?
 #
 # Spools the current result so the user can download it.
 # ----------------------------------------------------------------------
-itcl::body Rappture::Analyzer::download {option} {
+itcl::body Rappture::Analyzer::download {option args} {
     if {[Rappture::filexfer::enabled]} {
         set title [$itk_component(resultselector) value]
         set page [$itk_component(resultselector) translate $title]
@@ -539,12 +578,19 @@ itcl::body Rappture::Analyzer::download {option} {
                 # Warn result that a download is coming, in case
                 # it needs to take a screen snap.
                 #
-                if {$page != ""} {
+                if {![regexp {^(|@download|---)$} $page]} {
                     set f [$itk_component(resultpages) page $page]
                     $f.rviewer download coming
                 }
             }
             now {
+                set widget $itk_component(download)
+                if {[llength $args] > 0} {
+                    set widget [lindex $args 0]
+                    if {[catch {winfo class $widget}]} {
+                        set widget $itk_component(download)
+                    }
+                }
                 #
                 # Perform the actual download.
                 #
@@ -553,8 +599,10 @@ itcl::body Rappture::Analyzer::download {option} {
                     set f [$itk_component(resultpages) page $page]
                     foreach {ext data} [$f.rviewer download now] break
                     if {"" == $ext} {
-                        Rappture::Tooltip::cue $itk_component(download) \
-                            "Can't download this result."
+                        if {"" != $widget} {
+                            Rappture::Tooltip::cue $widget \
+                                "Can't download this result."
+                        }
                         return
                     }
                     regsub -all {[\ -\/\:-\@\{-\~]} $title {} title
@@ -567,8 +615,9 @@ itcl::body Rappture::Analyzer::download {option} {
 
                 if {[catch {Rappture::filexfer::spool $data $file} result]} {
                     if {"no clients" == $result} {
-                        Rappture::Tooltip::cue $itk_component(download) \
-                            "Can't download this result.  Looks like you might be having trouble with the version of Java installed for your browser."
+                        if {"" != $widget} {
+                            Rappture::Tooltip::cue $widget "Can't download this result.  Looks like you might be having trouble with the version of Java installed for your browser."
+                        }
                     } else {
                         error $result "    (while spooling result \"$title\")"
                     }
@@ -671,10 +720,29 @@ itcl::body Rappture::Analyzer::_autoLabel {xmlobj path title cntVar} {
 # the user selects a page from the results combobox.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Analyzer::_fixResult {} {
-    set page [$itk_component(resultselector) value]
-    set page [$itk_component(resultselector) translate $page]
-    if {$page != ""} {
-        blt::busy hold [winfo toplevel $itk_component(hull)]; update idletasks
+    set name [$itk_component(resultselector) value]
+    set page ""
+    if {"" != $name} {
+        set page [$itk_component(resultselector) translate $name]
+    }
+    if {$page == "@download"} {
+        # put the combobox back to its last value
+        $itk_component(resultselector) component entry configure -state normal
+        $itk_component(resultselector) component entry delete 0 end
+        $itk_component(resultselector) component entry insert end $_lastlabel
+        $itk_component(resultselector) component entry configure -state disabled
+        # perform the actual download
+        download now $itk_component(resultselector)
+    } elseif {$page == "---"} {
+        # put the combobox back to its last value
+        $itk_component(resultselector) component entry configure -state normal
+        $itk_component(resultselector) component entry delete 0 end
+        $itk_component(resultselector) component entry insert end $_lastlabel
+        $itk_component(resultselector) component entry configure -state disabled
+    } else {
+        set _lastlabel $name
+        set win [winfo toplevel $itk_component(hull)]
+        blt::busy hold $win; update idletasks
         $itk_component(resultpages) current $page
 
         set f [$itk_component(resultpages) page $page]

@@ -707,7 +707,7 @@ proc Rappture::filexfer::request_POST {cid url headerVar postData} {
   <title>Upload Complete</title>
   <script language="JavaScript">
     function setup() {
-        setTimeout("window.close()",100);
+        window.close()
     }
     window.onload = setup;
   </script>
