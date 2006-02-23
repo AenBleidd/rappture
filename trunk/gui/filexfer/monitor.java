@@ -18,6 +18,8 @@ import java.io.*;
 import java.awt.*;
 
 public class monitor extends Thread {
+    private String protocol = "1.0";
+
     private filexfer parent;
     private String hostName;
     private int hostPort;
@@ -135,7 +137,7 @@ public class monitor extends Thread {
         }
 
         try {
-            ostream.println("REGISTER "+user+" "+ipAddr+" "+cookie+" RAPPTURE");
+            ostream.println("REGISTER "+user+" "+ipAddr+" "+cookie+" RAPPTURE/"+protocol);
             ostream.println("ACTIVATE RAPPTURE");
             parent.status.append("Connected\n");
         }

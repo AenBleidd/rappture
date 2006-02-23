@@ -618,6 +618,14 @@ itcl::body Rappture::Analyzer::download {option args} {
                         if {"" != $widget} {
                             Rappture::Tooltip::cue $widget "Can't download this result.  Looks like you might be having trouble with the version of Java installed for your browser."
                         }
+                    } elseif {"old client" == $result} {
+                        if {"" != $widget} {
+                            Rappture::Tooltip::cue $widget "For this to work properly, you must first restart your Web browser.  You don't need to close down this session.  Simply shut down all windows for your Web browser, then restart the browser and navigate back to this page.  You'll find it on \"my nanoHUB\" listed under \"my sessions\".  Once the browser is restarted, the download should work properly."
+                        }
+                    } elseif {"old clients" == $result} {
+                        if {"" != $widget} {
+                            Rappture::Tooltip::cue $widget "There are multiple browser pages connected to this session, and one of them has browser that needs to be restarted.\n\nWhoever didn't get the download should restart their Web browser.  You don't need to close down this session.  Simply shut down all windows for the Web browser, then restart the browser and navigate back to this page.  You'll find it on \"my nanoHUB\" listed under \"my sessions\".  Once the browser is restarted, the download should work properly."
+                        }
                     } else {
                         error $result "    (while spooling result \"$title\")"
                     }

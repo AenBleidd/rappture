@@ -44,6 +44,11 @@ namespace eval Rappture::filexfer {
         0 1 2 3 4 5 6 7 8 9
     }
 
+    # maps client socket => socket protocol
+    # if it doesn't match, we warn user to restart the browser
+    variable protocol
+    set protocol(current) "1.0"
+
     #
     # Translates mime type => file extension
     #        and file extension => mime type
@@ -181,6 +186,7 @@ proc Rappture::filexfer::spool {string {filename "output.txt"}} {
     global env
     variable enabled
     variable clients
+    variable protocol
     variable access
 
     if {$enabled} {
@@ -213,9 +219,13 @@ proc Rappture::filexfer::spool {string {filename "output.txt"}} {
         close $fid
 
         set sent 0
+        set protoproblems 0
         set access($filename) [bakeCookie]
         foreach cid $clients(order) {
             if {[info exists clients($cid)] && $clients($cid)} {
+                if {![string equal $protocol($cid) $protocol(current)]} {
+                    incr protoproblems
+                }
                 catch {
                     puts $cid [format "url /spool/%s/%s?access=%s" \
                         $env(SESSION) $filename $access($filename)]
@@ -225,6 +235,11 @@ proc Rappture::filexfer::spool {string {filename "output.txt"}} {
         }
         if {!$sent} {
             error "no clients"
+        }
+        if {$protoproblems == 1} {
+            error "old client"
+        } elseif {$protoproblems > 1} {
+            error "old clients"
         }
     }
 }
@@ -350,7 +365,7 @@ proc Rappture::filexfer::handler {cid} {
                 return
             }
             # blank line -- process below...
-        } elseif {[regexp { +RAPPTURE$} $line]} {
+        } elseif {[regexp { +RAPPTURE(/[0-9\.]+)?$} $line]} {
             set buffer($cid) $line
             # special Rappture request -- process below...
         } else {
@@ -372,12 +387,12 @@ proc Rappture::filexfer::handler {cid} {
         set line [lindex $lines 0]
         set lines [lrange $lines 1 end]
         if {![regexp {^ *([A-Z]+) +([^ ]+) +(HTTP/1\.[01])$} $line \
-              match type url protocol]
-            && ![regexp { +(RAPPTURE)$} $line match protocol]} {
+              match type url proto]
+            && ![regexp { +(RAPPTURE(/[0-9\.]+)?)$} $line match proto]} {
             set errmsg "Malformed request: $line"
         }
 
-        if {[string match HTTP/* $protocol]} {
+        if {[string match HTTP/* $proto]} {
             #
             # HANDLE HTTP/1.x REQUESTS...
             #
@@ -424,13 +439,15 @@ proc Rappture::filexfer::handler {cid} {
             if {$headers(Connection) == "close"} {
                 shutdown $cid
             }
-        } elseif {$protocol == "RAPPTURE"} {
+        } elseif {[string match RAPPTURE* $proto]} {
             #
             # HANDLE SPECIAL RAPPTURE REQUESTS...
             #
-            if {[regexp {^ *(REGISTER) +([^ ]+) +([^ ]+) +([^ ]+) +RAPPTURE$} \
-                  $line match type user addr cookie]} {
-                request_REGISTER $cid $user $addr $cookie
+            set vers "0.0"
+            if {[regexp {^ *(REGISTER) +([^ ]+) +([^ ]+) +([^ ]+) +RAPPTURE(/[0-9\.]+)?$} \
+                  $line match type user addr cookie vers]} {
+                  set vers [string trimleft $vers /]
+                request_REGISTER $cid $user $addr $cookie $vers
             } elseif {[regexp {^ *UNREGISTER +RAPPTURE$} $line]} {
                 request_UNREGISTER $cid
             } elseif {[regexp {^ *ACTIVATE +RAPPTURE$} $line]} {
@@ -683,11 +700,12 @@ proc Rappture::filexfer::request_POST {cid url headerVar postData} {
         if {[info exists post(callback)]
               && [info exists uploadcmds($post(callback))]} {
             # get the data -- either text or file
-            set data $post($post(which))
+            set dlist [list which $post(which)]
+            lappend dlist data $post($post(which))
 
             # get the upload callback command
             set cmd $uploadcmds($post(callback))
-            if {[catch "$cmd [list $data]" result]} {
+            if {[catch "$cmd $dlist" result]} {
                 bgerror $result
             }
             unset uploadcmds($post(callback))
@@ -731,16 +749,19 @@ If this window doesn't close automatically, feel free to close it manually.
 }
 
 # ----------------------------------------------------------------------
-# USAGE: request_REGISTER <clientId> <user> <address> <cookie>
+# USAGE: request_REGISTER <clientId> <user> <address> <cookie> <protocol>
 #
 # Used internally to handle REGISTER requests on this server.  A client
 # sends REGISTER requests when it wants to be notified of file transfer
 # operations.  The <cookie> must match the one for this server, so
-# we know we can trust the client.
+# we know we can trust the client.  The <protocol> tells us what version
+# of filexfer client we're talking to.  If the protocol doesn't match
+# the current version, we warn the user to restart his browser.
 # ----------------------------------------------------------------------
-proc Rappture::filexfer::request_REGISTER {cid user addr clientCookie} {
+proc Rappture::filexfer::request_REGISTER {cid user addr clientCookie proto} {
     variable clients
     variable cookie
+    variable protocol
 
     if {![string equal $cookie $clientCookie]} {
         response $cid header -status "401 Unauthorized"
@@ -748,6 +769,7 @@ proc Rappture::filexfer::request_REGISTER {cid user addr clientCookie} {
     } else {
         # add this client to the known listeners
         set clients($cid) 0
+        set protocol($cid) $proto
     }
 }
 
