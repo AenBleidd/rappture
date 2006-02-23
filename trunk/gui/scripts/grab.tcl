@@ -12,6 +12,7 @@
 #  See the file "license.terms" for information on usage and
 #  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 # ======================================================================
+package require BLT
 
 namespace eval Rappture { # forward declaration }
 namespace eval Rappture::grab {
@@ -67,7 +68,7 @@ proc grab {args} {
         set ::Rappture::grab::stack \
             [linsert $::Rappture::grab::stack 0 $window]
 
-        return [eval _tk_grab set $window]
+        return [eval _grabset $window]
 
     } elseif {$op == "release"} {
         #
@@ -88,13 +89,26 @@ proc grab {args} {
                 # no more global grabs -- resume local grabs
                 set ::Rappture::grab::state ""
             }
-            eval _tk_grab $window
+            eval _grabset $window
         }
         return ""
     }
 
     # perform any other grab operation as usual...
     return [eval _tk_grab $args]
+}
+
+proc _grabset {args} {
+    # give it 3 tries, if necessary
+    for {set i 0} {$i < 3} {incr i} {
+        set status [catch {eval _tk_grab set $args} result]
+        if {$status == 0} {
+            return $result
+        }
+        after 100; update
+    }
+    # oh well, we tried...
+    return ""
 }
 
 # ----------------------------------------------------------------------
@@ -110,4 +124,8 @@ proc Rappture::grab::reset {} {
     }
     set Rappture::grab::stack ""
     set Rappture::grab::state ""
+
+    foreach win [blt::busy windows] {
+        blt::busy release $win
+    }
 }

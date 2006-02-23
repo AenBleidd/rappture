@@ -283,7 +283,10 @@ itcl::body Rappture::Loader::_newValue {} {
         if {[Rappture::filexfer::enabled]} {
             set status [catch {Rappture::filexfer::upload \
                 $_updesc [itcl::code $this _uploadValue]} result]
-            if {$status != 0} {
+            if {$status == 0} {
+                Rappture::Tooltip::cue $itk_component(combo) \
+                    "Upload starting...\nA web browser page should pop up on your desktop.  Use that form to handle the upload operation."
+            } else {
                 if {$result == "no clients"} {
                     Rappture::Tooltip::cue $itk_component(combo) \
                         "Can't upload files.  Looks like you might be having trouble with the version of Java installed for your browser."
@@ -383,6 +386,7 @@ itcl::body Rappture::Loader::_tooltip {} {
 # argument) and loads into the destination widget.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Loader::_uploadValue {string} {
+    Rappture::Tooltip::cue hide  ;# take down the note about the popup window
     #
     # BE CAREFUL:  This string may have binary characters that
     #   aren't appropriate for a string editor.  Right now, XML
@@ -390,6 +394,7 @@ itcl::body Rappture::Loader::_uploadValue {string} {
     #   done with it.
     #
     regsub -all {[\000-\010\013\014\016-\037\177-\377]} $string {} string
+    regsub -all "\r" $string "\n" string
     $itk_option(-tool) valuefor $_uppath $string
 
     $itk_component(combo) component entry configure -state normal
