@@ -353,5 +353,9 @@ clean:
 
 endiantest: endiantest.o 
 	$(CXX) -o $@ $<
-test_node: test_node.o 
+test_node3d: test_node3d.o 
+	$(CXX) -o $@ $< $(LIB_RPMESH)
+test_node2d: test_node2d.o 
+	$(CXX) -o $@ $< $(LIB_RPMESH)
+etest: etest.o 
 	$(CXX) -o $@ $< $(LIB_RPMESH)
