@@ -214,6 +214,11 @@ itcl::body Rappture::Analyzer::constructor {tool args} {
         [itcl::code $this download coming]
 
     if {[Rappture::filexfer::enabled]} {
+        $itk_component(resultselector) choices insert end \
+            --- "---"
+        $itk_component(resultselector) choices insert end \
+            @download "Download..."
+
         itk_component add download {
             button $w.top.dl -image $icons(download) -anchor e \
                 -borderwidth 1 -relief flat -overrelief raised \
@@ -546,6 +551,7 @@ itcl::body Rappture::Analyzer::clear {} {
         $itk_component(resultselector) choices insert end \
             @download "Download..."
     }
+    set _lastlabel ""
 
     #
     # HACK ALERT!!
@@ -747,7 +753,7 @@ itcl::body Rappture::Analyzer::_fixResult {} {
         $itk_component(resultselector) component entry delete 0 end
         $itk_component(resultselector) component entry insert end $_lastlabel
         $itk_component(resultselector) component entry configure -state disabled
-    } else {
+    } elseif {$page != ""} {
         set _lastlabel $name
         set win [winfo toplevel $itk_component(hull)]
         blt::busy hold $win; update idletasks
