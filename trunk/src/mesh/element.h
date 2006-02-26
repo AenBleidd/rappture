@@ -11,19 +11,9 @@
 //
 class RpElement {
 public:
-        // constructors
-        RpElement()
-	{
-		// default
-		m_nodes.resize(10);
-	};
 
-        RpElement(int numNodes, int id)
-	{
-		m_id = id;
-		if (m_nodes.capacity() < (unsigned)numNodes)
-			m_nodes.resize(numNodes);
-	};
+	// constructor, set number of nodes and/or element id
+        RpElement(int numNodes, int id=0);
 
 	// instantiate from byte stream:
 	// id(int), numNodes(int), list of node ids(int *)
@@ -41,6 +31,7 @@ public:
 	int id() { return m_id; };
 	void id(int id) { m_id = id; };
 
+	int numNodes() { return m_nodes.size(); }; 
 
 	// serialize
 	// id(int), numNodes(int), list of ids(int *)
@@ -48,6 +39,8 @@ public:
 	RP_ERROR serialize(char* buf, int buflen);
 	RP_ERROR deserialize(const char* buf);
 
+	// serialize RpElement object into xml text
+        void xmlString(std::string& xmlText);
         void print();
 
         virtual ~RpElement() { };
@@ -55,6 +48,10 @@ public:
 	// TODO
 	// void xmlPut();
 	// void xmlGet();
+
+protected:
+        // constructors, default to 8 nodes
+        RpElement();
 
 private:
 	int m_id;
