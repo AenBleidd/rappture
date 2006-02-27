@@ -28,6 +28,10 @@ RP_BASE   = $(TOP_DIR)/rappture
 
 # define which programs can be made
 PROGS           =   librpmesh
+TEST_PROGS =	test_node2d \
+		test_node3d \
+		test_element \
+		test_elem2
 
 # define our compiling environment
 #
@@ -73,6 +77,9 @@ CFLAGS = -fPIC
 # default:
 
 all: ${PROGS}
+
+test: ${TEST_PROGS}
+
 #install: install_py install_rappture install_rpobjs install_matlab install_octave
 
 RP_IO_DEPS      = RpLibrary.o RpLibraryCInterface.o RpLibraryFInterface.o \
@@ -346,8 +353,7 @@ docs:
 
 #### CLEAN UP ############################################################
 clean: 
-	- rm -f *.o librappture.so* librappture.a libRp*.so* rp*.mex* $(OCTAVE_SRC)/rp*.o*
-	- rm -rf build
+	- rm -f *.o librpmesh.a ../librpmesh.so* $(TEST_PROGS)
 
 #################
 
@@ -358,4 +364,8 @@ test_node3d: test_node3d.o
 test_node2d: test_node2d.o 
 	$(CXX) -o $@ $< $(LIB_RPMESH)
 test_element: test_element.o ../librpmesh.so
+	$(CXX) -o $@ $< $(LIB_RPMESH)
+test_elem2: test_elem2.o ../librpmesh.so
+	$(CXX) -o $@ $< $(LIB_RPMESH)
+etest: etest.o ../librpmesh.so
 	$(CXX) -o $@ $< $(LIB_RPMESH)
