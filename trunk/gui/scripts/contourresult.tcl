@@ -505,7 +505,10 @@ itcl::body Rappture::ContourResult::scale {args} {
 itcl::body Rappture::ContourResult::download {option} {
     switch $option {
         coming {
-            blt::winop snap $itk_component(area) $_download
+            if {[catch {blt::winop snap $itk_component(area) $_download}]} {
+                $_download configure -width 1 -height 1
+                $_download put #000000
+            }
         }
         now {
             #
