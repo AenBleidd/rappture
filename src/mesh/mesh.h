@@ -8,27 +8,27 @@
 
 class RpMesh3d {
 public:
-        // constructors
-        RpMesh3d() { };
+        // constructor
+        RpMesh3d(const char* id, int numNodes, int numElements, 
+			int nodesInElement);
 
-        RpMesh3d(const char* id, int numNodes, int numElements);
-
-	void numNodes(int n) { m_numNodes = n; };
-	void numElements(int n) { m_numElements = n; };
 	int numNodes() { return m_numNodes; };
 	int numElements() { return m_numElements; };
-
 	const char* id() { return m_id.c_str(); };
-	void id(const char* id) { m_id = id; };
+
+	// want user to set these numbers in constructor
+	//void numNodes(int n) { m_numNodes = n; };
+	//void numElements(int n) { m_numElements = n; };
+	//void id(const char* id) { m_id = id; };
 
 	// add all nodes to mesh
-	void addAllNodes(int numNodes, int* nodesList);
+	RP_ERROR addAllNodes(int numNodes, int* nodesList[]);
 
 	// add one node to mesh
-	void addNode(int* nodesList);
+	RP_ERROR addNode(int* nodesList);
 
 	// add an element to mesh
-	void addElement(int numNodesInElem, int* nodes);
+	RP_ERROR addElement(int numNodesInElem, int* nodes);
 
 	// retrieve nodes 
 	void getNode(int nodeSeqNum, int& x, int& y, int& z);
@@ -47,14 +47,18 @@ public:
 
         virtual ~RpMesh3d();
 
+protected:
+	// default constructor
+        RpMesh3d() { };
+
 private:
 	std::string m_id;
 	int m_numNodes;
 	int m_numElements;
 	int m_nodeIndex;
 	int m_elemIndex;
-	RpNode3d * m_nodeList; // ptr to a list of node objects
-	RpElement ** m_elemList; // ptr to a list of ptrs to element objects
+	vector<RpNode3d> m_nodeList; // list of node objects
+	vector<RpElement> * m_elemList; // ptr to a list of RpElement objects
 };
 
 #endif
