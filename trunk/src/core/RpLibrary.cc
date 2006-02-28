@@ -500,6 +500,265 @@ RpLibrary::element (std::string path)
 }
 
 /**********************************************************************/
+// METHOD: entities()
+/// Search the path of a xml tree and return its next entity.
+/**
+ * It is the user's responsibility to delete the object when 
+ * they are finished using it?, else i need to make this static
+ */
+
+std::list<std::string> 
+RpLibrary::entities  (std::string path)
+{
+    std::list<std::string> queue;
+    std::list<std::string>::iterator iter;
+    std::list<std::string> retList;
+    std::list<std::string> childList;
+    std::list<std::string>::iterator childIter;
+
+    RpLibrary* ele = NULL;
+
+    RpLibrary* child = NULL;
+    std::string childType = "";
+    std::string childPath = "";
+    std::string paramsPath = "";
+
+    RpLibrary* cchild = NULL;
+    std::string cchildType = "";
+    std::string cchildPath = "";
+
+    queue.push_back(path);
+    iter = queue.begin();
+
+    while( iter != queue.end() ) {
+        ele = this->element(*iter);
+        child = NULL;
+
+        while ( (child = ele->children("",child)) != NULL ) {
+            childList.push_back(child->nodeComp());
+        }
+
+        childIter = childList.begin();
+
+        while (childIter != childList.end()) {
+            child = ele->element(*childIter);
+
+            childType = child->nodeType();
+            childPath = child->nodePath();
+            if ( (childType == "group") || (childType == "phase") ) {
+                // add this path to the queue for paths to search
+                queue.push_back(childPath);
+            }
+            else if (childType == "structure") {
+                // add this path to the return list
+                retList.push_back(child->nodeComp());
+
+                // check to see if there is a ".current.parameters" node
+                // if so, add them to the queue list for paths to search
+                paramsPath = childPath + ".current.parameters";
+                if (child->element(paramsPath) != NULL) {
+                    queue.push_back(paramsPath);
+                }
+            }
+            else {
+                // add this path to the return list
+                retList.push_back(child->nodeComp());
+
+                // look for embedded groups and phases
+                // add them to the queue list for paths to search
+                cchild = NULL;
+                while ( (cchild = child->children("",cchild)) != NULL ) {
+                    cchildType = cchild->nodeType();
+                    cchildPath = cchild->nodePath();
+                    if ( (cchildType == "group") || (cchildType == "phase") ) {
+                        // add this path to the queue for paths to search
+                        queue.push_back(cchildPath);
+                    }
+                }
+            }
+
+            childList.erase(childIter);
+            childIter = childList.begin();
+        }
+
+        queue.erase(iter);
+        iter = queue.begin();
+    }
+
+    return retList;
+}
+
+/**********************************************************************/
+// METHOD: diff()
+/// find the differences between two xml trees.
+/**
+ */
+
+std::list<std::string>
+RpLibrary::diff (RpLibrary* otherLib, std::string path)
+{
+
+    std::list<std::string> thisVal; // two node list of specific entity's value
+    std::list<std::string> otherVal; // two node list of specific entity's value
+
+    std::list<std::string> thisv; // list of this library's entities
+    std::list<std::string>::iterator thisIter;
+
+    std::list<std::string> otherv; // list of other library's entities
+    std::list<std::string>::iterator otherIter;
+
+    std::list<std::string> retList;
+
+    std::string entry = "";
+    std::string thisSpath = "";  // temp string
+    std::string otherSpath = ""; // temp string
+
+    if ( (!this->root) || (!otherLib->root) ) {
+        // library doesn't exist, do nothing;
+        return retList;
+    }
+
+    thisv = this->entities(path);
+    otherv = otherLib->entities(path);
+
+    thisIter = thisv.begin();
+
+    while (thisIter != thisv.end() ) {
+        // reset otherIter for a new search.
+        otherIter = otherv.begin();
+        while ( (otherIter != otherv.end()) && (*otherIter != *thisIter) ) {
+            otherIter++;
+        }
+
+        thisSpath = path + "." + *thisIter;
+
+        if (otherIter == otherv.end()) {
+            // we've reached the end of the search 
+            // and did not find anything, mark this as a '-'
+            thisVal = this->value(thisSpath);
+            retList.push_back("-");
+            retList.push_back(thisSpath);
+            retList.push_back(thisVal.front());
+            retList.push_back("");
+        }
+        else {
+
+            otherSpath = path + "." + *otherIter;
+
+            thisVal = this->value(thisSpath);
+            otherVal = otherLib->value(otherSpath);
+            if (thisVal.back() != otherVal.back()) {
+                // add the difference to the return list
+                retList.push_back("c");
+                retList.push_back(otherSpath);
+                retList.push_back(thisVal.front());
+                retList.push_back(otherVal.front());
+            }
+
+            // remove the last processed value from otherv
+            otherv.erase(otherIter);
+        }
+
+        // increment thisv's iterator.
+        thisIter++;
+    }
+
+    // add any left over values in otherv to the return list
+    otherIter = otherv.begin();
+    while ( otherIter != otherv.end() ) {
+
+        otherSpath = path + "." + *otherIter;
+
+        otherVal = otherLib->value(otherSpath);
+
+        retList.push_back("+");
+        retList.push_back(otherSpath);
+        retList.push_back(otherVal.front());
+        retList.push_back("");
+
+        otherv.erase(otherIter);
+        otherIter = otherv.begin();
+    }
+
+    return retList;
+}
+
+/**********************************************************************/
+// METHOD: value(path)
+/// find the differences between two xml trees.
+/**
+ */
+
+std::list<std::string>
+RpLibrary::value (std::string path)
+{
+    std::list<std::string> retArr;
+
+    std::string raw = "";
+    std::string val = "";
+
+    RpLibrary* ele = NULL;
+    RpLibrary* tele = NULL;
+
+    int childCount = 0;
+    std::stringstream valStr;
+
+    ele = this->element(path);
+
+    if (ele != NULL ) {
+
+        if (ele->nodeType() == "structure") {
+            raw = path;
+            // try to find a label to represent the structure
+            val = ele->get("about.label");
+
+            if (val == "") {
+               val = ele->get("current.about.label");
+            }
+
+            if (val == "") {
+               tele = ele->element("current");
+               if ( (tele != NULL) && (tele->nodeComp() != "") ) {
+                   tele->children("components",NULL,"",&childCount);
+                   valStr << "<structure> with " << childCount  << " components";
+                   val = valStr.str();
+               }
+            }
+
+        }
+        /*
+        else if (ele->nodeType() == "number") {
+            retArr[0] = "";
+            retArr[1] = "";
+            if ( (tele = ele->element("current")) != NULL) {
+                retArr[0] = tele->get();
+                retArr[1] = retArr[0];
+            }
+            else if ( (tele = ele->element("default")) != NULL) {
+                retArr[0] = tele->get();
+                retArr[1] = retArr[0];
+            }
+        }
+        */
+        else {
+            raw = "";
+            if ( (tele = ele->element("current")) != NULL) {
+                raw = tele->get();
+            }
+            else if ( (tele = ele->element("default")) != NULL) {
+                raw = tele->get();
+            }
+            val = raw;
+        }
+    }
+
+    retArr.push_back(raw);
+    retArr.push_back(val);
+
+    return retArr;
+}
+
+/**********************************************************************/
 // METHOD: parent()
 /// Search the path of a xml tree and return its parent.
 /**
@@ -884,11 +1143,10 @@ RpLibrary::remove ( std::string path )
 
     if (ele) {
         scew_element_free(ele);
-        if (setNULL) {
+        if (setNULL != 0) {
             // this is the case where user specified an empty path.
             // the object is useless, and will be deleted.
             this->root = NULL;
-            delete this;
             retLib = NULL;
         }
         else {
@@ -987,23 +1245,6 @@ RpLibrary::nodePath ()
     }
 
     return _node2path(root);
-}
-
-/**********************************************************************/
-// METHOD: isvalid()
-/// Returns true if the library is a valid Rappture Object with a document root
-/**
- */
-
-int
-RpLibrary::isvalid ()
-{
-    if (!this->root) {
-        // library doesn't exist, return false;
-        return 0;
-    }
-
-    return 1;
 }
 
 /*

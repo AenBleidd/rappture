@@ -21,10 +21,13 @@
 #include <errno.h>
 #include <time.h>
 
+#include <list>
+
 /* indentation size (in whitespaces) */
 #define INDENT_SIZE 4
 #define CREATE_PATH 1
 #define NO_CREATE_PATH 0
+#define E_QUEUE_SIZE 100
 
 #ifndef _RpLIBRARY_H 
 #define _RpLIBRARY_H
@@ -37,6 +40,12 @@ class RpLibrary
 
         RpLibrary* element (std::string path = "");
         RpLibrary* parent (std::string path = "");
+
+        std::list<std::string> entities  (std::string path = "");
+        std::list<std::string> value     (std::string path = "");
+        std::list<std::string> diff      ( RpLibrary* otherLib,
+                                            std::string path);
+
 
         // should return RpObject& but for simplicity right now it doesnt
         // RpObject will either be an Array, RpString, RpNumber ...
@@ -77,8 +86,6 @@ class RpLibrary
         std::string nodeId();
         std::string nodeComp();
         std::string nodePath();
-
-        int isvalid();
 
         void result();
 

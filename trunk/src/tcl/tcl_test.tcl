@@ -76,11 +76,37 @@ puts "libObj1 = "
 puts $libObj1
 
 puts "COPYING BETWEEN LIBS"
-$libObj1 copy "input.test" from libObj2 "input.(max)"
+$libObj1 copy "input.test" from $libObj2 "input.(max)"
 puts [$libObj1 xml]
+
+puts "COPYING BETWEEN LIBS - this should fail"
+set err [$libObj1 copy "input.test" from put "input.(max)"]
+puts $err
 
 #puts [$libObj xml]
 puts "isvalid test1: "
-# puts [Rappture::library isvalid $libObj1]
+puts [Rappture::library isvalid $libObj1]
 puts "isvalid test2: "
-# puts [Rappture::library isvalid library0]
+puts [Rappture::library isvalid library0]
+puts "isvalid test3: "
+puts [Rappture::library isvalid puts]
+puts "testing lib0's xml"
+puts [library0 xml]
+
+puts "TEST ISA"
+puts "$libObj1 isa ::Rappture::LibraryObj : "
+puts [$libObj1 isa ::Rappture::LibraryObj]
+puts "$libObj1 isa ::Rappture::Table : "
+puts [$libObj1 isa ::Rappture::Table]
+#puts "$libObj1 isa ::Rappture::LibraryObj ::Rappture::LibraryObj: "
+#puts [$libObj1 isa ::Rappture::LibraryObj ::Rappture::LibraryObj]
+
+puts "TEST DIFF"
+puts "changing the value of input.number(min) to 4"
+$libObj1 put input.number(min).current "4"
+$libObj2 put input.number(jdjd).current "4"
+puts "$libObj1 diff $libObj2"
+puts [$libObj1 diff $libObj2]
+#foreach {op vpath oldval newval} [$libObj1 diff $libObj2] {
+#    puts "op
+
