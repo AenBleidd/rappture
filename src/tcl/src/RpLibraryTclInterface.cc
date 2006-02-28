@@ -2,10 +2,8 @@
  * ----------------------------------------------------------------------
  *  Rappture::library
  *
- *  This is an interface to the system getrlimit() and setrlimit()
- *  routines.  It allows you to get/set resource limits for child
- *  executables.  We use this in Rappture::exec, for example, to make
- *  sure that jobs don't run forever or fill up the disk.
+ *  This is an interface to the rappture library module.
+ *  It allows you to create rappture library objects.
  * ======================================================================
  *  AUTHOR:  Derrick Kearney, Purdue University
  *  Copyright (c) 2004-2006  Purdue Research Foundation
@@ -18,6 +16,7 @@
 #include <stdexcept>
 // #include <typeinfo.h>
 #include "core/RpLibrary.h"
+#include <sstream>
 
 #ifdef __cplusplus
 extern "C" {
@@ -37,9 +36,13 @@ static int RpTclLibChild  _ANSI_ARGS_(( ClientData cdata, Tcl_Interp *interp,
                                         int argc, const char *argv[]    ));
 static int RpTclLibCopy   _ANSI_ARGS_(( ClientData cdata, Tcl_Interp *interp,
                                         int argc, const char *argv[]    ));
+static int RpTclLibDiff   _ANSI_ARGS_(( ClientData cdata, Tcl_Interp *interp,
+                                        int argc, const char *argv[]    ));
 static int RpTclLibElem   _ANSI_ARGS_(( ClientData cdata, Tcl_Interp *interp,
                                         int argc, const char *argv[]    ));
 static int RpTclLibGet    _ANSI_ARGS_(( ClientData cdata, Tcl_Interp *interp,
+                                        int argc, const char *argv[]    ));
+static int RpTclLibIsa    _ANSI_ARGS_(( ClientData cdata, Tcl_Interp *interp,
                                         int argc, const char *argv[]    ));
 static int RpTclLibParent _ANSI_ARGS_(( ClientData cdata, Tcl_Interp *interp,
                                         int argc, const char *argv[]    ));
@@ -64,8 +67,10 @@ static Blt_OpSpec rpLibOps[] = {
         "?-as <fval>? ?-type <name>? ?<path>?",},
     {"copy", 2, (Blt_Op)RpTclLibCopy, 5, 6,
         "<path> from ?<xmlobj>? <path>",},
+    {"diff", 1, (Blt_Op)RpTclLibDiff, 3, 3, "<xmlobj>",},
     {"element", 1, (Blt_Op)RpTclLibElem, 2, 5, "?-as <fval>? ?<path>?",},
     {"get", 1, (Blt_Op)RpTclLibGet, 2, 3, "?<path>?",},
+    {"isa", 1, (Blt_Op)RpTclLibIsa, 3, 3, "<objType>",},
     {"parent", 2, (Blt_Op)RpTclLibParent, 2, 5, "?-as <fval>? ?<path>?",},
     {"put", 2, (Blt_Op)RpTclLibPut, 2, 8,
         "?-append yes? ?-id num? ?<path>? <string>",},
@@ -75,6 +80,8 @@ static Blt_OpSpec rpLibOps[] = {
 };
 
 static int nRpLibOps = sizeof(rpLibOps) / sizeof(Blt_OpSpec);
+
+#define RAPPTURE_OBJ_TYPE "::Rappture::LibraryObj"
 
 #ifdef __cplusplus
 }
@@ -114,48 +121,36 @@ RpLibraryCmd (  ClientData cData,
                 const char* argv[]  )
 {
     RpLibrary *rpptr = NULL;
-    RpLibrary *testObj = NULL;
     std::string libName = "";
     int noerr = 0;
-    Tcl_CmdInfo* infoPtr = NULL;  // pointer to the command info
+    std::stringstream result;
+    Tcl_CmdInfo info;  // pointer to the command info
+
 
     if ( (argc > 2) && (strncmp(argv[1],"isvalid",7) == 0) ) {
+        result.str("0");
         if (argc != 3) {
-            std::cout << "wrong # args: should be \"" << argv[0] 
-                << " isvalid object\"" << std::endl;
+            Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
+                "\": isvalid object", 
+                (char*)NULL);
             return TCL_ERROR;
         }
 
-        libName = std::string(argv[2]);
-        std::cout << "argv[2] = " << argv[2] << std::endl;
-        std::cout << "interp = " << interp << std::endl;
-        noerr = Tcl_GetCommandInfo(interp, libName.c_str(), infoPtr);
-        std::cout << "interp = " << interp << std::endl;
-        if (noerr && infoPtr) {
-            testObj = (RpLibrary*) (infoPtr->clientData);
-            // if ( (testObj) && (typeid(RpLibrary) == typeid(testObj)) ) {
-            if (testObj) {
-                // return testObj->isvalid();
-                // need a way to try this and catch any errors
-                try {
-                    testObj->isvalid();
-                    return 1; // return true
-                }
-                catch (const std::exception& e) {
-                    return 0; // return false
-                }
-            }
-            else {
-                return 0; // return false
+        noerr = Tcl_GetCommandInfo(interp, argv[2], &info);
+        if (noerr == 1) {
+            if (info.proc == &RpLibCallCmd) {
+                result.clear();
+                result.str("1");
             }
         }
-        else {
-            return 0; // return false
-        }
+
+        Tcl_ResetResult(interp);
+        Tcl_AppendResult(interp, result.str().c_str(), (char*)NULL);
+        return TCL_OK;
     }
 
     if (argc != 2) {
-        std::cout << "usage: " << argv[0] << " <xmlfile>" << std::endl;
+        Tcl_AppendResult(interp, "usage: ", argv[0], " <xmlfile>",(char*)NULL);
         return TCL_ERROR;
     }
 
@@ -164,9 +159,7 @@ RpLibraryCmd (  ClientData cData,
 
     libName = rpLib2command(interp,rpptr);
 
-    Tcl_ResetResult(interp);
     Tcl_AppendResult(interp, libName.c_str(), (char*)NULL);
-
     return TCL_OK;
 }
 
@@ -193,7 +186,9 @@ RpLibCallCmd (  ClientData cData,
     Blt_Op proc;
 
     if (argc < 2) {
-        std::cout <<"usage: "<< argv[0] <<" <command> <arg-list>"<< std::endl;
+        Tcl_AppendResult(interp, "usage: \"", argv[0],
+            "\": <command> <arg-list>", 
+            (char*)NULL);
         return TCL_ERROR;
     }
 
@@ -324,7 +319,7 @@ RpTclLibCopy    (   ClientData cdata,
     int nextarg          = 2;     // start parsing using the '2'th argument
     int argsLeft         = 0;     // temp variable for calculation
     int noerr              = 0;     // err flag for Tcl_GetCommandInfo
-    Tcl_CmdInfo* infoPtr = NULL;  // pointer to the command info
+    Tcl_CmdInfo info;  // pointer to the command info
 
     toPath = std::string(argv[nextarg++]);
     from = std::string(argv[nextarg++]);
@@ -332,17 +327,26 @@ RpTclLibCopy    (   ClientData cdata,
     argsLeft = (argc-nextarg);
     if (argsLeft == 2) {
         fromObjStr = std::string(argv[nextarg++]);
-        noerr = Tcl_GetCommandInfo(interp, fromObjStr.c_str(), infoPtr);
-        if (noerr && infoPtr) {
-            fromObj = (RpLibrary*) (infoPtr->clientData);
+        noerr = Tcl_GetCommandInfo(interp, fromObjStr.c_str(), &info);
+        if (noerr == 1) {
+            if (info.proc == RpLibCallCmd) {
+                fromObj = (RpLibrary*) (info.clientData);
+            }
+            else {
+                Tcl_ResetResult(interp);
+                Tcl_AppendResult(interp,
+                    "wrong arg type: xmlobj should be a Rappture Library\"",
+                    (char*)NULL);
+                return TCL_ERROR;
+            }
         }
-        fromObj = NULL; // gotta figure out how to get the actual lib here
         fromPath = std::string(argv[nextarg++]);
     }
     else if (argsLeft == 1) {
         fromPath = std::string(argv[nextarg++]);
     }
     else {
+        Tcl_ResetResult(interp);
         Tcl_AppendResult(interp, 
             "wrong # args: should be \"copy path from ?xmlobj? path\"",
             (char*)NULL);
@@ -350,6 +354,7 @@ RpTclLibCopy    (   ClientData cdata,
     }
 
     if (from != "from") {
+        Tcl_ResetResult(interp);
         Tcl_AppendResult(interp,
             "bad syntax: should be \"copy path from ?xmlobj? path\"",
             (char*)NULL);
@@ -364,6 +369,70 @@ RpTclLibCopy    (   ClientData cdata,
     Tcl_ResetResult(interp);
     Tcl_AppendResult(interp, "", (char*)NULL);
 
+    return TCL_OK;
+}
+
+int
+RpTclLibDiff     (   ClientData cdata,
+                    Tcl_Interp *interp,
+                    int argc,
+                    const char *argv[]  )
+{
+
+    Tcl_CmdInfo info;                // pointer to the command info
+    std::string otherLibStr = "";
+    RpLibrary* otherLib     = NULL;
+    int nextarg             = 2;     // start parsing using the '2'th argument
+    int argsLeft            = 0;     // temp variable for calculation
+    int noerr               = 0;     // err flag for Tcl_GetCommandInfo
+
+    std::list<std::string> diffList; // list to store the return value 
+                                     // from diff command
+    std::list<std::string>::iterator diffListIter;
+
+    // parse input arguments
+    argsLeft = (argc-nextarg);
+    if (argsLeft == 1) {
+        otherLibStr = std::string(argv[nextarg++]);
+        noerr = Tcl_GetCommandInfo(interp, otherLibStr.c_str(), &info);
+        if (noerr == 1) {
+            if (info.proc == RpLibCallCmd) {
+                otherLib = (RpLibrary*) (info.clientData);
+            }
+            else {
+                Tcl_ResetResult(interp);
+                Tcl_AppendResult(interp,
+                    "wrong arg type: xmlobj should be a Rappture Library\"",
+                    (char*)NULL);
+                return TCL_ERROR;
+            }
+        }
+    }
+    else {
+        Tcl_ResetResult(interp);
+        Tcl_AppendResult(interp, 
+            "wrong # args: should be \"diff <xmlobj>\"",
+            (char*)NULL);
+        return TCL_ERROR;
+    }
+
+    // perform the diff command
+    diffList = ((RpLibrary*) (cdata))->diff(otherLib,"input");
+    diffListIter = diffList.begin();
+
+    Tcl_ResetResult(interp);
+
+    // parse through the output of the diff command
+    // put it into the return result
+    while (diffListIter != diffList.end()) {
+        Tcl_AppendElement(interp,(*diffListIter).c_str());
+
+        // increment the iterator
+        diffListIter++;
+    }
+
+
+    // Tcl_AppendResult(interp, retStr.c_str(), (char*)NULL);
     return TCL_OK;
 }
 
@@ -472,12 +541,55 @@ RpTclLibGet     (   ClientData cdata,
     std::string retStr = ""; // return value of rappture get fxn
     std::string path = "";
 
-    if (argc > 2) {
+    if (argc == 3) {
         path = std::string(argv[2]);
+    }
+    else if (argc != 2) {
+        Tcl_ResetResult(interp);
+        Tcl_AppendResult(interp, 
+            "wrong # args: should be \"get ?path?\"",
+            "\":", (char*)NULL);
+        return TCL_ERROR;
     }
 
     // call the Rappture Library Get Function
     retStr = ((RpLibrary*) cdata)->getString(path);
+
+    // clear any previous result in the interpreter
+    // store the new result in the interpreter
+    Tcl_ResetResult(interp);
+    Tcl_AppendResult(interp, retStr.c_str(), (char*)NULL);
+
+    return TCL_OK;
+}
+
+int
+RpTclLibIsa     (   ClientData cdata,
+                    Tcl_Interp *interp,
+                    int argc,
+                    const char *argv[]  )
+{
+
+    std::string compVal = ""; // string value of object being compared to
+    std::string retStr  = ""; // return value of rappture get fxn
+
+    if (argc == 3) {
+        compVal = std::string(argv[2]);
+    }
+    else {
+        Tcl_ResetResult(interp);
+        Tcl_AppendResult(interp, 
+            "wrong # args: should be \"get ?path?\"",
+            "\":", (char*)NULL);
+        return TCL_ERROR;
+    }
+
+    if (compVal == RAPPTURE_OBJ_TYPE) {
+        retStr = "1";
+    }
+    else {
+        retStr = "0";
+    }
 
     // clear any previous result in the interpreter
     // store the new result in the interpreter
@@ -652,7 +764,7 @@ RpTclLibRemove  (   ClientData cdata,
                     const char *argv[]  )
 {
 
-    std::string path = std::string("");    // path of where to copy data from
+    std::string path = std::string("");    // path of where to remove data from
     int nextarg = 2;
 
 
@@ -663,7 +775,7 @@ RpTclLibRemove  (   ClientData cdata,
         path = std::string(argv[nextarg]);
     }
     else {
-        Tcl_AppendResult(interp, 
+        Tcl_AppendResult(interp,
             "wrong # args: should be \"remove ?path?\"",
             (char*)NULL);
         return TCL_ERROR;

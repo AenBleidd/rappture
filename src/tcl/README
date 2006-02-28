@@ -3,4 +3,4 @@ to compile:
 make all install
 
 within tclsh
-    package require RapptureLibrary
+    package require Rappture

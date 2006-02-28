@@ -12,6 +12,7 @@
  */
 
 #include "RpLibrary.h"
+#include <list>
 
 int test_element (RpLibrary* lib, std::string path );
 int test_parent (RpLibrary* lib, std::string path );
@@ -197,6 +198,53 @@ int test_remove (RpLibrary* lib, std::string path)
     return retVal;
 }
 
+int test_entities (RpLibrary* lib)
+{
+    std::list<std::string>::iterator iter;
+    std::list<std::string> elist = lib->entities();
+
+    iter = elist.begin();
+
+    std::cout << "TESTING ENTITIES BEGIN" << std::endl;
+    std::cout << "path = "<< lib->nodePath() << std::endl;
+
+    while (iter != elist.end() ) {
+        std::cout << *iter << std::endl;
+        iter++;
+    }
+
+    std::cout << "TESTING ENTITIES END" << std::endl;
+
+    return 0;
+}
+
+int test_diff (RpLibrary* lib1, RpLibrary* lib2)
+{
+    std::list<std::string>::iterator iter;
+    std::list<std::string> elist;
+
+    elist = lib1->diff(lib2,"input");
+
+    iter = elist.begin();
+
+    std::cout << "TESTING DIFF BEGIN" << std::endl;
+
+    int count = 0;
+    while (iter != elist.end() ) {
+        std::cout << *iter << " ";
+        iter++;
+        count++;
+        if (count == 4) {
+            std::cout << std::endl;
+            count = 0;
+        }
+
+    }
+
+    std::cout << "TESTING DIFF END" << std::endl;
+
+    return 0;
+}
 
 /*
 int test_children (RpLibrary* lib, std::string path, std::string type )
@@ -314,6 +362,33 @@ main(int argc, char** argv)
     test_remove(lib, "input.test.(max)");
     std::cout << lib->xml() << std::endl;
 
+    RpLibrary* libInput = lib->element("input");
+    test_entities(lib);
+    test_entities(libInput);
+
+    /*
+    std::list<std::string> l1 = lib->value("input.number(min)");
+    std::list<std::string> l2 = lib->value("input.number(max)");
+    std::cout << "l1 = " << l1.front() << " " << l1.back() << std::endl;
+    std::cout << "l2 = " << l2.front() << " " << l2.back() << std::endl;
+    */
+
+    RpLibrary* dlib1 = new RpLibrary(std::string(argv[1]));
+    RpLibrary* dlib2 = new RpLibrary(std::string(argv[1]));
+    test_diff(dlib1,dlib2);
+    std::cout << "dlib1-------------------------------------" << std::endl;
+    std::cout << dlib1->xml() << std::endl;
+    std::cout << "dlib2-------------------------------------" << std::endl;
+    std::cout << dlib1->xml() << std::endl;
+    dlib1 = lib;
+    test_diff(dlib1,dlib2);
+    std::cout << "dlib1-------------------------------------" << std::endl;
+    std::cout << dlib1->xml() << std::endl;
+    std::cout << "dlib2-------------------------------------" << std::endl;
+    std::cout << dlib1->xml() << std::endl;
+
+
+
     // test copy assignment operator
     lib2 = *lib;
 
@@ -344,6 +419,7 @@ main(int argc, char** argv)
     std::cout << lib3.xml() << std::endl;
 
     lib2.result();
+
 
     return 0;
 }
