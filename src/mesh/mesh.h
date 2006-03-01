@@ -3,6 +3,7 @@
 
 #include <string>
 #include "element.h"
+#include "node3d.h"
 #include "util.h"
 
 
@@ -28,11 +29,11 @@ public:
 	RP_ERROR addNode(int* nodesList);
 
 	// add an element to mesh
-	RP_ERROR addElement(int numNodesInElem, int* nodes);
+	RP_ERROR addElement(int numNodesInElem, const int* nodes);
 
 	// retrieve nodes 
 	void getNode(int nodeSeqNum, int& x, int& y, int& z);
-	RpNode3d getNode(int nodeSeqNum);
+	RP_ERROR getNode(int nodeSeqNum, RpNode3d& node);
 	RP_ERROR getNodesList(int* nodesList, int& num);
 
 	RpElement getElement(int elemSeqNum);
@@ -43,6 +44,7 @@ public:
 	RP_ERROR serialize(char* buf, int buflen);
 	RP_ERROR deserialize(const char* buf);
 
+        void xmlString(std::string& str);
         void print();
 
         virtual ~RpMesh3d();
