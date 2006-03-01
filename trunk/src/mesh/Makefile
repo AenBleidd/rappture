@@ -31,7 +31,8 @@ PROGS           =   librpmesh
 TEST_PROGS =	test_node2d \
 		test_node3d \
 		test_element \
-		test_elem2
+		test_elem2 \
+		test_mesh
 
 # define our compiling environment
 #
@@ -370,6 +371,8 @@ test_element: test_element.o ../librpmesh.so
 test_elem2: test_elem2.o ../librpmesh.so
 	$(CXX) $(DEBUG) -o $@ $< $(LIB_RPMESH)
 test_mesh: test_mesh.o ../librpmesh.so
+	$(CXX) $(DEBUG) -o $@ $< $(LIB_RPMESH)
+test_mesh2: test_mesh2.o ../librpmesh.so
 	$(CXX) $(DEBUG) -o $@ $< $(LIB_RPMESH)
 etest: etest.o ../librpmesh.so
 	$(CXX) $(DEBUG) -o $@ $< $(LIB_RPMESH)
