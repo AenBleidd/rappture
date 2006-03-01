@@ -20,7 +20,8 @@ BINARIES=$(lib_BINARIES)
 
 Rappture_SOURCES = \
   src/Rappture_Init.cc \
-  src/RpLibraryTclInterface.cc
+  src/RpLibraryTclInterface.cc \
+  src/RpUnitsTclInterface.cc
 SOURCES = $(Rappture_SOURCES)
 
 #========================================================================
@@ -32,7 +33,8 @@ SOURCES = $(Rappture_SOURCES)
 
 Rappture_OBJECTS = \
   Rappture_Init.$(OBJEXT) \
-  RpLibraryTclInterface.$(OBJEXT)
+  RpLibraryTclInterface.$(OBJEXT) \
+  RpUnitsTclInterface.$(OBJEXT)
 OBJECTS = $(Rappture_OBJECTS)
 
 #========================================================================
@@ -264,6 +266,9 @@ Rappture_Init.$(OBJEXT): $(srcdir)/src/Rappture_Init.cc
 
 RpLibraryTclInterface.$(OBJEXT): $(srcdir)/src/RpLibraryTclInterface.cc
 	$(COMPILEXX) -c `@CYGPATH@ $(srcdir)/src/RpLibraryTclInterface.cc` -o $@
+
+RpUnitsTclInterface.$(OBJEXT): $(srcdir)/src/RpUnitsTclInterface.cc
+	$(COMPILEXX) -c `@CYGPATH@ $(srcdir)/src/RpUnitsTclInterface.cc` -o $@
 
 
 #========================================================================
