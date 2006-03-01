@@ -1,0 +1,27 @@
+/*
+ * ======================================================================
+ *  AUTHOR:  Wei Qiao <qiaow@purdue.edu>
+ *           Purdue Rendering and Perceptualization Lab (PURPL)
+ *
+ *  Copyright (c) 2004-2006  Purdue Research Foundation
+ *
+ *  See the file "license.terms" for information on usage and
+ *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+ * ======================================================================
+ */
+
+// interleave position data from two textures
+float4 main(in float2 uv : TEXCOORD0,
+            in float3 wpos : WPOS,
+            uniform samplerRECT tex0,
+            uniform samplerRECT tex1
+            ) : COLOR
+{
+    float4 current = texRECT(tex0, uv);
+    float4 previous = texRECT(tex1, uv);
+    bool f = fmod(wpos.x, 2.0) > 1.0;    
+    return f ? current : previous;
+//    return f ? current : current + (current-previous)*4.0;
+//    return texRECT(tex0, uv);
+//    return f;
+}
