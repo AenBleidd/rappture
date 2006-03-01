@@ -45,6 +45,7 @@ public:
 	RP_ERROR serialize(char* buf, int buflen);
 	RP_ERROR deserialize(const char* buf);
 
+	void xmlString(std::string& str);
         void print();
 
         virtual ~RpNode3d() { };
