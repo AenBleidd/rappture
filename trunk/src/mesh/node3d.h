@@ -50,6 +50,11 @@ public:
 	void xmlString(std::string& str);
         void print();
 
+        void erase() {
+		m_id = 0;
+		m_x = m_y = m_z = 0;
+	};
+
         virtual ~RpNode3d() { };
 
 private:

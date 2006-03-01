@@ -40,6 +40,10 @@ public:
 	RP_ERROR serialize(char* buf, int buflen);
 	RP_ERROR deserialize(const char* buf);
 
+	void erase() {
+		m_id = 0; m_x = m_y = 0;
+	};
+
         void print();
 
         virtual ~RpNode2d() { };
