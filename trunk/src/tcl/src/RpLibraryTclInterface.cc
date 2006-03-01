@@ -49,6 +49,8 @@ static int RpTclLibRemove _ANSI_ARGS_(( ClientData cdata, Tcl_Interp *interp,
                                         int argc, const char *argv[]    ));
 static int RpTclLibResult _ANSI_ARGS_(( ClientData cdata, Tcl_Interp *interp,
                                         int argc, const char *argv[]    ));
+static int RpTclLibValue  _ANSI_ARGS_(( ClientData cdata, Tcl_Interp *interp,
+                                        int argc, const char *argv[]    ));
 static int RpTclLibXml    _ANSI_ARGS_(( ClientData cdata, Tcl_Interp *interp,
                                         int argc, const char *argv[]    ));
 
@@ -105,6 +107,9 @@ Rappturelibrary_Init(Tcl_Interp *interp)
 
     Tcl_CreateCommand(interp, "::Rappture::result",
         RpTclResult, (ClientData)NULL, (Tcl_CmdDeleteProc*)NULL);
+
+    Tcl_CreateCommand(interp, "::Rappture::LibraryObj::value",
+        RpTclLibValue, (ClientData)NULL, (Tcl_CmdDeleteProc*)NULL);
 
     return TCL_OK;
 }
@@ -824,6 +829,83 @@ RpTclLibResult  (   ClientData cdata,
     // store the new result in the interpreter
     Tcl_ResetResult(interp);
     Tcl_AppendResult(interp, "", (char*)NULL);
+
+    return TCL_OK;
+}
+
+int
+RpTclLibValue   (   ClientData cdata,
+                    Tcl_Interp *interp,
+                    int argc,
+                    const char *argv[]  )
+{
+
+    Tcl_CmdInfo info;                // pointer to the command info
+    std::string path        = "";
+    std::string libStr      = "";
+    RpLibrary* lib          = NULL;
+    int nextarg             = 1;     // start parsing using the '1'th argument
+    int argsLeft            = 0;     // temp variable for calculation
+    int noerr               = 0;     // err flag for Tcl_GetCommandInfo
+
+    std::list<std::string> valList; // list to store the return value 
+                                     // from diff command
+    std::list<std::string>::iterator valListIter;
+
+    if ( argc != 3 ) {
+        Tcl_AppendResult(interp,
+            "usage: ", argv[0], " <xmlobj> <path>",
+            (char*)NULL);
+        return TCL_ERROR;
+    }
+
+    // parse input arguments
+    argsLeft = (argc-nextarg);
+    if (argsLeft == 2) {
+        libStr = std::string(argv[nextarg++]);
+        noerr = Tcl_GetCommandInfo(interp, libStr.c_str(), &info);
+        if (noerr == 1) {
+            if (info.proc == RpLibCallCmd) {
+                lib = (RpLibrary*) (info.clientData);
+            }
+            else {
+                Tcl_AppendResult(interp,
+                    "wrong arg type: xmlobj should be a Rappture Library",
+                    (char*)NULL);
+                return TCL_ERROR;
+            }
+        }
+        else {
+            // there was an error getting the command info
+            Tcl_AppendResult(interp, 
+                "There was an error getting the command info for "
+                "the provided library \"", libStr.c_str(), "\'",
+                "\nAre you sure its a Rappture Library Object?",
+                (char*)NULL);
+            return TCL_ERROR;
+        }
+        path = std::string(argv[nextarg++]);
+    }
+    else {
+        Tcl_ResetResult(interp);
+        Tcl_AppendResult(interp, 
+            "wrong # args: should be \"", argv[0], " <xmlobj> <path>\"",
+            (char*)NULL);
+        return TCL_ERROR;
+    }
+
+    // perform the value command
+    valList = lib->value(path);
+    valListIter = valList.begin();
+
+    // parse through the output of the diff command
+    // put it into the return result
+    while (valListIter != valList.end()) {
+        Tcl_AppendElement(interp,(*valListIter).c_str());
+
+        // increment the iterator
+        valListIter++;
+    }
 
     return TCL_OK;
 }
