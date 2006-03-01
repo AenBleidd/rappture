@@ -19,6 +19,12 @@ public:
 	// id(int), numNodes(int), list of node ids(int *)
         RpElement(const char* buf);
 
+	/*
+	void operator =(const RpElement& elem) {
+		m_id = elem.id();
+		m_nodes = elem.m_nodes;
+	};*/
+
 	// add a node to element
 	void addNode(int nodeName);
 
@@ -28,7 +34,7 @@ public:
 	// get node id's
 	RP_ERROR getNodeIdList(int* list, int& len);
 
-	int id() { return m_id; };
+	const int id() { return m_id; };
 	void id(int id) { m_id = id; };
 
 	int numNodes() { return m_nodes.size(); }; 
@@ -42,6 +48,8 @@ public:
 	// serialize RpElement object into xml text
         void xmlString(std::string& xmlText);
         void print();
+
+        void erase();
 
         virtual ~RpElement() { };
 
