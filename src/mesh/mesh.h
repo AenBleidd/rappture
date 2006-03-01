@@ -23,13 +23,16 @@ public:
 	//void id(const char* id) { m_id = id; };
 
 	// add all nodes to mesh
-	RP_ERROR addAllNodes(int numNodes, int* nodesList[]);
+	RP_ERROR addAllNodes(int numNodes, int* nodesList);
 
 	// add one node to mesh
 	RP_ERROR addNode(int* nodesList);
 
 	// add an element to mesh
 	RP_ERROR addElement(int numNodesInElem, const int* nodes);
+
+	// add all elements to mesh
+	RP_ERROR addAllElements(int numElements, int* elementArray);
 
 	// retrieve nodes 
 	void getNode(int nodeSeqNum, int& x, int& y, int& z);
