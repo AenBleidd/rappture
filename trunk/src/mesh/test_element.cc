@@ -5,24 +5,25 @@
 #define Num_elements 6
 
 static int nodes[8][3] = {
-	0,0,0,
-	1,0,0,
-	1,1,0,
-	0,1,0,
-	0,1,1,
-	1,1,1,
-	0,1,1,
-	0,0,1
+	{0,0,0},
+	{1,0,0},
+	{1,1,0},
+	{0,1,0},
+	{0,1,1},
+	{1,1,1},
+	{0,1,1},
+	{0,0,1}
 };
 
 static int elem[6][4] = {
-	0,1,5,6,
-	1,2,6,7,
-	2,3,7,1,
-	3,4,1,2,
-	5,6,2,3,
-	6,7,3,4
+	{0,1,5,6},
+	{1,2,6,7},
+	{2,3,7,1},
+	{3,4,1,2},
+	{5,6,2,3},
+	{6,7,3,4}
 };
+
 
 int main()
 {
@@ -50,8 +51,7 @@ int main()
 		// each element has 4 nodes
 		(elemList[i]).id(i);
 		elemList[i].addNodes(elem[i], 4);
-		elemList[i].xmlString(str);
-		printf("%s\n", str.c_str());
+		elemList[i].print();
 		printf("element size: %d\n", elemList[i].numNodes());
 	}
 	
