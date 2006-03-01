@@ -37,8 +37,8 @@ TEST_PROGS =	test_node2d \
 #
 CC              = gcc
 CXX             = g++
-DEBUG           = -g -Wall
-DEBUG_PLUS      = -g -DDEBUG
+DEBUG           = -g -Wall $(DEBUG_PLUS)
+DEBUG_PLUS      = -DDEBUG
 PY              = $(RP_INSTALL_BASE)/bin/python
 MEX             = mex
 OCT             = mkoctfile
@@ -188,6 +188,8 @@ node3d.o: node3d.cc
 endian.o: endian.cc
 	$(CXX) $(CFLAGS) $(DEBUG) -c $?
 element.o: element.cc
+	$(CXX) $(CFLAGS) $(DEBUG) -c $?
+mesh.o: mesh.cc
 	$(CXX) $(CFLAGS) $(DEBUG) -c $?
 
 # include core source files
@@ -358,14 +360,18 @@ clean:
 #################
 
 endiantest: endiantest.o 
-	$(CXX) -o $@ $<
+	$(CXX) $(DEBUG) -o $@ $<
 test_node3d: test_node3d.o 
-	$(CXX) -o $@ $< $(LIB_RPMESH)
+	$(CXX) $(DEBUG) -o $@ $< $(LIB_RPMESH)
 test_node2d: test_node2d.o 
-	$(CXX) -o $@ $< $(LIB_RPMESH)
+	$(CXX) $(DEBUG) -o $@ $< $(LIB_RPMESH)
 test_element: test_element.o ../librpmesh.so
-	$(CXX) -o $@ $< $(LIB_RPMESH)
+	$(CXX) $(DEBUG) -o $@ $< $(LIB_RPMESH)
 test_elem2: test_elem2.o ../librpmesh.so
-	$(CXX) -o $@ $< $(LIB_RPMESH)
+	$(CXX) $(DEBUG) -o $@ $< $(LIB_RPMESH)
+test_mesh: test_mesh.o ../librpmesh.so
+	$(CXX) $(DEBUG) -o $@ $< $(LIB_RPMESH)
 etest: etest.o ../librpmesh.so
-	$(CXX) -o $@ $< $(LIB_RPMESH)
+	$(CXX) $(DEBUG) -o $@ $< $(LIB_RPMESH)
+try: try.o ../librpmesh.so
+	$(CXX) $(DEBUG) -o $@ $< $(LIB_RPMESH)
