@@ -68,6 +68,14 @@ RpNode3d::deserialize(const char* buf)
 }
 
 void 
+RpNode3d::xmlString(std::string& str)
+{
+	char cstr[512];
+	sprintf(cstr, "<node id=\"%d\"> %d %d %d</node>\n",m_id,m_x,m_y,m_z);
+	str.append(cstr);
+}
+
+void 
 RpNode3d::print()
 {
 	printf("<node id=\"%d\"> %d %d %d</node>\n",m_id,m_x,m_y,m_z);
