@@ -4,24 +4,24 @@
 #define Num_nodes 8
 #define Num_elements 6
 
-static int nodes[8][3] = {
-	{0,0,0},
-	{1,0,0},
-	{1,1,0},
-	{0,1,0},
-	{0,1,1},
-	{1,1,1},
-	{0,1,1},
-	{0,0,1}
+static int nodes[] = {
+	0,0,0,
+	1,0,0,
+	1,1,0,
+	0,1,0,
+	0,1,1,
+	1,1,1,
+	0,1,1,
+	0,0,1
 };
 
-static int elem[6][4] = {
-	{0,1,5,6},
-	{1,2,6,7},
-	{2,3,7,1},
-	{3,4,1,2},
-	{5,6,2,3},
-	{6,7,3,4}
+static int elem[] = {
+	0,1,5,6,
+	1,2,6,7,
+	2,3,7,1,
+	3,4,1,2,
+	5,6,2,3,
+	6,7,3,4
 };
 
 int main()
@@ -34,13 +34,13 @@ int main()
 		return 1;
 
 	// add nodes to mesh
-	err = mptr->addAllNodes(Num_nodes, &(nodes[0][0]));
+	err = mptr->addAllNodes(Num_nodes, nodes);
 	if (err != RP_SUCCESS) {
 		printf("addAllNodes: err code = %d\n", err);
 		return 1;
 	}
 
-	err = mptr->addAllElements(Num_elements, &(elem[0][0]));
+	err = mptr->addAllElements(Num_elements, elem);
 	if (err != RP_SUCCESS) {
 		printf("addAllElements: err code = %d\n", err);
 		return 1;
