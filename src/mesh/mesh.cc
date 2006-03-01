@@ -401,6 +401,7 @@ RpMesh3d::xmlString(std::string& textString)
 
 void RpMesh3d::print()
 {
+	printf("Mesh nodes=%d elements=%d\n", m_numNodes, m_numElements);
 	string str;
 	xmlString(str);
 	printf("%s", str.c_str());
