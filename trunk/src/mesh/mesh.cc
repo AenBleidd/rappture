@@ -56,7 +56,6 @@ RpMesh3d::RpMesh3d(const char* id, int numNodes, int numElements, int numNodesIn
 // 	error codes
 //
 RP_ERROR 
-//RpMesh3d::addAllNodes(int numNodes, int nodes[][3])
 RpMesh3d::addAllNodes(int numNodes, int* nodes)
 {
 	if (numNodes != m_numNodes)
@@ -126,12 +125,12 @@ RpMesh3d::addElement(int numNodes, const int* nodes)
 // Input:
 //   elemArray: a 2d array, e.g.:
 // 	static int elem[6][4] = {
-// 	        0,1,5,6,
-// 	        1,2,6,7,
-// 	        2,3,7,1,
-// 	        3,4,1,2,
-// 	        5,6,2,3,
-// 	        6,7,3,4
+// 	        {0,1,5,6},
+// 	        {1,2,6,7},
+// 	        {2,3,7,1},
+// 	        {3,4,1,2},
+// 	        {5,6,2,3},
+// 	        {6,7,3,4}
 // 	};
 //
 //   numElements: number of elements in mesh
@@ -156,7 +155,7 @@ RpMesh3d::addAllElements(int numElements, int* elemArray)
 
 // retrieve nodes 
 void 
-RpMesh3d::getNode(int nodeSeqNum, int& x, int& y, int& z)
+RpMesh3d::getNode(int nodeSeqNum, int* x, int* y, int* z)
 {
 	if (nodeSeqNum < m_numNodes)
 		m_nodeList[nodeSeqNum].get(x, y, z);
@@ -172,9 +171,29 @@ RpMesh3d::getNode(int nodeSeqNum, RpNode3d& node)
 	return RP_SUCCESS;
 }
 
+//
+// Returns nodes in a list of int (nodesList)
+// Input:
+// 	nodesList: length should be 3*numNodes
+// 	numNodes: number of nodes
+// Returns:
+// 	numnodes = number of nodes returned
+// 	nodesList = all the nodes in mesh
+//
 RP_ERROR 
-RpMesh3d::getNodesList(int* nodesList, int& num)
+RpMesh3d::getNodesList(int* nodesList, int& numNodes)
 {
+	if (nodesList == NULL)
+		return RP_ERR_NULL_PTR;
+	if (numNodes > m_numNodes)
+		numNodes = m_numNodes;
+
+	int j;
+	for (int i=0; i<numNodes; i++) {
+		j = i * 3;
+		getNode(i, &(nodesList[j]), &(nodesList[j+1]), &(nodesList[j+2]));
+	}
+
 	return RP_SUCCESS;
 }
 

@@ -35,7 +35,7 @@ public:
 	RP_ERROR addAllElements(int numElements, int* elementArray);
 
 	// retrieve nodes 
-	void getNode(int nodeSeqNum, int& x, int& y, int& z);
+	void getNode(int nodeSeqNum, int* x, int* y, int* z);
 	RP_ERROR getNode(int nodeSeqNum, RpNode3d& node);
 	RP_ERROR getNodesList(int* nodesList, int& num);
 
