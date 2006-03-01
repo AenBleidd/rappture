@@ -76,6 +76,7 @@ itcl::class Rappture::EnergyLevels {
     public method add {table {settings ""}}
     public method delete {args}
     public method scale {args}
+    public method download {args} {}
 
     protected method _redraw {{what all}}
     protected method _zoom {option args}

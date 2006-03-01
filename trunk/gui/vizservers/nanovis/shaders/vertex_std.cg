@@ -1,0 +1,28 @@
+/*
+ * ======================================================================
+ *  AUTHOR:  Wei Qiao <qiaow@purdue.edu>
+ *           Purdue Rendering and Perceptualization Lab (PURPL)
+ *
+ *  Copyright (c) 2004-2006  Purdue Research Foundation
+ *
+ *  See the file "license.terms" for information on usage and
+ *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+ * ======================================================================
+ */
+
+#include "common.cg"
+ 
+v2f main(a2v IN, 
+		uniform float4x4 modelViewProjMatrix,
+		uniform float4x4 modelViewInv)
+{
+	v2f OUT;
+
+	//clip space vertex position
+	OUT.HPosition = mul(modelViewProjMatrix, mul(modelViewInv, IN.Position));
+	
+	//eye space texture coordinates
+	OUT.TexCoord = IN.TexCoord;
+
+	return OUT;
+}

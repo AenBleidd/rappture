@@ -1,0 +1,30 @@
+/*
+ * ======================================================================
+ *  AUTHOR:  Wei Qiao <qiaow@purdue.edu>
+ *           Purdue Rendering and Perceptualization Lab (PURPL)
+ *
+ *  Copyright (c) 2004-2006  Purdue Research Foundation
+ *
+ *  See the file "license.terms" for information on usage and
+ *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+ * ======================================================================
+ */
+#include "common.cg"
+
+/*
+ * render one volume 
+ */
+PixelOut main(v2f IN, /* uniform sampler1D tf,*/
+		uniform sampler3D volume,
+		uniform float4x4 modelViewInv,
+		uniform float4 renderParameters)
+{
+	
+  PixelOut OUT;
+  float4 tex_coord = mul(modelViewInv, IN.TexCoord);
+	
+  float3 sample = tex3D(volume, tex_coord.xyz).xyz;
+
+  OUT.Color = float4(sample, 10*sqrt(sample.x*sample.x + sample.y*sample.y + sample.z*sample.z)/renderParameters.x);
+  return OUT;
+}
