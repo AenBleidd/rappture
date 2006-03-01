@@ -84,6 +84,7 @@ RP_ERROR
 RpMesh3d::addNode(int* nodeVal)
 {
 	if (m_nodeIndex < m_numNodes) {
+		m_nodeList[m_nodeIndex].id(m_nodeIndex);
 		m_nodeList[m_nodeIndex++].set(nodeVal);
 		return RP_SUCCESS;
 	}
@@ -109,7 +110,9 @@ RpMesh3d::addElement(int numNodes, const int* nodes)
 		return RP_ERR_WRONG_NUM_NODES;
 
 	if (m_elemIndex < m_numElements) {
+		(*m_elemList)[m_elemIndex].id(m_elemIndex);
 		(*m_elemList)[m_elemIndex++].addNodes(nodes, numNodes);
+
 		return RP_SUCCESS;
 	}
 	else {
@@ -147,6 +150,7 @@ RpMesh3d::addAllElements(int numElements, int* elemArray)
 	// number of nodes in an element
 	int numNodes = (*m_elemList)[0].numNodes();
 	for (int i=0; i < m_numElements; i++) {
+		(*m_elemList)[i].id(i);
 		(*m_elemList)[i].addNodes(&(elemArray[i*numNodes]), numNodes);
 	}
 
@@ -181,7 +185,7 @@ RpMesh3d::getNode(int nodeSeqNum, RpNode3d& node)
 // 	nodesList = all the nodes in mesh
 //
 RP_ERROR 
-RpMesh3d::getNodesList(int* nodesList, int& numNodes)
+RpMesh3d::getNodesList(int& numNodes, int* nodesList)
 {
 	if (nodesList == NULL)
 		return RP_ERR_NULL_PTR;
@@ -197,16 +201,55 @@ RpMesh3d::getNodesList(int* nodesList, int& numNodes)
 	return RP_SUCCESS;
 }
 
-RpElement 
-RpMesh3d::getElement(int elemSeqNum)
+//
+// Returns the nodes in element in outList
+//
+RP_ERROR
+RpMesh3d::getElement(int seqnum, int* outList)
 {
+	if (outList == NULL)
+		return RP_ERR_NULL_PTR;
+
+	if (seqnum > m_numElements)
+		return RP_ERR_INVALID_INDEX;
+
+	int nn = (*m_elemList)[seqnum].numNodes();
+	(*m_elemList)[seqnum].getNodeIdList(outList, nn);
+
 	return RP_SUCCESS;
 }
 
-RP_ERROR 
-RpMesh3d::getElement(int elemSeqNum, int* nodesBuf)
+//
+// Returns all elements in a mesh and store in an int array
+//
+//
+RP_ERROR
+RpMesh3d::getAllElements(int numElements, int* outList)
 {
+	if (outList == NULL)
+		return RP_ERR_NULL_PTR;
+
+	if (numElements > m_numElements)
+		return RP_ERR_INVALID_INDEX;
+
+	// get number of nodes in each element
+	int numNodes = (*m_elemList)[0].numNodes();
+
+	for (int i=0; i < m_numElements; i++) {
+		getElement(i, &(outList[i*numNodes]));
+	}
+
 	return RP_SUCCESS;
+}
+
+
+RpElement 
+RpMesh3d::getElement(int seqnum)
+{
+	if (seqnum > m_numElements)
+		return RP_ERR_INVALID_INDEX;
+
+	return (*m_elemList)[seqnum];
 }
 
 // serialization
@@ -232,6 +275,9 @@ RpMesh3d::deserialize(const char* buf)
 void 
 RpMesh3d::xmlString(std::string& textString)
 {
+	if (!m_numNodes)
+		return;
+
 	// temp char string
 	char cstr[256];
 	std::string str;
@@ -265,8 +311,25 @@ void RpMesh3d::print()
 	printf("%s", str.c_str());
 }
 
+void
+RpMesh3d::erase()
+{
+	int i; 
+
+	m_id.erase();
+	m_numNodes = m_numElements = m_nodeIndex = m_elemIndex = 0;
+
+	// zero out element list
+	for (i=0; i < m_numElements; i++)
+		(*m_elemList)[i].erase();
+
+	// zero out nodes list
+	for (i=0; i < m_numNodes; i++)
+		m_nodeList[i].erase();
+}
+
 RpMesh3d::~RpMesh3d()
 {
-	delete [] m_elemList;
+	delete m_elemList;
 }
 

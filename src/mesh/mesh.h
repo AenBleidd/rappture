@@ -15,6 +15,7 @@ public:
 
 	int numNodes() { return m_numNodes; };
 	int numElements() { return m_numElements; };
+	int elementSize() { return (*m_elemList)[0].numNodes(); };
 	const char* id() { return m_id.c_str(); };
 
 	// want user to set these numbers in constructor
@@ -37,10 +38,11 @@ public:
 	// retrieve nodes 
 	void getNode(int nodeSeqNum, int* x, int* y, int* z);
 	RP_ERROR getNode(int nodeSeqNum, RpNode3d& node);
-	RP_ERROR getNodesList(int* nodesList, int& num);
+	RP_ERROR getNodesList(int& num, int* nodesList);
 
 	RpElement getElement(int elemSeqNum);
 	RP_ERROR getElement(int elemSeqNum, int* nodesBuf);
+	RP_ERROR getAllElements(int num, int* buf);
 
 	// serialization
 	char* serialize();
@@ -49,6 +51,9 @@ public:
 
         void xmlString(std::string& str);
         void print();
+
+	// erase all nodes and elements, capacity not changed.
+	void erase();
 
         virtual ~RpMesh3d();
 
