@@ -45,7 +45,7 @@ public:
 	RP_ERROR getAllElements(int num, int* buf);
 
 	// serialization
-	char* serialize();
+	char* serialize(int& numbytes);
 	RP_ERROR serialize(char* buf, int buflen);
 	RP_ERROR deserialize(const char* buf);
 
@@ -69,6 +69,8 @@ private:
 	int m_elemIndex;
 	vector<RpNode3d> m_nodeList; // list of node objects
 	vector<RpElement> * m_elemList; // ptr to a list of RpElement objects
+
+	int numBytes();
 };
 
 #endif

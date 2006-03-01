@@ -252,16 +252,74 @@ RpMesh3d::getElement(int seqnum)
 	return (*m_elemList)[seqnum];
 }
 
+//
+// total number bytes in mesh object
+//
+// NOTE: this doesn't count the id
+//
+int RpMesh3d::numBytes()
+{
+	// numberOfNodes + all nodes + numberOfElements + numNodesInElement + nodes in elements
+
+	int nnie = (*m_elemList)[0].numNodes();
+	int num = 3*sizeof(int) + m_numNodes*3*sizeof(int) + m_numElements*nnie*sizeof(int);
+
+	return num;
+}
+
 // serialization
 char* 
-RpMesh3d::serialize()
+RpMesh3d::serialize(int& numbytes)
 {
-	return NULL;
+	int nbytes = this->numBytes();
+
+	char * buf = new char[nbytes];
+	if (buf != NULL) {
+		serialize(buf, nbytes);
+		numbytes = nbytes;
+	}
+
+	return buf;
 }
 
 RP_ERROR 
 RpMesh3d::serialize(char* buf, int buflen)
 {
+	int nbytes = this->numBytes();
+	int nnie = (*m_elemList)[0].numNodes();
+	int i;
+
+	if (buf == NULL || buflen < nbytes) {
+		RpAppendErr("RpMesh3d::serialize: invalid buffer");
+		RpPrintErr();
+		return RP_ERR_INVALID_ARRAY;
+	}
+
+	char *ptr = buf;
+
+	// write number of nodes
+	memcpy((void *)ptr, (void *)&m_numNodes, sizeof(int));
+	ptr += sizeof(int);
+
+	// write all nodes
+	for (i=0; i < m_numNodes; i++) {
+		m_nodeList[i].serialize(ptr);
+		ptr += 3* sizeof(int);
+	}
+
+	// write number of elements
+	memcpy((void *)ptr, (void *)&m_numElements, sizeof(int));
+	ptr += sizeof(int);
+
+	// write number of nodes in each element
+	memcpy((void *)ptr, (void *)&nnie, sizeof(int));
+	ptr += sizeof(int);
+
+	// write all elements
+	for (i=0; i < m_numElements; i++) {
+		(*m_elemList)[i].serializeNodes(ptr);
+		ptr += nnie * sizeof(int);
+	}
 
 	return RP_SUCCESS;
 }
@@ -269,6 +327,43 @@ RpMesh3d::serialize(char* buf, int buflen)
 RP_ERROR 
 RpMesh3d::deserialize(const char* buf)
 {
+	int i;
+
+	if (buf == NULL) {
+		RpAppendErr("RpMesh3d::deserialize: null buffer");
+		RpPrintErr();
+		return RP_ERR_INVALID_ARRAY;
+	}
+
+	char *ptr = (char*)buf;
+	int nnie;
+
+	// read number of nodes
+	memcpy((void *)&m_numNodes, (void*)ptr, sizeof(int));
+	ptr += sizeof(int);
+
+	// read all nodes
+	for (i=0; i < m_numNodes; i++) {
+		m_nodeList[i].deserialize(ptr);
+		m_nodeList[i].id(i);
+		ptr += 3* sizeof(int);
+	}
+
+	// read number of elements
+	memcpy((void *)&m_numElements, (void*)ptr, sizeof(int));
+	ptr += sizeof(int);
+
+	// number of nodes in each element
+	memcpy((void *)&nnie, (void *)ptr, sizeof(int));
+	ptr += sizeof(int);
+
+	// read all elements
+	for (i=0; i < m_numElements; i++) {
+		(*m_elemList)[i].deserializeNodes(ptr, nnie);
+		(*m_elemList)[i].id(i);
+		ptr += nnie * sizeof(int);
+	}
+
 	return RP_SUCCESS;
 }
 
