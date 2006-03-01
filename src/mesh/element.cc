@@ -171,6 +171,14 @@ RpElement::xmlString(std::string& textString)
 }
 
 void 
+RpElement::erase()
+{
+	m_id = 0;
+	for (int i=0; i < numNodes(); i++ )
+		m_nodes[i] = 0;
+}
+
+void 
 RpElement::print()
 {
 	string str; 
