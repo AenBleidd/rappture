@@ -35,6 +35,8 @@ public:
 	// get node coordinates
 	void get(int& xval, int& yval, int& zval) 
 	{ xval = m_x; yval = m_y; zval = m_z; };
+	void get(int* xval, int* yval, int* zval) 
+	{ *xval = m_x; *yval = m_y; *zval = m_z; };
 
 	void get(int * val) { val[0] = m_x; val[1] = m_y; val[2] = m_z; };
 
