@@ -14,13 +14,15 @@ RpNode3d::serialize()
 	int len = 3 * sizeof(int);
 
 	char * buf = new char[len];
-	serialize(buf, len);
+	serialize(buf);
 
 	return buf;
 }
 
 //
 // actual function that does the serialization
+//     serialization order:
+//     	x y z x y z ...
 //
 // Input:
 // 	buf: pointer to valid memory
@@ -30,9 +32,9 @@ RpNode3d::serialize()
 // 	success
 //
 RP_ERROR 
-RpNode3d::serialize(char* buf, int buflen)
+RpNode3d::serialize(char* buf)
 {
-	if (buf == NULL || buflen < 3*((signed)sizeof(int))) {
+	if (buf == NULL) {
 		RpAppendErr("RpElement::deserialize: null buffer");
 		RpPrintErr();
 		return RP_ERR_NULL_PTR;

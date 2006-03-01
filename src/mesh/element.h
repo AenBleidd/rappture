@@ -42,7 +42,9 @@ public:
 	// serialize
 	// id(int), numNodes(int), list of ids(int *)
 	char* serialize();
-	RP_ERROR serialize(char* buf, int buflen);
+	char* serializeNodes(char* buf);
+	RP_ERROR serialize(char* buf);
+	RP_ERROR deserializeNodes(const char* buf, int numNodes);
 	RP_ERROR deserialize(const char* buf);
 
 	// serialize RpElement object into xml text

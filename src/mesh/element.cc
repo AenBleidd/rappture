@@ -90,19 +90,19 @@ RpElement::serialize()
 	int nbytes = this->numBytes() + 2*sizeof(int);
 
 	char * buf = new char[nbytes];
-	serialize(buf, nbytes);
+	if (buf != NULL)
+		serialize(buf);
+
 	return buf;
 }
 
 RP_ERROR
-RpElement::serialize(char* buf, int buflen)
+RpElement::serialize(char* buf)
 {
-	int nbytes = this->numBytes();
-
-	if (buf == NULL || buflen < (signed)(nbytes+2*sizeof(int))) {
-		RpAppendErr("RpNode::serialize: invalid buffer");
+	if (buf == NULL) {
+		RpAppendErr("RpNode::serialize: null buffer");
 		RpPrintErr();
-		return RP_ERR_INVALID_ARRAY;
+		return RP_ERR_NULL_PTR;
 	}
 
 	char * ptr = buf;
@@ -118,6 +118,46 @@ RpElement::serialize(char* buf, int buflen)
 
 	// copy all nodes
 	memcpy((void *)ptr, (void *)&(m_nodes[0]), numNodes*sizeof(int));
+
+	return RP_SUCCESS;
+}
+
+// 
+// serialize only the nodes info
+// returns pointer to next char in buf
+//
+char*
+RpElement::serializeNodes(char* buf)
+{
+	int nbytes = m_nodes.size() * sizeof(int);
+
+	if (buf == NULL) {
+		RpAppendErr("RpNode::serialize: null buffer");
+		RpPrintErr();
+		return buf;
+	}
+
+	// copy all nodes
+	memcpy((void *)buf, (void *)&(m_nodes[0]), nbytes);
+
+	return (char*)(buf+nbytes);
+}
+
+RP_ERROR
+RpElement::deserializeNodes(const char* buf, int numNodes)
+{
+	if (buf == NULL) {
+		RpAppendErr("RpElement::deserialize: null buffer");
+                RpPrintErr();
+		return RP_ERR_NULL_PTR;
+	}
+
+	char* ptr = (char*)buf;
+
+	for (int i=0; i < numNodes; i++) {
+		memcpy((void *)&(m_nodes[i]), (void *)ptr, sizeof(int));
+		ptr += sizeof(int);
+	}
 
 	return RP_SUCCESS;
 }

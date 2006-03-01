@@ -37,7 +37,7 @@ public:
 	void id(int id) { m_id = id; };
 
 	char* serialize();
-	RP_ERROR serialize(char* buf, int buflen);
+	RP_ERROR serialize(char* buf);
 	RP_ERROR deserialize(const char* buf);
 
 	void erase() {

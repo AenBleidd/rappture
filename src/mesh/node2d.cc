@@ -15,7 +15,7 @@ RpNode2d::serialize()
 	int len = NodeDim * sizeof(int);
 
 	char * buf = new char[len];
-	serialize(buf, len);
+	serialize(buf);
 
 	return buf;
 }
@@ -31,9 +31,9 @@ RpNode2d::serialize()
 // 	success
 //
 RP_ERROR 
-RpNode2d::serialize(char* buf, int buflen)
+RpNode2d::serialize(char* buf)
 {
-	if (buf == NULL || buflen < NodeDim*((signed)sizeof(int))) {
+	if (buf == NULL) {
 		RpAppendErr("RpElement::deserialize: null buffer");
 		RpPrintErr();
 		return RP_ERR_NULL_PTR;
