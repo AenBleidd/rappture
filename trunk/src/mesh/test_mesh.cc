@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <string>
 #include "mesh.h"
 
@@ -57,6 +58,10 @@ int main()
 	mptr = new RpMesh3d("m3d", Num_nodes, Num_elements, 4);
 	if (mptr == NULL)
 		return 1;
+
+	printf("nodes=%d ", mptr->numNodes());
+	printf("elem=%d ", mptr->numElements());
+	printf("nnie=%d\n", mptr->elementSize());
 
 	printf("Testing addAllNodes\n");
 
@@ -125,6 +130,21 @@ int main()
 		meshptr->addElement(4, elem2[i]);
 
 	meshptr->print();
+
+	printf("Testing serialize\n");
+
+	int nbytes=0;
+	char* buf = meshptr->serialize(nbytes);
+
+	FILE* fp = fopen("out.tmp", "w");
+	fwrite(buf, 1, nbytes, fp);
+	fclose(fp);
+
+	printf("Testing deserialize\n");
+
+	RpMesh3d *newmesh = new RpMesh3d("mymesh", Num_nodes, Num_elements, 4);
+	newmesh->deserialize(buf);
+	newmesh->print();
 
 	return 0;
 }
