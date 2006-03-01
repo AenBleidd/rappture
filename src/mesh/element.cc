@@ -167,16 +167,14 @@ RpElement::xmlString(std::string& textString)
 		sprintf(str, "%d ", m_nodes[i]);
 		textString.append(str);
 	}
-	textString.append("</nodes>\n</element>");
+	textString.append("</nodes>\n</element>\n");
 }
 
 void 
 RpElement::print()
 {
-	printf("<element id=\"%d\">\n", m_id);
-	printf("\t<nodes>");
-	for (int i=0; i < (signed)(m_nodes.size()); i++)
-		printf("%d ", m_nodes[i]);
-	printf("</node>\n</element>");
+	string str; 
+	xmlString(str); 
+	printf("%s", str.c_str());
 }
 
