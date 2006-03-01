@@ -19,7 +19,9 @@ extern "C" {
 #endif
 
 int Rappture_Init _ANSI_ARGS_((Tcl_Interp *interp));
-int Rappturelibrary_Init _ANSI_ARGS_((Tcl_Interp *interp));
+
+#include "RpLibraryTclInterface.h"
+#include "RpUnitsTclInterface.h"
 
 #ifdef __cplusplus
 }
@@ -31,5 +33,10 @@ Rappture_Init( Tcl_Interp * interp)
     if (Rappturelibrary_Init(interp) != TCL_OK) {
         return TCL_ERROR;
     }
+
+    if (Rapptureunits_Init(interp) != TCL_OK) {
+        return TCL_ERROR;
+    }
+
     return TCL_OK;
 }

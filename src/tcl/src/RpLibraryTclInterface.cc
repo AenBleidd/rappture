@@ -13,10 +13,9 @@
  * ======================================================================
  */
 #include <tcl.h>
-#include <stdexcept>
-// #include <typeinfo.h>
-#include "core/RpLibrary.h"
 #include <sstream>
+#include "core/RpLibrary.h"
+#include "RpLibraryTclInterface.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -24,11 +23,9 @@ extern "C" {
 
 #include "bltInt.h"
 
-EXTERN int Rappturelibrary_Init _ANSI_ARGS_((Tcl_Interp * interp));
 
 static int RpLibraryCmd   _ANSI_ARGS_((   ClientData cdata, Tcl_Interp *interp,
                                         int argc, const char *argv[]    ));
-
 static int RpLibCallCmd   _ANSI_ARGS_(( ClientData cData, Tcl_Interp *interp,
                                         int argc, const char* argv[]    ));
 
@@ -54,6 +51,11 @@ static int RpTclLibResult _ANSI_ARGS_(( ClientData cdata, Tcl_Interp *interp,
                                         int argc, const char *argv[]    ));
 static int RpTclLibXml    _ANSI_ARGS_(( ClientData cdata, Tcl_Interp *interp,
                                         int argc, const char *argv[]    ));
+
+static int RpTclResult   _ANSI_ARGS_((    ClientData cdata,
+                                       Tcl_Interp *interp,
+                                       int argc, 
+                                       const char *argv[]    ));
 
 
 static std::string rpLib2command _ANSI_ARGS_(( Tcl_Interp *interp,
@@ -81,17 +83,15 @@ static Blt_OpSpec rpLibOps[] = {
 
 static int nRpLibOps = sizeof(rpLibOps) / sizeof(Blt_OpSpec);
 
-#define RAPPTURE_OBJ_TYPE "::Rappture::LibraryObj"
-
 #ifdef __cplusplus
 }
 #endif
 
 /*
  * ------------------------------------------------------------------------
- *  RpLibraryTclInterface_Init()
+ *  Rappturelibrary_Init()
  *
- *  Called in RapptureGUI_Init() to initialize the commands defined
+ *  Called in Rappture_Init() to initialize the commands defined
  *  in this file.
  * ------------------------------------------------------------------------
  */
@@ -102,6 +102,9 @@ Rappturelibrary_Init(Tcl_Interp *interp)
 
     Tcl_CreateCommand(interp, "::Rappture::library",
         RpLibraryCmd, (ClientData)NULL, (Tcl_CmdDeleteProc*)NULL);
+
+    Tcl_CreateCommand(interp, "::Rappture::result",
+        RpTclResult, (ClientData)NULL, (Tcl_CmdDeleteProc*)NULL);
 
     return TCL_OK;
 }
@@ -275,9 +278,7 @@ RpTclLibChild   (   ClientData cdata,
         path = std::string(argv[nextarg++]);
     }
     else {
-        Tcl_AppendResult(interp, "incorrect number of arguments \"", argv[nextarg],
-            "\":", (char*)NULL);
-        return TCL_ERROR;
+        path = "";
     }
 
     // call the rappture library children function
@@ -402,10 +403,19 @@ RpTclLibDiff     (   ClientData cdata,
             else {
                 Tcl_ResetResult(interp);
                 Tcl_AppendResult(interp,
-                    "wrong arg type: xmlobj should be a Rappture Library\"",
+                    "wrong arg type: xmlobj should be a Rappture Library",
                     (char*)NULL);
                 return TCL_ERROR;
             }
+        }
+        else {
+            // there was an error getting the command info
+            Tcl_AppendResult(interp, 
+                "There was an error getting the command info for "
+                "the provided library \"", otherLibStr.c_str(), "\'",
+                "\nAre you sure its a Rappture Library Object?",
+                (char*)NULL);
+            return TCL_ERROR;
         }
     }
     else {
@@ -798,7 +808,7 @@ RpTclLibResult  (   ClientData cdata,
                     int argc,
                     const char *argv[]  )
 {
-    if (argc == 1) {
+    if (argc == 2) {
         // call the rappture library result function
         ((RpLibrary*) cdata)->result();
     }
@@ -838,3 +848,48 @@ RpTclLibXml     (   ClientData cdata,
     return TCL_OK;
 }
 
+int
+RpTclResult   (   ClientData cdata,
+                   Tcl_Interp *interp,
+                   int argc,
+                   const char *argv[]  )
+{
+    Tcl_CmdInfo info;            // pointer to the command info
+    int noerr            = 0;    // err flag for Tcl_GetCommandInfo
+    std::string libName  = "";
+    RpLibrary* lib       = NULL;
+
+    // parse through command line options
+    if (argc != 2) {
+        Tcl_AppendResult(interp, "usage: ", argv[0], " <xmlobj>", (char*)NULL);
+        return TCL_ERROR;
+    }
+
+    libName = std::string(argv[1]);
+
+    noerr = Tcl_GetCommandInfo(interp, libName.c_str(), &info);
+    if (noerr == 1) {
+        if (info.proc == RpLibCallCmd) {
+            lib = (RpLibrary*) (info.clientData);
+        }
+        else {
+            Tcl_AppendResult(interp,
+                "wrong arg type: xmlobj should be a Rappture Library\"",
+                (char*)NULL);
+            return TCL_ERROR;
+        }
+    }
+    else {
+        // there was an error getting the command info
+        Tcl_AppendResult(interp,
+            "There was an error getting the command info for ",
+            "the provided library \"", libName.c_str(), "\'",
+            "\nAre you sure its a Rappture Library Object?",
+            (char*)NULL);
+        return TCL_ERROR;
+    }
+
+    lib->result();
+    Tcl_AppendResult(interp,"",(char*)NULL);
+    return TCL_OK;
+}
