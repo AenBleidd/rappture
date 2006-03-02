@@ -12,9 +12,6 @@
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  * ======================================================================
  */
-#ifdef WIN32
-	#include <windows.h>
-#endif
 
 #include "Texture1D.h"
 #include <stdio.h>

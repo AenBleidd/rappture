@@ -18,9 +18,10 @@
 #include "RenderVertexArray.h"
 #include "ConvexPolygon.h"
 #include "Texture3D.h"
-#include "Texture1D.h"
+#include "ColorMap.h"
 #include "ConvexPolygon.h"
 #include "Mat4x4.h"
+#include "Volume.h"
 
 
 //variables for mouse events
@@ -50,8 +51,8 @@ bool flip = true;			//flip the source and destination render targets
 
 int psys_width = NMESH;			//particle system size
 int psys_height = NMESH;
-GLuint psys_fbo[2]; 
-GLuint psys_tex[2];
+NVISid psys_fbo[2]; 
+NVISid psys_tex[2];
 
 
 //image based flow visualization variables
@@ -63,19 +64,19 @@ float  tmax   = NPIX/(SCALE*NPN);
 float  dmax   = SCALE/NPIX;
 
 
-char* screen_buffer = new char[4*NPIX*NPIX+1];
-GLuint fbo, color_tex, pattern_tex, mag_tex, final_fbo, final_color_tex, final_depth_rb;
-GLuint vel_fbo, slice_vector_tex;	//for projecting 3d vector to 2d vector on a plane
+char* screen_buffer = new char[4*NPIX*NPIX+1];		//buffer to store data read from the screen
+NVISid fbo, color_tex, pattern_tex, mag_tex, final_fbo, final_color_tex, final_depth_rb; //fbo related identifiers
+NVISid vel_fbo, slice_vector_tex;	//for projecting 3d vector to 2d vector on a plane
 
-GLuint vector_tex;			//3d vector field texture	
+NVISid vector_tex;			//3d vector field texture	
 bool advect=false;
 float vert[NMESH*NMESH*3];		//particle positions in main memory
 float slice_vector[NMESH*NMESH*4];	//per slice vectors in main memory
 
 
 int n_volumes = 0;
-Texture3D* volume[MAX_N_VOLUMES];	//point to volumes, currently handle up to 10 volumes
-Texture1D* colormap[MAX_N_VOLUMES];	//transfer functions, currently handle up to 10 colormaps
+Volume* volume[MAX_N_VOLUMES];		//point to volumes, currently handle up to 10 volumes
+ColorMap* colormap[MAX_N_VOLUMES];	//transfer functions, currently handle up to 10 colormaps
 
 
 //Nvidia CG shaders and their parameters
@@ -96,23 +97,6 @@ CGparameter m_passthru_scale_param, m_passthru_bias_param;
 
 CGprogram m_copy_texcoord_fprog;
 
-CGprogram m_shader_fprog;
-CGprogram m_shader_vprog;
-CGparameter m_shader_modelView_param, m_shader_modelViewProj_param;
-CGparameter m_shader_time_param;
-
-CGprogram m_shader_mb_vprog; 
-CGparameter m_shader_mb_modelView_param, m_shader_mb_modelViewProj_param, m_shader_mb_time_param, m_shader_mb_interp_param;
-
-CGprogram m_expand_fprog;
-
-CGprogram m_posvel_fprog;
-CGparameter m_posvel_timestep_param;
-CGparameter m_posvel_damping_param;
-CGparameter m_posvel_gravity_param;
-CGparameter m_posvel_spherePos_param;
-CGparameter m_posvel_sphereVel_param;
-
 CGprogram m_one_volume_fprog;
 CGparameter m_vol_one_volume_param;
 CGparameter m_mvi_one_volume_param;
@@ -128,25 +112,6 @@ float m_point_alpha;
 
 //RenderVertexArray
 RenderVertexArray* m_vertex_array;
-
-
-//GPU sorting related stuff
-//GLSL shaders
-//GLSLShader oddevenMergeSort;
-//sorting related vars
-// field size to sort
-int logFieldsize = 8;
-int fieldsize = (1<<logFieldsize);
-
-// number of sorting steps to execute on next redraw
-int stepsToDo = 0;
-// number of steps left until sort is complete
-int stepsLeft = 0;
-// number of steps needed for full sort
-int totalSteps = 0;
-// current parameters
-int stage=0, pass=0;
-
 
 
 using namespace std;
@@ -321,8 +286,7 @@ void load_volume(int index, int width, int height, int depth, int n_component, f
     volume[index]=0;
   }
 
-  volume[index] = new Texture3D(width, height, depth, GL_FLOAT, GL_LINEAR, n_component);
-  volume[index]->load_tex_data(data);
+  volume[index] = new Volume(width, height, depth, NVIS_FLOAT, NVIS_LINEAR_INTERP, n_component, data);
   assert(volume[index]!=0);
 }
 
@@ -485,21 +449,6 @@ void init_cg(){
 
     m_copy_texcoord_fprog = loadProgram(g_context, CG_PROFILE_FP30, CG_SOURCE, "./shaders/copy_texcoord.cg");
 
-    m_shader_fprog = loadProgram(g_context, CG_PROFILE_FP30, CG_SOURCE, "./shaders/shader.cg");
-
-    m_shader_vprog = loadProgram(g_context, CG_PROFILE_VP20, CG_SOURCE, "./shaders/shader_vp.cg");
-    m_shader_modelViewProj_param  = cgGetNamedParameter(m_shader_vprog, "modelViewProj");
-    m_shader_modelView_param      = cgGetNamedParameter(m_shader_vprog, "modelView");
-    m_shader_time_param           = cgGetNamedParameter(m_shader_vprog, "time");
-
-    m_shader_mb_vprog = loadProgram(g_context, CG_PROFILE_VP20, CG_SOURCE, "./shaders/shader_mb_vp.cg");
-    m_shader_mb_modelViewProj_param  = cgGetNamedParameter(m_shader_mb_vprog, "modelViewProj");
-    m_shader_mb_modelView_param      = cgGetNamedParameter(m_shader_mb_vprog, "modelView");
-    m_shader_mb_time_param           = cgGetNamedParameter(m_shader_mb_vprog, "time");
-    m_shader_mb_interp_param         = cgGetNamedParameter(m_shader_mb_vprog, "interp");
-
-    m_expand_fprog = loadProgram(g_context, CG_PROFILE_FP30, CG_SOURCE, "./shaders/expand.cg");
-
     //render one volume
     m_one_volume_fprog = loadProgram(g_context, CG_PROFILE_FP30, CG_SOURCE, "./shaders/one_volume.cg");
     m_vol_one_volume_param = cgGetNamedParameter(m_one_volume_fprog, "volume");
@@ -556,20 +505,6 @@ void init_particles(){
 }
 
 
-#if 0
-void init_sort(){
-
-  bool ret = oddevenMergeSort.loadFromFile("./sort/shader/oddevenMergeSort.vs","./sort/shader/oddevenMergeSort.fs");
-  assert(ret);
-}
-#endif 
-
-
-//reset sort variables for next full sort
-void reset_sort(){
-  stepsLeft = totalSteps = ((logFieldsize+logFieldsize)*(logFieldsize+logFieldsize+1))/2;
-  stage = pass = -1;
-}
 
 
 void makePatterns();
@@ -619,7 +554,6 @@ void initGL(void)
    init_particles();	//fill initial particles
    init_cg();		//init cg shaders
    init_vbo();		//init vertex buffer object
-   //init_sort();		//init oddeven sort
 
    get_slice_vectors();
 }
@@ -1068,10 +1002,8 @@ void advect_particles(){
 
    assert(glGetError()==0);
 
-
    //soft_read_verts();
 
-   //sortstep();
    hard_read_verts();
 
    flip = (!flip);
@@ -1086,7 +1018,8 @@ void advect_particles(){
 }
 
 
-void display_texture(GLuint tex, int width, int height){
+//display the content of a texture as a screen aligned quad
+void display_texture(NVISid tex, int width, int height){
    glPushMatrix();
 
    glEnable(GL_TEXTURE_2D);
@@ -1114,9 +1047,9 @@ void display_texture(GLuint tex, int width, int height){
 }
 
 
+//draw vertices in the onboard vertex buffer object
 void hard_display_verts(){
   glDisable(GL_TEXTURE_2D);
-  //glEnable(GL_BLEND);
   glDisable(GL_BLEND);
 
   glPointSize(m_pointsize);
@@ -1133,6 +1066,7 @@ void hard_display_verts(){
 }
 
 
+//draw vertices in the main memory
 void soft_display_verts(){
   glDisable(GL_TEXTURE_2D);
   glEnable(GL_BLEND);
