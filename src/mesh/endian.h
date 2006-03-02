@@ -5,8 +5,8 @@ template <class ValType > class ByteOrder
 {
 public:
 	static bool IsBigEndian();
-	static void OrderRead(const ValType& src, ValType& dst);
-	static void OrderWrite(const ValType& src, ValType& dst);
+	static void OrderCopy(const ValType& src, ValType& dst);
+//	static void OrderWrite(const ValType& src, ValType& dst);
 	operator ValType () const;
 	ValType operator=(ValType val);
 
