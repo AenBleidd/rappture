@@ -12,6 +12,7 @@
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  * ======================================================================
  */
+
 #include "nanovis.h"
 
 #include "socket/Socket.h"
@@ -39,8 +40,8 @@ bool right_down = false;
 
 float slice_x=0, slice_y=0, slice_z=0.3;	//image based flow visualization slice location
 
-int win_width = NPIX;		//size of the render window
-int win_height = NPIX;		//size of the render window
+int win_width = NPIX;			//size of the render window
+int win_height = NPIX;			//size of the render window
 
 //particle system related variables
 int psys_frame = 0;		        //count the frame number of particle system iteration
@@ -69,10 +70,10 @@ NVISid fbo, color_tex, pattern_tex, mag_tex, final_fbo, final_color_tex, final_d
 NVISid vel_fbo, slice_vector_tex;	//for projecting 3d vector to 2d vector on a plane
 
 NVISid vector_tex;			//3d vector field texture	
+Volume* vector_filed;			//3d vector field
 bool advect=false;
 float vert[NMESH*NMESH*3];		//particle positions in main memory
 float slice_vector[NMESH*NMESH*4];	//per slice vectors in main memory
-
 
 int n_volumes = 0;
 Volume* volume[MAX_N_VOLUMES];		//point to volumes, currently handle up to 10 volumes
@@ -117,23 +118,6 @@ RenderVertexArray* m_vertex_array;
 using namespace std;
 
 
-
-void cgErrorCallback(void)
-{
-    CGerror lastError = cgGetError();
-    if(lastError) {
-        const char *listing = cgGetLastListing(g_context);
-        printf("\n---------------------------------------------------\n");
-        printf("%s\n\n", cgGetErrorString(lastError));
-        printf("%s\n", listing);
-        printf("-----------------------------------------------------\n");
-        printf("Cg error, exiting...\n");
-        cgDestroyContext(g_context);
-        exit(-1);
-    }
-}
-
-
 // Tcl interpreter for incoming messages
 static Tcl_Interp *interp;
 
@@ -157,10 +141,28 @@ static int LoadCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, 
         break;                                                \
       default:                                                \
         /* programming error; will fail on all hardware */    \
-	fprintf(stderr, "programming error\n");		   \
+	fprintf(stderr, "programming error\n");               \
         assert(0);                                            \
      }	                                                      \
    }
+
+
+//report errors related to CG shaders
+void cgErrorCallback(void)
+{
+    CGerror lastError = cgGetError();
+    if(lastError) {
+        const char *listing = cgGetLastListing(g_context);
+        printf("\n---------------------------------------------------\n");
+        printf("%s\n\n", cgGetErrorString(lastError));
+        printf("%s\n", listing);
+        printf("-----------------------------------------------------\n");
+        printf("Cg error, exiting...\n");
+        cgDestroyContext(g_context);
+        exit(-1);
+    }
+}
+
 
 void init_glew(){
 	GLenum err = glewInit();
@@ -174,6 +176,8 @@ void init_glew(){
 
 	fprintf(stdout, "Status: Using GLEW %s\n", glewGetString(GLEW_VERSION));
 }
+
+
 
 //initialize particle system
 void init_psys(){
@@ -205,6 +209,9 @@ void init_psys(){
 
 void load_volume(int index, int width, int height, int depth, int n_component, float* data);
 
+
+
+//load a vector field from file
 void init_vector_field(){
 
   FILE* fp = fopen("./data/tornado_64x64x64.raw", "rb");
@@ -217,7 +224,6 @@ void init_vector_field(){
   }
   fclose(fp);
 
-#ifndef NV40
   //normalize data
   float _max = FLT_MIN;
   float _min = FLT_MAX;
@@ -229,42 +235,27 @@ void init_vector_field(){
     if(mag < _min) 
       _min = mag;
   }
+
   fprintf(stderr, "max=%f, min=%f\n", _max, _min);
 
   float scale = _max - _min;
   
   for(int j=0; j<64*64*64*3; j++){
     data[j]=data[j]/scale;
+
+#ifndef NV40
+    //cut negative values
     if(data[j]<0)
       data[j]=0;
-  }
 #endif
+  }
 
   /*
   for(int j=0; j<64*64*64; j++)
     fprintf(stderr, "[%f, %f, %f]\t", data[j*3], data[j*3+1], data[j*3+2]);
   */
 
-  glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-  glGenTextures(1, &vector_tex);
-  glBindTexture(GL_TEXTURE_3D, vector_tex);
-
-  glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-  glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-  glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-
-  glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-  glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-
-#ifdef NV40
-  glTexImage3D(GL_TEXTURE_3D, 0, GL_RGB_FLOAT16_ATI, 64, 64, 64, 0, GL_RGB, GL_FLOAT, data);
-#else
-  glTexImage3D(GL_TEXTURE_3D, 0, GL_RGB16, 64, 64, 64, 0, GL_RGB, GL_FLOAT, data);
-#endif
-  assert(glGetError()==0);
-
-
-  //debug only: load the vector field again as a seperate volume texture
+  //load the vector field as a volume
   load_volume(0, 64, 64, 64, 3, data);
   n_volumes++;
   delete[] data;
@@ -273,7 +264,7 @@ void init_vector_field(){
 }
 
 
-/* Load a volume 3D texture with 16bit floating point precision
+/* Load a 3D volume
  * index: the index into the volume array, which stores pointers to 3D volume instances
  * data: pointer to an array of floats.  
  * n_component: the number of scalars for each space point. 
@@ -429,12 +420,12 @@ void init_cg(){
     m_pos_timestep_param  = cgGetNamedParameter(m_pos_fprog, "timestep");
     m_vel_tex_param = cgGetNamedParameter(m_pos_fprog, "vel_tex");
     m_pos_tex_param = cgGetNamedParameter(m_pos_fprog, "pos_tex");
-    cgGLSetTextureParameter(m_vel_tex_param, vector_tex);
+    cgGLSetTextureParameter(m_vel_tex_param, volume[0]->id);
 
     m_render_vel_fprog = loadProgram(g_context, CG_PROFILE_FP30, CG_SOURCE, "./shaders/render_vel.cg");
     m_vel_tex_param_render_vel = cgGetNamedParameter(m_render_vel_fprog, "vel_tex");
     m_plane_normal_param_render_vel = cgGetNamedParameter(m_render_vel_fprog, "plane_normal");
-    cgGLSetTextureParameter(m_vel_tex_param_render_vel, vector_tex);
+    cgGLSetTextureParameter(m_vel_tex_param_render_vel, volume[0]->id);
 
     m_vel_fprog = loadProgram(g_context, CG_PROFILE_FP30, CG_SOURCE, "./shaders/update_vel.cg");
     m_vel_timestep_param  = cgGetNamedParameter(m_vel_fprog, "timestep");
