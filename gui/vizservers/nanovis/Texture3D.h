@@ -16,6 +16,7 @@
 #define _TEXTURE_3D_H_
 
 #include <GL/glew.h>
+#include "config.h"
 
 class Texture3D{
 	

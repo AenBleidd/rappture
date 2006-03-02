@@ -1,4 +1,4 @@
-OBJ_NANOVIS = nanovis.o Socket.o RenderVertexArray.o GLSLShader.o Plane.o ConvexPolygon.o Vector4.o Vector3.o Mat4x4.o \
+OBJ_NANOVIS = nanovis.o Socket.o RenderVertexArray.o Plane.o ConvexPolygon.o Vector4.o Vector3.o Mat4x4.o \
 		Texture1D.o Texture3D.o
 
 SOCKETSRC = ./socket
@@ -21,9 +21,6 @@ Socket.o: $(SOCKETSRC)/Socket.h $(SOCKETSRC)/Socket.cpp
 
 RenderVertexArray.o: RenderVertexArray.h RenderVertexArray.cpp
 	gcc $(CFLAG) RenderVertexArray.cpp
-
-GLSLShader.o: $(SORTSRC)/GLSLShader.cpp
-	gcc $(CFLAG) $(SORTSRC)/GLSLShader.cpp
 
 #qdclient: $(OBJ_CLIENT) 
 #	gcc -g -o qdclient $(OBJ_CLIENT) $(LIB_CLIENT)

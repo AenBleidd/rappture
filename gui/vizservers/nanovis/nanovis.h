@@ -24,6 +24,8 @@
 #include <tcl.h>
 #include <float.h>
 
+#include "config.h"
+
 
 //defines for the image based flow visualization
 #define	NPN 256 	//resolution of background pattern
@@ -33,7 +35,6 @@
 #define SCALE 3.0	//scale for background pattern. small value -> fine texture
 #define MAX_N_VOLUMES 10 //maximum of volumes the application can handle
 
-#define NV40		//the Nvidia 6 series card
 
 
 typedef struct Vector2{

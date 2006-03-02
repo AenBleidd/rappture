@@ -15,7 +15,6 @@
 #include "nanovis.h"
 
 #include "socket/Socket.h"
-#include "sort/GLSLShader.h"
 #include "RenderVertexArray.h"
 #include "ConvexPolygon.h"
 #include "Texture3D.h"
@@ -133,7 +132,7 @@ RenderVertexArray* m_vertex_array;
 
 //GPU sorting related stuff
 //GLSL shaders
-GLSLShader oddevenMergeSort;
+//GLSLShader oddevenMergeSort;
 //sorting related vars
 // field size to sort
 int logFieldsize = 8;
@@ -557,11 +556,13 @@ void init_particles(){
 }
 
 
+#if 0
 void init_sort(){
 
   bool ret = oddevenMergeSort.loadFromFile("./sort/shader/oddevenMergeSort.vs","./sort/shader/oddevenMergeSort.fs");
   assert(ret);
 }
+#endif 
 
 
 //reset sort variables for next full sort
@@ -618,7 +619,7 @@ void initGL(void)
    init_particles();	//fill initial particles
    init_cg();		//init cg shaders
    init_vbo();		//init vertex buffer object
-   init_sort();		//init oddeven sort
+   //init_sort();		//init oddeven sort
 
    get_slice_vectors();
 }
@@ -1196,6 +1197,8 @@ void get_slice_vectors(){
 }
 
 
+#if 0
+
 //oddeven sort on GPU
 void sortstep()
 {
@@ -1262,6 +1265,7 @@ void sortstep()
     assert(glGetError()==0);
 }
 
+#endif
 
 void get_near_far_z(Mat4x4 mv, double &zNear, double &zFar)
 {
