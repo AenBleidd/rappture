@@ -173,13 +173,30 @@ RpGrid1d::deserialize(const char* buf)
 	return RP_SUCCESS;
 }
 
+double*
+RpGrid1d::data()
+{
+	int npts = numPoints();
+
+	double* xy;
+	if ( (xy = new double(npts)) == NULL) {
+                RpAppendErr("RpGrid1d::data: mem alloc failed");
+		RpPrintErr();
+		return xy;
+	}
+
+	for (int i=0; i < npts; i++) 
+		xy[i] = m_data[i];
+
+	return xy;
+}
+
 void 
 RpGrid1d::xmlString(std::string& textString)
 {
 	int i;
 	int npts = m_data.size();
 	char cstr[256];
-	std::string str;
 
 	// clear input string
 	textString.erase();
@@ -197,7 +214,9 @@ void
 RpGrid1d::print()
 {
 	string str;
+
 	xmlString(str);
+
 	printf("%s", str.c_str());
 }
 
