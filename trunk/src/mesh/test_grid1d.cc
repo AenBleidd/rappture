@@ -90,14 +90,31 @@ int main()
 
 	grid2->print();
 
+	printf("Testing grid2.data()\n");
+
+	double* ptr = grid2->data();
+	for (i=0; i<grid2->numPoints(); i++) {
+		printf("%.12f \n", ptr[i]);
+	}
+
+	/*
 	printf("Testing addPoint\n");
 
 	RpGrid1d grid3(20);
 	grid3.addPoint(points[0]);
 	grid3.addPoint(points[1]);
+	grid3.addPoint(points[2]);
+
 	printf("size=%d\n", grid3.numPoints());
+
 	grid3.print();
 
+	printf("Testing data()\n");
+	printf("size=%d\n", grid3.numPoints());
+	double* ptr = grid3.data();
+	for (i=0; i<grid3.numPoints(); i++) {
+		printf("%.12f \n", ptr[i]);
+	}*/
 
 	return 0;
 }
