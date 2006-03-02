@@ -12,7 +12,7 @@ RpGrid1d::RpGrid1d()
 
 RpGrid1d::RpGrid1d(int size)
 {
-	m_data.resize(size);
+	m_data.reserve(size);
 }
 
 // construct a grid object from a byte stream
@@ -40,6 +40,27 @@ RpGrid1d::RpGrid1d(double* val, int nitems)
 	memcpy(ptr, (void*)val, sizeof(double)*sz);
 }
 
+//
+// Add all points to grid1d object at once
+//
+RP_ERROR 
+RpGrid1d::addAllPoints(double* val, int nitems)
+{
+	if (val == NULL)
+		return RP_ERR_NULL_PTR;
+
+	if (nitems != numPoints())
+		m_data.resize(nitems);
+
+	for (int i=0; i < nitems; i++)
+		m_data[i] = val[i];
+
+	return RP_SUCCESS;
+}
+
+//
+// add one point to grid1d
+//
 void RpGrid1d::addPoint(double val)
 {
 	m_data.push_back(val);
@@ -54,20 +75,39 @@ void RpGrid1d::addPoint(double val)
 // TODO - handling Endianess 
 //
 char* 
-RpGrid1d::serialize(RP_ENCODE_ALG encodeFlag, RP_COMPRESSION compressFlag)
+RpGrid1d::serialize(int& nb, RP_ENCODE_ALG encodeFlag, 
+				RP_COMPRESSION compressFlag)
 {
 	int npts = m_data.size(); 
+	int nbytes = npts*sizeof(double) + sizeof(int) + 2;
+	char* buf;
 
 	// total length = tagEncode + tagCompress + num + array data 
-	char * buf = (char*) malloc(npts*sizeof(double) + sizeof(int) + 2);
-	if (buf == NULL) {
+	if ( (buf = (char*) malloc(nbytes)) == NULL) {
 		RpAppendErr("RpGrid1d::serialize: malloc failed");
 		RpPrintErr();
 		return buf;
 	}
 
-	char* ptr = buf;
+	serialize(buf, nbytes, encodeFlag, compressFlag);
+	nb = nbytes;
+
+	return buf;
+}
+
+RP_ERROR
+RpGrid1d::serialize(char* buf, int nbytes, RP_ENCODE_ALG encodeFlag, 
+		RP_COMPRESSION compressFlag)
+{
+	int npts = m_data.size();
+
+	if (buf == NULL || (unsigned)nbytes < (npts*sizeof(double)+sizeof(int)+2)) {
+                RpAppendErr("RpGrid1d::serialize: invalid buffer");
+		RpPrintErr();
+		return RP_ERR_INVALID_ARRAY;
+	}
 	
+	char* ptr = buf;
 	ptr[0] = 'N'; // init to no-encoding
 	switch(encodeFlag) {
 		case RP_UUENCODE:
@@ -87,20 +127,20 @@ RpGrid1d::serialize(RP_ENCODE_ALG encodeFlag, RP_COMPRESSION compressFlag)
 		default:
 			break;
 	}
+	ptr += 2; // advance pointer
 
 	// TODO encode, compression
-	//
+	// compress()
 
 	// write to stream buffer
-	ptr += 2;
 	memcpy((void*)ptr, (void*)&npts, sizeof(int));
 	ptr += sizeof(int);
 	memcpy((void*)ptr, (void*)&(m_data[0]), npts*sizeof(double));
 
-	return buf;
+	return RP_SUCCESS;
 }
 
-int 
+RP_ERROR 
 RpGrid1d::deserialize(const char* buf)
 {
 	int npts;
@@ -133,8 +173,34 @@ RpGrid1d::deserialize(const char* buf)
 	return RP_SUCCESS;
 }
 
+void 
+RpGrid1d::xmlString(std::string& textString)
+{
+	int i;
+	int npts = m_data.size();
+	char cstr[256];
+	std::string str;
 
-//TODO: overload operators [], =
+	// clear input string
+	textString.erase();
+
+	textString.append("<value>");
+
+	for (i=0; i < npts; i++) {
+		sprintf(cstr, "\t%.15f\n", m_data[i]);
+		textString.append(cstr);
+	}
+	textString.append("</value>\n");
+}
+
+void 
+RpGrid1d::print()
+{
+	string str;
+	xmlString(str);
+	printf("%s", str.c_str());
+}
+
 
 // TODO
 //int RpGrid1d::xmlPut() { };
