@@ -28,7 +28,7 @@ RenderVertexArray.o: RenderVertexArray.h RenderVertexArray.cpp
 Texture1D.o: Texture1D.cpp
 	gcc $(CFLAG) Texture1D.cpp
 
-Texture3D.o: Texture3D.cpp
+Texture3D.o: Texture3D.cpp config.h
 	gcc $(CFLAG) Texture3D.cpp
 
 Mat4x4.o: Mat4x4.cpp
@@ -46,6 +46,6 @@ Plane.o: Plane.cpp
 ConvexPolygon.o: ConvexPolygon.cpp
 	gcc $(CFLAG) ConvexPolygon.cpp
 
-nanovis.o: nanovis.h nanovis.cpp
+nanovis.o: nanovis.h nanovis.cpp config.h
 	gcc $(CFLAG) nanovis.cpp
 
