@@ -21,6 +21,7 @@
 #include <assert.h>
 #include <math.h>
 
+#include "config.h"
 
 Texture3D::Texture3D(){ id=-1; gl_resource_allocated = false; }
 
@@ -72,6 +73,7 @@ GLuint Texture3D::load_tex_data(float *data)
 	}
 
 	switch(n_components){
+	#ifdef NV40
 		case 1:
 			glTexImage3D(GL_TEXTURE_3D, 0, GL_LUMINANCE16F_ARB, width, height, depth, 0, GL_LUMINANCE, GL_FLOAT, data);
 			break;
@@ -84,6 +86,20 @@ GLuint Texture3D::load_tex_data(float *data)
 		case 4:
 			glTexImage3D(GL_TEXTURE_3D, 0, GL_RGBA16F_ARB, width, height, depth, 0, GL_RGBA, GL_FLOAT, data);
 			break;
+	#else
+		case 1:
+			glTexImage3D(GL_TEXTURE_3D, 0, GL_LUMINANCE, width, height, depth, 0, GL_LUMINANCE, GL_FLOAT, data);
+			break;
+		case 2:
+			glTexImage3D(GL_TEXTURE_3D, 0, GL_LUMINANCE_ALPHA, width, height, depth, 0, GL_LUMINANCE_ALPHA, GL_FLOAT, data);
+			break;
+		case 3:
+			glTexImage3D(GL_TEXTURE_3D, 0, GL_RGB, width, height, depth, 0, GL_RGB, GL_FLOAT, data);
+			break;
+		case 4:
+			glTexImage3D(GL_TEXTURE_3D, 0, GL_RGBA, width, height, depth, 0, GL_RGBA, GL_FLOAT, data);
+			break;
+	#endif
 		default:
 			break;
 	}
