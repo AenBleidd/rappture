@@ -12,6 +12,7 @@
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  * ======================================================================
  */
+
 #ifdef WIN32
 	#include <windows.h>
 #endif
@@ -49,10 +50,11 @@ Texture3D::Texture3D(int width, int height, int depth, int type, int interp, int
 	gl_resource_allocated = false;
 }
 
-GLuint Texture3D::load_tex_data(float *data)
+GLuint Texture3D::initialize(float *data)
 {
-	//load texture with 16 bit half floating point precision
+	//load texture with 16 bit half floating point precision if card is 6 series NV40
 	//half float with linear interpolation is only supported by 6 series and up cards
+	//If NV40 not defined, data is quantized to 8-bit from 32-bit.
 	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
 	glGenTextures(1, &id);
@@ -72,8 +74,9 @@ GLuint Texture3D::load_tex_data(float *data)
 		glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	}
 
-	switch(n_components){
-	#ifdef NV40
+	if(type==GL_FLOAT){
+	  switch(n_components){
+	    #ifdef NV40
 		case 1:
 			glTexImage3D(GL_TEXTURE_3D, 0, GL_LUMINANCE16F_ARB, width, height, depth, 0, GL_LUMINANCE, GL_FLOAT, data);
 			break;
@@ -86,7 +89,7 @@ GLuint Texture3D::load_tex_data(float *data)
 		case 4:
 			glTexImage3D(GL_TEXTURE_3D, 0, GL_RGBA16F_ARB, width, height, depth, 0, GL_RGBA, GL_FLOAT, data);
 			break;
-	#else
+	    #else
 		case 1:
 			glTexImage3D(GL_TEXTURE_3D, 0, GL_LUMINANCE, width, height, depth, 0, GL_LUMINANCE, GL_FLOAT, data);
 			break;
@@ -99,10 +102,13 @@ GLuint Texture3D::load_tex_data(float *data)
 		case 4:
 			glTexImage3D(GL_TEXTURE_3D, 0, GL_RGBA, width, height, depth, 0, GL_RGBA, GL_FLOAT, data);
 			break;
-	#endif
+	    #endif
 		default:
 			break;
+	  }
 	}
+
+
 	assert(glGetError()==0);
 	
 	gl_resource_allocated = true;

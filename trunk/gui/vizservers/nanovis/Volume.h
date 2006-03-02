@@ -1,6 +1,6 @@
 /*
  * ----------------------------------------------------------------------
- * texture3d.h: 3d texture class
+ * Volume.h: 3d volume class
  *
  * ======================================================================
  *  AUTHOR:  Wei Qiao <qiaow@purdue.edu>
@@ -12,42 +12,39 @@
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  * ======================================================================
  */
-#ifndef _TEXTURE_3D_H_
-#define _TEXTURE_3D_H_
 
-#include <GL/glew.h>
-#include "config.h"
+#ifndef _VOLUME_H_
+#define _VOLUME_H_
 
-class Texture3D{
+#include "define.h"
+#include "Texture3D.h"
+
+class Volume{
 	
-
 public:
 	int width;
 	int height;
 	int depth;
 
-	double aspect_ratio_width;
-	double aspect_ratio_height;
-	double aspect_ratio_depth;
+	float aspect_ratio_width;
+	float aspect_ratio_height;
+	float aspect_ratio_depth;
 
-	GLuint type;
-	GLuint interp_type;
+	NVISdatatype type;
+	NVISinterptype interp_type;
 	int n_components;
-	void* data;
-	bool gl_resource_allocated;
 
-	GLuint id;
-	GLuint tex_unit;
+	Texture3D* tex;	//OpenGL texture storing the volume
+	NVISid id;   //OpenGL textue identifier (==tex->id)
 
-	Texture3D();
-	Texture3D(int width, int height, int depth, int type, int interp, int n_component);
-	~Texture3D();
+	Volume(int width, int height, int depth, 
+			NVISdatatype type, NVISinterptype interp,
+			int n_component, float* data);
+	~Volume();
 	
 	void activate();
 	void deactivate();
-	GLuint initialize(float* data);
-	static void check_max_size();
-	static void check_max_unit();
+	void initialize(float* data);
 
 };
 

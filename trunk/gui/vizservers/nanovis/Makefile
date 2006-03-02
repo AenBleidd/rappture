@@ -1,5 +1,5 @@
 OBJ_NANOVIS = nanovis.o Socket.o RenderVertexArray.o Plane.o ConvexPolygon.o Vector4.o Vector3.o Mat4x4.o \
-		Texture1D.o Texture3D.o
+		Texture1D.o Texture3D.o ColorMap.o Volume.o
 
 SOCKETSRC = ./socket
 SORTSRC = ./sort
@@ -25,11 +25,17 @@ RenderVertexArray.o: RenderVertexArray.h RenderVertexArray.cpp
 #qdclient: $(OBJ_CLIENT) 
 #	gcc -g -o qdclient $(OBJ_CLIENT) $(LIB_CLIENT)
 
+ColorMap.o: ColorMap.cpp
+	gcc $(CFLAG) ColorMap.cpp
+
 Texture1D.o: Texture1D.cpp
 	gcc $(CFLAG) Texture1D.cpp
 
 Texture3D.o: Texture3D.cpp config.h
 	gcc $(CFLAG) Texture3D.cpp
+
+Volume.o: Texture3D.o Volume.cpp define.h
+	gcc $(CFLAG) Volume.cpp
 
 Mat4x4.o: Mat4x4.cpp
 	gcc $(CFLAG) Mat4x4.cpp
@@ -46,6 +52,6 @@ Plane.o: Plane.cpp
 ConvexPolygon.o: ConvexPolygon.cpp
 	gcc $(CFLAG) ConvexPolygon.cpp
 
-nanovis.o: nanovis.h nanovis.cpp config.h
+nanovis.o: nanovis.h nanovis.cpp config.h define.h
 	gcc $(CFLAG) nanovis.cpp
 
