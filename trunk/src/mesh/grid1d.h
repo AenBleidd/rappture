@@ -25,6 +25,10 @@ public:
 	// return number of points in grid
 	int numPoints() { return m_data.size(); }
 
+	// return array of doubles - user must free memory 
+	// when not needed anymore
+	double* data();
+
 	// max num points that can be stored
 	int capacity() { return m_data.capacity(); }
 
