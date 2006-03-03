@@ -16,19 +16,7 @@
 #include "nanovis.h"
 
 ParticleSystem* psys;
-
-
-//particle system related variables
-NVISid psys_fbo[2]; 
-NVISid psys_tex[2];
-int psys_width = NMESH;			//particle system size
-int psys_height = NMESH;
-int psys_frame = 0;		        //count the frame number of particle system iteration
-float psys_x =0.4, psys_y=0, psys_z=0;	//particle initialization coordinates
-int life = 30;				//particle lifespan
-bool reborn = true;			//reinitiate particles
-bool flip = true;			//flip the source and destination render targets 
-
+float psys_x=0.4, psys_y=0, psys_z=0;
 
 char* screen_buffer = new char[4*NPIX*NPIX+1];		//buffer to store data read from the screen
 NVISid fbo, color_tex, pattern_tex, mag_tex, final_fbo, final_color_tex, final_depth_rb; //fbo related identifiers
@@ -69,13 +57,6 @@ CGparameter m_render_param_one_volume_param;
 CGprogram m_vert_std_vprog;
 CGparameter m_mvp_vert_std_param;
 CGparameter m_mvi_vert_std_param;
-
-
-float m_pointsize = 1.0;
-float m_point_alpha;
-
-//RenderVertexArray
-RenderVertexArray* m_vertex_array;
 
 
 using namespace std;
@@ -124,37 +105,7 @@ void init_glew(){
 }
 
 
-
-//initialize particle system
-void init_psys(){
-
-  glGenFramebuffersEXT(2, psys_fbo);
-  glGenTextures(2, psys_tex);
-
-  glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, psys_fbo[0]);
-
-  glBindTexture(GL_TEXTURE_RECTANGLE_NV, psys_tex[0]);
-  glTexParameterf(GL_TEXTURE_RECTANGLE_NV, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-  glTexParameterf(GL_TEXTURE_RECTANGLE_NV, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-  glTexImage2D(GL_TEXTURE_RECTANGLE_NV, 0, GL_FLOAT_RGBA32_NV, psys_width, psys_height, 0, GL_RGBA, GL_FLOAT, NULL);
-  glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, GL_TEXTURE_RECTANGLE_NV, psys_tex[0], 0);
-
-  glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, psys_fbo[1]);
-
-  glBindTexture(GL_TEXTURE_RECTANGLE_NV, psys_tex[1]);
-  glTexParameterf(GL_TEXTURE_RECTANGLE_NV, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-  glTexParameterf(GL_TEXTURE_RECTANGLE_NV, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-  glTexImage2D(GL_TEXTURE_RECTANGLE_NV, 0, GL_FLOAT_RGBA32_NV, psys_width, psys_height, 0, GL_RGBA, GL_FLOAT, NULL);
-  glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, GL_TEXTURE_RECTANGLE_NV, psys_tex[1], 0);
-
-  CHECK_FRAMEBUFFER_STATUS();
-  assert(glGetError()==0);
-  fprintf(stderr, "init_psys\n");
-}
-
-
 void load_volume(int index, int width, int height, int depth, int n_component, float* data);
-
 
 
 //load a vector field from file
@@ -300,13 +251,6 @@ void init_fbo(){
 }
 
 
-//initialize the vertex buffer object
-void init_vbo(){
-  m_vertex_array = new RenderVertexArray(psys_width*psys_height, 3, GL_FLOAT);
-  assert(glGetError()==0);
-}
-
-
 void makeMagnitudes(){
   GLubyte mag[NMESH][NMESH][4];
 
@@ -398,18 +342,19 @@ void init_cg(){
 
 void init_particles(){
   //random placement on a slice
-  float* data = new float[psys_width*psys_height*4];
-  bzero(data, sizeof(float)*4*psys_width*psys_height);
-  for (int i=0; i<psys_width; i++){ 
-    for (int j=0; j<psys_height; j++){ 
-      int index = i + psys_height*j;
+  float* data = new float[psys->psys_width * psys->psys_height * 4];
+  bzero(data, sizeof(float)*4* psys->psys_width * psys->psys_height);
+
+  for (int i=0; i<psys->psys_width; i++){ 
+    for (int j=0; j<psys->psys_height; j++){ 
+      int index = i + psys->psys_height*j;
       bool particle = rand() % 256 > 100; 
       if(particle)
       {
         data[4*index] = psys_x;
-	data[4*index+1]= i/float(psys_width);
-	data[4*index+2]= j/float(psys_height);
-	data[4*index+3]= life;	
+	data[4*index+1]= i/float(psys->psys_width);
+	data[4*index+2]= j/float(psys->psys_height);
+	data[4*index+3]= 30;	
       }
       else
       {
@@ -422,19 +367,10 @@ void init_particles(){
    }
 
   psys->initialize((Particle*)data);
-
-  glBindTexture(GL_TEXTURE_RECTANGLE_NV, psys_tex[0]);
-  glTexImage2D(GL_TEXTURE_RECTANGLE_NV, 0, GL_FLOAT_RGBA32_NV, psys_width, psys_height, 0, GL_RGBA, GL_FLOAT, data);
-  
-  flip = true;
-  assert(glGetError()==0);
-
   delete[] data;
-  reborn = false;
 
   fprintf(stderr, "init particles\n");
 }
-
 
 
 
@@ -481,13 +417,11 @@ void initGL(void)
 
    init_vector_field();	//3d vector field
    init_fbo();	//frame buffer objects
-   init_psys();	//particle system 
-   init_cg();		//init cg shaders
-   init_vbo();		//init vertex buffer object
+   init_cg();	//init cg shaders
 
    psys = new ParticleSystem(NMESH, NMESH, g_context, volume[0]->id);
-
    init_particles();	//fill initial particles
+
    get_slice_vectors();
 }
 
@@ -789,12 +723,12 @@ int particle_distance_sort(const void* a, const void* b){
 
 
 void soft_read_verts(){
-  glReadPixels(0, 0, psys_width, psys_height, GL_RGB, GL_FLOAT, vert);
+  glReadPixels(0, 0, psys->psys_width, psys->psys_height, GL_RGB, GL_FLOAT, vert);
   //fprintf(stderr, "soft_read_vert");
 
   //cpu sort the distance  
-  Particle* p = (Particle*) malloc(sizeof(Particle)*psys_width*psys_height);
-  for(int i=0; i<psys_width*psys_height; i++){
+  Particle* p = (Particle*) malloc(sizeof(Particle)* psys->psys_width * psys->psys_height);
+  for(int i=0; i<psys->psys_width * psys->psys_height; i++){
     float x = vert[3*i];
     float y = vert[3*i+1];
     float z = vert[3*i+2];
@@ -806,127 +740,15 @@ void soft_read_verts(){
     p[i].aux = dis;
   }
 
-  qsort(p, psys_width*psys_height, sizeof(Particle), particle_distance_sort);
+  qsort(p, psys->psys_width * psys->psys_height, sizeof(Particle), particle_distance_sort);
 
-  for(int i=0; i<psys_width*psys_height; i++){
+  for(int i=0; i<psys->psys_width * psys->psys_height; i++){
     vert[3*i] = p[i].x;
     vert[3*i+1] = p[i].y;
     vert[3*i+2] = p[i].z;
   }
 
   free(p);
-}
-
-
-void hard_read_verts(){
-  m_vertex_array->Read(psys_width, psys_height);
-  //m_vertex_array->LoadData(vert);	//does not work
-  assert(glGetError()==0);
-}
-
-
-void sortstep();
-
-void advect_particles(){
-  
-   glDisable(GL_BLEND);
-   
-   if(flip)
-   {
-
-   glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, psys_fbo[1]);
-   glBindTexture(GL_TEXTURE_RECTANGLE_NV, psys_tex[0]);
-
-   glClear(GL_COLOR_BUFFER_BIT);
-
-   glViewport(0, 0, psys_width, psys_height);
-   glMatrixMode(GL_PROJECTION);
-   glLoadIdentity();
-   gluOrtho2D(0, psys_width, 0, psys_height);
-   glMatrixMode(GL_MODELVIEW);
-   glLoadIdentity();
-
-   cgGLBindProgram(m_pos_fprog);
-   cgGLSetParameter1f(m_pos_timestep_param, 0.1);
-   cgGLEnableTextureParameter(m_vel_tex_param);
-   cgGLSetTextureParameter(m_pos_tex_param, psys_tex[0]);
-   cgGLEnableTextureParameter(m_pos_tex_param);
-
-   cgGLEnableProfile(CG_PROFILE_FP30);
-   draw_quad(psys_width, psys_height, psys_width, psys_height);
-   cgGLDisableProfile(CG_PROFILE_FP30);
-   
-   cgGLDisableTextureParameter(m_vel_tex_param);
-   cgGLDisableTextureParameter(m_pos_tex_param);
-
-  /* 
-   cgGLBindProgram(m_passthru_fprog);
-   cgGLEnableProfile(CG_PROFILE_FP30);
-
-   cgGLSetParameter4f(m_passthru_scale_param, 1.0, 1.0, 1.0, 1.0);
-   cgGLSetParameter4f(m_passthru_bias_param, 0.0, 0.0, 0.0, 0.0);
-   
-   draw_quad(psys_width, psys_height, psys_width, psys_height);
-   cgGLDisableProfile(CG_PROFILE_FP30);
-   */
-   
-   }
-   else
-   {
-
-   glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, psys_fbo[0]);
-   glBindTexture(GL_TEXTURE_RECTANGLE_NV, psys_tex[1]);
-
-   glClear(GL_COLOR_BUFFER_BIT);
-
-   glViewport(0, 0, psys_width, psys_height);
-   glMatrixMode(GL_PROJECTION);
-   glLoadIdentity();
-   gluOrtho2D(0, psys_width, 0, psys_height);
-   glMatrixMode(GL_MODELVIEW);
-   glLoadIdentity();
-
-   cgGLBindProgram(m_pos_fprog);
-   cgGLSetParameter1f(m_pos_timestep_param, 0.1);
-   cgGLEnableTextureParameter(m_vel_tex_param);
-   cgGLSetTextureParameter(m_pos_tex_param, psys_tex[1]);
-   cgGLEnableTextureParameter(m_pos_tex_param);
-
-   cgGLEnableProfile(CG_PROFILE_FP30);
-   draw_quad(psys_width, psys_height, psys_width, psys_height);
-   cgGLDisableProfile(CG_PROFILE_FP30);
-   
-   cgGLDisableTextureParameter(m_vel_tex_param);
-   cgGLDisableTextureParameter(m_pos_tex_param);
-
-  /* 
-   cgGLBindProgram(m_passthru_fprog);
-   cgGLEnableProfile(CG_PROFILE_FP30);
-
-   cgGLSetParameter4f(m_passthru_scale_param, 1.0, 1.0, 1.0, 1.0);
-   cgGLSetParameter4f(m_passthru_bias_param, 0.0, 0.0, 0.0, 0.0);
-   
-   draw_quad(psys_width, psys_height, psys_width, psys_height);
-   cgGLDisableProfile(CG_PROFILE_FP30);
-  */
-
-   }
-
-   assert(glGetError()==0);
-
-   //soft_read_verts();
-
-   hard_read_verts();
-
-   flip = (!flip);
-
-   psys_frame++;
-   if(psys_frame==life){
-     psys_frame=0;
-     reborn = true;
-   }
-
-   fprintf(stderr, "advect: %d ", psys_frame);
 }
 
 
@@ -959,34 +781,15 @@ void display_texture(NVISid tex, int width, int height){
 }
 
 
-//draw vertices in the onboard vertex buffer object
-void hard_display_verts(){
-  glDisable(GL_TEXTURE_2D);
-  glDisable(GL_BLEND);
-
-  glPointSize(m_pointsize);
-  glColor4f(.8,.8,.8,1.);
-
-  m_vertex_array->SetPointer(0);
-  //glEnableVertexAttribArray(0);
-  glEnableClientState(GL_VERTEX_ARRAY);
-  glDrawArrays(GL_POINTS, 0, psys_width*psys_height);
-  //glDisableVertexAttribArray(0);
-  glDisableClientState(GL_VERTEX_ARRAY);
-  
-  assert(glGetError()==0);
-}
-
-
 //draw vertices in the main memory
 void soft_display_verts(){
   glDisable(GL_TEXTURE_2D);
   glEnable(GL_BLEND);
 
-  glPointSize(m_pointsize);
+  glPointSize(0.5);
   glColor4f(0,0.8,0.8,0.6);
   glBegin(GL_POINTS);
-  for(int i=0; i<psys_width*psys_height; i++){
+  for(int i=0; i<psys->psys_width * psys->psys_height; i++){
     glVertex3f(vert[3*i], vert[3*i+1], vert[3*i+2]);
   }
   glEnd();
@@ -1330,18 +1133,11 @@ void display()
       glTexCoord2f(1.0, 0.0); glVertex2f(1., 0.0);
    glEnd();
    
-   
-   advect_particles(); 
+   //advect particles
+   psys->advect();
 
    final_fbo_capture();
 
-   /*
-   if(flip)
-     display_texture(psys_tex[1], psys_width, psys_height);
-   else
-     display_texture(psys_tex[0], psys_width, psys_height);
-   */
-  
    //display_texture(slice_vector_tex, NMESH, NMESH);
 
 #if 1
@@ -1394,7 +1190,7 @@ void display()
    glEnd();
 
    //soft_display_verts();
-   hard_display_verts();
+   psys->display_vertices();
 
    //render volume
    render_volume(256);
@@ -1404,10 +1200,6 @@ void display()
 
    display_final_fbo();
 
-   //rebirth
-   if(reborn){
-    init_particles();
-   }
    glutSwapBuffers(); 
 }
 
