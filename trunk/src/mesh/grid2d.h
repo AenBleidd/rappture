@@ -13,8 +13,8 @@ public:
 	// constructors
 	RpGrid2d();
 	RpGrid2d(int npoints);
-	RpGrid2d(double* xval, double* yval, int npoints);
-	RpGrid2d(double** data, int npoints);
+	RpGrid2d(double* x, double* y, int npoints);
+	RpGrid2d(double** xy, int npoints);
 	RpGrid2d(const char* buf); // instantiate with byte stream
 
 	// return number of points in grid
