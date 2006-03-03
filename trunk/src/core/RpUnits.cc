@@ -17,6 +17,8 @@
 
 // dict pointer
 RpDict<std::string,RpUnits*>* RpUnits::dict = new RpDict<std::string,RpUnits*>();
+
+// install predefined units
 static RpUnitsPreset loader;
 
 /**********************************************************************/
@@ -26,7 +28,9 @@ static RpUnitsPreset loader;
  */
 
 RpUnits *
-RpUnits::define( const std::string units, const RpUnits* basis) {
+RpUnits::define(    const std::string units, 
+                    const RpUnits* basis, 
+                    const std::string type  ) {
 
     RpUnits* newRpUnit = NULL;
 
@@ -36,7 +40,7 @@ RpUnits::define( const std::string units, const RpUnits* basis) {
     int idx = len-1;
     double exponent = 1;
 
-    if (units == "") {
+    if (units.empty()) {
         // raise error, user sent null units!
         return NULL;
     }
@@ -74,7 +78,7 @@ RpUnits::define( const std::string units, const RpUnits* basis) {
         sendStr = searchStr;
     }
 
-    newRpUnit = new RpUnits(sendStr, exponent, basis);
+    newRpUnit = new RpUnits(sendStr, exponent, basis, type);
     if (newRpUnit) {
         insert(newRpUnit->getUnitsName(),newRpUnit);
     }
@@ -162,6 +166,56 @@ RpUnits::grabUnits ( std::string inStr, int* offset) {
 }
 
 
+/**********************************************************************/
+// METHOD: getType()
+/// Return the type of an RpUnits object.
+/**
+ */
+std::string
+RpUnits::getType() const {
+    return this->type;
+}
+
+/**********************************************************************/
+// METHOD: getCompatible()
+/// Return a list of units compatible with this RpUnits object.
+/**
+ */
+std::list<std::string>
+RpUnits::getCompatible() const {
+
+    std::list<std::string> compatList;
+    std::list<std::string> basisCompatList;
+    std::string myName         = getUnitsName();
+    std::string otherName      = getUnitsName();
+    convEntry* myConversions   = this->convList;
+
+    if (this->basis) {
+        basisCompatList = this->basis->getCompatible();
+        compatList.merge(basisCompatList);
+    }
+
+    // run through the conversion list
+    // for each entry, look at the name
+    // if the name is not equal to the name of this RpUnits object,
+    // store the fromPtr->getUnitsName() into compatList
+    // else store the toPtr->getUnitsName() into compatList
+    //
+    while (myConversions != NULL) {
+        otherName = myConversions->conv->toPtr->getUnitsName();
+        if (otherName == myName) {
+            otherName = myConversions->conv->fromPtr->getUnitsName();
+        }
+        compatList.push_back(otherName);
+        myConversions = myConversions->next;
+    }
+
+    compatList.push_back(myName);
+    compatList.sort();
+    compatList.unique();
+    return compatList;
+
+}
 
 /**********************************************************************/
 // METHOD: define()
@@ -418,51 +472,51 @@ RpUnits::makeMetric(const RpUnits* basis) {
     std::string name;
 
     name = "c" + basisName;
-    RpUnits * centi = RpUnits::define(name, basis);
+    RpUnits * centi = RpUnits::define(name, basis, basis->type);
     RpUnits::define(centi, basis, centi2base, base2centi);
 
     name = "m" + basisName;
-    RpUnits * milli = RpUnits::define(name, basis);
+    RpUnits * milli = RpUnits::define(name, basis, basis->type);
     RpUnits::define(milli, basis, milli2base, base2milli);
 
     name = "u" + basisName;
-    RpUnits * micro = RpUnits::define(name, basis);
+    RpUnits * micro = RpUnits::define(name, basis, basis->type);
     RpUnits::define(micro, basis, micro2base, base2micro);
 
     name = "n" + basisName;
-    RpUnits * nano  = RpUnits::define(name, basis);
+    RpUnits * nano  = RpUnits::define(name, basis, basis->type);
     RpUnits::define(nano, basis, nano2base, base2nano);
 
     name = "p" + basisName;
-    RpUnits * pico  = RpUnits::define(name, basis);
+    RpUnits * pico  = RpUnits::define(name, basis, basis->type);
     RpUnits::define(pico, basis, pico2base, base2pico);
 
     name = "f" + basisName;
-    RpUnits * femto = RpUnits::define(name, basis);
+    RpUnits * femto = RpUnits::define(name, basis, basis->type);
     RpUnits::define(femto, basis, femto2base, base2femto);
 
     name = "a" + basisName;
-    RpUnits * atto  = RpUnits::define(name, basis);
+    RpUnits * atto  = RpUnits::define(name, basis, basis->type);
     RpUnits::define(atto, basis, atto2base, base2atto);
 
     name = "k" + basisName;
-    RpUnits * kilo  = RpUnits::define(name, basis);
+    RpUnits * kilo  = RpUnits::define(name, basis, basis->type);
     RpUnits::define(kilo, basis, kilo2base, base2kilo);
 
     name = "M" + basisName;
-    RpUnits * mega  = RpUnits::define(name, basis);
+    RpUnits * mega  = RpUnits::define(name, basis, basis->type);
     RpUnits::define(mega, basis, mega2base, base2mega);
 
     name = "G" + basisName;
-    RpUnits * giga  = RpUnits::define(name, basis);
+    RpUnits * giga  = RpUnits::define(name, basis, basis->type);
     RpUnits::define(giga, basis, giga2base, base2giga);
 
     name = "T" + basisName;
-    RpUnits * tera  = RpUnits::define(name, basis);
+    RpUnits * tera  = RpUnits::define(name, basis, basis->type);
     RpUnits::define(tera, basis, tera2base, base2tera);
 
     name = "P" + basisName;
-    RpUnits * peta  = RpUnits::define(name, basis);
+    RpUnits * peta  = RpUnits::define(name, basis, basis->type);
     RpUnits::define(peta, basis, peta2base, base2peta);
 
     return (1);
@@ -503,8 +557,8 @@ RpUnits::find(std::string key) {
 }
 
 /**********************************************************************/
-// METHOD: define()
-/// Define a unit type to be stored as a Rappture Unit.
+// METHOD: negateListExponents()
+/// Negate the exponents on every element in unitsList
 /**
  */
 
@@ -523,10 +577,9 @@ RpUnits::negateListExponents(RpUnitsList& unitsList) {
     return nodeCnt;
 }
 
-// negate the exponent
 /**********************************************************************/
-// METHOD: define()
-/// Define a unit type to be stored as a Rappture Unit.
+// METHOD: negateExponent()
+/// Negate the exponent on the current RpUnitsListEntry
 /**
  */
 
@@ -536,10 +589,9 @@ RpUnitsListEntry::negateExponent() const {
     return;
 }
 
-// provide the caller with the name of this object
 /**********************************************************************/
-// METHOD: define()
-/// Define a unit type to be stored as a Rappture Unit.
+// METHOD: name()
+/// Provide the caller with the name of this object
 /**
  */
 
@@ -550,10 +602,9 @@ RpUnitsListEntry::name() const {
     return std::string(name.str());
 }
 
-// provide the caller with the basis of the RpUnits object being stored
 /**********************************************************************/
 // METHOD: define()
-/// Define a unit type to be stored as a Rappture Unit.
+/// Provide the caller with the basis of the RpUnits object being stored
 /**
  */
 
@@ -1504,7 +1555,7 @@ RpUnitsPreset::addPresetAll () {
 int
 RpUnitsPreset::addPresetTime () {
 
-    RpUnits* seconds    = RpUnits::define("s", NULL);
+    RpUnits* seconds    = RpUnits::define("s", NULL, RP_TYPE_TIME);
 
     RpUnits::makeMetric(seconds);
 
@@ -1529,10 +1580,10 @@ RpUnitsPreset::addPresetTime () {
 int
 RpUnitsPreset::addPresetTemp () {
 
-    RpUnits* fahrenheit = RpUnits::define("F", NULL);
-    RpUnits* celcius    = RpUnits::define("C", NULL);
-    RpUnits* kelvin     = RpUnits::define("K", NULL);
-    RpUnits* rankine    = RpUnits::define("R", NULL);
+    RpUnits* fahrenheit = RpUnits::define("F", NULL, RP_TYPE_TEMP);
+    RpUnits* celcius    = RpUnits::define("C", NULL, RP_TYPE_TEMP);
+    RpUnits* kelvin     = RpUnits::define("K", NULL, RP_TYPE_TEMP);
+    RpUnits* rankine    = RpUnits::define("R", NULL, RP_TYPE_TEMP);
 
     // add temperature definitions
     RpUnits::define(fahrenheit, celcius, fahrenheit2centigrade, centigrade2fahrenheit);
@@ -1560,11 +1611,11 @@ RpUnitsPreset::addPresetTemp () {
 int
 RpUnitsPreset::addPresetLength () {
 
-    RpUnits* meters     = RpUnits::define("m", NULL);
-    RpUnits* angstrom   = RpUnits::define("A", NULL);
-    RpUnits* inch       = RpUnits::define("in", NULL);
-    RpUnits* feet       = RpUnits::define("ft", NULL);
-    RpUnits* yard       = RpUnits::define("yd", NULL);
+    RpUnits* meters     = RpUnits::define("m", NULL, RP_TYPE_LENGTH);
+    RpUnits* angstrom   = RpUnits::define("A", NULL, RP_TYPE_LENGTH);
+    RpUnits* inch       = RpUnits::define("in", NULL, RP_TYPE_LENGTH);
+    RpUnits* feet       = RpUnits::define("ft", NULL, RP_TYPE_LENGTH);
+    RpUnits* yard       = RpUnits::define("yd", NULL, RP_TYPE_LENGTH);
 
     RpUnits::makeMetric(meters);
 
@@ -1592,9 +1643,9 @@ RpUnitsPreset::addPresetLength () {
 int
 RpUnitsPreset::addPresetEnergy () {
 
-    RpUnits* volt       = RpUnits::define("V", NULL);
-    RpUnits* eVolt      = RpUnits::define("eV", NULL);
-    RpUnits* joule      = RpUnits::define("J", NULL);
+    RpUnits* volt       = RpUnits::define("V", NULL, RP_TYPE_ENERGY);
+    RpUnits* eVolt      = RpUnits::define("eV", NULL, RP_TYPE_ENERGY);
+    RpUnits* joule      = RpUnits::define("J", NULL, RP_TYPE_ENERGY);
 
     RpUnits::makeMetric(volt);
     RpUnits::makeMetric(eVolt);
@@ -1620,10 +1671,10 @@ RpUnitsPreset::addPresetEnergy () {
 int
 RpUnitsPreset::addPresetVolume () {
 
-    RpUnits* cubic_meter  = RpUnits::define("m3", NULL);
-    // RpUnits* pcubic_meter  = RpUnits::define("/m3", NULL);
-    RpUnits* cubic_feet   = RpUnits::define("ft3", NULL);
-    RpUnits* us_gallon    = RpUnits::define("gal", NULL);
+    RpUnits* cubic_meter  = RpUnits::define("m3", NULL, RP_TYPE_VOLUME);
+    // RpUnits* pcubic_meter  = RpUnits::define("/m3", NULL, RP_TYPE_VOLUME);
+    RpUnits* cubic_feet   = RpUnits::define("ft3", NULL, RP_TYPE_VOLUME);
+    RpUnits* us_gallon    = RpUnits::define("gal", NULL, RP_TYPE_VOLUME);
 
     RpUnits::makeMetric(cubic_meter);
 

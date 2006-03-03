@@ -27,6 +27,21 @@ static int RpTclUnitsConvert   _ANSI_ARGS_((    ClientData cdata,
                                                 int argc, 
                                                 const char *argv[]    ));
 
+static int RpTclUnitsDesc      _ANSI_ARGS_((    ClientData cdata,
+                                                Tcl_Interp *interp,
+                                                int argc, 
+                                                const char *argv[]    ));
+
+static int RpTclUnitsSysFor   _ANSI_ARGS_((    ClientData cdata,
+                                                Tcl_Interp *interp,
+                                                int argc, 
+                                                const char *argv[]    ));
+
+static int RpTclUnitsSysAll   _ANSI_ARGS_((    ClientData cdata,
+                                                Tcl_Interp *interp,
+                                                int argc, 
+                                                const char *argv[]    ));
+
 #ifdef __cplusplus
 }
 #endif
@@ -46,6 +61,15 @@ Rapptureunits_Init(Tcl_Interp *interp)
 
     Tcl_CreateCommand(interp, "::Rappture::Units::convert",
         RpTclUnitsConvert, (ClientData)NULL, (Tcl_CmdDeleteProc*)NULL);
+
+    Tcl_CreateCommand(interp, "::Rappture::Units::description",
+        RpTclUnitsDesc, (ClientData)NULL, (Tcl_CmdDeleteProc*)NULL);
+
+    Tcl_CreateCommand(interp, "::Rappture::Units::System::for",
+        RpTclUnitsSysFor, (ClientData)NULL, (Tcl_CmdDeleteProc*)NULL);
+
+    Tcl_CreateCommand(interp, "::Rappture::Units::System::all",
+        RpTclUnitsSysAll, (ClientData)NULL, (Tcl_CmdDeleteProc*)NULL);
 
     return TCL_OK;
 }
@@ -124,7 +148,7 @@ RpTclUnitsConvert   (   ClientData cdata,
                 else {
                     // unrecognized value for -units option
                     Tcl_AppendResult(interp,
-                        "value for -units must be \"yes\" or \"no\"",
+                        "value for -units must be \"on\" or \"off\"",
                         (char*)NULL);
                     return TCL_ERROR;
                 }
@@ -189,3 +213,140 @@ RpTclUnitsConvert   (   ClientData cdata,
     return retVal;
 }
 
+int
+RpTclUnitsDesc      (   ClientData cdata,
+                        Tcl_Interp *interp,
+                        int argc,
+                        const char *argv[]  )
+{
+    std::string unitsName     = ""; // name of the units provided by user
+    std::string type          = ""; // name of the units provided by user
+    std::string listStr       = ""; // name of the units provided by user
+    const RpUnits* unitsObj   = NULL;
+    std::list<std::string> compatList;
+    std::list<std::string>::iterator compatListIter;
+
+    int nextarg               = 1; // start parsing using the '2'th argument
+
+    Tcl_ResetResult(interp);
+
+    // parse through command line options
+    if (argc != 2) {
+        Tcl_AppendResult(interp, "usage: ", argv[0], " <units>", (char*)NULL);
+        return TCL_ERROR;
+    }
+
+    unitsName = std::string(argv[nextarg]);
+
+    unitsObj = RpUnits::find(unitsName);
+    if (unitsObj == NULL) {
+        Tcl_AppendResult(interp,
+            "The units named: \"", unitsName.c_str(), 
+            "\" is not a recognized unit for rappture",
+            (char*)NULL);
+        return TCL_ERROR;
+    }
+
+    type = unitsObj->getType();
+
+    Tcl_AppendResult(interp, type.c_str(), (char*)NULL);
+
+    compatList = unitsObj->getCompatible();
+    compatListIter = compatList.begin();
+
+    while (compatListIter != compatList.end()) {
+        if ( listStr.empty() ) {
+            listStr = *compatListIter;
+        }
+        else {
+            listStr =  listStr + "," + *compatListIter;
+        }
+
+        // increment the iterator
+        compatListIter++;
+    }
+
+    Tcl_AppendResult(interp, " (", listStr.c_str() ,")", (char*)NULL);
+
+    return TCL_OK;
+}
+
+int
+RpTclUnitsSysFor    (   ClientData cdata,
+                        Tcl_Interp *interp,
+                        int argc,
+                        const char *argv[]  )
+{
+    std::string unitsName     = ""; // name of the units provided by user
+    std::string type          = ""; // name of the units provided by user
+    const RpUnits* unitsObj   = NULL;
+    int nextarg               = 1; // start parsing using the '2'th argument
+
+    Tcl_ResetResult(interp);
+
+    // parse through command line options
+    if (argc != 2) {
+        Tcl_AppendResult(interp, "usage: ", argv[0], " <units>", (char*)NULL);
+        return TCL_ERROR;
+    }
+
+    unitsName = std::string(argv[nextarg]);
+
+    unitsObj = RpUnits::find(unitsName);
+    if (unitsObj == NULL) {
+        Tcl_AppendResult(interp,
+            "The units named: \"", unitsName.c_str(), 
+            "\" is not a recognized unit for rappture",
+            (char*)NULL);
+        return TCL_ERROR;
+    }
+
+    type = unitsObj->getType();
+
+    Tcl_AppendResult(interp, type.c_str(), (char*)NULL);
+    return TCL_OK;
+
+}
+
+int
+RpTclUnitsSysAll    (   ClientData cdata,
+                        Tcl_Interp *interp,
+                        int argc,
+                        const char *argv[]  )
+{
+    std::string unitsName     = ""; // name of the units provided by user
+    const RpUnits* unitsObj   = NULL;
+    std::list<std::string> compatList;
+    std::list<std::string>::iterator compatListIter;
+    int nextarg               = 1; // start parsing using the '2'th argument
+
+    Tcl_ResetResult(interp);
+
+    // parse through command line options
+    if (argc != 2) {
+        Tcl_AppendResult(interp, "usage: ", argv[0], " <units>", (char*)NULL);
+        return TCL_ERROR;
+    }
+
+    unitsName = std::string(argv[nextarg]);
+
+    unitsObj = RpUnits::find(unitsName);
+    if (unitsObj == NULL) {
+        Tcl_AppendResult(interp,
+            "The units named: \"", unitsName.c_str(), 
+            "\" is not a recognized unit for rappture",
+            (char*)NULL);
+        return TCL_ERROR;
+    }
+
+    compatList = unitsObj->getCompatible();
+    compatListIter = compatList.begin();
+
+    while (compatListIter != compatList.end()) {
+        Tcl_AppendElement(interp,(*compatListIter).c_str());
+        // increment the iterator
+        compatListIter++;
+    }
+
+    return TCL_OK;
+}
