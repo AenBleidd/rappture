@@ -15,62 +15,25 @@
 
 #include "nanovis.h"
 
-#include "socket/Socket.h"
-#include "RenderVertexArray.h"
-#include "ConvexPolygon.h"
-#include "Texture3D.h"
-#include "ColorMap.h"
-#include "ConvexPolygon.h"
-#include "Mat4x4.h"
-#include "Volume.h"
+ParticleSystem* psys;
 
-
-//variables for mouse events
-float live_rot_x = 0.;		//object rotation angles
-float live_rot_y = 0.;
-float live_rot_z = 0.;
-
-float live_obj_x = -0.5;	//object translation location from the origin
-float live_obj_y = -0.5;
-float live_obj_z = -2.5;
-
-int left_last_x, left_last_y, right_last_x, right_last_y; 	//last locations mouse events
-bool left_down = false;						
-bool right_down = false;
-
-float slice_x=0, slice_y=0, slice_z=0.3;	//image based flow visualization slice location
-
-int win_width = NPIX;			//size of the render window
-int win_height = NPIX;			//size of the render window
 
 //particle system related variables
+NVISid psys_fbo[2]; 
+NVISid psys_tex[2];
+int psys_width = NMESH;			//particle system size
+int psys_height = NMESH;
 int psys_frame = 0;		        //count the frame number of particle system iteration
 float psys_x =0.4, psys_y=0, psys_z=0;	//particle initialization coordinates
 int life = 30;				//particle lifespan
 bool reborn = true;			//reinitiate particles
 bool flip = true;			//flip the source and destination render targets 
 
-int psys_width = NMESH;			//particle system size
-int psys_height = NMESH;
-NVISid psys_fbo[2]; 
-NVISid psys_tex[2];
-
-
-//image based flow visualization variables
-int    iframe = 0; 
-int    Npat   = 64;
-int    alpha  = (0.12*255);
-float  sa;
-float  tmax   = NPIX/(SCALE*NPN);
-float  dmax   = SCALE/NPIX;
-
 
 char* screen_buffer = new char[4*NPIX*NPIX+1];		//buffer to store data read from the screen
 NVISid fbo, color_tex, pattern_tex, mag_tex, final_fbo, final_color_tex, final_depth_rb; //fbo related identifiers
 NVISid vel_fbo, slice_vector_tex;	//for projecting 3d vector to 2d vector on a plane
 
-NVISid vector_tex;			//3d vector field texture	
-Volume* vector_filed;			//3d vector field
 bool advect=false;
 float vert[NMESH*NMESH*3];		//particle positions in main memory
 float slice_vector[NMESH*NMESH*4];	//per slice vectors in main memory
@@ -83,10 +46,10 @@ ColorMap* colormap[MAX_N_VOLUMES];	//transfer functions, currently handle up to 
 //Nvidia CG shaders and their parameters
 CGcontext g_context;
 CGprogram m_pos_fprog;
+CGparameter m_vel_tex_param, m_pos_tex_param;
 CGparameter m_pos_timestep_param, m_pos_spherePos_param;
 
 CGprogram m_vel_fprog;
-CGparameter m_vel_tex_param, m_pos_tex_param;
 CGparameter m_vel_timestep_param, m_vel_damping_param, m_vel_gravity_param;
 CGparameter m_vel_spherePos_param, m_vel_sphereVel_param, m_vel_sphereRadius_param;
 
@@ -128,23 +91,6 @@ static int OutlineCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int arg
 static int CutCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
 static int HelloCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
 static int LoadCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
-
-#define CHECK_FRAMEBUFFER_STATUS()                            \
-  {                                                           \
-    GLenum status;                                            \
-    status = glCheckFramebufferStatusEXT(GL_FRAMEBUFFER_EXT); \
-    switch(status) {                                          \
-      case GL_FRAMEBUFFER_COMPLETE_EXT:                       \
-        break;                                                \
-      case GL_FRAMEBUFFER_UNSUPPORTED_EXT:                    \
-        /* choose different formats */                        \
-        break;                                                \
-      default:                                                \
-        /* programming error; will fail on all hardware */    \
-	fprintf(stderr, "programming error\n");               \
-        assert(0);                                            \
-     }	                                                      \
-   }
 
 
 //report errors related to CG shaders
@@ -293,65 +239,64 @@ void load_colormap(int index){
 //initialize frame buffer objects for offscreen rendering
 void init_fbo(){
 
-	//initialize fbo for projecting a 3d vector to 2d plane
-        glGenFramebuffersEXT(1, &vel_fbo);
-        glGenTextures(1, &slice_vector_tex);
+  //initialize fbo for projecting a 3d vector to 2d plane
+  glGenFramebuffersEXT(1, &vel_fbo);
+  glGenTextures(1, &slice_vector_tex);
 
-        glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, vel_fbo);
+  glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, vel_fbo);
 
-        //initialize texture storing per slice vectors
-        glBindTexture(GL_TEXTURE_RECTANGLE_NV, slice_vector_tex);
-        glTexParameterf(GL_TEXTURE_RECTANGLE_NV, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        glTexParameterf(GL_TEXTURE_RECTANGLE_NV, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glTexImage2D(GL_TEXTURE_RECTANGLE_NV, 0, GL_FLOAT_RGBA32_NV, NMESH, NMESH, 0, GL_RGBA, GL_FLOAT, NULL);
-        glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, GL_TEXTURE_RECTANGLE_NV, slice_vector_tex, 0);
+  //initialize texture storing per slice vectors
+  glBindTexture(GL_TEXTURE_RECTANGLE_NV, slice_vector_tex);
+  glTexParameterf(GL_TEXTURE_RECTANGLE_NV, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameterf(GL_TEXTURE_RECTANGLE_NV, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  glTexImage2D(GL_TEXTURE_RECTANGLE_NV, 0, GL_FLOAT_RGBA32_NV, NMESH, NMESH, 0, GL_RGBA, GL_FLOAT, NULL);
+  glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, GL_TEXTURE_RECTANGLE_NV, slice_vector_tex, 0);
 
-	//initialize final fbo for final display
-        glGenFramebuffersEXT(1, &final_fbo);
-        glGenTextures(1, &final_color_tex);
-        glGenRenderbuffersEXT(1, &final_depth_rb);
+  //initialize final fbo for final display
+  glGenFramebuffersEXT(1, &final_fbo);
+  glGenTextures(1, &final_color_tex);
+  glGenRenderbuffersEXT(1, &final_depth_rb);
 
-        glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, final_fbo);
+  glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, final_fbo);
 
-        //initialize final color texture
-        glBindTexture(GL_TEXTURE_2D, final_color_tex);
-        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, win_width, win_height, 0,
-                     GL_RGB, GL_INT, NULL);
-        glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT,
-                                  GL_COLOR_ATTACHMENT0_EXT,
-                                  GL_TEXTURE_2D, final_color_tex, 0);
+  //initialize final color texture
+  glBindTexture(GL_TEXTURE_2D, final_color_tex);
+  glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, win_width, win_height, 0,
+               GL_RGB, GL_INT, NULL);
+  glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT,
+                            GL_COLOR_ATTACHMENT0_EXT,
+                            GL_TEXTURE_2D, final_color_tex, 0);
 
 	
-        // initialize final depth renderbuffer
-        glBindRenderbufferEXT(GL_RENDERBUFFER_EXT, final_depth_rb);
-        glRenderbufferStorageEXT(GL_RENDERBUFFER_EXT,
-                                 GL_DEPTH_COMPONENT24, win_width, win_height);
-        glFramebufferRenderbufferEXT(GL_FRAMEBUFFER_EXT,
-                                     GL_DEPTH_ATTACHMENT_EXT,
-                                     GL_RENDERBUFFER_EXT, final_depth_rb);
+  // initialize final depth renderbuffer
+  glBindRenderbufferEXT(GL_RENDERBUFFER_EXT, final_depth_rb);
+  glRenderbufferStorageEXT(GL_RENDERBUFFER_EXT,
+                           GL_DEPTH_COMPONENT24, win_width, win_height);
+  glFramebufferRenderbufferEXT(GL_FRAMEBUFFER_EXT,
+                               GL_DEPTH_ATTACHMENT_EXT,
+                               GL_RENDERBUFFER_EXT, final_depth_rb);
 
+  //initialize fbo for lic
+  glGenFramebuffersEXT(1, &fbo);
+  glGenTextures(1, &color_tex);
 
-	//initialize fbo for lic
-        glGenFramebuffersEXT(1, &fbo);
-        glGenTextures(1, &color_tex);
+  glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, fbo);
 
-        glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, fbo);
+  //initialize color texture for lic
+  glBindTexture(GL_TEXTURE_2D, color_tex);
+  glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, win_width, win_height, 0,
+               GL_RGB, GL_INT, NULL);
+  glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT,
+                            GL_COLOR_ATTACHMENT0_EXT,
+                            GL_TEXTURE_2D, color_tex, 0);
 
-        //initialize color texture for lic
-        glBindTexture(GL_TEXTURE_2D, color_tex);
-        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, win_width, win_height, 0,
-                     GL_RGB, GL_INT, NULL);
-        glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT,
-                                  GL_COLOR_ATTACHMENT0_EXT,
-                                  GL_TEXTURE_2D, color_tex, 0);
-
-        // Check framebuffer completeness at the end of initialization.
-        CHECK_FRAMEBUFFER_STATUS();
-	assert(glGetError()==0);
+  // Check framebuffer completeness at the end of initialization.
+  CHECK_FRAMEBUFFER_STATUS();
+  assert(glGetError()==0);
 }
 
 
@@ -397,13 +342,6 @@ void makeMagnitudes(){
   glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, NMESH, NMESH, 0, GL_RGBA, GL_UNSIGNED_BYTE, mag);
 }
 
-CGprogram loadProgram(CGcontext context, CGprofile profile, CGenum program_type, char *filename)
-{
-    CGprogram program = cgCreateProgramFromFile(context, program_type, filename,
-        profile, NULL, NULL);
-    cgGLLoadProgram(program);
-    return program;
-}
 
 void init_cg(){
     cgSetErrorCallback(cgErrorCallback);
@@ -483,6 +421,8 @@ void init_particles(){
     }
    }
 
+  psys->initialize((Particle*)data);
+
   glBindTexture(GL_TEXTURE_RECTANGLE_NV, psys_tex[0]);
   glTexImage2D(GL_TEXTURE_RECTANGLE_NV, 0, GL_FLOAT_RGBA32_NV, psys_width, psys_height, 0, GL_RGBA, GL_FLOAT, data);
   
@@ -542,10 +482,12 @@ void initGL(void)
    init_vector_field();	//3d vector field
    init_fbo();	//frame buffer objects
    init_psys();	//particle system 
-   init_particles();	//fill initial particles
    init_cg();		//init cg shaders
    init_vbo();		//init vertex buffer object
 
+   psys = new ParticleSystem(NMESH, NMESH, g_context, volume[0]->id);
+
+   init_particles();	//fill initial particles
    get_slice_vectors();
 }
 
@@ -730,17 +672,6 @@ void final_fbo_capture(){
 }
 
 
-void draw_quad(int w, int h, int tw, int th)
-{
-    glBegin(GL_QUADS);
-    glTexCoord2f(0,         0);         glVertex2f(0,        0);
-    glTexCoord2f((float)tw, 0);         glVertex2f((float)w, 0);
-    glTexCoord2f((float)tw, (float)th); glVertex2f((float)w, (float) h);
-    glTexCoord2f(0,         (float)th); glVertex2f(0,        (float) h);
-    glEnd();
-}
-
-
 //line integral convolution
 void lic(){
    int   i, j; 
@@ -848,19 +779,9 @@ void draw_bounding_box(float x0, float y0, float z0,
 }
 
 
-typedef struct Particle{
-  float x;
-  float y;
-  float z;
-  float dis;
-
-  Particle(float _x, float _y, float _z, float _dis):
-	  x(_x), y(_y), z(_z), dis(_dis){};
-};
-
 
 int particle_distance_sort(const void* a, const void* b){
-  if((*((Particle*)a)).dis > (*((Particle*)b)).dis)
+  if((*((Particle*)a)).aux > (*((Particle*)b)).aux)
     return -1;
   else
     return 1;
@@ -882,7 +803,7 @@ void soft_read_verts(){
     p[i].x = x;
     p[i].y = y;
     p[i].z = z;
-    p[i].dis = dis;
+    p[i].aux = dis;
   }
 
   qsort(p, psys_width*psys_height, sizeof(Particle), particle_distance_sort);

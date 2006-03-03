@@ -1,5 +1,7 @@
 OBJ_NANOVIS = nanovis.o Socket.o RenderVertexArray.o Plane.o ConvexPolygon.o Vector4.o Vector3.o Mat4x4.o \
-		Texture1D.o Texture3D.o ColorMap.o Volume.o
+		Texture1D.o Texture3D.o ColorMap.o Volume.o Texture2D.o ParticleSystem.o
+
+AUXSRC = config.h define.h global.h
 
 SOCKETSRC = ./socket
 SORTSRC = ./sort
@@ -31,10 +33,16 @@ ColorMap.o: ColorMap.cpp
 Texture1D.o: Texture1D.cpp
 	gcc $(CFLAG) Texture1D.cpp
 
-Texture3D.o: Texture3D.cpp config.h
+Texture2D.o: Texture2D.cpp $(AUXSRC)
+	gcc $(CFLAG) Texture2D.cpp
+
+Texture3D.o: Texture3D.cpp $(AUXSRC)
 	gcc $(CFLAG) Texture3D.cpp
 
-Volume.o: Texture3D.o Volume.cpp define.h
+ParticleSystem.o: ParticleSystem.cpp $(AUXSRC)
+	gcc $(CFLAG) ParticleSystem.cpp
+
+Volume.o: Texture3D.o Volume.cpp $(AUXSRC)
 	gcc $(CFLAG) Volume.cpp
 
 Mat4x4.o: Mat4x4.cpp
@@ -52,6 +60,5 @@ Plane.o: Plane.cpp
 ConvexPolygon.o: ConvexPolygon.cpp
 	gcc $(CFLAG) ConvexPolygon.cpp
 
-nanovis.o: nanovis.h nanovis.cpp config.h define.h
+nanovis.o: nanovis.h nanovis.cpp ParticleSystem.o $(AUXSRC)
 	gcc $(CFLAG) nanovis.cpp
-

@@ -33,14 +33,13 @@ public:
 	GLuint type;
 	GLuint interp_type;
 	int n_components;
-	void* data;
 	bool gl_resource_allocated;
 
 	GLuint id;
 	GLuint tex_unit;
 
 	Texture3D();
-	Texture3D(int width, int height, int depth, int type, int interp, int n_component);
+	Texture3D(int width, int height, int depth, GLuint type, GLuint interp, int n);
 	~Texture3D();
 	
 	void activate();

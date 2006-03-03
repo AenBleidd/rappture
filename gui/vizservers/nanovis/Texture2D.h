@@ -1,6 +1,6 @@
 /*
  * ----------------------------------------------------------------------
- * Texture1D.h: 1d texture class
+ * Texture2D.h: 2d texture class
  *
  * ======================================================================
  *  AUTHOR:  Wei Qiao <qiaow@purdue.edu>
@@ -12,31 +12,32 @@
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  * ======================================================================
  */
-#ifndef _TEXTURE_1D_H_
-#define _TEXTURE_1D_H_
+
+#ifndef _TEXTURE_2D_H_
+#define _TEXTURE_2D_H_
 
 #include <GL/glew.h>
 
-class Texture1D{
+class Texture2D{
 	
 public:
-	int width;
-	bool gl_resource_allocated;
-	
-	GLuint type;
-	GLuint id;
-	GLuint tex_unit;
+  int width;
+  int height;
 
-	Texture1D();
-	Texture1D(int length, int type = GL_UNSIGNED_BYTE);
-	~Texture1D();
+  GLuint type;
+  GLuint id;
+  GLuint interp_type;
+  int n_components;
+
+  Texture2D();
+  Texture2D(int width, int height, GLuint type, GLuint interp, int n);
+  ~Texture2D();
 	
-	void activate();
-	void deactivate();
-	GLuint initialize_float_rgba(float* data);
-	void update_float_rgba(float* data);
-	static void check_max_size();
-	static void check_max_unit();
+  void activate();
+  void deactivate();
+  GLuint initialize(float* data);
+  static void check_max_size();
+  static void check_max_unit();
 };
 
 #endif
