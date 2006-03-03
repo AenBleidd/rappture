@@ -15,6 +15,8 @@
 
 #include <stdio.h>
 #include <assert.h>
+#include <malloc.h>
+#include <string.h>
 
 #include "ParticleSystem.h"
 
@@ -28,6 +30,11 @@ ParticleSystem::ParticleSystem(int w, int h, CGcontext context, NVISid volume){
   reborn = true;
   flip = true;
   max_life = 30;
+
+  data = (Particle*) malloc(w*h*sizeof(Particle));
+
+  m_vertex_array = new RenderVertexArray(psys_width*psys_height, 3, GL_FLOAT);
+  assert(glGetError()==0);
 
   glGenFramebuffersEXT(2, psys_fbo);
   glGenTextures(2, psys_tex);
@@ -72,12 +79,17 @@ ParticleSystem::~ParticleSystem(){
   glDeleteTextures(1, psys_tex+1);
 
   glDeleteFramebuffersEXT(2, psys_fbo);
+
+  free(data);
 }
 
 
-void ParticleSystem::initialize(Particle* data){
+void ParticleSystem::initialize(Particle* p){
+  //also store the data on main memory for next initialization
+  memcpy(data, p, psys_width*psys_height*sizeof(Particle));
+
   glBindTexture(GL_TEXTURE_RECTANGLE_NV, psys_tex[0]);
-  glTexImage2D(GL_TEXTURE_RECTANGLE_NV, 0, GL_FLOAT_RGBA32_NV, psys_width, psys_height, 0, GL_RGBA, GL_FLOAT, (float*)data);
+  glTexImage2D(GL_TEXTURE_RECTANGLE_NV, 0, GL_FLOAT_RGBA32_NV, psys_width, psys_height, 0, GL_RGBA, GL_FLOAT, (float*)p);
   
   assert(glGetError()==0);
 
@@ -87,7 +99,20 @@ void ParticleSystem::initialize(Particle* data){
   fprintf(stderr, "init particles\n");
 }
 
+void ParticleSystem::reset(){
+  glBindTexture(GL_TEXTURE_RECTANGLE_NV, psys_tex[0]);
+  glTexImage2D(GL_TEXTURE_RECTANGLE_NV, 0, GL_FLOAT_RGBA32_NV, psys_width, psys_height, 0, GL_RGBA, GL_FLOAT, (float*)data);
+  
+  assert(glGetError()==0);
+
+  flip = true;
+  reborn = false;
+}
+
+
 void ParticleSystem::advect(){
+   if(reborn) reset();
+
    glDisable(GL_BLEND);
    
    if(flip){
@@ -149,8 +174,7 @@ void ParticleSystem::advect(){
    assert(glGetError()==0);
 
    //soft_read_verts();
-
-   //hard_read_verts();
+   update_vertex_buffer();
 
    flip = (!flip);
 
@@ -162,3 +186,30 @@ void ParticleSystem::advect(){
 
    fprintf(stderr, "advect: %d ", psys_frame);
 }
+
+
+void ParticleSystem::update_vertex_buffer(){
+  m_vertex_array->Read(psys_width, psys_height);
+  //m_vertex_array->LoadData(vert);     //does not work??
+  assert(glGetError()==0);
+}
+
+
+void ParticleSystem::display_vertices(){
+  glDisable(GL_TEXTURE_2D);
+  glDisable(GL_BLEND);
+
+  glPointSize(0.5);
+  glColor4f(.8,.8,.8,1.);
+
+  m_vertex_array->SetPointer(0);
+  //glEnableVertexAttribArray(0);
+  glEnableClientState(GL_VERTEX_ARRAY);
+  glDrawArrays(GL_POINTS, 0, psys_width*psys_height);
+  //glDisableVertexAttribArray(0);
+  glDisableClientState(GL_VERTEX_ARRAY);
+  
+  assert(glGetError()==0);
+}
+
+

@@ -24,6 +24,8 @@
 #include "config.h"
 #include "global.h"
 
+#include "RenderVertexArray.h"
+
 typedef struct Particle{
   float x;
   float y;
@@ -41,14 +43,14 @@ class ParticleSystem{
   NVISid psys_fbo[2]; 	//frame buffer objects: two are defined, flip them as input output every step
   NVISid psys_tex[2];	//color textures attached to frame buffer objects
 
-  int psys_width;	//the storage of particles is implemented as a 2D array.
-  int psys_height;
   Particle* data;
 
   int psys_frame;	       	//count the frame number of particle system iteration
   bool reborn;			//reinitiate particles
   bool flip;			//flip the source and destination render targets 
   float max_life;
+
+  RenderVertexArray* m_vertex_array;	//vertex array for display particles
 
   //Nvidia CG shaders and their parameters
   CGcontext m_g_context;
@@ -57,10 +59,16 @@ class ParticleSystem{
   CGparameter m_pos_timestep_param, m_pos_spherePos_param;
 
 public:
+  int psys_width;	//the storage of particles is implemented as a 2D array.
+  int psys_height;
+
   ParticleSystem(int w, int h, CGcontext context, NVISid vector_field);
   ~ParticleSystem();
   void initialize(Particle* data);
   void advect();
+  void update_vertex_buffer();
+  void display_vertices();
+  void reset();
 
 };
 
