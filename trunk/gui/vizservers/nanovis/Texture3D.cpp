@@ -13,10 +13,6 @@
  * ======================================================================
  */
 
-#ifdef WIN32
-	#include <windows.h>
-#endif
-
 #include "Texture3D.h"
 #include <stdio.h>
 #include <assert.h>
@@ -24,11 +20,12 @@
 
 #include "config.h"
 
-Texture3D::Texture3D(){ id=-1; gl_resource_allocated = false; }
+Texture3D::Texture3D(){ id=0; gl_resource_allocated = false; }
 
-Texture3D::Texture3D(int width, int height, int depth, int type, int interp, int components)
+Texture3D::Texture3D(int width, int height, int depth, GLuint type=GL_FLOAT, GLuint interp=GL_LINEAR, int components=4)
 {
 	assert(type == GL_UNSIGNED_BYTE || type == GL_FLOAT|| type ==GL_UNSIGNED_INT);
+	assert(interp == GL_LINEAR || interp == GL_NEAREST);
 	
 	this->width = width;
 	this->height = height;
@@ -46,7 +43,7 @@ Texture3D::Texture3D(int width, int height, int depth, int type, int interp, int
 	this->interp_type = interp;
 	this->n_components = components;
 
-	id = -1;
+	this->id = 0;
 	gl_resource_allocated = false;
 }
 
@@ -74,6 +71,7 @@ GLuint Texture3D::initialize(float *data)
 		glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	}
 
+	//to do: add handling to more formats
 	if(type==GL_FLOAT){
 	  switch(n_components){
 	    #ifdef NV40

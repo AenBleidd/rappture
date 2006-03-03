@@ -26,6 +26,20 @@
 #include <tcl.h>
 #include <float.h>
 
+#include "define.h"
+#include "global.h"
+#include "socket/Socket.h"
+#include "RenderVertexArray.h"
+#include "ConvexPolygon.h"
+#include "Texture3D.h"
+#include "Texture2D.h"
+#include "Texture1D.h"
+#include "ColorMap.h"
+#include "ConvexPolygon.h"
+#include "Mat4x4.h"
+#include "Volume.h"
+#include "ParticleSystem.h"
+
 #include "config.h"
 
 
@@ -36,7 +50,6 @@
 #define NPIX  512	//display size
 #define SCALE 3.0	//scale for background pattern. small value -> fine texture
 #define MAX_N_VOLUMES 10 //maximum of volumes the application can handle
-
 
 
 typedef struct Vector2{
@@ -65,3 +78,31 @@ typedef struct RegGrid2{
     return field[x+y*width];
   }
 };
+
+
+//variables for mouse events
+float live_rot_x = 0.;		//object rotation angles
+float live_rot_y = 0.;
+float live_rot_z = 0.;
+
+float live_obj_x = -0.5;	//object translation location from the origin
+float live_obj_y = -0.5;
+float live_obj_z = -2.5;
+
+int left_last_x, left_last_y, right_last_x, right_last_y; 	//last locations mouse events
+bool left_down = false;						
+bool right_down = false;
+
+float slice_x=0, slice_y=0, slice_z=0.3;	//image based flow visualization slice location
+
+int win_width = NPIX;			//size of the render window
+int win_height = NPIX;			//size of the render window
+
+
+//image based flow visualization variables
+int    iframe = 0; 
+int    Npat   = 64;
+int    alpha  = (0.12*255);
+float  sa;
+float  tmax   = NPIX/(SCALE*NPN);
+float  dmax   = SCALE/NPIX;

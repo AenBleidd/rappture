@@ -1,7 +1,4 @@
 /*
- * ----------------------------------------------------------------------
- * Nanovis: Visualization of Nanoelectronics Data
- *
  * ======================================================================
  *  AUTHOR:  Wei Qiao <qiaow@purdue.edu>
  *           Purdue Rendering and Perceptualization Lab (PURPL)
@@ -14,26 +11,13 @@
  */
 
 
-//The NanoVis system wide defines
-//Here we try to hide OpenGL native definitions as much as possible
+//system wide global or static functions
 
-
-#ifndef _DEFINE_H_
-#define _DEFINE_H_
+#ifndef _GLOBAL_H_
+#define _GLOBAL_H_
 
 #include <GL/glew.h>
 #include <Cg/cgGL.h>
-
-#define NVIS_FLOAT GL_FLOAT
-#define NVIS_UNSIGNED_INT GL_UNSIGNED_INT
-
-#define NVIS_LINEAR_INTERP GL_LINEAR
-#define NVIS_NEAREST_INTERP GL_NEAREST
-
-
-typedef GLuint NVISdatatype;		//OpenGL datatype: unsigned int
-typedef GLuint NVISinterptype;		//OpenGL interpolation type: unsigned int
-typedef GLuint NVISid;			//OpenGL identifier: unsigned int
 
 
 #define CHECK_FRAMEBUFFER_STATUS()                            \
@@ -53,5 +37,22 @@ typedef GLuint NVISid;			//OpenGL identifier: unsigned int
      }	                                                      \
    }
 
+
+static CGprogram loadProgram(CGcontext context, CGprofile profile, CGenum program_type, char *filename)
+{
+  CGprogram program = cgCreateProgramFromFile(context, program_type, filename, profile, NULL, NULL);
+  cgGLLoadProgram(program);
+  return program;
+}
+
+static void draw_quad(int w, int h, int tw, int th)
+{
+    glBegin(GL_QUADS);
+    glTexCoord2f(0,         0);         glVertex2f(0,        0);
+    glTexCoord2f((float)tw, 0);         glVertex2f((float)w, 0);
+    glTexCoord2f((float)tw, (float)th); glVertex2f((float)w, (float) h);
+    glTexCoord2f(0,         (float)th); glVertex2f(0,        (float) h);
+    glEnd();
+}
 
 #endif
