@@ -8,26 +8,28 @@
 #include <vector>
 #include "util.h"
 
+typedef double DataValType;
+
 class RpGrid1d {
 public:
 	// constructors
 	RpGrid1d();
 	RpGrid1d(int size);
-	RpGrid1d(double* data, int size); // makes a copy of data
+	RpGrid1d(DataValType* data, int size); // makes a copy of data
 	RpGrid1d(const char* buf); // instantiate with byte stream
 
 	// add all points to grid
-	RP_ERROR addAllPoints(double* val, int nitems);
+	RP_ERROR addAllPoints(DataValType* val, int nitems);
 
 	// add one point to grid
-	void addPoint(double val);
+	void addPoint(DataValType val);
 
 	// return number of points in grid
 	int numPoints() { return m_data.size(); }
 
 	// return array of doubles - user must free memory 
 	// when not needed anymore
-	double* data();
+	DataValType* data();
 
 	// max num points that can be stored
 	int capacity() { return m_data.capacity(); }
@@ -59,7 +61,7 @@ public:
 	//virtual int xmlGet() { };
 
 private:
-	vector<double> m_data; // array of doubles
+	vector<DataValType> m_data; // array of doubles
 };
 
 #endif
