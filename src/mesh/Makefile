@@ -90,7 +90,8 @@ RP_OTHER_DEPS   = RpFortranCommon.o RpBindingsDict.o
 RP_OBJS_DEP     = RpVariable.o RpAbout.o RpNumber.o RpString.o RpBoolean.o \
                   RpChoice.o RpOption.o RpUnitsStd.o RpUnits.o #RpValue.o\
                   # RpValueDouble.o RpValueString.o
-RP_MESH_DEPS = util.o grid1d.o grid1d_reg.o grid2d.o node3d.o node2d.o element.o mesh.o #field.o endian.o
+RP_MESH_DEPS = util.o grid1d.o grid1d_reg.o grid2d.o node3d.o node2d.o element.o \
+		mesh.o #field.o 
 
 LDLIB_MACOSX = -dynamiclib -o $(LIB_DIR)/$@.dylib
 LDLIB_LINUX = -shared -Wl,-rpath,$(LIB_DIR)/ -Wl,-soname,$@.so -o $(LIB_DIR)/$@.so.0.0
@@ -185,8 +186,6 @@ util.o: util.cc
 node2d.o: node2d.cc
 	$(CXX) $(CFLAGS) $(DEBUG) -c $?
 node3d.o: node3d.cc
-	$(CXX) $(CFLAGS) $(DEBUG) -c $?
-endian.o: endian.cc
 	$(CXX) $(CFLAGS) $(DEBUG) -c $?
 element.o: element.cc
 	$(CXX) $(CFLAGS) $(DEBUG) -c $?
@@ -374,7 +373,9 @@ test_mesh: test_mesh.o ../librpmesh.so
 	$(CXX) $(DEBUG) -o $@ $< $(LIB_RPMESH)
 test_mesh2: test_mesh2.o ../librpmesh.so
 	$(CXX) $(DEBUG) -o $@ $< $(LIB_RPMESH)
+test_grid1d: test_grid1d.o ../librpmesh.so
+	$(CXX) $(DEBUG) -o $@ $< $(LIB_RPMESH)
 etest: etest.o ../librpmesh.so
 	$(CXX) $(DEBUG) -o $@ $< $(LIB_RPMESH)
-try: try.o ../librpmesh.so
+endian: endian.o ../librpmesh.so
 	$(CXX) $(DEBUG) -o $@ $< $(LIB_RPMESH)
