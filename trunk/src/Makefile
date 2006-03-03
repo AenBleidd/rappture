@@ -56,6 +56,7 @@ CEE_SRC         = $(SRC_DIR)/cee
 PY_SRC          = $(SRC_DIR)/python
 MATLAB_SRC      = $(SRC_DIR)/matlab
 OCTAVE_SRC      = $(SRC_DIR)/octave
+TCL_SRC         = $(SRC_DIR)/tcl
 
 LIB_INC_PREFIX  = -Wl,-rpath,$(LIB_DIR) -L$(LIB_DIR)
 LIB_RP_OBJECTS  = $(LIB_INC_PREFIX) -lRpObjects
@@ -73,7 +74,12 @@ CFLAGS = -fPIC
 # default:
 
 all: ${PROGS}
-install: install_py install_rappture install_rpobjs install_matlab install_octave
+install: 	install_py 			\
+			install_rappture 	\
+			install_rpobjs 		\
+			install_matlab 		\
+			install_octave
+#			install_tcl
 
 RP_IO_DEPS      = RpLibrary.o RpLibraryCInterface.o RpLibraryFInterface.o \
                   scew_extras.o
@@ -150,6 +156,10 @@ install_octave: librappture RpOctave
 	fi
 	cp $(OCTAVE_SRC)/*.oct* $(RP_INSTALL_BASE)/lib/octave
 #	cp -d $(OCTAVE_SRC)/*.oct* $(RP_INSTALL_BASE)/lib/octave
+
+#### Tcl ###########################################################
+install_tcl: librappture
+	cd $(TCL_SRC) && make install && cd -
 
 
 ###############################################
