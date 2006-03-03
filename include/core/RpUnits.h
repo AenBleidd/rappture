@@ -28,6 +28,14 @@
 
 #define LIST_TEMPLATE RpUnitsListEntry
 
+//define our different types of units
+#define RP_TYPE_ENERGY  "energy"
+#define RP_TYPE_LENGTH  "length"
+#define RP_TYPE_TEMP    "temperature"
+#define RP_TYPE_TIME    "time"
+#define RP_TYPE_VOLUME  "volume"
+
+
 // should the define function:
 // 1. compare portions of inStr to unit names that have previously 
 //    been defined (you must parse in order for this option to work)
@@ -280,6 +288,13 @@ class RpUnits
         double getExponent() const;
         const RpUnits* getBasis() const;
 
+        // retrieve a units type.
+        std::string getType() const;
+
+        // retrieve a list of compatible units.
+        std::list<std::string> getCompatible() const;
+
+
         // convert from one RpUnits to another if the conversion is defined
         double convert(         const RpUnits* toUnits,
                                 double val,
@@ -308,9 +323,6 @@ class RpUnits
                                      int* result = NULL );
         */
 
-        // dictionary to store the units.
-        // static RpDict<std::string,RpUnits> dict;
-
         // turn the current unit to the metric system
         // this should only be used for units that are part of the
         // metric system. doesnt deal with exponents, just prefixes
@@ -328,10 +340,9 @@ class RpUnits
         //
         // add RpUnits Object
         static RpUnits * define(const std::string units,
-                                const RpUnits* basis=NULL   );
-        // static RpUnits * defineCmplx(   const std::string units,
-        //                                 const RpUnits* basis);
-        //
+                                const RpUnits* basis=NULL,
+                                const std::string type=""   );
+
         // add relation rule
 
         static RpUnits * define(const RpUnits* from,
@@ -350,6 +361,7 @@ class RpUnits
                                 void* convForwData,
                                 void* (*convBackFxnPtr)(void*, void*),
                                 void* convBackData);
+
 
         // populate the dictionary with a set of units specified by group
         // if group equals......................then load................
@@ -380,6 +392,7 @@ class RpUnits
             : units    (other.units),
               exponent (other.exponent),
               basis    (other.basis),
+              type     (other.type),
               convList (NULL)
         {
             convEntry* q = NULL;
@@ -413,6 +426,7 @@ class RpUnits
             units = other.units;
             exponent = other.exponent;
             basis = other.basis;
+            type = other.type;
 
             if (other.convList) {
                 q = other.convList;
@@ -432,6 +446,9 @@ class RpUnits
         //
         ~RpUnits ()
         {
+            // go to the type list and remove a variable by this name
+
+
             // clean up dynamic memory
 
             convEntry* p = convList;
@@ -463,6 +480,7 @@ class RpUnits
         std::string units;
         double exponent;
         const RpUnits* basis;
+        std::string type;
 
         // linked list of units this RpUnit can convert to
         // its mutable because the connectConversion function takes in a
@@ -485,11 +503,13 @@ class RpUnits
         RpUnits (
                     const std::string& units,
                     double& exponent,
-                    const RpUnits* basis
+                    const RpUnits* basis,
+                    const std::string type
                 )
             :   units       (units),
                 exponent    (exponent),
                 basis       (basis),
+                type        (type),
                 convList    (NULL)
         {};
 

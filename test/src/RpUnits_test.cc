@@ -7,6 +7,8 @@
  * ======================================================================
  */
 #include "RpUnits.h"
+#include <list>
+#include <string>
 
 
 void success() 
@@ -254,14 +256,14 @@ int main()
 
     std::cout << "TESTING COPY CONSTRUCTOR" << std::endl;
 
-    RpUnits *origRpUnits = RpUnits::define("obj2", NULL);
+    RpUnits *origRpUnits = RpUnits::define("obj2", NULL, "");
     RpUnits copyRpUnits = *origRpUnits;
 
     std::cout << "origRpUnits = " << origRpUnits->getUnitsName() << std::endl;
     std::cout << "copyRpUnits = " << copyRpUnits.getUnitsName() << std::endl;
     std::cout << "modifying origRpUnits" << std::endl;
     delete origRpUnits;
-    origRpUnits = RpUnits::define("obj3",NULL);
+    origRpUnits = RpUnits::define("obj3",NULL, "");
     std::cout << "origRpUnits = " << origRpUnits->getUnitsName() << std::endl;
     std::cout << "copyRpUnits = " << copyRpUnits.getUnitsName() << std::endl;
     std::cout << "deleting origRpUnits" << std::endl;
@@ -270,14 +272,14 @@ int main()
 
     std::cout << "TESTING COPY ASSIGNMENT OPERATOR" << std::endl;
 
-    RpUnits *testRpUnits = RpUnits::define("test2", NULL);
+    RpUnits *testRpUnits = RpUnits::define("test2", NULL, "");
     copyRpUnits = *testRpUnits;
 
     std::cout << "testRpUnits = " << testRpUnits->getUnitsName() << std::endl;
     std::cout << "copyRpUnits = " << copyRpUnits.getUnitsName() << std::endl;
     std::cout << "modifying testRpUnits" << std::endl;
     delete testRpUnits;
-    testRpUnits = RpUnits::define("test3",NULL);
+    testRpUnits = RpUnits::define("test3",NULL, "");
     std::cout << "testRpUnits = " << testRpUnits->getUnitsName() << std::endl;
     std::cout << "copyRpUnits = " << copyRpUnits.getUnitsName() << std::endl;
     std::cout << "deleting testRpUnits" << std::endl;
@@ -287,7 +289,7 @@ int main()
 
     // test deleting a const object
 
-    const RpUnits* myobj = RpUnits::define("myunit",NULL);
+    const RpUnits* myobj = RpUnits::define("myunit",NULL, "");
     delete myobj;
 
     // test /cm2
@@ -308,6 +310,18 @@ int main()
     std::cout << "convert (1cm2/Vs -> 0.0001m2/Vs) = " << RpUnits::convert("1cm2/Vs","m2/Vs",0) << std::endl;
     std::cout << "convert (1cm2/Vs -> 0.1m2/kVs) = " << RpUnits::convert("1cm2/Vs","m2/kVs",0) << std::endl;
     std::cout << "convert (1cm2/Vs -> 1e-7m2/kVus) = " << RpUnits::convert("1cm2/Vs","m2/kVus",0) << std::endl;
+
+    const RpUnits* myMeters = RpUnits::find("cm");
+    std::list<std::string> convList = myMeters->getCompatible();
+    std::list<std::string>::iterator convListIter;
+
+    std::cout << myMeters->getUnitsName() << " is of type: " << myMeters->getType() << std::endl;
+    std::cout << myMeters->getUnitsName() << " is compatible with: " << std::endl;
+    convListIter = convList.begin();
+    while (convListIter != convList.end()) {
+        std::cout << *convListIter << std::endl;
+        convListIter++;
+    }
 
     return 0;
 
