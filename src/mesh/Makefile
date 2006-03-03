@@ -32,7 +32,8 @@ TEST_PROGS =	test_node2d \
 		test_node3d \
 		test_element \
 		test_elem2 \
-		test_mesh
+		test_mesh \
+		test_grid1d
 
 # define our compiling environment
 #
@@ -77,7 +78,7 @@ CFLAGS = -fPIC
 
 # default:
 
-all: ${PROGS}
+all: ${PROGS} test
 
 test: ${TEST_PROGS}
 
@@ -177,7 +178,7 @@ install_octave: librappture RpOctave
 #
 grid2d.o: grid2d.cc
 	$(CXX) $(CFLAGS) $(DEBUG) -c $?
-grid1d.o: grid1d.cc
+grid1d.o: grid1d.cc grid1d.h byte_order.h
 	$(CXX) $(CFLAGS) $(DEBUG) -c $?
 grid1d_reg.o: grid1d_reg.cc
 	$(CXX) $(CFLAGS) $(DEBUG) -c $?
@@ -373,7 +374,7 @@ test_mesh: test_mesh.o ../librpmesh.so
 	$(CXX) $(DEBUG) -o $@ $< $(LIB_RPMESH)
 test_mesh2: test_mesh2.o ../librpmesh.so
 	$(CXX) $(DEBUG) -o $@ $< $(LIB_RPMESH)
-test_grid1d: test_grid1d.o ../librpmesh.so
+test_grid1d: test_grid1d.o ../librpmesh.so byte_order.h
 	$(CXX) $(DEBUG) -o $@ $< $(LIB_RPMESH)
 etest: etest.o ../librpmesh.so
 	$(CXX) $(DEBUG) -o $@ $< $(LIB_RPMESH)
