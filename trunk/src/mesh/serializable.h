@@ -20,6 +20,8 @@ public:
 
 	virtual int size() = 0;
 	virtual int numBytes() = 0;
+
+	virtual ~RpSerializable() { };
 };
 
 #endif
