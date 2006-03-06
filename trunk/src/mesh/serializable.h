@@ -2,18 +2,24 @@
 #define __SERIALIZABLE_H__
 
 //
-// class implementing the serialization of various types
+// base class for serializable rappture objects
 //
-
 class RpSerializable {
 public:
-	// constructors
-	RpSerializable();
+	// return object name (e.g., output.field(f1d))
+	virtual const char* objectName() = 0;
 
-	static void serialize(char& buf, int d);
-	static void serialize(char& buf, double d);
-	static void serialize(char& buf, double& buf, int nitems);
-	static void serialize(char& buf, const char* str, int len);
+	// return object type (e.g., FIELD, MESH3D)
+	virtual const char* objectType() = 0;
+
+	// object marshalling
+	virtual void serialize() = 0;
+
+	// object unmarshalling
+	virtual void deserialize() = 0;
+
+	virtual int size() = 0;
+	virtual int numBytes() = 0;
 };
 
 #endif
