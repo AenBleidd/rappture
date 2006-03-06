@@ -136,7 +136,7 @@ int main()
 	int nbytes=0;
 	char* buf = meshptr->serialize(nbytes);
 
-	FILE* fp = fopen("out.tmp", "w");
+	FILE* fp = fopen("out.mesh", "w");
 	fwrite(buf, 1, nbytes, fp);
 	fclose(fp);
 
