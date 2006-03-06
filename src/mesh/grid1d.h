@@ -6,11 +6,14 @@
 //
 
 #include <vector>
+#include "serializable.h"
 #include "util.h"
+
+#define GRID_1D_VERSION	"RV-Grid1d-A"
 
 typedef double DataValType;
 
-class RpGrid1d {
+class RpGrid1d : public RpSerializable {
 public:
 	// constructors
 	RpGrid1d();
@@ -25,7 +28,12 @@ public:
 	void addPoint(DataValType val);
 
 	// return number of points in grid
-	int numPoints() { return m_data.size(); }
+	int numPoints() { return m_data.size(); };
+
+	int size() { return numPoints(); };
+
+	// return number of bytes needed for serialization
+	int numBytes(); 
 
 	// return array of doubles - user must free memory 
 	// when not needed anymore

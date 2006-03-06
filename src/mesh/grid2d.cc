@@ -11,42 +11,35 @@ RpGrid2d::RpGrid2d()
 
 RpGrid2d::RpGrid2d(int npoints)
 {
-	m_data.resize(npoints*2);
+	m_data.reserve(npoints*2);
 }
 
-RpGrid2d::RpGrid2d(double* xval, double* yval, int npoints)
-{
-	int i;
-
-	m_data.resize(npoints*2);
-
-	for (i=0; i<npoints; i++) {
-		addPoint(xval[i], yval[i]);
-	}
-}
-
-//
+// constructor
 // Input: 
-// pts: 2d array with x-y values
-// 		x y
-// 		x y
-// 		x y
-// 		...
+// 	val: array of x y values (x1 y1 x2 y2 ...)
+// 	number of points
 //
-// Because of Fortran's column-major array order, need to transpose before putting in 
-// the object storage.
-// notes: either in the API for Fortran: transpose before calling c++ functions
-// or use the transpose function here.
-//
-RpGrid2d::RpGrid2d(double** pts, int npoints)
+RpGrid2d::RpGrid2d(DataValType* val, int npoints)
 {
-	int i;
+	m_data.reserve(npoints*2);
 
+	for (int i=0; i<2*npoints; i++)
+		m_data[i] = val[i];
+}
+
+//
+// constructor
+// Input:
+// 	xval: array of x values
+// 	yval: array of y values
+// 	npoints: number of points
+//
+RpGrid2d::RpGrid2d(DataValType* xval, DataValType* yval, int npoints)
+{
 	m_data.resize(npoints*2);
 
-	for (i=0; i<npoints; i++) {
-		addPoint(pts[i][0], pts[i][1]);
-	}
+	for (int i=0; i<npoints; i++)
+		addPoint(xval[i], yval[i]);
 }
 
 // instantiate with byte stream
@@ -59,7 +52,7 @@ RpGrid2d::RpGrid2d(const char* buf)
 //
 // add a point (x, y) pair to grid
 //
-void RpGrid2d::addPoint(double x, double y)
+void RpGrid2d::addPoint(DataValType x, DataValType y)
 {
 	m_data.push_back(x);
 	m_data.push_back(y);
@@ -68,9 +61,9 @@ void RpGrid2d::addPoint(double x, double y)
 //
 // access data as a 1d array: x y x y x y...
 //
-double* RpGrid2d::data()
+DataValType* RpGrid2d::data()
 {
-	return (double*) &(m_data[0]);
+	return (DataValType*) &(m_data[0]);
 }
 
 //
@@ -87,7 +80,7 @@ RpGrid2d::serialize(RP_ENCODE_ALG encodeFlag, RP_COMPRESSION compressFlag)
 	int npts = numVals/2;
 
 	// total length = tagEncode + tagCompress + num + data
-	char * buf = (char*) malloc(numVals*sizeof(double) + sizeof(int) + 2);
+	char * buf = (char*) malloc(numVals*sizeof(DataValType) + sizeof(int) + 2);
 	if (buf == NULL) {
 		RpAppendErr("RpGrid2d::serialize: malloc failed");
 		RpPrintErr();
@@ -125,7 +118,7 @@ RpGrid2d::serialize(RP_ENCODE_ALG encodeFlag, RP_COMPRESSION compressFlag)
 	memcpy((void*)ptr, (void*)&npts, sizeof(int));
 	ptr += sizeof(int);
 
-	memcpy((void*)ptr, (void*)&(m_data[0]), numVals*sizeof(double));
+	memcpy((void*)ptr, (void*)&(m_data[0]), numVals*sizeof(DataValType));
 
 	return buf;
 }
@@ -149,7 +142,7 @@ int RpGrid2d::deserialize(const char* buf)
 	buf += sizeof(int);
 
 	m_data.resize(npts*2); // set the array to be the right size
-	memcpy((void*)&(m_data[0]), (void*)buf, npts*2*sizeof(double));
+	memcpy((void*)&(m_data[0]), (void*)buf, npts*2*sizeof(DataValType));
 
 	/* TODO
 	if (ByteOrder::IsBigEndian()) {
