@@ -3,7 +3,6 @@
 //
 
 #include "grid1d.h"
-#include "byte_order.h"
 
 
 // constructor
@@ -67,21 +66,20 @@ void RpGrid1d::addPoint(DataValType val)
 	m_data.push_back(val);
 }
 
-// serialize object 
-// 1 byte:   tag indicating if data is uuencoded
-// 1 byte:   tag indicating compression algorithm (N: NONE, Z: zlib)
-// 4 bytes:  number of points in array
-// rest:     data array (x x x...)
 //
-// TODO - handling Endianess 
+// serialize Grid1d object 
+// 16 bytes: 	Header (including RV identifier, version, object type id)
+// 				e.g., RV-A-FIELD, RV-A-MESH3D
+// 4 bytes:	N: number of bytes in object name (to follow)
+// N bytes: 	object name (e.g., "output.grid(g1d))"
+// 4 bytes:  	number of points in array
+// rest:     	data array (x x x...)
 //
 char* 
-RpGrid1d::serialize(int& nb, RP_ENCODE_ALG encodeFlag, 
-				RP_COMPRESSION compressFlag)
+RpGrid1d::serialize(int& nb)
 {
-	int npts = m_data.size(); 
-	int nbytes = npts*sizeof(DataValType) + sizeof(int) + 2;
 	char* buf;
+	int nbytes = numBytes();
 
 	// total length = tagEncode + tagCompress + num + array data 
 	if ( (buf = (char*) malloc(nbytes)) == NULL) {
@@ -90,59 +88,66 @@ RpGrid1d::serialize(int& nb, RP_ENCODE_ALG encodeFlag,
 		return buf;
 	}
 
-	serialize(buf, nbytes, encodeFlag, compressFlag);
+	doSerialize(buf, nbytes);
+
 	nb = nbytes;
 
 	return buf;
 }
 
+// 
+// serialize object data in Little Endian byte order
+//
 RP_ERROR
-RpGrid1d::serialize(char* buf, int nbytes, RP_ENCODE_ALG encodeFlag, 
-		RP_COMPRESSION compressFlag)
+RpGrid1d::doSerialize(char* buf, int nbytes)
 {
-	int npts = m_data.size();
-
-	if (buf == NULL || (unsigned)nbytes < (npts*sizeof(DataValType)+sizeof(int)+2)) {
+	// check buffer 
+	if (buf == NULL || nbytes < numBytes()) {
                 RpAppendErr("RpGrid1d::serialize: invalid buffer");
 		RpPrintErr();
 		return RP_ERR_INVALID_ARRAY;
 	}
+
+	char * ptr = buf;
 	
-	char* ptr = buf;
-	ptr[0] = 'N'; // init to no-encoding
-	switch(encodeFlag) {
-		case RP_UUENCODE:
-			ptr[0] = 'U';
-			break;
-		case RP_NO_ENCODING:
-		default:
-			break;
-	}
+	// prepare header
+	// fill in blanks if version string is shorter than HEADER_SIZE
 
-	ptr[1] = 'N'; // init to no compression
-	switch(compressFlag) {
-		case RP_ZLIB:
-			ptr[1] = 'Z';
-			break;
-		case RP_NO_COMPRESSION:
-		default:
-			break;
-	}
-	ptr += 2; // advance pointer
+	int len = strlen(Grid1d_current_version);
+	std::string header(' ', HEADER_SIZE);
+	header = Grid1d_current_version;
+	header.append(HEADER_SIZE-len, ' ');
 
-	// TODO encode, compression
-	// compress()
+	// copy header 
+	const char* cptr = header.c_str();
+	ByteOrder<char>::OrderCopyArray(cptr, (char*)ptr, HEADER_SIZE);
+	ptr += HEADER_SIZE;
 
-	// write to stream buffer
-	//memcpy((void*)ptr, (void*)&npts, sizeof(int));
+	// copy total number of bytes: nbytes
+	int* iptr = (int*)ptr;
+	ByteOrder<int>::OrderCopy(&nbytes, iptr);
+	ptr += sizeof(int);
+
+	// copy length of name
+	len = m_name.size();
+	iptr = (int*)ptr;
+	ByteOrder<int>::OrderCopy(&len, iptr);
+	ptr += sizeof(int);
+	
+	// copy name as chars
+	cptr = m_name.c_str();
+	ByteOrder<char>::OrderCopyArray(cptr, (char*)ptr, len);
+	ptr += len;
+	
+	// copy int (number of points)
+	int npts = m_data.size();
 	
 	// copy int to byte stream in LE byte order
-	int* iptr = (int*)ptr;
+	iptr = (int*)ptr;
 	ByteOrder<int>::OrderCopy(&npts, iptr);
 	ptr += sizeof(int);
 
-	// copy data to byte stream in LE byte order
-	//memcpy((void*)ptr, (void*)&(m_data[0]), npts*sizeof(DataValType));
+	// copy data 
 	
 	DataValType* dptr = (DataValType*)ptr;
 	ByteOrder<DataValType>::OrderCopyArray(&(m_data[0]), dptr, npts);
@@ -153,43 +158,91 @@ RpGrid1d::serialize(char* buf, int nbytes, RP_ENCODE_ALG encodeFlag,
 RP_ERROR 
 RpGrid1d::deserialize(const char* buf)
 {
-	int npts;
-
 	if (buf == NULL) {
 		RpAppendErr("RpGrid1d::deserialize: null buf pointer");
 		RpPrintErr();
 		return RP_ERR_NULL_PTR;
 	}
 
-	// TODO: handle encoding, decompression
+	char* ptr = (char*)buf;
+
+	// read header
+	char header[HEADER_SIZE];
+	ByteOrder<char>::OrderCopyArray(ptr, header, HEADER_SIZE);
+	filterTrailingBlanks(header, HEADER_SIZE);
+
+	ptr += HEADER_SIZE;
+
+	// read total number of bytes
+	int* iptr = (int*)ptr;
+	int nbytes;
+	ByteOrder<int>::OrderCopy(iptr, &nbytes);
+	ptr += sizeof(int);
 	
-	buf += 2; // skip 1st 2 bytes
-	int * iptr = (int*)buf;
+	if (!strcmp(header, Grid1d_current_version) )
+		return doDeserialize(ptr);
+
+	// deal with older versions
+	return RP_FAILURE;
+}
+
+// 
+// parse out the buffer, 
+// stripped off the version and total #bytes already.
+//
+RP_ERROR
+RpGrid1d::doDeserialize(const char* buf)
+{
+	char* ptr = (char*)buf;
+	int num;
+
+	// copy length of name
+
+	ByteOrder<int>::OrderCopy((int*)ptr, &num);
+
+	ptr += sizeof(int);
+	
+	// copy name as chars
+	char* cstr = new char[num]; ;
+	ByteOrder<char>::OrderCopyArray(ptr, cstr, num);
+	filterTrailingBlanks(cstr, num);
+	m_name.assign(cstr);
+
+	delete cstr;
+
+	ptr += num;
 
 	// read number of points
-	//memcpy((void*)&npts, (void*)buf, sizeof(int));
-
-	// copy int in buf to nptrs
-	// use ByteOrder::Copy to swap bytes if on a big endian machine
+	int* iptr = (int*)ptr;
+	int npts;
 	ByteOrder<int>::OrderCopy(iptr, &npts);
-	buf += sizeof(int);
+	ptr += sizeof(int);
 
 	// set the array to be the right size
 	if (m_data.size() < (unsigned)npts)
 		m_data.resize(npts);
 
-	// straight copy
-	//memcpy((void*)&(m_data[0]), (void*)buf, npts*sizeof(DataValType));
-	
 	// copy points array - use ByteOrder copy
-	DataValType* dptr = (DataValType*)buf;
+	DataValType* dptr = (DataValType*)ptr;
 	ByteOrder<DataValType>::OrderCopyArray(dptr, &(m_data[0]), npts);
 
 	return RP_SUCCESS;
 }
 
+// 
+// return pointer to data points
+//
 DataValType*
-RpGrid1d::data()
+RpGrid1d::getData()
+{
+	return &m_data[0];
+}
+
+//
+// return pointer to a copy of data points in consecutive memory locations
+//
+DataValType*
+RpGrid1d::getDataCopy()
 {
 	int npts = numPoints();
 
@@ -206,6 +259,9 @@ RpGrid1d::data()
 	return xy;
 }
 
+//
+// mashalling object into xml string
+//
 void 
 RpGrid1d::xmlString(std::string& textString)
 {
@@ -225,6 +281,9 @@ RpGrid1d::xmlString(std::string& textString)
 	textString.append("</value>\n");
 }
 
+//
+// print the xml string from the object
+//
 void 
 RpGrid1d::print()
 {
@@ -232,11 +291,47 @@ RpGrid1d::print()
 
 	xmlString(str);
 
+	printf("object name: %s", m_name.c_str());
 	printf("%s", str.c_str());
 }
 
+//
+// set object name from a charactor string
+//
+void 
+RpGrid1d::objectName(const char* str)
+{
+	m_name = str;
+}
 
-// TODO
-//int RpGrid1d::xmlPut() { };
-//int RpGrid1d::xmlGet() { };
+//
+// get object name
+//
+const char* RpGrid1d::objectName()
+{
+	return m_name.c_str();
+}
+
+//
+// get object type
+//
+const char* RpGrid1d::objectType()
+{
+	return RpObjectTypes[GRID1D];
+}
+
+//
+// return total number of bytes when mashalling out as bytes
+// 
+int RpGrid1d::numBytes()
+{
+	int nbytes = HEADER_SIZE
+		+ sizeof(int) // total #bytes
+		+ sizeof(int) // #bytes in name
+		+ m_name.size()
+		+ sizeof(int) // #points in grid
+		+ m_data.size() * sizeof(DataValType);
+
+	return nbytes;
+}
 

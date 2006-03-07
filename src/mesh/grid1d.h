@@ -6,10 +6,11 @@
 //
 
 #include <vector>
+#include <string>
 #include "serializable.h"
+#include "byte_order.h"
 #include "util.h"
-
-#define GRID_1D_VERSION	"RV-Grid1d-A"
+#include "obj_types.h"
 
 typedef double DataValType;
 
@@ -21,6 +22,17 @@ public:
 	RpGrid1d(DataValType* data, int size); // makes a copy of data
 	RpGrid1d(const char* buf); // instantiate with byte stream
 
+	virtual void objectName(const char* str);
+	virtual const char* objectName();
+	virtual const char* objectType();
+
+	// return number of bytes needed for serialization
+	virtual int numBytes(); 
+
+	// return number of points in grid
+	virtual int size() { return numPoints(); };
+
+
 	// add all points to grid
 	RP_ERROR addAllPoints(DataValType* val, int nitems);
 
@@ -28,35 +40,31 @@ public:
 	void addPoint(DataValType val);
 
 	// return number of points in grid
-	int numPoints() { return m_data.size(); };
-
-	int size() { return numPoints(); };
-
-	// return number of bytes needed for serialization
-	int numBytes(); 
-
-	// return array of doubles - user must free memory 
-	// when not needed anymore
-	DataValType* data();
 
 	// max num points that can be stored
 	int capacity() { return m_data.capacity(); }
 
+
 	// change the size of the grid after grid is constructed
 	void resize(int npoints) { m_data.resize(npoints); }
 
+	// return pointer to array of points
+	DataValType* getData();
+
+	// return copy of data array - caller must free memory when
+	// not done
+	DataValType* getDataCopy();
+
 	// serialize data 
-	// If no input parameters are provided, byte stream will be binary
-	// without compression.
+	// returns pointer to buffer 
+	// number of bytes (nbytes) set
 	//
-	char * serialize(int& nbytes, RP_ENCODE_ALG eflag=RP_NO_ENCODING, 
-			 RP_COMPRESSION cflag=RP_NO_COMPRESSION);
+	virtual char * serialize(int& nbytes);
+	RP_ERROR doSerialize(char * buf, int nbytes);
 
-	RP_ERROR serialize(char * buf, int nbytes,
-			RP_ENCODE_ALG eflag=RP_NO_ENCODING, 
-			RP_COMPRESSION cflag=RP_NO_COMPRESSION);
-
+	// deserialize data
 	RP_ERROR deserialize(const char* buf);
+	RP_ERROR doDeserialize(const char* buf);
 
 	void xmlString(std::string& str);
 	void print();
@@ -64,11 +72,11 @@ public:
 	// destructor
 	virtual ~RpGrid1d() { };
 
-	// TODO
-	//virtual int xmlPut() { };
-	//virtual int xmlGet() { };
+protected:
+	int numPoints() { return m_data.size(); };
 
 private:
+	std::string m_name; // object name
 	vector<DataValType> m_data; // array of doubles
 };
 
