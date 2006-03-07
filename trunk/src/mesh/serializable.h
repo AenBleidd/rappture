@@ -2,6 +2,7 @@
 #define __SERIALIZABLE_H__
 
 #include "util.h"
+#include "rp_types.h"
 
 #define HEADER_SIZE 16
 
