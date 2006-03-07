@@ -45,8 +45,9 @@ enum RP_COMPRESSION {
 using namespace std;
 
 extern string RpErrorStr;
-
 extern void RpPrintErr();
 extern void RpAppendErr(const char* msg);
+
+extern void filterTrailingBlanks(char* str, int len);
 
 #endif

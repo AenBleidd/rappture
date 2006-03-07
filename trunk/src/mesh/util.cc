@@ -13,3 +13,12 @@ void RpPrintErr()
     cout << RpErrorStr << endl;
 }
 
+void filterTailingBlanks(char* str, int len)
+{
+	char* ptr = &str[len-1];
+
+	while (ptr >= str && *ptr == ' ') {
+		*ptr = '\0';
+		ptr--;
+	}
+}
