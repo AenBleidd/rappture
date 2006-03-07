@@ -93,7 +93,7 @@ RP_OBJS_DEP     = RpVariable.o RpAbout.o RpNumber.o RpString.o RpBoolean.o \
                   RpChoice.o RpOption.o RpUnitsStd.o RpUnits.o #RpValue.o\
                   # RpValueDouble.o RpValueString.o
 RP_MESH_DEPS = 	grid1d.o grid1d_reg.o grid2d.o node3d.o node2d.o \
-		element.o mesh.o serializable.o serializer.o util.o \
+		element.o mesh.o serializer.o util.o \
 		#field.o 
 
 LDLIB_MACOSX = -dynamiclib -o $(LIB_DIR)/$@.dylib
@@ -195,8 +195,8 @@ element.o: element.cc
 	$(CXX) $(CFLAGS) $(DEBUG) -c $?
 mesh.o: mesh.cc
 	$(CXX) $(CFLAGS) $(DEBUG) -c $?
-serializable.o: serializable.cc
-	$(CXX) $(CFLAGS) $(DEBUG) -c $?
+#serializable.o: serializable.cc
+#	$(CXX) $(CFLAGS) $(DEBUG) -c $?
 serializer.o: serializer.cc
 	$(CXX) $(CFLAGS) $(DEBUG) -c $?
 
