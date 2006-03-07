@@ -10,7 +10,7 @@
 #include "serializable.h"
 #include "byte_order.h"
 #include "util.h"
-#include "obj_types.h"
+#include "rp_types.h"
 
 typedef double DataValType;
 
