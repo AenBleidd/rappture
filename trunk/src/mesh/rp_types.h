@@ -1,9 +1,8 @@
 #ifndef __RP_TYPES_H__
 #define __RP_TYPES_H__
 
-
-enum RpObject {
-	BOOLEAN,
+typedef enum {
+        BOOLEAN,
 	NUMBER,
 	STRING,
 	FIELD,
@@ -15,7 +14,7 @@ enum RpObject {
 	GRID2D,
 	GRID3D,
 	CURVE2D
-};
+} RpObject_enum;
 
 extern const char* RpObjectTypes[];
 
