@@ -110,7 +110,7 @@ RpGrid1d::doSerialize(char* buf, int nbytes)
 
 	char * ptr = buf;
 
-	writeHeader(ptr, Grid1d_current_version, nbytes);
+	writeHeader(ptr, RpGrid1d_current_version, nbytes);
 	ptr += HEADER_SIZE + sizeof(int);
 	
 	writeObjectName(ptr, m_name);
@@ -139,7 +139,7 @@ RpGrid1d::deserialize(const char* buf)
 	readHeader(ptr, header, nbytes);
 	ptr += HEADER_SIZE and sizeof(int);
 	
-	if (header ==  Grid1d_current_version)
+	if (header == RpGrid1d_current_version)
 		return doDeserialize(ptr);
 
 	// deal with older versions
