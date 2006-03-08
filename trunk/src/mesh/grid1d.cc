@@ -109,48 +109,16 @@ RpGrid1d::doSerialize(char* buf, int nbytes)
 	}
 
 	char * ptr = buf;
+
+	writeHeader(ptr, Grid1d_current_version, nbytes);
+	ptr += HEADER_SIZE + sizeof(int);
 	
-	// prepare header
-	// fill in blanks if version string is shorter than HEADER_SIZE
+	writeObjectName(ptr, m_name);
+	ptr += m_name.size() + sizeof(int);
 
-	int len = strlen(Grid1d_current_version);
-	std::string header(' ', HEADER_SIZE);
-	header = Grid1d_current_version;
-	header.append(HEADER_SIZE-len, ' ');
-
-	// copy header 
-	const char* cptr = header.c_str();
-	ByteOrder<char>::OrderCopyArray(cptr, (char*)ptr, HEADER_SIZE);
-	ptr += HEADER_SIZE;
-
-	// copy total number of bytes: nbytes
-	int* iptr = (int*)ptr;
-	ByteOrder<int>::OrderCopy(&nbytes, iptr);
-	ptr += sizeof(int);
-
-	// copy length of name
-	len = m_name.size();
-	iptr = (int*)ptr;
-	ByteOrder<int>::OrderCopy(&len, iptr);
-	ptr += sizeof(int);
-	
-	// copy name as chars
-	cptr = m_name.c_str();
-	ByteOrder<char>::OrderCopyArray(cptr, (char*)ptr, len);
-	ptr += len;
-	
 	// copy int (number of points)
-	int npts = m_data.size();
-	
-	// copy int to byte stream in LE byte order
-	iptr = (int*)ptr;
-	ByteOrder<int>::OrderCopy(&npts, iptr);
-	ptr += sizeof(int);
 
-	// copy data 
-	
-	DataValType* dptr = (DataValType*)ptr;
-	ByteOrder<DataValType>::OrderCopyArray(&(m_data[0]), dptr, npts);
+	writeArrayDouble(ptr, m_data, m_data.size());
 
 	return RP_SUCCESS;
 }
@@ -165,21 +133,13 @@ RpGrid1d::deserialize(const char* buf)
 	}
 
 	char* ptr = (char*)buf;
-
-	// read header
-	char header[HEADER_SIZE];
-	ByteOrder<char>::OrderCopyArray(ptr, header, HEADER_SIZE);
-	filterTrailingBlanks(header, HEADER_SIZE);
-
-	ptr += HEADER_SIZE;
-
-	// read total number of bytes
-	int* iptr = (int*)ptr;
+	std::string header;
 	int nbytes;
-	ByteOrder<int>::OrderCopy(iptr, &nbytes);
-	ptr += sizeof(int);
+
+	readHeader(ptr, header, nbytes);
+	ptr += HEADER_SIZE and sizeof(int);
 	
-	if (!strcmp(header, Grid1d_current_version) )
+	if (header ==  Grid1d_current_version)
 		return doDeserialize(ptr);
 
 	// deal with older versions
@@ -194,37 +154,14 @@ RP_ERROR
 RpGrid1d::doDeserialize(const char* buf)
 {
 	char* ptr = (char*)buf;
-	int num;
 
-	// copy length of name
+	// parse object name and store name in m_name
 
-	ByteOrder<int>::OrderCopy((int*)ptr, &num);
-
-	ptr += sizeof(int);
+	readObjectName(buf, m_name);
+	ptr += sizeof(int) + m_name.size();
 	
-	// copy name as chars
-	char* cstr = new char[num]; ;
-	ByteOrder<char>::OrderCopyArray(ptr, cstr, num);
-	filterTrailingBlanks(cstr, num);
-	m_name.assign(cstr);
-
-	delete cstr;
-
-	ptr += num;
-
-	// read number of points
-	int* iptr = (int*)ptr;
 	int npts;
-	ByteOrder<int>::OrderCopy(iptr, &npts);
-	ptr += sizeof(int);
-
-	// set the array to be the right size
-	if (m_data.size() < (unsigned)npts)
-		m_data.resize(npts);
-
-	// copy points array - use ByteOrder copy
-	DataValType* dptr = (DataValType*)ptr;
-	ByteOrder<DataValType>::OrderCopyArray(dptr, &(m_data[0]), npts);
+	readArrayDouble(buf, m_data, npts);
 
 	return RP_SUCCESS;
 }
