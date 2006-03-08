@@ -2,6 +2,8 @@
 // class for 1D grid
 //
 
+#include "serializable.h"
+#include "rp_types.h"
 #include "grid1d.h"
 
 
@@ -15,11 +17,20 @@ RpGrid1d::RpGrid1d(int size)
 	m_data.reserve(size);
 }
 
+// constructor with object name
+RpGrid1d::RpGrid1d(const char* name, int size)
+{
+	m_data.reserve(size);
+	m_name = name;
+}
+
+/*
 // construct a grid object from a byte stream
 RpGrid1d::RpGrid1d(const char * buf)
 {
 	deserialize(buf);
 }
+*/
 
 //
 // instantiate grid with a 1d array of doubles and number of items
@@ -137,7 +148,7 @@ RpGrid1d::deserialize(const char* buf)
 	int nbytes;
 
 	readHeader(ptr, header, nbytes);
-	ptr += HEADER_SIZE and sizeof(int);
+	ptr += HEADER_SIZE + sizeof(int);
 	
 	if (header == RpGrid1d_current_version)
 		return doDeserialize(ptr);
@@ -157,11 +168,11 @@ RpGrid1d::doDeserialize(const char* buf)
 
 	// parse object name and store name in m_name
 
-	readObjectName(buf, m_name);
+	readObjectName(ptr, m_name);
 	ptr += sizeof(int) + m_name.size();
 	
 	int npts;
-	readArrayDouble(buf, m_data, npts);
+	readArrayDouble(ptr, &m_data, npts);
 
 	return RP_SUCCESS;
 }
@@ -226,9 +237,10 @@ RpGrid1d::print()
 {
 	string str;
 
+	printf("object name: %s\n", m_name.c_str());
+
 	xmlString(str);
 
-	printf("object name: %s", m_name.c_str());
 	printf("%s", str.c_str());
 }
 

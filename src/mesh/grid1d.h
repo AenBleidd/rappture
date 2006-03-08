@@ -10,7 +10,6 @@
 #include "serializable.h"
 #include "byte_order.h"
 #include "util.h"
-#include "rp_types.h"
 
 typedef double DataValType;
 
@@ -19,18 +18,18 @@ public:
 	// constructors
 	RpGrid1d();
 	RpGrid1d(int size);
+	RpGrid1d(const char* objectName, int size=0);
 	RpGrid1d(DataValType* data, int size); // makes a copy of data
-	RpGrid1d(const char* buf); // instantiate with byte stream
 
-	virtual void objectName(const char* str);
-	virtual const char* objectName();
-	virtual const char* objectType();
+	void objectName(const char* str);
+	const char* objectName();
+	const char* objectType();
 
 	// return number of bytes needed for serialization
-	virtual int numBytes(); 
+	int numBytes(); 
 
 	// return number of points in grid
-	virtual int size() { return numPoints(); };
+	int size() { return numPoints(); };
 
 
 	// add all points to grid
@@ -59,7 +58,7 @@ public:
 	// returns pointer to buffer 
 	// number of bytes (nbytes) set
 	//
-	virtual char * serialize(int& nbytes);
+	char * serialize(int& nbytes);
 	RP_ERROR doSerialize(char * buf, int nbytes);
 
 	// deserialize data

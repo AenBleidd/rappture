@@ -13,7 +13,7 @@ void RpPrintErr()
     cout << RpErrorStr << endl;
 }
 
-void filterTailingBlanks(char* str, int len)
+void filterTrailingBlanks(char* str, int len)
 {
 	char* ptr = &str[len-1];
 

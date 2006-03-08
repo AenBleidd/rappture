@@ -20,12 +20,12 @@ public:
 	// set object name
 	virtual void objectName(const char* name) = 0;
 
-	// return object type (e.g., FIELD, MESH3D)
+	// set and get object type (e.g., FIELD, MESH3D)
 	virtual const char* objectType() = 0;
 
 	// object marshalling
 	virtual char* serialize(int& nbytes) = 0;
-	virtual RP_ERROR doSerialize(const char* buf, int n) = 0;
+	virtual RP_ERROR doSerialize(char* buf, int n) = 0;
 
 	// object unmarshalling
 	virtual RP_ERROR deserialize(const char* buf) = 0;
@@ -33,17 +33,20 @@ public:
 	virtual int size() = 0;
 	virtual int numBytes() = 0;
 
+	virtual void print() = 0;
+	virtual void xmlString(std::string& str) = 0;
+
 	virtual ~RpSerializable() { };
 
 	// factory methods
 	//virtual RpSerializable* create(const char* objectType);
 	
-	static void readHeader(const char* buf, string& ver, int& nbytes);
-	static void writeHeader(char* buf, const char* ver, int nbytes);
-	static void readObjectName(const char* buf, string& name);
-	static void writeObjectName(char* buf, string& name);
-	static void readArrayDouble(const char* buf, vector<double>& data, int& npts);
-	static void writeArrayDouble(char* buf, vector<double>& data, int npts);
+	virtual void readHeader(const char* buf, string& ver, int& nbytes);
+	virtual void writeHeader(char* buf, const char* ver, int nbytes);
+	virtual void readObjectName(const char* buf, string& name);
+	virtual void writeObjectName(char* buf, string& name);
+	virtual void readArrayDouble(const char* buf, vector<double>* data, int& npts);
+	virtual void writeArrayDouble(char* buf, vector<double>& data, int npts);
 
 };
 
