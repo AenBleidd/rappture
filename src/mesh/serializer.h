@@ -11,15 +11,17 @@
 class RpSerializer {
 public:
 
-	RpSerializer() { m_index = 0; };
+	RpSerializer() { };
 
 	// remove all objects, reset ref counts to zero.
-	clear();
+	void clear();
 
 	void addObject(RpSerializable* obj);
+	void addObject(const char* buf);
 
 	void deleteObject(RpSerializable* obj);
 	void deleteObject(const char* objectName);
+	void deleteAllObjects();
 
 	// marshalling
 	char* serialize();
@@ -28,10 +30,10 @@ public:
 	void deserialize(const char* buf);
 
 	// retrieve object
-	Serializable* getObject(const char* objectName);
+	RpSerializable* getObject(const char* objectName);
 
 private:
-	typedef map<const char*, Serializable*> typeObjMap;
+	typedef map<const char*, RpSerializable*> typeObjMap;
 	typedef map<const char*, int> typeRefCount;
 
 	// archive of objects referenced by their names (e.g., output.field)
