@@ -17,30 +17,17 @@ enum RpObject {
 	CURVE2D
 };
 
-const char* RpObjectTypes[] = {
-	"BOOLEAN",
-	"NUMBER",
-	"STRING",
-	"FIELD",
-	"MESH3D",
-	"ELEMENT",
-	"NODE2D",
-	"NODE3D",
-	"GRID1D",
-	"GRID2D",
-	"GRID3D",
-	"CURVE2D"
-};
+extern const char* RpObjectTypes[];
 
-const int HEADER_SIZE = 16;
+extern const int HEADER_SIZE;
 
-const char* Grid1d_current_version = "RV-A-GRID1D";
-const char* Grid2d_current_version = "RV-A-GRID2D";
-const char* Mesh3d_current_version = "RV-A-MESH3D";
-const char* Field_current_version = "RV-A-FIELD";
-const char* Curve_current_version = "RV-A-CURVE";
-const char* Element_current_version = "RV-A-ELEMENT";
-const char* Node2d_current_version = "RV-A-NODE2D";
-const char* Node3d_current_version = "RV-A-NODE3D";
+extern const char* RpGrid1d_current_version;
+extern const char* RpGrid2d_current_version;
+extern const char* RpMesh3d_current_version;
+extern const char* RpField_current_version;
+extern const char* RpCurve_current_version;
+extern const char* RpElement_current_version;
+extern const char* RpNode2d_current_version;
+extern const char* RpNode3d_current_version;
 
 #endif

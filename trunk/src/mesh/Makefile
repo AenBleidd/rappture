@@ -93,8 +93,8 @@ RP_OBJS_DEP     = RpVariable.o RpAbout.o RpNumber.o RpString.o RpBoolean.o \
                   RpChoice.o RpOption.o RpUnitsStd.o RpUnits.o #RpValue.o\
                   # RpValueDouble.o RpValueString.o
 RP_MESH_DEPS = 	grid1d.o grid1d_reg.o grid2d.o node3d.o node2d.o \
-		element.o mesh.o serializer.o util.o \
-		#field.o 
+		element.o mesh.o serializable.o serializer.o util.o \
+		const.o #field.o 
 
 LDLIB_MACOSX = -dynamiclib -o $(LIB_DIR)/$@.dylib
 LDLIB_LINUX = -shared -Wl,-rpath,$(LIB_DIR)/ -Wl,-soname,$@.so -o $(LIB_DIR)/$@.so.0.0
@@ -187,6 +187,8 @@ grid1d_reg.o: grid1d_reg.cc
 	$(CXX) $(CFLAGS) $(DEBUG) -c $?
 util.o: util.cc
 	$(CXX) $(CFLAGS) $(DEBUG) -c $?
+const.o: const.cc
+	$(CXX) $(CFLAGS) $(DEBUG) -c $?
 node2d.o: node2d.cc
 	$(CXX) $(CFLAGS) $(DEBUG) -c $?
 node3d.o: node3d.cc
@@ -195,8 +197,8 @@ element.o: element.cc
 	$(CXX) $(CFLAGS) $(DEBUG) -c $?
 mesh.o: mesh.cc
 	$(CXX) $(CFLAGS) $(DEBUG) -c $?
-#serializable.o: serializable.cc
-#	$(CXX) $(CFLAGS) $(DEBUG) -c $?
+serializable.o: serializable.cc
+	$(CXX) $(CFLAGS) $(DEBUG) -c $?
 serializer.o: serializer.cc
 	$(CXX) $(CFLAGS) $(DEBUG) -c $?
 

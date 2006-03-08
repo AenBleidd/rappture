@@ -4,7 +4,7 @@
 // add an serializable object to the Serializer
 //
 void 
-Serializer::addObject(RpSerializable* obj)
+RpSerializer::addObject(RpSerializable* obj)
 {
 	// add object pointer to object map
 	m_objMap[obj->objectName()] = obj; 
@@ -16,16 +16,13 @@ Serializer::addObject(RpSerializable* obj)
 // 
 // Input:
 // 	a byte stream of a serialized object
-// 		RV-<object-type>-A<numBytes>.....
+// 		RV-A-<object-type><numBytes>.....
 //
 void 
-Serializer::addObject(const char* buf)
+RpSerializer::addObject(const char* buf)
 {
-	// add object pointer to object map
-	m_objMap[obj->objectName()] = obj; 
-
-	// add object entry to reference count table
-	m_refCount[obj->objectName()] = 0; 
+	// todo 
+	
 }
 
 //
@@ -34,14 +31,14 @@ Serializer::addObject(const char* buf)
 // 	name of rp object (e.g., "output.mesh(m3d)")
 //
 void 
-Serializer::deleteObject(const char* name);
+RpSerializer::deleteObject(const char* name)
 {
 	typeObjMap::iterator iter = m_objMap.find(name);
 	if (iter == m_objMap.end())
 		// does not exist
 		return;
 
-	Serializable* obj_ptr = (*iter).second;
+	RpSerializable* obj_ptr = (*iter).second;
 
 	// decrement object's reference count
 	// if reference count is zero, free memory and remove entry in obj map
@@ -55,14 +52,16 @@ Serializer::deleteObject(const char* name);
 }
 
 void 
-Serializer::deleteObject(Serializable* obj)
+RpSerializer::deleteObject(RpSerializable* obj)
 {
+	const char* name = obj->objectName();
 	typeObjMap::iterator iter = m_objMap.find(name);
+
 	if (iter == m_objMap.end())
 		// does not exist
 		return;
 
-	Serializable* obj_ptr = (*iter).second;
+	RpSerializable* obj_ptr = (*iter).second;
 
 	// decrement object's reference count
 	// if reference count is zero, free memory and remove entry in obj map
@@ -76,7 +75,7 @@ Serializer::deleteObject(Serializable* obj)
 }
 
 void 
-Serializer::deleteAllObjects()
+RpSerializer::deleteAllObjects()
 {
 	typeObjMap::iterator iter;
 
@@ -96,10 +95,10 @@ RpSerializer::clear()
 }
 
 // retrieve object
-Serializable* 
+RpSerializable* 
 RpSerializer::getObject(const char* objectName)
 {
-	typeObjMap::iterator iter m_objMap.find(objectName);
+	typeObjMap::iterator iter = m_objMap.find(objectName);
 	
 	if (iter != m_objMap.end()) {
 		// object found, increment ref count
@@ -138,10 +137,12 @@ RpSerializer::serialize()
 
 	// call each object to serialize itself
 	char* ptr = buf + headerSize;
+	int nb;
 	for (iter = m_objMap.begin(); iter != m_objMap.end(); iter++) {
-		Serializable* obj = (*iter).second;
-		obj->serialize(ptr); // object serialization
-		ptr += obj->numBytes(); // advance buffer pointer
+		RpSerializable* obj = (*iter).second;
+		nb = obj->numBytes();
+		obj->doSerialize(ptr, nb); // object serialization
+		ptr += nb; // advance buffer pointer
 	}
 
 	// return pointer to buffer
@@ -160,7 +161,7 @@ RpSerializer::serialize()
 void 
 RpSerializer::deserialize(const char* buf)
 {
-	// 
+	
 }
 
 
