@@ -92,9 +92,8 @@ RpGrid1d::serialize(int& nb)
 	char* buf;
 	int nbytes = numBytes();
 
-	// total length = tagEncode + tagCompress + num + array data 
-	if ( (buf = (char*) malloc(nbytes)) == NULL) {
-		RpAppendErr("RpGrid1d::serialize: malloc failed");
+	if ( (buf = new char[nbytes]) == NULL) {
+		RpAppendErr("RpGrid1d::serialize: new char[] failed");
 		RpPrintErr();
 		return buf;
 	}
@@ -121,14 +120,15 @@ RpGrid1d::doSerialize(char* buf, int nbytes)
 
 	char * ptr = buf;
 
-	writeHeader(ptr, RpGrid1d_current_version, nbytes);
+	// write object header (version and typename)
+	writeRpHeader(ptr, RpGrid1d_current_version, nbytes);
 	ptr += HEADER_SIZE + sizeof(int);
 	
-	writeObjectName(ptr, m_name);
+	// write object name and its length
+	writeString(ptr, m_name);
 	ptr += m_name.size() + sizeof(int);
 
-	// copy int (number of points)
-
+	// write number of points and array data
 	writeArrayDouble(ptr, m_data, m_data.size());
 
 	return RP_SUCCESS;
@@ -147,7 +147,7 @@ RpGrid1d::deserialize(const char* buf)
 	std::string header;
 	int nbytes;
 
-	readHeader(ptr, header, nbytes);
+	readRpHeader(ptr, header, nbytes);
 	ptr += HEADER_SIZE + sizeof(int);
 	
 	if (header == RpGrid1d_current_version)
@@ -168,11 +168,11 @@ RpGrid1d::doDeserialize(const char* buf)
 
 	// parse object name and store name in m_name
 
-	readObjectName(ptr, m_name);
+	readString(ptr, m_name);
 	ptr += sizeof(int) + m_name.size();
 	
 	int npts;
-	readArrayDouble(ptr, &m_data, npts);
+	readArrayDouble(ptr, m_data, npts);
 
 	return RP_SUCCESS;
 }
@@ -195,7 +195,7 @@ RpGrid1d::getDataCopy()
 	int npts = numPoints();
 
 	DataValType* xy;
-	if ( (xy = new DataValType(npts)) == NULL) {
+	if ( (xy = new DataValType[npts]) == NULL) {
                 RpAppendErr("RpGrid1d::data: mem alloc failed");
 		RpPrintErr();
 		return xy;
@@ -281,6 +281,9 @@ int RpGrid1d::numBytes()
 		+ sizeof(int) // #points in grid
 		+ m_data.size() * sizeof(DataValType);
 
+#ifdef DEBUG
+	printf("RpGrid1d::numBytes returns %d\n", nbytes);
+#endif
 	return nbytes;
 }
 
