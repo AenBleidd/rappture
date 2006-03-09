@@ -80,7 +80,7 @@ RpGrid2d::serialize(RP_ENCODE_ALG encodeFlag, RP_COMPRESSION compressFlag)
 	int npts = numVals/2;
 
 	// total length = tagEncode + tagCompress + num + data
-	char * buf = (char*) malloc(numVals*sizeof(DataValType) + sizeof(int) + 2);
+	char * buf = (char*) new char[numVals*sizeof(DataValType) + sizeof(int) + 2];
 	if (buf == NULL) {
 		RpAppendErr("RpGrid2d::serialize: malloc failed");
 		RpPrintErr();
