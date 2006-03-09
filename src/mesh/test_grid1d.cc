@@ -66,7 +66,8 @@ int main()
 
 	printf("Testing getData\n");
 	
-	double* ptr = grid2->getDataCopy();
+//	double* ptr = grid2->getDataCopy();
+	double* ptr = grid2->getData();
 	for (i=0; i<grid2->size(); i++) {
 		printf("%.12f\n", ptr[i]);
 	}

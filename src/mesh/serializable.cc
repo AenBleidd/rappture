@@ -54,7 +54,7 @@ void RpSerializable::writeHeader(char* buf, const char* ver, int nbytes)
 // 
 // parse object name
 //
-void RpSerializable::readObjectName(const char* buf, string& name)
+void RpSerializable::readString(const char* buf, string& name)
 {
 	char* ptr = (char*)buf;
 	int len;
@@ -76,14 +76,16 @@ void RpSerializable::readObjectName(const char* buf, string& name)
 }
 
 void 
-RpSerializable::writeObjectName(char* buf, string& name)
+RpSerializable::writeString(char* buf, string& name)
 {
 	char *ptr = buf;
 
 	// copy length of name
 
 	int len = name.size();
-	printf("writeObjectName: len=%d name=%s=\n", len, name.c_str());
+#ifdef DEBUG
+	printf("writeString: len=%d str=%s=\n", len, name.c_str());
+#endif
 
 	ByteOrder<int>::OrderCopy(&len, (int*)ptr);
 	
@@ -95,7 +97,7 @@ RpSerializable::writeObjectName(char* buf, string& name)
 }
 
 void 
-RpSerializable::readArrayDouble(const char* buf, vector<double>* data, int& npts)
+RpSerializable::readArrayDouble(const char* buf, vector<double>& data, int& npts)
 {
 	int* iptr = (int*)buf;
 	char* ptr = (char*)buf;
@@ -106,17 +108,16 @@ RpSerializable::readArrayDouble(const char* buf, vector<double>* data, int& npts
 	ptr += sizeof(int);
 
 	// set the array to be the right size
-	if (data->size() < (unsigned)npts)
-		data->resize(npts);
+	if (data.size() < (unsigned)npts)
+		data.resize(npts);
 
 #ifdef DEBUG
-	printf("readArrayDouble: data size %d\n", data->size());
+	printf("readArrayDouble: data size %d\n", data.size());
 #endif
 
 	// copy points array - use ByteOrder copy
 	double* dptr = (double*)ptr;
-	ByteOrder<double>::OrderCopyArray(dptr, &((*data)[0]), npts);
-
+	ByteOrder<double>::OrderCopyArray(dptr, &(data[0]), npts);
 }
 
 void 
@@ -136,4 +137,59 @@ RpSerializable::writeArrayDouble(char* buf, vector<double>& data, int npts)
 	// write array
 	double * dptr = (double*)ptr;	
 	ByteOrder<double>::OrderCopyArray(&(data[0]), dptr, npts);
+}
+
+void RpSerializable::readInt(const char* buf, int& val)
+{
+	ByteOrder<int>::OrderCopy((int*)buf, &val);
+}
+
+void RpSerializable::writeInt(char* buf, int val)
+{
+	ByteOrder<int>::OrderCopy(&val, (int*)buf);
+}
+
+void 
+RpSerializable::readArrayInt(const char* buf, vector<int>& data, int& npts)
+{
+	int* iptr = (int*)buf;
+	char* ptr = (char*)buf;
+
+	// read number of points
+
+	ByteOrder<int>::OrderCopy(iptr, &npts);
+	ptr += sizeof(int);
+
+	// set the array to be the right size
+	if (data.size() < (unsigned)npts)
+		data.resize(npts);
+
+#ifdef DEBUG
+	printf("readArrayInt: data size %d\n", data.size());
+#endif
+
+	// copy points array - use ByteOrder copy
+	iptr = (int*)ptr;
+	ByteOrder<int>::OrderCopyArray(iptr, &(data[0]), npts);
+}
+
+void 
+RpSerializable::writeArrayInt(char* buf, vector<int>& data, int npts)
+{
+	char * ptr = buf;
+
+	// write int (number of points)
+
+	int* iptr = (int*)ptr;
+	ByteOrder<int>::OrderCopy(&npts, iptr);
+	ptr += sizeof(int);
+
+#ifdef DEBUG
+	printf("writeArrayInt: 1st data=%d addr=%x\n", data[0], 
+			(unsigned int)&(data[0]));
+#endif
+
+	// write array
+	iptr = (int *)ptr;	
+	ByteOrder<int>::OrderCopyArray(&(data[0]), iptr, npts);
 }
