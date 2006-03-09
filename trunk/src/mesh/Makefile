@@ -33,7 +33,8 @@ TEST_PROGS =	test_node2d \
 		test_element \
 		test_elem2 \
 		test_mesh \
-		test_grid1d
+		test_grid1d \
+		test_grid
 
 # define our compiling environment
 #
@@ -93,8 +94,8 @@ RP_OBJS_DEP     = RpVariable.o RpAbout.o RpNumber.o RpString.o RpBoolean.o \
                   RpChoice.o RpOption.o RpUnitsStd.o RpUnits.o #RpValue.o\
                   # RpValueDouble.o RpValueString.o
 RP_MESH_DEPS = 	const.o grid1d_reg.o grid2d.o node3d.o node2d.o \
-		element.o mesh.o serializable.o serializer.o util.o \
-		grid1d.o #field.o 
+		element.o mesh.o serializer.o util.o \
+		grid1d.o reader.o #field.o 
 
 LDLIB_MACOSX = -dynamiclib -o $(LIB_DIR)/$@.dylib
 LDLIB_LINUX = -shared -Wl,-rpath,$(LIB_DIR)/ -Wl,-soname,$@.so -o $(LIB_DIR)/$@.so.0.0
@@ -185,8 +186,9 @@ grid2d.cc: grid1d.h util.h rp_types.h byte_order.h serializable.h
 mesh.cc: mesh.h node3d.h element.h util.h serializable.h
 node2d.cc: node2d.h util.h serializable.h
 node3d.cc: node3d.h util.h serializable.h
-serializable.cc: serializable.h util.h rp_types.h byte_order.h 
+#serializable.cc: serializable.h util.h rp_types.h byte_order.h 
 serializer.cc: serializer.h serializable.h
+reader.cc: byte_order.h
 
 grid2d.o: grid2d.cc
 	$(CXX) $(CFLAGS) $(DEBUG) -c $?
@@ -206,9 +208,9 @@ element.o: element.cc
 	$(CXX) $(CFLAGS) $(DEBUG) -c $?
 mesh.o: mesh.cc
 	$(CXX) $(CFLAGS) $(DEBUG) -c $?
-serializable.o: serializable.cc
-	$(CXX) $(CFLAGS) $(DEBUG) -c $?
 serializer.o: serializer.cc
+	$(CXX) $(CFLAGS) $(DEBUG) -c $?
+reader.o: reader.cc
 	$(CXX) $(CFLAGS) $(DEBUG) -c $?
 
 # include core source files
@@ -392,11 +394,11 @@ test_mesh: test_mesh.o ../librpmesh.so
 	$(CXX) $(DEBUG) -o $@ $< $(LIB_RPMESH)
 test_mesh2: test_mesh2.o ../librpmesh.so
 	$(CXX) $(DEBUG) -o $@ $< $(LIB_RPMESH)
-test_grid1d: test_grid1d.o ../librpmesh.so byte_order.h
+test_grid1d: test_grid1d.o ../librpmesh.so 
 	$(CXX) $(DEBUG) -o $@ $< $(LIB_RPMESH)
-test_g1: test_g1.o ../librpmesh.so 
+test_grid: test_grid.o ../librpmesh.so 
 	$(CXX) $(DEBUG) -o $@ $< $(LIB_RPMESH)
-etest: etest.o ../librpmesh.so
+testg: testg.o ../librpmesh.so
 	$(CXX) $(DEBUG) -o $@ $< $(LIB_RPMESH)
 endian: endian.o ../librpmesh.so
 	$(CXX) $(DEBUG) -o $@ $< $(LIB_RPMESH)
