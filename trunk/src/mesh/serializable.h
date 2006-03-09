@@ -7,13 +7,15 @@
 #include "rp_types.h"
 #include "byte_order.h"
 
-#define HEADER_SIZE 16
+//#define HEADER_SIZE 16
 
 //
 // base class for serializable rappture objects
 //
 class RpSerializable {
 public:
+	friend class RpSerializer;
+
 	// return object name (e.g., output.field(f1d))
 	virtual const char* objectName() = 0;
 
@@ -41,13 +43,18 @@ public:
 	// factory methods
 	//virtual RpSerializable* create(const char* objectType);
 	
+	/*
 	virtual void readHeader(const char* buf, string& ver, int& nbytes);
 	virtual void writeHeader(char* buf, const char* ver, int nbytes);
-	virtual void readObjectName(const char* buf, string& name);
-	virtual void writeObjectName(char* buf, string& name);
-	virtual void readArrayDouble(const char* buf, vector<double>* data, int& npts);
+	virtual void readString(const char* buf, string& str);
+	virtual void writeString(char* buf, string& str);
+	virtual void readInt(const char* buf, int& val);
+	virtual void writeInt(char* buf, int val);
+	virtual void readArrayInt(const char* buf, vector<int>& data, int& npts);
+	virtual void writeArrayInt(char* buf, vector<int>& data, int npts);
+	virtual void readArrayDouble(const char* buf, vector<double>& data, int& npts);
 	virtual void writeArrayDouble(char* buf, vector<double>& data, int npts);
-
+	*/
 };
 
 #endif

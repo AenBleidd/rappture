@@ -27,10 +27,10 @@ char *
 RpGrid1d_reg::serialize()
 {
 	// buffer size
-	char * buf = (char*) malloc(sizeof(int) + 2*sizeof(double) + 2);
+	char * buf = (char*) new char[sizeof(int) + 2*sizeof(double) + 2];
 
 	if (buf == NULL) {
-		RpAppendErr("RpGrid1d::serialize: malloc failed");
+		RpAppendErr("RpGrid1d::serialize: new failed");
 		RpPrintErr();
 		return buf;
 	}       
