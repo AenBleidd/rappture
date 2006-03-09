@@ -30,7 +30,7 @@ const char* RpObjectTypes[] = {
 	"CURVE2D"
 };
 
-const int HEADER_SIZE = 16;
+//const int HEADER_SIZE = 16;
 
 const char* RpGrid1d_current_version = "RV-A-GRID1D";
 const char* RpGrid2d_current_version = "RV-A-GRID2D";
