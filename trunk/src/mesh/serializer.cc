@@ -156,18 +156,10 @@ RpSerializer::serialize()
 		return buf;
 	}
 
-#ifdef DEBUG
-	printf("RpSerializer::serialize: begin buf=%x\n", (unsigned)buf);
-#endif
-
 	writeHeader(buf, nbytes, "NO", "NO");
 
 	// call each object to serialize itself
 	char* ptr = buf + headerSize();
-
-#ifdef DEBUG
-	printf("RpSerializer::serialize: obj buf=%x\n", (unsigned)ptr);
-#endif
 
 	typeObjMap::iterator iter;
 	int nb;
@@ -204,18 +196,14 @@ RpSerializer::deserialize(const char* buf)
 	ptr += headerSize();
 
 	const char* end_ptr = buf + nbytes; // pointer to end of blob
-#ifdef DEBUG
-	printf("RpSerializer::deserialize: ptr=%x, end_ptr=%x\n",
-			(unsigned)ptr, (unsigned)end_ptr);
-#endif
 
 	std::string header;
 	RpSerializable* obj;
 
 	while (ptr < end_ptr) {
-		readString(ptr, header, headerSize());
+		readString(ptr, header, HEADER_SIZE);
 
-		// create new object based on object type/version from byte stream
+		// create new object based on object type/version
 		if ( (obj = createObject(header, ptr)) != NULL) {
 			// add object to serializer
 			addObject(obj);
@@ -226,11 +214,6 @@ RpSerializer::deserialize(const char* buf)
 		else // TODO: add error handling
 			break;
 	}
-#ifdef DEBUG
-	printf("RpSerializer::deserialize\n");
-	print();
-#endif
-	
 }
 
 // 
@@ -302,9 +285,14 @@ RpSerializable*
 RpSerializer::createObject(std::string header, const char* buf)
 {
 	RpSerializable* obj;
+#ifdef DEBUG
+	printf("RpSerializer::createObject: header=%s=, ptr=%x\n",
+			header.c_str(), (unsigned)buf);
+#endif
 
 	if (header == RpGrid1d_current_version) {
-		obj = new RpGrid1d(buf); // create new object
+		obj = new RpGrid1d; // create new object
+		obj->deserialize(buf);
 		return obj;
 	} 
 	else {
