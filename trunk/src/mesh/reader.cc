@@ -54,7 +54,9 @@ void writeRpHeader(char* buf, const char* ver, int nbytes)
 }
 
 // 
-// parse object name
+// parse dynamic length string
+// first 4 bytes: length of string = len
+// character array of length = len
 //
 void readString(const char* buf, string& str)
 {
@@ -66,15 +68,41 @@ void readString(const char* buf, string& str)
 	ByteOrder<int>::OrderCopy((int*)ptr, &len);
 
 	ptr += sizeof(int);
+#ifdef DEBUG
+	printf("readString(const char*,string&): len=%d, ptr=%x\n",
+			len, (unsigned)ptr);
+#endif
 	
 	// read chars
 
-	char* cstr = new char[len]; ;
+	char* cstr = new char[len+1]; ;
+	cstr[len] = '\0';
+
 	ByteOrder<char>::OrderCopyArray(ptr, cstr, len);
-	filterTrailingBlanks(cstr, len);
-	str = cstr;
+
+#ifdef DEBUG
+	printf("readString: str=%s=, %d bytes\n", cstr, len);
+#endif
+
+	str.assign((const char*)cstr);
 
 	delete [] cstr;
+}
+
+//
+// read chars of length(len) from buffer (buf)
+// return chars in string (null terminated)
+//
+void readString(const char* buf, string& str, int len)
+{
+	char* ch = new char[len];
+
+	ByteOrder<char>::OrderCopyArray(buf, ch, len);
+	filterTrailingBlanks(ch, len);
+
+	str = ch;
+
+	delete [] ch;
 }
 
 void writeString(char* buf, const char* str, int len)
@@ -191,3 +219,4 @@ void writeArrayInt(char* buf, vector<int>& data, int npts)
 	iptr = (int *)ptr;	
 	ByteOrder<int>::OrderCopyArray(&(data[0]), iptr, npts);
 }
+
