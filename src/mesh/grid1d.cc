@@ -40,19 +40,26 @@ printf("RpGrid1d(char*)\n");
 //
 RpGrid1d::RpGrid1d(DataValType* val, int nitems)
 {
-	int sz = m_data.size();
-
 	if (val == NULL) // invalid data pointer
 		return;
 
-	if (sz != nitems)
-		m_data.resize(nitems);
-
 	// copy array val into m_data
-	sz = nitems;
-	void* ptr = &(m_data[0]);
-	memcpy(ptr, (void*)val, sizeof(DataValType)*sz);
+	for (int i=0; i<nitems; i++)
+		m_data.push_back(val[i]);
 }
+
+//
+// constructor for a regular grid
+//
+RpGrid1d::RpGrid1d(DataValType startPoint, DataValType delta, int npts)
+{
+	m_data.resize(npts);
+
+	// expand array
+	for (int i=0; i < npts; i++)
+		m_data.push_back(startPoint + i*delta);
+}
+
 
 //
 // Add all points to grid1d object at once
@@ -223,13 +230,13 @@ RpGrid1d::xmlString(std::string& textString)
 	// clear input string
 	textString.erase();
 
-	textString.append("<value>");
+	textString.append("<points>");
 
 	for (i=0; i < npts; i++) {
 		sprintf(cstr, "\t%.15f\n", m_data[i]);
 		textString.append(cstr);
 	}
-	textString.append("</value>\n");
+	textString.append("</points>\n");
 }
 
 //
