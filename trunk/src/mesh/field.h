@@ -1,26 +1,31 @@
-#ifndef __GRID1D_H__
-#define __GRID1D_H__
+#ifndef __RP_FIELD_H__
+#define __RP_FIELD_H__
 
 //
 // class for field values
 //
 
 #include "grid1d.h"
-
-typedef double DataValType;
+#include "util.h"
+#include "rp_types.h"
 
 class RpField : public RpGrid1d {
 public:
 	// constructors
 	RpField() { };
-	RpField(int size);
-	RpField(const char* name, int size=0);
+
+	RpField(int size) : RpGrid1d(size) { };
+
+	RpField(const char* name, int size=0) : RpGrid1d(name,size) { };
 
 	// set mesh link
 	void setMesh(const char* meshId);
 
 	// return number of bytes needed for serialization
 	virtual int numBytes(); 
+
+	// return object type as a char string
+	virtual const char* objectType();
 
 	// serialize data 
 	// returns pointer to buffer 
