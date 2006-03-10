@@ -28,6 +28,9 @@ RpGrid1d::RpGrid1d(const char* name, int size)
 // construct a grid object from a byte stream
 RpGrid1d::RpGrid1d(const char * buf)
 {
+#ifdef DEBUG
+printf("RpGrid1d(char*)\n");
+#endif
 	deserialize(buf);
 }
 */
@@ -250,7 +253,7 @@ RpGrid1d::print()
 void 
 RpGrid1d::objectName(const char* str)
 {
-	m_name = str;
+	m_name.assign(str);
 }
 
 //
@@ -281,9 +284,6 @@ int RpGrid1d::numBytes()
 		+ sizeof(int) // #points in grid
 		+ m_data.size() * sizeof(DataValType);
 
-#ifdef DEBUG
-	printf("RpGrid1d::numBytes returns %d\n", nbytes);
-#endif
 	return nbytes;
 }
 
