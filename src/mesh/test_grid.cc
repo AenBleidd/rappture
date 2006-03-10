@@ -44,33 +44,28 @@ void writeToFile(char* buf, int len, const char* filename)
 int main()
 {
 	int i, j, err, nbytes;
+	const char* name1 = "output.grid(g1d)";
+	const char* name2 = "output.grid(g2d)";
 
 	printf("Testing RpGrid1d\n");
 
-	RpGrid1d* grid1 = new RpGrid1d("output.grid(g1d)", 20);
+	RpGrid1d* grid1 = new RpGrid1d(name1, 20);
 	grid1->addAllPoints(&(points[0]), 20);
 
-	char* buf = grid1->serialize(nbytes);
-	writeToFile(buf, nbytes, "out.grid1");
-
-	delete [] buf; 
-	buf = NULL;
-
-	printf("grid1 objectname: %s\n", grid1->objectName());
+	RpGrid1d* grid2 = new RpGrid1d(name2, 20);
+	grid2->addAllPoints(&(points[0]), 20);
 
 	printf("Testing serializer\n");
 
 	RpSerializer myvis;
 	myvis.addObject(grid1);
-	RpGrid1d* ptr = (RpGrid1d*) myvis.getObject(grid1->objectName());
-	if (ptr == NULL)
-		printf("%s not found\n", grid1->objectName());
+	myvis.addObject(grid2);
 
-	buf = myvis.serialize();
+	char* buf = myvis.serialize();
 
 	// write the byte stream to a file for verification
 	nbytes = myvis.numBytes();
-	writeToFile(buf, nbytes, "out.g1");
+	writeToFile(buf, nbytes, "out.g2");
 
 	//myvis.print();
 	
@@ -79,6 +74,22 @@ int main()
 	RpSerializer newvis;
 	newvis.deserialize(buf);
 	newvis.print();
+
+	printf("Testing serializer::getObject\n");
+
+	RpGrid1d* ptr1 = (RpGrid1d*) newvis.getObject(name1);
+	if (ptr1 != NULL)
+		ptr1->print();
+	else
+		printf("%s not found\n", name1);
+
+	RpGrid1d* ptr2 = (RpGrid1d*) newvis.getObject(name2);
+	if (ptr2 != NULL)
+		ptr2->print();
+	else
+		printf("%s not found\n", name2);
+
+	delete [] buf;
 
 	return 0;
 }
