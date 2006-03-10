@@ -25,7 +25,7 @@ void readRpHeader(const char* buf, string& ver, int& nbytes)
 	printf("readRpHeader: header=%s=, nbytes=%d\n, header, nbytes);
 #endif
 
-	delete header;
+	delete [] header;
 }
 
 // 
@@ -56,37 +56,37 @@ void writeRpHeader(char* buf, const char* ver, int nbytes)
 // 
 // parse object name
 //
-void readString(const char* buf, string& name)
+void readString(const char* buf, string& str)
 {
 	char* ptr = (char*)buf;
 	int len;
 
-	// copy length of name
+	// read length of string
 
 	ByteOrder<int>::OrderCopy((int*)ptr, &len);
 
 	ptr += sizeof(int);
 	
-	// copy name as chars
+	// read chars
 
 	char* cstr = new char[len]; ;
 	ByteOrder<char>::OrderCopyArray(ptr, cstr, len);
 	filterTrailingBlanks(cstr, len);
-	name = cstr;
+	str = cstr;
 
-	delete cstr;
+	delete [] cstr;
 }
 
 void writeString(char* buf, const char* str, int len)
 {
 	char *ptr = buf;
 
-	// copy length of name
+	// write length of string
 
 	ByteOrder<int>::OrderCopy(&len, (int*)ptr);
 	ptr += sizeof(int);
 	
-	// copy chars
+	// write chars
 	ByteOrder<char>::OrderCopyArray(str, ptr, len);
 }
 
