@@ -2,6 +2,11 @@
 #include "serializer.h"
 #include "grid1d.h"
 
+//
+// This example show how to create a grid1d object, put it into 
+// a serializer object and ask the serializer for a serialized byte stream.
+//
+
 #define Num_points 20
 
 static double points[20] = {
@@ -29,41 +34,53 @@ static double points[20] = {
 
 void writeToFile(char* buf, int len, const char* filename)
 {
-if (buf != NULL) {
-	printf("write to file %s\n", filename);
-	FILE* fp = fopen(filename, "w");
-	fwrite(buf, 1, len, fp);
-	fclose(fp);
+	if (buf != NULL) {
+		FILE* fp = fopen(filename, "w");
+		fwrite(buf, 1, len, fp);
+		fclose(fp);
+	}
 }
-}
-
 
 int main()
 {
 	int i, j, err, nbytes;
 
-	printf("create RpGrid1d object\n");
-	RpGrid1d* grid1 = new RpGrid1d("output.grid(g1d)", 20);
+	printf("Testing RpGrid1d\n");
 
-	printf("add points to RpGrid1d object\n");
+	RpGrid1d* grid1 = new RpGrid1d("output.grid(g1d)", 20);
 	grid1->addAllPoints(&(points[0]), 20);
 
-	printf("create RpSerializer\n");
+	char* buf = grid1->serialize(nbytes);
+	writeToFile(buf, nbytes, "out.grid1");
+
+	delete [] buf; 
+	buf = NULL;
+
+	printf("grid1 objectname: %s\n", grid1->objectName());
+
+	printf("Testing serializer\n");
+
 	RpSerializer myvis;
-
 	myvis.addObject(grid1);
-
 	RpGrid1d* ptr = (RpGrid1d*) myvis.getObject(grid1->objectName());
-
 	if (ptr == NULL)
 		printf("%s not found\n", grid1->objectName());
 
-	myvis.print();
+	buf = myvis.serialize();
 
-	char* buf = myvis.serialize();
+	// write the byte stream to a file for verification
+	nbytes = myvis.numBytes();
+	writeToFile(buf, nbytes, "out.g1");
 
-	writeToFile(buf, myvis.numBytes(), "out.g1");
+	//myvis.print();
+	
+	printf("Testing serializer::deserializer\n");
 
+	RpSerializer newvis;
+	newvis.deserialize(buf);
+	newvis.print();
 
 	return 0;
 }
+
+
