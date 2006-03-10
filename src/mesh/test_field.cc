@@ -46,23 +46,23 @@ int main()
 	int i, j, err, nbytes;
 
 	const char* name1 = "output.field(f1d1)";
-	const char* name2 = "output.field(f1d2)";
+	const char* name2 = "output.mesh(m1d)";
 
 	printf("Testing RpField\n");
 
 	RpField* f1 = new RpField(name1, 20);
 	f1->addAllPoints(&(points[0]), 20);
-	f1->setMesh("output.mesh(m2d)");
-	//f1->print();
+	f1->setMesh("output.mesh(m1d)");
 
-	//RpGrid1d* grid2 = new RpGrid1d(name2, 20);
-	//grid2->addAllPoints(&(points[0]), 20);
+	// use a regular 1d grid
+	RpGrid1d* grid = new RpGrid1d(0, 1, 20);
+	grid->objectName(name2);
 
 	printf("Testing serializer\n");
 
 	RpSerializer myvis;
 	myvis.addObject(f1);
-	//myvis.addObject(grid2);
+	myvis.addObject(grid);
 
 	char* buf = myvis.serialize();
 
@@ -78,21 +78,19 @@ int main()
 	newvis.deserialize(buf);
 	newvis.print();
 
-	/*
 	printf("Testing serializer::getObject\n");
 
-	RpGrid1d* ptr1 = (RpGrid1d*) newvis.getObject(name1);
-	if (ptr1 != NULL)
-		ptr1->print();
-	else
-		printf("%s not found\n", name1);
-
-	RpGrid1d* ptr2 = (RpGrid1d*) newvis.getObject(name2);
-	if (ptr2 != NULL)
-		ptr2->print();
+	RpGrid1d* gptr = (RpGrid1d*) newvis.getObject(name2);
+	if (gptr != NULL)
+		gptr->print();
 	else
 		printf("%s not found\n", name2);
-	*/
+
+	RpField* fptr = (RpField*) newvis.getObject(name1);
+	if (fptr != NULL)
+		fptr->print();
+	else
+		printf("%s not found\n", name1);
 
 	delete [] buf;
 
