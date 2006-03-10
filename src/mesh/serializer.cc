@@ -299,17 +299,30 @@ RpSerializer::createObject(std::string header, const char* buf)
 		obj->deserialize(buf);
 		return obj;
 	} 
+	else if (header == RpField_current_version) {
+		obj = new RpField(); // create new object
+		obj->deserialize(buf);
+		return obj;
+	}
+	/*
+	else if (header == RpMesh3d_current_version) {
+		obj = new RpMesh3d(); // create new object
+		obj->deserialize(buf);
+		return obj;
+	}
+	else if (header == RpElement_current_version) {
+		obj = new RpElement(); // create new object
+		obj->deserialize(buf);
+		return obj;
+	}*/
 	else {
-		printf("not implemented yet\n");
+		printf("not implemented\n");
 		return NULL;
 	}
 
 		/* TODO
 			(header == RpGrid2d_current_version) 
 			(header == RpGrid2d_current_version)
-			RpMesh3d_current_version
-			RpField_current_version
-			RpElement_current_version
 			RpNode2d_current_version
 			RpNode3d_current_version
 			RpCurve_current_version
