@@ -24,12 +24,12 @@ RpSerializer::addObject(RpSerializable* obj)
 // 	a byte stream of a serialized object
 // 		RV-A-<object-type><numBytes>.....
 //
+/*
 void 
 RpSerializer::addObject(const char* buf)
 {
-	// todo 
-	
 }
+*/
 
 //
 // Remove an object from Serializer
@@ -145,11 +145,6 @@ RpSerializer::serialize()
 	// calculate total number of bytes by adding up all the objects
 	int nbytes = numBytes();	
 
-	// add bytes necessary for encoding and compression and
-	// total number of bytes:
-
-	nbytes += headerSize();
-
 #ifdef DEBUG
 	printf("RpSerializer::serialize: bytes=%d\n", nbytes);
 #endif
@@ -199,7 +194,42 @@ RpSerializer::serialize()
 void 
 RpSerializer::deserialize(const char* buf)
 {
-	// todo
+	std::string encodeFlag;
+	std::string compressFlag;
+	int nbytes;
+
+	char* ptr = (char*)buf;
+
+	readHeader(ptr, nbytes, encodeFlag, compressFlag);
+	ptr += headerSize();
+
+	const char* end_ptr = buf + nbytes; // pointer to end of blob
+#ifdef DEBUG
+	printf("RpSerializer::deserialize: ptr=%x, end_ptr=%x\n",
+			(unsigned)ptr, (unsigned)end_ptr);
+#endif
+
+	std::string header;
+	RpSerializable* obj;
+
+	while (ptr < end_ptr) {
+		readString(ptr, header, headerSize());
+
+		// create new object based on object type/version from byte stream
+		if ( (obj = createObject(header, ptr)) != NULL) {
+			// add object to serializer
+			addObject(obj);
+
+			// advance buffer pointer
+			ptr += obj->numBytes();
+		}
+		else // TODO: add error handling
+			break;
+	}
+#ifdef DEBUG
+	printf("RpSerializer::deserialize\n");
+	print();
+#endif
 	
 }
 
@@ -227,8 +257,8 @@ void RpSerializer::readHeader(const char* buf, int& nbytes,
 	ptr += sizeof(int);
 
 	// read encoding flag (2 bytes)
-	readString(ptr, encodeFlag);
-	readString(ptr+2, encodeFlag);
+	readString(ptr, encodeFlag, 2);
+	readString(ptr+2, encodeFlag, 2);
 
 #ifdef DBEUG
 	printf("Serializer::readHeader: nbytes=%d ", nbytes);
@@ -263,3 +293,34 @@ void RpSerializer::print()
 	for (it = m_refCount.begin(); it != m_refCount.end(); it++)
 		printf("count: %s \t %d\n", (*it).first, (*it).second);
 };
+
+//
+// create a new Serializable object based on header info (obj type 
+// and version)
+//
+RpSerializable* 
+RpSerializer::createObject(std::string header, const char* buf)
+{
+	RpSerializable* obj;
+
+	if (header == RpGrid1d_current_version) {
+		obj = new RpGrid1d(buf); // create new object
+		return obj;
+	} 
+	else {
+		printf("not implemented yet\n");
+		return NULL;
+	}
+
+		/* TODO
+			(header == RpGrid2d_current_version) 
+			(header == RpGrid2d_current_version)
+			RpMesh3d_current_version
+			RpField_current_version
+			RpElement_current_version
+			RpNode2d_current_version
+			RpNode3d_current_version
+			RpCurve_current_version
+		*/
+
+}

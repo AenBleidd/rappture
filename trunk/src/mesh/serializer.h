@@ -3,6 +3,8 @@
 
 #include <vector>
 #include <map>
+#include <string>
+#include "grid1d.h"
 #include "serializable.h"
 
 //
@@ -17,7 +19,7 @@ public:
 	void clear();
 
 	void addObject(RpSerializable* obj);
-	void addObject(const char* buf);
+	//void addObject(const char* buf);
 
 	void deleteObject(RpSerializable* obj);
 	void deleteObject(const char* objectName);
@@ -46,7 +48,7 @@ public:
 	// 	2 bytes: encoding indicator (id encoding algorithm)
 	// 	2 bytes: compression indicator (id compression algorithm)
 	//
-	int headerSize() { return HEADER_SIZE+4; };
+	int headerSize() { return 8; };
 
 	void print();
 
@@ -57,6 +59,7 @@ protected:
 	void writeHeader(char* buf, int nbytes, 
 			const char* eflag, const char* cflag);
 
+	RpSerializable* createObject(std::string header, const char* buf);
 
 private:
 	typedef map<const char*, RpSerializable*> typeObjMap;
