@@ -36,6 +36,7 @@ extern const char* RpNode3d_current_version;
 extern void readRpHeader(const char* buf, string& ver, int& nbytes);
 extern void writeRpHeader(char* buf, const char* ver, int nbytes);
 extern void readString(const char* buf, string& str);
+extern void readString(const char* buf, string& str, int len);
 extern void writeString(char* buf, string& str);
 extern void writeString(char* buf, const char* str, int len);
 extern void readInt(const char* buf, int& val);
