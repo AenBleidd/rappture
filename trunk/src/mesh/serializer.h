@@ -1,10 +1,10 @@
-#ifndef __SERIALIZER_H__
-#define __SERIALIZER_H__
+#ifndef __RPSERIALIZER_H__
+#define __RPSERIALIZER_H__
 
 #include <vector>
 #include <map>
 #include <string>
-#include "grid1d.h"
+#include "field.h"
 #include "serializable.h"
 
 //
