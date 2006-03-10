@@ -61,9 +61,15 @@ protected:
 
 	RpSerializable* createObject(std::string header, const char* buf);
 
+	struct rpStrCmp {
+		bool operator()( const char* s1, const char* s2 ) const {
+			return strcmp( s1, s2 ) < 0;
+		}
+	};
+
 private:
-	typedef map<const char*, RpSerializable*> typeObjMap;
-	typedef map<const char*, int> typeRefCount;
+	typedef map<const char*, RpSerializable*, rpStrCmp> typeObjMap;
+	typedef map<const char*, int, rpStrCmp> typeRefCount;
 
 	// archive of objects referenced by their names (e.g., output.field)
 	typeObjMap m_objMap;

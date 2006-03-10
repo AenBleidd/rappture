@@ -8,6 +8,7 @@ void
 RpSerializer::addObject(RpSerializable* obj)
 {
 	const char* key = obj->objectName();
+
 	// add object pointer to object map
 	m_objMap[key] = obj; 
 
@@ -104,6 +105,9 @@ RpSerializer::clear()
 RpSerializable* 
 RpSerializer::getObject(const char* objectName)
 {
+#ifdef DEBUG
+		printf("RpSerializer::getObject: %s, len=%d\n", objectName,strlen(objectName));
+#endif
 	typeObjMap::iterator iter = m_objMap.find(objectName);
 	
 	if (iter != m_objMap.end()) {
@@ -270,11 +274,11 @@ void RpSerializer::print()
 {
 	typeObjMap::iterator iter;
 	for (iter = m_objMap.begin(); iter != m_objMap.end(); iter++)
-		printf("objMap: %s \t %x\n", (*iter).first, (unsigned)(*iter).second);
+		printf("objMap: %s= ptr=%x\n", (*iter).first, (unsigned)(*iter).second);
 
 	typeRefCount::iterator it;
 	for (it = m_refCount.begin(); it != m_refCount.end(); it++)
-		printf("count: %s \t %d\n", (*it).first, (*it).second);
+		printf("count: %s= count=%d\n", (*it).first, (*it).second);
 };
 
 //
@@ -291,7 +295,7 @@ RpSerializer::createObject(std::string header, const char* buf)
 #endif
 
 	if (header == RpGrid1d_current_version) {
-		obj = new RpGrid1d; // create new object
+		obj = new RpGrid1d(); // create new object
 		obj->deserialize(buf);
 		return obj;
 	} 
