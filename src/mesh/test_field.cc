@@ -3,8 +3,8 @@
 #include "field.h"
 
 //
-// This example show how to create a grid1d object, put it into 
-// a serializer object and ask the serializer for a serialized byte stream.
+// This example show how to create field & grid1d objects, put into 
+// a serializer and ask for a serialized byte stream.
 //
 
 #define Num_points 20
@@ -70,12 +70,12 @@ int main()
 	nbytes = myvis.numBytes();
 	writeToFile(buf, nbytes, "out.g2");
 
-	//myvis.print();
 	
 	printf("Testing serializer::deserializer\n");
 
 	RpSerializer newvis;
 	newvis.deserialize(buf);
+
 	newvis.print();
 
 	printf("Testing serializer::getObject\n");
@@ -92,6 +92,8 @@ int main()
 	else
 		printf("%s not found\n", name1);
 
+	// use fptr to get data etc.
+	
 	delete [] buf;
 
 	return 0;
