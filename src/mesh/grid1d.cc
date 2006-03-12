@@ -228,7 +228,7 @@ RpGrid1d::xmlString(std::string& textString)
 	char cstr[256];
 
 	// clear input string
-	textString.erase();
+	textString.clear();
 
 	textString.append("<points>");
 
@@ -292,5 +292,25 @@ int RpGrid1d::numBytes()
 		+ m_data.size() * sizeof(DataValType);
 
 	return nbytes;
+}
+
+//
+// Remove all points
+//
+void RpGrid1d::clear()
+{
+	m_data.clear();
+	m_name.clear();
+}
+
+//
+// override operator = 
+//
+RpGrid1d RpGrid1d::operator=(const RpGrid1d& g)
+{
+	m_data = g.m_data;
+	m_name = g.m_name;
+
+	return (*this);
 }
 

@@ -132,7 +132,7 @@ RpField::xmlString(std::string& textString)
 	char cstr[256];
 
 	// clear input string
-	textString.erase();
+	textString.clear();
 
 	sprintf(cstr, "<field id=\"%s\">\n", m_name.c_str());
 	textString.append(cstr);
@@ -186,3 +186,16 @@ int RpField::numBytes()
 	return nbytes;
 }
 
+void RpField::clear()
+{
+	RpGrid1d::clear();
+	m_meshName.clear();
+}
+
+RpField RpField::operator=(const RpField& f)
+{
+	(RpGrid1d&)*this = f;
+	m_meshName = f.m_meshName;
+
+	return (*this);
+}
