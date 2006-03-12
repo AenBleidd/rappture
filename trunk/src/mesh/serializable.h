@@ -35,6 +35,8 @@ public:
 	virtual int size() = 0;
 	virtual int numBytes() = 0;
 
+	virtual void clear() = 0;
+
 	virtual void print() = 0;
 	virtual void xmlString(std::string& str) = 0;
 
