@@ -38,8 +38,18 @@ public:
 	virtual RP_ERROR deserialize(const char* buf);
 	virtual RP_ERROR doDeserialize(const char* buf);
 
+	// remove all data
+	virtual void clear();
+
+	// serialize object content to an XML text string
 	virtual void xmlString(std::string& str);
+
+	// print content of object to stdout
 	virtual void print();
+
+	// assignment operator
+	virtual RpField operator=(const RpField& f);
+
 
 	// destructor
 	virtual ~RpField() { };

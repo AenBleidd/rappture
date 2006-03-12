@@ -69,8 +69,13 @@ public:
 	virtual void xmlString(std::string& str);
 	virtual void print();
 
+	// delete all points
+	virtual void clear();
+
 	// destructor
 	virtual ~RpGrid1d() { };
+
+	virtual RpGrid1d operator=(const RpGrid1d& g);
 
 protected:
 	int numPoints() { return m_data.size(); };
