@@ -29,10 +29,10 @@ RP_BASE   = $(TOP_DIR)/rappture
 # define which programs can be made
 PROGS           =   librpmesh
 TEST_PROGS =	test_node2d \
-		#test_node3d \
+		test_node3d \
 		test_element \
 		test_elem2 \
-		#test_mesh \
+		test_mesh \
 		test_grid1d \
 		test_grid \
 		test_field \
@@ -97,7 +97,7 @@ RP_OBJS_DEP     = RpVariable.o RpAbout.o RpNumber.o RpString.o RpBoolean.o \
                   # RpValueDouble.o RpValueString.o
 RP_MESH_DEPS = 	const.o grid1d.o grid2d.o node2d.o \
 		element.o serializer.o util.o reader.o \
-		field.o #node3d.o mesh.o
+		field.o node3d.o mesh.o
 
 LDLIB_MACOSX = -dynamiclib -o $(LIB_DIR)/$@.dylib
 LDLIB_LINUX = -shared -Wl,-rpath,$(LIB_DIR)/ -Wl,-soname,$@.so -o $(LIB_DIR)/$@.so.0.0
