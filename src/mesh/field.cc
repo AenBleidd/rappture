@@ -4,9 +4,15 @@
 
 #include "field.h"
 
-void RpField::setMesh(const char* meshId)
+RP_ERROR RpField::setMeshObj(RpSerializable* mesh)
 {
-	m_meshName.assign(meshId);
+	if (mesh) {
+		m_mesh = mesh;
+		return RP_SUCCESS;
+	} 
+	else {
+		return RP_ERR_NULL_PTR;
+	}
 }
 
 //
