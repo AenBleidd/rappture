@@ -29,19 +29,21 @@ RP_BASE   = $(TOP_DIR)/rappture
 # define which programs can be made
 PROGS           =   librpmesh
 TEST_PROGS =	test_node2d \
-		test_node3d \
+		#test_node3d \
 		test_element \
 		test_elem2 \
-		test_mesh \
+		#test_mesh \
 		test_grid1d \
-		test_grid
+		test_grid \
+		test_field \
+		test_serializer
 
 # define our compiling environment
 #
 CC              = gcc
 CXX             = g++
-DEBUG           = -g -Wall
-DEBUG_PLUS      = -DDEBUG
+DEBUG           = -g -Wall $(DEBUG_PLUS)
+#DEBUG_PLUS      = -DDEBUG
 PY              = $(RP_INSTALL_BASE)/bin/python
 MEX             = mex
 OCT             = mkoctfile
@@ -93,9 +95,9 @@ RP_OTHER_DEPS   = RpFortranCommon.o RpBindingsDict.o
 RP_OBJS_DEP     = RpVariable.o RpAbout.o RpNumber.o RpString.o RpBoolean.o \
                   RpChoice.o RpOption.o RpUnitsStd.o RpUnits.o #RpValue.o\
                   # RpValueDouble.o RpValueString.o
-RP_MESH_DEPS = 	const.o grid1d_reg.o grid2d.o node3d.o node2d.o \
-		element.o mesh.o serializer.o util.o \
-		grid1d.o reader.o #field.o 
+RP_MESH_DEPS = 	const.o grid1d.o grid2d.o node2d.o \
+		element.o serializer.o util.o reader.o \
+		field.o #node3d.o mesh.o
 
 LDLIB_MACOSX = -dynamiclib -o $(LIB_DIR)/$@.dylib
 LDLIB_LINUX = -shared -Wl,-rpath,$(LIB_DIR)/ -Wl,-soname,$@.so -o $(LIB_DIR)/$@.so.0.0
@@ -116,27 +118,6 @@ librpmesh: $(RP_MESH_DEPS)
 		ar -r $@.a $^; \
 		ranlib $@.a; \
 	fi
-librappture: $(RP_IO_DEPS) $(RP_UNITS_DEPS) $(RP_OTHER_DEPS)
-	if test "`uname`" == "Darwin"; then \
-		$(CXX) $(DEGUG) $(LDLIB_MACOSX) $^ $(LIB_SCEW_FLAG) -lm; \
-		ar -r $@.a $^; \
-		ranlib -s $@.a; \
-	else \
-		$(CXX) $(DEGUG) $(LDLIB_LINUX) $^ $(LIB_SCEW_FLAG) -lm; \
-		/sbin/ldconfig -n $(LIB_DIR); \
-		ar -r $@.a $^; \
-		ranlib $@.a; \
-	fi
-
-install_rappture: librappture
-	if test "`uname`" == "Darwin"; then \
-		cp $<.dylib $(RP_INSTALL_BASE)/lib; \
-		cp $<.a $(RP_INSTALL_BASE)/lib; \
-	else \
-		cp -d $<.so* $(RP_INSTALL_BASE)/lib; \
-		cp -d $<.a $(RP_INSTALL_BASE)/lib; \
-	fi
-
 
 ###############################################
 # include mesh objects
@@ -150,12 +131,11 @@ node2d.cc: node2d.h util.h serializable.h
 node3d.cc: node3d.h util.h serializable.h
 serializer.cc: serializer.h serializable.h
 reader.cc: byte_order.h
+field.cc: grid1d.h
 
 grid2d.o: grid2d.cc
 	$(CXX) $(CFLAGS) $(DEBUG) -c $?
 grid1d.o: grid1d.cc 
-	$(CXX) $(CFLAGS) $(DEBUG) -c $?
-grid1d_reg.o: grid1d_reg.cc
 	$(CXX) $(CFLAGS) $(DEBUG) -c $?
 util.o: util.cc
 	$(CXX) $(CFLAGS) $(DEBUG) -c $?
@@ -172,6 +152,8 @@ mesh.o: mesh.cc
 serializer.o: serializer.cc
 	$(CXX) $(CFLAGS) $(DEBUG) -c $?
 reader.o: reader.cc
+	$(CXX) $(CFLAGS) $(DEBUG) -c $?
+field.o: field.cc
 	$(CXX) $(CFLAGS) $(DEBUG) -c $?
 
 ### Test programs ##########
@@ -194,11 +176,15 @@ test_grid1d: test_grid1d.o ../librpmesh.so
 	$(CXX) $(DEBUG) -o $@ $< $(LIB_RPMESH)
 test_grid: test_grid.o ../librpmesh.so 
 	$(CXX) $(DEBUG) -o $@ $< $(LIB_RPMESH)
+test_field: test_field.o ../librpmesh.so 
+	$(CXX) $(DEBUG) -o $@ $< $(LIB_RPMESH)
+test_serializer: test_serializer.o ../librpmesh.so 
+	$(CXX) $(DEBUG) -o $@ $< $(LIB_RPMESH)
 testg: testg.o ../librpmesh.so
 	$(CXX) $(DEBUG) -o $@ $< $(LIB_RPMESH)
 
 
 #### CLEAN UP ############################################################
 clean: 
-	- rm -f *.o librpmesh.a ../librpmesh.so* $(TEST_PROGS)
+	- rm -f *.o *.gch librpmesh.a ../librpmesh.so* $(TEST_PROGS)
 
