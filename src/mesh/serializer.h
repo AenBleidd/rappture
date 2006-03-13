@@ -4,8 +4,9 @@
 #include <vector>
 #include <map>
 #include <string>
-#include "field.h"
 #include "serializable.h"
+#include "field.h"
+#include "util.h"
 
 //
 // class managing serializable objects
@@ -13,13 +14,14 @@
 class RpSerializer {
 public:
 
-	RpSerializer() { };
+	RpSerializer() { m_buf = 0; };
 
 	// remove all objects, reset ref counts to zero.
+	// delete buffer memory so the caller does not need to
 	void clear();
 
 	void addObject(RpSerializable* obj);
-	//void addObject(const char* buf);
+	void addObject(const char* key, RpSerializable* obj);
 
 	void deleteObject(RpSerializable* obj);
 	void deleteObject(const char* objectName);
@@ -77,7 +79,7 @@ private:
 	// reference count for each object
 	typeRefCount m_refCount;
 
-	unsigned int m_numObjects; //? can get from map.size()
+	char* m_buf; // tmp buffer for serialization
 };
 
 #endif
