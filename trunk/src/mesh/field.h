@@ -2,7 +2,14 @@
 #define __RP_FIELD_H__
 
 //
-// class for field values
+// Class for field object
+//
+// Example usage:
+//	mesh = new RpGrid2d;
+//	mesh->addAllPoints(x,y);
+//	field = new RpField;
+//	field->addValues(val);
+// 
 //
 
 #include "grid1d.h"
@@ -12,20 +19,38 @@
 class RpField : public RpGrid1d {
 public:
 	// constructors
-	RpField() { };
+	RpField() { m_mesh = NULL; };
 
-	RpField(int size) : RpGrid1d(size) { };
+	RpField(int size) : RpGrid1d(size) { m_mesh = NULL; };
 
-	RpField(const char* name, int size=0) : RpGrid1d(name,size) { };
+	RpField(const char* name, int size=0) : RpGrid1d(name,size)
+		{ m_mesh = NULL; };
 
-	// set mesh link
-	void setMesh(const char* meshId);
+	// set name of mesh object used in field 
+	void setMeshId(const char* meshId) { m_meshName.assign(meshId); };
+
+	// set name of mesh object used in field 
+	RP_ERROR setMeshObj(RpSerializable* meshPtr);
+
+	// remove mesh - only erase name and remove ptr (not free memory as serializer manages the object memory)
+	void removeMesh();
+
+	const char* getMeshId() { return m_meshName.c_str(); };
+	RpSerializable* getMeshObj() { return m_mesh; };
 
 	// return number of bytes needed for serialization
 	virtual int numBytes(); 
 
 	// return object type as a char string
 	virtual const char* objectType();
+
+	virtual RP_ERROR addAllValues(double* val, int nitems) {
+		return RpGrid1d::addAllPoints(val, nitems); 
+	};
+
+	virtual void addValue(double val) {
+		RpGrid1d::addPoint(val); 
+	};
 
 	// serialize data 
 	// returns pointer to buffer 
@@ -56,6 +81,7 @@ public:
 
 private:
 	std::string m_meshName; // mesh
+	RpSerializable* m_mesh; // pointer to mesh object
 };
 
 #endif
