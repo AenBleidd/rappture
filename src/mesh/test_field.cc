@@ -52,7 +52,7 @@ int main()
 
 	RpField* f1 = new RpField(name1, 20);
 	f1->addAllPoints(&(points[0]), 20);
-	f1->setMesh("output.mesh(m1d)");
+	f1->setMeshId("output.mesh(m1d)");
 
 	// use a regular 1d grid
 	RpGrid1d* grid = new RpGrid1d(0, 1, 20);
@@ -95,6 +95,9 @@ int main()
 	// use fptr to get data etc.
 	
 	delete [] buf;
+
+	fptr->clear();
+	fptr->print();
 
 	return 0;
 }
