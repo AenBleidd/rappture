@@ -53,8 +53,6 @@ RpGrid1d::RpGrid1d(DataValType* val, int nitems)
 //
 RpGrid1d::RpGrid1d(DataValType startPoint, DataValType delta, int npts)
 {
-	m_data.resize(npts);
-
 	// expand array
 	for (int i=0; i < npts; i++)
 		m_data.push_back(startPoint + i*delta);
