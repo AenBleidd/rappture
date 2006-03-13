@@ -14,23 +14,29 @@ RpSerializer::addObject(RpSerializable* obj)
 
 	// add object entry to reference count table
 	m_refCount[key] = 0; 
+
+	/*
+	// handle mesh object embedded in field
+	if (obj->objectType() == RpObjectTypes[FIELD] ) {
+		addObject(((RpField*)obj)->getMeshId(), 
+			  ((RpField*)obj)->getMeshObj());
+		printf("addObject: 
+	}
+	*/
+
 #ifdef DEBUG
 	printf("RpSerializer::addObject: obj name=%s, ptr=%x\n", key, (unsigned int)obj);
 	printf("RpSerializer::addObject: map size %d\n", m_objMap.size());
 #endif
 }
 
-// 
-// Input:
-// 	a byte stream of a serialized object
-// 		RV-A-<object-type><numBytes>.....
-//
-/*
 void 
-RpSerializer::addObject(const char* buf)
+RpSerializer::addObject(const char* key, RpSerializable* ptr)
 {
+
+	m_objMap[key] = ptr;
+	m_refCount[key] = 0;
 }
-*/
 
 //
 // Remove an object from Serializer
@@ -45,12 +51,17 @@ RpSerializer::deleteObject(const char* name)
 		// does not exist
 		return;
 
-	RpSerializable* obj_ptr = (*iter).second;
+	RpSerializable* obj = (*iter).second;
+
+	// handle RpField - update mesh ref count
+	if (obj->objectType() == RpObjectTypes[FIELD]) {
+		deleteObject( ((RpField*)obj)->getMeshId() );
+	}
 
 	// decrement object's reference count
 	// if reference count is zero, free memory and remove entry in obj map
 	if ( (--(m_refCount[name])) == 0) {
-		delete obj_ptr; // free obj memory
+		delete obj; // free obj memory
 		m_objMap.erase(name); // erase entry in object map
 		m_refCount.erase(name); // erase entry in object map
 	}
@@ -92,13 +103,15 @@ RpSerializer::deleteAllObjects()
 
 	m_objMap.clear();
 	m_refCount.clear();
-	m_numObjects = 0;
 }
 
 void
 RpSerializer::clear()
 {
 	deleteAllObjects();
+
+	delete [] m_buf;
+	m_buf = 0;
 }
 
 // retrieve object
@@ -117,6 +130,24 @@ RpSerializer::getObject(const char* objectName)
 #endif
 		// object found, increment ref count
 		++(m_refCount[objectName]);
+
+		// special handling of field object with link to mesh
+		RpSerializable* ptmp = (*iter).second;
+		if ( (ptmp->objectType() == RpObjectTypes[FIELD]) ) {
+		
+			RpField* ftmp = (RpField*)ptmp;
+
+			// find mesh obj ptr in serializer
+			typeObjMap::iterator it = m_objMap.find(ftmp->getMeshId());
+			if (it != m_objMap.end()) { //found mesh obj
+				ftmp->setMeshObj( ((*it).second) );
+				++(m_refCount[ftmp->getMeshId()]);
+			}
+			else {
+				RpAppendErr("RpSerializer::getObject: field without mesh data\n");
+				RpPrintErr();
+			}
+		}
 
 		// return pointer to object
 		return (*iter).second;
@@ -154,16 +185,21 @@ RpSerializer::serialize()
 #endif
 	
 	// allocate memory
-	char* buf = new char[nbytes];
-	if (buf == NULL) {
-		printf("RpSerializer::serialize(): failed to allocate mem\n");
-		return buf;
+	if (m_buf) {
+		delete [] m_buf;
 	}
 
-	writeHeader(buf, nbytes, "NO", "NO");
+	m_buf = new char[nbytes];
+	if (m_buf == NULL) {
+		RpAppendErr("RpSerializer::serialize(): failed to allocate mem\n");
+		RpPrintErr();
+		return m_buf;
+	}
+
+	writeHeader(m_buf, nbytes, "NO", "NO");
 
 	// call each object to serialize itself
-	char* ptr = buf + headerSize();
+	char* ptr = m_buf + headerSize();
 
 	typeObjMap::iterator iter;
 	int nb;
@@ -175,7 +211,7 @@ RpSerializer::serialize()
 	}
 
 	// return pointer to buffer
-	return buf;
+	return m_buf;
 }
 
 //
@@ -329,3 +365,4 @@ RpSerializer::createObject(std::string header, const char* buf)
 		*/
 
 }
+
