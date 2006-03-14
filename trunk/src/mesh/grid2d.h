@@ -15,7 +15,9 @@ class RpGrid2d : public RpGrid1d {
 public:
 	// constructors
 	RpGrid2d();
+	RpGrid2d(const char* name);
 	RpGrid2d(int npoints);
+	RpGrid2d(const char* name, int npts);
 
 	// constructor - input as 1d array of points {x, y, x, y ,...}
 	RpGrid2d(DataValType* val, int npoints);

@@ -9,9 +9,20 @@ RpGrid2d::RpGrid2d()
 {
 }
 
+RpGrid2d::RpGrid2d(const char* name)
+{
+	objectName(name);
+}
+
 RpGrid2d::RpGrid2d(int npoints)
 {
 	m_data.reserve(npoints*2);
+}
+
+RpGrid2d::RpGrid2d(const char* name, int npts)
+{
+	objectName(name);
+	m_data.reserve(npts*2);
 }
 
 // constructor
