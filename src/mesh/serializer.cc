@@ -118,9 +118,6 @@ RpSerializer::clear()
 RpSerializable* 
 RpSerializer::getObject(const char* objectName)
 {
-#ifdef DEBUG
-		printf("RpSerializer::getObject: %s, len=%d\n", objectName,strlen(objectName));
-#endif
 	typeObjMap::iterator iter = m_objMap.find(objectName);
 	
 	if (iter != m_objMap.end()) {
@@ -184,14 +181,14 @@ RpSerializer::serialize()
 	printf("RpSerializer::serialize: bytes=%d\n", nbytes);
 #endif
 	
-	// allocate memory
+	// allocate memory -- could cause problem...TODO
 	if (m_buf) {
 		delete [] m_buf;
 	}
 
 	m_buf = new char[nbytes];
 	if (m_buf == NULL) {
-		RpAppendErr("RpSerializer::serialize(): failed to allocate mem\n");
+		RpAppendErr("RpSerializer::serialize: new char[] failed\n");
 		RpPrintErr();
 		return m_buf;
 	}
