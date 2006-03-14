@@ -34,8 +34,10 @@ TEST_PROGS =	test_node2d \
 		test_elem2 \
 		test_mesh \
 		test_grid1d \
+		test_grid2d \
 		test_grid \
 		test_field \
+		test_s2 \
 		test_serializer
 
 # define our compiling environment
@@ -95,9 +97,10 @@ RP_OTHER_DEPS   = RpFortranCommon.o RpBindingsDict.o
 RP_OBJS_DEP     = RpVariable.o RpAbout.o RpNumber.o RpString.o RpBoolean.o \
                   RpChoice.o RpOption.o RpUnitsStd.o RpUnits.o #RpValue.o\
                   # RpValueDouble.o RpValueString.o
-RP_MESH_DEPS = 	const.o grid1d.o grid2d.o node2d.o \
-		element.o serializer.o util.o reader.o \
-		field.o node3d.o mesh.o
+RP_MESH_DEPS = 	const.o util.o reader.o serializer.o \
+		grid1d.o grid2d.o field.o \
+		node2d.o \
+		node3d.o mesh.o element.o
 
 LDLIB_MACOSX = -dynamiclib -o $(LIB_DIR)/$@.dylib
 LDLIB_LINUX = -shared -Wl,-rpath,$(LIB_DIR)/ -Wl,-soname,$@.so -o $(LIB_DIR)/$@.so.0.0
@@ -174,11 +177,15 @@ test_mesh2: test_mesh2.o ../librpmesh.so
 	$(CXX) $(DEBUG) -o $@ $< $(LIB_RPMESH)
 test_grid1d: test_grid1d.o ../librpmesh.so 
 	$(CXX) $(DEBUG) -o $@ $< $(LIB_RPMESH)
+test_grid2d: test_grid2d.o ../librpmesh.so 
+	$(CXX) $(DEBUG) -o $@ $< $(LIB_RPMESH)
 test_grid: test_grid.o ../librpmesh.so 
 	$(CXX) $(DEBUG) -o $@ $< $(LIB_RPMESH)
 test_field: test_field.o ../librpmesh.so 
 	$(CXX) $(DEBUG) -o $@ $< $(LIB_RPMESH)
 test_serializer: test_serializer.o ../librpmesh.so 
+	$(CXX) $(DEBUG) -o $@ $< $(LIB_RPMESH)
+test_s2: test_s2.o ../librpmesh.so
 	$(CXX) $(DEBUG) -o $@ $< $(LIB_RPMESH)
 testg: testg.o ../librpmesh.so
 	$(CXX) $(DEBUG) -o $@ $< $(LIB_RPMESH)
