@@ -6,6 +6,7 @@
 #include <string>
 #include "serializable.h"
 #include "field.h"
+#include "grid2d.h"
 #include "util.h"
 
 //
