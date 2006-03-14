@@ -38,6 +38,7 @@ TEST_PROGS =	test_node2d \
 		test_grid \
 		test_field \
 		test_s2 \
+		test_rect2 \
 		test_serializer
 
 # define our compiling environment
@@ -90,15 +91,8 @@ test: ${TEST_PROGS}
 
 #install: install_py install_rappture install_rpobjs install_matlab install_octave
 
-RP_IO_DEPS      = RpLibrary.o RpLibraryCInterface.o RpLibraryFInterface.o \
-                  scew_extras.o
-RP_UNITS_DEPS   = RpUnitsStd.o RpUnits.o RpUnitsCInterface.o RpUnitsFInterface.o
-RP_OTHER_DEPS   = RpFortranCommon.o RpBindingsDict.o
-RP_OBJS_DEP     = RpVariable.o RpAbout.o RpNumber.o RpString.o RpBoolean.o \
-                  RpChoice.o RpOption.o RpUnitsStd.o RpUnits.o #RpValue.o\
-                  # RpValueDouble.o RpValueString.o
 RP_MESH_DEPS = 	const.o util.o reader.o serializer.o \
-		grid1d.o grid2d.o field.o \
+		grid1d.o grid2d.o field.o grid2d_rect.o \
 		node2d.o \
 		node3d.o mesh.o element.o
 
@@ -127,16 +121,19 @@ librpmesh: $(RP_MESH_DEPS)
 #
 #dependencies
 #
+reader.cc: byte_order.h util.h rp_types.h
 grid1d.cc: grid1d.h util.h rp_types.h byte_order.h serializable.h
-grid2d.cc: grid1d.h util.h rp_types.h byte_order.h serializable.h
+grid2d.cc: grid2d.h grid1d.h util.h rp_types.h byte_order.h serializable.h
+grid2d_rect.cc: grid2d_rect.h grid2d.h grid1d.h util.h rp_types.h byte_order.h serializable.h
+field.cc: grid1d.h util.h rp_types.h byte_order.h serializable.h
+serializer.cc: serializer.h serializable.h grid1d.h grid2d.h grid2d_rect.h util.h field.h
 mesh.cc: mesh.h node3d.h element.h util.h serializable.h
 node2d.cc: node2d.h util.h serializable.h
 node3d.cc: node3d.h util.h serializable.h
-serializer.cc: serializer.h serializable.h
-reader.cc: byte_order.h
-field.cc: grid1d.h
 
 grid2d.o: grid2d.cc
+	$(CXX) $(CFLAGS) $(DEBUG) -c $?
+grid2d_rect.o: grid2d_rect.cc
 	$(CXX) $(CFLAGS) $(DEBUG) -c $?
 grid1d.o: grid1d.cc 
 	$(CXX) $(CFLAGS) $(DEBUG) -c $?
@@ -179,6 +176,8 @@ test_grid1d: test_grid1d.o ../librpmesh.so
 	$(CXX) $(DEBUG) -o $@ $< $(LIB_RPMESH)
 test_grid2d: test_grid2d.o ../librpmesh.so 
 	$(CXX) $(DEBUG) -o $@ $< $(LIB_RPMESH)
+test_rect2: test_rect2.o ../librpmesh.so 
+	$(CXX) $(DEBUG) -o $@ $< $(LIB_RPMESH)
 test_grid: test_grid.o ../librpmesh.so 
 	$(CXX) $(DEBUG) -o $@ $< $(LIB_RPMESH)
 test_field: test_field.o ../librpmesh.so 
@@ -188,6 +187,8 @@ test_serializer: test_serializer.o ../librpmesh.so
 test_s2: test_s2.o ../librpmesh.so
 	$(CXX) $(DEBUG) -o $@ $< $(LIB_RPMESH)
 testg: testg.o ../librpmesh.so
+	$(CXX) $(DEBUG) -o $@ $< $(LIB_RPMESH)
+testg2: testg2.o ../librpmesh.so
 	$(CXX) $(DEBUG) -o $@ $< $(LIB_RPMESH)
 
 
