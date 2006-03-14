@@ -21,9 +21,11 @@ typedef enum {
 } RpObject_enum;
 
 extern const char* RpObjectTypes[];
+extern const char* RpCurrentVersion[];
 
 //extern const int HEADER_SIZE;
 
+/*
 extern const char* RpGrid1d_current_version;
 extern const char* RpGrid2d_current_version;
 extern const char* RpMesh3d_current_version;
@@ -32,6 +34,7 @@ extern const char* RpCurve_current_version;
 extern const char* RpElement_current_version;
 extern const char* RpNode2d_current_version;
 extern const char* RpNode3d_current_version;
+*/
 
 extern void readRpHeader(const char* buf, string& ver, int& nbytes);
 extern void writeRpHeader(char* buf, const char* ver, int nbytes);
