@@ -9,6 +9,7 @@
 #include <string>
 #include "serializable.h"
 #include "byte_order.h"
+#include "rp_types.h"
 #include "util.h"
 
 typedef double DataValType;
@@ -17,6 +18,7 @@ class RpGrid1d : public RpSerializable {
 public:
 	// constructors
 	RpGrid1d();
+	RpGrid1d(const char* name);
 	RpGrid1d(int size);
 	RpGrid1d(const char* objectName, int size);
 	RpGrid1d(DataValType* data, int size); // makes a copy of data

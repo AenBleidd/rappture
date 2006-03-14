@@ -2,14 +2,17 @@
 // class for 1D grid
 //
 
-#include "serializable.h"
-#include "rp_types.h"
 #include "grid1d.h"
 
 
 // constructor
 RpGrid1d::RpGrid1d()
 {
+}
+
+RpGrid1d::RpGrid1d(const char* name)
+{
+	objectName(name);
 }
 
 RpGrid1d::RpGrid1d(int size)
@@ -21,7 +24,7 @@ RpGrid1d::RpGrid1d(int size)
 RpGrid1d::RpGrid1d(const char* name, int size)
 {
 	m_data.reserve(size);
-	m_name = name;
+	objectName(name);
 }
 
 //
