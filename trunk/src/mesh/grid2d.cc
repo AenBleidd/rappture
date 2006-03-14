@@ -52,15 +52,15 @@ RpGrid2d::RpGrid2d(DataValType* val[], int npoints)
 // Result:
 // 	expand points and add them to m_data
 //
-RpGrid2d::RpGrid2d(DataValType x_min, DataValType x_max, int x_delta,
-		   DataValType y_min, DataValType y_max, int y_delta)
+RpGrid2d::RpGrid2d(DataValType x_min, DataValType x_max, DataValType x_delta,
+		   DataValType y_min, DataValType y_max, DataValType y_delta)
 {
 	setUniformGrid(x_min, x_max, x_delta, y_min, y_max, y_delta);
 }
 
 RP_ERROR
-RpGrid2d::setUniformGrid(DataValType x_min, DataValType x_max, int x_delta,
-		   DataValType y_min, DataValType y_max, int y_delta)
+RpGrid2d::setUniformGrid(DataValType x_min, DataValType x_max, DataValType x_delta,
+	   DataValType y_min, DataValType y_max, DataValType y_delta)
 {
 	// expand array, inclusive of origin and max
 	for (int i=0; i <= (int)((x_max-x_min)/x_delta); i++) {
@@ -153,22 +153,24 @@ RpGrid2d::getData(DataValType& x, DataValType& y, int index)
 	return RP_SUCCESS;
 }
 
-// 
-// serialize object to a byte stream
-// Output:
-// 	nbytes: total number of bytes in the byte stream 
-// 	return pointer to buffer holding the byte stream
 //
-char* 
-RpGrid2d::serialize(int& nbytes)
+// serialization
+//
+RP_ERROR
+RpGrid2d::doSerialize(char* buf, int nbytes)
 {
-	// call base class serialize()
-	char* buf = RpGrid1d::serialize(nbytes);
+	RP_ERROR err;
 
-	// now, override the header with correct object type
-	writeRpHeader(buf, RpCurrentVersion[GRID2D], nbytes);
+	// call base class doSerialize()
+	err = RpGrid1d::doSerialize(buf, nbytes);
 
-	return buf;	
+	if (err == RP_SUCCESS) {
+		// now, override the header with correct object type
+		writeRpHeader(buf, RpCurrentVersion[GRID2D], nbytes);
+	}
+
+	return err;
+
 }
 
 //
