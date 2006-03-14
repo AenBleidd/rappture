@@ -64,7 +64,7 @@ RpField::doSerialize(char* buf, int nbytes)
 	char * ptr = buf;
 
 	// write object header (version and typename)
-	writeRpHeader(ptr, RpField_current_version, nbytes);
+	writeRpHeader(ptr, RpCurrentVersion[FIELD], nbytes);
 	ptr += HEADER_SIZE + sizeof(int);
 	
 	// write object name and its length
@@ -97,7 +97,7 @@ RpField::deserialize(const char* buf)
 	readRpHeader(ptr, header, nbytes);
 	ptr += HEADER_SIZE + sizeof(int);
 	
-	if (header == RpField_current_version)
+	if (header == RpCurrentVersion[FIELD])
 		return doDeserialize(ptr);
 
 	// deal with older versions
