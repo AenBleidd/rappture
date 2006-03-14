@@ -335,6 +335,11 @@ RpSerializer::createObject(std::string header, const char* buf)
 		obj->deserialize(buf);
 		return obj;
 	} 
+	if (header == RpCurrentVersion[GRID2D]) {
+		obj = new RpGrid2d(); // create new object
+		obj->deserialize(buf);
+		return obj;
+	} 
 	else if (header == RpCurrentVersion[FIELD]) {
 		obj = new RpField(); // create new object
 		obj->deserialize(buf);
