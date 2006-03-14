@@ -1,20 +1,3 @@
-/*
-typedef enum {
-	BOOLEAN,
-	NUMBER,
-	STRING,
-	FIELD,
-	MESH3D,
-	ELEMENT,
-	NODE2D,
-	NODE3D,
-	GRID1D,
-	GRID2D,
-	GRID3D,
-	CURVE2D
-} RpObject_enum;
-*/
-
 const char* RpObjectTypes[] = {
 	"BOOLEAN",
 	"NUMBER",
