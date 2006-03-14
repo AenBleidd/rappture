@@ -69,6 +69,7 @@ RpGrid2dRect::addAllPointsY(DataValType* pts, int dim)
 void
 RpGrid2dRect::expandData()
 {
+if (m_data.size() != (unsigned) numPoints() ) {
 	m_data.clear();
 
 	for (int i=0; i < (signed)m_xpts.size(); i++) {
@@ -77,6 +78,7 @@ RpGrid2dRect::expandData()
 			m_data.push_back(m_ypts.at(j));
 		}
 	}
+}
 }
 
 char * 
