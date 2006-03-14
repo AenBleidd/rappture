@@ -57,6 +57,10 @@ public:
 	virtual void readArrayDouble(const char* buf, vector<double>& data, int& npts);
 	virtual void writeArrayDouble(char* buf, vector<double>& data, int npts);
 	*/
+
+protected:
+	std::string m_name; // object name 
+	std::string m_type; // object type 
 };
 
 #endif

@@ -6,46 +6,67 @@
 //
 
 #include <vector>
+#include "grid1d.h"
 #include "util.h"
 
 typedef double DataValType;
 
-class RpGrid2d {
+class RpGrid2d : public RpGrid1d {
 public:
 	// constructors
 	RpGrid2d();
 	RpGrid2d(int npoints);
-	RpGrid2d(DataValType* x, DataValType* y, int npoints);
+
+	// constructor - input as 1d array of points {x, y, x, y ,...}
 	RpGrid2d(DataValType* val, int npoints);
-	//RpGrid2d(DataValType** xy, int npoints);
-	RpGrid2d(const char* buf); // instantiate with byte stream
+
+	// constructor - input as array of char pointers:
+	// 	{ {x, y}, {x, y}, ... }
+	RpGrid2d(DataValType* val[], int npoints);
+
+	// constructor - uniform 2d grid, data expanded inclusive of 
+	// 		origin and max
+	RpGrid2d(DataValType x_min, DataValType x_max, int x_delta,
+                 DataValType y_min, DataValType y_max, int y_delta);
+
+	// constructor - 2d rectilinear grid
+	// 		data expanded, row major
+	RpGrid2d(DataValType* x, int xdim, DataValType* y, int ydim);
 
 	// return number of points in grid
-	int numPoints() { return m_data.size() / 2; }
-	DataValType* data(); // access data array
+	virtual int numPoints() { return m_data.size()/2; };
 
-	// change the size of the grid after grid is constructed
-	void resize(int npoints) { m_data.resize(npoints*2); }
+	// add one point to grid
+	void addPoint(DataValType x, DataValType y);
 
-	void addPoint(DataValType xval, DataValType yval);
-	void addPoint(DataValType* val, int npoints);
+	// add all points to grid at once
+	RP_ERROR addAllPoints(DataValType* points, int npoints);
+
+	RP_ERROR setUniformGrid(DataValType xmin, DataValType xmax, int xdelta,
+	                        DataValType ymin, DataValType ymax, int ydelta);
+
+	// add points of a rectilinear grid
+	RP_ERROR setRectGrid(DataValType* x, int xdim, 
+			     DataValType* y, int ydim);
+
+	// get point x y at index
+	DataValType* getData();
+	RP_ERROR getData(DataValType& x, DataValType& y, int index);
+
+	virtual const char* objectType();
+	virtual void xmlString(std::string& str);
+	virtual void print();
 
 	// serialize data 
-        char * serialize(RP_ENCODE_ALG eflag=RP_NO_ENCODING,
-                         RP_COMPRESSION cflag=RP_NO_COMPRESSION);
-
-	int deserialize(const char* buf);
+        virtual char * serialize(int& nbytes);
+	virtual RP_ERROR deserialize(const char* buf);
 
 	// destructor
 	virtual ~RpGrid2d() { };
 
-	// TODO
-	//virtual int xmlPut() { };
-	//virtual int xmlGet() { };
-
-private:
+protected:
 	// store points as an array of x1 y1 x2 y2 ...
-	vector<DataValType> m_data; 
+	//vector<DataValType> m_data; 
 };
 
 #endif
