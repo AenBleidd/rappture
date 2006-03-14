@@ -55,6 +55,8 @@ public:
 	// not done
 	virtual DataValType* getDataCopy();
 
+	virtual DataValType getData(int index);
+
 	// serialize data 
 	// returns pointer to buffer 
 	// number of bytes (nbytes) set
@@ -80,7 +82,6 @@ public:
 protected:
 	int numPoints() { return m_data.size(); };
 
-	std::string m_name; // object name
 	vector<DataValType> m_data; // array of doubles
 
 };

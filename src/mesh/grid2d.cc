@@ -21,33 +21,98 @@ RpGrid2d::RpGrid2d(int npoints)
 //
 RpGrid2d::RpGrid2d(DataValType* val, int npoints)
 {
-	m_data.reserve(npoints*2);
+	if (val == NULL)
+		return;
 
 	for (int i=0; i<2*npoints; i++)
-		m_data[i] = val[i];
+		m_data.push_back(val[i]);
 }
 
 //
 // constructor
-// Input:
-// 	xval: array of x values
-// 	yval: array of y values
-// 	npoints: number of points
+// input: array of pointers to points
 //
-RpGrid2d::RpGrid2d(DataValType* xval, DataValType* yval, int npoints)
+RpGrid2d::RpGrid2d(DataValType* val[], int npoints)
 {
-	m_data.resize(npoints*2);
+	if (val == NULL)
+		return;
 
-	for (int i=0; i<npoints; i++)
-		addPoint(xval[i], yval[i]);
+	for (int i=0; i < npoints; i++) {
+		m_data.push_back(val[i][0]);
+		m_data.push_back(val[i][1]);
+	}
 }
 
-// instantiate with byte stream
-RpGrid2d::RpGrid2d(const char* buf)
+//
+// constructor 
+// Input: 
+// 	spec for a uniform 2d grid
+// 	X: origin, max, delta
+// 	Y: origin, max, delta
+// Result:
+// 	expand points and add them to m_data
+//
+RpGrid2d::RpGrid2d(DataValType x_min, DataValType x_max, int x_delta,
+		   DataValType y_min, DataValType y_max, int y_delta)
 {
-	deserialize(buf);
+	setUniformGrid(x_min, x_max, x_delta, y_min, y_max, y_delta);
 }
 
+RP_ERROR
+RpGrid2d::setUniformGrid(DataValType x_min, DataValType x_max, int x_delta,
+		   DataValType y_min, DataValType y_max, int y_delta)
+{
+	// expand array, inclusive of origin and max
+	for (int i=0; i <= (int)((x_max-x_min)/x_delta); i++) {
+		for (int j=0; j <= (int)((y_max-y_min)/y_delta); j++) {
+			m_data.push_back(x_min + i*x_delta);
+			m_data.push_back(y_min + j*y_delta);
+		}
+	}
+
+#ifdef DEBUG
+printf("RpGrid2d uniform grid constructor: num=%d\n", m_data.size()/2);
+#endif
+	return RP_FAILURE;
+}
+
+//
+// constructor for rectilinear 2d grid
+//
+RpGrid2d::RpGrid2d(DataValType* x, int xdim, DataValType* y, int ydim)
+{
+	setRectGrid(x, xdim, y, ydim);
+}
+
+// 
+// add a rectilinear 2d grid
+// Input:
+// 	x: points on x axis
+//   xdim: number of points on X
+// 	y: points on y axis
+//   ydim: number of points on Y
+//
+// Result: 
+// 	expand data to (xdim * ydim) points
+//
+RP_ERROR 
+RpGrid2d::setRectGrid(DataValType* x, int xdim, 
+		                DataValType* y, int ydim)
+{
+	if (x == NULL || y == NULL) {
+		RpAppendErr("RpGrid2d::setRectGrid: null input ptrs");
+		RpPrintErr();
+		return RP_ERR_NULL_PTR;
+	}
+
+	for (int i=0; i < xdim; i++)
+		for (int j=0;  j < ydim; j++) {
+			m_data.push_back(x[i]);
+			m_data.push_back(y[j]);
+		}
+
+	return RP_SUCCESS;
+}
 
 //
 // add a point (x, y) pair to grid
@@ -59,107 +124,122 @@ void RpGrid2d::addPoint(DataValType x, DataValType y)
 }
 
 //
-// access data as a 1d array: x y x y x y...
+// add all points to grid
 //
-DataValType* RpGrid2d::data()
+RP_ERROR 
+RpGrid2d::addAllPoints(DataValType* points, int npts)
 {
-	return (DataValType*) &(m_data[0]);
+	return (RpGrid1d::addAllPoints(points, 2*npts));
+}
+
+// 
+// get pointer to array of points
+//
+DataValType*
+RpGrid2d::getData()
+{
+	return RpGrid1d::getData();
 }
 
 //
-// serialize data 
-// 1 byte: encoding 
-// 1 byte: compression
-// 4 bytes: number of points
-// rest:   data points, x y x y x y
+// retrieve x y at index
 //
-char * 
-RpGrid2d::serialize(RP_ENCODE_ALG encodeFlag, RP_COMPRESSION compressFlag)
+RP_ERROR 
+RpGrid2d::getData(DataValType& x, DataValType& y, int index)
 {
-	int numVals = m_data.size(); 
-	int npts = numVals/2;
-
-	// total length = tagEncode + tagCompress + num + data
-	char * buf = (char*) new char[numVals*sizeof(DataValType) + sizeof(int) + 2];
-	if (buf == NULL) {
-		RpAppendErr("RpGrid2d::serialize: malloc failed");
-		RpPrintErr();
-		return NULL;
-	}
-
-	char* ptr = buf;
-	
-	ptr[0] = 'N'; // init to no-encoding
-	switch(encodeFlag) {
-		case RP_UUENCODE:
-			ptr[0] = 'U';
-			break;
-		case RP_NO_ENCODING:
-		default:
-			break;
-	}
-
-	ptr[1] = 'N'; // init to no compression
-	switch(compressFlag) {
-		case RP_ZLIB:
-			ptr[1] = 'Z';
-			break;
-		case RP_NO_COMPRESSION:
-		default:
-			break;
-	}
-
-	// TODO encode, compression
-	//
-
-	// write to stream buffer
-	ptr += 2; // skip first two bytes
-
-	memcpy((void*)ptr, (void*)&npts, sizeof(int));
-	ptr += sizeof(int);
-
-	memcpy((void*)ptr, (void*)&(m_data[0]), numVals*sizeof(DataValType));
-
-	return buf;
-}
-
-int RpGrid2d::deserialize(const char* buf)
-{
-	int npts;
-
-	if (buf == NULL) {
-		RpAppendErr("RpGrid1d::deserialize: null buf pointer");
-		RpPrintErr();
-		return RP_ERR_NULL_PTR;
-	}
-
-	// TODO: handle encoding, decompression
-	
-	buf += 2; // skip 1st 2 bytes
-
-	// read number of points
-	memcpy((void*)&npts, (void*)buf, sizeof(int));
-	buf += sizeof(int);
-
-	m_data.resize(npts*2); // set the array to be the right size
-	memcpy((void*)&(m_data[0]), (void*)buf, npts*2*sizeof(DataValType));
-
-	/* TODO
-	if (ByteOrder::IsBigEndian()) {
-		for (int i=0; i<npts; i++)
-		{
-			// flip each x
-			// flip each y
-		}
-	} */
+	x = m_data.at(index);
+	y = m_data.at(index+1);
 
 	return RP_SUCCESS;
 }
 
+// 
+// serialize object to a byte stream
+// Output:
+// 	nbytes: total number of bytes in the byte stream 
+// 	return pointer to buffer holding the byte stream
+//
+char* 
+RpGrid2d::serialize(int& nbytes)
+{
+	// call base class serialize()
+	char* buf = RpGrid1d::serialize(nbytes);
 
-// TODO
-//int RpGrid2d::xmlPut() { };
-//int RpGrid2d::xmlGet() { };
+	// now, override the header with correct object type
+	writeRpHeader(buf, RpCurrentVersion[GRID2D], nbytes);
 
+	return buf;	
+}
 
+//
+// unmarshalling object from byte stream pointed by 'buf'
+//
+//
+RP_ERROR 
+RpGrid2d::deserialize(const char* buf)
+{
+	if (buf == NULL) {
+		RpAppendErr("RpGrid2d::deserialize: null buf pointer");
+		RpPrintErr();
+		return RP_ERR_NULL_PTR;
+	}
+
+	char* ptr = (char*)buf;
+	std::string header;
+	int nbytes;
+
+	readRpHeader(ptr, header, nbytes);
+	ptr += HEADER_SIZE + sizeof(int);
+	
+	if (header == RpCurrentVersion[GRID2D])
+		return doDeserialize(ptr);
+
+	// deal with older versions
+	return RP_FAILURE;
+}
+
+//
+//// mashalling object into xml string
+////
+void
+RpGrid2d::xmlString(std::string& textString)
+{
+	char cstr[256];
+
+	// clear input string
+	textString.clear();
+
+	textString.append("<points>");
+
+	for (int i=0; i < (signed)m_data.size(); i++) {
+		sprintf(cstr, "\t%.15f\t%.15f\n", m_data.at(i), m_data.at(i+1));
+		textString.append(cstr);
+		i++;
+	}
+	textString.append("</points>\n");
+}
+
+//
+// print the xml string from the object
+//
+void 
+RpGrid2d::print()
+{
+	string str;
+
+	printf("object name: %s\n", m_name.c_str());
+
+	xmlString(str);
+
+	printf("%s", str.c_str());
+}
+
+//
+// get object type
+//
+const char* 
+RpGrid2d::objectType()
+{
+        return RpObjectTypes[GRID2D];
+}
 

@@ -24,17 +24,6 @@ RpGrid1d::RpGrid1d(const char* name, int size)
 	m_name = name;
 }
 
-/*
-// construct a grid object from a byte stream
-RpGrid1d::RpGrid1d(const char * buf)
-{
-#ifdef DEBUG
-printf("RpGrid1d(char*)\n");
-#endif
-	deserialize(buf);
-}
-*/
-
 //
 // instantiate grid with a 1d array of doubles and number of items
 //
@@ -68,11 +57,11 @@ RpGrid1d::addAllPoints(DataValType* val, int nitems)
 	if (val == NULL)
 		return RP_ERR_NULL_PTR;
 
-	if (nitems != numPoints())
-		m_data.resize(nitems);
+	m_data.clear();
+	m_data.reserve(nitems);
 
 	for (int i=0; i < nitems; i++)
-		m_data[i] = val[i];
+		m_data.push_back(val[i]);
 
 	return RP_SUCCESS;
 }
@@ -129,7 +118,7 @@ RpGrid1d::doSerialize(char* buf, int nbytes)
 	char * ptr = buf;
 
 	// write object header (version and typename)
-	writeRpHeader(ptr, RpGrid1d_current_version, nbytes);
+	writeRpHeader(ptr, RpCurrentVersion[GRID1D], nbytes);
 	ptr += HEADER_SIZE + sizeof(int);
 	
 	// write object name and its length
@@ -158,7 +147,7 @@ RpGrid1d::deserialize(const char* buf)
 	readRpHeader(ptr, header, nbytes);
 	ptr += HEADER_SIZE + sizeof(int);
 	
-	if (header == RpGrid1d_current_version)
+	if (header == RpCurrentVersion[GRID1D])
 		return doDeserialize(ptr);
 
 	// deal with older versions
@@ -200,16 +189,16 @@ RpGrid1d::getData()
 DataValType*
 RpGrid1d::getDataCopy()
 {
-	int npts = numPoints();
+	int nitems = m_data.size();
 
-	DataValType* xy;
-	if ( (xy = new DataValType[npts]) == NULL) {
-                RpAppendErr("RpGrid1d::data: mem alloc failed");
+	DataValType* xy = new DataValType[nitems];
+	if ( xy == NULL) {
+                RpAppendErr("RpGrid1d::data: new failed");
 		RpPrintErr();
 		return xy;
 	}
 
-	for (int i=0; i < npts; i++) 
+	for (int i=0; i < nitems; i++) 
 		xy[i] = m_data[i];
 
 	return xy;
@@ -310,5 +299,13 @@ RpGrid1d RpGrid1d::operator=(const RpGrid1d& g)
 	m_name = g.m_name;
 
 	return (*this);
+}
+
+//
+// retrieve x y values at index
+//
+DataValType RpGrid1d::getData(int index)
+{
+	return m_data.at(index);
 }
 

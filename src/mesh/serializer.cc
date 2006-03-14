@@ -330,23 +330,23 @@ RpSerializer::createObject(std::string header, const char* buf)
 			header.c_str(), (unsigned)buf);
 #endif
 
-	if (header == RpGrid1d_current_version) {
+	if (header == RpCurrentVersion[GRID1D]) {
 		obj = new RpGrid1d(); // create new object
 		obj->deserialize(buf);
 		return obj;
 	} 
-	else if (header == RpField_current_version) {
+	else if (header == RpCurrentVersion[FIELD]) {
 		obj = new RpField(); // create new object
 		obj->deserialize(buf);
 		return obj;
 	}
 	/*
-	else if (header == RpMesh3d_current_version) {
+	else if (header == RpCurrentVersion[MESH3D]) {
 		obj = new RpMesh3d(); // create new object
 		obj->deserialize(buf);
 		return obj;
 	}
-	else if (header == RpElement_current_version) {
+	else if (header == RpCurrentVersion[ELEMENT]) {
 		obj = new RpElement(); // create new object
 		obj->deserialize(buf);
 		return obj;
@@ -357,11 +357,7 @@ RpSerializer::createObject(std::string header, const char* buf)
 	}
 
 		/* TODO
-			(header == RpGrid2d_current_version) 
-			(header == RpGrid2d_current_version)
-			RpNode2d_current_version
-			RpNode3d_current_version
-			RpCurve_current_version
+		  handle other object types
 		*/
 
 }
