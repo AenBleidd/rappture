@@ -13,29 +13,14 @@ RpGrid2dRect::addAllPoints(DataValType* xpts, int xdim,
 	m_xpts.clear();
 	m_ypts.clear();
 
-	int i;
-	for (i=0; i < xdim; i++)
-		m_xpts.push_back(xpts[i]);
-
-	for (i=0; i < ydim; i++)
-		m_ypts.push_back(ypts[i]);
+	copyArray(xpts, xdim, m_xpts);
+	copyArray(ypts, ydim, m_ypts);
 
 	expandData();
 
 	return RP_SUCCESS;
 
 }
-
-/*
-void 
-RpGrid2dRect::copyArray(DataValType* val, int dim, vector<DataValType>& vec)
-{
-	vec.clear();
-
-	for (int i=0; i < dim; i++)
-		vec.push_back(val[i]);
-}
-*/
 
 //
 // add all points on x axis
@@ -99,7 +84,7 @@ RpGrid2dRect::doSerialize(char* buf, int nbytes)
 	return RpGrid2d::doSerialize(buf, nbytes);
 }
 
-//
+// must expand data before calculating number of bytes
 int
 RpGrid2dRect::numBytes()
 {
