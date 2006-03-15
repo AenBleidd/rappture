@@ -8,7 +8,7 @@ SORTSRC = ./sort
 
 LIB_NANOVIS = -ltcl8.4 -lGL -lglut -lGLEW -lCg -lCgGL -pthread
 LIB_CLIENT = -lGL -lglut -pthread
-CFLAG = -g -c -Wall
+CFLAG = -g -c -Wall -I../../../src2/core
 
 all: nanovis 
 
@@ -16,7 +16,7 @@ clean:
 	rm -f *.o nanovis 
 
 nanovis: $(OBJ_NANOVIS)
-	gcc -g -o nanovis $(OBJ_NANOVIS) $(LIB_NANOVIS)
+	gcc -g -o nanovis $(OBJ_NANOVIS) $(LIB_NANOVIS) ../../../src2/core/*.o
 
 Socket.o: $(SOCKETSRC)/Socket.h $(SOCKETSRC)/Socket.cpp
 	gcc $(CFLAG) $(SOCKETSRC)/Socket.cpp
