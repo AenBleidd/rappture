@@ -109,41 +109,44 @@ RpLibrary::_node2name (scew_element* node)
     type = scew_element_name(node);
     parent = scew_element_parent(node);
 
-    // if (name == NULL) {
-    if (name.empty()) {
-        siblings = scew_element_list(parent, type, &count);
-        if (count > 0) {
-            tmpCount = count;
-            while ((index < tmpCount) && (siblings[index] != node)) {
-                index++;
+    if (parent) {
+
+        // if (name == NULL) {
+        if (name.empty()) {
+            siblings = scew_element_list(parent, type, &count);
+            if (count > 0) {
+                tmpCount = count;
+                while ((index < tmpCount) && (siblings[index] != node)) {
+                    index++;
+                }
+
+                if (index < tmpCount) {
+
+                    if (index > 0) {
+
+                        retVal << type << --index;
+                    }
+                    else {
+
+                        retVal << type;
+                    }
+
+                    /*
+                    if (retVal == NULL) {
+                        // error with allocating space
+                        return NULL;
+                    }
+                    */
+                }
             }
 
-            if (index < tmpCount) {
+            scew_element_list_free(siblings);
 
-                if (index > 0) {
-
-                    retVal << type << --index;
-                }
-                else {
-
-                    retVal << type;
-                }
-
-                /*
-                if (retVal == NULL) {
-                    // error with allocating space
-                    return NULL;
-                }
-                */
-            }
         }
+        else {
 
-        scew_element_list_free(siblings);
-
-    }
-    else {
-
-        retVal << name;
+            retVal << name;
+        }
     }
 
     return (retVal.str());
@@ -172,35 +175,37 @@ RpLibrary::_node2comp (scew_element* node)
     type = scew_element_name(node);
     parent = scew_element_parent(node);
 
-    if (name.empty()) {
-        siblings = scew_element_list(parent, type, &count);
-        if (count > 0) {
-            tmpCount = count;
-            // figure out what the index value should be
-            while ((index < tmpCount) && (siblings[index] != node)) {
-                index++;
-            }
+    if (parent) {
+        if (name.empty()) {
+            siblings = scew_element_list(parent, type, &count);
+            if (count > 0) {
+                tmpCount = count;
+                // figure out what the index value should be
+                while ((index < tmpCount) && (siblings[index] != node)) {
+                    index++;
+                }
 
-            if (index < tmpCount) {
-                if (index > 0) {
-                    retVal << type << --index;
+                if (index < tmpCount) {
+                    if (index > 0) {
+                        retVal << type << --index;
+                    }
+                    else {
+                        retVal << type;
+                    }
                 }
-                else {
-                    retVal << type;
-                }
+
             }
+            else {
+                // count == 0 ??? this state should never be reached
+            }
+            scew_element_list_free(siblings);
 
         }
         else {
-            // count == 0 ??? this state should never be reached
+            // node has attribute id
+            retVal << type << "(" << name << ")";
+
         }
-        scew_element_list_free(siblings);
-
-    }
-    else {
-        // node has attribute id
-        retVal << type << "(" << name << ")";
-
     }
 
     return (retVal.str());
@@ -780,8 +785,8 @@ RpLibrary::parent (std::string path)
     }
 
     if (path.empty()) {
-        // an empty path returns the current RpLibrary
-        return this;
+        // an empty path returns the parent of the current RpLibrary
+        path = this->nodePath();
     }
 
     // get the path of the parent node
@@ -944,6 +949,59 @@ RpLibrary::children (   std::string path,
     }
 
     return retLib;
+}
+
+/**********************************************************************/
+// METHOD: children()
+/// Returns a std::list<RpLibrary*> of all children under 'path'
+//
+// 
+/**
+ */
+
+RpLibrary&
+RpLibrary::childCount ( std::string path,
+                        int* childCount)
+{
+    scew_element* parentNode;
+    int myChildCount = 0;
+
+    if (this->root) {
+
+        if (path.empty()) {
+            // an empty path uses the current RpLibrary as parent
+            parentNode = this->root;
+        }
+
+        if (parentNode) {
+            myChildCount = scew_element_count(parentNode);
+        }
+
+        if (childCount) {
+            *childCount = myChildCount;
+        }
+
+    }
+
+    return *this;
+}
+
+/**********************************************************************/
+// METHOD: isNull()
+/// returns whether this RpLibrary is a valid library node
+//
+// 
+/**
+ */
+
+bool
+RpLibrary::isNull ()
+{
+    if (this->root) {
+        return false;
+    }
+
+    return true;
 }
 
 /**********************************************************************/

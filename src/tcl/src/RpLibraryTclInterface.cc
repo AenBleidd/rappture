@@ -177,7 +177,7 @@ rpLib2command (Tcl_Interp *interp, RpLibrary* newRpLibObj)
     static int libCount = 0;
     std::stringstream libName;
 
-    libName << "library" << libCount++;
+    libName << "::libraryObj" << libCount++;
 
     Tcl_CreateCommand(interp, libName.str().c_str(),
         RpLibCallCmd, (ClientData)newRpLibObj, (Tcl_CmdDeleteProc*)NULL);
@@ -231,48 +231,62 @@ RpTclLibChild   (   ClientData cdata,
         if (nextarg < argc && *argv[nextarg] == '-') {
             if (strncmp(argv[nextarg],"-as",3) == 0) {
                 nextarg++;
-                if (    (*argv[nextarg] == 'c') &&
-                        (strncmp(argv[nextarg],"component",9) == 0) ) {
-                    asProc = &RpLibrary::nodeComp;
-                    nextarg++;
-                }
-                else if ((*argv[nextarg] == 'i') &&
-                         (strncmp(argv[nextarg],"id",2) == 0 ) ) {
-                    asProc = &RpLibrary::nodeId;
-                    nextarg++;
-                }
-                else if ((*argv[nextarg] == 't') &&
-                         (strncmp(argv[nextarg],"type",4) == 0 ) ) {
-                    asProc = &RpLibrary::nodeType;
-                    nextarg++;
-                }
-                else if ((*argv[nextarg] == 'p') &&
-                         (strncmp(argv[nextarg],"path",4) == 0 ) ) {
-                    asProc = &RpLibrary::nodePath;
-                    nextarg++;
-                }
-                else if ((*argv[nextarg] == 'o') &&
-                         (strncmp(argv[nextarg],"object",6) == 0 ) ) {
-                    asProc = NULL;
-                    nextarg++;
+                if (nextarg < argc) {
+                    if (    (*argv[nextarg] == 'c') &&
+                            (strncmp(argv[nextarg],"component",9) == 0) ) {
+                        asProc = &RpLibrary::nodeComp;
+                        nextarg++;
+                    }
+                    else if ((*argv[nextarg] == 'i') &&
+                             (strncmp(argv[nextarg],"id",2) == 0 ) ) {
+                        asProc = &RpLibrary::nodeId;
+                        nextarg++;
+                    }
+                    else if ((*argv[nextarg] == 't') &&
+                             (strncmp(argv[nextarg],"type",4) == 0 ) ) {
+                        asProc = &RpLibrary::nodeType;
+                        nextarg++;
+                    }
+                    else if ((*argv[nextarg] == 'p') &&
+                             (strncmp(argv[nextarg],"path",4) == 0 ) ) {
+                        asProc = &RpLibrary::nodePath;
+                        nextarg++;
+                    }
+                    else if ((*argv[nextarg] == 'o') &&
+                             (strncmp(argv[nextarg],"object",6) == 0 ) ) {
+                        asProc = NULL;
+                        nextarg++;
+                    }
+                    else {
+                        Tcl_AppendResult(interp, "bad flavor \"", argv[nextarg],
+                            "\": should be component, id, type, path, object",
+                            (char*)NULL);
+                        return TCL_ERROR;
+                    }
                 }
                 else {
-                    Tcl_AppendResult(interp, "bad option \"", argv[nextarg],
-                        "\": should be -as <fval> where <fval> is ", 
-                        "\'component\', \'id\', \'type\',",
-                        "\'path\', \'object\'",
+                    Tcl_AppendResult(interp, "bad flavor \"", argv[nextarg],
+                        "\": should be component, id, type, path, object",
                         (char*)NULL);
                     return TCL_ERROR;
                 }
             }
             else if (strncmp(argv[nextarg],"-type",5) == 0) {
                 nextarg++;
-                type = std::string(argv[nextarg]);
-                nextarg++;
+                if (argc > nextarg) {
+                    type = std::string(argv[nextarg]);
+                    nextarg++;
+                }
+                else {
+                    Tcl_AppendResult(interp, "bad flavor \"empty type\"",
+                        "\": should be a type of node within the xml",
+                        (char*)NULL);
+                    return TCL_ERROR;
+                }
             }
             else {
                 Tcl_AppendResult(interp, "bad option \"", argv[nextarg],
-                    "\": should be -as", (char*)NULL);
+                    "\": should be -as or -type", (char*)NULL);
                 return TCL_ERROR;
             }
         }
@@ -471,37 +485,43 @@ RpTclLibElem    (   ClientData cdata,
         if (nextarg < argc && *argv[nextarg] == '-') {
             if (strncmp(argv[nextarg],"-as",3) == 0) {
                 nextarg++;
-                if (    (*argv[nextarg] == 'c') &&
-                        (strncmp(argv[nextarg],"component",9) == 0) ) {
-                    asProc = &RpLibrary::nodeComp;
-                    nextarg++;
-                }
-                else if ((*argv[nextarg] == 'i') &&
-                         (strncmp(argv[nextarg],"id",2) == 0 ) ) {
-                    asProc = &RpLibrary::nodeId;
-                    nextarg++;
-                }
-                else if ((*argv[nextarg] == 't') &&
-                         (strncmp(argv[nextarg],"type",4) == 0 ) ) {
-                    asProc = &RpLibrary::nodeType;
-                    nextarg++;
-                }
-                else if ((*argv[nextarg] == 'p') &&
-                         (strncmp(argv[nextarg],"path",4) == 0 ) ) {
-                    asProc = &RpLibrary::nodePath;
-                    nextarg++;
-                }
-                else if ((*argv[nextarg] == 'o') &&
-                         (strncmp(argv[nextarg],"object",6) == 0 ) ) {
-                    asProc = NULL;
-                    nextarg++;
+                if (nextarg < argc) {
+                    if (    (*argv[nextarg] == 'c') &&
+                            (strncmp(argv[nextarg],"component",9) == 0) ) {
+                        asProc = &RpLibrary::nodeComp;
+                        nextarg++;
+                    }
+                    else if ((*argv[nextarg] == 'i') &&
+                             (strncmp(argv[nextarg],"id",2) == 0 ) ) {
+                        asProc = &RpLibrary::nodeId;
+                        nextarg++;
+                    }
+                    else if ((*argv[nextarg] == 't') &&
+                             (strncmp(argv[nextarg],"type",4) == 0 ) ) {
+                        asProc = &RpLibrary::nodeType;
+                        nextarg++;
+                    }
+                    else if ((*argv[nextarg] == 'p') &&
+                             (strncmp(argv[nextarg],"path",4) == 0 ) ) {
+                        asProc = &RpLibrary::nodePath;
+                        nextarg++;
+                    }
+                    else if ((*argv[nextarg] == 'o') &&
+                             (strncmp(argv[nextarg],"object",6) == 0 ) ) {
+                        asProc = NULL;
+                        nextarg++;
+                    }
+                    else {
+                        Tcl_AppendResult(interp, "bad flavor \"", argv[nextarg],
+                            "\" for -as: should be component, id, type, path, object",
+                            (char*)NULL);
+                        return TCL_ERROR;
+                    }
                 }
                 else {
-                    Tcl_AppendResult(interp, "bad option \"", argv[nextarg],
-                        "\": should be -as <fval> where <fval> is ", 
-                        "\'component\', \'id\', \'type\',",
-                        "\'path\', \'object\'",
-                        (char*)NULL);
+                    Tcl_AppendResult(interp, "bad flavor \"\" for -as:", 
+                           " should be component, id, type, path, object",
+                            (char*)NULL);
                     return TCL_ERROR;
                 }
             }
@@ -514,13 +534,17 @@ RpTclLibElem    (   ClientData cdata,
     }
 
     argsLeft = (argc-nextarg);
-    if (argsLeft == 1) {
+    if (argsLeft > 1) {
+        Tcl_AppendResult(interp,
+            "wrong # args: should be \"element ?-as <fval>? ?<path>?\"",
+            (char*)NULL);
+        return TCL_ERROR;
+    }
+    else if (argsLeft == 1) {
         path = std::string(argv[nextarg++]);
     }
     else {
-        Tcl_AppendResult(interp, "incorrect number of arguments \"", argv[nextarg],
-            "\":", (char*)NULL);
-        return TCL_ERROR;
+        path = "";
     }
 
     // call the rappture library element function
@@ -594,8 +618,8 @@ RpTclLibIsa     (   ClientData cdata,
     else {
         Tcl_ResetResult(interp);
         Tcl_AppendResult(interp, 
-            "wrong # args: should be \"get ?path?\"",
-            "\":", (char*)NULL);
+            "wrong # args: should be \"isa <objType>\"",
+            (char*)NULL);
         return TCL_ERROR;
     }
 
@@ -635,36 +659,42 @@ RpTclLibParent  (   ClientData cdata,
         if (nextarg < argc && *argv[nextarg] == '-') {
             if (strncmp(argv[nextarg],"-as",3) == 0) {
                 nextarg++;
-                if (    (*argv[nextarg] == 'c') &&
-                        (strncmp(argv[nextarg],"component",9) == 0) ) {
-                    asProc = &RpLibrary::nodeComp;
-                    nextarg++;
-                }
-                else if ((*argv[nextarg] == 'i') &&
-                         (strncmp(argv[nextarg],"id",2) == 0 ) ) {
-                    asProc = &RpLibrary::nodeId;
-                    nextarg++;
-                }
-                else if ((*argv[nextarg] == 't') &&
-                         (strncmp(argv[nextarg],"type",4) == 0 ) ) {
-                    asProc = &RpLibrary::nodeType;
-                    nextarg++;
-                }
-                else if ((*argv[nextarg] == 'p') &&
-                         (strncmp(argv[nextarg],"path",4) == 0 ) ) {
-                    asProc = &RpLibrary::nodePath;
-                    nextarg++;
-                }
-                else if ((*argv[nextarg] == 'o') &&
-                         (strncmp(argv[nextarg],"object",6) == 0 ) ) {
-                    asProc = NULL;
-                    nextarg++;
+                if (nextarg < argc) {
+                    if (    (*argv[nextarg] == 'c') &&
+                            (strncmp(argv[nextarg],"component",9) == 0) ) {
+                        asProc = &RpLibrary::nodeComp;
+                        nextarg++;
+                    }
+                    else if ((*argv[nextarg] == 'i') &&
+                             (strncmp(argv[nextarg],"id",2) == 0 ) ) {
+                        asProc = &RpLibrary::nodeId;
+                        nextarg++;
+                    }
+                    else if ((*argv[nextarg] == 't') &&
+                             (strncmp(argv[nextarg],"type",4) == 0 ) ) {
+                        asProc = &RpLibrary::nodeType;
+                        nextarg++;
+                    }
+                    else if ((*argv[nextarg] == 'p') &&
+                             (strncmp(argv[nextarg],"path",4) == 0 ) ) {
+                        asProc = &RpLibrary::nodePath;
+                        nextarg++;
+                    }
+                    else if ((*argv[nextarg] == 'o') &&
+                             (strncmp(argv[nextarg],"object",6) == 0 ) ) {
+                        asProc = NULL;
+                        nextarg++;
+                    }
+                    else {
+                        Tcl_AppendResult(interp, "bad flavor \"", argv[nextarg],
+                            "\": should be component, id, type, path, object",
+                            (char*)NULL);
+                        return TCL_ERROR;
+                    }
                 }
                 else {
-                    Tcl_AppendResult(interp, "bad option \"", argv[nextarg],
-                        "\": should be -as <fval> where <fval> is ", 
-                        "\'component\', \'id\', \'type\',",
-                        "\'path\', \'object\'",
+                    Tcl_AppendResult(interp, "bad flavor \"", argv[nextarg],
+                        "\": should be component, id, type, path, object",
                         (char*)NULL);
                     return TCL_ERROR;
                 }
@@ -682,8 +712,9 @@ RpTclLibParent  (   ClientData cdata,
         path = std::string(argv[nextarg++]);
     }
     else {
-        Tcl_AppendResult(interp, "incorrect number of arguments \"", argv[nextarg],
-            "\":", (char*)NULL);
+        Tcl_AppendResult(interp, 
+            "wrong # args: should be \"parent ?-as <fval>? ?<path>?\"",
+            (char*)NULL);
         return TCL_ERROR;
     }
 
@@ -729,9 +760,26 @@ RpTclLibPut     (   ClientData cdata,
     while (opt_argc--) {
         if (nextarg < argc && *argv[nextarg] == '-') {
             if (strncmp(argv[nextarg],"-append",7) == 0) {
-                if (strncmp(argv[++nextarg],"yes",3) == 0 ) {
-                    append = 1;
-                    nextarg++;
+                ++nextarg;
+                if (nextarg < argc) {
+                    if (strncmp(argv[nextarg],"yes",3) == 0 ) {
+                        append = 1;
+                        nextarg++;
+                    }
+                    else if (strncmp(argv[nextarg],"no",2) == 0 ) {
+                        append = 0;
+                        nextarg++;
+                    }
+                    else {
+                        Tcl_AppendResult(interp, "expected boolean value but got \"",
+                            argv[nextarg], "\"", (char*)NULL);
+                        return TCL_ERROR;
+                    }
+                }
+                else {
+                    Tcl_AppendResult(interp, "expected boolean value but got \"",
+                        argv[nextarg], "\"", (char*)NULL);
+                    return TCL_ERROR;
                 }
             }
             else if (strncmp(argv[nextarg],"-id",3) == 0) {
@@ -756,8 +804,9 @@ RpTclLibPut     (   ClientData cdata,
         addStr = std::string(argv[nextarg++]);
     }
     else {
-        Tcl_AppendResult(interp, "incorrect number of arguments \"", argv[nextarg],
-            "\":", (char*)NULL);
+        Tcl_AppendResult(interp, "wrong # args: should be ",
+            "\"put ?-append yes? ?-id num? ?<path>? <string>\"",
+            (char*)NULL);
         return TCL_ERROR;
     }
 
@@ -854,7 +903,7 @@ RpTclLibValue   (   ClientData cdata,
 
     if ( argc != 3 ) {
         Tcl_AppendResult(interp,
-            "usage: ", argv[0], " <xmlobj> <path>",
+            "wrong # args: should be \"value <xmlobj> <path>\"",
             (char*)NULL);
         return TCL_ERROR;
     }
@@ -919,6 +968,12 @@ RpTclLibXml     (   ClientData cdata,
 
     std::string retStr = ""; // return value of rappture get fxn
 
+    if ( argc != 2 ) {
+        Tcl_AppendResult(interp, "wrong # args: should be \"", 
+                argv[0], " xml\"", (char*)NULL);
+        return TCL_ERROR;
+    }
+
     // call the Rappture Library xml Function
     retStr = ((RpLibrary*) cdata)->xml();
 
@@ -943,7 +998,8 @@ RpTclResult   (   ClientData cdata,
 
     // parse through command line options
     if (argc != 2) {
-        Tcl_AppendResult(interp, "usage: ", argv[0], " <xmlobj>", (char*)NULL);
+        Tcl_AppendResult(interp, "wrong # args: should be \"", 
+                argv[0], " <xmlobj>\"", (char*)NULL);
         return TCL_ERROR;
     }
 
