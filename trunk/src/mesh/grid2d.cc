@@ -35,8 +35,7 @@ RpGrid2d::RpGrid2d(DataValType* val, int npoints)
 	if (val == NULL)
 		return;
 
-	for (int i=0; i<2*npoints; i++)
-		m_data.push_back(val[i]);
+	copyArray(val, 2*npoints, m_data);
 }
 
 //
@@ -241,6 +240,7 @@ RpGrid2d::print()
 	string str;
 
 	printf("object name: %s\n", m_name.c_str());
+	printf("num points: %d\n", numPoints());
 
 	xmlString(str);
 
