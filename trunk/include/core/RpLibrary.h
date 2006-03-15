@@ -20,6 +20,7 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <time.h>
+#include <iterator>
 
 #include <list>
 
@@ -31,6 +32,7 @@
 
 #ifndef _RpLIBRARY_H 
 #define _RpLIBRARY_H
+
 
 class RpLibrary
 {
@@ -46,6 +48,7 @@ class RpLibrary
         std::list<std::string> diff      ( RpLibrary* otherLib,
                                             std::string path);
 
+        bool isNull();
 
         // should return RpObject& but for simplicity right now it doesnt
         // RpObject will either be an Array, RpString, RpNumber ...
@@ -54,6 +57,9 @@ class RpLibrary
                                 RpLibrary* rpChildNode = NULL,
                                 std::string type = "",
                                 int* childCount = NULL  );
+
+        RpLibrary& childCount ( std::string path,
+                                int* childCount);
 
         RpLibrary& copy       ( std::string toPath,
                                 std::string fromPath,

@@ -325,6 +325,7 @@ main(int argc, char** argv)
 
     lib = new RpLibrary(std::string(argv[1]));
 
+    test_element(lib,"");
     test_element(lib,"input.number(min)");
     test_element(lib,"input.number(max)");
     test_element(lib,"output.curve(result)");
