@@ -56,7 +56,7 @@ private:
 	vector<DataValType> m_xpts;
 	vector<DataValType> m_ypts; 
 
-	void copyArray(DataValType* val, int dim, vector<DataValType>& vec);
+	//void copyArray(DataValType* val, int dim, vector<DataValType>& vec);
 };
 
 #endif

@@ -238,6 +238,7 @@ RpGrid1d::print()
 	string str;
 
 	printf("object name: %s\n", m_name.c_str());
+	printf("num points: %d\n", numPoints());
 
 	xmlString(str);
 
@@ -310,5 +311,14 @@ RpGrid1d RpGrid1d::operator=(const RpGrid1d& g)
 DataValType RpGrid1d::getData(int index)
 {
 	return m_data.at(index);
+}
+
+void
+RpGrid1d::copyArray(DataValType* val, int dim, vector<DataValType>& vec)
+{
+	vec.clear();
+
+	for (int i=0; i < dim; i++)
+		vec.push_back(val[i]);
 }
 

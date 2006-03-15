@@ -86,6 +86,8 @@ protected:
 
 	vector<DataValType> m_data; // array of doubles
 
+	virtual void copyArray(DataValType* val, int dim, vector<DataValType>& vec);
+
 };
 
 #endif
