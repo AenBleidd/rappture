@@ -7,6 +7,7 @@
 #include "serializable.h"
 #include "field.h"
 #include "grid2d.h"
+#include "grid3d.h"
 #include "util.h"
 
 //
