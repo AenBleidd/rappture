@@ -235,9 +235,12 @@ load_volume_file(int index, char *fname) {
         double dmin = pow((dx*dy*dz)/(nsample*nsample*nsample), 0.333);
 
         nx = (int)ceil(dx/dmin);
+	nx = pow(2.0, ceil(log10((double)nx)/log10(2.0)));  // must be an even power of 2
         ny = (int)ceil(dy/dmin);
+	ny = pow(2.0, ceil(log10((double)ny)/log10(2.0)));
         nz = (int)ceil(dz/dmin);
-        float *data = new float[nx*ny*nz];
+	nz = pow(2.0, ceil(log10((double)nz)/log10(2.0)));
+        float *data = new float[nx*ny*nz*4];
         std::cout << "generating " << nx << "x" << ny << "x" << nz << " = " << nx*ny*nz << " points" << std::endl;
 
         // generate the uniformly sampled data that we need for a volume
@@ -249,10 +252,13 @@ load_volume_file(int index, char *fname) {
                 for (int ix=0; ix < nx; ix++) {
                     double xval = x0 + ix*dmin;
                     data[ngen++] = field.value(xval,yval,zval);
+                    data[ngen++] = 0.0;
+                    data[ngen++] = 0.0;
+                    data[ngen++] = 0.0;
                 }
             }
         }
-        load_volume(index, nx, ny, nz, 1, data);
+        load_volume(index, nx, ny, nz, 4, data);
         delete [] data;
     } else {
         std::cerr << "WARNING: data not found in file " << fname << std::endl;
@@ -513,7 +519,9 @@ void initGL(void)
      colormap[i] = 0;
    }
 
-   load_volume_file(0, "./data/A-apbs-2-out-potential-PE0.dx");
+   //load_volume_file(0, "./data/A-apbs-2-out-potential-PE0.dx");
+   load_volume_file(0, "./data/test.dx");
+
    init_fbo();	//frame buffer objects
    init_cg();	//init cg shaders
 
@@ -1217,10 +1225,10 @@ void display()
    //enable fbo
    fbo_capture();
 
-
    //convolve
-   lic();
+   //lic();
 
+   /*
    //blend magnitude texture
    glBindTexture(GL_TEXTURE_2D, mag_tex);
    glEnable(GL_TEXTURE_2D);
@@ -1231,12 +1239,12 @@ void display()
       glTexCoord2f(1.0, 1.0);  glVertex2f(1., 1.);
       glTexCoord2f(1.0, 0.0); glVertex2f(1., 0.0);
    glEnd();
+   */
    
    //advect particles
-   psys->advect();
+   //psys->advect();
 
    final_fbo_capture();
-
    //display_texture(slice_vector_tex, NMESH, NMESH);
 
 #if 1
@@ -1289,7 +1297,7 @@ void display()
    glEnd();
 
    //soft_display_verts();
-   psys->display_vertices();
+   //psys->display_vertices();
 
    //render volume
    render_volume(256);
