@@ -157,7 +157,7 @@ void RpGrid3d::addPoint(DataValType x, DataValType y, DataValType z)
 RP_ERROR 
 RpGrid3d::addAllPoints(DataValType* points, int npts)
 {
-	return (RpGrid1d::addAllPoints(points, 2*npts));
+	return (RpGrid1d::addAllPoints(points, 3*npts));
 }
 
 // 
@@ -260,6 +260,7 @@ RpGrid3d::print()
 	string str;
 
 	printf("object name: %s\n", m_name.c_str());
+	printf("num points: %d\n", numPoints());
 
 	xmlString(str);
 
