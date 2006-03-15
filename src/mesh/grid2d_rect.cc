@@ -26,6 +26,7 @@ RpGrid2dRect::addAllPoints(DataValType* xpts, int xdim,
 
 }
 
+/*
 void 
 RpGrid2dRect::copyArray(DataValType* val, int dim, vector<DataValType>& vec)
 {
@@ -34,6 +35,7 @@ RpGrid2dRect::copyArray(DataValType* val, int dim, vector<DataValType>& vec)
 	for (int i=0; i < dim; i++)
 		vec.push_back(val[i]);
 }
+*/
 
 //
 // add all points on x axis
