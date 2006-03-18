@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<run>
+<about>
+  <label>New</label>
+  <description>This is used for the "New" option</description>
+</about>
+
+<tool>
+  <title>loader</title>
+</tool>
+<input>
+  <string id="one">
+    <about>
+      <label>Input #1</label>
+    </about>
+    <current>(enter a value here)</current>
+  </string>
+  <string id="two">
+    <about>
+      <label>Input #2</label>
+    </about>
+    <current>(enter a value here)</current>
+  </string>
+</input>
+</run>
