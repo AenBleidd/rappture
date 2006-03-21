@@ -674,7 +674,7 @@ void draw_arrows(){
 void idle(){
   struct timespec ts;
   ts.tv_sec = 0;
-  ts.tv_nsec = 10000000;
+  ts.tv_nsec = 100000000;
 
   nanosleep(&ts, 0);
   //xinetd_listen();
@@ -731,7 +731,7 @@ void lic(){
    for (i = 0; i < NMESH-1; i++) {
       x1 = DM*i; x2 = x1 + DM;
       glBegin(GL_QUAD_STRIP);
-      for (j = 0; j < NMESH; j++) {
+      for (j = 0; j < NMESH-1; j++) {
           y = DM*j;
           glTexCoord2f(x1, y); 
           getDP(x1, y, &px, &py);
