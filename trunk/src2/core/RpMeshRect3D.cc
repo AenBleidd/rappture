@@ -77,6 +77,17 @@ CellRect3D::z(int n)
     return _z[n];
 }
 
+int
+CellRect3D::isOutside() const
+{
+    for (int i=0; i < 8; i++) {
+        if (_nodeIds[i] < 0) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
 
 MeshRect3D::MeshRect3D()
 {
@@ -175,18 +186,6 @@ MeshRect3D::locate(const Node3D& node) const
     coord.x(node.z());
     cells[2] = _axis[2].locate(coord);
 
-    // any of these cells on the edge? then set both sides to edge point
-    for (int c=0; c < 3; c++) {
-        if (cells[c].nodeId(0) < 0) {
-            cells[c].nodeId(0) = cells[c].nodeId(1);
-            cells[c].x(0) = cells[c].x(1);
-        }
-        else if (cells[c].nodeId(1) < 0) {
-            cells[c].nodeId(1) = cells[c].nodeId(0);
-            cells[c].x(1) = cells[c].x(0);
-        }
-    }
-
     int n = 0;
     for (int iz=0; iz < 2; iz++) {
         for (int iy=0; iy < 2; iy++) {
@@ -194,13 +193,14 @@ MeshRect3D::locate(const Node3D& node) const
                 int nx = cells[0].nodeId(ix);
                 int ny = cells[1].nodeId(iy);
                 int nz = cells[2].nodeId(iz);
-                result.nodeId(n) = nz*(_axis[0].size()*_axis[1].size())
-                                   + ny*(_axis[0].size())
-                                   + nx;
-
-                result.x(n) = cells[0].x(ix);
-                result.y(n) = cells[1].x(iy);
-                result.z(n) = cells[2].x(iz);
+                if (nx >= 0 && ny >= 0 && nz >= 0) {
+                    result.nodeId(n) = nz*(_axis[0].size()*_axis[1].size())
+                                       + ny*(_axis[0].size())
+                                       + nx;
+                    result.x(n) = cells[0].x(ix);
+                    result.y(n) = cells[1].x(iy);
+                    result.z(n) = cells[2].x(iz);
+                }
                 n++;
             }
         }

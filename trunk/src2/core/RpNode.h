@@ -20,6 +20,8 @@
 
 namespace Rappture {
 
+enum Axis {xaxis=0, yaxis, zaxis};
+
 class Node {
 public:
     Node() : _id(-1) {}

@@ -35,7 +35,7 @@ public:
     virtual Field1D& clear();
 
     virtual int size() const;
-    virtual Node1D& nodeAt(int pos);
+    virtual Node1D& atNode(int pos);
     virtual double rangeMin() const;
     virtual double rangeMax() const;
 

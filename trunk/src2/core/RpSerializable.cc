@@ -20,8 +20,7 @@
 using namespace Rappture;
 
 // initialize the global lists of registered serialization helper funcs
-Serializable::_name2createFunc = NULL;
-Serializable::_name2desMethod = NULL;
+Serializable::Name2ConvFuncsMap* Serializable::_name2convFuncs = NULL;
 
 Serializable::Serializable()
 {
@@ -41,12 +40,12 @@ Serializable::serialize(SerialBuffer& buffer) const
     cname += ":";
     cname += serializerVersion();
 
-    ConversionFuncs& cfuncs = (*_name2convFuncs)[cname];
-    this->(cfuncs.serialMethod)(buffer);
+    Serializable::ConversionFuncs& cfuncs = (*_name2convFuncs)[cname];
+    (this->*(cfuncs.serialMethod))(buffer);
 }
 
 Outcome
-Serializable::deserialize(SerialBuffer& buffer, Ptr<Serializable>& objPtr)
+Serializable::deserialize(SerialBuffer& buffer, Ptr<Serializable>* objPtrPtr)
 {
     Outcome result;
 
@@ -65,25 +64,28 @@ Serializable::deserialize(SerialBuffer& buffer, Ptr<Serializable>& objPtr)
     }
 
     ConversionFuncs& cfuncs = (*_name2convFuncs)[type];
-    objPtr = (cfuncs.createFunc)();
-    return objPtr->(cfuncs.deserialMethod)(buffer);
+    *objPtrPtr = (cfuncs.createFunc)();
+
+    Serializable *objPtr = objPtrPtr->pointer();
+    return (objPtr->*(cfuncs.deserialMethod))(buffer);
 }
 
-SerialConversion::SerialConversion(const char *class, char version,
-    Serializable::serializeObjectMethod serMethod)
+SerialConversion::SerialConversion(const char *className, char version,
+    Serializable::serializeObjectMethod serMethod,
     Serializable::createObjectFunc createFunc,
     Serializable::deserializeObjectMethod desMethod)
 {
-    if (Serializer::_name2convFuncs == NULL) {
-        Serializer::_name2convFuncs = new Name2ConvFuncsMap;
+    if (Serializable::_name2convFuncs == NULL) {
+        Serializable::_name2convFuncs = new Serializable::Name2ConvFuncsMap();
     }
 
     // register the conversion functions for this version
-    std::string vname(class);
+    std::string vname(className);
     vname += ":";
     vname += version;
 
-    ConversionFuncs& funcs = (*_name2convFuncs)[vname];
+    Serializable::ConversionFuncs& funcs
+        = (*Serializable::_name2convFuncs)[vname];
 
     funcs.version = version;
     funcs.serialMethod = serMethod;
@@ -91,19 +93,24 @@ SerialConversion::SerialConversion(const char *class, char version,
     funcs.deserialMethod = desMethod;
 
     // if this is the latest version, register it as "current"
-    std::string cname(class);
+    std::string cname(className);
     cname += ":current";
 
-    Name2ConvFuncsMap::iterator iter = _name2convFuncs->find(cname);
-    if (iter == _name2convFuncs->end()) {
+    Serializable::Name2ConvFuncsMap::iterator iter
+        = Serializable::_name2convFuncs->find(cname);
+
+    if (iter == Serializable::_name2convFuncs->end()) {
         // this is the first -- register it as "current"
-        ConversionFuncs& cfuncs = (*_name2convFuncs)[cname];
+        Serializable::ConversionFuncs& cfuncs
+            = (*Serializable::_name2convFuncs)[cname];
         cfuncs.version = version;
         cfuncs.serialMethod = serMethod;
         cfuncs.createFunc = createFunc;
         cfuncs.deserialMethod = desMethod;
     } else {
-        ConversionFuncs& cfuncs = (*_name2convFuncs)[cname];
+        Serializable::ConversionFuncs& cfuncs
+            = (*Serializable::_name2convFuncs)[cname];
+
         if (cfuncs.version < version) {
             // this is the latest -- register it as "current"
             cfuncs.version = version;

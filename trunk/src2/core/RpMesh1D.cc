@@ -21,8 +21,10 @@
 using namespace Rappture;
 
 // serialization version 'A' for Mesh1D...
-////SerialConverter Mesh1D::versionA("Mesh1D", 'A',
-////    Mesh1D::serialize_A, Mesh1D::create, Mesh1D::deserialize_A);
+SerialConversion Mesh1D::versionA("Mesh1D", 'A',
+    (Serializable::serializeObjectMethod)&Mesh1D::serialize_A,
+    &Mesh1D::create,
+    (Serializable::deserializeObjectMethod)&Mesh1D::deserialize_A);
 
 
 Cell1D::Cell1D()
@@ -51,6 +53,12 @@ Cell1D::x(int n)
 {
     assert(n >= 0 && n < 2);
     return _x[n];
+}
+
+int
+Cell1D::isOutside() const
+{
+    return (_nodeIds[0] < 0 || _nodeIds[1] < 0);
 }
 
 
@@ -316,18 +324,42 @@ Mesh1D::_rebuildNodeIdMap()
     _id2nodeDirty = 0;
 }
 
-////void
-////Mesh1D::serialize_A(SerialBuffer& buffer) const
-////{
-////}
+Ptr<Serializable>
+Mesh1D::create()
+{
+    return Ptr<Serializable>( (Serializable*) new Mesh1D() );
+}
 
-////Ptr<Serializable>
-////Mesh1D::create()
-////{
-////    return Ptr<Serializable>( new Mesh1D() );
-////}
+void
+Mesh1D::serialize_A(SerialBuffer& buffer) const
+{
+    Mesh1D* nonconst = (Mesh1D*)this;
+    buffer.writeInt(_nodelist.size());
 
-////Outcome
-////Mesh1D::deserialize_A(SerialBuffer& buffer)
-////{
-////}
+    std::deque<Node1D>::iterator iter = nonconst->_nodelist.begin();
+    while (iter != _nodelist.end()) {
+        buffer.writeInt( (*iter).id() );
+        buffer.writeDouble( (*iter).x() );
+        ++iter;
+    }
+    buffer.writeInt(_counter);
+}
+
+Outcome
+Mesh1D::deserialize_A(SerialBuffer& buffer)
+{
+    Outcome status;
+    Node1D newnode(0.0);
+
+    clear();
+    int npts = buffer.readInt();
+
+    for (int n=0; n < npts; n++) {
+        newnode.id( buffer.readInt() );
+        newnode.x( buffer.readDouble() );
+        _nodelist.push_back(newnode);
+    }
+    _counter = buffer.readInt();
+
+    return status;
+}
