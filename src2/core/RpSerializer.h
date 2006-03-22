@@ -20,7 +20,9 @@
 
 #include <map>
 #include "RpPtr.h"
+#include "RpOutcome.h"
 #include "RpSerialBuffer.h"
+#include "RpSerializable.h"
 
 namespace Rappture {
 
@@ -29,14 +31,14 @@ public:
     Serializer();
     virtual ~Serializer();
 
-    virtual Outcome deserialize(const char* bytes, int nbytes);
     virtual Ptr<SerialBuffer> serialize();
+    virtual Outcome deserialize(const char* bytes, int nbytes);
 
     virtual int size() const;
     virtual Ptr<Serializable> get(int pos) const;
 
     virtual Serializer& clear();
-    virtual const char* register(Ptr<Serializable> objPtr);
+    virtual const char* add(Serializable* objPtr);
 
 private:
     // disallow these operations
@@ -47,7 +49,7 @@ private:
     std::vector<const char*> _idlist;
 
     // map each id in _idlist to the corresponding object
-    typedef std::map<std::string, Ptr<Serializable>> SerializerId2Obj;
+    typedef std::map<std::string, Ptr<Serializable> > SerializerId2Obj;
     SerializerId2Obj _id2obj;
 };
 

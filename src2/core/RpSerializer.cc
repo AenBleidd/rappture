@@ -72,11 +72,11 @@ Serializer::deserialize(const char* bytes, int nbytes)
         result = Serializable::deserialize(buffer, &objPtr);
 
         // if there was an error, then bail out
-        if (!result) {
+        if (result != 0) {
             std::ostringstream context;
             context << "while deserializing object #" << i+1
               << " of " << nobj;
-            return result.addContext(context.str());
+            return result.addContext(context.str().data());
         }
 
         // add the object to the known list
@@ -105,7 +105,7 @@ Serializer::serialize()
 
         bufferPtr->writeString("RpObj:");
         bufferPtr->writeString(id);
-        objPtr->serialize(bufferPtr);
+        objPtr->serialize(*bufferPtr.pointer());
     }
     return bufferPtr;
 }
@@ -119,10 +119,11 @@ Serializer::size() const
 Ptr<Serializable>
 Serializer::get(int pos) const
 {
+    Serializer *nonconst = (Serializer*)this;
     assert(pos >= 0 && pos < _idlist.size());
 
     std::string id(_idlist[pos]);
-    return _id2obj[id];
+    return nonconst->_id2obj[id];
 }
 
 Serializer&
@@ -133,27 +134,27 @@ Serializer::clear()
 }
 
 const char*
-Serializer::register(Ptr<Serializable> objPtr)
+Serializer::add(Serializable* objPtr)
 {
     const char* key = NULL;
 
     // build a unique string that represents this object
     std::ostringstream idbuffer;
-    idbuffer << (void*)objPtr.pointer();
+    idbuffer << (void*)objPtr;
     std::string id(idbuffer.str());
 
     // have we already registered this object?
     SerializerId2Obj::iterator iter = _id2obj.find(id);
     if (iter == _id2obj.end()) {
         // if not, then add to map and also to list of all objects
-        _id2obj[id] = objPtr;
+        _id2obj[id] = Ptr<Serializable>(objPtr);
         iter = _id2obj.find(id);
         key = (*iter).first.data();
         _idlist.push_back(key);
     } else {
         // if so, then update map
         key = (*iter).first.data();
-        _id2obj[id] = objPtr;
+        _id2obj[id] = Ptr<Serializable>(objPtr);
     }
     return key;
 }

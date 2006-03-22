@@ -30,6 +30,8 @@ FieldRect3D::FieldRect3D(const Mesh1D& xg, const Mesh1D& yg, const Mesh1D& zg)
     _counter(0)
 {
     _meshPtr = Ptr<MeshRect3D>( new MeshRect3D(xg,yg,zg) );
+    int npts = xg.size()*yg.size()*zg.size();
+    _valuelist.reserve(npts);
 }
 
 FieldRect3D::FieldRect3D(const FieldRect3D& field)
@@ -45,6 +47,7 @@ FieldRect3D::operator=(const FieldRect3D& field)
     _valuelist = field._valuelist;
     _meshPtr = field._meshPtr;
     _counter = field._counter;
+    return *this;
 }
 
 FieldRect3D::~FieldRect3D()
@@ -54,18 +57,18 @@ FieldRect3D::~FieldRect3D()
 int
 FieldRect3D::size(Axis which) const
 {
-    if (!_meshPtr.isnull()) {
+    if (!_meshPtr.isNull()) {
         return _meshPtr->size(which);
     }
     return 0;
 }
 
 Node1D&
-FieldRect3D::nodeAt(Axis which, int pos)
+FieldRect3D::atNode(Axis which, int pos)
 {
     static Node1D null(0.0);
 
-    if (!_meshPtr.isnull()) {
+    if (!_meshPtr.isNull()) {
         return _meshPtr->at(which, pos);
     }
     return null;
@@ -74,7 +77,7 @@ FieldRect3D::nodeAt(Axis which, int pos)
 double
 FieldRect3D::rangeMin(Axis which) const
 {
-    if (!_meshPtr.isnull()) {
+    if (!_meshPtr.isNull()) {
         return _meshPtr->rangeMin(which);
     }
     return 0.0;
@@ -83,7 +86,7 @@ FieldRect3D::rangeMin(Axis which) const
 double
 FieldRect3D::rangeMax(Axis which) const
 {
-    if (!_meshPtr.isnull()) {
+    if (!_meshPtr.isNull()) {
         return _meshPtr->rangeMax(which);
     }
     return 0.0;
@@ -92,20 +95,22 @@ FieldRect3D::rangeMax(Axis which) const
 FieldRect3D&
 FieldRect3D::define(int nodeId, double f)
 {
-    while (_valuelist.size() <= nodeId) {
-        _valuelist.push_back(0.0);
-    }
     _valuelist[nodeId] = f;
     return *this;
 }
 
 double
-FieldRect3D::value(double x, double y, double z) const
+FieldRect3D::value(double x, double y, double z, double outside) const
 {
     double f0, f1, fy0, fy1, fz0, fz1;
 
-    if (!_meshPtr.isnull()) {
+    if (!_meshPtr.isNull()) {
         CellRect3D cell = _meshPtr->locate(Node3D(x,y,z));
+
+        // outside the defined data? then return the outside value
+        if (cell.isOutside()) {
+            return outside;
+        }
 
         // yuck! brute force...
         // interpolate x @ y0,z0
@@ -137,7 +142,7 @@ FieldRect3D::value(double x, double y, double z) const
         // interpolate z
         return _interpolate(cell.z(0),fz0, cell.z(4),fz1, z);
     }
-    return 0.0;
+    return outside;
 }
 
 double

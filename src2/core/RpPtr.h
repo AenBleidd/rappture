@@ -86,15 +86,16 @@ PtrCore<Type>::detach()
 template <class Type>
 class Ptr {
 public:
-    explicit Ptr(Type* ptr);
+    explicit Ptr(Type* ptr=NULL);
     Ptr(const Ptr& ptr);
     Ptr& operator=(Type* ptr);
     Ptr& operator=(const Ptr& ptr);
     ~Ptr();
 
-    int isnull() const;
+    int isNull() const;
     Type* operator->() const;
     Type* pointer() const;
+    Type& operator*() const;
     void clear();
 
 private:
@@ -153,7 +154,7 @@ Ptr<Type>::operator=(const Ptr<Type>& ptr)
 
 template <class Type>
 int
-Ptr<Type>::isnull() const
+Ptr<Type>::isNull() const
 {
     if (_pc) {
         return (_pc->pointer() == NULL);
@@ -179,6 +180,14 @@ Ptr<Type>::pointer() const
         return _pc->pointer();
     }
     return NULL;
+}
+
+template <class Type>
+Type&
+Ptr<Type>::operator*() const
+{
+    assert(_pc != NULL);
+    return *(Type*)_pc->pointer();
 }
 
 template <class Type>

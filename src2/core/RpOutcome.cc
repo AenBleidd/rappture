@@ -75,7 +75,7 @@ Outcome&
 Outcome::operator&=(Outcome oc)
 {
     _status &= oc._status;
-    if (!oc._contextPtr.isnull()) {
+    if (!oc._contextPtr.isNull()) {
         _remarkPtr = oc._remarkPtr;
         _contextPtr = oc._contextPtr;
     }
@@ -84,7 +84,7 @@ Outcome::operator&=(Outcome oc)
 std::string
 Outcome::remark() const
 {
-    if (!_remarkPtr.isnull()) {
+    if (!_remarkPtr.isNull()) {
         return _remarkPtr->data();
     }
     return "";
@@ -93,7 +93,7 @@ Outcome::remark() const
 Outcome&
 Outcome::addContext(const char *rem)
 {
-    if (_contextPtr.isnull()) {
+    if (_contextPtr.isNull()) {
         _contextPtr = new std::string();
     }
     _contextPtr->append(rem);
@@ -104,7 +104,7 @@ Outcome::addContext(const char *rem)
 std::string
 Outcome::context() const
 {
-    if (!_contextPtr.isnull()) {
+    if (!_contextPtr.isNull()) {
         return _contextPtr->data();
     }
     return "";

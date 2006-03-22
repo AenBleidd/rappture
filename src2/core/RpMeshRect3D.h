@@ -20,8 +20,6 @@
 
 namespace Rappture {
 
-enum Axis {xaxis=0, yaxis, zaxis};
-
 class CellRect3D {
 public:
     CellRect3D();
@@ -31,6 +29,8 @@ public:
     double& x(int n);
     double& y(int n);
     double& z(int n);
+
+    int isOutside() const;
 
 private:
     int _nodeIds[8];

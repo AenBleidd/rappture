@@ -87,7 +87,7 @@ Field1D::size() const
 }
 
 Node1D&
-Field1D::nodeAt(int pos)
+Field1D::atNode(int pos)
 {
     return _meshPtr->at(pos);
 }

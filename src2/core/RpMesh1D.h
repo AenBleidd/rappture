@@ -20,7 +20,7 @@
 
 #include <deque>
 #include "RpNode.h"
-////#include "RpSerializable.h"
+#include "RpSerializable.h"
 
 namespace Rappture {
 
@@ -31,12 +31,14 @@ public:
     int& nodeId(int n);
     double& x(int n);
 
+    int isOutside() const;
+
 private:
     int _nodeIds[2];
     double _x[2];
 };
 
-class Mesh1D {
+class Mesh1D : public Serializable {
 public:
     Mesh1D();
     Mesh1D(double x0, double x1, int npts);
@@ -60,9 +62,9 @@ public:
     const char* serializerType() const { return "Mesh1D"; }
     char serializerVersion() const { return 'A'; }
 
-////    void serialize_A(SerialBuffer& buffer) const;
-////    static Ptr<Serializable> create();
-////    Outcome deserialize_A(SerialBuffer& buffer);
+    void serialize_A(SerialBuffer& buffer) const;
+    static Ptr<Serializable> create();
+    Outcome deserialize_A(SerialBuffer& buffer);
 
 protected:
     virtual int _locateInterval(double x) const;
@@ -76,7 +78,7 @@ private:
     std::deque<int> _id2node;       // maps node Id => index in _nodelist
 
     // methods for serializing/deserializing version 'A'
-////    static SerialConversion versionA;
+    static SerialConversion versionA;
 };
 
 } // namespace Rappture

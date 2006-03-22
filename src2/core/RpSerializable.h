@@ -20,6 +20,8 @@
 
 #include <string>
 #include <map>
+#include "RpPtr.h"
+#include "RpOutcome.h"
 #include "RpSerialBuffer.h"
 
 namespace Rappture {
@@ -31,33 +33,34 @@ public:
     Serializable();
     virtual ~Serializable();
 
-    virtual const char* serializerType() = 0;
-    virtual char serializerVersion() = 0;
+    virtual const char* serializerType() const = 0;
+    virtual char serializerVersion() const = 0;
 
     virtual void serialize(SerialBuffer& bufferPtr) const;
-    static Outcome deserialize(SerialBuffer& buffer, Ptr<Serializable>& objPtr);
+    static Outcome deserialize(SerialBuffer& buffer, Ptr<Serializable>* objPtrPtr);
+
+    typedef void (Serializable::*serializeObjectMethod)(SerialBuffer& buffer) const;
+    typedef Ptr<Serializable> (*createObjectFunc)();
+    typedef Outcome (Serializable::*deserializeObjectMethod)(SerialBuffer& buffer);
 
 private:
     friend class SerialConversion;
 
-    typedef void serializeObjectMethod(SerialBuffer& buffer) const;
-    typedef static Ptr<Serializable> createObjectFunc();
-    typedef Outcome deserializeObjectMethod(SerialBuffer& buffer);
-
-    struct ConversionFuncs {
+    class ConversionFuncs {
+    public:
         char version;
         serializeObjectMethod serialMethod;
         createObjectFunc createFunc;
         deserializeObjectMethod deserialMethod;
     };
 
-    typedef map<std::string, ConversionFuncs> Name2ConvFuncsMap;
+    typedef std::map<std::string, ConversionFuncs> Name2ConvFuncsMap;
     static Name2ConvFuncsMap *_name2convFuncs;
 };
 
 class SerialConversion {
 public:
-    SerialConversion(const char *class, char version,
+    SerialConversion(const char *className, char version,
         Serializable::serializeObjectMethod,
         Serializable::createObjectFunc,
         Serializable::deserializeObjectMethod);
