@@ -272,11 +272,15 @@ load_volume_file(int index, char *fname) {
             double dmin = pow((dx*dy*dz)/(nsample*nsample*nsample), 0.333);
 
             nx = (int)ceil(dx/dmin);
-	    nx = pow(2.0, ceil(log10((double)nx)/log10(2.0)));  // must be an even power of 2
             ny = (int)ceil(dy/dmin);
-	    ny = pow(2.0, ceil(log10((double)ny)/log10(2.0)));
             nz = (int)ceil(dz/dmin);
+
+#ifndef NV40
+	    nx = pow(2.0, ceil(log10((double)nx)/log10(2.0)));  // must be an even power of 2
+	    ny = pow(2.0, ceil(log10((double)ny)/log10(2.0)));
 	    nz = pow(2.0, ceil(log10((double)nz)/log10(2.0)));
+#endif
+
             float *data = new float[4*nx*ny*nz];
 
             double vmin = field.valueMin();
@@ -384,7 +388,7 @@ void load_volume(int index, int width, int height, int depth, int n_component, f
     volume[index]=0;
   }
 
-  volume[index] = new Volume(width, height, depth, NVIS_FLOAT, NVIS_LINEAR_INTERP, n_component, data);
+  volume[index] = new Volume(0., 0., 0., width, height, depth, NVIS_FLOAT, NVIS_LINEAR_INTERP, n_component, data);
   assert(volume[index]!=0);
 }
 
@@ -1394,18 +1398,14 @@ void display()
  		   3);
    */
 
-   glBegin(GL_QUADS);
    /*
-   glTexCoord2f(0, 0); glVertex3f(-1, -1, slice_z);
-   glTexCoord2f(1, 0); glVertex3f(1, -1, slice_z);
-   glTexCoord2f(1, 1); glVertex3f(1, 1, slice_z);
-   glTexCoord2f(0, 1); glVertex3f(-1, 1, slice_z);
-   */
+   glBegin(GL_QUADS);
    glTexCoord2f(0, 0); glVertex3f(0, 0, slice_z);
    glTexCoord2f(1, 0); glVertex3f(1, 0, slice_z);
    glTexCoord2f(1, 1); glVertex3f(1, 1, slice_z);
    glTexCoord2f(0, 1); glVertex3f(0, 1, slice_z);
    glEnd();
+   */
 
    //soft_display_verts();
    //psys->display_vertices();
