@@ -16,23 +16,26 @@
 #include "Volume.h"
 
 
-Volume::Volume(int w, int h, int d, NVISdatatype t, NVISinterptype interp, int n, float* data){
+Volume::Volume(int x, int y, int z,
+		int w, int h, int d, 
+		NVISdatatype t, NVISinterptype interp, int n, float* data):
+	location(Vector3(x,y,z)),
+	width(w),
+	height(h),
+	depth(d),
+	type(t),
+	interp_type(interp),
+	n_components(n)
+{
 
   tex = new Texture3D(w, h, d, t, interp, n);
   tex->initialize(data);
   id = tex->id;
 
-  width = w;
-  height = h;
-  depth = d; 
-
   aspect_ratio_width = tex->aspect_ratio_width;
   aspect_ratio_height = tex->aspect_ratio_height;
   aspect_ratio_depth = tex->aspect_ratio_depth;
 
-  type = t;
-  interp_type = interp;
-  n_components = n;
 }
 
 
