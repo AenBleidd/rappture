@@ -16,7 +16,7 @@
 #include "Volume.h"
 
 
-Volume::Volume(int x, int y, int z,
+Volume::Volume(float x, float y, float z,
 		int w, int h, int d, 
 		NVISdatatype t, NVISinterptype interp, int n, float* data):
 	location(Vector3(x,y,z)),

@@ -106,3 +106,7 @@ int    alpha  = (0.12*255);
 float  sa;
 float  tmax   = NPIX/(SCALE*NPN);
 float  dmax   = SCALE/NPIX;
+
+
+//currently active shader
+int cur_shader = 0;

@@ -1,14 +1,14 @@
 OBJ_NANOVIS = nanovis.o Socket.o RenderVertexArray.o Plane.o ConvexPolygon.o Vector4.o Vector3.o Mat4x4.o \
-		Texture1D.o Texture3D.o ColorMap.o Volume.o Texture2D.o ParticleSystem.o
+		Texture1D.o Texture3D.o ColorMap.o Volume.o Texture2D.o ParticleSystem.o Sphere.o Color.o
 
 AUXSRC = config.h define.h global.h
 
 SOCKETSRC = ./socket
 SORTSRC = ./sort
 
-LIB_NANOVIS = -ltcl8.4 -lGL -lglut -lGLEW -lCg -lCgGL -pthread
+LIB_NANOVIS = -ltcl8.4 -lGL -lglut -lGLEW -lCg -lCgGL -pthread -lstdc++
 LIB_CLIENT = -lGL -lglut -pthread
-CFLAG = -g -c -Wall -I../../../src2/core
+CFLAG = -g -c -Wall -I../src2/core
 
 all: nanovis 
 
@@ -16,7 +16,7 @@ clean:
 	rm -f *.o nanovis 
 
 nanovis: $(OBJ_NANOVIS)
-	gcc -g -o nanovis $(OBJ_NANOVIS) $(LIB_NANOVIS) ../../../src2/core/*.o
+	gcc -g -o nanovis $(OBJ_NANOVIS) $(LIB_NANOVIS) ../src2/core/*.o
 
 Socket.o: $(SOCKETSRC)/Socket.h $(SOCKETSRC)/Socket.cpp
 	gcc $(CFLAG) $(SOCKETSRC)/Socket.cpp
@@ -26,6 +26,12 @@ RenderVertexArray.o: RenderVertexArray.h RenderVertexArray.cpp
 
 #qdclient: $(OBJ_CLIENT) 
 #	gcc -g -o qdclient $(OBJ_CLIENT) $(LIB_CLIENT)
+
+Color.o: Color.cpp
+	gcc $(CFLAG) Color.cpp
+
+Sphere.o: Vector3.o Color.o
+	gcc $(CFLAG) Sphere.cpp
 
 ColorMap.o: ColorMap.cpp
 	gcc $(CFLAG) ColorMap.cpp

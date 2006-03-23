@@ -26,13 +26,12 @@ PixelOut main(v2f IN, /* uniform sampler1D tf,*/
 	
   //float3 sample = tex3D(volume, tex_coord.xyz).xyz;
   float sample = tex3D(volume, tex_coord.xyz);
-  //float sample = 1; 
 
-  //OUT.Color = float4(sample, 10*sqrt(sample.x*sample.x + sample.y*sample.y + sample.z*sample.z)/renderParameters.x);
   if (sample < 0.) {
       OUT.Color = float4(0.0, 0.0, 0.0, 0.0);
   } else {
-      OUT.Color = float4(sample, sample, sample, sample*0.1);
+      OUT.Color = float4(sample, sample, sample, sample/renderParameters.x);
   }
+
   return OUT;
 }

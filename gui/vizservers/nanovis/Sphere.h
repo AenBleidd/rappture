@@ -15,7 +15,9 @@
 #ifndef _SPHERE_H_
 #define _SPHERE_H_
 
+#include <GL/glut.h>
 #include "Color.h"
+#include "Vector3.h"
 
 class Sphere{
 
@@ -29,11 +31,11 @@ public:
 	Sphere(){};
 	~Sphere(){};
 	Sphere(float x, float y, float z, float r, float g, float b, float a, float r, int _stack, int _slice);
-	set_vertical_res(int _stack);
-	set_horizontal_res(int _slice);
+	void set_vertical_res(int _stack);
+	void set_horizontal_res(int _slice);
 	
 	//display the sphere
-	draw();
+	void draw(GLUquadric* q);
 };
 
 #endif
