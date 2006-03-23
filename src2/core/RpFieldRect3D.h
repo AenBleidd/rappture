@@ -39,6 +39,8 @@ public:
     virtual FieldRect3D& define(int nodeId, double f);
     virtual double value(double x, double y, double z,
         double outside=NAN) const;
+    virtual double valueMin() const;
+    virtual double valueMax() const;
 
 protected:
     virtual double _interpolate(double x0, double y0, double x1, double y1,
@@ -46,6 +48,8 @@ protected:
 
 private:
     std::vector<double> _valuelist; // list of all values, in nodeId order
+    double _vmin;                   // minimum value in _valuelist
+    double _vmax;                   // maximum value in _valuelist
     Ptr<MeshRect3D> _meshPtr;       // mesh for all (x,y,z) points
     int _counter;                   // counter for generating node IDs
 };

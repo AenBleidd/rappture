@@ -13,6 +13,7 @@
  * ======================================================================
  */
 #include <math.h>
+#include <iostream>
 #include "RpMeshTri2D.h"
 
 using namespace Rappture;
@@ -110,9 +111,15 @@ CellTri2D::barycentrics(const Node2D& node, double* phi) const
     double yr = node.y() - _nodes[0]->y();
     double det = x2*y3-x3*y2;
 
-    phi[1] = (xr*y3 - x3*yr)/det;
-    phi[2] = (x2*yr - xr*y2)/det;
-    phi[0] = 1.0-phi[1]-phi[2];
+    if (det != 0.0) {
+        phi[1] = (xr*y3 - x3*yr)/det;
+        phi[2] = (x2*yr - xr*y2)/det;
+        phi[0] = 1.0-phi[1]-phi[2];
+    } else {
+        phi[1] = NAN;
+        phi[2] = NAN;
+        phi[0] = NAN;
+    }
 }
 
 
@@ -339,12 +346,17 @@ MeshTri2D::locate(const Node2D& node) const
                             &nonconst->_nodelist[tri.nodes[2]]);
     }
 
+    int lastCellId = -1;
     while (!cell.isNull()) {
         double phi[3];
 
         // compute barycentric coords
         // if all are >= 0, then this tri contains node
         cell.barycentrics(node, phi);
+	if (isnan(phi[0])) {
+            cell.clear();
+            return cell;
+	}
         if (phi[0] >= 0.0 && phi[1] >= 0.0 && phi[2] >= 0.0) {
             break;
         }
@@ -359,11 +371,15 @@ MeshTri2D::locate(const Node2D& node) const
 
         Tri2D& tri = nonconst->_celllist[ cell.cellId() ];
         int neighborId = tri.neighbors[dir];
-        if (neighborId < 0) {
+        if (neighborId < 0 || neighborId == lastCellId) {
+if (neighborId == lastCellId) {
+std::cout << "loop at " << lastCellId << "->" << neighborId << std::endl;
+}
             cell.clear();
             return cell;
         }
 
+        lastCellId = cell.cellId();
         Tri2D& tri2 = nonconst->_celllist[neighborId];
         Node2D *n1Ptr = &nonconst->_nodelist[tri2.nodes[0]];
         Node2D *n2Ptr = &nonconst->_nodelist[tri2.nodes[1]];

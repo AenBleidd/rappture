@@ -76,6 +76,13 @@ FieldPrism3D&
 FieldPrism3D::define(int nodeId, double f)
 {
     _valuelist[nodeId] = f;
+
+    if (_vmin == NAN || _vmax == NAN) {
+        _vmin = _vmax = f;
+    } else {
+        if (f < _vmin) { _vmin = f; }
+        if (f > _vmax) { _vmax = f; }
+    }
     return *this;
 }
 
@@ -123,4 +130,16 @@ FieldPrism3D::value(double x, double y, double z, double outside) const
         return fz0 + (delz/zrange)*(fz1-fz0);
     }
     return outside;
+}
+
+double
+FieldPrism3D::valueMin() const
+{
+    return _vmin;
+}
+
+double
+FieldPrism3D::valueMax() const
+{
+    return _vmax;
 }

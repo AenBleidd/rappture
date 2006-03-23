@@ -15,12 +15,15 @@
  * ======================================================================
  */
 #include <assert.h>
+#include <math.h>
 #include "RpField1D.h"
 
 using namespace Rappture;
 
 Field1D::Field1D()
-  : _meshPtr(NULL),
+  : _vmin(NAN),
+    _vmax(NAN),
+    _meshPtr(NULL),
     _counter(0)
 {
     _meshPtr = Ptr<Mesh1D>(new Mesh1D());
@@ -28,6 +31,8 @@ Field1D::Field1D()
 
 Field1D::Field1D(const Ptr<Mesh1D>& meshPtr)
   : _valuelist(),
+    _vmin(NAN),
+    _vmax(NAN),
     _meshPtr(meshPtr),
     _counter(0)
 {
@@ -35,6 +40,8 @@ Field1D::Field1D(const Ptr<Mesh1D>& meshPtr)
 
 Field1D::Field1D(const Field1D& field)
   : _valuelist(field._valuelist),
+    _vmin(field._vmin),
+    _vmax(field._vmax),
     _meshPtr(field._meshPtr),
     _counter(0)
 {
@@ -44,6 +51,8 @@ Field1D&
 Field1D::operator=(const Field1D& field)
 {
     _valuelist = field._valuelist;
+    _vmin = field._vmin;
+    _vmax = field._vmax;
     _meshPtr = field._meshPtr;
     _counter = field._counter;
 }
@@ -129,6 +138,13 @@ int
 Field1D::define(int nodeId, double y)
 {
     _valuelist[nodeId] = y;
+
+    if (_vmin == NAN || _vmax == NAN) {
+        _vmin = _vmax = y;
+    } else {
+        if (y < _vmin) { _vmin = y; }
+        if (y > _vmax) { _vmax = y; }
+    }
 }
 
 double
@@ -164,4 +180,16 @@ Field1D::value(double x) const
 
     // all else fails, return an empty value
     return 0.0;
+}
+
+double
+Field1D::valueMin() const
+{
+    return _vmin;
+}
+
+double
+Field1D::valueMax() const
+{
+    return _vmax;
 }
