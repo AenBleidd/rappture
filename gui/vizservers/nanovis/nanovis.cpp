@@ -388,7 +388,7 @@ void load_volume(int index, int width, int height, int depth, int n_component, f
     volume[index]=0;
   }
 
-  volume[index] = new Volume(0., 0., 0., width, height, depth, NVIS_FLOAT, NVIS_LINEAR_INTERP, n_component, data);
+  volume[index] = new Volume(0.f, 0.f, 0.f, width, height, depth, NVIS_FLOAT, NVIS_LINEAR_INTERP, n_component, data);
   assert(volume[index]!=0);
 }
 
@@ -509,7 +509,7 @@ void init_cg(){
     cgSetErrorCallback(cgErrorCallback);
     g_context = cgCreateContext();
 
-    // load programs
+    //load programs that can be used in all render modes
     
     //standard vertex program
     m_vert_std_vprog = loadProgram(g_context, CG_PROFILE_VP30, CG_SOURCE, "./shaders/vertex_std.cg");
@@ -527,25 +527,20 @@ void init_cg(){
     m_plane_normal_param_render_vel = cgGetNamedParameter(m_render_vel_fprog, "plane_normal");
     cgGLSetTextureParameter(m_vel_tex_param_render_vel, volume[0]->id);
 
+    /*
     m_vel_fprog = loadProgram(g_context, CG_PROFILE_FP30, CG_SOURCE, "./shaders/update_vel.cg");
     m_vel_timestep_param  = cgGetNamedParameter(m_vel_fprog, "timestep");
     m_vel_damping_param   = cgGetNamedParameter(m_vel_fprog, "damping");
     m_vel_gravity_param   = cgGetNamedParameter(m_vel_fprog, "gravity");
     m_vel_spherePos_param = cgGetNamedParameter(m_vel_fprog, "spherePos");
     m_vel_sphereVel_param = cgGetNamedParameter(m_vel_fprog, "sphereVel");
+    */
 
     m_passthru_fprog = loadProgram(g_context, CG_PROFILE_FP30, CG_SOURCE, "./shaders/passthru.cg");
     m_passthru_scale_param = cgGetNamedParameter(m_passthru_fprog, "scale");
     m_passthru_bias_param  = cgGetNamedParameter(m_passthru_fprog, "bias");
 
     m_copy_texcoord_fprog = loadProgram(g_context, CG_PROFILE_FP30, CG_SOURCE, "./shaders/copy_texcoord.cg");
-
-    //render one volume
-    m_one_volume_fprog = loadProgram(g_context, CG_PROFILE_FP30, CG_SOURCE, "./shaders/one_volume.cg");
-    m_vol_one_volume_param = cgGetNamedParameter(m_one_volume_fprog, "volume");
-    cgGLSetTextureParameter(m_vol_one_volume_param, volume[0]->id);
-    m_mvi_one_volume_param = cgGetNamedParameter(m_one_volume_fprog, "modelViewInv");
-    m_render_param_one_volume_param = cgGetNamedParameter(m_one_volume_fprog, "renderParameters");
 
 #ifdef NEW_CG
     m_posvel_fprog = loadProgram(g_context, CG_PROFILE_FP40, CG_SOURCE, "./shaders/update_pos_vel.cg");
@@ -555,7 +550,31 @@ void init_cg(){
     m_posvel_spherePos_param = cgGetNamedParameter(m_posvel_fprog, "spherePos");
     m_posvel_sphereVel_param = cgGetNamedParameter(m_posvel_fprog, "sphereVel");
 #endif
+}
 
+
+//switch shader to change render mode
+void switch_shader(int choice){
+
+  switch (choice){
+
+    case 0:
+      //render one volume
+      m_one_volume_fprog = loadProgram(g_context, CG_PROFILE_FP30, CG_SOURCE, "./shaders/one_volume.cg");
+      m_vol_one_volume_param = cgGetNamedParameter(m_one_volume_fprog, "volume");
+      cgGLSetTextureParameter(m_vol_one_volume_param, volume[0]->id);
+      m_mvi_one_volume_param = cgGetNamedParameter(m_one_volume_fprog, "modelViewInv");
+      m_render_param_one_volume_param = cgGetNamedParameter(m_one_volume_fprog, "renderParameters");
+      break;
+
+   case 1:
+      //render two volumes
+      
+   default:
+      break;
+
+
+  }
 }
 
 void init_particles(){
@@ -633,6 +652,7 @@ void initGL(void)
      colormap[i] = 0;
    }
 
+   //init_vector_field();	//3d vector field
    load_volume_file(0, "./data/A-apbs-2-out-potential-PE0.dx");
    //load_volume_file(0, "./data/nw-AB-Vg=0.000-Vd=1.000-potential.dx");
    //load_volume_file(0, "./data/test2.dx");
@@ -640,7 +660,9 @@ void initGL(void)
    init_fbo();	//frame buffer objects
    init_cg();	//init cg shaders
 
-   //init_vector_field();	//3d vector field
+   //load the default one volume shader
+   switch_shader(cur_shader);
+
    //psys = new ParticleSystem(NMESH, NMESH, g_context, volume[0]->id);
    //init_particles();	//fill initial particles
 
@@ -1202,12 +1224,11 @@ void deactivate_one_volume_shader(){
 
 
 //render volumes
-void render_volume(int n_slices){
+void render_volume(int volume_index, int n_slices){
 
-  //fprintf(stderr, "render volume\n");
-  //fflush(stderr);
+  //volume start location
+  Vector4 shift_4d(volume[volume_index]->location.x, volume[volume_index]->location.y, volume[volume_index]->location.z, 0);
 
-  //current assume we just have one volume to render
   double x0 = 0;
   double y0 = 0;
   double z0 = 0;
@@ -1220,21 +1241,23 @@ void render_volume(int n_slices){
   //initialize volume plane with world coordinates
   Plane volume_planes[6];
 
-  volume_planes[0].set_coeffs(1, 0, 0, x0);
+  volume_planes[0].set_coeffs(1, 0, 0, -x0);
   volume_planes[1].set_coeffs(-1, 0, 0, x0+1);
-  volume_planes[2].set_coeffs(0, 1, 0, y0);
+  volume_planes[2].set_coeffs(0, 1, 0, -y0);
   volume_planes[3].set_coeffs(0, -1, 0, y0+1);
-  volume_planes[4].set_coeffs(0, 0, 1, z0);
+  volume_planes[4].set_coeffs(0, 0, 1, -z0);
   volume_planes[5].set_coeffs(0, 0, -1, z0+1);
 
   glPushMatrix();
 
-  glScaled(volume[0]->aspect_ratio_width, volume[0]->aspect_ratio_height, volume[0]->aspect_ratio_depth);
+  glScaled(volume[volume_index]->aspect_ratio_width, 
+	  volume[volume_index]->aspect_ratio_height, 
+	  volume[volume_index]->aspect_ratio_depth);
 
   glEnable(GL_DEPTH_TEST);
 
   //draw volume bounding box
-  draw_bounding_box(x0, y0, z0, x0+1, y0+1, z0+1, 1,1,0, 2.0);
+  draw_bounding_box(x0+shift_4d.x, y0+shift_4d.y, z0+shift_4d.z, x0+shift_4d.x+1, y0+shift_4d.y+1, z0+shift_4d.z+1, 1, 1, 0, 2.0);
 
   GLfloat mv[16];
   glGetFloatv(GL_MODELVIEW_MATRIX, mv);
@@ -1261,14 +1284,14 @@ void render_volume(int n_slices){
   static ConvexPolygon staticPoly;	
   float slice_z;
 
-  Vector4 vert1 = (Vector4(-1, -1, 0, 1));
-  Vector4 vert2 = (Vector4(-1, +1, 0, 1));
-  Vector4 vert3 = (Vector4(+1, +1, 0, 1));
-  Vector4 vert4 = (Vector4(+1, -1, 0, 1));
+  Vector4 vert1 = (Vector4(-10, -10, -0.5, 1));
+  Vector4 vert2 = (Vector4(-10, +10, -0.5, 1));
+  Vector4 vert3 = (Vector4(+10, +10, -0.5, 1));
+  Vector4 vert4 = (Vector4(+10, -10, -0.5, 1));
 
   glEnable(GL_DEPTH_TEST);
   glEnable(GL_BLEND);
-
+  
   for (int i=0; i<n_actual_slices; i++){
     slice_z = zFar + i * z_step;	//back to front
 	
@@ -1292,27 +1315,32 @@ void render_volume(int n_slices){
     }
 
     poly->copy_vertices_to_texcoords();
-    //poly->transform(model_view_inverse);
-    //poly->translate(shift_4d);
-    //poly->transform(model_view);
+    //move the volume to the proper location
+
+    poly->transform(model_view_inverse);
+    poly->translate(shift_4d);
+    poly->transform(model_view);
 
     glPushMatrix();
-    glScaled(volume[0]->aspect_ratio_width, volume[0]->aspect_ratio_height, volume[0]->aspect_ratio_depth);
-
-    glPushMatrix();
-    glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity();
+    glScaled(volume[volume_index]->aspect_ratio_width, volume[volume_index]->aspect_ratio_height, volume[volume_index]->aspect_ratio_depth);
+    
+    //glPushMatrix();
+    //glMatrixMode(GL_MODELVIEW);
+    //glLoadIdentity();
+    //glScaled(volume[volume_index]->aspect_ratio_width, volume[volume_index]->aspect_ratio_height, volume[volume_index]->aspect_ratio_depth);
 
     /*
     //draw slice lines only
+    glDisable(GL_BLEND);
+    glDisable(GL_TEXTURE_3D);
+    glDisable(GL_TEXTURE_2D);
     glLineWidth(1.0);
+    glColor3f(1,1,1);
     glBegin(GL_LINE_LOOP);
       poly->Emit(false);
     glEnd();
     */
-
-    glPopMatrix();
-
+    
     activate_one_volume_shader(n_actual_slices);
     glPopMatrix();
 
@@ -1329,6 +1357,125 @@ void render_volume(int n_slices){
   //glPopMatrix();
 }
 
+#if 0
+void render_volume(int volume_index, int n_slices){ 
+
+	double x0 = 0.;
+	double y0 = 0.;
+	double z0 = 0.;
+
+	Mat4x4 model_view;
+	Mat4x4 model_view_inverse;
+	
+	double zNear, zFar;
+
+	//initialize volume plane with world coordinates
+  	Plane volume_planes[6];
+	
+	volume_planes[0].set_coeffs(1, 0, 0, x0);
+	volume_planes[1].set_coeffs(-1, 0, 0, x0+1);
+	volume_planes[2].set_coeffs(0, 1, 0, y0);
+	volume_planes[3].set_coeffs(0, -1, 0, y0+1);
+	volume_planes[4].set_coeffs(0, 0, 1, z0);
+	volume_planes[5].set_coeffs(0, 0, -1, z0+1);
+	
+	
+	glPushMatrix();
+	
+	//glScaled(volume[0]->aspect_ratio_width, volume[0]->aspect_ratio_height, volume[0]->aspect_ratio_depth);
+	glScaled(1,1,1);
+	
+	glEnable(GL_DEPTH_TEST);
+
+	//draw volume bounding box
+	//draw_bounding_box(Vector3(x0, y0, z0), Vector3(x1, y1, z1), Vector3(1,1,0), 2.0);
+	draw_bounding_box(x0, y0, z0, x0+1, y0+1, z0+1, 
+			  1,1,1, 2.0);
+
+	GLfloat mv[16];
+	glGetFloatv(GL_MODELVIEW_MATRIX, mv);
+
+	model_view = Mat4x4(mv);
+	model_view_inverse = model_view.inverse();
+
+	glPopMatrix();
+
+	//transform volume_planes to eye coordinates.
+	for(int i=0; i<6; i++)
+		volume_planes[i].transform(model_view);
+	
+	get_near_far_z(mv, zNear, zFar);
+	printf("zNear:%f, zFar:%f\n", zNear, zFar);
+
+	//compute actual rendering slices
+	float z_step = fabs(zNear-zFar)/n_slices;		
+	int n_actual_slices = (int)(fabs(zNear-zFar)/z_step + 1);
+	printf("slice:%d\n", n_actual_slices);
+
+	static ConvexPolygon staticPoly;	
+	float slice_z;
+
+	Vector4 vert1 = (Vector4(-10, -10, -0.5, 1));
+	Vector4 vert2 = (Vector4(-10, +10, -0.5, 1));
+	Vector4 vert3 = (Vector4(+10, +10, -0.5, 1));
+	Vector4 vert4 = (Vector4(+10, -10, -0.5, 1));
+
+	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_BLEND);
+
+	for (int i=0; i<n_actual_slices; i++){
+		slice_z = zFar + i * z_step;	//back to front
+		
+		ConvexPolygon *poly;
+    		poly = &staticPoly;
+		poly->vertices.clear();
+
+		//Setting Z-coordinate 
+		vert1.z = slice_z;
+		vert2.z = slice_z;
+		vert3.z = slice_z;
+		vert4.z = slice_z;
+		
+		poly->append_vertex(vert1);
+		poly->append_vertex(vert2);
+		poly->append_vertex(vert3);
+		poly->append_vertex(vert4);
+	
+		for(int k=0; k<6; k++){
+			poly->clip(volume_planes[k]);
+		}
+
+		poly->copy_vertices_to_texcoords();
+		//poly->transform(model_view_inverse);
+		//poly->translate(shift_4d);
+		//poly->transform(model_view);
+
+		glPushMatrix();
+		glScaled(volume[0]->aspect_ratio_width, volume[0]->aspect_ratio_height, volume[0]->aspect_ratio_depth);
+
+		glPushMatrix();
+		glMatrixMode(GL_MODELVIEW);
+		glLoadIdentity();
+		glDisable(GL_BLEND);
+		glDisable(GL_TEXTURE_3D);
+		glDisable(GL_TEXTURE_2D);
+			glColor4f(1.,1.,1.,1.);
+			glLineWidth(1.0);
+			glBegin(GL_LINE_LOOP);
+				poly->Emit(false);
+			glEnd();
+		glPopMatrix();
+
+
+		glPopMatrix();
+
+	}
+
+	glDisable(GL_BLEND);
+	glDisable(GL_DEPTH_TEST);
+	//glPopMatrix();
+}
+#endif
 
 
 /*----------------------------------------------------*/
@@ -1374,31 +1521,18 @@ void display()
    glMatrixMode(GL_PROJECTION);
    glLoadIdentity();
    gluPerspective(60, (GLdouble)1, 0.1, 50.0);
-
+   
    glMatrixMode(GL_MODELVIEW);
    glLoadIdentity();
-   glTranslatef(live_obj_x, live_obj_y, live_obj_z);
+   //glTranslatef(live_obj_x, live_obj_y, live_obj_z);
+   glTranslatef(0, 0, live_obj_z);
 
    glRotated(live_rot_x, 1., 0., 0.);
    glRotated(live_rot_y, 0., 1., 0.);
    glRotated(live_rot_z, 0., 0., 1.);
 
-   //bounding box
    /*
-   draw_bounding_box(-1, -1, -1,
-		   1, 1, 1,
-		   1, 1, 1,
-		   3);
-   */
-
-   /*
-   draw_bounding_box(0, 0, 0,
-		   1, 1, 1,
-		   1, 1, 1,
- 		   3);
-   */
-
-   /*
+   //draw line integral convolution quad
    glBegin(GL_QUADS);
    glTexCoord2f(0, 0); glVertex3f(0, 0, slice_z);
    glTexCoord2f(1, 0); glVertex3f(1, 0, slice_z);
@@ -1411,7 +1545,12 @@ void display()
    //psys->display_vertices();
 
    //render volume
-   render_volume(256);
+   //volume[0]->location =Vector3(0.,0.,0.);
+   //render_volume(0, 256);
+
+   //render another but shifted using the same texture
+   volume[0]->location =Vector3(-0.5,-0.5,-0.5);
+   render_volume(0, 256);
 
    glDisable(GL_DEPTH_TEST);
 #endif
