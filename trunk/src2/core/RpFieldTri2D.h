@@ -38,9 +38,13 @@ public:
 
     virtual FieldTri2D& define(int nodeId, double f);
     virtual double value(double x, double y, double outside=NAN) const;
+    virtual double valueMin() const;
+    virtual double valueMax() const;
 
 private:
     std::vector<double> _valuelist; // list of all values, in nodeId order
+    double _vmin;                   // minimum value in _valuelist
+    double _vmax;                   // maximum value in _valuelist
     Ptr<MeshTri2D> _meshPtr;        // mesh for all (x,y) points
     int _counter;                   // counter for generating node IDs
 };

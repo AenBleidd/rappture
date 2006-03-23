@@ -42,9 +42,13 @@ public:
     virtual int define(double x, double y);
     virtual int define(int nodeId, double y);
     virtual double value(double x) const;
+    virtual double valueMin() const;
+    virtual double valueMax() const;
 
 private:
     std::deque<double> _valuelist;  // list of all values, in nodeId order
+    double _vmin;                   // minimum value in _valuelist
+    double _vmax;                   // maximum value in _valuelist
     Ptr<Mesh1D> _meshPtr;           // mesh for all x-points
     int _counter;                   // counter for generating node IDs
 };

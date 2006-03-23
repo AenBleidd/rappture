@@ -92,6 +92,13 @@ FieldTri2D&
 FieldTri2D::define(int nodeId, double f)
 {
     _valuelist[nodeId] = f;
+
+    if (_vmin == NAN || _vmax == NAN) {
+        _vmin = _vmax = f;
+    } else {
+        if (f < _vmin) { _vmin = f; }
+        if (f > _vmax) { _vmax = f; }
+    }
     return *this;
 }
 
@@ -116,4 +123,16 @@ FieldTri2D::value(double x, double y, double outside) const
         }
     }
     return outside;
+}
+
+double
+FieldTri2D::valueMin() const
+{
+    return _vmin;
+}
+
+double
+FieldTri2D::valueMax() const
+{
+    return _vmax;
 }

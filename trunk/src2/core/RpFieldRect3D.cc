@@ -96,6 +96,13 @@ FieldRect3D&
 FieldRect3D::define(int nodeId, double f)
 {
     _valuelist[nodeId] = f;
+
+    if (_vmin == NAN || _vmax == NAN) {
+        _vmin = _vmax = f;
+    } else {
+        if (f < _vmin) { _vmin = f; }
+        if (f > _vmax) { _vmax = f; }
+    }
     return *this;
 }
 
@@ -143,6 +150,18 @@ FieldRect3D::value(double x, double y, double z, double outside) const
         return _interpolate(cell.z(0),fz0, cell.z(4),fz1, z);
     }
     return outside;
+}
+
+double
+FieldRect3D::valueMin() const
+{
+    return _vmin;
+}
+
+double
+FieldRect3D::valueMax() const
+{
+    return _vmax;
 }
 
 double
