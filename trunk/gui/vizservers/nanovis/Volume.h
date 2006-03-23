@@ -18,10 +18,13 @@
 
 #include "define.h"
 #include "Texture3D.h"
+#include "Vector3.h"
 
 class Volume{
 	
 public:
+	Vector3 location;
+
 	int width;
 	int height;
 	int depth;
@@ -37,7 +40,8 @@ public:
 	Texture3D* tex;	//OpenGL texture storing the volume
 	NVISid id;   //OpenGL textue identifier (==tex->id)
 
-	Volume(int width, int height, int depth, 
+	Volume(float x, float y, float z, 
+			int width, int height, int depth, 
 			NVISdatatype type, NVISinterptype interp,
 			int n_component, float* data);
 	~Volume();

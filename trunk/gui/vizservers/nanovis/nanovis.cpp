@@ -284,10 +284,14 @@ void load_volume(int index, int width, int height, int depth, int n_component, f
 
 
 //load a colormap 1D texture
-void load_colormap(int index){
+void load_colormap(int index, int size, float* data){
 
+  if(colormap[index]!=0){
+    delete colormap[index];
+    colormap[index]=0;
+  }
 
-
+  colormap[index] = new ColorMap(size, data);
 }
 
 

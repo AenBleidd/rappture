@@ -1,0 +1,39 @@
+/*
+ * ----------------------------------------------------------------------
+ * Sphere.h : Sphere class
+ *
+ * ======================================================================
+ *  AUTHOR:  Wei Qiao <qiaow@purdue.edu>
+ *           Purdue Rendering and Perceptualization Lab (PURPL)
+ *
+ *  Copyright (c) 2004-2006  Purdue Research Foundation
+ *
+ *  See the file "license.terms" for information on usage and
+ *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+ * ======================================================================
+ */
+#ifndef _SPHERE_H_
+#define _SPHERE_H_
+
+#include "Color.h"
+
+class Sphere{
+
+public:
+	Vector3 center;
+	float radius;
+	Color color;
+	int stack;
+	int slice;
+
+	Sphere(){};
+	~Sphere(){};
+	Sphere(float x, float y, float z, float r, float g, float b, float a, float r, int _stack, int _slice);
+	set_vertical_res(int _stack);
+	set_horizontal_res(int _slice);
+	
+	//display the sphere
+	draw();
+};
+
+#endif
