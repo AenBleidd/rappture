@@ -24,14 +24,26 @@ PixelOut main(v2f IN, /* uniform sampler1D tf,*/
   PixelOut OUT;
   float4 tex_coord = mul(modelViewInv, IN.TexCoord);
 	
-  //float3 sample = tex3D(volume, tex_coord.xyz).xyz;
+#if 1
+  //1 component
   float sample = tex3D(volume, tex_coord.xyz);
 
-  if (sample < 0.) {
+  if (sample.x < 0.) {
       OUT.Color = float4(0.0, 0.0, 0.0, 0.0);
   } else {
       OUT.Color = float4(sample, sample, sample, sample/renderParameters.x);
   }
+#endif
+
+
+#if 0
+  //3 component
+  float3 sample = tex3D(volume, tex_coord.xyz).xyz;
+  OUT.Color = float4(3*sample, 2*length(sample)/renderParameters.x);
+#endif 
+
+//debug
+//OUT.Color = float4(tex_coord, 1);
 
   return OUT;
 }

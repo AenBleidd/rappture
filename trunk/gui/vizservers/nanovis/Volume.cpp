@@ -19,7 +19,6 @@
 Volume::Volume(float x, float y, float z,
 		int w, int h, int d, 
 		NVISdatatype t, NVISinterptype interp, int n, float* data):
-	location(Vector3(x,y,z)),
 	width(w),
 	height(h),
 	depth(d),
@@ -36,6 +35,7 @@ Volume::Volume(float x, float y, float z,
   aspect_ratio_height = tex->aspect_ratio_height;
   aspect_ratio_depth = tex->aspect_ratio_depth;
 
+  location = Vector3(x,y,z);
 }
 
 

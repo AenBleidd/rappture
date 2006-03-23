@@ -108,5 +108,5 @@ float  tmax   = NPIX/(SCALE*NPN);
 float  dmax   = SCALE/NPIX;
 
 
-//currently active shader
+//currently active shader, default renders one volume only
 int cur_shader = 0;

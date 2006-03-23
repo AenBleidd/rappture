@@ -22,9 +22,9 @@ class Plane {
 public:
 	float a, b, c, d;
 	
-	Plane(float a, float b, float c, float d);
+    Plane(float a, float b, float c, float d);
     Plane(float coeffs[4]);
-	Plane();
+    Plane();
     
 	void get_normal(Vector3 &normal);
     void get_point(Vector3 &point);
