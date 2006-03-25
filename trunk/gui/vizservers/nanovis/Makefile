@@ -1,5 +1,6 @@
 OBJ_NANOVIS = nanovis.o Socket.o RenderVertexArray.o Plane.o ConvexPolygon.o Vector4.o Vector3.o Mat4x4.o \
-		Texture1D.o Texture3D.o ColorMap.o Volume.o Texture2D.o ParticleSystem.o Sphere.o Color.o
+		Texture1D.o Texture3D.o ColorMap.o Volume.o Texture2D.o ParticleSystem.o Sphere.o Color.o \
+		PerfQuery.o
 
 AUXSRC = config.h define.h global.h
 
@@ -65,6 +66,9 @@ Plane.o: Plane.cpp
 
 ConvexPolygon.o: ConvexPolygon.cpp
 	gcc $(CFLAG) ConvexPolygon.cpp
+
+PerfQuery.o: PerfQuery.cpp
+	gcc $(CFLAG) PerfQuery.cpp
 
 nanovis.o: nanovis.h nanovis.cpp ParticleSystem.o $(AUXSRC)
 	gcc $(CFLAG) nanovis.cpp

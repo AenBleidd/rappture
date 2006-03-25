@@ -1,0 +1,61 @@
+/*
+ * ----------------------------------------------------------------------
+ * PerfQuery.h: performance query class
+ * 		It counts then number of pixels rendered on screen using
+ * 		OpenGL occlusion query extension
+ *
+ * ======================================================================
+ *  AUTHOR:  Wei Qiao <qiaow@purdue.edu>
+ *           Purdue Rendering and Perceptualization Lab (PURPL)
+ *
+ *  Copyright (c) 2004-2006  Purdue Research Foundation
+ *
+ *  See the file "license.terms" for information on usage and
+ *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+ * ======================================================================
+ */
+
+#ifndef _PERFQUERY_H_
+#define _PERFQUERY_H_
+
+#include <stdio.h>
+#include <GL/glew.h>
+
+#include "define.h"
+
+//check if occlusion query is supported
+static bool check_query_support(){
+  int bitsSupported = -1;
+  glGetQueryivARB(GL_SAMPLES_PASSED_ARB, GL_QUERY_COUNTER_BITS_ARB, &bitsSupported);
+  if(bitsSupported == 0) {
+    fprintf(stderr, "occlusion query not supported!\n");
+    return false;
+  }
+  else{
+    fprintf(stderr, "Occlusion query with %d bits supported\n", bitsSupported);
+    return true;
+  }
+}
+
+class PerfQuery
+{
+
+public:
+  NVISid id;
+  int pixel;
+
+  PerfQuery();
+  ~PerfQuery();
+
+  void enable();	//start counting how many pixels are rendered
+  void disable();	//stop counting
+
+  void reset();		//reset pixel count to 0;
+  int get_pixel_count();//return current pixel count
+
+};
+
+
+
+#endif
+

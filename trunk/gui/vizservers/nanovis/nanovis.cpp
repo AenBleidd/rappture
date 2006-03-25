@@ -37,6 +37,7 @@ int n_volumes = 0;
 Volume* volume[MAX_N_VOLUMES];		//point to volumes, currently handle up to 10 volumes
 ColorMap* colormap[MAX_N_VOLUMES];	//transfer functions, currently handle up to 10 colormaps
 
+PerfQuery* perf;			//perfromance counter
 
 //Nvidia CG shaders and their parameters
 CGcontext g_context;
@@ -632,6 +633,7 @@ void get_slice_vectors();
 /*----------------------------------------------------*/
 void initGL(void) 
 { 
+   system_info();
    init_glew();
 
    glViewport(0, 0, (GLsizei) NPIX, (GLsizei) NPIX);
@@ -666,8 +668,14 @@ void initGL(void)
      colormap[i] = 0;
    }
 
-   //init_vector_field();	//3d vector field
-   load_volume_file(0, "./data/A-apbs-2-out-potential-PE0.dx");
+   //check if performance query is supported
+   if(check_query_support()){
+     //create queries to count number of rendered pixels
+     perf = new PerfQuery(); 
+   }
+
+   init_vector_field();	//3d vector field
+   //load_volume_file(0, "./data/A-apbs-2-out-potential-PE0.dx");
    //load_volume_file(0, "./data/nw-AB-Vg=0.000-Vd=1.000-potential.dx");
    //load_volume_file(0, "./data/test2.dx");
 
@@ -1286,14 +1294,14 @@ void render_volume(int volume_index, int n_slices){
     volume_planes[i].transform(model_view);
 
   get_near_far_z(mv, zNear, zFar);
-  fprintf(stderr, "zNear:%f, zFar:%f\n", zNear, zFar);
-  fflush(stderr);
+  //fprintf(stderr, "zNear:%f, zFar:%f\n", zNear, zFar);
+  //fflush(stderr);
 
   //compute actual rendering slices
   float z_step = fabs(zNear-zFar)/n_slices;		
   int n_actual_slices = (int)(fabs(zNear-zFar)/z_step + 1);
-  fprintf(stderr, "slices: %d\n", n_actual_slices);
-  fflush(stderr);
+  //fprintf(stderr, "slices: %d\n", n_actual_slices);
+  //fflush(stderr);
 
   static ConvexPolygon staticPoly;	
   float slice_z;
@@ -1558,13 +1566,18 @@ void display()
    //soft_display_verts();
    //psys->display_vertices();
 
-   //render volume
+   //render multiple volumes
    //volume[0]->location =Vector3(0.,0.,0.);
    //render_volume(0, 256);
 
    //render another but shifted using the same texture
    volume[0]->location =Vector3(-0.5,-0.5,-0.5);
+
+   perf->enable();
    render_volume(0, 256);
+   perf->disable();
+   fprintf(stderr, "pixels: %d\n", perf->get_pixel_count());
+   perf->reset();
 
    glDisable(GL_DEPTH_TEST);
 #endif
