@@ -190,15 +190,28 @@ load_volume_file(int index, char *fname) {
                 isrect = 1;
             }
             else if (sscanf(start, "object %d class array type float rank 1 shape 3 items %d data follows", &dummy, &nxy) == 2) {
-                std::ofstream ftmp("tmppts");
-                double xx, yy, zz;
                 isrect = 0;
+                double xx, yy, zz;
                 for (int i=0; i < nxy; i++) {
                     fin.getline(line,sizeof(line)-1);
                     if (sscanf(line, "%lg %lg %lg", &xx, &yy, &zz) == 3) {
                         xymesh.addNode( Rappture::Node2D(xx,yy) );
-                        ftmp << xx << " " << yy << std::endl;
                     }
+                }
+
+                std::ofstream ftmp("tmppts");
+                // save corners of bounding box first, to work around meshing
+                // problems in voronoi utility
+                ftmp << xymesh.rangeMin(Rappture::xaxis) << " "
+                     << xymesh.rangeMin(Rappture::yaxis) << std::endl;
+                ftmp << xymesh.rangeMax(Rappture::xaxis) << " "
+                     << xymesh.rangeMin(Rappture::yaxis) << std::endl;
+                ftmp << xymesh.rangeMax(Rappture::xaxis) << " "
+                     << xymesh.rangeMax(Rappture::yaxis) << std::endl;
+                ftmp << xymesh.rangeMin(Rappture::xaxis) << " "
+                     << xymesh.rangeMax(Rappture::yaxis) << std::endl;
+                for (int i=0; i < nxy; i++) {
+                    ftmp << xymesh.atNode(i).x() << " " << xymesh.atNode(i).y() << std::endl;
                 }
                 ftmp.close();
 
@@ -208,7 +221,10 @@ load_volume_file(int index, char *fname) {
                     while (!ftri.eof()) {
                         ftri.getline(line,sizeof(line)-1);
                         if (sscanf(line, "%d %d %d", &cx, &cy, &cz) == 3) {
-                            xymesh.addCell(cx, cy, cz);
+                            if (cx >= 4 && cy >= 4 && cz >= 4) {
+                                // skip first 4 boundary points
+                                xymesh.addCell(cx-4, cy-4, cz-4);
+                            }
                         }
                     }
                     ftri.close();
@@ -353,10 +369,8 @@ load_volume_file(int index, char *fname) {
             int ngen = 0;
             for (int iz=0; iz < nz; iz++) {
                 double zval = z0 + iz*dmin;
-std::cout << "z = " << zval << std::endl;
                 for (int iy=0; iy < ny; iy++) {
                     double yval = y0 + iy*dmin;
-std::cout << "y = " << yval << std::endl;
                     for (int ix=0; ix < nx; ix++) {
                         double xval = x0 + ix*dmin;
                         double v = field.value(xval,yval,zval);
