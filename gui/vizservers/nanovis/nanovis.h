@@ -39,6 +39,7 @@
 #include "Mat4x4.h"
 #include "Volume.h"
 #include "ParticleSystem.h"
+#include "PerfQuery.h"
 
 #include "config.h"
 

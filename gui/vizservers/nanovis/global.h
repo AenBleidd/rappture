@@ -55,4 +55,14 @@ static void draw_quad(int w, int h, int tw, int th)
     glEnd();
 }
 
+
+//query opengl information
+static void system_info(){
+  fprintf(stderr, "-----------------------------------------------------------\n");
+  fprintf(stderr, "OpenGL driver: %s %s\n", glGetString(GL_VENDOR), glGetString(GL_VERSION));
+  fprintf(stderr, "Graphics hardware: %s\n", glGetString(GL_RENDERER));
+  fprintf(stderr, "-----------------------------------------------------------\n");
+}
+
+
 #endif
