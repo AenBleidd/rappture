@@ -22,6 +22,11 @@
 #include "RpFieldRect3D.h"
 #include "RpFieldPrism3D.h"
 
+// forward declarations
+void init_particles();
+void makePatterns();
+void get_slice_vectors();
+
 ParticleSystem* psys;
 float psys_x=0.4, psys_y=0, psys_z=0;
 
@@ -115,58 +120,140 @@ void init_glew(){
 
 void load_volume(int index, int width, int height, int depth, int n_component, float* data);
 
+/* Load a 3D vector field from a dx-format file
+ */
+void
+load_vector_file(int index, char *fname) {
+    int dummy, nx, ny, nz, nxy, npts;
+    double x0, y0, z0, dx, dy, dz, ddx, ddy, ddz;
+    char line[128], type[128], *start;
+    std::ifstream fin(fname);
 
-//load a vector field from file
-void init_vector_field(){
+    do {
+        fin.getline(line,sizeof(line)-1);
+        for (start=&line[0]; *start == ' ' || *start == '\t'; start++)
+            ;  // skip leading blanks
 
-  FILE* fp = fopen("./data/tornado_64x64x64.raw", "rb");
-  assert(fp!=0);
+        if (*start != '#') {  // skip comment lines
+            if (sscanf(start, "object %d class gridpositions counts %d %d %d", &dummy, &nx, &ny, &nz) == 4) {
+                // found grid size
+            }
+            else if (sscanf(start, "origin %lg %lg %lg", &x0, &y0, &z0) == 3) {
+                // found origin
+            }
+            else if (sscanf(start, "delta %lg %lg %lg", &ddx, &ddy, &ddz) == 3) {
+                // found one of the delta lines
+                if (ddx != 0.0) { dx = ddx; }
+                else if (ddy != 0.0) { dy = ddy; }
+                else if (ddz != 0.0) { dz = ddz; }
+            }
+            else if (sscanf(start, "object %d class array type %s shape 3 rank 1 items %d data follows", &dummy, type, &npts) == 3) {
+                if (npts != nx*ny*nz) {
+                    std::cerr << "inconsistent data: expected " << nx*ny*nz << " points but found " << npts << " points" << std::endl;
+                    return;
+                }
+                break;
+            }
+        }
+    } while (!fin.eof());
 
-  float* data = new float[64*64*64*3];
-  for(int j=0; j<64*64*64*3; j++){
-       fread(data + j, 4, 1, fp);
-       //fprintf(stderr, "%f ", data[3*j+i]);
-  }
-  fclose(fp);
+    // read data points
+    if (!fin.eof()) {
+        Rappture::Mesh1D xgrid(x0, x0+nx*dx, nx);
+        Rappture::Mesh1D ygrid(y0, y0+ny*dy, ny);
+        Rappture::Mesh1D zgrid(z0, z0+nz*dz, nz);
+        Rappture::FieldRect3D xfield(xgrid, ygrid, zgrid);
+        Rappture::FieldRect3D yfield(xgrid, ygrid, zgrid);
+        Rappture::FieldRect3D zfield(xgrid, ygrid, zgrid);
 
-  //normalize data
-  float _max = FLT_MIN;
-  float _min = FLT_MAX;
+        double vx, vy, vz;
+        int nread = 0;
+        for (int ix=0; ix < nx; ix++) {
+            for (int iy=0; iy < ny; iy++) {
+                for (int iz=0; iz < nz; iz++) {
+                    if (fin.eof() || nread > npts) {
+                        break;
+                    }
+                    fin.getline(line,sizeof(line)-1);
+                    if (sscanf(line, "%lg %lg %lg", &vx, &vy, &vz) == 3) {
+                        int nindex = iz*nx*ny + iy*nx + ix;
+                        xfield.define(nindex, vx);
+                        yfield.define(nindex, vy);
+                        zfield.define(nindex, vz);
+                        nread++;
+                    }
+                }
+            }
+        }
 
-  for(int j=0; j<64*64*64; j++){
-    float mag = sqrt(data[j*3]*data[j*3] + data[j*3+1]*data[j*3+1] + data[j*3+2]*data[j*3+2]);
-    if(mag > _max)
-      _max = mag;
-    if(mag < _min) 
-      _min = mag;
-  }
+        // make sure that we read all of the expected points
+        if (nread != nx*ny*nz) {
+            std::cerr << "inconsistent data: expected " << nx*ny*nz << " points but found " << nread << " points" << std::endl;
+            return;
+        }
 
-  fprintf(stderr, "max=%f, min=%f\n", _max, _min);
+        // figure out a good mesh spacing
+        int nsample = 30;
+        dx = xfield.rangeMax(Rappture::xaxis) - xfield.rangeMin(Rappture::xaxis);
+        dy = xfield.rangeMax(Rappture::yaxis) - xfield.rangeMin(Rappture::yaxis);
+        dz = xfield.rangeMax(Rappture::zaxis) - xfield.rangeMin(Rappture::zaxis);
+        double dmin = pow((dx*dy*dz)/(nsample*nsample*nsample), 0.333);
 
-  float scale = _max - _min;
-  
-  for(int j=0; j<64*64*64*3; j++){
-    data[j]=data[j]/scale;
+        nx = (int)ceil(dx/dmin);
+        ny = (int)ceil(dy/dmin);
+        nz = (int)ceil(dz/dmin);
 
 #ifndef NV40
-    //cut negative values
-    if(data[j]<0)
-      data[j]=0;
+	nx = pow(2.0, ceil(log10((double)nx)/log10(2.0)));  // must be an even power of 2
+	ny = pow(2.0, ceil(log10((double)ny)/log10(2.0)));
+	nz = pow(2.0, ceil(log10((double)nz)/log10(2.0)));
 #endif
-  }
 
-  /*
-  for(int j=0; j<64*64*64; j++)
-    fprintf(stderr, "[%f, %f, %f]\t", data[j*3], data[j*3+1], data[j*3+2]);
-  */
+        float *data = new float[3*nx*ny*nz];
 
-  //load the vector field as a volume
-  load_volume(0, 64, 64, 64, 3, data);
-  n_volumes++;
-  delete[] data;
+        std::cout << "generating " << nx << "x" << ny << "x" << nz << " = " << nx*ny*nz << " points" << std::endl;
 
-  fprintf(stderr, "init_vector_field\n");
+        // generate the uniformly sampled data that we need for a volume
+        double vmin = 0.0;
+        double vmax = 0.0;
+        int ngen = 0;
+        for (int iz=0; iz < nz; iz++) {
+            double zval = z0 + iz*dmin;
+            for (int iy=0; iy < ny; iy++) {
+                double yval = y0 + iy*dmin;
+                for (int ix=0; ix < nx; ix++) {
+                    double xval = x0 + ix*dmin;
+
+                    vx = xfield.value(xval,yval,zval);
+                    vy = yfield.value(xval,yval,zval);
+                    vz = zfield.value(xval,yval,zval);
+		    //vx = 1;
+		    //vy = 1;
+		    vz = 0;
+                    double vm = sqrt(vx*vx + vy*vy + vz*vz);
+
+                    if (vm < vmin) { vmin = vm; }
+                    if (vm > vmax) { vmax = vm; }
+
+                    data[ngen++] = vx;
+                    data[ngen++] = vy;
+                    data[ngen++] = vz;
+                }
+            }
+        }
+
+        ngen = 0;
+        for (ngen=0; ngen < npts; ngen++) {
+            data[ngen] = (data[ngen]/(2.0*vmax) + 0.5);
+        }
+
+        load_volume(index, nx, ny, nz, 3, data);
+        delete [] data;
+    } else {
+        std::cerr << "WARNING: data not found in file " << fname << std::endl;
+    }
 }
+
 
 /* Load a 3D volume from a dx-format file
  */
@@ -269,9 +356,19 @@ load_volume_file(int index, char *fname) {
 
             double dval;
             int nread = 0;
-            while (!fin.eof() && nread < npts) {
-                if (!(fin >> dval).fail()) {
-                    field.define(nread++, dval);
+            for (int ix=0; ix < nx; ix++) {
+                for (int iy=0; iy < ny; iy++) {
+                    for (int iz=0; iz < nz; iz++) {
+                        if (fin.eof() || nread > npts) {
+                            break;
+                        }
+                        fin.getline(line,sizeof(line)-1);
+                        if (sscanf(line, "%lg", &dval) == 1) {
+                            int nindex = iz*nx*ny + iy*nx + ix;
+                            field.define(nindex, dval);
+                            nread++;
+                        }
+                    }
                 }
             }
 
@@ -531,11 +628,14 @@ void init_cg(){
     m_mvp_vert_std_param = cgGetNamedParameter(m_vert_std_vprog, "modelViewProjMatrix");
     m_mvi_vert_std_param = cgGetNamedParameter(m_vert_std_vprog, "modelViewInv");
 
+/*
     m_pos_fprog = loadProgram(g_context, CG_PROFILE_FP30, CG_SOURCE, "./shaders/update_pos.cg");
     m_pos_timestep_param  = cgGetNamedParameter(m_pos_fprog, "timestep");
     m_vel_tex_param = cgGetNamedParameter(m_pos_fprog, "vel_tex");
     m_pos_tex_param = cgGetNamedParameter(m_pos_fprog, "pos_tex");
     cgGLSetTextureParameter(m_vel_tex_param, volume[0]->id);
+*/
+  
 
     m_render_vel_fprog = loadProgram(g_context, CG_PROFILE_FP30, CG_SOURCE, "./shaders/render_vel.cg");
     m_vel_tex_param_render_vel = cgGetNamedParameter(m_render_vel_fprog, "vel_tex");
@@ -601,12 +701,14 @@ void init_particles(){
     for (int j=0; j<psys->psys_height; j++){ 
       int index = i + psys->psys_height*j;
       bool particle = rand() % 256 > 100; 
+      particle = true;
       if(particle)
       {
-        data[4*index] = psys_x;
-	data[4*index+1]= i/float(psys->psys_width);
-	data[4*index+2]= j/float(psys->psys_height);
-	data[4*index+3]= 30;	
+	//assign any location (x,y,z) in range [0,1]
+        data[4*index] = 0.5;
+	data[4*index+1]= j/float(psys->psys_height);
+	data[4*index+2]= lic_slice_z; //lic_slice_z; //i/float(psys->psys_width);
+	data[4*index+3]= 30; //shorter life span, quicker iterations	
       }
       else
       {
@@ -626,8 +728,6 @@ void init_particles(){
 
 
 
-void makePatterns();
-void get_slice_vectors();
 
 
 /*----------------------------------------------------*/
@@ -679,16 +779,26 @@ void initGL(void)
    //load_volume_file(0, "./data/nw-AB-Vg=0.000-Vd=1.000-potential.dx");
    //load_volume_file(0, "./data/test2.dx");
 
+   load_vector_file(0, "./data/J-wire-vec.dx");
+   load_volume_file(1, "./data/mu-wire-3d.dx");
+
    init_fbo();	//frame buffer objects
    init_cg();	//init cg shaders
 
    //load the default one volume shader
    switch_shader(cur_shader);
 
-   //psys = new ParticleSystem(NMESH, NMESH, g_context, volume[0]->id);
-   //init_particles();	//fill initial particles
+   /*
+   psys = new ParticleSystem(NMESH, NMESH, g_context, volume[0]->id,
+		   1./volume[0]->aspect_ratio_width,
+		   1./volume[0]->aspect_ratio_height,
+		   1./volume[0]->aspect_ratio_depth);
+   */
+   psys = new ParticleSystem(NMESH, NMESH, g_context, volume[0]->id, 0.25, 1., 1.);
 
-   //get_slice_vectors();
+   init_particles();	//fill initial particles
+
+   get_slice_vectors();
 }
 
 
@@ -1084,10 +1194,10 @@ void get_slice_vectors(){
 
    cgGLEnableProfile(CG_PROFILE_FP30);
    glBegin(GL_QUADS);
-    glTexCoord3f(0., 0., slice_z); glVertex2f(0.,         0.);
-    glTexCoord3f(1., 0., slice_z); glVertex2f((float)NMESH,     0.);
-    glTexCoord3f(1., 1., slice_z); glVertex2f((float)NMESH, (float)NMESH);
-    glTexCoord3f(0., 1., slice_z); glVertex2f((float)0.,    (float)NMESH);
+    glTexCoord3f(0., 0., lic_slice_z); glVertex2f(0.,         0.);
+    glTexCoord3f(1., 0., lic_slice_z); glVertex2f((float)NMESH,     0.);
+    glTexCoord3f(1., 1., lic_slice_z); glVertex2f((float)NMESH, (float)NMESH);
+    glTexCoord3f(0., 1., lic_slice_z); glVertex2f((float)0.,    (float)NMESH);
 
     /*
     glTexCoord3f(0., 0., 0.5); glVertex2f(0.,         0.);
@@ -1221,7 +1331,7 @@ void get_near_far_z(Mat4x4 mv, double &zNear, double &zFar)
 }
 
 
-void activate_one_volume_shader(int n_actual_slices){
+void activate_one_volume_shader(int volume_index, int n_actual_slices){
 
   cgGLSetStateMatrixParameter(m_mvp_vert_std_param, CG_GL_MODELVIEW_PROJECTION_MATRIX, CG_GL_MATRIX_IDENTITY);
   cgGLSetStateMatrixParameter(m_mvi_vert_std_param, CG_GL_MODELVIEW_MATRIX, CG_GL_MATRIX_INVERSE);
@@ -1229,8 +1339,16 @@ void activate_one_volume_shader(int n_actual_slices){
   cgGLEnableProfile(CG_PROFILE_VP30);
 
   cgGLSetStateMatrixParameter(m_mvi_one_volume_param, CG_GL_MODELVIEW_MATRIX, CG_GL_MATRIX_INVERSE);
+  cgGLSetTextureParameter(m_vol_one_volume_param, volume[volume_index]->id);
   cgGLEnableTextureParameter(m_vol_one_volume_param);
-  cgGLSetParameter4f(m_render_param_one_volume_param, n_actual_slices, 0., 0., 0.);
+
+  //hack!
+  //if parameter.y == 0 : volume :0
+  //if parameter.y == 1 : volume :1
+  if(volume_index==0)
+    cgGLSetParameter4f(m_render_param_one_volume_param, n_actual_slices, 0., 0., 0.);
+  else if(volume_index==1)
+    cgGLSetParameter4f(m_render_param_one_volume_param, n_actual_slices, 1., 0., 0.);
   cgGLBindProgram(m_one_volume_fprog);
   cgGLEnableProfile(CG_PROFILE_FP30);
 }
@@ -1240,8 +1358,9 @@ void deactivate_one_volume_shader(){
   cgGLDisableProfile(CG_PROFILE_VP30);
   cgGLDisableProfile(CG_PROFILE_FP30);
 
-  cgGLDisableTextureParameter(m_vel_tex_param);
-  cgGLDisableTextureParameter(m_pos_tex_param);
+  cgGLEnableTextureParameter(m_vol_one_volume_param);
+  //cgGLDisableTextureParameter(m_vel_tex_param);
+  //cgGLDisableTextureParameter(m_pos_tex_param);
 }
 
 
@@ -1363,7 +1482,7 @@ void render_volume(int volume_index, int n_slices){
     glEnd();
     */
     
-    activate_one_volume_shader(n_actual_slices);
+    activate_one_volume_shader(volume_index, n_actual_slices);
     glPopMatrix();
 
     glBegin(GL_POLYGON);
@@ -1499,6 +1618,39 @@ void render_volume(int volume_index, int n_slices){
 }
 #endif
 
+void draw_axis(){
+
+  glDisable(GL_TEXTURE_2D);
+  glEnable(GL_DEPTH_TEST);
+
+  //red x
+  glColor3f(1,0,0);
+  glBegin(GL_LINES);
+    glVertex3f(0,0,0);
+    glVertex3f(1.5,0,0);
+  glEnd();
+
+
+  //blue y
+  glColor3f(0,0,1);
+  glBegin(GL_LINES);
+    glVertex3f(0,0,0);
+    glVertex3f(0,1.5,0);
+  glEnd();
+
+
+  //green z
+  glColor3f(0,1,0);
+  glBegin(GL_LINES);
+    glVertex3f(0,0,0);
+    glVertex3f(0,0,1.5);
+  glEnd();
+
+  glEnable(GL_TEXTURE_2D);
+  glDisable(GL_DEPTH_TEST);
+}
+
+
 
 /*----------------------------------------------------*/
 void display()
@@ -1510,7 +1662,7 @@ void display()
    fbo_capture();
 
    //convolve
-   //lic();
+   lic();
 
    /*
    //blend magnitude texture
@@ -1526,7 +1678,7 @@ void display()
    */
    
    //advect particles
-   //psys->advect();
+   psys->advect();
 
    final_fbo_capture();
    //display_texture(slice_vector_tex, NMESH, NMESH);
@@ -1546,38 +1698,57 @@ void display()
    
    glMatrixMode(GL_MODELVIEW);
    glLoadIdentity();
-   //glTranslatef(live_obj_x, live_obj_y, live_obj_z);
-   glTranslatef(0, 0, live_obj_z);
+   glTranslatef(live_obj_x, live_obj_y, live_obj_z);
 
    glRotated(live_rot_x, 1., 0., 0.);
    glRotated(live_rot_y, 0., 1., 0.);
    glRotated(live_rot_z, 0., 0., 1.);
 
-   /*
+   
+   glPushMatrix();
+
+   glScaled(volume[0]->aspect_ratio_width, 
+	  volume[0]->aspect_ratio_height, 
+	  volume[0]->aspect_ratio_depth);
+
+   
    //draw line integral convolution quad
    glBegin(GL_QUADS);
-   glTexCoord2f(0, 0); glVertex3f(0, 0, slice_z);
-   glTexCoord2f(1, 0); glVertex3f(1, 0, slice_z);
-   glTexCoord2f(1, 1); glVertex3f(1, 1, slice_z);
-   glTexCoord2f(0, 1); glVertex3f(0, 1, slice_z);
+   glTexCoord2f(0, 0); glVertex3f(0, 0, lic_slice_z);
+   glTexCoord2f(1, 0); glVertex3f(1, 0, lic_slice_z);
+   glTexCoord2f(1, 1); glVertex3f(1, 1, lic_slice_z);
+   glTexCoord2f(0, 1); glVertex3f(0, 1, lic_slice_z);
    glEnd();
-   */
+   
+   glPopMatrix();
+   
 
    //soft_display_verts();
-   //psys->display_vertices();
+   
+   glPushMatrix();
 
-   //render multiple volumes
+   glScaled(volume[0]->aspect_ratio_width,
+	  volume[0]->aspect_ratio_height, 
+	  volume[0]->aspect_ratio_depth);
+
+   psys->display_vertices();
+
+   glPopMatrix();
+
+   //render volume :0 
    //volume[0]->location =Vector3(0.,0.,0.);
    //render_volume(0, 256);
 
-   //render another but shifted using the same texture
-   volume[0]->location =Vector3(-0.5,-0.5,-0.5);
+   //render volume :1
+   volume[1]->location =Vector3(0., 0., 0.);
+   render_volume(1, 256);
 
    perf->enable();
-   render_volume(0, 256);
    perf->disable();
    fprintf(stderr, "pixels: %d\n", perf->get_pixel_count());
    perf->reset();
+
+   draw_axis();
 
    glDisable(GL_DEPTH_TEST);
 #endif
@@ -1651,11 +1822,11 @@ void keyboard(unsigned char key, int x, int y){
 		exit(0);
 		break;
 	case '+':
-		slice_z+=0.1;
+		lic_slice_z+=0.05;
 		get_slice_vectors();
 		break;
 	case '-':
-		slice_z-=0.1;
+		lic_slice_z-=0.05;
 		get_slice_vectors();
 		break;
 	case '1':
@@ -1666,6 +1837,21 @@ void keyboard(unsigned char key, int x, int y){
 		break;
 	case '3':
 		psys_x-=0.1;
+		break;
+	case 'w': //zoom out
+		live_obj_z-=0.1;
+		break;
+	case 's': //zoom in
+		live_obj_z+=0.1;
+		break;
+	case 'a': //left
+		live_obj_x-=0.1;
+		break;
+	case 'd': //right
+		live_obj_x+=0.1;
+		break;
+	case 'i':
+		init_particles();
 		break;
 	default:
 		break;

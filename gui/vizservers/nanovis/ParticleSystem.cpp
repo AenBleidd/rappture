@@ -21,7 +21,10 @@
 #include "ParticleSystem.h"
 
 
-ParticleSystem::ParticleSystem(int w, int h, CGcontext context, NVISid volume){
+ParticleSystem::ParticleSystem(int w, int h, CGcontext context, NVISid volume, float scale_x, 
+		float scale_y, float scale_z){
+
+  fprintf(stderr, "%f, %f, %f\n", scale_x, scale_y, scale_z);
 
   psys_width = w;
   psys_height = h;
@@ -29,7 +32,7 @@ ParticleSystem::ParticleSystem(int w, int h, CGcontext context, NVISid volume){
   psys_frame = 0;
   reborn = true;
   flip = true;
-  max_life = 30;
+  max_life = 100;
 
   data = (Particle*) malloc(w*h*sizeof(Particle));
 
@@ -65,7 +68,9 @@ ParticleSystem::ParticleSystem(int w, int h, CGcontext context, NVISid volume){
   m_pos_timestep_param  = cgGetNamedParameter(m_pos_fprog, "timestep");
   m_vel_tex_param = cgGetNamedParameter(m_pos_fprog, "vel_tex");
   m_pos_tex_param = cgGetNamedParameter(m_pos_fprog, "pos_tex");
+  m_scale_param = cgGetNamedParameter(m_pos_fprog, "scale");
   cgGLSetTextureParameter(m_vel_tex_param, volume);
+  cgGLSetParameter3f(m_scale_param, scale_x, scale_y, scale_z);
 
   fprintf(stderr, "init_psys\n");
 }
@@ -130,7 +135,7 @@ void ParticleSystem::advect(){
      glLoadIdentity();
 
      cgGLBindProgram(m_pos_fprog);
-     cgGLSetParameter1f(m_pos_timestep_param, 0.1);
+     cgGLSetParameter1f(m_pos_timestep_param, 0.05);
      cgGLEnableTextureParameter(m_vel_tex_param);
      cgGLSetTextureParameter(m_pos_tex_param, psys_tex[0]);
      cgGLEnableTextureParameter(m_pos_tex_param);
@@ -158,7 +163,7 @@ void ParticleSystem::advect(){
      glLoadIdentity();
 
      cgGLBindProgram(m_pos_fprog);
-     cgGLSetParameter1f(m_pos_timestep_param, 0.1);
+     cgGLSetParameter1f(m_pos_timestep_param, 0.05);
      cgGLEnableTextureParameter(m_vel_tex_param);
      cgGLSetTextureParameter(m_pos_tex_param, psys_tex[1]);
      cgGLEnableTextureParameter(m_pos_tex_param);
@@ -199,8 +204,9 @@ void ParticleSystem::display_vertices(){
   glDisable(GL_TEXTURE_2D);
   glDisable(GL_BLEND);
 
-  glPointSize(0.5);
-  glColor4f(.8,.8,.8,1.);
+  //glPointSize(0.5);
+  glPointSize(1.5);
+  glColor4f(.1,.0,.3,1.);
 
   m_vertex_array->SetPointer(0);
   //glEnableVertexAttribArray(0);

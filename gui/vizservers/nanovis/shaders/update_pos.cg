@@ -17,7 +17,8 @@
 float4 main(in float2 uv : TEXCOORD0,
             uniform samplerRECT pos_tex,
             uniform sampler3D vel_tex,
-            uniform float timestep
+            uniform float timestep,
+            uniform float3 scale
             ) : COLOR
 {
 
@@ -27,16 +28,23 @@ float4 main(in float2 uv : TEXCOORD0,
     float time = pos.w;
 
     float4 vel = float4(tex3D(vel_tex, pos.xyz).xyz, 0);
-    ret = pos + vel*timestep;
 
+    //reconstruct negative value
+    vel = (vel - float4(0.5,0.5,0.5,0.))*2.;
+    vel.x *= scale.x;
+    vel.y *= scale.y;
+    vel.z *= scale.z;
+    ret = pos + vel*timestep;
+    //ret = pos;
 
 /*
+    //not drawing if the particle is out of bound
     if(ret.x<0 || ret.x>1 || ret.y<0 || ret.y>1 || ret.z<0 || ret.z>1 || time==0)
       ret = float4(1,0,0,0); 
     else
-      ret.w = time-1;
+      ret.w = 1;
 */
 
-    ret.w = 1.0;
+    ret.w = 1.;
     return ret;
 }
