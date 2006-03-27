@@ -26,6 +26,7 @@ float4 main(in float3 uvw : TEXCOORD0,
     ret.x = plane_normal.x * vel.x;
     ret.y = plane_normal.y * vel.y;
     ret.z = plane_normal.z * vel.z;
-
-    return float4(ret, 1);
+    
+    float3 tmp = ret*2.0 - float3(1,1,1);
+    return float4(tmp, 1);
 }

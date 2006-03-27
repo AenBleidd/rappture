@@ -24,23 +24,30 @@ PixelOut main(v2f IN, /* uniform sampler1D tf,*/
   PixelOut OUT;
   float4 tex_coord = mul(modelViewInv, IN.TexCoord);
 	
-#if 0
-  //1 component
-  float sample = tex3D(volume, tex_coord.xyz);
+  if(renderParameters.y==1){
+    //1 component
+    float sample = tex3D(volume, tex_coord.xyz);
 
-  if (sample.x < 0.) {
+    if (sample.x < 0.) {
       OUT.Color = float4(0.0, 0.0, 0.0, 0.0);
-  } else {
-      OUT.Color = float4(sample, sample, sample, sample/renderParameters.x);
+    } 
+    else{
+      //shades of red //more opaque
+      OUT.Color = float4(sample, 0, 0, 7*sample/renderParameters.x);
+
+      if(sample<0.6 && sample>0.4){
+        OUT.Color = float4(0, 0, 1, 10*sample/renderParameters.x);
+      }
+    }
   }
-#endif
 
+  else if(renderParameters.y==0){
 
-#if 1
-  //3 component
-  float3 sample = tex3D(volume, tex_coord.xyz).xyz;
-  OUT.Color = float4(3*sample, 2*length(sample)/renderParameters.x);
-#endif 
+    //3 component
+    float3 sample = tex3D(volume, tex_coord.xyz).xyz;
+    
+    OUT.Color = float4(3*sample, 2*length(sample)/renderParameters.x);
+  }
 
 //debug
 //OUT.Color = float4(tex_coord, 1);

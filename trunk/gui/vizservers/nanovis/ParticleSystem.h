@@ -33,7 +33,7 @@ typedef struct Particle{
   float aux;
 
   Particle(){};
-  Particle(float _x, float _y, float _z, float _life):
+  Particle(float _x, float _y, float _z, float _life) :
    x(_x), y(_y), z(_z), aux(_life){}
 };
 
@@ -55,14 +55,15 @@ class ParticleSystem{
   //Nvidia CG shaders and their parameters
   CGcontext m_g_context;
   CGprogram m_pos_fprog;
-  CGparameter m_vel_tex_param, m_pos_tex_param;
+  CGparameter m_vel_tex_param, m_pos_tex_param, m_scale_param;
   CGparameter m_pos_timestep_param, m_pos_spherePos_param;
 
 public:
   int psys_width;	//the storage of particles is implemented as a 2D array.
   int psys_height;
 
-  ParticleSystem(int w, int h, CGcontext context, NVISid vector_field);
+  ParticleSystem(int w, int h, CGcontext context, NVISid vector_field, 
+		  float scalex, float scaley, float scalez);
   ~ParticleSystem();
   void initialize(Particle* data);
   void advect();

@@ -86,15 +86,15 @@ float live_rot_x = 0.;		//object rotation angles
 float live_rot_y = 0.;
 float live_rot_z = 0.;
 
-float live_obj_x = -0.5;	//object translation location from the origin
-float live_obj_y = -0.5;
+float live_obj_x = -0.0;	//object translation location from the origin
+float live_obj_y = -0.0;
 float live_obj_z = -2.5;
 
 int left_last_x, left_last_y, right_last_x, right_last_y; 	//last locations mouse events
 bool left_down = false;						
 bool right_down = false;
 
-float slice_x=0, slice_y=0, slice_z=0.3;	//image based flow visualization slice location
+float lic_slice_x=0, lic_slice_y=0, lic_slice_z=0.3;//image based flow visualization slice location
 
 int win_width = NPIX;			//size of the render window
 int win_height = NPIX;			//size of the render window
