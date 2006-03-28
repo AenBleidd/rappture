@@ -12,18 +12,34 @@
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  * ======================================================================
  */
+
 #ifndef _COLOR_H_ 
 #define _COLOR_H_
 
 class Color  
 {
 public:
+	double R;		// Red component
+	double G;		// Green component
+	double B;		// Blue component
 
+	void GetRGB(unsigned char *result);
+	void GetRGB(float *result);
+
+	void SetRGBA(unsigned char *color);
+	void GetRGBA(double opacity, unsigned char *result);
+	Color operator *(Color &other);
+	Color* next;	//pointer to the next color
+
+	Color();
+	Color(double r, double g, double b);
+
+	void LimitColors(); //Limits the color to be in range of 0.0 and 1.0
+	Color operator*(double k);
+	friend Color operator*(double k, Color &other);
+	Color operator+(Color &other);
+	~Color();
 	float r, g, b, a;
-
-	Color(){};
-	Color(float _r, float _g, float _b, float _a);
-	~Color(){};
 };
 
 #endif

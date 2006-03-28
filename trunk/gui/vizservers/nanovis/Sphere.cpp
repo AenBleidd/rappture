@@ -17,7 +17,7 @@
 #include <stdio.h>
 
 Sphere::Sphere(float x, float y, float z, 
-		float r, float g, float b, float a, 
+		float r, float g, float b,
 		float _radius,
 		int _stack,
 		int _slice):
@@ -25,12 +25,12 @@ Sphere::Sphere(float x, float y, float z,
 	stack(_stack),
 	slice(_slice),
 	center(Vector3(x,y,z)),
-	color(Color(r,g,b,a))
+	color(Color(r,g,b))
 { }
 
 
 void Sphere::draw(GLUquadric* quad){
-  glColor4f(color.r, color.g, color.b, color.a);
+  glColor3f(color.R, color.G, color.B);
 
   glMatrixMode(GL_MODELVIEW);
   glPushMatrix();

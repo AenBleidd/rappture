@@ -1,13 +1,15 @@
 OBJ_NANOVIS = nanovis.o Socket.o RenderVertexArray.o Plane.o ConvexPolygon.o Vector4.o Vector3.o Mat4x4.o \
-		Texture1D.o Texture3D.o ColorMap.o Volume.o Texture2D.o ParticleSystem.o Sphere.o Color.o \
-		PerfQuery.o
+		Texture1D.o Texture3D.o Volume.o Texture2D.o ParticleSystem.o Sphere.o Color.o \
+		PerfQuery.o TransferFunction.o ControlPoint.o ColorGradient.o ColorPaletteWindow.o\
+		ColorGradientGLUTWindow.o TransferFunctionGLUTWindow.o MainWindow.o
 
 AUXSRC = config.h define.h global.h
 
 SOCKETSRC = ./socket
 SORTSRC = ./sort
+TFSRC = ./transfer-function
 
-LIB_NANOVIS = -ltcl8.4 -lGL -lglut -lGLEW -lCg -lCgGL -pthread -lstdc++
+LIB_NANOVIS = -ltcl8.4 -lGL -lglut -lglui -lGLEW -lCg -lCgGL -pthread -lstdc++
 LIB_CLIENT = -lGL -lglut -pthread
 CFLAG = -g -c -Wall -I../src2/core
 
@@ -19,6 +21,21 @@ clean:
 nanovis: $(OBJ_NANOVIS)
 	gcc -g -o nanovis $(OBJ_NANOVIS) $(LIB_NANOVIS) ../src2/core/*.o
 
+ColorGradient.o: Color.o $(TFSRC)/ColorGradient.cpp
+	gcc $(CFLAG) $(TFSRC)/ColorGradient.cpp
+
+ColorPaletteWindow.o: Color.o ControlPoint.o $(TFSRC)/ColorPaletteWindow.cpp
+	gcc $(CFLAG) $(TFSRC)/ColorPaletteWindow.cpp
+
+ColorGradientGLUTWindow.o: ControlPoint.o ColorGradient.o $(TFSRC)/ColorGradientGLUTWindow.cpp
+	gcc $(CFLAG) $(TFSRC)/ColorGradientGLUTWindow.cpp
+
+TransferFunctionGLUTWindow.o: ColorGradientGLUTWindow.o $(TFSRC)/TransferFunctionGLUTWindow.cpp
+	gcc $(CFLAG) $(TFSRC)/TransferFunctionGLUTWindow.cpp
+
+MainWindow.o: TransferFunctionGLUTWindow.o ColorGradientGLUTWindow.o ColorPaletteWindow.o $(TFSRC)/MainWindow.cpp
+	gcc $(CFLAG) $(TFSRC)/MainWindow.cpp
+	
 Socket.o: $(SOCKETSRC)/Socket.h $(SOCKETSRC)/Socket.cpp
 	gcc $(CFLAG) $(SOCKETSRC)/Socket.cpp
 
@@ -31,11 +48,14 @@ RenderVertexArray.o: RenderVertexArray.h RenderVertexArray.cpp
 Color.o: Color.cpp
 	gcc $(CFLAG) Color.cpp
 
+ControlPoint.o: $(TFSRC)/ControlPoint.cpp
+	gcc $(CFLAG) $(TFSRC)/ControlPoint.cpp
+
 Sphere.o: Vector3.o Color.o
 	gcc $(CFLAG) Sphere.cpp
 
-ColorMap.o: ColorMap.cpp
-	gcc $(CFLAG) ColorMap.cpp
+TransferFunction.o: TransferFunction.cpp
+	gcc $(CFLAG) TransferFunction.cpp
 
 Texture1D.o: Texture1D.cpp
 	gcc $(CFLAG) Texture1D.cpp

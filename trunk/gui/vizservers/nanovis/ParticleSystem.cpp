@@ -32,7 +32,7 @@ ParticleSystem::ParticleSystem(int w, int h, CGcontext context, NVISid volume, f
   psys_frame = 0;
   reborn = true;
   flip = true;
-  max_life = 100;
+  max_life = 500;
 
   data = (Particle*) malloc(w*h*sizeof(Particle));
 
@@ -205,8 +205,8 @@ void ParticleSystem::display_vertices(){
   glDisable(GL_BLEND);
 
   //glPointSize(0.5);
-  glPointSize(1.5);
-  glColor4f(.1,.0,.3,1.);
+  glPointSize(1.0);
+  glColor4f(.6,.6,.0,1.);
 
   m_vertex_array->SetPointer(0);
   //glEnableVertexAttribArray(0);

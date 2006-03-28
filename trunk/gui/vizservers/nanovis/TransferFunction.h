@@ -14,14 +14,14 @@
  * ======================================================================
  */
 
-#ifndef _COLOR_MAP_H_
-#define _COLOR_MAP_H_
+#ifndef _TRANSFER_FUNCTION_H_
+#define _TRANSFER_FUNCTION_H_
 
 
 #include "Texture1D.h"
 
 
-class ColorMap{
+class TransferFunction{
   int size;	//the resolution of the color map, how many (RGBA) quadraples
   Texture1D* tex; //the texture storing the colors 
 
@@ -29,8 +29,8 @@ class ColorMap{
 
 
 public:
-  ColorMap(int _size, float* data);
-  ~ColorMap();
+  TransferFunction(int _size, float* data);
+  ~TransferFunction();
 };
 
 
