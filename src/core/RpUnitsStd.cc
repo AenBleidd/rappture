@@ -146,42 +146,42 @@ double base2peta (double base)
 
 double angstrom2meter (double angstrom)
 {
-        return angstrom*(1.0e-10);
+    return angstrom*(1.0e-10);
 }
 
 double meter2angstrom (double meter)
 {
-        return meter*(1.0e10);
+    return meter*(1.0e10);
 }
 
 double meter2inch (double meter)
 {
-        return meter*(39.37008);
+    return meter*(39.37008);
 }
 
 double inch2meter (double in)
 {
-        return (in/(39.37008));
+    return (in/(39.37008));
 }
 
 double meter2feet (double meter)
 {
-        return (meter*(3.280840));
+    return (meter*(3.280840));
 }
 
 double feet2meter (double ft)
 {
-        return (ft/(3.280840));
+    return (ft/(3.280840));
 }
 
 double meter2yard (double meter)
 {
-        return (meter*(1.093613));
+    return (meter*(1.093613));
 }
 
 double yard2meter (double yd)
 {
-        return (yd/(1.093613));
+    return (yd/(1.093613));
 }
 
 /****************************************
@@ -190,42 +190,42 @@ double yard2meter (double yd)
 
 double fahrenheit2centigrade (double F)
 {
-        return ((F-32.0)/(9.0/5.0));
+    return ((F-32.0)/(9.0/5.0));
 }
 
 double centigrade2fahrenheit (double C)
 {
-        return ((C*(9.0/5.0))+32.0);
+    return ((C*(9.0/5.0))+32.0);
 }
 
 double centigrade2kelvin (double C)
 {
-        return (C+273.15);
+    return (C+273.15);
 }
 
 double kelvin2centigrade (double K)
 {
-        return (K-273.15);
+    return (K-273.15);
 }
 
 double rankine2kelvin (double R)
 {
-        return ((9.0/5.0)*R);
+    return ((9.0/5.0)*R);
 }
 
 double kelvin2rankine (double K)
 {
-        return ((5.0/9.0)*K);
+    return ((5.0/9.0)*K);
 }
 
 double fahrenheit2kelvin (double F)
 {
-        return ((F+459.67)*(5.0/9.0));
+    return ((F+459.67)*(5.0/9.0));
 }
 
 double kelvin2fahrenheit (double K)
 {
-        return (((9.0/5.0)*K)-459.67);
+    return (((9.0/5.0)*K)-459.67);
 }
 
 /****************************************
@@ -234,12 +234,12 @@ double kelvin2fahrenheit (double K)
 
 double electronVolt2joule (double eV)
 {
-        return (eV*1.602177e-19);
+    return (eV*1.602177e-19);
 }
 
 double joule2electronVolt (double J)
 {
-        return (J/1.602177e-19);
+    return (J/1.602177e-19);
 }
 
 /****************************************
@@ -248,24 +248,58 @@ double joule2electronVolt (double J)
 
 double cubicMeter2usGallon (double m3)
 {
-        return (m3*264.1721);
+    return (m3*264.1721);
 }
 
 double usGallon2cubicMeter (double gal)
 {
-        return (gal/264.1721);
+    return (gal/264.1721);
 }
 
 double cubicFeet2usGallon (double ft3)
 {
-        return (ft3*7.48051);
+    return (ft3*7.48051);
 }
 
 double usGallon2cubicFeet (double gal)
 {
-        return (gal/7.48051);
+    return (gal/7.48051);
 }
 
+/****************************************
+ * ANGLE CONVERSIONS
+ * http://www.metrication.com/
+ ****************************************/
+
+double rad2deg (double rad)
+{
+    return (rad*(180.00/M_PI));
+}
+
+double deg2rad (double deg)
+{
+    return (deg*(M_PI/180.00));
+}
+
+double rad2grad (double rad)
+{
+    return (rad*(200.00/M_PI));
+}
+
+double grad2rad (double grad)
+{
+    return (grad*(M_PI/200.00));
+}
+
+double deg2grad (double deg)
+{
+    return (deg*(10.00/9.00));
+}
+
+double grad2deg (double grad)
+{
+    return (grad*(9.00/10.00));
+}
 
 #ifdef __cplusplus
 }
