@@ -15,10 +15,10 @@
  */
 
 
-#include "ColorMap.h"
+#include "TransferFunction.h"
 
 
-ColorMap::ColorMap(int _size, float* data){
+TransferFunction::TransferFunction(int _size, float* data){
 
   tex = new Texture1D(size, GL_UNSIGNED_BYTE);
   id = tex->id;
@@ -27,7 +27,7 @@ ColorMap::ColorMap(int _size, float* data){
 }
 
 
-ColorMap::~ColorMap(){ delete tex; }
+TransferFunction::~TransferFunction(){ delete tex; }
 
 
 

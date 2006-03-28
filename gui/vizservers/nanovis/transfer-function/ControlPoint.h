@@ -1,6 +1,6 @@
 /*
  * ----------------------------------------------------------------------
- * Sphere.h : Sphere class
+ * ControlPoint.h
  *
  * ======================================================================
  *  AUTHOR:  Wei Qiao <qiaow@purdue.edu>
@@ -12,30 +12,30 @@
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  * ======================================================================
  */
-#ifndef _SPHERE_H_
-#define _SPHERE_H_
 
-#include <GL/glut.h>
-#include "Color.h"
-#include "Vector3.h"
+#ifndef _CONTROL_POINT_H_
+#define _CONTROL_POINT_H_
 
-class Sphere{
+class ControlPoint  
+{
+public:
+	
+	double x;
+	double y;
+
+	bool selected;
+	bool dragged;
+
+	ControlPoint * next;
 
 public:
-	Vector3 center;
-	float radius;
-	Color color;
-	int stack;
-	int slice;
+	void Set(double x, double y);
+	void glDraw();		//draw a cross
+	void glDraw_2();	//draw a filled squre
+	void glDraw_3();	//draw a circle
+	ControlPoint(double _x, double _y);
+	virtual ~ControlPoint();
 
-	Sphere(){};
-	~Sphere(){};
-	Sphere(float x, float y, float z, float r, float g, float b, float _radius, int _stack, int _slice);
-	void set_vertical_res(int _stack);
-	void set_horizontal_res(int _slice);
-	
-	//display the sphere
-	void draw(GLUquadric* q);
 };
 
 #endif

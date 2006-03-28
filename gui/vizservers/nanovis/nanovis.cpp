@@ -12,6 +12,7 @@
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  * ======================================================================
  */
+
 #include <stdio.h>
 #include <math.h>
 #include <fstream>
@@ -21,6 +22,15 @@
 #include "nanovis.h"
 #include "RpFieldRect3D.h"
 #include "RpFieldPrism3D.h"
+
+#include "transfer-function/TransferFunctionMain.h"
+#include "transfer-function/ControlPoint.h"
+#include "transfer-function/TransferFunctionGLUTWindow.h"
+#include "transfer-function/ColorGradientGLUTWindow.h"
+#include "transfer-function/ColorPaletteWindow.h"
+#include "transfer-function/MainWindow.h"
+
+float color_table[256][4];
 
 // forward declarations
 void init_particles();
@@ -40,7 +50,7 @@ float slice_vector[NMESH*NMESH*4];	//per slice vectors in main memory
 
 int n_volumes = 0;
 Volume* volume[MAX_N_VOLUMES];		//point to volumes, currently handle up to 10 volumes
-ColorMap* colormap[MAX_N_VOLUMES];	//transfer functions, currently handle up to 10 colormaps
+TransferFunction* tf[MAX_N_VOLUMES];	//transfer functions, currently handle up to 10 colormaps
 
 PerfQuery* perf;			//perfromance counter
 
@@ -506,14 +516,14 @@ void load_volume(int index, int width, int height, int depth, int n_component, f
 
 
 //load a colormap 1D texture
-void load_colormap(int index, int size, float* data){
+void load_transfer_function(int index, int size, float* data){
 
-  if(colormap[index]!=0){
-    delete colormap[index];
-    colormap[index]=0;
+  if(tf[index]!=0){
+    delete tf[index];
+    tf[index]=0;
   }
 
-  colormap[index] = new ColorMap(size, data);
+  tf[index] = new TransferFunction(size, data);
 }
 
 
@@ -701,13 +711,13 @@ void init_particles(){
     for (int j=0; j<psys->psys_height; j++){ 
       int index = i + psys->psys_height*j;
       bool particle = rand() % 256 > 100; 
-      particle = true;
+      //particle = true;
       if(particle)
       {
 	//assign any location (x,y,z) in range [0,1]
-        data[4*index] = 0.5;
+        data[4*index] = lic_slice_x;
 	data[4*index+1]= j/float(psys->psys_height);
-	data[4*index+2]= lic_slice_z; //lic_slice_z; //i/float(psys->psys_width);
+	data[4*index+2]= i/float(psys->psys_width);
 	data[4*index+3]= 30; //shorter life span, quicker iterations	
       }
       else
@@ -765,7 +775,7 @@ void initGL(void)
    //init volume and colormap arrays
    for(int i=0; i<MAX_N_VOLUMES; i++){
      volume[i] = 0;
-     colormap[i] = 0;
+     tf[i] = 0;
    }
 
    //check if performance query is supported
@@ -774,7 +784,7 @@ void initGL(void)
      perf = new PerfQuery(); 
    }
 
-   init_vector_field();	//3d vector field
+   //init_vector_field();	//3d vector field
    //load_volume_file(0, "./data/A-apbs-2-out-potential-PE0.dx");
    //load_volume_file(0, "./data/nw-AB-Vg=0.000-Vd=1.000-potential.dx");
    //load_volume_file(0, "./data/test2.dx");
@@ -1711,6 +1721,7 @@ void display()
 	  volume[0]->aspect_ratio_height, 
 	  volume[0]->aspect_ratio_depth);
 
+   /*
    
    //draw line integral convolution quad
    glBegin(GL_QUADS);
@@ -1719,7 +1730,9 @@ void display()
    glTexCoord2f(1, 1); glVertex3f(1, 1, lic_slice_z);
    glTexCoord2f(0, 1); glVertex3f(0, 1, lic_slice_z);
    glEnd();
-   
+   */
+
+
    glPopMatrix();
    
 
@@ -1731,26 +1744,27 @@ void display()
 	  volume[0]->aspect_ratio_height, 
 	  volume[0]->aspect_ratio_depth);
 
-   psys->display_vertices();
+   perf->enable();
+     psys->display_vertices();
+   perf->disable();
+   fprintf(stderr, "particle pixels: %d\n", perf->get_pixel_count());
+   perf->reset();
 
    glPopMatrix();
 
-   //render volume :0 
-   //volume[0]->location =Vector3(0.,0.,0.);
-   //render_volume(0, 256);
-
-   //render volume :1
-   volume[1]->location =Vector3(0., 0., 0.);
-   render_volume(1, 256);
-
    perf->enable();
+     //render volume :0 
+     //volume[0]->location =Vector3(0.,0.,0.);
+     //render_volume(0, 256);
+
+     //render volume :1
+     volume[1]->location =Vector3(0., 0., 0.);
+     render_volume(1, 256);
    perf->disable();
-   fprintf(stderr, "pixels: %d\n", perf->get_pixel_count());
+   fprintf(stderr, "volume pixels: %d\n", perf->get_pixel_count());
    perf->reset();
 
    draw_axis();
-
-   glDisable(GL_DEPTH_TEST);
 #endif
 
    display_final_fbo();
@@ -1829,6 +1843,14 @@ void keyboard(unsigned char key, int x, int y){
 		lic_slice_z-=0.05;
 		get_slice_vectors();
 		break;
+	case ',':
+		lic_slice_x+=0.05;
+		init_particles();
+		break;
+	case '.':
+		lic_slice_x-=0.05;
+		init_particles();
+		break;
 	case '1':
 		advect = true;
 		break;
@@ -1898,19 +1920,27 @@ void motion(int x, int y){
 }
 
 
-
 /*----------------------------------------------------*/
 int main(int argc, char** argv) 
 { 
+
    glutInit(&argc, argv);
    glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB); 
+
+   MainTransferFunctionWindow * mainWin;
+   mainWin = new MainTransferFunctionWindow();
+   mainWin->mainInit();
+   
    glutInitWindowSize(NPIX, NPIX);
+   glutInitWindowPosition(10, 10);
    glutCreateWindow(argv[0]);
+
    glutDisplayFunc(display);
    glutMouseFunc(mouse);
    glutMotionFunc(motion);
    glutKeyboardFunc(keyboard);
    glutIdleFunc(idle);
+
    initGL();
    initTcl();
 

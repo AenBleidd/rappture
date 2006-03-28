@@ -13,7 +13,6 @@
  * ======================================================================
  */
 
-
 #include <GL/glew.h>
 #include <GL/glut.h>
 #include <Cg/cgGL.h>
@@ -34,7 +33,7 @@
 #include "Texture3D.h"
 #include "Texture2D.h"
 #include "Texture1D.h"
-#include "ColorMap.h"
+#include "TransferFunction.h"
 #include "ConvexPolygon.h"
 #include "Mat4x4.h"
 #include "Volume.h"
@@ -111,3 +110,4 @@ float  dmax   = SCALE/NPIX;
 
 //currently active shader, default renders one volume only
 int cur_shader = 0;
+
