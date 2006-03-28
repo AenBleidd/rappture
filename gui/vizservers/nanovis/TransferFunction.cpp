@@ -20,14 +20,17 @@
 
 TransferFunction::TransferFunction(int _size, float* data){
 
-  tex = new Texture1D(size, GL_UNSIGNED_BYTE);
-  id = tex->id;
+  tex = new Texture1D(_size, GL_FLOAT);
 
   tex->initialize_float_rgba(data);
+  id = tex->id;
 }
 
 
 TransferFunction::~TransferFunction(){ delete tex; }
 
+void TransferFunction::update(float* data){
+  tex->update_float_rgba(data);
+}
 
 
