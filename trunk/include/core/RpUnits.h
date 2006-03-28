@@ -34,6 +34,7 @@
 #define RP_TYPE_TEMP    "temperature"
 #define RP_TYPE_TIME    "time"
 #define RP_TYPE_VOLUME  "volume"
+#define RP_TYPE_ANGLE   "angle"
 
 
 // should the define function:
@@ -59,6 +60,7 @@ class RpUnitsPreset {
         static int addPresetTemp();
         static int addPresetTime();
         static int addPresetVolume();
+        static int addPresetAngle();
 };
 
 // simple class to hold info about a conversion.
@@ -371,6 +373,7 @@ class RpUnits
         //      "temp"                      load units related to temperature
         //      "time"                      load units related to time
         //      "volume"                    load units related to volume
+        //      "angle"                     load units related to angles
         //  (no other groups have been created)
 
         static int addPresets (const std::string group);

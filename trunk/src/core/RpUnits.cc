@@ -1513,7 +1513,10 @@ RpUnits::addPresets (const std::string group) {
         retVal = RpUnitsPreset::addPresetTime();
     }
     else if (group.compare("volume") == 0) {
-        retVal = RpUnitsPreset::addPresetTime();
+        retVal = RpUnitsPreset::addPresetVolume();
+    }
+    else if (group.compare("angle") == 0) {
+        retVal = RpUnitsPreset::addPresetAngle();
     }
 
     return retVal;
@@ -1538,6 +1541,7 @@ RpUnitsPreset::addPresetAll () {
     result += addPresetLength();
     result += addPresetEnergy();
     result += addPresetVolume();
+    result += addPresetAngle();
 
     return 0;
 }
@@ -1682,6 +1686,35 @@ RpUnitsPreset::addPresetVolume () {
     RpUnits::define(cubic_meter,cubic_feet,meter2feet,feet2meter);
     RpUnits::define(cubic_meter,us_gallon,cubicMeter2usGallon,usGallon2cubicMeter);
     RpUnits::define(cubic_feet,us_gallon,cubicFeet2usGallon,usGallon2cubicFeet);
+
+    return 0;
+}
+
+/**********************************************************************/
+// METHOD: addPresetAngle()
+/// Add Angle related units to the dictionary
+/**
+ * Defines the following units:
+ *   degrees  (deg)
+ *   gradians (grad)
+ *   radians  (rad) (and metric extensions)
+ *
+ * Return codes: 0 success, anything else is error
+ */
+
+int
+RpUnitsPreset::addPresetAngle () {
+
+    RpUnits* degree  = RpUnits::define("deg",  NULL, RP_TYPE_ANGLE);
+    RpUnits* gradian = RpUnits::define("grad", NULL, RP_TYPE_ANGLE);
+    RpUnits* radian  = RpUnits::define("rad",  NULL, RP_TYPE_ANGLE);
+
+    RpUnits::makeMetric(radian);
+
+    // add angle definitions
+    RpUnits::define(degree,gradian,deg2grad,grad2deg);
+    RpUnits::define(radian,degree,rad2deg,deg2rad);
+    RpUnits::define(radian,gradian,rad2grad,grad2rad);
 
     return 0;
 }

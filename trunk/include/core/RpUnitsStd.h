@@ -76,9 +76,12 @@ double cubicFeet2usGallon (double ft3);
 double usGallon2cubicFeet (double gal);
 
 
-
-
-
+double rad2deg  (double rad);
+double deg2rad  (double deg);
+double rad2grad (double rad);
+double grad2rad (double grad);
+double deg2grad (double deg);
+double grad2deg (double grad);
 
 
 #ifdef __cplusplus
