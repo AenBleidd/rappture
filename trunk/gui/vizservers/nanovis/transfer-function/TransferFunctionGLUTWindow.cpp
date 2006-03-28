@@ -111,7 +111,7 @@ void TransferFunctionGLUTWindow::tfInit(int main_window_x, int main_window_y)
 
 	tf_gvSelectedPoint = new ControlPoint(0,0);
 
-	printf("Transferfunction Init...\n");
+	fprintf(stderr, "Transferfunction Init...\n");
 }
 
 
@@ -597,9 +597,9 @@ void TransferFunctionGLUTWindow::printInterpolation(){
 	int i=0;
 	for(i=0;i<numOfOutput;i++){
 		//printf("%f, ",output[i]);
-		printf("%f, ",color_table[i][3]);
+		fprintf(stderr, "%f, ",color_table[i][3]);
 	}
-	printf("\n");
+	fprintf(stderr, "\n");
 }
 
 
@@ -802,18 +802,18 @@ void TransferFunctionGLUTWindow::cleanUpPoints(){
 //debugging: print out all points
 void TransferFunctionGLUTWindow::printPoints(){
 	ControlPoint* cur=tf_pointList;
-	printf("********************\n");
-	printf("Total points %d \n", tf_numOfPoints);
+	fprintf(stderr, "********************\n");
+	fprintf(stderr, "Total points %d \n", tf_numOfPoints);
 
 	if (tf_numOfPoints==0)
 		return;
 
 	while (cur->next!=0){
-		printf("(%g,%g)\n", cur->x, cur->y);
+		fprintf(stderr, "(%g,%g)\n", cur->x, cur->y);
 		cur=cur->next;
 	}
-	printf("(%g,%g)\n", cur->x, cur->y);
-	printf("********************\n");
+	fprintf(stderr, "(%g,%g)\n", cur->x, cur->y);
+	fprintf(stderr, "********************\n");
 }
 
 
@@ -925,9 +925,9 @@ void TransferFunctionGLUTWindow::printHist(){
 	
 	for(int j=0; j<4; j++){
 		for (i=0; i<Hist[j].range; i++){
-			printf("%ld\t", Hist[j].count[i]);	
+			fprintf(stderr, "%ld\t", Hist[j].count[i]);	
 		}
-		printf("\n\n");
+		fprintf(stderr, "\n\n");
 	}
 
 /*

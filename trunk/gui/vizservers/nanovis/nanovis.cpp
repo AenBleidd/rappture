@@ -31,7 +31,20 @@
 #include "transfer-function/ColorPaletteWindow.h"
 #include "transfer-function/MainWindow.h"
 
+//render server
+
 float color_table[256][4]; 	
+
+#ifdef XINETD
+FILE* xinetd_log;
+#endif
+
+#ifdef EVENTLOG
+FILE* event_log;
+//log
+void init_event_log();
+void end_event_log();
+#endif
 
 int render_window; 		//the handle of the render window;
 // forward declarations
@@ -42,7 +55,7 @@ void get_slice_vectors();
 ParticleSystem* psys;
 float psys_x=0.4, psys_y=0, psys_z=0;
 
-char* screen_buffer = new char[4*NPIX*NPIX+1];		//buffer to store data read from the screen
+char* screen_buffer = new char[3*NPIX*NPIX+1];		//buffer to store data read from the screen
 NVISid fbo, color_tex, pattern_tex, mag_tex, final_fbo, final_color_tex, final_depth_rb; //fbo related identifiers
 NVISid vel_fbo, slice_vector_tex;	//for projecting 3d vector to 2d vector on a plane
 
@@ -87,6 +100,15 @@ CGparameter m_mvi_vert_std_param;
 
 using namespace std;
 
+static void set_camera(int x_angle, int y_angle, int z_angle, float dis){
+  live_rot_x = x_angle;
+  live_rot_y = y_angle;
+  live_rot_z = z_angle;
+
+  live_obj_z = dis;
+}
+
+
 
 // Tcl interpreter for incoming messages
 static Tcl_Interp *interp;
@@ -99,6 +121,46 @@ static int CutCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, C
 static int HelloCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
 static int LoadCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
 
+//Tcl callback functions
+static int
+CameraCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
+{
+
+	fprintf(stderr, "camera cmd\n");
+	int x, y, z;
+	double dis;
+
+	if (argc != 5) {
+		Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
+			" x_angle y_angle z_angle distance\"", (char*)NULL);
+		return TCL_ERROR;
+	}
+	if (Tcl_GetInt(interp, argv[1], &x) != TCL_OK) {
+		return TCL_ERROR;
+	}
+	if (Tcl_GetInt(interp, argv[2], &y) != TCL_OK) {
+		return TCL_ERROR;
+	}
+	if (Tcl_GetInt(interp, argv[3], &z) != TCL_OK) {
+		return TCL_ERROR;
+	}
+	if (Tcl_GetDouble(interp, argv[4], &dis) != TCL_OK) {
+		return TCL_ERROR;
+	}
+	set_camera(x, y, z, (float)dis);
+	return TCL_OK;
+}
+
+
+static int
+HelloCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
+{
+	//send back 4 bytes as confirmation
+	char ack[4]="ACK";
+        fprintf(stderr, "wrote %d\n", write(fileno(stdout), ack, 4));
+	fflush(stdout);
+	return TCL_OK;
+}
 
 //report errors related to CG shaders
 void cgErrorCallback(void)
@@ -547,6 +609,13 @@ extern void update_tf_texture(){
   }
 
   tf[0]->update(data);
+
+#ifdef EVENTLOG
+  float param[3] = {0,0,0};
+  Event* tmp = new Event(EVENT_ROTATE, param, 0);
+  tmp->write(event_log);
+  delete tmp;
+#endif
 }
 
 
@@ -578,8 +647,13 @@ void init_fbo(){
   glBindTexture(GL_TEXTURE_2D, final_color_tex);
   glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
   glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+#ifdef NV40
   glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F_ARB, win_width, win_height, 0,
                GL_RGB, GL_INT, NULL);
+#else
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, win_width, win_height, 0,
+               GL_RGB, GL_INT, NULL);
+#endif
   glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT,
                             GL_COLOR_ATTACHMENT0_EXT,
                             GL_TEXTURE_2D, final_color_tex, 0);
@@ -758,8 +832,6 @@ void init_particles(){
 
   psys->initialize((Particle*)data);
   delete[] data;
-
-  fprintf(stderr, "init particles\n");
 }
 
 
@@ -848,6 +920,14 @@ void initGL(void)
 void initTcl(){
   interp = Tcl_CreateInterp();
   Tcl_MakeSafe(interp);
+
+  Tcl_CreateCommand(interp, "camera", CameraCmd, (ClientData)0, (Tcl_CmdDeleteProc*)NULL);
+  //Tcl_CreateCommand(interp, "size", SizeCmd, (ClientData)0, (Tcl_CmdDeleteProc*)NULL);
+  //Tcl_CreateCommand(interp, "clear", ClearCmd, (ClientData)0, (Tcl_CmdDeleteProc*)NULL);
+  //Tcl_CreateCommand(interp, "cut", CutCmd, (ClientData)0, (Tcl_CmdDeleteProc*)NULL);
+  //Tcl_CreateCommand(interp, "outline", OutlineCmd, (ClientData)0, (Tcl_CmdDeleteProc*)NULL);
+  Tcl_CreateCommand(interp, "hello", HelloCmd, (ClientData)0, (Tcl_CmdDeleteProc*)NULL);
+  //Tcl_CreateCommand(interp, "load", LoadCmd, (ClientData)0, (Tcl_CmdDeleteProc*)NULL);
 }
 
 
@@ -924,10 +1004,11 @@ void getDP(float x, float y, float *px, float *py)
 void read_screen(){
   glBindTexture(GL_TEXTURE_2D, 0);
   glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, fbo);
-  glReadPixels(0, 0, win_width, win_height, GL_RGBA, /*GL_COLOR_ATTACHMENT0_EXT*/ GL_UNSIGNED_BYTE, screen_buffer);
+  glReadPixels(0, 0, win_width, win_height, GL_RGB, /*GL_COLOR_ATTACHMENT0_EXT*/ GL_UNSIGNED_BYTE, screen_buffer);
   assert(glGetError()==0);
 }
 
+void display();
 
 void xinetd_listen(){
     //command:
@@ -950,11 +1031,12 @@ void xinetd_listen(){
       return;
     }
 
+    display();
     //read the image
     read_screen(); 
-    writen(fileno(stdout), screen_buffer, 4*win_width*win_height);	//unsigned byte
+    writen(fileno(stdout), screen_buffer, 3*win_width*win_height);	//unsigned byte
 
-    cerr << "server: serve() done" << endl;
+    cerr << "server: serve() image sent" << endl;
 }
 
 
@@ -991,9 +1073,12 @@ void idle(){
   ts.tv_nsec = 100000000;
 
   nanosleep(&ts, 0);
-  //xinetd_listen();
 
+#ifdef XINETD
+  xinetd_listen();
+#else
   glutPostRedisplay();
+#endif
 }
 
 
@@ -1707,7 +1792,7 @@ void display()
    fbo_capture();
 
    //convolve
-   lic();
+   //lic();
 
    /*
    //blend magnitude texture
@@ -1782,7 +1867,7 @@ void display()
    perf->enable();
      psys->display_vertices();
    perf->disable();
-   fprintf(stderr, "particle pixels: %d\n", perf->get_pixel_count());
+   //fprintf(stderr, "particle pixels: %d\n", perf->get_pixel_count());
    perf->reset();
 
    glPopMatrix();
@@ -1796,7 +1881,7 @@ void display()
      volume[1]->location =Vector3(0., 0., 0.);
      render_volume(1, 256);
    perf->disable();
-   fprintf(stderr, "volume pixels: %d\n", perf->get_pixel_count());
+   //fprintf(stderr, "volume pixels: %d\n", perf->get_pixel_count());
    perf->reset();
 
    draw_axis();
@@ -1863,11 +1948,17 @@ void update_trans(int delta_x, int delta_y, int delta_z){
         live_obj_z += delta_z*0.03;
 }
 
+void end_service();
 
 void keyboard(unsigned char key, int x, int y){
-   
+  
+   bool log = false;
+
    switch (key){
 	case 'q':
+#ifdef XINETD
+                end_service();
+#endif
 		exit(0);
 		break;
 	case '+':
@@ -1897,15 +1988,19 @@ void keyboard(unsigned char key, int x, int y){
 		break;
 	case 'w': //zoom out
 		live_obj_z-=0.1;
+		log = true;
 		break;
 	case 's': //zoom in
 		live_obj_z+=0.1;
+		log = true;
 		break;
 	case 'a': //left
 		live_obj_x-=0.1;
+		log = true;
 		break;
 	case 'd': //right
 		live_obj_x+=0.1;
+		log = true;
 		break;
 	case 'i':
 		init_particles();
@@ -1913,7 +2008,15 @@ void keyboard(unsigned char key, int x, int y){
 	default:
 		break;
     }	
-    
+
+#ifdef EVENTLOG
+   if(log){
+     float param[3] = {live_obj_x, live_obj_y, live_obj_z};
+     Event* tmp = new Event(EVENT_MOVE, param, 0);
+     tmp->write(event_log);
+     delete tmp;
+   }
+#endif
 }
 
 void motion(int x, int y){
@@ -1951,9 +2054,44 @@ void motion(int x, int y){
       update_trans(0, 0, delta_x);
     }
 
+#ifdef EVENTLOG
+    float param[3] = {live_rot_x, live_rot_y, live_rot_z};
+    Event* tmp = new Event(EVENT_ROTATE, param, 0);
+    tmp->write(event_log);
+    delete tmp;
+#endif
+
     glutPostRedisplay();
 }
 
+#ifdef XINETD
+void init_service(){
+  //open log and map stderr to log file
+  xinetd_log = fopen("log.txt", "w");
+  close(2);
+  dup2(fileno(xinetd_log), 2);
+
+  //flush junk 
+  fflush(stdout);
+  fflush(stderr);
+}
+
+void end_service(){
+  //close log file
+  fclose(xinetd_log);
+}
+#endif
+
+#ifdef EVENTLOG
+void init_event_log(){
+  event_log = fopen("event.txt", "w");
+  assert(event_log!=0);
+}
+
+void end_event_log(){
+  fclose(event_log);
+}
+#endif
 
 /*----------------------------------------------------*/
 int main(int argc, char** argv) 
@@ -1977,12 +2115,23 @@ int main(int argc, char** argv)
    glutIdleFunc(idle);
 
    initGL();
+#ifdef XINETD
+   init_service();
+#endif
    initTcl();
 
-   //FILE* log_file = fopen("log.txt", "w");
-   //close(2);
-   //dup2(fileno(log_file), 2);
-
+#ifdef EVENTLOG
+   init_event_log();
+#endif
+   //event loop
    glutMainLoop();
+#ifdef EVENTLOG
+   end_event_log();
+#endif
+
+#ifdef XINETD
+   end_service();
+#endif
+
    return 0;
 }

@@ -101,7 +101,7 @@ void ParticleSystem::initialize(Particle* p){
   flip = true;
   reborn = false;
 
-  fprintf(stderr, "init particles\n");
+  //fprintf(stderr, "init particles\n");
 }
 
 void ParticleSystem::reset(){
@@ -189,7 +189,7 @@ void ParticleSystem::advect(){
      reborn = true;
    }
 
-   fprintf(stderr, "advect: %d ", psys_frame);
+   //fprintf(stderr, "advect: %d ", psys_frame);
 }
 
 
