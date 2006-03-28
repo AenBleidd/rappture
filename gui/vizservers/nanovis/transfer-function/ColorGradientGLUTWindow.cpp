@@ -82,7 +82,7 @@ void ColorGradientGLUTWindow::cmInit(int main_win_x, int main_win_y)
 	distanceThreshold=64;
 
 	if(mapOutput==0)
-		printf("NULL");
+		fprintf(stderr, "NULL");
 
 	//initialize mapOutput
 	int i=0;
@@ -147,7 +147,7 @@ void ColorGradientGLUTWindow::cmDisplay()
 	int i;
 
 	if(map == NULL){
-		printf("ColorGradient Window : forgot to bind the colorMap\n");
+		fprintf(stderr, "ColorGradient Window : forgot to bind the colorMap\n");
 		return;
 	}
 
@@ -616,7 +616,7 @@ void ColorGradientGLUTWindow::printInterpolation(){
 	int i=0;
 	for(i=0;i<numOfOutput;i++){
 		//printf("(%g,%g,%g) ", mapOutput[3*i], mapOutput[3*i+1], mapOutput[3*i+2]);
-		printf("(%g,%g,%g) ", color_table[i][0], color_table[i][1], color_table[i][2]);
+		fprintf(stderr, "(%g,%g,%g) ", color_table[i][0], color_table[i][1], color_table[i][2]);
 	}
 }
 

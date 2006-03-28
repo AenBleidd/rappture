@@ -39,6 +39,7 @@
 #include "Volume.h"
 #include "ParticleSystem.h"
 #include "PerfQuery.h"
+#include "Event.h"
 
 #include "config.h"
 

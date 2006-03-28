@@ -29,7 +29,7 @@ RenderClient::RenderClient(){}
 
 RenderClient::RenderClient(std::string& remote_host, int port_num){
 	//screen_size = sizeof(float)*4*512*512;	//float
-	screen_size = 4*width*height;	//unsigned byte
+	screen_size = 3*width*height;	//unsigned byte
 	screen_buffer = new char[screen_size];
 
 	socket_num = port_num;
@@ -115,7 +115,7 @@ bool render_done = true;
 void resize(int _width, int _height)
 {
    delete[] client->screen_buffer;
-   client->screen_size = 4*_width*_height;
+   client->screen_size = 3*_width*_height;
    client->screen_buffer = new char[client->screen_size];
 
     width = _width;
@@ -173,7 +173,7 @@ void display()
      glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
      //glDrawPixels(width, height, GL_RGBA, GL_FLOAT, client->screen_buffer);	
      //bzero(client->screen_buffer, client->screen_size);
-     glDrawPixels(width, height, GL_RGBA, GL_UNSIGNED_BYTE, client->screen_buffer);	
+     glDrawPixels(width, height, GL_RGB, GL_UNSIGNED_BYTE, client->screen_buffer);	
      glFlush();
      glutSwapBuffers();
      return;
@@ -468,11 +468,13 @@ const GLfloat mat_specular[]   = { 1.0f, 1.0f, 1.0f, 1.0f };
 const GLfloat high_shininess[] = { 100.0f };
 
 
-void init_client(){
+void init_client(char* host, char* port){
   //std::string host = "localhost";
   //hostname -i
-  std::string host = "128.46.137.192";
-  client = new RenderClient(host, 30000);
+  //std::string host = "128.46.137.192";
+  
+  std::string hostname = host;
+  client = new RenderClient(hostname, atoi(port));
 
   //point stdin stdout to socket
   /*
@@ -482,11 +484,7 @@ void init_client(){
   dup2(client->Socket::m_sock, 1);
   */
   
-  
-  std::stringstream stream;
-  stream << "hello";
-  std::string msg1;
-  stream >> msg1;
+  std::string msg1 = "hello";
   std::string msg2 = " ";
 
   //cout << msg1;
@@ -495,7 +493,7 @@ void init_client(){
   client->send(msg1);
   client->receive(msg2);
   
-  //cerr << "client: msg received - " << msg2 << endl;
+  cerr << "client: msg received - " << msg2 << endl;
   cerr << "connection to server established" << endl;
 }
 
@@ -540,12 +538,23 @@ void menu_cb(int entry){
   }
 }
 
+void help(const char *argv0)
+{
+  fprintf(stderr,
+          "Syntax: %s addr:port load\n",
+          argv0);
+  exit(1);
+}
+
 /* Program entry point */
 int main(int argc, char *argv[])
 {
+    //parameters:  hostip and port
+    if(argc!=3) help(argv[0]);
+
     width =512; height=512;
 
-    init_client();
+    init_client(argv[1], argv[2]);
 
     glutInit(&argc, argv);
     glutInitWindowSize(width,height);

@@ -98,7 +98,7 @@ void MainTransferFunctionWindow::mainDisplay(){
 
 
 void MainTransferFunctionWindow::mainMouse(int button, int state, int x, int y){
-	printf("main mouse\n");
+	fprintf(stderr, "main mouse\n");
 	//find out what area received the event
 	if (y<=main_winy-tf_winy){
 		//transfer function received the event
@@ -241,18 +241,18 @@ void MainTransferFunctionWindow::loadFile(char* fileName){
 
 	
 	if (fileName==0 || strlen(fileName)<1){
-		printf("Error: file name not supplied.\n");
+		fprintf(stderr, "Error: file name not supplied.\n");
 		return;
 	}
 
 	FILE* fp=fopen(fileName, "r");
 
 	if(!fp){
-		printf("Error: open file.\n");
+		fprintf(stderr, "Error: open file.\n");
 		return;
 	}
 
-	printf("File \"%s\" opened.\n", fileName);
+	fprintf(stderr, "File \"%s\" opened.\n", fileName);
 
 	char buf[300];			//buffer to store one line from file
 	char* token;			//pointer to token in the buffer
