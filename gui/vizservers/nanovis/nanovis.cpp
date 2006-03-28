@@ -534,7 +534,7 @@ void load_transfer_function(int index, int size, float* data){
 extern void update_tf_texture(){
   glutSetWindow(render_window);
 
-  fprintf(stderr, "tf update\n");
+  //fprintf(stderr, "tf update\n");
   if(tf[0]==0) return;
 
   float data[256*4];
@@ -543,7 +543,7 @@ extern void update_tf_texture(){
     data[4*i+1] = color_table[i][1];
     data[4*i+2] = color_table[i][2];
     data[4*i+3] = color_table[i][3];
-    fprintf(stderr, "(%f,%f,%f,%f) ", data[4*i+0], data[4*i+1], data[4*i+2], data[4*i+3]);
+    //fprintf(stderr, "(%f,%f,%f,%f) ", data[4*i+0], data[4*i+1], data[4*i+2], data[4*i+3]);
   }
 
   tf[0]->update(data);
@@ -578,7 +578,7 @@ void init_fbo(){
   glBindTexture(GL_TEXTURE_2D, final_color_tex);
   glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
   glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, win_width, win_height, 0,
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F_ARB, win_width, win_height, 0,
                GL_RGB, GL_INT, NULL);
   glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT,
                             GL_COLOR_ATTACHMENT0_EXT,
@@ -1960,7 +1960,7 @@ int main(int argc, char** argv)
 { 
 
    glutInit(&argc, argv);
-   glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB); 
+   glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA); 
 
    MainTransferFunctionWindow * tf_window;
    tf_window = new MainTransferFunctionWindow();
