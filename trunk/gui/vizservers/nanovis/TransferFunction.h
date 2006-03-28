@@ -25,12 +25,11 @@ class TransferFunction{
   int size;	//the resolution of the color map, how many (RGBA) quadraples
   Texture1D* tex; //the texture storing the colors 
 
-  GLuint id;	//OpenGL's texture identifier
-
-
 public:
+  GLuint id;	//OpenGL's texture identifier
   TransferFunction(int _size, float* data);
   ~TransferFunction();
+  void update(float* data);
 };
 
 

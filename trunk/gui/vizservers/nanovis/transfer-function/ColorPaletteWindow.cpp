@@ -105,7 +105,7 @@ void ColorPalette::cpInit()
 }
 
 
-void update_tf_texture(){};
+void update_tf_texture();
 
 void ColorPalette::cmdHandler(int arg){
 	switch (arg){

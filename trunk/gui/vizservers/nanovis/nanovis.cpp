@@ -23,6 +23,7 @@
 #include "RpFieldRect3D.h"
 #include "RpFieldPrism3D.h"
 
+//transfer function headers
 #include "transfer-function/TransferFunctionMain.h"
 #include "transfer-function/ControlPoint.h"
 #include "transfer-function/TransferFunctionGLUTWindow.h"
@@ -30,8 +31,9 @@
 #include "transfer-function/ColorPaletteWindow.h"
 #include "transfer-function/MainWindow.h"
 
-float color_table[256][4];
+float color_table[256][4]; 	
 
+int render_window; 		//the handle of the render window;
 // forward declarations
 void init_particles();
 void makePatterns();
@@ -74,6 +76,7 @@ CGprogram m_copy_texcoord_fprog;
 
 CGprogram m_one_volume_fprog;
 CGparameter m_vol_one_volume_param;
+CGparameter m_tf_one_volume_param;
 CGparameter m_mvi_one_volume_param;
 CGparameter m_render_param_one_volume_param;
 
@@ -527,6 +530,27 @@ void load_transfer_function(int index, int size, float* data){
 }
 
 
+//load value from the gui, only one transfer function
+extern void update_tf_texture(){
+  glutSetWindow(render_window);
+
+  fprintf(stderr, "tf update\n");
+  if(tf[0]==0) return;
+
+  float data[256*4];
+  for(int i=0; i<256; i++){
+    data[4*i+0] = color_table[i][0];
+    data[4*i+1] = color_table[i][1];
+    data[4*i+2] = color_table[i][2];
+    data[4*i+3] = color_table[i][3];
+    fprintf(stderr, "(%f,%f,%f,%f) ", data[4*i+0], data[4*i+1], data[4*i+2], data[4*i+3]);
+  }
+
+  tf[0]->update(data);
+}
+
+
+
 //initialize frame buffer objects for offscreen rendering
 void init_fbo(){
 
@@ -688,6 +712,8 @@ void switch_shader(int choice){
       m_one_volume_fprog = loadProgram(g_context, CG_PROFILE_FP30, CG_SOURCE, "./shaders/one_volume.cg");
       m_vol_one_volume_param = cgGetNamedParameter(m_one_volume_fprog, "volume");
       cgGLSetTextureParameter(m_vol_one_volume_param, volume[0]->id);
+      m_tf_one_volume_param = cgGetNamedParameter(m_one_volume_fprog, "tf");
+      cgGLSetTextureParameter(m_tf_one_volume_param, tf[0]->id);
       m_mvi_one_volume_param = cgGetNamedParameter(m_one_volume_fprog, "modelViewInv");
       m_render_param_one_volume_param = cgGetNamedParameter(m_one_volume_fprog, "renderParameters");
       break;
@@ -737,7 +763,12 @@ void init_particles(){
 }
 
 
+void init_tf(){
+  float data[256*4];
+  memset(data, 0, 4*256*sizeof(float));
 
+  tf[0] = new TransferFunction(256, data);
+}
 
 
 /*----------------------------------------------------*/
@@ -791,6 +822,8 @@ void initGL(void)
 
    load_vector_file(0, "./data/J-wire-vec.dx");
    load_volume_file(1, "./data/mu-wire-3d.dx");
+
+   init_tf();   //initialize transfer function
 
    init_fbo();	//frame buffer objects
    init_cg();	//init cg shaders
@@ -951,6 +984,8 @@ void draw_arrows(){
 
 /*----------------------------------------------------*/
 void idle(){
+  glutSetWindow(render_window);
+
   struct timespec ts;
   ts.tv_sec = 0;
   ts.tv_nsec = 100000000;
@@ -1351,6 +1386,7 @@ void activate_one_volume_shader(int volume_index, int n_actual_slices){
   cgGLSetStateMatrixParameter(m_mvi_one_volume_param, CG_GL_MODELVIEW_MATRIX, CG_GL_MATRIX_INVERSE);
   cgGLSetTextureParameter(m_vol_one_volume_param, volume[volume_index]->id);
   cgGLEnableTextureParameter(m_vol_one_volume_param);
+  cgGLEnableTextureParameter(m_tf_one_volume_param);
 
   //hack!
   //if parameter.y == 0 : volume :0
@@ -1368,9 +1404,8 @@ void deactivate_one_volume_shader(){
   cgGLDisableProfile(CG_PROFILE_VP30);
   cgGLDisableProfile(CG_PROFILE_FP30);
 
-  cgGLEnableTextureParameter(m_vol_one_volume_param);
-  //cgGLDisableTextureParameter(m_vel_tex_param);
-  //cgGLDisableTextureParameter(m_pos_tex_param);
+  cgGLDisableTextureParameter(m_vol_one_volume_param);
+  cgGLDisableTextureParameter(m_tf_one_volume_param);
 }
 
 
@@ -1927,13 +1962,13 @@ int main(int argc, char** argv)
    glutInit(&argc, argv);
    glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB); 
 
-   MainTransferFunctionWindow * mainWin;
-   mainWin = new MainTransferFunctionWindow();
-   mainWin->mainInit();
+   MainTransferFunctionWindow * tf_window;
+   tf_window = new MainTransferFunctionWindow();
+   tf_window->mainInit();
    
    glutInitWindowSize(NPIX, NPIX);
    glutInitWindowPosition(10, 10);
-   glutCreateWindow(argv[0]);
+   render_window = glutCreateWindow(argv[0]);
 
    glutDisplayFunc(display);
    glutMouseFunc(mouse);

@@ -16,7 +16,7 @@
  */
 PixelOut main(v2f IN, /* uniform sampler1D tf,*/
 		uniform sampler3D volume,
-		//uniform sampler1D map,
+		uniform sampler1D tf,
 		uniform float4x4 modelViewInv,
 		uniform float4 renderParameters)
 {
@@ -33,11 +33,14 @@ PixelOut main(v2f IN, /* uniform sampler1D tf,*/
     } 
     else{
       //shades of red //more opaque
-      OUT.Color = float4(sample, 0, 0, 7*sample/renderParameters.x);
+      OUT.Color = tex1D(tf, sample);
+      OUT.Color.w = 10*OUT.Color.w/renderParameters.x;
 
-      if(sample<0.6 && sample>0.4){
-        OUT.Color = float4(0, 0, 1, 10*sample/renderParameters.x);
-      }
+      //OUT.Color = float4(sample, 0, 0, 7*sample/renderParameters.x);
+
+      //if(sample<0.6 && sample>0.4){
+        //OUT.Color = float4(0, 0, 1, 10*sample/renderParameters.x);
+      //}
     }
   }
 
