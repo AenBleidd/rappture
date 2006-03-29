@@ -90,6 +90,9 @@ float live_obj_x = -0.0;	//object translation location from the origin
 float live_obj_y = -0.0;
 float live_obj_z = -2.5;
 
+float live_diffuse = 1.;
+float live_specular = 3.;
+
 int left_last_x, left_last_y, right_last_x, right_last_y; 	//last locations mouse events
 bool left_down = false;						
 bool right_down = false;

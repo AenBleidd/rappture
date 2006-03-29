@@ -93,6 +93,9 @@ void idle(void)
   msg = msgstream.str();
 
   //start timer
+  struct timeval clock;
+  time((long*) &clock);
+  long start_time = clock.tv_sec*1000 + clock.tv_usec/1000;
 
   //send msg
   int status = write(socket_fd, msg.c_str(), strlen(msg.c_str()));
@@ -116,7 +119,15 @@ void idle(void)
        ptr += status;
     }
   }
+
+
   //end timer
+  time((long*) &clock);
+  long end_time = clock.tv_sec*1000 + clock.tv_usec/1000;
+
+  long time_interval = end_time - start_time;
+
+  fprintf(stderr, "%d ", time_interval);
 }
 
 int init_client(char* host, char* port, char* file){

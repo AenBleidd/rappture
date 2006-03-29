@@ -13,7 +13,7 @@
 #include "common.cg"
  
 v2f main(a2v IN, 
-		uniform float4x4 modelViewProjMatrix,
+		uniform float4x4 modelViewProjMatrix, 
 		uniform float4x4 modelViewInv)
 {
 	v2f OUT;
@@ -23,6 +23,9 @@ v2f main(a2v IN,
 	
 	//eye space texture coordinates
 	OUT.TexCoord = IN.TexCoord;
+
+        //world space eye position
+        OUT.EyeVector = normalize(IN.Position.xyz - float3(0., 0., 0.));
 
 	return OUT;
 }

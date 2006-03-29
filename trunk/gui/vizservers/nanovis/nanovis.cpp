@@ -91,6 +91,7 @@ CGprogram m_one_volume_fprog;
 CGparameter m_vol_one_volume_param;
 CGparameter m_tf_one_volume_param;
 CGparameter m_mvi_one_volume_param;
+CGparameter m_mv_one_volume_param;
 CGparameter m_render_param_one_volume_param;
 
 CGprogram m_vert_std_vprog;
@@ -507,7 +508,6 @@ load_volume_file(int index, char *fname) {
 #endif
 
             float *data = new float[4*nx*ny*nz];
-            float *grad = new float[4*nx*ny*nz];
 
             double vmin = field.valueMin();
             double dv = field.valueMax() - field.valueMin();
@@ -527,35 +527,29 @@ load_volume_file(int index, char *fname) {
 
                         // scale all values [0-1], -1 => out of bounds
                         v = (isnan(v)) ? -1.0 : (v - vmin)/dv;
+                        data[ngen] = v;
 
                         // gradient in x-direction
                         double curval = (v < 0) ? 0.0 : v;
                         double oldval = ((ngen/4) % nx == 0) ? 0.0 : data[ngen-4];
                         oldval = (oldval < 0) ? 0.0 : oldval;
-                        grad[ngen] = (curval-oldval)/dmin;
-                        data[ngen++] = v;
+                        data[ngen+1] = (curval-oldval)/dmin;
 
                         // gradient in y-direction
-                        oldval = (ngen-1-4*nx >= 0) ? data[ngen-1-4*nx] : 0.0;
+                        oldval = (ngen-4*nx >= 0) ? data[ngen-4*nx] : 0.0;
                         oldval = (oldval < 0) ? 0.0 : oldval;
-                        grad[ngen] = (curval-oldval)/dmin;
-                        data[ngen++] = 0.0;
+                        data[ngen+2] = (curval-oldval)/dmin;
 
                         // gradient in z-direction
-                        oldval = (ngen-2-4*nx*ny >= 0) ? data[ngen-2-4*nx*ny] : 0.0;
+                        oldval = (ngen-4*nx*ny >= 0) ? data[ngen-4*nx*ny] : 0.0;
                         oldval = (oldval < 0) ? 0.0 : oldval;
-                        grad[ngen] = (curval-oldval)/dmin;
-                        data[ngen++] = 0.0;
-
-                        // unused
-                        grad[ngen] = 0.0;
-                        data[ngen++] = 0.0;
+                        data[ngen+3] = (curval-oldval)/dmin;
+			ngen += 4;
                     }
                 }
             }
             load_volume(index, nx, ny, nz, 4, data);
             delete [] data;
-            delete [] grad;
 
         } else {
             Rappture::Mesh1D zgrid(z0, z0+nz*dz, nz);
@@ -849,6 +843,7 @@ void switch_shader(int choice){
       m_tf_one_volume_param = cgGetNamedParameter(m_one_volume_fprog, "tf");
       cgGLSetTextureParameter(m_tf_one_volume_param, tf[0]->id);
       m_mvi_one_volume_param = cgGetNamedParameter(m_one_volume_fprog, "modelViewInv");
+      m_mv_one_volume_param = cgGetNamedParameter(m_one_volume_fprog, "modelView");
       m_render_param_one_volume_param = cgGetNamedParameter(m_one_volume_fprog, "renderParameters");
       break;
 
@@ -1532,6 +1527,7 @@ void activate_one_volume_shader(int volume_index, int n_actual_slices){
   cgGLEnableProfile(CG_PROFILE_VP30);
 
   cgGLSetStateMatrixParameter(m_mvi_one_volume_param, CG_GL_MODELVIEW_MATRIX, CG_GL_MATRIX_INVERSE);
+  cgGLSetStateMatrixParameter(m_mv_one_volume_param, CG_GL_MODELVIEW_MATRIX, CG_GL_MATRIX_IDENTITY);
   cgGLSetTextureParameter(m_vol_one_volume_param, volume[volume_index]->id);
   cgGLEnableTextureParameter(m_vol_one_volume_param);
   cgGLEnableTextureParameter(m_tf_one_volume_param);
@@ -1540,9 +1536,9 @@ void activate_one_volume_shader(int volume_index, int n_actual_slices){
   //if parameter.y == 0 : volume :0
   //if parameter.y == 1 : volume :1
   if(volume_index==0)
-    cgGLSetParameter4f(m_render_param_one_volume_param, n_actual_slices, 0., 0., 0.);
+    cgGLSetParameter4f(m_render_param_one_volume_param, n_actual_slices, 0., live_diffuse, live_specular);
   else if(volume_index==1)
-    cgGLSetParameter4f(m_render_param_one_volume_param, n_actual_slices, 1., 0., 0.);
+    cgGLSetParameter4f(m_render_param_one_volume_param, n_actual_slices, 1., live_diffuse, live_specular);
   cgGLBindProgram(m_one_volume_fprog);
   cgGLEnableProfile(CG_PROFILE_FP30);
 }
@@ -2068,6 +2064,21 @@ void keyboard(unsigned char key, int x, int y){
 	case 'i':
 		init_particles();
 		break;
+	case 'o':
+		live_specular+=1;
+		fprintf(stderr, "specular: %f\n", live_specular);
+		break;
+	case 'p':
+		live_specular-=1;
+		fprintf(stderr, "specular: %f\n", live_specular);
+		break;
+	case '[':
+		live_diffuse+=0.5;
+		break;
+	case ']':
+		live_diffuse-=0.5;
+		break;
+
 	default:
 		break;
     }	
