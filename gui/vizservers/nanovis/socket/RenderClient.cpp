@@ -21,8 +21,13 @@
 #include <iostream>
 #include <assert.h>
 
+#include "../Event.h"
 
 using namespace std;
+
+Event* event[5000];
+int cur_event = 0;
+
 
 int width, height;
 RenderClient::RenderClient(){}
@@ -450,11 +455,50 @@ void motion(int x, int y){
 
 void idle(void)
 {
+/*
     struct timespec ts;
     ts.tv_sec = 0;
     ts.tv_nsec = 100000000;
 
     nanosleep(&ts, 0);
+*/
+
+  //send requests
+  Event* cur = event[cur_event];
+  std::stringstream msgstream;
+  std::string msg;
+
+  switch(cur->type){
+    case 0: //rotate
+      msgstream << "camera " << cur->parameter[0] << " " 
+		    << cur->parameter[1] << " " 
+		    << cur->parameter[2] << " " << endl;
+      break;
+
+    case 1: //move
+      msgstream << "move " << cur->parameter[0] << " " 
+		    << cur->parameter[1] << " " 
+		    << cur->parameter[2] << " " << endl;
+      break;
+
+    case 2: //other
+      msgstream << "refresh " << cur->parameter[0] << " " 
+		    << cur->parameter[1] << " " 
+		    << cur->parameter[2] << " " << endl;
+      break;
+
+    default:
+      return;
+  }
+
+  msg = msgstream.str();
+  //std::cout << "client msg: " << msg <<"\n";
+  
+  //start timer
+  client->send((char*) msg.c_str(), (int) strlen(msg.c_str()));
+  client->receive(client->screen_buffer, client->screen_size);
+  //end timer
+
 }
 
 const GLfloat light_ambient[]  = { 0.0f, 0.0f, 0.0f, 1.0f };
@@ -468,7 +512,20 @@ const GLfloat mat_specular[]   = { 1.0f, 1.0f, 1.0f, 1.0f };
 const GLfloat high_shininess[] = { 100.0f };
 
 
-void init_client(char* host, char* port){
+void init_client(char* host, char* port, char* file){
+
+  //load the event file
+  FILE* fd = fopen(file, "r");
+  //load 5000 events
+  for(int i=0; i<5000; i++){
+    int type;
+    float param[3];
+    fscanf(fd, "%d %f %f %f\n", &type, param, param+1, param+2);
+    event[i] = new Event(type, param, 0);
+    fprintf(stderr, "%d %f %f %f\n", type, param[0], param[1], param[2]);
+  }
+  fclose(fd);
+
   //std::string host = "localhost";
   //hostname -i
   //std::string host = "128.46.137.192";
@@ -496,6 +553,8 @@ void init_client(char* host, char* port){
   cerr << "client: msg received - " << msg2 << endl;
   cerr << "connection to server established" << endl;
 }
+
+
 
 void print_gl_info(){
   fprintf(stderr, "OpenGL vendor: %s %s\n", glGetString(GL_VENDOR), glGetString(GL_VERSION));
@@ -541,7 +600,7 @@ void menu_cb(int entry){
 void help(const char *argv0)
 {
   fprintf(stderr,
-          "Syntax: %s addr:port load\n",
+          "Syntax: %s addr port eventfile\n",
           argv0);
   exit(1);
 }
@@ -549,12 +608,12 @@ void help(const char *argv0)
 /* Program entry point */
 int main(int argc, char *argv[])
 {
-    //parameters:  hostip and port
-    if(argc!=3) help(argv[0]);
+    //parameters:  hostip and port and event file
+    if(argc!=4) help(argv[0]);
 
     width =512; height=512;
 
-    init_client(argv[1], argv[2]);
+    init_client(argv[1], argv[2], argv[3]);
 
     glutInit(&argc, argv);
     glutInitWindowSize(width,height);

@@ -27,7 +27,7 @@ public:
    int type;
    float parameter[3];	//event parameters: rotate: x,y,z  
 			//                  move: x,y,z
-  			//                  transfer funciton: nan 
+  			//                  other: nan 
    long msc;		//millisecond since the session started
 	
    Event();

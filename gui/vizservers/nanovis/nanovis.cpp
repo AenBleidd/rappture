@@ -100,12 +100,10 @@ CGparameter m_mvi_vert_std_param;
 
 using namespace std;
 
-static void set_camera(int x_angle, int y_angle, int z_angle, float dis){
+static void set_camera(int x_angle, int y_angle, int z_angle){
   live_rot_x = x_angle;
   live_rot_y = y_angle;
   live_rot_z = z_angle;
-
-  live_obj_z = dis;
 }
 
 
@@ -120,6 +118,8 @@ static int OutlineCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int arg
 static int CutCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
 static int HelloCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
 static int LoadCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
+static int RefreshCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
+static int MoveCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
 
 //Tcl callback functions
 static int
@@ -127,27 +127,63 @@ CameraCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
 {
 
 	fprintf(stderr, "camera cmd\n");
-	int x, y, z;
-	double dis;
+	double x, y, z;
 
-	if (argc != 5) {
+	if (argc != 4) {
 		Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
-			" x_angle y_angle z_angle distance\"", (char*)NULL);
+			" x_angle y_angle z_angle\"", (char*)NULL);
 		return TCL_ERROR;
 	}
-	if (Tcl_GetInt(interp, argv[1], &x) != TCL_OK) {
+	if (Tcl_GetDouble(interp, argv[1], &x) != TCL_OK) {
 		return TCL_ERROR;
 	}
-	if (Tcl_GetInt(interp, argv[2], &y) != TCL_OK) {
+	if (Tcl_GetDouble(interp, argv[2], &y) != TCL_OK) {
 		return TCL_ERROR;
 	}
-	if (Tcl_GetInt(interp, argv[3], &z) != TCL_OK) {
+	if (Tcl_GetDouble(interp, argv[3], &z) != TCL_OK) {
 		return TCL_ERROR;
 	}
-	if (Tcl_GetDouble(interp, argv[4], &dis) != TCL_OK) {
+	set_camera(x, y, z);
+	return TCL_OK;
+}
+
+
+static int
+RefreshCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
+{
+  fprintf(stderr, "refresh cmd\n");
+  return TCL_OK;
+}
+
+void set_object(float x, float y, float z){
+  live_obj_x = x;
+  live_obj_y = y;
+  live_obj_z = z;
+}
+
+
+static int
+MoveCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
+{
+
+	fprintf(stderr, "move cmd\n");
+	double x, y, z;
+
+	if (argc != 4) {
+		Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
+			" x_angle y_angle z_angle\"", (char*)NULL);
 		return TCL_ERROR;
 	}
-	set_camera(x, y, z, (float)dis);
+	if (Tcl_GetDouble(interp, argv[1], &x) != TCL_OK) {
+		return TCL_ERROR;
+	}
+	if (Tcl_GetDouble(interp, argv[2], &y) != TCL_OK) {
+		return TCL_ERROR;
+	}
+	if (Tcl_GetDouble(interp, argv[3], &z) != TCL_OK) {
+		return TCL_ERROR;
+	}
+	set_object(x, y, z);
 	return TCL_OK;
 }
 
@@ -950,6 +986,8 @@ void initTcl(){
   //Tcl_CreateCommand(interp, "cut", CutCmd, (ClientData)0, (Tcl_CmdDeleteProc*)NULL);
   //Tcl_CreateCommand(interp, "outline", OutlineCmd, (ClientData)0, (Tcl_CmdDeleteProc*)NULL);
   Tcl_CreateCommand(interp, "hello", HelloCmd, (ClientData)0, (Tcl_CmdDeleteProc*)NULL);
+  Tcl_CreateCommand(interp, "move", MoveCmd, (ClientData)0, (Tcl_CmdDeleteProc*)NULL);
+  Tcl_CreateCommand(interp, "refresh", RefreshCmd, (ClientData)0, (Tcl_CmdDeleteProc*)NULL);
   //Tcl_CreateCommand(interp, "load", LoadCmd, (ClientData)0, (Tcl_CmdDeleteProc*)NULL);
 }
 
@@ -1055,6 +1093,7 @@ void xinetd_listen(){
     }
 
     display();
+
     //read the image
     read_screen(); 
     writen(fileno(stdout), screen_buffer, 3*win_width*win_height);	//unsigned byte
@@ -1091,11 +1130,12 @@ void draw_arrows(){
 void idle(){
   glutSetWindow(render_window);
 
+  /*
   struct timespec ts;
   ts.tv_sec = 0;
   ts.tv_nsec = 100000000;
-
   nanosleep(&ts, 0);
+  */
 
 #ifdef XINETD
   xinetd_listen();
