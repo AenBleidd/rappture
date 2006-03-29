@@ -14,6 +14,6 @@
  */
 
 
-//#define NV40 	  //Uncomment if using 6 series card. By default we assume older card the 5xxx series
+#define NV40 	  //Uncomment if using 6 series card. By default we assume older card the 5xxx series
 //#define XINETD  //enable render server
 //#define EVENTLOG  //enable event logging

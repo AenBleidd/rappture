@@ -9,6 +9,7 @@
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  * ======================================================================
  */
+
 #include "common.cg"
 
 /*
@@ -18,42 +19,60 @@ PixelOut main(v2f IN, /* uniform sampler1D tf,*/
 		uniform sampler3D volume,
 		uniform sampler1D tf,
 		uniform float4x4 modelViewInv,
+		uniform float4x4 modelView,
 		uniform float4 renderParameters)
 {
 	
   PixelOut OUT;
   float4 tex_coord = mul(modelViewInv, IN.TexCoord);
 	
-  if(renderParameters.y==1){
-    //1 component
-    float sample = tex3D(volume, tex_coord.xyz);
+  if(renderParameters.y==1){ //1 component
+
+    float4 sample = tex3D(volume, tex_coord.xyz);
 
     if (sample.x < 0.) {
       OUT.Color = float4(0.0, 0.0, 0.0, 0.0);
     } 
     else{
-      //shades of red //more opaque
-      OUT.Color = tex1D(tf, sample);
-      OUT.Color.w = 10*OUT.Color.w/renderParameters.x;
+      //lighting parameters 
+      float4 worldnormal = float4(sample.yzw, 1);
+      float3 normal = normalize(mul(modelView, worldnormal)).xyz;            //eye space normal
+      float3 light_vector = normalize(mul(modelView, float4(0, -1, -2, 1)));            //eye space light vector
+      float3 eye_vector = normalize(mul(modelView, float4(IN.EyeVector,1))).xyz; 	//eye space eye vector
+      float3 half_vector = normalize(+eye_vector+light_vector);          //eye half angle vector
 
-      //OUT.Color = float4(sample, 0, 0, 7*sample/renderParameters.x);
+      //sample the transfer function texture
+      float4 color = tex1D(tf, sample.x);
+      color.w = 10*color.w/renderParameters.x;
 
-      //if(sample<0.6 && sample>0.4){
-        //OUT.Color = float4(0, 0, 1, 10*sample/renderParameters.x);
-      //}
+      //lighting computation
+      float normal_dot_light = max(dot(normal, light_vector), 0);
+      float normal_dot_half = max(dot(normal, half_vector), 0);
+
+      float ambient = 0.3;
+      float diffuse = normal_dot_light * renderParameters.z;
+      float specular = pow(normal_dot_half, renderParameters.w);
+
+      float lighting = ambient + diffuse + specular;
+      color.xyz = color.xyz * lighting;
+
+      //debug
+      //color.xyz = normal.xyz;       //display normals
+      //if(color.z < 0)
+        //color.xyz = float3(1,0,0);
+
+      OUT.Color = color;
     }
   }
 
   else if(renderParameters.y==0){
-
     //3 component
     float3 sample = tex3D(volume, tex_coord.xyz).xyz;
-    
     OUT.Color = float4(3*sample, 2*length(sample)/renderParameters.x);
   }
 
-//debug
-//OUT.Color = float4(tex_coord, 1);
+  //debug
+  //OUT.Color = float4(tex_coord, 1);
 
   return OUT;
 }
