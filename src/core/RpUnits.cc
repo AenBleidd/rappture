@@ -910,6 +910,25 @@ RpUnits::convert (  std::string val,
 
     fromUnitsName = std::string(endptr);
 
+    if (toUnitsName.empty())  {
+        // there were no units in the input 
+        // string or no conversion needed
+        // assume fromUnitsName = toUnitsName
+        // return the correct value
+        if (result) {
+            *result = 0;
+        }
+
+        if (showUnits) {
+            outVal << numVal << fromUnitsName;
+        }
+        else {
+            outVal << numVal;
+        }
+
+        return std::string(outVal.str());
+    }
+
     // check if the fromUnitsName is empty or
     // if the fromUnitsName == toUnitsName
     // these are conditions where no conversion is needed
