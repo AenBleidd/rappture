@@ -2,22 +2,23 @@ OBJ_NANOVIS = nanovis.o Socket.o RenderVertexArray.o Plane.o ConvexPolygon.o Vec
 		Texture1D.o Texture3D.o Volume.o Texture2D.o ParticleSystem.o Sphere.o Color.o \
 		PerfQuery.o TransferFunction.o ControlPoint.o ColorGradient.o ColorPaletteWindow.o\
 		ColorGradientGLUTWindow.o TransferFunctionGLUTWindow.o MainWindow.o Event.o
-OBJ_CLIENT = Socket.o ClientSocket.o RenderClient.o
+OBJ_CLIENT = Socket.o ClientSocket.o RenderClient.o Event.o
 
 AUXSRC = config.h define.h global.h
 
 SOCKETSRC = ./socket
 SORTSRC = ./sort
 TFSRC = ./transfer-function
+NANOSCALESRC = ./nanoscale
 
 LIB_NANOVIS = -ltcl8.4 -lGL -lglut -lglui -lGLEW -lCg -lCgGL -pthread -lstdc++
-LIB_CLIENT = -lGL -lglut -pthread
+LIB_CLIENT = -lGL -lglut -pthread -lstdc++
 CFLAG = -g -c -Wall -I../src2/core
 
-all: nanovis client
+all: nanovis simclient 
 
 clean:
-	rm -f *.o nanovis 
+	rm -f *.o nanovis client simclient
 
 nanovis: $(OBJ_NANOVIS)
 	gcc -g -o nanovis $(OBJ_NANOVIS) $(LIB_NANOVIS) ../src2/core/*.o
@@ -51,6 +52,9 @@ RenderVertexArray.o: RenderVertexArray.h RenderVertexArray.cpp
 
 client: $(OBJ_CLIENT) 
 	gcc -g -o client $(OBJ_CLIENT) $(LIB_CLIENT)
+
+simclient: Event.o
+	gcc -g $(NANOSCALESRC)/EventPlayer.cpp $(NANOSCALESRC)/clientlib.cpp -o simclient Event.o $(LIB_CLIENT)
 
 Color.o: Color.cpp
 	gcc $(CFLAG) Color.cpp
