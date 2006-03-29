@@ -1561,6 +1561,8 @@ RpUnitsPreset::addPresetAll () {
     result += addPresetEnergy();
     result += addPresetVolume();
     result += addPresetAngle();
+    result += addPresetMass();
+    result += addPresetMisc();
 
     return 0;
 }
@@ -1734,6 +1736,52 @@ RpUnitsPreset::addPresetAngle () {
     RpUnits::define(degree,gradian,deg2grad,grad2deg);
     RpUnits::define(radian,degree,rad2deg,deg2rad);
     RpUnits::define(radian,gradian,rad2grad,grad2rad);
+
+    return 0;
+}
+
+/**********************************************************************/
+// METHOD: addPresetMass()
+/// Add Mass related units to the dictionary
+/**
+ * Defines the following units:
+ *   gram  (g)
+ *
+ * Return codes: 0 success, anything else is error
+ */
+
+int
+RpUnitsPreset::addPresetMass () {
+
+    RpUnits* gram  = RpUnits::define("g",  NULL, RP_TYPE_MASS);
+
+    RpUnits::makeMetric(gram);
+
+    // add mass definitions
+    // RpUnits::define(radian,gradian,rad2grad,grad2rad);
+
+    return 0;
+}
+
+/**********************************************************************/
+// METHOD: addPresetMisc()
+/// Add Misc related units to the dictionary
+/**
+ * Defines the following units:
+ *   mole  (mol)
+ *
+ * Return codes: 0 success, anything else is error
+ */
+
+int
+RpUnitsPreset::addPresetMisc () {
+
+    RpUnits* mole  = RpUnits::define("mol",  NULL, RP_TYPE_MISC);
+
+    RpUnits::makeMetric(mole);
+
+    // add misc definitions
+    // RpUnits::define(radian,gradian,rad2grad,grad2rad);
 
     return 0;
 }
