@@ -13,11 +13,13 @@
  * ======================================================================
  */
 
-#include <GL/freeglut.h>
+//#include <GL/freeglut.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <sstream>
 #include <string.h>
 #include <time.h>
+#include <sys/time.h>
 #include <iostream>
 #include <assert.h>
 
@@ -26,17 +28,18 @@
 
 using namespace std;
 
-Event* event[5000];
+Event* event[100];
 int cur_event = 0;
+double interval_sum = 0;
 
 int width = 512;
 int height = 512;
-char* screen_buffer = new char[width*height*3];
+char screen_buffer[512*512*3];
 int screen_size = width * height;
 
 int socket_fd; 	//socekt file descriptor
 
-
+/*
 void display()
 {
    //paste to screen 
@@ -46,6 +49,7 @@ void display()
    glutSwapBuffers();
    return;
 }
+*/
 
 
 void key(unsigned char key, int x, int y)
@@ -63,6 +67,15 @@ void key(unsigned char key, int x, int y)
 void idle(void)
 {
   //send requests
+
+  if (cur_event >= sizeof(event)/sizeof(event[0])) {
+    float ave = interval_sum / (cur_event-1);
+    float fps = 1/ave;
+    printf("Average frame time = %.6f\n", ave);
+    printf("Frames per second  = %f\n", fps);
+    exit(0);
+  }
+
   Event* cur = event[cur_event];
   std::stringstream msgstream;
   std::string msg;
@@ -94,18 +107,27 @@ void idle(void)
 
   //start timer
   struct timeval clock;
-  time((long*) &clock);
-  long start_time = clock.tv_sec*1000 + clock.tv_usec/1000;
+  gettimeofday(&clock, NULL);
+  double start_time = clock.tv_sec + clock.tv_usec/1000000.0;
 
   //send msg
+  //printf("Writing message %04d to server: '%s'\n", cur_event, msg.c_str());
   int status = write(socket_fd, msg.c_str(), strlen(msg.c_str()));
   if (status <= 0) {
      perror("socket write");
      return;
   }
-  
+
+#if DO_RLE
+  int sizes[2];
+  status = read(socket_fd, &sizes, sizeof(sizes));
+  printf("Reading %d,%d bytes\n", sizes[0], sizes[1]);
+  int len = sizes[0] + sizes[1];
+#else
+  int len = width * height * 3;
+#endif
+
   //receive screen update
-  int len = width * height;
   int remain = len;
   char* ptr = screen_buffer;
   while(remain>0){
@@ -120,14 +142,20 @@ void idle(void)
     }
   }
 
+  //printf("Read message to server.\n");
 
   //end timer
-  time((long*) &clock);
-  long end_time = clock.tv_sec*1000 + clock.tv_usec/1000;
+  gettimeofday(&clock, NULL);
+  double end_time = clock.tv_sec + clock.tv_usec/1000000.0;
 
-  long time_interval = end_time - start_time;
+  double time_interval = end_time - start_time;
 
-  fprintf(stderr, "%d ", time_interval);
+  if (cur_event != 0) {
+    interval_sum += time_interval;
+  }
+  cur_event++;
+
+  fprintf(stderr, "% 6d %.6f\n", len, time_interval);
 }
 
 int init_client(char* host, char* port, char* file){
@@ -135,13 +163,13 @@ int init_client(char* host, char* port, char* file){
   //load the event file
   FILE* fd = fopen(file, "r");
 
-  //load 5000 events
-  for(int i=0; i<5000; i++){
+  //load events
+  for(int i=0; i<sizeof(event)/sizeof(event[0]); i++){
     int type;
     float param[3];
     fscanf(fd, "%d %f %f %f\n", &type, param, param+1, param+2);
     event[i] = new Event(type, param, 0);
-    fprintf(stderr, "%d %f %f %f\n", type, param[0], param[1], param[2]);
+    //fprintf(stderr, "%d %f %f %f\n", type, param[0], param[1], param[2]);
   }
   fclose(fd);
 
@@ -170,6 +198,7 @@ int main(int argc, char *argv[])
 
     assert(init_client(argv[1], argv[2], argv[3])==0);
 
+/*
     glutInit(&argc, argv);
     glutInitWindowSize(width,height);
     glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE);
@@ -182,6 +211,8 @@ int main(int argc, char *argv[])
 
     glClearColor(0.,0.,0.,0.);
     glutMainLoop();
+*/
+    while(1) idle();
 
     return 0;
 }

@@ -101,7 +101,7 @@ CGparameter m_mvi_vert_std_param;
 
 using namespace std;
 
-static void set_camera(int x_angle, int y_angle, int z_angle){
+static void set_camera(float x_angle, float y_angle, float z_angle){
   live_rot_x = x_angle;
   live_rot_y = y_angle;
   live_rot_z = z_angle;
@@ -1058,13 +1058,51 @@ void getDP(float x, float y, float *px, float *py)
 
 
 void read_screen(){
-  glBindTexture(GL_TEXTURE_2D, 0);
-  glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, fbo);
+  //glBindTexture(GL_TEXTURE_2D, 0);
+  //glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, fbo);
   glReadPixels(0, 0, win_width, win_height, GL_RGB, /*GL_COLOR_ATTACHMENT0_EXT*/ GL_UNSIGNED_BYTE, screen_buffer);
   assert(glGetError()==0);
 }
 
 void display();
+
+
+char rle[512*512*3];
+int rle_size;
+
+short offsets[512*512*3];
+int offsets_size;
+
+void do_rle(){
+  int len = win_width*win_height*3;
+  rle_size = 0;
+  offsets_size = 0;
+
+  int i=0;
+  while(i<len){
+    if (screen_buffer[i] == 0) {
+      int pos = i+1;
+      while ( (pos<len) && (screen_buffer[pos] == 0)) {
+        pos++;
+      }
+      offsets[offsets_size++] = -(pos - i);
+      i = pos;
+    }
+
+    else {
+      int pos;
+      for (pos = i; (pos<len) && (screen_buffer[pos] != 0); pos++) {
+        rle[rle_size++] = screen_buffer[pos];
+      }
+      offsets[offsets_size++] = (pos - i);
+      i = pos;
+    }
+
+  }
+}
+
+
+
 
 void xinetd_listen(){
     //command:
@@ -1078,7 +1116,11 @@ void xinetd_listen(){
     std::string data;
     char tmp[256];
     bzero(tmp, 256);
-    fprintf(stderr, "read %d\n", read(fileno(stdin), tmp, 256));
+    int status = read(0, tmp, 256);
+    if (status <= 0) {
+      exit(0);
+    }
+    fprintf(stderr, "read %d\n", status);
     data = tmp;
 
     if(Tcl_Eval(interp, (char*)data.c_str()) != TCL_OK) {
@@ -1090,8 +1132,17 @@ void xinetd_listen(){
     display();
 
     //read the image
-    read_screen(); 
-    writen(fileno(stdout), screen_buffer, 3*win_width*win_height);	//unsigned byte
+    //read_screen(); 
+#if DO_RLE
+    do_rle();
+    int sizes[2] = {  offsets_size*sizeof(offsets[0]), rle_size }; 
+    fprintf(stderr, "Writing %d,%d\n", sizes[0], sizes[1]); fflush(stderr);
+    write(0, &sizes, sizeof(sizes));
+    write(0, offsets, offsets_size*sizeof(offsets[0]));
+    write(0, rle, rle_size);	//unsigned byte
+#else
+    write(0, screen_buffer, win_width * win_height * 3);
+#endif
 
     cerr << "server: serve() image sent" << endl;
 }
@@ -1867,7 +1918,7 @@ void display()
    */
    
    //advect particles
-   psys->advect();
+   //psys->advect();
 
    final_fbo_capture();
    //display_texture(slice_vector_tex, NMESH, NMESH);
@@ -1924,7 +1975,7 @@ void display()
 	  volume[0]->aspect_ratio_depth);
 
    perf->enable();
-     psys->display_vertices();
+     //psys->display_vertices();
    perf->disable();
    //fprintf(stderr, "particle pixels: %d\n", perf->get_pixel_count());
    perf->reset();
@@ -1938,9 +1989,11 @@ void display()
 
      //render volume :1
      volume[1]->location =Vector3(0., 0., 0.);
-     render_volume(1, 256);
+     render_volume(1, 126);
    perf->disable();
    //fprintf(stderr, "volume pixels: %d\n", perf->get_pixel_count());
+   float cost  = perf->get_pixel_count();
+   write(3, &cost, sizeof(cost));
    perf->reset();
 
    draw_axis();
@@ -1948,6 +2001,9 @@ void display()
 
    display_final_fbo();
 
+   read_screen();
+    glClear(GL_COLOR_BUFFER_BIT);
+    glDrawPixels(win_width, win_height, GL_RGB, /*GL_COLOR_ATTACHMENT0_EXT*/ GL_UNSIGNED_BYTE, screen_buffer);
    glutSwapBuffers(); 
 }
 
@@ -2144,6 +2200,7 @@ void init_service(){
   xinetd_log = fopen("log.txt", "w");
   close(2);
   dup2(fileno(xinetd_log), 2);
+  dup2(2,1);
 
   //flush junk 
   fflush(stdout);
@@ -2170,6 +2227,9 @@ void end_event_log(){
 /*----------------------------------------------------*/
 int main(int argc, char** argv) 
 { 
+#ifdef XINETD
+   init_service();
+#endif
 
    glutInit(&argc, argv);
    glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA); 
@@ -2189,9 +2249,6 @@ int main(int argc, char** argv)
    glutIdleFunc(idle);
 
    initGL();
-#ifdef XINETD
-   init_service();
-#endif
    initTcl();
 
 #ifdef EVENTLOG
