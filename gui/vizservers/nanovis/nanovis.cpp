@@ -471,6 +471,7 @@ load_volume_file(int index, char *fname) {
 #endif
 
             float *data = new float[4*nx*ny*nz];
+            float *grad = new float[4*nx*ny*nz];
 
             double vmin = field.valueMin();
             double dv = field.valueMax() - field.valueMin();
@@ -487,15 +488,38 @@ load_volume_file(int index, char *fname) {
                     for (int ix=0; ix < nx; ix++) {
                         double xval = x0 + ix*dmin;
                         double v = field.value(xval,yval,zval);
-                        data[ngen++] = (isnan(v)) ? -1.0 : (v - vmin)/dv;
+
+                        // scale all values [0-1], -1 => out of bounds
+                        v = (isnan(v)) ? -1.0 : (v - vmin)/dv;
+
+                        // gradient in x-direction
+                        double curval = (v < 0) ? 0.0 : v;
+                        double oldval = ((ngen/4) % nx == 0) ? 0.0 : data[ngen-4];
+                        oldval = (oldval < 0) ? 0.0 : oldval;
+                        grad[ngen] = (curval-oldval)/dmin;
+                        data[ngen++] = v;
+
+                        // gradient in y-direction
+                        oldval = (ngen-1-4*nx >= 0) ? data[ngen-1-4*nx] : 0.0;
+                        oldval = (oldval < 0) ? 0.0 : oldval;
+                        grad[ngen] = (curval-oldval)/dmin;
                         data[ngen++] = 0.0;
+
+                        // gradient in z-direction
+                        oldval = (ngen-2-4*nx*ny >= 0) ? data[ngen-2-4*nx*ny] : 0.0;
+                        oldval = (oldval < 0) ? 0.0 : oldval;
+                        grad[ngen] = (curval-oldval)/dmin;
                         data[ngen++] = 0.0;
+
+                        // unused
+                        grad[ngen] = 0.0;
                         data[ngen++] = 0.0;
                     }
                 }
             }
             load_volume(index, nx, ny, nz, 4, data);
             delete [] data;
+            delete [] grad;
 
         } else {
             Rappture::Mesh1D zgrid(z0, z0+nz*dz, nz);
@@ -887,7 +911,6 @@ void initGL(void)
      perf = new PerfQuery(); 
    }
 
-   //init_vector_field();	//3d vector field
    //load_volume_file(0, "./data/A-apbs-2-out-potential-PE0.dx");
    //load_volume_file(0, "./data/nw-AB-Vg=0.000-Vd=1.000-potential.dx");
    //load_volume_file(0, "./data/test2.dx");
