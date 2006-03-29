@@ -35,6 +35,8 @@
 #define RP_TYPE_TIME    "time"
 #define RP_TYPE_VOLUME  "volume"
 #define RP_TYPE_ANGLE   "angle"
+#define RP_TYPE_MASS    "mass"
+#define RP_TYPE_MISC    "misc"
 
 
 // should the define function:
@@ -61,6 +63,8 @@ class RpUnitsPreset {
         static int addPresetTime();
         static int addPresetVolume();
         static int addPresetAngle();
+        static int addPresetMass();
+        static int addPresetMisc();
 };
 
 // simple class to hold info about a conversion.
