@@ -34,17 +34,22 @@ PixelOut main(v2f IN, /* uniform sampler1D tf,*/
       OUT.Color = float4(0.0, 0.0, 0.0, 0.0);
     } 
     else{
+/*
       //lighting parameters 
       float4 worldnormal = float4(sample.yzw, 1);
       float3 normal = normalize(mul(modelView, worldnormal)).xyz;            //eye space normal
       float3 light_vector = normalize(mul(modelView, float4(0, -1, -2, 1)));            //eye space light vector
       float3 eye_vector = normalize(mul(modelView, float4(IN.EyeVector,1))).xyz; 	//eye space eye vector
       float3 half_vector = normalize(+eye_vector+light_vector);          //eye half angle vector
-
+*/
       //sample the transfer function texture
       float4 color = tex1D(tf, sample.x);
       color.w = 10*color.w/renderParameters.x;
 
+      if(sample.x > 0.5)
+        color = float4(sample.x, 0, 0, sample.x);
+        
+/*
       //lighting computation
       float normal_dot_light = max(dot(normal, light_vector), 0);
       float normal_dot_half = max(dot(normal, half_vector), 0);
@@ -55,6 +60,7 @@ PixelOut main(v2f IN, /* uniform sampler1D tf,*/
 
       float lighting = ambient + diffuse + specular;
       color.xyz = color.xyz * lighting;
+*/
 
       //debug
       //color.xyz = normal.xyz;       //display normals

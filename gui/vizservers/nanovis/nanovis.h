@@ -22,7 +22,6 @@
 #include <iostream>
 #include <stdio.h>
 #include <assert.h>
-#include <tcl.h>
 #include <float.h>
 
 #include "define.h"
@@ -42,6 +41,11 @@
 #include "Event.h"
 
 #include "config.h"
+
+#include <tcl.h>
+#ifndef CONST84
+# define CONST84 
+#endif
 
 
 //defines for the image based flow visualization
@@ -114,4 +118,3 @@ float  dmax   = SCALE/NPIX;
 
 //currently active shader, default renders one volume only
 int cur_shader = 0;
-

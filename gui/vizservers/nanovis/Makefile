@@ -11,9 +11,10 @@ SORTSRC = ./sort
 TFSRC = ./transfer-function
 NANOSCALESRC = ./nanoscale
 
-LIB_NANOVIS = -ltcl8.4 -lGL -lglut -lglui -lGLEW -lCg -lCgGL -pthread -lstdc++
-LIB_CLIENT = -lGL -lglut -pthread -lstdc++
-CFLAG = -g -c -Wall -I../src2/core
+LIB_NANOVIS = -ltcl8.3 -L/opt/render/lib -lGL -lglut -lglui -lGLEW -lCg -lCgGL -pthread -lstdc++
+LIB_CLIENT = -L/opt/render/lib -lGL -lglut -pthread -lstdc++
+INCLUDES = -I../src2/core -I/opt/render/include -I/autohome/u76/qiaow/Cg/usr/include
+CFLAG = -g -c -Wall $(INCLUDES)
 
 all: nanovis simclient 
 
@@ -53,8 +54,9 @@ RenderVertexArray.o: RenderVertexArray.h RenderVertexArray.cpp
 client: $(OBJ_CLIENT) 
 	gcc -g -o client $(OBJ_CLIENT) $(LIB_CLIENT)
 
-simclient: Event.o
-	gcc -g $(NANOSCALESRC)/EventPlayer.cpp $(NANOSCALESRC)/clientlib.cpp -o simclient Event.o $(LIB_CLIENT)
+simclient: Event.o nanoscale/EventPlayer.cpp
+	#gcc -g $(INCLUDES) $(NANOSCALESRC)/EventPlayer.cpp $(NANOSCALESRC)/clientlib.cpp -o simclient Event.o $(LIB_CLIENT)
+	g++ -g $(INCLUDES) $(NANOSCALESRC)/EventPlayer.cpp $(NANOSCALESRC)/clientlib.cpp -o simclient Event.o
 
 Color.o: Color.cpp
 	gcc $(CFLAG) Color.cpp
