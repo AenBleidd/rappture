@@ -40,14 +40,12 @@ float color_table[256][4];
 FILE* xinetd_log;
 #endif
 
-#ifdef EVENTLOG
 FILE* event_log;
 //log
 void init_event_log();
 void end_event_log();
 double cur_time;	//in seconds
 double get_time_interval();
-#endif
 
 int render_window; 		//the handle of the render window;
 // forward declarations
@@ -2026,10 +2024,10 @@ void display()
    assert(glGetError()==0);
 
    //enable fbo
-   fbo_capture();
+   //fbo_capture();
 
    //convolve
-   lic();
+   //lic();
 
    /*
    //blend magnitude texture
@@ -2045,7 +2043,7 @@ void display()
    */
    
    //advect particles
-   psys->advect();
+   //psys->advect();
 
    final_fbo_capture();
    //display_texture(slice_vector_tex, NMESH, NMESH);
@@ -2071,18 +2069,18 @@ void display()
    glRotated(live_rot_y, 0., 1., 0.);
    glRotated(live_rot_z, 0., 0., 1.);
 
-   draw_3d_axis();
+   //draw_3d_axis();
    
+   /*
    glPushMatrix();
-
    glScaled(volume[0]->aspect_ratio_width, 
 	  volume[0]->aspect_ratio_height, 
 	  volume[0]->aspect_ratio_depth);
 
    
    
-   glEnable(GL_DEPTH_TEST);
    //draw line integral convolution quad
+   glEnable(GL_DEPTH_TEST);
    glBegin(GL_QUADS);
    glTexCoord2f(0, 0); glVertex3f(0, 0, lic_slice_z);
    glTexCoord2f(1, 0); glVertex3f(1, 0, lic_slice_z);
@@ -2090,14 +2088,12 @@ void display()
    glTexCoord2f(0, 1); glVertex3f(0, 1, lic_slice_z);
    glEnd();
    glDisable(GL_DEPTH_TEST);
-   
-
-
    glPopMatrix();
+   */
    
-
    //soft_display_verts();
    
+   /*
    glPushMatrix();
 
    glScaled(volume[0]->aspect_ratio_width,
@@ -2111,6 +2107,7 @@ void display()
    perf->reset();
 
    glPopMatrix();
+   */
 
    perf->enable();
      //render volume :0 
@@ -2119,7 +2116,8 @@ void display()
 
      //render volume :1
      volume[1]->location =Vector3(0., 0., 0.);
-     render_volume(1, 1024);
+     render_volume(1, 100);
+     //fprintf(stderr, "%lf\n", get_time_interval());
    perf->disable();
    //fprintf(stderr, "volume pixels: %d\n", perf->get_pixel_count());
  
@@ -2300,8 +2298,8 @@ void motion(int x, int y){
     int delta_y = y - old_y;
 
     //more coarse event handling
-    //if(abs(delta_x)<10 && abs(delta_y)<10)
-      //return;
+    if(abs(delta_x)<10 && abs(delta_y)<10)
+      return;
 
     if(left_down){
       left_last_x = x;
@@ -2347,7 +2345,6 @@ void end_service(){
 }
 #endif
 
-#ifdef EVENTLOG
 void init_event_log(){
   event_log = fopen("event.txt", "w");
   assert(event_log!=0);
@@ -2371,7 +2368,6 @@ double get_time_interval(){
   return interval;
 }
 
-#endif
 
 /*----------------------------------------------------*/
 int main(int argc, char** argv) 
