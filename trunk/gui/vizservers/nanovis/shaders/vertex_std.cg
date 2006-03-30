@@ -25,7 +25,10 @@ v2f main(a2v IN,
 	OUT.TexCoord = IN.TexCoord;
 
         //world space eye position
-        OUT.EyeVector = normalize(IN.Position.xyz - float3(0., 0., 0.));
+        OUT.EyeVector = normalize(-IN.Position.xyz);
+
+        //world space light postion
+        OUT.Light = normalize(float3(1,1,1)-IN.Position.xyz);
 
 	return OUT;
 }

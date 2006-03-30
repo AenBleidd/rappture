@@ -551,6 +551,31 @@ load_volume_file(int index, char *fname) {
                     }
                 }
             }
+
+	    /*
+	    //hack very first and last yz slice have 0 grad
+	    for(int iz=0; iz<nz; iz++){
+	      for(int iy=0; iy<ny; iy++){
+                 int index1, index2;
+		 int ix1 = 0;
+		 int ix2 = 3;
+		 index1 = ix1 + iy*nx + iz*nx*ny;
+		 index2 = ix2 + iy*nx + iz*nx*ny;
+		 data[4*index1 + 1] = data[4*index2 + 1];
+		 data[4*index1 + 2] = data[4*index2 + 2];
+		 data[4*index1 + 3] = data[4*index2 + 3];
+
+		 ix1 = nx-1;
+		 ix2 = nx-2;
+		 index1 = ix1 + iy*nx + iz*nx*ny;
+		 index2 = ix2 + iy*nx + iz*nx*ny;
+		 data[4*index1 + 1] = data[4*index2 + 1];
+		 data[4*index1 + 2] = data[4*index2 + 2];
+		 data[4*index1 + 3] = data[4*index2 + 3];
+	      }
+	    }
+	    */
+
             load_volume(index, nx, ny, nz, 4, data);
             delete [] data;
 
@@ -868,7 +893,7 @@ void init_particles(){
   for (int i=0; i<psys->psys_width; i++){ 
     for (int j=0; j<psys->psys_height; j++){ 
       int index = i + psys->psys_height*j;
-      bool particle = rand() % 256 > 200; 
+      bool particle = rand() % 256 > 150; 
       //particle = true;
       if(particle)
       {
@@ -931,7 +956,21 @@ void initGL(void)
    glEnable(GL_TEXTURE_2D);
    glShadeModel(GL_FLAT);
    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+   glClearColor(0,0,0,1);
    glClear(GL_COLOR_BUFFER_BIT);
+
+   //initialize lighting
+   GLfloat mat_specular[] = {1.0, 1.0, 1.0, 1.0};
+   GLfloat mat_shininess[] = {30.0};
+   GLfloat white_light[] = {1.0, 1.0, 1.0, 1.0};
+   GLfloat green_light[] = {0.1, 0.5, 0.1, 1.0};
+
+   glMaterialfv(GL_FRONT, GL_SPECULAR, mat_specular);
+   glMaterialfv(GL_FRONT, GL_SHININESS, mat_shininess);
+   glLightfv(GL_LIGHT0, GL_DIFFUSE, white_light);
+   glLightfv(GL_LIGHT0, GL_SPECULAR, white_light);	
+   glLightfv(GL_LIGHT1, GL_DIFFUSE, green_light);
+   glLightfv(GL_LIGHT1, GL_SPECULAR, white_light);	
 
    //init volume and colormap arrays
    for(int i=0; i<MAX_N_VOLUMES; i++){
@@ -1263,6 +1302,7 @@ void lic(){
       glTexCoord2f(tmax, tmax); glVertex2f(1.0, 1.0);
    glEnd();
 
+   /*
    //inject dye
    glDisable(GL_TEXTURE_2D);
    glColor4f(1.,0.8,0.,1.);
@@ -1272,6 +1312,7 @@ void lic(){
      glVertex2d(0.62, 0.62);
      glVertex2d(0.62, 0.6);
    glEnd();
+   */
 
    glDisable(GL_BLEND);
    glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 0, 0, NPIX, NPIX, 0);
@@ -1639,7 +1680,7 @@ void render_volume(int volume_index, int n_slices){
   glEnable(GL_DEPTH_TEST);
 
   //draw volume bounding box
-  draw_bounding_box(x0+shift_4d.x, y0+shift_4d.y, z0+shift_4d.z, x0+shift_4d.x+1, y0+shift_4d.y+1, z0+shift_4d.z+1, 1, 1, 0, 2.0);
+  draw_bounding_box(x0+shift_4d.x, y0+shift_4d.y, z0+shift_4d.z, x0+shift_4d.x+1, y0+shift_4d.y+1, z0+shift_4d.z+1, 0.8, 0.1, 0.1, 1.5);
 
   GLfloat mv[16];
   glGetFloatv(GL_MODELVIEW_MATRIX, mv);
@@ -1859,6 +1900,91 @@ void render_volume(int volume_index, int n_slices){
 }
 #endif
 
+void draw_3d_axis(){
+  glDisable(GL_TEXTURE_2D);
+  glEnable(GL_DEPTH_TEST);
+
+ 	//draw axes
+	GLUquadric *obj;
+	obj = gluNewQuadric();
+	
+	glDepthFunc(GL_LESS);
+	glEnable(GL_DEPTH_TEST);
+	glDisable(GL_BLEND);
+
+	int segments = 20;
+
+	glColor3f(0.8, 0.8, 0.8);
+	glPushMatrix();
+	glTranslatef(-0.45, -0.5, -0.5);
+	glScalef(0.001, 0.001, 0.001);
+	glutStrokeCharacter(GLUT_STROKE_ROMAN, 'x');
+	glPopMatrix();	
+
+	glPushMatrix();
+	glTranslatef(-0.7, -0.25, -0.5);
+	glScalef(0.001, 0.001, 0.001);
+	glutStrokeCharacter(GLUT_STROKE_ROMAN, 'y');
+	glPopMatrix();	
+
+	glPushMatrix();
+	glTranslatef(-0.7, -0.5, -0.2);
+	glScalef(0.001, 0.001, 0.001);
+	glutStrokeCharacter(GLUT_STROKE_ROMAN, 'z');
+	glPopMatrix();	
+
+	glEnable(GL_LIGHTING);
+	glEnable(GL_LIGHT0);
+
+	glColor3f(0.2, 0.2, 0.8);
+	glPushMatrix();
+	glTranslatef(-0.7, -0.5, -0.5);
+	glutSolidSphere(0.02, segments, segments );
+	glPopMatrix();
+
+	glPushMatrix();
+	glTranslatef(-0.7, -0.5, -0.5);
+	glRotatef(-90, 1, 0, 0);	
+	gluCylinder(obj, 0.01, 0.01, 0.15, segments, segments);
+	glPopMatrix();	
+
+	glPushMatrix();
+	glTranslatef(-0.7, -0.35, -0.5);
+	glRotatef(-90, 1, 0, 0);	
+	gluCylinder(obj, 0.02, 0.0, 0.06, segments, segments);
+	glPopMatrix();	
+
+	glPushMatrix();
+	glTranslatef(-0.7, -0.5, -0.5);
+	glRotatef(90, 0, 1, 0);
+	gluCylinder(obj, 0.01, 0.01, 0.15, segments, segments);
+	glPopMatrix();	
+
+	glPushMatrix();
+	glTranslatef(-0.55, -0.5, -0.5);
+	glRotatef(90, 0, 1, 0);	
+	gluCylinder(obj, 0.02, 0.0, 0.06, segments, segments);
+	glPopMatrix();	
+
+	glPushMatrix();
+	glTranslatef(-0.7, -0.5, -0.5);
+	gluCylinder(obj, 0.01, 0.01, 0.15, segments, segments);
+	glPopMatrix();	
+
+	glPushMatrix();
+	glTranslatef(-0.7, -0.5, -0.35);
+	gluCylinder(obj, 0.02, 0.0, 0.06, segments, segments);
+	glPopMatrix();	
+
+	glDisable(GL_LIGHTING);
+	glDisable(GL_DEPTH_TEST);
+	gluDeleteQuadric(obj);
+
+  glEnable(GL_TEXTURE_2D);
+  glDisable(GL_DEPTH_TEST);
+}
+
+
 void draw_axis(){
 
   glDisable(GL_TEXTURE_2D);
@@ -1903,7 +2029,7 @@ void display()
    fbo_capture();
 
    //convolve
-   //lic();
+   lic();
 
    /*
    //blend magnitude texture
@@ -1919,7 +2045,7 @@ void display()
    */
    
    //advect particles
-   //psys->advect();
+   psys->advect();
 
    final_fbo_capture();
    //display_texture(slice_vector_tex, NMESH, NMESH);
@@ -1945,6 +2071,7 @@ void display()
    glRotated(live_rot_y, 0., 1., 0.);
    glRotated(live_rot_z, 0., 0., 1.);
 
+   draw_3d_axis();
    
    glPushMatrix();
 
@@ -1952,8 +2079,9 @@ void display()
 	  volume[0]->aspect_ratio_height, 
 	  volume[0]->aspect_ratio_depth);
 
-   /*
    
+   
+   glEnable(GL_DEPTH_TEST);
    //draw line integral convolution quad
    glBegin(GL_QUADS);
    glTexCoord2f(0, 0); glVertex3f(0, 0, lic_slice_z);
@@ -1961,7 +2089,8 @@ void display()
    glTexCoord2f(1, 1); glVertex3f(1, 1, lic_slice_z);
    glTexCoord2f(0, 1); glVertex3f(0, 1, lic_slice_z);
    glEnd();
-   */
+   glDisable(GL_DEPTH_TEST);
+   
 
 
    glPopMatrix();
@@ -1976,7 +2105,7 @@ void display()
 	  volume[0]->aspect_ratio_depth);
 
    perf->enable();
-     //psys->display_vertices();
+     psys->display_vertices();
    perf->disable();
    //fprintf(stderr, "particle pixels: %d\n", perf->get_pixel_count());
    perf->reset();
@@ -1990,7 +2119,7 @@ void display()
 
      //render volume :1
      volume[1]->location =Vector3(0., 0., 0.);
-     render_volume(1, 126);
+     render_volume(1, 1024);
    perf->disable();
    //fprintf(stderr, "volume pixels: %d\n", perf->get_pixel_count());
  
@@ -2000,7 +2129,6 @@ void display()
 #endif
    perf->reset();
 
-   draw_axis();
 #endif
 
    display_final_fbo();
@@ -2102,25 +2230,25 @@ void keyboard(unsigned char key, int x, int y){
 		advect = true;
 		break;
 	case '2':
-		psys_x+=0.1;
+		psys_x+=0.05;
 		break;
 	case '3':
-		psys_x-=0.1;
+		psys_x-=0.05;
 		break;
 	case 'w': //zoom out
-		live_obj_z-=0.1;
+		live_obj_z-=0.05;
 		log = true;
 		break;
 	case 's': //zoom in
-		live_obj_z+=0.1;
+		live_obj_z+=0.05;
 		log = true;
 		break;
 	case 'a': //left
-		live_obj_x-=0.1;
+		live_obj_x-=0.05;
 		log = true;
 		break;
 	case 'd': //right
-		live_obj_x+=0.1;
+		live_obj_x+=0.05;
 		log = true;
 		break;
 	case 'i':
@@ -2172,8 +2300,8 @@ void motion(int x, int y){
     int delta_y = y - old_y;
 
     //more coarse event handling
-    if(abs(delta_x)<10 && abs(delta_y)<10)
-      return;
+    //if(abs(delta_x)<10 && abs(delta_y)<10)
+      //return;
 
     if(left_down){
       left_last_x = x;

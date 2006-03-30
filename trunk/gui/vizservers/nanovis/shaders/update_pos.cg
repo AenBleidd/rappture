@@ -37,14 +37,14 @@ float4 main(in float2 uv : TEXCOORD0,
     ret = pos + vel*timestep;
     //ret = pos;
 
-/*
+
     //not drawing if the particle is out of bound
     if(ret.x<0 || ret.x>1 || ret.y<0 || ret.y>1 || ret.z<0 || ret.z>1 || time==0)
       ret = float4(1,0,0,0); 
     else
       ret.w = 1;
-*/
 
-    ret.w = 1.;
+
+   // ret.w = 1.;
     return ret;
 }
