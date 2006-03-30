@@ -28,7 +28,7 @@
 
 using namespace std;
 
-Event* event[100];
+Event* event[300];
 int cur_event = 0;
 double interval_sum = 0;
 
@@ -105,6 +105,12 @@ void idle(void)
 
   msg = msgstream.str();
 
+  //sleep a little
+  struct timespec ts;
+  ts.tv_sec = 0;
+  ts.tv_nsec = cur->msec*1000000000;
+  nanosleep(&ts, 0);
+  
   //start timer
   struct timeval clock;
   gettimeofday(&clock, NULL);
@@ -167,8 +173,9 @@ int init_client(char* host, char* port, char* file){
   for(int i=0; i<sizeof(event)/sizeof(event[0]); i++){
     int type;
     float param[3];
-    fscanf(fd, "%d %f %f %f\n", &type, param, param+1, param+2);
-    event[i] = new Event(type, param, 0);
+    double interval;
+    fscanf(fd, "%d %f %f %f %g\n", &type, param, param+1, param+2, &interval);
+    event[i] = new Event(type, param, interval);
     //fprintf(stderr, "%d %f %f %f\n", type, param[0], param[1], param[2]);
   }
   fclose(fd);

@@ -18,6 +18,7 @@
 #include <fstream>
 #include <iostream>
 #include <string>
+#include <sys/time.h>
 
 #include "nanovis.h"
 #include "RpFieldRect3D.h"
@@ -44,6 +45,8 @@ FILE* event_log;
 //log
 void init_event_log();
 void end_event_log();
+double cur_time;	//in seconds
+double get_time_interval();
 #endif
 
 int render_window; 		//the handle of the render window;
@@ -666,7 +669,7 @@ extern void update_tf_texture(){
 
 #ifdef EVENTLOG
   float param[3] = {0,0,0};
-  Event* tmp = new Event(EVENT_ROTATE, param, 0);
+  Event* tmp = new Event(EVENT_ROTATE, param, get_time_interval());
   tmp->write(event_log);
   delete tmp;
 #endif
@@ -865,7 +868,7 @@ void init_particles(){
   for (int i=0; i<psys->psys_width; i++){ 
     for (int j=0; j<psys->psys_height; j++){ 
       int index = i + psys->psys_height*j;
-      bool particle = rand() % 256 > 100; 
+      bool particle = rand() % 256 > 200; 
       //particle = true;
       if(particle)
       {
@@ -1100,8 +1103,6 @@ void do_rle(){
 
   }
 }
-
-
 
 
 void xinetd_listen(){
@@ -1992,8 +1993,11 @@ void display()
      render_volume(1, 126);
    perf->disable();
    //fprintf(stderr, "volume pixels: %d\n", perf->get_pixel_count());
+ 
+#ifdef XINETD
    float cost  = perf->get_pixel_count();
    write(3, &cost, sizeof(cost));
+#endif
    perf->reset();
 
    draw_axis();
@@ -2001,9 +2005,11 @@ void display()
 
    display_final_fbo();
 
+#ifdef XINETD
    read_screen();
-    glClear(GL_COLOR_BUFFER_BIT);
-    glDrawPixels(win_width, win_height, GL_RGB, /*GL_COLOR_ATTACHMENT0_EXT*/ GL_UNSIGNED_BYTE, screen_buffer);
+   glClear(GL_COLOR_BUFFER_BIT);
+   glDrawPixels(win_width, win_height, GL_RGB, /*GL_COLOR_ATTACHMENT0_EXT*/ GL_UNSIGNED_BYTE, screen_buffer);
+#endif
    glutSwapBuffers(); 
 }
 
@@ -2142,7 +2148,7 @@ void keyboard(unsigned char key, int x, int y){
 #ifdef EVENTLOG
    if(log){
      float param[3] = {live_obj_x, live_obj_y, live_obj_z};
-     Event* tmp = new Event(EVENT_MOVE, param, 0);
+     Event* tmp = new Event(EVENT_MOVE, param, get_time_interval());
      tmp->write(event_log);
      delete tmp;
    }
@@ -2166,8 +2172,8 @@ void motion(int x, int y){
     int delta_y = y - old_y;
 
     //more coarse event handling
-    //if(abs(delta_x)<5 && abs(delta_y)<5)
-      //return;
+    if(abs(delta_x)<10 && abs(delta_y)<10)
+      return;
 
     if(left_down){
       left_last_x = x;
@@ -2186,7 +2192,7 @@ void motion(int x, int y){
 
 #ifdef EVENTLOG
     float param[3] = {live_rot_x, live_rot_y, live_rot_z};
-    Event* tmp = new Event(EVENT_ROTATE, param, 0);
+    Event* tmp = new Event(EVENT_ROTATE, param, get_time_interval());
     tmp->write(event_log);
     delete tmp;
 #endif
@@ -2217,11 +2223,26 @@ void end_service(){
 void init_event_log(){
   event_log = fopen("event.txt", "w");
   assert(event_log!=0);
+
+  struct timeval time;
+  gettimeofday(&time, NULL);
+  cur_time = time.tv_sec*1000. + time.tv_usec/1000.;
 }
 
 void end_event_log(){
   fclose(event_log);
 }
+
+double get_time_interval(){
+  struct timeval time;
+  gettimeofday(&time, NULL);
+  double new_time = time.tv_sec*1000. + time.tv_usec/1000.;
+
+  double interval = new_time - cur_time;
+  cur_time = new_time;
+  return interval;
+}
+
 #endif
 
 /*----------------------------------------------------*/
