@@ -28,10 +28,10 @@ public:
    float parameter[3];	//event parameters: rotate: x,y,z  
 			//                  move: x,y,z
   			//                  other: nan 
-   long msc;		//millisecond since the session started
+   float msec;		//millisecond since the session started
 	
    Event();
-   Event(int _type, float _param[3], long _time);
+   Event(int _type, float _param[3], float _time);
    ~Event();
    void write(FILE* fd);
 };

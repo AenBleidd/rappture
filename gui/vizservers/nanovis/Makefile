@@ -11,7 +11,7 @@ SORTSRC = ./sort
 TFSRC = ./transfer-function
 NANOSCALESRC = ./nanoscale
 
-LIB_NANOVIS = -ltcl8.3 -L/opt/render/lib -lGL -lglut -lglui -lGLEW -lCg -lCgGL -pthread -lstdc++
+LIB_NANOVIS = -ltcl8.4 -L/opt/render/lib -lGL -lglut -lglui -lGLEW -lCg -lCgGL -pthread -lstdc++
 LIB_CLIENT = -L/opt/render/lib -lGL -lglut -pthread -lstdc++
 INCLUDES = -I../src2/core -I/opt/render/include -I/autohome/u76/qiaow/Cg/usr/include
 CFLAG = -g -c -Wall $(INCLUDES)

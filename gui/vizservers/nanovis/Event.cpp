@@ -20,14 +20,14 @@ Event::Event(){}
 Event::~Event(){}
 
 
-Event::Event(int _type, float _param[3], long _time){
+Event::Event(int _type, float _param[3], float _time){
   type = _type;
   memcpy(parameter, _param, 3*sizeof(float));
-  msc = _time;
+  msec = _time;
 }
     
 void Event::write(FILE* fd){
-  fprintf(fd, "%d %f %f %f\n", type, parameter[0], parameter[1], parameter[2]);
+  fprintf(fd, "%d %f %f %f %g\n", type, parameter[0], parameter[1], parameter[2], msec);
 }
 
 
