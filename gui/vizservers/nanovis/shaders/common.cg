@@ -94,8 +94,8 @@ struct v2f
 {
   float4 HPosition		: HPOS;		//Clip space pos. Not readable in frag prog
   float4 TexCoord		: TEXCOORD0;
-  float4 VertPos		: TEXCOORD1;	//eye space vertex position
-  float3 EyeVector		: TEXCOORD2;	//eye space eye position
+  float3 EyeVector		: TEXCOORD1;	//world space eye vector
+  float3 Light                  : TEXCOORD2;    //world space light vector 
 };
 
 struct PixelOut {

@@ -17,7 +17,7 @@
  */
 
 
-//#define PHONG_SHADING
+#define PHONG_SHADING
 
 PixelOut main(v2f IN, /* uniform sampler1D tf,*/
 		uniform sampler3D volume,
@@ -36,19 +36,18 @@ PixelOut main(v2f IN, /* uniform sampler1D tf,*/
 
 #ifdef PHONG_SHADING
       //lighting parameters 
-      float4 worldnormal = float4(normalize(sample.yzw), 1);
-      float3 normal = normalize(mul(modelView, worldnormal).xyz);            //eye space normal
-      //float3 light_vector = normalize(mul(modelView, float4(0, -1, -2, 1)));  //eye space light vector
-      float3 light_vector = normalize(float3(0, -1, -2));            		//eye space light vector
-      float3 eye_vector = normalize(mul(modelView, float4(IN.EyeVector,1)).xyz); 	//eye space eye vector
-      float3 half_vector = normalize(+eye_vector+light_vector);          //eye half angle vector
+      float3 normal = normalize(sample.yzw);
+      float3 light_vector = normalize(IN.Light);
+      float3 eye_vector = normalize(IN.EyeVector);
+      float3 half_vector = normalize(eye_vector+light_vector);
+
 #endif
 
       //sample the transfer function texture
-      //float4 color = tex1D(tf, sample.x);
-      //color.w = 10*color.w/renderParameters.x;
+      float4 color = tex1D(tf, sample.x);
+      color.w = 10*color.w/renderParameters.x;
 
-      float4 color = float4(sample.x, 0, 0, sample.x);
+      //float4 color = float4(sample.x, 0, 0, sample.x);
         
 
 #ifdef PHONG_SHADING
@@ -58,7 +57,7 @@ PixelOut main(v2f IN, /* uniform sampler1D tf,*/
 
       float ambient = 0.1;
       float diffuse = normal_dot_light * renderParameters.z;
-      float specular = pow(normal_dot_half, -renderParameters.w)*(1-ambient-diffuse);
+      float specular = pow(normal_dot_half, renderParameters.w)*(1-ambient-diffuse);
 
       float lighting = ambient + diffuse + specular;
       color.xyz = color.xyz * lighting;

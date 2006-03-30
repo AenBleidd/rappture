@@ -203,10 +203,11 @@ void ParticleSystem::update_vertex_buffer(){
 void ParticleSystem::display_vertices(){
   glDisable(GL_TEXTURE_2D);
   glDisable(GL_BLEND);
+  glEnable(GL_DEPTH_TEST);
 
   //glPointSize(0.5);
-  glPointSize(1.0);
-  glColor4f(.6,.6,.0,1.);
+  glPointSize(1.5);
+  glColor4f(.2,.2,.8,1.);
 
   m_vertex_array->SetPointer(0);
   //glEnableVertexAttribArray(0);
@@ -215,6 +216,7 @@ void ParticleSystem::display_vertices(){
   //glDisableVertexAttribArray(0);
   glDisableClientState(GL_VERTEX_ARRAY);
   
+  glDisable(GL_DEPTH_TEST);
   assert(glGetError()==0);
 }
 
