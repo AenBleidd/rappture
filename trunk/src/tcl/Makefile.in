@@ -329,6 +329,12 @@ install-lib-binaries: installdirs
 	    $(RANLIB) $(DESTDIR)$(bindir)/$$p; \
 	  else :; fi; \
 	done
+	$(mkinstalldirs) $(pkglibdir)/scripts
+	@for i in $(srcdir)/scripts/*.tcl; do \
+	    echo "Installing $$i" ; \
+	    $(INSTALL_DATA) $$i $(DESTDIR)$(pkglibdir)/scripts ; \
+        done;
+	$(TCLSH_PROG) $(srcdir)/cf/mkindex.tcl $(DESTDIR)$(pkglibdir)/scripts
 	$(INSTALL_DATA) pkgIndex.tcl $(DESTDIR)$(pkglibdir)/pkgIndex.tcl
 	$(INSTALL_DATA) init.tcl $(DESTDIR)$(pkglibdir)/init.tcl
 

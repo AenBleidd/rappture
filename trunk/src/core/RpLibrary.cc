@@ -12,6 +12,9 @@
  */
 
 #include "RpLibrary.h"
+#include "RpEntityRef.h"
+
+static RpEntityRef ERTranslator;
 
 /**********************************************************************/
 // METHOD: _get_attribute()
@@ -162,7 +165,7 @@ std::string
 RpLibrary::_node2comp (scew_element* node)
 {
     // XML_Char const* name = _get_attribute(node,"id");
-    std::string name = _get_attribute(node,"id");
+    std::string id = _get_attribute(node,"id");
     std::stringstream retVal;
     XML_Char const* type = NULL;
     scew_element* parent = NULL;
@@ -176,7 +179,7 @@ RpLibrary::_node2comp (scew_element* node)
     parent = scew_element_parent(node);
 
     if (parent) {
-        if (name.empty()) {
+        if (id.empty()) {
             siblings = scew_element_list(parent, type, &count);
             if (count > 0) {
                 tmpCount = count;
@@ -187,7 +190,8 @@ RpLibrary::_node2comp (scew_element* node)
 
                 if (index < tmpCount) {
                     if (index > 0) {
-                        retVal << type << --index;
+                        // retVal << type << --index;
+                        retVal << type << index;
                     }
                     else {
                         retVal << type;
@@ -203,7 +207,7 @@ RpLibrary::_node2comp (scew_element* node)
         }
         else {
             // node has attribute id
-            retVal << type << "(" << name << ")";
+            retVal << type << "(" << id << ")";
 
         }
     }
@@ -539,7 +543,7 @@ RpLibrary::entities  (std::string path)
         ele = this->element(*iter);
         child = NULL;
 
-        while ( (child = ele->children("",child)) != NULL ) {
+        while ( ele && (child = ele->children("",child)) != NULL ) {
             childList.push_back(child->nodeComp());
         }
 
@@ -635,7 +639,12 @@ RpLibrary::diff (RpLibrary* otherLib, std::string path)
             otherIter++;
         }
 
-        thisSpath = path + "." + *thisIter;
+        if (!path.empty()) {
+            thisSpath = path + "." + *thisIter;
+        }
+        else {
+            thisSpath = *thisIter;
+        }
 
         if (otherIter == otherv.end()) {
             // we've reached the end of the search 
@@ -648,7 +657,12 @@ RpLibrary::diff (RpLibrary* otherLib, std::string path)
         }
         else {
 
-            otherSpath = path + "." + *otherIter;
+            if (!path.empty()) {
+                otherSpath = path + "." + *otherIter;
+            }
+            else {
+                otherSpath = *otherIter;
+            }
 
             thisVal = this->value(thisSpath);
             otherVal = otherLib->value(otherSpath);
@@ -672,7 +686,12 @@ RpLibrary::diff (RpLibrary* otherLib, std::string path)
     otherIter = otherv.begin();
     while ( otherIter != otherv.end() ) {
 
-        otherSpath = path + "." + *otherIter;
+        if (!path.empty()) {
+            otherSpath = path + "." + *otherIter;
+        }
+        else {
+            otherSpath = *otherIter;
+        }
 
         otherVal = otherLib->value(otherSpath);
 
@@ -690,7 +709,7 @@ RpLibrary::diff (RpLibrary* otherLib, std::string path)
 
 /**********************************************************************/
 // METHOD: value(path)
-/// find the differences between two xml trees.
+/// Return a 2 element list containing the regular and normalized values.
 /**
  */
 
@@ -733,16 +752,21 @@ RpLibrary::value (std::string path)
         }
         /*
         else if (ele->nodeType() == "number") {
-            retArr[0] = "";
+            raw = "";
             retArr[1] = "";
             if ( (tele = ele->element("current")) != NULL) {
-                retArr[0] = tele->get();
-                retArr[1] = retArr[0];
+                raw = tele->get();
             }
             else if ( (tele = ele->element("default")) != NULL) {
-                retArr[0] = tele->get();
-                retArr[1] = retArr[0];
+                raw = tele->get();
             }
+            val = raw
+            if ( "" != raw) {
+                // normalize the units
+                units = ele->get("units");
+                if ( "" != units) {
+
+                }
         }
         */
         else {
@@ -821,9 +845,11 @@ RpLibrary&
 RpLibrary::copy (std::string toPath, std::string fromPath, RpLibrary* fromObj)
 {
     RpLibrary* value = NULL;
+    RpLibrary* child = NULL;
 
     if (!this->root) {
         // library doesn't exist, do nothing;
+        // need a good way to raise error, and this is not it.
         return *this;
     }
 
@@ -838,7 +864,11 @@ RpLibrary::copy (std::string toPath, std::string fromPath, RpLibrary* fromObj)
         return *this;
     }
 
-    return (this->put(toPath,value));
+    while ( (child = value->children("",child)) ) {
+        this->put(toPath, child);
+    }
+
+    return (*this);
 
 }
 
@@ -851,6 +881,7 @@ RpLibrary::copy (std::string toPath, std::string fromPath, RpLibrary* fromObj)
 /**
  */
 
+/*
 RpLibrary*
 RpLibrary::children (   std::string path, 
                         RpLibrary* rpChildNode, 
@@ -910,6 +941,101 @@ RpLibrary::children (   std::string path,
 
     if (childCount) {
         *childCount = myChildCount;
+    }
+
+    // clean up old memory
+    delete retLib;
+
+    if ( (childNode = scew_element_next(parentNode,childNode)) ) {
+
+        if (!type.empty()) {
+            childName = scew_element_name(childNode);
+            // we are searching for a specific child name
+            // keep looking till we find a name that matches the type.
+            // if the current name does not match out search type, 
+            // grab the next child and check to see if its null
+            // if its not null, get its name and test for type again
+            while (  (type != childName)
+                  && (childNode = scew_element_next(parentNode,childNode)) ) {
+
+                childName = scew_element_name(childNode);
+            }
+            if (type == childName) {
+                // found a child with a name that matches type
+                retLib = new RpLibrary( childNode,this->tree );
+            }
+            else {
+                // no children with names that match 'type' were found
+                retLib = NULL;
+            }
+        }
+        else {
+            retLib = new RpLibrary( childNode,this->tree );
+        }
+    }
+    else {
+        // somthing happened within scew, get error code and display
+        // its probable there are no more child elements left to report
+        retLib = NULL;
+    }
+
+    return retLib;
+}
+*/
+
+RpLibrary*
+RpLibrary::children (   std::string path, 
+                        RpLibrary* rpChildNode, 
+                        std::string type,
+                        int* childCount)
+{
+    // this is static for efficency reasons
+    static std::string old_path = "";
+    // this was static so user never has to delete the retLib.
+    // should be replaced by a smart pointer
+    static RpLibrary* retLib = NULL; 
+    int myChildCount = 0;
+    scew_element* parentNode = NULL;
+    scew_element* childNode = NULL;
+    std::string childName = "";
+
+    if (!this->root) {
+        // library doesn't exist, do nothing;
+        return NULL;
+    }
+
+
+    // check to see if the last call to this function
+    // was searching for children of the same path.
+    if ( (path.compare(old_path) == 0) && (rpChildNode != NULL) ) {
+        parentNode = NULL;
+    }
+    else if (path.empty()) {
+        // searching for children in a new path.
+        // an empty path uses the current RpLibrary as parent
+        parentNode = this->root;
+    }
+    else {
+        // searching for children in a new, non-empty, path.
+        parentNode = _find(path,NO_CREATE_PATH);
+        if (parentNode == NULL) {
+            // node not found
+            // add error code here
+            return NULL;
+        }
+    }
+
+    old_path = path;
+
+    if (rpChildNode) {
+        childNode = rpChildNode->root;
+    }
+
+    if (parentNode) {
+        myChildCount = scew_element_count(parentNode);
+        if (childCount) {
+            *childCount = myChildCount;
+        }
     }
 
     // clean up old memory
@@ -1011,9 +1137,9 @@ RpLibrary::isNull ()
  */
 
 std::string
-RpLibrary::get (std::string path)
+RpLibrary::get (std::string path, int translateFlag)
 {
-    return (this->getString(path));
+    return (this->getString(path, translateFlag));
 }
 
 /**********************************************************************/
@@ -1023,10 +1149,13 @@ RpLibrary::get (std::string path)
  */
 
 std::string
-RpLibrary::getString (std::string path)
+RpLibrary::getString (std::string path, int translateFlag)
 {
     scew_element* retNode = NULL;
     XML_Char const* retCStr = NULL;
+    char* translatedContents = NULL;
+    std::string retStr = "";
+    int len = 0;
 
     if (!this->root) {
         // library doesn't exist, do nothing;
@@ -1046,7 +1175,27 @@ RpLibrary::getString (std::string path)
         return std::string("");
     }
 
-    return std::string(retCStr);
+    if (translateFlag == TRANSLATE) {
+        // translatedContents = new char[strlen(retCStr)+1];
+        len = strlen(retCStr);
+        translatedContents = (char*) calloc((len+1),sizeof(char));
+        if (translatedContents) {
+            strncpy(translatedContents, retCStr, len);
+            _translateOut(translatedContents);
+            retStr = std::string(translatedContents);
+            // delete[] translatedContents;
+            free(translatedContents);
+        }
+        else {
+            // error allocating space
+            return std::string("");
+        }
+    }
+    else {
+        retStr = std::string(retCStr);
+    }
+
+    return retStr;
 }
 
 /**********************************************************************/
@@ -1083,11 +1232,16 @@ RpLibrary::getDouble (std::string path)
  */
 
 RpLibrary&
-RpLibrary::put ( std::string path, std::string value, std::string id, int append )
+RpLibrary::put (    std::string path, 
+                    std::string value, 
+                    std::string id, 
+                    int append,
+                    int translateFlag)
 {
     scew_element* retNode = NULL;
     std::string tmpVal = "";
     const char* contents = NULL;
+    std::string translatedContents = "";
 
     if (!this->root) {
         // library doesn't exist, do nothing;
@@ -1105,7 +1259,13 @@ RpLibrary::put ( std::string path, std::string value, std::string id, int append
             value = tmpVal + value;
         }
 
-        scew_element_set_contents(retNode,value.c_str());
+        if (translateFlag == TRANSLATE) {
+            _translateIn(value,translatedContents);
+            scew_element_set_contents(retNode,translatedContents.c_str());
+        }
+        else {
+            scew_element_set_contents(retNode,value.c_str());
+        }
     }
 
     return *this;
@@ -1450,3 +1610,30 @@ RpLibrary::print_element(   scew_element* element,
     outString << "</" << scew_element_name(element) << ">\n" ;
 }
 
+/**********************************************************************/
+// METHOD: translateIn()
+/// Translate entity and character reference text coming in from the user
+/**
+ */
+
+int
+RpLibrary::_translateIn(std::string& outStr,std::string& translatedStr)
+{
+    ERTranslator.appendEscaped(outStr, translatedStr);
+    return 0;
+}
+
+
+/**********************************************************************/
+// METHOD: translateOut()
+/// Translate entity and character reference text going out to the user
+/**
+ */
+
+int
+RpLibrary::_translateOut(char* inStr) 
+{
+    int newLen = 0;
+    ERTranslator.TranslateEntityRefs(inStr, &newLen);
+    return 0;
+}
