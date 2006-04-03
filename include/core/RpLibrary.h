@@ -30,6 +30,9 @@
 #define NO_CREATE_PATH 0
 #define E_QUEUE_SIZE 100
 
+#define TRANSLATE 1
+#define NO_TRANSLATE 0
+
 #ifndef _RpLIBRARY_H 
 #define _RpLIBRARY_H
 
@@ -65,14 +68,17 @@ class RpLibrary
                                 std::string fromPath,
                                 RpLibrary* fromObj = NULL);
 
-        std::string get       ( std::string path = "");
-        std::string getString ( std::string path = "");
+        std::string get       ( std::string path = "",
+                                int translateFlag = TRANSLATE);
+        std::string getString ( std::string path = "",
+                                int translateFlag = TRANSLATE);
         double      getDouble ( std::string path = "");
 
         RpLibrary& put (    std::string path,
                             std::string value,
                             std::string id = "",
-                            int append = 0  );
+                            int append = 0,
+                            int translateFlag = TRANSLATE);
 
         RpLibrary& put (    std::string path,
                             double value,
@@ -401,6 +407,8 @@ class RpLibrary
                             unsigned int indent,
                             std::stringstream& outString    );
 
+        static int _translateIn (std::string& value, std::string& translated);
+        static int _translateOut (char* inStr);
 
 };
 

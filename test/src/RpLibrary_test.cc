@@ -170,6 +170,9 @@ int test_copy (   RpLibrary* fromLib, std::string fromPath,
         std::cout << "SUCCESS: foundEle was found" << std::endl;
         retVal = 0;
     }
+    else {
+        std::cout << "FAILURE: foundEle WAS NOT found" << std::endl;
+    }
 
     return retVal;
 }
@@ -347,7 +350,7 @@ main(int argc, char** argv)
     test_getDouble(lib, "input.number(test).current");
 
     test_putObj(lib, "input.number(max)", lib, "input.test");
-    test_copy(lib, "input.number(min)", lib, "input.test");
+    test_copy(lib, "input.number(min)", lib, "input.test.number(min)");
 
     test_children(lib,"","");
     test_children(lib,"input.number(test)","");
@@ -386,7 +389,7 @@ main(int argc, char** argv)
     std::cout << "dlib1-------------------------------------" << std::endl;
     std::cout << dlib1->xml() << std::endl;
     std::cout << "dlib2-------------------------------------" << std::endl;
-    std::cout << dlib1->xml() << std::endl;
+    std::cout << dlib2->xml() << std::endl;
 
 
 
@@ -421,6 +424,30 @@ main(int argc, char** argv)
 
     lib2.result();
 
+
+    std::cout << "testing with &lt;number&gt;" << std::endl;
+    lib2.put("input.dsk.test", "slkdjfs slkdfj lks &lt;number&gt; sdlkfj sdlkjf","",1);
+    std::cout << lib2.xml() << std::endl;
+    std::cout << "testing get &lt;number&gt;" << std::endl;
+    std::cout << lib2.get("input.dsk.test") << std::endl;
+    std::cout << "testing with <number>" << std::endl;
+    lib2.put("input.dsk.test2", "slkdjfs slkdfj lks <number> sdlkfj sdlkjf","",1);
+    std::cout << lib2.xml() << std::endl;
+
+    /*
+    RpLibrary* childEle  = NULL;
+    RpLibrary* childEle2 = NULL;
+    while ( (childEle = lib2.children("input",childEle)) ) {
+        std::cout << "childEle path = :" << childEle->nodePath() << ":" << std::endl;
+        while ( (childEle2 = childEle->children("",childEle2)) ) {
+            std::cout << "childEle2 path = :" << childEle2->nodePath() << ":" << std::endl;
+        }
+        childEle2 = NULL;
+        if (!childEle) {
+            std::cout << "childEle Not null" << std::endl;
+        }
+    }
+    */
 
     return 0;
 }

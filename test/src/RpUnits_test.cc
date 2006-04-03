@@ -323,6 +323,9 @@ int main()
         convListIter++;
     }
 
+    std::cout << "convert(\"5.00mm\",\"\",1) = " << RpUnits::convert("5.00mm","",1) << std::endl;
+    std::cout << "convert(\"5.00mm\",\"\",0) = " << RpUnits::convert("5.00mm","",0) << std::endl;
+
     return 0;
 
 }

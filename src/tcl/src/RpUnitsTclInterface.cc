@@ -46,13 +46,16 @@ static int RpTclUnitsSysAll   _ANSI_ARGS_((    ClientData cdata,
 }
 #endif
 
-/*
- * ------------------------------------------------------------------------
- *  Rapptureunits_Init()
- *
- *  Called in RapptureGUI_Init() to initialize the commands defined
- *  in this file.
- * ------------------------------------------------------------------------
+/**********************************************************************/
+// FUNCTION: Rapptureunits_Init()
+/// Initializes the Rappture Units module and commands defined below
+/**
+ * Called in RapptureGUI_Init() to initialize the Rappture Units module.
+ * Initialized commands include:
+ * ::Rappture::Units::convert
+ * ::Rappture::Units::description
+ * ::Rappture::Units::System::for
+ * ::Rappture::Units::System::all
  */
 
 int
@@ -74,6 +77,15 @@ Rapptureunits_Init(Tcl_Interp *interp)
     return TCL_OK;
 }
 
+/**********************************************************************/
+// FUNCTION: RpTclUnitsConvert()
+/// Rappture::Units::convert function in Tcl, used to convert unit.
+/**
+ * Converts values between recognized units in Rappture.
+ * Full function call:
+ * ::Rappture::Units::convert <value> ?-context units? ?-to units? ?-units on/off?
+ */
+
 int
 RpTclUnitsConvert   (   ClientData cdata,
                         Tcl_Interp *interp,
@@ -86,7 +98,7 @@ RpTclUnitsConvert   (   ClientData cdata,
     std::string option        = ""; // tmp var for parsing command line options
     std::string val           = ""; // inValue + fromUnitsName as one string
     std::string convertedVal  = ""; // result of conversion
-    int showUnits             = 0;  // flag if we should show units in result
+    int showUnits             = 1;  // flag if we should show units in result
     int result                = 0;  // flag if the conversion was successful
 
     int nextarg          = 1; // start parsing using the '2'th argument
@@ -99,8 +111,10 @@ RpTclUnitsConvert   (   ClientData cdata,
     // parse through command line options
     if (argc < 2) {
         Tcl_AppendResult(interp,
-            "usage: ", argv[0], 
-            " <value> ?-context units? ?-to units? ?-units on/off?",
+            "wrong # args: should be \"",
+            argv[0]," value args\"",
+            // "usage: ", argv[0], 
+            // " <value> ?-context units? ?-to units? ?-units on/off?",
             (char*)NULL);
         return TCL_ERROR;
     }
@@ -114,43 +128,48 @@ RpTclUnitsConvert   (   ClientData cdata,
 
             if ( option == "-context" ) {
                 nextarg++;
-                fromUnitsName = std::string(argv[nextarg]);
-                if (RpUnits::find(fromUnitsName) == NULL) {
-                    Tcl_AppendResult(interp,
-                        "-context value \"", fromUnitsName.c_str(), 
-                        "\" is not a recognized unit for rappture",
-                        (char*)NULL);
-                    return TCL_ERROR;
+                if (argv[nextarg] != NULL) {
+                    fromUnitsName = std::string(argv[nextarg]);
+                    if (RpUnits::find(fromUnitsName) == NULL) {
+                        Tcl_AppendResult(interp,
+                            "-context value \"", fromUnitsName.c_str(), 
+                            "\" is not a recognized unit for rappture",
+                            (char*)NULL);
+                        return TCL_ERROR;
+                    }
                 }
-
             }
             else if ( option == "-to" ) {
                 nextarg++;
-                toUnitsName = std::string(argv[nextarg]);
-                if (RpUnits::find(toUnitsName) == NULL) {
-                    Tcl_AppendResult(interp,
-                        "-to value \"", toUnitsName.c_str(), 
-                        "\" is not a recognized unit for rappture",
-                        (char*)NULL);
-                    return TCL_ERROR;
+                if (argv[nextarg] != NULL) {
+                    toUnitsName = std::string(argv[nextarg]);
+                    if (RpUnits::find(toUnitsName) == NULL) {
+                        Tcl_AppendResult(interp,
+                            "-to value \"", toUnitsName.c_str(), 
+                            "\" is not a recognized unit for rappture",
+                            (char*)NULL);
+                        return TCL_ERROR;
+                    }
                 }
             }
             else if ( option == "-units" ) {
                 nextarg++;
-                if (        (*(argv[nextarg]+1) == 'n') 
-                        &&  (std::string(argv[nextarg]) == "on") ) {
-                    showUnits = 1;
-                }
-                else if (   (*(argv[nextarg]+1) == 'f') 
-                        &&  (std::string(argv[nextarg]) == "off") ) {
-                    showUnits = 0;
-                }
-                else {
-                    // unrecognized value for -units option
-                    Tcl_AppendResult(interp,
-                        "value for -units must be \"on\" or \"off\"",
-                        (char*)NULL);
-                    return TCL_ERROR;
+                if (argv[nextarg] != NULL) {
+                    if (        (*(argv[nextarg]+1) == 'n') 
+                            &&  (std::string(argv[nextarg]) == "on") ) {
+                        showUnits = 1;
+                    }
+                    else if (   (*(argv[nextarg]+1) == 'f') 
+                            &&  (std::string(argv[nextarg]) == "off") ) {
+                        showUnits = 0;
+                    }
+                    else {
+                        // unrecognized value for -units option
+                        Tcl_AppendResult(interp,
+                            "value for -units must be \"on\" or \"off\"",
+                            (char*)NULL);
+                        return TCL_ERROR;
+                    }
                 }
             }
             else {
@@ -181,6 +200,7 @@ RpTclUnitsConvert   (   ClientData cdata,
     // or if we should use those provided in -context option
     strtod(inValue.c_str(),&endptr);
     if ( ((unsigned)(endptr - inValue.c_str())) == inValue.length() ) {
+        // add 1 because we are subtracting indicies
         // there were no units at the end of the inValue string
         // rappture units convert expects the val variable to be 
         // the quantity and units in one string
