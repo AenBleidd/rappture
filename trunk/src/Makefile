@@ -84,7 +84,7 @@ install: 	install_py 			\
 RP_IO_DEPS      = RpLibrary.o RpLibraryCInterface.o RpLibraryFInterface.o \
                   scew_extras.o
 RP_UNITS_DEPS   = RpUnitsStd.o RpUnits.o RpUnitsCInterface.o RpUnitsFInterface.o
-RP_OTHER_DEPS   = RpFortranCommon.o RpBindingsDict.o
+RP_OTHER_DEPS   = RpFortranCommon.o RpBindingsDict.o RpEntityRef.o
 RP_OBJS_DEP     = RpVariable.o RpAbout.o RpNumber.o RpString.o RpBoolean.o \
                   RpChoice.o RpOption.o RpUnitsStd.o RpUnits.o #RpValue.o\
                   # RpValueDouble.o RpValueString.o
@@ -200,6 +200,9 @@ RpUnits.o: $(CORE_SRC)/RpUnits.cc
 	$(CXX) $(CFLAGS) $(DEBUG) $(INCL_CORE) -o $@ -c $?
 
 RpBindingsDict.o: $(CORE_SRC)/RpBindingsDict.cc
+	$(CXX) $(CFLAGS) $(DEBUG) $(INCL_CORE) -o $@ -c $?
+
+RpEntityRef.o: $(CORE_SRC)/RpEntityRef.cc
 	$(CXX) $(CFLAGS) $(DEBUG) $(INCL_CORE) -o $@ -c $?
 
 RpValue.o: $(CORE_SRC)/RpValue.cc
