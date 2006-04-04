@@ -55,8 +55,8 @@ client: $(OBJ_CLIENT)
 	gcc -g -o client $(OBJ_CLIENT) $(LIB_CLIENT)
 
 simclient: Event.o nanoscale/EventPlayer.cpp
-	#gcc -g $(INCLUDES) $(NANOSCALESRC)/EventPlayer.cpp $(NANOSCALESRC)/clientlib.cpp -o simclient Event.o $(LIB_CLIENT)
-	g++ -g $(INCLUDES) $(NANOSCALESRC)/EventPlayer.cpp $(NANOSCALESRC)/clientlib.cpp -o simclient Event.o
+	gcc -g $(INCLUDES) $(NANOSCALESRC)/EventPlayer.cpp $(NANOSCALESRC)/clientlib.cpp -o simclient Event.o $(LIB_CLIENT)
+	#g++ -g $(INCLUDES) $(NANOSCALESRC)/EventPlayer.cpp $(NANOSCALESRC)/clientlib.cpp -o simclient Event.o
 
 Color.o: Color.cpp
 	gcc $(CFLAG) Color.cpp
