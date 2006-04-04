@@ -19,6 +19,7 @@
 #include <GL/glew.h>
 #include <Cg/cgGL.h>
 
+#include <stdio.h>
 
 #define CHECK_FRAMEBUFFER_STATUS()                            \
   {                                                           \

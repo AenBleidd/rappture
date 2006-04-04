@@ -50,14 +50,15 @@ double get_time_interval();
 int render_window; 		//the handle of the render window;
 // forward declarations
 void init_particles();
-void makePatterns();
 void get_slice_vectors();
 
 ParticleSystem* psys;
 float psys_x=0.4, psys_y=0, psys_z=0;
 
+Lic* lic;
+
 char* screen_buffer = new char[3*NPIX*NPIX+1];		//buffer to store data read from the screen
-NVISid fbo, color_tex, pattern_tex, mag_tex, final_fbo, final_color_tex, final_depth_rb; //fbo related identifiers
+NVISid final_fbo, final_color_tex, final_depth_rb;      //frame buffer for final rendering
 NVISid vel_fbo, slice_vector_tex;	//for projecting 3d vector to 2d vector on a plane
 
 bool advect=false;
@@ -79,9 +80,6 @@ CGparameter m_pos_timestep_param, m_pos_spherePos_param;
 CGprogram m_vel_fprog;
 CGparameter m_vel_timestep_param, m_vel_damping_param, m_vel_gravity_param;
 CGparameter m_vel_spherePos_param, m_vel_sphereVel_param, m_vel_sphereRadius_param;
-
-CGprogram m_render_vel_fprog;
-CGparameter m_vel_tex_param_render_vel, m_plane_normal_param_render_vel;
 
 CGprogram m_passthru_fprog;
 CGparameter m_passthru_scale_param, m_passthru_bias_param;
@@ -703,19 +701,6 @@ extern void update_tf_texture(){
 //initialize frame buffer objects for offscreen rendering
 void init_fbo(){
 
-  //initialize fbo for projecting a 3d vector to 2d plane
-  glGenFramebuffersEXT(1, &vel_fbo);
-  glGenTextures(1, &slice_vector_tex);
-
-  glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, vel_fbo);
-
-  //initialize texture storing per slice vectors
-  glBindTexture(GL_TEXTURE_RECTANGLE_NV, slice_vector_tex);
-  glTexParameterf(GL_TEXTURE_RECTANGLE_NV, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-  glTexParameterf(GL_TEXTURE_RECTANGLE_NV, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-  glTexImage2D(GL_TEXTURE_RECTANGLE_NV, 0, GL_FLOAT_RGBA32_NV, NMESH, NMESH, 0, GL_RGBA, GL_FLOAT, NULL);
-  glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, GL_TEXTURE_RECTANGLE_NV, slice_vector_tex, 0);
-
   //initialize final fbo for final display
   glGenFramebuffersEXT(1, &final_fbo);
   glGenTextures(1, &final_color_tex);
@@ -747,61 +732,9 @@ void init_fbo(){
                                GL_DEPTH_ATTACHMENT_EXT,
                                GL_RENDERBUFFER_EXT, final_depth_rb);
 
-  //initialize fbo for lic
-  glGenFramebuffersEXT(1, &fbo);
-  glGenTextures(1, &color_tex);
-
-  glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, fbo);
-
-  //initialize color texture for lic
-  glBindTexture(GL_TEXTURE_2D, color_tex);
-  glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-  glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, win_width, win_height, 0,
-               GL_RGB, GL_INT, NULL);
-  glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT,
-                            GL_COLOR_ATTACHMENT0_EXT,
-                            GL_TEXTURE_2D, color_tex, 0);
-
   // Check framebuffer completeness at the end of initialization.
   CHECK_FRAMEBUFFER_STATUS();
   assert(glGetError()==0);
-}
-
-
-void makeMagnitudes(){
-  GLubyte mag[NMESH][NMESH][4];
-
-  //read vector filed
-  for(int i=0; i<NMESH; i++){
-    for(int j=0; j<NMESH; j++){
-
-      float x=DM*i;
-      float y=DM*j;
-
-      float magnitude = sqrt(x*x+y*y)/1.414;
-      
-      //from green to red
-      GLubyte r = floor(magnitude*255);
-      GLubyte g = 0;
-      GLubyte b = 255 - r;
-      GLubyte a = 122;
-
-      mag[i][j][0] = r;
-      mag[i][j][1] = g;
-      mag[i][j][2] = b;
-      mag[i][j][3] = a;
-    }
-  }
-
-  glGenTextures(1, &mag_tex);
-  glBindTexture(GL_TEXTURE_2D, mag_tex);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT); 
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT); 
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-  //glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_BLEND);
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, NMESH, NMESH, 0, GL_RGBA, GL_UNSIGNED_BYTE, mag);
 }
 
 
@@ -815,11 +748,6 @@ void init_cg(){
     m_vert_std_vprog = loadProgram(g_context, CG_PROFILE_VP30, CG_SOURCE, "./shaders/vertex_std.cg");
     m_mvp_vert_std_param = cgGetNamedParameter(m_vert_std_vprog, "modelViewProjMatrix");
     m_mvi_vert_std_param = cgGetNamedParameter(m_vert_std_vprog, "modelViewInv");
-
-    m_render_vel_fprog = loadProgram(g_context, CG_PROFILE_FP30, CG_SOURCE, "./shaders/render_vel.cg");
-    m_vel_tex_param_render_vel = cgGetNamedParameter(m_render_vel_fprog, "vel_tex");
-    m_plane_normal_param_render_vel = cgGetNamedParameter(m_render_vel_fprog, "plane_normal");
-    cgGLSetTextureParameter(m_vel_tex_param_render_vel, volume[0]->id);
 
     m_passthru_fprog = loadProgram(g_context, CG_PROFILE_FP30, CG_SOURCE, "./shaders/passthru.cg");
     m_passthru_scale_param = cgGetNamedParameter(m_passthru_fprog, "scale");
@@ -907,6 +835,14 @@ void init_tf(){
 }
 
 
+//init line integral convolution
+void init_lic(){
+  lic = new Lic(NMESH, win_width, win_height, 0.3, g_context, volume[0]->id, 
+		  volume[0]->aspect_ratio_width,
+		  volume[0]->aspect_ratio_height,
+		  volume[0]->aspect_ratio_depth);
+}
+
 /*----------------------------------------------------*/
 void initGL(void) 
 { 
@@ -918,21 +854,6 @@ void initGL(void)
    glLoadIdentity(); 
    glTranslatef(-1.0, -1.0, 0.0); 
    glScalef(2.0, 2.0, 1.0);
-
-   glGenTextures(1, &pattern_tex);
-   glBindTexture(GL_TEXTURE_2D, pattern_tex);
-   glTexParameteri(GL_TEXTURE_2D, 
-                   GL_TEXTURE_WRAP_S, GL_REPEAT); 
-   glTexParameteri(GL_TEXTURE_2D, 
-                   GL_TEXTURE_WRAP_T, GL_REPEAT); 
-   glTexParameteri(GL_TEXTURE_2D, 
-                   GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-   glTexParameteri(GL_TEXTURE_2D, 
-                   GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-   glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
-
-   makePatterns();
-   makeMagnitudes();
 
    glEnable(GL_TEXTURE_2D);
    glShadeModel(GL_FLAT);
@@ -973,25 +894,26 @@ void initGL(void)
    load_volume_file(1, "./data/mu-wire-3d.dx");
 
    init_tf();   //initialize transfer function
-
    init_fbo();	//frame buffer objects
    init_cg();	//init cg shaders
+   init_lic();  //init line integral convolution
 
    //load the default one volume shader
    switch_shader(cur_shader);
 
-   /*
+   
    psys = new ParticleSystem(NMESH, NMESH, g_context, volume[0]->id,
 		   1./volume[0]->aspect_ratio_width,
 		   1./volume[0]->aspect_ratio_height,
 		   1./volume[0]->aspect_ratio_depth);
-   */
-   psys = new ParticleSystem(NMESH, NMESH, g_context, volume[0]->id, 0.25, 1., 1.);
+   
+   //psys = new ParticleSystem(NMESH, NMESH, g_context, volume[0]->id, 0.25, 1., 1.);
 
    init_particles();	//fill initial particles
-
-   get_slice_vectors();
 }
+
+
+
 
 
 void initTcl(){
@@ -1007,75 +929,6 @@ void initTcl(){
   Tcl_CreateCommand(interp, "move", MoveCmd, (ClientData)0, (Tcl_CmdDeleteProc*)NULL);
   Tcl_CreateCommand(interp, "refresh", RefreshCmd, (ClientData)0, (Tcl_CmdDeleteProc*)NULL);
   //Tcl_CreateCommand(interp, "load", LoadCmd, (ClientData)0, (Tcl_CmdDeleteProc*)NULL);
-}
-
-
-void makePatterns(void) 
-{ 
-   int lut[256];
-   int phase[NPN][NPN];
-   GLubyte pat[NPN][NPN][4];
-   int i, j, k, t;
-    
-   for (i = 0; i < 256; i++) lut[i] = i < 127 ? 0 : 255;
-   for (i = 0; i < NPN; i++)
-   for (j = 0; j < NPN; j++) phase[i][j] = rand() % 256; 
-
-   for (k = 0; k < Npat; k++) {
-      t = k*256/Npat;
-      for (i = 0; i < NPN; i++) 
-      for (j = 0; j < NPN; j++) {
-          pat[i][j][0] =
-          pat[i][j][1] =
-          pat[i][j][2] = lut[(t + phase[i][j]) % 255];
-          pat[i][j][3] = alpha;
-      }
-
-      glNewList(k + 1, GL_COMPILE);
-      glBindTexture(GL_TEXTURE_2D, pattern_tex);
-      glTexImage2D(GL_TEXTURE_2D, 0, 4, NPN, NPN, 0, GL_RGBA, GL_UNSIGNED_BYTE, pat);
-      glEndList();
-   }
-}
-
-
-/*----------------------------------------------------*/
-void getDP(float x, float y, float *px, float *py) 
-{
-   float dx, dy, vx, vy, r;
-
-   
-   /*
-   dx = x - 0.5;         
-   dy = y - 0.5; 
-   r  = dx*dx + dy*dy; 
-   if (r < 0.0001) r = 0.0001;
-   vx = sa*dx/r + 0.02;  
-   vy = sa*dy/r;
-   r  = vx*vx + vy*vy;
-   if (r > dmax*dmax) { 
-      r  = sqrt(r); 
-      vx *= dmax/r; 
-      vy *= dmax/r; 
-   }
-   *px = x + vx;         
-   *py = y + vy;
-   */
-   
-   int xi = x*NMESH;
-   int yi = y*NMESH;
-
-   vx = slice_vector[4*(xi+yi*NMESH)];
-   vy = slice_vector[4*(xi+yi*NMESH)+1];
-   r  = vx*vx + vy*vy;
-   if (r > dmax*dmax) { 
-      r  = sqrt(r); 
-      vx *= dmax/r; 
-      vy *= dmax/r; 
-   }
-   *px = x + vx;         
-   *py = y + vy;
-
 }
 
 
@@ -1195,10 +1048,12 @@ void idle(){
   glutSetWindow(render_window);
 
   
+  /*
   struct timespec ts;
   ts.tv_sec = 0;
   ts.tv_nsec = 300000000;
   nanosleep(&ts, 0);
+  */
   
 
 #ifdef XINETD
@@ -1206,11 +1061,6 @@ void idle(){
 #else
   glutPostRedisplay();
 #endif
-}
-
-
-void fbo_capture(){
-   glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, fbo);
 }
 
 
@@ -1238,70 +1088,10 @@ void final_fbo_capture(){
    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, final_fbo);
 }
 
-
-//line integral convolution
-void lic(){
-   int   i, j; 
-   float x1, x2, y, px, py;
-
-   glViewport(0, 0, (GLsizei) NPIX, (GLsizei) NPIX);
-   glMatrixMode(GL_PROJECTION);
-   glLoadIdentity(); 
-   glTranslatef(-1.0, -1.0, 0.0); 
-   glScalef(2.0, 2.0, 1.0);
-
-   //sa = 0.010*cos(iframe*2.0*M_PI/200.0);
-   glBindTexture(GL_TEXTURE_2D, pattern_tex);
-   glEnable(GL_TEXTURE_2D);
-   sa = 0.01;
-   for (i = 0; i < NMESH-1; i++) {
-      x1 = DM*i; x2 = x1 + DM;
-      glBegin(GL_QUAD_STRIP);
-      for (j = 0; j < NMESH-1; j++) {
-          y = DM*j;
-          glTexCoord2f(x1, y); 
-          getDP(x1, y, &px, &py);
-          glVertex2f(px, py);
-
-          glTexCoord2f(x2, y); 
-          getDP(x2, y, &px, &py); 
-          glVertex2f(px, py);
-      }
-      glEnd();
-   }
-   iframe = iframe + 1;
-
-   glEnable(GL_BLEND); 
-   glCallList(iframe % Npat + 1);
-   glBegin(GL_QUAD_STRIP);
-      glTexCoord2f(0.0,  0.0);  glVertex2f(0.0, 0.0);
-      glTexCoord2f(0.0,  tmax); glVertex2f(0.0, 1.0);
-      glTexCoord2f(tmax, 0.0);  glVertex2f(1.0, 0.0);
-      glTexCoord2f(tmax, tmax); glVertex2f(1.0, 1.0);
-   glEnd();
-
-   /*
-   //inject dye
-   glDisable(GL_TEXTURE_2D);
-   glColor4f(1.,0.8,0.,1.);
-   glBegin(GL_QUADS);
-     glVertex2d(0.6, 0.6);
-     glVertex2d(0.6, 0.62);
-     glVertex2d(0.62, 0.62);
-     glVertex2d(0.62, 0.6);
-   glEnd();
-   */
-
-   glDisable(GL_BLEND);
-   glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 0, 0, NPIX, NPIX, 0);
-}
-
-
 void draw_bounding_box(float x0, float y0, float z0,
 		float x1, float y1, float z1,
 		float r, float g, float b, float line_width)
 {
-
 	glDisable(GL_TEXTURE_2D);
 
 	glColor4d(r, g, b, 1.0);
@@ -1429,55 +1219,6 @@ void soft_display_verts(){
   }
   glEnd();
   //fprintf(stderr, "soft_display_vert");
-}
-
-
-//get lic per slice vectors
-void get_slice_vectors(){
-
-   glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, vel_fbo);
-   glBindTexture(GL_TEXTURE_RECTANGLE_NV, slice_vector_tex);
-
-   glClear(GL_COLOR_BUFFER_BIT);
-
-   glViewport(0, 0, NMESH, NMESH);
-   glMatrixMode(GL_PROJECTION);
-   glLoadIdentity();
-   gluOrtho2D(0, NMESH, 0, NMESH);
-   glMatrixMode(GL_MODELVIEW);
-   glLoadIdentity();
-
-   cgGLBindProgram(m_render_vel_fprog);
-   cgGLEnableTextureParameter(m_vel_tex_param_render_vel);
-   cgGLSetParameter4f(m_plane_normal_param_render_vel, 1., 1., 0., 0);
-
-   cgGLEnableProfile(CG_PROFILE_FP30);
-   glBegin(GL_QUADS);
-    glTexCoord3f(0., 0., lic_slice_z); glVertex2f(0.,         0.);
-    glTexCoord3f(1., 0., lic_slice_z); glVertex2f((float)NMESH,     0.);
-    glTexCoord3f(1., 1., lic_slice_z); glVertex2f((float)NMESH, (float)NMESH);
-    glTexCoord3f(0., 1., lic_slice_z); glVertex2f((float)0.,    (float)NMESH);
-
-    /*
-    glTexCoord3f(0., 0., 0.5); glVertex2f(0.,         0.);
-    glTexCoord3f(1., 0., 0.5); glVertex2f((float)NMESH,     0.);
-    glTexCoord3f(1., 1., 0.5); glVertex2f((float)NMESH, (float)NMESH);
-    glTexCoord3f(0., 1., 0.5); glVertex2f((float)0.,    (float)NMESH);
-    */
-
-   glEnd();
-   cgGLDisableProfile(CG_PROFILE_FP30);
-   
-   cgGLDisableTextureParameter(m_vel_tex_param_render_vel);
-
-   //read the vectors
-   glReadPixels(0, 0, NMESH, NMESH, GL_RGBA, GL_FLOAT, slice_vector);
-   /*
-   for(int i=0; i<NMESH*NMESH; i++){
-     fprintf(stderr, "%f,%f,%f,%f", slice_vector[4*i], slice_vector[4*i+1], slice_vector[4*i+2], slice_vector[4*i+3]);
-   }
-   */
-   assert(glGetError()==0);
 }
 
 
@@ -1651,7 +1392,7 @@ void render_volume(int volume_index, int n_slices){
 
   glPushMatrix();
 
-  glScaled(volume[volume_index]->aspect_ratio_width, 
+  glScalef(volume[volume_index]->aspect_ratio_width, 
 	  volume[volume_index]->aspect_ratio_height, 
 	  volume[volume_index]->aspect_ratio_depth);
 
@@ -1723,7 +1464,7 @@ void render_volume(int volume_index, int n_slices){
     poly->transform(model_view);
 
     glPushMatrix();
-    glScaled(volume[volume_index]->aspect_ratio_width, volume[volume_index]->aspect_ratio_height, volume[volume_index]->aspect_ratio_depth);
+    glScalef(volume[volume_index]->aspect_ratio_width, volume[volume_index]->aspect_ratio_height, volume[volume_index]->aspect_ratio_depth);
     
     //glPushMatrix();
     //glMatrixMode(GL_MODELVIEW);
@@ -1758,125 +1499,6 @@ void render_volume(int volume_index, int n_slices){
   //glPopMatrix();
 }
 
-#if 0
-void render_volume(int volume_index, int n_slices){ 
-
-	double x0 = 0.;
-	double y0 = 0.;
-	double z0 = 0.;
-
-	Mat4x4 model_view;
-	Mat4x4 model_view_inverse;
-	
-	double zNear, zFar;
-
-	//initialize volume plane with world coordinates
-  	Plane volume_planes[6];
-	
-	volume_planes[0].set_coeffs(1, 0, 0, x0);
-	volume_planes[1].set_coeffs(-1, 0, 0, x0+1);
-	volume_planes[2].set_coeffs(0, 1, 0, y0);
-	volume_planes[3].set_coeffs(0, -1, 0, y0+1);
-	volume_planes[4].set_coeffs(0, 0, 1, z0);
-	volume_planes[5].set_coeffs(0, 0, -1, z0+1);
-	
-	
-	glPushMatrix();
-	
-	//glScaled(volume[0]->aspect_ratio_width, volume[0]->aspect_ratio_height, volume[0]->aspect_ratio_depth);
-	glScaled(1,1,1);
-	
-	glEnable(GL_DEPTH_TEST);
-
-	//draw volume bounding box
-	//draw_bounding_box(Vector3(x0, y0, z0), Vector3(x1, y1, z1), Vector3(1,1,0), 2.0);
-	draw_bounding_box(x0, y0, z0, x0+1, y0+1, z0+1, 
-			  1,1,1, 2.0);
-
-	GLfloat mv[16];
-	glGetFloatv(GL_MODELVIEW_MATRIX, mv);
-
-	model_view = Mat4x4(mv);
-	model_view_inverse = model_view.inverse();
-
-	glPopMatrix();
-
-	//transform volume_planes to eye coordinates.
-	for(int i=0; i<6; i++)
-		volume_planes[i].transform(model_view);
-	
-	get_near_far_z(mv, zNear, zFar);
-	printf("zNear:%f, zFar:%f\n", zNear, zFar);
-
-	//compute actual rendering slices
-	float z_step = fabs(zNear-zFar)/n_slices;		
-	int n_actual_slices = (int)(fabs(zNear-zFar)/z_step + 1);
-	printf("slice:%d\n", n_actual_slices);
-
-	static ConvexPolygon staticPoly;	
-	float slice_z;
-
-	Vector4 vert1 = (Vector4(-10, -10, -0.5, 1));
-	Vector4 vert2 = (Vector4(-10, +10, -0.5, 1));
-	Vector4 vert3 = (Vector4(+10, +10, -0.5, 1));
-	Vector4 vert4 = (Vector4(+10, -10, -0.5, 1));
-
-	glEnable(GL_DEPTH_TEST);
-	glEnable(GL_BLEND);
-
-	for (int i=0; i<n_actual_slices; i++){
-		slice_z = zFar + i * z_step;	//back to front
-		
-		ConvexPolygon *poly;
-    		poly = &staticPoly;
-		poly->vertices.clear();
-
-		//Setting Z-coordinate 
-		vert1.z = slice_z;
-		vert2.z = slice_z;
-		vert3.z = slice_z;
-		vert4.z = slice_z;
-		
-		poly->append_vertex(vert1);
-		poly->append_vertex(vert2);
-		poly->append_vertex(vert3);
-		poly->append_vertex(vert4);
-	
-		for(int k=0; k<6; k++){
-			poly->clip(volume_planes[k]);
-		}
-
-		poly->copy_vertices_to_texcoords();
-		//poly->transform(model_view_inverse);
-		//poly->translate(shift_4d);
-		//poly->transform(model_view);
-
-		glPushMatrix();
-		glScaled(volume[0]->aspect_ratio_width, volume[0]->aspect_ratio_height, volume[0]->aspect_ratio_depth);
-
-		glPushMatrix();
-		glMatrixMode(GL_MODELVIEW);
-		glLoadIdentity();
-		glDisable(GL_BLEND);
-		glDisable(GL_TEXTURE_3D);
-		glDisable(GL_TEXTURE_2D);
-			glColor4f(1.,1.,1.,1.);
-			glLineWidth(1.0);
-			glBegin(GL_LINE_LOOP);
-				poly->Emit(false);
-			glEnd();
-		glPopMatrix();
-
-
-		glPopMatrix();
-
-	}
-
-	glDisable(GL_BLEND);
-	glDisable(GL_DEPTH_TEST);
-	//glPopMatrix();
-}
-#endif
 
 void draw_3d_axis(){
   glDisable(GL_TEXTURE_2D);
@@ -2003,38 +1625,19 @@ void display()
 
    assert(glGetError()==0);
 
-   //enable fbo
-   fbo_capture();
+   lic->convolve(); //flow line integral convolution
 
-   //convolve
-   lic();
-
-   /*
-   //blend magnitude texture
-   glBindTexture(GL_TEXTURE_2D, mag_tex);
-   glEnable(GL_TEXTURE_2D);
-   glEnable(GL_BLEND);
-   glBegin(GL_QUADS);
-      glTexCoord2f(0.0,  0.0);  glVertex2f(0.0, 0.0);
-      glTexCoord2f(0.0,  1.0); glVertex2f(0.0, 1.);
-      glTexCoord2f(1.0, 1.0);  glVertex2f(1., 1.);
-      glTexCoord2f(1.0, 0.0); glVertex2f(1., 0.0);
-   glEnd();
-   */
-   
-   //advect particles
-   psys->advect();
+   psys->advect(); //advect particles
 
    final_fbo_capture();
    //display_texture(slice_vector_tex, NMESH, NMESH);
 
 #if 1
    //start final rendering
-   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); //clear screen
 
    glEnable(GL_TEXTURE_2D);
    glEnable(GL_DEPTH_TEST);
-   glBindTexture(GL_TEXTURE_2D, color_tex);
 
    glViewport(0, 0, NPIX, NPIX);
    glMatrixMode(GL_PROJECTION);
@@ -2049,41 +1652,17 @@ void display()
    glRotated(live_rot_y, 0., 1., 0.);
    glRotated(live_rot_z, 0., 0., 1.);
 
-   //draw_3d_axis();
+   draw_3d_axis();
    
-   glPushMatrix();
-   glScaled(volume[0]->aspect_ratio_width, 
-	  volume[0]->aspect_ratio_height, 
-	  volume[0]->aspect_ratio_depth);
-
-   
-   
-   //draw line integral convolution quad
-   glEnable(GL_DEPTH_TEST);
-   glBegin(GL_QUADS);
-   glTexCoord2f(0, 0); glVertex3f(0, 0, lic_slice_z);
-   glTexCoord2f(1, 0); glVertex3f(1, 0, lic_slice_z);
-   glTexCoord2f(1, 1); glVertex3f(1, 1, lic_slice_z);
-   glTexCoord2f(0, 1); glVertex3f(0, 1, lic_slice_z);
-   glEnd();
-   glDisable(GL_DEPTH_TEST);
-   glPopMatrix();
+   lic->display(); 	//display the line integral convolution result
    
    //soft_display_verts();
-   
-   glPushMatrix();
-
-   glScaled(volume[0]->aspect_ratio_width,
-	  volume[0]->aspect_ratio_height, 
-	  volume[0]->aspect_ratio_depth);
-
    perf->enable();
      psys->display_vertices();
    perf->disable();
    //fprintf(stderr, "particle pixels: %d\n", perf->get_pixel_count());
    perf->reset();
 
-   glPopMatrix();
 
    perf->enable();
      //render volume :0 
@@ -2186,11 +1765,11 @@ void keyboard(unsigned char key, int x, int y){
 		break;
 	case '+':
 		lic_slice_z+=0.05;
-		get_slice_vectors();
+		lic->set_offset(lic_slice_z);
 		break;
 	case '-':
 		lic_slice_z-=0.05;
-		get_slice_vectors();
+		lic->set_offset(lic_slice_z);
 		break;
 	case ',':
 		lic_slice_x+=0.05;
