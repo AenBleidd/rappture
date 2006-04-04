@@ -816,28 +816,10 @@ void init_cg(){
     m_mvp_vert_std_param = cgGetNamedParameter(m_vert_std_vprog, "modelViewProjMatrix");
     m_mvi_vert_std_param = cgGetNamedParameter(m_vert_std_vprog, "modelViewInv");
 
-/*
-    m_pos_fprog = loadProgram(g_context, CG_PROFILE_FP30, CG_SOURCE, "./shaders/update_pos.cg");
-    m_pos_timestep_param  = cgGetNamedParameter(m_pos_fprog, "timestep");
-    m_vel_tex_param = cgGetNamedParameter(m_pos_fprog, "vel_tex");
-    m_pos_tex_param = cgGetNamedParameter(m_pos_fprog, "pos_tex");
-    cgGLSetTextureParameter(m_vel_tex_param, volume[0]->id);
-*/
-  
-
     m_render_vel_fprog = loadProgram(g_context, CG_PROFILE_FP30, CG_SOURCE, "./shaders/render_vel.cg");
     m_vel_tex_param_render_vel = cgGetNamedParameter(m_render_vel_fprog, "vel_tex");
     m_plane_normal_param_render_vel = cgGetNamedParameter(m_render_vel_fprog, "plane_normal");
     cgGLSetTextureParameter(m_vel_tex_param_render_vel, volume[0]->id);
-
-    /*
-    m_vel_fprog = loadProgram(g_context, CG_PROFILE_FP30, CG_SOURCE, "./shaders/update_vel.cg");
-    m_vel_timestep_param  = cgGetNamedParameter(m_vel_fprog, "timestep");
-    m_vel_damping_param   = cgGetNamedParameter(m_vel_fprog, "damping");
-    m_vel_gravity_param   = cgGetNamedParameter(m_vel_fprog, "gravity");
-    m_vel_spherePos_param = cgGetNamedParameter(m_vel_fprog, "spherePos");
-    m_vel_sphereVel_param = cgGetNamedParameter(m_vel_fprog, "sphereVel");
-    */
 
     m_passthru_fprog = loadProgram(g_context, CG_PROFILE_FP30, CG_SOURCE, "./shaders/passthru.cg");
     m_passthru_scale_param = cgGetNamedParameter(m_passthru_fprog, "scale");
@@ -893,7 +875,8 @@ void init_particles(){
       int index = i + psys->psys_height*j;
       bool particle = rand() % 256 > 150; 
       //particle = true;
-      if(particle)
+      if(particle) /*&& i/float(psys->psys_width)>0.3 && i/float(psys->psys_width)<0.7 
+		      && j/float(psys->psys_height)>0.1 && j/float(psys->psys_height)<0.4)*/
       {
 	//assign any location (x,y,z) in range [0,1]
         data[4*index] = lic_slice_x;
@@ -1027,7 +1010,6 @@ void initTcl(){
 }
 
 
-/*----------------------------------------------------*/
 void makePatterns(void) 
 { 
    int lut[256];
@@ -1169,8 +1151,6 @@ void xinetd_listen(){
 
     display();
 
-    //read the image
-    //read_screen(); 
 #if DO_RLE
     do_rle();
     int sizes[2] = {  offsets_size*sizeof(offsets[0]), rle_size }; 
@@ -1214,12 +1194,12 @@ void draw_arrows(){
 void idle(){
   glutSetWindow(render_window);
 
-  /*
+  
   struct timespec ts;
   ts.tv_sec = 0;
-  ts.tv_nsec = 100000000;
+  ts.tv_nsec = 300000000;
   nanosleep(&ts, 0);
-  */
+  
 
 #ifdef XINETD
   xinetd_listen();
@@ -2024,10 +2004,10 @@ void display()
    assert(glGetError()==0);
 
    //enable fbo
-   //fbo_capture();
+   fbo_capture();
 
    //convolve
-   //lic();
+   lic();
 
    /*
    //blend magnitude texture
@@ -2043,7 +2023,7 @@ void display()
    */
    
    //advect particles
-   //psys->advect();
+   psys->advect();
 
    final_fbo_capture();
    //display_texture(slice_vector_tex, NMESH, NMESH);
@@ -2071,7 +2051,6 @@ void display()
 
    //draw_3d_axis();
    
-   /*
    glPushMatrix();
    glScaled(volume[0]->aspect_ratio_width, 
 	  volume[0]->aspect_ratio_height, 
@@ -2089,11 +2068,9 @@ void display()
    glEnd();
    glDisable(GL_DEPTH_TEST);
    glPopMatrix();
-   */
    
    //soft_display_verts();
    
-   /*
    glPushMatrix();
 
    glScaled(volume[0]->aspect_ratio_width,
@@ -2107,7 +2084,6 @@ void display()
    perf->reset();
 
    glPopMatrix();
-   */
 
    perf->enable();
      //render volume :0 
@@ -2116,7 +2092,7 @@ void display()
 
      //render volume :1
      volume[1]->location =Vector3(0., 0., 0.);
-     render_volume(1, 100);
+     render_volume(1, 256);
      //fprintf(stderr, "%lf\n", get_time_interval());
    perf->disable();
    //fprintf(stderr, "volume pixels: %d\n", perf->get_pixel_count());
@@ -2133,8 +2109,8 @@ void display()
 
 #ifdef XINETD
    read_screen();
-   glClear(GL_COLOR_BUFFER_BIT);
-   glDrawPixels(win_width, win_height, GL_RGB, /*GL_COLOR_ATTACHMENT0_EXT*/ GL_UNSIGNED_BYTE, screen_buffer);
+   //glClear(GL_COLOR_BUFFER_BIT);
+   //glDrawPixels(win_width, win_height, GL_RGB, /*GL_COLOR_ATTACHMENT0_EXT*/ GL_UNSIGNED_BYTE, screen_buffer);
 #endif
    glutSwapBuffers(); 
 }
@@ -2298,8 +2274,8 @@ void motion(int x, int y){
     int delta_y = y - old_y;
 
     //more coarse event handling
-    if(abs(delta_x)<10 && abs(delta_y)<10)
-      return;
+    //if(abs(delta_x)<10 && abs(delta_y)<10)
+      //return;
 
     if(left_down){
       left_last_x = x;

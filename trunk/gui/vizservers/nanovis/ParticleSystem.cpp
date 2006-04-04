@@ -112,6 +112,7 @@ void ParticleSystem::reset(){
 
   flip = true;
   reborn = false;
+  psys_frame = 0;
 }
 
 
