@@ -25,7 +25,8 @@ ParticleSystem::ParticleSystem(int w, int h, CGcontext context, NVISid volume, f
 		float scale_y, float scale_z){
 
   fprintf(stderr, "%f, %f, %f\n", scale_x, scale_y, scale_z);
-
+  scale = Vector3(scale_x, scale_y, scale_z);
+  
   psys_width = w;
   psys_height = h;
 
@@ -206,9 +207,11 @@ void ParticleSystem::display_vertices(){
   glDisable(GL_BLEND);
   glEnable(GL_DEPTH_TEST);
 
-  //glPointSize(0.5);
-  glPointSize(1.5);
+  glPointSize(1.2);
   glColor4f(.2,.2,.8,1.);
+  
+  glPushMatrix();
+  glScaled(1./scale.x, 1./scale.y, 1./scale.z);
 
   m_vertex_array->SetPointer(0);
   //glEnableVertexAttribArray(0);
@@ -216,6 +219,8 @@ void ParticleSystem::display_vertices(){
   glDrawArrays(GL_POINTS, 0, psys_width*psys_height);
   //glDisableVertexAttribArray(0);
   glDisableClientState(GL_VERTEX_ARRAY);
+
+  glPopMatrix();
   
   glDisable(GL_DEPTH_TEST);
   assert(glGetError()==0);

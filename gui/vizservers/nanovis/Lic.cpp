@@ -14,15 +14,28 @@
  */
 
 
+#include <stdlib.h>
+#include <math.h>
+#include <assert.h>
 
 #include "Lic.h"
 
-
-Lic::Lic(int _size, int _width, int _height):
+Lic::Lic(int _size, int _width, int _height, float _offset,
+		CGcontext _context, NVISid _vector_field,
+		float scalex, float scaley, float scalez):
 	size(_size),
+	offset(_offset),
+	m_g_context(_context),
 	display_width(_width),
-	display_height(_height)
+	display_height(_height),
+        iframe(0),
+	Npat(64),
+  	alpha(0.12*255),
+	tmax(NPIX/(SCALE*NPN)),
+	dmax(SCALE/NPIX)
 {
+  scale = Vector3(scalex, scaley, scalez);
+  slice_vector = new float[NMESH*NMESH*4];
 
   //initialize the pattern texture
   glGenTextures(1, &pattern_tex);
@@ -38,12 +51,13 @@ Lic::Lic(int _size, int _width, int _height):
   glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
 
   //initialize frame buffer objects
+
+  //render buffer for projecting 3D velocity onto a 2D plane
   glGenFramebuffersEXT(1, &vel_fbo);
   glGenTextures(1, &slice_vector_tex);
 
   glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, vel_fbo);
 
-  //initialize texture storing per slice vectors
   glBindTexture(GL_TEXTURE_RECTANGLE_NV, slice_vector_tex);
   glTexParameterf(GL_TEXTURE_RECTANGLE_NV, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
   glTexParameterf(GL_TEXTURE_RECTANGLE_NV, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -53,7 +67,7 @@ Lic::Lic(int _size, int _width, int _height):
 		  GL_TEXTURE_RECTANGLE_NV, slice_vector_tex, 0);
 
 
-  //lic result fbo
+  //render buffer for the convolution
   glGenFramebuffersEXT(1, &fbo);
   glGenTextures(1, &color_tex);
 
@@ -73,10 +87,31 @@ Lic::Lic(int _size, int _width, int _height):
   CHECK_FRAMEBUFFER_STATUS();
   assert(glGetError()==0);
 
+  m_render_vel_fprog = loadProgram(m_g_context, CG_PROFILE_FP30, CG_SOURCE, "./shaders/render_vel.cg");
+  m_vel_tex_param_render_vel = cgGetNamedParameter(m_render_vel_fprog, "vel_tex");
+  m_plane_normal_param_render_vel = cgGetNamedParameter(m_render_vel_fprog, "plane_normal");
+  cgGLSetTextureParameter(m_vel_tex_param_render_vel, _vector_field);
+
+  get_slice();
+  make_patterns();
+
+  fprintf(stderr, "initialize lic ...\n");
 }
 
+Lic::~Lic(){
+  glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, vel_fbo);
+  glDeleteTextures(1, &slice_vector_tex);
 
-void Lic::MakePatterns(void) 
+  glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, fbo);
+  glDeleteTextures(1, &color_tex);
+
+  NVISid buffers[2] = {vel_fbo, fbo};
+  glDeleteFramebuffersEXT(2, buffers);
+
+  delete slice_vector;
+}
+
+void Lic::make_patterns() 
 { 
    int lut[256];
    int phase[NPN][NPN];
@@ -106,7 +141,7 @@ void Lic::MakePatterns(void)
 }
 
 
-void Lic::MakeMagnitudes()
+void Lic::make_magnitudes()
 {
 
   GLubyte mag[NMESH][NMESH][4];
@@ -144,11 +179,53 @@ void Lic::MakeMagnitudes()
 
 }
 
+//project 3D vectors to a 2D slice for line integral convolution
+void Lic::get_slice(){
+  glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, vel_fbo);
+  glBindTexture(GL_TEXTURE_RECTANGLE_NV, slice_vector_tex);
+
+  glClear(GL_COLOR_BUFFER_BIT);
+
+  glViewport(0, 0, NMESH, NMESH);
+  glMatrixMode(GL_PROJECTION);
+  glLoadIdentity();
+  gluOrtho2D(0, NMESH, 0, NMESH);
+  glMatrixMode(GL_MODELVIEW);
+  glLoadIdentity();
+
+  cgGLBindProgram(m_render_vel_fprog);
+  cgGLEnableTextureParameter(m_vel_tex_param_render_vel);
+  cgGLSetParameter4f(m_plane_normal_param_render_vel, 1., 1., 0., 0);
+
+  cgGLEnableProfile(CG_PROFILE_FP30);
+  glBegin(GL_QUADS);
+    glTexCoord3f(0., 0., offset); glVertex2f(0.,   0.);
+    glTexCoord3f(1., 0., offset); glVertex2f(size, 0.);
+    glTexCoord3f(1., 1., offset); glVertex2f(size, size);
+    glTexCoord3f(0., 1., offset); glVertex2f(0.,   size);
+  glEnd();
+  cgGLDisableProfile(CG_PROFILE_FP30);
+   
+  cgGLDisableTextureParameter(m_vel_tex_param_render_vel);
+
+  //read the vectors
+  glReadPixels(0, 0, NMESH, NMESH, GL_RGBA, GL_FLOAT, slice_vector);
+  /*
+  for(int i=0; i<NMESH*NMESH; i++){
+    fprintf(stderr, "%f,%f,%f,%f", slice_vector[4*i], slice_vector[4*i+1], slice_vector[4*i+2], slice_vector[4*i+3]);
+  }
+  */
+  assert(glGetError()==0);
+}
+
 
 //line integral convolution
 void Lic::convolve(){
+
    int   i, j; 
    float x1, x2, y, px, py;
+
+   glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, fbo);
 
    glViewport(0, 0, (GLsizei) NPIX, (GLsizei) NPIX);
    glMatrixMode(GL_PROJECTION);
@@ -166,11 +243,11 @@ void Lic::convolve(){
       for (j = 0; j < NMESH-1; j++) {
           y = DM*j;
           glTexCoord2f(x1, y); 
-          getDP(x1, y, &px, &py);
+          get_velocity(x1, y, &px, &py);
           glVertex2f(px, py);
 
           glTexCoord2f(x2, y); 
-          getDP(x2, y, &px, &py); 
+          get_velocity(x2, y, &px, &py); 
           glVertex2f(px, py);
       }
       glEnd();
@@ -200,10 +277,65 @@ void Lic::convolve(){
 
    glDisable(GL_BLEND);
    glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 0, 0, NPIX, NPIX, 0);
+   
+   /*
+   //blend magnitude texture
+   glBindTexture(GL_TEXTURE_2D, mag_tex);
+   glEnable(GL_TEXTURE_2D);
+   glEnable(GL_BLEND);
+   glBegin(GL_QUADS);
+      glTexCoord2f(0.0,  0.0);  glVertex2f(0.0, 0.0);
+      glTexCoord2f(0.0,  1.0); glVertex2f(0.0, 1.);
+      glTexCoord2f(1.0, 1.0);  glVertex2f(1., 1.);
+      glTexCoord2f(1.0, 0.0); glVertex2f(1., 0.0);
+   glEnd();
+   */
 }
 
-void display(){
+void Lic::display(){
 
+  glBindTexture(GL_TEXTURE_2D, color_tex);
+  glEnable(GL_TEXTURE_2D);
 
+  //draw line integral convolution quad
+  glEnable(GL_DEPTH_TEST);
+  glPushMatrix();
+  glScalef(scale.x, scale.y, scale.z); 
+
+  glBegin(GL_QUADS);
+    glTexCoord2f(0, 0); glVertex3f(0, 0, offset);
+    glTexCoord2f(1, 0); glVertex3f(1, 0, offset);
+    glTexCoord2f(1, 1); glVertex3f(1, 1, offset);
+    glTexCoord2f(0, 1); glVertex3f(0, 1, offset);
+  glEnd();
+
+  glPopMatrix();
+
+  glDisable(GL_DEPTH_TEST);
+  glDisable(GL_TEXTURE_2D);
 }
 
+
+void Lic::get_velocity(float x, float y, float *px, float *py) 
+{
+   float dx, dy, vx, vy, r;
+
+   int xi = x*NMESH;
+   int yi = y*NMESH;
+
+   vx = slice_vector[4*(xi+yi*NMESH)];
+   vy = slice_vector[4*(xi+yi*NMESH)+1];
+   r  = vx*vx + vy*vy;
+   if (r > dmax*dmax) { 
+      r  = sqrt(r); 
+      vx *= dmax/r; 
+      vy *= dmax/r; 
+   }
+   *px = x + vx;         
+   *py = y + vy;
+}
+
+void Lic::set_offset(float v){
+  offset = v;
+  get_slice();
+}

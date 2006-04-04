@@ -25,6 +25,7 @@
 #include "global.h"
 
 #include "RenderVertexArray.h"
+#include "Vector3.h"
 
 typedef struct Particle{
   float x;
@@ -57,6 +58,8 @@ class ParticleSystem{
   CGprogram m_pos_fprog;
   CGparameter m_vel_tex_param, m_pos_tex_param, m_scale_param;
   CGparameter m_pos_timestep_param, m_pos_spherePos_param;
+
+  Vector3 scale;
 
 public:
   int psys_width;	//the storage of particles is implemented as a 2D array.
