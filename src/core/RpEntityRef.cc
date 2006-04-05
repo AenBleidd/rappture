@@ -300,9 +300,11 @@ RpEntityRef::appendEscaped (
             else if (value.at(pos) == '>') {
                 retStr += "&gt;";
             }
+            /*
             else if (value.at(pos) == '\n') {
-                retStr = "&#xA;";
-            } 
+                retStr += "&#xA;";
+            }
+            */
             else
             {
                 retStr += value.at(pos);
