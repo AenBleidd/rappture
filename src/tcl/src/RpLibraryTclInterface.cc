@@ -14,6 +14,7 @@
  */
 #include <tcl.h>
 #include <sstream>
+#include <string>
 #include "core/RpLibrary.h"
 #include "RpLibraryTclInterface.h"
 
@@ -186,14 +187,16 @@ RpLibraryCmd (  ClientData cData,
     std::string libName = "";
     int noerr = 0;
     std::stringstream result;
+    std::string path = "";
     Tcl_CmdInfo info;  // pointer to the command info
+    const char * var = NULL; // the path of Rappture installation
 
 
-    if ( (argc > 2) && (strncmp(argv[1],"isvalid",7) == 0) ) {
+    if ( (argc > 2) && (*argv[1] == 'i') && (strncmp(argv[1],"isvalid",7) == 0) ) {
         result.str("0");
         if (argc != 3) {
             Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
-                "\": isvalid object", 
+                "\": isvalid <object>", 
                 (char*)NULL);
             return TCL_ERROR;
         }
@@ -213,16 +216,34 @@ RpLibraryCmd (  ClientData cData,
 
     if (argc != 2) {
         Tcl_AppendResult(interp,
-                "usage: ", argv[0], " <xmlfile>",(char*)NULL);
+                "wrong # args: should be \"", argv[0],
+                "\" [ <file> | standard | isvalid <object> ]",
+                (char*)NULL);
         return TCL_ERROR;
     }
 
-    // create a new command
-    rpptr = new RpLibrary(argv[1]);
+    if ( (*argv[1] == 's') && (strncmp(argv[1],"standard",8) == 0) ) {
+        var = Tcl_GetVar(interp,"Rappture::installdir",0);
+        if (var) {
+            path = std::string(var) + "/lib/library.xml";
+            rpptr = new RpLibrary(path);
+            libName = rpLib2command(interp,rpptr);
+            Tcl_AppendResult(interp, libName.c_str(), (char*)NULL);
+        }
+        else {
+            Tcl_AppendResult(interp,
+                    "Rappture::installdir is not a valid variable",
+                    (char*)NULL);
+            return TCL_ERROR;
+        }
+    }
+    else {
+        // create a new command
+        rpptr = new RpLibrary(argv[1]);
+        libName = rpLib2command(interp,rpptr);
+        Tcl_AppendResult(interp, libName.c_str(), (char*)NULL);
+    }
 
-    libName = rpLib2command(interp,rpptr);
-
-    Tcl_AppendResult(interp, libName.c_str(), (char*)NULL);
     return TCL_OK;
 }
 
@@ -606,11 +627,25 @@ RpTclLibDiff     (   ClientData cdata,
 
 /**********************************************************************/
 // FUNCTION: RpTclLibElem()
-/// element function in Tcl, used to retrieve a xml objects
+/// element function in Tcl, retrieves the xml object for a given path
 /**
  * Returns a xml object.
+ * Returns a list of children of the node located at <path>
  * Full function call:
+ *
  * element ?-as <fval>? ?<path>?
+ *
+ * -as option specifies how to return the result
+ * <fval> is one of the following:
+ *     component - return the component name of xml node, ex: type(id)
+ *     id        - return the id attribute of xml node
+ *     type      - return the type attribute of xml node 
+ *     path      - return the full path of xml node
+ *     object    - return a Rappture Library Object
+ *
+ * <path> is the path of the xml node you are requesting.
+ *        if <path> is left blank, the current node will
+ *        be considered the xml node and it will be returned.
  */
 
 int
@@ -870,6 +905,28 @@ RpTclLibIsa     (   ClientData cdata,
     return TCL_OK;
 }
 
+/**********************************************************************/
+// FUNCTION: RpTclLibParent()
+/// parent function in Tcl, retrieves the parent xml object for a given path
+/**
+ * Returns the xml object repersenting the parent of the given path.
+ * Full function call:
+ *
+ * parent ?-as <fval>? ?<path>?
+ *
+ * -as option specifies how to return the result
+ * <fval> is one of the following:
+ *     component - return the component name of the parent node, ex: type(id)
+ *     id        - return the id attribute of the parent node
+ *     type      - return the type attribute of the parent node 
+ *     path      - return the full path of the parent node
+ *     object    - return a Rappture Library Object
+ *
+ * <path> is the path of the xml node you are requesting the parent of.
+ *        if <path> is left blank, the current node will
+ *        be considered the child xml node and it's parent will be returned.
+ */
+
 int
 RpTclLibParent  (   ClientData cdata,
                     Tcl_Interp *interp,
@@ -984,7 +1041,7 @@ RpTclLibParent  (   ClientData cdata,
  * Put a value into a xml node at location <path>
  *
  * Full function call:
- * put <path>
+ * put ?-append yes? ?-id num? ?<path>? <string>
  *
  * Return Value:
  * On success, None. 

@@ -335,6 +335,11 @@ install-lib-binaries: installdirs
 	    $(INSTALL_DATA) $$i $(DESTDIR)$(pkglibdir)/scripts ; \
         done;
 	$(TCLSH_PROG) $(srcdir)/cf/mkindex.tcl $(DESTDIR)$(pkglibdir)/scripts
+	$(mkinstalldirs) $(pkglibdir)/lib
+	@for i in $(srcdir)/../../lib/*; do \
+	    echo "Installing $$i" ; \
+	    $(INSTALL_DATA) $$i $(DESTDIR)$(pkglibdir)/lib ; \
+        done;
 	$(INSTALL_DATA) pkgIndex.tcl $(DESTDIR)$(pkglibdir)/pkgIndex.tcl
 	$(INSTALL_DATA) init.tcl $(DESTDIR)$(pkglibdir)/init.tcl
 

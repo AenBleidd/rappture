@@ -82,9 +82,9 @@ install: 	install_py 			\
 #			install_tcl
 
 RP_IO_DEPS      = RpLibrary.o RpLibraryCInterface.o RpLibraryFInterface.o \
-                  scew_extras.o
+                  scew_extras.o RpEntityRef.o
 RP_UNITS_DEPS   = RpUnitsStd.o RpUnits.o RpUnitsCInterface.o RpUnitsFInterface.o
-RP_OTHER_DEPS   = RpFortranCommon.o RpBindingsDict.o RpEntityRef.o
+RP_OTHER_DEPS   = RpFortranCommon.o RpBindingsDict.o
 RP_OBJS_DEP     = RpVariable.o RpAbout.o RpNumber.o RpString.o RpBoolean.o \
                   RpChoice.o RpOption.o RpUnitsStd.o RpUnits.o #RpValue.o\
                   # RpValueDouble.o RpValueString.o
@@ -161,7 +161,6 @@ install_octave: librappture RpOctave
 install_tcl: librappture
 	cd $(TCL_SRC) && make install && cd -
 
-
 ###############################################
 
 # include core source files
@@ -171,6 +170,9 @@ RpLibrary.o: $(CORE_SRC)/RpLibrary.cc
 
 scew_extras.o: $(CORE_SRC)/scew_extras.c
 	$(CC) $(CFLAGS) $(DEBUG) $(INCL_CORE) $(INCL_RP_DEPS) -o $@ -c $?
+
+RpEntityRef.o: $(CORE_SRC)/RpEntityRef.cc
+	$(CXX) $(CFLAGS) $(DEBUG) $(INCL_CORE) -o $@ -c $?
 
 RpVariable.o: $(CORE_SRC)/RpVariable.cc
 	$(CXX) $(CFLAGS) $(DEBUG) $(INCL_CORE) -o $@ -c $?
@@ -200,9 +202,6 @@ RpUnits.o: $(CORE_SRC)/RpUnits.cc
 	$(CXX) $(CFLAGS) $(DEBUG) $(INCL_CORE) -o $@ -c $?
 
 RpBindingsDict.o: $(CORE_SRC)/RpBindingsDict.cc
-	$(CXX) $(CFLAGS) $(DEBUG) $(INCL_CORE) -o $@ -c $?
-
-RpEntityRef.o: $(CORE_SRC)/RpEntityRef.cc
 	$(CXX) $(CFLAGS) $(DEBUG) $(INCL_CORE) -o $@ -c $?
 
 RpValue.o: $(CORE_SRC)/RpValue.cc

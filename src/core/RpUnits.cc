@@ -182,32 +182,78 @@ RpUnits::getType() const {
 /**
  */
 std::list<std::string>
-RpUnits::getCompatible() const {
+RpUnits::getCompatible(double expMultiplier) const {
 
     std::list<std::string> compatList;
     std::list<std::string> basisCompatList;
-    std::string myName         = getUnitsName();
-    std::string otherName      = getUnitsName();
-    convEntry* myConversions   = this->convList;
+    std::string myName          = getUnitsName();
+    // std::stringstream otherName;
+    std::string otherName       = "";
+    std::string otherBasisName  = "";
+    std::string blank           = "";
+    // double otherExp             = 1.0;
+    convEntry* myConversions    = this->convList;
+    const RpUnits * basis       = NULL;
 
     if (this->basis) {
         basisCompatList = this->basis->getCompatible();
         compatList.merge(basisCompatList);
     }
+    else {
+        // only basis units should be in here
+        //
+        // run through the conversion list
+        // for each entry, look at the name
+        // if the name is not equal to the name of this RpUnits object,
+        // store the fromPtr->getUnitsName() into compatList
+        // else store the toPtr->getUnitsName() into compatList
+        //
+        while (myConversions != NULL) {
 
-    // run through the conversion list
-    // for each entry, look at the name
-    // if the name is not equal to the name of this RpUnits object,
-    // store the fromPtr->getUnitsName() into compatList
-    // else store the toPtr->getUnitsName() into compatList
-    //
-    while (myConversions != NULL) {
-        otherName = myConversions->conv->toPtr->getUnitsName();
-        if (otherName == myName) {
-            otherName = myConversions->conv->fromPtr->getUnitsName();
+            otherName = myConversions->conv->toPtr->getUnitsName();
+            /*
+            otherName.str("");
+            otherName << myConversions->conv->toPtr->getUnitsName();
+            otherExp = myConversions->conv->fromPtr->getExponent();
+            if ( (otherExp != 1) && (expMultiplier != 1) ) {
+                otherName << otherExp * expMultiplier;
+            }
+            */
+            basis = myConversions->conv->toPtr->basis;
+
+            // if (myName == otherName.str()) {
+            if (myName == otherName) {
+                otherName = myConversions->conv->fromPtr->getUnitsName();
+                /*
+                otherName.str("");
+                otherName << myConversions->conv->fromPtr->getUnitsName();
+                if ( (otherExp != 1) && (expMultiplier != 1) ) {
+                    otherExp = myConversions->conv->fromPtr->getExponent();
+                    otherName << otherExp * expMultiplier;
+                }
+                */
+                basis = myConversions->conv->fromPtr->basis;
+            }
+
+            // check to see if they are the same basis, 
+            // no need to list all of the metric conversions.
+            if (basis) {
+                if (basis->getUnitsName() == myName) {
+                    // do not add this unit to the conversion
+                    // because its a derived unit.
+                    myConversions = myConversions->next;
+                    continue;
+                }
+            }
+
+            // add the other unit's name to the list of compatible units
+            // compatList.push_back(otherName.str());
+            std::cout << " pushing " << otherName << std::endl;
+            compatList.push_back(otherName);
+
+            // advance to the next conversion
+            myConversions = myConversions->next;
         }
-        compatList.push_back(otherName);
-        myConversions = myConversions->next;
     }
 
     compatList.push_back(myName);
@@ -555,6 +601,110 @@ RpUnits::find(std::string key) {
 
     return unitEntry;
 }
+
+/**********************************************************************/
+// METHOD: validate()
+/// Split a string of units and check that each unit is available as an object
+/**
+ * Splits a string of units like cm2/kVns into a list of units like
+ * cm2, kV1, ns1 where an exponent is provided for each list entry.
+ * It checks to see that each unit actually exists as a valid defined unit.
+ * If the unit exists or can be interpreted, the function keeps parsing the
+ * string until it reaches the end of the string. If the function comes
+ * across a unit that is unrecognized or can not be interpreted, then it
+ * returns error (a non-zero value).
+ * 
+ * this code is very similar to units2list()
+ *
+ * if &compatList == NULL, no compatible list of units will be generated.
+ * this function does not do a good job of placing the available units 
+ * back into the original formula. i still need to work on this.
+ */
+
+int
+RpUnits::validate ( const std::string& inUnits,
+                    std::string& type,
+                    std::list<std::string>* compatList ) {
+
+    std::string myInUnits   = inUnits;
+    std::string sendUnitStr = "";
+    double exponent         = 1;
+    int offset              = 0;
+    int idx                 = 0;
+    int last                = 0;
+    int err                 = 0; // did we come across an unrecognized unit
+    const RpUnits* unit     = NULL;
+    std::list<std::string> basisCompatList;
+    std::list<std::string>::iterator compatListIter;
+    std::stringstream unitWExp;
+
+
+    while ( !myInUnits.empty() ) {
+
+        // check to see if we came across a '/' character
+        last = myInUnits.length()-1;
+        if (myInUnits[last] == '/') {
+            type = myInUnits[last] + type;
+            myInUnits.erase(last);
+            continue;
+        }
+
+        // get the exponent
+        offset = RpUnits::grabExponent(myInUnits,&exponent);
+        myInUnits.erase(offset);
+        idx = offset - 1;
+
+        // grab the largest string we can find
+        offset = RpUnits::grabUnitString(myInUnits);
+        idx = offset;
+
+        // figure out if we have some defined units in that string
+        sendUnitStr = myInUnits.substr(offset,std::string::npos);
+        if ((unit = grabUnits(sendUnitStr,&offset))) {
+            // a unit was found
+            // erase the found unit's name from our search string
+            myInUnits.erase(idx+offset);
+
+            // add the type to the type string
+            type = unit->getType() + type;
+
+            // merge the compatible units
+            if (compatList) {
+                basisCompatList = unit->getCompatible(exponent);
+
+                // adjust exponents as necessary
+                if ( (exponent != 0) && (exponent != 1) ) {
+                    compatListIter = compatList->begin();
+                    while (compatListIter != compatList->end()) {
+                        unitWExp << *compatListIter << exponent;
+                        *compatListIter = unitWExp.str();
+                    }
+                }
+
+                compatList->merge(basisCompatList);
+            }
+        }
+        else {
+            // we came across a unit we did not recognize
+            // raise error and exit
+            err++;
+            break;
+        }
+
+        // reset our vars
+        idx = 0;
+        offset = 0;
+        exponent = 1;
+    }
+
+    // clean out any duplicate entries.
+    if (compatList) {
+        compatList->unique();
+    }
+
+    return err;
+}
+
 
 /**********************************************************************/
 // METHOD: negateListExponents()
