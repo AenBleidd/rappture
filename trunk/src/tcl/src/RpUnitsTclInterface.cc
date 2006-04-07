@@ -106,6 +106,8 @@ RpTclUnitsConvert   (   ClientData cdata,
     int retVal           = 0; // TCL_OK or TCL_ERROR depending on result val
     char *endptr         = NULL;
 
+    std::string type     = ""; // junk variable that validate() needs
+
     Tcl_ResetResult(interp);
 
     // parse through command line options
@@ -130,7 +132,7 @@ RpTclUnitsConvert   (   ClientData cdata,
                 nextarg++;
                 if (argv[nextarg] != NULL) {
                     fromUnitsName = std::string(argv[nextarg]);
-                    if (RpUnits::find(fromUnitsName) == NULL) {
+                    if (RpUnits::validate(fromUnitsName,type) != 0) {
                         Tcl_AppendResult(interp,
                             "-context value \"", fromUnitsName.c_str(), 
                             "\" is not a recognized unit for rappture",
@@ -143,7 +145,7 @@ RpTclUnitsConvert   (   ClientData cdata,
                 nextarg++;
                 if (argv[nextarg] != NULL) {
                     toUnitsName = std::string(argv[nextarg]);
-                    if (RpUnits::find(toUnitsName) == NULL) {
+                    if (RpUnits::validate(toUnitsName,type) != 0) {
                         Tcl_AppendResult(interp,
                             "-to value \"", toUnitsName.c_str(), 
                             "\" is not a recognized unit for rappture",
@@ -247,6 +249,7 @@ RpTclUnitsDesc      (   ClientData cdata,
     std::list<std::string>::iterator compatListIter;
 
     int nextarg               = 1; // start parsing using the '2'th argument
+    int err                   = 0; // err code for validate()
 
     Tcl_ResetResult(interp);
 
@@ -258,8 +261,8 @@ RpTclUnitsDesc      (   ClientData cdata,
 
     unitsName = std::string(argv[nextarg]);
 
-    unitsObj = RpUnits::find(unitsName);
-    if (unitsObj == NULL) {
+    err = RpUnits::validate(unitsName,type,&compatList);
+    if (err) {
         Tcl_AppendResult(interp,
             "The units named: \"", unitsName.c_str(), 
             "\" is not a recognized unit for rappture",
@@ -267,11 +270,8 @@ RpTclUnitsDesc      (   ClientData cdata,
         return TCL_ERROR;
     }
 
-    type = unitsObj->getType();
-
     Tcl_AppendResult(interp, type.c_str(), (char*)NULL);
 
-    compatList = unitsObj->getCompatible();
     compatListIter = compatList.begin();
 
     while (compatListIter != compatList.end()) {
@@ -299,8 +299,8 @@ RpTclUnitsSysFor    (   ClientData cdata,
 {
     std::string unitsName     = ""; // name of the units provided by user
     std::string type          = ""; // name of the units provided by user
-    const RpUnits* unitsObj   = NULL;
     int nextarg               = 1; // start parsing using the '2'th argument
+    int err                   = 0;
 
     Tcl_ResetResult(interp);
 
@@ -312,16 +312,14 @@ RpTclUnitsSysFor    (   ClientData cdata,
 
     unitsName = std::string(argv[nextarg]);
 
-    unitsObj = RpUnits::find(unitsName);
-    if (unitsObj == NULL) {
+    err = RpUnits::validate(unitsName,type);
+    if (err) {
         Tcl_AppendResult(interp,
             "The units named: \"", unitsName.c_str(), 
             "\" is not a recognized unit for rappture",
             (char*)NULL);
         return TCL_ERROR;
     }
-
-    type = unitsObj->getType();
 
     Tcl_AppendResult(interp, type.c_str(), (char*)NULL);
     return TCL_OK;
@@ -335,10 +333,12 @@ RpTclUnitsSysAll    (   ClientData cdata,
                         const char *argv[]  )
 {
     std::string unitsName     = ""; // name of the units provided by user
-    const RpUnits* unitsObj   = NULL;
+    std::string type          = ""; // junk variable that validate() needs
+    // const RpUnits* unitsObj   = NULL;
     std::list<std::string> compatList;
     std::list<std::string>::iterator compatListIter;
     int nextarg               = 1; // start parsing using the '2'th argument
+    int err                   = 0; // err code for validate
 
     Tcl_ResetResult(interp);
 
@@ -350,8 +350,8 @@ RpTclUnitsSysAll    (   ClientData cdata,
 
     unitsName = std::string(argv[nextarg]);
 
-    unitsObj = RpUnits::find(unitsName);
-    if (unitsObj == NULL) {
+    err = RpUnits::validate(unitsName,type,&compatList);
+    if (err) {
         Tcl_AppendResult(interp,
             "The units named: \"", unitsName.c_str(), 
             "\" is not a recognized unit for rappture",
@@ -359,7 +359,6 @@ RpTclUnitsSysAll    (   ClientData cdata,
         return TCL_ERROR;
     }
 
-    compatList = unitsObj->getCompatible();
     compatListIter = compatList.begin();
 
     while (compatListIter != compatList.end()) {
