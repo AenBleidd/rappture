@@ -21,20 +21,22 @@ Sphere::Sphere(float x, float y, float z,
 		float _radius,
 		int _stack,
 		int _slice):
+        Renderable(Vector3(x, y, z)),
 	radius(_radius),
 	stack(_stack),
 	slice(_slice),
-	center(Vector3(x,y,z)),
-	color(Color(r,g,b))
-{ }
+	color(Color(r,g,b)) { }
 
+Sphere::~Sphere(){}
+
+void Sphere::render(){}
 
 void Sphere::draw(GLUquadric* quad){
   glColor3f(color.R, color.G, color.B);
 
   glMatrixMode(GL_MODELVIEW);
   glPushMatrix();
-  glTranslatef(center.x, center.y, center.z);
+  glTranslatef(location.x, location.y, location.z);
 
   //draw it
   gluSphere(quad, radius, stack, slice);

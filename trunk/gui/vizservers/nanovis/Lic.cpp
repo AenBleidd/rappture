@@ -23,11 +23,12 @@
 Lic::Lic(int _size, int _width, int _height, float _offset,
 		CGcontext _context, NVISid _vector_field,
 		float scalex, float scaley, float scalez):
+        Renderable(Vector3(0.,0.,0.)),
 	size(_size),
 	offset(_offset),
 	m_g_context(_context),
-	display_width(_width),
-	display_height(_height),
+	width(_width),
+	height(_height),
         iframe(0),
 	Npat(64),
   	alpha(0.12*255),
@@ -77,7 +78,7 @@ Lic::Lic(int _size, int _width, int _height, float _offset,
   glBindTexture(GL_TEXTURE_2D, color_tex);
   glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
   glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, display_width, display_height, 0,
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, width, height, 0,
                GL_RGB, GL_INT, NULL);
   glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT,
                             GL_COLOR_ATTACHMENT0_EXT,
@@ -291,6 +292,9 @@ void Lic::convolve(){
    glEnd();
    */
 }
+
+void Lic::render(){ display(); }
+
 
 void Lic::display(){
 
