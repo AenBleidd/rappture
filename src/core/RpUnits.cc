@@ -248,7 +248,6 @@ RpUnits::getCompatible(double expMultiplier) const {
 
             // add the other unit's name to the list of compatible units
             // compatList.push_back(otherName.str());
-            std::cout << " pushing " << otherName << std::endl;
             compatList.push_back(otherName);
 
             // advance to the next conversion

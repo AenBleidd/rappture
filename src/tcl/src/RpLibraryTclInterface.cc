@@ -1062,6 +1062,8 @@ RpTclLibPut     (   ClientData cdata,
     int append         = 0;     // append flag - 0 means no, 1 means yes
     int opt_argc       = 2;     // max number of optional parameters
     int argsLeft       = 0;     // temp variable for calculation
+    int noerr = 0;
+    Tcl_CmdInfo info;  // pointer to the command info
 
     while (opt_argc--) {
         if (nextarg < argc && *argv[nextarg] == '-') {
@@ -1118,8 +1120,29 @@ RpTclLibPut     (   ClientData cdata,
         return TCL_ERROR;
     }
 
+    noerr = Tcl_GetCommandInfo(interp, addStr.c_str(), &info);
+    if (noerr == 1) {
+        // valid command
+        if (info.proc == &RpLibCallCmd) {
+            // call the rappture library put function with the Rappture Object
+            ((RpLibrary*) cdata)->put( path, 
+                                       (RpLibrary*)info.clientData, 
+                                       id, append);
+        }
+        else {
+            // object is not a RpLibrary
+            // call the rappture library put function with the inputted string
+            ((RpLibrary*) cdata)->put(path, addStr, id, append);
+        }
+    }
+    else {
+        // invalid command
+        // call the rappture library put function with the inputted string
+        ((RpLibrary*) cdata)->put(path, addStr, id, append);
+    }
+
     // call the rappture library put function
-    ((RpLibrary*) cdata)->put(path, addStr, id, append);
+    // ((RpLibrary*) cdata)->put(path, addStr, id, append);
 
     // clear any previous result in the interpreter
     // store the new result in the interpreter
