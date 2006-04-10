@@ -202,6 +202,8 @@ void ParticleSystem::update_vertex_buffer(){
 }
 
 
+void ParticleSystem::render(){ display_vertices(); }
+
 void ParticleSystem::display_vertices(){
   glDisable(GL_TEXTURE_2D);
   glDisable(GL_BLEND);

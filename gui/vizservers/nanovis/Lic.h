@@ -24,9 +24,9 @@
 #include "config.h"
 #include "global.h"
 
+#include "Renderable.h"
 #include "Vector3.h"
 #include "Volume.h"
-
 
 #define NPN 256   //resolution of background pattern
 #define NMESH 256 //resolution of flow mesh
@@ -34,10 +34,10 @@
 #define NPIX  512 //display size  
 #define SCALE 3.0 //scale for background pattern. small value -> fine texture
 
-class Lic{
+class Lic : public Renderable { 
 
 private:
-  int display_width, display_height;
+  int width, height;
   int size; 		//the lic is a square of size, it can be stretched
   float* slice_vector; //storage for the per slice vectors driving the follow
   Vector3 scale;	//scaling factor stretching the lic plane to fit the actual dimensions
@@ -63,14 +63,16 @@ private:
   Volume* vector_field; 
 
 public:
-  Vector3 normal;
+  Vector3 normal; //the normal vector of the Lic plane, 
+  		// the inherited Vector3 location is its center
   Lic(int _size, int _width, int _height, float _offset,
-		  CGcontext _context, NVISid _vector_field,
-		  float scalex, float scaley, float scalez);
+	  CGcontext _context, NVISid _vector_field,
+	  float scalex, float scaley, float scalez);
   ~Lic();
 
   void convolve();
   void display();	//display the convolution result
+  void render();
   void make_patterns();
   void make_magnitudes();
   void get_velocity(float x, float y, float* px, float* py);

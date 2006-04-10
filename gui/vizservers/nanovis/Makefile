@@ -2,7 +2,7 @@ OBJ_NANOVIS = nanovis.o Socket.o RenderVertexArray.o Plane.o ConvexPolygon.o Vec
 		Texture1D.o Texture3D.o Volume.o Texture2D.o ParticleSystem.o Sphere.o Color.o \
 		PerfQuery.o TransferFunction.o ControlPoint.o ColorGradient.o ColorPaletteWindow.o\
 		ColorGradientGLUTWindow.o TransferFunctionGLUTWindow.o MainWindow.o Event.o \
-		Lic.o
+		Lic.o Renderable.o
 
 OBJ_CLIENT = Socket.o ClientSocket.o RenderClient.o Event.o
 
@@ -69,7 +69,7 @@ Event.o: Event.cpp
 ControlPoint.o: $(TFSRC)/ControlPoint.cpp
 	gcc $(CFLAG) $(TFSRC)/ControlPoint.cpp
 
-Sphere.o: Vector3.o Color.o
+Sphere.o: Renderable.o Color.o
 	gcc $(CFLAG) Sphere.cpp
 
 TransferFunction.o: TransferFunction.cpp
@@ -84,10 +84,13 @@ Texture2D.o: Texture2D.cpp $(AUXSRC)
 Texture3D.o: Texture3D.cpp $(AUXSRC)
 	gcc $(CFLAG) Texture3D.cpp
 
-ParticleSystem.o: ParticleSystem.cpp $(AUXSRC)
+ParticleSystem.o: Renderable.o ParticleSystem.cpp $(AUXSRC)
 	gcc $(CFLAG) ParticleSystem.cpp
 
-Lic.o: Lic.cpp Lic.h $(AUXSRC)
+Renderable.o: Renderable.cpp
+	gcc $(CFLAG) Renderable.cpp
+
+Lic.o: Renderable.o Lic.cpp Lic.h $(AUXSRC)
 	gcc $(CFLAG) Lic.cpp
 
 Volume.o: Texture3D.o Volume.cpp $(AUXSRC)

@@ -1654,11 +1654,11 @@ void display()
 
    draw_3d_axis();
    
-   lic->display(); 	//display the line integral convolution result
+   lic->render(); 	//display the line integral convolution result
    
    //soft_display_verts();
    perf->enable();
-     psys->display_vertices();
+     psys->render();
    perf->disable();
    //fprintf(stderr, "particle pixels: %d\n", perf->get_pixel_count());
    perf->reset();

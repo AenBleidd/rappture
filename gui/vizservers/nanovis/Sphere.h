@@ -12,30 +12,31 @@
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  * ======================================================================
  */
+
 #ifndef _SPHERE_H_
 #define _SPHERE_H_
 
 #include <GL/glut.h>
-#include "Color.h"
-#include "Vector3.h"
 
-class Sphere{
+#include "Color.h"
+#include "Renderable.h"
+
+class Sphere : public Renderable{
 
 public:
-	Vector3 center;
 	float radius;
 	Color color;
 	int stack;
 	int slice;
 
-	Sphere(){};
-	~Sphere(){};
+	~Sphere();
 	Sphere(float x, float y, float z, float r, float g, float b, float _radius, int _stack, int _slice);
 	void set_vertical_res(int _stack);
 	void set_horizontal_res(int _slice);
 	
 	//display the sphere
 	void draw(GLUquadric* q);
+	void render();
 };
 
 #endif

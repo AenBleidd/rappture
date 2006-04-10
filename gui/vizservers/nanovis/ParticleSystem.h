@@ -24,6 +24,7 @@
 #include "config.h"
 #include "global.h"
 
+#include "Renderable.h"
 #include "RenderVertexArray.h"
 #include "Vector3.h"
 
@@ -39,7 +40,7 @@ typedef struct Particle{
 };
 
 
-class ParticleSystem{
+class ParticleSystem : public Renderable{
 
   NVISid psys_fbo[2]; 	//frame buffer objects: two are defined, flip them as input output every step
   NVISid psys_tex[2];	//color textures attached to frame buffer objects
@@ -73,6 +74,7 @@ public:
   void update_vertex_buffer();
   void display_vertices();
   void reset();
+  void render();
 
 };
 
