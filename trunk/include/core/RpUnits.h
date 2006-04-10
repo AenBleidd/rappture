@@ -298,7 +298,7 @@ class RpUnits
         std::string getType() const;
 
         // retrieve a list of compatible units.
-        std::list<std::string> getCompatible() const;
+        std::list<std::string> getCompatible(double expMultiplier=1.0) const;
 
 
         // convert from one RpUnits to another if the conversion is defined
@@ -341,6 +341,17 @@ class RpUnits
         // returns 0 on success (object was found)
         // returns !0 on failure (object not found)
         static const RpUnits* find(std::string key);
+
+        // validate is very similar to find, but it works better 
+        // for seeing complex units can be interpreted. 
+        // it validates that if the a certain units string is
+        // provided as a unit type, then all of the base components
+        // of that unit are available for conversions.
+        // returns 0 on success (units are valid)
+        // returns !0 on failure (units not valid)
+        static int validate(const std::string& inUnits, 
+                            std::string& type,
+                            std::list<std::string>* compatList=NULL);
 
         // user calls define to add a RpUnits object or to add a relation rule
         //

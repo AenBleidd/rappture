@@ -236,10 +236,12 @@ RpLibrary::_node2path (scew_element* node)
         while (snode && parent) {
 
             if (!path.str().empty()) {
-                path.str(_node2comp(snode) + "." + path.str());
+                // path.str(_node2comp(snode) + "." + path.str());
+                path.str("." + _node2comp(snode) + path.str());
             }
             else {
-                path.str(_node2comp(snode));
+                // path.str(_node2comp(snode));
+                path.str("." + _node2comp(snode));
             }
 
             snode = scew_element_parent(snode);
@@ -1295,15 +1297,20 @@ RpLibrary::put ( std::string path, double value, std::string id, int append )
 /**********************************************************************/
 // METHOD: put()
 /// Put a RpLibrary* value into the xml.
-// Append flag is ignored for this function.
 /**
+ *  Append flag adds additional nodes, it does not merge same 
+ *  named nodes together
  */
 
 RpLibrary&
 RpLibrary::put ( std::string path, RpLibrary* value, std::string id, int append )
 {
-    scew_element* retNode = NULL;
-    scew_element* new_elem = NULL;
+    scew_element* retNode   = NULL;
+    // scew_element* old_elem  = NULL;
+    scew_element* new_elem  = NULL;
+    scew_element* childNode = NULL;
+    // std::string nodeName    = "";
+
     int retVal = 1;
 
     if (!this->root) {
@@ -1317,8 +1324,44 @@ RpLibrary::put ( std::string path, RpLibrary* value, std::string id, int append 
         return *this;
     }
 
+    // nodeName = value->nodeComp();
+    // old_elem = _find(path+"."+nodeName,NO_CREATE_PATH);
+
+    if (!append) {
+        retNode = _find(path,NO_CREATE_PATH);
+        if (retNode) {
+            scew_element_free(retNode);
+        }
+        else {
+            // path did not exist and was not created
+            // do nothing
+        }
+    }
+
     retNode = _find(path,CREATE_PATH);
 
+    if (retNode) {
+        while ( (childNode = scew_element_next(value->root,childNode)) ) {
+            if ((new_elem = scew_element_copy(childNode))) {
+                if (scew_element_add_elem(retNode, new_elem)) {
+                    // maybe we want to count the number of children
+                    // that we have successfully added?
+                    retVal = 0;
+                }
+                else {
+                    // adding new element failed
+                }
+            }
+            else {
+                // copying new element failed
+            }
+        }
+    }
+    else {
+        // path did not exist and was not created.
+    }
+
+    /*
     if (retNode) {
         if ((new_elem = scew_element_copy(value->root))) {
             if (scew_element_add_elem(retNode, new_elem)) {
@@ -1326,6 +1369,8 @@ RpLibrary::put ( std::string path, RpLibrary* value, std::string id, int append 
             }
         }
     }
+
+    */
 
     return *this;
 }
