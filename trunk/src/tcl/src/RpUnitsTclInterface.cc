@@ -46,6 +46,13 @@ static int RpTclUnitsSysAll   _ANSI_ARGS_((    ClientData cdata,
 }
 #endif
 
+
+static int list2str (std::list<std::string>& inList, std::string& outString);
+
+
+
+
+
 /**********************************************************************/
 // FUNCTION: Rapptureunits_Init()
 /// Initializes the Rappture Units module and commands defined below
@@ -84,6 +91,9 @@ Rapptureunits_Init(Tcl_Interp *interp)
  * Converts values between recognized units in Rappture.
  * Full function call:
  * ::Rappture::Units::convert <value> ?-context units? ?-to units? ?-units on/off?
+ *
+ * units attached to <value> take precedence over units 
+ * provided in -context option.
  */
 
 int
@@ -106,7 +116,12 @@ RpTclUnitsConvert   (   ClientData cdata,
     int retVal           = 0; // TCL_OK or TCL_ERROR depending on result val
     char *endptr         = NULL;
 
-    std::string type     = ""; // junk variable that validate() needs
+    int err                   = 0;  // err code for validate()
+    std::string type          = ""; // junk variable that validate() needs
+    std::list<std::string> compatList;
+    std::list<std::string>::iterator compatListIter;
+    std::string listStr       = ""; // string version of compatList
+    std::string mesg          = ""; // error mesg text
 
     Tcl_ResetResult(interp);
 
@@ -114,9 +129,9 @@ RpTclUnitsConvert   (   ClientData cdata,
     if (argc < 2) {
         Tcl_AppendResult(interp,
             "wrong # args: should be \"",
-            argv[0]," value args\"",
-            // "usage: ", argv[0], 
-            // " <value> ?-context units? ?-to units? ?-units on/off?",
+            // argv[0]," value args\"",
+            argv[0], 
+            " <value> ?-context units? ?-to units? ?-units on/off?\"",
             (char*)NULL);
         return TCL_ERROR;
     }
@@ -132,54 +147,68 @@ RpTclUnitsConvert   (   ClientData cdata,
                 nextarg++;
                 if (argv[nextarg] != NULL) {
                     fromUnitsName = std::string(argv[nextarg]);
-                    if (RpUnits::validate(fromUnitsName,type) != 0) {
+                    err = 0;
+                    err = RpUnits::validate(fromUnitsName,type,&compatList);
+                    if ( err != 0) {
                         Tcl_AppendResult(interp,
-                            "-context value \"", fromUnitsName.c_str(), 
-                            "\" is not a recognized unit for rappture",
+                            "bad value \"", fromUnitsName.c_str(), 
+                            "\": should be a recognized unit for Rappture",
                             (char*)NULL);
                         return TCL_ERROR;
                     }
+                }
+                else {
+                    // if user does not specify wishes for this option,
+                    // set fromUnitsName to an empty string.
+                    fromUnitsName = "";
                 }
             }
             else if ( option == "-to" ) {
                 nextarg++;
                 if (argv[nextarg] != NULL) {
                     toUnitsName = std::string(argv[nextarg]);
-                    if (RpUnits::validate(toUnitsName,type) != 0) {
+                    err = 0;
+                    err = RpUnits::validate(toUnitsName,type);
+                    if (err != 0) {
                         Tcl_AppendResult(interp,
-                            "-to value \"", toUnitsName.c_str(), 
-                            "\" is not a recognized unit for rappture",
+                            "bad value \"", toUnitsName.c_str(), 
+                            "\": should be a recognized unit for Rappture",
                             (char*)NULL);
                         return TCL_ERROR;
                     }
+                }
+                else {
+                    // if user does not specify wishes for this option,
+                    // set toUnitsName to an empty string.
+                    toUnitsName = "";
                 }
             }
             else if ( option == "-units" ) {
                 nextarg++;
                 if (argv[nextarg] != NULL) {
-                    if (        (*(argv[nextarg]+1) == 'n') 
-                            &&  (std::string(argv[nextarg]) == "on") ) {
-                        showUnits = 1;
-                    }
-                    else if (   (*(argv[nextarg]+1) == 'f') 
-                            &&  (std::string(argv[nextarg]) == "off") ) {
-                        showUnits = 0;
-                    }
-                    else {
+                    if (Tcl_GetBoolean(interp, argv[nextarg], &showUnits)) {
                         // unrecognized value for -units option
-                        Tcl_AppendResult(interp,
-                            "value for -units must be \"on\" or \"off\"",
-                            (char*)NULL);
+                        // Tcl_GetBoolean fills in error message
+                        // Tcl_AppendResult(interp,
+                        //     "expected boolean value but got \"", 
+                        //     argv[nextarg], "\"", (char*)NULL);
                         return TCL_ERROR;
                     }
+                }
+                else {
+                    // if user does not specify wishes for this option,
+                    // return error.
+                    // unrecognized value for -units option
+                    Tcl_AppendResult(interp,
+                        "expected boolean value but got \"\"", (char*)NULL);
+                    return TCL_ERROR;
                 }
             }
             else {
                 // unrecognized option
-                Tcl_AppendResult(interp, "invalid option: ", option.c_str(), 
-                    ".\nusage: ", argv[0], 
-                    " <value> ?-context units? ?-to units? ?-units on/off?",
-                    (char*)NULL);
+                Tcl_AppendResult(interp, "bad option \"", argv[nextarg], 
+                        "\": should be -context, -to, -units",
+                        (char*)NULL);
                 return TCL_ERROR;
             }
 
@@ -187,9 +216,8 @@ RpTclUnitsConvert   (   ClientData cdata,
         }
         else {
             // unrecognized input
-            Tcl_AppendResult(interp, "invalid input: ", argv[nextarg],
-                ".\nusage: ", argv[0], 
-                " <value> ?-context units? ?-to units? ?-units on/off?",
+            Tcl_AppendResult(interp, "bad option \"", argv[nextarg], "\": ",
+                "should be -context, -to, -units",
                 (char*)NULL);
             return TCL_ERROR;
 
@@ -201,12 +229,35 @@ RpTclUnitsConvert   (   ClientData cdata,
     // check the inValue to see if it has units
     // or if we should use those provided in -context option
     strtod(inValue.c_str(),&endptr);
-    if ( ((unsigned)(endptr - inValue.c_str())) == inValue.length() ) {
+    if (endptr == inValue.c_str()) {
+        // there was no numeric value that could be pulled from inValue
+        // return error
+
+        mesg =  "\": should be a real number with units";
+
+        if (!fromUnitsName.empty()) {
+            list2str(compatList,listStr);
+            mesg = mesg + " of (" + listStr + ")";
+        }
+ 
+        Tcl_AppendResult(interp, "bad value \"", 
+                inValue.c_str(), mesg.c_str(), (char*)NULL);
+        return TCL_ERROR;
+    }
+    else if ( ((unsigned)(endptr - inValue.c_str())) == inValue.length() ) {
         // add 1 because we are subtracting indicies
         // there were no units at the end of the inValue string
         // rappture units convert expects the val variable to be 
         // the quantity and units in one string
-        val = inValue + fromUnitsName;
+
+        if (!fromUnitsName.empty()) {
+            val = inValue + fromUnitsName;
+        }
+        else {
+            Tcl_AppendResult(interp, "value: \"", inValue.c_str(),
+                    "\" has unrecognized units", (char*)NULL);
+            return TCL_ERROR;
+        }
     }
     else {
         // there seemed to be units at the end of the inValue string
@@ -225,8 +276,7 @@ RpTclUnitsConvert   (   ClientData cdata,
     else {
         // error while converting
         Tcl_AppendResult(interp, 
-                "There was an error while converting\n"
-                "The convert function returned the following string: \"",
+                "error while converting, returned string: \"",
                 convertedVal.c_str(),"\"",
                 (char*)NULL);
         retVal = TCL_ERROR;
@@ -234,6 +284,18 @@ RpTclUnitsConvert   (   ClientData cdata,
 
     return retVal;
 }
+
+/**********************************************************************/
+// FUNCTION: RpTclUnitsDesc()
+/// Rappture::Units::description function in Tcl, returns description of units
+/**
+ * Returns a description for the specified system of units.
+ * The description includes the abstract type (length, temperature, etc.)
+ * along with a list of all compatible systems.
+ *
+ * Full function call:
+ * ::Rappture::Units::description <units>
+ */
 
 int
 RpTclUnitsDesc      (   ClientData cdata,
@@ -244,7 +306,7 @@ RpTclUnitsDesc      (   ClientData cdata,
     std::string unitsName     = ""; // name of the units provided by user
     std::string type          = ""; // name of the units provided by user
     std::string listStr       = ""; // name of the units provided by user
-    const RpUnits* unitsObj   = NULL;
+    // const RpUnits* unitsObj   = NULL;
     std::list<std::string> compatList;
     std::list<std::string>::iterator compatListIter;
 
@@ -255,7 +317,9 @@ RpTclUnitsDesc      (   ClientData cdata,
 
     // parse through command line options
     if (argc != 2) {
-        Tcl_AppendResult(interp, "usage: ", argv[0], " <units>", (char*)NULL);
+        Tcl_AppendResult(interp, 
+                "wrong # args: should be \"", argv[0], 
+                " units\"", (char*)NULL);
         return TCL_ERROR;
     }
 
@@ -263,33 +327,38 @@ RpTclUnitsDesc      (   ClientData cdata,
 
     err = RpUnits::validate(unitsName,type,&compatList);
     if (err) {
+        /*
+         * according to tcl version, in this case we 
+         * should return an empty string. i happen to disagree.
+         * the next few lines is what i think the user should see.
         Tcl_AppendResult(interp,
-            "The units named: \"", unitsName.c_str(), 
-            "\" is not a recognized unit for rappture",
+            "bad value \"", unitsName.c_str(), 
+            "\": should be a recognized unit for Rappture",
             (char*)NULL);
         return TCL_ERROR;
+        */
+        return TCL_OK;
     }
 
     Tcl_AppendResult(interp, type.c_str(), (char*)NULL);
 
-    compatListIter = compatList.begin();
-
-    while (compatListIter != compatList.end()) {
-        if ( listStr.empty() ) {
-            listStr = *compatListIter;
-        }
-        else {
-            listStr =  listStr + "," + *compatListIter;
-        }
-
-        // increment the iterator
-        compatListIter++;
-    }
+    list2str(compatList,listStr);
 
     Tcl_AppendResult(interp, " (", listStr.c_str() ,")", (char*)NULL);
 
     return TCL_OK;
 }
+
+/**********************************************************************/
+// FUNCTION: RpTclUnitsSysFor()
+/// Rappture::Units::System::for fxn in Tcl, returns system for given units
+/**
+ * Returns the system, as a string, for the given system of units, or ""
+ * if there is no system that matches the units string.
+ *
+ * Full function call:
+ * ::Rappture::Units::System::for <units>
+ */
 
 int
 RpTclUnitsSysFor    (   ClientData cdata,
@@ -306,25 +375,46 @@ RpTclUnitsSysFor    (   ClientData cdata,
 
     // parse through command line options
     if (argc != 2) {
-        Tcl_AppendResult(interp, "usage: ", argv[0], " <units>", (char*)NULL);
+        Tcl_AppendResult(interp, "wrong # args: should be \"", 
+                argv[0], " units\"", (char*)NULL);
         return TCL_ERROR;
     }
 
     unitsName = std::string(argv[nextarg]);
 
+    // look in our dictionary of units to see if 'unitsName' is a valid unit
+    // if so, return its type (or system) in the variable 'type'.
     err = RpUnits::validate(unitsName,type);
     if (err) {
+        /*
+         * according to tcl version, in this case we 
+         * should return an empty string. i happen to disagree.
+         * the next few lines is what i think the user should see.
         Tcl_AppendResult(interp,
             "The units named: \"", unitsName.c_str(), 
             "\" is not a recognized unit for rappture",
             (char*)NULL);
         return TCL_ERROR;
+        */
+        return TCL_OK;
     }
 
     Tcl_AppendResult(interp, type.c_str(), (char*)NULL);
     return TCL_OK;
 
 }
+
+/**********************************************************************/
+// FUNCTION: RpTclUnitsSysAll()
+/// Rappture::Units::System::for fxn in Tcl, returns list of compatible units
+/**
+ * Returns a list of all units compatible with the given units string.
+ * Compatible units are determined by following all conversion
+ * relationships that lead to the same base system.
+ *
+ * Full function call:
+ * ::Rappture::Units::System::all <units>
+ */
 
 int
 RpTclUnitsSysAll    (   ClientData cdata,
@@ -344,7 +434,8 @@ RpTclUnitsSysAll    (   ClientData cdata,
 
     // parse through command line options
     if (argc != 2) {
-        Tcl_AppendResult(interp, "usage: ", argv[0], " <units>", (char*)NULL);
+        Tcl_AppendResult(interp, "wrong # args: should be \"", 
+                argv[0], " units\"", (char*)NULL);
         return TCL_ERROR;
     }
 
@@ -352,11 +443,17 @@ RpTclUnitsSysAll    (   ClientData cdata,
 
     err = RpUnits::validate(unitsName,type,&compatList);
     if (err) {
+        /*
+         * according to tcl version, in this case we 
+         * should return an empty string. i happen to disagree.
+         * the next few lines is what i think the user should see.
         Tcl_AppendResult(interp,
             "The units named: \"", unitsName.c_str(), 
             "\" is not a recognized unit for rappture",
             (char*)NULL);
         return TCL_ERROR;
+        */
+        return TCL_OK;
     }
 
     compatListIter = compatList.begin();
@@ -368,4 +465,43 @@ RpTclUnitsSysAll    (   ClientData cdata,
     }
 
     return TCL_OK;
+}
+
+/**********************************************************************/
+// FUNCTION: list2str()
+/// Convert a std::list<std::string> into a comma delimited std::string
+/**
+ * Iterates through a std::list<std::string> and returns a comma 
+ * delimited std::string containing the elements of the inputted std::list.
+ *
+ * Returns 0 on success, anything else is error
+ */
+
+int
+list2str (std::list<std::string>& inList, std::string& outString)
+{
+    int retVal = 1;  // return Value 0 is success, everything else is failure
+    unsigned int counter = 0; // check if we hit all elements of inList
+    std::list<std::string>::iterator inListIter; // list interator
+
+    inListIter = inList.begin();
+
+    while (inListIter != inList.end()) {
+        if ( outString.empty() ) {
+            outString = *inListIter;
+        }
+        else {
+            outString =  outString + "," + *inListIter;
+        }
+
+        // increment the iterator and loop counter
+        inListIter++;
+        counter++;
+    }
+
+    if (counter == inList.size()) {
+        retVal = 0;
+    }
+
+    return retVal;
 }

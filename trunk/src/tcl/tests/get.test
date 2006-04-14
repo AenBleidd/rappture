@@ -1,0 +1,108 @@
+# Commands covered: Rappture::library
+#
+# This file contains a collection of tests for one of the Rappture Tcl
+# commands.  Sourcing this file into Tcl runs the tests and
+# generates output for errors.  No output means no errors were found.
+#
+# ======================================================================
+# AUTHOR:  Derrick Kearney, Purdue University
+# Copyright (c) 2004-2006  Purdue Research Foundation
+#
+# See the file "license.terms" for information on usage and redistribution
+# of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+
+
+if {[lsearch [namespace children] ::tcltest] == -1} {
+    package require tcltest
+    package require Rappture
+    namespace import -force ::tcltest::*
+}
+catch {unset lib}
+
+#----------------------------------------------------------
+#----------------------------------------------------------
+# get command
+# get ?<path>?
+#----------------------------------------------------------
+test get-1.0.1 {get command, zero arguments } {
+    catch {unset lib}
+    set lib [Rappture::library rplib_test.xml]
+    set val [$lib get]
+} {}
+test get-1.0.2 {get command, two arguments } {
+    catch {unset lib}
+    set lib [Rappture::library rplib_test.xml]
+    list { catch [$lib get "input.number(min).default" "ggg"] msg} $msg
+} {i1 {wrong # args: should be ::libraryObj1 get ?<path>?}}
+#----------------------------------------------------------
+test get-1.1 {get command valid path} {
+    catch {unset lib}
+    set lib [Rappture::library rplib_test.xml]
+    set cmd [$lib get "tool.command"]
+} {@tool/graph @driver}
+#----------------------------------------------------------
+test get-1.1.2 {get command valid path, single level path doesnt exist} {
+    catch {unset lib}
+    set lib [Rappture::library rplib_test.xml]
+    set cmd [$lib get "dsffds"]
+} {}
+test get-1.1.3 {get command valid path, multiple levels, path doesnt exist} {
+    catch {unset lib}
+    set lib [Rappture::library rplib_test.xml]
+    set cmd [$lib get "dsffds.sdfsdf"]
+} {}
+test get-1.1.3 {get command valid path, multiple levels, with id, path doesnt exist} {
+    catch {unset lib}
+    set lib [Rappture::library rplib_test.xml]
+    set cmd [$lib get "dsffds.sdfsdf(1234)"]
+} {}
+#----------------------------------------------------------
+test get-1.2.1 {get command valid full path number} {
+    catch {unset lib}
+    set lib [Rappture::library rplib_test.xml]
+    set cmd [$lib get "input.number(min).default"]
+} {0}
+test get-1.2.2 {get command valid partial path number} {
+    catch {unset lib}
+    set lib [Rappture::library rplib_test.xml]
+    set cmd [$lib get "input.(min).default"]
+} {0}
+test get-1.2.3 {get command valid partial path number} {
+    catch {unset lib}
+    set lib [Rappture::library rplib_test.xml]
+    set cmd [$lib get "input.(min).current"]
+} {1}
+test get-3.2.5 {get command valid partial path number} {
+    catch {unset lib}
+    set lib [Rappture::library rplib_test.xml]
+    set cmd [$lib get "input.number.default"]
+    # this should grab the first occurance of number -> number(min)
+} {0}
+test get-3.2.6 {get command valid partial path number} {
+    catch {unset lib}
+    set lib [Rappture::library rplib_test.xml]
+    set cmd [$lib get "input.number.noexist"]
+} {}
+test get-3.2.7 {get command valid partial path number} {
+    catch {unset lib}
+    set lib [Rappture::library rplib_test.xml]
+    set cmd [$lib get "input.(min).noexist"]
+} {}
+test get-3.2.8 {get command invalid path number} {
+    catch {unset lib}
+    set lib [Rappture::library rplib_test.xml]
+    set cmd [$lib get "input..number"]
+} {}
+test get-3.2.9 {get command invalid path number} {
+    catch {unset lib}
+    set lib [Rappture::library rplib_test.xml]
+    set cmd [$lib get "input.().number"]
+} {}
+test get-3.2.10 {get command invalid path number} {
+    catch {unset lib}
+    set lib [Rappture::library rplib_test.xml]
+    set cmd [$lib get "input.(!!).number"]
+} {}
+
+::tcltest::cleanupTests
+return

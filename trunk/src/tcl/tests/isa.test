@@ -1,0 +1,54 @@
+# Commands covered: Rappture::library
+#
+# This file contains a collection of tests for one of the Rappture Tcl
+# commands.  Sourcing this file into Tcl runs the tests and
+# generates output for errors.  No output means no errors were found.
+#
+# ======================================================================
+# AUTHOR:  Derrick Kearney, Purdue University
+# Copyright (c) 2004-2006  Purdue Research Foundation
+#
+# See the file "license.terms" for information on usage and redistribution
+# of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+
+
+if {[lsearch [namespace children] ::tcltest] == -1} {
+    package require tcltest
+    package require Rappture
+    namespace import -force ::tcltest::*
+}
+catch {unset lib}
+
+#----------------------------------------------------------
+# isa command
+# isa "<XMLObjType>"
+#----------------------------------------------------------
+test library-7.0.1 {isa command 0 arg} {
+    catch {unset lib}
+    set lib [Rappture::library rplib_test.xml]
+    list [catch {$lib isa} msg] $msg
+} {1 {wrong # args: should be "::libraryObj0 isa <objType>"}}
+test library-7.1.1 {isa command 1 valid arg} {
+    catch {unset lib}
+    set lib [Rappture::library rplib_test.xml]
+    $lib isa ::Rappture::LibraryObj
+} {1}
+test library-7.1.2 {isa command 1 invalid arg} {
+    catch {unset lib}
+    set lib [Rappture::library rplib_test.xml]
+    $lib isa ::Rappture::Curve
+} {0}
+test library-7.1.3 {isa command 1 invalid arg} {
+    catch {unset lib}
+    set lib [Rappture::library rplib_test.xml]
+    $lib isa sdfsdf
+} {0}
+test library-7.2.1 {isa command 2 args} {
+    catch {unset lib}
+    set lib [Rappture::library rplib_test.xml]
+    list [catch {$lib isa ::Rappture::LibraryObj ::Rappture::LibraryObj} msg] $msg
+} {1 {wrong # args: should be "::libraryObj4 isa <objType>"}}
+
+
+::tcltest::cleanupTests
+return

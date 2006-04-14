@@ -1,0 +1,119 @@
+# Commands covered: Rappture::library
+#
+# This file contains a collection of tests for one of the Rappture Tcl
+# commands.  Sourcing this file into Tcl runs the tests and
+# generates output for errors.  No output means no errors were found.
+#
+# ======================================================================
+# AUTHOR:  Derrick Kearney, Purdue University
+# Copyright (c) 2004-2006  Purdue Research Foundation
+#
+# See the file "license.terms" for information on usage and redistribution
+# of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+
+
+if {[lsearch [namespace children] ::tcltest] == -1} {
+    package require tcltest
+    package require Rappture
+    namespace import -force ::tcltest::*
+}
+catch {unset lib}
+
+#----------------------------------------------------------
+# parent command
+# parent "?-as <fval>? ?<path>?"
+#----------------------------------------------------------
+test library-6.0.1 {parent command 0 arg} {
+    catch {unset lib}
+    set lib [Rappture::library rplib_test.xml]
+    $lib parent
+} {}
+test library-6.1.1 {parent command path as default 1 arg} {
+    catch {unset lib}
+    set lib [Rappture::library rplib_test.xml]
+    $lib parent "input"
+} {}
+test library-6.1.2 {parent command path w/ id as default 1 arg} {
+    catch {unset lib}
+    set lib [Rappture::library rplib_test.xml]
+    $lib parent "input.number(min)"
+} {input}
+test library-6.1.3 {parent command non-existant path 1 arg} {
+    catch {unset lib}
+    set lib [Rappture::library rplib_test.xml]
+    $lib parent "kdsf.werw(we12)"
+} {}
+test library-6.2.1 {parent command path 2 arg} {
+    catch {unset lib}
+    set lib [Rappture::library rplib_test.xml]
+    list [catch {$lib parent "input.number(min)" "wreew"} msg] $msg
+} {1 {wrong # args: should be "parent ?-as <fval>? ?<path>?"}}
+test library-6.3.1 {parent command path -as flag  no option} {
+    catch {unset lib}
+    set lib [Rappture::library rplib_test.xml]
+    list [catch {$lib parent -as} msg] $msg
+} {1 {bad flavor "" for -as: should be component, id, type, path, object}}
+test library-6.3.2 {parent command path -as flag component path with id} {
+    catch {unset lib}
+    set lib [Rappture::library rplib_test.xml]
+    $lib parent -as component "input.number(max).default"
+} {number(max)}
+test library-6.3.3 {parent command path -as flag id path with id} {
+    catch {unset lib}
+    set lib [Rappture::library rplib_test.xml]
+    $lib parent -as id "input.number(max).default"
+} {max}
+test library-6.3.4 {parent command path -as flag type path with id} {
+    catch {unset lib}
+    set lib [Rappture::library rplib_test.xml]
+    $lib parent -as type "input.number(max).default"
+} {number}
+test library-6.3.5 {parent command path -as path type path with id} {
+    catch {unset lib}
+    set lib [Rappture::library rplib_test.xml]
+    $lib parent -as path "input.number(max).default"
+} {.input.number(max)}
+test library-6.3.6 {parent command path -as object type path with id} {
+    catch {unset lib}
+    set lib [Rappture::library rplib_test.xml]
+    set libNew [$lib parent -as object "input.number(max).default"]
+    list [catch {$libNew isa ::Rappture::LibraryObj} msg] $msg
+} {0 1}
+test library-6.3.7 {parent command path -as junk type path with id} {
+    catch {unset lib}
+    set lib [Rappture::library rplib_test.xml]
+    list [catch {$lib parent -as junk "input.number(max)"} msg] $msg
+} {1 {bad flavor "junk" for -as: should be component, id, object, path, type}}
+test library-6.3.8 {parent command path -as component, path does not exist} {
+    catch {unset lib}
+    set lib [Rappture::library rplib_test.xml]
+    $lib parent -as component "input.test(we).current"
+} {}
+test library-6.3.9 {parent command path -as id, path does not exist} {
+    catch {unset lib}
+    set lib [Rappture::library rplib_test.xml]
+    $lib parent -as id "input.test(we).current"
+} {}
+test library-6.3.10 {parent command path -as type, path does not exist} {
+    catch {unset lib}
+    set lib [Rappture::library rplib_test.xml]
+    $lib parent -as type "input.test(we).current"
+} {}
+test library-6.3.11 {parent command path -as path, path does not exist} {
+    catch {unset lib}
+    set lib [Rappture::library rplib_test.xml]
+    $lib parent -as path "input.test(we).current"
+} {}
+test library-6.3.12 {parent command path -as object, path does not exist} {
+    catch {unset lib}
+    set lib [Rappture::library rplib_test.xml]
+    $lib parent -as object "input.test(we).current"
+} {::libraryObj18}
+test library-6.4.1 {parent command path -junk path} {
+    catch {unset lib}
+    set lib [Rappture::library rplib_test.xml]
+    list [catch {$lib parent -junk "input"} msg] $msg
+} {1 {bad option "-junk": should be -as}}
+
+::tcltest::cleanupTests
+return
