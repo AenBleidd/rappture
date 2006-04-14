@@ -1,0 +1,103 @@
+# Commands covered: Rappture::library
+#
+# This file contains a collection of tests for one of the Rappture Tcl
+# commands.  Sourcing this file into Tcl runs the tests and
+# generates output for errors.  No output means no errors were found.
+#
+# ======================================================================
+# AUTHOR:  Derrick Kearney, Purdue University
+# Copyright (c) 2004-2006  Purdue Research Foundation
+#
+# See the file "license.terms" for information on usage and redistribution
+# of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+
+
+if {[lsearch [namespace children] ::tcltest] == -1} {
+    package require tcltest
+    package require Rappture
+    namespace import -force ::tcltest::*
+}
+catch {unset lib}
+
+#----------------------------------------------------------
+# children command
+# children "?-as <fval>? ?-type <name>? ?<path>?"
+#----------------------------------------------------------
+test library-8.0.1 {children command 0 arg} {
+    catch {unset lib}
+    set lib [Rappture::library rplib_test.xml]
+    $lib children
+} {tool input output}
+test library-8.1.1 {children command path as default type default 1 arg} {
+    catch {unset lib}
+    set lib [Rappture::library rplib_test.xml]
+    $lib children "input"
+} {string(formula) string(name) number(min) number(max)}
+test library-8.1.2 {children command path w/ id as default type default 1 arg} {
+    catch {unset lib}
+    set lib [Rappture::library rplib_test.xml]
+    $lib children "input.number(min)"
+} {about default current}
+test library-8.1.3 {children command non-existant path 1 arg} {
+    catch {unset lib}
+    set lib [Rappture::library rplib_test.xml]
+    $lib children "kdsf.werw(we12)"
+} {}
+test library-8.2.1 {children command path 2 arg} {
+    catch {unset lib}
+    set lib [Rappture::library rplib_test.xml]
+    list [catch {$lib children "input.number(min)" "wreew"} msg] $msg
+} {1 {wrong # args: should be "children ?-as fval? ?-type name? ?path?"}}
+test library-8.3.1 {children command path -as flag  no option} {
+    catch {unset lib}
+    set lib [Rappture::library rplib_test.xml]
+    list [catch {$lib children -as} msg] $msg
+} {1 {bad flavor "" for -as: should be component, id, object, path, type}}
+test library-8.3.2 {children command path -as flag component path} {
+    catch {unset lib}
+    set lib [Rappture::library rplib_test.xml]
+    $lib children -as component "input"
+} {string(formula) string(name) number(min) number(max)}
+test library-8.3.3 {children command path -as flag id path} {
+    catch {unset lib}
+    set lib [Rappture::library rplib_test.xml]
+    $lib children -as id "input"
+} {formula name min max}
+test library-8.3.4 {children command path -as flag type path} {
+    catch {unset lib}
+    set lib [Rappture::library rplib_test.xml]
+    $lib children -as type "input"
+} {string string number number}
+test library-8.3.5 {children command path -as path type path} {
+    catch {unset lib}
+    set lib [Rappture::library rplib_test.xml]
+    $lib children -as path "input"
+} {.input.string(formula) .input.string(name) .input.number(min) .input.number(max)}
+test library-8.3.6 {children command path -as object type path} {
+    catch {unset lib}
+    set lib [Rappture::library rplib_test.xml]
+    $lib children -as object "input"
+} {::libraryObj11 ::libraryObj12 ::libraryObj13 ::libraryObj14}
+test library-8.3.7 {children command path -as junk type path} {
+    catch {unset lib}
+    set lib [Rappture::library rplib_test.xml]
+    list [catch {$lib children -as junk "input"} msg] $msg
+} {1 {bad flavor "junk" for -as: should be component, id, object, path, type}}
+test library-8.4.1 {children command path -type number path} {
+    catch {unset lib}
+    set lib [Rappture::library rplib_test.xml]
+    $lib children -type "number" "input"
+} {number(min) number(max)}
+test library-8.4.2 {children command path -type "" path} {
+    catch {unset lib}
+    set lib [Rappture::library rplib_test.xml]
+    $lib children -type "" "input"
+} {string(formula) string(name) number(min) number(max)}
+test library-8.5.1 {children command path -junk path} {
+    catch {unset lib}
+    set lib [Rappture::library rplib_test.xml]
+    list [catch {$lib children -junk "input"} msg] $msg
+} {1 {bad option "-junk": should be -as, -type}}
+
+::tcltest::cleanupTests
+return

@@ -1,0 +1,161 @@
+# Commands covered: Rappture::library
+#
+# This file contains a collection of tests for one of the Rappture Tcl
+# commands.  Sourcing this file into Tcl runs the tests and
+# generates output for errors.  No output means no errors were found.
+#
+# ======================================================================
+# AUTHOR:  Derrick Kearney, Purdue University
+# Copyright (c) 2004-2006  Purdue Research Foundation
+#
+# See the file "license.terms" for information on usage and redistribution
+# of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+
+
+if {[lsearch [namespace children] ::tcltest] == -1} {
+    package require tcltest
+    package require Rappture
+    namespace import -force ::tcltest::*
+}
+catch {unset lib}
+
+#----------------------------------------------------------
+# put command
+# put "?-append yes? ?-id num? ?<path>? <string>"
+#----------------------------------------------------------
+# MMc's original code does not make <string> a required argument
+# even though the command howto makes it seem required
+#test library-4.0.1 {put command valid path 0 arg} {
+#    catch {unset libPut}
+#    set libPut [Rappture::library rplib_test.xml]
+#    $libPut put
+#    $libPut xml
+#} {<run></run>}
+test library-4.0.1 {put command valid path 0 arg} {
+    catch {unset libPut}
+    set libPut [Rappture::library rplib_test.xml]
+    list [catch {$libPut put} msg] $msg
+} {1 {wrong # args: should be "put ?-append yes? ?-id num? ?<path>? <string>"}}
+test library-4.1.1 {put command valid path 1 arg} {
+    catch {unset libPut}
+    set libPut [Rappture::library rplib_test.xml]
+    list [catch {$libPut put "input.test1" } msg] $msg
+} {0 {}}
+test library-4.1.2 {put command valid path 1 arg with id} {
+    catch {unset libPut}
+    set libPut [Rappture::library rplib_test.xml]
+    list [catch {$libPut put "input.test2(withId)"} msg] $msg
+} {0 {}}
+test library-4.1.3 {put command valid path 2 arg} {
+    catch {unset libPut}
+    set libPut [Rappture::library rplib_test.xml]
+    $libPut put "input.test" "val1"
+    $libPut get "input.test"
+} {val1}
+test library-4.1.4 {put command valid path 2 arg with id} {
+    catch {unset libPut}
+    set libPut [Rappture::library rplib_test.xml]
+    $libPut put "input.test(withId)" "val1"
+    $libPut put "input.test(withNewId)" "val2"
+    $libPut get "input.test"
+} {val1}
+test library-4.1.5 {put command valid path 2 arg} {
+    catch {unset libPut}
+    set libPut [Rappture::library rplib_test.xml]
+    $libPut put "input.test(withId)" "val1"
+    $libPut put "input.test(withNewId)" "val2"
+    $libPut get "input.test(withId)"
+} {val1}
+test library-4.1.6 {put command valid path 2 arg} {
+    catch {unset libPut}
+    set libPut [Rappture::library rplib_test.xml]
+    $libPut put "input.test(withId)" "val1"
+    $libPut put "input.test(withNewId)" "val2"
+    $libPut get "input.test(withNewId)"
+} {val2}
+test library-4.2.1 {put command test append yes} {
+    catch {unset libPut}
+    set libPut [Rappture::library rplib_test.xml]
+    $libPut put "input.test(withId)" "val1"
+    $libPut put -append yes "input.test(withId)" "val2"
+    $libPut get "input.test(withId)"
+} {val1val2}
+test library-4.2.2 {put command test append no} {
+    catch {unset libPut}
+    set libPut [Rappture::library rplib_test.xml]
+    $libPut put "input.test(withId)" "val1"
+    $libPut put -append no "input.test(withId)" "val2"
+    $libPut get "input.test(withId)"
+} {val2}
+test library-4.2.3 {put command test append blank} {
+    catch {unset libPut}
+    set libPut [Rappture::library rplib_test.xml]
+    $libPut put "input.test(withId)" "val1"
+    list [catch {$libPut put -append "input.test(withId)" "val2"} msg] $msg
+    # $libPut xml
+} {1 {expected boolean value but got "input.test(withId)"}}
+test library-4.2.4 {put command test append blank} {
+    # catch {unset libPut}
+    # set libPut [Rappture::library rplib_test.xml]
+    list [catch {$libPut put -append} msg] $msg
+} {1 {expected boolean value but got ""}}
+test library-4.2.5 {put command test append junk} {
+    catch {unset libPut}
+    set libPut [Rappture::library rplib_test.xml]
+    $libPut put "input.test(withId)" "val1"
+    list [catch {$libPut put -append junk "input.test(withId)" "val2"} msg] $msg
+    # $libPut xml
+} {1 {expected boolean value but got "junk"}}
+test library-4.2.5 {put command test append = "1"} {
+    catch {unset libPut}
+    set libPut [Rappture::library rplib_test.xml]
+    set path "input.test(withId)"
+    $libPut put $path "val1"
+    set rslt [list [catch {$libPut put -append 1 $path "val2"} msg] $msg]
+    if {![lrange $rslt 0 0]} {
+        lappend rslt [$libPut get $path]
+    }
+    set rslt
+} {0 {} val1val2}
+test library-4.2.5 {put command test append = "0"} {
+    catch {unset libPut}
+    set libPut [Rappture::library rplib_test.xml]
+    set path "input.test(withId)"
+    $libPut put $path "val1"
+    set rslt [list [catch {$libPut put -append 0 $path "val2"} msg] $msg]
+    if {![lrange $rslt 0 0]} {
+        lappend rslt [$libPut get $path]
+    }
+    set rslt
+} {0 {} val2}
+test library-4.2.5 {put command test append = "true"} {
+    catch {unset libPut}
+    set libPut [Rappture::library rplib_test.xml]
+    set path "input.test(withId)"
+    $libPut put $path "val1"
+    set rslt [list [catch {$libPut put -append true $path "val2"} msg] $msg]
+    if {![lrange $rslt 0 0]} {
+        lappend rslt [$libPut get $path]
+    }
+    set rslt
+} {0 {} val1val2}
+test library-4.2.5 {put command test append = "false"} {
+    catch {unset libPut}
+    set libPut [Rappture::library rplib_test.xml]
+    set path "input.test(withId)"
+    $libPut put $path "val1"
+    set rslt [list [catch {$libPut put -append false $path "val2"} msg] $msg]
+    if {![lrange $rslt 0 0]} {
+        lappend rslt [$libPut get $path]
+    }
+    set rslt
+} {0 {} val2}
+test library-4.3.1 {put command valid path 3 arg} {
+    catch {unset libPut}
+    set libPut [Rappture::library rplib_test.xml]
+    list [catch {$libPut put "input.test" "val1" "val2"} msg] $msg
+} {1 {wrong # args: should be "put ?-append yes? ?-id num? ?<path>? <string>"}}
+
+
+::tcltest::cleanupTests
+return

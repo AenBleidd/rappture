@@ -1,0 +1,55 @@
+# Commands covered: Rappture::library
+#
+# This file contains a collection of tests for one of the Rappture Tcl
+# commands.  Sourcing this file into Tcl runs the tests and
+# generates output for errors.  No output means no errors were found.
+#
+# ======================================================================
+# AUTHOR:  Derrick Kearney, Purdue University
+# Copyright (c) 2004-2006  Purdue Research Foundation
+#
+# See the file "license.terms" for information on usage and redistribution
+# of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+
+
+if {[lsearch [namespace children] ::tcltest] == -1} {
+    package require tcltest
+    package require Rappture
+    namespace import -force ::tcltest::*
+}
+catch {unset lib}
+
+#----------------------------------------------------------
+# diff command
+# diff "<xmlobj>"
+#----------------------------------------------------------
+catch {unset lib}
+catch {unset libnew}
+catch {unset libDefault}
+catch {unset libFromGet}
+set lib [Rappture::library rplib_test.xml]
+set libnew [Rappture::library rplib_test.xml]
+set libDefault [Rappture::library rplib_test.xml]
+set libFromGet [$libDefault element -as object "input.number(max)"]
+test library-10.0.1 {diff command, no arguments} {
+    list [catch {$lib diff} msg] $msg
+} {1 {wrong # args: should be "::libraryObj0 diff <xmlobj>"}}
+test library-10.1.1 {diff command, one argument, no difference} {
+    $lib diff $libnew
+} {}
+test library-10.1.2 {diff command, one argument, with difference} {
+    $lib put "input.string(difftest).current" "this is a diff test" 
+    $lib diff $libnew
+} {- input.string(difftest) {this is a diff test} {}}
+test library-10.1.3 {diff command, one argument, no "input" in argument} {
+    $libDefault diff $libFromGet
+} {- input.string(formula) dsd234ssdf3sdf {} - input.string(name) tnerruc {} - input.number(min) 1 {} - input.number(max) 3 {}}
+test library-10.1.4 {diff command, one argument, no "input" in libFromGet} {
+    $libFromGet diff $libDefault
+} {+ input.string(formula) dsd234ssdf3sdf {} + input.string(name) tnerruc {} + input.number(min) 1 {} + input.number(max) 3 {}}
+test library-10.2.1 {diff command, two arguments, returns error} {
+    list [catch {$lib diff $libnew $libnew} msg] $msg
+} {1 {wrong # args: should be "::libraryObj0 diff <xmlobj>"}}
+
+::tcltest::cleanupTests
+return

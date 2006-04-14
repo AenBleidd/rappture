@@ -1,0 +1,295 @@
+# Commands covered: 
+#   Rappture::Units::convert
+#   Rappture::Units::description
+#   Rappture::Units::System::for
+#   Rappture::Units::System::all
+#
+# This file contains a collection of tests for one of the Rappture Tcl
+# commands.  Sourcing this file into Tcl runs the tests and
+# generates output for errors.  No output means no errors were found.
+#
+# ======================================================================
+# AUTHOR:  Derrick Kearney, Purdue University
+# Copyright (c) 2004-2006  Purdue Research Foundation
+#
+# See the file "license.terms" for information on usage and redistribution
+# of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+
+
+if {[lsearch [namespace children] ::tcltest] == -1} {
+    package require tcltest
+    package require Rappture
+    namespace import -force ::tcltest::*
+}
+catch {unset lib}
+
+proc check {var size} {
+    set l [llength $var]
+    if {$l != $size} {
+        return "length mismatch: should have been $size, was $l"
+    }
+    for {set i 0} {$i < $size} {set i [expr $i+1]} {
+        set j [lindex $var $i]
+        if {$j != "item $i"} {
+            return "element $i should have been \"item $i\", was \"$j\""
+        }
+    }
+    return ok
+}
+
+#----------------------------------------------------------
+#----------------------------------------------------------
+# convert command
+# Rappture::Units::convert <value> ?-context? ?-to units? ?-units on/off?
+#----------------------------------------------------------
+test convert-1.0.1 {Rappture::Units::convert, 0 arguments} {
+    list [catch {Rappture::Units::convert} msg] $msg
+} {1 {wrong # args: should be "Rappture::Units::convert <value> ?-context units? ?-to units? ?-units on/off?"}}
+
+test convert-1.1.1 {Rappture::Units::convert, 1 invalid argument} {
+    list [catch {Rappture::Units::convert re} msg] $msg
+} {1 {bad value "re": should be a real number with units}}
+
+test convert-1.1.2 {Rappture::Units::convert, invalid value, valid context} {
+    list [catch {Rappture::Units::convert re -context mm} msg] $msg
+} {1 {bad value "re": should be a real number with units of (A,ft,in,m,mm,yd)}}
+
+test convert-1.1.3 {Rappture::Units::convert, 1 valid argument} {
+    list [catch {Rappture::Units::convert 5} msg] $msg
+} {1 {value: "5" has unrecognized units}}
+
+test convert-1.2.0 {Rappture::Units::convert, 1 valid argument w/ units} {
+    list [catch {Rappture::Units::convert 5m} msg] $msg
+} {0 5m}
+
+test convert-1.3.0 {Rappture::Units::convert, -context blank} {
+    list [catch {Rappture::Units::convert 5m -context} msg] $msg
+} {0 5m}
+
+test convert-1.3.1 {Rappture::Units::convert, -context valid} {
+    list [catch {Rappture::Units::convert 5m -context m} msg] $msg
+} {0 5m}
+
+#test convert-1.3.2.1 {Rappture::Units::convert, -context invalid} {
+## this test passes for old tcl version, fails for new tcl bindings
+#    list [catch {Rappture::Units::convert 5m -context ff} msg] $msg
+#} {0 5m}
+
+test convert-1.3.2.2 {Rappture::Units::convert, -context invalid} {
+# this test passes for new tcl bindings, fails for old tcl version
+    list [catch {Rappture::Units::convert 5m -context ff} msg] $msg
+} {1 {bad value "ff": should be a recognized unit for Rappture}}
+
+test convert-1.4.0 {Rappture::Units::convert, -to blank} {
+    list [catch {Rappture::Units::convert 5m -to} msg] $msg
+} {0 5m}
+
+#test convert-1.4.1.1 {Rappture::Units::convert, -to valid} {
+## this test passes for old tcl version, fails for new tcl bindings
+#    list [catch {Rappture::Units::convert 5m -to A} msg] $msg
+#} {0 50000000000A}
+
+test convert-1.4.1.2 {Rappture::Units::convert, -to valid} {
+# this test passes for new tcl bindings, fails for old tcl version
+    list [catch {Rappture::Units::convert 5m -to A} msg] $msg
+} {0 5e+10A}
+
+#test convert-1.4.2.1 {Rappture::Units::convert, -to invalid} {
+## this test passes for old tcl version, fails for new tcl bindings
+#    list [catch {Rappture::Units::convert 5m -to ff} msg] $msg
+#} {1 {invalid command name ""}}
+
+test convert-1.4.2.2 {Rappture::Units::convert, -to invalid} {
+# this test passes for new tcl bindings, fails for old tcl version
+    list [catch {Rappture::Units::convert 5m -to ff} msg] $msg
+} {1 {bad value "ff": should be a recognized unit for Rappture}}
+
+#test convert-1.5.0 {Rappture::Units::convert, -units blank} {
+## this test passes for old tcl version, fails for new tcl bindings
+#    list [catch {Rappture::Units::convert 5m -units} msg] $msg
+#} {1 {expected boolean value but got ""}}
+
+test convert-1.5.0 {Rappture::Units::convert, -units blank} {
+# this test passes for new tcl bindings, fails for old tcl version
+    list [catch {Rappture::Units::convert 5m -units} msg] $msg
+} {1 {expected boolean value but got ""}}
+
+test convert-1.5.1 {Rappture::Units::convert, -units on} {
+    list [catch {Rappture::Units::convert 5m -units on} msg] $msg
+} {0 5m}
+
+#test convert-1.5.2.1 {Rappture::Units::convert, -units off} {
+## this test passes for old tcl version, fails for new tcl bindings
+## comments for the Rappture::Units::convert function specify that
+## If the -to system is not specified, then the value is converted to 
+## fundamental units for the current system. but the code just returns
+## the value, as specified by lines 115-118 or units.tcl 20060414
+#    list [catch {Rappture::Units::convert 5m -units off} msg] $msg
+#} {0 5m}
+
+test convert-1.5.2.2 {Rappture::Units::convert, -units off} {
+# this test passes for new tcl bindings, fails for old tcl version
+    list [catch {Rappture::Units::convert 5m -units off} msg] $msg
+} {0 5}
+
+test convert-1.5.3 {Rappture::Units::convert, -units invalid} {
+# this test passes for new tcl bindings, fails for old tcl version
+# because tcl version makes -units depend of -to flag being populated.
+    list [catch {Rappture::Units::convert 5m -units sdfsd} msg] $msg
+} {1 {expected boolean value but got "sdfsd"}}
+
+#test convert-1.6.0.1 {Rappture::Units::convert, all flags, all valid} {
+## this test passes for old tcl version, fails for new tcl bindings
+## new bindings return scientific notation.
+#    list [catch {Rappture::Units::convert 5m -context m -to A -units off} msg] $msg
+#} {0 50000000000}
+
+test convert-1.6.0.2 {Rappture::Units::convert, all flags, all valid} {
+# this test passes for new tcl bindings, fails for old tcl version
+    list [catch {Rappture::Units::convert 5m -context m -to A -units off} msg] $msg
+} {0 5e+10}
+
+test convert-1.7.0 {Rappture::Units::convert, val w/o units} {
+# this test passes for new tcl bindings, fails for old tcl version
+    list [catch {Rappture::Units::convert 5 -context m} msg] $msg
+} {0 5m}
+
+#test convert-1.7.1.1 {Rappture::Units::convert, invalid val w/ -context} {
+## this test passes for old tcl version, fails for new tcl bindings
+#    list [catch {Rappture::Units::convert de -context m } msg] $msg
+#} {1 {bad value "de": should be a real number with units of (m,A)}}
+
+test convert-1.7.1.2 {Rappture::Units::convert, invalid val w/ -context} {
+# this test passes for new tcl bindings, fails for old tcl version
+    list [catch {Rappture::Units::convert de -context m } msg] $msg
+} {1 {bad value "de": should be a real number with units of (A,ft,in,m,yd)}}
+
+
+#----------------------------------------------------------
+#----------------------------------------------------------
+# description command
+# Rappture::Units::description <units>
+#----------------------------------------------------------
+
+test desc-2.0.0 {Rappture::Units::descption, blank units} {
+    list [catch {Rappture::Units::description} msg] $msg
+} {1 {wrong # args: should be "Rappture::Units::description units"}}
+
+test desc-2.1.0 {Rappture::Units::descption, invalid units} {
+# special note in the tcl bindings code reflects that i think 
+# this behavior is incorrect, but tcl bindings comply with the 
+# tcl version for now.
+    list [catch {Rappture::Units::description qqq} msg] $msg
+} {0 {}}
+
+#test desc-2.2.0.1 {Rappture::Units::descption, valid units} {
+## this test passes for old tcl version, fails for new tcl bindings
+## because different order of units
+#    list [catch {Rappture::Units::description eV} msg] $msg
+#} {0 {energy (eV,J)}}
+
+test desc-2.2.0.2 {Rappture::Units::descption, valid units} {
+# this test passes for new tcl bindings, fails for old tcl version
+    list [catch {Rappture::Units::description eV} msg] $msg
+} {0 {energy (J,eV)}}
+
+test desc-2.3.0 {Rappture::Units::descption, too many args} {
+    list [catch {Rappture::Units::description eV ee} msg] $msg
+} {1 {wrong # args: should be "Rappture::Units::description units"}}
+
+
+#----------------------------------------------------------
+#----------------------------------------------------------
+# for command
+# Rappture::Units::System::for <units>
+#----------------------------------------------------------
+
+#test for-3.0.0.1 {Rappture::Units::System::for, blank units} {
+## this test passes for old tcl version, fails for new tcl bindings
+## because of additional "::" prefixed on object name
+#    list [catch {Rappture::Units::System::for} msg] $msg
+#} {1 {wrong # args: should be "::Rappture::Units::System::for units"}}
+
+test for-3.0.0.2 {Rappture::Units::System::for, blank units} {
+    list [catch {Rappture::Units::System::for} msg] $msg
+} {1 {wrong # args: should be "Rappture::Units::System::for units"}}
+
+test for-3.1.0 {Rappture::Units::System::for, invalid units} {
+# special note in the tcl bindings code reflects that i think 
+# this behavior is incorrect, but tcl bindings comply with the 
+# tcl version for now.
+    list [catch {Rappture::Units::System::for qqq} msg] $msg
+} {0 {}}
+
+#test for-3.2.0.1 {Rappture::Units::System::for, valid units} {
+## this test passes for old tcl version, fails for new tcl bindings
+## because different order of units
+#    list [catch {Rappture::Units::System::for eV} msg] $msg
+#} {0 ::Rappture::Units::system6}
+
+test for-3.2.0.2 {Rappture::Units::System::for, valid units} {
+# this test passes for new tcl bindings, fails for old tcl version
+    list [catch {Rappture::Units::System::for eV} msg] $msg
+} {0 energy}
+
+#test for-3.3.0.1 {Rappture::Units::System::for, too many args} {
+## this test passes for old tcl version, fails for new tcl bindings
+## because of additional "::" prefixed on object name
+#    list [catch {Rappture::Units::System::for eV ee} msg] $msg
+#} {1 {wrong # args: should be "::Rappture::Units::System::for units"}}
+
+test for-3.3.0.2 {Rappture::Units::System::for, too many args} {
+# this test passes for new tcl bindings, fails for old tcl version
+    list [catch {Rappture::Units::System::for eV ee} msg] $msg
+} {1 {wrong # args: should be "Rappture::Units::System::for units"}}
+
+
+#----------------------------------------------------------
+#----------------------------------------------------------
+# all command
+# Rappture::Units::Sys::all <units>
+#----------------------------------------------------------
+
+#test all-4.0.0.1 {Rappture::Units::System::all, blank} {
+## this test passes for old tcl version, fails for new tcl bindings
+## because of additional "::" prefixed on object name
+#    list [catch {Rappture::Units::System::all} msg] $msg
+#} {1 {wrong # args: should be "::Rappture::Units::System::all units"}}
+
+test all-4.0.0.2 {Rappture::Units::System::all, blank units} {
+    list [catch {Rappture::Units::System::all} msg] $msg
+} {1 {wrong # args: should be "Rappture::Units::System::all units"}}
+
+test all-4.1.0 {Rappture::Units::System::all, invalid units} {
+# special note in the tcl bindings code reflects that i think 
+# this behavior is incorrect, but tcl bindings comply with the 
+# tcl version for now.
+    list [catch {Rappture::Units::System::all qqq} msg] $msg
+} {0 {}}
+
+#test all-3.2.0.1 {Rappture::Units::System::all, valid units} {
+## this test passes for old tcl version, fails for new tcl bindings
+## because different order of units
+#    list [catch {Rappture::Units::System::all eV} msg] $msg
+#} {0 {eV J}}
+
+test all-3.2.0.2 {Rappture::Units::System::all, valid units} {
+# this test passes for new tcl bindings, fails for old tcl version
+    list [catch {Rappture::Units::System::all eV} msg] $msg
+} {0 {J eV}}
+
+#test all-3.3.0.1 {Rappture::Units::System::all, too many args} {
+## this test passes for old tcl version, fails for new tcl bindings
+## because of additional "::" prefixed on object name
+#    list [catch {Rappture::Units::System::all eV ee} msg] $msg
+#} {1 {wrong # args: should be "::Rappture::Units::System::all units"}}
+
+test all-3.3.0.2 {Rappture::Units::System::all, too many args} {
+# this test passes for new tcl bindings, fails for old tcl version
+    list [catch {Rappture::Units::System::all eV ee} msg] $msg
+} {1 {wrong # args: should be "Rappture::Units::System::all units"}}
+
+
+::tcltest::cleanupTests
+return
+

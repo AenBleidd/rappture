@@ -1,0 +1,63 @@
+# Commands covered: Rappture::library
+#
+# This file contains a collection of tests for one of the Rappture Tcl
+# commands.  Sourcing this file into Tcl runs the tests and
+# generates output for errors.  No output means no errors were found.
+#
+# ======================================================================
+# AUTHOR:  Derrick Kearney, Purdue University
+# Copyright (c) 2004-2006  Purdue Research Foundation
+#
+# See the file "license.terms" for information on usage and redistribution
+# of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+
+
+if {[lsearch [namespace children] ::tcltest] == -1} {
+    package require tcltest
+    package require Rappture
+    namespace import -force ::tcltest::*
+}
+catch {unset lib}
+
+#----------------------------------------------------------
+# copy command
+# copy "<path> from ?<xmlobj>? <path>"
+#----------------------------------------------------------
+catch {unset lib}
+set lib [Rappture::library rplib_test.xml]
+test library-9.0.1 {copy command, 0 args} {
+    list [catch {$lib copy} msg] $msg
+} {1 {wrong # args: should be "::libraryObj0 copy <path> from ?<xmlobj>? <path>"}}
+test library-9.0.2 {copy command, 0 args} {
+    list [catch {$lib copy "input.number(min)"} msg] $msg
+} {1 {wrong # args: should be "::libraryObj0 copy <path> from ?<xmlobj>? <path>"}}
+test library-9.0.3 {copy command, 1 arg} {
+    list [catch {$lib copy "input.number(min)" from } msg] $msg
+} {1 {wrong # args: should be "::libraryObj0 copy <path> from ?<xmlobj>? <path>"}}
+#test library-9.0.4 {copy command not enough arg} {
+#    list [catch {$lib copy "input.number(min)" from $lib} msg] $msg
+#} {1 {bad path component "::libraryObj0"}}
+test library-9.0.5 {copy command not enough arg} {
+    list [catch {$lib copy "input.number(min)" from } msg] $msg
+} {1 {wrong # args: should be "::libraryObj0 copy <path> from ?<xmlobj>? <path>"}}
+test library-9.1.1 {copy command from -> junk} {
+    list [catch {$lib copy "input.number(blah)" junk "input.number(min)"} msg] $msg
+} {1 {bad syntax: should be "copy path from ?xmlobj? path"}}
+test library-9.2.1 {copy command valid command, no 2nd library} {
+    $lib copy "input.number(blah)" from "input.number(max)"
+    $lib get "input.number(blah).current"
+} {3}
+test library-9.2.2 {copy command valid command} {
+    set libnew [Rappture::library rplib_test.xml]
+    $libnew put "input.image(eye).current" "sdjfslkjflskjfslj"
+    $lib copy "input.image(blahblah)" from $libnew "input.image(eye)"
+    $lib get "input.image(blahblah).current"
+} {sdjfslkjflskjfslj}
+test library-9.2.3 {copy command valid command, fromObj's path does not exist} {
+    set libnew [Rappture::library rplib_test.xml]
+    $lib copy "input.image(blueblah)" from $libnew "input.image(eye)"
+    $lib get "input.image(blueblah).current"
+} {}
+
+::tcltest::cleanupTests
+return

@@ -328,9 +328,9 @@ int checkAsArgs(Tcl_Interp *interp, const char* testStr, rpMbrFxnPtr asProc)
  * <fval> is one of the following:
  *     component - return the component name of child node, ex: type(id)
  *     id        - return the id attribute of child node
- *     type      - return the type attribute of child node 
- *     path      - return the full path of child node
  *     object    - return a Rappture Library Object
+ *     path      - return the full path of child node
+ *     type      - return the type attribute of child node 
  *
  * -type option tells function to only look for nodes of type <name>
  *
@@ -388,14 +388,14 @@ RpTclLibChild   (   ClientData cdata,
                     }
                     else {
                         Tcl_AppendResult(interp, "bad flavor \"", argv[nextarg],
-                            "\" for -as: should be component, id, type, path, object",
+                            "\" for -as: should be component, id, object, path, type",
                             (char*)NULL);
                         return TCL_ERROR;
                     }
                 }
                 else {
                     Tcl_AppendResult(interp, "bad flavor \"\" for -as",
-                            ": should be component, id, type, path, object",
+                            ": should be component, id, object, path, type",
                             (char*)NULL);
                     return TCL_ERROR;
                 }
@@ -425,7 +425,7 @@ RpTclLibChild   (   ClientData cdata,
     if (argsLeft > 1) {
         Tcl_AppendResult(interp, 
                 "wrong # args: should be ",
-                "\"children ?-as <fval>? ?-type <name>? ?<path>?\"",
+                "\"children ?-as fval? ?-type name? ?path?\"",
                 (char*)NULL);
         return TCL_ERROR;
     }
@@ -459,6 +459,15 @@ RpTclLibChild   (   ClientData cdata,
 
     return TCL_OK;
 }
+
+/**********************************************************************/
+// FUNCTION: RpTclLibCopy()
+/// copy function in Tcl, used to copy an xml object between locations
+/**
+ * Copies an xml object, whose location is described by <path2>, 
+ * Full function call:
+ * copy <path1> from ?<xmlobj>? <path2>
+ */
 
 int
 RpTclLibCopy    (   ClientData cdata,
@@ -534,6 +543,8 @@ RpTclLibCopy    (   ClientData cdata,
 
     // call the rappture library copy function
     ((RpLibrary*) cdata)->copy(toPath, fromPath, fromObj);
+
+    // delete the fromObj pointer ???
 
     // clear any previous result in the interpreter
     // store the new result in the interpreter

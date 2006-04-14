@@ -1,0 +1,84 @@
+# Commands covered: Rappture::library
+#
+# This file contains a collection of tests for one of the Rappture Tcl
+# commands.  Sourcing this file into Tcl runs the tests and
+# generates output for errors.  No output means no errors were found.
+#
+# ======================================================================
+# AUTHOR:  Derrick Kearney, Purdue University
+# Copyright (c) 2004-2006  Purdue Research Foundation
+#
+# See the file "license.terms" for information on usage and redistribution
+# of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+
+
+if {[lsearch [namespace children] ::tcltest] == -1} {
+    package require tcltest
+    package require Rappture
+    namespace import -force ::tcltest::*
+}
+catch {unset lib}
+
+#----------------------------------------------------------
+# remove command
+# remove "<path>"
+#----------------------------------------------------------
+catch {unset lib}
+set lib [Rappture::library rplib_test.xml]
+test library-11.0.1 {remove command, 2 arguments} {
+    list [catch {$lib remove output junk} msg] $msg
+} {1 {wrong # args: should be "::libraryObj0 remove ?<path>?"}}
+test library-11.1.1 {remove command, 1 argument, valid path} {
+    $lib remove output
+    $lib xml
+} {<?xml version="1.0"?>
+<run>
+    <tool>
+        <title>Graphing Calculator</title>
+        <about>Press Simulate to view results.</about>
+        <command>@tool/graph @driver</command>
+    </tool>
+    <input>
+        <string id="formula">
+            <about>
+                <label>Formula</label>
+                <hints>Example: 2*x + 1</hints>
+            </about>
+            <size>30x5</size>
+            <default>dsd234ssdf3sdf</default>
+        </string>
+        <string id="name">
+            <about>
+                <label>Name</label>
+                <hints>some text</hints>
+            </about>
+            <size>5x5</size>
+            <default>tluafed</default>
+            <current>tnerruc</current>
+        </string>
+        <number id="min">
+            <about>
+                <label>From x</label>
+            </about>
+            <default>0</default>
+            <current>1</current>
+        </number>
+        <number id="max">
+            <about>
+                <label>To x</label>
+            </about>
+            <default>2</default>
+            <current>3</current>
+        </number>
+    </input>
+</run>
+}
+test library-11.1.2 {remove command, 1 argument, path does not exist} {
+    list [catch {$lib remove skdfjslkd} msg] $msg
+} {0 {}}
+test library-11.2.1 {remove command, 0 arguments} {
+    list [catch {$lib remove} msg] $msg
+} {0 {}}
+
+::tcltest::cleanupTests
+return
