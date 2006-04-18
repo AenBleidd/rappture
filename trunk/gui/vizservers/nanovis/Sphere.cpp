@@ -40,6 +40,7 @@ void Sphere::draw(GLUquadric* quad){
 
   //draw it
   gluSphere(quad, radius, stack, slice);
+
   glPopMatrix();
 }
 
