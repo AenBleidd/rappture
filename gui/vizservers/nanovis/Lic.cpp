@@ -36,7 +36,7 @@ Lic::Lic(int _size, int _width, int _height, float _offset,
 	dmax(SCALE/NPIX)
 {
   scale = Vector3(scalex, scaley, scalez);
-  slice_vector = new float[NMESH*NMESH*4];
+  slice_vector = new float[size*size*4];
 
   //initialize the pattern texture
   glGenTextures(1, &pattern_tex);

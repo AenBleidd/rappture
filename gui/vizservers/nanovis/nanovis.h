@@ -27,7 +27,7 @@
 #include "define.h"
 #include "global.h"
 #include "socket/Socket.h"
-#include "RenderVertexArray.h"
+#include "Camera.h"
 #include "ConvexPolygon.h"
 #include "Texture3D.h"
 #include "Texture2D.h"

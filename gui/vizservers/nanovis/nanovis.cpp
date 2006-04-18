@@ -34,6 +34,7 @@
 
 //render server
 
+Camera* cam;
 float color_table[256][4]; 	
 
 #ifdef XINETD
@@ -73,13 +74,6 @@ PerfQuery* perf;			//perfromance counter
 
 //Nvidia CG shaders and their parameters
 CGcontext g_context;
-CGprogram m_pos_fprog;
-CGparameter m_vel_tex_param, m_pos_tex_param;
-CGparameter m_pos_timestep_param, m_pos_spherePos_param;
-
-CGprogram m_vel_fprog;
-CGparameter m_vel_timestep_param, m_vel_damping_param, m_vel_gravity_param;
-CGparameter m_vel_spherePos_param, m_vel_sphereVel_param, m_vel_sphereRadius_param;
 
 CGprogram m_passthru_fprog;
 CGparameter m_passthru_scale_param, m_passthru_bias_param;
@@ -97,7 +91,6 @@ CGprogram m_vert_std_vprog;
 CGparameter m_mvp_vert_std_param;
 CGparameter m_mvi_vert_std_param;
 
-
 using namespace std;
 
 static void set_camera(float x_angle, float y_angle, float z_angle){
@@ -105,7 +98,6 @@ static void set_camera(float x_angle, float y_angle, float z_angle){
   live_rot_y = y_angle;
   live_rot_z = z_angle;
 }
-
 
 
 // Tcl interpreter for incoming messages
@@ -849,11 +841,11 @@ void initGL(void)
    system_info();
    init_glew();
 
-   glViewport(0, 0, (GLsizei) NPIX, (GLsizei) NPIX);
-   glMatrixMode(GL_PROJECTION);
-   glLoadIdentity(); 
-   glTranslatef(-1.0, -1.0, 0.0); 
-   glScalef(2.0, 2.0, 1.0);
+   //create the camera with default setting
+   cam = new Camera(win_width, win_height, 
+		   live_obj_x, live_obj_y, live_obj_z,
+		   0., 0., 100.,
+		   live_rot_x, live_rot_y, live_rot_z);
 
    glEnable(GL_TEXTURE_2D);
    glShadeModel(GL_FLAT);
@@ -1512,24 +1504,24 @@ void draw_3d_axis(){
 	glEnable(GL_DEPTH_TEST);
 	glDisable(GL_BLEND);
 
-	int segments = 20;
+	int segments = 50;
 
 	glColor3f(0.8, 0.8, 0.8);
 	glPushMatrix();
-	glTranslatef(-0.45, -0.5, -0.5);
-	glScalef(0.001, 0.001, 0.001);
+	glTranslatef(0.4, 0., 0.);
+	glScalef(0.0005, 0.0005, 0.0005);
 	glutStrokeCharacter(GLUT_STROKE_ROMAN, 'x');
 	glPopMatrix();	
 
 	glPushMatrix();
-	glTranslatef(-0.7, -0.25, -0.5);
-	glScalef(0.001, 0.001, 0.001);
+	glTranslatef(0., 0.4, 0.);
+	glScalef(0.0005, 0.0005, 0.0005);
 	glutStrokeCharacter(GLUT_STROKE_ROMAN, 'y');
 	glPopMatrix();	
 
 	glPushMatrix();
-	glTranslatef(-0.7, -0.5, -0.2);
-	glScalef(0.001, 0.001, 0.001);
+	glTranslatef(0., 0., 0.4);
+	glScalef(0.0005, 0.0005, 0.0005);
 	glutStrokeCharacter(GLUT_STROKE_ROMAN, 'z');
 	glPopMatrix();	
 
@@ -1538,41 +1530,37 @@ void draw_3d_axis(){
 
 	glColor3f(0.2, 0.2, 0.8);
 	glPushMatrix();
-	glTranslatef(-0.7, -0.5, -0.5);
 	glutSolidSphere(0.02, segments, segments );
 	glPopMatrix();
 
 	glPushMatrix();
-	glTranslatef(-0.7, -0.5, -0.5);
 	glRotatef(-90, 1, 0, 0);	
-	gluCylinder(obj, 0.01, 0.01, 0.15, segments, segments);
+	gluCylinder(obj, 0.01, 0.01, 0.3, segments, segments);
 	glPopMatrix();	
 
 	glPushMatrix();
-	glTranslatef(-0.7, -0.35, -0.5);
+	glTranslatef(0., 0.3, 0.);
 	glRotatef(-90, 1, 0, 0);	
 	gluCylinder(obj, 0.02, 0.0, 0.06, segments, segments);
 	glPopMatrix();	
 
 	glPushMatrix();
-	glTranslatef(-0.7, -0.5, -0.5);
 	glRotatef(90, 0, 1, 0);
-	gluCylinder(obj, 0.01, 0.01, 0.15, segments, segments);
+	gluCylinder(obj, 0.01, 0.01, 0.3, segments, segments);
 	glPopMatrix();	
 
 	glPushMatrix();
-	glTranslatef(-0.55, -0.5, -0.5);
+	glTranslatef(0.3, 0., 0.);
 	glRotatef(90, 0, 1, 0);	
 	gluCylinder(obj, 0.02, 0.0, 0.06, segments, segments);
 	glPopMatrix();	
 
 	glPushMatrix();
-	glTranslatef(-0.7, -0.5, -0.5);
-	gluCylinder(obj, 0.01, 0.01, 0.15, segments, segments);
+	gluCylinder(obj, 0.01, 0.01, 0.3, segments, segments);
 	glPopMatrix();	
 
 	glPushMatrix();
-	glTranslatef(-0.7, -0.5, -0.35);
+	glTranslatef(0., 0., 0.3);
 	gluCylinder(obj, 0.02, 0.0, 0.06, segments, segments);
 	glPopMatrix();	
 
@@ -1597,14 +1585,12 @@ void draw_axis(){
     glVertex3f(1.5,0,0);
   glEnd();
 
-
   //blue y
   glColor3f(0,0,1);
   glBegin(GL_LINES);
     glVertex3f(0,0,0);
     glVertex3f(0,1.5,0);
   glEnd();
-
 
   //green z
   glColor3f(0,1,0);
@@ -1639,19 +1625,11 @@ void display()
    glEnable(GL_TEXTURE_2D);
    glEnable(GL_DEPTH_TEST);
 
-   glViewport(0, 0, NPIX, NPIX);
-   glMatrixMode(GL_PROJECTION);
-   glLoadIdentity();
-   gluPerspective(60, (GLdouble)1, 0.1, 50.0);
-   
-   glMatrixMode(GL_MODELVIEW);
-   glLoadIdentity();
-   glTranslatef(live_obj_x, live_obj_y, live_obj_z);
+   //camera setting activated
+   cam->activate();
 
-   glRotated(live_rot_x, 1., 0., 0.);
-   glRotated(live_rot_y, 0., 1., 0.);
-   glRotated(live_rot_z, 0., 0., 1.);
-
+   //now render things in the scene
+   //
    draw_3d_axis();
    
    lic->render(); 	//display the line integral convolution result
@@ -1741,6 +1719,8 @@ void update_rot(int delta_x, int delta_y){
 		live_rot_y -= 360.0;	
 	else if(live_rot_y < -360.0)
 		live_rot_y += 360.0;
+
+	cam->rotate(live_rot_x, live_rot_y, live_rot_z);
 }
 
 
@@ -1791,18 +1771,22 @@ void keyboard(unsigned char key, int x, int y){
 	case 'w': //zoom out
 		live_obj_z-=0.05;
 		log = true;
+		cam->move(live_obj_x, live_obj_y, live_obj_z);
 		break;
 	case 's': //zoom in
 		live_obj_z+=0.05;
 		log = true;
+		cam->move(live_obj_x, live_obj_y, live_obj_z);
 		break;
 	case 'a': //left
 		live_obj_x-=0.05;
 		log = true;
+		cam->move(live_obj_x, live_obj_y, live_obj_z);
 		break;
 	case 'd': //right
 		live_obj_x+=0.05;
 		log = true;
+		cam->move(live_obj_x, live_obj_y, live_obj_z);
 		break;
 	case 'i':
 		init_particles();

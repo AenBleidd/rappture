@@ -39,7 +39,7 @@ class Lic : public Renderable {
 private:
   int width, height;
   int size; 		//the lic is a square of size, it can be stretched
-  float* slice_vector; //storage for the per slice vectors driving the follow
+  float* slice_vector;  //storage for the per slice vectors driving the follow
   Vector3 scale;	//scaling factor stretching the lic plane to fit the actual dimensions
   float offset;		//[0,1] offset could be x, y, or z direction
 
@@ -64,7 +64,7 @@ private:
 
 public:
   Vector3 normal; //the normal vector of the Lic plane, 
-  		// the inherited Vector3 location is its center
+  		  //the inherited Vector3 location is its center
   Lic(int _size, int _width, int _height, float _offset,
 	  CGcontext _context, NVISid _vector_field,
 	  float scalex, float scaley, float scalez);
