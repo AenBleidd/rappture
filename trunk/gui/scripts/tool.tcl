@@ -126,6 +126,7 @@ itcl::body Rappture::Tool::run {args} {
         set status [catch {eval blt::bgexec \
             ::Rappture::Tool::job(control) \
             -keepnewline yes \
+            -killsignal SIGTERM \
             -onoutput [list [itcl::code $this _output]] \
             -output ::Rappture::Tool::job(output) \
             -error ::Rappture::Tool::job(error) $cmd} result]
