@@ -64,6 +64,10 @@ void key(unsigned char key, int x, int y)
     }
 }
 
+
+/*
+ *Client communicates with the server
+ */
 void idle(void)
 {
   //send requests
@@ -163,6 +167,7 @@ void idle(void)
 
   fprintf(stderr, "% 6d %.6f\n", len, time_interval);
 }
+
 
 int init_client(char* host, char* port, char* file){
 

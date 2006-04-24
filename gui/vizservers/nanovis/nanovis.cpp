@@ -34,7 +34,9 @@
 
 //render server
 
+VolumeRenderer* vol_render;
 Camera* cam;
+
 float color_table[256][4]; 	
 
 #ifdef XINETD
@@ -58,7 +60,7 @@ float psys_x=0.4, psys_y=0, psys_z=0;
 
 Lic* lic;
 
-char* screen_buffer = new char[3*NPIX*NPIX+1];		//buffer to store data read from the screen
+unsigned char* screen_buffer = new unsigned char[3*win_width*win_height+1];	//buffer to store data read from the screen
 NVISid final_fbo, final_color_tex, final_depth_rb;      //frame buffer for final rendering
 NVISid vel_fbo, slice_vector_tex;	//for projecting 3d vector to 2d vector on a plane
 
@@ -734,19 +736,6 @@ void init_cg(){
     cgSetErrorCallback(cgErrorCallback);
     g_context = cgCreateContext();
 
-    //load programs that can be used in all render modes
-    
-    //standard vertex program
-    m_vert_std_vprog = loadProgram(g_context, CG_PROFILE_VP30, CG_SOURCE, "./shaders/vertex_std.cg");
-    m_mvp_vert_std_param = cgGetNamedParameter(m_vert_std_vprog, "modelViewProjMatrix");
-    m_mvi_vert_std_param = cgGetNamedParameter(m_vert_std_vprog, "modelViewInv");
-
-    m_passthru_fprog = loadProgram(g_context, CG_PROFILE_FP30, CG_SOURCE, "./shaders/passthru.cg");
-    m_passthru_scale_param = cgGetNamedParameter(m_passthru_fprog, "scale");
-    m_passthru_bias_param  = cgGetNamedParameter(m_passthru_fprog, "bias");
-
-    m_copy_texcoord_fprog = loadProgram(g_context, CG_PROFILE_FP30, CG_SOURCE, "./shaders/copy_texcoord.cg");
-
 #ifdef NEW_CG
     m_posvel_fprog = loadProgram(g_context, CG_PROFILE_FP40, CG_SOURCE, "./shaders/update_pos_vel.cg");
     m_posvel_timestep_param  = cgGetNamedParameter(m_posvel_fprog, "timestep");
@@ -762,26 +751,14 @@ void init_cg(){
 void switch_shader(int choice){
 
   switch (choice){
-
     case 0:
-      //render one volume
-      m_one_volume_fprog = loadProgram(g_context, CG_PROFILE_FP30, CG_SOURCE, "./shaders/one_volume.cg");
-      m_vol_one_volume_param = cgGetNamedParameter(m_one_volume_fprog, "volume");
-      cgGLSetTextureParameter(m_vol_one_volume_param, volume[0]->id);
-      m_tf_one_volume_param = cgGetNamedParameter(m_one_volume_fprog, "tf");
-      cgGLSetTextureParameter(m_tf_one_volume_param, tf[0]->id);
-      m_mvi_one_volume_param = cgGetNamedParameter(m_one_volume_fprog, "modelViewInv");
-      m_mv_one_volume_param = cgGetNamedParameter(m_one_volume_fprog, "modelView");
-      m_render_param_one_volume_param = cgGetNamedParameter(m_one_volume_fprog, "renderParameters");
       break;
 
    case 1:
-      //render two volumes
+      break;
       
    default:
       break;
-
-
   }
 }
 
@@ -890,9 +867,8 @@ void initGL(void)
    init_cg();	//init cg shaders
    init_lic();  //init line integral convolution
 
-   //load the default one volume shader
-   switch_shader(cur_shader);
-
+   //create volume renderer
+   vol_render = new VolumeRenderer(cam, volume[1], tf[0], g_context);
    
    psys = new ParticleSystem(NMESH, NMESH, g_context, volume[0]->id,
 		   1./volume[0]->aspect_ratio_width,
@@ -903,8 +879,6 @@ void initGL(void)
 
    init_particles();	//fill initial particles
 }
-
-
 
 
 
@@ -926,9 +900,15 @@ void initTcl(){
 
 void read_screen(){
   //glBindTexture(GL_TEXTURE_2D, 0);
-  //glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, fbo);
-  glReadPixels(0, 0, win_width, win_height, GL_RGB, /*GL_COLOR_ATTACHMENT0_EXT*/ GL_UNSIGNED_BYTE, screen_buffer);
+  //glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, final_fbo);
+  glReadPixels(0, 0, win_width, win_height, GL_RGB, GL_UNSIGNED_BYTE, screen_buffer);
   assert(glGetError()==0);
+  
+  for(int i=0; i<win_width*win_height; i++){
+    if(screen_buffer[3*i]!=0 || screen_buffer[3*i+1]!=0 || screen_buffer[3*i+2]!=0)
+      fprintf(stderr, "(%d %d %d) ", screen_buffer[3*i], screen_buffer[3*i+1],  screen_buffer[3*i+2]);
+  }
+  
 }
 
 void display();
@@ -1067,7 +1047,7 @@ void display_final_fbo(){
    glMatrixMode(GL_MODELVIEW);
    glLoadIdentity();
 
-   glColor3f(1.,1.,1.);		//MUST HAVE THIS LINE!!!
+   //glColor3f(1.,1.,1.);		//MUST HAVE THIS LINE!!!
    glBegin(GL_QUADS);
    glTexCoord2f(0, 0); glVertex2f(-1, -1);
    glTexCoord2f(1, 0); glVertex2f(1, -1);
@@ -1284,213 +1264,6 @@ void sortstep()
 
 #endif
 
-void get_near_far_z(Mat4x4 mv, double &zNear, double &zFar)
-{
-
-  double x0 = 0;
-  double y0 = 0;
-  double z0 = 0;
-  double x1 = 1;
-  double y1 = 1;
-  double z1 = 1;
-
-  double zMin, zMax;
-  zMin =  10000;
-  zMax = -10000;
-
-  double vertex[8][4];
-
-  vertex[0][0]=x0; vertex[0][1]=y0; vertex[0][2]=z0; vertex[0][3]=1.0;
-  vertex[1][0]=x1; vertex[1][1]=y0; vertex[1][2]=z0; vertex[1][3]=1.0;
-  vertex[2][0]=x0; vertex[2][1]=y1; vertex[2][2]=z0; vertex[2][3]=1.0;
-  vertex[3][0]=x0; vertex[3][1]=y0; vertex[3][2]=z1; vertex[3][3]=1.0;
-  vertex[4][0]=x1; vertex[4][1]=y1; vertex[4][2]=z0; vertex[4][3]=1.0;
-  vertex[5][0]=x1; vertex[5][1]=y0; vertex[5][2]=z1; vertex[5][3]=1.0;
-  vertex[6][0]=x0; vertex[6][1]=y1; vertex[6][2]=z1; vertex[6][3]=1.0;
-  vertex[7][0]=x1; vertex[7][1]=y1; vertex[7][2]=z1; vertex[7][3]=1.0;
-
-  for(int i=0;i<8;i++)
-  {
-    Vector4 tmp = mv.transform(Vector4(vertex[i][0], vertex[i][1], vertex[i][2], vertex[i][3]));
-    tmp.perspective_devide();
-    vertex[i][2] = tmp.z;
-    if (vertex[i][2]<zMin) zMin = vertex[i][2];
-    if (vertex[i][2]>zMax) zMax = vertex[i][2];
-  }
-
-  zNear = zMax;
-  zFar = zMin;
-}
-
-
-void activate_one_volume_shader(int volume_index, int n_actual_slices){
-
-  cgGLSetStateMatrixParameter(m_mvp_vert_std_param, CG_GL_MODELVIEW_PROJECTION_MATRIX, CG_GL_MATRIX_IDENTITY);
-  cgGLSetStateMatrixParameter(m_mvi_vert_std_param, CG_GL_MODELVIEW_MATRIX, CG_GL_MATRIX_INVERSE);
-  cgGLBindProgram(m_vert_std_vprog);
-  cgGLEnableProfile(CG_PROFILE_VP30);
-
-  cgGLSetStateMatrixParameter(m_mvi_one_volume_param, CG_GL_MODELVIEW_MATRIX, CG_GL_MATRIX_INVERSE);
-  cgGLSetStateMatrixParameter(m_mv_one_volume_param, CG_GL_MODELVIEW_MATRIX, CG_GL_MATRIX_IDENTITY);
-  cgGLSetTextureParameter(m_vol_one_volume_param, volume[volume_index]->id);
-  cgGLEnableTextureParameter(m_vol_one_volume_param);
-  cgGLEnableTextureParameter(m_tf_one_volume_param);
-
-  //hack!
-  //if parameter.y == 0 : volume :0
-  //if parameter.y == 1 : volume :1
-  if(volume_index==0)
-    cgGLSetParameter4f(m_render_param_one_volume_param, n_actual_slices, 0., live_diffuse, live_specular);
-  else if(volume_index==1)
-    cgGLSetParameter4f(m_render_param_one_volume_param, n_actual_slices, 1., live_diffuse, live_specular);
-  cgGLBindProgram(m_one_volume_fprog);
-  cgGLEnableProfile(CG_PROFILE_FP30);
-}
-
-
-void deactivate_one_volume_shader(){
-  cgGLDisableProfile(CG_PROFILE_VP30);
-  cgGLDisableProfile(CG_PROFILE_FP30);
-
-  cgGLDisableTextureParameter(m_vol_one_volume_param);
-  cgGLDisableTextureParameter(m_tf_one_volume_param);
-}
-
-
-//render volumes
-void render_volume(int volume_index, int n_slices){
-
-  //volume start location
-  Vector4 shift_4d(volume[volume_index]->location.x, volume[volume_index]->location.y, volume[volume_index]->location.z, 0);
-
-  double x0 = 0;
-  double y0 = 0;
-  double z0 = 0;
-
-  Mat4x4 model_view;
-  Mat4x4 model_view_inverse;
-
-  double zNear, zFar;
-
-  //initialize volume plane with world coordinates
-  Plane volume_planes[6];
-
-  volume_planes[0].set_coeffs(1, 0, 0, -x0);
-  volume_planes[1].set_coeffs(-1, 0, 0, x0+1);
-  volume_planes[2].set_coeffs(0, 1, 0, -y0);
-  volume_planes[3].set_coeffs(0, -1, 0, y0+1);
-  volume_planes[4].set_coeffs(0, 0, 1, -z0);
-  volume_planes[5].set_coeffs(0, 0, -1, z0+1);
-
-  glPushMatrix();
-
-  glScalef(volume[volume_index]->aspect_ratio_width, 
-	  volume[volume_index]->aspect_ratio_height, 
-	  volume[volume_index]->aspect_ratio_depth);
-
-  glEnable(GL_DEPTH_TEST);
-
-  //draw volume bounding box
-  draw_bounding_box(x0+shift_4d.x, y0+shift_4d.y, z0+shift_4d.z, x0+shift_4d.x+1, y0+shift_4d.y+1, z0+shift_4d.z+1, 0.8, 0.1, 0.1, 1.5);
-
-  GLfloat mv[16];
-  glGetFloatv(GL_MODELVIEW_MATRIX, mv);
-
-  model_view = Mat4x4(mv);
-  model_view_inverse = model_view.inverse();
-
-  glPopMatrix();
-
-  //transform volume_planes to eye coordinates.
-  for(int i=0; i<6; i++)
-    volume_planes[i].transform(model_view);
-
-  get_near_far_z(mv, zNear, zFar);
-  //fprintf(stderr, "zNear:%f, zFar:%f\n", zNear, zFar);
-  //fflush(stderr);
-
-  //compute actual rendering slices
-  float z_step = fabs(zNear-zFar)/n_slices;		
-  int n_actual_slices = (int)(fabs(zNear-zFar)/z_step + 1);
-  //fprintf(stderr, "slices: %d\n", n_actual_slices);
-  //fflush(stderr);
-
-  static ConvexPolygon staticPoly;	
-  float slice_z;
-
-  Vector4 vert1 = (Vector4(-10, -10, -0.5, 1));
-  Vector4 vert2 = (Vector4(-10, +10, -0.5, 1));
-  Vector4 vert3 = (Vector4(+10, +10, -0.5, 1));
-  Vector4 vert4 = (Vector4(+10, -10, -0.5, 1));
-
-  glEnable(GL_DEPTH_TEST);
-  glEnable(GL_BLEND);
-  
-  for (int i=0; i<n_actual_slices; i++){
-    slice_z = zFar + i * z_step;	//back to front
-	
-    ConvexPolygon *poly;
-    poly = &staticPoly;
-    poly->vertices.clear();
-
-    //Setting Z-coordinate 
-    vert1.z = slice_z;
-    vert2.z = slice_z;
-    vert3.z = slice_z;
-    vert4.z = slice_z;
-		
-    poly->append_vertex(vert1);
-    poly->append_vertex(vert2);
-    poly->append_vertex(vert3);
-    poly->append_vertex(vert4);
-	
-    for(int k=0; k<6; k++){
-      poly->clip(volume_planes[k]);
-    }
-
-    poly->copy_vertices_to_texcoords();
-    //move the volume to the proper location
-
-    poly->transform(model_view_inverse);
-    poly->translate(shift_4d);
-    poly->transform(model_view);
-
-    glPushMatrix();
-    glScalef(volume[volume_index]->aspect_ratio_width, volume[volume_index]->aspect_ratio_height, volume[volume_index]->aspect_ratio_depth);
-    
-    //glPushMatrix();
-    //glMatrixMode(GL_MODELVIEW);
-    //glLoadIdentity();
-    //glScaled(volume[volume_index]->aspect_ratio_width, volume[volume_index]->aspect_ratio_height, volume[volume_index]->aspect_ratio_depth);
-
-    /*
-    //draw slice lines only
-    glDisable(GL_BLEND);
-    glDisable(GL_TEXTURE_3D);
-    glDisable(GL_TEXTURE_2D);
-    glLineWidth(1.0);
-    glColor3f(1,1,1);
-    glBegin(GL_LINE_LOOP);
-      poly->Emit(false);
-    glEnd();
-    */
-    
-    activate_one_volume_shader(volume_index, n_actual_slices);
-    glPopMatrix();
-
-    glBegin(GL_POLYGON);
-      poly->Emit(true); 
-    glEnd();
-
-    deactivate_one_volume_shader();
-		
-  }
-
-  glDisable(GL_BLEND);
-  glDisable(GL_DEPTH_TEST);
-  //glPopMatrix();
-}
-
 
 void draw_3d_axis(){
   glDisable(GL_TEXTURE_2D);
@@ -1649,7 +1422,9 @@ void display()
 
      //render volume :1
      volume[1]->location =Vector3(0., 0., 0.);
-     render_volume(1, 256);
+     //render_volume(1, 256);
+     vol_render->render(0);
+
      //fprintf(stderr, "%lf\n", get_time_interval());
    perf->disable();
    //fprintf(stderr, "volume pixels: %d\n", perf->get_pixel_count());
@@ -1662,13 +1437,14 @@ void display()
 
 #endif
 
-   display_final_fbo();
+   display_final_fbo(); //display the final rendering on screen
 
 #ifdef XINETD
    read_screen();
-   //glClear(GL_COLOR_BUFFER_BIT);
-   //glDrawPixels(win_width, win_height, GL_RGB, /*GL_COLOR_ATTACHMENT0_EXT*/ GL_UNSIGNED_BYTE, screen_buffer);
-#endif
+#else
+   //read_screen();
+#endif   
+
    glutSwapBuffers(); 
 }
 
@@ -1794,16 +1570,20 @@ void keyboard(unsigned char key, int x, int y){
 	case 'o':
 		live_specular+=1;
 		fprintf(stderr, "specular: %f\n", live_specular);
+		vol_render->set_specular(live_specular);
 		break;
 	case 'p':
 		live_specular-=1;
 		fprintf(stderr, "specular: %f\n", live_specular);
+		vol_render->set_specular(live_specular);
 		break;
 	case '[':
 		live_diffuse+=0.5;
+		vol_render->set_diffuse(live_diffuse);
 		break;
 	case ']':
 		live_diffuse-=0.5;
+		vol_render->set_diffuse(live_diffuse);
 		break;
 
 	default:
@@ -1844,7 +1624,7 @@ void motion(int x, int y){
       left_last_x = x;
       left_last_y = y;
 
-      update_rot(delta_y, delta_x);
+      update_rot(-delta_y, -delta_x);
     }
     else if (right_down){
       //fprintf(stderr, "right mouse motion (%d,%d)\n", x, y);

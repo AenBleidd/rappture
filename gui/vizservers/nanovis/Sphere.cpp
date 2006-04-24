@@ -25,7 +25,10 @@ Sphere::Sphere(float x, float y, float z,
 	radius(_radius),
 	stack(_stack),
 	slice(_slice),
-	color(Color(r,g,b)) { }
+	color(Color(r,g,b))
+{ 
+  boundary = BoundBox(x-r, y-r, z-r, x+r, y+r, z+r);
+}
 
 Sphere::~Sphere(){}
 
