@@ -26,10 +26,10 @@
 
 #define NVIS_FLOAT GL_FLOAT
 #define NVIS_UNSIGNED_INT GL_UNSIGNED_INT
+#define NVIS_UNSIGNED_BYTE GL_UNSIGNED_BYTE
 
 #define NVIS_LINEAR_INTERP GL_LINEAR
 #define NVIS_NEAREST_INTERP GL_NEAREST
-
 
 typedef GLuint NVISdatatype;		//OpenGL datatype: unsigned int
 typedef GLuint NVISinterptype;		//OpenGL interpolation type: unsigned int

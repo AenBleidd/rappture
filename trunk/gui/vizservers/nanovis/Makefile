@@ -2,7 +2,8 @@ OBJ_NANOVIS = nanovis.o Socket.o RenderVertexArray.o Plane.o ConvexPolygon.o Vec
 		Texture1D.o Texture3D.o Volume.o Texture2D.o ParticleSystem.o Sphere.o Color.o \
 		PerfQuery.o TransferFunction.o ControlPoint.o ColorGradient.o ColorPaletteWindow.o\
 		ColorGradientGLUTWindow.o TransferFunctionGLUTWindow.o MainWindow.o Event.o \
-		Lic.o Renderable.o Camera.o
+		Lic.o Renderable.o Camera.o ScreenSnapper.o VolumeRenderer.o
+OBJ_VOLUMERENDERER = Volume.o ConvexPolygon.o TransferFunction.o Mat4x4.o  Camera.o
 
 OBJ_CLIENT = Socket.o ClientSocket.o RenderClient.o Event.o
 
@@ -60,38 +61,41 @@ simclient: Event.o nanoscale/EventPlayer.cpp
 	gcc -g $(INCLUDES) $(NANOSCALESRC)/EventPlayer.cpp $(NANOSCALESRC)/clientlib.cpp -o simclient Event.o $(LIB_CLIENT)
 	#g++ -g $(INCLUDES) $(NANOSCALESRC)/EventPlayer.cpp $(NANOSCALESRC)/clientlib.cpp -o simclient Event.o
 
-Color.o: Color.cpp
+Color.o: Color.cpp Color.h
 	gcc $(CFLAG) Color.cpp
 
-Event.o: Event.cpp
+Event.o: Event.cpp Event.h
 	gcc $(CFLAG) Event.cpp
 
 ControlPoint.o: $(TFSRC)/ControlPoint.cpp
 	gcc $(CFLAG) $(TFSRC)/ControlPoint.cpp
 
-Sphere.o: Renderable.o Color.o
+Sphere.o: Renderable.o Color.o Sphere.cpp Sphere.h
 	gcc $(CFLAG) Sphere.cpp
 
 TransferFunction.o: TransferFunction.cpp
 	gcc $(CFLAG) TransferFunction.cpp
 
-Texture1D.o: Texture1D.cpp
+Texture1D.o: Texture1D.cpp Texture1D.h
 	gcc $(CFLAG) Texture1D.cpp
 
-Texture2D.o: Texture2D.cpp $(AUXSRC)
+Texture2D.o: Texture2D.cpp Texture2D.h $(AUXSRC)
 	gcc $(CFLAG) Texture2D.cpp
 
-Texture3D.o: Texture3D.cpp $(AUXSRC)
+Texture3D.o: Texture3D.cpp Texture3D.h $(AUXSRC)
 	gcc $(CFLAG) Texture3D.cpp
 
 ParticleSystem.o: Renderable.o ParticleSystem.cpp $(AUXSRC)
 	gcc $(CFLAG) ParticleSystem.cpp
 
-Renderable.o: Vector3.o Renderable.cpp
+Renderable.o: Vector3.o Renderable.cpp Renderable.h
 	gcc $(CFLAG) Renderable.cpp
 
-Camera.o: Vector3.o Camera.cpp
+Camera.o: Vector3.o Camera.cpp Camera.h
 	gcc $(CFLAG) Camera.cpp
+
+ScreenSnapper.o: define.h ScreenSnapper.cpp ScreenSnapper.h
+	gcc $(CFLAG) ScreenSnapper.cpp
 
 Lic.o: Renderable.o Lic.cpp Lic.h $(AUXSRC)
 	gcc $(CFLAG) Lic.cpp
@@ -99,22 +103,25 @@ Lic.o: Renderable.o Lic.cpp Lic.h $(AUXSRC)
 Volume.o: Texture3D.o Volume.cpp $(AUXSRC)
 	gcc $(CFLAG) Volume.cpp
 
-Mat4x4.o: Mat4x4.cpp
+VolumeRenderer.o: $(OBJ_VOLUMERENDERER)  VolumeRenderer.h VolumeRenderer.cpp
+	gcc $(CFLAG) VolumeRenderer.cpp
+
+Mat4x4.o: Mat4x4.cpp Mat4x4.h
 	gcc $(CFLAG) Mat4x4.cpp
 
-Vector4.o: Vector4.cpp
+Vector4.o: Vector4.cpp Vector4.h
 	gcc $(CFLAG) Vector4.cpp
 
-Vector3.o: Vector3.cpp
+Vector3.o: Vector3.cpp Vector3.h
 	gcc $(CFLAG) Vector3.cpp
 
-Plane.o: Plane.cpp
+Plane.o: Plane.cpp Plane.h
 	gcc $(CFLAG) Plane.cpp
 
-ConvexPolygon.o: ConvexPolygon.cpp
+ConvexPolygon.o: ConvexPolygon.cpp ConvexPolygon.h
 	gcc $(CFLAG) ConvexPolygon.cpp
 
-PerfQuery.o: PerfQuery.cpp
+PerfQuery.o: PerfQuery.cpp PerfQuery.h
 	gcc $(CFLAG) PerfQuery.cpp
 
 nanovis.o: nanovis.h nanovis.cpp ParticleSystem.o $(AUXSRC)

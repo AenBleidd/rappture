@@ -20,10 +20,22 @@
 
 #include "Vector3.h"
 
+struct BoundBox{
+  Vector3 low; //lower coordinates
+  Vector3 high; //higher coordinates
+
+  BoundBox(){}
+  BoundBox(float low_x, float low_y, float low_z,
+	  float high_x, float high_y, float high_z):
+	  low(Vector3(low_x, low_y, low_z)),
+	  high(Vector3(high_x, high_y, high_z)){}
+};
+
 class Renderable{
 protected:
   Vector3 location;	//the location (x,y,z) of the object
   bool enabled;		//display is enabled
+  BoundBox boundary;	//the bounding box
 
 public:
   Renderable(Vector3 loc);

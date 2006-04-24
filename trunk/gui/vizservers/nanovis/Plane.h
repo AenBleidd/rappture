@@ -26,14 +26,14 @@ public:
     Plane(float coeffs[4]);
     Plane();
     
-	void get_normal(Vector3 &normal);
+    void get_normal(Vector3 &normal);
     void get_point(Vector3 &point);
     Vector4 get_coeffs();
-	void set_coeffs(float _a, float _b, float _c, float _d);
-	void transform(Mat4x4 mat);
-	void transform(float *m);
-	bool retains(Vector3 point);
-	//bool clips(float point[3]) const { return !retains(point); }
+    void set_coeffs(float _a, float _b, float _c, float _d);
+    void transform(Mat4x4 mat);
+    void transform(float *m);
+    bool retains(Vector3 point);
+    //bool clips(float point[3]) const { return !retains(point); }
 
 };
 

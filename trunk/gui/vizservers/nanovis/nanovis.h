@@ -33,13 +33,13 @@
 #include "Texture2D.h"
 #include "Texture1D.h"
 #include "TransferFunction.h"
-#include "ConvexPolygon.h"
 #include "Mat4x4.h"
 #include "Volume.h"
 #include "ParticleSystem.h"
 #include "PerfQuery.h"
 #include "Event.h"
 #include "Lic.h"
+#include "VolumeRenderer.h"
 
 #include "config.h"
 
