@@ -130,7 +130,68 @@ void VolumeRenderer::render(int volume_index){
 
   glEnable(GL_DEPTH_TEST);
   glEnable(GL_BLEND);
-  
+
+  //render the cut planes
+  for(int i=0; i<volume[volume_index]->plane.size(); i++){
+    float offset = volume[volume_index]->plane[i].offset;
+    int axis = volume[volume_index]->plane[i].orient;
+
+    if(axis==1){
+      vert1 = Vector4(-10, -10, offset, 1);
+      vert2 = Vector4(-10, +10, offset, 1);
+      vert3 = Vector4(+10, +10, offset, 1);
+      vert4 = Vector4(+10, -10, offset, 1);
+    }
+    else if(axis==2){
+      vert1 = Vector4(offset, -10, -10, 1);
+      vert2 = Vector4(offset, +10, -10, 1);
+      vert3 = Vector4(offset, +10, +10, 1);
+      vert4 = Vector4(offset, -10, +10, 1);
+    }
+    else if(axis==3){
+      vert1 = Vector4(-10, offset, -10, 1);
+      vert2 = Vector4(+10, offset, -10, 1);
+      vert3 = Vector4(+10, offset, +10, 1);
+      vert4 = Vector4(-10, offset, +10, 1);
+    }
+
+    vert1 = model_view.transform(vert1);
+    vert2 = model_view.transform(vert2);
+    vert3 = model_view.transform(vert3);
+    vert4 = model_view.transform(vert4);
+
+    ConvexPolygon *poly;
+    poly = &staticPoly;
+    poly->vertices.clear();
+
+    poly->append_vertex(vert1);
+    poly->append_vertex(vert2);
+    poly->append_vertex(vert3);
+    poly->append_vertex(vert4);
+
+    for(int k=0; k<6; k++){
+      poly->clip(volume_planes[k]);
+    }
+
+    poly->copy_vertices_to_texcoords();
+    poly->transform(model_view_inverse);
+    poly->translate(shift_4d);
+    poly->transform(model_view);
+
+    glPushMatrix();
+    glScalef(volume[volume_index]->aspect_ratio_width, volume[volume_index]->aspect_ratio_height, volume[volume_index]->aspect_ratio_depth);
+
+    activate_one_volume_shader(volume_index, 1, 1);
+    glPopMatrix();
+
+    glBegin(GL_POLYGON);
+      poly->Emit(true); 
+    glEnd();
+
+    deactivate_one_volume_shader();
+  }
+
+#if 1 
   for (int i=0; i<n_actual_slices; i++){
     slice_z = zFar + i * z_step;	//back to front
 	
@@ -180,7 +241,7 @@ void VolumeRenderer::render(int volume_index){
     glEnd();
     */
     
-    activate_one_volume_shader(volume_index, n_actual_slices);
+    activate_one_volume_shader(volume_index, n_actual_slices, 30);
     glPopMatrix();
 
     glBegin(GL_POLYGON);
@@ -190,6 +251,7 @@ void VolumeRenderer::render(int volume_index){
     deactivate_one_volume_shader();
 		
   }
+#endif
 
   glDisable(GL_BLEND);
   glDisable(GL_DEPTH_TEST);
@@ -247,7 +309,7 @@ void VolumeRenderer::draw_bounding_box(float x0, float y0, float z0,
 
 
 
-void VolumeRenderer::activate_one_volume_shader(int volume_index, int n_actual_slices){
+void VolumeRenderer::activate_one_volume_shader(int volume_index, int n_actual_slices, float scale){
 
   cgGLSetStateMatrixParameter(m_mvp_vert_std_param, CG_GL_MODELVIEW_PROJECTION_MATRIX, CG_GL_MATRIX_IDENTITY);
   cgGLSetStateMatrixParameter(m_mvi_vert_std_param, CG_GL_MODELVIEW_MATRIX, CG_GL_MATRIX_INVERSE);
@@ -260,7 +322,7 @@ void VolumeRenderer::activate_one_volume_shader(int volume_index, int n_actual_s
   cgGLEnableTextureParameter(m_vol_one_volume_param);
   cgGLEnableTextureParameter(m_tf_one_volume_param);
 
-  cgGLSetParameter4f(m_render_param_one_volume_param, n_actual_slices, 0., live_diffuse, live_specular);
+  cgGLSetParameter4f(m_render_param_one_volume_param, n_actual_slices, scale, live_diffuse, live_specular);
   cgGLBindProgram(m_one_volume_fprog);
   cgGLEnableProfile(CG_PROFILE_FP30);
 }
