@@ -62,7 +62,7 @@ private:
   CGparameter m_mvp_vert_std_param;
   CGparameter m_mvi_vert_std_param;
 
-  void activate_one_volume_shader(int volume_index, int n_actual_slices);
+  void activate_one_volume_shader(int volume_index, int n_actual_slices, float opacity_scale);
   void deactivate_one_volume_shader();
 
   //draw bounding box

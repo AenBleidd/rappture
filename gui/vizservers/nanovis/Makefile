@@ -100,7 +100,7 @@ ScreenSnapper.o: define.h ScreenSnapper.cpp ScreenSnapper.h
 Lic.o: Renderable.o Lic.cpp Lic.h $(AUXSRC)
 	gcc $(CFLAG) Lic.cpp
 
-Volume.o: Texture3D.o Volume.cpp $(AUXSRC)
+Volume.o: Texture3D.o Volume.cpp Volume.h $(AUXSRC)
 	gcc $(CFLAG) Volume.cpp
 
 VolumeRenderer.o: $(OBJ_VOLUMERENDERER)  VolumeRenderer.h VolumeRenderer.cpp

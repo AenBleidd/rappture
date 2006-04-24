@@ -36,6 +36,13 @@ Volume::Volume(float x, float y, float z,
   aspect_ratio_depth = tex->aspect_ratio_depth;
 
   location = Vector3(x,y,z);
+
+  //add cut planes
+  plane.clear();
+  plane.push_back(CutPlane(1, 0.5));
+  plane.push_back(CutPlane(2, 0.5));
+  plane.push_back(CutPlane(3, 0.5));
+  
 }
 
 

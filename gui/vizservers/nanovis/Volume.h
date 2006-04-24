@@ -16,14 +16,29 @@
 #ifndef _VOLUME_H_
 #define _VOLUME_H_
 
+#include <vector>
+
 #include "define.h"
 #include "Texture3D.h"
 #include "Vector3.h"
+
+using namespace std;
+
+struct CutPlane{
+  int orient;	//orientation - 1: xy slice, 2: yz slice, 3: xz slice
+  float offset;	//normalized offset [0,1] in the volume
+
+  CutPlane(int _orient, float _offset):
+	orient(_orient),
+	offset(_offset){}
+};
+
 
 class Volume{
 	
 public:
 	Vector3 location;
+	vector <CutPlane> plane; //cut planes
 
 	int width;
 	int height;
