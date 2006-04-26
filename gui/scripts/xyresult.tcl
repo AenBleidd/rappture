@@ -180,6 +180,7 @@ itcl::body Rappture::XyResult::constructor {args} {
     Rappture::Combobox $inner.format -width 15 -editable no
     $inner.format choices insert end \
         "%.3g"  "Auto"         \
+        "%.0f"  "X"          \
         "%.1f"  "X.X"          \
         "%.2f"  "X.XX"         \
         "%.3f"  "X.XXX"        \
