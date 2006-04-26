@@ -1,5 +1,7 @@
 # define rappture src directory
+ifndef RP_BASE
 RP_BASE         = /opt/rappture
+endif
 
 PROGS           = plot plotc
 

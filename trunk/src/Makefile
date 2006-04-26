@@ -1,6 +1,8 @@
 # you need to change this to where your version of rappture 
 # is (or should be) installed.
+ifndef RP_INSTALL_BASE
 RP_INSTALL_BASE = /opt/rappture
+endif
 
 # tell make where to find the expat & libscew sources
 INCL_RP_DEPS    = -I$(RP_INSTALL_BASE)/include

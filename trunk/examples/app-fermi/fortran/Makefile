@@ -1,7 +1,9 @@
 # Makefile for app-fermi/fortran example
 #
 # Replace this with the location of your rappture installation:
+ifndef RAPPTURE_DIR
 RAPPTURE_DIR = /opt/rappture
+endif
 
 # no need to edit the rest...
 PROGS = fermi
