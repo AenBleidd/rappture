@@ -21,31 +21,6 @@ option add *ImageResult.controlBackground gray widgetDefault
 option add *ImageResult.font \
     -*-helvetica-medium-r-normal-*-*-120-* widgetDefault
 
-blt::bitmap define ImageResult-reset {
-#define reset_width 12
-#define reset_height 12
-static unsigned char reset_bits[] = {
-   0x00, 0x00, 0x00, 0x00, 0xfc, 0x03, 0x04, 0x02, 0x04, 0x02, 0x04, 0x02,
-   0x04, 0x02, 0x04, 0x02, 0x04, 0x02, 0xfc, 0x03, 0x00, 0x00, 0x00, 0x00};
-}
-
-blt::bitmap define ImageResult-zoomin {
-#define zoomin_width 12
-#define zoomin_height 12
-static unsigned char zoomin_bits[] = {
-   0x7c, 0x00, 0x82, 0x00, 0x11, 0x01, 0x11, 0x01, 0x7d, 0x01, 0x11, 0x01,
-   0x11, 0x01, 0x82, 0x03, 0xfc, 0x07, 0x80, 0x0f, 0x00, 0x0f, 0x00, 0x06};
-}
-
-blt::bitmap define ImageResult-zoomout {
-#define zoomout_width 12
-#define zoomout_height 12
-static unsigned char zoomout_bits[] = {
-   0x7c, 0x00, 0x82, 0x00, 0x01, 0x01, 0x01, 0x01, 0x7d, 0x01, 0x01, 0x01,
-   0x01, 0x01, 0x82, 0x03, 0xfc, 0x07, 0x80, 0x0f, 0x00, 0x0f, 0x00, 0x06};
-}
-
-
 itcl::class Rappture::ImageResult {
     inherit itk::Widget
 
@@ -104,7 +79,7 @@ itcl::body Rappture::ImageResult::constructor {args} {
     itk_component add reset {
         button $itk_component(controls).reset \
             -borderwidth 1 -padx 1 -pady 1 \
-            -bitmap ImageResult-reset \
+            -bitmap [Rappture::icon reset] \
             -command [itcl::code $this _zoom reset]
     } {
         usual
@@ -117,7 +92,7 @@ itcl::body Rappture::ImageResult::constructor {args} {
     itk_component add zoomin {
         button $itk_component(controls).zin \
             -borderwidth 1 -padx 1 -pady 1 \
-            -bitmap ImageResult-zoomin \
+            -bitmap [Rappture::icon zoomin] \
             -command [itcl::code $this _zoom in]
     } {
         usual
@@ -130,7 +105,7 @@ itcl::body Rappture::ImageResult::constructor {args} {
     itk_component add zoomout {
         button $itk_component(controls).zout \
             -borderwidth 1 -padx 1 -pady 1 \
-            -bitmap ImageResult-zoomout \
+            -bitmap [Rappture::icon zoomout] \
             -command [itcl::code $this _zoom out]
     } {
         usual

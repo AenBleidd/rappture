@@ -58,10 +58,6 @@ itcl::class Rappture::Tooltip {
         [list ::Rappture::Tooltip::tooltip cancel]
     bind RapptureTooltip <KeyPress> \
         [list ::Rappture::Tooltip::tooltip cancel]
-
-    private common icons
-    set dir [file dirname [info script]]
-    set icons(cue) [image create photo -file [file join $dir images cue24.gif]]
 }
 
 itk::usual Tooltip {
@@ -140,9 +136,6 @@ itcl::body Rappture::Tooltip::show {where} {
     }
 
     # strings can't be too big, or they'll go off screen!
-    if {[string length $mesg] > 1000} {
-        set mesg "[string range $mesg 0 1000]..."
-    }
     set pos 0
     ::for {set i 0} {$pos >= 0 && $i < 20} {incr i} {
         incr pos
@@ -151,10 +144,13 @@ itcl::body Rappture::Tooltip::show {where} {
     if {$pos > 0} {
         set mesg "[string range $mesg 0 $pos]..."
     }
+    if {[string length $mesg] > 1000} {
+        set mesg "[string range $mesg 0 1500]..."
+    }
     $itk_component(text) configure -text $mesg
 
     #
-    # Make sure the tooltip doesn't go off screen.  Then, put it up.
+    # Make sure the tooltip doesn't go off screen.
     #
     update idletasks
     if {$signx == "+"} {
@@ -181,6 +177,35 @@ itcl::body Rappture::Tooltip::show {where} {
         set ypos [expr {[winfo screenheight $hull]-$ypos}]
     }
 
+    #
+    # Will the tooltip pop up under the mouse pointer?  If so, then
+    # it will just disappear.  Doh!  We should figure out a better
+    # place to pop it up.
+    #
+    set px [winfo pointerx $hull]
+    set py [winfo pointery $hull]
+    if {$px >= $xpos && $px <= $xpos+[winfo reqwidth $hull]
+          && $py >= $ypos && $py <= $ypos+[winfo reqheight $hull]} {
+
+        if {$px > [winfo screenwidth $hull]/2} {
+            set signx "-"
+            set xpos [expr {[winfo screenwidth $hull]-$px+4}]
+        } else {
+            set signx "+"
+            set xpos [expr {$px+4}]
+        }
+        if {$py > [winfo screenheight $hull]/2} {
+            set signy "-"
+            set ypos [expr {[winfo screenheight $hull]-$py+4}]
+        } else {
+            set signy "+"
+            set ypos [expr {$py+4}]
+        }
+    }
+
+    #
+    # Finally, put it up.
+    #
     wm geometry $hull $signx$xpos$signy$ypos
     update
 
@@ -275,11 +300,17 @@ itcl::body Rappture::Tooltip::tooltip {option args} {
             if {[llength $args] < 1 || [llength $args] > 2} {
                 error "wrong # args: should be \"tooltip pending widget ?@x,y?\""
             }
-            set widget [lindex $args 0]
+            set tag [lindex $args 0]
             set loc [lindex $args 1]
 
-            if {[winfo exists $widget]} {
-                .rappturetooltip configure -message $catalog($widget)
+            # tag name may be .g-axis -- get widget ".g" part
+            set widget $tag
+            if {[regexp {^(\.[^-]+)-[^\.]+$} $widget match wname]} {
+                set widget $wname
+            }
+
+            if {[winfo exists $widget] && [info exists catalog($tag)]} {
+                .rappturetooltip configure -message $catalog($tag)
                 if {[string index $loc 0] == "@"} {
                     .rappturetooltip show $loc
                 } elseif {[regexp {^[-+]} $loc]} {
@@ -380,7 +411,7 @@ bind all <ButtonPress> [list ::Rappture::Tooltip::tooltip cancel]
 
 # create a tooltip widget to show error cues
 Rappture::Tooltip .rappturetoolcue \
-    -icon $Rappture::Tooltip::icons(cue) \
+    -icon [Rappture::icon cue24] \
     -background black -outline #333333 -foreground white
 
 # when cue is up, it has a grab, and any click brings it down

@@ -25,13 +25,18 @@ When you click the Simulate button, the inputs will be used to generate output c
 </input>
 <output>
   <curve id="single">
-    <about><label>Single curve</label></about>
+    <about>
+      <label>Single curve</label>
+      <description>This is an example of a single curve.</description>
+    </about>
     <xaxis>
       <label>Time</label>
+      <description>Time during the experiment.</description>
       <units>s</units>
     </xaxis>
     <yaxis>
       <label>Voltage v(11)</label>
+      <description>Output from the amplifier.</description>
       <units>V</units>
     </yaxis>
   </curve>
@@ -40,14 +45,17 @@ When you click the Simulate button, the inputs will be used to generate output c
     <about>
       <group>Multiple curves</group>
       <label>Factor a=1</label>
+      <description>This is an example of multiple curves on the same plot.</description>
     </about>
     <xaxis>
       <label>Frequency</label>
+      <description>Frequency of the input source.</description>
       <units>Hz</units>
       <scale>log</scale>
     </xaxis>
     <yaxis>
       <label>Current</label>
+      <description>Current through the pull-down resistor.</description>
       <units>uA</units>
       <scale>log</scale>
     </yaxis>
@@ -57,14 +65,17 @@ When you click the Simulate button, the inputs will be used to generate output c
     <about>
       <group>Multiple curves</group>
       <label>Factor a=2</label>
+      <description>This is an example of multiple curves on the same plot.</description>
     </about>
     <xaxis>
       <label>Frequency</label>
+      <description>Frequency of the input source.</description>
       <units>Hz</units>
       <scale>log</scale>
     </xaxis>
     <yaxis>
       <label>Current</label>
+      <description>Current through the pull-down resistor.</description>
       <units>uA</units>
       <scale>log</scale>
     </yaxis>

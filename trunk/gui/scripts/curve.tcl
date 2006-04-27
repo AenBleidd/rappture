@@ -193,11 +193,13 @@ itcl::body Rappture::Curve::hints {{keyword ""}} {
             color   about.color
             style   about.style
             xlabel  xaxis.label
+            xdesc   xaxis.description
             xunits  xaxis.units
             xscale  xaxis.scale
             xmin    xaxis.min
             xmax    xaxis.max
             ylabel  yaxis.label
+            ydesc   yaxis.description
             yunits  yaxis.units
             yscale  yaxis.scale
             ymin    yaxis.min

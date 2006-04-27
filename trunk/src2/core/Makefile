@@ -10,6 +10,13 @@ viz.o: viz.cc
 test: test.o RpOutcome.o RpMesh1D.o RpField1D.o RpMeshTri2D.o RpFieldTri2D.o RpMeshRect3D.o RpFieldRect3D.o RpMeshPrism3D.o RpFieldPrism3D.o RpSerialBuffer.o RpSerializer.o RpSerializable.o
 	g++ $(CFLAGS) -o test test.o RpOutcome.o RpMesh1D.o RpField1D.o RpMeshTri2D.o RpFieldTri2D.o RpMeshRect3D.o RpFieldRect3D.o RpMeshPrism3D.o RpFieldPrism3D.o RpSerialBuffer.o RpSerializer.o RpSerializable.o
 
+docs:
+	if test ! -d ../../docs/rappture2; then \
+	  mkdir ../../docs; \
+	  mkdir ../../docs/rappture2; \
+	fi
+	doxygen
+
 test.o: test.cc RpPtr.h
 	g++ $(CFLAGS) -c -o test.o test.cc
 

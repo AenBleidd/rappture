@@ -63,32 +63,28 @@ itcl::class Rappture::Analyzer {
     protected method _fixSimControl {}
     protected method _simState {state args}
     protected method _simOutput {message}
+    protected method _resultTooltip {}
 
     private variable _tool ""          ;# belongs to this tool
     private variable _control "manual" ;# start mode
     private variable _runs ""          ;# list of XML objects with results
     private variable _pages 0          ;# number of pages for result sets
     private variable _label2page       ;# maps output label => result set
+    private variable _label2desc       ;# maps output label => description
     private variable _lastlabel ""     ;# label of last example loaded
     private variable _plotlist ""      ;# items currently being plotted
 
     private common job                 ;# array var used for blt::bgexec jobs
 
-    private common icons
-    set icons(download) [image create photo -data {
-R0lGODlhFAAUAMYBAAAAAP///+js9vL1+4yhxrbD21h6sFp8slx+tV6Bt2CFumSIvmOHvWaLwGyS
-yG6UynCRwWiOw2yUyXCZzm+XzG+Wy3Oc0XKaz3We1Hqk23mj2Xqk2nmi2ICex/T3+3Od0nqm3Hag
-1Xun3Iat3ZK56JK03t7n8uzy+PX4+/f5+/T4+/L3+vn7/Pj7/Pf7/Pb6+/n9/fz///r9/fn8/Pz+
-/vv9/fr8/Pz9/UGMfluegZzRp6XYqwWXC67frwCZAAKaAgOaAgOaAwWbBQabBQicCA6fDg6eDw+f
-Dw+fEA+eDxCfEF6/Xl+/X6TbpKbbpqzerK7frq3era/fr/z+/P3+/bXjsXjSbKrjotbw02bSVKvj
-olnSQYPfcJbjh5/jk1TSOV7XQm3bVIvidprmiKjqmXTgV4DjZrPuo7TupNb1zo/qc5nsf8L0s8Hz
-sar0j7L1mdD5wdH5wur+4eL91f///////////////////////////////////////////////yH5
-BAEAAH8ALAIAAgAQABAAAAfYgAUlIiAbHCEYHxcTFRIdBX8jJJOUlZQQfyKam5ycDX8ZAaKjpKMM
-fxoBLC0pHis7Rz5GOiYBCn8cATI2LC8oSFhVWEkCAQl/IQE3NTIzLj5aVlc+JwEIfxgBNDXLMD5e
-WV4+AwEHfxbaNNs1Pl1bXT4qAQZ/FAExPUo++1xfXPs+eEh5IIpJGjJjxIQBE0bMGDJpljgQFQUI
-GjNlMmY0c0bIEwIRGizAEYTNGjUo17QhkoPKn5cvnwSJ88bNGzhEmkyByfPJDzlz5AxxspMnTyix
-ijxx+TIQADs=
-}]
+    # resources file tells us the results directory
+    public common _resultdir ""
+    public proc setResultDir {path} { set _resultdir $path }
+}
+
+# must use this name -- plugs into Rappture::resources::load
+proc analyzer_init_resources {} {
+    Rappture::resources::register \
+        results_directory Rappture::Analyzer::setResultDir
 }
                                                                                 
 itk::usual Analyzer {
@@ -213,6 +209,9 @@ itcl::body Rappture::Analyzer::constructor {tool args} {
     bind $itk_component(resultselector) <Enter> \
         [itcl::code $this download coming]
 
+    Rappture::Tooltip::for $itk_component(resultselector) \
+        "@[itcl::code $this _resultTooltip]"
+
     if {[Rappture::filexfer::enabled]} {
         $itk_component(resultselector) choices insert end \
             --- "---"
@@ -220,7 +219,7 @@ itcl::body Rappture::Analyzer::constructor {tool args} {
             @download "Download..."
 
         itk_component add download {
-            button $w.top.dl -image $icons(download) -anchor e \
+            button $w.top.dl -image [Rappture::icon download] -anchor e \
                 -borderwidth 1 -relief flat -overrelief raised \
                 -command [itcl::code $this download now $w.top.dl]
         }
@@ -234,7 +233,7 @@ NOTE:  Your web browser must allow pop-ups from this site.  If your output does 
     }
 
     itk_component add results {
-        Rappture::Panes $w.pane
+        Rappture::Panes $w.pane -sashwidth 1 -sashrelief solid -sashpadding {4 0}
     }
     pack $itk_component(results) -expand yes -fill both
     set f [$itk_component(results) pane 0]
@@ -253,6 +252,7 @@ NOTE:  Your web browser must allow pop-ups from this site.  If your output does 
     }
     pack $itk_component(resultset) -expand yes -fill both
     bind $itk_component(resultset) <<Control>> [itcl::code $this _fixSize]
+    bind $itk_component(results) <Configure> [itcl::code $this _fixSize]
 
     eval itk_initialize $args
 
@@ -359,9 +359,15 @@ itcl::body Rappture::Analyzer::simulate {args} {
                 global errorInfo
                 set result "$msg\n$errorInfo"
             }
+
+            # if there's a results_directory defined in the resources
+            # file, then move the run.xml file there for storage
+            if {"" != $_resultdir} {
+                file rename -force -- $file $_resultdir
+            }
         } else {
             set status 1
-            set result "Can't find result file in output:\n\n$result"
+            set result "Can't find result file in output.\nDid you call Rappture::result in your simulator?"
         }
     }
 
@@ -464,7 +470,6 @@ itcl::body Rappture::Analyzer::load {file} {
 
     # if there are any valid results, add them to the resultset
     if {$haveresults} {
-        set size [$itk_component(resultset) size]
         set index [$itk_component(resultset) add $xmlobj]
 
         # add each result to a result viewer
@@ -482,6 +487,8 @@ itcl::body Rappture::Analyzer::load {file} {
                     set name "page[incr _pages]"
                     set page [$itk_component(resultpages) insert end $name]
                     set _label2page($label) $page
+                    set _label2desc($label) \
+                        [$xmlobj get output.$item.about.description]
                     Rappture::ResultViewer $page.rviewer
                     pack $page.rviewer -expand yes -fill both -pady 4
 
@@ -534,7 +541,12 @@ itcl::body Rappture::Analyzer::clear {} {
     set _runs ""
 
     $itk_component(resultset) clear
-    $itk_component(results) fraction end 0.1
+
+    # reset the size of the controls area
+    set ht [winfo height $itk_component(results)]
+    set cntlht [$itk_component(resultset) size -controlarea]
+    set frac [expr {double($cntlht)/$ht}]
+    $itk_component(results) fraction end $frac
 
     foreach label [array names _label2page] {
         set page $_label2page($label)
@@ -543,6 +555,7 @@ itcl::body Rappture::Analyzer::clear {} {
     $itk_component(resultselector) value ""
     $itk_component(resultselector) choices delete 0 end
     catch {unset _label2page}
+    catch {unset _label2desc}
     set _plotlist ""
 
     if {[Rappture::filexfer::enabled]} {
@@ -774,9 +787,13 @@ itcl::body Rappture::Analyzer::_fixResult {} {
 # set up to some maximum.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Analyzer::_fixSize {} {
-    set f [$itk_component(results) fraction end]
-    if {$f < 0.4} {
-        $itk_component(results) fraction end [expr {$f+0.15}]
+    set ht [winfo height $itk_component(results)]
+    if {$ht <= 1} { set ht [winfo reqheight $itk_component(results)] }
+    set cntlht [$itk_component(resultset) size -controlarea]
+    set frac [expr {double($cntlht)/$ht}]
+
+    if {$frac < 0.4} {
+        $itk_component(results) fraction end $frac
     }
     _fixSimControl
 }
@@ -933,6 +950,28 @@ itcl::body Rappture::Analyzer::_simOutput {message} {
         $itk_component(runinfo) see end
     }
     $itk_component(runinfo) configure -state disabled
+}
+
+# ----------------------------------------------------------------------
+# USAGE: _resultTooltip
+#
+# Used internally to build the tooltip string displayed for the
+# result selector.  If the current page has an associated description,
+# then it is displayed beneath the result.
+#
+# Returns the string for the tooltip.
+# ----------------------------------------------------------------------
+itcl::body Rappture::Analyzer::_resultTooltip {} {
+    set tip ""
+    set name [$itk_component(resultselector) value]
+    if {[info exists _label2desc($name)] &&
+         [string length $_label2desc($name)] > 0} {
+        append tip "$_label2desc($name)\n\n"
+    }
+    if {[array size _label2page] > 1} {
+        append tip "Use this control to display other output results."
+    }
+    return $tip
 }
 
 # ----------------------------------------------------------------------

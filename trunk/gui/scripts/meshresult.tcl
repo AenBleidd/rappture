@@ -22,14 +22,6 @@ option add *MeshResult.controlBackground gray widgetDefault
 option add *MeshResult.font \
     -*-helvetica-medium-r-normal-*-*-120-* widgetDefault
 
-blt::bitmap define MeshResult-reset {
-#define reset_width 12
-#define reset_height 12
-static unsigned char reset_bits[] = {
-   0x00, 0x00, 0x00, 0x00, 0xfc, 0x03, 0x04, 0x02, 0x04, 0x02, 0x04, 0x02,
-   0x04, 0x02, 0x04, 0x02, 0x04, 0x02, 0xfc, 0x03, 0x00, 0x00, 0x00, 0x00};
-}
-
 itcl::class Rappture::MeshResult {
     inherit itk::Widget
 
@@ -84,7 +76,7 @@ itcl::body Rappture::MeshResult::constructor {args} {
     itk_component add reset {
         button $itk_component(controls).reset \
             -borderwidth 1 -padx 1 -pady 1 \
-            -bitmap MeshResult-reset \
+            -bitmap [Rappture::icon reset] \
             -command [itcl::code $this _zoom reset]
     } {
         usual

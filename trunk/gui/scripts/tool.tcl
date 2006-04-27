@@ -34,6 +34,16 @@ itcl::class Rappture::Tool {
     private variable _outputcb ""    ;# callback for tool output
     private common job               ;# array var used for blt::bgexec jobs
     private common jobnum 0          ;# counter for unique job number
+
+    # resources file tells us the application name
+    public common _appname ""
+    public proc setAppName {name} { set _appname $name }
+}
+
+# must use this name -- plugs into Rappture::resources::load
+proc tool_init_resources {} {
+    Rappture::resources::register \
+        application_name Rappture::Tool::setAppName
 }
                                                                                 
 # ----------------------------------------------------------------------
@@ -78,6 +88,11 @@ itcl::body Rappture::Tool::constructor {xmlobj installdir args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Tool::run {args} {
     global errorInfo
+
+    # make sure that we save the proper application name
+    if {"" != $_appname} {
+        $_xmlobj put tool.name $_appname
+    }
 
     # sync all widgets to the XML tree
     sync

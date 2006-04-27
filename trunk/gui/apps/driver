@@ -49,6 +49,13 @@ option add *Gauge.textBackground white
 option add *TemperatureGauge.textBackground white
 option add *Switch.textBackground white
 option add *Progress.barColor #ffffcc
+option add *Balloon.titleBackground #6666cc
+option add *Balloon.titleForeground white
+option add *ResultSet.controlbarBackground #6666cc
+option add *ResultSet.controlbarForeground white
+option add *ResultSet.activeControlBackground #ccccff
+option add *ResultSet.activeControlForeground black
+option add *Radiodial.length 3i
 
 switch $tcl_platform(platform) {
     unix - windows {
@@ -82,6 +89,15 @@ if {"." == $installdir} {
 }
 
 set tool [Rappture::Tool ::#auto $xmlobj $installdir]
+
+# ----------------------------------------------------------------------
+# LOAD RESOURCE SETTINGS
+#
+# Try to load the $SESSIONDIR/resources file, which contains
+# middleware settings, such as the application name and the
+# filexfer settings.
+# ----------------------------------------------------------------------
+Rappture::resources::load
 
 # ----------------------------------------------------------------------
 # INITIALIZE THE DESKTOP CONNECTION

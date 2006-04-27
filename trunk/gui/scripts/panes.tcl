@@ -15,12 +15,18 @@ package require Itk
 
 option add *Panes.width 3i widgetDefault
 option add *Panes.height 3i widgetDefault
+option add *Panes.sashRelief sunken widgetDefault
+option add *Panes.sashWidth 2 widgetDefault
+option add *Panes.sashPadding 4 widgetDefault
 option add *Panes.sashCursor sb_v_double_arrow
 
 itcl::class Rappture::Panes {
     inherit itk::Widget
 
     itk_option define -sashcursor sashCursor SashCursor ""
+    itk_option define -sashrelief sashRelief SashRelief ""
+    itk_option define -sashwidth sashWidth SashWidth 0
+    itk_option define -sashpadding sashPadding SashPadding 0
 
     constructor {args} { # defined below }
 
@@ -32,6 +38,7 @@ itcl::class Rappture::Panes {
     protected method _drag {pane X Y}
     protected method _drop {pane X Y}
     protected method _fixLayout {args}
+    protected method _fixSashes {args}
 
     private variable _dispatcher ""  ;# dispatcher for !events
     private variable _panes ""       ;# list of pane frames
@@ -53,6 +60,8 @@ itcl::body Rappture::Panes::constructor {args} {
     Rappture::dispatcher _dispatcher
     $_dispatcher register !layout
     $_dispatcher dispatch $this !layout [itcl::code $this _fixLayout]
+    $_dispatcher register !sashes
+    $_dispatcher dispatch $this !sashes [itcl::code $this _fixSashes]
 
     # fix the layout whenever the window size changes
     bind Panes <Configure> [itcl::code %W _fixLayout]
@@ -93,13 +102,14 @@ itcl::body Rappture::Panes::insert {pos args} {
     }
 
     itk_component add ${sash}ridge {
-        frame $itk_component($sash).ridge \
-            -height 2 -borderwidth 1 -relief sunken
+        frame $itk_component($sash).ridge
     } {
         usual
         rename -cursor -sashcursor sashCursor SashCursor
+        rename -relief -sashrelief sashRelief SashRelief
+        ignore -borderwidth
     }
-    pack $itk_component(${sash}ridge) -fill x -pady 4
+    pack $itk_component(${sash}ridge) -fill x
 
     foreach comp [list $sash ${sash}ridge] {
         bind $itk_component($comp) <ButtonPress-1> \
@@ -119,6 +129,9 @@ itcl::body Rappture::Panes::insert {pos args} {
     # fix the fractional sizes
     set f $params(-fraction)
     set _frac [list [expr {1-$f}] $f]
+
+    # fix sash characteristics
+    $_dispatcher event -idle !sashes
 
     # make sure we fix up the layout at some point
     $_dispatcher event -idle !layout
@@ -236,4 +249,49 @@ itcl::body Rappture::Panes::_fixLayout {args} {
             -relwidth 1.0 -height $ph
         set y [expr {$y + $ph}]
     }
+}
+
+# ----------------------------------------------------------------------
+# USAGE: _fixSashes
+#
+# Used internally to fix the appearance of sashes whenever a new
+# sash appears or the controlling configuration options change.
+# ----------------------------------------------------------------------
+itcl::body Rappture::Panes::_fixSashes {args} {
+    set ht [winfo pixels $itk_component(hull) $itk_option(-sashwidth)]
+    set bd [expr {$ht/2}]
+    foreach pane $_panes {
+        set sash "${pane}sashridge"
+        if {[info exists itk_component($sash)]} {
+            $itk_component($sash) configure -height $ht -borderwidth $bd
+            if {$itk_option(-sashrelief) == "solid"} {
+                $itk_component($sash) configure -background black
+            } else {
+                $itk_component($sash) configure \
+                    -background $itk_option(-background)
+            }
+            pack $itk_component($sash) -pady $itk_option(-sashpadding)
+        }
+    }
+}
+
+# ----------------------------------------------------------------------
+# CONFIGURATION OPTION: -sashrelief
+# ----------------------------------------------------------------------
+itcl::configbody Rappture::Panes::sashrelief {
+    $_dispatcher event -idle !sashes
+}
+
+# ----------------------------------------------------------------------
+# CONFIGURATION OPTION: -sashwidth
+# ----------------------------------------------------------------------
+itcl::configbody Rappture::Panes::sashwidth {
+    $_dispatcher event -idle !sashes
+}
+
+# ----------------------------------------------------------------------
+# CONFIGURATION OPTION: -sashpadding
+# ----------------------------------------------------------------------
+itcl::configbody Rappture::Panes::sashpadding {
+    $_dispatcher event -idle !sashes
 }

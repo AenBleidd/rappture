@@ -21,38 +21,6 @@ option add *MoleculeViewer.width 3i widgetDefault
 option add *MoleculeViewer.height 3i widgetDefault
 option add *MoleculeViewer.backdrop black widgetDefault
 
-blt::bitmap define MoleculeViewer-reset {
-#define reset_width 12
-#define reset_height 12
-static unsigned char reset_bits[] = {
-   0x00, 0x00, 0x00, 0x00, 0xfc, 0x03, 0x04, 0x02, 0x04, 0x02, 0x04, 0x02,
-   0x04, 0x02, 0x04, 0x02, 0x04, 0x02, 0xfc, 0x03, 0x00, 0x00, 0x00, 0x00};
-}
-
-blt::bitmap define MoleculeViewer-zoomin {
-#define zoomin_width 12
-#define zoomin_height 12
-static unsigned char zoomin_bits[] = {
-   0x7c, 0x00, 0x82, 0x00, 0x11, 0x01, 0x11, 0x01, 0x7d, 0x01, 0x11, 0x01,
-   0x11, 0x01, 0x82, 0x03, 0xfc, 0x07, 0x80, 0x0f, 0x00, 0x0f, 0x00, 0x06};
-}
-
-blt::bitmap define MoleculeViewer-zoomout {
-#define zoomout_width 12
-#define zoomout_height 12
-static unsigned char zoomout_bits[] = {
-   0x7c, 0x00, 0x82, 0x00, 0x01, 0x01, 0x01, 0x01, 0x7d, 0x01, 0x01, 0x01,
-   0x01, 0x01, 0x82, 0x03, 0xfc, 0x07, 0x80, 0x0f, 0x00, 0x0f, 0x00, 0x06};
-}
-
-blt::bitmap define MoleculeViewer-atoms {
-#define atoms_width 12
-#define atoms_height 12
-static unsigned char atoms_bits[] = {
-   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x48, 0x02, 0x4c, 0x02, 0xc8, 0x03,
-   0x48, 0x02, 0x48, 0x02, 0x5c, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-}
-
 itcl::class Rappture::MoleculeViewer {
     inherit itk::Widget
 
@@ -137,7 +105,7 @@ itcl::body Rappture::MoleculeViewer::constructor {tool args} {
     itk_component add reset {
         button $itk_component(controls).reset \
             -borderwidth 1 -padx 1 -pady 1 \
-            -bitmap MoleculeViewer-reset \
+            -bitmap [Rappture::icon reset] \
             -command [itcl::code $this _zoom reset]
     } {
         usual
@@ -150,7 +118,7 @@ itcl::body Rappture::MoleculeViewer::constructor {tool args} {
     itk_component add zoomin {
         button $itk_component(controls).zin \
             -borderwidth 1 -padx 1 -pady 1 \
-            -bitmap MoleculeViewer-zoomin \
+            -bitmap [Rappture::icon zoomin] \
             -command [itcl::code $this _zoom in]
     } {
         usual
@@ -163,7 +131,7 @@ itcl::body Rappture::MoleculeViewer::constructor {tool args} {
     itk_component add zoomout {
         button $itk_component(controls).zout \
             -borderwidth 1 -padx 1 -pady 1 \
-            -bitmap MoleculeViewer-zoomout \
+            -bitmap [Rappture::icon zoomout] \
             -command [itcl::code $this _zoom out]
     } {
         usual
@@ -176,7 +144,7 @@ itcl::body Rappture::MoleculeViewer::constructor {tool args} {
     itk_component add labels {
         label $itk_component(controls).labels \
             -borderwidth 1 -padx 1 -pady 1 \
-            -bitmap MoleculeViewer-atoms
+            -bitmap [Rappture::icon atoms]
     } {
         usual
         ignore -borderwidth

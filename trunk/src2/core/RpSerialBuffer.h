@@ -1,16 +1,12 @@
 /*
- * ----------------------------------------------------------------------
- *  Rappture::SerialBuffer
- *    Used by the Serializer to build up the buffer of serialized
- *    data.  Similar to a string, but it handles nulls and other
- *    control characters.  Also handles big/little endian order
- *    properly.
- *
  * ======================================================================
- *  AUTHOR:  Carol X Song, Purdue University
- *           Michael McLennan, Purdue University
- *  Copyright (c) 2004-2006  Purdue Research Foundation
+ *  Rappture::SerialBuffer
  *
+ *  AUTHOR:  Michael McLennan, Purdue University
+ *           Carol X Song, Purdue University
+ *
+ *  Copyright (c) 2004-2006  Purdue Research Foundation
+ * ----------------------------------------------------------------------
  *  See the file "license.terms" for information on usage and
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  * ======================================================================
@@ -23,6 +19,12 @@
 
 namespace Rappture {
 
+/**
+ * Used by the Serializer to build up the buffer of serialized
+ * data.  Similar to a string, but it handles nulls and other
+ * control characters.  Also handles big/little endian order
+ * properly.
+ */
 class SerialBuffer {
 public:
     SerialBuffer();
@@ -50,8 +52,11 @@ public:
     std::vector<char> readBytes();
 
 private:
-    std::vector<char> _buffer;  // data within this buffer
-    int _pos;                   // position for read functions
+    /// Contains the actual data within this buffer.
+    std::vector<char> _buffer;
+
+    /// Position for the various readXyz() functions.
+    int _pos;
 };
 
 } // namespace Rappture

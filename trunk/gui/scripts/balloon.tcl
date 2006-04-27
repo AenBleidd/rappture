@@ -18,13 +18,25 @@ package require Itk
 
 namespace eval Rappture { # forward declaration }
 
+option add *Balloon.dismissButton on widgetDefault
+option add *Balloon.padX 4 widgetDefault
+option add *Balloon.padY 4 widgetDefault
+option add *Balloon.titleBackground #999999 widgetDefault
+option add *Balloon.titleForeground white widgetDefault
+option add *Balloon.relief raised widgetDefault
 option add *Balloon.stemLength 16 widgetDefault
 
 itcl::class Rappture::Balloon {
     inherit itk::Toplevel
 
-    itk_option define -stemlength stemLength StemLength 20
     itk_option define -deactivatecommand deactivateCommand DeactivateCommand ""
+    itk_option define -dismissbutton dismissButton DismissButton "on"
+    itk_option define -padx padX Pad 0
+    itk_option define -pady padY Pad 0
+    itk_option define -title title Title ""
+    itk_option define -titlebackground titleBackground Background ""
+    itk_option define -titleforeground titleForeground Foreground ""
+    itk_option define -stemlength stemLength StemLength 20
 
     constructor {args} { # defined below }
 
@@ -52,10 +64,50 @@ itk::usual Balloon {
 itcl::body Rappture::Balloon::constructor {args} {
     wm overrideredirect $itk_component(hull) yes
     wm withdraw $itk_component(hull)
-    component hull configure -borderwidth 1 -relief solid
+    component hull configure -borderwidth 1 -relief solid -padx 0 -pady 0
+
+    itk_component add border {
+        frame $itk_interior.border -borderwidth 2
+    } {
+        usual
+        keep -relief
+    }
+    pack $itk_component(border) -expand yes -fill both
+
+    itk_component add titlebar {
+        frame $itk_component(border).tbar
+    } {
+        usual
+        rename -background -titlebackground titleBackground Background
+    }
+
+    itk_component add title {
+        label $itk_component(titlebar).title -width 1 -anchor w
+    } {
+        usual
+        rename -background -titlebackground titleBackground Background
+        rename -foreground -titleforeground titleForeground Foreground
+        rename -highlightbackground -titlebackground titleBackground Background
+        rename -text -title title Title
+    }
+    pack $itk_component(title) -side left -expand yes -fill both -padx 2
+
+    itk_component add dismiss {
+        button $itk_component(titlebar).dismiss \
+            -bitmap [Rappture::icon dismiss] \
+            -relief flat -overrelief raised -command "
+              Rappture::Tooltip::cue hide
+              [list $itk_component(hull) deactivate]
+            "
+    } {
+        usual
+        rename -background -titlebackground titleBackground Background
+        rename -foreground -titleforeground titleForeground Foreground
+        rename -highlightbackground -titlebackground titleBackground Background
+    }
 
     itk_component add inner {
-        frame $itk_interior.inner -borderwidth 2 -relief raised
+        frame $itk_component(border).inner
     }
     pack $itk_component(inner) -expand yes -fill both
 
@@ -84,6 +136,8 @@ itcl::body Rappture::Balloon::activate {where placement} {
     set sw [image width $_fills($placement)]
     set sh [image height $_fills($placement)]
     set p $itk_component(hull)
+    set screenw [winfo screenwidth $p]
+    set screenh [winfo screenheight $p]
 
     if {[winfo exists $where]} {
         set x [expr {[winfo rootx $where]+[winfo width $where]/2}]
@@ -103,37 +157,62 @@ itcl::body Rappture::Balloon::activate {where placement} {
     # if the panel is already up, take it down
     deactivate
 
+    set pw [winfo reqwidth $p]
+    if {$pw > $screenw} { set pw [expr {$screenw-10}] }
+    set ph [winfo reqheight $p]
+    if {$ph > $screenh} { set ph [expr {$screenh-10}] }
+
     switch -- $placement {
         left {
             set sx [expr {$x-$sw+3}]
             set sy [expr {$y-$sh/2}]
-            set px [expr {$sx-[winfo reqwidth $p]+3}]
-            set py [expr {$y-[winfo reqheight $p]/2}]
+            set px [expr {$sx-$pw+3}]
+            set py [expr {$y-$ph/2}]
+
+            # make sure that the panel doesn't go off-screen
+            if {$py < 0} { set py 0 }
+            if {$py+$ph > $screenh} { set py [expr {$screenh-$ph}] }
+            if {$px < 0} { set pw [expr {$pw+$px}]; set px 0 }
         }
         right {
             set sx $x
             set sy [expr {$y-$sh/2}]
             set px [expr {$x+$sw-3}]
-            set py [expr {$y-[winfo reqheight $p]/2}]
+            set py [expr {$y-$ph/2}]
+
+            # make sure that the panel doesn't go off-screen
+            if {$py < 0} { set py 0 }
+            if {$py+$ph > $screenh} { set py [expr {$screenh-$ph}] }
+            if {$px+$pw > $screenw} { set pw [expr {$screenw-$px)}] }
         }
         above {
             set sx [expr {$x-$sw/2}]
             set sy [expr {$y-$sh+3}]
-            set px [expr {$x-[winfo reqwidth $p]/2}]
-            set py [expr {$sy-[winfo reqheight $p]+3}]
+            set px [expr {$x-$pw/2}]
+            set py [expr {$sy-$ph+3}]
+
+            # make sure that the panel doesn't go off-screen
+            if {$px < 0} { set px 0 }
+            if {$px+$pw > $screenw} { set px [expr {$screenw-$pw}] }
+            if {$py < 0} { set ph [expr {$ph+$py}]; set py 0 }
         }
         below {
             set sx [expr {$x-$sw/2}]
             set sy $y
-            set px [expr {$x-[winfo reqwidth $p]/2}]
+            set px [expr {$x-$pw/2}]
             set py [expr {$y+$sh-3}]
+
+            # make sure that the panel doesn't go off-screen
+            if {$px < 0} { set px 0 }
+            if {$px+$pw > $screenw} { set px [expr {$screenw-$pw}] }
+            if {$py+$ph > $screenh} { set ph [expr {$screenh-$py)}] }
         }
     }
     if {[info exists _masks($placement)]} {
         shape set $s -bound photo $_masks($placement)
     }
 
-    wm geometry $p +$px+$py
+    wm geometry $p ${pw}x${ph}+$px+$py
     wm deiconify $p
     raise $p
 
@@ -405,5 +484,56 @@ itcl::body Rappture::Balloon::outside {widget x y} {
 itcl::configbody Rappture::Balloon::stemlength {
     if {$itk_option(-stemlength) % 2 != 0} {
         error "stem length should be an even number of pixels"
+    }
+}
+
+# ----------------------------------------------------------------------
+# CONFIGURATION OPTION: -dismissbutton
+# ----------------------------------------------------------------------
+itcl::configbody Rappture::Balloon::dismissbutton {
+    if {![string is boolean $itk_option(-dismissbutton)]} {
+        error "bad value \"$itk_option(-dismissbutton)\": should be on/off, 1/0, true/false, yes/no"
+    }
+    if {$itk_option(-dismissbutton)} {
+        pack $itk_component(titlebar) -before $itk_component(inner) \
+            -side top -fill x
+        pack $itk_component(dismiss) -side right -padx 4
+    } elseif {"" != $itk_option(-title)} {
+        pack $itk_component(titlebar) -before $itk_component(inner) \
+            -side top -fill x
+        pack forget $itk_component(dismiss)
+    } else {
+        pack forget $itk_component(titlebar)
+    }
+}
+
+# ----------------------------------------------------------------------
+# CONFIGURATION OPTION: -padx
+# ----------------------------------------------------------------------
+itcl::configbody Rappture::Balloon::padx {
+    pack $itk_component(inner) -padx $itk_option(-padx)
+}
+
+# ----------------------------------------------------------------------
+# CONFIGURATION OPTION: -pady
+# ----------------------------------------------------------------------
+itcl::configbody Rappture::Balloon::pady {
+    pack $itk_component(inner) -pady $itk_option(-pady)
+}
+
+# ----------------------------------------------------------------------
+# CONFIGURATION OPTION: -title
+# ----------------------------------------------------------------------
+itcl::configbody Rappture::Balloon::title {
+    if {"" != $itk_option(-title) || $itk_option(-dismissbutton)} {
+        pack $itk_component(titlebar) -before $itk_component(inner) \
+            -side top -fill x
+        if {$itk_option(-dismissbutton)} {
+            pack $itk_component(dismiss) -side right -padx 4
+        } else {
+            pack forget $itk_component(dismiss)
+        }
+    } else {
+        pack forget $itk_component(titlebar)
     }
 }

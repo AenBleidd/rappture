@@ -18,53 +18,6 @@ package require vtkinteraction
 package require BLT
 package require Img
 
-blt::bitmap define ContourResult-reset {
-#define reset_width 12
-#define reset_height 12
-static unsigned char reset_bits[] = {
-   0x00, 0x00, 0x00, 0x00, 0xfc, 0x03, 0x04, 0x02, 0x04, 0x02, 0x04, 0x02,
-   0x04, 0x02, 0x04, 0x02, 0x04, 0x02, 0xfc, 0x03, 0x00, 0x00, 0x00, 0x00};
-}
-
-blt::bitmap define ContourResult-zoomin {
-#define zoomin_width 12
-#define zoomin_height 12
-static unsigned char zoomin_bits[] = {
-   0x7c, 0x00, 0x82, 0x00, 0x11, 0x01, 0x11, 0x01, 0x7d, 0x01, 0x11, 0x01,
-   0x11, 0x01, 0x82, 0x03, 0xfc, 0x07, 0x80, 0x0f, 0x00, 0x0f, 0x00, 0x06};
-}
-
-blt::bitmap define ContourResult-zoomout {
-#define zoomout_width 12
-#define zoomout_height 12
-static unsigned char zoomout_bits[] = {
-   0x7c, 0x00, 0x82, 0x00, 0x01, 0x01, 0x01, 0x01, 0x7d, 0x01, 0x01, 0x01,
-   0x01, 0x01, 0x82, 0x03, 0xfc, 0x07, 0x80, 0x0f, 0x00, 0x0f, 0x00, 0x06};
-}
-
-blt::bitmap define ContourResult-xslice {
-#define x_width 12
-#define x_height 12
-static unsigned char x_bits[] = {
-   0x00, 0x00, 0x00, 0x00, 0x9c, 0x03, 0x98, 0x01, 0xf0, 0x00, 0x60, 0x00,
-   0x60, 0x00, 0xf0, 0x00, 0x98, 0x01, 0x9c, 0x03, 0x00, 0x00, 0x00, 0x00};
-}
-
-blt::bitmap define ContourResult-yslice {
-#define y_width 12
-#define y_height 12
-static unsigned char y_bits[] = {
-   0x00, 0x00, 0x00, 0x00, 0x0e, 0x07, 0x0c, 0x03, 0x98, 0x01, 0xf0, 0x00,
-   0x60, 0x00, 0x60, 0x00, 0x60, 0x00, 0xf0, 0x00, 0x00, 0x00, 0x00, 0x00};
-}
-blt::bitmap define ContourResult-zslice {
-#define z_width 12
-#define z_height 12
-static unsigned char z_bits[] = {
-   0x00, 0x00, 0x00, 0x00, 0xfc, 0x03, 0x84, 0x03, 0xc0, 0x01, 0xe0, 0x00,
-   0x70, 0x00, 0x38, 0x00, 0x1c, 0x02, 0xfc, 0x03, 0x00, 0x00, 0x00, 0x00};
-}
-
 option add *ContourResult.width 4i widgetDefault
 option add *ContourResult.height 4i widgetDefault
 option add *ContourResult.foreground black widgetDefault
@@ -156,7 +109,7 @@ itcl::body Rappture::ContourResult::constructor {args} {
     itk_component add reset {
         button $itk_component(zoom).reset \
             -borderwidth 1 -padx 1 -pady 1 \
-            -bitmap ContourResult-reset \
+            -bitmap [Rappture::icon reset] \
             -command [itcl::code $this _zoom reset]
     } {
         usual
@@ -169,7 +122,7 @@ itcl::body Rappture::ContourResult::constructor {args} {
     itk_component add zoomin {
         button $itk_component(zoom).zin \
             -borderwidth 1 -padx 1 -pady 1 \
-            -bitmap ContourResult-zoomin \
+            -bitmap [Rappture::icon zoomin] \
             -command [itcl::code $this _zoom in]
     } {
         usual
@@ -182,7 +135,7 @@ itcl::body Rappture::ContourResult::constructor {args} {
     itk_component add zoomout {
         button $itk_component(zoom).zout \
             -borderwidth 1 -padx 1 -pady 1 \
-            -bitmap ContourResult-zoomout \
+            -bitmap [Rappture::icon zoomout] \
             -command [itcl::code $this _zoom out]
     } {
         usual
@@ -210,7 +163,7 @@ itcl::body Rappture::ContourResult::constructor {args} {
     itk_component add xslice {
         label $itk_component(slicers).xslice \
             -borderwidth 1 -relief raised -padx 1 -pady 1 \
-            -bitmap ContourResult-xslice
+            -bitmap [Rappture::icon x]
     } {
         usual
         ignore -borderwidth
@@ -244,7 +197,7 @@ itcl::body Rappture::ContourResult::constructor {args} {
     itk_component add yslice {
         label $itk_component(slicers).yslice \
             -borderwidth 1 -relief raised -padx 1 -pady 1 \
-            -bitmap ContourResult-yslice
+            -bitmap [Rappture::icon y]
     } {
         usual
         ignore -borderwidth
@@ -278,7 +231,7 @@ itcl::body Rappture::ContourResult::constructor {args} {
     itk_component add zslice {
         label $itk_component(slicers).zslice \
             -borderwidth 1 -relief raised -padx 1 -pady 1 \
-            -bitmap ContourResult-zslice
+            -bitmap [Rappture::icon z]
     } {
         usual
         ignore -borderwidth
