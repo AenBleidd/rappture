@@ -26,6 +26,7 @@ class ConvexPolygon {
 public:
 	VertexVector vertices;
 	TexVector texcoords;
+	int volume_id;	//which volume this polygon slice belongs to
 
 	ConvexPolygon();
 	ConvexPolygon(VertexVector vertices);
@@ -36,10 +37,11 @@ public:
 	void translate(Vector4 shift);
 
 	// Clips the polygon, retaining the portion where ax + by + cz + d >= 0
-	void clip(Plane &clipPlane);
+	void clip(Plane &clipPlane, bool copy_to_texcoords);
 	void Emit(bool use_texture);
 	void Emit(bool use_texture, Vector3& shift, Vector3& scale);
 	void copy_vertices_to_texcoords();
+	void set_id(int v_id);
 };
 
 #endif

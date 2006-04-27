@@ -861,6 +861,8 @@ void initGL(void)
 
    load_vector_file(0, "./data/J-wire-vec.dx");
    load_volume_file(1, "./data/mu-wire-3d.dx");
+   load_volume_file(2, "./data/mu-wire-3d.dx");
+   load_volume_file(3, "./data/mu-wire-3d.dx");
 
    init_tf();   //initialize transfer function
    init_fbo();	//frame buffer objects
@@ -869,6 +871,11 @@ void initGL(void)
 
    //create volume renderer
    vol_render = new VolumeRenderer(cam, volume[1], tf[0], g_context);
+   vol_render->add_volume(volume[2], tf[0], 256);
+   volume[2]->location =Vector3(0.42, 0.1, 0.1);
+   vol_render->add_volume(volume[3], tf[0], 256);
+   volume[3]->location =Vector3(0.2, -0.1, -0.1);
+
    
    psys = new ParticleSystem(NMESH, NMESH, g_context, volume[0]->id,
 		   1./volume[0]->aspect_ratio_width,
@@ -1469,14 +1476,8 @@ void display()
 
 
    perf->enable();
-     //render volume :0 
-     //volume[0]->location =Vector3(0.,0.,0.);
-     //render_volume(0, 256);
-
-     //render volume :1
-     volume[1]->location =Vector3(0., 0., 0.);
-     //render_volume(1, 256);
-     vol_render->render(0);
+     //vol_render->render(0);
+     vol_render->render_all();
 
      //fprintf(stderr, "%lf\n", get_time_interval());
    perf->disable();
@@ -1637,6 +1638,12 @@ void keyboard(unsigned char key, int x, int y){
 	case ']':
 		live_diffuse-=0.5;
 		vol_render->set_diffuse(live_diffuse);
+		break;
+	case 'v':
+		vol_render->switch_volume_mode();
+		break;
+	case 'b':
+		vol_render->switch_slice_mode();
 		break;
 
 	default:

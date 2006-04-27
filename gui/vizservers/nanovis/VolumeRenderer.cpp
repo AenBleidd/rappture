@@ -22,7 +22,9 @@ VolumeRenderer::VolumeRenderer(Camera* _cam, Volume* _vol, TransferFunction* _tf
 				CGcontext _context):
   cam(_cam),
   n_volumes(0),
-  g_context(_context)
+  g_context(_context),
+  slice_mode(false),
+  volume_mode(true)
 {
   //init the vectors for volumes and transfer functions
   volume.clear();
@@ -53,14 +55,234 @@ VolumeRenderer::VolumeRenderer(Camera* _cam, Volume* _vol, TransferFunction* _tf
 
 VolumeRenderer::~VolumeRenderer(){}
 
-void VolumeRenderer::add_volume(Volume* _vol, TransferFunction* _tf, int _slice){
+int VolumeRenderer::add_volume(Volume* _vol, TransferFunction* _tf, int _slice){
+  int ret = n_volumes;
+
   volume.push_back(_vol);
   tf.push_back(_tf);
   slice.push_back(_slice);
   render_bit.push_back(true);
 
   n_volumes++;
+
+  return ret;
 }
+
+typedef struct SortElement{
+  float z;
+  int volume_id;
+  int slice_id;
+  SortElement(float _z, int _v, int _s):
+	  z(_z), volume_id(_v), slice_id(_s){}
+};
+
+int slice_sort(const void* a, const void* b){
+  if((*((SortElement*)a)).z > (*((SortElement*)b)).z)
+      return 1;
+   else
+      return -1;
+}
+
+
+void VolumeRenderer::render_all(){
+  int total_enabled_volumes = 0;
+  int total_rendered_slices = 0;
+
+  for(int i=0; i<n_volumes; i++){
+    if(render_bit[i])
+      total_enabled_volumes ++;
+  }
+  fprintf(stderr, "total volumes rendered: %d\n", total_enabled_volumes);
+
+  ConvexPolygon*** polys = new ConvexPolygon**[total_enabled_volumes];
+  int* actual_slices = new int[total_enabled_volumes];
+
+  int cur_index = -1;
+  for(int i=0; i<n_volumes; i++){
+    if(!render_bit[i])
+      continue;
+    cur_index++;
+
+    int volume_index = i;
+    int n_slices = slice[volume_index];
+
+    //volume start location
+    Vector4 shift_4d(volume[volume_index]->location.x, volume[volume_index]->location.y, volume[volume_index]->location.z, 0);
+
+    double x0 = 0;
+    double y0 = 0;
+    double z0 = 0;
+
+    Mat4x4 model_view_no_trans, model_view_trans;
+    Mat4x4 model_view_no_trans_inverse, model_view_trans_inverse;
+
+    double zNear, zFar;
+
+    //initialize volume plane with world coordinates
+    Plane volume_planes[6];
+    volume_planes[0].set_coeffs(1, 0, 0, -x0);
+    volume_planes[1].set_coeffs(-1, 0, 0, x0+1);
+    volume_planes[2].set_coeffs(0, 1, 0, -y0);
+    volume_planes[3].set_coeffs(0, -1, 0, y0+1);
+    volume_planes[4].set_coeffs(0, 0, 1, -z0);
+    volume_planes[5].set_coeffs(0, 0, -1, z0+1);
+  
+    glPushMatrix();
+
+    glScalef(volume[volume_index]->aspect_ratio_width, 
+	  volume[volume_index]->aspect_ratio_height, 
+	  volume[volume_index]->aspect_ratio_depth);
+
+    glEnable(GL_DEPTH_TEST);
+
+    GLfloat mv_no_trans[16];
+    glGetFloatv(GL_MODELVIEW_MATRIX, mv_no_trans);
+
+    model_view_no_trans = Mat4x4(mv_no_trans);
+    model_view_no_trans_inverse = model_view_no_trans.inverse();
+
+    glPopMatrix();
+
+    //get modelview matrix with translation
+    glPushMatrix();
+    glTranslatef(shift_4d.x, shift_4d.y, shift_4d.z);
+    glScalef(volume[volume_index]->aspect_ratio_width, 
+	  volume[volume_index]->aspect_ratio_height, 
+	  volume[volume_index]->aspect_ratio_depth);
+    GLfloat mv_trans[16];
+    glGetFloatv(GL_MODELVIEW_MATRIX, mv_trans);
+
+    model_view_trans = Mat4x4(mv_trans);
+    model_view_trans_inverse = model_view_trans.inverse();
+
+    //draw volume bounding box
+    draw_bounding_box(x0, y0, z0, x0+1, y0+1, z0+1, 0.8, 0.1, 0.1, 1.5);
+    glPopMatrix();
+
+    //transform volume_planes to eye coordinates.
+    for(int i=0; i<6; i++)
+      volume_planes[i].transform(model_view_no_trans);
+
+    get_near_far_z(mv_no_trans, zNear, zFar);
+    //fprintf(stderr, "zNear:%f, zFar:%f\n", zNear, zFar);
+    //fflush(stderr);
+
+    //compute actual rendering slices
+    float z_step = fabs(zNear-zFar)/n_slices;		
+    int n_actual_slices = (int)(fabs(zNear-zFar)/z_step + 1);
+    actual_slices[cur_index] = n_actual_slices;
+    polys[cur_index] = new ConvexPolygon*[n_actual_slices];
+
+    //fprintf(stderr, "slices: %d\n", n_actual_slices);
+    //fflush(stderr);
+
+    float slice_z;
+
+    Vector4 vert1 = (Vector4(-10, -10, -0.5, 1));
+    Vector4 vert2 = (Vector4(-10, +10, -0.5, 1));
+    Vector4 vert3 = (Vector4(+10, +10, -0.5, 1));
+    Vector4 vert4 = (Vector4(+10, -10, -0.5, 1));
+
+    int counter = 0;
+    //transform slices and store them
+    for (int i=0; i<n_actual_slices; i++){
+      slice_z = zFar + i * z_step;	//back to front
+
+      ConvexPolygon *poly = new ConvexPolygon();
+      polys[cur_index][counter] = poly;
+      counter++;
+
+      poly->vertices.clear();
+      poly->set_id(volume_index);
+
+      //Setting Z-coordinate 
+      vert1.z = slice_z;
+      vert2.z = slice_z;
+      vert3.z = slice_z;
+      vert4.z = slice_z;
+		
+      poly->append_vertex(vert1);
+      poly->append_vertex(vert2);
+      poly->append_vertex(vert3);
+      poly->append_vertex(vert4);
+	
+      for(int k=0; k<6; k++){
+        poly->clip(volume_planes[k], true);
+      }
+
+      poly->transform(model_view_no_trans_inverse);
+      poly->transform(model_view_trans);
+
+      if(poly->vertices.size()>=3)
+	total_rendered_slices++; 
+    }
+  } //iterate all volumes
+
+
+  //We sort all the polygons according to their eye-space depth, from farthest to the closest.
+  //This step is critical for correct blending
+
+  SortElement* slices = (SortElement*) malloc(sizeof(SortElement)*total_rendered_slices);
+
+  int counter = 0;
+  for(int i=0; i<total_enabled_volumes; i++){
+    for(int j=0; j<actual_slices[i]; j++){
+      if(polys[i][j]->vertices.size() >= 3){
+        slices[counter] = SortElement(polys[i][j]->vertices[0].z, i, j);
+        counter++;
+      }
+    }
+  }
+
+  //sort them
+  qsort(slices, total_rendered_slices, sizeof(SortElement), slice_sort);
+
+  //debug
+  for(int i=0; i<total_rendered_slices; i++){
+    fprintf(stderr, "%f ", slices[i].z);
+  }
+  fprintf(stderr, "\n\n");
+
+
+  //Now we are ready to render all the slices from back to front
+
+  glEnable(GL_DEPTH_TEST);
+  glEnable(GL_BLEND);
+
+  for(int i=0; i<total_rendered_slices; i++){
+    int volume_index = slices[i].volume_id;
+    int slice_index = slices[i].slice_id;
+    ConvexPolygon* cur = polys[volume_index][slice_index];
+
+    glPushMatrix();
+    glScalef(volume[volume_index]->aspect_ratio_width, volume[volume_index]->aspect_ratio_height, volume[volume_index]->aspect_ratio_depth);
+    
+    activate_one_volume_shader(volume_index, 1, 1);
+    glPopMatrix();
+
+    glEnable(GL_DEPTH_TEST);
+    glBegin(GL_POLYGON);
+      cur->Emit(true); 
+    glEnd();
+
+    deactivate_one_volume_shader();
+  }
+
+  glDisable(GL_DEPTH_TEST);
+  glDisable(GL_BLEND);
+
+  //Deallocate all the memory used
+  for(int i=0; i<total_enabled_volumes; i++){
+    for(int j=0; j<actual_slices[i]; j++){
+      delete polys[i][j];
+    }
+    delete[] polys[i];
+  }
+  delete[] polys;
+  delete[] actual_slices;
+  free(slices);
+}
+
 
 void VolumeRenderer::render(int volume_index){
   int n_slices = slice[volume_index];
@@ -72,21 +294,20 @@ void VolumeRenderer::render(int volume_index){
   double y0 = 0;
   double z0 = 0;
 
-  Mat4x4 model_view;
-  Mat4x4 model_view_inverse;
+  Mat4x4 model_view_no_trans, model_view_trans;
+  Mat4x4 model_view_no_trans_inverse, model_view_trans_inverse;
 
   double zNear, zFar;
 
   //initialize volume plane with world coordinates
   Plane volume_planes[6];
-
   volume_planes[0].set_coeffs(1, 0, 0, -x0);
   volume_planes[1].set_coeffs(-1, 0, 0, x0+1);
   volume_planes[2].set_coeffs(0, 1, 0, -y0);
   volume_planes[3].set_coeffs(0, -1, 0, y0+1);
   volume_planes[4].set_coeffs(0, 0, 1, -z0);
   volume_planes[5].set_coeffs(0, 0, -1, z0+1);
-
+  
   glPushMatrix();
 
   glScalef(volume[volume_index]->aspect_ratio_width, 
@@ -95,22 +316,35 @@ void VolumeRenderer::render(int volume_index){
 
   glEnable(GL_DEPTH_TEST);
 
+  GLfloat mv_no_trans[16];
+  glGetFloatv(GL_MODELVIEW_MATRIX, mv_no_trans);
+
+  model_view_no_trans = Mat4x4(mv_no_trans);
+  model_view_no_trans_inverse = model_view_no_trans.inverse();
+
+  glPopMatrix();
+
+  //get modelview matrix with translation
+  glPushMatrix();
+  glTranslatef(shift_4d.x, shift_4d.y, shift_4d.z);
+  glScalef(volume[volume_index]->aspect_ratio_width, 
+	  volume[volume_index]->aspect_ratio_height, 
+	  volume[volume_index]->aspect_ratio_depth);
+  GLfloat mv_trans[16];
+  glGetFloatv(GL_MODELVIEW_MATRIX, mv_trans);
+
+  model_view_trans = Mat4x4(mv_trans);
+  model_view_trans_inverse = model_view_trans.inverse();
+
   //draw volume bounding box
-  draw_bounding_box(x0+shift_4d.x, y0+shift_4d.y, z0+shift_4d.z, x0+shift_4d.x+1, y0+shift_4d.y+1, z0+shift_4d.z+1, 0.8, 0.1, 0.1, 1.5);
-
-  GLfloat mv[16];
-  glGetFloatv(GL_MODELVIEW_MATRIX, mv);
-
-  model_view = Mat4x4(mv);
-  model_view_inverse = model_view.inverse();
-
+  draw_bounding_box(x0, y0, z0, x0+1, y0+1, z0+1, 0.8, 0.1, 0.1, 1.5);
   glPopMatrix();
 
   //transform volume_planes to eye coordinates.
   for(int i=0; i<6; i++)
-    volume_planes[i].transform(model_view);
+    volume_planes[i].transform(model_view_no_trans);
 
-  get_near_far_z(mv, zNear, zFar);
+  get_near_far_z(mv_no_trans, zNear, zFar);
   //fprintf(stderr, "zNear:%f, zFar:%f\n", zNear, zFar);
   //fflush(stderr);
 
@@ -128,8 +362,11 @@ void VolumeRenderer::render(int volume_index){
   Vector4 vert3 = (Vector4(+10, +10, -0.5, 1));
   Vector4 vert4 = (Vector4(+10, -10, -0.5, 1));
 
-  glEnable(GL_DEPTH_TEST);
   glEnable(GL_BLEND);
+
+#if 0
+  if(slice_mode){
+    glEnable(GL_DEPTH_TEST);
 
   //render the cut planes
   for(int i=0; i<volume[volume_index]->plane.size(); i++){
@@ -170,10 +407,9 @@ void VolumeRenderer::render(int volume_index){
     poly->append_vertex(vert4);
 
     for(int k=0; k<6; k++){
-      poly->clip(volume_planes[k]);
+      poly->clip(volume_planes[k], true);
     }
 
-    poly->copy_vertices_to_texcoords();
     poly->transform(model_view_inverse);
     poly->translate(shift_4d);
     poly->transform(model_view);
@@ -181,17 +417,29 @@ void VolumeRenderer::render(int volume_index){
     glPushMatrix();
     glScalef(volume[volume_index]->aspect_ratio_width, volume[volume_index]->aspect_ratio_height, volume[volume_index]->aspect_ratio_depth);
 
-    activate_one_volume_shader(volume_index, 1, 1);
+    //activate_one_volume_shader(volume_index, 1, 1);
     glPopMatrix();
 
-    glBegin(GL_POLYGON);
-      poly->Emit(true); 
+    glDisable(GL_TEXTURE_3D);
+    glDisable(GL_TEXTURE_2D);
+    glDisable(GL_BLEND);
+    glColor3f(1,1,1);
+
+    //glBegin(GL_POLYGON);
+    glBegin(GL_LINE_LOOP);
+      //poly->Emit(true); 
+      poly->Emit(false); 
     glEnd();
 
-    deactivate_one_volume_shader();
+    //deactivate_one_volume_shader();
   }
+  } //slice_mode
 
-#if 1 
+#endif
+
+  if(volume_mode){ 
+  glEnable(GL_DEPTH_TEST);
+
   for (int i=0; i<n_actual_slices; i++){
     slice_z = zFar + i * z_step;	//back to front
 	
@@ -211,25 +459,21 @@ void VolumeRenderer::render(int volume_index){
     poly->append_vertex(vert4);
 	
     for(int k=0; k<6; k++){
-      poly->clip(volume_planes[k]);
+      poly->clip(volume_planes[k], true);
     }
 
-    poly->copy_vertices_to_texcoords();
     //move the volume to the proper location
+    //poly->transform(model_view_inverse);
+    //poly->translate(shift_4d);
+    //poly->transform(model_view);
 
-    poly->transform(model_view_inverse);
-    poly->translate(shift_4d);
-    poly->transform(model_view);
+    poly->transform(model_view_no_trans_inverse);
+    poly->transform(model_view_trans);
 
     glPushMatrix();
     glScalef(volume[volume_index]->aspect_ratio_width, volume[volume_index]->aspect_ratio_height, volume[volume_index]->aspect_ratio_depth);
     
-    //glPushMatrix();
-    //glMatrixMode(GL_MODELVIEW);
-    //glLoadIdentity();
-    //glScaled(volume[volume_index]->aspect_ratio_width, volume[volume_index]->aspect_ratio_height, volume[volume_index]->aspect_ratio_depth);
-
-    /*
+   /* 
     //draw slice lines only
     glDisable(GL_BLEND);
     glDisable(GL_TEXTURE_3D);
@@ -251,7 +495,7 @@ void VolumeRenderer::render(int volume_index){
     deactivate_one_volume_shader();
 		
   }
-#endif
+  } //volume_mode
 
   glDisable(GL_BLEND);
   glDisable(GL_DEPTH_TEST);
@@ -377,4 +621,8 @@ void VolumeRenderer::get_near_far_z(Mat4x4 mv, double &zNear, double &zFar)
 void VolumeRenderer::set_specular(float val){ live_specular = val; }
 void VolumeRenderer::set_diffuse(float val){ live_diffuse = val; }
 
+void VolumeRenderer::set_slice_mode(bool val) { slice_mode = val; }
+void VolumeRenderer::set_volume_mode(bool val) { volume_mode = val; }
+void VolumeRenderer::switch_slice_mode() { slice_mode = (!slice_mode); }
+void VolumeRenderer::switch_volume_mode() { volume_mode = (!volume_mode); }
 

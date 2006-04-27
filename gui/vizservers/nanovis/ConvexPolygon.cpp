@@ -24,6 +24,8 @@ ConvexPolygon::ConvexPolygon(VertexVector vertices){
 				vertices.end());
 }
 
+void ConvexPolygon::set_id(int v_id) { volume_id; };
+
 void ConvexPolygon::append_vertex(Vector4 vert){
     vertices.push_back(vert);
 }
@@ -104,7 +106,7 @@ void ConvexPolygon::translate(Vector4 shift){
     }
 }
 
-void ConvexPolygon::clip(Plane &clipPlane) {
+void ConvexPolygon::clip(Plane &clipPlane, bool copy_to_texcoord) {
 	if (vertices.size() == 0) {
 		//fprintf(stderr, "ConvexPolygon: polygon has no vertices\n");	
 		return;
@@ -158,6 +160,9 @@ void ConvexPolygon::clip(Plane &clipPlane) {
     vertices.insert(vertices.begin(), 
 		    clippedVerts.begin(),
 		    clippedVerts.end());
+
+    if(copy_to_texcoord)
+      copy_vertices_to_texcoords();
 }
 
 void ConvexPolygon::copy_vertices_to_texcoords(){

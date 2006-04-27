@@ -49,6 +49,9 @@ private:
   float live_diffuse;
   float live_specular;
 
+  bool slice_mode;	//enable cut planes
+  bool volume_mode;	//enable full volume rendering
+
   //cg related
   CGcontext g_context;		//the Nvidia cg context 
   CGprogram m_one_volume_fprog;
@@ -77,13 +80,18 @@ public:
   VolumeRenderer(Camera* cam, Volume* _vol, TransferFunction* _tf, CGcontext _context);
   ~VolumeRenderer();
 
-  void add_volume(Volume* _vol, TransferFunction* _tf, int _slice); 
+  int add_volume(Volume* _vol, TransferFunction* _tf, int _slice); 
   						//add a volume and its transfer function
   						//we require a transfer function when a 
 						//volume is added.
   void render(int volume_index);
+  void render_all();	//render all enabled volumes;
   void set_specular(float val);
   void set_diffuse(float val);
+  void set_slice_mode(bool val); //control independently.
+  void set_volume_mode(bool val);
+  void switch_slice_mode(); //switch_cutplane_mode
+  void switch_volume_mode();
 };
 
 #endif
