@@ -948,6 +948,17 @@ void do_rle(){
   }
 }
 
+// used internally to build up the BMP file header
+// writes an integer value into the header data structure at pos
+void
+bmp_header_add_int(unsigned char* header, int& pos, int data)
+{
+    header[pos++] = data & 0xff;
+    header[pos++] = (data >> 8) & 0xff;
+    header[pos++] = (data >> 16) & 0xff;
+    header[pos++] = (data >> 24) & 0xff;
+}
+
 
 void xinetd_listen(){
     //command:
@@ -984,6 +995,48 @@ void xinetd_listen(){
     write(0, offsets, offsets_size*sizeof(offsets[0]));
     write(0, rle, rle_size);	//unsigned byte
 #else
+    unsigned char header[54];
+    int pos = 0;
+    header[pos++] = 'B';
+    header[pos++] = 'M';
+
+    // file size in bytes
+    bmp_header_add_int(header, pos, win_width*win_height*3 + sizeof(header));
+
+    // reserved value (must be 0)
+    bmp_header_add_int(header, pos, 0);
+
+    // offset in bytes to start of bitmap data
+    bmp_header_add_int(header, pos, sizeof(header));
+
+    // size of the BITMAPINFOHEADER
+    bmp_header_add_int(header, pos, 40);
+
+    // width of the image in pixels
+    bmp_header_add_int(header, pos, win_width);
+
+    // height of the image in pixels
+    bmp_header_add_int(header, pos, win_height);
+
+    // 1 plane + 24 bits/pixel << 16
+    bmp_header_add_int(header, pos, 1572865);
+
+    // no compression
+    // size of image for compression
+    bmp_header_add_int(header, pos, 0);
+    bmp_header_add_int(header, pos, 0);
+
+    // x pixels per meter
+    // y pixels per meter
+    bmp_header_add_int(header, pos, 0);
+    bmp_header_add_int(header, pos, 0);
+
+    // number of colors used (0 = compute from bits/pixel)
+    // number of important colors (0 = all colors important)
+    bmp_header_add_int(header, pos, 0);
+    bmp_header_add_int(header, pos, 0);
+
+    write(0, header, sizeof(header));
     write(0, screen_buffer, win_width * win_height * 3);
 #endif
 
