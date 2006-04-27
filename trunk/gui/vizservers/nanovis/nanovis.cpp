@@ -869,12 +869,12 @@ void initGL(void)
    init_cg();	//init cg shaders
    init_lic();  //init line integral convolution
 
-   //create volume renderer
+   //create volume renderer and add volumes to it
    vol_render = new VolumeRenderer(cam, volume[1], tf[0], g_context);
+   volume[2]->move(Vector3(0.42, 0.1, 0.1));
    vol_render->add_volume(volume[2], tf[0], 256);
-   volume[2]->location =Vector3(0.42, 0.1, 0.1);
+   volume[3]->move(Vector3(0.2, -0.1, -0.1));
    vol_render->add_volume(volume[3], tf[0], 256);
-   volume[3]->location =Vector3(0.2, -0.1, -0.1);
 
    
    psys = new ParticleSystem(NMESH, NMESH, g_context, volume[0]->id,

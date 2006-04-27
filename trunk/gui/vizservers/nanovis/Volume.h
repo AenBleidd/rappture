@@ -27,18 +27,24 @@ using namespace std;
 struct CutPlane{
   int orient;	//orientation - 1: xy slice, 2: yz slice, 3: xz slice
   float offset;	//normalized offset [0,1] in the volume
+  bool enabled;
 
   CutPlane(int _orient, float _offset):
 	orient(_orient),
-	offset(_offset){}
+	offset(_offset),
+	enabled(true){}
 };
 
 
 class Volume{
 	
+private:
+	vector <CutPlane> plane; //cut planes
+
 public:
 	Vector3 location;
-	vector <CutPlane> plane; //cut planes
+
+	bool enabled; 
 
 	int width;
 	int height;
@@ -61,9 +67,20 @@ public:
 			int n_component, float* data);
 	~Volume();
 	
-	void activate();
-	void deactivate();
-	void initialize(float* data);
+	void enable(); //VolumeRenderer will render an enabled volume and its cutplanes
+	void disable();
+	void move(Vector3 _loc);
+	bool is_enabled();
+	Vector3* get_location();
+
+	//methods related to cutplanes
+        int add_cutplane(int _orientation, float _location); //add a plane and returns its index
+        void enable_cutplane(int index);
+        void disable_cutplane(int index);
+        void move_cutplane(int index, float _location);
+	CutPlane* get_cutplane(int index);
+	int get_cutplane_count();	//returns the number of cutplanes in the volume
+	bool cutplane_is_enabled(int index);  	//check if a cutplane is enabled
 
 };
 
