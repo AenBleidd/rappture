@@ -32,23 +32,6 @@ option add *XyResult.autoColors {
 
 option add *XyResult*Balloon*Entry.background white widgetDefault
 
-blt::bitmap define XyResult-reset {
-#define reset_width 12
-#define reset_height 12
-static unsigned char reset_bits[] = {
-   0x00, 0x00, 0x00, 0x00, 0xfc, 0x03, 0x04, 0x02, 0x04, 0x02, 0x04, 0x02,
-   0x04, 0x02, 0x04, 0x02, 0x04, 0x02, 0xfc, 0x03, 0x00, 0x00, 0x00, 0x00};
-}
-
-blt::bitmap define XyResult-dismiss {
-#define dismiss_width 10
-#define dismiss_height 8
-static unsigned char dismiss_bits[] = {
-   0x87, 0x03, 0xce, 0x01, 0xfc, 0x00, 0x78, 0x00, 0x78, 0x00, 0xfc, 0x00,
-   0xce, 0x01, 0x87, 0x03};
-}
-
-
 itcl::class Rappture::XyResult {
     inherit itk::Widget
 
@@ -116,7 +99,7 @@ itcl::body Rappture::XyResult::constructor {args} {
     itk_component add reset {
         button $itk_component(controls).reset \
             -borderwidth 1 -padx 1 -pady 1 \
-            -bitmap XyResult-reset \
+            -bitmap [Rappture::icon reset] \
             -command [itcl::code $this _zoom reset]
     } {
         usual
@@ -149,17 +132,8 @@ itcl::body Rappture::XyResult::constructor {args} {
     #
     # Add support for editing axes:
     #
-    Rappture::Balloon $itk_component(hull).axes
+    Rappture::Balloon $itk_component(hull).axes -title "Axis Options"
     set inner [$itk_component(hull).axes component inner]
-    set inner [frame $inner.bd -borderwidth 4 -relief flat]
-    pack $inner -expand yes -fill both
-
-    button $inner.dismiss -bitmap XyResult-dismiss \
-        -relief flat -overrelief raised -command "
-          Rappture::Tooltip::cue hide
-          [list $itk_component(hull).axes deactivate]
-        "
-    grid $inner.dismiss -row 0 -column 1 -sticky e
 
     label $inner.labell -text "Label:"
     entry $inner.label -width 15 -highlightbackground $itk_option(-background)
@@ -493,6 +467,10 @@ itcl::body Rappture::XyResult::_rebuild {} {
                     }
                     $g axis configure $axis -title $label -hide no
                     set _label2axis($ax-$label) $axis
+
+                    # if this axis has a description, add it as a tooltip
+                    set desc [string trim [$xydata hints ${ax}desc]]
+                    Rappture::Tooltip::text $g-$axis $desc
                 }
             }
         }
@@ -530,6 +508,8 @@ itcl::body Rappture::XyResult::_rebuild {} {
             [itcl::code $this _axis drag $axis %x %y]
         $g axis bind $axis <ButtonRelease> \
             [itcl::code $this _axis release $axis %x %y]
+        $g axis bind $axis <KeyPress> \
+            [list ::Rappture::Tooltip::tooltip cancel]
     }
 
     #
@@ -774,32 +754,32 @@ itcl::body Rappture::XyResult::_hilite {state x y} {
 
             if {$x > 0.5*[winfo width $g]} {
                 if {$x < 4} {
-                    set x "-0"
+                    set tipx "-0"
                 } else {
-                    set x "-[expr {$x-4}]"  ;# move tooltip to the left
+                    set tipx "-[expr {$x-4}]"  ;# move tooltip to the left
                 }
             } else {
                 if {$x < -4} {
-                    set x "+0"
+                    set tipx "+0"
                 } else {
-                    set x "+[expr {$x+4}]"  ;# move tooltip to the right
+                    set tipx "+[expr {$x+4}]"  ;# move tooltip to the right
                 }
             }
             if {$y > 0.5*[winfo height $g]} {
                 if {$y < 4} {
-                    set y "-0"
+                    set tipy "-0"
                 } else {
-                    set y "-[expr {$y-4}]"  ;# move tooltip to the top
+                    set tipy "-[expr {$y-4}]"  ;# move tooltip to the top
                 }
             } else {
                 if {$y < -4} {
-                    set y "+0"
+                    set tipy "+0"
                 } else {
-                    set y "+[expr {$y+4}]"  ;# move tooltip to the bottom
+                    set tipy "+[expr {$y+4}]"  ;# move tooltip to the bottom
                 }
             }
             Rappture::Tooltip::text $g $tip
-            Rappture::Tooltip::tooltip show $g $x,$y
+            Rappture::Tooltip::tooltip show $g $tipx,$tipy
         }
     } else {
         #
@@ -831,7 +811,11 @@ itcl::body Rappture::XyResult::_hilite {state x y} {
         }
 
         $g crosshairs configure -hide yes
-        Rappture::Tooltip::tooltip cancel
+
+        # only cancel in plotting area or we'll mess up axes
+        if {[$g inside $x $y]} {
+            Rappture::Tooltip::tooltip cancel
+        }
 
         # there is no currently highlighted element
         set _hilite(elem) ""
@@ -856,24 +840,30 @@ itcl::body Rappture::XyResult::_hilite {state x y} {
 # changes from the panel.
 # ----------------------------------------------------------------------
 itcl::body Rappture::XyResult::_axis {option args} {
-    set inner [$itk_component(hull).axes component inner].bd
+    set inner [$itk_component(hull).axes component inner]
 
     switch -- $option {
         hilite {
             if {[llength $args] != 2} {
                 error "wrong # args: should be \"_axis hilite axis state\""
             }
+            set g $itk_component(plot)
             set axis [lindex $args 0]
             set state [lindex $args 1]
 
             if {$state} {
-                $itk_component(plot) axis configure $axis \
+                $g axis configure $axis \
                     -color $itk_option(-activecolor) \
                     -titlecolor $itk_option(-activecolor)
+
+                set x [expr {[winfo pointerx $g]+4}]
+                set y [expr {[winfo pointery $g]+4}]
+                Rappture::Tooltip::tooltip pending $g-$axis @$x,$y
             } else {
-                $itk_component(plot) axis configure $axis \
+                $g axis configure $axis \
                     -color $itk_option(-foreground) \
                     -titlecolor $itk_option(-foreground)
+                Rappture::Tooltip::tooltip cancel
             }
         }
         click {
@@ -891,6 +881,7 @@ itcl::body Rappture::XyResult::_axis {option args} {
             foreach {min max} [$g axis limits $axis] break
             set _axis(min0) $min
             set _axis(max0) $max
+            Rappture::Tooltip::tooltip cancel
         }
         drag {
             if {[llength $args] != 3} {

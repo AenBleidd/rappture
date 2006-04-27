@@ -26,7 +26,7 @@ package require Itcl
 namespace eval Rappture { # forward declaration }
 namespace eval Rappture::filexfer {
     variable enabled 0                 ;# set to 1 when this is running
-    variable port 9001                 ;# start server on this port
+    variable port 0                    ;# start server on this port
     variable cookie ""                 ;# magic cookie for applet auth
     variable restrictClientAddress ""  ;# allow clients only from this addr
     variable clients                   ;# maps client socket => status
@@ -74,20 +74,15 @@ namespace eval Rappture::filexfer {
         set mime2type($mtype) $type
     }
 
-    #
-    # Set up a safe interpreter for loading filexfer options...
-    #
-    variable optionParser [interp create -safe]
-    foreach cmd [$optionParser eval {info commands}] {
-        $optionParser hide $cmd
-    }
-    # this lets us ignore unrecognized commands in the file:
-    $optionParser invokehidden proc unknown {args} {}
+}
 
-    $optionParser alias filexfer_port Rappture::filexfer::option_port
-    $optionParser alias filexfer_cookie Rappture::filexfer::option_cookie
-    $optionParser alias filexfer_sitelogo Rappture::filexfer::option_sitelogo
-    $optionParser alias filexfer_stylesheet Rappture::filexfer::option_stylesheet
+# must use this name -- plugs into Rappture::resources::load
+proc filexfer_init_resources {} {
+    Rappture::resources::register \
+        filexfer_port Rappture::filexfer::option_port \
+        filexfer_cookie Rappture::filexfer::option_cookie \
+        filexfer_sitelogo Rappture::filexfer::option_sitelogo \
+        filexfer_stylesheet Rappture::filexfer::option_stylesheet
 }
 
 # ----------------------------------------------------------------------
@@ -98,8 +93,6 @@ namespace eval Rappture::filexfer {
 # server was enabled, and 0 otherwise.
 # ----------------------------------------------------------------------
 proc Rappture::filexfer::init {} {
-    global env
-    variable optionParser
     variable enabled
     variable port
     variable clients
@@ -108,26 +101,11 @@ proc Rappture::filexfer::init {} {
     set clients(order) ""
 
     #
-    # Look for a $SESSION variable and a file called
-    # ~/data/sessions/$SESSION/resources.  If found, then
-    # load the settings from that file and start a server
-    # for filexfer.
+    # The port setting should have been set properly in the
+    # "resources" file loaded at the beginning of the app.
+    # If it wasn't, then don't do any filexfer.
     #
-    if {[info exists env(SESSION)]} {
-        set file ~/data/sessions/$env(SESSION)/resources
-        if {![file exists $file]} {
-            return 0
-        }
-        if {[catch {
-            set fid [open $file r]
-            set info [read $fid]
-            close $fid
-            $optionParser eval $info
-        } result]} {
-            after 1 [list tk_messageBox -title Error -icon error -message "Error in resources file:\n$reslt"]
-            return 0
-        }
-
+    if {$port > 0} {
         #
         # If the prescribed port is busy, then exit with a special
         # status code so the middleware knows to try again with another

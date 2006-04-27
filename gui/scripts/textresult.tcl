@@ -35,12 +35,8 @@ itcl::class Rappture::TextResult {
     public method select {option args}
     public method find {option}
 
-    set _dataobj ""  ;# data object currently being displayed
-
-    private common icons
-    set dir [file dirname [info script]]
-    set icons(up) [image create photo -file [file join $dir images findup.gif]]
-    set icons(down) [image create photo -file [file join $dir images finddn.gif]]
+    private variable _dataobj ""  ;# data object currently being displayed
+    private variable _raised      ;# maps all data objects => -raise param
 }
                                                                                 
 itk::usual TextResult {
@@ -79,7 +75,8 @@ itcl::body Rappture::TextResult::constructor {args} {
     pack $itk_component(find) -side left
 
     itk_component add finddown {
-        button $itk_component(controls).finddown -image $icons(down) \
+        button $itk_component(controls).finddown \
+            -image [Rappture::icon finddn] \
             -relief flat -overrelief raised \
             -command [itcl::code $this find down]
     } {
@@ -89,7 +86,8 @@ itcl::body Rappture::TextResult::constructor {args} {
     pack $itk_component(finddown) -side left
 
     itk_component add findup {
-        button $itk_component(controls).findup -image $icons(up) \
+        button $itk_component(controls).findup \
+            -image [Rappture::icon findup] \
             -relief flat -overrelief raised \
             -command [itcl::code $this find up]
     } {
@@ -152,7 +150,7 @@ itcl::body Rappture::TextResult::add {dataobj {settings ""}} {
         -brightness ""
         -width ""
         -linestyle ""
-        -raise ""
+        -raise 0
     }
     foreach {opt val} $settings {
         if {![info exists params($opt)]} {
@@ -161,10 +159,20 @@ itcl::body Rappture::TextResult::add {dataobj {settings ""}} {
         set params($opt) $val
     }
 
-    $itk_component(text) configure -state normal
-    $itk_component(text) delete 1.0 end
-
+    set replace 0
     if {"" != $dataobj} {
+        set _raised($dataobj) $params(-raise)
+        if {"" == $_dataobj} {
+            set replace 1
+        } elseif {$_raised($_dataobj) == 0 && $params(-raise)} {
+            set replace 1
+        }
+    }
+
+    if {$replace} {
+        $itk_component(text) configure -state normal
+        $itk_component(text) delete 1.0 end
+
         if {[$dataobj element -as type] == "log"} {
             # log output -- remove special =RAPPTURE-???=> messages
             set message [$dataobj get]
@@ -203,10 +211,10 @@ itcl::body Rappture::TextResult::add {dataobj {settings ""}} {
             # any other string output -- add it directly
             $itk_component(text) insert end [$dataobj get]
         }
-    }
+        $itk_component(text) configure -state disabled
 
-    $itk_component(text) configure -state disabled
-    set _dataobj $dataobj
+        set _dataobj $dataobj
+    }
 }
 
 # ----------------------------------------------------------------------
@@ -226,10 +234,25 @@ itcl::body Rappture::TextResult::get {} {
 # are specified, then all curves are deleted.
 # ----------------------------------------------------------------------
 itcl::body Rappture::TextResult::delete {args} {
-    $itk_component(text) configure -state normal
-    $itk_component(text) delete 1.0 end
-    $itk_component(text) configure -state disabled
-    set _dataobj ""
+    if {[llength $args] == 0} {
+        # delete everything
+        catch {unset _raised}
+        set _dataobj ""
+        $itk_component(text) configure -state normal
+        $itk_component(text) delete 1.0 end
+        $itk_component(text) configure -state disabled
+    } else {
+        # delete these specific objects
+        foreach obj $args {
+            catch {unset _raised($obj)}
+            if {$obj == $_dataobj} {
+                set _dataobj ""
+                $itk_component(text) configure -state normal
+                $itk_component(text) delete 1.0 end
+                $itk_component(text) configure -state disabled
+            }
+        }
+    }
 }
 
 # ----------------------------------------------------------------------

@@ -28,6 +28,8 @@ itcl::class Rappture::Radiodial {
 
     itk_option define -min min Min ""
     itk_option define -max max Max ""
+    itk_option define -variable variable Variable ""
+
     itk_option define -thickness thickness Thickness 0
     itk_option define -length length Length 0
 
@@ -49,15 +51,18 @@ itcl::class Rappture::Radiodial {
     public method current {args}
     public method color {value}
                                                                                 
+    protected method _setCurrent {val}
     protected method _redraw {}
     protected method _click {x y}
     protected method _navigate {offset}
     protected method _limits {}
     protected method _fixSize {}
+    protected method _fixValue {args}
 
     private variable _values ""       ;# list of all values on the dial
     private variable _val2label       ;# maps value => label
     private variable _current ""      ;# current value (where pointer is)
+    private variable _variable ""     ;# variable associated with -variable
 
     private variable _spectrum ""     ;# width allocated for values
     private variable _activecolor ""  ;# width allocated for values
@@ -102,6 +107,7 @@ itcl::body Rappture::Radiodial::constructor {args} {
 # DESTRUCTOR
 # ----------------------------------------------------------------------
 itcl::body Rappture::Radiodial::destructor {} {
+    configure -variable ""  ;# remove variable trace
     after cancel [itcl::code $this _redraw]
 }
 
@@ -122,7 +128,7 @@ itcl::body Rappture::Radiodial::add {label {value ""}} {
     set _val2label($value) $label
 
     if {"" == $_current} {
-        set _current $value
+        _setCurrent $value
     }
 
     after cancel [itcl::code $this _redraw]
@@ -136,7 +142,7 @@ itcl::body Rappture::Radiodial::add {label {value ""}} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Radiodial::clear {} {
     set _values ""
-    set _current ""
+    _setCurrent ""
     catch {unset _val2label}
 
     after cancel [itcl::code $this _redraw]
@@ -167,7 +173,7 @@ itcl::body Rappture::Radiodial::get {args} {
     if {"" == $index} {
         set ilist ""
         for {set i 0} {$i < [llength $_values]} {incr i} {
-            append ilist $i
+            lappend ilist $i
         }
     } elseif {"current" == $index} {
         set ilist [lsearch -exact $_values $_current]
@@ -234,7 +240,7 @@ itcl::body Rappture::Radiodial::current {args} {
         if {!$found} {
             error "bad value \"$newval\""
         }
-        set _current $newval
+        _setCurrent $newval
 
         after cancel [itcl::code $this _redraw]
         after idle [itcl::code $this _redraw]
@@ -276,6 +282,24 @@ itcl::body Rappture::Radiodial::color {value} {
         }
     }
     return $color
+}
+
+# ----------------------------------------------------------------------
+# USAGE: _setCurrent <value>
+#
+# Called automatically whenever the widget changes size to redraw
+# all elements within it.
+# ----------------------------------------------------------------------
+itcl::body Rappture::Radiodial::_setCurrent {value} {
+    set _current $value
+    if {"" != $_variable} {
+        upvar #0 $_variable var
+        if {[info exists _val2label($value)]} {
+            set var $_val2label($value)
+        } else {
+            set var $value
+        }
+    }
 }
 
 # ----------------------------------------------------------------------
@@ -388,7 +412,7 @@ itcl::body Rappture::Radiodial::_click {x y} {
         }
 
         if {$vnearest != $_current} {
-            set _current $vnearest
+            _setCurrent $vnearest
             _redraw
 
             event generate $itk_component(hull) <<Value>>
@@ -416,7 +440,7 @@ itcl::body Rappture::Radiodial::_navigate {offset} {
 
         set newval [lindex $_values $index]
         if {$newval != $_current} {
-            set _current $newval
+            _setCurrent $newval
             _redraw
 
             event generate $itk_component(hull) <<Value>>
@@ -481,6 +505,38 @@ itcl::body Rappture::Radiodial::_fixSize {} {
 }
 
 # ----------------------------------------------------------------------
+# USAGE: _fixValue ?<name1> <name2> <op>?
+#
+# Invoked automatically whenever the -variable associated with this
+# widget is modified.  Copies the value to the current settings for
+# the widget.
+# ----------------------------------------------------------------------
+itcl::body Rappture::Radiodial::_fixValue {args} {
+    if {"" == $itk_option(-variable)} {
+        return
+    }
+    upvar #0 $itk_option(-variable) var
+
+    set newval $var
+    set found 0
+    foreach v $_values {
+        if {[string equal $_val2label($v) $newval]} {
+            set newval $v
+            set found 1
+            break
+        }
+    }
+    if {!$found && "" != $newval} {
+        error "bad value \"$newval\""
+    }
+    set _current $newval  ;# set current directly, so we don't trigger again
+
+    after cancel [itcl::code $this _redraw]
+    after idle [itcl::code $this _redraw]
+    event generate $itk_component(hull) <<Value>>
+}
+
+# ----------------------------------------------------------------------
 # CONFIGURE: -thickness
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::Radiodial::thickness {
@@ -508,6 +564,7 @@ itcl::configbody Rappture::Radiodial::valuewidth {
     if {![string is integer $itk_option(-valuewidth)]} {
         error "bad value \"$itk_option(-valuewidth)\": should be integer"
     }
+    _fixSize
     after cancel [itcl::code $this _redraw]
     after idle [itcl::code $this _redraw]
 }
@@ -552,4 +609,26 @@ itcl::configbody Rappture::Radiodial::activelinecolor {
     }
     after cancel [itcl::code $this _redraw]
     after idle [itcl::code $this _redraw]
+}
+
+# ----------------------------------------------------------------------
+# CONFIGURE: -variable
+# ----------------------------------------------------------------------
+itcl::configbody Rappture::Radiodial::variable {
+    if {"" != $_variable} {
+        upvar #0 $_variable var
+        trace remove variable var write [itcl::code $this _fixValue]
+    }
+
+    set _variable $itk_option(-variable)
+
+    if {"" != $_variable} {
+        upvar #0 $_variable var
+        trace add variable var write [itcl::code $this _fixValue]
+
+        # sync to the current value of this variable
+        if {[info exists var]} {
+            _fixValue
+        }
+    }
 }

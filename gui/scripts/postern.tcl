@@ -15,14 +15,6 @@
 package require BLT
 package require Itk
 
-blt::bitmap define Postern-dismiss {
-#define dismiss_width 10
-#define dismiss_height 8
-static unsigned char dismiss_bits[] = {
-   0x87, 0x03, 0xce, 0x01, 0xfc, 0x00, 0x78, 0x00, 0x78, 0x00, 0xfc, 0x00,
-   0xce, 0x01, 0x87, 0x03};
-}
-
 option add *Postern.size 2 widgetDefault
 option add *Postern.activeColor gray widgetDefault
 option add *Postern.popup above widgetDefault
@@ -85,16 +77,9 @@ itcl::body Rappture::Postern::constructor {args} {
     # Build the debug dialog.
     #
     Rappture::Balloon $itk_component(hull).popup \
+        -title "Secret Command Console" \
         -deactivatecommand [itcl::code $this activate off]
-
     set inner [$itk_component(hull).popup component inner]
-    set inner [frame $inner.bd -borderwidth 4 -relief flat]
-    pack $inner -expand yes -fill both
-
-    button $inner.dismiss -bitmap Postern-dismiss \
-        -relief flat -overrelief raised \
-        -command [itcl::code $this close]
-    pack $inner.dismiss -anchor e
 
     Rappture::Scroller $inner.area
     pack $inner.area -expand yes -fill both
@@ -202,7 +187,7 @@ itcl::body Rappture::Postern::open {} {
         $itk_component(hull).popup activate \
             $itk_component(hull) $itk_option(-popup)
 
-        set text [$itk_component(hull).popup component inner].bd.area.text
+        set text [$itk_component(hull).popup component inner].area.text
         focus $text
 
         # make puts send output to this display
@@ -225,7 +210,7 @@ itcl::body Rappture::Postern::close {} {
 # Used to handle various editing operations in the text area.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Postern::command {option} {
-    set text [$itk_component(hull).popup component inner].bd.area.text
+    set text [$itk_component(hull).popup component inner].area.text
 
     switch -- $option {
         prompt {
@@ -330,7 +315,7 @@ itcl::body Rappture::Postern::_fake_puts {arglist} {
         }
     }
 
-    set text [$itk_component(hull).popup component inner].bd.area.text
+    set text [$itk_component(hull).popup component inner].area.text
     if {$channel == "stdout" || $channel == "stderr"} {
         $text insert end $string $channel
         if {!$params(-nonewline)} {

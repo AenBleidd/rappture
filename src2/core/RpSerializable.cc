@@ -1,16 +1,12 @@
 /*
- * ----------------------------------------------------------------------
- *  Rappture::Serializable
- *    Base class for any object that can be serialized into a stream,
- *    then saved to a file or written to a socket, and reconstituted
- *    into its original form.  Serializable objects can be added to
- *    a serializer, which handles the overall conversion.
- *
  * ======================================================================
- *  AUTHOR:  Carol X Song, Purdue University
- *           Michael McLennan, Purdue University
- *  Copyright (c) 2004-2006  Purdue Research Foundation
+ *  Rappture::Serializable
  *
+ *  AUTHOR:  Michael McLennan, Purdue University
+ *           Carol X Song, Purdue University
+ *
+ *  Copyright (c) 2004-2006  Purdue Research Foundation
+ * ----------------------------------------------------------------------
  *  See the file "license.terms" for information on usage and
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  * ======================================================================

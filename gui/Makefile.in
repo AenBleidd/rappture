@@ -338,7 +338,8 @@ install-lib-binaries: installdirs
         done;
 	$(TCLSH_PROG) $(srcdir)/cf/mkindex.tcl $(DESTDIR)$(pkglibdir)/scripts
 	$(mkinstalldirs) $(pkglibdir)/scripts/images
-	@for i in $(srcdir)/scripts/images/*.gif; do \
+	@for i in $(srcdir)/scripts/images/*.gif \
+		$(srcdir)/scripts/images/*.xbm; do \
 	    echo "Installing $$i" ; \
 	    $(INSTALL_DATA) $$i $(DESTDIR)$(pkglibdir)/scripts/images ; \
         done;

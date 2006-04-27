@@ -1,16 +1,12 @@
 /*
- * ----------------------------------------------------------------------
- *  Rappture::SerialBuffer
- *    Used by the Serializer to build up the buffer of serialized
- *    data.  Similar to a string, but it handles nulls and other
- *    control characters.  Also handles big/little endian order
- *    properly.
- *
  * ======================================================================
- *  AUTHOR:  Carol X Song, Purdue University
- *           Michael McLennan, Purdue University
- *  Copyright (c) 2004-2006  Purdue Research Foundation
+ *  Rappture::SerialBuffer
  *
+ *  AUTHOR:  Michael McLennan, Purdue University
+ *           Carol X Song, Purdue University
+ *
+ *  Copyright (c) 2004-2006  Purdue Research Foundation
+ * ----------------------------------------------------------------------
  *  See the file "license.terms" for information on usage and
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  * ======================================================================
@@ -27,12 +23,22 @@
 
 using namespace Rappture;
 
+/**
+ * Construct an empty SerialBuffer.
+ */
 SerialBuffer::SerialBuffer()
   : _buffer(),
     _pos(0)
 {
 }
 
+/**
+ * Construct a SerialBuffer loaded with bytes produced by another
+ * SerialBuffer.  This is used to decode information from the buffer.
+ *
+ * @param bytes pointer to bytes being decoded.
+ * @param nbytes number of bytes being decoded.
+ */
 SerialBuffer::SerialBuffer(const char* bytes, int nbytes)
   : _buffer(),
     _pos(0)
@@ -43,12 +49,18 @@ SerialBuffer::SerialBuffer(const char* bytes, int nbytes)
     }
 }
 
+/**
+ * Copy constructor
+ */
 SerialBuffer::SerialBuffer(const SerialBuffer& sb)
   : _buffer(sb._buffer),
     _pos(0)  // auto-rewind
 {
 }
 
+/**
+ * Assignment operator
+ */
 SerialBuffer&
 SerialBuffer::operator=(const SerialBuffer& sb)
 {
@@ -60,18 +72,32 @@ SerialBuffer::~SerialBuffer()
 {
 }
 
+/**
+ * Get the bytes currently stored in the buffer.  These bytes can
+ * be stored, and used later to construct another SerialBuffer to
+ * decode the information.
+ *
+ * @return Pointer to the bytes in the buffer.
+ */
 const char*
 SerialBuffer::bytes() const
 {
     return &_buffer[0];
 }
 
+/**
+ * Get the number of bytes currently stored in the buffer.
+ * @return Number of the bytes in the buffer.
+ */
 int
 SerialBuffer::size() const
 {
     return _buffer.size();
 }
 
+/**
+ * Clear the buffer, making it empty.
+ */
 SerialBuffer&
 SerialBuffer::clear()
 {
