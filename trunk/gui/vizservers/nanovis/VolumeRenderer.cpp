@@ -30,7 +30,7 @@ VolumeRenderer::VolumeRenderer(Camera* _cam, Volume* _vol, TransferFunction* _tf
   volume.clear();
   tf.clear(); 
   slice.clear();
-  add_volume(_vol, _tf, 256);
+  add_volume(_vol, _tf, 64);
 
   //initialize the volume shaders
   //
@@ -92,7 +92,7 @@ void VolumeRenderer::render_all(){
     if(volume[i]->is_enabled())
       total_enabled_volumes ++;
   }
-  fprintf(stderr, "total volumes rendered: %d\n", total_enabled_volumes);
+  //fprintf(stderr, "total volumes rendered: %d\n", total_enabled_volumes);
 
   ConvexPolygon*** polys = new ConvexPolygon**[total_enabled_volumes];	//two dimension pointer array
   									//storing the slices
@@ -180,12 +180,12 @@ void VolumeRenderer::render_all(){
     Vector4 vert3 = (Vector4(+10, +10, -0.5, 1));
     Vector4 vert4 = (Vector4(+10, -10, -0.5, 1));
 
+#if 1    
     //Render cutplanes first with depth test enabled.
     //They will mark the image with their depth values. Then we render other volume slices.
     //These volume slices will be occluded correctly by the cutplanes and vice versa.
-    glEnable(GL_DEPTH_TEST);
-    glDisable(GL_BLEND);
 
+    ConvexPolygon static_poly;
     for(int i=0; i<volume[volume_index]->get_cutplane_count(); i++){
       if(!volume[volume_index]->cutplane_is_enabled(i))
         continue;
@@ -198,18 +198,21 @@ void VolumeRenderer::render_all(){
         vert2 = Vector4(-10, +10, offset, 1);
         vert3 = Vector4(+10, +10, offset, 1);
         vert4 = Vector4(+10, -10, offset, 1);
+	//continue;
       }
       else if(axis==2){
         vert1 = Vector4(offset, -10, -10, 1);
         vert2 = Vector4(offset, +10, -10, 1);
         vert3 = Vector4(offset, +10, +10, 1);
         vert4 = Vector4(offset, -10, +10, 1);
+	//continue;
       }
       else if(axis==3){
         vert1 = Vector4(-10, offset, -10, 1);
         vert2 = Vector4(+10, offset, -10, 1);
         vert3 = Vector4(+10, offset, +10, 1);
         vert4 = Vector4(-10, offset, +10, 1);
+	//continue;
       }
 
       vert1 = model_view_no_trans.transform(vert1);
@@ -217,39 +220,45 @@ void VolumeRenderer::render_all(){
       vert3 = model_view_no_trans.transform(vert3);
       vert4 = model_view_no_trans.transform(vert4);
 
-      ConvexPolygon poly;
-      poly.vertices.clear();
+      ConvexPolygon* p = &static_poly;
+      p->vertices.clear();
 
-      poly.append_vertex(vert1);
-      poly.append_vertex(vert2);
-      poly.append_vertex(vert3);
-      poly.append_vertex(vert4);
+      p->append_vertex(vert1);
+      p->append_vertex(vert2);
+      p->append_vertex(vert3);
+      p->append_vertex(vert4);
 
       for(int k=0; k<6; k++){
-        poly.clip(volume_planes[k], true);
+        p->clip(volume_planes[k], true);
       }
 
-      //poly->transform(model_view_inverse);
-      //poly->translate(shift_4d);
-      //poly->transform(model_view);
-      poly.transform(model_view_no_trans_inverse);
-      poly.transform(model_view_trans);
+      p->transform(model_view_no_trans_inverse);
+      p->transform(model_view_trans);
 
       glPushMatrix();
       glScalef(volume[volume_index]->aspect_ratio_width, volume[volume_index]->aspect_ratio_height, volume[volume_index]->aspect_ratio_depth);
 
-      activate_one_volume_shader(volume_index, 0, 1);
+      activate_one_volume_shader(volume_index, .0, 1.);
       glPopMatrix();
 
+      glEnable(GL_DEPTH_TEST);
+      glDisable(GL_BLEND);
+
       glBegin(GL_POLYGON);
-        poly.Emit(true); 
+        p->Emit(true); 
       glEnd();
+      glDisable(GL_DEPTH_TEST);
 
       deactivate_one_volume_shader();
     } //done cutplanes
-
+#endif
    
     //Now do volume rendering
+
+    vert1 = (Vector4(-10, -10, -0.5, 1));
+    vert2 = (Vector4(-10, +10, -0.5, 1));
+    vert3 = (Vector4(+10, +10, -0.5, 1));
+    vert4 = (Vector4(+10, -10, -0.5, 1));
 
     int counter = 0;
     //transform slices and store them
@@ -285,7 +294,7 @@ void VolumeRenderer::render_all(){
 	total_rendered_slices++; 
     }
   } //iterate all volumes
-
+  fprintf(stderr, "total slices: %d\n", total_rendered_slices); 
 
   //We sort all the polygons according to their eye-space depth, from farthest to the closest.
   //This step is critical for correct blending
@@ -334,6 +343,8 @@ void VolumeRenderer::render_all(){
 
     deactivate_one_volume_shader();
   }
+  //fprintf(stderr, "\n\n");
+
 
   glDisable(GL_DEPTH_TEST);
   glDisable(GL_BLEND);

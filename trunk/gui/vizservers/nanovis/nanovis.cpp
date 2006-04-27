@@ -861,8 +861,8 @@ void initGL(void)
 
    load_vector_file(0, "./data/J-wire-vec.dx");
    load_volume_file(1, "./data/mu-wire-3d.dx");
-   load_volume_file(2, "./data/mu-wire-3d.dx");
-   load_volume_file(3, "./data/mu-wire-3d.dx");
+   //load_volume_file(2, "./data/mu-wire-3d.dx");
+   //load_volume_file(3, "./data/mu-wire-3d.dx");
 
    init_tf();   //initialize transfer function
    init_fbo();	//frame buffer objects
@@ -871,10 +871,10 @@ void initGL(void)
 
    //create volume renderer and add volumes to it
    vol_render = new VolumeRenderer(cam, volume[1], tf[0], g_context);
-   volume[2]->move(Vector3(0.42, 0.1, 0.1));
-   vol_render->add_volume(volume[2], tf[0], 256);
-   volume[3]->move(Vector3(0.2, -0.1, -0.1));
-   vol_render->add_volume(volume[3], tf[0], 256);
+   //volume[2]->move(Vector3(0.42, 0.1, 0.1));
+   //vol_render->add_volume(volume[2], tf[0], 256);
+   //volume[3]->move(Vector3(0.2, -0.1, -0.1));
+   //vol_render->add_volume(volume[3], tf[0], 256);
 
    
    psys = new ParticleSystem(NMESH, NMESH, g_context, volume[0]->id,
