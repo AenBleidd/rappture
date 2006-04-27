@@ -17,8 +17,6 @@
  */
 
 
-//#define PHONG_SHADING
-
 PixelOut main(v2f IN, /* uniform sampler1D tf,*/
 		uniform sampler3D volume,
 		uniform sampler1D tf,
@@ -29,58 +27,41 @@ PixelOut main(v2f IN, /* uniform sampler1D tf,*/
 	
   PixelOut OUT;
   float4 tex_coord = mul(modelViewInv, IN.TexCoord);
-	
-//if(renderParameters.y==1){ //1 component
+  float4 sample = tex3D(volume, tex_coord.xyz);
 
-    float4 sample = tex3D(volume, tex_coord.xyz);
+  //sample the transfer function texture
+  float4 color = tex1D(tf, sample.x);
 
-#ifdef PHONG_SHADING
-      //lighting parameters 
-      float3 normal;
-      if(length(sample.yzw)>0.0)
-        normal = normalize(sample.yzw);
-
-      float3 light_vector = normalize(IN.Light);
-      float3 eye_vector = normalize(IN.EyeVector);
-      float3 half_vector = normalize(eye_vector+light_vector);
-
-#endif
-
-      //sample the transfer function texture
-      float4 color = tex1D(tf, sample.x);
-      //color.w = renderParameters.y*color.w/renderParameters.x;
-      //color.w = 0.5;
-
-      //float4 color = float4(sample.x, 0, 0, 1);
-        
-
-#ifdef PHONG_SHADING
-      //lighting computation
-      float normal_dot_light = max(dot(normal, light_vector), 0);
-      float normal_dot_half = max(dot(normal, half_vector), 0);
-
-      float ambient = 0.1;
-      float diffuse = normal_dot_light * renderParameters.z;
-      float specular = pow(normal_dot_half, renderParameters.w)*(1-ambient-diffuse);
-
-      float lighting = ambient + diffuse + specular;
-      color.xyz = color.xyz * lighting;
-
-      //debug
-      //color.xyz = normal.xyz;       //display normals
-#endif
-
-      OUT.Color = color;
-//  }
-
-/*
-  else if(renderParameters.y==0){
-    //3 component
-    float3 sample = tex3D(volume, tex_coord.xyz).xyz;
-    OUT.Color = float4(3*sample, 2*length(sample)/renderParameters.x);
+  if(renderParameters.x < 0.5) 
+  { //If single slice render, only flat shading, completely opaque.
+    color.w = 1;
+    //color.w = renderParameters.y*color.w/renderParameters.x;
   }
-*/
+  else 
+  { //regular volume rendering, we do PHONG SHADING 
 
+    //lighting parameters 
+    float3 normal;
+    if(length(sample.yzw)>0.0)
+      normal = normalize(sample.yzw);
+
+    float3 light_vector = normalize(IN.Light);
+    float3 eye_vector = normalize(IN.EyeVector);
+    float3 half_vector = normalize(eye_vector+light_vector);
+
+    //lighting computation
+    float normal_dot_light = max(dot(normal, light_vector), 0);
+    float normal_dot_half = max(dot(normal, half_vector), 0);
+
+    float ambient = 0.1;
+    float diffuse = normal_dot_light * renderParameters.z;
+    float specular = pow(normal_dot_half, renderParameters.w)*(1-ambient-diffuse);
+
+    float lighting = ambient + diffuse + specular;
+    color.xyz = color.xyz * lighting;
+  }
+
+  OUT.Color = color;
   //debug
   //OUT.Color = float4(tex_coord, 1);
 
