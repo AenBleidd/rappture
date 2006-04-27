@@ -63,7 +63,7 @@ PixelOut main(v2f IN, /* uniform sampler1D tf,*/
 
   OUT.Color = color;
   //debug
-  //OUT.Color = float4(tex_coord, 1);
+  //OUT.Color = float4(tex_coord.xyz, 1);
 
   return OUT;
 }

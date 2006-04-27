@@ -186,8 +186,17 @@ void ConvexPolygon::Emit(bool use_texture)
 				//glTexCoord4fv((float *)&(vertices[i]));
 			}
 			glVertex4fv((float *)&(vertices[i]));
+			/*
+			//debug
+			fprintf(stderr, "(%f %f %f %f)", 
+					vertices[i].x,
+			     		vertices[i].y,
+			      		vertices[i].z,
+			     		vertices[i].w );
+			*/
 		}
-   	 }
+   	 } 
+	//fprintf(stderr, " "); 
 }
 
 

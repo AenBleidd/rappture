@@ -18,6 +18,7 @@
 
 #include <GL/glew.h>
 #include <Cg/cgGL.h>
+#include <GL/glut.h>
 #include <math.h>
 #include <stdio.h>
 #include <assert.h>
@@ -42,7 +43,6 @@ private:
   vector <Volume*> volume;	//array of volumes
   vector <TransferFunction*> tf;//array of corresponding transfer functions 
   vector <int> slice;		//array of corresponding number of slices
-  vector <bool> render_bit;	//bits marking which volume(s) to render
   int n_volumes;
 
   //shading parameters
