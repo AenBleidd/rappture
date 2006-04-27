@@ -19,7 +19,8 @@ LIB_CLIENT = -L/opt/render/lib -lGL -lglut -pthread -lstdc++
 INCLUDES = -I../src2/core -I/opt/render/include -I/autohome/u76/qiaow/Cg/usr/include
 CFLAG = -g -c -Wall $(INCLUDES)
 
-all: nanovis simclient 
+all: nanovis 
+#  simclient 
 
 clean:
 	rm -f *.o nanovis client simclient
@@ -57,9 +58,9 @@ RenderVertexArray.o: RenderVertexArray.h RenderVertexArray.cpp
 client: $(OBJ_CLIENT) 
 	gcc -g -o client $(OBJ_CLIENT) $(LIB_CLIENT)
 
-simclient: Event.o nanoscale/EventPlayer.cpp
-	gcc -g $(INCLUDES) $(NANOSCALESRC)/EventPlayer.cpp $(NANOSCALESRC)/clientlib.cpp -o simclient Event.o $(LIB_CLIENT)
-	#g++ -g $(INCLUDES) $(NANOSCALESRC)/EventPlayer.cpp $(NANOSCALESRC)/clientlib.cpp -o simclient Event.o
+#simclient: Event.o $(NANOSCALESRC)/EventPlayer.cpp
+#	gcc -g $(INCLUDES) $(NANOSCALESRC)/EventPlayer.cpp $(NANOSCALESRC)/clientlib.cpp -o simclient Event.o $(LIB_CLIENT)
+#	g++ -g $(INCLUDES) $(NANOSCALESRC)/EventPlayer.cpp $(NANOSCALESRC)/clientlib.cpp -o simclient Event.o
 
 Color.o: Color.cpp Color.h
 	gcc $(CFLAG) Color.cpp

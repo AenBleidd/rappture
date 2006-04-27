@@ -17,7 +17,7 @@
  */
 
 
-#define PHONG_SHADING
+//#define PHONG_SHADING
 
 PixelOut main(v2f IN, /* uniform sampler1D tf,*/
 		uniform sampler3D volume,
@@ -48,7 +48,8 @@ PixelOut main(v2f IN, /* uniform sampler1D tf,*/
 
       //sample the transfer function texture
       float4 color = tex1D(tf, sample.x);
-      color.w = renderParameters.y*color.w/renderParameters.x;
+      //color.w = renderParameters.y*color.w/renderParameters.x;
+      //color.w = 0.5;
 
       //float4 color = float4(sample.x, 0, 0, 1);
         
