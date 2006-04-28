@@ -798,6 +798,8 @@ void init_particles(){
 
 void init_tf(){
   float data[256*4];
+
+  //alternatively, a default transfer function also works.
   memset(data, 0, 4*256*sizeof(float));
 
   tf[0] = new TransferFunction(256, data);
