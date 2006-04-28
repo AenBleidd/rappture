@@ -31,13 +31,17 @@ Texture3D::Texture3D(int width, int height, int depth, GLuint type=GL_FLOAT, GLu
 	this->height = height;
 	this->depth = depth;
 
-	int m = (width > height) ? width : height;
-	m = (m > depth) ? m : depth; 
+	//int m = (width > height) ? width : height;
+	//m = (m > depth) ? m : depth; 
 
 	//int m = max(max(width, height), depth);
-	this->aspect_ratio_width = (double)width/(double)m;
-	this->aspect_ratio_height = (double)height/(double)m;
-	this->aspect_ratio_depth = (double)depth/(double)m;
+	this->aspect_ratio_width = 1.;
+	this->aspect_ratio_height = (double)height/(double)width;
+	this->aspect_ratio_depth = (double)depth/(double)width;
+
+	//this->aspect_ratio_width = (double)width/(double)m;
+	//this->aspect_ratio_height = (double)height/(double)m;
+	//this->aspect_ratio_depth = (double)depth/(double)m;
 
 	this->type = type;
 	this->interp_type = interp;

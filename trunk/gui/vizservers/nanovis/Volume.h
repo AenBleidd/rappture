@@ -40,30 +40,32 @@ class Volume{
 	
 private:
 	vector <CutPlane> plane; //cut planes
+	int n_components;
+
+	Texture3D* tex;	//OpenGL texture storing the volume
 
 public:
 	Vector3 location;
 
 	bool enabled; 
+	int n_slice; 	//number of slices when rendered. The greater the better quality, lower speed. 
 
-	int width;
-	int height;
-	int depth;
+	int width; 	//The resolution of the data (how many points in each direction.
+	int height;	//It is different from the size of the volume object drawn on screen.
+	int depth;	//Width, height and depth together determing the proprotion of the volume ONLY.
+	
+        float size;	//This is the scaling factor that will size the volume on screen.
+			//A render program drawing different objects, always knows how large an object
+			//is in relation to other objects. This size is provided by the render engine.
 
 	float aspect_ratio_width;
 	float aspect_ratio_height;
 	float aspect_ratio_depth;
 
-	NVISdatatype type;
-	NVISinterptype interp_type;
-	int n_components;
-
-	Texture3D* tex;	//OpenGL texture storing the volume
 	NVISid id;   //OpenGL textue identifier (==tex->id)
 
 	Volume(float x, float y, float z, 
-			int width, int height, int depth, 
-			NVISdatatype type, NVISinterptype interp,
+			int width, int height, int depth, float size,
 			int n_component, float* data);
 	~Volume();
 	
@@ -72,6 +74,9 @@ public:
 	void move(Vector3 _loc);
 	bool is_enabled();
 	Vector3* get_location();
+
+	void set_n_slice(int val); //set number of slices
+	int get_n_slice();	//return number of slices
 
 	//methods related to cutplanes
         int add_cutplane(int _orientation, float _location); //add a plane and returns its index

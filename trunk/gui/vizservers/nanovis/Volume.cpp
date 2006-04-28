@@ -13,28 +13,29 @@
  * ======================================================================
  */
 
+#include <assert.h>
 #include "Volume.h"
 
 
 Volume::Volume(float x, float y, float z,
-		int w, int h, int d, 
-		NVISdatatype t, NVISinterptype interp, int n, float* data):
+		int w, int h, int d, float s, 
+		int n, float* data):
 	width(w),
 	height(h),
 	depth(d),
-	type(t),
-	interp_type(interp),
+	size(s),
 	n_components(n),
-	enabled(true)
+	enabled(true),
+	n_slice(256) //defualt value
 {
 
-  tex = new Texture3D(w, h, d, t, interp, n);
+  tex = new Texture3D(w, h, d, NVIS_FLOAT, NVIS_LINEAR_INTERP, n);
   tex->initialize(data);
   id = tex->id;
 
-  aspect_ratio_width = tex->aspect_ratio_width;
-  aspect_ratio_height = tex->aspect_ratio_height;
-  aspect_ratio_depth = tex->aspect_ratio_depth;
+  aspect_ratio_width = s*tex->aspect_ratio_width;
+  aspect_ratio_height = s*tex->aspect_ratio_height;
+  aspect_ratio_depth = s*tex->aspect_ratio_depth;
 
   location = Vector3(x,y,z);
 
@@ -91,3 +92,7 @@ bool Volume::cutplane_is_enabled(int index){
   assert(index < plane.size());
   return plane[index].enabled; 
 }
+
+void Volume::set_n_slice(int n) { n_slice = n; }
+int Volume::get_n_slice() { return n_slice; }
+

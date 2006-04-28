@@ -647,7 +647,7 @@ void load_volume(int index, int width, int height, int depth, int n_component, f
     volume[index]=0;
   }
 
-  volume[index] = new Volume(0.f, 0.f, 0.f, width, height, depth, NVIS_FLOAT, NVIS_LINEAR_INTERP, n_component, data);
+  volume[index] = new Volume(0.f, 0.f, 0.f, width, height, depth, 1.,  n_component, data);
   assert(volume[index]!=0);
 }
 
@@ -861,7 +861,7 @@ void initGL(void)
 
    load_vector_file(0, "./data/J-wire-vec.dx");
    load_volume_file(1, "./data/mu-wire-3d.dx");
-   //load_volume_file(2, "./data/mu-wire-3d.dx");
+   load_volume_file(2, "./data/mu-wire-3d.dx");
    //load_volume_file(3, "./data/mu-wire-3d.dx");
 
    init_tf();   //initialize transfer function
@@ -870,11 +870,14 @@ void initGL(void)
    init_lic();  //init line integral convolution
 
    //create volume renderer and add volumes to it
-   vol_render = new VolumeRenderer(cam, volume[1], tf[0], g_context);
-   //volume[2]->move(Vector3(0.42, 0.1, 0.1));
-   //vol_render->add_volume(volume[2], tf[0], 256);
+   vol_render = new VolumeRenderer(g_context);
+   vol_render->add_volume(volume[1], tf[0]);
+
+   volume[2]->move(Vector3(0.42, 0.1, 0.1));
+   vol_render->add_volume(volume[2], tf[0]);
+
    //volume[3]->move(Vector3(0.2, -0.1, -0.1));
-   //vol_render->add_volume(volume[3], tf[0], 256);
+   //vol_render->add_volume(volume[3], tf[0]);
 
    
    psys = new ParticleSystem(NMESH, NMESH, g_context, volume[0]->id,
