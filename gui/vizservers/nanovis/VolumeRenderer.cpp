@@ -16,24 +16,26 @@
 #include "VolumeRenderer.h"
 
 
-VolumeRenderer::VolumeRenderer(){}
-
-VolumeRenderer::VolumeRenderer(Camera* _cam, Volume* _vol, TransferFunction* _tf,
-				CGcontext _context):
-  cam(_cam),
+VolumeRenderer::VolumeRenderer(CGcontext _context):
   n_volumes(0),
   g_context(_context),
   slice_mode(false),
-  volume_mode(true)
+  volume_mode(true),
+  live_diffuse(5.),
+  live_specular(5.)
 {
-  //init the vectors for volumes and transfer functions
   volume.clear();
   tf.clear(); 
-  slice.clear();
-  add_volume(_vol, _tf, 64);
 
-  //initialize the volume shaders
-  //
+  init_shaders();
+}
+
+
+VolumeRenderer::~VolumeRenderer(){}
+
+//initialize the volume shaders
+void VolumeRenderer::init_shaders(){
+  
   //standard vertex program
   m_vert_std_vprog = loadProgram(g_context, CG_PROFILE_VP30, CG_SOURCE, "./shaders/vertex_std.cg");
   m_mvp_vert_std_param = cgGetNamedParameter(m_vert_std_vprog, "modelViewProjMatrix");
@@ -42,25 +44,21 @@ VolumeRenderer::VolumeRenderer(Camera* _cam, Volume* _vol, TransferFunction* _tf
   //volume rendering shader
   m_one_volume_fprog = loadProgram(g_context, CG_PROFILE_FP30, CG_SOURCE, "./shaders/one_volume.cg");
   m_vol_one_volume_param = cgGetNamedParameter(m_one_volume_fprog, "volume");
-  cgGLSetTextureParameter(m_vol_one_volume_param, volume[0]->id);
+  //cgGLSetTextureParameter(m_vol_one_volume_param, _vol->id);
   m_tf_one_volume_param = cgGetNamedParameter(m_one_volume_fprog, "tf");
-  cgGLSetTextureParameter(m_tf_one_volume_param, tf[0]->id);
+  //cgGLSetTextureParameter(m_tf_one_volume_param, _tf->id);
   m_mvi_one_volume_param = cgGetNamedParameter(m_one_volume_fprog, "modelViewInv");
   m_mv_one_volume_param = cgGetNamedParameter(m_one_volume_fprog, "modelView");
   m_render_param_one_volume_param = cgGetNamedParameter(m_one_volume_fprog, "renderParameters");
-
-  live_diffuse = 1.;
-  live_specular = 3.;
 }
 
-VolumeRenderer::~VolumeRenderer(){}
 
-int VolumeRenderer::add_volume(Volume* _vol, TransferFunction* _tf, int _slice){
+int VolumeRenderer::add_volume(Volume* _vol, TransferFunction* _tf){
+
   int ret = n_volumes;
 
   volume.push_back(_vol);
   tf.push_back(_tf);
-  slice.push_back(_slice);
 
   n_volumes++;
 
@@ -106,7 +104,7 @@ void VolumeRenderer::render_all(){
     cur_vol++;
 
     int volume_index = i;
-    int n_slices = slice[volume_index];
+    int n_slices = volume[volume_index]->get_n_slice();
 
     //volume start location
     Vector3* location = volume[volume_index]->get_location();
@@ -180,7 +178,7 @@ void VolumeRenderer::render_all(){
     Vector4 vert3 = (Vector4(+10, +10, -0.5, 1));
     Vector4 vert4 = (Vector4(+10, -10, -0.5, 1));
 
-#if 1    
+    
     //Render cutplanes first with depth test enabled.
     //They will mark the image with their depth values. Then we render other volume slices.
     //These volume slices will be occluded correctly by the cutplanes and vice versa.
@@ -251,7 +249,7 @@ void VolumeRenderer::render_all(){
 
       deactivate_one_volume_shader();
     } //done cutplanes
-#endif
+
    
     //Now do volume rendering
 
@@ -294,7 +292,7 @@ void VolumeRenderer::render_all(){
 	total_rendered_slices++; 
     }
   } //iterate all volumes
-  fprintf(stderr, "total slices: %d\n", total_rendered_slices); 
+  //fprintf(stderr, "total slices: %d\n", total_rendered_slices); 
 
   //We sort all the polygons according to their eye-space depth, from farthest to the closest.
   //This step is critical for correct blending
@@ -343,7 +341,6 @@ void VolumeRenderer::render_all(){
 
     deactivate_one_volume_shader();
   }
-  //fprintf(stderr, "\n\n");
 
 
   glDisable(GL_DEPTH_TEST);
@@ -363,7 +360,7 @@ void VolumeRenderer::render_all(){
 
 
 void VolumeRenderer::render(int volume_index){
-  int n_slices = slice[volume_index];
+  int n_slices = volume[volume_index]->get_n_slice();
 
   //volume start location
   Vector4 shift_4d(volume[volume_index]->location.x, volume[volume_index]->location.y, volume[volume_index]->location.z, 0);
@@ -633,6 +630,7 @@ void VolumeRenderer::activate_one_volume_shader(int volume_index, int n_actual_s
   cgGLSetStateMatrixParameter(m_mvi_one_volume_param, CG_GL_MODELVIEW_MATRIX, CG_GL_MATRIX_INVERSE);
   cgGLSetStateMatrixParameter(m_mv_one_volume_param, CG_GL_MODELVIEW_MATRIX, CG_GL_MATRIX_IDENTITY);
   cgGLSetTextureParameter(m_vol_one_volume_param, volume[volume_index]->id);
+  cgGLSetTextureParameter(m_tf_one_volume_param, tf[volume_index]->id);
   cgGLEnableTextureParameter(m_vol_one_volume_param);
   cgGLEnableTextureParameter(m_tf_one_volume_param);
 

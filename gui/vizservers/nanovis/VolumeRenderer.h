@@ -27,7 +27,6 @@
 
 #include "define.h"
 #include "global.h"
-#include "Camera.h"
 #include "ConvexPolygon.h"
 #include "TransferFunction.h"
 #include "Mat4x4.h"
@@ -39,10 +38,8 @@ using namespace std;
 class VolumeRenderer{
 
 private:
-  Camera* cam;
   vector <Volume*> volume;	//array of volumes
   vector <TransferFunction*> tf;//array of corresponding transfer functions 
-  vector <int> slice;		//array of corresponding number of slices
   int n_volumes;
 
   //shading parameters
@@ -65,6 +62,7 @@ private:
   CGparameter m_mvp_vert_std_param;
   CGparameter m_mvi_vert_std_param;
 
+  void init_shaders();
   void activate_one_volume_shader(int volume_index, int n_actual_slices, float opacity_scale);
   void deactivate_one_volume_shader();
 
@@ -76,11 +74,10 @@ private:
   void get_near_far_z(Mat4x4 mv, double &zNear, double &zFar);
 
 public:
-  VolumeRenderer();
-  VolumeRenderer(Camera* cam, Volume* _vol, TransferFunction* _tf, CGcontext _context);
+  VolumeRenderer(CGcontext _context);
   ~VolumeRenderer();
 
-  int add_volume(Volume* _vol, TransferFunction* _tf, int _slice); 
+  int add_volume(Volume* _vol, TransferFunction* _tf); 
   						//add a volume and its transfer function
   						//we require a transfer function when a 
 						//volume is added.
