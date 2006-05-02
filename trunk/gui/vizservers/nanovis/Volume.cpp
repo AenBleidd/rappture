@@ -26,7 +26,10 @@ Volume::Volume(float x, float y, float z,
 	size(s),
 	n_components(n),
 	enabled(true),
-	n_slice(256) //defualt value
+	n_slice(256), //defualt value
+	specular(6.), //defualt value
+	diffuse(3.), //defualt value
+	opacity_scale(10.) //defualt value
 {
 
   tex = new Texture3D(w, h, d, NVIS_FLOAT, NVIS_LINEAR_INTERP, n);
@@ -96,3 +99,9 @@ bool Volume::cutplane_is_enabled(int index){
 void Volume::set_n_slice(int n) { n_slice = n; }
 int Volume::get_n_slice() { return n_slice; }
 
+float Volume::get_specular() { return specular; }
+float Volume::get_diffuse() { return diffuse; }
+float Volume::get_opacity_scale() { return opacity_scale; }
+void Volume::set_specular(float s) { specular = s; }
+void Volume::set_diffuse(float d) { diffuse = d; }
+void Volume::set_opacity_scale(float s) { opacity_scale = s; }

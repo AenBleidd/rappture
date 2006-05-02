@@ -106,14 +106,13 @@ static void set_camera(float x_angle, float y_angle, float z_angle){
 static Tcl_Interp *interp;
 
 static int CameraCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
-static int ClearCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
-static int SizeCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
-static int OutlineCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
 static int CutCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
 static int HelloCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
 static int LoadCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
 static int RefreshCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
 static int MoveCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
+static int TransferFunctionCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
+static int ScreenSizeCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
 
 //Tcl callback functions
 static int
@@ -142,6 +141,33 @@ CameraCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
 }
 
 
+void resize_offscreen_buffer(int w, int h);
+
+//change screen size
+static int
+ScreenSizeCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
+{
+
+	fprintf(stderr, "screen size cmd\n");
+	double w, h;
+
+	if (argc != 3) {
+		Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
+			" width height \"", (char*)NULL);
+		return TCL_ERROR;
+	}
+	if (Tcl_GetDouble(interp, argv[1], &w) != TCL_OK) {
+		return TCL_ERROR;
+	}
+	if (Tcl_GetDouble(interp, argv[2], &h) != TCL_OK) {
+		return TCL_ERROR;
+	}
+
+	resize_offscreen_buffer(w, h);
+	return TCL_OK;
+}
+
+
 static int
 RefreshCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
 {
@@ -149,10 +175,94 @@ RefreshCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
   return TCL_OK;
 }
 
+void update_transfer_function(int index, float* data);
+
+//The client sends the Transfer function command to tell the index of the transfer function
+//to modify. Then the client sends a chunck of binary floats.
+static int
+TransferFunctionCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
+{
+  fprintf(stderr, "transfer function cmd\n");
+
+  double index_d;
+  int index;
+
+  if (argc != 2) {
+    Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
+		" tf_index\"", (char*)NULL);
+    return TCL_ERROR;
+  }
+  if (Tcl_GetDouble(interp, argv[1], &index_d) != TCL_OK) {
+	return TCL_ERROR;
+  }
+
+  index = int(index_d);
+
+  //Now read 256*4*4 bytes. The server expects the transfer function to be 256 units of (RGBA) floats
+  char tmp[256*4*4];
+  bzero(tmp, 256*4*4);
+  int status = read(0, tmp, 256*4*4);
+  if (status <= 0) {
+    exit(0);
+  }
+
+  update_transfer_function(index, (float*)tmp);
+  return TCL_OK;
+}
+
+
 void set_object(float x, float y, float z){
   live_obj_x = x;
   live_obj_y = y;
   live_obj_z = z;
+}
+
+void load_volume(int index, int width, int height, int depth, int n_component, float* data);
+
+//The client sends the load data command to tell the index of the volume, and the dimensions of the data 
+//Then the client sends a chunck of binary floats.
+static int
+LoadCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
+{
+  fprintf(stderr, "load data command\n");
+
+  double index, w, h, d;
+
+  if (argc != 5) {
+    Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
+		" volume_index x y z \"", (char*)NULL);
+    return TCL_ERROR;
+  }
+  if (Tcl_GetDouble(interp, argv[1], &index) != TCL_OK) {
+	return TCL_ERROR;
+  }
+  if (Tcl_GetDouble(interp, argv[2], &w) != TCL_OK) {
+	return TCL_ERROR;
+  }
+  if (Tcl_GetDouble(interp, argv[3], &h) != TCL_OK) {
+	return TCL_ERROR;
+  }
+  if (Tcl_GetDouble(interp, argv[4], &d) != TCL_OK) {
+	return TCL_ERROR;
+  }
+
+  //Now read w*h*d*4*4 bytes. The server expects the volume to be units of 4-float tuples
+  char* tmp = new char[int(w*h*d*4*4)];
+  bzero(tmp, w*h*d*4*4);
+  int status = read(0, tmp, w*h*d*4*4);
+  if (status <= 0){
+    exit(0);
+  }
+ 
+  load_volume(int(index), int(w), int(h), int(d), 4, (float*) tmp);
+  delete[] tmp;
+
+  return TCL_OK;
+}
+
+//move the volume object in space so its starting corner is at (x, y, z)
+void move_volume(int index, float x, float y, float z){
+  volume[index]->move(Vector3(x, y, z));
 }
 
 
@@ -161,23 +271,28 @@ MoveCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
 {
 
 	fprintf(stderr, "move cmd\n");
-	double x, y, z;
+	double index_d, x, y, z;
 
-	if (argc != 4) {
+	if (argc != 5) {
 		Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
-			" x_angle y_angle z_angle\"", (char*)NULL);
+			" index x_coord y_coord z_coord\"", (char*)NULL);
 		return TCL_ERROR;
 	}
-	if (Tcl_GetDouble(interp, argv[1], &x) != TCL_OK) {
+	if (Tcl_GetDouble(interp, argv[1], &index_d) != TCL_OK) {
 		return TCL_ERROR;
 	}
-	if (Tcl_GetDouble(interp, argv[2], &y) != TCL_OK) {
+	if (Tcl_GetDouble(interp, argv[2], &x) != TCL_OK) {
 		return TCL_ERROR;
 	}
-	if (Tcl_GetDouble(interp, argv[3], &z) != TCL_OK) {
+	if (Tcl_GetDouble(interp, argv[3], &y) != TCL_OK) {
 		return TCL_ERROR;
 	}
-	set_object(x, y, z);
+	if (Tcl_GetDouble(interp, argv[4], &z) != TCL_OK) {
+		return TCL_ERROR;
+	}
+	
+	//set_object(x, y, z);
+	move_volume((int)index_d, x, y, z);
 	return TCL_OK;
 }
 
@@ -223,7 +338,6 @@ void init_glew(){
 }
 
 
-void load_volume(int index, int width, int height, int depth, int n_component, float* data);
 
 /* Load a 3D vector field from a dx-format file
  */
@@ -664,7 +778,7 @@ void load_transfer_function(int index, int size, float* data){
 }
 
 
-//load value from the gui, only one transfer function
+//Update the transfer function using local GUI in the non-server mode
 extern void update_tf_texture(){
   glutSetWindow(render_window);
 
@@ -691,11 +805,76 @@ extern void update_tf_texture(){
 }
 
 
+//------------------------------------------
+//update the transfer function in server mode
+//------------------------------------------
+void update_transfer_function(int index, float* data){
+  tf[index]->update(data);
+}
+
+
 
 //initialize frame buffer objects for offscreen rendering
-void init_fbo(){
+void init_offscreen_buffer(){
 
   //initialize final fbo for final display
+  glGenFramebuffersEXT(1, &final_fbo);
+  glGenTextures(1, &final_color_tex);
+  glGenRenderbuffersEXT(1, &final_depth_rb);
+
+  glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, final_fbo);
+
+  //initialize final color texture
+  glBindTexture(GL_TEXTURE_2D, final_color_tex);
+  glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+#ifdef NV40
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F_ARB, win_width, win_height, 0,
+               GL_RGB, GL_INT, NULL);
+#else
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, win_width, win_height, 0,
+               GL_RGB, GL_INT, NULL);
+#endif
+  glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT,
+                            GL_COLOR_ATTACHMENT0_EXT,
+                            GL_TEXTURE_2D, final_color_tex, 0);
+
+	
+  // initialize final depth renderbuffer
+  glBindRenderbufferEXT(GL_RENDERBUFFER_EXT, final_depth_rb);
+  glRenderbufferStorageEXT(GL_RENDERBUFFER_EXT,
+                           GL_DEPTH_COMPONENT24, win_width, win_height);
+  glFramebufferRenderbufferEXT(GL_FRAMEBUFFER_EXT,
+                               GL_DEPTH_ATTACHMENT_EXT,
+                               GL_RENDERBUFFER_EXT, final_depth_rb);
+
+  // Check framebuffer completeness at the end of initialization.
+  CHECK_FRAMEBUFFER_STATUS();
+  assert(glGetError()==0);
+}
+
+
+//resize the offscreen buffer 
+void resize_offscreen_buffer(int w, int h){
+  delete[] screen_buffer;
+
+  win_width = w;
+  win_height = h;
+
+  screen_buffer = new unsigned char[3*win_width*win_height+1];
+
+  //delete the current render buffer resources
+  glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, final_fbo);
+  glDeleteTextures(1, &final_color_tex);
+  glDeleteFramebuffersEXT(1, &final_fbo);
+
+  glBindRenderbufferEXT(GL_RENDERBUFFER_EXT, final_depth_rb);
+  glDeleteRenderbuffersEXT(1, &final_depth_rb);
+
+  //change the camera setting
+  cam->set_screen_size(win_width, win_height);
+
+  //Reinitialize final fbo for final display
   glGenFramebuffersEXT(1, &final_fbo);
   glGenTextures(1, &final_color_tex);
   glGenRenderbuffersEXT(1, &final_depth_rb);
@@ -796,7 +975,7 @@ void init_particles(){
 }
 
 
-void init_tf(){
+void init_transfer_function(){
   float data[256*4];
 
   //alternatively, a default transfer function also works.
@@ -808,11 +987,22 @@ void init_tf(){
 
 //init line integral convolution
 void init_lic(){
-  lic = new Lic(NMESH, win_width, win_height, 0.3, g_context, volume[0]->id, 
-		  volume[0]->aspect_ratio_width,
-		  volume[0]->aspect_ratio_height,
-		  volume[0]->aspect_ratio_depth);
+  lic = new Lic(NMESH, win_width, win_height, 0.3, g_context, volume[1]->id, 
+		  volume[1]->aspect_ratio_width,
+		  volume[1]->aspect_ratio_height,
+		  volume[1]->aspect_ratio_depth);
 }
+
+//init the particle system using vector field volume->[1]
+void init_particle_system(){
+   psys = new ParticleSystem(NMESH, NMESH, g_context, volume[1]->id,
+		   1./volume[1]->aspect_ratio_width,
+		   1./volume[1]->aspect_ratio_height,
+		   1./volume[1]->aspect_ratio_depth);
+
+   init_particles();	//fill initial particles
+}
+
 
 /*----------------------------------------------------*/
 void initGL(void) 
@@ -824,7 +1014,7 @@ void initGL(void)
    cam = new Camera(win_width, win_height, 
 		   live_obj_x, live_obj_y, live_obj_z,
 		   0., 0., 100.,
-		   live_rot_x, live_rot_y, live_rot_z);
+		   (int)live_rot_x, (int)live_rot_y, (int)live_rot_z);
 
    glEnable(GL_TEXTURE_2D);
    glShadeModel(GL_FLAT);
@@ -861,35 +1051,36 @@ void initGL(void)
    //load_volume_file(0, "./data/nw-AB-Vg=0.000-Vd=1.000-potential.dx");
    //load_volume_file(0, "./data/test2.dx");
 
-   load_vector_file(0, "./data/J-wire-vec.dx");
+   load_volume_file(0, "./data/mu-wire-3d.dx");
+   //load_volume_file(0, "./data/input_nd_dx_4"); //take a VERY long time?
+   //load_vector_file(1, "./data/J-wire-vec.dx");
    load_volume_file(1, "./data/mu-wire-3d.dx");
-   load_volume_file(2, "./data/mu-wire-3d.dx");
    //load_volume_file(3, "./data/mu-wire-3d.dx");
+   //load_volume_file(4, "./data/mu-wire-3d.dx");
 
-   init_tf();   //initialize transfer function
-   init_fbo();	//frame buffer objects
-   init_cg();	//init cg shaders
-   init_lic();  //init line integral convolution
+   init_transfer_function();   //initialize transfer function
+   init_offscreen_buffer();    //frame buffer object for offscreen rendering
+   init_cg();	//create cg shader context 
 
    //create volume renderer and add volumes to it
    vol_render = new VolumeRenderer(g_context);
-   vol_render->add_volume(volume[1], tf[0]);
+   volume[0]->set_n_slice(512);
+   volume[0]->disable_cutplane(0);
+   volume[0]->disable_cutplane(1);
+   volume[0]->disable_cutplane(2);
+   vol_render->add_volume(volume[0], tf[0]);
 
-   volume[2]->move(Vector3(0.42, 0.1, 0.1));
-   vol_render->add_volume(volume[2], tf[0]);
+   //volume[1]->move(Vector3(0.42, 0.1, 0.1));
+   //vol_render->add_volume(volume[1], tf[0]);
 
    //volume[3]->move(Vector3(0.2, -0.1, -0.1));
    //vol_render->add_volume(volume[3], tf[0]);
 
-   
-   psys = new ParticleSystem(NMESH, NMESH, g_context, volume[0]->id,
-		   1./volume[0]->aspect_ratio_width,
-		   1./volume[0]->aspect_ratio_height,
-		   1./volume[0]->aspect_ratio_depth);
-   
-   //psys = new ParticleSystem(NMESH, NMESH, g_context, volume[0]->id, 0.25, 1., 1.);
+   //volume[4]->move(Vector3(0.2,  0.1, -0.1));
+   //vol_render->add_volume(volume[4], tf[0]);
 
-   init_particles();	//fill initial particles
+   //init_particle_system();
+   //init_lic(); 
 }
 
 
@@ -898,15 +1089,14 @@ void initTcl(){
   interp = Tcl_CreateInterp();
   Tcl_MakeSafe(interp);
 
-  Tcl_CreateCommand(interp, "camera", CameraCmd, (ClientData)0, (Tcl_CmdDeleteProc*)NULL);
-  //Tcl_CreateCommand(interp, "size", SizeCmd, (ClientData)0, (Tcl_CmdDeleteProc*)NULL);
-  //Tcl_CreateCommand(interp, "clear", ClearCmd, (ClientData)0, (Tcl_CmdDeleteProc*)NULL);
-  //Tcl_CreateCommand(interp, "cut", CutCmd, (ClientData)0, (Tcl_CmdDeleteProc*)NULL);
-  //Tcl_CreateCommand(interp, "outline", OutlineCmd, (ClientData)0, (Tcl_CmdDeleteProc*)NULL);
   Tcl_CreateCommand(interp, "hello", HelloCmd, (ClientData)0, (Tcl_CmdDeleteProc*)NULL);
+  Tcl_CreateCommand(interp, "camera", CameraCmd, (ClientData)0, (Tcl_CmdDeleteProc*)NULL);
   Tcl_CreateCommand(interp, "move", MoveCmd, (ClientData)0, (Tcl_CmdDeleteProc*)NULL);
+  Tcl_CreateCommand(interp, "transferfunction", TransferFunctionCmd, (ClientData)0, (Tcl_CmdDeleteProc*)NULL);
   Tcl_CreateCommand(interp, "refresh", RefreshCmd, (ClientData)0, (Tcl_CmdDeleteProc*)NULL);
-  //Tcl_CreateCommand(interp, "load", LoadCmd, (ClientData)0, (Tcl_CmdDeleteProc*)NULL);
+  //Tcl_CreateCommand(interp, "cut", CutCmd, (ClientData)0, (Tcl_CmdDeleteProc*)NULL);
+  Tcl_CreateCommand(interp, "load", LoadCmd, (ClientData)0, (Tcl_CmdDeleteProc*)NULL);
+  Tcl_CreateCommand(interp, "screen", ScreenSizeCmd, (ClientData)0, (Tcl_CmdDeleteProc*)NULL);
 }
 
 
@@ -916,11 +1106,12 @@ void read_screen(){
   glReadPixels(0, 0, win_width, win_height, GL_RGB, GL_UNSIGNED_BYTE, screen_buffer);
   assert(glGetError()==0);
   
+  /*
   for(int i=0; i<win_width*win_height; i++){
     if(screen_buffer[3*i]!=0 || screen_buffer[3*i+1]!=0 || screen_buffer[3*i+2]!=0)
       fprintf(stderr, "(%d %d %d) ", screen_buffer[3*i], screen_buffer[3*i+1],  screen_buffer[3*i+2]);
   }
-  
+  */
 }
 
 void display();
@@ -1101,7 +1292,7 @@ void idle(){
 }
 
 
-void display_final_fbo(){
+void display_offscreen_buffer(){
    glEnable(GL_TEXTURE_2D);
    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
    glBindTexture(GL_TEXTURE_2D, final_color_tex);
@@ -1112,7 +1303,7 @@ void display_final_fbo(){
    glMatrixMode(GL_MODELVIEW);
    glLoadIdentity();
 
-   //glColor3f(1.,1.,1.);		//MUST HAVE THIS LINE!!!
+   glColor3f(1.,1.,1.);		//MUST HAVE THIS LINE!!!
    glBegin(GL_QUADS);
    glTexCoord2f(0, 0); glVertex2f(-1, -1);
    glTexCoord2f(1, 0); glVertex2f(1, -1);
@@ -1121,7 +1312,7 @@ void display_final_fbo(){
    glEnd();
 }
 
-void final_fbo_capture(){
+void offscreen_buffer_capture(){
    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, final_fbo);
 }
 
@@ -1449,14 +1640,13 @@ void display()
 
    assert(glGetError()==0);
 
-   lic->convolve(); //flow line integral convolution
+   //lic->convolve(); //flow line integral convolution
 
-   psys->advect(); //advect particles
+   //psys->advect(); //advect particles
 
-   final_fbo_capture();
+   offscreen_buffer_capture();
    //display_texture(slice_vector_tex, NMESH, NMESH);
 
-#if 1
    //start final rendering
    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); //clear screen
 
@@ -1470,20 +1660,18 @@ void display()
    //
    draw_3d_axis();
    
-   lic->render(); 	//display the line integral convolution result
+   //lic->render(); 	//display the line integral convolution result
    
    //soft_display_verts();
-   perf->enable();
-     psys->render();
-   perf->disable();
+   //perf->enable();
+   //  psys->render();
+   //perf->disable();
    //fprintf(stderr, "particle pixels: %d\n", perf->get_pixel_count());
-   perf->reset();
+   //perf->reset();
 
 
    perf->enable();
-     //vol_render->render(0);
      vol_render->render_all();
-
      //fprintf(stderr, "%lf\n", get_time_interval());
    perf->disable();
    //fprintf(stderr, "volume pixels: %d\n", perf->get_pixel_count());
@@ -1494,9 +1682,8 @@ void display()
 #endif
    perf->reset();
 
-#endif
 
-   display_final_fbo(); //display the final rendering on screen
+   display_offscreen_buffer(); //display the final rendering on screen
 
 #ifdef XINETD
    read_screen();
@@ -1626,29 +1813,17 @@ void keyboard(unsigned char key, int x, int y){
 	case 'i':
 		init_particles();
 		break;
-	case 'o':
-		live_specular+=1;
-		fprintf(stderr, "specular: %f\n", live_specular);
-		vol_render->set_specular(live_specular);
-		break;
-	case 'p':
-		live_specular-=1;
-		fprintf(stderr, "specular: %f\n", live_specular);
-		vol_render->set_specular(live_specular);
-		break;
-	case '[':
-		live_diffuse+=0.5;
-		vol_render->set_diffuse(live_diffuse);
-		break;
-	case ']':
-		live_diffuse-=0.5;
-		vol_render->set_diffuse(live_diffuse);
-		break;
 	case 'v':
 		vol_render->switch_volume_mode();
 		break;
 	case 'b':
 		vol_render->switch_slice_mode();
+		break;
+	case 'n':
+		resize_offscreen_buffer(win_width*2, win_height*2);
+		break;
+	case 'm':
+		resize_offscreen_buffer(win_width/2, win_height/2);
 		break;
 
 	default:

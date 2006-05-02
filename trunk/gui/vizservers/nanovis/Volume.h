@@ -43,6 +43,10 @@ private:
 	int n_components;
 
 	Texture3D* tex;	//OpenGL texture storing the volume
+	float specular; //specular lighting parameter
+	float diffuse;	//diffuse lighting parameter
+	float opacity_scale;	//The scale multiplied to the opacity assigned by the transfer function.
+				//Rule of thumb: higher opacity_scale the object is to appear like plastic
 
 public:
 	Vector3 location;
@@ -86,6 +90,14 @@ public:
 	CutPlane* get_cutplane(int index);
 	int get_cutplane_count();	//returns the number of cutplanes in the volume
 	bool cutplane_is_enabled(int index);  	//check if a cutplane is enabled
+
+	//methods related to shading. These parameters are per volume 
+	float get_specular();
+	float get_diffuse();
+	float get_opacity_scale();
+	void set_specular(float s);
+	void set_diffuse(float d);
+	void set_opacity_scale(float s);
 
 };
 

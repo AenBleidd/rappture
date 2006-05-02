@@ -20,9 +20,7 @@ VolumeRenderer::VolumeRenderer(CGcontext _context):
   n_volumes(0),
   g_context(_context),
   slice_mode(false),
-  volume_mode(true),
-  live_diffuse(5.),
-  live_specular(5.)
+  volume_mode(true)
 {
   volume.clear();
   tf.clear(); 
@@ -236,7 +234,7 @@ void VolumeRenderer::render_all(){
       glPushMatrix();
       glScalef(volume[volume_index]->aspect_ratio_width, volume[volume_index]->aspect_ratio_height, volume[volume_index]->aspect_ratio_depth);
 
-      activate_one_volume_shader(volume_index, .0, 1.);
+      activate_volume_shader(volume_index, true);
       glPopMatrix();
 
       glEnable(GL_DEPTH_TEST);
@@ -247,7 +245,7 @@ void VolumeRenderer::render_all(){
       glEnd();
       glDisable(GL_DEPTH_TEST);
 
-      deactivate_one_volume_shader();
+      deactivate_volume_shader();
     } //done cutplanes
 
    
@@ -332,14 +330,14 @@ void VolumeRenderer::render_all(){
     glPushMatrix();
     glScalef(volume[volume_index]->aspect_ratio_width, volume[volume_index]->aspect_ratio_height, volume[volume_index]->aspect_ratio_depth);
     
-    activate_one_volume_shader(volume_index, 1, 1);
+    activate_volume_shader(volume_index, false);
     glPopMatrix();
 
     glBegin(GL_POLYGON);
       cur->Emit(true); 
     glEnd();
 
-    deactivate_one_volume_shader();
+    deactivate_volume_shader();
   }
 
 
@@ -493,14 +491,14 @@ void VolumeRenderer::render(int volume_index){
     glPushMatrix();
     glScalef(volume[volume_index]->aspect_ratio_width, volume[volume_index]->aspect_ratio_height, volume[volume_index]->aspect_ratio_depth);
 
-    activate_one_volume_shader(volume_index, 1, 1);
+    activate_volume_shader(volume_index, true);
     glPopMatrix();
 
     glBegin(GL_POLYGON);
       poly->Emit(true); 
     glEnd();
 
-    deactivate_one_volume_shader();
+    deactivate_volume_shader();
   }
   } //slice_mode
 
@@ -553,14 +551,14 @@ void VolumeRenderer::render(int volume_index){
     glEnd();
     */
     
-    activate_one_volume_shader(volume_index, n_actual_slices, 30);
+    activate_volume_shader(volume_index, false);
     glPopMatrix();
 
     glBegin(GL_POLYGON);
       poly->Emit(true); 
     glEnd();
 
-    deactivate_one_volume_shader();
+    deactivate_volume_shader();
 		
   }
   } //volume_mode
@@ -620,7 +618,7 @@ void VolumeRenderer::draw_bounding_box(float x0, float y0, float z0,
 
 
 
-void VolumeRenderer::activate_one_volume_shader(int volume_index, int n_actual_slices, float scale){
+void VolumeRenderer::activate_volume_shader(int volume_index, bool slice_mode){
 
   cgGLSetStateMatrixParameter(m_mvp_vert_std_param, CG_GL_MODELVIEW_PROJECTION_MATRIX, CG_GL_MATRIX_IDENTITY);
   cgGLSetStateMatrixParameter(m_mvi_vert_std_param, CG_GL_MODELVIEW_MATRIX, CG_GL_MATRIX_INVERSE);
@@ -634,13 +632,25 @@ void VolumeRenderer::activate_one_volume_shader(int volume_index, int n_actual_s
   cgGLEnableTextureParameter(m_vol_one_volume_param);
   cgGLEnableTextureParameter(m_tf_one_volume_param);
 
-  cgGLSetParameter4f(m_render_param_one_volume_param, n_actual_slices, scale, live_diffuse, live_specular);
+  if(!slice_mode)
+    cgGLSetParameter4f(m_render_param_one_volume_param, 
+		  volume[volume_index]->get_n_slice(), 
+		  volume[volume_index]->get_opacity_scale(), 
+		  volume[volume_index]->get_diffuse(), 
+		  volume[volume_index]->get_specular());
+  else
+    cgGLSetParameter4f(m_render_param_one_volume_param, 
+		  0.,
+		  volume[volume_index]->get_opacity_scale(), 
+		  volume[volume_index]->get_diffuse(), 
+		  volume[volume_index]->get_specular());
+
   cgGLBindProgram(m_one_volume_fprog);
   cgGLEnableProfile(CG_PROFILE_FP30);
 }
 
 
-void VolumeRenderer::deactivate_one_volume_shader(){
+void VolumeRenderer::deactivate_volume_shader(){
   cgGLDisableProfile(CG_PROFILE_VP30);
   cgGLDisableProfile(CG_PROFILE_FP30);
 
@@ -685,9 +695,6 @@ void VolumeRenderer::get_near_far_z(Mat4x4 mv, double &zNear, double &zFar)
   zNear = zMax;
   zFar = zMin;
 }
-
-void VolumeRenderer::set_specular(float val){ live_specular = val; }
-void VolumeRenderer::set_diffuse(float val){ live_diffuse = val; }
 
 void VolumeRenderer::set_slice_mode(bool val) { slice_mode = val; }
 void VolumeRenderer::set_volume_mode(bool val) { volume_mode = val; }

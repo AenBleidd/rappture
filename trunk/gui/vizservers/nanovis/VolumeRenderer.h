@@ -42,10 +42,6 @@ private:
   vector <TransferFunction*> tf;//array of corresponding transfer functions 
   int n_volumes;
 
-  //shading parameters
-  float live_diffuse;
-  float live_specular;
-
   bool slice_mode;	//enable cut planes
   bool volume_mode;	//enable full volume rendering
 
@@ -63,8 +59,8 @@ private:
   CGparameter m_mvi_vert_std_param;
 
   void init_shaders();
-  void activate_one_volume_shader(int volume_index, int n_actual_slices, float opacity_scale);
-  void deactivate_one_volume_shader();
+  void activate_volume_shader(int volume_index, bool slice_mode);
+  void deactivate_volume_shader();
 
   //draw bounding box
   void draw_bounding_box(float x0, float y0, float z0,
