@@ -13,7 +13,7 @@
  * ======================================================================
  */
 
-
+#include <stdio.h>
 #include "Camera.h"
 
 Camera::Camera(int w, int h,
@@ -44,10 +44,11 @@ void Camera::rotate(double angle_x, double angle_y, double angle_z)
 }
 
 void Camera::activate(){
+  fprintf(stderr, "camera: %d, %d\n", width, height);
   glViewport(0, 0, width, height);
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity();
-  gluPerspective(60, (GLdouble)1, 0.1, 50.0);
+  gluPerspective(60, (GLdouble)width/(GLdouble)height, 0.1, 50.0);
 
   glMatrixMode(GL_MODELVIEW);
   glLoadIdentity();
