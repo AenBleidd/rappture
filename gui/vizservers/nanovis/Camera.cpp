@@ -61,3 +61,6 @@ void Camera::activate(){
    glRotated(angle.z, 0., 0., 1.);
 }
 
+void Camera::set_screen_size(int w, int h){
+  width = w; height = h;
+}

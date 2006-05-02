@@ -39,6 +39,7 @@ public:
 	void aim(double target_x, double target_y, double target_z); //change target point
 	void rotate(double angle_x, double angle_y, double angle_z); //change target point
 	void activate();//make the camera setting active, this has to be called before drawing things.
+	void set_screen_size(int w, int h);
 };
 
 #endif
