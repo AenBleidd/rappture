@@ -27,13 +27,20 @@ catch {unset lib}
 catch {unset libnew}
 catch {unset libDefault}
 catch {unset libFromGet}
+
 set lib [Rappture::library rplib_test.xml]
 set libnew [Rappture::library rplib_test.xml]
 set libDefault [Rappture::library rplib_test.xml]
 set libFromGet [$libDefault element -as object "input.number(max)"]
-test library-10.0.1 {diff command, no arguments} {
+
+# this test works for old tcl bindings, different error message
+#test library-10.0.1.1 {diff command, no arguments} {
+#    list [catch {$lib diff} msg] $msg
+#} {1 {wrong # args: should be "libraryObj0 diff libobj"}}
+# this test works for new tcl bindings, different error message
+test library-10.0.1.2 {diff command, no arguments} {
     list [catch {$lib diff} msg] $msg
-} {1 {wrong # args: should be "::libraryObj0 diff <xmlobj>"}}
+} {1 {wrong # args: should be "::libraryObj0 diff xmlobj"}}
 test library-10.1.1 {diff command, one argument, no difference} {
     $lib diff $libnew
 } {}
@@ -47,9 +54,27 @@ test library-10.1.3 {diff command, one argument, no "input" in argument} {
 test library-10.1.4 {diff command, one argument, no "input" in libFromGet} {
     $libFromGet diff $libDefault
 } {+ input.string(formula) dsd234ssdf3sdf {} + input.string(name) tnerruc {} + input.number(min) 1 {} + input.number(max) 3 {}}
-test library-10.2.1 {diff command, two arguments, returns error} {
+test library-10.2.1 {diff command, one argument} {
+    set lib1021 [Rappture::library rplib_test.xml]
+    $lib1021 put input.number(max).current "5"
+    $libDefault diff $lib1021
+} {c input.number(max) 3 5}
+test library-10.2.2 {diff command, one argument} {
+    set lib1022 [Rappture::library rplib_test.xml]
+    $lib1022 put input.number(max).new "5"
+    $libDefault diff $lib1022
+} {c input.number(max) 3 5}
+test library-10.3.1 {diff command, two arguments, returns error} {
     list [catch {$lib diff $libnew $libnew} msg] $msg
-} {1 {wrong # args: should be "::libraryObj0 diff <xmlobj>"}}
+} {1 {wrong # args: should be "::libraryObj0 diff xmlobj"}}
+test library-10.3.2 {diff command, bad second arg, returns error} {
+    list [catch {$lib diff slfd} msg] $msg
+} {1 {invalid command name "slfd"}}
+test library-10.4.1 {diff command, bad second arg, returns error} {
+    set slfd 40
+    list [catch {$lib diff $slfd} msg] $msg
+} {1 {invalid command name "40"}}
+# no tests for xmlobj's that are not Rappture Libraries yet
 
 ::tcltest::cleanupTests
 return

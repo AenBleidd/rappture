@@ -23,81 +23,80 @@ catch {unset lib}
 # children command
 # children "?-as <fval>? ?-type <name>? ?<path>?"
 #----------------------------------------------------------
+catch {unset lib}
+set lib [Rappture::library rplib_test.xml]
 test library-8.0.1 {children command 0 arg} {
-    catch {unset lib}
-    set lib [Rappture::library rplib_test.xml]
     $lib children
 } {tool input output}
 test library-8.1.1 {children command path as default type default 1 arg} {
-    catch {unset lib}
-    set lib [Rappture::library rplib_test.xml]
     $lib children "input"
 } {string(formula) string(name) number(min) number(max)}
 test library-8.1.2 {children command path w/ id as default type default 1 arg} {
-    catch {unset lib}
-    set lib [Rappture::library rplib_test.xml]
     $lib children "input.number(min)"
 } {about default current}
 test library-8.1.3 {children command non-existant path 1 arg} {
-    catch {unset lib}
-    set lib [Rappture::library rplib_test.xml]
     $lib children "kdsf.werw(we12)"
 } {}
 test library-8.2.1 {children command path 2 arg} {
-    catch {unset lib}
-    set lib [Rappture::library rplib_test.xml]
     list [catch {$lib children "input.number(min)" "wreew"} msg] $msg
 } {1 {wrong # args: should be "children ?-as fval? ?-type name? ?path?"}}
-test library-8.3.1 {children command path -as flag  no option} {
-    catch {unset lib}
-    set lib [Rappture::library rplib_test.xml]
+# this test works for tcl version of rappture, different error message
+#test library-8.3.1.1 {children command path -as flag  no option} {
+#    list [catch {$lib children -as} msg] $msg
+#} {1 {bad path component "-as"}}
+test library-8.3.1.2 {children command path -as flag  no option} {
     list [catch {$lib children -as} msg] $msg
 } {1 {bad flavor "" for -as: should be component, id, object, path, type}}
 test library-8.3.2 {children command path -as flag component path} {
-    catch {unset lib}
-    set lib [Rappture::library rplib_test.xml]
     $lib children -as component "input"
 } {string(formula) string(name) number(min) number(max)}
 test library-8.3.3 {children command path -as flag id path} {
-    catch {unset lib}
-    set lib [Rappture::library rplib_test.xml]
     $lib children -as id "input"
 } {formula name min max}
 test library-8.3.4 {children command path -as flag type path} {
-    catch {unset lib}
-    set lib [Rappture::library rplib_test.xml]
     $lib children -as type "input"
 } {string string number number}
 test library-8.3.5 {children command path -as path type path} {
-    catch {unset lib}
-    set lib [Rappture::library rplib_test.xml]
     $lib children -as path "input"
-} {.input.string(formula) .input.string(name) .input.number(min) .input.number(max)}
+} {input.string(formula) input.string(name) input.number(min) input.number(max)}
 test library-8.3.6 {children command path -as object type path} {
-    catch {unset lib}
-    set lib [Rappture::library rplib_test.xml]
     $lib children -as object "input"
-} {::libraryObj11 ::libraryObj12 ::libraryObj13 ::libraryObj14}
+} {::libraryObj1 ::libraryObj2 ::libraryObj3 ::libraryObj4}
+# this test works for old tcl bindings, different error message
+#test library-8.3.7 {children command path -as junk type path} {
+#    list [catch {$lib children -as junk "input"} msg] $msg
+#} {1 {bad flavor "junk": should be component, id, object, path, type}}
+# this test works for new tcl bindings, different error message
 test library-8.3.7 {children command path -as junk type path} {
-    catch {unset lib}
-    set lib [Rappture::library rplib_test.xml]
     list [catch {$lib children -as junk "input"} msg] $msg
 } {1 {bad flavor "junk" for -as: should be component, id, object, path, type}}
 test library-8.4.1 {children command path -type number path} {
-    catch {unset lib}
-    set lib [Rappture::library rplib_test.xml]
     $lib children -type "number" "input"
 } {number(min) number(max)}
 test library-8.4.2 {children command path -type "" path} {
-    catch {unset lib}
-    set lib [Rappture::library rplib_test.xml]
     $lib children -type "" "input"
 } {string(formula) string(name) number(min) number(max)}
+test library-8.4.2 {children command path -type "blah" path} {
+    $lib children -type "blah" "input"
+} {}
 test library-8.5.1 {children command path -junk path} {
-    catch {unset lib}
-    set lib [Rappture::library rplib_test.xml]
     list [catch {$lib children -junk "input"} msg] $msg
 } {1 {bad option "-junk": should be -as, -type}}
+test library-8.6.1 {children command 2 opts -as comp -type number, path} {
+    $lib children -as "component" -type "number" "input"
+} {number(min) number(max)}
+test library-8.6.2 {children command 2 opts -as id -type number, path} {
+    $lib children -as "id" -type "number" "input"
+} {min max}
+test library-8.6.3 {children command 2 opts -as type -type number, path} {
+    $lib children -as "type" -type "number" "input"
+} {number number}
+test library-8.6.4 {children command 2 opts -as path -type number, path} {
+    $lib children -as "path" -type "number" "input"
+} {input.number(min) input.number(max)}
+test library-8.6.5 {children command 2 opts -as object -type number, path} {
+    $lib children -as "object" -type "number" "input"
+} {::libraryObj5 ::libraryObj6}
 
 ::tcltest::cleanupTests
 return
