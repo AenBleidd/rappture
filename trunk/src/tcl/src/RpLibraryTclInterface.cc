@@ -50,10 +50,12 @@ static int RpTclLibPut    _ANSI_ARGS_(( ClientData cdata, Tcl_Interp *interp,
                                         int argc, const char *argv[]    ));
 static int RpTclLibRemove _ANSI_ARGS_(( ClientData cdata, Tcl_Interp *interp,
                                         int argc, const char *argv[]    ));
+/*
 static int RpTclLibResult _ANSI_ARGS_(( ClientData cdata, Tcl_Interp *interp,
                                         int argc, const char *argv[]    ));
 static int RpTclLibValue  _ANSI_ARGS_(( ClientData cdata, Tcl_Interp *interp,
                                         int argc, const char *argv[]    ));
+*/
 static int RpTclLibXml    _ANSI_ARGS_(( ClientData cdata, Tcl_Interp *interp,
                                         int argc, const char *argv[]    ));
 
@@ -76,12 +78,12 @@ static Blt_OpSpec rpLibOps[] = {
     {"children", 2, (Blt_Op)RpTclLibChild, 2, 7,
         "?-as <fval>? ?-type <name>? ?<path>?",},
     {"copy", 2, (Blt_Op)RpTclLibCopy, 5, 6,
-        "<path> from ?<xmlobj>? <path>",},
-    {"diff", 1, (Blt_Op)RpTclLibDiff, 3, 3, "<xmlobj>",},
-    {"element", 1, (Blt_Op)RpTclLibElem, 2, 5, "?-as <fval>? ?<path>?",},
-    {"get", 1, (Blt_Op)RpTclLibGet, 2, 3, "?<path>?",},
-    {"info", 1, (Blt_Op)RpTclLibInfo, 3, 3, "<objType>",},
-    {"isa", 1, (Blt_Op)RpTclLibIsa, 3, 3, "<objType>",},
+        "path from ?xmlobj? path",},
+    {"diff", 1, (Blt_Op)RpTclLibDiff, 3, 3, "xmlobj",},
+    {"element", 1, (Blt_Op)RpTclLibElem, 2, 5, "?-as fval? ?path?",},
+    {"get", 1, (Blt_Op)RpTclLibGet, 2, 3, "?path?",},
+    {"info", 1, (Blt_Op)RpTclLibInfo, 3, 3, "objType",},
+    {"isa", 1, (Blt_Op)RpTclLibIsa, 3, 3, "objType",},
     {"parent", 2, (Blt_Op)RpTclLibParent, 2, 5, "?-as <fval>? ?<path>?",},
     {"put", 2, (Blt_Op)RpTclLibPut, 2, 8,
         "?-append yes? ?-id num? ?<path>? <string>",},
@@ -446,6 +448,8 @@ RpTclLibChild   (   ClientData cdata,
             if (asProc) {
                 // evaluate the "-as" flag on the returned node
                 retStr = (node->*asProc)();
+                // remove the object, keep memory clean
+                delete node;
             }
             else {
                 // create a new command for the new rappture object
@@ -483,7 +487,7 @@ RpTclLibCopy    (   ClientData cdata,
     RpLibrary* fromObj   = NULL;
     int nextarg          = 2;     // start parsing using the '2'th argument
     int argsLeft         = 0;     // temp variable for calculation
-    int noerr              = 0;     // err flag for Tcl_GetCommandInfo
+    int noerr            = 0;     // err flag for Tcl_GetCommandInfo
     Tcl_CmdInfo info;  // pointer to the command info
 
     if (nextarg+2 < argc) {
@@ -493,7 +497,7 @@ RpTclLibCopy    (   ClientData cdata,
     else {
         Tcl_AppendResult(interp,
             "wrong # args: should be \"",
-            argv[0], " path from ?<xmlobj>? path\"",
+            argv[0], "copy path from ?xmlobj? path\"",
             (char*)NULL);
         return TCL_ERROR;
     }
@@ -543,8 +547,6 @@ RpTclLibCopy    (   ClientData cdata,
 
     // call the rappture library copy function
     ((RpLibrary*) cdata)->copy(toPath, fromPath, fromObj);
-
-    // delete the fromObj pointer ???
 
     // clear any previous result in the interpreter
     // store the new result in the interpreter
@@ -601,9 +603,7 @@ RpTclLibDiff     (   ClientData cdata,
         else {
             // there was an error getting the command info
             Tcl_AppendResult(interp, 
-                "There was an error getting the command info for "
-                "the provided library \"", otherLibStr.c_str(), "\'",
-                "\nAre you sure its a Rappture Library Object?",
+                "invalid command name \"", otherLibStr.c_str(), "\"",
                 (char*)NULL);
             return TCL_ERROR;
         }
@@ -611,7 +611,7 @@ RpTclLibDiff     (   ClientData cdata,
     else {
         Tcl_ResetResult(interp);
         Tcl_AppendResult(interp, 
-            "wrong # args: should be \"diff <xmlobj>\"",
+            "wrong # args: should be \"diff xmlobj\"",
             (char*)NULL);
         return TCL_ERROR;
     }
@@ -707,14 +707,14 @@ RpTclLibElem    (   ClientData cdata,
                     }
                     else {
                         Tcl_AppendResult(interp, "bad flavor \"", argv[nextarg],
-                            "\" for -as: should be component, id, type, path, object",
+                            "\" for -as: should be component, id, object, path, type",
                             (char*)NULL);
                         return TCL_ERROR;
                     }
                 }
                 else {
                     Tcl_AppendResult(interp, "bad flavor \"\" for -as:", 
-                           " should be component, id, type, path, object",
+                           " should be component, id, object, path, type",
                             (char*)NULL);
                     return TCL_ERROR;
                 }
@@ -730,7 +730,7 @@ RpTclLibElem    (   ClientData cdata,
     argsLeft = (argc-nextarg);
     if (argsLeft > 1) {
         Tcl_AppendResult(interp,
-            "wrong # args: should be \"element ?-as <fval>? ?<path>?\"",
+            "wrong # args: should be \"element ?-as fval? ?path?\"",
             (char*)NULL);
         return TCL_ERROR;
     }
@@ -751,6 +751,8 @@ RpTclLibElem    (   ClientData cdata,
         if (asProc) {
             // evaluate the "-as" flag on the returned node
             retStr = (node->*asProc)();
+            // remove the object, keep memory clean
+            delete node;
         }
         else {
             // create a new command for the new rappture object
@@ -839,7 +841,7 @@ RpTclLibInfo    (   ClientData cdata,
     else {
         Tcl_ResetResult(interp);
         Tcl_AppendResult(interp, 
-            "wrong # args: should be \"info <infoType>\"",
+            "wrong # args: should be \"info objType\"",
             (char*)NULL);
         return TCL_ERROR;
     }
@@ -896,7 +898,7 @@ RpTclLibIsa     (   ClientData cdata,
     else {
         Tcl_ResetResult(interp);
         Tcl_AppendResult(interp, 
-            "wrong # args: should be \"isa <objType>\"",
+            "wrong # args: should be \"isa objType\"",
             (char*)NULL);
         return TCL_ERROR;
     }
@@ -987,14 +989,14 @@ RpTclLibParent  (   ClientData cdata,
                     }
                     else {
                         Tcl_AppendResult(interp, "bad flavor \"", argv[nextarg],
-                            "\": should be component, id, type, path, object",
+                            "\": should be component, id, object, path, type",
                             (char*)NULL);
                         return TCL_ERROR;
                     }
                 }
                 else {
                     Tcl_AppendResult(interp, "bad flavor \"\" for -as: ",
-                            "should be component, id, type, path, object",
+                            "should be component, id, object, path, type",
                             (char*)NULL);
                     return TCL_ERROR;
                 }
@@ -1031,6 +1033,8 @@ RpTclLibParent  (   ClientData cdata,
         if (asProc) {
             // evaluate the "-as" flag on the returned node
             retStr = (node->*asProc)();
+            // remove the object, keep memory clean
+            delete node;
         }
         else {
             // create a new command for the new rappture object
@@ -1079,39 +1083,38 @@ RpTclLibPut     (   ClientData cdata,
     while (opt_argc--) {
         if (nextarg < argc && *argv[nextarg] == '-') {
             if (strncmp(argv[nextarg],"-append",7) == 0) {
-                ++nextarg;
-                if (nextarg < argc) {
-                    if (strncmp(argv[nextarg],"yes",3) == 0 ) {
-                        append = 1;
-                        nextarg++;
-                    }
-                    else if (strncmp(argv[nextarg],"no",2) == 0 ) {
-                        append = 0;
-                        nextarg++;
-                    }
-                    else {
-                        appendExpectErr(interp,
-                                "expected boolean value but got ", 
-                                argv[nextarg]);
+                nextarg++;
+                if (argv[nextarg] != NULL) {
+                    if (Tcl_GetBoolean(interp, argv[nextarg], &append)) {
+                        // unrecognized value for -append option
+                        // Tcl_GetBoolean fills in error message
+                        // Tcl_AppendResult(interp,
+                        //     "expected boolean value but got \"", 
+                        //     argv[nextarg], "\"", (char*)NULL);
                         return TCL_ERROR;
                     }
+                    // nextarg++;
                 }
                 else {
-                    appendExpectErr(interp,
-                            "expected boolean value but got ", 
-                            argv[nextarg]);
+                    // if user does not specify wishes for this option,
+                    // return error.
+                    // unrecognized value for -units option
+                    Tcl_AppendResult(interp,
+                        "expected boolean value but got \"\"", (char*)NULL);
                     return TCL_ERROR;
                 }
             }
             else if (strncmp(argv[nextarg],"-id",3) == 0) {
-                id = std::string(argv[++nextarg]);
                 nextarg++;
+                id = std::string(argv[nextarg]);
+                // nextarg++;
             }
             else {
                 Tcl_AppendResult(interp, "bad option \"", argv[nextarg],
                     "\": should be -append or -id", (char*)NULL);
                 return TCL_ERROR;
             }
+            nextarg++;
         }
     }
 
@@ -1213,6 +1216,7 @@ RpTclLibRemove  (   ClientData cdata,
     return TCL_OK;
 }
 
+/*
 int
 RpTclLibResult  (   ClientData cdata,
                     Tcl_Interp *interp,
@@ -1238,6 +1242,7 @@ RpTclLibResult  (   ClientData cdata,
 
     return TCL_OK;
 }
+*/
 
 /**********************************************************************/
 // FUNCTION: RpTclLibValue()
@@ -1254,6 +1259,7 @@ RpTclLibResult  (   ClientData cdata,
  *   - second element is the normalization of the value at location <path>
  */
 
+/*
 int
 RpTclLibValue   (   ClientData cdata,
                     Tcl_Interp *interp,
@@ -1330,6 +1336,7 @@ RpTclLibValue   (   ClientData cdata,
 
     return TCL_OK;
 }
+*/
 
 /**********************************************************************/
 // FUNCTION: RpTclLibXml()

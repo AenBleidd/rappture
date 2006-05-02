@@ -106,7 +106,7 @@ test library-4.2.5 {put command test append junk} {
     list [catch {$libPut put -append junk "input.test(withId)" "val2"} msg] $msg
     # $libPut xml
 } {1 {expected boolean value but got "junk"}}
-test library-4.2.5 {put command test append = "1"} {
+test library-4.2.6 {put command test append = "1"} {
     catch {unset libPut}
     set libPut [Rappture::library rplib_test.xml]
     set path "input.test(withId)"
@@ -117,7 +117,7 @@ test library-4.2.5 {put command test append = "1"} {
     }
     set rslt
 } {0 {} val1val2}
-test library-4.2.5 {put command test append = "0"} {
+test library-4.2.7 {put command test append = "0"} {
     catch {unset libPut}
     set libPut [Rappture::library rplib_test.xml]
     set path "input.test(withId)"
@@ -128,7 +128,7 @@ test library-4.2.5 {put command test append = "0"} {
     }
     set rslt
 } {0 {} val2}
-test library-4.2.5 {put command test append = "true"} {
+test library-4.2.8 {put command test append = "true"} {
     catch {unset libPut}
     set libPut [Rappture::library rplib_test.xml]
     set path "input.test(withId)"
@@ -139,7 +139,7 @@ test library-4.2.5 {put command test append = "true"} {
     }
     set rslt
 } {0 {} val1val2}
-test library-4.2.5 {put command test append = "false"} {
+test library-4.2.9 {put command test append = "false"} {
     catch {unset libPut}
     set libPut [Rappture::library rplib_test.xml]
     set path "input.test(withId)"

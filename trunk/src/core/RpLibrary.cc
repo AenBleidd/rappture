@@ -236,12 +236,12 @@ RpLibrary::_node2path (scew_element* node)
         while (snode && parent) {
 
             if (!path.str().empty()) {
-                // path.str(_node2comp(snode) + "." + path.str());
-                path.str("." + _node2comp(snode) + path.str());
+                path.str(_node2comp(snode) + "." + path.str());
+                // path.str("." + _node2comp(snode) + path.str());
             }
             else {
-                // path.str(_node2comp(snode));
-                path.str("." + _node2comp(snode));
+                path.str(_node2comp(snode));
+                // path.str("." + _node2comp(snode));
             }
 
             snode = scew_element_parent(snode);
@@ -494,17 +494,28 @@ RpLibrary::element (std::string path)
         return NULL;
     }
 
+    /*
     if (path.empty()) {
         // an empty path returns the current RpLibrary
         return this;
     }
+    */
 
-    // get the node located at path
-    retNode = _find(path,NO_CREATE_PATH);
+    if (path.empty()) {
+        // this should be a smart pointer, 
+        // if someone deletes the original this->root, this object is void
+        // and will be a memory leak.
+        // retNode = this->root;
+        retLib = new RpLibrary(*this);
+    }
+    else {
+        // get the node located at path
+        retNode = _find(path,NO_CREATE_PATH);
 
-    // if the node exists, create a rappture library object for it.
-    if (retNode) {
-        retLib = new RpLibrary( retNode,this->tree );
+        // if the node exists, create a rappture library object for it.
+        if (retNode) {
+            retLib = new RpLibrary( retNode,this->tree );
+        }
     }
 
     return retLib;
@@ -512,10 +523,8 @@ RpLibrary::element (std::string path)
 
 /**********************************************************************/
 // METHOD: entities()
-/// Search the path of a xml tree and return its next entity.
+/// Search the path of a xml tree and return a list of its entities.
 /**
- * It is the user's responsibility to delete the object when 
- * they are finished using it?, else i need to make this static
  */
 
 std::list<std::string> 
@@ -528,6 +537,7 @@ RpLibrary::entities  (std::string path)
     std::list<std::string>::iterator childIter;
 
     RpLibrary* ele = NULL;
+    std::string pathBack = "";
 
     RpLibrary* child = NULL;
     std::string childType = "";
@@ -545,8 +555,16 @@ RpLibrary::entities  (std::string path)
         ele = this->element(*iter);
         child = NULL;
 
+        if ((*iter).empty()) {
+            pathBack = "";
+        }
+        else {
+            pathBack = *iter + ".";
+        }
+
         while ( ele && (child = ele->children("",child)) != NULL ) {
             childList.push_back(child->nodeComp());
+            delete child;
         }
 
         childIter = childList.begin();
@@ -555,25 +573,25 @@ RpLibrary::entities  (std::string path)
             child = ele->element(*childIter);
 
             childType = child->nodeType();
-            childPath = child->nodePath();
+            childPath = child->nodeComp();
             if ( (childType == "group") || (childType == "phase") ) {
                 // add this path to the queue for paths to search
-                queue.push_back(childPath);
+                queue.push_back(pathBack+childPath);
             }
             else if (childType == "structure") {
                 // add this path to the return list
-                retList.push_back(child->nodeComp());
+                retList.push_back(pathBack+child->nodeComp());
 
                 // check to see if there is a ".current.parameters" node
                 // if so, add them to the queue list for paths to search
-                paramsPath = childPath + ".current.parameters";
+                paramsPath = "current.parameters";
                 if (child->element(paramsPath) != NULL) {
-                    queue.push_back(paramsPath);
+                    queue.push_back((pathBack+child->nodeComp()+"."+paramsPath));
                 }
             }
             else {
                 // add this path to the return list
-                retList.push_back(child->nodeComp());
+                retList.push_back(pathBack+child->nodeComp());
 
                 // look for embedded groups and phases
                 // add them to the queue list for paths to search
@@ -585,11 +603,13 @@ RpLibrary::entities  (std::string path)
                         // add this path to the queue for paths to search
                         queue.push_back(cchildPath);
                     }
+                    delete cchild;
                 }
             }
 
             childList.erase(childIter);
             childIter = childList.begin();
+            delete child;
         }
 
         queue.erase(iter);
@@ -629,6 +649,7 @@ RpLibrary::diff (RpLibrary* otherLib, std::string path)
         return retList;
     }
 
+
     thisv = this->entities(path);
     otherv = otherLib->entities(path);
 
@@ -641,12 +662,13 @@ RpLibrary::diff (RpLibrary* otherLib, std::string path)
             otherIter++;
         }
 
-        if (!path.empty()) {
-            thisSpath = path + "." + *thisIter;
-        }
-        else {
-            thisSpath = *thisIter;
-        }
+        //if (!path.empty()) {
+        //    thisSpath = path + "." + *thisIter;
+        //}
+        //else {
+        //    thisSpath = *thisIter;
+        //}
+        thisSpath = *thisIter;
 
         if (otherIter == otherv.end()) {
             // we've reached the end of the search 
@@ -659,12 +681,13 @@ RpLibrary::diff (RpLibrary* otherLib, std::string path)
         }
         else {
 
-            if (!path.empty()) {
-                otherSpath = path + "." + *otherIter;
-            }
-            else {
-                otherSpath = *otherIter;
-            }
+            //if (!path.empty()) {
+            //    otherSpath = path + "." + *otherIter;
+            //}
+            //else {
+            //    otherSpath = *otherIter;
+            //}
+            otherSpath = *otherIter;
 
             thisVal = this->value(thisSpath);
             otherVal = otherLib->value(otherSpath);
@@ -688,12 +711,13 @@ RpLibrary::diff (RpLibrary* otherLib, std::string path)
     otherIter = otherv.begin();
     while ( otherIter != otherv.end() ) {
 
-        if (!path.empty()) {
-            otherSpath = path + "." + *otherIter;
-        }
-        else {
-            otherSpath = *otherIter;
-        }
+        //if (!path.empty()) {
+        //    otherSpath = path + "." + *otherIter;
+        //}
+        //else {
+        //    otherSpath = *otherIter;
+        //}
+        otherSpath = *otherIter;
 
         otherVal = otherLib->value(otherSpath);
 
@@ -802,7 +826,8 @@ RpLibrary::parent (std::string path)
 {
     RpLibrary* retLib = NULL;
     std::string parentPath = "";
-    std::string::size_type pos = 0;
+    // std::string::size_type pos = 0;
+    scew_element* ele = NULL;
     scew_element* retNode = NULL;
 
     if (!this->root) {
@@ -812,24 +837,24 @@ RpLibrary::parent (std::string path)
 
     if (path.empty()) {
         // an empty path returns the parent of the current RpLibrary
-        path = this->nodePath();
+        ele = this->root;
+    }
+    else {
+        // else find the node representing the provided path
+        ele = _find(path,NO_CREATE_PATH);
     }
 
-    // get the path of the parent node
-    // check to see if the path lists a parent node.
-    pos = path.rfind(".",std::string::npos);
-    if (pos != std::string::npos) {
-        // there is a parent node, get the parent path.
-        parentPath = path.substr(0,pos);
-
-        // search for hte parent's node
-        retNode = _find(parentPath,NO_CREATE_PATH);
-
+    if (ele != NULL) {
+        retNode = scew_element_parent(ele);
         if (retNode) {
             // allocate a new rappture library object for the node
             retLib = new RpLibrary( retNode,this->tree ); 
         }
     }
+    else {
+        // path was not found by _find
+    }
+
 
     return retLib;
 }
@@ -847,7 +872,7 @@ RpLibrary&
 RpLibrary::copy (std::string toPath, std::string fromPath, RpLibrary* fromObj)
 {
     RpLibrary* value = NULL;
-    RpLibrary* child = NULL;
+    // RpLibrary* child = NULL;
 
     if (!this->root) {
         // library doesn't exist, do nothing;
@@ -866,9 +891,8 @@ RpLibrary::copy (std::string toPath, std::string fromPath, RpLibrary* fromObj)
         return *this;
     }
 
-    while ( (child = value->children("",child)) ) {
-        this->put(toPath, child);
-    }
+    this->put(toPath, value);
+    delete value;
 
     return (*this);
 
@@ -879,6 +903,7 @@ RpLibrary::copy (std::string toPath, std::string fromPath, RpLibrary* fromObj)
 /// Return the next child of the node located at 'path'
 //
 // The lookup is reset when you send a NULL rpChilNode.
+// User is responsible for deleting returned values
 // 
 /**
  */
@@ -995,7 +1020,8 @@ RpLibrary::children (   std::string path,
     static std::string old_path = "";
     // this was static so user never has to delete the retLib.
     // should be replaced by a smart pointer
-    static RpLibrary* retLib = NULL; 
+    // static RpLibrary* retLib = NULL; 
+    RpLibrary* retLib = NULL; 
     int myChildCount = 0;
     scew_element* parentNode = NULL;
     scew_element* childNode = NULL;
@@ -1041,7 +1067,7 @@ RpLibrary::children (   std::string path,
     }
 
     // clean up old memory
-    delete retLib;
+    // delete retLib;
 
     if ( (childNode = scew_element_next(parentNode,childNode)) ) {
 
@@ -1360,17 +1386,6 @@ RpLibrary::put ( std::string path, RpLibrary* value, std::string id, int append 
     else {
         // path did not exist and was not created.
     }
-
-    /*
-    if (retNode) {
-        if ((new_elem = scew_element_copy(value->root))) {
-            if (scew_element_add_elem(retNode, new_elem)) {
-                retVal = 0;
-            }
-        }
-    }
-
-    */
 
     return *this;
 }
