@@ -62,7 +62,6 @@ Lic* lic;
 
 unsigned char* screen_buffer = new unsigned char[3*win_width*win_height+1];	//buffer to store data read from the screen
 NVISid final_fbo, final_color_tex, final_depth_rb;      //frame buffer for final rendering
-NVISid vel_fbo, slice_vector_tex;	//for projecting 3d vector to 2d vector on a plane
 
 bool advect=false;
 float vert[NMESH*NMESH*3];		//particle positions in main memory
@@ -895,7 +894,6 @@ void resize_offscreen_buffer(int w, int h){
   glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT,
                             GL_COLOR_ATTACHMENT0_EXT,
                             GL_TEXTURE_2D, final_color_tex, 0);
-
 	
   // initialize final depth renderbuffer
   glBindRenderbufferEXT(GL_RENDERBUFFER_EXT, final_depth_rb);
@@ -1297,18 +1295,19 @@ void display_offscreen_buffer(){
    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
    glBindTexture(GL_TEXTURE_2D, final_color_tex);
 
+   glViewport(0, 0, win_width, win_height);
    glMatrixMode(GL_PROJECTION);
    glLoadIdentity();
-   gluOrtho2D(-1, 1, -1, 1);
+   gluOrtho2D(0, win_width, 0, win_height);
    glMatrixMode(GL_MODELVIEW);
    glLoadIdentity();
 
    glColor3f(1.,1.,1.);		//MUST HAVE THIS LINE!!!
    glBegin(GL_QUADS);
-   glTexCoord2f(0, 0); glVertex2f(-1, -1);
-   glTexCoord2f(1, 0); glVertex2f(1, -1);
-   glTexCoord2f(1, 1); glVertex2f(1, 1);
-   glTexCoord2f(0, 1); glVertex2f(-1, 1);
+   glTexCoord2f(0, 0); glVertex2f(0, 0);
+   glTexCoord2f(1, 0); glVertex2f(win_width, 0);
+   glTexCoord2f(1, 1); glVertex2f(win_width, win_height);
+   glTexCoord2f(0, 1); glVertex2f(0, win_height);
    glEnd();
 }
 
@@ -1641,11 +1640,10 @@ void display()
    assert(glGetError()==0);
 
    //lic->convolve(); //flow line integral convolution
-
    //psys->advect(); //advect particles
 
-   offscreen_buffer_capture();
-   //display_texture(slice_vector_tex, NMESH, NMESH);
+   offscreen_buffer_capture();  //enable offscreen render
+   //glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0); //enable onscreen render
 
    //start final rendering
    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); //clear screen
@@ -1661,7 +1659,6 @@ void display()
    draw_3d_axis();
    
    //lic->render(); 	//display the line integral convolution result
-   
    //soft_display_verts();
    //perf->enable();
    //  psys->render();
@@ -1674,14 +1671,12 @@ void display()
      vol_render->render_all();
      //fprintf(stderr, "%lf\n", get_time_interval());
    perf->disable();
-   //fprintf(stderr, "volume pixels: %d\n", perf->get_pixel_count());
  
 #ifdef XINETD
    float cost  = perf->get_pixel_count();
    write(3, &cost, sizeof(cost));
 #endif
    perf->reset();
-
 
    display_offscreen_buffer(); //display the final rendering on screen
 
@@ -1753,6 +1748,11 @@ void update_trans(int delta_x, int delta_y, int delta_z){
 }
 
 void end_service();
+
+void resize(int w, int h){
+  resize_offscreen_buffer(w, h);
+}
+
 
 void keyboard(unsigned char key, int x, int y){
   
@@ -1942,7 +1942,7 @@ int main(int argc, char** argv)
    tf_window = new MainTransferFunctionWindow();
    tf_window->mainInit();
    
-   glutInitWindowSize(NPIX, NPIX);
+   glutInitWindowSize(win_width, win_height);
    glutInitWindowPosition(10, 10);
    render_window = glutCreateWindow(argv[0]);
 
@@ -1951,6 +1951,7 @@ int main(int argc, char** argv)
    glutMotionFunc(motion);
    glutKeyboardFunc(keyboard);
    glutIdleFunc(idle);
+   glutReshapeFunc(resize);
 
    initGL();
    initTcl();
