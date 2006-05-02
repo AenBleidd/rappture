@@ -104,38 +104,41 @@ static void set_camera(float x_angle, float y_angle, float z_angle){
 // Tcl interpreter for incoming messages
 static Tcl_Interp *interp;
 
-static int CameraCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
-static int CutCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
-static int HelloCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
-static int LoadCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
-static int RefreshCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
-static int MoveCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
-static int TransferFunctionCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
-static int ScreenSizeCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
-
 //Tcl callback functions
 static int
 CameraCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
 {
 
 	fprintf(stderr, "camera cmd\n");
-	double x, y, z;
+	double angle_x, angle_y, angle_z, aim_x, aim_y, aim_z;
 
-	if (argc != 4) {
+	if (argc != 7) {
 		Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
-			" x_angle y_angle z_angle\"", (char*)NULL);
+			" x_angle y_angle z_angle aim_x aim_y aim_z\"", (char*)NULL);
 		return TCL_ERROR;
 	}
-	if (Tcl_GetDouble(interp, argv[1], &x) != TCL_OK) {
+	if (Tcl_GetDouble(interp, argv[1], &angle_x) != TCL_OK) {
 		return TCL_ERROR;
 	}
-	if (Tcl_GetDouble(interp, argv[2], &y) != TCL_OK) {
+	if (Tcl_GetDouble(interp, argv[2], &angle_y) != TCL_OK) {
 		return TCL_ERROR;
 	}
-	if (Tcl_GetDouble(interp, argv[3], &z) != TCL_OK) {
+	if (Tcl_GetDouble(interp, argv[3], &angle_z) != TCL_OK) {
 		return TCL_ERROR;
 	}
-	set_camera(x, y, z);
+	if (Tcl_GetDouble(interp, argv[4], &aim_x) != TCL_OK) {
+		return TCL_ERROR;
+	}
+	if (Tcl_GetDouble(interp, argv[5], &aim_y) != TCL_OK) {
+		return TCL_ERROR;
+	}
+	if (Tcl_GetDouble(interp, argv[6], &aim_z) != TCL_OK) {
+		return TCL_ERROR;
+	}
+
+	//set_camera(x, y, z);
+	cam->rotate(angle_x, angle_y, angle_z);
+	cam->aim(aim_x, aim_y, aim_z);
 	return TCL_OK;
 }
 
@@ -144,7 +147,7 @@ void resize_offscreen_buffer(int w, int h);
 
 //change screen size
 static int
-ScreenSizeCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
+ScreenResizeCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
 {
 
 	fprintf(stderr, "screen size cmd\n");
@@ -176,26 +179,23 @@ RefreshCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
 
 void update_transfer_function(int index, float* data);
 
-//The client sends the Transfer function command to tell the index of the transfer function
+//The client sends the first sends the index of the transfer function
 //to modify. Then the client sends a chunck of binary floats.
 static int
-TransferFunctionCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
+TransferFunctionUpdateCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
 {
-  fprintf(stderr, "transfer function cmd\n");
+  fprintf(stderr, "update transfer function cmd\n");
 
-  double index_d;
-  int index;
+  double index;
 
   if (argc != 2) {
     Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
 		" tf_index\"", (char*)NULL);
     return TCL_ERROR;
   }
-  if (Tcl_GetDouble(interp, argv[1], &index_d) != TCL_OK) {
+  if (Tcl_GetDouble(interp, argv[1], &index) != TCL_OK) {
 	return TCL_ERROR;
   }
-
-  index = int(index_d);
 
   //Now read 256*4*4 bytes. The server expects the transfer function to be 256 units of (RGBA) floats
   char tmp[256*4*4];
@@ -205,7 +205,38 @@ TransferFunctionCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char
     exit(0);
   }
 
-  update_transfer_function(index, (float*)tmp);
+  update_transfer_function((int)index, (float*)tmp);
+  return TCL_OK;
+}
+
+
+//The client sends the index of the index of the transfer function
+//to create. Then the client sends a chunck of binary floats.
+static int
+TransferFunctionNewCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
+{
+  fprintf(stderr, "update transfer function cmd\n");
+
+  double index;
+
+  if (argc != 2) {
+    Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
+		" tf_index\"", (char*)NULL);
+    return TCL_ERROR;
+  }
+  if (Tcl_GetDouble(interp, argv[1], &index) != TCL_OK) {
+	return TCL_ERROR;
+  }
+
+  //Now read 256*4*4 bytes. The server expects the transfer function to be 256 units of (RGBA) floats
+  char tmp[256*4*4];
+  bzero(tmp, 256*4*4);
+  int status = read(0, tmp, 256*4*4);
+  if (status <= 0) {
+    exit(0);
+  }
+
+  tf[(int)index] = new TransferFunction(256, (float*)tmp);
   return TCL_OK;
 }
 
@@ -216,12 +247,65 @@ void set_object(float x, float y, float z){
   live_obj_z = z;
 }
 
+static int
+VolumeLinkCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
+{
+  fprintf(stderr, "link volume command\n");
+
+  double volume_index, tf_index;
+
+  if (argc != 3) {
+    Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
+		" volume_index tf_index \"", (char*)NULL);
+    return TCL_ERROR;
+  }
+  if (Tcl_GetDouble(interp, argv[1], &volume_index) != TCL_OK) {
+	return TCL_ERROR;
+  }
+  if (Tcl_GetDouble(interp, argv[2], &tf_index) != TCL_OK) {
+	return TCL_ERROR;
+  }
+
+  vol_render->add_volume(volume[(int)volume_index], tf[(int)tf_index]);
+
+  return TCL_OK;
+}
+
+
+static int
+VolumeEnableCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
+{
+  fprintf(stderr, "link volume command\n");
+
+  double volume_index, mode;
+
+  if (argc != 3) {
+    Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
+		" volume_index tf_index \"", (char*)NULL);
+    return TCL_ERROR;
+  }
+  if (Tcl_GetDouble(interp, argv[1], &volume_index) != TCL_OK) {
+	return TCL_ERROR;
+  }
+  if (Tcl_GetDouble(interp, argv[2], &mode) != TCL_OK) {
+	return TCL_ERROR;
+  }
+
+  if(mode==0)
+    volume[(int)volume_index]->disable();
+  else
+    volume[(int)volume_index]->enable();
+
+  return TCL_OK;
+}
+
+
 void load_volume(int index, int width, int height, int depth, int n_component, float* data);
 
 //The client sends the load data command to tell the index of the volume, and the dimensions of the data 
-//Then the client sends a chunck of binary floats.
+//Then the client sends a chunck of binary floats. This call creates a NEW volume
 static int
-LoadCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
+VolumeNewCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
 {
   fprintf(stderr, "load data command\n");
 
@@ -229,7 +313,7 @@ LoadCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
 
   if (argc != 5) {
     Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
-		" volume_index x y z \"", (char*)NULL);
+		" volume_index w h d \"", (char*)NULL);
     return TCL_ERROR;
   }
   if (Tcl_GetDouble(interp, argv[1], &index) != TCL_OK) {
@@ -254,30 +338,25 @@ LoadCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
   }
  
   load_volume(int(index), int(w), int(h), int(d), 4, (float*) tmp);
+  
   delete[] tmp;
-
   return TCL_OK;
-}
-
-//move the volume object in space so its starting corner is at (x, y, z)
-void move_volume(int index, float x, float y, float z){
-  volume[index]->move(Vector3(x, y, z));
 }
 
 
 static int
-MoveCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
+VolumeMoveCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
 {
 
-	fprintf(stderr, "move cmd\n");
-	double index_d, x, y, z;
+	fprintf(stderr, "move volume cmd\n");
+	double index, x, y, z;
 
 	if (argc != 5) {
 		Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
 			" index x_coord y_coord z_coord\"", (char*)NULL);
 		return TCL_ERROR;
 	}
-	if (Tcl_GetDouble(interp, argv[1], &index_d) != TCL_OK) {
+	if (Tcl_GetDouble(interp, argv[1], &index) != TCL_OK) {
 		return TCL_ERROR;
 	}
 	if (Tcl_GetDouble(interp, argv[2], &x) != TCL_OK) {
@@ -291,10 +370,67 @@ MoveCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
 	}
 	
 	//set_object(x, y, z);
-	move_volume((int)index_d, x, y, z);
+        volume[(int)index]->move(Vector3(x, y, z));
 	return TCL_OK;
 }
 
+
+static int
+CutMoveCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
+{
+
+	fprintf(stderr, "move cutplane cmd\n");
+	double volume_index, cut_index, location;
+
+	if (argc != 4) {
+		Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
+			" vol_index cut_index cut_location\"", (char*)NULL);
+		return TCL_ERROR;
+	}
+	if (Tcl_GetDouble(interp, argv[1], &volume_index) != TCL_OK) {
+		return TCL_ERROR;
+	}
+	if (Tcl_GetDouble(interp, argv[2], &cut_index) != TCL_OK) {
+		return TCL_ERROR;
+	}
+	if (Tcl_GetDouble(interp, argv[3], &location) != TCL_OK) {
+		return TCL_ERROR;
+	}
+	
+	volume[(int)volume_index]->move_cutplane((int)cut_index, (float)location);
+	return TCL_OK;
+}
+
+
+static int
+CutEnableCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
+{
+  fprintf(stderr, "cutplane enable/disable command\n");
+
+  double volume_index, cut_index, mode;
+
+  if (argc != 4) {
+    Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
+		" volume_index cut_index mode\"", (char*)NULL);
+    return TCL_ERROR;
+  }
+  if (Tcl_GetDouble(interp, argv[1], &volume_index) != TCL_OK) {
+	return TCL_ERROR;
+  }
+  if (Tcl_GetDouble(interp, argv[2], &cut_index) != TCL_OK) {
+	return TCL_ERROR;
+  }
+  if (Tcl_GetDouble(interp, argv[3], &mode) != TCL_OK) {
+	return TCL_ERROR;
+  }
+
+  if(mode==0)
+    volume[(int)volume_index]->disable_cutplane((int)cut_index);
+  else
+    volume[(int)volume_index]->enable_cutplane((int)cut_index);
+
+  return TCL_OK;
+}
 
 static int
 HelloCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
@@ -1087,14 +1223,37 @@ void initTcl(){
   interp = Tcl_CreateInterp();
   Tcl_MakeSafe(interp);
 
+  //hello test
   Tcl_CreateCommand(interp, "hello", HelloCmd, (ClientData)0, (Tcl_CmdDeleteProc*)NULL);
+
+  //set camera (viewing)
   Tcl_CreateCommand(interp, "camera", CameraCmd, (ClientData)0, (Tcl_CmdDeleteProc*)NULL);
-  Tcl_CreateCommand(interp, "move", MoveCmd, (ClientData)0, (Tcl_CmdDeleteProc*)NULL);
-  Tcl_CreateCommand(interp, "transferfunction", TransferFunctionCmd, (ClientData)0, (Tcl_CmdDeleteProc*)NULL);
+
+  //resize the width and height of render screen
+  Tcl_CreateCommand(interp, "screen", ScreenResizeCmd, (ClientData)0, (Tcl_CmdDeleteProc*)NULL);
+
+  //create new transfer function
+  Tcl_CreateCommand(interp, "tf_new", TransferFunctionNewCmd, (ClientData)0, (Tcl_CmdDeleteProc*)NULL);
+  //update an existing transfer function
+  Tcl_CreateCommand(interp, "tf_update", TransferFunctionUpdateCmd, (ClientData)0, (Tcl_CmdDeleteProc*)NULL);
+
+  //create new volume
+  Tcl_CreateCommand(interp, "volume_new", VolumeNewCmd, (ClientData)0, (Tcl_CmdDeleteProc*)NULL);
+  //link an EXISTING volume and transfer function to the volume renderer. 
+  //Only after being added, can a volume be rendered. This command does not create a volume nor a transfer function
+  Tcl_CreateCommand(interp, "volume_link", VolumeLinkCmd, (ClientData)0, (Tcl_CmdDeleteProc*)NULL);
+  //move an volume
+  Tcl_CreateCommand(interp, "volume_move", VolumeMoveCmd, (ClientData)0, (Tcl_CmdDeleteProc*)NULL);
+  //enable or disable an existing volume 
+  Tcl_CreateCommand(interp, "volume_enable", VolumeEnableCmd, (ClientData)0, (Tcl_CmdDeleteProc*)NULL);
+
+  //move a cut plane 
+  Tcl_CreateCommand(interp, "cut_move", CutMoveCmd, (ClientData)0, (Tcl_CmdDeleteProc*)NULL);
+  //enable or disable a cut plane 
+  Tcl_CreateCommand(interp, "cut_enable", CutEnableCmd, (ClientData)0, (Tcl_CmdDeleteProc*)NULL);
+
+  //refresh the screen (render again)
   Tcl_CreateCommand(interp, "refresh", RefreshCmd, (ClientData)0, (Tcl_CmdDeleteProc*)NULL);
-  //Tcl_CreateCommand(interp, "cut", CutCmd, (ClientData)0, (Tcl_CmdDeleteProc*)NULL);
-  Tcl_CreateCommand(interp, "load", LoadCmd, (ClientData)0, (Tcl_CmdDeleteProc*)NULL);
-  Tcl_CreateCommand(interp, "screen", ScreenSizeCmd, (ClientData)0, (Tcl_CmdDeleteProc*)NULL);
 }
 
 

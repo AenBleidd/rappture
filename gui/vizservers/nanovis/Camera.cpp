@@ -44,7 +44,7 @@ void Camera::rotate(double angle_x, double angle_y, double angle_z)
 }
 
 void Camera::activate(){
-  fprintf(stderr, "camera: %d, %d\n", width, height);
+  //fprintf(stderr, "camera: %d, %d\n", width, height);
   glViewport(0, 0, width, height);
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity();
