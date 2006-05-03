@@ -4,6 +4,7 @@
  *
  * ======================================================================
  *  AUTHOR:  Wei Qiao <qiaow@purdue.edu>
+ *           Michael McLennan <mmclennan@purdue.edu>
  *           Purdue Rendering and Perceptualization Lab (PURPL)
  *
  *  Copyright (c) 2004-2006  Purdue Research Foundation
@@ -17,6 +18,7 @@
 #include <math.h>
 #include <fstream>
 #include <iostream>
+#include <sstream>
 #include <string>
 #include <sys/time.h>
 
@@ -37,7 +39,19 @@
 VolumeRenderer* vol_render;
 Camera* cam;
 
+// color table for built-in transfer function editor
 float color_table[256][4]; 	
+
+// default transfer function
+float def_tf[24] = {
+  1, 1, 1, 0.5,  // red
+  1, 1, 0, 0.5,  // yellow
+  0, 1, 0, 0.5,  // green
+  0, 1, 1, 0.5,  // cyan
+  0, 0, 1, 0.5,  // blue
+  1, 0, 1, 0.5,  // magenta
+};
+int def_tf_size = 6;
 
 #ifdef XINETD
 FILE* xinetd_log;
@@ -60,7 +74,7 @@ float psys_x=0.4, psys_y=0, psys_z=0;
 
 Lic* lic;
 
-unsigned char* screen_buffer = new unsigned char[3*win_width*win_height+1];	//buffer to store data read from the screen
+unsigned char* screen_buffer = NULL;
 NVISid final_fbo, final_color_tex, final_depth_rb;      //frame buffer for final rendering
 
 bool advect=false;
@@ -94,54 +108,255 @@ CGparameter m_mvi_vert_std_param;
 
 using namespace std;
 
-static void set_camera(float x_angle, float y_angle, float z_angle){
-  live_rot_x = x_angle;
-  live_rot_y = y_angle;
-  live_rot_z = z_angle;
-}
-
 
 // Tcl interpreter for incoming messages
 static Tcl_Interp *interp;
 
-//Tcl callback functions
+static int CameraCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
+static int CutplaneCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
+static int ClearCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
+static int ScreenResizeCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
+static int TransferFunctionNewCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
+static int TransferFunctionUpdateCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
+static int VolumeNewCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
+static int VolumeLinkCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
+static int VolumeMoveCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
+static int VolumeEnableCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
+static int OutlineCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
+static int RefreshCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
+
+static int DecodeAxis _ANSI_ARGS_((Tcl_Interp *interp, char *str, int *valPtr));
+
+/*
+ * ----------------------------------------------------------------------
+ * CLIENT COMMAND:
+ *   camera aim <x0> <y0> <z0>
+ *   camera angle <xAngle> <yAngle> <zAngle>
+ *   camera zoom <factor>
+ *
+ * Clients send these commands to manipulate the camera.  The "angle"
+ * operation controls the angle of the camera around the focal point.
+ * The "zoom" operation sets the zoom factor, moving the camera in
+ * and out.
+ * ----------------------------------------------------------------------
+ */
 static int
 CameraCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
 {
-
-	fprintf(stderr, "camera cmd\n");
-	double angle_x, angle_y, angle_z, aim_x, aim_y, aim_z;
-
-	if (argc != 7) {
+	if (argc < 2) {
 		Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
-			" x_angle y_angle z_angle aim_x aim_y aim_z\"", (char*)NULL);
+			" option arg arg...\"", (char*)NULL);
 		return TCL_ERROR;
-	}
-	if (Tcl_GetDouble(interp, argv[1], &angle_x) != TCL_OK) {
-		return TCL_ERROR;
-	}
-	if (Tcl_GetDouble(interp, argv[2], &angle_y) != TCL_OK) {
-		return TCL_ERROR;
-	}
-	if (Tcl_GetDouble(interp, argv[3], &angle_z) != TCL_OK) {
-		return TCL_ERROR;
-	}
-	if (Tcl_GetDouble(interp, argv[4], &aim_x) != TCL_OK) {
-		return TCL_ERROR;
-	}
-	if (Tcl_GetDouble(interp, argv[5], &aim_y) != TCL_OK) {
-		return TCL_ERROR;
-	}
-	if (Tcl_GetDouble(interp, argv[6], &aim_z) != TCL_OK) {
-		return TCL_ERROR;
-	}
+    }
 
-	//set_camera(x, y, z);
-	cam->rotate(angle_x, angle_y, angle_z);
-	cam->aim(aim_x, aim_y, aim_z);
-	return TCL_OK;
+    char c = *argv[1];
+	if (c == 'a' && strcmp(argv[1],"angle") == 0) {
+        if (argc != 5) {
+		    Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
+			    " angle xangle yangle zangle\"", (char*)NULL);
+		    return TCL_ERROR;
+        }
+
+        double xangle, yangle, zangle;
+	    if (Tcl_GetDouble(interp, argv[2], &xangle) != TCL_OK) {
+		    return TCL_ERROR;
+	    }
+	    if (Tcl_GetDouble(interp, argv[3], &yangle) != TCL_OK) {
+		    return TCL_ERROR;
+	    }
+	    if (Tcl_GetDouble(interp, argv[4], &zangle) != TCL_OK) {
+		    return TCL_ERROR;
+	    }
+	    cam->rotate(xangle, yangle, zangle);
+
+	    return TCL_OK;
+	}
+	else if (c == 'a' && strcmp(argv[1],"aim") == 0) {
+        if (argc != 5) {
+		    Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
+			    " aim x y z\"", (char*)NULL);
+		    return TCL_ERROR;
+        }
+
+        double x0, y0, z0;
+	    if (Tcl_GetDouble(interp, argv[2], &x0) != TCL_OK) {
+		    return TCL_ERROR;
+	    }
+	    if (Tcl_GetDouble(interp, argv[3], &y0) != TCL_OK) {
+		    return TCL_ERROR;
+	    }
+	    if (Tcl_GetDouble(interp, argv[4], &z0) != TCL_OK) {
+		    return TCL_ERROR;
+	    }
+	    cam->aim(x0, y0, z0);
+
+	    return TCL_OK;
+	}
+	else if (c == 'z' && strcmp(argv[1],"zoom") == 0) {
+        if (argc != 3) {
+		    Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
+			    " zoom factor\"", (char*)NULL);
+		    return TCL_ERROR;
+        }
+
+        double zoom;
+	    if (Tcl_GetDouble(interp, argv[2], &zoom) != TCL_OK) {
+		    return TCL_ERROR;
+	    }
+
+        live_obj_z = -2.5/zoom;
+		cam->move(live_obj_x, live_obj_y, live_obj_z);
+
+	    return TCL_OK;
+    }
+
+	Tcl_AppendResult(interp, "bad option \"", argv[1],
+		"\": should be aim, angle, or zoom", (char*)NULL);
+	return TCL_ERROR;
 }
 
+/*
+ * ----------------------------------------------------------------------
+ * CLIENT COMMAND:
+ *   cutplane state on|off <axis> ?<volume>...?
+ *   cutplane position <relvalue> <axis> ?<volume>...?
+ *
+ * Clients send these commands to manipulate the cutplanes in one or
+ * more data volumes.  The "state" command turns a cutplane on or
+ * off.  The "position" command changes the position to a relative
+ * value in the range 0-1.  The <axis> can be x, y, or z.  These
+ * operations are applied to the volumes represented by one or more
+ * <volume> indices.  If no volumes are specified, then all volumes
+ * are updated.
+ * ----------------------------------------------------------------------
+ */
+static int
+CutplaneCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
+{
+    if (argc < 2) {
+        Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
+            " option ?arg arg...?\"", (char*)NULL);
+        return TCL_ERROR;
+    }
+
+    char c = *argv[1];
+    if (c == 's' && strcmp(argv[1],"state") == 0) {
+        if (argc < 4) {
+            Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
+                " state on|off axis ?volume ...? \"", (char*)NULL);
+            return TCL_ERROR;
+        }
+
+        int state;
+        if (Tcl_GetBoolean(interp, argv[2], &state) != TCL_OK) {
+            return TCL_ERROR;
+        }
+
+        int axis;
+        if (DecodeAxis(interp, argv[3], &axis) != TCL_OK) {
+            return TCL_ERROR;
+        }
+
+        int ivol;
+        if (argc < 5) {
+            for (ivol=0; ivol < n_volumes; ivol++) {
+                if (state) {
+                    volume[ivol]->enable_cutplane(axis);
+                } else {
+                    volume[ivol]->disable_cutplane(axis);
+                }
+            }
+        } else {
+            for (int n=4; n < argc; n++) {
+                if (Tcl_GetInt(interp, argv[n], &ivol) != TCL_OK) {
+                    return TCL_ERROR;
+                }
+                if (ivol < 0 || ivol > n_volumes) {
+                    Tcl_AppendResult(interp, "bad volume index \"", argv[n],
+                        "\": out of range", (char*)NULL);
+                    return TCL_ERROR;
+                }
+                if (state) {
+                    volume[ivol]->enable_cutplane(axis);
+                } else {
+                    volume[ivol]->disable_cutplane(axis);
+                }
+            }
+        }
+        return TCL_OK;
+    }
+    else if (c == 'p' && strcmp(argv[1],"position") == 0) {
+        if (argc < 4) {
+            Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
+                " position relval axis ?volume ...? \"", (char*)NULL);
+            return TCL_ERROR;
+        }
+
+        double relval;
+        if (Tcl_GetDouble(interp, argv[2], &relval) != TCL_OK) {
+            return TCL_ERROR;
+        }
+
+        int axis;
+        if (DecodeAxis(interp, argv[3], &axis) != TCL_OK) {
+            return TCL_ERROR;
+        }
+
+        int ivol;
+        if (argc < 5) {
+            for (ivol=0; ivol < n_volumes; ivol++) {
+                volume[ivol]->move_cutplane(axis, (float)relval);
+            }
+        } else {
+            for (int n=4; n < argc; n++) {
+                if (Tcl_GetInt(interp, argv[n], &ivol) != TCL_OK) {
+                    return TCL_ERROR;
+                }
+                if (ivol < 0 || ivol > n_volumes) {
+                    Tcl_AppendResult(interp, "bad volume index \"", argv[n],
+                        "\": out of range", (char*)NULL);
+                    return TCL_ERROR;
+                }
+                volume[ivol]->move_cutplane(axis, (float)relval);
+            }
+        }
+        return TCL_OK;
+    }
+
+    Tcl_AppendResult(interp, "bad option \"", argv[1],
+        "\": should be position or state", (char*)NULL);
+    return TCL_ERROR;
+}
+
+/*
+ * ----------------------------------------------------------------------
+ * FUNCTION: DecodeAxis()
+ *
+ * Used internally to decode an axis value from a string ("x", "y",
+ * or "z") to its index (0, 1, or 2).  Returns TCL_OK if successful,
+ * along with a value in valPtr.  Otherwise, it returns TCL_ERROR
+ * and an error message in the interpreter.
+ * ----------------------------------------------------------------------
+ */
+static int
+DecodeAxis(Tcl_Interp *interp, char *str, int *valPtr)
+{
+    if (strcmp(str,"x") == 0) {
+        *valPtr = 0;
+        return TCL_OK;
+    }
+    else if (strcmp(str,"y") == 0) {
+        *valPtr = 1;
+        return TCL_OK;
+    }
+    else if (strcmp(str,"z") == 0) {
+        *valPtr = 2;
+        return TCL_OK;
+    }
+    Tcl_AppendResult(interp, "bad axis \"", str,
+        "\": should be x, y, or z", (char*)NULL);
+    return TCL_ERROR;
+}
 
 void resize_offscreen_buffer(int w, int h);
 
@@ -166,6 +381,7 @@ ScreenResizeCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *ar
 	}
 
 	resize_offscreen_buffer(w, h);
+fprintf(stdin,"new screen size: %d %d\n",w,h);
 	return TCL_OK;
 }
 
@@ -371,74 +587,6 @@ VolumeMoveCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv
 	
 	//set_object(x, y, z);
         volume[(int)index]->move(Vector3(x, y, z));
-	return TCL_OK;
-}
-
-
-static int
-CutMoveCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
-{
-
-	fprintf(stderr, "move cutplane cmd\n");
-	double volume_index, cut_index, location;
-
-	if (argc != 4) {
-		Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
-			" vol_index cut_index cut_location\"", (char*)NULL);
-		return TCL_ERROR;
-	}
-	if (Tcl_GetDouble(interp, argv[1], &volume_index) != TCL_OK) {
-		return TCL_ERROR;
-	}
-	if (Tcl_GetDouble(interp, argv[2], &cut_index) != TCL_OK) {
-		return TCL_ERROR;
-	}
-	if (Tcl_GetDouble(interp, argv[3], &location) != TCL_OK) {
-		return TCL_ERROR;
-	}
-	
-	volume[(int)volume_index]->move_cutplane((int)cut_index, (float)location);
-	return TCL_OK;
-}
-
-
-static int
-CutEnableCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
-{
-  fprintf(stderr, "cutplane enable/disable command\n");
-
-  double volume_index, cut_index, mode;
-
-  if (argc != 4) {
-    Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
-		" volume_index cut_index mode\"", (char*)NULL);
-    return TCL_ERROR;
-  }
-  if (Tcl_GetDouble(interp, argv[1], &volume_index) != TCL_OK) {
-	return TCL_ERROR;
-  }
-  if (Tcl_GetDouble(interp, argv[2], &cut_index) != TCL_OK) {
-	return TCL_ERROR;
-  }
-  if (Tcl_GetDouble(interp, argv[3], &mode) != TCL_OK) {
-	return TCL_ERROR;
-  }
-
-  if(mode==0)
-    volume[(int)volume_index]->disable_cutplane((int)cut_index);
-  else
-    volume[(int)volume_index]->enable_cutplane((int)cut_index);
-
-  return TCL_OK;
-}
-
-static int
-HelloCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
-{
-	//send back 4 bytes as confirmation
-	char ack[4]="ACK";
-        fprintf(stderr, "wrote %d\n", write(fileno(stdout), ack, 4));
-	fflush(stdout);
 	return TCL_OK;
 }
 
@@ -991,11 +1139,12 @@ void init_offscreen_buffer(){
 
 //resize the offscreen buffer 
 void resize_offscreen_buffer(int w, int h){
-  delete[] screen_buffer;
-
   win_width = w;
   win_height = h;
 
+  if (screen_buffer) {
+      delete[] screen_buffer;
+  }
   screen_buffer = new unsigned char[3*win_width*win_height+1];
 
   //delete the current render buffer resources
@@ -1005,6 +1154,7 @@ void resize_offscreen_buffer(int w, int h){
 
   glBindRenderbufferEXT(GL_RENDERBUFFER_EXT, final_depth_rb);
   glDeleteRenderbuffersEXT(1, &final_depth_rb);
+fprintf(stdin,"  after glDeleteRenderbuffers\n");
 
   //change the camera setting
   cam->set_screen_size(win_width, win_height);
@@ -1013,6 +1163,7 @@ void resize_offscreen_buffer(int w, int h){
   glGenFramebuffersEXT(1, &final_fbo);
   glGenTextures(1, &final_color_tex);
   glGenRenderbuffersEXT(1, &final_depth_rb);
+fprintf(stdin,"  after glGenRenderbuffers\n");
 
   glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, final_fbo);
 
@@ -1030,6 +1181,7 @@ void resize_offscreen_buffer(int w, int h){
   glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT,
                             GL_COLOR_ATTACHMENT0_EXT,
                             GL_TEXTURE_2D, final_color_tex, 0);
+fprintf(stdin,"  after glFramebufferTexture2DEXT\n");
 	
   // initialize final depth renderbuffer
   glBindRenderbufferEXT(GL_RENDERBUFFER_EXT, final_depth_rb);
@@ -1038,10 +1190,12 @@ void resize_offscreen_buffer(int w, int h){
   glFramebufferRenderbufferEXT(GL_FRAMEBUFFER_EXT,
                                GL_DEPTH_ATTACHMENT_EXT,
                                GL_RENDERBUFFER_EXT, final_depth_rb);
+fprintf(stdin,"  after glFramebufferRenderEXT\n");
 
   // Check framebuffer completeness at the end of initialization.
   CHECK_FRAMEBUFFER_STATUS();
   assert(glGetError()==0);
+fprintf(stdin,"  after assert\n");
 }
 
 
@@ -1110,12 +1264,7 @@ void init_particles(){
 
 
 void init_transfer_function(){
-  float data[256*4];
-
-  //alternatively, a default transfer function also works.
-  memset(data, 0, 4*256*sizeof(float));
-
-  tf[0] = new TransferFunction(256, data);
+  tf[0] = new TransferFunction(def_tf_size, def_tf);
 }
 
 
@@ -1143,6 +1292,12 @@ void initGL(void)
 { 
    system_info();
    init_glew();
+
+   //buffer to store data read from the screen
+   if (screen_buffer) {
+       delete[] screen_buffer;
+   }
+   screen_buffer = new unsigned char[3*win_width*win_height+1];
 
    //create the camera with default setting
    cam = new Camera(win_width, win_height, 
@@ -1209,7 +1364,6 @@ void initGL(void)
 
    //volume[3]->move(Vector3(0.2, -0.1, -0.1));
    //vol_render->add_volume(volume[3], tf[0]);
-
    //volume[4]->move(Vector3(0.2,  0.1, -0.1));
    //vol_render->add_volume(volume[4], tf[0]);
 
@@ -1223,11 +1377,10 @@ void initTcl(){
   interp = Tcl_CreateInterp();
   Tcl_MakeSafe(interp);
 
-  //hello test
-  Tcl_CreateCommand(interp, "hello", HelloCmd, (ClientData)0, (Tcl_CmdDeleteProc*)NULL);
-
   //set camera (viewing)
   Tcl_CreateCommand(interp, "camera", CameraCmd, (ClientData)0, (Tcl_CmdDeleteProc*)NULL);
+
+  Tcl_CreateCommand(interp, "cutplane", CutplaneCmd, (ClientData)0, (Tcl_CmdDeleteProc*)NULL);
 
   //resize the width and height of render screen
   Tcl_CreateCommand(interp, "screen", ScreenResizeCmd, (ClientData)0, (Tcl_CmdDeleteProc*)NULL);
@@ -1246,11 +1399,6 @@ void initTcl(){
   Tcl_CreateCommand(interp, "volume_move", VolumeMoveCmd, (ClientData)0, (Tcl_CmdDeleteProc*)NULL);
   //enable or disable an existing volume 
   Tcl_CreateCommand(interp, "volume_enable", VolumeEnableCmd, (ClientData)0, (Tcl_CmdDeleteProc*)NULL);
-
-  //move a cut plane 
-  Tcl_CreateCommand(interp, "cut_move", CutMoveCmd, (ClientData)0, (Tcl_CmdDeleteProc*)NULL);
-  //enable or disable a cut plane 
-  Tcl_CreateCommand(interp, "cut_enable", CutEnableCmd, (ClientData)0, (Tcl_CmdDeleteProc*)NULL);
 
   //refresh the screen (render again)
   Tcl_CreateCommand(interp, "refresh", RefreshCmd, (ClientData)0, (Tcl_CmdDeleteProc*)NULL);
@@ -1336,12 +1484,11 @@ void xinetd_listen(){
     if (status <= 0) {
       exit(0);
     }
-    fprintf(stderr, "read %d\n", status);
     data = tmp;
 
     if(Tcl_Eval(interp, (char*)data.c_str()) != TCL_OK) {
       //error to log file...
-      fprintf(stderr, "Tcl error: parser\n");
+      printf("Tcl error: %s\n", Tcl_GetStringResult(interp));
       return;
     }
 
@@ -1361,7 +1508,8 @@ void xinetd_listen(){
     header[pos++] = 'M';
 
     // file size in bytes
-    bmp_header_add_int(header, pos, win_width*win_height*3 + sizeof(header));
+    int fsize = win_width*win_height*3 + sizeof(header);
+    bmp_header_add_int(header, pos, fsize);
 
     // reserved value (must be 0)
     bmp_header_add_int(header, pos, 0);
@@ -1395,6 +1543,10 @@ void xinetd_listen(){
     // number of important colors (0 = all colors important)
     bmp_header_add_int(header, pos, 0);
     bmp_header_add_int(header, pos, 0);
+
+    std::ostringstream buffer;
+    buffer << "nv>image -bytes " << fsize << "\n";
+    write(0, buffer.str().c_str(), buffer.str().size());
 
     write(0, header, sizeof(header));
     write(0, screen_buffer, win_width * win_height * 3);
@@ -1908,11 +2060,6 @@ void update_trans(int delta_x, int delta_y, int delta_z){
 
 void end_service();
 
-void resize(int w, int h){
-  resize_offscreen_buffer(w, h);
-}
-
-
 void keyboard(unsigned char key, int x, int y){
   
    bool log = false;
@@ -2106,11 +2253,13 @@ int main(int argc, char** argv)
    render_window = glutCreateWindow(argv[0]);
 
    glutDisplayFunc(display);
+#ifndef XINETD
    glutMouseFunc(mouse);
    glutMotionFunc(motion);
    glutKeyboardFunc(keyboard);
+#endif
    glutIdleFunc(idle);
-   glutReshapeFunc(resize);
+   glutReshapeFunc(resize_offscreen_buffer);
 
    initGL();
    initTcl();
