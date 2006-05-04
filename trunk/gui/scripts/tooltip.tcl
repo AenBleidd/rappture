@@ -294,7 +294,7 @@ itcl::body Rappture::Tooltip::tooltip {option args} {
             if {$pending != ""} {
                 after cancel $pending
             }
-            set pending [after 1500 [itcl::code tooltip show $widget $loc]]
+            set pending [after 750 [itcl::code tooltip show $widget $loc]]
         }
         show {
             if {[llength $args] < 1 || [llength $args] > 2} {

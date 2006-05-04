@@ -33,6 +33,7 @@ itcl::class Rappture::Panes {
     public method insert {pos args}
     public method pane {pos}
     public method fraction {pos {newval ""}}
+    public method hilite {state sash}
 
     protected method _grab {pane X Y}
     protected method _drag {pane X Y}
@@ -100,6 +101,8 @@ itcl::body Rappture::Panes::insert {pos args} {
         usual
         rename -cursor -sashcursor sashCursor SashCursor
     }
+    bind $itk_component($sash) <Enter> [itcl::code $this hilite on $sash]
+    bind $itk_component($sash) <Leave> [itcl::code $this hilite off $sash]
 
     itk_component add ${sash}ridge {
         frame $itk_component($sash).ridge
@@ -179,6 +182,39 @@ itcl::body Rappture::Panes::fraction {pos {newval ""}} {
         $_dispatcher event -idle !layout
     } else {
         error "bad index \"$pos\": out of range"
+    }
+}
+
+# ----------------------------------------------------------------------
+# USAGE: hilite <state> <sash>
+#
+# Invoked automatically whenever the user touches a sash.  Highlights
+# the sash by changing its size or relief.
+# ----------------------------------------------------------------------
+itcl::body Rappture::Panes::hilite {state sash} {
+    switch -- $itk_option(-sashrelief) {
+      sunken {
+        if {$state} {
+            $itk_component(${sash}ridge) configure -relief raised
+        } else {
+            $itk_component(${sash}ridge) configure -relief sunken
+        }
+      }
+      raised {
+        if {$state} {
+            $itk_component(${sash}ridge) configure -relief sunken
+        } else {
+            $itk_component(${sash}ridge) configure -relief raised
+        }
+      }
+      solid {
+        if {$state} {
+            $itk_component($sash) configure -background black
+        } else {
+            $itk_component($sash) configure \
+                -background $itk_option(-background)
+        }
+      }
     }
 }
 

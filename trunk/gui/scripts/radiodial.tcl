@@ -15,11 +15,16 @@ package require Itk
 
 option add *Radiodial.thickness 10 widgetDefault
 option add *Radiodial.length 2i widgetDefault
+option add *Radiodial.knobImage knob widgetDefault
+option add *Radiodial.knobPosition n@middle widgetDefault
 option add *Radiodial.dialOutlineColor black widgetDefault
 option add *Radiodial.dialFillColor white widgetDefault
 option add *Radiodial.lineColor gray widgetDefault
 option add *Radiodial.activeLineColor black widgetDefault
+option add *Radiodial.padding 0 widgetDefault
 option add *Radiodial.valueWidth 10 widgetDefault
+option add *Radiodial.valuePadding 0.1 widgetDefault
+option add *Radiodial.foreground black widgetDefault
 option add *Radiodial.font \
     -*-helvetica-medium-r-normal-*-*-120-* widgetDefault
 
@@ -32,14 +37,20 @@ itcl::class Rappture::Radiodial {
 
     itk_option define -thickness thickness Thickness 0
     itk_option define -length length Length 0
+    itk_option define -padding padding Padding 0
 
+    itk_option define -foreground foreground Foreground "black"
     itk_option define -dialoutlinecolor dialOutlineColor Color "black"
     itk_option define -dialfillcolor dialFillColor Color "white"
+    itk_option define -dialprogresscolor dialProgressColor Color ""
     itk_option define -linecolor lineColor Color "black"
     itk_option define -activelinecolor activeLineColor Color "black"
+    itk_option define -knobimage knobImage KnobImage ""
+    itk_option define -knobposition knobPosition KnobPosition ""
 
     itk_option define -font font Font ""
     itk_option define -valuewidth valueWidth ValueWidth 0
+    itk_option define -valuepadding valuePadding ValuePadding 0
 
 
     constructor {args} { # defined below }
@@ -64,21 +75,14 @@ itcl::class Rappture::Radiodial {
     private variable _current ""      ;# current value (where pointer is)
     private variable _variable ""     ;# variable associated with -variable
 
+    private variable _knob ""         ;# image for knob
     private variable _spectrum ""     ;# width allocated for values
     private variable _activecolor ""  ;# width allocated for values
     private variable _vwidth 0        ;# width allocated for values
-
-    #
-    # Load the image for the knob.
-    #
-    private common images
-    set images(knob) [image create photo -data {
-R0lGODlhCQAMAMIEAAQCBJyanNza3Pz+/P///////////////yH5BAEKAAQALAAAAAAJAAwAAAMj
-SEqwDqO9MYJkVASLh/gbAHmgNX6amZXimrbVFkKyLN44kAAAOw==
-}]
 }
                                                                                 
 itk::usual Radiodial {
+    keep -background -foreground -cursor -font
 }
 
 # ----------------------------------------------------------------------
@@ -312,20 +316,71 @@ itcl::body Rappture::Radiodial::_redraw {} {
     set c $itk_component(dial)
     $c delete all
 
+    set fg $itk_option(-foreground)
+
     set w [winfo width $c]
     set h [winfo height $c]
-    set y1 [expr {$h-[image height $images(knob)]/2-1}]
-    set y0 [expr {$y1 - $itk_option(-thickness)-1}]
-    set x0 1
-    set x1 [expr {$w-$_vwidth-4}]
+    set p [winfo pixels $c $itk_option(-padding)]
+    set t [expr {$itk_option(-thickness)+1}]
+    set y1 [expr {$h-1}]
+
+    if {"" != $_knob} {
+        set kw [image width $_knob]
+        set kh [image height $_knob]
+
+        switch -- $itk_option(-knobposition) {
+            n@top - nw@top - ne@top {
+                set extra [expr {$t-$kh}]
+                if {$extra < 0} {set extra 0}
+                set y1 [expr {$h-$extra-1}]
+            }
+            n@middle - nw@middle - ne@middle {
+                set extra [expr {int(ceil($kh-0.5*$t))}]
+                if {$extra < 0} {set extra 0}
+                set y1 [expr {$h-$extra-1}]
+            }
+            n@bottom - nw@bottom - ne@bottom {
+                set y1 [expr {$h-$kh-1}]
+            }
+
+            e@top - w@top - center@top -
+            e@bottom - w@bottom - center@bottom {
+                set extra [expr {int(ceil(0.5*$kh))}]
+                set y1 [expr {$h-$extra-1}]
+            }
+            e@middle - w@middle - center@middle {
+                set extra [expr {int(ceil(0.5*($kh-$t)))}]
+                if {$extra < 0} {set extra 0}
+                set y1 [expr {$h-$extra-1}]
+            }
+
+            s@top - sw@top - se@top -
+            s@middle - sw@middle - se@middle -
+            s@bottom - sw@bottom - se@bottom {
+                set y1 [expr {$h-2}]
+            }
+        }
+    }
+    set y0 [expr {$y1-$t}]
+    set x0 [expr {$p+1}]
+    set x1 [expr {$w-$_vwidth-$p-4}]
+    foreach {min max} [_limits] break
 
     # draw the background rectangle
     $c create rectangle $x0 $y0 $x1 $y1 \
         -outline $itk_option(-dialoutlinecolor) \
         -fill $itk_option(-dialfillcolor)
 
+    # draw the optional progress bar, from start to current
+    if {"" != $itk_option(-dialprogresscolor)
+          && [llength $_values] > 0 && "" != $_current} {
+        set frac [expr {double($_current-$min)/($max-$min)}]
+        set xx1 [expr {$frac*($x1-$x0) + $x0}]
+        $c create rectangle [expr {$x0+1}] [expr {$y0+3}] $xx1 [expr {$y1-2}] \
+            -outline "" -fill $itk_option(-dialprogresscolor)
+    }
+
     # draw lines for all values
-    foreach {min max} [_limits] break
     if {$max > $min} {
         foreach v $_values {
             set frac [expr {double($v-$min)/($max-$min)}]
@@ -340,13 +395,22 @@ itcl::body Rappture::Radiodial::_redraw {} {
             }
             set thick [expr {($v == $_current) ? 3 : 1}]
 
-            set x [expr {$frac*($x1-$x0) + $x0}]
-            $c create line $x [expr {$y0+1}] $x $y1 -fill $color -width $thick
+            if {"" != $color} {
+                set x [expr {$frac*($x1-$x0) + $x0}]
+                $c create line $x [expr {$y0+1}] $x $y1 \
+                    -fill $color -width $thick
+            }
         }
 
         if {"" != $_current} {
             set x [expr {double($_current-$min)/($max-$min)*($x1-$x0) + $x0}]
-            $c create image $x [expr {$h-1}] -anchor s -image $images(knob)
+            regexp {([nsew]+|center)@} $itk_option(-knobposition) match anchor
+            switch -glob -- $itk_option(-knobposition) {
+                *@top    { set kpos $y0 }
+                *@middle { set kpos [expr {int(ceil(0.5*($y1+$y0)))}] }
+                *@bottom { set kpos $y1 }
+            }
+            $c create image $x $kpos -anchor $anchor -image $_knob
         }
     }
 
@@ -362,7 +426,7 @@ itcl::body Rappture::Radiodial::_redraw {} {
                         - [font metrics $itk_option(-font) -ascent])/2}]
 
         set id [$c create text [expr {$x1+4}] [expr {($y1+$y0)/2+$dy}] \
-            -anchor w -text $str -font $itk_option(-font)]
+            -anchor w -text $str -font $itk_option(-font) -foreground $fg]
         foreach {x0 y0 x1 y1} [$c bbox $id] break
         set x0 [expr {$x0 + 10}]
 
@@ -467,8 +531,8 @@ itcl::body Rappture::Radiodial::_limits {} {
             if {$v > $max} { set max $v }
         }
         set del [expr {$max-$min}]
-        set min [expr {$min-0.1*$del}]
-        set max [expr {$max+0.1*$del}]
+        set min [expr {$min-$itk_option(-valuepadding)*$del}]
+        set max [expr {$max+$itk_option(-valuepadding)*$del}]
     }
 
     if {"" != $itk_option(-min)} {
@@ -488,7 +552,35 @@ itcl::body Rappture::Radiodial::_limits {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Radiodial::_fixSize {} {
     set h [winfo pixels $itk_component(hull) $itk_option(-thickness)]
-    set h [expr {$h/2 + [image height $images(knob)]}]
+
+    if {"" != $_knob} {
+        set kh [image height $_knob]
+
+        switch -- $itk_option(-knobposition) {
+            n@top - nw@top - ne@top -
+            s@bottom - sw@bottom - se@bottom {
+                if {$kh > $h} { set h $kh }
+            }
+            n@middle - nw@middle - ne@middle -
+            s@middle - sw@middle - se@middle {
+                set h [expr {int(ceil(0.5*$h + $kh))}]
+            }
+            n@bottom - nw@bottom - ne@bottom -
+            s@top - sw@top - se@top {
+                set h [expr {$h + $kh}]
+            }
+            e@middle - w@middle - center@middle {
+                set h [expr {(($h > $kh) ? $h : $kh) + 1}]
+            }
+            n@middle - ne@middle - nw@middle -
+            s@middle - se@middle - sw@middle {
+                set extra [expr {int(ceil($kh-0.5*$h))}]
+                if {$extra < 0} { set extra 0 }
+                set h [expr {$h+$extra}]
+            }
+        }
+    }
+    incr h 1
 
     set w [winfo pixels $itk_component(hull) $itk_option(-length)]
 
@@ -570,6 +662,14 @@ itcl::configbody Rappture::Radiodial::valuewidth {
 }
 
 # ----------------------------------------------------------------------
+# CONFIGURE: -foreground
+# ----------------------------------------------------------------------
+itcl::configbody Rappture::Radiodial::foreground {
+    after cancel [itcl::code $this _redraw]
+    after idle [itcl::code $this _redraw]
+}
+
+# ----------------------------------------------------------------------
 # CONFIGURE: -dialoutlinecolor
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::Radiodial::dialoutlinecolor {
@@ -581,6 +681,14 @@ itcl::configbody Rappture::Radiodial::dialoutlinecolor {
 # CONFIGURE: -dialfillcolor
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::Radiodial::dialfillcolor {
+    after cancel [itcl::code $this _redraw]
+    after idle [itcl::code $this _redraw]
+}
+
+# ----------------------------------------------------------------------
+# CONFIGURE: -dialprogresscolor
+# ----------------------------------------------------------------------
+itcl::configbody Rappture::Radiodial::dialprogresscolor {
     after cancel [itcl::code $this _redraw]
     after idle [itcl::code $this _redraw]
 }
@@ -604,11 +712,62 @@ itcl::configbody Rappture::Radiodial::activelinecolor {
     } elseif {[catch {winfo rgb $itk_component(hull) $val}] == 0} {
         set _spectrum ""
         set _activecolor $val
-    } else {
+    } elseif {"" != $val} {
         error "bad value \"$val\": should be Spectrum object or color"
     }
     after cancel [itcl::code $this _redraw]
     after idle [itcl::code $this _redraw]
+}
+
+# ----------------------------------------------------------------------
+# CONFIGURE: -knobimage
+# ----------------------------------------------------------------------
+itcl::configbody Rappture::Radiodial::knobimage {
+    if {[regexp {^image[0-9]+$} $itk_option(-knobimage)]} {
+        set _knob $itk_option(-knobimage)
+    } elseif {"" != $itk_option(-knobimage)} {
+        set _knob [Rappture::icon $itk_option(-knobimage)]
+    } else {
+        set _knob ""
+    }
+    _fixSize
+
+    after cancel [itcl::code $this _redraw]
+    after idle [itcl::code $this _redraw]
+}
+
+# ----------------------------------------------------------------------
+# CONFIGURE: -knobposition
+# ----------------------------------------------------------------------
+itcl::configbody Rappture::Radiodial::knobposition {
+    if {![regexp {^([nsew]+|center)@(top|middle|bottom)$} $itk_option(-knobposition)]} {
+        error "bad value \"$itk_option(-knobposition)\": should be anchor@top|middle|bottom"
+    }
+    _fixSize
+
+    after cancel [itcl::code $this _redraw]
+    after idle [itcl::code $this _redraw]
+}
+
+# ----------------------------------------------------------------------
+# CONFIGURE: -padding
+# This adds padding on left/right side of dial background.
+# ----------------------------------------------------------------------
+itcl::configbody Rappture::Radiodial::padding {
+    if {[catch {winfo pixels $itk_component(hull) $itk_option(-padding)}]} {
+        error "bad value \"$itk_option(-padding)\": should be size in pixels"
+    }
+}
+
+# ----------------------------------------------------------------------
+# CONFIGURE: -valuepadding
+# This shifts min/max limits in by a fraction of the overall size.
+# ----------------------------------------------------------------------
+itcl::configbody Rappture::Radiodial::valuepadding {
+    if {![string is double $itk_option(-valuepadding)]
+          || $itk_option(-valuepadding) < 0} {
+        error "bad value \"$itk_option(-valuepadding)\": should be >= 0.0"
+    }
 }
 
 # ----------------------------------------------------------------------

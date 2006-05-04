@@ -1186,7 +1186,12 @@ itcl::body Rappture::ResultSet::_fixSettings {args} {
         set _settings 1
 
         set format [lrange [$_results column names] 1 end]
-        set data [lindex [$_results get -format $format $irun] 0]
+        if {[llength $format] == 1} {
+            set data [$_results get -format $format $irun]
+        } else {
+            set data [lindex [$_results get -format $format $irun] 0]
+        }
+
         foreach col $format val $data {
             set _cntlInfo($this-$col-value) $val
         }
@@ -1503,7 +1508,7 @@ itcl::body Rappture::ResultSet::_getTooltip {role column} {
             set tip "Click to access all parameters."
         }
     }
-    return $tip
+    return [string trim $tip]
 }
 
 # ----------------------------------------------------------------------
