@@ -291,6 +291,14 @@ itcl::body Rappture::ResultViewer::_plotAdd {dataobj {settings ""}} {
                 set _mode2widget($mode) $w
             }
         }
+        ::Rappture::Sequence {
+            set mode "sequence"
+            if {![info exists _mode2widget($mode)]} {
+                set w $itk_interior.image
+                Rappture::SequenceResult $w
+                set _mode2widget($mode) $w
+            }
+        }
         default {
             error "don't know how to plot <$type> data"
         }
@@ -376,6 +384,9 @@ itcl::body Rappture::ResultViewer::_xml2data {xmlobj path} {
         }
         image {
             return [Rappture::Image ::#auto $xmlobj $path]
+        }
+        sequence {
+            return [Rappture::Sequence ::#auto $xmlobj $path]
         }
         string - log {
             return [$xmlobj element -as object $path]

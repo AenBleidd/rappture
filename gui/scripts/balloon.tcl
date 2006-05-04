@@ -183,7 +183,7 @@ itcl::body Rappture::Balloon::activate {where placement} {
             # make sure that the panel doesn't go off-screen
             if {$py < 0} { set py 0 }
             if {$py+$ph > $screenh} { set py [expr {$screenh-$ph}] }
-            if {$px+$pw > $screenw} { set pw [expr {$screenw-$px)}] }
+            if {$px+$pw > $screenw} { set pw [expr {$screenw-$px}] }
         }
         above {
             set sx [expr {$x-$sw/2}]
@@ -205,7 +205,7 @@ itcl::body Rappture::Balloon::activate {where placement} {
             # make sure that the panel doesn't go off-screen
             if {$px < 0} { set px 0 }
             if {$px+$pw > $screenw} { set px [expr {$screenw-$pw}] }
-            if {$py+$ph > $screenh} { set ph [expr {$screenh-$py)}] }
+            if {$py+$ph > $screenh} { set ph [expr {$screenh-$py}] }
         }
     }
     if {[info exists _masks($placement)]} {

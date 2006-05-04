@@ -17,14 +17,19 @@ itcl::class Rappture::ImageEntry {
     inherit itk::Widget
 
     constructor {owner path args} { # defined below }
+    destructor { # defined below }
 
     public method value {args}
 
     public method label {}
     public method tooltip {}
 
+    private method _redraw {}
+
     private variable _owner ""    ;# thing managing this control
     private variable _path ""     ;# path in XML to this image
+    private variable _imh ""      ;# image handle for current value
+    private variable _resize ""   ;# image for resize operations
 }
 
 itk::usual ImageEntry {
@@ -49,9 +54,10 @@ itcl::body Rappture::ImageEntry::constructor {owner path args} {
     # hints in the XML.
     #
     itk_component add image {
-        ::label $itk_interior.image
+        ::label $itk_interior.image -borderwidth 0
     }
     pack $itk_component(image) -expand yes -fill both
+    bind $itk_component(image) <Configure> [itcl::code $this _redraw]
 
     set str [$_owner xml get $path.current]
     if {[string length $str] == 0} {
@@ -62,6 +68,14 @@ itcl::body Rappture::ImageEntry::constructor {owner path args} {
     }
 
     eval itk_initialize $args
+}
+
+# ----------------------------------------------------------------------
+# DESTRUCTOR
+# ----------------------------------------------------------------------
+itcl::body Rappture::ImageEntry::destructor {} {
+    if {"" != $_imh} { image delete $_imh }
+    if {"" != $_resize} { image delete $_resize }
 }
 
 # ----------------------------------------------------------------------
@@ -87,15 +101,17 @@ itcl::body Rappture::ImageEntry::value {args} {
             return
         }
         set newval [lindex $args 0]
-        set imh [image create photo -data $newval]
-
-        set oldimh [$itk_component(image) cget -image]
-        if {$oldimh != ""} {
-            image delete $oldimh
-            $itk_component(image) configure -image ""
+        if {[string length $newval] > 0} {
+            set imh [image create photo -data $newval]
+        } else {
+            set imh ""
         }
 
-        $itk_component(image) configure -image $imh
+        if {$_imh != ""} {
+            image delete $_imh
+        }
+        set _imh $imh
+        _redraw
         return $newval
 
     } elseif {[llength $args] != 0} {
@@ -106,8 +122,7 @@ itcl::body Rappture::ImageEntry::value {args} {
     # Query the value and return.
     #
     set data ""
-    set imh [$itk_component(image) cget -image]
-    if {$imh != ""} { set data [$imh cget -data] }
+    if {"" != $_imh} { set data [$_imh cget -data] }
     return $data
 }
 
@@ -133,4 +148,71 @@ itcl::body Rappture::ImageEntry::label {} {
 itcl::body Rappture::ImageEntry::tooltip {} {
     set str [$_owner xml get $_path.about.description]
     return [string trim $str]
+}
+
+# ----------------------------------------------------------------------
+# USAGE: _redraw
+#
+# Used internally to update the image displayed in this entry.
+# If the <resize> parameter is set, then the image is resized.
+# The "auto" value resizes to the current area.  The "width=XX" or
+# "height=xx" form resizes to a particular size.  The "none" value
+# leaves the image as-is; this is the default.
+# ----------------------------------------------------------------------
+itcl::body Rappture::ImageEntry::_redraw {} {
+    if {"" == $_imh} {
+        $itk_component(image) configure -image ""
+        return
+    }
+
+    set iw [image width $_imh]
+    set ih [image height $_imh]
+    $itk_component(image) configure -image "" -width $iw -height $ih
+
+    set str [string trim [$_owner xml get $_path.resize]]
+    if {"" == $str} {
+        set str "none"
+    }
+    switch -glob -- $str {
+        auto {
+            if {$_resize == ""} {
+                set _resize [image create photo]
+            }
+            set w [winfo width $itk_component(image)]
+            set h [winfo height $itk_component(image)]
+            if {$w/double($iw) < $h/double($ih)} {
+                set h [expr {round($w/double($iw)*$ih)}]
+            } else {
+                set w [expr {round($h/double($ih)*$iw)}]
+            }
+            $_resize configure -width $w -height $h
+            blt::winop resample $_imh $_resize
+            $itk_component(image) configure -image $_resize
+        }
+        width=* - height=* {
+            if {$_resize == ""} {
+                set _resize [image create photo]
+            }
+            if {[regexp {^width=([0-9]+)$} $str match size]} {
+                set w $size
+                set h [expr {round($w*$ih/double($iw))}]
+                $_resize configure -width $w -height $h
+                blt::winop resample $_imh $_resize
+                $itk_component(image) configure -image $_resize \
+                    -width $w -height $h
+            } elseif {[regexp {^height=([0-9]+)$} $str match size]} {
+                set h $size
+                set w [expr {round($h*$iw/double($ih))}]
+                $_resize configure -width $w -height $h
+                blt::winop resample $_imh $_resize
+                $itk_component(image) configure -image $_resize \
+                    -width $w -height $h
+            } else {
+                $itk_component(image) configure -image $_imh
+            }
+        }
+        default {
+            $itk_component(image) configure -image $_imh
+        }
+    }
 }
