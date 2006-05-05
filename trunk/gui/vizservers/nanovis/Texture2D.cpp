@@ -22,7 +22,7 @@
 
 Texture2D::Texture2D(){}
 
-Texture2D::Texture2D(int width, int height, GLuint type=GL_FLOAT, GLuint interp=GL_LINEAR, int n=4)
+Texture2D::Texture2D(int width, int height, GLuint type=GL_FLOAT, GLuint interp=GL_LINEAR, int n=4, float* data = 0)
 {
 	assert(type == GL_UNSIGNED_BYTE || type == GL_FLOAT|| type ==GL_UNSIGNED_INT);
 	assert(interp == GL_LINEAR || interp == GL_NEAREST);
@@ -34,6 +34,9 @@ Texture2D::Texture2D(int width, int height, GLuint type=GL_FLOAT, GLuint interp=
 	this->n_components = n;
 
 	this->id = 0; 
+
+	if(data != 0)
+	  initialize(data);
 }
 
 GLuint Texture2D::initialize(float *data)

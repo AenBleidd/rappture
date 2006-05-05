@@ -30,7 +30,7 @@ public:
   int n_components;
 
   Texture2D();
-  Texture2D(int width, int height, GLuint type, GLuint interp, int n);
+  Texture2D(int width, int height, GLuint type, GLuint interp, int n, float* data);
   ~Texture2D();
 	
   void activate();

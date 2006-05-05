@@ -37,7 +37,10 @@
 //render server
 
 VolumeRenderer* vol_render;
+PlaneRenderer* plane_render;
 Camera* cam;
+
+bool volume_mode = false; //if true nanovis renders volumes in 3D, if not renders 2D plane
 
 // color table for built-in transfer function editor
 float color_table[256][4]; 	
@@ -82,8 +85,9 @@ float vert[NMESH*NMESH*3];		//particle positions in main memory
 float slice_vector[NMESH*NMESH*4];	//per slice vectors in main memory
 
 int n_volumes = 0;
-Volume* volume[MAX_N_VOLUMES];		//point to volumes, currently handle up to 10 volumes
+Volume* volume[MAX_N_VOLUMES];		//pointers to volumes, currently handle up to 10 volumes
 TransferFunction* tf[MAX_N_VOLUMES];	//transfer functions, currently handle up to 10 colormaps
+Texture2D* plane[10];			//pointers to 2D planes, currently handle up 10
 
 PerfQuery* perf;			//perfromance counter
 
@@ -253,7 +257,7 @@ CutplaneCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]
         }
 
         int axis;
-        if (DecodeAxis(interp, argv[3], &axis) != TCL_OK) {
+        if (DecodeAxis(interp, (char*)argv[3], &axis) != TCL_OK) {
             return TCL_ERROR;
         }
 
@@ -298,7 +302,7 @@ CutplaneCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]
         }
 
         int axis;
-        if (DecodeAxis(interp, argv[3], &axis) != TCL_OK) {
+        if (DecodeAxis(interp, (char*)argv[3], &axis) != TCL_OK) {
             return TCL_ERROR;
         }
 
@@ -380,7 +384,7 @@ ScreenResizeCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *ar
 		return TCL_ERROR;
 	}
 
-	resize_offscreen_buffer(w, h);
+	resize_offscreen_buffer((int)w, (int)h);
 fprintf(stdin,"new screen size: %d %d\n",w,h);
 	return TCL_OK;
 }
@@ -487,6 +491,29 @@ VolumeLinkCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv
   return TCL_OK;
 }
 
+
+static int
+VolumeResizeCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
+{
+  fprintf(stderr, "resize drawing size of the volume command\n");
+
+  double volume_index, size; 
+
+  if (argc != 3) {
+    Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
+		" volume_index size \"", (char*)NULL);
+    return TCL_ERROR;
+  }
+  if (Tcl_GetDouble(interp, argv[1], &volume_index) != TCL_OK) {
+	return TCL_ERROR;
+  }
+  if (Tcl_GetDouble(interp, argv[2], &size) != TCL_OK) {
+	return TCL_ERROR;
+  }
+
+  volume[(int)volume_index]->set_size((float) size);
+  return TCL_OK;
+}
 
 static int
 VolumeEnableCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
@@ -1142,10 +1169,14 @@ void resize_offscreen_buffer(int w, int h){
   win_width = w;
   win_height = h;
 
+  //fprintf(stderr, "screen_buffer size: %d\n", sizeof(screen_buffer));
+
   if (screen_buffer) {
       delete[] screen_buffer;
+      screen_buffer = 0;
   }
-  screen_buffer = new unsigned char[3*win_width*win_height+1];
+  screen_buffer = new unsigned char[5*win_width*win_height];
+  assert(screen_buffer!=0);
 
   //delete the current render buffer resources
   glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, final_fbo);
@@ -1287,6 +1318,25 @@ void init_particle_system(){
 }
 
 
+void make_test_2D_data(){
+
+  int w = 300;
+  int h = 200;
+  float* data = new float[w*h];
+
+  //procedurally make a gradient plane
+  for(int j=0; j<h; j++){
+    for(int i=0; i<w; i++){
+      data[w*j+i] = float(i)/float(w);
+    }
+  }
+
+  plane[0] = new Texture2D(w, h, GL_FLOAT, GL_LINEAR, 1, data);
+
+  delete[] data;
+}
+
+
 /*----------------------------------------------------*/
 void initGL(void) 
 { 
@@ -1296,8 +1346,10 @@ void initGL(void)
    //buffer to store data read from the screen
    if (screen_buffer) {
        delete[] screen_buffer;
+       screen_buffer = 0;
    }
-   screen_buffer = new unsigned char[3*win_width*win_height+1];
+   screen_buffer = new unsigned char[5*win_width*win_height];
+   assert(screen_buffer!=0);
 
    //create the camera with default setting
    cam = new Camera(win_width, win_height, 
@@ -1343,7 +1395,7 @@ void initGL(void)
    load_volume_file(0, "./data/mu-wire-3d.dx");
    //load_volume_file(0, "./data/input_nd_dx_4"); //take a VERY long time?
    //load_vector_file(1, "./data/J-wire-vec.dx");
-   load_volume_file(1, "./data/mu-wire-3d.dx");
+   //load_volume_file(1, "./data/mu-wire-3d.dx");
    //load_volume_file(3, "./data/mu-wire-3d.dx");
    //load_volume_file(4, "./data/mu-wire-3d.dx");
 
@@ -1367,6 +1419,14 @@ void initGL(void)
    //volume[4]->move(Vector3(0.2,  0.1, -0.1));
    //vol_render->add_volume(volume[4], tf[0]);
 
+
+   //create an 2D plane renderer
+   plane_render = new PlaneRenderer(g_context, win_width, win_height);
+   make_test_2D_data();
+
+   plane_render->add_plane(plane[0], tf[0]);
+
+   
    //init_particle_system();
    //init_lic(); 
 }
@@ -1399,6 +1459,8 @@ void initTcl(){
   Tcl_CreateCommand(interp, "volume_move", VolumeMoveCmd, (ClientData)0, (Tcl_CmdDeleteProc*)NULL);
   //enable or disable an existing volume 
   Tcl_CreateCommand(interp, "volume_enable", VolumeEnableCmd, (ClientData)0, (Tcl_CmdDeleteProc*)NULL);
+  //resize volume 
+  Tcl_CreateCommand(interp, "volume_resize", VolumeResizeCmd, (ClientData)0, (Tcl_CmdDeleteProc*)NULL);
 
   //refresh the screen (render again)
   Tcl_CreateCommand(interp, "refresh", RefreshCmd, (ClientData)0, (Tcl_CmdDeleteProc*)NULL);
@@ -1408,8 +1470,22 @@ void initTcl(){
 void read_screen(){
   //glBindTexture(GL_TEXTURE_2D, 0);
   //glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, final_fbo);
-  glReadPixels(0, 0, win_width, win_height, GL_RGB, GL_UNSIGNED_BYTE, screen_buffer);
+ 
+  //debug: set magic number
+  memset(screen_buffer, 253, 5*win_width*win_height);
+
+  glReadPixels(0, 0, win_width, win_height, GL_RGBA, GL_UNSIGNED_BYTE, screen_buffer);
+  //glReadPixels(0, 0, win_width, win_height, GL_RGB, GL_UNSIGNED_BYTE, screen_buffer);
   assert(glGetError()==0);
+  
+  fprintf(stderr, "%d %d:", win_width, win_height);
+  for(int i=5*win_width*win_height-1; i>=0; i--){
+    if(screen_buffer[i] != 253){
+      fprintf(stderr, "%d\n", i);
+      i=0;
+      //fprintf(stderr, "%d ", screen_buffer[i]);
+    }
+  }
   
   /*
   for(int i=0; i<win_width*win_height; i++){
@@ -1469,13 +1545,6 @@ bmp_header_add_int(unsigned char* header, int& pos, int data)
 
 
 void xinetd_listen(){
-    //command:
-    // 0. load data
-    // 1. flip on/off screen
-    // 2. rotation
-    // 3. zoom
-    // 4. more slices
-    // 5. less sleces
 
     std::string data;
     char tmp[256];
@@ -1959,30 +2028,38 @@ void display()
    //start final rendering
    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); //clear screen
 
-   glEnable(GL_TEXTURE_2D);
-   glEnable(GL_DEPTH_TEST);
+   if( volume_mode){ //3D rendering mode
+     glEnable(GL_TEXTURE_2D);
+     glEnable(GL_DEPTH_TEST);
 
-   //camera setting activated
-   cam->activate();
+     //camera setting activated
+     cam->activate();
 
-   //now render things in the scene
-   //
-   draw_3d_axis();
+     //now render things in the scene
+     //
+     draw_3d_axis();
    
-   //lic->render(); 	//display the line integral convolution result
-   //soft_display_verts();
-   //perf->enable();
-   //  psys->render();
-   //perf->disable();
-   //fprintf(stderr, "particle pixels: %d\n", perf->get_pixel_count());
-   //perf->reset();
+     //lic->render(); 	//display the line integral convolution result
+     //soft_display_verts();
+     //perf->enable();
+     //  psys->render();
+     //perf->disable();
+     //fprintf(stderr, "particle pixels: %d\n", perf->get_pixel_count());
+     //perf->reset();
+    
+     perf->enable();
+       vol_render->render_all();
+       //fprintf(stderr, "%lf\n", get_time_interval());
+     perf->disable();
+   }
+   else{ //2D rendering mode
+
+     perf->enable();
+       plane_render->render();
+     perf->disable();
+   }
 
 
-   perf->enable();
-     vol_render->render_all();
-     //fprintf(stderr, "%lf\n", get_time_interval());
-   perf->disable();
- 
 #ifdef XINETD
    float cost  = perf->get_pixel_count();
    write(3, &cost, sizeof(cost));
@@ -1994,7 +2071,7 @@ void display()
 #ifdef XINETD
    read_screen();
 #else
-   //read_screen();
+   read_screen();
 #endif   
 
    glutSwapBuffers(); 

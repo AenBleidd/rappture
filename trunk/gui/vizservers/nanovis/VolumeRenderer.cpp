@@ -44,6 +44,7 @@ void VolumeRenderer::init_shaders(){
   m_vol_one_volume_param = cgGetNamedParameter(m_one_volume_fprog, "volume");
   //cgGLSetTextureParameter(m_vol_one_volume_param, _vol->id);
   m_tf_one_volume_param = cgGetNamedParameter(m_one_volume_fprog, "tf");
+  //m_tf_cut_one_volume_param = cgGetNamedParameter(m_one_volume_fprog, "tf_cutplane");
   //cgGLSetTextureParameter(m_tf_one_volume_param, _tf->id);
   m_mvi_one_volume_param = cgGetNamedParameter(m_one_volume_fprog, "modelViewInv");
   m_mv_one_volume_param = cgGetNamedParameter(m_one_volume_fprog, "modelView");
@@ -629,8 +630,10 @@ void VolumeRenderer::activate_volume_shader(int volume_index, bool slice_mode){
   cgGLSetStateMatrixParameter(m_mv_one_volume_param, CG_GL_MODELVIEW_MATRIX, CG_GL_MATRIX_IDENTITY);
   cgGLSetTextureParameter(m_vol_one_volume_param, volume[volume_index]->id);
   cgGLSetTextureParameter(m_tf_one_volume_param, tf[volume_index]->id);
+  //cgGLSetTextureParameter(m_tf_cut_one_volume_param, tf_cut[volume_index]->id);
   cgGLEnableTextureParameter(m_vol_one_volume_param);
   cgGLEnableTextureParameter(m_tf_one_volume_param);
+  //cgGLEnableTextureParameter(m_tf_cut_one_volume_param);
 
   if(!slice_mode)
     cgGLSetParameter4f(m_render_param_one_volume_param, 

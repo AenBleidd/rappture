@@ -99,6 +99,13 @@ bool Volume::cutplane_is_enabled(int index){
 void Volume::set_n_slice(int n) { n_slice = n; }
 int Volume::get_n_slice() { return n_slice; }
 
+void Volume::set_size(float s) { 
+  size = s; 
+  aspect_ratio_width = s*tex->aspect_ratio_width;
+  aspect_ratio_height = s*tex->aspect_ratio_height;
+  aspect_ratio_depth = s*tex->aspect_ratio_depth;
+}
+
 float Volume::get_specular() { return specular; }
 float Volume::get_diffuse() { return diffuse; }
 float Volume::get_opacity_scale() { return opacity_scale; }
