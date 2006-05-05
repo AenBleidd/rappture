@@ -29,6 +29,7 @@ itcl::class Rappture::ChoiceEntry {
 
     private variable _owner ""    ;# thing managing this control
     private variable _path ""     ;# path in XML to this number
+    private variable _str2val     ;# maps option label => option value
 }
 
 itk::usual ChoiceEntry {
@@ -93,7 +94,19 @@ itcl::body Rappture::ChoiceEntry::value {args} {
             return
         }
         set newval [lindex $args 0]
-        $itk_component(choice) value $newval
+        if {[info exists _str2val($newval)]} {
+            # this is a label -- use it directly
+            $itk_component(choice) value $newval
+            set newval $_str2val($newval)  ;# report the actual value
+        } else {
+            # this is a value -- search for corresponding label
+            foreach str [array names _str2val] {
+                if {$_str2val($str) == $newval} {
+                    $itk_component(choice) value $str
+                    break
+                }
+            }
+        }
         return $newval
 
     } elseif {[llength $args] != 0} {
@@ -103,7 +116,11 @@ itcl::body Rappture::ChoiceEntry::value {args} {
     #
     # Query the value and return.
     #
-    return [$itk_component(choice) value]
+    set str [$itk_component(choice) value]
+    if {[info exists _str2val($str)]} {
+        return $_str2val($str)
+    }
+    return $str
 }
 
 # ----------------------------------------------------------------------
@@ -144,6 +161,7 @@ itcl::body Rappture::ChoiceEntry::tooltip {} {
 itcl::body Rappture::ChoiceEntry::_rebuild {} {
     # get rid of any existing choices
     $itk_component(choice) choices delete 0 end
+    catch {unset _str2val}
 
     #
     # Plug in the various options for the choice.
@@ -201,8 +219,13 @@ itcl::body Rappture::ChoiceEntry::_rebuild {} {
             # Choice is an ordinary LABEL.
             # Add the label as-is into the list of choices.
             #
+            set val [string trim [$_owner xml get $_path.$cname.value]]
             set str [string trim [$_owner xml get $_path.$cname.about.label]]
+            if {"" == $val} {
+                set val $str
+            }
             if {"" != $str} {
+                set _str2val($str) $val
                 $itk_component(choice) choices insert end $_path.$cname $str
                 set len [string length $str]
                 if {$len > $max} { set max $len }
@@ -214,8 +237,19 @@ itcl::body Rappture::ChoiceEntry::_rebuild {} {
     #
     # Assign the default value to this widget, if there is one.
     #
-    set str [$_owner xml get $_path.default]
-    if {"" != $str} { $itk_component(choice) value $str }
+    set defval [$_owner xml get $_path.default]
+    if {"" != $defval} {
+        if {[info exists _str2val($defval)]} {
+            $itk_component(choice) value $defval
+        } else {
+            foreach str [array names _str2val] {
+                if {$_str2val($str) == $defval} {
+                    $itk_component(choice) value $str
+                    break
+                }
+            }
+        }
+    }
 }
 
 # ----------------------------------------------------------------------
@@ -241,16 +275,13 @@ itcl::body Rappture::ChoiceEntry::_tooltip {} {
     # get the description for the current choice, if there is one
     set str [$itk_component(choice) value]
     set path [$itk_component(choice) translate $str]
+    set desc ""
+    if {$path != ""} {
+        set desc [$_owner xml get $path.about.description]
+    }
 
-    if {"" != $str} {
-        append tip "\n\n$str:"
-
-        if {$path != ""} {
-            set desc [$_owner xml get $path.description]
-            if {[string length $desc] > 0} {
-                append tip "\n$desc"
-            }
-        }
+    if {[string length $str] > 0 && [string length $desc] > 0} {
+        append tip "\n\n$str:\n$desc"
     }
     return $tip
 }
