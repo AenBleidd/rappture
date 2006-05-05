@@ -85,6 +85,8 @@ public:
   void set_volume_mode(bool val);
   void switch_slice_mode(); //switch_cutplane_mode
   void switch_volume_mode();
+  void enable_volume(int index); //enable a volume
+  void disable_volume(int index); //disable a volume
 };
 
 #endif

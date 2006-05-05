@@ -167,8 +167,15 @@ void VolumeRenderer::render_all(){
     //compute actual rendering slices
     float z_step = fabs(zNear-zFar)/n_slices;		
     int n_actual_slices = (int)(fabs(zNear-zFar)/z_step + 1);
+
+    //if no cloud
+    //n_actual_slices = 0;
+    
     actual_slices[cur_vol] = n_actual_slices;
     polys[cur_vol] = new ConvexPolygon*[n_actual_slices];
+
+    //if no cloud
+    //polys[cur_vol] = NULL;
 
     float slice_z;
 
@@ -258,6 +265,7 @@ void VolumeRenderer::render_all(){
     vert4 = (Vector4(+10, -10, -0.5, 1));
 
     int counter = 0;
+    
     //transform slices and store them
     for (int i=0; i<n_actual_slices; i++){
       slice_z = zFar + i * z_step;	//back to front
@@ -290,6 +298,7 @@ void VolumeRenderer::render_all(){
       if(poly->vertices.size()>=3)
 	total_rendered_slices++; 
     }
+    
   } //iterate all volumes
   //fprintf(stderr, "total slices: %d\n", total_rendered_slices); 
 
@@ -704,3 +713,10 @@ void VolumeRenderer::set_volume_mode(bool val) { volume_mode = val; }
 void VolumeRenderer::switch_slice_mode() { slice_mode = (!slice_mode); }
 void VolumeRenderer::switch_volume_mode() { volume_mode = (!volume_mode); }
 
+void VolumeRenderer::enable_volume(int index){
+  volume[index]->enable();
+}
+
+void VolumeRenderer::disable_volume(int index){
+  volume[index]->disable();
+}
