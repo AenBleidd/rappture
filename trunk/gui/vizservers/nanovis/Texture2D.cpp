@@ -131,3 +131,4 @@ void Texture2D::check_max_unit(){
 
   fprintf(stderr, "max texture units: %d.\n", max);
 }
+

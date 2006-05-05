@@ -19,7 +19,8 @@ PlaneRenderer::PlaneRenderer(CGcontext _context, int _width, int _height):
   n_planes(0),
   g_context(_context),
   render_width(_width),
-  render_height(_height)
+  render_height(_height),
+  active_plane(-1)
 {
   plane.clear();
   tf.clear();
@@ -71,6 +72,10 @@ void PlaneRenderer::render(){
 
   //glColor3f(1.,1.,1.);         //MUST HAVE THIS LINE!!!
 
+  //if no active plane
+  if(active_plane == -1)
+    return;
+
   activate_shader(active_plane);
   glBegin(GL_QUADS);
   glTexCoord2f(0, 0); glVertex2f(0, 0);
@@ -103,4 +108,5 @@ void PlaneRenderer::deactivate_shader(){
 }
 
 void PlaneRenderer::set_active_plane(int index) { active_plane = index; }
+void PlaneRenderer::set_screen_size(int w, int h) { render_width = w;  render_height = h;}
 

@@ -63,6 +63,7 @@ public:
   						//we require a transfer function when a 
 						//plane is added.
   void set_active_plane(int index);		//set the active plane to be rendered
+  void set_screen_size(int w, int h);		//change the rendering size
   void render();
 };
 

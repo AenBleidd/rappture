@@ -128,6 +128,10 @@ static int VolumeMoveCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int 
 static int VolumeEnableCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
 static int OutlineCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
 static int RefreshCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
+static int Switch2D3DCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
+static int PlaneNewCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
+static int PlaneLinkCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
+static int PlaneEnableCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
 
 static int DecodeAxis _ANSI_ARGS_((Tcl_Interp *interp, char *str, int *valPtr));
 
@@ -515,16 +519,20 @@ VolumeResizeCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *ar
   return TCL_OK;
 }
 
+//Enable a volume.
+//Can enable a volume that is not yet added to the volume renderer.
+//But it won't be rendered until it's added to the volume renderer using VolumeLinkCmd
+//volume_index: the index maintained in the volume renderer.
 static int
 VolumeEnableCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
 {
-  fprintf(stderr, "link volume command\n");
+  fprintf(stderr, "enabled a volume to render command\n");
 
   double volume_index, mode;
 
   if (argc != 3) {
     Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
-		" volume_index tf_index \"", (char*)NULL);
+		" volume_index mode \"", (char*)NULL);
     return TCL_ERROR;
   }
   if (Tcl_GetDouble(interp, argv[1], &volume_index) != TCL_OK) {
@@ -535,9 +543,9 @@ VolumeEnableCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *ar
   }
 
   if(mode==0)
-    volume[(int)volume_index]->disable();
+    vol_render->disable_volume((int)volume_index);
   else
-    volume[(int)volume_index]->enable();
+    vol_render->enable_volume((int)volume_index);
 
   return TCL_OK;
 }
@@ -616,6 +624,125 @@ VolumeMoveCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv
         volume[(int)index]->move(Vector3(x, y, z));
 	return TCL_OK;
 }
+
+
+//Switch: 
+//arg[1] = 0 : 3D rendering
+//arg[1] !=0 : 2D rendering 
+static int
+Switch2D3DCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
+{
+  fprintf(stderr, "switch 2D 3D rendering modes cmd\n");
+
+  double mode;
+
+  if (argc != 2) {
+    Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
+		" mode\"", (char*)NULL);
+    return TCL_ERROR;
+  }
+  if (Tcl_GetDouble(interp, argv[1], &mode) != TCL_OK) {
+	return TCL_ERROR;
+  }
+
+  if(mode==0)
+    volume_mode = true;
+  else
+    volume_mode = false;
+
+  return TCL_OK;
+}
+
+
+static int 
+PlaneNewCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])){
+  fprintf(stderr, "load plane for 2D visualization command\n");
+
+  double index, w, h;
+
+  if (argc != 4) {
+    Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
+		" plane_index w h \"", (char*)NULL);
+    return TCL_ERROR;
+  }
+  if (Tcl_GetDouble(interp, argv[1], &index) != TCL_OK) {
+	return TCL_ERROR;
+  }
+  if (Tcl_GetDouble(interp, argv[2], &w) != TCL_OK) {
+	return TCL_ERROR;
+  }
+  if (Tcl_GetDouble(interp, argv[3], &h) != TCL_OK) {
+	return TCL_ERROR;
+  }
+
+  //Now read w*h*4 bytes. The server expects the plane to be a stream of floats 
+  char* tmp = new char[int(w*h*sizeof(float))];
+  bzero(tmp, w*h*4);
+  int status = read(0, tmp, w*h*sizeof(float));
+  if (status <= 0){
+    exit(0);
+  }
+ 
+  plane[(int)index] = new Texture2D(w, h, GL_FLOAT, GL_LINEAR, 1, (float*)tmp);
+  
+  delete[] tmp;
+  return TCL_OK;
+}
+
+
+static 
+int PlaneLinkCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])){
+  fprintf(stderr, "link the plane to the 2D renderer command\n");
+
+  double plane_index, tf_index;
+
+  if (argc != 3) {
+    Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
+		" plane_index tf_index \"", (char*)NULL);
+    return TCL_ERROR;
+  }
+  if (Tcl_GetDouble(interp, argv[1], &plane_index) != TCL_OK) {
+	return TCL_ERROR;
+  }
+  if (Tcl_GetDouble(interp, argv[2], &tf_index) != TCL_OK) {
+	return TCL_ERROR;
+  }
+
+  plane_render->add_plane(plane[(int)plane_index], tf[(int)tf_index]);
+
+  return TCL_OK;
+}
+
+
+//Enable a 2D plane for render
+//The plane_index is the index mantained in the 2D plane renderer
+static 
+int PlaneEnableCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])){
+  fprintf(stderr, "enable a plane so the 2D renderer can render it command\n");
+
+  double plane_index, mode;
+
+  if (argc != 3) {
+    Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
+		" plane_index mode \"", (char*)NULL);
+    return TCL_ERROR;
+  }
+  if (Tcl_GetDouble(interp, argv[1], &plane_index) != TCL_OK) {
+	return TCL_ERROR;
+  }
+  if (Tcl_GetDouble(interp, argv[2], &mode) != TCL_OK) {
+	return TCL_ERROR;
+  }
+
+  if(mode==0)
+    plane_render->set_active_plane(-1);
+  else
+    plane_render->set_active_plane(plane_index);
+
+  return TCL_OK;
+}
+
+
 
 //report errors related to CG shaders
 void cgErrorCallback(void)
@@ -1175,7 +1302,7 @@ void resize_offscreen_buffer(int w, int h){
       delete[] screen_buffer;
       screen_buffer = 0;
   }
-  screen_buffer = new unsigned char[5*win_width*win_height];
+  screen_buffer = new unsigned char[4*win_width*win_height];
   assert(screen_buffer!=0);
 
   //delete the current render buffer resources
@@ -1189,6 +1316,7 @@ fprintf(stdin,"  after glDeleteRenderbuffers\n");
 
   //change the camera setting
   cam->set_screen_size(win_width, win_height);
+  plane_render->set_screen_size(win_width, win_height);
 
   //Reinitialize final fbo for final display
   glGenFramebuffersEXT(1, &final_fbo);
@@ -1348,7 +1476,7 @@ void initGL(void)
        delete[] screen_buffer;
        screen_buffer = 0;
    }
-   screen_buffer = new unsigned char[5*win_width*win_height];
+   screen_buffer = new unsigned char[4*win_width*win_height];
    assert(screen_buffer!=0);
 
    //create the camera with default setting
@@ -1472,20 +1600,22 @@ void read_screen(){
   //glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, final_fbo);
  
   //debug: set magic number
-  memset(screen_buffer, 253, 5*win_width*win_height);
-
-  glReadPixels(0, 0, win_width, win_height, GL_RGBA, GL_UNSIGNED_BYTE, screen_buffer);
-  //glReadPixels(0, 0, win_width, win_height, GL_RGB, GL_UNSIGNED_BYTE, screen_buffer);
+  //memset(screen_buffer, 253, 5*win_width*win_height);
+  //glReadPixels(0, 0, win_width, win_height, GL_RGBA, GL_UNSIGNED_BYTE, screen_buffer);
+  
+  glReadPixels(0, 0, win_width, win_height, GL_RGB, GL_UNSIGNED_BYTE, screen_buffer);
   assert(glGetError()==0);
   
+  /*
+  //debug: check from the back of screen_buffer to see how far ReadPixel went
   fprintf(stderr, "%d %d:", win_width, win_height);
   for(int i=5*win_width*win_height-1; i>=0; i--){
     if(screen_buffer[i] != 253){
       fprintf(stderr, "%d\n", i);
       i=0;
-      //fprintf(stderr, "%d ", screen_buffer[i]);
     }
   }
+  */
   
   /*
   for(int i=0; i<win_width*win_height; i++){
@@ -2028,7 +2158,7 @@ void display()
    //start final rendering
    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); //clear screen
 
-   if( volume_mode){ //3D rendering mode
+   if(volume_mode){ //3D rendering mode
      glEnable(GL_TEXTURE_2D);
      glEnable(GL_DEPTH_TEST);
 
@@ -2071,7 +2201,7 @@ void display()
 #ifdef XINETD
    read_screen();
 #else
-   read_screen();
+   //read_screen();
 #endif   
 
    glutSwapBuffers(); 

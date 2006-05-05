@@ -35,6 +35,8 @@ public:
 	
   void activate();
   void deactivate();
+  void enable();
+  void disable();
   GLuint initialize(float* data);
   static void check_max_size();
   static void check_max_unit();
