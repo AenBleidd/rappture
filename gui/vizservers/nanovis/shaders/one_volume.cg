@@ -20,6 +20,7 @@
 PixelOut main(v2f IN, /* uniform sampler1D tf,*/
 		uniform sampler3D volume,
 		uniform sampler1D tf,
+		//uniform sampler1D tf_cutplane,
 		uniform float4x4 modelViewInv,
 		uniform float4x4 modelView,
 		uniform float4 renderParameters)
@@ -34,6 +35,7 @@ PixelOut main(v2f IN, /* uniform sampler1D tf,*/
 
   if(renderParameters.x < 0.5) 
   { //If single slice render, only flat shading, completely opaque.
+    //color = tex1D(tf_cutplane, sample.x);
     color.w = 1;
     //color.w = renderParameters.y*color.w/renderParameters.x;
   }
