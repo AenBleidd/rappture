@@ -40,6 +40,7 @@
 #include "Event.h"
 #include "Lic.h"
 #include "VolumeRenderer.h"
+#include "PlaneRenderer.h"
 
 #include "config.h"
 

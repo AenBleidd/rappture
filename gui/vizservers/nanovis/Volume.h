@@ -82,6 +82,8 @@ public:
 	void set_n_slice(int val); //set number of slices
 	int get_n_slice();	//return number of slices
 
+	void set_size(float s); //set the drawing size of volume 
+
 	//methods related to cutplanes
         int add_cutplane(int _orientation, float _location); //add a plane and returns its index
         void enable_cutplane(int index);

@@ -2,9 +2,9 @@ OBJ_NANOVIS = nanovis.o Socket.o RenderVertexArray.o Plane.o ConvexPolygon.o Vec
 		Texture1D.o Texture3D.o Volume.o Texture2D.o ParticleSystem.o Sphere.o Color.o \
 		PerfQuery.o TransferFunction.o ControlPoint.o ColorGradient.o ColorPaletteWindow.o\
 		ColorGradientGLUTWindow.o TransferFunctionGLUTWindow.o MainWindow.o Event.o \
-		Lic.o Renderable.o Camera.o ScreenSnapper.o VolumeRenderer.o
+		Lic.o Renderable.o Camera.o ScreenSnapper.o VolumeRenderer.o PlaneRenderer.o 
 OBJ_VOLUMERENDERER = Volume.o ConvexPolygon.o TransferFunction.o Mat4x4.o  Camera.o
-
+OBJ_PLANERENDERER = Texture2D.o TransferFunction.o
 OBJ_CLIENT = Socket.o ClientSocket.o RenderClient.o Event.o
 
 AUXSRC = config.h define.h global.h
@@ -14,9 +14,9 @@ SORTSRC = ./sort
 TFSRC = ./transfer-function
 NANOSCALESRC = ./nanoscale
 
-LIB_NANOVIS = -ltcl8.3 -L/opt/render/lib -lGL -lglut -lglui -lGLEW -lCg -lCgGL -pthread -lstdc++
+LIB_NANOVIS = -ltcl8.4 -L/opt/render/lib -lGL -lglut -lglui -lGLEW -lCg -lCgGL -pthread -lstdc++
 LIB_CLIENT = -L/opt/render/lib -lGL -lglut -pthread -lstdc++
-INCLUDES = -I../../src2/core -I/opt/render/include -I/autohome/u76/qiaow/Cg/usr/include
+INCLUDES = -I../src2/core -I/opt/render/include -I/autohome/u76/qiaow/Cg/usr/include
 CFLAG = -g -c $(INCLUDES)
 
 all: nanovis
@@ -25,7 +25,7 @@ clean:
 	rm -f *.o nanovis client simclient
 
 nanovis: $(OBJ_NANOVIS)
-	gcc -g -o nanovis $(OBJ_NANOVIS) $(LIB_NANOVIS) ../../src2/core/*.o
+	gcc -g -o nanovis $(OBJ_NANOVIS) $(LIB_NANOVIS) ../src2/core/*.o
 
 ColorGradient.o: Color.o $(TFSRC)/ColorGradient.cpp
 	gcc $(CFLAG) $(TFSRC)/ColorGradient.cpp
@@ -105,6 +105,9 @@ Volume.o: Texture3D.o Volume.cpp Volume.h $(AUXSRC)
 
 VolumeRenderer.o: $(OBJ_VOLUMERENDERER)  VolumeRenderer.h VolumeRenderer.cpp
 	gcc $(CFLAG) VolumeRenderer.cpp
+
+PlaneRenderer.o: $(OBJ_PLANERENDERER)  PlaneRenderer.h PlaneRenderer.cpp
+	gcc $(CFLAG) PlaneRenderer.cpp
 
 Mat4x4.o: Mat4x4.cpp Mat4x4.h
 	gcc $(CFLAG) Mat4x4.cpp

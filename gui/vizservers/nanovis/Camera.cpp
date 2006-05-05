@@ -48,7 +48,7 @@ void Camera::activate(){
   glViewport(0, 0, width, height);
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity();
-  gluPerspective(60, (GLdouble)width/(GLdouble)height, 0.1, 50.0);
+  gluPerspective(30, (GLdouble)width/(GLdouble)height, 0.1, 50.0);
 
   glMatrixMode(GL_MODELVIEW);
   glLoadIdentity();
