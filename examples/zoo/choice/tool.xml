@@ -19,9 +19,26 @@ When you click the Simulate button, the input choice will be used to generate th
       <label>Carrier Statistics</label>
       <description>Determines the model for carrier statistics used in bandgap narrowing calculations.</description>
     </about>
-    <option> <about><label>Boltzmann</label></about> </option>
-    <option> <about><label>Fermi</label></about> </option>
-    <option> <about><label>2D Gas</label></about> </option>
+    <option>
+      <about>
+        <label>Boltzmann</label>
+        <description>From the Boltzmann transport equation</description>
+      </about>
+      <value>bte</value>
+    </option>
+    <option>
+      <about>
+        <label>Fermi</label>
+        <description>Fermi-Dirac statistics</description>
+      </about>
+    </option>
+    <option>
+      <about>
+        <label>2D Gas</label>
+        <description>Includes confinement at material interface</description>
+      </about>
+      <value>2deg</value>
+    </option>
     <default>Boltzmann</default>
   </choice>
 </input>
