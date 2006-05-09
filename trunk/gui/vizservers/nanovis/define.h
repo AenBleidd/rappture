@@ -53,5 +53,10 @@ typedef GLuint NVISid;			//OpenGL identifier: unsigned int
      }	                                                      \
    }
 
+// use this to send debug messages back to the client
+void debug(char *message);
+void debug(char *message, double v1);
+void debug(char *message, double v1, double v2);
+void debug(char *message, double v1, double v2, double v3);
 
 #endif

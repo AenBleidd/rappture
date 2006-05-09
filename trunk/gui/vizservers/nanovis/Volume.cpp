@@ -26,10 +26,13 @@ Volume::Volume(float x, float y, float z,
 	size(s),
 	n_components(n),
 	enabled(true),
-	n_slice(256), //defualt value
-	specular(6.), //defualt value
-	diffuse(3.), //defualt value
-	opacity_scale(10.) //defualt value
+	n_slice(256), // default value
+	specular(6.), // default value
+	diffuse(3.), // default value
+	opacity_scale(10.), // default value
+	data_enabled(true), // default value
+	outline_enabled(true), // default value
+	outline_color(1.,1.,1.) // default value
 {
 
   tex = new Texture3D(w, h, d, NVIS_FLOAT, NVIS_LINEAR_INTERP, n);
@@ -112,3 +115,17 @@ float Volume::get_opacity_scale() { return opacity_scale; }
 void Volume::set_specular(float s) { specular = s; }
 void Volume::set_diffuse(float d) { diffuse = d; }
 void Volume::set_opacity_scale(float s) { opacity_scale = s; }
+
+void Volume::enable_data() { data_enabled = true; }
+void Volume::disable_data() { data_enabled = false; }
+bool Volume::data_is_enabled() { return data_enabled; }
+
+void Volume::enable_outline() { outline_enabled = true; }
+void Volume::disable_outline() { outline_enabled = false; }
+bool Volume::outline_is_enabled() { return outline_enabled; }
+void Volume::set_outline_color(float *rgb) {
+    outline_color = Color(rgb[0],rgb[1],rgb[2]);
+}
+void Volume::get_outline_color(float *rgb) {
+    outline_color.GetRGB(rgb);
+}
