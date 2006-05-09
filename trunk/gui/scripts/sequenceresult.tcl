@@ -283,6 +283,24 @@ itcl::body Rappture::SequenceResult::download {option} {
             # nothing to do
         }
         now {
+            set rval ""
+            if {"" != $_topmost} {
+                set max [$_topmost size]
+                set all ""
+                for {set i 0} {$i < $max} {incr i} {
+                    set dataobj [$_topmost value $i]
+                    if {[catch {$dataobj tkimage} imh] == 0} {
+                        lappend all $imh
+                    }
+                }
+                if {[llength $all] > 0} {
+                    set delay [expr {int(ceil(pow($_play(speed)/10.0,2.0)*5))}]
+                    set rval [eval Rappture::icon::gif_animate $delay $all]
+                }
+            }
+            if {[string length $rval] > 0} {
+                return [list .gif $rval]
+            }
             return ""
         }
         default {
@@ -370,9 +388,11 @@ itcl::body Rappture::SequenceResult::_rebuild {args} {
     if {[winfo exists $viewer]} {
         if {"" == $_topmost} {
             pack forget $viewer
+            pack forget $itk_component(player)
             return
         } else {
             pack $viewer -expand yes -fill both
+            pack $itk_component(player) -side bottom -fill x
         }
     } else {
         if {"" == $_topmost} {
