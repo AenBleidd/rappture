@@ -17,17 +17,33 @@
 #include <assert.h>
 
 #include "Color.h"
+#include "define.h"
 
-Color::Color(){
+Color::Color() {
 	R=G=B=0.0;
 	next=0;
 }
 
-Color::Color(double r, double g, double b){
+Color::Color(double r, double g, double b) {
 	R=r;
 	G=g;
 	B=b;
 	next=0;
+}
+
+Color::Color(const Color& c)
+ : R(c.R), G(c.G), B(c.B), next(c.next)
+{
+}
+
+Color&
+Color::operator=(const Color& c)
+{
+    R = c.R;
+    G = c.G;
+    B = c.B;
+    next = c.next;
+    return *this;
 }
 
 void Color::LimitColors(){ //Limits the color to be in range of 0.0 and 1.0

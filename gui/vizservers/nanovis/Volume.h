@@ -19,6 +19,7 @@
 #include <vector>
 
 #include "define.h"
+#include "Color.h"
 #include "Texture3D.h"
 #include "Vector3.h"
 
@@ -47,6 +48,11 @@ private:
 	float diffuse;	//diffuse lighting parameter
 	float opacity_scale;	//The scale multiplied to the opacity assigned by the transfer function.
 				//Rule of thumb: higher opacity_scale the object is to appear like plastic
+
+	bool data_enabled;      // show/hide cloud of volume data
+
+	bool outline_enabled;   // show/hide outline around volume
+	Color outline_color;    // color for outline around volume
 
 public:
 	Vector3 location;
@@ -101,6 +107,15 @@ public:
 	void set_diffuse(float d);
 	void set_opacity_scale(float s);
 
+	void enable_data();
+	void disable_data();
+	bool data_is_enabled();
+
+	void enable_outline();
+	void disable_outline();
+	bool outline_is_enabled();
+	void set_outline_color(float* rgb);
+	void get_outline_color(float* rgb);
 };
 
 #endif

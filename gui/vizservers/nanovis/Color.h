@@ -33,13 +33,14 @@ public:
 
 	Color();
 	Color(double r, double g, double b);
+	Color(const Color& c);
+	Color& operator=(const Color& c);
+	~Color();
 
 	void LimitColors(); //Limits the color to be in range of 0.0 and 1.0
 	Color operator*(double k);
 	friend Color operator*(double k, Color &other);
 	Color operator+(Color &other);
-	~Color();
-	float r, g, b, a;
 };
 
 #endif

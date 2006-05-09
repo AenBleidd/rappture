@@ -40,7 +40,8 @@ VolumeRenderer* vol_render;
 PlaneRenderer* plane_render;
 Camera* cam;
 
-bool volume_mode = false; //if true nanovis renders volumes in 3D, if not renders 2D plane
+//if true nanovis renders volumes in 3D, if not renders 2D plane
+bool volume_mode = true;
 
 // color table for built-in transfer function editor
 float color_table[256][4]; 	
@@ -119,21 +120,21 @@ static Tcl_Interp *interp;
 static int CameraCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
 static int CutplaneCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
 static int ClearCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
-static int ScreenResizeCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
+static int ScreenCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
 static int TransferFunctionNewCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
 static int TransferFunctionUpdateCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
+static int VolumeCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
 static int VolumeNewCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
 static int VolumeLinkCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
 static int VolumeMoveCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
 static int VolumeEnableCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
-static int OutlineCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
 static int RefreshCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
-static int Switch2D3DCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
 static int PlaneNewCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
 static int PlaneLinkCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
 static int PlaneEnableCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
 
-static int DecodeAxis _ANSI_ARGS_((Tcl_Interp *interp, char *str, int *valPtr));
+static int GetAxis _ANSI_ARGS_((Tcl_Interp *interp, char *str, int *valPtr));
+static int GetColor _ANSI_ARGS_((Tcl_Interp *interp, char *str, float *rgbPtr));
 
 /*
  * ----------------------------------------------------------------------
@@ -261,7 +262,7 @@ CutplaneCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]
         }
 
         int axis;
-        if (DecodeAxis(interp, (char*)argv[3], &axis) != TCL_OK) {
+        if (GetAxis(interp, argv[3], &axis) != TCL_OK) {
             return TCL_ERROR;
         }
 
@@ -304,9 +305,12 @@ CutplaneCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]
         if (Tcl_GetDouble(interp, argv[2], &relval) != TCL_OK) {
             return TCL_ERROR;
         }
+        // keep this just inside the volume so it doesn't disappear
+        if (relval < 0.01) { relval = 0.01; }
+        if (relval > 0.99) { relval = 0.99; }
 
         int axis;
-        if (DecodeAxis(interp, (char*)argv[3], &axis) != TCL_OK) {
+        if (GetAxis(interp, argv[3], &axis) != TCL_OK) {
             return TCL_ERROR;
         }
 
@@ -336,41 +340,11 @@ CutplaneCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]
     return TCL_ERROR;
 }
 
-/*
- * ----------------------------------------------------------------------
- * FUNCTION: DecodeAxis()
- *
- * Used internally to decode an axis value from a string ("x", "y",
- * or "z") to its index (0, 1, or 2).  Returns TCL_OK if successful,
- * along with a value in valPtr.  Otherwise, it returns TCL_ERROR
- * and an error message in the interpreter.
- * ----------------------------------------------------------------------
- */
-static int
-DecodeAxis(Tcl_Interp *interp, char *str, int *valPtr)
-{
-    if (strcmp(str,"x") == 0) {
-        *valPtr = 0;
-        return TCL_OK;
-    }
-    else if (strcmp(str,"y") == 0) {
-        *valPtr = 1;
-        return TCL_OK;
-    }
-    else if (strcmp(str,"z") == 0) {
-        *valPtr = 2;
-        return TCL_OK;
-    }
-    Tcl_AppendResult(interp, "bad axis \"", str,
-        "\": should be x, y, or z", (char*)NULL);
-    return TCL_ERROR;
-}
-
 void resize_offscreen_buffer(int w, int h);
 
 //change screen size
 static int
-ScreenResizeCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
+ScreenCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
 {
 
 	fprintf(stderr, "screen size cmd\n");
@@ -469,6 +443,141 @@ void set_object(float x, float y, float z){
   live_obj_x = x;
   live_obj_y = y;
   live_obj_z = z;
+}
+
+/*
+ * ----------------------------------------------------------------------
+ * CLIENT COMMAND:
+ *   volume outline state on|off ?<volumeId> ...?
+ *   volume outline color on|off ?<volumeId> ...?
+ *   volume data state on|off ?<volumeId> ...?
+ *
+ * Clients send these commands to manipulate the volumes.
+ * ----------------------------------------------------------------------
+ */
+static int
+VolumeCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
+{
+	if (argc < 2) {
+		Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
+			" option arg arg...\"", (char*)NULL);
+		return TCL_ERROR;
+    }
+
+    char c = *argv[1];
+	if (c == 'o' && strcmp(argv[1],"outline") == 0) {
+        if (argc < 3) {
+		    Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
+			    argv[1], " option ?arg arg...?\"", (char*)NULL);
+		    return TCL_ERROR;
+        }
+        c = *argv[2];
+        if (c == 's' && strcmp(argv[2],"state") == 0) {
+            if (argc < 3) {
+                Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
+                    argv[1], " state on|off ?volume ...? \"", (char*)NULL);
+                return TCL_ERROR;
+            }
+
+            int state;
+            if (Tcl_GetBoolean(interp, argv[3], &state) != TCL_OK) {
+                return TCL_ERROR;
+            }
+
+            int ivol;
+            if (argc < 5) {
+                for (ivol=0; ivol < n_volumes; ivol++) {
+                    if (state) {
+                        volume[ivol]->enable_outline();
+                    } else {
+                        volume[ivol]->disable_outline();
+                    }
+                }
+            } else {
+                for (int n=4; n < argc; n++) {
+                    if (Tcl_GetInt(interp, argv[n], &ivol) != TCL_OK) {
+                        return TCL_ERROR;
+                    }
+                    if (ivol < 0 || ivol > n_volumes) {
+                        Tcl_AppendResult(interp, "bad volume index \"", argv[n],
+                            "\": out of range", (char*)NULL);
+                        return TCL_ERROR;
+                    }
+                    if (state) {
+                        volume[ivol]->enable_outline();
+                    } else {
+                        volume[ivol]->disable_outline();
+                    }
+                }
+            }
+            return TCL_OK;
+        }
+        else if (c == 'c' && strcmp(argv[2],"color") == 0) {
+            if (argc < 3) {
+                Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
+                    argv[1], " color {R G B} ?volume ...? \"", (char*)NULL);
+                return TCL_ERROR;
+            }
+
+            float rgb[3];
+            if (GetColor(interp, argv[3], rgb) != TCL_OK) {
+                return TCL_ERROR;
+            }
+
+            int ivol;
+            if (argc < 5) {
+                for (ivol=0; ivol < n_volumes; ivol++) {
+                    volume[ivol]->set_outline_color(rgb);
+                }
+            } else {
+                for (int n=4; n < argc; n++) {
+                    if (Tcl_GetInt(interp, argv[n], &ivol) != TCL_OK) {
+                        return TCL_ERROR;
+                    }
+                    if (ivol < 0 || ivol > n_volumes) {
+                        Tcl_AppendResult(interp, "bad volume index \"", argv[n],
+                            "\": out of range", (char*)NULL);
+                        return TCL_ERROR;
+                    }
+                    volume[ivol]->set_outline_color(rgb);
+                }
+            }
+            return TCL_OK;
+        }
+
+        Tcl_AppendResult(interp, "bad option \"", argv[2],
+            "\": should be color or state", (char*)NULL);
+        return TCL_ERROR;
+    }
+	else if (c == 's' && strcmp(argv[1],"state") == 0) {
+        if (argc < 3) {
+		    Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
+			    " state on|off ?volume ...?\"", (char*)NULL);
+		    return TCL_ERROR;
+        }
+
+        int state;
+	    if (Tcl_GetBoolean(interp, argv[2], &state) != TCL_OK) {
+		    return TCL_ERROR;
+	    }
+
+        int ivol;
+        for (int n=3; n < argc; n++) {
+	        if (Tcl_GetInt(interp, argv[n], &ivol) != TCL_OK) {
+		        return TCL_ERROR;
+	        }
+            if (state) {
+                volume[ivol]->enable_data();
+            } else {
+                volume[ivol]->disable_data();
+            }
+        }
+        return TCL_OK;
+    }
+
+    Tcl_AppendResult(interp, "bad option \"", argv[1],
+        "\": should be state", (char*)NULL);
+    return TCL_ERROR;
 }
 
 static int
@@ -625,32 +734,120 @@ VolumeMoveCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv
 	return TCL_OK;
 }
 
-
-//Switch: 
-//arg[1] = 0 : 3D rendering
-//arg[1] !=0 : 2D rendering 
+/*
+ * ----------------------------------------------------------------------
+ * FUNCTION: GetAxis()
+ *
+ * Used internally to decode an axis value from a string ("x", "y",
+ * or "z") to its index (0, 1, or 2).  Returns TCL_OK if successful,
+ * along with a value in valPtr.  Otherwise, it returns TCL_ERROR
+ * and an error message in the interpreter.
+ * ----------------------------------------------------------------------
+ */
 static int
-Switch2D3DCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
+GetAxis(Tcl_Interp *interp, char *str, int *valPtr)
 {
-  fprintf(stderr, "switch 2D 3D rendering modes cmd\n");
-
-  double mode;
-
-  if (argc != 2) {
-    Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
-		" mode\"", (char*)NULL);
+    if (strcmp(str,"x") == 0) {
+        *valPtr = 0;
+        return TCL_OK;
+    }
+    else if (strcmp(str,"y") == 0) {
+        *valPtr = 1;
+        return TCL_OK;
+    }
+    else if (strcmp(str,"z") == 0) {
+        *valPtr = 2;
+        return TCL_OK;
+    }
+    Tcl_AppendResult(interp, "bad axis \"", str,
+        "\": should be x, y, or z", (char*)NULL);
     return TCL_ERROR;
-  }
-  if (Tcl_GetDouble(interp, argv[1], &mode) != TCL_OK) {
-	return TCL_ERROR;
-  }
+}
 
-  if(mode==0)
-    volume_mode = true;
-  else
-    volume_mode = false;
+/*
+ * ----------------------------------------------------------------------
+ * FUNCTION: GetColor()
+ *
+ * Used internally to decode a color value from a string ("R G B")
+ * as a list of three numbers 0-1.  Returns TCL_OK if successful,
+ * along with RGB values in valPtr.  Otherwise, it returns TCL_ERROR
+ * and an error message in the interpreter.
+ * ----------------------------------------------------------------------
+ */
+static int
+GetColor(Tcl_Interp *interp, char *str, float *rgbPtr)
+{
+    int rgbc;
+    char **rgbv;
+    if (Tcl_SplitList(interp, str, &rgbc, &rgbv) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (rgbc != 3) {
+        Tcl_AppendResult(interp, "bad color \"", str,
+            "\": should be {R G B} as double values 0-1", (char*)NULL);
+        return TCL_ERROR;
+    }
 
-  return TCL_OK;
+    double rval, gval, bval;
+    if (Tcl_GetDouble(interp, rgbv[0], &rval) != TCL_OK) {
+        Tcl_Free((char*)rgbv);
+        return TCL_ERROR;
+    }
+    if (Tcl_GetDouble(interp, rgbv[1], &gval) != TCL_OK) {
+        Tcl_Free((char*)rgbv);
+        return TCL_ERROR;
+    }
+    if (Tcl_GetDouble(interp, rgbv[2], &bval) != TCL_OK) {
+        Tcl_Free((char*)rgbv);
+        return TCL_ERROR;
+    }
+    Tcl_Free((char*)rgbv);
+
+    rgbPtr[0] = (float)rval;
+    rgbPtr[1] = (float)gval;
+    rgbPtr[2] = (float)bval;
+
+    return TCL_OK;
+}
+
+/*
+ * ----------------------------------------------------------------------
+ * USAGE: debug("string", ...)
+ *
+ * Use this anywhere within the package to send a debug message
+ * back to the client.  The string can have % fields as used by
+ * the printf() package.  Any remaining arguments are treated as
+ * field substitutions on that.
+ * ----------------------------------------------------------------------
+ */
+void
+debug(char *str)
+{
+    write(0, str, strlen(str));
+}
+
+void
+debug(char *str, double v1)
+{
+    char buffer[512];
+    sprintf(buffer, str, v1);
+    write(0, buffer, strlen(buffer));
+}
+
+void
+debug(char *str, double v1, double v2)
+{
+    char buffer[512];
+    sprintf(buffer, str, v1, v2);
+    write(0, buffer, strlen(buffer));
+}
+
+void
+debug(char *str, double v1, double v2, double v3)
+{
+    char buffer[512];
+    sprintf(buffer, str, v1, v2, v3);
+    write(0, buffer, strlen(buffer));
 }
 
 
@@ -741,7 +938,6 @@ int PlaneEnableCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, 
 
   return TCL_OK;
 }
-
 
 
 //report errors related to CG shaders
@@ -1200,6 +1396,10 @@ void load_volume(int index, int width, int height, int depth, int n_component, f
 
   volume[index] = new Volume(0.f, 0.f, 0.f, width, height, depth, 1.,  n_component, data);
   assert(volume[index]!=0);
+
+  if (n_volumes <= index) {
+    n_volumes = index+1;
+  }
 }
 
 
@@ -1300,10 +1500,10 @@ void resize_offscreen_buffer(int w, int h){
 
   if (screen_buffer) {
       delete[] screen_buffer;
-      screen_buffer = 0;
+      screen_buffer = NULL;
   }
   screen_buffer = new unsigned char[4*win_width*win_height];
-  assert(screen_buffer!=0);
+  assert(screen_buffer != NULL);
 
   //delete the current render buffer resources
   glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, final_fbo);
@@ -1474,10 +1674,10 @@ void initGL(void)
    //buffer to store data read from the screen
    if (screen_buffer) {
        delete[] screen_buffer;
-       screen_buffer = 0;
+       screen_buffer = NULL;
    }
    screen_buffer = new unsigned char[4*win_width*win_height];
-   assert(screen_buffer!=0);
+   assert(screen_buffer != NULL);
 
    //create the camera with default setting
    cam = new Camera(win_width, win_height, 
@@ -1562,21 +1762,30 @@ void initGL(void)
 
 
 void initTcl(){
-  interp = Tcl_CreateInterp();
-  Tcl_MakeSafe(interp);
+    interp = Tcl_CreateInterp();
+    Tcl_MakeSafe(interp);
 
-  //set camera (viewing)
-  Tcl_CreateCommand(interp, "camera", CameraCmd, (ClientData)0, (Tcl_CmdDeleteProc*)NULL);
+    // manipulate the viewpoint
+    Tcl_CreateCommand(interp, "camera", CameraCmd,
+        (ClientData)NULL, (Tcl_CmdDeleteProc*)NULL);
 
-  Tcl_CreateCommand(interp, "cutplane", CutplaneCmd, (ClientData)0, (Tcl_CmdDeleteProc*)NULL);
+    // turn on/off cut planes in x/y/z directions
+    Tcl_CreateCommand(interp, "cutplane", CutplaneCmd,
+        (ClientData)NULL, (Tcl_CmdDeleteProc*)NULL);
 
-  //resize the width and height of render screen
-  Tcl_CreateCommand(interp, "screen", ScreenResizeCmd, (ClientData)0, (Tcl_CmdDeleteProc*)NULL);
+    // change the size of the screen (size of picture generated)
+    Tcl_CreateCommand(interp, "screen", ScreenCmd,
+        (ClientData)NULL, (Tcl_CmdDeleteProc*)NULL);
+
+    // manipulate volume data
+    Tcl_CreateCommand(interp, "volume", VolumeCmd,
+        (ClientData)NULL, (Tcl_CmdDeleteProc*)NULL);
 
   //create new transfer function
   Tcl_CreateCommand(interp, "tf_new", TransferFunctionNewCmd, (ClientData)0, (Tcl_CmdDeleteProc*)NULL);
   //update an existing transfer function
   Tcl_CreateCommand(interp, "tf_update", TransferFunctionUpdateCmd, (ClientData)0, (Tcl_CmdDeleteProc*)NULL);
+
 
   //create new volume
   Tcl_CreateCommand(interp, "volume_new", VolumeNewCmd, (ClientData)0, (Tcl_CmdDeleteProc*)NULL);
@@ -1605,24 +1814,6 @@ void read_screen(){
   
   glReadPixels(0, 0, win_width, win_height, GL_RGB, GL_UNSIGNED_BYTE, screen_buffer);
   assert(glGetError()==0);
-  
-  /*
-  //debug: check from the back of screen_buffer to see how far ReadPixel went
-  fprintf(stderr, "%d %d:", win_width, win_height);
-  for(int i=5*win_width*win_height-1; i>=0; i--){
-    if(screen_buffer[i] != 253){
-      fprintf(stderr, "%d\n", i);
-      i=0;
-    }
-  }
-  */
-  
-  /*
-  for(int i=0; i<win_width*win_height; i++){
-    if(screen_buffer[3*i]!=0 || screen_buffer[3*i+1]!=0 || screen_buffer[3*i+2]!=0)
-      fprintf(stderr, "(%d %d %d) ", screen_buffer[3*i], screen_buffer[3*i+1],  screen_buffer[3*i+2]);
-  }
-  */
 }
 
 void display();
@@ -1685,9 +1876,10 @@ void xinetd_listen(){
     }
     data = tmp;
 
-    if(Tcl_Eval(interp, (char*)data.c_str()) != TCL_OK) {
-      //error to log file...
-      printf("Tcl error: %s\n", Tcl_GetStringResult(interp));
+    if (Tcl_Eval(interp, (char*)data.c_str()) != TCL_OK) {
+      std::ostringstream errmsg;
+      errmsg << "ERROR: " << Tcl_GetStringResult(interp) << std::endl;
+      write(0, errmsg.str().c_str(), errmsg.str().size());
       return;
     }
 
