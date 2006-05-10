@@ -91,7 +91,7 @@ proc Rappture::resources::load {{callback tk_messageBox}} {
             $optionParser eval $info
         } result]} {
             if {"" != $callback} {
-                after 1 [list $callback -title Error -icon error -message "Error in resources file:\n$reslt"]
+                after 1 [list $callback -title Error -icon error -message "Error in resources file:\n$result"]
             }
             return 0
         }
