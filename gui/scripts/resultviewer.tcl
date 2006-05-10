@@ -216,11 +216,19 @@ itcl::body Rappture::ResultViewer::_plotAdd {dataobj {settings ""}} {
                         set _mode2widget($mode) $w
                     }
                 }
-                2D - 3D {
+                2D {
                     set mode "contour"
                     if {![info exists _mode2widget($mode)]} {
                         set w $itk_interior.contour
                         Rappture::ContourResult $w
+                        set _mode2widget($mode) $w
+                    }
+                }
+                3D {
+                    set mode "field3D"
+                    if {![info exists _mode2widget($mode)]} {
+                        set w $itk_interior.field3D
+                        Rappture::Field3DResult $w
                         set _mode2widget($mode) $w
                     }
                 }
