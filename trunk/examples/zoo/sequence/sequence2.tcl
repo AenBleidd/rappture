@@ -15,29 +15,51 @@ wm withdraw .
 set driver [Rappture::library [lindex $argv 0]]
 
 set func [$driver get input.string(func).current]
-set pvals [$driver get input.string(pvals).current]
+set avals [$driver get input.string(avals).current]
+set bvals [$driver get input.string(bvals).current]
 
-# remove any commas in the pvals list
-regsub -all {,} $pvals {} pvals
+# remove any commas in the avals/bvals lists
+regsub -all {,} $avals {} avals
+regsub -all {,} $bvals {} bvals
 
 # change "x" to $x in expression
 regsub -all {x} $func {$x} func
-regsub -all {P} $func {$P} func
+regsub -all {A} $func {$A} func
+regsub -all {B} $func {$B} func
 
 set xmin -1
 set xmax 1
 set npts 30
-foreach P $pvals {
-    $driver put output.sequence(outs).element($P).index $P
-    $driver put output.sequence(outs).element($P).curve.xaxis.label "x"
-    $driver put output.sequence(outs).element($P).curve.yaxis.label \
-        "Function y(x)"
+foreach A $avals {
+    set elem output.sequence(outs).element($A)
+    $driver put $elem.index $A
 
-    for {set i 0} {$i < $npts} {incr i} {
-        set x [expr {$i*($xmax-$xmin)/double($npts) + $xmin}]
-        set y [expr $func]
-        $driver put -append yes \
-          output.sequence(outs).element($P).curve.component.xy "$x $y\n"
+    if {[llength $bvals] > 0} {
+        # one or more B values -- put out a separate curve for each B value
+        foreach B $bvals {
+            $driver put $elem.curve($B).about.label "B = $B"
+            $driver put $elem.curve($B).about.group "A = $A"
+            $driver put $elem.curve($B).xaxis.label "x"
+            $driver put $elem.curve($B).yaxis.label "Function y(x)"
+
+            for {set i 0} {$i < $npts} {incr i} {
+                set x [expr {$i*($xmax-$xmin)/double($npts) + $xmin}]
+                set y [expr $func]
+                $driver put -append yes \
+                  $elem.curve($B).component.xy "$x $y\n"
+            }
+        }
+    } else {
+        # no B values -- put out a single curve for each element
+        $driver put $elem.curve.xaxis.label "x"
+        $driver put $elem.curve.yaxis.label "Function y(x)"
+
+        for {set i 0} {$i < $npts} {incr i} {
+            set x [expr {$i*($xmax-$xmin)/double($npts) + $xmin}]
+            set y [expr $func]
+            $driver put -append yes \
+              output.sequence(outs).element($A).curve.component.xy "$x $y\n"
+        }
     }
 }
 

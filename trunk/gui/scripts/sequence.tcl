@@ -50,36 +50,43 @@ itcl::body Rappture::Sequence::constructor {xmlobj path} {
             continue
         }
 
+        set ctype ""
+        set _dataobjs($index) ""
         foreach cname [$_xmlobj children $name] {
             set type [$xmlobj element -as type $path.$name.$cname]
             switch -- $type {
                 index {
                     # ignore this
+                    continue
                 }
                 curve {
                     set obj [Rappture::Curve ::#auto $xmlobj $path.$name.$cname]
-                    break
                 }
                 field {
                     set obj [Rappture::Field ::#auto $xmlobj $path.$name.$cname]
-                    break
                 }
                 image {
                     set obj [Rappture::Image ::#auto $xmlobj $path.$name.$cname]
-                    break
                 }
                 default {
                     error "don't know how to handle sequences of $type"
                 }
             }
+            if {"" == $ctype} {
+                set ctype $type
+            }
+            if {$type == $ctype} {
+                lappend _dataobjs($index) $obj
+            } else {
+                itcl::delete object $obj
+            }
         }
-        set _dataobjs($index) $obj
     }
 
     #
     # Generate a list of sorted index values.
     #
-    set units [$xmlobj get path.index.units]
+    set units [$xmlobj get $path.index.units]
     if {"" != $units} {
         # build up a list:  {10m 10} {10cm 0.1} ...
         set vals ""
@@ -124,7 +131,7 @@ itcl::body Rappture::Sequence::constructor {xmlobj path} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Sequence::destructor {} {
     foreach key [array names _dataobjs] {
-        itcl::delete object $_dataobjs($key)
+        eval itcl::delete object $_dataobjs($key)
     }
     itcl::delete object $_xmlobj
 }
