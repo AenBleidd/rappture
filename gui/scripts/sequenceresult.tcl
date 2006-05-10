@@ -288,7 +288,7 @@ itcl::body Rappture::SequenceResult::download {option} {
                 set max [$_topmost size]
                 set all ""
                 for {set i 0} {$i < $max} {incr i} {
-                    set dataobj [$_topmost value $i]
+                    set dataobj [lindex [$_topmost value $i] 0]
                     if {[catch {$dataobj tkimage} imh] == 0} {
                         lappend all $imh
                     }
@@ -364,7 +364,7 @@ itcl::body Rappture::SequenceResult::goto {{newval ""}} {
         return $_pos
     }
     set _pos $newval
-    set val [$itk_component(dial) get -format value @$_pos]
+    set val [$itk_component(dial) get -format label @$_pos]
     $itk_component(dial) current $val
 }
 
@@ -401,7 +401,7 @@ itcl::body Rappture::SequenceResult::_rebuild {args} {
 
         set type ""
         if {[$_topmost size] > 0} {
-            set dataobj [$_topmost value 0]
+            set dataobj [lindex [$_topmost value 0] 0]
             set type [$dataobj info class]
         }
         switch -- $type {
@@ -430,17 +430,13 @@ itcl::body Rappture::SequenceResult::_rebuild {args} {
     set max [$_topmost size]
     set all ""
     for {set i 0} {$i < $max} {incr i} {
-        lappend all [$_topmost value $i]
+        eval lappend all [$_topmost value $i]
     }
     eval $viewer scale $all
 
     set _indices ""
     for {set i 0} {$i < $max} {incr i} {
         set index [$_topmost index $i]
-        set dataobj [$_topmost value $i]
-
-        $viewer add $dataobj ""
-
         eval $itk_component(dial) add $index
         lappend _indices [lindex $index 0]
     }
@@ -485,13 +481,14 @@ itcl::body Rappture::SequenceResult::_fixValue {} {
         return
     }
 
-    set val [$itk_component(dial) current]
+    set val [$itk_component(dial) get -format label current]
     $itk_component(indexValue) configure -text "= $val"
-    set _pos [lsearch $_indices $val]
+    set _pos [lsearch -glob $_indices $val*]
 
     $viewer delete
     if {"" != $_topmost} {
-        set dataobj [$_topmost value $_pos]
-        $viewer add $dataobj "-raise 1"
+        foreach dataobj [$_topmost value $_pos] {
+            $viewer add $dataobj ""
+        }
     }
 }

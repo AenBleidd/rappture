@@ -16,22 +16,31 @@ When you click the Simulate button, the script will generate a sequence of plots
   <string id="func">
     <about>
       <label>Function</label>
-      <description>Function to plot y=f(x), where x is the range, and P is some other parameter, set below.</description>
+      <description>Function to plot y=f(x), where x is the range, and A and B are some other parameters, set below.</description>
     </about>
-    <default>P*x + 2</default>
+    <default>A*x + 2</default>
   </string>
-  <string id="pvals">
+  <string id="avals">
     <about>
-      <label>P values</label>
-      <description>List of values for parameter P in the function above.</description>
+      <label>A values</label>
+      <description>List of values for parameter A in the function above.</description>
+      <diffs>ignore</diffs>
     </about>
     <default>0, 1, 2</default>
+  </string>
+  <string id="bvals">
+    <about>
+      <label>B values</label>
+      <description>List of values for parameter B in the function above.</description>
+      <diffs>ignore</diffs>
+    </about>
+    <default></default>
   </string>
 </input>
 <output>
   <sequence id="outs">
     <about><label>Sequence of Plots</label></about>
-    <index><label>Parameter P</label></index>
+    <index><label>Parameter A</label></index>
   </sequence>
 </output>
 </run>
