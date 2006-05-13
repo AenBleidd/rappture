@@ -13,7 +13,7 @@
 # ======================================================================
 package require Itk
 
-option add *GroupEntry.headingBackground #cccccc widgetDefault
+option add *GroupEntry.headingBackground #b5b5b5 widgetDefault
 option add *GroupEntry.headingForeground white widgetDefault
 option add *GroupEntry.font -*-helvetica-medium-r-normal-*-*-120-* widgetDefault
 
@@ -21,6 +21,7 @@ itcl::class Rappture::GroupEntry {
     inherit itk::Widget
 
     itk_option define -heading heading Heading 1
+    itk_option define -state state State "normal"
 
     constructor {owner path args} { # defined below }
 
@@ -141,5 +142,15 @@ itcl::configbody Rappture::GroupEntry::heading {
         pack forget $itk_component(heading)
         $itk_component(outline) configure -borderwidth 0
         $itk_component(inner) configure -borderwidth 0
+    }
+}
+
+# ----------------------------------------------------------------------
+# CONFIGURATION OPTION: -state
+# ----------------------------------------------------------------------
+itcl::configbody Rappture::GroupEntry::state {
+    set valid {normal disabled}
+    if {[lsearch -exact $valid $itk_option(-state)] < 0} {
+        error "bad value \"$itk_option(-state)\": should be [join $valid {, }]"
     }
 }

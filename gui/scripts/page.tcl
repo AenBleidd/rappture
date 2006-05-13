@@ -100,7 +100,7 @@ itcl::body Rappture::Page::_buildGroup {frame xmlobj path} {
             # Add <structure>'s as the central element of the page.
             #
             set w "$frame.device[incr num]"
-            Rappture::DeviceEditor $w $_owner
+            Rappture::DeviceEditor $w $_owner@$path.$cname
             pack $w -expand yes -fill both
             $_owner widgetfor $path.$cname $w
             bind $w <<Value>> [list $_owner changed $path.$cname]
@@ -200,7 +200,8 @@ itcl::body Rappture::Page::_buildGroup {frame xmlobj path} {
                     set w [$deveditor component top]
                 } else {
                     if {[catch {$frame.cntls insert end $path.$cname} c]} {
-                        error $c "$c\n    (while building control for $path.$cname)"
+                        global errorInfo
+                        error $c "$c\n$errorInfo\n    (while building control for $path.$cname)"
                     } else {
                         set gentry [$frame.cntls control $c]
                         set w [$gentry component inner]

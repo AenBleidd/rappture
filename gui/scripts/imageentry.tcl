@@ -16,6 +16,8 @@ package require Img
 itcl::class Rappture::ImageEntry {
     inherit itk::Widget
 
+    itk_option define -state state State "normal"
+
     constructor {owner path args} { # defined below }
     destructor { # defined below }
 
@@ -215,4 +217,15 @@ itcl::body Rappture::ImageEntry::_redraw {} {
             $itk_component(image) configure -image $_imh
         }
     }
+}
+
+# ----------------------------------------------------------------------
+# CONFIGURATION OPTION: -state
+# ----------------------------------------------------------------------
+itcl::configbody Rappture::ImageEntry::state {
+    set valid {normal disabled}
+    if {[lsearch -exact $valid $itk_option(-state)] < 0} {
+        error "bad value \"$itk_option(-state)\": should be [join $valid {, }]"
+    }
+    $itk_component(image) configure -state $itk_option(-state)
 }

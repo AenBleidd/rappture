@@ -15,6 +15,8 @@ package require Itk
 itcl::class Rappture::IntegerEntry {
     inherit itk::Widget
 
+    itk_option define -state state State "normal"
+
     constructor {owner path args} { # defined below }
 
     public method value {args}
@@ -176,4 +178,15 @@ itcl::body Rappture::IntegerEntry::tooltip {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::IntegerEntry::_newValue {} {
     event generate $itk_component(hull) <<Value>>
+}
+
+# ----------------------------------------------------------------------
+# CONFIGURATION OPTION: -state
+# ----------------------------------------------------------------------
+itcl::configbody Rappture::IntegerEntry::state {
+    set valid {normal disabled}
+    if {[lsearch -exact $valid $itk_option(-state)] < 0} {
+        error "bad value \"$itk_option(-state)\": should be [join $valid {, }]"
+    }
+    $itk_component(spinner) configure -state $itk_option(-state)
 }

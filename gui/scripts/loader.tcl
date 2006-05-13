@@ -19,6 +19,7 @@ itcl::class Rappture::Loader {
     inherit itk::Widget
 
     itk_option define -tool tool Tool ""
+    itk_option define -state state State "normal"
 
     constructor {owner path args} { # defined below }
 
@@ -440,4 +441,15 @@ itcl::configbody Rappture::Loader::tool {
     if {[catch {$itk_option(-tool) isa Rappture::Tool} valid] || !$valid} {
         error "object \"$itk_option(-tool)\" is not a Rappture Tool"
     }
+}
+
+# ----------------------------------------------------------------------
+# CONFIGURATION OPTION: -state
+# ----------------------------------------------------------------------
+itcl::configbody Rappture::Loader::state {
+    set valid {normal disabled}
+    if {[lsearch -exact $valid $itk_option(-state)] < 0} {
+        error "bad value \"$itk_option(-state)\": should be [join $valid {, }]"
+    }
+    $itk_component(combo) configure -state $itk_option(-state)
 }
