@@ -35,6 +35,7 @@ itcl::class Rappture::DeviceViewer1D {
     public method download {option}
                                                                                 
     protected method _loadDevice {}
+    protected method _loadParameters {frame path}
     protected method _changeTabs {}
     protected method _fixSize {}
     protected method _fixAxes {}
@@ -267,44 +268,7 @@ itcl::body Rappture::DeviceViewer1D::_loadDevice {} {
     # can see that there's something to adjust.
     #
     if {$_device != ""} {
-        foreach cname [$_device children parameters] {
-            set handled 0
-            if {[$_device element -as type parameters.$cname] == "number"} {
-                set name [$_device element -as id parameters.$cname]
-
-                # look for a field that uses this parameter
-                set found ""
-                foreach fname [$_device children fields] {
-                    foreach comp [$_device children fields.$fname] {
-                        set v [$_device get fields.$fname.$comp.constant]
-                        if {[string equal $v $name]} {
-                            set found "fields.$fname.$comp"
-                            break
-                        }
-                    }
-                    if {"" != $found} break
-                }
-
-                if {"" != $found} {
-                    set _field2parm($found) $name
-                    set handled 1
-                }
-            }
-
-            #
-            # Any parameter that was not handled above should be handled
-            # here, by adding it to a control panel above the device
-            # layout area.
-            #
-            if {!$handled} {
-                set t $itk_component(top)
-                if {![winfo exists $t.cntls]} {
-                    Rappture::Controls $t.cntls $_owner
-                    pack $t.cntls -expand yes -fill both
-                }
-                $t.cntls insert end parameters.$cname
-            }
-        }
+        _loadParameters $itk_component(top) parameters
     }
 
     #
@@ -320,6 +284,67 @@ itcl::body Rappture::DeviceViewer1D::_loadDevice {} {
         -rightmargin [$itk_component(layout) extents bar3D]
 
     _fixSize
+}
+
+# ----------------------------------------------------------------------
+# USAGE: _loadParameters <frame> <path>
+#
+# Used internally in _loadDevice to load child parameters at the
+# specified <path> into the <frame>.  If any of the children are
+# groups, then this is called recursively to fill in the group
+# children.
+# ----------------------------------------------------------------------
+itcl::body Rappture::DeviceViewer1D::_loadParameters {frame path} {
+    foreach cname [$_device children $path] {
+        set handled 0
+        set type [$_device element -as type $path.$cname]
+        if {$type == "about"} {
+            continue
+        }
+        if {$type == "number"} {
+            set name [$_device element -as id $path.$cname]
+
+            # look for a field that uses this parameter
+            set found ""
+            foreach fname [$_device children fields] {
+                foreach comp [$_device children fields.$fname] {
+                    set v [$_device get fields.$fname.$comp.constant]
+                    if {[string equal $v $name]} {
+                        set found "fields.$fname.$comp"
+                        break
+                    }
+                }
+                if {"" != $found} break
+            }
+
+            if {"" != $found} {
+                set _field2parm($found) $name
+                set handled 1
+            }
+        }
+
+        #
+        # Any parameter that was not handled above should be handled
+        # here, by adding it to a control panel above the device
+        # layout area.
+        #
+        if {!$handled} {
+            if {![winfo exists $frame.cntls]} {
+                Rappture::Controls $frame.cntls $_owner
+                pack $frame.cntls -expand yes -fill both
+            }
+            $frame.cntls insert end $path.$cname
+
+            #
+            # If this is a group, then we must add its children
+            # recursively.
+            #
+            if {$type == "group"} {
+                set gr [$frame.cntls control -value end]
+                _loadParameters [$gr component inner] $path.$cname
+            }
+        }
+    }
 }
 
 # ----------------------------------------------------------------------

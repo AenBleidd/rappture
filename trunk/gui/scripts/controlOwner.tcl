@@ -23,23 +23,29 @@ itcl::class Rappture::ControlOwner {
     public method load {newobj}
     public method widgetfor {path args}
     public method valuefor {path args}
+    public method dependenciesfor {path args}
     public method changed {path}
+    public method regularize {path}
     public method notify {option owner args}
     public method sync {}
     public method tool {}
 
     protected variable _owner ""     ;# ControlOwner containing this one
+    protected variable _path ""      ;# paths within are relative to this
     protected variable _xmlobj ""    ;# Rappture XML description
     private variable _path2widget    ;# maps path => widget on this page
     private variable _owner2paths    ;# for notify: maps owner => interests
     private variable _callbacks      ;# for notify: maps owner/path => callback
+    private variable _dependencies   ;# maps path => other paths dep on this
 }
                                                                                 
 # ----------------------------------------------------------------------
 # CONSTRUCTOR
 # ----------------------------------------------------------------------
 itcl::body Rappture::ControlOwner::constructor {owner} {
-    set _owner $owner
+    set parts [split $owner @]
+    set _owner [lindex $parts 0]
+    set _path [lindex $parts 1]
 }
 
 # ----------------------------------------------------------------------
@@ -83,7 +89,7 @@ itcl::body Rappture::ControlOwner::widgetfor {path args} {
         }
         set _path2widget($path) $widget
     } else {
-        unset _path2widget($path)
+        catch {unset _path2widget($path)}
     }
 }
 
@@ -113,6 +119,36 @@ itcl::body Rappture::ControlOwner::valuefor {path args} {
         $_path2widget($path) value [lindex $args 0]
     } else {
         error "bad path \"$path\": should be one of [join [lsort [array names _path2widget]] {, }]"
+    }
+}
+
+# ----------------------------------------------------------------------
+# USAGE: dependenciesfor <path> ?<path>...?
+#
+# Used by embedded widgets such as a Controls panel to register the
+# various controls that are dependent on another one.  If only one
+# path is specified, then this method returns all known dependencies
+# for the specified <path>.  Otherwise, the additional <path>'s are
+# noted as being dependent on the first <path>.
+# ----------------------------------------------------------------------
+itcl::body Rappture::ControlOwner::dependenciesfor {path args} {
+    # if this is a query operation, then look for the path
+    if {[llength $args] == 0} {
+        if {[info exists _dependencies($path)]} {
+            return $_dependencies($path)
+        }
+        return ""
+    }
+
+    # add new dependencies
+    if {![info exists _dependencies($path)]} {
+        set _dependencies($path) ""
+    }
+    foreach dpath $args {
+        set i [lsearch -exact $_dependencies($path) $dpath]
+        if {$i < 0} {
+            lappend _dependencies($path) $dpath
+        }
     }
 }
 
@@ -165,6 +201,29 @@ itcl::body Rappture::ControlOwner::changed {path} {
             }
         }
     }
+}
+
+# ----------------------------------------------------------------------
+# USAGE: regularize <path>
+#
+# Clients use this to get a full, regularized path for the specified
+# <path>, which may be relative to the current owner.
+# ----------------------------------------------------------------------
+itcl::body Rappture::ControlOwner::regularize {path} {
+    set rpath [$_xmlobj element -as path $path]
+    if {"" == $rpath} {
+        #
+        # Couldn't find this path?  Then this might be a full path.
+        # Subtract off the context for this control owner and
+        # look for the relative path.
+        #
+        set plen [string length $_path]
+        if {[string equal -length $plen $_path $path]} {
+            set relpath [string range $path [expr {$plen+1}] end]
+            set rpath [$_xmlobj element -as path $relpath]
+        }
+    }
+    return $rpath
 }
 
 # ----------------------------------------------------------------------

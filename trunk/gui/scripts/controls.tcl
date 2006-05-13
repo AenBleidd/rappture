@@ -24,6 +24,7 @@ itcl::class Rappture::Controls {
     itk_option define -padding padding Padding 0
 
     constructor {owner args} { # defined below }
+    destructor { # defined below }
 
     public method insert {pos path}
     public method delete {first {last ""}}
@@ -32,7 +33,8 @@ itcl::class Rappture::Controls {
 
     protected method _layout {}
     protected method _monitor {name state}
-    protected method _controlChanged {path}
+    protected method _controlChanged {name}
+    protected method _controlValue {path {units ""}}
     protected method _formatLabel {str}
     protected method _changeTabs {}
     protected method _resize {}
@@ -91,6 +93,13 @@ itcl::body Rappture::Controls::constructor {owner args} {
 }
 
 # ----------------------------------------------------------------------
+# DESTRUCTOR
+# ----------------------------------------------------------------------
+itcl::body Rappture::Controls::destructor {} {
+    delete 0 end
+}
+
+# ----------------------------------------------------------------------
 # USAGE: insert <pos> <path>
 #
 # Clients use this to insert a control into this panel.  The control
@@ -110,39 +119,43 @@ itcl::body Rappture::Controls::insert {pos path} {
 
     incr _counter
     set name "control$_counter"
+    set path [$_owner xml element -as path $path]
 
     set _name2info($name-path) $path
     set _name2info($name-label) ""
+    set _name2info($name-type) ""
     set _name2info($name-value) [set w $_frame.v$name]
+    set _name2info($name-enable) "yes"
 
     set type [$_owner xml element -as type $path]
+    set _name2info($name-type) $type
     switch -- $type {
         choice {
             Rappture::ChoiceEntry $w $_owner $path
-            bind $w <<Value>> [itcl::code $this _controlChanged $path]
+            bind $w <<Value>> [itcl::code $this _controlChanged $name]
         }
         group {
             Rappture::GroupEntry $w $_owner $path
         }
         loader {
             Rappture::Loader $w $_owner $path -tool [$_owner tool]
-            bind $w <<Value>> [itcl::code $this _controlChanged $path]
+            bind $w <<Value>> [itcl::code $this _controlChanged $name]
         }
         number {
             Rappture::NumberEntry $w $_owner $path
-            bind $w <<Value>> [itcl::code $this _controlChanged $path]
+            bind $w <<Value>> [itcl::code $this _controlChanged $name]
         }
         integer {
             Rappture::IntegerEntry $w $_owner $path
-            bind $w <<Value>> [itcl::code $this _controlChanged $path]
+            bind $w <<Value>> [itcl::code $this _controlChanged $name]
         }
         boolean {
             Rappture::BooleanEntry $w $_owner $path
-            bind $w <<Value>> [itcl::code $this _controlChanged $path]
+            bind $w <<Value>> [itcl::code $this _controlChanged $name]
         }
         string {
             Rappture::TextEntry $w $_owner $path
-            bind $w <<Value>> [itcl::code $this _controlChanged $path]
+            bind $w <<Value>> [itcl::code $this _controlChanged $name]
         }
         image {
             Rappture::ImageEntry $w $_owner $path
@@ -161,6 +174,66 @@ itcl::body Rappture::Controls::insert {pos path} {
             error "don't know how to add control type \"$type\""
         }
     }
+
+    #
+    # If this element has an <enable> expression, then register
+    # its controlling widget here.
+    #
+    set enable [string trim [$_owner xml get $path.about.enable]]
+    if {"" == $enable} {
+        set enable yes
+    }
+    if {![string is boolean $enable]} {
+        set re {([a-zA-Z_]+[0-9]*|\([^\(\)]+\)|[a-zA-Z_]+[0-9]*\([^\(\)]+\))(\.([a-zA-Z_]+[0-9]*|\([^\(\)]+\)|[a-zA-Z_]+[0-9]*\([^\(\)]+\)))*(:[-a-zA-Z0-9/]+)?}
+        set rest $enable
+        set enable ""
+        set deps ""
+        while {1} {
+            if {[regexp -indices $re $rest match]} {
+                foreach {s0 s1} $match break
+
+                if {[string index $rest [expr {$s0-1}]] == "\""
+                      && [string index $rest [expr {$s1+1}]] == "\""} {
+                    # string in ""'s? then leave it alone
+                    append enable [string range $rest 0 $s1]
+                    set rest [string range $rest [expr {$s1+1}] end]
+                } else {
+                    #
+                    # This is a symbol which should be substituted
+                    # it can be either:
+                    #   input.foo.bar
+                    #   input.foo.bar:units
+                    #
+                    set cpath [string range $rest $s0 $s1]
+                    set parts [split $cpath :]
+                    set ccpath [lindex $parts 0]
+                    set units [lindex $parts 1]
+
+                    # make sure we have the standard path notation
+                    set ccpath [$_owner regularize $ccpath]
+                    if {"" != $ccpath} {
+                        # substitute [_controlValue ...] call in place of path
+                        append enable [string range $rest 0 [expr {$s0-1}]]
+                        append enable [format {[_controlValue %s %s]} $ccpath $units]
+                        lappend deps $ccpath
+                    } else {
+                        # don't recognize this path -- leave it alone
+                        append enable [string range $rest 0 $s1]
+                        bgerror "don't recognize parameter $cpath in <enable> expression for $path"
+                    }
+                    set rest [string range $rest [expr {$s1+1}] end]
+                }
+            } else {
+                append enable $rest
+                break
+            }
+        }
+
+        foreach cpath $deps {
+            $_owner dependenciesfor $cpath $path
+        }
+    }
+    set _name2info($name-enable) $enable
 
     if {$type != "control" && $type != "group" && $type != "separator"} {
         $_owner widgetfor $path $w
@@ -230,7 +303,9 @@ itcl::body Rappture::Controls::delete {first {last ""}} {
 
         unset _name2info($name-path)
         unset _name2info($name-label)
+        unset _name2info($name-type)
         unset _name2info($name-value)
+        unset _name2info($name-enable)
     }
     set _controls [lreplace $_controls $first $last]
 
@@ -251,17 +326,21 @@ itcl::body Rappture::Controls::index {name} {
     if {[regexp {^@([0-9]+)$} $name match i]} {
         return $i
     }
+    if {$name == "end"} {
+        return [expr {[llength $_controls]-1}]
+    }
     error "bad control name \"$name\": should be @int or one of [join [lsort $_controls] {, }]"
 }
 
 # ----------------------------------------------------------------------
-# USAGE: control ?-label|-value|-path? ?<name>|@n?
+# USAGE: control ?-label|-value|-path|-enable? ?<name>|@n?
 #
 # Clients use this to get information about controls.  With no args, it
 # returns a list of all control names.  Otherwise, it returns the frame
 # associated with a control name.  The -label option requests the label
 # widget instead of the value widget.  The -path option requests the
-# path within the XML that the control affects.
+# path within the XML that the control affects.  The -enable option
+# requests the enabling condition for this control.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Controls::control {args} {
     if {[llength $args] == 0} {
@@ -271,6 +350,7 @@ itcl::body Rappture::Controls::control {args} {
         flag switch -value default
         flag switch -label
         flag switch -path
+        flag switch -enable
     }
     if {[llength $args] == 0} {
         error "missing control name"
@@ -308,14 +388,55 @@ itcl::body Rappture::Controls::_layout {} {
     grid forget $_frame.empty
 
     #
+    # Decide which widgets should be shown and which should be hidden.
+    #
+    set hidden ""
+    set showing ""
+    foreach name $_controls {
+        set show 1
+        set cond $_name2info($name-enable)
+        if {[string is boolean $cond] && !$cond} {
+            # hard-coded "off" -- ignore completely
+        } elseif {[catch {expr $cond} show] == 0} {
+            set type $_name2info($name-type)
+            set lwidget $_name2info($name-label)
+            set vwidget $_name2info($name-value)
+            if {[lsearch -exact {group image structure} $type] >= 0} {
+                if {$show} {
+                    lappend showing $name
+                } else {
+                    lappend hidden $name
+                }
+            } else {
+                # show other objects, but enable/disable them
+                lappend showing $name
+                if {$show} {
+                    $vwidget configure -state normal
+                    if {$lwidget != ""} {
+                        $lwidget configure -foreground \
+                            [lindex [$lwidget configure -foreground] 3]
+                    }
+                } else {
+                    $vwidget configure -state disabled
+                    if {$lwidget != ""} {
+                        $lwidget configure -foreground gray
+                    }
+                }
+            }
+        } else {
+            bgerror "Error in <enable> expression for \"$_name2info($name-path)\":\n  $show"
+        }
+    }
+
+    #
     # Decide on a layout scheme:
     #   tabs ...... best if all elements within are groups
     #   hlabels ... horizontal labels (label: value)
     #
-    if {[llength $_controls] >= 2} {
+    if {[llength $showing] >= 2} {
         # assume tabs for multiple groups
         set _scheme tabs
-        foreach name $_controls {
+        foreach name $showing {
             set w $_name2info($name-value)
 
             if {$w == "--" || [winfo class $w] != "GroupEntry"} {
@@ -339,7 +460,7 @@ itcl::body Rappture::Controls::_layout {} {
         pack $_tabs -before $_frame -fill x
 
         set gn 1
-        foreach name $_controls {
+        foreach name $showing {
             set wv $_name2info($name-value)
             $wv configure -heading no
 
@@ -377,7 +498,7 @@ itcl::body Rappture::Controls::_layout {} {
         grid rowconfigure $_frame 0 -weight 0
 
         set row 0
-        foreach name $_controls {
+        foreach name $showing {
             set wl $_name2info($name-label)
             if {$wl != "" && [winfo exists $wl]} {
                 grid $wl -row $row -column 0 -sticky e
@@ -417,6 +538,18 @@ itcl::body Rappture::Controls::_layout {} {
             incr row
         }
         grid $_frame.empty -row $row
+
+        #
+        # If there are any hidden items, then make the bottom of
+        # this form fill up any extra space, so the form floats
+        # to the top.  Otherwise, it will jitter around as the
+        # hidden items come and go.
+        #
+        if {[llength $hidden] > 0} {
+            grid rowconfigure $_frame 99 -weight 1
+        } else {
+            grid rowconfigure $_frame 99 -weight 0
+        }
       }
     }
 }
@@ -432,8 +565,9 @@ itcl::body Rappture::Controls::_layout {} {
 itcl::body Rappture::Controls::_monitor {name state} {
     set tag "Controls-$this"
     set wv $_name2info($name-value)
-    if {$wv == "--"} return
-    set btags [bindtags $wv]
+    if {$wv == "--" || [catch {bindtags $wv} btags]} {
+        return
+    }
     set i [lsearch $btags $tag]
 
     if {$state} {
@@ -448,16 +582,45 @@ itcl::body Rappture::Controls::_monitor {name state} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: _controlChanged <path>
+# USAGE: _controlChanged <name>
 #
-# Invoked automatically whenever the value for the control with the
-# XML <path> changes.  Sends a notification along to the tool
-# controlling this panel.
+# Invoked automatically whenever the value for a control changes.
+# Sends a notification along to the tool controlling this panel.
 # ----------------------------------------------------------------------
-itcl::body Rappture::Controls::_controlChanged {path} {
+itcl::body Rappture::Controls::_controlChanged {name} {
+    set path $_name2info($name-path)
+
+    #
+    # Let the owner know that this control changed.
+    #
     if {"" != $_owner} {
         $_owner changed $path
+
+        #
+        # If this control has other dependencies, then have them
+        # update their "enabled" status.
+        #
+        foreach cpath [$_owner dependenciesfor $path] {
+            $_dispatcher event -idle !layout
+        }
     }
+}
+
+# ----------------------------------------------------------------------
+# USAGE: _controlValue <path> ?<units>?
+#
+# Used internally to get the value of a control with the specified
+# <path>.  Returns the current value for the control.
+# ----------------------------------------------------------------------
+itcl::body Rappture::Controls::_controlValue {path {units ""}} {
+    if {"" != $_owner} {
+        set val [$_owner valuefor $path]
+        if {"" != $units} {
+            set val [Rappture::Units::convert $val -to $units -units off]
+        }
+        return $val
+    }
+    return ""
 }
 
 # ----------------------------------------------------------------------

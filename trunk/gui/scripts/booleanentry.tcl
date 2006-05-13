@@ -15,6 +15,8 @@ package require Itk
 itcl::class Rappture::BooleanEntry {
     inherit itk::Widget
 
+    itk_option define -state state State "normal"
+
     constructor {owner path args} { # defined below }
 
     public method value {args}
@@ -140,7 +142,7 @@ itcl::body Rappture::BooleanEntry::label {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::BooleanEntry::tooltip {} {
     set str [$_owner xml get $_path.about.description]
-    append str "\n\nEnter a boolean value (1/0, on/off, yes/no, true/false)"
+    append str "\n\nClick to turn on/off"
     return [string trim $str]
 }
 
@@ -152,4 +154,15 @@ itcl::body Rappture::BooleanEntry::tooltip {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::BooleanEntry::_newValue {} {
     event generate $itk_component(hull) <<Value>>
+}
+
+# ----------------------------------------------------------------------
+# CONFIGURATION OPTION: -state
+# ----------------------------------------------------------------------
+itcl::configbody Rappture::BooleanEntry::state {
+    set valid {normal disabled}
+    if {[lsearch -exact $valid $itk_option(-state)] < 0} {
+        error "bad value \"$itk_option(-state)\": should be [join $valid {, }]"
+    }
+    $itk_component(switch) configure -state $itk_option(-state)
 }

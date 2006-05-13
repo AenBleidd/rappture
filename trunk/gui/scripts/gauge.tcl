@@ -26,6 +26,7 @@ itcl::class Rappture::Gauge {
     inherit itk::Widget
 
     itk_option define -editable editable Editable ""
+    itk_option define -state state State "normal"
     itk_option define -spectrum spectrum Spectrum ""
     itk_option define -type type Type "real"
     itk_option define -units units Units ""
@@ -123,9 +124,8 @@ itcl::body Rappture::Gauge::constructor {args} {
         -command [list event generate $itk_component(value) <<Copy>>]
     $itk_component(emenu) add command -label "Paste" -accelerator "^V" \
         -command [list event generate $itk_component(value) <<Paste>>]
-    bind $itk_component(value) <<PopupMenu>> {
-        tk_popup %W.menu %X %Y
-    }
+    bind $itk_component(value) <<PopupMenu>> \
+        [itcl::code $this _editor menu]
 
     itk_component add editor {
         Rappture::Editor $itk_interior.editor \
@@ -279,6 +279,9 @@ itcl::body Rappture::Gauge::value {args} {
 # can also be called directly through this method.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Gauge::edit {option} {
+    if {$itk_option(-state) == "disabled"} {
+        return  ;# disabled? then bail out here!
+    }
     switch -- $option {
         cut {
             edit copy
@@ -333,6 +336,7 @@ itcl::body Rappture::Gauge::_redraw {} {
         # first time around, create the items
         $c create rectangle 0 0 1 1 -outline black -tags block
         $c create image 0 0 -anchor center -image "" -tags bimage
+        $c create rectangle 0 0 1 1 -outline "" -fill "" -stipple gray50 -tags screen
     }
 
     if {"" != $itk_option(-spectrum)} {
@@ -343,9 +347,16 @@ itcl::body Rappture::Gauge::_redraw {} {
 
     # update the items based on current values
     $c coords block 0 0 [expr {$w-1}] [expr {$h-1}]
+    $c coords screen 0 0 $w $h
     $c itemconfigure block -fill $color
 
     $c coords bimage [expr {0.5*$w}] [expr {0.5*$h}]
+
+    if {$itk_option(-state) == "disabled"} {
+        $c itemconfigure screen -fill white
+    } else {
+        $c itemconfigure screen -fill ""
+    }
 }
 
 # ----------------------------------------------------------------------
@@ -392,6 +403,9 @@ itcl::body Rappture::Gauge::_resize {} {
 # option or the size of the text.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Gauge::_hilite {comp state} {
+    if {$itk_option(-state) == "disabled"} {
+        set state 0  ;# disabled? then don't hilite
+    }
     if {$comp == "value" && !$itk_option(-editable)} {
         $itk_component(value) configure -relief flat
         return
@@ -409,11 +423,15 @@ itcl::body Rappture::Gauge::_hilite {comp state} {
 # USAGE: _editor activate
 # USAGE: _editor validate <value>
 # USAGE: _editor apply <value>
+# USAGE: _editor menu <rootx> <rooty>
 #
 # Used internally to handle the various functions of the pop-up
 # editor for the value of this gauge.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Gauge::_editor {option args} {
+    if {$itk_option(-state) == "disabled"} {
+        return  ;# disabled? then bail out here!
+    }
     switch -- $option {
         popup {
             if {$itk_option(-editable)} {
@@ -452,8 +470,11 @@ itcl::body Rappture::Gauge::_editor {option args} {
             }
             value [lindex $args 0]
         }
+        menu {
+            eval tk_popup $itk_component(emenu) $args
+        }
         default {
-            error "bad option \"$option\": should be popup, activate, validate, apply"
+            error "bad option \"$option\": should be popup, activate, validate, apply, and menu"
         }
     }
 }
@@ -533,6 +554,21 @@ itcl::configbody Rappture::Gauge::editable {
     if {!$itk_option(-editable) && [winfo ismapped $itk_component(editor)]} {
         $itk_component(editor) deactivate -abort
     }
+}
+
+# ----------------------------------------------------------------------
+# CONFIGURATION OPTION: -state
+# ----------------------------------------------------------------------
+itcl::configbody Rappture::Gauge::state {
+    set valid {normal disabled}
+    if {[lsearch -exact $valid $itk_option(-state)] < 0} {
+        error "bad value \"$itk_option(-state)\": should be [join $valid {, }]"
+    }
+    $itk_component(value) configure -state $itk_option(-state)
+    $itk_component(spinup) configure -state $itk_option(-state)
+    $itk_component(spindn) configure -state $itk_option(-state)
+    $itk_component(presets) configure -state $itk_option(-state)
+    _redraw  ;# fix gauge
 }
 
 # ----------------------------------------------------------------------

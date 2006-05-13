@@ -15,6 +15,8 @@ package require Itk
 itcl::class Rappture::ChoiceEntry {
     inherit itk::Widget
 
+    itk_option define -state state State "normal"
+
     constructor {owner path args} { # defined below }
     destructor { # defined below }
 
@@ -132,7 +134,7 @@ itcl::body Rappture::ChoiceEntry::value {args} {
 itcl::body Rappture::ChoiceEntry::label {} {
     set label [$_owner xml get $_path.about.label]
     if {"" == $label} {
-        set label "Number"
+        set label "Choice"
     }
     return $label
 }
@@ -284,4 +286,15 @@ itcl::body Rappture::ChoiceEntry::_tooltip {} {
         append tip "\n\n$str:\n$desc"
     }
     return $tip
+}
+
+# ----------------------------------------------------------------------
+# CONFIGURATION OPTION: -state
+# ----------------------------------------------------------------------
+itcl::configbody Rappture::ChoiceEntry::state {
+    set valid {normal disabled}
+    if {[lsearch -exact $valid $itk_option(-state)] < 0} {
+        error "bad value \"$itk_option(-state)\": should be [join $valid {, }]"
+    }
+    $itk_component(choice) configure -state $itk_option(-state)
 }

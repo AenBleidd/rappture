@@ -18,6 +18,8 @@ option add *TextEntry.width 0 widgetDefault
 option add *TextEntry.height 0 widgetDefault
 option add *TextEntry.editable yes widgetDefault
 option add *TextEntry.textBackground white widgetDefault
+option add *TextEntry*disabledForeground #a3a3a3 widgetDefault
+option add *TextEntry*disabledBackground white widgetDefault
 
 option add *TextEntry.hintForeground gray50 widgetDefault
 option add *TextEntry.hintFont \
@@ -28,6 +30,7 @@ itcl::class Rappture::TextEntry {
     inherit itk::Widget
 
     itk_option define -editable editable Editable ""
+    itk_option define -state state State "normal"
     itk_option define -width width Width 0
     itk_option define -height height Height 0
 
@@ -41,6 +44,8 @@ itcl::class Rappture::TextEntry {
 
     protected method _layout {}
     protected method _newValue {}
+    protected method _edit {option args}
+    protected method _fixState {}
 
     private variable _dispatcher "" ;# dispatcher for !events
     private variable _owner ""    ;# thing managing this control
@@ -260,9 +265,8 @@ itcl::body Rappture::TextEntry::_layout {} {
                 -command [list event generate $itk_component(entry) <<Copy>>]
             $itk_component(emenu) add command -label "Paste" -accelerator "^V" \
                 -command [list event generate $itk_component(entry) <<Paste>>]
-            bind $itk_component(entry) <<PopupMenu>> {
-                tk_popup %W.menu %X %Y
-            }
+            bind $itk_component(entry) <<PopupMenu>> \
+                [itcl::code $this _edit menu emenu %X %Y]
 
             $itk_component(entry) insert end $val
             if {!$itk_option(-editable)} {
@@ -314,9 +318,8 @@ itcl::body Rappture::TextEntry::_layout {} {
                 -command [list event generate $itk_component(text) <<Copy>>]
             $itk_component(tmenu) add command -label "Paste" -accelerator "^V" \
                 -command [list event generate $itk_component(text) <<Paste>>]
-            bind $itk_component(text) <<PopupMenu>> {
-                tk_popup %W.menu %X %Y
-            }
+            bind $itk_component(text) <<PopupMenu>> \
+                [itcl::code $this _edit menu tmenu %X %Y]
 
             $itk_component(text) insert end $val
             if {!$itk_option(-editable)} {
@@ -353,20 +356,45 @@ itcl::body Rappture::TextEntry::_newValue {} {
 }
 
 # ----------------------------------------------------------------------
-# CONFIGURATION OPTION: -editable
+# USAGE: _edit menu <which> <X> <Y>
+#
+# Used internally to manage edit operations.
 # ----------------------------------------------------------------------
-itcl::configbody Rappture::TextEntry::editable {
-    if {![string is boolean -strict $itk_option(-editable)]} {
-        error "bad value \"$itk_option(-editable)\": should be boolean"
+itcl::body Rappture::TextEntry::_edit {option args} {
+    if {$itk_option(-state) == "disabled"} {
+        return  ;# disabled? then bail out here!
     }
+    switch -- $option {
+        menu {
+            if {[llength $args] != 3} {
+                error "wrong # args: should be \"_edit $option which x y\""
+            }
+            set mname [lindex $args 0]
+            set x [lindex $args 1]
+            set y [lindex $args 2]
+            tk_popup $itk_component($mname) $x $y
+        }
+        default {
+            error "bad option \"$option\": should be menu"
+        }
+    }
+}
 
-    if {$itk_option(-editable)} {
+# ----------------------------------------------------------------------
+# USAGE: _fixState
+#
+# Used internally to update the internal widgets whenever the
+# -state/-editable options change.  Enables or disables various
+# widgets.
+# ----------------------------------------------------------------------
+itcl::body Rappture::TextEntry::_fixState {} {
+    if {$itk_option(-editable) && $itk_option(-state) == "normal"} {
         set state normal
     } else {
         set state disabled
     }
     if {$_mode == "entry"} {
-        $itk_component(editor) configure -state $state
+        $itk_component(entry) configure -state $state
         $itk_component(emenu) entryconfigure "Cut" -state $state
         $itk_component(emenu) entryconfigure "Copy" -state $state
         $itk_component(emenu) entryconfigure "Paste" -state $state
@@ -376,6 +404,35 @@ itcl::configbody Rappture::TextEntry::editable {
         $itk_component(tmenu) entryconfigure "Copy" -state $state
         $itk_component(tmenu) entryconfigure "Paste" -state $state
     }
+}
+
+# ----------------------------------------------------------------------
+# CONFIGURATION OPTION: -editable
+# ----------------------------------------------------------------------
+itcl::configbody Rappture::TextEntry::editable {
+    if {![string is boolean -strict $itk_option(-editable)]} {
+        error "bad value \"$itk_option(-editable)\": should be boolean"
+    }
+    _fixState
+}
+
+# ----------------------------------------------------------------------
+# CONFIGURATION OPTION: -state
+# ----------------------------------------------------------------------
+itcl::configbody Rappture::TextEntry::state {
+    set valid {normal disabled}
+    if {[lsearch -exact $valid $itk_option(-state)] < 0} {
+        error "bad value \"$itk_option(-state)\": should be [join $valid {, }]"
+    }
+    if {$_mode == "text"} {
+        if {$itk_option(-state) == "disabled"} {
+            set fg [option get $itk_component(text) disabledForeground Foreground]
+        } else {
+            set fg $itk_option(-foreground)
+        }
+        $itk_component(text) configure -foreground $fg
+    }
+    _fixState
 }
 
 # ----------------------------------------------------------------------

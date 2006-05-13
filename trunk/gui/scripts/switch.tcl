@@ -31,6 +31,7 @@ itcl::class Rappture::Switch {
     itk_option define -offimage offImage Image ""
     itk_option define -width width Width 0
     itk_option define -height height Height 0
+    itk_option define -state state State "normal"
 
     constructor {args} { # defined below }
 
@@ -108,9 +109,9 @@ itcl::body Rappture::Switch::constructor {args} {
         [itcl::code $this _presets select]
 
     bind $itk_component(value) <ButtonPress> \
-        [list $itk_component(presetlist) post $itk_component(vframe) left]
+        [itcl::code $this _presets dropdown]
     $itk_component(presets) configure -command \
-        [list $itk_component(presetlist) post $itk_component(vframe) left]
+        [itcl::code $this _presets dropdown]
 
     eval itk_initialize $args
 }
@@ -276,6 +277,9 @@ itcl::body Rappture::Switch::_resize {} {
 # and -offimage options or the size of the text.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Switch::_hilite {comp state} {
+    if {$itk_option(-state) == "disabled"} {
+        set state 0  ;# never hilite when disabled
+    }
     if {$comp == "value"} {
         if {$state} {
             $itk_component(value) configure -relief solid
@@ -284,7 +288,6 @@ itcl::body Rappture::Switch::_hilite {comp state} {
         }
         return
     }
-
     if {$state} {
         $itk_component($comp) configure -relief solid
     } else {
@@ -304,7 +307,13 @@ itcl::body Rappture::Switch::_hilite {comp state} {
 # the value back to the gauge.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Switch::_presets {option} {
+    if {$itk_option(-state) != "normal"} {
+        return  ;# disabled? then bail out!
+    }
     switch -- $option {
+        dropdown {
+            $itk_component(presetlist) post $itk_component(vframe) left
+        }
         post {
             set i [$itk_component(presetlist) index $_value]
             if {$i >= 0} {
@@ -323,7 +332,7 @@ itcl::body Rappture::Switch::_presets {option} {
             }
         }
         default {
-            error "bad option \"$option\": should be post, unpost, select"
+            error "bad option \"$option\": should be dropdown, post, unpost, select"
         }
     }
 }
@@ -358,6 +367,18 @@ itcl::configbody Rappture::Switch::offimage {
         # if the off state? then redraw to show this change
         _redraw
     }
+}
+
+# ----------------------------------------------------------------------
+# CONFIGURATION OPTION: -state
+# ----------------------------------------------------------------------
+itcl::configbody Rappture::Switch::state {
+    set valid {normal disabled}
+    if {[lsearch -exact $valid $itk_option(-state)] < 0} {
+        error "bad value \"$itk_option(-state)\": should be [join $valid {, }]"
+    }
+    $itk_component(value) configure -state $itk_option(-state)
+    $itk_component(presets) configure -state $itk_option(-state)
 }
 
 # ----------------------------------------------------------------------
