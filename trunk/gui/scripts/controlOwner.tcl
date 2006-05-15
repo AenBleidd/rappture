@@ -24,14 +24,18 @@ itcl::class Rappture::ControlOwner {
     public method widgetfor {path args}
     public method valuefor {path args}
     public method dependenciesfor {path args}
+    public method ownerfor {path {skip ""}}
     public method changed {path}
     public method regularize {path}
     public method notify {option owner args}
     public method sync {}
     public method tool {}
 
+    protected method _slave {option args}
+
     protected variable _owner ""     ;# ControlOwner containing this one
     protected variable _path ""      ;# paths within are relative to this
+    protected variable _slaves ""    ;# this owner has these slaves
     protected variable _xmlobj ""    ;# Rappture XML description
     private variable _path2widget    ;# maps path => widget on this page
     private variable _owner2paths    ;# for notify: maps owner => interests
@@ -43,9 +47,12 @@ itcl::class Rappture::ControlOwner {
 # CONSTRUCTOR
 # ----------------------------------------------------------------------
 itcl::body Rappture::ControlOwner::constructor {owner} {
-    set parts [split $owner @]
-    set _owner [lindex $parts 0]
-    set _path [lindex $parts 1]
+    if {"" != $owner} {
+        set parts [split $owner @]
+        set _owner [lindex $parts 0]
+        set _path [lindex $parts 1]
+        $_owner _slave add $this
+    }
 }
 
 # ----------------------------------------------------------------------
@@ -75,6 +82,10 @@ itcl::body Rappture::ControlOwner::xml {args} {
 itcl::body Rappture::ControlOwner::widgetfor {path args} {
     # if this is a query operation, then look for the path
     if {[llength $args] == 0} {
+        set owner [ownerfor $path]
+        if {$owner != $this && $owner != ""} {
+            return [$owner widgetfor $path]
+        }
         if {[info exists _path2widget($path)]} {
             return $_path2widget($path)
         }
@@ -102,15 +113,31 @@ itcl::body Rappture::ControlOwner::widgetfor {path args} {
 # sets the value of the widget to <newValue>.
 # ----------------------------------------------------------------------
 itcl::body Rappture::ControlOwner::valuefor {path args} {
+    set owner [ownerfor $path]
+
     # if this is a query operation, then look for the path
     if {[llength $args] == 0} {
+        if {$owner != $this && $owner != ""} {
+            return [$owner valuefor $path]
+        }
         if {[info exists _path2widget($path)]} {
             return [$_path2widget($path) value]
+        }
+        # can't find the path? try removing the prefix for this owner
+        set plen [string length $_path]
+        if {[string equal -length $plen $_path $path]} {
+            set relpath [string range $path [expr {$plen+1}] end]
+            if {[info exists _path2widget($relpath)]} {
+                return [$_path2widget($relpath) value]
+            }
         }
         return ""
     }
 
     # otherwise, set the value
+    if {$owner != $this && $owner != ""} {
+        return [eval $owner valuefor $path $args]
+    }
     if {[llength $args] > 1} {
         error "wrong # args: should be \"valuefor path ?newValue?\""
     }
@@ -132,6 +159,19 @@ itcl::body Rappture::ControlOwner::valuefor {path args} {
 # noted as being dependent on the first <path>.
 # ----------------------------------------------------------------------
 itcl::body Rappture::ControlOwner::dependenciesfor {path args} {
+    if {"" != $_owner} {
+        #
+        # Keep all dependencies at the highest level.
+        # That way, a structure can come and go, but the
+        # dependencies remain fixed in the topmost tool.
+        #
+        set plen [string length $_path]
+        if {"" != $_path && ![string equal -length $plen $_path $path]} {
+            set path $_path.$path
+        }
+        return [eval $_owner dependenciesfor $path $args]
+    }
+
     # if this is a query operation, then look for the path
     if {[llength $args] == 0} {
         if {[info exists _dependencies($path)]} {
@@ -150,6 +190,47 @@ itcl::body Rappture::ControlOwner::dependenciesfor {path args} {
             lappend _dependencies($path) $dpath
         }
     }
+}
+
+# ----------------------------------------------------------------------
+# USAGE: ownerfor <path> ?<skip>?
+#
+# Returns the ControlOwner that directly controls the specified <path>.
+# ----------------------------------------------------------------------
+itcl::body Rappture::ControlOwner::ownerfor {path {skip ""}} {
+    if {[info exists _path2widget($path)]} {
+        return $this
+    }
+
+    # can't find the path? try removing the prefix for this owner
+    set plen [string length $_path]
+    if {[string equal -length $plen $_path $path]} {
+        set relpath [string range $path [expr {$plen+1}] end]
+        if {[info exists _path2widget($relpath)]} {
+            return $this
+        }
+    }
+
+    # couldn't find this path?  then check all subordinates
+    foreach slave $_slaves {
+        if {$slave == $skip} {
+            continue  ;# skip this slave if it's already been searched
+        }
+        set rval [$slave ownerfor $path $this]
+        if {"" != $rval} {
+            return $rval
+        }
+    }
+
+    # check the owner as a last resort
+    if {"" != $_owner && $_owner != $skip} {
+        set rval [$_owner ownerfor $path $this]
+        if {"" != $rval} {
+            return $rval
+        }
+    }
+
+    return ""
 }
 
 # ----------------------------------------------------------------------
@@ -190,12 +271,30 @@ itcl::body Rappture::ControlOwner::load {newobj} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::ControlOwner::changed {path} {
     if {"" != $_owner} {
+        set plen [string length $_path]
+        if {"" != $_path && ![string equal -length $plen $_path $path]} {
+            set path $_path.$path
+        }
         $_owner changed $path
     } else {
+        # send out any callback notifications
         foreach owner [array names _owner2paths] {
             foreach pattern $_owner2paths($owner) {
                 if {[string match $pattern $path]} {
                     uplevel #0 $_callbacks($owner/$pattern)
+                    break
+                }
+            }
+        }
+
+        # find the control panel for each dependency, and tell it
+        # to update its layout.
+        foreach cpath [dependenciesfor $path] {
+            set wv [widgetfor $cpath]
+            while {"" != $wv} {
+                set wv [winfo parent $wv]
+                if {[winfo class $wv] == "Controls"} {
+                    $wv refresh
                     break
                 }
             }
@@ -210,17 +309,26 @@ itcl::body Rappture::ControlOwner::changed {path} {
 # <path>, which may be relative to the current owner.
 # ----------------------------------------------------------------------
 itcl::body Rappture::ControlOwner::regularize {path} {
-    set rpath [$_xmlobj element -as path $path]
-    if {"" == $rpath} {
-        #
-        # Couldn't find this path?  Then this might be a full path.
-        # Subtract off the context for this control owner and
-        # look for the relative path.
-        #
-        set plen [string length $_path]
-        if {[string equal -length $plen $_path $path]} {
-            set relpath [string range $path [expr {$plen+1}] end]
-            set rpath [$_xmlobj element -as path $relpath]
+    set owner [ownerfor $path]
+    if {$owner != $this && $owner != ""} {
+        return [$owner regularize $path]
+    }
+    set rpath ""
+    if {"" != $_xmlobj} {
+        set rpath [$_xmlobj element -as path $path]
+
+        # can't find the path? try removing the prefix for this owner
+        if {"" == $rpath} {
+            set plen [string length $_path]
+            if {[string equal -length $plen $_path $path]} {
+                set relpath [string range $path [expr {$plen+2}] end]
+                set rpath [$_xmlobj element -as path $relpath]
+            }
+        }
+
+        if {"" != $rpath && "" != $_path} {
+            # return a full name for the path
+            set rpath "$_path.$rpath"
         }
     }
     return $rpath
@@ -327,8 +435,20 @@ itcl::body Rappture::ControlOwner::notify {option args} {
 # to the underlying XML data.
 # ----------------------------------------------------------------------
 itcl::body Rappture::ControlOwner::sync {} {
-    foreach path [array names _path2widget] {
-        $_xmlobj put $path.current [$_path2widget($path) value]
+    # sync all of the widgets under control of this owner
+    if {"" != $_xmlobj} {
+        foreach path [array names _path2widget] {
+            set type [$_xmlobj element -as type $path]
+            if {[lsearch {group separator control} $type] >= 0} {
+                continue
+            }
+            $_xmlobj put $path.current [$_path2widget($path) value]
+        }
+    }
+
+    # sync all subordinate slaves as well
+    foreach slave $_slaves {
+        $slave sync
     }
 }
 
@@ -344,4 +464,24 @@ itcl::body Rappture::ControlOwner::tool {} {
         return [$_owner tool]
     }
     return $this
+}
+
+# ----------------------------------------------------------------------
+# USAGE: _slave add <newobj>...
+#
+# Used internally to register the parent-child relationship whenever
+# one ControlOwner is registered to another.  When the parent syncs,
+# it causes all of its children to sync.  When a name is being
+# resolved, it is resolved locally first, then up to the parent for
+# further resolution.
+# ----------------------------------------------------------------------
+itcl::body Rappture::ControlOwner::_slave {option args} {
+    switch -- $option {
+        add {
+            eval lappend _slaves $args
+        }
+        default {
+            error "bad option \"$option\": should be add"
+        }
+    }
 }

@@ -100,7 +100,7 @@ itcl::body Rappture::Page::_buildGroup {frame xmlobj path} {
             # Add <structure>'s as the central element of the page.
             #
             set w "$frame.device[incr num]"
-            Rappture::DeviceEditor $w $_owner@$path.$cname
+            Rappture::DeviceEditor ::$w $_owner@$path.$cname.current
             pack $w -expand yes -fill both
             $_owner widgetfor $path.$cname $w
             bind $w <<Value>> [list $_owner changed $path.$cname]

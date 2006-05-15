@@ -30,6 +30,7 @@ itcl::class Rappture::Controls {
     public method delete {first {last ""}}
     public method index {name}
     public method control {args}
+    public method refresh {}
 
     protected method _layout {}
     protected method _monitor {name state}
@@ -210,17 +211,15 @@ itcl::body Rappture::Controls::insert {pos path} {
                     set units [lindex $parts 1]
 
                     # make sure we have the standard path notation
-                    set ccpath [$_owner regularize $ccpath]
-                    if {"" != $ccpath} {
-                        # substitute [_controlValue ...] call in place of path
-                        append enable [string range $rest 0 [expr {$s0-1}]]
-                        append enable [format {[_controlValue %s %s]} $ccpath $units]
-                        lappend deps $ccpath
-                    } else {
-                        # don't recognize this path -- leave it alone
-                        append enable [string range $rest 0 $s1]
-                        bgerror "don't recognize parameter $cpath in <enable> expression for $path"
+                    set stdpath [$_owner regularize $ccpath]
+                    if {"" == $stdpath} {
+                        puts stderr "WARNING: don't recognize parameter $cpath in <enable> expression for $path.  This may be buried in a structure that is not yet loaded."
+                        set stdpath $ccpath
                     }
+                    # substitute [_controlValue ...] call in place of path
+                    append enable [string range $rest 0 [expr {$s0-1}]]
+                    append enable [format {[_controlValue %s %s]} $stdpath $units]
+                    lappend deps $stdpath
                     set rest [string range $rest [expr {$s1+1}] end]
                 }
             } else {
@@ -235,9 +234,9 @@ itcl::body Rappture::Controls::insert {pos path} {
     }
     set _name2info($name-enable) $enable
 
-    if {$type != "control" && $type != "group" && $type != "separator"} {
-        $_owner widgetfor $path $w
+    $_owner widgetfor $path $w
 
+    if {$type != "control" && $type != "group" && $type != "separator"} {
         # make a label for this control
         set label [$w label]
         if {"" != $label} {
@@ -265,6 +264,7 @@ itcl::body Rappture::Controls::insert {pos path} {
 
     # now that we have a new control, we should fix the layout
     $_dispatcher event -idle !layout
+    _controlChanged $name
 
     return $name
 }
@@ -360,6 +360,16 @@ itcl::body Rappture::Controls::control {args} {
 
     set opt $params(switch)
     return $_name2info($name$opt)
+}
+
+# ----------------------------------------------------------------------
+# USAGE: refresh
+#
+# Clients use this to refresh the layout of the control panel
+# whenever a widget within the panel changes visibility state.
+# ----------------------------------------------------------------------
+itcl::body Rappture::Controls::refresh {} {
+    $_dispatcher event -idle !layout
 }
 
 # ----------------------------------------------------------------------
@@ -595,14 +605,6 @@ itcl::body Rappture::Controls::_controlChanged {name} {
     #
     if {"" != $_owner} {
         $_owner changed $path
-
-        #
-        # If this control has other dependencies, then have them
-        # update their "enabled" status.
-        #
-        foreach cpath [$_owner dependenciesfor $path] {
-            $_dispatcher event -idle !layout
-        }
     }
 }
 
