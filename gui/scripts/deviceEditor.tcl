@@ -90,7 +90,7 @@ itcl::body Rappture::DeviceEditor::value {args} {
         event generate $itk_component(hull) <<Value>>
 
     } elseif {[llength $args] == 0} {
-        # querying -- nothing to do here
+        sync  ;# querying -- must sync controls with the value
     } else {
         error "wrong # args: should be \"value ?-check? ?newval?\""
     }

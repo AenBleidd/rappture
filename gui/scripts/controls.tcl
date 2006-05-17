@@ -421,14 +421,18 @@ itcl::body Rappture::Controls::_layout {} {
                 # show other objects, but enable/disable them
                 lappend showing $name
                 if {$show} {
-                    $vwidget configure -state normal
-                    if {$lwidget != ""} {
+                    if {[winfo exists $vwidget]} {
+                        $vwidget configure -state normal
+                    }
+                    if {[winfo exists $lwidget]} {
                         $lwidget configure -foreground \
                             [lindex [$lwidget configure -foreground] 3]
                     }
                 } else {
-                    $vwidget configure -state disabled
-                    if {$lwidget != ""} {
+                    if {[winfo exists $vwidget]} {
+                        $vwidget configure -state disabled
+                    }
+                    if {[winfo exists $lwidget]} {
                         $lwidget configure -foreground gray
                     }
                 }
