@@ -282,8 +282,8 @@ itcl::body Rappture::Editor::_resize {} {
 
     set h [expr {[font metrics $fnt -linespace]+4}]
     set h [expr {($h < $_loc(h)) ? $_loc(h) : $h}]
-    if {$h+$_loc(y) >= [winfo screenwidth $e]} {
-        set h [expr {[winfo screenwidth $e]-$_loc(y)}]
+    if {$h+$_loc(y) >= [winfo screenheight $e]} {
+        set h [expr {[winfo screenheight $e]-$_loc(y)}]
     }
 
     wm geometry $itk_component(hull) "${w}x${h}+$_loc(x)+$_loc(y)"
