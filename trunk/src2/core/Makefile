@@ -1,5 +1,5 @@
 CFLAGS = -g
-all: viz
+all: test
 
 viz: viz.o RpOutcome.o RpMesh1D.o RpField1D.o RpMeshTri2D.o RpMeshRect3D.o RpFieldRect3D.o RpMeshPrism3D.o RpFieldPrism3D.o RpSerialBuffer.o RpSerializer.o RpSerializable.o
 	g++ $(CFLAGS) -o viz viz.o RpOutcome.o RpMesh1D.o RpField1D.o RpMeshTri2D.o RpMeshRect3D.o RpFieldRect3D.o RpMeshPrism3D.o RpFieldPrism3D.o RpSerialBuffer.o RpSerializer.o RpSerializable.o
@@ -7,8 +7,8 @@ viz: viz.o RpOutcome.o RpMesh1D.o RpField1D.o RpMeshTri2D.o RpMeshRect3D.o RpFie
 viz.o: viz.cc
 	g++ $(CFLAGS) -c -o viz.o viz.cc
 
-test: test.o RpOutcome.o RpMesh1D.o RpField1D.o RpMeshTri2D.o RpFieldTri2D.o RpMeshRect3D.o RpFieldRect3D.o RpMeshPrism3D.o RpFieldPrism3D.o RpSerialBuffer.o RpSerializer.o RpSerializable.o
-	g++ $(CFLAGS) -o test test.o RpOutcome.o RpMesh1D.o RpField1D.o RpMeshTri2D.o RpFieldTri2D.o RpMeshRect3D.o RpFieldRect3D.o RpMeshPrism3D.o RpFieldPrism3D.o RpSerialBuffer.o RpSerializer.o RpSerializable.o
+test: test.o Ptr.o Outcome.o Dictionary.o
+	g++ $(CFLAGS) -o test test.o Ptr.o Outcome.o Dictionary.o
 
 docs:
 	if test ! -d ../../docs/rappture2; then \
@@ -17,11 +17,17 @@ docs:
 	fi
 	doxygen
 
-test.o: test.cc RpPtr.h
+test.o: test.cc Ptr.h
 	g++ $(CFLAGS) -c -o test.o test.cc
 
-RpOutcome.o: RpOutcome.cc RpPtr.h
-	g++ $(CFLAGS) -c -o RpOutcome.o RpOutcome.cc
+Ptr.o: Ptr.h Ptr.cpp
+	g++ $(CFLAGS) -c -o Ptr.o Ptr.cpp
+
+Outcome.o: Outcome.cpp Ptr.h
+	g++ $(CFLAGS) -c -o Outcome.o Outcome.cpp
+
+Dictionary.o: Dictionary.cpp Ptr.h
+	g++ $(CFLAGS) -c -o Dictionary.o Dictionary.cpp
 
 RpMesh1D.o: RpMesh1D.cc RpMesh1D.h RpNode.h
 	g++ $(CFLAGS) -c -o RpMesh1D.o RpMesh1D.cc
