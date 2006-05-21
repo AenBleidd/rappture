@@ -1,0 +1,17 @@
+/**
+ * Method documentation.
+ * @param x The parameter.
+ * @return The return value.
+ * @see anotherFunction()
+@param var desc...   	Document a parameter called var to a function or method.
+@return desc... 	Document the return value of a function.
+@see elem 	Add a "see also" link to elem , which can be a function, class, or any other documented identifier.
+@author name 	Indicate the author of an element.
+@author name 	Indicate the author of an element.
+@version ver 	Indicate the version of an element.
+@todo desc... 	Leave a note about unfinished work.
+@warning desc... 	Leave a warning.
+ */
+
+/** Single-line documentation. */    
+/// Single-line documentation.
