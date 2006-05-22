@@ -316,7 +316,19 @@ itcl::body Rappture::Gauge::bump {delta} {
     if {$val == ""} {
         set val 0
     }
-    value [expr {$val+$delta}]
+    if {[catch {value [expr {$val+$delta}]} result]} {
+        if {[regexp {allowed here is (.+)} $result match newval]} {
+            set _value $newval
+            $itk_component(value) configure -text $newval
+        }
+        if {[regexp {^bad.*: +(.)(.+)} $result match first tail]
+              || [regexp {(.)(.+)} $result match first tail]} {
+            set result "[string toupper $first]$tail"
+        }
+        bell
+        Rappture::Tooltip::cue $itk_component(value) $result
+        return 0
+    }
 }
 
 # ----------------------------------------------------------------------
