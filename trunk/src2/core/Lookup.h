@@ -1,6 +1,7 @@
 /*
  * ======================================================================
- *  Rappture::Dictionary<keyType,valType>
+ *  Rappture::Lookup<valType>
+ *  Rappture::Lookup2<keyType,valType>
  *
  *  AUTHOR:  Michael McLennan, Purdue University
  *  Copyright (c) 2004-2006  Purdue Research Foundation
@@ -68,51 +69,51 @@
 
 namespace Rappture {
 
-class DictionaryCore;  // foward declaration
+class LookupCore;  // foward declaration
 
 /**
- * Represents one entry within a dictionary object, cast in terms
+ * Represents one entry within a lookup object, cast in terms
  * of void pointers and data sizes, so that the official, templated
  * version of the class can be lean and mean.
  */
-struct DictEntryCore {
-    DictEntryCore *nextPtr;    // pointer to next entry in this bucket
-    DictionaryCore *dictPtr;   // pointer to dictionary containing entry
-    DictEntryCore **bucketPtr; // pointer to bucket containing this entry
+struct LookupEntryCore {
+    LookupEntryCore *nextPtr;    // pointer to next entry in this bucket
+    LookupCore *dictPtr;         // pointer to lookup containing entry
+    LookupEntryCore **bucketPtr; // pointer to bucket containing this entry
 
-    void *valuePtr;            // value within this hash entry
+    void *valuePtr;              // value within this hash entry
 
     union {
-        void *ptrValue;        // size of a pointer
-        int words[1];          // multiple integer words for the key
-        char string[4];        // first part of string value for key
-    } key;                     // memory can be oversized if more
-                               // space is needed for words/string
-                               // MUST BE THE LAST FIELD IN THIS RECORD!
+        void *ptrValue;          // size of a pointer
+        int words[1];            // multiple integer words for the key
+        char string[4];          // first part of string value for key
+    } key;                       // memory can be oversized if more
+                                 // space is needed for words/string
+                                 // MUST BE THE LAST FIELD IN THIS RECORD!
 };
 
 /**
- * This is the functional core of a dictionary object, cast in terms
+ * This is the functional core of a lookup object, cast in terms
  * of void pointers and data sizes, so that the official, templated
  * version of the class can be lean and mean.
  */
-class DictionaryCore {
+class LookupCore {
 public:
-    DictionaryCore(size_t keySize);
-    ~DictionaryCore();
+    LookupCore(size_t keySize);
+    ~LookupCore();
 
-    DictEntryCore* get(void* key, int* newEntryPtr);
-    DictEntryCore* find(void* key);
-    DictEntryCore* erase(DictEntryCore* entryPtr);
-    DictEntryCore* next(DictEntryCore* entryPtr, int& bucketNum);
+    LookupEntryCore* get(void* key, int* newEntryPtr);
+    LookupEntryCore* find(void* key);
+    LookupEntryCore* erase(LookupEntryCore* entryPtr);
+    LookupEntryCore* next(LookupEntryCore* entryPtr, int& bucketNum);
     std::string stats();
 
 private:
-    /// Not allowed -- copy Dictionary at higher level
-    DictionaryCore(const DictionaryCore& dcore) { assert(0); }
+    /// Not allowed -- copy Lookup at higher level
+    LookupCore(const LookupCore& dcore) { assert(0); }
 
-    /// Not allowed -- copy Dictionary at higher level
-    DictionaryCore& operator=(const DictionaryCore& dcore) { assert(0); }
+    /// Not allowed -- copy Lookup at higher level
+    LookupCore& operator=(const LookupCore& dcore) { assert(0); }
 
     // utility functions
     void _rebuildBuckets();
@@ -122,12 +123,12 @@ private:
     int _keySize;
 
     /// Pointer to array of hash buckets.
-    DictEntryCore **_buckets;
+    LookupEntryCore **_buckets;
 
     /// Built-in storage for small hash tables.
-    DictEntryCore *_staticBuckets[RP_DICT_MIN_SIZE];
+    LookupEntryCore *_staticBuckets[RP_DICT_MIN_SIZE];
 
-    /// Total number of entries in the dictionary.
+    /// Total number of entries in the lookup.
     int _numEntries;
 
     /// Number of buckets currently allocated at _buckets.
@@ -144,33 +145,33 @@ private:
 };
 
 /**
- * This represents a single entry within a dictionary object.  It is
- * used to access values within the dictionary, or as an iterator
- * that traverses the dictionary.
+ * This represents a single entry within a lookup object.  It is
+ * used to access values within the lookup, or as an iterator
+ * that traverses the lookup.
  */
 template <class KeyType, class ValType>
-class DictEntry {
+class LookupEntry2 {
 public:
-    DictEntry(Ptr<DictionaryCore> corePtr, DictEntryCore *entryPtr=NULL);
-    DictEntry(const DictEntry& entry);
-    DictEntry& operator=(const DictEntry& entry);
-    ~DictEntry();
+    LookupEntry2(LookupCore* corePtr, LookupEntryCore* entryPtr=NULL);
+    LookupEntry2(const LookupEntry2& entry);
+    LookupEntry2& operator=(const LookupEntry2& entry);
+    ~LookupEntry2();
 
     int isNull() const;
     KeyType& key();
     ValType& value();
-    DictEntry& next();
-    DictEntry& erase();
+    LookupEntry2& next();
+    LookupEntry2& erase();
 
 private:
-    Ptr<DictionaryCore> _corePtr;
-    DictEntryCore *_entryPtr;
+    LookupCore* _corePtr;
+    LookupEntryCore* _entryPtr;
     int _bucketNum;
 };
 
 template <class KeyType, class ValType>
-DictEntry<KeyType,ValType>::DictEntry(Ptr<DictionaryCore> corePtr,
-    DictEntryCore *entryPtr)
+LookupEntry2<KeyType,ValType>::LookupEntry2(LookupCore* corePtr,
+    LookupEntryCore* entryPtr)
     : _corePtr(corePtr),
       _entryPtr(entryPtr),
       _bucketNum(0)
@@ -178,7 +179,7 @@ DictEntry<KeyType,ValType>::DictEntry(Ptr<DictionaryCore> corePtr,
 }
 
 template <class KeyType, class ValType>
-DictEntry<KeyType,ValType>::DictEntry(const DictEntry &entry)
+LookupEntry2<KeyType,ValType>::LookupEntry2(const LookupEntry2 &entry)
     : _corePtr(entry._corePtr),
       _entryPtr(entry._entryPtr),
       _bucketNum(entry._bucketNum)
@@ -186,8 +187,8 @@ DictEntry<KeyType,ValType>::DictEntry(const DictEntry &entry)
 }
 
 template <class KeyType, class ValType>
-DictEntry<KeyType,ValType>&
-DictEntry<KeyType,ValType>::operator=(const DictEntry &entry)
+LookupEntry2<KeyType,ValType>&
+LookupEntry2<KeyType,ValType>::operator=(const LookupEntry2 &entry)
 {
     _corePtr = entry._corePtr;
     _entryPtr = entry._entryPtr;
@@ -196,149 +197,204 @@ DictEntry<KeyType,ValType>::operator=(const DictEntry &entry)
 }
 
 template <class KeyType, class ValType>
-DictEntry<KeyType,ValType>::~DictEntry()
+LookupEntry2<KeyType,ValType>::~LookupEntry2()
 {
 }
 
 template <class KeyType, class ValType>
 int
-DictEntry<KeyType,ValType>::isNull() const
+LookupEntry2<KeyType,ValType>::isNull() const
 {
     return (_entryPtr == NULL);
 }
 
 template <class KeyType, class ValType>
 KeyType&
-DictEntry<KeyType,ValType>::key()
+LookupEntry2<KeyType,ValType>::key()
 {
     return *(KeyType*)(_entryPtr->key.string);
 }
 
 template <class KeyType, class ValType>
 ValType&
-DictEntry<KeyType,ValType>::value()
+LookupEntry2<KeyType,ValType>::value()
 {
-    return *static_cast<ValType*>(_entryPtr->valuePtr);
+    if (sizeof(ValType) > sizeof(_entryPtr->valuePtr)) {
+        return *static_cast<ValType*>(_entryPtr->valuePtr);
+    }
+    return *(ValType*)(&_entryPtr->valuePtr);
 }
 
 template <class KeyType, class ValType>
-DictEntry<KeyType,ValType>&
-DictEntry<KeyType,ValType>::next()
+LookupEntry2<KeyType,ValType>&
+LookupEntry2<KeyType,ValType>::next()
 {
     _entryPtr = _corePtr->next(_entryPtr, _bucketNum);
     return *this;
 }
 
 template <class KeyType, class ValType>
-DictEntry<KeyType,ValType>&
-DictEntry<KeyType,ValType>::erase()
+LookupEntry2<KeyType,ValType>&
+LookupEntry2<KeyType,ValType>::erase()
 {
-    _entryPtr = _corePtr->erase(_entryPtr);
+    if (_entryPtr != NULL) {
+        // delete the value
+        if (_entryPtr->valuePtr
+              && sizeof(ValType) > sizeof(_entryPtr->valuePtr)) {
+            delete static_cast<ValType*>(_entryPtr->valuePtr);
+        }
+        // delete the slot
+        _entryPtr = _corePtr->erase(_entryPtr);
+    }
 
     if (_entryPtr == NULL) {
+        // at the end of this bucket? then move on to next one
         _corePtr->next(_entryPtr, _bucketNum);
     }
     return *this;
 }
 
 /**
- * This is a dictionary object or associative array.  It is a hash
+ * This is a lookup object or associative array.  It is a hash
  * table that uniquely maps a key to a value.  The memory for values
- * added to dictionary is managed by the dictionary.  When a dictionary
+ * added to lookup is managed by the lookup.  When a lookup
  * is deleted, its internal values are cleaned up automatically.
  */
 template <class KeyType, class ValType>
-class Dictionary {
+class Lookup2 {
 public:
-    Dictionary();
-    Dictionary(const Dictionary& dict);
-    Dictionary& operator=(const Dictionary& dict);
-    ~Dictionary();
+    Lookup2(int size=-1);
+    Lookup2(const Lookup2& dict);
+    Lookup2& operator=(const Lookup2& dict);
+    ~Lookup2();
 
-    DictEntry<KeyType,ValType> get(const KeyType& key, int* newEntryPtr);
-    DictEntry<KeyType,ValType> find(const KeyType& key) const;
-    DictEntry<KeyType,ValType> erase(const KeyType& key);
+    LookupEntry2<KeyType,ValType> get(const KeyType& key, int* newEntryPtr);
+    LookupEntry2<KeyType,ValType> find(const KeyType& key) const;
+    ValType& operator[](const KeyType& key);
+    LookupEntry2<KeyType,ValType> erase(const KeyType& key);
     void clear();
 
-    DictEntry<KeyType,ValType> first();
+    LookupEntry2<KeyType,ValType> first();
 
     std::string stats();
 
 private:
-    Ptr<DictionaryCore> _corePtr;
+    LookupCore* _corePtr;
 };
 
 template <class KeyType, class ValType>
-Dictionary<KeyType,ValType>::Dictionary()
+Lookup2<KeyType,ValType>::Lookup2(int size)
 {
-    _corePtr = Ptr<DictionaryCore>( new DictionaryCore(sizeof(KeyType)) );
+    _corePtr = new LookupCore( (size >= 0) ? size : sizeof(KeyType) );
 }
 
 template <class KeyType, class ValType>
-Dictionary<KeyType,ValType>::Dictionary(const Dictionary<KeyType,ValType>& dict)
+Lookup2<KeyType,ValType>::Lookup2(const Lookup2<KeyType,ValType>& dict)
 {
-    _corePtr = Ptr<DictionaryCore>( new DictionaryCore(sizeof(KeyType)) );
+    _corePtr = new LookupCore(sizeof(KeyType));
 
-    DictEntry<KeyType,ValType> entry;
+    LookupEntry2<KeyType,ValType> entry;
     for (entry=dict.first(); !entry.isNull(); entry.next()) {
         get(entry.key(), NULL).value() = entry.value();
     }
 }
 
 template <class KeyType, class ValType>
-Dictionary<KeyType,ValType>&
-Dictionary<KeyType,ValType>::operator=(const Dictionary<KeyType,ValType>& dict)
+Lookup2<KeyType,ValType>&
+Lookup2<KeyType,ValType>::operator=(const Lookup2<KeyType,ValType>& dict)
 {
-    *_corePtr = *dict._corePtr;
+    _corePtr->clear();
 
-    DictEntry<KeyType,ValType> entry;
+    LookupEntry2<KeyType,ValType> entry;
     for (entry=dict.first(); !entry.isNull(); entry.next()) {
         get(entry.key(), NULL).value() = entry.value();
     }
 }
 
 template <class KeyType, class ValType>
-Dictionary<KeyType,ValType>::~Dictionary()
+Lookup2<KeyType,ValType>::~Lookup2()
 {
     clear();
+    delete _corePtr;
 }
 
 template <class KeyType, class ValType>
 void
-Dictionary<KeyType,ValType>::clear()
+Lookup2<KeyType,ValType>::clear()
 {
-    DictEntry<KeyType,ValType> entry = first();
+    LookupEntry2<KeyType,ValType> entry = first();
     while (!entry.isNull()) {
         entry.erase();
     }
 }
 
 template <class KeyType, class ValType>
-DictEntry<KeyType,ValType>
-Dictionary<KeyType,ValType>::get(const KeyType& key, int* newEntryPtr)
+LookupEntry2<KeyType,ValType>
+Lookup2<KeyType,ValType>::get(const KeyType& key, int* newEntryPtr)
 {
-    DictEntryCore* entryPtr = _corePtr->get((void*)&key, newEntryPtr);
-    if (entryPtr->valuePtr == NULL) {
+    LookupEntryCore* entryPtr = _corePtr->get((void*)&key, newEntryPtr);
+    if (entryPtr->valuePtr == NULL
+          && sizeof(ValType) > sizeof(entryPtr->valuePtr)) {
         entryPtr->valuePtr = new ValType;
     }
-    return DictEntry<KeyType,ValType>(_corePtr, entryPtr);
+    return LookupEntry2<KeyType,ValType>(_corePtr, entryPtr);
 }
 
 template <class KeyType, class ValType>
-DictEntry<KeyType,ValType>
-Dictionary<KeyType,ValType>::first()
+ValType&
+Lookup2<KeyType,ValType>::operator[](const KeyType& key)
 {
-    DictEntry<KeyType,ValType> entry(_corePtr);
+    LookupEntry2<KeyType,ValType> entry = get(key, NULL);
+    return entry.value();
+}
+
+template <class KeyType, class ValType>
+LookupEntry2<KeyType,ValType>
+Lookup2<KeyType,ValType>::first()
+{
+    LookupEntry2<KeyType,ValType> entry(_corePtr);
     return entry.next();
 }
 
 template <class KeyType, class ValType>
 std::string
-Dictionary<KeyType,ValType>::stats()
+Lookup2<KeyType,ValType>::stats()
 {
     return _corePtr->stats();
 }
 
+template <class ValType>
+class LookupEntry : public LookupEntry2<const char*,ValType> {
+public:
+    LookupEntry(LookupCore* corePtr, LookupEntryCore* entryPtr=NULL);
+    LookupEntry(const LookupEntry2<const char*,ValType>& entry);
+};
+
+template <class ValType>
+LookupEntry<ValType>::LookupEntry(LookupCore* corePtr,
+    LookupEntryCore* entryPtr)
+    : LookupEntry2<const char*,ValType>(corePtr, entryPtr)
+{
+}
+
+template <class ValType>
+LookupEntry<ValType>::LookupEntry(
+    const LookupEntry2<const char*,ValType>& entry)
+    : LookupEntry2<const char*,ValType>(entry)
+{
+}
+
+template <class ValType>
+class Lookup : public Lookup2<const char*,ValType> {
+public:
+    Lookup();
+};
+
+template <class ValType>
+Lookup<ValType>::Lookup()
+    : Lookup2<const char*,ValType>(0)
+{
+}
 
 } // namespace Rappture
 
