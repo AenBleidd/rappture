@@ -1,6 +1,7 @@
 /*
  * ======================================================================
- *  Rappture::Dictionary<keyType,valType>
+ *  Rappture::Lookup<valType>
+ *  Rappture::Lookup2<keyType,valType>
  *
  *  AUTHOR:  Michael McLennan, Purdue University
  *  Copyright (c) 2004-2006  Purdue Research Foundation
@@ -59,7 +60,7 @@
  * ======================================================================
  */
 #include <sstream>
-#include "Dictionary.h"
+#include "Lookup.h"
 
 using namespace Rappture;
 
@@ -70,7 +71,7 @@ using namespace Rappture;
 #define REBUILD_MULTIPLIER  3
 
 
-DictionaryCore::DictionaryCore(size_t keySize)
+LookupCore::LookupCore(size_t keySize)
 {
     // convert key size in bytes to size in words
     _keySize = keySize/4 + ((keySize%4 > 0) ? 1 : 0);
@@ -86,13 +87,13 @@ DictionaryCore::DictionaryCore(size_t keySize)
     _mask = 3;
 }
 
-DictionaryCore::~DictionaryCore()
+LookupCore::~LookupCore()
 {
-    // free up all entries in the dictionary
+    // free up all entries in the lookup table
     for (int i = 0; i < _numBuckets; i++) {
-        DictEntryCore *entryPtr = _buckets[i];
+        LookupEntryCore *entryPtr = _buckets[i];
         while (entryPtr != NULL) {
-            DictEntryCore *nextPtr = entryPtr->nextPtr;
+            LookupEntryCore *nextPtr = entryPtr->nextPtr;
             delete entryPtr;
             entryPtr = nextPtr;
         }
@@ -105,18 +106,18 @@ DictionaryCore::~DictionaryCore()
 }
 
 /**
- * Finds a dictionary entry with the specified key.  Returns
+ * Finds a lookup entry with the specified key.  Returns
  * the entry, or NULL if there was no matching entry.
  */
-DictEntryCore*
-DictionaryCore::find(void* key)
+LookupEntryCore*
+LookupCore::find(void* key)
 {
     unsigned int index = _hashIndex(key);
 
     //
     // Search all of the entries in the appropriate bucket.
     //
-    DictEntryCore *hPtr;
+    LookupEntryCore *hPtr;
     if (_keySize == 0) {
         for (hPtr=_buckets[index]; hPtr != NULL; hPtr=hPtr->nextPtr) {
             char* p1 = (char*)key;
@@ -149,11 +150,11 @@ DictionaryCore::find(void* key)
 }
 
 /**
- * Finds a dictionary entry with the specified key.  Returns
+ * Finds a lookup entry with the specified key.  Returns
  * the entry, or NULL if there was no matching entry.
  */
-DictEntryCore*
-DictionaryCore::get(void* key, int* newEntryPtr)
+LookupEntryCore*
+LookupCore::get(void* key, int* newEntryPtr)
 {
     if (newEntryPtr) {
         *newEntryPtr = 0;
@@ -164,7 +165,7 @@ DictionaryCore::get(void* key, int* newEntryPtr)
     //
     // Search all of the entries in the appropriate bucket.
     //
-    DictEntryCore *hPtr;
+    LookupEntryCore *hPtr;
     if (_keySize == 0) {
         for (hPtr=_buckets[index]; hPtr != NULL; hPtr=hPtr->nextPtr) {
             char* p1 = (char*)key;
@@ -201,12 +202,12 @@ DictionaryCore::get(void* key, int* newEntryPtr)
         *newEntryPtr = 1;
     }
     if (_keySize == 0) {
-        char* mem = new char[sizeof(DictEntryCore)
+        char* mem = new char[sizeof(LookupEntryCore)
             + strlen((char*)key) - sizeof(hPtr->key) + 1];
-        hPtr = new (mem) DictEntryCore;
+        hPtr = new (mem) LookupEntryCore;
     } else {
-        char* mem = new char[sizeof(DictEntryCore) + _keySize-1];
-        hPtr = new (mem) DictEntryCore;
+        char* mem = new char[sizeof(LookupEntryCore) + _keySize-1];
+        hPtr = new (mem) LookupEntryCore;
     }
     hPtr->dictPtr = this;
     hPtr->bucketPtr = &(_buckets[index]);
@@ -232,14 +233,14 @@ DictionaryCore::get(void* key, int* newEntryPtr)
 }
 
 /**
- * Removes an entry from the dictionary.  The data associated
- * with the entry is freed at the Dictionary level before calling
+ * Removes an entry from the lookup table.  The data associated
+ * with the entry is freed at the Lookup level before calling
  * this core method to clean up the slot.
  */
-DictEntryCore*
-DictionaryCore::erase(DictEntryCore* entryPtr)
+LookupEntryCore*
+LookupCore::erase(LookupEntryCore* entryPtr)
 {
-    DictEntryCore *prevPtr;
+    LookupEntryCore *prevPtr;
 
     if (*entryPtr->bucketPtr == entryPtr) {
         *entryPtr->bucketPtr = entryPtr->nextPtr;
@@ -253,7 +254,7 @@ DictionaryCore::erase(DictEntryCore* entryPtr)
         }
     }
     entryPtr->dictPtr->_numEntries--;
-    DictEntryCore *nextPtr = entryPtr->nextPtr;
+    LookupEntryCore *nextPtr = entryPtr->nextPtr;
     delete entryPtr;
 
     return nextPtr;
@@ -265,8 +266,8 @@ DictionaryCore::erase(DictEntryCore* entryPtr)
  * When there are no more entries, it returns NULL.  The bucketNum
  * helps keep track of the next bucket in the table.
  */
-DictEntryCore*
-DictionaryCore::next(DictEntryCore *entryPtr, int& bucketNum)
+LookupEntryCore*
+LookupCore::next(LookupEntryCore *entryPtr, int& bucketNum)
 {
     if (entryPtr) {
         entryPtr = entryPtr->nextPtr;
@@ -284,11 +285,11 @@ DictionaryCore::next(DictEntryCore *entryPtr, int& bucketNum)
 }
 
 /**
- * Returns a description of all entries in the dictionary.
+ * Returns a description of all entries in the lookup table.
  * Useful for debugging.
  */
 std::string
-DictionaryCore::stats()
+LookupCore::stats()
 {
 #define NUM_COUNTERS 10
     int i, count[NUM_COUNTERS], overflow;
@@ -304,7 +305,7 @@ DictionaryCore::stats()
     average = 0.0;
     for (i=0; i < _numBuckets; i++) {
         int j=0;
-        for (DictEntryCore *entryPtr=_buckets[i];
+        for (LookupEntryCore *entryPtr=_buckets[i];
              entryPtr != NULL;
              entryPtr = entryPtr->nextPtr) {
             j++;
@@ -322,7 +323,7 @@ DictionaryCore::stats()
     // Send back the histogram and other stats.
     //
     std::ostringstream result;
-    result << _numEntries << " entries in dictionary, ";
+    result << _numEntries << " entries in lookup table, ";
     result << _numBuckets << " buckets" << std::endl;
 
     for (i=0; i < NUM_COUNTERS; i++) {
@@ -341,18 +342,18 @@ DictionaryCore::stats()
  * and moves all of the entries into the new table.
  */
 void
-DictionaryCore::_rebuildBuckets()
+LookupCore::_rebuildBuckets()
 {
     int oldSize = _numBuckets;
-    DictEntryCore** oldBuckets = _buckets;
+    LookupEntryCore** oldBuckets = _buckets;
 
     //
     // Allocate and initialize the new bucket array, and set up
     // hashing constants for new array size.
     //
     _numBuckets *= 4;
-    _buckets = new (DictEntryCore*)[_numBuckets];
-    DictEntryCore **newChainPtr = _buckets;
+    _buckets = new (LookupEntryCore*)[_numBuckets];
+    LookupEntryCore **newChainPtr = _buckets;
     for (int count=_numBuckets; count > 0; count--, newChainPtr++) {
         *newChainPtr = NULL;
     }
@@ -363,10 +364,10 @@ DictionaryCore::_rebuildBuckets()
     //
     // Rehash all of the existing entries into the new bucket array.
     //
-    for (DictEntryCore** oldChainPtr=oldBuckets;
+    for (LookupEntryCore** oldChainPtr=oldBuckets;
           oldSize > 0; oldSize--, oldChainPtr++) {
 
-        for (DictEntryCore* hPtr=*oldChainPtr;
+        for (LookupEntryCore* hPtr=*oldChainPtr;
               hPtr != NULL; hPtr=*oldChainPtr) {
 
             *oldChainPtr = hPtr->nextPtr;
@@ -389,7 +390,7 @@ DictionaryCore::_rebuildBuckets()
  * Computes the hash value for the specified key.
  */
 unsigned int
-DictionaryCore::_hashIndex(void* key)
+LookupCore::_hashIndex(void* key)
 {
     unsigned int result = 0;
     if (_keySize == 0) {

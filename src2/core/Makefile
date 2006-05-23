@@ -7,8 +7,8 @@ viz: viz.o RpOutcome.o RpMesh1D.o RpField1D.o RpMeshTri2D.o RpMeshRect3D.o RpFie
 viz.o: viz.cc
 	g++ $(CFLAGS) -c -o viz.o viz.cc
 
-test: test.o Ptr.o Outcome.o Dictionary.o
-	g++ $(CFLAGS) -o test test.o Ptr.o Outcome.o Dictionary.o
+test: test.o Ptr.o Outcome.o Lookup.o
+	g++ $(CFLAGS) -o test test.o Ptr.o Outcome.o Lookup.o
 
 docs:
 	if test ! -d ../../docs/rappture2; then \
@@ -26,8 +26,8 @@ Ptr.o: Ptr.h Ptr.cpp
 Outcome.o: Outcome.cpp Ptr.h
 	g++ $(CFLAGS) -c -o Outcome.o Outcome.cpp
 
-Dictionary.o: Dictionary.cpp Ptr.h
-	g++ $(CFLAGS) -c -o Dictionary.o Dictionary.cpp
+Lookup.o: Lookup.cpp Ptr.h
+	g++ $(CFLAGS) -c -o Lookup.o Lookup.cpp
 
 RpMesh1D.o: RpMesh1D.cc RpMesh1D.h RpNode.h
 	g++ $(CFLAGS) -c -o RpMesh1D.o RpMesh1D.cc
