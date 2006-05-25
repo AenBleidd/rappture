@@ -723,8 +723,8 @@ RpLibrary::diff (RpLibrary* otherLib, std::string path)
 
         retList.push_back("+");
         retList.push_back(otherSpath);
-        retList.push_back(otherVal.front());
         retList.push_back("");
+        retList.push_back(otherVal.front());
 
         otherv.erase(otherIter);
         otherIter = otherv.begin();
