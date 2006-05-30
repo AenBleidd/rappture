@@ -112,7 +112,7 @@ int win_height = NPIX;			//size of the render window
 //image based flow visualization variables
 int    iframe = 0; 
 int    Npat   = 64;
-int    alpha  = (0.12*255);
+int    alpha  = (int)round(0.12*255);
 float  sa;
 float  tmax   = NPIX/(SCALE*NPN);
 float  dmax   = SCALE/NPIX;

@@ -21,8 +21,12 @@
 #include <sstream>
 #include <string>
 #include <sys/time.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <fcntl.h>
 
 #include "nanovis.h"
+#include "RpField1D.h"
 #include "RpFieldRect3D.h"
 #include "RpFieldPrism3D.h"
 
@@ -47,15 +51,14 @@ bool volume_mode = true;
 float color_table[256][4]; 	
 
 // default transfer function
-float def_tf[24] = {
-  1, 1, 1, 0.5,  // red
-  1, 1, 0, 0.5,  // yellow
-  0, 1, 0, 0.5,  // green
-  0, 1, 1, 0.5,  // cyan
-  0, 0, 1, 0.5,  // blue
-  1, 0, 1, 0.5,  // magenta
-};
-int def_tf_size = 6;
+char *def_transfunc = "transfunc define default {\n\
+  0.0  1 1 1  0.5\n\
+  0.2  1 1 0  0.5\n\
+  0.4  0 1 0  0.5\n\
+  0.6  0 1 1  0.5\n\
+  0.8  0 0 1  0.5\n\
+  1.0  1 0 1  0.5\n\
+}";
 
 #ifdef XINETD
 FILE* xinetd_log;
@@ -72,23 +75,31 @@ int render_window; 		//the handle of the render window;
 // forward declarations
 void init_particles();
 void get_slice_vectors();
+Rappture::Outcome load_volume_file(int index, char *fname);
+void load_volume(int index, int width, int height, int depth, int n_component, float* data);
+TransferFunction* get_transfunc(char *name);
 
 ParticleSystem* psys;
 float psys_x=0.4, psys_y=0, psys_z=0;
 
 Lic* lic;
 
+//frame buffer for final rendering
 unsigned char* screen_buffer = NULL;
-NVISid final_fbo, final_color_tex, final_depth_rb;      //frame buffer for final rendering
+NVISid final_fbo, final_color_tex, final_depth_rb;
 
 bool advect=false;
 float vert[NMESH*NMESH*3];		//particle positions in main memory
 float slice_vector[NMESH*NMESH*4];	//per slice vectors in main memory
 
 int n_volumes = 0;
-Volume* volume[MAX_N_VOLUMES];		//pointers to volumes, currently handle up to 10 volumes
-TransferFunction* tf[MAX_N_VOLUMES];	//transfer functions, currently handle up to 10 colormaps
-Texture2D* plane[10];			//pointers to 2D planes, currently handle up 10
+// pointers to volumes, currently handle up to 10 volumes
+Volume* volume[MAX_N_VOLUMES];
+// maps transfunc name to TransferFunction object
+Tcl_HashTable tftable;
+
+// pointers to 2D planes, currently handle up 10
+Texture2D* plane[10];
 
 PerfQuery* perf;			//perfromance counter
 
@@ -116,18 +127,16 @@ using namespace std;
 
 // Tcl interpreter for incoming messages
 static Tcl_Interp *interp;
+static Tcl_DString cmdbuffer;
 
 static int CameraCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
 static int CutplaneCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
 static int ClearCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
 static int ScreenCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
-static int TransferFunctionNewCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
-static int TransferFunctionUpdateCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
+static int TransfuncCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
 static int VolumeCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
-static int VolumeNewCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
 static int VolumeLinkCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
 static int VolumeMoveCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
-static int VolumeEnableCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
 static int RefreshCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
 static int PlaneNewCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
 static int PlaneLinkCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
@@ -280,7 +289,7 @@ CutplaneCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]
                 if (Tcl_GetInt(interp, argv[n], &ivol) != TCL_OK) {
                     return TCL_ERROR;
                 }
-                if (ivol < 0 || ivol > n_volumes) {
+                if (ivol < 0 || ivol >= n_volumes) {
                     Tcl_AppendResult(interp, "bad volume index \"", argv[n],
                         "\": out of range", (char*)NULL);
                     return TCL_ERROR;
@@ -324,7 +333,7 @@ CutplaneCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]
                 if (Tcl_GetInt(interp, argv[n], &ivol) != TCL_OK) {
                     return TCL_ERROR;
                 }
-                if (ivol < 0 || ivol > n_volumes) {
+                if (ivol < 0 || ivol >= n_volumes) {
                     Tcl_AppendResult(interp, "bad volume index \"", argv[n],
                         "\": out of range", (char*)NULL);
                     return TCL_ERROR;
@@ -375,70 +384,6 @@ RefreshCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
   return TCL_OK;
 }
 
-void update_transfer_function(int index, float* data);
-
-//The client sends the first sends the index of the transfer function
-//to modify. Then the client sends a chunck of binary floats.
-static int
-TransferFunctionUpdateCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
-{
-  fprintf(stderr, "update transfer function cmd\n");
-
-  double index;
-
-  if (argc != 2) {
-    Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
-		" tf_index\"", (char*)NULL);
-    return TCL_ERROR;
-  }
-  if (Tcl_GetDouble(interp, argv[1], &index) != TCL_OK) {
-	return TCL_ERROR;
-  }
-
-  //Now read 256*4*4 bytes. The server expects the transfer function to be 256 units of (RGBA) floats
-  char tmp[256*4*4];
-  bzero(tmp, 256*4*4);
-  int status = read(0, tmp, 256*4*4);
-  if (status <= 0) {
-    exit(0);
-  }
-
-  update_transfer_function((int)index, (float*)tmp);
-  return TCL_OK;
-}
-
-
-//The client sends the index of the index of the transfer function
-//to create. Then the client sends a chunck of binary floats.
-static int
-TransferFunctionNewCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
-{
-  fprintf(stderr, "update transfer function cmd\n");
-
-  double index;
-
-  if (argc != 2) {
-    Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
-		" tf_index\"", (char*)NULL);
-    return TCL_ERROR;
-  }
-  if (Tcl_GetDouble(interp, argv[1], &index) != TCL_OK) {
-	return TCL_ERROR;
-  }
-
-  //Now read 256*4*4 bytes. The server expects the transfer function to be 256 units of (RGBA) floats
-  char tmp[256*4*4];
-  bzero(tmp, 256*4*4);
-  int status = read(0, tmp, 256*4*4);
-  if (status <= 0) {
-    exit(0);
-  }
-
-  tf[(int)index] = new TransferFunction(256, (float*)tmp);
-  return TCL_OK;
-}
-
-
 void set_object(float x, float y, float z){
   live_obj_x = x;
   live_obj_y = y;
@@ -448,9 +393,107 @@ void set_object(float x, float y, float z){
 /*
  * ----------------------------------------------------------------------
  * CLIENT COMMAND:
+ *   transfunc define <name> { <v> <r> <g> <b> <w> ... }
+ *
+ * Clients send these commands to manipulate the transfer functions.
+ * ----------------------------------------------------------------------
+ */
+static int
+TransfuncCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
+{
+	if (argc < 2) {
+		Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
+			" option arg arg...\"", (char*)NULL);
+		return TCL_ERROR;
+    }
+
+    char c = *argv[1];
+	if (c == 'd' && strcmp(argv[1],"define") == 0) {
+        if (argc < 4) {
+		    Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
+			    argv[1], " option ?arg arg...?\"", (char*)NULL);
+            return TCL_ERROR;
+        }
+
+        // decode the data and store in a series of fields
+        Rappture::Field1D rFunc, gFunc, bFunc, wFunc;
+        int xferc, i, j;
+        char **xferv;
+
+        if (Tcl_SplitList(interp, argv[3], &xferc, &xferv) != TCL_OK) {
+            return TCL_ERROR;
+        }
+        if (xferc % 5 != 0) {
+            Tcl_Free((char*)xferv);
+		    Tcl_AppendResult(interp, "missing data in transfunc: should be ",
+                "{ v r g b w ... }", (char*)NULL);
+            return TCL_ERROR;
+        }
+
+        for (i=0; i < xferc; i += 5) {
+            double vals[5];
+            for (j=0; j < 5; j++) {
+                if (Tcl_GetDouble(interp, xferv[i+j], &vals[j]) != TCL_OK) {
+                    Tcl_Free((char*)xferv);
+                    return TCL_ERROR;
+                }
+                if (vals[j] < 0 || vals[j] > 1) {
+                    Tcl_Free((char*)xferv);
+		            Tcl_AppendResult(interp, "bad value \"", xferv[i+j],
+                        "\": should be in the range 0-1", (char*)NULL);
+                    return TCL_ERROR;
+                }
+            }
+            rFunc.define(vals[0], vals[1]);
+            gFunc.define(vals[0], vals[2]);
+            bFunc.define(vals[0], vals[3]);
+            wFunc.define(vals[0], vals[4]);
+        }
+        Tcl_Free((char*)xferv);
+
+        // sample the given function into discrete slots
+        const int nslots = 256;
+        float data[4*nslots];
+        for (i=0; i < nslots; i++) {
+            double xval = double(i)/(nslots-1);
+            data[4*i]   = rFunc.value(xval);
+            data[4*i+1] = gFunc.value(xval);
+            data[4*i+2] = bFunc.value(xval);
+            data[4*i+3] = wFunc.value(xval);
+        }
+
+        // find or create this transfer function
+        int newEntry;
+        Tcl_HashEntry *entryPtr;
+        TransferFunction *tf;
+
+        entryPtr = Tcl_CreateHashEntry(&tftable, argv[2], &newEntry);
+        if (newEntry) {
+            tf = new TransferFunction(nslots, data);
+            Tcl_SetHashValue(entryPtr, (ClientData)tf);
+        } else {
+            tf = (TransferFunction*)Tcl_GetHashValue(entryPtr);
+            tf->update(data);
+        }
+
+        return TCL_OK;
+    }
+    Tcl_AppendResult(interp, "bad option \"", argv[1],
+        "\": should be define", (char*)NULL);
+    return TCL_ERROR;
+}
+
+/*
+ * ----------------------------------------------------------------------
+ * CLIENT COMMAND:
+ *   volume data state on|off ?<volumeId> ...?
  *   volume outline state on|off ?<volumeId> ...?
  *   volume outline color on|off ?<volumeId> ...?
- *   volume data state on|off ?<volumeId> ...?
+ *   volume shading color <value> ?<volumeId> ...?
+ *   volume shading diffuse <value> ?<volumeId> ...?
+ *   volume shading specular <value> ?<volumeId> ...?
+ *   volume shading opacity <value> ?<volumeId> ...?
+ *   volume state on|off ?<volumeId> ...?
  *
  * Clients send these commands to manipulate the volumes.
  * ----------------------------------------------------------------------
@@ -465,7 +508,107 @@ VolumeCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
     }
 
     char c = *argv[1];
-	if (c == 'o' && strcmp(argv[1],"outline") == 0) {
+	if (c == 'd' && strcmp(argv[1],"data") == 0) {
+        if (argc < 3) {
+		    Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
+			    argv[1], " option ?arg arg...?\"", (char*)NULL);
+		    return TCL_ERROR;
+        }
+        c = *argv[2];
+	    if (c == 's' && strcmp(argv[2],"state") == 0) {
+            if (argc < 4) {
+		        Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
+			        argv[1], " state on|off ?volume ...?\"", (char*)NULL);
+		        return TCL_ERROR;
+            }
+
+            int state;
+	        if (Tcl_GetBoolean(interp, argv[3], &state) != TCL_OK) {
+		        return TCL_ERROR;
+	        }
+
+            int ivol;
+            if (argc < 5) {
+                for (ivol=0; ivol < n_volumes; ivol++) {
+                    if (state) {
+                        volume[ivol]->enable_data();
+                    } else {
+                        volume[ivol]->disable_data();
+                    }
+                }
+            } else {
+                for (int n=4; n < argc; n++) {
+	                if (Tcl_GetInt(interp, argv[n], &ivol) != TCL_OK) {
+		                return TCL_ERROR;
+	                }
+                    if (state) {
+                        volume[ivol]->enable_data();
+                    } else {
+                        volume[ivol]->disable_data();
+                    }
+                }
+            }
+            return TCL_OK;
+        }
+	    else if (c == 'f' && strcmp(argv[2],"follows") == 0) {
+            int nbytes;
+	        if (Tcl_GetInt(interp, argv[3], &nbytes) != TCL_OK) {
+		        return TCL_ERROR;
+	        }
+
+            char fname[64];
+            sprintf(fname,"/tmp/nv%d.dat",getpid());
+            std::ofstream dfile(fname);
+
+            char buffer[8096];
+            while (nbytes > 0) {
+                int chunk = (sizeof(buffer) < nbytes) ? sizeof(buffer) : nbytes;
+                int status = fread(buffer, 1, chunk, stdin);
+                if (status > 0) {
+                    dfile.write(buffer,status);
+                    nbytes -= status;
+                } else {
+                    Tcl_AppendResult(interp, "data unpacking failed in file ",
+                        fname, (char*)NULL);
+                    return TCL_ERROR;
+                }
+            }
+            dfile.close();
+
+            char cmdstr[512];
+            sprintf(cmdstr, "mimedecode %s | gunzip -c > /tmp/nv%d.dx", fname, getpid());
+            if (system(cmdstr) != 0) {
+                Tcl_AppendResult(interp, "data unpacking failed in file ",
+                    fname, (char*)NULL);
+                return TCL_ERROR;
+            }
+
+            sprintf(fname,"/tmp/nv%d.dx",getpid());
+
+            int n = n_volumes;
+            Rappture::Outcome err = load_volume_file(n, fname);
+
+            sprintf(cmdstr, "rm -f /tmp/nv%d.dat /tmp/nv%d.dx", getpid(), getpid());
+            system(cmdstr);
+
+            if (err) {
+                Tcl_AppendResult(interp, err.remark().c_str(), (char*)NULL);
+                return TCL_ERROR;
+            }
+
+            volume[n]->set_n_slice(512);
+            volume[n]->disable_cutplane(0);
+            volume[n]->disable_cutplane(1);
+            volume[n]->disable_cutplane(2);
+            vol_render->add_volume(volume[n], get_transfunc("default"));
+
+            return TCL_OK;
+        }
+        Tcl_AppendResult(interp, "bad option \"", argv[2],
+            "\": should be follows or state", (char*)NULL);
+        return TCL_ERROR;
+    }
+	else if (c == 'o' && strcmp(argv[1],"outline") == 0) {
         if (argc < 3) {
 		    Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
 			    argv[1], " option ?arg arg...?\"", (char*)NULL);
@@ -498,7 +641,7 @@ VolumeCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
                     if (Tcl_GetInt(interp, argv[n], &ivol) != TCL_OK) {
                         return TCL_ERROR;
                     }
-                    if (ivol < 0 || ivol > n_volumes) {
+                    if (ivol < 0 || ivol >= n_volumes) {
                         Tcl_AppendResult(interp, "bad volume index \"", argv[n],
                             "\": out of range", (char*)NULL);
                         return TCL_ERROR;
@@ -534,7 +677,7 @@ VolumeCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
                     if (Tcl_GetInt(interp, argv[n], &ivol) != TCL_OK) {
                         return TCL_ERROR;
                     }
-                    if (ivol < 0 || ivol > n_volumes) {
+                    if (ivol < 0 || ivol >= n_volumes) {
                         Tcl_AppendResult(interp, "bad volume index \"", argv[n],
                             "\": out of range", (char*)NULL);
                         return TCL_ERROR;
@@ -549,34 +692,163 @@ VolumeCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
             "\": should be color or state", (char*)NULL);
         return TCL_ERROR;
     }
-	else if (c == 's' && strcmp(argv[1],"state") == 0) {
+	else if (c == 's' && strcmp(argv[1],"shading") == 0) {
         if (argc < 3) {
 		    Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
-			    " state on|off ?volume ...?\"", (char*)NULL);
+			    argv[1], " option ?arg arg...?\"", (char*)NULL);
 		    return TCL_ERROR;
+        }
+        c = *argv[2];
+	    if (c == 'c' && strcmp(argv[2],"color") == 0) {
+            if (argc < 4) {
+		        Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
+			        argv[1], " color value ?volume ...?\"", (char*)NULL);
+		        return TCL_ERROR;
+            }
+
+            float cval[3];
+	        if (GetColor(interp, argv[3], cval) != TCL_OK) {
+		        return TCL_ERROR;
+	        }
+
+            int ivol;
+            if (argc < 5) {
+                for (ivol=0; ivol < n_volumes; ivol++) {
+                    //volume[ivol]->set_diffuse((float)dval);
+                }
+            } else {
+                for (int n=4; n < argc; n++) {
+	                if (Tcl_GetInt(interp, argv[n], &ivol) != TCL_OK) {
+		                return TCL_ERROR;
+	                }
+                    //volume[ivol]->set_diffuse((float)dval);
+                }
+            }
+            return TCL_OK;
+        }
+	    else if (c == 'd' && strcmp(argv[2],"diffuse") == 0) {
+            if (argc < 4) {
+		        Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
+			        argv[1], " diffuse value ?volume ...?\"", (char*)NULL);
+		        return TCL_ERROR;
+            }
+
+            double dval;
+	        if (Tcl_GetDouble(interp, argv[3], &dval) != TCL_OK) {
+		        return TCL_ERROR;
+	        }
+
+            int ivol;
+            if (argc < 5) {
+                for (ivol=0; ivol < n_volumes; ivol++) {
+                    volume[ivol]->set_diffuse((float)dval);
+                }
+            } else {
+                for (int n=4; n < argc; n++) {
+	                if (Tcl_GetInt(interp, argv[n], &ivol) != TCL_OK) {
+		                return TCL_ERROR;
+	                }
+                    volume[ivol]->set_diffuse((float)dval);
+                }
+            }
+            return TCL_OK;
+        }
+	    else if (c == 'o' && strcmp(argv[2],"opacity") == 0) {
+            if (argc < 4) {
+		        Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
+			        argv[1], " opacity value ?volume ...?\"", (char*)NULL);
+		        return TCL_ERROR;
+            }
+
+            double dval;
+	        if (Tcl_GetDouble(interp, argv[3], &dval) != TCL_OK) {
+		        return TCL_ERROR;
+	        }
+
+            int ivol;
+            if (argc < 5) {
+                for (ivol=0; ivol < n_volumes; ivol++) {
+                    volume[ivol]->set_opacity_scale((float)dval);
+                }
+            } else {
+                for (int n=4; n < argc; n++) {
+	                if (Tcl_GetInt(interp, argv[n], &ivol) != TCL_OK) {
+		                return TCL_ERROR;
+	                }
+                    volume[ivol]->set_opacity_scale((float)dval);
+                }
+            }
+            return TCL_OK;
+        }
+	    else if (c == 's' && strcmp(argv[2],"specular") == 0) {
+            if (argc < 4) {
+		        Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
+			        argv[1], " specular value ?volume ...?\"", (char*)NULL);
+		        return TCL_ERROR;
+            }
+
+            double dval;
+	        if (Tcl_GetDouble(interp, argv[3], &dval) != TCL_OK) {
+		        return TCL_ERROR;
+	        }
+
+            int ivol;
+            if (argc < 5) {
+                for (ivol=0; ivol < n_volumes; ivol++) {
+                    volume[ivol]->set_specular((float)dval);
+                }
+            } else {
+                for (int n=4; n < argc; n++) {
+	                if (Tcl_GetInt(interp, argv[n], &ivol) != TCL_OK) {
+		                return TCL_ERROR;
+	                }
+                    volume[ivol]->set_specular((float)dval);
+                }
+            }
+            return TCL_OK;
+        }
+        Tcl_AppendResult(interp, "bad option \"", argv[2],
+            "\": should be color, diffuse, opacity, or specular", (char*)NULL);
+        return TCL_ERROR;
+    }
+    else if (c == 's' && strcmp(argv[1],"state") == 0) {
+        if (argc < 3) {
+            Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
+                argv[1], " on|off ?volume...?\"", (char*)NULL);
+            return TCL_ERROR;
         }
 
         int state;
-	    if (Tcl_GetBoolean(interp, argv[2], &state) != TCL_OK) {
-		    return TCL_ERROR;
-	    }
+        if (Tcl_GetBoolean(interp, argv[2], &state) != TCL_OK) {
+            return TCL_ERROR;
+        }
 
         int ivol;
-        for (int n=3; n < argc; n++) {
-	        if (Tcl_GetInt(interp, argv[n], &ivol) != TCL_OK) {
-		        return TCL_ERROR;
-	        }
-            if (state) {
-                volume[ivol]->enable_data();
-            } else {
-                volume[ivol]->disable_data();
+        if (argc < 4) {
+            for (ivol=0; ivol < n_volumes; ivol++) {
+                if (state) {
+                    volume[ivol]->enable();
+                } else {
+                    volume[ivol]->disable();
+                }
+            }
+        } else {
+            for (int n=3; n < argc; n++) {
+                    if (Tcl_GetInt(interp, argv[n], &ivol) != TCL_OK) {
+                            return TCL_ERROR;
+                    }
+                if (state) {
+                    volume[ivol]->enable();
+                } else {
+                    volume[ivol]->disable();
+                }
             }
         }
         return TCL_OK;
     }
 
     Tcl_AppendResult(interp, "bad option \"", argv[1],
-        "\": should be state", (char*)NULL);
+        "\": should be data, outline, shading, or state", (char*)NULL);
     return TCL_ERROR;
 }
 
@@ -589,7 +861,7 @@ VolumeLinkCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv
 
   if (argc != 3) {
     Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
-		" volume_index tf_index \"", (char*)NULL);
+        " volume_index tf_index \"", (char*)NULL);
     return TCL_ERROR;
   }
   if (Tcl_GetDouble(interp, argv[1], &volume_index) != TCL_OK) {
@@ -599,7 +871,7 @@ VolumeLinkCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv
 	return TCL_ERROR;
   }
 
-  vol_render->add_volume(volume[(int)volume_index], tf[(int)tf_index]);
+  //vol_render->add_volume(volume[(int)volume_index], tf[(int)tf_index]);
 
   return TCL_OK;
 }
@@ -627,82 +899,6 @@ VolumeResizeCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *ar
   volume[(int)volume_index]->set_size((float) size);
   return TCL_OK;
 }
-
-//Enable a volume.
-//Can enable a volume that is not yet added to the volume renderer.
-//But it won't be rendered until it's added to the volume renderer using VolumeLinkCmd
-//volume_index: the index maintained in the volume renderer.
-static int
-VolumeEnableCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
-{
-  fprintf(stderr, "enabled a volume to render command\n");
-
-  double volume_index, mode;
-
-  if (argc != 3) {
-    Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
-		" volume_index mode \"", (char*)NULL);
-    return TCL_ERROR;
-  }
-  if (Tcl_GetDouble(interp, argv[1], &volume_index) != TCL_OK) {
-	return TCL_ERROR;
-  }
-  if (Tcl_GetDouble(interp, argv[2], &mode) != TCL_OK) {
-	return TCL_ERROR;
-  }
-
-  if(mode==0)
-    vol_render->disable_volume((int)volume_index);
-  else
-    vol_render->enable_volume((int)volume_index);
-
-  return TCL_OK;
-}
-
-
-void load_volume(int index, int width, int height, int depth, int n_component, float* data);
-
-//The client sends the load data command to tell the index of the volume, and the dimensions of the data 
-//Then the client sends a chunck of binary floats. This call creates a NEW volume
-static int
-VolumeNewCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
-{
-  fprintf(stderr, "load data command\n");
-
-  double index, w, h, d;
-
-  if (argc != 5) {
-    Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
-		" volume_index w h d \"", (char*)NULL);
-    return TCL_ERROR;
-  }
-  if (Tcl_GetDouble(interp, argv[1], &index) != TCL_OK) {
-	return TCL_ERROR;
-  }
-  if (Tcl_GetDouble(interp, argv[2], &w) != TCL_OK) {
-	return TCL_ERROR;
-  }
-  if (Tcl_GetDouble(interp, argv[3], &h) != TCL_OK) {
-	return TCL_ERROR;
-  }
-  if (Tcl_GetDouble(interp, argv[4], &d) != TCL_OK) {
-	return TCL_ERROR;
-  }
-
-  //Now read w*h*d*4*4 bytes. The server expects the volume to be units of 4-float tuples
-  char* tmp = new char[int(w*h*d*4*4)];
-  bzero(tmp, w*h*d*4*4);
-  int status = read(0, tmp, w*h*d*4*4);
-  if (status <= 0){
-    exit(0);
-  }
- 
-  load_volume(int(index), int(w), int(h), int(d), 4, (float*) tmp);
-  
-  delete[] tmp;
-  return TCL_OK;
-}
-
 
 static int
 VolumeMoveCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
@@ -905,7 +1101,7 @@ int PlaneLinkCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CO
 	return TCL_ERROR;
   }
 
-  plane_render->add_plane(plane[(int)plane_index], tf[(int)tf_index]);
+  //plane_render->add_plane(plane[(int)plane_index], tf[(int)tf_index]);
 
   return TCL_OK;
 }
@@ -1056,9 +1252,10 @@ load_vector_file(int index, char *fname) {
         nz = (int)ceil(dz/dmin);
 
 #ifndef NV40
-	nx = pow(2.0, ceil(log10((double)nx)/log10(2.0)));  // must be an even power of 2
-	ny = pow(2.0, ceil(log10((double)ny)/log10(2.0)));
-	nz = pow(2.0, ceil(log10((double)nz)/log10(2.0)));
+        // must be an even power of 2 for older cards
+	    nx = (int)pow(2.0, ceil(log10((double)nx)/log10(2.0)));
+	    ny = (int)pow(2.0, ceil(log10((double)ny)/log10(2.0)));
+	    nz = (int)pow(2.0, ceil(log10((double)nz)/log10(2.0)));
 #endif
 
         float *data = new float[3*nx*ny*nz];
@@ -1109,8 +1306,10 @@ load_vector_file(int index, char *fname) {
 
 /* Load a 3D volume from a dx-format file
  */
-void
+Rappture::Outcome
 load_volume_file(int index, char *fname) {
+    Rappture::Outcome result;
+
     Rappture::MeshTri2D xymesh;
     int dummy, nx, ny, nz, nxy, npts;
     double x0, y0, z0, dx, dy, dz, ddx, ddy, ddz;
@@ -1139,7 +1338,12 @@ load_volume_file(int index, char *fname) {
                     }
                 }
 
-                std::ofstream ftmp("tmppts");
+                char fpts[128];
+                sprintf(fpts, "/tmp/tmppts%d", getpid());
+                char fcells[128];
+                sprintf(fcells, "/tmp/tmpcells%d", getpid());
+
+                std::ofstream ftmp(fpts);
                 // save corners of bounding box first, to work around meshing
                 // problems in voronoi utility
                 ftmp << xymesh.rangeMin(Rappture::xaxis) << " "
@@ -1155,9 +1359,11 @@ load_volume_file(int index, char *fname) {
                 }
                 ftmp.close();
 
-                if (system("voronoi -t < tmppts > tmpcells") == 0) {
+                char cmdstr[512];
+                sprintf(cmdstr, "voronoi -t < %s > %s", fpts, fcells);
+                if (system(cmdstr) == 0) {
                     int cx, cy, cz;
-                    std::ifstream ftri("tmpcells");
+                    std::ifstream ftri(fcells);
                     while (!ftri.eof()) {
                         ftri.getline(line,sizeof(line)-1);
                         if (sscanf(line, "%d %d %d", &cx, &cy, &cz) == 3) {
@@ -1169,8 +1375,11 @@ load_volume_file(int index, char *fname) {
                     }
                     ftri.close();
                 } else {
-                    std::cerr << "WARNING: triangularization failed" << std::endl;
+                    return result.error("triangularization failed");
                 }
+
+                sprintf(cmdstr, "rm -f %s %s", fpts, fcells);
+                system(cmdstr);
             }
             else if (sscanf(start, "object %d class regulararray count %d", &dummy, &nz) == 2) {
                 // found z-grid
@@ -1186,12 +1395,14 @@ load_volume_file(int index, char *fname) {
             }
             else if (sscanf(start, "object %d class array type %s rank 0 items %d data follows", &dummy, type, &npts) == 3) {
                 if (isrect && (npts != nx*ny*nz)) {
-                    std::cerr << "inconsistent data: expected " << nx*ny*nz << " points but found " << npts << " points" << std::endl;
-                    return;
+                    char mesg[256];
+                    sprintf(mesg,"inconsistent data: expected %d points but found %d points", nx*ny*nz, npts);
+                    return result.error(mesg);
                 }
                 else if (!isrect && (npts != nxy*nz)) {
-                    std::cerr << "inconsistent data: expected " << nxy*nz << " points but found " << npts << " points" << std::endl;
-                    return;
+                    char mesg[256];
+                    sprintf(mesg,"inconsistent data: expected %d points but found %d points", nxy*nz, npts);
+                    return result.error(mesg);
                 }
                 break;
             }
@@ -1226,8 +1437,10 @@ load_volume_file(int index, char *fname) {
 
             // make sure that we read all of the expected points
             if (nread != nx*ny*nz) {
-                std::cerr << "inconsistent data: expected " << nx*ny*nz << " points but found " << nread << " points" << std::endl;
-                return;
+                char mesg[256];
+                sprintf(mesg,"inconsistent data: expected %d points but found %d points", nx*ny*nz, nread);
+                result.error(mesg);
+                return result;
             }
 
             // figure out a good mesh spacing
@@ -1242,9 +1455,10 @@ load_volume_file(int index, char *fname) {
             nz = (int)ceil(dz/dmin);
 
 #ifndef NV40
-	    nx = pow(2.0, ceil(log10((double)nx)/log10(2.0)));  // must be an even power of 2
-	    ny = pow(2.0, ceil(log10((double)ny)/log10(2.0)));
-	    nz = pow(2.0, ceil(log10((double)nz)/log10(2.0)));
+            // must be an even power of 2 for older cards
+	        nx = (int)pow(2.0, ceil(log10((double)nx)/log10(2.0)));
+	        ny = (int)pow(2.0, ceil(log10((double)ny)/log10(2.0)));
+	        nz = (int)pow(2.0, ceil(log10((double)nz)/log10(2.0)));
 #endif
 
             float *data = new float[4*nx*ny*nz];
@@ -1252,8 +1466,6 @@ load_volume_file(int index, char *fname) {
             double vmin = field.valueMin();
             double dv = field.valueMax() - field.valueMin();
             if (dv == 0.0) { dv = 1.0; }
-
-            std::cout << "generating " << nx << "x" << ny << "x" << nz << " = " << nx*ny*nz << " points" << std::endl;
 
             // generate the uniformly sampled data that we need for a volume
             int ngen = 0;
@@ -1273,45 +1485,21 @@ load_volume_file(int index, char *fname) {
                         double curval = (v < 0) ? 0.0 : v;
                         double oldval = ((ngen/4) % nx == 0) ? 0.0 : data[ngen-4];
                         oldval = (oldval < 0) ? 0.0 : oldval;
-                        data[ngen+1] = (curval-oldval)/dmin;
+                        data[ngen+1] = curval-oldval;  // assume dx=1
 
                         // gradient in y-direction
                         oldval = (ngen-4*nx >= 0) ? data[ngen-4*nx] : 0.0;
                         oldval = (oldval < 0) ? 0.0 : oldval;
-                        data[ngen+2] = (curval-oldval)/dmin;
+                        data[ngen+2] = curval-oldval;  // assume dy=1
 
                         // gradient in z-direction
                         oldval = (ngen-4*nx*ny >= 0) ? data[ngen-4*nx*ny] : 0.0;
                         oldval = (oldval < 0) ? 0.0 : oldval;
-                        data[ngen+3] = (curval-oldval)/dmin;
-			ngen += 4;
+                        data[ngen+3] = curval-oldval;  // assume dz=1
+                        ngen += 4;
                     }
                 }
             }
-
-	    /*
-	    //hack very first and last yz slice have 0 grad
-	    for(int iz=0; iz<nz; iz++){
-	      for(int iy=0; iy<ny; iy++){
-                 int index1, index2;
-		 int ix1 = 0;
-		 int ix2 = 3;
-		 index1 = ix1 + iy*nx + iz*nx*ny;
-		 index2 = ix2 + iy*nx + iz*nx*ny;
-		 data[4*index1 + 1] = data[4*index2 + 1];
-		 data[4*index1 + 2] = data[4*index2 + 2];
-		 data[4*index1 + 3] = data[4*index2 + 3];
-
-		 ix1 = nx-1;
-		 ix2 = nx-2;
-		 index1 = ix1 + iy*nx + iz*nx*ny;
-		 index2 = ix2 + iy*nx + iz*nx*ny;
-		 data[4*index1 + 1] = data[4*index2 + 1];
-		 data[4*index1 + 2] = data[4*index2 + 2];
-		 data[4*index1 + 3] = data[4*index2 + 3];
-	      }
-	    }
-	    */
 
             load_volume(index, nx, ny, nz, 4, data);
             delete [] data;
@@ -1330,8 +1518,9 @@ load_volume_file(int index, char *fname) {
 
             // make sure that we read all of the expected points
             if (nread != nxy*nz) {
-                std::cerr << "inconsistent data: expected " << nxy*nz << " points but found " << nread << " points" << std::endl;
-                return;
+                char mesg[256];
+                sprintf(mesg,"inconsistent data: expected %d points but found %d points", nxy*nz, nread);
+                return result.error(mesg);
             }
 
             // figure out a good mesh spacing
@@ -1345,17 +1534,19 @@ load_volume_file(int index, char *fname) {
             double dmin = pow((dx*dy*dz)/(nsample*nsample*nsample), 0.333);
 
             nx = (int)ceil(dx/dmin);
-	    nx = pow(2.0, ceil(log10((double)nx)/log10(2.0)));  // must be an even power of 2
             ny = (int)ceil(dy/dmin);
-	    ny = pow(2.0, ceil(log10((double)ny)/log10(2.0)));
             nz = (int)ceil(dz/dmin);
-	    nz = pow(2.0, ceil(log10((double)nz)/log10(2.0)));
+#ifndef NV40
+            // must be an even power of 2 for older cards
+	        nx = (int)pow(2.0, ceil(log10((double)nx)/log10(2.0)));
+	        ny = (int)pow(2.0, ceil(log10((double)ny)/log10(2.0)));
+	        nz = (int)pow(2.0, ceil(log10((double)nz)/log10(2.0)));
+#endif
             float *data = new float[4*nx*ny*nz];
 
             double vmin = field.valueMin();
             double dv = field.valueMax() - field.valueMin();
             if (dv == 0.0) { dv = 1.0; }
-            std::cout << "generating " << nx << "x" << ny << "x" << nz << " = " << nx*ny*nz << " points" << std::endl;
 
             // generate the uniformly sampled data that we need for a volume
             int ngen = 0;
@@ -1366,10 +1557,27 @@ load_volume_file(int index, char *fname) {
                     for (int ix=0; ix < nx; ix++) {
                         double xval = x0 + ix*dmin;
                         double v = field.value(xval,yval,zval);
-                        data[ngen++] = (isnan(v)) ? -1.0 : (v - vmin)/dv;
-                        data[ngen++] = 0.0;
-                        data[ngen++] = 0.0;
-                        data[ngen++] = 0.0;
+
+                        // scale all values [0-1], -1 => out of bounds
+                        v = (isnan(v)) ? -1.0 : (v - vmin)/dv;
+                        data[ngen] = v;
+
+                        // gradient in x-direction
+                        double curval = (v < 0) ? 0.0 : v;
+                        double oldval = ((ngen/4) % nx == 0) ? 0.0 : data[ngen-4];
+                        oldval = (oldval < 0) ? 0.0 : oldval;
+                        data[ngen+1] = curval-oldval;  // assume dx=1
+
+                        // gradient in y-direction
+                        oldval = (ngen-4*nx >= 0) ? data[ngen-4*nx] : 0.0;
+                        oldval = (oldval < 0) ? 0.0 : oldval;
+                        data[ngen+2] = curval-oldval;  // assume dy=1
+
+                        // gradient in z-direction
+                        oldval = (ngen-4*nx*ny >= 0) ? data[ngen-4*nx*ny] : 0.0;
+                        oldval = (oldval < 0) ? 0.0 : oldval;
+                        data[ngen+3] = curval-oldval;  // assume dz=1
+                        ngen += 4;
                     }
                 }
             }
@@ -1377,8 +1585,20 @@ load_volume_file(int index, char *fname) {
             delete [] data;
         }
     } else {
-        std::cerr << "WARNING: data not found in file " << fname << std::endl;
+        char mesg[256];
+        sprintf(mesg,"data not found in file %s", fname);
+        return result.error(mesg);
     }
+
+    //
+    // Center this new volume on the origin.
+    //
+    float dx0 = -0.5;
+    float dy0 = -0.5*dy/dx;
+    float dz0 = -0.5*dz/dx;
+    volume[index]->move(Vector3(dx0, dy0, dz0));
+
+    return result;
 }
 
 /* Load a 3D volume
@@ -1403,15 +1623,15 @@ void load_volume(int index, int width, int height, int depth, int n_component, f
 }
 
 
-//load a colormap 1D texture
-void load_transfer_function(int index, int size, float* data){
-
-  if(tf[index]!=0){
-    delete tf[index];
-    tf[index]=0;
-  }
-
-  tf[index] = new TransferFunction(size, data);
+// get a colormap 1D texture by name
+TransferFunction*
+get_transfunc(char *name) {
+    Tcl_HashEntry *entryPtr;
+    entryPtr = Tcl_FindHashEntry(&tftable, name);
+    if (entryPtr) {
+        return (TransferFunction*)Tcl_GetHashValue(entryPtr);
+    }
+    return NULL;
 }
 
 
@@ -1420,7 +1640,8 @@ extern void update_tf_texture(){
   glutSetWindow(render_window);
 
   //fprintf(stderr, "tf update\n");
-  if(tf[0]==0) return;
+  TransferFunction *tf = get_transfunc("default");
+  if (tf == NULL) return;
 
   float data[256*4];
   for(int i=0; i<256; i++){
@@ -1431,7 +1652,7 @@ extern void update_tf_texture(){
     //fprintf(stderr, "(%f,%f,%f,%f) ", data[4*i+0], data[4*i+1], data[4*i+2], data[4*i+3]);
   }
 
-  tf[0]->update(data);
+  tf->update(data);
 
 #ifdef EVENTLOG
   float param[3] = {0,0,0};
@@ -1440,15 +1661,6 @@ extern void update_tf_texture(){
   delete tmp;
 #endif
 }
-
-
-//------------------------------------------
-//update the transfer function in server mode
-//------------------------------------------
-void update_transfer_function(int index, float* data){
-  tf[index]->update(data);
-}
-
 
 
 //initialize frame buffer objects for offscreen rendering
@@ -1622,11 +1834,6 @@ void init_particles(){
 }
 
 
-void init_transfer_function(){
-  tf[0] = new TransferFunction(def_tf_size, def_tf);
-}
-
-
 //init line integral convolution
 void init_lic(){
   lic = new Lic(NMESH, win_width, win_height, 0.3, g_context, volume[1]->id, 
@@ -1704,11 +1911,13 @@ void initGL(void)
    glLightfv(GL_LIGHT1, GL_DIFFUSE, green_light);
    glLightfv(GL_LIGHT1, GL_SPECULAR, white_light);	
 
-   //init volume and colormap arrays
+   //init volume array
    for(int i=0; i<MAX_N_VOLUMES; i++){
      volume[i] = 0;
-     tf[i] = 0;
    }
+
+   // init table of transfer functions
+   Tcl_InitHashTable(&tftable, TCL_STRING_KEYS);
 
    //check if performance query is supported
    if(check_query_support()){
@@ -1719,42 +1928,25 @@ void initGL(void)
    //load_volume_file(0, "./data/A-apbs-2-out-potential-PE0.dx");
    //load_volume_file(0, "./data/nw-AB-Vg=0.000-Vd=1.000-potential.dx");
    //load_volume_file(0, "./data/test2.dx");
-
-   load_volume_file(0, "./data/mu-wire-3d.dx");
+   //load_volume_file(0, "./data/mu-wire-3d.dx");
    //load_volume_file(0, "./data/input_nd_dx_4"); //take a VERY long time?
    //load_vector_file(1, "./data/J-wire-vec.dx");
    //load_volume_file(1, "./data/mu-wire-3d.dx");
    //load_volume_file(3, "./data/mu-wire-3d.dx");
    //load_volume_file(4, "./data/mu-wire-3d.dx");
 
-   init_transfer_function();   //initialize transfer function
    init_offscreen_buffer();    //frame buffer object for offscreen rendering
    init_cg();	//create cg shader context 
 
    //create volume renderer and add volumes to it
    vol_render = new VolumeRenderer(g_context);
-   volume[0]->set_n_slice(512);
-   volume[0]->disable_cutplane(0);
-   volume[0]->disable_cutplane(1);
-   volume[0]->disable_cutplane(2);
-   vol_render->add_volume(volume[0], tf[0]);
-
-   //volume[1]->move(Vector3(0.42, 0.1, 0.1));
-   //vol_render->add_volume(volume[1], tf[0]);
-
-   //volume[3]->move(Vector3(0.2, -0.1, -0.1));
-   //vol_render->add_volume(volume[3], tf[0]);
-   //volume[4]->move(Vector3(0.2,  0.1, -0.1));
-   //vol_render->add_volume(volume[4], tf[0]);
-
 
    //create an 2D plane renderer
    plane_render = new PlaneRenderer(g_context, win_width, win_height);
    make_test_2D_data();
 
-   plane_render->add_plane(plane[0], tf[0]);
+   plane_render->add_plane(plane[0], get_transfunc("default"));
 
-   
    //init_particle_system();
    //init_lic(); 
 }
@@ -1764,6 +1956,8 @@ void initGL(void)
 void initTcl(){
     interp = Tcl_CreateInterp();
     Tcl_MakeSafe(interp);
+
+    Tcl_DStringInit(&cmdbuffer);
 
     // manipulate the viewpoint
     Tcl_CreateCommand(interp, "camera", CameraCmd,
@@ -1777,25 +1971,26 @@ void initTcl(){
     Tcl_CreateCommand(interp, "screen", ScreenCmd,
         (ClientData)NULL, (Tcl_CmdDeleteProc*)NULL);
 
+    // manipulate transfer functions
+    Tcl_CreateCommand(interp, "transfunc", TransfuncCmd,
+        (ClientData)NULL, (Tcl_CmdDeleteProc*)NULL);
+
     // manipulate volume data
     Tcl_CreateCommand(interp, "volume", VolumeCmd,
         (ClientData)NULL, (Tcl_CmdDeleteProc*)NULL);
 
-  //create new transfer function
-  Tcl_CreateCommand(interp, "tf_new", TransferFunctionNewCmd, (ClientData)0, (Tcl_CmdDeleteProc*)NULL);
-  //update an existing transfer function
-  Tcl_CreateCommand(interp, "tf_update", TransferFunctionUpdateCmd, (ClientData)0, (Tcl_CmdDeleteProc*)NULL);
+    // create a default transfer function
+    if (Tcl_Eval(interp, def_transfunc) != TCL_OK) {
+        fprintf(stdin, "WARNING: bad default transfer function\n");
+        fprintf(stdin, Tcl_GetStringResult(interp));
+    }
 
 
-  //create new volume
-  Tcl_CreateCommand(interp, "volume_new", VolumeNewCmd, (ClientData)0, (Tcl_CmdDeleteProc*)NULL);
   //link an EXISTING volume and transfer function to the volume renderer. 
   //Only after being added, can a volume be rendered. This command does not create a volume nor a transfer function
   Tcl_CreateCommand(interp, "volume_link", VolumeLinkCmd, (ClientData)0, (Tcl_CmdDeleteProc*)NULL);
   //move an volume
   Tcl_CreateCommand(interp, "volume_move", VolumeMoveCmd, (ClientData)0, (Tcl_CmdDeleteProc*)NULL);
-  //enable or disable an existing volume 
-  Tcl_CreateCommand(interp, "volume_enable", VolumeEnableCmd, (ClientData)0, (Tcl_CmdDeleteProc*)NULL);
   //resize volume 
   Tcl_CreateCommand(interp, "volume_resize", VolumeResizeCmd, (ClientData)0, (Tcl_CmdDeleteProc*)NULL);
 
@@ -1867,22 +2062,68 @@ bmp_header_add_int(unsigned char* header, int& pos, int data)
 
 void xinetd_listen(){
 
-    std::string data;
-    char tmp[256];
-    bzero(tmp, 256);
-    int status = read(0, tmp, 256);
-    if (status <= 0) {
-      exit(0);
-    }
-    data = tmp;
+    int flags = fcntl(0, F_GETFL, 0); 
+    fcntl(0, F_SETFL, flags & ~O_NONBLOCK);
 
-    if (Tcl_Eval(interp, (char*)data.c_str()) != TCL_OK) {
-      std::ostringstream errmsg;
-      errmsg << "ERROR: " << Tcl_GetStringResult(interp) << std::endl;
-      write(0, errmsg.str().c_str(), errmsg.str().size());
-      return;
+    int status = TCL_OK;
+    int npass = 0;
+
+    //
+    //  Read and execute as many commands as we can from stdin...
+    //
+    while (status == TCL_OK) {
+        //
+        //  Read the next command from the buffer.  First time through
+        //  we block here and wait if necessary until a command comes in.
+        //
+        //  BE CAREFUL:  Read only one command, up to a newline.
+        //  The "volume data follows" command needs to be able to read
+        //  the data immediately following the command, and we shouldn't
+        //  consume it here.
+        //
+        while (1) {
+            char c = getchar();
+            if (c <= 0) {
+                if (npass == 0) {
+                    exit(0);  // EOF -- we're done!
+                } else {
+                    break;
+                }
+            }
+            Tcl_DStringAppend(&cmdbuffer, &c, 1);
+
+            if (c=='\n' && Tcl_CommandComplete(Tcl_DStringValue(&cmdbuffer))) {
+                break;
+            }
+        }
+
+        // no command? then we're done for now
+        if (Tcl_DStringLength(&cmdbuffer) == 0) {
+            break;
+        }
+
+        // back to original flags during command evaluation...
+        fcntl(0, F_SETFL, flags & ~O_NONBLOCK);
+
+        status = Tcl_Eval(interp, Tcl_DStringValue(&cmdbuffer));
+        Tcl_DStringSetLength(&cmdbuffer, 0);
+
+        // non-blocking for next read -- we might not get anything
+        fcntl(0, F_SETFL, flags | O_NONBLOCK);
+        npass++;
+    }
+    fcntl(0, F_SETFL, flags);
+
+    if (status != TCL_OK) {
+        std::ostringstream errmsg;
+        errmsg << "ERROR: " << Tcl_GetStringResult(interp) << std::endl;
+        write(0, errmsg.str().c_str(), errmsg.str().size());
+        return;
     }
 
+    //
+    //  Generate the latest frame and send it back to the client
+    //
     display();
 
 #if DO_RLE
@@ -1935,15 +2176,13 @@ void xinetd_listen(){
     bmp_header_add_int(header, pos, 0);
     bmp_header_add_int(header, pos, 0);
 
-    std::ostringstream buffer;
-    buffer << "nv>image -bytes " << fsize << "\n";
-    write(0, buffer.str().c_str(), buffer.str().size());
+    std::ostringstream result;
+    result << "nv>image -bytes " << fsize << "\n";
+    write(0, result.str().c_str(), result.str().size());
 
     write(0, header, sizeof(header));
     write(0, screen_buffer, win_width * win_height * 3);
 #endif
-
-    cerr << "server: serve() image sent" << endl;
 }
 
 
@@ -2642,17 +2881,17 @@ int main(int argc, char** argv)
 
    glutInit(&argc, argv);
    glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA); 
-
-   MainTransferFunctionWindow * tf_window;
-   tf_window = new MainTransferFunctionWindow();
-   tf_window->mainInit();
    
    glutInitWindowSize(win_width, win_height);
    glutInitWindowPosition(10, 10);
    render_window = glutCreateWindow(argv[0]);
-
    glutDisplayFunc(display);
+
 #ifndef XINETD
+   MainTransferFunctionWindow * tf_window;
+   tf_window = new MainTransferFunctionWindow();
+   tf_window->mainInit();
+
    glutMouseFunc(mouse);
    glutMotionFunc(motion);
    glutKeyboardFunc(keyboard);
