@@ -45,6 +45,7 @@ private:
   bool slice_mode;	//enable cut planes
   bool volume_mode;	//enable full volume rendering
 
+
   //cg related
   CGcontext g_context;		//the Nvidia cg context 
   CGprogram m_one_volume_fprog;
@@ -68,6 +69,13 @@ private:
 	                float r, float g, float b, float line_width);
 
   void get_near_far_z(Mat4x4 mv, double &zNear, double &zFar);
+
+  void init_font(char* filename);
+  GLuint font_texture; 				//the id of the font texture
+  void glPrint(char* string, int set);		//there are two sets of font in the texture. 0, 1
+  void draw_label(int volume_index);		//draw label using bitmap texture
+  GLuint font_base;				//the base of the font display list
+  void build_font();				//register the location of each alphabet in the texture
 
 public:
   VolumeRenderer(CGcontext _context);

@@ -54,6 +54,7 @@ private:
 	bool outline_enabled;   // show/hide outline around volume
 	Color outline_color;    // color for outline around volume
 
+
 public:
 	Vector3 location;
 
@@ -116,6 +117,10 @@ public:
 	bool outline_is_enabled();
 	void set_outline_color(float* rgb);
 	void get_outline_color(float* rgb);
+
+
+	void set_label(int axis, char* txt);	//change the label displayed on an axis
+	char label[3][50];	// the labels along each axis 0:x , 1:y, 2:z
 };
 
 #endif
