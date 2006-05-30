@@ -75,6 +75,9 @@ FieldPrism3D::rangeMax(Axis which) const
 FieldPrism3D&
 FieldPrism3D::define(int nodeId, double f)
 {
+    while (_valuelist.size() <= nodeId) {
+        _valuelist.push_back(NAN);
+    }
     _valuelist[nodeId] = f;
 
     if (_vmin == NAN || _vmax == NAN) {

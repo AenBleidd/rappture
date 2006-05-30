@@ -19,6 +19,8 @@ using namespace Rappture;
 
 FieldTri2D::FieldTri2D()
   : _valuelist(),
+    _vmin(NAN),
+    _vmax(NAN),
     _meshPtr(NULL),
     _counter(0)
 {
@@ -26,15 +28,18 @@ FieldTri2D::FieldTri2D()
 
 FieldTri2D::FieldTri2D(const MeshTri2D& grid)
   : _valuelist(),
+    _vmin(NAN),
+    _vmax(NAN),
     _meshPtr(NULL),
     _counter(0)
 {
     _meshPtr = Ptr<MeshTri2D>( new MeshTri2D(grid) );
-    _valuelist.reserve( grid.sizeNodes() );
 }
 
 FieldTri2D::FieldTri2D(const FieldTri2D& field)
   : _valuelist(field._valuelist),
+    _vmin(field._vmin),
+    _vmax(field._vmax),
     _meshPtr(field._meshPtr),
     _counter(field._counter)
 {
@@ -44,6 +49,8 @@ FieldTri2D&
 FieldTri2D::operator=(const FieldTri2D& field)
 {
     _valuelist = field._valuelist;
+    _vmin = field._vmin;
+    _vmax = field._vmax;
     _meshPtr = field._meshPtr;
     _counter = field._counter;
     return *this;
@@ -91,9 +98,12 @@ FieldTri2D::rangeMax(Axis which) const
 FieldTri2D&
 FieldTri2D::define(int nodeId, double f)
 {
+    while (_valuelist.size() < nodeId) {
+        _valuelist.push_back(NAN);
+    }
     _valuelist[nodeId] = f;
 
-    if (_vmin == NAN || _vmax == NAN) {
+    if (isnan(_vmin) || isnan(_vmax)) {
         _vmin = _vmax = f;
     } else {
         if (f < _vmin) { _vmin = f; }
