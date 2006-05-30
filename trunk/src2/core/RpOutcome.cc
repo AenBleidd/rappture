@@ -50,6 +50,7 @@ Outcome::error(const char* errmsg, int status)
     _status = status;
     _remarkPtr = Ptr<std::string>(new std::string(errmsg));
     _contextPtr.clear();
+    return *this;
 }
 
 Outcome&
@@ -58,6 +59,7 @@ Outcome::clear()
     _status = 0;
     _remarkPtr.clear();
     _contextPtr.clear();
+    return *this;
 }
 
 Outcome::operator int() const
@@ -79,6 +81,7 @@ Outcome::operator&=(Outcome oc)
         _remarkPtr = oc._remarkPtr;
         _contextPtr = oc._contextPtr;
     }
+    return *this;
 }
 
 std::string

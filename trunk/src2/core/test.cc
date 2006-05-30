@@ -45,6 +45,14 @@ main(int argc, char* argv[]) {
     num2id.get(69,NULL).value() = 3;
     num2id.get(95,NULL).value() = 4;
 
+    Rappture::Outcome err = foo(1);
+    if (err) {
+        std::cout << err.remark() << std::endl;
+        std::cout << err.context() << std::endl;
+    } else {
+        std::cout << "foo ok" << std::endl;
+    }
+
     std::cout << num2id.stats();
     Rappture::LookupEntry2<int,int> entry = num2id.first();
     while (!entry.isNull()) {

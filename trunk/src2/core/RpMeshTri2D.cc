@@ -209,9 +209,8 @@ MeshTri2D::addNode(const Node2D& nd)
         // id2node map up to date?  then keep it up to date
         if (node.id() >= _id2node.size()) {
             int newsize = 2*_id2node.size();
-            _id2node.reserve(newsize);
             for (int i=_id2node.size(); i < newsize; i++) {
-                _id2node[i] = -1;
+                _id2node.push_back(-1);
             }
         }
         _id2node[node.id()] = n;

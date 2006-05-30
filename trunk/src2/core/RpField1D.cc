@@ -119,10 +119,10 @@ Field1D::define(double x, double y)
     Node1D node = Node1D(x);
     Cell1D cell = _meshPtr->locate(node);
 
-    if (x == cell.x(0)) {
+    if (x == cell.x(0) && !cell.isOutside()) {
         define(cell.nodeId(0), y);
     }
-    else if (x == cell.x(1)) {
+    else if (x == cell.x(1) && !cell.isOutside()) {
         define(cell.nodeId(1), y);
     }
     else {

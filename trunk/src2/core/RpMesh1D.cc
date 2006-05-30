@@ -312,7 +312,7 @@ Mesh1D::_rebuildNodeIdMap()
     // reserve enough space to map all of these IDs
     _id2node.clear();
     for (n=0; n < maxid; n++) {
-        _id2node[n] = -1;  // mapping not known
+        _id2node.push_back(-1);  // mapping not known
     }
 
     // run through all nodes and build the node map
