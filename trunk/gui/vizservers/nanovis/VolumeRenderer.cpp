@@ -26,6 +26,7 @@ VolumeRenderer::VolumeRenderer(CGcontext _context):
   tf.clear(); 
 
   init_shaders();
+  init_font("./font/Font.bmp");
 }
 
 
@@ -162,6 +163,8 @@ void VolumeRenderer::render_all(){
         draw_bounding_box(x0, y0, z0, x0+1, y0+1, z0+1,
             (double)olcolor[0], (double)olcolor[1], (double)olcolor[2],
             1.5);
+
+	draw_label(i);
     }
     glPopMatrix();
 
@@ -725,3 +728,214 @@ void VolumeRenderer::enable_volume(int index){
 void VolumeRenderer::disable_volume(int index){
   volume[index]->disable();
 }
+
+
+void VolumeRenderer::init_font(char* filename) {
+
+    FILE *file;
+    unsigned short int bfType;
+    long int bfOffBits;
+    short int biPlanes;
+    short int biBitCount;
+    long int biSizeImage;
+    int width, height;
+    int i;
+    unsigned char temp;
+
+
+    /* make sure the file is there and open it read-only (binary) */
+    if ((file = fopen(filename, "rb")) == NULL)
+    {
+      assert(false);
+    }
+    
+    if(!fread(&bfType, sizeof(short int), 1, file))
+    {
+      assert(false);
+      //printf("Error reading file!\n");
+    }
+    
+    /* check if file is a bitmap */
+    if (bfType != 19778)
+    {
+      assert(false);
+      //printf("Not a Bitmap-File!\n");
+    }
+    
+    /* get the file size */
+    /* skip file size and reserved fields of bitmap file header */
+    fseek(file, 8, SEEK_CUR);
+    
+    /* get the position of the actual bitmap data */
+    if (!fread(&bfOffBits, sizeof(long int), 1, file))
+    {
+      assert(false);
+      //printf("Error reading file!\n");
+    }
+    //printf("Data at Offset: %ld\n", bfOffBits);
+    
+    /* skip size of bitmap info header */
+    fseek(file, 4, SEEK_CUR);
+    
+    /* get the width of the bitmap */
+    fread(&width, sizeof(int), 1, file);
+    //printf("Width of Bitmap: %d\n", texture->width);
+    
+    /* get the height of the bitmap */
+    fread(&height, sizeof(int), 1, file);
+    //printf("Height of Bitmap: %d\n", texture->height);
+    
+    /* get the number of planes (must be set to 1) */
+    fread(&biPlanes, sizeof(short int), 1, file);
+    if (biPlanes != 1)
+    {
+      assert(false);
+      //printf("Error: number of Planes not 1!\n");
+    }
+    
+    /* get the number of bits per pixel */
+    if (!fread(&biBitCount, sizeof(short int), 1, file))
+    {
+      assert(false);
+      //printf("Error reading file!\n");
+      //return 0;
+    }
+    
+    //printf("Bits per Pixel: %d\n", biBitCount);
+    if (biBitCount != 24)
+    {
+      assert(false);
+      //printf("Bits per Pixel not 24\n");
+      //return 0;
+    }
+
+
+    /* calculate the size of the image in bytes */
+    biSizeImage = width * height * 3 * sizeof(unsigned char);
+    unsigned char* data = (unsigned char*) malloc(biSizeImage);
+
+
+    /* seek to the actual data */
+    fseek(file, bfOffBits, SEEK_SET);
+    if (!fread(data, biSizeImage, 1, file))
+    {
+       assert(false);
+       //printf("Error loading file!\n");
+    }
+
+    /* swap red and blue (bgr -> rgb) */
+    for (i = 0; i < biSizeImage; i += 3)
+    {
+       temp = data[i];
+       data[i] = data[i + 2];
+       data[i + 2] = temp;
+    }
+
+
+    //create opengl texture 
+    glGenTextures(1, &font_texture);
+    glBindTexture(GL_TEXTURE_2D, font_texture);
+    glTexImage2D(GL_TEXTURE_2D, 0, 3, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+
+    build_font();
+    assert(glGetError()==0);
+
+    free(data);
+}
+
+
+
+void VolumeRenderer::draw_label(int volume_index){
+
+  Volume* vol = volume[volume_index];
+ 
+  glEnable(GL_TEXTURE_2D);
+  glEnable(GL_BLEND);
+
+  //x
+  glPushMatrix();
+    glTranslatef(0., -0.2, 1.);
+    glColor3f(1.f, 1.0f, 1.0f);
+
+    glPushMatrix();
+      glScalef(1./volume[volume_index]->aspect_ratio_width, 
+	  1./volume[volume_index]->aspect_ratio_height, 
+	  1./volume[volume_index]->aspect_ratio_depth);
+      glPrint(vol->label[0], 0);
+    glPopMatrix();
+  glPopMatrix();
+
+  //y
+  glPushMatrix();
+    glTranslatef(-0.02, 0., 1.);
+
+    glPushMatrix();
+      glScalef(1./volume[volume_index]->aspect_ratio_width, 
+	  1./volume[volume_index]->aspect_ratio_height, 
+	  1./volume[volume_index]->aspect_ratio_depth);
+      glRotatef(90., 0., 0., 1.);
+      glColor3f(1.f, 1.0f, 1.0f);
+      glPrint(vol->label[1], 0);
+    glPopMatrix();
+  glPopMatrix();
+
+  //z
+  glPushMatrix();
+    glTranslatef(1., -0.2, 1.);
+
+    glPushMatrix();
+      glScalef(1./volume[volume_index]->aspect_ratio_width, 
+	  1./volume[volume_index]->aspect_ratio_height, 
+	  1./volume[volume_index]->aspect_ratio_depth);
+      glRotatef(90., 0., 1., 0.);
+      glColor3f(1.f, 1.0f, 1.0f);
+      glPrint(vol->label[2], 0);
+    glPopMatrix();
+  glPopMatrix();
+
+  glDisable(GL_TEXTURE_2D);
+}
+
+
+
+void VolumeRenderer::build_font() {
+
+    GLfloat cx, cy;         /* the character coordinates in our texture */
+    font_base = glGenLists(256);
+    glBindTexture(GL_TEXTURE_2D, font_texture);
+    for (int loop = 0; loop < 256; loop++)
+    {
+        cx = (float) (loop % 16) / 16.0f;
+        cy = (float) (loop / 16) / 16.0f;
+        glNewList(font_base + loop, GL_COMPILE);
+            glBegin(GL_QUADS);
+                glTexCoord2f(cx, 1 - cy - 0.0625f);
+                glVertex3f(0, 0, 0);
+                glTexCoord2f(cx + 0.0625f, 1 - cy - 0.0625f);
+                glVertex3f(0.04, 0, 0);
+                glTexCoord2f(cx + 0.0625f, 1 - cy);
+                glVertex3f(0.04, 0.04, 0);
+                glTexCoord2f(cx, 1 - cy);
+                glVertex3f(0, 0.04, 0);
+            glEnd();
+            glTranslated(0.04, 0, 0);
+        glEndList();
+    }
+}
+
+
+   
+void VolumeRenderer::glPrint(char* string, int set){
+
+    if(set>1) set=1;
+
+    glBindTexture(GL_TEXTURE_2D, font_texture);
+
+    glListBase(font_base - 32 + (128 * set));
+    glCallLists(strlen(string), GL_BYTE, string);
+
+}
+

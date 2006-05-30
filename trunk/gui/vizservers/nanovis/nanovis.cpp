@@ -45,7 +45,7 @@ PlaneRenderer* plane_render;
 Camera* cam;
 
 //if true nanovis renders volumes in 3D, if not renders 2D plane
-bool volume_mode = true;
+bool volume_mode = true; 
 
 // color table for built-in transfer function editor
 float color_table[256][4]; 	
@@ -271,7 +271,7 @@ CutplaneCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]
         }
 
         int axis;
-        if (GetAxis(interp, argv[3], &axis) != TCL_OK) {
+        if (GetAxis(interp, (char*) argv[3], &axis) != TCL_OK) {
             return TCL_ERROR;
         }
 
@@ -319,7 +319,7 @@ CutplaneCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]
         if (relval > 0.99) { relval = 0.99; }
 
         int axis;
-        if (GetAxis(interp, argv[3], &axis) != TCL_OK) {
+        if (GetAxis(interp, (char*) argv[3], &axis) != TCL_OK) {
             return TCL_ERROR;
         }
 
@@ -420,7 +420,7 @@ TransfuncCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[
         int xferc, i, j;
         char **xferv;
 
-        if (Tcl_SplitList(interp, argv[3], &xferc, &xferv) != TCL_OK) {
+        if (Tcl_SplitList(interp, argv[3], &xferc, (const char***) &xferv) != TCL_OK) {
             return TCL_ERROR;
         }
         if (xferc % 5 != 0) {
@@ -663,7 +663,7 @@ VolumeCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
             }
 
             float rgb[3];
-            if (GetColor(interp, argv[3], rgb) != TCL_OK) {
+            if (GetColor(interp, (char*) argv[3], rgb) != TCL_OK) {
                 return TCL_ERROR;
             }
 
@@ -707,7 +707,7 @@ VolumeCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
             }
 
             float cval[3];
-	        if (GetColor(interp, argv[3], cval) != TCL_OK) {
+	        if (GetColor(interp, (char*) argv[3], cval) != TCL_OK) {
 		        return TCL_ERROR;
 	        }
 
@@ -975,7 +975,7 @@ GetColor(Tcl_Interp *interp, char *str, float *rgbPtr)
 {
     int rgbc;
     char **rgbv;
-    if (Tcl_SplitList(interp, str, &rgbc, &rgbv) != TCL_OK) {
+    if (Tcl_SplitList(interp, str, &rgbc, (const char***)&rgbv) != TCL_OK) {
         return TCL_ERROR;
     }
     if (rgbc != 3) {
@@ -1928,10 +1928,10 @@ void initGL(void)
    //load_volume_file(0, "./data/A-apbs-2-out-potential-PE0.dx");
    //load_volume_file(0, "./data/nw-AB-Vg=0.000-Vd=1.000-potential.dx");
    //load_volume_file(0, "./data/test2.dx");
-   //load_volume_file(0, "./data/mu-wire-3d.dx");
+   //load_volume_file(0, "./data/mu-wire-3d.dx"); //I added this line to debug: Wei
    //load_volume_file(0, "./data/input_nd_dx_4"); //take a VERY long time?
    //load_vector_file(1, "./data/J-wire-vec.dx");
-   //load_volume_file(1, "./data/mu-wire-3d.dx");
+   //load_volume_file(1, "./data/mu-wire-3d.dx");  //I added this line to debug: Wei
    //load_volume_file(3, "./data/mu-wire-3d.dx");
    //load_volume_file(4, "./data/mu-wire-3d.dx");
 
@@ -1941,11 +1941,22 @@ void initGL(void)
    //create volume renderer and add volumes to it
    vol_render = new VolumeRenderer(g_context);
 
+   /*
+   //I added this to debug : Wei
+   float tmp_data[4*124];
+   TransferFunction* tmp_tf = new TransferFunction(124, tmp_data);
+   vol_render->add_volume(volume[0], tmp_tf);
+   volume[1]->move(Vector3(0.5, 0.6, 0.7));
+   vol_render->add_volume(volume[1], tmp_tf);
+   */
+
    //create an 2D plane renderer
    plane_render = new PlaneRenderer(g_context, win_width, win_height);
    make_test_2D_data();
 
    plane_render->add_plane(plane[0], get_transfunc("default"));
+
+   assert(glGetError()==0);
 
    //init_particle_system();
    //init_lic(); 
@@ -2888,9 +2899,9 @@ int main(int argc, char** argv)
    glutDisplayFunc(display);
 
 #ifndef XINETD
-   MainTransferFunctionWindow * tf_window;
-   tf_window = new MainTransferFunctionWindow();
-   tf_window->mainInit();
+   //MainTransferFunctionWindow * tf_window;
+   //tf_window = new MainTransferFunctionWindow();
+   //tf_window->mainInit();
 
    glutMouseFunc(mouse);
    glutMotionFunc(motion);
