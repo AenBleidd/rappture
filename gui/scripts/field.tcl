@@ -40,6 +40,7 @@ itcl::class Rappture::Field {
     private variable _comp2dims  ;# maps component name => dimensionality
     private variable _comp2xy    ;# maps component name => x,y vectors
     private variable _comp2vtk   ;# maps component name => vtkFloatArray
+    private variable _comp2dx    ;# maps component name => OpenDX data
     private variable _comp2style ;# maps component name => style settings
     private variable _comp2cntls ;# maps component name => x,y control points
 
@@ -160,6 +161,9 @@ itcl::body Rappture::Field::mesh {{what -overall}} {
         set mobj [lindex $_comp2vtk($what) 0]
         return [$mobj mesh]
     }
+    if {[info exists _comp2dx($what)]} {
+        return ""  ;# no mesh -- it's embedded in the value data
+    }
     error "bad option \"$what\": should be [join [lsort [array names _comp2dims]] {, }]"
 }
 
@@ -179,6 +183,9 @@ itcl::body Rappture::Field::values {{what -overall}} {
     }
     if {[info exists _comp2vtk($what)]} {
         return [lindex $_comp2vtk($what) 1]  ;# return vtkFloatArray
+    }
+    if {[info exists _comp2dx($what)]} {
+        return $_comp2dx($what)  ;# return gzipped, base64-encoded DX data
     }
     error "bad option \"$what\": should be [join [lsort [array names _comp2dims]] {, }]"
 }
@@ -236,36 +243,42 @@ itcl::body Rappture::Field::limits {which} {
                 }
             }
             2D - 3D {
-                foreach {xv yv} $_comp2vtk($comp) break
-                switch -- $which {
-                    x - xlin - xlog {
-                        foreach {vmin vmax} [$xv limits x] break
-                        set axis xaxis
-                    }
-                    y - ylin - ylog {
-                        foreach {vmin vmax} [$xv limits y] break
-                        set axis yaxis
-                    }
-                    z - zlin - zlog {
-                        foreach {vmin vmax} [$xv limits z] break
-                        set axis zaxis
-                    }
-                    v - vlin - vlog {
-                        catch {unset style}
-                        array set style $_comp2style($comp)
-                        if {[info exists style(-min)] && [info exists style(-max)]} {
-                            # This component has its own hard-coded
-                            # min/max range.  Ignore it for overall limits.
-                            set vmin $min
-                            set vmax $max
-                        } else {
-                            foreach {vmin vmax} [$yv GetRange] break
+                if {[info exists _comp2vkt($comp)]} {
+                    foreach {xv yv} $_comp2vtk($comp) break
+                    switch -- $which {
+                        x - xlin - xlog {
+                            foreach {vmin vmax} [$xv limits x] break
+                            set axis xaxis
                         }
-                        set axis vaxis
+                        y - ylin - ylog {
+                            foreach {vmin vmax} [$xv limits y] break
+                            set axis yaxis
+                        }
+                        z - zlin - zlog {
+                            foreach {vmin vmax} [$xv limits z] break
+                            set axis zaxis
+                        }
+                        v - vlin - vlog {
+                            catch {unset style}
+                            array set style $_comp2style($comp)
+                            if {[info exists style(-min)] && [info exists style(-max)]} {
+                                # This component has its own hard-coded
+                                # min/max range.  Ignore it for overall limits.
+                                set vmin $min
+                                set vmax $max
+                            } else {
+                                foreach {vmin vmax} [$yv GetRange] break
+                            }
+                            set axis vaxis
+                        }
+                        default {
+                            error "bad option \"$which\": should be x, xlin, xlog, y, ylin, ylog, v, vlin, vlog"
+                        }
                     }
-                    default {
-                        error "bad option \"$which\": should be x, xlin, xlog, y, ylin, ylog, v, vlin, vlog"
-                    }
+                } else {
+                    set vmin 0  ;# HACK ALERT! must be OpenDX data
+                    set vmax 1
+                    set axis vaxis
                 }
             }
         }
@@ -391,6 +404,7 @@ itcl::body Rappture::Field::_build {} {
     }
     catch {unset _comp2xy}
     catch {unset _comp2vtk}
+    catch {unset _comp2dx}
     catch {unset _comp2dims}
     catch {unset _comp2style}
 
@@ -409,6 +423,8 @@ itcl::body Rappture::Field::_build {} {
             set type "points-on-mesh"
         } elseif {[$_field element $cname.vtk] != ""} {
             set type "vtk"
+        } elseif {[$_field element $cname.dx] != ""} {
+            set type "dx"
         }
 
         set _comp2style($cname) ""
@@ -549,6 +565,16 @@ itcl::body Rappture::Field::_build {} {
 
             set _comp2dims($cname) "[$mobj dimensions]D"
             set _comp2vtk($cname) [list $mobj $farray]
+            set _comp2style($cname) [$_field get $cname.style]
+            incr _counter
+        } elseif {$type == "dx"} {
+            #
+            # HACK ALERT!  Extract gzipped, base64-encoded OpenDX
+            # data.  Assume that it's 3D.  Pass it straight
+            # off to the NanoVis visualizer.
+            #
+            set _comp2dims($cname) "3D"
+            set _comp2dx($cname) [$_field get $cname.dx]
             set _comp2style($cname) [$_field get $cname.style]
             incr _counter
         }
