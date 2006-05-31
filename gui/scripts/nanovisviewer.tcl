@@ -844,6 +844,9 @@ itcl::body Rappture::NanovisViewer::_rebuild {} {
         _send volume outline state on
         _send volume outline color [_color2rgb $itk_option(-plotoutline)]
     }
+    _send volume axis label x "x"
+    _send volume axis label y "y"
+    _send volume axis label z "z"
 }
 
 # ----------------------------------------------------------------------
