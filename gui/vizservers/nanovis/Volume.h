@@ -16,6 +16,7 @@
 #ifndef _VOLUME_H_
 #define _VOLUME_H_
 
+#include <string>
 #include <vector>
 
 #include "define.h"
@@ -120,7 +121,7 @@ public:
 
 
 	void set_label(int axis, char* txt);	//change the label displayed on an axis
-	char label[3][50];	// the labels along each axis 0:x , 1:y, 2:z
+	std::string label[3];	// the labels along each axis 0:x , 1:y, 2:z
 };
 
 #endif

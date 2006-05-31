@@ -82,26 +82,18 @@ int slice_sort(const void* a, const void* b){
 
 
 void VolumeRenderer::render_all(){
-  int total_enabled_volumes = 0;
   int total_rendered_slices = 0;
 
-  //compute total enabled volumes
-  for(int i=0; i<n_volumes; i++){
-    if(volume[i]->is_enabled())
-      total_enabled_volumes ++;
-  }
-  //fprintf(stderr, "total volumes rendered: %d\n", total_enabled_volumes);
-
-  ConvexPolygon*** polys = new ConvexPolygon**[total_enabled_volumes];	//two dimension pointer array
+  ConvexPolygon*** polys = new ConvexPolygon**[n_volumes];	//two dimension pointer array
   									//storing the slices
-  int* actual_slices = new int[total_enabled_volumes]; //number of actual slices for each volume
+  int* actual_slices = new int[n_volumes]; //number of actual slices for each volume
 
-  int cur_vol = -1;
   for(int i=0; i<n_volumes; i++){
+    polys[i] = NULL;
+    actual_slices[i] = 0;
+
     if(!volume[i]->is_enabled())
       continue; //skip this volume
-
-    cur_vol++;
 
     int volume_index = i;
     int n_slices = volume[volume_index]->get_n_slice();
@@ -157,9 +149,9 @@ void VolumeRenderer::render_all(){
     model_view_trans_inverse = model_view_trans.inverse();
 
     //draw volume bounding box with translation (the correct location in space)
-    if (volume[i]->outline_is_enabled()) {
+    if (volume[volume_index]->outline_is_enabled()) {
         float olcolor[3];
-        volume[i]->get_outline_color(olcolor);
+        volume[volume_index]->get_outline_color(olcolor);
         draw_bounding_box(x0, y0, z0, x0+1, y0+1, z0+1,
             (double)olcolor[0], (double)olcolor[1], (double)olcolor[2],
             1.5);
@@ -177,14 +169,14 @@ void VolumeRenderer::render_all(){
     float z_step = fabs(zNear-zFar)/n_slices;		
     int n_actual_slices;
 
-    if (volume[i]->data_is_enabled()) {
+    if (volume[volume_index]->data_is_enabled()) {
         n_actual_slices = (int)(fabs(zNear-zFar)/z_step + 1);
-        polys[cur_vol] = new ConvexPolygon*[n_actual_slices];
+        polys[volume_index] = new ConvexPolygon*[n_actual_slices];
     } else {
         n_actual_slices = 0;
-        polys[cur_vol] = NULL;
+        polys[volume_index] = NULL;
     }
-    actual_slices[cur_vol] = n_actual_slices;
+    actual_slices[volume_index] = n_actual_slices;
 
     Vector4 vert1 = (Vector4(-10, -10, -0.5, 1));
     Vector4 vert2 = (Vector4(-10, +10, -0.5, 1));
@@ -279,7 +271,7 @@ void VolumeRenderer::render_all(){
       slice_z = zFar + i * z_step;	//back to front
 
       ConvexPolygon *poly = new ConvexPolygon();
-      polys[cur_vol][counter] = poly;
+      polys[volume_index][counter] = poly;
       counter++;
 
       poly->vertices.clear();
@@ -316,7 +308,7 @@ void VolumeRenderer::render_all(){
   SortElement* slices = (SortElement*) malloc(sizeof(SortElement)*total_rendered_slices);
 
   int counter = 0;
-  for(int i=0; i<total_enabled_volumes; i++){
+  for(int i=0; i<n_volumes; i++){
     for(int j=0; j<actual_slices[i]; j++){
       if(polys[i][j]->vertices.size() >= 3){
         slices[counter] = SortElement(polys[i][j]->vertices[0].z, i, j);
@@ -363,11 +355,13 @@ void VolumeRenderer::render_all(){
   glDisable(GL_BLEND);
 
   //Deallocate all the memory used
-  for(int i=0; i<total_enabled_volumes; i++){
+  for(int i=0; i<n_volumes; i++){
     for(int j=0; j<actual_slices[i]; j++){
       delete polys[i][j];
     }
-    delete[] polys[i];
+    if (polys[i]) {
+      delete[] polys[i];
+    }
   }
   delete[] polys;
   delete[] actual_slices;
@@ -864,21 +858,21 @@ void VolumeRenderer::draw_label(int volume_index){
       glScalef(1./volume[volume_index]->aspect_ratio_width, 
 	  1./volume[volume_index]->aspect_ratio_height, 
 	  1./volume[volume_index]->aspect_ratio_depth);
-      glPrint(vol->label[0], 0);
+      glPrint((char*)vol->label[0].c_str(), 0);
     glPopMatrix();
   glPopMatrix();
 
   //y
   glPushMatrix();
-    glTranslatef(-0.02, 0., 1.);
+    glTranslatef(1., 0.5, 0.);
 
     glPushMatrix();
       glScalef(1./volume[volume_index]->aspect_ratio_width, 
 	  1./volume[volume_index]->aspect_ratio_height, 
 	  1./volume[volume_index]->aspect_ratio_depth);
-      glRotatef(90., 0., 0., 1.);
+      glRotatef(45., 0., 1., 0.);
       glColor3f(1.f, 1.0f, 1.0f);
-      glPrint(vol->label[1], 0);
+      glPrint((char*)vol->label[1].c_str(), 0);
     glPopMatrix();
   glPopMatrix();
 
@@ -892,7 +886,7 @@ void VolumeRenderer::draw_label(int volume_index){
 	  1./volume[volume_index]->aspect_ratio_depth);
       glRotatef(90., 0., 1., 0.);
       glColor3f(1.f, 1.0f, 1.0f);
-      glPrint(vol->label[2], 0);
+      glPrint((char*)vol->label[2].c_str(), 0);
     glPopMatrix();
   glPopMatrix();
 

@@ -53,9 +53,9 @@ Volume::Volume(float x, float y, float z,
   plane.push_back(CutPlane(3, 0.5));
   
   //initialize the labels  
-  strcpy(label[0], "X Label");
-  strcpy(label[1], "Y Label");
-  strcpy(label[2], "Z Label");
+  label[0] = "X Label";
+  label[1] = "Y Label";
+  label[2] = "Z Label";
 }
 
 
@@ -135,5 +135,5 @@ void Volume::get_outline_color(float *rgb) {
 }
 
 void Volume::set_label(int axis, char* txt){
-  strcpy(label[axis], txt);
-}	
+  label[axis] = txt;
+}

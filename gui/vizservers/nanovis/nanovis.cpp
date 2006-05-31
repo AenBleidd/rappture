@@ -420,7 +420,7 @@ TransfuncCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[
         int xferc, i, j;
         char **xferv;
 
-        if (Tcl_SplitList(interp, argv[3], &xferc, (const char***) &xferv) != TCL_OK) {
+        if (Tcl_SplitList(interp, argv[3], &xferc, &xferv) != TCL_OK) {
             return TCL_ERROR;
         }
         if (xferc % 5 != 0) {
@@ -486,6 +486,7 @@ TransfuncCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[
 /*
  * ----------------------------------------------------------------------
  * CLIENT COMMAND:
+ *   volume axis label x|y|z <value> ?<volumeId> ...?
  *   volume data state on|off ?<volumeId> ...?
  *   volume outline state on|off ?<volumeId> ...?
  *   volume outline color on|off ?<volumeId> ...?
@@ -501,31 +502,69 @@ TransfuncCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[
 static int
 VolumeCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
 {
-	if (argc < 2) {
-		Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
-			" option arg arg...\"", (char*)NULL);
-		return TCL_ERROR;
+    if (argc < 2) {
+        Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
+            " option arg arg...\"", (char*)NULL);
+        return TCL_ERROR;
     }
 
     char c = *argv[1];
-	if (c == 'd' && strcmp(argv[1],"data") == 0) {
+    if (c == 'a' && strcmp(argv[1],"axis") == 0) {
         if (argc < 3) {
-		    Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
-			    argv[1], " option ?arg arg...?\"", (char*)NULL);
-		    return TCL_ERROR;
+            Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
+                argv[1], " option ?arg arg...?\"", (char*)NULL);
+            return TCL_ERROR;
         }
         c = *argv[2];
-	    if (c == 's' && strcmp(argv[2],"state") == 0) {
+        if (c == 'l' && strcmp(argv[2],"label") == 0) {
             if (argc < 4) {
-		        Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
-			        argv[1], " state on|off ?volume ...?\"", (char*)NULL);
-		        return TCL_ERROR;
+                Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
+                    argv[1], " label x|y|z string ?volume ...?\"", (char*)NULL);
+                return TCL_ERROR;
+            }
+
+            int axis;
+            if (GetAxis(interp, argv[3], &axis) != TCL_OK) {
+                return TCL_ERROR;
+            }
+
+            int ivol;
+            if (argc < 6) {
+                for (ivol=0; ivol < n_volumes; ivol++) {
+                    volume[ivol]->set_label(axis, argv[4]);
+                }
+            } else {
+                for (int n=5; n < argc; n++) {
+                    if (Tcl_GetInt(interp, argv[n], &ivol) != TCL_OK) {
+                        return TCL_ERROR;
+                    }
+                    volume[ivol]->set_label(axis, argv[4]);
+                }
+            }
+            return TCL_OK;
+        }
+        Tcl_AppendResult(interp, "bad option \"", argv[2],
+            "\": should be label", (char*)NULL);
+        return TCL_ERROR;
+    }
+    else if (c == 'd' && strcmp(argv[1],"data") == 0) {
+        if (argc < 3) {
+            Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
+                argv[1], " option ?arg arg...?\"", (char*)NULL);
+            return TCL_ERROR;
+        }
+        c = *argv[2];
+        if (c == 's' && strcmp(argv[2],"state") == 0) {
+            if (argc < 4) {
+                Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
+                    argv[1], " state on|off ?volume ...?\"", (char*)NULL);
+                return TCL_ERROR;
             }
 
             int state;
-	        if (Tcl_GetBoolean(interp, argv[3], &state) != TCL_OK) {
-		        return TCL_ERROR;
-	        }
+            if (Tcl_GetBoolean(interp, argv[3], &state) != TCL_OK) {
+                return TCL_ERROR;
+            }
 
             int ivol;
             if (argc < 5) {
@@ -538,9 +577,9 @@ VolumeCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
                 }
             } else {
                 for (int n=4; n < argc; n++) {
-	                if (Tcl_GetInt(interp, argv[n], &ivol) != TCL_OK) {
-		                return TCL_ERROR;
-	                }
+                    if (Tcl_GetInt(interp, argv[n], &ivol) != TCL_OK) {
+                        return TCL_ERROR;
+                    }
                     if (state) {
                         volume[ivol]->enable_data();
                     } else {
@@ -550,11 +589,11 @@ VolumeCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
             }
             return TCL_OK;
         }
-	    else if (c == 'f' && strcmp(argv[2],"follows") == 0) {
+        else if (c == 'f' && strcmp(argv[2],"follows") == 0) {
             int nbytes;
-	        if (Tcl_GetInt(interp, argv[3], &nbytes) != TCL_OK) {
-		        return TCL_ERROR;
-	        }
+            if (Tcl_GetInt(interp, argv[3], &nbytes) != TCL_OK) {
+                return TCL_ERROR;
+            }
 
             char fname[64];
             sprintf(fname,"/tmp/nv%d.dat",getpid());
@@ -608,11 +647,11 @@ VolumeCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
             "\": should be follows or state", (char*)NULL);
         return TCL_ERROR;
     }
-	else if (c == 'o' && strcmp(argv[1],"outline") == 0) {
+    else if (c == 'o' && strcmp(argv[1],"outline") == 0) {
         if (argc < 3) {
-		    Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
-			    argv[1], " option ?arg arg...?\"", (char*)NULL);
-		    return TCL_ERROR;
+            Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
+                argv[1], " option ?arg arg...?\"", (char*)NULL);
+            return TCL_ERROR;
         }
         c = *argv[2];
         if (c == 's' && strcmp(argv[2],"state") == 0) {
@@ -692,24 +731,24 @@ VolumeCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
             "\": should be color or state", (char*)NULL);
         return TCL_ERROR;
     }
-	else if (c == 's' && strcmp(argv[1],"shading") == 0) {
+    else if (c == 's' && strcmp(argv[1],"shading") == 0) {
         if (argc < 3) {
-		    Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
-			    argv[1], " option ?arg arg...?\"", (char*)NULL);
-		    return TCL_ERROR;
+            Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
+                argv[1], " option ?arg arg...?\"", (char*)NULL);
+            return TCL_ERROR;
         }
         c = *argv[2];
-	    if (c == 'c' && strcmp(argv[2],"color") == 0) {
+        if (c == 'c' && strcmp(argv[2],"color") == 0) {
             if (argc < 4) {
-		        Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
-			        argv[1], " color value ?volume ...?\"", (char*)NULL);
-		        return TCL_ERROR;
+                Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
+                    argv[1], " color value ?volume ...?\"", (char*)NULL);
+                return TCL_ERROR;
             }
 
             float cval[3];
-	        if (GetColor(interp, (char*) argv[3], cval) != TCL_OK) {
-		        return TCL_ERROR;
-	        }
+            if (GetColor(interp, (char*) argv[3], cval) != TCL_OK) {
+                return TCL_ERROR;
+            }
 
             int ivol;
             if (argc < 5) {
@@ -718,25 +757,25 @@ VolumeCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
                 }
             } else {
                 for (int n=4; n < argc; n++) {
-	                if (Tcl_GetInt(interp, argv[n], &ivol) != TCL_OK) {
-		                return TCL_ERROR;
-	                }
+                    if (Tcl_GetInt(interp, argv[n], &ivol) != TCL_OK) {
+                        return TCL_ERROR;
+                    }
                     //volume[ivol]->set_diffuse((float)dval);
                 }
             }
             return TCL_OK;
         }
-	    else if (c == 'd' && strcmp(argv[2],"diffuse") == 0) {
+        else if (c == 'd' && strcmp(argv[2],"diffuse") == 0) {
             if (argc < 4) {
-		        Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
-			        argv[1], " diffuse value ?volume ...?\"", (char*)NULL);
-		        return TCL_ERROR;
+                Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
+                    argv[1], " diffuse value ?volume ...?\"", (char*)NULL);
+                return TCL_ERROR;
             }
 
             double dval;
-	        if (Tcl_GetDouble(interp, argv[3], &dval) != TCL_OK) {
-		        return TCL_ERROR;
-	        }
+            if (Tcl_GetDouble(interp, argv[3], &dval) != TCL_OK) {
+                return TCL_ERROR;
+            }
 
             int ivol;
             if (argc < 5) {
@@ -745,25 +784,25 @@ VolumeCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
                 }
             } else {
                 for (int n=4; n < argc; n++) {
-	                if (Tcl_GetInt(interp, argv[n], &ivol) != TCL_OK) {
-		                return TCL_ERROR;
-	                }
+                    if (Tcl_GetInt(interp, argv[n], &ivol) != TCL_OK) {
+                        return TCL_ERROR;
+                    }
                     volume[ivol]->set_diffuse((float)dval);
                 }
             }
             return TCL_OK;
         }
-	    else if (c == 'o' && strcmp(argv[2],"opacity") == 0) {
+        else if (c == 'o' && strcmp(argv[2],"opacity") == 0) {
             if (argc < 4) {
-		        Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
-			        argv[1], " opacity value ?volume ...?\"", (char*)NULL);
-		        return TCL_ERROR;
+                Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
+                    argv[1], " opacity value ?volume ...?\"", (char*)NULL);
+                return TCL_ERROR;
             }
 
             double dval;
-	        if (Tcl_GetDouble(interp, argv[3], &dval) != TCL_OK) {
-		        return TCL_ERROR;
-	        }
+            if (Tcl_GetDouble(interp, argv[3], &dval) != TCL_OK) {
+                return TCL_ERROR;
+            }
 
             int ivol;
             if (argc < 5) {
@@ -772,25 +811,25 @@ VolumeCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
                 }
             } else {
                 for (int n=4; n < argc; n++) {
-	                if (Tcl_GetInt(interp, argv[n], &ivol) != TCL_OK) {
-		                return TCL_ERROR;
-	                }
+                    if (Tcl_GetInt(interp, argv[n], &ivol) != TCL_OK) {
+                        return TCL_ERROR;
+                    }
                     volume[ivol]->set_opacity_scale((float)dval);
                 }
             }
             return TCL_OK;
         }
-	    else if (c == 's' && strcmp(argv[2],"specular") == 0) {
+        else if (c == 's' && strcmp(argv[2],"specular") == 0) {
             if (argc < 4) {
-		        Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
-			        argv[1], " specular value ?volume ...?\"", (char*)NULL);
-		        return TCL_ERROR;
+                Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
+                    argv[1], " specular value ?volume ...?\"", (char*)NULL);
+                return TCL_ERROR;
             }
 
             double dval;
-	        if (Tcl_GetDouble(interp, argv[3], &dval) != TCL_OK) {
-		        return TCL_ERROR;
-	        }
+            if (Tcl_GetDouble(interp, argv[3], &dval) != TCL_OK) {
+                return TCL_ERROR;
+            }
 
             int ivol;
             if (argc < 5) {
@@ -799,9 +838,9 @@ VolumeCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
                 }
             } else {
                 for (int n=4; n < argc; n++) {
-	                if (Tcl_GetInt(interp, argv[n], &ivol) != TCL_OK) {
-		                return TCL_ERROR;
-	                }
+                    if (Tcl_GetInt(interp, argv[n], &ivol) != TCL_OK) {
+                        return TCL_ERROR;
+                    }
                     volume[ivol]->set_specular((float)dval);
                 }
             }
@@ -975,7 +1014,7 @@ GetColor(Tcl_Interp *interp, char *str, float *rgbPtr)
 {
     int rgbc;
     char **rgbv;
-    if (Tcl_SplitList(interp, str, &rgbc, (const char***)&rgbv) != TCL_OK) {
+    if (Tcl_SplitList(interp, str, &rgbc, &rgbv) != TCL_OK) {
         return TCL_ERROR;
     }
     if (rgbc != 3) {
