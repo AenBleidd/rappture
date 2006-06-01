@@ -85,6 +85,7 @@ public:
   						//add a volume and its transfer function
   						//we require a transfer function when a 
 						//volume is added.
+  void shade_volume(Volume* _vol, TransferFunction* _tf); 
   void render(int volume_index);
   void render_all();	//render all enabled volumes;
   void set_specular(float val);

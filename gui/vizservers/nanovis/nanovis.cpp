@@ -52,12 +52,29 @@ float color_table[256][4];
 
 // default transfer function
 char *def_transfunc = "transfunc define default {\n\
-  0.0  1 1 1  0.5\n\
-  0.2  1 1 0  0.5\n\
-  0.4  0 1 0  0.5\n\
-  0.6  0 1 1  0.5\n\
-  0.8  0 0 1  0.5\n\
-  1.0  1 0 1  0.5\n\
+  0.0  1 1 1\n\
+  0.2  1 1 0\n\
+  0.4  0 1 0\n\
+  0.6  0 1 1\n\
+  0.8  0 0 1\n\
+  1.0  1 0 1\n\
+} {\n\
+  0.00  1.0\n\
+  0.05  0.0\n\
+  0.15  0.0\n\
+  0.20  1.0\n\
+  0.25  0.0\n\
+  0.35  0.0\n\
+  0.40  1.0\n\
+  0.45  0.0\n\
+  0.55  0.0\n\
+  0.60  1.0\n\
+  0.65  0.0\n\
+  0.75  0.0\n\
+  0.80  1.0\n\
+  0.85  0.0\n\
+  0.95  0.0\n\
+  1.00  1.0\n\
 }";
 
 #ifdef XINETD
@@ -393,7 +410,9 @@ void set_object(float x, float y, float z){
 /*
  * ----------------------------------------------------------------------
  * CLIENT COMMAND:
- *   transfunc define <name> { <v> <r> <g> <b> <w> ... }
+ *   transfunc define <name> <colormap> <alphamap>
+ *     where <colormap> = { <v> <r> <g> <b> ... }
+ *           <alphamap> = { <v> <w> ... }
  *
  * Clients send these commands to manipulate the transfer functions.
  * ----------------------------------------------------------------------
@@ -409,37 +428,50 @@ TransfuncCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[
 
     char c = *argv[1];
 	if (c == 'd' && strcmp(argv[1],"define") == 0) {
-        if (argc < 4) {
+        if (argc != 5) {
 		    Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
-			    argv[1], " option ?arg arg...?\"", (char*)NULL);
+			    argv[1], " define name colormap alphamap\"", (char*)NULL);
             return TCL_ERROR;
         }
 
         // decode the data and store in a series of fields
         Rappture::Field1D rFunc, gFunc, bFunc, wFunc;
-        int xferc, i, j;
-        char **xferv;
+        int cmapc, wmapc, i, j;
+        char **cmapv, **wmapv;
 
-        if (Tcl_SplitList(interp, argv[3], &xferc, &xferv) != TCL_OK) {
+        if (Tcl_SplitList(interp, argv[3], &cmapc, &cmapv) != TCL_OK) {
             return TCL_ERROR;
         }
-        if (xferc % 5 != 0) {
-            Tcl_Free((char*)xferv);
-		    Tcl_AppendResult(interp, "missing data in transfunc: should be ",
-                "{ v r g b w ... }", (char*)NULL);
+        if (cmapc % 4 != 0) {
+            Tcl_Free((char*)cmapv);
+		    Tcl_AppendResult(interp, "bad colormap in transfunc: should be ",
+                "{ v r g b ... }", (char*)NULL);
             return TCL_ERROR;
         }
 
-        for (i=0; i < xferc; i += 5) {
-            double vals[5];
-            for (j=0; j < 5; j++) {
-                if (Tcl_GetDouble(interp, xferv[i+j], &vals[j]) != TCL_OK) {
-                    Tcl_Free((char*)xferv);
+        if (Tcl_SplitList(interp, argv[4], &wmapc, &wmapv) != TCL_OK) {
+            return TCL_ERROR;
+        }
+        if (wmapc % 2 != 0) {
+            Tcl_Free((char*)cmapv);
+            Tcl_Free((char*)wmapv);
+		    Tcl_AppendResult(interp, "bad alphamap in transfunc: should be ",
+                "{ v w ... }", (char*)NULL);
+            return TCL_ERROR;
+        }
+
+        for (i=0; i < cmapc; i += 4) {
+            double vals[4];
+            for (j=0; j < 4; j++) {
+                if (Tcl_GetDouble(interp, cmapv[i+j], &vals[j]) != TCL_OK) {
+                    Tcl_Free((char*)cmapv);
+                    Tcl_Free((char*)wmapv);
                     return TCL_ERROR;
                 }
                 if (vals[j] < 0 || vals[j] > 1) {
-                    Tcl_Free((char*)xferv);
-		            Tcl_AppendResult(interp, "bad value \"", xferv[i+j],
+                    Tcl_Free((char*)cmapv);
+                    Tcl_Free((char*)wmapv);
+		            Tcl_AppendResult(interp, "bad value \"", cmapv[i+j],
                         "\": should be in the range 0-1", (char*)NULL);
                     return TCL_ERROR;
                 }
@@ -447,9 +479,28 @@ TransfuncCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[
             rFunc.define(vals[0], vals[1]);
             gFunc.define(vals[0], vals[2]);
             bFunc.define(vals[0], vals[3]);
-            wFunc.define(vals[0], vals[4]);
         }
-        Tcl_Free((char*)xferv);
+
+        for (i=0; i < wmapc; i += 2) {
+            double vals[2];
+            for (j=0; j < 2; j++) {
+                if (Tcl_GetDouble(interp, wmapv[i+j], &vals[j]) != TCL_OK) {
+                    Tcl_Free((char*)cmapv);
+                    Tcl_Free((char*)wmapv);
+                    return TCL_ERROR;
+                }
+                if (vals[j] < 0 || vals[j] > 1) {
+                    Tcl_Free((char*)cmapv);
+                    Tcl_Free((char*)wmapv);
+		            Tcl_AppendResult(interp, "bad value \"", wmapv[i+j],
+                        "\": should be in the range 0-1", (char*)NULL);
+                    return TCL_ERROR;
+                }
+            }
+            wFunc.define(vals[0], vals[1]);
+        }
+        Tcl_Free((char*)cmapv);
+        Tcl_Free((char*)wmapv);
 
         // sample the given function into discrete slots
         const int nslots = 256;
@@ -490,7 +541,7 @@ TransfuncCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[
  *   volume data state on|off ?<volumeId> ...?
  *   volume outline state on|off ?<volumeId> ...?
  *   volume outline color on|off ?<volumeId> ...?
- *   volume shading color <value> ?<volumeId> ...?
+ *   volume shading transfunc <name> ?<volumeId> ...?
  *   volume shading diffuse <value> ?<volumeId> ...?
  *   volume shading specular <value> ?<volumeId> ...?
  *   volume shading opacity <value> ?<volumeId> ...?
@@ -635,7 +686,15 @@ VolumeCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
                 return TCL_ERROR;
             }
 
-            volume[n]->set_n_slice(512);
+            //
+            // BE CAREFUL:  Set the number of slices to something
+            //   slightly different for each volume.  If we have
+            //   identical volumes at exactly the same position
+            //   with exactly the same number of slices, the second
+            //   volume will overwrite the first, so the first won't
+            //   appear at all.
+            //
+            volume[n]->set_n_slice(256-n);
             volume[n]->disable_cutplane(0);
             volume[n]->disable_cutplane(1);
             volume[n]->disable_cutplane(2);
@@ -738,29 +797,31 @@ VolumeCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
             return TCL_ERROR;
         }
         c = *argv[2];
-        if (c == 'c' && strcmp(argv[2],"color") == 0) {
+        if (c == 't' && strcmp(argv[2],"transfunc") == 0) {
             if (argc < 4) {
                 Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
-                    argv[1], " color value ?volume ...?\"", (char*)NULL);
+                    argv[1], " transfunc name ?volume ...?\"", (char*)NULL);
                 return TCL_ERROR;
             }
 
-            float cval[3];
-            if (GetColor(interp, (char*) argv[3], cval) != TCL_OK) {
+            TransferFunction *tf = get_transfunc(argv[3]);
+            if (tf == NULL) {
+                Tcl_AppendResult(interp, "transfer function \"", argv[3],
+                    "\" is not defined", (char*)NULL);
                 return TCL_ERROR;
             }
 
             int ivol;
             if (argc < 5) {
                 for (ivol=0; ivol < n_volumes; ivol++) {
-                    //volume[ivol]->set_diffuse((float)dval);
+                    vol_render->shade_volume(volume[ivol], tf);
                 }
             } else {
                 for (int n=4; n < argc; n++) {
                     if (Tcl_GetInt(interp, argv[n], &ivol) != TCL_OK) {
                         return TCL_ERROR;
                     }
-                    //volume[ivol]->set_diffuse((float)dval);
+                    vol_render->shade_volume(volume[ivol], tf);
                 }
             }
             return TCL_OK;
@@ -847,7 +908,7 @@ VolumeCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
             return TCL_OK;
         }
         Tcl_AppendResult(interp, "bad option \"", argv[2],
-            "\": should be color, diffuse, opacity, or specular", (char*)NULL);
+            "\": should be diffuse, opacity, specular, or transfunc", (char*)NULL);
         return TCL_ERROR;
     }
     else if (c == 's' && strcmp(argv[1],"state") == 0) {
@@ -1519,22 +1580,44 @@ load_volume_file(int index, char *fname) {
                         // scale all values [0-1], -1 => out of bounds
                         v = (isnan(v)) ? -1.0 : (v - vmin)/dv;
                         data[ngen] = v;
+                        ngen += 4;
+                    }
+                }
+            }
 
+            // Compute the gradient of this data.  BE CAREFUL: center
+            // calculation on each node to avoid skew in either direction.
+            ngen = 0;
+            for (int iz=0; iz < nz; iz++) {
+                for (int iy=0; iy < ny; iy++) {
+                    for (int ix=0; ix < nx; ix++) {
                         // gradient in x-direction
-                        double curval = (v < 0) ? 0.0 : v;
-                        double oldval = ((ngen/4) % nx == 0) ? 0.0 : data[ngen-4];
-                        oldval = (oldval < 0) ? 0.0 : oldval;
-                        data[ngen+1] = curval-oldval;  // assume dx=1
+                        double valm1 = (ix == 0) ? 0.0 : data[ngen-1];
+                        double valp1 = (ix == nx-1) ? 0.0 : data[ngen+1];
+                        if (valm1 < 0 || valp1 < 0) {
+                            data[ngen+1] = 0.0;
+                        } else {
+                            data[ngen+1] = valp1-valm1; // assume dx=1
+                        }
 
                         // gradient in y-direction
-                        oldval = (ngen-4*nx >= 0) ? data[ngen-4*nx] : 0.0;
-                        oldval = (oldval < 0) ? 0.0 : oldval;
-                        data[ngen+2] = curval-oldval;  // assume dy=1
+                        valm1 = (iy == 0) ? 0.0 : data[ngen-4*nx];
+                        valp1 = (iy == ny-1) ? 0.0 : data[ngen+4*nx];
+                        if (valm1 < 0 || valp1 < 0) {
+                            data[ngen+2] = 0.0;
+                        } else {
+                            data[ngen+2] = valp1-valm1; // assume dy=1
+                        }
 
                         // gradient in z-direction
-                        oldval = (ngen-4*nx*ny >= 0) ? data[ngen-4*nx*ny] : 0.0;
-                        oldval = (oldval < 0) ? 0.0 : oldval;
-                        data[ngen+3] = curval-oldval;  // assume dz=1
+                        valm1 = (iz == 0) ? 0.0 : data[ngen-4*nx*ny];
+                        valp1 = (iz == nz-1) ? 0.0 : data[ngen+4*nx*ny];
+                        if (valm1 < 0 || valp1 < 0) {
+                            data[ngen+3] = 0.0;
+                        } else {
+                            data[ngen+3] = valp1-valm1; // assume dz=1
+                        }
+
                         ngen += 4;
                     }
                 }
@@ -1601,25 +1684,49 @@ load_volume_file(int index, char *fname) {
                         v = (isnan(v)) ? -1.0 : (v - vmin)/dv;
                         data[ngen] = v;
 
-                        // gradient in x-direction
-                        double curval = (v < 0) ? 0.0 : v;
-                        double oldval = ((ngen/4) % nx == 0) ? 0.0 : data[ngen-4];
-                        oldval = (oldval < 0) ? 0.0 : oldval;
-                        data[ngen+1] = curval-oldval;  // assume dx=1
-
-                        // gradient in y-direction
-                        oldval = (ngen-4*nx >= 0) ? data[ngen-4*nx] : 0.0;
-                        oldval = (oldval < 0) ? 0.0 : oldval;
-                        data[ngen+2] = curval-oldval;  // assume dy=1
-
-                        // gradient in z-direction
-                        oldval = (ngen-4*nx*ny >= 0) ? data[ngen-4*nx*ny] : 0.0;
-                        oldval = (oldval < 0) ? 0.0 : oldval;
-                        data[ngen+3] = curval-oldval;  // assume dz=1
                         ngen += 4;
                     }
                 }
             }
+
+            // Compute the gradient of this data.  BE CAREFUL: center
+            // calculation on each node to avoid skew in either direction.
+            ngen = 0;
+            for (int iz=0; iz < nz; iz++) {
+                for (int iy=0; iy < ny; iy++) {
+                    for (int ix=0; ix < nx; ix++) {
+                        // gradient in x-direction
+                        double valm1 = (ix == 0) ? 0.0 : data[ngen-1];
+                        double valp1 = (ix == nx-1) ? 0.0 : data[ngen+1];
+                        if (valm1 < 0 || valp1 < 0) {
+                            data[ngen+1] = 0.0;
+                        } else {
+                            data[ngen+1] = valp1-valm1; // assume dx=1
+                        }
+
+                        // gradient in y-direction
+                        valm1 = (iy == 0) ? 0.0 : data[ngen-4*nx];
+                        valp1 = (iy == ny-1) ? 0.0 : data[ngen+4*nx];
+                        if (valm1 < 0 || valp1 < 0) {
+                            data[ngen+2] = 0.0;
+                        } else {
+                            data[ngen+2] = valp1-valm1; // assume dy=1
+                        }
+
+                        // gradient in z-direction
+                        valm1 = (iz == 0) ? 0.0 : data[ngen-4*nx*ny];
+                        valp1 = (iz == nz-1) ? 0.0 : data[ngen+4*nx*ny];
+                        if (valm1 < 0 || valp1 < 0) {
+                            data[ngen+3] = 0.0;
+                        } else {
+                            data[ngen+3] = valp1-valm1; // assume dz=1
+                        }
+
+                        ngen += 4;
+                    }
+                }
+            }
+
             load_volume(index, nx, ny, nz, 4, data);
             delete [] data;
         }
@@ -2053,10 +2160,6 @@ void read_screen(){
   //glBindTexture(GL_TEXTURE_2D, 0);
   //glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, final_fbo);
  
-  //debug: set magic number
-  //memset(screen_buffer, 253, 5*win_width*win_height);
-  //glReadPixels(0, 0, win_width, win_height, GL_RGBA, GL_UNSIGNED_BYTE, screen_buffer);
-  
   glReadPixels(0, 0, win_width, win_height, GL_RGB, GL_UNSIGNED_BYTE, screen_buffer);
   assert(glGetError()==0);
 }
@@ -2226,12 +2329,19 @@ void xinetd_listen(){
     bmp_header_add_int(header, pos, 0);
     bmp_header_add_int(header, pos, 0);
 
+    // BE CAREFUL: BMP format wants BGR ordering for screen data
+    for (int i=0; i < 3*win_width*win_height; i += 3) {
+        unsigned char tmp = screen_buffer[i+2];
+        screen_buffer[i+2] = screen_buffer[i];
+        screen_buffer[i] = tmp;
+    }
+
     std::ostringstream result;
     result << "nv>image -bytes " << fsize << "\n";
     write(0, result.str().c_str(), result.str().size());
 
     write(0, header, sizeof(header));
-    write(0, screen_buffer, win_width * win_height * 3);
+    write(0, screen_buffer, 3*win_width*win_height);
 #endif
 }
 

@@ -65,6 +65,16 @@ int VolumeRenderer::add_volume(Volume* _vol, TransferFunction* _tf){
   return ret;
 }
 
+void
+VolumeRenderer::shade_volume(Volume* _vol, TransferFunction* _tf)
+{
+  for (int i=0; i < volume.size(); i++) {
+    if (volume[i] == _vol) {
+      tf[i] = _tf;
+    }
+  }
+}
+
 typedef struct SortElement{
   float z;
   int volume_id;
@@ -850,45 +860,54 @@ void VolumeRenderer::draw_label(int volume_index){
   glEnable(GL_BLEND);
 
   //x
-  glPushMatrix();
-    glTranslatef(0., -0.2, 1.);
-    glColor3f(1.f, 1.0f, 1.0f);
-
+  char* xlabel = (char*)vol->label[0].c_str();
+  if (*xlabel != '\0') {
     glPushMatrix();
-      glScalef(1./volume[volume_index]->aspect_ratio_width, 
-	  1./volume[volume_index]->aspect_ratio_height, 
-	  1./volume[volume_index]->aspect_ratio_depth);
-      glPrint((char*)vol->label[0].c_str(), 0);
+      glTranslatef(0., -0.2, 1.);
+      glColor3f(1.f, 1.0f, 1.0f);
+
+      glPushMatrix();
+        glScalef(1./volume[volume_index]->aspect_ratio_width, 
+	    1./volume[volume_index]->aspect_ratio_height, 
+	    1./volume[volume_index]->aspect_ratio_depth);
+        glPrint(xlabel, 0);
+      glPopMatrix();
     glPopMatrix();
-  glPopMatrix();
+  }
 
   //y
-  glPushMatrix();
-    glTranslatef(1., 0.5, 0.);
-
+  char* ylabel = (char*)vol->label[1].c_str();
+  if (*ylabel != '\0') {
     glPushMatrix();
-      glScalef(1./volume[volume_index]->aspect_ratio_width, 
-	  1./volume[volume_index]->aspect_ratio_height, 
-	  1./volume[volume_index]->aspect_ratio_depth);
-      glRotatef(45., 0., 1., 0.);
-      glColor3f(1.f, 1.0f, 1.0f);
-      glPrint((char*)vol->label[1].c_str(), 0);
+      glTranslatef(1., 0.5, 0.);
+
+      glPushMatrix();
+        glScalef(1./volume[volume_index]->aspect_ratio_width, 
+	    1./volume[volume_index]->aspect_ratio_height, 
+	    1./volume[volume_index]->aspect_ratio_depth);
+        glRotatef(45., 0., 1., 0.);
+        glColor3f(1.f, 1.0f, 1.0f);
+        glPrint((char*)vol->label[1].c_str(), 0);
+      glPopMatrix();
     glPopMatrix();
-  glPopMatrix();
+  }
 
   //z
-  glPushMatrix();
-    glTranslatef(1., -0.2, 1.);
-
+  char* zlabel = (char*)vol->label[2].c_str();
+  if (*zlabel != '\0') {
     glPushMatrix();
-      glScalef(1./volume[volume_index]->aspect_ratio_width, 
-	  1./volume[volume_index]->aspect_ratio_height, 
-	  1./volume[volume_index]->aspect_ratio_depth);
-      glRotatef(90., 0., 1., 0.);
-      glColor3f(1.f, 1.0f, 1.0f);
-      glPrint((char*)vol->label[2].c_str(), 0);
+      glTranslatef(1., -0.2, 1.);
+
+      glPushMatrix();
+        glScalef(1./volume[volume_index]->aspect_ratio_width, 
+	    1./volume[volume_index]->aspect_ratio_height, 
+	    1./volume[volume_index]->aspect_ratio_depth);
+        glRotatef(90., 0., 1., 0.);
+        glColor3f(1.f, 1.0f, 1.0f);
+        glPrint((char*)vol->label[2].c_str(), 0);
+      glPopMatrix();
     glPopMatrix();
-  glPopMatrix();
+  }
 
   glDisable(GL_TEXTURE_2D);
 }

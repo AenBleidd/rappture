@@ -24,7 +24,7 @@ ConvexPolygon::ConvexPolygon(VertexVector vertices){
 				vertices.end());
 }
 
-void ConvexPolygon::set_id(int v_id) { volume_id; };
+void ConvexPolygon::set_id(int v_id) { volume_id = v_id; };
 
 void ConvexPolygon::append_vertex(Vector4 vert){
     vertices.push_back(vert);
