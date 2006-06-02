@@ -88,9 +88,9 @@ typedef struct RegGrid2{
 
 
 //variables for mouse events
-float live_rot_x = 0.;		//object rotation angles
-float live_rot_y = 0.;
-float live_rot_z = 0.;
+float live_rot_x = 90.;		//object rotation angles
+float live_rot_y = 180.;
+float live_rot_z = -135;
 
 float live_obj_x = -0.0;	//object translation location from the origin
 float live_obj_y = -0.0;
