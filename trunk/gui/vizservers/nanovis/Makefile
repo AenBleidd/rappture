@@ -14,9 +14,9 @@ SORTSRC = ./sort
 TFSRC = ./transfer-function
 NANOSCALESRC = ./nanoscale
 
-LIB_NANOVIS = -ltcl8.3 -L/opt/render/lib -lGL -lglut -lglui -lGLEW -lCg -lCgGL -pthread -lstdc++
+LIB_NANOVIS = -ltcl8.4 -L/opt/render/lib -lGL -lglut -lglui -lGLEW -lCg -lCgGL -pthread -lstdc++
 LIB_CLIENT = -L/opt/render/lib -lGL -lglut -pthread -lstdc++
-INCLUDES = -I../../src2/core -I/opt/render/include -I/autohome/u76/qiaow/Cg/usr/include
+INCLUDES = -I../core -I/opt/render/include -I/autohome/u76/qiaow/Cg/usr/include
 CFLAG = -g -c $(INCLUDES)
 
 all: nanovis
@@ -25,7 +25,7 @@ clean:
 	rm -f *.o nanovis client simclient
 
 nanovis: $(OBJ_NANOVIS)
-	gcc -g -o nanovis $(OBJ_NANOVIS) $(LIB_NANOVIS) ../../src2/core/*.o
+	gcc -g -o nanovis $(OBJ_NANOVIS) $(LIB_NANOVIS) ../core/*.o
 
 ColorGradient.o: Color.o $(TFSRC)/ColorGradient.cpp
 	gcc $(CFLAG) $(TFSRC)/ColorGradient.cpp

@@ -2087,14 +2087,21 @@ void initGL(void)
    //create volume renderer and add volumes to it
    vol_render = new VolumeRenderer(g_context);
 
+   
    /*
    //I added this to debug : Wei
    float tmp_data[4*124];
+   memset(tmp_data, 0, 4*4*124);
    TransferFunction* tmp_tf = new TransferFunction(124, tmp_data);
    vol_render->add_volume(volume[0], tmp_tf);
-   volume[1]->move(Vector3(0.5, 0.6, 0.7));
-   vol_render->add_volume(volume[1], tmp_tf);
+   volume[0]->get_cutplane(0)->enabled = false;
+   volume[0]->get_cutplane(1)->enabled = false;
+   volume[0]->get_cutplane(2)->enabled = false;
+
+   //volume[1]->move(Vector3(0.5, 0.6, 0.7));
+   //vol_render->add_volume(volume[1], tmp_tf);
    */
+
 
    //create an 2D plane renderer
    plane_render = new PlaneRenderer(g_context, win_width, win_height);
@@ -2638,18 +2645,24 @@ void draw_3d_axis(){
 	glColor3f(0.8, 0.8, 0.8);
 	glPushMatrix();
 	glTranslatef(0.4, 0., 0.);
+	glRotatef(90, 1, 0, 0);
+	glRotatef(180, 0, 1, 0);
 	glScalef(0.0005, 0.0005, 0.0005);
 	glutStrokeCharacter(GLUT_STROKE_ROMAN, 'x');
 	glPopMatrix();	
 
 	glPushMatrix();
 	glTranslatef(0., 0.4, 0.);
+	glRotatef(90, 1, 0, 0);
+	glRotatef(180, 0, 1, 0);
 	glScalef(0.0005, 0.0005, 0.0005);
 	glutStrokeCharacter(GLUT_STROKE_ROMAN, 'y');
 	glPopMatrix();	
 
 	glPushMatrix();
 	glTranslatef(0., 0., 0.4);
+	glRotatef(90, 1, 0, 0);
+	glRotatef(180, 0, 1, 0);
 	glScalef(0.0005, 0.0005, 0.0005);
 	glutStrokeCharacter(GLUT_STROKE_ROMAN, 'z');
 	glPopMatrix();	
