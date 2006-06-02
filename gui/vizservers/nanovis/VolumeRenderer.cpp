@@ -165,8 +165,14 @@ void VolumeRenderer::render_all(){
         draw_bounding_box(x0, y0, z0, x0+1, y0+1, z0+1,
             (double)olcolor[0], (double)olcolor[1], (double)olcolor[2],
             1.5);
+    }
+    glPopMatrix();
 
-	draw_label(i);
+    //draw labels
+    glPushMatrix();
+    glTranslatef(shift_4d.x, shift_4d.y, shift_4d.z);
+    if(volume[i]->outline_is_enabled()) {
+       draw_label(i);
     }
     glPopMatrix();
 
@@ -206,21 +212,21 @@ void VolumeRenderer::render_all(){
       float offset = volume[volume_index]->get_cutplane(i)->offset;
       int axis = volume[volume_index]->get_cutplane(i)->orient;
 
-      if(axis==1){
+      if(axis==3){
         vert1 = Vector4(-10, -10, offset, 1);
         vert2 = Vector4(-10, +10, offset, 1);
         vert3 = Vector4(+10, +10, offset, 1);
         vert4 = Vector4(+10, -10, offset, 1);
 	//continue;
       }
-      else if(axis==2){
+      else if(axis==1){
         vert1 = Vector4(offset, -10, -10, 1);
         vert2 = Vector4(offset, +10, -10, 1);
         vert3 = Vector4(offset, +10, +10, 1);
         vert4 = Vector4(offset, -10, +10, 1);
 	//continue;
       }
-      else if(axis==3){
+      else if(axis==2){
         vert1 = Vector4(-10, offset, -10, 1);
         vert2 = Vector4(+10, offset, -10, 1);
         vert3 = Vector4(+10, offset, +10, 1);
@@ -835,19 +841,42 @@ void VolumeRenderer::init_font(char* filename) {
        data[i + 2] = temp;
     }
 
+    //insert alpha channel
+    unsigned char* data_with_alpha = (unsigned char*) malloc(width*height*4*sizeof(unsigned char));
+    for(int i=0; i<height; i++){
+      for(int j=0; j<width; j++){
+	unsigned char r, g, b, a;
+	r = data[3*(i*width+j)];
+	g = data[3*(i*width+j)+1];
+	b = data[3*(i*width+j)+2];
+
+	if(r==0 && g==0 && b==0)
+	  a = 0;
+	else
+	  a = 255;
+
+	data_with_alpha[4*(i*width+j)] = r;
+	data_with_alpha[4*(i*width+j) + 1] = g;
+	data_with_alpha[4*(i*width+j) + 2] = b;
+	data_with_alpha[4*(i*width+j) + 3] = a;
+
+      }
+    }
+    free(data);
 
     //create opengl texture 
     glGenTextures(1, &font_texture);
     glBindTexture(GL_TEXTURE_2D, font_texture);
-    glTexImage2D(GL_TEXTURE_2D, 0, 3, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+    //glTexImage2D(GL_TEXTURE_2D, 0, 3, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data_with_alpha);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
 
+    free(data_with_alpha);
 
     build_font();
     assert(glGetError()==0);
-
-    free(data);
 }
 
 
@@ -856,58 +885,54 @@ void VolumeRenderer::draw_label(int volume_index){
 
   Volume* vol = volume[volume_index];
  
-  glEnable(GL_TEXTURE_2D);
-  glEnable(GL_BLEND);
+  //glEnable(GL_TEXTURE_2D);
+  glDisable(GL_TEXTURE_2D);
+  glEnable(GL_DEPTH_TEST);
 
   //x
-  char* xlabel = (char*)vol->label[0].c_str();
-  if (*xlabel != '\0') {
-    glPushMatrix();
-      glTranslatef(0., -0.2, 1.);
-      glColor3f(1.f, 1.0f, 1.0f);
+  glColor3f(0., 0., 0.5);
 
-      glPushMatrix();
-        glScalef(1./volume[volume_index]->aspect_ratio_width, 
-	    1./volume[volume_index]->aspect_ratio_height, 
-	    1./volume[volume_index]->aspect_ratio_depth);
-        glPrint(xlabel, 0);
-      glPopMatrix();
-    glPopMatrix();
-  }
+  int length = strlen(vol->label[0]);
+  glPushMatrix();
+  
+    glTranslatef(.5*vol->aspect_ratio_width, vol->aspect_ratio_height, -0.2*vol->aspect_ratio_depth);
+    glRotatef(180, 0, 0, 1);
+    glRotatef(90, 1, 0, 0);
+
+    glScalef(0.00035, 0.00035, 0.00035);
+    for(int i=0; i<length; i++){
+      glutStrokeCharacter(GLUT_STROKE_ROMAN, vol->label[0][i]);
+      glTranslatef(0.04, 0., 0.);
+    }
+  glPopMatrix();
 
   //y
-  char* ylabel = (char*)vol->label[1].c_str();
-  if (*ylabel != '\0') {
-    glPushMatrix();
-      glTranslatef(1., 0.5, 0.);
+  length = strlen(vol->label[1]);
+  glPushMatrix();
+    glTranslatef(vol->aspect_ratio_width, 0.5*vol->aspect_ratio_height, -0.2*vol->aspect_ratio_depth);
+    glRotatef(90, 0, 1, 0);
+    glRotatef(90, 0, 0, 1);
 
-      glPushMatrix();
-        glScalef(1./volume[volume_index]->aspect_ratio_width, 
-	    1./volume[volume_index]->aspect_ratio_height, 
-	    1./volume[volume_index]->aspect_ratio_depth);
-        glRotatef(45., 0., 1., 0.);
-        glColor3f(1.f, 1.0f, 1.0f);
-        glPrint((char*)vol->label[1].c_str(), 0);
-      glPopMatrix();
-    glPopMatrix();
-  }
+    glScalef(0.00035, 0.00035, 0.00035);
+    for(int i=0; i<length; i++){
+      glutStrokeCharacter(GLUT_STROKE_ROMAN, vol->label[1][i]);
+      glTranslatef(0.04, 0., 0.);
+    }
+  glPopMatrix();
+
 
   //z
-  char* zlabel = (char*)vol->label[2].c_str();
-  if (*zlabel != '\0') {
-    glPushMatrix();
-      glTranslatef(1., -0.2, 1.);
+  length = strlen(vol->label[2]);
+  glPushMatrix();
+    glTranslatef(0., 1.*vol->aspect_ratio_height, 0.5*vol->aspect_ratio_depth);
+    glRotatef(90, 0, 1, 0);
 
-      glPushMatrix();
-        glScalef(1./volume[volume_index]->aspect_ratio_width, 
-	    1./volume[volume_index]->aspect_ratio_height, 
-	    1./volume[volume_index]->aspect_ratio_depth);
-        glRotatef(90., 0., 1., 0.);
-        glColor3f(1.f, 1.0f, 1.0f);
-        glPrint((char*)vol->label[2].c_str(), 0);
-      glPopMatrix();
-    glPopMatrix();
-  }
+    glScalef(0.00035, 0.00035, 0.00035);
+    for(int i=0; i<length; i++){
+      glutStrokeCharacter(GLUT_STROKE_ROMAN, vol->label[2][i]);
+      glTranslatef(0.04, 0., 0.);
+    }
+  glPopMatrix();
 
   glDisable(GL_TEXTURE_2D);
 }
