@@ -139,7 +139,7 @@ Field1D::define(int nodeId, double y)
 {
     _valuelist[nodeId] = y;
 
-    if (_vmin == NAN || _vmax == NAN) {
+    if (isnan(_vmin) || isnan(_vmax)) {
         _vmin = _vmax = y;
     } else {
         if (y < _vmin) { _vmin = y; }
