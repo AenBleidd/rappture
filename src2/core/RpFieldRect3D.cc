@@ -100,7 +100,7 @@ FieldRect3D::define(int nodeId, double f)
     }
     _valuelist[nodeId] = f;
 
-    if (_vmin == NAN || _vmax == NAN) {
+    if (isnan(_vmin) || isnan(_vmax)) {
         _vmin = _vmax = f;
     } else {
         if (f < _vmin) { _vmin = f; }
