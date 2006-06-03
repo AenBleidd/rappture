@@ -45,6 +45,9 @@ private:
 	int n_components;
 
 	Texture3D* tex;	//OpenGL texture storing the volume
+    double vmin;    //minimum (unscaled) value in data
+    double vmax;    //maximum (unscaled) value in data
+
 	float specular; //specular lighting parameter
 	float diffuse;	//diffuse lighting parameter
 	float opacity_scale;	//The scale multiplied to the opacity assigned by the transfer function.
@@ -78,7 +81,7 @@ public:
 
 	Volume(float x, float y, float z, 
 			int width, int height, int depth, float size,
-			int n_component, float* data);
+			int n_component, float* data, double vmin, double vmax);
 	~Volume();
 	
 	void enable(); //VolumeRenderer will render an enabled volume and its cutplanes
@@ -86,6 +89,9 @@ public:
 	void move(Vector3 _loc);
 	bool is_enabled();
 	Vector3* get_location();
+
+	double range_min() { return vmin; }
+	double range_max() { return vmax; }
 
 	void set_n_slice(int val); //set number of slices
 	int get_n_slice();	//return number of slices

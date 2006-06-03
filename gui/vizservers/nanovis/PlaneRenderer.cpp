@@ -55,9 +55,20 @@ int PlaneRenderer::add_plane(Texture2D* _p, TransferFunction* _tf){
   return ret;
 }
 
+void
+PlaneRenderer::remove_plane(int index) {
+  vector<Texture2D*>::iterator piter = plane.begin()+index;
+  vector<TransferFunction*>::iterator tfiter = tf.begin()+index;
+
+  plane.erase(piter);
+  tf.erase(tfiter);
+
+  n_planes--;
+}
+
 
 void PlaneRenderer::render(){
-  if(n_planes == 0)
+  if (n_planes == 0)
     return;
 
   glEnable(GL_TEXTURE_2D);
@@ -107,6 +118,13 @@ void PlaneRenderer::deactivate_shader(){
   cgGLDisableTextureParameter(m_tf_param);
 }
 
-void PlaneRenderer::set_active_plane(int index) { active_plane = index; }
-void PlaneRenderer::set_screen_size(int w, int h) { render_width = w;  render_height = h;}
+void
+ PlaneRenderer::set_active_plane(int index) {
+  active_plane = index;
+}
 
+void
+PlaneRenderer::set_screen_size(int w, int h) {
+  render_width = w;
+  render_height = h;
+}

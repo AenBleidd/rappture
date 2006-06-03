@@ -93,8 +93,11 @@ int render_window; 		//the handle of the render window;
 void init_particles();
 void get_slice_vectors();
 Rappture::Outcome load_volume_file(int index, char *fname);
-void load_volume(int index, int width, int height, int depth, int n_component, float* data);
+void load_volume(int index, int width, int height, int depth, int n_component, float* data, double vmin, double vmax);
 TransferFunction* get_transfunc(char *name);
+void resize_offscreen_buffer(int w, int h);
+void bmp_header_add_int(unsigned char* header, int& pos, int data);
+void bmp_write(const char* cmd);
 
 ParticleSystem* psys;
 float psys_x=0.4, psys_y=0, psys_z=0;
@@ -148,13 +151,10 @@ static Tcl_DString cmdbuffer;
 
 static int CameraCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
 static int CutplaneCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
-static int ClearCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
+static int LegendCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
 static int ScreenCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
 static int TransfuncCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
 static int VolumeCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
-static int VolumeLinkCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
-static int VolumeMoveCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
-static int RefreshCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
 static int PlaneNewCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
 static int PlaneLinkCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
 static int PlaneEnableCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
@@ -366,45 +366,108 @@ CutplaneCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]
     return TCL_ERROR;
 }
 
-void resize_offscreen_buffer(int w, int h);
+/*
+ * ----------------------------------------------------------------------
+ * CLIENT COMMAND:
+ *   legend <volumeIndex> <width> <height>
+ *
+ * Clients use this to generate a legend image for the specified
+ * transfer function.  The legend image is a color gradient from 0
+ * to one, drawn in the given transfer function.  The resulting image
+ * is returned in the size <width> x <height>.
+ * ----------------------------------------------------------------------
+ */
+static int
+LegendCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
+{
+    if (argc != 4) {
+        Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
+            " transfunc width height\"", (char*)NULL);
+        return TCL_ERROR;
+    }
 
-//change screen size
+    TransferFunction *tf = NULL;
+    int ivol;
+    if (Tcl_GetInt(interp, argv[1], &ivol) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (ivol < n_volumes) {
+        tf = vol_render->get_volume_shading(volume[ivol]);
+    }
+    if (tf == NULL) {
+        Tcl_AppendResult(interp, "transfer function not defined for volume ", argv[1], (char*)NULL);
+        return TCL_ERROR;
+    }
+
+    int old_width = win_width;
+    int old_height = win_height;
+
+    int width, height;
+    if (Tcl_GetInt(interp, argv[2], &width) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (Tcl_GetInt(interp, argv[3], &height) != TCL_OK) {
+        return TCL_ERROR;
+    }
+
+    resize_offscreen_buffer(width, height);
+
+    // generate data for the legend
+    float data[512];
+    for (int i=0; i < 256; i++) {
+        data[i] = data[i+256] = (float)(i/255.0);
+    }
+    plane[0] = new Texture2D(256, 2, GL_FLOAT, GL_LINEAR, 1, data);
+    int index = plane_render->add_plane(plane[0], tf);
+    plane_render->set_active_plane(index);
+    plane_render->set_screen_size(width, height);
+    plane_render->render();
+
+    glReadPixels(0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, screen_buffer);
+
+    std::ostringstream result;
+    result << "nv>legend " << argv[1];
+    result << " " << volume[ivol]->range_min();
+    result << " " << volume[ivol]->range_max();
+    bmp_write(result.str().c_str());
+    write(0, "\n", 1);
+
+    plane_render->remove_plane(index);
+    resize_offscreen_buffer(old_width, old_height);
+
+    return TCL_OK;
+}
+
+
+
+/*
+ * ----------------------------------------------------------------------
+ * CLIENT COMMAND:
+ *   screen <width> <height>
+ *
+ * Clients send this command to set the size of the rendering area.
+ * Future images are generated at the specified width/height.
+ * ----------------------------------------------------------------------
+ */
 static int
 ScreenCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
 {
+    int w, h;
 
-	fprintf(stderr, "screen size cmd\n");
-	double w, h;
+    if (argc != 3) {
+        Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
+            " width height\"", (char*)NULL);
+        return TCL_ERROR;
+    }
+    if (Tcl_GetInt(interp, argv[1], &w) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (Tcl_GetInt(interp, argv[2], &h) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    resize_offscreen_buffer(w, h);
 
-	if (argc != 3) {
-		Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
-			" width height \"", (char*)NULL);
-		return TCL_ERROR;
-	}
-	if (Tcl_GetDouble(interp, argv[1], &w) != TCL_OK) {
-		return TCL_ERROR;
-	}
-	if (Tcl_GetDouble(interp, argv[2], &h) != TCL_OK) {
-		return TCL_ERROR;
-	}
-
-	resize_offscreen_buffer((int)w, (int)h);
-fprintf(stdin,"new screen size: %d %d\n",w,h);
-	return TCL_OK;
-}
-
-
-static int
-RefreshCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
-{
-  fprintf(stderr, "refresh cmd\n");
-  return TCL_OK;
-}
-
-void set_object(float x, float y, float z){
-  live_obj_x = x;
-  live_obj_y = y;
-  live_obj_z = z;
+    return TCL_OK;
 }
 
 /*
@@ -952,84 +1015,6 @@ VolumeCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
     return TCL_ERROR;
 }
 
-static int
-VolumeLinkCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
-{
-  fprintf(stderr, "link volume command\n");
-
-  double volume_index, tf_index;
-
-  if (argc != 3) {
-    Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
-        " volume_index tf_index \"", (char*)NULL);
-    return TCL_ERROR;
-  }
-  if (Tcl_GetDouble(interp, argv[1], &volume_index) != TCL_OK) {
-	return TCL_ERROR;
-  }
-  if (Tcl_GetDouble(interp, argv[2], &tf_index) != TCL_OK) {
-	return TCL_ERROR;
-  }
-
-  //vol_render->add_volume(volume[(int)volume_index], tf[(int)tf_index]);
-
-  return TCL_OK;
-}
-
-
-static int
-VolumeResizeCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
-{
-  fprintf(stderr, "resize drawing size of the volume command\n");
-
-  double volume_index, size; 
-
-  if (argc != 3) {
-    Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
-		" volume_index size \"", (char*)NULL);
-    return TCL_ERROR;
-  }
-  if (Tcl_GetDouble(interp, argv[1], &volume_index) != TCL_OK) {
-	return TCL_ERROR;
-  }
-  if (Tcl_GetDouble(interp, argv[2], &size) != TCL_OK) {
-	return TCL_ERROR;
-  }
-
-  volume[(int)volume_index]->set_size((float) size);
-  return TCL_OK;
-}
-
-static int
-VolumeMoveCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
-{
-
-	fprintf(stderr, "move volume cmd\n");
-	double index, x, y, z;
-
-	if (argc != 5) {
-		Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
-			" index x_coord y_coord z_coord\"", (char*)NULL);
-		return TCL_ERROR;
-	}
-	if (Tcl_GetDouble(interp, argv[1], &index) != TCL_OK) {
-		return TCL_ERROR;
-	}
-	if (Tcl_GetDouble(interp, argv[2], &x) != TCL_OK) {
-		return TCL_ERROR;
-	}
-	if (Tcl_GetDouble(interp, argv[3], &y) != TCL_OK) {
-		return TCL_ERROR;
-	}
-	if (Tcl_GetDouble(interp, argv[4], &z) != TCL_OK) {
-		return TCL_ERROR;
-	}
-	
-	//set_object(x, y, z);
-        volume[(int)index]->move(Vector3(x, y, z));
-	return TCL_OK;
-}
-
 /*
  * ----------------------------------------------------------------------
  * FUNCTION: GetAxis()
@@ -1151,20 +1136,20 @@ static int
 PlaneNewCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])){
   fprintf(stderr, "load plane for 2D visualization command\n");
 
-  double index, w, h;
+  int index, w, h;
 
   if (argc != 4) {
     Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
 		" plane_index w h \"", (char*)NULL);
     return TCL_ERROR;
   }
-  if (Tcl_GetDouble(interp, argv[1], &index) != TCL_OK) {
+  if (Tcl_GetInt(interp, argv[1], &index) != TCL_OK) {
 	return TCL_ERROR;
   }
-  if (Tcl_GetDouble(interp, argv[2], &w) != TCL_OK) {
+  if (Tcl_GetInt(interp, argv[2], &w) != TCL_OK) {
 	return TCL_ERROR;
   }
-  if (Tcl_GetDouble(interp, argv[3], &h) != TCL_OK) {
+  if (Tcl_GetInt(interp, argv[3], &h) != TCL_OK) {
 	return TCL_ERROR;
   }
 
@@ -1176,7 +1161,7 @@ PlaneNewCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84
     exit(0);
   }
  
-  plane[(int)index] = new Texture2D(w, h, GL_FLOAT, GL_LINEAR, 1, (float*)tmp);
+  plane[index] = new Texture2D(w, h, GL_FLOAT, GL_LINEAR, 1, (float*)tmp);
   
   delete[] tmp;
   return TCL_OK;
@@ -1187,21 +1172,21 @@ static
 int PlaneLinkCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])){
   fprintf(stderr, "link the plane to the 2D renderer command\n");
 
-  double plane_index, tf_index;
+  int plane_index, tf_index;
 
   if (argc != 3) {
     Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
 		" plane_index tf_index \"", (char*)NULL);
     return TCL_ERROR;
   }
-  if (Tcl_GetDouble(interp, argv[1], &plane_index) != TCL_OK) {
+  if (Tcl_GetInt(interp, argv[1], &plane_index) != TCL_OK) {
 	return TCL_ERROR;
   }
-  if (Tcl_GetDouble(interp, argv[2], &tf_index) != TCL_OK) {
+  if (Tcl_GetInt(interp, argv[2], &tf_index) != TCL_OK) {
 	return TCL_ERROR;
   }
 
-  //plane_render->add_plane(plane[(int)plane_index], tf[(int)tf_index]);
+  //plane_render->add_plane(plane[plane_index], tf[tf_index]);
 
   return TCL_OK;
 }
@@ -1213,17 +1198,17 @@ static
 int PlaneEnableCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])){
   fprintf(stderr, "enable a plane so the 2D renderer can render it command\n");
 
-  double plane_index, mode;
+  int plane_index, mode;
 
   if (argc != 3) {
     Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
 		" plane_index mode \"", (char*)NULL);
     return TCL_ERROR;
   }
-  if (Tcl_GetDouble(interp, argv[1], &plane_index) != TCL_OK) {
+  if (Tcl_GetInt(interp, argv[1], &plane_index) != TCL_OK) {
 	return TCL_ERROR;
   }
-  if (Tcl_GetDouble(interp, argv[2], &mode) != TCL_OK) {
+  if (Tcl_GetInt(interp, argv[2], &mode) != TCL_OK) {
 	return TCL_ERROR;
   }
 
@@ -1396,7 +1381,7 @@ load_vector_file(int index, char *fname) {
             data[ngen] = (data[ngen]/(2.0*vmax) + 0.5);
         }
 
-        load_volume(index, nx, ny, nz, 3, data);
+        load_volume(index, nx, ny, nz, 3, data, vmin, vmax);
         delete [] data;
     } else {
         std::cerr << "WARNING: data not found in file " << fname << std::endl;
@@ -1623,7 +1608,9 @@ load_volume_file(int index, char *fname) {
                 }
             }
 
-            load_volume(index, nx, ny, nz, 4, data);
+            load_volume(index, nx, ny, nz, 4, data,
+                field.valueMin(), field.valueMax());
+
             delete [] data;
 
         } else {
@@ -1727,7 +1714,9 @@ load_volume_file(int index, char *fname) {
                 }
             }
 
-            load_volume(index, nx, ny, nz, 4, data);
+            load_volume(index, nx, ny, nz, 4, data,
+                field.valueMin(), field.valueMax());
+
             delete [] data;
         }
     } else {
@@ -1754,13 +1743,14 @@ load_volume_file(int index, char *fname) {
  * 		All component scalars for a point are placed consequtively in data array 
  * width, height and depth: number of points in each dimension
  */
-void load_volume(int index, int width, int height, int depth, int n_component, float* data){
+void load_volume(int index, int width, int height, int depth,
+    int n_component, float* data, double vmin, double vmax) {
   if(volume[index]!=0){
     delete volume[index];
     volume[index]=0;
   }
 
-  volume[index] = new Volume(0.f, 0.f, 0.f, width, height, depth, 1.,  n_component, data);
+  volume[index] = new Volume(0.f, 0.f, 0.f, width, height, depth, 1.,  n_component, data, vmin, vmax);
   assert(volume[index]!=0);
 
   if (n_volumes <= index) {
@@ -2131,6 +2121,10 @@ void initTcl(){
     Tcl_CreateCommand(interp, "cutplane", CutplaneCmd,
         (ClientData)NULL, (Tcl_CmdDeleteProc*)NULL);
 
+    // request the legend for a plot (transfer function)
+    Tcl_CreateCommand(interp, "legend", LegendCmd,
+        (ClientData)NULL, (Tcl_CmdDeleteProc*)NULL);
+
     // change the size of the screen (size of picture generated)
     Tcl_CreateCommand(interp, "screen", ScreenCmd,
         (ClientData)NULL, (Tcl_CmdDeleteProc*)NULL);
@@ -2148,18 +2142,6 @@ void initTcl(){
         fprintf(stdin, "WARNING: bad default transfer function\n");
         fprintf(stdin, Tcl_GetStringResult(interp));
     }
-
-
-  //link an EXISTING volume and transfer function to the volume renderer. 
-  //Only after being added, can a volume be rendered. This command does not create a volume nor a transfer function
-  Tcl_CreateCommand(interp, "volume_link", VolumeLinkCmd, (ClientData)0, (Tcl_CmdDeleteProc*)NULL);
-  //move an volume
-  Tcl_CreateCommand(interp, "volume_move", VolumeMoveCmd, (ClientData)0, (Tcl_CmdDeleteProc*)NULL);
-  //resize volume 
-  Tcl_CreateCommand(interp, "volume_resize", VolumeResizeCmd, (ClientData)0, (Tcl_CmdDeleteProc*)NULL);
-
-  //refresh the screen (render again)
-  Tcl_CreateCommand(interp, "refresh", RefreshCmd, (ClientData)0, (Tcl_CmdDeleteProc*)NULL);
 }
 
 
@@ -2217,6 +2199,66 @@ bmp_header_add_int(unsigned char* header, int& pos, int data)
     header[pos++] = (data >> 8) & 0xff;
     header[pos++] = (data >> 16) & 0xff;
     header[pos++] = (data >> 24) & 0xff;
+}
+
+void
+bmp_write(const char* cmd)
+{
+    unsigned char header[54];
+    int pos = 0;
+    header[pos++] = 'B';
+    header[pos++] = 'M';
+
+    // file size in bytes
+    int fsize = win_width*win_height*3 + sizeof(header);
+    bmp_header_add_int(header, pos, fsize);
+
+    // reserved value (must be 0)
+    bmp_header_add_int(header, pos, 0);
+
+    // offset in bytes to start of bitmap data
+    bmp_header_add_int(header, pos, sizeof(header));
+
+    // size of the BITMAPINFOHEADER
+    bmp_header_add_int(header, pos, 40);
+
+    // width of the image in pixels
+    bmp_header_add_int(header, pos, win_width);
+
+    // height of the image in pixels
+    bmp_header_add_int(header, pos, win_height);
+
+    // 1 plane + 24 bits/pixel << 16
+    bmp_header_add_int(header, pos, 1572865);
+
+    // no compression
+    // size of image for compression
+    bmp_header_add_int(header, pos, 0);
+    bmp_header_add_int(header, pos, 0);
+
+    // x pixels per meter
+    // y pixels per meter
+    bmp_header_add_int(header, pos, 0);
+    bmp_header_add_int(header, pos, 0);
+
+    // number of colors used (0 = compute from bits/pixel)
+    // number of important colors (0 = all colors important)
+    bmp_header_add_int(header, pos, 0);
+    bmp_header_add_int(header, pos, 0);
+
+    // BE CAREFUL: BMP format wants BGR ordering for screen data
+    for (int i=0; i < 3*win_width*win_height; i += 3) {
+        unsigned char tmp = screen_buffer[i+2];
+        screen_buffer[i+2] = screen_buffer[i];
+        screen_buffer[i] = tmp;
+    }
+
+    std::ostringstream result;
+    result << cmd << " " << fsize << "\n";
+    write(0, result.str().c_str(), result.str().size());
+
+    write(0, header, sizeof(header));
+    write(0, screen_buffer, 3*win_width*win_height);
 }
 
 
@@ -2294,61 +2336,7 @@ void xinetd_listen(){
     write(0, offsets, offsets_size*sizeof(offsets[0]));
     write(0, rle, rle_size);	//unsigned byte
 #else
-    unsigned char header[54];
-    int pos = 0;
-    header[pos++] = 'B';
-    header[pos++] = 'M';
-
-    // file size in bytes
-    int fsize = win_width*win_height*3 + sizeof(header);
-    bmp_header_add_int(header, pos, fsize);
-
-    // reserved value (must be 0)
-    bmp_header_add_int(header, pos, 0);
-
-    // offset in bytes to start of bitmap data
-    bmp_header_add_int(header, pos, sizeof(header));
-
-    // size of the BITMAPINFOHEADER
-    bmp_header_add_int(header, pos, 40);
-
-    // width of the image in pixels
-    bmp_header_add_int(header, pos, win_width);
-
-    // height of the image in pixels
-    bmp_header_add_int(header, pos, win_height);
-
-    // 1 plane + 24 bits/pixel << 16
-    bmp_header_add_int(header, pos, 1572865);
-
-    // no compression
-    // size of image for compression
-    bmp_header_add_int(header, pos, 0);
-    bmp_header_add_int(header, pos, 0);
-
-    // x pixels per meter
-    // y pixels per meter
-    bmp_header_add_int(header, pos, 0);
-    bmp_header_add_int(header, pos, 0);
-
-    // number of colors used (0 = compute from bits/pixel)
-    // number of important colors (0 = all colors important)
-    bmp_header_add_int(header, pos, 0);
-    bmp_header_add_int(header, pos, 0);
-
-    // BE CAREFUL: BMP format wants BGR ordering for screen data
-    for (int i=0; i < 3*win_width*win_height; i += 3) {
-        unsigned char tmp = screen_buffer[i+2];
-        screen_buffer[i+2] = screen_buffer[i];
-        screen_buffer[i] = tmp;
-    }
-
-    std::ostringstream result;
-    result << "nv>image -bytes " << fsize << "\n";
-    write(0, result.str().c_str(), result.str().size());
-
-    write(0, header, sizeof(header));
-    write(0, screen_buffer, 3*win_width*win_height);
+    bmp_write("nv>image -bytes");
 #endif
 }
 
