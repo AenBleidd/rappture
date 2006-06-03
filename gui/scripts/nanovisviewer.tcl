@@ -50,6 +50,7 @@ itcl::class Rappture::NanovisViewer {
     protected method _send_dataobjs {}
     protected method _receive {}
     protected method _receive_image {option size}
+    protected method _receive_legend {ivol vmin vmax size}
 
     protected method _rebuild {}
     protected method _currentVolumeIds {}
@@ -59,19 +60,23 @@ itcl::class Rappture::NanovisViewer {
     protected method _slicertip {axis}
     protected method _state {comp}
     protected method _fixSettings {what {value ""}}
+    protected method _fixLegend {}
     protected method _color2rgb {color}
     protected method _euler2xyz {theta phi psi}
+
+    private variable _dispatcher "" ;# dispatcher for !events
 
     private variable _nvhost ""    ;# host name for nanovis server
     private variable _nvport ""    ;# port number for nanovis server
     private variable _sid ""       ;# socket connection to nanovis server
     private variable _parser ""    ;# interpreter for incoming commands
     private variable _buffer       ;# buffer for incoming/outgoing commands
-    private variable _image ""     ;# image displayed in plotting area
+    private variable _image        ;# image displayed in plotting area
 
     private variable _dlist ""     ;# list of data objects
     private variable _dims ""      ;# dimensionality of data objects
     private variable _obj2style    ;# maps dataobj => style settings
+    private variable _obj2ovride   ;# maps dataobj => style override
     private variable _obj2id       ;# maps dataobj => volume ID in server
     private variable _sendobjs ""  ;# list of data objs to send to server
 
@@ -89,7 +94,10 @@ itk::usual NanovisViewer {
 # CONSTRUCTOR
 # ----------------------------------------------------------------------
 itcl::body Rappture::NanovisViewer::constructor {nvhost nvport args} {
-puts "nanovisviewer $nvhost $nvport = $this"
+    Rappture::dispatcher _dispatcher
+    $_dispatcher register !legend
+    $_dispatcher dispatch $this !legend "[itcl::code $this _fixLegend]; list"
+
     set _buffer(in) ""
     set _buffer(out) ""
 
@@ -101,6 +109,7 @@ puts "nanovisviewer $nvhost $nvport = $this"
         $_parser hide $cmd
     }
     $_parser alias image [itcl::code $this _receive_image]
+    $_parser alias legend [itcl::code $this _receive_legend]
 
     #
     # Set up the widgets in the main body
@@ -354,9 +363,24 @@ puts "nanovisviewer $nvhost $nvport = $this"
     #
     # RENDERING AREA
     #
-    set _image [image create photo]
+    set _image(legend) [image create photo]
+    itk_component add legend {
+        canvas $itk_interior.legend -height 50 -highlightthickness 0
+    } {
+        usual
+        ignore -highlightthickness
+        rename -background -plotbackground plotBackground Background
+    }
+    pack $itk_component(legend) -side bottom -fill x
+    bind $itk_component(legend) <Configure> \
+        [list $_dispatcher event -idle !legend]
+
+    set _image(plot) [image create photo]
     itk_component add area {
-        label $itk_interior.area -image $_image
+        label $itk_interior.area -image $_image(plot) -highlightthickness 0
+    } {
+        usual
+        ignore -highlightthickness
     }
     pack $itk_component(area) -expand yes -fill both
 
@@ -382,7 +406,8 @@ itcl::body Rappture::NanovisViewer::destructor {} {
     set _sendobjs ""  ;# stop any send in progress
     after cancel [itcl::code $this _send_dataobjs]
     after cancel [itcl::code $this _rebuild]
-    image delete $_image
+    image delete $_image(plot)
+    image delete $_image(legend)
     interp delete $_parser
 }
 
@@ -415,9 +440,9 @@ itcl::body Rappture::NanovisViewer::add {dataobj {settings ""}} {
     set pos [lsearch -exact $dataobj $_dlist]
     if {$pos < 0} {
         lappend _dlist $dataobj
-        set _obj2style($dataobj-color) $params(-color)
-        set _obj2style($dataobj-width) $params(-width)
-        set _obj2style($dataobj-raise) $params(-raise)
+        set _obj2ovride($dataobj-color) $params(-color)
+        set _obj2ovride($dataobj-width) $params(-width)
+        set _obj2ovride($dataobj-raise) $params(-raise)
 
         after cancel [itcl::code $this _rebuild]
         after idle [itcl::code $this _rebuild]
@@ -434,7 +459,7 @@ itcl::body Rappture::NanovisViewer::get {} {
     # put the dataobj list in order according to -raise options
     set dlist $_dlist
     foreach obj $dlist {
-        if {[info exists _obj2style($obj-raise)] && $_obj2style($obj-raise)} {
+        if {[info exists _obj2ovride($obj-raise)] && $_obj2ovride($obj-raise)} {
             set i [lsearch -exact $dlist $obj]
             if {$i >= 0} {
                 set dlist [lreplace $dlist $i $i]
@@ -462,8 +487,8 @@ itcl::body Rappture::NanovisViewer::delete {args} {
         set pos [lsearch -exact $_dlist $dataobj]
         if {$pos >= 0} {
             set _dlist [lreplace $_dlist $pos $pos]
-            foreach key [array names _obj2style $dataobj-*] {
-                unset _obj2style($key)
+            foreach key [array names _obj2ovride $dataobj-*] {
+                unset _obj2ovride($key)
             }
             set changed 1
         }
@@ -529,7 +554,7 @@ itcl::body Rappture::NanovisViewer::download {option} {
             # so we'll save to a file and read it back.
             #
             set tmpfile /tmp/image[pid].jpg
-            $_image write $tmpfile -format jpeg
+            $_image(plot) write $tmpfile -format jpeg
             set fid [open $tmpfile r]
             fconfigure $fid -encoding binary -translation binary
             set bytes [read $fid]
@@ -552,7 +577,6 @@ itcl::body Rappture::NanovisViewer::download {option} {
 # Any existing connection is automatically closed.
 # ----------------------------------------------------------------------
 itcl::body Rappture::NanovisViewer::connect {{host ""} {port ""}} {
-puts " connecting... $host $port"
     disconnect
 
     if {"" != $host} { set _nvhost $host }
@@ -571,7 +595,6 @@ puts " connecting... $host $port"
     # forward us to another.
     #
     while {1} {
-puts "connecting to $_nvhost:$_nvport"
         if {[catch {socket $_nvhost $_nvport} sid]} {
             return 0
         }
@@ -592,11 +615,11 @@ puts "connecting to $_nvhost:$_nvport"
             [expr {$b3 & 0xff}] \
             [expr {$b4 & 0xff}]]
 
-puts "  got back $addr"
         if {[string equal $addr "0.0.0.0"]} {
             fconfigure $sid -buffering line
             fileevent $sid readable [itcl::code $this _receive]
             set _sid $sid
+tk_messageBox -message "Continue?"
             return 1
         }
         set hostname $addr
@@ -667,7 +690,9 @@ itcl::body Rappture::NanovisViewer::_send {args} {
         if {[llength $_sendobjs] > 0} {
             append _buffer(out) $args "\n"
         } else {
-puts "send: $args"
+set fid [open /tmp/debug a]
+puts $fid "send: $args"
+close $fid
             puts $_sid $args
         }
     }
@@ -695,6 +720,10 @@ itcl::body Rappture::NanovisViewer::_send_dataobjs {} {
                 Rappture::Tooltip::cue @$x,$y "Lost connection to visualization server"
                 return
             }
+set fid [open /tmp/debug a]
+puts $fid $cmdstr
+puts $fid $data
+close $fid
 
             while {[string length $data] > 0} {
                 update
@@ -715,6 +744,58 @@ itcl::body Rappture::NanovisViewer::_send_dataobjs {} {
 
             set _obj2id($dataobj-$comp) $_obj2id(count)
             incr _obj2id(count)
+
+            #
+            # Determine the transfer function needed for this volume
+            # and make sure that it's defined on the server.
+            #
+            catch {unset style}
+            array set style {
+                -color rainbow
+                -levels 6
+                -opacity 0.5
+            }
+            array set style [lindex [$dataobj components -style $comp] 0]
+            set sname "$style(-color):$style(-levels):$style(-opacity)"
+
+            if {$style(-color) == "rainbow"} {
+                set style(-color) "white:yellow:green:cyan:blue:magenta"
+            }
+            set clist [split $style(-color) :]
+            set cmap "0.0 [_color2rgb white] "
+            for {set i 0} {$i < [llength $clist]} {incr i} {
+                set xval [expr {double($i+1)/([llength $clist]+1)}]
+                set color [lindex $clist $i]
+                append cmap "$xval [_color2rgb $color] "
+            }
+            append cmap "1.0 [_color2rgb $color]"
+
+            set max $style(-opacity)
+            set levels $style(-levels)
+            set wmap "0.0 0.0 "
+            set delta [expr {0.125/($levels+1)}]
+            for {set i 1} {$i <= $levels} {incr i} {
+                # add spikes in the middle
+                set xval [expr {double($i)/($levels+1)}]
+                append wmap "[expr {$xval-$delta-0.01}] 0.0  [expr {$xval-$delta}] $max [expr {$xval+$delta}] $max  [expr {$xval+$delta+0.01}] 0.0 "
+            }
+            append wmap "1.0 0.0 "
+
+            set cmdstr [list transfunc define $sname $cmap $wmap]
+puts "send: $cmdstr"
+set fid [open /tmp/debug a]
+puts $fid $cmdstr
+close $fid
+            if {[catch {puts $_sid $cmdstr} err]} {
+                disconnect
+                set x [expr {[winfo rootx $itk_component(area)]+10}]
+                set y [expr {[winfo rooty $itk_component(area)]+10}]
+                Rappture::Tooltip::cue @$x,$y "Lost connection to visualization server"
+puts "oops: $err"
+                return
+            }
+
+            set _obj2style($dataobj-$comp) $sname
         }
     }
     set _sendobjs ""
@@ -724,6 +805,9 @@ itcl::body Rappture::NanovisViewer::_send_dataobjs {} {
     foreach key [array names _obj2id *-*] {
         set state [string match $first-* $key]
         _send volume state $state $_obj2id($key)
+        if {[info exists _obj2style($key)]} {
+            _send volume shading transfunc $_obj2style($key) $_obj2id($key)
+        }
     }
 
     # sync the state of slicers
@@ -734,6 +818,9 @@ itcl::body Rappture::NanovisViewer::_send_dataobjs {} {
     eval _send volume data state [_state volume] [_currentVolumeIds]
 
     # if there are any commands in the buffer, send them now that we're done
+set fid [open /tmp/debug a]
+puts $fid $_buffer(out)
+close $fid
     if {[catch {puts $_sid $_buffer(out)} err]} {
         disconnect
         set x [expr {[winfo rootx $itk_component(area)]+10}]
@@ -741,6 +828,8 @@ itcl::body Rappture::NanovisViewer::_send_dataobjs {} {
         Rappture::Tooltip::cue @$x,$y "Lost connection to visualization server"
     }
     set _buffer(out) ""
+
+    $_dispatcher event -idle !legend
 }
 
 # ----------------------------------------------------------------------
@@ -778,8 +867,33 @@ puts "closed"
 itcl::body Rappture::NanovisViewer::_receive_image {option size} {
     if {"" != $_sid} {
         set bytes [read $_sid $size]
-        $_image configure -data $bytes
+        $_image(plot) configure -data $bytes
 puts "--IMAGE"
+    }
+}
+
+# ----------------------------------------------------------------------
+# USAGE: _receive_legend <volume> <vmin> <vmax> <size>
+#
+# Invoked automatically whenever the "legend" command comes in from
+# the rendering server.  Indicates that binary image data with the
+# specified <size> will follow.
+# ----------------------------------------------------------------------
+itcl::body Rappture::NanovisViewer::_receive_legend {ivol vmin vmax size} {
+    if {"" != $_sid} {
+        set bytes [read $_sid $size]
+        $_image(legend) configure -data $bytes
+puts "--LEGEND $vmin - $vmax"
+
+        set c $itk_component(legend)
+        set w [winfo width $c]
+        set h [winfo height $c]
+        if {"" == [$c find withtag transfunc]} {
+            $c create image [expr {$w/2}] [expr {$h/2}] -anchor c \
+                 -image $_image(legend) -tags transfunc
+        } else {
+            $c coords transfunc [expr {$w/2}] [expr {$h/2}]
+        }
     }
 }
 
@@ -820,6 +934,9 @@ itcl::body Rappture::NanovisViewer::_rebuild {} {
         foreach key [array names _obj2id *-*] {
             set state [string match $first-* $key]
             _send volume state $state $_obj2id($key)
+            if {[info exists _obj2style($key)]} {
+                _send volume shading transfunc $_obj2style($key) $_obj2id($key)
+            }
         }
 
         # sync the state of slicers
@@ -828,6 +945,7 @@ itcl::body Rappture::NanovisViewer::_rebuild {} {
                 $axis [_currentVolumeIds]
         }
         eval _send volume data state [_state volume] [_currentVolumeIds]
+        $_dispatcher event -idle !legend
     }
 
     #
@@ -861,8 +979,9 @@ itcl::body Rappture::NanovisViewer::_currentVolumeIds {} {
 
     set first [lindex [get] 0]
     foreach key [array names _obj2id *-*] {
-        set state [string match $first-* $key]
-        lappend rlist $_obj2id($key)
+        if {[string match $first-* $key]} {
+            lappend rlist $_obj2id($key)
+        }
     }
     return $rlist
 }
@@ -892,8 +1011,6 @@ itcl::body Rappture::NanovisViewer::_zoom {option} {
             set _view(zoom) 1.0
             eval _send camera angle [_euler2xyz $_view(theta) $_view(phi) $_view(psi)]
             _send camera zoom $_view(zoom)
-
-            _send transfunc define default { 0 0 0 1 0.5  1 1 0 0 0.8 }
         }
     }
 }
@@ -1112,6 +1229,32 @@ itcl::body Rappture::NanovisViewer::_fixSettings {what {value ""}} {
         default {
             error "don't know how to fix $what"
         }
+    }
+}
+
+# ----------------------------------------------------------------------
+# USAGE: _fixLegend
+#
+# Used internally to update the legend area whenever it changes size
+# or when the field changes.  Asks the server to send a new legend
+# for the current field.
+# ----------------------------------------------------------------------
+itcl::body Rappture::NanovisViewer::_fixLegend {} {
+    set w [expr {[winfo width $itk_component(legend)]-20}]
+    set h [expr {[winfo height $itk_component(legend)]-20}]
+    set ivol ""
+
+    set dataobj [lindex [get] 0]
+    set comp [lindex [$dataobj components] 0]
+    if {[info exists _obj2id($dataobj-$comp)]} {
+        set ivol $_obj2id($dataobj-$comp)
+    }
+puts "fixLegend $w $h $ivol in [get]"
+
+    if {$w > 0 && $h > 0 && "" != $ivol} {
+        _send legend $ivol $w $h
+    } else {
+        $itk_component(legend) delete all
     }
 }
 

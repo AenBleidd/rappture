@@ -570,6 +570,12 @@ itcl::body Rappture::ContourResult::_rebuild {} {
                     # 3D DATA SET
                     #
                     set mesh [$dataobj mesh $comp]
+                    if {"" == $mesh} {
+                        set x [expr {[winfo rootx $itk_component(area)]+10}]
+                        set y [expr {[winfo rooty $itk_component(area)]+10}]
+                        Rappture::Tooltip::cue @$x,$y "This data requires the visualization server, and that appears to be down.  Please try your simulation again later."
+                        return
+                    }
                     switch -- [$mesh GetClassName] {
                       vtkPoints {
                         # handle cloud of 3D points
