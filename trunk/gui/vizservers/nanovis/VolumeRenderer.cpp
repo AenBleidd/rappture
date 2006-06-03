@@ -75,6 +75,17 @@ VolumeRenderer::shade_volume(Volume* _vol, TransferFunction* _tf)
   }
 }
 
+TransferFunction*
+VolumeRenderer::get_volume_shading(Volume* _vol)
+{
+  for (int i=0; i < volume.size(); i++) {
+    if (volume[i] == _vol) {
+      return tf[i];
+    }
+  }
+  return NULL;
+}
+
 typedef struct SortElement{
   float z;
   int volume_id;
@@ -890,46 +901,46 @@ void VolumeRenderer::draw_label(int volume_index){
   glEnable(GL_DEPTH_TEST);
 
   //x
-  glColor3f(0., 0., 0.5);
+  glColor3f(0.5, 0.5, 0.5);
 
-  int length = strlen(vol->label[0]);
+  int length = vol->label[0].size();
   glPushMatrix();
   
-    glTranslatef(.5*vol->aspect_ratio_width, vol->aspect_ratio_height, -0.2*vol->aspect_ratio_depth);
+    glTranslatef(.5*vol->aspect_ratio_width, vol->aspect_ratio_height, -0.1*vol->aspect_ratio_depth);
     glRotatef(180, 0, 0, 1);
     glRotatef(90, 1, 0, 0);
 
-    glScalef(0.00035, 0.00035, 0.00035);
+    glScalef(0.0008, 0.0008, 0.0008);
     for(int i=0; i<length; i++){
-      glutStrokeCharacter(GLUT_STROKE_ROMAN, vol->label[0][i]);
+      glutStrokeCharacter(GLUT_STROKE_ROMAN, vol->label[0].c_str()[i]);
       glTranslatef(0.04, 0., 0.);
     }
   glPopMatrix();
 
   //y
-  length = strlen(vol->label[1]);
+  length = vol->label[1].size();
   glPushMatrix();
-    glTranslatef(vol->aspect_ratio_width, 0.5*vol->aspect_ratio_height, -0.2*vol->aspect_ratio_depth);
+    glTranslatef(vol->aspect_ratio_width, 0.5*vol->aspect_ratio_height, -0.1*vol->aspect_ratio_depth);
     glRotatef(90, 0, 1, 0);
     glRotatef(90, 0, 0, 1);
 
-    glScalef(0.00035, 0.00035, 0.00035);
+    glScalef(0.0008, 0.0008, 0.0008);
     for(int i=0; i<length; i++){
-      glutStrokeCharacter(GLUT_STROKE_ROMAN, vol->label[1][i]);
+      glutStrokeCharacter(GLUT_STROKE_ROMAN, vol->label[1].c_str()[i]);
       glTranslatef(0.04, 0., 0.);
     }
   glPopMatrix();
 
 
   //z
-  length = strlen(vol->label[2]);
+  length = vol->label[2].size();
   glPushMatrix();
     glTranslatef(0., 1.*vol->aspect_ratio_height, 0.5*vol->aspect_ratio_depth);
     glRotatef(90, 0, 1, 0);
 
-    glScalef(0.00035, 0.00035, 0.00035);
+    glScalef(0.0008, 0.0008, 0.0008);
     for(int i=0; i<length; i++){
-      glutStrokeCharacter(GLUT_STROKE_ROMAN, vol->label[2][i]);
+      glutStrokeCharacter(GLUT_STROKE_ROMAN, vol->label[2].c_str()[i]);
       glTranslatef(0.04, 0., 0.);
     }
   glPopMatrix();
