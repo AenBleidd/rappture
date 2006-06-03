@@ -96,6 +96,7 @@ Rappture::Outcome load_volume_file(int index, char *fname);
 void load_volume(int index, int width, int height, int depth, int n_component, float* data, double vmin, double vmax);
 TransferFunction* get_transfunc(char *name);
 void resize_offscreen_buffer(int w, int h);
+void offscreen_buffer_capture();
 void bmp_header_add_int(unsigned char* header, int& pos, int data);
 void bmp_write(const char* cmd);
 
@@ -114,7 +115,8 @@ float slice_vector[NMESH*NMESH*4];	//per slice vectors in main memory
 
 int n_volumes = 0;
 // pointers to volumes, currently handle up to 10 volumes
-Volume* volume[MAX_N_VOLUMES];
+vector<Volume*> volume;
+
 // maps transfunc name to TransferFunction object
 Tcl_HashTable tftable;
 
@@ -159,6 +161,7 @@ static int PlaneNewCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int ar
 static int PlaneLinkCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
 static int PlaneEnableCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
 
+static int GetVolumeIndices _ANSI_ARGS_((Tcl_Interp *interp, int argc, CONST84 char *argv[], vector<int>* vectorPtr));
 static int GetAxis _ANSI_ARGS_((Tcl_Interp *interp, char *str, int *valPtr));
 static int GetColor _ANSI_ARGS_((Tcl_Interp *interp, char *str, float *rgbPtr));
 
@@ -292,31 +295,19 @@ CutplaneCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]
             return TCL_ERROR;
         }
 
-        int ivol;
-        if (argc < 5) {
-            for (ivol=0; ivol < n_volumes; ivol++) {
-                if (state) {
-                    volume[ivol]->enable_cutplane(axis);
-                } else {
-                    volume[ivol]->disable_cutplane(axis);
-                }
+        vector<int> ivol;
+        if (GetVolumeIndices(interp, argc-4, argv+4, &ivol) != TCL_OK) {
+            return TCL_ERROR;
+        }
+
+        vector<int>::iterator iter = ivol.begin();
+        while (iter != ivol.end()) {
+            if (state) {
+                volume[*iter]->enable_cutplane(axis);
+            } else {
+                volume[*iter]->disable_cutplane(axis);
             }
-        } else {
-            for (int n=4; n < argc; n++) {
-                if (Tcl_GetInt(interp, argv[n], &ivol) != TCL_OK) {
-                    return TCL_ERROR;
-                }
-                if (ivol < 0 || ivol >= n_volumes) {
-                    Tcl_AppendResult(interp, "bad volume index \"", argv[n],
-                        "\": out of range", (char*)NULL);
-                    return TCL_ERROR;
-                }
-                if (state) {
-                    volume[ivol]->enable_cutplane(axis);
-                } else {
-                    volume[ivol]->disable_cutplane(axis);
-                }
-            }
+            ++iter;
         }
         return TCL_OK;
     }
@@ -340,23 +331,15 @@ CutplaneCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]
             return TCL_ERROR;
         }
 
-        int ivol;
-        if (argc < 5) {
-            for (ivol=0; ivol < n_volumes; ivol++) {
-                volume[ivol]->move_cutplane(axis, (float)relval);
-            }
-        } else {
-            for (int n=4; n < argc; n++) {
-                if (Tcl_GetInt(interp, argv[n], &ivol) != TCL_OK) {
-                    return TCL_ERROR;
-                }
-                if (ivol < 0 || ivol >= n_volumes) {
-                    Tcl_AppendResult(interp, "bad volume index \"", argv[n],
-                        "\": out of range", (char*)NULL);
-                    return TCL_ERROR;
-                }
-                volume[ivol]->move_cutplane(axis, (float)relval);
-            }
+        vector<int> ivol;
+        if (GetVolumeIndices(interp, argc-4, argv+4, &ivol) != TCL_OK) {
+            return TCL_ERROR;
+        }
+
+        vector<int>::iterator iter = ivol.begin();
+        while (iter != ivol.end()) {
+            volume[*iter]->move_cutplane(axis, (float)relval);
+            ++iter;
         }
         return TCL_OK;
     }
@@ -410,6 +393,7 @@ LegendCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
         return TCL_ERROR;
     }
 
+    plane_render->set_screen_size(width, height);
     resize_offscreen_buffer(width, height);
 
     // generate data for the legend
@@ -420,7 +404,9 @@ LegendCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
     plane[0] = new Texture2D(256, 2, GL_FLOAT, GL_LINEAR, 1, data);
     int index = plane_render->add_plane(plane[0], tf);
     plane_render->set_active_plane(index);
-    plane_render->set_screen_size(width, height);
+
+    offscreen_buffer_capture();
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); //clear screen
     plane_render->render();
 
     glReadPixels(0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, screen_buffer);
@@ -642,18 +628,15 @@ VolumeCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
                 return TCL_ERROR;
             }
 
-            int ivol;
-            if (argc < 6) {
-                for (ivol=0; ivol < n_volumes; ivol++) {
-                    volume[ivol]->set_label(axis, argv[4]);
-                }
-            } else {
-                for (int n=5; n < argc; n++) {
-                    if (Tcl_GetInt(interp, argv[n], &ivol) != TCL_OK) {
-                        return TCL_ERROR;
-                    }
-                    volume[ivol]->set_label(axis, argv[4]);
-                }
+            vector<int> ivol;
+            if (GetVolumeIndices(interp, argc-5, argv+5, &ivol) != TCL_OK) {
+                return TCL_ERROR;
+            }
+
+            vector<int>::iterator iter = ivol.begin();
+            while (iter != ivol.end()) {
+                volume[*iter]->set_label(axis, argv[4]);
+                ++iter;
             }
             return TCL_OK;
         }
@@ -680,26 +663,19 @@ VolumeCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
                 return TCL_ERROR;
             }
 
-            int ivol;
-            if (argc < 5) {
-                for (ivol=0; ivol < n_volumes; ivol++) {
-                    if (state) {
-                        volume[ivol]->enable_data();
-                    } else {
-                        volume[ivol]->disable_data();
-                    }
+            vector<int> ivol;
+            if (GetVolumeIndices(interp, argc-4, argv+4, &ivol) != TCL_OK) {
+                return TCL_ERROR;
+            }
+
+            vector<int>::iterator iter = ivol.begin();
+            while (iter != ivol.end()) {
+                if (state) {
+                    volume[*iter]->enable_data();
+                } else {
+                    volume[*iter]->disable_data();
                 }
-            } else {
-                for (int n=4; n < argc; n++) {
-                    if (Tcl_GetInt(interp, argv[n], &ivol) != TCL_OK) {
-                        return TCL_ERROR;
-                    }
-                    if (state) {
-                        volume[ivol]->enable_data();
-                    } else {
-                        volume[ivol]->disable_data();
-                    }
-                }
+                ++iter;
             }
             return TCL_OK;
         }
@@ -788,31 +764,19 @@ VolumeCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
                 return TCL_ERROR;
             }
 
-            int ivol;
-            if (argc < 5) {
-                for (ivol=0; ivol < n_volumes; ivol++) {
-                    if (state) {
-                        volume[ivol]->enable_outline();
-                    } else {
-                        volume[ivol]->disable_outline();
-                    }
+            vector<int> ivol;
+            if (GetVolumeIndices(interp, argc-4, argv+4, &ivol) != TCL_OK) {
+                return TCL_ERROR;
+            }
+
+            vector<int>::iterator iter = ivol.begin();
+            while (iter != ivol.end()) {
+                if (state) {
+                    volume[*iter]->enable_outline();
+                } else {
+                    volume[*iter]->disable_outline();
                 }
-            } else {
-                for (int n=4; n < argc; n++) {
-                    if (Tcl_GetInt(interp, argv[n], &ivol) != TCL_OK) {
-                        return TCL_ERROR;
-                    }
-                    if (ivol < 0 || ivol >= n_volumes) {
-                        Tcl_AppendResult(interp, "bad volume index \"", argv[n],
-                            "\": out of range", (char*)NULL);
-                        return TCL_ERROR;
-                    }
-                    if (state) {
-                        volume[ivol]->enable_outline();
-                    } else {
-                        volume[ivol]->disable_outline();
-                    }
-                }
+                ++iter;
             }
             return TCL_OK;
         }
@@ -828,23 +792,15 @@ VolumeCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
                 return TCL_ERROR;
             }
 
-            int ivol;
-            if (argc < 5) {
-                for (ivol=0; ivol < n_volumes; ivol++) {
-                    volume[ivol]->set_outline_color(rgb);
-                }
-            } else {
-                for (int n=4; n < argc; n++) {
-                    if (Tcl_GetInt(interp, argv[n], &ivol) != TCL_OK) {
-                        return TCL_ERROR;
-                    }
-                    if (ivol < 0 || ivol >= n_volumes) {
-                        Tcl_AppendResult(interp, "bad volume index \"", argv[n],
-                            "\": out of range", (char*)NULL);
-                        return TCL_ERROR;
-                    }
-                    volume[ivol]->set_outline_color(rgb);
-                }
+            vector<int> ivol;
+            if (GetVolumeIndices(interp, argc-4, argv+4, &ivol) != TCL_OK) {
+                return TCL_ERROR;
+            }
+
+            vector<int>::iterator iter = ivol.begin();
+            while (iter != ivol.end()) {
+                volume[*iter]->set_outline_color(rgb);
+                ++iter;
             }
             return TCL_OK;
         }
@@ -874,18 +830,15 @@ VolumeCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
                 return TCL_ERROR;
             }
 
-            int ivol;
-            if (argc < 5) {
-                for (ivol=0; ivol < n_volumes; ivol++) {
-                    vol_render->shade_volume(volume[ivol], tf);
-                }
-            } else {
-                for (int n=4; n < argc; n++) {
-                    if (Tcl_GetInt(interp, argv[n], &ivol) != TCL_OK) {
-                        return TCL_ERROR;
-                    }
-                    vol_render->shade_volume(volume[ivol], tf);
-                }
+            vector<int> ivol;
+            if (GetVolumeIndices(interp, argc-4, argv+4, &ivol) != TCL_OK) {
+                return TCL_ERROR;
+            }
+
+            vector<int>::iterator iter = ivol.begin();
+            while (iter != ivol.end()) {
+                vol_render->shade_volume(volume[*iter], tf);
+                ++iter;
             }
             return TCL_OK;
         }
@@ -901,18 +854,15 @@ VolumeCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
                 return TCL_ERROR;
             }
 
-            int ivol;
-            if (argc < 5) {
-                for (ivol=0; ivol < n_volumes; ivol++) {
-                    volume[ivol]->set_diffuse((float)dval);
-                }
-            } else {
-                for (int n=4; n < argc; n++) {
-                    if (Tcl_GetInt(interp, argv[n], &ivol) != TCL_OK) {
-                        return TCL_ERROR;
-                    }
-                    volume[ivol]->set_diffuse((float)dval);
-                }
+            vector<int> ivol;
+            if (GetVolumeIndices(interp, argc-4, argv+4, &ivol) != TCL_OK) {
+                return TCL_ERROR;
+            }
+
+            vector<int>::iterator iter = ivol.begin();
+            while (iter != ivol.end()) {
+                volume[*iter]->set_diffuse((float)dval);
+                ++iter;
             }
             return TCL_OK;
         }
@@ -928,18 +878,15 @@ VolumeCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
                 return TCL_ERROR;
             }
 
-            int ivol;
-            if (argc < 5) {
-                for (ivol=0; ivol < n_volumes; ivol++) {
-                    volume[ivol]->set_opacity_scale((float)dval);
-                }
-            } else {
-                for (int n=4; n < argc; n++) {
-                    if (Tcl_GetInt(interp, argv[n], &ivol) != TCL_OK) {
-                        return TCL_ERROR;
-                    }
-                    volume[ivol]->set_opacity_scale((float)dval);
-                }
+            vector<int> ivol;
+            if (GetVolumeIndices(interp, argc-4, argv+4, &ivol) != TCL_OK) {
+                return TCL_ERROR;
+            }
+
+            vector<int>::iterator iter = ivol.begin();
+            while (iter != ivol.end()) {
+                volume[*iter]->set_opacity_scale((float)dval);
+                ++iter;
             }
             return TCL_OK;
         }
@@ -955,18 +902,15 @@ VolumeCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
                 return TCL_ERROR;
             }
 
-            int ivol;
-            if (argc < 5) {
-                for (ivol=0; ivol < n_volumes; ivol++) {
-                    volume[ivol]->set_specular((float)dval);
-                }
-            } else {
-                for (int n=4; n < argc; n++) {
-                    if (Tcl_GetInt(interp, argv[n], &ivol) != TCL_OK) {
-                        return TCL_ERROR;
-                    }
-                    volume[ivol]->set_specular((float)dval);
-                }
+            vector<int> ivol;
+            if (GetVolumeIndices(interp, argc-4, argv+4, &ivol) != TCL_OK) {
+                return TCL_ERROR;
+            }
+
+            vector<int>::iterator iter = ivol.begin();
+            while (iter != ivol.end()) {
+                volume[*iter]->set_specular((float)dval);
+                ++iter;
             }
             return TCL_OK;
         }
@@ -986,26 +930,19 @@ VolumeCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
             return TCL_ERROR;
         }
 
-        int ivol;
-        if (argc < 4) {
-            for (ivol=0; ivol < n_volumes; ivol++) {
-                if (state) {
-                    volume[ivol]->enable();
-                } else {
-                    volume[ivol]->disable();
-                }
+        vector<int> ivol;
+        if (GetVolumeIndices(interp, argc-3, argv+3, &ivol) != TCL_OK) {
+            return TCL_ERROR;
+        }
+
+        vector<int>::iterator iter = ivol.begin();
+        while (iter != ivol.end()) {
+            if (state) {
+                volume[*iter]->enable();
+            } else {
+                volume[*iter]->disable();
             }
-        } else {
-            for (int n=3; n < argc; n++) {
-                    if (Tcl_GetInt(interp, argv[n], &ivol) != TCL_OK) {
-                            return TCL_ERROR;
-                    }
-                if (state) {
-                    volume[ivol]->enable();
-                } else {
-                    volume[ivol]->disable();
-                }
-            }
+            ++iter;
         }
         return TCL_OK;
     }
@@ -1013,6 +950,48 @@ VolumeCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
     Tcl_AppendResult(interp, "bad option \"", argv[1],
         "\": should be data, outline, shading, or state", (char*)NULL);
     return TCL_ERROR;
+}
+
+/*
+ * ----------------------------------------------------------------------
+ * FUNCTION: GetVolumeIndices()
+ *
+ * Used internally to decode a series of volume index values and
+ * store then in the specified vector.  If there are no volume index
+ * arguments, this means "all volumes" to most commands, so all
+ * active volume indices are stored in the vector.
+ *
+ * Updates pushes index values into the vector.  Returns TCL_OK or
+ * TCL_ERROR to indicate an error.
+ * ----------------------------------------------------------------------
+ */
+static int
+GetVolumeIndices(Tcl_Interp *interp, int argc, CONST84 char *argv[],
+    vector<int>* vectorPtr)
+{
+    if (argc == 0) {
+        for (int n=0; n < volume.size(); n++) {
+            if (volume[n] != NULL) {
+                vectorPtr->push_back(n);
+            }
+        }
+    } else {
+        int ivol;
+        for (int n=0; n < argc; n++) {
+            if (Tcl_GetInt(interp, argv[n], &ivol) != TCL_OK) {
+                return TCL_ERROR;
+            }
+            if (ivol < 0 || ivol >= volume.size()) {
+                Tcl_AppendResult(interp, "bad volume index \"", argv[n],
+                    "\"", (char*)NULL);
+                return TCL_ERROR;
+            }
+            if (volume[ivol] != NULL) {
+                vectorPtr->push_back(ivol);
+            }
+        }
+    }
+    return TCL_OK;
 }
 
 /*
@@ -1744,18 +1723,21 @@ load_volume_file(int index, char *fname) {
  * width, height and depth: number of points in each dimension
  */
 void load_volume(int index, int width, int height, int depth,
-    int n_component, float* data, double vmin, double vmax) {
-  if(volume[index]!=0){
-    delete volume[index];
-    volume[index]=0;
-  }
+    int n_component, float* data, double vmin, double vmax)
+{
+    while (n_volumes <= index) {
+        volume.push_back(NULL);
+        n_volumes++;
+    }
 
-  volume[index] = new Volume(0.f, 0.f, 0.f, width, height, depth, 1.,  n_component, data, vmin, vmax);
-  assert(volume[index]!=0);
+    if (volume[index] != NULL) {
+        delete volume[index];
+        volume[index] = NULL;
+    }
 
-  if (n_volumes <= index) {
-    n_volumes = index+1;
-  }
+    volume[index] = new Volume(0.f, 0.f, 0.f, width, height, depth, 1.,
+                                 n_component, data, vmin, vmax);
+    assert(volume[index]!=0);
 }
 
 
@@ -2046,11 +2028,6 @@ void initGL(void)
    glLightfv(GL_LIGHT0, GL_SPECULAR, white_light);	
    glLightfv(GL_LIGHT1, GL_DIFFUSE, green_light);
    glLightfv(GL_LIGHT1, GL_SPECULAR, white_light);	
-
-   //init volume array
-   for(int i=0; i<MAX_N_VOLUMES; i++){
-     volume[i] = 0;
-   }
 
    // init table of transfer functions
    Tcl_InitHashTable(&tftable, TCL_STRING_KEYS);
