@@ -56,7 +56,6 @@
 #define DM  ((float) (1.0/(NMESH-1.0)))	//distance in world coords between mesh lines
 #define NPIX  512	//display size
 #define SCALE 3.0	//scale for background pattern. small value -> fine texture
-#define MAX_N_VOLUMES 10 //maximum of volumes the application can handle
 
 
 typedef struct Vector2{
