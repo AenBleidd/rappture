@@ -374,7 +374,11 @@ itcl::body Rappture::Radiodial::_redraw {} {
     # draw the optional progress bar, from start to current
     if {"" != $itk_option(-dialprogresscolor)
           && [llength $_values] > 0 && "" != $_current} {
-        set frac [expr {double($_current-$min)/($max-$min)}]
+        if {$max != $min} {
+            set frac [expr {double($_current-$min)/($max-$min)}]
+        } else {
+            set frac 0.
+        }
         set xx1 [expr {$frac*($x1-$x0) + $x0}]
         $c create rectangle [expr {$x0+1}] [expr {$y0+3}] $xx1 [expr {$y1-2}] \
             -outline "" -fill $itk_option(-dialprogresscolor)

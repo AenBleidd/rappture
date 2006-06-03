@@ -117,6 +117,7 @@ itcl::body Rappture::Sequence::constructor {xmlobj path} {
             set n 0
             foreach val [lsort $how [array names _dataobjs]] {
                 lappend _indices [list $val $n]
+                incr n
             }
         } else {
             foreach val [lsort $how [array names _dataobjs]] {
