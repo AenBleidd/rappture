@@ -123,6 +123,9 @@ Tcl_HashTable tftable;
 // pointers to 2D planes, currently handle up 10
 Texture2D* plane[10];
 
+// value indicates "up" axis:  x=1, y=2, z=3, -x=-1, -y=-2, -z=-3
+int updir = 2;
+
 PerfQuery* perf;			//perfromance counter
 
 //Nvidia CG shaders and their parameters
@@ -156,7 +159,9 @@ static int CutplaneCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int ar
 static int LegendCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
 static int ScreenCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
 static int TransfuncCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
+static int UpCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
 static int VolumeCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
+
 static int PlaneNewCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
 static int PlaneLinkCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
 static int PlaneEnableCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
@@ -581,6 +586,41 @@ TransfuncCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[
     Tcl_AppendResult(interp, "bad option \"", argv[1],
         "\": should be define", (char*)NULL);
     return TCL_ERROR;
+}
+
+/*
+ * ----------------------------------------------------------------------
+ * CLIENT COMMAND:
+ *   up axis
+ *
+ * Clients use this to set the "up" direction for all volumes.  Volumes
+ * are oriented such that this direction points upward.
+ * ----------------------------------------------------------------------
+ */
+static int
+UpCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
+{
+    if (argc != 2) {
+        Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
+            " x|y|z|-x|-y|-z\"", (char*)NULL);
+        return TCL_ERROR;
+    }
+
+    int sign = 1;
+    char *axisName = argv[1];
+    if (*axisName == '-') {
+        sign = -1;
+        axisName++;
+    }
+
+    int axis;
+    if (GetAxis(interp, axisName, &axis) != TCL_OK) {
+        return TCL_ERROR;
+    }
+
+    updir = (axis+1)*sign;
+
+    return TCL_OK;
 }
 
 /*
@@ -2110,6 +2150,10 @@ void initTcl(){
     Tcl_CreateCommand(interp, "transfunc", TransfuncCmd,
         (ClientData)NULL, (Tcl_CmdDeleteProc*)NULL);
 
+    // set the "up" direction for volumes
+    Tcl_CreateCommand(interp, "up", UpCmd,
+        (ClientData)NULL, (Tcl_CmdDeleteProc*)NULL);
+
     // manipulate volume data
     Tcl_CreateCommand(interp, "volume", VolumeCmd,
         (ClientData)NULL, (Tcl_CmdDeleteProc*)NULL);
@@ -2727,32 +2771,64 @@ void display()
    //start final rendering
    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); //clear screen
 
-   if(volume_mode){ //3D rendering mode
+   if (volume_mode) {
+     //3D rendering mode
      glEnable(GL_TEXTURE_2D);
      glEnable(GL_DEPTH_TEST);
 
      //camera setting activated
      cam->activate();
 
-     //now render things in the scene
-     //
-     draw_3d_axis();
-   
-     //lic->render(); 	//display the line integral convolution result
-     //soft_display_verts();
-     //perf->enable();
-     //  psys->render();
-     //perf->disable();
-     //fprintf(stderr, "particle pixels: %d\n", perf->get_pixel_count());
-     //perf->reset();
-    
-     perf->enable();
-       vol_render->render_all();
-       //fprintf(stderr, "%lf\n", get_time_interval());
-     perf->disable();
-   }
-   else{ //2D rendering mode
+     //set up the orientation of items in the scene.
+     glPushMatrix();
+       switch (updir) {
+         case 1:  // x
+	       glRotatef(90, 0, 0, 1);
+	       glRotatef(90, 1, 0, 0);
+           break;
 
+         case 2:  // y
+           // this is the default
+           break;
+
+         case 3:  // z
+	       glRotatef(-90, 1, 0, 0);
+	       glRotatef(-90, 0, 0, 1);
+           break;
+
+         case -1:  // -x
+	       glRotatef(-90, 0, 0, 1);
+           break;
+
+         case -2:  // -y
+	       glRotatef(180, 0, 0, 1);
+	       glRotatef(-90, 0, 1, 0);
+           break;
+
+         case -3:  // -z
+	       glRotatef(90, 1, 0, 0);
+           break;
+       }
+
+       //now render things in the scene
+       draw_3d_axis();
+
+       //lic->render(); 	//display the line integral convolution result
+       //soft_display_verts();
+       //perf->enable();
+       //  psys->render();
+       //perf->disable();
+       //fprintf(stderr, "particle pixels: %d\n", perf->get_pixel_count());
+       //perf->reset();
+
+       perf->enable();
+         vol_render->render_all();
+       perf->disable();
+
+     glPopMatrix();
+   }
+   else{
+     //2D rendering mode
      perf->enable();
        plane_render->render();
      perf->disable();
