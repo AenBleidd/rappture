@@ -58,9 +58,13 @@ itcl::class Rappture::NanovisViewer {
     protected method _move {option x y}
     protected method _slice {option args}
     protected method _slicertip {axis}
+    protected method _probe {option args}
+
     protected method _state {comp}
     protected method _fixSettings {what {value ""}}
     protected method _fixLegend {}
+    protected method _serverDown {}
+    protected method _getTransfuncData {dataobj comp}
     protected method _color2rgb {color}
     protected method _euler2xyz {theta phi psi}
 
@@ -97,6 +101,8 @@ itcl::body Rappture::NanovisViewer::constructor {nvhost nvport args} {
     Rappture::dispatcher _dispatcher
     $_dispatcher register !legend
     $_dispatcher dispatch $this !legend "[itcl::code $this _fixLegend]; list"
+    $_dispatcher register !serverDown
+    $_dispatcher dispatch $this !serverDown "[itcl::code $this _serverDown]; list"
 
     set _buffer(in) ""
     set _buffer(out) ""
@@ -363,9 +369,14 @@ itcl::body Rappture::NanovisViewer::constructor {nvhost nvport args} {
     #
     # RENDERING AREA
     #
+    itk_component add area {
+        frame $itk_interior.area
+    }
+    pack $itk_component(area) -expand yes -fill both
+
     set _image(legend) [image create photo]
     itk_component add legend {
-        canvas $itk_interior.legend -height 50 -highlightthickness 0
+        canvas $itk_component(area).legend -height 50 -highlightthickness 0
     } {
         usual
         ignore -highlightthickness
@@ -376,23 +387,27 @@ itcl::body Rappture::NanovisViewer::constructor {nvhost nvport args} {
         [list $_dispatcher event -idle !legend]
 
     set _image(plot) [image create photo]
-    itk_component add area {
-        label $itk_interior.area -image $_image(plot) -highlightthickness 0
+    itk_component add 3dview {
+        label $itk_component(area).vol -image $_image(plot) \
+            -highlightthickness 0
     } {
         usual
         ignore -highlightthickness
+        rename -background -plotbackground plotBackground Background
     }
-    pack $itk_component(area) -expand yes -fill both
+    pack $itk_component(3dview) -expand yes -fill both
 
     # set up bindings for rotation
-    bind $itk_component(area) <ButtonPress> \
+    bind $itk_component(3dview) <ButtonPress> \
         [itcl::code $this _move click %x %y]
-    bind $itk_component(area) <B1-Motion> \
+    bind $itk_component(3dview) <B1-Motion> \
         [itcl::code $this _move drag %x %y]
-    bind $itk_component(area) <ButtonRelease> \
+    bind $itk_component(3dview) <ButtonRelease> \
         [itcl::code $this _move release %x %y]
-    bind $itk_component(area) <Configure> \
+    bind $itk_component(3dview) <Configure> \
         [itcl::code $this _send screen %w %h]
+
+    set _image(download) [image create photo]
 
     eval itk_initialize $args
 
@@ -408,6 +423,7 @@ itcl::body Rappture::NanovisViewer::destructor {} {
     after cancel [itcl::code $this _rebuild]
     image delete $_image(plot)
     image delete $_image(legend)
+    image delete $_image(download)
     interp delete $_parser
 }
 
@@ -546,7 +562,10 @@ itcl::body Rappture::NanovisViewer::scale {args} {
 itcl::body Rappture::NanovisViewer::download {option} {
     switch $option {
         coming {
-            # do nothing -- we have the image
+            if {[catch {blt::winop snap $itk_component(area) $_image(download)}]} {
+                $_image(download) configure -width 1 -height 1
+                $_image(download) put #000000
+            }
         }
         now {
             #
@@ -554,7 +573,7 @@ itcl::body Rappture::NanovisViewer::download {option} {
             # so we'll save to a file and read it back.
             #
             set tmpfile /tmp/image[pid].jpg
-            $_image(plot) write $tmpfile -format jpeg
+            $_image(download) write $tmpfile -format jpeg
             set fid [open $tmpfile r]
             fconfigure $fid -encoding binary -translation binary
             set bytes [read $fid]
@@ -585,6 +604,8 @@ itcl::body Rappture::NanovisViewer::connect {{host ""} {port ""}} {
     if {"" == $_nvhost || "" == $_nvport} {
         return 0
     }
+
+    blt::busy hold $itk_component(hull); update idletasks
 
     # HACK ALERT! punt on this for now
     set memorySize 10000
@@ -619,11 +640,12 @@ itcl::body Rappture::NanovisViewer::connect {{host ""} {port ""}} {
             fconfigure $sid -buffering line
             fileevent $sid readable [itcl::code $this _receive]
             set _sid $sid
-tk_messageBox -message "Continue?"
             return 1
         }
         set hostname $addr
     }
+    blt::busy release $itk_component(hull)
+
     return 0
 }
 
@@ -637,15 +659,15 @@ itcl::body Rappture::NanovisViewer::disconnect {} {
     if {"" != $_sid} {
         catch {close $_sid}
         set _sid ""
-
-        set _buffer(in) ""
-        set _buffer(out) ""
-
-        # disconnected -- no more data sitting on server
-        catch {unset _obj2id}
-        set _obj2id(count) 0
-        set _sendobjs ""
     }
+
+    set _buffer(in) ""
+    set _buffer(out) ""
+
+    # disconnected -- no more data sitting on server
+    catch {unset _obj2id}
+    set _obj2id(count) 0
+    set _sendobjs ""
 }
 
 # ----------------------------------------------------------------------
@@ -665,34 +687,31 @@ itcl::body Rappture::NanovisViewer::isconnected {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::NanovisViewer::_send {args} {
     if {"" == $_sid} {
+        $_dispatcher cancel !serverDown
         set x [expr {[winfo rootx $itk_component(area)]+10}]
         set y [expr {[winfo rooty $itk_component(area)]+10}]
         Rappture::Tooltip::cue @$x,$y "Connecting..."
 
         if {[catch {connect} ok] == 0 && $ok} {
-            set w [winfo width $itk_component(area)]
-            set h [winfo height $itk_component(area)]
+            set w [winfo width $itk_component(3dview)]
+            set h [winfo height $itk_component(3dview)]
             puts $_sid "screen $w $h"
             set _view(theta) 45
             set _view(phi) 45
             set _view(psi) 0
             set _view(zoom) 1.0
-            puts $_sid "camera angle [_euler2xyz $_view(theta) $_view(phi) $_view(psi)]"
-            puts $_sid "camera zoom $_view(zoom)"
+            after idle [itcl::code $this _rebuild]
             Rappture::Tooltip::cue hide
-        } else {
-            Rappture::Tooltip::cue @$x,$y "Can't connect to visualization server.  This may be a network problem.  Wait a few moments and try resetting the view."
             return
         }
+        Rappture::Tooltip::cue @$x,$y "Can't connect to visualization server.  This may be a network problem.  Wait a few moments and try resetting the view."
+        return
     }
     if {"" != $_sid} {
         # if we're transmitting objects, then buffer this command
         if {[llength $_sendobjs] > 0} {
             append _buffer(out) $args "\n"
         } else {
-set fid [open /tmp/debug a]
-puts $fid "send: $args"
-close $fid
             puts $_sid $args
         }
     }
@@ -706,6 +725,8 @@ close $fid
 # between so the interface doesn't lock up.
 # ----------------------------------------------------------------------
 itcl::body Rappture::NanovisViewer::_send_dataobjs {} {
+    blt::busy hold $itk_component(hull); update idletasks
+
     foreach dataobj $_sendobjs {
         foreach comp [$dataobj components] {
             # send the data as one huge base64-encoded mess -- yuck!
@@ -715,15 +736,9 @@ itcl::body Rappture::NanovisViewer::_send_dataobjs {} {
             set cmdstr "volume data follows [string length $data]"
             if {[catch {puts $_sid $cmdstr} err]} {
                 disconnect
-                set x [expr {[winfo rootx $itk_component(area)]+10}]
-                set y [expr {[winfo rooty $itk_component(area)]+10}]
-                Rappture::Tooltip::cue @$x,$y "Lost connection to visualization server"
+                $_dispatcher event -after 750 !serverDown
                 return
             }
-set fid [open /tmp/debug a]
-puts $fid $cmdstr
-puts $fid $data
-close $fid
 
             while {[string length $data] > 0} {
                 update
@@ -733,9 +748,7 @@ close $fid
 
                 if {[catch {puts -nonewline $_sid $chunk} err]} {
                     disconnect
-                    set x [expr {[winfo rootx $itk_component(area)]+10}]
-                    set y [expr {[winfo rooty $itk_component(area)]+10}]
-                    Rappture::Tooltip::cue @$x,$y "Lost connection to visualization server"
+                    $_dispatcher event -after 750 !serverDown
                     return
                 }
                 catch {flush $_sid}
@@ -749,49 +762,12 @@ close $fid
             # Determine the transfer function needed for this volume
             # and make sure that it's defined on the server.
             #
-            catch {unset style}
-            array set style {
-                -color rainbow
-                -levels 6
-                -opacity 0.5
-            }
-            array set style [lindex [$dataobj components -style $comp] 0]
-            set sname "$style(-color):$style(-levels):$style(-opacity)"
-
-            if {$style(-color) == "rainbow"} {
-                set style(-color) "white:yellow:green:cyan:blue:magenta"
-            }
-            set clist [split $style(-color) :]
-            set cmap "0.0 [_color2rgb white] "
-            for {set i 0} {$i < [llength $clist]} {incr i} {
-                set xval [expr {double($i+1)/([llength $clist]+1)}]
-                set color [lindex $clist $i]
-                append cmap "$xval [_color2rgb $color] "
-            }
-            append cmap "1.0 [_color2rgb $color]"
-
-            set max $style(-opacity)
-            set levels $style(-levels)
-            set wmap "0.0 0.0 "
-            set delta [expr {0.125/($levels+1)}]
-            for {set i 1} {$i <= $levels} {incr i} {
-                # add spikes in the middle
-                set xval [expr {double($i)/($levels+1)}]
-                append wmap "[expr {$xval-$delta-0.01}] 0.0  [expr {$xval-$delta}] $max [expr {$xval+$delta}] $max  [expr {$xval+$delta+0.01}] 0.0 "
-            }
-            append wmap "1.0 0.0 "
+            foreach {sname cmap wmap} [_getTransfuncData $dataobj $comp] break
 
             set cmdstr [list transfunc define $sname $cmap $wmap]
-puts "send: $cmdstr"
-set fid [open /tmp/debug a]
-puts $fid $cmdstr
-close $fid
             if {[catch {puts $_sid $cmdstr} err]} {
                 disconnect
-                set x [expr {[winfo rootx $itk_component(area)]+10}]
-                set y [expr {[winfo rooty $itk_component(area)]+10}]
-                Rappture::Tooltip::cue @$x,$y "Lost connection to visualization server"
-puts "oops: $err"
+                $_dispatcher event -after 750 !serverDown
                 return
             }
 
@@ -799,9 +775,16 @@ puts "oops: $err"
         }
     }
     set _sendobjs ""
+    blt::busy release $itk_component(hull)
 
     # activate the proper volume
     set first [lindex [get] 0]
+
+    set axis [$first hints updir]
+    if {"" != $axis} {
+        _send up $axis
+    }
+
     foreach key [array names _obj2id *-*] {
         set state [string match $first-* $key]
         _send volume state $state $_obj2id($key)
@@ -818,14 +801,9 @@ puts "oops: $err"
     eval _send volume data state [_state volume] [_currentVolumeIds]
 
     # if there are any commands in the buffer, send them now that we're done
-set fid [open /tmp/debug a]
-puts $fid $_buffer(out)
-close $fid
     if {[catch {puts $_sid $_buffer(out)} err]} {
         disconnect
-        set x [expr {[winfo rootx $itk_component(area)]+10}]
-        set y [expr {[winfo rooty $itk_component(area)]+10}]
-        Rappture::Tooltip::cue @$x,$y "Lost connection to visualization server"
+        $_dispatcher event -after 750 !serverDown
     }
     set _buffer(out) ""
 
@@ -842,8 +820,8 @@ close $fid
 itcl::body Rappture::NanovisViewer::_receive {} {
     if {"" != $_sid} {
         if {[gets $_sid line] < 0} {
-puts "closed"
             disconnect
+            $_dispatcher event -after 750 !serverDown
         } elseif {[string equal [string range $line 0 2] "nv>"]} {
             append _buffer(in) [string range $line 3 end]
             if {[info complete $_buffer(in)]} {
@@ -852,7 +830,8 @@ puts "closed"
                 $_parser eval $request
             }
         } else {
-            puts $line
+            # this shows errors coming back from the engine
+            ##puts $line
         }
     }
 }
@@ -868,7 +847,6 @@ itcl::body Rappture::NanovisViewer::_receive_image {option size} {
     if {"" != $_sid} {
         set bytes [read $_sid $size]
         $_image(plot) configure -data $bytes
-puts "--IMAGE"
     }
 }
 
@@ -883,17 +861,32 @@ itcl::body Rappture::NanovisViewer::_receive_legend {ivol vmin vmax size} {
     if {"" != $_sid} {
         set bytes [read $_sid $size]
         $_image(legend) configure -data $bytes
-puts "--LEGEND $vmin - $vmax"
 
         set c $itk_component(legend)
         set w [winfo width $c]
         set h [winfo height $c]
         if {"" == [$c find withtag transfunc]} {
-            $c create image [expr {$w/2}] [expr {$h/2}] -anchor c \
+            $c create image 10 10 -anchor nw \
                  -image $_image(legend) -tags transfunc
-        } else {
-            $c coords transfunc [expr {$w/2}] [expr {$h/2}]
+
+            $c bind transfunc <ButtonPress-1> \
+                 [itcl::code $this _probe start %x %y]
+            $c bind transfunc <B1-Motion> \
+                 [itcl::code $this _probe update %x %y]
+            $c bind transfunc <ButtonRelease-1> \
+                 [itcl::code $this _probe end %x %y]
+
+            $c create text 10 [expr {$h-8}] -anchor sw \
+                 -fill $itk_option(-plotforeground) -tags vmin
+            $c create text [expr {$w-10}] [expr {$h-8}] -anchor se \
+                 -fill $itk_option(-plotforeground) -tags vmax
         }
+
+        $c itemconfigure vmin -text $vmin
+        $c coords vmin 10 [expr {$h-8}]
+
+        $c itemconfigure vmax -text $vmax
+        $c coords vmax [expr {$w-10}] [expr {$h-8}]
     }
 }
 
@@ -931,6 +924,11 @@ itcl::body Rappture::NanovisViewer::_rebuild {} {
     } else {
         # nothing to send -- activate the proper volume
         set first [lindex [get] 0]
+
+        set axis [$first hints updir]
+        if {"" != $axis} {
+            _send up $axis
+        }
         foreach key [array names _obj2id *-*] {
             set state [string match $first-* $key]
             _send volume state $state $_obj2id($key)
@@ -962,9 +960,9 @@ itcl::body Rappture::NanovisViewer::_rebuild {} {
         _send volume outline state on
         _send volume outline color [_color2rgb $itk_option(-plotoutline)]
     }
-    _send volume axis label x "x"
-    _send volume axis label y "y"
-    _send volume axis label z "z"
+    _send volume axis label x ""
+    _send volume axis label y ""
+    _send volume axis label z ""
 }
 
 # ----------------------------------------------------------------------
@@ -1026,7 +1024,7 @@ itcl::body Rappture::NanovisViewer::_zoom {option} {
 itcl::body Rappture::NanovisViewer::_move {option x y} {
     switch -- $option {
         click {
-            $itk_component(area) configure -cursor fleur
+            $itk_component(3dview) configure -cursor fleur
             set _click(x) $x
             set _click(y) $y
             set _click(theta) $_view(theta)
@@ -1036,8 +1034,8 @@ itcl::body Rappture::NanovisViewer::_move {option x y} {
             if {[array size _click] == 0} {
                 _move click $x $y
             } else {
-                set w [winfo width $itk_component(area)]
-                set h [winfo height $itk_component(area)]
+                set w [winfo width $itk_component(3dview)]
+                set h [winfo height $itk_component(3dview)]
                 if {$w <= 0 || $h <= 0} {
                     return
                 }
@@ -1084,7 +1082,7 @@ itcl::body Rappture::NanovisViewer::_move {option x y} {
         }
         release {
             _move drag $x $y
-            $itk_component(area) configure -cursor ""
+            $itk_component(3dview) configure -cursor ""
             catch {unset _click}
         }
         default {
@@ -1182,7 +1180,76 @@ itcl::body Rappture::NanovisViewer::_slicertip {axis} {
 #    set val [expr {0.01*($val-50)
 #        *($_limits(${axis}max)-$_limits(${axis}min))
 #          + 0.5*($_limits(${axis}max)+$_limits(${axis}min))}]
-    return "Move the [string toupper $axis] cut plane.\nCurrently:  $axis = $val"
+    return "Move the [string toupper $axis] cut plane.\nCurrently:  $axis = $val%"
+}
+
+# ----------------------------------------------------------------------
+# USAGE: _probe start <x> <y>
+# USAGE: _probe update <x> <y>
+# USAGE: _probe end <x> <y>
+#
+# Used internally to handle the various probe operations, when the
+# user clicks and drags on the legend area.  The probe changes the
+# transfer function to highlight the area being selected in the
+# legend.
+# ----------------------------------------------------------------------
+itcl::body Rappture::NanovisViewer::_probe {option args} {
+    set c $itk_component(legend)
+    set w [winfo width $c]
+    set h [winfo height $c]
+    set y0 10
+    set y1 [expr {$y0+[image height $_image(legend)]-1}]
+
+    set dataobj [lindex [get] 0]
+    set comp [lindex [$dataobj components] 0]
+    if {![info exists _obj2style($dataobj-$comp)]} {
+        return
+    }
+
+    switch -- $option {
+        start {
+            # create the probe marker on the legend
+            $c create rect 0 0 5 $h -width 3 \
+                -outline black -fill "" -tags markerbg
+            $c create rect 0 0 5 $h -width 1 \
+                -outline white -fill "" -tags marker
+
+            # define a new transfer function
+            _send transfunc define probe {0 0 0 0 1 0 0 0} {0 0 1 0}
+            _send volume shading transfunc probe $_obj2id($dataobj-$comp)
+
+            # now, probe this point
+            eval _probe update $args
+        }
+        update {
+            set x [lindex $args 0]
+            if {$x < 10} {set x 10}
+            if {$x > $w-10} {set x [expr {$w-10}]}
+            foreach tag {markerbg marker} {
+                $c coords $tag [expr {$x-2}] [expr {$y0-2}] \
+                    [expr {$x+2}] [expr {$y1+2}]
+            }
+
+            # value of the probe point, in the range 0-1
+            set val [expr {double($x-10)/($w-20)}]
+            set dl [expr {($val > 0.1) ? 0.1 : $val}]
+            set dr [expr {($val < 0.9) ? 0.1 : 1-$val}]
+
+            # compute a transfer function for the probe value
+            foreach {sname cmap wmap} [_getTransfuncData $dataobj $comp] break
+            set wmap "0.0 0.0 [expr {$val-$dl}] 0.0 $val 1.0 [expr {$val+$dr}] 0.0 1.0 0.0"
+            _send transfunc define probe $cmap $wmap
+        }
+        end {
+            $c delete marker markerbg
+
+            # put the volume back to its old transfer function
+            _send volume shading transfunc $_obj2style($dataobj-$comp) $_obj2id($dataobj-$comp)
+        }
+        default {
+            error "bad option \"$option\": should be start, update, end"
+        }
+    }
 }
 
 # ----------------------------------------------------------------------
@@ -1240,8 +1307,9 @@ itcl::body Rappture::NanovisViewer::_fixSettings {what {value ""}} {
 # for the current field.
 # ----------------------------------------------------------------------
 itcl::body Rappture::NanovisViewer::_fixLegend {} {
+    set lineht [font metrics $itk_option(-font) -linespace]
     set w [expr {[winfo width $itk_component(legend)]-20}]
-    set h [expr {[winfo height $itk_component(legend)]-20}]
+    set h [expr {[winfo height $itk_component(legend)]-20-$lineht}]
     set ivol ""
 
     set dataobj [lindex [get] 0]
@@ -1249,13 +1317,67 @@ itcl::body Rappture::NanovisViewer::_fixLegend {} {
     if {[info exists _obj2id($dataobj-$comp)]} {
         set ivol $_obj2id($dataobj-$comp)
     }
-puts "fixLegend $w $h $ivol in [get]"
 
     if {$w > 0 && $h > 0 && "" != $ivol} {
         _send legend $ivol $w $h
     } else {
         $itk_component(legend) delete all
     }
+}
+
+# ----------------------------------------------------------------------
+# USAGE: _serverDown
+#
+# Used internally to let the user know when the connection to the
+# visualization server has been lost.  Puts up a tip encouraging the
+# user to press any control to reconnect.
+# ----------------------------------------------------------------------
+itcl::body Rappture::NanovisViewer::_serverDown {} {
+    set x [expr {[winfo rootx $itk_component(area)]+10}]
+    set y [expr {[winfo rooty $itk_component(area)]+10}]
+    Rappture::Tooltip::cue @$x,$y "Lost connection to visualization server.  This happens sometimes when there are too many users and the system runs out of memory.\n\nTo reconnect, reset the view or press any other control.  Your picture should come right back up."
+}
+
+# ----------------------------------------------------------------------
+# USAGE: _getTransfuncData <dataobj> <comp>
+#
+# Used internally to compute the colormap and alpha map used to define
+# a transfer function for the specified component in a data object.
+# Returns: name {v r g b ...} {v w ...}
+# ----------------------------------------------------------------------
+itcl::body Rappture::NanovisViewer::_getTransfuncData {dataobj comp} {
+    array set style {
+        -color rainbow
+        -levels 6
+        -opacity 0.5
+    }
+    array set style [lindex [$dataobj components -style $comp] 0]
+    set sname "$style(-color):$style(-levels):$style(-opacity)"
+
+    if {$style(-color) == "rainbow"} {
+        set style(-color) "white:yellow:green:cyan:blue:magenta"
+    }
+    set clist [split $style(-color) :]
+    set cmap "0.0 [_color2rgb white] "
+    for {set i 0} {$i < [llength $clist]} {incr i} {
+        set xval [expr {double($i+1)/([llength $clist]+1)}]
+        set color [lindex $clist $i]
+        append cmap "$xval [_color2rgb $color] "
+    }
+    append cmap "1.0 [_color2rgb $color]"
+
+    set max $style(-opacity)
+    set levels $style(-levels)
+    set wmap "0.0 0.0 "
+    set delta [expr {0.125/($levels+1)}]
+    for {set i 1} {$i <= $levels} {incr i} {
+        # add spikes in the middle
+        set xval [expr {double($i)/($levels+1)}]
+        append wmap "[expr {$xval-$delta-0.01}] 0.0  [expr {$xval-$delta}] $max [expr {$xval+$delta}] $max  [expr {$xval+$delta+0.01}] 0.0 "
+    }
+    append wmap "1.0 0.0 "
+
+    return [list $sname $cmap $wmap]
 }
 
 # ----------------------------------------------------------------------
@@ -1292,7 +1414,7 @@ itcl::body Rappture::NanovisViewer::_euler2xyz {theta phi psi} {
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::NanovisViewer::plotbackground {
     foreach {r g b} [_color2rgb $itk_option(-plotbackground)] break
-puts "fix this!"
+    #fix this!
     #_send color background $r $g $b
 }
 
@@ -1301,7 +1423,7 @@ puts "fix this!"
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::NanovisViewer::plotforeground {
     foreach {r g b} [_color2rgb $itk_option(-plotforeground)] break
-puts "fix this!"
+    #fix this!
     #_send color background $r $g $b
 }
 
