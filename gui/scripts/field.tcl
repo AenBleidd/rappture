@@ -357,6 +357,7 @@ itcl::body Rappture::Field::hints {{keyword ""}} {
         style   about.style
         scale   about.scale
         units   units
+        updir   updir
     } {
         set str [$_field get $path]
         if {"" != $str} {

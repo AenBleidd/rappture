@@ -280,28 +280,34 @@ itcl::body Rappture::SequenceResult::scale {args} {
 itcl::body Rappture::SequenceResult::download {option} {
     switch $option {
         coming {
-            # nothing to do
+            return [$itk_component(area).viewer download coming]
         }
         now {
-            set rval ""
-            if {"" != $_topmost} {
-                set max [$_topmost size]
-                set all ""
-                for {set i 0} {$i < $max} {incr i} {
-                    set dataobj [lindex [$_topmost value $i] 0]
-                    if {[catch {$dataobj tkimage} imh] == 0} {
-                        lappend all $imh
+            if {0} {
+                # produce a movie of results
+                set rval ""
+                if {"" != $_topmost} {
+                    set max [$_topmost size]
+                    set all ""
+                    for {set i 0} {$i < $max} {incr i} {
+                        set dataobj [lindex [$_topmost value $i] 0]
+                        if {[catch {$dataobj tkimage} imh] == 0} {
+                            lappend all $imh
+                        }
+                    }
+                    if {[llength $all] > 0} {
+                        set delay [expr {int(ceil(pow($_play(speed)/10.0,2.0)*5))}]
+                        set rval [eval Rappture::icon::gif_animate $delay $all]
                     }
                 }
-                if {[llength $all] > 0} {
-                    set delay [expr {int(ceil(pow($_play(speed)/10.0,2.0)*5))}]
-                    set rval [eval Rappture::icon::gif_animate $delay $all]
+                if {[string length $rval] > 0} {
+                    return [list .gif $rval]
                 }
+                return ""
             }
-            if {[string length $rval] > 0} {
-                return [list .gif $rval]
-            }
-            return ""
+
+            # otherwise, return download of single frame
+            return [$itk_component(area).viewer download now]
         }
         default {
             error "bad option \"$option\": should be coming, now"
