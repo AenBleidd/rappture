@@ -151,7 +151,7 @@ itcl::body Rappture::Field::components {args} {
 # overall field (sum of all components).
 # ----------------------------------------------------------------------
 itcl::body Rappture::Field::mesh {{what -overall}} {
-    if {$what == "component0"} {
+    if {$what == "-overall" || $what == "component0"} {
         set what "component"
     }
     if {[info exists _comp2xy($what)]} {
