@@ -27,6 +27,8 @@ option add *Field3DResult.font \
 itcl::class Rappture::Field3DResult {
     inherit itk::Widget
 
+    itk_option define -mode mode Mode "auto"
+
     constructor {args} { # defined below }
     destructor { # defined below }
 
@@ -64,7 +66,12 @@ itk::usual Field3DResult {
 # CONSTRUCTOR
 # ----------------------------------------------------------------------
 itcl::body Rappture::Field3DResult::constructor {args} {
-    if {"" != $_nanovisHost && "" != $_nanovisPort} {
+    array set flags {
+        -mode auto
+    }
+    array set flags $args
+
+    if {"" != $_nanovisHost && "" != $_nanovisPort && $flags(-mode) != "vtk"} {
         itk_component add renderer {
             Rappture::NanovisViewer $itk_interior.ren \
                 $_nanovisHost $_nanovisPort
