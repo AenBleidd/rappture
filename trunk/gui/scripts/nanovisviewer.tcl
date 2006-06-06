@@ -33,7 +33,7 @@ itcl::class Rappture::NanovisViewer {
     itk_option define -plotbackground plotBackground Background ""
     itk_option define -plotoutline plotOutline PlotOutline ""
 
-    constructor {host port args} { # defined below }
+    constructor {hostlist args} { # defined below }
     destructor { # defined below }
 
     public method add {dataobj {settings ""}}
@@ -42,7 +42,7 @@ itcl::class Rappture::NanovisViewer {
     public method scale {args}
     public method download {option}
 
-    public method connect {{host ""} {port ""}}
+    public method connect {{hostlist ""}}
     public method disconnect {}
     public method isconnected {}
 
@@ -70,8 +70,7 @@ itcl::class Rappture::NanovisViewer {
 
     private variable _dispatcher "" ;# dispatcher for !events
 
-    private variable _nvhost ""    ;# host name for nanovis server
-    private variable _nvport ""    ;# port number for nanovis server
+    private variable _nvhosts ""   ;# list of hosts for nanovis server
     private variable _sid ""       ;# socket connection to nanovis server
     private variable _parser ""    ;# interpreter for incoming commands
     private variable _buffer       ;# buffer for incoming/outgoing commands
@@ -97,7 +96,7 @@ itk::usual NanovisViewer {
 # ----------------------------------------------------------------------
 # CONSTRUCTOR
 # ----------------------------------------------------------------------
-itcl::body Rappture::NanovisViewer::constructor {nvhost nvport args} {
+itcl::body Rappture::NanovisViewer::constructor {hostlist args} {
     Rappture::dispatcher _dispatcher
     $_dispatcher register !legend
     $_dispatcher dispatch $this !legend "[itcl::code $this _fixLegend]; list"
@@ -411,7 +410,7 @@ itcl::body Rappture::NanovisViewer::constructor {nvhost nvport args} {
 
     eval itk_initialize $args
 
-    connect $nvhost $nvport
+    connect $hostlist
 }
 
 # ----------------------------------------------------------------------
@@ -589,19 +588,18 @@ itcl::body Rappture::NanovisViewer::download {option} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: connect ?<host>? ?<port>?
+# USAGE: connect ?<host:port>,<host:port>...?
 #
 # Clients use this method to establish a connection to a new
 # server, or to reestablish a connection to the previous server.
 # Any existing connection is automatically closed.
 # ----------------------------------------------------------------------
-itcl::body Rappture::NanovisViewer::connect {{host ""} {port ""}} {
+itcl::body Rappture::NanovisViewer::connect {{hostlist ""}} {
     disconnect
 
-    if {"" != $host} { set _nvhost $host }
-    if {"" != $port} { set _nvport $port }
+    if {"" != $hostlist} { set _nvhosts $hostlist }
 
-    if {"" == $_nvhost || "" == $_nvport} {
+    if {"" == $_nvhosts} {
         return 0
     }
 
@@ -615,9 +613,18 @@ itcl::body Rappture::NanovisViewer::connect {{host ""} {port ""}} {
     # of the size of our job.  If it's too busy, that server may
     # forward us to another.
     #
+    set try [split $_nvhosts ,]
+    foreach {hostname port} [split [lindex $try 0] :] break
+    set try [lrange $try 1 end]
+
     while {1} {
-        if {[catch {socket $_nvhost $_nvport} sid]} {
-            return 0
+        if {[catch {socket $hostname $port} sid]} {
+            if {[llength $try] == 0} {
+                return 0
+            }
+            foreach {hostname port} [split [lindex $try 0] :] break
+            set try [lrange $try 1 end]
+            continue
         }
         fconfigure $sid -translation binary -encoding binary
 
