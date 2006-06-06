@@ -2177,6 +2177,7 @@ void read_screen(){
 void display();
 
 
+#if DO_RLE
 char rle[512*512*3];
 int rle_size;
 
@@ -2210,6 +2211,7 @@ void do_rle(){
 
   }
 }
+#endif
 
 // used internally to build up the BMP file header
 // writes an integer value into the header data structure at pos
@@ -2230,8 +2232,15 @@ bmp_write(const char* cmd)
     header[pos++] = 'B';
     header[pos++] = 'M';
 
+    // BE CAREFUL:  BMP files must have an even multiple of 4 bytes
+    // on each scan line.  If need be, we add padding to each line.
+    int pad = 0;
+    if ((3*win_width) % 4 > 0) {
+        pad = 4 - ((3*win_width) % 4);
+    }
+
     // file size in bytes
-    int fsize = win_width*win_height*3 + sizeof(header);
+    int fsize = (3*win_width+pad)*win_height + sizeof(header);
     bmp_header_add_int(header, pos, fsize);
 
     // reserved value (must be 0)
@@ -2249,7 +2258,7 @@ bmp_write(const char* cmd)
     // height of the image in pixels
     bmp_header_add_int(header, pos, win_height);
 
-    // 1 plane + 24 bits/pixel << 16
+    // 1 plane + (24 bits/pixel << 16)
     bmp_header_add_int(header, pos, 1572865);
 
     // no compression
@@ -2268,10 +2277,15 @@ bmp_write(const char* cmd)
     bmp_header_add_int(header, pos, 0);
 
     // BE CAREFUL: BMP format wants BGR ordering for screen data
-    for (int i=0; i < 3*win_width*win_height; i += 3) {
-        unsigned char tmp = screen_buffer[i+2];
-        screen_buffer[i+2] = screen_buffer[i];
-        screen_buffer[i] = tmp;
+    unsigned char* scr = screen_buffer;
+    for (int row=0; row < win_height; row++) {
+        for (int col=0; col < win_width; col++) {
+            unsigned char tmp = scr[2];
+            scr[2] = scr[0];  // B
+            scr[0] = tmp;     // R
+            scr += 3;
+        }
+        scr += pad;  // skip over padding already in screen data
     }
 
     std::ostringstream result;
@@ -2279,7 +2293,7 @@ bmp_write(const char* cmd)
     write(0, result.str().c_str(), result.str().size());
 
     write(0, header, sizeof(header));
-    write(0, screen_buffer, 3*win_width*win_height);
+    write(0, screen_buffer, (3*win_width+pad)*win_height);
 }
 
 
