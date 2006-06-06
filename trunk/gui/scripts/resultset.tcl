@@ -65,6 +65,7 @@ itcl::class Rappture::ResultSet {
     protected method _drawValue {column widget wmax}
     protected method _toggleAll {{column "current"}}
     protected method _getTooltip {role column}
+    protected method _getParamDesc {{index "current"}}
 
     private variable _dispatcher ""  ;# dispatchers for !events
     private variable _results ""     ;# tuple of known results
@@ -1117,7 +1118,7 @@ itcl::body Rappture::ResultSet::_fixSettings {args} {
         }
         1 {
             # only one data set? then plot it
-            _doSettings [list 0 [list -width 2]]
+            _doSettings [list 0 [list -width 2 -description [_getParamDesc]]]
             return
         }
     }
@@ -1242,7 +1243,7 @@ itcl::body Rappture::ResultSet::_fixSettings {args} {
         if {[llength $ilist] == 1} {
             # single result -- always use active color
             set i [lindex $ilist 0]
-            set plist [list $i [list -width 2]]
+            set plist [list $i [list -width 2 -description [_getParamDesc $i]]]
         } else {
             #
             # Get the color for all points according to
@@ -1251,9 +1252,11 @@ itcl::body Rappture::ResultSet::_fixSettings {args} {
             set plist ""
             foreach i $ilist {
                 if {$i == $icurr} {
-                    lappend plist $i [list -width 3 -raise 1]
+                    lappend plist $i [list -width 3 -raise 1 \
+                        -description [_getParamDesc $i]]
                 } else {
-                    lappend plist $i [list -brightness 0.7 -width 1]
+                    lappend plist $i [list -brightness 0.7 -width 1 \
+                        -description [_getParamDesc $i]]
                 }
             }
         }
@@ -1509,6 +1512,41 @@ itcl::body Rappture::ResultSet::_getTooltip {role column} {
         }
     }
     return [string trim $tip]
+}
+
+# ----------------------------------------------------------------------
+# USAGE: _getParamDesc ?<index>?
+#
+# Used internally to build a descripton of parameters for the data
+# tuple at the specified <index>.  This is passed on to the underlying
+# results viewer, so it will know what data is being viewed.
+# ----------------------------------------------------------------------
+itcl::body Rappture::ResultSet::_getParamDesc {{index "current"}} {
+    if {$index == "current"} {
+        # search for the result for these settings
+        set format ""
+        set tuple ""
+        foreach col [lrange [$_results column names] 1 end] {
+            lappend format $col
+            lappend tuple $_cntlInfo($this-$col-value)
+        }
+        set index [$_results find -format $format -- $tuple]
+        if {"" == $index} {
+            return ""  ;# somethings wrong -- bail out!
+        }
+    }
+
+    set desc ""
+    foreach col $_cntlInfo($this-all) {
+        set quantity $_cntlInfo($this-$col-label)
+        set val [lindex [$_results get -format $col $index] 0]
+        if {$col == "xmlobj"} {
+            set num [lindex [$_results find -format xmlobj $val] 0]
+            set val "#[expr {$num+1}]"
+        }
+        append desc "$quantity = $val\n"
+    }
+    return [string trim $desc]
 }
 
 # ----------------------------------------------------------------------

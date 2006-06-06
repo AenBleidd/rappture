@@ -47,7 +47,7 @@ itcl::class Rappture::XyResult {
     public method get {}
     public method delete {args}
     public method scale {args}
-    public method download {option}
+    public method download {option args}
 
     protected method _rebuild {}
     protected method _resetLimits {}
@@ -63,6 +63,7 @@ itcl::class Rappture::XyResult {
     private variable _curve2width  ;# maps curve => line width
     private variable _curve2dashes ;# maps curve => BLT -dashes list
     private variable _curve2raise  ;# maps curve => raise flag 0/1
+    private variable _curve2desc   ;# maps curve => description of data
     private variable _elem2curve   ;# maps graph element => curve
     private variable _label2axis   ;# maps axis label => axis ID
     private variable _limits       ;# axis limits:  x-min, x-max, etc.
@@ -71,6 +72,7 @@ itcl::class Rappture::XyResult {
     private variable _hilite       ;# info for element currently highlighted
     private variable _axis         ;# info for axis manipulations
     private variable _axisPopup    ;# info for axis being edited in popup
+    common _downloadPopup          ;# download options from popup
 }
                                                                                 
 itk::usual XyResult {
@@ -84,6 +86,10 @@ itcl::body Rappture::XyResult::constructor {args} {
     Rappture::dispatcher _dispatcher
     $_dispatcher register !rebuild
     $_dispatcher dispatch $this !rebuild "[itcl::code $this _rebuild]; list"
+
+    array set _downloadPopup {
+        format csv
+    }
 
     option add hull.width hull.height
     pack propagate $itk_component(hull) no
@@ -212,6 +218,7 @@ itcl::body Rappture::XyResult::add {curve {settings ""}} {
         -width 1
         -raise 0
         -linestyle solid
+        -description ""
     }
     foreach {opt val} $settings {
         if {![info exists params($opt)]} {
@@ -265,6 +272,7 @@ itcl::body Rappture::XyResult::add {curve {settings ""}} {
         set _curve2width($curve) $params(-width)
         set _curve2dashes($curve) $params(-linestyle)
         set _curve2raise($curve) $params(-raise)
+        set _curve2desc($curve) $params(-description)
 
         $_dispatcher event -idle !rebuild
     }
@@ -390,6 +398,7 @@ itcl::body Rappture::XyResult::scale {args} {
 
 # ----------------------------------------------------------------------
 # USAGE: download coming
+# USAGE: download controls <downloadCommand>
 # USAGE: download now
 #
 # Clients use this method to create a downloadable representation
@@ -397,32 +406,108 @@ itcl::body Rappture::XyResult::scale {args} {
 # "ext" is the file extension (indicating the type of data) and
 # "string" is the data itself.
 # ----------------------------------------------------------------------
-itcl::body Rappture::XyResult::download {option} {
+itcl::body Rappture::XyResult::download {option args} {
     switch $option {
         coming {
             # nothing to do
         }
+        controls {
+            set popup .xyresultdownload
+            if {![winfo exists .xyresultdownload]} {
+                # if we haven't created the popup yet, do it now
+                Rappture::Balloon $popup -title "Download as..."
+                set inner [$popup component inner]
+                label $inner.summary -text "" -anchor w
+                pack $inner.summary -side top
+                radiobutton $inner.csv -text "Data as Comma-Separated Values" \
+                    -variable Rappture::XyResult::_downloadPopup(format) \
+                    -value csv
+                pack $inner.csv -anchor w
+                radiobutton $inner.pdf -text "Image as PDF/PostScript" \
+                    -variable Rappture::XyResult::_downloadPopup(format) \
+                    -value pdf
+                pack $inner.pdf -anchor w
+                button $inner.go -text "Download Now" \
+                    -command [lindex $args 0]
+                pack $inner.go -pady 4
+            } else {
+                set inner [$popup component inner]
+            }
+            set num [llength [get]]
+            set num [expr {($num == 1) ? "1 result" : "$num results"}]
+            $inner.summary configure -text "Download $num in the following format:"
+            update idletasks ;# fix initial sizes
+            return $popup
+        }
         now {
-            set psdata [$itk_component(plot) postscript output -maxpect 1]
-
-            set cmds {
-                set fout "xy[pid].pdf"
-                exec ps2pdf - $fout << $psdata
-
-                set fid [open $fout r]
-                fconfigure $fid -translation binary -encoding binary
-                set pdfdata [read $fid]
-                close $fid
-
-                file delete -force $fout
+            set popup .xyresultdownload
+            if {[winfo exists .xyresultdownload]} {
+                $popup deactivate
             }
-            if {[catch $cmds result] == 0} {
-                return [list .pdf $pdfdata]
+            switch -- $_downloadPopup(format) {
+              csv {
+                # reverse the objects so the selected data appears on top
+                set dlist ""
+                foreach dataobj [get] {
+                    set dlist [linsert $dlist 0 $dataobj]
+                }
+
+                # generate the comma-separated value data for these objects
+                set csvdata ""
+                foreach dataobj $dlist {
+                    append csvdata "[string repeat - 60]\n"
+                    append csvdata " [$dataobj hints label]\n"
+                    if {[info exists _curve2desc($dataobj)]
+                          && [llength [split $_curve2desc($dataobj) \n]] > 1} {
+                        set indent "for:"
+                        foreach line [split $_curve2desc($dataobj) \n] {
+                            append csvdata " $indent $line\n"
+                            set indent "    "
+                        }
+                    }
+                    append csvdata "[string repeat - 60]\n"
+
+                    append csvdata "[$dataobj hints xlabel], [$dataobj hints ylabel]\n"
+                    set first 1
+                    foreach comp [$dataobj components] {
+                        if {!$first} {
+                            # blank line between components
+                            append csvdata "\n"
+                        }
+                        set xv [$dataobj mesh $comp]
+                        set yv [$dataobj values $comp]
+                        foreach x [$xv range 0 end] y [$yv range 0 end] {
+                            append csvdata [format "%20.15g, %20.15g\n" $x $y]
+                        }
+                        set first 0
+                    }
+                    append csvdata "\n"
+                }
+                return [list .txt $csvdata]
+              }
+              pdf {
+                set psdata [$itk_component(plot) postscript output -maxpect 1]
+
+                set cmds {
+                    set fout "xy[pid].pdf"
+                    exec ps2pdf - $fout << $psdata
+
+                    set fid [open $fout r]
+                    fconfigure $fid -translation binary -encoding binary
+                    set pdfdata [read $fid]
+                    close $fid
+
+                    file delete -force $fout
+                }
+                if {[catch $cmds result] == 0} {
+                    return [list .pdf $pdfdata]
+                }
+                return [list .ps $psdata]
+              }
             }
-            return [list .ps $psdata]
         }
         default {
-            error "bad option \"$option\": should be coming, now"
+            error "bad option \"$option\": should be coming, controls, now"
         }
     }
 }

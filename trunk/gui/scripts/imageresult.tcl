@@ -31,7 +31,7 @@ itcl::class Rappture::ImageResult {
     public method get {}
     public method delete {args}
     public method scale {args}
-    public method download {option}
+    public method download {option args}
 
     protected method _rebuild {args}
     protected method _topimage {}
@@ -165,6 +165,7 @@ itcl::body Rappture::ImageResult::add {image {settings ""}} {
         -width 1
         -raise 0
         -linestyle solid
+        -description ""
     }
     foreach {opt val} $settings {
         if {![info exists params($opt)]} {
@@ -265,6 +266,7 @@ itcl::body Rappture::ImageResult::scale {args} {
 
 # ----------------------------------------------------------------------
 # USAGE: download coming
+# USAGE: download controls <downloadCommand>
 # USAGE: download now
 #
 # Clients use this method to create a downloadable representation
@@ -272,10 +274,14 @@ itcl::body Rappture::ImageResult::scale {args} {
 # "ext" is the file extension (indicating the type of data) and
 # "string" is the data itself.
 # ----------------------------------------------------------------------
-itcl::body Rappture::ImageResult::download {option} {
+itcl::body Rappture::ImageResult::download {option args} {
     switch $option {
         coming {
             # nothing to do
+        }
+        controls {
+            # no controls for this download yet
+            return ""
         }
         now {
             set top [_topimage]
@@ -298,7 +304,7 @@ itcl::body Rappture::ImageResult::download {option} {
             return [list .jpg $bytes]
         }
         default {
-            error "bad option \"$option\": should be coming, now"
+            error "bad option \"$option\": should be coming, controls, now"
         }
     }
 }

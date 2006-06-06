@@ -40,7 +40,7 @@ itcl::class Rappture::NanovisViewer {
     public method get {}
     public method delete {args}
     public method scale {args}
-    public method download {option}
+    public method download {option args}
 
     public method connect {{hostlist ""}}
     public method disconnect {}
@@ -440,6 +440,7 @@ itcl::body Rappture::NanovisViewer::add {dataobj {settings ""}} {
         -linestyle solid
         -brightness 0
         -raise 0
+        -description ""
     }
     foreach {opt val} $settings {
         if {![info exists params($opt)]} {
@@ -551,6 +552,7 @@ itcl::body Rappture::NanovisViewer::scale {args} {
 
 # ----------------------------------------------------------------------
 # USAGE: download coming
+# USAGE: download controls <downloadCommand>
 # USAGE: download now
 #
 # Clients use this method to create a downloadable representation
@@ -558,13 +560,17 @@ itcl::body Rappture::NanovisViewer::scale {args} {
 # "ext" is the file extension (indicating the type of data) and
 # "string" is the data itself.
 # ----------------------------------------------------------------------
-itcl::body Rappture::NanovisViewer::download {option} {
+itcl::body Rappture::NanovisViewer::download {option args} {
     switch $option {
         coming {
             if {[catch {blt::winop snap $itk_component(area) $_image(download)}]} {
                 $_image(download) configure -width 1 -height 1
                 $_image(download) put #000000
             }
+        }
+        controls {
+            # no controls for this download yet
+            return ""
         }
         now {
             #
@@ -582,7 +588,7 @@ itcl::body Rappture::NanovisViewer::download {option} {
             return [list .jpg $bytes]
         }
         default {
-            error "bad option \"$option\": should be coming, now"
+            error "bad option \"$option\": should be coming, controls, now"
         }
     }
 }
