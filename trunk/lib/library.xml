@@ -36,6 +36,18 @@
     <color>green</color>
     <scale>1.0</scale>
   </atom>
+  <atom id="Ga">
+    <color>#ffccff</color>
+    <scale>1.0</scale>
+  </atom>
+  <atom id="Ge">
+    <color>#999999</color>
+    <scale>1.0</scale>
+  </atom>
+  <atom id="In">
+    <color>#ff99ff</color>
+    <scale>1.0</scale>
+  </atom>
   <atom id="O">
     <color>red</color>
     <scale>1.0</scale>
@@ -46,6 +58,14 @@
   </atom>
   <atom id="S">
     <color>yellow</color>
+    <scale>1.0</scale>
+  </atom>
+  <atom id="Si">
+    <color>#cccccc</color>
+    <scale>1.0</scale>
+  </atom>
+  <atom id="As">
+    <color>#ccffcc</color>
     <scale>1.0</scale>
   </atom>
   <atom id="Au">
