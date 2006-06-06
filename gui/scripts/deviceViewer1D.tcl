@@ -32,7 +32,7 @@ itcl::class Rappture::DeviceViewer1D {
     destructor { # defined below }
 
     public method controls {option args}
-    public method download {option}
+    public method download {option args}
                                                                                 
     protected method _loadDevice {}
     protected method _loadParameters {frame path}
@@ -105,8 +105,8 @@ itcl::body Rappture::DeviceViewer1D::constructor {owner args} {
     $itk_component(graph) legend configure -hide yes
 
     bind $itk_component(graph) <Configure> "
-        after cancel [itcl::code $this _fixAxes]
-        after 100 [itcl::code $this _fixAxes]
+        [list after cancel [list catch [itcl::code $this _align]]]
+        [list after 100 [list catch [itcl::code $this _align]]]
     "
 
     itk_component add geditor {
@@ -169,6 +169,7 @@ itcl::body Rappture::DeviceViewer1D::controls {option args} {
 
 # ----------------------------------------------------------------------
 # USAGE: download coming
+# USAGE: download controls <downloadCommand>
 # USAGE: download now
 #
 # Clients use this method to create a downloadable representation
@@ -176,16 +177,20 @@ itcl::body Rappture::DeviceViewer1D::controls {option args} {
 # "ext" is the file extension (indicating the type of data) and
 # "string" is the data itself.
 # ----------------------------------------------------------------------
-itcl::body Rappture::DeviceViewer1D::download {option} {
+itcl::body Rappture::DeviceViewer1D::download {option args} {
     switch $option {
         coming {
             # nothing to do
+        }
+        controls {
+            # no controls for this download yet
+            return ""
         }
         now {
             return ""  ;# not implemented yet!
         }
         default {
-            error "bad option \"$option\": should be coming, now"
+            error "bad option \"$option\": should be coming, controls, now"
         }
     }
 }
@@ -459,8 +464,8 @@ itcl::body Rappture::DeviceViewer1D::_changeTabs {} {
     }
 
     # let the widget settle, then fix the axes to "nice" values
-    after cancel [itcl::code $this _fixAxes]
-    after 100 [itcl::code $this _fixAxes]
+    after cancel [list catch [itcl::code $this _fixAxes]]
+    after 100 [list catch [itcl::code $this _fixAxes]]
 }
 
 # ----------------------------------------------------------------------
@@ -488,8 +493,8 @@ itcl::body Rappture::DeviceViewer1D::_fixSize {} {
 itcl::body Rappture::DeviceViewer1D::_fixAxes {} {
     set graph $itk_component(graph)
     if {![winfo ismapped $graph]} {
-        after cancel [itcl::code $this _fixAxes]
-        after 100 [itcl::code $this _fixAxes]
+        after cancel [list catch [itcl::code $this _fixAxes]]
+        after 100 [list catch [itcl::code $this _fixAxes]]
         return
     }
 

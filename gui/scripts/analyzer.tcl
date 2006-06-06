@@ -222,7 +222,7 @@ itcl::body Rappture::Analyzer::constructor {tool args} {
         itk_component add download {
             button $w.top.dl -image [Rappture::icon download] -anchor e \
                 -borderwidth 1 -relief flat -overrelief raised \
-                -command [itcl::code $this download now $w.top.dl]
+                -command [itcl::code $this download start $w.top.dl]
         }
         pack $itk_component(download) -side right -padx {4 0}
         Rappture::Tooltip::for $itk_component(download) "Downloads the current result to a new web browser window on your desktop.  From there, you can easily print or save results.
@@ -532,6 +532,7 @@ itcl::body Rappture::Analyzer::load {file} {
             if {$char != "@" && $char != "-"} {
                 $itk_component(resultpages) current $page
                 $itk_component(resultselector) value $first
+                set _lastlabel $first
                 break
             }
         }
@@ -591,6 +592,8 @@ itcl::body Rappture::Analyzer::clear {} {
 
 # ----------------------------------------------------------------------
 # USAGE: download coming
+# USAGE: download controls <downloadCommand>
+# USAGE: download start ?widget?
 # USAGE: download now ?widget?
 #
 # Spools the current result so the user can download it.
@@ -609,6 +612,40 @@ itcl::body Rappture::Analyzer::download {option args} {
                 if {![regexp {^(|@download|---)$} $page]} {
                     set f [$itk_component(resultpages) page $page]
                     $f.rviewer download coming
+                }
+            }
+            controls {
+                # no controls for this download yet
+                return ""
+            }
+            start {
+                set widget $itk_component(download)
+                if {[llength $args] > 0} {
+                    set widget [lindex $args 0]
+                    if {[catch {winfo class $widget}]} {
+                        set widget $itk_component(download)
+                    }
+                }
+                #
+                # See if this download has any controls.  If so, then
+                # post them now and let the user continue the download
+                # after selecting a file format.
+                #
+                if {$page != ""} {
+                    set ext ""
+                    set f [$itk_component(resultpages) page $page]
+                    set popup [$f.rviewer download controls \
+                        [itcl::code $this download now $widget]]
+
+                    if {"" != $popup} {
+                        $popup activate $widget below
+                    } else {
+                        download now $widget
+                    }
+                } else {
+                    # this shouldn't happen
+                    set file error.html
+                    set data "<h1>Not Found</h1>There is no result selected."
                 }
             }
             now {
@@ -660,7 +697,7 @@ itcl::body Rappture::Analyzer::download {option args} {
                 }
             }
             default {
-                error "bad option \"$option\": should be coming, now"
+                error "bad option \"$option\": should be coming, controls, now, start"
             }
         }
     }
@@ -768,7 +805,7 @@ itcl::body Rappture::Analyzer::_fixResult {} {
         $itk_component(resultselector) component entry insert end $_lastlabel
         $itk_component(resultselector) component entry configure -state disabled
         # perform the actual download
-        download now $itk_component(resultselector)
+        download start $itk_component(resultselector)
     } elseif {$page == "---"} {
         # put the combobox back to its last value
         $itk_component(resultselector) component entry configure -state normal

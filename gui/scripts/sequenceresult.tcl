@@ -33,7 +33,7 @@ itcl::class Rappture::SequenceResult {
     public method get {}
     public method delete {args}
     public method scale {args}
-    public method download {option}
+    public method download {option args}
 
     public method play {}
     public method pause {}
@@ -190,6 +190,7 @@ itcl::body Rappture::SequenceResult::add {dataobj {settings ""}} {
         -width 1
         -raise 0
         -linestyle solid
+        -description ""
     }
     foreach {opt val} $settings {
         if {![info exists params($opt)]} {
@@ -270,6 +271,7 @@ itcl::body Rappture::SequenceResult::scale {args} {
 
 # ----------------------------------------------------------------------
 # USAGE: download coming
+# USAGE: download controls <downloadCommand>
 # USAGE: download now
 #
 # Clients use this method to create a downloadable representation
@@ -277,10 +279,14 @@ itcl::body Rappture::SequenceResult::scale {args} {
 # "ext" is the file extension (indicating the type of data) and
 # "string" is the data itself.
 # ----------------------------------------------------------------------
-itcl::body Rappture::SequenceResult::download {option} {
+itcl::body Rappture::SequenceResult::download {option args} {
     switch $option {
         coming {
             return [$itk_component(area).viewer download coming]
+        }
+        controls {
+            # no controls for this download yet
+            return ""
         }
         now {
             if {0} {
@@ -310,7 +316,7 @@ itcl::body Rappture::SequenceResult::download {option} {
             return [$itk_component(area).viewer download now]
         }
         default {
-            error "bad option \"$option\": should be coming, now"
+            error "bad option \"$option\": should be coming, controls, now"
         }
     }
 }

@@ -27,7 +27,7 @@ itcl::class Rappture::ValueResult {
     public method get {}
     public method delete {args}
     public method scale {args}
-    public method download {option}
+    public method download {option args}
 
     set _dataobj ""  ;# data object currently being displayed
 }
@@ -72,6 +72,7 @@ itcl::body Rappture::ValueResult::add {dataobj {settings ""}} {
         -width ""
         -linestyle ""
         -raise ""
+        -description ""
     }
     foreach {opt val} $settings {
         if {![info exists params($opt)]} {
@@ -147,6 +148,7 @@ itcl::body Rappture::ValueResult::scale {args} {
 
 # ----------------------------------------------------------------------
 # USAGE: download coming
+# USAGE: download controls <downloadCommand>
 # USAGE: download now
 #
 # Clients use this method to create a downloadable representation
@@ -154,10 +156,14 @@ itcl::body Rappture::ValueResult::scale {args} {
 # "ext" is the file extension (indicating the type of data) and
 # "string" is the data itself.
 # ----------------------------------------------------------------------
-itcl::body Rappture::ValueResult::download {option} {
+itcl::body Rappture::ValueResult::download {option args} {
     switch $option {
         coming {
             # nothing to do
+        }
+        controls {
+            # no controls for this download yet
+            return ""
         }
         now {
             set lstr [$itk_component(label) cget -text]
@@ -165,7 +171,7 @@ itcl::body Rappture::ValueResult::download {option} {
             return [list .txt "$lstr $vstr"]
         }
         default {
-            error "bad option \"$option\": should be coming, now"
+            error "bad option \"$option\": should be coming, controls, now"
         }
     }
 }

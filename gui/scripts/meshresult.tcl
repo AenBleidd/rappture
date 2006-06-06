@@ -35,7 +35,7 @@ itcl::class Rappture::MeshResult {
     public method get {}
     public method delete {args}
     public method scale {args}
-    public method download {option}
+    public method download {option args}
 
     protected method _rebuild {}
     protected method _fixLimits {}
@@ -130,6 +130,7 @@ itcl::body Rappture::MeshResult::add {dataobj {settings ""}} {
         -width 1
         -raise 0
         -linestyle solid
+        -description ""
     }
     foreach {opt val} $settings {
         if {![info exists params($opt)]} {
@@ -258,17 +259,23 @@ itcl::body Rappture::MeshResult::scale {args} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: download
+# USAGE: download coming
+# USAGE: download controls <downloadCommand>
+# USAGE: download now
 #
 # Clients use this method to create a downloadable representation
 # of the plot.  Returns a list of the form {ext string}, where
 # "ext" is the file extension (indicating the type of data) and
 # "string" is the data itself.
 # ----------------------------------------------------------------------
-itcl::body Rappture::MeshResult::download {option} {
+itcl::body Rappture::MeshResult::download {option args} {
     switch $option {
         coming {
             # nothing to do
+        }
+        controls {
+            # no controls for this download yet
+            return ""
         }
         now {
             set psdata [$itk_component(plot) postscript output -maxpect 1]
@@ -290,7 +297,7 @@ itcl::body Rappture::MeshResult::download {option} {
             return [list .ps $psdata]
         }
         default {
-            error "bad option \"$option\": should be coming, now"
+            error "bad option \"$option\": should be coming, controls, now"
         }
     }
 }

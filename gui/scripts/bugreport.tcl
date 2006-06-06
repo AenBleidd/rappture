@@ -82,7 +82,7 @@ pack .bugreport.banner -side top -fill x
 label .bugreport.banner.icon -image [Rappture::icon alert]
 pack .bugreport.banner.icon -side left -padx 2 -pady 2
 label .bugreport.banner.title -text "Oops! Unexpected Error"
-pack .bugreport.banner.title -side left -padx 2 -pady 2
+pack .bugreport.banner.title -side left -padx {0 8} -pady 2
 
 button .bugreport.ok -text "OK" -command Rappture::bugreport::deactivate
 pack .bugreport.ok -side bottom -pady {0 8}

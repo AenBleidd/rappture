@@ -29,6 +29,7 @@ itcl::class Rappture::Scroller {
     itk_option define -height height Height 0
 
     constructor {args} { # defined below }
+    destructor { # defined below }
 
     public method contents {{frame "!@#query"}}
 
@@ -89,6 +90,14 @@ itcl::body Rappture::Scroller::constructor {args} {
     grid columnconfigure $itk_component(hull) 0 -weight 1
 
     eval itk_initialize $args
+}
+
+# ----------------------------------------------------------------------
+# DESTRUCTOR
+# ----------------------------------------------------------------------
+itcl::body Rappture::Scroller::destructor {} {
+    after cancel [itcl::code $this _lock reset x]
+    after cancel [itcl::code $this _lock reset y]
 }
 
 # ----------------------------------------------------------------------

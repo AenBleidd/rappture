@@ -30,7 +30,7 @@ itcl::class Rappture::TextResult {
     public method get {}
     public method delete {args}
     public method scale {args}
-    public method download {option}
+    public method download {option args}
 
     public method select {option args}
     public method find {option}
@@ -151,6 +151,7 @@ itcl::body Rappture::TextResult::add {dataobj {settings ""}} {
         -width ""
         -linestyle ""
         -raise 0
+        -description ""
     }
     foreach {opt val} $settings {
         if {![info exists params($opt)]} {
@@ -270,6 +271,7 @@ itcl::body Rappture::TextResult::scale {args} {
 
 # ----------------------------------------------------------------------
 # USAGE: download coming
+# USAGE: download controls <downloadCommand>
 # USAGE: download now
 #
 # Clients use this method to create a downloadable representation
@@ -277,16 +279,20 @@ itcl::body Rappture::TextResult::scale {args} {
 # "ext" is the file extension (indicating the type of data) and
 # "string" is the data itself.
 # ----------------------------------------------------------------------
-itcl::body Rappture::TextResult::download {option} {
+itcl::body Rappture::TextResult::download {option args} {
     switch $option {
         coming {
             # nothing to do
+        }
+        controls {
+            # no controls for this download yet
+            return ""
         }
         now {
             return [list .txt [$itk_component(text) get 1.0 end]]
         }
         default {
-            error "bad option \"$option\": should be coming, now"
+            error "bad option \"$option\": should be coming, controls, now"
         }
     }
 }

@@ -31,7 +31,7 @@ itcl::class Rappture::MoleculeViewer {
     destructor { # defined below }
 
     public method emblems {option}
-    public method download {option}
+    public method download {option args}
 
     protected method _clear {}
     protected method _redraw {}
@@ -204,6 +204,7 @@ itcl::body Rappture::MoleculeViewer::destructor {} {
 
 # ----------------------------------------------------------------------
 # USAGE: download coming
+# USAGE: download controls <downloadCommand>
 # USAGE: download now
 #
 # Clients use this method to create a downloadable representation
@@ -211,13 +212,17 @@ itcl::body Rappture::MoleculeViewer::destructor {} {
 # "ext" is the file extension (indicating the type of data) and
 # "string" is the data itself.
 # ----------------------------------------------------------------------
-itcl::body Rappture::MoleculeViewer::download {option} {
+itcl::body Rappture::MoleculeViewer::download {option args} {
     switch $option {
         coming {
             if {[catch {blt::winop snap $itk_component(area) $_download}]} {
                 $_download configure -width 1 -height 1
                 $_download put #000000
             }
+        }
+        controls {
+            # no controls for this download yet
+            return ""
         }
         now {
             #
@@ -235,7 +240,7 @@ itcl::body Rappture::MoleculeViewer::download {option} {
             return [list .jpg $bytes]
         }
         default {
-            error "bad option \"$option\": should be coming, now"
+            error "bad option \"$option\": should be coming, controls, now"
         }
     }
 }
