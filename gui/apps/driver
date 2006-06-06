@@ -29,6 +29,9 @@ package require Itcl
 package require Rappture
 package require RapptureGUI
 
+# install a better bug handler
+Rappture::bugreport::install
+
 option add *MainWin.mode desktop startupFile
 option add *MainWin.borderWidth 0 startupFile
 option add *MainWin.anchor fill startupFile

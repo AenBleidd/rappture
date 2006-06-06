@@ -39,14 +39,12 @@ itcl::class Rappture::Field3DResult {
     public method download {option}
 
     # resources file tells us the nanovis server
-    public common _nanovisHost ""
-    public common _nanovisPort ""
-    public proc setNanovisServer {name} {
-        if {[regexp {^([a-zA-Z0-9\.]+):([0-9]+)$} $name match host port]} {
-            set _nanovisHost $host
-            set _nanovisPort $port
+    public common _nanovisHosts ""
+    public proc setNanovisServer {namelist} {
+        if {[regexp {^[a-zA-Z0-9\.]+:[0-9]+(,[a-zA-Z0-9\.]+:[0-9]+)*$} $namelist match]} {
+            set _nanovisHosts $namelist
         } else {
-            error "bad nanovis server address \"$name\": should be host:port"
+            error "bad nanovis server address \"$namelist\": should be host:port,host:port,..."
         }
     }
 }
@@ -71,10 +69,9 @@ itcl::body Rappture::Field3DResult::constructor {args} {
     }
     array set flags $args
 
-    if {"" != $_nanovisHost && "" != $_nanovisPort && $flags(-mode) != "vtk"} {
+    if {"" != $_nanovisHosts && $flags(-mode) != "vtk"} {
         itk_component add renderer {
-            Rappture::NanovisViewer $itk_interior.ren \
-                $_nanovisHost $_nanovisPort
+            Rappture::NanovisViewer $itk_interior.ren $_nanovisHosts
         }
         pack $itk_component(renderer) -expand yes -fill both
 
