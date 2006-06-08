@@ -807,11 +807,13 @@ itcl::body Rappture::NanovisViewer::_send_dataobjs {} {
     }
 
     # sync the state of slicers
+    set vols [_currentVolumeIds]
     foreach axis {x y z} {
-        eval _send cutplane state [_state ${axis}slice] \
-            $axis [_currentVolumeIds]
+        eval _send cutplane state [_state ${axis}slice] $axis $vols
+        set pos [expr {0.01*[$itk_component(${axis}slicer) get]}]
+        eval _send cutplane position $pos $axis $vols
     }
-    eval _send volume data state [_state volume] [_currentVolumeIds]
+    eval _send volume data state [_state volume] $vols
 
     # if there are any commands in the buffer, send them now that we're done
     if {[catch {puts $_sid $_buffer(out)} err]} {
@@ -951,11 +953,13 @@ itcl::body Rappture::NanovisViewer::_rebuild {} {
         }
 
         # sync the state of slicers
+        set vols [_currentVolumeIds]
         foreach axis {x y z} {
-            eval _send cutplane state [_state ${axis}slice] \
-                $axis [_currentVolumeIds]
+            eval _send cutplane state [_state ${axis}slice] $axis $vols
+            set pos [expr {0.01*[$itk_component(${axis}slicer) get]}]
+            eval _send cutplane position $pos $axis $vols
         }
-        eval _send volume data state [_state volume] [_currentVolumeIds]
+        eval _send volume data state [_state volume] $vols
         $_dispatcher event -idle !legend
     }
 

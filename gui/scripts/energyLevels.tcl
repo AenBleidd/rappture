@@ -261,6 +261,7 @@ itcl::body Rappture::EnergyLevels::add {dataobj {settings ""}} {
         -width 1
         -raise 0
         -linestyle solid
+        -description ""
     }
     foreach {opt val} $settings {
         if {![info exists params($opt)]} {
