@@ -13,6 +13,7 @@ SOCKETSRC = ./socket
 SORTSRC = ./sort
 TFSRC = ./transfer-function
 NANOSCALESRC = ./nanoscale
+INSTALL_DIR = /opt/nanovis
 
 LIB_NANOVIS = -ltcl8.3 -L/opt/render/lib -lGL -lglut -lglui -lGLEW -lCg -lCgGL -pthread -lstdc++
 LIB_CLIENT = -L/opt/render/lib -lGL -lglut -pthread -lstdc++
@@ -20,6 +21,9 @@ INCLUDES = -I../../src2/core -I/opt/render/include -I/autohome/u76/qiaow/Cg/usr/
 CFLAG = -g -c $(INCLUDES)
 
 all: nanovis
+
+install: nanovis
+	cp nanovis $(INSTALL_DIR)/bin
 
 clean:
 	rm -f *.o nanovis client simclient

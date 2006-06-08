@@ -26,7 +26,7 @@ VolumeRenderer::VolumeRenderer(CGcontext _context):
   tf.clear(); 
 
   init_shaders();
-  init_font("./font/Font.bmp");
+  init_font("/opt/nanovis/lib/font/Font.bmp");
 }
 
 
@@ -36,12 +36,12 @@ VolumeRenderer::~VolumeRenderer(){}
 void VolumeRenderer::init_shaders(){
   
   //standard vertex program
-  m_vert_std_vprog = loadProgram(g_context, CG_PROFILE_VP30, CG_SOURCE, "./shaders/vertex_std.cg");
+  m_vert_std_vprog = loadProgram(g_context, CG_PROFILE_VP30, CG_SOURCE, "/opt/nanovis/lib/shaders/vertex_std.cg");
   m_mvp_vert_std_param = cgGetNamedParameter(m_vert_std_vprog, "modelViewProjMatrix");
   m_mvi_vert_std_param = cgGetNamedParameter(m_vert_std_vprog, "modelViewInv");
 
   //volume rendering shader
-  m_one_volume_fprog = loadProgram(g_context, CG_PROFILE_FP30, CG_SOURCE, "./shaders/one_volume.cg");
+  m_one_volume_fprog = loadProgram(g_context, CG_PROFILE_FP30, CG_SOURCE, "/opt/nanovis/lib/shaders/one_volume.cg");
   m_vol_one_volume_param = cgGetNamedParameter(m_one_volume_fprog, "volume");
   //cgGLSetTextureParameter(m_vol_one_volume_param, _vol->id);
   m_tf_one_volume_param = cgGetNamedParameter(m_one_volume_fprog, "tf");

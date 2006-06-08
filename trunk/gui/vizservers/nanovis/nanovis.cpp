@@ -1638,9 +1638,18 @@ load_volume_file(int index, char *fname) {
 
             double dval;
             int nread = 0;
+            int ixy = 0;
+            int iz = 0;
             while (!fin.eof() && nread < npts) {
                 if (!(fin >> dval).fail()) {
-                    field.define(nread++, dval);
+                    int nid = nxy*iz + ixy;
+                    field.define(nid, dval);
+
+                    nread++;
+                    if (++iz >= nz) {
+                        iz = 0;
+                        ixy++;
+                    }
                 }
             }
 
@@ -1678,7 +1687,7 @@ load_volume_file(int index, char *fname) {
 
             // generate the uniformly sampled data that we need for a volume
             int ngen = 0;
-            for (int iz=0; iz < nz; iz++) {
+            for (iz=0; iz < nz; iz++) {
                 double zval = z0 + iz*dmin;
                 for (int iy=0; iy < ny; iy++) {
                     double yval = y0 + iy*dmin;
@@ -1846,7 +1855,6 @@ void init_offscreen_buffer(){
                             GL_COLOR_ATTACHMENT0_EXT,
                             GL_TEXTURE_2D, final_color_tex, 0);
 
-	
   // initialize final depth renderbuffer
   glBindRenderbufferEXT(GL_RENDERBUFFER_EXT, final_depth_rb);
   glRenderbufferStorageEXT(GL_RENDERBUFFER_EXT,
@@ -1933,7 +1941,7 @@ void init_cg(){
     g_context = cgCreateContext();
 
 #ifdef NEW_CG
-    m_posvel_fprog = loadProgram(g_context, CG_PROFILE_FP40, CG_SOURCE, "./shaders/update_pos_vel.cg");
+    m_posvel_fprog = loadProgram(g_context, CG_PROFILE_FP40, CG_SOURCE, "/opt/nanovis/lib/shaders/update_pos_vel.cg");
     m_posvel_timestep_param  = cgGetNamedParameter(m_posvel_fprog, "timestep");
     m_posvel_damping_param   = cgGetNamedParameter(m_posvel_fprog, "damping");
     m_posvel_gravity_param   = cgGetNamedParameter(m_posvel_fprog, "gravity");
