@@ -52,6 +52,10 @@ proc Rappture::bugreport::activate {err} {
     wm deiconify .bugreport
     raise .bugreport
 
+    .bugreport.details.text configure -state normal
+    .bugreport.details.text delete 1.0 end
+    .bugreport.details.text insert end "$err\n-----\n$errorInfo"
+    .bugreport.details.text configure -state disabled
     # should log the error someday too...
 
     catch {grab set .bugreport}
@@ -89,6 +93,16 @@ pack .bugreport.ok -side bottom -pady {0 8}
 
 label .bugreport.expl -text "You've found a bug in this application.\n\nIf it's not a serious bug, you may be able to continue using the tool.  But if the tool doesn't seem to behave properly after this, please close this session and start the tool again.\n\nYou can help us improve nanoHUB by reporting this error.  Click on the \"Report Problems\" link in the web page containing this tool session, and tell us what you were doing when the error occurred." -justify left
 pack .bugreport.expl -padx 8 -pady 8
+
+bind .bugreport.expl <Control-1><Control-1><Control-3><Control-3> {
+    pack forget .bugreport.expl
+    pack .bugreport.details -after .bugreport.ok \
+        -expand yes -fill both -padx 8 -pady 8
+}
+
+Rappture::Scroller .bugreport.details
+text .bugreport.details.text -wrap none
+.bugreport.details contents .bugreport.details.text
 
 # this binding keeps the bugreport window on top
 bind BugReportOnTop <ButtonPress> {
