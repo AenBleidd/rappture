@@ -697,7 +697,7 @@ proc Rappture::filexfer::request_POST {cid url headerVar postData} {
             -connection $headers(Connection)
         set s [clock seconds]
         set date [clock format $s -format {%a, %d %b %Y %H:%M:%S %Z}]
-        puts $cid "Last-Modified: $date"
+        catch { puts $cid "Last-Modified: $date" }
         response $cid body -type text/html -string {<html>
 <head>
   <title>Upload Complete</title>
@@ -870,10 +870,12 @@ proc Rappture::filexfer::response {cid what args} {
             }
             set s [clock seconds]
             set date [clock format $s -format {%a, %d %b %Y %H:%M:%S %Z}]
-            puts $cid [format "HTTP/1.1 %s
+            catch {
+                puts $cid [format "HTTP/1.1 %s
 Date: %s
 Server: Rappture
 Connection: %s" $params(-status) $date $params(-connection)]
+            }
         }
 
         body {
@@ -888,19 +890,25 @@ Connection: %s" $params(-status) $date $params(-connection)]
                     set params(-type) "text/plain"
                 }
             }
-            puts $cid [format "Content-type: %s\nContent-length: %d\n" \
-                $params(-type) [string length $params(-string)]]
+            catch {
+                puts $cid [format "Content-type: %s\nContent-length: %d\n" \
+                    $params(-type) [string length $params(-string)]]
+            }
 
             if {$mime2type($params(-type)) == "binary"} {
                 # binary data -- send data as raw bytes
                 set olde [fconfigure $cid -encoding]
                 fconfigure $cid -buffering none -encoding binary
-                puts -nonewline $cid $params(-string)
-                flush $cid
+                catch {
+                    puts -nonewline $cid $params(-string)
+                    flush $cid
+                }
                 fconfigure $cid -buffering line -encoding $olde
             } else {
                 # ascii data -- send normally
-                puts $cid $params(-string)
+                catch {
+                    puts $cid $params(-string)
+                }
             }
         }
 
@@ -975,7 +983,7 @@ Connection: %s" $params(-status) $date $params(-connection)]
                     -connection $params(-connection)
                 set s [file mtime $params(-path)]
                 set date [clock format $s -format {%a, %d %b %Y %H:%M:%S %Z}]
-                puts $cid "Last-Modified: $date"
+                catch { puts $cid "Last-Modified: $date" }
 
                 response $cid body -type $mtype -string $data
             }
