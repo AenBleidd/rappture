@@ -65,7 +65,7 @@ ParticleSystem::ParticleSystem(int w, int h, CGcontext context, NVISid volume, f
   //load related shaders
   m_g_context = context;
 
-  m_pos_fprog = loadProgram(m_g_context, CG_PROFILE_FP30, CG_SOURCE, "./shaders/update_pos.cg");
+  m_pos_fprog = loadProgram(m_g_context, CG_PROFILE_FP30, CG_SOURCE, "/opt/nanovis/lib/shaders/update_pos.cg");
   m_pos_timestep_param  = cgGetNamedParameter(m_pos_fprog, "timestep");
   m_vel_tex_param = cgGetNamedParameter(m_pos_fprog, "vel_tex");
   m_pos_tex_param = cgGetNamedParameter(m_pos_fprog, "pos_tex");
