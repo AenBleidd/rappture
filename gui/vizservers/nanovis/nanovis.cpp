@@ -1306,6 +1306,13 @@ load_vector_file(int index, char *fname) {
                 }
                 break;
             }
+            else if (sscanf(start, "object %d class array type %s rank 0 times %d data follows", &dummy, type, &npts) == 3) {
+                if (npts != nx*ny*nz) {
+                    std::cerr << "inconsistent data: expected " << nx*ny*nz << " points but found " << npts << " points" << std::endl;
+                    return;
+                }
+                break;
+            }
         }
     } while (!fin.eof());
 
@@ -1510,6 +1517,14 @@ load_volume_file(int index, char *fname) {
                 }
                 break;
             }
+            else if (sscanf(start, "object %d class array type %s rank 0 times %d data follows", &dummy, type, &npts) == 3) {
+                if (npts != nx*ny*nz) {
+                    char mesg[256];
+                    sprintf(mesg,"inconsistent data: expected %d points but found %d points", nx*ny*nz, npts);
+                    return result.error(mesg);
+                }
+                break;
+            }
         }
     } while (!fin.eof());
 
@@ -1523,17 +1538,20 @@ load_volume_file(int index, char *fname) {
 
             double dval;
             int nread = 0;
-            for (int ix=0; ix < nx; ix++) {
-                for (int iy=0; iy < ny; iy++) {
-                    for (int iz=0; iz < nz; iz++) {
-                        if (fin.eof() || nread > npts) {
-                            break;
-                        }
-                        fin.getline(line,sizeof(line)-1);
-                        if (sscanf(line, "%lg", &dval) == 1) {
-                            int nindex = iz*nx*ny + iy*nx + ix;
-                            field.define(nindex, dval);
-                            nread++;
+            int ix = 0;
+            int iy = 0;
+            int iz = 0;
+            while (!fin.eof() && nread < npts) {
+                fin.getline(line,sizeof(line)-1);
+                if (sscanf(line, "%lg", &dval) == 1) {
+                    int nindex = iz*nx*ny + iy*nx + ix;
+                    field.define(nindex, dval);
+                    nread++;
+                    if (++iz >= nz) {
+                        iz = 0;
+                        if (++iy >= ny) {
+                            iy = 0;
+                            ++ix;
                         }
                     }
                 }
@@ -3111,6 +3129,7 @@ double get_time_interval(){
 /*----------------------------------------------------*/
 int main(int argc, char** argv) 
 { 
+  sleep(30);
 #ifdef XINETD
    init_service();
 #endif
