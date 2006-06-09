@@ -100,7 +100,7 @@ bind .bugreport.expl <Control-1><Control-1><Control-3><Control-3> {
         -expand yes -fill both -padx 8 -pady 8
 }
 
-Rappture::Scroller .bugreport.details
+Rappture::Scroller .bugreport.details -xscrollmode auto -yscrollmode auto
 text .bugreport.details.text -wrap none
 .bugreport.details contents .bugreport.details.text
 

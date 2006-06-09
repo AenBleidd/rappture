@@ -36,7 +36,7 @@ itcl::class Rappture::Field3DResult {
     public method get {}
     public method delete {args}
     public method scale {args}
-    public method download {option}
+    public method download {option args}
 
     # resources file tells us the nanovis server
     public common _nanovisHosts ""
@@ -143,6 +143,7 @@ itcl::body Rappture::Field3DResult::scale {args} {
 
 # ----------------------------------------------------------------------
 # USAGE: download coming
+# USAGE: download controls <downloadCommand>
 # USAGE: download now
 #
 # Clients use this method to create a downloadable representation
@@ -150,6 +151,6 @@ itcl::body Rappture::Field3DResult::scale {args} {
 # "ext" is the file extension (indicating the type of data) and
 # "string" is the data itself.
 # ----------------------------------------------------------------------
-itcl::body Rappture::Field3DResult::download {option} {
+itcl::body Rappture::Field3DResult::download {option args} {
     $itk_component(renderer) download $option
 }

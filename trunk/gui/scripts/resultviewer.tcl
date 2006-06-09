@@ -228,9 +228,9 @@ itcl::body Rappture::ResultViewer::_plotAdd {dataobj {settings ""}} {
                     set mode "field3D"
                     if {![info exists _mode2widget($mode)]} {
                         set mesh [$dataobj mesh]
-                        set mode [expr {("" != $mesh) ? "vtk" : "nanovis"}]
+                        set fmt [expr {("" != $mesh) ? "vtk" : "nanovis"}]
                         set w $itk_interior.field3D
-                        Rappture::Field3DResult $w -mode $mode
+                        Rappture::Field3DResult $w -mode $fmt
                         set _mode2widget($mode) $w
                     }
                 }
