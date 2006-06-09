@@ -3,5 +3,5 @@
 DISPLAY=:0
 export DISPLAY
 
-../nanoscale/server -l 4000 -b 4001 -s 172.18.3.255 -c ./nanovis
+../nanoscale/server -l 3000 -b 3001 -s 172.18.3.255 -c ./nanovis
 
