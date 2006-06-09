@@ -792,10 +792,11 @@ itcl::body Rappture::NanovisViewer::_send_dataobjs {} {
 
     # activate the proper volume
     set first [lindex [get] 0]
-
-    set axis [$first hints updir]
-    if {"" != $axis} {
-        _send up $axis
+    if {"" != $first} {
+        set axis [$first hints updir]
+        if {"" != $axis} {
+            _send up $axis
+        }
     }
 
     foreach key [array names _obj2id *-*] {
@@ -939,10 +940,11 @@ itcl::body Rappture::NanovisViewer::_rebuild {} {
     } else {
         # nothing to send -- activate the proper volume
         set first [lindex [get] 0]
-
-        set axis [$first hints updir]
-        if {"" != $axis} {
-            _send up $axis
+        if {"" != $first} {
+            set axis [$first hints updir]
+            if {"" != $axis} {
+                _send up $axis
+            }
         }
         foreach key [array names _obj2id *-*] {
             set state [string match $first-* $key]
@@ -1218,6 +1220,9 @@ itcl::body Rappture::NanovisViewer::_probe {option args} {
     set y1 [expr {$y0+[image height $_image(legend)]-1}]
 
     set dataobj [lindex [get] 0]
+    if {"" == $dataobj} {
+        return
+    }
     set comp [lindex [$dataobj components] 0]
     if {![info exists _obj2style($dataobj-$comp)]} {
         return
@@ -1330,9 +1335,11 @@ itcl::body Rappture::NanovisViewer::_fixLegend {} {
     set ivol ""
 
     set dataobj [lindex [get] 0]
-    set comp [lindex [$dataobj components] 0]
-    if {[info exists _obj2id($dataobj-$comp)]} {
-        set ivol $_obj2id($dataobj-$comp)
+    if {"" != $dataobj} {
+        set comp [lindex [$dataobj components] 0]
+        if {[info exists _obj2id($dataobj-$comp)]} {
+            set ivol $_obj2id($dataobj-$comp)
+        }
     }
 
     if {$w > 0 && $h > 0 && "" != $ivol} {
