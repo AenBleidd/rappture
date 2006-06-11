@@ -67,6 +67,7 @@ itcl::body Rappture::DeviceResult::add {dataobj {settings ""}} {
         -width ""
         -linestyle ""
         -raise ""
+        -description ""
     }
     foreach {opt val} $settings {
         if {![info exists params($opt)]} {
