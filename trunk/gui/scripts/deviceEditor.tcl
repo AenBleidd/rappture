@@ -26,7 +26,7 @@ itcl::class Rappture::DeviceEditor {
     } { # defined below }
 
     public method value {args}
-    public method download {option}
+    public method download {option args}
 
     protected method _redraw {}
     protected method _type {xmlobj}
@@ -99,6 +99,7 @@ itcl::body Rappture::DeviceEditor::value {args} {
 
 # ----------------------------------------------------------------------
 # USAGE: download coming
+# USAGE: download controls <downloadCommand>
 # USAGE: download now
 #
 # Clients use this method to create a downloadable representation
@@ -106,9 +107,9 @@ itcl::body Rappture::DeviceEditor::value {args} {
 # "ext" is the file extension (indicating the type of data) and
 # "string" is the data itself.
 # ----------------------------------------------------------------------
-itcl::body Rappture::DeviceEditor::download {option} {
+itcl::body Rappture::DeviceEditor::download {option args} {
     if {"" != $_current} {
-        return [$_current download $option]
+        return [eval $_current download $option $args]
     }
     return ""
 }
