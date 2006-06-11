@@ -27,7 +27,7 @@ itcl::class Rappture::DeviceResult {
     public method get {}
     public method delete {args}
     public method scale {args}
-    public method download {option}
+    public method download {option args}
 
     set _dataobj ""  ;# data object currently being displayed
 }
@@ -117,6 +117,7 @@ itcl::body Rappture::DeviceResult::scale {args} {
 
 # ----------------------------------------------------------------------
 # USAGE: download coming
+# USAGE: download controls <downloadCommand>
 # USAGE: download now
 #
 # Clients use this method to create a downloadable representation
@@ -124,6 +125,6 @@ itcl::body Rappture::DeviceResult::scale {args} {
 # "ext" is the file extension (indicating the type of data) and
 # "string" is the data itself.
 # ----------------------------------------------------------------------
-itcl::body Rappture::DeviceResult::download {option} {
-    return [$itk_component(viewer) download $option]
+itcl::body Rappture::DeviceResult::download {option args} {
+    return [eval $itk_component(viewer) download $option $args]
 }
