@@ -158,12 +158,16 @@ class RpLibrary
                     }
                     // should probably exit program or something
                     // return EXIT_FAILURE;
-
+                    fflush(stdout);
+                    scew_parser_free(parser);
+                    parser = NULL;
                 }
-
-                tree = scew_parser_tree(parser);
-                freeTree = 0;
-                root = scew_tree_root(tree);
+                else 
+                {
+                    tree = scew_parser_tree(parser);
+                    freeTree = 0;
+                    root = scew_tree_root(tree);
+                }
             }
             else {
                 // create a new xml (from an empty file)
