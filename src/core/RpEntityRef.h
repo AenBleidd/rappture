@@ -114,7 +114,7 @@ typedef struct Er {
     char *zName;  /* The name of this entity reference.  ex:  "amp" */
     char *zValue; /* The value for this entity.          ex:  "&"   */
     Er *pNextForw;    /* Next entity with the same hash on zName        */
-};
+} Er;
 
 /*
  *  The following is a table of all entity references.  To create
