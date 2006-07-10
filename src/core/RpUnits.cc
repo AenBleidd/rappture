@@ -130,7 +130,7 @@ RpUnits::grabUnitString ( const std::string& inStr ) {
 
     int idx = inStr.length() - 1;
 
-    while (isalpha(inStr[idx])) {
+    while ((idx >= 0) && isalpha(inStr[idx])) {
         idx--;
     }
 
