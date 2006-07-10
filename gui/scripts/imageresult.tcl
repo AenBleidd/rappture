@@ -336,6 +336,8 @@ itcl::body Rappture::ImageResult::_rebuild {args} {
     set h [winfo height $itk_component(image)]
     $_image(final) configure -width $w -height $h
     set bg [$itk_component(image) cget -background]
+    set rgb [winfo rgb . $bg]
+    set bg [format "#%03x%03x%03x" [lindex $rgb 0] [lindex $rgb 1] [lindex $rgb 2]]
     $_image(final) put $bg -to 0 0 $w $h
 
     set imh [_topimage]
