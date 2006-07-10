@@ -321,7 +321,7 @@ RpLibrary::_find(std::string path, int create)
     std::string id = "";
     int index = 0;
     int listLen = (path.length()/2)+1;
-    std::string* list[listLen];
+    std::string** list;
     int path_size = 0;
     int listIdx = 0;
     unsigned int count = 0;
@@ -339,6 +339,8 @@ RpLibrary::_find(std::string path, int create)
         // return this;
         return tmpElement;
     }
+
+    list = (std::string **) calloc(listLen, sizeof( std::string * ) );
 
     if (!list) {
         // error calloc'ing space for list
@@ -465,9 +467,8 @@ RpLibrary::_find(std::string path, int create)
             }
         }
 
-        // should we really be freeing list since its on the stack as a fxn variable?
-        // free(list);
-        // list = NULL;
+        free(list);
+        list = NULL;
     }
 
 
