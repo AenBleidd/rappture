@@ -1,0 +1,170 @@
+use 5.008;
+use ExtUtils::MakeMaker;
+use Config;
+use File::Spec;
+
+$CC = $Config{"cc"};
+$LD = $Config{"ld"};
+
+if ($ARGV[0] eq "DEBUG") {
+	shift @ARGV;
+	$DEBUG = 1;
+}
+
+if ($^O ne "MSWin32") {
+    $CC = 'g++';
+    $LD = 'g++';
+    @SCEW_INC_SEARCHPATH = ( "/apps/rappture/include", "/opt/rappture/include", 
+        "/usr/local/include", "/opt/include", "../../scew-0.4.0", 
+        "../../scew", "/apps/scew-0.4.0", "/apps/scew", "/opt/scew-0.4.0",
+        "/opt/scew" );
+    $SCEW_INC="scew/scew.h";
+    @EXPAT_INC_SEARCHPATH = ( "/apps/rappture/include", "/opt/rappture/include", 
+        "/usr/local/include", "/opt/include", "../../expat-2.0.0/lib", 
+        "../../expat/lib", "/apps/expat-2.0.0/lib", "/apps/expat/lib", 
+        "/opt/expat-2.0.0/lib", "/opt/expat/lib" );
+    $EXPAT_INC="expat.h";
+    @RAPPTURE_INC_SEARCHPATH = ( "/apps/rappture/include", 
+        "/opt/rappture/include", "/usr/local/include", "/opt/include", 
+        "../include" );
+    $RAPPTURE_INC = "core/rappture.h";
+    @SCEW_LIB_SEARCHPATH = ( "/apps/rappture/lib", "/opt/rappture/lib", 
+        "/usr/local/lib", "/opt/lib", "../../scew-0.4.0/scew", 
+        "../../scew/scew", "/apps/scew-0.4.0/scew", "/apps/scew/scew", 
+        "/opt/scew-0.4.0/scew", "/opt/scew/scew" );
+    @SCEW_LIBS=("libscew.so","libscew.a");
+    @EXPAT_LIB_SEARCHPATH = ( "/apps/rappture/lib", "/opt/rappture/lib", 
+        "/usr/local/lib", "/opt/lib", "../../expat-2.0.0/lib", 
+        "../../expat/lib", "/apps/expat-2.0.0/lib", "/apps/expat/lib", 
+        "/opt/expat-2.0.0/lib", "/opt/expat/lib" );
+    @EXPAT_LIBS=("libexpat.so", "libexpat.a");
+    @RAPPTURE_LIB_SEARCHPATH = ( "/apps/rappture/lib", "/opt/rappture/lib", 
+        "/usr/local/lib", "/opt/lib", "../src" );
+    @RAPPTURE_LIBS=("librappture.so","librappture.a");
+} 
+else {
+    if ($Config{"cc"} eq "cl") {
+	$CFLAGS = "/TP /EHsc";
+        @LIBS = ("msvcprt.lib");
+    }
+
+    @SCEW_INC_SEARCHPATH = ( "C:\\Program Files\\Rappture\\include", 
+        "C:\\opt\\rappture\\include", "C:\\opt\\include", "..\\..\\scew-0.4.0", 
+        "..\\..\\scew", "C:\\Program Files\\scew-0.4.0", 
+        "C:\\Program Files\\scew", "C:\\opt\\scew-0.4.0", "C:\\opt\\scew" );
+    $SCEW_INC="scew\\scew.h";
+    @EXPAT_INC_SEARCHPATH = ( "C:\\Program Files\\Rappture\\include", 
+        "C:\\opt\\rappture\\include", "C:\\opt\\include", 
+        "..\\..\\expat-2.0.0\\lib", "..\\..\\expat\\lib", 
+        "C:\\Program Files\\Expat-2.0.0\\Source\\lib", 
+        "C:\\Program Files\\Expat\\Source\\lib", 
+        "C:\\opt\\expat-2.0.0\\lib", "C:\\opt\\expat\\lib" );
+    $EXPAT_INC="expat.h";
+    @RAPPTURE_INC_SEARCHPATH = ( "C:\\Program Files\\Rappture\\include", 
+        "C:\\opt\\rappture\\include", "C:\\opt\\include", "..\\include" );
+    $RAPPTURE_INC = "core\\rappture.h";
+    @SCEW_LIB_SEARCHPATH = ( "C:\\Program Files\\Rappture\\lib", 
+        "C:\\opt\\rappture\\lib", "C:\\opt\\lib", 
+        "..\\..\\scew-0.4.0\\win32\\lib", "..\\..\\scew\\win32\\lib", 
+        "C:\\Program Files\\scew-0.4.0\\win32\\lib",
+        "C:\\Program Files\\scew\\win32\\lib", 
+        "C:\\opt\\scew-0.4.0\\win32\\lib", "C:\\opt\\scew\\win32\\lib" );
+    @SCEW_LIBS=("scew_s.lib", "libscew_s.lib", "scew.lib", "libscew.lib");
+    @SCEWD_LIBS=("scew_sd.lib", "libscew_sd.lib", "scewd.lib", "libscewd.lib");
+    @EXPAT_LIB_SEARCHPATH = ( "C:\\Program Files\\Rappture\\lib", 
+        "C:\\opt\\rappture\\lib", "C:\\opt\\lib", 
+        "..\\..\\expat-2.0.0\\lib\\Release_static", 
+        "..\\..\\expat\\lib\\Release_static", 
+        "C:\\Program Files\\Expat-2.0.0\\StaticLibs",
+        "C:\\Program Files\\Expat\\StaticLibs", 
+        "C:\\opt\\expat-2.0.0\\lib\\Release_static", 
+        "C:\\opt\\expat\\lib\\Release_static" );
+    @EXPAT_LIBS=("libexpat.lib", "libexpatMT.lib");
+    @RAPPTURE_LIB_SEARCHPATH = ( "C:\\Program Files\\Rappture\\lib", 
+        "C:\\opt\\rappture\\lib", "C:\\opt\\lib", "..\\src" );
+    @RAPPTURE_LIBS=("librappture.lib");
+}
+
+sub
+find_include {
+    my ($dirs, $filename, $incref) = @_;
+    foreach $component (@$dirs) {
+        if (-e File::Spec->catfile($component, $filename)) {
+            ($sdir = $component) =~ s/\\/\\\\/g;
+            if (!(grep /^-I$sdir/, @$incref)) { 
+                push @$incref, "-I$component"; 
+            }
+	    return 1;
+            last;
+        }
+    }
+
+    return 0;
+}
+
+sub
+find_lib {
+    my ($dirs, $filenames, $libref) = @_;
+
+    SEARCH: foreach $component (@$dirs) {
+        foreach $lib (@$filenames) {
+            $file = File::Spec->catfile($component, $lib);
+            if (-e $file) {
+                if ($lib =~ /^lib(.+)(.a|.so)$/) {
+                    if (grep /^-L$component/, @$libref) {
+                        push @$libref, "-l$1";
+                    }
+                    else {
+                        push @$libref, "-L$component -l$1";
+                    }
+                }
+                else {
+                    push @$libref, $file;
+                }
+		return 1;
+                last SEARCH;
+            }
+        }
+    }
+    return 0;
+}
+
+find_include(\@SCEW_INC_SEARCHPATH, $SCEW_INC, \@INCLUDES);
+find_include(\@EXPAT_INC_SEARCHPATH, $EXPAT_INC, \@INCLUDES);
+find_include(\@RAPPTURE_INC_SEARCHPATH, $RAPPTURE_INC, \@INCLUDES);
+find_lib(\@EXPAT_LIB_SEARCHPATH, \@EXPAT_LIBS, \@LIBS);
+find_lib(\@RAPPTURE_LIB_SEARCHPATH, \@RAPPTURE_LIBS, \@LIBS);
+if ($DEBUG) {
+    if (!find_lib(\@SCEW_LIB_SEARCHPATH, \@SCEWD_LIBS, \@LIBS)) {
+        find_lib(\@SCEW_LIB_SEARCHPATH, \@SCEW_LIBS, \@LIBS);
+    }
+}
+
+WriteMakefile(
+    NAME              => 'Rappture',
+    VERSION_FROM      => 'lib/Rappture.pm', # finds $VERSION
+    PREREQ_PM         => {}, # e.g., Module::Name => 1.1
+    ($] >= 5.005 ?     ## Add these new keywords supported since 5.005
+      (ABSTRACT_FROM  => 'lib/Rappture.pm', # retrieve abstract from module
+       AUTHOR         => 'Nicholas J. Kisseberth') : ()),
+    LIBS              => ["@LIBS"],
+    DEFINE            => "$CFLAGS", 
+    INC               => "@INCLUDES", 
+    CC                => $CC,
+    LD                => $LD,
+    XSOPT             => '-C++',
+);
+
+package MY;
+use Config;
+
+sub dynamic_lib {
+	my $inherited = shift->SUPER::dynamic_lib(@_);
+        if (($^O eq "MSWin32") && ($Config{'cc'} eq "cl")) {
+	    $inherited .= "\tMT.EXE -manifest \$@.manifest -outputresource:\$@;2\n";
+	    $inherited .= "\t\$(RM_F) \$@.manifest\n";
+        }
+	return($inherited);
+}
+
+
