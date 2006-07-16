@@ -471,6 +471,7 @@ Rappture::Units::define m -type length -metric yes
 Rappture::Units::define A->m {A*1.0e-10} {m*1.0e10}
 
 Rappture::Units::define /m3 -type density -metric yes
+Rappture::Units::define /m2 -type misc -metric yes
 
 Rappture::Units::define C -type temperature -metric no
 Rappture::Units::define K->C {K-273.15} {C+273.15}
@@ -483,7 +484,8 @@ Rappture::Units::define V -type voltage -metric yes
 
 Rappture::Units::define s -type seconds -metric yes
 
-Rappture::Units::define mol -type misc -metric yes
+# can't put mol's in because tcl thinks its milli-ol's
+# Rappture::Units::define mol -type misc -metric yes
 Rappture::Units::define Hz -type misc -metric yes
 Rappture::Units::define Bq -type misc -metric yes
 
