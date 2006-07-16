@@ -483,7 +483,9 @@ Rappture::Units::define V -type voltage -metric yes
 
 Rappture::Units::define s -type seconds -metric yes
 
-#Rappture::Units::define mol -type misc -metric yes
+Rappture::Units::define mol -type misc -metric yes
+Rappture::Units::define Hz -type misc -metric yes
+Rappture::Units::define Bq -type misc -metric yes
 
 Rappture::Units::define deg -type angle -metric no
 Rappture::Units::define rad -type angle -metric no
