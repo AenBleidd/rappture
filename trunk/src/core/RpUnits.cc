@@ -1926,8 +1926,12 @@ int
 RpUnitsPreset::addPresetMisc () {
 
     RpUnits* mole  = RpUnits::define("mol",  NULL, RP_TYPE_MISC);
+    RpUnits* hertz = RpUnits::define("Hz",  NULL, RP_TYPE_MISC);
+    RpUnits* becquerel = RpUnits::define("Bq",  NULL, RP_TYPE_MISC);
 
     RpUnits::makeMetric(mole);
+    RpUnits::makeMetric(hertz);
+    RpUnits::makeMetric(becquerel);
 
     // add misc definitions
     // RpUnits::define(radian,gradian,rad2grad,grad2rad);
