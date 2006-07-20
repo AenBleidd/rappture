@@ -1,0 +1,251 @@
+
+ifndef RP_INSTALL_BASE
+RP_INSTALL_BASE = @prefix@
+endif
+
+# tell make where to find the expat & libscew headers
+INCL_RP_DEPS    = -I$(RP_INSTALL_BASE)/include
+
+LIB_SCEW_FLAG   = -L$(RP_INSTALL_BASE)/lib -lscew
+
+# define the top of the rappture directory structure
+RP_BASE   = @RP_BASE@
+
+# define which programs can be made
+PROGS           =   librappture    \
+                    libRpObjects   \
+                    Rappture.Units
+
+# define our compiling environment
+#
+CC              = @CC@
+CXX             = @CXX@
+DEBUG           = -g -Wall
+DEBUG_PLUS      = -g -DDEBUG
+PY              = $(RP_INSTALL_BASE)/bin/python
+MEX             = mex
+OCT             = mkoctfile
+LN              = ln
+
+# define our directories
+#
+INCLUDES_DIR    = $(RP_BASE)/include
+BIN_DIR         = $(RP_BASE)/bin
+LIB_DIR         = $(RP_BASE)/src
+SRC_DIR         = $(RP_BASE)/src
+TEST_DIR        = $(RP_BASE)/test
+
+CORE_SRC        = $(SRC_DIR)/core
+FORT_SRC        = $(SRC_DIR)/fortran
+CEE_SRC         = $(SRC_DIR)/cee
+PY_SRC          = $(SRC_DIR)/python
+MATLAB_SRC      = $(SRC_DIR)/matlab
+OCTAVE_SRC      = $(SRC_DIR)/octave
+TCL_SRC         = $(SRC_DIR)/tcl
+
+LIB_INC_PREFIX  = -Wl,-rpath,$(LIB_DIR) -L$(LIB_DIR)
+LIB_RP_OBJECTS  = $(LIB_INC_PREFIX) -lRpObjects
+LIB_RAPPTURE    = -Wl,-rpath,$(LIB_DIR) -L$(LIB_DIR) -lrappture
+
+INCL_CORE       = -I$(INCLUDES_DIR)/core
+INCL_CEE        = -I$(INCLUDES_DIR)/cee
+INCL_FORTRAN    = -I$(INCLUDES_DIR)/fortran
+INCL_PY         = -I$(INCLUDES_DIR)/python
+INCL_MATLAB     = -I$(INCLUDES_DIR)/matlab
+INCL_OCTAVE     = -I$(INCLUDES_DIR)/octave
+
+CFLAGS = -fPIC
+
+# default:
+
+all: ${PROGS}
+install: 	install_py 			\
+			install_rappture 	\
+			install_rpobjs 		\
+			install_matlab 		\
+			install_octave
+#			install_tcl
+
+RP_IO_DEPS      = RpLibrary.o RpLibraryCInterface.o RpLibraryFInterface.o \
+                  scew_extras.o RpEntityRef.o
+RP_UNITS_DEPS   = RpUnitsStd.o RpUnits.o RpUnitsCInterface.o RpUnitsFInterface.o
+RP_OTHER_DEPS   = RpFortranCommon.o RpBindingsDict.o
+RP_OBJS_DEP     = RpVariable.o RpAbout.o RpNumber.o RpString.o RpBoolean.o \
+                  RpChoice.o RpOption.o RpUnitsStd.o RpUnits.o #RpValue.o\
+                  # RpValueDouble.o RpValueString.o
+
+LDLIB_MACOSX = -dynamiclib -o $(LIB_DIR)/$@.dylib
+LDLIB_LINUX = -shared -Wl,-rpath,$(LIB_DIR)/ -Wl,-soname,$@.so -o $(LIB_DIR)/$@.so.0.0
+
+# include rappture library definitions
+
+#### librappture shared object ###########################################
+
+librappture: $(RP_IO_DEPS) $(RP_UNITS_DEPS) $(RP_OTHER_DEPS)
+	if test "`uname`" == "Darwin"; then \
+		$(CXX) $(DEGUG) $(LDLIB_MACOSX) $^ $(LIB_SCEW_FLAG) -lm; \
+		ar -r $@.a $^; \
+		ranlib -s $@.a; \
+	else \
+		$(CXX) $(DEGUG) $(LDLIB_LINUX) $^ $(LIB_SCEW_FLAG) -lm; \
+		/sbin/ldconfig -n $(LIB_DIR); \
+		ar -r $@.a $^; \
+		ranlib $@.a; \
+	fi
+
+install_rappture: librappture
+	if test "`uname`" == "Darwin"; then \
+		cp $<.dylib $(RP_INSTALL_BASE)/lib; \
+		cp $<.a $(RP_INSTALL_BASE)/lib; \
+	else \
+		cp -d $<.so* $(RP_INSTALL_BASE)/lib; \
+		cp -d $<.a $(RP_INSTALL_BASE)/lib; \
+	fi
+
+#### libRpObjects ########################################################
+libRpObjects: $(RP_OBJS_DEP)
+	if test "`uname`" == "Darwin"; then \
+		$(CXX) $(DEGUG) $(LDLIB_MACOSX) $^ -lstdc++; \
+	else \
+		$(CXX) $(DEGUG) $(LDLIB_LINUX) $^ -lstdc++; \
+		/sbin/ldconfig -n $(LIB_DIR); \
+	fi
+
+install_rpobjs: libRpObjects
+	if test "`uname`" == "Darwin"; then \
+		cp $<.dylib $(RP_INSTALL_BASE)/lib; \
+	else \
+		cp -d $<.so* $(RP_INSTALL_BASE)/lib; \
+	fi
+
+#### Python ########################################################
+Rappture.Units: RpUnits.o RpUnitsStd.o
+	$(PY) $(PY_SRC)/setup.py build
+
+install_py: RpUnits.o RpUnitsStd.o
+	$(PY) $(PY_SRC)/setup.py install
+
+
+#### Matlab ########################################################
+install_matlab: librappture
+	cd $(MATLAB_SRC); make install; cd -
+
+#	if test ! -d $(RP_INSTALL_BASE)/lib/matlab; then \
+#		mkdir $(RP_INSTALL_BASE)/lib/matlab; \
+#	fi
+#	cp $(MATLAB_SRC)/*.mex* $(RP_INSTALL_BASE)/lib/matlab
+
+#### Octave ########################################################
+install_octave: librappture
+	cd $(OCTAVE_SRC); make install; cd -
+
+#	if test ! -d $(RP_INSTALL_BASE)/lib/octave; then \
+#		mkdir $(RP_INSTALL_BASE)/lib/octave; \
+#	fi
+#	cp $(OCTAVE_SRC)/*.oct* $(RP_INSTALL_BASE)/lib/octave
+
+#### Tcl ###########################################################
+install_tcl: librappture
+	cd $(TCL_SRC) && make install && cd -
+
+####################################################################
+
+# include core source files
+
+RpLibrary.o: $(CORE_SRC)/RpLibrary.cc
+	$(CXX) $(CFLAGS) $(DEBUG) $(INCL_CORE) $(INCL_RP_DEPS) -o $@ -c $?
+
+scew_extras.o: $(CORE_SRC)/scew_extras.c
+	$(CC) $(CFLAGS) $(DEBUG) $(INCL_CORE) $(INCL_RP_DEPS) -o $@ -c $?
+
+RpEntityRef.o: $(CORE_SRC)/RpEntityRef.cc
+	$(CXX) $(CFLAGS) $(DEBUG) $(INCL_CORE) -o $@ -c $?
+
+RpVariable.o: $(CORE_SRC)/RpVariable.cc
+	$(CXX) $(CFLAGS) $(DEBUG) $(INCL_CORE) -o $@ -c $?
+
+RpAbout.o: $(CORE_SRC)/RpAbout.cc
+	$(CXX) $(CFLAGS) $(DEBUG) $(INCL_CORE) -o $@ -c $?
+
+RpNumber.o: $(CORE_SRC)/RpNumber.cc
+	$(CXX) $(CFLAGS) $(DEBUG) $(INCL_CORE) -o $@ -c $?
+
+RpString.o: $(CORE_SRC)/RpString.cc
+	$(CXX) $(CFLAGS) $(DEBUG) $(INCL_CORE) -o $@ -c $?
+
+RpBoolean.o: $(CORE_SRC)/RpBoolean.cc
+	$(CXX) $(CFLAGS) $(DEBUG) $(INCL_CORE) -o $@ -c $?
+
+RpChoice.o: $(CORE_SRC)/RpChoice.cc
+	$(CXX) $(CFLAGS) $(DEBUG) $(INCL_CORE) -o $@ -c $?
+
+RpOption.o: $(CORE_SRC)/RpOption.cc
+	$(CXX) $(CFLAGS) $(DEBUG) $(INCL_CORE) -o $@ -c $?
+
+RpUnitsStd.o: $(CORE_SRC)/RpUnitsStd.cc
+	$(CXX) $(CFLAGS) $(DEBUG) $(INCL_CORE) -o $@ -c $?
+
+RpUnits.o: $(CORE_SRC)/RpUnits.cc
+	$(CXX) $(CFLAGS) $(DEBUG) $(INCL_CORE) -o $@ -c $?
+
+RpBindingsDict.o: $(CORE_SRC)/RpBindingsDict.cc
+	$(CXX) $(CFLAGS) $(DEBUG) $(INCL_CORE) -o $@ -c $?
+
+RpValue.o: $(CORE_SRC)/RpValue.cc
+	$(CXX) $(CFLAGS) $(DEBUG) $(INCL_CORE) -o $@ -c $?
+
+RpValueDouble.o: $(CORE_SRC)/RpValueDouble.cc
+	$(CXX) $(CFLAGS) $(DEBUG) $(INCL_CORE) -o $@ -c $?
+
+RpValueString.o: $(CORE_SRC)/RpValueString.cc
+	$(CXX) $(CFLAGS) $(DEBUG) $(INCL_CORE) -o $@ -c $?
+
+
+
+# include cee binding definitions
+
+RpUnitsCInterface.o: $(CEE_SRC)/RpUnitsCInterface.cc
+	$(CXX) $(CFLAGS) $(DEBUG) $(INCL_CORE) $(INCL_CEE) -o $@ -c $?
+
+RpLibraryCInterface.o: $(CEE_SRC)/RpLibraryCInterface.cc
+	$(CXX) $(CFLAGS) $(DEBUG) $(INCL_CORE) $(INCL_CEE) $(INCL_RP_DEPS) -o $@ -c $?
+
+
+
+
+# include fortran binding definitions
+
+RpUnitsFInterface.o: $(FORT_SRC)/RpUnitsFInterface.cc
+	$(CXX) $(CFLAGS) $(DEBUG) $(INCL_CORE) $(INCL_FORTRAN) -o $@ -c $?
+
+RpFortranCommon.o: $(FORT_SRC)/RpFortranCommon.c
+	$(CXX) $(CFLAGS) $(DEBUG) $(INCL_FORTRAN) -o $@ -c $<
+
+RpLibraryFInterface.o: $(FORT_SRC)/RpLibraryFInterface.cc
+	$(CXX) $(CFLAGS) $(DEBUG) $(INCL_CORE) $(INCL_FORTRAN) $(INCL_RP_DEPS) -o $@ -c $?
+
+
+# matlab bindings
+RpMatlab: librappture
+	cd $(MATLAB_SRC); make clean; make RpMatlab; cd -
+
+# octave bindings
+RpOctave: librappture
+	cd $(OCTAVE_SRC); make clean; make RpOctave; cd -
+
+docs:
+	if test ! -d docs; then \
+		mkdir docs; \
+	fi
+	if test ! -d docs/doxygen; then \
+		mkdir docs/doxygen; \
+	fi
+	doxygen
+
+#### CLEAN UP ############################################################
+clean: 
+	- rm -f *.o librappture.so* librappture.a libRp*.so*
+	- rm -rf build
+
+distclean: clean
+	- rm Makefile

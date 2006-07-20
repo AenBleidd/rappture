@@ -1,0 +1,89 @@
+
+ifndef RP_INSTALL_BASE
+RP_INSTALL_BASE = @prefix@
+endif
+
+# tell make where to find the expat & libscew headers
+INCL_RP_DEPS    = -I$(RP_INSTALL_BASE)/include
+
+LIB_SCEW_FLAG   = -L$(RP_INSTALL_BASE)/lib -lscew
+
+# define the top of the rappture directory structure
+RP_BASE   = @RP_BASE@
+
+# define our compiling environment
+#
+OCT             = mkoctfile
+
+# define our directories
+#
+INCLUDES_DIR    = $(RP_BASE)/include
+LIB_DIR         = $(RP_BASE)/src
+OCTAVE_SRC      = $(SRC_DIR)/octave
+LIB_RAPPTURE    = -L$(LIB_DIR) -lrappture
+INCL_CORE       = -I$(INCLUDES_DIR)/core
+INCL_CEE        = -I$(INCLUDES_DIR)/cee
+INCL_OCTAVE     = -I$(INCLUDES_DIR)/octave
+
+all: RpOctave install_octave
+install: install_octave
+
+#### Octave ########################################################
+install_octave: RpOctave
+	if test ! -d $(RP_INSTALL_BASE)/lib/octave; then \
+		mkdir $(RP_INSTALL_BASE)/lib/octave; \
+	fi
+	cp *.oct* $(RP_INSTALL_BASE)/lib/octave
+####################################################################
+
+OCT_INCLS = $(INCL_OCTAVE) $(INCL_CORE) $(INCL_RP_DEPS)
+OCTAVE_COMP_ARGS = $(OCT_INCLS) $(LIB_RAPPTURE) $(LIB_SCEW_FLAG)
+RpOctave:
+	$(OCT) rpAddPresets.cc            $(OCTAVE_COMP_ARGS)
+	$(OCT) rpLib.cc                   $(OCTAVE_COMP_ARGS)
+	$(OCT) rpLibChildrenByType.cc     $(OCTAVE_COMP_ARGS)
+	$(OCT) rpLibChildren.cc           $(OCTAVE_COMP_ARGS)
+	$(OCT) rpLibElementAsComp.cc      $(OCTAVE_COMP_ARGS)
+	$(OCT) rpLibElementAsId.cc        $(OCTAVE_COMP_ARGS)
+	$(OCT) rpLibElementAsObject.cc    $(OCTAVE_COMP_ARGS)
+	$(OCT) rpLibElementAsType.cc      $(OCTAVE_COMP_ARGS)
+	$(OCT) rpLibElement.cc            $(OCTAVE_COMP_ARGS)
+	$(OCT) rpLibGet.cc                $(OCTAVE_COMP_ARGS)
+	$(OCT) rpLibGetString.cc          $(OCTAVE_COMP_ARGS)
+	$(OCT) rpLibGetDouble.cc          $(OCTAVE_COMP_ARGS)
+	$(OCT) rpLibNodeComp.cc           $(OCTAVE_COMP_ARGS)
+	$(OCT) rpLibNodeId.cc             $(OCTAVE_COMP_ARGS)
+	$(OCT) rpLibNodeType.cc           $(OCTAVE_COMP_ARGS)
+	$(OCT) rpLibPut.cc                $(OCTAVE_COMP_ARGS)
+	$(OCT) rpLibPutDouble.cc          $(OCTAVE_COMP_ARGS)
+	$(OCT) rpLibPutString.cc          $(OCTAVE_COMP_ARGS)
+	$(OCT) rpLibResult.cc             $(OCTAVE_COMP_ARGS)
+	$(OCT) rpLibXml.cc                $(OCTAVE_COMP_ARGS)
+	$(OCT) rpUnitsConvert.cc          $(OCTAVE_COMP_ARGS)
+	$(OCT) rpUnitsConvertDbl.cc       $(OCTAVE_COMP_ARGS)
+	$(OCT) rpUnitsConvertStr.cc       $(OCTAVE_COMP_ARGS)
+	$(OCT) rpUnitsConvertObjDbl.cc    $(OCTAVE_COMP_ARGS)
+	$(OCT) rpUnitsConvertObjStr.cc    $(OCTAVE_COMP_ARGS)
+	$(OCT) rpUnitsDefineUnit.cc       $(OCTAVE_COMP_ARGS)
+	$(OCT) rpUnitsFind.cc             $(OCTAVE_COMP_ARGS)
+	$(OCT) rpUnitsGetBasis.cc         $(OCTAVE_COMP_ARGS)
+	$(OCT) rpUnitsGetExponent.cc      $(OCTAVE_COMP_ARGS)
+	$(OCT) rpUnitsGetUnits.cc         $(OCTAVE_COMP_ARGS)
+	$(OCT) rpUnitsGetUnitsName.cc     $(OCTAVE_COMP_ARGS)
+	$(OCT) rpUnitsMakeMetric.cc       $(OCTAVE_COMP_ARGS)
+
+docs:
+	if test ! -d docs; then \
+		mkdir docs; \
+	fi
+	if test ! -d docs/doxygen; then \
+		mkdir docs/doxygen; \
+	fi
+	doxygen
+
+#### CLEAN UP ############################################################
+clean: 
+	- rm -f rp*.o*
+
+distclean: clean
+	- rm Makefile
