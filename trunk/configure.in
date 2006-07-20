@@ -1,0 +1,49 @@
+AC_INIT(src/core/RpLibrary.cc)
+
+VERSION=0.0.1
+
+#------------------------------------------------------------------------
+# Handle the --prefix=... option
+#------------------------------------------------------------------------
+
+if test "${prefix}" = "NONE"; then
+    prefix=/usr/local
+fi
+if test "${exec_prefix}" = "NONE"; then
+    exec_prefix=$prefix
+fi
+
+# AC_PROG_INSTALL
+AC_PROG_MAKE_SET
+
+dnl find and test the C compiler
+AC_PROG_CC
+AC_LANG_C
+
+AC_HEADER_STDC
+AC_CHECK_FUNC(atol,,AC_MSG_ERROR(oops! no atol ?!?))
+
+AC_PROG_CXX
+AC_LANG_CPLUSPLUS
+
+AC_CHECK_LIB(stdc++, main,,AC_MSG_ERROR(librappture requires libstdc++))
+AC_CHECK_HEADERS(stack,,AC_MSG_WARN(STL classes missing ?))
+AC_CHECK_HEADERS(string,,AC_MSG_WARN(STL classes missing ?))
+AC_CHECK_HEADERS(list,,AC_MSG_WARN(STL classes missing ?))
+AC_CHECK_HEADERS(vector,,AC_MSG_WARN(STL classes missing ?))
+
+AC_PROG_F77([f77 fort77 g77 f90 xlf xlf90 fl32])
+
+AC_SUBST(VERSION)
+
+RP_BASE=`pwd`
+AC_SUBST(RP_BASE)
+
+dnl read Makefile.in and write Makefile
+AC_OUTPUT(  Makefile \
+            examples/app-fermi/cee/Makefile \
+            examples/app-fermi/fortran/Makefile \
+            examples/c-example/Makefile \
+            src/Makefile \
+            src/matlab/Makefile \
+            src/octave/Makefile )
