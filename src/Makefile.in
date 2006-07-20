@@ -218,7 +218,7 @@ RpLibraryCInterface.o: $(CEE_SRC)/RpLibraryCInterface.cc
 RpUnitsFInterface.o: $(FORT_SRC)/RpUnitsFInterface.cc
 	$(CXX) $(CFLAGS) $(DEBUG) $(INCL_CORE) $(INCL_FORTRAN) -o $@ -c $?
 
-RpFortranCommon.o: $(FORT_SRC)/RpFortranCommon.c
+RpFortranCommon.o: $(FORT_SRC)/RpFortranCommon.cc
 	$(CXX) $(CFLAGS) $(DEBUG) $(INCL_FORTRAN) -o $@ -c $<
 
 RpLibraryFInterface.o: $(FORT_SRC)/RpLibraryFInterface.cc
