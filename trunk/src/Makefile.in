@@ -22,7 +22,8 @@ CC              = @CC@
 CXX             = @CXX@
 DEBUG           = -g -Wall
 DEBUG_PLUS      = -g -DDEBUG
-PY              = $(RP_INSTALL_BASE)/bin/python
+# PY              = $(RP_INSTALL_BASE)/bin/python
+PY              = python
 MEX             = mex
 OCT             = mkoctfile
 LN              = ln
@@ -123,7 +124,7 @@ Rappture.Units: RpUnits.o RpUnitsStd.o
 	$(PY) $(PY_SRC)/setup.py build
 
 install_py: RpUnits.o RpUnitsStd.o
-	$(PY) $(PY_SRC)/setup.py install
+	$(PY) $(PY_SRC)/setup.py install --prefix=$(RP_INSTALL_BASE)
 
 
 #### Matlab ########################################################
