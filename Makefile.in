@@ -48,4 +48,5 @@ distclean:
 	cd src; make distclean; cd -;
 	cd src/matlab; make distclean; cd -;
 	cd src/octave; make distclean; cd -;
+	rm gui/apps/rappture;
 	rm -r Makefile config.status config.log;
