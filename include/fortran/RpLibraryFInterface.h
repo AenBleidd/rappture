@@ -67,6 +67,14 @@ double rp_lib_get_double (  int* handle,
                             char* path,
                             int path_len);
 
+int rp_lib_get_integer (    int* handle,
+                            char* path,
+                            int path_len);
+
+int rp_lib_get_boolean (    int* handle,
+                            char* path,
+                            int path_len);
+
 void rp_lib_put_str (       int* handle,
                             char* path,
                             char* value,

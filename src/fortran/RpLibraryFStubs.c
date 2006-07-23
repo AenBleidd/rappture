@@ -291,6 +291,54 @@ RP_LIB_GET_DOUBLE (    int* handle,
     return rp_lib_get_double(handle,path,path_len);
 }
 
+int
+rp_lib_get_integer_ (   int* handle,
+                        char* path,
+                        int path_len) {
+
+    return rp_lib_get_integer(handle,path,path_len);
+}
+
+int
+rp_lib_get_integer__ (  int* handle,
+                        char* path,
+                        int path_len) {
+
+    return rp_lib_get_integer(handle,path,path_len);
+}
+
+int
+RP_LIB_GET_INTEGER (    int* handle,
+                        char* path,
+                        int path_len) {
+
+    return rp_lib_get_integer(handle,path,path_len);
+}
+
+int
+rp_lib_get_boolean_ (   int* handle,
+                        char* path,
+                        int path_len) {
+
+    return rp_lib_get_boolean(handle,path,path_len);
+}
+
+int
+rp_lib_get_boolean__ (  int* handle,
+                        char* path,
+                        int path_len) {
+
+    return rp_lib_get_boolean(handle,path,path_len);
+}
+
+int
+RP_LIB_GET_BOOLEAN (    int* handle,
+                        char* path,
+                        int path_len) {
+
+    return rp_lib_get_boolean(handle,path,path_len);
+}
+
 void
 rp_lib_put_str_ (       int* handle,
                         char* path,
