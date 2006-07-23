@@ -65,6 +65,30 @@ c ======================================================================
         print *,"rslt = ",rslt
       END SUBROUTINE  test_get_dbl
 
+      SUBROUTINE  test_get_int(lib,path)
+        integer lib
+        integer rslt, rp_lib_get_integer
+        character*100 path
+
+        print *,"TESTING GET INTEGER: path = ",path
+
+        rslt = rp_lib_get_integer(lib, path)
+
+        print *,"rslt = ",rslt
+      END SUBROUTINE  test_get_int
+
+      SUBROUTINE  test_get_bool(lib,path)
+        integer lib
+        integer rslt, rp_lib_get_boolean
+        character*100 path
+
+        print *,"TESTING GET BOOLEAN: path = ",path
+
+        rslt = rp_lib_get_boolean(lib, path)
+
+        print *,"rslt = ",rslt
+      END SUBROUTINE  test_get_bool
+
       program rplib_f_tests
         IMPLICIT NONE
 
@@ -93,6 +117,43 @@ c ======================================================================
         path = "input.number(min).current"
         call test_get_dbl(driver, path)
 
+        ! TESTING GET INT
+        path = "input.integer(try).current"
+        call rp_lib_put_str(driver, path, "12",0)
+        call test_get_int(driver, path)
+        call rp_lib_put_str(driver, path, "15.043",0)
+        call test_get_int(driver, path)
+
+        ! TESTING GET BOOLEAN
+        path = "input.boolean(b).current"
+        call rp_lib_put_str(driver, path, "true",0)
+        call test_get_bool(driver, path)
+        call rp_lib_put_str(driver, path, "false",0)
+        call test_get_bool(driver, path)
+        call rp_lib_put_str(driver, path, "1",0)
+        call test_get_bool(driver, path)
+        call rp_lib_put_str(driver, path, "0",0)
+        call test_get_bool(driver, path)
+        call rp_lib_put_str(driver, path, "on",0)
+        call test_get_bool(driver, path)
+        call rp_lib_put_str(driver, path, "off",0)
+        call test_get_bool(driver, path)
+        call rp_lib_put_str(driver, path, "yes",0)
+        call test_get_bool(driver, path)
+        call rp_lib_put_str(driver, path, "no",0)
+        call test_get_bool(driver, path)
+        call rp_lib_put_str(driver, path, "t",0)
+        call test_get_bool(driver, path)
+        call rp_lib_put_str(driver, path, "f",0)
+        call test_get_bool(driver, path)
+        call rp_lib_put_str(driver, path, "ye",0)
+        call test_get_bool(driver, path)
+        call rp_lib_put_str(driver, path, "n",0)
+        call test_get_bool(driver, path)
+        call rp_lib_put_str(driver, path, "tr",0)
+        call test_get_bool(driver, path)
+        call rp_lib_put_str(driver, path, "of",0)
+        call test_get_bool(driver, path)
 
         call rp_result(driver)
       end program rplib_f_tests

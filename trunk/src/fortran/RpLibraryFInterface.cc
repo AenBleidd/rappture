@@ -536,6 +536,73 @@ double rp_lib_get_double( int* handle,   /* integer handle of library */
 
 
 /**********************************************************************/
+// FUNCTION: rp_lib_get_integer()
+/// Get data located at 'path' and return it as an integer value.
+/**
+ */
+int rp_lib_get_integer( int* handle,   /* integer handle of library */
+                        char* path,    /* null terminated path */
+                        int path_len
+                      )
+{
+    int retVal = 0;
+
+    RpLibrary* lib = NULL;
+
+    std::string inPath = "";
+
+    inPath = null_terminate_str(path,path_len);
+
+    if ((handle) && (*handle != 0)) {
+        lib = getObject_Lib(*handle);
+
+        if (lib) {
+            retVal = lib->getInt(inPath);
+        }
+    }
+
+    return retVal;
+}
+
+
+/**********************************************************************/
+// FUNCTION: rp_lib_get_boolean()
+/// Get data located at 'path' and return it as an integer value.
+/**
+ */
+int rp_lib_get_boolean( int* handle,   /* integer handle of library */
+                        char* path,    /* null terminated path */
+                        int path_len
+                      )
+{
+    bool value = false;
+    int retVal = 0;
+
+    RpLibrary* lib = NULL;
+
+    std::string inPath = "";
+
+    inPath = null_terminate_str(path,path_len);
+
+    if ((handle) && (*handle != 0)) {
+        lib = getObject_Lib(*handle);
+
+        if (lib) {
+            value = lib->getBool(inPath);
+            if (value == true) {
+                retVal = 1;
+            }
+            else {
+                retVal = 0;
+            }
+        }
+    }
+
+    return retVal;
+}
+
+
+/**********************************************************************/
 // FUNCTION: rp_lib_put_str()
 /// Put string into Rappture Library Object at location 'path'.
 /**
