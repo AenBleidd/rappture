@@ -4380,7 +4380,7 @@ ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
 RP_BASE=`pwd`
 
 
-                                                                      ac_config_files="$ac_config_files Makefile examples/app-fermi/cee/Makefile examples/app-fermi/fortran/Makefile examples/c-example/Makefile src/Makefile src/matlab/Makefile src/octave/Makefile"
+                                                                                          ac_config_files="$ac_config_files Makefile examples/app-fermi/cee/Makefile examples/app-fermi/fortran/Makefile examples/c-example/Makefile src/Makefile src/matlab/Makefile src/octave/Makefile test/Makefile gui/apps/rappture"
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
 # tests run on this system so they can be shared between configure
@@ -4938,6 +4938,8 @@ do
   "src/Makefile" ) CONFIG_FILES="$CONFIG_FILES src/Makefile" ;;
   "src/matlab/Makefile" ) CONFIG_FILES="$CONFIG_FILES src/matlab/Makefile" ;;
   "src/octave/Makefile" ) CONFIG_FILES="$CONFIG_FILES src/octave/Makefile" ;;
+  "test/Makefile" ) CONFIG_FILES="$CONFIG_FILES test/Makefile" ;;
+  "gui/apps/rappture" ) CONFIG_FILES="$CONFIG_FILES gui/apps/rappture" ;;
   *) { { echo "$as_me:$LINENO: error: invalid argument: $ac_config_target" >&5
 echo "$as_me: error: invalid argument: $ac_config_target" >&2;}
    { (exit 1); exit 1; }; };;
