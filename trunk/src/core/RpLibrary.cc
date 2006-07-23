@@ -1255,6 +1255,80 @@ RpLibrary::getDouble (std::string path)
 
 
 /**********************************************************************/
+// METHOD: getInt()
+/// Return the integer value of the object held at location 'path'
+/**
+ */
+
+int
+RpLibrary::getInt (std::string path)
+{
+    std::string retValStr = "";
+    int retValInt = 0;
+
+    if (!this->root) {
+        // library doesn't exist, do nothing;
+        return retValInt;
+    }
+
+    retValStr = this->getString(path); 
+    // think about changing this to strtod()
+    retValInt = atoi(retValStr.c_str());
+
+    // how do we raise error?
+    // currently we depend on getString to raise the error
+    return retValInt;
+}
+
+
+/**********************************************************************/
+// METHOD: getBool()
+/// Return the boolean value of the object held at location 'path'
+/**
+ */
+
+bool
+RpLibrary::getBool (std::string path)
+{
+    std::string retValStr = "";
+    bool retValBool = false;
+    int retValLen = 0;
+
+    if (!this->root) {
+        // library doesn't exist, do nothing;
+        return retValBool;
+    }
+
+    retValStr = this->getString(path);
+    transform (retValStr.begin(),retValStr.end(),retValStr.begin(),tolower);
+    retValLen = retValStr.length();
+
+    if ((retValStr.compare(0,retValLen,"1",0,retValLen) == 0  )   ||
+        (retValStr.compare(0,retValLen,"yes",0,retValLen) == 0 )  ||
+        (retValStr.compare(0,retValLen,"true",0,retValLen) == 0 ) ||
+        (retValStr.compare(0,retValLen,"on",0,retValLen) == 0))
+    {
+        retValBool = true;
+    }
+    else if((retValStr.compare(0,retValLen,"0",0,retValLen) == 0  )   ||
+            (retValStr.compare(0,retValLen,"no",0,retValLen) == 0 )  ||
+            (retValStr.compare(0,retValLen,"false",0,retValLen) == 0 ) ||
+            (retValStr.compare(0,retValLen,"off",0,retValLen) == 0))
+    {
+        retValBool = false;
+    }
+    else {
+        // default to false?
+        retValBool = false;
+    }
+
+    // how do we raise error?
+    // currently we depend on getString to raise the error
+    return retValBool;
+}
+
+
+/**********************************************************************/
 // METHOD: put()
 /// Put a string value into the xml.
 /**
