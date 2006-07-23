@@ -47,4 +47,5 @@ AC_OUTPUT(  Makefile \
             src/Makefile \
             src/matlab/Makefile \
             src/octave/Makefile \
+            test/Makefile \
             gui/apps/rappture   )

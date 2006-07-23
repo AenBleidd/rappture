@@ -4,21 +4,18 @@
 
 rplib:
 	set -x;
-	cd src;
-	make clean;
-	make librappture;
-	cd -
+	cd src; make clean; make librappture; cd -
 #	make install
 
 bindings:
 	set -x;
-	cd src;
-	make RpMatlab;
-	make RpOctave;
+	cd src;			\
+	make RpMatlab;	\
+	make RpOctave;	\
+	cd -
 #	make RpTcl;
 #	make RpPython;
 #	make RpPerl;
-	cd -
 
 #############################################################################
 # build rappture examples
@@ -48,5 +45,6 @@ distclean:
 	cd src; make distclean; cd -;
 	cd src/matlab; make distclean; cd -;
 	cd src/octave; make distclean; cd -;
+	cd test; make distclean; cd -;
 	rm gui/apps/rappture;
 	rm -r Makefile config.status config.log;

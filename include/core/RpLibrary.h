@@ -21,6 +21,7 @@
 #include <errno.h>
 #include <time.h>
 #include <iterator>
+#include <cctype>
 
 #include <list>
 
@@ -72,7 +73,29 @@ class RpLibrary
                                 int translateFlag = TRANSLATE);
         std::string getString ( std::string path = "",
                                 int translateFlag = TRANSLATE);
+
         double      getDouble ( std::string path = "");
+        int         getInt    ( std::string path = "");
+        bool        getBool   ( std::string path = "");
+
+        /*
+         * Should return some kind of RpError object
+        RpLibrary&  get       ( std::string path = "",
+                                std::string retVal = "",
+                                int translateFlag = TRANSLATE);
+
+        RpLibrary&  get       ( std::string path = "",
+                                double retVal = 0.0,
+                                int translateFlag = TRANSLATE);
+
+        RpLibrary&  get       ( std::string path = "",
+                                int retVal = 0,
+                                int translateFlag = TRANSLATE);
+
+        RpLibrary&  get       ( std::string path = "",
+                                bool retVal = false,
+                                int translateFlag = TRANSLATE);
+        */
 
         RpLibrary& put (    std::string path,
                             std::string value,

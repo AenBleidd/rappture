@@ -19,6 +19,8 @@ int test_parent (RpLibrary* lib, std::string path );
 int test_get (RpLibrary* lib, std::string path );
 int test_getString (RpLibrary* lib, std::string path );
 int test_getDouble (RpLibrary* lib, std::string path );
+int test_getInt (RpLibrary* lib, std::string path );
+int test_getBool (RpLibrary* lib, std::string path );
 int test_putObj (RpLibrary* fromLib, std::string fromPath,
                  RpLibrary* toLib, std::string toPath);
 int test_copy (RpLibrary* fromLib, std::string fromPath,
@@ -113,6 +115,32 @@ int test_getDouble (RpLibrary* lib, std::string path )
     double searchVal = lib->getDouble(path);
 
     std::cout << "TESTING GET Double: path = " << path << std::endl;
+
+    std::cout << "searchVal = :" << searchVal << ":" << std::endl;
+    retVal = 0;
+
+    return retVal;
+}
+
+int test_getInt (RpLibrary* lib, std::string path )
+{
+    int retVal = 1;
+    int searchVal = lib->getInt(path);
+
+    std::cout << "TESTING GET INT: path = " << path << std::endl;
+
+    std::cout << "searchVal = :" << searchVal << ":" << std::endl;
+    retVal = 0;
+
+    return retVal;
+}
+
+int test_getBool (RpLibrary* lib, std::string path )
+{
+    int retVal = 1;
+    bool searchVal = lib->getBool(path);
+
+    std::cout << "TESTING GET Bool: path = " << path << std::endl;
 
     std::cout << "searchVal = :" << searchVal << ":" << std::endl;
     retVal = 0;
@@ -348,6 +376,32 @@ main(int argc, char** argv)
     test_getString(lib, "input.number(test).default");
     lib->put("input.number(test).current", 2000);
     test_getDouble(lib, "input.number(test).current");
+
+    lib->put("input.number(test).current", 5);
+    test_getInt(lib, "input.number(test).current");
+    lib->put("input.number(test).current", 50);
+    test_getInt(lib, "input.number(test).current");
+    lib->put("input.number(test).current", 53.6);
+    test_getInt(lib, "input.number(test).current");
+    lib->put("input.number(test).current", 52.94);
+    test_getInt(lib, "input.number(test).current");
+
+    lib->put("input.boolean(boolval).current", "yes");
+    test_getBool(lib, "input.boolean(boolval).current");
+    lib->put("input.boolean(boolval).current", "no");
+    test_getBool(lib, "input.boolean(boolval).current");
+    lib->put("input.boolean(boolval).current", "true");
+    test_getBool(lib, "input.boolean(boolval).current");
+    lib->put("input.boolean(boolval).current", "false");
+    test_getBool(lib, "input.boolean(boolval).current");
+    lib->put("input.boolean(boolval).current", "on");
+    test_getBool(lib, "input.boolean(boolval).current");
+    lib->put("input.boolean(boolval).current", "off");
+    test_getBool(lib, "input.boolean(boolval).current");
+    lib->put("input.boolean(boolval).current", "1");
+    test_getBool(lib, "input.boolean(boolval).current");
+    lib->put("input.boolean(boolval).current", "0");
+    test_getBool(lib, "input.boolean(boolval).current");
 
     test_putObj(lib, "input.number(max)", lib, "input.test");
     test_copy(lib, "input.number(min)", lib, "input.test.number(min)");
