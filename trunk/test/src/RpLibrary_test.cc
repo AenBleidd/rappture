@@ -402,6 +402,18 @@ main(int argc, char** argv)
     test_getBool(lib, "input.boolean(boolval).current");
     lib->put("input.boolean(boolval).current", "0");
     test_getBool(lib, "input.boolean(boolval).current");
+    lib->put("input.boolean(boolval).current", "ye");
+    test_getBool(lib, "input.boolean(boolval).current");
+    lib->put("input.boolean(boolval).current", "n");
+    test_getBool(lib, "input.boolean(boolval).current");
+    lib->put("input.boolean(boolval).current", "tr");
+    test_getBool(lib, "input.boolean(boolval).current");
+    lib->put("input.boolean(boolval).current", "fa");
+    test_getBool(lib, "input.boolean(boolval).current");
+    lib->put("input.boolean(boolval).current", "on");
+    test_getBool(lib, "input.boolean(boolval).current");
+    lib->put("input.boolean(boolval).current", "of");
+    test_getBool(lib, "input.boolean(boolval).current");
 
     test_putObj(lib, "input.number(max)", lib, "input.test");
     test_copy(lib, "input.number(min)", lib, "input.test.number(min)");
