@@ -309,7 +309,7 @@ ac_includes_default="\
 # include <unistd.h>
 #endif"
 
-ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS SET_MAKE CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT CPP EGREP CXX CXXFLAGS ac_ct_CXX CXXCPP F77 FFLAGS ac_ct_F77 VERSION RP_BASE LIBOBJS LTLIBOBJS'
+ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS SET_MAKE CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT CPP EGREP CXX CXXFLAGS ac_ct_CXX CXXCPP F77 FFLAGS ac_ct_F77 PERL PYTHON pythondir PYTHON_VERSION PYTHON_INCLUDES PYTHON_SITE_PACKAGES VERSION RP_BASE LIBOBJS LTLIBOBJS'
 ac_subst_files=''
 
 # Initialize some variables set by options.
@@ -856,6 +856,12 @@ fi
 if test -n "$ac_init_help"; then
 
   cat <<\_ACEOF
+
+Optional Packages:
+  --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
+  --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
+  --with-perl=DIR         Build Perl bindings if found
+  --with-python=DIR       Build Python bindings if found
 
 Some influential environment variables:
   CC          C compiler command
@@ -4232,7 +4238,7 @@ fi
 
 
 # Provide some information about the compiler.
-echo "$as_me:4235:" \
+echo "$as_me:4241:" \
      "checking for Fortran 77 compiler version" >&5
 ac_compiler=`set X $ac_compile; echo $2`
 { (eval echo "$as_me:$LINENO: \"$ac_compiler --version </dev/null >&5\"") >&5
@@ -4377,10 +4383,165 @@ ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
 
 
 
+# Check whether --with-perl or --without-perl was given.
+if test "${with_perl+set}" = set; then
+  withval="$with_perl"
+
+fi;
+# Extract the first word of "perl", so it can be a program name with args.
+set dummy perl; ac_word=$2
+echo "$as_me:$LINENO: checking for $ac_word" >&5
+echo $ECHO_N "checking for $ac_word... $ECHO_C" >&6
+if test "${ac_cv_prog_PERL+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  if test -n "$PERL"; then
+  ac_cv_prog_PERL="$PERL" # Let the user override the test.
+else
+as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+  for ac_exec_ext in '' $ac_executable_extensions; do
+  if $as_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
+    ac_cv_prog_PERL="perl"
+    echo "$as_me:$LINENO: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+done
+
+  test -z "$ac_cv_prog_PERL" && ac_cv_prog_PERL="false"
+fi
+fi
+PERL=$ac_cv_prog_PERL
+if test -n "$PERL"; then
+  echo "$as_me:$LINENO: result: $PERL" >&5
+echo "${ECHO_T}$PERL" >&6
+else
+  echo "$as_me:$LINENO: result: no" >&5
+echo "${ECHO_T}no" >&6
+fi
+
+
+
+PYTHON=
+PYTHON_VERSION=
+PYTHON_INCLUDES=
+PYTHON_SITE_PACKAGES=
+pythondir=
+
+# Check whether --with-python or --without-python was given.
+if test "${with_python+set}" = set; then
+  withval="$with_python"
+
+fi;
+if test "$with_python" != "no" ; then
+    if test -x "$with_python/bin/python"
+    then
+        echo Found python in $with_python/bin/python
+        PYTHON="$with_python/bin/python"
+    else
+        if test -x "$with_python"
+        then
+            echo Found python in $with_python
+            PYTHON="$with_python"
+        else
+            # Extract the first word of "python python2.4 python2.3 python2.2 python2.1 python2.0 python1.6 python1.5", so it can be a program name with args.
+set dummy python python2.4 python2.3 python2.2 python2.1 python2.0 python1.6 python1.5; ac_word=$2
+echo "$as_me:$LINENO: checking for $ac_word" >&5
+echo $ECHO_N "checking for $ac_word... $ECHO_C" >&6
+if test "${ac_cv_path_PYTHON+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  case $PYTHON in
+  [\\/]* | ?:[\\/]*)
+  ac_cv_path_PYTHON="$PYTHON" # Let the user override the test with a path.
+  ;;
+  *)
+  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+  for ac_exec_ext in '' $ac_executable_extensions; do
+  if $as_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
+    ac_cv_path_PYTHON="$as_dir/$ac_word$ac_exec_ext"
+    echo "$as_me:$LINENO: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+done
+
+  ;;
+esac
+fi
+PYTHON=$ac_cv_path_PYTHON
+
+if test -n "$PYTHON"; then
+  echo "$as_me:$LINENO: result: $PYTHON" >&5
+echo "${ECHO_T}$PYTHON" >&6
+else
+  echo "$as_me:$LINENO: result: no" >&5
+echo "${ECHO_T}no" >&6
+fi
+
+        fi
+    fi
+    if test "$PYTHON" != ""
+    then
+        PYTHON_VERSION=`$PYTHON -c "import sys; print sys.version[0:3]"`
+    echo Found Python version $PYTHON_VERSION
+    fi
+    if test "$PYTHON_VERSION" != ""
+    then
+    if test -r $with_python/include/python$PYTHON_VERSION/Python.h -a \
+       -d $with_python/lib/python$PYTHON_VERSION/site-packages
+    then
+        PYTHON_INCLUDES=$with_python/include/python$PYTHON_VERSION
+        PYTHON_SITE_PACKAGES=$with_python/lib/python$PYTHON_VERSION/site-packages
+    else
+        if test -r $prefix/include/python$PYTHON_VERSION/Python.h
+        then
+            PYTHON_INCLUDES='$(prefix)/include/python$(PYTHON_VERSION)'
+            PYTHON_SITE_PACKAGES='$(libdir)/python$(PYTHON_VERSION)/site-packages'
+        else
+            if test -r /usr/include/python$PYTHON_VERSION/Python.h
+            then
+                PYTHON_INCLUDES=/usr/include/python$PYTHON_VERSION
+                PYTHON_SITE_PACKAGES='$(libdir)/python$(PYTHON_VERSION)/site-packages'
+            else
+                echo could not find python$PYTHON_VERSION/Python.h
+            fi
+        fi
+        if test ! -d "$PYTHON_SITE_PACKAGES"
+        then
+            PYTHON_SITE_PACKAGES=`$PYTHON -c "from distutils import sysconfig; print sysconfig.get_python_lib()"`
+        fi
+    fi
+    fi
+    if test "$with_python" != ""
+    then
+        pythondir='$(PYTHON_SITE_PACKAGES)'
+    else
+        pythondir='$(libdir)/python${PYTHON_VERSION}/site-packages'
+    fi
+fi
+
+
+
+
+
+
+
+
+
+
 RP_BASE=`pwd`
 
 
-                                                                                          ac_config_files="$ac_config_files Makefile examples/app-fermi/cee/Makefile examples/app-fermi/fortran/Makefile examples/c-example/Makefile src/Makefile src/matlab/Makefile src/octave/Makefile test/Makefile gui/apps/rappture"
+                                                                                                              ac_config_files="$ac_config_files Makefile examples/app-fermi/cee/Makefile examples/app-fermi/fortran/Makefile examples/c-example/Makefile perl/Makefile.PL python/setup.py src/Makefile src/matlab/Makefile src/octave/Makefile test/Makefile gui/apps/rappture"
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
 # tests run on this system so they can be shared between configure
@@ -4935,6 +5096,8 @@ do
   "examples/app-fermi/cee/Makefile" ) CONFIG_FILES="$CONFIG_FILES examples/app-fermi/cee/Makefile" ;;
   "examples/app-fermi/fortran/Makefile" ) CONFIG_FILES="$CONFIG_FILES examples/app-fermi/fortran/Makefile" ;;
   "examples/c-example/Makefile" ) CONFIG_FILES="$CONFIG_FILES examples/c-example/Makefile" ;;
+  "perl/Makefile.PL" ) CONFIG_FILES="$CONFIG_FILES perl/Makefile.PL" ;;
+  "python/setup.py" ) CONFIG_FILES="$CONFIG_FILES python/setup.py" ;;
   "src/Makefile" ) CONFIG_FILES="$CONFIG_FILES src/Makefile" ;;
   "src/matlab/Makefile" ) CONFIG_FILES="$CONFIG_FILES src/matlab/Makefile" ;;
   "src/octave/Makefile" ) CONFIG_FILES="$CONFIG_FILES src/octave/Makefile" ;;
@@ -5040,6 +5203,12 @@ s,@CXXCPP@,$CXXCPP,;t t
 s,@F77@,$F77,;t t
 s,@FFLAGS@,$FFLAGS,;t t
 s,@ac_ct_F77@,$ac_ct_F77,;t t
+s,@PERL@,$PERL,;t t
+s,@PYTHON@,$PYTHON,;t t
+s,@pythondir@,$pythondir,;t t
+s,@PYTHON_VERSION@,$PYTHON_VERSION,;t t
+s,@PYTHON_INCLUDES@,$PYTHON_INCLUDES,;t t
+s,@PYTHON_SITE_PACKAGES@,$PYTHON_SITE_PACKAGES,;t t
 s,@VERSION@,$VERSION,;t t
 s,@RP_BASE@,$RP_BASE,;t t
 s,@LIBOBJS@,$LIBOBJS,;t t

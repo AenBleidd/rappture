@@ -1,0 +1,23 @@
+from distutils.core import setup, Extension
+
+rp_install_dir = '@prefix@'
+
+module = Extension('Rappture.Units',
+                   include_dirs = [rp_install_dir+'/include/core'],
+                   sources = [ 'Rappture/PyRpUnits.cc' ],
+                   library_dirs = [ rp_install_dir+'/lib' ],
+                   libraries = [ 'rappture' ] )
+
+setup(  name='Rappture',
+        version='0.1',
+        description='Rapid Application Infrastructure library for nanoHUB.org',
+        url='http://www.nanohub.org/',
+        py_modules=[ 'Rappture.library',
+                     'Rappture.interface',
+                     'Rappture.number',
+                     'Rappture.queue',
+                     'Rappture.signalHandler',
+                     'Rappture.tools',
+                     'Rappture.result'],
+        ext_modules=[module]
+  )
