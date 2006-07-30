@@ -34,6 +34,44 @@ AC_CHECK_HEADERS(vector,,AC_MSG_WARN(STL classes missing ?))
 
 AC_PROG_F77([f77 fort77 g77 f90 xlf xlf90 fl32])
 
+AC_ARG_WITH(matlab, [  --with-matlab[=DIR]         Build Matlab bindings if MEX compiler is found])
+dnl AC_CHECK_PROG(MEX, mex, mex, false)
+if test "$with_matlab" != "no" ; then
+    if test -x "$with_matlab/bin/mex"
+    then
+        echo Found matlab in $with_matlab/bin/mex
+        MEX="$with_matlab/bin/mex"
+    else
+        if test -x "$with_matlab"
+        then
+            echo Found mex in $with_matlab
+            MEX="$with_matlab"
+        else
+            AC_PATH_PROG(MEX, mex)
+        fi
+    fi
+fi
+
+
+AC_ARG_WITH(octave, [  --with-octave[=DIR]         Build Octave bindings if MKOCTFILE compiler is found])
+dnl AC_CHECK_PROG(MKOCTFILE, mkoctfile, mkoctfile, false)
+if test "$with_octave" != "no" ; then
+    if test -x "$with_octave/bin/mkoctfile"
+    then
+        echo Found octave in $with_octave/bin/mkoctfile
+        MKOCTFILE="$with_octave/bin/mkoctfile"
+    else
+        if test -x "$with_octave"
+        then
+            echo Found mkoctfile in $with_octave
+            MKOCTFILE="$with_octave"
+        else
+            AC_PATH_PROG(MKOCTFILE, mkoctfile)
+        fi
+    fi
+fi
+
+
 dnl perl and python check borrowed from 
 dnl http://www.opensource.apple.com/darwinsource/Current/libxslt-8.1/libxslt/configure.in
 dnl
@@ -41,8 +79,23 @@ dnl Perl is just needed for generating some data for XSLtmark
 dnl
 
 AC_ARG_WITH(perl, [  --with-perl[=DIR]         Build Perl bindings if found])
-AC_CHECK_PROG(PERL, perl, perl, false)
+dnl AC_CHECK_PROG(PERL, perl, perl, false)
 dnl AM_CONDITIONAL(WITH_PERL, test "$PERL" != "false")
+if test "$with_perl" != "no" ; then
+    if test -x "$with_perl/bin/perl"
+    then
+        echo Found perl in $with_perl/bin/perl
+        PERL="$with_perl/bin/perl"
+    else
+        if test -x "$with_perl"
+        then
+            echo Found perl in $with_perl
+            PERL="$with_perl"
+        else
+            AC_PATH_PROG(PERL, perl)
+        fi
+    fi
+fi
 
 dnl
 dnl check for python
@@ -71,15 +124,7 @@ if test "$with_python" != "no" ; then
     if test "$PYTHON" != ""
     then
         PYTHON_VERSION=`$PYTHON -c "import sys; print sys.version[[0:3]]"`
-    echo Found Python version $PYTHON_VERSION
-dnl    LIBXML2_PYTHON=`$PYTHON -c "try : import libxml2 ; print 1
-dnl except: print 0"`
-dnl     if test "$LIBXML2_PYTHON" = "1"
-dnl     then
-dnl         echo Found libxml2-python module
-dnl     else
-dnl         echo Warning: Missing libxml2-python
-dnl     fi
+        echo Using python version $PYTHON_VERSION
     fi
     if test "$PYTHON_VERSION" != ""
     then
@@ -125,6 +170,8 @@ dnl fi
 AC_SUBST(pythondir)
 dnl AC_SUBST(PYTHON_SUBDIR)
 
+AC_SUBST(MEX)
+AC_SUBST(MKOCTFILE)
 AC_SUBST(PERL)
 AC_SUBST(PYTHON)
 AC_SUBST(PYTHON_VERSION)

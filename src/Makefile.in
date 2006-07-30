@@ -23,9 +23,9 @@ CXX             = @CXX@
 DEBUG           = -g -Wall
 DEBUG_PLUS      = -g -DDEBUG
 # PY              = $(RP_INSTALL_BASE)/bin/python
-PY              = python
-MEX             = mex
-OCT             = mkoctfile
+PY              = @PYTHON@
+MEX             = @MEX@
+OCT             = @MKOCTFILE@
 LN              = ln
 
 # define our directories

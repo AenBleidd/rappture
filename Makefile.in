@@ -1,11 +1,18 @@
+all: rplib bindings
+install: install_rplib install_bindings install_examples
+
 ###########################################################################
 # Makefile - build and install all Rappture libraries
 #############################################################################
 
+
 rplib:
 	set -x;
-	cd src; make clean; make librappture; cd -
-#	make install
+	cd src; make clean; make librappture;
+
+install_rplib:
+	set -x;
+	cd src; make install
 
 bindings:
 	set -x;
@@ -14,8 +21,10 @@ bindings:
 	make RpOctave;	\
 	cd -
 #	make RpTcl;
-	make RpPython;
-	make RpPerl;
+	make build_python_bindings;
+	make build_perl_bindings;
+
+install_bindings:
 
 #############################################################################
 # build rappture examples
@@ -28,25 +37,33 @@ examples:
 	cd examples/app-fermi/cee; make clean; make; cd -
 	cd examples/c-example; make clean; make; cd -
 
+install_examples: examples
+
 #############################################################################
 
-RpPython:
+build_python_bindings:
 	set -x;
 	cd python; \
 	@PYTHON@ setup.py \
 		build_ext \
 		--library-dirs=@prefix@/lib \
 		--include-dirs=@prefix@/include/core \
-		install \
-		--prefix=@prefix@ \
+		build
 
-RpPerl:
+install_python_bindings: build_python_bindings
+	set -x;
+	cd python; \
+	@PYTHON@ setup.py install --prefix=@prefix@
+
+build_perl_bindings:
 	set -x;
 	cd perl; \
 	@PERL@ Makefile.PL PREFIX=@prefix@; \
-	make; \
-	make test; \
-	make install;
+	make; make test;
+
+install_perl_bindings: build_perl_bindings
+	set -x;
+	cd perl; make install;
 
 clean:
 	cd examples/app-fermi/cee; make clean; cd -;
