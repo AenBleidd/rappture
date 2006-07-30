@@ -14,8 +14,8 @@ bindings:
 	make RpOctave;	\
 	cd -
 #	make RpTcl;
-#	make RpPython;
-#	make RpPerl;
+	make RpPython;
+	make RpPerl;
 
 #############################################################################
 # build rappture examples
@@ -30,10 +30,30 @@ examples:
 
 #############################################################################
 
+RpPython:
+	set -x;
+	cd python; \
+	@PYTHON@ setup.py \
+		build_ext \
+		--library-dirs=@prefix@/lib \
+		--include-dirs=@prefix@/include/core \
+		install \
+		--prefix=@prefix@ \
+
+RpPerl:
+	set -x;
+	cd perl; \
+	@PERL@ Makefile.PL PREFIX=@prefix@; \
+	make; \
+	make test; \
+	make install;
+
 clean:
 	cd examples/app-fermi/cee; make clean; cd -;
 	cd examples/app-fermi/fortran; make clean; cd -;
 	cd examples/c-example; make clean; cd -;
+	cd perl; make clean; cd -;
+	cd python; rm -rf build; cd -;
 	cd src; make clean; cd -;
 	cd src/matlab; make clean; cd -;
 	cd src/octave; make clean; cd -;
@@ -42,6 +62,8 @@ distclean:
 	cd examples/app-fermi/cee; make distclean; cd -;
 	cd examples/app-fermi/fortran; make distclean; cd -;
 	cd examples/c-example; make distclean; cd -;
+	cd perl; make clean; cd -;
+	cd python; rm -rf build; cd -;
 	cd src; make distclean; cd -;
 	cd src/matlab; make distclean; cd -;
 	cd src/octave; make distclean; cd -;
