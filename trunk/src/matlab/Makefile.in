@@ -13,7 +13,7 @@ RP_BASE   = @RP_BASE@
 
 # define our compiling environment
 #
-MEX             = mex
+MEX             = @MEX@
 
 # define our directories
 #
