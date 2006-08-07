@@ -134,10 +134,16 @@ itcl::body Rappture::Tool::run {args} {
         set cmd [$_xmlobj get tool.command]
         regsub -all @tool $cmd $_installdir cmd
         regsub -all @driver $cmd $file cmd
+        regsub -all {\\} $cmd {\\\\} cmd
+        set cmd [string trimleft $cmd " "]
 
         # starting job...
         Rappture::rusage mark
 
+        if {0 == [string compare -nocase -length 5 $cmd "ECHO "] } {
+            set status 0;
+            set job(output) [string range $cmd 5 end] 
+        } else {
         set status [catch {eval blt::bgexec \
             ::Rappture::Tool::job(control) \
             -keepnewline yes \
@@ -145,7 +151,7 @@ itcl::body Rappture::Tool::run {args} {
             -onoutput [list [itcl::code $this _output]] \
             -output ::Rappture::Tool::job(output) \
             -error ::Rappture::Tool::job(error) $cmd} result]
-
+        }
         # ...job is finished
         array set times [Rappture::rusage measure]
         puts stderr "MiddlewareTime: job=[incr jobnum] event=simulation start=$times(start) walltime=$times(walltime) cputime=$times(cputime) status=$status"
