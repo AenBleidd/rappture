@@ -78,9 +78,9 @@ if __name__ == '__main__' :
     re_command = re.compile(r'<command>.*</command>', re.I|re.DOTALL)
 
     # prepare text variables
-    myTmpFile = tempfile.NamedTemporaryFile()
-    outCmd = '<command>echo =RAPPTURE-RUN=>%s</command>' % myTmpFile.name
-
+    myTmpFilefd, myTmpFileName = tempfile.mkstemp()
+    myTmpFile = os.fdopen(myTmpFilefd,'w+b')
+    outCmd = '<command>echo =RAPPTURE-RUN=>' + myTmpFileName.encode('string_escape') + '</command>'
     # do the file <command> switheroo!
     xmlfile = open(runFile, "rb").read()
     outText = re_command.sub(outCmd,xmlfile)
@@ -88,15 +88,16 @@ if __name__ == '__main__' :
     myTmpFile.flush()
 
     # run driver on the temporary run file
-    print "myTmpFile.name = %s" % (myTmpFile.name)
-    systemCmd = '%s -tool %s' % (driverPath, myTmpFile.name)
+    print "myTmpFileName = %s" % (myTmpFileName)
+    systemCmd = '%s -tool %s' % (driverPath, myTmpFileName)
     os.system(systemCmd)
 
     # presto-change-o
 
     # clean up our tmp file
-    # the tempfile module deletes the file automatically when closed
+    # tempfile module does not auto delete files created by mkstemp on close
     myTmpFile.close()
+    os.remove(myTmpFileName)
 
     # exit gracefully
     sys.exit()
