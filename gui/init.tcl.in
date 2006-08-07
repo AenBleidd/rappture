@@ -20,7 +20,7 @@ proc RapptureGUI_init {} {
     lappend auto_path [file join $dir scripts]
 
     set suffix [info sharedlibextension]
-    set library [file join $dir .. libRapptureGUI@VERSION@${suffix}]
+    set library [file join $dir @PKG_LIB_FILE@]
     load $library RapptureGUI
 
     namespace eval RapptureGUI "

@@ -16,10 +16,21 @@
 
 int RpRlimit_Init _ANSI_ARGS_((Tcl_Interp *interp));
 
+#ifdef BUILD_Rappture
+__declspec( dllexport )
+#endif
 int
-Rappturegui_Init(interp)
-    Tcl_Interp *interp;  /* interpreter being initialized */
+Rappturegui_Init(Tcl_Interp *interp)   /* interpreter being initialized */
 {
+#ifdef _WIN32
+    rpWinInitJob();
+#endif
+    if (Tcl_InitStubs(interp, "8.4", 0) == NULL) {
+	return TCL_ERROR;
+    }
+    if (Tcl_PkgProvide(interp, "RapptureGUI", PACKAGE_VERSION) != TCL_OK) {
+	return TCL_ERROR;
+    }
     if (RpRlimit_Init(interp) != TCL_OK) {
         return TCL_ERROR;
     }

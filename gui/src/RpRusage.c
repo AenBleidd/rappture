@@ -15,8 +15,12 @@
  * ======================================================================
  */
 #include <tcl.h>
+#ifndef WIN32
 #include <sys/time.h>
 #include <sys/resource.h>
+#else
+#include "RpWinResource.h"
+#endif
 
 #include "bltInt.h"
 
@@ -251,3 +255,4 @@ RpRusageTimeDiff(currptr, prevptr)
     }
     return tval;
 }
+
