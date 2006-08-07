@@ -42,6 +42,22 @@ typedef struct RpSignalNames {
     int signum;
 } RpSignalNames;
 
+#ifdef _WIN32
+#define SIGHUP -1
+#define SIGQUIT -1
+#define SIGKILL -1
+#define SIGPIPE -1
+#define SIGALRM -1
+#define SIGUSR1 -1
+#define SIGUSR2 -1
+#define SIGCHLD -1
+#define SIGCONT -1
+#define SIGSTOP -1
+#define SIGTSTP -1
+#define SIGTTIN -1
+#define SIGTTOU -1
+#endif
+
 static RpSignalNames signalNames[] = {
     {"SIGHUP",  SIGHUP},   /* Hangup detected on controlling terminal */
     {"SIGINT",  SIGINT},   /* Interrupt from keyboard */
