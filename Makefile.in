@@ -58,7 +58,7 @@ install_python_bindings: build_python_bindings
 build_perl_bindings:
 	set -x;
 	cd perl; \
-	@PERL@ Makefile.PL PREFIX=@prefix@; \
+	@PERL@ Makefile.PL INSTALLSITELIB=@prefix@/lib/perl5 INSTALLSITEMAN3DIR=@prefix@/man/man3; \
 	make; make test;
 
 install_perl_bindings: build_perl_bindings
