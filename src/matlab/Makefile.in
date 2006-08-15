@@ -17,7 +17,7 @@ MEX             = @MEX@
 
 # define our directories
 #
-INCLUDES_DIR    = $(RP_BASE)/include
+INCLUDES_DIR    = $(RP_BASE)/src
 LIB_DIR         = $(RP_BASE)/src
 MATLAB_SRC      = $(RP_BASE)/matlab
 LIB_RAPPTURE    = -L$(LIB_DIR) -lrappture
