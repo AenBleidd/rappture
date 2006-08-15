@@ -17,12 +17,11 @@ OCT             = @MKOCTFILE@
 
 # define our directories
 #
-INCLUDES_DIR    = $(RP_BASE)/include
+INCLUDES_DIR    = $(RP_BASE)/src
 LIB_DIR         = $(RP_BASE)/src
 OCTAVE_SRC      = $(SRC_DIR)/octave
 LIB_RAPPTURE    = -L$(LIB_DIR) -lrappture
 INCL_CORE       = -I$(INCLUDES_DIR)/core
-INCL_CEE        = -I$(INCLUDES_DIR)/cee
 INCL_OCTAVE     = -I$(INCLUDES_DIR)/octave
 
 all: RpOctave install_octave

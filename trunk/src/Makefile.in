@@ -22,15 +22,13 @@ CC              = @CC@
 CXX             = @CXX@
 DEBUG           = -g -Wall
 DEBUG_PLUS      = -g -DDEBUG
-# PY              = $(RP_INSTALL_BASE)/bin/python
-PY              = @PYTHON@
 MEX             = @MEX@
 OCT             = @MKOCTFILE@
 LN              = ln
 
 # define our directories
 #
-INCLUDES_DIR    = $(RP_BASE)/include
+INCLUDES_DIR    = $(RP_BASE)/src
 BIN_DIR         = $(RP_BASE)/bin
 LIB_DIR         = $(RP_BASE)/src
 SRC_DIR         = $(RP_BASE)/src
@@ -39,7 +37,6 @@ TEST_DIR        = $(RP_BASE)/test
 CORE_SRC        = $(SRC_DIR)/core
 FORT_SRC        = $(SRC_DIR)/fortran
 CEE_SRC         = $(SRC_DIR)/cee
-PY_SRC          = $(SRC_DIR)/python
 MATLAB_SRC      = $(SRC_DIR)/matlab
 OCTAVE_SRC      = $(SRC_DIR)/octave
 TCL_SRC         = $(SRC_DIR)/tcl
@@ -51,7 +48,6 @@ LIB_RAPPTURE    = -Wl,-rpath,$(LIB_DIR) -L$(LIB_DIR) -lrappture
 INCL_CORE       = -I$(INCLUDES_DIR)/core
 INCL_CEE        = -I$(INCLUDES_DIR)/cee
 INCL_FORTRAN    = -I$(INCLUDES_DIR)/fortran
-INCL_PY         = -I$(INCLUDES_DIR)/python
 INCL_MATLAB     = -I$(INCLUDES_DIR)/matlab
 INCL_OCTAVE     = -I$(INCLUDES_DIR)/octave
 
@@ -60,8 +56,7 @@ CFLAGS = -fPIC
 # default:
 
 all: ${PROGS}
-install: 	install_py 			\
-			install_rappture 	\
+install: 	install_rappture 	\
 			install_rpobjs 		\
 			install_matlab 		\
 			install_octave
@@ -119,31 +114,13 @@ install_rpobjs: libRpObjects
 		cp -d $<.so* $(RP_INSTALL_BASE)/lib; \
 	fi
 
-#### Python ########################################################
-Rappture.Units: RpUnits.o RpUnitsStd.o
-	$(PY) $(PY_SRC)/setup.py build
-
-install_py: RpUnits.o RpUnitsStd.o
-	$(PY) $(PY_SRC)/setup.py install --prefix=$(RP_INSTALL_BASE)
-
-
 #### Matlab ########################################################
 install_matlab: librappture
 	cd $(MATLAB_SRC); make install; cd -
 
-#	if test ! -d $(RP_INSTALL_BASE)/lib/matlab; then \
-#		mkdir $(RP_INSTALL_BASE)/lib/matlab; \
-#	fi
-#	cp $(MATLAB_SRC)/*.mex* $(RP_INSTALL_BASE)/lib/matlab
-
 #### Octave ########################################################
 install_octave: librappture
 	cd $(OCTAVE_SRC); make install; cd -
-
-#	if test ! -d $(RP_INSTALL_BASE)/lib/octave; then \
-#		mkdir $(RP_INSTALL_BASE)/lib/octave; \
-#	fi
-#	cp $(OCTAVE_SRC)/*.oct* $(RP_INSTALL_BASE)/lib/octave
 
 #### Tcl ###########################################################
 install_tcl: librappture
