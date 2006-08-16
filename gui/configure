@@ -308,7 +308,7 @@ ac_includes_default="\
 # include <unistd.h>
 #endif"
 
-ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS CYGPATH EXEEXT PKG_LIB_FILE PKG_STUB_LIB_FILE PKG_STUB_SOURCES PKG_STUB_OBJECTS PKG_TCL_SOURCES PKG_HEADERS PKG_INCLUDES PKG_LIBS PKG_CFLAGS TCL_VERSION TCL_BIN_DIR TCL_SRC_DIR TCL_LIB_FILE TCL_LIB_FLAG TCL_LIB_SPEC TCL_STUB_LIB_FILE TCL_STUB_LIB_FLAG TCL_STUB_LIB_SPEC TCL_LIBS TCL_DEFS TCL_EXTRA_CFLAGS TCL_LD_FLAGS TCL_SHLIB_LD_LIBS CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC OBJEXT CPP INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA SET_MAKE RANLIB ac_ct_RANLIB EGREP MATH_LIBS PKG_SOURCES PKG_OBJECTS CLEANFILES TCL_INCLUDES TK_INCLUDES TK_XINCLUDES TCL_THREADS SHARED_BUILD AR CELIB_DIR LIBOBJS DL_LIBS CFLAGS_DEBUG CFLAGS_OPTIMIZE CFLAGS_WARNING STLIB_LD SHLIB_LD SHLIB_LD_LIBS SHLIB_CFLAGS LD_LIBRARY_PATH_VAR TCL_DBGX CFLAGS_DEFAULT LDFLAGS_DEFAULT MAKE_LIB MAKE_SHARED_LIB MAKE_STATIC_LIB MAKE_STUB_LIB RANLIB_STUB TCLSH_PROG BLT_SRC_DIR RAPPTURE_DIR PACKAGE VERSION PATCHLEVEL EXACT_VERSION NODOT_VERSION LTLIBOBJS'
+ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS CYGPATH EXEEXT PKG_LIB_FILE PKG_STUB_LIB_FILE PKG_STUB_SOURCES PKG_STUB_OBJECTS PKG_TCL_SOURCES PKG_HEADERS PKG_INCLUDES PKG_LIBS PKG_CFLAGS TCL_VERSION TCL_BIN_DIR TCL_SRC_DIR TCL_LIB_FILE TCL_LIB_FLAG TCL_LIB_SPEC TCL_STUB_LIB_FILE TCL_STUB_LIB_FLAG TCL_STUB_LIB_SPEC TCL_LIBS TCL_DEFS TCL_EXTRA_CFLAGS TCL_LD_FLAGS TCL_SHLIB_LD_LIBS CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC OBJEXT CPP INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA SET_MAKE RANLIB ac_ct_RANLIB EGREP MATH_LIBS PKG_SOURCES PKG_OBJECTS CLEANFILES TCL_INCLUDES TK_INCLUDES TK_XINCLUDES TCL_THREADS SHARED_BUILD AR CELIB_DIR LIBOBJS DL_LIBS CFLAGS_DEBUG CFLAGS_OPTIMIZE CFLAGS_WARNING STLIB_LD SHLIB_LD SHLIB_LD_LIBS SHLIB_CFLAGS LD_LIBRARY_PATH_VAR TCL_DBGX CFLAGS_DEFAULT LDFLAGS_DEFAULT MAKE_LIB MAKE_SHARED_LIB MAKE_STATIC_LIB MAKE_STUB_LIB RANLIB_STUB TCLSH_PROG BLT_SRC_DIR PACKAGE VERSION PATCHLEVEL EXACT_VERSION NODOT_VERSION LTLIBOBJS'
 ac_subst_files=''
 
 # Initialize some variables set by options.
@@ -854,7 +854,6 @@ Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
   --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
   --with-blt=DIR          Find bltInt.h in DIR
-  --with-rappture=DIR          Find include/core/rappture.h in DIR
   --with-tcl              directory containing tcl configuration
                           (tclConfig.sh)
   --with-tclinclude       directory containing the public Tcl header files
@@ -1468,13 +1467,6 @@ ac_configure="$SHELL $ac_aux_dir/configure" # This should be Cygnus configure.
 if test "${with_blt+set}" = set; then
   withval="$with_blt"
   blt_source_dir=$withval
-fi;
-
-
-# Check whether --with-rappture or --without-rappture was given.
-if test "${with_rappture+set}" = set; then
-  withval="$with_rappture"
-  rappture_dir=$withval
 fi;
 
 #--------------------------------------------------------------------
@@ -10387,63 +10379,6 @@ if test "x$BLT_SRC_DIR" = "x" ; then
 fi
 
 
-#--------------------------------------------------------------------
-# Look for rappture.h on the normal include path.  If not found, look
-# for it in the --with-rappture directory.
-#--------------------------------------------------------------------
-echo "$as_me:$LINENO: checking for include/core/rappture.h" >&5
-echo $ECHO_N "checking for include/core/rappture.h... $ECHO_C" >&6
-RAPPTURE_DIR=""
-if test "x$rappture_dir" != "x" ; then
-  #
-  # Verify that a rappture.h file exists in the directory specified
-  # by --with-rappture.
-  #
-  if test -r "$rappture_dir/include/core/rappture.h" ; then
-    RAPPTURE_DIR="$rappture_dir"
-  fi
-else
-  #
-  # Otherwise, search for the rappture.h include file...
-  # 1. Search previously named locations.
-  #
-  for dir in \
-   $prefix \
-   $exec_prefix
-  do
-    if test -r "$dir/include/core/rappture.h" ; then
-      RAPPTURE_DIR="$dir"
-      break
-    fi
-  done
-  #
-  #  2. Search source directories.
-  #
-  if test "x$RAPPTURE_DIR" = "x" ; then
-    for dir in \
-     `ls -dr ../rappture 2>/dev/null` \
-     `ls -dr ../../rappture 2>/dev/null` \
-     `ls -dr ../../../rappture 2>/dev/null` \
-     `ls -dr C\:/opt/rappture 2>/dev/null` \
-     `ls -dr /opt/rappture 2>/dev/null`
-    do
-      if test -r "$dir/include/core/rappture.h" ; then
-        RAPPTURE_DIR="$dir"
-        break
-      fi
-    done
-  fi
-fi
-echo "$as_me:$LINENO: result: ${RAPPTURE_DIR}" >&5
-echo "${ECHO_T}${RAPPTURE_DIR}" >&6
-
-if test "x$RAPPTURE_DIR" = "x" ; then
-  echo "can't find RAPPTURE include file \"include/core/rappture.h\""
-  echo "use --with-rappture=DIR to specify the location of rappture"
-  exit 1
-fi
-
-
 
 PATCHLEVEL=`${TCLSH_PROG} tclconfig/patchlevel.tcl`
 EXACT_VERSION=${MAJOR_VERSION}.${MINOR_VERSION}-${PATCHLEVEL}
@@ -11170,7 +11105,6 @@ s,@MAKE_STUB_LIB@,$MAKE_STUB_LIB,;t t
 s,@RANLIB_STUB@,$RANLIB_STUB,;t t
 s,@TCLSH_PROG@,$TCLSH_PROG,;t t
 s,@BLT_SRC_DIR@,$BLT_SRC_DIR,;t t
-s,@RAPPTURE_DIR@,$RAPPTURE_DIR,;t t
 s,@PACKAGE@,$PACKAGE,;t t
 s,@VERSION@,$VERSION,;t t
 s,@PATCHLEVEL@,$PATCHLEVEL,;t t
