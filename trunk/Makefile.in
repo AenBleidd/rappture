@@ -1,10 +1,25 @@
-all: rplib bindings
-install: install_rplib install_bindings install_examples
+all: rplib build_bindings
+install: rp_gui install_rplib install_bindings install_examples
+	chmod 755 gui/apps/rappture
+	cp gui/apps/rappture @prefix@/bin
+	cp gui/apps/driver @prefix@/bin
+	cp gui/apps/rerun @prefix@/bin
+	find @prefix@ -name .svn | xargs rm -rf
 
 ###########################################################################
 # Makefile - build and install all Rappture libraries
 #############################################################################
 
+rp_gui:
+	set -x;
+	cd gui; \
+	make clean; make distclean; \
+	./configure --prefix=@prefix@ --with-blt=@prefix@/include; \
+	make all; \
+	make install;
+
+#	make all >& $(basedir)/output.gui 2>&1; \
+#	make install >> $(basedir)/output.gui 2>&1
 
 rplib:
 	set -x;
@@ -12,36 +27,51 @@ rplib:
 
 install_rplib:
 	set -x;
-	cd src; make install
+	cd src; make install_rappture;
 
-bindings:
-	set -x;
-	cd src;			\
-	make RpMatlab;	\
-	make RpOctave;	\
-	cd -
-#	make RpTcl;
-	make build_python_bindings;
-	make build_perl_bindings;
+build_bindings: build_matlab build_octave build_python build_perl
 
-install_bindings:
+install_bindings: install_matlab install_octave install_python install_perl install_tcl
 
 #############################################################################
 # build rappture examples
 # examples:
 # 	- compile rappture examples in rappture/examples
 #############################################################################
-examples:
+build_examples:
 	set -x;
 	cd examples/app-fermi/fortran; make clean; make; cd -
 	cd examples/app-fermi/cee; make clean; make; cd -
 	cd examples/c-example; make clean; make; cd -
 
-install_examples: examples
+install_examples: build_examples
+	set -x;
+	cp -r examples @prefix@
+
+
 
 #############################################################################
 
-build_python_bindings:
+#tcl bindings
+install_tcl:
+	cd tcl; @prefix@/bin/tclsh install.tcl
+#	cd tcl; @TCLSH@ install.tcl
+
+# matlab bindings
+build_matlab:
+	cd src/matlab; make clean; make RpMatlab; cd -
+
+install_matlab: build_matlab
+	cd src/matlab; make install; cd -
+
+# octave bindings
+build_octave:
+	cd src/octave; make clean; make RpOctave; cd -
+
+install_octave: build_octave
+	cd src/octave; make install; cd -
+
+build_python:
 	set -x;
 	cd python; \
 	@PYTHON@ setup.py \
@@ -50,18 +80,18 @@ build_python_bindings:
 		--include-dirs=@prefix@/include/core \
 		build
 
-install_python_bindings: build_python_bindings
+install_python: build_python
 	set -x;
 	cd python; \
 	@PYTHON@ setup.py install --prefix=@prefix@
 
-build_perl_bindings:
+build_perl:
 	set -x;
 	cd perl; \
 	@PERL@ Makefile.PL INSTALLSITELIB=@prefix@/lib/perl5 INSTALLSITEMAN3DIR=@prefix@/man/man3; \
 	make; make test;
 
-install_perl_bindings: build_perl_bindings
+install_perl: build_perl
 	set -x;
 	cd perl; make install;
 
