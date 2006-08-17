@@ -93,9 +93,13 @@ install_rappture: librappture
 	if test "`uname`" == "Darwin"; then \
 		cp $<.dylib $(RP_INSTALL_BASE)/lib; \
 		cp $<.a $(RP_INSTALL_BASE)/lib; \
+		cp $(CORE_SRC)/*.h $(RP_INSTALL_BASE)/include; \
+		cp $(CEE_SRC)/*.h $(RP_INSTALL_BASE)/include; \
 	else \
 		cp -d $<.so* $(RP_INSTALL_BASE)/lib; \
 		cp -d $<.a $(RP_INSTALL_BASE)/lib; \
+		cp $(CORE_SRC)/*.h $(RP_INSTALL_BASE)/include; \
+		cp $(CEE_SRC)/*.h $(RP_INSTALL_BASE)/include; \
 	fi
 
 #### libRpObjects ########################################################

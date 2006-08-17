@@ -3,7 +3,7 @@ from distutils.core import setup, Extension
 rp_install_dir = '@prefix@'
 
 module = Extension('Rappture.Units',
-                   include_dirs = [rp_install_dir+'/include/core'],
+                   include_dirs = [rp_install_dir+'/include'],
                    sources = [ 'Rappture/PyRpUnits.cc' ],
                    library_dirs = [ rp_install_dir+'/lib' ],
                    libraries = [ 'rappture' ] )

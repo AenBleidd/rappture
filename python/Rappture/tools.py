@@ -5,7 +5,7 @@
 #  Copyright (c) 2005  Purdue Research Foundation, West Lafayette, IN
 # ======================================================================
 
-import sys, os
+import sys, os, re
 
 def getCommandOutput(command):
     childin,childout,childerr = os.popen3(command)
