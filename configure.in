@@ -1,5 +1,4 @@
-AC_INIT(src/core/RpLibrary.cc)
-AM_INIT_AUTOMAKE(rappture, 1.1)
+AC_INIT(rappture, 1.1, rappture@nanohub.org)
 
 VERSION=0.0.1
 
@@ -39,7 +38,7 @@ AC_ARG_WITH(matlab, [  --with-matlab[=DIR]         Build Matlab bindings if MEX 
 dnl AC_CHECK_PROG(MEX, mex, mex, false)
 MEX=
 if test "$with_matlab" != "no" ; then
-    WITH_MATLAB = "yes"
+    dnl WITH_MATLAB = "yes"
     if test -x "$with_matlab/bin/mex"
     then
         echo Found matlab in $with_matlab/bin/mex
@@ -54,7 +53,7 @@ if test "$with_matlab" != "no" ; then
         fi
     fi
 fi
-AM_CONDITIONAL(WITH_MATLAB, test x$MEX != x)
+dnl AM_CONDITIONAL(WITH_MATLAB, test x$MEX != x)
 
 AC_ARG_WITH(octave, [  --with-octave[=DIR]         Build Octave bindings if MKOCTFILE compiler is found])
 dnl AC_CHECK_PROG(MKOCTFILE, mkoctfile, mkoctfile, false)
@@ -74,7 +73,7 @@ if test "$with_octave" != "no" ; then
         fi
     fi
 fi
-AM_CONDITIONAL(WITH_OCTAVE, test x$MKOCTFILE != x)
+dnl AM_CONDITIONAL(WITH_OCTAVE, test x$MKOCTFILE != x)
 
 
 dnl perl and python check borrowed from 
@@ -103,7 +102,7 @@ if test "$with_perl" != "no" ; then
         fi
     fi
 fi
-AM_CONDITIONAL(WITH_PERL, test x$PERL != x)
+dnl AM_CONDITIONAL(WITH_PERL, test x$PERL != x)
 
 dnl
 dnl check for python
@@ -168,7 +167,8 @@ if test "$with_python" != "no" ; then
         pythondir='$(libdir)/python${PYTHON_VERSION}/site-packages'
     fi
 fi
-AM_CONDITIONAL(WITH_PYTHON, test x$PYTHON != x)
+dnl AM_CONDITIONAL(WITH_PYTHON, test x$PYTHON != x)
+
 dnl AM_CONDITIONAL(WITH_PYTHON, test "$PYTHON_INCLUDES" != "")
 dnl if test "$PYTHON_INCLUDES" != ""
 dnl then
@@ -176,6 +176,7 @@ dnl     PYTHON_SUBDIR=python
 dnl else
 dnl     PYTHON_SUBDIR=
 dnl fi
+
 AC_SUBST(pythondir)
 dnl AC_SUBST(PYTHON_SUBDIR)
 
@@ -193,8 +194,11 @@ AC_SUBST(VERSION)
 RP_BASE=`pwd`
 AC_SUBST(RP_BASE)
 
+AC_CONFIG_SUBDIRS( gui )
+
 dnl read Makefile.in and write Makefile
 AC_OUTPUT(  Makefile \
+            examples/demo.bash
             examples/app-fermi/cee/Makefile \
             examples/app-fermi/fortran/Makefile \
             examples/c-example/Makefile \

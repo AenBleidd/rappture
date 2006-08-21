@@ -1,3 +1,10 @@
+
+build_date := $(shell date +%Y%m%d)
+machine := $(shell uname -m)
+os := $(shell uname -s)
+bn := $(shell basename @prefix@)
+TarfileBasename=rappture-$(os)-$(machine)-$(build_date)
+
 all: rplib build_bindings
 install: rp_gui install_rplib install_bindings install_examples
 	chmod 755 gui/apps/rappture
@@ -10,14 +17,14 @@ install: rp_gui install_rplib install_bindings install_examples
 # Makefile - build and install all Rappture libraries
 #############################################################################
 
+
 rp_gui:
 	set -x;
 	cd gui; \
-	make clean; make distclean; \
-	./configure --prefix=@prefix@ --with-blt=@prefix@/include; \
 	make all; \
 	make install;
 
+#	./configure --prefix=@prefix@ --with-blt=@prefix@/include; \
 #	make all >& $(basedir)/output.gui 2>&1; \
 #	make install >> $(basedir)/output.gui 2>&1
 
@@ -77,7 +84,7 @@ build_python:
 	@PYTHON@ setup.py \
 		build_ext \
 		--library-dirs=@prefix@/lib \
-		--include-dirs=@prefix@/include/core \
+		--include-dirs=@prefix@/include \
 		build
 
 install_python: build_python
@@ -95,10 +102,20 @@ install_perl: build_perl
 	set -x;
 	cd perl; make install;
 
+build_pkgs:
+	set -x;
+	make distclean
+	if ! test -d "bin"; then \
+		mkdir bin;\
+	fi
+	# building rappture binary package
+	cd @prefix@/..; tar czf @RP_BASE@/bin/$(TarfileBasename).tar.gz $(bn)
+
 clean:
 	cd examples/app-fermi/cee; make clean; cd -;
 	cd examples/app-fermi/fortran; make clean; cd -;
 	cd examples/c-example; make clean; cd -;
+	cd gui; make clean; cd -;
 	cd perl; make clean; cd -;
 	cd python; rm -rf build; rm setup.py; cd -;
 	cd src; make clean; cd -;
@@ -106,9 +123,11 @@ clean:
 	cd src/octave; make clean; cd -;
 
 distclean:
+	cd examples; rm demo.bash
 	cd examples/app-fermi/cee; make distclean; cd -;
 	cd examples/app-fermi/fortran; make distclean; cd -;
 	cd examples/c-example; make distclean; cd -;
+	cd gui; make distclean; cd -;
 	cd perl; make clean; cd -;
 	cd python; rm -rf build; rm setup.py; cd -;
 	cd src; make distclean; cd -;
@@ -116,4 +135,4 @@ distclean:
 	cd src/octave; make distclean; cd -;
 	cd test; make distclean; cd -;
 	rm gui/apps/rappture;
-	rm -r Makefile config.status config.log;
+	rm -rf Makefile config.status config.log bin;

@@ -6,7 +6,7 @@
 # screen.
 #
 
-rpdir=/opt/rappture
+rpdir=@prefix@
 
 exdir=$rpdir/examples
 
