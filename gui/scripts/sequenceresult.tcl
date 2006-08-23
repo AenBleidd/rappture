@@ -285,8 +285,7 @@ itcl::body Rappture::SequenceResult::download {option args} {
             return [$itk_component(area).viewer download coming]
         }
         controls {
-            # no controls for this download yet
-            return ""
+            return [eval $itk_component(area).viewer download controls $args]
         }
         now {
             if {0} {
