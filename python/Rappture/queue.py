@@ -9,6 +9,7 @@ import sys,os
 import re
 import time
 import shutil
+import datetime
 
 # import Rappture Related libs
 from tools import *
@@ -151,13 +152,35 @@ class queue:
             self._queue_vars['jobName'] = jobName
 
     def __convertWalltime__(self):
-        minutesu
+        pass
 
     def submit(self):
         pass
 
+    def __checkFiles__(self,chkFileName):
+        retVal = False
+        if not os.path.isfile(chkFileName):
+            retVal = True
+        return retVal
+
     def status(self):
-        pass
+        min = 0
+        tCount = 0
+        sleepTime = 10
+
+        while self.__checkFiles__(self.errFile()):
+            if tCount == 60 :
+                min += 1
+                tCount = 0
+
+            self._currStatus = self.getCurrentStatus()
+            if (self._currStatus != self._prevStatus):
+                sys.stdout.write("%s: %s\n" % ( self._currStatus, time.ctime() ) )
+                sys.stdout.flush()
+                self._prevStatus = self._currStatus
+
+            time.sleep(sleepTime)
+            tCount += sleepTime
 
 class pbs(queue):
     """the pbs class organizes the information needed to submit jobs to 
@@ -283,12 +306,6 @@ touch %s
         self.cmd(),
         self.errFile()   )
 
-    def __checkErrFiles__(self,chkFileName):
-        retVal = False
-        if not os.path.isfile(chkFileName):
-            retVal = True
-        return retVal
-
     def cmd(self,cmd=''):
         cmd = str(cmd)
         if (cmd == 'None') or (cmd == ''):
@@ -332,24 +349,24 @@ touch %s
             error = 'Submission to PBS Queue Failed'
             raise RpQueueError, error
 
-    def status(self):
-        min = 0
-        tCount = 0
-        sleepTime = 10
-
-        while self.__checkErrFiles__(self.errFile()):
-            if tCount == 60 :
-                min += 1
-                tCount = 0
-
-            self._currStatus = self.getCurrentStatus()
-            if (self._currStatus != self._prevStatus):
-                sys.stdout.write("%s: %s\n" % ( self._currStatus, time.ctime() ) )
-                sys.stdout.flush()
-                self._prevStatus = self._currStatus
-
-            time.sleep(sleepTime)
-            tCount += sleepTime
+#    def status(self):
+#        min = 0
+#        tCount = 0
+#        sleepTime = 10
+#
+#        while self.__checkFiles__(self.errFile()):
+#            if tCount == 60 :
+#                min += 1
+#                tCount = 0
+#
+#            self._currStatus = self.getCurrentStatus()
+#            if (self._currStatus != self._prevStatus):
+#                sys.stdout.write("%s: %s\n" % ( self._currStatus, time.ctime() ) )
+#                sys.stdout.flush()
+#                self._prevStatus = self._currStatus
+#
+#            time.sleep(sleepTime)
+#            tCount += sleepTime
 
 
 
@@ -358,15 +375,27 @@ class condor (queue):
 
     USE_MPI = 1
 
-    def __init__(self,walltime='00:01:00',flags=0):
+    def __init__(   self,
+                    jobName,
+                    resultsDir,
+                    nodes,
+                    executable,
+                    execArgs='',
+                    walltime='00:01:00',
+                    flags=0             ):
+
         # call the base class's init
         for base in self.__class__.__bases__:
             callbase(self, base)
 
         self._condor_msgs = {}
+        self.__fillStatusDict__()
 
         self._flags = flags
         self.__setWorkingDir__()
+
+        # setup the empty process lists
+        self._processList = []
 
         # set vars based on user input
         self.resultsDir(resultsDir)
@@ -393,7 +422,7 @@ class condor (queue):
         epoch = int(time.mktime(datetime.datetime.utcnow().timetuple()))
         self._workingdir = str(epoch) + "_" + session
 
-    def __makeCondorTemplate__(self):
+    def __makeCondorScript__(self):
 #        return """universe=grid
 #    gridresource = gt2 tg-gatekeeper.purdue.teragrid.org:2120/jobmanager-pbs
 #    executable = EXECUTABLE
@@ -408,10 +437,15 @@ class condor (queue):
 #    notification = never
 #    """
 
-        self._mpirsl = ''
-        if (self.flags & self.USE_MPI):
+        self._resultDirPath = os.path.join(os.getcwd(),self.resultsDir())
+
+        self._mpirsl = ""
+        if (self._flags & self.USE_MPI):
             self._mpirsl = "(jobType=mpi)(count=%d)(hostcount=%d)" % \
                             (self.nodes(), self.nodes())
+
+        (wall_hr,wall_min,wall_sec) = self.walltime().split(":")
+        walltime =  int(wall_hr)*60 + int(wall_min) + int(wall_sec)/60.00
 
         return """universe=grid
     gridresource = gt2 tg-gatekeeper.purdue.teragrid.org:2120/jobmanager-pbs
@@ -423,49 +457,49 @@ class condor (queue):
     initialDir = %s
     log = %s
     #globusrsl = (project=TG-ECD060000N)(jobType=mpi)(count=2)(hostcount=2)(maxWallTime=WALLTIME)
-    globusrsl = (project=TG-ECD060000N)(maxWallTime=%s)%s(queue=%s)
+    globusrsl = (project=TG-ECD060000N)(maxWallTime=%g)%s(queue=%s)
     notification = never
     """ % ( self.executable(),
             self.outFile(),
             self.errFile(),
             self.resultsDir(),
             self.logFile(),
-            self.resultsDir(),
-            self.walltime(),
+            walltime,
             self._mpirsl,
             self.queue()    )
 
-    def addProcess(self,argsList,inputFiles=[],):
-#        return """arguments = ARGUMENT resultsID.tar.gz WORKINGDIR_ID
-#    transfer_input_files = INFILE,\\
-#                           APPROOT/data/circle-1.e,\\
-#                           APPROOT/data/circle-1.n,\\
-#                           APPROOT/data/circle-1.d,\\
-#                           APPROOT/data/circle-1.s,\\
-#                           APPROOT/data/circle-1_ni,\\
-#                           APPROOT/data/circle-1.edge,\\
-#                           APPROOT/data/circle-1.ele,\\
-#                           APPROOT/data/circle-1.node
-#    transfer_output_files = resultsID.tar.gz
-#    Queue
-#    """
+    def addProcess(self,argsList=[],inputFiles=[]):
+#    return """arguments = ARGUMENT resultsID.tar.gz WORKINGDIR_ID
+# transfer_input_files = INFILE,\\
+#                        APPROOT/grid.1.poly,\\
+#                        APPROOT/grid.1.node,\\
+#                        APPROOT/grid.1.ele,\\
+#                        APPROOT/grid.1.edge
+# transfer_output_files = resultsID.tar.gz
+# Queue
+# """
+        args = " ".join(argsList)
         transInFiles = ",\\\\\n\t\t".join(inputFiles)
         nextProcId = len(self._processList)
-        newProcess = """arguments = %s results%d.tar.gz %s_%d
+        resultsTarName = "%s%d.tar.gz" % (self.jobName(),nextProcId)
+        newProcess = """arguments = %s %s %s_%d
     transfer_input_files = %s
-    transfer_output_files = resultsID.tar.gz
+    transfer_output_files = %s
     Queue
 
-    """ % (argList,nextProcId,self._workingdir,nextProcId,transInFiles)
+    """ % ( args,
+            resultsTarName,
+            self._workingdir,
+            nextProcId,
+            transInFiles,
+            resultsTarName  )
         self._processList.append(newProcess)
 
 
-#    def chkCondorStatus(chkID):
     def getCurrentStatus(self):
-        global condor_msgs
-        if chkID:
-            chkCmd = 'condor_q'
-            cmdOutput = getCommandOutput("%s | grep \'^ *%s\'" % (chkCmd,chkID))
+        if self._jobId:
+            chkCmd = "condor_q | grep \'^ *%s\'" % (self._jobId)
+            cmdOutput = getCommandOutput(chkCmd)
 
             # parse a string that should look like this: 
             # 61.0   dkearney       12/9  22:47   0+00:00:00 I  0   0.0  nanowire.sh input-
@@ -479,18 +513,18 @@ class condor (queue):
 
             if len(parseResults) > 6:
                 qstat = parseResults[5]
-                retVal = condor_msgs[qstat]
+                retVal = self._condor_msgs[qstat]
 
             if retVal == '':
-                retVal = condor_msgs['DEFAULT']
+                retVal = self._condor_msgs['DEFAULT']
 
         return retVal
 
-    def chkCondorLoop(resultTarPathPrefix,numJobs):
-
+    def __checkFiles__(self):
+        numJobs = len(self._processList)
         retVal = numJobs
         for i in xrange(numJobs):
-            resultTarPath = resultTarPathPrefix + str(i) + ".tar.gz"
+            resultTarPath = self.resultsDir() + "/" + self.jobName() + str(i) + ".tar.gz"
 
             # this might be the point of a race condition,
             # might need to change this to a try/catch statement.
@@ -507,86 +541,51 @@ class condor (queue):
 
         return retVal
 
-    def runCondor ( inputs,
-                    condorScriptPath,
-                    resultDirName ):
-
-        # prepare the user output for printing our job submission info to screen
-
-        jobNodeCnt = int(inputs['Nvg'])
-
-        sys.stdout.write ("Your job is set to use %d node(s)\n" % (jobNodeCnt) )
-        # sys.stdout.write ("with %d processor(s) per node\n" % int(ppn))
-        sys.stdout.write ("Submitting job to queue\n")
-        sys.stdout.flush()
-
-        # submit the condor job
-        condorCmd = 'condor_submit'
-        cmdOutData = getCommandOutput('%s %s' % (condorCmd,condorScriptPath))
-
-        # grab the qID from the return data of the command
-        global qID
-        qID.append(re.search('cluster [0-9]+', cmdOutData).group().split()[1])
-
-        # track condor's progress
+    def status(self):
         min = 0
         tCount = 0
         sleepTime = 10
-        prevStatus = '?'
-        currStatus = '?'
-        resultTarNamePrefix = 'results'
-        resultTarPathPrefix = resultDirName+'/'+resultTarNamePrefix
 
-        while chkCondorLoop(resultTarPathPrefix,int(inputs['Nvg'])):
-            currStatus = chkCondorStatus(qID[0])
+        while self.__checkFiles__():
             if tCount == 60 :
                 min += 1
                 tCount = 0
-            if (currStatus != prevStatus) :
-                sys.stdout.write("%s: %s\n" % ( currStatus, time.ctime() ) )
-                prevStatus = currStatus
 
-            sys.stdout.flush()
+            self._currStatus = self.getCurrentStatus()
+            if (self._currStatus != self._prevStatus):
+                sys.stdout.write("%s: %s\n" % ( self._currStatus, time.ctime() ) )
+                sys.stdout.flush()
+                self._prevStatus = self._currStatus
+
             time.sleep(sleepTime)
             tCount += sleepTime
 
+    def submit(self):
 
-        outFiles = {}
-        errFiles = {}
-        outfileNamePrefix = "out."
-        errfileNamePrefix = "err."
-        logfileNamePrefix = "log."
-        logfileName = resultDirName + logfileNamePrefix + qID[0]
+        if len(self._processList) == 0:
+            self.addProcess()
 
-        for i in xrange(int(inputs['Nvg'])):
-            resultTarName = resultTarNamePrefix + str(i) + ".tar.gz"
-            resultTarPath = resultDirName+'/'+resultTarName
+        submitFileData = self.__makeCondorScript__() + "\n".join(self._processList)
+        submitFileName = self._resultDirPath+'/'+self.jobName()+'.condor'
+        writeFile(submitFileName,submitFileData)
 
-            # check to see that the result file exists, if not raise error
-            if (not os.path.exists(resultTarPath)):
-                error = 'Returned data not found at %s' % (resultTarPath)
-                raise RuntimeError, error
-                sys.exit(-1)
+        # submit the condor job
+        myCWD = os.getcwd()
+        os.chdir(self._resultDirPath)
+        condorCmd = 'condor_submit %s 2> condor_submit.error' % (submitFileName)
+        cmdOutData = getCommandOutput(condorCmd)
+        os.chdir(myCWD)
 
-            # prepare to return error files and outfiles
-            outFiles[i] = resultDirName+'/'+outfileNamePrefix+qID[0]+'.'+str(i)
-            errFiles[i] = resultDirName+'/'+errfileNamePrefix+qID[0]+'.'+str(i)
+        self._prevStatus = ''
+        self._currStatus = ''
 
-            # check to see that the result tar size is greater than 0
-            resultTarSize = os.path.getsize(resultTarPath)
-            if (resultTarSize):
-                # untar the output and return out and err file texts
-    #           print 'tar --directory %s -xzf %s' % (resultDirName,resultTarPath)
-                untarRslt = getCommandOutput('tar --directory %s -xzf %s' % (resultDirName,resultTarPath))
-    #           print 'untarRslt = %s' % (untarRslt)
-
-            else:
-                # tar file is of zero size, simulation did not have ended properly
-                error = 'Returned file does not contain any data\n Unsuccessful Run'
-                raise RuntimeError, error
-                sys.exit(-1)
-
-        return (logfileName, outFiles, errFiles)
+        # a successful submission (on hamlet/lear) follows this regexp
+        if re.search(r'cluster ([0-9]+)',cmdOutData):
+            self._jobId = re.search(r'cluster ([0-9]+)',cmdOutData).group(1)
+        else:
+            print "cmdOutData returned :%s:" % cmdOutData
+            error = 'Submission to Condor Queue Failed'
+            # raise RpQueueError, error
 
 #######################################################################
 # main python script
@@ -612,6 +611,30 @@ if __name__ == '__main__':
         sys.exit(-1)
     else :
         mpiCommand = mpiCommand.strip()
+
+    sys.stdout.write("testing hello with condor\n")
+    jobName = 'helloMPITest'
+    resultsDir = createDir('4321')
+    executable = 'hello.sh'
+    shutil.copy('hello/hello.sh',resultsDir)
+    shutil.copy('hello/hello',resultsDir)
+    myCondorObj = condor(jobName,resultsDir,2,executable,walltime=walltime,flags=condor.USE_MPI)
+    myCondorObj.submit()
+    myCondorObj.status()
+    sys.stdout.flush()
+
+    sys.stdout.write("testing hello\n")
+    jobName = 'helloRP_MPITest'
+    resultsDir = createDir('abab')
+    executable = 'helloRP'
+    driver = "driver7878.xml"
+    shutil.copy('hello/helloRP',resultsDir)
+    shutil.copy(driver,resultsDir)
+    myPBSObj =  pbs(jobName,resultsDir,nodes,executable,driver)
+    myPBSObj.submit()
+    myPBSObj.status()
+    sys.stdout.flush()
+
 
     sys.stdout.write("testing hello\n")
     jobName = 'helloMPITest'

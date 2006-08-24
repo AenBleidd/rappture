@@ -1722,18 +1722,32 @@ RpUnitsPreset::addPresetAll () {
 /**
  * Defines the following units:
  *   seconds  (s)
+ *   minutes  (min)
+ *   hours    (h)
+ *   days     (d)
  *
+ *   month and year are not included because simple 
+ *   day->month conversions may be misleading
+ *   month->year conversions may be included in the future
+ * 
  * Return codes: 0 success, anything else is error
  */
 
 int
 RpUnitsPreset::addPresetTime () {
 
-    RpUnits* seconds    = RpUnits::define("s", NULL, RP_TYPE_TIME);
+    RpUnits* second    = RpUnits::define("s", NULL, RP_TYPE_TIME);
+    RpUnits* minute    = RpUnits::define("min", second, RP_TYPE_TIME);
+    RpUnits* hour      = RpUnits::define("h", second, RP_TYPE_TIME);
+    RpUnits* day       = RpUnits::define("d", second, RP_TYPE_TIME);
 
-    RpUnits::makeMetric(seconds);
+    RpUnits::makeMetric(second);
 
     // add time definitions
+
+    RpUnits::define(second, minute, sec2min, min2sec);
+    RpUnits::define(second, hour, sec2hour, hour2sec);
+    RpUnits::define(second, day, sec2day, day2sec);
 
     return 0;
 }

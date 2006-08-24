@@ -483,6 +483,10 @@ Rappture::Units::define J->eV {J/1.602177e-19} {eV*1.602177e-19}
 Rappture::Units::define V -type voltage -metric yes
 
 Rappture::Units::define s -type seconds -metric yes
+# can't use min becase tcl thinks its milli-in's
+# Rappture::Units::define min->s {min*60.00} {s/60.00}
+Rappture::Units::define h->s {h*3600.00} {s/3600.00}
+Rappture::Units::define d->s {d*86400.00} {s/86400.00}
 
 # can't put mol's in because tcl thinks its milli-ol's
 # Rappture::Units::define mol -type misc -metric yes

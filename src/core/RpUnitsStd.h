@@ -84,6 +84,14 @@ double deg2grad (double deg);
 double grad2deg (double grad);
 
 
+
+double sec2min    (double sec);
+double min2sec    (double min);
+double sec2hour   (double sec);
+double hour2sec   (double hour);
+double sec2day (double sec);
+double day2sec (double day);
+
 #ifdef __cplusplus
 }
 #endif

@@ -37,7 +37,7 @@ LN              = ln
 
 # define our directories
 #
-INCLUDES_DIR    = $(RP_BASE)/include
+INCLUDES_DIR    = $(RP_BASE)/src
 BIN_DIR         = $(RP_BASE)/bin
 LIB_DIR         = $(RP_INSTALL_BASE)/lib # $(RP_BASE)/src
 SRC_DIR         = $(RP_BASE)/src
@@ -51,7 +51,6 @@ LIB_RAPPTURE    = -Wl,-rpath,$(LIB_DIR) -L$(LIB_DIR) -lrappture
 INCL_CORE       = -I $(INCLUDES_DIR)/core
 INCL_CEE        = -I $(INCLUDES_DIR)/cee
 INCL_FORTRAN    = -I $(INCLUDES_DIR)/fortran
-INCL_PY         = -I $(INCLUDES_DIR)/python
 
 
 default: $(TEST_PROGS)

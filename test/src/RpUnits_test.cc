@@ -326,6 +326,43 @@ int main()
     std::cout << "convert(\"5.00mm\",\"\",1) = " << RpUnits::convert("5.00mm","",1) << std::endl;
     std::cout << "convert(\"5.00mm\",\"\",0) = " << RpUnits::convert("5.00mm","",0) << std::endl;
 
+    // day hour min sec test
+    std::cout << "convert(\"5.00s\",\"s\",1) = " << RpUnits::convert("5.00s","s",1) << " = 5s" << std::endl;
+    std::cout << "convert(\"5.00s\",\"s\",0) = " << RpUnits::convert("5.00s","s",0) << " = 5" << std::endl;
+    std::cout << "convert(\"5.00min\",\"s\",1) = " << RpUnits::convert("5.00min","s",1) << " = 300s" << std::endl;
+    std::cout << "convert(\"5.00min\",\"s\",0) = " << RpUnits::convert("5.00min","s",0) << " = 300" << std::endl;
+    std::cout << "convert(\"5.00h\",\"s\",1) = " << RpUnits::convert("5.00h","s",1) << " = 18000s" << std::endl;
+    std::cout << "convert(\"5.00h\",\"s\",0) = " << RpUnits::convert("5.00h","s",0) << " = 18000" << std::endl;
+    std::cout << "convert(\"5.00d\",\"s\",1) = " << RpUnits::convert("5.00d","s",1) << " = 432000s" << std::endl;
+    std::cout << "convert(\"5.00d\",\"s\",0) = " << RpUnits::convert("5.00d","s",0) << " = 432000" << std::endl;
+
+    std::cout << "convert(\"5.00s\",\"min\",1) = " << RpUnits::convert("5.00s","min",1) << " = 300min" << std::endl;
+    std::cout << "convert(\"5.00s\",\"min\",0) = " << RpUnits::convert("5.00s","min",0) << " = 300" << std::endl;
+    std::cout << "convert(\"5.00min\",\"min\",1) = " << RpUnits::convert("5.00min","min",1) << " = 5min" << std::endl;
+    std::cout << "convert(\"5.00min\",\"min\",0) = " << RpUnits::convert("5.00min","min",0) << " = 5" << std::endl;
+    std::cout << "convert(\"5.00h\",\"min\",1) = " << RpUnits::convert("5.00h","min",1) << " = 300min" << std::endl;
+    std::cout << "convert(\"5.00h\",\"min\",0) = " << RpUnits::convert("5.00h","min",0) << " = 300" << std::endl;
+    std::cout << "convert(\"5.00d\",\"min\",1) = " << RpUnits::convert("5.00d","min",1) << " = 7200min" << std::endl;
+    std::cout << "convert(\"5.00d\",\"min\",0) = " << RpUnits::convert("5.00d","min",0) << " = 7200" << std::endl;
+
+    std::cout << "convert(\"5.00s\",\"h\",1) = " << RpUnits::convert("5.00s","h",1) << " = 0.001388h" << std::endl;
+    std::cout << "convert(\"5.00s\",\"h\",0) = " << RpUnits::convert("5.00s","h",0) << " = 0.001388" << std::endl;
+    std::cout << "convert(\"5.00min\",\"h\",1) = " << RpUnits::convert("5.00min","h",1) << " = 0.0833h" << std::endl;
+    std::cout << "convert(\"5.00min\",\"h\",0) = " << RpUnits::convert("5.00min","h",0) << " = 0.0833" << std::endl;
+    std::cout << "convert(\"5.00h\",\"h\",1) = " << RpUnits::convert("5.00h","h",1) << " = 5h" << std::endl;
+    std::cout << "convert(\"5.00h\",\"h\",0) = " << RpUnits::convert("5.00h","h",0) << " = 5" << std::endl;
+    std::cout << "convert(\"5.00d\",\"h\",1) = " << RpUnits::convert("5.00d","h",1) << " = 120h" << std::endl;
+    std::cout << "convert(\"5.00d\",\"h\",0) = " << RpUnits::convert("5.00d","h",0) << " = 120" << std::endl;
+
+    std::cout << "convert(\"5.00s\",\"d\",1) = " << RpUnits::convert("5.00s","d",1) << " = 5.7870e-05d" << std::endl;
+    std::cout << "convert(\"5.00s\",\"d\",0) = " << RpUnits::convert("5.00s","d",0) << " = 5.7870e-05" << std::endl;
+    std::cout << "convert(\"5.00min\",\"d\",1) = " << RpUnits::convert("5.00min","d",1) << " = 0.00347222d" << std::endl;
+    std::cout << "convert(\"5.00min\",\"d\",0) = " << RpUnits::convert("5.00min","d",0) << " = 0.00347222" << std::endl;
+    std::cout << "convert(\"5.00h\",\"d\",1) = " << RpUnits::convert("5.00h","d",1) << " = 0.208333d" << std::endl;
+    std::cout << "convert(\"5.00h\",\"d\",0) = " << RpUnits::convert("5.00h","d",0) << " = 0.208333" << std::endl;
+    std::cout << "convert(\"5.00d\",\"d\",1) = " << RpUnits::convert("5.00d","d",1) << " = 5d" << std::endl;
+    std::cout << "convert(\"5.00d\",\"d\",0) = " << RpUnits::convert("5.00d","d",0) << " = 5" << std::endl;
+
     return 0;
 
 }

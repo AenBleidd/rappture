@@ -301,6 +301,42 @@ double grad2deg (double grad)
     return (grad*(9.00/10.00));
 }
 
+/****************************************
+ * TIME CONVERSIONS
+ ****************************************/
+
+double sec2min (double sec)
+{
+    return (sec/60.00);
+}
+
+double min2sec (double min)
+{
+    return (min*60.00);
+}
+
+double sec2hour (double sec)
+{
+    return (sec/3600.00);
+}
+
+double hour2sec (double hour)
+{
+    return (hour*3600.00);
+}
+
+double sec2day (double sec)
+{
+    return (sec/86400.00);
+}
+
+double day2sec (double day)
+{
+    return (day*86400.00);
+}
+
+
+
 #ifdef __cplusplus
 }
 #endif
