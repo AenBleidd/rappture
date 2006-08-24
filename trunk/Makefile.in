@@ -54,6 +54,7 @@ build_examples:
 install_examples: build_examples
 	set -x;
 	cp -r examples @prefix@
+	rm -f @prefix@/examples/demo.bash.in
 
 
 
@@ -104,7 +105,6 @@ install_perl: build_perl
 
 build_pkgs:
 	set -x;
-	make distclean
 	if ! test -d "bin"; then \
 		mkdir bin;\
 	fi
@@ -128,7 +128,7 @@ distclean:
 	cd examples/app-fermi/fortran; make distclean; cd -;
 	cd examples/c-example; make distclean; cd -;
 	cd gui; make distclean; cd -;
-	cd perl; make clean; cd -;
+	cd perl; make clean; rm Makefile.PL; cd -;
 	cd python; rm -rf build; rm setup.py; cd -;
 	cd src; make distclean; cd -;
 	cd src/matlab; make distclean; cd -;

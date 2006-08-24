@@ -45,5 +45,5 @@ plotc: plotc.c
 clean:
 	rm -f $(PROGS) run*.xml
 
-distclean:
+distclean: clean
 	- rm Makefile
