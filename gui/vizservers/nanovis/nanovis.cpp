@@ -1536,16 +1536,18 @@ load_volume_file(int index, char *fname) {
             Rappture::Mesh1D zgrid(z0, z0+nz*dz, nz);
             Rappture::FieldRect3D field(xgrid, ygrid, zgrid);
 
-            double dval;
+            double dval[6];
             int nread = 0;
             int ix = 0;
             int iy = 0;
             int iz = 0;
             while (!fin.eof() && nread < npts) {
                 fin.getline(line,sizeof(line)-1);
-                if (sscanf(line, "%lg", &dval) == 1) {
+                int n = sscanf(line, "%lg %lg %lg %lg %lg %lg", &dval[0], &dval[1], &dval[2], &dval[3], &dval[4], &dval[5]);
+
+                for (int p=0; p < n; p++) {
                     int nindex = iz*nx*ny + iy*nx + ix;
-                    field.define(nindex, dval);
+                    field.define(nindex, dval[p]);
                     nread++;
                     if (++iz >= nz) {
                         iz = 0;
@@ -3129,7 +3131,6 @@ double get_time_interval(){
 /*----------------------------------------------------*/
 int main(int argc, char** argv) 
 { 
-  sleep(30);
 #ifdef XINETD
    init_service();
 #endif
