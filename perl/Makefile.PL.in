@@ -30,7 +30,7 @@ if ($^O ne "MSWin32") {
         "/apps/rappture/include", 
         "/opt/rappture/include", "/usr/local/include", "/opt/include", 
         "../include" );
-    $RAPPTURE_INC = "core/rappture.h";
+    $RAPPTURE_INC = "rappture.h";
     @SCEW_LIB_SEARCHPATH = ( "@prefix@/lib",
         "/apps/rappture/lib", "/opt/rappture/lib", 
         "/usr/local/lib", "/opt/lib", "../../scew-0.4.0/scew", 
@@ -68,7 +68,7 @@ else {
     $EXPAT_INC="expat.h";
     @RAPPTURE_INC_SEARCHPATH = ( "C:\\Program Files\\Rappture\\include", 
         "C:\\opt\\rappture\\include", "C:\\opt\\include", "..\\include" );
-    $RAPPTURE_INC = "core\\rappture.h";
+    $RAPPTURE_INC = "rappture.h";
     @SCEW_LIB_SEARCHPATH = ( "C:\\Program Files\\Rappture\\lib", 
         "C:\\opt\\rappture\\lib", "C:\\opt\\lib", 
         "..\\..\\scew-0.4.0\\win32\\lib", "..\\..\\scew\\win32\\lib", 
