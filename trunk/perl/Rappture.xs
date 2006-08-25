@@ -1,5 +1,5 @@
-#include "core/RpLibrary.h"
-#include "core/RpUnits.h"
+#include "RpLibrary.h"
+#include "RpUnits.h"
 #include <string>
 
 #include "EXTERN.h"
