@@ -21,6 +21,10 @@ RpDict<std::string,RpUnits*>* RpUnits::dict = new RpDict<std::string,RpUnits*>()
 // install predefined units
 static RpUnitsPreset loader;
 
+// convert function flags
+const int RpUnits::UNITS_OFF = 0;
+const int RpUnits::UNITS_ON  = 1;
+
 /**********************************************************************/
 // METHOD: define()
 /// Define a unit type to be stored as a Rappture Unit.

@@ -495,3 +495,4 @@ Rappture::Units::define Bq -type misc -metric yes
 
 Rappture::Units::define deg -type angle -metric no
 Rappture::Units::define rad -type angle -metric no
+Rappture::Units::define deg->rad {deg*(3.1415926535897931/180.00)} {rad*(180.00/3.1415926535897931)}

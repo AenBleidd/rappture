@@ -43,43 +43,116 @@ MEX_INCLS = $(INCL_MATLAB) $(INCL_CORE) $(INCL_CEE) $(INCL_RP_DEPS)
 MEX_OPTS = -g $(LIB_RAPPTURE) $(LIB_SCEW_FLAG)
 MATLAB_COMP_ARGS = RpMatlabInterface.cc $(MEX_INCLS) $(MEX_OPTS)
 
-RpMatlab:
+RpMatlab: 	rpLib.mexglx \
+			rpLibXml.mexglx \
+			rpLibElement.mexglx \
+			rpLibElementAsObject.mexglx \
+			rpLibElementAsType.mexglx \
+			rpLibElementAsComp.mexglx \
+			rpLibElementAsId.mexglx \
+			rpLibChildren.mexglx \
+			rpLibChildrenByType.mexglx \
+			rpLibGet.mexglx \
+			rpLibGetString.mexglx \
+			rpLibGetDouble.mexglx \
+			rpLibPut.mexglx \
+			rpLibPutString.mexglx \
+			rpLibPutDouble.mexglx \
+			rpLibNodeComp.mexglx \
+			rpLibNodeType.mexglx \
+			rpLibNodeId.mexglx \
+			rpLibResult.mexglx \
+			rpUnitsDefineUnit.mexglx \
+			rpUnitsGetUnits.mexglx \
+			rpUnitsGetUnitsName.mexglx \
+			rpUnitsGetExponent.mexglx \
+			rpUnitsGetBasis.mexglx \
+			rpUnitsFind.mexglx \
+			rpUnitsMakeMetric.mexglx \
+			rpUnitsConvert.mexglx \
+			rpUnitsConvertStr.mexglx \
+			rpUnitsConvertObjStr.mexglx \
+			rpUnitsConvertDbl.mexglx \
+			rpUnitsConvertObjDbl.mexglx \
+			rpAddPresets.mexglx
+
+
+
+rpLib.mexglx:
 	$(MEX) rpLib.cc                   $(MATLAB_COMP_ARGS)
+rpLibXml.mexglx:
 	$(MEX) rpLibXml.cc                $(MATLAB_COMP_ARGS)
+rpLibElement.mexglx:
 	$(MEX) rpLibElement.cc            $(MATLAB_COMP_ARGS)
+rpLibElementAsObject.mexglx:
 	$(MEX) rpLibElementAsObject.cc    $(MATLAB_COMP_ARGS)
+rpLibElementAsType.mexglx:
 	$(MEX) rpLibElementAsType.cc      $(MATLAB_COMP_ARGS)
+rpLibElementAsComp.mexglx:
 	$(MEX) rpLibElementAsComp.cc      $(MATLAB_COMP_ARGS)
+rpLibElementAsId.mexglx:
 	$(MEX) rpLibElementAsId.cc        $(MATLAB_COMP_ARGS)
+rpLibChildren.mexglx:
 	$(MEX) rpLibChildren.cc           $(MATLAB_COMP_ARGS)
+rpLibChildrenByType.mexglx:
 	$(MEX) rpLibChildrenByType.cc     $(MATLAB_COMP_ARGS)
+
+#rpLibChildrenAsObject.mexglx:
 #$(MEX) rpChildrenAsObject.cc         $(MATLAB_COMP_ARGS)
+#rpLibChildrenAsType.mexglx:
 #$(MEX) rpChildrenAsType.cc           $(MATLAB_COMP_ARGS)
+#rpLibChildrenAsComp.mexglx:
 #$(MEX) rpChildrenAsComp.cc           $(MATLAB_COMP_ARGS)
+#rpLibChildrenAsId.mexglx:
 #$(MEX) rpChildrenAsId.cc             $(MATLAB_COMP_ARGS)
+
+rpLibGet.mexglx:
 	$(MEX) rpLibGet.cc                $(MATLAB_COMP_ARGS)
+rpLibGetString.mexglx:
 	$(MEX) rpLibGetString.cc          $(MATLAB_COMP_ARGS)
+rpLibGetDouble.mexglx:
 	$(MEX) rpLibGetDouble.cc          $(MATLAB_COMP_ARGS)
+rpLibPut.mexglx:
 	$(MEX) rpLibPut.cc                $(MATLAB_COMP_ARGS)
+rpLibPutString.mexglx:
 	$(MEX) rpLibPutString.cc          $(MATLAB_COMP_ARGS)
+rpLibPutDouble.mexglx:
 	$(MEX) rpLibPutDouble.cc          $(MATLAB_COMP_ARGS)
+rpLibNodeComp.mexglx:
 	$(MEX) rpLibNodeComp.cc           $(MATLAB_COMP_ARGS)
+rpLibNodeType.mexglx:
 	$(MEX) rpLibNodeType.cc           $(MATLAB_COMP_ARGS)
+rpLibNodeId.mexglx:
 	$(MEX) rpLibNodeId.cc             $(MATLAB_COMP_ARGS)
+rpLibResult.mexglx:
 	$(MEX) rpLibResult.cc             $(MATLAB_COMP_ARGS)
+rpUnitsDefineUnit.mexglx:
 	$(MEX) rpUnitsDefineUnit.cc       $(MATLAB_COMP_ARGS)
+#rpDefineConv.mexglx:
 #$(MEX) rpDefineConv.cc               $(MATLAB_COMP_ARGS)
+rpUnitsGetUnits.mexglx:
 	$(MEX) rpUnitsGetUnits.cc         $(MATLAB_COMP_ARGS)
+rpUnitsGetUnitsName.mexglx:
 	$(MEX) rpUnitsGetUnitsName.cc     $(MATLAB_COMP_ARGS)
+rpUnitsGetExponent.mexglx:
 	$(MEX) rpUnitsGetExponent.cc      $(MATLAB_COMP_ARGS)
+rpUnitsGetBasis.mexglx:
 	$(MEX) rpUnitsGetBasis.cc         $(MATLAB_COMP_ARGS)
+rpUnitsFind.mexglx:
 	$(MEX) rpUnitsFind.cc             $(MATLAB_COMP_ARGS)
+rpUnitsMakeMetric.mexglx:
 	$(MEX) rpUnitsMakeMetric.cc       $(MATLAB_COMP_ARGS)
+rpUnitsConvert.mexglx:
 	$(MEX) rpUnitsConvert.cc          $(MATLAB_COMP_ARGS)
+rpUnitsConvertStr.mexglx:
 	$(MEX) rpUnitsConvertStr.cc       $(MATLAB_COMP_ARGS)
+rpUnitsConvertObjStr.mexglx:
 	$(MEX) rpUnitsConvertObjStr.cc    $(MATLAB_COMP_ARGS)
+rpUnitsConvertDbl.mexglx:
 	$(MEX) rpUnitsConvertDbl.cc       $(MATLAB_COMP_ARGS)
+rpUnitsConvertObjDbl.mexglx:
 	$(MEX) rpUnitsConvertObjDbl.cc    $(MATLAB_COMP_ARGS)
+rpAddPresets.mexglx:
 	$(MEX) rpAddPresets.cc            $(MATLAB_COMP_ARGS)
 
 docs:
