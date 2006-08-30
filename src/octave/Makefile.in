@@ -37,38 +37,102 @@ install_octave: RpOctave
 
 OCT_INCLS = $(INCL_OCTAVE) $(INCL_CORE) $(INCL_RP_DEPS)
 OCTAVE_COMP_ARGS = $(OCT_INCLS) $(LIB_RAPPTURE) $(LIB_SCEW_FLAG)
-RpOctave:
+RpOctave: 	rpAddPresets.oct \
+			rpLib.oct \
+			rpLibChildrenByType.oct \
+			rpLibChildren.oct \
+			rpLibElementAsComp.oct \
+			rpLibElementAsId.oct \
+			rpLibElementAsObject.oct \
+			rpLibElementAsType.oct \
+			rpLibElement.oct \
+			rpLibGet.oct \
+			rpLibGetString.oct \
+			rpLibGetDouble.oct \
+			rpLibNodeComp.oct \
+			rpLibNodeId.oct \
+			rpLibNodeType.oct \
+			rpLibPut.oct \
+			rpLibPutDouble.oct \
+			rpLibPutSingle.oct \
+			rpLibResult.oct \
+			rpLibXml.oct \
+			rpUnitsConvert.oct \
+			rpUnitsConvertDbl.oct \
+			rpUnitsConvertStr.oct \
+			rpUnitsConvertObjDbl.oct \
+			rpUnitsConvertObjStr.oct \
+			rpUnitsDefineUnit.oct \
+			rpUnitsFind.oct \
+			rpUnitsGetBasis.oct \
+			rpUnitsGetExponent.oct \
+			rpUnitsGetUnits.oct \
+			rpUnitsGetUnitsName.oct \
+			rpUnitsGetMakeMetric.oct
+
+rpAddPresets.oct:
 	$(OCT) rpAddPresets.cc            $(OCTAVE_COMP_ARGS)
+rpLib.oct:
 	$(OCT) rpLib.cc                   $(OCTAVE_COMP_ARGS)
+rpLibChildrenByType.oct:
 	$(OCT) rpLibChildrenByType.cc     $(OCTAVE_COMP_ARGS)
+rpLibChildren.oct:
 	$(OCT) rpLibChildren.cc           $(OCTAVE_COMP_ARGS)
+rpLibElementAsComp.oct:
 	$(OCT) rpLibElementAsComp.cc      $(OCTAVE_COMP_ARGS)
+rpLibElementAsId.oct:
 	$(OCT) rpLibElementAsId.cc        $(OCTAVE_COMP_ARGS)
+rpLibElementAsObject.oct:
 	$(OCT) rpLibElementAsObject.cc    $(OCTAVE_COMP_ARGS)
+rpLibElementAsType.oct:
 	$(OCT) rpLibElementAsType.cc      $(OCTAVE_COMP_ARGS)
+rpLibElement.oct:
 	$(OCT) rpLibElement.cc            $(OCTAVE_COMP_ARGS)
+rpLibGet.oct:
 	$(OCT) rpLibGet.cc                $(OCTAVE_COMP_ARGS)
+rpLibGetString.oct:
 	$(OCT) rpLibGetString.cc          $(OCTAVE_COMP_ARGS)
+rpLibGetDouble.oct:
 	$(OCT) rpLibGetDouble.cc          $(OCTAVE_COMP_ARGS)
+rpLibNodeComp.oct:
 	$(OCT) rpLibNodeComp.cc           $(OCTAVE_COMP_ARGS)
+rpLibNodeId.oct:
 	$(OCT) rpLibNodeId.cc             $(OCTAVE_COMP_ARGS)
+rpLibNodeType.oct:
 	$(OCT) rpLibNodeType.cc           $(OCTAVE_COMP_ARGS)
+rpLibPut.oct:
 	$(OCT) rpLibPut.cc                $(OCTAVE_COMP_ARGS)
+rpLibPutDouble.oct:
 	$(OCT) rpLibPutDouble.cc          $(OCTAVE_COMP_ARGS)
+rpLibPutSingle.oct:
 	$(OCT) rpLibPutString.cc          $(OCTAVE_COMP_ARGS)
+rpLibResult.oct:
 	$(OCT) rpLibResult.cc             $(OCTAVE_COMP_ARGS)
+rpLibXml.oct:
 	$(OCT) rpLibXml.cc                $(OCTAVE_COMP_ARGS)
+rpUnitsConvert.oct:
 	$(OCT) rpUnitsConvert.cc          $(OCTAVE_COMP_ARGS)
+rpUnitsConvertDbl.oct:
 	$(OCT) rpUnitsConvertDbl.cc       $(OCTAVE_COMP_ARGS)
+rpUnitsConvertStr.oct:
 	$(OCT) rpUnitsConvertStr.cc       $(OCTAVE_COMP_ARGS)
+rpUnitsConvertObjDbl.oct:
 	$(OCT) rpUnitsConvertObjDbl.cc    $(OCTAVE_COMP_ARGS)
+rpUnitsConvertObjStr.oct:
 	$(OCT) rpUnitsConvertObjStr.cc    $(OCTAVE_COMP_ARGS)
+rpUnitsDefineUnit.oct:
 	$(OCT) rpUnitsDefineUnit.cc       $(OCTAVE_COMP_ARGS)
+rpUnitsFind.oct:
 	$(OCT) rpUnitsFind.cc             $(OCTAVE_COMP_ARGS)
+rpUnitsGetBasis.oct:
 	$(OCT) rpUnitsGetBasis.cc         $(OCTAVE_COMP_ARGS)
+rpUnitsGetExponent.oct:
 	$(OCT) rpUnitsGetExponent.cc      $(OCTAVE_COMP_ARGS)
+rpUnitsGetUnits.oct:
 	$(OCT) rpUnitsGetUnits.cc         $(OCTAVE_COMP_ARGS)
+rpUnitsGetUnitsName.oct:
 	$(OCT) rpUnitsGetUnitsName.cc     $(OCTAVE_COMP_ARGS)
+rpUnitsGetMakeMetric.oct:
 	$(OCT) rpUnitsMakeMetric.cc       $(OCTAVE_COMP_ARGS)
 
 docs:

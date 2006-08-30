@@ -38,7 +38,6 @@
 #define RP_TYPE_MASS    "mass"
 #define RP_TYPE_MISC    "misc"
 
-
 // should the define function:
 // 1. compare portions of inStr to unit names that have previously 
 //    been defined (you must parse in order for this option to work)
@@ -287,6 +286,11 @@ class RpUnits
      */
 
     public:
+
+        // constant static class variables
+        // flags to tell how convert should return the value
+        static const int UNITS_OFF;
+        static const int UNITS_ON;
 
         // users member fxns
         std::string getUnits() const;

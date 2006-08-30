@@ -8,15 +8,16 @@
  */
 // include xml parser headers
 #include "RpLibrary.h"
-#include "../cee/RpLibraryCInterface.h"
-#include "../fortran/RpLibraryFInterface.h"
+#include "RpLibraryCInterface.h"
+#include "RpLibraryFInterface.h"
 
 // include units headers
 #include "RpUnits.h"
-#include "../cee/RpUnitsCInterface.h"
-#include "../fortran/RpUnitsFInterface.h"
+#include "RpUnitsCInterface.h"
+#include "RpUnitsFInterface.h"
 
 // include base objects
+/*
 #include "RpAbout.h"
 #include "RpBoolean.h"
 #include "RpChoice.h"
@@ -24,3 +25,4 @@
 #include "RpOption.h"
 #include "RpString.h"
 #include "RpValue.h"
+*/
