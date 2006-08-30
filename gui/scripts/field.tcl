@@ -133,11 +133,17 @@ itcl::body Rappture::Field::components {args} {
     }
 
     set rlist ""
-    foreach name [array names _comp2dims $pattern] {
-        switch -- $params(what) {
-            -name { lappend rlist $name }
-            -dimensions { lappend rlist $_comp2dims($name) }
-            -style { lappend rlist $_comp2style($name) }
+
+    # BE CAREFUL: return component names in proper order
+    foreach cname [$_field children -type component] {
+        if {[info exists _comp2dims($cname)]
+              && [string match $pattern $cname]} {
+
+            switch -- $params(what) {
+                -name { lappend rlist $cname }
+                -dimensions { lappend rlist $_comp2dims($cname) }
+                -style { lappend rlist $_comp2style($cname) }
+            }
         }
     }
     return $rlist
@@ -152,7 +158,7 @@ itcl::body Rappture::Field::components {args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Field::mesh {{what -overall}} {
     if {$what == "-overall" || $what == "component0"} {
-        set what "component"
+        set what [lindex [components -name] 0]
     }
     if {[info exists _comp2xy($what)]} {
         return [lindex $_comp2xy($what) 0]  ;# return xv
