@@ -53,7 +53,7 @@ itcl::class Rappture::NanovisViewer {
     protected method _receive_legend {ivol vmin vmax size}
 
     protected method _rebuild {}
-    protected method _currentVolumeIds {}
+    protected method _currentVolumeIds {{what -all}}
     protected method _zoom {option}
     protected method _move {option x y}
     protected method _slice {option args}
@@ -808,7 +808,7 @@ itcl::body Rappture::NanovisViewer::_send_dataobjs {} {
     }
 
     # sync the state of slicers
-    set vols [_currentVolumeIds]
+    set vols [_currentVolumeIds -cutplanes]
     foreach axis {x y z} {
         eval _send cutplane state [_state ${axis}slice] $axis $vols
         set pos [expr {0.01*[$itk_component(${axis}slicer) get]}]
@@ -955,7 +955,7 @@ itcl::body Rappture::NanovisViewer::_rebuild {} {
         }
 
         # sync the state of slicers
-        set vols [_currentVolumeIds]
+        set vols [_currentVolumeIds -cutplanes]
         foreach axis {x y z} {
             eval _send cutplane state [_state ${axis}slice] $axis $vols
             set pos [expr {0.01*[$itk_component(${axis}slicer) get]}]
@@ -985,19 +985,27 @@ itcl::body Rappture::NanovisViewer::_rebuild {} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: _currentVolumeIds
+# USAGE: _currentVolumeIds ?-cutplanes?
 #
 # Returns a list of volume server IDs for the current volume being
 # displayed.  This is normally a single ID, but it might be a list
 # of IDs if the current data object has multiple components.
 # ----------------------------------------------------------------------
-itcl::body Rappture::NanovisViewer::_currentVolumeIds {} {
+itcl::body Rappture::NanovisViewer::_currentVolumeIds {{what -all}} {
     set rlist ""
 
     set first [lindex [get] 0]
     foreach key [array names _obj2id *-*] {
         if {[string match $first-* $key]} {
-            lappend rlist $_obj2id($key)
+            array set style {
+                -cutplanes 1
+            }
+            foreach {dataobj comp} [split $key -] break
+            array set style [lindex [$dataobj components -style $comp] 0]
+
+            if {$what != "-cutplanes" || $style(-cutplanes)} {
+                lappend rlist $_obj2id($key)
+            }
         }
     }
     return $rlist
@@ -1137,11 +1145,11 @@ itcl::body Rappture::NanovisViewer::_slice {option args} {
 
             if {$op} {
                 $itk_component(${axis}slicer) configure -state normal
-                eval _send cutplane state on $axis [_currentVolumeIds]
+                eval _send cutplane state on $axis [_currentVolumeIds -cutplanes]
                 $itk_component(${axis}slice) configure -relief sunken
             } else {
                 $itk_component(${axis}slicer) configure -state disabled
-                eval _send cutplane state off $axis [_currentVolumeIds]
+                eval _send cutplane state off $axis [_currentVolumeIds -cutplanes]
                 $itk_component(${axis}slice) configure -relief raised
             }
         }
@@ -1160,7 +1168,7 @@ itcl::body Rappture::NanovisViewer::_slice {option args} {
             # show the current value in the readout
 #puts "readout: $axis = $newval"
 
-            eval _send cutplane position $newpos $axis [_currentVolumeIds]
+            eval _send cutplane position $newpos $axis [_currentVolumeIds -cutplanes]
         }
         volume {
             if {[llength $args] > 1} {
@@ -1392,14 +1400,23 @@ itcl::body Rappture::NanovisViewer::_getTransfuncData {dataobj comp} {
 
     set max $style(-opacity)
     set levels $style(-levels)
-    set wmap "0.0 0.0 "
-    set delta [expr {0.125/($levels+1)}]
-    for {set i 1} {$i <= $levels} {incr i} {
-        # add spikes in the middle
-        set xval [expr {double($i)/($levels+1)}]
-        append wmap "[expr {$xval-$delta-0.01}] 0.0  [expr {$xval-$delta}] $max [expr {$xval+$delta}] $max  [expr {$xval+$delta+0.01}] 0.0 "
+    if {[string is int $levels]} {
+        set wmap "0.0 0.0 "
+        set delta [expr {0.125/($levels+1)}]
+        for {set i 1} {$i <= $levels} {incr i} {
+            # add spikes in the middle
+            set xval [expr {double($i)/($levels+1)}]
+            append wmap "[expr {$xval-$delta-0.01}] 0.0  [expr {$xval-$delta}] $max [expr {$xval+$delta}] $max  [expr {$xval+$delta+0.01}] 0.0 "
+        }
+        append wmap "1.0 0.0 "
+    } else {
+        set wmap "0.0 0.0 "
+        set delta 0.05
+        foreach xval [split $levels ,] {
+            append wmap "[expr {$xval-$delta}] 0.0  $xval $max [expr {$xval+$delta}] 0.0 "
+        }
+        append wmap "1.0 0.0 "
     }
-    append wmap "1.0 0.0 "
 
     return [list $sname $cmap $wmap]
 }
