@@ -18,6 +18,8 @@
 % matlab -nodisplay -r infile=\'driver1234.xml\',fermi
 % the above command sets variable infile to the name 'driver1234.xml'
 
+% infile = 'driver31619.xml'
+
 % open our xml input file.
 lib = rpLib(infile);
 
