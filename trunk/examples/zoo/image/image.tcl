@@ -18,6 +18,7 @@ set driver [Rappture::library [lindex $argv 0]]
 
 set data [$driver get input.image.current]
 set angle [$driver get input.(angle).current]
+set angle [Rappture::Units::convert $angle -to deg -units off]
 
 set imh [image create photo -data $data]
 set dest [image create photo]
