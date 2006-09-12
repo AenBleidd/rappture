@@ -315,6 +315,8 @@ itcl::body Rappture::Balloon::_createStems {} {
             set bg $itk_option(-background)
             set light [Rappture::color::brightness $bg 0.4]
             set dark [Rappture::color::brightness $bg -0.4]
+            set rgb [winfo rgb . $bg]
+            set bg [format "#%03x%03x%03x" [lindex $rgb 0] [lindex $rgb 1] [lindex $rgb 2]]
 
             $_fills($dir) put $bg -to 0 0 $sw $sh
 
