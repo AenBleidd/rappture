@@ -493,7 +493,7 @@ TransfuncCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[
         int cmapc, wmapc, i, j;
         char **cmapv, **wmapv;
 
-        if (Tcl_SplitList(interp, argv[3], &cmapc, &cmapv) != TCL_OK) {
+        if (Tcl_SplitList(interp, argv[3], &cmapc, (const char***)&cmapv) != TCL_OK) {
             return TCL_ERROR;
         }
         if (cmapc % 4 != 0) {
@@ -503,7 +503,7 @@ TransfuncCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[
             return TCL_ERROR;
         }
 
-        if (Tcl_SplitList(interp, argv[4], &wmapc, &wmapv) != TCL_OK) {
+        if (Tcl_SplitList(interp, argv[4], &wmapc, (const char***)&wmapv) != TCL_OK) {
             return TCL_ERROR;
         }
         if (wmapc % 2 != 0) {
@@ -607,7 +607,7 @@ UpCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
     }
 
     int sign = 1;
-    char *axisName = argv[1];
+    char *axisName = (char*)argv[1];
     if (*axisName == '-') {
         sign = -1;
         axisName++;
@@ -664,7 +664,7 @@ VolumeCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
             }
 
             int axis;
-            if (GetAxis(interp, argv[3], &axis) != TCL_OK) {
+            if (GetAxis(interp, (char*)argv[3], &axis) != TCL_OK) {
                 return TCL_ERROR;
             }
 
@@ -675,7 +675,7 @@ VolumeCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
 
             vector<int>::iterator iter = ivol.begin();
             while (iter != ivol.end()) {
-                volume[*iter]->set_label(axis, argv[4]);
+                volume[*iter]->set_label(axis, (char*)argv[4]);
                 ++iter;
             }
             return TCL_OK;
@@ -863,7 +863,7 @@ VolumeCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
                 return TCL_ERROR;
             }
 
-            TransferFunction *tf = get_transfunc(argv[3]);
+            TransferFunction *tf = get_transfunc((char*)argv[3]);
             if (tf == NULL) {
                 Tcl_AppendResult(interp, "transfer function \"", argv[3],
                     "\" is not defined", (char*)NULL);
@@ -1079,7 +1079,7 @@ GetColor(Tcl_Interp *interp, char *str, float *rgbPtr)
 {
     int rgbc;
     char **rgbv;
-    if (Tcl_SplitList(interp, str, &rgbc, &rgbv) != TCL_OK) {
+    if (Tcl_SplitList(interp, str, &rgbc, (const char***)&rgbv) != TCL_OK) {
         return TCL_ERROR;
     }
     if (rgbc != 3) {

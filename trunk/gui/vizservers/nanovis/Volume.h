@@ -38,15 +38,22 @@ struct CutPlane{
 };
 
 
+
+enum {CUBIC, ZINCBLENDE};
+
+
 class Volume{
 	
-private:
+
+public:
+	int volume_type;	//cubic or zincblende
+
 	vector <CutPlane> plane; //cut planes
 	int n_components;
 
 	Texture3D* tex;	//OpenGL texture storing the volume
-    double vmin;    //minimum (unscaled) value in data
-    double vmax;    //maximum (unscaled) value in data
+    	double vmin;    //minimum (unscaled) value in data
+    	double vmax;    //maximum (unscaled) value in data
 
 	float specular; //specular lighting parameter
 	float diffuse;	//diffuse lighting parameter
@@ -59,7 +66,7 @@ private:
 	Color outline_color;    // color for outline around volume
 
 
-public:
+
 	Vector3 location;
 
 	bool enabled; 
