@@ -1,5 +1,5 @@
 OBJ_NANOVIS = nanovis.o Socket.o RenderVertexArray.o Plane.o ConvexPolygon.o Vector4.o Vector3.o Mat4x4.o \
-		Texture1D.o Texture3D.o Volume.o Texture2D.o ParticleSystem.o Sphere.o Color.o \
+		Texture1D.o Texture3D.o Volume.o ZincBlendeVolume.o Texture2D.o ParticleSystem.o Sphere.o Color.o \
 		PerfQuery.o TransferFunction.o ControlPoint.o ColorGradient.o ColorPaletteWindow.o\
 		ColorGradientGLUTWindow.o TransferFunctionGLUTWindow.o MainWindow.o Event.o \
 		Lic.o Renderable.o Camera.o ScreenSnapper.o VolumeRenderer.o PlaneRenderer.o 
@@ -15,7 +15,7 @@ TFSRC = ./transfer-function
 NANOSCALESRC = ./nanoscale
 INSTALL_DIR = /opt/nanovis
 
-LIB_NANOVIS = -ltcl8.3 -L/opt/render/lib -lGL -lglut -lglui -lGLEW -lCg -lCgGL -pthread -lstdc++
+LIB_NANOVIS = -ltcl8.4 -L/opt/render/lib -lGL -lglut -lglui -lGLEW -lCg -lCgGL -pthread -lstdc++
 LIB_CLIENT = -L/opt/render/lib -lGL -lglut -pthread -lstdc++
 INCLUDES = -I../../src2/core -I/opt/render/include -I/autohome/u76/qiaow/Cg/usr/include
 CFLAG = -g -c $(INCLUDES)
@@ -106,6 +106,9 @@ Lic.o: Renderable.o Lic.cpp Lic.h $(AUXSRC)
 
 Volume.o: Texture3D.o Volume.cpp Volume.h $(AUXSRC)
 	gcc $(CFLAG) Volume.cpp
+
+ZincBlendeVolume.o: Volume.o ZincBlendeVolume.cpp ZincBlendeVolume.h $(AUXSRC)
+	gcc $(CFLAG) ZincBlendeVolume.cpp
 
 VolumeRenderer.o: $(OBJ_VOLUMERENDERER)  VolumeRenderer.h VolumeRenderer.cpp
 	gcc $(CFLAG) VolumeRenderer.cpp

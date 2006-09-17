@@ -34,7 +34,8 @@ Volume::Volume(float x, float y, float z,
 	opacity_scale(10.), // default value
 	data_enabled(true), // default value
 	outline_enabled(true), // default value
-	outline_color(1.,1.,1.) // default value
+	outline_color(1.,1.,1.), // default value
+	volume_type(CUBIC)	//by default, is a cubic volume
 {
 
   tex = new Texture3D(w, h, d, NVIS_FLOAT, NVIS_LINEAR_INTERP, n);
