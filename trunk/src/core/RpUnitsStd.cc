@@ -335,6 +335,115 @@ double day2sec (double day)
     return (day*86400.00);
 }
 
+/****************************************
+ * PRESSURE CONVERSIONS
+ * http://www.ilpi.com/msds/ref/pressureunits.html
+ * http://en.wikipedia.org/wiki/Bar_%28unit%29
+ ****************************************/
+
+double bar2Pa (double bar)
+{
+    return (bar*100000.00);
+}
+
+double Pa2bar (double Pa)
+{
+    return (Pa/100000.00);
+}
+
+double bar2atm (double bar)
+{
+    return (bar*0.98692);
+}
+
+double atm2bar (double atm)
+{
+    return (atm/0.98692);
+}
+
+double bar2torr (double bar)
+{
+    return (bar*750.06);
+}
+
+double torr2bar (double torr)
+{
+    return (torr/750.06);
+}
+
+double bar2psi (double bar)
+{
+    return (bar*14.504);
+}
+
+double psi2bar (double psi)
+{
+    return (psi*0.0689476);
+}
+
+double Pa2atm (double Pa)
+{
+    return (Pa*9.8692e-6);
+}
+
+double atm2Pa (double atm)
+{
+    // need to check this conversion
+    // tests fail
+    return (atm*101325.024);
+}
+
+double Pa2torr (double Pa)
+{
+    return (Pa*7.5006e-3);
+}
+
+double torr2Pa (double torr)
+{
+    return (torr/7.5006e-3);
+}
+
+double Pa2psi (double Pa)
+{
+    return (Pa*145.04e-6);
+}
+
+double psi2Pa (double psi)
+{
+    // need to check this conversion
+    // test fails because of truncation
+    return (psi*6894.7625831);
+}
+
+double torr2atm (double torr)
+{
+    return (torr*1.3158e-3);
+}
+
+double atm2torr (double atm)
+{
+    return (atm*760);
+}
+
+double torr2psi (double torr)
+{
+    return (torr*19.337e-3);
+}
+
+double psi2torr (double psi)
+{
+    return (psi*51.71496);
+}
+
+double torr2mmHg (double torr)
+{
+    return (torr);
+}
+
+double mmHg2torr (double mmHg)
+{
+    return (mmHg);
+}
 
 
 #ifdef __cplusplus
