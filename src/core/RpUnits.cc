@@ -1211,6 +1211,9 @@ RpUnits::convert (  std::string val,
         *result = convResult;
     }
 
+    // outVal.flags(std::ios::fixed);
+    // outVal.precision(10);
+
     if (showUnits) {
         outVal << numVal << toUnitsName;
     }
@@ -1672,23 +1675,32 @@ RpUnits::addPresets (const std::string group) {
     if (group.compare("all") == 0) {
         retVal = RpUnitsPreset::addPresetAll();
     }
-    else if (group.compare("energy") == 0) {
+    else if (group.compare(RP_TYPE_ENERGY) == 0) {
         retVal = RpUnitsPreset::addPresetEnergy();
     }
-    else if (group.compare("length") == 0) {
+    else if (group.compare(RP_TYPE_LENGTH) == 0) {
         retVal = RpUnitsPreset::addPresetLength();
     }
-    else if (group.compare("temp") == 0) {
+    else if (group.compare(RP_TYPE_TEMP) == 0) {
         retVal = RpUnitsPreset::addPresetTemp();
     }
-    else if (group.compare("time") == 0) {
+    else if (group.compare(RP_TYPE_TIME) == 0) {
         retVal = RpUnitsPreset::addPresetTime();
     }
-    else if (group.compare("volume") == 0) {
+    else if (group.compare(RP_TYPE_VOLUME) == 0) {
         retVal = RpUnitsPreset::addPresetVolume();
     }
-    else if (group.compare("angle") == 0) {
+    else if (group.compare(RP_TYPE_ANGLE) == 0) {
         retVal = RpUnitsPreset::addPresetAngle();
+    }
+    else if (group.compare(RP_TYPE_MASS) == 0) {
+        retVal = RpUnitsPreset::addPresetMass();
+    }
+    else if (group.compare(RP_TYPE_PRESSURE) == 0) {
+        retVal = RpUnitsPreset::addPresetPressure();
+    }
+    else if (group.compare(RP_TYPE_MISC) == 0) {
+        retVal = RpUnitsPreset::addPresetMisc();
     }
 
     return retVal;
@@ -1715,6 +1727,7 @@ RpUnitsPreset::addPresetAll () {
     result += addPresetVolume();
     result += addPresetAngle();
     result += addPresetMass();
+    result += addPresetPressure();
     result += addPresetMisc();
 
     return 0;
@@ -1926,6 +1939,53 @@ RpUnitsPreset::addPresetMass () {
 
     // add mass definitions
     // RpUnits::define(radian,gradian,rad2grad,grad2rad);
+
+    return 0;
+}
+
+/**********************************************************************/
+// METHOD: addPresetPressure()
+/// Add pressure related units to the dictionary
+/**
+ * http://www.ilpi.com/msds/ref/pressureunits.html
+ *
+ * Defines the following units:
+ *   bar                    (bar)
+ *   pascal                 (Pa)
+ *   pounds/(in^2)          (psi)
+ *   torr                   (torr)
+ *   millimeters Mercury    (mmHg)
+ *
+ * mmHg was added because as a convenience to those who have not
+ * yet switched over to the new representation of torr.
+ *
+ * Return codes: 0 success, anything else is error
+ */
+
+int
+RpUnitsPreset::addPresetPressure () {
+
+    RpUnits* atmosphere = RpUnits::define("atm", NULL, RP_TYPE_PRESSURE);
+    RpUnits* bar = RpUnits::define("bar", NULL, RP_TYPE_PRESSURE);
+    RpUnits* pascal = RpUnits::define("Pa", NULL, RP_TYPE_PRESSURE);
+    RpUnits* psi = RpUnits::define("psi", NULL, RP_TYPE_PRESSURE);
+    RpUnits* torr = RpUnits::define("torr", NULL, RP_TYPE_PRESSURE);
+    RpUnits* mmHg = RpUnits::define("mmHg", torr, RP_TYPE_PRESSURE);
+
+    RpUnits::makeMetric(pascal);
+    RpUnits::makeMetric(bar);
+
+    RpUnits::define(bar,pascal,bar2Pa,Pa2bar);
+    RpUnits::define(bar,atmosphere,bar2atm,atm2bar);
+    RpUnits::define(bar,psi,bar2psi,psi2bar);
+    RpUnits::define(bar,torr,bar2torr,torr2bar);
+    RpUnits::define(pascal,atmosphere,Pa2atm,atm2Pa);
+    RpUnits::define(pascal,torr,Pa2torr,torr2Pa);
+    RpUnits::define(pascal,psi,Pa2psi,psi2Pa);
+    RpUnits::define(torr,atmosphere,torr2atm,atm2torr);
+    RpUnits::define(torr,psi,torr2psi,psi2torr);
+
+    RpUnits::define(torr,mmHg,torr2mmHg,mmHg2torr);
 
     return 0;
 }

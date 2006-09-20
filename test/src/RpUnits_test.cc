@@ -9,6 +9,7 @@
 #include "RpUnits.h"
 #include <list>
 #include <string>
+#include <cassert>
 
 
 void success() 
@@ -22,6 +23,7 @@ void fail()
     exit(-1);
 }
 
+// compare_numbers()
 
 int main()
 {
@@ -327,41 +329,182 @@ int main()
     std::cout << "convert(\"5.00mm\",\"\",0) = " << RpUnits::convert("5.00mm","",0) << std::endl;
 
     // day hour min sec test
-    std::cout << "convert(\"5.00s\",\"s\",1) = " << RpUnits::convert("5.00s","s",1) << " = 5s" << std::endl;
-    std::cout << "convert(\"5.00s\",\"s\",0) = " << RpUnits::convert("5.00s","s",0) << " = 5" << std::endl;
-    std::cout << "convert(\"5.00min\",\"s\",1) = " << RpUnits::convert("5.00min","s",1) << " = 300s" << std::endl;
-    std::cout << "convert(\"5.00min\",\"s\",0) = " << RpUnits::convert("5.00min","s",0) << " = 300" << std::endl;
-    std::cout << "convert(\"5.00h\",\"s\",1) = " << RpUnits::convert("5.00h","s",1) << " = 18000s" << std::endl;
-    std::cout << "convert(\"5.00h\",\"s\",0) = " << RpUnits::convert("5.00h","s",0) << " = 18000" << std::endl;
-    std::cout << "convert(\"5.00d\",\"s\",1) = " << RpUnits::convert("5.00d","s",1) << " = 432000s" << std::endl;
-    std::cout << "convert(\"5.00d\",\"s\",0) = " << RpUnits::convert("5.00d","s",0) << " = 432000" << std::endl;
+    assert((RpUnits::convert("5.00s","s",RpUnits::UNITS_ON)) == "5s");
+    std::cout << "convert(\"5.00s\",\"s\",UNITS_ON) passed" << std::endl;
+    assert((RpUnits::convert("5.00s","s",RpUnits::UNITS_OFF)) == "5");
+    std::cout << "convert(\"5.00s\",\"s\",UNITS_OFF) passed" << std::endl;
+    assert((RpUnits::convert("5.00min","s",RpUnits::UNITS_ON)) == "300s");
+    std::cout << "convert(\"5.00min\",\"s\",UNITS_ON) passed" << std::endl;
+    assert((RpUnits::convert("5.00min","s",RpUnits::UNITS_OFF)) == "300");
+    std::cout << "convert(\"5.00min\",\"s\",UNITS_OFF) passed" << std::endl;
+    assert((RpUnits::convert("5.00h","s",RpUnits::UNITS_ON)) == "18000s");
+    std::cout << "convert(\"5.00h\",\"s\",UNITS_ON) passed" << std::endl;
+    assert((RpUnits::convert("5.00h","s",RpUnits::UNITS_OFF)) == "18000");
+    std::cout << "convert(\"5.00h\",\"s\",UNITS_OFF) passed" << std::endl;
+    assert((RpUnits::convert("5.00d","s",RpUnits::UNITS_ON)) == "432000s");
+    std::cout << "convert(\"5.00d\",\"s\",UNITS_ON) passed" << std::endl;
+    assert((RpUnits::convert("5.00d","s",RpUnits::UNITS_OFF)) == "432000");
+    std::cout << "convert(\"5.00d\",\"s\",UNITS_OFF) passed" << std::endl;
 
-    std::cout << "convert(\"5.00s\",\"min\",1) = " << RpUnits::convert("5.00s","min",1) << " = 300min" << std::endl;
-    std::cout << "convert(\"5.00s\",\"min\",0) = " << RpUnits::convert("5.00s","min",0) << " = 300" << std::endl;
-    std::cout << "convert(\"5.00min\",\"min\",1) = " << RpUnits::convert("5.00min","min",1) << " = 5min" << std::endl;
-    std::cout << "convert(\"5.00min\",\"min\",0) = " << RpUnits::convert("5.00min","min",0) << " = 5" << std::endl;
-    std::cout << "convert(\"5.00h\",\"min\",1) = " << RpUnits::convert("5.00h","min",1) << " = 300min" << std::endl;
-    std::cout << "convert(\"5.00h\",\"min\",0) = " << RpUnits::convert("5.00h","min",0) << " = 300" << std::endl;
-    std::cout << "convert(\"5.00d\",\"min\",1) = " << RpUnits::convert("5.00d","min",1) << " = 7200min" << std::endl;
-    std::cout << "convert(\"5.00d\",\"min\",0) = " << RpUnits::convert("5.00d","min",0) << " = 7200" << std::endl;
+    assert((RpUnits::convert("5.00s","min",RpUnits::UNITS_ON)) == "0.0833333min");
+    std::cout << "convert(\"5.00s\",\"min\",UNITS_ON) passed" << std::endl;
+    assert((RpUnits::convert("5.00s","min",RpUnits::UNITS_OFF)) == "0.0833333");
+    std::cout << "convert(\"5.00s\",\"min\",UNITS_OFF) passed" << std::endl;
+    assert((RpUnits::convert("5.00min","min",RpUnits::UNITS_ON)) == "5min");
+    std::cout << "convert(\"5.00min\",\"min\",UNITS_ON) passed" << std::endl;
+    assert((RpUnits::convert("5.00min","min",RpUnits::UNITS_OFF)) == "5");
+    std::cout << "convert(\"5.00min\",\"min\",UNITS_OFF) passed" << std::endl;
+    assert((RpUnits::convert("5.00h","min",RpUnits::UNITS_ON)) == "300min");
+    std::cout << "convert(\"5.00h\",\"min\",UNITS_ON) passed" << std::endl;
+    assert((RpUnits::convert("5.00h","min",RpUnits::UNITS_OFF)) == "300");
+    std::cout << "convert(\"5.00h\",\"min\",UNITS_OFF) passed" << std::endl;
+    assert((RpUnits::convert("5.00d","min",RpUnits::UNITS_ON)) == "7200min");
+    std::cout << "convert(\"5.00d\",\"min\",UNITS_ON) passed" << std::endl;
+    assert((RpUnits::convert("5.00d","min",RpUnits::UNITS_OFF)) == "7200");
+    std::cout << "convert(\"5.00d\",\"min\",UNITS_OFF) passed" << std::endl;
 
-    std::cout << "convert(\"5.00s\",\"h\",1) = " << RpUnits::convert("5.00s","h",1) << " = 0.001388h" << std::endl;
-    std::cout << "convert(\"5.00s\",\"h\",0) = " << RpUnits::convert("5.00s","h",0) << " = 0.001388" << std::endl;
-    std::cout << "convert(\"5.00min\",\"h\",1) = " << RpUnits::convert("5.00min","h",1) << " = 0.0833h" << std::endl;
-    std::cout << "convert(\"5.00min\",\"h\",0) = " << RpUnits::convert("5.00min","h",0) << " = 0.0833" << std::endl;
-    std::cout << "convert(\"5.00h\",\"h\",1) = " << RpUnits::convert("5.00h","h",1) << " = 5h" << std::endl;
-    std::cout << "convert(\"5.00h\",\"h\",0) = " << RpUnits::convert("5.00h","h",0) << " = 5" << std::endl;
-    std::cout << "convert(\"5.00d\",\"h\",1) = " << RpUnits::convert("5.00d","h",1) << " = 120h" << std::endl;
-    std::cout << "convert(\"5.00d\",\"h\",0) = " << RpUnits::convert("5.00d","h",0) << " = 120" << std::endl;
+    assert((RpUnits::convert("5.00s","h",RpUnits::UNITS_ON)) == "0.00138889h");
+    std::cout << "convert(\"5.00s\",\"h\",UNITS_ON) passed" << std::endl;
+    assert((RpUnits::convert("5.00s","h",RpUnits::UNITS_OFF)) == "0.00138889");
+    std::cout << "convert(\"5.00s\",\"h\",UNITS_OFF) passed" << std::endl;
+    assert((RpUnits::convert("5.00min","h",RpUnits::UNITS_ON)) == "0.0833333h");
+    std::cout << "convert(\"5.00min\",\"h\",UNITS_ON) passed" << std::endl;
+    assert((RpUnits::convert("5.00min","h",RpUnits::UNITS_OFF)) == "0.0833333");
+    std::cout << "convert(\"5.00min\",\"h\",UNITS_OFF) passed" << std::endl;
+    assert((RpUnits::convert("5.00h","h",RpUnits::UNITS_ON)) == "5h");
+    std::cout << "convert(\"5.00h\",\"h\",UNITS_ON) passed" << std::endl;
+    assert((RpUnits::convert("5.00h","h",RpUnits::UNITS_OFF)) == "5");
+    std::cout << "convert(\"5.00h\",\"h\",UNITS_OFF) passed" << std::endl;
+    assert((RpUnits::convert("5.00d","h",RpUnits::UNITS_ON)) == "120h");
+    std::cout << "convert(\"5.00d\",\"h\",UNITS_ON) passed" << std::endl;
+    assert((RpUnits::convert("5.00d","h",RpUnits::UNITS_OFF)) == "120");
+    std::cout << "convert(\"5.00d\",\"h\",UNITS_OFF) passed" << std::endl;
 
-    std::cout << "convert(\"5.00s\",\"d\",1) = " << RpUnits::convert("5.00s","d",1) << " = 5.7870e-05d" << std::endl;
-    std::cout << "convert(\"5.00s\",\"d\",0) = " << RpUnits::convert("5.00s","d",0) << " = 5.7870e-05" << std::endl;
-    std::cout << "convert(\"5.00min\",\"d\",1) = " << RpUnits::convert("5.00min","d",1) << " = 0.00347222d" << std::endl;
-    std::cout << "convert(\"5.00min\",\"d\",0) = " << RpUnits::convert("5.00min","d",0) << " = 0.00347222" << std::endl;
-    std::cout << "convert(\"5.00h\",\"d\",1) = " << RpUnits::convert("5.00h","d",1) << " = 0.208333d" << std::endl;
-    std::cout << "convert(\"5.00h\",\"d\",0) = " << RpUnits::convert("5.00h","d",0) << " = 0.208333" << std::endl;
-    std::cout << "convert(\"5.00d\",\"d\",1) = " << RpUnits::convert("5.00d","d",1) << " = 5d" << std::endl;
-    std::cout << "convert(\"5.00d\",\"d\",0) = " << RpUnits::convert("5.00d","d",0) << " = 5" << std::endl;
+    assert((RpUnits::convert("5.00s","d",RpUnits::UNITS_ON)) == "5.78704e-05d");
+    std::cout << "convert(\"5.00s\",\"d\",UNITS_ON) passed" << std::endl;
+    assert((RpUnits::convert("5.00s","d",RpUnits::UNITS_OFF)) == "5.78704e-05");
+    std::cout << "convert(\"5.00s\",\"d\",UNITS_OFF) passed" << std::endl;
+    assert((RpUnits::convert("5.00min","d",RpUnits::UNITS_ON)) == "0.00347222d");
+    std::cout << "convert(\"5.00min\",\"d\",UNITS_ON) passed" << std::endl;
+    assert((RpUnits::convert("5.00min","d",RpUnits::UNITS_OFF)) == "0.00347222");
+    std::cout << "convert(\"5.00min\",\"d\",UNITS_OFF) passed" << std::endl;
+    assert((RpUnits::convert("5.00h","d",RpUnits::UNITS_ON)) == "0.208333d");
+    std::cout << "convert(\"5.00h\",\"d\",UNITS_ON) passed" << std::endl;
+    assert((RpUnits::convert("5.00h","d",RpUnits::UNITS_OFF)) == "0.208333");
+    std::cout << "convert(\"5.00h\",\"d\",UNITS_OFF) passed" << std::endl;
+    assert((RpUnits::convert("5.00d","d",RpUnits::UNITS_ON)) == "5d");
+    std::cout << "convert(\"5.00d\",\"d\",UNITS_ON)  passed" << std::endl;
+    assert((RpUnits::convert("5.00d","d",RpUnits::UNITS_OFF)) == "5");
+    std::cout << "convert(\"5.00d\",\"d\",UNITS_OFF) passed" << std::endl;
+
+
+
+    assert((RpUnits::convert("5.00bar","Pa",RpUnits::UNITS_OFF)) == "500000");
+    std::cout << "convert(\"5.00bar\",\"Pa\",UNITS_OFF) passed" << std::endl;
+    assert((RpUnits::convert("5.00bar","Pa",RpUnits::UNITS_ON)) == "500000Pa");
+    std::cout << "convert(\"5.00bar\",\"Pa\",UNITS_ON) passed" << std::endl;
+    assert((RpUnits::convert("5.00bar","atm",RpUnits::UNITS_OFF)) == "4.9346");
+    std::cout << "convert(\"5.00bar\",\"atm\",UNITS_OFF) passed" << std::endl;
+    assert((RpUnits::convert("5.00bar","atm",RpUnits::UNITS_ON)) == "4.9346atm");
+    std::cout << "convert(\"5.00bar\",\"atm\",UNITS_ON) passed" << std::endl;
+    assert((RpUnits::convert("5.00bar","torr",RpUnits::UNITS_OFF)) == "3750.3");
+    std::cout << "convert(\"5.00bar\",\"torr\",UNITS_OFF) passed" << std::endl;
+    assert((RpUnits::convert("5.00bar","torr",RpUnits::UNITS_ON)) == "3750.3torr");
+    std::cout << "convert(\"5.00bar\",\"torr\",UNITS_ON) passed" << std::endl;
+    assert((RpUnits::convert("5.00bar","psi",RpUnits::UNITS_OFF)) == "72.52");
+    std::cout << "convert(\"5.00bar\",\"psi\",UNITS_OFF) passed" << std::endl;
+    assert((RpUnits::convert("5.00bar","psi",RpUnits::UNITS_ON)) == "72.52psi");
+    std::cout << "convert(\"5.00bar\",\"psi\",UNITS_ON) passed" << std::endl;
+
+
+
+
+    assert((RpUnits::convert("5.00atm","bar",RpUnits::UNITS_OFF)) == "5.06627");
+    std::cout << "convert(\"5.00atm\",\"bar\",UNITS_OFF) passed" << std::endl;
+    assert((RpUnits::convert("5.00atm","bar",RpUnits::UNITS_ON)) == "5.06627bar");
+    std::cout << "convert(\"5.00atm\",\"bar\",UNITS_ON) passed" << std::endl;
+    /*
+    assert((RpUnits::convert("5.00atm","Pa",RpUnits::UNITS_OFF)) == "506625.12");
+    std::cout << "convert(\"5.00atm\",\"Pa\",UNITS_OFF) passed" << std::endl;
+    assert((RpUnits::convert("5.00atm","Pa",RpUnits::UNITS_ON)) == "506625.12Pa");
+    std::cout << "convert(\"5.00atm\",\"Pa\",UNITS_ON) passed" << std::endl;
+    */
+    assert((RpUnits::convert("5.00atm","torr",RpUnits::UNITS_OFF)) == "3800");
+    std::cout << "convert(\"5.00atm\",\"torr\",UNITS_OFF) passed" << std::endl;
+    assert((RpUnits::convert("5.00atm","torr",RpUnits::UNITS_ON)) == "3800torr");
+    std::cout << "convert(\"5.00atm\",\"torr\",UNITS_ON) passed" << std::endl;
+
+
+
+
+    assert((RpUnits::convert("5.00Pa","bar",RpUnits::UNITS_OFF)) == "5e-05");
+    std::cout << "convert(\"5.00Pa\",\"bar\",UNITS_OFF) passed" << std::endl;
+    assert((RpUnits::convert("5.00Pa","bar",RpUnits::UNITS_ON)) == "5e-05bar");
+    std::cout << "convert(\"5.00Pa\",\"bar\",UNITS_ON) passed" << std::endl;
+    assert((RpUnits::convert("5.00Pa","atm",RpUnits::UNITS_OFF)) == "4.9346e-05");
+    std::cout << "convert(\"5.00Pa\",\"atm\",UNITS_OFF) passed" << std::endl;
+    assert((RpUnits::convert("5.00Pa","atm",RpUnits::UNITS_ON)) == "4.9346e-05atm");
+    std::cout << "convert(\"5.00Pa\",\"atm\",UNITS_ON) passed" << std::endl;
+    assert((RpUnits::convert("5.00Pa","torr",RpUnits::UNITS_OFF)) == "0.037503");
+    std::cout << "convert(\"5.00Pa\",\"torr\",UNITS_OFF) passed" << std::endl;
+    assert((RpUnits::convert("5.00Pa","torr",RpUnits::UNITS_ON)) == "0.037503torr");
+    std::cout << "convert(\"5.00Pa\",\"torr\",UNITS_ON) passed" << std::endl;
+    assert((RpUnits::convert("5.00Pa","psi",RpUnits::UNITS_OFF)) == "0.0007252");
+    std::cout << "convert(\"5.00Pa\",\"psi\",UNITS_OFF) passed" << std::endl;
+    assert((RpUnits::convert("5.00Pa","psi",RpUnits::UNITS_ON)) == "0.0007252psi");
+    std::cout << "convert(\"5.00Pa\",\"psi\",UNITS_ON) passed" << std::endl;
+
+
+
+
+    assert((RpUnits::convert("5.00torr","bar",RpUnits::UNITS_OFF)) == "0.00666613");
+    std::cout << "convert(\"5.00torr\",\"bar\",UNITS_OFF) passed" << std::endl;
+    assert((RpUnits::convert("5.00torr","bar",RpUnits::UNITS_ON)) == "0.00666613bar");
+    std::cout << "convert(\"5.00torr\",\"bar\",UNITS_ON) passed" << std::endl;
+    assert((RpUnits::convert("5.00torr","Pa",RpUnits::UNITS_OFF)) == "666.613");
+    std::cout << "convert(\"5.00torr\",\"Pa\",UNITS_OFF) passed" << std::endl;
+    assert((RpUnits::convert("5.00torr","Pa",RpUnits::UNITS_ON)) == "666.613Pa");
+    std::cout << "convert(\"5.00torr\",\"Pa\",UNITS_ON) passed" << std::endl;
+    assert((RpUnits::convert("5.00torr","atm",RpUnits::UNITS_OFF)) == "0.006579");
+    std::cout << "convert(\"5.00torr\",\"atm\",UNITS_OFF) passed" << std::endl;
+    assert((RpUnits::convert("5.00torr","atm",RpUnits::UNITS_ON)) == "0.006579atm");
+    std::cout << "convert(\"5.00torr\",\"atm\",UNITS_ON) passed" << std::endl;
+    assert((RpUnits::convert("5.00torr","psi",RpUnits::UNITS_OFF)) == "0.096685");
+    std::cout << "convert(\"5.00torr\",\"psi\",UNITS_OFF) passed" << std::endl;
+    assert((RpUnits::convert("5.00torr","psi",RpUnits::UNITS_ON)) == "0.096685psi");
+    std::cout << "convert(\"5.00torr\",\"psi\",UNITS_ON) passed" << std::endl;
+
+
+    assert((RpUnits::convert("5.00psi","bar",RpUnits::UNITS_OFF)) == "0.344738");
+    std::cout << "convert(\"5.00psi\",\"bar\",UNITS_OFF) passed" << std::endl;
+    assert((RpUnits::convert("5.00psi","bar",RpUnits::UNITS_ON)) == "0.344738bar");
+    std::cout << "convert(\"5.00psi\",\"bar\",UNITS_ON) passed" << std::endl;
+    /*
+    assert((RpUnits::convert("5.00psi","Pa",RpUnits::UNITS_OFF)) == "34473.8129155");
+    std::cout << "convert(\"5.00psi\",\"Pa\",UNITS_OFF) passed" << std::endl;
+    assert((RpUnits::convert("5.00psi","Pa",RpUnits::UNITS_ON)) == "34473.8129155Pa");
+    std::cout << "convert(\"5.00psi\",\"Pa\",UNITS_ON) passed" << std::endl;
+    */
+    assert((RpUnits::convert("5.00psi","torr",RpUnits::UNITS_OFF)) == "258.575");
+    std::cout << "convert(\"5.00psi\",\"torr\",UNITS_OFF) passed" << std::endl;
+    assert((RpUnits::convert("5.00psi","torr",RpUnits::UNITS_ON)) == "258.575torr");
+    std::cout << "convert(\"5.00psi\",\"torr\",UNITS_ON) passed" << std::endl;
+
+
+
+
+    assert((RpUnits::convert("5.00psi","kPa",RpUnits::UNITS_OFF)) == "34.4738");
+    std::cout << "convert(\"5.00psi\",\"kPa\",UNITS_OFF) passed" << std::endl;
+    assert((RpUnits::convert("5.00psi","kPa",RpUnits::UNITS_ON)) == "34.4738kPa");
+    std::cout << "convert(\"5.00psi\",\"kPa\",UNITS_ON) passed" << std::endl;
+
+
+
+
+    assert((RpUnits::convert("5.00torr","mmHg",RpUnits::UNITS_OFF)) == "5");
+    std::cout << "convert(\"5.00torr\",\"mmHg\",UNITS_OFF) passed" << std::endl;
+    assert((RpUnits::convert("5.00torr","mmHg",RpUnits::UNITS_ON)) == "5mmHg");
+    std::cout << "convert(\"5.00torr\",\"mmHg\",UNITS_ON) passed" << std::endl;
 
     return 0;
 

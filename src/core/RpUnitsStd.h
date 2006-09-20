@@ -92,6 +92,34 @@ double hour2sec   (double hour);
 double sec2day (double sec);
 double day2sec (double day);
 
+
+
+
+double bar2Pa (double bar);
+double Pa2bar (double Pa);
+double bar2atm (double bar);
+double atm2bar (double atm);
+double bar2torr (double bar);
+double torr2bar (double torr);
+double bar2psi (double bar);
+double psi2bar (double psi);
+double Pa2atm (double Pa);
+double atm2Pa (double atm);
+double Pa2torr (double Pa);
+double torr2Pa (double torr);
+double Pa2psi (double Pa);
+double psi2Pa (double psi);
+double torr2atm (double torr);
+double atm2torr (double atm);
+double torr2psi (double torr);
+double psi2torr (double psi);
+double torr2mmHg (double torr);
+double mmHg2torr (double mmHg);
+double kPa2KPa (double kPa);
+double KPa2kPa (double KPa);
+
+
+
 #ifdef __cplusplus
 }
 #endif

@@ -29,14 +29,15 @@
 #define LIST_TEMPLATE RpUnitsListEntry
 
 //define our different types of units
-#define RP_TYPE_ENERGY  "energy"
-#define RP_TYPE_LENGTH  "length"
-#define RP_TYPE_TEMP    "temperature"
-#define RP_TYPE_TIME    "time"
-#define RP_TYPE_VOLUME  "volume"
-#define RP_TYPE_ANGLE   "angle"
-#define RP_TYPE_MASS    "mass"
-#define RP_TYPE_MISC    "misc"
+#define RP_TYPE_ENERGY      "energy"
+#define RP_TYPE_LENGTH      "length"
+#define RP_TYPE_TEMP        "temperature"
+#define RP_TYPE_TIME        "time"
+#define RP_TYPE_VOLUME      "volume"
+#define RP_TYPE_ANGLE       "angle"
+#define RP_TYPE_MASS        "mass"
+#define RP_TYPE_PRESSURE    "pressure"
+#define RP_TYPE_MISC        "misc"
 
 // should the define function:
 // 1. compare portions of inStr to unit names that have previously 
@@ -63,6 +64,7 @@ class RpUnitsPreset {
         static int addPresetVolume();
         static int addPresetAngle();
         static int addPresetMass();
+        static int addPresetPressure();
         static int addPresetMisc();
 };
 
