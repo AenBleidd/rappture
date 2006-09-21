@@ -1,5 +1,5 @@
 # this file identifies Rappture as a Tcl package
-package ifneeded Rappture @VERSION@ [list source [file join $dir init.tcl]]
+package ifneeded Rappture @PACKAGE_VERSION@ [list source [file join $dir init.tcl]]
 namespace eval Rappture {}
 set Rappture::installdir [file join $dir]
 if {"." == $Rappture::installdir} {

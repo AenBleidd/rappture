@@ -23,8 +23,8 @@ proc Rappture_init {} {
     lappend auto_path $rappture_library
 
     set suffix [info sharedlibextension]
-    set library [file join $dir .. libRappture@VERSION@${suffix}]
-    load $library
+    set library [file join $dir @PKG_LIB_FILE@]
+    load $library @PACKAGE_NAME@
 
     namespace eval Rappture {
         variable version @EXACT_VERSION@
@@ -33,7 +33,7 @@ proc Rappture_init {} {
 
     namespace eval Rappture::LibraryObj {}
 
-    package provide Rappture @VERSION@
+    package provide Rappture @PACKAGE_VERSION@
     rename Rappture_init ""
 }
 Rappture_init
