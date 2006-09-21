@@ -18,7 +18,12 @@
 extern "C" {
 #endif
 
-int Rappture_Init _ANSI_ARGS_((Tcl_Interp *interp));
+#ifdef BUILD_rappture
+#undef TCL_STORAGE_CLASS
+#define TCL_STORAGE_CLASS DLLEXPORT
+#endif
+
+EXTERN int Rappture_Init _ANSI_ARGS_((Tcl_Interp *interp));
 
 #include "RpLibraryTclInterface.h"
 #include "RpUnitsTclInterface.h"
@@ -30,6 +35,14 @@ int Rappture_Init _ANSI_ARGS_((Tcl_Interp *interp));
 int
 Rappture_Init( Tcl_Interp * interp)
 {
+    if (Tcl_InitStubs(interp, "8.4", 0) == NULL) {
+	return TCL_ERROR;
+    }
+
+    if (Tcl_PkgProvide(interp, "Rappture", PACKAGE_VERSION) != TCL_OK) {
+	return TCL_ERROR;
+    }
+
     if (Rappturelibrary_Init(interp) != TCL_OK) {
         return TCL_ERROR;
     }

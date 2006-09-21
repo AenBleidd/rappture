@@ -65,8 +65,6 @@ static int RpTclResult   _ANSI_ARGS_((  ClientData cdata,
                                         const char *argv[]    ));
 
 
-static std::string rpLib2command _ANSI_ARGS_(( Tcl_Interp *interp,
-                                               RpLibrary* newRpLibObj   ));
 void appendExpectErr    _ANSI_ARGS_((   Tcl_Interp *interp,
                                         const char* errTxt,
                                         const char* receivedArg));
@@ -97,6 +95,8 @@ static int nRpLibOps = sizeof(rpLibOps) / sizeof(Blt_OpSpec);
 #ifdef __cplusplus
 }
 #endif
+static std::string rpLib2command _ANSI_ARGS_(( Tcl_Interp *interp,
+                                               RpLibrary* newRpLibObj   ));
 
 /*
  * ------------------------------------------------------------------------
