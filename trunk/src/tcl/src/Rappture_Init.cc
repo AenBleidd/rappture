@@ -36,16 +36,18 @@ int
 Rappture_Init( Tcl_Interp * interp)
 {
     if (Tcl_InitStubs(interp, "8.4", 0) == NULL) {
-	return TCL_ERROR;
+        return TCL_ERROR;
     }
 
     if (Tcl_PkgProvide(interp, "Rappture", PACKAGE_VERSION) != TCL_OK) {
-	return TCL_ERROR;
+        return TCL_ERROR;
     }
 
+    /*
     if (Rappturelibrary_Init(interp) != TCL_OK) {
         return TCL_ERROR;
     }
+    */
 
     if (Rapptureunits_Init(interp) != TCL_OK) {
         return TCL_ERROR;

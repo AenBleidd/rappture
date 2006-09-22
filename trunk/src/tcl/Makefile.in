@@ -149,7 +149,7 @@ TCLSH	= $(TCLSH_ENV) $(TCLSH_PROG)
 
 SHARED_BUILD	= @SHARED_BUILD@
 
-INCLUDES	= @PKG_INCLUDES@ @TCL_INCLUDES@ -I$(BLT_SRC_DIR) -I$(ALT_DIR)/include -I$(RAPPTURE_DIR)/include  -EHsc
+INCLUDES	= @PKG_INCLUDES@ @TCL_INCLUDES@ -I$(BLT_SRC_DIR) -I$(ALT_DIR)/include -I$(RAPPTURE_DIR)/include
 #INCLUDES	= @PKG_INCLUDES@ @TCL_INCLUDES@ @TK_INCLUDES@ @TK_XINCLUDES@
 
 PKG_CFLAGS	= @PKG_CFLAGS@
@@ -391,6 +391,16 @@ install-lib-binaries: binaries
 	    fi; \
 	  fi; \
 	done
+	@mkdir -p $(DESTDIR)$(pkglibdir)/scripts 
+	@list='$(PKG_TCL_SOURCES)'; for p in $$list; do \
+	  if test -f $(srcdir)/$$p; then \
+	    destp=`basename $$p`; \
+	    echo " Install $$destp $(DESTDIR)$(pkglibdir)/scripts/$$destp"; \
+	    $(INSTALL_DATA) $(srcdir)/$$p $(DESTDIR)$(pkglibdir)/scripts/$$destp; \
+	  fi; \
+	done
+	$(TCLSH_PROG) $(srcdir)/tclconfig/mkindex.tcl $(DESTDIR)$(pkglibdir)/scripts
+	$(INSTALL_DATA) init.tcl $(DESTDIR)$(pkglibdir)/init.tcl
 	@list='$(PKG_TCL_SOURCES)'; for p in $$list; do \
 	  if test -f $(srcdir)/$$p; then \
 	    destp=`basename $$p`; \

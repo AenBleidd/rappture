@@ -15,7 +15,7 @@
 #include <tcl.h>
 #include <sstream>
 #include <string>
-#include "core/RpLibrary.h"
+#include "RpLibrary.h"
 #include "RpLibraryTclInterface.h"
 
 #ifdef __cplusplus

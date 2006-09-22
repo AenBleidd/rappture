@@ -19,7 +19,7 @@ dnl	to configure the system for the local environment.
 # so you can encode the package version directly into the source files.
 #-----------------------------------------------------------------------
 
-AC_INIT([Rappture], [1.1])
+AC_INIT([Rappture], [1.0])
 
 #--------------------------------------------------------------------
 # Call TEA_INIT as the first TEA_ macro to set up initial vars.
@@ -37,7 +37,7 @@ AC_CONFIG_AUX_DIR(tclconfig)
 AC_ARG_WITH(blt, [  --with-blt=DIR          Find bltInt.h in DIR],
   blt_source_dir=$withval)
 
-AC_ARG_WITH(rappture, [  --with-rappture=DIR          Find include/core/rappture.h in DIR],
+AC_ARG_WITH(rappture, [  --with-rappture=DIR          Find include/rappture.h in DIR],
   rappture_dir=$withval)
 
 AC_ARG_WITH(altpath, [  --with-altpath=DIR          Alternate path to search for required packages],
@@ -83,13 +83,14 @@ TEA_SETUP_COMPILER
 # and PKG_TCL_SOURCES.
 #-----------------------------------------------------------------------
 
-TEA_ADD_SOURCES([Rappture_Init.cc RpLibraryTclInterface.cc RpUnitsTclInterface.cc ])
+#TEA_ADD_SOURCES([Rappture_Init.cc RpLibraryTclInterface.cc RpUnitsTclInterface.cc ])
+TEA_ADD_SOURCES([Rappture_Init.cc RpUnitsTclInterface.cc])
 TEA_ADD_HEADERS([])
 TEA_ADD_INCLUDES([])
-TEA_ADD_LIBS(BLT24.lib libexpat.lib ../librappture.lib)
 TEA_ADD_CFLAGS([])
 TEA_ADD_STUB_SOURCES([])
-TEA_ADD_TCL_SOURCES([scripts/exec.tcl scripts/value.tcl init.tcl ../../tcl/scripts/library.tcl ../../tcl/scripts/result.tcl])
+#TEA_ADD_TCL_SOURCES([scripts/exec.tcl scripts/value.tcl init.tcl ../../tcl/scripts/library.tcl ../../tcl/scripts/result.tcl])
+TEA_ADD_TCL_SOURCES([])
 
 #--------------------------------------------------------------------
 # __CHANGE__
@@ -109,12 +110,15 @@ if test "${TEA_PLATFORM}" = "windows" ; then
     AC_DEFINE(BUILD_rappture, 1, [Build windows export dll])
     CLEANFILES="*.lib *.dll *.exp *.ilk *.pdb vc*.pch"
     TEA_ADD_LIBS(/LIBPATH:C:/opt/lib /LIBPATH:C:/Tcl/lib scew_s.lib)
+    TEA_ADD_LIBS(BLT24.lib libexpat.lib ../librappture.lib)
     #TEA_ADD_SOURCES([win/winFile.c])
     #TEA_ADD_INCLUDES([-I\"$(${CYGPATH} ${srcdir}/win)\"])
 else
+    # CLEANFILES="*core *.o *.so *.a"
     CLEANFILES=""
     #TEA_ADD_SOURCES([unix/unixFile.c])
-    TEA_ADD_LIBS([scew.lib])
+    TEA_ADD_LIBS([-L@RAPPTURE_DIR@/lib])
+    TEA_ADD_LIBS([-lexpat -lscew -lrappture])
 fi
 AC_SUBST(CLEANFILES)
 
@@ -261,12 +265,12 @@ AC_SUBST(BLT_SRC_DIR)
 #--------------------------------------------------------------------
 AC_MSG_CHECKING([for rappture.h])
 RAPPTURE_DIR=""
-if test "x$rappture_source_dir" != "x" ; then
+if test "x$rappture_dir" != "x" ; then
   #
   # Verify that a rappture.h file exists in the directory specified
   # by --with-rappture.
   #
-  if test -r "$rappture_dir/include/core/rappture.h" ; then
+  if test -r "$rappture_dir/include/rappture.h" ; then
     RAPPTURE_DIR="$rappture_dir"
   fi
 else
@@ -278,7 +282,7 @@ else
    $prefix \
    $exec_prefix
   do
-    if test -r "$dir/include/core/rappture.h" ; then
+    if test -r "$dir/include/rappture.h" ; then
       RAPPTURE_DIR="$dir"
       break
     fi
@@ -294,7 +298,7 @@ else
      `ls -dr C\:/opt/rappture 2>/dev/null` \
      `ls -dr /opt/rappture 2>/dev/null` 
     do
-      if test -r "$dir/include/core/rappture.h" ; then
+      if test -r "$dir/include/rappture.h" ; then
         RAPPTURE_DIR="$dir"
         break
       fi
@@ -345,7 +349,7 @@ fi
 
 AC_SUBST(ALT_DIR)
 
-PATCHLEVEL=`${TCLSH_PROG} cf/patchlevel.tcl`
+PATCHLEVEL=`${TCLSH_PROG} tclconfig/patchlevel.tcl`
 EXACT_VERSION=${MAJOR_VERSION}.${MINOR_VERSION}-${PATCHLEVEL}
 NODOT_VERSION=${MAJOR_VERSION}${MINOR_VERSION}
 

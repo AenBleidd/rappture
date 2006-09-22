@@ -13,7 +13,7 @@
  * ======================================================================
  */
 #include <tcl.h>
-#include "core/RpUnits.h"
+#include "RpUnits.h"
 #include "RpUnitsTclInterface.h"
 
 #ifdef __cplusplus
