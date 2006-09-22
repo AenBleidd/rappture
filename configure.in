@@ -195,6 +195,7 @@ RP_BASE=`pwd`
 AC_SUBST(RP_BASE)
 
 AC_CONFIG_SUBDIRS( gui )
+AC_CONFIG_SUBDIRS( src/tcl )
 
 dnl read Makefile.in and write Makefile
 AC_OUTPUT(  Makefile \
