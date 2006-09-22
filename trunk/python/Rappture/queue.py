@@ -380,6 +380,7 @@ class condor (queue):
                     resultsDir,
                     nodes,
                     executable,
+                    ppn=2,
                     execArgs='',
                     walltime='00:01:00',
                     flags=0             ):
@@ -401,6 +402,7 @@ class condor (queue):
         self.resultsDir(resultsDir)
         self.jobName(jobName)
         self.nodes(nodes)
+        self.ppn(ppn)
         self.walltime(walltime)
         self.executable(executable)
         self.execArgs(execArgs)
@@ -441,14 +443,16 @@ class condor (queue):
 
         self._mpirsl = ""
         if (self._flags & self.USE_MPI):
-            self._mpirsl = "(jobType=mpi)(count=%d)(hostcount=%d)" % \
-                            (self.nodes(), self.nodes())
+            # host_xcount is the number of machines
+            # xcount is the number of procs per machine
+            self._mpirsl = "(jobType=mpi)(xcount=%d)(host_xcount=%d)" % \
+                            (self.ppn(), self.nodes())
 
         (wall_hr,wall_min,wall_sec) = self.walltime().split(":")
         walltime =  int(wall_hr)*60 + int(wall_min) + int(wall_sec)/60.00
 
         return """universe=grid
-    gridresource = gt2 tg-gatekeeper.purdue.teragrid.org:2120/jobmanager-pbs
+    gridresource = gt2 tg-gatekeeper.purdue.teragrid.org/jobmanager-pbs
     executable = %s
     output = %s
     error = %s
@@ -456,7 +460,7 @@ class condor (queue):
     when_to_transfer_output = ON_EXIT
     initialDir = %s
     log = %s
-    #globusrsl = (project=TG-ECD060000N)(jobType=mpi)(count=2)(hostcount=2)(maxWallTime=WALLTIME)
+    #globusrsl = (project=TG-ECD060000N)(jobType=mpi)(xcount=2)(hostxcount=2)(maxWallTime=WALLTIME)
     globusrsl = (project=TG-ECD060000N)(maxWallTime=%g)%s(queue=%s)
     notification = never
     """ % ( self.executable(),
@@ -615,7 +619,7 @@ if __name__ == '__main__':
     sys.stdout.write("testing hello with condor\n")
     jobName = 'helloMPITest'
     resultsDir = createDir('4321')
-    executable = 'hello.sh'
+    executable = './hello.sh'
     shutil.copy('hello/hello.sh',resultsDir)
     shutil.copy('hello/hello',resultsDir)
     myCondorObj = condor(jobName,resultsDir,2,executable,walltime=walltime,flags=condor.USE_MPI)

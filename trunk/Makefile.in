@@ -64,6 +64,7 @@ install_examples: build_examples
 install_tcl:
 	cd tcl; @prefix@/bin/tclsh install.tcl
 #	cd tcl; @TCLSH@ install.tcl
+	cd src/tcl; make install; cd -
 
 # matlab bindings
 build_matlab:
@@ -121,6 +122,7 @@ clean:
 	cd src; make clean; cd -;
 	cd src/matlab; make clean; cd -;
 	cd src/octave; make clean; cd -;
+	cd src/tcl; make distclean; cd -;
 
 distclean:
 	cd examples; rm demo.bash
@@ -133,6 +135,7 @@ distclean:
 	cd src; make distclean; cd -;
 	cd src/matlab; make distclean; cd -;
 	cd src/octave; make distclean; cd -;
+	cd src/tcl; make distclean; cd -;
 	cd test; make distclean; cd -;
 	rm gui/apps/rappture;
 	rm -rf Makefile config.status config.log bin;
