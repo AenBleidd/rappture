@@ -862,8 +862,6 @@ Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
   --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
   --with-blt=DIR          Find bltInt.h in DIR
-  --with-rappture=DIR          Find include/rappture.h in DIR
-  --with-altpath=DIR          Alternate path to search for required packages
   --with-tcl              directory containing tcl configuration
                           (tclConfig.sh)
   --with-tclinclude       directory containing the public Tcl header files
@@ -1474,19 +1472,11 @@ if test "${with_blt+set}" = set; then
   blt_source_dir=$withval
 fi;
 
+# AC_ARG_WITH(rappture, [  --with-rappture=DIR          Find include/rappture.h in DIR],
+#   rappture_dir=$withval)
 
-# Check whether --with-rappture or --without-rappture was given.
-if test "${with_rappture+set}" = set; then
-  withval="$with_rappture"
-  rappture_dir=$withval
-fi;
-
-
-# Check whether --with-altpath or --without-altpath was given.
-if test "${with_altpath+set}" = set; then
-  withval="$with_altpath"
-  alt_dir=$withval
-fi;
+# AC_ARG_WITH(altpath, [  --with-altpath=DIR          Alternate path to search for required packages],
+#   alt_dir=$withval)
 
 #--------------------------------------------------------------------
 # Load the tclConfig.sh file
@@ -10112,57 +10102,56 @@ fi
 # Look for rappture.h on the normal include path.  If not found, look
 # for it in the --with-rappture directory.
 #--------------------------------------------------------------------
-echo "$as_me:$LINENO: checking for rappture.h" >&5
-echo $ECHO_N "checking for rappture.h... $ECHO_C" >&6
-RAPPTURE_DIR=""
-if test "x$rappture_dir" != "x" ; then
-  #
-  # Verify that a rappture.h file exists in the directory specified
-  # by --with-rappture.
-  #
-  if test -r "$rappture_dir/include/rappture.h" ; then
-    RAPPTURE_DIR="$rappture_dir"
-  fi
-else
-  #
-  # Otherwise, search for the rappture.h include file...
-  # 1. Search previously named locations.
-  #
-  for dir in \
-   $prefix \
-   $exec_prefix
-  do
-    if test -r "$dir/include/rappture.h" ; then
-      RAPPTURE_DIR="$dir"
-      break
-    fi
-  done
-  #
-  #  2. Search source directories.
-  #
-  if test "x$RAPPTURE_DIR" = "x" ; then
-    for dir in \
-     `ls -dr ../rappture 2>/dev/null` \
-     `ls -dr ../../rappture 2>/dev/null` \
-     `ls -dr ../../../rappture 2>/dev/null` \
-     `ls -dr C\:/opt/rappture 2>/dev/null` \
-     `ls -dr /opt/rappture 2>/dev/null`
-    do
-      if test -r "$dir/include/rappture.h" ; then
-        RAPPTURE_DIR="$dir"
-        break
-      fi
-    done
-  fi
-fi
-echo "$as_me:$LINENO: result: ${RAPPTURE_DIR}" >&5
-echo "${ECHO_T}${RAPPTURE_DIR}" >&6
-
-if test "x$RAPPTURE_DIR" = "x" ; then
-  echo "can't find RAPPTURE include file \"rappture.h\""
-  echo "use --with-rappture=DIR to specify the location of rappture"
-  exit 1
-fi
+RAPPTURE_DIR=$prefix
+# AC_MSG_CHECKING([for rappture.h])
+# RAPPTURE_DIR=""
+# if test "x$rappture_dir" != "x" ; then
+#   #
+#   # Verify that a rappture.h file exists in the directory specified
+#   # by --with-rappture.
+#   #
+#   if test -r "$rappture_dir/include/rappture.h" ; then
+#     RAPPTURE_DIR="$rappture_dir"
+#   fi
+# else
+#   #
+#   # Otherwise, search for the rappture.h include file...
+#   # 1. Search previously named locations.
+#   #
+#   for dir in \
+#    $prefix \
+#    $exec_prefix
+#   do
+#     if test -r "$dir/include/rappture.h" ; then
+#       RAPPTURE_DIR="$dir"
+#       break
+#     fi
+#   done
+#   #
+#   #  2. Search source directories.
+#   #
+#   if test "x$RAPPTURE_DIR" = "x" ; then
+#     for dir in \
+#      `ls -dr ../rappture 2>/dev/null` \
+#      `ls -dr ../../rappture 2>/dev/null` \
+#      `ls -dr ../../../rappture 2>/dev/null` \
+#      `ls -dr C\:/opt/rappture 2>/dev/null` \
+#      `ls -dr /opt/rappture 2>/dev/null`
+#     do
+#       if test -r "$dir/include/rappture.h" ; then
+#         RAPPTURE_DIR="$dir"
+#         break
+#       fi
+#     done
+#   fi
+# fi
+# AC_MSG_RESULT([${RAPPTURE_DIR}])
+#
+# if test "x$RAPPTURE_DIR" = "x" ; then
+#   echo "can't find RAPPTURE include file \"rappture.h\""
+#   echo "use --with-rappture=DIR to specify the location of rappture"
+#   exit 1
+# fi
 
 
 
@@ -10170,37 +10159,34 @@ fi
 # Look for scew.h on the normal include path.  If not found, look
 # for it in the --with-scew directory.
 #--------------------------------------------------------------------
-echo "$as_me:$LINENO: checking for alternate paths" >&5
-echo $ECHO_N "checking for alternate paths... $ECHO_C" >&6
-ALT_DIR=""
-if test "x$alt_dir" != "x" ; then
-  #
-  # Verify that a include and lib directories exist in the directory specified
-  # by --with-altpath.
-  #
-  if test -d "$alt_dir/include" -a -d "$alt_dir/lib" ; then
-    ALT_DIR="$rappture_dir"
-  fi
-else
-  if test "x$ALT_DIR" = "x" ; then
-    for dir in \
-     C\:/opt /opt
-    do
-      if test -r "$dir/include" -a -d "$dir/lib" ; then
-        ALT_DIR="$dir"
-        break
-      fi
-    done
-  fi
-fi
-if test "x$ALT_DIR" = "x" ; then
-    echo "$as_me:$LINENO: result: none" >&5
-echo "${ECHO_T}none" >&6
-  else
-    echo "$as_me:$LINENO: result: ${ALT_DIR}" >&5
-echo "${ECHO_T}${ALT_DIR}" >&6
-fi
-
+# AC_MSG_CHECKING([for alternate paths])
+# ALT_DIR=""
+# if test "x$alt_dir" != "x" ; then
+#   #
+#   # Verify that a include and lib directories exist in the directory specified
+#   # by --with-altpath.
+#   #
+#   if test -d "$alt_dir/include" -a -d "$alt_dir/lib" ; then
+#     ALT_DIR="$rappture_dir"
+#   fi
+# else
+#   if test "x$ALT_DIR" = "x" ; then
+#     for dir in \
+#      C\:/opt /opt
+#     do
+#       if test -r "$dir/include" -a -d "$dir/lib" ; then
+#         ALT_DIR="$dir"
+#         break
+#       fi
+#     done
+#   fi
+# fi
+# if test "x$ALT_DIR" = "x" ; then
+#     AC_MSG_RESULT(none)
+#   else
+#     AC_MSG_RESULT([${ALT_DIR}])
+# fi
+#
 
 
 PATCHLEVEL=`${TCLSH_PROG} tclconfig/patchlevel.tcl`
