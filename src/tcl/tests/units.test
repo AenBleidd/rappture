@@ -52,7 +52,7 @@ test convert-1.1.1 {Rappture::Units::convert, 1 invalid argument} {
 
 test convert-1.1.2 {Rappture::Units::convert, invalid value, valid context} {
     list [catch {Rappture::Units::convert re -context mm} msg] $msg
-} {1 {bad value "re": should be a real number with units of (A,ft,in,m,mm,yd)}}
+} {1 {bad value "re": should be a real number with units of (A,in,m,mm)}}
 
 test convert-1.1.3 {Rappture::Units::convert, 1 valid argument} {
     list [catch {Rappture::Units::convert 5} msg] $msg
@@ -162,7 +162,7 @@ test convert-1.7.0 {Rappture::Units::convert, val w/o units} {
 test convert-1.7.1.2 {Rappture::Units::convert, invalid val w/ -context} {
 # this test passes for new tcl bindings, fails for old tcl version
     list [catch {Rappture::Units::convert de -context m } msg] $msg
-} {1 {bad value "de": should be a real number with units of (A,ft,in,m,yd)}}
+} {1 {bad value "de": should be a real number with units of (A,in,m)}}
 
 
 #----------------------------------------------------------
@@ -267,27 +267,459 @@ test all-4.1.0 {Rappture::Units::System::all, invalid units} {
     list [catch {Rappture::Units::System::all qqq} msg] $msg
 } {0 {}}
 
-#test all-3.2.0.1 {Rappture::Units::System::all, valid units} {
+#test all-4.2.0.1 {Rappture::Units::System::all, valid units} {
 ## this test passes for old tcl version, fails for new tcl bindings
 ## because different order of units
 #    list [catch {Rappture::Units::System::all eV} msg] $msg
 #} {0 {eV J}}
 
-test all-3.2.0.2 {Rappture::Units::System::all, valid units} {
+test all-4.2.0.2 {Rappture::Units::System::all, valid units} {
 # this test passes for new tcl bindings, fails for old tcl version
     list [catch {Rappture::Units::System::all eV} msg] $msg
 } {0 {J eV}}
 
-#test all-3.3.0.1 {Rappture::Units::System::all, too many args} {
+#test all-4.3.0.1 {Rappture::Units::System::all, too many args} {
 ## this test passes for old tcl version, fails for new tcl bindings
 ## because of additional "::" prefixed on object name
 #    list [catch {Rappture::Units::System::all eV ee} msg] $msg
 #} {1 {wrong # args: should be "::Rappture::Units::System::all units"}}
 
-test all-3.3.0.2 {Rappture::Units::System::all, too many args} {
+test all-4.3.0.2 {Rappture::Units::System::all, too many args} {
 # this test passes for new tcl bindings, fails for old tcl version
     list [catch {Rappture::Units::System::all eV ee} msg] $msg
 } {1 {wrong # args: should be "Rappture::Units::System::all units"}}
+
+#----------------------------------------------------------
+#----------------------------------------------------------
+# convert command - testing units conversions
+#----------------------------------------------------------
+
+test convert_units-5.4.1.0 {Rappture::Units::convert, m->A} {
+    list [catch {Rappture::Units::convert 5m -to A} msg] $msg
+} {0 5e+10A}
+
+test convert_units-5.4.1.1 {Rappture::Units::convert, m<-A} {
+    list [catch {Rappture::Units::convert 5A -to m} msg] $msg
+} {0 5e-10m}
+
+#--------------------------------------------------------------------
+# Metric Extension Conversions
+#--------------------------------------------------------------------
+
+test convert_units-5.4.2.0 {Rappture::Units::convert, m->dm} {
+    list [catch {Rappture::Units::convert 5m -to dm} msg] $msg
+} {0 50dm}
+
+test convert_units-5.4.2.1 {Rappture::Units::convert, m->cm} {
+    list [catch {Rappture::Units::convert 5m -to cm} msg] $msg
+} {0 500cm}
+
+test convert_units-5.4.2.3 {Rappture::Units::convert, m->mm} {
+    list [catch {Rappture::Units::convert 5m -to mm} msg] $msg
+} {0 5000mm}
+
+test convert_units-5.4.2.4 {Rappture::Units::convert, m->um} {
+    list [catch {Rappture::Units::convert 5m -to um} msg] $msg
+} {0 5e+06um}
+
+test convert_units-5.4.2.5 {Rappture::Units::convert, m->nm} {
+    list [catch {Rappture::Units::convert 5m -to nm} msg] $msg
+} {0 5e+09nm}
+
+test convert_units-5.4.2.6 {Rappture::Units::convert, m->pm} {
+    list [catch {Rappture::Units::convert 5m -to pm} msg] $msg
+} {0 5e+12pm}
+
+test convert_units-5.4.2.7 {Rappture::Units::convert, m->fm} {
+    list [catch {Rappture::Units::convert 5m -to fm} msg] $msg
+} {0 5e+15fm}
+
+test convert_units-5.4.2.8 {Rappture::Units::convert, m->am} {
+    list [catch {Rappture::Units::convert 5m -to am} msg] $msg
+} {0 5e+18am}
+
+test convert_units-5.4.2.9 {Rappture::Units::convert, m->dam} {
+    list [catch {Rappture::Units::convert 5m -to dam} msg] $msg
+} {0 0.5dam}
+
+test convert_units-5.4.2.10 {Rappture::Units::convert, m->hm} {
+    list [catch {Rappture::Units::convert 5m -to hm} msg] $msg
+} {0 0.05hm}
+
+test convert_units-5.4.2.11 {Rappture::Units::convert, m->km} {
+    list [catch {Rappture::Units::convert 5m -to km} msg] $msg
+} {0 0.005km}
+
+test convert_units-5.4.2.12 {Rappture::Units::convert, m->Mm} {
+    list [catch {Rappture::Units::convert 5m -to Mm} msg] $msg
+} {0 5e-06Mm}
+
+test convert_units-5.4.2.13 {Rappture::Units::convert, m->Gm} {
+    list [catch {Rappture::Units::convert 5m -to Gm} msg] $msg
+} {0 5e-09Gm}
+
+test convert_units-5.4.2.14 {Rappture::Units::convert, m->Tm} {
+    list [catch {Rappture::Units::convert 5m -to Tm} msg] $msg
+} {0 5e-12Tm}
+
+test convert_units-5.4.2.15 {Rappture::Units::convert, m->Pm} {
+    list [catch {Rappture::Units::convert 5m -to Pm} msg] $msg
+} {0 5e-15Pm}
+
+test convert_units-5.4.2.16 {Rappture::Units::convert, m->Em} {
+    list [catch {Rappture::Units::convert 5m -to Em} msg] $msg
+} {0 5e-18Em}
+
+test convert_units-5.4.2.17 {Rappture::Units::convert, dm->m} {
+    list [catch {Rappture::Units::convert 5dm -to m} msg] $msg
+} {0 0.5m}
+
+test convert_units-5.4.2.18 {Rappture::Units::convert, cm->m} {
+    list [catch {Rappture::Units::convert 5cm -to m} msg] $msg
+} {0 0.05m}
+
+test convert_units-5.4.2.19 {Rappture::Units::convert, mm->m} {
+    list [catch {Rappture::Units::convert 5mm -to m} msg] $msg
+} {0 0.005m}
+
+test convert_units-5.4.2.20 {Rappture::Units::convert, um->m} {
+    list [catch {Rappture::Units::convert 5um -to m} msg] $msg
+} {0 5e-06m}
+
+test convert_units-5.4.2.21 {Rappture::Units::convert, nm->m} {
+    list [catch {Rappture::Units::convert 5nm -to m} msg] $msg
+} {0 5e-09m}
+
+test convert_units-5.4.2.22 {Rappture::Units::convert, pm->m} {
+    list [catch {Rappture::Units::convert 5pm -to m} msg] $msg
+} {0 5e-12m}
+
+test convert_units-5.4.2.23 {Rappture::Units::convert, fm->m} {
+    list [catch {Rappture::Units::convert 5fm -to m} msg] $msg
+} {0 5e-15m}
+
+test convert_units-5.4.2.24 {Rappture::Units::convert, am->m} {
+    list [catch {Rappture::Units::convert 5am -to m} msg] $msg
+} {0 5e-18m}
+
+test convert_units-5.4.2.25 {Rappture::Units::convert, dam->m} {
+    list [catch {Rappture::Units::convert 5dam -to m} msg] $msg
+} {0 50m}
+
+test convert_units-5.4.2.26 {Rappture::Units::convert, hm->m} {
+    list [catch {Rappture::Units::convert 5hm -to m} msg] $msg
+} {0 500m}
+
+test convert_units-5.4.2.27 {Rappture::Units::convert, km->m} {
+    list [catch {Rappture::Units::convert 5km -to m} msg] $msg
+} {0 5000m}
+
+test convert_units-5.4.2.28 {Rappture::Units::convert, Mm->m} {
+    list [catch {Rappture::Units::convert 5Mm -to m} msg] $msg
+} {0 5e+06m}
+
+test convert_units-5.4.2.29 {Rappture::Units::convert, Gm->G} {
+    list [catch {Rappture::Units::convert 5Gm -to m} msg] $msg
+} {0 5e+09m}
+
+test convert_units-5.4.2.30 {Rappture::Units::convert, Tm->m} {
+    list [catch {Rappture::Units::convert 5Tm -to m} msg] $msg
+} {0 5e+12m}
+
+test convert_units-5.4.2.31 {Rappture::Units::convert, Pm->m} {
+    list [catch {Rappture::Units::convert 5Pm -to m} msg] $msg
+} {0 5e+15m}
+
+test convert_units-5.4.2.32 {Rappture::Units::convert, Em->m} {
+    list [catch {Rappture::Units::convert 5Em -to m} msg] $msg
+} {0 5e+18m}
+
+#--------------------------------------------------------------------
+# Concentration Conversions
+#--------------------------------------------------------------------
+
+test convert_units-5.4.3.0 {Rappture::Units::convert, pH->pOH} {
+    list [catch {Rappture::Units::convert 5pH -to pOH} msg] $msg
+} {0 9pOH}
+
+test convert_units-5.4.3.1 {Rappture::Units::convert, pOH->pH} {
+    list [catch {Rappture::Units::convert 9pOH -to pH} msg] $msg
+} {0 5pH}
+
+#--------------------------------------------------------------------
+# Multiple Unit Conversions
+#--------------------------------------------------------------------
+
+test convert_units-5.4.4.0 {Rappture::Units::convert, cm2/Vs->m2/kVus} {
+    list [catch {Rappture::Units::convert 2cm2/Vs -to m2/kVus} msg] $msg
+} {0 2e-07m2/kVus}
+
+#--------------------------------------------------------------------
+# Inverse Unit Conversions
+#--------------------------------------------------------------------
+
+test convert_units-5.4.5.0 {Rappture::Units::convert, /cm2->/m2} {
+    list [catch {Rappture::Units::convert 2/cm2 -to /m2} msg] $msg
+} {0 20000/m2}
+
+test convert_units-5.4.5.1 {Rappture::Units::convert, cm2->/m2} {
+    list [catch {Rappture::Units::convert 1cm -to /m2} msg] $msg
+} {1 {error while converting, returned string: "1/m2"}}
+
+#--------------------------------------------------------------------
+# Temperature Conversions
+#--------------------------------------------------------------------
+
+test convert_units-5.4.6.0 {Rappture::Units::convert, F->C} {
+    list [catch {Rappture::Units::convert 78.8F -to C} msg] $msg
+} {0 26C}
+
+test convert_units-5.4.6.1 {Rappture::Units::convert, C->F} {
+    list [catch {Rappture::Units::convert 26C -to F} msg] $msg
+} {0 78.8F}
+
+test convert_units-5.4.6.2 {Rappture::Units::convert, C->K} {
+    list [catch {Rappture::Units::convert 26C -to K} msg] $msg
+} {0 299.15K}
+
+test convert_units-5.4.6.3 {Rappture::Units::convert, K->C} {
+    list [catch {Rappture::Units::convert 299.15K -to C} msg] $msg
+} {0 26C}
+
+test convert_units-5.4.6.4 {Rappture::Units::convert, K->F} {
+    list [catch {Rappture::Units::convert 299.15K -to F} msg] $msg
+} {0 78.8F}
+
+test convert_units-5.4.6.5 {Rappture::Units::convert, F->K} {
+    list [catch {Rappture::Units::convert 78.8F -to K} msg] $msg
+} {0 299.15K}
+
+test convert_units-5.4.6.6 {Rappture::Units::convert, F->R} {
+    list [catch {Rappture::Units::convert 78.8F -to R} msg] $msg
+} {0 538.47R}
+
+test convert_units-5.4.6.7 {Rappture::Units::convert, R->F} {
+    list [catch {Rappture::Units::convert 538.47R -to F} msg] $msg
+} {0 78.8F}
+
+test convert_units-5.4.6.8 {Rappture::Units::convert, R->C} {
+    list [catch {Rappture::Units::convert 538.47R -to C} msg] $msg
+} {0 26C}
+
+test convert_units-5.4.6.9 {Rappture::Units::convert, C->R} {
+    list [catch {Rappture::Units::convert 26C -to R} msg] $msg
+} {0 538.47R}
+
+test convert_units-5.4.6.10 {Rappture::Units::convert, R->K} {
+    list [catch {Rappture::Units::convert 538.47R -to K} msg] $msg
+} {0 299.15K}
+
+test convert_units-5.4.6.11 {Rappture::Units::convert, K->R} {
+    list [catch {Rappture::Units::convert 299.15K -to R} msg] $msg
+} {0 538.47R}
+
+#--------------------------------------------------------------------
+# Energy Conversions
+#--------------------------------------------------------------------
+
+test convert_units-5.4.7.0 {Rappture::Units::convert, eV->J} {
+    list [catch {Rappture::Units::convert 5eV -to J} msg] $msg
+} {0 8.01089e-19J}
+
+test convert_units-5.4.7.1 {Rappture::Units::convert, J->eV} {
+    list [catch {Rappture::Units::convert 8.01088231e-19J -to eV} msg] $msg
+} {0 5eV}
+
+#--------------------------------------------------------------------
+# Time Conversions
+#--------------------------------------------------------------------
+
+test convert_units-5.4.8.0 {Rappture::Units::convert, s->s} {
+    list [catch {Rappture::Units::convert 5s -to s} msg] $msg
+} {0 5s}
+
+test convert_units-5.4.8.1 {Rappture::Units::convert, min->s} {
+    list [catch {Rappture::Units::convert 5min -to s} msg] $msg
+} {0 300s}
+
+test convert_units-5.4.8.2 {Rappture::Units::convert, h->s} {
+    list [catch {Rappture::Units::convert 5h -to s} msg] $msg
+} {0 18000s}
+
+test convert_units-5.4.8.3 {Rappture::Units::convert, d->s} {
+    list [catch {Rappture::Units::convert 5d -to s} msg] $msg
+} {0 432000s}
+
+test convert_units-5.4.8.4 {Rappture::Units::convert, s->min} {
+    list [catch {Rappture::Units::convert 5s -to min} msg] $msg
+} {0 0.0833333min}
+
+test convert_units-5.4.8.5 {Rappture::Units::convert, min->min} {
+    list [catch {Rappture::Units::convert 5min -to min} msg] $msg
+} {0 5min}
+
+test convert_units-5.4.8.6 {Rappture::Units::convert, h->min} {
+    list [catch {Rappture::Units::convert 5h -to min} msg] $msg
+} {0 300min}
+
+test convert_units-5.4.8.7 {Rappture::Units::convert, d->min} {
+    list [catch {Rappture::Units::convert 5d -to min} msg] $msg
+} {0 7200min}
+
+test convert_units-5.4.8.8 {Rappture::Units::convert, s->h} {
+    list [catch {Rappture::Units::convert 5s -to h} msg] $msg
+} {0 0.00138889h}
+
+test convert_units-5.4.8.9 {Rappture::Units::convert, min->h} {
+    list [catch {Rappture::Units::convert 5min -to h} msg] $msg
+} {0 0.0833333h}
+
+test convert_units-5.4.8.10 {Rappture::Units::convert, h->h} {
+    list [catch {Rappture::Units::convert 5h -to h} msg] $msg
+} {0 5h}
+
+test convert_units-5.4.8.11 {Rappture::Units::convert, d->h} {
+    list [catch {Rappture::Units::convert 5d -to h} msg] $msg
+} {0 120h}
+
+test convert_units-5.4.8.12 {Rappture::Units::convert, s->d} {
+    list [catch {Rappture::Units::convert 5s -to d} msg] $msg
+} {0 5.78704e-05d}
+
+test convert_units-5.4.8.13 {Rappture::Units::convert, min->d} {
+    list [catch {Rappture::Units::convert 5min -to d} msg] $msg
+} {0 0.00347222d}
+
+test convert_units-5.4.8.14 {Rappture::Units::convert, h->d} {
+    list [catch {Rappture::Units::convert 5h -to d} msg] $msg
+} {0 0.208333d}
+
+test convert_units-5.4.8.15 {Rappture::Units::convert, d->d} {
+    list [catch {Rappture::Units::convert 5d -to d} msg] $msg
+} {0 5d}
+
+#--------------------------------------------------------------------
+# Pressure Conversions
+#--------------------------------------------------------------------
+
+test convert_units-5.4.9.0 {Rappture::Units::convert, bar->Pa} {
+    list [catch {Rappture::Units::convert 5bar -to Pa} msg] $msg
+} {0 500000Pa}
+
+test convert_units-5.4.9.1 {Rappture::Units::convert, bar->atm} {
+    list [catch {Rappture::Units::convert 5bar -to atm} msg] $msg
+} {0 4.9346atm}
+
+test convert_units-5.4.9.2 {Rappture::Units::convert, bar->torr} {
+    list [catch {Rappture::Units::convert 5bar -to torr} msg] $msg
+} {0 3750.3torr}
+
+test convert_units-5.4.9.3 {Rappture::Units::convert, bar->psi} {
+    list [catch {Rappture::Units::convert 5bar -to psi} msg] $msg
+} {0 72.52psi}
+
+test convert_units-5.4.9.4 {Rappture::Units::convert, bar->bar} {
+    list [catch {Rappture::Units::convert 5bar -to bar} msg] $msg
+} {0 5bar}
+
+test convert_units-5.4.9.5 {Rappture::Units::convert, atm->Pa} {
+    list [catch {Rappture::Units::convert 5atm -to Pa} msg] $msg
+} {0 506625Pa}
+
+test convert_units-5.4.9.6 {Rappture::Units::convert, atm->atm} {
+    list [catch {Rappture::Units::convert 5atm -to atm} msg] $msg
+} {0 5atm}
+
+test convert_units-5.4.9.7 {Rappture::Units::convert, atm->torr} {
+    list [catch {Rappture::Units::convert 5atm -to torr} msg] $msg
+} {0 3800torr}
+
+test convert_units-5.4.9.8 {Rappture::Units::convert, atm->psi} {
+    list [catch {Rappture::Units::convert 5bar -to psi} msg] $msg
+} {0 72.52psi}
+
+test convert_units-5.4.9.9 {Rappture::Units::convert, atm->bar} {
+    list [catch {Rappture::Units::convert 5atm -to bar} msg] $msg
+} {0 5.06627bar}
+
+test convert_units-5.4.9.10 {Rappture::Units::convert, Pa->Pa} {
+    list [catch {Rappture::Units::convert 5Pa -to Pa} msg] $msg
+} {0 5Pa}
+
+test convert_units-5.4.9.11 {Rappture::Units::convert, Pa->atm} {
+    list [catch {Rappture::Units::convert 5Pa -to atm} msg] $msg
+} {0 4.9346e-05atm}
+
+test convert_units-5.4.9.12 {Rappture::Units::convert, Pa->torr} {
+    list [catch {Rappture::Units::convert 5Pa -to torr} msg] $msg
+} {0 0.037503torr}
+
+test convert_units-5.4.9.13 {Rappture::Units::convert, Pa->psi} {
+    list [catch {Rappture::Units::convert 5Pa -to psi} msg] $msg
+} {0 0.0007252psi}
+
+test convert_units-5.4.9.14 {Rappture::Units::convert, Pa->bar} {
+    list [catch {Rappture::Units::convert 5Pa -to bar} msg] $msg
+} {0 5e-05bar}
+
+test convert_units-5.4.9.15 {Rappture::Units::convert, torr->Pa} {
+    list [catch {Rappture::Units::convert 5torr -to Pa} msg] $msg
+} {0 666.613Pa}
+
+test convert_units-5.4.9.16 {Rappture::Units::convert, torr->atm} {
+    list [catch {Rappture::Units::convert 5torr -to atm} msg] $msg
+} {0 0.006579atm}
+
+test convert_units-5.4.9.17 {Rappture::Units::convert, torr->torr} {
+    list [catch {Rappture::Units::convert 5torr -to torr} msg] $msg
+} {0 5torr}
+
+test convert_units-5.4.9.18 {Rappture::Units::convert, torr->psi} {
+    list [catch {Rappture::Units::convert 5torr -to psi} msg] $msg
+} {0 0.096685psi}
+
+test convert_units-5.4.9.19 {Rappture::Units::convert, torr->bar} {
+    list [catch {Rappture::Units::convert 5torr -to bar} msg] $msg
+} {0 0.00666613bar}
+
+test convert_units-5.4.9.20 {Rappture::Units::convert, psi->Pa} {
+    list [catch {Rappture::Units::convert 5psi -to Pa} msg] $msg
+} {0 34473.8Pa}
+
+test convert_units-5.4.9.21 {Rappture::Units::convert, psi->atm} {
+    list [catch {Rappture::Units::convert 5psi -to atm} msg] $msg
+} {0 0.34023atm}
+
+test convert_units-5.4.9.22 {Rappture::Units::convert, psi->torr} {
+    list [catch {Rappture::Units::convert 5psi -to torr} msg] $msg
+} {0 258.575torr}
+
+test convert_units-5.4.9.23 {Rappture::Units::convert, psi->psi} {
+    list [catch {Rappture::Units::convert 5psi -to psi} msg] $msg
+} {0 5psi}
+
+test convert_units-5.4.9.24 {Rappture::Units::convert, psi->bar} {
+    list [catch {Rappture::Units::convert 5psi -to bar} msg] $msg
+} {0 0.344738bar}
+
+test convert_units-5.4.9.25 {Rappture::Units::convert, psi->kPa} {
+    list [catch {Rappture::Units::convert 5psi -to kPa} msg] $msg
+} {0 34.4738kPa}
+
+test convert_units-5.4.9.26 {Rappture::Units::convert, kPa->psi} {
+    list [catch {Rappture::Units::convert 5kPa -to psi} msg] $msg
+} {0 0.7252psi}
+
+test convert_units-5.4.9.27 {Rappture::Units::convert, mmHg->torr} {
+    list [catch {Rappture::Units::convert 5mmHg -to torr} msg] $msg
+} {0 5torr}
+
+test convert_units-5.4.9.28 {Rappture::Units::convert, torr->mmHg} {
+    list [catch {Rappture::Units::convert 5torr -to mmHg} msg] $msg
+} {0 5mmHg}
+
+
+
 
 
 ::tcltest::cleanupTests
