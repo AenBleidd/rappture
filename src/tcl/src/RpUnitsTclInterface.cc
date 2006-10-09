@@ -367,7 +367,7 @@ RpTclUnitsSysFor    (   ClientData cdata,
                         const char *argv[]  )
 {
     std::string unitsName     = ""; // name of the units provided by user
-    std::string type          = ""; // name of the units provided by user
+    std::string type          = ""; // type/system of units to be returned to user
     int nextarg               = 1; // start parsing using the '2'th argument
     int err                   = 0;
 
@@ -387,11 +387,11 @@ RpTclUnitsSysFor    (   ClientData cdata,
     err = RpUnits::validate(unitsName,type);
     if (err) {
         /*
-         * according to tcl version, in this case we 
+         * according to tcl version, in this case we
          * should return an empty string. i happen to disagree.
          * the next few lines is what i think the user should see.
         Tcl_AppendResult(interp,
-            "The units named: \"", unitsName.c_str(), 
+            "The units named: \"", unitsName.c_str(),
             "\" is not a recognized unit for rappture",
             (char*)NULL);
         return TCL_ERROR;
@@ -406,7 +406,7 @@ RpTclUnitsSysFor    (   ClientData cdata,
 
 /**********************************************************************/
 // FUNCTION: RpTclUnitsSysAll()
-/// Rappture::Units::System::for fxn in Tcl, returns list of compatible units
+/// Rappture::Units::System::all fxn in Tcl, returns list of compatible units
 /**
  * Returns a list of all units compatible with the given units string.
  * Compatible units are determined by following all conversion
