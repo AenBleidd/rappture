@@ -37,6 +37,7 @@
 #define RP_TYPE_ANGLE       "angle"
 #define RP_TYPE_MASS        "mass"
 #define RP_TYPE_PRESSURE    "pressure"
+#define RP_TYPE_CONC        "concentration"
 #define RP_TYPE_MISC        "misc"
 
 // should the define function:
@@ -65,6 +66,7 @@ class RpUnitsPreset {
         static int addPresetAngle();
         static int addPresetMass();
         static int addPresetPressure();
+        static int addPresetConcentration();
         static int addPresetMisc();
 };
 
@@ -228,6 +230,40 @@ class convEntry
 
 };
 
+// used by the RpUnits class to create a linked list of the incarnated units
+// associated with the specific unit.
+//
+// we could templitize this and make a generic linked list
+// or could use generic linked list class from book programming with objects
+//
+class incarnationEntry
+{
+
+    public:
+
+        friend class RpUnits;
+
+        virtual ~incarnationEntry()
+        {}
+
+    private:
+
+        const RpUnits* unit;
+        incarnationEntry*  prev;
+        incarnationEntry*  next;
+
+        incarnationEntry (
+                const RpUnits* unit,
+                incarnationEntry*  prev,
+                incarnationEntry*  next
+             )
+            :   unit    (unit),
+                prev    (prev),
+                next    (next)
+            {};
+
+};
+
 class RpUnitsListEntry
 {
 
@@ -323,6 +359,11 @@ class RpUnits
                                 int showUnits = 0,
                                 int* result = NULL  ) const;
 
+        static std::string convert1 ( std::string val,
+                                     std::string toUnits,
+                                     int showUnits,
+                                     int* result = NULL );
+
         static std::string convert ( std::string val,
                                      std::string toUnits,
                                      int showUnits,
@@ -385,16 +426,22 @@ class RpUnits
                                 void* (*convBackFxnPtr)(void*, void*),
                                 void* convBackData);
 
+        static int incarnate (  const RpUnits* abstraction,
+                                const RpUnits* entity);
 
         // populate the dictionary with a set of units specified by group
-        // if group equals......................then load................
-        //      "all"                       load all available units
-        //      "energy"                    load units related to energy
-        //      "length"                    load units related to length
-        //      "temp"                      load units related to temperature
-        //      "time"                      load units related to time
-        //      "volume"                    load units related to volume
-        //      "angle"                     load units related to angles
+        // if group equals........................then load................
+        //                   "all"           load all available units
+        //  RP_TYPE_ENERGY   "energy"        load units related to energy
+        //  RP_TYPE_LENGTH   "length"        load units related to length
+        //  RP_TYPE_TEMP     "temperature"   load units related to temperature
+        //  RP_TYPE_TIME     "time"          load units related to time
+        //  RP_TYPE_VOLUME   "volume"        load units related to volume
+        //  RP_TYPE_ANGLE    "angle"         load units related to angles
+        //  RP_TYPE_MASS     "mass"          load units related to mass
+        //  RP_TYPE_PRESSURE "pressure"      load units related to pressure
+        //  RP_TYPE_CONC     "concentration" load units related to pressure
+        //  RP_TYPE_MISC     "misc"          load units related to everything else
         //  (no other groups have been created)
 
         static int addPresets (const std::string group);
@@ -422,6 +469,9 @@ class RpUnits
             convEntry* q = NULL;
             convEntry* curr = NULL;
 
+            incarnationEntry* r = NULL;
+            incarnationEntry* rcurr = NULL;
+
             dict = other.dict;
 
             if (other.convList) {
@@ -434,6 +484,18 @@ class RpUnits
                     curr = curr->next;
                 }
             }
+
+            if (other.incarnationList) {
+                r = other.incarnationList;
+                incarnationList = new incarnationEntry (r->unit,NULL,NULL);
+                rcurr = incarnationList;
+                while (r->next) {
+                    r = r->next;
+                    rcurr->next = new incarnationEntry (r->unit,rcurr,NULL);
+                    rcurr = rcurr->next;
+                }
+            }
+
         }
 
         // copy assignment operator
@@ -441,6 +503,9 @@ class RpUnits
 
             convEntry* q = NULL;
             convEntry* curr = NULL;
+
+            incarnationEntry* r = NULL;
+            incarnationEntry* rcurr = NULL;
 
             if ( this != &other ) {
                 delete convList;
@@ -463,6 +528,17 @@ class RpUnits
                 }
             }
 
+            if (other.incarnationList) {
+                r = other.incarnationList;
+                incarnationList = new incarnationEntry (r->unit,NULL,NULL);
+                rcurr = incarnationList;
+                while (r->next) {
+                    r = r->next;
+                    rcurr->next = new incarnationEntry (r->unit,rcurr,NULL);
+                    rcurr = rcurr->next;
+                }
+            }
+
             return *this;
         }
 
@@ -478,10 +554,19 @@ class RpUnits
             convEntry* p = convList;
             convEntry* tmp = p;
 
+            incarnationEntry* r = incarnationList;
+            incarnationEntry* rtmp = r;
+
             while (p != NULL) {
                 tmp = p;
                 p = p->next;
                 delete tmp;
+            }
+
+            while (p != NULL) {
+                rtmp = r;
+                r = r->next;
+                delete rtmp;
             }
         }
 
@@ -512,6 +597,12 @@ class RpUnits
         // within the RpUnits Object
         mutable convEntry* convList;
 
+        // linked list of incarnation units for this RpUnit
+        // its mutable because the connectIncarnation function takes in a
+        // const RpUnits* and attempts to change the incarnationList variable
+        // within the RpUnits Object
+        mutable incarnationEntry* incarnationList;
+
 
         // dictionary to store the units.
         static RpDict<std::string,RpUnits*>* dict;
@@ -534,7 +625,8 @@ class RpUnits
                 exponent    (exponent),
                 basis       (basis),
                 type        (type),
-                convList    (NULL)
+                convList    (NULL),
+                incarnationList (NULL)
         {};
 
         // insert new RpUnits object into RpUnitsTable
@@ -543,12 +635,15 @@ class RpUnits
         // int RpUnits::insert(std::string key) const;
 
         typedef std::list<LIST_TEMPLATE> RpUnitsList;
+        typedef double (*convFxnPtrD) (double);
+        typedef std::list<convFxnPtrD> convertList;
         typedef RpUnitsList::iterator RpUnitsListIter;
 
         void newExponent(double newExponent) {exponent = newExponent;};
 
         static int units2list( const std::string& inUnits,
-                               RpUnitsList& outList         );
+                               RpUnitsList& outList,
+                               std::string& type);
         static int grabExponent(const std::string& inStr, double* exp);
         static int grabUnitString( const std::string& inStr);
         static const RpUnits* grabUnits (std::string inStr, int* offset);
@@ -564,6 +659,15 @@ class RpUnits
                                                     RpUnitsListIter& toIter);
 
         void RpUnits::connectConversion(conversion* conv) const;
+        void RpUnits::connectIncarnation(const RpUnits* unit) const;
+
+        // return the conversion object that will convert
+        // from this RpUnits to the proovided toUnits object
+        // if the conversion is defined
+        int getConvertFxnList (const RpUnits* toUnits, convertList& cList) const;
+        static int applyConversion (double* val, convertList& cList);
+        static int combineLists (convertList& l1, convertList& l2);
+        static int printList (convertList& l1);
 
 };
 

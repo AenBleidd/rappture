@@ -13,10 +13,20 @@
 extern "C" {
 #endif
 
+double invert (double inVal)
+{
+    return (1.0/inVal);
+}
+
 /****************************************
  * METRIC CONVERSIONS
  ****************************************/
 
+
+double deci2base (double deci)
+{
+   return deci*1e-1;
+}
 
 double centi2base (double centi)
 {
@@ -53,6 +63,16 @@ double atto2base (double atto)
     return atto*1e-18;
 }
 
+double deca2base (double deca)
+{
+    return deca*1e1;
+}
+
+double hecto2base (double hecto)
+{
+    return hecto*1e2;
+}
+
 double kilo2base (double kilo)
 {
     return kilo*1e3;
@@ -76,6 +96,16 @@ double tera2base (double tera)
 double peta2base (double peta)
 {
     return peta*1e15;
+}
+
+double exa2base (double exa)
+{
+    return exa*1e18;
+}
+
+double base2deci (double base)
+{
+    return base*1e1;
 }
 
 double base2centi (double base)
@@ -113,6 +143,16 @@ double base2atto (double base)
     return base*1e18;
 }
 
+double base2deca (double base)
+{
+    return base*1e-1;
+}
+
+double base2hecto (double base)
+{
+    return base*1e-2;
+}
+
 double base2kilo (double base)
 {
     return base*1e-3;
@@ -138,6 +178,11 @@ double base2peta (double base)
     return base*1e-15;
 }
 
+double base2exa (double base)
+{
+    return base*1e-18;
+}
+
 /****************************************
  * METRIC TO NON-METRIC CONVERSIONS
  * LENGTH CONVERSIONS
@@ -159,29 +204,29 @@ double meter2inch (double meter)
     return meter*(39.37008);
 }
 
-double inch2meter (double in)
+double inch2meter (double inch)
 {
-    return (in/(39.37008));
+    return (inch/(39.37008));
 }
 
-double meter2feet (double meter)
+double inch2feet (double inch)
 {
-    return (meter*(3.280840));
+    return (inch/(12.00));
 }
 
-double feet2meter (double ft)
+double feet2inch (double ft)
 {
-    return (ft/(3.280840));
+    return (ft*(12.00));
 }
 
-double meter2yard (double meter)
+double inch2yard (double inch)
 {
-    return (meter*(1.093613));
+    return (inch/(36.00));
 }
 
-double yard2meter (double yd)
+double yard2inch (double yd)
 {
-    return (yd/(1.093613));
+    return (yd*(36.00));
 }
 
 /****************************************
@@ -210,12 +255,12 @@ double kelvin2centigrade (double K)
 
 double rankine2kelvin (double R)
 {
-    return ((9.0/5.0)*R);
+    return ((5.0/9.0)*R);
 }
 
 double kelvin2rankine (double K)
 {
-    return ((5.0/9.0)*K);
+    return ((9.0/5.0)*K);
 }
 
 double fahrenheit2kelvin (double F)
@@ -226,6 +271,26 @@ double fahrenheit2kelvin (double F)
 double kelvin2fahrenheit (double K)
 {
     return (((9.0/5.0)*K)-459.67);
+}
+
+double fahrenheit2rankine (double F)
+{
+    return (F+459.67);
+}
+
+double rankine2fahrenheit (double R)
+{
+    return (R-459.67);
+}
+
+double rankine2celcius (double R)
+{
+    return ((R*(5.0/9.0))-273.15);
+}
+
+double celcius2rankine (double C)
+{
+    return ((C + 273.15)*(9.0/5.0));
 }
 
 /****************************************
@@ -264,6 +329,16 @@ double cubicFeet2usGallon (double ft3)
 double usGallon2cubicFeet (double gal)
 {
     return (gal/7.48051);
+}
+
+double cubicMeter2liter (double m3)
+{
+    return (m3*1e3);
+}
+
+double liter2cubicMeter (double L)
+{
+    return (L*1e-3);
 }
 
 /****************************************
@@ -445,6 +520,36 @@ double mmHg2torr (double mmHg)
     return (mmHg);
 }
 
+double psi2atm (double psi)
+{
+    return (psi*68.046e-3);
+}
+
+double atm2psi (double atm)
+{
+    return (atm*14.696);
+}
+
+/****************************************
+ * CONCENTRATION CONVERSIONS
+ * http://en.wikipedia.org/wiki/PH
+ ****************************************/
+
+double pH2pOH (double pH)
+{
+    // This formula is valid exactly for
+    // temperature = 298.15 K (25 °C) only,
+    // but is acceptable for most lab calculations
+    return (14.00 - pH);
+}
+
+double pOH2pH (double pOH)
+{
+    // This formula is valid exactly for
+    // temperature = 298.15 K (25 °C) only,
+    // but is acceptable for most lab calculations
+    return (14.00 - pOH);
+}
 
 #ifdef __cplusplus
 }
