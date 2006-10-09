@@ -92,6 +92,24 @@ RpUnits::define(    const std::string units,
 }
 
 /**********************************************************************/
+// METHOD: incarnate()
+/// Link two RpUnits where the entity is an incarnate of the abstraction
+/**
+ */
+
+int
+RpUnits::incarnate(const RpUnits* abstraction, const RpUnits* entity) {
+
+    int retVal = 1;
+
+    abstraction->connectIncarnation(entity);
+    entity->connectIncarnation(abstraction);
+
+    retVal = 0;
+    return retVal;
+}
+
+/**********************************************************************/
 // METHOD: grabExponent()
 /// Return exponent from a units string containing a unit name and exponent
 /**
@@ -190,17 +208,24 @@ RpUnits::getCompatible(double expMultiplier) const {
 
     std::list<std::string> compatList;
     std::list<std::string> basisCompatList;
-    std::string myName          = getUnitsName();
-    // std::stringstream otherName;
-    std::string otherName       = "";
+    std::list<std::string> incarnationCompatList;
+    std::stringstream myName;
+    std::stringstream otherName;
     std::string otherBasisName  = "";
     std::string blank           = "";
-    // double otherExp             = 1.0;
+    double otherExp             = 1.0;
+    double myExp                = 1.0;
+    double incExp               = 1.0;
     convEntry* myConversions    = this->convList;
+    incarnationEntry* myIncarnations = this->incarnationList;
     const RpUnits * basis       = NULL;
 
+    myName.str("");
+    myName << getUnits();
+    myExp = getExponent() * expMultiplier;
+
     if (this->basis) {
-        basisCompatList = this->basis->getCompatible();
+        basisCompatList = this->basis->getCompatible(expMultiplier);
         compatList.merge(basisCompatList);
     }
     else {
@@ -214,35 +239,24 @@ RpUnits::getCompatible(double expMultiplier) const {
         //
         while (myConversions != NULL) {
 
-            otherName = myConversions->conv->toPtr->getUnitsName();
-            /*
             otherName.str("");
-            otherName << myConversions->conv->toPtr->getUnitsName();
-            otherExp = myConversions->conv->fromPtr->getExponent();
-            if ( (otherExp != 1) && (expMultiplier != 1) ) {
-                otherName << otherExp * expMultiplier;
-            }
-            */
+            // otherName << myConversions->conv->toPtr->getUnitsName();
+            otherName << myConversions->conv->toPtr->getUnits();
+            otherExp = myConversions->conv->toPtr->getExponent();
             basis = myConversions->conv->toPtr->basis;
 
-            // if (myName == otherName.str()) {
-            if (myName == otherName) {
-                otherName = myConversions->conv->fromPtr->getUnitsName();
-                /*
+            if (myName.str() == otherName.str()) {
                 otherName.str("");
-                otherName << myConversions->conv->fromPtr->getUnitsName();
-                if ( (otherExp != 1) && (expMultiplier != 1) ) {
-                    otherExp = myConversions->conv->fromPtr->getExponent();
-                    otherName << otherExp * expMultiplier;
-                }
-                */
+                // otherName << myConversions->conv->fromPtr->getUnitsName();
+                otherName << myConversions->conv->fromPtr->getUnits();
+                otherExp = myConversions->conv->fromPtr->getExponent();
                 basis = myConversions->conv->fromPtr->basis;
             }
 
             // check to see if they are the same basis, 
             // no need to list all of the metric conversions.
             if (basis) {
-                if (basis->getUnitsName() == myName) {
+                if (basis->getUnitsName() == myName.str()) {
                     // do not add this unit to the conversion
                     // because its a derived unit.
                     myConversions = myConversions->next;
@@ -250,21 +264,88 @@ RpUnits::getCompatible(double expMultiplier) const {
                 }
             }
 
+            // adjust the exponent as requested by fxn caller
+            otherExp = otherExp * expMultiplier;
+
+            // adjust the other units name to match exponent
+            if ( (otherExp > 0) && (otherExp != 1) ) {
+                otherName << otherExp;
+            }
+            else if (otherExp < 0) {
+                otherName.str("/"+otherName.str());
+                if (otherExp < -1) {
+                    otherName.seekp(0,std::ios_base::end);
+                    otherName << otherExp*-1;
+                }
+            }
+
             // add the other unit's name to the list of compatible units
-            // compatList.push_back(otherName.str());
-            compatList.push_back(otherName);
+            compatList.push_back(otherName.str());
+            // compatList.push_back(otherName);
 
             // advance to the next conversion
             myConversions = myConversions->next;
         }
+
+        // now go throught the incarnation list to see if there are other
+        // compatible units listed there.
+        while (myIncarnations != NULL) {
+            incExp = myIncarnations->unit->getExponent();
+            if (incExp == myExp) {
+                incarnationCompatList = myIncarnations->unit->getCompatible();
+                compatList.merge(incarnationCompatList);
+                break;
+            }
+            else if ((-1.0*incExp) == myExp) {
+                incarnationCompatList = myIncarnations->unit->getCompatible(-1);
+                compatList.merge(incarnationCompatList);
+                break;
+            }
+            else if (   (myExp == int(myExp))   &&
+                        (incExp == int(incExp)) &&
+                        ( (int(myExp)%int(incExp)) == 0) &&
+                        ( (myExp/incExp) != 1)  &&
+                        ( (myExp/incExp) != -1) &&
+                        ( myExp != 1 )          &&
+                        ( myExp != -1 )         &&
+                        ( incExp != 1 )         &&
+                        ( incExp != -1 )        ) {
+                incarnationCompatList = myIncarnations->unit->getCompatible(myExp/incExp);
+                compatList.merge(incarnationCompatList);
+                break;
+            }
+            else {
+                // do nothing
+            }
+            myIncarnations = myIncarnations->next;
+        }
     }
 
-    compatList.push_back(myName);
+    // adjust the exponent as requested by fxn caller
+    // myExp = myExp * expMultiplier;
+
+    // adjust the other units name to match exponent
+    if ( (expMultiplier > 0) && (expMultiplier != 1) ) {
+        // myName << expMultiplier;
+        myName << myExp;
+    }
+    else if (expMultiplier < 0) {
+        myName.str("/"+myName.str());
+        if (myExp < -1) {
+            myName.seekp(0,std::ios_base::end);
+            myName << myExp*-1;
+        }
+    }
+
+    compatList.push_back(myName.str());
     compatList.sort();
     compatList.unique();
     return compatList;
 
 }
+
+
+
 
 /**********************************************************************/
 // METHOD: define()
@@ -520,6 +601,10 @@ RpUnits::makeMetric(const RpUnits* basis) {
     std::string basisName = basis->getUnitsName();
     std::string name;
 
+    name = "d" + basisName;
+    RpUnits * deci = RpUnits::define(name, basis, basis->type);
+    RpUnits::define(deci, basis, deci2base, base2deci);
+
     name = "c" + basisName;
     RpUnits * centi = RpUnits::define(name, basis, basis->type);
     RpUnits::define(centi, basis, centi2base, base2centi);
@@ -548,6 +633,14 @@ RpUnits::makeMetric(const RpUnits* basis) {
     RpUnits * atto  = RpUnits::define(name, basis, basis->type);
     RpUnits::define(atto, basis, atto2base, base2atto);
 
+    name = "da" + basisName;
+    RpUnits * deca  = RpUnits::define(name, basis, basis->type);
+    RpUnits::define(deca, basis, deca2base, base2deca);
+
+    name = "h" + basisName;
+    RpUnits * hecto  = RpUnits::define(name, basis, basis->type);
+    RpUnits::define(hecto, basis, hecto2base, base2hecto);
+
     name = "k" + basisName;
     RpUnits * kilo  = RpUnits::define(name, basis, basis->type);
     RpUnits::define(kilo, basis, kilo2base, base2kilo);
@@ -567,6 +660,10 @@ RpUnits::makeMetric(const RpUnits* basis) {
     name = "P" + basisName;
     RpUnits * peta  = RpUnits::define(name, basis, basis->type);
     RpUnits::define(peta, basis, peta2base, base2peta);
+
+    name = "E" + basisName;
+    RpUnits * exa  = RpUnits::define(name, basis, basis->type);
+    RpUnits::define(exa, basis, exa2base, base2exa);
 
     return (1);
 }
@@ -617,8 +714,6 @@ RpUnits::find(std::string key) {
  * across a unit that is unrecognized or can not be interpreted, then it
  * returns error (a non-zero value).
  * 
- * this code is very similar to units2list()
- *
  * if &compatList == NULL, no compatible list of units will be generated.
  * this function does not do a good job of placing the available units 
  * back into the original formula. i still need to work on this.
@@ -632,72 +727,31 @@ RpUnits::validate ( const std::string& inUnits,
     std::string myInUnits   = inUnits;
     std::string sendUnitStr = "";
     double exponent         = 1;
-    int offset              = 0;
-    int idx                 = 0;
-    int last                = 0;
-    int err                 = 0; // did we come across an unrecognized unit
+    int err                 = 0;
     const RpUnits* unit     = NULL;
     std::list<std::string> basisCompatList;
     std::list<std::string>::iterator compatListIter;
     std::stringstream unitWExp;
+    RpUnitsList inUnitsList;
+    RpUnitsListIter inIter;
 
+    // err tells us if we encountered any unrecognized units
+    err = RpUnits::units2list(inUnits,inUnitsList,type);
+    inIter = inUnitsList.begin();
 
-    while ( !myInUnits.empty() ) {
+    while ( inIter != inUnitsList.end() ) {
 
-        // check to see if we came across a '/' character
-        last = myInUnits.length()-1;
-        if (myInUnits[last] == '/') {
-            type = myInUnits[last] + type;
-            myInUnits.erase(last);
-            continue;
+        unit = inIter->getUnitsObj();
+        exponent = inIter->getExponent();
+
+        // merge the compatible units
+        if (compatList) {
+
+            basisCompatList = unit->getCompatible(exponent);
+            compatList->merge(basisCompatList);
         }
 
-        // get the exponent
-        offset = RpUnits::grabExponent(myInUnits,&exponent);
-        myInUnits.erase(offset);
-        idx = offset - 1;
-
-        // grab the largest string we can find
-        offset = RpUnits::grabUnitString(myInUnits);
-        idx = offset;
-
-        // figure out if we have some defined units in that string
-        sendUnitStr = myInUnits.substr(offset,std::string::npos);
-        if ((unit = grabUnits(sendUnitStr,&offset))) {
-            // a unit was found
-            // erase the found unit's name from our search string
-            myInUnits.erase(idx+offset);
-
-            // add the type to the type string
-            type = unit->getType() + type;
-
-            // merge the compatible units
-            if (compatList) {
-                basisCompatList = unit->getCompatible(exponent);
-
-                // adjust exponents as necessary
-                if ( (exponent != 0) && (exponent != 1) ) {
-                    compatListIter = compatList->begin();
-                    while (compatListIter != compatList->end()) {
-                        unitWExp << *compatListIter << exponent;
-                        *compatListIter = unitWExp.str();
-                    }
-                }
-
-                compatList->merge(basisCompatList);
-            }
-        }
-        else {
-            // we came across a unit we did not recognize
-            // raise error and exit
-            err++;
-            break;
-        }
-
-        // reset our vars
-        idx = 0;
-        offset = 0;
-        exponent = 1;
+        inIter++;
     }
 
     // clean out any duplicate entries.
@@ -822,14 +876,16 @@ RpUnits::printList(RpUnitsList& unitsList) {
 
 int
 RpUnits::units2list ( const std::string& inUnits,
-                      RpUnitsList& outList ) {
+                      RpUnitsList& outList,
+                      std::string& type ) {
 
     std::string myInUnits   = inUnits;
-    std::string sendUnitStr = "";
+    std::stringstream sendUnitStr;
     double exponent         = 1;
     int offset              = 0;
     int idx                 = 0;
     int last                = 0;
+    int err                 = 0;
     const RpUnits* unit     = NULL;
 
 
@@ -838,6 +894,7 @@ RpUnits::units2list ( const std::string& inUnits,
         // check to see if we came across a '/' character
         last = myInUnits.length()-1;
         if (myInUnits[last] == '/') {
+            type = myInUnits[last] + type;
             myInUnits.erase(last);
             // multiply previous exponents by -1
             if ( ! outList.empty() ) {
@@ -856,20 +913,43 @@ RpUnits::units2list ( const std::string& inUnits,
         idx = offset;
 
         // figure out if we have some defined units in that string
-        sendUnitStr = myInUnits.substr(offset,std::string::npos);
-        unit = grabUnits(sendUnitStr,&offset);
+        sendUnitStr.str(myInUnits.substr(offset,std::string::npos));
+        unit = grabUnits(sendUnitStr.str(),&offset);
         if (unit) {
             // a unit was found
             // add this unit to the list
             // erase the found unit's name from our search string
             outList.push_front(RpUnitsListEntry(unit,exponent));
+            type = unit->getType() + type;
             myInUnits.erase(idx+offset);
         }
         else {
             // we came across a unit we did not recognize
             // raise error and delete character for now
+            err = 1;
             myInUnits.erase(last);
         }
+
+        /*
+        // if the exponent != 1,-1 then do a second search 
+        // for the unit+exponent string that might be defined.
+        // this is to cover the case were we have defined conversions
+        // m3<->gal, m3<->L but m is defined
+        if ( (exponent != 1) && (exponent != -1) ) {
+            sendUnitStr.str("");
+            sendUnitStr << unit->getUnits() << exponent;
+            unit = grabUnits(sendUnitStr.str(),&offset);
+            if (unit) {
+                // a unit was found
+                // add this unit to the list
+                outList.push_front(RpUnitsListEntry(unit,1.0));
+            }
+            else {
+                // we came across a unit we did not recognize
+                // do nothing
+            }
+        }
+        */
 
         // reset our vars
         idx = 0;
@@ -877,7 +957,7 @@ RpUnits::units2list ( const std::string& inUnits,
         exponent = 1;
     }
 
-    return 0;
+    return err;
 }
 
 /**********************************************************************/
@@ -1005,6 +1085,7 @@ int RpUnits::compareListEntrySearch ( RpUnitsList& fromList,
  * Returns a string with or without units.
  */
 
+
 std::string
 RpUnits::convert (  std::string val,
                     std::string toUnitsName,
@@ -1024,6 +1105,7 @@ RpUnits::convert (  std::string val,
     std::string tmpNumVal = "";
     std::string fromUnitsName = "";
     std::string convVal = "";
+    std::string type = "";     // junk var used because units2list requires it
     double origNumVal = 0;
     double numVal = 0;
     double toExp = 0;
@@ -1032,8 +1114,10 @@ RpUnits::convert (  std::string val,
     char* endptr = NULL;
     std::stringstream outVal;
 
-    int rv = 0;
-    double factor = 1;
+    double copies = 0;
+
+    convertList cList;
+    convertList totalConvList;
 
 
     // set  default result flag/error code
@@ -1104,106 +1188,81 @@ RpUnits::convert (  std::string val,
         return std::string(outVal.str());
     }
 
-    RpUnits::units2list(toUnitsName,toUnitsList);
-    RpUnits::units2list(fromUnitsName,fromUnitsList);
+    RpUnits::units2list(fromUnitsName,fromUnitsList,type);
+    RpUnits::units2list(toUnitsName,toUnitsList,type);
 
+    fromIter = fromUnitsList.begin();
     toIter = toUnitsList.begin();
 
-    // pass 1: compare basis' of objects to find intra-basis conversions
     while ( toIter != toUnitsList.end() ) {
-        rv = RpUnits::compareListEntryBasis(fromUnitsList, fromIter, toIter);
-        if (rv == 0) {
+        fromUnits = fromIter->getUnitsObj();
+        toUnits = toIter->getUnitsObj();
 
-            // check the names of the units provided by the user
-            // if the names are the same, no need to do a conversion
-            if (fromIter->name() != toIter->name()) {
+        cList.clear();
+        convResult = fromUnits->getConvertFxnList(toUnits, cList);
 
-                // do an intra-basis conversion
-                toUnits = toIter->getUnitsObj();
-                fromUnits = fromIter->getUnitsObj();
+        if (convResult == 0) {
 
-                // do conversions
-                factor = 1;
-                factor = fromUnits->convert(toUnits, factor, &convResult);
-                numVal *= pow(factor,toIter->getExponent());
+            toExp = toIter->getExponent();
+            fromExp = fromIter->getExponent();
+
+            if (fromExp == toExp) {
+                copies = fromExp;
+                if (fromExp < 0) {
+                    copies = copies * -1.00;
+                    totalConvList.push_back(&invert);
+                }
+                while (copies > 0) {
+                    combineLists(totalConvList,cList);
+                    copies--;
+                }
+                if (fromExp < 0) {
+                    totalConvList.push_back(&invert);
+                }
+            }
+            else {
+                // currently we cannot handle conversions of
+                // units where the exponents are different
+                convResult++;
             }
 
+        }
+
+        if (convResult == 0) {
+            // successful conversion reported
             // remove the elements from the lists
             tempIter = toIter;
-            toIter = toUnitsList.erase(tempIter);
-//            toUnitsList.erase(tempIter);
-//            toIter++;
+            toIter++;
+            toUnitsList.erase(tempIter);
 
             tempIter = fromIter;
             fromUnitsList.erase(tempIter);
+            fromIter = fromUnitsList.begin();
         }
         else {
-            // this is not an intra-basis conversion.
-            // move onto the next toIter
-            toIter++;
+            // no conversion available?
+            fromIter++;
+            if (fromIter == fromUnitsList.end()) {
+                fromIter = fromUnitsList.begin();
+                // raise error that there was an 
+                // unrecognized conversion request
+                tempIter = toIter;
+                toIter++;
+                toUnitsList.erase(tempIter);
+            }
         }
+
     }
 
-    toIter = toUnitsList.begin();
-    fromIter = fromUnitsList.begin();
-
-    // pass 2: look for inter-basis conversions
     if (fromIter != fromUnitsList.end()) {
-        // double while loop to compare each toIter with each fromIter.
-        // the outter while checks the toIter and the inner while
-        // which is conveniently hidden, adjusts the fromIter and toIter
-        // (at the bottom in the else statement).
-        while (toIter != toUnitsList.end()) {
+        // raise error that there was an
+        // unrecognized conversion request
+    }
 
-            toUnits = toIter->getUnitsObj();
-            fromUnits = fromIter->getUnitsObj();
 
-            // do an inter-basis conversion...the slow way
-            // there has to be a better way to do this...
-            convResult = 1;
-
-            // in order to convert, exponents must be equal.
-            fromExp = fromIter->getExponent();
-            toExp   = toIter->getExponent();
-
-            if (fromExp == toExp) {
-                if (toExp == 1) {
-                    numVal = fromUnits->convert(toUnits, numVal, &convResult);
-                }
-                else {
-                    factor = 1;
-                    factor = fromUnits->convert(toUnits, factor, &convResult);
-                    numVal *= pow(factor,toExp);
-                }
-            }
-
-            if (convResult == 0) {
-                // successful conversion reported
-                // remove the elements from the lists
-                tempIter = toIter;
-                toUnitsList.erase(tempIter);
-                toIter++;
-
-                tempIter = fromIter;
-                fromUnitsList.erase(tempIter);
-
-                // conversion complete, jump out of the 
-                // while loop
-                break;
-            }
-            else {
-                // conversion was unsuccessful
-                // move onto the next fromIter
-                fromIter++;
-                if (fromIter == fromUnitsList.end()) {
-                    // this is not an inter-basis conversion.
-                    // move onto the next toIter
-                    fromIter = fromUnitsList.begin();
-                    toIter++;
-                }
-            } // end unsuccessful conversion
-        } // end toIter while loop
-    } // end
+    if (convResult == 0) {
+        convResult = applyConversion (&numVal, totalConvList);
+    }
 
 
 
@@ -1622,6 +1681,252 @@ RpUnits::convert(const RpUnits* toUnit, void* val, int* result) const {
 }
 
 /**********************************************************************/
+// METHOD: getConvertFxnList()
+/// Return list of fxn pointers for converting two simple RpUnits objects.
+/**
+ * Return the conversion list that will convert from this RpUnits
+ * object to the provided toUnits object if the conversion is defined
+ * example
+ *      cm.getConvertFxnList(meter,cList)
+ *      cm.getConvertFxnList(angstrum,cList)
+ *
+ * Returns a list of conversion objects, represented by cList,
+ * on success that a value can be applied to. The return value
+ * will be zero (0).
+ * Returns non-zero value on failure.
+ */
+
+int
+RpUnits::getConvertFxnList(const RpUnits* toUnit, convertList& cList) const {
+
+    // currently we convert this object to its basis and look for the
+    // connection to the toUnit object from the basis.
+
+    const RpUnits* toBasis = toUnit->getBasis();
+    const RpUnits* fromUnit = this;
+    const RpUnits* dictToUnit = NULL;
+    convEntry *p;
+    int result = 0;
+
+    // guard against converting to the units you are converting from...
+    // ie. meters->meters
+    if (this->getUnitsName() == toUnit->getUnitsName()) {
+        return result;
+    }
+
+    // convert unit to the basis
+    // makeBasis(&value);
+    // trying to avoid the recursive way of converting to the basis.
+    // need to rethink this.
+    //
+    if ( (basis) && (basis->getUnitsName() != toUnit->getUnitsName()) ) {
+        result = fromUnit->getConvertFxnList(basis,cList);
+        if (result == 0) {
+            fromUnit = basis;
+        }
+        else {
+            // exit because an error occured while
+            // trying to convert to the basis
+            return result;
+        }
+    }
+
+    // find the toUnit in our dictionary.
+    // if the toUnits has a basis, we need to search for the basis
+    // and convert between basis' and then convert again back to the 
+    // original unit.
+    if ( (toBasis) && (toBasis->getUnitsName() != fromUnit->getUnitsName()) ) {
+        dictToUnit = find(toBasis->getUnitsName());
+    }
+    else {
+        dictToUnit = find(toUnit->getUnitsName());
+    }
+
+    // did we find the unit in the dictionary?
+    if (dictToUnit == NULL) {
+        // toUnit was not found in the dictionary
+        result = 1;
+        return result;
+    }
+
+    // search through the conversion list to find
+    // the conversion to the toUnit.
+
+    if (basis) {
+        p = basis->convList;
+    }
+    else {
+        p = this->convList;
+    }
+
+    if (p == NULL) {
+        // there are no conversions
+        result = 1;
+        return result;
+    }
+
+    // loop through our conversion list looking for the correct conversion
+    do {
+
+        if ( (p->conv->toPtr == dictToUnit) && (p->conv->fromPtr == fromUnit) ) {
+            // we found our conversion
+            // call the function pointer with value
+
+            // this should probably be re thought out
+            // the problem is that convForwFxnPtr has the conversion for a
+            // one arg conv function pointer and convForwFxnPtrDD has the
+            // conversion for a two arg conv function pointer
+            // need to make this simpler, more logical maybe only allow 2 arg
+            if (       (p->conv->convForwFxnPtr)
+                    && (! p->conv->convForwFxnPtrDD) ) {
+
+                // value = p->conv->convForwFxnPtr(value);
+                cList.push_back(p->conv->convForwFxnPtr);
+            }
+            /*
+            else if (  (p->conv->convForwFxnPtrDD)
+                    && (! p->conv->convForwFxnPtr) ) {
+
+                // value = p->conv->convForwFxnPtrDD(value, fromUnit->getExponent());
+                cList.pushback(conv);
+            }
+            */
+
+            // check to see if we converted to the actual requested unit
+            // or to the requested unit's basis.
+            // if we converted to the requested unit's basis. we need to
+            // do one last conversion from the requested unit's basis back 
+            // to the requested unit.
+            if ( (toBasis) && (toBasis->getUnitsName() != fromUnit->getUnitsName()) ) {
+                result += toBasis->getConvertFxnList(toUnit,cList);
+            }
+
+            break;
+        }
+
+        if ( (p->conv->toPtr == fromUnit) && (p->conv->fromPtr == dictToUnit) ) {
+            // we found our conversion
+            // call the function pointer with value
+
+            // this should probably be re thought out
+            // the problem is that convForwFxnPtr has the conversion for a
+            // one arg conv function pointer and convForwFxnPtrDD has the
+            // conversion for a two arg conv function pointer
+            // need to make this simpler, more logical maybe only allow 2 arg
+            if (       (p->conv->convBackFxnPtr) 
+                    && (! p->conv->convBackFxnPtrDD) ) {
+
+                // value = p->conv->convBackFxnPtr(value);
+                cList.push_back(p->conv->convBackFxnPtr);
+            }
+            /*
+            else if (  (p->conv->convBackFxnPtrDD)
+                    && (! p->conv->convBackFxnPtr) ) {
+
+                // value = p->conv->convBackFxnPtrDD(value, fromUnit->getExponent());
+                cList.pushback(conv);
+            }
+            */
+
+            // check to see if we converted to the actual requested unit
+            // or to the requested unit's basis.
+            // if we converted to the requested unit's basis. we need to
+            // do one last conversion from the requested unit's basis back 
+            // to the requested unit.
+            if ( (toBasis) && (toBasis->getUnitsName() != fromUnit->getUnitsName()) ) {
+                result += toBasis->getConvertFxnList(toUnit,cList);
+            }
+
+            break;
+        }
+
+        p = p->next;
+
+    } while (p != NULL);
+
+
+    if ( p == NULL) {
+        // we did not find the conversion
+        result += 1;
+    }
+
+    // return the converted value and result flag
+    return result;
+}
+
+/**********************************************************************/
+// METHOD: applyConversion()
+/// Apply a list of conversions in cList to the value val
+/**
+ * Apply a list of conversions, represented by cList, to the value
+ * val.
+ *
+ * Returns an integer value of zero (0) on success
+ * Returns non-zero value on failure.
+ */
+
+int
+RpUnits::applyConversion(double* val, convertList& cList) {
+
+    convertList::iterator iter;
+
+    if(val == NULL) {
+        return 1;
+    }
+
+    for(iter = cList.begin(); iter != cList.end(); iter++)
+    {
+        *val = (*iter)(*val);
+    }
+
+    return 0;
+}
+
+/**********************************************************************/
+// METHOD: combineLists()
+/// combine two convertLists in an orderly fasion
+/**
+ *
+ * elements of l2 are pushed onto l1 in the same order in which it
+ * exists in l2. l1 is changed in this function.
+ *
+ * Returns an integer value of zero (0) on success
+ * Returns non-zero value on failure.
+ */
+
+int
+RpUnits::combineLists(convertList& l1, convertList& l2) {
+
+    for (convertList::iterator iter = l2.begin(); iter != l2.end(); iter++) {
+        l1.push_back(*iter);
+    }
+    return 0;
+
+}
+
+/**********************************************************************/
+// METHOD: printList()
+/// print a list
+/**
+ *
+ * elements of l2 are pushed onto l1 in the same order in which it
+ * exists in l2. l1 is changed in this function.
+ *
+ * Returns an integer value of zero (0) on success
+ * Returns non-zero value on failure.
+ */
+
+int
+RpUnits::printList(convertList& l1) {
+
+    for (convertList::iterator iter = l1.begin(); iter != l1.end(); iter++) {
+        printf("%x\n", int((*iter)));
+    }
+    return 0;
+
+}
+
+/**********************************************************************/
 // METHOD: insert()
 /// Place an RpUnits Object into the Rappture Units Dictionary.
 /**
@@ -1659,6 +1964,30 @@ RpUnits::connectConversion(conversion* conv) const {
         }
 
         p->next = new convEntry (conv,p,NULL);
+    }
+
+}
+
+/**********************************************************************/
+// METHOD: connectIncarnation()
+/// Attach incarnation object information to a RpUnits Object.
+/**
+ */
+
+void
+RpUnits::connectIncarnation(const RpUnits* unit) const {
+
+    incarnationEntry* p = incarnationList;
+
+    if (p == NULL) {
+        incarnationList = new incarnationEntry (unit,NULL,NULL);
+    }
+    else {
+        while (p->next != NULL) {
+            p = p->next;
+        }
+
+        p->next = new incarnationEntry (unit,p,NULL);
     }
 
 }
@@ -1728,6 +2057,7 @@ RpUnitsPreset::addPresetAll () {
     result += addPresetAngle();
     result += addPresetMass();
     result += addPresetPressure();
+    result += addPresetConcentration();
     result += addPresetMisc();
 
     return 0;
@@ -1795,6 +2125,8 @@ RpUnitsPreset::addPresetTemp () {
     RpUnits::define(celcius, kelvin, centigrade2kelvin, kelvin2centigrade);
     RpUnits::define(fahrenheit, kelvin, fahrenheit2kelvin, kelvin2fahrenheit);
     RpUnits::define(rankine, kelvin, rankine2kelvin, kelvin2rankine);
+    RpUnits::define(fahrenheit, rankine, fahrenheit2rankine, rankine2fahrenheit);
+    RpUnits::define(celcius, rankine, celcius2rankine, rankine2celcius);
 
     return 0;
 }
@@ -1819,16 +2151,16 @@ RpUnitsPreset::addPresetLength () {
     RpUnits* meters     = RpUnits::define("m", NULL, RP_TYPE_LENGTH);
     RpUnits* angstrom   = RpUnits::define("A", NULL, RP_TYPE_LENGTH);
     RpUnits* inch       = RpUnits::define("in", NULL, RP_TYPE_LENGTH);
-    RpUnits* feet       = RpUnits::define("ft", NULL, RP_TYPE_LENGTH);
-    RpUnits* yard       = RpUnits::define("yd", NULL, RP_TYPE_LENGTH);
+    RpUnits* feet       = RpUnits::define("ft", inch, RP_TYPE_LENGTH);
+    RpUnits* yard       = RpUnits::define("yd", inch, RP_TYPE_LENGTH);
 
     RpUnits::makeMetric(meters);
 
     // add length definitions
     RpUnits::define(angstrom, meters, angstrom2meter, meter2angstrom);
+    RpUnits::define(inch, feet, inch2feet, feet2inch);
+    RpUnits::define(inch, yard, inch2yard, yard2inch);
     RpUnits::define(inch, meters, inch2meter, meter2inch);
-    RpUnits::define(feet, meters, feet2meter, meter2feet);
-    RpUnits::define(yard, meters, yard2meter, meter2yard);
 
     return 0;
 }
@@ -1838,7 +2170,6 @@ RpUnitsPreset::addPresetLength () {
 /// Add Energy related units to the dictionary
 /**
  * Defines the following units:
- *   volt          (V)
  *   electron Volt (eV)
  *   joule         (J)
  *
@@ -1848,11 +2179,9 @@ RpUnitsPreset::addPresetLength () {
 int
 RpUnitsPreset::addPresetEnergy () {
 
-    RpUnits* volt       = RpUnits::define("V", NULL, RP_TYPE_ENERGY);
     RpUnits* eVolt      = RpUnits::define("eV", NULL, RP_TYPE_ENERGY);
     RpUnits* joule      = RpUnits::define("J", NULL, RP_TYPE_ENERGY);
 
-    RpUnits::makeMetric(volt);
     RpUnits::makeMetric(eVolt);
     RpUnits::makeMetric(joule);
 
@@ -1869,6 +2198,7 @@ RpUnitsPreset::addPresetEnergy () {
  * Defines the following units:
  *   cubic feet (ft3)
  *   us gallons (gal)
+ *   liter      (L)
  *
  * Return codes: 0 success, anything else is error
  */
@@ -1876,17 +2206,42 @@ RpUnitsPreset::addPresetEnergy () {
 int
 RpUnitsPreset::addPresetVolume () {
 
-    RpUnits* cubic_meter  = RpUnits::define("m3", NULL, RP_TYPE_VOLUME);
-    // RpUnits* pcubic_meter  = RpUnits::define("/m3", NULL, RP_TYPE_VOLUME);
-    RpUnits* cubic_feet   = RpUnits::define("ft3", NULL, RP_TYPE_VOLUME);
+    // RpUnits* cubic_meter  = RpUnits::define("m3", NULL, RP_TYPE_VOLUME);
+    // RpUnits* cubic_feet   = RpUnits::define("ft3", NULL, RP_TYPE_VOLUME);
     RpUnits* us_gallon    = RpUnits::define("gal", NULL, RP_TYPE_VOLUME);
+    RpUnits* liter        = RpUnits::define("L", NULL, RP_TYPE_VOLUME);
 
-    RpUnits::makeMetric(cubic_meter);
+    /*
+    // RpUnits::makeMetric(cubic_meter);
+    const RpUnits* meter = NULL;
+    const RpUnits* foot = NULL;
 
-    // add energy definitions
-    RpUnits::define(cubic_meter,cubic_feet,meter2feet,feet2meter);
-    RpUnits::define(cubic_meter,us_gallon,cubicMeter2usGallon,usGallon2cubicMeter);
-    RpUnits::define(cubic_feet,us_gallon,cubicFeet2usGallon,usGallon2cubicFeet);
+    meter = RpUnits::find("m");
+    if (meter && cubic_meter) {
+        RpUnits::incarnate(meter,cubic_meter);
+    }
+    else {
+        // raise an error, could not find meter unit
+    }
+
+    foot = RpUnits::find("ft");
+    if (foot && cubic_feet) {
+        RpUnits::incarnate(foot,cubic_feet);
+    }
+    else {
+        // raise an error, could not find meter unit
+    }
+    */
+
+    RpUnits::makeMetric(liter);
+
+
+    // add volume definitions
+    // RpUnits::define(cubic_meter,cubic_feet,meter2feet,feet2meter);
+    // RpUnits::define(cubic_meter,us_gallon,cubicMeter2usGallon,usGallon2cubicMeter);
+    // RpUnits::define(cubic_feet,us_gallon,cubicFeet2usGallon,usGallon2cubicFeet);
+    // RpUnits::define(cubic_meter,liter,cubicMeter2liter,liter2cubicMeter);
+    // RpUnits::define(liter,us_gallon,liter2us_gallon,us_gallon2liter);
 
     return 0;
 }
@@ -1938,7 +2293,6 @@ RpUnitsPreset::addPresetMass () {
     RpUnits::makeMetric(gram);
 
     // add mass definitions
-    // RpUnits::define(radian,gradian,rad2grad,grad2rad);
 
     return 0;
 }
@@ -1950,6 +2304,7 @@ RpUnitsPreset::addPresetMass () {
  * http://www.ilpi.com/msds/ref/pressureunits.html
  *
  * Defines the following units:
+ *   atmosphere             (atm)
  *   bar                    (bar)
  *   pascal                 (Pa)
  *   pounds/(in^2)          (psi)
@@ -1984,8 +2339,34 @@ RpUnitsPreset::addPresetPressure () {
     RpUnits::define(pascal,psi,Pa2psi,psi2Pa);
     RpUnits::define(torr,atmosphere,torr2atm,atm2torr);
     RpUnits::define(torr,psi,torr2psi,psi2torr);
+    RpUnits::define(atmosphere,psi,atm2psi,psi2atm);
 
     RpUnits::define(torr,mmHg,torr2mmHg,mmHg2torr);
+
+    return 0;
+}
+
+/**********************************************************************/
+// METHOD: addPresetConcentration()
+/// Add concentration related units to the dictionary
+/**
+ * http://www.ilpi.com/msds/ref/pressureunits.html
+ *
+ * Defines the following units:
+ *   pH    (pH)
+ *   pOH    (pOH)
+ *
+ * Return codes: 0 success, anything else is error
+ */
+
+int
+RpUnitsPreset::addPresetConcentration () {
+
+    RpUnits* pH  = RpUnits::define("pH",  NULL, RP_TYPE_CONC);
+    RpUnits* pOH = RpUnits::define("pOH",  NULL, RP_TYPE_CONC);
+
+    // add concentration definitions
+    RpUnits::define(pH,pOH,pH2pOH,pOH2pH);
 
     return 0;
 }
@@ -2003,10 +2384,12 @@ RpUnitsPreset::addPresetPressure () {
 int
 RpUnitsPreset::addPresetMisc () {
 
-    RpUnits* mole  = RpUnits::define("mol",  NULL, RP_TYPE_MISC);
-    RpUnits* hertz = RpUnits::define("Hz",  NULL, RP_TYPE_MISC);
+    RpUnits* volt      = RpUnits::define("V", NULL, RP_TYPE_ENERGY);
+    RpUnits* mole      = RpUnits::define("mol",  NULL, RP_TYPE_MISC);
+    RpUnits* hertz     = RpUnits::define("Hz",  NULL, RP_TYPE_MISC);
     RpUnits* becquerel = RpUnits::define("Bq",  NULL, RP_TYPE_MISC);
 
+    RpUnits::makeMetric(volt);
     RpUnits::makeMetric(mole);
     RpUnits::makeMetric(hertz);
     RpUnits::makeMetric(becquerel);
