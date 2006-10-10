@@ -215,7 +215,11 @@ nanohub's pbs queues through Rappture"""
         self.walltime(walltime)
         self.executable(executable)
         self.execArgs(execArgs)
-        self.queue("@vma118.punch.purdue.edu")
+        nanoHUBQ = os.getenv("NANOHUB_PBS_QUEUE")
+        if nanoHUBQ is None :
+            self.queue("@vma118.punch.purdue.edu")
+        else:
+            self.queue(nanoHUBQ)
 
     def __initPbsScriptVars__(self):
         self._pbs_vars['cmd'] = ""
@@ -316,7 +320,18 @@ touch %s
     def getCurrentStatus(self):
         retVal = self._pbs_msgs['DEFAULT']
         if self._jobId:
-            cmdOutput = getCommandOutput("qstat -a | grep \'^ *%s\'" % (self._jobId))
+            nanoHUBQ = self.queue()
+            if nanoHUBQ != "":
+                atLocation = nanoHUBQ.find('@')
+                if atLocation > -1:
+                    pbsServer = nanoHUBQ[atLocation+1:]
+
+            if pbsServer == '':
+                cmd = "qstat -a | grep \'^ *%s\'" % (self._jobId)
+            else:
+                cmd = "qstat @%s -a | grep \'^ *%s\'" % (pbsServer,self._jobId)
+            cmdOutput = getCommandOutput(cmd)
+
             # parse a string that should look like this: 
             # 32049.hamlet.rc kearneyd ncn      run.21557.   6104   8   8    --  24:00 R 00:00
             parseResults = cmdOutput.split() # re.compile(r'\W+').split(cmdOutput)
