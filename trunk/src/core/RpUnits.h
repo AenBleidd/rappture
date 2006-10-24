@@ -648,18 +648,18 @@ class RpUnits
         static int grabUnitString( const std::string& inStr);
         static const RpUnits* grabUnits (std::string inStr, int* offset);
         static int negateListExponents(RpUnitsList& unitsList);
-        static int RpUnits::printList(RpUnitsList& unitsList);
+        static int printList(RpUnitsList& unitsList);
 
-        static int RpUnits::compareListEntryBasis( RpUnitsList& fromList,
-                                                   RpUnitsListIter& fromIter,
-                                                   RpUnitsListIter& toIter);
+        static int compareListEntryBasis( RpUnitsList& fromList,
+                                          RpUnitsListIter& fromIter,
+                                          RpUnitsListIter& toIter);
 
-        static int RpUnits::compareListEntrySearch( RpUnitsList& fromList,
-                                                    RpUnitsListIter& fromIter,
-                                                    RpUnitsListIter& toIter);
+        static int compareListEntrySearch( RpUnitsList& fromList,
+                                           RpUnitsListIter& fromIter,
+                                           RpUnitsListIter& toIter);
 
-        void RpUnits::connectConversion(conversion* conv) const;
-        void RpUnits::connectIncarnation(const RpUnits* unit) const;
+        void connectConversion(conversion* conv) const;
+        void connectIncarnation(const RpUnits* unit) const;
 
         // return the conversion object that will convert
         // from this RpUnits to the proovided toUnits object

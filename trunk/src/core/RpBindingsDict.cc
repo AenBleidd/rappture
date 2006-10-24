@@ -66,15 +66,17 @@ RpLibrary*
 getObject_Lib(int objKey) {
 
 
-    RpLibrary* retVal = NULL;
+    RpDictEntry DICT_TEMPLATE_L* libEntry = &(ObjDict_Lib.getNullEntry());
+    RpDictEntry DICT_TEMPLATE_L* nullEntry = &(ObjDict_Lib.getNullEntry());
 
-    retVal = *(ObjDict_Lib.find(objKey).getValue());
+    libEntry = &(ObjDict_Lib.find(objKey));
 
-    if (retVal == *(ObjDict_Lib.getNullEntry().getValue())) {
-        retVal = NULL;
+
+    if ( (!libEntry->isValid()) || (libEntry == nullEntry) ) {
+        return NULL;
     }
 
-   return retVal;
+   return *(libEntry->getValue());
 
 }
 
@@ -157,6 +159,7 @@ storeObject_UnitsStr(std::string objectName) {
 const RpUnits*
 getObject_UnitsStr(int objKey) {
 
+    /*
     std::string basisName = *(ObjDictUnits.find(objKey).getValue());
 
     if (basisName == *(ObjDictUnits.getNullEntry().getValue())) {
@@ -164,7 +167,20 @@ getObject_UnitsStr(int objKey) {
         return NULL;
     }
 
-   return RpUnits::find(basisName);
+    return RpUnits::find(basisName);
+    */
+
+    RpDictEntry DICT_TEMPLATE_U* unitEntry = &(ObjDictUnits.getNullEntry());
+    RpDictEntry DICT_TEMPLATE_U* nullEntry = &(ObjDictUnits.getNullEntry());
+
+    unitEntry = &(ObjDictUnits.find(objKey));
+
+
+    if ( (!unitEntry->isValid()) || (unitEntry == nullEntry) ) {
+        return NULL;
+    }
+
+    return RpUnits::find(*(unitEntry->getValue()));
 
 }
 
