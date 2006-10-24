@@ -97,6 +97,7 @@ template <typename KeyType, typename ValType> class RpDictEntry
         const ValType* getValue() const;
         // const void* setValue(const void* value);
         const ValType* setValue(const ValType& value);
+        bool isValid() const;
 
         // erases this entry from its table
         void erase();
@@ -107,52 +108,45 @@ template <typename KeyType, typename ValType> class RpDictEntry
         friend class RpDict<KeyType,ValType>;
         friend class RpDictIterator<KeyType,ValType>;
 
-        // no_arg constructor
-        // use the key and clientData's default [no-arg] constructor
-        RpDictEntry()
-           : nextPtr (NULL), 
-             tablePtr (NULL), 
-             hash (0) // , 
-             // clientData (),
-             // key ()
-        {
-        }
-
         // one-arg constructor
         // maybe get rid of this one?
+        // use the clientData's default [no-arg] constructor
+        /*
         RpDictEntry(KeyType newKey)
-           : nextPtr    (NULL), 
-             tablePtr   (NULL), 
-             hash       (0), 
-             clientData (NULL),
+           : nextPtr    (NULL),
+             tablePtr   (NULL),
+             hash       (0),
+             // clientData (NULL),
              key        (newKey)
         {
         }
+        */
 
         // two-arg constructor
         RpDictEntry(KeyType newKey, ValType newVal)
-           : nextPtr    (NULL), 
-             tablePtr   (NULL), 
-             hash       (0), 
+           : nextPtr    (NULL),
+             tablePtr   (NULL),
+             hash       (0),
              clientData (newVal),
-             key        (newKey)
+             key        (newKey),
+             valid      (&clientData)
         {
         }
 
 /*
         RpDictEntry(KeyType* newKey, ValType* newVal)
-           : nextPtr    (NULL), 
-             tablePtr   (NULL), 
-             hash       (0), 
+           : nextPtr    (NULL),
+             tablePtr   (NULL),
+             hash       (0),
              clientData (*newVal),
              key        (*newKey)
         {
         }
 
         RpDictEntry(KeyType newKey, RpDict* table)
-           : nextPtr    (NULL), 
-             tablePtr   (table), 
-             hash       (0), 
+           : nextPtr    (NULL),
+             tablePtr   (table),
+             hash       (0),
              // clientData (NULL),
              key        (newKey)
         {
@@ -164,8 +158,16 @@ template <typename KeyType, typename ValType> class RpDictEntry
             nextPtr     = entry.nextPtr;
             tablePtr    = entry.tablePtr;
             hash        = entry.hash;
-            clientData  = (ValType) entry.getValue();
-            key         = (KeyType) entry.getKey();
+
+            if (entry.valid != NULL) {
+                clientData  = (ValType) entry.getValue();
+                key         = (KeyType) entry.getKey();
+                valid       = &clientData;
+            }
+            else {
+                valid = NULL;
+            }
+
         }
 
     private:
@@ -176,18 +178,30 @@ template <typename KeyType, typename ValType> class RpDictEntry
                                      * hash bucket, or NULL for end of
                                      * chain. */
 
-        RpDict<KeyType,ValType> 
-            *tablePtr;              /* Pointer to table containing entry. */
+        RpDict<KeyType,ValType>*
+            tablePtr;              /* Pointer to table containing entry. */
 
         unsigned int hash;          /* Hash value. */
 
         ValType clientData;        /* Application stores something here
-                                     * with Tcl_SetHashValue. */
+                                    * with Tcl_SetHashValue. */
 
         KeyType key;               /* entry key */
 
+        ValType* valid;            /* is this a valid object */
 
 
+        // no_arg constructor
+        // 
+        RpDictEntry()
+           : nextPtr (NULL),
+             tablePtr (NULL),
+             hash (0),
+             valid (NULL)
+             // clientData (),
+             // key ()
+        {
+        }
 
 };
 
@@ -206,19 +220,19 @@ template <typename KeyType, typename ValType> class RpDict
         // returns 0 on success (object inserted or already exists)
         // returns !0 on failure (object cannot be inserted or dne)
         //
-        /*virtual*/ RpDict<KeyType,ValType>& 
-                        set(    KeyType& key, 
-                                ValType& value, 
-                                int *newPtr=NULL );   
+        /*virtual*/ RpDict<KeyType,ValType>&
+                        set(    KeyType& key,
+                                ValType& value,
+                                int *newPtr=NULL );
 
         // find an RpUnits object that should exist in RpUnitsTable
         // 
         /*virtual*/ RpDictEntry<KeyType,ValType>& 
                         find( KeyType& key );
 
-        /*virtual*/ RpDictEntry<KeyType,ValType>& operator[]( KeyType& key) 
-        { 
-            return find(key); 
+        /*virtual*/ RpDictEntry<KeyType,ValType>& operator[]( KeyType& key)
+        {
+            return find(key);
         }
 
         // clear the entire table
@@ -235,7 +249,7 @@ template <typename KeyType, typename ValType> class RpDict
         friend class RpDictIterator<KeyType, ValType>;
 
         // default constructor
-        RpDict () 
+        RpDict ()
             : SMALL_RP_DICT_SIZE(4),
               REBUILD_MULTIPLIER(3),
               buckets(staticBuckets),
@@ -244,13 +258,15 @@ template <typename KeyType, typename ValType> class RpDict
               rebuildSize(SMALL_RP_DICT_SIZE*REBUILD_MULTIPLIER),
               downShift(28),
               mask(3)
-        { 
+        {
 
             staticBuckets[0] = staticBuckets[1] = 0;
             staticBuckets[2] = staticBuckets[3] = 0;
 
             // setup a dummy entry of NULL
             nullEntry = new RpDictEntry<KeyType,ValType>();
+
+            assert(nullEntry != NULL);
 
             // std::cout << "inside RpDict Constructor" << std::endl;
 
@@ -263,7 +279,7 @@ template <typename KeyType, typename ValType> class RpDict
         // RpDict& operator=(const RpDict& dict);
 
         // destructor
-        /*virtual*/ ~RpDict() 
+        /*virtual*/ ~RpDict()
         {
             // probably need to delete all the entries as well
             delete nullEntry;
@@ -365,9 +381,9 @@ RpDict<KeyType,ValType>::set(   KeyType& key,
                                 ValType& value, 
                                 int* newPtr)
 {
-    RpDictEntry<KeyType,ValType> *hPtr;
-    unsigned int hash;
-    int index;
+    RpDictEntry<KeyType,ValType> *hPtr = NULL;
+    unsigned int hash = 0;
+    int index = 0;
 
     assert(&key);
     assert(&value);
@@ -460,12 +476,12 @@ RpDict<KeyType,ValType>::set(   KeyType& key,
  */
 
 template <typename KeyType, typename ValType>
-RpDictEntry<KeyType,ValType>& 
+RpDictEntry<KeyType,ValType>&
 RpDict<KeyType,ValType>::find(KeyType& key)
 {
-    RpDictEntry<KeyType,ValType> *hPtr;
-    unsigned int hash;
-    int index;
+    RpDictEntry<KeyType,ValType> *hPtr = NULL;
+    unsigned int hash = 0;
+    int index = 0;
 
     assert(&key);
 
@@ -512,7 +528,7 @@ RpDict<KeyType,ValType>::find(KeyType& key)
  *
  * Side Effects:
  *  moves iterator to the beginning of the hash table.
- * 
+ *
  *
  *************************************************************************/
 /*
@@ -566,7 +582,7 @@ template <typename KeyType,typename ValType>
 RpDictEntry<KeyType,ValType>* 
 RpDictIterator<KeyType,ValType>::next() 
 {
-    RpDictEntry<KeyType,ValType>* hPtr;
+    RpDictEntry<KeyType,ValType>* hPtr = NULL;
 
     while (srchNextEntryPtr == NULL) {
         if (srchNextIndex >= tablePtr.numBuckets) {
@@ -598,7 +614,7 @@ template <typename KeyType, typename ValType>
 RpDict<KeyType,ValType>&
 RpDict<KeyType,ValType>::clear()
 {
-    RpDictEntry<KeyType,ValType> *hPtr;
+    RpDictEntry<KeyType,ValType> *hPtr = NULL;
     RpDictIterator<KeyType,ValType> iter((RpDict&)*this);
 
     hPtr = iter.first();
@@ -613,7 +629,7 @@ RpDict<KeyType,ValType>::clear()
 
 /**************************************************************************
  *
- * RpDict & getNullEntry()
+ * RpDictEntry & getNullEntry()
  *  get the nullEntry hash entry for initialization of references
  *
  *
@@ -656,8 +672,8 @@ template <typename KeyType, typename ValType>
 void
 RpDictEntry<KeyType,ValType>::erase()
 {
-    RpDictEntry<KeyType,ValType> *prevPtr;
-    RpDictEntry<KeyType,ValType> **bucketPtr;
+    RpDictEntry<KeyType,ValType> *prevPtr = NULL;
+    RpDictEntry<KeyType,ValType> **bucketPtr = NULL;
     int index = 0;
 
     // check to see if the object is associated with a table
@@ -703,6 +719,7 @@ RpDictEntry<KeyType,ValType>::erase()
     hash = 0;
     // clientData = NULL;
     // key = NULL;
+    valid = NULL;
 
     // delete the object.
     delete this;
@@ -739,6 +756,8 @@ RpDictEntry<KeyType,ValType>::getKey() const
  * const char* RpDictEntry::getValue() const
  *
  *  retrieve the value of the current object
+ *  it is the caller responsibility to check isValid() to see if the
+ *  object actually holds a valid value.
  *
  * Results:
  *  the value is returned to the caller
@@ -777,6 +796,7 @@ const ValType*
 RpDictEntry<KeyType,ValType>::setValue(const ValType& value)
 {
     clientData = value;
+    valid = &clientData;
     return (const ValType*) &clientData;
 }
 
@@ -790,6 +810,32 @@ RpDictEntry<KeyType,ValType>::operator int() const
         return 1;
 
 //    return (key);
+}
+
+/*
+ *----------------------------------------------------------------------
+ *
+ * bool RpDictEntry::isValid()
+ *
+ *  is this a valid object, return true or false
+ *
+ * Results:
+ *  tells the user if the object is valid true or false
+ *
+ * Side effects:
+ *  None.
+ *
+ *----------------------------------------------------------------------
+ */
+
+template <typename KeyType, typename ValType>
+bool
+RpDictEntry<KeyType,ValType>::isValid() const
+{
+    if (valid) {
+        return true;
+    }
+    return false;
 }
 
 
@@ -823,11 +869,11 @@ void
 RpDict<KeyType,ValType>::RebuildTable()
 {
     int oldSize=0, count=0, index=0; 
-    RpDictEntry<KeyType,ValType> **oldBuckets;
-    RpDictEntry<KeyType,ValType> **oldChainPtr, **newChainPtr;
-    RpDictEntry<KeyType,ValType> *hPtr;
+    RpDictEntry<KeyType,ValType> **oldBuckets = NULL;
+    RpDictEntry<KeyType,ValType> **oldChainPtr = NULL, **newChainPtr = NULL;
+    RpDictEntry<KeyType,ValType> *hPtr = NULL;
 
-    void *key;
+    // void *key = NULL;
 
     oldSize = numBuckets;
     oldBuckets = buckets;
@@ -862,7 +908,7 @@ RpDict<KeyType,ValType>::RebuildTable()
         for (hPtr = *oldChainPtr; hPtr != NULL; hPtr = *oldChainPtr) {
             *oldChainPtr = hPtr->nextPtr;
 
-            key = (void *) hPtr->getKey();
+            // key = (void *) hPtr->getKey();
 
             index = randomIndex(hPtr->hash);
 
@@ -904,7 +950,7 @@ RpDict<KeyType,ValType>::hashFxn(const void *keyPtr) const
 {
     const char *stopAddr = (const char *) keyPtr + sizeof(&keyPtr) - 1 ;
     const char *str = (const char *) keyPtr;
-    unsigned int result;
+    unsigned int result = 0;
     int c;
 
     result = 0;
@@ -941,8 +987,8 @@ unsigned int
 RpDict<KeyType,ValType>::hashFxn(std::string* keyPtr) const
 {
     const char *str = (const char *) (keyPtr->c_str());
-    unsigned int result;
-    int c;
+    unsigned int result = 0;
+    int c = 0;
 
     result = 0;
 
@@ -963,8 +1009,8 @@ unsigned int
 RpDict<KeyType,ValType>::hashFxn(char* keyPtr) const
 {
     const char *str = (const char *) (keyPtr);
-    unsigned int result;
-    int c;
+    unsigned int result = 0;
+    int c = 0;
 
     result = 0;
 

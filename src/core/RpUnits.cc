@@ -679,7 +679,12 @@ const RpUnits*
 RpUnits::find(std::string key) {
 
     // dict pointer
+    /*
     const RpUnits* unitEntry = NULL;
+    const RpUnits* nullEntry = NULL;
+    */
+    RpDictEntry<std::string,RpUnits*>* unitEntry = &(dict->getNullEntry());
+    RpDictEntry<std::string,RpUnits*>* nullEntry = &(dict->getNullEntry());
     double exponent = 1;
     int idx = 0;
     std::stringstream tmpKey;
@@ -692,14 +697,20 @@ RpUnits::find(std::string key) {
         key = tmpKey.str();
     }
 
+    /*
     unitEntry = *(dict->find(key).getValue());
+    nullEntry = *(dict->getNullEntry().getValue());
+    */
+
+    unitEntry = &(dict->find(key));
 
     // dict pointer
-    if (unitEntry == *(dict->getNullEntry().getValue()) ) {
-        unitEntry = NULL;
+    if ( (!unitEntry->isValid()) || (unitEntry == nullEntry) ) {
+        // unitEntry = NULL;
+        return NULL;
     }
 
-    return unitEntry;
+    return *(unitEntry->getValue());
 }
 
 /**********************************************************************/
