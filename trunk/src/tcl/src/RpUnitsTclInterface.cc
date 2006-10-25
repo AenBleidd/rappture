@@ -276,8 +276,7 @@ RpTclUnitsConvert   (   ClientData cdata,
     else {
         // error while converting
         Tcl_AppendResult(interp, 
-                "error while converting, returned string: \"",
-                convertedVal.c_str(),"\"",
+                convertedVal.c_str(),
                 (char*)NULL);
         retVal = TCL_ERROR;
     }

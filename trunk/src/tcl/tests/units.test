@@ -164,6 +164,9 @@ test convert-1.7.1.2 {Rappture::Units::convert, invalid val w/ -context} {
     list [catch {Rappture::Units::convert de -context m } msg] $msg
 } {1 {bad value "de": should be a real number with units of (A,in,m)}}
 
+test convert-1.8.0 {Rappture::Units::convert, convert undefined unit} {
+    list [catch {Rappture::Units::convert 33Q -to nm } msg] $msg
+} {1 {unrecognized units: "Q"}}
 
 #----------------------------------------------------------
 #----------------------------------------------------------
@@ -454,6 +457,62 @@ test convert_units-5.4.4.0 {Rappture::Units::convert, cm2/Vs->m2/kVus} {
     list [catch {Rappture::Units::convert 2cm2/Vs -to m2/kVus} msg] $msg
 } {0 2e-07m2/kVus}
 
+test convert_units-5.4.4.1 {Rappture::Units::convert, cm2/Vs->m2/kQus} {
+    list [catch {Rappture::Units::convert 2cm2/Vs -to m2/kQus} msg] $msg
+} {1 {bad value "m2/kQus": should be a recognized unit for Rappture}}
+
+test convert_units-5.4.4.2 {Rappture::Units::convert, cm2nZ/Vs->m2/us} {
+    list [catch {Rappture::Units::convert 2cm2nZ/Vs -to m2/us} msg] $msg
+} {1 {unrecognized units: "cm2nZ/Vs"}}
+
+test convert_units-5.4.4.3 {Rappture::Units::convert, cm2/s->m2/kVus} {
+    list [catch {Rappture::Units::convert 2cm2/s -to m2/kVus} msg] $msg
+} {1 {unmatched units in conversion: (kV-1)}}
+
+test convert_units-5.4.4.4 {Rappture::Units::convert, cm2/s->m2/uskV} {
+    list [catch {Rappture::Units::convert 2cm2/s -to m2/uskV} msg] $msg
+} {1 {unmatched units in conversion: (kV-1)}}
+
+test convert_units-5.4.4.5 {Rappture::Units::convert, cm2V/s->m2/us} {
+    list [catch {Rappture::Units::convert 2cm2V/s -to m2/us} msg] $msg
+} {1 {unmatched units in conversion: (V1)}}
+
+test convert_units-5.4.4.6 {Rappture::Units::convert, cm2V/s->m2/us} {
+    list [catch {Rappture::Units::convert 2cm2V/s -to m2/us} msg] $msg
+} {1 {unmatched units in conversion: (V1)}}
+
+test convert_units-5.4.4.7 {Rappture::Units::convert, cm2V->m2} {
+    list [catch {Rappture::Units::convert 2cm2V -to m2} msg] $msg
+} {1 {unmatched units in conversion: (V1)}}
+
+test convert_units-5.4.4.8 {Rappture::Units::convert, Vcm2->m2} {
+    list [catch {Rappture::Units::convert 2Vcm2 -to m2} msg] $msg
+} {1 {unmatched units in conversion: (V1)}}
+
+test convert_units-5.4.4.9 {Rappture::Units::convert, cm2->Vm2} {
+    list [catch {Rappture::Units::convert 2cm2 -to Vm2} msg] $msg
+} {1 {unmatched units in conversion: (V1)}}
+
+test convert_units-5.4.4.10 {Rappture::Units::convert, cm2->m2V} {
+    list [catch {Rappture::Units::convert 2cm2 -to m2V} msg] $msg
+} {1 {unmatched units in conversion: (V1)}}
+
+test convert_units-5.4.4.11 {Rappture::Units::convert, cm2A->Vm2} {
+    list [catch {Rappture::Units::convert 2cm2A -to Vm2} msg] $msg
+} {1 {unmatched units in conversion: (A1) -> (V1)}}
+
+test convert_units-5.4.4.12 {Rappture::Units::convert, cm2A->m2V} {
+    list [catch {Rappture::Units::convert 2cm2A -to m2V} msg] $msg
+} {1 {conversion unavailable: (A1) -> (V1)}}
+
+test convert_units-5.4.4.13 {Rappture::Units::convert, Acm2->Vm2} {
+    list [catch {Rappture::Units::convert 2Acm2 -to Vm2} msg] $msg
+} {1 {unmatched units in conversion: (A1) -> (V1)}}
+
+test convert_units-5.4.4.14 {Rappture::Units::convert, Acm2->m2V} {
+    list [catch {Rappture::Units::convert 2Acm2 -to m2V} msg] $msg
+} {1 {conversion unavailable: (A1) -> (V1)}}
+
 #--------------------------------------------------------------------
 # Inverse Unit Conversions
 #--------------------------------------------------------------------
@@ -464,7 +523,7 @@ test convert_units-5.4.5.0 {Rappture::Units::convert, /cm2->/m2} {
 
 test convert_units-5.4.5.1 {Rappture::Units::convert, cm2->/m2} {
     list [catch {Rappture::Units::convert 1cm -to /m2} msg] $msg
-} {1 {error while converting, returned string: "1/m2"}}
+} {1 {conversion unavailable: (cm1) -> (m-2)}}
 
 #--------------------------------------------------------------------
 # Temperature Conversions
