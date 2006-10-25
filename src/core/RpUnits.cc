@@ -1117,11 +1117,12 @@ RpUnits::convert (  std::string val,
     std::string fromUnitsName = "";
     std::string convVal = "";
     std::string type = "";     // junk var used because units2list requires it
+    std::string retStr = "";
     double origNumVal = 0;
     double numVal = 0;
     double toExp = 0;
     double fromExp = 0;
-    int convResult = 0;
+    int convErr = 0;
     char* endptr = NULL;
     std::stringstream outVal;
 
@@ -1199,20 +1200,35 @@ RpUnits::convert (  std::string val,
         return std::string(outVal.str());
     }
 
-    RpUnits::units2list(fromUnitsName,fromUnitsList,type);
-    RpUnits::units2list(toUnitsName,toUnitsList,type);
+    convErr = RpUnits::units2list(fromUnitsName,fromUnitsList,type);
+    if (convErr) {
+        if (result) {
+            *result = convErr;
+        }
+        retStr = "unrecognized units: \"" + fromUnitsName + "\"";
+        return retStr;
+    }
+
+    convErr = RpUnits::units2list(toUnitsName,toUnitsList,type);
+    if (convErr) {
+        if (result) {
+            *result = convErr;
+        }
+        retStr = "unrecognized units: \"" + toUnitsName + "\"";
+        return retStr;
+    }
 
     fromIter = fromUnitsList.begin();
     toIter = toUnitsList.begin();
 
-    while ( toIter != toUnitsList.end() ) {
+    while ( (toIter != toUnitsList.end()) && (fromIter != fromUnitsList.end()) && (!convErr) ) {
         fromUnits = fromIter->getUnitsObj();
         toUnits = toIter->getUnitsObj();
 
         cList.clear();
-        convResult = fromUnits->getConvertFxnList(toUnits, cList);
+        convErr = fromUnits->getConvertFxnList(toUnits, cList);
 
-        if (convResult == 0) {
+        if (convErr == 0) {
 
             toExp = toIter->getExponent();
             fromExp = fromIter->getExponent();
@@ -1234,12 +1250,12 @@ RpUnits::convert (  std::string val,
             else {
                 // currently we cannot handle conversions of
                 // units where the exponents are different
-                convResult++;
+                convErr++;
             }
 
         }
 
-        if (convResult == 0) {
+        if (convErr == 0) {
             // successful conversion reported
             // remove the elements from the lists
             tempIter = toIter;
@@ -1254,44 +1270,117 @@ RpUnits::convert (  std::string val,
             // no conversion available?
             fromIter++;
             if (fromIter == fromUnitsList.end()) {
+
                 fromIter = fromUnitsList.begin();
-                // raise error that there was an 
-                // unrecognized conversion request
-                tempIter = toIter;
                 toIter++;
-                toUnitsList.erase(tempIter);
+
+                if (toIter == toUnitsList.end())  {
+
+                    toIter = toUnitsList.begin();
+
+                    // raise error that there was an 
+                    // unrecognized conversion request
+
+                    convErr++;
+                    retStr = "conversion unavailable: (";
+                    while (fromIter != fromUnitsList.end()) {
+                        /*
+                        if (fromIter != fromUnitsList.begin()) {
+                            retStr += " or ";
+                        }
+                        */
+                        retStr += fromIter->name();
+                        fromIter++;
+                    }
+                    retStr += ") -> (";
+
+                    // tempIter = toIter;
+
+                    while (toIter != toUnitsList.end()) {
+                        retStr += toIter->name();
+                        toIter++;
+                    }
+                    retStr += ")";
+
+                    // exit and report the error
+
+                    /*
+                    toIter = tempIter;
+                    toIter++;
+                    toUnitsList.erase(tempIter);
+                    */
+                }
+                else {
+                    // keep searching for units to convert
+                    // until we are out of units in the
+                    // fromUnitsList and toUnitsList.
+
+                    convErr = 0;
+                }
+            }
+            else {
+                // keep searching for units to convert
+                // until we are out of units in the
+                // fromUnitsList and toUnitsList.
+
+                convErr = 0;
             }
         }
-
-    }
-
-    if (fromIter != fromUnitsList.end()) {
-        // raise error that there was an
-        // unrecognized conversion request
     }
 
 
-    if (convResult == 0) {
-        convResult = applyConversion (&numVal, totalConvList);
+
+    if (convErr == 0) {
+        // if ( (fromIter != fromUnitsList.end()) || (toIter != toUnitsList.end()) ) {
+        if ( fromUnitsList.size() || toUnitsList.size() ) {
+            // raise error that there was an
+            // unrecognized conversion request
+
+            convErr++;
+            retStr = "unmatched units in conversion: (";
+
+            fromIter = fromUnitsList.begin();
+            while (fromIter != fromUnitsList.end()) {
+                retStr += fromIter->name();
+                fromIter++;
+            }
+
+            if (fromUnitsList.size() && toUnitsList.size()) {
+                retStr += ") -> (";
+            }
+
+            toIter = toUnitsList.begin();
+            while (toIter != toUnitsList.end()) {
+                retStr += toIter->name();
+                toIter++;
+            }
+            retStr += ")";
+        }
+        else {
+            // apply the conversion and check for errors
+            convErr = applyConversion (&numVal, totalConvList);
+            if (convErr == 0) {
+                // outVal.flags(std::ios::fixed);
+                // outVal.precision(10);
+                if (showUnits) {
+                    outVal << numVal << toUnitsName;
+                }
+                else {
+                    outVal << numVal;
+                }
+                retStr = outVal.str();
+            }
+            else {
+
+            }
+        }
     }
-
-
 
     if ( (result) && (*result == 0) ) {
-        *result = convResult;
+        *result = convErr;
     }
 
-    // outVal.flags(std::ios::fixed);
-    // outVal.precision(10);
-
-    if (showUnits) {
-        outVal << numVal << toUnitsName;
-    }
-    else {
-        outVal << numVal;
-    }
-
-    return std::string(outVal.str());
+    return retStr;
 
 }
 
