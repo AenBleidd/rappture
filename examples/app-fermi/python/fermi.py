@@ -18,9 +18,9 @@ from math import *
 # open the XML file containing the run parameters
 driver = Rappture.library(sys.argv[1])
 
-driver.put("tool.date", "$Date$")
-driver.put("tool.rev", "$Rev$")
-driver.put("tool.url", "$URL$")
+driver.put("tool.repository.application.date", "$Date$")
+driver.put("tool.repository.application.rev", "$Rev$")
+driver.put("tool.repository.application.url", "$URL$")
 
 Tstr = driver.get('input.(temperature).current')
 T = Rappture.Units.convert(Tstr, to="K", units="off")
