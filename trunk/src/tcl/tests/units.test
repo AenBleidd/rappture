@@ -77,8 +77,8 @@ test convert-1.3.1 {Rappture::Units::convert, -context valid} {
 
 test convert-1.3.2.2 {Rappture::Units::convert, -context invalid} {
 # this test passes for new tcl bindings, fails for old tcl version
-    list [catch {Rappture::Units::convert 5m -context ff} msg] $msg
-} {1 {bad value "ff": should be a recognized unit for Rappture}}
+    list [catch {Rappture::Units::convert 5m -context xx} msg] $msg
+} {1 {bad value "xx": should be a recognized unit for Rappture}}
 
 test convert-1.4.0 {Rappture::Units::convert, -to blank} {
     list [catch {Rappture::Units::convert 5m -to} msg] $msg
@@ -101,8 +101,8 @@ test convert-1.4.1.2 {Rappture::Units::convert, -to valid} {
 
 test convert-1.4.2.2 {Rappture::Units::convert, -to invalid} {
 # this test passes for new tcl bindings, fails for old tcl version
-    list [catch {Rappture::Units::convert 5m -to ff} msg] $msg
-} {1 {bad value "ff": should be a recognized unit for Rappture}}
+    list [catch {Rappture::Units::convert 5m -to xx} msg] $msg
+} {1 {bad value "xx": should be a recognized unit for Rappture}}
 
 #test convert-1.5.0 {Rappture::Units::convert, -units blank} {
 ## this test passes for old tcl version, fails for new tcl bindings
@@ -777,8 +777,29 @@ test convert_units-5.4.9.28 {Rappture::Units::convert, torr->mmHg} {
     list [catch {Rappture::Units::convert 5torr -to mmHg} msg] $msg
 } {0 5mmHg}
 
+#--------------------------------------------------------------------
+# Case Insensitive/Sensitive Unit Conversions
+#--------------------------------------------------------------------
 
+test convert_units-5.4.10.1 {Rappture::Units::convert, torr->mmhg} {
+    list [catch {Rappture::Units::convert 5torr -to mmhg} msg] $msg
+} {0 5mmhg}
 
+test convert_units-5.4.10.2 {Rappture::Units::convert, ToRr->mmhg} {
+    list [catch {Rappture::Units::convert 5ToRr -to mmhg} msg] $msg
+} {0 5mmhg}
+
+test convert_units-5.4.10.3 {Rappture::Units::convert, kpa->PSI} {
+    list [catch {Rappture::Units::convert 5kpa -to PSI} msg] $msg
+} {0 0.7252PSI}
+
+test convert_units-5.4.10.4 {Rappture::Units::convert, KPA->PsI} {
+    list [catch {Rappture::Units::convert 5KPA -to PsI} msg] $msg
+} {0 0.7252PsI}
+
+test convert_units-5.4.10.5 {Rappture::Units::convert, Cm2/vS->M2/KVUS} {
+    list [catch {Rappture::Units::convert 2Cm2/vS -to M2/KVUS} msg] $msg
+} {0 2e-07M2/KVUS}
 
 
 ::tcltest::cleanupTests
