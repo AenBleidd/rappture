@@ -1625,6 +1625,10 @@ RpLibrary::result() {
         outputFile << "run" << (int)time(&t) << ".xml";
         file.open(outputFile.str().c_str(),std::ios::out);
 
+        put("tool.repository.rappture.date","$Date$");
+        put("tool.repository.rappture.revision","$Rev$");
+        put("tool.repository.rappture.url","$URL$");
+
         if ( file.is_open() ) {
             xmlText = xml();
             if (!xmlText.empty()) {
