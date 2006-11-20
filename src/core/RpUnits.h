@@ -28,6 +28,9 @@
 
 #define LIST_TEMPLATE RpUnitsListEntry
 
+// RpUnits Case Insensitivity define
+#define RPUNITS_CI true
+
 //define our different types of units
 #define RP_TYPE_ENERGY      "energy"
 #define RP_TYPE_LENGTH      "length"
@@ -333,11 +336,15 @@ class RpUnits
         // users member fxns
         std::string getUnits() const;
         std::string getUnitsName() const;
+        std::string getSearchName() const;
         double getExponent() const;
         const RpUnits* getBasis() const;
 
         // retrieve a units type.
         std::string getType() const;
+
+        // retrieve the case insensitivity of this unit object
+        bool getCI() const;
 
         // retrieve a list of compatible units.
         std::list<std::string> getCompatible(double expMultiplier=1.0) const;
@@ -405,7 +412,8 @@ class RpUnits
         // add RpUnits Object
         static RpUnits * define(const std::string units,
                                 const RpUnits* basis=NULL,
-                                const std::string type=""   );
+                                const std::string type="",
+                                bool caseInsensitive=RPUNITS_CI);
 
         // add relation rule
 
@@ -449,11 +457,35 @@ class RpUnits
         // undefining a relation rule is probably not needed
         // int undefine(); // delete a relation
 
+        static bool cmpFxn (char c1, char c2)
+        {
+            int lc1 = toupper(static_cast<unsigned char>(c1));
+            int lc2 = toupper(static_cast<unsigned char>(c2));
+
+            if ( (lc1 < lc2) || (lc1 > lc2) ) {
+                return false;
+            }
+
+            return true;
+
+        }
+        struct _key_compare:
+            public
+            std::binary_function<std::string,std::string,bool> {
+
+                bool operator() (   const std::string& lhs,
+                                    const std::string& rhs ) const
+                {
+                    return std::lexicographical_compare( lhs.begin(),lhs.end(),
+                                                         rhs.begin(),rhs.end(),
+                                                         RpUnits::cmpFxn  );
+                }
+            };
         // why are these functions friends...
         // probably need to find a better way to let RpUnits
         // use the RpDict and RpDictEntry fxns
-        friend class RpDict<std::string,RpUnits*>;
-        friend class RpDictEntry<std::string,RpUnits*>;
+        friend class RpDict<std::string,RpUnits*,_key_compare>;
+        friend class RpDictEntry<std::string,RpUnits*,_key_compare>;
 
         friend int insert(std::string key,RpUnits* val);
 
@@ -464,6 +496,7 @@ class RpUnits
               exponent (other.exponent),
               basis    (other.basis),
               type     (other.type),
+              ci       (other.ci),
               convList (NULL)
         {
             convEntry* q = NULL;
@@ -516,6 +549,7 @@ class RpUnits
             exponent = other.exponent;
             basis = other.basis;
             type = other.type;
+            ci = other.ci;
 
             if (other.convList) {
                 q = other.convList;
@@ -591,6 +625,9 @@ class RpUnits
         const RpUnits* basis;
         std::string type;
 
+        // should this unit be inserted as a case insensitive unit?
+        bool ci;
+
         // linked list of units this RpUnit can convert to
         // its mutable because the connectConversion function takes in a
         // const RpUnits* and attempts to change the convList variable
@@ -603,9 +640,8 @@ class RpUnits
         // within the RpUnits Object
         mutable incarnationEntry* incarnationList;
 
-
         // dictionary to store the units.
-        static RpDict<std::string,RpUnits*>* dict;
+        static RpDict<std::string,RpUnits*,_key_compare>* dict;
 
         // create a units element
         // class takes in three pieces of info
@@ -619,12 +655,14 @@ class RpUnits
                     const std::string& units,
                     double& exponent,
                     const RpUnits* basis,
-                    const std::string type
+                    const std::string type,
+                    bool caseInsensitive
                 )
             :   units       (units),
                 exponent    (exponent),
                 basis       (basis),
                 type        (type),
+                ci          (caseInsensitive),
                 convList    (NULL),
                 incarnationList (NULL)
         {};

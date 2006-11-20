@@ -16,7 +16,9 @@
 #include "RpUnits.h"
 
 // dict pointer
-RpDict<std::string,RpUnits*>* RpUnits::dict = new RpDict<std::string,RpUnits*>();
+// set the dictionary to be case insensitive for seaches and storage
+RpDict<std::string,RpUnits*,RpUnits::_key_compare>* RpUnits::dict =
+    new RpDict<std::string,RpUnits*,RpUnits::_key_compare>(true);
 
 // install predefined units
 static RpUnitsPreset loader;
@@ -32,9 +34,10 @@ const int RpUnits::UNITS_ON  = 1;
  */
 
 RpUnits *
-RpUnits::define(    const std::string units, 
-                    const RpUnits* basis, 
-                    const std::string type  ) {
+RpUnits::define(    const std::string units,
+                    const RpUnits* basis,
+                    const std::string type,
+                    bool caseInsensitive    ) {
 
     RpUnits* newRpUnit = NULL;
 
@@ -82,7 +85,7 @@ RpUnits::define(    const std::string units,
         sendStr = searchStr;
     }
 
-    newRpUnit = new RpUnits(sendStr, exponent, basis, type);
+    newRpUnit = new RpUnits(sendStr, exponent, basis, type, caseInsensitive);
     if (newRpUnit) {
         insert(newRpUnit->getUnitsName(),newRpUnit);
     }
@@ -145,6 +148,7 @@ RpUnits::grabExponent(const std::string& inStr, double* exp) {
 // METHOD: grabUnitString()
 /// Return units name from a units string containing a unit name and exponent
 /**
+ * this function will be the cause of problems related to adding symbols like %
  */
 
 int
@@ -196,6 +200,16 @@ RpUnits::grabUnits ( std::string inStr, int* offset) {
 std::string
 RpUnits::getType() const {
     return this->type;
+}
+
+/**********************************************************************/
+// METHOD: getCI()
+/// Return the case insensitivity of an RpUnits object.
+/**
+ */
+bool
+RpUnits::getCI() const {
+    return this->ci;
 }
 
 /**********************************************************************/
@@ -490,6 +504,27 @@ RpUnits::getUnitsName() const {
 }
 
 /**********************************************************************/
+// METHOD: getSearchName()
+/// Report the units name used when searching through the units dictionary.
+/**
+ * Reports the search name used to store and retrieve this object from
+ * the units dictionary.
+ */
+
+std::string
+RpUnits::getSearchName() const {
+
+    std::string searchName = getUnitsName();
+
+    std::transform( searchName.begin(),
+                    searchName.end(),
+                    searchName.begin(),
+                    tolower );
+
+    return (searchName);
+}
+
+/**********************************************************************/
 // METHOD: getExponent()
 /// Report the exponent of the units of this object back to caller.
 /**
@@ -610,7 +645,7 @@ RpUnits::makeMetric(const RpUnits* basis) {
     RpUnits::define(centi, basis, centi2base, base2centi);
 
     name = "m" + basisName;
-    RpUnits * milli = RpUnits::define(name, basis, basis->type);
+    RpUnits * milli = RpUnits::define(name, basis, basis->type,!RPUNITS_CI);
     RpUnits::define(milli, basis, milli2base, base2milli);
 
     name = "u" + basisName;
@@ -622,7 +657,7 @@ RpUnits::makeMetric(const RpUnits* basis) {
     RpUnits::define(nano, basis, nano2base, base2nano);
 
     name = "p" + basisName;
-    RpUnits * pico  = RpUnits::define(name, basis, basis->type);
+    RpUnits * pico  = RpUnits::define(name, basis, basis->type,!RPUNITS_CI);
     RpUnits::define(pico, basis, pico2base, base2pico);
 
     name = "f" + basisName;
@@ -646,7 +681,7 @@ RpUnits::makeMetric(const RpUnits* basis) {
     RpUnits::define(kilo, basis, kilo2base, base2kilo);
 
     name = "M" + basisName;
-    RpUnits * mega  = RpUnits::define(name, basis, basis->type);
+    RpUnits * mega  = RpUnits::define(name, basis, basis->type,!RPUNITS_CI);
     RpUnits::define(mega, basis, mega2base, base2mega);
 
     name = "G" + basisName;
@@ -658,7 +693,7 @@ RpUnits::makeMetric(const RpUnits* basis) {
     RpUnits::define(tera, basis, tera2base, base2tera);
 
     name = "P" + basisName;
-    RpUnits * peta  = RpUnits::define(name, basis, basis->type);
+    RpUnits * peta  = RpUnits::define(name, basis, basis->type,!RPUNITS_CI);
     RpUnits::define(peta, basis, peta2base, base2peta);
 
     name = "E" + basisName;
@@ -671,20 +706,15 @@ RpUnits::makeMetric(const RpUnits* basis) {
 
 /**********************************************************************/
 // METHOD: find()
-/// Find an RpUnits Object from the provided string.
+/// Find a simple RpUnits Object from the provided string.
 /**
  */
 
 const RpUnits*
 RpUnits::find(std::string key) {
 
-    // dict pointer
-    /*
-    const RpUnits* unitEntry = NULL;
-    const RpUnits* nullEntry = NULL;
-    */
-    RpDictEntry<std::string,RpUnits*>* unitEntry = &(dict->getNullEntry());
-    RpDictEntry<std::string,RpUnits*>* nullEntry = &(dict->getNullEntry());
+    RpDictEntry<std::string,RpUnits*,_key_compare>* unitEntry = &(dict->getNullEntry());
+    RpDictEntry<std::string,RpUnits*,_key_compare>* nullEntry = &(dict->getNullEntry());
     double exponent = 1;
     int idx = 0;
     std::stringstream tmpKey;
@@ -697,14 +727,16 @@ RpUnits::find(std::string key) {
         key = tmpKey.str();
     }
 
-    /*
-    unitEntry = *(dict->find(key).getValue());
-    nullEntry = *(dict->getNullEntry().getValue());
-    */
-
+    // pass 1 - look for the unit name as it was stated by the user
     unitEntry = &(dict->find(key));
 
-    // dict pointer
+    if (unitEntry == nullEntry) {
+        // pass 2 - use case insensitivity to look for the unit
+        dict->toggleCI();
+        unitEntry = &(dict->find(key));
+        dict->toggleCI();
+    }
+
     if ( (!unitEntry->isValid()) || (unitEntry == nullEntry) ) {
         // unitEntry = NULL;
         return NULL;
@@ -821,7 +853,7 @@ RpUnitsListEntry::name() const {
 }
 
 /**********************************************************************/
-// METHOD: define()
+// METHOD: getBasis()
 /// Provide the caller with the basis of the RpUnits object being stored
 /**
  */
@@ -2040,7 +2072,7 @@ insert(std::string key,RpUnits* val) {
     int newRecord = 0;
     // RpUnits* val = this;
     // dict pointer
-    RpUnits::dict->set(key,val,&newRecord);
+    RpUnits::dict->set(key,val,&newRecord,val->getCI());
     return newRecord;
 }
 
@@ -2484,10 +2516,11 @@ RpUnitsPreset::addPresetConcentration () {
 int
 RpUnitsPreset::addPresetMisc () {
 
-    RpUnits* volt      = RpUnits::define("V", NULL, RP_TYPE_ENERGY);
-    RpUnits* mole      = RpUnits::define("mol",  NULL, RP_TYPE_MISC);
-    RpUnits* hertz     = RpUnits::define("Hz",  NULL, RP_TYPE_MISC);
-    RpUnits* becquerel = RpUnits::define("Bq",  NULL, RP_TYPE_MISC);
+    RpUnits* volt      = RpUnits::define("V",  NULL, RP_TYPE_ENERGY);
+    RpUnits* mole      = RpUnits::define("mol",NULL, RP_TYPE_MISC);
+    RpUnits* hertz     = RpUnits::define("Hz", NULL, RP_TYPE_MISC);
+    RpUnits* becquerel = RpUnits::define("Bq", NULL, RP_TYPE_MISC);
+    // RpUnits* percent   = RpUnits::define("%",  NULL, RP_TYPE_MISC);
 
     RpUnits::makeMetric(volt);
     RpUnits::makeMetric(mole);
