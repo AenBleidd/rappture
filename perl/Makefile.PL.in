@@ -14,6 +14,13 @@ if ($ARGV[0] eq "DEBUG") {
 if ($^O ne "MSWin32") {
     $CC = '@CXX@';
     $LD = '@CXX@';
+    if ($^O eq 'darwin') {
+        @LDDLFLAGS = ( q[-bundle], 
+                       q[-bundle_loader /usr/bin/perl], 
+                       q[-L/usr/local/lib],
+                       q[-L$(PERL_INC) -lperl]
+                     );
+    }
     @SCEW_INC_SEARCHPATH = ( "@prefix@/include",
         "/apps/rappture/include", "/opt/rappture/include",
         "/usr/local/include", "/opt/include", "../../scew-0.4.0", 
@@ -140,6 +147,7 @@ find_include(\@EXPAT_INC_SEARCHPATH, $EXPAT_INC, \@INCLUDES);
 find_include(\@RAPPTURE_INC_SEARCHPATH, $RAPPTURE_INC, \@INCLUDES);
 find_lib(\@EXPAT_LIB_SEARCHPATH, \@EXPAT_LIBS, \@LIBS);
 find_lib(\@RAPPTURE_LIB_SEARCHPATH, \@RAPPTURE_LIBS, \@LIBS);
+find_lib(\@SCEW_LIB_SEARCHPATH, \@SCEW_LIBS, \@LIBS);
 if ($DEBUG) {
     if (!find_lib(\@SCEW_LIB_SEARCHPATH, \@SCEWD_LIBS, \@LIBS)) {
         find_lib(\@SCEW_LIB_SEARCHPATH, \@SCEW_LIBS, \@LIBS);
@@ -158,6 +166,7 @@ WriteMakefile(
     INC               => "@INCLUDES", 
     CC                => $CC,
     LD                => $LD,
+    LDDLFLAGS         => "@LDDLFLAGS",
     XSOPT             => '-C++',
 );
 
