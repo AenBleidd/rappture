@@ -1,6 +1,6 @@
 
 build_date := $(shell date +%Y%m%d)
-machine := $(shell uname -m)
+machine := $(shell uname -m | sed 's/\ //')
 os := $(shell uname -s)
 bn := $(shell basename @prefix@)
 TarfileBasename=rappture-$(os)-$(machine)-$(build_date)
