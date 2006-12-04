@@ -6,7 +6,7 @@ module = Extension('Rappture.Units',
                    include_dirs = [rp_install_dir+'/include'],
                    sources = [ 'Rappture/PyRpUnits.cc' ],
                    library_dirs = [ rp_install_dir+'/lib' ],
-                   libraries = [ 'rappture' ] )
+                   libraries = [ 'rappture', 'scew' ] )
 
 setup(  name='Rappture',
         version='0.1',
