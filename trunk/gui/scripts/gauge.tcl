@@ -225,6 +225,19 @@ itcl::body Rappture::Gauge::value {args} {
                 -context $units -to $units -units off]
         }
 
+        switch -- $itk_option(-type) {
+            integer {
+                if {![string is integer -strict $nv]} {
+                    error "Should be an integer value"
+                }
+            }
+            real {
+                if {![string is double -strict $nv]} {
+                    error "Should be a real number"
+                }
+            }
+        }
+
         if {"" != $itk_option(-minvalue)} {
             set convMinVal [set minv $itk_option(-minvalue)]
             if {$units != ""} {
@@ -264,19 +277,6 @@ itcl::body Rappture::Gauge::value {args} {
 
             if {$nv > $maxv} {
                 error "maximum value allowed here is $convMaxVal"
-            }
-        }
-
-        switch -- $itk_option(-type) {
-            integer {
-                if {![string is integer -strict $nv]} {
-                    error "Should be an integer value"
-                }
-            }
-            real {
-                if {![string is double -strict $nv]} {
-                    error "Should be a real number"
-                }
             }
         }
 
