@@ -233,11 +233,14 @@ itcl::body Rappture::Gauge::value {args} {
                 set convMinVal [Rappture::Units::convert \
                     $itk_option(-minvalue) -to $nvUnits]
             } else {
-                # fix for the case when the user tries to
-                # compare values like minv=-500 nv=-0600
-                set nv [format "%f" $nv]
-                set minv [format "%f" $minv]
-            }
+                set newval [format "%g" $newval]
+	    }
+	    
+            # fix for the case when the user tries to
+            # compare values like minv=-500 nv=-0600
+            set nv [format "%g" $nv]
+            set minv [format "%g" $minv]
+
             if {$nv < $minv} {
                 error "minimum value allowed here is $convMinVal"
             }
@@ -251,11 +254,14 @@ itcl::body Rappture::Gauge::value {args} {
                 set convMaxVal [Rappture::Units::convert \
                     $itk_option(-maxvalue) -to $nvUnits]
             } else {
-                # fix for the case when the user tries to
-                # compare values like maxv=500 nv=0600
-                set nv [format "%f" $nv]
-                set minv [format "%f" $minv]
-            }
+                set newval [format "%g" $newval]
+	    }
+
+            # fix for the case when the user tries to
+            # compare values like maxv=500 nv=0600
+            set nv [format "%g" $nv]
+            set maxv [format "%g" $maxv]
+
             if {$nv > $maxv} {
                 error "maximum value allowed here is $convMaxVal"
             }
