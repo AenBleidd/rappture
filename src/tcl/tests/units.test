@@ -3,6 +3,7 @@
 #   Rappture::Units::description
 #   Rappture::Units::System::for
 #   Rappture::Units::System::all
+#   Rappture::Units::Search::for
 #
 # This file contains a collection of tests for one of the Rappture Tcl
 # commands.  Sourcing this file into Tcl runs the tests and
@@ -801,6 +802,33 @@ test convert_units-5.4.10.5 {Rappture::Units::convert, Cm2/vS->M2/KVUS} {
     list [catch {Rappture::Units::convert 2Cm2/vS -to M2/KVUS} msg] $msg
 } {0 2e-07M2/KVUS}
 
+#--------------------------------------------------------------------
+# Rappture::Units::Search::for <units>
+#--------------------------------------------------------------------
+
+test search-for-6.0.0.1 {Rappture::Units::Search::for, 300K} {
+    list [catch {Rappture::Units::Search::for 300K} msg] $msg
+} {0 K}
+
+test search-for-6.0.0.2 {Rappture::Units::Search::for, 300cm2/Vs} {
+    list [catch {Rappture::Units::Search::for 300cm2/Vs} msg] $msg
+} {0 cm2/Vs}
+
+test search-for-6.0.0.3 {Rappture::Units::Search::for, cm2/Vs} {
+    list [catch {Rappture::Units::Search::for cm2/Vs} msg] $msg
+} {0 cm2/Vs}
+
+test search-for-6.0.1.1 {Rappture::Units::Search::for, 4notaunit} {
+    list [catch {Rappture::Units::Search::for 4notaunit} msg] $msg
+} {0 {}}
+
+test search-for-6.0.1.2 {Rappture::Units::Search::for, notaunit} {
+    list [catch {Rappture::Units::Search::for notaunit} msg] $msg
+} {0 {}}
+
+test search-for-6.0.1.2 {Rappture::Units::Search::for, notaunit} {
+    list [catch {Rappture::Units::Search::for ^&} msg] $msg
+} {0 {}}
 
 ::tcltest::cleanupTests
 return

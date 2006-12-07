@@ -22,22 +22,27 @@ extern "C" {
 
 // EXTERN int Rapptureunits_Init _ANSI_ARGS_((Tcl_Interp * interp));
 
-static int RpTclUnitsConvert   _ANSI_ARGS_((    ClientData cdata,
+static int RpTclUnitsConvert    _ANSI_ARGS_((   ClientData cdata,
                                                 Tcl_Interp *interp,
                                                 int argc, 
                                                 const char *argv[]    ));
 
-static int RpTclUnitsDesc      _ANSI_ARGS_((    ClientData cdata,
+static int RpTclUnitsDesc       _ANSI_ARGS_((   ClientData cdata,
                                                 Tcl_Interp *interp,
                                                 int argc, 
                                                 const char *argv[]    ));
 
-static int RpTclUnitsSysFor   _ANSI_ARGS_((    ClientData cdata,
+static int RpTclUnitsSysFor     _ANSI_ARGS_((   ClientData cdata,
                                                 Tcl_Interp *interp,
                                                 int argc, 
                                                 const char *argv[]    ));
 
-static int RpTclUnitsSysAll   _ANSI_ARGS_((    ClientData cdata,
+static int RpTclUnitsSysAll     _ANSI_ARGS_((   ClientData cdata,
+                                                Tcl_Interp *interp,
+                                                int argc, 
+                                                const char *argv[]    ));
+
+static int RpTclUnitsSearchFor  _ANSI_ARGS_((   ClientData cdata,
                                                 Tcl_Interp *interp,
                                                 int argc, 
                                                 const char *argv[]    ));
@@ -63,6 +68,7 @@ static int list2str (std::list<std::string>& inList, std::string& outString);
  * ::Rappture::Units::description
  * ::Rappture::Units::System::for
  * ::Rappture::Units::System::all
+ * ::Rappture::Units::Search::for
  */
 
 int
@@ -80,6 +86,9 @@ Rapptureunits_Init(Tcl_Interp *interp)
 
     Tcl_CreateCommand(interp, "::Rappture::Units::System::all",
         RpTclUnitsSysAll, (ClientData)NULL, (Tcl_CmdDeleteProc*)NULL);
+
+    Tcl_CreateCommand(interp, "::Rappture::Units::Search::for",
+        RpTclUnitsSearchFor, (ClientData)NULL, (Tcl_CmdDeleteProc*)NULL);
 
     return TCL_OK;
 }
@@ -462,6 +471,67 @@ RpTclUnitsSysAll    (   ClientData cdata,
         // increment the iterator
         compatListIter++;
     }
+
+    return TCL_OK;
+}
+
+/**********************************************************************/
+// FUNCTION: RpTclUnitsSearchfor()
+/// Rappture::Units::Search::for fxn in Tcl, returns string of found units
+/**
+ * Returns a list of all units from the given units string that
+ * were found within the units dictionary. This function takes in a
+ * string with or without a value. The string at the very least should
+ * contain the units you are searching for in the dictionary. If the
+ * string contains a value as well, the value will be ignored. A value
+ * is considered any numeric sequence as defined by the function
+ * strtod().
+ *
+ * Full function call:
+ * ::Rappture::Units::Search::for <units>
+ */
+
+int
+RpTclUnitsSearchFor (  ClientData cdata,
+                        Tcl_Interp *interp,
+                        int argc,
+                        const char *argv[]  )
+{
+    std::string unitsName     = ""; // name of the units provided by user
+    std::string type          = ""; // junk variable that validate() needs
+    int nextarg               = 1; // start parsing using the '2'th argument
+    int err                   = 0; // err code for validate
+    char* endptr              = NULL;
+
+    Tcl_ResetResult(interp);
+
+    // parse through command line options
+    if (argc != 2) {
+        Tcl_AppendResult(interp, "wrong # args: should be \"", 
+                argv[0], " units\"", (char*)NULL);
+        return TCL_ERROR;
+    }
+
+    // find where the unitsName begins
+    strtod(argv[nextarg],&endptr);
+    unitsName = std::string(endptr);
+
+    err = RpUnits::validate(unitsName,type);
+    if (err) {
+        /*
+         * according to tcl version, in this case we 
+         * should return an empty string. i happen to disagree.
+         * the next few lines is what i think the user should see.
+        Tcl_AppendResult(interp,
+            "The units named: \"", unitsName.c_str(), 
+            "\" is not a recognized unit for rappture",
+            (char*)NULL);
+        return TCL_ERROR;
+        */
+        return TCL_OK;
+    }
+
+    Tcl_AppendResult(interp, unitsName.c_str(), (char*)NULL);
 
     return TCL_OK;
 }
