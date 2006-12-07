@@ -212,9 +212,13 @@ itcl::body Rappture::Gauge::value {args} {
         # value to that system of units.  Also, make sure that
         # the value is bound by any min/max value constraints.
         #
+        # Keep track of the inputted units so we can give a 
+        # response about min and max values in familiar units.
+        #
         set newval [set nv [lindex $args 0]]
         set units $itk_option(-units)
         if {$units != ""} {
+            set nvUnits [Rappture::Units::Search::for $nv]
             set newval [Rappture::Units::convert $newval \
                 -context $units]
             set nv [Rappture::Units::convert $nv \
@@ -222,24 +226,28 @@ itcl::body Rappture::Gauge::value {args} {
         }
 
         if {"" != $itk_option(-minvalue)} {
-            set minv $itk_option(-minvalue)
+            set convMinVal [set minv $itk_option(-minvalue)]
             if {$units != ""} {
                 set minv [Rappture::Units::convert $minv \
                     -context $units -to $units -units off]
+                set convMinVal [Rappture::Units::convert \
+                    $itk_option(-minvalue) -to $nvUnits]
             }
             if {$nv < $minv} {
-                error "minimum value allowed here is $itk_option(-minvalue)"
+                error "minimum value allowed here is $convMinVal"
             }
         }
 
         if {"" != $itk_option(-maxvalue)} {
-            set maxv $itk_option(-maxvalue)
+            set convMaxVal [set maxv $itk_option(-maxvalue)]
             if {$units != ""} {
                 set maxv [Rappture::Units::convert $maxv \
                     -context $units -to $units -units off]
+                set convMaxVal [Rappture::Units::convert \
+                    $itk_option(-maxvalue) -to $nvUnits]
             }
             if {$nv > $maxv} {
-                error "maximum value allowed here is $itk_option(-maxvalue)"
+                error "maximum value allowed here is $convMaxVal"
             }
         }
 
