@@ -18,14 +18,11 @@
 // dict pointer
 // set the dictionary to be case insensitive for seaches and storage
 RpDict<std::string,RpUnits*,RpUnits::_key_compare>* RpUnits::dict =
-    new RpDict<std::string,RpUnits*,RpUnits::_key_compare>(true);
+    new RpDict<std::string,RpUnits*,RpUnits::_key_compare>(
+        RPUNITS_CASE_INSENSITIVE);
 
 // install predefined units
 static RpUnitsPreset loader;
-
-// convert function flags
-const int RpUnits::UNITS_OFF = 0;
-const int RpUnits::UNITS_ON  = 1;
 
 /**********************************************************************/
 // METHOD: define()
@@ -645,7 +642,8 @@ RpUnits::makeMetric(const RpUnits* basis) {
     RpUnits::define(centi, basis, centi2base, base2centi);
 
     name = "m" + basisName;
-    RpUnits * milli = RpUnits::define(name, basis, basis->type,!RPUNITS_CI);
+    RpUnits * milli = RpUnits::define(name, basis, basis->type,
+        !RPUNITS_CASE_INSENSITIVE);
     RpUnits::define(milli, basis, milli2base, base2milli);
 
     name = "u" + basisName;
@@ -657,7 +655,8 @@ RpUnits::makeMetric(const RpUnits* basis) {
     RpUnits::define(nano, basis, nano2base, base2nano);
 
     name = "p" + basisName;
-    RpUnits * pico  = RpUnits::define(name, basis, basis->type,!RPUNITS_CI);
+    RpUnits * pico  = RpUnits::define(name, basis, basis->type,
+        !RPUNITS_CASE_INSENSITIVE);
     RpUnits::define(pico, basis, pico2base, base2pico);
 
     name = "f" + basisName;
@@ -681,7 +680,8 @@ RpUnits::makeMetric(const RpUnits* basis) {
     RpUnits::define(kilo, basis, kilo2base, base2kilo);
 
     name = "M" + basisName;
-    RpUnits * mega  = RpUnits::define(name, basis, basis->type,!RPUNITS_CI);
+    RpUnits * mega  = RpUnits::define(name, basis, basis->type,
+        !RPUNITS_CASE_INSENSITIVE);
     RpUnits::define(mega, basis, mega2base, base2mega);
 
     name = "G" + basisName;
@@ -693,7 +693,8 @@ RpUnits::makeMetric(const RpUnits* basis) {
     RpUnits::define(tera, basis, tera2base, base2tera);
 
     name = "P" + basisName;
-    RpUnits * peta  = RpUnits::define(name, basis, basis->type,!RPUNITS_CI);
+    RpUnits * peta  = RpUnits::define(name, basis, basis->type,
+        !RPUNITS_CASE_INSENSITIVE);
     RpUnits::define(peta, basis, peta2base, base2peta);
 
     name = "E" + basisName;
@@ -1200,7 +1201,7 @@ RpUnits::convert (  std::string val,
             *result = 0;
         }
 
-        if (showUnits) {
+        if (showUnits == RPUNITS_UNITS_ON) {
             outVal << numVal << fromUnitsName;
         }
         else {
@@ -1222,7 +1223,7 @@ RpUnits::convert (  std::string val,
             *result = 0;
         }
 
-        if (showUnits) {
+        if (showUnits == RPUNITS_UNITS_ON) {
             outVal << numVal << toUnitsName;
         }
         else {
@@ -1394,7 +1395,7 @@ RpUnits::convert (  std::string val,
             if (convErr == 0) {
                 // outVal.flags(std::ios::fixed);
                 // outVal.precision(10);
-                if (showUnits) {
+                if (showUnits == RPUNITS_UNITS_ON) {
                     outVal << numVal << toUnitsName;
                 }
                 else {
@@ -1433,7 +1434,7 @@ RpUnits::convert ( const  RpUnits* toUnits,
     std::stringstream unitText;
 
 
-    if (showUnits) {
+    if (showUnits == RPUNITS_UNITS_ON) {
         unitText << retVal << toUnits->getUnitsName();
     }
     else {

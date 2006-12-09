@@ -11,9 +11,12 @@
  * ======================================================================
  */
 
+#ifndef _RpUNITS_C_H
+#define _RpUNITS_C_H
+
 #ifdef __cplusplus
-extern "C" {
-#endif
+    extern "C" {
+#endif // ifdef __cplusplus
 
     typedef struct RpUnits RpUnits;
 
@@ -70,5 +73,7 @@ extern "C" {
     int rpAddPresets ( const char* presetName );
 
 #ifdef __cplusplus
-}
-#endif
+    }
+#endif // ifdef __cplusplus
+
+#endif // ifndef _RpUNITS_C_H

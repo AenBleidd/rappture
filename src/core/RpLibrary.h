@@ -11,6 +11,19 @@
  * ======================================================================
  */
 
+#ifndef _RpLIBRARY_H
+#define _RpLIBRARY_H
+
+enum RP_LIBRARY_CONSTS {
+    RPLIB_OVERWRITE     = 0,
+    RPLIB_APPEND        = 1,
+    RPLIB_NO_TRANSLATE  = 0,
+    RPLIB_TRANSLATE     = 1,
+};
+
+
+#ifdef __cplusplus
+
 #include "scew/scew.h"
 #include "scew_extras.h"
 #include <iostream>
@@ -26,6 +39,7 @@
 #include <list>
 
 /* indentation size (in whitespaces) */
+
 #define INDENT_SIZE 4
 #define CREATE_PATH 1
 #define NO_CREATE_PATH 0
@@ -33,10 +47,6 @@
 
 #define TRANSLATE 1
 #define NO_TRANSLATE 0
-
-#ifndef _RpLIBRARY_H 
-#define _RpLIBRARY_H
-
 
 class RpLibrary
 {
@@ -70,9 +80,9 @@ class RpLibrary
                                 RpLibrary* fromObj = NULL);
 
         std::string get       ( std::string path = "",
-                                int translateFlag = TRANSLATE);
+                                int translateFlag = RPLIB_TRANSLATE);
         std::string getString ( std::string path = "",
-                                int translateFlag = TRANSLATE);
+                                int translateFlag = RPLIB_TRANSLATE);
 
         double      getDouble ( std::string path = "");
         int         getInt    ( std::string path = "");
@@ -82,36 +92,36 @@ class RpLibrary
          * Should return some kind of RpError object
         RpLibrary&  get       ( std::string path = "",
                                 std::string retVal = "",
-                                int translateFlag = TRANSLATE);
+                                int translateFlag = RPLIB_TRANSLATE);
 
         RpLibrary&  get       ( std::string path = "",
                                 double retVal = 0.0,
-                                int translateFlag = TRANSLATE);
+                                int translateFlag = RPLIB_TRANSLATE);
 
         RpLibrary&  get       ( std::string path = "",
                                 int retVal = 0,
-                                int translateFlag = TRANSLATE);
+                                int translateFlag = RPLIB_TRANSLATE);
 
         RpLibrary&  get       ( std::string path = "",
                                 bool retVal = false,
-                                int translateFlag = TRANSLATE);
+                                int translateFlag = RPLIB_TRANSLATE);
         */
 
         RpLibrary& put (    std::string path,
                             std::string value,
                             std::string id = "",
-                            int append = 0,
-                            int translateFlag = TRANSLATE);
+                            int append = RPLIB_OVERWRITE,
+                            int translateFlag = RPLIB_TRANSLATE   );
 
         RpLibrary& put (    std::string path,
                             double value,
                             std::string id = "",
-                            int append = 0  );
+                            int append = RPLIB_OVERWRITE    );
 
         RpLibrary& put (    std::string path,
                             RpLibrary* value,
                             std::string id = "",
-                            int append = 0  );
+                            int append = RPLIB_OVERWRITE    );
 
         RpLibrary* remove (std::string path = "");
 
@@ -442,4 +452,6 @@ class RpLibrary
 /*--------------------------------------------------------------------------*/
 /*--------------------------------------------------------------------------*/
 
-#endif
+#endif // ifdef __cplusplus
+
+#endif // ifndef _RpLIBRARY_H

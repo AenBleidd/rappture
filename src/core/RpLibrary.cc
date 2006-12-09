@@ -1204,7 +1204,7 @@ RpLibrary::getString (std::string path, int translateFlag)
         return std::string("");
     }
 
-    if (translateFlag == TRANSLATE) {
+    if (translateFlag == RPLIB_TRANSLATE) {
         // translatedContents = new char[strlen(retCStr)+1];
         len = strlen(retCStr);
         translatedContents = (char*) calloc((len+1),sizeof(char));
@@ -1355,14 +1355,14 @@ RpLibrary::put (    std::string path,
 
     if (retNode) {
 
-        if (append) {
+        if (append == RPLIB_APPEND) {
             if ( (contents = scew_element_contents(retNode)) ) {
                 tmpVal = std::string(contents);
             }
             value = tmpVal + value;
         }
 
-        if (translateFlag == TRANSLATE) {
+        if (translateFlag == RPLIB_TRANSLATE) {
             _translateIn(value,translatedContents);
             scew_element_set_contents(retNode,translatedContents.c_str());
         }
@@ -1428,7 +1428,7 @@ RpLibrary::put ( std::string path, RpLibrary* value, std::string id, int append 
     // nodeName = value->nodeComp();
     // old_elem = _find(path+"."+nodeName,NO_CREATE_PATH);
 
-    if (!append) {
+    if (append == RPLIB_OVERWRITE) {
         retNode = _find(path,NO_CREATE_PATH);
         if (retNode) {
             scew_element_free(retNode);
@@ -1620,6 +1620,8 @@ RpLibrary::result() {
     std::fstream file;
     std::string xmlText = "";
     time_t t = 0;
+    struct tm* timeinfo = NULL;
+    std::string timestamp = "";
 
     if (this->root) {
         outputFile << "run" << (int)time(&t) << ".xml";
@@ -1628,6 +1630,18 @@ RpLibrary::result() {
         put("tool.repository.rappture.date","$Date$");
         put("tool.repository.rappture.revision","$Rev$");
         put("tool.repository.rappture.url","$URL$");
+
+        // generate a timestamp for the run file
+        timeinfo = localtime(&t);
+        timestamp = std::string(ctime(&t));
+        // erase the 24th character because it is a newline
+        timestamp.erase(24);
+        // concatinate the timezone
+        timestamp.append(" ");
+        timestamp.append(timeinfo->tm_zone);
+
+        // add the timestamp to the run file
+        put("output.time", timestamp);
 
         if ( file.is_open() ) {
             xmlText = xml();
