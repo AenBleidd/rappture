@@ -11,15 +11,18 @@
  * ======================================================================
  */
 
-#include "RpLibrary.h"
-#include <string.h>
-#include <fstream>
-#include "RpFortranCommon.h"
-#include "RpLibraryFStubs.h"
+#ifndef _RpLIBRARY_F_H
+#define _RpLIBRARY_F_H
 
 #ifdef __cplusplus
+    #include "RpLibrary.h"
+    #include <string.h>
+    #include <fstream>
+    #include "RpFortranCommon.h"
+    #include "RpLibraryFStubs.h"
+
     extern "C" {
-#endif
+#endif // ifdef __cplusplus
 
 int rp_lib ( const char* filePath, int filePath_len );
 
@@ -153,4 +156,6 @@ void rp_result(             int* handle );
 
 #ifdef __cplusplus
     }
-#endif
+#endif // ifdef __cplusplus
+
+#endif // ifndef _RpLIBRARY_F_H

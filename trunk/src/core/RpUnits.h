@@ -12,25 +12,18 @@
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  * ======================================================================
  */
-#include <iostream>
-#include <string>
-#include <list>
-#include <sstream>
-#include <stdlib.h>
-#include <errno.h>
-#include <math.h>
-
-#include "RpDict.h"
-#include "RpUnitsStd.h"
 
 #ifndef _RpUNITS_H
 #define _RpUNITS_H
 
-#define LIST_TEMPLATE RpUnitsListEntry
+enum RP_UNITS_CONSTS {
+    RPUNITS_UNITS_OFF           = 0,
+    RPUNITS_UNITS_ON            = 1
+};
 
 // RpUnits Case Insensitivity define
-#define RPUNITS_CI true
-
+#define RPUNITS_CASE_INSENSITIVE true
+//
 //define our different types of units
 #define RP_TYPE_ENERGY      "energy"
 #define RP_TYPE_LENGTH      "length"
@@ -43,14 +36,21 @@
 #define RP_TYPE_CONC        "concentration"
 #define RP_TYPE_MISC        "misc"
 
-// should the define function:
-// 1. compare portions of inStr to unit names that have previously 
-//    been defined (you must parse in order for this option to work)
-#define COMPARE_MASK    1
-// 2. create a unit if no unit by the name exists.
-#define CREATE_MASK     2
-// 3. parse the unit name to try to find previously defined units.
-#define PARSE_MASK      4
+
+#ifdef __cplusplus
+
+#include <iostream>
+#include <string>
+#include <list>
+#include <sstream>
+#include <stdlib.h>
+#include <errno.h>
+#include <math.h>
+
+#include "RpDict.h"
+#include "RpUnitsStd.h"
+
+#define LIST_TEMPLATE RpUnitsListEntry
 
 class RpUnits;
 
@@ -328,11 +328,6 @@ class RpUnits
 
     public:
 
-        // constant static class variables
-        // flags to tell how convert should return the value
-        static const int UNITS_OFF;
-        static const int UNITS_ON;
-
         // users member fxns
         std::string getUnits() const;
         std::string getUnitsName() const;
@@ -363,25 +358,13 @@ class RpUnits
         // convert from one RpUnits to another if the conversion is defined
         std::string convert (   const RpUnits* toUnits,
                                 double val,
-                                int showUnits = 0,
+                                int showUnits = RPUNITS_UNITS_OFF,
                                 int* result = NULL  ) const;
 
-        static std::string convert1 ( std::string val,
-                                     std::string toUnits,
-                                     int showUnits,
-                                     int* result = NULL );
-
         static std::string convert ( std::string val,
                                      std::string toUnits,
-                                     int showUnits,
+                                     int showUnits = RPUNITS_UNITS_OFF,
                                      int* result = NULL );
-
-        /*
-        static std::string convert ( std::string val,
-                                     std::string toUnits,
-                                     int showUnits,
-                                     int* result = NULL );
-        */
 
         // turn the current unit to the metric system
         // this should only be used for units that are part of the
@@ -413,7 +396,7 @@ class RpUnits
         static RpUnits * define(const std::string units,
                                 const RpUnits* basis=NULL,
                                 const std::string type="",
-                                bool caseInsensitive=RPUNITS_CI);
+                                bool caseInsensitive=RPUNITS_CASE_INSENSITIVE);
 
         // add relation rule
 
@@ -712,4 +695,6 @@ class RpUnits
 /*--------------------------------------------------------------------------*/
 /*--------------------------------------------------------------------------*/
 
-#endif
+#endif // ifdef __cplusplus
+
+#endif // ifndef _RpUNITS_H

@@ -14,11 +14,11 @@
 #ifndef _RpUNITS_F_H
 #define _RpUNITS_F_H
 
-#include "RpFortranCommon.h"
-#include "RpUnitsFStubs.h"
-
 #ifdef __cplusplus
-extern "C" {
+    #include "RpFortranCommon.h"
+    #include "RpUnitsFStubs.h"
+
+    extern "C" {
 #endif
 
 int rp_define_unit(char* unitName, int* basisName, int unitName_len);
@@ -49,7 +49,7 @@ int rp_units_convert_str (  char* fromVal,
                             int retText_len     );
 
 #ifdef __cplusplus
-}
-#endif
+    }
+#endif // ifdef __cplusplus
 
-#endif
+#endif // ifndef _RpUNITS_F_H

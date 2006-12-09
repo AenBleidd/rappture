@@ -12,9 +12,12 @@
  */
 
 
+#ifndef _RpLIBRARY_C_H
+#define _RpLIBRARY_C_H
+
 #ifdef __cplusplus
-extern "C" {
-#endif
+    extern "C" {
+#endif // ifdef __cplusplus
 
 typedef struct RpLibrary RpLibrary;
 
@@ -79,5 +82,7 @@ int rpNodeId          (RpLibrary* node, const char** retCStr);
 int rpResult          (RpLibrary* lib);
 
 #ifdef __cplusplus
-}
-#endif
+    }
+#endif // ifdef __cplusplus
+
+#endif // ifndef _RpLIBRARY_C_H
