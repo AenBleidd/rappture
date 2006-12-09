@@ -15,9 +15,4 @@
             <default> 10</default>
         </number>
     </input>
-    <output>
-        <curve id="result">
-            <about> <label>Formula: Y vs X</label> </about>
-        </curve>
-    </output>
 </run>

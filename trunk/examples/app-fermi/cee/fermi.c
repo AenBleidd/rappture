@@ -2,17 +2,16 @@
 //  EXAMPLE: Fermi-Dirac function in Python.
 //
 //  This simple example shows how to use Rappture within a simulator
-//  written in Python.
+//  written in C.
 // ======================================================================
-//  AUTHOR:  Michael McLennan, Purdue University
+//  AUTHOR:  Derrick Kearney, Purdue University
 //  Copyright (c) 2004-2005  Purdue Research Foundation
 //
 //  See the file "license.terms" for information on usage and
 //  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 // ======================================================================
 
-#include "RpLibraryCInterface.h"
-#include "RpUnitsCInterface.h"
+#include "rappture.h"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -68,10 +67,27 @@ int main(int argc, char * argv[]) {
     E = Emin;
     dE = 0.005*(Emax-Emin);
 
+    rpPutString (   lib,
+                    "output.curve(f12).about.label",
+                    "Fermi-Dirac Factor",
+                    RPLIB_OVERWRITE );
+    rpPutString (   lib,
+                    "output.curve(f12).xaxis.label",
+                    "Fermi-Dirac Factor",
+                    RPLIB_OVERWRITE );
+    rpPutString (   lib,
+                    "output.curve(f12).yaxis.label",
+                    "Energy",
+                    RPLIB_OVERWRITE );
+    rpPutString (   lib,
+                    "output.curve(f12).yaxis.units",
+                    "eV",
+                    RPLIB_OVERWRITE );
+
     while (E < Emax) {
         f = 1.0/(1.0 + exp((E - Ef)/kT));
         sprintf(line,"%f %f\n",f, E);
-        rpPutString(lib,"output.curve(f12).component.xy", line, 1);
+        rpPutString(lib,"output.curve(f12).component.xy", line, RPLIB_APPEND);
         E = E + dE;
     }
 

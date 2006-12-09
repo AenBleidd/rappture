@@ -38,17 +38,5 @@
             <default>0eV</default>
         </number>
     </input>
-    <output>
-        <curve id="f12">
-            <about><label>Fermi-Dirac Factor</label></about>
-            <xaxis>
-              <label>Fermi-Dirac Factor</label>
-            </xaxis>
-            <yaxis>
-              <label>Energy</label>
-              <units>eV</units>
-            </yaxis>
-        </curve>
-    </output>
 </run>
 

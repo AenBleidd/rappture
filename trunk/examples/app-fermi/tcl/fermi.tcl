@@ -26,6 +26,14 @@ set Emax [expr {$Ef + 10*$kT}]
 
 set E $Emin
 set dE [expr {0.005*($Emax-$Emin)}]
+
+# Label output graph with title, x-axis label,
+# y-axis lable, and y-axis units
+$driver put -append no output.curve(f12).about.label "Fermi-Dirac Factor"
+$driver put -append no output.curve(f12).xaxis.label "Fermi-Dirac Factor"
+$driver put -append no output.curve(f12).yaxis.label "Energy"
+$driver put -append no output.curve(f12).yaxis.units "eV"
+
 while {$E < $Emax} {
     set f [expr {1.0/(1.0 + exp(($E - $Ef)/$kT))}]
     $driver put -append yes output.curve(f12).component.xy "$f $E\n"

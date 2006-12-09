@@ -4,11 +4,10 @@
 //  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 // ======================================================================
 
-#include "RpLibrary.h"
+#include "rappture.h"
 
 #include <stdlib.h>
 #include <math.h>
-
 #include <iostream>
 #include <sstream>
 
@@ -86,6 +85,10 @@ int main(int argc, char * argv[])
         std::cout << "max: " << fmax << std::endl;
     }
 
+    // label the graph with a title
+    lib->put("output.curve(result).about.label",
+        "Formula: Y Vs X",RPLIB_OVERWRITE);
+
     // evaluate formula and generate results
     // science begains here
     double fx, fy;
@@ -96,8 +99,9 @@ int main(int argc, char * argv[])
         fx = i* (fmax - fmin)/npts + fmin;
         fy = sin(fx);
         myStr << fx << " " << fy << std::endl;
-        lib->put("output.curve.component.xy", myStr.str(), "result", 1);
-	myStr.str("");
+        lib->put("output.curve(result).component.xy",
+            myStr.str(), append=RPLIB_APPEND);
+        myStr.str("");
     }
 
 

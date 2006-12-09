@@ -34,6 +34,14 @@ Emax = Ef + 10*kT
 
 E = Emin
 dE = 0.005*(Emax-Emin)
+
+# Label the output graph with a title, x-axis label,
+# y-axis label, and y-axis units
+driver.put('output.curve(f12).about.label','Fermi-Dirac Factor',append=0)
+driver.put('output.curve(f12).xaxis.label','Fermi-Dirac Factor',append=0)
+driver.put('output.curve(f12).yaxis.label','Energy',append=0)
+driver.put('output.curve(f12).yaxis.units','eV',append=0)
+
 while E < Emax:
     f = 1.0/(1.0 + exp((E - Ef)/kT))
     line = "%g %g\n" % (f, E)

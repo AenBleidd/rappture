@@ -40,11 +40,23 @@ c ======================================================================
 
         dE = 0.005*(Emax - Emin)
 
+c       Label out graph with a title, x-axis label, 
+c       y-axis label and y-axis units
+
+        call rp_lib_put_str (driver,"output.curve(f12).about.label",
+     +          "Fermi-Dirac Factor",0)
+        call rp_lib_put_str (driver,"output.curve(f12).xaxis.label",
+     +          "Fermi-Dirac Factor",0)
+        call rp_lib_put_str (driver,"output.curve(f12).yaxis.label",
+     +          "Energy",0)
+        call rp_lib_put_str (driver,"output.curve(f12).yaxis.units",
+     +          "eV",0)
+
         do 10 E=Emin,Emax,dE
           f = 1.0/(1.0+exp((E-Ef)/kT))
           write(xy,'(E20.12,F13.9,A)') f, E, char(10)
-          call rp_lib_put_str(driver,
-     +        "output.curve(f12).component.xy", xy, 1)
+          call rp_lib_put_str (driver,
+     +          "output.curve(f12).component.xy", xy, 1)
  10     continue
 
         call rp_result(driver)

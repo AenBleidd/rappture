@@ -2,7 +2,7 @@
 <run>
     <tool>
         <about>Press Simulate to view results.</about>
-        <command>matlab -nojvm -nosplash -nodisplay -r infile='@driver',fermi</command>
+        <command>matlab -nodisplay -r infile='@driver',fermi</command>
     </tool>
     <input>
         <number id="temperature">
@@ -38,17 +38,5 @@
             <default>0eV</default>
         </number>
     </input>
-    <output>
-        <curve id="f12">
-            <about><label>Fermi-Dirac Factor</label></about>
-            <xaxis>
-              <label>Fermi-Dirac Factor</label>
-            </xaxis>
-            <yaxis>
-              <label>Energy</label>
-              <units>eV</units>
-            </yaxis>
-        </curve>
-    </output>
 </run>
 
