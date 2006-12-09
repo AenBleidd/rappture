@@ -247,8 +247,8 @@ itcl::body Rappture::Gauge::value {args} {
                     $itk_option(-minvalue) -to $nvUnits]
             } else {
                 set newval [format "%g" $newval]
-	    }
-	    
+            }
+
             # fix for the case when the user tries to
             # compare values like minv=-500 nv=-0600
             set nv [format "%g" $nv]
@@ -268,7 +268,7 @@ itcl::body Rappture::Gauge::value {args} {
                     $itk_option(-maxvalue) -to $nvUnits]
             } else {
                 set newval [format "%g" $newval]
-	    }
+            }
 
             # fix for the case when the user tries to
             # compare values like maxv=500 nv=0600
