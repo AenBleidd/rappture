@@ -5,7 +5,7 @@
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  * ======================================================================
  */
-#include "RpLibraryCInterface.h"
+#include "rappture.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -94,12 +94,16 @@ int main(int argc, char * argv[])
         printf("max: %f\n", fmax);
     }
 
+    // label the graph with a title
+    rpPutString(lib,"output.curve(result).about.label",
+        "Formula: Y Vs X",RPLIB_OVERWRITE);
+
     // evaluate formula and generate results
     for (i = 0; i<npts; i++) {
         fx = i* (fmax - fmin)/npts + fmin;
         fy = sin(fx);
         sprintf(str, "%f %f\n", fx, fy);
-        rpPut(lib, "output.curve.component.xy", str, "result", 1);
+        rpPutString(lib,"output.curve(result).component.xy",str,RPLIB_APPEND);
     }
 
 

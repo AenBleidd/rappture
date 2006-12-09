@@ -34,6 +34,13 @@ if {$status == 0} {
     set info [read $fid]
     close $fid
 
+    # Label output graph with title, x-axis label,
+    # y-axis lable, and y-axis units
+    $driver put -append no output.curve(f12).about.label "Fermi-Dirac Factor"
+    $driver put -append no output.curve(f12).xaxis.label "Fermi-Dirac Factor"
+    $driver put -append no output.curve(f12).yaxis.label "Energy"
+    $driver put -append no output.curve(f12).yaxis.units "eV"
+
     # skip over the first 4 header lines
     foreach line [lrange [split $info \n] 5 end] {
         if {[scan $line {%g %g} f E] == 2} {

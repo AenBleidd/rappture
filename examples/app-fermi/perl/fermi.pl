@@ -30,6 +30,14 @@ $Emax = $Ef + 10 * $kT;
 $E = $Emin;
 $dE = 0.005*($Emax - $Emin);
 
+# Label the output graph with a title, x-axis label,
+# y-axis label, y-axis units.
+
+$driver->put("output.curve(f12).about.label","Fermi-Dirac Factor",0);
+$driver->put("output.curve(f12).xaxis.label","Fermi-Dirac Factor",0);
+$driver->put("output.curve(f12).yaxis.label","Energy",0);
+$driver->put("output.curve(f12).yaxis.units","eV",0);
+
 while( $E < $Emax ) {
 	$f = 1.0 / ( 1.0 + exp(($E - $Ef) / $kT));
 	$driver->put("output.curve(f12).component.xy", "$f $E\n", 1);

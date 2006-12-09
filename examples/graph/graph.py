@@ -25,9 +25,11 @@ formula = io.get('input.string(formula).current')
 print 'formula = %s' % formula
 npts = 100
 
+io.put('output.curve(result).about.label','Formula: Y vs X',append=0)
+
 for i in range(npts):
     x = (xmax-xmin)/npts * i + xmin;
     y = eval(formula)
-    io.put('output.curve.component.xy', '%g %g\n' % (x,y), append=1)
+    io.put('output.curve(result).component.xy', '%g %g\n' % (x,y), append=1)
 
 Rappture.result(io)
