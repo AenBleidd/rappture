@@ -202,6 +202,7 @@ AC_OUTPUT(  Makefile \
             examples/demo.bash
             examples/app-fermi/cee/Makefile \
             examples/app-fermi/fortran/Makefile \
+            examples/app-fermi/wrapper/cee/Makefile \
             examples/c-example/Makefile \
             perl/Makefile.PL \
             python/setup.py \

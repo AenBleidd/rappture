@@ -49,6 +49,7 @@ build_examples:
 	set -x;
 	cd examples/app-fermi/fortran; make clean; make; cd -
 	cd examples/app-fermi/cee; make clean; make; cd -
+	cd examples/app-fermi/wrapper/cee; make clean; make; cd -
 	cd examples/c-example; make clean; make; cd -
 
 install_examples: build_examples
@@ -115,6 +116,7 @@ build_pkgs:
 clean:
 	cd examples/app-fermi/cee; make clean; cd -;
 	cd examples/app-fermi/fortran; make clean; cd -;
+	cd examples/app-fermi/wrapper/cee; make clean; cd -
 	cd examples/c-example; make clean; cd -;
 	cd gui; make clean; cd -;
 	cd perl; make clean; cd -;
@@ -128,6 +130,7 @@ distclean:
 	cd examples; rm demo.bash
 	cd examples/app-fermi/cee; make distclean; cd -;
 	cd examples/app-fermi/fortran; make distclean; cd -;
+	cd examples/app-fermi/wrapper/cee; make distclean; cd -
 	cd examples/c-example; make distclean; cd -;
 	cd gui; make distclean; cd -;
 	cd perl; make clean; rm Makefile.PL; cd -;
