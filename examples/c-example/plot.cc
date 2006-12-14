@@ -87,7 +87,7 @@ int main(int argc, char * argv[])
 
     // label the graph with a title
     lib->put("output.curve(result).about.label",
-        "Formula: Y Vs X",RPLIB_OVERWRITE);
+        "Formula: Y Vs X","",RPLIB_OVERWRITE);
 
     // evaluate formula and generate results
     // science begains here
@@ -100,7 +100,7 @@ int main(int argc, char * argv[])
         fy = sin(fx);
         myStr << fx << " " << fy << std::endl;
         lib->put("output.curve(result).component.xy",
-            myStr.str(), append=RPLIB_APPEND);
+            myStr.str(),"",RPLIB_APPEND);
         myStr.str("");
     }
 
