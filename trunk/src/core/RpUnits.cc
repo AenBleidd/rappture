@@ -483,12 +483,23 @@ RpUnits::getUnits() const {
  */
 
 std::string
-RpUnits::getUnitsName() const {
+RpUnits::getUnitsName(int flags) const {
 
     std::stringstream unitText;
     double exponent;
 
     exponent = getExponent();
+
+    if ( (RPUNITS_ORIG_EXP & flags) == RPUNITS_POS_EXP)  {
+        if (exponent < 0) {
+            exponent = exponent * -1;
+        }
+    }
+    else if ( (RPUNITS_ORIG_EXP & flags) == RPUNITS_NEG_EXP)  {
+        if (exponent > 0) {
+            exponent = exponent * -1;
+        }
+    }
 
     if (exponent == 1) {
         unitText << units;
@@ -764,7 +775,8 @@ RpUnits::find(std::string key) {
  */
 
 int
-RpUnits::validate ( const std::string& inUnits,
+// RpUnits::validate ( const std::string& inUnits,
+RpUnits::validate ( std::string& inUnits,
                     std::string& type,
                     std::list<std::string>* compatList ) {
 
@@ -781,6 +793,7 @@ RpUnits::validate ( const std::string& inUnits,
 
     // err tells us if we encountered any unrecognized units
     err = RpUnits::units2list(inUnits,inUnitsList,type);
+    RpUnits::list2units(inUnitsList,inUnits);
     inIter = inUnitsList.begin();
 
     while ( inIter != inUnitsList.end() ) {
@@ -847,9 +860,35 @@ RpUnitsListEntry::negateExponent() const {
  */
 
 std::string
-RpUnitsListEntry::name() const {
+RpUnitsListEntry::name(int flags) const {
     std::stringstream name;
-    name << unit->getUnits() << exponent;
+    double myExp = exponent;
+
+    if ( (RPUNITS_ORIG_EXP & flags) == RPUNITS_POS_EXP)  {
+        if (myExp < 0) {
+            myExp = myExp * -1;
+        }
+    }
+    else if ( (RPUNITS_ORIG_EXP & flags) == RPUNITS_NEG_EXP)  {
+        if (myExp > 0) {
+            myExp = myExp * -1;
+        }
+    }
+
+    name << unit->getUnits();
+
+    if ((RPUNITS_ORIG_EXP & flags) == RPUNITS_STRICT_NAME) {
+        // if the user asks for strict naming, 
+        // always place the exponent on the name
+        name << myExp;
+    }
+    else if (myExp != 1.0) {
+        // if the user does not ask for strict naming,
+        // check to see if the exponent == 1.
+        // If not, then add exponent to name
+        name << myExp;
+    }
+
     return std::string(name.str());
 }
 
@@ -910,10 +949,10 @@ RpUnits::printList(RpUnitsList& unitsList) {
 
 /**********************************************************************/
 // METHOD: units2list()
-/// Split a string of units into a list of base units with exponents.
+/// Split a string of units into a list of units with exponents.
 /**
  * Splits a string of units like cm2/kVns into a list of units like
- * cm2, kV1, ns1 where an exponent is provided for each list entry.
+ * cm2, kV-1, ns-1 where an exponent is provided for each list entry.
  * List entries are found by comparing units strings to the names
  * in the dictionary.
  */
@@ -964,7 +1003,15 @@ RpUnits::units2list ( const std::string& inUnits,
             // add this unit to the list
             // erase the found unit's name from our search string
             outList.push_front(RpUnitsListEntry(unit,exponent));
-            type = unit->getType() + type;
+            if (type.compare("") == 0) {
+                type = unit->getType();
+            }
+            else if (type[0] == '/') {
+                type = unit->getType() + type;
+            }
+            else {
+                type = unit->getType() + "*" + type;
+            }
             myInUnits.erase(idx+offset);
         }
         else {
@@ -999,6 +1046,49 @@ RpUnits::units2list ( const std::string& inUnits,
         idx = 0;
         offset = 0;
         exponent = 1;
+    }
+
+    return err;
+}
+
+/**********************************************************************/
+// METHOD: list2units()
+/// Join a list of units into a string with proper exponents.
+/**
+ * Joings a list of units like cm2, kV-1, ns-1, creating a string
+ * like cm2/kVns.
+ */
+
+int
+RpUnits::list2units ( RpUnitsList& inList,
+                      std::string& outUnitsStr) {
+
+    RpUnitsListIter inListIter;
+    std::string inUnits     = "";
+    double exp              = 0;
+    int err                 = 0;
+    std::string numerator   = "";
+    std::string denominator = "";
+
+    inListIter = inList.begin();
+
+    while (inListIter != inList.end()) {
+        exp = inListIter->getExponent();
+        if (exp > 0) {
+            numerator += inListIter->name();
+        }
+        else if (exp < 0) {
+            denominator += inListIter->name(RPUNITS_POS_EXP);
+        }
+        else {
+            // we shouldn't get units with exponents of zero
+        }
+        inListIter++;
+    }
+
+    outUnitsStr = numerator;
+    if ( denominator.compare("") != 0 ) {
+        outUnitsStr += "/" + denominator;
     }
 
     return err;
@@ -1161,6 +1251,9 @@ RpUnits::convert (  std::string val,
 
     double copies = 0;
 
+    std::list<std::string> compatList;
+    std::string listStr;
+
     convertList cList;
     convertList totalConvList;
 
@@ -1233,21 +1326,25 @@ RpUnits::convert (  std::string val,
         return std::string(outVal.str());
     }
 
-    convErr = RpUnits::units2list(fromUnitsName,fromUnitsList,type);
-    if (convErr) {
-        if (result) {
-            *result = convErr;
-        }
-        retStr = "unrecognized units: \"" + fromUnitsName + "\"";
-        return retStr;
-    }
-
     convErr = RpUnits::units2list(toUnitsName,toUnitsList,type);
     if (convErr) {
         if (result) {
             *result = convErr;
         }
-        retStr = "unrecognized units: \"" + toUnitsName + "\"";
+        retStr = "Unrecognized units: \"" + toUnitsName + "\". Please specify valid Rappture Units";
+        return retStr;
+    }
+
+    convErr = RpUnits::units2list(fromUnitsName,fromUnitsList,type);
+    if (convErr) {
+        if (result) {
+            *result = convErr;
+        }
+        type = "";
+        RpUnits::validate(toUnitsName,type,&compatList);
+        list2str(compatList,listStr);
+        retStr = "Unrecognized units: \"" + fromUnitsName
+                + "\".\nShould be units of type " + type + " (" + listStr + ")";
         return retStr;
     }
 
@@ -1315,7 +1412,7 @@ RpUnits::convert (  std::string val,
                     // unrecognized conversion request
 
                     convErr++;
-                    retStr = "conversion unavailable: (";
+                    retStr = "Conversion unavailable: (";
                     while (fromIter != fromUnitsList.end()) {
                         /*
                         if (fromIter != fromUnitsList.begin()) {
@@ -1334,6 +1431,13 @@ RpUnits::convert (  std::string val,
                         toIter++;
                     }
                     retStr += ")";
+
+                    type = "";
+                    RpUnits::validate(toUnitsName,type,&compatList);
+                    list2str(compatList,listStr);
+                    retStr += "\nPlease enter units of type "
+                                + type + " (" + listStr + ")";
+
 
                     // exit and report the error
 
@@ -1388,6 +1492,12 @@ RpUnits::convert (  std::string val,
                 toIter++;
             }
             retStr += ")";
+            type = "";
+            RpUnits::validate(toUnitsName,type,&compatList);
+            list2str(compatList,listStr);
+            retStr += "\nPlease enter units of type "
+                        + type + " (" + listStr + ")";
+
         }
         else {
             // apply the conversion and check for errors
@@ -2517,7 +2627,7 @@ RpUnitsPreset::addPresetConcentration () {
 int
 RpUnitsPreset::addPresetMisc () {
 
-    RpUnits* volt      = RpUnits::define("V",  NULL, RP_TYPE_ENERGY);
+    RpUnits* volt      = RpUnits::define("V",  NULL, RP_TYPE_EPOT);
     RpUnits* mole      = RpUnits::define("mol",NULL, RP_TYPE_MISC);
     RpUnits* hertz     = RpUnits::define("Hz", NULL, RP_TYPE_MISC);
     RpUnits* becquerel = RpUnits::define("Bq", NULL, RP_TYPE_MISC);
@@ -2536,3 +2646,41 @@ RpUnitsPreset::addPresetMisc () {
 
 // -------------------------------------------------------------------- //
 
+/**********************************************************************/
+// FUNCTION: list2str()
+/// Convert a std::list<std::string> into a comma delimited std::string
+/**
+ * Iterates through a std::list<std::string> and returns a comma 
+ * delimited std::string containing the elements of the inputted std::list.
+ *
+ * Returns 0 on success, anything else is error
+ */
+
+int
+list2str (std::list<std::string>& inList, std::string& outString)
+{
+    int retVal = 1;  // return Value 0 is success, everything else is failure
+    unsigned int counter = 0; // check if we hit all elements of inList
+    std::list<std::string>::iterator inListIter; // list interator
+
+    inListIter = inList.begin();
+
+    while (inListIter != inList.end()) {
+        if ( outString.empty() ) {
+            outString = *inListIter;
+        }
+        else {
+            outString =  outString + "," + *inListIter;
+        }
+
+        // increment the iterator and loop counter
+        inListIter++;
+        counter++;
+    }
+
+    if (counter == inList.size()) {
+        retVal = 0;
+    }
+
+    return retVal;
+}
