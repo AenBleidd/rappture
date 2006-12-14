@@ -18,7 +18,13 @@
 
 enum RP_UNITS_CONSTS {
     RPUNITS_UNITS_OFF           = 0,
-    RPUNITS_UNITS_ON            = 1
+    RPUNITS_UNITS_ON            = 1,
+
+    // units naming flags
+    RPUNITS_POS_EXP             = 1,
+    RPUNITS_NEG_EXP             = 2,
+    RPUNITS_STRICT_NAME         = 4,
+    RPUNITS_ORIG_EXP            = 7
 };
 
 // RpUnits Case Insensitivity define
@@ -26,6 +32,7 @@ enum RP_UNITS_CONSTS {
 //
 //define our different types of units
 #define RP_TYPE_ENERGY      "energy"
+#define RP_TYPE_EPOT        "electric_potential"
 #define RP_TYPE_LENGTH      "length"
 #define RP_TYPE_TEMP        "temperature"
 #define RP_TYPE_TIME        "time"
@@ -295,7 +302,7 @@ class RpUnitsListEntry
         void negateExponent() const;
 
         // print the name of the object
-        std::string name() const;
+        std::string name(int flags=RPUNITS_ORIG_EXP) const;
 
         // report the basis of the RpUnits object being stored.
         const RpUnits* getBasis() const;
@@ -330,7 +337,7 @@ class RpUnits
 
         // users member fxns
         std::string getUnits() const;
-        std::string getUnitsName() const;
+        std::string getUnitsName(int flags=RPUNITS_ORIG_EXP) const;
         std::string getSearchName() const;
         double getExponent() const;
         const RpUnits* getBasis() const;
@@ -386,7 +393,7 @@ class RpUnits
         // of that unit are available for conversions.
         // returns 0 on success (units are valid)
         // returns !0 on failure (units not valid)
-        static int validate(const std::string& inUnits, 
+        static int validate(std::string& inUnits,
                             std::string& type,
                             std::list<std::string>* compatList=NULL);
 
@@ -424,6 +431,7 @@ class RpUnits
         // if group equals........................then load................
         //                   "all"           load all available units
         //  RP_TYPE_ENERGY   "energy"        load units related to energy
+        //  RP_TYPE_EPOT     "electric_potential" load units related to electric potential
         //  RP_TYPE_LENGTH   "length"        load units related to length
         //  RP_TYPE_TEMP     "temperature"   load units related to temperature
         //  RP_TYPE_TIME     "time"          load units related to time
@@ -665,6 +673,8 @@ class RpUnits
         static int units2list( const std::string& inUnits,
                                RpUnitsList& outList,
                                std::string& type);
+        static int list2units( RpUnitsList& inList,
+                               std::string& outUnitsStr);
         static int grabExponent(const std::string& inStr, double* exp);
         static int grabUnitString( const std::string& inStr);
         static const RpUnits* grabUnits (std::string inStr, int* offset);
@@ -694,6 +704,8 @@ class RpUnits
 
 /*--------------------------------------------------------------------------*/
 /*--------------------------------------------------------------------------*/
+
+int list2str (std::list<std::string>& inList, std::string& outString);
 
 #endif // ifdef __cplusplus
 
