@@ -52,7 +52,6 @@ static int RpTclUnitsSearchFor  _ANSI_ARGS_((   ClientData cdata,
 #endif
 
 
-static int list2str (std::list<std::string>& inList, std::string& outString);
 
 
 
@@ -112,6 +111,7 @@ RpTclUnitsConvert   (   ClientData cdata,
                         const char *argv[]  )
 {
     std::string inValue       = ""; // value provided by the user
+    std::string origUnitsName = "";
     std::string fromUnitsName = ""; // name of the units for user's value
     std::string toUnitsName   = ""; // name of the units to convert to
     std::string option        = ""; // tmp var for parsing command line options
@@ -157,10 +157,11 @@ RpTclUnitsConvert   (   ClientData cdata,
                 if (argv[nextarg] != NULL) {
                     fromUnitsName = std::string(argv[nextarg]);
                     err = 0;
+                    origUnitsName = fromUnitsName;
                     err = RpUnits::validate(fromUnitsName,type,&compatList);
                     if ( err != 0) {
                         Tcl_AppendResult(interp,
-                            "bad value \"", fromUnitsName.c_str(), 
+                            "bad value \"", origUnitsName.c_str(), 
                             "\": should be a recognized unit for Rappture",
                             (char*)NULL);
                         return TCL_ERROR;
@@ -177,10 +178,11 @@ RpTclUnitsConvert   (   ClientData cdata,
                 if (argv[nextarg] != NULL) {
                     toUnitsName = std::string(argv[nextarg]);
                     err = 0;
+                    origUnitsName = toUnitsName;
                     err = RpUnits::validate(toUnitsName,type);
                     if (err != 0) {
                         Tcl_AppendResult(interp,
-                            "bad value \"", toUnitsName.c_str(), 
+                            "bad value \"", origUnitsName.c_str(), 
                             "\": should be a recognized unit for Rappture",
                             (char*)NULL);
                         return TCL_ERROR;
@@ -316,7 +318,6 @@ RpTclUnitsDesc      (   ClientData cdata,
     std::string listStr       = ""; // name of the units provided by user
     // const RpUnits* unitsObj   = NULL;
     std::list<std::string> compatList;
-    std::list<std::string>::iterator compatListIter;
 
     int nextarg               = 1; // start parsing using the '2'th argument
     int err                   = 0; // err code for validate()
@@ -534,43 +535,4 @@ RpTclUnitsSearchFor (  ClientData cdata,
     Tcl_AppendResult(interp, unitsName.c_str(), (char*)NULL);
 
     return TCL_OK;
-}
-
-/**********************************************************************/
-// FUNCTION: list2str()
-/// Convert a std::list<std::string> into a comma delimited std::string
-/**
- * Iterates through a std::list<std::string> and returns a comma 
- * delimited std::string containing the elements of the inputted std::list.
- *
- * Returns 0 on success, anything else is error
- */
-
-int
-list2str (std::list<std::string>& inList, std::string& outString)
-{
-    int retVal = 1;  // return Value 0 is success, everything else is failure
-    unsigned int counter = 0; // check if we hit all elements of inList
-    std::list<std::string>::iterator inListIter; // list interator
-
-    inListIter = inList.begin();
-
-    while (inListIter != inList.end()) {
-        if ( outString.empty() ) {
-            outString = *inListIter;
-        }
-        else {
-            outString =  outString + "," + *inListIter;
-        }
-
-        // increment the iterator and loop counter
-        inListIter++;
-        counter++;
-    }
-
-    if (counter == inList.size()) {
-        retVal = 0;
-    }
-
-    return retVal;
 }
