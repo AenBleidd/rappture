@@ -707,6 +707,8 @@ class RpUnits
 
 int list2str (std::list<std::string>& inList, std::string& outString);
 
+int unitSlice (std::string inStr, std::string& outUnits, double& outVal);
+
 #endif // ifdef __cplusplus
 
 #endif // ifndef _RpUNITS_H

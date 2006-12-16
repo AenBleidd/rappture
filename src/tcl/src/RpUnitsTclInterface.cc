@@ -326,7 +326,7 @@ RpTclUnitsDesc      (   ClientData cdata,
 
     // parse through command line options
     if (argc != 2) {
-        Tcl_AppendResult(interp, 
+        Tcl_AppendResult(interp,
                 "wrong # args: should be \"", argv[0], 
                 " units\"", (char*)NULL);
         return TCL_ERROR;
@@ -499,10 +499,11 @@ RpTclUnitsSearchFor (  ClientData cdata,
                         const char *argv[]  )
 {
     std::string unitsName     = ""; // name of the units provided by user
+    std::string origUnitsName = ""; // name of the units provided by user
     std::string type          = ""; // junk variable that validate() needs
     int nextarg               = 1; // start parsing using the '2'th argument
     int err                   = 0; // err code for validate
-    char* endptr              = NULL;
+    double val                = 0;
 
     Tcl_ResetResult(interp);
 
@@ -514,19 +515,16 @@ RpTclUnitsSearchFor (  ClientData cdata,
     }
 
     // find where the unitsName begins
-    strtod(argv[nextarg],&endptr);
-    unitsName = std::string(endptr);
+    unitSlice(std::string(argv[nextarg]),unitsName,val);
 
     err = RpUnits::validate(unitsName,type);
     if (err) {
         /*
-         * according to tcl version, in this case we 
+         * according to tcl version, in this case we
          * should return an empty string. i happen to disagree.
          * the next few lines is what i think the user should see.
         Tcl_AppendResult(interp,
-            "The units named: \"", unitsName.c_str(), 
-            "\" is not a recognized unit for rappture",
-            (char*)NULL);
+            "Unrecognized units: \"", origUnitsName.c_str(), "\"", (char*)NULL);
         return TCL_ERROR;
         */
         return TCL_OK;
