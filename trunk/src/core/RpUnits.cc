@@ -986,14 +986,46 @@ RpUnits::units2list ( const std::string& inUnits,
             continue;
         }
 
+        // check to see if we came across a '*' character
+        if (myInUnits[last] == '*') {
+            // type = myInUnits[last] + type;
+            // ignore * because we assume everything is multiplied together
+            myInUnits.erase(last);
+            continue;
+        }
+
         // get the exponent
         offset = RpUnits::grabExponent(myInUnits,&exponent);
         myInUnits.erase(offset);
         idx = offset - 1;
+        last = myInUnits.length()-1;
+        if (last == -1) {
+            // the string is empty, units were not correctly entered
+            err = 1;
+            break;
+        }
 
         // grab the largest string we can find
         offset = RpUnits::grabUnitString(myInUnits);
-        idx = offset;
+
+        // if idx > length, then the grabUnitString went through the whole
+        // string and did not find a good string we could use as units.
+        // this generally means the string was filled with non alphabetical
+        // symbols like *&^%$#@!)(~`{}[]:;"'?/><,.-_=+\ or |
+
+        if (offset > last) {
+            err = 1;
+            // erase the last offending character
+            myInUnits.erase(last);
+            // reset our vars and try again
+            idx = 0;
+            offset = 0;
+            exponent = 1;
+            continue;
+        }
+        else {
+            idx = offset;
+        }
 
         // figure out if we have some defined units in that string
         sendUnitStr.str(myInUnits.substr(offset,std::string::npos));
@@ -1018,7 +1050,7 @@ RpUnits::units2list ( const std::string& inUnits,
             // we came across a unit we did not recognize
             // raise error and delete character for now
             err = 1;
-            myInUnits.erase(last);
+            myInUnits.erase(idx);
         }
 
         /*
@@ -1246,7 +1278,6 @@ RpUnits::convert (  std::string val,
     double toExp = 0;
     double fromExp = 0;
     int convErr = 0;
-    char* endptr = NULL;
     std::stringstream outVal;
 
     double copies = 0;
@@ -1271,10 +1302,10 @@ RpUnits::convert (  std::string val,
     // now we can actually get the scientific notation portion of the string.
     //
 
-    numVal = strtod(val.c_str(),&endptr);
+    convErr = unitSlice(val,fromUnitsName,numVal);
     origNumVal = numVal;
 
-    if ( (numVal == 0) && (endptr == val.c_str()) ) {
+    if (convErr != 0) {
         // no conversion was done.
         // number in incorrect format probably.
         if (result) {
@@ -1283,10 +1314,8 @@ RpUnits::convert (  std::string val,
         return val;
     }
 
-    fromUnitsName = std::string(endptr);
-
     if (toUnitsName.empty())  {
-        // there were no units in the input 
+        // there were no units in the input
         // string or no conversion needed
         // assume fromUnitsName = toUnitsName
         // return the correct value
@@ -2681,6 +2710,33 @@ list2str (std::list<std::string>& inList, std::string& outString)
     if (counter == inList.size()) {
         retVal = 0;
     }
+
+    return retVal;
+}
+
+/**********************************************************************/
+// FUNCTION: unitSlice()
+/// Convert a std::string into what might be the value and units
+/**
+ * Returns 0 on success, anything else is error
+ */
+
+int
+unitSlice (std::string inStr, std::string& outUnits, double& outVal)
+{
+    int retVal      = 0;  // return val 0 is success, otherwise failure
+    char *endptr    = NULL;
+
+    outVal = strtod(inStr.c_str(), &endptr);
+
+    if ( (outVal == 0) && (endptr == inStr.c_str()) ) {
+        // no conversion performed
+        retVal = 1;
+    }
+    else {
+    }
+
+    outUnits = std::string(endptr);
 
     return retVal;
 }
