@@ -674,6 +674,7 @@ MKOCTFILE
 PERL
 PYTHON
 pythondir
+MEX_ARCH
 PERL_INCLUDES
 PYTHON_VERSION
 PYTHON_INCLUDES
@@ -1271,6 +1272,7 @@ Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
   --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
   --with-matlab=DIR         Build Matlab bindings if MEX compiler is found
+  --with-matlab-arch=ARCH         Build Matlab bindings for ARCH architecture
   --with-octave=DIR         Build Octave bindings if MKOCTFILE compiler is found
   --with-perl=DIR         Build Perl bindings if found
   --with-python=DIR       Build Python bindings if found
@@ -4948,7 +4950,14 @@ if test "${with_matlab+set}" = set; then
   withval=$with_matlab;
 fi
 
+
+# Check whether --with-matlab_arch was given.
+if test "${with_matlab_arch+set}" = set; then
+  withval=$with_matlab_arch;
+fi
+
 MEX=
+MEX_ARCH=
 if test "$with_matlab" != "no" ; then
         if test -x "$with_matlab/bin/mex"
     then
@@ -5002,6 +5011,9 @@ fi
 
         fi
     fi
+fi
+if test "x$with_matlab_arch" != "x" ; then
+    MEX_ARCH="-arch=$with_matlab_arch"
 fi
 
 
@@ -5991,6 +6003,7 @@ MKOCTFILE!$MKOCTFILE$ac_delim
 PERL!$PERL$ac_delim
 PYTHON!$PYTHON$ac_delim
 pythondir!$pythondir$ac_delim
+MEX_ARCH!$MEX_ARCH$ac_delim
 PERL_INCLUDES!$PERL_INCLUDES$ac_delim
 PYTHON_VERSION!$PYTHON_VERSION$ac_delim
 PYTHON_INCLUDES!$PYTHON_INCLUDES$ac_delim
@@ -6002,7 +6015,7 @@ LIBOBJS!$LIBOBJS$ac_delim
 LTLIBOBJS!$LTLIBOBJS$ac_delim
 _ACEOF
 
-  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 69; then
+  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 70; then
     break
   elif $ac_last_try; then
     { { echo "$as_me:$LINENO: error: could not make $CONFIG_STATUS" >&5

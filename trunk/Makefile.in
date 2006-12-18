@@ -69,41 +69,57 @@ install_tcl:
 
 # matlab bindings
 build_matlab:
-	cd src/matlab; make clean; make RpMatlab; cd -
+	if test "x@MEX@" != "x" ; then \
+		cd src/matlab; make clean; make RpMatlab; cd -; \
+	fi
 
 install_matlab: build_matlab
-	cd src/matlab; make install; cd -
+	if test "x@MEX@" != "x" ; then \
+		cd src/matlab; make install; cd -; \
+	fi
 
 # octave bindings
 build_octave:
-	cd src/octave; make clean; make RpOctave; cd -
+	if test "x@MKOCTFILE@" != "x" ; then \
+		cd src/octave; make clean; make RpOctave; cd -; \
+	fi
 
 install_octave: build_octave
-	cd src/octave; make install; cd -
+	if test "x@MKOCTFILE@" != "x" ; then \
+		cd src/octave; make install; cd -; \
+	fi
 
 build_python:
-	set -x;
-	cd python; \
-	@PYTHON@ setup.py \
-		build_ext \
-		--library-dirs=@prefix@/lib \
-		--include-dirs=@prefix@/include \
-		build
+	if test "x@PYTHON@" != "x" ; then \
+		set -x; \
+		cd python; \
+		@PYTHON@ setup.py \
+			build_ext \
+			--library-dirs=@prefix@/lib \
+			--include-dirs=@prefix@/include \
+			build; \
+	fi
 
 install_python: build_python
-	set -x;
-	cd python; \
-	@PYTHON@ setup.py install --prefix=@prefix@
+	if test "x@PYTHON@" != "x" ; then \
+		set -x; \
+		cd python; \
+		@PYTHON@ setup.py install --prefix=@prefix@; \
+	fi
 
 build_perl:
-	set -x;
-	cd perl; \
-	@PERL@ Makefile.PL INSTALLSITELIB=@prefix@/lib/perl5 INSTALLSITEMAN3DIR=@prefix@/man/man3; \
-	make; make test;
+	if test "x@PERL@" != "x" ; then \
+		set -x; \
+		cd perl; \
+		@PERL@ Makefile.PL INSTALLSITELIB=@prefix@/lib/perl5 INSTALLSITEMAN3DIR=@prefix@/man/man3; \
+		make; make test; \
+	fi
 
 install_perl: build_perl
-	set -x;
-	cd perl; make install;
+	if test "x@PERL@" != "x" ; then \
+		set -x; \
+		cd perl; make install; \
+	fi
 
 build_pkgs:
 	set -x;
