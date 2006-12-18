@@ -35,8 +35,10 @@ AC_CHECK_HEADERS(vector,,AC_MSG_WARN(STL classes missing ?))
 AC_PROG_F77([f77 fort77 g77 f90 xlf xlf90 fl32])
 
 AC_ARG_WITH(matlab, [  --with-matlab[=DIR]         Build Matlab bindings if MEX compiler is found])
+AC_ARG_WITH(matlab_arch, [  --with-matlab-arch[=ARCH]         Build Matlab bindings for ARCH architecture])
 dnl AC_CHECK_PROG(MEX, mex, mex, false)
 MEX=
+MEX_ARCH=
 if test "$with_matlab" != "no" ; then
     dnl WITH_MATLAB = "yes"
     if test -x "$with_matlab/bin/mex"
@@ -53,6 +55,10 @@ if test "$with_matlab" != "no" ; then
         fi
     fi
 fi
+if test "x$with_matlab_arch" != "x" ; then
+    MEX_ARCH="-arch=$with_matlab_arch"
+fi
+dnl AC_CHECK_PROG(MEX, mex, mex, false)
 dnl AM_CONDITIONAL(WITH_MATLAB, test x$MEX != x)
 
 AC_ARG_WITH(octave, [  --with-octave[=DIR]         Build Octave bindings if MKOCTFILE compiler is found])
@@ -169,18 +175,11 @@ if test "$with_python" != "no" ; then
 fi
 dnl AM_CONDITIONAL(WITH_PYTHON, test x$PYTHON != x)
 
-dnl AM_CONDITIONAL(WITH_PYTHON, test "$PYTHON_INCLUDES" != "")
-dnl if test "$PYTHON_INCLUDES" != ""
-dnl then
-dnl     PYTHON_SUBDIR=python
-dnl else
-dnl     PYTHON_SUBDIR=
-dnl fi
-
 AC_SUBST(pythondir)
 dnl AC_SUBST(PYTHON_SUBDIR)
 
 AC_SUBST(MEX)
+AC_SUBST(MEX_ARCH)
 AC_SUBST(MKOCTFILE)
 AC_SUBST(PERL)
 AC_SUBST(PERL_INCLUDES)

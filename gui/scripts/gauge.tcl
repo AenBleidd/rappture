@@ -217,14 +217,14 @@ itcl::body Rappture::Gauge::value {args} {
         #
         set newval [set nv [lindex $args 0]]
         set units $itk_option(-units)
-        if {$units != ""} {
-            set nvUnits [Rappture::Units::Search::for $nv]
-            if { "" == $nvUnits} {
-                set msg [Rappture::Units::description $units]
-                error "Unrecognized units: $nv\n$mesg"
-            }
+        if {"" != $units} {
             set newval [Rappture::Units::convert $newval \
                 -context $units]
+            set nvUnits [Rappture::Units::Search::for $newval]
+            if { "" == $nvUnits} {
+                set msg [Rappture::Units::description $units]
+                error "Unrecognized units: $newval\nEnter value with units $msg"
+            }
             set nv [Rappture::Units::convert $nv \
                 -context $units -to $units -units off]
         }
