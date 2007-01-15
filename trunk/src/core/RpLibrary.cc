@@ -56,30 +56,40 @@ RpLibrary::_get_attribute(scew_element* element, std::string attributeName)
  */
 
 int
-RpLibrary::_path2list (std::string& path, std::string** list, int listLen) 
+RpLibrary::_path2list (std::string& path, std::string** list, int listLen)
 {
     std::string::size_type pos = 0;
     std::string::size_type start = 0;
+    std::string::size_type end = path.length();
     int index = 0;
     int retVal = 0;
+    unsigned int parenDepth = 0;
 
-    // listLen should be the highest index + 1
-    for (   pos = path.find(".",NO_CREATE_PATH);
-            (pos != std::string::npos) || (index >= listLen);
-            pos = path.find(".",pos)   )
-    {
-        list[index++] = new std::string(path.substr(start,pos-start));
-        start = ++pos;
+    for (   pos = 0; (pos < end) && (index < listLen); pos++) {
+        if (path[pos] == '(') {
+            parenDepth++;
+            continue;
+        }
+
+        if (path[pos] == ')') {
+            parenDepth--;
+            continue;
+        }
+
+        if ( (path[pos] == '.') && (parenDepth == 0) ) {
+            list[index] = new std::string(path.substr(start,pos-start));
+            index++;
+            start = pos + 1;
+        }
     }
 
     // add the last path to the list
-    if (index < listLen) {
-        // error checking for path names?
-        // what if you get something like p1.p2. ?
-        list[index] = new std::string(path.substr(start,path.length()-start));
+    // error checking for path names like p1.p2.
+    if ( (start < end) && (pos == end) ) {
+        list[index] = new std::string(path.substr(start,pos-start));
     }
-
-    retVal = index++;
+    retVal = index;
+    index++;
 
     // null out the rest of the pointers so we know where to stop free'ing
     while (index < listLen) {
