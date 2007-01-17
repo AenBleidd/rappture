@@ -44,6 +44,9 @@ public class filexfer extends java.applet.Applet {
         if (cookie == null)
             cookie = "<missing>";
 
+        String connect_param = null;
+        connect_param = getParameter("connect");
+
         String ipAddr = "";
         try {
             // Get IP Address of the local machine
@@ -71,7 +74,7 @@ public class filexfer extends java.applet.Applet {
         add(status);
 
         mon = new monitor(this, getCodeBase().getHost(), port,
-            user, ipAddr, cookie);
+            user, ipAddr, cookie, connect_param);
         mon.start();
     }
 
