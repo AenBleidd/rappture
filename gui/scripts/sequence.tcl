@@ -102,7 +102,7 @@ itcl::body Rappture::Sequence::constructor {xmlobj path} {
         # are the indices integers, reals, or strings?
         set how -integer
         foreach key [array names _dataobjs] {
-            if {[regexp {^[0-9]+[eE][-+]?[0-9]+|([0-9]+)?\.[0-9]+([eE][-+]?[0-9]+)$} $key]} {
+            if {[regexp {^[0-9]+[eE][-+]?[0-9]+|([0-9]+)?\.[0-9]+([eE][-+]?[0-9]+)?$} $key]} {
                 set how -real
                 break
             } elseif {![regexp {^[0-9]+$} $key]} {
@@ -124,8 +124,10 @@ itcl::body Rappture::Sequence::constructor {xmlobj path} {
                 lappend _indices [list $val $val]
             }
         }
+puts "indices $how: $_indices"
     }
 }
+puts "loaded"
 
 # ----------------------------------------------------------------------
 # DESTRUCTOR
