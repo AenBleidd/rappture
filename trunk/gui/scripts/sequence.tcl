@@ -124,10 +124,8 @@ itcl::body Rappture::Sequence::constructor {xmlobj path} {
                 lappend _indices [list $val $val]
             }
         }
-puts "indices $how: $_indices"
     }
 }
-puts "loaded"
 
 # ----------------------------------------------------------------------
 # DESTRUCTOR
