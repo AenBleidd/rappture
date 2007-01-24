@@ -68,7 +68,6 @@ RpMatlab: 	rpLib.mexglx \
 			rpUnitsGetExponent.mexglx \
 			rpUnitsGetBasis.mexglx \
 			rpUnitsFind.mexglx \
-			rpUnitsMakeMetric.mexglx \
 			rpUnitsConvert.mexglx \
 			rpUnitsConvertStr.mexglx \
 			rpUnitsConvertObjStr.mexglx \
@@ -140,8 +139,6 @@ rpUnitsGetBasis.mexglx:
 	$(MEX) rpUnitsGetBasis.cc         $(MATLAB_COMP_ARGS)
 rpUnitsFind.mexglx:
 	$(MEX) rpUnitsFind.cc             $(MATLAB_COMP_ARGS)
-rpUnitsMakeMetric.mexglx:
-	$(MEX) rpUnitsMakeMetric.cc       $(MATLAB_COMP_ARGS)
 rpUnitsConvert.mexglx:
 	$(MEX) rpUnitsConvert.cc          $(MATLAB_COMP_ARGS)
 rpUnitsConvertStr.mexglx:

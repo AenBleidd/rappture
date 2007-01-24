@@ -68,7 +68,6 @@ RpOctave: 	rpAddPresets.oct \
 			rpUnitsGetExponent.oct \
 			rpUnitsGetUnits.oct \
 			rpUnitsGetUnitsName.oct \
-			rpUnitsGetMakeMetric.oct
 
 rpAddPresets.oct:
 	$(OCT) rpAddPresets.cc            $(OCTAVE_COMP_ARGS)
@@ -132,8 +131,6 @@ rpUnitsGetUnits.oct:
 	$(OCT) rpUnitsGetUnits.cc         $(OCTAVE_COMP_ARGS)
 rpUnitsGetUnitsName.oct:
 	$(OCT) rpUnitsGetUnitsName.cc     $(OCTAVE_COMP_ARGS)
-rpUnitsGetMakeMetric.oct:
-	$(OCT) rpUnitsMakeMetric.cc       $(OCTAVE_COMP_ARGS)
 
 docs:
 	if test ! -d docs; then \
