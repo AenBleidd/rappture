@@ -76,25 +76,6 @@ rp_find(char* searchName, int searchName_len)
 }
 
 int
-rp_make_metric(int* basis)
-{
-    int result = -1;
-    const RpUnits* newBasis = NULL;
-
-    if (basis && *basis) {
-        newBasis = getObject_UnitsStr(*basis);
-
-        if (newBasis) {
-            // make the metric extensions and retrieve the error code
-            result = RpUnits::makeMetric(newBasis);
-        }
-    }
-
-    // return the error code
-    return result;
-}
-
-int
 rp_get_units(int* unitRefVal, char* retText, int retText_len)
 {
     const RpUnits* unitObj = NULL;

@@ -49,21 +49,6 @@ RP_FIND (char* searchName, int searchName_len) {
 }
 
 int
-rp_make_metric_ (int* basis) {
-    return rp_make_metric(basis);
-}
-
-int
-rp_make_metric__ (int* basis) {
-    return rp_make_metric(basis);
-}
-
-int
-RP_MAKE_METRIC (int* basis) {
-    return rp_make_metric(basis);
-}
-
-int
 rp_get_units_ (int* unitRefVal, char* retText, int retText_len) {
     return rp_get_units(unitRefVal,retText,retText_len);
 }

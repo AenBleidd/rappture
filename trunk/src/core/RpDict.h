@@ -13,7 +13,7 @@
 #include <errno.h>
 //#include <malloc.h>
 
-#ifndef _RpDICT_H 
+#ifndef _RpDICT_H
 #define _RpDICT_H
 
 /**************************************************************************/
@@ -33,9 +33,11 @@ template <  typename KeyType,
             typename ValType,
             class _Compare=std::equal_to<KeyType> >
     class RpDictIterator;
+
+
 /*
  * RpDictEntry should not depend on _Compare,
- * it was originally neede because RpDict is a friend class
+ * it was originally needed because RpDict is a friend class
  * then i needed to assign it a default value because RpUnits.cc
  * uses it in its find function. RpUnits::find should really not
  * have to use it.
@@ -236,6 +238,7 @@ class RpDict
 {
     public:
 
+        typedef bool (*RpDictHint)(ValType);
 
         // functionality for the user to access/adjust data members
 
@@ -249,17 +252,20 @@ class RpDict
         /*virtual*/ RpDict<KeyType,ValType,_Compare>&
                         set(    KeyType& key,
                                 ValType& value,
+                                RpDictHint hint=NULL,
                                 int *newPtr=NULL,
                                 bool ci=false);
 
         // find an RpUnits object that should exist in RpUnitsTable
         // 
-        /*virtual*/ RpDictEntry<KeyType,ValType,_Compare>& 
-                        find( KeyType& key );
+        /*virtual*/ RpDictEntry<KeyType,ValType,_Compare>&
+                        find(   KeyType& key,
+                                RpDictHint hint = NULL,
+                                bool ci=false   );
 
         /*virtual*/ RpDictEntry<KeyType,ValType,_Compare>& operator[]( KeyType& key)
         {
-            return find(key);
+            return find(key,NULL);
         }
 
         RpDict<KeyType,ValType,_Compare>& setCI( bool val );
@@ -355,6 +361,9 @@ class RpDict
 
         // private member fxns
 
+        RpDictEntry<KeyType,ValType,_Compare>*
+            search( KeyType& key, RpDictHint hint = NULL, bool ci = false );
+
         // static void RpDict::RebuildTable ();
         void RebuildTable ();
 
@@ -415,6 +424,7 @@ template <typename KeyType, typename ValType, class _Compare>
 RpDict<KeyType,ValType,_Compare>&
 RpDict<KeyType,ValType,_Compare>::set(  KeyType& key,
                                         ValType& value,
+                                        RpDictHint hint,
                                         int* newPtr,
                                         bool ci )
 {
@@ -426,7 +436,27 @@ RpDict<KeyType,ValType,_Compare>::set(  KeyType& key,
     assert(&key);
     assert(&value);
 
-    // take care of the case where we are creating a NULL key entry.
+    hPtr = search(key,hint,ci);
+    if (hPtr != NULL) {
+        // adjust the new flag if it was provided
+        if (newPtr) {
+            *newPtr = 0;
+        }
+
+        // adjust the value if it was provided
+        // memory management is left as an exercise for the caller
+        if (&value) {
+            hPtr->setValue(value);
+        }
+
+        // return a reference to the dictionary object
+        return *this;
+    }
+
+    /*
+     * Entry not found.  Add a new one to the bucket.
+     */
+
     if (&key) {
         if (ci != oldCI) {
             setCI(ci);
@@ -437,45 +467,11 @@ RpDict<KeyType,ValType,_Compare>::set(  KeyType& key,
         }
     }
     else {
+        // we are creating a NULL key entry.
         hash = 0;
     }
 
     index = randomIndex(hash);
-
-    /*
-     * Search all of the entries in the appropriate bucket.
-     */
-    for (hPtr = buckets[index]; hPtr != NULL; hPtr = hPtr->nextPtr) {
-        if (hash != (unsigned int) hPtr->hash) {
-            continue;
-        }
-        // if element already exists in hash, it should not be re-entered
-        // if (key == *(hPtr->getKey())){
-        if (_Compare()(key, *(hPtr->getKey()))){
-
-            // adjust the new flag if it was provided
-            if (newPtr) {
-                *newPtr = 0;
-            }
-
-            // adjust the value if it was provided
-            // memory management is left as an exercise for the caller
-            if (&value) {
-                hPtr->setValue(value);
-            }
-
-            // return a reference to the dictionary object
-            return *this;
-        }
-    }
-
-    /*
-     * Entry not found.  Add a new one to the bucket.
-     */
-
-    if (newPtr) {
-        *newPtr = 1;
-    }
 
     hPtr = new RpDictEntry<KeyType,ValType,_Compare>(key,value);
     // hPtr->setValue(value);
@@ -488,6 +484,10 @@ RpDict<KeyType,ValType,_Compare>::set(  KeyType& key,
     hPtr->nextPtr = buckets[index];
     buckets[index] = hPtr;
     numEntries++;
+
+    if (newPtr) {
+        *newPtr = 1;
+    }
 
     /*
      * If the table has exceeded a decent size, rebuild it with many
@@ -502,11 +502,10 @@ RpDict<KeyType,ValType,_Compare>::set(  KeyType& key,
     return *this;
 }
 
-
 /*
  *----------------------------------------------------------------------
  *
- *  RpDict::find(const char *key)
+ *  RpDict::find(KeyType& key, RpDictHint hint)
  *
  *  Given a hash table find the entry with a matching key.
  *
@@ -522,17 +521,69 @@ RpDict<KeyType,ValType,_Compare>::set(  KeyType& key,
 
 template <typename KeyType, typename ValType, class _Compare>
 RpDictEntry<KeyType,ValType,_Compare>&
-RpDict<KeyType,ValType,_Compare>::find(KeyType& key)
+RpDict<KeyType,ValType,_Compare>::find( KeyType& key,
+                                        RpDictHint hint,
+                                        bool ci )
+{
+    RpDictEntry<KeyType,ValType,_Compare> *hPtr = NULL;
+
+    hPtr = search(key,hint,ci);
+
+    if (hPtr != NULL) {
+        return *hPtr;
+    }
+
+    // return a reference to the null object
+    // find is not supposed to return a const, but i dont want the user
+    // changing this entry's data members... what to do?
+    return *nullEntry;
+}
+
+/*
+ *----------------------------------------------------------------------
+ *
+ *  RpDict::search(KeyType& key, RpDictHint hint)
+ *
+ *  Given a hash table find the entry with a matching key.
+ *
+ * Results:
+ *  The return value is a token for the matching entry in the
+ *  hash table, or NULL if there was no matching entry.
+ *
+ * Side effects:
+ *  None.
+ *
+ *----------------------------------------------------------------------
+ */
+
+template <typename KeyType, typename ValType, class _Compare>
+RpDictEntry<KeyType,ValType,_Compare>*
+RpDict<KeyType,ValType,_Compare>::search(   KeyType& key,
+                                            RpDictHint hint,
+                                            bool ci )
+                                            // bool ci,
+                                            // RpDictEntryList* entryList)
 {
     RpDictEntry<KeyType,ValType,_Compare> *hPtr = NULL;
     unsigned int hash = 0;
     int index = 0;
+    bool oldCI = caseInsensitive;
 
     assert(&key);
 
     // take care of the case where we are creating a NULL key entry.
     if (&key) {
+        if (ci != oldCI) {
+            // toggle the case insensitivity of the dictionary
+            setCI(ci);
+        }
+
         hash = (unsigned int) hashFxn(&key);
+
+        if (ci != oldCI) {
+            // reset the case insensitivity of the dictionary
+            setCI(oldCI);
+        }
     }
     else {
         hash = 0;
@@ -548,17 +599,28 @@ RpDict<KeyType,ValType,_Compare>::find(KeyType& key)
         if (hash != (unsigned int) hPtr->hash) {
             continue;
         }
-        // if (key == *(hPtr->getKey())) {
-        if (_Compare()(key, *(hPtr->getKey()))){
-            // return a reference to the found object
-            return *hPtr;
+        if (_Compare()(key, *(hPtr->getKey()))) {
+            // check to see if the user provided a hint
+            if (hint != NULL ) {
+                // if there is a hint, run the potential return value
+                // throught the hint function.
+                if (hint(*(hPtr->getValue())) == true) {
+                    // the hint approves of our choice of return values
+                    // return a reference to the found object
+                    return hPtr;
+                }
+            }
+            else {
+                // return a reference to the found object
+                return hPtr;
+            }
         }
     }
 
     // return a reference to the null object
     // find is not supposed to return a const, but i dont want the user
     // changing this entry's data members... what to do?
-    return *nullEntry;
+    return hPtr;
 
 }
 
@@ -600,7 +662,7 @@ RpDictIterator<KeyType,ValType,_Compare>::getTable()
  *
  *************************************************************************/
 template <typename KeyType,typename ValType,class _Compare>
-RpDictEntry<KeyType,ValType,_Compare>* 
+RpDictEntry<KeyType,ValType,_Compare>*
 RpDictIterator<KeyType,ValType,_Compare>::first()
 {
     srchNextIndex = 0;
@@ -625,8 +687,8 @@ RpDictIterator<KeyType,ValType,_Compare>::first()
  *************************************************************************/
 
 template <typename KeyType,typename ValType,class _Compare>
-RpDictEntry<KeyType,ValType,_Compare>* 
-RpDictIterator<KeyType,ValType,_Compare>::next() 
+RpDictEntry<KeyType,ValType,_Compare>*
+RpDictIterator<KeyType,ValType,_Compare>::next()
 {
     RpDictEntry<KeyType,ValType,_Compare>* hPtr = NULL;
 

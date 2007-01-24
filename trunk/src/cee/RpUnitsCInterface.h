@@ -41,8 +41,6 @@
 
     const RpUnits* rpFind        ( const char* unitSymbol);
 
-    int rpMakeMetric             ( const RpUnits* basis );
-
     // convert functions
 
     const char* rpConvert        ( const char* fromVal,

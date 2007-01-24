@@ -26,10 +26,6 @@ int rp_find_               (char* searchName, int searchName_len);
 int rp_find__              (char* searchName, int searchName_len);
 int RP_FIND                (char* searchName, int searchName_len);
 
-int rp_make_metric_        (int* basis);
-int rp_make_metric__       (int* basis);
-int RP_MAKE_METRIC         (int* basis);
-
 int rp_get_units_          (int* unitRefVal, char* retText, int retText_len);
 int rp_get_units__         (int* unitRefVal, char* retText, int retText_len);
 int RP_GET_UNITS           (int* unitRefVal, char* retText, int retText_len);
