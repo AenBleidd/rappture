@@ -248,7 +248,7 @@ itcl::body Rappture::Gauge::value {args} {
                 set minv [Rappture::Units::convert $minv \
                     -context $units -to $units -units off]
                 set convMinVal [Rappture::Units::convert \
-                    $itk_option(-minvalue) -to $nvUnits]
+                    $itk_option(-minvalue) -context $units -to $nvUnits]
             } else {
                 set newval [format "%g" $newval]
             }
@@ -269,7 +269,7 @@ itcl::body Rappture::Gauge::value {args} {
                 set maxv [Rappture::Units::convert $maxv \
                     -context $units -to $units -units off]
                 set convMaxVal [Rappture::Units::convert \
-                    $itk_option(-maxvalue) -to $nvUnits]
+                    $itk_option(-maxvalue) -context $units -to $nvUnits]
             } else {
                 set newval [format "%g" $newval]
             }
