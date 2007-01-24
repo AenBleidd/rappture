@@ -43,7 +43,7 @@ storeObject_Lib(RpLibrary* objectName, int key) {
         if (dictKey == 0) {
             dictKey = ObjDict_Lib.size() + 1;
         }
-        ObjDict_Lib.set(dictKey,objectName, &newEntry); 
+        ObjDict_Lib.set(dictKey,objectName, NULL,&newEntry);
         retVal = dictKey;
     }
 
@@ -137,7 +137,7 @@ storeObject_UnitsStr(std::string objectName) {
         // dictionary returns a reference to the inserted value
         // no error checking to make sure it was successful in entering
         // the new entry.
-        ObjDictUnits.set(dictNextKey,objectName, &newEntry);
+        ObjDictUnits.set(dictNextKey,objectName, NULL, &newEntry);
         retVal = dictNextKey;
     }
 
