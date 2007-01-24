@@ -393,32 +393,6 @@ RpUnits_find(PyObject *self, PyObject *args)
 
 }
 
-PyDoc_STRVAR(RpUnits_makeMetric_doc, 
-"makeMetric (newBasis) -> PyInt \n\
-\n\
-Create the metric extentions and conversion functions for \n\
-the unit 'newBasis', thus making it a new basis.");
-
-static PyObject*
-RpUnits_makeMetric(PyObject *self, PyObject *args)
-{
-    RpUnitsObject* units = NULL;
-    int result = 0;
-
-    if (PyTuple_Size(args) > 0) {
-        PyArg_ParseTuple(args, "O!", &RpUnitsObjectType, &units);
-    }
-    else {
-        return NULL;
-    }
-
-    if (units->rp_unit) {
-        result = RpUnits::makeMetric(units->rp_unit);
-    }
-
-    return PyInt_FromLong((long)result);
-}
-
 PyDoc_STRVAR(RpUnits_convert_doc,
 "convert (fromVal, to, units) -> PyString \n\
 \n\
@@ -516,9 +490,6 @@ static PyMethodDef RpUnits_Methods[] = {
 
     {"find", RpUnits_find, METH_VARARGS,
         RpUnits_find_doc},
-
-    {"makeMetric", RpUnits_makeMetric, METH_VARARGS,
-        RpUnits_makeMetric_doc},
 
     {"convert", (PyCFunction)RpUnits_convert, METH_VARARGS|METH_KEYWORDS,
         RpUnits_convert_doc},
