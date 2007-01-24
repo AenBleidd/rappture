@@ -25,8 +25,6 @@ int rp_define_unit(char* unitName, int* basisName, int unitName_len);
 
 int rp_find(char* searchName, int searchName_len);
 
-int rp_make_metric(int* basis);
-
 int rp_get_units(int* unitRefVal, char* retText, int retText_len);
 
 int rp_get_units_name(int* unitRefVal, char* retText, int retText_len);

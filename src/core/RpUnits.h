@@ -6,7 +6,7 @@
  *
  * ======================================================================
  *  AUTHOR:  Derrick Kearney, Purdue University
- *  Copyright (c) 2004-2005  Purdue Research Foundation
+ *  Copyright (c) 2004-2007  Purdue Research Foundation
  *
  *  See the file "license.terms" for information on usage and
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -29,7 +29,9 @@ enum RP_UNITS_CONSTS {
 
 // RpUnits Case Insensitivity define
 #define RPUNITS_CASE_INSENSITIVE true
-//
+
+#define RPUNITS_METRIC          true
+
 //define our different types of units
 #define RP_TYPE_ENERGY      "energy"
 #define RP_TYPE_EPOT        "electric_potential"
@@ -39,6 +41,7 @@ enum RP_UNITS_CONSTS {
 #define RP_TYPE_VOLUME      "volume"
 #define RP_TYPE_ANGLE       "angle"
 #define RP_TYPE_MASS        "mass"
+#define RP_TYPE_PREFIX      "prefix"
 #define RP_TYPE_PRESSURE    "pressure"
 #define RP_TYPE_CONC        "concentration"
 #define RP_TYPE_MISC        "misc"
@@ -67,17 +70,43 @@ class RpUnitsPreset {
             addPresetAll();
         };
 
-        static int addPresetAll();
-        static int addPresetEnergy();
-        static int addPresetLength();
-        static int addPresetTemp();
-        static int addPresetTime();
-        static int addPresetVolume();
-        static int addPresetAngle();
-        static int addPresetMass();
-        static int addPresetPressure();
-        static int addPresetConcentration();
-        static int addPresetMisc();
+        static int  addPresetAll();
+        static int  addPresetEnergy();
+        static int  addPresetLength();
+        static int  addPresetTemp();
+        static int  addPresetTime();
+        static int  addPresetVolume();
+        static int  addPresetAngle();
+        static int  addPresetMass();
+        static int  addPresetPrefix();
+        static int  addPresetPressure();
+        static int  addPresetConcentration();
+        static int  addPresetMisc();
+};
+
+class RpUnitsTypes {
+    public:
+
+        typedef bool (*RpUnitsTypesHint)(RpUnits*);
+        static RpUnitsTypesHint getTypeHint (std::string type);
+
+        static bool hintTypePrefix    ( RpUnits* unitObj );
+        static bool hintTypeNonPrefix ( RpUnits* unitObj );
+        static bool hintTypeEnergy    ( RpUnits* unitObj );
+        static bool hintTypeEPot      ( RpUnits* unitObj );
+        static bool hintTypeLength    ( RpUnits* unitObj );
+        static bool hintTypeTemp      ( RpUnits* unitObj );
+        static bool hintTypeTime      ( RpUnits* unitObj );
+        static bool hintTypeVolume    ( RpUnits* unitObj );
+        static bool hintTypeAngle     ( RpUnits* unitObj );
+        static bool hintTypeMass      ( RpUnits* unitObj );
+        static bool hintTypePressure  ( RpUnits* unitObj );
+        static bool hintTypeConc      ( RpUnits* unitObj );
+        static bool hintTypeMisc      ( RpUnits* unitObj );
+
+    private:
+
+        RpUnitsTypes () {};
 };
 
 // simple class to hold info about a conversion.
@@ -280,21 +309,24 @@ class RpUnitsListEntry
     public:
 
         // constructor
-        RpUnitsListEntry (const RpUnits* unit, double exponent)
+        RpUnitsListEntry (const RpUnits* unit, double exponent, const RpUnits* prefix=NULL)
             : unit     (unit),
-              exponent (exponent)
+              exponent (exponent),
+              prefix   (prefix)
         {};
 
         // copy constructor
         RpUnitsListEntry (const RpUnitsListEntry& other)
             : unit     (other.unit),
-              exponent (other.exponent)
+              exponent (other.exponent),
+              prefix   (other.prefix)
         {};
 
         // copy assignment operator
         RpUnitsListEntry& operator= (const RpUnitsListEntry& other) {
             unit = other.unit;
             exponent = other.exponent;
+            prefix = other.prefix;
             return *this;
         }
 
@@ -313,6 +345,9 @@ class RpUnitsListEntry
         // return the exponent
         double getExponent() const;
 
+        // return the metric prefix associated with this object
+        const RpUnits* getPrefix() const;
+
         // destructor
         virtual ~RpUnitsListEntry ()
         {}
@@ -321,6 +356,7 @@ class RpUnitsListEntry
 
         const RpUnits* unit;
         mutable double exponent;
+        const RpUnits* prefix;
 };
 
 class RpUnits
@@ -335,12 +371,43 @@ class RpUnits
 
     public:
 
+        static bool cmpFxn (char c1, char c2)
+        {
+            int lc1 = toupper(static_cast<unsigned char>(c1));
+            int lc2 = toupper(static_cast<unsigned char>(c2));
+
+            if ( (lc1 < lc2) || (lc1 > lc2) ) {
+                return false;
+            }
+
+            return true;
+
+        }
+        struct _key_compare:
+            public
+            std::binary_function<std::string,std::string,bool> {
+
+                bool operator() (   const std::string& lhs,
+                                    const std::string& rhs ) const
+                {
+                    return std::lexicographical_compare( lhs.begin(),lhs.end(),
+                                                         rhs.begin(),rhs.end(),
+                                                         RpUnits::cmpFxn  );
+                }
+            };
+
+        // why are these functions friends...
+        // probably need to find a better way to let RpUnits
+        // use the RpDict and RpDictEntry fxns
+        friend class RpDict<std::string,RpUnits*,_key_compare>;
+        friend class RpDictEntry<std::string,RpUnits*,_key_compare>;
         // users member fxns
         std::string getUnits() const;
         std::string getUnitsName(int flags=RPUNITS_ORIG_EXP) const;
         std::string getSearchName() const;
         double getExponent() const;
         const RpUnits* getBasis() const;
+        RpUnits& setMetric(bool newVal);
 
         // retrieve a units type.
         std::string getType() const;
@@ -357,8 +424,8 @@ class RpUnits
                                 double val,
                                 int* result=NULL    ) const;
         // convert from one RpUnits to another if the conversion is defined
-        void* convert(          const RpUnits* toUnits, 
-                                void* val, 
+        void* convert(          const RpUnits* toUnits,
+                                void* val,
                                 int* result=NULL) const;
         // convert from one RpUnits to another if the conversion is defined
         // double convert(std::string, double val);
@@ -379,15 +446,16 @@ class RpUnits
         double makeBasis(double value, int* result = NULL) const;
         const RpUnits & makeBasis(double* value, int* result = NULL) const;
 
-        static int makeMetric(const RpUnits * basis);
+        static int makeMetric(RpUnits * basis);
 
         // find a RpUnits object that should exist in RpUnitsTable
         // returns 0 on success (object was found)
         // returns !0 on failure (object not found)
-        static const RpUnits* find(std::string key);
+        static const RpUnits* find( std::string key,
+        RpDict<std::string,RpUnits*,_key_compare>::RpDictHint hint = NULL);
 
-        // validate is very similar to find, but it works better 
-        // for seeing complex units can be interpreted. 
+        // validate is very similar to find, but it works better
+        // for seeing complex units can be interpreted.
         // it validates that if the a certain units string is
         // provided as a unit type, then all of the base components
         // of that unit are available for conversions.
@@ -403,6 +471,7 @@ class RpUnits
         static RpUnits * define(const std::string units,
                                 const RpUnits* basis=NULL,
                                 const std::string type="",
+                                bool metric=false,
                                 bool caseInsensitive=RPUNITS_CASE_INSENSITIVE);
 
         // add relation rule
@@ -438,6 +507,7 @@ class RpUnits
         //  RP_TYPE_VOLUME   "volume"        load units related to volume
         //  RP_TYPE_ANGLE    "angle"         load units related to angles
         //  RP_TYPE_MASS     "mass"          load units related to mass
+        //  RP_TYPE_PREFIX   "prefix"        load unit prefixes
         //  RP_TYPE_PRESSURE "pressure"      load units related to pressure
         //  RP_TYPE_CONC     "concentration" load units related to pressure
         //  RP_TYPE_MISC     "misc"          load units related to everything else
@@ -448,35 +518,6 @@ class RpUnits
         // undefining a relation rule is probably not needed
         // int undefine(); // delete a relation
 
-        static bool cmpFxn (char c1, char c2)
-        {
-            int lc1 = toupper(static_cast<unsigned char>(c1));
-            int lc2 = toupper(static_cast<unsigned char>(c2));
-
-            if ( (lc1 < lc2) || (lc1 > lc2) ) {
-                return false;
-            }
-
-            return true;
-
-        }
-        struct _key_compare:
-            public
-            std::binary_function<std::string,std::string,bool> {
-
-                bool operator() (   const std::string& lhs,
-                                    const std::string& rhs ) const
-                {
-                    return std::lexicographical_compare( lhs.begin(),lhs.end(),
-                                                         rhs.begin(),rhs.end(),
-                                                         RpUnits::cmpFxn  );
-                }
-            };
-        // why are these functions friends...
-        // probably need to find a better way to let RpUnits
-        // use the RpDict and RpDictEntry fxns
-        friend class RpDict<std::string,RpUnits*,_key_compare>;
-        friend class RpDictEntry<std::string,RpUnits*,_key_compare>;
 
         friend int insert(std::string key,RpUnits* val);
 
@@ -487,6 +528,7 @@ class RpUnits
               exponent (other.exponent),
               basis    (other.basis),
               type     (other.type),
+              metric   (other.metric),
               ci       (other.ci),
               convList (NULL)
         {
@@ -540,6 +582,7 @@ class RpUnits
             exponent = other.exponent;
             basis = other.basis;
             type = other.type;
+            metric = other.metric;
             ci = other.ci;
 
             if (other.convList) {
@@ -616,6 +659,9 @@ class RpUnits
         const RpUnits* basis;
         std::string type;
 
+        // tell if the unit can accept metric prefixes
+        bool metric;
+
         // should this unit be inserted as a case insensitive unit?
         bool ci;
 
@@ -647,14 +693,16 @@ class RpUnits
                     double& exponent,
                     const RpUnits* basis,
                     const std::string type,
+                    bool metric,
                     bool caseInsensitive
                 )
-            :   units       (units),
-                exponent    (exponent),
-                basis       (basis),
-                type        (type),
-                ci          (caseInsensitive),
-                convList    (NULL),
+            :   units           (units),
+                exponent        (exponent),
+                basis           (basis),
+                type            (type),
+                metric          (metric),
+                ci              (caseInsensitive),
+                convList        (NULL),
                 incarnationList (NULL)
         {};
 
@@ -668,37 +716,47 @@ class RpUnits
         typedef std::list<convFxnPtrD> convertList;
         typedef RpUnitsList::iterator RpUnitsListIter;
 
-        void newExponent(double newExponent) {exponent = newExponent;};
+        // void newExponent                (double newExponent) {exponent = newExponent;};
 
-        static int units2list( const std::string& inUnits,
-                               RpUnitsList& outList,
-                               std::string& type);
-        static int list2units( RpUnitsList& inList,
-                               std::string& outUnitsStr);
-        static int grabExponent(const std::string& inStr, double* exp);
-        static int grabUnitString( const std::string& inStr);
-        static const RpUnits* grabUnits (std::string inStr, int* offset);
-        static int negateListExponents(RpUnitsList& unitsList);
-        static int printList(RpUnitsList& unitsList);
+        static int      units2list          ( const std::string& inUnits,
+                                              RpUnitsList& outList,
+                                              std::string& type         );
+        static int      list2units          ( RpUnitsList& inList,
+                                              std::string& outUnitsStr  );
+        static int      grabExponent        ( const std::string& inStr,
+                                              double* exp               );
+        static int      grabUnitString      ( const std::string& inStr  );
+        static int      grabUnits           ( std::string inStr,
+                                              int* offset,
+                                              const RpUnits** unit,
+                                              const RpUnits** prefix    );
+        static int      checkMetricPrefix   ( std::string inStr,
+                                              int* offset,
+                                              const RpUnits** prefix    );
+        static int      negateListExponents ( RpUnitsList& unitsList    );
+        static int      printList           ( RpUnitsList& unitsList    );
 
-        static int compareListEntryBasis( RpUnitsList& fromList,
-                                          RpUnitsListIter& fromIter,
-                                          RpUnitsListIter& toIter);
+        static int compareListEntryBasis    ( RpUnitsList& fromList,
+                                              RpUnitsListIter& fromIter,
+                                              RpUnitsListIter& toIter   );
 
-        static int compareListEntrySearch( RpUnitsList& fromList,
-                                           RpUnitsListIter& fromIter,
-                                           RpUnitsListIter& toIter);
+        static int compareListEntrySearch   ( RpUnitsList& fromList,
+                                              RpUnitsListIter& fromIter,
+                                              RpUnitsListIter& toIter   );
 
-        void connectConversion(conversion* conv) const;
-        void connectIncarnation(const RpUnits* unit) const;
+        void            connectConversion   ( conversion* conv      ) const;
+        void            connectIncarnation  ( const RpUnits* unit   ) const;
 
         // return the conversion object that will convert
         // from this RpUnits to the proovided toUnits object
         // if the conversion is defined
-        int getConvertFxnList (const RpUnits* toUnits, convertList& cList) const;
-        static int applyConversion (double* val, convertList& cList);
-        static int combineLists (convertList& l1, convertList& l2);
-        static int printList (convertList& l1);
+        int             getConvertFxnList   ( const RpUnits* toUnits,
+                                              convertList& cList    ) const;
+        static int      applyConversion     ( double* val,
+                                              convertList& cList    );
+        static int      combineLists        ( convertList& l1,
+                                              convertList& l2       );
+        static int      printList           ( convertList& l1       );
 
 };
 

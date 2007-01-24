@@ -6,7 +6,7 @@
  *
  * ======================================================================
  *  AUTHOR:  Derrick Kearney, Purdue University
- *  Copyright (c) 2004-2005  Purdue Research Foundation
+ *  Copyright (c) 2004-2007  Purdue Research Foundation
  *
  *  See the file "license.terms" for information on usage and
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -34,6 +34,7 @@ RpUnits *
 RpUnits::define(    const std::string units,
                     const RpUnits* basis,
                     const std::string type,
+                    bool metric,
                     bool caseInsensitive    ) {
 
     RpUnits* newRpUnit = NULL;
@@ -43,6 +44,8 @@ RpUnits::define(    const std::string units,
     int len = searchStr.length();
     int idx = len-1;
     double exponent = 1;
+
+    RpUnitsTypes::RpUnitsTypesHint hint = NULL;
 
     if (units.empty()) {
         // raise error, user sent null units!
@@ -56,7 +59,8 @@ RpUnits::define(    const std::string units,
     }
 
     // check to see if the said unit can already be found in the dictionary
-    if (RpUnits::find(units)) {
+    hint = RpUnitsTypes::getTypeHint(type);
+    if (RpUnits::find(units,hint)) {
         return NULL;
     }
 
@@ -82,7 +86,12 @@ RpUnits::define(    const std::string units,
         sendStr = searchStr;
     }
 
-    newRpUnit = new RpUnits(sendStr, exponent, basis, type, caseInsensitive);
+    newRpUnit = new RpUnits(    sendStr,
+                                exponent,
+                                basis,
+                                type,
+                                metric,
+                                caseInsensitive );
     if (newRpUnit) {
         insert(newRpUnit->getUnitsName(),newRpUnit);
     }
@@ -170,24 +179,101 @@ RpUnits::grabUnitString ( const std::string& inStr ) {
 /**
  */
 
-const RpUnits*
-RpUnits::grabUnits ( std::string inStr, int* offset) {
+int
+RpUnits::grabUnits (    std::string inStr,
+                        int* offset,
+                        const RpUnits** unit,
+                        const RpUnits** prefix   ) {
 
-    const RpUnits* unit = NULL;
     int len = inStr.length();
+    std::string preStr = "";
+
+    if ( (unit == NULL) || (prefix == NULL) ) {
+        // incorrect function call, return error
+        return -1;
+    }
+
+    *unit = NULL;
+    *prefix = NULL;
 
     while ( ! inStr.empty() ) {
-        unit = RpUnits::find(inStr);
-        if (unit) {
+        *unit = RpUnits::find(inStr,&RpUnitsTypes::hintTypeNonPrefix);
+        if (*unit) {
             *offset = len - inStr.length();
+
+            if ((*unit)->metric) {
+                RpUnits::checkMetricPrefix(preStr,offset,prefix);
+            }
+
             break;
         }
+        preStr = preStr + inStr.substr(0,1);
         inStr.erase(0,1);
     }
 
-    return unit;
+    return 0;
 }
 
+/**********************************************************************/
+// METHOD: checkMetrixPrefix()
+/// Compare a string with available metric prefixes
+/**
+ * The metric prefix only has one or two letters before the main unit.
+ * We take in the string of characters before the found unit and search
+ * for the two characters closest to the found unit. If those two
+ * characters are not found in the dictionary as a prefix, then we erase
+ * the 0th character, and search for the 1th character. The 1th character
+ * is the character closest to the found unit. If it is found as a prefix
+ * in the dictionary, it is returned. If no prefix is found, NULL is
+ * returned.
+ */
+
+int
+RpUnits::checkMetricPrefix  (   std::string inStr,
+                                int* offset,
+                                const RpUnits** prefix   ) {
+
+    int inStrLen = 0;
+    std::string searchStr = "";
+
+    inStrLen = inStr.length();
+
+    if (inStrLen == 0) {
+        // no prefix to search for, exit
+        return 0;
+    }
+
+    if (prefix == NULL) {
+        // incorrect function call, return error
+        return -1;
+    }
+
+
+    if (inStrLen > 2) {
+        searchStr = inStr.substr( inStrLen-2 );
+    }
+    else {
+        searchStr = inStr;
+    }
+
+    *prefix = NULL;
+
+    *prefix = RpUnits::find(searchStr,&RpUnitsTypes::hintTypePrefix);
+    if ( (*prefix) == NULL ) {
+        // the two letter prefix was not found,
+        // try the one letter prefix
+        searchStr.erase(0,1);
+        *prefix = RpUnits::find(searchStr,&RpUnitsTypes::hintTypePrefix);
+    }
+
+    if (*prefix != NULL) {
+        // if a prefix was found, adjust the offset to reflect
+        // the need to erase the prefix as well as the unit name
+        *offset = *offset - searchStr.length();
+    }
+
+    return 0;
+}
 
 /**********************************************************************/
 // METHOD: getType()
@@ -562,6 +648,20 @@ RpUnits::getBasis() const {
 }
 
 /**********************************************************************/
+// METHOD: setMetric()
+/// Set the metric flag of the object.
+/**
+ * Set the metric flag of the object
+ */
+
+RpUnits&
+RpUnits::setMetric(bool newVal) {
+
+    metric = newVal;
+    return *this;
+}
+
+/**********************************************************************/
 // METHOD: makeBasis()
 /// Convert a value into its RpUnits's basis.
 /**
@@ -634,87 +734,19 @@ RpUnits::makeBasis(double* value, int* result) const {
  *  should only be used if this unit is of metric type
  */
 
+/*
 int
-RpUnits::makeMetric(const RpUnits* basis) {
+RpUnits::makeMetric(RpUnits* basis) {
 
     if (!basis) {
         return 0;
     }
 
-    std::string basisName = basis->getUnitsName();
-    std::string name;
+    basis->setMetric(true);
 
-    name = "d" + basisName;
-    RpUnits * deci = RpUnits::define(name, basis, basis->type);
-    RpUnits::define(deci, basis, deci2base, base2deci);
-
-    name = "c" + basisName;
-    RpUnits * centi = RpUnits::define(name, basis, basis->type);
-    RpUnits::define(centi, basis, centi2base, base2centi);
-
-    name = "m" + basisName;
-    RpUnits * milli = RpUnits::define(name, basis, basis->type,
-        !RPUNITS_CASE_INSENSITIVE);
-    RpUnits::define(milli, basis, milli2base, base2milli);
-
-    name = "u" + basisName;
-    RpUnits * micro = RpUnits::define(name, basis, basis->type);
-    RpUnits::define(micro, basis, micro2base, base2micro);
-
-    name = "n" + basisName;
-    RpUnits * nano  = RpUnits::define(name, basis, basis->type);
-    RpUnits::define(nano, basis, nano2base, base2nano);
-
-    name = "p" + basisName;
-    RpUnits * pico  = RpUnits::define(name, basis, basis->type,
-        !RPUNITS_CASE_INSENSITIVE);
-    RpUnits::define(pico, basis, pico2base, base2pico);
-
-    name = "f" + basisName;
-    RpUnits * femto = RpUnits::define(name, basis, basis->type);
-    RpUnits::define(femto, basis, femto2base, base2femto);
-
-    name = "a" + basisName;
-    RpUnits * atto  = RpUnits::define(name, basis, basis->type);
-    RpUnits::define(atto, basis, atto2base, base2atto);
-
-    name = "da" + basisName;
-    RpUnits * deca  = RpUnits::define(name, basis, basis->type);
-    RpUnits::define(deca, basis, deca2base, base2deca);
-
-    name = "h" + basisName;
-    RpUnits * hecto  = RpUnits::define(name, basis, basis->type);
-    RpUnits::define(hecto, basis, hecto2base, base2hecto);
-
-    name = "k" + basisName;
-    RpUnits * kilo  = RpUnits::define(name, basis, basis->type);
-    RpUnits::define(kilo, basis, kilo2base, base2kilo);
-
-    name = "M" + basisName;
-    RpUnits * mega  = RpUnits::define(name, basis, basis->type,
-        !RPUNITS_CASE_INSENSITIVE);
-    RpUnits::define(mega, basis, mega2base, base2mega);
-
-    name = "G" + basisName;
-    RpUnits * giga  = RpUnits::define(name, basis, basis->type);
-    RpUnits::define(giga, basis, giga2base, base2giga);
-
-    name = "T" + basisName;
-    RpUnits * tera  = RpUnits::define(name, basis, basis->type);
-    RpUnits::define(tera, basis, tera2base, base2tera);
-
-    name = "P" + basisName;
-    RpUnits * peta  = RpUnits::define(name, basis, basis->type,
-        !RPUNITS_CASE_INSENSITIVE);
-    RpUnits::define(peta, basis, peta2base, base2peta);
-
-    name = "E" + basisName;
-    RpUnits * exa  = RpUnits::define(name, basis, basis->type);
-    RpUnits::define(exa, basis, exa2base, base2exa);
-
-    return (1);
+    return 0;
 }
-
+*/
 
 /**********************************************************************/
 // METHOD: find()
@@ -723,10 +755,13 @@ RpUnits::makeMetric(const RpUnits* basis) {
  */
 
 const RpUnits*
-RpUnits::find(std::string key) {
+RpUnits::find(std::string key,
+        RpDict<std::string,RpUnits*,_key_compare>::RpDictHint hint ) {
 
-    RpDictEntry<std::string,RpUnits*,_key_compare>* unitEntry = &(dict->getNullEntry());
-    RpDictEntry<std::string,RpUnits*,_key_compare>* nullEntry = &(dict->getNullEntry());
+    RpDictEntry<std::string,RpUnits*,_key_compare>*
+        unitEntry = &(dict->getNullEntry());
+    RpDictEntry<std::string,RpUnits*,_key_compare>*
+        nullEntry = &(dict->getNullEntry());
     double exponent = 1;
     int idx = 0;
     std::stringstream tmpKey;
@@ -739,14 +774,16 @@ RpUnits::find(std::string key) {
         key = tmpKey.str();
     }
 
-    // pass 1 - look for the unit name as it was stated by the user
-    unitEntry = &(dict->find(key));
+    if (unitEntry == nullEntry) {
+        // pass 1 - look for the unit name as it was stated by the user
+        // dict->toggleCI();
+        unitEntry = &(dict->find(key,hint,!RPUNITS_CASE_INSENSITIVE));
+        // dict->toggleCI();
+    }
 
     if (unitEntry == nullEntry) {
         // pass 2 - use case insensitivity to look for the unit
-        dict->toggleCI();
-        unitEntry = &(dict->find(key));
-        dict->toggleCI();
+        unitEntry = &(dict->find(key,hint,RPUNITS_CASE_INSENSITIVE));
     }
 
     if ( (!unitEntry->isValid()) || (unitEntry == nullEntry) ) {
@@ -775,12 +812,10 @@ RpUnits::find(std::string key) {
  */
 
 int
-// RpUnits::validate ( const std::string& inUnits,
 RpUnits::validate ( std::string& inUnits,
                     std::string& type,
                     std::list<std::string>* compatList ) {
 
-    std::string myInUnits   = inUnits;
     std::string sendUnitStr = "";
     double exponent         = 1;
     int err                 = 0;
@@ -875,6 +910,10 @@ RpUnitsListEntry::name(int flags) const {
         }
     }
 
+    if (prefix != NULL) {
+        name << prefix->getUnits();
+    }
+
     name << unit->getUnits();
 
     if ((RPUNITS_ORIG_EXP & flags) == RPUNITS_STRICT_NAME) {
@@ -926,6 +965,17 @@ RpUnitsListEntry::getExponent() const {
 }
 
 /**********************************************************************/
+// METHOD: getPrefix()
+/// Return the prefix of an RpUnitsListEntry.
+/**
+ */
+
+const RpUnits*
+RpUnitsListEntry::getPrefix() const {
+    return prefix;
+}
+
+/**********************************************************************/
 // METHOD: printList()
 /// Traverse a RpUnitsList and print out the name of each element.
 /**
@@ -949,7 +999,7 @@ RpUnits::printList(RpUnitsList& unitsList) {
 
 /**********************************************************************/
 // METHOD: units2list()
-/// Split a string of units into a list of units with exponents.
+/// Split a string of units into a list of units with exponents and prefixes.
 /**
  * Splits a string of units like cm2/kVns into a list of units like
  * cm2, kV-1, ns-1 where an exponent is provided for each list entry.
@@ -970,6 +1020,7 @@ RpUnits::units2list ( const std::string& inUnits,
     int last                = 0;
     int err                 = 0;
     const RpUnits* unit     = NULL;
+    const RpUnits* prefix   = NULL;
 
 
     while ( !myInUnits.empty() ) {
@@ -1008,7 +1059,7 @@ RpUnits::units2list ( const std::string& inUnits,
         // grab the largest string we can find
         offset = RpUnits::grabUnitString(myInUnits);
 
-        // if idx > length, then the grabUnitString went through the whole
+        // if offset > length, then the grabUnitString went through the whole
         // string and did not find a good string we could use as units.
         // this generally means the string was filled with non alphabetical
         // symbols like *&^%$#@!)(~`{}[]:;"'?/><,.-_=+\ or |
@@ -1029,12 +1080,12 @@ RpUnits::units2list ( const std::string& inUnits,
 
         // figure out if we have some defined units in that string
         sendUnitStr.str(myInUnits.substr(offset,std::string::npos));
-        unit = grabUnits(sendUnitStr.str(),&offset);
+        grabUnits(sendUnitStr.str(),&offset,&unit,&prefix);
         if (unit) {
             // a unit was found
             // add this unit to the list
             // erase the found unit's name from our search string
-            outList.push_front(RpUnitsListEntry(unit,exponent));
+            outList.push_front(RpUnitsListEntry(unit,exponent,prefix));
             if (type.compare("") == 0) {
                 type = unit->getType();
             }
@@ -1087,7 +1138,7 @@ RpUnits::units2list ( const std::string& inUnits,
 // METHOD: list2units()
 /// Join a list of units into a string with proper exponents.
 /**
- * Joings a list of units like cm2, kV-1, ns-1, creating a string
+ * Joins a list of units like cm2, kV-1, ns-1, creating a string
  * like cm2/kVns.
  */
 
@@ -1266,7 +1317,9 @@ RpUnits::convert (  std::string val,
     RpUnitsListIter tempIter;
 
     const RpUnits* toUnits = NULL;
+    const RpUnits* toPrefix = NULL;
     const RpUnits* fromUnits = NULL;
+    const RpUnits* fromPrefix = NULL;
 
     std::string tmpNumVal = "";
     std::string fromUnitsName = "";
@@ -1382,10 +1435,21 @@ RpUnits::convert (  std::string val,
 
     while ( (toIter != toUnitsList.end()) && (fromIter != fromUnitsList.end()) && (!convErr) ) {
         fromUnits = fromIter->getUnitsObj();
+        fromPrefix = fromIter->getPrefix();
         toUnits = toIter->getUnitsObj();
+        toPrefix = toIter->getPrefix();
 
         cList.clear();
+
+        if (fromPrefix != NULL) {
+            cList.push_back(fromPrefix->convList->conv->convForwFxnPtr);
+        }
+
         convErr = fromUnits->getConvertFxnList(toUnits, cList);
+
+        if (toPrefix != NULL) {
+            cList.push_back(toPrefix->convList->conv->convBackFxnPtr);
+        }
 
         if (convErr == 0) {
 
@@ -1610,6 +1674,8 @@ RpUnits::convert(const RpUnits* toUnit, double val, int* result) const {
     convEntry *p;
     int my_result = 0;
 
+    RpUnitsTypes::RpUnitsTypesHint hint = NULL;
+
     // set *result to a default value
     if (result) {
         *result = 1;
@@ -1641,10 +1707,12 @@ RpUnits::convert(const RpUnits* toUnit, double val, int* result) const {
     // and convert between basis' and then convert again back to the 
     // original unit.
     if ( (toBasis) && (toBasis->getUnitsName() != fromUnit->getUnitsName()) ) {
-        dictToUnit = find(toBasis->getUnitsName());
+        hint = RpUnitsTypes::getTypeHint(toBasis->getType());
+        dictToUnit = find(toBasis->getUnitsName(), hint);
     }
     else {
-        dictToUnit = find(toUnit->getUnitsName());
+        hint = RpUnitsTypes::getTypeHint(toUnit->getType());
+        dictToUnit = find(toUnit->getUnitsName(), hint);
     }
 
     // did we find the unit in the dictionary?
@@ -1806,6 +1874,8 @@ RpUnits::convert(const RpUnits* toUnit, void* val, int* result) const {
     convEntry *p;
     int my_result = 0;
 
+    RpUnitsTypes::RpUnitsTypesHint hint = NULL;
+
     // set *result to a default value
     if (result) {
         *result = 1;
@@ -1837,10 +1907,12 @@ RpUnits::convert(const RpUnits* toUnit, void* val, int* result) const {
     // and convert between basis' and then convert again back to the 
     // original unit.
     if ( (toBasis) && (toBasis->getUnitsName() != fromUnit->getUnitsName()) ) {
-        dictToUnit = find(toBasis->getUnitsName());
+        hint = RpUnitsTypes::getTypeHint(toBasis->getType());
+        dictToUnit = find(toBasis->getUnitsName(), hint);
     }
     else {
-        dictToUnit = find(toUnit->getUnitsName());
+        hint = RpUnitsTypes::getTypeHint(toUnit->getType());
+        dictToUnit = find(toUnit->getUnitsName(), hint);
     }
 
     // did we find the unit in the dictionary?
@@ -2008,10 +2080,12 @@ RpUnits::getConvertFxnList(const RpUnits* toUnit, convertList& cList) const {
     // and convert between basis' and then convert again back to the 
     // original unit.
     if ( (toBasis) && (toBasis->getUnitsName() != fromUnit->getUnitsName()) ) {
-        dictToUnit = find(toBasis->getUnitsName());
+        dictToUnit = find(  toBasis->getUnitsName(),
+                            &RpUnitsTypes::hintTypeNonPrefix );
     }
     else {
-        dictToUnit = find(toUnit->getUnitsName());
+        dictToUnit = find(  toUnit->getUnitsName(),
+                            &RpUnitsTypes::hintTypeNonPrefix );
     }
 
     // did we find the unit in the dictionary?
@@ -2181,9 +2255,6 @@ RpUnits::combineLists(convertList& l1, convertList& l2) {
 /// print a list
 /**
  *
- * elements of l2 are pushed onto l1 in the same order in which it
- * exists in l2. l1 is changed in this function.
- *
  * Returns an integer value of zero (0) on success
  * Returns non-zero value on failure.
  */
@@ -2210,9 +2281,16 @@ int
 insert(std::string key,RpUnits* val) {
 
     int newRecord = 0;
-    // RpUnits* val = this;
-    // dict pointer
-    RpUnits::dict->set(key,val,&newRecord,val->getCI());
+    RpUnitsTypes::RpUnitsTypesHint hint = NULL;
+
+    if (val == NULL) {
+        return -1;
+    }
+
+    hint = RpUnitsTypes::getTypeHint(val->getType());
+
+    RpUnits::dict->set(key,val,hint,&newRecord,val->getCI());
+
     return newRecord;
 }
 
@@ -2297,6 +2375,9 @@ RpUnits::addPresets (const std::string group) {
     else if (group.compare(RP_TYPE_MASS) == 0) {
         retVal = RpUnitsPreset::addPresetMass();
     }
+    else if (group.compare(RP_TYPE_PREFIX) == 0) {
+        retVal = RpUnitsPreset::addPresetPrefix();
+    }
     else if (group.compare(RP_TYPE_PRESSURE) == 0) {
         retVal = RpUnitsPreset::addPresetPressure();
     }
@@ -2321,6 +2402,7 @@ RpUnitsPreset::addPresetAll () {
 
     int result = 0;
 
+    result += addPresetPrefix();
     result += addPresetTime();
     result += addPresetTemp();
     result += addPresetLength();
@@ -2331,6 +2413,99 @@ RpUnitsPreset::addPresetAll () {
     result += addPresetPressure();
     result += addPresetConcentration();
     result += addPresetMisc();
+
+    return 0;
+}
+
+
+/**********************************************************************/
+// METHOD: addPresetPrefix()
+/// 
+/**
+ * Defines the following unit prefixes:
+ *   deci        (d)
+ *   centi       (c)
+ *   milli       (m)
+ *   micro       (u)
+ *   nano        (n)
+ *   pico        (p)
+ *   femto       (f)
+ *   atto        (a)
+ *   deca        (da)
+ *   hecto       (h)
+ *   kilo        (k)
+ *   mega        (M)
+ *   giga        (G)
+ *   tera        (T)
+ *   peta        (P)
+ *   exa         (E)
+ *
+ * Return codes: 0 success, anything else is error
+ */
+
+int
+RpUnitsPreset::addPresetPrefix () {
+
+    std::string type = RP_TYPE_PREFIX;
+    RpUnits* basis = NULL;
+
+    RpUnits * deci  = NULL;
+    RpUnits * centi = NULL;
+    RpUnits * milli = NULL;
+    RpUnits * micro = NULL;
+    RpUnits * nano  = NULL;
+    RpUnits * pico  = NULL;
+    RpUnits * femto = NULL;
+    RpUnits * atto  = NULL;
+    RpUnits * deca  = NULL;
+    RpUnits * hecto = NULL;
+    RpUnits * kilo  = NULL;
+    RpUnits * mega  = NULL;
+    RpUnits * giga  = NULL;
+    RpUnits * tera  = NULL;
+    RpUnits * peta  = NULL;
+    RpUnits * exa   = NULL;
+
+    deci  = RpUnits::define ( "d",  basis, type);
+    centi = RpUnits::define ( "c",  basis, type);
+    milli = RpUnits::define ( "m",  basis, type, !RPUNITS_METRIC,
+                              !RPUNITS_CASE_INSENSITIVE);
+    micro = RpUnits::define ( "u",  basis, type);
+    nano  = RpUnits::define ( "n",  basis, type);
+    pico  = RpUnits::define ( "p",  basis, type, !RPUNITS_METRIC,
+                              !RPUNITS_CASE_INSENSITIVE);
+    femto = RpUnits::define ( "f",  basis, type);
+    atto  = RpUnits::define ( "a",  basis, type);
+    deca  = RpUnits::define ( "da", basis, type);
+    hecto = RpUnits::define ( "h",  basis, type);
+    kilo  = RpUnits::define ( "k",  basis, type);
+    mega  = RpUnits::define ( "M",  basis, type, !RPUNITS_METRIC,
+                              !RPUNITS_CASE_INSENSITIVE);
+    giga  = RpUnits::define ( "G",  basis, type);
+    tera  = RpUnits::define ( "T",  basis, type);
+    peta  = RpUnits::define ( "P",  basis, type, !RPUNITS_METRIC,
+                              !RPUNITS_CASE_INSENSITIVE);
+    exa  = RpUnits::define  ( "E",  basis, type);
+
+    // the use of the unit as the from and the to unit is a hack
+    // that can be resolved by creating a RpPrefix object
+    // the define() function cannot handle NULL as to unit.
+    RpUnits::define ( deci,  deci , deci2base,  base2deci);
+    RpUnits::define ( centi, centi, centi2base, base2centi);
+    RpUnits::define ( milli, milli, milli2base, base2milli);
+    RpUnits::define ( micro, micro, micro2base, base2micro);
+    RpUnits::define ( nano,  nano , nano2base,  base2nano);
+    RpUnits::define ( pico,  pico , pico2base,  base2pico);
+    RpUnits::define ( femto, femto, femto2base, base2femto);
+    RpUnits::define ( atto,  atto , atto2base,  base2atto);
+    RpUnits::define ( deca,  deca , deca2base,  base2deca);
+    RpUnits::define ( hecto, hecto, hecto2base, base2hecto);
+    RpUnits::define ( kilo,  kilo , kilo2base,  base2kilo);
+    RpUnits::define ( mega,  mega , mega2base,  base2mega);
+    RpUnits::define ( giga,  giga , giga2base,  base2giga);
+    RpUnits::define ( tera,  tera , tera2base,  base2tera);
+    RpUnits::define ( peta,  peta , peta2base,  base2peta);
+    RpUnits::define ( exa,   exa  , exa2base,   base2exa);
 
     return 0;
 }
@@ -2355,12 +2530,15 @@ RpUnitsPreset::addPresetAll () {
 int
 RpUnitsPreset::addPresetTime () {
 
-    RpUnits* second    = RpUnits::define("s", NULL, RP_TYPE_TIME);
-    RpUnits* minute    = RpUnits::define("min", second, RP_TYPE_TIME);
-    RpUnits* hour      = RpUnits::define("h", second, RP_TYPE_TIME);
-    RpUnits* day       = RpUnits::define("d", second, RP_TYPE_TIME);
+    RpUnits* second    = NULL;
+    RpUnits* minute    = NULL;
+    RpUnits* hour      = NULL;
+    RpUnits* day       = NULL;
 
-    RpUnits::makeMetric(second);
+    second    = RpUnits::define("s", NULL, RP_TYPE_TIME, RPUNITS_METRIC);
+    minute    = RpUnits::define("min", second, RP_TYPE_TIME);
+    hour      = RpUnits::define("h", second, RP_TYPE_TIME);
+    day       = RpUnits::define("d", second, RP_TYPE_TIME);
 
     // add time definitions
 
@@ -2387,10 +2565,15 @@ RpUnitsPreset::addPresetTime () {
 int
 RpUnitsPreset::addPresetTemp () {
 
-    RpUnits* fahrenheit = RpUnits::define("F", NULL, RP_TYPE_TEMP);
-    RpUnits* celcius    = RpUnits::define("C", NULL, RP_TYPE_TEMP);
-    RpUnits* kelvin     = RpUnits::define("K", NULL, RP_TYPE_TEMP);
-    RpUnits* rankine    = RpUnits::define("R", NULL, RP_TYPE_TEMP);
+    RpUnits* fahrenheit = NULL;
+    RpUnits* celcius    = NULL;
+    RpUnits* kelvin     = NULL;
+    RpUnits* rankine    = NULL;
+
+    fahrenheit = RpUnits::define("F", NULL, RP_TYPE_TEMP);
+    celcius    = RpUnits::define("C", NULL, RP_TYPE_TEMP);
+    kelvin     = RpUnits::define("K", NULL, RP_TYPE_TEMP);
+    rankine    = RpUnits::define("R", NULL, RP_TYPE_TEMP);
 
     // add temperature definitions
     RpUnits::define(fahrenheit, celcius, fahrenheit2centigrade, centigrade2fahrenheit);
@@ -2420,13 +2603,19 @@ RpUnitsPreset::addPresetTemp () {
 int
 RpUnitsPreset::addPresetLength () {
 
-    RpUnits* meters     = RpUnits::define("m", NULL, RP_TYPE_LENGTH);
-    RpUnits* angstrom   = RpUnits::define("A", NULL, RP_TYPE_LENGTH);
-    RpUnits* inch       = RpUnits::define("in", NULL, RP_TYPE_LENGTH);
-    RpUnits* feet       = RpUnits::define("ft", inch, RP_TYPE_LENGTH);
-    RpUnits* yard       = RpUnits::define("yd", inch, RP_TYPE_LENGTH);
+    RpUnits* meters     = NULL;
+    RpUnits* angstrom   = NULL;
+    RpUnits* inch       = NULL;
+    RpUnits* feet       = NULL;
+    RpUnits* yard       = NULL;
 
-    RpUnits::makeMetric(meters);
+    meters     = RpUnits::define("m", NULL, RP_TYPE_LENGTH, RPUNITS_METRIC);
+    angstrom   = RpUnits::define("A", NULL, RP_TYPE_LENGTH);
+    inch       = RpUnits::define("in", NULL, RP_TYPE_LENGTH);
+    feet       = RpUnits::define("ft", inch, RP_TYPE_LENGTH);
+    yard       = RpUnits::define("yd", inch, RP_TYPE_LENGTH);
+
+    // RpUnits::makeMetric(meters);
 
     // add length definitions
     RpUnits::define(angstrom, meters, angstrom2meter, meter2angstrom);
@@ -2451,11 +2640,11 @@ RpUnitsPreset::addPresetLength () {
 int
 RpUnitsPreset::addPresetEnergy () {
 
-    RpUnits* eVolt      = RpUnits::define("eV", NULL, RP_TYPE_ENERGY);
-    RpUnits* joule      = RpUnits::define("J", NULL, RP_TYPE_ENERGY);
+    RpUnits* eVolt      = NULL;
+    RpUnits* joule      = NULL;
 
-    RpUnits::makeMetric(eVolt);
-    RpUnits::makeMetric(joule);
+    eVolt      = RpUnits::define("eV", NULL, RP_TYPE_ENERGY, RPUNITS_METRIC);
+    joule      = RpUnits::define("J", NULL, RP_TYPE_ENERGY, RPUNITS_METRIC);
 
     // add energy definitions
     RpUnits::define(eVolt,joule,electronVolt2joule,joule2electronVolt);
@@ -2480,8 +2669,11 @@ RpUnitsPreset::addPresetVolume () {
 
     // RpUnits* cubic_meter  = RpUnits::define("m3", NULL, RP_TYPE_VOLUME);
     // RpUnits* cubic_feet   = RpUnits::define("ft3", NULL, RP_TYPE_VOLUME);
-    RpUnits* us_gallon    = RpUnits::define("gal", NULL, RP_TYPE_VOLUME);
-    RpUnits* liter        = RpUnits::define("L", NULL, RP_TYPE_VOLUME);
+    RpUnits* us_gallon    = NULL;
+    RpUnits* liter        = NULL;
+
+    us_gallon    = RpUnits::define("gal", NULL, RP_TYPE_VOLUME);
+    liter        = RpUnits::define("L", NULL, RP_TYPE_VOLUME, RPUNITS_METRIC);
 
     /*
     // RpUnits::makeMetric(cubic_meter);
@@ -2505,7 +2697,7 @@ RpUnitsPreset::addPresetVolume () {
     }
     */
 
-    RpUnits::makeMetric(liter);
+    // RpUnits::makeMetric(liter);
 
 
     // add volume definitions
@@ -2533,11 +2725,13 @@ RpUnitsPreset::addPresetVolume () {
 int
 RpUnitsPreset::addPresetAngle () {
 
-    RpUnits* degree  = RpUnits::define("deg",  NULL, RP_TYPE_ANGLE);
-    RpUnits* gradian = RpUnits::define("grad", NULL, RP_TYPE_ANGLE);
-    RpUnits* radian  = RpUnits::define("rad",  NULL, RP_TYPE_ANGLE);
+    RpUnits* degree  = NULL;
+    RpUnits* gradian = NULL;
+    RpUnits* radian  = NULL;
 
-    RpUnits::makeMetric(radian);
+    degree  = RpUnits::define("deg",  NULL, RP_TYPE_ANGLE);
+    gradian = RpUnits::define("grad", NULL, RP_TYPE_ANGLE);
+    radian  = RpUnits::define("rad",  NULL, RP_TYPE_ANGLE, RPUNITS_METRIC);
 
     // add angle definitions
     RpUnits::define(degree,gradian,deg2grad,grad2deg);
@@ -2560,11 +2754,9 @@ RpUnitsPreset::addPresetAngle () {
 int
 RpUnitsPreset::addPresetMass () {
 
-    RpUnits* gram  = RpUnits::define("g",  NULL, RP_TYPE_MASS);
+    RpUnits* gram  = NULL;
 
-    RpUnits::makeMetric(gram);
-
-    // add mass definitions
+    gram  = RpUnits::define("g", NULL, RP_TYPE_MASS, RPUNITS_METRIC);
 
     return 0;
 }
@@ -2592,15 +2784,19 @@ RpUnitsPreset::addPresetMass () {
 int
 RpUnitsPreset::addPresetPressure () {
 
-    RpUnits* atmosphere = RpUnits::define("atm", NULL, RP_TYPE_PRESSURE);
-    RpUnits* bar = RpUnits::define("bar", NULL, RP_TYPE_PRESSURE);
-    RpUnits* pascal = RpUnits::define("Pa", NULL, RP_TYPE_PRESSURE);
-    RpUnits* psi = RpUnits::define("psi", NULL, RP_TYPE_PRESSURE);
-    RpUnits* torr = RpUnits::define("torr", NULL, RP_TYPE_PRESSURE);
-    RpUnits* mmHg = RpUnits::define("mmHg", torr, RP_TYPE_PRESSURE);
+    RpUnits* atmosphere = NULL;
+    RpUnits* bar        = NULL;
+    RpUnits* pascal     = NULL;
+    RpUnits* psi        = NULL;
+    RpUnits* torr       = NULL;
+    RpUnits* mmHg       = NULL;
 
-    RpUnits::makeMetric(pascal);
-    RpUnits::makeMetric(bar);
+    atmosphere  = RpUnits::define("atm", NULL, RP_TYPE_PRESSURE);
+    bar     = RpUnits::define("bar",  NULL, RP_TYPE_PRESSURE, RPUNITS_METRIC);
+    pascal  = RpUnits::define("Pa",   NULL, RP_TYPE_PRESSURE, RPUNITS_METRIC);
+    psi     = RpUnits::define("psi",  NULL, RP_TYPE_PRESSURE);
+    torr    = RpUnits::define("torr", NULL, RP_TYPE_PRESSURE);
+    mmHg    = RpUnits::define("mmHg", torr, RP_TYPE_PRESSURE);
 
     RpUnits::define(bar,pascal,bar2Pa,Pa2bar);
     RpUnits::define(bar,atmosphere,bar2atm,atm2bar);
@@ -2634,8 +2830,11 @@ RpUnitsPreset::addPresetPressure () {
 int
 RpUnitsPreset::addPresetConcentration () {
 
-    RpUnits* pH  = RpUnits::define("pH",  NULL, RP_TYPE_CONC);
-    RpUnits* pOH = RpUnits::define("pOH",  NULL, RP_TYPE_CONC);
+    RpUnits* pH  = NULL;
+    RpUnits* pOH = NULL;
+
+    pH  = RpUnits::define("pH",  NULL, RP_TYPE_CONC);
+    pOH = RpUnits::define("pOH", NULL, RP_TYPE_CONC);
 
     // add concentration definitions
     RpUnits::define(pH,pOH,pH2pOH,pOH2pH);
@@ -2656,21 +2855,219 @@ RpUnitsPreset::addPresetConcentration () {
 int
 RpUnitsPreset::addPresetMisc () {
 
-    RpUnits* volt      = RpUnits::define("V",  NULL, RP_TYPE_EPOT);
-    RpUnits* mole      = RpUnits::define("mol",NULL, RP_TYPE_MISC);
-    RpUnits* hertz     = RpUnits::define("Hz", NULL, RP_TYPE_MISC);
-    RpUnits* becquerel = RpUnits::define("Bq", NULL, RP_TYPE_MISC);
+    RpUnits* volt      = NULL;
+    RpUnits* mole      = NULL;
+    RpUnits* hertz     = NULL;
+    RpUnits* becquerel = NULL;
+
+    volt      = RpUnits::define("V",  NULL, RP_TYPE_EPOT, RPUNITS_METRIC);
+    mole      = RpUnits::define("mol",NULL, RP_TYPE_MISC, RPUNITS_METRIC);
+    hertz     = RpUnits::define("Hz", NULL, RP_TYPE_MISC, RPUNITS_METRIC);
+    becquerel = RpUnits::define("Bq", NULL, RP_TYPE_MISC, RPUNITS_METRIC);
+
     // RpUnits* percent   = RpUnits::define("%",  NULL, RP_TYPE_MISC);
 
-    RpUnits::makeMetric(volt);
-    RpUnits::makeMetric(mole);
-    RpUnits::makeMetric(hertz);
-    RpUnits::makeMetric(becquerel);
-
-    // add misc definitions
-    // RpUnits::define(radian,gradian,rad2grad,grad2rad);
-
     return 0;
+}
+
+RpUnitsTypes::RpUnitsTypesHint
+RpUnitsTypes::getTypeHint (std::string type) {
+
+    if (type.compare(RP_TYPE_ENERGY) == 0) {
+        return &RpUnitsTypes::hintTypeEnergy;
+    }
+    else if (type.compare(RP_TYPE_EPOT) == 0) {
+        return &RpUnitsTypes::hintTypeEPot;
+    }
+    else if (type.compare(RP_TYPE_LENGTH) == 0) {
+        return &RpUnitsTypes::hintTypeLength;
+    }
+    else if (type.compare(RP_TYPE_TEMP) == 0) {
+        return &RpUnitsTypes::hintTypeTemp;
+    }
+    else if (type.compare(RP_TYPE_TIME) == 0) {
+        return &RpUnitsTypes::hintTypeTime;
+    }
+    else if (type.compare(RP_TYPE_VOLUME) == 0) {
+        return &RpUnitsTypes::hintTypeVolume;
+    }
+    else if (type.compare(RP_TYPE_ANGLE) == 0) {
+        return &RpUnitsTypes::hintTypeAngle;
+    }
+    else if (type.compare(RP_TYPE_MASS) == 0) {
+        return &RpUnitsTypes::hintTypeMass;
+    }
+    else if (type.compare(RP_TYPE_PREFIX) == 0) {
+        return &RpUnitsTypes::hintTypePrefix;
+    }
+    else if (type.compare(RP_TYPE_PRESSURE) == 0) {
+        return &RpUnitsTypes::hintTypePressure;
+    }
+    else if (type.compare(RP_TYPE_CONC) == 0) {
+        return &RpUnitsTypes::hintTypeConc;
+    }
+    else if (type.compare(RP_TYPE_MISC) == 0) {
+        return &RpUnitsTypes::hintTypeMisc;
+    }
+    else {
+        return NULL;
+    }
+};
+
+bool
+RpUnitsTypes::hintTypePrefix   (   RpUnits* unitObj    ) {
+
+    bool retVal = false;
+
+    if ( (unitObj->getType()).compare(RP_TYPE_PREFIX) == 0 ) {
+        retVal = true;
+    }
+
+    return retVal;
+}
+
+bool
+RpUnitsTypes::hintTypeNonPrefix    (   RpUnits* unitObj    ) {
+
+    bool retVal = true;
+
+    if ( (unitObj->getType()).compare(RP_TYPE_PREFIX) == 0 ) {
+        retVal = false;
+    }
+
+    return retVal;
+}
+
+bool
+RpUnitsTypes::hintTypeEnergy   (   RpUnits* unitObj    ) {
+
+    bool retVal = false;
+
+    if ( (unitObj->getType()).compare(RP_TYPE_ENERGY) == 0 ) {
+        retVal = true;
+    }
+
+    return retVal;
+}
+
+bool
+RpUnitsTypes::hintTypeEPot   (   RpUnits* unitObj    ) {
+
+    bool retVal = false;
+
+    if ( (unitObj->getType()).compare(RP_TYPE_EPOT) == 0 ) {
+        retVal = true;
+    }
+
+    return retVal;
+}
+
+bool
+RpUnitsTypes::hintTypeLength   (   RpUnits* unitObj    ) {
+
+    bool retVal = false;
+
+    if ( (unitObj->getType()).compare(RP_TYPE_LENGTH) == 0 ) {
+        retVal = true;
+    }
+
+    return retVal;
+}
+
+bool
+RpUnitsTypes::hintTypeTemp   (   RpUnits* unitObj    ) {
+
+    bool retVal = false;
+
+    if ( (unitObj->getType()).compare(RP_TYPE_TEMP) == 0 ) {
+        retVal = true;
+    }
+
+    return retVal;
+}
+
+bool
+RpUnitsTypes::hintTypeTime   (   RpUnits* unitObj    ) {
+
+    bool retVal = false;
+
+    if ( (unitObj->getType()).compare(RP_TYPE_TIME) == 0 ) {
+        retVal = true;
+    }
+
+    return retVal;
+}
+
+bool
+RpUnitsTypes::hintTypeVolume   (   RpUnits* unitObj    ) {
+
+    bool retVal = false;
+
+    if ( (unitObj->getType()).compare(RP_TYPE_VOLUME) == 0 ) {
+        retVal = true;
+    }
+
+    return retVal;
+}
+
+bool
+RpUnitsTypes::hintTypeAngle   (   RpUnits* unitObj    ) {
+
+    bool retVal = false;
+
+    if ( (unitObj->getType()).compare(RP_TYPE_ANGLE) == 0 ) {
+        retVal = true;
+    }
+
+    return retVal;
+}
+
+bool
+RpUnitsTypes::hintTypeMass   (   RpUnits* unitObj    ) {
+
+    bool retVal = false;
+
+    if ( (unitObj->getType()).compare(RP_TYPE_MASS) == 0 ) {
+        retVal = true;
+    }
+
+    return retVal;
+}
+
+bool
+RpUnitsTypes::hintTypePressure   (   RpUnits* unitObj    ) {
+
+    bool retVal = false;
+
+    if ( (unitObj->getType()).compare(RP_TYPE_PRESSURE) == 0 ) {
+        retVal = true;
+    }
+
+    return retVal;
+}
+
+bool
+RpUnitsTypes::hintTypeConc   (   RpUnits* unitObj    ) {
+
+    bool retVal = false;
+
+    if ( (unitObj->getType()).compare(RP_TYPE_CONC) == 0 ) {
+        retVal = true;
+    }
+
+    return retVal;
+}
+
+bool
+RpUnitsTypes::hintTypeMisc   (   RpUnits* unitObj    ) {
+
+    bool retVal = false;
+
+    if ( (unitObj->getType()).compare(RP_TYPE_MISC) == 0 ) {
+        retVal = true;
+    }
+
+    return retVal;
 }
 
 // -------------------------------------------------------------------- //

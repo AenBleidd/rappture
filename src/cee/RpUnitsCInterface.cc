@@ -67,12 +67,6 @@ rpGetBasis ( const RpUnits* unit ) {
     return unit->getBasis();
 }
 
-int
-rpMakeMetric(const RpUnits* basis) {
-
-    return RpUnits::makeMetric(basis);
-}
-
 const char*
 rpConvert (   const char* fromVal,
                const char* toUnitsName,
