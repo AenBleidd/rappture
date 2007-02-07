@@ -32,12 +32,14 @@ itcl::class Rappture::NanovisViewer {
     itk_option define -plotforeground plotForeground Foreground ""
     itk_option define -plotbackground plotBackground Background ""
     itk_option define -plotoutline plotOutline PlotOutline ""
+    itk_option define -sendcommand sendCommand SendCommand ""
+    itk_option define -receivecommand receiveCommand ReceiveCommand ""
 
     constructor {hostlist args} { # defined below }
     destructor { # defined below }
 
     public method add {dataobj {settings ""}}
-    public method get {}
+    public method get {args}
     public method delete {args}
     public method scale {args}
     public method download {option args}
@@ -47,10 +49,13 @@ itcl::class Rappture::NanovisViewer {
     public method isconnected {}
 
     protected method _send {args}
+    protected method _send_text {string}
     protected method _send_dataobjs {}
+    protected method _send_echo {channel {data ""}}
     protected method _receive {}
     protected method _receive_image {option size}
     protected method _receive_legend {ivol vmin vmax size}
+    protected method _receive_echo {channel {data ""}}
 
     protected method _rebuild {}
     protected method _currentVolumeIds {{what -all}}
@@ -466,24 +471,54 @@ itcl::body Rappture::NanovisViewer::add {dataobj {settings ""}} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: get
+# USAGE: get ?-objects?
+# USAGE: get ?-image 3dview|legend?
 #
 # Clients use this to query the list of objects being plotted, in
-# order from bottom to top of this result.
+# order from bottom to top of this result.  The optional "-image"
+# flag can also request the internal images being shown.
 # ----------------------------------------------------------------------
-itcl::body Rappture::NanovisViewer::get {} {
-    # put the dataobj list in order according to -raise options
-    set dlist $_dlist
-    foreach obj $dlist {
-        if {[info exists _obj2ovride($obj-raise)] && $_obj2ovride($obj-raise)} {
-            set i [lsearch -exact $dlist $obj]
-            if {$i >= 0} {
-                set dlist [lreplace $dlist $i $i]
-                lappend dlist $obj
+itcl::body Rappture::NanovisViewer::get {args} {
+    if {[llength $args] == 0} {
+        set args "-objects"
+    }
+
+    set op [lindex $args 0]
+    switch -- $op {
+      -objects {
+        # put the dataobj list in order according to -raise options
+        set dlist $_dlist
+        foreach obj $dlist {
+            if {[info exists _obj2ovride($obj-raise)] && $_obj2ovride($obj-raise)} {
+                set i [lsearch -exact $dlist $obj]
+                if {$i >= 0} {
+                    set dlist [lreplace $dlist $i $i]
+                    lappend dlist $obj
+                }
             }
         }
+        return $dlist
+      }
+      -image {
+        if {[llength $args] != 2} {
+            error "wrong # args: should be \"get -image 3dview|legend\""
+        }
+        switch -- [lindex $args end] {
+            3dview {
+                return $_image(plot)
+            }
+            legend {
+                return $_image(legend)
+            }
+            default {
+                error "bad image name \"[lindex $args end]\": should be 3dview or legend"
+            }
+        }
+      }
+      default {
+        error "bad option \"$op\": should be -objects or -image"
+      }
     }
-    return $dlist
 }
 
 # ----------------------------------------------------------------------
@@ -624,6 +659,7 @@ itcl::body Rappture::NanovisViewer::connect {{hostlist ""}} {
     set try [lrange $try 1 end]
 
     while {1} {
+        _send_echo <<line "connecting to $hostname:$port..."
         if {[catch {socket $hostname $port} sid]} {
             if {[llength $try] == 0} {
                 return 0
@@ -648,11 +684,13 @@ itcl::body Rappture::NanovisViewer::connect {{hostlist ""}} {
             [expr {$b2 & 0xff}] \
             [expr {$b3 & 0xff}] \
             [expr {$b4 & 0xff}]]
+        _receive_echo <<line $addr
 
         if {[string equal $addr "0.0.0.0"]} {
             fconfigure $sid -buffering line
             fileevent $sid readable [itcl::code $this _receive]
             set _sid $sid
+            blt::busy release $itk_component(hull)
             return 1
         }
         set hostname $addr
@@ -697,8 +735,19 @@ itcl::body Rappture::NanovisViewer::isconnected {} {
 # USAGE: _send <arg> <arg> ...
 #
 # Used internally to send commands off to the rendering server.
+# This is a more convenient form of _send_text, which actually
+# does the sending.
 # ----------------------------------------------------------------------
 itcl::body Rappture::NanovisViewer::_send {args} {
+    _send_text $args
+}
+
+# ----------------------------------------------------------------------
+# USAGE: _send_text <string>
+#
+# Used internally to send commands off to the rendering server.
+# ----------------------------------------------------------------------
+itcl::body Rappture::NanovisViewer::_send_text {string} {
     if {"" == $_sid} {
         $_dispatcher cancel !serverDown
         set x [expr {[winfo rootx $itk_component(area)]+10}]
@@ -708,7 +757,10 @@ itcl::body Rappture::NanovisViewer::_send {args} {
         if {[catch {connect} ok] == 0 && $ok} {
             set w [winfo width $itk_component(3dview)]
             set h [winfo height $itk_component(3dview)]
+
             puts $_sid "screen $w $h"
+            _send_echo >>line "screen $w $h"
+
             set _view(theta) 45
             set _view(phi) 45
             set _view(psi) 0
@@ -723,9 +775,12 @@ itcl::body Rappture::NanovisViewer::_send {args} {
     if {"" != $_sid} {
         # if we're transmitting objects, then buffer this command
         if {[llength $_sendobjs] > 0} {
-            append _buffer(out) $args "\n"
+            append _buffer(out) $string "\n"
         } else {
-            puts $_sid $args
+            puts $_sid $string
+            foreach line [split $string \n] {
+                _send_echo >>line $line
+            }
         }
     }
 }
@@ -747,6 +802,7 @@ itcl::body Rappture::NanovisViewer::_send_dataobjs {} {
 
             # tell the engine to expect some data
             set cmdstr "volume data follows [string length $data]"
+            _send_echo >>line $cmdstr
             if {[catch {puts $_sid $cmdstr} err]} {
                 disconnect
                 $_dispatcher event -after 750 !serverDown
@@ -759,6 +815,7 @@ itcl::body Rappture::NanovisViewer::_send_dataobjs {} {
                 set chunk [string range $data 0 8095]
                 set data [string range $data 8096 end]
 
+                _send_echo >>line $chunk
                 if {[catch {puts -nonewline $_sid $chunk} err]} {
                     disconnect
                     $_dispatcher event -after 750 !serverDown
@@ -766,6 +823,7 @@ itcl::body Rappture::NanovisViewer::_send_dataobjs {} {
                 }
                 catch {flush $_sid}
             }
+            _send_echo >>line ""
             puts $_sid ""
 
             set _obj2id($dataobj-$comp) $_obj2id(count)
@@ -778,6 +836,7 @@ itcl::body Rappture::NanovisViewer::_send_dataobjs {} {
             foreach {sname cmap wmap} [_getTransfuncData $dataobj $comp] break
 
             set cmdstr [list transfunc define $sname $cmap $wmap]
+            _send_echo >>line $cmdstr
             if {[catch {puts $_sid $cmdstr} err]} {
                 disconnect
                 $_dispatcher event -after 750 !serverDown
@@ -817,6 +876,7 @@ itcl::body Rappture::NanovisViewer::_send_dataobjs {} {
     eval _send volume data state [_state volume] $vols
 
     # if there are any commands in the buffer, send them now that we're done
+    _send_echo >>line $_buffer(out)
     if {[catch {puts $_sid $_buffer(out)} err]} {
         disconnect
         $_dispatcher event -after 750 !serverDown
@@ -824,6 +884,20 @@ itcl::body Rappture::NanovisViewer::_send_dataobjs {} {
     set _buffer(out) ""
 
     $_dispatcher event -idle !legend
+}
+
+# ----------------------------------------------------------------------
+# USAGE: _send_echo <channel> ?<data>?
+#
+# Used internally to echo sent data to clients interested in
+# this widget.  If the -sendcommand option is set, then it is
+# invoked in the global scope with the <channel> and <data> values
+# as arguments.  Otherwise, this does nothing.
+# ----------------------------------------------------------------------
+itcl::body Rappture::NanovisViewer::_send_echo {channel {data ""}} {
+    if {[string length $itk_option(-sendcommand)] > 0} {
+        uplevel #0 $itk_option(-sendcommand) [list $channel $data]
+    }
 }
 
 # ----------------------------------------------------------------------
@@ -837,8 +911,10 @@ itcl::body Rappture::NanovisViewer::_receive {} {
     if {"" != $_sid} {
         if {[gets $_sid line] < 0} {
             disconnect
+            _receive_echo closed
             $_dispatcher event -after 750 !serverDown
         } elseif {[string equal [string range $line 0 2] "nv>"]} {
+            _receive_echo <<line $line
             append _buffer(in) [string range $line 3 end]
             if {[info complete $_buffer(in)]} {
                 set request $_buffer(in)
@@ -847,7 +923,8 @@ itcl::body Rappture::NanovisViewer::_receive {} {
             }
         } else {
             # this shows errors coming back from the engine
-            ##puts $line
+            _receive_echo <<error $line
+            puts stderr $line
         }
     }
 }
@@ -863,6 +940,7 @@ itcl::body Rappture::NanovisViewer::_receive_image {option size} {
     if {"" != $_sid} {
         set bytes [read $_sid $size]
         $_image(plot) configure -data $bytes
+        _receive_echo <<line "<read $size bytes for [image width $_image(plot)]x[image height $_image(plot)] image>"
     }
 }
 
@@ -877,6 +955,7 @@ itcl::body Rappture::NanovisViewer::_receive_legend {ivol vmin vmax size} {
     if {"" != $_sid} {
         set bytes [read $_sid $size]
         $_image(legend) configure -data $bytes
+        _receive_echo <<line "<read $size bytes for [image width $_image(legend)]x[image height $_image(legend)] legend>"
 
         set c $itk_component(legend)
         set w [winfo width $c]
@@ -903,6 +982,20 @@ itcl::body Rappture::NanovisViewer::_receive_legend {ivol vmin vmax size} {
 
         $c itemconfigure vmax -text $vmax
         $c coords vmax [expr {$w-10}] [expr {$h-8}]
+    }
+}
+
+# ----------------------------------------------------------------------
+# USAGE: _receive_echo <channel> ?<data>?
+#
+# Used internally to echo received data to clients interested in
+# this widget.  If the -receivecommand option is set, then it is
+# invoked in the global scope with the <channel> and <data> values
+# as arguments.  Otherwise, this does nothing.
+# ----------------------------------------------------------------------
+itcl::body Rappture::NanovisViewer::_receive_echo {channel {data ""}} {
+    if {[string length $itk_option(-receivecommand)] > 0} {
+        uplevel #0 $itk_option(-receivecommand) [list $channel $data]
     }
 }
 

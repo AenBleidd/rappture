@@ -21,6 +21,28 @@ When you click the Simulate button, the inputs will be used to generate output f
     </about>
     <default>x*y*z</default>
   </string>
+  <separator/>
+  <choice id="3D">
+    <about>
+      <label>3D Rendering</label>
+      <description>Determines the method used for 3D rendering--either the built-in Vtk library or the external nanoVIS engine.</description>
+    </about>
+    <option>
+      <about>
+        <label>Vtk library</label>
+        <description>This is the older visualization solution, implemented in Vtk and linked into the Rappture environment.</description>
+      </about>
+      <value>vtk</value>
+    </option>
+    <option>
+      <about>
+        <label>nanoVIS</label>
+        <description>This is the newer nanoVIS engine running on accelerated hardware in the nanoHUB environment.</description>
+      </about>
+      <value>nanovis</value>
+    </option>
+    <default>nanovis</default>
+  </choice>
 </input>
 <output>
   <cloud id="m2d">
@@ -36,17 +58,10 @@ When you click the Simulate button, the inputs will be used to generate output f
     </component>
   </field>
 
-  <mesh id="m3d">
-    <about><label>3D Mesh</label></about>
-    <units>um</units>
-    <hide>yes</hide>
-  </mesh>
   <field id="f3d">
     <about><label>3D Field</label></about>
     <component>
       <style>-color yellow</style>
-      <mesh>output.mesh(m3d)</mesh>
-      <values></values>
     </component>
   </field>
 </output>
