@@ -1,5 +1,5 @@
 #include "GL/glut.h"
-#include "GL/glui.h"
+#include "glui.h"
 
 #ifndef __TF_MAIN_H__
 #define __TF_MAIN_H__
