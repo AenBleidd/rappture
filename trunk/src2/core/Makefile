@@ -1,8 +1,11 @@
 CFLAGS = -g
-all: test
+all: viz
 
-viz: viz.o RpOutcome.o RpMesh1D.o RpField1D.o RpMeshTri2D.o RpMeshRect3D.o RpFieldRect3D.o RpMeshPrism3D.o RpFieldPrism3D.o RpSerialBuffer.o RpSerializer.o RpSerializable.o
-	g++ $(CFLAGS) -o viz viz.o RpOutcome.o RpMesh1D.o RpField1D.o RpMeshTri2D.o RpMeshRect3D.o RpFieldRect3D.o RpMeshPrism3D.o RpFieldPrism3D.o RpSerialBuffer.o RpSerializer.o RpSerializable.o
+viz: viz.o libviz.a
+	g++ $(CFLAGS) -o viz viz.o libviz.a
+
+libviz.a: RpOutcome.o RpMesh1D.o RpField1D.o RpMeshTri2D.o RpMeshRect3D.o RpFieldRect3D.o RpMeshPrism3D.o RpFieldPrism3D.o RpSerialBuffer.o RpSerializer.o RpSerializable.o
+	ar crv $@ $^
 
 viz.o: viz.cc
 	g++ $(CFLAGS) -c -o viz.o viz.cc
@@ -23,8 +26,8 @@ test.o: test.cc Ptr.h
 Ptr.o: Ptr.h Ptr.cpp
 	g++ $(CFLAGS) -c -o Ptr.o Ptr.cpp
 
-Outcome.o: Outcome.cpp Ptr.h
-	g++ $(CFLAGS) -c -o Outcome.o Outcome.cpp
+RpOutcome.o: RpOutcome.cc RpPtr.h
+	g++ $(CFLAGS) -c -o RpOutcome.o RpOutcome.cc
 
 Lookup.o: Lookup.cpp Ptr.h
 	g++ $(CFLAGS) -c -o Lookup.o Lookup.cpp
