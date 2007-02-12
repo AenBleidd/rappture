@@ -18,7 +18,7 @@
 #define COLOR_GRADIENT_GLUT_WINDOW_H 
 
 
-#include "GL/glui.h"
+#include "glui.h"
 #include "ColorGradient.h"
 #include "ControlPoint.h"
 
@@ -60,7 +60,7 @@ public:
 	static void changeState(int arg);
 	static void createGLUIWidgets();
 	static void WriteControlPoints();
-	static void ColorGradientGLUTWindow::printInterpolation();
+	static void printInterpolation();
 
 	ColorGradientGLUTWindow();
 	virtual ~ColorGradientGLUTWindow();

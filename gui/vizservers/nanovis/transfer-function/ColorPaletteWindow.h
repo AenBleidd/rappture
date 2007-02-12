@@ -17,7 +17,7 @@
 #define _COLOR_PALETTE_WINODW_H_
 
 //ColorPalette Window to select color from
-#include <GL/glui.h>
+#include <glui.h>
 
 #include "../Color.h"
 #include "ControlPoint.h"

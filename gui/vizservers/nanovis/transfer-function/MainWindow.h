@@ -17,7 +17,7 @@
 #ifndef _MAIN_TF_WINDOW_H
 #define _MAIN_TF_WINDOW_H
 
-#include "GL/glui.h"
+#include "glui.h"
 #include "ControlPoint.h"
 
 extern int mainWindow;
