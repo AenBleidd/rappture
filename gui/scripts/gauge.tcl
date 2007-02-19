@@ -218,15 +218,17 @@ itcl::body Rappture::Gauge::value {args} {
         set newval [set nv [lindex $args 0]]
         set units $itk_option(-units)
         if {"" != $units} {
-            set newval [Rappture::Units::convert $newval \
-                -context $units]
+            set newval [Rappture::Units::convert $newval -context $units]
             set nvUnits [Rappture::Units::Search::for $newval]
             if { "" == $nvUnits} {
                 set msg [Rappture::Units::description $units]
-                error "Unrecognized units: $newval\nEnter value with units $msg"
+                error "Unrecognized units: $newval\nEnter value with units of $msg"
             }
             set nv [Rappture::Units::convert $nv \
                 -context $units -to $units -units off]
+
+            # Normalize the units name
+            set newval [Rappture::Units::convert $newval -units off]$nvUnits
         }
 
         switch -- $itk_option(-type) {
@@ -244,7 +246,7 @@ itcl::body Rappture::Gauge::value {args} {
 
         if {"" != $itk_option(-minvalue)} {
             set convMinVal [set minv $itk_option(-minvalue)]
-            if {$units != ""} {
+            if {"" != $units} {
                 set minv [Rappture::Units::convert $minv \
                     -context $units -to $units -units off]
                 set convMinVal [Rappture::Units::convert \
@@ -265,7 +267,7 @@ itcl::body Rappture::Gauge::value {args} {
 
         if {"" != $itk_option(-maxvalue)} {
             set convMaxVal [set maxv $itk_option(-maxvalue)]
-            if {$units != ""} {
+            if {"" != $units} {
                 set maxv [Rappture::Units::convert $maxv \
                     -context $units -to $units -units off]
                 set convMaxVal [Rappture::Units::convert \
@@ -287,7 +289,9 @@ itcl::body Rappture::Gauge::value {args} {
         if {$onlycheck} {
             return
         }
+
         set _value $newval
+
         _redraw
         event generate $itk_component(hull) <<Value>>
 
