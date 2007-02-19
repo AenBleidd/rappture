@@ -12,7 +12,7 @@
 #ifndef RAPPTURE_PTR_H
 #define RAPPTURE_PTR_H
 
-#include "rappture.h"
+#include "rappture2.h"
 
 namespace Rappture {
 
