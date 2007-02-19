@@ -9,7 +9,7 @@
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  * ======================================================================
  */
-#include "rappture.h"
+#include "rappture2.h"
 
 using namespace Rappture;
 

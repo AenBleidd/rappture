@@ -12,7 +12,7 @@
 #ifndef RAPPTURE_OUTCOME_H
 #define RAPPTURE_OUTCOME_H
 
-#include "rappture.h"
+#include "rappture2.h"
 
 namespace Rappture {
 
