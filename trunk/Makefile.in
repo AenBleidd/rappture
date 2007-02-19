@@ -30,10 +30,12 @@ rp_gui:
 
 rplib:
 	set -x;
+	cd src2/core; make clean; make librappture2.a; make librappture2.so.0.0
 	cd src; make clean; make librappture;
 
 install_rplib:
 	set -x;
+	cd src2/core; make install;
 	cd src; make install_rappture;
 
 build_bindings: build_matlab build_octave build_python build_perl

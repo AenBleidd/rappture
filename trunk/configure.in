@@ -58,7 +58,6 @@ fi
 if test "x$with_matlab_arch" != "x" ; then
     MEX_ARCH="-arch=$with_matlab_arch"
 fi
-dnl AC_CHECK_PROG(MEX, mex, mex, false)
 dnl AM_CONDITIONAL(WITH_MATLAB, test x$MEX != x)
 
 AC_ARG_WITH(octave, [  --with-octave[=DIR]         Build Octave bindings if MKOCTFILE compiler is found])
@@ -208,5 +207,6 @@ AC_OUTPUT(  Makefile \
             src/Makefile \
             src/matlab/Makefile \
             src/octave/Makefile \
+            src2/core/Makefile \
             test/Makefile \
             gui/apps/rappture   )
