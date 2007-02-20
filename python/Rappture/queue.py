@@ -151,13 +151,6 @@ class queue:
         else: 
             self._queue_vars['jobName'] = jobName
 
-    def transferFiles(self,transferFiles=[]):
-        transferFiles = list(transferFiles)
-        if (len(transferFiles) == 0)  or (jobName == []):
-            return self._queue_vars['transferFiles']
-        else:
-            self._queue_vars['transferFiles'] = transferFiles
-
     def __convertWalltime__(self):
         pass
 
@@ -223,9 +216,7 @@ nanohub's pbs queues through Rappture"""
         self.executable(executable)
         self.execArgs(execArgs)
         nanoHUBQ = os.getenv("NANOHUB_PBS_QUEUE")
-        if nanoHUBQ is None :
-            self.queue("@vma118.punch.purdue.edu")
-        else:
+        if nanoHUBQ is not None :
             self.queue(nanoHUBQ)
 
     def __initPbsScriptVars__(self):
@@ -291,10 +282,13 @@ nanohub's pbs queues through Rappture"""
             self.cmd('%s -np %d -machinefile $PBS_NODEFILE %s %s' % \
                 (mpiCommand, self.nodes(), self.executable(), self.execArgs()))
 
-        return """#PBS -S /bin/bash
+        script = """#PBS -S /bin/bash
 #PBS -l nodes=%s:ppn=%s
 #PBS -l walltime=%s
-#PBS -q %s
+""" % (self.nodes(),self.ppn(),self.walltime())
+        if self.queue() :
+            script += "#PBS -q %s" % (self.queue())
+        script += """
 #PBS -o %s
 #PBS -e %s
 #PBS -mn
@@ -307,15 +301,9 @@ echo $cmd
 $cmd
 
 touch %s
-""" % ( self.nodes(),
-        self.ppn(),
-        self.walltime(),
-        self.queue(),
-        self.outFile(),
-        self.errFile(),
-        self.jobName(),
-        self.cmd(),
-        self.errFile()   )
+""" % (self.outFile(),self.errFile(),self.jobName(),self.cmd(),self.errFile())
+
+        return script
 
     def cmd(self,cmd=''):
         cmd = str(cmd)
@@ -325,14 +313,17 @@ touch %s
             self._pbs_vars['cmd'] = cmd
 
     def getCurrentStatus(self):
+        pbsServer = ''
+        nanoHUBQ = ''
         retVal = self._pbs_msgs['DEFAULT']
         if self._jobId:
             nanoHUBQ = self.queue()
-            if nanoHUBQ != "":
+            if (nanoHUBQ != "") and (nanoHUBQ is not None):
                 atLocation = nanoHUBQ.find('@')
                 if atLocation > -1:
                     pbsServer = nanoHUBQ[atLocation+1:]
 
+            cmd = ''
             if pbsServer == '':
                 cmd = "qstat -a | grep \'^ *%s\'" % (self._jobId)
             else:
@@ -393,6 +384,7 @@ touch %s
 
 
 class condor (queue):
+    # this class is not working!
 
     USE_MPI = 1
 
@@ -404,7 +396,6 @@ class condor (queue):
                     ppn=2,
                     execArgs='',
                     walltime='00:01:00',
-                    transferFiles=[],
                     flags=0             ):
 
         # call the base class's init
@@ -432,7 +423,6 @@ class condor (queue):
         self.outFile("out.$(cluster).$(process)")
         self.errFile("err.$(cluster).$(process)")
         self.logFile("log.$(cluster)")
-        self.transferFiles(transferFiles)
 
     def __fillStatusDict__(self):
         self._condor_msgs['I'] = 'Simulation Queued'
@@ -590,7 +580,7 @@ class condor (queue):
     def submit(self):
 
         if len(self._processList) == 0:
-            self.addProcess(inputFiles=self.transferFiles())
+            self.addProcess()
 
         submitFileData = self.__makeCondorScript__() + "\n".join(self._processList)
         submitFileName = self._resultDirPath+'/'+self.jobName()+'.condor'
@@ -643,10 +633,9 @@ if __name__ == '__main__':
     jobName = 'helloMPITest'
     resultsDir = createDir('4321')
     executable = './hello.sh'
-    txFileList = ['hello']
     shutil.copy('hello/hello.sh',resultsDir)
     shutil.copy('hello/hello',resultsDir)
-    myCondorObj = condor(jobName,resultsDir,2,executable,ppn=1,walltime=walltime,transferFiles=txFileList,flags=condor.USE_MPI)
+    myCondorObj = condor(jobName,resultsDir,2,executable,walltime=walltime,flags=condor.USE_MPI)
     myCondorObj.submit()
     myCondorObj.status()
     sys.stdout.flush()
