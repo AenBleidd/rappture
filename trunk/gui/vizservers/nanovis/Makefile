@@ -21,9 +21,9 @@ INSTALL_DIR = /opt/nanovis
 R2SRC = ./R2/src
 R2INC = ./R2/include
 
-LIB_NANOVIS = -ltcl8.4 -L/opt/render/lib -lGL -lglut -lglui -lGLEW -lCg -lCgGL -pthread -lstdc++ -L/home/nanohub/vrinside/usr/lib
-LIB_CLIENT = -L/opt/render/lib -lGL -lglut -pthread -lstdc++ -L/home/nanohub/vrinside/usr/lib
-INCLUDES = -I../../../src2/core -I/opt/render/include -I/usr/include/GL -I/usr/include/GL -I/usr/include/tcl8.4 -I/home/nanohub/vrinside/usr/include/GL -I/usr/include/GL -I/home/nanohub/vrinside/usr/include/Cg -I/home/nanohub/vrinside/usr/include -I$(R2INC)
+LIB_NANOVIS = -ltcl8.4 -L/opt/render/lib -lGL -lglut -lglui -lGLEW -lCg -lCgGL -pthread -lstdc++ 
+LIB_CLIENT = -L/opt/render/lib -lGL -lglut -pthread -lstdc++ 
+INCLUDES = -I../../../src2/core -I/opt/render/include -I/usr/include/GL -I/usr/include/GL -I/usr/include/tcl8.4 -I/usr/include/GL -I$(R2INC)
 CFLAG = -g -c $(INCLUDES)
 
 all: nanovis
@@ -36,7 +36,7 @@ clean:
 
 nanovis: $(OBJ_NANOVIS)
 	gcc -g -o nanovis $(OBJ_NANOVIS) $(LIB_NANOVIS) ../../../src2/core/*.o
-#	(cd ../../../src2/core; make libviz.a)
+#   (cd ../../../src2/core; make libviz.a)
 #	gcc -g -o nanovis $(OBJ_NANOVIS) $(LIB_NANOVIS) ../../../src2/core/libviz.a
 
 ColorGradient.o: Color.o $(TFSRC)/ColorGradient.cpp

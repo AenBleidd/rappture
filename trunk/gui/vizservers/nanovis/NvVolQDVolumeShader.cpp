@@ -1,4 +1,5 @@
 #include "NvVolQDVolumeShader.h"
+#include <R2/R2FilePath.h>
 
 NvVolQDVolumeShader::NvVolQDVolumeShader()
 {
@@ -11,8 +12,9 @@ NvVolQDVolumeShader::~NvVolQDVolumeShader()
 
 void NvVolQDVolumeShader::init()
 {
+    R2string path = R2FilePath::getInstance()->getPath("volqd_volume.cg");
     _cgFP = cgCreateProgramFromFile(g_context, CG_SOURCE,
-            "/home/nanohub/vrinside/rappture/gui/vizservers/nanovis/shaders/volqd_volume.cg", 
+            (const char*) path, 
             CG_PROFILE_FP30, "main", NULL);
 
     cgGLLoadProgram(_cgFP);
