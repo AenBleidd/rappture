@@ -2,7 +2,11 @@ OBJ_NANOVIS = nanovis.o Socket.o RenderVertexArray.o Plane.o ConvexPolygon.o Vec
 		Texture1D.o Texture3D.o Volume.o ZincBlendeVolume.o Texture2D.o ParticleSystem.o Sphere.o Color.o \
 		PerfQuery.o TransferFunction.o ControlPoint.o ColorGradient.o ColorPaletteWindow.o\
 		ColorGradientGLUTWindow.o TransferFunctionGLUTWindow.o MainWindow.o Event.o \
-		Lic.o Renderable.o Camera.o ScreenSnapper.o VolumeRenderer.o PlaneRenderer.o 
+		Lic.o Renderable.o Camera.o ScreenSnapper.o VolumeRenderer.o PlaneRenderer.o Nv.o \
+		NvZincBlendeVolumeShader.o NvShader.o NvVolumeShader.o NvRegularVolumeShader.o NvVolQDVolumeShader.o \
+		NvLoadFile.o NvVolQDVolume.o NvDefaultTFData.o NvColorTableShader.o NvColorTableRenderer.o \
+		R2string.o R2FilePath.o R2Fonts.o R2Object.o
+
 OBJ_VOLUMERENDERER = Volume.o ConvexPolygon.o TransferFunction.o Mat4x4.o  Camera.o
 OBJ_PLANERENDERER = Texture2D.o TransferFunction.o
 OBJ_CLIENT = Socket.o ClientSocket.o RenderClient.o Event.o
@@ -14,10 +18,12 @@ SORTSRC = ./sort
 TFSRC = ./transfer-function
 NANOSCALESRC = ./nanoscale
 INSTALL_DIR = /opt/nanovis
+R2SRC = ./R2/src
+R2INC = ./R2/include
 
-LIB_NANOVIS = -ltcl8.4 -L/opt/render/lib -lGL -lglut -lglui -lGLEW -lCg -lCgGL -pthread -lstdc++
-LIB_CLIENT = -L/opt/render/lib -lGL -lglut -pthread -lstdc++
-INCLUDES = -I../../../src2/core -I/opt/render/include -I/usr/include/GL -I/usr/include/tcl8.4
+LIB_NANOVIS = -ltcl8.4 -L/opt/render/lib -lGL -lglut -lglui -lGLEW -lCg -lCgGL -pthread -lstdc++ -L/home/nanohub/vrinside/usr/lib
+LIB_CLIENT = -L/opt/render/lib -lGL -lglut -pthread -lstdc++ -L/home/nanohub/vrinside/usr/lib
+INCLUDES = -I../../../src2/core -I/opt/render/include -I/usr/include/GL -I/usr/include/GL -I/usr/include/tcl8.4 -I/home/nanohub/vrinside/usr/include/GL -I/usr/include/GL -I/home/nanohub/vrinside/usr/include/Cg -I/home/nanohub/vrinside/usr/include -I$(R2INC)
 CFLAG = -g -c $(INCLUDES)
 
 all: nanovis
@@ -29,11 +35,45 @@ clean:
 	rm -f *.o nanovis client simclient
 
 nanovis: $(OBJ_NANOVIS)
-	(cd ../../../src2/core; make libviz.a)
-	gcc -g -o nanovis $(OBJ_NANOVIS) $(LIB_NANOVIS) ../../../src2/core/libviz.a
+	gcc -g -o nanovis $(OBJ_NANOVIS) $(LIB_NANOVIS) ../../../src2/core/*.o
+#	(cd ../../../src2/core; make libviz.a)
+#	gcc -g -o nanovis $(OBJ_NANOVIS) $(LIB_NANOVIS) ../../../src2/core/libviz.a
 
 ColorGradient.o: Color.o $(TFSRC)/ColorGradient.cpp
 	gcc $(CFLAG) $(TFSRC)/ColorGradient.cpp
+
+Nv.o: Nv.cpp NvShader.cpp
+	gcc $(CFLAG) Nv.cpp
+
+NvLoadFile.o: NvLoadFile.cpp NvLoadFile.cpp
+	gcc $(CFLAG) NvLoadFile.cpp
+
+NvColorTableShader.o: NvColorTableShader.cpp NvColorTableShader.h
+	gcc $(CFLAG) NvColorTableShader.cpp
+
+NvColorTableRenderer.o: NvColorTableRenderer.cpp NvColorTableRenderer.h
+	gcc $(CFLAG) NvColorTableRenderer.cpp
+
+NvShader.o: NvShader.cpp NvShader.h
+	gcc $(CFLAG) NvShader.cpp
+
+NvVolumeShader.o: NvVolumeShader.cpp NvVolumeShader.h
+	gcc $(CFLAG) NvVolumeShader.cpp
+
+NvDefaultTFData.o: NvDefaultTFData.cpp
+	gcc $(CFLAG) NvDefaultTFData.cpp
+
+NvVolQDVolume.o: NvVolQDVolume.cpp NvVolQDVolume.h
+	gcc $(CFLAG) NvVolQDVolume.cpp
+
+NvVolQDVolumeShader.o: NvVolQDVolumeShader.cpp NvVolQDVolumeShader.h
+	gcc $(CFLAG) NvVolQDVolumeShader.cpp
+
+NvRegularVolumeShader.o: NvRegularVolumeShader.cpp NvRegularVolumeShader.h
+	gcc $(CFLAG) NvRegularVolumeShader.cpp
+
+NvZincBlendeVolumeShader.o: NvZincBlendeVolumeShader.cpp NvZincBlendeVolumeShader.h
+	gcc $(CFLAG) NvZincBlendeVolumeShader.cpp
 
 ColorPaletteWindow.o: Color.o ControlPoint.o $(TFSRC)/ColorPaletteWindow.cpp
 	gcc $(CFLAG) $(TFSRC)/ColorPaletteWindow.cpp
@@ -137,3 +177,16 @@ PerfQuery.o: PerfQuery.cpp PerfQuery.h
 
 nanovis.o: nanovis.h nanovis.cpp ParticleSystem.o $(AUXSRC)
 	gcc $(CFLAG) nanovis.cpp
+
+R2string.o: $(R2SRC)/R2string.cpp $(R2INC)/R2/R2string.h 
+	gcc $(CFLAG) $(R2SRC)/R2string.cpp
+
+R2FilePath.o: $(R2SRC)/R2FilePath.cpp $(R2INC)/R2/R2FilePath.h 
+	gcc $(CFLAG) $(R2SRC)/R2FilePath.cpp
+
+R2Fonts.o: $(R2SRC)/R2Fonts.cpp $(R2INC)/R2/R2Fonts.h 
+	gcc $(CFLAG) $(R2SRC)/R2Fonts.cpp
+
+R2Object.o: $(R2SRC)/R2Object.cpp $(R2INC)/R2/R2Object.h 
+	gcc $(CFLAG) $(R2SRC)/R2Object.cpp
+
