@@ -38,7 +38,8 @@ void R2FilePath::setPath(const R2string& filePath)
 	while( token != NULL )
 	{
 		lastIndex = strlen(token) - 1;
-		if (token[0] == '/' || token[1] == ':')
+		//if (token[0] == '/' || token[1] == ':')
+		if (token[0] == '/')
 		{
 			if (token[lastIndex] == '/' || token[lastIndex] == '\\')
 			{

@@ -113,6 +113,7 @@ void bmp_header_add_int(unsigned char* header, int& pos, int data);
 void bmp_write(const char* cmd);
 void bmp_write_to_file();
 void display();
+void display_offscreen_buffer();
 void read_screen();
 
 ParticleSystem* psys;

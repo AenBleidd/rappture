@@ -46,10 +46,16 @@ void NvInitGLEW()
 
 void NvInit()
 {
-    R2FilePath::getInstance()->setPath(".:./resources:/home/nanohub/vrinside/rappture/gui/vizservers/nanovis/resources");
+    char* filepath = "/home/nanohub/vrinside/rappture/gui/vizservers/nanovis/shaders:" \
+                    "/home/nanohub/vrinside/rappture/gui/vizservers/nanovis/resources:" \
+                    "/opt/nanovis/lib/shaders:/opt/nanovis/lib/resources";
+
+    R2FilePath::getInstance()->setPath(filepath);
     NvPrintSystemInfo();
     NvInitGLEW();
     NvInitCG();
+   
+    printf("Nanovis GL Initialized\n");
 }
 
 void NvExit()

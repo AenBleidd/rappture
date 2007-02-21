@@ -1,4 +1,6 @@
 
+#include <R2/R2string.h>
+#include <R2/R2FilePath.h>
 #include "Nv.h"
 #include "NvZincBlendeVolumeShader.h"
 
@@ -15,10 +17,9 @@ NvZincBlendeVolumeShader::~NvZincBlendeVolumeShader()
 
 void NvZincBlendeVolumeShader::init()
 {
-    //_cgFP = cgCreateProgramFromFile(g_context, CG_SOURCE, 
-    //    "/opt/nanovis/lib/shaders/zincblende_volume.cg", CG_PROFILE_FP30, "main", NULL);
+    R2string path = R2FilePath::getInstance()->getPath("zincblende_volume.cg");
     _cgFP = cgCreateProgramFromFile(g_context, CG_SOURCE, 
-        "/home/nanohub/vrinside/rappture/gui/vizservers/nanovis/shaders/zincblende_volume.cg", CG_PROFILE_FP30, "main", NULL);
+        (const char*) path, CG_PROFILE_FP30, "main", NULL);
 
     cgGLLoadProgram(_cgFP);
 
