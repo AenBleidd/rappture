@@ -25,6 +25,8 @@
 #include <unistd.h>
 #include <fcntl.h>
 
+#include "Nv.h"
+
 #include "nanovis.h"
 #include "RpField1D.h"
 #include "RpFieldRect3D.h"
@@ -37,11 +39,20 @@
 #include "transfer-function/ColorGradientGLUTWindow.h"
 #include "transfer-function/ColorPaletteWindow.h"
 #include "transfer-function/MainWindow.h"
+#include "ZincBlendeVolume.h"
+#include "NvLoadFile.h"
+#include "NvVolQDVolume.h"
+#include "NvColorTableRenderer.h"
+
+// R2 headers
+#include <R2/R2FilePath.h>
+#include <R2/R2Fonts.h>
 
 //render server
 
 VolumeRenderer* vol_render;
 PlaneRenderer* plane_render;
+NvColorTableRenderer* color_table_renderer;
 Camera* cam;
 
 //if true nanovis renders volumes in 3D, if not renders 2D plane
@@ -89,6 +100,7 @@ double cur_time;	//in seconds
 double get_time_interval();
 
 int render_window; 		//the handle of the render window;
+
 // forward declarations
 void init_particles();
 void get_slice_vectors();
@@ -99,6 +111,9 @@ void resize_offscreen_buffer(int w, int h);
 void offscreen_buffer_capture();
 void bmp_header_add_int(unsigned char* header, int& pos, int data);
 void bmp_write(const char* cmd);
+void bmp_write_to_file();
+void display();
+void read_screen();
 
 ParticleSystem* psys;
 float psys_x=0.4, psys_y=0, psys_z=0;
@@ -129,23 +144,29 @@ int updir = 2;
 PerfQuery* perf;			//perfromance counter
 
 //Nvidia CG shaders and their parameters
-CGcontext g_context;
+//INSOO
+//CGcontext g_context;
 
 CGprogram m_passthru_fprog;
 CGparameter m_passthru_scale_param, m_passthru_bias_param;
 
-CGprogram m_copy_texcoord_fprog;
+R2Fonts* g_fonts;
 
+/*
+CGprogram m_copy_texcoord_fprog;
 CGprogram m_one_volume_fprog;
 CGparameter m_vol_one_volume_param;
 CGparameter m_tf_one_volume_param;
 CGparameter m_mvi_one_volume_param;
 CGparameter m_mv_one_volume_param;
 CGparameter m_render_param_one_volume_param;
+*/
 
+/*
 CGprogram m_vert_std_vprog;
 CGparameter m_mvp_vert_std_param;
 CGparameter m_mvi_vert_std_param;
+*/
 
 using namespace std;
 
@@ -154,6 +175,7 @@ using namespace std;
 static Tcl_Interp *interp;
 static Tcl_DString cmdbuffer;
 
+static int ScreenShotCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
 static int CameraCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
 static int CutplaneCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
 static int LegendCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
@@ -256,6 +278,65 @@ CameraCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
 	Tcl_AppendResult(interp, "bad option \"", argv[1],
 		"\": should be aim, angle, or zoom", (char*)NULL);
 	return TCL_ERROR;
+}
+
+/*
+{
+  glEnable(GL_TEXTURE_2D);
+  glEnable(GL_BLEND);
+
+  glViewport(0, 0, 1024, 1024);
+  glMatrixMode(GL_PROJECTION);
+  glLoadIdentity();
+  gluOrtho2D(0, render_width, 0, render_height);
+  glMatrixMode(GL_MODELVIEW);
+  glLoadIdentity();
+
+  glBegin(GL_QUADS);
+  glTexCoord2f(0, 0); glVertex2f(30, 30);
+  glTexCoord2f(1, 0); glVertex2f(1024 - 60, 30);
+  glTexCoord2f(1, 1); glVertex2f(1024 - 60, 1024 - 60);
+  glTexCoord2f(0, 1); glVertex2f(30, 1024 - 60);
+  glEnd();
+}
+*/
+
+static int
+ScreenShotCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
+{
+    int old_win_width = win_width;
+    int old_win_height = win_height;
+#ifdef XINETD
+    resize_offscreen_buffer(1024, 1024);
+    cam->set_screen_size(30, 90, 1024 - 60, 1024 - 120);
+    offscreen_buffer_capture();  //enable offscreen render
+    display();
+
+    // TBD
+    Volume* vol = volume[0];
+    TransferFunction* tf = vol_render->get_volume_shading(vol);
+    if (tf)
+    {
+        float data[512];
+        for (int i=0; i < 256; i++) {
+            data[i] = data[i+256] = (float)(i/255.0);
+        }
+        Texture2D* plane = new Texture2D(256, 2, GL_FLOAT, GL_LINEAR, 1, data);
+        color_table_renderer->render(1024, 1024, plane, tf, vol->range_min(), vol->range_max());
+        delete plane;
+    }
+
+    read_screen();
+    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
+    // INSOO
+    // TBD
+    bmp_write_to_file();
+    //bmp_write("nv>screenshot -bytes");
+    resize_offscreen_buffer(old_win_width, old_win_height); 
+#endif
+
+
+	return TCL_OK;
 }
 
 /*
@@ -414,7 +495,9 @@ LegendCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); //clear screen
     plane_render->render();
 
+// INSOO
     glReadPixels(0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, screen_buffer);
+    //glReadPixels(0, 0, width, height, GL_BGR, GL_UNSIGNED_BYTE, screen_buffer); // INSOO's
 
     std::ostringstream result;
     result << "nv>legend " << argv[1];
@@ -567,6 +650,20 @@ TransfuncCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[
             data[4*i+3] = wFunc.value(xval);
         }
 
+        //INSOO
+        FILE* f = fopen("/tmp/aa.cpp", "wt");
+        fprintf(f, "float tfdata[] = {\n");
+        fprintf(f, "    ");
+        int num = nslots * 4;
+        for (i=0; i < num; i++) {
+            if (((i + 1) % 4) == 0)
+            {
+                fprintf(f, "\n    ");
+            }
+            fprintf(f, "%f, ", data[i]);
+        }
+        fclose(f);
+
         // find or create this transfer function
         int newEntry;
         Tcl_HashEntry *entryPtr;
@@ -583,6 +680,8 @@ TransfuncCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[
 
         return TCL_OK;
     }
+
+
     Tcl_AppendResult(interp, "bad option \"", argv[1],
         "\": should be define", (char*)NULL);
     return TCL_ERROR;
@@ -639,6 +738,7 @@ UpCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
  * Clients send these commands to manipulate the volumes.
  * ----------------------------------------------------------------------
  */
+void NvLoadVolumeBinFile2(int index, char* filename);
 static int
 VolumeCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
 {
@@ -984,6 +1084,37 @@ VolumeCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
             }
             ++iter;
         }
+        return TCL_OK;
+    }
+    else if (c == 'v' && strcmp(argv[1],"volqd") == 0) {
+        int n = n_volumes;
+
+        NvLoadVolumeBinFile(n, "/home/nanohub/vrinside/grid_1_0");
+
+        volume[n]->set_n_slice(256-n);
+        volume[n]->disable_cutplane(0);
+        volume[n]->disable_cutplane(1);
+        volume[n]->disable_cutplane(2);
+        vol_render->add_volume(volume[n], get_transfunc("default"));
+
+        return TCL_OK;
+    }
+    else if (c == 'z' && strcmp(argv[1],"zinc") == 0) {
+        int n = n_volumes;
+
+        NvLoadVolumeBinFile2(n, "/home/nanohub/vrinside/grid_1_0");
+
+        volume[n]->set_n_slice(256-n);
+        volume[n]->disable_cutplane(0);
+        volume[n]->disable_cutplane(1);
+        volume[n]->disable_cutplane(2);
+        vol_render->add_volume(volume[n], get_transfunc("default"));
+
+        return TCL_OK;
+    }
+    else if (c == 't' && strcmp(argv[1],"test2") == 0) {
+        volume[1]->disable_data();
+        volume[1]->disable();
         return TCL_OK;
     }
 
@@ -1809,6 +1940,57 @@ void load_volume(int index, int width, int height, int depth,
     assert(volume[index]!=0);
 }
 
+//INSOO
+extern float tfdefaultdata[];
+void load_volqd_volume(int index, int width, int height, int depth,
+    int n_component, float* data, double vmin, double vmax, Vector3& cellSize)
+{
+    while (n_volumes <= index) {
+        volume.push_back(NULL);
+        n_volumes++;
+    }
+
+    if (volume[index] != NULL) {
+        delete volume[index];
+        volume[index] = NULL;
+    }
+
+    volume[index] = new NvVolQDVolume(0.f, 0.f, 0.f, width, height, depth, 1.,
+                                 n_component, data, vmin, vmax, cellSize);
+
+    float dx0 = -0.5;
+    float dy0 = -0.5*height/width;
+    float dz0 = -0.5*depth/width;
+    volume[index]->move(Vector3(dx0, dy0, dz0));
+
+    // INSOO
+    // Tentatively
+    TransferFunction* tf = new TransferFunction(256, tfdefaultdata);
+    vol_render->shade_volume(volume[index], tf);
+}
+
+// INSOO
+void load_zinc_volume(int index, int width, int height, int depth,
+    int n_component, float* data, double vmin, double vmax, Vector3& cellSize)
+{
+    while (n_volumes <= index) {
+        volume.push_back(NULL);
+        n_volumes++;
+    }
+
+    if (volume[index] != NULL) {
+        delete volume[index];
+        volume[index] = NULL;
+    }
+
+    volume[index] = new ZincBlendeVolume(0.f, 0.f, 0.f, width, height, depth, 1.,
+                                 n_component, data, data, vmin, vmax, cellSize);
+
+    float dx0 = -0.5;
+    float dy0 = -0.5*height/width;
+    float dz0 = -0.5*depth/width;
+    volume[index]->move(Vector3(dx0, dy0, dz0));
+}
 
 // get a colormap 1D texture by name
 TransferFunction*
@@ -1851,7 +2033,8 @@ extern void update_tf_texture(){
 
 
 //initialize frame buffer objects for offscreen rendering
-void init_offscreen_buffer(){
+void init_offscreen_buffer()
+{
 
   //initialize final fbo for final display
   glGenFramebuffersEXT(1, &final_fbo);
@@ -1895,11 +2078,13 @@ void resize_offscreen_buffer(int w, int h){
   win_height = h;
 
   //fprintf(stderr, "screen_buffer size: %d\n", sizeof(screen_buffer));
+  printf("screen_buffer size: %d %d\n", w, h);
 
   if (screen_buffer) {
       delete[] screen_buffer;
       screen_buffer = NULL;
   }
+
   screen_buffer = new unsigned char[4*win_width*win_height];
   assert(screen_buffer != NULL);
 
@@ -1913,7 +2098,7 @@ void resize_offscreen_buffer(int w, int h){
 fprintf(stdin,"  after glDeleteRenderbuffers\n");
 
   //change the camera setting
-  cam->set_screen_size(win_width, win_height);
+  cam->set_screen_size(0, 0, win_width, win_height);
   plane_render->set_screen_size(win_width, win_height);
 
   //Reinitialize final fbo for final display
@@ -2061,8 +2246,9 @@ void make_test_2D_data(){
 /*----------------------------------------------------*/
 void initGL(void) 
 { 
-   system_info();
-   init_glew();
+   g_fonts = new R2Fonts();
+   g_fonts->addFont("verdana", "verdana.fnt");
+   g_fonts->setFont("verdana");
 
    //buffer to store data read from the screen
    if (screen_buffer) {
@@ -2073,7 +2259,7 @@ void initGL(void)
    assert(screen_buffer != NULL);
 
    //create the camera with default setting
-   cam = new Camera(win_width, win_height, 
+   cam = new Camera(0, 0, win_width, win_height, 
 		   live_obj_x, live_obj_y, live_obj_z,
 		   0., 0., 100.,
 		   (int)live_rot_x, (int)live_rot_y, (int)live_rot_z);
@@ -2081,6 +2267,7 @@ void initGL(void)
    glEnable(GL_TEXTURE_2D);
    glShadeModel(GL_FLAT);
    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
    glClearColor(0,0,0,1);
    glClear(GL_COLOR_BUFFER_BIT);
 
@@ -2117,11 +2304,12 @@ void initGL(void)
    //load_volume_file(4, "./data/mu-wire-3d.dx");
 
    init_offscreen_buffer();    //frame buffer object for offscreen rendering
-   init_cg();	//create cg shader context 
 
    //create volume renderer and add volumes to it
    vol_render = new VolumeRenderer(g_context);
 
+   color_table_renderer = new NvColorTableRenderer();
+   color_table_renderer->setFonts(g_fonts);
    
    /*
    //I added this to debug : Wei
@@ -2186,6 +2374,10 @@ void initTcl(){
     Tcl_CreateCommand(interp, "volume", VolumeCmd,
         (ClientData)NULL, (Tcl_CmdDeleteProc*)NULL);
 
+    // get screenshot
+    Tcl_CreateCommand(interp, "screenshot", ScreenShotCmd,
+        (ClientData)NULL, (Tcl_CmdDeleteProc*)NULL);
+
     // create a default transfer function
     if (Tcl_Eval(interp, def_transfunc) != TCL_OK) {
         fprintf(stdin, "WARNING: bad default transfer function\n");
@@ -2194,10 +2386,8 @@ void initTcl(){
 }
 
 
-void read_screen(){
-  //glBindTexture(GL_TEXTURE_2D, 0);
-  //glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, final_fbo);
- 
+void read_screen()
+{
   glReadPixels(0, 0, win_width, win_height, GL_RGB, GL_UNSIGNED_BYTE, screen_buffer);
   assert(glGetError()==0);
 }
@@ -2250,6 +2440,79 @@ bmp_header_add_int(unsigned char* header, int& pos, int data)
     header[pos++] = (data >> 8) & 0xff;
     header[pos++] = (data >> 16) & 0xff;
     header[pos++] = (data >> 24) & 0xff;
+}
+
+// INSOO
+// FOR DEBUGGING
+void
+bmp_write_to_file()
+{
+    unsigned char header[54];
+    int pos = 0;
+    header[pos++] = 'B';
+    header[pos++] = 'M';
+
+    // BE CAREFUL:  BMP files must have an even multiple of 4 bytes
+    // on each scan line.  If need be, we add padding to each line.
+    int pad = 0;
+    if ((3*win_width) % 4 > 0) {
+        pad = 4 - ((3*win_width) % 4);
+    }
+
+    // file size in bytes
+    int fsize = (3*win_width+pad)*win_height + sizeof(header);
+    bmp_header_add_int(header, pos, fsize);
+
+    // reserved value (must be 0)
+    bmp_header_add_int(header, pos, 0);
+
+    // offset in bytes to start of bitmap data
+    bmp_header_add_int(header, pos, sizeof(header));
+
+    // size of the BITMAPINFOHEADER
+    bmp_header_add_int(header, pos, 40);
+
+    // width of the image in pixels
+    bmp_header_add_int(header, pos, win_width);
+
+    // height of the image in pixels
+    bmp_header_add_int(header, pos, win_height);
+
+    // 1 plane + (24 bits/pixel << 16)
+    bmp_header_add_int(header, pos, 1572865);
+
+    // no compression
+    // size of image for compression
+    bmp_header_add_int(header, pos, 0);
+    bmp_header_add_int(header, pos, 0);
+
+    // x pixels per meter
+    // y pixels per meter
+    bmp_header_add_int(header, pos, 0);
+    bmp_header_add_int(header, pos, 0);
+
+    // number of colors used (0 = compute from bits/pixel)
+    // number of important colors (0 = all colors important)
+    bmp_header_add_int(header, pos, 0);
+    bmp_header_add_int(header, pos, 0);
+
+    // BE CAREFUL: BMP format wants BGR ordering for screen data
+    unsigned char* scr = screen_buffer;
+    for (int row=0; row < win_height; row++) {
+        for (int col=0; col < win_width; col++) {
+            unsigned char tmp = scr[2];
+            scr[2] = scr[0];  // B
+            scr[0] = tmp;     // R
+            scr += 3;
+        }
+        scr += pad;  // skip over padding already in screen data
+    }
+
+    FILE* f;
+    f = fopen("/tmp/image.bmp", "wb");
+    fwrite((void*) header, sizeof(header), 1, f);
+    fwrite((void*) screen_buffer, (3*win_width+pad)*win_height, 1, f);
+    fclose(f);
 }
 
 void
@@ -2322,6 +2585,7 @@ bmp_write(const char* cmd)
 
     write(0, header, sizeof(header));
     write(0, screen_buffer, (3*win_width+pad)*win_height);
+
 }
 
 
@@ -2389,7 +2653,20 @@ void xinetd_listen(){
     //
     //  Generate the latest frame and send it back to the client
     //
+    // INSOO
+    offscreen_buffer_capture();  //enable offscreen render
+
     display();
+
+    // INSOO
+#ifdef XINETD
+   read_screen();
+   glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0); 
+#else
+   display_offscreen_buffer(); //display the final rendering on screen
+   read_screen();
+   glutSwapBuffers(); 
+#endif   
 
 #if DO_RLE
     do_rle();
@@ -2429,7 +2706,8 @@ void draw_arrows(){
 
 
 /*----------------------------------------------------*/
-void idle(){
+void idle()
+{
   glutSetWindow(render_window);
 
   
@@ -2449,7 +2727,8 @@ void idle(){
 }
 
 
-void display_offscreen_buffer(){
+void display_offscreen_buffer()
+{
    glEnable(GL_TEXTURE_2D);
    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
    glBindTexture(GL_TEXTURE_2D, final_color_tex);
@@ -2468,9 +2747,11 @@ void display_offscreen_buffer(){
    glTexCoord2f(1, 1); glVertex2f(win_width, win_height);
    glTexCoord2f(0, 1); glVertex2f(0, win_height);
    glEnd();
+
 }
 
-void offscreen_buffer_capture(){
+void offscreen_buffer_capture()
+{
    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, final_fbo);
 }
 
@@ -2766,7 +3047,8 @@ void draw_3d_axis(){
 }
 
 
-void draw_axis(){
+void draw_axis()
+{
 
   glDisable(GL_TEXTURE_2D);
   glEnable(GL_DEPTH_TEST);
@@ -2807,8 +3089,8 @@ void display()
    //lic->convolve(); //flow line integral convolution
    //psys->advect(); //advect particles
 
-   offscreen_buffer_capture();  //enable offscreen render
-   //glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0); //enable onscreen render
+// INSOO
+   //offscreen_buffer_capture();  //enable offscreen render
 
    //start final rendering
    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); //clear screen
@@ -2869,13 +3151,12 @@ void display()
 
      glPopMatrix();
    }
-   else{
+   else {
      //2D rendering mode
      perf->enable();
        plane_render->render();
      perf->disable();
    }
-
 
 #ifdef XINETD
    float cost  = perf->get_pixel_count();
@@ -2883,15 +3164,16 @@ void display()
 #endif
    perf->reset();
 
-   display_offscreen_buffer(); //display the final rendering on screen
-
+/*
 #ifdef XINETD
-   read_screen();
+    read_screen();
+    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
 #else
-   //read_screen();
-#endif   
-
-   glutSwapBuffers(); 
+    display_offscreen_buffer(); //display the final rendering on screen
+    read_screen();
+    glutSwapBuffers();
+#endif
+*/
 }
 
 
@@ -3088,7 +3370,7 @@ void motion(int x, int y){
 #ifdef XINETD
 void init_service(){
   //open log and map stderr to log file
-  xinetd_log = fopen("log.txt", "w");
+  xinetd_log = fopen("/tmp/log.txt", "w");
   close(2);
   dup2(fileno(xinetd_log), 2);
   dup2(2,1);
@@ -3139,24 +3421,27 @@ int main(int argc, char** argv)
    glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA); 
    
    glutInitWindowSize(win_width, win_height);
+
    glutInitWindowPosition(10, 10);
    render_window = glutCreateWindow(argv[0]);
    glutDisplayFunc(display);
 
 #ifndef XINETD
-   //MainTransferFunctionWindow * tf_window;
-   //tf_window = new MainTransferFunctionWindow();
-   //tf_window->mainInit();
-
    glutMouseFunc(mouse);
    glutMotionFunc(motion);
    glutKeyboardFunc(keyboard);
 #endif
+
    glutIdleFunc(idle);
    glutReshapeFunc(resize_offscreen_buffer);
 
+   NvInit();
+
+
    initGL();
    initTcl();
+
+
 
 #ifdef EVENTLOG
    init_event_log();
@@ -3168,8 +3453,10 @@ int main(int argc, char** argv)
 #endif
 
 #ifdef XINETD
-   end_service();
+    end_service();
 #endif
 
-   return 0;
+    NvExit();
+
+    return 0;
 }
