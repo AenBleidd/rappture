@@ -10,10 +10,10 @@ cd $HOME
 DISPLAY=:0
 export DISPLAY
 
-PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/X11R6/bin:/usr/bin/X11:/opt/nanovis/bin
+PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/X11R6/bin:/usr/bin/X11:/home/nanohub/vrinside/rappture/gui/vizservers
 export PATH
 
-LD_LIBRARY_PATH="/opt/render/lib:/lib:/usr/lib:/usr/local/lib"
-export LD_LIBRARY_PATH
+#LD_LIBRARY_PATH="/opt/render/lib:/lib:/usr/lib:/usr/local/lib"
+#export LD_LIBRARY_PATH
 
-exec /opt/nanovis/bin/nanoscale -l 4000 -b 4001 -s 172.18.3.255 -c /opt/nanovis/bin/nanovis > /dev/null 2>&1
+exec /home/nanohub/vrinside/rappture/gui/vizservers/nanovis/nanoscale -l 2000 -b 2001 -s 128.210.189.255 -c "/home/nanohub/vrinside/rappture/gui/vizservers/nanovis/nanovis" > /dev/null 2>&1

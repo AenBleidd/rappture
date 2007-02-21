@@ -33,10 +33,13 @@
 #include "Volume.h"
 #include "ZincBlendeVolume.h"
 #include "PerfQuery.h"
+#include "NvRegularVolumeShader.h"
+#include "NvVolQDVolumeShader.h"
+#include "NvZincBlendeVolumeShader.h"
 
 using namespace std;
 
-class VolumeRenderer{
+class VolumeRenderer {
 
 private:
   vector <Volume*> volume;	//array of volumes
@@ -51,12 +54,8 @@ private:
   CGcontext g_context;	//the Nvidia cg context 
 
   //shader parameters for rendering a single cubic volume
-  CGprogram m_one_volume_fprog;
-  CGparameter m_vol_one_volume_param;
-  CGparameter m_tf_one_volume_param;
-  CGparameter m_mvi_one_volume_param;
-  CGparameter m_mv_one_volume_param;
-  CGparameter m_render_param_one_volume_param;
+  NvRegularVolumeShader* m_regularVolumeShader;
+  NvVolQDVolumeShader* m_volQDVolumeShader;
 
 
   //Shader parameters for rendering a single zincblende orbital.
@@ -67,12 +66,8 @@ private:
   //The engine is already capable of rendering multiple volumes and combine them. Thus, we just invoke this shader on
   //S, P, D and SS orbitals with different transfor functions. The result is a multi-orbital rendering.
   //This is equivalent to rendering 4 unrelated data sets occupying the same space.
-  CGprogram m_zincblende_volume_fprog;
-  CGparameter m_zincblende_tf_param;  //four transfer functions
-  CGparameter m_zincblende_volume_a_param, m_zincblende_volume_b_param; //two cubic volumes (one zincblende orbital)
-  CGparameter m_zincblende_cell_size_param; //cell size in texture space
-  CGparameter m_zincblende_mvi_param; //modelview inverse matrix
-  CGparameter m_zincblende_render_param; //render parameters
+  NvZincBlendeVolumeShader* m_zincBlendeShader;
+  
   
   
   //standard vertex shader parameters

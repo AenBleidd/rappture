@@ -39,7 +39,7 @@ struct CutPlane{
 
 
 
-enum {CUBIC, ZINCBLENDE};
+enum {CUBIC, VOLQD, ZINCBLENDE};
 
 
 class Volume{

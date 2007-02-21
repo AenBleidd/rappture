@@ -16,10 +16,12 @@
 #include <stdio.h>
 #include "Camera.h"
 
-Camera::Camera(int w, int h,
+Camera::Camera(int startx, int starty, int w, int h,
 		double loc_x, double loc_y, double loc_z, 
 		double target_x, double target_y, double target_z,
 		int angle_x, int angle_y, int angle_z):
+     startX(startx),
+     startY(starty),
 	 width(w),
 	 height(h),
 	 location(Vector3(loc_x, loc_y, loc_z)),
@@ -45,10 +47,10 @@ void Camera::rotate(double angle_x, double angle_y, double angle_z)
 
 void Camera::activate(){
   //fprintf(stderr, "camera: %d, %d\n", width, height);
-  glViewport(0, 0, width, height);
+  glViewport(startX, startY, width, height);
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity();
-  gluPerspective(30, (GLdouble)width/(GLdouble)height, 0.1, 50.0);
+  gluPerspective(30, (GLdouble)(width - startX)/(GLdouble)(height - startY), 0.1, 50.0);
 
   glMatrixMode(GL_MODELVIEW);
   glLoadIdentity();
@@ -62,6 +64,7 @@ void Camera::activate(){
    glRotated(angle.z, 0., 0., 1.);
 }
 
-void Camera::set_screen_size(int w, int h){
+void Camera::set_screen_size(int sx, int sy, int w, int h){
   width = w; height = h;
+  startX = sx; startY = sy;
 }

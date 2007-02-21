@@ -14,8 +14,8 @@
  * ======================================================================
  */
 
-#ifndef _ZINCBLENDE_VOLUME_H_
-#define _ZINCBLENDE_VOLUME_H_
+#ifndef _NV_VOLQD_VOLUME_H_
+#define _NV_VOLQD_VOLUME_H_
 
 
 #include "Volume.h"
@@ -24,20 +24,18 @@
 using namespace std;
 
 
-class ZincBlendeVolume : public Volume
+class NvVolQDVolume : public Volume
 {
-	
 public:
-	Texture3D* zincblende_tex[2];	//the textures of two cubic volumes
 	Vector3 cell_size;	//the cell size in texture space
 
 
-	ZincBlendeVolume(float x, float y, float z, 
+	NvVolQDVolume(float x, float y, float z, 
 		int width, int height, int depth, float size, int n_component, 
-		float* dataVolumeA, float* dataVolumeB,
+		float* dataVolumeA, 
 		double vmin, double vmax, const Vector3& cellSize);
 
-	~ZincBlendeVolume();
+	~NvVolQDVolume();
 };
 
 #endif

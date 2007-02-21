@@ -29,8 +29,12 @@ VolumeRenderer::VolumeRenderer(CGcontext _context):
   init_font("/opt/nanovis/lib/font/Font.bmp");
 }
 
-
-VolumeRenderer::~VolumeRenderer(){}
+VolumeRenderer::~VolumeRenderer()
+{
+    delete m_zincBlendeShader;
+    delete m_regularVolumeShader;
+    delete m_volQDVolumeShader;
+}
 
 //initialize the volume shaders
 void VolumeRenderer::init_shaders(){
@@ -42,17 +46,7 @@ void VolumeRenderer::init_shaders(){
 
 
   //volume rendering shader: one cubic volume
-  m_one_volume_fprog = loadProgram(g_context, CG_PROFILE_FP30, CG_SOURCE, "/opt/nanovis/lib/shaders/one_volume.cg");
-  m_vol_one_volume_param = cgGetNamedParameter(m_one_volume_fprog, "volume");
-  //cgGLSetTextureParameter(m_vol_one_volume_param, _vol->id);
-  m_tf_one_volume_param = cgGetNamedParameter(m_one_volume_fprog, "tf");
-  //m_tf_cut_one_volume_param = cgGetNamedParameter(m_one_volume_fprog, "tf_cutplane");
-  //cgGLSetTextureParameter(m_tf_one_volume_param, _tf->id);
-  m_mvi_one_volume_param = cgGetNamedParameter(m_one_volume_fprog, "modelViewInv");
-  m_mv_one_volume_param = cgGetNamedParameter(m_one_volume_fprog, "modelView");
-  m_render_param_one_volume_param = cgGetNamedParameter(m_one_volume_fprog, "renderParameters");
-
-
+  m_regularVolumeShader = new NvRegularVolumeShader();
 
   //volume rendering shader: one zincblende orbital volume.
   //This shader renders one orbital of the simulation.
@@ -62,16 +56,9 @@ void VolumeRenderer::init_shaders(){
   //
   //The engine is already capable of rendering multiple volumes and combine them. Thus, we just invoke this shader on
   //S, P, D and SS orbitals with different transfor functions. The result is a multi-orbital rendering.
-  m_zincblende_volume_fprog = loadProgram(g_context, CG_PROFILE_FP30, CG_SOURCE, 
-		  			"/opt/nanovis/lib/shaders/zincblende_volume.cg");
+  m_zincBlendeShader = new NvZincBlendeVolumeShader();
 
-  m_zincblende_tf_param = cgGetNamedParameter(m_zincblende_volume_fprog, "tf");
-  m_zincblende_volume_a_param = cgGetNamedParameter(m_zincblende_volume_fprog, "volumeA");
-  m_zincblende_volume_b_param = cgGetNamedParameter(m_zincblende_volume_fprog, "volumeB");
-  m_zincblende_cell_size_param = cgGetNamedParameter(m_zincblende_volume_fprog, "cellSize");
-  m_zincblende_mvi_param = cgGetNamedParameter(m_zincblende_volume_fprog, "modelViewInv");
-  m_zincblende_render_param = cgGetNamedParameter(m_zincblende_volume_fprog, "renderParameters");
-
+  m_volQDVolumeShader = new NvVolQDVolumeShader();
 }
 
 
@@ -124,7 +111,8 @@ int slice_sort(const void* a, const void* b){
 }
 
 
-void VolumeRenderer::render_all(){
+void VolumeRenderer::render_all()
+{
   int total_rendered_slices = 0;
 
   ConvexPolygon*** polys = new ConvexPolygon**[n_volumes];	//two dimension pointer array
@@ -238,7 +226,8 @@ void VolumeRenderer::render_all(){
     //These volume slices will be occluded correctly by the cutplanes and vice versa.
 
     ConvexPolygon static_poly;
-    for(int i=0; i<volume[volume_index]->get_cutplane_count(); i++){
+    for(int i=0; i<volume[volume_index]->get_cutplane_count(); i++)
+    {
       if(!volume[volume_index]->cutplane_is_enabled(i))
         continue;
 
@@ -691,78 +680,26 @@ void VolumeRenderer::activate_volume_shader(int volume_index, bool slice_mode){
   if (volume[volume_index]->volume_type == CUBIC)
   {
     //regular cubic volume
-    //
-
-    cgGLSetStateMatrixParameter(m_mvi_one_volume_param, CG_GL_MODELVIEW_MATRIX, CG_GL_MATRIX_INVERSE);
-    cgGLSetStateMatrixParameter(m_mv_one_volume_param, CG_GL_MODELVIEW_MATRIX, CG_GL_MATRIX_IDENTITY);
-    cgGLSetTextureParameter(m_vol_one_volume_param, volume[volume_index]->id);
-    cgGLSetTextureParameter(m_tf_one_volume_param, tf[volume_index]->id);
-    //cgGLSetTextureParameter(m_tf_cut_one_volume_param, tf_cut[volume_index]->id);
-    cgGLEnableTextureParameter(m_vol_one_volume_param);
-    cgGLEnableTextureParameter(m_tf_one_volume_param);
-    //cgGLEnableTextureParameter(m_tf_cut_one_volume_param);
-
-    if(!slice_mode)
-      cgGLSetParameter4f(m_render_param_one_volume_param, 
-		  volume[volume_index]->get_n_slice(), 
-		  volume[volume_index]->get_opacity_scale(), 
-		  volume[volume_index]->get_diffuse(), 
-		  volume[volume_index]->get_specular());
-    else
-      cgGLSetParameter4f(m_render_param_one_volume_param, 
-		  0.,
-		  volume[volume_index]->get_opacity_scale(), 
-		  volume[volume_index]->get_diffuse(), 
-		  volume[volume_index]->get_specular());
-
-    cgGLBindProgram(m_one_volume_fprog);
-    cgGLEnableProfile(CG_PROFILE_FP30);
+    m_regularVolumeShader->bind(tf[volume_index]->id, volume[volume_index], slice_mode);
   }
 
   else if (volume[volume_index]->volume_type == ZINCBLENDE)
   {
-    //zinc blende volume
-    ZincBlendeVolume* vol = (ZincBlendeVolume*) volume[volume_index];
-
-    cgGLSetStateMatrixParameter(m_zincblende_mvi_param, CG_GL_MODELVIEW_MATRIX, CG_GL_MATRIX_INVERSE);
-    cgGLSetTextureParameter(m_zincblende_tf_param, tf[volume_index]->id);
-    cgGLSetParameter4f(m_zincblende_cell_size_param, vol->cell_size.x, vol->cell_size.y, vol->cell_size.z, 0.);
-
-    cgGLSetTextureParameter(m_zincblende_volume_a_param, vol->zincblende_tex[0]->id);
-    cgGLSetTextureParameter(m_zincblende_volume_b_param, vol->zincblende_tex[1]->id);
-    cgGLEnableTextureParameter(m_zincblende_volume_a_param);
-    cgGLEnableTextureParameter(m_zincblende_volume_b_param);
-
-    if(!slice_mode)
-      cgGLSetParameter4f(m_zincblende_render_param, 
-		  vol->get_n_slice(), 
-		  vol->get_opacity_scale(), 
-		  vol->get_diffuse(), 
-		  vol->get_specular());
-    else
-      cgGLSetParameter4f(m_zincblende_render_param, 
-		  0.,
-		  vol->get_opacity_scale(), 
-		  vol->get_diffuse(), 
-		  vol->get_specular());
-
-    cgGLBindProgram(m_zincblende_volume_fprog);
-    cgGLEnableProfile(CG_PROFILE_FP30);
-
+    m_zincBlendeShader->bind(tf[volume_index]->id, volume[volume_index], slice_mode);
+  }
+  else if (volume[volume_index]->volume_type == VOLQD)
+  {
+    m_volQDVolumeShader->bind(tf[volume_index]->id, volume[volume_index], slice_mode);
   }
 }
 
 
-void VolumeRenderer::deactivate_volume_shader(){
+void VolumeRenderer::deactivate_volume_shader()
+{
   cgGLDisableProfile(CG_PROFILE_VP30);
-  cgGLDisableProfile(CG_PROFILE_FP30);
 
-  cgGLDisableTextureParameter(m_vol_one_volume_param);
-  cgGLDisableTextureParameter(m_tf_one_volume_param);
-
-  cgGLDisableTextureParameter(m_zincblende_volume_a_param);
-  cgGLDisableTextureParameter(m_zincblende_volume_b_param);
-  cgGLDisableTextureParameter(m_zincblende_tf_param);
+  m_regularVolumeShader->unbind();
+  m_zincBlendeShader->unbind();
 }
 
 
