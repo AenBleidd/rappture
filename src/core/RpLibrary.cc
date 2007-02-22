@@ -4,7 +4,7 @@
  *
  * ======================================================================
  *  AUTHOR:  Derrick Kearney, Purdue University
- *  Copyright (c) 2004-2005  Purdue Research Foundation
+ *  Copyright (c) 2004-2007  Purdue Research Foundation
  *
  *  See the file "license.terms" for information on usage and
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -13,6 +13,7 @@
 
 #include "RpLibrary.h"
 #include "RpEntityRef.h"
+#include "RpBuffer.h"
 
 static RpEntityRef ERTranslator;
 
@@ -1345,9 +1346,9 @@ RpLibrary::getBool (std::string path)
  */
 
 RpLibrary&
-RpLibrary::put (    std::string path, 
-                    std::string value, 
-                    std::string id, 
+RpLibrary::put (    std::string path,
+                    std::string value,
+                    std::string id,
                     int append,
                     int translateFlag)
 {
@@ -1470,6 +1471,110 @@ RpLibrary::put ( std::string path, RpLibrary* value, std::string id, int append 
     }
     else {
         // path did not exist and was not created.
+    }
+
+    return *this;
+}
+
+
+/**********************************************************************/
+// METHOD: putData()
+/// Put a data from a buffer into the xml.
+/**
+ *  Append flag adds additional nodes, it does not merge same 
+ *  named nodes together
+ */
+
+RpLibrary&
+RpLibrary::putData (std::string path,
+                    const char* bytes,
+                    int nbytes,
+                    int append  )
+{
+    scew_element* retNode = NULL;
+    const char* contents = NULL;
+    Rappture::Buffer buf;
+    unsigned int bytesWritten = 0;
+
+    if (!this->root) {
+        // library doesn't exist, do nothing;
+        return *this;
+    }
+
+    retNode = _find(path,CREATE_PATH);
+
+    if (retNode) {
+
+        if (append == RPLIB_APPEND) {
+            if ( (contents = scew_element_contents(retNode)) ) {
+                buf.append(contents);
+                // base64 decode and un-gzip the data
+                buf.decode();
+            }
+        }
+
+        buf.append(bytes,nbytes);
+        // gzip and base64 encode the data
+        buf.encode();
+
+        bytesWritten = (unsigned int) buf.size();
+        scew_element_set_contents_binary(retNode,buf.bytes(),&bytesWritten);
+    }
+
+    return *this;
+}
+
+
+/**********************************************************************/
+// METHOD: putData()
+/// Put data from a file into the xml.
+/**
+ *  Append flag adds additional nodes, it does not merge same 
+ *  named nodes together
+ */
+
+RpLibrary&
+RpLibrary::putData (std::string path,
+                    std::string fileName,
+                    bool binary,
+                    int append  )
+{
+    scew_element* retNode = NULL;
+    const char* contents = NULL;
+    Rappture::Buffer buf;
+    Rappture::Buffer fileBuf;
+    unsigned int bytesWritten = 0;
+
+    if (!this->root) {
+        // library doesn't exist, do nothing;
+        return *this;
+    }
+
+    retNode = _find(path,CREATE_PATH);
+
+    if (retNode) {
+
+        if (append == RPLIB_APPEND) {
+            if ( (contents = scew_element_contents(retNode)) ) {
+                buf.append(contents);
+                if (binary == true) {
+                    // base64 decode and un-gzip the data
+                    buf.decode();
+                }
+            }
+        }
+
+        fileBuf.load(fileName.c_str());
+        buf += fileBuf;
+
+        if (binary == true) {
+            // gzip and base64 encode the data
+            buf.encode();
+        }
+
+        bytesWritten = (unsigned int) buf.size();
+        scew_element_set_contents_binary(retNode,buf.bytes(),&bytesWritten);
+
     }
 
     return *this;

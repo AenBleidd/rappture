@@ -63,12 +63,14 @@ install: 	install_rappture 	\
 #			install_tcl
 
 RP_IO_DEPS      = RpLibrary.o RpLibraryCInterface.o RpLibraryFInterface.o \
-                  scew_extras.o RpEntityRef.o
+                  scew_extras.o RpEntityRef.o RpCompress.o Rp_DBuffer.o
 RP_UNITS_DEPS   = RpUnitsStd.o RpUnits.o RpUnitsCInterface.o RpUnitsFInterface.o
 RP_OTHER_DEPS   = RpFortranCommon.o RpBindingsDict.o
 RP_OBJS_DEP     = RpVariable.o RpAbout.o RpNumber.o RpString.o RpBoolean.o \
                   RpChoice.o RpOption.o RpUnitsStd.o RpUnits.o #RpValue.o\
                   # RpValueDouble.o RpValueString.o
+RP2_OBJS        = ../src2/core/RpBuffer.o ../src2/core/Outcome.o ../src2/core/Ptr.o
+RP2_LIBS        = -L/apps/rappture/20070219/lib -lz -lb64
 
 LDLIB_MACOSX = -dynamiclib -o $(LIB_DIR)/$@.dylib
 LDLIB_LINUX = -shared -Wl,-rpath,$(LIB_DIR)/ -Wl,-soname,$@.so -o $(LIB_DIR)/$@.so.0.0
@@ -77,13 +79,13 @@ LDLIB_LINUX = -shared -Wl,-rpath,$(LIB_DIR)/ -Wl,-soname,$@.so -o $(LIB_DIR)/$@.
 
 #### librappture shared object ###########################################
 
-librappture: $(RP_IO_DEPS) $(RP_UNITS_DEPS) $(RP_OTHER_DEPS)
+librappture: $(RP_IO_DEPS) $(RP_UNITS_DEPS) $(RP_OTHER_DEPS) $(RP2_OBJS)
 	if test "`uname`" == "Darwin"; then \
-		$(CXX) $(DEGUG) $(LDLIB_MACOSX) $^ $(LIB_SCEW_FLAG) -lm; \
+		$(CXX) $(DEGUG) $(LDLIB_MACOSX) $^ $(LIB_SCEW_FLAG) $(RP2_LIBS) -lm; \
 		ar -r $@.a $^; \
 		ranlib -s $@.a; \
 	else \
-		$(CXX) $(DEGUG) $(LDLIB_LINUX) $^ $(LIB_SCEW_FLAG) -lm; \
+		$(CXX) $(DEGUG) $(LDLIB_LINUX) $^ $(LIB_SCEW_FLAG) $(RP2_LIBS) -lm; \
 		/sbin/ldconfig -n $(LIB_DIR); \
 		ar -r $@.a $^; \
 		ranlib $@.a; \
@@ -180,7 +182,6 @@ RpValueDouble.o: $(CORE_SRC)/RpValueDouble.cc
 
 RpValueString.o: $(CORE_SRC)/RpValueString.cc
 	$(CXX) $(CFLAGS) $(DEBUG) $(INCL_CORE) -o $@ -c $?
-
 
 
 # include cee binding definitions

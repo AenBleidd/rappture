@@ -85,6 +85,8 @@ public:
     SimpleBuffer(const char* bytes, int nbytes=-1);
     SimpleBuffer(const SimpleBuffer& b);
     SimpleBuffer& operator=(const SimpleBuffer& b);
+    SimpleBuffer  operator+(const SimpleBuffer& b) const;
+    SimpleBuffer& operator+=(const SimpleBuffer& b);
     virtual ~SimpleBuffer();
 
     const char* bytes() const;
@@ -92,16 +94,24 @@ public:
 
     SimpleBuffer& clear();
     int append(const char* bytes, int nbytes=-1);
-    int read(char* bytes, int nbytes);
+    int read(const char* bytes, int nbytes);
+    int seek(int offset, int whence);
+    int tell();
+    SimpleBuffer& rewind();
 
     bool good() const;
     bool bad() const;
     bool eof() const;
 
-    SimpleBuffer& shallowCopy(char* bytes, int nBytes, int spaceAvl);
     SimpleBuffer& move(SimpleBuffer& b);
 
 protected:
+
+    void bufferInit();
+    void bufferFree();
+
+private:
+
     /// Pointer to the memory that holds our buffer's data
     char* _buf;
 
@@ -114,14 +124,8 @@ protected:
     /// Total space available in the buffer
     int _spaceAvl;
 
-    /// Shallow copy flag.
-    bool _shallow;
-
     /// State of the last file like operation.
     bool _fileState;
-
-    void bufferInit();
-    void bufferFree();
 };
 
 /**
@@ -136,7 +140,9 @@ public:
     Buffer();
     Buffer(const char* bytes, int nbytes=-1);
     Buffer(const Buffer& buffer);
-    Buffer& operator=(const Buffer& buffer);
+    Buffer& operator=(const Buffer& b);
+    Buffer  operator+(const Buffer& b) const;
+    Buffer& operator+=(const Buffer& b);
     virtual ~Buffer();
 
     Outcome load(const char* filePath);
@@ -157,11 +163,18 @@ protected:
 
     enum { CHUNK = 4096 };
 
-    Buffer& operator=(const SimpleBuffer& buffer);
-    void do_compress(Outcome& status,SimpleBuffer& bin,SimpleBuffer& bout);
-    void do_decompress(Outcome& status,SimpleBuffer& bin,SimpleBuffer& bout);
-    void do_base64_enc(Outcome& status,SimpleBuffer& bin,SimpleBuffer& bout);
-    void do_base64_dec(Outcome& status,SimpleBuffer& bin,SimpleBuffer& bout);
+    void do_compress(   Outcome& status,
+                        SimpleBuffer& bin,
+                        SimpleBuffer& bout  );
+    void do_decompress( Outcome& status,
+                        SimpleBuffer& bin,
+                        SimpleBuffer& bout  );
+    void do_base64_enc( Outcome& status,
+                        const SimpleBuffer& bin,
+                        SimpleBuffer& bout  );
+    void do_base64_dec( Outcome& status,
+                        const SimpleBuffer& bin,
+                        SimpleBuffer& bout  );
 };
 
 } // namespace Rappture
