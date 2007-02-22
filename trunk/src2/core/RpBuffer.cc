@@ -92,15 +92,8 @@ SimpleBuffer::SimpleBuffer(const char* bytes, int nbytes)
  */
 SimpleBuffer::SimpleBuffer(const SimpleBuffer& b)
 {
-    _buf = NULL;
-    _pos =0;
-    _size = b._size;
-    _spaceAvl = b._spaceAvl;
-    _shallow = false;
-    _fileState = true;
-
-    _buf = new char[b._spaceAvl];
-    memcpy((void*) _buf, (void*) b._buf, (size_t) b._spaceAvl);
+    bufferInit();
+    append(b.bytes(),b.size());
 }
 
 
@@ -113,14 +106,33 @@ SimpleBuffer::operator=(const SimpleBuffer& b)
 {
     bufferFree();
     bufferInit();
+    append(b.bytes(),b.size());
+    return *this;
+}
 
-    _buf = new char[b._spaceAvl];
-    memcpy((void*) _buf, (void*) b._buf, (size_t) b._spaceAvl);
 
-    _pos = b._pos;
-    _size = b._size;
-    _spaceAvl = b._spaceAvl;
+/**
+ * Operator +
+ * @param SimpleBuffer object to add
+ * @param SimpleBuffer object to add
+ */
+SimpleBuffer
+SimpleBuffer::operator+(const SimpleBuffer& b) const
+{
+    SimpleBuffer newBuffer(*this);
+    newBuffer.operator+=(b);
+    return newBuffer;
+}
 
+
+/**
+ * Operator +=
+ * @param SimpleBuffer object to add
+ */
+SimpleBuffer&
+SimpleBuffer::operator+=(const SimpleBuffer& b)
+{
+    append(b.bytes(),b.size());
     return *this;
 }
 
@@ -184,6 +196,11 @@ SimpleBuffer::append(const char* bytes, int nbytes)
     int newSize = 0;
     char *newBuffer = NULL;
 
+    // User specified NULL buffer to append
+    if (bytes == NULL) {
+        return 0;
+    }
+
     if (nbytes == -1) {
         // user signaled null terminated string
         nbytes = strlen(bytes);
@@ -194,9 +211,9 @@ SimpleBuffer::append(const char* bytes, int nbytes)
         return nbytes;
     }
 
+    // Empty internal buffer, make sure its properly initialized.
     if (_buf == NULL) {
-        _size = 0;
-        _spaceAvl = 0;
+        bufferInit();
     }
 
     newSize = _size + nbytes;
@@ -242,15 +259,21 @@ SimpleBuffer::append(const char* bytes, int nbytes)
  * @return Number of bytes written to memory location
  */
 int
-SimpleBuffer::read(char* bytes, int nbytes)
+SimpleBuffer::read(const char* bytes, int nbytes)
 {
     int bytesRead = 0;
 
+    // SimpleBuffer is empty.
     if (_buf == NULL) {
         return 0;
     }
 
-    // make sure we dont read off the end of our buffer
+    // User specified NULL buffer.
+    if (bytes == NULL) {
+        return 0;
+    }
+
+    // make sure we don't read off the end of our buffer
     if ( (_pos + nbytes) >= _size) {
         bytesRead = (_size - _pos);
     }
@@ -263,12 +286,96 @@ SimpleBuffer::read(char* bytes, int nbytes)
     }
 
     if (bytesRead > 0) {
-        memcpy((void*) bytes, (void*) _buf, (size_t) bytesRead);
+        memcpy((void*) bytes, (void*) (_buf+_pos), (size_t) bytesRead);
     }
 
     _pos = _pos + bytesRead;
 
     return bytesRead;
+}
+
+
+/**
+ * Set buffer position indicator to spot within the buffer
+ * @param Offset from whence location in buffer.
+ * @param Place from where offset is added or subtracted.
+ * @return 0 on success, anything else is failure
+ */
+int
+SimpleBuffer::seek(int offset, int whence)
+{
+    int retVal = 0;
+
+    if (_buf == NULL) {
+        return -1 ;
+    }
+
+    if (whence == SEEK_SET) {
+        if (offset < 0) {
+            /* dont go off the beginning of data */
+            _pos = 0;
+        }
+        else if (offset >= _size) {
+            /* dont go off the end of data */
+            _pos = _size - 1;
+        }
+        else {
+            _pos = _pos + offset;
+        }
+    }
+    else if (whence == SEEK_CUR) {
+        if ( (_pos + offset) < 0) {
+            /* dont go off the beginning of data */
+            _pos = 0;
+        }
+        else if ((_pos + offset) >= _size) {
+            /* dont go off the end of data */
+            _pos = _size - 1;
+        }
+        else {
+            _pos = _pos + offset;
+        }
+    }
+    else if (whence == SEEK_END) {
+        if (offset <= (-1*_size)) {
+            /* dont go off the beginning of data */
+            _pos = 0;
+        }
+        else if (offset >= 0) {
+            /* dont go off the end of data */
+            _pos = _size - 1;
+        }
+        else {
+            _pos = (_size - 1) + offset;
+        }
+    }
+    else {
+        retVal = -1;
+    }
+
+    return retVal;
+}
+
+
+/**
+ * Tell caller the offset of the position indicator from the start of buffer
+ * @return Number of bytes the position indicator is from start of buffer
+ */
+int
+SimpleBuffer::tell()
+{
+   return _pos;
+}
+
+
+/**
+ * Read data from the buffer into a memory location provided by caller
+ */
+SimpleBuffer&
+SimpleBuffer::rewind()
+{
+    _pos = 0;
+    return *this;
 }
 
 
@@ -308,33 +415,6 @@ SimpleBuffer::eof() const
 
 
 /**
- * Use this SimpleBuffer as a temporary pointer to another SimpleBuffer
- * This SimpleBuffer does not own the data that it points to, thus
- * when clear() or operator=() is called, the data is not deleted,
- * but the _buf value is changed. This could lead to a memory leak if
- * used improperly.
- * @param Pointer location memory to temporarily own.
- * @param number of bytes used in the buffer.
- * @param number of total bytes in the allocated buffer.
- * @return True or false boolean value.
- */
-SimpleBuffer&
-SimpleBuffer::shallowCopy(char* bytes, int nBytes, int spaceAvl)
-{
-    bufferFree();
-
-    _buf = bytes;
-    _pos = 0;
-    _size = nBytes;
-    _spaceAvl = spaceAvl;
-    _shallow = true;
-    _fileState = true;
-
-    return *this;
-}
-
-
-/**
  * Move the data from this SimpleBuffer to the SimpleBuffer provided by
  * the caller. All data except the _pos is moved and this SimpleBuffer is
  * re-initialized with bufferInit().
@@ -344,15 +424,15 @@ SimpleBuffer::shallowCopy(char* bytes, int nBytes, int spaceAvl)
 SimpleBuffer&
 SimpleBuffer::move(SimpleBuffer& b)
 {
-    b.bufferFree();
+    bufferFree();
 
-    b._buf = _buf;
-    b._pos = 0;
-    b._size = _size;
-    b._spaceAvl = _spaceAvl;
-    b._shallow = _shallow;
+    _buf = b._buf;
+    _pos = b._pos;
+    _size = b._size;
+    _spaceAvl = b._spaceAvl;
+    _fileState = b._fileState;
 
-    bufferInit();
+    b.bufferInit();
 
     return *this;
 }
@@ -370,7 +450,6 @@ SimpleBuffer::bufferInit()
     _pos = 0;
     _size = 0;
     _spaceAvl = 0;
-    _shallow = false;
     _fileState = true;
 }
 
@@ -382,11 +461,9 @@ SimpleBuffer::bufferInit()
 void
 SimpleBuffer::bufferFree()
 {
-    if (_shallow == false) {
-        if (_buf != NULL) {
-            delete [] _buf;
-            _buf = NULL;
-        }
+    if (_buf != NULL) {
+        delete [] _buf;
+        _buf = NULL;
     }
     bufferInit();
 }
@@ -421,17 +498,11 @@ Buffer::Buffer(const char* bytes, int nbytes)
  * @param Buffer object to copy
  */
 Buffer::Buffer(const Buffer& b)
-  : _level(b._level),
+  : SimpleBuffer(b),
+    _level(b._level),
     _compressionType(b._compressionType),
     _windowBits(b._windowBits)
-{
-    bufferInit();
-
-    _buf = new char[b._spaceAvl];
-    memcpy((void*) _buf, (void*) b._buf, (size_t) b._spaceAvl);
-    _size = b._size;
-    _spaceAvl = b._spaceAvl;
-}
+{}
 
 /**
  * Assignment operator
@@ -440,41 +511,29 @@ Buffer::Buffer(const Buffer& b)
 Buffer&
 Buffer::operator=(const Buffer& b)
 {
-    bufferFree();
-    bufferInit();
-
-    _buf = new char[b._spaceAvl];
-    memcpy((void*) _buf, (void*) b._buf, (size_t) b._spaceAvl);
-    _pos = b._pos;
-    _size = b._size;
-    _spaceAvl = b._spaceAvl;
+    SimpleBuffer::operator=(b);
 
     _level = b._level;
     _compressionType = b._compressionType;
     _windowBits = b._windowBits;
-    _fileState = b._fileState;
 
     return *this;
 }
 
 
-Buffer&
-Buffer::operator=(const SimpleBuffer& b)
+Buffer
+Buffer::operator+(const Buffer& b) const
 {
-    bufferFree();
-    bufferInit();
+    Buffer newBuffer(*this);
+    newBuffer.operator+=(b);
+    return newBuffer;
+}
 
-    _buf = new char[b.size()];
-    memcpy((void*) _buf, (void*) b.bytes(), (size_t) b.size());
-    _pos = 0;
-    _size = b.size();
-    _spaceAvl = b.size();
 
-    _level = 6;
-    _compressionType = RPCOMPRESS_GZIP;
-    _windowBits = 15;
-    _fileState = true;
-
+Buffer&
+Buffer::operator+=(const Buffer& b)
+{
+    SimpleBuffer::operator+=(b);
     return *this;
 }
 
@@ -537,7 +596,7 @@ Buffer::dump (const char* filePath)
         return status;
     }
 
-    outFile.write(_buf,_size);
+    outFile.write(bytes(),size());
     outFile.close();
 
     // exit nicely
@@ -554,23 +613,25 @@ Buffer::encode (bool compress, bool base64)
 
     err.addContext("Rappture::Buffer::encode()");
 
-    bin.shallowCopy(_buf, _size, _spaceAvl);
+    rewind();
 
     if (compress) {
-        do_compress(err,bin,bout);
+        do_compress(err,*this,bout);
     }
 
     if (base64) {
         if (compress) {
-            bout.move(bin);
+            bin.move(bout);
+            do_base64_enc(err,bin,bout);
         }
-        do_base64_enc(err,bin,bout);
+        else {
+            do_base64_enc(err,*this,bout);
+        }
     }
 
     if (!err) {
         // write the encoded data to the internal buffer
-        bufferFree();
-        operator=(bout);
+        move(bout);
     }
 
     return err;
@@ -584,23 +645,25 @@ Buffer::decode (bool decompress, bool base64)
     SimpleBuffer bin;
     SimpleBuffer bout;
 
-    bin.shallowCopy(_buf, _size, _spaceAvl);
+    rewind();
 
     if (base64) {
-        do_base64_dec(err,bin,bout);
+        do_base64_dec(err,*this,bout);
     }
 
     if (decompress) {
         if (base64) {
-            bout.move(bin);
+            bin.move(bout);
+            do_decompress(err,bin,bout);
         }
-        do_decompress(err,bin,bout);
+        else {
+            do_decompress(err,*this,bout);
+        }
     }
 
     if (!err) {
         // write the decoded data to the internal buffer
-        bufferFree();
-        operator=(bout);
+        move(bout);
     }
 
     return err;
@@ -608,10 +671,12 @@ Buffer::decode (bool decompress, bool base64)
 
 
 void
-Buffer::do_compress(Outcome& status, SimpleBuffer& bin, SimpleBuffer& bout)
+Buffer::do_compress(    Outcome& status,
+                        SimpleBuffer& bin,
+                        SimpleBuffer& bout  )
 {
-    int ret, flush;
-    unsigned have;
+    int ret=0, flush=0;
+    unsigned have=0;
     z_stream strm;
 
     char in[CHUNK];
@@ -637,7 +702,7 @@ Buffer::do_compress(Outcome& status, SimpleBuffer& bin, SimpleBuffer& bout)
     /* compress until end of file */
     do {
         strm.avail_in = bin.read(in, CHUNK);
-        if (bad() == true) {
+        if (bin.bad() == true) {
             (void)deflateEnd(&strm);
             // return Z_ERRNO;
             status.error("error while compressing");
@@ -645,12 +710,12 @@ Buffer::do_compress(Outcome& status, SimpleBuffer& bin, SimpleBuffer& bout)
             return;
         }
         flush = bin.eof() ? Z_FINISH : Z_NO_FLUSH;
-        strm.next_in = (unsigned char*) in;
+        strm.next_in = (Bytef*) in;
         /* run deflate() on input until output buffer not full, finish
            compression if all of source has been read in */
         do {
             strm.avail_out = CHUNK;
-            strm.next_out = (unsigned char*) out;
+            strm.next_out = (Bytef*) out;
             ret = deflate(&strm, flush);    /* no bad return value */
             assert(ret != Z_STREAM_ERROR);  /* state not clobbered */
             have = CHUNK - strm.avail_out;
@@ -680,7 +745,9 @@ Buffer::do_compress(Outcome& status, SimpleBuffer& bin, SimpleBuffer& bout)
 }
 
 void
-Buffer::do_decompress(Outcome& status, SimpleBuffer& bin, SimpleBuffer& bout)
+Buffer::do_decompress(  Outcome& status,
+                        SimpleBuffer& bin,
+                        SimpleBuffer& bout  )
 {
     int ret;
     unsigned have;
@@ -708,7 +775,7 @@ Buffer::do_decompress(Outcome& status, SimpleBuffer& bin, SimpleBuffer& bout)
     /* decompress until deflate stream ends or end of file */
     do {
         strm.avail_in = bin.read(in, CHUNK);
-        if (bad() == true) {
+        if (bin.bad() == true) {
             (void)inflateEnd(&strm);
             // return Z_ERRNO;
             status.error("error while compressing");
@@ -760,7 +827,7 @@ Buffer::do_decompress(Outcome& status, SimpleBuffer& bin, SimpleBuffer& bout)
 
 void
 Buffer::do_base64_enc(  Outcome& status,
-                        SimpleBuffer& bin,
+                        const SimpleBuffer& bin,
                         SimpleBuffer& bout )
 {
     int tBufSize = 0;
@@ -781,7 +848,7 @@ Buffer::do_base64_enc(  Outcome& status,
 
 void
 Buffer::do_base64_dec(  Outcome& status,
-                        SimpleBuffer& bin,
+                        const SimpleBuffer& bin,
                         SimpleBuffer& bout )
 {
     int tBufSize = 0;

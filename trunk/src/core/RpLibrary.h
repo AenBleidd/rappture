@@ -4,7 +4,7 @@
  *
  * ======================================================================
  *  AUTHOR:  Derrick Kearney, Purdue University
- *  Copyright (c) 2004-2005  Purdue Research Foundation
+ *  Copyright (c) 2004-2007  Purdue Research Foundation
  *
  *  See the file "license.terms" for information on usage and
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -87,6 +87,7 @@ class RpLibrary
         double      getDouble ( std::string path = "");
         int         getInt    ( std::string path = "");
         bool        getBool   ( std::string path = "");
+        //  Rappture::Buffer&  getData   ( std::string path = "");
 
         /*
          * Should return some kind of RpError object
@@ -121,6 +122,16 @@ class RpLibrary
         RpLibrary& put (    std::string path,
                             RpLibrary* value,
                             std::string id = "",
+                            int append = RPLIB_OVERWRITE    );
+
+        RpLibrary& putData( std::string path,
+                            const char* bytes,
+                            int nbytes,
+                            int append = RPLIB_OVERWRITE    );
+
+        RpLibrary& putData( std::string path,
+                            std::string fileName,
+                            bool binary,
                             int append = RPLIB_OVERWRITE    );
 
         RpLibrary* remove (std::string path = "");

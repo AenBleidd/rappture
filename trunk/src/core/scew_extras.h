@@ -28,6 +28,11 @@ scew_element_copy_attr(scew_element const* fromElement, scew_element* toElement)
 extern scew_element*
 scew_element_copy (scew_element* element);
 
+extern XML_Char const*
+scew_element_set_contents_binary(   scew_element* element,
+                                    XML_Char const* bytes,
+                                    unsigned int* nbytes    );
+
 #ifdef __cplusplus
 }
 #endif

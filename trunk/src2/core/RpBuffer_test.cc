@@ -455,6 +455,44 @@ int testClear()
     return (tests == passed);
 }
 
+int testFile()
+{
+    int passed = 0;
+    int tests = 0;
+
+
+    /* =========================================================== */
+    tests++;
+    const char* inFile = "out.dx";
+    const char* outFile = "out.dx.gz";
+    Rappture::Buffer buffer1;
+    buffer1.load(inFile);
+
+    // compress, dont encode
+    buffer1.encode(true,false);
+    std::remove(outFile);
+    buffer1.dump(outFile);
+    buffer1.decode(true,false);
+
+    /*
+    if (size1before != 26) {
+        std::cout << "Error testClear1" << std::endl;
+        std::cout << "incorrect buffer size" << std::endl;
+        return (tests == passed);
+    }
+    if (size1after != 0) {
+        std::cout << "Error testClear1" << std::endl;
+        std::cout << "clear failed buffer size" << std::endl;
+        return (tests == passed);
+    }
+    */
+
+    passed++;
+    /* =========================================================== */
+
+    return (tests == passed);
+}
+
 int main()
 {
     int passed = 0;
@@ -467,8 +505,9 @@ int main()
     passed += testDump();
     passed += testLoad();
     passed += testClear();
+    passed += testFile();
 
-    if (passed != 8) {
+    if (passed != 9) {
         printf("failed: %d\n", passed);
     }
     else {

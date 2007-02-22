@@ -14,6 +14,7 @@
 #include "scew/xelement.h"
 #include "scew/xattribute.h"
 #include "scew/xerror.h"
+#include "scew/str.h"
 
 #include <assert.h>
 
@@ -116,4 +117,27 @@ scew_element_copy (scew_element* element)
     }
 
     return new_elem;
+}
+
+
+XML_Char const*
+scew_element_set_contents_binary(   scew_element* element,
+                                    XML_Char const* bytes,
+                                    unsigned int* nbytes    )
+{
+    XML_Char* out = NULL;
+
+    assert(element != NULL);
+    assert(bytes != NULL);
+    assert(nbytes != NULL);
+
+    if (*nbytes == 0) {
+        return element->contents;
+    }
+
+    free(element->contents);
+    out = (XML_Char*) calloc(*nbytes+1, sizeof(XML_Char));
+    element->contents = (XML_Char*) scew_memcpy(out, (XML_Char*)bytes, *nbytes);
+
+    return element->contents;
 }
