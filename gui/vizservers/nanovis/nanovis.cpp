@@ -3361,7 +3361,7 @@ void motion(int x, int y){
 #ifdef EVENTLOG
     float param[3] = {live_rot_x, live_rot_y, live_rot_z};
     Event* tmp = new Event(EVENT_ROTATE, param, get_time_interval());
-    tmp->write(event_log);
+    /tmp->write(event_log);
     delete tmp;
 #endif
 
