@@ -63,7 +63,7 @@ install: 	install_rappture 	\
 #			install_tcl
 
 RP_IO_DEPS      = RpLibrary.o RpLibraryCInterface.o RpLibraryFInterface.o \
-                  scew_extras.o RpEntityRef.o RpCompress.o Rp_DBuffer.o
+                  scew_extras.o RpEntityRef.o
 RP_UNITS_DEPS   = RpUnitsStd.o RpUnits.o RpUnitsCInterface.o RpUnitsFInterface.o
 RP_OTHER_DEPS   = RpFortranCommon.o RpBindingsDict.o
 RP_OBJS_DEP     = RpVariable.o RpAbout.o RpNumber.o RpString.o RpBoolean.o \
