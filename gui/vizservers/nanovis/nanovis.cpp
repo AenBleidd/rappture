@@ -43,6 +43,7 @@
 #include "NvLoadFile.h"
 #include "NvVolQDVolume.h"
 #include "NvColorTableRenderer.h"
+#include "NvEventLog.h"
 
 // R2 headers
 #include <R2/R2FilePath.h>
@@ -50,9 +51,9 @@
 
 //render server
 
-VolumeRenderer* vol_render;
+extern VolumeRenderer* g_vol_render;
+extern NvColorTableRenderer* g_color_table_renderer;
 PlaneRenderer* plane_render;
-NvColorTableRenderer* color_table_renderer;
 Camera* cam;
 
 //if true nanovis renders volumes in 3D, if not renders 2D plane
@@ -88,6 +89,7 @@ char *def_transfunc = "transfunc define default {\n\
   1.00  1.0\n\
 }";
 
+/*
 #ifdef XINETD
 FILE* xinetd_log;
 #endif
@@ -98,11 +100,12 @@ void init_event_log();
 void end_event_log();
 double cur_time;	//in seconds
 double get_time_interval();
+*/
 
 int render_window; 		//the handle of the render window;
 
 // forward declarations
-void init_particles();
+//void init_particles();
 void get_slice_vectors();
 Rappture::Outcome load_volume_file(int index, char *fname);
 void load_volume(int index, int width, int height, int depth, int n_component, float* data, double vmin, double vmax);
@@ -116,8 +119,8 @@ void display();
 void display_offscreen_buffer();
 void read_screen();
 
-ParticleSystem* psys;
-float psys_x=0.4, psys_y=0, psys_z=0;
+//ParticleSystem* psys;
+//float psys_x=0.4, psys_y=0, psys_z=0;
 
 Lic* lic;
 
@@ -125,7 +128,7 @@ Lic* lic;
 unsigned char* screen_buffer = NULL;
 NVISid final_fbo, final_color_tex, final_depth_rb;
 
-bool advect=false;
+//bool advect=false;
 float vert[NMESH*NMESH*3];		//particle positions in main memory
 float slice_vector[NMESH*NMESH*4];	//per slice vectors in main memory
 
@@ -151,7 +154,7 @@ PerfQuery* perf;			//perfromance counter
 CGprogram m_passthru_fprog;
 CGparameter m_passthru_scale_param, m_passthru_bias_param;
 
-R2Fonts* g_fonts;
+extern R2Fonts* g_fonts;
 
 /*
 CGprogram m_copy_texcoord_fprog;
@@ -315,7 +318,7 @@ ScreenShotCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv
 
     // TBD
     Volume* vol = volume[0];
-    TransferFunction* tf = vol_render->get_volume_shading(vol);
+    TransferFunction* tf = g_vol_render->get_volume_shading(vol);
     if (tf)
     {
         float data[512];
@@ -323,7 +326,7 @@ ScreenShotCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv
             data[i] = data[i+256] = (float)(i/255.0);
         }
         Texture2D* plane = new Texture2D(256, 2, GL_FLOAT, GL_LINEAR, 1, data);
-        color_table_renderer->render(1024, 1024, plane, tf, vol->range_min(), vol->range_max());
+        g_color_table_renderer->render(1024, 1024, plane, tf, vol->range_min(), vol->range_max());
         delete plane;
     }
 
@@ -462,7 +465,7 @@ LegendCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
         return TCL_ERROR;
     }
     if (ivol < n_volumes) {
-        tf = vol_render->get_volume_shading(volume[ivol]);
+        tf = g_vol_render->get_volume_shading(volume[ivol]);
     }
     if (tf == NULL) {
         Tcl_AppendResult(interp, "transfer function not defined for volume ", argv[1], (char*)NULL);
@@ -878,7 +881,7 @@ VolumeCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
             volume[n]->disable_cutplane(0);
             volume[n]->disable_cutplane(1);
             volume[n]->disable_cutplane(2);
-            vol_render->add_volume(volume[n], get_transfunc("default"));
+            g_vol_render->add_volume(volume[n], get_transfunc("default"));
 
             return TCL_OK;
         }
@@ -978,7 +981,7 @@ VolumeCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
 
             vector<int>::iterator iter = ivol.begin();
             while (iter != ivol.end()) {
-                vol_render->shade_volume(volume[*iter], tf);
+                g_vol_render->shade_volume(volume[*iter], tf);
                 ++iter;
             }
             return TCL_OK;
@@ -1096,7 +1099,7 @@ VolumeCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
         volume[n]->disable_cutplane(0);
         volume[n]->disable_cutplane(1);
         volume[n]->disable_cutplane(2);
-        vol_render->add_volume(volume[n], get_transfunc("default"));
+        g_vol_render->add_volume(volume[n], get_transfunc("default"));
 
         return TCL_OK;
     }
@@ -1109,7 +1112,7 @@ VolumeCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
         volume[n]->disable_cutplane(0);
         volume[n]->disable_cutplane(1);
         volume[n]->disable_cutplane(2);
-        vol_render->add_volume(volume[n], get_transfunc("default"));
+        g_vol_render->add_volume(volume[n], get_transfunc("default"));
 
         return TCL_OK;
     }
@@ -1387,22 +1390,6 @@ void cgErrorCallback(void)
         exit(-1);
     }
 }
-
-
-void init_glew(){
-	GLenum err = glewInit();
-	if (GLEW_OK != err)
-	{
-		//glew init failed, exit.
-		fprintf(stderr, "Error: %s\n", glewGetErrorString(err));
-		getchar();
-		assert(false);
-	}
-
-	fprintf(stdout, "Status: Using GLEW %s\n", glewGetString(GLEW_VERSION));
-}
-
-
 
 /* Load a 3D vector field from a dx-format file
  */
@@ -1967,7 +1954,7 @@ void load_volqd_volume(int index, int width, int height, int depth,
     // INSOO
     // Tentatively
     TransferFunction* tf = new TransferFunction(256, tfdefaultdata);
-    vol_render->shade_volume(volume[index], tf);
+    g_vol_render->shade_volume(volume[index], tf);
 }
 
 // INSOO
@@ -2006,7 +1993,8 @@ get_transfunc(char *name) {
 
 
 //Update the transfer function using local GUI in the non-server mode
-extern void update_tf_texture(){
+void update_tf_texture()
+{
   glutSetWindow(render_window);
 
   //fprintf(stderr, "tf update\n");
@@ -2026,7 +2014,7 @@ extern void update_tf_texture(){
 
 #ifdef EVENTLOG
   float param[3] = {0,0,0};
-  Event* tmp = new Event(EVENT_ROTATE, param, get_time_interval());
+  Event* tmp = new Event(EVENT_ROTATE, param, NvGetTimeInterval());
   tmp->write(event_log);
   delete tmp;
 #endif
@@ -2142,70 +2130,6 @@ fprintf(stdin,"  after assert\n");
 }
 
 
-void init_cg(){
-    cgSetErrorCallback(cgErrorCallback);
-    g_context = cgCreateContext();
-
-#ifdef NEW_CG
-    m_posvel_fprog = loadProgram(g_context, CG_PROFILE_FP40, CG_SOURCE, "/opt/nanovis/lib/shaders/update_pos_vel.cg");
-    m_posvel_timestep_param  = cgGetNamedParameter(m_posvel_fprog, "timestep");
-    m_posvel_damping_param   = cgGetNamedParameter(m_posvel_fprog, "damping");
-    m_posvel_gravity_param   = cgGetNamedParameter(m_posvel_fprog, "gravity");
-    m_posvel_spherePos_param = cgGetNamedParameter(m_posvel_fprog, "spherePos");
-    m_posvel_sphereVel_param = cgGetNamedParameter(m_posvel_fprog, "sphereVel");
-#endif
-}
-
-
-//switch shader to change render mode
-void switch_shader(int choice){
-
-  switch (choice){
-    case 0:
-      break;
-
-   case 1:
-      break;
-      
-   default:
-      break;
-  }
-}
-
-void init_particles(){
-  //random placement on a slice
-  float* data = new float[psys->psys_width * psys->psys_height * 4];
-  bzero(data, sizeof(float)*4* psys->psys_width * psys->psys_height);
-
-  for (int i=0; i<psys->psys_width; i++){ 
-    for (int j=0; j<psys->psys_height; j++){ 
-      int index = i + psys->psys_height*j;
-      bool particle = rand() % 256 > 150; 
-      //particle = true;
-      if(particle) /*&& i/float(psys->psys_width)>0.3 && i/float(psys->psys_width)<0.7 
-		      && j/float(psys->psys_height)>0.1 && j/float(psys->psys_height)<0.4)*/
-      {
-	//assign any location (x,y,z) in range [0,1]
-        data[4*index] = lic_slice_x;
-	data[4*index+1]= j/float(psys->psys_height);
-	data[4*index+2]= i/float(psys->psys_width);
-	data[4*index+3]= 30; //shorter life span, quicker iterations	
-      }
-      else
-      {
-        data[4*index] = 0;
-	data[4*index+1]= 0;
-	data[4*index+2]= 0;
-	data[4*index+3]= 0;	
-      }
-    }
-   }
-
-  psys->initialize((Particle*)data);
-  delete[] data;
-}
-
-
 //init line integral convolution
 void init_lic(){
   lic = new Lic(NMESH, win_width, win_height, 0.3, g_context, volume[1]->id, 
@@ -2215,17 +2139,21 @@ void init_lic(){
 }
 
 //init the particle system using vector field volume->[1]
-void init_particle_system(){
-   psys = new ParticleSystem(NMESH, NMESH, g_context, volume[1]->id,
-		   1./volume[1]->aspect_ratio_width,
-		   1./volume[1]->aspect_ratio_height,
-		   1./volume[1]->aspect_ratio_depth);
+/*
+void init_particle_system()
+{
+    psys = new ParticleSystem(NMESH, NMESH, g_context, volume[1]->id,
+        1./volume[1]->aspect_ratio_width,
+        1./volume[1]->aspect_ratio_height,
+        1./volume[1]->aspect_ratio_depth);
 
-   init_particles();	//fill initial particles
+    init_particles();	//fill initial particles
 }
+*/
 
 
-void make_test_2D_data(){
+void make_test_2D_data()
+{
 
   int w = 300;
   int h = 200;
@@ -2247,10 +2175,6 @@ void make_test_2D_data(){
 /*----------------------------------------------------*/
 void initGL(void) 
 { 
-   g_fonts = new R2Fonts();
-   g_fonts->addFont("verdana", "verdana.fnt");
-   g_fonts->setFont("verdana");
-
    //buffer to store data read from the screen
    if (screen_buffer) {
        delete[] screen_buffer;
@@ -2307,23 +2231,21 @@ void initGL(void)
    init_offscreen_buffer();    //frame buffer object for offscreen rendering
 
    //create volume renderer and add volumes to it
-   vol_render = new VolumeRenderer(g_context);
+   g_vol_render = new VolumeRenderer(g_context);
 
-   color_table_renderer = new NvColorTableRenderer();
-   color_table_renderer->setFonts(g_fonts);
    
    /*
    //I added this to debug : Wei
    float tmp_data[4*124];
    memset(tmp_data, 0, 4*4*124);
    TransferFunction* tmp_tf = new TransferFunction(124, tmp_data);
-   vol_render->add_volume(volume[0], tmp_tf);
+   g_vol_render->add_volume(volume[0], tmp_tf);
    volume[0]->get_cutplane(0)->enabled = false;
    volume[0]->get_cutplane(1)->enabled = false;
    volume[0]->get_cutplane(2)->enabled = false;
 
    //volume[1]->move(Vector3(0.5, 0.6, 0.7));
-   //vol_render->add_volume(volume[1], tmp_tf);
+   //g_vol_render->add_volume(volume[1], tmp_tf);
    */
 
 
@@ -2709,8 +2631,7 @@ void draw_arrows(){
 /*----------------------------------------------------*/
 void idle()
 {
-  glutSetWindow(render_window);
-
+    glutSetWindow(render_window);
   
   /*
   struct timespec ts;
@@ -2718,12 +2639,11 @@ void idle()
   ts.tv_nsec = 300000000;
   nanosleep(&ts, 0);
   */
-  
 
 #ifdef XINETD
-  xinetd_listen();
+    xinetd_listen();
 #else
-  glutPostRedisplay();
+    glutPostRedisplay();
 #endif
 }
 
@@ -2814,8 +2734,9 @@ int particle_distance_sort(const void* a, const void* b){
     return 1;
 }
 
-
-void soft_read_verts(){
+/*
+void soft_read_verts()
+{
   glReadPixels(0, 0, psys->psys_width, psys->psys_height, GL_RGB, GL_FLOAT, vert);
   //fprintf(stderr, "soft_read_vert");
 
@@ -2843,10 +2764,12 @@ void soft_read_verts(){
 
   free(p);
 }
+*/
 
-
+/*
 //display the content of a texture as a screen aligned quad
-void display_texture(NVISid tex, int width, int height){
+void display_texture(NVISid tex, int width, int height)
+{
    glPushMatrix();
 
    glEnable(GL_TEXTURE_2D);
@@ -2872,10 +2795,13 @@ void display_texture(NVISid tex, int width, int height){
 
    assert(glGetError()==0);
 }
+*/
 
 
 //draw vertices in the main memory
-void soft_display_verts(){
+/*
+void soft_display_verts()
+{
   glDisable(GL_TEXTURE_2D);
   glEnable(GL_BLEND);
 
@@ -2888,7 +2814,7 @@ void soft_display_verts(){
   glEnd();
   //fprintf(stderr, "soft_display_vert");
 }
-
+*/
 
 #if 0
 
@@ -2961,9 +2887,10 @@ void sortstep()
 #endif
 
 
-void draw_3d_axis(){
-  glDisable(GL_TEXTURE_2D);
-  glEnable(GL_DEPTH_TEST);
+void draw_3d_axis()
+{
+    glDisable(GL_TEXTURE_2D);
+    glEnable(GL_DEPTH_TEST);
 
  	//draw axes
 	GLUquadric *obj;
@@ -3043,14 +2970,13 @@ void draw_3d_axis(){
 	glDisable(GL_DEPTH_TEST);
 	gluDeleteQuadric(obj);
 
-  glEnable(GL_TEXTURE_2D);
-  glDisable(GL_DEPTH_TEST);
+    glEnable(GL_TEXTURE_2D);
+    glDisable(GL_DEPTH_TEST);
 }
 
-
+/*
 void draw_axis()
 {
-
   glDisable(GL_TEXTURE_2D);
   glEnable(GL_DEPTH_TEST);
 
@@ -3078,103 +3004,91 @@ void draw_axis()
   glEnable(GL_TEXTURE_2D);
   glDisable(GL_DEPTH_TEST);
 }
+*/
 
 
 
 /*----------------------------------------------------*/
 void display()
 {
+    assert(glGetError()==0);
 
-   assert(glGetError()==0);
+    //lic->convolve(); //flow line integral convolution
+    //psys->advect(); //advect particles
 
-   //lic->convolve(); //flow line integral convolution
-   //psys->advect(); //advect particles
+    //start final rendering
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); //clear screen
 
-// INSOO
-   //offscreen_buffer_capture();  //enable offscreen render
+    if (volume_mode) 
+    {
+        //3D rendering mode
+        glEnable(GL_TEXTURE_2D);
+        glEnable(GL_DEPTH_TEST);
 
-   //start final rendering
-   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); //clear screen
+        //camera setting activated
+        cam->activate();
 
-   if (volume_mode) {
-     //3D rendering mode
-     glEnable(GL_TEXTURE_2D);
-     glEnable(GL_DEPTH_TEST);
+        //set up the orientation of items in the scene.
+        glPushMatrix();
+        switch (updir) {
+        case 1:  // x
+            glRotatef(90, 0, 0, 1);
+            glRotatef(90, 1, 0, 0);
+            break;
 
-     //camera setting activated
-     cam->activate();
+        case 2:  // y
+            // this is the default
+            break;
 
-     //set up the orientation of items in the scene.
-     glPushMatrix();
-       switch (updir) {
-         case 1:  // x
-	       glRotatef(90, 0, 0, 1);
-	       glRotatef(90, 1, 0, 0);
-           break;
+        case 3:  // z
+            glRotatef(-90, 1, 0, 0);
+            glRotatef(-90, 0, 0, 1);
+            break;
 
-         case 2:  // y
-           // this is the default
-           break;
+        case -1:  // -x
+            glRotatef(-90, 0, 0, 1);
+            break;
 
-         case 3:  // z
-	       glRotatef(-90, 1, 0, 0);
-	       glRotatef(-90, 0, 0, 1);
-           break;
+        case -2:  // -y
+            glRotatef(180, 0, 0, 1);
+            glRotatef(-90, 0, 1, 0);
+            break;
 
-         case -1:  // -x
-	       glRotatef(-90, 0, 0, 1);
-           break;
+        case -3:  // -z
+            glRotatef(90, 1, 0, 0);
+            break;
+        }
 
-         case -2:  // -y
-	       glRotatef(180, 0, 0, 1);
-	       glRotatef(-90, 0, 1, 0);
-           break;
+        //now render things in the scene
+        draw_3d_axis();
 
-         case -3:  // -z
-	       glRotatef(90, 1, 0, 0);
-           break;
-       }
+        //lic->render(); 	//display the line integral convolution result
+        //soft_display_verts();
+        //perf->enable();
+        //psys->render();
+        //perf->disable();
+        //fprintf(stderr, "particle pixels: %d\n", perf->get_pixel_count());
+        //perf->reset();
 
-       //now render things in the scene
-       draw_3d_axis();
+        perf->enable();
+        g_vol_render->render_all();
+        perf->disable();
 
-       //lic->render(); 	//display the line integral convolution result
-       //soft_display_verts();
-       //perf->enable();
-       //  psys->render();
-       //perf->disable();
-       //fprintf(stderr, "particle pixels: %d\n", perf->get_pixel_count());
-       //perf->reset();
-
-       perf->enable();
-         vol_render->render_all();
-       perf->disable();
-
-     glPopMatrix();
+        glPopMatrix();
    }
    else {
-     //2D rendering mode
-     perf->enable();
-       plane_render->render();
-     perf->disable();
+        //2D rendering mode
+        perf->enable();
+        plane_render->render();
+        perf->disable();
    }
 
 #ifdef XINETD
-   float cost  = perf->get_pixel_count();
-   write(3, &cost, sizeof(cost));
+    float cost  = perf->get_pixel_count();
+    write(3, &cost, sizeof(cost));
 #endif
-   perf->reset();
+    perf->reset();
 
-/*
-#ifdef XINETD
-    read_screen();
-    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
-#else
-    display_offscreen_buffer(); //display the final rendering on screen
-    read_screen();
-    glutSwapBuffers();
-#endif
-*/
 }
 
 
@@ -3244,7 +3158,8 @@ void keyboard(unsigned char key, int x, int y){
    switch (key){
 	case 'q':
 #ifdef XINETD
-                end_service();
+        //end_service();
+        NvExitService();
 #endif
 		exit(0);
 		break;
@@ -3258,20 +3173,20 @@ void keyboard(unsigned char key, int x, int y){
 		break;
 	case ',':
 		lic_slice_x+=0.05;
-		init_particles();
+		//init_particles();
 		break;
 	case '.':
 		lic_slice_x-=0.05;
-		init_particles();
+		//init_particles();
 		break;
 	case '1':
-		advect = true;
+		//advect = true;
 		break;
 	case '2':
-		psys_x+=0.05;
+		//psys_x+=0.05;
 		break;
 	case '3':
-		psys_x-=0.05;
+		//psys_x-=0.05;
 		break;
 	case 'w': //zoom out
 		live_obj_z-=0.05;
@@ -3294,13 +3209,13 @@ void keyboard(unsigned char key, int x, int y){
 		cam->move(live_obj_x, live_obj_y, live_obj_z);
 		break;
 	case 'i':
-		init_particles();
+		//init_particles();
 		break;
 	case 'v':
-		vol_render->switch_volume_mode();
+		g_vol_render->switch_volume_mode();
 		break;
 	case 'b':
-		vol_render->switch_slice_mode();
+		g_vol_render->switch_slice_mode();
 		break;
 	case 'n':
 		resize_offscreen_buffer(win_width*2, win_height*2);
@@ -3316,14 +3231,15 @@ void keyboard(unsigned char key, int x, int y){
 #ifdef EVENTLOG
    if(log){
      float param[3] = {live_obj_x, live_obj_y, live_obj_z};
-     Event* tmp = new Event(EVENT_MOVE, param, get_time_interval());
+     Event* tmp = new Event(EVENT_MOVE, param, NvGetTimeInterval());
      tmp->write(event_log);
      delete tmp;
    }
 #endif
 }
 
-void motion(int x, int y){
+void motion(int x, int y)
+{
 
     int old_x, old_y;	
 
@@ -3360,14 +3276,15 @@ void motion(int x, int y){
 
 #ifdef EVENTLOG
     float param[3] = {live_rot_x, live_rot_y, live_rot_z};
-    Event* tmp = new Event(EVENT_ROTATE, param, get_time_interval());
-    /tmp->write(event_log);
+    Event* tmp = new Event(EVENT_ROTATE, param, NvGetTimeInterval());
+    tmp->write(event_log);
     delete tmp;
 #endif
 
     glutPostRedisplay();
 }
 
+/*
 #ifdef XINETD
 void init_service(){
   //open log and map stderr to log file
@@ -3409,13 +3326,14 @@ double get_time_interval(){
   cur_time = new_time;
   return interval;
 }
+*/
 
 
 /*----------------------------------------------------*/
 int main(int argc, char** argv) 
 { 
 #ifdef XINETD
-   init_service();
+   NvInitService();
 #endif
 
    glutInit(&argc, argv);
@@ -3438,24 +3356,14 @@ int main(int argc, char** argv)
 
    NvInit();
 
-
    initGL();
    initTcl();
 
-
-
 #ifdef EVENTLOG
-   init_event_log();
+   NvInitEventLog();
 #endif
-   //event loop
-   glutMainLoop();
-#ifdef EVENTLOG
-   end_event_log();
-#endif
-
-#ifdef XINETD
-    end_service();
-#endif
+    //event loop
+    glutMainLoop();
 
     NvExit();
 

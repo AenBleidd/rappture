@@ -1,6 +1,6 @@
 /*
  * ----------------------------------------------------------------------
- * ParticleSystem.cpp: particle system class
+ * NvParticleRenderer.cpp: particle system class
  *
  * ======================================================================
  *  AUTHOR:  Wei Qiao <qiaow@purdue.edu>
@@ -18,10 +18,10 @@
 #include <malloc.h>
 #include <string.h>
 
-#include "ParticleSystem.h"
+#include "NvParticleRenderer.h"
 
 
-ParticleSystem::ParticleSystem(int w, int h, CGcontext context, NVISid volume, float scale_x, 
+NvParticleRenderer::NvParticleRenderer(int w, int h, CGcontext context, NVISid volume, float scale_x, 
 		float scale_y, float scale_z)
 {
 
@@ -80,7 +80,7 @@ ParticleSystem::ParticleSystem(int w, int h, CGcontext context, NVISid volume, f
   fprintf(stderr, "init_psys\n");
 }
 
-ParticleSystem::~ParticleSystem()
+NvParticleRenderer::~NvParticleRenderer()
 {
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, psys_fbo[0]);
     glDeleteTextures(1, psys_tex);
@@ -93,7 +93,7 @@ ParticleSystem::~ParticleSystem()
     free(data);
 }
 
-void ParticleSystem::initialize(Particle* p)
+void NvParticleRenderer::initialize(Particle* p)
 {
     //also store the data on main memory for next initialization
     memcpy(data, p, psys_width*psys_height*sizeof(Particle));
@@ -109,7 +109,7 @@ void ParticleSystem::initialize(Particle* p)
     //fprintf(stderr, "init particles\n");
 }
 
-void ParticleSystem::reset()
+void NvParticleRenderer::reset()
 {
     glBindTexture(GL_TEXTURE_RECTANGLE_NV, psys_tex[0]);
     glTexImage2D(GL_TEXTURE_RECTANGLE_NV, 0, GL_FLOAT_RGBA32_NV, psys_width, psys_height, 0, GL_RGBA, GL_FLOAT, (float*)data);
@@ -122,7 +122,7 @@ void ParticleSystem::reset()
 }
 
 
-void ParticleSystem::advect()
+void NvParticleRenderer::advect()
 {
     if (reborn) 
         reset();
@@ -214,19 +214,19 @@ void ParticleSystem::advect()
    //fprintf(stderr, "advect: %d ", psys_frame);
 }
 
-void ParticleSystem::update_vertex_buffer()
+void NvParticleRenderer::update_vertex_buffer()
 {
     m_vertex_array->Read(psys_width, psys_height);
   //m_vertex_array->LoadData(vert);     //does not work??
     assert(glGetError()==0);
 }
 
-void ParticleSystem::render()
+void NvParticleRenderer::render()
 { 
     display_vertices(); 
 }
 
-void ParticleSystem::display_vertices()
+void NvParticleRenderer::display_vertices()
 {
     glDisable(GL_TEXTURE_2D);
     glDisable(GL_BLEND);

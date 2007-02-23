@@ -5,6 +5,7 @@ OBJ_NANOVIS = nanovis.o Socket.o RenderVertexArray.o Plane.o ConvexPolygon.o Vec
 		Lic.o Renderable.o Camera.o ScreenSnapper.o VolumeRenderer.o PlaneRenderer.o Nv.o \
 		NvZincBlendeVolumeShader.o NvShader.o NvVolumeShader.o NvRegularVolumeShader.o NvVolQDVolumeShader.o \
 		NvLoadFile.o NvVolQDVolume.o NvDefaultTFData.o NvColorTableShader.o NvColorTableRenderer.o NvParticleAdvectionShader.o \
+		NvEventLog.o NvParticleRenderer.o NvLIC.o \
 		R2string.o R2FilePath.o R2Fonts.o R2Object.o
 
 OBJ_VOLUMERENDERER = Volume.o ConvexPolygon.o TransferFunction.o Mat4x4.o  Camera.o
@@ -51,11 +52,20 @@ NvLoadFile.o: NvLoadFile.cpp NvLoadFile.cpp
 NvParticleAdvectionShader.o: NvParticleAdvectionShader.cpp NvParticleAdvectionShader.h
 	gcc $(CFLAG) NvParticleAdvectionShader.cpp
 
+NvParticleRenderer.o: NvParticleRenderer.cpp NvParticleRenderer.h
+	gcc $(CFLAG) NvParticleRenderer.cpp
+
 NvColorTableShader.o: NvColorTableShader.cpp NvColorTableShader.h
 	gcc $(CFLAG) NvColorTableShader.cpp
 
+NvLIC.o: NvLIC.cpp NvLIC.h
+	gcc $(CFLAG) NvLIC.cpp
+
 NvColorTableRenderer.o: NvColorTableRenderer.cpp NvColorTableRenderer.h
 	gcc $(CFLAG) NvColorTableRenderer.cpp
+
+NvEventLog.o: NvEventLog.cpp NvEventLog.h
+	gcc $(CFLAG) NvEventLog.cpp
 
 NvShader.o: NvShader.cpp NvShader.h
 	gcc $(CFLAG) NvShader.cpp

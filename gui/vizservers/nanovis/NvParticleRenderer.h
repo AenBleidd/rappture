@@ -1,6 +1,6 @@
 /*
  * ----------------------------------------------------------------------
- * ParticleSystem.h: particle system class
+ * NvParticleRenderer.h: particle system class
  *
  * ======================================================================
  *  AUTHOR:  Wei Qiao <qiaow@purdue.edu>
@@ -42,19 +42,40 @@ typedef struct Particle {
 };
 
 
-class ParticleSystem : public Renderable {
+class NvParticleRenderer : public Renderable {
+    /**
+     * @brief frame buffer objects: two are defined, flip them as input output every step
+     */
+    NVISid psys_fbo[2]; 	
 
-  NVISid psys_fbo[2]; 	//frame buffer objects: two are defined, flip them as input output every step
-  NVISid psys_tex[2];	//color textures attached to frame buffer objects
+    /**
+     * @brief color textures attached to frame buffer objects
+     */
+    NVISid psys_tex[2];	
 
-  Particle* data;
+    Particle* data;
 
-  int psys_frame;	       	//count the frame number of particle system iteration
-  bool reborn;			//reinitiate particles
-  bool flip;			//flip the source and destination render targets 
-  float max_life;
+    /**
+     *@brief Count the frame number of particle system iteration
+     */
+    int psys_frame;	    
+    
+    /**
+     * @brief Reinitiate particles   	
+     */
+    bool reborn;			
 
-  RenderVertexArray* m_vertex_array;	//vertex array for display particles
+    /**
+     * @brief flip the source and destination render targets 
+     */
+    bool flip;			
+
+    float max_life;
+
+    /**
+     * @brief vertex array for display particles
+     */
+    RenderVertexArray* m_vertex_array;	
 
   //Nvidia CG shaders and their parameters
   /*
@@ -63,23 +84,26 @@ class ParticleSystem : public Renderable {
   CGparameter m_vel_tex_param, m_pos_tex_param, m_scale_param;
   CGparameter m_pos_timestep_param, m_pos_spherePos_param;
   */
-  NvParticleAdvectionShader* _advectionShader;
+    NvParticleAdvectionShader* _advectionShader;
 
-  Vector3 scale;
+    /**
+     * @brief scale of flow data 
+     */
+    Vector3 scale;
 
 public:
-  int psys_width;	//the storage of particles is implemented as a 2D array.
-  int psys_height;
+    int psys_width;	//the storage of particles is implemented as a 2D array.
+    int psys_height;
 
-  ParticleSystem(int w, int h, CGcontext context, NVISid vector_field, 
+    NvParticleRenderer(int w, int h, CGcontext context, NVISid vector_field, 
 		  float scalex, float scaley, float scalez);
-  ~ParticleSystem();
-  void initialize(Particle* data);
-  void advect();
-  void update_vertex_buffer();
-  void display_vertices();
-  void reset();
-  void render();
+    ~NvParticleRenderer();
+    void initialize(Particle* data);
+    void advect();
+    void update_vertex_buffer();
+    void display_vertices();
+    void reset();
+    void render();
 };
 
 
