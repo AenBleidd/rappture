@@ -1,6 +1,6 @@
 /*
  * ----------------------------------------------------------------------
- * Lic.h: line integral convolution class
+ * NvLIC.h: line integral convolution class
  *
  * ======================================================================
  *  AUTHOR:  Wei Qiao <qiaow@purdue.edu>
@@ -18,9 +18,9 @@
 #include <math.h>
 #include <assert.h>
 
-#include "Lic.h"
+#include "NvLIC.h"
 
-Lic::Lic(int _size, int _width, int _height, float _offset,
+NvLIC::NvLIC(int _size, int _width, int _height, float _offset,
 		CGcontext _context, NVISid _vector_field,
 		float scalex, float scaley, float scalez):
         Renderable(Vector3(0.,0.,0.)),
@@ -99,7 +99,7 @@ Lic::Lic(int _size, int _width, int _height, float _offset,
   fprintf(stderr, "initialize lic ...\n");
 }
 
-Lic::~Lic(){
+NvLIC::~NvLIC(){
   glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, vel_fbo);
   glDeleteTextures(1, &slice_vector_tex);
 
@@ -112,7 +112,7 @@ Lic::~Lic(){
   delete slice_vector;
 }
 
-void Lic::make_patterns() 
+void NvLIC::make_patterns() 
 { 
    int lut[256];
    int phase[NPN][NPN];
@@ -142,7 +142,7 @@ void Lic::make_patterns()
 }
 
 
-void Lic::make_magnitudes()
+void NvLIC::make_magnitudes()
 {
 
   GLubyte mag[NMESH][NMESH][4];
@@ -181,7 +181,7 @@ void Lic::make_magnitudes()
 }
 
 //project 3D vectors to a 2D slice for line integral convolution
-void Lic::get_slice(){
+void NvLIC::get_slice(){
   glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, vel_fbo);
   glBindTexture(GL_TEXTURE_RECTANGLE_NV, slice_vector_tex);
 
@@ -221,7 +221,7 @@ void Lic::get_slice(){
 
 
 //line integral convolution
-void Lic::convolve(){
+void NvLIC::convolve(){
 
    int   i, j; 
    float x1, x2, y, px, py;
@@ -293,10 +293,10 @@ void Lic::convolve(){
    */
 }
 
-void Lic::render(){ display(); }
+void NvLIC::render(){ display(); }
 
 
-void Lic::display(){
+void NvLIC::display(){
 
   glBindTexture(GL_TEXTURE_2D, color_tex);
   glEnable(GL_TEXTURE_2D);
@@ -320,7 +320,7 @@ void Lic::display(){
 }
 
 
-void Lic::get_velocity(float x, float y, float *px, float *py) 
+void NvLIC::get_velocity(float x, float y, float *px, float *py) 
 {
    float dx, dy, vx, vy, r;
 
@@ -339,7 +339,7 @@ void Lic::get_velocity(float x, float y, float *px, float *py)
    *py = y + vy;
 }
 
-void Lic::set_offset(float v)
+void NvLIC::set_offset(float v)
 {
   offset = v;
   get_slice();
