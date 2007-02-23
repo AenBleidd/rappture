@@ -35,8 +35,8 @@ enum RP_LIBRARY_CONSTS {
 #include <time.h>
 #include <iterator>
 #include <cctype>
-
 #include <list>
+#include "RpBuffer.h"
 
 /* indentation size (in whitespaces) */
 
@@ -87,7 +87,7 @@ class RpLibrary
         double      getDouble ( std::string path = "");
         int         getInt    ( std::string path = "");
         bool        getBool   ( std::string path = "");
-        //  Rappture::Buffer&  getData   ( std::string path = "");
+        // Rappture::Buffer& getData (std::string path);
 
         /*
          * Should return some kind of RpError object
@@ -129,7 +129,7 @@ class RpLibrary
                             int nbytes,
                             int append = RPLIB_OVERWRITE    );
 
-        RpLibrary& putData( std::string path,
+        RpLibrary& putFile( std::string path,
                             std::string fileName,
                             bool binary,
                             int append = RPLIB_OVERWRITE    );

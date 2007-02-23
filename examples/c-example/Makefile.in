@@ -27,6 +27,20 @@ LIB_RAPPTURE_MAC = -L$(LIB_DIR) -lrappture -lscew
 
 all: $(PROGS)
 
+compress: compress.cc
+	if test "`uname`" == "Darwin"; then \
+		$(CXX) $(DEBUG) $(INCL_FILES) -o $@ $< $(LIB_RAPPTURE_MAC); \
+	else \
+		$(CXX) $(DEBUG) $(INCL_FILES) -o $@ $< $(LIB_RAPPTURE); \
+	fi
+
+compressc: compress.c
+	if test "`uname`" == "Darwin"; then \
+		$(CC) $(DEBUG) $(INCL_FILES) -o $@ $< $(LIB_RAPPTURE_MAC); \
+	else \
+		$(CC) $(DEBUG) $(INCL_FILES) -o $@ $< $(LIB_RAPPTURE); \
+	fi
+
 plot: plot.cc
 	if test "`uname`" == "Darwin"; then \
 		$(CXX) $(DEBUG) -DDEBUG $(INCL_FILES) -o $@ $< $(LIB_RAPPTURE_MAC); \

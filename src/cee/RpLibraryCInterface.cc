@@ -145,64 +145,59 @@ rpGetDouble (RpLibrary* lib, const char* path, double* retDVal)
 }
 
 int
-rpPut         (RpLibrary* lib,
-             const char* path,
-             const char* value,
-             const char* id,
-             int append         )
+rpPut ( RpLibrary* lib,
+        const char* path,
+        const char* value,
+        const char* id,
+        unsigned int append )
 {
     int retVal = 0;
     lib->put(path,value,id,append);
     return retVal;
 }
 
-/*
 int
-rpPutStringId (RpLibrary* lib,
-             const char* path,
-             const char* value,
-             const char* id,
-             int append          )
-{
-    int retVal = 0;
-    lib->put(path,value,id,append);
-    return retVal;
-}
-*/
-
-int
-rpPutString ( RpLibrary* lib,
-            const char* path,
-            const char* value,
-            int append          )
+rpPutString (   RpLibrary* lib,
+                const char* path,
+                const char* value,
+                unsigned int append )
 {
     int retVal = 0;
     lib->put(path,value,"",append);
     return retVal;
 }
 
-/*
 int
-rpPutDoubleId (RpLibrary* lib,
-             const char* path,
-             double value,
-             const char* id,
-             int append         )
-{
-    int retVal = 0;
-    lib->put(path,value,id,append);
-    return retVal;
-}
-*/
-
-int
-rpPutDouble   (RpLibrary* lib,
-             const char* path,
-             double value,
-             int append         )
+rpPutDouble (   RpLibrary* lib,
+                const char* path,
+                double value,
+                unsigned int append )
 {
     int retVal = 0;
     lib->put(path,value,"",append);
+    return retVal;
+}
+
+int rpPutData ( RpLibrary* lib,
+                const char* path,
+                const char* bytes,
+                int nBytes,
+                unsigned int append )
+{
+    int retVal = 0;
+    lib->putData(path,bytes,nBytes,append);
+    return retVal;
+}
+
+int rpPutFile ( RpLibrary* lib,
+                const char* path,
+                const char* fileName,
+                unsigned int binary,
+                unsigned int append  )
+{
+    int retVal = 0;
+    bool b =  (binary == 0) ? true : false;
+    lib->putFile(path,fileName,b,append);
     return retVal;
 }
 

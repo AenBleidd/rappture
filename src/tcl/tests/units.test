@@ -604,7 +604,7 @@ test convert_units-5.4.5.0 {Rappture::Units::convert, /cm2->/m2} {
 test convert_units-5.4.5.1 {Rappture::Units::convert, cm2->/m2} {
     list [catch {Rappture::Units::convert 1cm -to /m2} msg] $msg
 } {1 {Conversion unavailable: (cm) -> (m-2)
-Please enter units of type /length (/A2,/in2,/m2)}}
+Please enter units of type /area (/A2,/in2,/m2)}}
 
 #--------------------------------------------------------------------
 # Temperature Conversions
