@@ -3,7 +3,7 @@ ifndef RP_BASE
 RP_BASE         = @prefix@
 endif
 
-PROGS           = plot plotc
+PROGS           = plot plotc compress compressc
 
 # define our compiling environment
 # 
