@@ -13,7 +13,6 @@
 
 #include "RpLibrary.h"
 #include "RpEntityRef.h"
-#include "RpBuffer.h"
 
 static RpEntityRef ERTranslator;
 
@@ -1340,6 +1339,44 @@ RpLibrary::getBool (std::string path)
 
 
 /**********************************************************************/
+// METHOD: getData()
+/// Return a pointer and memory size of the object held at location 'path'
+/**
+ */
+
+/*
+Rappture::Buffer&
+RpLibrary::getData (std::string path)
+{
+    const char* retCStr = NULL;
+    Rappture::Buffer buf;
+
+    if (!this->root) {
+        // library doesn't exist, do nothing;
+        return buf;
+    }
+
+    retNode = _find(path,NO_CREATE_PATH);
+
+    if (retNode == NULL) {
+        // need to raise error
+        return buf;
+    }
+
+    retCStr = scew_element_contents(retNode);
+
+    if (retCStr == NULL) {
+        return buf;
+    }
+
+    len = strlen(retCStr);
+    buf.append(retCStr,len);
+    return buf;
+}
+*/
+
+
+/**********************************************************************/
 // METHOD: put()
 /// Put a string value into the xml.
 /**
@@ -1534,7 +1571,7 @@ RpLibrary::putData (std::string path,
  */
 
 RpLibrary&
-RpLibrary::putData (std::string path,
+RpLibrary::putFile (std::string path,
                     std::string fileName,
                     bool binary,
                     int append  )
