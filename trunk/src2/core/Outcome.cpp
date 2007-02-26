@@ -3,13 +3,13 @@
  *  Rappture::Outcome
  *
  *  AUTHOR:  Michael McLennan, Purdue University
- *  Copyright (c) 2004-2006  Purdue Research Foundation
+ *  Copyright (c) 2004-2007  Purdue Research Foundation
  * ----------------------------------------------------------------------
  *  See the file "license.terms" for information on usage and
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  * ======================================================================
  */
-#include "RpOutcome.h"
+#include "Outcome.h"
 
 using namespace Rappture;
 
@@ -44,6 +44,10 @@ Outcome::operator=(const Outcome& oc)
     return *this;
 }
 
+/// Destructor
+Outcome::~Outcome()
+{}
+
 /**
  *  Assign an error condition to the outcome.
  */
@@ -53,6 +57,7 @@ Outcome::error(const char* errmsg, int status)
     _status = status;
     _remarkPtr = Ptr<std::string>(new std::string(errmsg));
     _contextPtr.clear();
+    return *this;
 }
 
 /**
@@ -64,6 +69,7 @@ Outcome::clear()
     _status = 0;
     _remarkPtr.clear();
     _contextPtr.clear();
+    return *this;
 }
 
 /**
@@ -95,6 +101,7 @@ Outcome::operator&=(Outcome oc)
         _remarkPtr = oc._remarkPtr;
         _contextPtr = oc._contextPtr;
     }
+    return *this;
 }
 
 /**

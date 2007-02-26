@@ -90,7 +90,7 @@ public:
     virtual ~SimpleBuffer();
 
     const char* bytes() const;
-    int size() const;
+    unsigned int size() const;
 
     SimpleBuffer& clear();
     int append(const char* bytes, int nbytes=-1);
@@ -116,13 +116,13 @@ private:
     char* _buf;
 
     /// Position offset within the buffer's memory
-    int _pos;
+    unsigned int _pos;
 
     /// Size of the used memory in the buffer
-    int _size;
+    unsigned int _size;
 
     /// Total space available in the buffer
-    int _spaceAvl;
+    unsigned int _spaceAvl;
 
     /// State of the last file like operation.
     bool _fileState;
