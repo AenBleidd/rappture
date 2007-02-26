@@ -96,6 +96,7 @@ Ptr<Type>::operator=(Type* ptr)
 {
     clear();
     _pc = new PtrCore(ptr);
+    return *this;
 }
 
 template <class Type>
@@ -107,6 +108,7 @@ Ptr<Type>::operator=(const Ptr<Type>& ptr)
     }
     clear();
     _pc = ptr._pc;
+    return *this;
 }
 
 template <class Type>

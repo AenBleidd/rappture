@@ -164,7 +164,7 @@ SimpleBuffer::bytes() const
  * Get the number of bytes currently stored in the buffer.
  * @return Number of the bytes used in the buffer.
  */
-int
+unsigned int
 SimpleBuffer::size() const
 {
     return _size;
@@ -193,7 +193,7 @@ SimpleBuffer::clear()
 int
 SimpleBuffer::append(const char* bytes, int nbytes)
 {
-    int newSize = 0;
+    unsigned int newSize = 0;
     char *newBuffer = NULL;
 
     // User specified NULL buffer to append
@@ -216,7 +216,7 @@ SimpleBuffer::append(const char* bytes, int nbytes)
         bufferInit();
     }
 
-    newSize = _size + nbytes;
+    newSize = (unsigned int)(_size + nbytes);
 
     // ensure that our smallest buffer is 200 bytes
     if (newSize < (RP_BUFFER_MIN_SIZE/2)) {
@@ -246,7 +246,7 @@ SimpleBuffer::append(const char* bytes, int nbytes)
 
     memcpy((void*) (_buf + _size), (void*) bytes, (size_t) nbytes);
 
-    _size = _size + nbytes;
+    _size = _size + (unsigned int) nbytes;
 
     return nbytes;
 }
@@ -261,7 +261,7 @@ SimpleBuffer::append(const char* bytes, int nbytes)
 int
 SimpleBuffer::read(const char* bytes, int nbytes)
 {
-    int bytesRead = 0;
+    unsigned int bytesRead = 0;
 
     // SimpleBuffer is empty.
     if (_buf == NULL) {
@@ -273,15 +273,20 @@ SimpleBuffer::read(const char* bytes, int nbytes)
         return 0;
     }
 
+    // User specified negative buffer size
+    if (nbytes <= 0) {
+        return 0;
+    }
+
     // make sure we don't read off the end of our buffer
-    if ( (_pos + nbytes) >= _size) {
+    if ( (_pos + nbytes) >= _size ) {
         bytesRead = (_size - _pos);
     }
     else {
-        bytesRead = nbytes;
+        bytesRead = (unsigned int) nbytes;
     }
 
-    if (bytesRead < 0) {
+    if (bytesRead <= 0) {
         return 0;
     }
 
@@ -289,9 +294,9 @@ SimpleBuffer::read(const char* bytes, int nbytes)
         memcpy((void*) bytes, (void*) (_buf+_pos), (size_t) bytesRead);
     }
 
-    _pos = _pos + bytesRead;
+    _pos = (_pos + bytesRead);
 
-    return bytesRead;
+    return (int)bytesRead;
 }
 
 
@@ -315,12 +320,12 @@ SimpleBuffer::seek(int offset, int whence)
             /* dont go off the beginning of data */
             _pos = 0;
         }
-        else if (offset >= _size) {
+        else if (offset >= (int)_size) {
             /* dont go off the end of data */
             _pos = _size - 1;
         }
         else {
-            _pos = _pos + offset;
+            _pos = (unsigned int)(_pos + offset);
         }
     }
     else if (whence == SEEK_CUR) {
@@ -333,11 +338,11 @@ SimpleBuffer::seek(int offset, int whence)
             _pos = _size - 1;
         }
         else {
-            _pos = _pos + offset;
+            _pos = (unsigned int)(_pos + offset);
         }
     }
     else if (whence == SEEK_END) {
-        if (offset <= (-1*_size)) {
+        if (offset <= (-1*((int)_size))) {
             /* dont go off the beginning of data */
             _pos = 0;
         }
@@ -346,7 +351,7 @@ SimpleBuffer::seek(int offset, int whence)
             _pos = _size - 1;
         }
         else {
-            _pos = (_size - 1) + offset;
+            _pos = (unsigned int)((_size - 1) + offset);
         }
     }
     else {
@@ -364,7 +369,7 @@ SimpleBuffer::seek(int offset, int whence)
 int
 SimpleBuffer::tell()
 {
-   return _pos;
+   return (int)_pos;
 }
 
 
@@ -831,7 +836,7 @@ Buffer::do_base64_enc(  Outcome& status,
                         SimpleBuffer& bout )
 {
     int tBufSize = 0;
-    int tBufAvl = 2*bin.size();
+    unsigned int tBufAvl = 2*bin.size();
     char* tBuf = new char[tBufAvl];
 
     base64::encoder E;
@@ -852,7 +857,7 @@ Buffer::do_base64_dec(  Outcome& status,
                         SimpleBuffer& bout )
 {
     int tBufSize = 0;
-    int tBufAvl = bin.size();
+    unsigned int tBufAvl = bin.size();
     char* tBuf = new char[tBufAvl];
 
     base64::decoder D;
