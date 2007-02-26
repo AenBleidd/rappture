@@ -61,6 +61,8 @@ double inch2feet (double inch);
 double feet2inch (double ft);
 double inch2yard (double inch);
 double yard2inch (double yd);
+double inch2mile (double inch);
+double mile2inch (double yd);
 
 
 
