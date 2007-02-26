@@ -1386,8 +1386,8 @@ RpLibrary&
 RpLibrary::put (    std::string path,
                     std::string value,
                     std::string id,
-                    int append,
-                    int translateFlag)
+                    unsigned int append,
+                    unsigned int translateFlag)
 {
     scew_element* retNode = NULL;
     std::string tmpVal = "";
@@ -1429,7 +1429,10 @@ RpLibrary::put (    std::string path,
  */
 
 RpLibrary&
-RpLibrary::put ( std::string path, double value, std::string id, int append )
+RpLibrary::put (    std::string path,
+                    double value,
+                    std::string id,
+                    unsigned int append )
 {
     std::stringstream valStr;
 
@@ -1452,7 +1455,10 @@ RpLibrary::put ( std::string path, double value, std::string id, int append )
  */
 
 RpLibrary&
-RpLibrary::put ( std::string path, RpLibrary* value, std::string id, int append )
+RpLibrary::put (    std::string path,
+                    RpLibrary* value,
+                    std::string id,
+                    unsigned int append )
 {
     scew_element* retNode   = NULL;
     // scew_element* old_elem  = NULL;
@@ -1526,7 +1532,7 @@ RpLibrary&
 RpLibrary::putData (std::string path,
                     const char* bytes,
                     int nbytes,
-                    int append  )
+                    unsigned int append  )
 {
     scew_element* retNode = NULL;
     const char* contents = NULL;
@@ -1563,7 +1569,7 @@ RpLibrary::putData (std::string path,
 
 
 /**********************************************************************/
-// METHOD: putData()
+// METHOD: putFile()
 /// Put data from a file into the xml.
 /**
  *  Append flag adds additional nodes, it does not merge same 
@@ -1573,8 +1579,8 @@ RpLibrary::putData (std::string path,
 RpLibrary&
 RpLibrary::putFile (std::string path,
                     std::string fileName,
-                    bool binary,
-                    int append  )
+                    unsigned int fileType,
+                    unsigned int append  )
 {
     scew_element* retNode = NULL;
     const char* contents = NULL;
@@ -1594,7 +1600,7 @@ RpLibrary::putFile (std::string path,
         if (append == RPLIB_APPEND) {
             if ( (contents = scew_element_contents(retNode)) ) {
                 buf.append(contents);
-                if (binary == true) {
+                if (fileType == RPLIB_BINARY) {
                     // base64 decode and un-gzip the data
                     buf.decode();
                 }
@@ -1604,13 +1610,17 @@ RpLibrary::putFile (std::string path,
         fileBuf.load(fileName.c_str());
         buf += fileBuf;
 
-        if (binary == true) {
+        if (fileType == RPLIB_BINARY) {
             // gzip and base64 encode the data
             buf.encode();
         }
 
-        bytesWritten = (unsigned int) buf.size();
+        bytesWritten = buf.size();
         scew_element_set_contents_binary(retNode,buf.bytes(),&bytesWritten);
+
+        if (bytesWritten == buf.size()) {
+            // error writing data to xml
+        }
 
     }
 

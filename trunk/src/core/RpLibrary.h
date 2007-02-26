@@ -19,6 +19,8 @@ enum RP_LIBRARY_CONSTS {
     RPLIB_APPEND        = 1,
     RPLIB_NO_TRANSLATE  = 0,
     RPLIB_TRANSLATE     = 1,
+    RPLIB_TEXT          = 0,
+    RPLIB_BINARY        = 1,
 };
 
 
@@ -111,28 +113,28 @@ class RpLibrary
         RpLibrary& put (    std::string path,
                             std::string value,
                             std::string id = "",
-                            int append = RPLIB_OVERWRITE,
-                            int translateFlag = RPLIB_TRANSLATE   );
+                            unsigned int append = RPLIB_OVERWRITE,
+                            unsigned int translateFlag = RPLIB_TRANSLATE   );
 
         RpLibrary& put (    std::string path,
                             double value,
                             std::string id = "",
-                            int append = RPLIB_OVERWRITE    );
+                            unsigned int append = RPLIB_OVERWRITE    );
 
         RpLibrary& put (    std::string path,
                             RpLibrary* value,
                             std::string id = "",
-                            int append = RPLIB_OVERWRITE    );
+                            unsigned int append = RPLIB_OVERWRITE    );
 
         RpLibrary& putData( std::string path,
                             const char* bytes,
                             int nbytes,
-                            int append = RPLIB_OVERWRITE    );
+                            unsigned int append = RPLIB_OVERWRITE    );
 
         RpLibrary& putFile( std::string path,
                             std::string fileName,
-                            bool binary,
-                            int append = RPLIB_OVERWRITE    );
+                            unsigned int fileType = RPLIB_BINARY,
+                            unsigned int append = RPLIB_OVERWRITE    );
 
         RpLibrary* remove (std::string path = "");
 
