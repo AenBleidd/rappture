@@ -196,8 +196,7 @@ int rpPutFile ( RpLibrary* lib,
                 unsigned int append  )
 {
     int retVal = 0;
-    bool b =  (binary == 0) ? true : false;
-    lib->putFile(path,fileName,b,append);
+    lib->putFile(path,fileName,binary,append);
     return retVal;
 }
 
