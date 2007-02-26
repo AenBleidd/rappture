@@ -4,7 +4,7 @@
  *
  * ======================================================================
  *  AUTHOR:  Derrick Kearney, Purdue University
- *  Copyright (c) 2004-2005  Purdue Research Foundation
+ *  Copyright (c) 2004-2007  Purdue Research Foundation
  *
  *  See the file "license.terms" for information on usage and
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -347,7 +347,8 @@ rp_lib_put_str_ (       int* handle,
                         int path_len,
                         int value_len ) {
 
-    return rp_lib_put_str(handle,path,value,append,path_len,value_len);
+    rp_lib_put_str(handle,path,value,append,path_len,value_len);
+    return;
 }
 
 void
@@ -358,7 +359,8 @@ rp_lib_put_str__ (       int* handle,
                         int path_len,
                         int value_len ) {
 
-    return rp_lib_put_str(handle,path,value,append,path_len,value_len);
+    rp_lib_put_str(handle,path,value,append,path_len,value_len);
+    return;
 }
 
 void
@@ -369,7 +371,8 @@ RP_LIB_PUT_STR (       int* handle,
                         int path_len,
                         int value_len ) {
 
-    return rp_lib_put_str(handle,path,value,append,path_len,value_len);
+    rp_lib_put_str(handle,path,value,append,path_len,value_len);
+    return;
 }
 
 void
@@ -382,8 +385,8 @@ rp_lib_put_id_str_ (    int* handle,
                         int value_len,
                         int id_len ) {
 
-    return rp_lib_put_id_str( handle, path, value,id,append,
-                              path_len,value_len,id_len);
+    rp_lib_put_id_str(handle,path,value,id,append,path_len,value_len,id_len);
+    return;
 }
 
 void
@@ -396,8 +399,8 @@ rp_lib_put_id_str__ (    int* handle,
                         int value_len,
                         int id_len ) {
 
-    return rp_lib_put_id_str( handle, path, value,id,append,
-                              path_len,value_len,id_len);
+    rp_lib_put_id_str(handle,path,value,id,append,path_len,value_len,id_len);
+    return;
 }
 
 void
@@ -410,8 +413,86 @@ RP_LIB_PUT_ID_STR (    int* handle,
                         int value_len,
                         int id_len ) {
 
-    return rp_lib_put_id_str( handle, path, value,id,append,
-                              path_len,value_len,id_len);
+    rp_lib_put_id_str(handle,path,value,id,append,path_len,value_len,id_len);
+    return;
+}
+
+void
+rp_lib_put_data_ (      int* handle,
+                        char* path,
+                        char* bytes,
+                        int* nbytes,
+                        int* append,
+                        int path_len,
+                        int bytes_len ) {
+
+    rp_lib_put_data(handle,path,bytes,nbytes,append,path_len,bytes_len);
+    return;
+}
+
+void
+rp_lib_put_data__ (     int* handle,
+                        char* path,
+                        char* bytes,
+                        int* nbytes,
+                        int* append,
+                        int path_len,
+                        int bytes_len ) {
+
+    rp_lib_put_data(handle,path,bytes,nbytes,append,path_len,bytes_len);
+    return;
+}
+
+void
+RP_LIB_PUT_DATA (       int* handle,
+                        char* path,
+                        char* bytes,
+                        int* nbytes,
+                        int* append,
+                        int path_len,
+                        int bytes_len ) {
+
+    rp_lib_put_data(handle,path,bytes,nbytes,append,path_len,bytes_len);
+    return;
+}
+
+void
+rp_lib_put_file_ (      int* handle,
+                        char* path,
+                        char* fileName,
+                        int* fileType,
+                        int* append,
+                        int path_len,
+                        int fileName_len ) {
+
+    rp_lib_put_file(handle,path,fileName,fileType,append,path_len,fileName_len);
+    return;
+}
+
+void
+rp_lib_put_file__ (     int* handle,
+                        char* path,
+                        char* fileName,
+                        int* fileType,
+                        int* append,
+                        int path_len,
+                        int fileName_len ) {
+
+    rp_lib_put_file(handle,path,fileName,fileType,append,path_len,fileName_len);
+    return;
+}
+
+void
+RP_LIB_PUT_FILE (       int* handle,
+                        char* path,
+                        char* fileName,
+                        int* fileType,
+                        int* append,
+                        int path_len,
+                        int fileName_len ) {
+
+    rp_lib_put_file(handle,path,fileName,fileType,append,path_len,fileName_len);
+    return;
 }
 
 /*

@@ -4,7 +4,7 @@
  *
  * ======================================================================
  *  AUTHOR:  Derrick Kearney, Purdue University
- *  Copyright (c) 2004-2005  Purdue Research Foundation
+ *  Copyright (c) 2004-2007  Purdue Research Foundation
  *
  *  See the file "license.terms" for information on usage and
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -669,6 +669,73 @@ void rp_lib_put_id_str ( int* handle,
     }
 
 }
+
+
+/**********************************************************************/
+// FUNCTION: rp_lib_put_data()
+/// Put string into Rappture Library Object at location 'path'.
+/**
+ */
+void rp_lib_put_data( int* handle,
+                        char* path,
+                        char* bytes,
+                        int* nbytes,
+                        int* append,
+                        int path_len,
+                        int bytes_len
+                      )
+{
+    std::string inPath = "";
+    RpLibrary* lib = NULL;
+
+    inPath = null_terminate_str(path,path_len);
+
+    if ((handle) && (*handle != 0)) {
+        lib = getObject_Lib(*handle);
+
+        if (lib) {
+            lib->putData(inPath,bytes,*nbytes,*append);
+        }
+    }
+
+    return;
+
+}
+
+
+/**********************************************************************/
+// FUNCTION: rp_lib_put_file()
+/// Put string into Rappture Library Object at location 'path'.
+/**
+ */
+void rp_lib_put_file( int* handle,
+                        char* path,
+                        char* fileName,
+                        int* fileType,
+                        int* append,
+                        int path_len,
+                        int fileName_len
+                      )
+{
+    std::string inPath = "";
+    std::string inFileName = "";
+    RpLibrary* lib = NULL;
+
+    inPath = null_terminate_str(path,path_len);
+    inFileName = null_terminate_str(fileName,fileName_len);
+
+    if ((handle) && (*handle != 0)) {
+        lib = getObject_Lib(*handle);
+
+        if (lib) {
+            lib->putFile(inPath,inFileName,*fileType,*append);
+        }
+    }
+
+    return;
+
+}
+
 
 //void rp_lib_put_obj( int* handle, 
 //                        char* path, 

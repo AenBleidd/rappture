@@ -4,7 +4,7 @@
  *
  * ======================================================================
  *  AUTHOR:  Derrick Kearney, Purdue University
- *  Copyright (c) 2004-2005  Purdue Research Foundation
+ *  Copyright (c) 2004-2007  Purdue Research Foundation
  *
  *  See the file "license.terms" for information on usage and
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -97,6 +97,23 @@ void rp_lib_put_id_str_ (   int* handle,
                             int value_len,
                             int id_len );
 
+void rp_lib_put_data_ (     int* handle,
+                            char* path,
+                            char* bytes,
+                            int* nbytes,
+                            int* append,
+                            int path_len,
+                            int bytes_len );
+
+void rp_lib_put_file_ (     int* handle,
+                            char* path,
+                            char* fileName,
+                            int* fileType,
+                            int* append,
+                            int path_len,
+                            int fileName_len );
+
+/*
 void rp_lib_put_obj_ (      int* handle,
                             char* path,
                             int* valHandle,
@@ -110,6 +127,7 @@ void rp_lib_put_id_obj_ (   int* handle,
                             int* append,
                             int path_len,
                             int id_len );
+*/
 
 int rp_lib_remove_ (        int* handle,
                             char* path,
@@ -220,6 +238,23 @@ void rp_lib_put_id_str__ (  int* handle,
                             int value_len,
                             int id_len );
 
+void rp_lib_put_data__ (    int* handle,
+                            char* path,
+                            char* bytes,
+                            int* nbytes,
+                            int* append,
+                            int path_len,
+                            int bytes_len );
+
+void rp_lib_put_file__ (    int* handle,
+                            char* path,
+                            char* fileName,
+                            int* fileType,
+                            int* append,
+                            int path_len,
+                            int fileName_len );
+
+/*
 void rp_lib_put_obj__ (     int* handle,
                             char* path,
                             int* valHandle,
@@ -233,6 +268,7 @@ void rp_lib_put_id_obj__ (  int* handle,
                             int* append,
                             int path_len,
                             int id_len );
+*/
 
 int rp_lib_remove__ (       int* handle,
                             char* path,
@@ -344,6 +380,22 @@ void RP_LIB_PUT_ID_STR (    int* handle,
                             int value_len,
                             int id_len );
 
+void RP_LIB_PUT_DATA (      int* handle,
+                            char* path,
+                            char* bytes,
+                            int* nbytes,
+                            int* append,
+                            int path_len,
+                            int bytes_len );
+
+void RP_LIB_PUT_FILE (      int* handle,
+                            char* path,
+                            char* fileName,
+                            int* fileType,
+                            int* append,
+                            int path_len,
+                            int fileName_len );
+/*
 void RP_LIB_PUT_OBJ (       int* handle,
                             char* path,
                             int* valHandle,
@@ -357,6 +409,7 @@ void RP_LIB_PUT_ID_OBJ (    int* handle,
                             int* append,
                             int path_len,
                             int id_len );
+*/
 
 int RP_LIB_REMOVE (         int* handle,
                             char* path,
@@ -390,6 +443,6 @@ void RP_RESULT(             int* handle );
 /**********************************************************/
 /**********************************************************/
 
-#ifdef __cplusplus 
+#ifdef __cplusplus
     }
 #endif

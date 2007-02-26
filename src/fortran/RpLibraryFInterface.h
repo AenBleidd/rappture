@@ -4,7 +4,7 @@
  *
  * ======================================================================
  *  AUTHOR:  Derrick S. Kearney, Purdue University
- *  Copyright (c) 2004-2005  Purdue Research Foundation
+ *  Copyright (c) 2004-2007  Purdue Research Foundation
  *
  *  See the file "license.terms" for information on usage and
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -93,6 +93,22 @@ void rp_lib_put_id_str (    int* handle,
                             int path_len,
                             int value_len,
                             int id_len );
+
+void rp_lib_put_data (      int* handle,
+                            char* path,
+                            char* bytes,
+                            int* nbytes,
+                            int* append,
+                            int path_len,
+                            int bytes_len );
+
+void rp_lib_put_file (      int* handle,
+                            char* path,
+                            char* fileName,
+                            int* fileType,
+                            int* append,
+                            int path_len,
+                            int fileName_len );
 
 /*
  * rp_lib_put_obj still needs to be written

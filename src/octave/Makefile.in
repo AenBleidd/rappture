@@ -55,6 +55,7 @@ RpOctave: 	rpAddPresets.oct \
 			rpLibPut.oct \
 			rpLibPutDouble.oct \
 			rpLibPutSingle.oct \
+			rpLibPutFile.oct \
 			rpLibResult.oct \
 			rpLibXml.oct \
 			rpUnitsConvert.oct \
@@ -105,6 +106,8 @@ rpLibPutDouble.oct:
 	$(OCT) rpLibPutDouble.cc          $(OCTAVE_COMP_ARGS)
 rpLibPutSingle.oct:
 	$(OCT) rpLibPutString.cc          $(OCTAVE_COMP_ARGS)
+rpLibPutFile.oct:
+	$(OCT) rpLibPutFile.cc            $(OCTAVE_COMP_ARGS)
 rpLibResult.oct:
 	$(OCT) rpLibResult.cc             $(OCTAVE_COMP_ARGS)
 rpLibXml.oct:

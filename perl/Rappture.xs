@@ -55,7 +55,16 @@ char *value
 int append
 	CODE:
 		THIS->put(path,value,"",append);
-		
+
+void
+RpLibrary::putFile( path, fileName, fileType, append )
+char *path
+char *fileName
+int fileType
+int append
+	CODE:
+		THIS->putFile(path,fileName,fileType,append);
+
 void
 RpLibrary::result()
 
