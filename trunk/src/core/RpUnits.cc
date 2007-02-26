@@ -2608,12 +2608,14 @@ RpUnitsPreset::addPresetLength () {
     RpUnits* inch       = NULL;
     RpUnits* feet       = NULL;
     RpUnits* yard       = NULL;
+    RpUnits* mile       = NULL;
 
     meters     = RpUnits::define("m", NULL, RP_TYPE_LENGTH, RPUNITS_METRIC);
     angstrom   = RpUnits::define("A", NULL, RP_TYPE_LENGTH);
     inch       = RpUnits::define("in", NULL, RP_TYPE_LENGTH);
     feet       = RpUnits::define("ft", inch, RP_TYPE_LENGTH);
     yard       = RpUnits::define("yd", inch, RP_TYPE_LENGTH);
+    mile       = RpUnits::define("mi", inch, RP_TYPE_LENGTH);
 
     // RpUnits::makeMetric(meters);
 
@@ -2622,6 +2624,7 @@ RpUnitsPreset::addPresetLength () {
     RpUnits::define(inch, feet, inch2feet, feet2inch);
     RpUnits::define(inch, yard, inch2yard, yard2inch);
     RpUnits::define(inch, meters, inch2meter, meter2inch);
+    RpUnits::define(inch, mile, inch2mile, mile2inch);
 
     return 0;
 }

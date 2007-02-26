@@ -229,6 +229,16 @@ double yard2inch (double yd)
     return (yd*(36.00));
 }
 
+double inch2mile (double inch)
+{
+    return (inch/(63360));
+}
+
+double mile2inch (double mi)
+{
+    return (mi*(63360));
+}
+
 /****************************************
  * TEMPERATURE CONVERSIONS
  ****************************************/
