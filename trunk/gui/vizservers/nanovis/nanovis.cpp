@@ -31,6 +31,7 @@
 #include "RpField1D.h"
 #include "RpFieldRect3D.h"
 #include "RpFieldPrism3D.h"
+#include "RpBuffer.h"
 
 //transfer function headers
 #include "transfer-function/TransferFunctionMain.h"
@@ -107,7 +108,7 @@ int render_window; 		//the handle of the render window;
 // forward declarations
 //void init_particles();
 void get_slice_vectors();
-Rappture::Outcome load_volume_file(int index, char *fname);
+Rappture::Outcome load_volume_stream(int index, std::iostream& fin);
 void load_volume(int index, int width, int height, int depth, int n_component, float* data, double vmin, double vmax);
 TransferFunction* get_transfunc(char *name);
 void resize_offscreen_buffer(int w, int h);
@@ -829,40 +830,33 @@ VolumeCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
                 return TCL_ERROR;
             }
 
-            char fname[64];
-            sprintf(fname,"/tmp/nv%d.dat",getpid());
-            std::ofstream dfile(fname);
+            Rappture::Outcome err;
+            Rappture::Buffer buf;
 
             char buffer[8096];
             while (nbytes > 0) {
                 int chunk = (sizeof(buffer) < nbytes) ? sizeof(buffer) : nbytes;
                 int status = fread(buffer, 1, chunk, stdin);
                 if (status > 0) {
-                    dfile.write(buffer,status);
+                    buf.append(buffer,status);
                     nbytes -= status;
                 } else {
-                    Tcl_AppendResult(interp, "data unpacking failed in file ",
-                        fname, (char*)NULL);
+                    Tcl_AppendResult(interp, "data unpacking failed: unexpected EOF",
+                        (char*)NULL);
                     return TCL_ERROR;
                 }
             }
-            dfile.close();
 
-            char cmdstr[512];
-            sprintf(cmdstr, "mimedecode %s | gunzip -c > /tmp/nv%d.dx", fname, getpid());
-            if (system(cmdstr) != 0) {
-                Tcl_AppendResult(interp, "data unpacking failed in file ",
-                    fname, (char*)NULL);
+            err = buf.decode();
+            if (err) {
+                Tcl_AppendResult(interp, err.remark().c_str(), (char*)NULL);
                 return TCL_ERROR;
             }
-
-            sprintf(fname,"/tmp/nv%d.dx",getpid());
+            std::stringstream fdata;
+            fdata.write(buf.bytes(),buf.size());
 
             int n = n_volumes;
-            Rappture::Outcome err = load_volume_file(n, fname);
-
-            sprintf(cmdstr, "rm -f /tmp/nv%d.dat /tmp/nv%d.dx", getpid(), getpid());
-            system(cmdstr);
+            err = load_volume_stream(n, fdata);
 
             if (err) {
                 Tcl_AppendResult(interp, err.remark().c_str(), (char*)NULL);
@@ -1394,11 +1388,10 @@ void cgErrorCallback(void)
 /* Load a 3D vector field from a dx-format file
  */
 void
-load_vector_file(int index, char *fname) {
+load_vector_stream(int index, std::iostream& fin) {
     int dummy, nx, ny, nz, nxy, npts;
     double x0, y0, z0, dx, dy, dz, ddx, ddy, ddz;
     char line[128], type[128], *start;
-    std::ifstream fin(fname);
 
     do {
         fin.getline(line,sizeof(line)-1);
@@ -1529,7 +1522,7 @@ load_vector_file(int index, char *fname) {
         load_volume(index, nx, ny, nz, 3, data, vmin, vmax);
         delete [] data;
     } else {
-        std::cerr << "WARNING: data not found in file " << fname << std::endl;
+        std::cerr << "WARNING: data not found in stream" << std::endl;
     }
 }
 
@@ -1537,14 +1530,13 @@ load_vector_file(int index, char *fname) {
 /* Load a 3D volume from a dx-format file
  */
 Rappture::Outcome
-load_volume_file(int index, char *fname) {
+load_volume_stream(int index, std::iostream& fin) {
     Rappture::Outcome result;
 
     Rappture::MeshTri2D xymesh;
     int dummy, nx, ny, nz, nxy, npts;
     double x0, y0, z0, dx, dy, dz, ddx, ddy, ddz;
     char line[128], type[128], *start;
-    std::ifstream fin(fname);
 
     int isrect = 1;
 
@@ -1887,9 +1879,7 @@ load_volume_file(int index, char *fname) {
             delete [] data;
         }
     } else {
-        char mesg[256];
-        sprintf(mesg,"data not found in file %s", fname);
-        return result.error(mesg);
+        return result.error("data not found in stream");
     }
 
     //
@@ -2217,16 +2207,6 @@ void initGL(void)
      //create queries to count number of rendered pixels
      perf = new PerfQuery(); 
    }
-
-   //load_volume_file(0, "./data/A-apbs-2-out-potential-PE0.dx");
-   //load_volume_file(0, "./data/nw-AB-Vg=0.000-Vd=1.000-potential.dx");
-   //load_volume_file(0, "./data/test2.dx");
-   //load_volume_file(0, "./data/mu-wire-3d.dx"); //I added this line to debug: Wei
-   //load_volume_file(0, "./data/input_nd_dx_4"); //take a VERY long time?
-   //load_vector_file(1, "./data/J-wire-vec.dx");
-   //load_volume_file(1, "./data/mu-wire-3d.dx");  //I added this line to debug: Wei
-   //load_volume_file(3, "./data/mu-wire-3d.dx");
-   //load_volume_file(4, "./data/mu-wire-3d.dx");
 
    init_offscreen_buffer();    //frame buffer object for offscreen rendering
 
