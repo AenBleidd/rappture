@@ -105,7 +105,7 @@ void rp_lib_put_data (      int* handle,
 void rp_lib_put_file (      int* handle,
                             char* path,
                             char* fileName,
-                            int* fileType,
+                            int* compress,
                             int* append,
                             int path_len,
                             int fileName_len );

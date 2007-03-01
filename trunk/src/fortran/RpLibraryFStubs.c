@@ -460,12 +460,12 @@ void
 rp_lib_put_file_ (      int* handle,
                         char* path,
                         char* fileName,
-                        int* fileType,
+                        int* compress,
                         int* append,
                         int path_len,
                         int fileName_len ) {
 
-    rp_lib_put_file(handle,path,fileName,fileType,append,path_len,fileName_len);
+    rp_lib_put_file(handle,path,fileName,compress,append,path_len,fileName_len);
     return;
 }
 
@@ -473,12 +473,12 @@ void
 rp_lib_put_file__ (     int* handle,
                         char* path,
                         char* fileName,
-                        int* fileType,
+                        int* compress,
                         int* append,
                         int path_len,
                         int fileName_len ) {
 
-    rp_lib_put_file(handle,path,fileName,fileType,append,path_len,fileName_len);
+    rp_lib_put_file(handle,path,fileName,compress,append,path_len,fileName_len);
     return;
 }
 
@@ -486,12 +486,12 @@ void
 RP_LIB_PUT_FILE (       int* handle,
                         char* path,
                         char* fileName,
-                        int* fileType,
+                        int* compress,
                         int* append,
                         int path_len,
                         int fileName_len ) {
 
-    rp_lib_put_file(handle,path,fileName,fileType,append,path_len,fileName_len);
+    rp_lib_put_file(handle,path,fileName,compress,append,path_len,fileName_len);
     return;
 }
 

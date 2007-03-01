@@ -1579,7 +1579,7 @@ RpLibrary::putData (std::string path,
 RpLibrary&
 RpLibrary::putFile (std::string path,
                     std::string fileName,
-                    unsigned int fileType,
+                    unsigned int compress,
                     unsigned int append  )
 {
     scew_element* retNode = NULL;
@@ -1587,6 +1587,8 @@ RpLibrary::putFile (std::string path,
     Rappture::Buffer buf;
     Rappture::Buffer fileBuf;
     unsigned int bytesWritten = 0;
+    std::string value = "";
+    std::string transContents = "";
 
     if (!this->root) {
         // library doesn't exist, do nothing;
@@ -1600,7 +1602,7 @@ RpLibrary::putFile (std::string path,
         if (append == RPLIB_APPEND) {
             if ( (contents = scew_element_contents(retNode)) ) {
                 buf.append(contents);
-                if (fileType == RPLIB_BINARY) {
+                if (compress == RPLIB_COMPRESS) {
                     // base64 decode and un-gzip the data
                     buf.decode();
                 }
@@ -1609,10 +1611,17 @@ RpLibrary::putFile (std::string path,
 
         fileBuf.load(fileName.c_str());
         buf += fileBuf;
+        fileBuf.clear();
 
-        if (fileType == RPLIB_BINARY) {
+        if (compress == RPLIB_COMPRESS) {
             // gzip and base64 encode the data
             buf.encode();
+        }
+        else {
+            value = std::string(buf.bytes(),buf.size());
+            buf.clear();
+            _translateIn(value,transContents);
+            buf.append(transContents.c_str(),transContents.size());
         }
 
         bytesWritten = buf.size();

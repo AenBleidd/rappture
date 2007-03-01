@@ -2,7 +2,7 @@
  * ----------------------------------------------------------------------
  *  INTERFACE: Octave Rappture Library Source
  *
- *    [err] = rpLibPutFile(libHandle,path,fileName,compress,append)
+ *    [err] = rpLibPutData(libHandle,path,bytes,nbytes,append)
  *
  * ======================================================================
  *  AUTHOR:  Derrick Kearney, Purdue University
@@ -14,7 +14,7 @@
 #include "RpOctaveInterface.h"
 
 /**********************************************************************/
-// METHOD: [err] = rpLibPutFile (libHandle,path,fileName,fileType,append)
+// METHOD: [err] = rpLibPutFile (libHandle,path,bytes,nbytes,append)
 /// Set the value of a node.
 /**
  * Clients use this to set the value of a node.  If the path
@@ -23,9 +23,9 @@
  * by the path.  The value is treated as the text within the 
  * tag at the tail of the path.
  *
- * FileName is the name of the file to import into the rappture object
- * Compress is an integer telling if the provided data should be compressed
- * (use 1) or left uncompressed (use 0).
+ * Bytes is the data to be added to the rappture library object in the
+ * form of a string.
+ * NBytes is an integer telling the size of Bytes in bytes.
  * Append is an integer telling if this new data should overwrite
  * (use 0) or be appended (use 1) to previous data in this node.
  *
@@ -33,7 +33,7 @@
 
 DEFUN_DLD (rpLibPutString, args, ,
 "-*- texinfo -*-\n\
-[err] = rpLibPutString(@var{libHandle},@var{path},@var{fileName},@var{compress},@var{append})\n\
+[err] = rpLibPutData(@var{libHandle},@var{path},@var{bytes},@var{nbytes},@var{append})\n\
 \n\
 Clients use this to set the value of a node.  If the @var{path}\n\
 is not specified (ie. empty string ""), it sets the value for the\n\
@@ -41,15 +41,14 @@ root node.  Otherwise, it sets the value for the element specified\n\
 by the path.  The added data is treated as the text within the \n\
 tag at the tail of the @var{path}.\n\
 \n\
-@var{fileName} is the name of the file to import into the rappture object\n\
-@var{compress} is an integer telling if the provided data should be compressed\n\
-(use 1) or left uncompressed (use 0).\n\
+@var{bytes} is the name of the file to import into the rappture object\n\
+@var{nbytes} is an integer telling the size of bytes in bytes.\n\
 @var{append} is an integer telling if this new data should overwrite\n\
 (use 0) or be appended (use 1) to previous data in this node.\n\
 \n\
 Error Codes: err = 0 is success, anything else is failure.")
 {
-    static std::string who = "rpLibPutFile";
+    static std::string who = "rpLibPutData";
 
     // The list of values to return.
     octave_value_list retval;
@@ -57,9 +56,10 @@ Error Codes: err = 0 is success, anything else is failure.")
     int nargin            = args.length ();
     int libHandle         = 0;
     std::string path      = "";
-    std::string fileName  = "";
-    unsigned int compress = 0;
+    const char* bytes     = NULL;
+    unsigned int nbytes   = 0;
     unsigned int append   = 0;
+    unsigned int bufferSize = 0;
     RpLibrary* lib        = NULL;
 
     if (nargin == 5) {
@@ -70,11 +70,18 @@ Error Codes: err = 0 is success, anything else is failure.")
              args(3).is_real_scalar() &&
              args(4).is_real_scalar()   ) {
 
-            libHandle = args(0).int_value ();
-            path      = args(1).string_value ();
-            fileName  = args(2).string_value ();
-            compress  = (unsigned int) args(3).int_value ();
-            append    = (unsigned int) args(4).int_value ();
+            libHandle = args(0).int_value();
+            path      = args(1).string_value();
+            bytes     = args(2).string_value().data();
+            nbytes    = (unsigned int) args(3).int_value();
+            append    = (unsigned int) args(4).int_value();
+
+            if (args(2).string_value().length() < nbytes) {
+                bufferSize = (unsigned int) args(2).string_value().length();
+            }
+            else {
+                bufferSize = nbytes;
+            }
 
             /* Call the C subroutine. */
             // the only input that has restrictions is libHandle
@@ -83,7 +90,7 @@ Error Codes: err = 0 is success, anything else is failure.")
 
                 lib = getObject_Lib(libHandle);
                 if (lib) {
-                    lib->putFile(path,fileName,compress,append);
+                    lib->putData(path,bytes,nbytes,append);
                     err = 0;
                 }
                 else {
