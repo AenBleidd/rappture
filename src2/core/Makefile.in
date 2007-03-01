@@ -29,7 +29,7 @@ SHAREDLIB=librappture2.so
 SHAREDLIBV=librappture2.so.0.0
 SHAREDLIBM=librappture2.so.1
 
-AR=ar rc
+AR=ar rcv
 RANLIB=ranlib
 TAR=tar
 SHELL=/bin/sh
@@ -42,7 +42,7 @@ includedir = ${prefix}/include
 mandir = ${prefix}/share/man
 man3dir = ${mandir}/man3
 
-OBJS = viz.o RpMesh1D.o RpField1D.o RpMeshTri2D.o RpMeshRect3D.o \
+OBJS = RpMesh1D.o RpField1D.o RpMeshTri2D.o RpMeshRect3D.o \
        RpFieldRect3D.o RpMeshPrism3D.o RpFieldPrism3D.o RpSerialBuffer.o \
        RpSerializer.o RpSerializable.o RpBuffer.o Ptr.o Outcome.o # Lookup.o
 
@@ -72,7 +72,7 @@ librappture2.a: $(OBJS) $(OBJA)
 	-@ ($(RANLIB) $@ || true) >/dev/null 2>&1
 
 $(SHAREDLIBV): $(OBJS)
-	$(LDSHARED) -o $@ $(OBJS) -L ${libdir} -lz -lb64
+	$(LDSHARED) -shared -Wl,-rpath,${libdir} -o $@ $(OBJS) -L ${libdir} -lz -lb64
 	rm -f $(SHAREDLIB) $(SHAREDLIBM)
 	ln -s $@ $(SHAREDLIB)
 	ln -s $@ $(SHAREDLIBM)
@@ -86,17 +86,11 @@ RpBuffer_test$(EXE): RpBuffer_test.o $(LIBS)
 
 install: $(LIBS) $(SHAREDLIBV)
 	-@if [ ! -d $(exec_prefix) ]; then mkdir -p $(exec_prefix); fi
-	-@if [ ! -d $(includedir)  ]; then mkdir -p $(includedir); fi
+	-@if [ ! -d $(includedir)/rappture2  ]; then mkdir -p $(includedir)/rappture2; fi
 	-@if [ ! -d $(libdir)      ]; then mkdir -p $(libdir); fi
 	-@if [ ! -d $(man3dir)     ]; then mkdir -p $(man3dir); fi
-	cp rappture2.h $(includedir)
-	chmod 644 $(includedir)/rappture2.h
-	cp Ptr.h $(includedir)
-	chmod 644 $(includedir)/Ptr.h
-	cp Outcome.h $(includedir)
-	chmod 644 $(includedir)/Outcome.h
-	cp RpBuffer.h $(includedir)
-	chmod 644 $(includedir)/RpBuffer.h
+	cp *.h $(includedir)/rappture2
+	chmod 644 $(includedir)/rappture2/*.h
 	cp $(LIBS) $(libdir)
 	cp $(SHAREDLIBV) $(libdir)
 	cd $(libdir); chmod 755 $(LIBS)
@@ -113,7 +107,7 @@ install: $(LIBS) $(SHAREDLIBV)
 # ldconfig is for Linux
 
 uninstall:
-	cd $(includedir); \
+	cd $(includedir)/rappture2; rm *.h; \
 	cd $(libdir); rm -f librappture2.a; \
 	if test -f $(SHAREDLIBV); then \
 	  rm -f $(SHAREDLIBV) $(SHAREDLIB) $(SHAREDLIBM); \
@@ -134,8 +128,11 @@ depend:
 # DO NOT DELETE THIS LINE -- make depend depends on it.
 
 # should use librappture2.a or $(LDFLAGS)  but this uses RpOutcome.o
-viz: viz.o RpOutcome.o RpMesh1D.o RpField1D.o RpMeshTri2D.o RpMeshRect3D.o RpFieldRect3D.o RpMeshPrism3D.o RpFieldPrism3D.o RpSerialBuffer.o RpSerializer.o RpSerializable.o
+viz: viz.o libviz.a
 	$(CXX) $(CFLAGS) -o viz $^
+
+libviz.a: Outcome.o RpMesh1D.o RpField1D.o RpMeshTri2D.o RpMeshRect3D.o RpFieldRect3D.o RpMeshPrism3D.o RpFieldPrism3D.o RpSerialBuffer.o RpSerializer.o RpSerializable.o RpBuffer.o
+	$(AR) $@ $^
 
 viz.o: viz.cc
 	$(CXX) $(CFLAGS) -c -o viz.o viz.cc
