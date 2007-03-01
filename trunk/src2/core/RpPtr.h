@@ -150,6 +150,7 @@ Ptr<Type>::operator=(const Ptr<Type>& ptr)
         _pc->detach();
     }
     _pc = ptr._pc;
+    return *this;
 }
 
 template <class Type>
