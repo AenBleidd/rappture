@@ -58,6 +58,7 @@ RpMatlab: 	rpLib.mexglx \
 			rpLibPut.mexglx \
 			rpLibPutString.mexglx \
 			rpLibPutDouble.mexglx \
+			rpLibPutData.mexglx \
 			rpLibPutFile.mexglx \
 			rpLibNodeComp.mexglx \
 			rpLibNodeType.mexglx \
@@ -118,6 +119,8 @@ rpLibPutString.mexglx:
 	$(MEX) rpLibPutString.cc          $(MATLAB_COMP_ARGS)
 rpLibPutDouble.mexglx:
 	$(MEX) rpLibPutDouble.cc          $(MATLAB_COMP_ARGS)
+rpLibPutData.mexglx:
+	$(MEX) rpLibPutData.cc            $(MATLAB_COMP_ARGS)
 rpLibPutFile.mexglx:
 	$(MEX) rpLibPutFile.cc            $(MATLAB_COMP_ARGS)
 rpLibNodeComp.mexglx:

@@ -687,14 +687,22 @@ void rp_lib_put_data( int* handle,
 {
     std::string inPath = "";
     RpLibrary* lib = NULL;
+    int bufferSize = 0;
 
     inPath = null_terminate_str(path,path_len);
+
+    if (*nbytes < bytes_len) {
+        bufferSize = *nbytes;
+    }
+    else {
+        bufferSize = bytes_len;
+    }
 
     if ((handle) && (*handle != 0)) {
         lib = getObject_Lib(*handle);
 
         if (lib) {
-            lib->putData(inPath,bytes,*nbytes,*append);
+            lib->putData(inPath,bytes,bufferSize,*append);
         }
     }
 
@@ -711,7 +719,7 @@ void rp_lib_put_data( int* handle,
 void rp_lib_put_file( int* handle,
                         char* path,
                         char* fileName,
-                        int* fileType,
+                        int* compress,
                         int* append,
                         int path_len,
                         int fileName_len
@@ -728,7 +736,7 @@ void rp_lib_put_file( int* handle,
         lib = getObject_Lib(*handle);
 
         if (lib) {
-            lib->putFile(inPath,inFileName,*fileType,*append);
+            lib->putFile(inPath,inFileName,*compress,*append);
         }
     }
 

@@ -138,7 +138,7 @@ clean:
 	cd examples/c-example; make clean; cd -;
 	cd gui; make clean; cd -;
 	cd perl; make clean; cd -;
-	cd python; rm -rf build; rm setup.py; cd -;
+	cd python; rm -rf build; cd -;
 	cd src; make clean; cd -;
 	cd src/matlab; make clean; cd -;
 	cd src/octave; make clean; cd -;

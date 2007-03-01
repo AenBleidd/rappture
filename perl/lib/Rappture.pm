@@ -92,7 +92,7 @@ Nicholas J. Kisseberth
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (c) 2006, Purdue Research Foundation
+Copyright (c) 2006-2007, Purdue Research Foundation
 All rights reserved.
 
 Developed by:  Network for Computational Nanotechnology

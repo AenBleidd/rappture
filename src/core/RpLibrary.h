@@ -19,8 +19,8 @@ enum RP_LIBRARY_CONSTS {
     RPLIB_APPEND        = 1,
     RPLIB_NO_TRANSLATE  = 0,
     RPLIB_TRANSLATE     = 1,
-    RPLIB_TEXT          = 0,
-    RPLIB_BINARY        = 1,
+    RPLIB_NO_COMPRESS   = 0,
+    RPLIB_COMPRESS      = 1,
 };
 
 
@@ -38,7 +38,7 @@ enum RP_LIBRARY_CONSTS {
 #include <iterator>
 #include <cctype>
 #include <list>
-#include "RpBuffer.h"
+#include "rappture2/RpBuffer.h"
 
 /* indentation size (in whitespaces) */
 
@@ -133,7 +133,7 @@ class RpLibrary
 
         RpLibrary& putFile( std::string path,
                             std::string fileName,
-                            unsigned int fileType = RPLIB_BINARY,
+                            unsigned int compress = RPLIB_COMPRESS,
                             unsigned int append = RPLIB_OVERWRITE    );
 
         RpLibrary* remove (std::string path = "");

@@ -36,7 +36,7 @@ int main(int argc, char * argv[])
     rpPutString(lib,"output.field(dxFile1).about.label",
         "Example loading of a DX file",RPLIB_OVERWRITE);
     rpPutFile(lib,"output.field(dxFile1).component.dx",
-        dxFilePath,RPLIB_BINARY,RPLIB_OVERWRITE);
+        dxFilePath,RPLIB_COMPRESS,RPLIB_OVERWRITE);
 
     // write output to run file and signal
     rpResult(lib);

@@ -2,11 +2,11 @@
  * ----------------------------------------------------------------------
  *  INTERFACE: Matlab Rappture Library Source
  *
- *    [err] = rpLibPutFile(libHandle,path,fileName,compress,append)
+ *    [err] = rpLibPutData (libHandle,path,bytes,nbytes,append)
  *
  * ======================================================================
  *  AUTHOR:  Derrick Kearney, Purdue University
- *  Copyright (c) 2004-2007  Purdue Research Foundation
+ *  Copyright (c) 2004-2005  Purdue Research Foundation
  *
  *  See the file "license.terms" for information on usage and
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -16,11 +16,11 @@
 #include "RpMatlabInterface.h"
 
 /**********************************************************************/
-// METHOD: [err] = rpLibPutFile (libHandle,path,fileName,compress,append)
+// METHOD: [err] = rpLibPutData (libHandle,path,bytes,nbytes,append)
 /// Set the value of a node.
 /**
- * Clients use this to set the value of a node to the contents of a file.
- * If the path is not specified, it sets the value for the root node.
+ * Clients use this to set the value of a node.  If the path
+ * is not specified, it sets the value for the root node.
  * Otherwise, it sets the value for the element specified
  * by the path.  The value is treated as the text within the
  * tag at the tail of the path.
@@ -36,13 +36,13 @@
 void mexFunction(int nlhs, mxArray *plhs[],
                  int nrhs, const mxArray *prhs[])
 {
-    int          libIndex = 0;
-    unsigned int append = 0;
-    unsigned int compress = 0;
-    int          err = 1;
-    RpLibrary*   lib = NULL;
-    std::string  path = "";
-    std::string  fileName = "";
+    int         libIndex = 0;
+    int         append = 0;
+    int         nbytes = 0;
+    int         err = 1;
+    RpLibrary*  lib = NULL;
+    std::string path = "";
+    std::string bytes = "";
 
     /* Check for proper number of arguments. */
     if (nrhs != 5) {
@@ -50,17 +50,17 @@ void mexFunction(int nlhs, mxArray *plhs[],
     }
 
     libIndex = getIntInput(prhs[0]);
-    path     = getStringInput(prhs[1]);
-    fileName = getStringInput(prhs[2]);
-    compress = (unsigned int) getIntInput(prhs[3]);
-    append   = (unsigned int) getIntInput(prhs[4]);
+    path = getStringInput(prhs[1]);
+    bytes = getStringInput(prhs[2]);
+    nbytes = getIntInput(prhs[3]);
+    append = getIntInput(prhs[4]);
 
     /* Call the C++ subroutine. */
     if ( (libIndex > 0) && (!path.empty()) ) {
         lib = getObject_Lib(libIndex);
 
         if (lib) {
-            lib->putFile(path,fileName,compress,append);
+            lib->putData(path,bytes.c_str(),nbytes,append);
             err = 0;
         }
     }
