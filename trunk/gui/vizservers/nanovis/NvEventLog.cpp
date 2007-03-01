@@ -6,6 +6,8 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <stdlib.h>
+#include <string.h>
 
 
 
@@ -19,8 +21,24 @@ double cur_time;	//in seconds
 #ifdef XINETD
 void NvInitService()
 {
+    const char* user = getenv("USER");
+    char* logName = NULL;
+    int logNameLen = 0;
+
+    if (user == NULL) {
+        logNameLen = 20+1;
+        logName = (char*) calloc(logNameLen,sizeof(char));
+        strncpy(logName,"/tmp/nanovis_log.txt",logNameLen);
+    }
+    else {
+        logNameLen = 17+1+strlen(user);
+        logName = (char*) calloc(logNameLen,sizeof(char));
+        strncpy(logName,"/tmp/nanovis_log_",logNameLen);
+        strncat(logName,user,strlen(user));
+    }
+
     //open log and map stderr to log file
-    xinetd_log = fopen("/tmp/log.txt", "w");
+    xinetd_log = fopen(logName, "w");
     close(2);
     dup2(fileno(xinetd_log), 2);
     dup2(2,1);
@@ -28,6 +46,11 @@ void NvInitService()
     //flush junk
     fflush(stdout);
     fflush(stderr);
+
+    // clean up malloc'd memory
+    if (logName != NULL) {
+        free(logName);
+    }
 }
 
 void NvExitService()
