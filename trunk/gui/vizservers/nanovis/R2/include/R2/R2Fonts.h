@@ -1,11 +1,3 @@
-/** \class R2FontSet
- *  \brief OpenGL font for printing messages
- *  \author Insoo Woo(vrinside@gmail.com), Sung-Ye Kim (inside75@gmail.com)
- *  \author PhD research assistants in PURPL at Purdue University  
- *  \version 1.0
- *  \date    Nov. 2006-2007
- */
-
 #ifndef __R2_FONTS_H__
 #define __R2_FONTS_H__
 

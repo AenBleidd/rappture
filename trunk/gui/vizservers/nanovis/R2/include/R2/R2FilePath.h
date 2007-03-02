@@ -1,14 +1,6 @@
 #ifndef __R2_FILE_PATH_H__
 #define __R2_FILE_PATH_H__
 
-/** \class R2FilePath R2FilePath <R2/R2FilePath.h>
- *  \brief a class that searches a full path of the file
- *  \author Insoo Woo(iwoo@purdue.edu), Sung-Ye Kim (inside@purdue.edu)
- *  \author PhD research assistants in PURPL at Purdue University  
- *  \version 1.0
- *  \date    Nov. 2006-2007
- */
-
 #include <list>
 #include <R2/R2string.h>
 
