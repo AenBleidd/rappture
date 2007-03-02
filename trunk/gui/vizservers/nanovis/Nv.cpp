@@ -130,11 +130,13 @@ void NvInit()
     NvInitCG();
 
     g_fonts = new R2Fonts();
-    g_fonts->addFont("verdana", "verdana.fnt");
-    g_fonts->setFont("verdana");
+    // INSOO
+    //g_fonts->addFont("verdana", "verdana.fnt");
+    //g_fonts->setFont("verdana");
 
     g_color_table_renderer = new NvColorTableRenderer();
-    g_color_table_renderer->setFonts(g_fonts);
+    // INSOO
+    //g_color_table_renderer->setFonts(g_fonts);
 
     NvInitVolumeRenderer();
     NvInitParticleRenderer();

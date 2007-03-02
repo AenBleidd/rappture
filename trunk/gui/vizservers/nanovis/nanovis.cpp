@@ -309,6 +309,8 @@ CameraCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
 static int
 ScreenShotCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
 {
+// INSOO
+/*
     int old_win_width = win_width;
     int old_win_height = win_height;
 #ifdef XINETD
@@ -339,6 +341,7 @@ ScreenShotCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv
     //bmp_write("nv>screenshot -bytes");
     resize_offscreen_buffer(old_win_width, old_win_height); 
 #endif
+*/
 
 
 	return TCL_OK;
