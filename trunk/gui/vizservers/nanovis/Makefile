@@ -22,9 +22,10 @@ INSTALL_DIR = /opt/nanovis
 R2SRC = ./R2/src
 R2INC = ./R2/include
 
-LIB_NANOVIS = -Wl,-rpath,/apps/rappture/dev/lib -ltcl8.4 -L/apps/rappture/dev/lib -lb64 -lz -L/opt/render/lib -lGL -lglut -lglui -lGLEW -lCg -lCgGL -pthread # -lstdc++ 
+RP2_LIBS = /apps/rappture/render/lib/librappture2.a /apps/rappture/render/lib/libb64.a /apps/rappture/render/lib/libz.a
+LIB_NANOVIS = -Wl,-rpath,/apps/rappture/render/lib -ltcl8.4 -L/opt/render/lib -lGL -lglut -lglui -lGLEW -lCg -lCgGL -pthread # -lstdc++ 
 LIB_CLIENT = -L/opt/render/lib -lGL -lglut -pthread # -lstdc++ 
-INCLUDES = -I../../../src2/core -I/apps/rappture/dev/include -I/opt/render/include -I/usr/include/GL -I/usr/include/GL -I/usr/include/tcl8.4 -I/usr/include/GL -I$(R2INC)
+INCLUDES = -I/apps/rappture/render/include/rappture2 -I/apps/rappture/render/include -I/opt/render/include -I/usr/include/GL -I/usr/include/GL -I/usr/include/tcl8.4 -I/usr/include/GL -I$(R2INC)
 CFLAG = -g -c $(INCLUDES)
 
 all: nanovis
@@ -36,7 +37,7 @@ clean:
 	rm -f *.o nanovis client simclient
 
 nanovis: $(OBJ_NANOVIS)
-	gcc -g -o nanovis $(OBJ_NANOVIS) $(LIB_NANOVIS) /apps/rappture/dev/lib/librappture2.a
+	gcc -g -o nanovis $(OBJ_NANOVIS) $(LIB_NANOVIS) $(RP2_LIBS)
 
 ColorGradient.o: Color.o $(TFSRC)/ColorGradient.cpp
 	gcc $(CFLAG) $(TFSRC)/ColorGradient.cpp
