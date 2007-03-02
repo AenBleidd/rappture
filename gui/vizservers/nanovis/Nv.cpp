@@ -134,7 +134,7 @@ void NvInit()
     //g_fonts->addFont("verdana", "verdana.fnt");
     //g_fonts->setFont("verdana");
 
-    g_color_table_renderer = new NvColorTableRenderer();
+    //g_color_table_renderer = new NvColorTableRenderer();
     // INSOO
     //g_color_table_renderer->setFonts(g_fonts);
 

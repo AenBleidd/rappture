@@ -1,14 +1,6 @@
 #ifndef __R2_STRING_H__
 #define __R2_STRING_H__
 
-/** \class R2string R2string <R2/math/R2string.h>
- *  \brief string
- *  \author Insoo Woo(vrinside@gmail.com), Sung-Ye Kim (inside75@gmail.com)
- *  \author PhD research assistants in PURPL at Purdue University  
- *  \version 1.0
- *  \date    Nov. 2006-2007
- */
-
 #include <R2/R2.h>
 
 class R2string {
