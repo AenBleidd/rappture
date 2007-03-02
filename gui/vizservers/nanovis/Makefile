@@ -5,7 +5,7 @@ OBJ_NANOVIS = nanovis.o Socket.o RenderVertexArray.o Plane.o ConvexPolygon.o Vec
 		Lic.o Renderable.o Camera.o ScreenSnapper.o VolumeRenderer.o PlaneRenderer.o Nv.o \
 		NvZincBlendeVolumeShader.o NvShader.o NvVolumeShader.o NvRegularVolumeShader.o NvVolQDVolumeShader.o \
 		NvLoadFile.o NvVolQDVolume.o NvDefaultTFData.o NvColorTableShader.o NvColorTableRenderer.o NvParticleAdvectionShader.o \
-		NvEventLog.o NvParticleRenderer.o NvLIC.o \
+		NvEventLog.o NvParticleRenderer.o NvLIC.o NvZincBlendeReconstructor.o \
 		R2string.o R2FilePath.o R2Fonts.o R2Object.o
 
 OBJ_VOLUMERENDERER = Volume.o ConvexPolygon.o TransferFunction.o Mat4x4.o  Camera.o
