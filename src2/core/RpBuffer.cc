@@ -622,6 +622,9 @@ Buffer::encode (bool compress, bool base64)
 
     if (compress) {
         do_compress(err,*this,bout);
+        if (err) {
+            return err;
+        }
     }
 
     if (base64) {

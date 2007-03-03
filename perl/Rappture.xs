@@ -57,13 +57,13 @@ int append
 		THIS->put(path,value,"",append);
 
 void
-RpLibrary::putFile( path, fileName, fileType, append )
+RpLibrary::putFile( path, fileName, compress, append )
 char *path
 char *fileName
-int fileType
+int compress
 int append
 	CODE:
-		THIS->putFile(path,fileName,fileType,append);
+		THIS->putFile(path,fileName,compress,append);
 
 void
 RpLibrary::result()
