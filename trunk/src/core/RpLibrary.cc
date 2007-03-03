@@ -1586,6 +1586,7 @@ RpLibrary::putFile (std::string path,
     const char* contents = NULL;
     Rappture::Buffer buf;
     Rappture::Buffer fileBuf;
+    Rappture::Outcome err;
     unsigned int bytesWritten = 0;
     std::string value = "";
     std::string transContents = "";
@@ -1604,7 +1605,11 @@ RpLibrary::putFile (std::string path,
                 buf.append(contents);
                 if (compress == RPLIB_COMPRESS) {
                     // base64 decode and un-gzip the data
-                    buf.decode();
+                    err = buf.decode();
+                    if (err) {
+                        // decompress and decode failed, return err
+                        return *this;
+                    }
                 }
             }
         }
@@ -1615,7 +1620,11 @@ RpLibrary::putFile (std::string path,
 
         if (compress == RPLIB_COMPRESS) {
             // gzip and base64 encode the data
-            buf.encode();
+            err = buf.encode();
+            if (err) {
+                // compress and encode failed, return error
+                return *this;
+            }
         }
         else {
             value = std::string(buf.bytes(),buf.size());

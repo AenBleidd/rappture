@@ -31,9 +31,9 @@
  *
  */
 
-DEFUN_DLD (rpLibPutString, args, ,
+DEFUN_DLD (rpLibPutFile, args, ,
 "-*- texinfo -*-\n\
-[err] = rpLibPutString(@var{libHandle},@var{path},@var{fileName},@var{compress},@var{append})\n\
+[err] = rpLibPutFile(@var{libHandle},@var{path},@var{fileName},@var{compress},@var{append})\n\
 \n\
 Clients use this to set the value of a node.  If the @var{path}\n\
 is not specified (ie. empty string ""), it sets the value for the\n\
