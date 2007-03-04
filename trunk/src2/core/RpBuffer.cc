@@ -657,6 +657,9 @@ Buffer::decode (bool decompress, bool base64)
 
     if (base64) {
         do_base64_dec(err,*this,bout);
+        if (err) {
+            return err;
+        }
     }
 
     if (decompress) {
