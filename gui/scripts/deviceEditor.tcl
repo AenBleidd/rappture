@@ -32,9 +32,25 @@ itcl::class Rappture::DeviceEditor {
     protected method _type {xmlobj}
 
     private variable _current ""  ;# active device editor
+
+    public common _hubvisHosts ""
+
+    public proc setHubvisServer {namelist} {
+        if {[regexp {^[a-zA-Z0-9\.]+:[0-9]+(,[a-zA-Z0-9\.]+:[0-9]+)*$} $namelist match]} {
+            set _hubvisHosts $namelist
+        } else {
+            error "bad visualization server address \"$namelist\": should be host:port,host:port,..."
+        }
+    }
 }
                                                                                 
 itk::usual DeviceEditor {
+}
+
+# must use this name -- plugs into Rappture::resources::load
+proc deviceEditor_init_resources {} {
+    Rappture::resources::register \
+        hubvis_server Rappture::DeviceEditor::setHubvisServer
 }
 
 # ----------------------------------------------------------------------
@@ -131,7 +147,11 @@ itcl::body Rappture::DeviceEditor::_redraw {} {
         molecule {
             if {![winfo exists $itk_component(hull).mol]} {
                 catch {destroy $itk_component(hull).dev}
-                Rappture::MoleculeViewer $itk_component(hull).mol $this
+                if {"" != $_hubvisHosts} {
+                    Rappture::MolvisViewer $itk_component(hull).mol $_hubvisHosts
+                } else {
+                    Rappture::MoleculeViewer $itk_component(hull).mol $this
+                } 
                 pack $itk_component(hull).mol -expand yes -fill both
             }
             $itk_component(hull).mol configure -device $_xmlobj
