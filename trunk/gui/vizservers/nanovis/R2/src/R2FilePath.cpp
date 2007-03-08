@@ -54,11 +54,6 @@ void R2FilePath::setPath(const R2string& filePath)
 		}
 		else
 		{
-            FILE* f = fopen("/tmp/insoo.txt", "wt");
-            fprintf(f, "%s\n", (char*) (_curDirectory + R2string(token)));
-            fprintf(f, "%s\n", (char*) (_curDirectory + R2string(token) + "/"));
-            fclose(f);
-
 			if (token[lastIndex] == '/' || token[lastIndex] == '\\')
 			{
 				_pathList.push_back(_curDirectory + R2string(token));
