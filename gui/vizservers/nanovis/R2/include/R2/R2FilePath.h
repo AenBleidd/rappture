@@ -40,6 +40,11 @@ public :
 	 * @param filePath all default paths separated by colon(:)
 	 */
 	void setPath(const R2string& filePath);
+
+    /**
+     *
+     */
+    void setWorkingDirectory(int argc, const char** argv);
 public :
 
 	/**

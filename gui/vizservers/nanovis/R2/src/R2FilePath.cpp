@@ -22,6 +22,7 @@ R2FilePath::R2FilePath()
 	buff[length + 1] = '\0';
 
 	_curDirectory = buff;
+
 }
 
 void R2FilePath::setPath(const R2string& filePath)
@@ -53,6 +54,11 @@ void R2FilePath::setPath(const R2string& filePath)
 		}
 		else
 		{
+            FILE* f = fopen("/tmp/insoo.txt", "wt");
+            fprintf(f, "%s\n", (char*) (_curDirectory + R2string(token)));
+            fprintf(f, "%s\n", (char*) (_curDirectory + R2string(token) + "/"));
+            fclose(f);
+
 			if (token[lastIndex] == '/' || token[lastIndex] == '\\')
 			{
 				_pathList.push_back(_curDirectory + R2string(token));
@@ -99,4 +105,20 @@ R2string R2FilePath::getPath(const char* fileName)
 	return path;
 }
 
+void R2FilePath::setWorkingDirectory(int argc, const char** argv)
+{
+    char buff[255];
+    strcpy(buff, argv[0]);
+    for (int i = strlen(buff) - 1; i >= 0; --i)
+    {
+        if (buff[i] == '\\' || buff[i] == '/')
+        {
+            buff[i] = '/'; 
+            buff[i + 1] = '\0'; 
+            break;
+        }
+    }
+
+	_curDirectory = buff;
+}
 

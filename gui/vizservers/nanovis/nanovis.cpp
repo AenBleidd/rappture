@@ -658,20 +658,6 @@ TransfuncCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[
             data[4*i+3] = wFunc.value(xval);
         }
 
-        //INSOO
-        FILE* f = fopen("/tmp/aa.cpp", "wt");
-        fprintf(f, "float tfdata[] = {\n");
-        fprintf(f, "    ");
-        int num = nslots * 4;
-        for (i=0; i < num; i++) {
-            if (((i + 1) % 4) == 0)
-            {
-                fprintf(f, "\n    ");
-            }
-            fprintf(f, "%f, ", data[i]);
-        }
-        fclose(f);
-
         // find or create this transfer function
         int newEntry;
         Tcl_HashEntry *entryPtr;
@@ -3315,6 +3301,8 @@ double get_time_interval(){
 /*----------------------------------------------------*/
 int main(int argc, char** argv) 
 { 
+    R2FilePath::getInstance()->setWorkingDirectory(argc, (const char**) argv);
+
 #ifdef XINETD
    NvInitService();
 #endif
