@@ -120,8 +120,7 @@ void NvInitVolumeRenderer()
 
 void NvInit()
 {
-    char* filepath = "/home/nanohub/vrinside/rappture/gui/vizservers/nanovis/shaders:" \
-                    "/home/nanohub/vrinside/rappture/gui/vizservers/nanovis/resources:" \
+    char* filepath = "./shaders:./resources:" \
                     "/opt/nanovis/lib/shaders:/opt/nanovis/lib/resources";
 
     R2FilePath::getInstance()->setPath(filepath);
