@@ -13,7 +13,7 @@
 
 #include "RpLibrary.h"
 #include "RpEntityRef.h"
-
+#include <algorithm>
 static RpEntityRef ERTranslator;
 
 /**********************************************************************/
@@ -1310,7 +1310,7 @@ RpLibrary::getBool (std::string path)
     }
 
     retValStr = this->getString(path);
-    transform (retValStr.begin(),retValStr.end(),retValStr.begin(),tolower);
+    std::transform (retValStr.begin(),retValStr.end(),retValStr.begin(),tolower);
     retValLen = retValStr.length();
 
     if ((retValStr.compare(0,retValLen,"1",0,retValLen) == 0  )   ||
@@ -1818,7 +1818,11 @@ RpLibrary::result() {
         timestamp.erase(24);
         // concatinate the timezone
         timestamp.append(" ");
+#ifdef _WIN32
+	timestamp.append(_tzname[_daylight]);
+#else
         timestamp.append(timeinfo->tm_zone);
+#endif
 
         // add the timestamp to the run file
         put("output.time", timestamp);

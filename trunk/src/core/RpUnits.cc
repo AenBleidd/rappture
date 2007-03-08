@@ -14,6 +14,7 @@
  */
 
 #include "RpUnits.h"
+#include <algorithm>
 
 // dict pointer
 // set the dictionary to be case insensitive for seaches and storage
