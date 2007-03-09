@@ -25,7 +25,6 @@ public :
 
 inline void NvZincBlendeVolumeShader::bind(unsigned int tfID, Volume* volume, int sliceMode)
 {
-    //ZincBlendeVolume* vol = reinterpret_cast<ZincBlendeVolume*)>(volume);
     ZincBlendeVolume* vol = (ZincBlendeVolume*)volume;
     cgGLSetStateMatrixParameter(_mviParam, CG_GL_MODELVIEW_MATRIX, CG_GL_MATRIX_INVERSE);
     cgGLSetTextureParameter(_tfParam, tfID);

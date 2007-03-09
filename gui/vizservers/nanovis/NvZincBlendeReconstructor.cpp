@@ -21,22 +21,70 @@ NvZincBlendeReconstructor* NvZincBlendeReconstructor::getInstance()
     return _instance;
 }
 
-ZincBlendeVolume* NvZincBlendeReconstructor::load(const char* fileName)
+ZincBlendeVolume* NvZincBlendeReconstructor::loadFromFile(const char* fileName)
 {
     Vector3 origin, delta;
+    double temp;
     int width = 0, height = 0, depth = 0;
     void* data = NULL;
 
-    // TBD
-    // INSOO
-    // I have to handle the header of the file
+    ifstream stream;
+    stream.open(fileName, ios::binary);
+
+    ZincBlendeVolume* volume = loadFromStream(stream);
+
+    stream.close();
+
+    return volume;
+}
+
+ZincBlendeVolume* NvZincBlendeReconstructor::loadFromStream(std::istream& stream)
+{
+    Vector3 origin, delta;
+    double temp;
+    int width = 0, height = 0, depth = 0;
+    void* data = NULL;
+
+    char str[5][20];
+    do {
+        getLine(stream);
+    } while(strstr(buff, "object") == 0);
+
+
+     sscanf(buff, "%s%s%s%s%s%d%d%d", str[0], str[1], str[2], str[3], str[4],&width, &height, &depth);
+     getLine(stream); 
+     sscanf(buff, "%s%f%f%f", str[0], &(origin.x), &(origin.y), &(origin.z));
+     getLine(stream); 
+     sscanf(buff, "%s%f%f%f", str[0], &(delta.x), &temp, &temp);
+     getLine(stream); 
+     sscanf(buff, "%s%f%f%f", str[0], &temp, &(delta.y), &temp);
+     getLine(stream); 
+     sscanf(buff, "%s%f%f%f", str[0], &temp, &temp, &(delta.z));
+
+    do {
+        getLine(stream);
+    } while(strcmp(buff, "<\\HDR>") != 0);
+
     
+    width = width / 4;
+    height = height / 4;
+    depth = depth / 4;
+    data = new double[width * height * depth * 8 * 4]; // 8 atom per cell, 4 double (x, y, z, and probability) per atom
+
+    try {
+        stream.read((char*) data, width * height * depth * 8 * 4 * sizeof(double));
+    }
+    catch (...)
+    {
+        printf("ERROR\n");
+    }
+
     return buildUp(origin, delta, width, height, depth, data);
 }
 
-struct _NvUnitCellInfo {
-    float indexX, indexY, indexZ;
-    float atoms[8];
+struct _NvAtomInfo {
+    double indexX, indexY, indexZ;
+    double atom;
 
     int getIndex(int width, int height) const 
     {
@@ -47,74 +95,112 @@ struct _NvUnitCellInfo {
         // + y -> +z (OpenGL), But in 3D texture coordinate is the opposite direction of z 
         // The reasone why index is multiplied by 4 is that one unit cell has half of eight atoms
         // ,i.e. four atoms are mapped into RGBA component of one texel
-        return (indexZ + indexX * width + indexY * width * height) * 4;
+        return ((int) (indexZ - 1)+ (int) (indexX - 1) * width + (int) (indexY - 1) * width * height) * 4;
     }
 };
 
-template<class T>
-inline int _NvMax2(T a, T b) { return ((a >= b)? a : b); }
 
 template<class T>
-inline int _NvMin2(T a, T b) { return ((a >= b)? a : b); }
+inline T _NvMax2(T a, T b) { return ((a >= b)? a : b); }
 
 template<class T>
-inline int _NvMax3(T a, T b, T c) { return ((a >= b)? ((a >= c) ? a : c) : ((b >= c)? b : c)); }
+inline T _NvMin2(T a, T b) { return ((a >= b)? a : b); }
 
 template<class T>
-inline int _NvMin3(T a, T b, T c) { return ((a <= b)? ((a <= c) ? a : c) : ((b <= c)? b : c)); }
+inline T _NvMax3(T a, T b, T c) { return ((a >= b)? ((a >= c) ? a : c) : ((b >= c)? b : c)); }
 
 template<class T>
-inline int _NvMax9(T* a, T curMax) { return _NvMax3(_NvMax3(a[0], a[1], a[2]), _NvMax3(a[3], a[4], a[5]), _NvMax3(a[6], a[7], curMax)); }
+inline T _NvMin3(T a, T b, T c) { return ((a <= b)? ((a <= c) ? a : c) : ((b <= c)? b : c)); }
 
 template<class T>
-inline int _NvMin9(T* a, T curMax) { return _NvMin3(_NvMax3(a[0], a[1], a[2]), _NvMin3(a[3], a[4], a[5]), _NvMin3(a[6], a[7], curMax)); }
+inline T _NvMax9(T* a, T curMax) { return _NvMax3(_NvMax3(a[0], a[1], a[2]), _NvMax3(a[3], a[4], a[5]), _NvMax3(a[6], a[7], curMax)); }
+
+template<class T>
+inline T _NvMin9(T* a, T curMax) { return _NvMin3(_NvMax3(a[0], a[1], a[2]), _NvMin3(a[3], a[4], a[5]), _NvMin3(a[6], a[7], curMax)); }
+
+template<class T>
+inline T _NvMax4(T* a) { return _NvMax2(_NvMax2(a[0], a[1]), _NvMax2(a[2], a[3])); }
+
+template<class T>
+inline T _NvMin4(T* a) { return _NvMin2(_NvMin2(a[0], a[1]), _NvMin2(a[2], a[3])); }
+
 
 ZincBlendeVolume* NvZincBlendeReconstructor::buildUp(const Vector3& origin, const Vector3& delta, int width, int height, int depth, void* data)
 {
     ZincBlendeVolume* zincBlendeVolume = NULL;
 
-    float *dataVolumeA, *dataVolumeB;
+    float *fourAnionVolume, *fourCationVolume;
     int cellCount = width * height * depth;
-    dataVolumeA = new float[cellCount * sizeof(float) * 4];
-    dataVolumeB = new float[cellCount * sizeof(float) * 4];
+    fourAnionVolume = new float[cellCount * sizeof(float) * 4];
+    fourCationVolume = new float[cellCount * sizeof(float) * 4];
 
-    _NvUnitCellInfo* srcPtr = (_NvUnitCellInfo*) data;
+    _NvAtomInfo* srcPtr = (_NvAtomInfo*) data;
 
     float vmin, vmax;
     float* component4A, *component4B;
     int index;
 
-    vmin = vmax = srcPtr->atoms[0];
-    for (int i = 0; i < cellCount; ++i)
+    vmin = vmax = srcPtr->atom;
+
+    int i;
+    for (i = 0; i < cellCount; ++i)
     {
         index = srcPtr->getIndex(width, height);
-        component4A = dataVolumeA + index;
-        component4B = dataVolumeB + index;
+        component4A = fourAnionVolume + index;
+        component4B = fourCationVolume + index;
 
+        component4A[0] = (float) srcPtr->atom; srcPtr++;
+        component4A[1] = (float) srcPtr->atom; srcPtr++;
+        component4A[2] = (float) srcPtr->atom; srcPtr++;
+        component4A[3] = (float) srcPtr->atom; srcPtr++;
+      
+        component4B[0] = (float) srcPtr->atom; srcPtr++;
+        component4B[1] = (float) srcPtr->atom; srcPtr++;
+        component4B[2] = (float) srcPtr->atom; srcPtr++;
+        component4B[3] = (float) srcPtr->atom; srcPtr++;
 
-        component4A[0] = srcPtr->atoms[0];
-        component4A[1] = srcPtr->atoms[1];
-        component4A[2] = srcPtr->atoms[2];
-        component4A[3] = srcPtr->atoms[3];
-
-        component4B[0] = srcPtr->atoms[4];
-        component4B[1] = srcPtr->atoms[5];
-        component4B[2] = srcPtr->atoms[6];
-        component4B[3] = srcPtr->atoms[7];
-
-        vmin = _NvMax9((float*) srcPtr->atoms, vmin);
-        vmax = _NvMax9((float*)  srcPtr->atoms, vmax);
-
-        ++srcPtr; 
+        vmax = _NvMax3(_NvMax4(component4A), _NvMax4(component4B), vmax);
+        vmin = _NvMin3(_NvMin4(component4A), _NvMin4(component4B), vmin);
     }
 
-/*
-    zincBlendeVolume = new ZincBlendeVolume(origin.x, origin.y, origin.z, 
-		width, height, depth, size, 4, 
-		dataVolumeA, dataVolumeB,
-        vmin, vmax, cellSize);
-*/
+    double dv = vmax - vmin;
+    if (vmax != 0.0f)
+    {
+        for (i=0; i < cellCount; ++i) 
+        {
+            fourAnionVolume[i] = (fourAnionVolume[i] - vmin)/ dv;
+            fourCationVolume[i] = (fourCationVolume[i] - vmin) / dv;
+        }
+    }
+
+    Vector3 cellSize;
+    cellSize.x = 0.25 / width;
+    cellSize.y = 0.25 / height;
+    cellSize.z = 0.25 / depth;
+
+    zincBlendeVolume = new ZincBlendeVolume(origin.x, origin.y, origin.z,
+                                            width, height, depth, 1, 4,
+                                            fourAnionVolume, fourCationVolume,
+                                            vmin, vmax, cellSize);
 
     return zincBlendeVolume;
+}
+
+void NvZincBlendeReconstructor::getLine(std::istream& sin)
+{
+    char ch;
+    int index = 0;
+    do {
+        sin.get(ch);
+        if (ch == '\n') break;
+        buff[index++] = ch;
+        if (ch == '>')
+        {
+            if (buff[1] == '\\')
+                break;
+        }
+    } while (!sin.eof());
+
+    buff[index] = '\0';
 }
 
