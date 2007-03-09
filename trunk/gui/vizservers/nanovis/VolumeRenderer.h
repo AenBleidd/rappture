@@ -34,41 +34,44 @@
 #include "ZincBlendeVolume.h"
 #include "PerfQuery.h"
 #include "NvRegularVolumeShader.h"
-#include "NvVolQDVolumeShader.h"
 #include "NvZincBlendeVolumeShader.h"
+#include "NvStdVertexShader.h"
 
 using namespace std;
 
 class VolumeRenderer {
 
 private:
-  vector <Volume*> volume;	//array of volumes
-  vector <TransferFunction*> tf;//array of corresponding transfer functions 
-  int n_volumes;
+    vector <Volume*> volume;	    //!<- array of volumes
+    vector <TransferFunction*> tf;    //!<- array of corresponding transfer functions 
+    int n_volumes;
 
-  bool slice_mode;	//enable cut planes
-  bool volume_mode;	//enable full volume rendering
+    bool slice_mode;	//!<- enable cut planes
+    bool volume_mode;	//!<- enable full volume rendering
 
-
-  //cg related
-  CGcontext g_context;	//the Nvidia cg context 
-
-  //shader parameters for rendering a single cubic volume
-  NvRegularVolumeShader* m_regularVolumeShader;
-  NvVolQDVolumeShader* m_volQDVolumeShader;
+    /** 
+     * shader parameters for rendering a single cubic volume
+     */
+    NvRegularVolumeShader* _regularVolumeShader;
 
 
-  //Shader parameters for rendering a single zincblende orbital.
-  //A simulation contains S, P, D and SS, total of 4 orbitals. A full rendering requires 4 zincblende orbital volumes.
-  //A zincblende orbital volume is decomposed into two "interlocking" cubic volumes and passed to the shader. 
-  //We render each orbital with its own independent transfer functions then blend the result.
-  //
-  //The engine is already capable of rendering multiple volumes and combine them. Thus, we just invoke this shader on
-  //S, P, D and SS orbitals with different transfor functions. The result is a multi-orbital rendering.
-  //This is equivalent to rendering 4 unrelated data sets occupying the same space.
-  NvZincBlendeVolumeShader* m_zincBlendeShader;
+    /**
+     * Shader parameters for rendering a single zincblende orbital.
+     * A simulation contains S, P, D and SS, total of 4 orbitals. A full rendering requires 4 zincblende orbital volumes.
+     * A zincblende orbital volume is decomposed into two "interlocking" cubic volumes and passed to the shader. 
+     * We render each orbital with its own independent transfer functions then blend the result.
+     * 
+     * The engine is already capable of rendering multiple volumes and combine them. Thus, we just invoke this shader on
+     * S, P, D and SS orbitals with different transfor functions. The result is a multi-orbital rendering.
+     * This is equivalent to rendering 4 unrelated data sets occupying the same space.
+     */
+    NvZincBlendeVolumeShader* _zincBlendeShader;
   
   
+    /**
+     * standard vertex shader 
+     */
+    NvStdVertexShader* _stdVertexShader;
   
   //standard vertex shader parameters
   CGprogram m_vert_std_vprog;
@@ -86,7 +89,7 @@ private:
 
   void get_near_far_z(Mat4x4 mv, double &zNear, double &zFar);
 
-  void init_font(char* filename);
+  void init_font(const char* filename);
   GLuint font_texture; 				//the id of the font texture
   void glPrint(char* string, int set);		//there are two sets of font in the texture. 0, 1
   void draw_label(int volume_index);		//draw label using bitmap texture
@@ -94,7 +97,7 @@ private:
   void build_font();				//register the location of each alphabet in the texture
 
 public:
-  VolumeRenderer(CGcontext _context);
+  VolumeRenderer();
   ~VolumeRenderer();
 
   int add_volume(Volume* _vol, TransferFunction* _tf); 

@@ -3,9 +3,9 @@ OBJ_NANOVIS = nanovis.o Socket.o RenderVertexArray.o Plane.o ConvexPolygon.o Vec
 		PerfQuery.o TransferFunction.o ControlPoint.o ColorGradient.o ColorPaletteWindow.o\
 		ColorGradientGLUTWindow.o TransferFunctionGLUTWindow.o MainWindow.o Event.o \
 		Lic.o Renderable.o Camera.o ScreenSnapper.o VolumeRenderer.o PlaneRenderer.o Nv.o \
-		NvZincBlendeVolumeShader.o NvShader.o NvVolumeShader.o NvRegularVolumeShader.o NvVolQDVolumeShader.o \
-		NvLoadFile.o NvVolQDVolume.o NvDefaultTFData.o NvColorTableShader.o NvColorTableRenderer.o NvParticleAdvectionShader.o \
-		NvEventLog.o NvParticleRenderer.o NvLIC.o NvZincBlendeReconstructor.o \
+		NvZincBlendeVolumeShader.o NvShader.o NvVolumeShader.o NvRegularVolumeShader.o \
+		NvLoadFile.o NvDefaultTFData.o NvColorTableShader.o NvColorTableRenderer.o NvParticleAdvectionShader.o \
+		NvEventLog.o NvParticleRenderer.o NvLIC.o NvZincBlendeReconstructor.o NvStdVertexShader.o \
 		R2string.o R2FilePath.o R2Fonts.o R2Object.o
 
 OBJ_VOLUMERENDERER = Volume.o ConvexPolygon.o TransferFunction.o Mat4x4.o  Camera.o
@@ -45,6 +45,9 @@ ColorGradient.o: Color.o $(TFSRC)/ColorGradient.cpp
 Nv.o: Nv.cpp NvShader.cpp
 	gcc $(CFLAG) Nv.cpp
 
+NvStdVertexShader.o: NvStdVertexShader.cpp NvStdVertexShader.h
+	gcc $(CFLAG) NvStdVertexShader.cpp
+
 NvLoadFile.o: NvLoadFile.cpp NvLoadFile.cpp
 	gcc $(CFLAG) NvLoadFile.cpp
 
@@ -74,12 +77,6 @@ NvVolumeShader.o: NvVolumeShader.cpp NvVolumeShader.h
 
 NvDefaultTFData.o: NvDefaultTFData.cpp
 	gcc $(CFLAG) NvDefaultTFData.cpp
-
-NvVolQDVolume.o: NvVolQDVolume.cpp NvVolQDVolume.h
-	gcc $(CFLAG) NvVolQDVolume.cpp
-
-NvVolQDVolumeShader.o: NvVolQDVolumeShader.cpp NvVolQDVolumeShader.h
-	gcc $(CFLAG) NvVolQDVolumeShader.cpp
 
 NvRegularVolumeShader.o: NvRegularVolumeShader.cpp NvRegularVolumeShader.h
 	gcc $(CFLAG) NvRegularVolumeShader.cpp

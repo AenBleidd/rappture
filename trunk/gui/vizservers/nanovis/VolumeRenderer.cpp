@@ -13,40 +13,41 @@
  * ======================================================================
  */
 
+#include <R2/R2string.h>
+#include <R2/R2FilePath.h>
 #include "VolumeRenderer.h"
+#include "NvStdVertexShader.h"
 
 
-VolumeRenderer::VolumeRenderer(CGcontext _context):
+VolumeRenderer::VolumeRenderer():
   n_volumes(0),
-  g_context(_context),
   slice_mode(false),
   volume_mode(true)
 {
-  volume.clear();
-  tf.clear(); 
+    volume.clear();
+    tf.clear(); 
 
-  init_shaders();
-  init_font("/opt/nanovis/lib/font/Font.bmp");
+    init_shaders();
+
+    R2string path = R2FilePath::getInstance()->getPath("Font.bmp");
+    init_font((const char*) path);
 }
 
 VolumeRenderer::~VolumeRenderer()
 {
-    delete m_zincBlendeShader;
-    delete m_regularVolumeShader;
-    delete m_volQDVolumeShader;
+    delete _zincBlendeShader;
+    delete _regularVolumeShader;
+    delete _stdVertexShader;
 }
 
 //initialize the volume shaders
 void VolumeRenderer::init_shaders(){
   
   //standard vertex program
-  m_vert_std_vprog = loadProgram(g_context, CG_PROFILE_VP30, CG_SOURCE, "/opt/nanovis/lib/shaders/vertex_std.cg");
-  m_mvp_vert_std_param = cgGetNamedParameter(m_vert_std_vprog, "modelViewProjMatrix");
-  m_mvi_vert_std_param = cgGetNamedParameter(m_vert_std_vprog, "modelViewInv");
-
+  _stdVertexShader = new NvStdVertexShader();
 
   //volume rendering shader: one cubic volume
-  m_regularVolumeShader = new NvRegularVolumeShader();
+  _regularVolumeShader = new NvRegularVolumeShader();
 
   //volume rendering shader: one zincblende orbital volume.
   //This shader renders one orbital of the simulation.
@@ -56,9 +57,7 @@ void VolumeRenderer::init_shaders(){
   //
   //The engine is already capable of rendering multiple volumes and combine them. Thus, we just invoke this shader on
   //S, P, D and SS orbitals with different transfor functions. The result is a multi-orbital rendering.
-  m_zincBlendeShader = new NvZincBlendeVolumeShader();
-
-  m_volQDVolumeShader = new NvVolQDVolumeShader();
+  _zincBlendeShader = new NvZincBlendeVolumeShader();
 }
 
 
@@ -668,38 +667,28 @@ void VolumeRenderer::draw_bounding_box(float x0, float y0, float z0,
 
 
 
-void VolumeRenderer::activate_volume_shader(int volume_index, bool slice_mode){
-
+void VolumeRenderer::activate_volume_shader(int volume_index, bool slice_mode)
+{
   //vertex shader
-  cgGLSetStateMatrixParameter(m_mvp_vert_std_param, CG_GL_MODELVIEW_PROJECTION_MATRIX, CG_GL_MATRIX_IDENTITY);
-  cgGLSetStateMatrixParameter(m_mvi_vert_std_param, CG_GL_MODELVIEW_MATRIX, CG_GL_MATRIX_INVERSE);
-  cgGLBindProgram(m_vert_std_vprog);
-  cgGLEnableProfile(CG_PROFILE_VP30);
-
+  _stdVertexShader->bind();
 
   if (volume[volume_index]->volume_type == CUBIC)
   {
     //regular cubic volume
-    m_regularVolumeShader->bind(tf[volume_index]->id, volume[volume_index], slice_mode);
+    _regularVolumeShader->bind(tf[volume_index]->id, volume[volume_index], slice_mode);
   }
-
   else if (volume[volume_index]->volume_type == ZINCBLENDE)
   {
-    m_zincBlendeShader->bind(tf[volume_index]->id, volume[volume_index], slice_mode);
-  }
-  else if (volume[volume_index]->volume_type == VOLQD)
-  {
-    m_volQDVolumeShader->bind(tf[volume_index]->id, volume[volume_index], slice_mode);
+    _zincBlendeShader->bind(tf[volume_index]->id, volume[volume_index], slice_mode);
   }
 }
 
 
 void VolumeRenderer::deactivate_volume_shader()
 {
-  cgGLDisableProfile(CG_PROFILE_VP30);
-
-  m_regularVolumeShader->unbind();
-  m_zincBlendeShader->unbind();
+    _stdVertexShader->unbind();
+    _regularVolumeShader->unbind();
+    _zincBlendeShader->unbind();
 }
 
 
@@ -755,7 +744,7 @@ void VolumeRenderer::disable_volume(int index){
 }
 
 
-void VolumeRenderer::init_font(char* filename) {
+void VolumeRenderer::init_font(const char* filename) {
 
     FILE *file;
     unsigned short int bfType;

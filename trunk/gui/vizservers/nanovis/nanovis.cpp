@@ -42,9 +42,9 @@
 #include "transfer-function/MainWindow.h"
 #include "ZincBlendeVolume.h"
 #include "NvLoadFile.h"
-#include "NvVolQDVolume.h"
 #include "NvColorTableRenderer.h"
 #include "NvEventLog.h"
+#include "NvZincBlendeReconstructor.h"
 
 // R2 headers
 #include <R2/R2FilePath.h>
@@ -285,40 +285,19 @@ CameraCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
 	return TCL_ERROR;
 }
 
-/*
-{
-  glEnable(GL_TEXTURE_2D);
-  glEnable(GL_BLEND);
-
-  glViewport(0, 0, 1024, 1024);
-  glMatrixMode(GL_PROJECTION);
-  glLoadIdentity();
-  gluOrtho2D(0, render_width, 0, render_height);
-  glMatrixMode(GL_MODELVIEW);
-  glLoadIdentity();
-
-  glBegin(GL_QUADS);
-  glTexCoord2f(0, 0); glVertex2f(30, 30);
-  glTexCoord2f(1, 0); glVertex2f(1024 - 60, 30);
-  glTexCoord2f(1, 1); glVertex2f(1024 - 60, 1024 - 60);
-  glTexCoord2f(0, 1); glVertex2f(30, 1024 - 60);
-  glEnd();
-}
-*/
-
 static int
 ScreenShotCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
 {
-// INSOO
-/*
     int old_win_width = win_width;
     int old_win_height = win_height;
+
 #ifdef XINETD
     resize_offscreen_buffer(1024, 1024);
     cam->set_screen_size(30, 90, 1024 - 60, 1024 - 120);
     offscreen_buffer_capture();  //enable offscreen render
     display();
 
+    // INSOO
     // TBD
     Volume* vol = volume[0];
     TransferFunction* tf = g_vol_render->get_volume_shading(vol);
@@ -335,14 +314,14 @@ ScreenShotCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv
 
     read_screen();
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
+
     // INSOO
     // TBD
-    bmp_write_to_file();
     //bmp_write("nv>screenshot -bytes");
+    bmp_write_to_file();
+    
     resize_offscreen_buffer(old_win_width, old_win_height); 
 #endif
-*/
-
 
 	return TCL_OK;
 }
@@ -823,7 +802,8 @@ VolumeCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
             Rappture::Buffer buf;
 
             char buffer[8096];
-            while (nbytes > 0) {
+            while (nbytes > 0) 
+            {
                 int chunk = (sizeof(buffer) < nbytes) ? sizeof(buffer) : nbytes;
                 int status = fread(buffer, 1, chunk, stdin);
                 if (status > 0) {
@@ -841,16 +821,53 @@ VolumeCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
                 Tcl_AppendResult(interp, err.remark().c_str(), (char*)NULL);
                 return TCL_ERROR;
             }
-            std::stringstream fdata;
-            fdata.write(buf.bytes(),buf.size());
+
 
             int n = n_volumes;
-            err = load_volume_stream(n, fdata);
+            char header[6];
+            memcpy(header, buf.bytes(), sizeof(char) * 5);
+            header[5] = '\0';
 
-            if (err) {
-                Tcl_AppendResult(interp, err.remark().c_str(), (char*)NULL);
-                return TCL_ERROR;
+            if (!strcmp(header, "<HDR>"))
+            {
+                std::stringstream fdata(std::ios_base::out|std::ios_base::in|std::ios_base::binary);
+                fdata.write(buf.bytes(),buf.size());
+
+                Volume* vol = NULL;
+                vol = NvZincBlendeReconstructor::getInstance()->loadFromStream(fdata);
+                if (vol)
+                {
+                    while (n_volumes <= n) 
+                    {
+                        volume.push_back((Volume*) NULL);
+                        n_volumes++;
+                    }
+
+                    if (volume[n] != NULL) 
+                    {
+                        delete volume[n];
+                        volume[n] = NULL;
+                    }
+
+                    float dx0 = -0.5;
+                    float dy0 = -0.5*vol->height/vol->width;
+                    float dz0 = -0.5*vol->depth/vol->width;
+                    vol->move(Vector3(dx0, dy0, dz0));
+
+                    volume[n] = vol;
+                }
             }
+            else
+            {
+                std::stringstream fdata;
+                fdata.write(buf.bytes(),buf.size());
+                err = load_volume_stream(n, fdata);
+                if (err) {
+                    Tcl_AppendResult(interp, err.remark().c_str(), (char*)NULL);
+                    return TCL_ERROR;
+                }
+            }
+            
 
             //
             // BE CAREFUL:  Set the number of slices to something
@@ -860,11 +877,15 @@ VolumeCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
             //   volume will overwrite the first, so the first won't
             //   appear at all.
             //
-            volume[n]->set_n_slice(256-n);
-            volume[n]->disable_cutplane(0);
-            volume[n]->disable_cutplane(1);
-            volume[n]->disable_cutplane(2);
-            g_vol_render->add_volume(volume[n], get_transfunc("default"));
+            if (volume[n])
+            {
+                volume[n]->set_n_slice(256-n);
+                volume[n]->disable_cutplane(0);
+                volume[n]->disable_cutplane(1);
+                volume[n]->disable_cutplane(2);
+
+                g_vol_render->add_volume(volume[n], get_transfunc("default"));
+            }
 
             return TCL_OK;
         }
@@ -1071,32 +1092,6 @@ VolumeCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
             }
             ++iter;
         }
-        return TCL_OK;
-    }
-    else if (c == 'v' && strcmp(argv[1],"volqd") == 0) {
-        int n = n_volumes;
-
-        NvLoadVolumeBinFile(n, "/home/nanohub/vrinside/grid_1_0");
-
-        volume[n]->set_n_slice(256-n);
-        volume[n]->disable_cutplane(0);
-        volume[n]->disable_cutplane(1);
-        volume[n]->disable_cutplane(2);
-        g_vol_render->add_volume(volume[n], get_transfunc("default"));
-
-        return TCL_OK;
-    }
-    else if (c == 'z' && strcmp(argv[1],"zinc") == 0) {
-        int n = n_volumes;
-
-        NvLoadVolumeBinFile2(n, "/home/nanohub/vrinside/grid_1_0");
-
-        volume[n]->set_n_slice(256-n);
-        volume[n]->disable_cutplane(0);
-        volume[n]->disable_cutplane(1);
-        volume[n]->disable_cutplane(2);
-        g_vol_render->add_volume(volume[n], get_transfunc("default"));
-
         return TCL_OK;
     }
     else if (c == 't' && strcmp(argv[1],"test2") == 0) {
@@ -1907,58 +1902,6 @@ void load_volume(int index, int width, int height, int depth,
     assert(volume[index]!=0);
 }
 
-//INSOO
-extern float tfdefaultdata[];
-void load_volqd_volume(int index, int width, int height, int depth,
-    int n_component, float* data, double vmin, double vmax, Vector3& cellSize)
-{
-    while (n_volumes <= index) {
-        volume.push_back(NULL);
-        n_volumes++;
-    }
-
-    if (volume[index] != NULL) {
-        delete volume[index];
-        volume[index] = NULL;
-    }
-
-    volume[index] = new NvVolQDVolume(0.f, 0.f, 0.f, width, height, depth, 1.,
-                                 n_component, data, vmin, vmax, cellSize);
-
-    float dx0 = -0.5;
-    float dy0 = -0.5*height/width;
-    float dz0 = -0.5*depth/width;
-    volume[index]->move(Vector3(dx0, dy0, dz0));
-
-    // INSOO
-    // Tentatively
-    TransferFunction* tf = new TransferFunction(256, tfdefaultdata);
-    g_vol_render->shade_volume(volume[index], tf);
-}
-
-// INSOO
-void load_zinc_volume(int index, int width, int height, int depth,
-    int n_component, float* data, double vmin, double vmax, Vector3& cellSize)
-{
-    while (n_volumes <= index) {
-        volume.push_back(NULL);
-        n_volumes++;
-    }
-
-    if (volume[index] != NULL) {
-        delete volume[index];
-        volume[index] = NULL;
-    }
-
-    volume[index] = new ZincBlendeVolume(0.f, 0.f, 0.f, width, height, depth, 1.,
-                                 n_component, data, data, vmin, vmax, cellSize);
-
-    float dx0 = -0.5;
-    float dy0 = -0.5*height/width;
-    float dz0 = -0.5*depth/width;
-    volume[index]->move(Vector3(dx0, dy0, dz0));
-}
-
 // get a colormap 1D texture by name
 TransferFunction*
 get_transfunc(char *name) {
@@ -2200,7 +2143,7 @@ void initGL(void)
    init_offscreen_buffer();    //frame buffer object for offscreen rendering
 
    //create volume renderer and add volumes to it
-   g_vol_render = new VolumeRenderer(g_context);
+   g_vol_render = new VolumeRenderer();
 
    
    /*
