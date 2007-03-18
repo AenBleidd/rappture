@@ -6,7 +6,8 @@ endif
 # tell make where to find the expat & libscew headers
 INCL_RP_DEPS    = -I$(RP_INSTALL_BASE)/include
 
-LIB_SCEW_FLAG   = -L$(RP_INSTALL_BASE)/lib -lscew
+EXTERNAL_RP_LIBS   = -L$(RP_INSTALL_BASE)/lib -lscew -lz -lb64 -lm
+
 
 # define the top of the rappture directory structure
 RP_BASE   = @RP_BASE@
@@ -32,9 +33,11 @@ INCLUDES_DIR    = $(RP_BASE)/src
 BIN_DIR         = $(RP_BASE)/bin
 LIB_DIR         = $(RP_BASE)/src
 SRC_DIR         = $(RP_BASE)/src
+SRC2_DIR        = $(RP_BASE)/src2
 TEST_DIR        = $(RP_BASE)/test
 
 CORE_SRC        = $(SRC_DIR)/core
+CORE2_SRC       = $(SRC2_DIR)/core
 FORT_SRC        = $(SRC_DIR)/fortran
 CEE_SRC         = $(SRC_DIR)/cee
 MATLAB_SRC      = $(SRC_DIR)/matlab
@@ -45,11 +48,12 @@ LIB_INC_PREFIX  = -Wl,-rpath,$(LIB_DIR) -L$(LIB_DIR)
 LIB_RP_OBJECTS  = $(LIB_INC_PREFIX) -lRpObjects
 LIB_RAPPTURE    = -Wl,-rpath,$(LIB_DIR) -L$(LIB_DIR) -lrappture
 
-INCL_CORE       = -I$(INCLUDES_DIR)/core
-INCL_CEE        = -I$(INCLUDES_DIR)/cee
-INCL_FORTRAN    = -I$(INCLUDES_DIR)/fortran
-INCL_MATLAB     = -I$(INCLUDES_DIR)/matlab
-INCL_OCTAVE     = -I$(INCLUDES_DIR)/octave
+INCL_CORE       = -I$(CORE_SRC)
+INCL_CORE2      = -I$(CORE2_SRC)
+INCL_CEE        = -I$(CEE_SRC)
+INCL_FORTRAN    = -I$(FORT_SRC)
+INCL_MATLAB     = -I$(MATLAB_SRC)
+INCL_OCTAVE     = -I$(OCTAVE_SRC)
 
 CFLAGS = -fPIC
 
@@ -65,12 +69,13 @@ install: 	install_rappture 	\
 RP_IO_DEPS      = RpLibrary.o RpLibraryCInterface.o RpLibraryFInterface.o \
                   scew_extras.o RpEntityRef.o
 RP_UNITS_DEPS   = RpUnitsStd.o RpUnits.o RpUnitsCInterface.o RpUnitsFInterface.o
-RP_OTHER_DEPS   = RpFortranCommon.o RpBindingsDict.o
+RP_OTHER_DEPS   = RpFortranCommon.o RpBindingsDict.o \
+                  RpBufferCInterface.o RpOutcomeCInterface.o
 RP_OBJS_DEP     = RpVariable.o RpAbout.o RpNumber.o RpString.o RpBoolean.o \
                   RpChoice.o RpOption.o RpUnitsStd.o RpUnits.o #RpValue.o\
                   # RpValueDouble.o RpValueString.o
-RP2_OBJS        = ../src2/core/RpBuffer.o ../src2/core/Outcome.o ../src2/core/Ptr.o
-RP2_LIBS        = -L/apps/rappture/20070219/lib -lz -lb64
+RP2_OBJ_DEP     = $(CORE2_SRC)/Outcome.o $(CORE2_SRC)/Ptr.o $(CORE2_SRC)/RpBuffer.o
+
 
 LDLIB_MACOSX = -dynamiclib -o $(LIB_DIR)/$@.dylib
 LDLIB_LINUX = -shared -Wl,-rpath,$(LIB_DIR)/ -Wl,-soname,$@.so -o $(LIB_DIR)/$@.so.0.0
@@ -79,13 +84,14 @@ LDLIB_LINUX = -shared -Wl,-rpath,$(LIB_DIR)/ -Wl,-soname,$@.so -o $(LIB_DIR)/$@.
 
 #### librappture shared object ###########################################
 
-librappture: $(RP_IO_DEPS) $(RP_UNITS_DEPS) $(RP_OTHER_DEPS) $(RP2_OBJS)
+librappture: $(RP_IO_DEPS) $(RP_UNITS_DEPS) $(RP_OTHER_DEPS)
+	(cd ../src2/core/; make Outcome.o Ptr.o RpBuffer.o)
 	if test "`uname`" == "Darwin"; then \
-		$(CXX) $(DEGUG) $(LDLIB_MACOSX) $^ $(LIB_SCEW_FLAG) $(RP2_LIBS) -lm; \
+		$(CXX) $(DEGUG) $(LDLIB_MACOSX) $^ $(RP2_OBJ_DEP) $(EXTERNAL_RP_LIBS); \
 		ar -r $@.a $^; \
 		ranlib -s $@.a; \
 	else \
-		$(CXX) $(DEGUG) $(LDLIB_LINUX) $^ $(LIB_SCEW_FLAG) $(RP2_LIBS) -lm; \
+		$(CXX) $(DEGUG) $(LDLIB_LINUX) $^ $(RP2_OBJ_DEP) $(EXTERNAL_RP_LIBS); \
 		/sbin/ldconfig -n $(LIB_DIR); \
 		ar -r $@.a $^; \
 		ranlib $@.a; \
@@ -102,6 +108,10 @@ install_rappture: librappture
 	cp $(CORE_SRC)/*.h $(RP_INSTALL_BASE)/include; \
 	cp $(CEE_SRC)/*.h $(RP_INSTALL_BASE)/include; \
 	cp $(FORT_SRC)/*.h $(RP_INSTALL_BASE)/include; \
+	cp $(CORE2_SRC)/Outcome.h $(RP_INSTALL_BASE)/include; \
+	cp $(CORE2_SRC)/Ptr.h $(RP_INSTALL_BASE)/include; \
+	cp $(CORE2_SRC)/RpBuffer.h $(RP_INSTALL_BASE)/include; \
+	cp $(CORE2_SRC)/rappture2.h $(RP_INSTALL_BASE)/include;
 
 #### libRpObjects ########################################################
 libRpObjects: $(RP_OBJS_DEP)
@@ -136,13 +146,13 @@ install_tcl: librappture
 # include core source files
 
 RpLibrary.o: $(CORE_SRC)/RpLibrary.cc
-	$(CXX) $(CFLAGS) $(DEBUG) $(INCL_CORE) $(INCL_RP_DEPS) -o $@ -c $?
+	$(CXX) $(CFLAGS) $(DEBUG) $(INCL_CORE) $(INCL_CORE2) $(INCL_RP_DEPS) -o $@ -c $?
 
 scew_extras.o: $(CORE_SRC)/scew_extras.c
 	$(CC) $(CFLAGS) $(DEBUG) $(INCL_CORE) $(INCL_RP_DEPS) -o $@ -c $?
 
 RpEntityRef.o: $(CORE_SRC)/RpEntityRef.cc
-	$(CXX) $(CFLAGS) $(DEBUG) $(INCL_CORE) -o $@ -c $?
+	$(CXX) $(CFLAGS) $(DEBUG) $(INCL_CORE) $(INCL_CORE2) -o $@ -c $?
 
 RpVariable.o: $(CORE_SRC)/RpVariable.cc
 	$(CXX) $(CFLAGS) $(DEBUG) $(INCL_CORE) -o $@ -c $?
@@ -189,9 +199,14 @@ RpValueString.o: $(CORE_SRC)/RpValueString.cc
 RpUnitsCInterface.o: $(CEE_SRC)/RpUnitsCInterface.cc
 	$(CXX) $(CFLAGS) $(DEBUG) $(INCL_CORE) $(INCL_CEE) -o $@ -c $?
 
-RpLibraryCInterface.o: $(CEE_SRC)/RpLibraryCInterface.cc
-	$(CXX) $(CFLAGS) $(DEBUG) $(INCL_CORE) $(INCL_CEE) $(INCL_RP_DEPS) -o $@ -c $?
+RpLibraryCInterface.o: $(CEE_SRC)/RpLibraryCInterface.cc $(CEE_SRC)/RpLibraryCInterface.h $(CEE_SRC)/RpBufferCInterface.h
+	$(CXX) $(CFLAGS) $(DEBUG) $(INCL_CORE) $(INCL_CORE2) $(INCL_CEE) $(INCL_RP_DEPS) -o $@ -c $<
 
+RpBufferCInterface.o: $(CEE_SRC)/RpBufferCInterface.cc $(CEE_SRC)/RpBufferCInterface.h $(CEE_SRC)/RpOutcomeCInterface.h
+	$(CXX) $(CFLAGS) $(DEBUG) $(INCL_CORE) $(INCL_CORE2) $(INCL_CEE) $(INCL_RP_DEPS) -o $@ -c $<
+
+RpOutcomeCInterface.o: $(CEE_SRC)/RpOutcomeCInterface.cc
+	$(CXX) $(CFLAGS) $(DEBUG) $(INCL_CORE) $(INCL_CORE2) $(INCL_CEE) $(INCL_RP_DEPS) -o $@ -c $<
 
 
 
@@ -204,7 +219,7 @@ RpFortranCommon.o: $(FORT_SRC)/RpFortranCommon.cc
 	$(CXX) $(CFLAGS) $(DEBUG) $(INCL_FORTRAN) -o $@ -c $<
 
 RpLibraryFInterface.o: $(FORT_SRC)/RpLibraryFInterface.cc
-	$(CXX) $(CFLAGS) $(DEBUG) $(INCL_CORE) $(INCL_FORTRAN) $(INCL_RP_DEPS) -o $@ -c $?
+	$(CXX) $(CFLAGS) $(DEBUG) $(INCL_CORE) $(INCL_CORE2) $(INCL_FORTRAN) $(INCL_RP_DEPS) -o $@ -c $?
 
 
 # matlab bindings
