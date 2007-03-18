@@ -167,4 +167,4 @@ Ptr<Type>::clear()
 
 } // namespace Rappture
 
-#endif
+#endif // RAPPTURE_PTR_H

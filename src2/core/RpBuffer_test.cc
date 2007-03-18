@@ -421,6 +421,28 @@ int testLoad()
     passed++;
     /* =========================================================== */
 
+    tests++;
+    char* filePath1 = "output.dx";
+    char* filePath2 = "output.dx.mime";
+    char* filePath3 = "output.dx.again";
+
+    Rappture::Buffer buffer2;
+    Rappture::Buffer buffer2out;
+
+    buffer2.load(filePath1);
+    buffer2.encode();
+    buffer2.dump(filePath2);
+
+    buffer2out.load(filePath2);
+    buffer2out.decode();
+    buffer2out.dump(filePath3);
+
+    buffer2.clear();
+    buffer2out.clear();
+
+    passed++;
+    /* =========================================================== */
+
     return (tests == passed);
 }
 

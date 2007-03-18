@@ -66,11 +66,10 @@
 #define RP_BUFFER_MIN_SIZE    200
 
 #include "Outcome.h"
-#include "zlib.h"
-#include "b64/encode.h"
-#include "b64/decode.h"
-#include <fstream>
-#include <assert.h>
+
+#ifdef __cplusplus
+    extern "C" {
+#endif // ifdef __cplusplus
 
 enum RP_COMPRESS_CONSTS {
     RPCOMPRESS_ZLIB      = 0,
@@ -147,8 +146,8 @@ public:
 
     Outcome load(const char* filePath);
     Outcome dump(const char* filePath);
-    Outcome encode(bool compress=true, bool base64=true);
-    Outcome decode(bool decompress=true, bool base64=true);
+    Outcome encode(unsigned int compress=1, unsigned int base64=1);
+    Outcome decode(unsigned int decompress=1, unsigned int base64=1);
 
 protected:
 
@@ -178,5 +177,9 @@ protected:
 };
 
 } // namespace Rappture
+ 
+#ifdef __cplusplus
+    }
+#endif // ifdef __cplusplus
 
-#endif
+#endif // RAPPTURE_BUFFER_H

@@ -62,6 +62,16 @@
 
 #include "RpBuffer.h"
 
+#include "zlib.h"
+#include "b64/encode.h"
+#include "b64/decode.h"
+#include <fstream>
+#include <assert.h>
+
+#ifdef __cplusplus
+    extern "C" {
+#endif // ifdef __cplusplus
+
 using namespace Rappture;
 
 /**
@@ -197,7 +207,7 @@ SimpleBuffer::append(const char* bytes, int nbytes)
     char *newBuffer = NULL;
 
     // User specified NULL buffer to append
-    if (bytes == NULL) {
+    if ( (bytes == NULL) && (nbytes < 1) ) {
         return 0;
     }
 
@@ -610,7 +620,7 @@ Buffer::dump (const char* filePath)
 
 
 Outcome
-Buffer::encode (bool compress, bool base64)
+Buffer::encode (unsigned int compress, unsigned int base64)
 {
     Outcome err;
     SimpleBuffer bin;
@@ -620,15 +630,15 @@ Buffer::encode (bool compress, bool base64)
 
     rewind();
 
-    if (compress) {
+    if (compress != 0) {
         do_compress(err,*this,bout);
         if (err) {
             return err;
         }
     }
 
-    if (base64) {
-        if (compress) {
+    if (base64 != 0) {
+        if (compress != 0) {
             bin.move(bout);
             do_base64_enc(err,bin,bout);
         }
@@ -647,7 +657,7 @@ Buffer::encode (bool compress, bool base64)
 
 
 Outcome
-Buffer::decode (bool decompress, bool base64)
+Buffer::decode (unsigned int decompress, unsigned int base64)
 {
     Outcome err;
     SimpleBuffer bin;
@@ -655,14 +665,14 @@ Buffer::decode (bool decompress, bool base64)
 
     rewind();
 
-    if (base64) {
+    if (base64 != 0) {
         do_base64_dec(err,*this,bout);
         if (err) {
             return err;
         }
     }
 
-    if (decompress) {
+    if (decompress != 0) {
         if (base64) {
             bin.move(bout);
             do_decompress(err,bin,bout);
@@ -875,3 +885,8 @@ Buffer::do_base64_dec(  Outcome& status,
 
     return;
 }
+
+#ifdef __cplusplus
+    }
+#endif // ifdef __cplusplus
+
