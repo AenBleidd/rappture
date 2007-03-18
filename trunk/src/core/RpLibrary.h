@@ -38,7 +38,8 @@ enum RP_LIBRARY_CONSTS {
 #include <iterator>
 #include <cctype>
 #include <list>
-#include "rappture2/RpBuffer.h"
+#include "RpBuffer.h"
+#include "Outcome.h"
 
 /* indentation size (in whitespaces) */
 
@@ -89,7 +90,8 @@ class RpLibrary
         double      getDouble ( std::string path = "");
         int         getInt    ( std::string path = "");
         bool        getBool   ( std::string path = "");
-        // Rappture::Buffer& getData (std::string path);
+        Rappture::Buffer getData ( std::string path,
+                                   Rappture::Outcome& status);
 
         /*
          * Should return some kind of RpError object
@@ -395,7 +397,7 @@ class RpLibrary
                 scew_parser_free(parser);
                 parser = NULL;
             }
-            if (root && freeRoot) {
+            if (!freeTree && root && freeRoot) {
                 scew_element_free(root);
                 root = NULL;
             }
@@ -456,9 +458,6 @@ class RpLibrary
         void print_element( scew_element* element,
                             unsigned int indent,
                             std::stringstream& outString    );
-
-        static int _translateIn (std::string& value, std::string& translated);
-        static int _translateOut (char* inStr);
 
 };
 
