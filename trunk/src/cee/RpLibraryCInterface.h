@@ -12,11 +12,13 @@
  */
 
 
-#ifndef _RpLIBRARY_C_H
-#define _RpLIBRARY_C_H
+#ifndef _RAPPTURE_LIBRARY_C_H
+#define _RAPPTURE_LIBRARY_C_H
+
+#include "RpBufferCInterface.h"
 
 #ifdef __cplusplus
-    extern "C" {
+extern "C" {
 #endif // ifdef __cplusplus
 
 typedef struct RpLibrary RpLibrary;
@@ -43,6 +45,8 @@ RpLibrary* rpChildrenByType  (RpLibrary* lib,
 int rpGet             (RpLibrary* lib, const char* path, const char** retCStr);
 int rpGetString       (RpLibrary* lib, const char* path, const char** retCStr);
 int rpGetDouble       (RpLibrary* lib, const char* path, double* retDVal);
+
+int rpGetData         (RpLibrary* lib, const char* path, RapptureBuffer* retBuf);
 
 int rpPut             (RpLibrary* lib,
                             const char* path,
@@ -81,7 +85,7 @@ int rpNodeId          (RpLibrary* node, const char** retCStr);
 int rpResult          (RpLibrary* lib);
 
 #ifdef __cplusplus
-    }
+}
 #endif // ifdef __cplusplus
 
-#endif // ifndef _RpLIBRARY_C_H
+#endif // ifndef _RAPPTURE_LIBRARY_C_H

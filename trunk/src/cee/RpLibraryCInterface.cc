@@ -4,7 +4,7 @@
  *
  * ======================================================================
  *  AUTHOR:  Derrick Kearney, Purdue University
- *  Copyright (c) 2004-2005  Purdue Research Foundation
+ *  Copyright (c) 2004-2007  Purdue Research Foundation
  *
  *  See the file "license.terms" for information on usage and
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -13,6 +13,7 @@
 
 #include "RpLibrary.h"
 #include "RpLibraryCInterface.h"
+#include "RpBufferCHelper.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -141,6 +142,22 @@ rpGetDouble (RpLibrary* lib, const char* path, double* retDVal)
 {
     int retVal = 0;
     *retDVal = lib->getDouble(path);
+    return retVal;
+}
+
+int
+rpGetData (RpLibrary* lib, const char* path, RapptureBuffer* retBuf)
+{
+    Rappture::Outcome status;
+    Rappture::Buffer rpbuf;
+    int retVal = 0;
+
+    if (retBuf == NULL) {
+        return -1;
+    }
+
+    rpbuf = lib->getData(path, status);
+    RpBufferToCBuffer(&rpbuf, retBuf);
     return retVal;
 }
 
