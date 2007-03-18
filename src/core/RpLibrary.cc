@@ -14,7 +14,6 @@
 #include "RpLibrary.h"
 #include "RpEntityRef.h"
 #include <algorithm>
-static RpEntityRef ERTranslator;
 
 /**********************************************************************/
 // METHOD: _get_attribute()
@@ -1190,45 +1189,38 @@ RpLibrary::get (std::string path, int translateFlag)
 std::string
 RpLibrary::getString (std::string path, int translateFlag)
 {
+    Rappture::EntityRef ERTranslator;
     scew_element* retNode = NULL;
     XML_Char const* retCStr = NULL;
-    char* translatedContents = NULL;
+    const char* translatedContents = NULL;
     std::string retStr = "";
-    int len = 0;
 
     if (!this->root) {
         // library doesn't exist, do nothing;
-        return std::string("");
+        return retStr;
     }
 
     retNode = _find(path,NO_CREATE_PATH);
 
     if (retNode == NULL) {
         // need to raise error
-        return std::string("");
+        return retStr;
     }
 
     retCStr = scew_element_contents(retNode);
 
     if (!retCStr) {
-        return std::string("");
+        return retStr;
     }
 
     if (translateFlag == RPLIB_TRANSLATE) {
-        // translatedContents = new char[strlen(retCStr)+1];
-        len = strlen(retCStr);
-        translatedContents = (char*) calloc((len+1),sizeof(char));
-        if (translatedContents) {
-            strncpy(translatedContents, retCStr, len);
-            _translateOut(translatedContents);
-            retStr = std::string(translatedContents);
-            // delete[] translatedContents;
-            free(translatedContents);
+        translatedContents = ERTranslator.decode(retCStr);
+        if (translatedContents == NULL) {
+            // translation failed
+            return retStr;
         }
-        else {
-            // error allocating space
-            return std::string("");
-        }
+        retStr = std::string(translatedContents);
+        translatedContents = NULL;
     }
     else {
         retStr = std::string(retCStr);
@@ -1320,8 +1312,8 @@ RpLibrary::getBool (std::string path)
     {
         retValBool = true;
     }
-    else if((retValStr.compare(0,retValLen,"0",0,retValLen) == 0  )   ||
-            (retValStr.compare(0,retValLen,"no",0,retValLen) == 0 )  ||
+    else if((retValStr.compare(0,retValLen,"0",0,retValLen) == 0  )    ||
+            (retValStr.compare(0,retValLen,"no",0,retValLen) == 0 )    ||
             (retValStr.compare(0,retValLen,"false",0,retValLen) == 0 ) ||
             (retValStr.compare(0,retValLen,"off",0,retValLen) == 0))
     {
@@ -1344,12 +1336,16 @@ RpLibrary::getBool (std::string path)
 /**
  */
 
-/*
-Rappture::Buffer&
-RpLibrary::getData (std::string path)
+Rappture::Buffer
+RpLibrary::getData (std::string path, Rappture::Outcome& status)
 {
+    Rappture::EntityRef ERTranslator;
+    scew_element* retNode = NULL;
     const char* retCStr = NULL;
     Rappture::Buffer buf;
+    int translateFlag = RPLIB_TRANSLATE;
+    const char* translatedContents = NULL;
+    int len = 0;
 
     if (!this->root) {
         // library doesn't exist, do nothing;
@@ -1360,20 +1356,36 @@ RpLibrary::getData (std::string path)
 
     if (retNode == NULL) {
         // need to raise error
+        status.error("could not find element located at path");
+        status.addContext("RpLibrary::getData()");
         return buf;
     }
 
     retCStr = scew_element_contents(retNode);
 
     if (retCStr == NULL) {
+        status.error("element located at path is empty");
+        status.addContext("RpLibrary::getData()");
         return buf;
     }
 
-    len = strlen(retCStr);
-    buf.append(retCStr,len);
+    if (translateFlag == RPLIB_TRANSLATE) {
+        translatedContents = ERTranslator.decode(retCStr);
+        if (translatedContents == NULL) {
+            // translation failed
+            return buf;
+        }
+        len = strlen(translatedContents);
+        buf.append(translatedContents,len);
+        translatedContents = NULL;
+    }
+    else {
+        len = strlen(retCStr);
+        buf.append(retCStr,len);
+    }
+
     return buf;
 }
-*/
 
 
 /**********************************************************************/
@@ -1389,10 +1401,11 @@ RpLibrary::put (    std::string path,
                     unsigned int append,
                     unsigned int translateFlag)
 {
+    Rappture::EntityRef ERTranslator;
     scew_element* retNode = NULL;
     std::string tmpVal = "";
     const char* contents = NULL;
-    std::string translatedContents = "";
+    const char* translatedContents = NULL;
 
     if (!this->root) {
         // library doesn't exist, do nothing;
@@ -1411,8 +1424,13 @@ RpLibrary::put (    std::string path,
         }
 
         if (translateFlag == RPLIB_TRANSLATE) {
-            _translateIn(value,translatedContents);
-            scew_element_set_contents(retNode,translatedContents.c_str());
+            translatedContents = ERTranslator.encode(value.c_str());
+            if (translatedContents == NULL) {
+                // translation failed
+                return *this;
+            }
+            scew_element_set_contents(retNode,translatedContents);
+            translatedContents = NULL;
         }
         else {
             scew_element_set_contents(retNode,value.c_str());
@@ -1582,66 +1600,23 @@ RpLibrary::putFile (std::string path,
                     unsigned int compress,
                     unsigned int append  )
 {
-    scew_element* retNode = NULL;
-    const char* contents = NULL;
     Rappture::Buffer buf;
     Rappture::Buffer fileBuf;
     Rappture::Outcome err;
-    unsigned int bytesWritten = 0;
-    std::string value = "";
-    std::string transContents = "";
 
     if (!this->root) {
         // library doesn't exist, do nothing;
         return *this;
     }
 
-    retNode = _find(path,CREATE_PATH);
-
-    if (retNode) {
-
-        if (append == RPLIB_APPEND) {
-            if ( (contents = scew_element_contents(retNode)) ) {
-                buf.append(contents);
-                if (compress == RPLIB_COMPRESS) {
-                    // base64 decode and un-gzip the data
-                    err = buf.decode();
-                    if (err) {
-                        // decompress and decode failed, return err
-                        return *this;
-                    }
-                }
-            }
-        }
-
-        fileBuf.load(fileName.c_str());
-        buf += fileBuf;
-        fileBuf.clear();
-
-        if (compress == RPLIB_COMPRESS) {
-            // gzip and base64 encode the data
-            err = buf.encode();
-            if (err) {
-                // compress and encode failed, return error
-                return *this;
-            }
-        }
-        else {
-            value = std::string(buf.bytes(),buf.size());
-            buf.clear();
-            _translateIn(value,transContents);
-            buf.append(transContents.c_str(),transContents.size());
-        }
-
-        bytesWritten = buf.size();
-        scew_element_set_contents_binary(retNode,buf.bytes(),&bytesWritten);
-
-        if (bytesWritten == buf.size()) {
-            // error writing data to xml
-        }
-
+    fileBuf.load(fileName.c_str());
+    if (compress == RPLIB_COMPRESS) {
+        putData(path,fileBuf.bytes(),fileBuf.size(),append);
     }
-
+    else {
+        fileBuf.append("\0",1);
+        put(path,fileBuf.bytes(),"",append,RPLIB_TRANSLATE);
+    }
     return *this;
 }
 
@@ -1819,7 +1794,7 @@ RpLibrary::result() {
         // concatinate the timezone
         timestamp.append(" ");
 #ifdef _WIN32
-	timestamp.append(_tzname[_daylight]);
+        timestamp.append(_tzname[_daylight]);
 #else
         timestamp.append(timeinfo->tm_zone);
 #endif
@@ -1832,6 +1807,7 @@ RpLibrary::result() {
             if (!xmlText.empty()) {
                 file << xmlText;
             }
+            file.close();
         }
         std::cout << "=RAPPTURE-RUN=>" << outputFile.str() << std::endl;
     }
@@ -1945,32 +1921,4 @@ RpLibrary::print_element(   scew_element* element,
      * Prints the closing element tag.
      */
     outString << "</" << scew_element_name(element) << ">\n" ;
-}
-
-/**********************************************************************/
-// METHOD: translateIn()
-/// Translate entity and character reference text coming in from the user
-/**
- */
-
-int
-RpLibrary::_translateIn(std::string& outStr,std::string& translatedStr)
-{
-    ERTranslator.appendEscaped(outStr, translatedStr);
-    return 0;
-}
-
-
-/**********************************************************************/
-// METHOD: translateOut()
-/// Translate entity and character reference text going out to the user
-/**
- */
-
-int
-RpLibrary::_translateOut(char* inStr) 
-{
-    int newLen = 0;
-    ERTranslator.TranslateEntityRefs(inStr, &newLen);
-    return 0;
 }
