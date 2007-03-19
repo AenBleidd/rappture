@@ -14,7 +14,270 @@
 #include "RpLibrary.h"
 #include "RpEntityRef.h"
 #include <algorithm>
+#include <iostream>
+#include <string>
+#include <sstream>
+#include <fstream>
+#include <stdlib.h>
+#include <errno.h>
+#include <time.h>
+#include <iterator>
+#include <cctype>
 
+// no arg constructor
+// used when we dont want to read an xml file to populate the xml tree
+// we are building a new xml structure
+RpLibrary::RpLibrary ()
+    :   parser      (NULL),
+        tree        (NULL),
+        root        (NULL),
+        freeTree    (1),
+        freeRoot    (1)
+{
+    tree = scew_tree_create();
+    root = scew_tree_add_root(tree, "run");
+}
+
+RpLibrary::RpLibrary (
+            const std::string filePath
+        )
+    :   parser      (NULL),
+        tree        (NULL),
+        root        (NULL),
+        freeTree    (0),
+        freeRoot    (1)
+{
+
+    if (filePath.length() != 0) {
+        // file path should not be null or empty string unless we are
+        // creating a new xml file
+
+        parser = scew_parser_create();
+
+        scew_parser_ignore_whitespaces(parser, 1);
+
+        /* Loads an XML file */
+        if (!scew_parser_load_file(parser, filePath.c_str()))
+        {
+            scew_error code = scew_error_code();
+            printf("Unable to load file (error #%d: %s)\n", code,
+                   scew_error_string(code));
+
+            /*
+            std::cout << "Unable to load file (error #" \
+                      << code << ": " << scew_error_string(code) \
+                      << ")\n" << std::endl;
+            */
+
+            if (code == scew_error_expat)
+            {
+                enum XML_Error expat_code =
+                    scew_error_expat_code(parser);
+                printf("Expat error #%d (line %d, column %d): %s\n",
+                       expat_code,
+                       scew_error_expat_line(parser),
+                       scew_error_expat_column(parser),
+                       scew_error_expat_string(expat_code));
+            }
+            // should probably exit program or something
+            // return EXIT_FAILURE;
+            fflush(stdout);
+            scew_parser_free(parser);
+            parser = NULL;
+        }
+        else 
+        {
+            tree = scew_parser_tree(parser);
+            freeTree = 0;
+            root = scew_tree_root(tree);
+        }
+    }
+    else {
+        // create a new xml (from an empty file)
+    }
+}
+
+
+// copy constructor
+// for some reason making this a const gives me problems 
+// when calling xml()
+// need help looking into this
+// RpLibrary ( const RpLibrary& other )
+RpLibrary::RpLibrary ( const RpLibrary& other )
+    : parser    (NULL),
+      tree      (NULL),
+      root      (NULL),
+      freeTree  (0),
+      freeRoot  (1)
+{
+    std::string buffer;
+    int buffLen;
+
+    // fill in the current RpLibrary's data with other's data
+    parser = scew_parser_create();
+    scew_parser_ignore_whitespaces(parser, 1);
+
+    // Loads the XML from other
+    // the length cannot be 0 because xml() should not be returning 
+    // empty strings
+    buffer = other.xml();
+    buffLen = buffer.length();
+
+    if (buffLen > 0) {
+        if (!scew_parser_load_buffer(parser,buffer.c_str(),buffLen))
+        {
+            // there was an error loading the buffer
+            // how do you tell the user, you couldn't make a copy?
+            scew_error code = scew_error_code();
+            printf("Unable to load buffer (error #%d: %s)\n", code,
+                   scew_error_string(code));
+
+            if (code == scew_error_expat)
+            {
+                enum XML_Error expat_code =
+                    scew_error_expat_code(parser);
+                printf("Expat error #%d (line %d, column %d): %s\n",
+                       expat_code,
+                       scew_error_expat_line(parser),
+                       scew_error_expat_column(parser),
+                       scew_error_expat_string(expat_code));
+            }
+
+            // return an empty RpLibrary?
+            // return EXIT_FAILURE;
+
+            parser = NULL;
+        }
+        else {
+
+            // parsing the buffer was successful
+            // populate the new data members.
+
+            tree = scew_parser_tree(parser);
+            freeTree = 0;
+            freeRoot = 1;
+            root = scew_tree_root(tree);
+
+        }
+
+    } // end if (buffer.length() != 0) {
+}// end copy constructor
+
+// copy assignment operator
+// for some reason making this a const gives me problems 
+// when calling xml()
+// need help looking into this
+// RpLibrary& operator= (const RpLibrary& other) {
+RpLibrary&
+RpLibrary::operator= (const RpLibrary& other) {
+
+    std::string buffer;
+    int buffLen;
+
+    scew_parser* tmp_parser;
+    scew_tree* tmp_tree;
+    scew_element* tmp_root;
+    int tmp_freeTree;
+    int tmp_freeRoot;
+
+    if (this != &other) {
+
+        tmp_parser   = parser;
+        tmp_tree     = tree;
+        tmp_root     = root;
+        tmp_freeTree = freeTree;
+        tmp_freeRoot = freeRoot;
+
+        // fill in the current RpLibrary's data with other's data
+        parser = scew_parser_create();
+        scew_parser_ignore_whitespaces(parser, 1);
+
+        // Loads the XML from other
+        // the length cannot be 0 because xml() 
+        // should not be returning empty strings
+        buffer = other.xml();
+        buffLen = buffer.length();
+
+        if (buffLen > 0) {
+            if (!scew_parser_load_buffer(parser,buffer.c_str(),buffLen))
+            {
+                // there was an error loading the buffer
+                // how do you tell the user, you couldn't make a copy?
+                scew_error code = scew_error_code();
+                printf("Unable to load buffer (error #%d: %s)\n", code,
+                       scew_error_string(code));
+
+                if (code == scew_error_expat)
+                {
+                    enum XML_Error expat_code = 
+                        scew_error_expat_code(parser);
+                    printf("Expat error #%d (line %d, column %d): %s\n",
+                           expat_code,
+                           scew_error_expat_line(parser),
+                           scew_error_expat_column(parser),
+                           scew_error_expat_string(expat_code));
+                }
+
+                // return things back to the way they used to be
+                // or maybe return an empty RpLibrary?
+                // return EXIT_FAILURE;
+
+                // return this object to its previous state.
+                parser = tmp_parser;
+            }
+            else {
+
+                // parsing the buffer was successful
+                // populate the new data members.
+
+                tree = scew_parser_tree(parser);
+                freeTree = 0;
+                freeRoot = 1;
+                root = scew_tree_root(tree);
+
+                // free the current RpLibrary's data
+                // we do the free so far down so we can see if
+                // parsing the other object's xml fails.
+                // if the parsing fails, we can still return this
+                // object to its previous state.
+                if (tmp_tree && tmp_freeTree) {
+                    scew_tree_free(tmp_tree);
+                    tmp_tree = NULL;
+                }
+                if (tmp_parser) {
+                    scew_parser_free(tmp_parser);
+                    tmp_parser = NULL;
+                }
+                if (tmp_root && tmp_freeRoot) {
+                    tmp_root = NULL;
+                }
+            }
+
+        } // end if (buffer.length() != 0) {
+    } // end if (this != &other)
+
+    return *this;
+} // end operator=
+
+
+// default destructor
+RpLibrary::~RpLibrary ()
+{
+    // clean up dynamic memory
+
+    if (tree && freeTree) {
+        scew_tree_free(tree);
+        tree = NULL;
+    }
+    if (parser) {
+        scew_parser_free(parser);
+        parser = NULL;
+    }
+    if (!freeTree && root && freeRoot) {
+        scew_element_free(root);
+        root = NULL;
+    }
+}
 /**********************************************************************/
 // METHOD: _get_attribute()
 /// Return the attribute value matching the provided attribute name.
@@ -22,7 +285,10 @@
  */
 
 std::string
-RpLibrary::_get_attribute(scew_element* element, std::string attributeName)
+RpLibrary::_get_attribute (
+    scew_element* element,
+    std::string attributeName
+    ) const
 {
     scew_attribute* attribute = NULL;
     std::string attrVal;
@@ -55,7 +321,11 @@ RpLibrary::_get_attribute(scew_element* element, std::string attributeName)
  */
 
 int
-RpLibrary::_path2list (std::string& path, std::string** list, int listLen)
+RpLibrary::_path2list (
+    std::string& path,
+    std::string** list,
+    int listLen
+    ) const
 {
     std::string::size_type pos = 0;
     std::string::size_type start = 0;
@@ -105,7 +375,7 @@ RpLibrary::_path2list (std::string& path, std::string** list, int listLen)
  */
 
 std::string
-RpLibrary::_node2name (scew_element* node)
+RpLibrary::_node2name (scew_element* node) const
 {
     // XML_Char const* name = _get_attribute(node,"id");
     std::string name = _get_attribute(node,"id");
@@ -171,7 +441,7 @@ RpLibrary::_node2name (scew_element* node)
  */
 
 std::string
-RpLibrary::_node2comp (scew_element* node)
+RpLibrary::_node2comp (scew_element* node) const
 {
     // XML_Char const* name = _get_attribute(node,"id");
     std::string id = _get_attribute(node,"id");
@@ -231,7 +501,7 @@ RpLibrary::_node2comp (scew_element* node)
  */
 
 std::string
-RpLibrary::_node2path (scew_element* node)
+RpLibrary::_node2path (scew_element* node) const
 {
 
     std::stringstream path;
@@ -268,7 +538,10 @@ RpLibrary::_node2path (scew_element* node)
  */
 
 int
-RpLibrary::_splitPath (std::string& path, std::string& tagName, int* idx, std::string& id )
+RpLibrary::_splitPath ( std::string& path,
+                        std::string& tagName,
+                        int* idx,
+                        std::string& id ) const
 {
     int stop = 0;
     int start = 0;
@@ -322,7 +595,7 @@ RpLibrary::_splitPath (std::string& path, std::string& tagName, int* idx, std::s
  */
 
 scew_element*
-RpLibrary::_find(std::string path, int create) 
+RpLibrary::_find(std::string path, int create) const
 {
     // std::string* tagName;
     // std::string* id;
@@ -494,7 +767,7 @@ RpLibrary::_find(std::string path, int create)
  */
 
 RpLibrary*
-RpLibrary::element (std::string path)
+RpLibrary::element (std::string path) const
 {
     RpLibrary* retLib = NULL;
     scew_element* retNode = NULL;
@@ -537,8 +810,8 @@ RpLibrary::element (std::string path)
 /**
  */
 
-std::list<std::string> 
-RpLibrary::entities  (std::string path)
+std::list<std::string>
+RpLibrary::entities  (std::string path) const
 {
     std::list<std::string> queue;
     std::list<std::string>::iterator iter;
@@ -636,7 +909,7 @@ RpLibrary::entities  (std::string path)
  */
 
 std::list<std::string>
-RpLibrary::diff (RpLibrary* otherLib, std::string path)
+RpLibrary::diff (RpLibrary* otherLib, std::string path) const
 {
 
     std::list<std::string> thisVal; // two node list of specific entity's value
@@ -750,7 +1023,7 @@ RpLibrary::diff (RpLibrary* otherLib, std::string path)
  */
 
 std::list<std::string>
-RpLibrary::value (std::string path)
+RpLibrary::value (std::string path) const
 {
     std::list<std::string> retArr;
 
@@ -832,11 +1105,10 @@ RpLibrary::value (std::string path)
  */
 
 RpLibrary*
-RpLibrary::parent (std::string path)
+RpLibrary::parent (std::string path) const
 {
     RpLibrary* retLib = NULL;
     std::string parentPath = "";
-    // std::string::size_type pos = 0;
     scew_element* ele = NULL;
     scew_element* retNode = NULL;
 
@@ -879,7 +1151,9 @@ RpLibrary::parent (std::string path)
  */
 
 RpLibrary&
-RpLibrary::copy (std::string toPath, std::string fromPath, RpLibrary* fromObj)
+RpLibrary::copy (   std::string toPath,
+                    std::string fromPath,
+                    RpLibrary* fromObj  )
 {
     RpLibrary* value = NULL;
     // RpLibrary* child = NULL;
@@ -1116,7 +1390,7 @@ RpLibrary::children (   std::string path,
 }
 
 /**********************************************************************/
-// METHOD: children()
+// METHOD: childCount()
 /// Returns a std::list<RpLibrary*> of all children under 'path'
 //
 // 
@@ -1125,7 +1399,7 @@ RpLibrary::children (   std::string path,
 
 RpLibrary&
 RpLibrary::childCount ( std::string path,
-                        int* childCount)
+                        int* childCount )
 {
     scew_element* parentNode;
     int myChildCount = 0;
@@ -1159,7 +1433,7 @@ RpLibrary::childCount ( std::string path,
  */
 
 bool
-RpLibrary::isNull ()
+RpLibrary::isNull () const
 {
     if (this->root) {
         return false;
@@ -1175,7 +1449,7 @@ RpLibrary::isNull ()
  */
 
 std::string
-RpLibrary::get (std::string path, int translateFlag)
+RpLibrary::get (std::string path, int translateFlag) const
 {
     return (this->getString(path, translateFlag));
 }
@@ -1187,7 +1461,7 @@ RpLibrary::get (std::string path, int translateFlag)
  */
 
 std::string
-RpLibrary::getString (std::string path, int translateFlag)
+RpLibrary::getString (std::string path, int translateFlag) const
 {
     Rappture::EntityRef ERTranslator;
     scew_element* retNode = NULL;
@@ -1236,7 +1510,7 @@ RpLibrary::getString (std::string path, int translateFlag)
  */
 
 double
-RpLibrary::getDouble (std::string path)
+RpLibrary::getDouble (std::string path) const
 {
     std::string retValStr = "";
     double retValDbl = 0;
@@ -1263,7 +1537,7 @@ RpLibrary::getDouble (std::string path)
  */
 
 int
-RpLibrary::getInt (std::string path)
+RpLibrary::getInt (std::string path) const
 {
     std::string retValStr = "";
     int retValInt = 0;
@@ -1290,7 +1564,7 @@ RpLibrary::getInt (std::string path)
  */
 
 bool
-RpLibrary::getBool (std::string path)
+RpLibrary::getBool (std::string path) const
 {
     std::string retValStr = "";
     bool retValBool = false;
@@ -1337,7 +1611,7 @@ RpLibrary::getBool (std::string path)
  */
 
 Rappture::Buffer
-RpLibrary::getData (std::string path, Rappture::Outcome& status)
+RpLibrary::getData (std::string path, Rappture::Outcome& status) const
 {
     Rappture::EntityRef ERTranslator;
     scew_element* retNode = NULL;
@@ -1672,7 +1946,7 @@ RpLibrary::remove ( std::string path )
  */
 
 std::string
-RpLibrary::xml ()
+RpLibrary::xml () const
 {
     std::stringstream outString;
 
@@ -1694,7 +1968,7 @@ RpLibrary::xml ()
  */
 
 std::string
-RpLibrary::nodeType ()
+RpLibrary::nodeType () const
 {
     if (!this->root) {
         // library doesn't exist, do nothing;
@@ -1711,7 +1985,7 @@ RpLibrary::nodeType ()
  */
 
 std::string
-RpLibrary::nodeId ()
+RpLibrary::nodeId () const
 {
     if (!this->root) {
         // library doesn't exist, do nothing;
@@ -1728,7 +2002,7 @@ RpLibrary::nodeId ()
  */
 
 std::string
-RpLibrary::nodeComp ()
+RpLibrary::nodeComp () const
 {
     if (!this->root) {
         // library doesn't exist, do nothing;
@@ -1745,7 +2019,7 @@ RpLibrary::nodeComp ()
  */
 
 std::string
-RpLibrary::nodePath ()
+RpLibrary::nodePath () const
 {
     if (!this->root) {
         // library doesn't exist, do nothing;
@@ -1770,7 +2044,8 @@ RpLibrary::nodePath ()
  * ======================================================================
  */
 void
-RpLibrary::result() {
+RpLibrary::result()
+{
     std::stringstream outputFile;
     std::fstream file;
     std::string xmlText = "";
@@ -1820,7 +2095,8 @@ RpLibrary::result() {
  */
 
 void
-RpLibrary::print_indent(unsigned int indent, std::stringstream& outString)
+RpLibrary::print_indent(    unsigned int indent,
+                            std::stringstream& outString ) const
 {
 
     // keep this around incase you want to use tabs instead of spaces
@@ -1845,7 +2121,8 @@ RpLibrary::print_indent(unsigned int indent, std::stringstream& outString)
  */
 
 void
-RpLibrary::print_attributes(scew_element* element, std::stringstream& outString)
+RpLibrary::print_attributes(    scew_element* element,
+                                std::stringstream& outString ) const
 {
     scew_attribute* attribute = NULL;
 
@@ -1874,7 +2151,7 @@ RpLibrary::print_attributes(scew_element* element, std::stringstream& outString)
 void
 RpLibrary::print_element(   scew_element* element,
                             unsigned int indent,
-                            std::stringstream& outString    )
+                            std::stringstream& outString    ) const
 {
     scew_element* child = NULL;
     XML_Char const* contents = NULL;
