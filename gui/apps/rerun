@@ -1,4 +1,4 @@
-#! /bin/sh
+#!/usr/bin/env python
 # ----------------------------------------------------------------------
 #  rerun
 #  
@@ -30,9 +30,6 @@
 # ======================================================================
 #
 #
-""":"
-exec python $0 ${1+"$@"}
-"""
 
 import getopt, shutil, re, os, sys, tempfile
 
@@ -97,7 +94,10 @@ if __name__ == '__main__' :
     # clean up our tmp file
     # tempfile module does not auto delete files created by mkstemp on close
     myTmpFile.close()
-    os.remove(myTmpFileName)
+    if os.path.exists(myTmpFileName):
+        # python2.3 seems to have a bug where the tempfile
+        # is automatically removed. this is fixed in python2.5
+        os.remove(myTmpFileName)
 
     # exit gracefully
     sys.exit()
