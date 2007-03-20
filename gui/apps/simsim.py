@@ -4,6 +4,7 @@ import sys
 import Rappture
 import random
 import getopt
+import time
 
 
 def defaultHandler(child):
@@ -77,10 +78,17 @@ def integerHandler(child):
 def booleanHandler(child):
     value = random.randint(0,1)
     if (value == 1):
-        value = "true"
+        value = "yes"
     else:
-        value = "false"
+        value = "no"
     child.put("current",str(value))
+
+def writeDriver(lib):
+    driverFile = 'driver%d.xml' % time.time()
+    fp = open(driverFile,'w')
+    fp.write(lib.xml())
+    fp.close()
+    return driverFile
 
 def printHelp():
     print """simsim [-t <path> | -d | -h]
@@ -130,5 +138,8 @@ while i < len(childList):
         if addList != None:
             childList = childList + addList
 
-Rappture.result(lib)
+for pathValue in args:
+    (path,value) = pathValue.split(":")
+    lib.put(path+".current",value)
 
+print writeDriver(lib)
