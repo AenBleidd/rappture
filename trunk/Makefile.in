@@ -11,6 +11,7 @@ install: rp_gui install_rplib install_bindings install_examples
 	cp gui/apps/rappture @prefix@/bin
 	cp gui/apps/driver @prefix@/bin
 	cp gui/apps/rerun @prefix@/bin
+	cp gui/apps/simsim @prefix@/bin
 	find @prefix@ -name .svn | xargs rm -rf
 
 ###########################################################################
