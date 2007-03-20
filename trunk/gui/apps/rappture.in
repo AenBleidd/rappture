@@ -14,5 +14,7 @@
 #  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 # ======================================================================
 
-. rappture.env
+RAPPTURE_INSTALL_DIR=@path@
+
+. $RAPPTURE_INSTALL_DIR/bin/rappture.env
 exec $RAPPTURE_INSTALL_DIR/bin/driver $*

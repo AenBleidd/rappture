@@ -209,5 +209,6 @@ AC_OUTPUT(  Makefile \
             src/octave/Makefile \
             src2/core/Makefile \
             test/Makefile \
+            gui/apps/simsim \
             gui/apps/rappture \
             gui/apps/rappture.env   )
