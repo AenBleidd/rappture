@@ -10,5 +10,5 @@
 #  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 # ======================================================================
 #
-. rappture_env
+. rappture.env
 exec python simsim.py $*

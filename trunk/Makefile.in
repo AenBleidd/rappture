@@ -9,9 +9,11 @@ all: rplib build_bindings
 install: rp_gui install_rplib install_bindings install_examples
 	chmod 755 gui/apps/rappture
 	cp gui/apps/rappture @prefix@/bin
+	cp gui/apps/rappture.env @prefix@/bin
 	cp gui/apps/driver @prefix@/bin
 	cp gui/apps/rerun @prefix@/bin
 	cp gui/apps/simsim @prefix@/bin
+	cp gui/apps/simsim.py @prefix@/bin
 	find @prefix@ -name .svn | xargs rm -rf
 
 ###########################################################################

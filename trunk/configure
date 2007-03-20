@@ -5301,7 +5301,7 @@ subdirs="$subdirs gui"
 subdirs="$subdirs src/tcl"
 
 
-ac_config_files="$ac_config_files Makefile examples/demo.bash examples/app-fermi/cee/Makefile examples/app-fermi/fortran/Makefile examples/app-fermi/wrapper/cee/Makefile examples/c-example/Makefile perl/Makefile.PL python/setup.py src/Makefile src/matlab/Makefile src/octave/Makefile src2/core/Makefile test/Makefile gui/apps/rappture"
+ac_config_files="$ac_config_files Makefile examples/demo.bash examples/app-fermi/cee/Makefile examples/app-fermi/fortran/Makefile examples/app-fermi/wrapper/cee/Makefile examples/c-example/Makefile perl/Makefile.PL python/setup.py src/Makefile src/matlab/Makefile src/octave/Makefile src2/core/Makefile test/Makefile gui/apps/rappture gui/apps/rappture.env"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -5884,6 +5884,7 @@ do
     "src2/core/Makefile") CONFIG_FILES="$CONFIG_FILES src2/core/Makefile" ;;
     "test/Makefile") CONFIG_FILES="$CONFIG_FILES test/Makefile" ;;
     "gui/apps/rappture") CONFIG_FILES="$CONFIG_FILES gui/apps/rappture" ;;
+    "gui/apps/rappture.env") CONFIG_FILES="$CONFIG_FILES gui/apps/rappture.env" ;;
 
   *) { { echo "$as_me:$LINENO: error: invalid argument: $ac_config_target" >&5
 echo "$as_me: error: invalid argument: $ac_config_target" >&2;}
