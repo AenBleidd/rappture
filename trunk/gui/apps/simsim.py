@@ -1,10 +1,12 @@
 #!/usr/bin/env python
 
 import sys
+import os
 import Rappture
 import random
 import getopt
 import time
+import re
 
 
 def defaultHandler(child):
@@ -91,19 +93,23 @@ def writeDriver(lib):
     return driverFile
 
 def printHelp():
-    print """simsim [-t <path> | -d | -h]
+    print """%s [-t <path> | -x | -d | -h]
 
       -t | --tool <path>           - use the tool.xml file specified at <path>
+      -x | --driver-only           - only produce the driver file
       -d | --use-defaults          - use default values instead of generating
                                      random values based on min/max values for
                                      number and integer elements.
       -h | --help                  - print this help menu
 
-"""
+""" % (sys.argv[0])
     sys.exit()
 
 
+appStartTime = time.time()
+
 tool = "tool.xml"
+driverOnly = False
 defaults = False
 
 longOpts = ["tool=","use-defaults","help"]
@@ -113,10 +119,16 @@ opts, args = getopt.getopt(sys.argv[1:], shortOpts, longOpts)
 for o, v in opts:
     if o in ("-t", "--tool"):
         tool = v
+    elif o in ("-x", "--driver-only"):
+        driverOnly = True
     elif o in ("-d", "--use-defaults"):
         defaults = True
     elif o in ("-h", "--help"):
         printHelp()
+
+if (not os.path.exists(tool)):
+    print "\ntool file \"%s\" does not exists, use -t\n" % (tool)
+    printHelp()
 
 lib = Rappture.library(tool)
 
@@ -142,4 +154,27 @@ for pathValue in args:
     (path,value) = pathValue.split(":")
     lib.put(path+".current",value)
 
-print writeDriver(lib)
+driverFile = writeDriver(lib)
+if driverOnly:
+    print driverFile
+    sys.exit()
+
+toolDir = os.path.dirname(tool)
+toolCommand = lib.get("tool.command")
+toolCommand = re.sub("\@driver",driverFile,toolCommand)
+toolCommand = re.sub("\@tool",toolDir,toolCommand)
+
+commandStartTime = time.time()
+time.clock()
+output = Rappture.tools.getCommandOutput(toolCommand)
+cputime = time.clock()
+commandStopTime = time.time()
+
+job = 1
+startTime =  commandStartTime - appStartTime
+walltime = commandStopTime - commandStartTime
+status = 0
+
+print output
+print "MiddlewareTime: job=%d event=simulation start=%f walltime=%f cputime=%f status=%d"\
+    % (job,startTime,walltime,cputime,status)
