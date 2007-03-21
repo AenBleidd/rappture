@@ -249,7 +249,7 @@ itcl::body Rappture::Field::limits {which} {
                 }
             }
             2D - 3D {
-                if {[info exists _comp2vkt($comp)]} {
+                if {[info exists _comp2vtk($comp)]} {
                     foreach {xv yv} $_comp2vtk($comp) break
                     switch -- $which {
                         x - xlin - xlog {
