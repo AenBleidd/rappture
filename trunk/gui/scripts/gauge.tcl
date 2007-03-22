@@ -125,7 +125,7 @@ itcl::body Rappture::Gauge::constructor {args} {
     $itk_component(emenu) add command -label "Paste" -accelerator "^V" \
         -command [list event generate $itk_component(value) <<Paste>>]
     bind $itk_component(value) <<PopupMenu>> \
-        [itcl::code $this _editor menu]
+        [itcl::code $this _editor menu %X %Y]
 
     itk_component add editor {
         Rappture::Editor $itk_interior.editor \
