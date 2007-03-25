@@ -24,6 +24,8 @@ option add *TextEntry*disabledBackground white widgetDefault
 option add *TextEntry.hintForeground gray50 widgetDefault
 option add *TextEntry.hintFont \
     -*-helvetica-medium-r-normal-*-*-100-* widgetDefault
+option add *TextEntry.binaryFont \
+    -*-courier-medium-r-normal-*-12-* widgetDefault
 
 
 itcl::class Rappture::TextEntry {
@@ -43,15 +45,20 @@ itcl::class Rappture::TextEntry {
     public method size {} { return $_size }
 
     protected method _layout {}
+    protected method _setValue {value}
     protected method _newValue {}
     protected method _edit {option args}
     protected method _fixState {}
+    protected method _uploadValue {args}
+    protected method _downloadValue {}
 
     private variable _dispatcher "" ;# dispatcher for !events
-    private variable _owner ""    ;# thing managing this control
-    private variable _path ""     ;# path in XML to this number
+    private variable _owner ""      ;# thing managing this control
+    private variable _path ""       ;# path in XML to this number
 
-    private variable _mode ""       ;# entry or text mode
+    private variable _layout ""     ;# entry or full text size
+    private variable _mode "ascii"  ;# ascii text or binary data
+    private variable _value ""      ;# value inside the widget
     private variable _size ""       ;# size hint from XML
 }
                                                                                 
@@ -118,33 +125,8 @@ itcl::body Rappture::TextEntry::value {args} {
             return
         }
         set newval [lindex $args 0]
-        if {$_mode == "entry"} {
-            $itk_component(entry) configure -state normal
-            $itk_component(emenu) entryconfigure "Cut" -state normal
-            $itk_component(emenu) entryconfigure "Copy" -state normal
-            $itk_component(emenu) entryconfigure "Paste" -state normal
-            $itk_component(entry) delete 0 end
-            $itk_component(entry) insert 0 $newval
-            if {!$itk_option(-editable)} {
-                $itk_component(entry) configure -state disabled
-                $itk_component(emenu) entryconfigure "Cut" -state disabled
-                $itk_component(emenu) entryconfigure "Copy" -state disabled
-                $itk_component(emenu) entryconfigure "Paste" -state disabled
-            }
-        } elseif {$_mode == "text"} {
-            $itk_component(text) configure -state normal
-            $itk_component(tmenu) entryconfigure "Cut" -state normal
-            $itk_component(tmenu) entryconfigure "Copy" -state normal
-            $itk_component(tmenu) entryconfigure "Paste" -state normal
-            $itk_component(text) delete 1.0 end
-            $itk_component(text) insert end $newval
-            if {!$itk_option(-editable)} {
-                $itk_component(text) configure -state disabled
-                $itk_component(tmenu) entryconfigure "Cut" -state disabled
-                $itk_component(tmenu) entryconfigure "Copy" -state disabled
-                $itk_component(tmenu) entryconfigure "Paste" -state disabled
-            }
-        }
+        _setValue $newval
+
         $_dispatcher event -idle !layout
         event generate $itk_component(hull) <<Value>>
         return $newval
@@ -156,10 +138,14 @@ itcl::body Rappture::TextEntry::value {args} {
     #
     # Query the value and return.
     #
-    if {$_mode == "entry"} {
-        return [$itk_component(entry) get]
-    } elseif {$_mode == "text"} {
-        return [$itk_component(text) get 1.0 end-1char]
+    if {$_mode == "ascii"} {
+        if {$_layout == "entry"} {
+            return [$itk_component(entry) get]
+        } elseif {$_layout == "text"} {
+            return [$itk_component(text) get 1.0 end-1char]
+        }
+    } else {
+        return $_value
     }
     return ""
 }
@@ -206,9 +192,9 @@ itcl::body Rappture::TextEntry::_layout {} {
         # and count its lines/characters.
         #
         set val ""
-        if {$_mode == "entry"} {
+        if {$_layout == "entry"} {
             set val [$itk_component(entry) get]
-        } elseif {$_mode == "text"} {
+        } elseif {$_layout == "text"} {
             set val [$itk_component(text) get 1.0 end-1char]
         }
 
@@ -234,9 +220,9 @@ itcl::body Rappture::TextEntry::_layout {} {
         # If the size is WW, then flip to entry mode, with
         # a requested size of WW characters.
         #
-        if {$_mode != "entry"} {
+        if {$_layout != "entry"} {
             set val ""
-            if {$_mode == "text"} {
+            if {$_layout == "text"} {
                 set val [$itk_component(text) get 1.0 end-1char]
                 destroy $itk_component(text)
                 destroy $itk_component(scrollbars)
@@ -268,11 +254,8 @@ itcl::body Rappture::TextEntry::_layout {} {
             bind $itk_component(entry) <<PopupMenu>> \
                 [itcl::code $this _edit menu emenu %X %Y]
 
-            $itk_component(entry) insert end $val
-            if {!$itk_option(-editable)} {
-                $itk_component(entry) configure -state disabled
-            }
-            set _mode "entry"
+            set _layout "entry"
+            _setValue $val
         }
         $itk_component(entry) configure -width $size
 
@@ -281,9 +264,9 @@ itcl::body Rappture::TextEntry::_layout {} {
         # If the size is WWxHH, then flip to text mode, with
         # a requested size of HH lines by WW characters.
         #
-        if {$_mode != "text"} {
+        if {$_layout != "text"} {
             set val ""
-            if {$_mode == "entry"} {
+            if {$_layout == "entry"} {
                 set val [$itk_component(entry) get]
                 destroy $itk_component(entry)
             }
@@ -318,17 +301,16 @@ itcl::body Rappture::TextEntry::_layout {} {
                 -command [list event generate $itk_component(text) <<Copy>>]
             $itk_component(tmenu) add command -label "Paste" -accelerator "^V" \
                 -command [list event generate $itk_component(text) <<Paste>>]
+            $itk_component(tmenu) add separator
+            $itk_component(tmenu) add command -label "Upload..." \
+                -command [itcl::code $this _uploadValue -start]
+            $itk_component(tmenu) add command -label "Download" \
+                -command [itcl::code $this _downloadValue]
             bind $itk_component(text) <<PopupMenu>> \
                 [itcl::code $this _edit menu tmenu %X %Y]
 
-            $itk_component(text) insert end $val
-            if {!$itk_option(-editable)} {
-                $itk_component(text) configure -state disabled
-                $itk_component(menu) entryconfigure "Cut" -state disabled
-                $itk_component(menu) entryconfigure "Copy" -state disabled
-                $itk_component(menu) entryconfigure "Paste" -state disabled
-            }
-            set _mode "text"
+            set _layout "text"
+            _setValue $val
         }
         $itk_component(text) configure -width $w -height $h
     }
@@ -342,6 +324,129 @@ itcl::body Rappture::TextEntry::_layout {} {
         pack propagate $itk_component(hull) no
         component hull configure \
             -width $itk_option(-width) -height $itk_option(-width)
+    }
+}
+
+# ----------------------------------------------------------------------
+# USAGE: _setValue <newValue>
+#
+# Used internally to set the value for this widget.  If the <newValue>
+# string is ASCII, then it is stored directly and the widget is enabled
+# for editing.  Otherwise, the value is cached and a representation of
+# the data is displayed.
+# ----------------------------------------------------------------------
+itcl::body Rappture::TextEntry::_setValue {newval} {
+    if {[regexp {[\000-\010\013\014\016-\037\177-\377]} $newval]} {
+        # looks like a binary file
+        set _mode "binary"
+        set _value $newval
+        set font [option get $itk_component(hull) binaryFont BinaryFont]
+
+        set size [string length $newval]
+        foreach {factor units} {
+            1073741824 GB
+            1048576 MB
+            1024 kB
+            1 bytes
+        } {
+            if {$size/$factor > 0} {
+                if {$factor > 1} {
+                    set size [format "%.2f" [expr {double($size)/$factor}]]
+                }
+                break
+            }
+        }
+
+        if {$_layout == "entry" || [string match {*x[01]} $_size]} {
+            set newval "<binary> $size $units"
+        } else {
+            set newval "<binary> $size $units\n\n"
+            set tail ""
+            set len [string length $_value]
+            if {$len > 1600} {
+                set len 1600
+                set tail "..."
+            }
+
+            for {set i 0} {$i < $len} {incr i 8} {
+                append newval [format "%#06x: " $i]
+                set ascii ""
+                for {set j 0} {$j < 8} {incr j} {
+                    if {$i+$j < $len} {
+                        set char [string index $_value [expr {$i+$j}]]
+                        binary scan $char c ichar
+                        set hexchar [format "%02x" [expr {0xff & $ichar}]]
+                    } else {
+                        set char " "
+                        set hexchar "  "
+                    }
+                    append newval "$hexchar "
+                    if {[regexp {[\000-\037\177-\377]} $char]} {
+                        append ascii "."
+                    } else {
+                        append ascii $char
+                    }
+                }
+                append newval " | $ascii\n"
+            }
+            append newval $tail
+        }
+
+        #
+        # HACK ALERT!  For now, we use a tmp file to compress/encode.
+        # Rappture should have a built-in function to do this.
+        #
+        set tmpfile "/tmp/bindata[pid]"
+        set fid [open $tmpfile w]
+        fconfigure $fid -encoding binary -translation binary
+        puts -nonewline $fid $_value
+        close $fid
+        set _value "@@RP-ENC:z\n[exec gzip -c $tmpfile | mimencode]"
+
+    } else {
+        # ascii file -- map carriage returns to line feeds
+        set _mode "ascii"
+        set _value ""
+        regsub -all "\r" $newval "\n" newval
+        set font [option get $itk_component(hull) binaryFont Font]
+    }
+
+    if {$_layout == "entry"} {
+        $itk_component(entry) configure -font $font
+        $itk_component(entry) configure -state normal
+        $itk_component(emenu) entryconfigure "Cut" -state normal
+        $itk_component(emenu) entryconfigure "Copy" -state normal
+        $itk_component(emenu) entryconfigure "Paste" -state normal
+        $itk_component(entry) delete 0 end
+        $itk_component(entry) insert 0 $newval
+        if {!$itk_option(-editable) || $_mode == "binary"} {
+            $itk_component(entry) configure -state disabled
+            $itk_component(emenu) entryconfigure "Cut" -state disabled
+            $itk_component(emenu) entryconfigure "Copy" -state disabled
+            $itk_component(emenu) entryconfigure "Paste" -state disabled
+        }
+    } elseif {$_layout == "text"} {
+        $itk_component(text) configure -font $font
+        $itk_component(text) configure -state normal
+        $itk_component(tmenu) entryconfigure "Cut" -state normal
+        $itk_component(tmenu) entryconfigure "Copy" -state normal
+        $itk_component(tmenu) entryconfigure "Paste" -state normal
+        $itk_component(text) delete 1.0 end
+        $itk_component(text) insert end $newval
+        if {!$itk_option(-editable) || $_mode == "binary"} {
+            set hull $itk_component(hull)
+            set dfg [option get $hull disabledForeground Foreground]
+            set dbg [option get $hull disabledBackground Background]
+            $itk_component(text) configure -state disabled \
+                -background $dbg -foreground $dfg
+            $itk_component(tmenu) entryconfigure "Cut" -state disabled
+            $itk_component(tmenu) entryconfigure "Copy" -state disabled
+            $itk_component(tmenu) entryconfigure "Paste" -state disabled
+        } else {
+            $itk_component(text) configure \
+                -background $itk_option(-textbackground) \
+                -foreground $itk_option(-textforeground)
+        }
     }
 }
 
@@ -393,16 +498,77 @@ itcl::body Rappture::TextEntry::_fixState {} {
     } else {
         set state disabled
     }
-    if {$_mode == "entry"} {
+    if {$_layout == "entry"} {
         $itk_component(entry) configure -state $state
         $itk_component(emenu) entryconfigure "Cut" -state $state
         $itk_component(emenu) entryconfigure "Copy" -state $state
         $itk_component(emenu) entryconfigure "Paste" -state $state
-    } elseif {$_mode == "text"} {
+    } elseif {$_layout == "text"} {
         $itk_component(text) configure -state $state
         $itk_component(tmenu) entryconfigure "Cut" -state $state
         $itk_component(tmenu) entryconfigure "Copy" -state $state
         $itk_component(tmenu) entryconfigure "Paste" -state $state
+    }
+}
+
+# ----------------------------------------------------------------------
+# USAGE: _uploadValue -start
+# USAGE: _uploadValue -assign <key> <value> <key> <value> ...
+#
+# Used internally to initiate an upload operation.  Prompts the
+# user to upload into the text area of this widget.
+# ----------------------------------------------------------------------
+itcl::body Rappture::TextEntry::_uploadValue {args} {
+    switch -- $_layout {
+        entry   { set widget $itk_component(entry) }
+        text    { set widget $itk_component(text) }
+        default { set widget $itk_component(hull) }
+    }
+
+    set opt [lindex $args 0]
+    switch -- $opt {
+        -start {
+            set tool [[$_owner tool] get -name]
+            set cntls [list $_path [label] [tooltip]]
+            set mesg [Rappture::filexfer::upload \
+                $tool $cntls [itcl::code $this _uploadValue -assign]]
+
+            if {"" != $mesg} {
+                Rappture::Tooltip::cue $widget $mesg
+            }
+        }
+        -assign {
+            array set data [lrange $args 2 end] ;# skip option and path
+            if {[info exists data(error)]} {
+                Rappture::Tooltip::cue $widget $data(error)
+            }
+            if {[info exists data(data)]} {
+                Rappture::Tooltip::cue hide  ;# take down note about the popup
+                _setValue $data(data)
+            }
+        }
+        default {
+            error "bad option \"$opt\": should be -start or -assign"
+        }
+    }
+}
+
+# ----------------------------------------------------------------------
+# USAGE: _downloadValue
+#
+# Used internally to initiate a download operation.  Takes the current
+# value and downloads it to the user in a new browser window.
+# ----------------------------------------------------------------------
+itcl::body Rappture::TextEntry::_downloadValue {} {
+    set mesg [Rappture::filexfer::download [value] input.txt]
+
+    if {"" != $mesg} {
+        switch -- $_layout {
+            entry   { set widget $itk_component(entry) }
+            text    { set widget $itk_component(text) }
+            default { set widget $itk_component(hull) }
+        }
+        Rappture::Tooltip::cue $widget $mesg
     }
 }
 
@@ -424,7 +590,7 @@ itcl::configbody Rappture::TextEntry::state {
     if {[lsearch -exact $valid $itk_option(-state)] < 0} {
         error "bad value \"$itk_option(-state)\": should be [join $valid {, }]"
     }
-    if {$_mode == "text"} {
+    if {$_layout == "text"} {
         if {$itk_option(-state) == "disabled"} {
             set fg [option get $itk_component(text) disabledForeground Foreground]
         } else {

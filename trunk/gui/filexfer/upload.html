@@ -7,8 +7,10 @@
   @STYLESHEET@
   <script language="JavaScript">
   function setup() {
-    window.resizeTo(750,800);
-    showhide('textcntls','hidden');
+    window.resizeTo(750,750);
+    @REPEAT(
+    showhide('textcntls@INDEX@','hidden');
+    )@
   }
   window.onload = setup;
 
@@ -31,24 +33,35 @@
   <div id="main">
     <h1>Upload</h1>
     <p id="description">
-      @DESCRIPTION@
+      Use this form to upload data for @TOOL@.  If you don't specify a
+      file for a particular input, that input won't be modified by the
+      <i>Upload</i> operation.
     </p>
 
     <form action="/upload" enctype="multipart/form-data" method="post">
-      <p id="description">
-      I want to:<br/>
-        <input type="radio" name="which" value="file" checked onclick="showhide('filecntls','visible'); showhide('textcntls','hidden')">
-        Upload a file from my desktop<br/>
-        <input type="radio" name="which" value="text" onclick="showhide('filecntls','hidden'); showhide('textcntls','visible')">
-        Copy and paste text<br/>
-      </p>
+    @REPEAT(
+    <div id="input">
+      <div id="heading">
+        @LABEL@:
+      </div>
+      <div id="options">
+        <input type="radio" name="which@INDEX@" value="file" checked onclick="showhide('filecntls@INDEX@','visible'); showhide('textcntls@INDEX@','hidden')">
+        Upload a file</input>
+        <input type="radio" name="which@INDEX@" value="text" onclick="showhide('filecntls@INDEX@','hidden'); showhide('textcntls@INDEX@','visible')">
+        Copy/paste text</input>
+      </div>
+      <div>
+        <div class="incntl" id="filecntls@INDEX@" title="@DESCRIPTION@">
+          <input type="file" name="file@INDEX@">
+        </div>
+        <div class="incntl" id="textcntls@INDEX@" title="@DESCRIPTION@">
+          <textarea rows="20" cols="80" name="text@INDEX@">Copy/paste your text into this area, and then click the Upload button to upload it.</textarea>
+        </div>
+      </div>
+      <input type="hidden" name="path@INDEX@" value="@ID@">
+    </div>
+    )@
 
-      <div id="filecntls">
-        File: <input type="file" name="file">
-      </div>
-      <div id="textcntls">
-        Text: <textarea rows="20" cols="80" name="text"></textarea>
-      </div>
       <input type="hidden" name="callback" value="@COOKIE@">
       <div id="submit">
         <input type="submit" value="Upload"/>
