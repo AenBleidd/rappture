@@ -153,12 +153,14 @@ proc Rappture::filexfer::enabled {} {
 # ----------------------------------------------------------------------
 # USAGE: Rappture::filexfer::spool <string> ?<filename>?
 #
-# Clients use this to send a file off to the user.  The <string>
-# is stored in a file called <filename> in the user's spool directory.
-# If there is already a file by that name, then the name is modified
-# to make it unique.  Once the string has been stored in the file,
-# a message is sent to all clients listening, letting them know
-# that the file is available.
+# Low-level function used to send a file off to the user.  Clients
+# normally use filexfer::download instead.
+#
+# The <string> is stored in a file called <filename> in the user's
+# spool directory.  If there is already a file by that name, then
+# the name is modified to make it unique.  Once the string has been
+# stored in the file, a message is sent to all clients listening,
+# letting them know that the file is available.
 # ----------------------------------------------------------------------
 proc Rappture::filexfer::spool {string {filename "output.txt"}} {
     global env
@@ -223,14 +225,22 @@ proc Rappture::filexfer::spool {string {filename "output.txt"}} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: Rappture::filexfer::upload <description> <callback>
+# USAGE: Rappture::filexfer::upload <toolName> <controlList> <callback>
 #
 # Clients use this to prompt the user to upload a file.  The string
-# <description> is sent to the user in a web form, and the user is
-# given the opportunity to upload a file.  If successful, the
-# <callback> is invoked to handle the uploaded information.
+# <toolName> is used to identify the application within the web form.
+# The <controlList> is a list of controls that could be uploaded:
+#
+#   { <id1> <label1> <desc1>  <id2> <label2> <desc2> ... }
+#
+# The user is prompted for each of the controls in <controlList>.
+# If successful, the <callback> is invoked to handle the uploaded
+# information.
+#
+# If anything goes wrong, this function returns a string that should
+# be displayed to the user to explain the problem.
 # ----------------------------------------------------------------------
-proc Rappture::filexfer::upload {desc callback} {
+proc Rappture::filexfer::upload {tool controlList callback} {
     variable enabled
     variable sitelogo
     variable stylesheet
@@ -242,6 +252,35 @@ proc Rappture::filexfer::upload {desc callback} {
         set html [read $fid]
         close $fid
 
+        #
+        # Substitute the <controlList> into the @REPEAT(...)@ area of
+        # the HTML text.
+        #
+        while {[regexp -indices {@REPEAT\((.+?)\)@} $html match inner]} {
+            foreach {s0 s1} $match break
+            foreach {p0 p1} $inner break
+            set template [string range $html $p0 $p1]
+
+            set expanded ""
+            set n 1
+            foreach {name label desc} $controlList {
+                # this description will sit inside title="..." in HTML
+                regsub -all {\"} $desc "" desc
+
+                append expanded [string map [list \
+                    @INDEX@ $n \
+                    @LABEL@ $label \
+                    @DESCRIPTION@ $desc \
+                    @ID@ $name \
+                ] $template]
+                incr n
+            }
+            set html [string replace $html $s0 $s1 $expanded]
+        }
+
+        #
+        # Substitute the rest of the @NAME@ fields.
+        #
         set cookie [bakeCookie]
         set uploadcmds($cookie) $callback
 
@@ -252,13 +291,68 @@ proc Rappture::filexfer::upload {desc callback} {
 
         set html [string map [list \
             @COOKIE@ $cookie \
-            @DESCRIPTION@ $desc \
+            @TOOL@ $tool \
             @LOGO@ $sitelogo \
             @STYLESHEET@ $style \
         ] $html]
 
-        spool $html upload.html
+        set status [catch {spool $html upload.html} result]
+
+        if {$status == 0} {
+            return "Upload starting...\nA web browser page should pop up on your desktop.  Use that form to handle the upload operation.\n\nIf the upload form doesn't pop up, make sure that you're allowing pop ups from this site.  If it still doesn't pop up, you may be having trouble with the version of Java installed for your browser.  See our Support area for details.\n\nClick anywhere to dismiss this message."
+        } else {
+            if {$result == "no clients"} {
+                return "Can't upload files.  Looks like you might be having trouble with the version of Java installed for your browser."
+            } elseif {"old client" == $result} {
+                return "For this to work properly, you must first restart your Web browser.  You don't need to close down this session.  Simply shut down all windows for your Web browser, then restart the browser and navigate back to this page.  You'll find it on \"my nanoHUB\" listed under \"my sessions\".  Once the browser is restarted, the upload should work properly."
+            } elseif {"old clients" == $result} {
+                return "There are multiple browser pages connected to this session, and one of them has browser that needs to be restarted.\n\nWhoever didn't get the upload form should restart their Web browser.  You don't need to close down this session.  Simply shut down all windows for the Web browser, then restart the browser and navigate back to this page.  You'll find it on \"my nanoHUB\" listed under \"my sessions\".  Once the browser is restarted, the upload should work properly."
+            } else {
+                bgerror $result
+            }
+        }
+    } else {
+        return "Can't upload data.  Upload is not enabled.  Is your SESSION variable set?  Is there an error in your session resources file?"
     }
+    return ""
+}
+
+# ----------------------------------------------------------------------
+# USAGE: Rappture::filexfer::download <string> ?<filename>?
+#
+# Clients use this to send a file off to the user.  The <string>
+# is stored in a file called <filename> in the user's spool directory.
+# If there is already a file by that name, then the name is modified
+# to make it unique.  Once the string has been stored in the file,
+# a message is sent to all clients listening, letting them know
+# that the file is available.
+#
+# If anything goes wrong, this function returns a string that should
+# be displayed to the user to explain the problem.
+# ----------------------------------------------------------------------
+proc Rappture::filexfer::download {string {filename "output.txt"}} {
+    variable enabled
+
+    if {$enabled} {
+        set status [catch {
+            Rappture::filexfer::spool $string $filename
+        } result]
+
+        if {$status != 0} {
+            if {$result == "no clients"} {
+                return "Can't download data.  Looks like you might be having trouble with the version of Java installed for your browser."
+            } elseif {"old client" == $result} {
+                return "For this to work properly, you must first restart your Web browser.  You don't need to close down this session.  Simply shut down all windows for your Web browser, then restart the browser and navigate back to this page.  You'll find it on \"my nanoHUB\" listed under \"my sessions\".  Once the browser is restarted, the download should work properly."
+            } elseif {"old clients" == $result} {
+                return "There are multiple browser pages connected to this session, and one of them has browser that needs to be restarted.\n\nWhoever didn't get the download should restart their Web browser.  You don't need to close down this session.  Simply shut down all windows for the Web browser, then restart the browser and navigate back to this page.  You'll find it on \"my nanoHUB\" listed under \"my sessions\".  Once the browser is restarted, the download should work properly."
+            } else {
+                bgerror $result
+            }
+        }
+    } else {
+        return "Can't download data.  Download is not enabled.  Is your SESSION variable set?  Is there an error in your session resources file?"
+    }
+    return ""
 }
 
 # ----------------------------------------------------------------------
@@ -392,6 +486,7 @@ proc Rappture::filexfer::handler {cid} {
                 response $cid header -status "400 Bad Request" \
                     -connection $headers(Connection)
                 response $cid error -message "Your browser sent a request that this server could not understand.<P>$errmsg"
+                flush $cid
             } else {
                 # process the request...
                 switch -- $type {
@@ -411,6 +506,7 @@ proc Rappture::filexfer::handler {cid} {
                             -status "400 Bad Request" \
                             -connection $headers(Connection)
                         response $cid error -message "Your browser sent a request that this server could not understand.<P>Invalid request type <b>$type</b>"
+                        flush $cid
                     }
                 }
             }
@@ -437,6 +533,7 @@ proc Rappture::filexfer::handler {cid} {
                     -status "400 Bad Request" \
                     -connection $headers(Connection)
                 response $cid error -message "Your browser sent a request that this server could not understand.<P>Invalid request type <b>$type</b>"
+                flush $cid
             }
         }
     }
@@ -512,6 +609,7 @@ coming from the user.
 </body>
 </html>
 } $port $user $cookie]
+        flush $cid
     } elseif {[regexp {^/?spool\/([^/]+)/(.+)$} $url match session tail]} {
         #
         # Send back a spooled file...
@@ -529,6 +627,7 @@ coming from the user.
         } else {
             response $cid file -path $file -connection $headers(Connection)
         }
+        flush $cid
     } elseif {[regexp {^/?[a-zA-Z0-9_]+\.[a-zA-Z]+$} $url match]} {
         #
         # Send back an applet file...
@@ -536,6 +635,7 @@ coming from the user.
         set url [string trimleft $url /]
         set file [file join $RapptureGUI::library filexfer $url]
         response $cid file -path $file -connection $headers(Connection)
+        flush $cid
     } else {
         #
         # BAD FILE REQUEST:
@@ -546,6 +646,7 @@ coming from the user.
             -status "404 Not Found" \
             -connection $headers(Connection)
         response $cid error -status "404 Not Found" -message "The requested URL $url was not found on this server."
+        flush $cid
     }
 }
 
@@ -677,14 +778,52 @@ proc Rappture::filexfer::request_POST {cid url headerVar postData} {
 
         if {[info exists post(callback)]
               && [info exists uploadcmds($post(callback))]} {
-            # get the data -- either text or file
-            set dlist [list which $post(which)]
-            lappend dlist data $post($post(which))
 
-            # get the upload callback command
             set cmd $uploadcmds($post(callback))
-            if {[catch "$cmd $dlist" result]} {
-                bgerror $result
+            set gotdata 0
+
+            set i 1
+            while {[info exists post(path$i)]} {
+                set path $post(path$i)
+                set data "$post(which$i)$i"
+
+                # get the data -- either text or file
+                set dlist [list which $post(which$i)]
+
+                if {![regexp {[\000-\010\013\014\016-\037\177-]} $post($data)]} {
+                    # not a binary file? then trim extra spaces
+                    set post($data) [string trim $post($data)]
+                }
+                if {[string length $post($data)] > 0} {
+                    set gotdata 1
+
+                    # invoke the upload callback command
+                    lappend dlist data $post($data)
+                    if {[catch "$cmd [list $path] $dlist" result]} {
+                        bgerror $result
+                    }
+                }
+                incr i
+            }
+
+            #
+            # If there was no data, then warn the user.
+            #
+            if {!$gotdata} {
+                set ninputs [expr {$i-1}]
+                if {$ninputs == 1} {
+                    set mesg "You didn't fill in any data on the upload form.
+
+If you meant up upload data, please try the upload again, and this time select a file name or copy/paste some text."
+                } else {
+                    set mesg "You didn't fill in data for any of the $ninputs spots on the upload form.  If you leave any of the inputs blank, they are left unchanged so that you can upload into one field without affecting the others.
+
+If you meant up upload data, please try the upload again, and this time select a file name or copy/paste some text for at least one input."
+                }
+                # invoke the upload callback command to post the error
+                if {[catch "$cmd [list $path error $mesg]" result]} {
+                    bgerror $result
+                }
             }
             unset uploadcmds($post(callback))
         }
@@ -713,6 +852,7 @@ proc Rappture::filexfer::request_POST {cid url headerVar postData} {
 If this window doesn't close automatically, feel free to close it manually.
 </body>
 </html>}
+        flush $cid
     } else {
         #
         # BAD FILE REQUEST:
@@ -723,6 +863,7 @@ If this window doesn't close automatically, feel free to close it manually.
             -status "404 Not Found" \
             -connection $headers(Connection)
         response $cid error -status "404 Not Found" -message "The requested URL $url was not found on this server."
+        flush $cid
     }
 }
 

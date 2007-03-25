@@ -22,6 +22,7 @@ itcl::class Rappture::Loader {
     itk_option define -state state State "normal"
 
     constructor {owner path args} { # defined below }
+    destructor { # defined below }
 
     public method value {args}
 
@@ -29,18 +30,17 @@ itcl::class Rappture::Loader {
     public method tooltip {}
 
     protected method _newValue {}
-    protected method _uploadValue {string}
+    protected method _uploadValue {path args}
+    protected method _downloadValues {}
     protected method _tooltip {}
 
     private variable _owner ""    ;# thing managing this control
     private variable _path ""     ;# path in XML to this loader
     private variable _lastlabel "";# label of last example loaded
 
-    private variable _uppath ""   ;# path to Upload... component
-    private variable _updesc ""   ;# description for Upload... data
-    private variable _upfilter "" ;# filter used for upload data
-
-    private variable _dnpath ""   ;# path to Download... component
+    private variable _uppath ""   ;# list: path label desc ...
+    private variable _dnpaths ""  ;# list of download element paths
+    private common _dnpath2state  ;# maps download path => yes/no state
 }
 
 itk::usual Loader {
@@ -111,37 +111,49 @@ itcl::body Rappture::Loader::constructor {owner path args} {
     # entry next.
     #
     foreach comp [$_owner xml children -type upload $path] {
-        set topath [$_owner xml get $path.$comp.to]
-        if {"" != $topath} {
-            set _uppath $topath
-
-            set desc [$_owner xml get $path.$comp.prompt]
-            if {"" == $desc} {
-                set desc "Use this form to upload data"
-                set dest [$owner xml get $_uppath.about.label]
-                if {"" != $dest} {
-                    append desc " into the $dest area"
-                }
-                append desc "."
-            }
-            set _updesc $desc
-
-            $itk_component(combo) choices insert end @upload "Upload..."
-            break
+        foreach tcomp [$_owner xml children -type to $path.$comp] {
+            set topath [$_owner xml get $path.$comp.$tcomp]
+            set label [$_owner xml get $topath.about.label]
+            set desc [$_owner xml get $topath.about.description]
+            lappend _uppath $topath $label $desc
         }
+        break
+    }
+    if {[llength $_uppath] > 0} {
+        $itk_component(combo) choices insert end @upload "Upload..."
     }
 
     #
     # If this loader has a <download> section, then create that
-    # entry next.
+    # entry next.  Build a popup for choices if there is more than
+    # one download element.
     #
+    Rappture::Balloon $itk_component(hull).download \
+        -title "Choose what to download:"
+    set inner [$itk_component(hull).download component inner]
+
+    set i 0
     foreach comp [$_owner xml children -type download $path] {
-        set frompath [$_owner xml get $path.$comp.from]
-        if {"" != $frompath} {
-            set _dnpath $frompath
-            $itk_component(combo) choices insert end @download "Download..."
-            break
+        foreach dcomp [$_owner xml children -type from $path.$comp] {
+            set frompath [$_owner xml get $path.$comp.$dcomp]
+            if {"" != $frompath} {
+                lappend _dnpaths $frompath
+                set _dnpath2state($this-$frompath) [expr {$i == 0}]
+
+                set label [$_owner xml get $frompath.about.label]
+                checkbutton $inner.cb$i -text $label \
+                    -variable ::Rappture::Loader::_dnpath2state($this-$frompath)
+                pack $inner.cb$i -anchor w
+                incr i
+            }
         }
+    }
+    button $inner.go -text "Download" \
+        -command [itcl::code $this _downloadValues]
+    pack $inner.go -side bottom -padx 50 -pady {4 2}
+
+    if {[llength $_dnpaths] > 0} {
+        $itk_component(combo) choices insert end @download "Download..."
     }
 
     if {[$itk_component(combo) choices size] > 0} {
@@ -205,6 +217,16 @@ itcl::body Rappture::Loader::constructor {owner path args} {
     #
     set str [$_owner xml get $path.default]
     if {$str != ""} { after 1000 [itcl::code $this value $str] }
+}
+
+# ----------------------------------------------------------------------
+# DESTRUCTOR
+# ----------------------------------------------------------------------
+itcl::body Rappture::Loader::destructor {} {
+    # be sure to clean up entries for this widget's download paths
+    foreach path $_dnpaths {
+        catch {unset _dnpath2state($this-$path)}
+    }
 }
 
 # ----------------------------------------------------------------------
@@ -282,26 +304,13 @@ itcl::body Rappture::Loader::_newValue {} {
     set obj [$itk_component(combo) translate $newval]
     if {$obj == "@upload"} {
         if {[Rappture::filexfer::enabled]} {
-            set status [catch {Rappture::filexfer::upload \
-                $_updesc [itcl::code $this _uploadValue]} result]
-            if {$status == 0} {
-                Rappture::Tooltip::cue $itk_component(combo) \
-                    "Upload starting...\nA web browser page should pop up on your desktop.  Use that form to handle the upload operation.\n\nIf the upload form doesn't pop up, make sure that you're allowing pop ups from this site.  If it still doesn't pop up, you may be having trouble with the version of Java installed for your browser.  See our Support area for details.\n\nClick anywhere to dismiss this message."
-            } else {
-                if {$result == "no clients"} {
-                    Rappture::Tooltip::cue $itk_component(combo) \
-                        "Can't upload files.  Looks like you might be having trouble with the version of Java installed for your browser."
-                } elseif {"old client" == $result} {
-                    Rappture::Tooltip::cue $itk_component(combo) "For this to work properly, you must first restart your Web browser.  You don't need to close down this session.  Simply shut down all windows for your Web browser, then restart the browser and navigate back to this page.  You'll find it on \"my nanoHUB\" listed under \"my sessions\".  Once the browser is restarted, the upload should work properly."
-                } elseif {"old clients" == $result} {
-                    Rappture::Tooltip::cue $itk_component(combo) "There are multiple browser pages connected to this session, and one of them has browser that needs to be restarted.\n\nWhoever didn't get the upload form should restart their Web browser.  You don't need to close down this session.  Simply shut down all windows for the Web browser, then restart the browser and navigate back to this page.  You'll find it on \"my nanoHUB\" listed under \"my sessions\".  Once the browser is restarted, the upload should work properly."
-                } else {
-                    bgerror $result
-                }
+            set tool [[$_owner tool] get -name]
+            set mesg [Rappture::filexfer::upload \
+                $tool $_uppath [itcl::code $this _uploadValue]]
+
+            if {"" != $mesg} {
+                Rappture::Tooltip::cue $itk_component(combo) $mesg
             }
-        } else {
-            Rappture::Tooltip::cue $itk_component(combo) \
-                "Can't upload data.  Upload is not enabled.  Is your SESSION variable set?  Is there an error in your session resources file?"
         }
 
         # put the combobox back to its last value
@@ -311,24 +320,10 @@ itcl::body Rappture::Loader::_newValue {} {
         $itk_component(combo) component entry configure -state disabled
 
     } elseif {$obj == "@download"} {
-        if {[Rappture::filexfer::enabled]} {
-            set info [$itk_option(-tool) valuefor $_dnpath]
-            set status [catch {Rappture::filexfer::spool $info input.txt} result]
-            if {$status != 0} {
-                if {$result == "no clients"} {
-                    Rappture::Tooltip::cue $itk_component(combo) \
-                        "Can't download data.  Looks like you might be having trouble with the version of Java installed for your browser."
-                } elseif {"old client" == $result} {
-                    Rappture::Tooltip::cue $itk_component(combo) "For this to work properly, you must first restart your Web browser.  You don't need to close down this session.  Simply shut down all windows for your Web browser, then restart the browser and navigate back to this page.  You'll find it on \"my nanoHUB\" listed under \"my sessions\".  Once the browser is restarted, the download should work properly."
-                } elseif {"old clients" == $result} {
-                    Rappture::Tooltip::cue $itk_component(combo) "There are multiple browser pages connected to this session, and one of them has browser that needs to be restarted.\n\nWhoever didn't get the download should restart their Web browser.  You don't need to close down this session.  Simply shut down all windows for the Web browser, then restart the browser and navigate back to this page.  You'll find it on \"my nanoHUB\" listed under \"my sessions\".  Once the browser is restarted, the download should work properly."
-                } else {
-                    bgerror $result
-                }
-            }
+        if {[llength $_dnpaths] == 1} {
+            _downloadValues
         } else {
-            Rappture::Tooltip::cue $itk_component(combo) \
-                "Can't download data.  Download is not enabled.  Is your SESSION variable set?  Is there an error in your session resources file?"
+            $itk_component(hull).download activate $itk_component(combo) below
         }
 
         # put the combobox back to its last value
@@ -388,50 +383,56 @@ itcl::body Rappture::Loader::_tooltip {} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: _uploadValue ?<key> <value> <key> <value> ...?
+# USAGE: _uploadValue <path> ?<key> <value> <key> <value> ...?
 #
 # Invoked automatically whenever the user has uploaded data from
 # the "Upload..." option.  Takes the data value (passed as an
 # argument) and loads into the destination widget.
 # ----------------------------------------------------------------------
-itcl::body Rappture::Loader::_uploadValue {args} {
-    Rappture::Tooltip::cue hide  ;# take down the note about the popup window
-
+itcl::body Rappture::Loader::_uploadValue {path args} {
     array set data $args
 
-    if {[string length [string trim $data(data)]] == 0} {
-        switch -- $data(which) {
-            file {
-                set mesg "You indicated that you were uploading a file, but y"
-            }
-            text {
-                set mesg "You indicated that you were uploading text, but y"
-            }
-            default {
-                set mesg "Y"
-            }
-        }
-        Rappture::Tooltip::cue $itk_component(combo) \
-            "${mesg}ou didn't fill in any data on the upload form."
-        return
+    if {[info exists data(error)]} {
+        Rappture::Tooltip::cue $itk_component(combo) $data(error)
     }
 
-    #
-    # BE CAREFUL:  This string may have binary characters that
-    #   aren't appropriate for a string editor.  Right now, XML
-    #   will barf on these characters.  Clip them out and be
-    #   done with it.
-    #
-    set string $data(data)
-    regsub -all {[\000-\010\013\014\016-\037\177-\377]} $string {} string
-    regsub -all "\r" $string "\n" string
-    $itk_option(-tool) valuefor $_uppath $string
+    if {[info exists data(data)]} {
+        Rappture::Tooltip::cue hide  ;# take down note about the popup window
+        $itk_option(-tool) valuefor $path $data(data)
 
-    $itk_component(combo) component entry configure -state normal
-    $itk_component(combo) component entry delete 0 end
-    $itk_component(combo) component entry insert end "Uploaded data"
-    $itk_component(combo) component entry configure -state disabled
-    set _lastlabel "Uploaded data"
+        $itk_component(combo) component entry configure -state normal
+        $itk_component(combo) component entry delete 0 end
+        $itk_component(combo) component entry insert end "Uploaded data"
+        $itk_component(combo) component entry configure -state disabled
+        set _lastlabel "Uploaded data"
+    }
+}
+
+# ----------------------------------------------------------------------
+# USAGE: _downloadValues
+#
+# Used internally to download all values checked by the popup that
+# controls downloading.  Sends the values for the various controls
+# out to the user by popping up separate browser windows.
+# ----------------------------------------------------------------------
+itcl::body Rappture::Loader::_downloadValues {} {
+    # take down the popup (in case it was posted)
+    $itk_component(hull).download deactivate
+
+    set mesg ""
+    if {[Rappture::filexfer::enabled]} {
+        foreach path $_dnpaths {
+            if {$_dnpath2state($this-$path)} {
+                set info [$itk_option(-tool) valuefor $path]
+                set mesg [Rappture::filexfer::download $info input.txt]
+                if {"" != $mesg} { break }
+            }
+        }
+    }
+
+    if {"" != $mesg} {
+        Rappture::Tooltip::cue $itk_component(combo) $mesg
+    }
 }
 
 # ----------------------------------------------------------------------

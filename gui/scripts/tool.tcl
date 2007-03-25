@@ -23,6 +23,7 @@ itcl::class Rappture::Tool {
         Rappture::ControlOwner::constructor ""
     } { # defined below }
 
+    public method get {{option ""}}
     public method installdir {} { return $_installdir }
 
     public method run {args}
@@ -61,6 +62,22 @@ itcl::body Rappture::Tool::constructor {xmlobj installdir args} {
     set _installdir $installdir
 
     eval configure $args
+}
+
+# ----------------------------------------------------------------------
+# USAGE: get ?-option?
+#
+# Clients use this to query information about the tool.
+# ----------------------------------------------------------------------
+itcl::body Rappture::Tool::get {{option ""}} {
+    set values(-name) $_appname
+    if {$option == ""} {
+        return [array get values]
+    }
+    if {![info exists values]} {
+        error "bad option \"$option\": should be [join [array names values] {, }]"
+    }
+    return $values($option)
 }
 
 # ----------------------------------------------------------------------
