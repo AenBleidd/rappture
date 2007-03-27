@@ -29,7 +29,7 @@ itcl::class Rappture::DeviceResult {
     public method scale {args}
     public method download {option args}
 
-    set _dataobj ""  ;# data object currently being displayed
+    private variable _dataobj ""  ;# data object currently being displayed
 }
                                                                                 
 itk::usual DeviceResult {
