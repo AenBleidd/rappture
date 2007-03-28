@@ -1,0 +1,134 @@
+# Commands covered: 
+#   Rappture::encoding::is
+#   Rappture::encoding::encode
+#   Rappture::encoding::decode
+#
+# This file contains a collection of tests for one of the Rappture Tcl
+# commands.  Sourcing this file into Tcl runs the tests and
+# generates output for errors.  No output means no errors were found.
+#
+# ======================================================================
+# AUTHOR:  Derrick Kearney, Purdue University
+# Copyright (c) 2004-2007  Purdue Research Foundation
+#
+# See the file "license.terms" for information on usage and redistribution
+# of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+
+
+if {[lsearch [namespace children] ::tcltest] == -1} {
+    package require tcltest
+    package require Rappture
+    namespace import -force ::tcltest::*
+}
+
+#----------------------------------------------------------
+#----------------------------------------------------------
+# is command
+# Rappture::encoding::is binary <string>
+#----------------------------------------------------------
+test is-1.0.1 {Rappture::encoding::is, 0 arguments} {
+    list [catch {Rappture::encoding::is} msg] $msg
+} {1 {wrong # args: should be "Rappture::encoding::is binary <string>"}}
+
+test is-1.1.1 {Rappture::encoding::is, 1 incomplete subcommand} {
+    list [catch {Rappture::encoding::is binary} msg] $msg
+} {1 {wrong # args: should be "Rappture::encoding::is binary <string>"}}
+
+test is-1.1.2 {Rappture::encoding::is, 1 subcommand w/ string} {
+    list [catch {Rappture::encoding::is binary "hi"} msg] $msg
+} {0 no}
+
+test is-1.1.3 {Rappture::encoding::is, 1 subcommand w/ string} {
+    set h "@@RP-ENC:b64\nH4sIAAAAAAAAA8vIBACsKpPYAgAAAA==\n"
+    set b [Rappture::encoding::decode $h]
+    list [catch {Rappture::encoding::is binary $b} msg] $msg
+} {0 yes}
+
+test is-1.2.0 {Rappture::encoding::is, 1 invalid subcommand} {
+    list [catch {Rappture::encoding::is binaryy "hi"} msg] $msg
+} {1 {bad option "binaryy": should be binary}}
+
+test is-1.2.1 {Rappture::encoding::is, too many arguments} {
+    list [catch {Rappture::encoding::is binary binary "hi"} msg] $msg
+} {1 {wrong # args: should be "Rappture::encoding::is binary <string>"}}
+
+#----------------------------------------------------------
+#----------------------------------------------------------
+# encode command
+# Rappture::encoding::encode ?-as z|b64? <string>
+#----------------------------------------------------------
+
+test encode-2.0.0 {Rappture::encoding::encode, 0 arguments} {
+    list [catch {Rappture::encoding::encode} msg] $msg
+} {1 {wrong # args: should be "Rappture::encoding::encode ?-as z|b64? <string>"}}
+
+test encode-2.1.0 {Rappture::encoding::encode, ascii string argument} {
+    list [catch {Rappture::encoding::encode "hi"} msg] $msg
+} {0 {@@RP-ENC:z
+H4sIAAAAAAAAA8vIBACsKpPYAgAAAA==
+}}
+
+test encode-2.1.1 {Rappture::encoding::encode, binary string argument}  {
+    set h "@@RP-ENC:b64\nH4sIAAAAAAAAA8vIBACsKpPYAgAAAA==\n"
+    set b [Rappture::encoding::decode $h]
+    list [catch {Rappture::encoding::encode $b} msg] $msg
+} {0 {@@RP-ENC:z
+H4sIAAAAAAAAA5Pv5mAAA+bTJ1gY1mhNvsEE5AAAFVLsvBYAAAA=
+}}
+
+test encode-2.2.0 {Rappture::encoding::encode, -as flag blank value} {
+    list [catch {Rappture::encoding::encode -as} msg] $msg
+} {1 {bad value "": should be one of z, b64}}
+
+test encode-2.2.1 {Rappture::encoding::encode, -as flag bad value } {
+    list [catch {Rappture::encoding::encode -as zz} msg] $msg
+} {1 {bad value "zz": should be one of z, b64}}
+
+test encode-2.2.2 {Rappture::encoding::encode, -as flag correct value z} {
+    list [catch {Rappture::encoding::encode -as z} msg] $msg
+} {1 {wrong # args: should be "Rappture::encoding::encode ?-as z|b64? <string>"}}
+
+test encode-2.2.3 {Rappture::encoding::encode, -as z w/ string} {
+    list [catch {Rappture::encoding::encode -as z "hi"} msg] $msg
+} {0 {@@RP-ENC:z
+H4sIAAAAAAAAA8vIBACsKpPYAgAAAA==
+}}
+
+test encode-2.2.4 {Rappture::encoding::encode, -as b64 w/ string} {
+    list [catch {Rappture::encoding::encode -as b64 "hi"} msg] $msg
+} {0 {@@RP-ENC:b64
+aGk=
+}}
+
+#----------------------------------------------------------
+#----------------------------------------------------------
+# decode command
+# Rappture::encooding::decode <string>
+#----------------------------------------------------------
+
+test decode-3.0.0 {Rappture::encoding::decode, 0 arguments} {
+    list [catch {Rappture::encoding::decode} msg] $msg
+} {1 {wrong # args: should be "Rappture::encoding::decode <string>"}}
+
+test decode-3.1.0 {Rappture::encoding::decode, 1 arguments, non-encoded} {
+    list [catch {Rappture::encoding::decode -asb64} msg] $msg
+} {0 -asb64}
+
+test decode-3.1.1 {Rappture::encoding::decode, 1 arg, b64 encoded} {
+    set h "@@RP-ENC:b64\naGk="
+    list [catch {Rappture::encoding::decode $h} msg] $msg
+} {0 hi}
+
+test decode-3.1.2 {Rappture::encoding::decode, 1 arg, z encoded} {
+    set h "@@RP-ENC:z\nH4sIAAAAAAAAA8vIBACsKpPYAgAAAA=="
+    list [catch {Rappture::encoding::decode $h} msg] $msg
+} {0 hi}
+
+test decode-3.1.3 {Rappture::encoding::decode, 2 args} {
+    list [catch {Rappture::encoding::decode "hi" "bye"} msg] $msg
+} {1 {wrong # args: should be "Rappture::encoding::decode <string>"}}
+
+
+::tcltest::cleanupTests
+return
+

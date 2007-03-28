@@ -20,7 +20,7 @@
 extern "C" {
 #endif
 
-// EXTERN int Rapptureunits_Init _ANSI_ARGS_((Tcl_Interp * interp));
+// EXTERN int RapptureUnits_Init _ANSI_ARGS_((Tcl_Interp * interp));
 
 static int RpTclUnitsConvert    _ANSI_ARGS_((   ClientData cdata,
                                                 Tcl_Interp *interp,
@@ -58,7 +58,7 @@ static int RpTclUnitsSearchFor  _ANSI_ARGS_((   ClientData cdata,
 
 
 /**********************************************************************/
-// FUNCTION: Rapptureunits_Init()
+// FUNCTION: RapptureUnits_Init()
 /// Initializes the Rappture Units module and commands defined below
 /**
  * Called in RapptureGUI_Init() to initialize the Rappture Units module.
@@ -71,7 +71,7 @@ static int RpTclUnitsSearchFor  _ANSI_ARGS_((   ClientData cdata,
  */
 
 int
-Rapptureunits_Init(Tcl_Interp *interp)
+RapptureUnits_Init(Tcl_Interp *interp)
 {
 
     Tcl_CreateCommand(interp, "::Rappture::Units::convert",
