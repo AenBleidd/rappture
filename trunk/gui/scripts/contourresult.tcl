@@ -1021,8 +1021,10 @@ itcl::body Rappture::ContourResult::_move {option x y} {
             } else {
                 set w [winfo width $itk_component(plot)]
                 set h [winfo height $itk_component(plot)]
-                set dx [expr {double($x-$_click(x))/$w}]
-                set dy [expr {double($y-$_click(y))/$h}]
+                set scalex [expr {$_limits(xmax)-$_limits(xmin)}]
+                set scaley [expr {$_limits(ymax)-$_limits(ymin)}]
+                set dx [expr {double($x-$_click(x))/$w*$scalex}]
+                set dy [expr {double($y-$_click(y))/$h*$scaley}]
 
                 if {$_dims == "2D"} {
                     #
