@@ -428,6 +428,17 @@ itcl::body Rappture::SequenceResult::_rebuild {args} {
                 Rappture::Field3DResult $viewer
                 pack $viewer -expand yes -fill both
             }
+            ::Rappture::LibraryObj {
+                switch -- [$dataobj element -as type] {
+                    structure {
+                        Rappture::DeviceResult $viewer
+                        pack $viewer -expand yes -fill both
+                    }
+                    default {
+                        error "don't know how to view sequences of [$dataobj element -as type]"
+                    }
+                }
+            }
             default {
                 error "don't know how to view sequences of $type"
             }

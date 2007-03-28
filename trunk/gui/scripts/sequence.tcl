@@ -68,6 +68,25 @@ itcl::body Rappture::Sequence::constructor {xmlobj path} {
                 image {
                     set obj [Rappture::Image ::#auto $xmlobj $path.$name.$cname]
                 }
+                structure {
+		    # extract unique result set prefix
+                    scan $xmlobj "::libraryObj%d" rset
+
+                    # object rooted at x.sequence(y).element(z).structure
+                    set obj [$xmlobj element -as object $path.$name.$cname]
+
+		    # scene id (sequence id)
+                    set sceneid [$xmlobj element -as id $path]-$rset
+
+		    # sequence/element/frame number starting at 1
+                    set frameid [expr [$xmlobj element -as id $path.$name] + 1]
+
+		    # only supporting one molecule per structure at the moment
+		    # otherwise should go through all children that are molecules
+		    # and insert scene/frame data.
+                    $obj put "components.molecule.state" $frameid
+                    $obj put "components.molecule.model" $sceneid
+		}
                 default {
                     error "don't know how to handle sequences of $type"
                 }
