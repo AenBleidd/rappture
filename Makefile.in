@@ -8,6 +8,7 @@ TarfileBasename=rappture-$(os)-$(machine)-$(build_date)
 all: rplib build_bindings
 install: rp_gui install_rplib install_bindings install_examples
 	chmod 755 gui/apps/rappture
+	chmod 755 gui/apps/simsim
 	cp gui/apps/rappture @prefix@/bin
 	cp gui/apps/rappture.env @prefix@/bin
 	cp gui/apps/driver @prefix@/bin
