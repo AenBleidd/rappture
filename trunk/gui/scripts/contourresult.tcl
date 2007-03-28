@@ -908,6 +908,17 @@ itcl::body Rappture::ContourResult::_rebuild {} {
     _fixLimits
     _zoom reset
 
+    #
+    # HACK ALERT!  A single ResetCamera doesn't seem to work for
+    #   some contour data.  You have to do it multiple times to
+    #   get to the right zoom factor on data.  I hope 20 times is
+    #   enough.  I hate Vtk sometimes...
+    #
+    for {set i 0} {$i < 20} {incr i} {
+        $this-ren ResetCamera
+        [$this-ren GetActiveCamera] Zoom 1.5
+    }
+
     # prevent interactions -- use our own
     blt::busy hold $itk_component(area) -cursor left_ptr
     bind $itk_component(area)_Busy <ButtonPress> \
