@@ -446,11 +446,11 @@ itcl::body Rappture::LibraryObj::get {{path ""}} {
     if {$node == ""} {
         return ""
     }
-    return [string trim [$node text]]
+    return [string trim [Rappture::encoding::decode [$node text]]]
 }
 
 # ----------------------------------------------------------------------
-# USAGE: put ?-append yes? ?-id num? ?<path>? <string>
+# USAGE: put ?-append yes? ?-id num? ?-type string|file? ?-compress no? ?<path>? <string>
 #
 # Clients use this to set the value of a node.  If the path is not
 # specified, it sets the value for the root node.  Otherwise, it sets
@@ -468,6 +468,8 @@ itcl::body Rappture::LibraryObj::put {args} {
     array set params {
         -id ""
         -append no
+        -type string
+        -compress no
     }
     while {[llength $args] > 1} {
         set first [lindex $args 0]
@@ -483,7 +485,7 @@ itcl::body Rappture::LibraryObj::put {args} {
         }
     }
     if {[llength $args] > 2} {
-        error "wrong # args: should be \"put ?-append bval? ?-id num? ?path? string\""
+        error "wrong # args: should be \"put ?-append bval? ?-id num? ?-type string|file? ?-compress bval? ?path? string\""
     }
     if {[llength $args] == 2} {
         set path [lindex $args 0]
@@ -492,6 +494,19 @@ itcl::body Rappture::LibraryObj::put {args} {
         set path ""
         set str [lindex $args 0]
     }
+
+    if {$params(-type) == "file"} {
+        set fileName $str
+        set fid [open $fileName r]
+        fconfigure $fid -translation binary
+        set str [read $fid]
+        close $fid
+    }
+
+    if {$params(-compress) || [Rappture::encoding::is binary $str]} {
+        set str [Rappture::encoding::encode $str]
+    }
+
     set node [find -create $path]
 
     #
