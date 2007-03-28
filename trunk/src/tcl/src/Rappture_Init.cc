@@ -27,6 +27,7 @@ EXTERN int Rappture_Init _ANSI_ARGS_((Tcl_Interp *interp));
 
 #include "RpLibraryTclInterface.h"
 #include "RpUnitsTclInterface.h"
+#include "RpEncodeTclInterface.h"
 
 #ifdef __cplusplus
 }
@@ -49,7 +50,11 @@ Rappture_Init( Tcl_Interp * interp)
     }
     */
 
-    if (Rapptureunits_Init(interp) != TCL_OK) {
+    if (RapptureUnits_Init(interp) != TCL_OK) {
+        return TCL_ERROR;
+    }
+
+    if (RapptureEncoding_Init(interp) != TCL_OK) {
         return TCL_ERROR;
     }
 

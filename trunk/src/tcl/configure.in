@@ -84,7 +84,7 @@ TEA_SETUP_COMPILER
 #-----------------------------------------------------------------------
 
 #TEA_ADD_SOURCES([Rappture_Init.cc RpLibraryTclInterface.cc RpUnitsTclInterface.cc ])
-TEA_ADD_SOURCES([Rappture_Init.cc RpUnitsTclInterface.cc])
+TEA_ADD_SOURCES([Rappture_Init.cc RpUnitsTclInterface.cc RpEncodeTclInterface.cc])
 TEA_ADD_HEADERS([])
 TEA_ADD_INCLUDES([])
 TEA_ADD_CFLAGS([])
