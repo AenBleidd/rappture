@@ -336,7 +336,7 @@ itcl::body Rappture::TextEntry::_layout {} {
 # the data is displayed.
 # ----------------------------------------------------------------------
 itcl::body Rappture::TextEntry::_setValue {newval} {
-    if {[regexp {[\000-\010\013\014\016-\037\177-\377]} $newval]} {
+    if {[Rappture::encoding::is binary $newval]} {
         # looks like a binary file
         set _mode "binary"
         set _value $newval
@@ -392,16 +392,7 @@ itcl::body Rappture::TextEntry::_setValue {newval} {
             append newval $tail
         }
 
-        #
-        # HACK ALERT!  For now, we use a tmp file to compress/encode.
-        # Rappture should have a built-in function to do this.
-        #
-        set tmpfile "/tmp/bindata[pid]"
-        set fid [open $tmpfile w]
-        fconfigure $fid -encoding binary -translation binary
-        puts -nonewline $fid $_value
-        close $fid
-        set _value "@@RP-ENC:z\n[exec gzip -c $tmpfile | mimencode]"
+        set _value [Rappture::encoding::encode -as z $_value]
 
     } else {
         # ascii file -- map carriage returns to line feeds

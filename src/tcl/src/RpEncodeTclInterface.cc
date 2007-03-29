@@ -235,16 +235,15 @@ RpTclEncodingEncode (   ClientData cdata,
         }
     }
 
-    if (nextarg < objc) {
-        option = Tcl_GetStringFromObj(objv[nextarg++], &optionLen);
-        buf = Rappture::Buffer(option,optionLen);
-    }
-    else {
+    if ((objc - nextarg) != 1) {
         Tcl_AppendResult(interp,
                 "wrong # args: should be \"", cmdName,
                 " ?-as z|b64? <string>\"", (char*)NULL);
         return TCL_ERROR;
     }
+
+    option = Tcl_GetStringFromObj(objv[nextarg++], &optionLen);
+    buf = Rappture::Buffer(option,optionLen);
 
     /*
     if (base64 == 0) {
@@ -256,14 +255,6 @@ RpTclEncodingEncode (   ClientData cdata,
     */
 
     buf.encode(compress,base64);
-
-    if (encodeType != NULL) {
-        Tcl_AppendResult(interp,"@@RP-ENC:",encodeType,"\n",(char*)NULL);
-    }
-    else {
-        Tcl_AppendResult(interp,"@@RP-ENC:z\n",(char*)NULL);
-    }
-
     result = Tcl_GetObjResult(interp);
     Tcl_AppendToObj(result,buf.bytes(),buf.size());
 
@@ -279,7 +270,7 @@ RpTclEncodingEncode (   ClientData cdata,
  * RpTclEncodingIs is used to qualify binary data.
  *
  * Full function call:
- * ::Rappture::encoding::decode <string>
+ * ::Rappture::encoding::decode ?-as z|b64? <string>
  */
 
 int
@@ -289,16 +280,17 @@ RpTclEncodingDecode (   ClientData cdata,
                         Tcl_Obj *const objv[]  )
 {
 
+    const char* encodeType    = NULL; // name of the units provided by user
     const char* option        = NULL;
     const char* cmdName       = NULL;
     Rappture::Buffer buf      = ""; // name of the units provided by user
 
     int optionLen             = 0;
+    int typeLen               = 0;
     int nextarg               = 0; // start parsing using the '2'th argument
 
     int decompress            = 0;
     int base64                = 0;
-    int offset                = 0;
 
     Tcl_Obj *result           = NULL;
 
@@ -307,33 +299,76 @@ RpTclEncodingDecode (   ClientData cdata,
     cmdName = Tcl_GetString(objv[nextarg++]);
 
     // parse through command line options
-    if (objc != 2) {
+    if ((objc < 2) || (objc > 4)) {
         Tcl_AppendResult(interp,
                 "wrong # args: should be \"", cmdName,
-                " <string>\"", (char*)NULL);
+                " ?-as z|b64? <string>\"", (char*)NULL);
+        return TCL_ERROR;
+    }
+
+    option = Tcl_GetStringFromObj(objv[nextarg], &optionLen);
+    if (*option == '-') {
+        if ( strncmp(option,"-as",optionLen) == 0 ) {
+            nextarg++;
+            typeLen = 0;
+            if (nextarg < objc) {
+                encodeType = Tcl_GetStringFromObj(objv[nextarg],&typeLen);
+                nextarg++;
+            }
+            if (        (typeLen == 1) &&
+                        (strncmp(encodeType,"z",typeLen) == 0) ) {
+                decompress = 1;
+                base64 = 1;
+            }
+            else if (   (typeLen == 3) &&
+                        (strncmp(encodeType,"b64",typeLen) == 0) ) {
+                decompress = 0;
+                base64 = 1;
+            }
+            else {
+                // user did not specify recognized wishes for this option,
+                Tcl_AppendResult(interp, "bad value \"",(char*)NULL);
+                if (encodeType != NULL) {
+                    Tcl_AppendResult(interp, encodeType,(char*)NULL);
+                }
+                Tcl_AppendResult(interp,
+                        "\": should be one of z, b64",
+                        (char*)NULL);
+                return TCL_ERROR;
+            }
+        }
+        else {
+            // unrecognized option
+            Tcl_AppendResult(interp, "bad option \"", option,
+                    "\": should be -as",
+                    (char*)NULL);
+            return TCL_ERROR;
+        }
+    }
+
+    if ((objc - nextarg) != 1) {
+        Tcl_AppendResult(interp,
+                "wrong # args: should be \"", cmdName,
+                " ?-as z|b64? <string>\"", (char*)NULL);
         return TCL_ERROR;
     }
 
     option = Tcl_GetStringFromObj(objv[nextarg++], &optionLen);
-    if (strncmp(option,"@@RP-ENC:z\n",11) == 0) {
-        decompress = 1;
-        base64 = 1;
-        offset = 11;
-    }
-    else if (strncmp(option,"@@RP-ENC:b64\n",13) == 0) {
-        decompress = 0;
-        base64 = 1;
-        offset = 13;
-    }
-    else {
-        // data is assumed to be ascii that was not
-        // manipulated by the encode function,
-        // return data
-        Tcl_AppendResult(interp,option,(char*)NULL);
-        return TCL_OK;
+    if (encodeType == NULL) {
+        if (strncmp(option,"H4sI",4) == 0) {
+            decompress = 1;
+            base64 = 1;
+        }
+        else {
+            // user did not specify how to treat data
+            // and we cannot guess based on the header.
+            // return data
+            Tcl_AppendResult(interp,option,(char*)NULL);
+            return TCL_OK;
+        }
     }
 
-    buf = Rappture::Buffer(option+offset,optionLen-offset);
+    buf = Rappture::Buffer(option,optionLen);
     buf.decode(decompress,base64);
 
     result = Tcl_GetObjResult(interp);
