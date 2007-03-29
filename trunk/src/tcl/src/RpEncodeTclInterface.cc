@@ -12,7 +12,6 @@
  * ======================================================================
  */
 #include <tcl.h>
-#include <ctype.h>
 #include "RpBuffer.h"
 #include "RpEncodeTclInterface.h"
 
@@ -44,13 +43,16 @@ int isbinary(const char* buf, int size);
 int isbinary(const char* buf, int size)
 {
     int index = 0;
-    int err = 0;
 
     for (index = 0; index < size; index++) {
-        err = isascii(buf[index]);
-        if (err == 0) {
-            return index;
+        if (((buf[index] >= '\000') && (buf[index] <= '\010')) ||
+            ((buf[index] >= '\013') && (buf[index] <= '\014')) ||
+            ((buf[index] >= '\016') && (buf[index] <= '\037')) ||
+            ((buf[index] >= '\177') && (buf[index] <= '\377')) ) {
+            // data is binary
+            return index+1;
         }
+
     }
     return 0;
 }
@@ -244,15 +246,6 @@ RpTclEncodingEncode (   ClientData cdata,
 
     option = Tcl_GetStringFromObj(objv[nextarg++], &optionLen);
     buf = Rappture::Buffer(option,optionLen);
-
-    /*
-    if (base64 == 0) {
-        if (isbinary(buf.bytes(),buf.size()) != 0) {
-            // data is binary, make sure it is base64 encoded
-            base64 = 1;
-        }
-    }
-    */
 
     buf.encode(compress,base64);
     result = Tcl_GetObjResult(interp);
