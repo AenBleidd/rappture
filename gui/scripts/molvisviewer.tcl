@@ -28,27 +28,41 @@ itcl::class Rappture::MolvisViewer {
 
     constructor {hostlist args} { # defined below }
     destructor { # defined below }
-
     public method emblems {option}
+    public method representation {option}
 
     public method connect {{hostlist ""}}
     public method disconnect {}
     public method isconnected {}
-
+    public method download {option args}
+    protected method _rock {option}
     protected method _send {args}
     protected method _receive {}
-    protected method _receive_image {size}
+    protected method _update { args }
     protected method _rebuild {}
     protected method _zoom {option}
-    protected method _move {option x y}
-    protected method _speed {option}
+    protected method _vmouse2 {option b m x y}
+    protected method _vmouse  {option b m x y}
     protected method _serverDown {}
+    protected method _decodeb64 { arg }
 
+    private variable _base64 ""
     private variable _dispatcher "" ;# dispatcher for !events
     private variable _sid ""       ;# socket connection to nanovis server
     private variable _image        ;# image displayed in plotting area
 
-    private variable _click        ;# info used for _move operations
+    private variable _mevent       ;# info used for mouse event operations
+    private variable _rocker       ;# info used for rock operations
+
+
+    private variable _dataobjs     ;# data objects on server
+    private variable _imagecache
+    private variable _state 1
+    private variable _cacheid ""
+    private variable _hostlist ""
+    private variable _model ""
+    private variable _mrepresentation "spheres"
+    private variable _cacheimage ""
 }
 
 itk::usual MolvisViewer {
@@ -60,133 +74,33 @@ itk::usual MolvisViewer {
 # ----------------------------------------------------------------------
 itcl::body Rappture::MolvisViewer::constructor {hostlist args} {
     #puts stderr "MolvisViewer::_constructor()"
+
+    set _rocker(dir) 1
+    set _rocker(x) 0
+    set _rocker(on) 0
+
     Rappture::dispatcher _dispatcher
     $_dispatcher register !serverDown
     $_dispatcher dispatch $this !serverDown "[itcl::code $this _serverDown]; list"
-
     #
     # Set up the widgets in the main body
     #
     option add hull.width hull.height
     pack propagate $itk_component(hull) no
 
-    itk_component add bottom_controls {
-        frame $itk_interior.b_cntls
-    } {
-	usual
-        rename -background -controlbackground controlBackground Background
-    }
-    pack $itk_component(bottom_controls) -side bottom -fill y
-
-    itk_component add mrewind {
-	    button $itk_component(bottom_controls).mrewind \
-	    -borderwidth 1 -padx 1 -pady 1 \
-	    -text "|<" \
-	    -command [itcl::code $this _send rewind]
-    } {
-        usual
-	ignore -borderwidth
-	rename -highlightbackground -controlbackground controlBackground Background
-    }
-    pack $itk_component(mrewind) -padx 4 -pady 4 -side left
-
-    itk_component add mbackward {
-	    button $itk_component(bottom_controls).mbackward \
-	    -borderwidth 1 -padx 1 -pady 1 \
-	    -text "<" \
-	    -command [itcl::code $this _send backward]
-    } {
-        usual
-	ignore -borderwidth
-	rename -highlightbackground -controlbackground controlBackground Background
-    }
-    pack $itk_component(mbackward) -padx 4 -pady 4 -side left
-
-    itk_component add mstop {
-	    button $itk_component(bottom_controls).mstop \
-	    -borderwidth 1 -padx 1 -pady 1 \
-	    -text "Stop" \
-	    -command [itcl::code $this _send mstop]
-    } {
-        usual
-	ignore -borderwidth
-	rename -highlightbackground -controlbackground controlBackground Background
-    }
-    pack $itk_component(mstop) -padx 4 -pady 4 -side left
-
-    itk_component add mplay {
-	    button $itk_component(bottom_controls).mplay \
-	    -borderwidth 1 -padx 1 -pady 1 \
-	    -text "Play" \
-	    -command [itcl::code $this _send mplay]
-    } {
-        usual
-        ignore -borderwidth
-        rename -highlightbackground -controlbackground controlBackground Background
-    }
-    pack $itk_component(mplay) -padx 4 -pady 4 -side left
-    
-    itk_component add mforward {
-	    button $itk_component(bottom_controls).mforward \
-	    -borderwidth 1 -padx 1 -pady 1 \
-	    -text ">" \
-	    -command [itcl::code $this _send forward]
-    } {
-        usual
-        ignore -borderwidth
-        rename -highlightbackground -controlbackground controlBackground Background
-    }
-    pack $itk_component(mforward) -padx 4 -pady 4 -side left
-    
-    itk_component add mend {
-	    button $itk_component(bottom_controls).mend \
-	    -borderwidth 1 -padx 1 -pady 1 \
-	    -text ">|" \
-	    -command [itcl::code $this _send ending]
-    } {
-        usual
-        ignore -borderwidth
-        rename -highlightbackground -controlbackground controlBackground Background
-    }
-    pack $itk_component(mend) -padx 4 -pady 4 -side left
-    
-    itk_component add mclear {
-	    button $itk_component(bottom_controls).mclear \
-	    -borderwidth 1 -padx 1 -pady 1 \
-	    -text "MClear" \
-	    -command [itcl::code $this _send mclear]
-    } {
-        usual
-        ignore -borderwidth
-        rename -highlightbackground -controlbackground controlBackground Background
-    }
-    pack $itk_component(mclear) -padx 4 -pady 4 -side left
-    
-    itk_component add speed {
-	    ::scale $itk_component(bottom_controls).speed \
-	    -borderwidth 1 \
-	    -from 100 -to 1000 -orient horizontal \
-	    -command [itcl::code $this _speed]
-    } {
-        usual
-        ignore -borderwidth
-        rename -highlightbackground -controlbackground controlBackground Background
-    }
-    pack $itk_component(speed) -padx 4 -pady 4 -side right
-            
     itk_component add left_controls {
         frame $itk_interior.l_cntls
-	} {
+        } {
         usual
         rename -background -controlbackground controlBackground Background
-	}
+        }
     pack $itk_component(left_controls) -side left -fill y
 
     itk_component add show_ball_and_stick {
-	    button $itk_component(left_controls).sbs \
-	    -borderwidth 2 -padx 0 -pady 0 \
+            button $itk_component(left_controls).sbs \
+            -borderwidth 2 -padx 0 -pady 0 \
             -image [Rappture::icon ballnstick] \
-	    -command [itcl::code $this _send ball_and_stick]
+            -command [itcl::code $this representation ball-and-stick]
     } {
         usual
         ignore -borderwidth
@@ -195,10 +109,10 @@ itcl::body Rappture::MolvisViewer::constructor {hostlist args} {
     pack $itk_component(show_ball_and_stick) -padx 4 -pady 4
 
     itk_component add show_spheres {
-	    button $itk_component(left_controls).ss \
-	    -borderwidth 1 -padx 1 -pady 1 \
+            button $itk_component(left_controls).ss \
+            -borderwidth 1 -padx 1 -pady 1 \
             -image [Rappture::icon spheres] \
-	    -command [itcl::code $this _send spheres]
+            -command [itcl::code $this representation spheres]
     } {
         usual
         ignore -borderwidth
@@ -207,10 +121,10 @@ itcl::body Rappture::MolvisViewer::constructor {hostlist args} {
     pack $itk_component(show_spheres) -padx 4 -pady 4
 
     itk_component add show_lines {
-	    button $itk_component(left_controls).sl \
-	    -borderwidth 1 -padx 1 -pady 1 \
+            button $itk_component(left_controls).sl \
+            -borderwidth 1 -padx 1 -pady 1 \
             -image [Rappture::icon lines] \
-	    -command [itcl::code $this _send lines]
+            -command [itcl::code $this representation lines]
     } {
         usual
         ignore -borderwidth
@@ -280,16 +194,19 @@ itcl::body Rappture::MolvisViewer::constructor {hostlist args} {
         [itcl::code $this emblems toggle]
 
     itk_component add rock {
-        button $itk_component(controls).rock \
+        label $itk_component(controls).rock \
             -borderwidth 1 -padx 1 -pady 1 \
-            -text "R" \
-            -command [itcl::code $this _send rock]
+            -relief "raised" -text "R" \
     } {
         usual
         ignore -borderwidth
         rename -highlightbackground -controlbackground controlBackground Background
     }
     pack $itk_component(rock) -padx 4 -pady 8 -ipadx 1 -ipady 1
+    Rappture::Tooltip::for $itk_component(rock) "Rock model +/- 10 degrees"
+
+    bind $itk_component(rock) <ButtonPress> \
+        [itcl::code $this _rock toggle]
 
     #
     # RENDERING AREA
@@ -301,6 +218,7 @@ itcl::body Rappture::MolvisViewer::constructor {hostlist args} {
     pack $itk_component(area) -expand yes -fill both
 
     set _image(plot) [image create photo]
+    set _image(id) ""
 
     itk_component add 3dview {
         label $itk_component(area).vol -image $_image(plot) \
@@ -312,21 +230,72 @@ itcl::body Rappture::MolvisViewer::constructor {hostlist args} {
     pack $itk_component(3dview) -expand yes -fill both
 
     # set up bindings for rotation
+    #bind $itk_component(3dview) <ButtonPress> \
+    #    [itcl::code $this _vmouse click %b %s %x %y]
+    #bind $itk_component(3dview) <B1-Motion> \
+    #    [itcl::code $this _vmouse drag 1 %s %x %y]
+    #bind $itk_component(3dview) <ButtonRelease> \
+    #    [itcl::code $this _vmouse release %b %s %x %y]
+
+	# set up bindings to bridge mouse events to server
     bind $itk_component(3dview) <ButtonPress> \
-        [itcl::code $this _move click %x %y]
-    bind $itk_component(3dview) <B1-Motion> \
-        [itcl::code $this _move drag %x %y]
+        [itcl::code $this _vmouse2 click %b %s %x %y]
     bind $itk_component(3dview) <ButtonRelease> \
-        [itcl::code $this _move release %x %y]
+        [itcl::code $this _vmouse2 release %b %s %x %y]
+    bind $itk_component(3dview) <B1-Motion> \
+        [itcl::code $this _vmouse2 drag 1 %s %x %y]
+    bind $itk_component(3dview) <B2-Motion> \
+        [itcl::code $this _vmouse2 drag 2 %s %x %y]
+    bind $itk_component(3dview) <B3-Motion> \
+        [itcl::code $this _vmouse2 drag 3 %s %x %y]
+    bind $itk_component(3dview) <Motion> \
+        [itcl::code $this _vmouse2 move 0 %s %x %y]
+
     bind $itk_component(3dview) <Configure> \
         [itcl::code $this _send screen %w %h]
 
-    connect $hostlist
+	connect $hostlist
 
     $_dispatcher register !rebuild
     $_dispatcher dispatch $this !rebuild "[itcl::code $this _rebuild]; list"
     
     eval itk_initialize $args
+
+    _update forever
+    set _state 0
+    set _model ""
+
+    set i 0
+    foreach char {A B C D E F G H I J K L M N O P Q R S T U V W X Y Z \
+                a b c d e f g h i j k l m n o p q r s t u v w x y z \
+                0 1 2 3 4 5 6 7 8 9 + /} {
+        set base64_tmp($char) $i
+        incr i
+    }
+
+    #
+    # Create base64 as list: to code for instance C<->3, specify
+    # that [lindex $base64 67] be 3 (C is 67 in ascii); non-coded
+    # ascii chars get a {}. we later use the fact that lindex on a
+    # non-existing index returns {}, and that [expr {} < 0] is true
+    #
+
+    # the last ascii char is 'z'
+    scan z %c len
+    for {set i 0} {$i <= $len} {incr i} {
+        set char [format %c $i]
+        set val {}
+        if {[info exists base64_tmp($char)]} {
+            set val $base64_tmp($char)
+        } else {
+            set val {}
+        }
+        lappend _base64 $val
+    }
+
+    # code the character "=" as -1; used to signal end of message
+    scan = %c i
+    set _base64 [lreplace $_base64 $i $i -1]
 }
 
 # ----------------------------------------------------------------------
@@ -339,6 +308,29 @@ itcl::body Rappture::MolvisViewer::destructor {} {
 }
 
 # ----------------------------------------------------------------------
+# USAGE: download coming
+# USAGE: download controls <downloadCommand>
+# USAGE: download now
+#
+# Clients use this method to create a downloadable representation
+# of the plot.  Returns a list of the form {ext string}, where
+# "ext" is the file extension (indicating the type of data) and
+# "string" is the data itself.
+# ----------------------------------------------------------------------
+itcl::body Rappture::MolvisViewer::download {option args} {
+    switch $option {
+        coming {}
+        controls {}
+        now { 
+            return [list .jpg [_decodeb64 [$_image(plot) data -format jpeg]]]
+        }
+        default {
+            error "bad option \"$option\": should be coming, controls, now"
+        }
+    }
+}
+
+# ----------------------------------------------------------------------
 # USAGE: connect ?<host:port>,<host:port>...?
 #
 # Clients use this method to establish a connection to a new
@@ -346,7 +338,11 @@ itcl::body Rappture::MolvisViewer::destructor {} {
 # Any existing connection is automatically closed.
 # ----------------------------------------------------------------------
 itcl::body Rappture::MolvisViewer::connect {{hostlist ""}} {
-    # puts stderr "MolvisViewer::connect()"
+    if { "" != $hostlist } { set _hostlist $hostlist }
+
+    set hostlist $_hostlist
+
+    puts stderr "MolvisViewer::connect($hostlist)"
 
     if ([isconnected]) {
         disconnect
@@ -373,6 +369,7 @@ itcl::body Rappture::MolvisViewer::connect {{hostlist ""}} {
     set hosts [lrange $hosts 1 end]
 
     while {1} {
+        puts stderr "Connecting to $hostname:$port"
         if {[catch {socket $hostname $port} sid]} {
             if {[llength $hosts] == 0} {
                 blt::busy release $itk_component(hull)
@@ -382,7 +379,7 @@ itcl::body Rappture::MolvisViewer::connect {{hostlist ""}} {
             set hosts [lrange $hosts 1 end]
             continue
         }
-        fconfigure $sid -translation binary -encoding binary -buffering line
+        fconfigure $sid -translation binary -encoding binary -buffering line -buffersize 1000
         puts -nonewline $sid "AB01"
         flush $sid
 
@@ -409,6 +406,7 @@ itcl::body Rappture::MolvisViewer::connect {{hostlist ""}} {
 
     blt::busy release $itk_component(hull)
 
+    
     return 0
 }
 
@@ -424,8 +422,12 @@ itcl::body Rappture::MolvisViewer::disconnect {} {
     if {"" != $_sid} {
         catch {
             close $_sid
+            unset _dataobjs
+            unset _imagecache
         }
         set _sid ""
+        set _model ""
+        set _state ""
     }
 }
 
@@ -446,17 +448,18 @@ itcl::body Rappture::MolvisViewer::isconnected {} {
 # Used internally to send commands off to the rendering server.
 # ----------------------------------------------------------------------
 itcl::body Rappture::MolvisViewer::_send {args} {
-    # puts stderr "MolvisViewer::_send() $args"
     if {"" == $_sid} {
         $_dispatcher cancel !serverDown
         set x [expr {[winfo rootx $itk_component(area)]+10}]
         set y [expr {[winfo rooty $itk_component(area)]+10}]
         Rappture::Tooltip::cue @$x,$y "Connecting..."
+        update idletasks
 
         if {[catch {connect} ok] == 0 && $ok} {
             set w [winfo width $itk_component(3dview)]
             set h [winfo height $itk_component(3dview)]
             puts $_sid "screen $w $h"
+            flush $_sid
             after idle [itcl::code $this _rebuild]
             Rappture::Tooltip::cue hide
             return
@@ -464,11 +467,12 @@ itcl::body Rappture::MolvisViewer::_send {args} {
 
         Rappture::Tooltip::cue @$x,$y "Can't connect to visualization server.  This may be a network problem.  Wait a few moments and try resetting the view."
         
-	return
+        return
     }
 
     if {"" != $_sid} {
         puts $_sid $args
+        flush $_sid
     }
 }
 
@@ -481,19 +485,41 @@ itcl::body Rappture::MolvisViewer::_send {args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::MolvisViewer::_receive {} {
     #puts stderr "MolvisViewer::_receive()"
-    if {"" != $_sid} {
+
+    if {"" != $_sid} { fileevent $_sid readable {} }
+
+    while {$_sid != ""} {
+        fconfigure $_sid -buffering line -blocking 0
+        
         if {[gets $_sid line] < 0} {
+            if { [fblocked $_sid] } { 
+                break; 
+            }
+            
             disconnect
+            
             $_dispatcher event -after 750 !serverDown
-        } elseif {[regexp {^\s*nv>\s*image\s+(\d+)\s*$} $line whole match]} {
-            set bytes [read $_sid $match]
-            $_image(plot) configure -data $bytes
+        } elseif {[regexp {^\s*nv>\s*image\s+(\d+)\s*(\d+)\s*,\s*(\d+)\s*,\s*(-{0,1}\d+)} $line whole match cacheid frame rock]} {
+            set tag "$frame,$rock"
+    
+            if { $cacheid != $_cacheid } {
+                catch { unset _imagecache }
+                set _cacheid $cacheid
+            }
+
+            fconfigure $_sid -buffering none -blocking 1
+               set _imagecache($tag) [read $_sid $match]
+            $_image(plot) configure -data $_imagecache($tag)
+            set _image(id) $tag
             update idletasks
+            break
         } else {
             # this shows errors coming back from the engine
             puts $line
         }
     }
+
+    if { "" != $_sid } { fileevent $_sid readable [itcl::code $this _receive] }
 }
 
 # ----------------------------------------------------------------------
@@ -523,37 +549,67 @@ itcl::body Rappture::MolvisViewer::_rebuild {} {
     set charge     ""
     set data1      ""
     set data2      ""
-    
+
     if {$itk_option(-device) != ""} {
         set dev $itk_option(-device)
+        set model [$dev get components.molecule.model]
+        set _state [$dev get components.molecule.state]
+        
+        if {"" == $model } { set model "molecule" }
+        if {"" == $_state} { set _state 1 }
 
-        foreach _atom [$dev children -type atom components.molecule] {
-            set symbol [$dev get components.molecule.$_atom.symbol]
-            set xyz [$dev get components.molecule.$_atom.xyz]
-            regsub {,} $xyz {} xyz
-	    scan $xyz "%f %f %f" x y z
-	    set atom $symbol
-	    set line [format "%6s%5d %4s%1s%3s %1s%5s   %8.3f%8.3f%8.3f%6.2f%6.2f%8s\n" $recname $serial $atom $altLoc $resName $chainID $Seqno $x $y $z $occupancy $tempFactor $recID]
-	    append data1 $line
-	    incr serial
-	}
+        if { $model != $_model && $_model != "" } {
+            _send raw disable $_model
+        }
 
-	set data2 [$dev get components.molecule.pdb]
+        if { [info exists _dataobjs($model-$_state)] } {
+            if { $model != $_model } {
+                _send raw enable $model
+                set _model $model
+            }
+        } else {
 
+            foreach _atom [$dev children -type atom components.molecule] {
+                set symbol [$dev get components.molecule.$_atom.symbol]
+                set xyz [$dev get components.molecule.$_atom.xyz]
+                regsub {,} $xyz {} xyz
+                scan $xyz "%f %f %f" x y z
+                set atom $symbol
+                set line [format "%6s%5d %4s%1s%3s %1s%5s   %8.3f%8.3f%8.3f%6.2f%6.2f%8s\n" $recname $serial $atom $altLoc $resName $chainID $Seqno $x $y $z $occupancy $tempFactor $recID]
+                append data1 $line
+                incr serial
+            }
+
+            set data2 [$dev get components.molecule.pdb]
+
+            if {"" != $data1} {
+                    eval _send loadpdb \"$data1\" $model $_state
+                    set _dataobjs($model-$_state)  1
+                if {$_model != $model} {
+                    set _model $model
+                    representation $_mrepresentation
+                }
+                    puts stderr "loaded model $model into state $_state"
+            }
+
+            if {"" != $data2} {
+                eval _send loadpdb \"$data2\" $model $_state
+                    set _dataobjs($model-$_state)  1
+                if {$_model != $model} {
+                    set _model $model
+                    representation $_mrepresentation
+                }
+                puts stderr "loaded model $model into state $_state"
+            }
+        }   
+        if { ![info exists _imagecache($_state,$_rocker(x))] } {
+            _send frame $_state 1
+        } else {
+            _send frame $_state 0
+        }
+    } else {
+        _send raw disable all
     }
-
-    if {"" != $data1} {
-    	eval _send loadpdb \"$data1\" data1
-    }
-
-    if {"" != $data2} {
-        eval _send loadpdb \"$data2\" data2
-    }
-}
-
-itcl::body Rappture::MolvisViewer::_speed {option} {
-	#puts stderr "MolvisViewer::_speed($option)"
-	_send mspeed $option
 }
 
 # ----------------------------------------------------------------------
@@ -579,52 +635,139 @@ itcl::body Rappture::MolvisViewer::_zoom {option} {
     }
 }
 
+itcl::body Rappture::MolvisViewer::_update { args } {
+    if { [info exists _imagecache($_state,$_rocker(x))] } {
+            if { $_image(id) != "$_state,$_rocker(x)" } {
+                $_image(plot) put $_imagecache($_state,$_rocker(x))
+                update idletasks
+            }
+    }
+
+    if { $args == "forever" } {
+        after 100 [itcl::code $this _update forever]
+    }
+
+}
+
 # ----------------------------------------------------------------------
-# USAGE: _move click <x> <y>
-# USAGE: _move drag <x> <y>
-# USAGE: _move release <x> <y>
+# USAGE: _vmouse click <x> <y>
+# USAGE: _vmouse drag <x> <y>
+# USAGE: _vmouse release <x> <y>
 #
 # Called automatically when the user clicks/drags/releases in the
 # plot area.  Moves the plot according to the user's actions.
 # ----------------------------------------------------------------------
-itcl::body Rappture::MolvisViewer::_move {option x y} {
-    #puts stderr "MolvisViewer::_move($option $x $y)"
+
+itcl::body Rappture::MolvisViewer::_rock { option } {
+    # puts "MolvisViewer::_rock()"
+    
+    if { $option == "toggle" } {
+        if { $_rocker(on) } {
+            set option "off"
+        } else {
+            set option "on"
+        }
+    }
+
+    if { $option == "on" || $option == "toggle" && !$_rocker(on) } {
+        set _rocker(on) 1
+        $itk_component(rock) configure -relief sunken
+    } elseif { $option == "off" || $option == "toggle" && $_rocker(on) } {
+        set _rocker(on) 0
+        $itk_component(rock) configure -relief raised
+    } elseif { $option == "step" } {
+
+        if { $_rocker(x) >= 10 } {
+            set _rocker(dir) -1
+        } elseif { $_rocker(x) <= -10 } {
+            set _rocker(dir) 1
+        }
+   
+        set _rocker(x) [expr $_rocker(x) + $_rocker(dir) ]
+
+        if { [info exists _imagecache($_state,$_rocker(x))] } {
+            _send rock $_rocker(dir)
+        } else {
+            _send rock $_rocker(dir) $_rocker(x)
+        }
+    }
+
+	if { $_rocker(on) } {
+        after 200 [itcl::code $this _rock step]
+    }
+}
+
+itcl::body Rappture::MolvisViewer::_vmouse2 {option b m x y} {
+    # puts stderr "MolvisViewer::_vmouse2($option $b $m $x $y)"
+
+    set vButton [expr $b - 1]
+    set vModifier 0
+    set vState 1
+
+    if { $m & 1 }      { set vModifier [expr $vModifier | 1 ] }
+    if { $m & 4 }      { set vModifier [expr $vModifier | 2 ] }
+    if { $m & 131072 } { set vModifier [expr $vModifier | 4 ] }
+
+    if { $option == "click"   } { set vState 0 }
+    if { $option == "release" } { set vState 1 }
+    if { $option == "drag"    } { set vState 2 }
+    if { $option == "move"    } { set vState 3 }
+
+    if { $vState == 2 || $vState == 3} {
+        set now [clock clicks -milliseconds]
+        set diff 0
+
+		catch { set diff [expr {abs($_mevent(time) - $now)}] } 
+
+        if {$diff < 75} { # 75ms between motion updates
+            return
+        }
+    }
+
+ 	_send vmouse $vButton $vModifier $vState $x $y
+
+    set _mevent(time) [clock clicks -milliseconds]
+}
+
+itcl::body Rappture::MolvisViewer::_vmouse {option b m x y} {
+    puts stderr "MolvisViewer::_vmouse($option $b $m $x $y)"
     switch -- $option {
         click {
             $itk_component(3dview) configure -cursor fleur
-            set _click(x) $x
-            set _click(y) $y
-	    set _click(time) [clock clicks -milliseconds]
+            set _mevent(x) $x
+            set _mevent(y) $y
+            set _mevent(time) [clock clicks -milliseconds]
         }
         drag {
-            if {[array size _click] == 0} {
-                _move click $x $y
+            if {[array size _mevent] == 0} {
+                 _vmouse click $b $m $x $y
             } else {
-	    	set now [clock clicks -milliseconds]
-		set diff [expr {abs($_click(time) - $now)}]
-		if {$diff < 75} { # 75ms between motion updates
-			return
-		}
+                set now [clock clicks -milliseconds]
+                set diff [expr {abs($_mevent(time) - $now)}]
+                if {$diff < 75} { # 75ms between motion updates
+                        return
+                }
                 set w [winfo width $itk_component(3dview)]
                 set h [winfo height $itk_component(3dview)]
                 if {$w <= 0 || $h <= 0} {
-		    return
+                    return
                 }
 
-                eval _send camera angle [expr $y-$_click(y)] [expr $x-$_click(x)] 
+                eval _send camera angle [expr $y-$_mevent(y)] [expr $x-$_mevent(x)] 
 
-                set _click(x) $x
-                set _click(y) $y
-		set _click(time) $now
+                set _mevent(x) $x
+                set _mevent(y) $y
+                set _mevent(time) $now
             }
         }
         release {
-            _move drag $x $y
+            _vmouse drag $b $m $x $y
             $itk_component(3dview) configure -cursor ""
-            catch {unset _click}
+            catch {unset _mevent}
         }
+		move { }
         default {
-            error "bad option \"$option\": should be click, drag, release"
+            error "bad option \"$option\": should be click, drag, release, move"
         }
     }
 }
@@ -640,8 +783,38 @@ itcl::body Rappture::MolvisViewer::_serverDown {} {
     #puts stderr "MolvisViewer::_serverDown()"
     set x [expr {[winfo rootx $itk_component(area)]+10}]
     set y [expr {[winfo rooty $itk_component(area)]+10}]
+    # this would automatically switch to vtk viewer:
+    # set parent [winfo parent $itk_component(hull)]
+    # $parent viewer vtk
     Rappture::Tooltip::cue @$x,$y "Lost connection to visualization server.  This happens sometimes when there are too many users and the system runs out of memory.\n\nTo reconnect, reset the view or press any other control.  Your picture should come right back up."
 }
+
+# ----------------------------------------------------------------------
+# USAGE: representation spheres
+# USAGE: representation ball-and-stick
+# USAGE: representation lines
+#
+# Used internally to change the molecular representation used to render
+# our scene.
+# ----------------------------------------------------------------------
+itcl::body Rappture::MolvisViewer::representation {option} {
+    #puts "Rappture::MolvisViewer::representation($option)"
+    switch -- $option {
+        spheres {
+            _send spheres
+             set _mrepresentation "spheres"
+        }
+        ball-and-stick {
+            _send ball_and_stick
+             set _mrepresentation "ball-and-stick"
+        }
+        lines {
+            _send lines 
+             set _mrepresentation "lines"
+        }
+    }
+}
+
 
 # ----------------------------------------------------------------------
 # USAGE: emblems on
@@ -653,18 +826,25 @@ itcl::body Rappture::MolvisViewer::_serverDown {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::MolvisViewer::emblems {option} {
     #puts stderr "MolvisViewer::emblems($option)"
+
+    if {[$itk_component(labels) cget -relief] == "sunken"} {
+        set current_emblem 1
+    } else {
+        set current_emblem 0
+    }
+
     switch -- $option {
         on {
-            set state 1
+            set emblem 1
         }
         off {
-            set state 0
+            set emblem 0
         }
         toggle {
-            if {[$itk_component(labels) cget -relief] == "sunken"} {
-                set state 0
+            if { $current_emblem == 1 } {
+                set emblem 0
             } else {
-                set state 1
+                set emblem 1
             }
         }
         default {
@@ -672,7 +852,9 @@ itcl::body Rappture::MolvisViewer::emblems {option} {
         }
     }
 
-    if {$state} {
+    if {$emblem == $current_emblem} { return }
+
+    if {$emblem} {
         $itk_component(labels) configure -relief sunken
         _send label on
     } else {
@@ -693,9 +875,9 @@ itcl::configbody Rappture::MolvisViewer::device {
             error "bad value \"$itk_option(-device)\": should be Rappture::library object"
         }
 
-        set state [$itk_option(-device) get components.molecule.about.emblems]
+        set emblem [$itk_option(-device) get components.molecule.about.emblems]
 
-        if {$state == "" || ![string is boolean $state] || !$state} {
+        if {$emblem == "" || ![string is boolean $emblem] || !$emblem} {
             emblems off
         } else {
             emblems on
@@ -705,3 +887,58 @@ itcl::configbody Rappture::MolvisViewer::device {
     $_dispatcher event -idle !rebuild
 }
 
+# ::base64::decode --
+#
+#   Base64 decode a given string.
+#
+# Arguments:
+#   string  The string to decode.  Characters not in the base64
+#       alphabet are ignored (e.g., newlines)
+#
+# Results:
+#   The decoded value.
+
+itcl::body Rappture::MolvisViewer::_decodeb64 {arg} {
+    if {[string length $arg] == 0} {return ""}
+
+    set base64 $_base64
+    set output "" ; # Fix for [Bug 821126]
+
+    binary scan $arg c* X
+    foreach x $X {
+        set bits [lindex $base64 $x]
+        if {$bits >= 0} {
+            if {[llength [lappend nums $bits]] == 4} {
+                foreach {v w z y} $nums break
+                set a [expr {($v << 2) | ($w >> 4)}]
+                set b [expr {(($w & 0xF) << 4) | ($z >> 2)}]
+                set c [expr {(($z & 0x3) << 6) | $y}]
+                append output [binary format ccc $a $b $c]
+                set nums {}
+            }                
+        } elseif {$bits == -1} {
+            # = indicates end of data.  Output whatever chars are left.
+            # The encoding algorithm dictates that we can only have 1 or 2
+            # padding characters.  If x=={}, we have 12 bits of input 
+            # (enough for 1 8-bit output).  If x!={}, we have 18 bits of
+            # input (enough for 2 8-bit outputs).
+                
+            foreach {v w z} $nums break
+            set a [expr {($v << 2) | (($w & 0x30) >> 4)}]
+            if {$z == {}} {
+                append output [binary format c $a ]
+            } else {
+                set b [expr {(($w & 0xF) << 4) | (($z & 0x3C) >> 2)}]
+                append output [binary format cc $a $b]
+            }                
+            break
+        } else {
+            # RFC 2045 says that line breaks and other characters not part
+            # of the Base64 alphabet must be ignored, and that the decoder
+            # can optionally emit a warning or reject the message.  We opt
+            # not to do so, but to just ignore the character. 
+            continue
+        }
+    }
+    return $output
+}
