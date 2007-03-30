@@ -626,8 +626,11 @@ Buffer::encode (unsigned int compress, unsigned int base64)
     SimpleBuffer bin;
     SimpleBuffer bout;
 
-    err.addContext("Rappture::Buffer::encode()");
+    if ((base64 == 0) && (compress == 0)) {
+        return err;
+    }
 
+    err.addContext("Rappture::Buffer::encode()");
     rewind();
 
     if (compress != 0) {
@@ -663,6 +666,11 @@ Buffer::decode (unsigned int decompress, unsigned int base64)
     SimpleBuffer bin;
     SimpleBuffer bout;
 
+    if ((base64 == 0) && (decompress == 0)) {
+        return err;
+    }
+
+    err.addContext("Rappture::Buffer::decode()");
     rewind();
 
     if (base64 != 0) {

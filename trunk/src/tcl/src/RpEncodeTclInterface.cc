@@ -161,7 +161,7 @@ RpTclEncodingIs     (   ClientData cdata,
  * is performed by default
  *
  * Full function call:
- * ::Rappture::encoding::encode ?-as z|b64? <string>
+ * ::Rappture::encoding::encode ?-as z|b64|zb64? <string>
  */
 
 int
@@ -193,7 +193,7 @@ RpTclEncodingEncode (   ClientData cdata,
     if ((objc < 2) || (objc > 4)) {
         Tcl_AppendResult(interp,
                 "wrong # args: should be \"", cmdName,
-                " ?-as z|b64? <string>\"", (char*)NULL);
+                " ?-as z|b64|zb64? <string>\"", (char*)NULL);
         return TCL_ERROR;
     }
 
@@ -209,11 +209,16 @@ RpTclEncodingEncode (   ClientData cdata,
             if (        (typeLen == 1) &&
                         (strncmp(encodeType,"z",typeLen) == 0) ) {
                 compress = 1;
-                base64 = 1;
+                base64 = 0;
             }
             else if (   (typeLen == 3) &&
                         (strncmp(encodeType,"b64",typeLen) == 0) ) {
                 compress = 0;
+                base64 = 1;
+            }
+            else if (   (typeLen == 4) &&
+                        (strncmp(encodeType,"zb64",typeLen) == 0) ) {
+                compress = 1;
                 base64 = 1;
             }
             else {
@@ -223,7 +228,7 @@ RpTclEncodingEncode (   ClientData cdata,
                     Tcl_AppendResult(interp, encodeType,(char*)NULL);
                 }
                 Tcl_AppendResult(interp,
-                        "\": should be one of z, b64",
+                        "\": should be one of z, b64, zb64",
                         (char*)NULL);
                 return TCL_ERROR;
             }
@@ -240,15 +245,45 @@ RpTclEncodingEncode (   ClientData cdata,
     if ((objc - nextarg) != 1) {
         Tcl_AppendResult(interp,
                 "wrong # args: should be \"", cmdName,
-                " ?-as z|b64? <string>\"", (char*)NULL);
+                " ?-as z|b64|zb64? <string>\"", (char*)NULL);
         return TCL_ERROR;
     }
 
     option = Tcl_GetStringFromObj(objv[nextarg++], &optionLen);
-    buf = Rappture::Buffer(option,optionLen);
+
+    if (strncmp(option,"@@RP-ENC:z\n",11) == 0) {
+        buf = Rappture::Buffer(option+11,optionLen-11);
+        buf.decode(1,0);
+    }
+    else if (strncmp(option,"@@RP-ENC:b64\n",13) == 0) {
+        buf = Rappture::Buffer(option+13,optionLen-13);
+        buf.decode(0,1);
+    }
+    else if (strncmp(option,"@@RP-ENC:zb64\n",14) == 0) {
+        buf = Rappture::Buffer(option+14,optionLen-14);
+        buf.decode(1,1);
+    }
+    else {
+        // no special recognized tags
+        buf = Rappture::Buffer(option,optionLen);
+    }
 
     buf.encode(compress,base64);
     result = Tcl_GetObjResult(interp);
+
+    if ((compress == 1) && (base64 == 0)) {
+        Tcl_AppendToObj(result,"@@RP-ENC:z\n",11);
+    }
+    else if ((compress == 0) && (base64 == 1)) {
+        Tcl_AppendToObj(result,"@@RP-ENC:b64\n",13);
+    }
+    else if ((compress == 1) && (base64 == 1)) {
+        Tcl_AppendToObj(result,"@@RP-ENC:zb64\n",14);
+    }
+    else {
+        // do nothing
+    }
+
     Tcl_AppendToObj(result,buf.bytes(),buf.size());
 
     return TCL_OK;
@@ -263,7 +298,7 @@ RpTclEncodingEncode (   ClientData cdata,
  * RpTclEncodingIs is used to qualify binary data.
  *
  * Full function call:
- * ::Rappture::encoding::decode ?-as z|b64? <string>
+ * ::Rappture::encoding::decode ?-as z|b64|zb64? <string>
  */
 
 int
@@ -295,7 +330,7 @@ RpTclEncodingDecode (   ClientData cdata,
     if ((objc < 2) || (objc > 4)) {
         Tcl_AppendResult(interp,
                 "wrong # args: should be \"", cmdName,
-                " ?-as z|b64? <string>\"", (char*)NULL);
+                " ?-as z|b64|zb64? <string>\"", (char*)NULL);
         return TCL_ERROR;
     }
 
@@ -311,11 +346,16 @@ RpTclEncodingDecode (   ClientData cdata,
             if (        (typeLen == 1) &&
                         (strncmp(encodeType,"z",typeLen) == 0) ) {
                 decompress = 1;
-                base64 = 1;
+                base64 = 0;
             }
             else if (   (typeLen == 3) &&
                         (strncmp(encodeType,"b64",typeLen) == 0) ) {
                 decompress = 0;
+                base64 = 1;
+            }
+            else if (   (typeLen == 4) &&
+                        (strncmp(encodeType,"zb64",typeLen) == 0) ) {
+                decompress = 1;
                 base64 = 1;
             }
             else {
@@ -325,7 +365,7 @@ RpTclEncodingDecode (   ClientData cdata,
                     Tcl_AppendResult(interp, encodeType,(char*)NULL);
                 }
                 Tcl_AppendResult(interp,
-                        "\": should be one of z, b64",
+                        "\": should be one of z, b64, zb64",
                         (char*)NULL);
                 return TCL_ERROR;
             }
@@ -342,29 +382,49 @@ RpTclEncodingDecode (   ClientData cdata,
     if ((objc - nextarg) != 1) {
         Tcl_AppendResult(interp,
                 "wrong # args: should be \"", cmdName,
-                " ?-as z|b64? <string>\"", (char*)NULL);
+                " ?-as z|b64|zb64? <string>\"", (char*)NULL);
         return TCL_ERROR;
     }
 
     option = Tcl_GetStringFromObj(objv[nextarg++], &optionLen);
-    if (encodeType == NULL) {
-        if (strncmp(option,"H4sI",4) == 0) {
-            decompress = 1;
-            base64 = 1;
-        }
-        else {
-            // user did not specify how to treat data
-            // and we cannot guess based on the header.
-            // return data
-            Tcl_AppendResult(interp,option,(char*)NULL);
-            return TCL_OK;
-        }
+
+    if (strncmp(option,"@@RP-ENC:z\n",11) == 0) {
+        buf = Rappture::Buffer(option+11,optionLen-11);
+        buf.decode(1,0);
+    }
+    else if (strncmp(option,"@@RP-ENC:b64\n",13) == 0) {
+        buf = Rappture::Buffer(option+13,optionLen-13);
+        buf.decode(0,1);
+    }
+    else if (strncmp(option,"@@RP-ENC:zb64\n",14) == 0) {
+        buf = Rappture::Buffer(option+14,optionLen-14);
+        buf.decode(1,1);
+    }
+    else {
+        // no special recognized tags
+        buf = Rappture::Buffer(option,optionLen);
+        buf.decode(decompress,base64);
     }
 
-    buf = Rappture::Buffer(option,optionLen);
-    buf.decode(decompress,base64);
-
+    // buf.decode(decompress,base64);
     result = Tcl_GetObjResult(interp);
+
+    /*
+    if ((decompress == 1) && (base64 == 0)) {
+        Tcl_AppendToObj(result,"@@RP-ENC:z\n",11);
+        buf.encode(0,1);
+    }
+    else if ((decompress == 0) && (base64 == 1)) {
+        Tcl_AppendToObj(result,"@@RP-ENC:b64\n",13);
+    }
+    else if ((decompress == 1) && (base64 == 1)) {
+        Tcl_AppendToObj(result,"@@RP-ENC:zb64\n",14);
+    }
+    else {
+        // do nothing
+    }
+    */
+
     Tcl_AppendToObj(result,buf.bytes(),buf.size());
 
     return TCL_OK;
