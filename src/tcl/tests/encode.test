@@ -60,40 +60,43 @@ test is-1.2.1 {Rappture::encoding::is, too many arguments} {
 
 test encode-2.0.0 {Rappture::encoding::encode, 0 arguments} {
     list [catch {Rappture::encoding::encode} msg] $msg
-} {1 {wrong # args: should be "Rappture::encoding::encode ?-as z|b64? <string>"}}
+} {1 {wrong # args: should be "Rappture::encoding::encode ?-as z|b64|zb64? <string>"}}
 
 test encode-2.1.0 {Rappture::encoding::encode, ascii string argument} {
     list [catch {Rappture::encoding::encode "hi"} msg] $msg
-} {0 {H4sIAAAAAAAAA8vIBACsKpPYAgAAAA==
+} {0 {@@RP-ENC:zb64
+H4sIAAAAAAAAA8vIBACsKpPYAgAAAA==
 }}
 
 test encode-2.1.1 {Rappture::encoding::encode, binary string argument}  {
     set h "H4sIAAAAAAAAA8vIBACsKpPYAgAAAA=="
     set b [Rappture::encoding::decode -as b64 $h]
     list [catch {Rappture::encoding::encode $b} msg] $msg
-} {0 {H4sIAAAAAAAAA5Pv5mAAA+bTJ1gY1mhNvsEE5AAAFVLsvBYAAAA=
+} {0 {@@RP-ENC:zb64
+H4sIAAAAAAAAA5Pv5mAAA+bTJ1gY1mhNvsEE5AAAFVLsvBYAAAA=
 }}
 
 test encode-2.2.0 {Rappture::encoding::encode, -as flag blank value} {
     list [catch {Rappture::encoding::encode -as} msg] $msg
-} {1 {bad value "": should be one of z, b64}}
+} {1 {bad value "": should be one of z, b64, zb64}}
 
 test encode-2.2.1 {Rappture::encoding::encode, -as flag bad value } {
     list [catch {Rappture::encoding::encode -as zz} msg] $msg
-} {1 {bad value "zz": should be one of z, b64}}
+} {1 {bad value "zz": should be one of z, b64, zb64}}
 
 test encode-2.2.2 {Rappture::encoding::encode, -as flag correct value z} {
     list [catch {Rappture::encoding::encode -as z} msg] $msg
-} {1 {wrong # args: should be "Rappture::encoding::encode ?-as z|b64? <string>"}}
+} {1 {wrong # args: should be "Rappture::encoding::encode ?-as z|b64|zb64? <string>"}}
 
 test encode-2.2.3 {Rappture::encoding::encode, -as z w/ string} {
     list [catch {Rappture::encoding::encode -as z "hi"} msg] $msg
-} {0 {H4sIAAAAAAAAA8vIBACsKpPYAgAAAA==
-}}
+} {0 {@@RP-ENC:z
+\xCB\xC8\x3F\x2A\x3F\xD8}}
 
 test encode-2.2.4 {Rappture::encoding::encode, -as b64 w/ string} {
     list [catch {Rappture::encoding::encode -as b64 "hi"} msg] $msg
-} {0 {aGk=
+} {0 {@@RP-ENC:b64
+aGk=
 }}
 
 #----------------------------------------------------------
@@ -104,37 +107,37 @@ test encode-2.2.4 {Rappture::encoding::encode, -as b64 w/ string} {
 
 test decode-3.0.0 {Rappture::encoding::decode, 0 arguments} {
     list [catch {Rappture::encoding::decode} msg] $msg
-} {1 {wrong # args: should be "Rappture::encoding::decode ?-as z|b64? <string>"}}
+} {1 {wrong # args: should be "Rappture::encoding::decode ?-as z|b64|zb64? <string>"}}
 
 test decode-3.1.0 {Rappture::encoding::decode, 1 arg, b64 encoded} {
     set h "aGk="
     list [catch {Rappture::encoding::decode $h} msg] $msg
 } {0 aGk=}
 
-test decode-3.1.1 {Rappture::encoding::decode, 1 arg, z encoded} {
-    set h "H4sIAAAAAAAAA8vIBACsKpPYAgAAAA=="
+test decode-3.1.1 {Rappture::encoding::decode, 1 arg, zb64 encoded} {
+    set h "@@RP-ENC:zb64\nH4sIAAAAAAAAA8vIBACsKpPYAgAAAA=="
     list [catch {Rappture::encoding::decode $h} msg] $msg
 } {0 hi}
 
 test decode-3.1.2 {Rappture::encoding::decode, 2 args} {
     list [catch {Rappture::encoding::decode "hi" "bye"} msg] $msg
-} {1 {wrong # args: should be "Rappture::encoding::decode ?-as z|b64? <string>"}}
+} {1 {wrong # args: should be "Rappture::encoding::decode ?-as z|b64|zb64? <string>"}}
 
 test decode-3.2.0 {Rappture::encoding::decode, -as flag, no value} {
     list [catch {Rappture::encoding::decode -as} msg] $msg
-} {1 {bad value "": should be one of z, b64}}
+} {1 {bad value "": should be one of z, b64, zb64}}
 
 test decode-3.2.1 {Rappture::encoding::decode, -as flag, bad value} {
     list [catch {Rappture::encoding::decode -as zz} msg] $msg
-} {1 {bad value "zz": should be one of z, b64}}
+} {1 {bad value "zz": should be one of z, b64, zb64}}
 
-test decode-3.2.2 {Rappture::encoding::decode, -as flag, z w/ string} {
-    set h "H4sIAAAAAAAAA8vIBACsKpPYAgAAAA=="
+test decode-3.2.2 {Rappture::encoding::decode, -as flag, zb64 w/ string} {
+    set h "@@RP-ENC:zb64\nH4sIAAAAAAAAA8vIBACsKpPYAgAAAA=="
     list [catch {Rappture::encoding::decode -as z $h} msg] $msg
 } {0 hi}
 
 test decode-3.2.3 {Rappture::encoding::decode, -as flag, b64 w/ string} {
-    set h "aGk="
+    set h "@@RP-ENC:b64\naGk="
     list [catch {Rappture::encoding::decode -as b64 $h} msg] $msg
 } {0 hi}
 
