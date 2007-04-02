@@ -190,7 +190,7 @@ RpTclEncodingEncode (   ClientData cdata,
     cmdName = Tcl_GetString(objv[nextarg++]);
 
     // parse through command line options
-    if ((objc < 2) || (objc > 4)) {
+    if ((objc != 2) && (objc != 4)) {
         Tcl_AppendResult(interp,
                 "wrong # args: should be \"", cmdName,
                 " ?-as z|b64|zb64? <string>\"", (char*)NULL);
@@ -233,13 +233,6 @@ RpTclEncodingEncode (   ClientData cdata,
                 return TCL_ERROR;
             }
         }
-        else {
-            // unrecognized option
-            Tcl_AppendResult(interp, "bad option \"", option,
-                    "\": should be -as",
-                    (char*)NULL);
-            return TCL_ERROR;
-        }
     }
 
     if ((objc - nextarg) != 1) {
@@ -249,7 +242,7 @@ RpTclEncodingEncode (   ClientData cdata,
         return TCL_ERROR;
     }
 
-    option = Tcl_GetStringFromObj(objv[nextarg++], &optionLen);
+    option = (const char*) Tcl_GetByteArrayFromObj(objv[nextarg++], &optionLen);
 
     if (strncmp(option,"@@RP-ENC:z\n",11) == 0) {
         buf = Rappture::Buffer(option+11,optionLen-11);
@@ -327,7 +320,7 @@ RpTclEncodingDecode (   ClientData cdata,
     cmdName = Tcl_GetString(objv[nextarg++]);
 
     // parse through command line options
-    if ((objc < 2) || (objc > 4)) {
+    if ((objc != 2) && (objc != 4)) {
         Tcl_AppendResult(interp,
                 "wrong # args: should be \"", cmdName,
                 " ?-as z|b64|zb64? <string>\"", (char*)NULL);
@@ -370,13 +363,6 @@ RpTclEncodingDecode (   ClientData cdata,
                 return TCL_ERROR;
             }
         }
-        else {
-            // unrecognized option
-            Tcl_AppendResult(interp, "bad option \"", option,
-                    "\": should be -as",
-                    (char*)NULL);
-            return TCL_ERROR;
-        }
     }
 
     if ((objc - nextarg) != 1) {
@@ -386,44 +372,36 @@ RpTclEncodingDecode (   ClientData cdata,
         return TCL_ERROR;
     }
 
-    option = Tcl_GetStringFromObj(objv[nextarg++], &optionLen);
+    option = (const char*) Tcl_GetByteArrayFromObj(objv[nextarg++], &optionLen);
 
     if (strncmp(option,"@@RP-ENC:z\n",11) == 0) {
         buf = Rappture::Buffer(option+11,optionLen-11);
-        buf.decode(1,0);
+        if ( (decompress == 0) && (base64 == 0) ) {
+            decompress = 1;
+            base64 = 0;
+        }
     }
     else if (strncmp(option,"@@RP-ENC:b64\n",13) == 0) {
         buf = Rappture::Buffer(option+13,optionLen-13);
-        buf.decode(0,1);
+        if ( (decompress == 0) && (base64 == 0) ) {
+            decompress = 0;
+            base64 = 1;
+        }
     }
     else if (strncmp(option,"@@RP-ENC:zb64\n",14) == 0) {
         buf = Rappture::Buffer(option+14,optionLen-14);
-        buf.decode(1,1);
+        if ( (decompress == 0) && (base64 == 0) ) {
+            decompress = 1;
+            base64 = 1;
+        }
     }
     else {
         // no special recognized tags
         buf = Rappture::Buffer(option,optionLen);
-        buf.decode(decompress,base64);
     }
 
-    // buf.decode(decompress,base64);
+    buf.decode(decompress,base64);
     result = Tcl_GetObjResult(interp);
-
-    /*
-    if ((decompress == 1) && (base64 == 0)) {
-        Tcl_AppendToObj(result,"@@RP-ENC:z\n",11);
-        buf.encode(0,1);
-    }
-    else if ((decompress == 0) && (base64 == 1)) {
-        Tcl_AppendToObj(result,"@@RP-ENC:b64\n",13);
-    }
-    else if ((decompress == 1) && (base64 == 1)) {
-        Tcl_AppendToObj(result,"@@RP-ENC:zb64\n",14);
-    }
-    else {
-        // do nothing
-    }
-    */
 
     Tcl_AppendToObj(result,buf.bytes(),buf.size());
 
