@@ -256,7 +256,6 @@ RpTclEncodingEncode (   ClientData cdata,
     }
 
     option = (const char*) Tcl_GetByteArrayFromObj(objv[nextarg++], &optionLen);
-
     if (strncmp(option,"@@RP-ENC:z\n",11) == 0) {
         buf = Rappture::Buffer(option+11,optionLen-11);
         buf.decode(1,0);
@@ -419,9 +418,14 @@ RpTclEncodingDecode (   ClientData cdata,
     }
 
     buf.decode(decompress,base64);
+
     result = Tcl_GetObjResult(interp);
 
-    Tcl_AppendToObj(result,buf.bytes(),buf.size());
+    Tcl_DString dstPtr;
+    Tcl_DStringInit(&dstPtr);
+    Tcl_ExternalToUtfDString(NULL,buf.bytes(),buf.size(),&dstPtr);
+    Tcl_AppendToObj(result,Tcl_DStringValue(&dstPtr),Tcl_DStringLength(&dstPtr));
+    Tcl_DStringFree(&dstPtr);
 
     return TCL_OK;
 }
