@@ -16,6 +16,11 @@
 #include "RpUnitsCInterface.h"
 #include "RpUnitsFInterface.h"
 
+// include utility functions
+#include "RpUtils.h"
+#include "RpUtilsCInterface.h"
+#include "RpUtilsFInterface.h"
+
 // include base objects
 /*
 #include "RpAbout.h"

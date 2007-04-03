@@ -67,8 +67,9 @@ install: 	install_rappture 	\
 #			install_tcl
 
 RP_IO_DEPS      = RpLibrary.o RpLibraryCInterface.o RpLibraryFInterface.o \
-                  scew_extras.o RpEntityRef.o
+                  scew_extras.o RpEntityRef.o RpUtils.o
 RP_UNITS_DEPS   = RpUnitsStd.o RpUnits.o RpUnitsCInterface.o RpUnitsFInterface.o
+RP_UTILS_DEPS   = RpUtils.o RpUtilsCInterface.o RpUtilsFInterface.o
 RP_OTHER_DEPS   = RpFortranCommon.o RpBindingsDict.o \
                   RpBufferCInterface.o RpOutcomeCInterface.o
 RP_OBJS_DEP     = RpVariable.o RpAbout.o RpNumber.o RpString.o RpBoolean.o \
@@ -84,7 +85,7 @@ LDLIB_LINUX = -shared -Wl,-rpath,$(LIB_DIR)/ -Wl,-soname,$@.so -o $(LIB_DIR)/$@.
 
 #### librappture shared object ###########################################
 
-librappture: $(RP_IO_DEPS) $(RP_UNITS_DEPS) $(RP_OTHER_DEPS)
+librappture: $(RP_IO_DEPS) $(RP_UTILS_DEPS) $(RP_UNITS_DEPS) $(RP_OTHER_DEPS)
 	(cd ../src2/core/; make Outcome.o Ptr.o RpBuffer.o)
 	if test "`uname`" == "Darwin"; then \
 		$(CXX) $(DEGUG) $(LDLIB_MACOSX) $^ $(RP2_OBJ_DEP) $(EXTERNAL_RP_LIBS); \
@@ -154,6 +155,9 @@ scew_extras.o: $(CORE_SRC)/scew_extras.c
 RpEntityRef.o: $(CORE_SRC)/RpEntityRef.cc
 	$(CXX) $(CFLAGS) $(DEBUG) $(INCL_CORE) $(INCL_CORE2) -o $@ -c $?
 
+RpUtils.o: $(CORE_SRC)/RpUtils.cc
+	$(CXX) $(CFLAGS) $(DEBUG) $(INCL_CORE) -o $@ -c $?
+
 RpVariable.o: $(CORE_SRC)/RpVariable.cc
 	$(CXX) $(CFLAGS) $(DEBUG) $(INCL_CORE) -o $@ -c $?
 
@@ -196,6 +200,9 @@ RpValueString.o: $(CORE_SRC)/RpValueString.cc
 
 # include cee binding definitions
 
+RpUtilsCInterface.o: $(CEE_SRC)/RpUtilsCInterface.cc
+	$(CXX) $(CFLAGS) $(DEBUG) $(INCL_CORE) $(INCL_CEE) -o $@ -c $?
+
 RpUnitsCInterface.o: $(CEE_SRC)/RpUnitsCInterface.cc
 	$(CXX) $(CFLAGS) $(DEBUG) $(INCL_CORE) $(INCL_CEE) -o $@ -c $?
 
@@ -211,6 +218,9 @@ RpOutcomeCInterface.o: $(CEE_SRC)/RpOutcomeCInterface.cc
 
 
 # include fortran binding definitions
+
+RpUtilsFInterface.o: $(FORT_SRC)/RpUtilsFInterface.cc
+	$(CXX) $(CFLAGS) $(DEBUG) $(INCL_CORE) $(INCL_FORTRAN) -o $@ -c $?
 
 RpUnitsFInterface.o: $(FORT_SRC)/RpUnitsFInterface.cc
 	$(CXX) $(CFLAGS) $(DEBUG) $(INCL_CORE) $(INCL_FORTRAN) -o $@ -c $?
