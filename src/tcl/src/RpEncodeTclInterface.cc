@@ -294,7 +294,11 @@ RpTclEncodingEncode (   ClientData cdata,
         // do nothing
     }
 
-    Tcl_AppendToObj(result,buf.bytes(),buf.size());
+    Tcl_DString dstPtr;
+    Tcl_DStringInit(&dstPtr);
+    Tcl_ExternalToUtfDString(NULL,buf.bytes(),buf.size(),&dstPtr);
+    Tcl_AppendToObj(result,Tcl_DStringValue(&dstPtr),Tcl_DStringLength(&dstPtr));
+    Tcl_DStringFree(&dstPtr);
 
     return TCL_OK;
 }
