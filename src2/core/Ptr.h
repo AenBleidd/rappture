@@ -136,7 +136,7 @@ Type*
 Ptr<Type>::pointer() const
 {
     if (_pc) {
-        return _pc->pointer();
+        return (Type*)_pc->pointer();
     }
     return NULL;
 }

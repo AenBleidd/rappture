@@ -103,6 +103,7 @@ Mesh1D::operator=(const Mesh1D& mesh)
     _counter = mesh._counter;
     _id2node = mesh._id2node;
     _id2nodeDirty = mesh._id2nodeDirty;
+    return *this;
 }
 
 Mesh1D::~Mesh1D()
@@ -150,7 +151,7 @@ Mesh1D&
 Mesh1D::remove(int nodeId)
 {
     if (!_id2nodeDirty) {
-        if (nodeId < _id2node.size()) {
+        if ((unsigned int) nodeId < _id2node.size()) {
             int n = _id2node[nodeId];
             _nodelist.erase( _nodelist.begin()+n );
         }
@@ -164,6 +165,7 @@ Mesh1D::remove(int nodeId)
         }
     }
     _id2nodeDirty = 1;
+    return *this;
 }
 
 Mesh1D&
@@ -182,7 +184,8 @@ Mesh1D::remove(const Node1D& node)
                 _id2nodeDirty = 1;
             }
             // last node in interval?
-            else if (n+1 < _nodelist.size() && node.x() == _nodelist[n+1].x()) {
+            else if (  ( (unsigned int)(n+1) < _nodelist.size())
+                    && ( node.x() == _nodelist[n+1].x()) ) {
                 _nodelist.erase( _nodelist.begin()+n+1 );
                 _id2nodeDirty = 1;
             }
@@ -198,6 +201,7 @@ Mesh1D::clear()
     _id2node.clear();
     _counter = 0;
     _id2nodeDirty = 0;
+    return *this;
 }
 
 int

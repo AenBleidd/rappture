@@ -75,7 +75,7 @@ FieldPrism3D::rangeMax(Axis which) const
 FieldPrism3D&
 FieldPrism3D::define(int nodeId, double f)
 {
-    while (_valuelist.size() <= nodeId) {
+    while (_valuelist.size() <= (unsigned int)nodeId) {
         _valuelist.push_back(NAN);
     }
     _valuelist[nodeId] = f;
@@ -92,8 +92,6 @@ FieldPrism3D::define(int nodeId, double f)
 double
 FieldPrism3D::value(double x, double y, double z, double outside) const
 {
-    double f0, f1, fy0, fy1, fz0, fz1;
-
     if (!_meshPtr.isNull()) {
         CellPrism3D cell = _meshPtr->locate(Node3D(x,y,z));
 

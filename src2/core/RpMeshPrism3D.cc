@@ -108,6 +108,7 @@ MeshPrism3D::operator=(const MeshPrism3D& mesh)
 {
     _xymesh = mesh._xymesh;
     _zmesh  = mesh._zmesh;
+    return *this;
 }
 
 MeshPrism3D::~MeshPrism3D()

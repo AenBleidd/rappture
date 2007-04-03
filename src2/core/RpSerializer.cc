@@ -99,7 +99,7 @@ Serializer::serialize()
     bufferPtr->writeInt(_idlist.size());
 
     // write out each object in the list, in order
-    for (int i=0; i < _idlist.size(); i++) {
+    for (unsigned int i=0; i < _idlist.size(); i++) {
         const char* id = _idlist.at(i);
         Ptr<Serializable> objPtr = _id2obj[id];
 
@@ -120,7 +120,7 @@ Ptr<Serializable>
 Serializer::get(int pos) const
 {
     Serializer *nonconst = (Serializer*)this;
-    assert(pos >= 0 && pos < _idlist.size());
+    assert(pos >= 0 && (unsigned int)pos < _idlist.size());
 
     std::string id(_idlist[pos]);
     return nonconst->_id2obj[id];
@@ -131,6 +131,7 @@ Serializer::clear()
 {
     _id2obj.clear();
     _idlist.clear();
+    return *this;
 }
 
 const char*

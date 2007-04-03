@@ -168,6 +168,7 @@ MeshTri2D::operator=(const MeshTri2D& mesh)
     _id2nodeDirty = mesh._id2nodeDirty;
     _id2node = mesh._id2node;
     _lastLocate.clear();
+    return *this;
 }
 
 MeshTri2D::~MeshTri2D()
@@ -207,7 +208,7 @@ MeshTri2D::addNode(const Node2D& nd)
 
     if (!_id2nodeDirty) {
         // id2node map up to date?  then keep it up to date
-        if (node.id() >= _id2node.size()) {
+        if ((unsigned int)node.id() >= _id2node.size()) {
             int newsize = 2*_id2node.size();
             for (int i=_id2node.size(); i < newsize; i++) {
                 _id2node.push_back(-1);
@@ -276,6 +277,7 @@ MeshTri2D::clear()
     _id2nodeDirty = 0;
     _id2node.assign(100, -1);
     _lastLocate.clear();
+    return *this;
 }
 
 int
@@ -287,7 +289,7 @@ MeshTri2D::sizeNodes() const
 Node2D&
 MeshTri2D::atNode(int pos)
 {
-    assert(pos >= 0 && pos < _nodelist.size());
+    assert(pos >= 0 && (unsigned int)(pos) < _nodelist.size());
     return _nodelist.at(pos);
 }
 
@@ -300,7 +302,7 @@ MeshTri2D::sizeCells() const
 CellTri2D
 MeshTri2D::atCell(int pos)
 {
-    assert(pos >= 0 && pos < _celllist.size());
+    assert(pos >= 0 && (unsigned int)(pos) < _celllist.size());
 
     Tri2D& cell = _celllist[pos];
     Node2D* n1Ptr = _getNodeById(cell.nodes[0]);
@@ -400,7 +402,7 @@ MeshTri2D::_getNodeById(int nodeId)
     Node2D *rptr = NULL;
     nonconst->_rebuildNodeIdMap();
 
-    if (nodeId < _id2node.size()) {
+    if ((unsigned int)nodeId < _id2node.size()) {
         int n = _id2node[nodeId];
         if (n >= 0) {
             return &_nodelist[n];

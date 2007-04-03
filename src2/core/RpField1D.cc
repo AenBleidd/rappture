@@ -55,6 +55,7 @@ Field1D::operator=(const Field1D& field)
     _vmax = field._vmax;
     _meshPtr = field._meshPtr;
     _counter = field._counter;
+    return *this;
 }
 
 Field1D::~Field1D()
@@ -132,6 +133,7 @@ Field1D::define(double x, double y)
         _meshPtr->add(node);
         define(nodeId, y);
     }
+    return 0;
 }
 
 int
@@ -145,6 +147,7 @@ Field1D::define(int nodeId, double y)
         if (y < _vmin) { _vmin = y; }
         if (y > _vmax) { _vmax = y; }
     }
+    return 0;
 }
 
 double

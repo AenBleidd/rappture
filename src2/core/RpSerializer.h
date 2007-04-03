@@ -19,8 +19,7 @@
 #define RAPPTURE_SERIALIZER_H
 
 #include <map>
-#include "RpPtr.h"
-#include "RpOutcome.h"
+#include "rappture2.h"
 #include "RpSerialBuffer.h"
 #include "RpSerializable.h"
 
