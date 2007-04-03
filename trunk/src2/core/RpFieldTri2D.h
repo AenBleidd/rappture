@@ -18,7 +18,7 @@
 
 #include <math.h>
 #include <vector>
-#include "RpPtr.h"
+#include "rappture2.h"
 #include "RpMeshTri2D.h"
 
 namespace Rappture {

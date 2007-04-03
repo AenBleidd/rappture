@@ -17,7 +17,7 @@
 #ifndef RAPPTURE_FIELD1D_H
 #define RAPPTURE_FIELD1D_H
 
-#include "RpPtr.h"
+#include "rappture2.h"
 #include "RpMesh1D.h"
 
 namespace Rappture {

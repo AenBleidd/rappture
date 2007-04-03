@@ -127,8 +127,7 @@ depend:
 
 # DO NOT DELETE THIS LINE -- make depend depends on it.
 
-# should use librappture2.a or $(LDFLAGS)  but this uses RpOutcome.o
-viz: viz.o libviz.a
+viz: viz.o librappture2.a
 	$(CXX) $(CFLAGS) -o viz $^
 
 libviz.a: Outcome.o RpMesh1D.o RpField1D.o RpMeshTri2D.o RpMeshRect3D.o RpFieldRect3D.o RpMeshPrism3D.o RpFieldPrism3D.o RpSerialBuffer.o RpSerializer.o RpSerializable.o RpBuffer.o

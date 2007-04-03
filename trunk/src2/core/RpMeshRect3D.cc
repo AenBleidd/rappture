@@ -111,6 +111,7 @@ MeshRect3D::operator=(const MeshRect3D& mesh)
     _axis[0] = mesh._axis[0];
     _axis[1] = mesh._axis[1];
     _axis[2] = mesh._axis[2];
+    return *this;
 }
 
 MeshRect3D::~MeshRect3D()

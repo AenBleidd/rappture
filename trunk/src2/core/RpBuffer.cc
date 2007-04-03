@@ -1,6 +1,6 @@
 /*
  * ======================================================================
- *  Rappture::RpBuffer
+ *  Rappture::Buffer
  *
  *  AUTHOR:  Derrick Kearney, Purdue University
  *

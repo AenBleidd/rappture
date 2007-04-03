@@ -15,10 +15,10 @@
 
 #ifdef BIGENDIAN
 #  define ENDIAN_FOR_LOOP(var,size)  \
-     for (int var=size-1; var >= 0; var--)
+     for (var=size-1; var >= 0; var--)
 #else
 #  define ENDIAN_FOR_LOOP(var,size)  \
-     for (int var=0; var < size; var++)
+     for (var=0; var < size; var++)
 #endif
 
 using namespace Rappture;
@@ -66,6 +66,7 @@ SerialBuffer::operator=(const SerialBuffer& sb)
 {
     _buffer = sb._buffer;
     _pos = 0;  // auto-rewind
+    return *this;
 }
 
 SerialBuffer::~SerialBuffer()
@@ -116,6 +117,7 @@ SerialBuffer&
 SerialBuffer::writeInt(int ival)
 {
     char *ptr = (char*)(&ival);
+    unsigned int i = 0;
 
     ENDIAN_FOR_LOOP(i, sizeof(int)) {
         _buffer.push_back(ptr[i]);
@@ -127,6 +129,7 @@ SerialBuffer&
 SerialBuffer::writeDouble(double dval)
 {
     char *ptr = (char*)(&dval);
+    unsigned int i = 0;
 
     ENDIAN_FOR_LOOP(i, sizeof(double)) {
         _buffer.push_back(ptr[i]);
@@ -163,14 +166,14 @@ SerialBuffer::rewind()
 int
 SerialBuffer::atEnd() const
 {
-    return (_pos >= _buffer.size());
+    return ((unsigned int)_pos >= _buffer.size());
 }
 
 char
 SerialBuffer::readChar()
 {
     char c = '\0';
-    if (_pos < _buffer.size()) {
+    if ((unsigned int)_pos < _buffer.size()) {
         c = _buffer[_pos++];
     }
     return c;
@@ -181,9 +184,10 @@ SerialBuffer::readInt()
 {
     int ival = 0;
     char *ptr = (char*)(&ival);
+    unsigned int i = 0;
 
     ENDIAN_FOR_LOOP(i, sizeof(int)) {
-        if (_pos < _buffer.size()) {
+        if ((unsigned int)_pos < _buffer.size()) {
             ptr[i] = _buffer[_pos++];
         }
     }
@@ -195,9 +199,10 @@ SerialBuffer::readDouble()
 {
     double dval = 0;
     char *ptr = (char*)(&dval);
+    unsigned int i = 0;
 
     ENDIAN_FOR_LOOP(i, sizeof(double)) {
-        if (_pos < _buffer.size()) {
+        if ((unsigned int)_pos < _buffer.size()) {
             ptr[i] = _buffer[_pos++];
         }
     }
@@ -209,7 +214,7 @@ SerialBuffer::readString()
 {
     std::string sval;
     char c;
-    while (_pos < _buffer.size()) {
+    while ((unsigned int)_pos < _buffer.size()) {
         c = _buffer[_pos++];
         if (c == '\0') {
             break;
@@ -227,7 +232,7 @@ SerialBuffer::readBytes()
     std::vector<char> bval;
 
     nbytes = readInt();
-    while (_pos < _buffer.size() && nbytes-- > 0) {
+    while ((unsigned int)_pos < _buffer.size() && nbytes-- > 0) {
         bval.push_back( _buffer[_pos++] );
     }
     return bval;

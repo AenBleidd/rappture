@@ -74,8 +74,8 @@ private:
     std::deque<Node1D> _nodelist;   // list of all nodes, in sorted order
     int _counter;                   // auto counter for node IDs
 
-    int _id2nodeDirty;              // non-zero => _id2node needs to be rebuilt
     std::deque<int> _id2node;       // maps node Id => index in _nodelist
+    int _id2nodeDirty;              // non-zero => _id2node needs to be rebuilt
 
     // methods for serializing/deserializing version 'A'
     static SerialConversion versionA;
