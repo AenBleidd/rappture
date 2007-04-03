@@ -943,7 +943,7 @@ itcl::body Rappture::Analyzer::_simOutput {message} {
     # Scan through and pick out any =RAPPTURE-PROGRESS=> messages first.
     #
     while {[regexp -indices \
-               {=RAPPTURE-PROGRESS=>([0-9]+) +([^\n]*)(\n|$)} $message \
+               {=RAPPTURE-PROGRESS=> *([0-9]+) +([^\n]*)(\n|$)} $message \
                 match percent mesg]} {
 
         foreach {i0 i1} $percent break

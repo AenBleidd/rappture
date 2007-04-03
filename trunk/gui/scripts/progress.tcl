@@ -85,9 +85,14 @@ itcl::body Rappture::Progress::settings {args} {
 
     set changed 0
     if {$params(-percent) != ""} {
-        if {![string is double $params(-percent)]
-              || $params(-percent) < 0 || $params(-percent) > 100} {
+        if {![string is double $params(-percent)]} {
             error "bad value \"$params(-percent)\": should be 0-100"
+        }
+        if {$params(-percent) < 0} {
+            set params(-percent) 0
+        }
+        if {$params(-percent) > 100} {
+            set params(-percent) 100
         }
         set _percent $params(-percent)
         set changed 1
