@@ -11,8 +11,8 @@
  * ======================================================================
  */
 
-#ifndef _RpLIBRARY_F_H
-#define _RpLIBRARY_F_H
+#ifndef _RAPPTURE_LIBRARY_F_H
+#define _RAPPTURE_LIBRARY_F_H
 
 #ifdef __cplusplus
     #include "RpLibrary.h"
@@ -174,4 +174,4 @@ void rp_result(             int* handle );
     }
 #endif // ifdef __cplusplus
 
-#endif // ifndef _RpLIBRARY_F_H
+#endif // ifndef _RAPPTURE_LIBRARY_F_H
