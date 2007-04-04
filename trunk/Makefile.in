@@ -12,6 +12,7 @@ install: rp_gui install_rplib install_bindings install_examples
 	cp gui/apps/rappture @prefix@/bin
 	cp gui/apps/rappture.env @prefix@/bin
 	cp gui/apps/driver @prefix@/bin
+	cp gui/apps/nanovis-test @prefix@/bin
 	cp gui/apps/rerun @prefix@/bin
 	cp gui/apps/simsim @prefix@/bin
 	cp gui/apps/simsim.py @prefix@/bin
