@@ -58,6 +58,7 @@ itcl::class Rappture::MolvisViewer {
     private variable _dataobjs     ;# data objects on server
     private variable _imagecache
     private variable _state 1
+    private variable _labels 
     private variable _cacheid ""
     private variable _hostlist ""
     private variable _model ""
@@ -230,26 +231,26 @@ itcl::body Rappture::MolvisViewer::constructor {hostlist args} {
     pack $itk_component(3dview) -expand yes -fill both
 
     # set up bindings for rotation
-    #bind $itk_component(3dview) <ButtonPress> \
-    #    [itcl::code $this _vmouse click %b %s %x %y]
-    #bind $itk_component(3dview) <B1-Motion> \
-    #    [itcl::code $this _vmouse drag 1 %s %x %y]
-    #bind $itk_component(3dview) <ButtonRelease> \
-    #    [itcl::code $this _vmouse release %b %s %x %y]
-
-	# set up bindings to bridge mouse events to server
     bind $itk_component(3dview) <ButtonPress> \
-        [itcl::code $this _vmouse2 click %b %s %x %y]
-    bind $itk_component(3dview) <ButtonRelease> \
-        [itcl::code $this _vmouse2 release %b %s %x %y]
+        [itcl::code $this _vmouse click %b %s %x %y]
     bind $itk_component(3dview) <B1-Motion> \
-        [itcl::code $this _vmouse2 drag 1 %s %x %y]
-    bind $itk_component(3dview) <B2-Motion> \
-        [itcl::code $this _vmouse2 drag 2 %s %x %y]
-    bind $itk_component(3dview) <B3-Motion> \
-        [itcl::code $this _vmouse2 drag 3 %s %x %y]
-    bind $itk_component(3dview) <Motion> \
-        [itcl::code $this _vmouse2 move 0 %s %x %y]
+        [itcl::code $this _vmouse drag 1 %s %x %y]
+    bind $itk_component(3dview) <ButtonRelease> \
+        [itcl::code $this _vmouse release %b %s %x %y]
+
+    # set up bindings to bridge mouse events to server
+    #bind $itk_component(3dview) <ButtonPress> \
+    #   [itcl::code $this _vmouse2 click %b %s %x %y]
+    #bind $itk_component(3dview) <ButtonRelease> \
+    #    [itcl::code $this _vmouse2 release %b %s %x %y]
+    #bind $itk_component(3dview) <B1-Motion> \
+    #    [itcl::code $this _vmouse2 drag 1 %s %x %y]
+    #bind $itk_component(3dview) <B2-Motion> \
+    #    [itcl::code $this _vmouse2 drag 2 %s %x %y]
+    #bind $itk_component(3dview) <B3-Motion> \
+    #    [itcl::code $this _vmouse2 drag 3 %s %x %y]
+    #bind $itk_component(3dview) <Motion> \
+    #    [itcl::code $this _vmouse2 move 0 %s %x %y]
 
     bind $itk_component(3dview) <Configure> \
         [itcl::code $this _send screen %w %h]
@@ -264,38 +265,6 @@ itcl::body Rappture::MolvisViewer::constructor {hostlist args} {
     _update forever
     set _state 0
     set _model ""
-
-    set i 0
-    foreach char {A B C D E F G H I J K L M N O P Q R S T U V W X Y Z \
-                a b c d e f g h i j k l m n o p q r s t u v w x y z \
-                0 1 2 3 4 5 6 7 8 9 + /} {
-        set base64_tmp($char) $i
-        incr i
-    }
-
-    #
-    # Create base64 as list: to code for instance C<->3, specify
-    # that [lindex $base64 67] be 3 (C is 67 in ascii); non-coded
-    # ascii chars get a {}. we later use the fact that lindex on a
-    # non-existing index returns {}, and that [expr {} < 0] is true
-    #
-
-    # the last ascii char is 'z'
-    scan z %c len
-    for {set i 0} {$i <= $len} {incr i} {
-        set char [format %c $i]
-        set val {}
-        if {[info exists base64_tmp($char)]} {
-            set val $base64_tmp($char)
-        } else {
-            set val {}
-        }
-        lappend _base64 $val
-    }
-
-    # code the character "=" as -1; used to signal end of message
-    scan = %c i
-    set _base64 [lreplace $_base64 $i $i -1]
 }
 
 # ----------------------------------------------------------------------
@@ -321,8 +290,8 @@ itcl::body Rappture::MolvisViewer::download {option args} {
     switch $option {
         coming {}
         controls {}
-        now { 
-            return [list .jpg [_decodeb64 [$_image(plot) data -format jpeg]]]
+        now {
+            return [list .jpg [Rappture::encoding::decode -as b64 [$_image(plot) data -format jpeg]]]
         }
         default {
             error "bad option \"$option\": should be coming, controls, now"
@@ -555,16 +524,20 @@ itcl::body Rappture::MolvisViewer::_rebuild {} {
         set model [$dev get components.molecule.model]
         set _state [$dev get components.molecule.state]
         
-        if {"" == $model } { set model "molecule" }
+        if {"" == $model } { 
+		    set model "molecule"
+            scan $dev "::libraryObj%d" suffix
+		    set model $model$suffix	
+        }
         if {"" == $_state} { set _state 1 }
 
         if { $model != $_model && $_model != "" } {
-            _send raw disable $_model
+            _send disable $_model 0
         }
 
         if { [info exists _dataobjs($model-$_state)] } {
             if { $model != $_model } {
-                _send raw enable $model
+                _send enable $model 1
                 set _model $model
             }
         } else {
@@ -717,20 +690,20 @@ itcl::body Rappture::MolvisViewer::_vmouse2 {option b m x y} {
         set now [clock clicks -milliseconds]
         set diff 0
 
-		catch { set diff [expr {abs($_mevent(time) - $now)}] } 
+	catch { set diff [expr {abs($_mevent(time) - $now)}] } 
 
         if {$diff < 75} { # 75ms between motion updates
             return
         }
     }
 
- 	_send vmouse $vButton $vModifier $vState $x $y
+     _send vmouse $vButton $vModifier $vState $x $y
 
     set _mevent(time) [clock clicks -milliseconds]
 }
 
 itcl::body Rappture::MolvisViewer::_vmouse {option b m x y} {
-    puts stderr "MolvisViewer::_vmouse($option $b $m $x $y)"
+    #puts stderr "MolvisViewer::_vmouse($option $b $m $x $y)"
     switch -- $option {
         click {
             $itk_component(3dview) configure -cursor fleur
@@ -753,8 +726,35 @@ itcl::body Rappture::MolvisViewer::_vmouse {option b m x y} {
                     return
                 }
 
-                eval _send camera angle [expr $y-$_mevent(y)] [expr $x-$_mevent(x)] 
+		set x1 [expr $w / 3]
+		set x2 [expr $x1 * 2]
+		set x3 $w
+                set y1 [expr $h / 3]
+		set y2 [expr $y1 * 2]
+		set y3 $h
+		set dx [expr $x - $_mevent(x)]
+		set dy [expr $y - $_mevent(y)]
+                set mx 0
+		set my 0
+		set mz 0
 
+		if { $_mevent(x) < $x1 } {
+                    set mz $dy
+		} elseif { $_mevent(x) < $x2 } {
+		    set mx $dy	
+                } else {
+		    set mz [expr -$dy]
+		}
+
+		if { $_mevent(y) < $y1 } {
+		    set mz [expr -$dx]
+		} elseif { $_mevent(y) < $y2 } {
+		    set my $dx	
+                } else {
+		    set mz $dx
+		}
+
+                _send camera angle $mx $my $mz
                 set _mevent(x) $x
                 set _mevent(y) $y
                 set _mevent(time) $now
@@ -852,6 +852,8 @@ itcl::body Rappture::MolvisViewer::emblems {option} {
         }
     }
 
+    set _labels $emblem
+
     if {$emblem == $current_emblem} { return }
 
     if {$emblem} {
@@ -875,70 +877,17 @@ itcl::configbody Rappture::MolvisViewer::device {
             error "bad value \"$itk_option(-device)\": should be Rappture::library object"
         }
 
-        set emblem [$itk_option(-device) get components.molecule.about.emblems]
+	if { ![info exists _labels] } {
+            set emblem [$itk_option(-device) get components.molecule.about.emblems]
 
-        if {$emblem == "" || ![string is boolean $emblem] || !$emblem} {
-            emblems off
-        } else {
-            emblems on
+            if {$emblem == "" || ![string is boolean $emblem] || !$emblem} {
+                emblems off
+            } else {
+                emblems on
+            }
         }
     }
 
     $_dispatcher event -idle !rebuild
 }
 
-# ::base64::decode --
-#
-#   Base64 decode a given string.
-#
-# Arguments:
-#   string  The string to decode.  Characters not in the base64
-#       alphabet are ignored (e.g., newlines)
-#
-# Results:
-#   The decoded value.
-
-itcl::body Rappture::MolvisViewer::_decodeb64 {arg} {
-    if {[string length $arg] == 0} {return ""}
-
-    set base64 $_base64
-    set output "" ; # Fix for [Bug 821126]
-
-    binary scan $arg c* X
-    foreach x $X {
-        set bits [lindex $base64 $x]
-        if {$bits >= 0} {
-            if {[llength [lappend nums $bits]] == 4} {
-                foreach {v w z y} $nums break
-                set a [expr {($v << 2) | ($w >> 4)}]
-                set b [expr {(($w & 0xF) << 4) | ($z >> 2)}]
-                set c [expr {(($z & 0x3) << 6) | $y}]
-                append output [binary format ccc $a $b $c]
-                set nums {}
-            }                
-        } elseif {$bits == -1} {
-            # = indicates end of data.  Output whatever chars are left.
-            # The encoding algorithm dictates that we can only have 1 or 2
-            # padding characters.  If x=={}, we have 12 bits of input 
-            # (enough for 1 8-bit output).  If x!={}, we have 18 bits of
-            # input (enough for 2 8-bit outputs).
-                
-            foreach {v w z} $nums break
-            set a [expr {($v << 2) | (($w & 0x30) >> 4)}]
-            if {$z == {}} {
-                append output [binary format c $a ]
-            } else {
-                set b [expr {(($w & 0xF) << 4) | (($z & 0x3C) >> 2)}]
-                append output [binary format cc $a $b]
-            }                
-            break
-        } else {
-            # RFC 2045 says that line breaks and other characters not part
-            # of the Base64 alphabet must be ignored, and that the decoder
-            # can optionally emit a warning or reject the message.  We opt
-            # not to do so, but to just ignore the character. 
-            continue
-        }
-    }
-    return $output
-}
