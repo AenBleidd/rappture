@@ -124,7 +124,6 @@ SimpleBuffer::operator=(const SimpleBuffer& b)
 /**
  * Operator +
  * @param SimpleBuffer object to add
- * @param SimpleBuffer object to add
  */
 SimpleBuffer
 SimpleBuffer::operator+(const SimpleBuffer& b) const

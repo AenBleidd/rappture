@@ -2,11 +2,17 @@ from distutils.core import setup, Extension
 
 rp_install_dir = '@prefix@'
 
-module = Extension('Rappture.Units',
+units_module = Extension('Rappture.Units',
                    include_dirs = [rp_install_dir+'/include'],
                    sources = [ 'Rappture/PyRpUnits.cc' ],
                    library_dirs = [ rp_install_dir+'/lib' ],
                    libraries = [ 'rappture', 'scew' ] )
+
+utils_module = Extension('Rappture.Utils',
+                   include_dirs = [rp_install_dir+'/include'],
+                   sources = [ 'Rappture/PyRpUtils.cc' ],
+                   library_dirs = [ rp_install_dir+'/lib' ],
+                   libraries = [ 'rappture' ] )
 
 setup(  name='Rappture',
         version='0.1',
@@ -19,5 +25,6 @@ setup(  name='Rappture',
                      'Rappture.signalHandler',
                      'Rappture.tools',
                      'Rappture.result'],
-        ext_modules=[module]
+        ext_modules=[   units_module,
+                        utils_module    ]
   )

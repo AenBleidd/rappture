@@ -19,19 +19,19 @@
 /**********************************************************/
 // INTERFACE FUNCTIONS - ONE UNDERSCORE
 
-int rp_progress_ ( int* percent, char* text, int text_len );
+int rp_utils_progress_ ( int* percent, char* text, int text_len );
 
 
 /**********************************************************/
 // INTERFACE FUNCTIONS - TWO UNDERSCORES
 
-int rp_progress__ ( int* percent, char* text, int text_len );
+int rp_utils_progress__ ( int* percent, char* text, int text_len );
 
 
 /**********************************************************/
 // INTERFACE STUB FUNCTIONS - ALL CAPS
 
-int RP_PROGRESS ( int* percent, char* text, int text_len );
+int RP_UTILS_PROGRESS ( int* percent, char* text, int text_len );
 
 
 /**********************************************************/

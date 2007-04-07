@@ -18,7 +18,7 @@ c ======================================================================
 
         integer rp_lib, rp_units_convert_dbl
 
-        integer driver, ok
+        integer driver, ok, progress
         double precision T, Ef, kT, Emin, Emax, dE, f, E
         CHARACTER*100 inFile, strVal
         character*40 xy
@@ -54,6 +54,8 @@ c       y-axis label and y-axis units
 
         do 10 E=Emin,Emax,dE
           f = 1.0/(1.0+exp((E-Ef)/kT))
+          progress = nint((E-Emin)/(Emax-Emin)*100)
+          call rp_utils_progress (progress,"Iterating")
           write(xy,'(E20.12,F13.9,A)') f, E, char(10)
           call rp_lib_put_str (driver,
      +          "output.curve(f12).component.xy", xy, 1)

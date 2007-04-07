@@ -21,18 +21,18 @@ extern "C" {
 #endif
 
 /**********************************************************************/
-// FUNCTION: rp_progress(int percent, const char* text, int text_len)
+// FUNCTION: rp_utils_progress(int percent, const char* text, int text_len)
 /// Report the progress of the application.
 /**
  */
 
-int rp_progress(int* percent, char* text, int text_len)
+int rp_utils_progress(int* percent, char* text, int text_len)
 {
     int retVal = 1;
     const char* inText = NULL;
     inText = null_terminate(text, text_len);
     if (inText != NULL) {
-        retVal = Rappture::progress(*percent,inText);
+        retVal = Rappture::Utils::progress(*percent,inText);
         free((void*)inText);
     }
     return retVal;

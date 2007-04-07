@@ -497,7 +497,7 @@ static PyMethodDef RpUnits_Methods[] = {
     {NULL,        NULL}        /* sentinel */
 };
 
-PyDoc_STRVAR(module_doc, "RpUnits Module for Python.");
+PyDoc_STRVAR(module_doc, "Rappture Units Module for Python.");
 
 /* Initialization function for the module */
 

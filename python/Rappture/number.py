@@ -9,7 +9,6 @@
 #  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 # ======================================================================
 import Rappture
-import Rappture.Units
 
 class number:
     def __init__(self,path,id,**kwargs):

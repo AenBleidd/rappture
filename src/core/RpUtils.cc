@@ -18,7 +18,7 @@
     extern "C" {
 #endif // ifdef __cplusplus
 
-using namespace Rappture;
+using namespace Rappture::Utils;
 
 int progress(int percent, const char* text)
 {

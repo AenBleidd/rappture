@@ -293,6 +293,7 @@ nanohub's pbs queues through Rappture"""
 #PBS -e %s
 #PBS -mn
 #PBS -N %s
+#PBS -V
 cd $PBS_O_WORKDIR
 
 cmd="%s"

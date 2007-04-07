@@ -52,7 +52,7 @@ int
 RapptureUtils_Init(Tcl_Interp *interp)
 {
 
-    Tcl_CreateCommand(interp, "::Rappture::progress",
+    Tcl_CreateCommand(interp, "::Rappture::Utils::progress",
         RpTclUtilsProgress, (ClientData)NULL, (Tcl_CmdDeleteProc*)NULL);
 
     return TCL_OK;
@@ -99,7 +99,7 @@ RpTclUtilsProgress  (   ClientData cdata,
         }
     }
 
-    err = Rappture::progress((int)val,mesg);
+    err = Rappture::Utils::progress((int)val,mesg);
 
     if (err != 0) {
         Tcl_AppendResult(interp,
