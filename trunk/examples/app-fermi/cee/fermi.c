@@ -16,6 +16,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
+#include <unistd.h>
 
 int main(int argc, char * argv[]) {
 
@@ -87,6 +88,7 @@ int main(int argc, char * argv[]) {
     while (E < Emax) {
         f = 1.0/(1.0 + exp((E - Ef)/kT));
         sprintf(line,"%f %f\n",f, E);
+        rpUtilsProgress((int)((E-Emin)/(Emax-Emin)*100),"Iterating");
         rpPutString(lib,"output.curve(f12).component.xy", line, RPLIB_APPEND);
         E = E + dE;
     }

@@ -19,7 +19,7 @@
     extern "C" {
 #endif // ifdef __cplusplus
 
-int rp_progress ( int* percent, char* text, int text_len );
+int rp_utils_progress ( int* percent, char* text, int text_len );
 
 
 /**********************************************************/

@@ -1,10 +1,10 @@
 /*
  * ----------------------------------------------------------------------
- *  INTERFACE: Rappture-Matlab Bindings Header
+ *  INTERFACE: Rappture-Octave Bindings Header
  *
  * ======================================================================
  *  AUTHOR:  Derrick Kearney, Purdue University
- *  Copyright (c) 2005
+ *  Copyright (c) 2005-2007
  *  Purdue Research Foundation, West Lafayette, IN
  * ======================================================================
  */
@@ -12,23 +12,15 @@
 #ifndef _Rp_OCTAVE_HELPER_H 
 #define _Rp_OCTAVE_HELPER_H 
 
+#include "rappture.h"
 #include "RpBindingsDict.h"
-#include "RpLibrary.h"
-#include "RpUnits.h"
 
-// dont delete this, still working on making it happen
-//#include "rappture.h"
-
-// include the matlab api header
+// include the octave api header
 #include "octave/oct.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-//    int     getIntInput     ( const mxArray* prhs );
-//    double  getDoubleInput  ( const mxArray* prhs );
-//    char*   getStringInput  ( const mxArray* prhs );
 
 #ifdef __cplusplus
 }

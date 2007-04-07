@@ -1,5 +1,4 @@
-#include "RpLibrary.h"
-#include "RpUnits.h"
+#include "rappture.h"
 #include <string>
 
 #include "EXTERN.h"
@@ -83,5 +82,16 @@ int showUnits
                     XSRETURN_UNDEF;
 
 		RETVAL = result.c_str();
+	OUTPUT:
+		RETVAL
+
+MODULE = Rappture		PACKAGE = Rappture::Utils
+
+int
+progress( percent, message )
+int percent
+const char *message
+	CODE:
+		RETVAL = Rappture::Utils::progress(percent,message);
 	OUTPUT:
 		RETVAL

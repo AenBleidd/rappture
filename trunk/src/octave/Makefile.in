@@ -38,6 +38,7 @@ install_octave: RpOctave
 OCT_INCLS = $(INCL_OCTAVE) $(INCL_CORE) $(INCL_RP_DEPS)
 OCTAVE_COMP_ARGS = $(OCT_INCLS) $(LIB_RAPPTURE) $(LIB_SCEW_FLAG)
 RpOctave: 	rpAddPresets.oct \
+			rpUtilsProgress.oct \
 			rpLib.oct \
 			rpLibChildrenByType.oct \
 			rpLibChildren.oct \
@@ -68,10 +69,12 @@ RpOctave: 	rpAddPresets.oct \
 			rpUnitsGetBasis.oct \
 			rpUnitsGetExponent.oct \
 			rpUnitsGetUnits.oct \
-			rpUnitsGetUnitsName.oct \
+			rpUnitsGetUnitsName.oct
 
 rpAddPresets.oct:
 	$(OCT) rpAddPresets.cc            $(OCTAVE_COMP_ARGS)
+rpUtilsProgress.oct:
+	$(OCT) rpUtilsProgress.cc         $(OCTAVE_COMP_ARGS)
 rpLib.oct:
 	$(OCT) rpLib.cc                   $(OCTAVE_COMP_ARGS)
 rpLibChildrenByType.oct:

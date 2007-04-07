@@ -75,7 +75,8 @@ RpMatlab: 	rpLib.mexglx \
 			rpUnitsConvertObjStr.mexglx \
 			rpUnitsConvertDbl.mexglx \
 			rpUnitsConvertObjDbl.mexglx \
-			rpAddPresets.mexglx
+			rpAddPresets.mexglx \
+			rpUtilsProgress.mexglx
 
 
 
@@ -157,6 +158,8 @@ rpUnitsConvertObjDbl.mexglx:
 	$(MEX) rpUnitsConvertObjDbl.cc    $(MATLAB_COMP_ARGS)
 rpAddPresets.mexglx:
 	$(MEX) rpAddPresets.cc            $(MATLAB_COMP_ARGS)
+rpUtilsProgress.mexglx:
+	$(MEX) rpUtilsProgress.cc         $(MATLAB_COMP_ARGS)
 
 docs:
 	if test ! -d docs; then \

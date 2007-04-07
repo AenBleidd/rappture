@@ -41,6 +41,7 @@ rpLibPutString(lib,"output.curve(f12).yaxis.label","Energy",0);
 rpLibPutString(lib,"output.curve(f12).yaxis.units","eV",0);
 
 for j=1:200
+  rpUtilsProgress((j/200*100),'Iterating');
   putStr = sprintf('%12g  %12g\n', f(j), E(j));
   % put the data into the xml file
   rpLibPutString(lib,"output.curve(f12).component.xy",putStr,1);

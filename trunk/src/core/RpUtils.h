@@ -17,6 +17,7 @@
 #ifdef __cplusplus
 extern "C" {
 namespace Rappture {
+    namespace Utils {
 #endif // ifdef __cplusplus
 
 
@@ -24,6 +25,7 @@ int progress(int percent, const char* text);
 
 
 #ifdef __cplusplus
+    } // namespace Utils
 } // namespace Rappture
 } // extern C
 #endif // ifdef __cplusplus

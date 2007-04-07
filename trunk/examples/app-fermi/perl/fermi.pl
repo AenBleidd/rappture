@@ -40,6 +40,7 @@ $driver->put("output.curve(f12).yaxis.units","eV",0);
 
 while( $E < $Emax ) {
 	$f = 1.0 / ( 1.0 + exp(($E - $Ef) / $kT));
+    Rappture::Utils::progress((($E-$Emin)/($Emax-$Emin)*100),"Iterating");
 	$driver->put("output.curve(f12).component.xy", "$f $E\n", 1);
 	$E = $E + $dE;
 }

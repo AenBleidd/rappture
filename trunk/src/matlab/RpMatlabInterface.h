@@ -14,10 +14,8 @@
 #ifndef _Rp_MATLAB_HELPER_H 
 #define _Rp_MATLAB_HELPER_H 
 
+#include "rappture.h"
 #include "RpBindingsDict.h"
-// #include "RpLibraryCInterface.h"
-#include "RpUnits.h"
-#include "RpLibrary.h"
 
 // dont delete this, still working on making it happen
 //#include "rappture.h"

@@ -19,9 +19,9 @@ extern "C" {
 #endif
 
 int
-rpProgress (int percent, const char* text)
+rpUtilsProgress (int percent, const char* text)
 {
-    return Rappture::progress(percent,text);
+    return Rappture::Utils::progress(percent,text);
 }
 
 #ifdef __cplusplus

@@ -11,7 +11,6 @@
 #  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 # ======================================================================
 import Rappture
-import Rappture.Units
 import sys
 from math import *
 
@@ -45,6 +44,7 @@ driver.put('output.curve(f12).yaxis.units','eV',append=0)
 while E < Emax:
     f = 1.0/(1.0 + exp((E - Ef)/kT))
     line = "%g %g\n" % (f, E)
+    Rappture.Utils.progress(((E-Emin)/(Emax-Emin)*100),"Iterating")
     driver.put('output.curve(f12).component.xy', line, append=1)
     E = E + dE
 

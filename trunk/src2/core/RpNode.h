@@ -31,7 +31,7 @@ public:
 
     virtual int dimensionality() const = 0;
 
-    virtual ~Node();
+    virtual ~Node() {}
 
 private:
     int _id;  // node identifier (used for fields)
@@ -46,7 +46,7 @@ public:
     virtual double x() const { return _x; }
     virtual double x(double newval) { _x = newval; return _x; }
 
-    virtual ~Node1D();
+    virtual ~Node1D() {}
 
 private:
     double _x;  // x-coordinate
@@ -64,7 +64,7 @@ public:
     virtual double x(double newval) { _x = newval; return _x; }
     virtual double y(double newval) { _y = newval; return _y; }
 
-    virtual ~Node2D();
+    virtual ~Node2D() {}
 
 private:
     double _x;  // x-coordinate
@@ -85,7 +85,7 @@ public:
     virtual double y(double newval) { _y = newval; return _y; }
     virtual double z(double newval) { _z = newval; return _z; }
 
-    virtual ~Node3D();
+    virtual ~Node3D() {}
 
 private:
     double _x;  // x-coordinate
