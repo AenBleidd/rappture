@@ -18,7 +18,7 @@ from math import *
 driver = Rappture.library(sys.argv[1])
 
 driver.put("tool.version.application.date", "$Date$")
-driver.put("tool.version.application.rev", "$LastChangedRev$")
+driver.put("tool.version.application.rev", "$LastChangedRevision$")
 driver.put("tool.version.application.url", "$URL$")
 
 Tstr = driver.get('input.(temperature).current')
