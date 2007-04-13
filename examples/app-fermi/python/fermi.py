@@ -17,9 +17,9 @@ from math import *
 # open the XML file containing the run parameters
 driver = Rappture.library(sys.argv[1])
 
-driver.put("tool.version.application.date", "$Date: 2007-04-12 23:56:02 -0400 (Thu, 12 Apr 2007) $")
+driver.put("tool.version.application.date", "$Date$")
 driver.put("tool.version.application.rev", "$LastChangedRev$")
-driver.put("tool.version.application.url", "$URL: https://kearneyd@repo.nanohub.org/svn/rappture/trunk/examples/app-fermi/python/fermi.py $")
+driver.put("tool.version.application.url", "$URL$")
 
 Tstr = driver.get('input.(temperature).current')
 T = Rappture.Units.convert(Tstr, to="K", units="off")
