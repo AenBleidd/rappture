@@ -14,6 +14,12 @@ utils_module = Extension('Rappture.Utils',
                    library_dirs = [ rp_install_dir+'/lib' ],
                    libraries = [ 'rappture' ] )
 
+encode_module = Extension('Rappture.encoding',
+                   include_dirs = [rp_install_dir+'/include'],
+                   sources = [ 'Rappture/PyRpEncode.cc' ],
+                   library_dirs = [ rp_install_dir+'/lib' ],
+                   libraries = [ 'rappture' ] )
+
 setup(  name='Rappture',
         version='0.1',
         description='Rapid Application Infrastructure library for nanoHUB.org',
@@ -25,6 +31,7 @@ setup(  name='Rappture',
                      'Rappture.signalHandler',
                      'Rappture.tools',
                      'Rappture.result'],
-        ext_modules=[   units_module,
+        ext_modules=[   encode_module,
+                        units_module,
                         utils_module    ]
   )

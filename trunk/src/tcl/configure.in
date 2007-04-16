@@ -117,7 +117,7 @@ else
     # CLEANFILES="*core *.o *.so *.a"
     CLEANFILES=""
     #TEA_ADD_SOURCES([unix/unixFile.c])
-    TEA_ADD_LIBS([-L@RAPPTURE_DIR@/lib])
+    TEA_ADD_LIBS([-L${prefix}/lib])
     TEA_ADD_LIBS([-lexpat -lscew -lrappture])
 fi
 AC_SUBST(CLEANFILES)

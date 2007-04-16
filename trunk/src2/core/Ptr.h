@@ -33,7 +33,7 @@ public:
 private:
     // copying the core is not allowed
     PtrCore(const PtrCore& pc) { assert(0); }
-    PtrCore& operator=(const PtrCore& pc) { assert(0); }
+    PtrCore& operator=(const PtrCore& pc) { assert(0); return *this; }
 
     void *_ptr;
     int _refcount;

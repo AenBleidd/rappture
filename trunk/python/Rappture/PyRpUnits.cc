@@ -82,7 +82,7 @@ RpUnitsObject_makeBasis(RpUnitsObject *self, PyObject *args)
         return NULL;
     }
 
-    if (self->rp_unit){ 
+    if (self->rp_unit){
         outVal = self->rp_unit->makeBasis(inVal, &result);
         if (result) {
             rv = PyFloat_FromDouble(outVal);
@@ -207,7 +207,7 @@ RpUnitsObject_convert(RpUnitsObject *self, PyObject *args)
     }
     else {
         PyErr_SetString(PyExc_AttributeError, "Not enough arguments");
-        return Py_None;
+        Py_RETURN_NONE;
     }
 
     if (self->rp_unit){ 
@@ -244,7 +244,7 @@ RpUnits_define(PyObject *self, PyObject *args)
     }
     else {
         PyErr_SetString(PyExc_AttributeError, "Not enough arguments");
-        return Py_None;
+        Py_RETURN_NONE;
     }
 
     newRpUnit = newRpUnitsObject(args);
@@ -467,8 +467,7 @@ RpUnits_convert(PyObject *self, PyObject *args, PyObject *keywds)
         //    retVal = PyString_FromString(fromVal);
         //}
         //else {
-        retVal = Py_None;
-        Py_INCREF(retVal);
+        Py_RETURN_NONE;
         //}
     }
 

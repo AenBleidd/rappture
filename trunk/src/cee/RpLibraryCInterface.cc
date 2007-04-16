@@ -148,7 +148,6 @@ rpGetDouble (RpLibrary* lib, const char* path, double* retDVal)
 int
 rpGetData (RpLibrary* lib, const char* path, RapptureBuffer* retBuf)
 {
-    Rappture::Outcome status;
     Rappture::Buffer rpbuf;
     int retVal = 0;
 
@@ -156,7 +155,7 @@ rpGetData (RpLibrary* lib, const char* path, RapptureBuffer* retBuf)
         return -1;
     }
 
-    rpbuf = lib->getData(path, status);
+    rpbuf = lib->getData(path);
     RpBufferToCBuffer(&rpbuf, retBuf);
     return retVal;
 }
