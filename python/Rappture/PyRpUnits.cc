@@ -207,7 +207,8 @@ RpUnitsObject_convert(RpUnitsObject *self, PyObject *args)
     }
     else {
         PyErr_SetString(PyExc_AttributeError, "Not enough arguments");
-        Py_RETURN_NONE;
+        Py_INCREF(Py_None);
+        return Py_None;
     }
 
     if (self->rp_unit){ 
@@ -244,7 +245,8 @@ RpUnits_define(PyObject *self, PyObject *args)
     }
     else {
         PyErr_SetString(PyExc_AttributeError, "Not enough arguments");
-        Py_RETURN_NONE;
+        Py_INCREF(Py_None);
+        return Py_None;
     }
 
     newRpUnit = newRpUnitsObject(args);
@@ -462,13 +464,8 @@ RpUnits_convert(PyObject *self, PyObject *args, PyObject *keywds)
         }
     }
     else {
-        //keeping this around in case you want string returned instead of None
-        //if (fromVal) {
-        //    retVal = PyString_FromString(fromVal);
-        //}
-        //else {
-        Py_RETURN_NONE;
-        //}
+        Py_INCREF(Py_None);
+        return Py_None;
     }
 
     return retVal;

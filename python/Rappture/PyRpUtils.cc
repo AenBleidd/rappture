@@ -45,7 +45,8 @@ RpUtils_progress(PyObject *self, PyObject *args, PyObject *keywds)
         PyErr_SetString(PyExc_RuntimeError,"Error while writing to stdout");
     }
 
-    Py_RETURN_NONE;
+    Py_INCREF(Py_None);
+    return Py_None;
 }
 
 /* ---------- */
