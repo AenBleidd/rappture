@@ -77,8 +77,7 @@ class RpLibrary
         double      getDouble ( std::string path = "") const;
         int         getInt    ( std::string path = "") const;
         bool        getBool   ( std::string path = "") const;
-        Rappture::Buffer getData ( std::string path,
-                                   Rappture::Outcome& status) const;
+        Rappture::Buffer getData ( std::string path = "") const;
 
         /*
          * Should return some kind of RpError object
@@ -134,6 +133,8 @@ class RpLibrary
         std::string nodeComp() const;
         std::string nodePath() const;
 
+        Rappture::Outcome& outcome() const;
+
         void result();
 
 
@@ -170,6 +171,7 @@ class RpLibrary
         // deleted, dont act on the root pointer
         int freeRoot;
 
+        mutable Rappture::Outcome status;
 
         RpLibrary ( scew_element* node, scew_tree* tree)
             :   parser      (NULL),

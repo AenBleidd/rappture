@@ -67,7 +67,7 @@ install: 	install_rappture 	\
 #			install_tcl
 
 RP_IO_DEPS      = RpLibrary.o RpLibraryCInterface.o RpLibraryFInterface.o \
-                  scew_extras.o RpEntityRef.o RpUtils.o
+                  scew_extras.o RpEntityRef.o RpEncode.o RpUtils.o
 RP_UNITS_DEPS   = RpUnitsStd.o RpUnits.o RpUnitsCInterface.o RpUnitsFInterface.o
 RP_UTILS_DEPS   = RpUtils.o RpUtilsCInterface.o RpUtilsFInterface.o
 RP_OTHER_DEPS   = RpFortranCommon.o RpBindingsDict.o \
@@ -147,89 +147,93 @@ install_tcl: librappture
 # include core source files
 
 RpLibrary.o: $(CORE_SRC)/RpLibrary.cc
-	$(CXX) $(CFLAGS) $(DEBUG) $(INCL_CORE) $(INCL_CORE2) $(INCL_RP_DEPS) -o $@ -c $?
+	$(CXX) $(CFLAGS) $(DEBUG) -o $@ -c $? $(INCL_CORE) $(INCL_CORE2) $(INCL_RP_DEPS)
 
 scew_extras.o: $(CORE_SRC)/scew_extras.c
-	$(CC) $(CFLAGS) $(DEBUG) $(INCL_CORE) $(INCL_RP_DEPS) -o $@ -c $?
+	$(CC) $(CFLAGS) $(DEBUG) -o $@ -c $? $(INCL_CORE) $(INCL_RP_DEPS)
 
 RpEntityRef.o: $(CORE_SRC)/RpEntityRef.cc
-	$(CXX) $(CFLAGS) $(DEBUG) $(INCL_CORE) $(INCL_CORE2) -o $@ -c $?
+	$(CXX) $(CFLAGS) $(DEBUG) -o $@ -c $? $(INCL_CORE) $(INCL_CORE2)
+
+RpEncode.o: $(CORE_SRC)/RpEncode.cc
+	$(CXX) $(CFLAGS) $(DEBUG) -o $@ -c $? $(INCL_CORE) $(INCL_CORE2)
 
 RpUtils.o: $(CORE_SRC)/RpUtils.cc
-	$(CXX) $(CFLAGS) $(DEBUG) $(INCL_CORE) -o $@ -c $?
-
-RpVariable.o: $(CORE_SRC)/RpVariable.cc
-	$(CXX) $(CFLAGS) $(DEBUG) $(INCL_CORE) -o $@ -c $?
-
-RpAbout.o: $(CORE_SRC)/RpAbout.cc
-	$(CXX) $(CFLAGS) $(DEBUG) $(INCL_CORE) -o $@ -c $?
-
-RpNumber.o: $(CORE_SRC)/RpNumber.cc
-	$(CXX) $(CFLAGS) $(DEBUG) $(INCL_CORE) -o $@ -c $?
-
-RpString.o: $(CORE_SRC)/RpString.cc
-	$(CXX) $(CFLAGS) $(DEBUG) $(INCL_CORE) -o $@ -c $?
-
-RpBoolean.o: $(CORE_SRC)/RpBoolean.cc
-	$(CXX) $(CFLAGS) $(DEBUG) $(INCL_CORE) -o $@ -c $?
-
-RpChoice.o: $(CORE_SRC)/RpChoice.cc
-	$(CXX) $(CFLAGS) $(DEBUG) $(INCL_CORE) -o $@ -c $?
-
-RpOption.o: $(CORE_SRC)/RpOption.cc
-	$(CXX) $(CFLAGS) $(DEBUG) $(INCL_CORE) -o $@ -c $?
+	$(CXX) $(CFLAGS) $(DEBUG) -o $@ -c $? $(INCL_CORE)
 
 RpUnitsStd.o: $(CORE_SRC)/RpUnitsStd.cc
-	$(CXX) $(CFLAGS) $(DEBUG) $(INCL_CORE) -o $@ -c $?
+	$(CXX) $(CFLAGS) $(DEBUG) -o $@ -c $? $(INCL_CORE)
 
 RpUnits.o: $(CORE_SRC)/RpUnits.cc
-	$(CXX) $(CFLAGS) $(DEBUG) $(INCL_CORE) -o $@ -c $?
+	$(CXX) $(CFLAGS) $(DEBUG) -o $@ -c $? $(INCL_CORE)
 
 RpBindingsDict.o: $(CORE_SRC)/RpBindingsDict.cc
-	$(CXX) $(CFLAGS) $(DEBUG) $(INCL_CORE) -o $@ -c $?
+	$(CXX) $(CFLAGS) $(DEBUG) -o $@ -c $? $(INCL_CORE)
+
+
+RpVariable.o: $(CORE_SRC)/RpVariable.cc
+	$(CXX) $(CFLAGS) $(DEBUG) -o $@ -c $? $(INCL_CORE)
+
+RpAbout.o: $(CORE_SRC)/RpAbout.cc
+	$(CXX) $(CFLAGS) $(DEBUG) -o $@ -c $? $(INCL_CORE)
+
+RpNumber.o: $(CORE_SRC)/RpNumber.cc
+	$(CXX) $(CFLAGS) $(DEBUG) -o $@ -c $? $(INCL_CORE)
+
+RpString.o: $(CORE_SRC)/RpString.cc
+	$(CXX) $(CFLAGS) $(DEBUG) -o $@ -c $? $(INCL_CORE)
+
+RpBoolean.o: $(CORE_SRC)/RpBoolean.cc
+	$(CXX) $(CFLAGS) $(DEBUG) -o $@ -c $? $(INCL_CORE)
+
+RpChoice.o: $(CORE_SRC)/RpChoice.cc
+	$(CXX) $(CFLAGS) $(DEBUG) -o $@ -c $? $(INCL_CORE)
+
+RpOption.o: $(CORE_SRC)/RpOption.cc
+	$(CXX) $(CFLAGS) $(DEBUG) -o $@ -c $? $(INCL_CORE)
 
 RpValue.o: $(CORE_SRC)/RpValue.cc
-	$(CXX) $(CFLAGS) $(DEBUG) $(INCL_CORE) -o $@ -c $?
+	$(CXX) $(CFLAGS) $(DEBUG) -o $@ -c $? $(INCL_CORE)
 
 RpValueDouble.o: $(CORE_SRC)/RpValueDouble.cc
-	$(CXX) $(CFLAGS) $(DEBUG) $(INCL_CORE) -o $@ -c $?
+	$(CXX) $(CFLAGS) $(DEBUG) -o $@ -c $? $(INCL_CORE)
 
 RpValueString.o: $(CORE_SRC)/RpValueString.cc
-	$(CXX) $(CFLAGS) $(DEBUG) $(INCL_CORE) -o $@ -c $?
+	$(CXX) $(CFLAGS) $(DEBUG) -o $@ -c $? $(INCL_CORE)
 
 
 # include cee binding definitions
 
 RpUtilsCInterface.o: $(CEE_SRC)/RpUtilsCInterface.cc
-	$(CXX) $(CFLAGS) $(DEBUG) $(INCL_CORE) $(INCL_CEE) -o $@ -c $?
+	$(CXX) $(CFLAGS) $(DEBUG) -o $@ -c $? $(INCL_CORE) $(INCL_CEE)
 
 RpUnitsCInterface.o: $(CEE_SRC)/RpUnitsCInterface.cc
-	$(CXX) $(CFLAGS) $(DEBUG) $(INCL_CORE) $(INCL_CEE) -o $@ -c $?
+	$(CXX) $(CFLAGS) $(DEBUG) -o $@ -c $? $(INCL_CORE) $(INCL_CEE)
 
 RpLibraryCInterface.o: $(CEE_SRC)/RpLibraryCInterface.cc $(CEE_SRC)/RpLibraryCInterface.h $(CEE_SRC)/RpBufferCInterface.h
-	$(CXX) $(CFLAGS) $(DEBUG) $(INCL_CORE) $(INCL_CORE2) $(INCL_CEE) $(INCL_RP_DEPS) -o $@ -c $<
+	$(CXX) $(CFLAGS) $(DEBUG) -o $@ -c $< $(INCL_CORE) $(INCL_CORE2) $(INCL_CEE) $(INCL_RP_DEPS)
 
 RpBufferCInterface.o: $(CEE_SRC)/RpBufferCInterface.cc $(CEE_SRC)/RpBufferCInterface.h $(CEE_SRC)/RpOutcomeCInterface.h
-	$(CXX) $(CFLAGS) $(DEBUG) $(INCL_CORE) $(INCL_CORE2) $(INCL_CEE) $(INCL_RP_DEPS) -o $@ -c $<
+	$(CXX) $(CFLAGS) $(DEBUG) -o $@ -c $< $(INCL_CORE) $(INCL_CORE2) $(INCL_CEE) $(INCL_RP_DEPS)
 
 RpOutcomeCInterface.o: $(CEE_SRC)/RpOutcomeCInterface.cc
-	$(CXX) $(CFLAGS) $(DEBUG) $(INCL_CORE) $(INCL_CORE2) $(INCL_CEE) $(INCL_RP_DEPS) -o $@ -c $<
+	$(CXX) $(CFLAGS) $(DEBUG) -o $@ -c $< $(INCL_CORE) $(INCL_CORE2) $(INCL_CEE) $(INCL_RP_DEPS)
 
 
 
 # include fortran binding definitions
 
 RpUtilsFInterface.o: $(FORT_SRC)/RpUtilsFInterface.cc
-	$(CXX) $(CFLAGS) $(DEBUG) $(INCL_CORE) $(INCL_FORTRAN) -o $@ -c $?
+	$(CXX) $(CFLAGS) $(DEBUG) -o $@ -c $? $(INCL_CORE) $(INCL_FORTRAN)
 
 RpUnitsFInterface.o: $(FORT_SRC)/RpUnitsFInterface.cc
-	$(CXX) $(CFLAGS) $(DEBUG) $(INCL_CORE) $(INCL_FORTRAN) -o $@ -c $?
+	$(CXX) $(CFLAGS) $(DEBUG) -o $@ -c $? $(INCL_CORE) $(INCL_FORTRAN)
 
 RpFortranCommon.o: $(FORT_SRC)/RpFortranCommon.cc
-	$(CXX) $(CFLAGS) $(DEBUG) $(INCL_FORTRAN) -o $@ -c $<
+	$(CXX) $(CFLAGS) $(DEBUG) -o $@ -c $< $(INCL_FORTRAN)
 
 RpLibraryFInterface.o: $(FORT_SRC)/RpLibraryFInterface.cc
-	$(CXX) $(CFLAGS) $(DEBUG) $(INCL_CORE) $(INCL_CORE2) $(INCL_FORTRAN) $(INCL_RP_DEPS) -o $@ -c $?
+	$(CXX) $(CFLAGS) $(DEBUG) -o $@ -c $? $(INCL_CORE) $(INCL_CORE2) $(INCL_FORTRAN) $(INCL_RP_DEPS)
 
 
 # matlab bindings

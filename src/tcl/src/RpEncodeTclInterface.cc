@@ -12,7 +12,7 @@
  * ======================================================================
  */
 #include <tcl.h>
-#include "RpBuffer.h"
+#include "RpEncode.h"
 #include "RpEncodeTclInterface.h"
 
 #ifdef __cplusplus
@@ -37,28 +37,6 @@ static int RpTclEncodingDecode  _ANSI_ARGS_((   ClientData cdata,
 #ifdef __cplusplus
 }
 #endif
-
-int isbinary(const char* buf, int size);
-
-int isbinary(const char* buf, int size)
-{
-    int index = 0;
-
-    for (index = 0; index < size; index++) {
-        if (((buf[index] >= '\000') && (buf[index] <= '\010')) ||
-            ((buf[index] >= '\013') && (buf[index] <= '\014')) ||
-            ((buf[index] >= '\016') && (buf[index] <= '\037')) ||
-            ((buf[index] >= '\177') && (buf[index] <= '\377')) ) {
-            // data is binary
-            return index+1;
-        }
-
-    }
-    return 0;
-}
-
-
-
 
 
 /**********************************************************************/
@@ -129,7 +107,7 @@ RpTclEncodingIs     (   ClientData cdata,
     buf = Tcl_GetStringFromObj(objv[nextarg++],&bufLen);
 
     if (strncmp(type,"binary",typeLen) == 0) {
-        if (isbinary(buf,bufLen) != 0) {
+        if (Rappture::encoding::isbinary(buf,bufLen) != 0) {
             // non-ascii character found, return yes
             Tcl_AppendResult(interp, "yes",(char*)NULL);
             return TCL_OK;
@@ -175,6 +153,7 @@ RpTclEncodingEncode (   ClientData cdata,
     const char* option        = NULL;
     const char* cmdName       = NULL;
     Rappture::Buffer buf; // name of the units provided by user
+    Rappture::Outcome err;
 
     int optionLen             = 0;
     int typeLen               = 0;
@@ -183,6 +162,7 @@ RpTclEncodingEncode (   ClientData cdata,
     int compress              = 1;
     int base64                = 1;
     int addHeader             = 1;
+    int flags                 = 0;
 
     Tcl_Obj *result           = NULL;
 
@@ -256,49 +236,35 @@ RpTclEncodingEncode (   ClientData cdata,
     }
 
     option = (const char*) Tcl_GetByteArrayFromObj(objv[nextarg++], &optionLen);
-    if (strncmp(option,"@@RP-ENC:z\n",11) == 0) {
-        buf = Rappture::Buffer(option+11,optionLen-11);
-        buf.decode(1,0);
+    buf = Rappture::Buffer(option,optionLen);
+
+    if (compress == 1) {
+        flags = flags | RPENC_Z;
     }
-    else if (strncmp(option,"@@RP-ENC:b64\n",13) == 0) {
-        buf = Rappture::Buffer(option+13,optionLen-13);
-        buf.decode(0,1);
+    if (base64 == 1) {
+        flags = flags | RPENC_B64;
     }
-    else if (strncmp(option,"@@RP-ENC:zb64\n",14) == 0) {
-        buf = Rappture::Buffer(option+14,optionLen-14);
-        buf.decode(1,1);
-    }
-    else {
-        // no special recognized tags
-        buf = Rappture::Buffer(option,optionLen);
+    if (addHeader == 1) {
+        flags = flags | RPENC_HDR;
     }
 
-    buf.encode(compress,base64);
+    err &= Rappture::encoding::encode(buf,flags);
+
     result = Tcl_GetObjResult(interp);
 
-    if (addHeader == 1) {
-        if ((compress == 1) && (base64 == 0)) {
-            Tcl_AppendToObj(result,"@@RP-ENC:z\n",11);
-        }
-        else if ((compress == 0) && (base64 == 1)) {
-            Tcl_AppendToObj(result,"@@RP-ENC:b64\n",13);
-        }
-        else if ((compress == 1) && (base64 == 1)) {
-            Tcl_AppendToObj(result,"@@RP-ENC:zb64\n",14);
-        }
-        else {
-            // do nothing
-        }
+
+    if (!err) {
+        Tcl_DString dstPtr;
+        Tcl_DStringInit(&dstPtr);
+        Tcl_ExternalToUtfDString(NULL,buf.bytes(),buf.size(),&dstPtr);
+        Tcl_AppendToObj(result,Tcl_DStringValue(&dstPtr),Tcl_DStringLength(&dstPtr));
+        Tcl_DStringFree(&dstPtr);
     }
     else {
-        // do nothing
+        Tcl_AppendStringsToObj( result, err.remark().c_str(),
+                                "\n", err.context().c_str(), NULL   );
     }
 
-    Tcl_DString dstPtr;
-    Tcl_DStringInit(&dstPtr);
-    Tcl_ExternalToUtfDString(NULL,buf.bytes(),buf.size(),&dstPtr);
-    Tcl_AppendToObj(result,Tcl_DStringValue(&dstPtr),Tcl_DStringLength(&dstPtr));
-    Tcl_DStringFree(&dstPtr);
 
     return TCL_OK;
 }
@@ -326,6 +292,7 @@ RpTclEncodingDecode (   ClientData cdata,
     const char* option        = NULL;
     const char* cmdName       = NULL;
     Rappture::Buffer buf      = ""; // name of the units provided by user
+    Rappture::Outcome err;
 
     int optionLen             = 0;
     int typeLen               = 0;
@@ -333,6 +300,7 @@ RpTclEncodingDecode (   ClientData cdata,
 
     int decompress            = 0;
     int base64                = 0;
+    int flags                 = 0;
 
     Tcl_Obj *result           = NULL;
 
@@ -395,41 +363,30 @@ RpTclEncodingDecode (   ClientData cdata,
 
     option = (const char*) Tcl_GetByteArrayFromObj(objv[nextarg++], &optionLen);
 
-    if (strncmp(option,"@@RP-ENC:z\n",11) == 0) {
-        buf = Rappture::Buffer(option+11,optionLen-11);
-        if ( (decompress == 0) && (base64 == 0) ) {
-            decompress = 1;
-            base64 = 0;
-        }
+    buf = Rappture::Buffer(option,optionLen);
+
+    if (decompress == 1) {
+        flags = flags | RPENC_Z;
     }
-    else if (strncmp(option,"@@RP-ENC:b64\n",13) == 0) {
-        buf = Rappture::Buffer(option+13,optionLen-13);
-        if ( (decompress == 0) && (base64 == 0) ) {
-            decompress = 0;
-            base64 = 1;
-        }
-    }
-    else if (strncmp(option,"@@RP-ENC:zb64\n",14) == 0) {
-        buf = Rappture::Buffer(option+14,optionLen-14);
-        if ( (decompress == 0) && (base64 == 0) ) {
-            decompress = 1;
-            base64 = 1;
-        }
-    }
-    else {
-        // no special recognized tags
-        buf = Rappture::Buffer(option,optionLen);
+    if (base64 == 1) {
+        flags = flags | RPENC_B64;
     }
 
-    buf.decode(decompress,base64);
+    err &= Rappture::encoding::decode(buf,flags);
 
     result = Tcl_GetObjResult(interp);
 
-    Tcl_DString dstPtr;
-    Tcl_DStringInit(&dstPtr);
-    Tcl_ExternalToUtfDString(NULL,buf.bytes(),buf.size(),&dstPtr);
-    Tcl_AppendToObj(result,Tcl_DStringValue(&dstPtr),Tcl_DStringLength(&dstPtr));
-    Tcl_DStringFree(&dstPtr);
+    if (!err) {
+        Tcl_DString dstPtr;
+        Tcl_DStringInit(&dstPtr);
+        Tcl_ExternalToUtfDString(NULL,buf.bytes(),buf.size(),&dstPtr);
+        Tcl_AppendToObj(result,Tcl_DStringValue(&dstPtr),Tcl_DStringLength(&dstPtr));
+        Tcl_DStringFree(&dstPtr);
+    }
+    else {
+        Tcl_AppendStringsToObj( result, err.remark().c_str(),
+                                "\n", err.context().c_str(), NULL   );
+    }
 
     return TCL_OK;
 }

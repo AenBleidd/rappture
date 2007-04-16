@@ -13,6 +13,7 @@
 
 #include "RpLibrary.h"
 #include "RpEntityRef.h"
+#include "RpEncode.h"
 #include <algorithm>
 #include <iostream>
 #include <string>
@@ -47,6 +48,7 @@ RpLibrary::RpLibrary (
         freeTree    (0),
         freeRoot    (1)
 {
+    std::stringstream msg;
 
     if (filePath.length() != 0) {
         // file path should not be null or empty string unless we are
@@ -62,12 +64,8 @@ RpLibrary::RpLibrary (
             scew_error code = scew_error_code();
             printf("Unable to load file (error #%d: %s)\n", code,
                    scew_error_string(code));
-
-            /*
-            std::cout << "Unable to load file (error #" \
-                      << code << ": " << scew_error_string(code) \
-                      << ")\n" << std::endl;
-            */
+            msg << "Unable to load file (error #" << code
+                << ": " << scew_error_string(code) << ")\n";
 
             if (code == scew_error_expat)
             {
@@ -78,14 +76,21 @@ RpLibrary::RpLibrary (
                        scew_error_expat_line(parser),
                        scew_error_expat_column(parser),
                        scew_error_expat_string(expat_code));
+                msg << "Expat error #" << expat_code << " (line "
+                    << scew_error_expat_line(parser) << ", column "
+                    << scew_error_expat_column(parser) << "): "
+                    << "\n";
             }
-            // should probably exit program or something
-            // return EXIT_FAILURE;
+
             fflush(stdout);
             scew_parser_free(parser);
             parser = NULL;
+
+            // update the status of the call
+            status.error(msg.str().c_str());
+            status.addContext("RpLibrary::RpLibrary()");
         }
-        else 
+        else
         {
             tree = scew_parser_tree(parser);
             freeTree = 0;
@@ -110,6 +115,7 @@ RpLibrary::RpLibrary ( const RpLibrary& other )
       freeTree  (0),
       freeRoot  (1)
 {
+    std::stringstream msg;
     std::string buffer;
     int buffLen;
 
@@ -131,6 +137,8 @@ RpLibrary::RpLibrary ( const RpLibrary& other )
             scew_error code = scew_error_code();
             printf("Unable to load buffer (error #%d: %s)\n", code,
                    scew_error_string(code));
+            msg << "Unable to load file (error #" << code
+                << ": " << scew_error_string(code) << ")\n";
 
             if (code == scew_error_expat)
             {
@@ -141,12 +149,20 @@ RpLibrary::RpLibrary ( const RpLibrary& other )
                        scew_error_expat_line(parser),
                        scew_error_expat_column(parser),
                        scew_error_expat_string(expat_code));
+                msg << "Expat error #" << expat_code << " (line "
+                    << scew_error_expat_line(parser) << ", column "
+                    << scew_error_expat_column(parser) << "): "
+                    << "\n";
             }
 
             // return an empty RpLibrary?
             // return EXIT_FAILURE;
 
             parser = NULL;
+
+            // update the status of the call
+            status.error(msg.str().c_str());
+            status.addContext("RpLibrary::RpLibrary()");
         }
         else {
 
@@ -171,6 +187,7 @@ RpLibrary::RpLibrary ( const RpLibrary& other )
 RpLibrary&
 RpLibrary::operator= (const RpLibrary& other) {
 
+    std::stringstream msg;
     std::string buffer;
     int buffLen;
 
@@ -206,6 +223,8 @@ RpLibrary::operator= (const RpLibrary& other) {
                 scew_error code = scew_error_code();
                 printf("Unable to load buffer (error #%d: %s)\n", code,
                        scew_error_string(code));
+                msg << "Unable to load file (error #" << code
+                    << ": " << scew_error_string(code) << ")\n";
 
                 if (code == scew_error_expat)
                 {
@@ -216,6 +235,10 @@ RpLibrary::operator= (const RpLibrary& other) {
                            scew_error_expat_line(parser),
                            scew_error_expat_column(parser),
                            scew_error_expat_string(expat_code));
+                    msg << "Expat error #" << expat_code << " (line "
+                        << scew_error_expat_line(parser) << ", column "
+                        << scew_error_expat_column(parser) << "): "
+                        << "\n";
                 }
 
                 // return things back to the way they used to be
@@ -224,6 +247,10 @@ RpLibrary::operator= (const RpLibrary& other) {
 
                 // return this object to its previous state.
                 parser = tmp_parser;
+
+                // update the status of the call
+                status.error(msg.str().c_str());
+                status.addContext("RpLibrary::RpLibrary()");
             }
             else {
 
@@ -1468,6 +1495,7 @@ RpLibrary::getString (std::string path, int translateFlag) const
     XML_Char const* retCStr = NULL;
     const char* translatedContents = NULL;
     std::string retStr = "";
+    Rappture::Buffer inData;
 
     if (!this->root) {
         // library doesn't exist, do nothing;
@@ -1487,18 +1515,30 @@ RpLibrary::getString (std::string path, int translateFlag) const
         return retStr;
     }
 
+    inData = Rappture::Buffer(retCStr);
+    status &= Rappture::encoding::decode(inData,0);
+    status.addContext("RpLibrary::getSting");
+    inData.append("\0",1);
+
     if (translateFlag == RPLIB_TRANSLATE) {
-        translatedContents = ERTranslator.decode(retCStr);
+        translatedContents = ERTranslator.decode(inData.bytes());
         if (translatedContents == NULL) {
             // translation failed
-            return retStr;
+            if (!status) {
+                status.error("Error while translating entity references");
+                status.addContext("RpLibrary::getSting");
+            }
         }
-        retStr = std::string(translatedContents);
-        translatedContents = NULL;
+        else {
+            retStr = std::string(translatedContents);
+            translatedContents = NULL;
+        }
     }
     else {
-        retStr = std::string(retCStr);
+        retStr = std::string(inData.bytes());
     }
+
+    inData.clear();
 
     return retStr;
 }
@@ -1520,12 +1560,11 @@ RpLibrary::getDouble (std::string path) const
         return retValDbl;
     }
 
-    retValStr = this->getString(path); 
+    retValStr = this->getString(path);
+    status.addContext("RpLibrary::getDouble");
     // think about changing this to strtod()
     retValDbl = atof(retValStr.c_str());
 
-    // how do we raise error?
-    // currently we depend on getString to raise the error
     return retValDbl;
 }
 
@@ -1547,12 +1586,11 @@ RpLibrary::getInt (std::string path) const
         return retValInt;
     }
 
-    retValStr = this->getString(path); 
+    retValStr = this->getString(path);
+    status.addContext("RpLibrary::getInt");
     // think about changing this to strtod()
     retValInt = atoi(retValStr.c_str());
 
-    // how do we raise error?
-    // currently we depend on getString to raise the error
     return retValInt;
 }
 
@@ -1576,6 +1614,7 @@ RpLibrary::getBool (std::string path) const
     }
 
     retValStr = this->getString(path);
+    status.addContext("RpLibrary::getBool");
     std::transform (retValStr.begin(),retValStr.end(),retValStr.begin(),tolower);
     retValLen = retValStr.length();
 
@@ -1598,8 +1637,6 @@ RpLibrary::getBool (std::string path) const
         retValBool = false;
     }
 
-    // how do we raise error?
-    // currently we depend on getString to raise the error
     return retValBool;
 }
 
@@ -1611,7 +1648,7 @@ RpLibrary::getBool (std::string path) const
  */
 
 Rappture::Buffer
-RpLibrary::getData (std::string path, Rappture::Outcome& status) const
+RpLibrary::getData (std::string path) const
 {
     Rappture::EntityRef ERTranslator;
     scew_element* retNode = NULL;
@@ -1638,8 +1675,7 @@ RpLibrary::getData (std::string path, Rappture::Outcome& status) const
     retCStr = scew_element_contents(retNode);
 
     if (retCStr == NULL) {
-        status.error("element located at path is empty");
-        status.addContext("RpLibrary::getData()");
+        // element located at path is empty
         return buf;
     }
 
@@ -1647,11 +1683,16 @@ RpLibrary::getData (std::string path, Rappture::Outcome& status) const
         translatedContents = ERTranslator.decode(retCStr);
         if (translatedContents == NULL) {
             // translation failed
-            return buf;
+            if (!status) {
+                status.error("Error while translating entity references");
+                status.addContext("RpLibrary::getData()");
+            }
         }
-        len = strlen(translatedContents);
-        buf.append(translatedContents,len);
-        translatedContents = NULL;
+        else {
+            len = strlen(translatedContents);
+            buf.append(translatedContents,len);
+            translatedContents = NULL;
+        }
     }
     else {
         len = strlen(retCStr);
@@ -1686,6 +1727,13 @@ RpLibrary::put (    std::string path,
         return *this;
     }
 
+    // check for binary data
+    if (Rappture::encoding::isbinary(value.c_str(),value.length()) != 0) {
+        putData(path,value.c_str(),value.length(),append);
+        status.addContext("RpLibrary::put() - putString");
+        return *this;
+    }
+
     retNode = _find(path,CREATE_PATH);
 
     if (retNode) {
@@ -1699,18 +1747,30 @@ RpLibrary::put (    std::string path,
 
         if (translateFlag == RPLIB_TRANSLATE) {
             translatedContents = ERTranslator.encode(value.c_str());
-            if (translatedContents == NULL) {
-                // translation failed
-                return *this;
+        }
+        else {
+            translatedContents = value.c_str();
+        }
+
+        if (translatedContents == NULL) {
+            // entity referene translation failed
+            if (!status) {
+                status.error("Error while translating entity references");
             }
+        }
+        else {
             scew_element_set_contents(retNode,translatedContents);
             translatedContents = NULL;
         }
-        else {
-            scew_element_set_contents(retNode,value.c_str());
+    }
+    else {
+        // node not found, set error
+        if (!status) {
+            status.error("Error while searching for node: node not found");
         }
     }
 
+    status.addContext("RpLibrary::put() - putString");
     return *this;
 }
 
@@ -1735,7 +1795,9 @@ RpLibrary::put (    std::string path,
 
     valStr << value;
 
-    return this->put(path,valStr.str(),id,append);
+    put(path,valStr.str(),id,append);
+    status.addContext("RpLibrary::put() - putDouble");
+    return *this;
 }
 
 /**********************************************************************/
@@ -1828,8 +1890,9 @@ RpLibrary::putData (std::string path,
 {
     scew_element* retNode = NULL;
     const char* contents = NULL;
-    Rappture::Buffer buf;
+    Rappture::Buffer inData;
     unsigned int bytesWritten = 0;
+    int flags = 0;
 
     if (!this->root) {
         // library doesn't exist, do nothing;
@@ -1842,20 +1905,32 @@ RpLibrary::putData (std::string path,
 
         if (append == RPLIB_APPEND) {
             if ( (contents = scew_element_contents(retNode)) ) {
-                buf.append(contents);
+                inData.append(contents);
                 // base64 decode and un-gzip the data
-                buf.decode();
+                status &= Rappture::encoding::decode(inData,0);
+                if (int(status) != 0) {
+                    status.addContext("RpLibrary::putData()");
+                    return *this;
+                }
             }
         }
 
-        buf.append(bytes,nbytes);
+        inData.append(bytes,nbytes);
         // gzip and base64 encode the data
-        buf.encode();
+        flags = RPENC_Z|RPENC_B64|RPENC_HDR;
+        status &= Rappture::encoding::encode(inData,flags);
 
-        bytesWritten = (unsigned int) buf.size();
-        scew_element_set_contents_binary(retNode,buf.bytes(),&bytesWritten);
+        bytesWritten = (unsigned int) inData.size();
+        scew_element_set_contents_binary(retNode,inData.bytes(),&bytesWritten);
+    }
+    else {
+        // node not found, set error
+        if (!status) {
+            status.error("Error while searching for node: node not found");
+        }
     }
 
+    status.addContext("RpLibrary::putData()");
     return *this;
 }
 
@@ -1891,6 +1966,7 @@ RpLibrary::putFile (std::string path,
         fileBuf.append("\0",1);
         put(path,fileBuf.bytes(),"",append,RPLIB_TRANSLATE);
     }
+    status.addContext("RpLibrary::putFile()");
     return *this;
 }
 
@@ -2029,6 +2105,18 @@ RpLibrary::nodePath () const
     return _node2path(root);
 }
 
+/**********************************************************************/
+// METHOD: outcome()
+/// Return the status object of this library object.
+/**
+ */
+
+Rappture::Outcome&
+RpLibrary::outcome() const
+{
+    return status;
+}
+
 /*
  * ----------------------------------------------------------------------
  *  METHOD: result
@@ -2039,7 +2127,7 @@ RpLibrary::nodePath () const
  *  out the name of that file to stdout.
  * ======================================================================
  *  AUTHOR:  Michael McLennan, Purdue University
- *  Copyright (c) 2004-2005
+ *  Copyright (c) 2004-2007
  *  Purdue Research Foundation, West Lafayette, IN
  * ======================================================================
  */
@@ -2057,9 +2145,9 @@ RpLibrary::result()
         outputFile << "run" << (int)time(&t) << ".xml";
         file.open(outputFile.str().c_str(),std::ios::out);
 
-        put("tool.repository.rappture.date","$Date$");
-        put("tool.repository.rappture.revision","$Rev$");
-        put("tool.repository.rappture.url","$URL$");
+        put("tool.version.rappture.date","$LastChangedDate$");
+        put("tool.version.rappture.revision","$LastChangedRevision$");
+        put("tool.version.rappture.url","$URL$");
 
         // generate a timestamp for the run file
         timeinfo = localtime(&t);
@@ -2083,6 +2171,10 @@ RpLibrary::result()
                 file << xmlText;
             }
             file.close();
+        }
+        else {
+            status.error("Error while opening run file");
+            status.addContext("RpLibrary::result()");
         }
         std::cout << "=RAPPTURE-RUN=>" << outputFile.str() << std::endl;
     }
