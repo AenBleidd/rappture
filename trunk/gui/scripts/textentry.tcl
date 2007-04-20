@@ -24,7 +24,7 @@ option add *TextEntry*disabledBackground white widgetDefault
 option add *TextEntry.hintForeground gray50 widgetDefault
 option add *TextEntry.hintFont \
     -*-helvetica-medium-r-normal-*-*-100-* widgetDefault
-option add *TextEntry.binaryFont \
+option add *TextEntry.codeFont \
     -*-courier-medium-r-normal-*-12-* widgetDefault
 
 
@@ -241,6 +241,8 @@ itcl::body Rappture::TextEntry::_layout {} {
                 -foreground $itk_option(-textforeground)
 
             bind $itk_component(entry) <KeyPress> [itcl::code $this _newValue]
+            bind $itk_component(entry) <Control-KeyPress-a> \
+                "[list $itk_component(entry) selection range 0 end]; break"
 
             itk_component add emenu {
                 menu $itk_component(entry).menu -tearoff 0
@@ -251,6 +253,7 @@ itcl::body Rappture::TextEntry::_layout {} {
                 -command [list event generate $itk_component(entry) <<Copy>>]
             $itk_component(emenu) add command -label "Paste" -accelerator "^V" \
                 -command [list event generate $itk_component(entry) <<Paste>>]
+            $itk_component(emenu) add command -label "Select All" -accelerator "^A" -command [list $itk_component(entry) selection range 0 end]
             bind $itk_component(entry) <<PopupMenu>> \
                 [itcl::code $this _edit menu emenu %X %Y]
 
@@ -284,13 +287,17 @@ itcl::body Rappture::TextEntry::_layout {} {
                 usual
                 rename -background -textbackground textBackground Background
                 rename -foreground -textforeground textForeground Foreground
+                rename -font -codefont codeFont CodeFont
             }
             $itk_component(text) configure \
                 -background $itk_option(-textbackground) \
-                -foreground $itk_option(-textforeground)
+                -foreground $itk_option(-textforeground) \
+                -font $itk_option(-codefont)
             $itk_component(scrollbars) contents $itk_component(text)
 
             bind $itk_component(text) <KeyPress> [itcl::code $this _newValue]
+            bind $itk_component(text) <Control-KeyPress-a> \
+                "[list $itk_component(text) tag add sel 1.0 end]; break"
 
             itk_component add tmenu {
                 menu $itk_component(text).menu -tearoff 0
@@ -301,6 +308,7 @@ itcl::body Rappture::TextEntry::_layout {} {
                 -command [list event generate $itk_component(text) <<Copy>>]
             $itk_component(tmenu) add command -label "Paste" -accelerator "^V" \
                 -command [list event generate $itk_component(text) <<Paste>>]
+            $itk_component(tmenu) add command -label "Select All" -accelerator "^A" -command [list $itk_component(text) tag add sel 1.0 end]
             $itk_component(tmenu) add separator
             $itk_component(tmenu) add command -label "Upload..." \
                 -command [itcl::code $this _uploadValue -start]
@@ -340,7 +348,6 @@ itcl::body Rappture::TextEntry::_setValue {newval} {
         # looks like a binary file
         set _mode "binary"
         set _value $newval
-        set font [option get $itk_component(hull) binaryFont BinaryFont]
 
         set size [string length $newval]
         foreach {factor units} {
@@ -365,7 +372,7 @@ itcl::body Rappture::TextEntry::_setValue {newval} {
             set len [string length $_value]
             if {$len > 1600} {
                 set len 1600
-                set tail "..."
+                set tail "...more..."
             }
 
             for {set i 0} {$i < $len} {incr i 8} {
@@ -399,28 +406,22 @@ itcl::body Rappture::TextEntry::_setValue {newval} {
         set _mode "ascii"
         set _value ""
         regsub -all "\r" $newval "\n" newval
-        set font [option get $itk_component(hull) binaryFont Font]
     }
 
     if {$_layout == "entry"} {
-        $itk_component(entry) configure -font $font
         $itk_component(entry) configure -state normal
         $itk_component(emenu) entryconfigure "Cut" -state normal
-        $itk_component(emenu) entryconfigure "Copy" -state normal
         $itk_component(emenu) entryconfigure "Paste" -state normal
         $itk_component(entry) delete 0 end
         $itk_component(entry) insert 0 $newval
         if {!$itk_option(-editable) || $_mode == "binary"} {
             $itk_component(entry) configure -state disabled
             $itk_component(emenu) entryconfigure "Cut" -state disabled
-            $itk_component(emenu) entryconfigure "Copy" -state disabled
             $itk_component(emenu) entryconfigure "Paste" -state disabled
         }
     } elseif {$_layout == "text"} {
-        $itk_component(text) configure -font $font
         $itk_component(text) configure -state normal
         $itk_component(tmenu) entryconfigure "Cut" -state normal
-        $itk_component(tmenu) entryconfigure "Copy" -state normal
         $itk_component(tmenu) entryconfigure "Paste" -state normal
         $itk_component(text) delete 1.0 end
         $itk_component(text) insert end $newval
@@ -431,7 +432,6 @@ itcl::body Rappture::TextEntry::_setValue {newval} {
             $itk_component(text) configure -state disabled \
                 -background $dbg -foreground $dfg
             $itk_component(tmenu) entryconfigure "Cut" -state disabled
-            $itk_component(tmenu) entryconfigure "Copy" -state disabled
             $itk_component(tmenu) entryconfigure "Paste" -state disabled
         } else {
             $itk_component(text) configure \
