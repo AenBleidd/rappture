@@ -106,8 +106,14 @@ itcl::body Rappture::Tool::get {{option ""}} {
 itcl::body Rappture::Tool::run {args} {
     global errorInfo
 
-    # make sure that we save the proper application name
-    if {"" != $_appname} {
+    #
+    # Make sure that we save the proper application name.
+    # Actually, the best place to get this information is
+    # straight from the "installtool" script, but just in
+    # case we have an older tool, we should insert the
+    # tool name from the resources config file.
+    #
+    if {"" != $_appname && "" == [$_xmlobj get tool.name]} {
         $_xmlobj put tool.name $_appname
     }
 

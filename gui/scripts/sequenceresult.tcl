@@ -301,7 +301,7 @@ itcl::body Rappture::SequenceResult::download {option args} {
                         }
                     }
                     if {[llength $all] > 0} {
-                        set delay [expr {int(ceil(pow($_play(speed)/10.0,2.0)*5))}]
+                        set delay [expr {int(ceil(pow($_play(speed)/10.0+2,2.0)*15))}]
                         set rval [eval Rappture::icon::gif_animate $delay $all]
                     }
                 }
@@ -341,7 +341,7 @@ itcl::body Rappture::SequenceResult::play {} {
         -command [itcl::code $this pause]
 
     # schedule the first frame
-    set delay [expr {int(ceil(pow($_play(speed)/10.0,2.0)*5))}]
+    set delay [expr {int(ceil(pow($_play(speed)/10.0+2,2.0)*15))}]
     set _afterId [after $delay [itcl::code $this _playFrame]]
 }
 
@@ -491,7 +491,7 @@ itcl::body Rappture::SequenceResult::_playFrame {} {
     }
     goto $_pos
 
-    set delay [expr {int(ceil(pow($_play(speed)/10.0,2.0)*5))}]
+    set delay [expr {int(ceil(pow($_play(speed)/10.0+2,2.0)*15))}]
     set _afterId [after $delay [itcl::code $this _playFrame]]
 }
 
@@ -514,7 +514,11 @@ itcl::body Rappture::SequenceResult::_fixValue {} {
     $viewer delete
     if {"" != $_topmost} {
         foreach dataobj [$_topmost value $_pos] {
-            $viewer add $dataobj ""
+            set settings "-color autoreset -width 2"
+            if {[catch {$dataobj hints style} style] == 0} {
+                eval lappend settings $style
+            }
+            $viewer add $dataobj $settings
         }
     }
 }
