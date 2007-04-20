@@ -140,21 +140,21 @@ decode (Rappture::Buffer& buf, int flags)
         base64 = 1;
     }
 
-    if (strncmp(buf.bytes(),"@@RP-ENC:z\n",11) == 0) {
+    if ((buf.size() > 11) && (strncmp(buf.bytes(),"@@RP-ENC:z\n",11) == 0)) {
         outData.append(buf.bytes()+11,buf.size()-11);
         if ( (decompress == 0) && (base64 == 0) ) {
             decompress = 1;
             base64 = 0;
         }
     }
-    else if (strncmp(buf.bytes(),"@@RP-ENC:b64\n",13) == 0) {
+    else if ((buf.size() > 13) && (strncmp(buf.bytes(),"@@RP-ENC:b64\n",13) == 0)) {
         outData.append(buf.bytes()+13,buf.size()-13);
         if ( (decompress == 0) && (base64 == 0) ) {
             decompress = 0;
             base64 = 1;
         }
     }
-    else if (strncmp(buf.bytes(),"@@RP-ENC:zb64\n",14) == 0) {
+    else if ((buf.size() > 14) && (strncmp(buf.bytes(),"@@RP-ENC:zb64\n",14) == 0)) {
         outData.append(buf.bytes()+14,buf.size()-14);
         if ( (decompress == 0) && (base64 == 0) ) {
             decompress = 1;
