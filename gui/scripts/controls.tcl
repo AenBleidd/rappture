@@ -16,7 +16,7 @@ package require BLT
 
 option add *Controls.padding 4 widgetDefault
 option add *Controls.labelFont \
-    -*-helvetica-medium-r-normal-*-*-120-* widgetDefault
+    -*-helvetica-medium-r-normal-*-12-* widgetDefault
 
 itcl::class Rappture::Controls {
     inherit itk::Widget

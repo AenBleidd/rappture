@@ -26,7 +26,7 @@ option add *EnergyLevels.levelTextForeground black widgetDefault
 option add *EnergyLevels.levelTextBackground white widgetDefault
 
 option add *EnergyLevels.font \
-    -*-helvetica-medium-r-normal-*-*-120-* widgetDefault
+    -*-helvetica-medium-r-normal-*-12-* widgetDefault
 
 itcl::class Rappture::EnergyLevels {
     inherit itk::Widget

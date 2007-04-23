@@ -26,7 +26,7 @@ package require Itk
 option add *Tooltip.background white widgetDefault
 option add *Tooltip.outline black widgetDefault
 option add *Tooltip.borderwidth 1 widgetDefault
-option add *Tooltip.font -*-helvetica-medium-r-normal-*-*-120-* widgetDefault
+option add *Tooltip.font -*-helvetica-medium-r-normal-*-12-* widgetDefault
 option add *Tooltip.wrapLength 4i widgetDefault
 
 itcl::class Rappture::Tooltip {

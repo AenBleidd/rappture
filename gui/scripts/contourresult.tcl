@@ -26,7 +26,7 @@ option add *ContourResult.controlDarkBackground #999999 widgetDefault
 option add *ContourResult.plotBackground black widgetDefault
 option add *ContourResult.plotForeground white widgetDefault
 option add *ContourResult.font \
-    -*-helvetica-medium-r-normal-*-*-120-* widgetDefault
+    -*-helvetica-medium-r-normal-*-12-* widgetDefault
 
 itcl::class Rappture::ContourResult {
     inherit itk::Widget

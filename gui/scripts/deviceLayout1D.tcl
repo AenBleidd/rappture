@@ -21,7 +21,7 @@ option add *DeviceLayout1D.deviceSize 0.25i widgetDefault
 option add *DeviceLayout1D.deviceOutline black widgetDefault
 option add *DeviceLayout1D.annotate all widgetDefault
 option add *DeviceLayout1D.font \
-    -*-helvetica-medium-r-normal-*-*-120-* widgetDefault
+    -*-helvetica-medium-r-normal-*-12-* widgetDefault
 
 itcl::class Rappture::DeviceLayout1D {
     inherit itk::Widget

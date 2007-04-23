@@ -21,7 +21,7 @@ option add *MainWin.borderWidth 0 widgetDefault
 option add *MainWin.relief raised widgetDefault
 option add *MainWin.anchor center widgetDefault
 option add *MainWin.titleFont \
-    -*-helvetica-bold-o-normal-*-*-140-* widgetDefault
+    -*-helvetica-bold-o-normal-*-14-* widgetDefault
 
 #
 # Tk text widget doesn't honor Ctrl-V by default.  Get rid

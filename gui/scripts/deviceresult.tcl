@@ -16,7 +16,7 @@ package require BLT
 option add *DeviceResult.width 4i widgetDefault
 option add *DeviceResult.height 4i widgetDefault
 option add *DeviceResult.font \
-    -*-courier-medium-r-normal-*-*-120-* widgetDefault
+    -*-courier-medium-r-normal-*-12-* widgetDefault
 
 itcl::class Rappture::DeviceResult {
     inherit itk::Widget

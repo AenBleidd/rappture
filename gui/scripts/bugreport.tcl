@@ -15,9 +15,9 @@ option add *BugReport*banner*foreground white startupFile
 option add *BugReport*banner*background #a9a9a9 startupFile
 option add *BugReport*banner*highlightBackground #a9a9a9 startupFile
 option add *BugReport*banner*font \
-    -*-helvetica-bold-r-normal-*-*-180-* startupFile
+    -*-helvetica-bold-r-normal-*-18-* startupFile
 option add *BugReport*expl.font \
-    -*-helvetica-medium-r-normal-*-*-120-* startupFile
+    -*-helvetica-medium-r-normal-*-12-* startupFile
 option add *BugReport*expl.wrapLength 3i startupFile
 
 namespace eval Rappture::bugreport { # forward declaration }
@@ -72,6 +72,58 @@ proc Rappture::bugreport::deactivate {} {
 
     # reset the grab in case it's hosed
     Rappture::grab::reset
+}
+
+# ----------------------------------------------------------------------
+# USAGE: submit <stackTrace>
+#
+# Clients use this to send bug reports back to the hub site.  Errors
+# are posted to a URL that creates a support ticket.
+# ----------------------------------------------------------------------
+proc Rappture::bugreport::submit {stackTrace} {
+    global tcl_platform
+
+    package require http
+    package require tls
+    http::register https 443 ::tls::socket
+
+    if {![regexp {^([^\n]+)\n} $stackTrace match summary]} {
+        if {[string length $stackTrace] == 0} {
+            set summary "Unexpected error from Rappture"
+        } else {
+            set summary $stackTrace
+        }
+    }
+    if {[string length $summary] > 50} {
+        set summary "[string range $summary 0 50]..."
+    }
+    append summary " (in tool \"[Rappture::Tool::get -name]\")"
+
+    set query [http::formatQuery \
+        option com_support \
+        task create \
+        no_html 1 \
+        report $stackTrace
+        login $tcl_platform(user) \
+        email "" \
+        hostname [info hostname] \
+        category rappture \
+        summary $summary \
+        referrer "tool \"[Rappture::Tool::get -name]\"" \
+    ]
+
+puts "avoid hard-coded web site URL!"
+    set url https://zooley.nanohub.org/index2.php
+    set token [http::geturl $url -query $query]
+
+    if {[http::ncode] != 200} {
+        error [http::code]
+    }
+    upvar #0 $token rval
+    if {[regexp {Ticket #[0-9]+ \((.*:?)\) [0-9]+ times} $rval(body) match]} {
+        return $match
+    }
+    error "Report received, but ticket may not have been filed"
 }
 
 # ----------------------------------------------------------------------

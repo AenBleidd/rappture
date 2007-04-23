@@ -19,9 +19,9 @@ option add *Postern.size 2 widgetDefault
 option add *Postern.activeColor gray widgetDefault
 option add *Postern.popup above widgetDefault
 option add *Postern*Text.font \
-    -*-courier-medium-r-normal-*-*-120-* widgetDefault
+    -*-courier-medium-r-normal-*-12-* widgetDefault
 option add *Postern*Text.errorFont \
-    -*-courier-medium-o-normal-*-*-120-* widgetDefault
+    -*-courier-medium-o-normal-*-12-* widgetDefault
 
 itcl::class Rappture::Postern {
     inherit itk::Widget

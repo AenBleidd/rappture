@@ -25,13 +25,13 @@ option add *Analyzer.simControlActiveBackground #ffffcc widgetDefault
 option add *Analyzer.simControlActiveOutline black widgetDefault
 
 option add *Analyzer.font \
-    -*-helvetica-medium-r-normal-*-*-120-* widgetDefault
+    -*-helvetica-medium-r-normal-*-12-* widgetDefault
 option add *Analyzer.codeFont \
-    -*-courier-medium-r-normal-*-*-120-* widgetDefault
+    -*-courier-medium-r-normal-*-12-* widgetDefault
 option add *Analyzer.textFont \
-    -*-helvetica-medium-r-normal-*-*-120-* widgetDefault
+    -*-helvetica-medium-r-normal-*-12-* widgetDefault
 option add *Analyzer.boldTextFont \
-    -*-helvetica-bold-r-normal-*-*-120-* widgetDefault
+    -*-helvetica-bold-r-normal-*-12-* widgetDefault
 
 itcl::class Rappture::Analyzer {
     inherit itk::Widget

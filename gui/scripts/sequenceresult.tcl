@@ -19,9 +19,9 @@ option add *SequenceResult.height 3i widgetDefault
 option add *SequenceResult.controlBackground gray widgetDefault
 option add *SequenceResult.dialProgressColor #ccccff widgetDefault
 option add *SequenceResult.font \
-    -*-helvetica-medium-r-normal-*-*-120-* widgetDefault
+    -*-helvetica-medium-r-normal-*-12-* widgetDefault
 option add *SequenceResult.boldFont \
-    -*-helvetica-bold-r-normal-*-*-120-* widgetDefault
+    -*-helvetica-bold-r-normal-*-12-* widgetDefault
 
 itcl::class Rappture::SequenceResult {
     inherit itk::Widget

@@ -14,9 +14,9 @@ package require Itk
 package require BLT
 
 option add *ValueResult.font \
-    -*-helvetica-medium-r-normal-*-*-120-* widgetDefault
+    -*-helvetica-medium-r-normal-*-12-* widgetDefault
 option add *ValueResult.boldFont \
-    -*-helvetica-bold-r-normal-*-*-120-* widgetDefault
+    -*-helvetica-bold-r-normal-*-12-* widgetDefault
 
 itcl::class Rappture::ValueResult {
     inherit itk::Widget

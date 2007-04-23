@@ -18,7 +18,7 @@ option add *Progress.relief sunken widgetDefault
 option add *Progress.length 2i widgetDefault
 option add *Progress.barBackground white widgetDefault
 option add *Progress.barColor blue widgetDefault
-option add *Progress.font -*-helvetica-medium-r-normal-*-*-120-* widgetDefault
+option add *Progress.font -*-helvetica-medium-r-normal-*-12-* widgetDefault
 
 itcl::class Rappture::Progress {
     inherit itk::Widget
