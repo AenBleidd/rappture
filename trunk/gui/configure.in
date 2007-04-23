@@ -144,13 +144,13 @@ if test "${TEA_PLATFORM}" = "windows" ; then
     CLEANFILES="*.lib *.dll *.exp *.ilk *.pdb vc*.pch *.manifest"
     TEA_ADD_SOURCES([RpWinResource.c])
     TEA_ADD_LIBS([-LIBPATH:${TCL_EXEC_PREFIX}/lib])
-    TEA_ADD_LIBS([BLT24.LIB])
+    TEA_ADD_LIBS([BLTlite24.LIB])
     TEA_ADD_LIBS([psapi.lib])
     TEA_ADD_CFLAGS([-D_CRT_SECURE_NO_DEPRECATE -wd4996])
 else
     CLEANFILES=""
     TEA_ADD_LIBS([-L${TCL_EXEC_PREFIX}/lib])
-    TEA_ADD_LIBS([-lBLT24])
+    TEA_ADD_LIBS([-lBLTlite24])
 fi
 AC_SUBST(CLEANFILES)
 
