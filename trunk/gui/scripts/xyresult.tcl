@@ -21,7 +21,7 @@ option add *XyResult.activeColor blue widgetDefault
 option add *XyResult.dimColor gray widgetDefault
 option add *XyResult.controlBackground gray widgetDefault
 option add *XyResult.font \
-    -*-helvetica-medium-r-normal-*-*-120-* widgetDefault
+    -*-helvetica-medium-r-normal-*-12-* widgetDefault
 
 option add *XyResult.autoColors {
     #0000ff #ff0000 #00cc00

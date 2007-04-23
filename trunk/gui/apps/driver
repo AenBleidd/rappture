@@ -51,9 +51,9 @@ option add *Switch.textBackground white
 option add *Progress.barColor #ffffcc
 option add *Balloon.titleBackground #6666cc
 option add *Balloon.titleForeground white
-option add *Balloon*Label.font -*-helvetica-medium-r-normal-*-*-120-*
-option add *Balloon*Radiobutton.font -*-helvetica-medium-r-normal-*-*-120-*
-option add *Balloon*Checkbutton.font -*-helvetica-medium-r-normal-*-*-120-*
+option add *Balloon*Label.font -*-helvetica-medium-r-normal-*-12-*
+option add *Balloon*Radiobutton.font -*-helvetica-medium-r-normal-*-12-*
+option add *Balloon*Checkbutton.font -*-helvetica-medium-r-normal-*-12-*
 option add *ResultSet.controlbarBackground #6666cc
 option add *ResultSet.controlbarForeground white
 option add *ResultSet.activeControlBackground #ccccff
@@ -62,7 +62,7 @@ option add *Radiodial.length 3i
 option add *BugReport*banner*foreground white
 option add *BugReport*banner*background #a9a9a9
 option add *BugReport*banner*highlightBackground #a9a9a9
-option add *BugReport*banner*font -*-helvetica-bold-r-normal-*-*-180-*
+option add *BugReport*banner*font -*-helvetica-bold-r-normal-*-18-*
 
 switch $tcl_platform(platform) {
     unix - windows {

@@ -17,7 +17,7 @@ package require Itk
 option add *Dropdown.textBackground white widgetDefault
 option add *Dropdown.outline black widgetDefault
 option add *Dropdown.borderwidth 1 widgetDefault
-option add *Dropdown.font -*-helvetica-medium-r-normal-*-*-120-* widgetDefault
+option add *Dropdown.font -*-helvetica-medium-r-normal-*-12-* widgetDefault
 
 itcl::class Rappture::Dropdown {
     inherit itk::Toplevel

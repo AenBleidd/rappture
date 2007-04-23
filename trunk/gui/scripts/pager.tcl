@@ -23,7 +23,7 @@ option add *Pager.crumbNumberColor white widgetDefault
 option add *Pager.dimCrumbColor gray70 widgetDefault
 option add *Pager.activeCrumbColor blue widgetDefault
 option add *Pager.crumbFont \
-    -*-helvetica-bold-r-normal-*-*-120-* widgetDefault
+    -*-helvetica-bold-r-normal-*-12-* widgetDefault
 
 blt::bitmap define Pager-arrow {
 #define arrow_width 9

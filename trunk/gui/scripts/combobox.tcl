@@ -24,7 +24,7 @@ option add *Combobox.textBackground white widgetDefault
 option add *Combobox.textForeground black widgetDefault
 option add *Combobox.disabledBackground white widgetDefault
 option add *Combobox.disabledForeground gray widgetDefault
-option add *Combobox.font -*-helvetica-medium-r-normal-*-*-120-* widgetDefault
+option add *Combobox.font -*-helvetica-medium-r-normal-*-12-* widgetDefault
 
 itcl::class Rappture::Combobox {
     inherit itk::Widget

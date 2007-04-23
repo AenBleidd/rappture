@@ -20,7 +20,7 @@ option add *MolvisViewer.height 4i widgetDefault
 option add *MolvisViewer.foreground black widgetDefault
 option add *MolvisViewer.controlBackground gray widgetDefault
 option add *MolvisViewer.controlDarkBackground #999999 widgetDefault
-option add *MolvisViewer.font -*-helvetica-medium-r-normal-*-*-120-* widgetDefault
+option add *MolvisViewer.font -*-helvetica-medium-r-normal-*-12-* widgetDefault
 
 itcl::class Rappture::MolvisViewer {
     inherit itk::Widget

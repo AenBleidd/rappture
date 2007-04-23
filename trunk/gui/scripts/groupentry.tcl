@@ -15,7 +15,7 @@ package require Itk
 
 option add *GroupEntry.headingBackground #b5b5b5 widgetDefault
 option add *GroupEntry.headingForeground white widgetDefault
-option add *GroupEntry.font -*-helvetica-medium-r-normal-*-*-120-* widgetDefault
+option add *GroupEntry.font -*-helvetica-medium-r-normal-*-12-* widgetDefault
 
 itcl::class Rappture::GroupEntry {
     inherit itk::Widget

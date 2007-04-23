@@ -17,9 +17,9 @@ option add *TextResult.width 4i widgetDefault
 option add *TextResult.height 4i widgetDefault
 option add *TextResult.textBackground white widgetDefault
 option add *TextResult.font \
-    -*-helvetica-medium-r-normal-*-*-120-* widgetDefault
+    -*-helvetica-medium-r-normal-*-12-* widgetDefault
 option add *TextResult.textFont \
-    -*-courier-medium-r-normal-*-*-120-* widgetDefault
+    -*-courier-medium-r-normal-*-12-* widgetDefault
 
 itcl::class Rappture::TextResult {
     inherit itk::Widget

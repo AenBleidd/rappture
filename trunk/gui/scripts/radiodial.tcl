@@ -26,7 +26,7 @@ option add *Radiodial.valueWidth 10 widgetDefault
 option add *Radiodial.valuePadding 0.1 widgetDefault
 option add *Radiodial.foreground black widgetDefault
 option add *Radiodial.font \
-    -*-helvetica-medium-r-normal-*-*-120-* widgetDefault
+    -*-helvetica-medium-r-normal-*-12-* widgetDefault
 
 itcl::class Rappture::Radiodial {
     inherit itk::Widget

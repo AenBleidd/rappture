@@ -18,7 +18,7 @@ option add *Dropdownlist.outline black widgetDefault
 option add *Dropdownlist.borderwidth 1 widgetDefault
 option add *Dropdownlist.relief flat widgetDefault
 option add *Dropdownlist.font \
-    -*-helvetica-medium-r-normal-*-*-120-* widgetDefault
+    -*-helvetica-medium-r-normal-*-12-* widgetDefault
 
 itcl::class Rappture::Dropdownlist {
     inherit Rappture::Dropdown

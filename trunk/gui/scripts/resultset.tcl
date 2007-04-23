@@ -24,9 +24,9 @@ option add *ResultSet.controlActiveForeground blue widgetDefault
 option add *ResultSet.toggleBackground gray widgetDefault
 option add *ResultSet.toggleForeground white widgetDefault
 option add *ResultSet.textFont \
-    -*-helvetica-medium-r-normal-*-*-120-* widgetDefault
+    -*-helvetica-medium-r-normal-*-12-* widgetDefault
 option add *ResultSet.boldFont \
-    -*-helvetica-bold-r-normal-*-*-120-* widgetDefault
+    -*-helvetica-bold-r-normal-*-12-* widgetDefault
 
 itcl::class Rappture::ResultSet {
     inherit itk::Widget

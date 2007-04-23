@@ -20,7 +20,7 @@ option add *MeshResult.gridColor #d9d9d9 widgetDefault
 option add *MeshResult.regionColors {green yellow orange red magenta} widgetDefault
 option add *MeshResult.controlBackground gray widgetDefault
 option add *MeshResult.font \
-    -*-helvetica-medium-r-normal-*-*-120-* widgetDefault
+    -*-helvetica-medium-r-normal-*-12-* widgetDefault
 
 itcl::class Rappture::MeshResult {
     inherit itk::Widget

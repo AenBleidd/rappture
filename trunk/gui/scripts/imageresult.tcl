@@ -19,7 +19,7 @@ option add *ImageResult.width 3i widgetDefault
 option add *ImageResult.height 3i widgetDefault
 option add *ImageResult.controlBackground gray widgetDefault
 option add *ImageResult.font \
-    -*-helvetica-medium-r-normal-*-*-120-* widgetDefault
+    -*-helvetica-medium-r-normal-*-12-* widgetDefault
 
 itcl::class Rappture::ImageResult {
     inherit itk::Widget

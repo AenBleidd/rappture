@@ -22,7 +22,7 @@ option add *Field3DResult.controlDarkBackground #999999 widgetDefault
 option add *Field3DResult.plotBackground black widgetDefault
 option add *Field3DResult.plotForeground white widgetDefault
 option add *Field3DResult.font \
-    -*-helvetica-medium-r-normal-*-*-120-* widgetDefault
+    -*-helvetica-medium-r-normal-*-12-* widgetDefault
 
 itcl::class Rappture::Field3DResult {
     inherit itk::Widget

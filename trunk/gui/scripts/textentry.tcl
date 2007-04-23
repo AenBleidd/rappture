@@ -23,7 +23,7 @@ option add *TextEntry*disabledBackground white widgetDefault
 
 option add *TextEntry.hintForeground gray50 widgetDefault
 option add *TextEntry.hintFont \
-    -*-helvetica-medium-r-normal-*-*-100-* widgetDefault
+    -*-helvetica-medium-r-normal-*-10-* widgetDefault
 option add *TextEntry.codeFont \
     -*-courier-medium-r-normal-*-12-* widgetDefault
 
