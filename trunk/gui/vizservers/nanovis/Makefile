@@ -22,10 +22,10 @@ INSTALL_DIR = /opt/nanovis
 R2SRC = ./R2/src
 R2INC = ./R2/include
 
-RP2_LIBS = /apps/rappture/render/lib/librappture2.a /apps/rappture/render/lib/libb64.a /apps/rappture/render/lib/libz.a
-LIB_NANOVIS = -Wl,-rpath,/apps/rappture/render/lib -ltcl8.4 -L/opt/render/lib -lGL -lglut -lglui -lGLEW -lCg -lCgGL -pthread # -lstdc++ 
+RP2_LIBS = /apps/rappture/render-dev/lib/librappture2.a /apps/rappture/render-dev/lib/libb64.a /apps/rappture/render-dev/lib/libz.a
+LIB_NANOVIS = -Wl,-rpath,/apps/rappture/render-dev/lib -ltcl8.4 -L/opt/render/lib -lGL -lglut -lglui -lGLEW -lCg -lCgGL -pthread # -lstdc++ 
 LIB_CLIENT = -L/opt/render/lib -lGL -lglut -pthread # -lstdc++ 
-INCLUDES = -I/apps/rappture/render/include/rappture2 -I/apps/rappture/render/include -I/opt/render/include -I/usr/include/GL -I/usr/include/GL -I/usr/include/tcl8.4 -I/usr/include/GL -I$(R2INC)
+INCLUDES = -I/apps/rappture/render-dev/include/rappture2 -I/apps/rappture/render-dev/include -I/opt/render/include -I/usr/include/GL -I/usr/include/GL -I/usr/include/tcl8.4 -I/usr/include/GL -I$(R2INC)
 CFLAG = -g -c $(INCLUDES)
 
 all: nanovis
