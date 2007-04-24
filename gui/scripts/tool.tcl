@@ -204,8 +204,21 @@ itcl::body Rappture::Tool::run {args} {
                 foreach {key val} [split $arg =] break
                 set data($key) $val
             }
+            set data(job) [expr {$jobnum+$data(job)}]
+            set data(event) "subsimulation"
+            set data(start) [expr {$times(start)+$data(start)}]
 
-            puts stderr "MiddlewareTime: job=[expr {$jobnum+$data(job)}] event=subsimulation start=[expr {$times(start)+$data(start)}] walltime=$data(walltime) cputime=$data(cputime) status=$data(status)"
+            set stmt "MiddlewareTime:"
+            foreach key {job event start walltime cputime status} {
+                # add required keys in a particular order
+                append stmt " $key=$data($key)"
+                unset data($key)
+            }
+            foreach key [array names data] {
+                # add anything else that the client gave -- venue, etc.
+                append stmt " $key=$data($key)"
+            }
+            puts stderr $stmt
             incr subjobs
 
             # done -- remove this statement
