@@ -4,7 +4,7 @@ CLASSES = filexfer.class monitor.class
 ARCHIVE  = filexfer.jar
 MANIFEST = MANIFEST.MF
 
-JC = javac -deprecation
+JC = javac -deprecation -source 1.4
 JAR = jar
 
 all: ${CLASSES} ${ARCHIVE}
