@@ -120,6 +120,7 @@ proc Rappture::filexfer::upload {tool controlList callback} {
         } result]
 
         if {$status == 0} {
+            set changed ""
             set errs ""
             foreach file $job(output) {
                 # load the uploaded for this control
@@ -134,8 +135,12 @@ proc Rappture::filexfer::upload {tool controlList callback} {
                 if {$status != 0} {
                     append errs "Error loading data for \"$file2label($file)\":\n$result\n"
                 } else {
+                    lappend changed $file2path($file)
                     uplevel #0 [list $callback path $file2path($file) data $info]
                 }
+            }
+            if {[llength $changed] == 0} {
+                set errs "The form was empty, so none of your controls were changed.  In order to upload a file, you must select the file name--or enter text into the copy/paste area--before pushing the Upload button."
             }
             if {[string length $errs] > 0} {
                 uplevel #0 [list $callback error $errs]
