@@ -305,12 +305,8 @@ itcl::body Rappture::Loader::_newValue {} {
     if {$obj == "@upload"} {
         if {[Rappture::filexfer::enabled]} {
             set tool [[$_owner tool] get -name]
-            set mesg [Rappture::filexfer::upload \
-                $tool $_uppath [itcl::code $this _uploadValue]]
-
-            if {"" != $mesg} {
-                Rappture::Tooltip::cue $itk_component(combo) $mesg
-            }
+            Rappture::filexfer::upload \
+                $tool $_uppath [itcl::code $this _uploadValue]
         }
 
         # put the combobox back to its last value
@@ -383,22 +379,22 @@ itcl::body Rappture::Loader::_tooltip {} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: _uploadValue <path> ?<key> <value> <key> <value> ...?
+# USAGE: _uploadValue ?<key> <value> <key> <value> ...?
 #
 # Invoked automatically whenever the user has uploaded data from
 # the "Upload..." option.  Takes the data value (passed as an
 # argument) and loads into the destination widget.
 # ----------------------------------------------------------------------
-itcl::body Rappture::Loader::_uploadValue {path args} {
+itcl::body Rappture::Loader::_uploadValue {args} {
     array set data $args
 
     if {[info exists data(error)]} {
         Rappture::Tooltip::cue $itk_component(combo) $data(error)
     }
 
-    if {[info exists data(data)]} {
+    if {[info exists data(path)] && [info exists data(data)]} {
         Rappture::Tooltip::cue hide  ;# take down note about the popup window
-        $itk_option(-tool) valuefor $path $data(data)
+        $itk_option(-tool) valuefor $data(path) $data(data)
 
         $itk_component(combo) component entry configure -state normal
         $itk_component(combo) component entry delete 0 end

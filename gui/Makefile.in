@@ -191,7 +191,6 @@ all: binaries libraries doc
 binaries: $(BINARIES)
 
 libraries:
-	cd filexfer; make all
 
 #========================================================================
 # Your doc target should differentiate from doc builds (by the developer)
@@ -340,7 +339,6 @@ dist: dist-clean
 #========================================================================
 
 clean:
-	cd filexfer; make clean  
 	-test -z "$(BINARIES)" || rm -f $(BINARIES)
 	-rm -f *.$(OBJEXT) core *.core
 	-test -z "$(CLEANFILES)" || rm -f $(CLEANFILES)
@@ -402,14 +400,6 @@ install-lib-binaries: binaries
 		$(INSTALL_DATA) $$i $(DESTDIR)$(pkglibdir)/scripts/images ; \
 		done;
 	$(INSTALL_DATA) init.tcl $(DESTDIR)$(pkglibdir)/init.tcl
-	@mkdir -p $(DESTDIR)$(pkglibdir)/filexfer; 
-	@for i in $(srcdir)/filexfer/filexfer.jar \
-		$(srcdir)/filexfer/*.class \
-		$(srcdir)/filexfer/upload.html; do \
-		destp=`basename $$i`;\
-	        echo " Install $$destp $(DESTDIR)$(pkglibdir)/filexfer" ;\
-	        $(INSTALL_DATA) $$i $(DESTDIR)$(pkglibdir)/filexfer ; \
-	        done;
 
 	@if test "x$(SHARED_BUILD)" = "x1"; then \
 	    echo " Install pkgIndex.tcl $(DESTDIR)$(pkglibdir)"; \

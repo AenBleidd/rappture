@@ -521,15 +521,11 @@ itcl::body Rappture::TextEntry::_uploadValue {args} {
         -start {
             set tool [[$_owner tool] get -name]
             set cntls [list $_path [label] [tooltip]]
-            set mesg [Rappture::filexfer::upload \
-                $tool $cntls [itcl::code $this _uploadValue -assign]]
-
-            if {"" != $mesg} {
-                Rappture::Tooltip::cue $widget $mesg
-            }
+            Rappture::filexfer::upload \
+                $tool $cntls [itcl::code $this _uploadValue -assign]
         }
         -assign {
-            array set data [lrange $args 2 end] ;# skip option and path
+            array set data [lrange $args 1 end] ;# skip option
             if {[info exists data(error)]} {
                 Rappture::Tooltip::cue $widget $data(error)
             }
