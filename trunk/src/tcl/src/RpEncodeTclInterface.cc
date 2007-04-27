@@ -250,22 +250,16 @@ RpTclEncodingEncode (   ClientData cdata,
 
     err &= Rappture::encoding::encode(buf,flags);
 
-    result = Tcl_GetObjResult(interp);
-
-
     if (!err) {
-        Tcl_DString dstPtr;
-        Tcl_DStringInit(&dstPtr);
-        Tcl_ExternalToUtfDString(NULL,buf.bytes(),buf.size(),&dstPtr);
-        Tcl_AppendToObj(result,Tcl_DStringValue(&dstPtr),Tcl_DStringLength(&dstPtr));
-        Tcl_DStringFree(&dstPtr);
+        result = Tcl_NewByteArrayObj(
+            (const unsigned char*)buf.bytes(), buf.size());
+        Tcl_SetObjResult(interp, result);
     }
     else {
+        result = Tcl_GetObjResult(interp);
         Tcl_AppendStringsToObj( result, err.remark().c_str(),
                                 "\n", err.context().c_str(), NULL   );
     }
-
-
     return TCL_OK;
 }
 
@@ -374,19 +368,15 @@ RpTclEncodingDecode (   ClientData cdata,
 
     err &= Rappture::encoding::decode(buf,flags);
 
-    result = Tcl_GetObjResult(interp);
-
     if (!err) {
-        Tcl_DString dstPtr;
-        Tcl_DStringInit(&dstPtr);
-        Tcl_ExternalToUtfDString(NULL,buf.bytes(),buf.size(),&dstPtr);
-        Tcl_AppendToObj(result,Tcl_DStringValue(&dstPtr),Tcl_DStringLength(&dstPtr));
-        Tcl_DStringFree(&dstPtr);
+        result = Tcl_NewByteArrayObj(
+            (const unsigned char*)buf.bytes(), buf.size());
+        Tcl_SetObjResult(interp, result);
     }
     else {
+        result = Tcl_GetObjResult(interp);
         Tcl_AppendStringsToObj( result, err.remark().c_str(),
                                 "\n", err.context().c_str(), NULL   );
     }
-
     return TCL_OK;
 }

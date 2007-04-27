@@ -90,8 +90,7 @@ test encode-2.2.2 {Rappture::encoding::encode, -as flag correct value z} {
 
 test encode-2.2.3 {Rappture::encoding::encode, -as z w/ string} {
     list [catch {Rappture::encoding::encode -as z "hi"} msg] $msg
-} {0 {@@RP-ENC:z
-\xCB\xC8\x3F\x2A\x3F\xD8}}
+} [list 0 "@@RP-ENC:z\n\037\213\010\000\000\000\000\000\000\003\313\310\004\000\254\052\223\330\002\000\000\000"]
 
 test encode-2.2.4 {Rappture::encoding::encode, -as b64 w/ string} {
     list [catch {Rappture::encoding::encode -as b64 "hi"} msg] $msg
@@ -134,12 +133,18 @@ test decode-3.2.1 {Rappture::encoding::decode, -as flag, bad value} {
 test decode-3.2.2 {Rappture::encoding::decode, -as flag, zb64 w/ string} {
     set h "@@RP-ENC:zb64\nH4sIAAAAAAAAA8vIBACsKpPYAgAAAA=="
     list [catch {Rappture::encoding::decode -as z $h} msg] $msg
-} {0 hi}
+} {0 {@@RP-ENC:zb64
+H4sIAAAAAAAAA8vIBACsKpPYAgAAAA==}}
 
 test decode-3.2.3 {Rappture::encoding::decode, -as flag, b64 w/ string} {
     set h "@@RP-ENC:b64\naGk="
     list [catch {Rappture::encoding::decode -as b64 $h} msg] $msg
 } {0 hi}
+
+test decode-3.2.4 {encode/decode reverse each other} {
+    set msg "This is a test"
+    Rappture::encoding::decode [Rappture::encoding::encode $msg]
+} {This is a test}
 
 
 ::tcltest::cleanupTests

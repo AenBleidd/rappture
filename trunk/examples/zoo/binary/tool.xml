@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<run>
+<tool>
+  <title>string</title>
+  <about>Example of using a Rappture &lt;string&gt; object to handle binary data.
+
+Strings are bits of text--ASCII or binary.  When a binary file is loaded, the string object shows some description of the data.  If the string is set to the size of a line (e.g., 40x1), it shows only the file size.  If the string is set to a larger area, it shows a hex dump of the data.
+
+Upload a gzipped tar file.  When you click the Simulate button, the output will show a table of contents.
+  </about>
+  <command>
+    tclsh @tool/tardir.tcl @driver
+  </command>
+</tool>
+<input>
+  <string id="tarball">
+    <about>
+      <label>Tarball</label>
+      <description>Upload a gzipped tar file (Unix-style archive file).</description>
+    </about>
+    <size>60x10</size>
+    <default></default>
+  </string>
+</input>
+</run>
