@@ -41,9 +41,9 @@ proc Rappture::filexfer::init {} {
         set prog "${op}file"
         set path [auto_execok $prog]
         if {"" == $path} {
-            foreach dir {/apps/filexfer /apps/bin} {
+            foreach dir {/apps/filexfer/bin /apps/bin} {
                 set p [file join $dir $prog]
-                if {[file executable $path]} {
+                if {[file executable $p]} {
                     set path $p
                     break
                 }
@@ -99,6 +99,10 @@ proc Rappture::filexfer::upload {tool controlList callback} {
         }
 
         set dir ~/data/sessions/$env(SESSION)/spool
+        if {![file exists $dir]} {
+            catch {file mkdir $dir}
+        }
+
         set i 0
         foreach {path label desc} $controlList {
             set file [file join $dir upload[pid]-[incr i]]
