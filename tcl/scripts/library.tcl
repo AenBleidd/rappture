@@ -498,7 +498,7 @@ itcl::body Rappture::LibraryObj::put {args} {
     if {$params(-type) == "file"} {
         set fileName $str
         set fid [open $fileName r]
-        fconfigure $fid -translation binary
+        fconfigure $fid -translation binary -encoding binary
         set str [read $fid]
         close $fid
     }

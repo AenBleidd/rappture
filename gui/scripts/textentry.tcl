@@ -398,9 +398,6 @@ itcl::body Rappture::TextEntry::_setValue {newval} {
             }
             append newval $tail
         }
-
-        set _value [Rappture::encoding::encode -as z $_value]
-
     } else {
         # ascii file -- map carriage returns to line feeds
         set _mode "ascii"
@@ -532,6 +529,7 @@ itcl::body Rappture::TextEntry::_uploadValue {args} {
             if {[info exists data(data)]} {
                 Rappture::Tooltip::cue hide  ;# take down note about the popup
                 _setValue $data(data)
+                _newValue
             }
         }
         default {
