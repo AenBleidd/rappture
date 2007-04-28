@@ -13,7 +13,15 @@ package require Rappture
 set driver [Rappture::library [lindex $argv 0]]
 
 set data [$driver get input.(tarball).current]
-set dir [exec tar tvzf - << $data]
+
+set file "tar[pid].tgz"
+set fid [open $file w]
+fconfigure $fid -translation binary -encoding binary
+puts -nonewline $fid $data
+close $fid
+
+catch {exec tar tvzf $file} dir
+file delete -force $file
 
 $driver put output.string(dir).about.label "Contents"
 $driver put output.string(dir).current $dir
