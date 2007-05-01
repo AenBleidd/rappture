@@ -76,7 +76,7 @@ itcl::body Rappture::DeviceResult::add {dataobj {settings ""}} {
         set params($opt) $val
     }
 
-    $itk_component(viewer) value $dataobj
+    eval $itk_component(viewer) add $dataobj [list $settings]
 
     set _dataobj $dataobj
 }
@@ -98,7 +98,7 @@ itcl::body Rappture::DeviceResult::get {} {
 # are specified, then all dataobjs are deleted.
 # ----------------------------------------------------------------------
 itcl::body Rappture::DeviceResult::delete {args} {
-    $itk_component(viewer) value ""
+    eval $itk_component(viewer) delete $args
     set _dataobj ""
 }
 

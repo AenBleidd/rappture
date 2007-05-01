@@ -27,6 +27,8 @@ itcl::class Rappture::DeviceEditor {
 
     public method value {args}
     public method download {option args}
+    public method add {dataobj {settings ""}} 
+    public method delete {args}
 
     protected method _redraw {}
     protected method _type {xmlobj}
@@ -103,6 +105,7 @@ itcl::body Rappture::DeviceEditor::value {args} {
             set _xmlobj $newval
         }
         _redraw
+        $_current configure -device $_xmlobj
         event generate $itk_component(hull) <<Value>>
 
     } elseif {[llength $args] == 0} {
@@ -111,6 +114,39 @@ itcl::body Rappture::DeviceEditor::value {args} {
         error "wrong # args: should be \"value ?-check? ?newval?\""
     }
     return $_xmlobj
+}
+
+# ----------------------------------------------------------------------
+# USAGE: add <dataobj> ?<settings>?
+#
+# Clients use this to add a data object to the plot.  The optional
+# <settings> are used to configure the plot. Allowed settings are
+# -color, -brightness, -width, -linestyle, and -raise. Only
+# -brightness and -raise do anything.
+# ----------------------------------------------------------------------
+itcl::body Rappture::DeviceEditor::add {dataobj {settings ""}} {
+
+    set _xmlobj $dataobj
+
+    if {"" == $_current} {    # Make sure viewer instance exists
+        _redraw
+    }
+
+    eval $_current add $dataobj [list $settings]
+}
+
+# ----------------------------------------------------------------------
+# USAGE: delete ?<dataobj> <dataobj> ...?
+#
+# Clients use this to delete a dataobj from the plot. If no dataobjs
+# are specified, then all dataobjs are deleted.
+# ----------------------------------------------------------------------
+itcl::body Rappture::DeviceEditor::delete {args} {
+
+    if {"" != $_current} {
+        eval $_current delete $args
+        set _xmlobj [lindex [$_current get] end]
+    }
 }
 
 # ----------------------------------------------------------------------
@@ -154,7 +190,6 @@ itcl::body Rappture::DeviceEditor::_redraw {} {
                 } 
                 pack $itk_component(hull).mol -expand yes -fill both
             }
-            $itk_component(hull).mol configure -device $_xmlobj
 
             set _current $itk_component(hull).mol
         }
@@ -164,7 +199,6 @@ itcl::body Rappture::DeviceEditor::_redraw {} {
                 Rappture::DeviceViewer1D $itk_component(hull).dev $this
                 pack $itk_component(hull).dev -expand yes -fill both
             }
-            $itk_component(hull).dev configure -device $_xmlobj
 
             set _current $itk_component(hull).dev
         }
