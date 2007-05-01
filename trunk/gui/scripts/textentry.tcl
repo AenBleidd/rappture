@@ -402,6 +402,7 @@ itcl::body Rappture::TextEntry::_setValue {newval} {
         # ascii file -- map carriage returns to line feeds
         set _mode "ascii"
         set _value ""
+        regsub -all "\r\n" $newval "\n" newval
         regsub -all "\r" $newval "\n" newval
     }
 
