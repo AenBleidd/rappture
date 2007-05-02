@@ -4,37 +4,32 @@ exec wish "$0" $*
 
 package require Rappture
 package require RapptureGUI
-# package require cmdline
 
 proc defaultHandler {child} {
     set childchildList {}
-    set defaultList [$child children -as object -type "default"]
-    if {[llength $defaultList] != 0} {
-        set defaultNode [lindex $defaultList 0]
-        set value [$defaultNode get]
-        if {$value == ""} {
-            set childchildList [$child children]
-        } else {
-            $child put "current" $value
+    set units [$child get "units"]
+    # this is for nanowire
+    if {[string is integer -strict $units]} {
+        set units ""
+    }
+    set defaultVal [$child get "default"]
+    if {"" != $defaultVal} {
+        if {"" != $units} {
+            set defaultVal [Rappture::Units::convert $defaultVal \
+                            -context $units -to $units -units on]
         }
+        $child put "current" $defaultVal
     } else {
         if {"components" != [$child element -as type]} {
             set childchildList [$child children]
         } elseif {"parameters" != [$child element -as type]} {
             set childchildList [$child children]
+        } else {
+            set childchildList [$child children]
         }
     }
     return $childchildList
 }
-
-proc random {m M} {
-    return [expr {$m+(rand()*($M-$m))}]
-}
-
-proc randomInt {m M} {
-    return [expr {$m+(int(rand()*($M-$m)))}]
-}
-
 
 proc numberHandler {child} {
     set value ""
@@ -44,32 +39,38 @@ proc numberHandler {child} {
 
     if {"" != $min} {
         if {"" != $units} {
-            set min [Rappture::Units::convert $min -to $units -units off]
+            # check to see if the user added units to their min value
+            # apps like mosfet need this check.
+            set min [Rappture::Units::convert $min \
+                        -context $units -to $units -units off]
+            if {[string is double -strict $min]} {
+                # pass
+            }
         }
     }
 
     if {"" != $max} {
         if {"" != $units} {
-            set max [Rappture::Units::convert $max -to $units -units off]
+            # check to see if the user added units to their min value
+            # apps like mosfet need this check.
+            set max [Rappture::Units::convert $max \
+                        -context $units -to $units -units off]
+            if {[string is double -strict $max]} {
+                # pass
+            }
         }
     }
 
-    if {"yes" == [$child get "preset"]} {
-        $child remove "preset"
+    if {"yes" == [$child get "simset"]} {
+        $child remove "simset"
     } else {
         if { ("" != $min) && ("" != $max) } {
             set value [random $min $max]
             $child put current $value$units
-        # } elseif { {"" != $min} && {"" == $max} } {
-            # min value provided
-        # } elseif { {"" == $min} && {"" != $max} } {
-            # max value provided
         } else {
-            defaultHandler(child)
+            defaultHandler $child
         }
     }
-
-
 }
 
 proc integerHandler {child} {
@@ -78,41 +79,54 @@ proc integerHandler {child} {
     set min [$child get "min"]
     set max [$child get "max"]
 
+    # nanowire needs this because they set units == 0 and 1 ???
+    if {[string is integer -strict $units]} {
+        set units ""
+    }
+
     if {"" != $min} {
         if {"" != $units} {
-            set min [Rappture::Units::convert $min -to $units -units off]
+            # check to see if the user added units to their min value
+            # apps like mosfet need this check.
+            set min [Rappture::Units::convert $min \
+                        -context $units -to $units -units off]
+            if {[string is integer -strict $min]} {
+                # pass
+            }
         }
     }
 
     if {"" != $max} {
         if {"" != $units} {
-            set max [Rappture::Units::convert $max -to $units -units off]
+            # check to see if the user added units to their min value
+            # apps like mosfet need this check.
+            set max [Rappture::Units::convert $max \
+                        -context $units -to $units -units off]
+            if {[string is integer -strict $max]} {
+                # pass
+            }
         }
     }
 
-    if {"yes" == [$child get "preset"]} {
-        $child remove "preset"
+    if {"yes" == [$child get "simset"]} {
+        $child remove "simset"
     } else {
         if { ("" != $min) && ("" != $max) } {
             set value [randomInt $min $max]
             $child put current $value$units
-        # } elseif { {"" != $min} && {"" == $max} } {
-            # min value provided
-        # } elseif { {"" == $min} && {"" != $max} } {
-            # max value provided
         } else {
-            defaultHandler(child)
+            defaultHandler $child
         }
     }
 
 }
 
 proc booleanHandler {child} {
-    if {"yes" == [$child get "preset"]} {
-        $child remove "preset"
+    if {"yes" == [$child get "simset"]} {
+        $child remove "simset"
     } else {
         set value [expr {int(rand()*2)}]
-        if {value == 1} {
+        if {$value == 1} {
             set value "yes"
         } else {
             set value "no"
@@ -121,40 +135,111 @@ proc booleanHandler {child} {
     }
 }
 
+proc loaderHandler {child toolDir} {
+
+    set exDir [file join $toolDir "examples"]
+    if {! [file isdirectory $exDir]} {
+        puts "could not find examples directory"
+        exit 0
+    }
+
+    set exPathExp [$child get example]
+    set fpath [file join $exDir $exPathExp]
+    set exFileList [glob -nocomplain $fpath]
+
+    if {0 == [llength $exFileList]} {
+        puts "while searching examples directory: $exDir"
+        puts "could not open find files matching regex: $exPathExp"
+        set defaultEx [$child get "default"]
+        if {[file exists [file join $exDir $defaultEx]]} {
+            lappend exFileList $defaultEx
+            puts "using default example file"
+        } else {
+            puts "default example file does not exists, exiting"
+            exit 0;
+        }
+    }
+
+    set importExFileIdx [expr {int(rand()*[llength $exFileList])}]
+    set importExFile [lindex $exFileList $importExFileIdx]
+
+    if {! [file exists $importExFile]} {
+        # importExFile does not exist
+    }
+
+    set exlib [Rappture::library $importExFile]
+
+    # get the about.label from the file
+    # if about.label does not exist, use the file name
+    set importExLabel [$exlib get about.label]
+    if {"" != $importExLabel} {
+        set currentVal $importExLabel
+    } else {
+        set currentVal [file tail $importExFile]
+    }
+
+    $child put "current" $currentVal
+
+    set exlibChildList [::Rappture::entities -as object $exlib "input"]
+    return $exlibChildList
+}
+
+proc groupHandler {child} {
+    return [$child children -as object]
+}
+
+proc choiceHandler {child} {
+    if {"yes" == [$child get "simset"]} {
+        $child remove "simset"
+    } else {
+        set optList [$child children -as object -type option]
+        set optIdx [expr {int(rand()*[llength $optList])}]
+        set optLib [lindex $optList $optIdx]
+        set value [$optLib get value]
+        if {"" == $value} {
+            set value [$optLib get about.label]
+        }
+        $child put "current" $value
+    }
+}
+
 proc defaultize {xmlobj} {
     set childList [$xmlobj children -as object input]
-    foreach child $childList {
-        set type [$child element -as type]
-        if {"number" == $type} {
-            defaultHandler $child
-        } elseif {"integer" == $type} {
-            defaultHandler $child
-        } elseif {"boolean" == $type} {
-            defaultHandler $child
-        } elseif {"string" == $type} {
-            defaultHandler $child
-        } elseif {"loader" == $type} {
-            defaultHandler $child
-        } elseif {"structure" == $type} {
-            defaultHandler $child
-        } else {
-            defaultHandler $child
+
+    while {[llength $childList]} {
+        set child [lrange $childList 0 0]
+        set childList [lreplace $childList 0 0]
+
+        switch -- [$child element -as type] {
+            number      { defaultHandler $child }
+            integer     { defaultHandler $child }
+            boolean     { defaultHandler $child }
+            string      { defaultHandler $child }
+            choice      { defaultHandler $child }
+            loader      { loaderHandler  $child }
+            structure   { defaultHandler $child }
+            group       { set cclist [groupHandler $child]
+                          set childList [concat $childList $cclist] }
+            default     { defaultHandler $child }
         }
     }
 }
 
-proc randomize {presetArr xmlobj} {
+proc randomize {presetArr xmlobj toolDir} {
     upvar $presetArr presets
     set childList [$xmlobj children -as object input]
 
-    foreach child $childList {
-        set cpath [$child element -as path]
+    while {[llength $childList]} {
+#foreach c $childList {
+#    puts "c = [$c element -as path]"
+#}
+#puts "-------------------------------------------"
 
-        if {"." == [string index $cpath 0]} {
-            # this is because tcl's library module (element -as path)
-            # returns a crazy dot in the 0th position
-            set cpath [string range $cpath 1 end]
-        }
+        set child [lrange $childList 0 0]
+        set childList [lreplace $childList 0 0]
+
+#puts [$child element -as path]
+        set cpath [cleanPath [$child element -as path]]
 
         set ppath [$child parent -as path]
         set cPresets [array get presets $cpath*]
@@ -162,30 +247,70 @@ proc randomize {presetArr xmlobj} {
         foreach {cPresetsPath cPresetsVal} $cPresets {
             set cutIdx [expr {[string length $cpath] + 1}]
             set iPath [string range $cPresetsPath $cutIdx end]
+
+            # apply the preset value and remove from preset array
             $child put $iPath $cPresetsVal
-            $child put "preset" "yes"
             unset presets($cPresetsPath)
+
+            # if the value was set on a current node, then set a preset flag
+            set lastdot [string last "." $iPath]
+            if {$lastdot > 0} {
+                incr lastdot 1
+                set tailNode [string range $iPath $lastdot end]
+                if {"current" == $tailNode} {
+                    incr lastdot -2
+                    set headNode [string range $iPath 0 $lastdot]
+                    $child put $headNode.simset "yes"
+                }
+            }
         }
 
         switch -- [$child element -as type] {
-            number      { numberHandler  $child }
-            integer     { integerHandler $child }
-            boolean     { booleanHandler $child }
-            string      { defaultHandler $child }
-            loader      { loaderHandler  $child }
-            structure   { defaultHandler $child }
-            default     { defaultHandler $child }
+            number    { numberHandler  $child }
+            integer   { integerHandler $child }
+            boolean   { booleanHandler $child }
+            string    { defaultHandler $child }
+            choice    { choiceHandler  $child }
+            loader    {
+                set cpath [$child element -as path]
+                set ccList [loaderHandler $child $toolDir]
+                foreach cc $ccList {
+                    set ccpath [$cc element -as path]
+                    # even though the loader might have been returned in ccList
+                    # do not add the loader back to the childList or you might
+                    # get an infinite loop
+                    if {$cpath != $ccpath} {
+                        set ccpath [cleanPath $ccpath]
+                        $xmlobj copy $ccpath from $cc ""
+                        lappend childList [$xmlobj element -as object $ccpath]
+                    }
+                }
+            }
+            structure { defaultHandler $child }
+            group     {
+                set ccList [groupHandler $child]
+                set childList [concat $childList $ccList]
+            }
+            default   { defaultHandler $child }
         }
-
     }
 }
 
-proc writeDriver {lib} {
-   set driverFile "driver[clock seconds].xml"
-   set fp [open $driverFile "w"]
-   puts -nonewline $fp [$lib xml]
-   close $fp
-   return $driverFile
+proc random {m M} {
+    return [expr {$m+(rand()*($M-$m+1))}]
+}
+
+proc randomInt {m M} {
+    return [expr {$m+(int(rand()*($M-$m+1)))}]
+}
+
+proc cleanPath { path } {
+    if {"." == [string index $path 0]} {
+        # this is because tcl's library module (element -as path)
+        # returns a crazy dot in the 0th position
+        set path [string range $path 1 end]
+    }
+    return $path
 }
 
 proc parsePathVal {listVar returnVar} {
@@ -201,6 +326,9 @@ proc parsePathVal {listVar returnVar} {
         set match ""
         set path ""
         set val ""
+        set val2 ""
+        set val3 ""
+        set val4 ""
         set pathValStr [string trimleft [join $params " "]]
 
         # search the params for:
@@ -216,17 +344,27 @@ proc parsePathVal {listVar returnVar} {
         #    ((\"([^\"]+)\")|(:([^:]+):)|(\'([^\']+)\')|([^\s]+))
         regexp -expanded {
             (
-                [a-zA-Z0-9]+(\([a-zA-Z0-9]+\))?
-                (\.[a-zA-Z0-9]+(\([a-zA-Z0-9]+\))?)*
+                [a-zA-Z0-9]+(\([a-zA-Z0-9._]+\))?
+                (\.[a-zA-Z0-9]+(\([a-zA-Z0-9._]+\))?)*
             )
             =
             ((\"([^\"]+)\")|(\'([^\']+)\')|([^\s]+))
-        } $pathValStr match path junk junk junk val junk
+        } $pathValStr match path junk junk junk val junk val2 junk val3 val4
+
+
         if {"" != $match} {
             # remove the matching element from orphaned params list
             foreach p [split $match] {
                 set paramsIdx [lsearch -exact $params $p]
                 set params [lreplace $params $paramsIdx $paramsIdx]
+            }
+
+            if {("" != $val2) && ("" == $val3) && ("" == $val4)} {
+                set val $val2
+            } elseif {("" == $val2) && ("" != $val3) && ("" == $val4)} {
+                set val $val3
+            } elseif {("" == $val2) && ("" == $val3) && ("" != $val4)} {
+                set val $val4
             }
 
             # add the name and value to our preset array
@@ -374,24 +512,6 @@ array set presets []
 set i 0
 set oParams {}
 
-#set options {
-#    {tool.arg       "./tool.xml"    "use the specified tool.xml"}
-#    {driver.arg     ""              "use the specified driver.xml"}
-#    {compare.arg    ""              "compare the result with this run.xml"}
-#    {randomize                      "use random values for input elements"}
-#}
-#
-#set usage " \[options] ?<path>=<val> <path>=<val> ...? \noptions:"
-#
-#array set params [cmdline::getoptions argv $options $usage]
-#
-#set intf $params(tool)
-#
-#foreach n [array names params] {
-#    puts "params($n) = $params($n)"
-#}
-#exit 0
-
 # parse command line arguments
 set argc [llength $argv]
 for {set i 0} {$i < $argc} {incr i} {
@@ -456,7 +576,7 @@ set installdir [file dirname $intf]
 if {true == $defaults} {
     defaultize $xmlobj
 } else {
-    randomize presets $xmlobj
+    randomize presets $xmlobj $installdir
 }
 # pick defaults $xmlobj $presets
 # pick randoms $xmlobj $presets
@@ -488,6 +608,8 @@ if {$status == 0 && $result != "ABORT"} {
         set status 1
         puts "Can't find result file in output.\nDid you call Rappture::result in your simulator?"
     }
+} else {
+    puts $result
 }
 
 exit 0
