@@ -1341,25 +1341,26 @@ int pyMol_Proxy(int c_in, int c_out, char *command, char *argv[])
 
 #ifdef STANDALONE
 
-int
-main(int argc, char *argv)
-{
-    char *myargv[10];
-	char *command = "/home/nanohub/nkissebe/pymol-trunk/pymol";
-	myargv[0] = command;
-	myargv[1] = "-p";
-	myargv[2] = "-q";
-	myargv[3] = "-i";
-	myargv[4] = "-x";
-	myargv[5] = "-X";
-	myargv[6] = "0";
-	myargv[7] = "-Y";
-	myargv[8] = "0";
-	myargv[9] = NULL;
+#define MAX_ARGS 100
 
-    pyMol_Proxy(fileno(stdin), fileno(stdout), command, myargv);
+int
+main(int argc, char *argv[])
+{
+    int arg;
+    char *myargv[MAX_ARGS+1];
+
+	if (argc > MAX_ARGS+1) {
+        fprintf(stderr, "%s: Argument list too long (%d > %d arguments).", argv[0], argc, MAX_ARGS + 1);
+		return(1);
+	}
+
+    for(arg = 1; arg < argc; arg++)
+	    myargv[arg-1] = argv[arg];
+
+	myargv[arg-1] = NULL;
+
+    pyMol_Proxy(fileno(stdin), fileno(stdout), myargv[0], myargv);
 }
 
 #endif
-
 
