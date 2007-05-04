@@ -77,6 +77,7 @@ itcl::class Rappture::MolvisViewer {
     private variable _hostlist ""
     private variable _mrepresentation "spheres"
     private variable _cacheimage ""
+	private variable _busy 0
 }
 
 itk::usual MolvisViewer {
@@ -285,6 +286,7 @@ itcl::body Rappture::MolvisViewer::constructor {hostlist args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::MolvisViewer::destructor {} {
     #puts stderr "MolvisViewer::destructor()"
+    image delete $_image(plot)
 	disconnect
 }
 
@@ -319,9 +321,12 @@ itcl::body Rappture::MolvisViewer::download {option args} {
 # Any existing connection is automatically closed.
 # ----------------------------------------------------------------------
 itcl::body Rappture::MolvisViewer::connect {{hostlist ""}} {
+    #puts stderr "Rappture::MolvisViewer::connect($hostlist)"
+
     if { "" != $hostlist } { set _hostlist $hostlist }
 
     set hostlist $_hostlist
+    $_image(plot) blank
 
     if ([isconnected]) {
         disconnect
@@ -331,7 +336,7 @@ itcl::body Rappture::MolvisViewer::connect {{hostlist ""}} {
         return 0
     }
 
-    blt::busy hold $itk_component(hull); 
+    blt::busy hold $itk_component(hull) -cursor watch
     
     update idletasks
 
@@ -405,7 +410,6 @@ itcl::body Rappture::MolvisViewer::disconnect {} {
     fileevent $_sid readable {}
     catch { after cancel $_rocker(afterid) }
 	catch { after cancel $_mevent(afterid) }
-    image delete $_image(plot)
 
     catch {
         close $_sid
@@ -448,7 +452,7 @@ itcl::body Rappture::MolvisViewer::_send {args} {
         if {[catch {connect} ok] == 0 && $ok} {
             set w [winfo width $itk_component(3dview)]
             set h [winfo height $itk_component(3dview)]
-            puts $_sid "screen -push $w $h"
+            puts $_sid "screen -defer $w $h"
             flush $_sid
             $_dispatcher event -idle !rebuild
             Rappture::Tooltip::cue hide
@@ -512,7 +516,10 @@ itcl::body Rappture::MolvisViewer::_receive {} {
 			#puts stderr "CACHED: $tag,$cacheid"
             $_image(plot) put $_imagecache($tag)
             set _image(id) $tag
-            $itk_component(3dview) configure -cursor ""
+			if { $_busy } {
+                $itk_component(3dview) configure -cursor ""
+				set _busy 0
+			}
             update idletasks
             break
         } else {
@@ -541,6 +548,9 @@ itcl::body Rappture::MolvisViewer::_rebuild {} {
 
 	set _inrebuild 1
 	set changed 0
+	set _busy 1
+
+    $itk_component(3dview) configure -cursor watch
 
 	# refresh GUI (primarily to make pending cursor changes visible)
     update idletasks 
@@ -634,9 +644,9 @@ itcl::body Rappture::MolvisViewer::_rebuild {} {
 			set _mlist($obj) 1
 			_send enable -defer $obj
 		    if { $_labels } {
-				_send label on
+				_send label -defer on
 			} else {
-				_send label off
+				_send label -defer off
 			}
 	        set changed 1
 		} elseif { $_mlist($obj) == 3 } {
@@ -679,7 +689,6 @@ itcl::body Rappture::MolvisViewer::_rebuild {} {
         _send frame -push $state
     } else {
 		set _state(client) $state
-        $itk_component(3dview) configure -cursor ""
 		_update
 	}
 
@@ -714,8 +723,8 @@ itcl::body Rappture::MolvisViewer::_map { } {
 itcl::body Rappture::MolvisViewer::_configure { w h } {
     #puts stderr "Rappture::MolvisViewer::_configure($w $h)"
 
-	_send screen -push $w $h
     $_image(plot) configure -width $w -height $h
+	_send screen $w $h
 }
 
 # ----------------------------------------------------------------------
@@ -849,12 +858,17 @@ itcl::body Rappture::MolvisViewer::_vmouse {option b m x y} {
         unset _mevent(afterid)
     }
 
+	if { ![info exists _mevent(x)] } {
+		set option "click"
+	}
+
     if { $option == "click" } { 
         $itk_component(3dview) configure -cursor fleur
     }
 
     if { $option == "drag" || $option == "release" } {
-        set diff [expr $now - $_mevent(time) ]
+	    set diff 0
+        catch { set diff [expr $now - $_mevent(time) ] }
 
         if {$diff < 75 && $option == "drag" } { # 75ms between motion updates
             set _mevent(afterid) [after [expr 75 - $diff] [itcl::code $this _vmouse drag $b $m $x $y]]
@@ -916,11 +930,10 @@ itcl::body Rappture::MolvisViewer::_vmouse {option b m x y} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::MolvisViewer::_serverDown {} {
     #puts stderr "MolvisViewer::_serverDown()"
+
     set x [expr {[winfo rootx $itk_component(area)]+10}]
     set y [expr {[winfo rooty $itk_component(area)]+10}]
-    # this would automatically switch to vtk viewer:
-    # set parent [winfo parent $itk_component(hull)]
-    # $parent viewer vtk
+
     Rappture::Tooltip::cue @$x,$y "Lost connection to visualization server.  This happens sometimes when there are too many users and the system runs out of memory.\n\nTo reconnect, reset the view or press any other control.  Your picture should come right back up."
 }
 
@@ -1080,7 +1093,6 @@ itcl::body Rappture::MolvisViewer::add { dataobj {settings ""}} {
 		}
 		set _dobj2raise($dataobj) $params(-raise)
 
-        $itk_component(3dview) configure -cursor watch
         $_dispatcher event -idle !rebuild
     }
 }
@@ -1138,7 +1150,6 @@ itcl::body Rappture::MolvisViewer::delete {args} {
 
 	# if anything changed, then rebuild the plot
 	if {$changed} {
-        $itk_component(3dview) configure -cursor watch
         $_dispatcher event -idle !rebuild
 	}
 }
