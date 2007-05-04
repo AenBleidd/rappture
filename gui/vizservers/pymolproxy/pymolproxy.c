@@ -967,7 +967,8 @@ int
 PNGCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
 {
 	char buffer[800];
-	int bytes=0;
+	unsigned int bytes=0;
+	float samples = 0.0;
 	struct pymol_proxy *pymol = (struct pymol_proxy *) cdata;
 
 	if (pymol == NULL) 
@@ -986,8 +987,10 @@ PNGCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
 
 	waitForString(pymol, "image follows: ", buffer, 800);
 
-	sscanf(buffer, "image follows: %d\n", &bytes);
-
+	sscanf(buffer, "image follows: %d %f\n", &bytes, &samples);
+ 
+	write(3,&samples,sizeof(samples));
+  
     dyBufferSetLength(&pymol->image, bytes);
 
 	bread(pymol->p_stdout, pymol->image.data, pymol->image.used);
@@ -1009,7 +1012,8 @@ int
 BMPCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
 {
 	char buffer[800];
-	int bytes=0;
+	unsigned int bytes=0;
+	float samples = 0.0;
 	struct pymol_proxy *pymol = (struct pymol_proxy *) cdata;
 
 	if (pymol == NULL)
@@ -1028,7 +1032,8 @@ BMPCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
 
 	waitForString(pymol, "image follows: ", buffer, 800);
 
-	sscanf(buffer, "image follows: %d\n", &bytes);
+	sscanf(buffer, "image follows: %d %f\n", &bytes, &samples);
+	write(3,&samples,sizeof(samples));
 
     dyBufferSetLength(&pymol->image, bytes);
 
@@ -1047,9 +1052,7 @@ BMPCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
 	
 int pyMol_Proxy(int c_in, int c_out, char *command, char *argv[])
 {
-    int flags;
-	int status;
-	int eof;
+    int flags, status, result = 0;
 	int pairIn[2];
 	int pairOut[2];
 	int pairErr[2];
@@ -1297,7 +1300,7 @@ int pyMol_Proxy(int c_in, int c_out, char *command, char *argv[])
 
     }
 
-	status = waitpid(pid, NULL, WNOHANG);
+	status = waitpid(pid, &result, WNOHANG);
 
 	if (status == -1) 
 		fprintf(stderr, "pymolproxy: error waiting on pymol server to exit (%d)\n", errno);
@@ -1305,7 +1308,7 @@ int pyMol_Proxy(int c_in, int c_out, char *command, char *argv[])
 		fprintf(stderr, "pymolproxy: attempting to SIGTERM pymol server\n");
 		kill(-pid, SIGTERM); // kill process group
 		alarm(5);
-		status = waitpid(pid, NULL, 0);
+		status = waitpid(pid, &result, 0);
 		alarm(0);
 
 		while ((status == -1) && (errno == EINTR))
@@ -1313,12 +1316,12 @@ int pyMol_Proxy(int c_in, int c_out, char *command, char *argv[])
 			fprintf(stderr, "pymolproxy: Attempting to SIGKILL process.\n");
 			kill(-pid, SIGKILL); // kill process group
 			alarm(10);
-			status = waitpid(pid, NULL, 0);
+			status = waitpid(pid, &result, 0);
 			alarm(0); 
 		}
 	}
 
-	fprintf(stderr, "pymolproxy: pymol server process ended\n");
+	fprintf(stderr, "pymolproxy: pymol server process ended (%d)\n", result);
 
 	dyBufferFree(&pymol.image);
 
