@@ -58,6 +58,7 @@ from commanding import \
       sync
 
 #--------------------------------------------------------------------
+# vmouse adds Virutal mouse support *NJK*
 import controlling
 from controlling import \
       button,             \
@@ -67,6 +68,7 @@ from controlling import \
       order,              \
       set_key,            \
       unmask,             \
+      vmouse,             \
       edit_mode
 
 #--------------------------------------------------------------------
@@ -123,7 +125,9 @@ from selecting import \
       pop
 
 #--------------------------------------------------------------------
+# bmp adds BMP save image support *NJK*
 from exporting import \
+      bmp,                \
       png,                \
       export_coords,      \
       get_pdbstr,         \

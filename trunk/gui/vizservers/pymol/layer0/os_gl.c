@@ -3,6 +3,29 @@
 
 #include<stdio.h>
 
+/* Sample counting patch *NJK* */
+void PyMOLInitPerf(GLsizei n, GLuint *id)
+{
+    *id = 0;
+
+    glGenQueriesARB(1, id);
+}
+
+void PyMOLStartPerf(GLuint id)
+{
+    glBeginQueryARB(GL_SAMPLES_PASSED_ARB, id);
+}
+
+unsigned int PyMOLEndPerf(GLuint id)
+{
+    GLuint count = 0;
+
+    glEndQueryARB(GL_SAMPLES_PASSED_ARB);
+    glGetQueryObjectuivARB(id, GL_QUERY_RESULT_ARB, &count);
+
+	return(count);
+}
+
 void PyMOLReadPixels(GLint x,
                   GLint y,
                   GLsizei width,

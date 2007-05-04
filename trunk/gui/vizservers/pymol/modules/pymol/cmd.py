@@ -997,6 +997,23 @@ DEVELOPMENT TO DO
             finally:
                 unlock(-1)
             return r
+ 
+        # BMP save image support *NJK*
+        # writing BMP files (thread-unsafe)
+ 
+        def _bmp(a,width=0,height=0,dpi=-1.0,quiet=1): # INTERNAL - can only be safely called by GLUT thread
+            # INTERNAL - can only be safely called by GLUT thread
+            # WARNING: internal routine, subject to change
+            try:
+                lock()
+                fname = a
+                if not re.search("\.bmp$",fname):
+                    fname = fname +".bmp"
+                fname = exp_path(fname)
+                r = _cmd.bmp(str(fname),int(width),int(height),float(dpi),int(quiet))
+            finally:
+                unlock()
+            return r
 
         # quitting (thread-specific)
 

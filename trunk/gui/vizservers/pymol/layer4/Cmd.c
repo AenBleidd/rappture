@@ -5462,6 +5462,60 @@ static PyObject *CmdPNG(PyObject *self, 	PyObject *args)
   return APIResultOk(ok);
 }
 
+/* BMP save image support *NJK* */
+static PyObject *CmdBMP(PyObject *self,   PyObject *args) 
+{
+  PyMOLGlobals *G = NULL;
+  char *str1;
+  int ok=false;
+  int quiet;
+  int width,height;
+  float dpi;
+  ok = PyArg_ParseTuple(args,"siifi",&str1,&width,&height,&dpi,&quiet);
+  if (ok) {
+    API_SETUP_PYMOL_GLOBALS;
+	ok = (G!=NULL);
+  }
+  if (ok) {
+    APIEntry(G);
+    ExecutiveDrawNow(G);        /* TODO STATUS */
+    if(width||height) {
+      SceneDeferBMPImage(G,width,height,str1,-1,dpi,quiet);
+    } else {
+      SceneBMP(G,str1,dpi,quiet);
+    }
+    APIExit(G);
+  }
+  return APIResultOk(ok);
+}
+
+/* Virtual Mouse command *NJK* */
+static PyObject *CmdVMouse(PyObject *self,    PyObject *args)
+{
+  PyMOLGlobals *G = NULL;
+  int ok = false;
+  int button, modifier, state, x, y;
+
+  ok = PyArg_ParseTuple(args,"iiiii",&button,&modifier,&state,&x,&y);
+
+  if(ok) {
+    API_SETUP_PYMOL_GLOBALS;
+    ok = (G!=NULL);
+  }
+  if (ok) {
+    APIEntry(G);
+    if ((state == 0) || (state == 1))
+       ProcessMainButton(button,modifier,state,x,y);
+    else if (state == 2)
+       ProcessMainDrag(x,y);
+    else if (state == 3)
+       ProcessMainPassive(x,y);
+    APIExit(G);
+  }
+
+  return APIResultOk(ok);
+}
+
 static PyObject *CmdMPNG(PyObject *self, 	PyObject *args)
 {
   PyMOLGlobals *G = NULL;
@@ -7610,6 +7664,7 @@ static PyMethodDef Cmd_methods[] = {
   {"angle",                 CmdAngle,                METH_VARARGS },
   {"attach",                CmdAttach,               METH_VARARGS },
   {"bg_color",              CmdBackgroundColor,      METH_VARARGS },
+  {"bmp",                   CmdBMP,                  METH_VARARGS }, /* BMP save image support *NJK* */
   {"bond",                  CmdBond,                 METH_VARARGS },
   {"busy_draw",             CmdBusyDraw,             METH_VARARGS },
   {"button",                CmdButton,               METH_VARARGS },
@@ -7840,6 +7895,7 @@ static PyMethodDef Cmd_methods[] = {
   {"unset",                 CmdUnset,                METH_VARARGS },
   {"unset_bond",            CmdUnsetBond,            METH_VARARGS },
   {"update",                CmdUpdate,               METH_VARARGS },
+  {"vmouse",                CmdVMouse,               METH_VARARGS }, /* Virtual Mouse command *NJK* */
   {"window",                CmdWindow,               METH_VARARGS },
   {"zoom",	                CmdZoom,                 METH_VARARGS },
   {NULL,		              NULL}     /* sentinel */        

@@ -13,6 +13,7 @@ I* Additional authors of this source file include:
 -*
 Z* -------------------------------------------------------------------
 */
+#define _HAVE_LIBPNG /* _HAVE_LIBPNG not integrated into autotools build *NJK* */
 
 #ifdef _HAVE_LIBPNG
 #include<png.h>
@@ -38,12 +39,80 @@ Z* -------------------------------------------------------------------
 #include "Setting.h"
 
 
+/* Persistent image capture buffer *NJK* */
+/* we make image buffer a pymol global to reduce time spent */
+/* allocating and reallocating memory for image captures    */
+struct _CImage {
+    void *data;
+    int   allocated;
+    int   used;
+};
+
+int ImageInit(PyMOLGlobals *G)
+{
+   register CImage *I=NULL;
+   if( (I=(G->Image=Calloc(CImage,1)))) {
+ 
+     UtilZeroMem(I,sizeof(CImage));
+     I->data = NULL;
+	 I->used = 0;
+	 I->allocated = 0;
+     return 1;
+   } else {
+     return 0;
+   }
+}
+
+/* PNG stdout support *NJK */
+/* add ability to write PNG files to standard output        */
+/* we have to write to memory first so we can inform client */
+/* how much data is going to be sent                        */
+
+static void
+user_write_data(png_structp png_ptr, png_bytep buf, png_size_t length)
+{
+    voidp write_io_ptr = png_get_io_ptr(png_ptr);
+    struct _CImage *data = write_io_ptr;
+    int available;
+	int needed;
+	void *newdata;
+
+	available = data->allocated - data->used;
+
+	if (length > available) {
+		needed = length - available;
+
+		if (needed < 32768)
+			needed = 32768;
+
+		newdata = realloc(data->data, data->allocated + needed);
+
+		if (newdata != NULL) {
+		   data->data = newdata;
+		   data->allocated += needed;
+		}
+		else
+		    return;
+	}
+
+	memcpy((unsigned char *)data->data + data->used, buf, length);
+
+	data->used += length;
+    return;
+}
+
+static void
+user_flush_data(png_structp png_ptr)
+{
+	return;
+}
+
 int MyPNGWrite(PyMOLGlobals *G,char *file_name,unsigned char *p,
                unsigned int width,unsigned int height,float dpi)
 {
 #ifdef _HAVE_LIBPNG
 
-   FILE *fp;
+   FILE *fp = 0; /* PNG stdout support *NJK* */
    png_structp png_ptr;
    png_infop info_ptr;
 	int bit_depth = 8;
@@ -55,12 +124,14 @@ int MyPNGWrite(PyMOLGlobals *G,char *file_name,unsigned char *p,
    row_pointers=Alloc(png_bytep,height);
 
    /* open the file */
-   fp = fopen(file_name, "wb");
-   if (fp == NULL) {
-     return 0;
-   } else if(feof(fp)) {
-     fclose(fp);
-	 return 0;
+   if (strcmp(file_name,"-.png") != 0) { /* PNG stdout support *NJK* */
+      fp = fopen(file_name, "wb");
+      if (fp == NULL) {
+        return 0;
+      } else if(feof(fp)) {
+        fclose(fp);
+	    return 0;
+      }
    }
    /* Create and initialize the png_struct with the desired error handler
     * functions.  If you want to use the default stderr and longjump method,
@@ -72,7 +143,8 @@ int MyPNGWrite(PyMOLGlobals *G,char *file_name,unsigned char *p,
 
    if (png_ptr == NULL)
    {
-      fclose(fp);
+      if (fp != NULL)  /* PNG stdout support *NJK* */
+         fclose(fp);
       return 0;
    }
 
@@ -80,7 +152,8 @@ int MyPNGWrite(PyMOLGlobals *G,char *file_name,unsigned char *p,
    info_ptr = png_create_info_struct(png_ptr);
    if (info_ptr == NULL)
    {
-      fclose(fp);
+      if (fp != NULL)  /* PNG stdout support *NJK* */
+          fclose(fp);
       png_destroy_write_struct(&png_ptr,  (png_infopp)NULL);
       return 0;
    }
@@ -91,13 +164,19 @@ int MyPNGWrite(PyMOLGlobals *G,char *file_name,unsigned char *p,
    if (setjmp(png_jmpbuf(png_ptr)))
    {
       /* If we get here, we had a problem reading the file */
-      fclose(fp);
+      if (fp != NULL)  /* PNG stdout support *NJK* */
+         fclose(fp);
       png_destroy_write_struct(&png_ptr,  (png_infopp)NULL);
       return 0;
    }
 
    /* set up the output control if you are using standard C streams */
-   png_init_io(png_ptr, fp);
+   if (fp != NULL) /* PNG stdout support *NJK* */
+      png_init_io(png_ptr, fp);
+   else {
+      G->Image->used = 0;
+      png_set_write_fn(png_ptr, G->Image, user_write_data, user_flush_data);
+   }
 
    /* Set the image information here.  Width and height are up to 2^31,
     * bit_depth is one of 1, 2, 4, 8, or 16, but valid values also depend on
@@ -114,6 +193,7 @@ int MyPNGWrite(PyMOLGlobals *G,char *file_name,unsigned char *p,
      int dots_per_meter = (int)(dpi*39.3700787);
      png_set_pHYs(png_ptr, info_ptr, dots_per_meter, dots_per_meter, PNG_RESOLUTION_METER);
    }
+   png_set_compression_level(png_ptr,1); /* PNG stdout support *NJK* */
 
    png_set_gamma(png_ptr, SettingGet(G,cSetting_png_screen_gamma), 
                  SettingGet(G,cSetting_png_file_gamma));
@@ -138,7 +218,16 @@ int MyPNGWrite(PyMOLGlobals *G,char *file_name,unsigned char *p,
    png_destroy_write_struct(&png_ptr, (png_infopp)NULL);
 
    /* close the file */
-   fclose(fp);
+   if (fp != NULL) /* PNG stdout support *NJK* */
+       fclose(fp);
+   else {
+       /* Sample counting patch *NJK */
+       fprintf(stdout, "image follows: %d %d\n", G->Image->used, PyMOLEndPerf(G->GLQueryId));
+       PyMOLStartPerf(G->GLQueryId);
+       fwrite(G->Image->data,1,G->Image->used,stdout);
+       fflush(stdout);
+       G->Image->used = 0;
+   }
 
 	mfree(row_pointers);
    /* that's it */
@@ -320,11 +409,143 @@ int MyPNGRead(char *file_name,unsigned char **p_ptr,unsigned int *width_ptr,unsi
   
 } /* end of source */
 
+/* BMP save image support *NJK* */
+void
+bmp_header_add_int(unsigned char* header, unsigned int pos, unsigned int data)
+{ 
+  header[pos++] = data & 0xff;
+  header[pos++] = (data >> 8) & 0xff;
+  header[pos++] = (data >> 16) & 0xff;
+  header[pos++] = (data >> 24) & 0xff;
+} 
+ 
+void
+bmp_header_add_short(unsigned char* header, unsigned int pos, unsigned short data)
+{ 
+  header[pos++] = data & 0xff;
+  header[pos++] = (data >> 8) & 0xff;
+} 
+ 
+int MyBMPWrite(PyMOLGlobals *G,char *bmp,unsigned char *save_image,int width,int height,float dpi)
+{ 
+  unsigned char header[54];
+  int pos = 0;
+  int pad = 0;
+  int fsize = 0;
+  int row = 0;
+  int col = 0;
+  unsigned char *scr;
+  unsigned char *src = save_image;
+  unsigned char tmp; 
+  struct _CImage *data = G->Image;
+  
+  if ((3 * width) % 4 > 0)
+    pad = 4 - ((3 * width) % 4);
+    
+  header[pos++] = 'B';
+  header[pos++] = 'M';
+    
+  /* file size in bytes */
+  fsize = (3 * width + pad) * height + sizeof(header);
+  bmp_header_add_int(header,pos,fsize);
+  pos+=4;
+  
+  /* reserved value (must be 0) */
+  bmp_header_add_int(header, pos, 0);
+  pos+=4;
+  
+  /* offset in bytes to start of bitmap data */
+  bmp_header_add_int(header, pos, sizeof(header));
+  pos+=4;
+  
+  /* size of the BITMAPINFOHEADER */
+  bmp_header_add_int(header, pos, 40);
+  pos+=4;
 
+  /* width of the image in pixels */
+  bmp_header_add_int(header, pos, width);
+  pos+=4;
 
+  /* height of the image in pixels */
+  bmp_header_add_int(header, pos, height);
+  pos+=4;
 
+  /* 1 plane */
+  bmp_header_add_short(header, pos, 1);
+  pos+=2;
 
+  /* 24 bits/pixel */
+  bmp_header_add_short(header, pos, 24);
+  pos+=2;
 
+  /* no compression */
+  /* size of image for compression */
 
+  bmp_header_add_int(header, pos, 0);
+  pos+=4;
+  bmp_header_add_int(header, pos, 0);
+  pos+=4;
 
+  /* x pixels per meter */
+  /* y pixels per meter */
+  bmp_header_add_int(header, pos, 0);
+  pos+=4;
+  bmp_header_add_int(header, pos, 0);
+  pos+=4;
+
+  /* number of colors used (0 = compute from bits/pixel) */
+  /* number of important colors (0 = all colors important) */
+  bmp_header_add_int(header, pos, 0);
+  pos+=4;
+  bmp_header_add_int(header, pos, 0);
+  pos+=4;
+
+  if (data->allocated < fsize) {
+  	char *newdata;
+
+	newdata = realloc(data->data, fsize);
+
+	if (newdata) {
+		data->data = newdata;
+		data->allocated = fsize;
+	}
+  }
+
+  if (data->allocated < fsize)
+      return(0);
+
+  scr = data->data;
+
+  for (row=0; row < height; row++) {
+    for (col=0; col < width; col++) {
+      tmp = src[0];
+      scr[0] = src[2];
+      scr[1] = src[1];
+      scr[2] = tmp;
+      scr += 3;
+      src += 4;
+    }
+    scr += pad;  /* skip over padding already in screen data */
+  }
+
+  if (strcmp(bmp,"-.bmp") == 0) {
+    /* Sample counting patch *NJK* */
+    fprintf(stdout,"image follows: %d %d\n",fsize, PyMOLEndPerf(G->GLQueryId));
+    PyMOLStartPerf(G->GLQueryId);
+    fwrite(header,1,54,stdout);
+    fwrite(data->data,1,fsize-sizeof(header), stdout);
+    fflush(stdout);
+  }
+  else {
+    FILE *fp;
+
+    fp = fopen(bmp,"wb");
+    fwrite(header,1,54, fp);
+    fwrite(data->data,1,fsize-sizeof(header), fp);
+    fflush(fp);
+    fclose(fp);
+  }
+
+  return(1);
+}
 

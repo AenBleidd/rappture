@@ -2473,6 +2473,7 @@ static CPyMOL *_PyMOL_New(void)
       
       result->G->PyMOL = result; /* store the instance pointer */
 
+      pipe(result->G->CmdPipe);  /* Sleep Interruption Patch *NJK* */
       result->BusyFlag = false;
       result->InterruptFlag = false;
       PyMOL_ResetProgress(result);
@@ -2566,6 +2567,9 @@ void PyMOL_Start(CPyMOL *I)
   IsosurfInit(G);
   TetsurfInit(G);
   EditorInit(G);
+  ImageInit(G); /* Persistent image capture buffer *NJK* */
+  PyMOLInitPerf(1,&G->GLQueryId); /* Sample counting patch *NJK* */
+  PyMOLStartPerf(G->GLQueryId); /* Sample counting patch *NJK* */
 
 #ifdef TRACKER_UNIT_TEST
   TrackerUnitTest(G);

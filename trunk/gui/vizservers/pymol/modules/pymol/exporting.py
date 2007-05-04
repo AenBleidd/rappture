@@ -133,6 +133,29 @@ PYMOL API
         if _raising(r): raise QuietException
         return r
 
+    # BMP save image support *NJK*
+    def bmp(filename,width=0,height=0,dpi=-1.0,quiet=1):
+        '''
+DESCRIPTION
+
+    "bmp" writes a bmp format image file of the current image to disk.
+
+USAGE
+
+    bmp filename
+
+PYMOL API
+
+    cmd.bmp( string file )
+	    '''
+        r = DEFAULT_ERROR
+        if thread.get_ident() ==pymol.glutThread:
+            r = cmd._bmp(str(filename),int(width),int(height),float(dpi),int(quiet))
+        else:
+            r = cmd._do("cmd._bmp('%s',%d,%d,%1.6f,%d)"%(filename,width,height,dpi,quiet))
+        if _raising(r): raise QuietException
+        return r
+
     def export_coords(obj,state): # experimental
         r = DEFAULT_ERROR
         try:
