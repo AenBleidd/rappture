@@ -367,7 +367,7 @@ itcl::body Rappture::MolvisViewer::connect {{hostlist ""}} {
         }
         fconfigure $sid -translation binary -encoding binary -buffering line -buffersize 1000
         #puts $sid "pymol"
-        puts --nonewline $sid [binary format i $memorySize]
+        puts -nonewline $sid [binary format i $memorySize]
         flush $sid
 
         # read back a reconnection order
