@@ -142,7 +142,7 @@ bread(int sock, char *buffer, int size)
 		
 		if ((result < 0) && (errno != EAGAIN) && (errno != EINTR))
 		{ 
-			fprintf(stderr,"Error reading sock(%d), %d/%s\n", sock, errno,strerror(errno));
+			fprintf(stderr,"pymolproxy: Error reading sock(%d), %d/%s\n", sock, errno,strerror(errno));
 			break;
 		}
 
@@ -335,7 +335,7 @@ sendf(struct pymol_proxy *pymol, char *format, ...)
     write(pymol->p_stdin, buffer, strlen(buffer));
 
     if (waitForString(pymol, "PyMOL>", buffer, 800)) {
-        fprintf(stderr,"Timeout reading data [%s]\n",buffer);
+        fprintf(stderr,"pymolproxy: Timeout reading data [%s]\n",buffer);
 		pymol->error = 1;
 		pymol->status = TCL_ERROR;
         return(pymol->status);
@@ -680,7 +680,7 @@ LabelCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
    	pymol->need_update = !defer || push;
 	pymol->immediate_update |= push;
 	pymol->invalidate_cache = 1;
-fprintf(stderr,"LabelCmd: state = %d, pymolstate = %d\n",state,pymol->labels);
+
     if (state) {
 		sendf(pymol, "set label_color,white,all\n");
 		sendf(pymol, "set label_size,14,all\n");
@@ -865,7 +865,7 @@ LoadPDBStrCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[]
     tmpf = open(filename,O_RDWR|O_TRUNC|O_CREAT,0700);
 	
 	if (tmpf <= 0) 
-	    fprintf(stderr,"error opening file %d\n",errno);
+	    fprintf(stderr,"pymolproxy: error opening file %d\n",errno);
 
     write(tmpf,pdbdata,strlen(pdbdata));
 	close(tmpf);
@@ -1110,7 +1110,7 @@ int pyMol_Proxy(int c_in, int c_out, char *command, char *argv[])
 			close(fd);
 
 		execvp(command,argv);
-		fprintf(stderr,"Failed to start pyMol\n");
+		fprintf(stderr,"pymolproxy: Failed to start pyMol\n");
 		exit(-1);
 	}
        
@@ -1176,9 +1176,6 @@ int pyMol_Proxy(int c_in, int c_out, char *command, char *argv[])
 	//  translate them into pyMol commands, and issue them to child proccess
 	//  send images back
 
-	if (1)
-		fprintf(stderr,"Pymol Ready.\n");
-
 	gettimeofday(&end, NULL);
 
 	while(1) 
@@ -1209,18 +1206,20 @@ int pyMol_Proxy(int c_in, int c_out, char *command, char *argv[])
 
 		if ( status < 0 )
 		{
-			fprintf(stderr, "POLL ERROR: status = %d, errno = %d, %s \n", status,errno,strerror(errno));
+			fprintf(stderr, "pymolproxy: POLL ERROR: status = %d, errno = %d, %s \n", status,errno,strerror(errno));
 		}
 		else if (status > 0)
 		{
 			gettimeofday(&now,NULL);
 
-            if (ufd[0].revents) {
-
+            if (ufd[0].revents) { /* Client Stdout Connection: command input */
 			    if (read(ufd[0].fd,&ch,1) <= 0) 
 			    {
-				    fprintf(stderr,"EOF or Lost Connection. status = %d, errno = %d, %s \n", status,errno,strerror(errno));
-				    break;
+				    if (errno != EINTR)
+					{
+				        fprintf(stderr,"pymolproxy: Lost Client Connection.\n");
+				        break;
+					}
 			    }
 			    else
 			    {
@@ -1236,13 +1235,11 @@ int pyMol_Proxy(int c_in, int c_out, char *command, char *argv[])
 			    }
 			}
 
-			if (ufd[1].revents ) {
+			if (ufd[1].revents ) { /* pyMol Stdout Connection: pymol (unexpected) output */
 			    if (read(ufd[1].fd, &ch, 1) <= 0)
 				{
-				    if (errno == EAGAIN)
-					    fprintf(stderr,"EAGAIN error reading pymol stdout... retrying.\n");
-                    else {
-				        fprintf(stderr,"Lost PyMol Session. (errno=%d)\n",errno);
+				    if (errno != EINTR) {
+				        fprintf(stderr,"pymolproxy: lost connection (stdout) to pymol server\n");
 						break;
 					}
 				}
@@ -1254,22 +1251,16 @@ int pyMol_Proxy(int c_in, int c_out, char *command, char *argv[])
 					    ch = 0;
 					    dyBufferAppend(&dybuffer, &ch, 1);
 						fprintf(stderr,"STDOUT>%s",dybuffer.data);
-
-						if (dybuffer.data[0]=='I' && dybuffer.data[1] == 0)
-						    pymol.need_update = 1;
-
 						dyBufferSetLength(&dybuffer,0);
 					}
 				}
 			}
 
-			if (ufd[2].revents) {
+			if (ufd[2].revents) { /* pyMol Stderr Connection: pymol standard error output */
 				if (read(ufd[2].fd, &ch, 1) <= 0)
 				{
-				    if (errno == EAGAIN) 
-					    fprintf(stderr,"EAGAIN error reading pymol stderr... retrying.\n");
-	                else {
-					    fprintf(stderr,"Lost PyMol Stderr Session. (errno=%d)\n", errno);
+				    if (errno != EINTR) { 
+					    fprintf(stderr,"pymolproxy: lost connection (stderr) to pymol server\n");
 						break;
 					}
 				}
@@ -1280,7 +1271,6 @@ int pyMol_Proxy(int c_in, int c_out, char *command, char *argv[])
 					    ch = 0;
 						dyBufferAppend(&dybuffer2, &ch, 1);
 						fprintf(stderr,"stderr>%s", dybuffer2.data);
-
 						dyBufferSetLength(&dybuffer2,0);
 					}
 				}
@@ -1307,14 +1297,12 @@ int pyMol_Proxy(int c_in, int c_out, char *command, char *argv[])
 
     }
 
-	fprintf(stderr,"Waiting for process to end\n");
-
 	status = waitpid(pid, NULL, WNOHANG);
 
 	if (status == -1) 
-		fprintf(stderr, "Error waiting on process (%d)\n", errno);
+		fprintf(stderr, "pymolproxy: error waiting on pymol server to exit (%d)\n", errno);
 	else if (status == 0) {
-		fprintf(stderr, "Attempting to SIGTERM process.\n");
+		fprintf(stderr, "pymolproxy: attempting to SIGTERM pymol server\n");
 		kill(-pid, SIGTERM); // kill process group
 		alarm(5);
 		status = waitpid(pid, NULL, 0);
@@ -1322,7 +1310,7 @@ int pyMol_Proxy(int c_in, int c_out, char *command, char *argv[])
 
 		while ((status == -1) && (errno == EINTR))
 		{
-			fprintf(stderr, "Attempting to SIGKILL process.\n");
+			fprintf(stderr, "pymolproxy: Attempting to SIGKILL process.\n");
 			kill(-pid, SIGKILL); // kill process group
 			alarm(10);
 			status = waitpid(pid, NULL, 0);
@@ -1330,7 +1318,7 @@ int pyMol_Proxy(int c_in, int c_out, char *command, char *argv[])
 		}
 	}
 
-	fprintf(stderr, "Process ended\n");
+	fprintf(stderr, "pymolproxy: pymol server process ended\n");
 
 	dyBufferFree(&pymol.image);
 
