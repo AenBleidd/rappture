@@ -54,6 +54,7 @@ typedef struct _CType CType;
 typedef struct _CMain CMain;
 typedef struct _CGO CGO;
 typedef struct _CPlugIOManager CPlugIOManager;
+typedef struct _CImage CImage; /* Persistent image capture buffer *NJK* */
 
 #ifndef _PYMOL_NOPY
 typedef struct _CP_inst CP_inst;
@@ -149,6 +150,9 @@ struct _PyMOLGlobals {
                  * Python code and ask for their informed consent? */
 
   int DragDirtyFlag; /* do we need an extra callback to handle a mouse drag? */
+  int CmdPipe[2]; /* Sleep Interruption Patch *NJK* */
+  CImage *Image;  /* Persistent image capture buffer *NJK* */
+  int GLQueryId;  /* Sample counting patch *NJK* */
 
 
 };

@@ -297,13 +297,21 @@ void PSleepWhileBusy(PyMOLGlobals *G,int usec)
 void PSleepUnlocked(PyMOLGlobals *G,int usec)
 { /* can only be called by the glut process */
 #ifndef WIN32
+  fd_set fds; /* Sleep Interruption Patch *NJK* */
   struct timeval tv;
   PRINTFD(G,FB_Threads)
     " PSleep-DEBUG: napping.\n"
   ENDFD;
   tv.tv_sec=0;
   tv.tv_usec=usec; 
-  select(0,NULL,NULL,NULL,&tv);
+  /* Sleep Interruption Patch *NJK* */
+  FD_ZERO(&fds);
+  FD_SET(TempPyMOLGlobals->CmdPipe[0],&fds);
+  select(TempPyMOLGlobals->CmdPipe[0]+1,&fds,NULL,NULL,&tv);
+  if (FD_ISSET(TempPyMOLGlobals->CmdPipe[0],&fds)) {
+    char c;
+    read(TempPyMOLGlobals->CmdPipe[0],&c,1);
+  }
   PRINTFD(G,FB_Threads)
     " PSleep-DEBUG: nap over.\n"
   ENDFD;

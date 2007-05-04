@@ -1496,6 +1496,44 @@ void ScenePNG(PyMOLGlobals *G,char *png,float dpi,int quiet)
   }
   SceneImageFinish(G,image);  
 }
+
+/* BMP save image support *NJK* */
+void SceneBMP(PyMOLGlobals *G,char *bmp,float dpi,int quiet) 
+{
+  register CScene *I=G->Scene;
+
+  GLvoid *image = SceneImagePrepare(G);
+  if(image && I->Image) {
+    int width = I->Image->width;
+    int height = I->Image->height;
+    unsigned char *save_image = image;
+
+    if((image==I->Image->data) && I->Image->stereo) {
+      width = I->Image->width;
+      save_image = Alloc(unsigned char, I->Image->size*2);
+      interlace((unsigned int*)save_image,(unsigned int*)I->Image->data,width,height);
+      width *= 2;
+    }
+    if(dpi<0.0F) dpi = SettingGetGlobal_f(G,cSetting_image_dots_per_inch);
+    if(MyBMPWrite(G,bmp,save_image,width,height,dpi)) {
+      if(!quiet) {
+        PRINTFB(G,FB_Scene,FB_Actions)
+          " SceneBMP: wrote %dx%d pixel image to file \"%s\".\n",
+          width,I->Image->height,bmp
+          ENDFB(G);
+      }
+    } else {
+      PRINTFB(G,FB_Scene,FB_Errors)
+        " SceneBMP-Error: error writing \"%s\"! Please check directory...\n",
+        bmp
+        ENDFB(G);
+    }
+
+    if(save_image && (save_image!=image))
+      FreeP(save_image);
+  }
+  SceneImageFinish(G,image);
+}
 /*========================================================================*/
 void ScenePerspective(PyMOLGlobals *G,int flag)
 {
@@ -4798,6 +4836,17 @@ static int SceneDeferredClick(DeferredMouse *dm)
     }
   return 1;
 }
+/* BMP save image support *NJK* */
+static int SceneDeferredBMPImage(DeferredImage *di) 
+{
+  PyMOLGlobals *G=di->G;
+  SceneMakeSizedImage(G,di->width, di->height,di->antialias);
+  if(di->filename) {
+    SceneBMP(G,di->filename, di->dpi, di->quiet);
+    FreeP(di->filename);
+  }
+  return 1;
+}
 static int SceneDeferredImage(DeferredImage *di)
 {
   PyMOLGlobals *G=di->G;
@@ -4806,6 +4855,29 @@ static int SceneDeferredImage(DeferredImage *di)
     ScenePNG(G,di->filename, di->dpi, di->quiet);
     FreeP(di->filename);
   }
+  return 1;
+}
+/* BMP save image support *NJK* */
+int SceneDeferBMPImage(PyMOLGlobals *G,int width, int height, 
+                  char *filename, int antialias, float dpi, int quiet) 
+{
+  DeferredImage *di = Calloc(DeferredImage,1);
+  if(di) {
+    DeferredInit(G,&di->deferred);
+    di->G = G;
+    di->width = width;
+    di->height = height;
+    di->antialias = antialias;
+    di->deferred.fn = (DeferredFn*)SceneDeferredBMPImage;
+    di->dpi = dpi;
+    di->quiet = quiet;
+    if(filename) {
+      int stlen = strlen(filename);
+      di->filename = Alloc(char,stlen+1);
+      strcpy(di->filename, filename);
+    }
+  }
+  OrthoDefer(G,&di->deferred);
   return 1;
 }
 int SceneDeferImage(PyMOLGlobals *G,int width, int height, 

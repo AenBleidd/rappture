@@ -550,6 +550,25 @@ static void MainDrag(int x,int y)
   }
 }
 /*========================================================================*/
+/* Virtual mouse support *NJK* */
+void ProcessMainDrag(int x,int y)
+{
+  PyMOLGlobals *G = TempPyMOLGlobals;
+
+  CMain *I = G->Main;
+  
+  y=G->Option->winY-y;
+    
+  PyMOL_Drag(PyMOLInstance,x,y,I->Modifiers);
+    
+  if(PyMOL_GetRedisplay(PyMOLInstance, true)) {
+    if(G->HaveGUI) {
+      p_glutPostRedisplay();
+    }
+    I->IdleMode = 0;
+  }
+}
+/*========================================================================*/
 static void MainButton(int button,int state,int x,int y)
 {
   PyMOLGlobals *G = TempPyMOLGlobals;
@@ -586,6 +605,37 @@ static void MainButton(int button,int state,int x,int y)
     }
     
     PUnlockAPIAsGlut(G);
+  }
+}
+/*========================================================================*/
+/* Virtual mouse support *NJK* */
+void ProcessMainButton(int button,int glMod,int state,int x,int y)
+{
+  PyMOLGlobals *G = TempPyMOLGlobals;
+
+  CMain *I = G->Main;
+
+  I->IdleMode = 0; /* restore responsiveness */
+    
+  if(PyMOL_GetPassive(PyMOLInstance, true)) {
+    ProcessMainDrag(x,y);
+  } else {
+    /* stay blocked here because Clicks->SexFrame->PParse */
+    
+    y=G->Option->winY-y;
+      
+    I->Modifiers = ((glMod&P_GLUT_ACTIVE_SHIFT) ? cOrthoSHIFT : 0) |
+      ((glMod&P_GLUT_ACTIVE_CTRL) ? cOrthoCTRL : 0) |
+      ((glMod&P_GLUT_ACTIVE_ALT) ? cOrthoALT : 0);
+      
+    switch(button) {
+    case P_GLUT_BUTTON_SCROLL_FORWARD:
+    case P_GLUT_BUTTON_SCROLL_BACKWARD:
+      x=G->Option->winX/2;
+      y=G->Option->winY/2; /* force into scene */
+      break;
+    }
+    PyMOL_Button(PyMOLInstance,button,state,x,y,I->Modifiers);
   }
 }
 /*========================================================================*/
@@ -633,7 +683,46 @@ static void MainPassive(int x,int y)
   }
   
 }
+/*========================================================================*/
+/* Virtual mouse support *NJK* */
+void ProcessMainPassive(int x,int y)
+{
+  PyMOLGlobals *G = TempPyMOLGlobals;
+  CMain *I = G->Main;
 
+  #define PASSIVE_EDGE 20
+
+  if(PyMOL_GetPassive(G->PyMOL,false)) { /* a harmless race condition -- we don't want
+                                           to slow Python down buy locking on passive
+                                           mouse motion */
+    
+    if((y<-PASSIVE_EDGE)||(x<-PASSIVE_EDGE)||
+       (x>(G->Option->winX+PASSIVE_EDGE))||
+       (y>(G->Option->winY+PASSIVE_EDGE))) {       
+      /* release passive drag if mouse leaves window... */
+        
+      y=G->Option->winY-y;
+      
+      PyMOL_Button(PyMOLInstance,P_GLUT_LEFT_BUTTON, P_GLUT_UP,x,y,I->Modifiers);
+      
+      PyMOL_GetPassive(G->PyMOL,true); /* reset the flag */
+        
+    } else {
+        
+      y=G->Option->winY-y;
+        
+      PyMOL_Drag(PyMOLInstance,x,y,I->Modifiers);
+        
+    }
+      
+    if(PyMOL_GetRedisplay(PyMOLInstance, true)) {
+      if(G->HaveGUI) {
+        p_glutPostRedisplay();
+      }      
+      I->IdleMode = 0;
+    }
+  }
+}
 /*========================================================================*/
 static void MainDrawLocked(void)
 {

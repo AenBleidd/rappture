@@ -699,3 +699,13 @@ SEE ALSO
         if _raising(r): raise pymol.CmdException         
         return r
 
+    # Virtual mouse support *NJK*
+    def vmouse(b,m,s,x,y):
+        r = DEFAULT_SUCCESS
+        try:
+            lock()
+            _cmd.vmouse(int(b),int(m),int(s),int(x),int(y))
+        finally:
+            unlock(r)
+        if _raising(r): raise pymol.CmdException
+        return r

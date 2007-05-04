@@ -1916,9 +1916,11 @@ int OrthoGetPushed(PyMOLGlobals *G)
 /*========================================================================*/
 void OrthoCommandIn(PyMOLGlobals *G,char *buffer)
 {
+  char c = 1; /* Sleep Interruption Patch *NJK* */
   register COrtho *I=G->Ortho;
   if(I->cmds) 
 	QueueStrIn(I->cmds,buffer);
+  write(G->CmdPipe[1],&c,1); /* Sleep Interruption Patch *NJK* */
 }
 /*========================================================================*/
 void OrthoPasteIn(PyMOLGlobals *G,char *buffer)

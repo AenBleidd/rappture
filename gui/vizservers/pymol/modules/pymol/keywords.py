@@ -22,6 +22,7 @@ def get_command_keywords(self_cmd=cmd):
         'attach'        : [ self_cmd.attach            , 0 , 0 , ''  , parsing.STRICT ],
         'backward'      : [ self_cmd.backward          , 0 , 0 , ''  , parsing.STRICT ],
         'bg_color'      : [ self_cmd.bg_color          , 0 , 0 , ''  , parsing.STRICT ],
+        'bmp'           : [ self_cmd.bmp               , 0 , 0 , ''  , parsing.SECURE ], # BMP save image support *NJK*
         'bond'          : [ self_cmd.bond              , 0 , 0 , ''  , parsing.STRICT ],
         'break'         : [ self_cmd.python_help       , 0 , 0 , ''  , parsing.PYTHON ],   
         'button'        : [ self_cmd.button            , 0 , 0 , ''  , parsing.STRICT ],
@@ -251,6 +252,7 @@ def get_command_keywords(self_cmd=cmd):
         'vdw_fit'       : [ self_cmd.vdw_fit           , 0 , 0 , ''  , parsing.STRICT ],   
         'view'          : [ self_cmd.view              , 0 , 0 , ''  , parsing.STRICT ],   
         'viewport'      : [ self_cmd.viewport          , 0 , 0 , ''  , parsing.STRICT ],
+        'vmouse'        : [ self_cmd.vmouse            , 0 , 0 , ''  , parsing.STRICT ], # Virtual mouse support *NJK*
         'window'        : [ self_cmd.window            , 0 , 0 , ''  , parsing.STRICT ],         
         'while'         : [ self_cmd.python_help       , 0 , 0 , ''  , parsing.PYTHON ],   
         'wizard'        : [ self_cmd.wizard            , 0 , 0 , ''  , parsing.STRICT ],
