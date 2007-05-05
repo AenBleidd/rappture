@@ -446,7 +446,7 @@ itcl::body Rappture::LibraryObj::get {{path ""}} {
     if {$node == ""} {
         return ""
     }
-    return [string trim [Rappture::encoding::decode [$node text]]]
+    return [Rappture::encoding::decode [string trim [$node text]]]
 }
 
 # ----------------------------------------------------------------------

@@ -26,6 +26,10 @@ file delete -force $file
 $driver put output.string(dir).about.label "Contents"
 $driver put output.string(dir).current $dir
 
+$driver put output.string(tarball).about.label "Original Tar File"
+$driver put output.string(tarball).current $data
+$driver put output.string(tarball).filetype ".tgz"
+
 # save the updated XML describing the run...
 Rappture::result $driver
 exit 0
