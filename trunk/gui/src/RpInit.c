@@ -15,6 +15,9 @@
 #include <tcl.h>
 
 int RpRlimit_Init _ANSI_ARGS_((Tcl_Interp *interp));
+int RpRusage_Init _ANSI_ARGS_((Tcl_Interp *interp));
+int RpSignal_Init _ANSI_ARGS_((Tcl_Interp *interp));
+int RpDaemon_Init _ANSI_ARGS_((Tcl_Interp *interp));
 
 #ifdef BUILD_Rappture
 __declspec( dllexport )
@@ -38,6 +41,9 @@ Rappturegui_Init(Tcl_Interp *interp)   /* interpreter being initialized */
         return TCL_ERROR;
     }
     if (RpSignal_Init(interp) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (RpDaemon_Init(interp) != TCL_OK) {
         return TCL_ERROR;
     }
     return TCL_OK;

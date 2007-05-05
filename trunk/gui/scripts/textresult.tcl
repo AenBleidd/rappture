@@ -207,7 +207,11 @@ itcl::body Rappture::TextResult::add {dataobj {settings ""}} {
             }
         } elseif {[$dataobj element -as type] == "string"} {
             # add string values
-            $itk_component(text) insert end [$dataobj get current]
+            set data [$dataobj get current]
+            if {[Rappture::encoding::is binary $data]} {
+                set data [Rappture::utils::hexdump -lines 1000 $data]
+            }
+            $itk_component(text) insert end $data
         } else {
             # any other string output -- add it directly
             $itk_component(text) insert end [$dataobj get]
@@ -289,7 +293,22 @@ itcl::body Rappture::TextResult::download {option args} {
             return ""
         }
         now {
-            return [list .txt [$itk_component(text) get 1.0 end]]
+            if {"" == $_dataobj} {
+                return ""
+            }
+            if {[$_dataobj element -as type] == "log"} {
+                set val [$itk_component(text) get 1.0 end]
+            } elseif {[$_dataobj element -as type] == "string"} {
+                set val [$_dataobj get current]
+            } else {
+                set val [$_dataobj get]
+            }
+
+            set ext [$_dataobj get filetype]
+            if {"" == $ext && ![Rappture::encoding::is binary $val]} {
+                set ext ".txt"
+            }
+            return [list $ext $val]
         }
         default {
             error "bad option \"$option\": should be coming, controls, now"

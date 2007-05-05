@@ -349,54 +349,10 @@ itcl::body Rappture::TextEntry::_setValue {newval} {
         set _mode "binary"
         set _value $newval
 
-        set size [string length $newval]
-        foreach {factor units} {
-            1073741824 GB
-            1048576 MB
-            1024 kB
-            1 bytes
-        } {
-            if {$size/$factor > 0} {
-                if {$factor > 1} {
-                    set size [format "%.2f" [expr {double($size)/$factor}]]
-                }
-                break
-            }
-        }
-
         if {$_layout == "entry" || [string match {*x[01]} $_size]} {
-            set newval "<binary> $size $units"
+            set newval [Rappture::utils::hexdump -lines 0 $_value]
         } else {
-            set newval "<binary> $size $units\n\n"
-            set tail ""
-            set len [string length $_value]
-            if {$len > 1600} {
-                set len 1600
-                set tail "...more..."
-            }
-
-            for {set i 0} {$i < $len} {incr i 8} {
-                append newval [format "%#06x: " $i]
-                set ascii ""
-                for {set j 0} {$j < 8} {incr j} {
-                    if {$i+$j < $len} {
-                        set char [string index $_value [expr {$i+$j}]]
-                        binary scan $char c ichar
-                        set hexchar [format "%02x" [expr {0xff & $ichar}]]
-                    } else {
-                        set char " "
-                        set hexchar "  "
-                    }
-                    append newval "$hexchar "
-                    if {[regexp {[\000-\037\177-\377]} $char]} {
-                        append ascii "."
-                    } else {
-                        append ascii $char
-                    }
-                }
-                append newval " | $ascii\n"
-            }
-            append newval $tail
+            set newval [Rappture::utils::hexdump -lines 1000 $_value]
         }
     } else {
         # ascii file -- map carriage returns to line feeds

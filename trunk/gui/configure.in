@@ -83,7 +83,7 @@ TEA_SETUP_COMPILER
 # and PKG_TCL_SOURCES.
 #-----------------------------------------------------------------------
 
-TEA_ADD_SOURCES([RpInit.c RpRlimit.c RpRusage.c RpSignal.c])
+TEA_ADD_SOURCES([RpInit.c RpRlimit.c RpRusage.c RpSignal.c RpDaemon.c])
 TEA_ADD_HEADERS([])
 TEA_ADD_INCLUDES([])
 TEA_ADD_CFLAGS([])
