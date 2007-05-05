@@ -41,8 +41,9 @@ itcl::class Rappture::MolvisViewer {
     public method isconnected {}
     public method download {option args}
     protected method _rock {option}
+    protected method _sendit {args}
     protected method _send {args}
-    protected method _receive {}
+    protected method _receive { {sid ""} }
     protected method _update { args }
     protected method _rebuild { }
     protected method _zoom {option}
@@ -328,9 +329,7 @@ itcl::body Rappture::MolvisViewer::connect {{hostlist ""}} {
     set hostlist $_hostlist
     $_image(plot) blank
 
-    if ([isconnected]) {
-        disconnect
-    }
+    disconnect
 
     if {"" == $hostlist} {
         return 0
@@ -354,12 +353,12 @@ itcl::body Rappture::MolvisViewer::connect {{hostlist ""}} {
     foreach {hostname port} [split [lindex $hosts 0] :] break
 
     set hosts [lrange $hosts 1 end]
+	set result 0
 
     while {1} {
         if {[catch {socket $hostname $port} sid]} {
             if {[llength $hosts] == 0} {
-                blt::busy release $itk_component(hull)
-                return 0
+                break;
             }
             foreach {hostname port} [split [lindex $hosts 0] :] break
             set hosts [lrange $hosts 1 end]
@@ -384,22 +383,23 @@ itcl::body Rappture::MolvisViewer::connect {{hostlist ""}} {
             [expr {$b4 & 0xff}]]
 
         if {[string equal $hostname "0.0.0.0"]} {
-            fileevent $sid readable [itcl::code $this _receive]
             set _sid $sid
-
 			set _rocker(server) 0
 			set _cacheid 0
 
+            fileevent $_sid readable [itcl::code $this _receive $_sid]
+
             _send raw -defer set auto_color,0
             _send raw -defer set auto_show_lines,0
-            blt::busy release $itk_component(hull)
-            return 1
+
+            set result 1
+			break
         }
     }
 
     blt::busy release $itk_component(hull)
     
-    return 0
+    return $result
 }
 
 # ----------------------------------------------------------------------
@@ -411,17 +411,15 @@ itcl::body Rappture::MolvisViewer::connect {{hostlist ""}} {
 itcl::body Rappture::MolvisViewer::disconnect {} {
     #puts stderr "MolvisViewer::disconnect()"
 
-    fileevent $_sid readable {}
+	catch { fileevent $_sid readable {} }
     catch { after cancel $_rocker(afterid) }
 	catch { after cancel $_mevent(afterid) }
+    catch { close $_sid }
+    catch { unset _dataobjs }
+	catch { unset _model }
+	catch {	unset _mlist }
+    catch { unset _imagecache }
 
-    catch {
-        close $_sid
-        unset _dataobjs
-	    unset _model
-		unset _mlist
-        unset _imagecache
-    }
     set _sid ""
 	set _state(server) 1
 	set _state(client) 1
@@ -443,45 +441,40 @@ itcl::body Rappture::MolvisViewer::isconnected {} {
 #
 # Used internally to send commands off to the rendering server.
 # ----------------------------------------------------------------------
+itcl::body Rappture::MolvisViewer::_sendit {args} {
+    #puts stderr "Rappture::MolvisViewer::_sendit($args)"
+
+    if { $_sid != "" } {
+        if { ![catch { puts $_sid $args }] } {
+		    flush $_sid
+			return 0
+		} else {
+            catch { close $_sid }
+            set _sid ""
+		}
+	}
+
+    $_dispatcher event -after 1 !rebuild
+
+	return 1
+}
+
 itcl::body Rappture::MolvisViewer::_send {args} {
     #puts stderr "Rappture::MolvisViewer::_send($args)"
 
-    if {"" == $_sid} {
-        $_dispatcher cancel !serverDown
-        set x [expr {[winfo rootx $itk_component(area)]+10}]
-        set y [expr {[winfo rooty $itk_component(area)]+10}]
-        Rappture::Tooltip::cue @$x,$y "Connecting..."
-        update idletasks
-
-        if {[catch {connect} ok] == 0 && $ok} {
-            set w [winfo width $itk_component(3dview)]
-            set h [winfo height $itk_component(3dview)]
-            puts $_sid "screen -defer $w $h"
-            flush $_sid
-            $_dispatcher event -idle !rebuild
-            Rappture::Tooltip::cue hide
-            return
+    if { $_state(server) != $_state(client) } {
+        if { [_sendit "frame -defer $_state(client)"] == 0 } {
+            set _state(server) $_state(client)
         }
+	}
 
-        Rappture::Tooltip::cue @$x,$y "Can't connect to visualization server.  This may be a network problem.  Wait a few moments and try resetting the view."
-        
-        return
-    } else {
-
-        if { $_state(server) != $_state(client) } {
-		    puts $_sid "frame -defer $_state(client)"
-		    set _state(server) $_state(client)
+    if { $_rocker(server) != $_rocker(client) } {
+        if { [_sendit "rock -defer $_rocker(client)"]  == 0 } {
+            set _rocker(server) $_rocker(client)
 	    }
+	}
 
-		if { $_rocker(server) != $_rocker(client) } {
-		    puts $_sid "rock -defer $_rocker(client)"
-		    set _rocker(server) $_rocker(client)
-	    }
-
-        puts $_sid $args
-
-        flush $_sid
-    }
+    eval _sendit $args
 }
 
 # ----------------------------------------------------------------------
@@ -491,48 +484,57 @@ itcl::body Rappture::MolvisViewer::_send {args} {
 # rendering server.  Reads the incoming command and executes it in
 # a safe interpreter to handle the action.
 # ----------------------------------------------------------------------
-itcl::body Rappture::MolvisViewer::_receive {} {
-    #puts stderr "Rappture::MolvisViewer::_receive()"
+itcl::body Rappture::MolvisViewer::_receive { {sid ""} } {
+    #puts stderr "Rappture::MolvisViewer::_receive($sid)"
 
-    if {"" != $_sid} { fileevent $_sid readable {} }
+    if { $sid == "" } {
+	    return
+	}
 
-    while {$_sid != ""} {
-        fconfigure $_sid -buffering line -blocking 0
+	fileevent $sid readable {} 
+
+    if { $sid != $_sid } {
+	    return
+	}
+
+    fconfigure $_sid -buffering line -blocking 0
         
-        if {[gets $_sid line] < 0} {
-            if { [fblocked $_sid] } { 
-                break; 
-            }
-            
-            disconnect
-            
+    if {[gets $_sid line] < 0} {
+
+        if { ![fblocked $_sid] } { 
+		    catch { close $_sid }
+			set _sid ""
             $_dispatcher event -after 750 !serverDown
-        } elseif {[regexp {^\s*nv>\s*image\s+(\d+)\s*(\d+)\s*,\s*(\d+)\s*,\s*(-{0,1}\d+)} $line whole match cacheid frame rock]} {
-            set tag "$frame,$rock"
+		}
+
+    }  elseif {[regexp {^\s*nv>\s*image\s+(\d+)\s*(\d+)\s*,\s*(\d+)\s*,\s*(-{0,1}\d+)} $line whole match cacheid frame rock]} {
+
+        set tag "$frame,$rock"
     		
-            if { $cacheid != $_cacheid } {
-                catch { unset _imagecache }
-                set _cacheid $cacheid
-            }
-
-            fconfigure $_sid -buffering none -blocking 1
-            set _imagecache($tag) [read $_sid $match]
-			#puts stderr "CACHED: $tag,$cacheid"
-            $_image(plot) put $_imagecache($tag)
-            set _image(id) $tag
-			if { $_busy } {
-                $itk_component(3dview) configure -cursor ""
-				set _busy 0
-			}
-            update idletasks
-            break
-        } else {
-            # this shows errors coming back from the engine
-            puts $line
+        if { $cacheid != $_cacheid } {
+            catch { unset _imagecache }
+            set _cacheid $cacheid
         }
-    }
 
-    if { "" != $_sid } { fileevent $_sid readable [itcl::code $this _receive] }
+        fconfigure $_sid -buffering none -blocking 1
+        set _imagecache($tag) [read $_sid $match]
+	    #puts stderr "CACHED: $tag,$cacheid"
+        $_image(plot) put $_imagecache($tag)
+        set _image(id) $tag
+
+		if { $_busy } {
+            $itk_component(3dview) configure -cursor ""
+		    set _busy 0
+		}
+
+    } else {
+        # this shows errors coming back from the engine
+        puts $line
+    }
+    
+	if { $_sid != "" } {
+        fileevent $_sid readable [itcl::code $this _receive $_sid] 
+    } 
 }
 
 # ----------------------------------------------------------------------
@@ -551,6 +553,29 @@ itcl::body Rappture::MolvisViewer::_rebuild {} {
 	}
 
 	set _inrebuild 1
+
+    if {"" == $_sid} {
+        $_dispatcher cancel !serverDown
+
+        set x [expr {[winfo rootx $itk_component(area)]+10}]
+        set y [expr {[winfo rooty $itk_component(area)]+10}]
+
+        Rappture::Tooltip::cue @$x,$y "Connecting..."
+        update idletasks
+
+        if {[catch {connect} ok] == 0 && $ok} {
+            set w [winfo width $itk_component(3dview)]
+            set h [winfo height $itk_component(3dview)]
+            _send screen -defer $w $h
+            Rappture::Tooltip::cue hide
+        } else {
+            Rappture::Tooltip::cue @$x,$y "Can't connect to visualization server.  This may be a network problem.  Wait a few moments and try resetting the view."
+		    set _inrebuild 0
+	        set _busy 1
+            return
+		}
+    }
+
 	set changed 0
 	set _busy 1
 
@@ -697,6 +722,15 @@ itcl::body Rappture::MolvisViewer::_rebuild {} {
 	}
 
 	set _inrebuild 0
+
+	if { $_sid == "" } {
+	    # connection failed during rebuild, don't attempt to reconnect/rebuild
+		# until user initiates some action
+
+		disconnect
+        $_dispatcher cancel !rebuild
+        $_dispatcher event -after 750 !serverDown
+	}
 }
 
 itcl::body Rappture::MolvisViewer::_unmap { } {
@@ -937,6 +971,11 @@ itcl::body Rappture::MolvisViewer::_serverDown {} {
 
     set x [expr {[winfo rootx $itk_component(area)]+10}]
     set y [expr {[winfo rooty $itk_component(area)]+10}]
+
+	if { $_busy } {
+        $itk_component(3dview) configure -cursor ""
+        set _busy 0
+	}
 
     Rappture::Tooltip::cue @$x,$y "Lost connection to visualization server.  This happens sometimes when there are too many users and the system runs out of memory.\n\nTo reconnect, reset the view or press any other control.  Your picture should come right back up."
 }
