@@ -79,6 +79,7 @@ itcl::class Rappture::MolvisViewer {
     private variable _mrepresentation "spheres"
     private variable _cacheimage ""
 	private variable _busy 0
+	private variable _mapped 0
 }
 
 itk::usual MolvisViewer {
@@ -744,13 +745,16 @@ itcl::body Rappture::MolvisViewer::_unmap { } {
 	# this prevents old image from briefly appearing when a new result is added
 	# by result viewer
 
+    set _mapped 0
     $_image(plot) blank
 	set _image(id) ""
 }
 
 itcl::body Rappture::MolvisViewer::_map { } {
     #puts stderr "Rappture::MolvisViewer::_map()"
-    
+
+    set _mapped 1
+
 	# resume rocking loop if it was on
 	_rock unpause
 
@@ -762,7 +766,16 @@ itcl::body Rappture::MolvisViewer::_configure { w h } {
     #puts stderr "Rappture::MolvisViewer::_configure($w $h)"
 
     $_image(plot) configure -width $w -height $h
-	_send screen $w $h
+    
+	# immediately invalidate cache, defer update until mapped
+	
+	catch { unset _imagecache } 
+
+    if { $_mapped } {
+        _send screen $w $h
+	} else {
+        _send screen -defer $w $h
+	}
 }
 
 # ----------------------------------------------------------------------
