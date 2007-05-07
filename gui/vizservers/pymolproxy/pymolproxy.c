@@ -1230,7 +1230,7 @@ int pyMol_Proxy(int c_in, int c_out, char *command, char *argv[])
 
 				    if (ch == '\n' && Tcl_CommandComplete(Tcl_DStringValue(&cmdbuffer))) {
 			            Tcl_Eval(interp, Tcl_DStringValue(&cmdbuffer));
-					    fprintf(stderr,"Executed(%d,%d): %s", pymol.need_update, pymol.immediate_update, Tcl_DStringValue(&cmdbuffer));
+					    //fprintf(stderr,"Executed(%d,%d): %s", pymol.need_update, pymol.immediate_update, Tcl_DStringValue(&cmdbuffer));
 			            Tcl_DStringSetLength(&cmdbuffer, 0);
 
 					    if (timeout == 0) status = 0; // send update
