@@ -13,7 +13,13 @@ if test "${exec_prefix}" = "NONE"; then
     exec_prefix=$prefix
 fi
 
-# AC_PROG_INSTALL
+if test "${libdir}" != "${prefix}/lib"; then
+    LIB_SEARCH_DIRS="-L ${prefix}/lib -L ${libdir}"
+else
+    LIB_SEARCH_DIRS="-L ${libdir}"
+fi
+
+AC_PROG_INSTALL
 AC_PROG_MAKE_SET
 
 dnl find and test the C compiler
@@ -36,14 +42,16 @@ AC_PROG_F77([f77 fort77 g77 f90 xlf xlf90 fl32])
 
 AC_ARG_WITH(matlab, [  --with-matlab[=DIR]         Build Matlab bindings if MEX compiler is found])
 AC_ARG_WITH(matlab_arch, [  --with-matlab-arch[=ARCH]         Build Matlab bindings for ARCH architecture])
+AC_ARG_WITH(mexext, [  --with-mexext[=ARCH]         Suggest an extension for building mex files])
 dnl AC_CHECK_PROG(MEX, mex, mex, false)
 MEX=
 MEX_ARCH=
+MEXEXT=
 if test "$with_matlab" != "no" ; then
     dnl WITH_MATLAB = "yes"
     if test -x "$with_matlab/bin/mex"
     then
-        echo Found matlab in $with_matlab/bin/mex
+        echo Found mex in $with_matlab/bin/mex
         MEX="$with_matlab/bin/mex"
     else
         if test -x "$with_matlab"
@@ -54,10 +62,21 @@ if test "$with_matlab" != "no" ; then
             AC_PATH_PROG(MEX, mex)
         fi
     fi
+    if test "x$MEX" != "x" ; then 
+        mexext_fxn=`dirname $MEX`/mexext
+        if test "x$mexext_fxn" != "x"; then
+            MEXEXT=`$mexext_fxn`
+            if test "x${MEXEXT}" = "x" ; then
+                MEXEXT="mexglx"
+            fi
+            echo Using extension $MEXEXT
+        fi
+    fi
 fi
 if test "x$with_matlab_arch" != "x" ; then
     MEX_ARCH="-arch=$with_matlab_arch"
 fi
+
 dnl AM_CONDITIONAL(WITH_MATLAB, test x$MEX != x)
 
 AC_ARG_WITH(octave, [  --with-octave[=DIR]         Build Octave bindings if MKOCTFILE compiler is found])
@@ -92,6 +111,7 @@ dnl AC_CHECK_PROG(PERL, perl, perl, false)
 dnl AM_CONDITIONAL(WITH_PERL, test "$PERL" != "false")
 PERL=
 PERL_INCLUDES=
+PERL_SITE_PACKAGES=
 if test "$with_perl" != "no" ; then
     if test -x "$with_perl/bin/perl"
     then
@@ -106,6 +126,7 @@ if test "$with_perl" != "no" ; then
             AC_PATH_PROG(PERL, perl)
         fi
     fi
+    PERL_SITE_PACKAGES='$(libdir)/perl5'
 fi
 dnl AM_CONDITIONAL(WITH_PERL, test x$PERL != x)
 
@@ -130,7 +151,7 @@ if test "$with_python" != "no" ; then
             echo Found python in $with_python
             PYTHON="$with_python"
         else
-            AC_PATH_PROG(PYTHON, python python2.4 python2.3 python2.2 python2.1 python2.0 python1.6 python1.5)
+            AC_PATH_PROG(PYTHON, python python2.5 python2.4 python2.3 python2.2 python2.1 python2.0 python1.6 python1.5)
         fi
     fi
     if test "$PYTHON" != ""
@@ -179,13 +200,16 @@ dnl AC_SUBST(PYTHON_SUBDIR)
 
 AC_SUBST(MEX)
 AC_SUBST(MEX_ARCH)
+AC_SUBST(MEXEXT)
 AC_SUBST(MKOCTFILE)
 AC_SUBST(PERL)
 AC_SUBST(PERL_INCLUDES)
+AC_SUBST(PERL_SITE_PACKAGES)
 AC_SUBST(PYTHON)
 AC_SUBST(PYTHON_VERSION)
 AC_SUBST(PYTHON_INCLUDES)
 AC_SUBST(PYTHON_SITE_PACKAGES)
+AC_SUBST(LIB_SEARCH_DIRS)
 
 AC_SUBST(VERSION)
 

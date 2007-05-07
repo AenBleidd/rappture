@@ -1,12 +1,21 @@
 
-ifndef RP_INSTALL_BASE
-RP_INSTALL_BASE = @prefix@
-endif
+prefix          = @prefix@
+exec_prefix     = @exec_prefix@
+bindir          = @bindir@
+libdir          = @libdir@
+includedir      = @includedir@
+mandir          = @mandir@
+
+INSTALL			= @INSTALL@
+INSTALL_PROGRAM	= ${INSTALL} -m 755
+INSTALL_DATA	= ${INSTALL} -m 644
+INSTALL_SCRIPT	= ${INSTALL}
+
 
 # tell make where to find the expat & libscew headers
-INCL_RP_DEPS    = -I$(RP_INSTALL_BASE)/include
+INCL_RP_DEPS    = -I$(includedir)
 
-EXTERNAL_RP_LIBS   = -L$(RP_INSTALL_BASE)/lib -lscew -lz -lb64 -lm
+EXTERNAL_RP_LIBS   = @LIB_SEARCH_DIRS@ -lexpat -lscew -lz -lb64 -lm
 
 
 # define the top of the rappture directory structure
@@ -87,7 +96,7 @@ LDLIB_LINUX = -shared -Wl,-rpath,$(LIB_DIR)/ -Wl,-soname,$@.so -o $(LIB_DIR)/$@.
 
 librappture: $(RP_IO_DEPS) $(RP_UTILS_DEPS) $(RP_UNITS_DEPS) $(RP_OTHER_DEPS)
 	(cd ../src2/core/; make Outcome.o Ptr.o RpBuffer.o)
-	if test "`uname`" == "Darwin"; then \
+	@if test "`uname`" == "Darwin"; then \
 		$(CXX) $(DEGUG) $(LDLIB_MACOSX) $^ $(RP2_OBJ_DEP) $(EXTERNAL_RP_LIBS); \
 		ar -r $@.a $^; \
 		ranlib -s $@.a; \
@@ -99,24 +108,24 @@ librappture: $(RP_IO_DEPS) $(RP_UTILS_DEPS) $(RP_UNITS_DEPS) $(RP_OTHER_DEPS)
 	fi
 
 install_rappture: librappture
-	if test "`uname`" == "Darwin"; then \
-		cp $<.dylib $(RP_INSTALL_BASE)/lib; \
-		cp $<.a $(RP_INSTALL_BASE)/lib; \
+	@if test "`uname`" == "Darwin"; then \
+		cp $<.dylib $(libdir); \
+		cp $<.a $(libdir); \
 	else \
-		cp -d $<.so* $(RP_INSTALL_BASE)/lib; \
-		cp -d $<.a $(RP_INSTALL_BASE)/lib; \
+		cp -d $<.so* $(libdir); \
+		cp -d $<.a $(libdir); \
 	fi
-	cp $(CORE_SRC)/*.h $(RP_INSTALL_BASE)/include; \
-	cp $(CEE_SRC)/*.h $(RP_INSTALL_BASE)/include; \
-	cp $(FORT_SRC)/*.h $(RP_INSTALL_BASE)/include; \
-	cp $(CORE2_SRC)/Outcome.h $(RP_INSTALL_BASE)/include; \
-	cp $(CORE2_SRC)/Ptr.h $(RP_INSTALL_BASE)/include; \
-	cp $(CORE2_SRC)/RpBuffer.h $(RP_INSTALL_BASE)/include; \
-	cp $(CORE2_SRC)/rappture2.h $(RP_INSTALL_BASE)/include;
+	$(INSTALL_DATA) $(CORE_SRC)/*.h $(includedir)
+	$(INSTALL_DATA) $(CEE_SRC)/*.h $(includedir)
+	$(INSTALL_DATA) $(FORT_SRC)/*.h $(includedir)
+	$(INSTALL_DATA) $(CORE2_SRC)/Outcome.h $(includedir)
+	$(INSTALL_DATA) $(CORE2_SRC)/Ptr.h $(includedir)
+	$(INSTALL_DATA) $(CORE2_SRC)/RpBuffer.h $(includedir)
+	$(INSTALL_DATA) $(CORE2_SRC)/rappture2.h $(includedir)
 
 #### libRpObjects ########################################################
 libRpObjects: $(RP_OBJS_DEP)
-	if test "`uname`" == "Darwin"; then \
+	@if test "`uname`" == "Darwin"; then \
 		$(CXX) $(DEGUG) $(LDLIB_MACOSX) $^ -lstdc++; \
 	else \
 		$(CXX) $(DEGUG) $(LDLIB_LINUX) $^ -lstdc++; \
@@ -124,23 +133,11 @@ libRpObjects: $(RP_OBJS_DEP)
 	fi
 
 install_rpobjs: libRpObjects
-	if test "`uname`" == "Darwin"; then \
-		cp $<.dylib $(RP_INSTALL_BASE)/lib; \
+	@if test "`uname`" == "Darwin"; then \
+		cp $<.dylib $(libdir); \
 	else \
-		cp -d $<.so* $(RP_INSTALL_BASE)/lib; \
+		cp -d $<.so* $(libdir); \
 	fi
-
-#### Matlab ########################################################
-install_matlab: librappture
-	cd $(MATLAB_SRC); make install; cd -
-
-#### Octave ########################################################
-install_octave: librappture
-	cd $(OCTAVE_SRC); make install; cd -
-
-#### Tcl ###########################################################
-install_tcl: librappture
-	cd $(TCL_SRC) && make install && cd -
 
 ####################################################################
 
@@ -235,14 +232,6 @@ RpFortranCommon.o: $(FORT_SRC)/RpFortranCommon.cc
 RpLibraryFInterface.o: $(FORT_SRC)/RpLibraryFInterface.cc
 	$(CXX) $(CFLAGS) $(DEBUG) -o $@ -c $? $(INCL_CORE) $(INCL_CORE2) $(INCL_FORTRAN) $(INCL_RP_DEPS)
 
-
-# matlab bindings
-RpMatlab: librappture
-	cd $(MATLAB_SRC); make clean; make RpMatlab; cd -
-
-# octave bindings
-RpOctave: librappture
-	cd $(OCTAVE_SRC); make clean; make RpOctave; cd -
 
 docs:
 	if test ! -d docs; then \

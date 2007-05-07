@@ -1,12 +1,18 @@
 
-ifndef RP_INSTALL_BASE
-RP_INSTALL_BASE = @prefix@
-endif
+prefix          = @prefix@
+exec_prefix     = @exec_prefix@
+bindir          = @bindir@
+libdir          = @libdir@
+includedir      = @includedir@
+mandir          = @mandir@
 
-# tell make where to find the expat & libscew sources
-INCL_RP_DEPS    = -I$(RP_INSTALL_BASE)/include
+INSTALL			= @INSTALL@
+INSTALL_PROGRAM	= ${INSTALL} -m 755
+INSTALL_DATA	= ${INSTALL} -m 644
+INSTALL_SCRIPT	= ${INSTALL}
 
-LIB_SCEW_FLAG   = -L$(RP_INSTALL_BASE)/lib -lscew
+# tell make where to find the expat headers
+INCL_RP_DEPS    = -I$(includedir)
 
 # define the top of the rappture directory structure
 RP_BASE   = @RP_BASE@
@@ -25,147 +31,111 @@ INCL_CORE       = -I$(INCLUDES_DIR)/core
 INCL_CEE        = -I$(INCLUDES_DIR)/cee
 INCL_MATLAB     = -I$(INCLUDES_DIR)/matlab
 
-all: RpMatlab install_matlab
-install: install_matlab
+OBJS=rpLib.@MEXEXT@ rpLibXml.@MEXEXT@ rpLibElement.@MEXEXT@ rpLibElementAsObject.@MEXEXT@ rpLibElementAsType.@MEXEXT@ rpLibElementAsComp.@MEXEXT@ rpLibElementAsId.@MEXEXT@ rpLibChildren.@MEXEXT@ rpLibChildrenByType.@MEXEXT@ rpLibGet.@MEXEXT@ rpLibGetString.@MEXEXT@ rpLibGetDouble.@MEXEXT@ rpLibPut.@MEXEXT@ rpLibPutString.@MEXEXT@ rpLibPutDouble.@MEXEXT@ rpLibPutData.@MEXEXT@ rpLibPutFile.@MEXEXT@ rpLibNodeComp.@MEXEXT@ rpLibNodeType.@MEXEXT@ rpLibNodeId.@MEXEXT@ rpLibResult.@MEXEXT@ rpUnitsDefineUnit.@MEXEXT@ rpUnitsGetUnits.@MEXEXT@ rpUnitsGetUnitsName.@MEXEXT@ rpUnitsGetExponent.@MEXEXT@ rpUnitsGetBasis.@MEXEXT@ rpUnitsFind.@MEXEXT@ rpUnitsConvert.@MEXEXT@ rpUnitsConvertStr.@MEXEXT@ rpUnitsConvertObjStr.@MEXEXT@ rpUnitsConvertDbl.@MEXEXT@ rpUnitsConvertObjDbl.@MEXEXT@ rpAddPresets.@MEXEXT@ rpUtilsProgress.@MEXEXT@
+
+all: $(OBJS)
 
 #### Matlab ########################################################
-install_matlab: RpMatlab
-	if test ! -d $(RP_INSTALL_BASE)/lib/matlab; then \
-		mkdir $(RP_INSTALL_BASE)/lib/matlab; \
+install: $(OBJS)
+	@if test ! -d $(libdir)/matlab; then \
+		mkdir $(libdir)/matlab; \
 	fi
-	cp *.mex* $(RP_INSTALL_BASE)/lib/matlab
+	$(INSTALL_DATA) *.mex* $(libdir)/matlab
 
 ####################################################################
 
 # matlab bindings
 MEX_INCLS = $(INCL_MATLAB) $(INCL_CORE) $(INCL_CEE) $(INCL_RP_DEPS)
-# MEX_OPTS = -g -outdir $(MATLAB_SRC) -L$(LIB_DIR) -lrappture $(LIB_SCEW_FLAG)
-MEX_OPTS = -g $(LIB_RAPPTURE) $(LIB_SCEW_FLAG)
+# MEX_OPTS = -g -outdir $(MATLAB_SRC) -L$(LIB_DIR) -lrappture
+MEX_OPTS = -g $(LIB_RAPPTURE)
 MATLAB_COMP_ARGS = RpMatlabInterface.cc $(MEX_INCLS) $(MEX_OPTS)
 
-RpMatlab: 	rpLib.mexglx \
-			rpLibXml.mexglx \
-			rpLibElement.mexglx \
-			rpLibElementAsObject.mexglx \
-			rpLibElementAsType.mexglx \
-			rpLibElementAsComp.mexglx \
-			rpLibElementAsId.mexglx \
-			rpLibChildren.mexglx \
-			rpLibChildrenByType.mexglx \
-			rpLibGet.mexglx \
-			rpLibGetString.mexglx \
-			rpLibGetDouble.mexglx \
-			rpLibPut.mexglx \
-			rpLibPutString.mexglx \
-			rpLibPutDouble.mexglx \
-			rpLibPutData.mexglx \
-			rpLibPutFile.mexglx \
-			rpLibNodeComp.mexglx \
-			rpLibNodeType.mexglx \
-			rpLibNodeId.mexglx \
-			rpLibResult.mexglx \
-			rpUnitsDefineUnit.mexglx \
-			rpUnitsGetUnits.mexglx \
-			rpUnitsGetUnitsName.mexglx \
-			rpUnitsGetExponent.mexglx \
-			rpUnitsGetBasis.mexglx \
-			rpUnitsFind.mexglx \
-			rpUnitsConvert.mexglx \
-			rpUnitsConvertStr.mexglx \
-			rpUnitsConvertObjStr.mexglx \
-			rpUnitsConvertDbl.mexglx \
-			rpUnitsConvertObjDbl.mexglx \
-			rpAddPresets.mexglx \
-			rpUtilsProgress.mexglx
+rpLib.@MEXEXT@: rpLib.cc
+	$(MEX) rpLib.cc $(MATLAB_COMP_ARGS)
+rpLibXml.@MEXEXT@: rpLibXml.cc
+	$(MEX) rpLibXml.cc $(MATLAB_COMP_ARGS)
+rpLibElement.@MEXEXT@: rpLibElement.cc
+	$(MEX) rpLibElement.cc $(MATLAB_COMP_ARGS)
+rpLibElementAsObject.@MEXEXT@: rpLibElementAsObject.cc
+	$(MEX) rpLibElementAsObject.cc $(MATLAB_COMP_ARGS)
+rpLibElementAsType.@MEXEXT@: rpLibElementAsType.cc
+	$(MEX) rpLibElementAsType.cc $(MATLAB_COMP_ARGS)
+rpLibElementAsComp.@MEXEXT@: rpLibElementAsComp.cc
+	$(MEX) rpLibElementAsComp.cc $(MATLAB_COMP_ARGS)
+rpLibElementAsId.@MEXEXT@: rpLibElementAsId.cc
+	$(MEX) rpLibElementAsId.cc $(MATLAB_COMP_ARGS)
+rpLibChildren.@MEXEXT@: rpLibChildren.cc
+	$(MEX) rpLibChildren.cc $(MATLAB_COMP_ARGS)
+rpLibChildrenByType.@MEXEXT@: rpLibChildrenByType.cc
+	$(MEX) rpLibChildrenByType.cc $(MATLAB_COMP_ARGS)
 
+#rpLibChildrenAsObject.@MEXEXT@: rpChildrenAsObject.cc
+#$(MEX) rpChildrenAsObject.cc $(MATLAB_COMP_ARGS)
+#rpLibChildrenAsType.@MEXEXT@: rpChildrenAsType.cc
+#$(MEX) rpChildrenAsType.cc $(MATLAB_COMP_ARGS)
+#rpLibChildrenAsComp.@MEXEXT@: rpChildrenAsComp.cc
+#$(MEX) rpChildrenAsComp.cc $(MATLAB_COMP_ARGS)
+#rpLibChildrenAsId.@MEXEXT@: rpChildrenAsId.cc
+#$(MEX) rpChildrenAsId.cc $(MATLAB_COMP_ARGS)
 
-
-rpLib.mexglx:
-	$(MEX) rpLib.cc                   $(MATLAB_COMP_ARGS)
-rpLibXml.mexglx:
-	$(MEX) rpLibXml.cc                $(MATLAB_COMP_ARGS)
-rpLibElement.mexglx:
-	$(MEX) rpLibElement.cc            $(MATLAB_COMP_ARGS)
-rpLibElementAsObject.mexglx:
-	$(MEX) rpLibElementAsObject.cc    $(MATLAB_COMP_ARGS)
-rpLibElementAsType.mexglx:
-	$(MEX) rpLibElementAsType.cc      $(MATLAB_COMP_ARGS)
-rpLibElementAsComp.mexglx:
-	$(MEX) rpLibElementAsComp.cc      $(MATLAB_COMP_ARGS)
-rpLibElementAsId.mexglx:
-	$(MEX) rpLibElementAsId.cc        $(MATLAB_COMP_ARGS)
-rpLibChildren.mexglx:
-	$(MEX) rpLibChildren.cc           $(MATLAB_COMP_ARGS)
-rpLibChildrenByType.mexglx:
-	$(MEX) rpLibChildrenByType.cc     $(MATLAB_COMP_ARGS)
-
-#rpLibChildrenAsObject.mexglx:
-#$(MEX) rpChildrenAsObject.cc         $(MATLAB_COMP_ARGS)
-#rpLibChildrenAsType.mexglx:
-#$(MEX) rpChildrenAsType.cc           $(MATLAB_COMP_ARGS)
-#rpLibChildrenAsComp.mexglx:
-#$(MEX) rpChildrenAsComp.cc           $(MATLAB_COMP_ARGS)
-#rpLibChildrenAsId.mexglx:
-#$(MEX) rpChildrenAsId.cc             $(MATLAB_COMP_ARGS)
-
-rpLibGet.mexglx:
-	$(MEX) rpLibGet.cc                $(MATLAB_COMP_ARGS)
-rpLibGetString.mexglx:
-	$(MEX) rpLibGetString.cc          $(MATLAB_COMP_ARGS)
-rpLibGetDouble.mexglx:
-	$(MEX) rpLibGetDouble.cc          $(MATLAB_COMP_ARGS)
-rpLibPut.mexglx:
-	$(MEX) rpLibPut.cc                $(MATLAB_COMP_ARGS)
-rpLibPutString.mexglx:
-	$(MEX) rpLibPutString.cc          $(MATLAB_COMP_ARGS)
-rpLibPutDouble.mexglx:
-	$(MEX) rpLibPutDouble.cc          $(MATLAB_COMP_ARGS)
-rpLibPutData.mexglx:
-	$(MEX) rpLibPutData.cc            $(MATLAB_COMP_ARGS)
-rpLibPutFile.mexglx:
-	$(MEX) rpLibPutFile.cc            $(MATLAB_COMP_ARGS)
-rpLibNodeComp.mexglx:
-	$(MEX) rpLibNodeComp.cc           $(MATLAB_COMP_ARGS)
-rpLibNodeType.mexglx:
-	$(MEX) rpLibNodeType.cc           $(MATLAB_COMP_ARGS)
-rpLibNodeId.mexglx:
-	$(MEX) rpLibNodeId.cc             $(MATLAB_COMP_ARGS)
-rpLibResult.mexglx:
-	$(MEX) rpLibResult.cc             $(MATLAB_COMP_ARGS)
-rpUnitsDefineUnit.mexglx:
-	$(MEX) rpUnitsDefineUnit.cc       $(MATLAB_COMP_ARGS)
-#rpDefineConv.mexglx:
-#$(MEX) rpDefineConv.cc               $(MATLAB_COMP_ARGS)
-rpUnitsGetUnits.mexglx:
-	$(MEX) rpUnitsGetUnits.cc         $(MATLAB_COMP_ARGS)
-rpUnitsGetUnitsName.mexglx:
-	$(MEX) rpUnitsGetUnitsName.cc     $(MATLAB_COMP_ARGS)
-rpUnitsGetExponent.mexglx:
-	$(MEX) rpUnitsGetExponent.cc      $(MATLAB_COMP_ARGS)
-rpUnitsGetBasis.mexglx:
-	$(MEX) rpUnitsGetBasis.cc         $(MATLAB_COMP_ARGS)
-rpUnitsFind.mexglx:
-	$(MEX) rpUnitsFind.cc             $(MATLAB_COMP_ARGS)
-rpUnitsConvert.mexglx:
-	$(MEX) rpUnitsConvert.cc          $(MATLAB_COMP_ARGS)
-rpUnitsConvertStr.mexglx:
-	$(MEX) rpUnitsConvertStr.cc       $(MATLAB_COMP_ARGS)
-rpUnitsConvertObjStr.mexglx:
-	$(MEX) rpUnitsConvertObjStr.cc    $(MATLAB_COMP_ARGS)
-rpUnitsConvertDbl.mexglx:
-	$(MEX) rpUnitsConvertDbl.cc       $(MATLAB_COMP_ARGS)
-rpUnitsConvertObjDbl.mexglx:
-	$(MEX) rpUnitsConvertObjDbl.cc    $(MATLAB_COMP_ARGS)
-rpAddPresets.mexglx:
-	$(MEX) rpAddPresets.cc            $(MATLAB_COMP_ARGS)
-rpUtilsProgress.mexglx:
-	$(MEX) rpUtilsProgress.cc         $(MATLAB_COMP_ARGS)
+rpLibGet.@MEXEXT@: rpLibGet.cc
+	$(MEX) rpLibGet.cc $(MATLAB_COMP_ARGS)
+rpLibGetString.@MEXEXT@: rpLibGetString.cc
+	$(MEX) rpLibGetString.cc $(MATLAB_COMP_ARGS)
+rpLibGetDouble.@MEXEXT@: rpLibGetDouble.cc
+	$(MEX) rpLibGetDouble.cc $(MATLAB_COMP_ARGS)
+rpLibPut.@MEXEXT@: rpLibPut.cc
+	$(MEX) rpLibPut.cc $(MATLAB_COMP_ARGS)
+rpLibPutString.@MEXEXT@: rpLibPutString.cc
+	$(MEX) rpLibPutString.cc $(MATLAB_COMP_ARGS)
+rpLibPutDouble.@MEXEXT@: rpLibPutDouble.cc
+	$(MEX) rpLibPutDouble.cc $(MATLAB_COMP_ARGS)
+rpLibPutData.@MEXEXT@: rpLibPutData.cc
+	$(MEX) rpLibPutData.cc $(MATLAB_COMP_ARGS)
+rpLibPutFile.@MEXEXT@: rpLibPutFile.cc
+	$(MEX) rpLibPutFile.cc $(MATLAB_COMP_ARGS)
+rpLibNodeComp.@MEXEXT@: rpLibNodeComp.cc
+	$(MEX) rpLibNodeComp.cc $(MATLAB_COMP_ARGS)
+rpLibNodeType.@MEXEXT@: rpLibNodeType.cc
+	$(MEX) rpLibNodeType.cc $(MATLAB_COMP_ARGS)
+rpLibNodeId.@MEXEXT@: rpLibNodeId.cc
+	$(MEX) rpLibNodeId.cc $(MATLAB_COMP_ARGS)
+rpLibResult.@MEXEXT@: rpLibResult.cc
+	$(MEX) rpLibResult.cc $(MATLAB_COMP_ARGS)
+rpUnitsDefineUnit.@MEXEXT@: rpUnitsDefineUnit.cc
+	$(MEX) rpUnitsDefineUnit.cc $(MATLAB_COMP_ARGS)
+#rpDefineConv.@MEXEXT@: rpDefineConv.cc
+#$(MEX) rpDefineConv.cc $(MATLAB_COMP_ARGS)
+rpUnitsGetUnits.@MEXEXT@: rpUnitsGetUnits.cc
+	$(MEX) rpUnitsGetUnits.cc $(MATLAB_COMP_ARGS)
+rpUnitsGetUnitsName.@MEXEXT@: rpUnitsGetUnitsName.cc
+	$(MEX) rpUnitsGetUnitsName.cc $(MATLAB_COMP_ARGS)
+rpUnitsGetExponent.@MEXEXT@: rpUnitsGetExponent.cc
+	$(MEX) rpUnitsGetExponent.cc $(MATLAB_COMP_ARGS)
+rpUnitsGetBasis.@MEXEXT@: rpUnitsGetBasis.cc
+	$(MEX) rpUnitsGetBasis.cc $(MATLAB_COMP_ARGS)
+rpUnitsFind.@MEXEXT@: rpUnitsFind.cc
+	$(MEX) rpUnitsFind.cc $(MATLAB_COMP_ARGS)
+rpUnitsConvert.@MEXEXT@: rpUnitsConvert.cc
+	$(MEX) rpUnitsConvert.cc $(MATLAB_COMP_ARGS)
+rpUnitsConvertStr.@MEXEXT@: rpUnitsConvertStr.cc
+	$(MEX) rpUnitsConvertStr.cc $(MATLAB_COMP_ARGS)
+rpUnitsConvertObjStr.@MEXEXT@: rpUnitsConvertObjStr.cc
+	$(MEX) rpUnitsConvertObjStr.cc $(MATLAB_COMP_ARGS)
+rpUnitsConvertDbl.@MEXEXT@: rpUnitsConvertDbl.cc
+	$(MEX) rpUnitsConvertDbl.cc $(MATLAB_COMP_ARGS)
+rpUnitsConvertObjDbl.@MEXEXT@: rpUnitsConvertObjDbl.cc
+	$(MEX) rpUnitsConvertObjDbl.cc $(MATLAB_COMP_ARGS)
+rpAddPresets.@MEXEXT@: rpAddPresets.cc
+	$(MEX) rpAddPresets.cc $(MATLAB_COMP_ARGS)
+rpUtilsProgress.@MEXEXT@: rpUtilsProgress.cc
+	$(MEX) rpUtilsProgress.cc $(MATLAB_COMP_ARGS)
 
 docs:
-	if test ! -d docs; then \
+	@if test ! -d docs; then \
 		mkdir docs; \
 	fi
-	if test ! -d docs/doxygen; then \
+	@if test ! -d docs/doxygen; then \
 		mkdir docs/doxygen; \
 	fi
 	doxygen

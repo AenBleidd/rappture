@@ -72,7 +72,7 @@ librappture2.a: $(OBJS) $(OBJA)
 	-@ ($(RANLIB) $@ || true) >/dev/null 2>&1
 
 $(SHAREDLIBV): $(OBJS)
-	$(LDSHARED) -shared -Wl,-rpath,${libdir} -o $@ $(OBJS) -L ${libdir} -lz -lb64
+	$(LDSHARED) -shared -Wl,-rpath,${libdir} -o $@ $(OBJS) @LIB_SEARCH_DIRS@ -lz -lb64
 	rm -f $(SHAREDLIB) $(SHAREDLIBM)
 	ln -s $@ $(SHAREDLIB)
 	ln -s $@ $(SHAREDLIBM)
@@ -82,7 +82,7 @@ test(EXE): test.o Ptr.o Outcome.o Lookup.o
 
 
 RpBuffer_test$(EXE): RpBuffer_test.o $(LIBS)
-	$(CXX) $(CFLAGS) -o $@ RpBuffer_test.o $(LDFLAGS) -L ${libdir} -lz -lb64
+	$(CXX) $(CFLAGS) -o $@ RpBuffer_test.o $(LDFLAGS) @LIB_SEARCH_DIRS@ -lz -lb64
 
 install: $(LIBS) $(SHAREDLIBV)
 	-@if [ ! -d $(exec_prefix) ]; then mkdir -p $(exec_prefix); fi

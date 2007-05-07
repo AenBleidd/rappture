@@ -6,7 +6,7 @@ units_module = Extension('Rappture.Units',
                    include_dirs = [rp_install_dir+'/include'],
                    sources = [ 'Rappture/PyRpUnits.cc' ],
                    library_dirs = [ rp_install_dir+'/lib' ],
-                   libraries = [ 'rappture', 'scew' ] )
+                   libraries = [ 'rappture' ] )
 
 utils_module = Extension('Rappture.Utils',
                    include_dirs = [rp_install_dir+'/include'],

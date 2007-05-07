@@ -21,51 +21,33 @@ if ($^O ne "MSWin32") {
                        q[-L$(PERL_INC) -lperl]
                      );
     }
-    @SCEW_INC_SEARCHPATH = ( "@prefix@/include",
-        "/apps/rappture/include", "/opt/rappture/include",
-        "/usr/local/include", "/opt/include", "../../scew-0.4.0", 
-        "../../scew", "/apps/scew-0.4.0", "/apps/scew", "/opt/scew-0.4.0",
-        "/opt/scew" );
-    $SCEW_INC="scew/scew.h";
     @EXPAT_INC_SEARCHPATH = ( "@prefix@/include",
-        "/apps/rappture/include", "/opt/rappture/include", 
-        "/usr/local/include", "/opt/include", "../../expat-2.0.0/lib", 
-        "../../expat/lib", "/apps/expat-2.0.0/lib", "/apps/expat/lib", 
+        "/apps/rappture/include", "/opt/rappture/include",
+        "/usr/local/include", "/opt/include", "../../expat-2.0.0/lib",
+        "../../expat/lib", "/apps/expat-2.0.0/lib", "/apps/expat/lib",
         "/opt/expat-2.0.0/lib", "/opt/expat/lib" );
     $EXPAT_INC="expat.h";
     @RAPPTURE_INC_SEARCHPATH = ( "@prefix@/include",
-        "/apps/rappture/include", 
-        "/opt/rappture/include", "/usr/local/include", "/opt/include", 
-        "../include" );
+        "../src/core", "../include", "/apps/rappture/include",
+        "/opt/rappture/include", "/usr/local/include", "/opt/include");
     $RAPPTURE_INC = "rappture.h";
-    @SCEW_LIB_SEARCHPATH = ( "@prefix@/lib",
-        "/apps/rappture/lib", "/opt/rappture/lib", 
-        "/usr/local/lib", "/opt/lib", "../../scew-0.4.0/scew", 
-        "../../scew/scew", "/apps/scew-0.4.0/scew", "/apps/scew/scew", 
-        "/opt/scew-0.4.0/scew", "/opt/scew/scew" );
-    @SCEW_LIBS=("libscew.so","libscew.a");
     @EXPAT_LIB_SEARCHPATH = ( "@prefix@/lib",
-        "/apps/rappture/lib", "/opt/rappture/lib", 
-        "/usr/local/lib", "/opt/lib", "../../expat-2.0.0/lib", 
-        "../../expat/lib", "/apps/expat-2.0.0/lib", "/apps/expat/lib", 
+        "/apps/rappture/lib", "/opt/rappture/lib",
+        "/usr/local/lib", "/opt/lib", "../../expat-2.0.0/lib",
+        "../../expat/lib", "/apps/expat-2.0.0/lib", "/apps/expat/lib",
         "/opt/expat-2.0.0/lib", "/opt/expat/lib" );
     @EXPAT_LIBS=("libexpat.so", "libexpat.a");
     @RAPPTURE_LIB_SEARCHPATH = ( "@prefix@/lib",
-        "/apps/rappture/lib", "/opt/rappture/lib", 
-        "/usr/local/lib", "/opt/lib", "../src" );
+        "../src", "/apps/rappture/lib", "/opt/rappture/lib",
+        "/usr/local/lib", "/opt/lib" );
     @RAPPTURE_LIBS=("librappture.so","librappture.a");
-} 
+}
 else {
     if ($Config{"cc"} eq "cl") {
-	$CFLAGS = "/TP /EHsc";
+        $CFLAGS = "/TP /EHsc";
         @LIBS = ("msvcprt.lib");
     }
 
-    @SCEW_INC_SEARCHPATH = ( "C:\\Program Files\\Rappture\\include", 
-        "C:\\opt\\rappture\\include", "C:\\opt\\include", "..\\..\\scew-0.4.0", 
-        "..\\..\\scew", "C:\\Program Files\\scew-0.4.0", 
-        "C:\\Program Files\\scew", "C:\\opt\\scew-0.4.0", "C:\\opt\\scew" );
-    $SCEW_INC="scew\\scew.h";
     @EXPAT_INC_SEARCHPATH = ( "C:\\Program Files\\Rappture\\include", 
         "C:\\opt\\rappture\\include", "C:\\opt\\include", 
         "..\\..\\expat-2.0.0\\lib", "..\\..\\expat\\lib", 
@@ -76,14 +58,6 @@ else {
     @RAPPTURE_INC_SEARCHPATH = ( "C:\\Program Files\\Rappture\\include", 
         "C:\\opt\\rappture\\include", "C:\\opt\\include", "..\\include" );
     $RAPPTURE_INC = "rappture.h";
-    @SCEW_LIB_SEARCHPATH = ( "C:\\Program Files\\Rappture\\lib", 
-        "C:\\opt\\rappture\\lib", "C:\\opt\\lib", 
-        "..\\..\\scew-0.4.0\\win32\\lib", "..\\..\\scew\\win32\\lib", 
-        "C:\\Program Files\\scew-0.4.0\\win32\\lib",
-        "C:\\Program Files\\scew\\win32\\lib", 
-        "C:\\opt\\scew-0.4.0\\win32\\lib", "C:\\opt\\scew\\win32\\lib" );
-    @SCEW_LIBS=("scew_s.lib", "libscew_s.lib", "scew.lib", "libscew.lib");
-    @SCEWD_LIBS=("scew_sd.lib", "libscew_sd.lib", "scewd.lib", "libscewd.lib");
     @EXPAT_LIB_SEARCHPATH = ( "C:\\Program Files\\Rappture\\lib", 
         "C:\\opt\\rappture\\lib", "C:\\opt\\lib", 
         "..\\..\\expat-2.0.0\\lib\\Release_static", 
@@ -142,17 +116,10 @@ find_lib {
     return 0;
 }
 
-find_include(\@SCEW_INC_SEARCHPATH, $SCEW_INC, \@INCLUDES);
 find_include(\@EXPAT_INC_SEARCHPATH, $EXPAT_INC, \@INCLUDES);
 find_include(\@RAPPTURE_INC_SEARCHPATH, $RAPPTURE_INC, \@INCLUDES);
 find_lib(\@EXPAT_LIB_SEARCHPATH, \@EXPAT_LIBS, \@LIBS);
 find_lib(\@RAPPTURE_LIB_SEARCHPATH, \@RAPPTURE_LIBS, \@LIBS);
-find_lib(\@SCEW_LIB_SEARCHPATH, \@SCEW_LIBS, \@LIBS);
-if ($DEBUG) {
-    if (!find_lib(\@SCEW_LIB_SEARCHPATH, \@SCEWD_LIBS, \@LIBS)) {
-        find_lib(\@SCEW_LIB_SEARCHPATH, \@SCEW_LIBS, \@LIBS);
-    }
-}
 
 WriteMakefile(
     NAME              => 'Rappture',

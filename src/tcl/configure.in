@@ -89,6 +89,8 @@ TEA_ADD_HEADERS([])
 TEA_ADD_INCLUDES([])
 TEA_ADD_CFLAGS([])
 TEA_ADD_STUB_SOURCES([])
+# uncomment this and mkindex.tcl line in makefile when you are ready to
+# install tcl rappture library bindings
 #TEA_ADD_TCL_SOURCES([scripts/exec.tcl scripts/value.tcl init.tcl ../../tcl/scripts/library.tcl ../../tcl/scripts/result.tcl])
 TEA_ADD_TCL_SOURCES([])
 
@@ -118,7 +120,10 @@ else
     CLEANFILES=""
     #TEA_ADD_SOURCES([unix/unixFile.c])
     TEA_ADD_LIBS([-L${prefix}/lib])
-    TEA_ADD_LIBS([-lexpat -lscew -lrappture])
+    if test "${libdir}" != "${prefix}/lib" ; then
+        TEA_ADD_LIBS([-L${libdir}])
+    fi
+    TEA_ADD_LIBS([-lrappture -lexpat])
 fi
 AC_SUBST(CLEANFILES)
 
