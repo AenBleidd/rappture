@@ -68,7 +68,7 @@ build_examples:
 install_examples: build_examples
 	cp -r examples $(prefix)
 	rm -f $(prefix)/examples/demo.bash.in
-	find $(prefix)/exmaples -name .svn | xargs rm -rf
+	find $(prefix)/examples -name .svn | xargs rm -rf
 
 
 
