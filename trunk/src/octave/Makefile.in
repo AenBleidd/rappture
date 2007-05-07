@@ -1,12 +1,18 @@
 
-ifndef RP_INSTALL_BASE
-RP_INSTALL_BASE = @prefix@
-endif
+prefix          = @prefix@
+exec_prefix     = @exec_prefix@
+bindir          = @bindir@
+libdir          = @libdir@
+includedir      = @includedir@
+mandir          = @mandir@
 
-# tell make where to find the expat & libscew headers
-INCL_RP_DEPS    = -I$(RP_INSTALL_BASE)/include
+INSTALL			= @INSTALL@
+INSTALL_PROGRAM	= ${INSTALL} -m 755
+INSTALL_DATA	= ${INSTALL} -m 644
+INSTALL_SCRIPT	= ${INSTALL}
 
-LIB_SCEW_FLAG   = -L$(RP_INSTALL_BASE)/lib -lscew
+# tell make where to find the expat headers
+INCL_RP_DEPS    = -I$(includedir)
 
 # define the top of the rappture directory structure
 RP_BASE   = @RP_BASE@
@@ -24,125 +30,93 @@ LIB_RAPPTURE    = -L$(LIB_DIR) -lrappture
 INCL_CORE       = -I$(INCLUDES_DIR)/core
 INCL_OCTAVE     = -I$(INCLUDES_DIR)/octave
 
-all: RpOctave install_octave
-install: install_octave
+OBJS=rpAddPresets.oct rpUtilsProgress.oct rpLib.oct rpLibChildrenByType.oct rpLibChildren.oct rpLibElementAsComp.oct rpLibElementAsId.oct rpLibElementAsObject.oct rpLibElementAsType.oct rpLibElement.oct rpLibGet.oct rpLibGetString.oct rpLibGetDouble.oct rpLibNodeComp.oct rpLibNodeId.oct rpLibNodeType.oct rpLibPut.oct rpLibPutDouble.oct rpLibPutString.oct rpLibPutFile.oct rpLibResult.oct rpLibXml.oct rpUnitsConvert.oct rpUnitsConvertDbl.oct rpUnitsConvertStr.oct rpUnitsConvertObjDbl.oct rpUnitsConvertObjStr.oct rpUnitsDefineUnit.oct rpUnitsFind.oct rpUnitsGetBasis.oct rpUnitsGetExponent.oct rpUnitsGetUnits.oct rpUnitsGetUnitsName.oct
+
+all: $(OBJS)
 
 #### Octave ########################################################
-install_octave: RpOctave
-	if test ! -d $(RP_INSTALL_BASE)/lib/octave; then \
-		mkdir $(RP_INSTALL_BASE)/lib/octave; \
+install: $(OBJS)
+	@if test ! -d $(libdir)/octave; then \
+		mkdir $(libdir)/octave; \
 	fi
-	cp *.oct* $(RP_INSTALL_BASE)/lib/octave
+	$(INSTALL_DATA) *.oct* $(libdir)/octave
 ####################################################################
 
 OCT_INCLS = $(INCL_OCTAVE) $(INCL_CORE) $(INCL_RP_DEPS)
-OCTAVE_COMP_ARGS = $(OCT_INCLS) $(LIB_RAPPTURE) $(LIB_SCEW_FLAG)
-RpOctave: 	rpAddPresets.oct \
-			rpUtilsProgress.oct \
-			rpLib.oct \
-			rpLibChildrenByType.oct \
-			rpLibChildren.oct \
-			rpLibElementAsComp.oct \
-			rpLibElementAsId.oct \
-			rpLibElementAsObject.oct \
-			rpLibElementAsType.oct \
-			rpLibElement.oct \
-			rpLibGet.oct \
-			rpLibGetString.oct \
-			rpLibGetDouble.oct \
-			rpLibNodeComp.oct \
-			rpLibNodeId.oct \
-			rpLibNodeType.oct \
-			rpLibPut.oct \
-			rpLibPutDouble.oct \
-			rpLibPutSingle.oct \
-			rpLibPutFile.oct \
-			rpLibResult.oct \
-			rpLibXml.oct \
-			rpUnitsConvert.oct \
-			rpUnitsConvertDbl.oct \
-			rpUnitsConvertStr.oct \
-			rpUnitsConvertObjDbl.oct \
-			rpUnitsConvertObjStr.oct \
-			rpUnitsDefineUnit.oct \
-			rpUnitsFind.oct \
-			rpUnitsGetBasis.oct \
-			rpUnitsGetExponent.oct \
-			rpUnitsGetUnits.oct \
-			rpUnitsGetUnitsName.oct
+OCTAVE_COMP_ARGS = $(OCT_INCLS) $(LIB_RAPPTURE)
 
-rpAddPresets.oct:
-	$(OCT) rpAddPresets.cc            $(OCTAVE_COMP_ARGS)
-rpUtilsProgress.oct:
-	$(OCT) rpUtilsProgress.cc         $(OCTAVE_COMP_ARGS)
-rpLib.oct:
-	$(OCT) rpLib.cc                   $(OCTAVE_COMP_ARGS)
-rpLibChildrenByType.oct:
-	$(OCT) rpLibChildrenByType.cc     $(OCTAVE_COMP_ARGS)
-rpLibChildren.oct:
-	$(OCT) rpLibChildren.cc           $(OCTAVE_COMP_ARGS)
-rpLibElementAsComp.oct:
-	$(OCT) rpLibElementAsComp.cc      $(OCTAVE_COMP_ARGS)
-rpLibElementAsId.oct:
-	$(OCT) rpLibElementAsId.cc        $(OCTAVE_COMP_ARGS)
-rpLibElementAsObject.oct:
-	$(OCT) rpLibElementAsObject.cc    $(OCTAVE_COMP_ARGS)
-rpLibElementAsType.oct:
-	$(OCT) rpLibElementAsType.cc      $(OCTAVE_COMP_ARGS)
-rpLibElement.oct:
-	$(OCT) rpLibElement.cc            $(OCTAVE_COMP_ARGS)
-rpLibGet.oct:
-	$(OCT) rpLibGet.cc                $(OCTAVE_COMP_ARGS)
-rpLibGetString.oct:
-	$(OCT) rpLibGetString.cc          $(OCTAVE_COMP_ARGS)
-rpLibGetDouble.oct:
-	$(OCT) rpLibGetDouble.cc          $(OCTAVE_COMP_ARGS)
-rpLibNodeComp.oct:
-	$(OCT) rpLibNodeComp.cc           $(OCTAVE_COMP_ARGS)
-rpLibNodeId.oct:
-	$(OCT) rpLibNodeId.cc             $(OCTAVE_COMP_ARGS)
-rpLibNodeType.oct:
-	$(OCT) rpLibNodeType.cc           $(OCTAVE_COMP_ARGS)
-rpLibPut.oct:
-	$(OCT) rpLibPut.cc                $(OCTAVE_COMP_ARGS)
-rpLibPutDouble.oct:
-	$(OCT) rpLibPutDouble.cc          $(OCTAVE_COMP_ARGS)
-rpLibPutSingle.oct:
-	$(OCT) rpLibPutString.cc          $(OCTAVE_COMP_ARGS)
-rpLibPutFile.oct:
-	$(OCT) rpLibPutFile.cc            $(OCTAVE_COMP_ARGS)
-rpLibResult.oct:
-	$(OCT) rpLibResult.cc             $(OCTAVE_COMP_ARGS)
-rpLibXml.oct:
-	$(OCT) rpLibXml.cc                $(OCTAVE_COMP_ARGS)
-rpUnitsConvert.oct:
-	$(OCT) rpUnitsConvert.cc          $(OCTAVE_COMP_ARGS)
-rpUnitsConvertDbl.oct:
-	$(OCT) rpUnitsConvertDbl.cc       $(OCTAVE_COMP_ARGS)
-rpUnitsConvertStr.oct:
-	$(OCT) rpUnitsConvertStr.cc       $(OCTAVE_COMP_ARGS)
-rpUnitsConvertObjDbl.oct:
-	$(OCT) rpUnitsConvertObjDbl.cc    $(OCTAVE_COMP_ARGS)
-rpUnitsConvertObjStr.oct:
-	$(OCT) rpUnitsConvertObjStr.cc    $(OCTAVE_COMP_ARGS)
-rpUnitsDefineUnit.oct:
-	$(OCT) rpUnitsDefineUnit.cc       $(OCTAVE_COMP_ARGS)
-rpUnitsFind.oct:
-	$(OCT) rpUnitsFind.cc             $(OCTAVE_COMP_ARGS)
-rpUnitsGetBasis.oct:
-	$(OCT) rpUnitsGetBasis.cc         $(OCTAVE_COMP_ARGS)
-rpUnitsGetExponent.oct:
-	$(OCT) rpUnitsGetExponent.cc      $(OCTAVE_COMP_ARGS)
-rpUnitsGetUnits.oct:
-	$(OCT) rpUnitsGetUnits.cc         $(OCTAVE_COMP_ARGS)
-rpUnitsGetUnitsName.oct:
-	$(OCT) rpUnitsGetUnitsName.cc     $(OCTAVE_COMP_ARGS)
+rpAddPresets.oct: rpAddPresets.cc
+	$(OCT) rpAddPresets.cc $(OCTAVE_COMP_ARGS)
+rpUtilsProgress.oct: rpUtilsProgress.cc
+	$(OCT) rpUtilsProgress.cc $(OCTAVE_COMP_ARGS)
+rpLib.oct: rpLib.cc
+	$(OCT) rpLib.cc $(OCTAVE_COMP_ARGS)
+rpLibChildrenByType.oct: rpLibChildrenByType.cc
+	$(OCT) rpLibChildrenByType.cc $(OCTAVE_COMP_ARGS)
+rpLibChildren.oct: rpLibChildren.cc
+	$(OCT) rpLibChildren.cc $(OCTAVE_COMP_ARGS)
+rpLibElementAsComp.oct: rpLibElementAsComp.cc
+	$(OCT) rpLibElementAsComp.cc $(OCTAVE_COMP_ARGS)
+rpLibElementAsId.oct: rpLibElementAsId.cc
+	$(OCT) rpLibElementAsId.cc $(OCTAVE_COMP_ARGS)
+rpLibElementAsObject.oct: rpLibElementAsObject.cc
+	$(OCT) rpLibElementAsObject.cc $(OCTAVE_COMP_ARGS)
+rpLibElementAsType.oct: rpLibElementAsType.cc
+	$(OCT) rpLibElementAsType.cc $(OCTAVE_COMP_ARGS)
+rpLibElement.oct: rpLibElement.cc
+	$(OCT) rpLibElement.cc $(OCTAVE_COMP_ARGS)
+rpLibGet.oct: rpLibGet.cc
+	$(OCT) rpLibGet.cc $(OCTAVE_COMP_ARGS)
+rpLibGetString.oct: rpLibGetString.cc
+	$(OCT) rpLibGetString.cc $(OCTAVE_COMP_ARGS)
+rpLibGetDouble.oct: rpLibGetDouble.cc
+	$(OCT) rpLibGetDouble.cc $(OCTAVE_COMP_ARGS)
+rpLibNodeComp.oct: rpLibNodeComp.cc
+	$(OCT) rpLibNodeComp.cc $(OCTAVE_COMP_ARGS)
+rpLibNodeId.oct: rpLibNodeId.cc
+	$(OCT) rpLibNodeId.cc $(OCTAVE_COMP_ARGS)
+rpLibNodeType.oct: rpLibNodeType.cc
+	$(OCT) rpLibNodeType.cc $(OCTAVE_COMP_ARGS)
+rpLibPut.oct: rpLibPut.cc
+	$(OCT) rpLibPut.cc $(OCTAVE_COMP_ARGS)
+rpLibPutDouble.oct: rpLibPutDouble.cc
+	$(OCT) rpLibPutDouble.cc $(OCTAVE_COMP_ARGS)
+rpLibPutString.oct: rpLibPutString.cc
+	$(OCT) rpLibPutString.cc $(OCTAVE_COMP_ARGS)
+rpLibPutFile.oct: rpLibPutFile.cc
+	$(OCT) rpLibPutFile.cc $(OCTAVE_COMP_ARGS)
+rpLibResult.oct: rpLibResult.cc
+	$(OCT) rpLibResult.cc $(OCTAVE_COMP_ARGS)
+rpLibXml.oct: rpLibXml.cc
+	$(OCT) rpLibXml.cc $(OCTAVE_COMP_ARGS)
+rpUnitsConvert.oct: rpUnitsConvert.cc
+	$(OCT) rpUnitsConvert.cc $(OCTAVE_COMP_ARGS)
+rpUnitsConvertDbl.oct: rpUnitsConvertDbl.cc
+	$(OCT) rpUnitsConvertDbl.cc $(OCTAVE_COMP_ARGS)
+rpUnitsConvertStr.oct: rpUnitsConvertStr.cc
+	$(OCT) rpUnitsConvertStr.cc $(OCTAVE_COMP_ARGS)
+rpUnitsConvertObjDbl.oct: rpUnitsConvertObjDbl.cc
+	$(OCT) rpUnitsConvertObjDbl.cc $(OCTAVE_COMP_ARGS)
+rpUnitsConvertObjStr.oct: rpUnitsConvertObjStr.cc
+	$(OCT) rpUnitsConvertObjStr.cc $(OCTAVE_COMP_ARGS)
+rpUnitsDefineUnit.oct: rpUnitsDefineUnit.cc
+	$(OCT) rpUnitsDefineUnit.cc $(OCTAVE_COMP_ARGS)
+rpUnitsFind.oct: rpUnitsFind.cc
+	$(OCT) rpUnitsFind.cc $(OCTAVE_COMP_ARGS)
+rpUnitsGetBasis.oct: rpUnitsGetBasis.cc
+	$(OCT) rpUnitsGetBasis.cc $(OCTAVE_COMP_ARGS)
+rpUnitsGetExponent.oct: rpUnitsGetExponent.cc
+	$(OCT) rpUnitsGetExponent.cc $(OCTAVE_COMP_ARGS)
+rpUnitsGetUnits.oct: rpUnitsGetUnits.cc
+	$(OCT) rpUnitsGetUnits.cc $(OCTAVE_COMP_ARGS)
+rpUnitsGetUnitsName.oct: rpUnitsGetUnitsName.cc
+	$(OCT) rpUnitsGetUnitsName.cc $(OCTAVE_COMP_ARGS)
 
 docs:
-	if test ! -d docs; then \
+	@if test ! -d docs; then \
 		mkdir docs; \
 	fi
-	if test ! -d docs/doxygen; then \
+	@if test ! -d docs/doxygen; then \
 		mkdir docs/doxygen; \
 	fi
 	doxygen

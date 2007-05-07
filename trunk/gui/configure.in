@@ -309,4 +309,5 @@ AC_SUBST(NODOT_VERSION)
 # which require substituting th AC variables in.  Include these here.
 #--------------------------------------------------------------------
 
+AC_CONFIG_SUBDIRS( vizservers )
 AC_OUTPUT([Makefile pkgIndex.tcl init.tcl])

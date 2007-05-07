@@ -1,47 +1,54 @@
 
+prefix          = @prefix@
+exec_prefix     = @exec_prefix@
+bindir          = @bindir@
+libdir          = @libdir@
+includedir      = @includedir@
+mandir          = @mandir@
+
+INSTALL			= @INSTALL@
+INSTALL_PROGRAM	= ${INSTALL} -m 755
+INSTALL_DATA	= ${INSTALL} -m 644
+INSTALL_SCRIPT	= ${INSTALL} -m 644
+
+
 build_date := $(shell date +%Y%m%d)
 machine := $(shell uname -m | sed 's/\ //')
 os := $(shell uname -s)
-bn := $(shell basename @prefix@)
+bn := $(shell basename $(prefix))
 TarfileBasename=rappture-$(os)-$(machine)-$(build_date)
 
-all: rplib build_bindings
-install: rp_gui install_rplib install_bindings install_examples
-	chmod 755 gui/apps/rappture
-	chmod 755 gui/apps/simsim
-	cp gui/apps/rappture @prefix@/bin
-	cp gui/apps/rappture.env @prefix@/bin
-	cp gui/apps/driver @prefix@/bin
-	cp gui/apps/nanovis-test @prefix@/bin
-	cp gui/apps/rerun @prefix@/bin
-	cp gui/apps/simsim @prefix@/bin
-	cp gui/apps/simsim.py @prefix@/bin
-	find @prefix@ -name .svn | xargs rm -rf
+# fix this before commiting
+all: rplib build_bindings build_gui
+install: install_rplib install_bindings install_gui install_examples
+	${INSTALL_PROGRAM}  gui/apps/rappture      $(bindir)/rappture
+	${INSTALL_DATA}  gui/apps/rappture.env  $(bindir)/rappture.env
+	${INSTALL_PROGRAM}  gui/apps/driver        $(bindir)/driver
+	${INSTALL_PROGRAM}  gui/apps/nanovis-test  $(bindir)/nanovis-test
+	${INSTALL_PROGRAM}  gui/apps/rerun         $(bindir)/rerun
+	${INSTALL_PROGRAM}  gui/apps/simsim        $(bindir)/simsim
+	${INSTALL_PROGRAM}  gui/apps/simsim.tcl    $(bindir)/simsim.tcl
+	find $(prefix) -name .svn | xargs rm -rf
 
 ###########################################################################
 # Makefile - build and install all Rappture libraries
-#############################################################################
+###########################################################################
 
 
-rp_gui:
-	set -x;
-	cd gui; \
-	make all; \
-	make install;
+build_gui:
+	make -C gui
 
-#	./configure --prefix=@prefix@ --with-blt=@prefix@/include; \
-#	make all >& $(basedir)/output.gui 2>&1; \
-#	make install >> $(basedir)/output.gui 2>&1
+install_gui:
+	make -C gui install
 
 rplib:
-	set -x;
-	cd src2/core; make clean; make librappture2.a; make librappture2.so.0.0
-	cd src; make clean; make librappture;
+	make -C src2/core librappture2.a librappture2.so.0.0
+	make -C src librappture;
 
 install_rplib:
 	set -x;
-	cd src2/core; make install;
-	cd src; make install_rappture;
+	make -C src2/core install;
+	make -C src install_rappture;
 
 build_bindings: build_matlab build_octave build_python build_perl
 
@@ -53,16 +60,15 @@ install_bindings: install_matlab install_octave install_python install_perl inst
 # 	- compile rappture examples in rappture/examples
 #############################################################################
 build_examples:
-	set -x;
-	cd examples/app-fermi/fortran; make clean; make; cd -
-	cd examples/app-fermi/cee; make clean; make; cd -
-	cd examples/app-fermi/wrapper/cee; make clean; make; cd -
-	cd examples/c-example; make clean; make; cd -
+	make -C examples/app-fermi/fortran
+	make -C examples/app-fermi/cee
+	make -C examples/app-fermi/wrapper/cee
+	make -C examples/c-example
 
 install_examples: build_examples
-	set -x;
-	cp -r examples @prefix@
-	rm -f @prefix@/examples/demo.bash.in
+	cp -r examples $(prefix)
+	rm -f $(prefix)/examples/demo.bash.in
+	find $(prefix)/exmaples -name .svn | xargs rm -rf
 
 
 
@@ -70,98 +76,99 @@ install_examples: build_examples
 
 #tcl bindings
 install_tcl:
-	cd tcl; @prefix@/bin/tclsh install.tcl
+	cd tcl; $(bindir)/tclsh install.tcl
 #	cd tcl; @TCLSH@ install.tcl
-	cd src/tcl; make install; cd -
+	make -C src/tcl install
 
 # matlab bindings
 build_matlab:
-	if test "x@MEX@" != "x" ; then \
-		cd src/matlab; make clean; make RpMatlab; cd -; \
+	@if test "x@MEX@" != "x" ; then \
+		make -C src/matlab; \
 	fi
 
 install_matlab: build_matlab
-	if test "x@MEX@" != "x" ; then \
-		cd src/matlab; make install; cd -; \
+	@if test "x@MEX@" != "x" ; then \
+		make -C src/matlab install; \
 	fi
 
 # octave bindings
 build_octave:
-	if test "x@MKOCTFILE@" != "x" ; then \
-		cd src/octave; make clean; make RpOctave; cd -; \
+	@if test "x@MKOCTFILE@" != "x" ; then \
+		make -C src/octave; \
 	fi
 
 install_octave: build_octave
-	if test "x@MKOCTFILE@" != "x" ; then \
-		cd src/octave; make install; cd -; \
+	@if test "x@MKOCTFILE@" != "x" ; then \
+		make -C src/octave install; \
 	fi
 
 build_python:
-	if test "x@PYTHON@" != "x" ; then \
+	@if test "x@PYTHON@" != "x" ; then \
 		set -x; \
 		cd python; \
 		@PYTHON@ setup.py \
 			build_ext \
-			--library-dirs=@prefix@/lib \
-			--include-dirs=@prefix@/include \
+			--library-dirs=$(libdir):../src \
+			--include-dirs=$(includedir) \
 			build; \
 	fi
 
 install_python: build_python
-	if test "x@PYTHON@" != "x" ; then \
+	@if test "x@PYTHON@" != "x" ; then \
 		set -x; \
 		cd python; \
-		@PYTHON@ setup.py install --prefix=@prefix@; \
+		@PYTHON@ setup.py install --prefix=$(prefix); \
 	fi
 
 build_perl:
-	if test "x@PERL@" != "x" ; then \
+	@if test "x@PERL@" != "x" ; then \
 		set -x; \
 		cd perl; \
-		@PERL@ Makefile.PL INSTALLSITELIB=@prefix@/lib/perl5 INSTALLSITEMAN3DIR=@prefix@/man/man3; \
-		make; make test; \
+		@PERL@ Makefile.PL INSTALLSITELIB=$(libdir)/perl5 INSTALLSITEARCH=$(libdir)/perl5 INSTALLSITEMAN3DIR=$(mandir)/man3; \
+		make; LD_LIBRARY_PATH=$(libdir):../src make test; \
 	fi
 
 install_perl: build_perl
-	if test "x@PERL@" != "x" ; then \
-		set -x; \
-		cd perl; make install; \
+	@if test "x@PERL@" != "x" ; then \
+		make -C perl install; \
 	fi
 
 build_pkgs:
 	set -x;
-	if ! test -d "bin"; then \
+	@if ! test -d "bin"; then \
 		mkdir bin;\
 	fi
 	# building rappture binary package
-	cd @prefix@/..; tar czf @RP_BASE@/bin/$(TarfileBasename).tar.gz $(bn)
+	cd $(prefix)/..; tar czf @RP_BASE@/bin/$(TarfileBasename).tar.gz $(bn)
 
 clean:
-	cd examples/app-fermi/cee; make clean; cd -;
-	cd examples/app-fermi/fortran; make clean; cd -;
-	cd examples/app-fermi/wrapper/cee; make clean; cd -
-	cd examples/c-example; make clean; cd -;
-	cd gui; make clean; cd -;
-	cd perl; make clean; cd -;
-	cd python; rm -rf build; cd -;
-	cd src; make clean; cd -;
-	cd src/matlab; make clean; cd -;
-	cd src/octave; make clean; cd -;
-	cd src/tcl; make distclean; cd -;
+	make -C examples/app-fermi/cee clean
+	make -C examples/app-fermi/fortran clean
+	make -C examples/app-fermi/wrapper/cee clean
+	make -C examples/c-example clean
+	make -C gui clean
+	make -C perl clean
+	rm -rf python/build
+	make -C src clean
+	make -C src/matlab clean
+	make -C src/octave clean
+	make -C src/tcl distclean
+	make -C src2/core clean
 
 distclean:
-	cd examples; rm demo.bash
-	cd examples/app-fermi/cee; make distclean; cd -;
-	cd examples/app-fermi/fortran; make distclean; cd -;
-	cd examples/app-fermi/wrapper/cee; make distclean; cd -
-	cd examples/c-example; make distclean; cd -;
-	cd gui; make distclean; cd -;
-	cd perl; make clean; rm Makefile.PL; cd -;
-	cd python; rm -rf build; rm setup.py; cd -;
-	cd src; make distclean; cd -;
-	cd src/matlab; make distclean; cd -;
-	cd src/octave; make distclean; cd -;
-	cd src/tcl; make distclean; cd -;
-	cd test; make distclean; cd -;
-	rm gui/apps/rappture;
+	rm examples/demo.bash
+	make -C examples/app-fermi/cee distclean
+	make -C examples/app-fermi/fortran distclean
+	make -C examples/app-fermi/wrapper/cee distclean
+	make -C examples/c-example distclean
+	make -C gui distclean
+	make -C perl clean; rm perl/Makefile.PL
+	rm -rf python/build python/setup.py
+	make -C src distclean
+	make -C src/matlab distclean
+	make -C src/octave distclean
+	make -C src/tcl distclean
+	make -C src2/core distclean
+	make -C test distclean
+	rm gui/apps/rappture gui/apps/simsim gui/apps/rappture.env;
 	rm -rf Makefile config.status config.log bin;
