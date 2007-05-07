@@ -13,4 +13,4 @@
 RAPPTURE_INSTALL_DIR=@prefix@
 
 . $RAPPTURE_INSTALL_DIR/bin/rappture.env
-exec $RAPPTURE_INSTALL_DIR/bin/simsim.py $*
+exec $RAPPTURE_INSTALL_DIR/bin/simsim.tcl $*
