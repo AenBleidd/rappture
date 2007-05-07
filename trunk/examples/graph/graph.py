@@ -26,6 +26,8 @@ print 'formula = %s' % formula
 npts = 100
 
 io.put('output.curve(result).about.label','Formula: Y vs X',append=0)
+io.put('output.curve(result).yaxis.label','Y')
+io.put('output.curve(result).xaxis.label','X')
 
 for i in range(npts):
     x = (xmax-xmin)/npts * i + xmin;
