@@ -149,12 +149,18 @@ itcl::body Rappture::MainWin::constructor {args} {
     set _sync(cutbuffer) ""
     set _sync(selection) ""
 
-    global tcl_platform
-    if {$tcl_platform(platform) == "unix"} {
-        # this sync stuff works only for X windows
-        blt::cutbuffer set ""
-        syncCutBuffer ifneeded
-    }
+    #
+    # We used to do this to make "copy/paste with desktop" work
+    # properly.  Well, it never really worked *properly*, but
+    # it was an attempt.  We might as well skip it.  We use
+    # the importfile/exportfile stuff now.
+    #
+    ##global tcl_platform
+    ##if {$tcl_platform(platform) == "unix"} {
+    ##    # this sync stuff works only for X windows
+    ##    blt::cutbuffer set ""
+    ##    syncCutBuffer ifneeded
+    ##}
 }
 
 # ----------------------------------------------------------------------

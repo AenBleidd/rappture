@@ -30,6 +30,10 @@ itcl::class Rappture::MoleculeViewer {
     constructor {tool args} { # defined below }
     destructor { # defined below }
 
+    public method add {dataobj {settings ""}}
+    public method get {}
+    public method delete {args}
+
     public method emblems {option}
     public method download {option args}
 
@@ -43,6 +47,8 @@ itcl::class Rappture::MoleculeViewer {
     private variable _dispatcher "" ;# dispatcher for !events
 
     private variable _tool ""    ;# tool containing this viewer
+    private variable _dlist ""   ;# list of dataobj objects
+    private variable _dobj2raise ;# maps dataobj => raise flag
     private variable _actors ""  ;# list of actors in renderer
     private variable _label2atom ;# maps 2D text actor => underlying atom
     private variable _view       ;# view params for 3D view
@@ -203,6 +209,100 @@ itcl::body Rappture::MoleculeViewer::destructor {} {
 }
 
 # ----------------------------------------------------------------------
+# USAGE: add <dataobj> ?<settings>?
+#
+# Clients use this to add a data object to the plot.  The optional
+# <settings> are used to configure the plot.  Allowed settings are
+# -color, -brightness, -width, -linestyle, and -raise. Only
+# -brightness and -raise do anything.
+# ----------------------------------------------------------------------
+itcl::body Rappture::MoleculeViewer::add {dataobj {settings ""}} {
+    array set params {
+        -color auto
+        -brightness 0
+        -width 1
+        -raise 0
+        -linestyle solid
+        -description ""
+    }
+    foreach {opt val} $settings {
+        if {![info exists params($opt)]} {
+            error "bad settings \"$opt\": should be [join [lsort [array names params]] {, }]"
+        }
+        set params($opt) $val
+    }
+ 
+    set pos [lsearch -exact $dataobj $_dlist]
+
+    if {$pos < 0} {
+        if {![Rappture::library isvalid $dataobj]} {
+            error "bad value \"$dataobj\": should be Rappture::library object"
+        }
+    
+        set emblem [$dataobj get components.molecule.about.emblems]
+        if {$emblem == "" || ![string is boolean $emblem] || !$emblem} {
+            emblems off
+        } else {
+            emblems on
+        }
+
+        lappend _dlist $dataobj
+        set _dobj2raise($dataobj) $params(-raise)
+
+        $_dispatcher event -idle !redraw
+    }
+}
+
+# ----------------------------------------------------------------------
+# USAGE: get
+#
+# Clients use this to query the list of objects being plotted, in
+# order from bottom to top of this result.
+# ----------------------------------------------------------------------
+itcl::body Rappture::MoleculeViewer::get {} {
+    # put the dataobj list in order according to -raise options
+    set dlist $_dlist
+    foreach obj $dlist {
+        if {[info exists _dobj2raise($obj)] && $_dobj2raise($obj)} {
+            set i [lsearch -exact $dlist $obj]
+            if {$i >= 0} {
+                set dlist [lreplace $dlist $i $i]
+                lappend dlist $obj
+            }
+        }
+    }
+    return $dlist
+}
+
+# ----------------------------------------------------------------------
+# USAGE: delete ?<dataobj> <dataobj> ...?
+#
+# Clients use this to delete a dataobj from the plot. If no dataobjs
+# are specified, then all dataobjs are deleted.
+# ----------------------------------------------------------------------
+itcl::body Rappture::MoleculeViewer::delete {args} {
+    if {[llength $args] == 0} {
+        set args $_dlist
+    }
+
+    # delete all specified dataobjs
+    set changed 0
+    foreach dataobj $args {
+        set pos [lsearch -exact $_dlist $dataobj]
+        if {$pos >= 0} {
+            set _dlist [lreplace $_dlist $pos $pos]
+            catch {unset _dobj2raise($dataobj)}
+            set changed 1
+        }
+    }
+
+    # if anything changed, then rebuild the plot
+    if {$changed} {
+        $_dispatcher event -idle !redraw
+    }
+}
+
+# ----------------------------------------------------------------------
 # USAGE: download coming
 # USAGE: download controls <downloadCommand>
 # USAGE: download now
@@ -277,8 +377,8 @@ itcl::body Rappture::MoleculeViewer::_redraw {} {
 
     _clear
 
-    if {$itk_option(-device) != ""} {
-        set dev $itk_option(-device)
+    set dev [lindex [get] end]
+    if {"" != $dev} {
         set lib [Rappture::library standard]
 
         set counter 0
@@ -584,13 +684,14 @@ itcl::configbody Rappture::MoleculeViewer::backdrop {
 # OPTION: -device
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::MoleculeViewer::device {
-    if {$itk_option(-device) != ""
+    if {"" != $itk_option(-device)
           && ![Rappture::library isvalid $itk_option(-device)]} {
         error "bad value \"$itk_option(-device)\": should be Rappture::library object"
     }
-    _clear
+    delete
 
-    if {$itk_option(-device) != ""} {
+    if {"" != $itk_option(-device)} {
+        add $itk_option(-device)
         set state [$itk_option(-device) get components.molecule.about.emblems]
         if {$state == "" || ![string is boolean $state] || !$state} {
             emblems off

@@ -21,6 +21,14 @@ You can see the real action here by selecting various examples from the loader. 
       <description>Use this to load examples.</description>
     </about>
     <example>*.xml</example>
+    <upload>
+      <to>input.string(one)</to>
+      <to>input.string(two)</to>
+    </upload>
+    <download>
+      <from>input.string(one)</from>
+      <from>input.string(two)</from>
+    </download>
   </loader>
 
   <string id="one">
@@ -33,5 +41,12 @@ You can see the real action here by selecting various examples from the loader. 
       <label>Input #2</label>
     </about>
   </string>
+  <number id="e">
+    <about>
+      <label>Mass</label>
+    </about>
+    <units>kg</units>
+    <default>10g</default>
+  </number>
 </input>
 </run>
