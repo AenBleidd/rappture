@@ -2382,6 +2382,12 @@ RpUnits::addPresets (const std::string group) {
     else if (group.compare(RP_TYPE_PRESSURE) == 0) {
         retVal = RpUnitsPreset::addPresetPressure();
     }
+    else if (group.compare(RP_TYPE_CONC) == 0) {
+        retVal = RpUnitsPreset::addPresetConcentration();
+    }
+    else if (group.compare(RP_TYPE_FORCE) == 0) {
+        retVal = RpUnitsPreset::addPresetForce();
+    }
     else if (group.compare(RP_TYPE_MISC) == 0) {
         retVal = RpUnitsPreset::addPresetMisc();
     }
@@ -2413,6 +2419,7 @@ RpUnitsPreset::addPresetAll () {
     result += addPresetMass();
     result += addPresetPressure();
     result += addPresetConcentration();
+    result += addPresetForce();
     result += addPresetMisc();
 
     return 0;
@@ -2472,7 +2479,8 @@ RpUnitsPreset::addPresetPrefix () {
     milli = RpUnits::define ( "m",  basis, type, !RPUNITS_METRIC,
                               !RPUNITS_CASE_INSENSITIVE);
     micro = RpUnits::define ( "u",  basis, type);
-    nano  = RpUnits::define ( "n",  basis, type);
+    nano  = RpUnits::define ( "n",  basis, type, !RPUNITS_METRIC,
+                              !RPUNITS_CASE_INSENSITIVE);
     pico  = RpUnits::define ( "p",  basis, type, !RPUNITS_METRIC,
                               !RPUNITS_CASE_INSENSITIVE);
     femto = RpUnits::define ( "f",  basis, type);
@@ -2822,7 +2830,6 @@ RpUnitsPreset::addPresetPressure () {
 // METHOD: addPresetConcentration()
 /// Add concentration related units to the dictionary
 /**
- * http://www.ilpi.com/msds/ref/pressureunits.html
  *
  * Defines the following units:
  *   pH    (pH)
@@ -2847,6 +2854,28 @@ RpUnitsPreset::addPresetConcentration () {
 }
 
 /**********************************************************************/
+// METHOD: addPresetForce()
+/// Add concentration related units to the dictionary
+/**
+ * http://en.wikipedia.org/wiki/Newton
+ *
+ * Defines the following units:
+ *   newton    (N)
+ *
+ * Return codes: 0 success, anything else is error
+ */
+
+int
+RpUnitsPreset::addPresetForce () {
+
+    RpUnits* newton = NULL;
+
+    newton = RpUnits::define("N",  NULL, RP_TYPE_FORCE, RPUNITS_METRIC);
+
+    return 0;
+}
+
+/**********************************************************************/
 // METHOD: addPresetMisc()
 /// Add Misc related units to the dictionary
 /**
@@ -2863,11 +2892,13 @@ RpUnitsPreset::addPresetMisc () {
     RpUnits* mole      = NULL;
     RpUnits* hertz     = NULL;
     RpUnits* becquerel = NULL;
+    RpUnits* amu       = NULL;
 
     volt      = RpUnits::define("V",  NULL, RP_TYPE_EPOT, RPUNITS_METRIC);
-    mole      = RpUnits::define("mol",NULL, RP_TYPE_MISC, RPUNITS_METRIC);
-    hertz     = RpUnits::define("Hz", NULL, RP_TYPE_MISC, RPUNITS_METRIC);
-    becquerel = RpUnits::define("Bq", NULL, RP_TYPE_MISC, RPUNITS_METRIC);
+    mole      = RpUnits::define("mol",NULL, "quantity", RPUNITS_METRIC);
+    hertz     = RpUnits::define("Hz", NULL, "frequency", RPUNITS_METRIC);
+    becquerel = RpUnits::define("Bq", NULL, "radioactivity", RPUNITS_METRIC);
+    amu       = RpUnits::define("amu", NULL, "mass_unit", !RPUNITS_METRIC);
 
     // RpUnits* percent   = RpUnits::define("%",  NULL, RP_TYPE_MISC);
 
@@ -2909,6 +2940,9 @@ RpUnitsTypes::getTypeHint (std::string type) {
     }
     else if (type.compare(RP_TYPE_CONC) == 0) {
         return &RpUnitsTypes::hintTypeConc;
+    }
+    else if (type.compare(RP_TYPE_CONC) == 0) {
+        return &RpUnitsTypes::hintTypeForce;
     }
     else if (type.compare(RP_TYPE_MISC) == 0) {
         return &RpUnitsTypes::hintTypeMisc;
@@ -3056,6 +3090,18 @@ RpUnitsTypes::hintTypeConc   (   RpUnits* unitObj    ) {
     bool retVal = false;
 
     if ( (unitObj->getType()).compare(RP_TYPE_CONC) == 0 ) {
+        retVal = true;
+    }
+
+    return retVal;
+}
+
+bool
+RpUnitsTypes::hintTypeForce   (   RpUnits* unitObj    ) {
+
+    bool retVal = false;
+
+    if ( (unitObj->getType()).compare(RP_TYPE_FORCE) == 0 ) {
         retVal = true;
     }
 

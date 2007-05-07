@@ -44,6 +44,7 @@ enum RP_UNITS_CONSTS {
 #define RP_TYPE_PREFIX      "prefix"
 #define RP_TYPE_PRESSURE    "pressure"
 #define RP_TYPE_CONC        "concentration"
+#define RP_TYPE_FORCE       "force"
 #define RP_TYPE_MISC        "misc"
 
 
@@ -81,6 +82,7 @@ class RpUnitsPreset {
         static int  addPresetPrefix();
         static int  addPresetPressure();
         static int  addPresetConcentration();
+        static int  addPresetForce();
         static int  addPresetMisc();
 };
 
@@ -102,6 +104,7 @@ class RpUnitsTypes {
         static bool hintTypeMass      ( RpUnits* unitObj );
         static bool hintTypePressure  ( RpUnits* unitObj );
         static bool hintTypeConc      ( RpUnits* unitObj );
+        static bool hintTypeForce     ( RpUnits* unitObj );
         static bool hintTypeMisc      ( RpUnits* unitObj );
 
     private:
@@ -498,19 +501,20 @@ class RpUnits
 
         // populate the dictionary with a set of units specified by group
         // if group equals........................then load................
-        //                   "all"           load all available units
-        //  RP_TYPE_ENERGY   "energy"        load units related to energy
-        //  RP_TYPE_EPOT     "electric_potential" load units related to electric potential
-        //  RP_TYPE_LENGTH   "length"        load units related to length
-        //  RP_TYPE_TEMP     "temperature"   load units related to temperature
-        //  RP_TYPE_TIME     "time"          load units related to time
-        //  RP_TYPE_VOLUME   "volume"        load units related to volume
-        //  RP_TYPE_ANGLE    "angle"         load units related to angles
-        //  RP_TYPE_MASS     "mass"          load units related to mass
-        //  RP_TYPE_PREFIX   "prefix"        load unit prefixes
-        //  RP_TYPE_PRESSURE "pressure"      load units related to pressure
-        //  RP_TYPE_CONC     "concentration" load units related to pressure
-        //  RP_TYPE_MISC     "misc"          load units related to everything else
+        //                    "all"           load all available units
+        //  RP_TYPE_ENERGY    "energy"        load units related to energy
+        //  RP_TYPE_EPOT      "electric_potential" load units related to electric potential
+        //  RP_TYPE_LENGTH    "length"        load units related to length
+        //  RP_TYPE_TEMP      "temperature"   load units related to temperature
+        //  RP_TYPE_TIME      "time"          load units related to time
+        //  RP_TYPE_VOLUME    "volume"        load units related to volume
+        //  RP_TYPE_ANGLE     "angle"         load units related to angles
+        //  RP_TYPE_MASS      "mass"          load units related to mass
+        //  RP_TYPE_PREFIX    "prefix"        load unit prefixes
+        //  RP_TYPE_PRESSURE  "pressure"      load units related to pressure
+        //  RP_TYPE_CONC      "concentration" load units related to concentration
+        //  RP_TYPE_FORCE     "force"         load units related to force
+        //  RP_TYPE_MISC      "misc"          load units related to everything else
         //  (no other groups have been created)
 
         static int addPresets (const std::string group);
