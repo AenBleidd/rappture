@@ -1220,7 +1220,7 @@ int pyMol_Proxy(int c_in, int c_out, char *command, char *argv[])
 			    {
 				    if (errno != EINTR)
 					{
-				        fprintf(stderr,"pymolproxy: Lost Client Connection.\n");
+				        fprintf(stderr,"pymolproxy: lost client connection (%d).\n", errno);
 				        break;
 					}
 			    }
@@ -1350,7 +1350,7 @@ main(int argc, char *argv[])
 
 	myargv[arg-1] = NULL;
 
-    pyMol_Proxy(fileno(stdin), fileno(stdout), myargv[0], myargv);
+    pyMol_Proxy(fileno(stdout), fileno(stdin), myargv[0], myargv);
 }
 
 #endif
