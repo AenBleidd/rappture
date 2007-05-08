@@ -11,6 +11,7 @@
 #include <fcntl.h>
 #include <netinet/in.h>
 #include <getopt.h>
+#include <errno.h>
 
 // The initial request load for a new renderer.
 #define INITIAL_LOAD 100000000.0
@@ -25,6 +26,9 @@
 // justify redirection.
 #define LOAD_REDIRECT_FACTOR 0.8
 
+// Maxium number of services we support
+#define MAX_SERVICES 100
+
 float load = 0;             // The present load average for this system.
 int memory_in_use = 0;      // Total memory in use by this system. 
 int children = 0;           // Number of children running on this system.
@@ -32,7 +36,7 @@ int send_fd;                // The file descriptor we broadcast through.
 struct sockaddr_in send_addr;  // The subnet address we broadcast to.
 fd_set saved_rfds;          // Descriptors we're reading from.
 fd_set pipe_rfds;           // Descriptors that are pipes to children.
-
+fd_set service_rfds[MAX_SERVICES];
 
 struct host_info {
   struct in_addr in_addr;
@@ -41,7 +45,6 @@ struct host_info {
 };
 
 struct child_info {
-  pid_t pid;
   int   memory;
   int   pipefd;
   float requests;
@@ -112,34 +115,26 @@ void broadcast_load(void)
   }
 }
 
-void check_children(void)
+close_child(int pipe_fd)
 {
-  int status;
-
-  // Collect any children that have exited.
-  do {
-    int return_status;
-    status = waitpid(0, &return_status, WNOHANG);
-    if (status > 0) {
-      children--;
-    }
     int i;
     for(i=0; i<sizeof(child_array)/sizeof(child_array[0]); i++) {
-      if (child_array[i].pid == status) {
+      if (child_array[i].pipefd == pipe_fd) {
+        children--;
         memory_in_use -= child_array[i].memory;
-        child_array[i].pid = 0;
         child_array[i].memory = 0;
-        status = close(child_array[i].pipefd);
         FD_CLR(child_array[i].pipefd, &saved_rfds);
         FD_CLR(child_array[i].pipefd, &pipe_rfds);
+        close(child_array[i].pipefd);
+        child_array[i].pipefd = 0;
         break;
-      }
-    }
-  } while(status > 0);
-  printf("processes=%d, memory=%d, load=%f\n",
+	  }
+	}
+  
+    printf("processes=%d, memory=%d, load=%f\n",
          children, memory_in_use, load);
 
-  broadcast_load();
+    broadcast_load();
 }
 
 void note_request(int fd, float value)
@@ -149,8 +144,8 @@ void note_request(int fd, float value)
     if (child_array[c].pipefd == fd) {
       child_array[c].requests += value;
 #ifdef DEBUGGING
-      printf("Updating requests for pid %d to %f\n",
-             child_array[c].pid,
+      printf("Updating requests from pipefd %d to %f\n",
+             child_array[c].pipefd,
              child_array[c].requests);
 #endif
       return;
@@ -166,7 +161,7 @@ void update_load_average(void)
   float newload = 0.0;
   int c;
   for(c=0; c < sizeof(child_array)/sizeof(child_array[0]); c++) {
-    if (child_array[c].pid != 0) {
+    if (child_array[c].pipefd != 0) {
       newload += child_array[c].requests * child_array[c].memory;
       child_array[c].requests = 0;
     }
@@ -179,14 +174,9 @@ void update_load_average(void)
 }
 
 volatile int sigalarm_set;
-volatile int sigchild_set;
 void sigalarm_handler(int signum)
 {
   sigalarm_set = 1;
-}
-void sigchild_handler(int signum)
-{
-  sigchild_set = 1;
 }
 
 void help(const char *argv0)
@@ -197,20 +187,37 @@ void help(const char *argv0)
   exit(1);
 }
 
+int
+clear_service_fd(int fd)
+{
+    int n;
+
+	for(n = 0; n < MAX_SERVICES; n++)
+	{
+	    if (FD_ISSET(fd, &service_rfds[n]))
+		    FD_CLR(fd, &service_rfds[n]);
+	}
+}
+
 int main(int argc, char *argv[])
 {
-  char server_command[1000];
-  int command_argc;
-  char **command_argv;
+  char server_command[MAX_SERVICES][1000];
+  int nservices = 0;
+  int command_argc[MAX_SERVICES];
+  char **command_argv[MAX_SERVICES];
   int val;
-  int listen_fd = -1;
+  int listen_fd[MAX_SERVICES];
   int status;
   struct sockaddr_in listen_addr;
   struct sockaddr_in recv_addr;
-  int listen_port = -1;
+  int listen_port[MAX_SERVICES];
   int recv_port = -1;
   int connected_fds[10] = {0};
   int subnet_addr;
+  int n;
+
+  listen_port[0] = -1;
+  server_command[0][0] = 0;
 
   while(1) {
     int c;
@@ -230,10 +237,18 @@ int main(int argc, char *argv[])
         recv_port = strtoul(optarg,0,0);
         break;
       case 'c':
-        strncpy(server_command, optarg, sizeof(server_command));
+        strncpy(server_command[nservices], optarg, sizeof(server_command[0]));
+
+		if (listen_port[nservices] == -1) {
+		    fprintf(stderr,"Must specify -l port before each -c command.\n");
+			return 1;
+		}
+
+		nservices++;
+		listen_port[nservices] = -1;
         break;
       case 'l':
-        listen_port = strtoul(optarg,0,0);
+        listen_port[nservices] = strtoul(optarg,0,0);
         break;
       case 's':
         send_addr.sin_addr.s_addr = htonl(inet_network(optarg,
@@ -249,54 +264,57 @@ int main(int argc, char *argv[])
     }
   }
 
-  if (listen_port == -1 ||
+  if (nservices == 0 ||
       recv_port == -1 ||
       subnet_addr == -1 ||
-      server_command[0]=='\0') {
+      server_command[0][0]=='\0') {
     help(argv[0]);
     return 1;
   }
 
-  // Parse the command arguments...
-  command_argc=0;
-  command_argv = malloc((command_argc+2) * sizeof(char *));
-  command_argv[command_argc] = strtok(server_command, " \t");
-  command_argc++;
-  while( (command_argv[command_argc] = strtok(NULL, " \t"))) {
-    command_argv = realloc(command_argv, (command_argc+2) * sizeof(char *));
-    command_argc++;
-  }
+  for(n = 0; n < nservices; n++) {
+      // Parse the command arguments...
 
-  // Create a socket for listening.
-  listen_fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-  if (listen_fd < 0) {
-    perror("socket");
-    exit(1);
-  }
+      command_argc[n]=0;
+      command_argv[n] = malloc((command_argc[n]+2) * sizeof(char *));
+      command_argv[n][command_argc[n]] = strtok(server_command[n], " \t");
+      command_argc[n]++;
+      while( (command_argv[n][command_argc[n]] = strtok(NULL, " \t"))) {
+        command_argv[n] = realloc(command_argv[n], (command_argc[n]+2) * sizeof(char *));
+        command_argc[n]++;
+      }
 
-  // If program is killed, drop the socket address reservation immediately.
-  val = 1;
-  status = setsockopt(listen_fd, SOL_SOCKET, SO_REUSEADDR, &val, sizeof(val));
-  if (status < 0) {
-    perror("setsockopt");
-    // Not fatal.  Keep on going.
-  }
+      // Create a socket for listening.
+      listen_fd[n] = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+      if (listen_fd[n] < 0) {
+        perror("socket");
+        exit(1);
+      }
+  
+      // If program is killed, drop the socket address reservation immediately.
+	  val = 1;
+      status = setsockopt(listen_fd[n], SOL_SOCKET, SO_REUSEADDR, &val, sizeof(val));
+      if (status < 0) {
+        perror("setsockopt");
+        // Not fatal.  Keep on going.
+      }
 
-  // Bind this address to the socket.
-  listen_addr.sin_family = AF_INET;
-  listen_addr.sin_port = htons(listen_port);
-  listen_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-  status = bind(listen_fd, (struct sockaddr *)&listen_addr,
+      // Bind this address to the socket.
+      listen_addr.sin_family = AF_INET;
+      listen_addr.sin_port = htons(listen_port[n]);
+      listen_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+      status = bind(listen_fd[n], (struct sockaddr *)&listen_addr,
                 sizeof(listen_addr));
-  if (status < 0) {
-    perror("bind");
-    exit(1);
-  }
+      if (status < 0) {
+        perror("bind");
+        exit(1);
+      }
 
-  // Listen on the specified port.
-  status = listen(listen_fd,5);
-  if (status < 0) {
-    perror("listen");
+      // Listen on the specified port.
+      status = listen(listen_fd[n],5);
+      if (status < 0) {
+        perror("listen");
+      }
   }
 
   // Create a socket for broadcast.
@@ -337,16 +355,10 @@ int main(int argc, char *argv[])
   send_addr.sin_family = AF_INET;
   send_addr.sin_port = htons(recv_port);
 
-  // Set up a signal handler for exiting children.
-  // It doesn't do anything other than interrupt select() below.
-  if (signal(SIGCHLD,sigchild_handler) == SIG_ERR) {
-    perror("signal SIGCHLD");
-  }
-
   // Set up a signal handler for the alarm interrupt.
   // It doesn't do anything other than interrupt select() below.
   if (signal(SIGALRM,sigalarm_handler) == SIG_ERR) {
-    perror("signal SIGCHLD");
+    perror("signal SIGALRM");
   }
 
   struct itimerval itvalue = {
@@ -358,15 +370,20 @@ int main(int argc, char *argv[])
   }
 
   // We're ready to go.  Before going into the main loop,
-  // do a check_children to broadcast a load announcement to
-  // other machines.
-  check_children();
+  // broadcast a load announcement to other machines.
+  broadcast_load();
 
-
-  int maxfd = max(listen_fd,send_fd);
+  int maxfd = send_fd;
   FD_ZERO(&saved_rfds);
   FD_ZERO(&pipe_rfds);
-  FD_SET(listen_fd, &saved_rfds);
+
+  for(n = 0; n < nservices; n++) {
+      FD_ZERO(&service_rfds[n]);
+      FD_SET(listen_fd[n], &saved_rfds);
+	  if (listen_fd[n] > maxfd)
+	      maxfd = listen_fd[n];
+  }
+
   FD_SET(send_fd, &saved_rfds);
   while(1) {
 
@@ -378,28 +395,32 @@ int main(int argc, char *argv[])
         update_load_average();
         sigalarm_set = 0;
       }
-      if (sigchild_set) {
-        check_children();
-        sigchild_set = 0;
-      }
       continue;
     }
 
-    if (FD_ISSET(listen_fd, &rfds)) {
-      // Accept a new connection.
-      struct sockaddr_in newaddr;
-      unsigned int addrlen = sizeof(newaddr);
-      int newfd = accept(listen_fd, (struct sockaddr *)&newaddr, &addrlen);
-      if (newfd < 0) {
-        perror("accept");
-        continue;
-      }
+    
+    int accepted = 0;
+    for(n = 0; n < nservices; n++) {
+        if (FD_ISSET(listen_fd[n], &rfds)) {
+          // Accept a new connection.
+          struct sockaddr_in newaddr;
+          unsigned int addrlen = sizeof(newaddr);
+          int newfd = accept(listen_fd[n], (struct sockaddr *)&newaddr, &addrlen);
+          if (newfd < 0) {
+            perror("accept");
+            continue;
+          }
 
-      printf("New connection from %s\n", inet_ntoa(newaddr.sin_addr));
-      FD_SET(newfd, &saved_rfds);
-      maxfd = max(maxfd, newfd);
-      continue;
-    }
+          printf("New connection from %s\n", inet_ntoa(newaddr.sin_addr));
+          FD_SET(newfd, &saved_rfds);
+          maxfd = max(maxfd, newfd);
+		  FD_SET(newfd, &service_rfds[n]);
+          accepted = 1; 
+		}
+	}
+
+	if (accepted)
+	    continue;
 
     if (FD_ISSET(send_fd, &rfds)) {
       int buffer[1000];
@@ -454,9 +475,11 @@ int main(int argc, char *argv[])
           float value;
           status = read(i, &value, sizeof(value));
           if (status != 4) {
-            close(i);
+		    //fprintf(stderr,"error reading pipe, child ended?\n");
+            close_child(i);
+			/*close(i);
             FD_CLR(i, &saved_rfds);
-            FD_CLR(i, &pipe_rfds);
+            FD_CLR(i, &pipe_rfds); */
           } else {
             note_request(i,value);
           }
@@ -470,7 +493,8 @@ int main(int argc, char *argv[])
         if (status != 4) {
           fprintf(stderr,"Bad status on read (%d).", status);
           FD_CLR(i, &saved_rfds);
-          close(i);
+          clear_service_fd(i);
+		  close(i);
           continue;
         }
 
@@ -497,6 +521,7 @@ int main(int argc, char *argv[])
                  inet_ntoa(host_array[index].in_addr));
           write(i, &host_array[index].in_addr.s_addr, 4);
           FD_CLR(i, &saved_rfds);
+          clear_service_fd(i);
           close(i);
           continue;
         }
@@ -528,20 +553,35 @@ int main(int argc, char *argv[])
         if (status < 0) {
           perror("fork");
         } else if (status == 0) {
-          dup2(i,0);  // stdin
-          dup2(i,1);  // stdout
-          dup2(i,2);  // stderr
-          dup2(pair[1],3);
-          int fd;
-          for(fd=4; fd<FD_SETSIZE; fd++) {
-            close(fd);
-          }
-          execvp(command_argv[0], command_argv);
+
+		  for(n = 0; n < MAX_SERVICES; n++) {
+		    if (FD_ISSET(i, &service_rfds[n])) {
+
+			  // disassociate
+			  if ( daemon(0,1) == 0 ) { 
+                int fd;
+
+                dup2(i,0);  // stdin
+                dup2(i,1);  // stdout
+                dup2(i,2);  // stderr
+                dup2(pair[1],3);
+
+                for(fd=4; fd<FD_SETSIZE; fd++)
+                  close(fd);
+
+                execvp(command_argv[n][0], command_argv[n]);
+		      }
+			  _exit(errno);
+		    }
+		  }
+		  _exit(EINVAL);
+
         } else {
           int c;
+		  // reap initial child which will exit immediately (grandchild continues)
+		  waitpid(status, NULL, 0); 
           for(c=0; c<sizeof(child_array)/sizeof(child_array[0]); c++) {
-            if (child_array[c].pid == 0) {
-              child_array[c].pid = status;
+            if (child_array[c].pipefd == 0) {
               child_array[c].memory = newmemory;
               child_array[c].pipefd = pair[0];
               child_array[c].requests = INITIAL_LOAD;
@@ -557,11 +597,12 @@ int main(int argc, char *argv[])
           }
 
           children++;
-          check_children();
+          broadcast_load();
         }
 
 
         FD_CLR(i, &saved_rfds);
+        clear_service_fd(i);
         close(i);
         break;
       }
