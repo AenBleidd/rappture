@@ -671,7 +671,7 @@ itcl::body Rappture::NanovisViewer::connect {{hostlist ""}} {
         fconfigure $sid -translation binary -encoding binary
 
         # send memory requirement to the load balancer
-        puts -nonewline $sid [binary format i $memorySize]
+        puts -nonewline $sid [binary format I $memorySize]
         flush $sid
 
         # read back a reconnection order
