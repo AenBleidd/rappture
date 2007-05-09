@@ -23,13 +23,11 @@ MEX             = @MEX@ @MEX_ARCH@
 
 # define our directories
 #
-INCLUDES_DIR    = $(RP_BASE)/src
 LIB_DIR         = $(RP_BASE)/src
-MATLAB_SRC      = $(RP_BASE)/matlab
+MATLAB_SRC      = $(RP_BASE)/src/matlab
 LIB_RAPPTURE    = -L$(LIB_DIR) -lrappture
-INCL_CORE       = -I$(INCLUDES_DIR)/core
-INCL_CEE        = -I$(INCLUDES_DIR)/cee
-INCL_MATLAB     = -I$(INCLUDES_DIR)/matlab
+INCL_RAPPTURE   = -I$(RP_BASE)/include
+INCL_MATLAB     = -I$(RP_BASE)/src/matlab
 
 OBJS=rpLib.@MEXEXT@ rpLibXml.@MEXEXT@ rpLibElement.@MEXEXT@ rpLibElementAsObject.@MEXEXT@ rpLibElementAsType.@MEXEXT@ rpLibElementAsComp.@MEXEXT@ rpLibElementAsId.@MEXEXT@ rpLibChildren.@MEXEXT@ rpLibChildrenByType.@MEXEXT@ rpLibGet.@MEXEXT@ rpLibGetString.@MEXEXT@ rpLibGetDouble.@MEXEXT@ rpLibPut.@MEXEXT@ rpLibPutString.@MEXEXT@ rpLibPutDouble.@MEXEXT@ rpLibPutData.@MEXEXT@ rpLibPutFile.@MEXEXT@ rpLibNodeComp.@MEXEXT@ rpLibNodeType.@MEXEXT@ rpLibNodeId.@MEXEXT@ rpLibResult.@MEXEXT@ rpUnitsDefineUnit.@MEXEXT@ rpUnitsGetUnits.@MEXEXT@ rpUnitsGetUnitsName.@MEXEXT@ rpUnitsGetExponent.@MEXEXT@ rpUnitsGetBasis.@MEXEXT@ rpUnitsFind.@MEXEXT@ rpUnitsConvert.@MEXEXT@ rpUnitsConvertStr.@MEXEXT@ rpUnitsConvertObjStr.@MEXEXT@ rpUnitsConvertDbl.@MEXEXT@ rpUnitsConvertObjDbl.@MEXEXT@ rpAddPresets.@MEXEXT@ rpUtilsProgress.@MEXEXT@
 
@@ -45,7 +43,7 @@ install: $(OBJS)
 ####################################################################
 
 # matlab bindings
-MEX_INCLS = $(INCL_MATLAB) $(INCL_CORE) $(INCL_CEE) $(INCL_RP_DEPS)
+MEX_INCLS = $(INCL_MATLAB) $(INCL_RAPPTURE) $(INCL_RP_DEPS)
 # MEX_OPTS = -g -outdir $(MATLAB_SRC) -L$(LIB_DIR) -lrappture
 MEX_OPTS = -g $(LIB_RAPPTURE)
 MATLAB_COMP_ARGS = RpMatlabInterface.cc $(MEX_INCLS) $(MEX_OPTS)

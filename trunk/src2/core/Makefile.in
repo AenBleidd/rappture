@@ -13,7 +13,7 @@
 
 CXX             = @CXX@
 
-CFLAGS=-g -Wall
+CFLAGS=-g -Wall -fPIC
 #CFLAGS=-O
 #CFLAGS=-O -DMAX_WBITS=14 -DMAX_MEM_LEVEL=7
 #CFLAGS=-g -DDEBUG

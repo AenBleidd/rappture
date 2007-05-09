@@ -3,21 +3,21 @@ from distutils.core import setup, Extension
 rp_install_dir = '@prefix@'
 
 units_module = Extension('Rappture.Units',
-                   include_dirs = [rp_install_dir+'/include'],
+                   include_dirs = [rp_install_dir+'/include', '../include'],
                    sources = [ 'Rappture/PyRpUnits.cc' ],
-                   library_dirs = [ rp_install_dir+'/lib' ],
+                   library_dirs = [ rp_install_dir+'/lib', '../src' ],
                    libraries = [ 'rappture' ] )
 
 utils_module = Extension('Rappture.Utils',
-                   include_dirs = [rp_install_dir+'/include'],
+                   include_dirs = [rp_install_dir+'/include', '../include'],
                    sources = [ 'Rappture/PyRpUtils.cc' ],
-                   library_dirs = [ rp_install_dir+'/lib' ],
+                   library_dirs = [ rp_install_dir+'/lib', '../src' ],
                    libraries = [ 'rappture' ] )
 
 encode_module = Extension('Rappture.encoding',
-                   include_dirs = [rp_install_dir+'/include'],
+                   include_dirs = [rp_install_dir+'/include', '../include'],
                    sources = [ 'Rappture/PyRpEncode.cc' ],
-                   library_dirs = [ rp_install_dir+'/lib' ],
+                   library_dirs = [ rp_install_dir+'/lib', '../src' ],
                    libraries = [ 'rappture' ] )
 
 setup(  name='Rappture',

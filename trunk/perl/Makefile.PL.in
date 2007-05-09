@@ -7,39 +7,37 @@ $CC = $Config{"cc"};
 $LD = $Config{"ld"};
 
 if ($ARGV[0] eq "DEBUG") {
-	shift @ARGV;
-	$DEBUG = 1;
+    shift @ARGV;
+    $DEBUG = 1;
 }
 
 if ($^O ne "MSWin32") {
     $CC = '@CXX@';
     $LD = '@CXX@';
     if ($^O eq 'darwin') {
-        @LDDLFLAGS = ( q[-bundle], 
-                       q[-bundle_loader /usr/bin/perl], 
+        @LDDLFLAGS = ( q[-bundle],
+                       q[-bundle_loader /usr/bin/perl],
                        q[-L/usr/local/lib],
                        q[-L$(PERL_INC) -lperl]
                      );
     }
     @EXPAT_INC_SEARCHPATH = ( "@prefix@/include",
-        "/apps/rappture/include", "/opt/rappture/include",
         "/usr/local/include", "/opt/include", "../../expat-2.0.0/lib",
         "../../expat/lib", "/apps/expat-2.0.0/lib", "/apps/expat/lib",
         "/opt/expat-2.0.0/lib", "/opt/expat/lib" );
     $EXPAT_INC="expat.h";
     @RAPPTURE_INC_SEARCHPATH = ( "@prefix@/include",
-        "../src/core", "../include", "/apps/rappture/include",
-        "/opt/rappture/include", "/usr/local/include", "/opt/include");
+        "../include", "/usr/local/include", "/opt/include");
     $RAPPTURE_INC = "rappture.h";
     @EXPAT_LIB_SEARCHPATH = ( "@prefix@/lib",
-        "/apps/rappture/lib", "/opt/rappture/lib",
+        "@libdir@",
         "/usr/local/lib", "/opt/lib", "../../expat-2.0.0/lib",
         "../../expat/lib", "/apps/expat-2.0.0/lib", "/apps/expat/lib",
         "/opt/expat-2.0.0/lib", "/opt/expat/lib" );
     @EXPAT_LIBS=("libexpat.so", "libexpat.a");
     @RAPPTURE_LIB_SEARCHPATH = ( "@prefix@/lib",
-        "../src", "/apps/rappture/lib", "/opt/rappture/lib",
-        "/usr/local/lib", "/opt/lib" );
+        "@libdir@",
+        "../src", "/usr/local/lib", "/opt/lib" );
     @RAPPTURE_LIBS=("librappture.so","librappture.a");
 }
 else {
@@ -48,26 +46,26 @@ else {
         @LIBS = ("msvcprt.lib");
     }
 
-    @EXPAT_INC_SEARCHPATH = ( "C:\\Program Files\\Rappture\\include", 
-        "C:\\opt\\rappture\\include", "C:\\opt\\include", 
-        "..\\..\\expat-2.0.0\\lib", "..\\..\\expat\\lib", 
-        "C:\\Program Files\\Expat-2.0.0\\Source\\lib", 
-        "C:\\Program Files\\Expat\\Source\\lib", 
+    @EXPAT_INC_SEARCHPATH = ( "C:\\Program Files\\Rappture\\include",
+        "C:\\opt\\rappture\\include", "C:\\opt\\include",
+        "..\\..\\expat-2.0.0\\lib", "..\\..\\expat\\lib",
+        "C:\\Program Files\\Expat-2.0.0\\Source\\lib",
+        "C:\\Program Files\\Expat\\Source\\lib",
         "C:\\opt\\expat-2.0.0\\lib", "C:\\opt\\expat\\lib" );
     $EXPAT_INC="expat.h";
-    @RAPPTURE_INC_SEARCHPATH = ( "C:\\Program Files\\Rappture\\include", 
+    @RAPPTURE_INC_SEARCHPATH = ( "C:\\Program Files\\Rappture\\include",
         "C:\\opt\\rappture\\include", "C:\\opt\\include", "..\\include" );
     $RAPPTURE_INC = "rappture.h";
-    @EXPAT_LIB_SEARCHPATH = ( "C:\\Program Files\\Rappture\\lib", 
-        "C:\\opt\\rappture\\lib", "C:\\opt\\lib", 
-        "..\\..\\expat-2.0.0\\lib\\Release_static", 
-        "..\\..\\expat\\lib\\Release_static", 
+    @EXPAT_LIB_SEARCHPATH = ( "C:\\Program Files\\Rappture\\lib",
+        "C:\\opt\\rappture\\lib", "C:\\opt\\lib",
+        "..\\..\\expat-2.0.0\\lib\\Release_static",
+        "..\\..\\expat\\lib\\Release_static",
         "C:\\Program Files\\Expat-2.0.0\\StaticLibs",
-        "C:\\Program Files\\Expat\\StaticLibs", 
-        "C:\\opt\\expat-2.0.0\\lib\\Release_static", 
+        "C:\\Program Files\\Expat\\StaticLibs",
+        "C:\\opt\\expat-2.0.0\\lib\\Release_static",
         "C:\\opt\\expat\\lib\\Release_static" );
     @EXPAT_LIBS=("libexpat.lib", "libexpatMT.lib");
-    @RAPPTURE_LIB_SEARCHPATH = ( "C:\\Program Files\\Rappture\\lib", 
+    @RAPPTURE_LIB_SEARCHPATH = ( "C:\\Program Files\\Rappture\\lib",
         "C:\\opt\\rappture\\lib", "C:\\opt\\lib", "..\\src" );
     @RAPPTURE_LIBS=("librappture.lib");
 }
@@ -81,7 +79,7 @@ find_include {
             if (!(grep /^-I$sdir/, @$incref)) { 
                 push @$incref, "-I$component"; 
             }
-	    return 1;
+            return 1;
             last;
         }
     }
@@ -108,7 +106,7 @@ find_lib {
                 else {
                     push @$libref, $file;
                 }
-		return 1;
+                return 1;
                 last SEARCH;
             }
         }
@@ -141,12 +139,12 @@ package MY;
 use Config;
 
 sub dynamic_lib {
-	my $inherited = shift->SUPER::dynamic_lib(@_);
-        if (($^O eq "MSWin32") && ($Config{'cc'} eq "cl")) {
-	    $inherited .= "\tMT.EXE -manifest \$@.manifest -outputresource:\$@;2\n";
-	    $inherited .= "\t\$(RM_F) \$@.manifest\n";
-        }
-	return($inherited);
+    my $inherited = shift->SUPER::dynamic_lib(@_);
+    if (($^O eq "MSWin32") && ($Config{'cc'} eq "cl")) {
+        $inherited .= "\tMT.EXE -manifest \$@.manifest -outputresource:\$@;2\n";
+        $inherited .= "\t\$(RM_F) \$@.manifest\n";
+    }
+    return($inherited);
 }
 
 

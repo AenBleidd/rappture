@@ -9,8 +9,8 @@
  * ======================================================================
  */
 
-#ifndef _Rp_OCTAVE_HELPER_H 
-#define _Rp_OCTAVE_HELPER_H 
+#ifndef _Rp_OCTAVE_HELPER_H
+#define _Rp_OCTAVE_HELPER_H
 
 #include "rappture.h"
 #include "RpBindingsDict.h"
