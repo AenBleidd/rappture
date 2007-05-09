@@ -182,7 +182,7 @@ void sigalarm_handler(int signum)
 void help(const char *argv0)
 {
   fprintf(stderr,
-          "Syntax: %s -b <broadcast port> -l <listen port> -s <subnet> -c 'command'\n",
+          "Syntax: %s [-d] -b <broadcast port> -l <listen port> -s <subnet> -c 'command'\n",
           argv0);
   exit(1);
 }
@@ -214,6 +214,7 @@ int main(int argc, char *argv[])
   int recv_port = -1;
   int connected_fds[10] = {0};
   int subnet_addr;
+  int debug_flag = 0;
   int n;
 
   listen_port[0] = -1;
@@ -228,11 +229,14 @@ int main(int argc, char *argv[])
       { 0,0,0,0 },
     };
 
-    c = getopt_long(argc, argv, "+b:c:l:s:", long_options, &option_index);
+    c = getopt_long(argc, argv, "+b:c:l:s:d", long_options, &option_index);
     if (c == -1)
       break;
 
     switch(c) {
+	  case 'd':
+	    debug_flag = 1;
+		break;
       case 'b':
         recv_port = strtoul(optarg,0,0);
         break;
@@ -385,6 +389,14 @@ int main(int argc, char *argv[])
   }
 
   FD_SET(send_fd, &saved_rfds);
+
+  if (debug_flag == 0) {
+      if ( daemon(0,0) != 0 ) {
+	      perror("daemon");
+		  exit(1);
+	  }
+  }
+
   while(1) {
 
     fd_set rfds = saved_rfds;
