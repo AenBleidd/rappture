@@ -160,7 +160,7 @@ clean:
 	make -C src/octave clean
 	make -C src/tcl clean
 	make -C src2/core clean
-	rm -rf include
+	rm -f include/*
 
 distclean:
 	rm examples/demo.bash
@@ -179,3 +179,4 @@ distclean:
 	make -C test distclean
 	rm gui/apps/rappture gui/apps/simsim gui/apps/rappture.env;
 	rm -rf Makefile config.status config.log bin;
+	rm -f include/*
