@@ -269,62 +269,62 @@ AC_SUBST(BLT_SRC_DIR)
 # for it in the --with-rappture directory.
 #--------------------------------------------------------------------
 RAPPTURE_DIR=$prefix
-# AC_MSG_CHECKING([for rappture.h])
-# RAPPTURE_DIR=""
-# if test "x$rappture_dir" != "x" ; then
-#   #
-#   # Verify that a rappture.h file exists in the directory specified
-#   # by --with-rappture.
-#   #
-#   if test -r "$rappture_dir/include/rappture.h" ; then
-#     RAPPTURE_DIR="$rappture_dir"
-#   fi
-# else
-#   #
-#   # Otherwise, search for the rappture.h include file...
-#   # 1. Search previously named locations.
-#   #
-#   for dir in \
-#    $prefix \
-#    $exec_prefix
-#   do
-#     if test -r "$dir/include/rappture.h" ; then
-#       RAPPTURE_DIR="$dir"
-#       break
-#     fi
-#   done
-#   #
-#   #  2. Search source directories.
-#   #
-#   if test "x$RAPPTURE_DIR" = "x" ; then
-#     for dir in \
-#      `ls -dr ../rappture 2>/dev/null` \
-#      `ls -dr ../../rappture 2>/dev/null` \
-#      `ls -dr ../../../rappture 2>/dev/null` \
-#      `ls -dr C\:/opt/rappture 2>/dev/null` \
-#      `ls -dr /opt/rappture 2>/dev/null` 
-#     do
-#       if test -r "$dir/include/rappture.h" ; then
-#         RAPPTURE_DIR="$dir"
-#         break
-#       fi
-#     done
-#   fi
-# fi
-# AC_MSG_RESULT([${RAPPTURE_DIR}])
-# 
-# if test "x$RAPPTURE_DIR" = "x" ; then
-#   echo "can't find RAPPTURE include file \"rappture.h\""
-#   echo "use --with-rappture=DIR to specify the location of rappture"
-#   exit 1
-# fi
+#AC_MSG_CHECKING([for rappture.h])
+#RAPPTURE_DIR=""
+#if test "x$rappture_dir" != "x" ; then
+#  #
+#  # Verify that a rappture.h file exists in the directory specified
+#  # by --with-rappture.
+#  #
+#  if test -r "$rappture_dir/include/rappture.h" ; then
+#    RAPPTURE_DIR="$rappture_dir"
+#  fi
+#else
+#  #
+#  # Otherwise, search for the rappture.h include file...
+#  # 1. Search previously named locations.
+#  #
+#  for dir in \
+#   $prefix \
+#   $exec_prefix
+#  do
+#    if test -r "$dir/include/rappture.h" ; then
+#      RAPPTURE_DIR="$dir"
+#      break
+#    fi
+#  done
+#  #
+#  #  2. Search source directories.
+#  #
+#  if test "x$RAPPTURE_DIR" = "x" ; then
+#    for dir in \
+#     `ls -dr ../rappture 2>/dev/null` \
+#     `ls -dr ../../rappture 2>/dev/null` \
+#     `ls -dr ../../../rappture 2>/dev/null` \
+#     `ls -dr C\:/opt/rappture 2>/dev/null` \
+#     `ls -dr /opt/rappture 2>/dev/null`
+#    do
+#      if test -r "$dir/include/rappture.h" ; then
+#        RAPPTURE_DIR="$dir"
+#        break
+#      fi
+#    done
+#  fi
+#fi
+#AC_MSG_RESULT([${RAPPTURE_DIR}])
+#
+#if test "x$RAPPTURE_DIR" = "x" ; then
+#  echo "can't find RAPPTURE include file \"rappture.h\""
+#  echo "use --with-rappture=DIR to specify the location of rappture"
+#  exit 1
+#fi
 
 AC_SUBST(RAPPTURE_DIR)
 
 #--------------------------------------------------------------------
-# Look for scew.h on the normal include path.  If not found, look
-# for it in the --with-scew directory.
+# Default Rappture include path.
 #--------------------------------------------------------------------
+ALT_DIR="../../"
 # AC_MSG_CHECKING([for alternate paths])
 # ALT_DIR=""
 # if test "x$alt_dir" != "x" ; then

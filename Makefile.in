@@ -42,11 +42,13 @@ install_gui:
 	make -C gui install
 
 rplib:
+	@if ! test -d "include"; then \
+		mkdir include;\
+	fi
 	make -C src2/core librappture2.a librappture2.so.0.0
 	make -C src librappture;
 
 install_rplib:
-	set -x;
 	make -C src2/core install;
 	make -C src install_rappture;
 
@@ -60,10 +62,14 @@ install_bindings: install_matlab install_octave install_python install_perl inst
 # 	- compile rappture examples in rappture/examples
 #############################################################################
 build_examples:
+ifneq ($(strip @F77@),)
 	make -C examples/app-fermi/fortran
+endif
+ifneq ($(strip @CC@),)
 	make -C examples/app-fermi/cee
 	make -C examples/app-fermi/wrapper/cee
 	make -C examples/c-example
+endif
 
 install_examples: build_examples
 	cp -r examples $(prefix)
@@ -115,14 +121,12 @@ build_python:
 
 install_python: build_python
 	@if test "x@PYTHON@" != "x" ; then \
-		set -x; \
 		cd python; \
 		@PYTHON@ setup.py install --prefix=$(prefix); \
 	fi
 
 build_perl:
 	@if test "x@PERL@" != "x" ; then \
-		set -x; \
 		cd perl; \
 		@PERL@ Makefile.PL INSTALLSITELIB=$(libdir)/perl5 INSTALLSITEARCH=$(libdir)/perl5 INSTALLSITEMAN3DIR=$(mandir)/man3; \
 		make; LD_LIBRARY_PATH=$(libdir):../src make test; \
@@ -130,11 +134,11 @@ build_perl:
 
 install_perl: build_perl
 	@if test "x@PERL@" != "x" ; then \
-		make -C perl install; \
+		cd perl; \
+		make install; \
 	fi
 
 build_pkgs:
-	set -x;
 	@if ! test -d "bin"; then \
 		mkdir bin;\
 	fi
@@ -147,13 +151,16 @@ clean:
 	make -C examples/app-fermi/wrapper/cee clean
 	make -C examples/c-example clean
 	make -C gui clean
-	make -C perl clean
+	@if test -r "perl/Makefile" ; then \
+		make -C perl clean; \
+	fi
 	rm -rf python/build
 	make -C src clean
 	make -C src/matlab clean
 	make -C src/octave clean
-	make -C src/tcl distclean
+	make -C src/tcl clean
 	make -C src2/core clean
+	rm -rf include
 
 distclean:
 	rm examples/demo.bash

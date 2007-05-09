@@ -312,7 +312,7 @@ ac_includes_default="\
 
 ac_subdirs_all="$ac_subdirs_all gui"
 ac_subdirs_all="$ac_subdirs_all src/tcl"
-ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA SET_MAKE CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT CPP EGREP CXX CXXFLAGS ac_ct_CXX CXXCPP F77 FFLAGS ac_ct_F77 MEX MKOCTFILE PERL PYTHON pythondir MEX_ARCH MEXEXT PERL_INCLUDES PERL_SITE_PACKAGES PYTHON_VERSION PYTHON_INCLUDES PYTHON_SITE_PACKAGES LIB_SEARCH_DIRS VERSION RP_BASE subdirs LIBOBJS LTLIBOBJS'
+ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS VERSION LIB_SEARCH_DIRS INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA SET_MAKE CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT CPP EGREP CXX CXXFLAGS ac_ct_CXX CXXCPP F77 FFLAGS ac_ct_F77 MEX MEX_ARCH MEXEXT MKOCTFILE PERL PERL_INCLUDES PERL_SITE_PACKAGES PYTHON pythondir PYTHON_VERSION PYTHON_INCLUDES PYTHON_SITE_PACKAGES RP_BASE subdirs LIBOBJS LTLIBOBJS'
 ac_subst_files=''
 
 # Initialize some variables set by options.
@@ -865,12 +865,16 @@ if test -n "$ac_init_help"; then
 Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
   --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
-  --with-matlab=DIR         Build Matlab bindings if MEX compiler is found
-  --with-matlab-arch=ARCH         Build Matlab bindings for ARCH architecture
-  --with-mexext=ARCH         Suggest an extension for building mex files
-  --with-octave=DIR         Build Octave bindings if MKOCTFILE compiler is found
-  --with-perl=DIR         Build Perl bindings if found
-  --with-python=DIR       Build Python bindings if found
+  --with-matlab=DIR     location of matlab and mex compiler
+                          [default=check]
+  --with-matlab-arch=ARCH build Matlab bindings for ARCH architecture
+                          [default=check]
+  --with-mexext=ARCH    fallback extension for building mex files
+                          [default=check]
+  --with-octave=DIR     location of octave compiler MKOCTFILE
+                          [default=check]
+  --with-perl=DIR       location of perl [default=check]
+  --with-python=DIR     location of python [default=check]
 
 Some influential environment variables:
   CC          C compiler command
@@ -978,7 +982,7 @@ esac
     else
       echo "$as_me: WARNING: no configuration information is in $ac_dir" >&2
     fi
-    cd "$ac_popdir"
+    cd $ac_popdir
   done
 fi
 
@@ -1338,6 +1342,7 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 VERSION=0.0.1
 
+
 #------------------------------------------------------------------------
 # Handle the --prefix=... option
 #------------------------------------------------------------------------
@@ -1354,6 +1359,8 @@ if test "${libdir}" != "${prefix}/lib"; then
 else
     LIB_SEARCH_DIRS="-L ${libdir}"
 fi
+
+
 
 ac_aux_dir=
 for ac_dir in $srcdir $srcdir/.. $srcdir/../..; do
@@ -2057,7 +2064,8 @@ if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
   cat conftest.err >&5
   echo "$as_me:$LINENO: \$? = $ac_status" >&5
   (exit $ac_status); } &&
-	 { ac_try='test -z "$ac_c_werror_flag"			 || test ! -s conftest.err'
+	 { ac_try='test -z "$ac_c_werror_flag"
+			 || test ! -s conftest.err'
   { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
   (eval $ac_try) 2>&5
   ac_status=$?
@@ -2115,7 +2123,8 @@ if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
   cat conftest.err >&5
   echo "$as_me:$LINENO: \$? = $ac_status" >&5
   (exit $ac_status); } &&
-	 { ac_try='test -z "$ac_c_werror_flag"			 || test ! -s conftest.err'
+	 { ac_try='test -z "$ac_c_werror_flag"
+			 || test ! -s conftest.err'
   { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
   (eval $ac_try) 2>&5
   ac_status=$?
@@ -2231,7 +2240,8 @@ if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
   cat conftest.err >&5
   echo "$as_me:$LINENO: \$? = $ac_status" >&5
   (exit $ac_status); } &&
-	 { ac_try='test -z "$ac_c_werror_flag"			 || test ! -s conftest.err'
+	 { ac_try='test -z "$ac_c_werror_flag"
+			 || test ! -s conftest.err'
   { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
   (eval $ac_try) 2>&5
   ac_status=$?
@@ -2285,7 +2295,8 @@ if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
   cat conftest.err >&5
   echo "$as_me:$LINENO: \$? = $ac_status" >&5
   (exit $ac_status); } &&
-	 { ac_try='test -z "$ac_c_werror_flag"			 || test ! -s conftest.err'
+	 { ac_try='test -z "$ac_c_werror_flag"
+			 || test ! -s conftest.err'
   { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
   (eval $ac_try) 2>&5
   ac_status=$?
@@ -2330,7 +2341,8 @@ if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
   cat conftest.err >&5
   echo "$as_me:$LINENO: \$? = $ac_status" >&5
   (exit $ac_status); } &&
-	 { ac_try='test -z "$ac_c_werror_flag"			 || test ! -s conftest.err'
+	 { ac_try='test -z "$ac_c_werror_flag"
+			 || test ! -s conftest.err'
   { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
   (eval $ac_try) 2>&5
   ac_status=$?
@@ -2374,7 +2386,8 @@ if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
   cat conftest.err >&5
   echo "$as_me:$LINENO: \$? = $ac_status" >&5
   (exit $ac_status); } &&
-	 { ac_try='test -z "$ac_c_werror_flag"			 || test ! -s conftest.err'
+	 { ac_try='test -z "$ac_c_werror_flag"
+			 || test ! -s conftest.err'
   { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
   (eval $ac_try) 2>&5
   ac_status=$?
@@ -2704,7 +2717,8 @@ if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
   cat conftest.err >&5
   echo "$as_me:$LINENO: \$? = $ac_status" >&5
   (exit $ac_status); } &&
-	 { ac_try='test -z "$ac_c_werror_flag"			 || test ! -s conftest.err'
+	 { ac_try='test -z "$ac_c_werror_flag"
+			 || test ! -s conftest.err'
   { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
   (eval $ac_try) 2>&5
   ac_status=$?
@@ -2901,7 +2915,8 @@ if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
   cat conftest.err >&5
   echo "$as_me:$LINENO: \$? = $ac_status" >&5
   (exit $ac_status); } &&
-	 { ac_try='test -z "$ac_c_werror_flag"			 || test ! -s conftest.err'
+	 { ac_try='test -z "$ac_c_werror_flag"
+			 || test ! -s conftest.err'
   { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
   (eval $ac_try) 2>&5
   ac_status=$?
@@ -3079,7 +3094,8 @@ if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
   cat conftest.err >&5
   echo "$as_me:$LINENO: \$? = $ac_status" >&5
   (exit $ac_status); } &&
-	 { ac_try='test -z "$ac_cxx_werror_flag"			 || test ! -s conftest.err'
+	 { ac_try='test -z "$ac_cxx_werror_flag"
+			 || test ! -s conftest.err'
   { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
   (eval $ac_try) 2>&5
   ac_status=$?
@@ -3137,7 +3153,8 @@ if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
   cat conftest.err >&5
   echo "$as_me:$LINENO: \$? = $ac_status" >&5
   (exit $ac_status); } &&
-	 { ac_try='test -z "$ac_cxx_werror_flag"			 || test ! -s conftest.err'
+	 { ac_try='test -z "$ac_cxx_werror_flag"
+			 || test ! -s conftest.err'
   { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
   (eval $ac_try) 2>&5
   ac_status=$?
@@ -3208,7 +3225,8 @@ if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
   cat conftest.err >&5
   echo "$as_me:$LINENO: \$? = $ac_status" >&5
   (exit $ac_status); } &&
-	 { ac_try='test -z "$ac_cxx_werror_flag"			 || test ! -s conftest.err'
+	 { ac_try='test -z "$ac_cxx_werror_flag"
+			 || test ! -s conftest.err'
   { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
   (eval $ac_try) 2>&5
   ac_status=$?
@@ -3252,7 +3270,8 @@ if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
   cat conftest.err >&5
   echo "$as_me:$LINENO: \$? = $ac_status" >&5
   (exit $ac_status); } &&
-	 { ac_try='test -z "$ac_cxx_werror_flag"			 || test ! -s conftest.err'
+	 { ac_try='test -z "$ac_cxx_werror_flag"
+			 || test ! -s conftest.err'
   { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
   (eval $ac_try) 2>&5
   ac_status=$?
@@ -3326,7 +3345,8 @@ if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
   cat conftest.err >&5
   echo "$as_me:$LINENO: \$? = $ac_status" >&5
   (exit $ac_status); } &&
-	 { ac_try='test -z "$ac_cxx_werror_flag"			 || test ! -s conftest.err'
+	 { ac_try='test -z "$ac_cxx_werror_flag"
+			 || test ! -s conftest.err'
   { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
   (eval $ac_try) 2>&5
   ac_status=$?
@@ -3402,7 +3422,8 @@ if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
   cat conftest.err >&5
   echo "$as_me:$LINENO: \$? = $ac_status" >&5
   (exit $ac_status); } &&
-	 { ac_try='test -z "$ac_cxx_werror_flag"			 || test ! -s conftest.err'
+	 { ac_try='test -z "$ac_cxx_werror_flag"
+			 || test ! -s conftest.err'
   { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
   (eval $ac_try) 2>&5
   ac_status=$?
@@ -3700,7 +3721,8 @@ if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
   cat conftest.err >&5
   echo "$as_me:$LINENO: \$? = $ac_status" >&5
   (exit $ac_status); } &&
-	 { ac_try='test -z "$ac_cxx_werror_flag"			 || test ! -s conftest.err'
+	 { ac_try='test -z "$ac_cxx_werror_flag"
+			 || test ! -s conftest.err'
   { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
   (eval $ac_try) 2>&5
   ac_status=$?
@@ -3852,7 +3874,8 @@ if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
   cat conftest.err >&5
   echo "$as_me:$LINENO: \$? = $ac_status" >&5
   (exit $ac_status); } &&
-	 { ac_try='test -z "$ac_cxx_werror_flag"			 || test ! -s conftest.err'
+	 { ac_try='test -z "$ac_cxx_werror_flag"
+			 || test ! -s conftest.err'
   { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
   (eval $ac_try) 2>&5
   ac_status=$?
@@ -4004,7 +4027,8 @@ if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
   cat conftest.err >&5
   echo "$as_me:$LINENO: \$? = $ac_status" >&5
   (exit $ac_status); } &&
-	 { ac_try='test -z "$ac_cxx_werror_flag"			 || test ! -s conftest.err'
+	 { ac_try='test -z "$ac_cxx_werror_flag"
+			 || test ! -s conftest.err'
   { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
   (eval $ac_try) 2>&5
   ac_status=$?
@@ -4156,7 +4180,8 @@ if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
   cat conftest.err >&5
   echo "$as_me:$LINENO: \$? = $ac_status" >&5
   (exit $ac_status); } &&
-	 { ac_try='test -z "$ac_cxx_werror_flag"			 || test ! -s conftest.err'
+	 { ac_try='test -z "$ac_cxx_werror_flag"
+			 || test ! -s conftest.err'
   { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
   (eval $ac_try) 2>&5
   ac_status=$?
@@ -4280,7 +4305,7 @@ ac_compile='$F77 -c $FFLAGS conftest.$ac_ext >&5'
 ac_link='$F77 -o conftest$ac_exeext $FFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_f77_compiler_gnu
 if test -n "$ac_tool_prefix"; then
-  for ac_prog in f77 fort77 g77 f90 xlf xlf90 fl32
+  for ac_prog in g77 f77 fort77 f90 xlf xlf90 fl32
   do
     # Extract the first word of "$ac_tool_prefix$ac_prog", so it can be a program name with args.
 set dummy $ac_tool_prefix$ac_prog; ac_word=$2
@@ -4322,7 +4347,7 @@ fi
 fi
 if test -z "$F77"; then
   ac_ct_F77=$F77
-  for ac_prog in f77 fort77 g77 f90 xlf xlf90 fl32
+  for ac_prog in g77 f77 fort77 f90 xlf xlf90 fl32
 do
   # Extract the first word of "$ac_prog", so it can be a program name with args.
 set dummy $ac_prog; ac_word=$2
@@ -4367,7 +4392,7 @@ fi
 
 
 # Provide some information about the compiler.
-echo "$as_me:4370:" \
+echo "$as_me:4395:" \
      "checking for Fortran 77 compiler version" >&5
 ac_compiler=`set X $ac_compile; echo $2`
 { (eval echo "$as_me:$LINENO: \"$ac_compiler --version </dev/null >&5\"") >&5
@@ -4413,7 +4438,8 @@ if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
   cat conftest.err >&5
   echo "$as_me:$LINENO: \$? = $ac_status" >&5
   (exit $ac_status); } &&
-	 { ac_try='test -z "$ac_f77_werror_flag"			 || test ! -s conftest.err'
+	 { ac_try='test -z "$ac_f77_werror_flag"
+			 || test ! -s conftest.err'
   { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
   (eval $ac_try) 2>&5
   ac_status=$?
@@ -4462,7 +4488,8 @@ if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
   cat conftest.err >&5
   echo "$as_me:$LINENO: \$? = $ac_status" >&5
   (exit $ac_status); } &&
-	 { ac_try='test -z "$ac_f77_werror_flag"			 || test ! -s conftest.err'
+	 { ac_try='test -z "$ac_f77_werror_flag"
+			 || test ! -s conftest.err'
   { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
   (eval $ac_try) 2>&5
   ac_status=$?
@@ -4511,38 +4538,55 @@ ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
 
 
 
+
+
+
+
+
+
 # Check whether --with-matlab or --without-matlab was given.
 if test "${with_matlab+set}" = set; then
   withval="$with_matlab"
 
+else
+  with_matlab=check
 fi;
+
 
 # Check whether --with-matlab_arch or --without-matlab_arch was given.
 if test "${with_matlab_arch+set}" = set; then
   withval="$with_matlab_arch"
 
+else
+  with_matlab_arch=check
 fi;
+
 
 # Check whether --with-mexext or --without-mexext was given.
 if test "${with_mexext+set}" = set; then
   withval="$with_mexext"
 
+else
+  with_mexext=check
 fi;
+
 MEX=
 MEX_ARCH=
 MEXEXT=
-if test "$with_matlab" != "no" ; then
-        if test -x "$with_matlab/bin/mex"
-    then
-        echo Found mex in $with_matlab/bin/mex
-        MEX="$with_matlab/bin/mex"
-    else
-        if test -x "$with_matlab"
+    echo "$as_me:$LINENO: checking for mex" >&5
+echo $ECHO_N "checking for mex... $ECHO_C" >&6
+    if test "$with_matlab" != "no" ; then
+                if test -x "$with_matlab/bin/mex"
         then
-            echo Found mex in $with_matlab
-            MEX="$with_matlab"
+            echo Found mex in $with_matlab/bin/mex
+            MEX="$with_matlab/bin/mex"
         else
-            # Extract the first word of "mex", so it can be a program name with args.
+            if test -x "$with_matlab"
+            then
+                echo Found mex in $with_matlab
+                MEX="$with_matlab"
+            else
+                # Extract the first word of "mex", so it can be a program name with args.
 set dummy mex; ac_word=$2
 echo "$as_me:$LINENO: checking for $ac_word" >&5
 echo $ECHO_N "checking for $ac_word... $ECHO_C" >&6
@@ -4581,22 +4625,38 @@ else
 echo "${ECHO_T}no" >&6
 fi
 
-        fi
-    fi
-    if test "x$MEX" != "x" ; then
-        mexext_fxn=`dirname $MEX`/mexext
-        if test "x$mexext_fxn" != "x"; then
-            MEXEXT=`$mexext_fxn`
-            if test "x${MEXEXT}" = "x" ; then
-                MEXEXT="mexglx"
             fi
-            echo Using extension $MEXEXT
+        fi
+        echo "$as_me:$LINENO: result: ${MEX}" >&5
+echo "${ECHO_T}${MEX}" >&6
+        if test "x$with_matlab_arch" != "x" ; then
+            echo "using matlab architecture \"$with_matlab_arch\""
+            MEX_ARCH="-arch=$with_matlab_arch"
+                            fi
+        if test "x$MEX" != "x" ; then
+            mexext_fxn=`dirname $MEX`/mexext
+            if test "x$mexext_fxn" != "x"; then
+                MEXEXT=`$mexext_fxn`
+                if test "x${MEXEXT}" = "x" ; then
+                                                            if test "$with_mexext" != "check" ; then
+                        MEXEXT="mexglx"
+                    fi
+                fi
+                echo "Using mex file extension \"$MEXEXT\""
+                echo "$as_me:$LINENO: result: ${MEXEXT}" >&5
+echo "${ECHO_T}${MEXEXT}" >&6
+            fi
+        else
+            echo "can't find the matlab compiler \"mex\""
+            echo "use --with-matlab=DIR to specify the location of a matlab installation"
+            exit 1
         fi
     fi
-fi
-if test "x$with_matlab_arch" != "x" ; then
-    MEX_ARCH="-arch=$with_matlab_arch"
-fi
+
+
+
+
+
 
 
 
@@ -4604,20 +4664,25 @@ fi
 if test "${with_octave+set}" = set; then
   withval="$with_octave"
 
+else
+  with_octave=check
 fi;
+
 MKOCTFILE=
-if test "$with_octave" != "no" ; then
-    if test -x "$with_octave/bin/mkoctfile"
-    then
-        echo Found octave in $with_octave/bin/mkoctfile
-        MKOCTFILE="$with_octave/bin/mkoctfile"
-    else
-        if test -x "$with_octave"
+    echo "$as_me:$LINENO: checking for mkoctfile" >&5
+echo $ECHO_N "checking for mkoctfile... $ECHO_C" >&6
+    if test "$with_octave" != "no" ; then
+        if test -x "$with_octave/bin/mkoctfile"
         then
-            echo Found mkoctfile in $with_octave
-            MKOCTFILE="$with_octave"
+            echo Found octave in $with_octave/bin/mkoctfile
+            MKOCTFILE="$with_octave/bin/mkoctfile"
         else
-            # Extract the first word of "mkoctfile", so it can be a program name with args.
+            if test -x "$with_octave"
+            then
+                echo Found mkoctfile in $with_octave
+                MKOCTFILE="$with_octave"
+            else
+                # Extract the first word of "mkoctfile", so it can be a program name with args.
 set dummy mkoctfile; ac_word=$2
 echo "$as_me:$LINENO: checking for $ac_word" >&5
 echo $ECHO_N "checking for $ac_word... $ECHO_C" >&6
@@ -4656,9 +4721,14 @@ else
 echo "${ECHO_T}no" >&6
 fi
 
+            fi
         fi
     fi
-fi
+    echo "$as_me:$LINENO: result: ${MKOCTFILE}" >&5
+echo "${ECHO_T}${MKOCTFILE}" >&6
+
+
+
 
 
 
@@ -4667,10 +4737,15 @@ fi
 if test "${with_perl+set}" = set; then
   withval="$with_perl"
 
+else
+  with_perl=check
 fi;
+
 PERL=
 PERL_INCLUDES=
 PERL_SITE_PACKAGES=
+echo "$as_me:$LINENO: checking for mkoctfile" >&5
+echo $ECHO_N "checking for mkoctfile... $ECHO_C" >&6
 if test "$with_perl" != "no" ; then
     if test -x "$with_perl/bin/perl"
     then
@@ -4725,6 +4800,12 @@ fi
     fi
     PERL_SITE_PACKAGES='$(libdir)/perl5'
 fi
+echo "$as_me:$LINENO: result: ${PERL}" >&5
+echo "${ECHO_T}${PERL}" >&6
+
+
+
+
 
 
 PYTHON=
@@ -4737,7 +4818,10 @@ pythondir=
 if test "${with_python+set}" = set; then
   withval="$with_python"
 
+else
+  with_python=check
 fi;
+
 if test "$with_python" != "no" ; then
     if test -x "$with_python/bin/python"
     then
@@ -4829,15 +4913,6 @@ fi
         pythondir='$(libdir)/python${PYTHON_VERSION}/site-packages'
     fi
 fi
-
-
-
-
-
-
-
-
-
 
 
 
@@ -5510,6 +5585,8 @@ s,@ECHO_C@,$ECHO_C,;t t
 s,@ECHO_N@,$ECHO_N,;t t
 s,@ECHO_T@,$ECHO_T,;t t
 s,@LIBS@,$LIBS,;t t
+s,@VERSION@,$VERSION,;t t
+s,@LIB_SEARCH_DIRS@,$LIB_SEARCH_DIRS,;t t
 s,@INSTALL_PROGRAM@,$INSTALL_PROGRAM,;t t
 s,@INSTALL_SCRIPT@,$INSTALL_SCRIPT,;t t
 s,@INSTALL_DATA@,$INSTALL_DATA,;t t
@@ -5531,19 +5608,17 @@ s,@F77@,$F77,;t t
 s,@FFLAGS@,$FFLAGS,;t t
 s,@ac_ct_F77@,$ac_ct_F77,;t t
 s,@MEX@,$MEX,;t t
-s,@MKOCTFILE@,$MKOCTFILE,;t t
-s,@PERL@,$PERL,;t t
-s,@PYTHON@,$PYTHON,;t t
-s,@pythondir@,$pythondir,;t t
 s,@MEX_ARCH@,$MEX_ARCH,;t t
 s,@MEXEXT@,$MEXEXT,;t t
+s,@MKOCTFILE@,$MKOCTFILE,;t t
+s,@PERL@,$PERL,;t t
 s,@PERL_INCLUDES@,$PERL_INCLUDES,;t t
 s,@PERL_SITE_PACKAGES@,$PERL_SITE_PACKAGES,;t t
+s,@PYTHON@,$PYTHON,;t t
+s,@pythondir@,$pythondir,;t t
 s,@PYTHON_VERSION@,$PYTHON_VERSION,;t t
 s,@PYTHON_INCLUDES@,$PYTHON_INCLUDES,;t t
 s,@PYTHON_SITE_PACKAGES@,$PYTHON_SITE_PACKAGES,;t t
-s,@LIB_SEARCH_DIRS@,$LIB_SEARCH_DIRS,;t t
-s,@VERSION@,$VERSION,;t t
 s,@RP_BASE@,$RP_BASE,;t t
 s,@subdirs@,$subdirs,;t t
 s,@LIBOBJS@,$LIBOBJS,;t t
@@ -5714,6 +5789,11 @@ esac
   *) ac_INSTALL=$ac_top_builddir$INSTALL ;;
   esac
 
+  if test x"$ac_file" != x-; then
+    { echo "$as_me:$LINENO: creating $ac_file" >&5
+echo "$as_me: creating $ac_file" >&6;}
+    rm -f "$ac_file"
+  fi
   # Let's still pretend it is `configure' which instantiates (i.e., don't
   # use $as_me), people would be surprised to read:
   #    /* config.h.  Generated by config.status.  */
@@ -5752,12 +5832,6 @@ echo "$as_me: error: cannot find input file: $f" >&2;}
 	 fi;;
       esac
     done` || { (exit 1); exit 1; }
-
-  if test x"$ac_file" != x-; then
-    { echo "$as_me:$LINENO: creating $ac_file" >&5
-echo "$as_me: creating $ac_file" >&6;}
-    rm -f "$ac_file"
-  fi
 _ACEOF
 cat >>$CONFIG_STATUS <<_ACEOF
   sed "$ac_vpsub
@@ -5990,7 +6064,7 @@ echo "$as_me: error: $ac_sub_configure failed for $ac_dir" >&2;}
    { (exit 1); exit 1; }; }
     fi
 
-    cd "$ac_popdir"
+    cd $ac_popdir
   done
 fi
 

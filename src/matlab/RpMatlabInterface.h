@@ -11,14 +11,11 @@
  * ======================================================================
  */
 
-#ifndef _Rp_MATLAB_HELPER_H 
-#define _Rp_MATLAB_HELPER_H 
+#ifndef _Rp_MATLAB_HELPER_H
+#define _Rp_MATLAB_HELPER_H
 
 #include "rappture.h"
 #include "RpBindingsDict.h"
-
-// dont delete this, still working on making it happen
-//#include "rappture.h"
 
 // include the matlab api header
 #include "mex.h"

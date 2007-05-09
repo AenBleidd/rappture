@@ -38,7 +38,7 @@ LN              = ln
 
 # define our directories
 #
-INCLUDES_DIR    = $(RP_BASE)/src
+INCLUDES_DIR    = $(RP_BASE)/include
 BIN_DIR         = $(RP_BASE)/bin
 LIB_DIR         = $(RP_BASE)/src
 SRC_DIR         = $(RP_BASE)/src
@@ -69,9 +69,9 @@ CFLAGS = -fPIC
 # default:
 
 all: ${PROGS}
-install: 	install_rappture 	\
-			install_rpobjs 		\
-			install_matlab 		\
+install: 	install_rappture \
+			install_rpobjs \
+			install_matlab \
 			install_octave
 #			install_tcl
 
@@ -96,6 +96,13 @@ LDLIB_LINUX = -shared -Wl,-rpath,$(LIB_DIR)/ -Wl,-soname,$@.so -o $(LIB_DIR)/$@.
 
 librappture: $(RP_IO_DEPS) $(RP_UTILS_DEPS) $(RP_UNITS_DEPS) $(RP_OTHER_DEPS)
 	(cd ../src2/core/; make Outcome.o Ptr.o RpBuffer.o)
+	$(INSTALL_DATA) $(CORE_SRC)/*.h $(INCLUDES_DIR)
+	$(INSTALL_DATA) $(CEE_SRC)/*.h $(INCLUDES_DIR)
+	$(INSTALL_DATA) $(FORT_SRC)/*.h $(INCLUDES_DIR)
+	$(INSTALL_DATA) $(CORE2_SRC)/Outcome.h $(INCLUDES_DIR)
+	$(INSTALL_DATA) $(CORE2_SRC)/Ptr.h $(INCLUDES_DIR)
+	$(INSTALL_DATA) $(CORE2_SRC)/RpBuffer.h $(INCLUDES_DIR)
+	$(INSTALL_DATA) $(CORE2_SRC)/rappture2.h $(INCLUDES_DIR)
 	@if test "`uname`" == "Darwin"; then \
 		$(CXX) $(DEGUG) $(LDLIB_MACOSX) $^ $(RP2_OBJ_DEP) $(EXTERNAL_RP_LIBS); \
 		ar -r $@.a $^; \
@@ -115,13 +122,7 @@ install_rappture: librappture
 		cp -d $<.so* $(libdir); \
 		cp -d $<.a $(libdir); \
 	fi
-	$(INSTALL_DATA) $(CORE_SRC)/*.h $(includedir)
-	$(INSTALL_DATA) $(CEE_SRC)/*.h $(includedir)
-	$(INSTALL_DATA) $(FORT_SRC)/*.h $(includedir)
-	$(INSTALL_DATA) $(CORE2_SRC)/Outcome.h $(includedir)
-	$(INSTALL_DATA) $(CORE2_SRC)/Ptr.h $(includedir)
-	$(INSTALL_DATA) $(CORE2_SRC)/RpBuffer.h $(includedir)
-	$(INSTALL_DATA) $(CORE2_SRC)/rappture2.h $(includedir)
+	$(INSTALL_DATA) $(INCLUDES_DIR)/* $(includedir)
 
 #### libRpObjects ########################################################
 libRpObjects: $(RP_OBJS_DEP)

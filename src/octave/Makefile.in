@@ -23,12 +23,10 @@ OCT             = @MKOCTFILE@
 
 # define our directories
 #
-INCLUDES_DIR    = $(RP_BASE)/src
 LIB_DIR         = $(RP_BASE)/src
-OCTAVE_SRC      = $(SRC_DIR)/octave
 LIB_RAPPTURE    = -L$(LIB_DIR) -lrappture
-INCL_CORE       = -I$(INCLUDES_DIR)/core
-INCL_OCTAVE     = -I$(INCLUDES_DIR)/octave
+INCL_RAPPTURE   = -I$(RP_BASE)/include
+INCL_OCTAVE     = -I$(RP_BASE)/src/octave
 
 OBJS=rpAddPresets.oct rpUtilsProgress.oct rpLib.oct rpLibChildrenByType.oct rpLibChildren.oct rpLibElementAsComp.oct rpLibElementAsId.oct rpLibElementAsObject.oct rpLibElementAsType.oct rpLibElement.oct rpLibGet.oct rpLibGetString.oct rpLibGetDouble.oct rpLibNodeComp.oct rpLibNodeId.oct rpLibNodeType.oct rpLibPut.oct rpLibPutDouble.oct rpLibPutString.oct rpLibPutFile.oct rpLibResult.oct rpLibXml.oct rpUnitsConvert.oct rpUnitsConvertDbl.oct rpUnitsConvertStr.oct rpUnitsConvertObjDbl.oct rpUnitsConvertObjStr.oct rpUnitsDefineUnit.oct rpUnitsFind.oct rpUnitsGetBasis.oct rpUnitsGetExponent.oct rpUnitsGetUnits.oct rpUnitsGetUnitsName.oct
 
@@ -42,7 +40,7 @@ install: $(OBJS)
 	$(INSTALL_DATA) *.oct* $(libdir)/octave
 ####################################################################
 
-OCT_INCLS = $(INCL_OCTAVE) $(INCL_CORE) $(INCL_RP_DEPS)
+OCT_INCLS = $(INCL_OCTAVE) $(INCL_RAPPTURE) $(INCL_RP_DEPS)
 OCTAVE_COMP_ARGS = $(OCT_INCLS) $(LIB_RAPPTURE)
 
 rpAddPresets.oct: rpAddPresets.cc
