@@ -1,12 +1,15 @@
-CFLAGS	= -g
+CFLAGS	= -O2 -g
 LDFLAGS =
-TARGETS	= server client mycat
-INSTALL_DIR	= /opt/nanovis
+TARGETS	= client mycat nanoscale
+INSTALL_DIR	= /opt/nanoscale
 
 all: $(TARGETS)
 
-install: server
-	cp server $(INSTALL_DIR)/bin/nanoscale
+nanoscale: server.o
+	cc $(CFLAGS) $(LDFLAGS) server.o  -o nanoscale
+
+install: nanoscale
+	cp nanoscale $(INSTALL_DIR)/bin
 
 client: client.o clientlib.o
 
