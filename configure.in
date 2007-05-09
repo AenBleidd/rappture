@@ -106,6 +106,10 @@ dnl if test "$enable_matlab" != "no" ; then
             fi
         fi
         AC_MSG_RESULT([${MEX}])
+        if test "$with_matlab_arch" = "check" ; then
+            dnl still need to write the code to check the arch type
+            with_matlab_arch=""
+        fi
         if test "x$with_matlab_arch" != "x" ; then
             echo "using matlab architecture \"$with_matlab_arch\""
             MEX_ARCH="-arch=$with_matlab_arch"
@@ -114,18 +118,23 @@ dnl if test "$enable_matlab" != "no" ; then
         fi
         if test "x$MEX" != "x" ; then 
             mexext_fxn=`dirname $MEX`/mexext
-            if test "x$mexext_fxn" != "x"; then
+            if test -x "$mexext_fxn" ; then
                 MEXEXT=`$mexext_fxn`
                 if test "x${MEXEXT}" = "x" ; then
+                    dnl not even mexext can figure out what extension to use....
                     dnl # we should be doing an os type check instead of default mexglx
                     dnl # use $with_matlab_arch
                     if test "$with_mexext" != "check" ; then
                         MEXEXT="mexglx"
                     fi
                 fi
-                echo "Using mex file extension \"$MEXEXT\""
-                AC_MSG_RESULT([${MEXEXT}])
+            else
+                if test "$with_mexext" != "check" ; then
+                    MEXEXT="mexglx"
+                fi
             fi
+            echo "Using mex file extension \"$MEXEXT\""
+            AC_MSG_RESULT([${MEXEXT}])
         else
             echo "can't find the matlab compiler \"mex\""
             echo "use --with-matlab=DIR to specify the location of a matlab installation"
