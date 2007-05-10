@@ -577,8 +577,10 @@ int main(int argc, char *argv[])
                 dup2(i,1);  // stdout
                 dup2(i,2);  // stderr
                 dup2(pair[1],3);
+                // read end of pipe moved, and left open to prevent SIGPIPE
+                dup2(pair[0],4); 
 
-                for(fd=4; fd<FD_SETSIZE; fd++)
+                for(fd=5; fd<FD_SETSIZE; fd++)
                   close(fd);
 
                 execvp(command_argv[n][0], command_argv[n]);
