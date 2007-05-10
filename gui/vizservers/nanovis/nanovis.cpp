@@ -24,6 +24,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <signal.h>
 
 #include "Nv.h"
 
@@ -3247,6 +3248,7 @@ int main(int argc, char** argv)
     R2FilePath::getInstance()->setWorkingDirectory(argc, (const char**) argv);
 
 #ifdef XINETD
+   signal(SIGPIPE,SIG_IGN);
    NvInitService();
 #endif
 
