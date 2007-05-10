@@ -1122,6 +1122,8 @@ int pyMol_Proxy(int c_in, int c_out, char *command, char *argv[])
     close(pairOut[1]);
     close(pairErr[1]);
 
+	signal(SIGPIPE, SIG_IGN); // ignore SIGPIPE (ie if nanoscale terminates)
+
 	pymol.p_stdin = pairIn[1];
 	pymol.p_stdout = pairOut[0];
 	pymol.p_stderr = pairErr[0];
