@@ -1,7 +1,7 @@
 CFLAGS	= -g -I/usr/include/tcl8.4
 LDFLAGS = 
 TARGETS	= pymolproxy
-INSTALL_DIR	= /opt/nanovis
+INSTALL_DIR	= /opt/pymolproxy
 
 all: $(TARGETS)
 
