@@ -393,7 +393,9 @@ itcl::body Rappture::Analyzer::simulate {args} {
 
         # Try to create a support ticket for this error.
         # It may be a real problem.
-        Rappture::bugreport::register "Problem launching job:\n\n$result\n-----\n[$_tool xml xml]"
+        if {[Rappture::bugreport::shouldReport for jobs]} {
+            Rappture::bugreport::register "Problem launching job:\n\n$result\n-----\n[$_tool xml xml]"
+        }
     } else {
         $itk_component(notebook) current analyze
     }
