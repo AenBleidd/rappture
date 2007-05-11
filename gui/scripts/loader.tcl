@@ -304,7 +304,7 @@ itcl::body Rappture::Loader::_newValue {} {
     set obj [$itk_component(combo) translate $newval]
     if {$obj == "@upload"} {
         if {[Rappture::filexfer::enabled]} {
-            set tool [[$_owner tool] get -name]
+            set tool [Rappture::Tool::resources -appname]
             Rappture::filexfer::upload \
                 $tool $_uppath [itcl::code $this _uploadValue]
         }

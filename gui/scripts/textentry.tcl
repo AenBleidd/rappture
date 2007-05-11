@@ -473,7 +473,7 @@ itcl::body Rappture::TextEntry::_uploadValue {args} {
     set opt [lindex $args 0]
     switch -- $opt {
         -start {
-            set tool [[$_owner tool] get -name]
+            set tool [Rappture::Tool::resources -appname]
             set cntls [list $_path [label] [tooltip]]
             Rappture::filexfer::upload \
                 $tool $cntls [itcl::code $this _uploadValue -assign]

@@ -23,7 +23,6 @@ itcl::class Rappture::Tool {
         Rappture::ControlOwner::constructor ""
     } { # defined below }
 
-    public method get {{option ""}}
     public method installdir {} { return $_installdir }
 
     public method run {args}
@@ -36,15 +35,24 @@ itcl::class Rappture::Tool {
     private common job               ;# array var used for blt::bgexec jobs
     private common jobnum 0          ;# counter for unique job number
 
-    # resources file tells us the application name
-    public common _appname ""
-    public proc setAppName {name} { set _appname $name }
+    # get global resources for this tool session
+    public proc resources {{option ""}}
+
+    public common _resources
+    public proc setAppName {name} { set _resources(-appname) $name }
+    public proc setHubName {name} { set _resources(-hubname) $name }
+    public proc setHubURL {name}  { set _resources(-huburl) $name }
+    public proc setSession {name} { set _resources(-session) $name }
 }
 
 # must use this name -- plugs into Rappture::resources::load
 proc tool_init_resources {} {
     Rappture::resources::register \
-        application_name Rappture::Tool::setAppName
+        application_name Rappture::Tool::setAppName \
+        application_id   Rappture::Tool::setAppId \
+        hub_name         Rappture::Tool::setHubName \
+        hub_url          Rappture::Tool::setHubURL \
+        session_token    Rappture::Tool::setSession
 }
                                                                                 
 # ----------------------------------------------------------------------
@@ -65,19 +73,18 @@ itcl::body Rappture::Tool::constructor {xmlobj installdir args} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: get ?-option?
+# USAGE: resources ?-option?
 #
 # Clients use this to query information about the tool.
 # ----------------------------------------------------------------------
-itcl::body Rappture::Tool::get {{option ""}} {
-    set values(-name) $_appname
+itcl::body Rappture::Tool::resources {{option ""}} {
     if {$option == ""} {
-        return [array get values]
+        return [array get _resources]
     }
-    if {![info exists values]} {
-        error "bad option \"$option\": should be [join [array names values] {, }]"
+    if {![info exists _resources($option)]} {
+        error "bad option \"$option\": should be [join [array names _resources] {, }]"
     }
-    return $values($option)
+    return $_resources($option)
 }
 
 # ----------------------------------------------------------------------
@@ -113,8 +120,8 @@ itcl::body Rappture::Tool::run {args} {
     # case we have an older tool, we should insert the
     # tool name from the resources config file.
     #
-    if {"" != $_appname && "" == [$_xmlobj get tool.name]} {
-        $_xmlobj put tool.name $_appname
+    if {"" != $_resources(-appname) && "" == [$_xmlobj get tool.name]} {
+        $_xmlobj put tool.name $_resources(-appname)
     }
 
     # sync all widgets to the XML tree

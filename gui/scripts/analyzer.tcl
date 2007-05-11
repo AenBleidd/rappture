@@ -390,6 +390,10 @@ itcl::body Rappture::Analyzer::simulate {args} {
         _simOutput $result
         $itk_component(runinfo) configure -state disabled
         $itk_component(runinfo) see 1.0
+
+        # Try to create a support ticket for this error.
+        # It may be a real problem.
+        Rappture::bugreport::register "Problem launching job:\n\n$result\n-----\n[$_tool xml xml]"
     } else {
         $itk_component(notebook) current analyze
     }
