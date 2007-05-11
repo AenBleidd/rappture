@@ -101,6 +101,20 @@ if {"." == $installdir} {
 set tool [Rappture::Tool ::#auto $xmlobj $installdir]
 
 # ----------------------------------------------------------------------
+# CHECK JOB FAILURE REPORTING
+#
+# If this tool might fail when it launches jobs (i.e., Rappture
+# can't check some inputs, such as strings), then disable the
+# automatic ticket submission for job failures
+# ----------------------------------------------------------------------
+set val [$tool xml get tool.reportJobFailures]
+if {"" != $val} {
+    if {[catch {Rappture::bugreport::shouldReport jobfailures $val} result]} {
+        puts stderr "WARNING for reportJobFailures: $result"
+    }
+}
+
+# ----------------------------------------------------------------------
 # LOAD RESOURCE SETTINGS
 #
 # Try to load the $SESSIONDIR/resources file, which contains

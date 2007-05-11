@@ -24,7 +24,10 @@ option add *BugReport*expl.font \
 option add *BugReport*expl.boldFont \
     -*-helvetica-bold-r-normal-*-12-* startupFile
 
-namespace eval Rappture::bugreport { # forward declaration }
+namespace eval Rappture::bugreport {
+    # assume that if there's a problem launching a job, we should know it
+    variable reportJobFailures 1
+}
 
 # ----------------------------------------------------------------------
 # USAGE: install
@@ -62,8 +65,7 @@ proc Rappture::bugreport::activate {err} {
     .bugreport.details.info.text insert end "$err\n-----\n$errorInfo"
     .bugreport.details.info.text configure -state disabled
 
-    if {[info exists env(RAPPTURE_VERSION)]
-          && $env(RAPPTURE_VERSION) == "current"} {
+    if {[shouldReport for oops]} {
         pack forget .bugreport.details
         pack forget .bugreport.expl
         pack .bugreport.ok -side bottom -after .bugreport.banner -pady {0 8}
@@ -195,12 +197,6 @@ proc Rappture::bugreport::download {} {
 proc Rappture::bugreport::register {stackTrace} {
     global env tcl_platform
 
-    # if this is a test version, do nothing
-    if {![info exists env(RAPPTURE_VERSION)]
-          || $env(RAPPTURE_VERSION) != "current"} {
-        return
-    }
-
     package require http
     package require tls
     http::register https 443 ::tls::socket
@@ -252,6 +248,57 @@ proc Rappture::bugreport::register {stackTrace} {
         return $match
     }
     error "Report received, but ticket may not have been filed.  Here's the result...\n$rval(body)"
+}
+
+# ----------------------------------------------------------------------
+# USAGE: shouldReport jobfailures <boolean>
+# USAGE: shouldReport for ?oops|jobs?
+#
+# Used internally to determine whether or not this system should
+# automatically report errors back to the hosting hub.  Returns 1
+# if the tool should, and 0 otherwise.  The decision is made based
+# on whether this is a current tool in production, whether it is
+# being tested in a workspace, and whether the tool commonly generates
+# problems (by pilot error in its input deck).
+# ----------------------------------------------------------------------
+proc Rappture::bugreport::shouldReport {option value} {
+    global env
+
+    switch -- $option {
+        jobfailures {
+            variable reportJobFailures
+            if {![string is boolean $value]} {
+                error "bad value \"$value\": should be boolean"
+            }
+            set reportJobFailures $value
+        }
+        for {
+            # is this a tool in production?
+            if {![info exists env(RAPPTURE_VERSION)]
+                  || $env(RAPPTURE_VERSION) != "current"} {
+                return 0
+            }
+
+            # is it being run within a workspace?
+            set appname [Rappture::Tool::resources -appname]
+            if {[string match {[Ww]orkspace*} $appname]} {
+                return 0
+            }
+
+            # if this is a problem launching a job and the tool
+            # expects this, then don't bother with automatic reports.
+            variable reportJobFailures
+            if {"jobs" == $value && !$reportJobFailures} {
+                return 0
+            }
+
+            # this is a real problem -- report it!
+            return 1
+        }
+        default {
+            error "bad option \"$option\": should be jobfailures or for"
+        }
+    }
 }
 
 # ----------------------------------------------------------------------
