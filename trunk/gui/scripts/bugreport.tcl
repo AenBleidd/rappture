@@ -150,7 +150,7 @@ proc Rappture::bugreport::submit {} {
         .bugreport.details.info.text configure -state disabled
 
         .bugreport.expl insert end "This tool encountered an unexpected error.  We tried to submit a trouble report automatically, but that failed.  If you want to report this incident, you can file your own trouble report.  Look for the \"Help\" or \"Support\" links on the main navigation bar of the web site.\n\nIf you continue having trouble with this tool, please close it and launch another session."
-    } elseif {[regexp {Ticket #([0-9]+) +\((.*?)\) +([0-9]+) +times} $result match ticket extra times]} {
+    } elseif {[regexp {Ticket #([0-9]*) +\((.*?)\) +([0-9]+) +times} $result match ticket extra times]} {
         .bugreport.expl insert end "This tool encountered an unexpected error.  The problem has been reported as " "" "Ticket #$ticket" bold " in our system." ""
         if {[string is integer $times] && $times > 1} {
             .bugreport.expl insert end "  This particular problem has been reported $times times."
@@ -228,7 +228,7 @@ proc Rappture::bugreport::register {stackTrace} {
         no_html 1 \
         report $stackTrace \
         login $tcl_platform(user) \
-        session [Rappture::Tool::resources -session] \
+        sesstoken [Rappture::Tool::resources -session] \
         hostname [info hostname] \
         category rappture \
         summary $summary \
@@ -248,10 +248,10 @@ proc Rappture::bugreport::register {stackTrace} {
         error [http::code $token]
     }
     upvar #0 $token rval
-    if {[regexp {Ticket #[0-9]+ \(.*?\) [0-9]+ times} $rval(body) match]} {
+    if {[regexp {Ticket #[0-9]* +\(.*?\) +[0-9]+ +times} $rval(body) match]} {
         return $match
     }
-    error "Report received, but ticket may not have been filed"
+    error "Report received, but ticket may not have been filed.  Here's the result...\n$rval(body)"
 }
 
 # ----------------------------------------------------------------------
