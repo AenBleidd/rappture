@@ -32,21 +32,19 @@ using namespace Rappture::encoding;
 int
 isbinary(const char* buf, int size)
 {
-    int index = 0;
-
-    if (size == -1) {
+    if (size < 0) {
         size = strlen(buf);
     }
 
-    for (index = 0; index < size; index++) {
-        if (((buf[index] >= '\000') && (buf[index] <= '\010')) ||
-            ((buf[index] >= '\013') && (buf[index] <= '\014')) ||
-            ((buf[index] >= '\016') && (buf[index] <= '\037')) ||
-            ((buf[index] >= '\177') && (buf[index] <= '\377')) ) {
+    for (int index = 0; index < size; index++) {
+        int c = *buf++;
+        if (((c >= '\000') && (c <= '\010')) ||
+            ((c >= '\013') && (c <= '\014')) ||
+            ((c >= '\016') && (c <= '\037')) ||
+            ((c >= '\177') && (c <= '\377')) ) {
             // data is binary
             return index+1;
         }
-
     }
     return 0;
 }

@@ -52,6 +52,10 @@ test is-1.2.1 {Rappture::encoding::is, too many arguments} {
     list [catch {Rappture::encoding::is binary binary "hi"} msg] $msg
 } {1 {wrong # args: should be "Rappture::encoding::is binary <string>"}}
 
+test is-1.2.2 {Rappture::encoding::is, with an embedded null} {
+    list [catch {Rappture::encoding::is binary "x\000x"} msg] $msg
+} {0 yes}
+
 #----------------------------------------------------------
 #----------------------------------------------------------
 # encode command
