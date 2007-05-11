@@ -48,7 +48,7 @@ PKG_STUB_OBJECTS = @PKG_STUB_OBJECTS@
 # this package that need to be installed, if any.
 #========================================================================
 
-PKG_TCL_SOURCES = @PKG_TCL_SOURCES@
+PKG_TCL_SOURCES = `ls scripts/*.tcl`
 
 #========================================================================
 # This is a list of public header files to be installed, if any.
@@ -384,7 +384,7 @@ install-lib-binaries: binaries
 	  fi; \
 	done
 	@mkdir -p $(DESTDIR)$(pkglibdir)/scripts 
-	@list='$(PKG_TCL_SOURCES)'; for p in $$list; do \
+	@for p in $(PKG_TCL_SOURCES); do \
 	  if test -f $(srcdir)/$$p; then \
 	    destp=`basename $$p`; \
 	    echo " Install $$destp $(DESTDIR)$(pkglibdir)/scripts/$$destp"; \
