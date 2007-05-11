@@ -77,54 +77,38 @@ RapptureEncoding_Init(Tcl_Interp *interp)
  */
 
 int
-RpTclEncodingIs     (   ClientData cdata,
-                        Tcl_Interp *interp,
-                        int objc,
-                        Tcl_Obj *const objv[]  )
+RpTclEncodingIs (ClientData cdata, Tcl_Interp *interp,
+    int objc, Tcl_Obj *const objv[])
 {
-    const char* type     = NULL; // type of data being checked
-    const char* buf      = NULL; // buffer to be checked
-    const char* cmdName  = NULL;
-
-    int typeLen          = 0;
-    int bufLen           = 0; // length of user provided buffer
-    int nextarg          = 0;  // next argument
-
     Tcl_ResetResult(interp);
-
-    cmdName = Tcl_GetString(objv[nextarg++]);
 
     // parse through command line options
     if (objc != 3) {
         Tcl_AppendResult(interp,
             "wrong # args: should be \"",
-            cmdName," binary <string>\"",
+            Tcl_GetString(objv[0])," binary <string>\"",
             (char*)NULL);
         return TCL_ERROR;
     }
 
-    type = Tcl_GetStringFromObj(objv[nextarg++],&typeLen);
-    buf = Tcl_GetStringFromObj(objv[nextarg++],&bufLen);
+    const char *type = Tcl_GetString(objv[1]);
 
-    if (strncmp(type,"binary",typeLen) == 0) {
+    int bufLen;
+    const char *buf = (const char*) Tcl_GetByteArrayFromObj(objv[2],&bufLen);
+
+    if (strcmp(type,"binary") == 0) {
         if (Rappture::encoding::isbinary(buf,bufLen) != 0) {
             // non-ascii character found, return yes
-            Tcl_AppendResult(interp, "yes",(char*)NULL);
-            return TCL_OK;
+            Tcl_AppendResult(interp, "yes", (char*)NULL);
+        } else {
+            Tcl_AppendResult(interp, "no",(char*)NULL);
         }
+        return TCL_OK;
     }
-    else {
-        Tcl_AppendResult(interp, "bad option \"", type,
-                "\": should be binary",
-                (char*)NULL);
-        return TCL_ERROR;
-
-    }
-
-    // default return
-    // no binary characters found, return no
-    Tcl_AppendResult(interp, "no",(char*)NULL);
-    return TCL_OK;
+    Tcl_AppendResult(interp, "bad option \"", type,
+            "\": should be binary",
+            (char*)NULL);
+    return TCL_ERROR;
 }
 
 /**********************************************************************/
