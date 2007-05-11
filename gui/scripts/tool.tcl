@@ -120,7 +120,9 @@ itcl::body Rappture::Tool::run {args} {
     # case we have an older tool, we should insert the
     # tool name from the resources config file.
     #
-    if {"" != $_resources(-appname) && "" == [$_xmlobj get tool.name]} {
+    if {[info exists _resources(-appname)]
+          && "" != $_resources(-appname)
+          && "" == [$_xmlobj get tool.name]} {
         $_xmlobj put tool.name $_resources(-appname)
     }
 
