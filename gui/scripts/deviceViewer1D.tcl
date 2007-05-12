@@ -31,6 +31,10 @@ itcl::class Rappture::DeviceViewer1D {
     constructor {owner args} { # defined below }
     destructor { # defined below }
 
+    public method add {dataobj {settings ""}}
+    public method get {}
+    public method delete {args}
+
     public method controls {option args}
     public method download {option args}
                                                                                 
@@ -47,11 +51,12 @@ itcl::class Rappture::DeviceViewer1D {
     protected method _controlSet {widget libObj path}
 
     private variable _owner ""      ;# thing managing this control
+    private variable _dlist ""      ;# list of dataobj objects
+    private variable _dobj2raise    ;# maps dataobj => raise flag
     private variable _device ""     ;# XML library with <structure>
     private variable _tab2fields    ;# maps tab name => list of fields
     private variable _field2parm    ;# maps field path => parameter name
     private variable _units ""      ;# units for field being edited
-    private variable _restrict ""   ;# restriction expr for field being edited
     private variable _marker        ;# marker currently being edited
 }
                                                                                 
@@ -136,6 +141,96 @@ itcl::body Rappture::DeviceViewer1D::destructor {} {
     }
     after cancel [list catch [itcl::code $this _fixAxes]]
     after cancel [list catch [itcl::code $this _align]]
+    after cancel [list catch [itcl::code $this _loadDevice]]
+}
+
+# ----------------------------------------------------------------------
+# USAGE: add <dataobj> ?<settings>?
+#
+# Clients use this to add a data object to the plot.  The optional
+# <settings> are used to configure the plot.  Allowed settings are
+# -color, -brightness, -width, -linestyle, and -raise. Only
+# -brightness and -raise do anything.
+# ----------------------------------------------------------------------
+itcl::body Rappture::DeviceViewer1D::add {dataobj {settings ""}} {
+    array set params {
+        -color auto
+        -brightness 0
+        -width 1
+        -raise 0
+        -linestyle solid
+        -description ""
+    }
+    foreach {opt val} $settings {
+        if {![info exists params($opt)]} {
+            error "bad settings \"$opt\": should be [join [lsort [array names params]] {, }]"
+        }
+        set params($opt) $val
+    }
+ 
+    set pos [lsearch -exact $dataobj $_dlist]
+
+    if {$pos < 0} {
+        if {![Rappture::library isvalid $dataobj]} {
+            error "bad value \"$dataobj\": should be Rappture::library object"
+        }
+
+        lappend _dlist $dataobj
+        set _dobj2raise($dataobj) $params(-raise)
+
+        after cancel [list catch [itcl::code $this _loadDevice]]
+        after idle [list catch [itcl::code $this _loadDevice]]
+    }
+}
+
+# ----------------------------------------------------------------------
+# USAGE: get
+#
+# Clients use this to query the list of objects being plotted, in
+# order from bottom to top of this result.
+# ----------------------------------------------------------------------
+itcl::body Rappture::DeviceViewer1D::get {} {
+    # put the dataobj list in order according to -raise options
+    set dlist $_dlist
+    foreach obj $dlist {
+        if {[info exists _dobj2raise($obj)] && $_dobj2raise($obj)} {
+            set i [lsearch -exact $dlist $obj]
+            if {$i >= 0} {
+                set dlist [lreplace $dlist $i $i]
+                lappend dlist $obj
+            }
+        }
+    }
+    return $dlist
+}
+
+# ----------------------------------------------------------------------
+# USAGE: delete ?<dataobj> <dataobj> ...?
+#
+# Clients use this to delete a dataobj from the plot. If no dataobjs
+# are specified, then all dataobjs are deleted.
+# ----------------------------------------------------------------------
+itcl::body Rappture::DeviceViewer1D::delete {args} {
+    if {[llength $args] == 0} {
+        set args $_dlist
+    }
+
+    # delete all specified dataobjs
+    set changed 0
+    foreach dataobj $args {
+        set pos [lsearch -exact $_dlist $dataobj]
+        if {$pos >= 0} {
+            set _dlist [lreplace $_dlist $pos $pos]
+            catch {unset _dobj2raise($dataobj)}
+            set changed 1
+        }
+    }
+
+    # if anything changed, then rebuild the plot
+    if {$changed} {
+        after cancel [list catch [itcl::code $this _loadDevice]]
+        after idle [list catch [itcl::code $this _loadDevice]]
+    }
 }
 
 # ----------------------------------------------------------------------
@@ -202,6 +297,8 @@ itcl::body Rappture::DeviceViewer1D::download {option args} {
 # tabs whenever a device is installed into this viewer.
 # ----------------------------------------------------------------------
 itcl::body Rappture::DeviceViewer1D::_loadDevice {} {
+    set _device [lindex [get] end]
+
     #
     # Release any info left over from the last device.
     #
@@ -415,12 +512,6 @@ itcl::body Rappture::DeviceViewer1D::_changeTabs {} {
         } else {
             set _units ""
             $graph axis configure y -title $name
-        }
-
-        if {[info exists hints(restrict)]} {
-            set _restrict $hints(restrict)
-        } else {
-            set _restrict ""
         }
 
         if {[info exists hints(scale)]
@@ -644,18 +735,11 @@ itcl::body Rappture::DeviceViewer1D::_marker {option {name ""} {path ""}} {
                     Rappture::Tooltip::cue $itk_component(geditor) $result
                     return 0
                 }
-                if {"" != $_restrict
-                      && [catch {Rappture::Units::convert $result \
-                        -context $_units -to $_units -units off} value] == 0} {
-
-                    set rexpr $_restrict
-                    regsub -all value $rexpr {$value} rexpr
-                    if {[catch {expr $rexpr} result] == 0 && !$result} {
-                        bell
-                        Rappture::Tooltip::cue $itk_component(geditor) "Should satisfy the condition: $_restrict"
-                        return 0
-                    }
-                }
+            }
+            if {[catch {$_marker(fobj) controls validate $_marker(path) $name} result]} {
+                bell
+                Rappture::Tooltip::cue $itk_component(geditor) $result
+                return 0
             }
             return 1
         }
@@ -778,6 +862,11 @@ itcl::configbody Rappture::DeviceViewer1D::device {
             error "bad value \"$itk_option(-device)\": should be Rappture::Library"
         }
     }
-    set _device $itk_option(-device)
-    _loadDevice
+
+    delete
+    if {"" != $itk_option(-device)} {
+        add $itk_option(-device)
+    }
+    after cancel [list catch [itcl::code $this _loadDevice]]
+    after idle [list catch [itcl::code $this _loadDevice]]
 }
