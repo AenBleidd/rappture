@@ -43,6 +43,7 @@ itcl::class Rappture::Tool {
     public proc setHubName {name} { set _resources(-hubname) $name }
     public proc setHubURL {name}  { set _resources(-huburl) $name }
     public proc setSession {name} { set _resources(-session) $name }
+    public proc setJobPrt {name}  { set _resources(-jobprotocol) $name }
 }
 
 # must use this name -- plugs into Rappture::resources::load
@@ -52,7 +53,8 @@ proc tool_init_resources {} {
         application_id   Rappture::Tool::setAppId \
         hub_name         Rappture::Tool::setHubName \
         hub_url          Rappture::Tool::setHubURL \
-        session_token    Rappture::Tool::setSession
+        session_token    Rappture::Tool::setSession \
+        job_protocol     Rappture::Tool::setJobPrt
 }
                                                                                 
 # ----------------------------------------------------------------------
@@ -81,10 +83,10 @@ itcl::body Rappture::Tool::resources {{option ""}} {
     if {$option == ""} {
         return [array get _resources]
     }
-    if {![info exists _resources($option)]} {
-        error "bad option \"$option\": should be [join [array names _resources] {, }]"
+    if {[info exists _resources($option)]} {
+        return $_resources($option)
     }
-    return $_resources($option)
+    return ""
 }
 
 # ----------------------------------------------------------------------
@@ -169,6 +171,11 @@ itcl::body Rappture::Tool::run {args} {
         regsub -all {\\} $cmd {\\\\} cmd
         set cmd [string trimleft $cmd " "]
 
+        # if job_protocol is "submit", then use use submit command
+        if {[resources -jobprotocol] == "submit"} {
+            set cmd [linsert $cmd 0 submit --local]
+        }
+
         # starting job...
         Rappture::rusage mark
 
@@ -176,13 +183,13 @@ itcl::body Rappture::Tool::run {args} {
             set status 0;
             set job(output) [string range $cmd 5 end] 
         } else {
-        set status [catch {eval blt::bgexec \
-            ::Rappture::Tool::job(control) \
-            -keepnewline yes \
-            -killsignal SIGTERM \
-            -onoutput [list [itcl::code $this _output]] \
-            -output ::Rappture::Tool::job(output) \
-            -error ::Rappture::Tool::job(error) $cmd} result]
+            set status [catch {eval blt::bgexec \
+                ::Rappture::Tool::job(control) \
+                -keepnewline yes \
+                -killsignal SIGTERM \
+                -onoutput [list [itcl::code $this _output]] \
+                -output ::Rappture::Tool::job(output) \
+                -error ::Rappture::Tool::job(error) $cmd} result]
         }
         # ...job is finished
         array set times [Rappture::rusage measure]
