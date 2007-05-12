@@ -238,7 +238,8 @@ itcl::body Rappture::Gauge::value {args} {
                 }
             }
             real {
-                if {![string is double -strict $nv]} {
+                if {![string is double -strict $nv]
+                      || [regexp -nocase {^(inf|nan)$} $nv]} {
                     error "Should be a real number"
                 }
             }

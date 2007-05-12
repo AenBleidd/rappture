@@ -465,6 +465,7 @@ itcl::body Rappture::MoleculeViewer::_zoom {option} {
         }
         reset {
             $this-ren ResetCamera
+            [$this-ren GetActiveCamera] SetViewAngle 30
             _3dView 45 45 0
         }
     }
