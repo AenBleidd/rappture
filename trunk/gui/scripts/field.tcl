@@ -322,6 +322,7 @@ itcl::body Rappture::Field::limits {which} {
 
 # ----------------------------------------------------------------------
 # USAGE: controls get ?<name>?
+# USAGE: controls validate <path> <value>
 # USAGE: controls put <path> <value>
 #
 # Returns a list {path1 x1 y1 val1  path2 x2 y2 val2 ...} representing
@@ -335,6 +336,61 @@ itcl::body Rappture::Field::controls {option args} {
                 return $_comp2cntls($what)
             }
             return ""
+        }
+        validate {
+            set path [lindex $args 0]
+            set value [lindex $args 1]
+            set units [$_xmlobj get $path.units]
+
+            if {"" != $units} {
+                set nv [Rappture::Units::convert \
+                    $value -context $units -to $units -units off]
+            } else {
+                set nv $value
+            }
+            if {![string is double $nv] || [regexp -nocase {^(inf|nan)$} $nv]} {
+                error "Value out of range"
+            }
+
+            set rawmin [$_xmlobj get $path.min]
+            if {"" != $rawmin} {
+                set minv $rawmin
+                if {"" != $units} {
+                    set minv [Rappture::Units::convert \
+                        $minv -context $units -to $units -units off]
+                    set nv [Rappture::Units::convert \
+                        $value -context $units -to $units -units off]
+                }
+                # fix for the case when the user tries to
+                # compare values like minv=-500 nv=-0600
+                set nv [format "%g" $nv]
+                set minv [format "%g" $minv]
+
+                if {$nv < $minv} {
+                    error "Minimum value allowed here is $rawmin"
+                }
+            }
+
+            set rawmax [$_xmlobj get $path.max]
+            if {"" != $rawmax} {
+                set maxv $rawmax
+                if {"" != $units} {
+                    set maxv [Rappture::Units::convert \
+                        $maxv -context $units -to $units -units off]
+                    set nv [Rappture::Units::convert \
+                        $value -context $units -to $units -units off]
+                }
+                # fix for the case when the user tries to
+                # compare values like maxv=-500 nv=-0600
+                set nv [format "%g" $nv]
+                set maxv [format "%g" $maxv]
+
+                if {$nv > $maxv} {
+                    error "Maximum value allowed here is $rawmax"
+                }
+            }
+
+            return "ok"
         }
         put {
             set path [lindex $args 0]
