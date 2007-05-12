@@ -348,7 +348,8 @@ itcl::body Rappture::Field::controls {option args} {
             } else {
                 set nv $value
             }
-            if {![string is double $nv] || [regexp -nocase {^(inf|nan)$} $nv]} {
+            if {![string is -strict double $nv]
+                  || [regexp -nocase {^(inf|nan)$} $nv]} {
                 error "Value out of range"
             }
 
