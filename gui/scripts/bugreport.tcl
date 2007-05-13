@@ -214,8 +214,38 @@ proc Rappture::bugreport::register {stackTrace} {
     append summary " (in tool \"[Rappture::Tool::resources -appname]\")"
 
     # make sure that the stack trace isn't too long
-    if {[string length $stackTrace] > 20000} {
-        set stackTrace "[string range $stackTrace 0 20000]..."
+    set toolong 20000
+    if {[string length $stackTrace] > $toolong} {
+        #
+        # If this came from "Problem launching job", then it will have
+        # a "== RAPPTURE INPUT ==" part somewhere in the middle.  Try
+        # to show the first part, this middle part, and the very last
+        # part, cutting out whatever we have to in the middle.
+        #
+        if {[regexp -indices {\n== RAPPTURE INPUT ==\n} $stackTrace match]} {
+            foreach {smid0 smid1} $match break
+            set quarter [expr {$toolong/4}]
+            set s0 $quarter
+            set smid0 [expr {$smid0-$quarter}]
+            set smid1 [expr {$smid1+$quarter}]
+            set s1 [expr {[string length $stackTrace]-$quarter}]
+
+            if {$smid0 < $s0} {
+                # first part is short -- truncate last part
+                set stackTrace "[string range $stackTrace 0 $smid1]\n...\n[string range $stackTrace [expr {[string length $stackTrace]-($toolong-$smid1)}] end]"
+            } elseif {$smid1 > $s1} {
+                # last part is short -- truncate first part
+                set tailsize [expr {[string length $stackTrace]-$smid0}]
+                set stackTrace "[string range $stackTrace 0 [expr {$toolong-$tailsize}]]\n...\n[string range $stackTrace $smid0 end]"
+            } else {
+                # rappture input line is right about in the middle
+                set stackTrace "[string range $stackTrace 0 $s0]\n...\n[string range $stackTrace $smid0 $smid1]\n...\n[string range $stackTrace $s1 end]"
+            }
+        } else {
+            # no Rappture input -- just show first part and last part
+            set half [expr {$toolong/2}]
+            set stackTrace "[string range $stackTrace 0 $half]\n...\n[string range $stackTrace [expr {[string length $stackTrace]-$half}] end]"
+        }
     }
 
     set query [http::formatQuery \
