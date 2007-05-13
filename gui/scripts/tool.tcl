@@ -193,54 +193,57 @@ itcl::body Rappture::Tool::run {args} {
         }
         # ...job is finished
         array set times [Rappture::rusage measure]
-        puts stderr "MiddlewareTime: job=[incr jobnum] event=simulation start=$times(start) walltime=$times(walltime) cputime=$times(cputime) status=$status"
 
-        #
-        # Scan through stderr channel and look for statements that
-        # represent grid jobs that were executed.  The statements
-        # look like this:
-        #
-        # MiddlewareTime: job=1 event=simulation start=3.001094 ...
-        #
-        set subjobs 0
-        while {[regexp -indices {(^|\n)MiddlewareTime:( +[a-z]+=[^ \n]+)+(\n|$)} $job(error) match]} {
-            foreach {p0 p1} $match break
-            if {[string index $job(error) $p0] == "\n"} { incr p0 }
+        if {[resources -jobprotocol] != "submit"} {
+            puts stderr "MiddlewareTime: job=[incr jobnum] event=simulation start=$times(start) walltime=$times(walltime) cputime=$times(cputime) status=$status"
 
-            catch {unset data}
-            array set data {
-                job 1
-                event simulation
-                start 0
-                walltime 0
-                cputime 0
-                status 0
-            }
-            foreach arg [lrange [string range $job(error) $p0 $p1] 1 end] {
-                foreach {key val} [split $arg =] break
-                set data($key) $val
-            }
-            set data(job) [expr {$jobnum+$data(job)}]
-            set data(event) "subsimulation"
-            set data(start) [expr {$times(start)+$data(start)}]
+            #
+            # Scan through stderr channel and look for statements that
+            # represent grid jobs that were executed.  The statements
+            # look like this:
+            #
+            # MiddlewareTime: job=1 event=simulation start=3.001094 ...
+            #
+            set subjobs 0
+            while {[regexp -indices {(^|\n)MiddlewareTime:( +[a-z]+=[^ \n]+)+(\n|$)} $job(error) match]} {
+                foreach {p0 p1} $match break
+                if {[string index $job(error) $p0] == "\n"} { incr p0 }
 
-            set stmt "MiddlewareTime:"
-            foreach key {job event start walltime cputime status} {
-                # add required keys in a particular order
-                append stmt " $key=$data($key)"
-                unset data($key)
-            }
-            foreach key [array names data] {
-                # add anything else that the client gave -- venue, etc.
-                append stmt " $key=$data($key)"
-            }
-            puts stderr $stmt
-            incr subjobs
+                catch {unset data}
+                array set data {
+                    job 1
+                    event simulation
+                    start 0
+                    walltime 0
+                    cputime 0
+                    status 0
+                }
+                foreach arg [lrange [string range $job(error) $p0 $p1] 1 end] {
+                    foreach {key val} [split $arg =] break
+                    set data($key) $val
+                }
+                set data(job) [expr {$jobnum+$data(job)}]
+                set data(event) "subsimulation"
+                set data(start) [expr {$times(start)+$data(start)}]
 
-            # done -- remove this statement
-            set job(error) [string replace $job(error) $p0 $p1]
+                set stmt "MiddlewareTime:"
+                foreach key {job event start walltime cputime status} {
+                    # add required keys in a particular order
+                    append stmt " $key=$data($key)"
+                    unset data($key)
+                }
+                foreach key [array names data] {
+                    # add anything else that the client gave -- venue, etc.
+                    append stmt " $key=$data($key)"
+                }
+                puts stderr $stmt
+                incr subjobs
+
+                # done -- remove this statement
+                set job(error) [string replace $job(error) $p0 $p1]
+            }
+            incr jobnum $subjobs
         }
-        incr jobnum $subjobs
 
     } else {
         set job(error) "$result\n$errorInfo"
