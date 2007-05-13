@@ -173,7 +173,7 @@ itcl::body Rappture::Tool::run {args} {
 
         # if job_protocol is "submit", then use use submit command
         if {[resources -jobprotocol] == "submit"} {
-            set cmd [linsert $cmd 0 submit --local]
+            set cmd [linsert $cmd 0 /apps/submit/bin/submit --local]
         }
 
         # starting job...
