@@ -192,6 +192,7 @@ itcl::body Rappture::Curve::hints {{keyword ""}} {
             label   about.label
             color   about.color
             style   about.style
+            type    about.type
             xlabel  xaxis.label
             xdesc   xaxis.description
             xunits  xaxis.units
