@@ -216,6 +216,7 @@ itcl::body Rappture::XyResult::add {curve {settings ""}} {
         -color auto
         -brightness 0
         -width 1
+        -type "line"
         -raise 0
         -linestyle solid
         -description ""
@@ -225,6 +226,11 @@ itcl::body Rappture::XyResult::add {curve {settings ""}} {
             error "bad setting \"$opt\": should be [join [lsort [array names params]] {, }]"
         }
         set params($opt) $val
+    }
+
+    # if type is set to "scatter", then override the width
+    if {"scatter" == $params(-type)} {
+        set params(-width) 0
     }
 
     # if the color is "auto", then select a color from -autocolors
@@ -630,17 +636,19 @@ itcl::body Rappture::XyResult::_rebuild {} {
                 set dashes ""
             }
 
-            if {[$xv length] <= 1} {
+            if {([$xv length] <= 1) || ($lwidth == 0)} {
                 set sym square
+                set pixels 2
             } else {
                 set sym ""
+                set pixels 6
             }
 
             set elem "elem[incr count]"
             set _elem2curve($elem) $xydata
 
             $g element create $elem -x $xv -y $yv \
-                -symbol $sym -pixels 6 -linewidth $lwidth -label $label \
+                -symbol $sym -pixels $pixels -linewidth $lwidth -label $label \
                 -color $color -dashes $dashes \
                 -mapx $mapx -mapy $mapy
         }
@@ -749,6 +757,7 @@ itcl::body Rappture::XyResult::_hilite {state x y} {
     set elem ""
     if {$state == "at"} {
         if {[$g element closest $x $y info -interpolate yes]} {
+            # for dealing with xy line plots
             set elem $info(name)
             foreach {mapx mapy} [_getAxes $_elem2curve($elem)] break
 
@@ -756,6 +765,35 @@ itcl::body Rappture::XyResult::_hilite {state x y} {
             set tip ""
             if {[$g element closest $x $y info -interpolate no]
                   && $info(name) == $elem} {
+                set x [$g axis transform $mapx $info(x)]
+                set y [$g axis transform $mapy $info(y)]
+
+                if {[info exists _elem2curve($elem)]} {
+                    set curve $_elem2curve($elem)
+                    set tip [$curve hints tooltip]
+                    if {[info exists info(y)]} {
+                        set val [_axis format y dummy $info(y)]
+                        set units [$curve hints yunits]
+                        append tip "\n$val$units"
+
+                        if {[info exists info(x)]} {
+                            set val [_axis format x dummy $info(x)]
+                            set units [$curve hints xunits]
+                            append tip " @ $val$units"
+                        }
+                    }
+                    set tip [string trim $tip]
+                }
+            }
+            set state 1
+        } elseif {[$g element closest $x $y info -interpolate no]} {
+            # for dealing with xy scatter plot
+            set elem $info(name)
+            foreach {mapx mapy} [_getAxes $_elem2curve($elem)] break
+
+            # search again for an exact point -- this time don't interpolate
+            set tip ""
+            if {$info(name) == $elem} {
                 set x [$g axis transform $mapx $info(x)]
                 set y [$g axis transform $mapy $info(y)]
 

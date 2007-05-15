@@ -167,6 +167,11 @@ itcl::body Rappture::ResultViewer::plot {option args} {
                     if {[catch {$dobj hints style} style] == 0} {
                         eval lappend settings $style
                     }
+                    if {[catch {$dobj hints type} type] == 0} {
+                        if {"" != $type} {
+                            eval lappend settings "-type $type"
+                        }
+                    }
                     # add override settings passed in here
                     eval lappend settings $opts
 
