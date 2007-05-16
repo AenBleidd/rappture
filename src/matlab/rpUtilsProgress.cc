@@ -29,7 +29,7 @@ void mexFunction(int nlhs, mxArray *plhs[],
 {
     int         err = 1;
     int         percent = 0;
-    std::string message = "";
+    const char* message = NULL;
 
     /* Check for proper number of arguments. */
     if (nrhs != 2) {
@@ -40,9 +40,11 @@ void mexFunction(int nlhs, mxArray *plhs[],
     message = getStringInput(prhs[1]);
 
     /* Call the C++ subroutine. */
-    err = Rappture::Utils::progress(percent,message.c_str());
+    err = Rappture::Utils::progress(percent,message);
 
     plhs[0] = mxCreateDoubleScalar(err);
 
+    freeStringInput((void*)message);
+    rpmxFlush();
     return;
 }
