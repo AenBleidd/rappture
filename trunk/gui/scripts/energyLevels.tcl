@@ -361,6 +361,12 @@ itcl::body Rappture::EnergyLevels::scale {args} {
             }
         }
     }
+
+    if {"" != $_emin && $_emin == $_emax} {
+        set _emin [expr {$_emin-0.1}]
+        set _emax [expr {$_emax+0.1}]
+    }
+
     set _eviewmin ""  ;# reset zoom view
     set _eviewmax ""
 }
@@ -470,15 +476,17 @@ itcl::body Rappture::EnergyLevels::_redraw {{what all}} {
                 set elist [$dataobj values -column $ecol]
                 set _ehomo [lindex $elist $nhomo]
                 set _elumo [lindex $elist $nlumo]
-                set gap [expr {$_elumo - $_ehomo}]
-                set _edefmin [expr {$_ehomo - 0.3*$gap}]
-                set _edefmax [expr {$_elumo + 0.3*$gap}]
+                if {"" != $_elumo && "" != $_ehomo} {
+                    set gap [expr {$_elumo - $_ehomo}]
+                    set _edefmin [expr {$_ehomo - 0.3*$gap}]
+                    set _edefmax [expr {$_elumo + 0.3*$gap}]
 
-                set y [expr {($_ehomo-$_emin)*$e2y + $yzoom0}]
-                set id [$c create rectangle $xx0 $y $xx1 $y0 \
-                    -stipple [Rappture::icon rdiag] \
-                    -outline "" -fill $itk_option(-shadecolor)]
-                $c lower $id
+                    set y [expr {($_ehomo-$_emin)*$e2y + $yzoom0}]
+                    set id [$c create rectangle $xx0 $y $xx1 $y0 \
+                        -stipple [Rappture::icon rdiag] \
+                        -outline "" -fill $itk_option(-shadecolor)]
+                    $c lower $id
+                }
             }
         }
         if {"" == $_eviewmin || "" == $_eviewmax} {
@@ -542,7 +550,7 @@ itcl::body Rappture::EnergyLevels::_redraw {{what all}} {
             }
         }
 
-        if {"" != $_ehomo && "" != $_elumo} {
+        if {"" != $topdobj && "" != $_ehomo && "" != $_elumo} {
             set ecol $_dobj2cols($topdobj-energy)
             set units [$topdobj columns -units $ecol]
 
