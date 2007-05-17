@@ -208,10 +208,15 @@ proc Rappture::bugreport::register {stackTrace} {
             set summary $stackTrace
         }
     }
-    if {[string length $summary] > 50} {
-        set summary "[string range $summary 0 50]..."
+    if {[string length $summary] > 200} {
+        set summary "[string range $summary 0 200]..."
     }
-    append summary " (in tool \"[Rappture::Tool::resources -appname]\")"
+    if {[string match {Problem launching job*} $summary]} {
+        append summary " (in tool \"[Rappture::Tool::resources -appname]\")"
+        set category "Tools"
+    } else {
+        set category "Rappture"
+    }
 
     # make sure that the stack trace isn't too long
     set toolong 20000
@@ -256,7 +261,7 @@ proc Rappture::bugreport::register {stackTrace} {
         login $tcl_platform(user) \
         sesstoken [Rappture::Tool::resources -session] \
         hostname [info hostname] \
-        category rappture \
+        category $category \
         summary $summary \
         referrer "tool \"[Rappture::Tool::resources -appname]\"" \
     ]
