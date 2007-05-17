@@ -867,6 +867,5 @@ itcl::configbody Rappture::DeviceViewer1D::device {
     if {"" != $itk_option(-device)} {
         add $itk_option(-device)
     }
-    after cancel [list catch [itcl::code $this _loadDevice]]
-    after idle [list catch [itcl::code $this _loadDevice]]
+    _loadDevice
 }

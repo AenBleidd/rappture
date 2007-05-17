@@ -720,7 +720,7 @@ itcl::body Rappture::XyResult::_resetLimits {} {
                     set max [expr {$max+0.05*$delta}]
                 }
             }
-            if {$min != $max} {
+            if {$min < $max} {
                 $g axis configure $axis -min $min -max $max
             } else {
                 $g axis configure $axis -min "" -max ""
@@ -1010,6 +1010,9 @@ itcl::body Rappture::XyResult::_axis {option args} {
             if {[llength $args] != 3} {
                 error "wrong # args: should be \"_axis drag axis x y\""
             }
+            if {![info exists _axis(moved)]} {
+                return  ;# must have skipped click event -- ignore
+            }
             set axis [lindex $args 0]
             set x [lindex $args 1]
             set y [lindex $args 2]
@@ -1065,11 +1068,14 @@ itcl::body Rappture::XyResult::_axis {option args} {
             if {[llength $args] != 3} {
                 error "wrong # args: should be \"_axis release axis x y\""
             }
+            if {![info exists _axis(moved)]} {
+                return  ;# must have skipped click event -- ignore
+            }
             set axis [lindex $args 0]
             set x [lindex $args 1]
             set y [lindex $args 2]
 
-            if {![info exists _axis(moved)] || !$_axis(moved)} {
+            if {!$_axis(moved)} {
                 # small movement? then treat as click -- pop up axis editor
                 set dx [expr {abs($x-$_axis(click-x))}]
                 set dy [expr {abs($y-$_axis(click-y))}]
