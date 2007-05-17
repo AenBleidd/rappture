@@ -128,7 +128,8 @@ itcl::body Rappture::DeviceViewer1D::constructor {owner args} {
 
     eval itk_initialize $args
 
-    _fixSize
+    after cancel [list catch [itcl::code $this _fixSize]]
+    after idle [list catch [itcl::code $this _fixSize]]
 }
 
 # ----------------------------------------------------------------------
@@ -385,7 +386,8 @@ itcl::body Rappture::DeviceViewer1D::_loadDevice {} {
     $itk_component(graph) configure \
         -rightmargin [$itk_component(layout) extents bar3D]
 
-    _fixSize
+    after cancel [list catch [itcl::code $this _fixSize]]
+    after idle [list catch [itcl::code $this _fixSize]]
 }
 
 # ----------------------------------------------------------------------
