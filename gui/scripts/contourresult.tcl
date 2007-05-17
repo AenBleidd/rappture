@@ -90,6 +90,10 @@ itcl::body Rappture::ContourResult::constructor {args} {
     set _view(theta) 0
     set _view(phi) 0
 
+    foreach val {xmin xmax ymin ymax zmin zmax vmin vmax} {
+        set _limits($val) ""
+    }
+
     itk_component add controls {
         frame $itk_interior.cntls
     } {
@@ -515,7 +519,14 @@ itcl::body Rappture::ContourResult::_rebuild {} {
     #
     # use vmin/vmax if possible, otherwise get from data
     if {$_limits(vmin) == "" || $_limits(vmax) == ""} {
-        foreach {v0 v1} [$pd GetScalarRange] break
+        set v0 0
+        set v1 1
+        if {[info exists _obj2vtk($dataobj)]} {
+            set pd [lindex $_obj2vtk($dataobj) 0]
+            if {"" != $pd} {
+                foreach {v0 v1} [$pd GetScalarRange] break
+            }
+        }
     } else {
         set v0 $_limits(vmin)
         set v1 $_limits(vmax)
