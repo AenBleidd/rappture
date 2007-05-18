@@ -50,7 +50,7 @@ itcl::class Rappture::Analyzer {
     destructor { # defined below }
 
     public method simulate {args}
-    public method reset {}
+    public method reset {{when -eventually}}
     public method load {file}
     public method clear {}
     public method download {option args}
@@ -405,14 +405,20 @@ itcl::body Rappture::Analyzer::simulate {args} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: reset
+# USAGE: reset ?-eventually|-now?
 #
 # Used to reset the analyzer whenever the input to a simulation has
 # changed.  Sets the mode back to "simulate", so the user has to
 # simulate again to see the output.  If the <start> option is set
 # to "auto", the simulation is invoked immediately.
 # ----------------------------------------------------------------------
-itcl::body Rappture::Analyzer::reset {} {
+itcl::body Rappture::Analyzer::reset {{when -eventually}} {
+    if {$when == "-eventually"} {
+        after cancel [list catch [itcl::code $this reset -now]]
+        after idle [list catch [itcl::code $this reset -now]]
+        return
+    }
+
     # check to see if simulation is really needed
     $_tool sync
     if {![$itk_component(resultset) contains [$_tool xml object]]} {
