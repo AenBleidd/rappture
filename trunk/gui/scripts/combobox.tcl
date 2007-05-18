@@ -129,7 +129,7 @@ itcl::body Rappture::Combobox::value {args} {
             $itk_component(entry) configure -state disabled
         }
 
-        after 10 [list event generate $itk_component(hull) <<Value>>]
+        after 10 [list catch [list event generate $itk_component(hull) <<Value>>]]
     } elseif {[llength $args] != 0} {
         error "wrong # args: should be \"value ?newval?\""
     }

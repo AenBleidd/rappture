@@ -123,7 +123,7 @@ itcl::body Rappture::Spinint::value {args} {
 
         $itk_component(entry) delete 0 end
         $itk_component(entry) insert 0 $newval
-        after 10 [list event generate $itk_component(hull) <<Value>>]
+        after 10 [list catch [list event generate $itk_component(hull) <<Value>>]]
     } elseif {[llength $args] != 0} {
         error "wrong # args: should be \"value ?newval?\""
     }
