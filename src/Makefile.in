@@ -105,12 +105,12 @@ librappture: $(RP_IO_DEPS) $(RP_UTILS_DEPS) $(RP_UNITS_DEPS) $(RP_OTHER_DEPS)
 	$(INSTALL_DATA) $(CORE2_SRC)/rappture2.h $(INCLUDES_DIR)
 	@if test "`uname`" == "Darwin"; then \
 		$(CXX) $(DEGUG) $(LDLIB_MACOSX) $^ $(RP2_OBJ_DEP) $(EXTERNAL_RP_LIBS); \
-		ar -r $@.a $^; \
+		ar -r $@.a $^ $(RP2_OBJ_DEP); \
 		ranlib -s $@.a; \
 	else \
 		$(CXX) $(DEGUG) $(LDLIB_LINUX) $^ $(RP2_OBJ_DEP) $(EXTERNAL_RP_LIBS); \
 		/sbin/ldconfig -n $(LIB_DIR); \
-		ar -r $@.a $^; \
+		ar -r $@.a $^ $(RP2_OBJ_DEP); \
 		ranlib $@.a; \
 	fi
 
