@@ -2893,12 +2893,14 @@ RpUnitsPreset::addPresetMisc () {
     RpUnits* hertz     = NULL;
     RpUnits* becquerel = NULL;
     RpUnits* amu       = NULL;
+    RpUnits* bel       = NULL;
 
     volt      = RpUnits::define("V",  NULL, RP_TYPE_EPOT, RPUNITS_METRIC);
     mole      = RpUnits::define("mol",NULL, "quantity", RPUNITS_METRIC);
     hertz     = RpUnits::define("Hz", NULL, "frequency", RPUNITS_METRIC);
     becquerel = RpUnits::define("Bq", NULL, "radioactivity", RPUNITS_METRIC);
     amu       = RpUnits::define("amu", NULL, "mass_unit", !RPUNITS_METRIC);
+    bel       = RpUnits::define("B", NULL, "audio_transmission", RPUNITS_METRIC);
 
     // RpUnits* percent   = RpUnits::define("%",  NULL, RP_TYPE_MISC);
 
