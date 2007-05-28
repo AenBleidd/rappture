@@ -16,7 +16,7 @@ INSTALL_PROGRAM = ${INSTALL} -m 755
 INSTALL_DATA    = ${INSTALL} -m 644
 INSTALL_SCRIPT  = ${INSTALL} -m 644
 
-.PHONY: all install clean
+.PHONY: all install clean distclean
 
 all: $(TARGETS)
 
@@ -30,3 +30,6 @@ client: client.o clientlib.o
 
 clean:
 	rm -rf a.out *.o *~ core* $(TARGETS) *.log *.tmp logfile* .deps/*.d
+
+distclean: clean
+	rm Makefile
