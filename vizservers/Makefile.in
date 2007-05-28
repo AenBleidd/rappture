@@ -1,0 +1,43 @@
+
+subdirs         = @SUBDIRS@
+
+all:
+	for dir in $(subdirs) ; do \
+		if test -d $$dir ; then \
+		    echo "$$dir: $(MAKE) $@" ; \
+		    if (cd $$dir; $(MAKE) $@) ; then true ; else exit 1; fi ; \
+		else \
+		    exit 1; \
+		fi \
+	done;
+
+install:
+	for dir in $(subdirs) ; do \
+		if test -d $$dir ; then \
+		    echo "$$dir: $(MAKE) $@" ; \
+		    if (cd $$dir; $(MAKE) $@) ; then true ; else exit 1; fi ; \
+		else \
+		    exit 1; \
+		fi \
+	done;
+	install -c -m 755 start_viz.sh @prefix@/start_viz.sh
+
+clean:
+	for dir in $(subdirs) ; do \
+		if test -d $$dir ; then \
+		    echo "$$dir: $(MAKE) $@" ; \
+		    if (cd $$dir; $(MAKE) $@) ; then true ; else exit 1; fi ; \
+		else \
+		    exit 1; \
+		fi \
+	done;
+
+distclean:
+	for dir in $(subdirs) ; do \
+		if test -d $$dir ; then \
+		    echo "$$dir: $(MAKE) $@" ; \
+		    if (cd $$dir; $(MAKE) $@) ; then true ; else exit 1; fi ; \
+		else \
+		    exit 1; \
+		fi \
+	done;

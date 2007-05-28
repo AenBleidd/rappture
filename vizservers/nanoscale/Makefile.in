@@ -1,0 +1,32 @@
+TARGETS         = client mycat nanoscale
+
+CC              = @CC@
+CFLAGS          = @CFLAGS@
+LDFLAGS         = @LDFLAGS@
+
+prefix          = @prefix@
+exec_prefix     = @exec_prefix@
+bindir          = @bindir@
+libdir          = @libdir@
+includedir      = @includedir@
+mandir          = @mandir@
+
+INSTALL         = @INSTALL@
+INSTALL_PROGRAM = ${INSTALL} -m 755
+INSTALL_DATA    = ${INSTALL} -m 644
+INSTALL_SCRIPT  = ${INSTALL} -m 644
+
+.PHONY: all install clean
+
+all: $(TARGETS)
+
+nanoscale: server.o
+	$(CC) $(CFLAGS) $(LDFLAGS) server.o -o nanoscale
+
+install: nanoscale
+	$(INSTALL_PROGRAM) -D nanoscale $(bindir)/nanoscale
+
+client: client.o clientlib.o
+
+clean:
+	rm -rf a.out *.o *~ core* $(TARGETS) *.log *.tmp logfile* .deps/*.d

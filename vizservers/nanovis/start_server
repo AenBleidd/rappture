@@ -16,4 +16,4 @@ export PATH
 #LD_LIBRARY_PATH="/opt/render/lib:/lib:/usr/lib:/usr/local/lib"
 #export LD_LIBRARY_PATH
 
-exec /home/nanohub/vrinside/rappture/gui/vizservers/nanovis/nanoscale -l 2000 -b 2001 -s 128.210.189.255 -c "/home/nanohub/vrinside/rappture/gui/vizservers/nanovis/nanovis" > /dev/null 2>&1
+exec /home/nanohub/dkearney/repo/rappture/gui/vizservers/nanovis/nanoscale -l 2002 -b 2002 -s 128.210.189.255 -c "/home/nanohub/dkearney/repo/rappture/gui/vizservers/nanovis/nanovis" > /dev/null 2>&1

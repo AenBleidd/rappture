@@ -1,0 +1,135 @@
+
+SHELL = /bin/sh
+
+.SUFFIX:
+.SUFFIX: .c .o .cpp
+
+.PHONY: all install clean distclean
+
+prefix          = /home/nanohub/dkearney/repo/viz_20070521
+exec_prefix     = /home/nanohub/dkearney/repo/viz_20070521
+bindir          = ${exec_prefix}/bin
+libdir          = ${exec_prefix}/lib
+includedir      = ${prefix}/include
+mandir          = ${prefix}/man
+
+INSTALL			= /usr/bin/install -c
+INSTALL_PROGRAM	= ${INSTALL} -m 755
+INSTALL_DATA	= ${INSTALL} -m 644
+INSTALL_SCRIPT	= ${INSTALL} -m 644
+
+CC = gcc
+
+AUXSRC = config.h define.h global.h
+
+R2INC = ./R2/include
+
+LIB_NANOVIS = -L/apps/rappture/render-dev/lib -ltcl8.4 -lGL -lglut -lglui -lGLEW -lCg -lCgGL -pthread -lrappture2 -lb64 -lz
+INCLUDES = -I/apps/rappture/render-dev/include -I/apps/rappture/render-dev/include/rappture2 -I/usr/include/GL -I$(R2INC) -I.
+
+CFLAGS = -g -O2 $(INCLUDES)
+# $(CFLAGS)
+
+OBJS  = nanovis.o Socket.o RenderVertexArray.o Plane.o ConvexPolygon.o Vector4.o Vector3.o Mat4x4.o \
+		Texture1D.o Texture3D.o Volume.o ZincBlendeVolume.o Texture2D.o ParticleSystem.o Sphere.o Color.o \
+		PerfQuery.o TransferFunction.o ControlPoint.o ColorGradient.o ColorPaletteWindow.o\
+		ColorGradientGLUTWindow.o TransferFunctionGLUTWindow.o MainWindow.o Event.o \
+		Lic.o Renderable.o Camera.o ScreenSnapper.o VolumeRenderer.o PlaneRenderer.o Nv.o \
+		NvZincBlendeVolumeShader.o NvShader.o NvVolumeShader.o NvRegularVolumeShader.o \
+		NvLoadFile.o NvDefaultTFData.o NvColorTableShader.o NvColorTableRenderer.o NvParticleAdvectionShader.o \
+		NvEventLog.o NvParticleRenderer.o NvLIC.o NvZincBlendeReconstructor.o NvStdVertexShader.o \
+		R2string.o R2FilePath.o R2Fonts.o R2Object.o
+
+all: nanovis
+
+install: nanovis
+	$(INSTALL_PROGRAM) nanovis $(bindir)/nanovis
+	$(INSTALL_PROGRAM) /apps/rappture/render-dev/bin/voronoi $(bindir)/voronoi
+	$(INSTALL_PROGRAM) -d $(libdir)/resources $(libdir)/shaders
+	$(INSTALL_DATA) resources/* $(libdir)/resources
+	$(INSTALL_DATA) shaders/* $(libdir)/shaders
+	$(INSTALL_DATA) /apps/rappture/render-dev/lib/librappture2.so $(libdir)/librappture2.so
+	$(INSTALL_DATA) /apps/rappture/render-dev/lib/libz.so $(libdir)/libz.so
+	$(INSTALL_DATA) /apps/rappture/render-dev/lib/libb64.so $(libdir)/libb64.so
+
+clean:
+	rm -f *.o nanovis client
+
+nanovis: $(OBJS)
+	$(CC) -g -o $@ $^ $(LIB_NANOVIS)
+
+client: Socket.o ClientSocket.o RenderClient.o Event.o
+	$(CC) -g -o $(LIB_NANOVIS) $@ $^
+
+.cpp.o:
+	$(CC) $(CFLAGS) -o $@ -c $<
+
+Nv.o: Nv.cpp NvShader.cpp
+	$(CC) $(CFLAGS) -c $^
+
+ColorGradient.o: transfer-function/ColorGradient.cpp
+	$(CC) $(CFLAGS) -o $@ -c $<
+ColorPaletteWindow.o: transfer-function/ColorPaletteWindow.cpp
+	$(CC) $(CFLAGS) -o $@ -c $<
+ColorGradientGLUTWindow.o: transfer-function/ColorGradientGLUTWindow.cpp
+	$(CC) $(CFLAGS) -o $@ -c $<
+ControlPoint.o: transfer-function/ControlPoint.cpp
+	$(CC) $(CFLAGS) -o $@ -c $<
+TransferFunctionGLUTWindow.o: transfer-function/TransferFunctionGLUTWindow.cpp
+	$(CC) $(CFLAGS) -o $@ -c $<
+MainWindow.o: transfer-function/MainWindow.cpp
+	$(CC) $(CFLAGS) -o $@ -c $<
+Socket.o: socket/Socket.cpp socket/Socket.h
+	$(CC) $(CFLAGS) -o $@ -c $<
+ClientSocket.o: socket/ClientSocket.cpp socket/ClientSocket.h
+	$(CC) $(CFLAGS) -o $@ -c $<
+RenderClient.o: socket/RenderClient.cpp socket/RenderClient.h
+	$(CC) $(CFLAGS) -o $@ -c $<
+R2string.o: R2/src/R2string.cpp $(R2INC)/R2/R2string.h
+	$(CC) $(CFLAGS) -o $@ -c $<
+R2FilePath.o: R2/src/R2FilePath.cpp $(R2INC)/R2/R2FilePath.h
+	$(CC) $(CFLAGS) -o $@ -c $<
+R2Fonts.o: R2/src/R2Fonts.cpp $(R2INC)/R2/R2Fonts.h
+	$(CC) $(CFLAGS) -o $@ -c $<
+R2Object.o: R2/src/R2Object.cpp $(R2INC)/R2/R2Object.h
+	$(CC) $(CFLAGS) -o $@ -c $<
+
+
+
+NvStdVertexShader.o: NvStdVertexShader.cpp NvStdVertexShader.h
+NvLoadFile.o: NvLoadFile.cpp NvLoadFile.h
+NvParticleAdvectionShader.o: NvParticleAdvectionShader.cpp NvParticleAdvectionShader.h
+NvParticleRenderer.o: NvParticleRenderer.cpp NvParticleRenderer.h
+NvColorTableShader.o: NvColorTableShader.cpp NvColorTableShader.h
+NvLIC.o: NvLIC.cpp NvLIC.h
+NvColorTableRenderer.o: NvColorTableRenderer.cpp NvColorTableRenderer.h
+NvEventLog.o: NvEventLog.cpp NvEventLog.h
+NvShader.o: NvShader.cpp NvShader.h
+NvVolumeShader.o: NvVolumeShader.cpp NvVolumeShader.h
+NvDefaultTFData.o: NvDefaultTFData.cpp
+NvRegularVolumeShader.o: NvRegularVolumeShader.cpp NvRegularVolumeShader.h
+NvZincBlendeVolumeShader.o: NvZincBlendeVolumeShader.cpp NvZincBlendeVolumeShader.h
+RenderVertexArray.o: RenderVertexArray.cpp RenderVertexArray.h
+Color.o: Color.cpp Color.h
+Event.o: Event.cpp Event.h
+Sphere.o: Sphere.cpp Sphere.h
+TransferFunction.o: TransferFunction.cpp
+Texture1D.o: Texture1D.cpp Texture1D.h
+Texture2D.o: Texture2D.cpp Texture2D.h $(AUXSRC)
+Texture3D.o: Texture3D.cpp Texture3D.h $(AUXSRC)
+ParticleSystem.o: ParticleSystem.cpp $(AUXSRC)
+Renderable.o: Renderable.cpp Renderable.h
+Camera.o: Camera.cpp Camera.h
+ScreenSnapper.o: ScreenSnapper.cpp ScreenSnapper.h define.h
+Lic.o: Lic.cpp Lic.h $(AUXSRC)
+Volume.o: Volume.cpp Volume.h $(AUXSRC)
+ZincBlendeVolume.o: ZincBlendeVolume.cpp ZincBlendeVolume.h $(AUXSRC)
+VolumeRenderer.o: VolumeRenderer.cpp VolumeRenderer.h
+PlaneRenderer.o: PlaneRenderer.cpp PlaneRenderer.h
+Mat4x4.o: Mat4x4.cpp Mat4x4.h
+Vector4.o: Vector4.cpp Vector4.h
+Vector3.o: Vector3.cpp Vector3.h
+Plane.o: Plane.cpp Plane.h
+ConvexPolygon.o: ConvexPolygon.cpp ConvexPolygon.h
+PerfQuery.o: PerfQuery.cpp PerfQuery.h
+nanovis.o: nanovis.cpp nanovis.h $(AUXSRC)
