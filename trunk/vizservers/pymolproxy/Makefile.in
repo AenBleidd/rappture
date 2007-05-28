@@ -1,0 +1,32 @@
+TARGETS = pymolproxy
+
+CC      = @CC@
+CFLAGS  = @CFLAGS@ -I@TCL_INCL_DIR@
+LDFLAGS = @LDFLAGS@
+# LDFLAGS = $(LDFLAGS)
+
+prefix          = @prefix@
+exec_prefix     = @exec_prefix@
+bindir          = @bindir@
+libdir          = @libdir@
+includedir      = @includedir@
+mandir          = @mandir@
+
+INSTALL         = @INSTALL@
+INSTALL_PROGRAM = ${INSTALL} -m 755
+INSTALL_DATA    = ${INSTALL} -m 644
+INSTALL_SCRIPT  = ${INSTALL} -m 644
+
+.PHONY: all install clean
+
+all: $(TARGETS)
+
+pymolproxy: pymolproxy.o
+	$(CC) $(CFLAGS) $(LDFLAGS) -DSTANDALONE pymolproxy.c -o pymolproxy -ltcl8.4
+
+install: pymolproxy
+	$(INSTALL_PROGRAM) pymolproxy $(bindir)/pymolproxy
+
+clean:
+	rm -rf a.out *.o *~ core* $(TARGETS) *.log *.tmp logfile* .deps/*.d
+
