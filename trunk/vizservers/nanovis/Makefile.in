@@ -55,6 +55,9 @@ install: nanovis
 clean:
 	rm -f *.o nanovis client
 
+distclean: clean
+	rm Makefile
+
 nanovis: $(OBJS)
 	$(CC) -g -o $@ $^ $(LIB_NANOVIS)
 
