@@ -23,8 +23,7 @@ RP_BASE   = @RP_BASE@
 
 # define which programs can be made
 PROGS           =   librappture    \
-                    libRpObjects   \
-                    Rappture.Units
+                    libRpObjects
 
 # define our compiling environment
 #
@@ -32,9 +31,8 @@ CC              = @CC@
 CXX             = @CXX@
 DEBUG           = -g -Wall
 DEBUG_PLUS      = -g -DDEBUG
-MEX             = @MEX@
-OCT             = @MKOCTFILE@
 LN              = ln
+CFLAGS = -fPIC
 
 # define our directories
 #
@@ -49,12 +47,8 @@ CORE_SRC        = $(SRC_DIR)/core
 CORE2_SRC       = $(SRC2_DIR)/core
 FORT_SRC        = $(SRC_DIR)/fortran
 CEE_SRC         = $(SRC_DIR)/cee
-MATLAB_SRC      = $(SRC_DIR)/matlab
-OCTAVE_SRC      = $(SRC_DIR)/octave
-TCL_SRC         = $(SRC_DIR)/tcl
 
-LIB_INC_PREFIX  = -Wl,-rpath,$(LIB_DIR) -L$(LIB_DIR)
-LIB_RP_OBJECTS  = $(LIB_INC_PREFIX) -lRpObjects
+LIB_RP_OBJECTS  = -Wl,-rpath,$(LIB_DIR) -L$(LIB_DIR) -lRpObjects
 LIB_RAPPTURE    = -Wl,-rpath,$(LIB_DIR) -L$(LIB_DIR) -lrappture
 
 INCL_CORE       = -I$(CORE_SRC)
@@ -64,27 +58,22 @@ INCL_FORTRAN    = -I$(FORT_SRC)
 INCL_MATLAB     = -I$(MATLAB_SRC)
 INCL_OCTAVE     = -I$(OCTAVE_SRC)
 
-CFLAGS = -fPIC
-
 # default:
 
 all: ${PROGS}
 install: 	install_rappture \
-			install_rpobjs \
-			install_matlab \
-			install_octave
-#			install_tcl
+			install_rpobjs
 
 RP_IO_DEPS      = RpLibrary.o RpLibraryCInterface.o RpLibraryFInterface.o \
-                  scew_extras.o RpEntityRef.o RpEncode.o RpUtils.o
+                  scew_extras.o RpEntityRef.o RpUtils.o
 RP_UNITS_DEPS   = RpUnitsStd.o RpUnits.o RpUnitsCInterface.o RpUnitsFInterface.o
 RP_UTILS_DEPS   = RpUtils.o RpUtilsCInterface.o RpUtilsFInterface.o
 RP_OTHER_DEPS   = RpFortranCommon.o RpBindingsDict.o \
                   RpBufferCInterface.o RpOutcomeCInterface.o
 RP_OBJS_DEP     = RpVariable.o RpAbout.o RpNumber.o RpString.o RpBoolean.o \
-                  RpChoice.o RpOption.o RpUnitsStd.o RpUnits.o #RpValue.o\
-                  # RpValueDouble.o RpValueString.o
-RP2_OBJ_DEP     = $(CORE2_SRC)/Outcome.o $(CORE2_SRC)/Ptr.o $(CORE2_SRC)/RpBuffer.o
+                  RpChoice.o RpOption.o RpUnitsStd.o RpUnits.o
+                  #RpValue.o RpValueDouble.o RpValueString.o
+RP2_OBJ_DEP     = $(CORE2_SRC)/Outcome.o $(CORE2_SRC)/Ptr.o $(CORE2_SRC)/RpBuffer.o $(CORE2_SRC)/RpEncode.o
 
 
 LDLIB_MACOSX = -dynamiclib -o $(LIB_DIR)/$@.dylib
@@ -95,13 +84,14 @@ LDLIB_LINUX = -shared -Wl,-rpath,$(LIB_DIR)/ -Wl,-soname,$@.so -o $(LIB_DIR)/$@.
 #### librappture shared object ###########################################
 
 librappture: $(RP_IO_DEPS) $(RP_UTILS_DEPS) $(RP_UNITS_DEPS) $(RP_OTHER_DEPS)
-	(cd ../src2/core/; make Outcome.o Ptr.o RpBuffer.o)
+	(cd ../src2/core/; make Outcome.o Ptr.o RpBuffer.o RpEncode.o)
 	$(INSTALL_DATA) $(CORE_SRC)/*.h $(INCLUDES_DIR)
 	$(INSTALL_DATA) $(CEE_SRC)/*.h $(INCLUDES_DIR)
 	$(INSTALL_DATA) $(FORT_SRC)/*.h $(INCLUDES_DIR)
 	$(INSTALL_DATA) $(CORE2_SRC)/Outcome.h $(INCLUDES_DIR)
 	$(INSTALL_DATA) $(CORE2_SRC)/Ptr.h $(INCLUDES_DIR)
 	$(INSTALL_DATA) $(CORE2_SRC)/RpBuffer.h $(INCLUDES_DIR)
+	$(INSTALL_DATA) $(CORE2_SRC)/RpEncode.h $(INCLUDES_DIR)
 	$(INSTALL_DATA) $(CORE2_SRC)/rappture2.h $(INCLUDES_DIR)
 	@if test "`uname`" == "Darwin"; then \
 		$(CXX) $(DEGUG) $(LDLIB_MACOSX) $^ $(RP2_OBJ_DEP) $(EXTERNAL_RP_LIBS); \
@@ -153,9 +143,6 @@ scew_extras.o: $(CORE_SRC)/scew_extras.c
 RpEntityRef.o: $(CORE_SRC)/RpEntityRef.cc
 	$(CXX) $(CFLAGS) $(DEBUG) -o $@ -c $? $(INCL_CORE) $(INCL_CORE2)
 
-RpEncode.o: $(CORE_SRC)/RpEncode.cc
-	$(CXX) $(CFLAGS) $(DEBUG) -o $@ -c $? $(INCL_CORE) $(INCL_CORE2)
-
 RpUtils.o: $(CORE_SRC)/RpUtils.cc
 	$(CXX) $(CFLAGS) $(DEBUG) -o $@ -c $? $(INCL_CORE)
 
@@ -168,6 +155,8 @@ RpUnits.o: $(CORE_SRC)/RpUnits.cc
 RpBindingsDict.o: $(CORE_SRC)/RpBindingsDict.cc
 	$(CXX) $(CFLAGS) $(DEBUG) -o $@ -c $? $(INCL_CORE)
 
+
+# objects for rappture 2 developement
 
 RpVariable.o: $(CORE_SRC)/RpVariable.cc
 	$(CXX) $(CFLAGS) $(DEBUG) -o $@ -c $? $(INCL_CORE)
@@ -245,7 +234,7 @@ docs:
 
 #### CLEAN UP ############################################################
 clean: 
-	- rm -f *.o librappture.so* librappture.a libRp*.so*
+	- rm -f *.o librappture.* libRp*.so*
 	- rm -rf build
 
 distclean: clean

@@ -138,25 +138,32 @@ RP2_INCL_DIR=""
 RP_DIR=""
 AC_MSG_CHECKING([for rappture])
 if test "x$with_rappture" != "x" ; then
-    if test -f "$with_rappture"
-    then
-        AC_MSG_RESULT([no])
-        AC_MSG_ERROR([please provide --with-rappture with directory])
-    else
-        if test -d "$with_rappture"
+    if test "x$with_rappture" != "xprefix" ; then
+        if test -f "$with_rappture"
         then
-            if test -r "$with_rappture/include/rappture2/rappture2.h" -a -r "$with_rappture/lib/librappture2.a"
+            AC_MSG_RESULT([no])
+            AC_MSG_ERROR([please provide --with-rappture with directory])
+        else
+            if test -d "$with_rappture"
             then
-                RP2_INCL_DIR="$with_rappture/include/rappture2"
-                RP_DIR="$with_rappture"
+                if test -r "$with_rappture/include/rappture2/rappture2.h" -a -r "$with_rappture/lib/librappture2.a"
+                then
+                    RP2_INCL_DIR="$with_rappture/include/rappture2"
+                    RP_DIR="$with_rappture"
+                    AC_MSG_RESULT([yes])
+                else
+                    AC_MSG_RESULT([no])
+                    AC_MSG_ERROR([cannot find rappture2.h and librappture2.a, try using --with-rappture])
+                fi
             else
                 AC_MSG_RESULT([no])
-                AC_MSG_ERROR([cannot find rappture2.h and librappture2.a, try using --with-rappture])
+                AC_MSG_ERROR([cannot find rappture2.h and librappture2.a inside $with_rappture, try using --with-rappture])
             fi
-        else
-            AC_MSG_RESULT([no])
-            AC_MSG_ERROR([cannot find rappture2.h and librappture2.a inside $with_rappture, try using --with-rappture])
         fi
+    else
+        RP2_INCL_DIR="$prefix/include/rappture2"
+        RP_DIR="$prefix"
+        AC_MSG_RESULT([set to prefix])
     fi
 else
     AC_CHECK_HEADERS([rappture.h], [],
