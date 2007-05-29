@@ -44,7 +44,8 @@ man3dir = ${mandir}/man3
 
 OBJS = RpMesh1D.o RpField1D.o RpMeshTri2D.o RpMeshRect3D.o \
        RpFieldRect3D.o RpMeshPrism3D.o RpFieldPrism3D.o RpSerialBuffer.o \
-       RpSerializer.o RpSerializable.o RpBuffer.o Ptr.o Outcome.o # Lookup.o
+       RpSerializer.o RpSerializable.o RpBuffer.o RpEncode.o Ptr.o Outcome.o
+       # Lookup.o
 
 OBJA =
 # to use the asm code: make OBJA=match.o
@@ -190,6 +191,9 @@ RpSerializer.o: RpSerializer.cc RpSerializer.h
 
 RpSerializable.o: RpSerializable.cc RpSerializable.h
 	$(CXX) $(CFLAGS) -c -o RpSerializable.o RpSerializable.cc
+
+RpEncode.o: RpEncode.cc RpEncode.h
+	$(CXX) $(CFLAGS) -c -o RpEncode.o RpEncode.cc
 
 RpBuffer.o: RpBuffer.cc RpBuffer.h
 	$(CXX) $(CFLAGS) -c -o $@ -I ${includedir} RpBuffer.cc
