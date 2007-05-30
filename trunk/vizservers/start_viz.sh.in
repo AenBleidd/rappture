@@ -15,8 +15,8 @@ mkdir ${dir}/bin ${dir}/lib
 cp -r ${install_dir}/lib/shaders ${dir}
 cp -r ${install_dir}/lib/resources ${dir}
 cp ${install_dir}/lib/lib* ${dir}/lib
-cp ${install_dir}/bin/voronoi ${install_dir}/bin/nanoscale ${install_dir}/bin/nanovis ${dir}
+cp ${install_dir}/bin/voronoi ${install_dir}/bin/nanoscale ${install_dir}/bin/nanovis ${dir}/bin
 
 cd ${dir}
 
-${dir}/nanoscale -l 2000 -b 2000 -s 172.18.3.255 -c ${dir}/nanovis
+${dir}/bin/nanoscale -l 2000 -b 2000 -s 172.18.3.255 -c ${dir}/bin/nanovis
