@@ -638,7 +638,7 @@ itcl::body Rappture::Field::_build {} {
             # off to the NanoVis visualizer.
             #
             set _comp2dims($cname) "3D"
-            set _comp2dx($cname) [$_field get $cname.dx]
+            set _comp2dx($cname) [$_field get -decode no $cname.dx]
             set _comp2style($cname) [$_field get $cname.style]
             incr _counter
         }
