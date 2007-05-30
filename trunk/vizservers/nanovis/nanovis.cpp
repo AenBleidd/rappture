@@ -32,7 +32,7 @@
 #include "RpField1D.h"
 #include "RpFieldRect3D.h"
 #include "RpFieldPrism3D.h"
-#include "RpBuffer.h"
+#include "RpEncode.h"
 
 //transfer function headers
 #include "transfer-function/TransferFunctionMain.h"
@@ -817,7 +817,8 @@ VolumeCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
                 }
             }
 
-            err = buf.decode();
+            // err = buf.decode();
+            err = Rappture::encoding::decode(buf,RPENC_Z|RPENC_B64|RPENC_HDR);
             if (err) {
                 Tcl_AppendResult(interp, err.remark().c_str(), (char*)NULL);
                 return TCL_ERROR;

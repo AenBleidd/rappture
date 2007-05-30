@@ -170,7 +170,7 @@ itcl::class Rappture::LibraryObj {
     public method element {args}
     public method parent {args}
     public method children {args}
-    public method get {{path ""}}
+    public method get {args}
     public method put {args}
     public method copy {path from args}
     public method remove {{path ""}}
@@ -434,19 +434,52 @@ itcl::body Rappture::LibraryObj::children {args} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: get ?<path>?
+# USAGE: get ?-decode yes? ?<path>?
 #
-# Clients use this to query the value of a node.  If the path is not
+# Clients use this to query the value of a node. Clients can specify
+# if they want the data to be automatically decoded or no using the
+# -decode flag. This is useful for situations where you want to keep
+# the data encoded to pass to another system, like dx data in fields
+# sending data to nanovis. If the path is not
 # specified, it returns the value associated with the root node.
 # Otherwise, it returns the value for the element specified by the
 # path.
 # ----------------------------------------------------------------------
-itcl::body Rappture::LibraryObj::get {{path ""}} {
+itcl::body Rappture::LibraryObj::get {args} {
+    array set params {
+        -decode yes
+    }
+    while {[llength $args] > 0} {
+        set first [lindex $args 0]
+        if {[string index $first 0] == "-"} {
+            set choices [array names params]
+            if {[lsearch $choices $first] < 0} {
+                error "bad option \"$first\": should be [join [lsort $choices] {, }]"
+            }
+            set params($first) [lindex $args 1]
+            set args [lrange $args 2 end]
+        } else {
+            break
+        }
+    }
+    if {[llength $args] > 1} {
+        error "wrong # args: should be \"get ?-decode yes? ?path?\""
+    }
+    if {[llength $args] == 1} {
+        set path [lindex $args 0]
+    } else {
+        set path ""
+    }
+
     set node [find $path]
     if {$node == ""} {
         return ""
     }
-    return [Rappture::encoding::decode [string trim [$node text]]]
+    if {$params(-decode) == "yes"} {
+        return [Rappture::encoding::decode [string trim [$node text]]]
+    } else {
+        return [string trim [$node text]]
+    }
 }
 
 # ----------------------------------------------------------------------
