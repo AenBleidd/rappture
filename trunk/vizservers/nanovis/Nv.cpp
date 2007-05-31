@@ -118,12 +118,12 @@ void NvInitVolumeRenderer()
 {
 }
 
-void NvInit()
+void NvInit(char* path)
 {
-    char* filepath = "./shaders:./resources:" \
-                    "/opt/nanovis/lib/shaders:/opt/nanovis/lib/resources";
+    if (path != NULL) {
+        R2FilePath::getInstance()->setPath(path);
+    }
 
-    R2FilePath::getInstance()->setPath(filepath);
     NvPrintSystemInfo();
     NvInitGLEW();
     NvInitCG();

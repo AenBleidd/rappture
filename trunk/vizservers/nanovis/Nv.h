@@ -4,7 +4,7 @@
 #include <GL/glew.h>
 #include <Cg/cg.h>
 
-extern void NvInit();
+extern void NvInit(char* path=NULL);
 extern void NvExit();
 
 #endif

@@ -12,11 +12,11 @@ export PATH LD_LIBRARY_PATH
 
 mkdir ${dir}/bin ${dir}/lib
 
-cp -r ${install_dir}/lib/shaders ${dir}
-cp -r ${install_dir}/lib/resources ${dir}
-cp ${install_dir}/lib/lib* ${dir}/lib
+cp ${install_dir}/lib ${dir}
 cp ${install_dir}/bin/voronoi ${install_dir}/bin/nanoscale ${install_dir}/bin/nanovis ${dir}/bin
 
 cd ${dir}
 
-${dir}/bin/nanoscale -l 2000 -b 2000 -s 172.18.3.255 -c ${dir}/bin/nanovis
+${dir}/bin/nanoscale -d -b 2000 -s 172.18.3.255 -l 2000 -c "${dir}/bin/nanovis -p ${dir}/lib/shaders:${dir}/lib/resources"
+#${dir}/bin/nanoscale -b 2000 -s 172.18.3.255 -l 2020 -c "${dir}/bin/pymolproxy /opt/pymol/bin/pymol -p -q -i -x -X 0 -Y 0"
+#${dir}/bin/nanoscale -b 2000 -s 172.18.3.255 -l 2000 -c "${dir}/bin/nanovis -p ${dir}/lib/shaders:${dir}/lib/resources" -l 2020 -c "${dir}/bin/pymolproxy /opt/pymol/bin/pymol -p -q -i -x -X 0 -Y 0" 
