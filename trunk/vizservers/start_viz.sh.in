@@ -12,7 +12,7 @@ export PATH LD_LIBRARY_PATH
 
 mkdir ${dir}/bin ${dir}/lib
 
-cp ${install_dir}/lib ${dir}
+cp -r ${install_dir}/lib ${dir}
 cp ${install_dir}/bin/voronoi ${install_dir}/bin/nanoscale ${install_dir}/bin/nanovis ${dir}/bin
 
 cd ${dir}
