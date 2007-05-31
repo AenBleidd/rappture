@@ -18,6 +18,7 @@
 #include <math.h>
 #include <assert.h>
 
+#include <R2/R2FilePath.h>
 #include "NvLIC.h"
 
 NvLIC::NvLIC(int _size, int _width, int _height, float _offset,
@@ -88,7 +89,8 @@ NvLIC::NvLIC(int _size, int _width, int _height, float _offset,
   CHECK_FRAMEBUFFER_STATUS();
   assert(glGetError()==0);
 
-  m_render_vel_fprog = loadProgram(m_g_context, CG_PROFILE_FP30, CG_SOURCE, "/opt/nanovis/lib/shaders/render_vel.cg");
+  R2string path = R2FilePath::getInstance()->getPath("render_vel.cg");
+  m_render_vel_fprog = loadProgram(m_g_context, CG_PROFILE_FP30, CG_SOURCE, path);
   m_vel_tex_param_render_vel = cgGetNamedParameter(m_render_vel_fprog, "vel_tex");
   m_plane_normal_param_render_vel = cgGetNamedParameter(m_render_vel_fprog, "plane_normal");
   cgGLSetTextureParameter(m_vel_tex_param_render_vel, _vector_field);

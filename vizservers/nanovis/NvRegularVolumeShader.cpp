@@ -1,3 +1,4 @@
+#include <R2/R2FilePath.h>
 #include "NvRegularVolumeShader.h"
 
 NvRegularVolumeShader::NvRegularVolumeShader()
@@ -11,8 +12,8 @@ NvRegularVolumeShader::~NvRegularVolumeShader()
 
 void NvRegularVolumeShader::init()
 {
-    _cgFP= cgCreateProgramFromFile(g_context, CG_SOURCE,
-                "/opt/nanovis/lib/shaders/one_volume.cg", CG_PROFILE_FP30, "main", NULL);
+    R2string path = R2FilePath::getInstance()->getPath("one_volume.cg");
+    _cgFP= cgCreateProgramFromFile(g_context, CG_SOURCE, path, CG_PROFILE_FP30, "main", NULL);
     cgGLLoadProgram(_cgFP);
 
     m_mvi_one_volume_param = cgGetNamedParameter(_cgFP, "modelViewInv");

@@ -14,6 +14,7 @@
  * ======================================================================
  */
 
+#include <getopt.h>
 #include <stdio.h>
 #include <math.h>
 #include <fstream>
@@ -817,7 +818,6 @@ VolumeCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
                 }
             }
 
-            // err = buf.decode();
             err = Rappture::encoding::decode(buf,RPENC_Z|RPENC_B64|RPENC_HDR);
             if (err) {
                 Tcl_AppendResult(interp, err.remark().c_str(), (char*)NULL);
@@ -3243,9 +3243,35 @@ double get_time_interval(){
 */
 
 
+
 /*----------------------------------------------------*/
 int main(int argc, char** argv) 
-{ 
+{
+
+    char path [1000];
+    while(1) {
+        int c;
+        int this_option_optind = optind ? optind : 1;
+        int option_index = 0;
+        struct option long_options[] = {
+          // name, has_arg, flag, val
+          { 0,0,0,0 },
+        };
+
+        c = getopt_long(argc, argv, "+p:", long_options, &option_index);
+        if (c == -1)
+            break;
+
+        switch(c) {
+            case 'p':
+                strncpy(path, optarg, sizeof(path));
+                break;
+            default:
+                fprintf(stderr,"Don't know what option '%c'.\n", c);
+                return 1;
+        }
+    }
+
     R2FilePath::getInstance()->setWorkingDirectory(argc, (const char**) argv);
 
 #ifdef XINETD
@@ -3254,8 +3280,8 @@ int main(int argc, char** argv)
 #endif
 
    glutInit(&argc, argv);
-   glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA); 
-   
+   glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA);
+
    glutInitWindowSize(win_width, win_height);
 
    glutInitWindowPosition(10, 10);
@@ -3271,8 +3297,7 @@ int main(int argc, char** argv)
    glutIdleFunc(idle);
    glutReshapeFunc(resize_offscreen_buffer);
 
-   NvInit();
-
+   NvInit(path);
    initGL();
    initTcl();
 

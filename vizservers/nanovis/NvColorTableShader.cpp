@@ -1,3 +1,4 @@
+#include <R2/R2FilePath.h>
 #include "NvColorTableShader.h"
 
 NvColorTableShader::NvColorTableShader()
@@ -11,8 +12,9 @@ NvColorTableShader::~NvColorTableShader()
 
 void NvColorTableShader::init()
 {
-    _cgFP= cgCreateProgramFromFile(g_context, CG_SOURCE,
-                    "/opt/nanovis/lib/shaders/one_plane.cg", CG_PROFILE_FP30, "main", NULL);
+    R2string path = R2FilePath::getInstance()->getPath("one_plane.cg");
+    _cgFP = cgCreateProgramFromFile(g_context, CG_SOURCE,
+            path, CG_PROFILE_FP30, "main", NULL);
     cgGLLoadProgram(_cgFP);
 
     _dataParam = cgGetNamedParameter(_cgFP, "data");
