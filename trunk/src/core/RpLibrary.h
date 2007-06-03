@@ -135,7 +135,7 @@ class RpLibrary
 
         Rappture::Outcome& outcome() const;
 
-        void result();
+        void result(int exitStatus=0);
 
 
         RpLibrary ();

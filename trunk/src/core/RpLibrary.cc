@@ -2132,7 +2132,7 @@ RpLibrary::outcome() const
  * ======================================================================
  */
 void
-RpLibrary::result()
+RpLibrary::result(int exitStatus)
 {
     std::stringstream outputFile;
     std::fstream file;
@@ -2164,11 +2164,19 @@ RpLibrary::result()
 
         // add the timestamp to the run file
         put("output.time", timestamp);
+        put("output.status",exitStatus);
 
         if ( file.is_open() ) {
             xmlText = xml();
             if (!xmlText.empty()) {
                 file << xmlText;
+            }
+            // check to make sure there were no
+            // errors while writing the run.xml file.
+            if (   (!file.good())
+                || ((long)xmlText.length() != (file.tellp()-(long)1)) ) {
+                 status.error("Error while writing run file");
+                 status.addContext("RpLibrary::result()");
             }
             file.close();
         }
