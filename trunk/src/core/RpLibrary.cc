@@ -3,7 +3,7 @@
  *  Rappture Library Source
  *
  * ======================================================================
- *  AUTHOR:  Derrick Kearney, Purdue University
+ *  AUTHOR:  Derrick S. Kearney, Purdue University
  *  Copyright (c) 2004-2007  Purdue Research Foundation
  *
  *  See the file "license.terms" for information on usage and
@@ -319,7 +319,6 @@ RpLibrary::_get_attribute (
 {
     scew_attribute* attribute = NULL;
     std::string attrVal;
-    // int attrValSize = 0;
 
     if (element != NULL)
     {
@@ -624,8 +623,6 @@ RpLibrary::_splitPath ( std::string& path,
 scew_element*
 RpLibrary::_find(std::string path, int create) const
 {
-    // std::string* tagName;
-    // std::string* id;
     std::string tagName = "";
     std::string id = "";
     int index = 0;
@@ -644,8 +641,7 @@ RpLibrary::_find(std::string path, int create) const
 
 
     if (path.empty()) {
-        //user gave an empty path
-        // return this;
+        // user gave an empty path
         return tmpElement;
     }
 
@@ -662,7 +658,6 @@ RpLibrary::_find(std::string path, int create) const
 
         _splitPath(*(list[listIdx]),tagName,&index,id);
 
-        // if (id->empty()) {
         if (id.empty()) {
             /*
             # If the name is like "type2", then look for elements with
@@ -670,7 +665,6 @@ RpLibrary::_find(std::string path, int create) const
             # If the name is like "type", then assume the index is 0.
             */
 
-            // eleList = scew_element_list(tmpElement, tagName->c_str(), &count);
             eleList = scew_element_list(tmpElement, tagName.c_str(), &count);
             tmpCount = count;
             if (index < tmpCount) {
@@ -696,7 +690,6 @@ RpLibrary::_find(std::string path, int create) const
             # with the requested name.
             */
 
-            // eleList = scew_element_list(tmpElement, tagName->c_str(), &count);
             if (!tagName.empty()) {
                 eleList = scew_element_list(tmpElement, tagName.c_str(), &count);
             }
@@ -708,7 +701,6 @@ RpLibrary::_find(std::string path, int create) const
             for (lcv = 0; (lcv < tmpCount); lcv++) {
                 tmpId = _get_attribute(eleList[lcv], "id");
                 if (!tmpId.empty()) {
-                    // if (*id == tmpId) {
                     if (id == tmpId) {
                         node = eleList[lcv];
                         break;
@@ -729,7 +721,6 @@ RpLibrary::_find(std::string path, int create) const
             if (create == NO_CREATE_PATH) {
                 // break out instead of returning because we still need to
                 // free the list variable
-                // return node;
                 tmpElement = node;
                 break;
             }
@@ -739,26 +730,18 @@ RpLibrary::_find(std::string path, int create) const
 
                 // create the new element
                 // need to figure out how to properly number the new element
-                // node = scew_element_add(tmpElement,tagName->c_str());
                 node = scew_element_add(tmpElement,tagName.c_str());
                 if (! node) {
-                    // a new element was not created 
+                    // a new element was not created
                 }
 
                 // add an attribute and attrValue to the new element
-                // if (id && !id->empty()) {
-                    // scew_element_add_attr_pair(node,"id",id->c_str());
                 if (!id.empty()) {
                     scew_element_add_attr_pair(node,"id",id.c_str());
                 }
             }
         }
 
-
-        // change this so youre not allocating and deallocating so much.
-        // make it static or something.
-        // if (tagName)    { delete (tagName); }
-        // if (id)         { delete (id); }
         tagName = "";
         id = "";
         index = 0;
@@ -784,6 +767,37 @@ RpLibrary::_find(std::string path, int create) const
     return tmpElement;
 }
 
+/**********************************************************************/
+// METHOD: _checkPathConflict(scew_element *nodeA,scew_element *nodeB)
+/// check to see if nodeA is in nodeB's path
+/**
+ * This is used by put() function (the RpLibrary flavor). It is
+ * used to check if nodeA can be safely deleted and not effect nodeB
+ */
+
+int
+RpLibrary::_checkPathConflict(scew_element *nodeA, scew_element *nodeB) const
+{
+    scew_element *testNode = NULL;
+
+    if ( (nodeA == NULL) || (nodeB == NULL) ) {
+        return 0;
+    }
+
+    if (nodeA == nodeB) {
+        return 1;
+    }
+
+    testNode = nodeB;
+
+    while ((testNode = scew_element_parent(testNode)) != NULL) {
+        if (testNode == nodeA) {
+            return 1;
+        }
+    }
+
+    return 0;
+}
 
 /**********************************************************************/
 // METHOD: element()
@@ -1179,11 +1193,10 @@ RpLibrary::parent (std::string path) const
 
 RpLibrary&
 RpLibrary::copy (   std::string toPath,
-                    std::string fromPath,
-                    RpLibrary* fromObj  )
+                    RpLibrary* fromObj,
+                    std::string fromPath )
 {
     RpLibrary* value = NULL;
-    // RpLibrary* child = NULL;
 
     if (!this->root) {
         // library doesn't exist, do nothing;
@@ -1195,14 +1208,21 @@ RpLibrary::copy (   std::string toPath,
         fromObj = this;
     }
 
+    if ( (fromObj == this) && (toPath == fromPath) ) {
+        /* cannot copy over myself, causes path to disappear */
+        return (*this);
+    }
+
     value = fromObj->element(fromPath);
 
     if ( !value ) {
-        // need a good way to raise error, and this is not it.
+        status.error("fromPath could not be found within fromObj");
+        status.addContext("RpLibrary::copy");
         return *this;
     }
 
     this->put(toPath, value);
+    status.addContext("RpLibrary::copy");
     delete value;
 
     return (*this);
@@ -1322,8 +1342,8 @@ RpLibrary::children (   std::string path,
 */
 
 RpLibrary*
-RpLibrary::children (   std::string path, 
-                        RpLibrary* rpChildNode, 
+RpLibrary::children (   std::string path,
+                        RpLibrary* rpChildNode,
                         std::string type,
                         int* childCount)
 {
@@ -1724,6 +1744,8 @@ RpLibrary::put (    std::string path,
 
     if (!this->root) {
         // library doesn't exist, do nothing;
+        status.error("invalid library object");
+        status.addContext("RpLibrary::put()");
         return *this;
     }
 
@@ -1788,8 +1810,10 @@ RpLibrary::put (    std::string path,
 {
     std::stringstream valStr;
 
-    if (!this->root) {
+    if (this->root == NULL) {
         // library doesn't exist, do nothing;
+        status.error("invalid library object");
+        status.addContext("RpLibrary::put()");
         return *this;
     }
 
@@ -1802,7 +1826,7 @@ RpLibrary::put (    std::string path,
 
 /**********************************************************************/
 // METHOD: put()
-/// Put a RpLibrary* value into the xml.
+/// Put a RpLibrary* value into the xml. This is used by copy()
 /**
  *  Append flag adds additional nodes, it does not merge same 
  *  named nodes together
@@ -1814,32 +1838,57 @@ RpLibrary::put (    std::string path,
                     std::string id,
                     unsigned int append )
 {
-    scew_element* retNode   = NULL;
-    // scew_element* old_elem  = NULL;
-    scew_element* new_elem  = NULL;
-    scew_element* childNode = NULL;
-    // std::string nodeName    = "";
+    scew_element *retNode   = NULL;
+    scew_element *new_elem  = NULL;
+    scew_element *childNode = NULL;
+    scew_element *tmpNode   = NULL;
+    const char *contents    = NULL;
+    int retVal              = 1;
+    int deleteTmpNode       = 0;
 
-    int retVal = 1;
-
-    if (!this->root) {
+    if (this->root == NULL) {
         // library doesn't exist, do nothing;
+        status.error("invalid library object");
+        status.addContext("RpLibrary::put()");
         return *this;
     }
 
-    // you cannot put a null RpLibrary into the tree
-    if (!value) {
-        // need to send back an error saying that user specified a null value
+    if (value == NULL) {
+        // you cannot put a null RpLibrary into the tree
+        // user specified a null value
+        status.error("user specified NULL value");
+        status.addContext("RpLibrary::put()");
         return *this;
     }
 
-    // nodeName = value->nodeComp();
-    // old_elem = _find(path+"."+nodeName,NO_CREATE_PATH);
+    if (value->root == NULL) {
+        // you cannot put a null RpLibrary into the tree
+        // user specified a null value
+        status.error("user specified uninitialized RpLibrary object");
+        status.addContext("RpLibrary::put()");
+        return *this;
+    }
+
+    tmpNode = value->root;
 
     if (append == RPLIB_OVERWRITE) {
         retNode = _find(path,NO_CREATE_PATH);
         if (retNode) {
-            scew_element_free(retNode);
+            // compare roots to see if they are part of the
+            // same xml tree, if so, make a tmp copy of the
+            // tree to be copied before freeing it.
+            if (_checkPathConflict(retNode,tmpNode)) {
+                tmpNode = scew_element_copy(tmpNode);
+                deleteTmpNode = 1;
+            }
+            contents = scew_element_contents(tmpNode);
+            if (contents) {
+                scew_element_set_contents(retNode, "");
+            }
+
+            while ( (childNode = scew_element_next(retNode,childNode)) ) {
+                scew_element_free(childNode);
+            }
         }
         else {
             // path did not exist and was not created
@@ -1850,7 +1899,12 @@ RpLibrary::put (    std::string path,
     retNode = _find(path,CREATE_PATH);
 
     if (retNode) {
-        while ( (childNode = scew_element_next(value->root,childNode)) ) {
+        contents = scew_element_contents(tmpNode);
+        if (contents) {
+            scew_element_set_contents(retNode, contents);
+        }
+
+        while ( (childNode = scew_element_next(tmpNode,childNode)) ) {
             if ((new_elem = scew_element_copy(childNode))) {
                 if (scew_element_add_elem(retNode, new_elem)) {
                     // maybe we want to count the number of children
@@ -1859,15 +1913,25 @@ RpLibrary::put (    std::string path,
                 }
                 else {
                     // adding new element failed
+                    status.error("error while adding child node");
+                    status.addContext("RpLibrary::put()");
                 }
             }
             else {
                 // copying new element failed
+                status.error("error while copying child node");
+                status.addContext("RpLibrary::put()");
             }
+        }
+
+        if (deleteTmpNode == 1) {
+            scew_element_free(tmpNode);
         }
     }
     else {
         // path did not exist and was not created.
+        status.error("error while creating child node");
+        status.addContext("RpLibrary::put()");
     }
 
     return *this;
@@ -2145,9 +2209,11 @@ RpLibrary::result(int exitStatus)
         outputFile << "run" << (int)time(&t) << ".xml";
         file.open(outputFile.str().c_str(),std::ios::out);
 
-        put("tool.version.rappture.date","$LastChangedDate$");
         put("tool.version.rappture.revision","$LastChangedRevision$");
-        put("tool.version.rappture.url","$URL$");
+        put("tool.version.rappture.modified","$LastChangedDate$");
+        if ( "" == get("tool.version.rappture.language") ) {
+            put("tool.version.rappture.language","c++");
+        }
 
         // generate a timestamp for the run file
         timeinfo = localtime(&t);
@@ -2174,7 +2240,8 @@ RpLibrary::result(int exitStatus)
             // check to make sure there were no
             // errors while writing the run.xml file.
             if (   (!file.good())
-                || ((long)xmlText.length() != (file.tellp()-(long)1)) ) {
+                || ((long)xmlText.length() != ((long)file.tellp()-(long)1))
+               ) {
                  status.error("Error while writing run file");
                  status.addContext("RpLibrary::result()");
             }
@@ -2228,15 +2295,17 @@ RpLibrary::print_attributes(    scew_element* element,
 
     if (element != NULL)
     {
-        /**
-         * Iterates through the element's attribute list, printing the
-         * pair name-value.
-         */
-        attribute = NULL;
-        while ((attribute = scew_attribute_next(element, attribute)) != NULL)
-        {
-            outString << " " << scew_attribute_name(attribute) << "=\"" <<
-                   scew_attribute_value(attribute) << "\"";
+        if (scew_attribute_count(element) > 0) {
+            /**
+             * Iterates through the element's attribute list, printing the
+             * pair name-value.
+             */
+            attribute = NULL;
+            while((attribute=scew_attribute_next(element, attribute)) != NULL)
+            {
+                outString << " " << scew_attribute_name(attribute) << "=\"" <<
+                       scew_attribute_value(attribute) << "\"";
+            }
         }
     }
 }
