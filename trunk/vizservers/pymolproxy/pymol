@@ -1,0 +1,2 @@
+#!/bin/sh
+exec /usr/bin/python $PYMOL_PATH/modules/launch_pymol.py "$@"
