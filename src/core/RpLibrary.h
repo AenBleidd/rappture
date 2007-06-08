@@ -3,7 +3,7 @@
  *  Rappture Library Header
  *
  * ======================================================================
- *  AUTHOR:  Derrick Kearney, Purdue University
+ *  AUTHOR:  Derrick S. Kearney, Purdue University
  *  Copyright (c) 2004-2007  Purdue Research Foundation
  *
  *  See the file "license.terms" for information on usage and
@@ -66,8 +66,8 @@ class RpLibrary
                                 int* childCount);
 
         RpLibrary& copy       ( std::string toPath,
-                                std::string fromPath,
-                                RpLibrary* fromObj = NULL);
+                                RpLibrary* fromObj,
+                                std::string fromPath);
 
         std::string get       ( std::string path = "",
                                 int translateFlag = RPLIB_TRANSLATE) const;
@@ -198,6 +198,7 @@ class RpLibrary
                         int* idx,
                         std::string& id ) const;
         scew_element* _find (std::string path, int create) const;
+        int _checkPathConflict (scew_element *nodeA, scew_element *nodeB) const;
         void print_indent ( unsigned int indent,
                             std::stringstream& outString) const;
         void print_attributes ( scew_element* element,
