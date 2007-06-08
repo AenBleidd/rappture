@@ -185,4 +185,8 @@ dnl         echo "tk8.4", echo "tk8.4")`
 dnl AC_MSG_RESULT($TK)
 
 
-AC_OUTPUT( Makefile nanoscale/Makefile nanovis/Makefile pymolproxy/Makefile start_viz.sh)
+AC_OUTPUT(  Makefile \
+            nanoscale/Makefile \
+            nanovis/Makefile \
+            pymolproxy/Makefile \
+            start_viz.sh    )
