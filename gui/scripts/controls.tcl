@@ -171,6 +171,9 @@ itcl::body Rappture::Controls::insert {pos path} {
             # no widget to create
             set _name2info($name-value) "--"
         }
+        note {
+            Rappture::Note $w $_owner $path
+        }
         default {
             error "don't know how to add control type \"$type\""
         }
@@ -236,7 +239,7 @@ itcl::body Rappture::Controls::insert {pos path} {
 
     $_owner widgetfor $path $w
 
-    if {$type != "control" && $type != "group" && $type != "separator"} {
+    if {[lsearch {control group separator note} $type] < 0} {
         # make a label for this control
         set label [$w label]
         if {"" != $label} {
@@ -527,7 +530,6 @@ itcl::body Rappture::Controls::_layout {} {
                 }
 
                 grid rowconfigure $_frame $row -weight 0
-                grid rowconfigure $_frame $row -weight 0
 
                 switch -- [winfo class $wv] {
                     TextEntry {
@@ -540,6 +542,10 @@ itcl::body Rappture::Controls::_layout {} {
                     }
                     GroupEntry {
                         $wv configure -heading yes
+                    }
+                    Note {
+                        grid $wv -sticky nsew
+                        grid rowconfigure $_frame $row -weight 1
                     }
                 }
                 grid columnconfigure $_frame 1 -weight 1
