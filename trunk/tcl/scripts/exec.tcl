@@ -36,6 +36,7 @@ proc Rappture::exec {args} {
 
     set status [catch {eval blt::bgexec ::Rappture::execctl \
         -keepnewline yes \
+        -killsignal SIGTERM \
         -onoutput {{::Rappture::_exec_out stdout}} \
         -onerror {{::Rappture::_exec_out stderr}} \
         $args} result]
