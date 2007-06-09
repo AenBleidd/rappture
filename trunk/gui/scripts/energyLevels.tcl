@@ -43,6 +43,7 @@ itcl::class Rappture::EnergyLevels {
 
     public method add {table {settings ""}}
     public method delete {args}
+    public method get {}
     public method scale {args}
     public method download {args} {}
 
@@ -57,6 +58,7 @@ itcl::class Rappture::EnergyLevels {
     private variable _dlist ""     ;# list of data objects
     private variable _dobj2color   ;# maps data obj => color option
     private variable _dobj2raise   ;# maps data obj => raise option
+    private variable _dobj2desc    ;# maps data obj => description
     private variable _dobj2cols    ;# maps data obj => column names
     private variable _emin ""      ;# autoscale min for energy
     private variable _emax ""      ;# autoscale max for energy
@@ -69,6 +71,7 @@ itcl::class Rappture::EnergyLevels {
     private variable _elumo ""     ;# energy of LUMO level in topmost dataset
     private variable _llumo ""     ;# label for LUMO level
     private variable _hilite ""    ;# item currently highlighted
+    common _downloadPopup          ;# download options from popup
 }
 
 itk::usual EnergyLevels {
@@ -84,6 +87,10 @@ itcl::body Rappture::EnergyLevels::constructor {args} {
     $_dispatcher dispatch $this !redraw "[itcl::code $this _redraw all]; list"
     $_dispatcher register !zoom
     $_dispatcher dispatch $this !zoom "[itcl::code $this _redraw zoom]; list"
+
+    array set _downloadPopup {
+        format csv
+    }
 
     itk_option add hull.width hull.height
     pack propagate $itk_component(hull) no
@@ -292,6 +299,7 @@ itcl::body Rappture::EnergyLevels::add {dataobj {settings ""}} {
         lappend _dlist $dataobj
         set _dobj2color($dataobj) $params(-color)
         set _dobj2raise($dataobj) $params(-raise)
+        set _dobj2desc($dataobj) $params(-description)
 
         foreach {lcol ecol} $cols break
         set _dobj2cols($dataobj-label) $lcol
@@ -320,6 +328,7 @@ itcl::body Rappture::EnergyLevels::delete {args} {
             set _dlist [lreplace $_dlist $pos $pos]
             catch {unset _dobj2color($dataobj)}
             catch {unset _dobj2raise($dataobj)}
+            catch {unset _dobj2desc($dataobj)}
             catch {unset _dobj2cols($dataobj-label)}
             catch {unset _dobj2cols($dataobj-energy)}
             set changed 1
@@ -330,6 +339,27 @@ itcl::body Rappture::EnergyLevels::delete {args} {
     if {$changed} {
         $_dispatcher event -idle !redraw
     }
+}
+
+# ----------------------------------------------------------------------
+# USAGE: get
+#
+# Clients use this to query the list of objects being plotted, in
+# order from bottom to top of this result.
+# ----------------------------------------------------------------------
+itcl::body Rappture::EnergyLevels::get {} {
+    # put the dataobj list in order according to -raise options
+    set dlist $_dlist
+    foreach obj $dlist {
+        if {[info exists _dobj2raise($obj)] && $_dobj2raise($obj)} {
+            set i [lsearch -exact $dlist $obj]
+            if {$i >= 0} {
+                set dlist [lreplace $dlist $i $i]
+                lappend dlist $obj
+            }
+        }
+    }
+    return $dlist
 }
 
 # ----------------------------------------------------------------------
@@ -372,6 +402,112 @@ itcl::body Rappture::EnergyLevels::scale {args} {
 }
 
 # ----------------------------------------------------------------------
+# USAGE: download coming
+# USAGE: download controls <downloadCommand>
+# USAGE: download now
+#
+# Clients use this method to create a downloadable representation
+# of the plot.  Returns a list of the form {ext string}, where
+# "ext" is the file extension (indicating the type of data) and
+# "string" is the data itself.
+# ----------------------------------------------------------------------
+itcl::body Rappture::EnergyLevels::download {option args} {
+    switch $option {
+        coming {
+            # nothing to do
+        }
+        controls {
+            set popup .energyresultdownload
+            if {![winfo exists .energyresultdownload]} {
+                # if we haven't created the popup yet, do it now
+                Rappture::Balloon $popup -title "Download as..."
+                set inner [$popup component inner]
+                label $inner.summary -text "" -anchor w
+                pack $inner.summary -side top
+                radiobutton $inner.csv -text "Data as Comma-Separated Values" \
+                    -variable Rappture::EnergyLevels::_downloadPopup(format) \
+                    -value csv
+                pack $inner.csv -anchor w
+                radiobutton $inner.pdf -text "Image as PDF/PostScript" \
+                    -variable Rappture::EnergyLevels::_downloadPopup(format) \
+                    -value pdf
+                pack $inner.pdf -anchor w
+                button $inner.go -text "Download Now" \
+                    -command [lindex $args 0]
+                pack $inner.go -pady 4
+            } else {
+                set inner [$popup component inner]
+            }
+            set num [llength [get]]
+            set num [expr {($num == 1) ? "1 result" : "$num results"}]
+            $inner.summary configure -text "Download $num in the following format:"
+            update idletasks ;# fix initial sizes
+            return $popup
+        }
+        now {
+            set popup .energyresultdownload
+            if {[winfo exists .energyresultdownload]} {
+                $popup deactivate
+            }
+            switch -- $_downloadPopup(format) {
+              csv {
+                # reverse the objects so the selected data appears on top
+                set dlist ""
+                foreach dataobj [get] {
+                    set dlist [linsert $dlist 0 $dataobj]
+                }
+                # generate the comma-separated value data for these objects
+                set csvdata ""
+                foreach dataobj $dlist {
+                    append csvdata "[string repeat - 60]\n"
+                    append csvdata " [$dataobj hints label]\n"
+                    if {[info exists _dobj2desc($dataobj)]
+                          && [llength [split $_dobj2desc($dataobj) \n]] > 1} {
+                        set indent "for:"
+                        foreach line [split $_dobj2desc($dataobj) \n] {
+                            append csvdata " $indent $line\n"
+                            set indent "    "
+                        }
+                    }
+                    append csvdata "[string repeat - 60]\n"
+
+                    set ecol $_dobj2cols($dataobj-energy)
+                    set units [$dataobj columns -units $ecol]
+                    foreach eval [$dataobj values -column $ecol] {
+                        append csvdata [format "%20.15g $units\n" $eval]
+                    }
+                    append csvdata "\n"
+                }
+                return [list .txt $csvdata]
+              }
+              pdf {
+                set psdata [$itk_component(graph) postscript]
+
+                set cmds {
+                    set fout "energy[pid].pdf"
+                    exec ps2pdf - $fout << $psdata
+
+                    set fid [open $fout r]
+                    fconfigure $fid -translation binary -encoding binary
+                    set pdfdata [read $fid]
+                    close $fid
+
+                    file delete -force $fout
+                }
+                if {[catch $cmds result] == 0} {
+                    return [list .pdf $pdfdata]
+                }
+                return [list .ps $psdata]
+              }
+            }
+        }
+        default {
+            error "bad option \"$option\": should be coming, controls, now"
+        }
+    }
+}
+
+# ----------------------------------------------------------------------
 # USAGE: _redraw
 #
 # Used internally to load a list of energy levels from a <table> within
@@ -383,19 +519,8 @@ itcl::body Rappture::EnergyLevels::_redraw {{what all}} {
         eval scale $_dlist
     }
 
-    # put the dataobj list in order according to -raise options
-    set dlist $_dlist
-    foreach obj $dlist {
-        if {[info exists _dobj2raise($obj)] && $_dobj2raise($obj)} {
-            set i [lsearch -exact $dlist $obj]
-            if {$i >= 0} {
-                set dlist [lreplace $dlist $i $i]
-                lappend dlist $obj
-            }
-        }
-    }
+    set dlist [get]
     set topdobj [lindex $dlist end]
-
     _getLayout
 
     #

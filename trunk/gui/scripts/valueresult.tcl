@@ -15,8 +15,6 @@ package require BLT
 
 option add *ValueResult.font \
     -*-helvetica-medium-r-normal-*-12-* widgetDefault
-option add *ValueResult.boldFont \
-    -*-helvetica-bold-r-normal-*-12-* widgetDefault
 
 itcl::class Rappture::ValueResult {
     inherit itk::Widget
@@ -29,7 +27,14 @@ itcl::class Rappture::ValueResult {
     public method scale {args}
     public method download {option args}
 
-    set _dataobj ""  ;# data object currently being displayed
+    protected method _rebuild {}
+
+    private variable _dispatcher "" ;# dispatcher for !events
+
+    private variable _dlist ""    ;# list of data objects being displayed
+    private variable _dobj2color  ;# maps data object => color
+    private variable _dobj2raise  ;# maps data object => raise flag 0/1
+    private variable _dobj2desc   ;# maps data object => description
 }
                                                                                 
 itk::usual ValueResult {
@@ -40,19 +45,20 @@ itk::usual ValueResult {
 # CONSTRUCTOR
 # ----------------------------------------------------------------------
 itcl::body Rappture::ValueResult::constructor {args} {
-    itk_component add label {
-        label $itk_interior.l
-    }
-    pack $itk_component(label) -side left
+    Rappture::dispatcher _dispatcher
+    $_dispatcher register !rebuild
+    $_dispatcher dispatch $this !rebuild "[itcl::code $this _rebuild]; list"
 
-    itk_component add value {
-        label $itk_interior.value -anchor w
-    } {
-        usual
-        rename -font -boldfont boldFont Font
-        ignore -foreground
+    itk_component add scroller {
+        Rappture::Scroller $itk_interior.scroller \
+            -xscrollmode auto -yscrollmode auto
     }
-    pack $itk_component(value) -side left -expand yes -fill both
+    pack $itk_component(scroller) -expand yes -fill both
+
+    itk_component add html {
+        Rappture::HTMLviewer $itk_component(scroller).html
+    }
+    $itk_component(scroller) contents $itk_component(html)
 
     eval itk_initialize $args
 }
@@ -68,10 +74,10 @@ itcl::body Rappture::ValueResult::constructor {args} {
 itcl::body Rappture::ValueResult::add {dataobj {settings ""}} {
     array set params {
         -color ""
-        -brightness ""
+        -brightness 0
         -width ""
         -linestyle ""
-        -raise ""
+        -raise 0
         -description ""
     }
     foreach {opt val} $settings {
@@ -85,30 +91,23 @@ itcl::body Rappture::ValueResult::add {dataobj {settings ""}} {
         set params(-color) black
     }
 
-    $itk_component(label) configure -text ""
-    $itk_component(value) configure -text ""
-
     if {"" != $dataobj} {
-        set label [$dataobj get about.label]
-        if {"" != $label && [string index $label end] != ":"} {
-            append label ":"
-        }
-        $itk_component(label) configure -text $label
-
         # find the value and assign it with the proper coloring
         if {"" != $params(-color) && "" != $params(-brightness)
               && $params(-brightness) != 0} {
             set params(-color) [Rappture::color::brightness \
                 $params(-color) $params(-brightness)]
         }
-        if {$params(-color) != ""} {
-            $itk_component(value) configure -foreground $params(-color)
-        } else {
-            $itk_component(value) configure -foreground $itk_option(-foreground)
+
+        set pos [lsearch -exact $dataobj $_dlist]
+        if {$pos < 0} {
+            lappend _dlist $dataobj
+            set _dobj2color($dataobj) $params(-color)
+            set _dobj2raise($dataobj) $params(-raise)
+            set _dobj2desc($dataobj) $params(-description)
+            $_dispatcher event -idle !rebuild
         }
-        $itk_component(value) configure -text [$dataobj get current]
     }
-    set _dataobj $dataobj
 }
 
 # ----------------------------------------------------------------------
@@ -118,7 +117,18 @@ itcl::body Rappture::ValueResult::add {dataobj {settings ""}} {
 # order from bottom to top of this result.
 # ----------------------------------------------------------------------
 itcl::body Rappture::ValueResult::get {} {
-    return $_dataobj
+    # put the dataobj list in order according to -raise options
+    set dlist $_dlist
+    foreach obj $dlist {
+        if {[info exists _dobj2raise($obj)] && $_dobj2raise($obj)} {
+            set i [lsearch -exact $dlist $obj]
+            if {$i >= 0} {
+                set dlist [lreplace $dlist $i $i]
+                lappend dlist $obj
+            }
+        }
+    }
+    return $dlist
 }
 
 # ----------------------------------------------------------------------
@@ -128,9 +138,27 @@ itcl::body Rappture::ValueResult::get {} {
 # are specified, then all curves are deleted.
 # ----------------------------------------------------------------------
 itcl::body Rappture::ValueResult::delete {args} {
-    $itk_component(label) configure -text ""
-    $itk_component(value) configure -text ""
-    set _dataobj ""
+    if {[llength $args] == 0} {
+        set args $_dlist
+    }
+
+    # delete all specified objects
+    set changed 0
+    foreach obj $args {
+        set pos [lsearch -exact $_dlist $obj]
+        if {$pos >= 0} {
+            set _dlist [lreplace $_dlist $pos $pos]
+            catch {unset _dobj2color($obj)}
+            catch {unset _dobj2raise($obj)}
+            catch {unset _dobj2desc($obj)}
+            set changed 1
+        }
+    }
+
+    # if anything changed, then rebuild the plot
+    if {$changed} {
+        $_dispatcher event -idle !rebuild
+    }
 }
 
 # ----------------------------------------------------------------------
@@ -166,12 +194,75 @@ itcl::body Rappture::ValueResult::download {option args} {
             return ""
         }
         now {
-            set lstr [$itk_component(label) cget -text]
-            set vstr [$itk_component(value) cget -text]
-            return [list .txt "$lstr $vstr"]
+            if {[llength $_dlist] == 1} {
+                set lstr [$_dlist get about.label]
+                set mesg "$lstr [$_dlist get current]"
+            } else {
+                set mesg ""
+                foreach obj $_dlist {
+                    set lstr [$obj get about.label]
+                    append mesg "$lstr [$obj get current]\n"
+                    if {[string length $_dobj2desc($obj)] > 0} {
+                        foreach line [split $_dobj2desc($obj) \n] {
+                            append mesg " * $line\n"
+                        }
+                        append mesg "\n"
+                    }
+                }
+            }
+            return [list .txt $mesg]
         }
         default {
             error "bad option \"$option\": should be coming, controls, now"
         }
     }
+}
+
+# ----------------------------------------------------------------------
+# USAGE: _rebuild
+#
+# Used internally to rebuild the contents of this widget
+# whenever the data within it changes.  Shows the value
+# for the topmost data object in its associated color.
+# ----------------------------------------------------------------------
+itcl::body Rappture::ValueResult::_rebuild {} {
+    set html "<html><body>"
+
+    set obj [lindex $_dlist 0]
+    if {"" != $obj} {
+        set label [$obj get about.label]
+        if {"" != $label && [string index $label end] != ":"} {
+            append label ":"
+        }
+        append html "<h3>$label</h3>\n"
+    }
+
+    foreach obj $_dlist {
+        if {$_dobj2raise($obj)} {
+            set bold0 "<b>"
+            set bold1 "</b>"
+            set bg "background:#ffffcc; border:1px solid #cccccc;"
+        } else {
+            set bold0 ""
+            set bold1 ""
+            set bg ""
+        }
+        if {$_dobj2color($obj) != ""} {
+            set color0 "<font style=\"color: $_dobj2color($obj)\">"
+            set color1 "</font>"
+        } else {
+            set color0 ""
+            set color1 ""
+        }
+
+        append html "<div style=\"margin:8px; padding:4px; $bg\">${bold0}${color0}[$obj get current]${color1}${bold1}"
+        if {$_dobj2raise($obj) && [string length $_dobj2desc($obj)] > 0} {
+            foreach line [split $_dobj2desc($obj) \n] {
+                append html "<li style=\"margin-left:12px;\">$line</li>\n"
+            }
+        }
+        append html "</div>"
+    }
+    append html "</body></html>"
+    $itk_component(html) load $html
 }

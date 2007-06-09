@@ -439,7 +439,7 @@ itcl::body Rappture::ControlOwner::sync {} {
     if {"" != $_xmlobj} {
         foreach path [array names _path2widget] {
             set type [$_xmlobj element -as type $path]
-            if {[lsearch {group separator control} $type] >= 0} {
+            if {[lsearch {group separator control note} $type] >= 0} {
                 continue
             }
             $_xmlobj put $path.current [$_path2widget($path) value]
