@@ -723,6 +723,8 @@ itcl::body Rappture::ResultSet::_fixControls {args} {
     # Scan through all columns in the data and create any
     # controls that just appeared.
     #
+    $shortlist.dial configure -variable ""
+
     set nadded 0
     foreach col [$_results column names] {
         set xmlobj [$_results get -format xmlobj 0]
@@ -856,6 +858,8 @@ itcl::body Rappture::ResultSet::_fixControls {args} {
             # let clients know that a new control appeared
             # so they can fix the overall size accordingly
             event generate $itk_component(hull) <<Control>>
+
+            incr nadded
         }
 
         #
@@ -869,12 +873,10 @@ itcl::body Rappture::ResultSet::_fixControls {args} {
         _control load $popup.dial$id $col
 
         if {$col == $_layout(active)} {
-            $shortlist.dial configure -variable ""
             _control load $shortlist.dial $col
             $shortlist.dial configure -variable \
                 "::Rappture::ResultSet::_cntlInfo($this-$col-value)"
         }
-        incr nadded
     }
 
     #
