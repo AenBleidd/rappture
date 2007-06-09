@@ -48,9 +48,6 @@ CORE2_SRC       = $(SRC2_DIR)/core
 FORT_SRC        = $(SRC_DIR)/fortran
 CEE_SRC         = $(SRC_DIR)/cee
 
-LIB_RP_OBJECTS  = -Wl,-rpath,$(LIB_DIR) -L$(LIB_DIR) -lRpObjects
-LIB_RAPPTURE    = -Wl,-rpath,$(LIB_DIR) -L$(LIB_DIR) -lrappture
-
 INCL_CORE       = -I$(CORE_SRC)
 INCL_CORE2      = -I$(CORE2_SRC)
 INCL_CEE        = -I$(CEE_SRC)
@@ -77,7 +74,7 @@ RP2_OBJ_DEP     = $(CORE2_SRC)/Outcome.o $(CORE2_SRC)/Ptr.o $(CORE2_SRC)/RpBuffe
 
 
 LDLIB_MACOSX = -dynamiclib -o $(LIB_DIR)/$@.dylib
-LDLIB_LINUX = -shared -Wl,-rpath,$(LIB_DIR)/ -Wl,-soname,$@.so -o $(LIB_DIR)/$@.so.0.0
+LDLIB_LINUX = -shared -Wl,-soname,$@.so -o $(LIB_DIR)/$@.so.0.0
 
 # include rappture library definitions
 

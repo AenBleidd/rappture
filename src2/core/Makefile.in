@@ -73,7 +73,7 @@ librappture2.a: $(OBJS) $(OBJA)
 	-@ ($(RANLIB) $@ || true) >/dev/null 2>&1
 
 $(SHAREDLIBV): $(OBJS)
-	$(LDSHARED) -shared -Wl,-rpath,${libdir} -o $@ $(OBJS) @LIB_SEARCH_DIRS@ -lz -lb64
+	$(LDSHARED) -shared -o $@ $(OBJS) @LIB_SEARCH_DIRS@ -lz -lb64
 	rm -f $(SHAREDLIB) $(SHAREDLIBM)
 	ln -s $@ $(SHAREDLIB)
 	ln -s $@ $(SHAREDLIBM)
