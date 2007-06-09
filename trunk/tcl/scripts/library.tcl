@@ -710,6 +710,7 @@ itcl::body Rappture::LibraryObj::value {libobj path} {
         number {
             # get the usual value...
             set raw ""
+            set val ""
             if {"" != [$libobj element $path.current]} {
                 set raw [$libobj get $path.current]
             } elseif {"" != [$libobj element $path.default]} {
