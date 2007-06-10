@@ -64,8 +64,9 @@ itcl::class Rappture::ResultSet {
     protected method _fixValue {column why}
     protected method _drawValue {column widget wmax}
     protected method _toggleAll {{column "current"}}
+    protected method _getValues {column {which ""}}
     protected method _getTooltip {role column}
-    protected method _getParamDesc {{index "current"}}
+    protected method _getParamDesc {which {index "current"}}
 
     private variable _dispatcher ""  ;# dispatchers for !events
     private variable _results ""     ;# tuple of known results
@@ -649,49 +650,9 @@ itcl::body Rappture::ResultSet::_control {option args} {
             set dial [lindex $args 0]
             set col [lindex $args 1]
 
-            if {$col == "xmlobj"} {
-                 # load the Simulation # control
-                 set nruns [$_results size]
-
-                 # load the results into the control
-                 $dial clear
-                 for {set n 0} {$n < $nruns} {incr n} {
-                     $dial add "#[expr {$n+1}]" $n
-                 }
-                 return
-            }
-
-            set havenums 1
-            set vlist ""
-            foreach rec [$_results get -format [list xmlobj $col]] {
-                set xo [lindex $rec 0]
-                set v [lindex $rec 1]
-
-                if {![info exists values($v)]} {
-                    lappend vlist $v
-                    foreach {raw norm} [Rappture::LibraryObj::value $xo $col] break
-                    set values($v) $norm
-
-                    if {$havenums && ![string is double $norm]} {
-                        set havenums 0
-                    }
-                }
-            }
-
-            if {!$havenums} {
-                # don't have normalized nums? then sort and create nums
-                catch {unset values}
-
-                set n 0
-                foreach v [lsort $vlist] {
-                    set values($v) [incr n]
-                }
-            }
-
-            # load the results into the control
             $dial clear
-            foreach v [array names values] {
-                $dial add $v $values($v)
+            foreach {label val} [_getValues $col all] {
+                $dial add $label $val
             }
         }
         default {
@@ -1113,6 +1074,13 @@ itcl::body Rappture::ResultSet::_fixSettings {args} {
     }
     _doPrompt off
 
+    if {[info exists _cntlInfo($this-$_active-label)]} {
+        lappend params $_cntlInfo($this-$_active-label)
+    } else {
+        lappend params "???"
+    }
+    eval lappend params [_getValues $_active all]
+
     switch -- [$_results size] {
         0 {
             # no data? then do nothing
@@ -1120,7 +1088,13 @@ itcl::body Rappture::ResultSet::_fixSettings {args} {
         }
         1 {
             # only one data set? then plot it
-            _doSettings [list 0 [list -width 2 -description [_getParamDesc]]]
+            _doSettings [list \
+                0 [list -width 2 \
+                        -param [_getValues $_active current] \
+                        -description [_getParamDesc all] \
+                  ] \
+                params $params \
+            ]
             return
         }
     }
@@ -1245,20 +1219,28 @@ itcl::body Rappture::ResultSet::_fixSettings {args} {
         if {[llength $ilist] == 1} {
             # single result -- always use active color
             set i [lindex $ilist 0]
-            set plist [list $i [list -width 2 -description [_getParamDesc $i]]]
+            set plist [list \
+                $i [list -width 2 \
+                         -param [_getValues $_active $i] \
+                         -description [_getParamDesc all $i] \
+                   ] \
+                params $params \
+            ]
         } else {
             #
             # Get the color for all points according to
             # the color spectrum.
             #
-            set plist ""
+            set plist [list params $params]
             foreach i $ilist {
                 if {$i == $icurr} {
                     lappend plist $i [list -width 3 -raise 1 \
-                        -description [_getParamDesc $i]]
+                        -param [_getValues $_active $i] \
+                        -description [_getParamDesc all $i]]
                 } else {
                     lappend plist $i [list -brightness 0.7 -width 1 \
-                        -description [_getParamDesc $i]]
+                        -param [_getValues $_active $i] \
+                        -description [_getParamDesc all $i]]
                 }
             }
         }
@@ -1469,6 +1451,78 @@ itcl::body Rappture::ResultSet::_toggleAll {{col "current"}} {
 }
 
 # ----------------------------------------------------------------------
+# USAGE: _getValues <column> ?<which>?
+#
+# Called automatically whenever the user hovers a control within
+# this widget.  Returns the tooltip associated with the control.
+# ----------------------------------------------------------------------
+itcl::body Rappture::ResultSet::_getValues {col {which ""}} {
+    if {$col == "xmlobj"} {
+        # load the Simulation # control
+        set nruns [$_results size]
+        for {set n 0} {$n < $nruns} {incr n} {
+            set v "#[expr {$n+1}]"
+            set label2val($v) $n
+        }
+    } else {
+        set havenums 1
+        set vlist ""
+        foreach rec [$_results get -format [list xmlobj $col]] {
+            set xo [lindex $rec 0]
+            set v [lindex $rec 1]
+
+            if {![info exists label2val($v)]} {
+                lappend vlist $v
+                foreach {raw norm} [Rappture::LibraryObj::value $xo $col] break
+                set label2val($v) $norm
+
+                if {$havenums && ![string is double $norm]} {
+                    set havenums 0
+                }
+            }
+        }
+
+        if {!$havenums} {
+            # don't have normalized nums? then sort and create nums
+            catch {unset label2val}
+
+            set n 0
+            foreach v [lsort $vlist] {
+                incr n
+                set label2val($v) $n
+            }
+        }
+    }
+
+    switch -- $which {
+        current {
+            set curr $_cntlInfo($this-$col-value)
+            if {[info exists label2val($curr)]} {
+                return [list $curr $label2val($curr)]
+            }
+            return ""
+        }
+        all {
+            return [array get label2val]
+        }
+        default {
+            if {[string is integer $which]} {
+                if {$col == "xmlobj"} {
+                    set val "#[expr {$which+1}]"
+                } else {
+                    set val [lindex [$_results get -format $col $which] 0]
+                }
+                if {[info exists label2val($val)]} {
+                    return [list $val $label2val($val)]
+                }
+                return ""
+            }
+            error "bad option \"$which\": should be all, current, or an integer index"
+        }
+    }
+}
+
+# ----------------------------------------------------------------------
 # USAGE: _getTooltip <role> <column>
 #
 # Called automatically whenever the user hovers a control within
@@ -1517,13 +1571,13 @@ itcl::body Rappture::ResultSet::_getTooltip {role column} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: _getParamDesc ?<index>?
+# USAGE: _getParamDesc <which> ?<index>?
 #
 # Used internally to build a descripton of parameters for the data
 # tuple at the specified <index>.  This is passed on to the underlying
 # results viewer, so it will know what data is being viewed.
 # ----------------------------------------------------------------------
-itcl::body Rappture::ResultSet::_getParamDesc {{index "current"}} {
+itcl::body Rappture::ResultSet::_getParamDesc {which {index "current"}} {
     if {$index == "current"} {
         # search for the result for these settings
         set format ""
@@ -1538,17 +1592,29 @@ itcl::body Rappture::ResultSet::_getParamDesc {{index "current"}} {
         }
     }
 
-    set desc ""
-    foreach col $_cntlInfo($this-all) {
-        set quantity $_cntlInfo($this-$col-label)
-        set val [lindex [$_results get -format $col $index] 0]
-        if {$col == "xmlobj"} {
-            set num [lindex [$_results find -format xmlobj $val] 0]
-            set val "#[expr {$num+1}]"
+    switch -- $which {
+        active {
+            if {"" == $_active} {
+                return ""
+            }
         }
-        append desc "$quantity = $val\n"
+        all {
+            set desc ""
+            foreach col $_cntlInfo($this-all) {
+                set quantity $_cntlInfo($this-$col-label)
+                set val [lindex [$_results get -format $col $index] 0]
+                if {$col == "xmlobj"} {
+                    set num [lindex [$_results find -format xmlobj $val] 0]
+                    set val "#[expr {$num+1}]"
+                }
+                append desc "$quantity = $val\n"
+            }
+            return [string trim $desc]
+        }
+        default {
+            error "bad value \"$which\": should be active or all"
+        }
     }
-    return [string trim $desc]
 }
 
 # ----------------------------------------------------------------------

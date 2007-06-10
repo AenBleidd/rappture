@@ -33,6 +33,7 @@ itcl::class Rappture::MoleculeViewer {
     public method add {dataobj {settings ""}}
     public method get {}
     public method delete {args}
+    public method parameters {title args} { # do nothing }
 
     public method emblems {option}
     public method download {option args}

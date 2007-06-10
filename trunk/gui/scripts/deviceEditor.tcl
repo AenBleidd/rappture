@@ -29,6 +29,7 @@ itcl::class Rappture::DeviceEditor {
     public method download {option args}
     public method add {dataobj {settings ""}} 
     public method delete {args}
+    public method parameters {title args} { # do nothing }
 
     protected method _redraw {}
     protected method _type {xmlobj}

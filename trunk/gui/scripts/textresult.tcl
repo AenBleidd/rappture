@@ -30,6 +30,7 @@ itcl::class Rappture::TextResult {
     public method get {}
     public method delete {args}
     public method scale {args}
+    public method parameters {title args} { # do nothing }
     public method download {option args}
 
     public method select {option args}

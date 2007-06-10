@@ -27,6 +27,7 @@ itcl::class Rappture::DeviceResult {
     public method get {}
     public method delete {args}
     public method scale {args}
+    public method parameters {title args} { # do nothing }
     public method download {option args}
 
     private variable _dataobj ""  ;# data object currently being displayed
