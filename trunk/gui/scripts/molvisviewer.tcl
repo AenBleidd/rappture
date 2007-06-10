@@ -1116,6 +1116,7 @@ itcl::body Rappture::MolvisViewer::add { dataobj {settings ""}} {
 		-raise 0
 		-linestyle solid
 		-description ""
+		-param ""
 	}
 
 	foreach {opt val} $settings {

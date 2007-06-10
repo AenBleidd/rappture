@@ -167,6 +167,7 @@ itcl::body Rappture::ImageResult::add {image {settings ""}} {
         -raise 0
         -linestyle solid
         -description ""
+        -param ""
     }
     foreach {opt val} $settings {
         if {![info exists params($opt)]} {
