@@ -33,6 +33,7 @@ itcl::class Rappture::SequenceResult {
     public method get {}
     public method delete {args}
     public method scale {args}
+    public method parameters {title args} { # do nothing }
     public method download {option args}
 
     public method play {}

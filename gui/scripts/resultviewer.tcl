@@ -42,7 +42,6 @@ itcl::class Rappture::ResultViewer {
     private variable _mode ""        ;# current plotting mode (xy, etc.)
     private variable _mode2widget    ;# maps plotting mode => widget
     private variable _dataslots ""   ;# list of all data objects in this widget
-    private variable _plotlist ""    ;# list of indices plotted in _dataslots
 }
                                                                                 
 itk::usual ResultViewer {
@@ -153,7 +152,12 @@ itcl::body Rappture::ResultViewer::value {xmlobj} {
 itcl::body Rappture::ResultViewer::plot {option args} {
     switch -- $option {
         add {
+            set params ""
             foreach {index opts} $args {
+                if {$index == "params"} {
+                    set params $opts
+                    continue
+                }
                 set reset "-color autoreset"
                 set slot [lindex $_dataslots $index]
                 foreach dobj $slot {
@@ -178,13 +182,15 @@ itcl::body Rappture::ResultViewer::plot {option args} {
                     _plotAdd $dobj $settings
                 }
             }
+            if {"" != $params && "" != $_mode} {
+                eval $_mode2widget($_mode) parameters $params
+            }
         }
         clear {
             # clear the contents of the current mode
             if {"" != $_mode} {
                 $_mode2widget($_mode) delete
             }
-            set _plotlist ""
         }
         default {
             error "bad option \"$option\": should be add or clear"
@@ -288,7 +294,15 @@ itcl::body Rappture::ResultViewer::_plotAdd {dataobj {settings ""}} {
                         set _mode2widget($mode) $w
                     }
                 }
-                number - integer - boolean - choice {
+                number - integer {
+                    set mode "number"
+                    if {![info exists _mode2widget($mode)]} {
+                        set w $itk_interior.number
+                        Rappture::NumberResult $w
+                        set _mode2widget($mode) $w
+                    }
+                }
+                boolean - choice {
                     set mode "value"
                     if {![info exists _mode2widget($mode)]} {
                         set w $itk_interior.value

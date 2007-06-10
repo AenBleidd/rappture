@@ -34,6 +34,7 @@ itcl::class Rappture::DeviceViewer1D {
     public method add {dataobj {settings ""}}
     public method get {}
     public method delete {args}
+    public method parameters {title args} { # do nothing }
 
     public method controls {option args}
     public method download {option args}

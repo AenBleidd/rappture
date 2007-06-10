@@ -46,6 +46,7 @@ itcl::class Rappture::EnergyLevels {
     public method get {}
     public method scale {args}
     public method download {args} {}
+    public method parameters {title args} { # do nothing }
 
     protected method _redraw {{what all}}
     protected method _zoom {option args}
@@ -269,6 +270,7 @@ itcl::body Rappture::EnergyLevels::add {dataobj {settings ""}} {
         -raise 0
         -linestyle solid
         -description ""
+        -param ""
     }
     foreach {opt val} $settings {
         if {![info exists params($opt)]} {

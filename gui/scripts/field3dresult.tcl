@@ -36,6 +36,7 @@ itcl::class Rappture::Field3DResult {
     public method get {}
     public method delete {args}
     public method scale {args}
+    public method parameters {title args} { # do nothing }
     public method download {option args}
 
     # resources file tells us the nanovis server

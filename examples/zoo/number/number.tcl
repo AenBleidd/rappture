@@ -12,11 +12,8 @@ package require Rappture
 # open the XML file containing the run parameters
 set driver [Rappture::library [lindex $argv 0]]
 
-set T [$driver get input.(temperature).current]
-set v [$driver get input.(vsweep).current]
-
-$driver put output.number(outt).current $T
-$driver put output.number(outv).current $v
+$driver copy output.number(outt) from input.(temperature)
+$driver copy output.number(outv) from input.(vsweep)
 
 # save the updated XML describing the run...
 Rappture::result $driver

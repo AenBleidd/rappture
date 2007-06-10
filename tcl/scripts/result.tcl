@@ -30,11 +30,17 @@ namespace eval Rappture { # forward declaration }
 # "failed".
 # ----------------------------------------------------------------------
 proc Rappture::result {libobj {status 0}} {
+    global tcl_platform
+
     $libobj put output.time [clock format [clock seconds]]
     if {$status != 0} {
         $libobj put output.status "failed"
     } else {
         $libobj put output.status "ok"
+    }
+
+    if {[info exists tcl_platform(user)]} {
+        $libobj put output.user $tcl_platform(user)
     }
 
     set oname "run[clock seconds].xml"
