@@ -153,6 +153,7 @@ itcl::body Rappture::TextResult::add {dataobj {settings ""}} {
         -linestyle ""
         -raise 0
         -description ""
+        -param ""
     }
     foreach {opt val} $settings {
         if {![info exists params($opt)]} {

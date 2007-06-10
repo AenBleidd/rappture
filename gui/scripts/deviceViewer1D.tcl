@@ -162,6 +162,7 @@ itcl::body Rappture::DeviceViewer1D::add {dataobj {settings ""}} {
         -raise 0
         -linestyle solid
         -description ""
+        -param ""
     }
     foreach {opt val} $settings {
         if {![info exists params($opt)]} {
