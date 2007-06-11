@@ -316,7 +316,8 @@ itcl::body Rappture::Analyzer::simulate {args} {
     if {$args == "-ifneeded"} {
         # check to see if simulation is really needed
         $_tool sync
-        if {[$itk_component(resultset) contains [$_tool xml object]]} {
+        if {[$itk_component(resultset) contains [$_tool xml object]]
+              && ![string equal $_control "manual-resim"]} {
             # not needed -- show results and return
             $itk_component(notebook) current analyze
             return
@@ -421,7 +422,8 @@ itcl::body Rappture::Analyzer::reset {{when -eventually}} {
 
     # check to see if simulation is really needed
     $_tool sync
-    if {![$itk_component(resultset) contains [$_tool xml object]]} {
+    if {![$itk_component(resultset) contains [$_tool xml object]]
+          || [string equal $_control "manual-resim"]} {
         # if control mode is "auto", then simulate right away
         if {[string match auto* $_control]} {
             # auto control -- don't need button
