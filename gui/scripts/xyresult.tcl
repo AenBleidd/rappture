@@ -494,7 +494,7 @@ itcl::body Rappture::XyResult::download {option args} {
                 return [list .txt $csvdata]
               }
               pdf {
-                set psdata [$itk_component(plot) postscript output -maxpect 1]
+                set psdata [$itk_component(plot) postscript output -decorations no -maxpect 1]
 
                 set cmds {
                     set fout "xy[pid].pdf"
