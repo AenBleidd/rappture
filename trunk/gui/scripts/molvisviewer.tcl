@@ -345,7 +345,7 @@ itcl::body Rappture::MolvisViewer::connect {{hostlist ""}} {
     set memorySize 10000
 
     #
-    # Connect to the hubvis server.  
+    # Connect to the molvis server.  
     # If it's too busy, that server may
     # forward us to another.
     #
