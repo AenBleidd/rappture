@@ -257,6 +257,7 @@ itcl::body Rappture::HTMLviewer::_config {args} {
       body {
         background: $itk_option(-background);
         color: $itk_option(-foreground);
+        font: 10px helvetica,arial;
       }
       a {
         color: $itk_option(-linknormalcolor);
