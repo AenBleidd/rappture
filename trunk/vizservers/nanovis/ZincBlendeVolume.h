@@ -35,7 +35,7 @@ public:
 	ZincBlendeVolume(float x, float y, float z, 
 		int width, int height, int depth, float size, int n_component, 
 		float* dataVolumeA, float* dataVolumeB,
-		double vmin, double vmax, const Vector3& cellSize);
+		double vmin, double vmax, double non_zeromin, const Vector3& cellSize);
 
 	~ZincBlendeVolume();
 };

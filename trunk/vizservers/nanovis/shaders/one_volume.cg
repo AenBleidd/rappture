@@ -55,7 +55,8 @@ PixelOut main(v2f IN,
     float normal_dot_light = max(dot(normal, light_vector), 0);
     float normal_dot_half = max(dot(normal, half_vector), 0);
 
-    float ambient = 0.8;
+    //float ambient = 0.8;
+    float ambient = 0.2;
     float diffuse = normal_dot_light * renderParameters.z;
     float specular = pow(normal_dot_half, renderParameters.w)*(1-ambient-diffuse);
 

@@ -30,7 +30,12 @@ public:
   TransferFunction(int _size, float* data);
   ~TransferFunction();
   void update(float* data);
+    Texture1D* getTexture();
 };
 
+inline Texture1D* TransferFunction::getTexture()
+{
+    return tex;
+}
 
 #endif

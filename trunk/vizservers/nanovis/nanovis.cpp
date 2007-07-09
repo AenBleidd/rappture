@@ -47,6 +47,8 @@
 #include "NvColorTableRenderer.h"
 #include "NvEventLog.h"
 #include "NvZincBlendeReconstructor.h"
+#include "HeightMap.h"
+#include "Grid.h"
 
 // R2 headers
 #include <R2/R2FilePath.h>
@@ -56,6 +58,7 @@
 
 extern VolumeRenderer* g_vol_render;
 extern NvColorTableRenderer* g_color_table_renderer;
+extern Grid* g_grid;
 PlaneRenderer* plane_render;
 Camera* cam;
 
@@ -106,12 +109,14 @@ double get_time_interval();
 */
 
 int render_window; 		//the handle of the render window;
+bool axis_on = true;
 
 // forward declarations
 //void init_particles();
 void get_slice_vectors();
 Rappture::Outcome load_volume_stream(int index, std::iostream& fin);
-void load_volume(int index, int width, int height, int depth, int n_component, float* data, double vmin, double vmax);
+void load_volume(int index, int width, int height, int depth, int n_component, float* data, double vmin, double vmax, 
+                double nzero_min);
 TransferFunction* get_transfunc(char *name);
 void resize_offscreen_buffer(int w, int h);
 void offscreen_buffer_capture();
@@ -138,6 +143,8 @@ float slice_vector[NMESH*NMESH*4];	//per slice vectors in main memory
 int n_volumes = 0;
 // pointers to volumes, currently handle up to 10 volumes
 vector<Volume*> volume;
+
+vector<HeightMap*> g_heightMap;
 
 // maps transfunc name to TransferFunction object
 Tcl_HashTable tftable;
@@ -195,7 +202,11 @@ static int PlaneNewCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int ar
 static int PlaneLinkCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
 static int PlaneEnableCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
 
+static int GridCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
+static int AxisCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
+
 static int GetVolumeIndices _ANSI_ARGS_((Tcl_Interp *interp, int argc, CONST84 char *argv[], vector<int>* vectorPtr));
+static int GetIndices(Tcl_Interp *interp, int argc, CONST84 char *argv[], vector<int>* vectorPtr);
 static int GetAxis _ANSI_ARGS_((Tcl_Interp *interp, char *str, int *valPtr));
 static int GetColor _ANSI_ARGS_((Tcl_Interp *interp, char *str, float *rgbPtr));
 
@@ -317,10 +328,7 @@ ScreenShotCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv
     read_screen();
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
 
-    // INSOO
-    // TBD
-    //bmp_write("nv>screenshot -bytes");
-    bmp_write_to_file();
+    bmp_write("nv>screenshot -bytes");
     
     resize_offscreen_buffer(old_win_width, old_win_height); 
 #endif
@@ -755,6 +763,7 @@ VolumeCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
             }
             return TCL_OK;
         }
+
         Tcl_AppendResult(interp, "bad option \"", argv[2],
             "\": should be label", (char*)NULL);
         return TCL_ERROR;
@@ -832,6 +841,7 @@ VolumeCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
 
             if (!strcmp(header, "<HDR>"))
             {
+                printf("HDR stream is in\n");
                 std::stringstream fdata(std::ios_base::out|std::ios_base::in|std::ios_base::binary);
                 fdata.write(buf.bytes(),buf.size());
 
@@ -1107,6 +1117,250 @@ VolumeCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
     return TCL_ERROR;
 }
 
+int HeightMapCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]))
+{
+    if (argc < 2) 
+    {
+        {   
+        srand( (unsigned)time( NULL ) );
+        int size = 20 * 20;
+        float* data = (float*) malloc(sizeof(float) * size);
+        for (int i = 0; i < size; ++i)
+        {
+            data[i] = rand() * 1.0f / RAND_MAX;
+        }
+
+        HeightMap* heightMap = new HeightMap();
+        heightMap->setHeight(0, 0, 1, 1, 20, 20, data);
+        heightMap->setColorMap(get_transfunc("default"));
+        heightMap->setVisible(true);
+        heightMap->setLineContourVisible(true);
+        g_heightMap.push_back(heightMap);
+        }
+
+        return TCL_OK;
+    }
+
+    char c = *argv[1];
+    if (c == 'd' && strcmp(argv[1],"data") == 0) 
+    {
+        //bytes
+        vector<int> indices;
+        if (strcmp(argv[2],"on") == 0) 
+        {
+            if (GetVolumeIndices(interp, argc-2, argv+2, &indices) != TCL_OK) 
+            {
+                return TCL_ERROR;
+            }
+
+            for (int i = 0; i < indices.size(); ++i)
+            {
+                if ((indices[i] < g_heightMap.size()) && (g_heightMap[indices[i]] != NULL))
+                {
+                    g_heightMap[indices[i]]->setVisible(true);
+                }
+            }
+            return TCL_OK;
+        }
+        else if (strcmp(argv[2],"off") == 0) 
+        {
+            if (GetVolumeIndices(interp, argc-2, argv+2, &indices) != TCL_OK) 
+            {
+                return TCL_ERROR;
+            }
+
+            for (int i = 0; i < indices.size(); ++i)
+            {
+                if ((indices[i] < g_heightMap.size()) && (g_heightMap[indices[i]] != NULL))
+                {
+                    g_heightMap[indices[i]]->setVisible(false);
+                }
+            }
+            return TCL_OK;
+        }
+        
+        
+        
+    }
+    else if (c == 'l' && (strcmp(argv[1], "linecontour") == 0))
+    {
+        //bytes
+        vector<int> indices;
+        if (strcmp(argv[2],"on") == 0) 
+        {
+            if (GetVolumeIndices(interp, argc-3, argv+3, &indices) != TCL_OK) 
+            {
+                return TCL_ERROR;
+            }
+
+            for (int i = 0; i < indices.size(); ++i)
+            {
+                if ((indices[i] < g_heightMap.size()) && (g_heightMap[indices[i]] != NULL))
+                {
+                    g_heightMap[indices[i]]->setLineContourVisible(true);
+                }
+            }
+            return TCL_OK;
+        }
+        else if (strcmp(argv[2],"off") == 0) 
+        {
+            if (GetVolumeIndices(interp, argc-3, argv+3, &indices) != TCL_OK) 
+            {
+                return TCL_ERROR;
+            }
+
+            for (int i = 0; i < indices.size(); ++i)
+            {
+                if ((indices[i] < g_heightMap.size()) && (g_heightMap[indices[i]] != NULL))
+                {
+                    g_heightMap[indices[i]]->setLineContourVisible(false);
+                }
+            }
+            return TCL_OK;
+        }
+        
+        return TCL_OK;
+    }
+    else if (c == 't' && (strcmp(argv[1], "transfunc") == 0))
+    {
+        TransferFunction *tf = get_transfunc((char*)argv[3]);
+        if (tf == NULL) {
+            Tcl_AppendResult(interp, "transfer function \"", argv[3],
+                "\" is not defined", (char*)NULL);
+            return TCL_ERROR;
+        }
+
+        vector<int> indices;
+        if (GetVolumeIndices(interp, argc - 3, argv + 3, &indices) != TCL_OK) 
+        {
+            for (int i = 0; i < indices.size(); ++i)
+            {
+                if ((indices[i] < g_heightMap.size()) && (g_heightMap[indices[i]] != NULL))
+                {
+                    g_heightMap[indices[i]]->setColorMap(tf);
+                }
+            }
+        }
+        return TCL_OK;
+    }
+    
+    Tcl_AppendResult(interp, "bad option \"", argv[1],
+        "\": should be data, outline, shading, or state", (char*)NULL);
+    return TCL_ERROR;
+}
+
+int GridCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]))
+{
+    char c = *argv[1];
+    if (c == 'v' && strcmp(argv[1],"visible") == 0) 
+    {
+        if (strcmp(argv[2],"on") == 0) 
+        {
+            g_grid->setVisible(true);
+            return TCL_OK;
+        }
+        else if (strcmp(argv[2],"off") == 0) 
+        {
+            g_grid->setVisible(false);
+            return TCL_OK;
+        }
+    }
+    else if (c == 'l' && strcmp(argv[1],"linecount") == 0) 
+    {
+        int x, y, z;
+
+        if ((Tcl_GetInt(interp, argv[2], &x) == TCL_OK) &&
+            (Tcl_GetInt(interp, argv[3], &y) == TCL_OK) &&
+            (Tcl_GetInt(interp, argv[4], &z) == TCL_OK)) {
+
+            if (g_grid) g_grid->setGridLineCount(x, y, z);
+
+            return TCL_OK;
+        }
+    }
+    else if (c == 'a' && strcmp(argv[1],"axiscolor") == 0) 
+    {
+        int r, g, b;
+        if ((Tcl_GetInt(interp, argv[2], &r) == TCL_OK) &&
+            (Tcl_GetInt(interp, argv[3], &g) == TCL_OK) &&
+            (Tcl_GetInt(interp, argv[4], &b) == TCL_OK)) {
+
+            if (g_grid) g_grid->setAxisColor(r / 255.0f, g / 255.0f, b / 255.0f);
+            return TCL_OK;
+        }
+    }
+    else if (c == 'l' && strcmp(argv[1],"linecolor") == 0) 
+    {
+        int r, g, b;
+        if ((Tcl_GetInt(interp, argv[2], &r) == TCL_OK) &&
+            (Tcl_GetInt(interp, argv[3], &g) == TCL_OK) &&
+            (Tcl_GetInt(interp, argv[4], &b) == TCL_OK)) {
+
+            if (g_grid) g_grid->setGridLineColor(r / 255.0f, g / 255.0f, b / 255.0f);
+            return TCL_OK;
+        }
+    }
+    else if (c == 'm')
+    {
+        if (strcmp(argv[1],"minmax") == 0) 
+        {
+            double x1, y1, z1, x2, y2, z2;
+            if ((Tcl_GetDouble(interp, argv[2], &x1) == TCL_OK) &&
+                (Tcl_GetDouble(interp, argv[3], &y1) == TCL_OK) &&
+                (Tcl_GetDouble(interp, argv[4], &z1) == TCL_OK) &&
+                (Tcl_GetDouble(interp, argv[5], &x2) == TCL_OK) &&
+                (Tcl_GetDouble(interp, argv[6], &y2) == TCL_OK) &&
+                (Tcl_GetDouble(interp, argv[7], &z2) == TCL_OK)) {
+
+                if (g_grid) g_grid->setMinMax(Vector3(x1, y1, z1), Vector3(x2, y2, z2));
+
+                return TCL_OK;
+            }
+        }
+    }
+    else if (c == 'a' && strcmp(argv[1],"axisname") == 0) 
+    {
+        int axisID;
+        if ((Tcl_GetInt(interp, argv[2], &axisID) == TCL_OK))
+        {
+            if (g_grid) g_grid->setAxisName(axisID, argv[3]);
+            return TCL_OK;
+        }
+    }
+
+    Tcl_AppendResult(interp, "bad option \"", argv[1],
+        "\": should be data, outline, shading, or state", (char*)NULL);
+    return TCL_ERROR;
+}
+
+int AxisCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]))
+{
+    if (argc < 2) {
+        Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
+            " option arg arg...\"", (char*)NULL);
+        return TCL_ERROR;
+    }
+
+    char c = *argv[1];
+    if (c == 'v' && strcmp(argv[1],"visible") == 0) 
+    {
+        if (strcmp(argv[2],"on") == 0) 
+        {
+            axis_on = true;
+        }
+        else if (strcmp(argv[2],"off") == 0) 
+        {
+            axis_on = false;
+        }
+            
+        return TCL_OK;
+    }
+
+    Tcl_AppendResult(interp, "bad option \"", argv[1],
+        "\": should be data, outline, shading, or state", (char*)NULL);
+    return TCL_ERROR;
+}
+
 /*
  * ----------------------------------------------------------------------
  * FUNCTION: GetVolumeIndices()
@@ -1144,6 +1398,25 @@ GetVolumeIndices(Tcl_Interp *interp, int argc, CONST84 char *argv[],
             if (volume[ivol] != NULL) {
                 vectorPtr->push_back(ivol);
             }
+        }
+    }
+    return TCL_OK;
+}
+
+static int
+GetIndices(Tcl_Interp *interp, int argc, CONST84 char *argv[],
+    vector<int>* vectorPtr)
+{
+    int ivol;
+    for (int n=0; n < argc; n++) 
+    {
+        if (Tcl_GetInt(interp, argv[n], &ivol) != TCL_OK) {
+            return TCL_ERROR;
+        }
+        if (ivol < 0 || ivol >= volume.size()) {
+            Tcl_AppendResult(interp, "bad volume index \"", argv[n],
+                    "\"", (char*)NULL);
+                return TCL_ERROR;
         }
     }
     return TCL_OK;
@@ -1474,6 +1747,7 @@ load_vector_stream(int index, std::iostream& fin) {
         // generate the uniformly sampled data that we need for a volume
         double vmin = 0.0;
         double vmax = 0.0;
+        double nzero_min = 0.0;
         int ngen = 0;
         for (int iz=0; iz < nz; iz++) {
             double zval = z0 + iz*dmin;
@@ -1492,6 +1766,10 @@ load_vector_stream(int index, std::iostream& fin) {
 
                     if (vm < vmin) { vmin = vm; }
                     if (vm > vmax) { vmax = vm; }
+                    if (vm != 0.0f && vm < nzero_min)
+                    {
+                        nzero_min = vm;
+                    }
 
                     data[ngen++] = vx;
                     data[ngen++] = vy;
@@ -1505,7 +1783,7 @@ load_vector_stream(int index, std::iostream& fin) {
             data[ngen] = (data[ngen]/(2.0*vmax) + 0.5);
         }
 
-        load_volume(index, nx, ny, nz, 3, data, vmin, vmax);
+        load_volume(index, nx, ny, nz, 3, data, vmin, vmax, nzero_min);
         delete [] data;
     } else {
         std::cerr << "WARNING: data not found in stream" << std::endl;
@@ -1564,6 +1842,7 @@ load_volume_stream(int index, std::iostream& fin) {
                      << xymesh.rangeMax(Rappture::yaxis) << std::endl;
                 for (int i=0; i < nxy; i++) {
                     ftmp << xymesh.atNode(i).x() << " " << xymesh.atNode(i).y() << std::endl;
+                
                 }
                 ftmp.close();
 
@@ -1690,6 +1969,7 @@ load_volume_stream(int index, std::iostream& fin) {
 
             // generate the uniformly sampled data that we need for a volume
             int ngen = 0;
+            double nzero_min = 0.0;
             for (int iz=0; iz < nz; iz++) {
                 double zval = z0 + iz*dmin;
                 for (int iy=0; iy < ny; iy++) {
@@ -1698,8 +1978,14 @@ load_volume_stream(int index, std::iostream& fin) {
                         double xval = x0 + ix*dmin;
                         double v = field.value(xval,yval,zval);
 
+                        if (v != 0.0f && v < nzero_min)
+                        {
+                            nzero_min = v;
+                        }
+
                         // scale all values [0-1], -1 => out of bounds
                         v = (isnan(v)) ? -1.0 : (v - vmin)/dv;
+
                         data[ngen] = v;
                         ngen += 4;
                     }
@@ -1745,7 +2031,7 @@ load_volume_stream(int index, std::iostream& fin) {
             }
 
             load_volume(index, nx, ny, nz, 4, data,
-                field.valueMin(), field.valueMax());
+                field.valueMin(), field.valueMax(), nzero_min);
 
             delete [] data;
 
@@ -1804,6 +2090,7 @@ load_volume_stream(int index, std::iostream& fin) {
 
             // generate the uniformly sampled data that we need for a volume
             int ngen = 0;
+            double nzero_min = 0.0;
             for (iz=0; iz < nz; iz++) {
                 double zval = z0 + iz*dmin;
                 for (int iy=0; iy < ny; iy++) {
@@ -1812,6 +2099,10 @@ load_volume_stream(int index, std::iostream& fin) {
                         double xval = x0 + ix*dmin;
                         double v = field.value(xval,yval,zval);
 
+                        if (v != 0.0f && v < nzero_min)
+                        {
+                            nzero_min = v;
+                        }
                         // scale all values [0-1], -1 => out of bounds
                         v = (isnan(v)) ? -1.0 : (v - vmin)/dv;
                         data[ngen] = v;
@@ -1860,7 +2151,7 @@ load_volume_stream(int index, std::iostream& fin) {
             }
 
             load_volume(index, nx, ny, nz, 4, data,
-                field.valueMin(), field.valueMax());
+                field.valueMin(), field.valueMax(), nzero_min);
 
             delete [] data;
         }
@@ -1887,7 +2178,7 @@ load_volume_stream(int index, std::iostream& fin) {
  * width, height and depth: number of points in each dimension
  */
 void load_volume(int index, int width, int height, int depth,
-    int n_component, float* data, double vmin, double vmax)
+    int n_component, float* data, double vmin, double vmax, double nzero_min)
 {
     while (n_volumes <= index) {
         volume.push_back(NULL);
@@ -1900,7 +2191,7 @@ void load_volume(int index, int width, int height, int depth,
     }
 
     volume[index] = new Volume(0.f, 0.f, 0.f, width, height, depth, 1.,
-                                 n_component, data, vmin, vmax);
+                                 n_component, data, vmin, vmax, nzero_min);
     assert(volume[index]!=0);
 }
 
@@ -1989,6 +2280,11 @@ void init_offscreen_buffer()
 void resize_offscreen_buffer(int w, int h){
   win_width = w;
   win_height = h;
+
+    if (g_fonts)
+    {
+        g_fonts->resize(w, h);
+    }
 
   //fprintf(stderr, "screen_buffer size: %d\n", sizeof(screen_buffer));
   printf("screen_buffer size: %d %d\n", w, h);
@@ -2209,6 +2505,15 @@ void initTcl(){
 
     // manipulate volume data
     Tcl_CreateCommand(interp, "volume", VolumeCmd,
+        (ClientData)NULL, (Tcl_CmdDeleteProc*)NULL);
+
+    Tcl_CreateCommand(interp, "axis", AxisCmd,
+        (ClientData)NULL, (Tcl_CmdDeleteProc*)NULL);
+
+    Tcl_CreateCommand(interp, "grid", GridCmd,
+        (ClientData)NULL, (Tcl_CmdDeleteProc*)NULL);
+
+    Tcl_CreateCommand(interp, "heightmap", HeightMapCmd,
         (ClientData)NULL, (Tcl_CmdDeleteProc*)NULL);
 
     // get screenshot
@@ -2974,7 +3279,15 @@ void display()
         }
 
         //now render things in the scene
-        draw_3d_axis();
+        if (axis_on)
+        {
+            draw_3d_axis();
+        }
+
+        if (g_grid->isVisible())
+        {
+            g_grid->render();
+        }
 
         //lic->render(); 	//display the line integral convolution result
         //soft_display_verts();
@@ -2987,6 +3300,12 @@ void display()
         perf->enable();
         g_vol_render->render_all();
         perf->disable();
+
+        for (int ii = 0; ii < g_heightMap.size(); ++ii)
+        {
+            if (g_heightMap[ii]->isVisible())
+                g_heightMap[ii]->render();
+        }
 
         glPopMatrix();
    }
@@ -3242,6 +3561,10 @@ double get_time_interval(){
 }
 */
 
+void removeAllData()
+{
+    //
+}
 
 
 /*----------------------------------------------------*/
@@ -3306,6 +3629,8 @@ int main(int argc, char** argv)
 #endif
     //event loop
     glutMainLoop();
+
+    removeAllData();
 
     NvExit();
 

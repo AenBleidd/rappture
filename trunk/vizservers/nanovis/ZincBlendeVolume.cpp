@@ -21,8 +21,8 @@
 ZincBlendeVolume::ZincBlendeVolume(float x, float y, float z,
 					int w, int h, int d, float s, int n, 
 					float* dataVolumeA, float* dataVolumeB,
-					double v0, double v1, const Vector3& cellSize)
-		: Volume(x, y, z, w, h, d, s, n, dataVolumeA, v0, v1), cell_size(cellSize)
+					double v0, double v1, double non_zeromin, const Vector3& cellSize)
+		: Volume(x, y, z, w, h, d, s, n, dataVolumeA, v0, v1, non_zeromin), cell_size(cellSize)
 {
   //label it as zincblende
   volume_type = ZINCBLENDE;
