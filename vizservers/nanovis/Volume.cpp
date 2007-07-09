@@ -19,14 +19,15 @@
 
 Volume::Volume(float x, float y, float z,
 		int w, int h, int d, float s, 
-		int n, float* data, double v0, double v1):
+		int n, float* data, double v0, double v1, double nz_min):
 	width(w),
 	height(h),
 	depth(d),
 	size(s),
 	n_components(n),
 	vmin(v0),
-	vmax(v1),
+	vmax(v1), 
+    nonzero_min(nz_min),
 	enabled(true),
 	n_slice(256), // default value
 	specular(6.), // default value

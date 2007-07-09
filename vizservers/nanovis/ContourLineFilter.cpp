@@ -1,0 +1,275 @@
+
+/*
+ * @note : I refer to 'http://www.codeproject.com/useritems/ScoOterVisualizationPart2.asp'
+ * @note : for this class
+ */
+
+#include "ContourLineFilter.h"
+#include <R2/graphics/R2VertexBuffer.h>
+#include <stdlib.h>
+#include <memory.h>
+#include "Vector4.h"
+#include "Vector3.h"
+
+ContourLineFilter::ContourLineFilter()
+: _colorMap(0)
+{
+}
+
+void ContourLineFilter::clear()
+{
+	
+	ContourLineFilter::ContourLineList::iterator iter;
+	for (iter = _lines.begin(); iter != _lines.end(); ++iter)
+	{ 
+		delete (*iter);
+	}
+
+	_lines.clear();	
+}
+
+R2Geometry* ContourLineFilter::create(float min, float max, int linecount, Vector3* vertices, int width, int height)
+{
+	_lines.clear();
+
+	float transtion = (max - min) / (linecount + 1);
+
+	float val;
+	int totalNumOfPoints = 0, numOfPoints;
+	for (int i = 1; i <= linecount; ++i)
+	{
+		val = min + i * transtion;
+
+		ContourLine* c = new ContourLine(val);
+		if(numOfPoints = c->createLine(width, height, vertices))
+		{
+			totalNumOfPoints += numOfPoints;
+			_lines.push_back(c);
+		}
+		else
+			delete c;
+	}
+
+	Vector3* vertexSet = (Vector3*) malloc(sizeof(Vector3) * totalNumOfPoints);
+	Vector3* colorSet = (Vector3*) malloc(sizeof(Vector3) * totalNumOfPoints);
+	
+	ContourLineFilter::ContourLineList::iterator iter;
+	int index = 0, colorIndex = 0;
+	for (iter = _lines.begin(); iter != _lines.end(); ++iter, ++colorIndex)
+	{
+		std::list<Vector3>& lines = (*iter)->_points;
+		std::list<Vector3>::iterator iter2;
+		for (iter2 = lines.begin(); iter2 != lines.end(); ++iter2, ++index)
+		{
+			if (_colorMap && (colorIndex < _colorMap->size()))
+			{
+				colorSet[index] = _colorMap->at(colorIndex);
+			}
+			else
+			{
+				colorSet[index].set((*iter)->_value, (*iter)->_value, (*iter)->_value);
+			}
+			vertexSet[index] = (*iter2);
+		}
+	}
+
+	R2VertexBuffer* vertexBuffer = new R2VertexBuffer(R2VertexBuffer::POSITION3, totalNumOfPoints,
+										totalNumOfPoints * sizeof(Vector3), vertexSet, false);
+	R2VertexBuffer* colorBuffer = new R2VertexBuffer(R2VertexBuffer::COLOR4, totalNumOfPoints,
+										totalNumOfPoints * sizeof(Vector3), colorSet, false);
+	R2Geometry* geometry = new R2Geometry(R2Geometry::LINES, vertexBuffer, colorBuffer, 0);
+
+	clear();
+
+	return geometry;
+}
+
+R2Geometry* ContourLineFilter::create(float min, float max, int linecount, Vector4* vertices, int width, int height)
+{
+	_lines.clear();
+
+	float transtion = (max - min) / (linecount + 1);
+
+	float val;
+	int totalNumOfPoints = 0, numOfPoints;
+	for (int i = 1; i <= linecount; ++i)
+	{
+		val = min + i * transtion;
+
+		ContourLine* c = new ContourLine(val);
+		if(numOfPoints = c->createLine(width, height, vertices))
+		{
+			totalNumOfPoints += numOfPoints;
+			_lines.push_back(c);
+		}
+		else
+			delete c;
+	}
+
+	Vector3* vertexSet = (Vector3*) malloc(sizeof(Vector3) * totalNumOfPoints);
+	Vector3* colorSet = (Vector3*) malloc(sizeof(Vector3) * totalNumOfPoints);
+	
+	ContourLineFilter::ContourLineList::iterator iter;
+	int index = 0, colorIndex = 0;
+	for (iter = _lines.begin(); iter != _lines.end(); ++iter, ++colorIndex)
+	{
+		std::list<Vector3>& lines = (*iter)->_points;
+		std::list<Vector3>::iterator iter2;
+		for (iter2 = lines.begin(); iter2 != lines.end(); ++iter2, ++index)
+		{
+			if (_colorMap && (colorIndex < _colorMap->size()))
+			{
+				colorSet[index] = _colorMap->at(colorIndex);
+			}
+			else
+			{
+				colorSet[index].set((*iter)->_value, (*iter)->_value, (*iter)->_value);
+			}
+			vertexSet[index] = (*iter2);
+		}
+	}
+
+	R2VertexBuffer* vertexBuffer = new R2VertexBuffer(R2VertexBuffer::POSITION3, totalNumOfPoints,
+										totalNumOfPoints * sizeof(Vector3), vertexSet, false);
+	R2VertexBuffer* colorBuffer = new R2VertexBuffer(R2VertexBuffer::COLOR4, totalNumOfPoints,
+										totalNumOfPoints * sizeof(Vector3), colorSet, false);
+	R2Geometry* geometry = new R2Geometry(R2Geometry::LINES, vertexBuffer, colorBuffer, 0);
+
+	clear();
+
+	return geometry;
+}
+
+
+ContourLineFilter::ContourLine::ContourLine(float value)
+: _value(value)
+{
+}
+
+
+int ContourLineFilter::ContourLine::createLine(int width, int height, Vector3* vertices)
+{
+	_points.clear();
+
+	int hl = height - 1;
+	int wl = width - 1;
+	int index1, index2, index3, index4;
+	for (int i = 0; i < hl; ++i)
+	{
+		for (int j = 0; j < wl; ++j)
+		{
+			index1 = j + i * width;
+			index2 = j + 1 + i * width;
+			index3 = j + 1 + (i + 1) * width;
+			index4 = j + (i + 1) * width;
+
+			if (isValueWithIn(vertices[index1].y, vertices[index2].y)) getContourPoint(index1, index2, vertices, width);
+			if (isValueWithIn(vertices[index2].y, vertices[index3].y)) getContourPoint(index2, index3, vertices, width);
+			if (isValueWithIn(vertices[index3].y, vertices[index1].y)) getContourPoint(index3, index1, vertices, width);
+			
+			if (isValueWithIn(vertices[index1].y, vertices[index3].y)) getContourPoint(index1, index3, vertices, width);
+			if (isValueWithIn(vertices[index3].y, vertices[index4].y)) getContourPoint(index3, index4, vertices, width);
+			if (isValueWithIn(vertices[index4].y, vertices[index1].y)) getContourPoint(index4, index1, vertices, width);
+		}
+	}
+
+	return _points.size();
+}
+
+
+int ContourLineFilter::ContourLine::createLine(int width, int height, Vector4* vertices)
+{
+	_points.clear();
+
+	int hl = height - 1;
+	int wl = width - 1;
+	int index1, index2, index3, index4;
+	for (int i = 0; i < hl; ++i)
+	{
+		for (int j = 0; j < wl; ++j)
+		{
+			index1 = j + i * width;
+			index2 = j + 1 + i * width;
+			index3 = j + 1 + (i + 1) * width;
+			index4 = j + (i + 1) * width;
+
+			if (isValueWithIn(vertices[index1].y, vertices[index2].y)) getContourPoint(index1, index2, vertices, width);
+			if (isValueWithIn(vertices[index2].y, vertices[index3].y)) getContourPoint(index2, index3, vertices, width);
+			if (isValueWithIn(vertices[index3].y, vertices[index1].y)) getContourPoint(index3, index1, vertices, width);
+			
+			if (isValueWithIn(vertices[index1].y, vertices[index3].y)) getContourPoint(index1, index3, vertices, width);
+			if (isValueWithIn(vertices[index3].y, vertices[index4].y)) getContourPoint(index3, index4, vertices, width);
+			if (isValueWithIn(vertices[index4].y, vertices[index1].y)) getContourPoint(index4, index1, vertices, width);
+		}
+	}
+
+	return _points.size();
+}
+
+bool ContourLineFilter::ContourLine::isValueWithIn(float val1, float Val2)
+{
+	return (_value >= val1 && _value <= Val2) || (_value >= Val2 && _value <= val1);
+}
+
+void ContourLineFilter::ContourLine::getContourPoint(int vertexIndex1, int vertexIndex2, Vector3* vertices, int width)
+{
+	float diff = vertices[vertexIndex2].y - vertices[vertexIndex1].y;
+	float t = 0.0;
+	if (diff != 0)
+	{
+		t = (_value - vertices[vertexIndex1].y) / diff; 
+	}
+
+	Vector3 p;
+	p.x = vertices[vertexIndex1].x + t * (vertices[vertexIndex2].x - vertices[vertexIndex1].x);
+	p.y = vertices[vertexIndex1].y + t * (vertices[vertexIndex2].y - vertices[vertexIndex1].y);
+	p.z = vertices[vertexIndex1].z + t * (vertices[vertexIndex2].z - vertices[vertexIndex1].z);
+
+	_points.push_back(p);
+}
+
+void ContourLineFilter::ContourLine::getContourPoint(int vertexIndex1, int vertexIndex2, Vector4* vertices, int width)
+{
+	float diff = vertices[vertexIndex2].y - vertices[vertexIndex1].y;
+	float t = 0.0;
+	if (diff != 0)
+	{
+		t = (_value - vertices[vertexIndex1].y) / diff; 
+	}
+
+	Vector3 p;
+	p.x = vertices[vertexIndex1].x + t * (vertices[vertexIndex2].x - vertices[vertexIndex1].x);
+	p.y = vertices[vertexIndex1].y + t * (vertices[vertexIndex2].y - vertices[vertexIndex1].y);
+	p.z = vertices[vertexIndex1].z + t * (vertices[vertexIndex2].z - vertices[vertexIndex1].z);
+
+	_points.push_back(p);
+}
+
+
+void ContourLineFilter::setColorMap(Vector3Array* colorMap)
+{
+	if (colorMap == _colorMap) return;
+
+	if (colorMap && _colorMap)
+	{
+		if (colorMap->size() != _colorMap->size())
+		{
+			_colorMap->resize(_colorMap->size());
+		}
+		_colorMap->assign(colorMap->begin(), colorMap->end());
+	}
+	else
+	{
+		delete _colorMap;
+
+		if (colorMap && colorMap->size())
+		{	
+			_colorMap = new Vector3Array(colorMap->size());
+			_colorMap->assign(colorMap->begin(), colorMap->end());
+		}
+		else
+		{
+			_colorMap = 0;
+		}
+	}
+}

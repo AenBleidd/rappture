@@ -43,8 +43,6 @@ enum {CUBIC, VOLQD, ZINCBLENDE};
 
 
 class Volume{
-	
-
 public:
 	int volume_type;	//cubic or zincblende
 
@@ -52,8 +50,9 @@ public:
 	int n_components;
 
 	Texture3D* tex;	//OpenGL texture storing the volume
-    	double vmin;    //minimum (unscaled) value in data
-    	double vmax;    //maximum (unscaled) value in data
+    double vmin;    //minimum (unscaled) value in data
+    double vmax;    //maximum (unscaled) value in data
+    double nonzero_min;
 
 	float specular; //specular lighting parameter
 	float diffuse;	//diffuse lighting parameter
@@ -88,7 +87,7 @@ public:
 
 	Volume(float x, float y, float z, 
 			int width, int height, int depth, float size,
-			int n_component, float* data, double vmin, double vmax);
+			int n_component, float* data, double vmin, double vmax, double nonzero_min);
 	~Volume();
 	
 	void enable(); //VolumeRenderer will render an enabled volume and its cutplanes
@@ -99,6 +98,7 @@ public:
 
 	double range_min() { return vmin; }
 	double range_max() { return vmax; }
+    double range_nzero_min() { return nonzero_min; }
 
 	void set_n_slice(int val); //set number of slices
 	int get_n_slice();	//return number of slices

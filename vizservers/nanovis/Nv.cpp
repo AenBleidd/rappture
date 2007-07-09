@@ -4,6 +4,7 @@
 #include "NvColorTableRenderer.h"
 #include "NvEventLog.h"
 #include "VolumeRenderer.h"
+#include "Grid.h"
 #include <R2/R2FilePath.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -15,6 +16,7 @@ NvParticleRenderer* g_particleRenderer;
 NvColorTableRenderer* g_color_table_renderer;
 VolumeRenderer* g_vol_render;
 R2Fonts* g_fonts;
+Grid* g_grid;
 
 //query opengl information
 static void NvPrintSystemInfo()
@@ -129,13 +131,15 @@ void NvInit(char* path)
     NvInitCG();
 
     g_fonts = new R2Fonts();
-    // INSOO
-    //g_fonts->addFont("verdana", "verdana.fnt");
-    //g_fonts->setFont("verdana");
+    g_fonts->addFont("verdana", "verdana.fnt");
+    g_fonts->setFont("verdana");
 
     //g_color_table_renderer = new NvColorTableRenderer();
     // INSOO
     //g_color_table_renderer->setFonts(g_fonts);
+
+    g_grid = new Grid();
+    g_grid->setFont(g_fonts);
 
     NvInitVolumeRenderer();
     NvInitParticleRenderer();
