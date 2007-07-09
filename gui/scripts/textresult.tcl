@@ -307,8 +307,12 @@ itcl::body Rappture::TextResult::download {option args} {
             }
 
             set ext [$_dataobj get filetype]
-            if {"" == $ext && ![Rappture::encoding::is binary $val]} {
-                set ext ".txt"
+            if {"" == $ext} {
+                if {[Rappture::encoding::is binary $val]} {
+                    set ext ".dat"
+                } else {
+                    set ext ".txt"
+                }
             }
             return [list $ext $val]
         }
