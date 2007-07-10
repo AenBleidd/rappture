@@ -43,6 +43,7 @@ public :
 	void setVisible(bool visible);
 	bool isVisible() const;
 	void setLineContourVisible(bool visible);
+    void setLineContourColor(float r, float g, float b);
 };
 
 inline void HeightMap::setVisible(bool visible)
@@ -60,4 +61,10 @@ inline void HeightMap::setLineContourVisible(bool visible)
 	_contourVisible = visible;
 }
 
+inline void HeightMap::setLineContourColor(float r, float g, float b)
+{
+    _contourColor.x = r;
+    _contourColor.y = g;
+    _contourColor.z = b;
+}
 #endif

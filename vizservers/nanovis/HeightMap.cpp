@@ -10,7 +10,7 @@
 
 HeightMap::HeightMap()
 : _contour(0), _colorMap(0), _indexBuffer(0), _vertexBufferObjectID(0), _vertexCount(0), _textureBufferObjectID(0),
-  _contourVisible(true), _scale(1.0f, 1.0f, 1.0f), _contourColor(0.0f, 0.0f, 0.0f)
+  _contourVisible(true), _scale(1.0f, 1.0f, 1.0f), _contourColor(1.0f, 0.0f, 0.0f)
 {
 	_shader = new NvShader();
 	R2string path = R2FilePath::getInstance()->getPath("heightcolor.cg");

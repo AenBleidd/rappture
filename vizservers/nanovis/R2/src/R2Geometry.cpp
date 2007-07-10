@@ -19,6 +19,8 @@ R2Geometry::~R2Geometry()
 
 void R2Geometry::render()
 {
+	//glDisableClientState(GL_NORMAL_ARRAY);
+	//glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 	glEnableClientState(GL_VERTEX_ARRAY);
 	glBindBuffer(GL_ARRAY_BUFFER, _vertexBuffer->getGraphicObjectID());
 	glVertexPointer(3, GL_FLOAT, 0, 0);
