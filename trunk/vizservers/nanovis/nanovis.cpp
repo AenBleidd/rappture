@@ -1124,10 +1124,15 @@ int HeightMapCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CO
         {   
         srand( (unsigned)time( NULL ) );
         int size = 20 * 20;
+        float sigma = 5.0f;
+        float mean = exp(0.0f) / (sigma * sqrt(2.0f));
         float* data = (float*) malloc(sizeof(float) * size);
+
+        float x;
         for (int i = 0; i < size; ++i)
         {
-            data[i] = rand() * 1.0f / RAND_MAX;
+            x = - 10 + i%20;
+            data[i] = exp(- (x * x)/(2 * sigma * sigma)) / (sigma * sqrt(2.0f)) / mean;
         }
 
         HeightMap* heightMap = new HeightMap();
@@ -1194,6 +1199,36 @@ int HeightMapCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CO
                     g_heightMap[indices[i]]->setLineContourVisible(visible);
                 }
             }
+            return TCL_OK;
+        }
+        else if (strcmp(argv[2],"color") == 0) 
+        {
+            double r, g, b;
+            if ((Tcl_GetDouble(interp, argv[3], &r) == TCL_OK) &&
+                (Tcl_GetDouble(interp, argv[4], &g) == TCL_OK) &&
+                (Tcl_GetDouble(interp, argv[5], &b) == TCL_OK)) {
+                r = r / 255.0;
+                g = g / 255.0;
+                b = b / 255.0;
+            }
+            else 
+            {
+                return TCL_ERROR;
+            }
+
+            vector<int> indices;
+            if (GetIndices(interp, argc-6, argv+6, &indices) != TCL_OK) 
+            {
+                return TCL_ERROR;
+            }
+            for (int i = 0; i < indices.size(); ++i)
+            {
+                if ((indices[i] < g_heightMap.size()) && (g_heightMap[indices[i]] != NULL))
+                {
+                    g_heightMap[indices[i]]->setLineContourColor(r, g, b);
+                }
+            }
+
             return TCL_OK;
         }
     }
