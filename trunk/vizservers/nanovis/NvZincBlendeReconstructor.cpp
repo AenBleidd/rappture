@@ -95,7 +95,8 @@ struct _NvAtomInfo {
         // + y -> +z (OpenGL), But in 3D texture coordinate is the opposite direction of z 
         // The reasone why index is multiplied by 4 is that one unit cell has half of eight atoms
         // ,i.e. four atoms are mapped into RGBA component of one texel
-        return ((int) (indexZ - 1)+ (int) (indexX - 1) * width + (int) (indexY - 1) * width * height) * 4;
+        //return ((int) (indexZ - 1)+ (int) (indexX - 1) * width + (int) (indexY - 1) * width * height) * 4;
+        return ((int) (indexX - 1)+ (int) (indexY - 1) * width + (int) (indexZ - 1) * width * height) * 4;
     }
 };
 
@@ -136,7 +137,7 @@ ZincBlendeVolume* NvZincBlendeReconstructor::buildUp(const Vector3& origin, cons
 
     _NvAtomInfo* srcPtr = (_NvAtomInfo*) data;
 
-    float vmin, vmax;
+    float vmin, vmax, nzero_min;
     float* component4A, *component4B;
     int index;
 
@@ -161,6 +162,11 @@ ZincBlendeVolume* NvZincBlendeReconstructor::buildUp(const Vector3& origin, cons
 
         vmax = _NvMax3(_NvMax4(component4A), _NvMax4(component4B), vmax);
         vmin = _NvMin3(_NvMin4(component4A), _NvMin4(component4B), vmin);
+
+        if (vmin != 0.0 && vmin < nzero_min)
+        {
+            nzero_min = vmin;    
+        }
     }
 
     double dv = vmax - vmin;
@@ -181,7 +187,7 @@ ZincBlendeVolume* NvZincBlendeReconstructor::buildUp(const Vector3& origin, cons
     zincBlendeVolume = new ZincBlendeVolume(origin.x, origin.y, origin.z,
                                             width, height, depth, 1, 4,
                                             fourAnionVolume, fourCationVolume,
-                                            vmin, vmax, cellSize);
+                                            vmin, vmax, nzero_min, cellSize);
 
     return zincBlendeVolume;
 }
