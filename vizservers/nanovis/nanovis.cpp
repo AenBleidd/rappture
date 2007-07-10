@@ -1254,12 +1254,12 @@ int GridCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84
     char c = *argv[1];
     if (c == 'v' && strcmp(argv[1],"visible") == 0) 
     {
-        if (strcmp(argv[2],"on") == 0) 
+        if (strcmp(argv[2],"true") == 0) 
         {
             g_grid->setVisible(true);
             return TCL_OK;
         }
-        else if (strcmp(argv[2],"off") == 0) 
+        else if (strcmp(argv[2],"false") == 0) 
         {
             g_grid->setVisible(false);
             return TCL_OK;
@@ -1320,12 +1320,13 @@ int GridCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84
     }
     else if (c == 'a' && strcmp(argv[1],"axisname") == 0) 
     {
-        int axisID;
-        if ((Tcl_GetInt(interp, argv[2], &axisID) == TCL_OK))
-        {
-            if (g_grid) g_grid->setAxisName(axisID, argv[3]);
-            return TCL_OK;
-        }
+        int axisID = 0;
+        if (!strcmp(argv[2], "x")) axisID = 0;
+        if (!strcmp(argv[2], "y")) axisID = 1;
+        if (!strcmp(argv[2], "z")) axisID = 2;
+        
+        if (g_grid) g_grid->setAxisName(axisID, argv[3]);
+        return TCL_OK;
     }
 
     Tcl_AppendResult(interp, "bad option \"", argv[1],
@@ -1344,11 +1345,11 @@ int AxisCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84
     char c = *argv[1];
     if (c == 'v' && strcmp(argv[1],"visible") == 0) 
     {
-        if (strcmp(argv[2],"on") == 0) 
+        if (strcmp(argv[2],"true") == 0) 
         {
             axis_on = true;
         }
-        else if (strcmp(argv[2],"off") == 0) 
+        else if (strcmp(argv[2],"false") == 0) 
         {
             axis_on = false;
         }
