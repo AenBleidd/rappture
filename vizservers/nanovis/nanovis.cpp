@@ -1146,84 +1146,60 @@ int HeightMapCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CO
     {
         //bytes
         vector<int> indices;
-        if (strcmp(argv[2],"on") == 0) 
+        if (strcmp(argv[2],"visible") == 0) 
         {
-            if (GetVolumeIndices(interp, argc-2, argv+2, &indices) != TCL_OK) 
+            bool visible = !strcmp(argv[3], "true");
+            
+            if (GetIndices(interp, argc-4, argv+4, &indices) != TCL_OK) 
             {
-                return TCL_ERROR;
+               return TCL_ERROR;
             }
 
             for (int i = 0; i < indices.size(); ++i)
             {
                 if ((indices[i] < g_heightMap.size()) && (g_heightMap[indices[i]] != NULL))
                 {
-                    g_heightMap[indices[i]]->setVisible(true);
+                    g_heightMap[indices[i]]->setVisible(visible);
                 }
             }
             return TCL_OK;
         }
-        else if (strcmp(argv[2],"off") == 0) 
-        {
-            if (GetVolumeIndices(interp, argc-2, argv+2, &indices) != TCL_OK) 
-            {
+        else if (c == 'f' && strcmp(argv[2],"follows") == 0) {
+            int nbytes;
+            if (Tcl_GetInt(interp, argv[3], &nbytes) != TCL_OK) {
                 return TCL_ERROR;
             }
-
-            for (int i = 0; i < indices.size(); ++i)
-            {
-                if ((indices[i] < g_heightMap.size()) && (g_heightMap[indices[i]] != NULL))
-                {
-                    g_heightMap[indices[i]]->setVisible(false);
-                }
-            }
-            return TCL_OK;
         }
-        
-        
-        
     }
     else if (c == 'l' && (strcmp(argv[1], "linecontour") == 0))
     {
         //bytes
         vector<int> indices;
-        if (strcmp(argv[2],"on") == 0) 
+        if (strcmp(argv[2],"visible") == 0) 
         {
-            if (GetVolumeIndices(interp, argc-3, argv+3, &indices) != TCL_OK) 
+            
+            bool visible = !(strcmp("true", argv[3]));
+            printf("heightmap linecontour visible %s\n", (visible)?"true":"false");
+            if (GetIndices(interp, argc-4, argv+4, &indices) != TCL_OK) 
             {
                 return TCL_ERROR;
             }
 
             for (int i = 0; i < indices.size(); ++i)
             {
+                printf("heightmap index %d\n");
                 if ((indices[i] < g_heightMap.size()) && (g_heightMap[indices[i]] != NULL))
                 {
-                    g_heightMap[indices[i]]->setLineContourVisible(true);
+                    printf("heightmap index %d visible applied\n");
+                    g_heightMap[indices[i]]->setLineContourVisible(visible);
                 }
             }
             return TCL_OK;
         }
-        else if (strcmp(argv[2],"off") == 0) 
-        {
-            if (GetVolumeIndices(interp, argc-3, argv+3, &indices) != TCL_OK) 
-            {
-                return TCL_ERROR;
-            }
-
-            for (int i = 0; i < indices.size(); ++i)
-            {
-                if ((indices[i] < g_heightMap.size()) && (g_heightMap[indices[i]] != NULL))
-                {
-                    g_heightMap[indices[i]]->setLineContourVisible(false);
-                }
-            }
-            return TCL_OK;
-        }
-        
-        return TCL_OK;
     }
     else if (c == 't' && (strcmp(argv[1], "transfunc") == 0))
     {
-        TransferFunction *tf = get_transfunc((char*)argv[3]);
+        TransferFunction *tf = get_transfunc((char*)argv[2]);
         if (tf == NULL) {
             Tcl_AppendResult(interp, "transfer function \"", argv[3],
                 "\" is not defined", (char*)NULL);
@@ -1414,11 +1390,7 @@ GetIndices(Tcl_Interp *interp, int argc, CONST84 char *argv[],
         if (Tcl_GetInt(interp, argv[n], &ivol) != TCL_OK) {
             return TCL_ERROR;
         }
-        if (ivol < 0 || ivol >= volume.size()) {
-            Tcl_AppendResult(interp, "bad volume index \"", argv[n],
-                    "\"", (char*)NULL);
-                return TCL_ERROR;
-        }
+        vectorPtr->push_back(ivol);
     }
     return TCL_OK;
 }

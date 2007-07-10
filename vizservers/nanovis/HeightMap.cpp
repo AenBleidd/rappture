@@ -45,7 +45,6 @@ void HeightMap::render()
 	
 	glEnable(GL_DEPTH_TEST);
 
-    /*
 	if (_vertexBufferObjectID)
 	{
 		glColor3f(1.0f, 1.0f, 1.0f);
@@ -88,7 +87,6 @@ void HeightMap::render()
             cgGLDisableProfile(CG_PROFILE_FP30);
 		}
 	}
-    */
 
 	glShadeModel(GL_FLAT);
 
