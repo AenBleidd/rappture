@@ -437,7 +437,7 @@ itcl::body Rappture::ControlOwner::notify {option args} {
 itcl::body Rappture::ControlOwner::sync {} {
     # sync all of the widgets under control of this owner
     if {"" != $_xmlobj} {
-        foreach path [array names _path2widget] {
+        foreach path [lsort [array names _path2widget]] {
             set type [$_xmlobj element -as type $path]
             if {[lsearch {group separator control note} $type] >= 0} {
                 continue
