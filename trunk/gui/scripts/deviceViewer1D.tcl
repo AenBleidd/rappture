@@ -15,6 +15,7 @@
 #  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 # ======================================================================
 package require Itk
+package require Img
 package require BLT
 
 option add *DeviceViewer1D.padding 4 widgetDefault

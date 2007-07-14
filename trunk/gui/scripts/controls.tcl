@@ -516,6 +516,8 @@ itcl::body Rappture::Controls::_layout {} {
 
         set row 0
         foreach name $showing {
+            set expand 0  ;# most controls float to top
+
             set wl $_name2info($name-label)
             if {$wl != "" && [winfo exists $wl]} {
                 grid $wl -row $row -column 0 -sticky e
@@ -538,14 +540,39 @@ itcl::body Rappture::Controls::_layout {} {
                             grid $wv -sticky nsew
                             grid rowconfigure $_frame $row -weight 1
                             grid columnconfigure $_frame 1 -weight 1
+                            set expand 1
                         }
                     }
                     GroupEntry {
                         $wv configure -heading yes
+
+                        #
+                        # Scan through all children in this group
+                        # and see if any demand more space.  If the
+                        # group contains a structure or a note, then
+                        # make sure that the group itself is set to
+                        # expand/fill.
+                        #
+                        set queue [winfo children $wv]
+                        while {[llength $queue] > 0} {
+                            set w [lindex $queue 0]
+                            set queue [lrange $queue 1 end]
+                            set c [winfo class $w]
+                            if {[lsearch {DeviceEditor Note} $c] >= 0} {
+                                set expand 1
+                                break
+                            }
+                            eval lappend queue [winfo children $w]
+                        }
+                        if {$expand} {
+                            grid $wv -sticky nsew
+                            grid rowconfigure $_frame $row -weight 1
+                        }
                     }
                     Note {
                         grid $wv -sticky nsew
                         grid rowconfigure $_frame $row -weight 1
+                        set expand 1
                     }
                 }
                 grid columnconfigure $_frame 1 -weight 1
@@ -565,7 +592,7 @@ itcl::body Rappture::Controls::_layout {} {
         # to the top.  Otherwise, it will jitter around as the
         # hidden items come and go.
         #
-        if {[llength $hidden] > 0} {
+        if {[llength $hidden] > 0 && !$expand} {
             grid rowconfigure $_frame 99 -weight 1
         } else {
             grid rowconfigure $_frame 99 -weight 0
