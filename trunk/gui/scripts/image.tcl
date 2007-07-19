@@ -23,8 +23,10 @@ itcl::class Rappture::Image {
     public method tkimage {} { return $_image }
     public method hints {{keyword ""}}
 
-    private variable _xmlobj ""  ;# ref to lib obj with curve data
+    private variable _xmlobj ""  ;# ref to lib obj with image data
+    private variable _path ""    ;# path in _xmlobj where data sits
     private variable _image ""   ;# underlying image data
+    private variable _hints
 }
 
 # ----------------------------------------------------------------------
@@ -35,12 +37,16 @@ itcl::body Rappture::Image::constructor {xmlobj path} {
         error "bad value \"$xmlobj\": should be LibraryObj"
     }
     set _xmlobj $xmlobj
+    set _path $path
     set data [string trim [$xmlobj get $path.current]]
     if {[string length $data] == 0} {
         set _image [image create photo]
     } else {
         set _image [image create photo -data $data]
     }
+
+    set _hints(note) [string trim [$_xmlobj get $_path.note.contents]]
+    set _hints(tooldir) [$_xmlobj get tool.version.application.directory(tool)]
 }
 
 # ----------------------------------------------------------------------
@@ -58,5 +64,11 @@ itcl::body Rappture::Image::destructor {} {
 # the hint for that <keyword>, if it exists.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Image::hints {{keyword ""}} {
-    return ""
+    if {$keyword != ""} {
+        if {[info exists _hints($keyword)]} {
+            return $_hints($keyword)
+        }
+        return ""
+    }
+    return [array get _hints]
 }

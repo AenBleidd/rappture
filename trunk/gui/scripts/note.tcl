@@ -149,7 +149,7 @@ itcl::body Rappture::Note::_setContents {info} {
             if {![regexp {<html>.*</html>} $html]} {
                 set html "<html><body><p>[_escapeChars $html]</p></body></html>"
             }
-            $itk_component(html) load $html -file $file
+            $itk_component(html) load $html -in $file
         }
         default {
             set html "<html><body><p>[_escapeChars $info]</p></body></html>"

@@ -97,7 +97,7 @@ itcl::body Rappture::HTMLviewer::constructor {args} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: load <htmlText> ?-file <fileName>?
+# USAGE: load <htmlText> ?-in <fileName>?
 #
 # Clients use this to clear the contents and load a new string of
 # <htmlText>.  If the text is empty, this has the effect of clearing
@@ -105,10 +105,10 @@ itcl::body Rappture::HTMLviewer::constructor {args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::HTMLviewer::load {htmlText args} {
     Rappture::getopts args params {
-        value -file ""
+        value -in ""
     }
     if {[llength $args] > 0} {
-        error "wrong # args: should be \"load text ?-file name?\""
+        error "wrong # args: should be \"load text ?-in name?\""
     }
 
     $itk_component(html) reset
@@ -117,30 +117,40 @@ itcl::body Rappture::HTMLviewer::load {htmlText args} {
 
     $itk_component(html) parse $htmlText
 
-    if {"" != $params(-file) && [file exists $params(-file)]} {
-        lappend _dirlist [file dirname $params(-file)]
+    if {"" != $params(-in) && [file exists $params(-in)]} {
+        if {[file isdirectory $params(-in)]} {
+            lappend _dirlist $params(-in)
+        } else {
+            lappend _dirlist [file dirname $params(-in)]
+        }
     }
+    $_dispatcher event -now !config
 }
 
 # ----------------------------------------------------------------------
-# USAGE: add <htmlText> ?-file <fileName>?
+# USAGE: add <htmlText> ?-in <fileName>?
 #
 # Clients use this to add the <htmlText> to the bottom of the contents
 # being displayed in the widget.
 # ----------------------------------------------------------------------
 itcl::body Rappture::HTMLviewer::add {htmlText args} {
     Rappture::getopts args params {
-        value -file ""
+        value -in ""
     }
     if {[llength $args] > 0} {
-        error "wrong # args: should be \"add text ?-file name?\""
+        error "wrong # args: should be \"add text ?-in name?\""
     }
 
     $itk_component(html) parse $htmlText
 
-    if {"" != $params(-file) && [file exists $params(-file)]} {
-        lappend _dirlist [file dirname $params(-file)]
+    if {"" != $params(-in) && [file exists $params(-in)]} {
+        if {[file isdirectory $params(-in)]} {
+            lappend _dirlist $params(-in)
+        } else {
+            lappend _dirlist [file dirname $params(-in)]
+        }
     }
+    $_dispatcher event -now !config
 }
 
 # ----------------------------------------------------------------------
@@ -150,7 +160,7 @@ itcl::body Rappture::HTMLviewer::add {htmlText args} {
 # an HTML page.  Tries to follow the <url> by invoking "exportfile"
 # to pop up further information.  If the <url> starts with http://
 # or https://, then it is used directly.  Otherwise, it is treated
-# as a relative file path and resolved with respect to the -file
+# as a relative file path and resolved with respect to the -in
 # options passed into load/add.
 # ----------------------------------------------------------------------
 itcl::body Rappture::HTMLviewer::followLink {url} {
@@ -304,7 +314,7 @@ itcl::body Rappture::HTMLviewer::_fixHeight {args} {
 #
 # Used internally to convert a <fileName> to its corresponding image
 # handle.  If the <fileName> is relative, then it is loaded with
-# respect to the paths given by the -file option for the load/add
+# respect to the paths given by the -in option for the load/add
 # methods.  Returns an image handle for the image within the file,
 # or the broken image icon if anything goes wrong.
 # ----------------------------------------------------------------------

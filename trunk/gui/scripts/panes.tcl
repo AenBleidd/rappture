@@ -32,6 +32,7 @@ itcl::class Rappture::Panes {
 
     public method insert {pos args}
     public method pane {pos}
+    public method visibility {pos {newval ""}}
     public method fraction {pos {newval ""}}
     public method hilite {state sash}
 
@@ -43,8 +44,9 @@ itcl::class Rappture::Panes {
 
     private variable _dispatcher ""  ;# dispatcher for !events
     private variable _panes ""       ;# list of pane frames
+    private variable _visibility ""  ;# list of visibilities for panes
     private variable _counter 0      ;# counter for auto-generated names
-    private variable _frac 1.0       ;# list of fractions
+    private variable _frac 0.0       ;# list of fractions
 }
 
 itk::usual Panes {
@@ -73,6 +75,8 @@ itcl::body Rappture::Panes::constructor {args} {
     }
 
     lappend _panes $pname
+    lappend _visibility 1
+    set _frac 0.5
 
     eval itk_initialize $args
 
@@ -127,11 +131,9 @@ itcl::body Rappture::Panes::insert {pos args} {
     itk_component add $pname {
         frame $itk_interior.$pname
     }
-    lappend _panes $pname
-
-    # fix the fractional sizes
-    set f $params(-fraction)
-    set _frac [list [expr {1-$f}] $f]
+    set _panes [linsert $_panes $pos $pname]
+    set _visibility [linsert $_visibility $pos 1]
+    set _frac [linsert $_frac $pos $params(-fraction)]
 
     # fix sash characteristics
     $_dispatcher event -idle !sashes
@@ -156,6 +158,27 @@ itcl::body Rappture::Panes::pane {pos} {
 }
 
 # ----------------------------------------------------------------------
+# USAGE: visibility <pos> ?<newval>?
+#
+# Clients use this to get/set the visibility of the pane at position
+# <pos>.
+# ----------------------------------------------------------------------
+itcl::body Rappture::Panes::visibility {pos {newval ""}} {
+    if {"" == $newval} {
+        return [lindex $_visibility $pos]
+    }
+    if {![string is boolean $newval]} {
+        error "bad value \"$newval\": should be boolean"
+    }
+    if {$pos == "end" || ($pos >= 0 && $pos < [llength $_visibility])} {
+        set _visibility [lreplace $_visibility $pos $pos [expr {$newval}]]
+        $_dispatcher event -idle !layout
+    } else {
+        error "bad index \"$pos\": out of range"
+    }
+}
+
+# ----------------------------------------------------------------------
 # USAGE: fraction <pos> ?<newval>?
 #
 # Clients use this to get/set the fraction of real estate associated
@@ -169,16 +192,23 @@ itcl::body Rappture::Panes::fraction {pos {newval ""}} {
         error "bad value \"$newval\": should be fraction 0-1"
     }
     if {$pos == "end" || ($pos >= 0 && $pos < [llength $_frac])} {
-        # if there are other panes, adjust their size according to this
-        if {[llength $_frac] > 1} {
-            set oldval [lindex $_frac $pos]
-            set delta [expr {double($oldval-$newval)/([llength $_frac]-1)}]
-            for {set i 0} {$i < [llength $_frac]} {incr i} {
-                set v [lindex $_frac $i]
-                set _frac [lreplace $_frac $i $i [expr {$v+$delta}]]
+        set len [llength $_frac]
+        set _frac [lreplace $_frac $pos $pos xxx]
+        set total 0
+        foreach f $_frac {
+            if {"xxx" != $f} {
+                set total [expr {$total+$f}]
             }
         }
-        set _frac [lreplace $_frac $pos $pos $newval]
+        for {set i 0} {$i < $len} {incr i} {
+            set f [lindex $_frac $i]
+            if {"xxx" == $f} {
+                set f $newval
+            } else {
+                set f [expr {$f/$total - $newval/double($len-1)}]
+            }
+            set _frac [lreplace $_frac $i $i $f]
+        }
         $_dispatcher event -idle !layout
     } else {
         error "bad index \"$pos\": out of range"
@@ -242,8 +272,14 @@ itcl::body Rappture::Panes::_drag {pname X Y} {
     if {$frac > 0.95} {
         set frac 0.95
     }
-
-    set _frac [list $frac [expr {1-$frac}]]
+    if {[llength $_frac] == 2} {
+        set _frac [list $frac [expr {1-$frac}]]
+    } else {
+        set i [expr {[lsearch $_panes $pname]-1}]
+        if {$i >= 0} {
+            set _frac [lreplace $_frac $i $i $frac]
+        }
+    }
     _fixLayout
 
     return $frac
@@ -266,12 +302,39 @@ itcl::body Rappture::Panes::_drop {pname X Y} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Panes::_fixLayout {args} {
     set h [winfo height $itk_component(hull)]
-    foreach p [lrange $_panes 1 end] {
-        set h [expr {$h - [winfo height $itk_component(${p}sash)]}]
+
+    set plist ""
+    set flist ""
+    foreach p $_panes f $_frac v $_visibility {
+        set sash ${p}sash
+        if {$v} {
+            # this pane is visible -- make room for it
+            lappend plist $p
+            lappend flist $f
+            if {[info exists itk_component($sash)]} {
+                set h [expr {$h - [winfo height $itk_component($sash)]}]
+            }
+        } else {
+            # this pane is not visible -- remove sash
+            if {[info exists itk_component($sash)]} {
+                place forget $itk_component($sash)
+            }
+            place forget $itk_component($p)
+        }
     }
 
+    # normalize the fractions so they add up to 1
+    set total 0
+    foreach f $flist { set total [expr {$total+$f}] }
+    set newflist ""
+    foreach f $flist {
+        lappend newflist [expr {double($f)/$total}]
+    }
+    set flist $newflist
+
+    # lay out the various panes
     set y 0
-    foreach p $_panes f $_frac {
+    foreach p $plist f $flist {
         set sash ${p}sash
         if {[info exists itk_component($sash)]} {
             set sh [winfo reqheight $itk_component($sash)]
