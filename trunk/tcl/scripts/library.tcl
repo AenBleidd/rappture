@@ -140,6 +140,23 @@ proc Rappture::entities {args} {
                         lappend queue $cpath.current.parameters
                     }
                 }
+                drawing {
+                    # add this to the return list with the right flavor
+                    if {$params(-as) == "component"} {
+                        lappend rlist $cpath
+                    } else {
+                        lappend rlist [$xmlobj element -as $params(-as) $cpath]
+                    }
+
+                    foreach child [$xmlobj children $cpath.current] {
+                        if {[string match about* $child]} {
+                            continue
+                        }
+                        if {[$xmlobj element $cpath.current.$child.parameters] != ""} {
+                            lappend queue $cpath.current.$child.parameters
+                        }
+                    }
+                }
                 default {
                     # add this to the return list with the right flavor
                     if {$params(-as) == "component"} {
