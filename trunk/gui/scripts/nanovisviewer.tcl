@@ -760,15 +760,20 @@ itcl::body Rappture::NanovisViewer::_send_text {string} {
             set w [winfo width $itk_component(3dview)]
             set h [winfo height $itk_component(3dview)]
 
-            puts $_sid "screen $w $h"
-            _send_echo >>line "screen $w $h"
+            if {[catch {puts $_sid "screen $w $h"}]} {
+                disconnect
+                _receive_echo closed
+                $_dispatcher event -after 750 !serverDown
+            } else {
+                _send_echo >>line "screen $w $h"
 
-            set _view(theta) 45
-            set _view(phi) 45
-            set _view(psi) 0
-            set _view(zoom) 1.0
-            after idle [itcl::code $this _rebuild]
-            Rappture::Tooltip::cue hide
+                set _view(theta) 45
+                set _view(phi) 45
+                set _view(psi) 0
+                set _view(zoom) 1.0
+                after idle [itcl::code $this _rebuild]
+                Rappture::Tooltip::cue hide
+            }
             return
         }
         Rappture::Tooltip::cue @$x,$y "Can't connect to visualization server.  This may be a network problem.  Wait a few moments and try resetting the view."
@@ -779,9 +784,14 @@ itcl::body Rappture::NanovisViewer::_send_text {string} {
         if {[llength $_sendobjs] > 0} {
             append _buffer(out) $string "\n"
         } else {
-            puts $_sid $string
-            foreach line [split $string \n] {
-                _send_echo >>line $line
+            if {[catch {puts $_sid $string}]} {
+                disconnect
+                _receive_echo closed
+                $_dispatcher event -after 750 !serverDown
+            } else {
+                foreach line [split $string \n] {
+                    _send_echo >>line $line
+                }
             }
         }
     }
