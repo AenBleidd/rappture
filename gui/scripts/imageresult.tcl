@@ -35,7 +35,7 @@ itcl::class Rappture::ImageResult {
     public method download {option args}
 
     protected method _rebuild {args}
-    protected method _topimage {}
+    protected method _top {what}
     protected method _zoom {option args}
     protected method _move {option args}
 
@@ -62,6 +62,7 @@ itcl::body Rappture::ImageResult::constructor {args} {
     array set _scale {
         max 1.0
         current 1.0
+        default 1
         x 0
         y 0
     }
@@ -69,8 +70,13 @@ itcl::body Rappture::ImageResult::constructor {args} {
     option add hull.width hull.height
     pack propagate $itk_component(hull) no
 
+    Rappture::Panes $itk_interior.panes -sashwidth 1 -sashrelief solid -sashpadding 2
+    pack $itk_interior.panes -expand yes -fill both
+    set main [$itk_interior.panes pane 0]
+    $itk_interior.panes fraction 0 1
+
     itk_component add controls {
-        frame $itk_interior.cntls
+        frame $main.cntls
     } {
         usual
         rename -background -controlbackground controlBackground Background
@@ -121,7 +127,7 @@ itcl::body Rappture::ImageResult::constructor {args} {
     set _image(final) [image create photo]
 
     itk_component add image {
-        label $itk_interior.image -image $_image(final)
+        label $main.image -image $_image(final)
     } {
         keep -background -foreground -cursor -font
     }
@@ -139,6 +145,18 @@ itcl::body Rappture::ImageResult::constructor {args} {
         [itcl::code $this _move drag %x %y]
     bind $itk_component(image) <ButtonRelease-1> \
         [itcl::code $this _move release %x %y]
+
+    #
+    # Add area at the bottom for notes.
+    #
+    set notes [$itk_interior.panes insert end -fraction 0.15]
+    $itk_interior.panes visibility 1 off
+    Rappture::Scroller $notes.scr -xscrollmode auto -yscrollmode auto
+    pack $notes.scr -expand yes -fill both
+    itk_component add notes {
+        Rappture::HTMLviewer $notes.scr.html
+    }
+    $notes.scr contents $notes.scr.html
 
     eval itk_initialize $args
 }
@@ -286,7 +304,7 @@ itcl::body Rappture::ImageResult::download {option args} {
             return ""
         }
         now {
-            set top [_topimage]
+            set top [_top image]
             if {$top == ""} {
                 return ""
             }
@@ -330,8 +348,10 @@ itcl::body Rappture::ImageResult::_rebuild {args} {
             return
         }
     }
-    if {$_scale(current) == "?"} {
-        _zoom reset
+    if {$_scale(current) == "?" || $_scale(default)} {
+        set _scale(current) $_scale(max)
+        set _scale(x) 0
+        set _scale(y) 0
     }
 
     set w [winfo width $itk_component(image)]
@@ -342,7 +362,7 @@ itcl::body Rappture::ImageResult::_rebuild {args} {
     set bg [format "#%03x%03x%03x" [lindex $rgb 0] [lindex $rgb 1] [lindex $rgb 2]]
     $_image(final) put $bg -to 0 0 $w $h
 
-    set imh [_topimage]
+    set imh [_top image]
     if {$imh != ""} {
         if {$_scale(current) <= 1.0} {
             set wz [expr {round($_scale(current)*$w)}]
@@ -368,20 +388,44 @@ itcl::body Rappture::ImageResult::_rebuild {args} {
             }
         }
     }
+
+    set note [_top note]
+    if {[string length $note] > 0} {
+        if {[regexp {^html://} $note]} {
+            set note [string range $note 7 end]
+        } else {
+            regexp {&} $note {\007} note
+            regexp {<} $note {\&lt;} note
+            regexp {>} $note {\&gt;} note
+            regexp {\007} $note {\&amp;} note
+            regexp "\n\n" $note {<br/>} note
+            set note "<html><body>$note</body></html>"
+        }
+        set notes [$itk_interior.panes pane 1]
+        $itk_component(notes) load $note -in [file join [_top tooldir] docs]
+        $itk_interior.panes visibility 1 on
+    } else {
+        $itk_interior.panes visibility 1 off
+    }
 }
 
 # ----------------------------------------------------------------------
-# USAGE: _topimage
+# USAGE: _top image|note|tooldir
 #
 # Used internally to get the topmost image currently being displayed.
 # ----------------------------------------------------------------------
-itcl::body Rappture::ImageResult::_topimage {} {
+itcl::body Rappture::ImageResult::_top {option} {
     set top $_topmost
     if {"" == $top} {
         set top [lindex $_dlist 0]
     }
     if {"" != $top} {
-        return [$top tkimage]
+        switch -- $option {
+            image   { return [$top tkimage] }
+            note    { return [$top hints note] }
+            tooldir { return [$top hints tooldir] }
+            default { error "bad option \"$option\": should be image, note, tooldir" }
+        }
     }
     return ""
 }
@@ -417,11 +461,13 @@ itcl::body Rappture::ImageResult::_zoom {option args} {
         }
         reset {
             set _scale(current) $_scale(max)
+            set _scale(default) 1
             set _scale(x) 0
             set _scale(y) 0
         }
         in {
             set _scale(current) [expr {$_scale(current)*0.5}]
+            set _scale(default) 0
         }
         out {
             set w [winfo width $itk_component(image)]
@@ -441,6 +487,7 @@ itcl::body Rappture::ImageResult::_zoom {option args} {
                     set _scale(current) $_scale(max)
                 }
             }
+            set _scale(default) 0
         }
     }
     $_dispatcher event -idle !rebuild
