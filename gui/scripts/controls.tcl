@@ -514,10 +514,9 @@ itcl::body Rappture::Controls::_layout {} {
         grid columnconfigure $_frame 0 -weight 0
         grid rowconfigure $_frame 0 -weight 0
 
+        set expand 0  ;# most controls float to top
         set row 0
         foreach name $showing {
-            set expand 0  ;# most controls float to top
-
             set wl $_name2info($name-label)
             if {$wl != "" && [winfo exists $wl]} {
                 grid $wl -row $row -column 0 -sticky e
@@ -554,17 +553,19 @@ itcl::body Rappture::Controls::_layout {} {
                         # expand/fill.
                         #
                         set queue [winfo children $wv]
+                        set expandgroup 0
                         while {[llength $queue] > 0} {
                             set w [lindex $queue 0]
                             set queue [lrange $queue 1 end]
                             set c [winfo class $w]
                             if {[lsearch {DeviceEditor Note} $c] >= 0} {
-                                set expand 1
+                                set expandgroup 1
                                 break
                             }
                             eval lappend queue [winfo children $w]
                         }
-                        if {$expand} {
+                        if {$expandgroup} {
+                            set expand 1
                             grid $wv -sticky nsew
                             grid rowconfigure $_frame $row -weight 1
                         }
