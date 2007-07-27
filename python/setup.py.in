@@ -2,6 +2,12 @@ from distutils.core import setup, Extension
 
 rp_install_dir = '@prefix@'
 
+library_module = Extension('Rappture.Library',
+                   include_dirs = [rp_install_dir+'/include', '../include'],
+                   sources = [ 'Rappture/Library.cc' ],
+                   library_dirs = [ rp_install_dir+'/lib', '../src' ],
+                   libraries = [ 'rappture' ] )
+
 units_module = Extension('Rappture.Units',
                    include_dirs = [rp_install_dir+'/include', '../include'],
                    sources = [ 'Rappture/PyRpUnits.cc' ],
@@ -32,6 +38,7 @@ setup(  name='Rappture',
                      'Rappture.tools',
                      'Rappture.result'],
         ext_modules=[   encode_module,
+                        library_module,
                         units_module,
                         utils_module    ]
   )
