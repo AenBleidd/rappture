@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<run>
+    <tool>
+        <repository>
+            <rappture>
+                <date>$Date: 2007-03-08 15:27:02 -0500 (Thu, 08 Mar 2007) $</date>
+                <revision>$Rev: 613 $</revision>
+                <url>$URL: https://kearneyd@repo.nanohub.org/svn/rappture/trunk/src/core/RpLibrary.cc $</url>
+            </rappture>
+        </repository>
+    </tool>
+    <input>
+        <string id="test">
+            <current>&lt;sdfsfs&gt;sdfs</current>
+        </string>
+        <time>Thu Mar 15 02:03:39 2007 EDT</time>
+        <image>
+            <current>@@RP-ENC:b64
+R0lGODlhGgASAKEBAAAAAP///////////yH+FUNyZWF0ZWQgd2l0aCBUaGUgR0lNUAAh+QQBCgAB
+ACwAAAAAGgASAAACLoyPqcvtD8CRj8VZrYw8h/tRn2eA4Eiaosa1qttC1EmW81qrtbYvdG8DCodE
+RQEAOw==</current>
+        </image>
+    </input>
+</run>

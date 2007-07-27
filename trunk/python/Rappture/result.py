@@ -19,6 +19,7 @@ def result(lib):
     results substituted into it.
     """
 
+    lib.put("tool.version.rappture.language", "python");
     runfile = 'run%d.xml' % time.time()
     fp = open(runfile,'w')
     fp.write(lib.xml())
