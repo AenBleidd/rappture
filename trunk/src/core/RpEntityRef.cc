@@ -39,11 +39,11 @@ using namespace Rappture;
 
 const char*
 EntityRef::decode (
-    const char* value
+    const char* value,
+    unsigned int len
 )
 {
     unsigned int pos = 0;
-    unsigned int len = 0;
 
     if (value == NULL) {
         // empty string, noting to do
@@ -51,7 +51,9 @@ EntityRef::decode (
     }
 
     _bout.clear();
-    len = strlen(value);
+    if (len == 0) {
+        len = strlen(value);
+    }
 
     while (pos < len) {
         if (value[pos] == '&') {
@@ -111,11 +113,11 @@ EntityRef::decode (
 
 const char*
 EntityRef::encode (
-    const char* value
+    const char* value,
+    unsigned int len
 )
 {
     unsigned int pos = 0;
-    unsigned int len = 0;
 
 
     if (value == NULL) {
@@ -124,7 +126,9 @@ EntityRef::encode (
     }
 
     _bout.clear();
-    len = strlen(value);
+    if (len == 0) {
+        len = strlen(value);
+    }
 
     while (pos < len) {
         if (*(value+pos) == '"') {
@@ -154,6 +158,12 @@ EntityRef::encode (
     _bout.append("\0",1);
     return _bout.bytes();
 }
+
+int
+EntityRef::size () {
+    return _bout.size();
+}
+
 
 #ifdef __cplusplus
     } // extern c
