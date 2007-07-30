@@ -48,6 +48,7 @@ Error Codes: @var{err} = 0 is success, anything else is failure.")
             if (libHandle > 0) {
                 lib = getObject_Lib(libHandle);
                 if (lib) {
+                    lib->put("tool.version.rappture.language", "octave");
                     lib->result();
                     // cleanLibDict();
                     err = 0;
