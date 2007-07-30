@@ -296,6 +296,7 @@ rpResult (RpLibrary* lib)
 {
     int retVal = 0;
     // signal the processing is complete
+    lib->put("tool.version.rappture.language", "c");
     lib->result();
     return retVal;
 }

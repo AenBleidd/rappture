@@ -1033,6 +1033,7 @@ void rp_result(int* handle) {
     if (handle && *handle != 0) {
         lib = getObject_Lib(*handle);
         if (lib) {
+            lib->put("tool.version.rappture.language", "fortran");
             lib->result();
         }
     }
