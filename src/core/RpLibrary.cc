@@ -1538,10 +1538,10 @@ RpLibrary::getString (std::string path, int translateFlag) const
     inData = Rappture::Buffer(retCStr);
     status &= Rappture::encoding::decode(inData,0);
     status.addContext("RpLibrary::getSting");
-    inData.append("\0",1);
+    // inData.append("\0",1);
 
     if (translateFlag == RPLIB_TRANSLATE) {
-        translatedContents = ERTranslator.decode(inData.bytes());
+        translatedContents = ERTranslator.decode(inData.bytes(),inData.size());
         if (translatedContents == NULL) {
             // translation failed
             if (!status) {
@@ -1550,12 +1550,13 @@ RpLibrary::getString (std::string path, int translateFlag) const
             }
         }
         else {
-            retStr = std::string(translatedContents);
+            // subtract 1 from size because ERTranslator adds extra NULL
+            retStr = std::string(translatedContents,ERTranslator.size()-1);
             translatedContents = NULL;
         }
     }
     else {
-        retStr = std::string(inData.bytes());
+        retStr = std::string(inData.bytes(),inData.size());
     }
 
     inData.clear();
@@ -1700,7 +1701,7 @@ RpLibrary::getData (std::string path) const
     }
 
     if (translateFlag == RPLIB_TRANSLATE) {
-        translatedContents = ERTranslator.decode(retCStr);
+        translatedContents = ERTranslator.decode(retCStr,0);
         if (translatedContents == NULL) {
             // translation failed
             if (!status) {
@@ -1768,7 +1769,7 @@ RpLibrary::put (    std::string path,
         }
 
         if (translateFlag == RPLIB_TRANSLATE) {
-            translatedContents = ERTranslator.encode(value.c_str());
+            translatedContents = ERTranslator.encode(value.c_str(),0);
         }
         else {
             translatedContents = value.c_str();

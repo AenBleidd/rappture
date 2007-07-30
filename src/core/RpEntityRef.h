@@ -41,8 +41,9 @@ namespace Rappture {
 class EntityRef
 {
     public:
-        const char* encode (const char* in);
-        const char* decode (const char* in);
+        const char* encode (const char* in, unsigned int len);
+        const char* decode (const char* in, unsigned int len);
+        int size();
 
         EntityRef () {};
 
