@@ -25,7 +25,7 @@ typedef struct {
 } RpLibraryObject;
 
 /*
- * Check to see if this object is a Rappture.Library object.
+ * Check to see if this object is a Rappture.library object.
  * This does not check to see if the object is correctly
  * initialized. To check for correct object type and
  * correct initialization, use RpLibraryObject_IsValid.
@@ -38,7 +38,7 @@ RpLibraryObject_Check(PyObject *o)
 
     if (o != NULL) {
         if (    (*(o->ob_type->tp_name) == 'R')
-             && (strcmp(o->ob_type->tp_name,"Rappture.Library") == 0) ) {
+             && (strcmp(o->ob_type->tp_name,"Rappture.library") == 0) ) {
             retval = 1;
         }
     }
@@ -47,12 +47,12 @@ RpLibraryObject_Check(PyObject *o)
 }
 
 /*
- * Check to see if this object is a Rappture.Library object
+ * Check to see if this object is a Rappture.library object
  * and is correctly initialized
  *
  * This function calls RpLibraryObject_Check internally, and is used
  * in most of the internal functions to check if an object being passed
- * in by the user is a valid Rappture.Library object
+ * in by the user is a valid Rappture.library object
  */
 
 int
@@ -96,7 +96,7 @@ RpLibraryObject_init(RpLibraryObject *self, PyObject *args, PyObject *kwds)
 
     if (!PyArg_ParseTuple(args, "O", &inObj)) {
         PyErr_Format(PyExc_TypeError,
-            "Library() takes 1 argument, a file name or a Rappture Library Object");
+            "library() takes 1 argument, a file name or a Rappture Library Object");
         return -1;
     }
 
@@ -737,7 +737,7 @@ static PyTypeObject RpLibraryObjectType = {
      * to be portable to Windows without using C++. */
     PyObject_HEAD_INIT(NULL)
     0,                                    /*ob_size*/
-    "Rappture.Library",                   /*tp_name*/
+    "Rappture.library",                   /*tp_name*/
     sizeof(RpLibraryObject),              /*tp_basicsize*/
     0,                                    /*tp_itemsize*/
     /* methods */
@@ -757,7 +757,7 @@ static PyTypeObject RpLibraryObjectType = {
     0,                                    /*tp_setattro*/
     0,                                    /*tp_as_buffer*/
     Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,   /*tp_flags*/
-    "Rappture.Library Object",            /*tp_doc*/
+    "Rappture.library Object",            /*tp_doc*/
     0,                                    /*tp_traverse*/
     0,                                    /*tp_clear*/
     0,                                    /*tp_richcompare*/
@@ -990,7 +990,7 @@ PyDoc_STRVAR(module_doc, "Rappture Library Module for Python.");
 /* Initialization function for the module */
 
 PyMODINIT_FUNC
-initLibrary(void)
+initlibrary(void)
 {
     PyObject *m;
 
@@ -1001,7 +1001,7 @@ initLibrary(void)
         return;
 
     /* Create the module and add the functions */
-    m = Py_InitModule3("Library", Library_Methods, module_doc);
+    m = Py_InitModule3("library", Library_Methods, module_doc);
 
     /* Add some symbolic constants to the module */
     if (ErrorObject == NULL) {
@@ -1011,7 +1011,7 @@ initLibrary(void)
     }
 
     Py_INCREF(&RpLibraryObjectType);
-    PyModule_AddObject(m, "Library", (PyObject*) &RpLibraryObjectType);
+    PyModule_AddObject(m, "library", (PyObject*) &RpLibraryObjectType);
 
     Py_XINCREF(ErrorObject);
     PyModule_AddObject(m, "error", ErrorObject);

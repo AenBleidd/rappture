@@ -16,9 +16,9 @@ import Rappture
 class CopyTests(unittest.TestCase):
 
     def setUp(self):
-        self.lib  = Rappture.Library.Library("test.xml")
-        self.lib2 = Rappture.Library.Library("test.xml")
-        # self.lib3 = Rappture.Library.Library()
+        self.lib  = Rappture.library("test.xml")
+        self.lib2 = Rappture.library("test.xml")
+        # self.lib3 = Rappture.library()
 
     def tearDown(self):
         return
@@ -216,7 +216,7 @@ RQEAOw==</current>
 class ElementTests(unittest.TestCase):
 
     def setUp(self):
-        self.lib = Rappture.Library.Library("test.xml")
+        self.lib = Rappture.library("test.xml")
 
     def tearDown(self):
         return
@@ -257,7 +257,7 @@ class ElementTests(unittest.TestCase):
 class GetTests(unittest.TestCase):
 
     def setUp(self):
-        self.lib = Rappture.Library.Library("test.xml")
+        self.lib = Rappture.library("test.xml")
 
     def tearDown(self):
         return
@@ -343,7 +343,7 @@ RQEAOw==""")
 class PutTests(unittest.TestCase):
 
     def setUp(self):
-        self.lib = Rappture.Library.Library("test.xml")
+        self.lib = Rappture.library("test.xml")
 
     def tearDown(self):
         return
@@ -483,7 +483,7 @@ Z7fWlD2X25cimGm2xQKn464c/HQYj/8p0cl+ldO+RvVm9R/4DWcyEdUgAwAA
 class XmlTests(unittest.TestCase):
 
     def setUp(self):
-        self.lib = Rappture.Library.Library("test.xml")
+        self.lib = Rappture.library("test.xml")
 
     def tearDown(self):
         return
@@ -536,7 +536,7 @@ class ResultTests(unittest.TestCase):
             self.assertEqual(self.lib.xml(),lib2.xml())
 
     def setUp(self):
-        self.lib = Rappture.Library.Library("test.xml")
+        self.lib = Rappture.library("test.xml")
 
     def tearDown(self):
         return
