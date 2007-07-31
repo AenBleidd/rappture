@@ -4,7 +4,7 @@ rp_install_dir = '@prefix@'
 
 library_module = Extension('Rappture.library',
                    include_dirs = [rp_install_dir+'/include', '../include'],
-                   sources = [ 'Rappture/Library.cc' ],
+                   sources = [ 'Rappture/PyRpLibrary.cc' ],
                    library_dirs = [ rp_install_dir+'/lib', '../src' ],
                    libraries = [ 'rappture' ] )
 
