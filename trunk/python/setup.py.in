@@ -2,7 +2,7 @@ from distutils.core import setup, Extension
 
 rp_install_dir = '@prefix@'
 
-library_module = Extension('Rappture.Library',
+library_module = Extension('Rappture.library',
                    include_dirs = [rp_install_dir+'/include', '../include'],
                    sources = [ 'Rappture/Library.cc' ],
                    library_dirs = [ rp_install_dir+'/lib', '../src' ],
@@ -30,8 +30,7 @@ setup(  name='Rappture',
         version='0.1',
         description='Rapid Application Infrastructure library for nanoHUB.org',
         url='http://www.nanohub.org/',
-        py_modules=[ 'Rappture.library',
-                     'Rappture.interface',
+        py_modules=[ 'Rappture.interface',
                      'Rappture.number',
                      'Rappture.queue',
                      'Rappture.signalHandler',
