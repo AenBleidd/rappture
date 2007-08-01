@@ -32,7 +32,7 @@ c ======================================================================
 
         call rp_lib_get(driver,
      +        "input.number(Ef).current", strVal)
-        ok = rp_units_convert_dbl(strVal,"K",Ef)
+        ok = rp_units_convert_dbl(strVal,"eV",Ef)
 
         kT = 8.61734e-5 * T
         Emin = Ef - 10*kT
