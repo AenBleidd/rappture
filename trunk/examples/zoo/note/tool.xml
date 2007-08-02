@@ -1,0 +1,34 @@
+<?xml version="1.0"?>
+<run>
+<tool>
+  <title>note</title>
+  <about>Example of a Rappture &lt;note&gt; object.
+
+Notes are not really inputs or outputs, but descriptive explanations
+to the user.  The contents of a note can be arbitrary HTML, so it
+can contain images, hyperlinks, etc.
+  </about>
+  <command>
+    tclsh @tool/note.tcl @driver
+  </command>
+</tool>
+
+<input>
+  <note>
+    <contents>file://bysize.html</contents>
+  </note>
+  <number id="diameter">
+    <about>
+      <label>Particle diameter d</label>
+      <description>Diameter of sphere-shaped nanoparticles.
+
+Note:  Larger particles require more time to simulate.</description>
+    </about>
+    <units>nm</units>
+    <min>2nm</min>
+    <max>20nm</max>
+    <default>5nm</default>
+  </number>
+
+</input>
+</run>
