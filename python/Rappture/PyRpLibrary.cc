@@ -580,11 +580,9 @@ RpLibraryObject_put(RpLibraryObject *self, PyObject *args, PyObject *keywds)
     }
     else if (valueStrObj != NULL) {
 
-        PyString_AsStringAndSize(valueStrObj, &value_char, &value_len);
-        if (value_len < 1) {
-            /* user passed in empty value string */
-            // should the user be able to pass an empty string in?
-            PyErr_SetString(PyExc_ValueError, "put()'s \'value\' arg is empty");
+        if (PyString_AsStringAndSize(valueStrObj, &value_char, &value_len) == -1) {
+            // user passed in an improper string
+            // exception raised within fxn
             return NULL;
         }
 
