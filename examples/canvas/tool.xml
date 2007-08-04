@@ -1,0 +1,38 @@
+<?xml version="1.0"?>
+<run>
+<tool>
+  <title>Tk canvas</title>
+  <about>The Tk canvas can be used to create drawings
+for the output from your simulator.  This
+example draws the visible color spectrum
+and shows a wavelength value on the spectrum.
+  </about>
+  <command>
+    wish @tool/waveln.tcl @driver
+  </command>
+</tool>
+<input>
+  <number id="wavel">
+    <about>
+      <label>Wavelength</label>
+      <description>Enter a wavelength of light in the visible spectrum.</description>
+    </about>
+    <units>nm</units>
+    <min>380nm</min>
+    <max>750nm</max>
+    <default>400nm</default>
+    <preset>
+      <value>472nm</value>
+      <label>472nm (blue)</label>
+    </preset>
+    <preset>
+      <value>685nm</value>
+      <label>532nm (green)</label>
+    </preset>
+    <preset>
+      <value>685nm</value>
+      <label>685nm (red)</label>
+    </preset>
+  </number>
+</input>
+</run>
