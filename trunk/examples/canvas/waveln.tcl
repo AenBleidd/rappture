@@ -8,6 +8,7 @@
 #  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 # ======================================================================
 package require Rappture
+package require Tk
 package require Img
 wm withdraw .
 
@@ -86,7 +87,8 @@ set x [expr {($x1-$x0)/double(740-380) * ($wavel-380) + $x0}]
 
 set imh [image create photo -file [file join $tooldir hand.gif]]
 .c create image $x $y0 -image $imh
-.c create text $x [expr {$y0-15}] -anchor s -text "$wavel nm"
+.c create text $x [expr {$y0-15}] \
+    -anchor s -text "$wavel nm" -font "Helvetica 14"
 
 #
 # Convert the PostScript from the canvas into an image.

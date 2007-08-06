@@ -8,7 +8,7 @@ example draws the visible color spectrum
 and shows a wavelength value on the spectrum.
   </about>
   <command>
-    wish @tool/waveln.tcl @driver
+    tclsh @tool/waveln.tcl @driver
   </command>
 </tool>
 <input>
