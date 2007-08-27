@@ -37,13 +37,11 @@
 #include "NvZincBlendeVolumeShader.h"
 #include "NvStdVertexShader.h"
 
-using namespace std;
-
 class VolumeRenderer {
 
 private:
-    vector <Volume*> volume;	    //!<- array of volumes
-    vector <TransferFunction*> tf;    //!<- array of corresponding transfer functions 
+    std::vector <Volume*> volume;	    //!<- array of volumes
+    std::vector <TransferFunction*> tf;    //!<- array of corresponding transfer functions 
     int n_volumes;
 
     bool slice_mode;	//!<- enable cut planes

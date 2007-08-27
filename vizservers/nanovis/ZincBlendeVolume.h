@@ -20,10 +20,6 @@
 
 #include "Volume.h"
 
-
-using namespace std;
-
-
 class ZincBlendeVolume : public Volume
 {
 	

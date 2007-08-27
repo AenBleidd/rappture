@@ -24,8 +24,6 @@
 #include "Texture3D.h"
 #include "Vector3.h"
 
-using namespace std;
-
 struct CutPlane{
   int orient;	//orientation - 1: xy slice, 2: yz slice, 3: xz slice
   float offset;	//normalized offset [0,1] in the volume
@@ -46,7 +44,7 @@ class Volume{
 public:
 	int volume_type;	//cubic or zincblende
 
-	vector <CutPlane> plane; //cut planes
+	std::vector <CutPlane> plane; //cut planes
 	int n_components;
 
 	Texture3D* tex;	//OpenGL texture storing the volume

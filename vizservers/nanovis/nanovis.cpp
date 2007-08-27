@@ -804,6 +804,10 @@ VolumeCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
             return TCL_OK;
         }
         else if (c == 'f' && strcmp(argv[2],"follows") == 0) {
+            //printf("Data Loading\n");
+            //fflush(stdout);
+            //return TCL_OK;
+
             int nbytes;
             if (Tcl_GetInt(interp, argv[3], &nbytes) != TCL_OK) {
                 return TCL_ERROR;
@@ -833,12 +837,20 @@ VolumeCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
                 return TCL_ERROR;
             }
 
+/*
+            int nbytes;
+            if (Tcl_GetInt(interp, argv[3], &nbytes) != TCL_OK) {
+                return TCL_ERROR;
+            }
+*/
+
 
             int n = n_volumes;
             char header[6];
             memcpy(header, buf.bytes(), sizeof(char) * 5);
             header[5] = '\0';
 
+            
             if (!strcmp(header, "<HDR>"))
             {
                 printf("HDR stream is in\n");
@@ -871,6 +883,7 @@ VolumeCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
             }
             else
             {
+                printf("OpenDX loading...\n");
                 std::stringstream fdata;
                 fdata.write(buf.bytes(),buf.size());
                 err = load_volume_stream(n, fdata);
