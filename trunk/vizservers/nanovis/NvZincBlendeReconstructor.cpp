@@ -1,3 +1,5 @@
+#include <stdio.h>
+#include <string.h>
 #include "NvZincBlendeReconstructor.h"
 #include "ZincBlendeVolume.h"
 
@@ -28,8 +30,8 @@ ZincBlendeVolume* NvZincBlendeReconstructor::loadFromFile(const char* fileName)
     int width = 0, height = 0, depth = 0;
     void* data = NULL;
 
-    ifstream stream;
-    stream.open(fileName, ios::binary);
+    std::ifstream stream;
+    stream.open(fileName, std::ios::binary);
 
     ZincBlendeVolume* volume = loadFromStream(stream);
 
@@ -40,46 +42,109 @@ ZincBlendeVolume* NvZincBlendeReconstructor::loadFromFile(const char* fileName)
 
 ZincBlendeVolume* NvZincBlendeReconstructor::loadFromStream(std::istream& stream)
 {
+    ZincBlendeVolume* volume = 0;
     Vector3 origin, delta;
     double temp;
     int width = 0, height = 0, depth = 0;
     void* data = NULL;
+    int version = 1;
 
     char str[5][20];
     do {
         getLine(stream);
-    } while(strstr(buff, "object") == 0);
+        if (buff[0] == '#')
+        {
+            continue;
+        } 
+        else if (strstr((const char*) buff, "object") != 0) 
+        {
+           version = 1; 
+           break;
+        }
+        else if (strstr(buff, "record format") != 0) 
+        {
+           version = 2; 
+           break;
+        }
+    } while(1);
 
 
-     sscanf(buff, "%s%s%s%s%s%d%d%d", str[0], str[1], str[2], str[3], str[4],&width, &height, &depth);
-     getLine(stream); 
-     sscanf(buff, "%s%f%f%f", str[0], &(origin.x), &(origin.y), &(origin.z));
-     getLine(stream); 
-     sscanf(buff, "%s%f%f%f", str[0], &(delta.x), &temp, &temp);
-     getLine(stream); 
-     sscanf(buff, "%s%f%f%f", str[0], &temp, &(delta.y), &temp);
-     getLine(stream); 
-     sscanf(buff, "%s%f%f%f", str[0], &temp, &temp, &(delta.z));
-
-    do {
-        getLine(stream);
-    } while(strcmp(buff, "<\\HDR>") != 0);
-
-    
-    width = width / 4;
-    height = height / 4;
-    depth = depth / 4;
-    data = new double[width * height * depth * 8 * 4]; // 8 atom per cell, 4 double (x, y, z, and probability) per atom
-
-    try {
-        stream.read((char*) data, width * height * depth * 8 * 4 * sizeof(double));
-    }
-    catch (...)
+    if (version == 1)
     {
-        printf("ERROR\n");
-    }
+        sscanf(buff, "%s%s%s%s%s%d%d%d", str[0], str[1], str[2], str[3], str[4],&width, &height, &depth);
+        getLine(stream); 
+        sscanf(buff, "%s%f%f%f", str[0], &(origin.x), &(origin.y), &(origin.z));
+        getLine(stream); 
+        sscanf(buff, "%s%f%f%f", str[0], &(delta.x), &temp, &temp);
+        getLine(stream); 
+        sscanf(buff, "%s%f%f%f", str[0], &temp, &(delta.y), &temp);
+        getLine(stream); 
+        sscanf(buff, "%s%f%f%f", str[0], &temp, &temp, &(delta.z));
+        do {
+            getLine(stream);
+        } while(strcmp(buff, "<\\HDR>") != 0);
 
-    return buildUp(origin, delta, width, height, depth, data);
+        width = width / 4;
+        height = height / 4;
+        depth = depth / 4;
+        //data = new double[width * height * depth * 8 * 4]; 
+        data = malloc(width * height * depth * 8 * 4 * sizeof(double)); 
+            // 8 atom per cell, 4 double (x, y, z, and probability) per atom
+        try {
+            stream.read((char*) data, width * height * depth * 8 * 4 * sizeof(double));
+        }
+        catch (...)
+        {
+            printf("ERROR\n");
+        }
+
+        volume = buildUp(origin, delta, width, height, depth, data);
+
+        free(data);
+    }
+    else if (version == 2)
+    {
+        const char* pt;
+        int datacount;
+        double emptyvalue;
+        do {
+            getLine(stream);
+            if ((pt = strstr(buff, "delta")) != 0)
+            {   
+                sscanf(pt, "%s%f%f%f", str[0], &(delta.x), &(delta.y), &(delta.z));
+            }
+            else if ((pt = strstr(buff, "datacount")) != 0)
+            {
+                sscanf(pt, "%s%d", str[0], &datacount);
+            }
+            else if ((pt = strstr(buff, "datatype")) != 0)
+            {
+                sscanf(pt, "%s%s", str[0], str[1]);
+                if (strcmp(str[1], "double64"))
+                {
+                }
+            }
+            else if ((pt = strstr(buff, "count")) != 0)
+            {
+                sscanf(pt, "%s%d%d%d", str[0], &width, &height, &depth);
+            }
+            else if ((pt = strstr(buff, "emptymark")) != 0)
+            {
+                sscanf(pt, "%s%lf", str[0], &emptyvalue);
+            }
+            else if ((pt = strstr(buff, "emprymark")) != 0)
+            {
+                sscanf(pt, "%s%lf", str[0], &emptyvalue);
+            }
+        } while(strcmp(buff, "<\\HDR>") != 0);
+
+        data = malloc(width * height * depth * 8 * 4 * sizeof(double)); 
+        stream.read((char*) data, width * height * depth * 8 * 4 * sizeof(double));
+
+        volume =  buildUp(origin, delta, width, height, depth, datacount, emptyvalue, data);
+        free(data);
+    }
+    return volume;
 }
 
 struct _NvAtomInfo {
@@ -173,6 +238,75 @@ ZincBlendeVolume* NvZincBlendeReconstructor::buildUp(const Vector3& origin, cons
     if (vmax != 0.0f)
     {
         for (i=0; i < cellCount; ++i) 
+        {
+            fourAnionVolume[i] = (fourAnionVolume[i] - vmin)/ dv;
+            fourCationVolume[i] = (fourCationVolume[i] - vmin) / dv;
+        }
+    }
+
+    Vector3 cellSize;
+    cellSize.x = 0.25 / width;
+    cellSize.y = 0.25 / height;
+    cellSize.z = 0.25 / depth;
+
+    zincBlendeVolume = new ZincBlendeVolume(origin.x, origin.y, origin.z,
+                                            width, height, depth, 1, 4,
+                                            fourAnionVolume, fourCationVolume,
+                                            vmin, vmax, nzero_min, cellSize);
+
+    return zincBlendeVolume;
+}
+
+ZincBlendeVolume* NvZincBlendeReconstructor::buildUp(const Vector3& origin, const Vector3& delta, int width, int height, int depth, int datacount, double emptyvalue, void* data)
+{
+    ZincBlendeVolume* zincBlendeVolume = NULL;
+    float *fourAnionVolume, *fourCationVolume;
+    int size = width * height * depth * 4;
+    fourAnionVolume = new float[size];
+    fourCationVolume = new float[size];
+
+    memset(fourAnionVolume, 0, size * sizeof(float));
+    memset(fourCationVolume, 0, size * sizeof(float));
+
+    _NvAtomInfo* srcPtr = (_NvAtomInfo*) data;
+
+    float* component4A, *component4B;
+    float vmin, vmax, nzero_min;
+    int index;
+    nzero_min = 1e23f;
+    vmin = vmax = srcPtr->atom;
+    int i;
+    for (i = 0; i < datacount; ++i)
+    {
+
+        index = srcPtr->getIndex(width, height);
+        component4A = fourAnionVolume + index;
+        component4B = fourCationVolume + index;
+
+        component4A[0] = (srcPtr->atom != emptyvalue)? (float) srcPtr->atom : 0.0f; srcPtr++;
+        component4A[1] = (srcPtr->atom != emptyvalue)? (float) srcPtr->atom : 0.0f; srcPtr++;
+        component4A[2] = (srcPtr->atom != emptyvalue)? (float) srcPtr->atom : 0.0f; srcPtr++;
+        component4A[3] = (srcPtr->atom != emptyvalue)? (float) srcPtr->atom : 0.0f; srcPtr++;
+      
+        component4B[0] = (srcPtr->atom != emptyvalue)? (float) srcPtr->atom : 0.0f; srcPtr++;
+        component4B[1] = (srcPtr->atom != emptyvalue)? (float) srcPtr->atom : 0.0f; srcPtr++;
+        component4B[2] = (srcPtr->atom != emptyvalue)? (float) srcPtr->atom : 0.0f; srcPtr++;
+        component4B[3] = (srcPtr->atom != emptyvalue)? (float) srcPtr->atom : 0.0f; srcPtr++;
+
+        vmax = _NvMax3(_NvMax4(component4A), _NvMax4(component4B), vmax);
+        vmin = _NvMin3(_NvMin4(component4A), _NvMin4(component4B), vmin);
+
+        if (vmin != 0.0 && vmin < nzero_min)
+        {
+            nzero_min = vmin;    
+        }
+
+    }
+
+    double dv = vmax - vmin;
+    if (vmax != 0.0f)
+    {
+        for (i=0; i < datacount; ++i) 
         {
             fourAnionVolume[i] = (fourAnionVolume[i] - vmin)/ dv;
             fourCationVolume[i] = (fourCationVolume[i] - vmin) / dv;

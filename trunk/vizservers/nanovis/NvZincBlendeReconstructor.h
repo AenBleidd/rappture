@@ -79,6 +79,7 @@ public :
      * @param data the memory block of output data of NEMO-3D
      */
     ZincBlendeVolume* buildUp(const Vector3& origin, const Vector3& delta, int width, int height, int depth, void* data);
+    ZincBlendeVolume* buildUp(const Vector3& origin, const Vector3& delta, int width, int height, int depth, int datacount, double emptyvalue, void* data);
 };
 
 #endif
