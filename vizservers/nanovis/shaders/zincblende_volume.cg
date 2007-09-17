@@ -31,6 +31,17 @@ PixelOut main(v2f IN,
   float4 tex_coord = mul(modelViewInv, IN.TexCoord);
   float4 twice_cell_size = cellSize * 2.0;
 	
+  // volumeA : outer 
+  // volumeB : inner
+  float4 tex_coord_2 = tex_coord + float4(twice_cell_size.x, 0,                 twice_cell_size.z, 0);
+  float4 tex_coord_3 = tex_coord + float4(0,                 twice_cell_size.y, twice_cell_size.z, 0);
+  float4 tex_coord_4 = tex_coord + float4(twice_cell_size.x, twice_cell_size.z, 0); 
+
+  float4 voxel_corner = f4tex3D(volumeB, tex_coord) + f4tex3D(volumeA, tex_coord - cellSize);
+  float4 voxel_face_center_a = f4tex3D(volumeB, tex_coord_a) + f4tex3D(volumeA, tex_coord_a - cellSize);
+  float4 voxel_face_center_b = f4tex3D(volumeB, tex_coord_b) + f4tex3D(volumeA, tex_coord_b - cellSize);
+  float4 voxel_face_center_c = f4tex3D(volumeB, tex_coord_c) + f4tex3D(volumeA, tex_coord_c - cellSize);
+/*
   float4 tex_coord_a = tex_coord - float4(twice_cell_size.x, twice_cell_size.y, 0, 0);
   float4 tex_coord_b = tex_coord - float4(twice_cell_size.x, 0, twice_cell_size.z, 0);
   float4 tex_coord_c = tex_coord - float4(0, twice_cell_size.y, twice_cell_size.z, 0); 
@@ -39,6 +50,7 @@ PixelOut main(v2f IN,
   float4 voxel_face_center_a = f4tex3D(volumeA, tex_coord_a) + f4tex3D(volumeB, tex_coord_a - cellSize);
   float4 voxel_face_center_b = f4tex3D(volumeA, tex_coord_b) + f4tex3D(volumeB, tex_coord_b - cellSize);
   float4 voxel_face_center_c = f4tex3D(volumeA, tex_coord_c) + f4tex3D(volumeB, tex_coord_c - cellSize);
+*/
 	
   //combine 8 sampling results
   float sample = (voxel_corner.x + voxel_face_center_a.y + voxel_face_center_b.z + voxel_face_center_c.w) * 0.125;
