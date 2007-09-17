@@ -43,8 +43,9 @@ ZincBlendeVolume::ZincBlendeVolume(float x, float y, float z,
 
 ZincBlendeVolume::~ZincBlendeVolume()
 { 
-   if(zincblende_tex[0])
-     delete zincblende_tex[0];
+    // This data will be deleted in a destrutor of Volume class
+   //if(zincblende_tex[0])
+   //  delete zincblende_tex[0];
    if(zincblende_tex[1])
      delete zincblende_tex[1];
 }
