@@ -50,6 +50,8 @@
 #include "HeightMap.h"
 #include "Grid.h"
 
+//#define  _LOCAL_ZINC_TEST_
+
 // R2 headers
 #include <R2/R2FilePath.h>
 #include <R2/R2Fonts.h>
@@ -804,7 +806,7 @@ VolumeCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
             return TCL_OK;
         }
         else if (c == 'f' && strcmp(argv[2],"follows") == 0) {
-            //printf("Data Loading\n");
+            printf("Data Loading\n");
             //fflush(stdout);
             //return TCL_OK;
 
@@ -816,15 +818,20 @@ VolumeCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
             Rappture::Outcome err;
             Rappture::Buffer buf;
 
+            // DEBUG
+            int totalsize = nbytes;
             char buffer[8096];
             while (nbytes > 0) 
             {
                 int chunk = (sizeof(buffer) < nbytes) ? sizeof(buffer) : nbytes;
                 int status = fread(buffer, 1, chunk, stdin);
+                printf("Begin Reading [%d Read : %d Left]\n", status, nbytes - status);
+                fflush(stdout);
                 if (status > 0) {
                     buf.append(buffer,status);
                     nbytes -= status;
                 } else {
+                    printf("data unpacking failed\n");
                     Tcl_AppendResult(interp, "data unpacking failed: unexpected EOF",
                         (char*)NULL);
                     return TCL_ERROR;
@@ -833,32 +840,51 @@ VolumeCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
 
             err = Rappture::encoding::decode(buf,RPENC_Z|RPENC_B64|RPENC_HDR);
             if (err) {
+                printf("ERROR -- DECODING\n");
+                fflush(stdout);
                 Tcl_AppendResult(interp, err.remark().c_str(), (char*)NULL);
                 return TCL_ERROR;
             }
-
-/*
-            int nbytes;
-            if (Tcl_GetInt(interp, argv[3], &nbytes) != TCL_OK) {
-                return TCL_ERROR;
-            }
-*/
-
 
             int n = n_volumes;
             char header[6];
             memcpy(header, buf.bytes(), sizeof(char) * 5);
             header[5] = '\0';
 
+#ifdef _LOCAL_ZINC_TEST_
+            FILE* fp = fopen("/home/nanohub/vrinside/nv/data/HOON/QDWL_100_100_50_strain_8000i.nd_zatom_12_1", "rb");
+            unsigned char* b = (unsigned char*) malloc(buf.size());
+            if (fp == 0)
+            {
+                printf("cannot open the file\n");
+                fflush(stdout);
+                return TCL_ERROR;
+            }
+            fread(b, buf.size(), 1, fp);
+            fclose(fp);
+#endif
+
             
+            printf("Checking header[%s]\n", header);
+            fflush(stdout);
             if (!strcmp(header, "<HDR>"))
             {
-                printf("HDR stream is in\n");
-                std::stringstream fdata(std::ios_base::out|std::ios_base::in|std::ios_base::binary);
-                fdata.write(buf.bytes(),buf.size());
-
                 Volume* vol = NULL;
-                vol = NvZincBlendeReconstructor::getInstance()->loadFromStream(fdata);
+
+                printf("ZincBlende stream is in\n");
+                fflush(stdout);
+                //std::stringstream fdata(std::ios_base::out|std::ios_base::in|std::ios_base::binary);
+                //fdata.write(buf.bytes(),buf.size());
+                //vol = NvZincBlendeReconstructor::getInstance()->loadFromStream(fdata);
+                
+#ifdef _LOCAL_ZINC_TEST_
+                vol = NvZincBlendeReconstructor::getInstance()->loadFromMemory(b);
+#else
+                vol = NvZincBlendeReconstructor::getInstance()->loadFromMemory((void*) buf.bytes());
+#endif
+
+                printf("finish loading\n");
+                fflush(stdout);
                 if (vol)
                 {
                     while (n_volumes <= n) 
@@ -884,6 +910,7 @@ VolumeCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
             else
             {
                 printf("OpenDX loading...\n");
+                fflush(stdout);
                 std::stringstream fdata;
                 fdata.write(buf.bytes(),buf.size());
                 err = load_volume_stream(n, fdata);
@@ -1647,7 +1674,6 @@ int PlaneEnableCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, 
 
   return TCL_OK;
 }
-
 
 //report errors related to CG shaders
 void cgErrorCallback(void)
