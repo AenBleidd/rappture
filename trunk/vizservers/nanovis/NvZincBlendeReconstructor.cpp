@@ -30,6 +30,7 @@ ZincBlendeVolume* NvZincBlendeReconstructor::loadFromFile(const char* fileName)
     int width = 0, height = 0, depth = 0;
     void* data = NULL;
 
+
     std::ifstream stream;
     stream.open(fileName, std::ios::binary);
 
@@ -58,11 +59,15 @@ ZincBlendeVolume* NvZincBlendeReconstructor::loadFromStream(std::istream& stream
         } 
         else if (strstr((const char*) buff, "object") != 0) 
         {
+            printf("VERSION 1\n");
+            fflush(stdout);
            version = 1; 
            break;
         }
         else if (strstr(buff, "record format") != 0) 
         {
+            printf("VERSION 2\n");
+            fflush(stdout);
            version = 2; 
            break;
         }
@@ -112,10 +117,14 @@ ZincBlendeVolume* NvZincBlendeReconstructor::loadFromStream(std::istream& stream
             if ((pt = strstr(buff, "delta")) != 0)
             {   
                 sscanf(pt, "%s%f%f%f", str[0], &(delta.x), &(delta.y), &(delta.z));
+                printf("delta : %f %f %f\n", delta.x, delta.y, delta.z);
+                fflush(stdout);
             }
             else if ((pt = strstr(buff, "datacount")) != 0)
             {
                 sscanf(pt, "%s%d", str[0], &datacount);
+                printf("datacount = %d\n", datacount);
+                fflush(stdout);
             }
             else if ((pt = strstr(buff, "datatype")) != 0)
             {
@@ -127,18 +136,24 @@ ZincBlendeVolume* NvZincBlendeReconstructor::loadFromStream(std::istream& stream
             else if ((pt = strstr(buff, "count")) != 0)
             {
                 sscanf(pt, "%s%d%d%d", str[0], &width, &height, &depth);
+                printf("width height depth %d %d %d\n", width, height, depth);
+                fflush(stdout);
             }
             else if ((pt = strstr(buff, "emptymark")) != 0)
             {
                 sscanf(pt, "%s%lf", str[0], &emptyvalue);
+                printf("empryvalue %lf\n", emptyvalue);
+                fflush(stdout);
             }
             else if ((pt = strstr(buff, "emprymark")) != 0)
             {
                 sscanf(pt, "%s%lf", str[0], &emptyvalue);
+                printf("emptyvalue %lf\n", emptyvalue);
             }
-        } while(strcmp(buff, "<\\HDR>") != 0);
+        } while(strcmp(buff, "<\\HDR>") != 0 && strcmp(buff, "</HDR>") != 0);
 
         data = malloc(width * height * depth * 8 * 4 * sizeof(double)); 
+        memset(data, 0, width * height * depth * 8 * 4 * sizeof(double)); 
         stream.read((char*) data, width * height * depth * 8 * 4 * sizeof(double));
 
         volume =  buildUp(origin, delta, width, height, depth, datacount, emptyvalue, data);
@@ -212,6 +227,10 @@ ZincBlendeVolume* NvZincBlendeReconstructor::buildUp(const Vector3& origin, cons
     for (i = 0; i < cellCount; ++i)
     {
         index = srcPtr->getIndex(width, height);
+
+        printf("index %d\n", index);
+        fflush(stdout);
+
         component4A = fourAnionVolume + index;
         component4B = fourCationVolume + index;
 
@@ -280,6 +299,16 @@ ZincBlendeVolume* NvZincBlendeReconstructor::buildUp(const Vector3& origin, cons
     {
 
         index = srcPtr->getIndex(width, height);
+        printf("[%d] index %d (width:%lf height:%lf depth:%lf)\n", i, index, srcPtr->indexX, srcPtr->indexY, srcPtr->indexZ);
+        fflush(stdout);
+
+        if (index < 0) {
+            printf("There is an invalid data\n");
+            fflush(stdout);
+            srcPtr +=8;
+            continue;
+        }
+
         component4A = fourAnionVolume + index;
         component4B = fourCationVolume + index;
 
@@ -342,5 +371,153 @@ void NvZincBlendeReconstructor::getLine(std::istream& sin)
     } while (!sin.eof());
 
     buff[index] = '\0';
+
+    printf("%s", buff);
+    fflush(stdout);
 }
 
+ZincBlendeVolume* NvZincBlendeReconstructor::loadFromMemory(void* dataBlock)
+{
+    ZincBlendeVolume* volume = 0;
+    Vector3 origin, delta;
+    double temp;
+    int width = 0, height = 0, depth = 0;
+    void* data = NULL;
+    int version = 1;
+
+    unsigned char* stream = (unsigned char*)dataBlock;
+    char str[5][20];
+    do {
+        getLine(stream);
+        if (buff[0] == '#')
+        {
+            continue;
+        } 
+        else if (strstr((const char*) buff, "object") != 0) 
+        {
+            printf("VERSION 1\n");
+            fflush(stdout);
+           version = 1; 
+           break;
+        }
+        else if (strstr(buff, "record format") != 0) 
+        {
+            printf("VERSION 2\n");
+            fflush(stdout);
+           version = 2; 
+           break;
+        }
+    } while(1);
+
+
+    if (version == 1)
+    {
+        sscanf(buff, "%s%s%s%s%s%d%d%d", str[0], str[1], str[2], str[3], str[4],&width, &height, &depth);
+        getLine(stream); 
+        sscanf(buff, "%s%f%f%f", str[0], &(origin.x), &(origin.y), &(origin.z));
+        getLine(stream); 
+        sscanf(buff, "%s%f%f%f", str[0], &(delta.x), &temp, &temp);
+        getLine(stream); 
+        sscanf(buff, "%s%f%f%f", str[0], &temp, &(delta.y), &temp);
+        getLine(stream); 
+        sscanf(buff, "%s%f%f%f", str[0], &temp, &temp, &(delta.z));
+        do {
+            getLine(stream);
+        } while(strcmp(buff, "<\\HDR>") != 0);
+
+        width = width / 4;
+        height = height / 4;
+        depth = depth / 4;
+        data = malloc(width * height * depth * 8 * 4 * sizeof(double)); 
+            // 8 atom per cell, 4 double (x, y, z, and probability) per atom
+        try {
+            memcpy(data, stream, width * height * depth * 8 * 4 * sizeof(double));
+        }
+        catch (...)
+        {
+            printf("ERROR\n");
+        }
+
+        volume = buildUp(origin, delta, width, height, depth, data);
+
+        free(data);
+    }
+    else if (version == 2)
+    {
+        const char* pt;
+        int datacount = -1;
+        double emptyvalue;
+        do {
+            getLine(stream);
+            if ((pt = strstr(buff, "delta")) != 0)
+            {   
+                sscanf(pt, "%s%f%f%f", str[0], &(delta.x), &(delta.y), &(delta.z));
+                printf("delta : %f %f %f\n", delta.x, delta.y, delta.z);
+                fflush(stdout);
+            }
+            else if ((pt = strstr(buff, "datacount")) != 0)
+            {
+                sscanf(pt, "%s%d", str[0], &datacount);
+                printf("datacount = %d\n", datacount);
+                fflush(stdout);
+            }
+            else if ((pt = strstr(buff, "datatype")) != 0)
+            {
+                sscanf(pt, "%s%s", str[0], str[1]);
+                if (strcmp(str[1], "double64"))
+                {
+                }
+            }
+            else if ((pt = strstr(buff, "count")) != 0)
+            {
+                sscanf(pt, "%s%d%d%d", str[0], &width, &height, &depth);
+                printf("width height depth %d %d %d\n", width, height, depth);
+                fflush(stdout);
+            }
+            else if ((pt = strstr(buff, "emptymark")) != 0)
+            {
+                sscanf(pt, "%s%lf", str[0], &emptyvalue);
+                printf("empryvalue %lf\n", emptyvalue);
+                fflush(stdout);
+            }
+            else if ((pt = strstr(buff, "emprymark")) != 0)
+            {
+                sscanf(pt, "%s%lf", str[0], &emptyvalue);
+                printf("emptyvalue %lf\n", emptyvalue);
+            }
+        } while(strcmp(buff, "<\\HDR>") != 0 && strcmp(buff, "</HDR>") != 0);
+
+        if (datacount == -1) datacount = width * height * depth;
+
+        data = malloc(datacount * 8 * 4 * sizeof(double)); 
+        memset(data, 0, datacount * 8 * 4 * sizeof(double)); 
+        memcpy(data, stream, datacount * 8 * 4 * sizeof(double));
+
+        volume =  buildUp(origin, delta, width, height, depth, datacount, emptyvalue, data);
+
+        free(data);
+    }
+    return volume;
+}
+
+void NvZincBlendeReconstructor::getLine(unsigned char*& stream)
+{
+    char ch;
+    int index = 0;
+    do {
+        ch = stream[0];
+        ++stream;
+        if (ch == '\n') break;
+        buff[index++] = ch;
+        if (ch == '>')
+        {
+            if (buff[1] == '\\')
+                break;
+        }
+    } while (1);
+
+    buff[index] = '\0';
+
+    printf("%s", buff);
+    fflush(stdout);
+}
