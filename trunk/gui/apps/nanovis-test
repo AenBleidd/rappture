@@ -65,12 +65,7 @@ Rappture::resources::load
 # ----------------------------------------------------------------------
 itcl::class DxData {
     constructor {args} {
-        set file "/tmp/dxdata[pid]"
-        set fid [open $file w]
-        puts $fid [lindex $args 0]
-        close $fid
-        set _data [exec gzip -c $file | mimencode]
-        file delete -force $file
+        set _data [Rappture::encoding::encode -as zb64 [lindex $args 0]]
     }
 
     public method components {args} {
@@ -108,7 +103,12 @@ proc send_file {} {
             set obj [DxData #auto $info]
             $widgets(nanovis) add $obj
         } else {
-            namespace eval Rappture::NanovisViewer [list $widgets(nanovis) _send_text $info]
+            set fid [open $file r]
+            fconfigure $fid -translation binary
+            set info [Rappture::encoding::encode -as zb64 [read $fid]]
+            close $fid
+            set send_cmd "volume data follows [string length $info]\n$info"
+            namespace eval Rappture::NanovisViewer [list $widgets(nanovis) _send_text $send_cmd]
         }
     }
 }
