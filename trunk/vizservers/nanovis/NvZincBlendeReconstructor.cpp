@@ -3,6 +3,9 @@
 #include "NvZincBlendeReconstructor.h"
 #include "ZincBlendeVolume.h"
 
+
+//#define _LOADER_DEBUG_
+
 NvZincBlendeReconstructor* NvZincBlendeReconstructor::_instance = NULL;
 
 NvZincBlendeReconstructor::NvZincBlendeReconstructor()
@@ -59,15 +62,19 @@ ZincBlendeVolume* NvZincBlendeReconstructor::loadFromStream(std::istream& stream
         } 
         else if (strstr((const char*) buff, "object") != 0) 
         {
+#ifdef _LOADER_DEBUG_
             printf("VERSION 1\n");
             fflush(stdout);
+#endif
            version = 1; 
            break;
         }
         else if (strstr(buff, "record format") != 0) 
         {
+#ifdef _LOADER_DEBUG_
             printf("VERSION 2\n");
             fflush(stdout);
+#endif
            version = 2; 
            break;
         }
@@ -117,14 +124,18 @@ ZincBlendeVolume* NvZincBlendeReconstructor::loadFromStream(std::istream& stream
             if ((pt = strstr(buff, "delta")) != 0)
             {   
                 sscanf(pt, "%s%f%f%f", str[0], &(delta.x), &(delta.y), &(delta.z));
+#ifdef _LOADER_DEBUG_
                 printf("delta : %f %f %f\n", delta.x, delta.y, delta.z);
                 fflush(stdout);
+#endif
             }
             else if ((pt = strstr(buff, "datacount")) != 0)
             {
                 sscanf(pt, "%s%d", str[0], &datacount);
+#ifdef _LOADER_DEBUG_
                 printf("datacount = %d\n", datacount);
                 fflush(stdout);
+#endif
             }
             else if ((pt = strstr(buff, "datatype")) != 0)
             {
@@ -136,19 +147,25 @@ ZincBlendeVolume* NvZincBlendeReconstructor::loadFromStream(std::istream& stream
             else if ((pt = strstr(buff, "count")) != 0)
             {
                 sscanf(pt, "%s%d%d%d", str[0], &width, &height, &depth);
+#ifdef _LOADER_DEBUG_
                 printf("width height depth %d %d %d\n", width, height, depth);
                 fflush(stdout);
+#endif
             }
             else if ((pt = strstr(buff, "emptymark")) != 0)
             {
                 sscanf(pt, "%s%lf", str[0], &emptyvalue);
+#ifdef _LOADER_DEBUG_
                 printf("empryvalue %lf\n", emptyvalue);
                 fflush(stdout);
+#endif
             }
             else if ((pt = strstr(buff, "emprymark")) != 0)
             {
                 sscanf(pt, "%s%lf", str[0], &emptyvalue);
+#ifdef _LOADER_DEBUG_
                 printf("emptyvalue %lf\n", emptyvalue);
+#endif
             }
         } while(strcmp(buff, "<\\HDR>") != 0 && strcmp(buff, "</HDR>") != 0);
 
@@ -228,8 +245,10 @@ ZincBlendeVolume* NvZincBlendeReconstructor::buildUp(const Vector3& origin, cons
     {
         index = srcPtr->getIndex(width, height);
 
+#ifdef _LOADER_DEBUG_
         printf("index %d\n", index);
         fflush(stdout);
+#endif
 
         component4A = fourAnionVolume + index;
         component4B = fourCationVolume + index;
@@ -299,12 +318,17 @@ ZincBlendeVolume* NvZincBlendeReconstructor::buildUp(const Vector3& origin, cons
     {
 
         index = srcPtr->getIndex(width, height);
+
+#ifdef _LOADER_DEBUG_
         printf("[%d] index %d (width:%lf height:%lf depth:%lf)\n", i, index, srcPtr->indexX, srcPtr->indexY, srcPtr->indexZ);
         fflush(stdout);
+#endif
 
         if (index < 0) {
+#ifdef _LOADER_DEBUG_
             printf("There is an invalid data\n");
             fflush(stdout);
+#endif
             srcPtr +=8;
             continue;
         }
@@ -372,8 +396,10 @@ void NvZincBlendeReconstructor::getLine(std::istream& sin)
 
     buff[index] = '\0';
 
+#ifdef _LOADER_DEBUG_
     printf("%s", buff);
     fflush(stdout);
+#endif
 }
 
 ZincBlendeVolume* NvZincBlendeReconstructor::loadFromMemory(void* dataBlock)
@@ -452,8 +478,10 @@ ZincBlendeVolume* NvZincBlendeReconstructor::loadFromMemory(void* dataBlock)
             if ((pt = strstr(buff, "delta")) != 0)
             {   
                 sscanf(pt, "%s%f%f%f", str[0], &(delta.x), &(delta.y), &(delta.z));
+#ifdef _LOADER_DEBUG_
                 printf("delta : %f %f %f\n", delta.x, delta.y, delta.z);
                 fflush(stdout);
+#endif
             }
             else if ((pt = strstr(buff, "datacount")) != 0)
             {
@@ -471,19 +499,25 @@ ZincBlendeVolume* NvZincBlendeReconstructor::loadFromMemory(void* dataBlock)
             else if ((pt = strstr(buff, "count")) != 0)
             {
                 sscanf(pt, "%s%d%d%d", str[0], &width, &height, &depth);
+#ifdef _LOADER_DEBUG_
                 printf("width height depth %d %d %d\n", width, height, depth);
                 fflush(stdout);
+#endif
             }
             else if ((pt = strstr(buff, "emptymark")) != 0)
             {
                 sscanf(pt, "%s%lf", str[0], &emptyvalue);
+#ifdef _LOADER_DEBUG_
                 printf("empryvalue %lf\n", emptyvalue);
                 fflush(stdout);
+#endif
             }
             else if ((pt = strstr(buff, "emprymark")) != 0)
             {
                 sscanf(pt, "%s%lf", str[0], &emptyvalue);
+#ifdef _LOADER_DEBUG_
                 printf("emptyvalue %lf\n", emptyvalue);
+#endif
             }
         } while(strcmp(buff, "<\\HDR>") != 0 && strcmp(buff, "</HDR>") != 0);
 
@@ -518,6 +552,8 @@ void NvZincBlendeReconstructor::getLine(unsigned char*& stream)
 
     buff[index] = '\0';
 
+#ifdef _LOADER_DEBUG_
     printf("%s", buff);
     fflush(stdout);
+#endif
 }
