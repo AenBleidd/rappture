@@ -96,20 +96,12 @@ proc send_file {} {
     set file [tk_getOpenFile -title "Open Command File"]
     if {"" != $file && [catch {
             set fid [open $file r]
+            fconfigure $fid -translation binary
             set info [read $fid]
             close $fid
           }] == 0} {
-        if {[regexp {(#[^\n]*\n)*object [0-9]+ class} $info]} {
-            set obj [DxData #auto $info]
-            $widgets(nanovis) add $obj
-        } else {
-            set fid [open $file r]
-            fconfigure $fid -translation binary
-            set info [Rappture::encoding::encode -as zb64 [read $fid]]
-            close $fid
-            set send_cmd "volume data follows [string length $info]\n$info"
-            namespace eval Rappture::NanovisViewer [list $widgets(nanovis) _send_text $send_cmd]
-        }
+        set obj [DxData #auto $info]
+        $widgets(nanovis) add $obj
     }
 }
 
