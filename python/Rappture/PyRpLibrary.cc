@@ -94,28 +94,33 @@ RpLibraryObject_init(RpLibraryObject *self, PyObject *args, PyObject *kwds)
     char *filename = NULL;
     int retVal = 1;
 
-    if (!PyArg_ParseTuple(args, "O", &inObj)) {
+    if (!PyArg_ParseTuple(args, "|O", &inObj)) {
         PyErr_Format(PyExc_TypeError,
-            "library() takes 1 argument, a file name or a Rappture Library Object");
+            "library() takes at most 1 argument, a file name or a Rappture Library Object");
         return -1;
     }
 
-    if (PyString_Check(inObj)) {
-        filename = PyString_AsString(inObj);
-        if (filename == NULL) {
-            PyErr_Format(PyExc_ValueError,"a file name is required");
+    if (inObj != NULL) {
+        if (PyString_Check(inObj)) {
+            filename = PyString_AsString(inObj);
+            if (filename == NULL) {
+                PyErr_Format(PyExc_ValueError,"a file name is required");
+            }
+            self->lib = new RpLibrary(std::string(filename));
         }
-        self->lib = new RpLibrary(std::string(filename));
-    }
-    else if (RpLibraryObject_IsValid(inObj)) {
-        self->lib = new RpLibrary( *(RpLibraryObject_AsLibrary(inObj)) );
-    }
-    else if (RpLibraryObject_Check(inObj)) {
-        self->lib = new RpLibrary();
+        else if (RpLibraryObject_IsValid(inObj)) {
+            self->lib = new RpLibrary( *(RpLibraryObject_AsLibrary(inObj)) );
+        }
+        else if (RpLibraryObject_Check(inObj)) {
+            self->lib = new RpLibrary();
+        }
+        else {
+            PyErr_Format(PyExc_TypeError,"unrecognized object type");
+            return -1;
+        }
     }
     else {
-        PyErr_Format(PyExc_TypeError,"unrecognized object type");
-        return -1;
+        self->lib = new RpLibrary();
     }
 
     return retVal;
