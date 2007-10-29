@@ -99,6 +99,9 @@ RpLibrary::RpLibrary (
     }
     else {
         // create a new xml (from an empty file)
+        freeTree = 1;
+        tree = scew_tree_create();
+        root = scew_tree_add_root(tree, "run");
     }
 }
 
