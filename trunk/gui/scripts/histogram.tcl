@@ -281,14 +281,14 @@ itcl::body Rappture::Histogram::_build {} {
 	set _locations [blt::vector create w]
 
 	foreach line [split $xhwdata \n] {
-	    set n [scan $line {%s %s %s} xval yval wval]
+	    set n [scan $line {%s %s %s} x h w]
 	    if { $n == 2 } {
-		$_locations append $xval
-		$_heights append $yval
+		$_locations append $x
+		$_heights append $h
 	    } elseif { $n == 3 } { 
-		$_locations append $xval
-		$_heights append $yval
-		$_widths append $wval
+		$_locations append $x
+		$_heights append $h
+		$_widths append $w
 	    }
 	}
 	# FIXME:  There must be a width specified for each bin location.
