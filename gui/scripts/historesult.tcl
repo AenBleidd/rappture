@@ -1,9 +1,10 @@
+
 # ----------------------------------------------------------------------
 #  COMPONENT: historesult - X/Y plot in a ResultSet
 #
-#  This widget is an X/Y plot, meant to view line graphs produced
+#  This widget is an X/Y plot, meant to view histograms produced
 #  as output from the run of a Rappture tool.  Use the "add" and
-#  "delete" methods to control the curves showing on the plot.
+#  "delete" methods to control the histograms showing on the plot.
 # ======================================================================
 #  AUTHOR:  Michael McLennan, Purdue University
 #  Copyright (c) 2004-2005  Purdue Research Foundation
@@ -11,6 +12,7 @@
 #  See the file "license.terms" for information on usage and
 #  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 # ======================================================================
+
 package require Itk
 package require BLT
 
@@ -43,7 +45,7 @@ itcl::class Rappture::Historesult {
     constructor {args} { # defined below }
     destructor { # defined below }
 
-    public method add {histogram {settings ""}}
+    public method add {bar {settings ""}}
     public method get {}
     public method delete {args}
     public method scale {args}
@@ -59,13 +61,13 @@ itcl::class Rappture::Historesult {
 
     private variable _dispatcher "" ;# dispatcher for !events
 
-    private variable _clist ""     ;# list of histogram objects
-    private variable _histo2color  ;# maps curve => plotting color
-    private variable _histo2width  ;# maps curve => line width
-    private variable _histo2dashes ;# maps curve => BLT -dashes list
-    private variable _histo2raise  ;# maps curve => raise flag 0/1
-    private variable _histo2desc   ;# maps curve => description of data
-    private variable _elem2histo   ;# maps graph element => curve
+    private variable _hlist ""     ;# list of histogram objects
+    private variable _histo2color  ;# maps histogram => plotting color
+    private variable _histo2width  ;# maps histogram => line width
+    private variable _histo2dashes ;# maps histogram => BLT -dashes list
+    private variable _histo2raise  ;# maps histogram => raise flag 0/1
+    private variable _histo2desc   ;# maps histogram => description of data
+    private variable _elem2histo   ;# maps graph element => histogram
     private variable _label2axis   ;# maps axis label => axis ID
     private variable _limits       ;# axis limits:  x-min, x-max, etc.
     private variable _autoColorI 0 ;# index for next "-color auto"
@@ -126,7 +128,7 @@ itcl::body Rappture::Historesult::constructor {args} {
     }
     pack $itk_component(plot) -expand yes -fill both
     $itk_component(plot) pen configure activeBar \
-        -pixels 3 -linewidth 2 -color black
+        -linewidth 2 -color black
 
     #
     # Add bindings so you can mouse over points to see values:
@@ -206,18 +208,18 @@ itcl::body Rappture::Historesult::destructor {} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: add <curve> ?<settings>?
+# USAGE: add <histogram> ?<settings>?
 #
-# Clients use this to add a curve to the plot.  The optional <settings>
+# Clients use this to add a histogram bar to the plot.  The optional <settings>
 # are used to configure the plot.  Allowed settings are -color,
 # -brightness, -width, -linestyle and -raise.
 # ----------------------------------------------------------------------
-itcl::body Rappture::Historesult::add {curve {settings ""}} {
+itcl::body Rappture::Historesult::add {histogram {settings ""}} {
     array set params {
         -color auto
         -brightness 0
         -width 1
-        -type "line"
+        -type "histogram"
         -raise 0
         -linestyle solid
         -description ""
@@ -228,11 +230,6 @@ itcl::body Rappture::Historesult::add {curve {settings ""}} {
             error "bad setting \"$opt\": should be [join [lsort [array names params]] {, }]"
         }
         set params($opt) $val
-    }
-
-    # if type is set to "scatter", then override the width
-    if {"scatter" == $params(-type)} {
-        set params(-width) 0
     }
 
     # if the color is "auto", then select a color from -autocolors
@@ -273,18 +270,19 @@ itcl::body Rappture::Historesult::add {curve {settings ""}} {
         }
     }
 
-    set pos [lsearch -exact $curve $_clist]
+    set pos [lsearch -exact $histogram $_hlist]
     if {$pos < 0} {
-        lappend _clist $curve
-        set _curve2color($curve) $params(-color)
-        set _curve2width($curve) $params(-width)
-        set _curve2dashes($curve) $params(-linestyle)
-        set _curve2raise($curve) $params(-raise)
-        set _curve2desc($curve) $params(-description)
+        lappend _hlist $histogram
+        set _histo2color($histogram) $params(-color)
+        set _histo2width($histogram) $params(-width)
+        set _histo2dashes($histogram) $params(-linestyle)
+        set _histo2raise($histogram) $params(-raise)
+        set _histo2desc($histogram) $params(-description)
 
         $_dispatcher event -idle !rebuild
     }
 }
+
 
 # ----------------------------------------------------------------------
 # USAGE: get
@@ -294,9 +292,9 @@ itcl::body Rappture::Historesult::add {curve {settings ""}} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Historesult::get {} {
     # put the dataobj list in order according to -raise options
-    set clist $_clist
+    set clist $_hlist
     foreach obj $clist {
-        if {[info exists _curve2raise($obj)] && $_curve2raise($obj)} {
+        if {[info exists _histo2raise($obj)] && $_histo2raise($obj)} {
             set i [lsearch -exact $clist $obj]
             if {$i >= 0} {
                 set clist [lreplace $clist $i $i]
@@ -308,29 +306,29 @@ itcl::body Rappture::Historesult::get {} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: delete ?<curve1> <curve2> ...?
+# USAGE: delete ?<histo1> <histo2> ...?
 #
-# Clients use this to delete a curve from the plot.  If no curves
-# are specified, then all curves are deleted.
+# Clients use this to delete a histogram from the plot.  If no histograms
+# are specified, then all histograms are deleted.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Historesult::delete {args} {
     if {[llength $args] == 0} {
-        set args $_clist
+        set args $_hlist
     }
 
-    # delete all specified curves
+    # delete all specified histograms
     set changed 0
-    foreach curve $args {
-        set pos [lsearch -exact $_clist $curve]
+    foreach h $args {
+        set pos [lsearch -exact $_hlist $h]
         if {$pos >= 0} {
-            set _clist [lreplace $_clist $pos $pos]
-            catch {unset _curve2color($curve)}
-            catch {unset _curve2width($curve)}
-            catch {unset _curve2dashes($curve)}
-            catch {unset _curve2raise($curve)}
-            foreach elem [array names _elem2curve] {
-                if {$_elem2curve($elem) == $curve} {
-                    unset _elem2curve($elem)
+            set _hlist [lreplace $_hlist $pos $pos]
+            catch {unset _histo2color($h)}
+            catch {unset _histo2width($h)}
+            catch {unset _histo2dashes($h)}
+            catch {unset _histo2raise($h)}
+            foreach elem [array names _elem2histo] {
+                if {$_elem2histo($elem) == $h} {
+                    unset _elem2histo($elem)
                 }
             }
             set changed 1
@@ -343,18 +341,18 @@ itcl::body Rappture::Historesult::delete {args} {
     }
 
     # nothing left? then start over with auto colors
-    if {[llength $_clist] == 0} {
+    if {[llength $_hlist] == 0} {
         set _autoColorI 0
     }
 }
 
 # ----------------------------------------------------------------------
-# USAGE: scale ?<curve1> <curve2> ...?
+# USAGE: scale ?<histo1> <histo2> ...?
 #
 # Sets the default limits for the overall plot according to the
-# limits of the data for all of the given <curve> objects.  This
-# accounts for all curves--even those not showing on the screen.
-# Because of this, the limits are appropriate for all curves as
+# limits of the data for all of the given <histogram> objects.  This
+# accounts for all histograms--even those not showing on the screen.
+# Because of this, the limits are appropriate for all histograms as
 # the user scans through data in the ResultSet viewer.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Historesult::scale {args} {
@@ -372,7 +370,7 @@ itcl::body Rappture::Historesult::scale {args} {
 
     catch {unset _limits}
     foreach xydata $args {
-        # find the axes for this curve (e.g., {x y2})
+        # find the axes for this histogram (e.g., {x y2})
         foreach {map(x) map(y)} [_getAxes $xydata] break
 
         foreach axis {x y} {
@@ -465,10 +463,10 @@ itcl::body Rappture::Historesult::download {option args} {
                 foreach dataobj $dlist {
                     append csvdata "[string repeat - 60]\n"
                     append csvdata " [$dataobj hints label]\n"
-                    if {[info exists _curve2desc($dataobj)]
-                          && [llength [split $_curve2desc($dataobj) \n]] > 1} {
+                    if {[info exists _histo2desc($dataobj)]
+                          && [llength [split $_histo2desc($dataobj) \n]] > 1} {
                         set indent "for:"
-                        foreach line [split $_curve2desc($dataobj) \n] {
+                        foreach line [split $_histo2desc($dataobj) \n] {
                             append csvdata " $indent $line\n"
                             set indent "    "
                         }
@@ -482,14 +480,25 @@ itcl::body Rappture::Historesult::download {option args} {
                             # blank line between components
                             append csvdata "\n"
                         }
-                        set xv [$dataobj mesh $comp]
-                        set yv [$dataobj values $comp]
-                        foreach x [$xv range 0 end] y [$yv range 0 end] {
-                            append csvdata [format "%20.15g, %20.15g\n" $x $y]
-                        }
-                        set first 0
-                    }
-                    append csvdata "\n"
+                        set xv [$dataobj locations]
+                        set hv [$dataobj heights]
+                        set wv [$dataobj widths]
+			if { $wv == "" } {
+			    foreach x [$xv range 0 end] h [$hv range 0 end] {
+				append csvdata \
+				    [format "%20.15g, %20.15g\n" $x $h]
+			    }
+			} else {
+			    foreach x [$xv range 0 end] \
+				    h [$hv range 0 end] \
+				    w [$wv range 0 end] {
+				append csvdata [format \
+				    "%20.15g, %20.15g, %20.15g\n" $x $h $w]
+			    }
+			}
+			set first 0
+			append csvdata "\n"
+		    }
                 }
                 return [list .txt $csvdata]
               }
@@ -606,19 +615,20 @@ itcl::body Rappture::Historesult::_rebuild {} {
     }
 
     #
-    # Plot all of the curves.
+    # Plot all of the histograms.
     #
     set count 0
-    foreach xydata $_clist {
+    foreach xydata $_hlist {
         set label [$xydata hints label]
         foreach {mapx mapy} [_getAxes $xydata] break
 
         foreach comp [$xydata components] {
-            set xv [$xydata mesh $comp]
-            set yv [$xydata values $comp]
-
-            if {[info exists _curve2color($xydata)]} {
-                set color $_curve2color($xydata)
+            set xv [$xydata locations]
+            set yv [$xydata heights]
+            set zv [$xydata widths]
+		
+            if {[info exists _histo2color($xydata)]} {
+                set color $_histo2color($xydata)
             } else {
                 set color [$xydata hints color]
                 if {"" == $color} {
@@ -626,33 +636,36 @@ itcl::body Rappture::Historesult::_rebuild {} {
                 }
             }
 
-            if {[info exists _curve2width($xydata)]} {
-                set lwidth $_curve2width($xydata)
+            if {[info exists _histo2width($xydata)]} {
+                set lwidth $_histo2width($xydata)
             } else {
                 set lwidth 2
             }
 
-            if {[info exists _curve2dashes($xydata)]} {
-                set dashes $_curve2dashes($xydata)
+            if {[info exists _histo2dashes($xydata)]} {
+                set dashes $_histo2dashes($xydata)
             } else {
                 set dashes ""
             }
-
-            if {([$xv length] <= 1) || ($lwidth == 0)} {
-                set sym square
-                set pixels 2
-            } else {
-                set sym ""
-                set pixels 6
-            }
-
             set elem "elem[incr count]"
-            set _elem2curve($elem) $xydata
-
-            $g element create $elem -x $xv -y $yv \
-                -symbol $sym -pixels $pixels -linewidth $lwidth -label $label \
-                -color $color -dashes $dashes \
+            set _elem2histo($elem) $xydata
+            $g element line $elem -x $xv -y $yv \
+		-symbol $sym -pixels $pixels -linewidth $lwidth -label $label \
+                -color $color -dashes $dashes -smooth natural \
                 -mapx $mapx -mapy $mapy
+
+	    # Compute default bar width for histogram elements.
+	    set defwidth { [expr ($zv(max) - $zv(min)) / ([$xv length] - 1)] }
+	    foreach x [$xv range 0 end] y [$yv range 0 end] z [$zv range 0 end] {
+		if { $z == "" } {
+		    set z $defwidth
+		}
+		set elem "elem[incr count]"
+		set _elem2histo($elem) $xydata
+		$g element create $elem -x $x -y $y -barwidth $z \
+			-label $label -foreground $color \
+			-mapx $mapx -mapy $mapy
+	    }
         }
     }
 }
@@ -668,7 +681,7 @@ itcl::body Rappture::Historesult::_resetLimits {} {
 
     #
     # HACK ALERT!
-    # Use this code to fix up the y-axis limits for the BLT graph.
+    # Use this code to fix up the y-axis limits for the BLT barchart.
     # The auto-limits don't always work well.  We want them to be
     # set to a "nice" number slightly above or below the min/max
     # limits.
@@ -761,7 +774,7 @@ itcl::body Rappture::Historesult::_hilite {state x y} {
         if {[$g element closest $x $y info -interpolate yes]} {
             # for dealing with xy line plots
             set elem $info(name)
-            foreach {mapx mapy} [_getAxes $_elem2curve($elem)] break
+            foreach {mapx mapy} [_getAxes $_elem2histo($elem)] break
 
             # search again for an exact point -- this time don't interpolate
             set tip ""
@@ -770,17 +783,17 @@ itcl::body Rappture::Historesult::_hilite {state x y} {
                 set x [$g axis transform $mapx $info(x)]
                 set y [$g axis transform $mapy $info(y)]
 
-                if {[info exists _elem2curve($elem)]} {
-                    set curve $_elem2curve($elem)
-                    set tip [$curve hints tooltip]
+                if {[info exists _elem2histo($elem)]} {
+                    set histogram $_elem2histo($elem)
+                    set tip [$histogram hints tooltip]
                     if {[info exists info(y)]} {
                         set val [_axis format y dummy $info(y)]
-                        set units [$curve hints yunits]
+                        set units [$histogram hints yunits]
                         append tip "\n$val$units"
 
                         if {[info exists info(x)]} {
                             set val [_axis format x dummy $info(x)]
-                            set units [$curve hints xunits]
+                            set units [$histogram hints xunits]
                             append tip " @ $val$units"
                         }
                     }
@@ -791,7 +804,7 @@ itcl::body Rappture::Historesult::_hilite {state x y} {
         } elseif {[$g element closest $x $y info -interpolate no]} {
             # for dealing with xy scatter plot
             set elem $info(name)
-            foreach {mapx mapy} [_getAxes $_elem2curve($elem)] break
+            foreach {mapx mapy} [_getAxes $_elem2histo($elem)] break
 
             # search again for an exact point -- this time don't interpolate
             set tip ""
@@ -799,17 +812,17 @@ itcl::body Rappture::Historesult::_hilite {state x y} {
                 set x [$g axis transform $mapx $info(x)]
                 set y [$g axis transform $mapy $info(y)]
 
-                if {[info exists _elem2curve($elem)]} {
-                    set curve $_elem2curve($elem)
-                    set tip [$curve hints tooltip]
+                if {[info exists _elem2histo($elem)]} {
+                    set histogram $_elem2histo($elem)
+                    set tip [$histogram hints tooltip]
                     if {[info exists info(y)]} {
                         set val [_axis format y dummy $info(y)]
-                        set units [$curve hints yunits]
+                        set units [$histogram hints yunits]
                         append tip "\n$val$units"
 
                         if {[info exists info(x)]} {
                             set val [_axis format x dummy $info(x)]
-                            set units [$curve hints xunits]
+                            set units [$histogram hints xunits]
                             append tip " @ $val$units"
                         }
                     }
@@ -845,7 +858,7 @@ itcl::body Rappture::Historesult::_hilite {state x y} {
             $g element show $dlist
         }
 
-        foreach {mapx mapy} [_getAxes $_elem2curve($elem)] break
+        foreach {mapx mapy} [_getAxes $_elem2histo($elem)] break
 
         set allx [$g x2axis use]
         if {[llength $allx] > 0} {
@@ -1316,10 +1329,10 @@ itcl::body Rappture::Historesult::_axis {option args} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: _getAxes <curveObj>
+# USAGE: _getAxes <histoObj>
 #
 # Used internally to figure out the axes used to plot the given
-# <curveObj>.  Returns a list of the form {x y}, where x is the
+# <histoObj>.  Returns a list of the form {x y}, where x is the
 # x-axis name (x, x2, x3, etc.), and y is the y-axis name.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Historesult::_getAxes {xydata} {
