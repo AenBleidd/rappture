@@ -8,6 +8,10 @@
 #include "NvShader.h"
 #include "Vector3.h"
 
+/**
+ *@class HeightMap
+ *@brief Create a surface from height map and line contour of the generated surface
+ */
 class HeightMap {
 	unsigned int _vertexBufferObjectID;
 	unsigned int _textureBufferObjectID;
@@ -27,22 +31,63 @@ class HeightMap {
     Vector3 _scale;
 
 public :
+    /**
+     *@brief Constructor
+     */
 	HeightMap();
+    /**
+     *@brief Destructor
+     */
 	~HeightMap();
 
 private :
-	void createIndexBuffer(int xCount, int zCount, int*& indexBuffer, int& indexCount);
+	void createIndexBuffer(int xCount, int zCount, int*& indexBuffer, int& indexCount, float* heights);
 	Vector3* createHeightVertices(float startX, float startY, float endX, float endY, int xCount, int yCount, float* height);
 	void reset();
 public :
 	void render();
+    /**
+     *@brief Create a height map with heigh values
+     *@param startX a x position of the first height value
+     *@param startY a y position of the first height value
+     *@param endX a x position of the last height value
+     *@param endY a y position of the last height value
+     *@param xCount the number of columns of height values
+     *@param yCount the number of rows of height values
+     *@param height a pointer value adrressing xCount * yCount values of heights
+     */
 	void setHeight(float startX, float startY, float endX, float endY, int xCount, int yCount, float* height);
+
+    /**
+     *@brief Create a height map with a set of points
+     *@param xCount the number of columns of height values
+     *@param yCount the number of rows of height values
+     */
 	void setHeight(int xCount, int yCount, Vector3* heights);
+
+    /**
+     *@brief Define a color map for color shading of heighmap
+     */
 	void setColorMap(TransferFunction* colorMap);
 
+    /**
+     *@brief Set the visibility of the height map
+     */
 	void setVisible(bool visible);
+
+    /**
+     *@brief Return the status of the visibility
+     */
 	bool isVisible() const;
+
+    /**
+     *@brief Set the visibility of the line contour
+     */
 	void setLineContourVisible(bool visible);
+
+    /**
+     *@brief Defind the color of the line contour
+     */
     void setLineContourColor(float r, float g, float b);
 };
 

@@ -7,6 +7,11 @@
 #include <stdlib.h>
 #include <memory.h>
 #include <R2/R2FilePath.h>
+#include "RpField1D.h"
+#include <sys/time.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <fcntl.h>
 
 HeightMap::HeightMap()
 : _contour(0), _colorMap(0), _indexBuffer(0), _vertexBufferObjectID(0), _vertexCount(0), _textureBufferObjectID(0),
@@ -103,7 +108,7 @@ void HeightMap::render()
     glPopMatrix();
 }
 
-void HeightMap::createIndexBuffer(int xCount, int zCount, int*& indexBuffer, int& indexCount)
+void HeightMap::createIndexBuffer(int xCount, int zCount, int*& indexBuffer, int& indexCount, float* heights)
 {
 	indexCount = (xCount - 1) * (zCount - 1) * 6;
 
@@ -113,19 +118,62 @@ void HeightMap::createIndexBuffer(int xCount, int zCount, int*& indexBuffer, int
     int boundaryWidth = xCount - 1;
     int boundaryHeight = zCount - 1;
     int* ptr = indexBuffer;
-    for (i = 0; i < boundaryHeight; ++i)
-    {
-        for (j = 0; j < boundaryWidth; ++j)
-        {
-            *ptr = i * xCount + j; ++ptr;
-            *ptr = (i + 1) * xCount + j; ++ptr;
-            *ptr = (i + 1) * xCount + j + 1; ++ptr;
+    int index1, index2, index3, index4;
+    bool index1Valid, index2Valid, index3Valid, index4Valid;
+    index1Valid = index2Valid = index3Valid = index4Valid = true;
 
-			*ptr = i * xCount + j; ++ptr;
-			*ptr = (i + 1) * xCount + j + 1; ++ptr;
-            *ptr = i * xCount + j + 1; ++ptr;
+    if (heights)
+    {
+        int ic = 0;
+        for (i = 0; i < boundaryHeight; ++i)
+        {
+            for (j = 0; j < boundaryWidth; ++j)
+            {
+                index1 = i * xCount +j;
+                if (isnan(heights[index1])) index1Valid = false;
+                index2 = (i + 1) * xCount + j;
+                if (isnan(heights[index2])) index2Valid = false;
+                index3 = (i + 1) * xCount + j + 1;
+                if (isnan(heights[index3])) index3Valid = false;
+                index4 = i * xCount + j + 1;
+                if (isnan(heights[index4])) index4Valid = false;
+
+        
+            
+                if (index1Valid && index2Valid && index3Valid) 
+                {
+                    *ptr = index1; ++ptr;
+                    *ptr = index2; ++ptr;
+                    *ptr = index3; ++ptr;
+                    ++ic;
+                }
+                if (index1Valid && index3Valid && index4Valid) 
+                {
+                    *ptr = index1; ++ptr;
+                    *ptr = index3; ++ptr;
+                    *ptr = index4; ++ptr;
+                    ++ic;
+                }
+            }
         }
     }
+    else 
+    {
+        for (i = 0; i < boundaryHeight; ++i)
+        {
+            for (j = 0; j < boundaryWidth; ++j)
+            {
+                *ptr = i * xCount + j; ++ptr;
+                *ptr = (i + 1) * xCount + j; ++ptr;
+                *ptr = (i + 1) * xCount + j + 1; ++ptr;
+
+    			*ptr = i * xCount + j; ++ptr;
+			    *ptr = (i + 1) * xCount + j + 1; ++ptr;
+                *ptr = i * xCount + j + 1; ++ptr;
+            }
+        }
+    }
+
 }
 
 void HeightMap::reset()
@@ -194,7 +242,7 @@ void HeightMap::setHeight(int xCount, int yCount, Vector3* heights)
 			free(_indexBuffer);
 		}
 
-		this->createIndexBuffer(xCount, yCount, _indexBuffer, _indexCount);
+		this->createIndexBuffer(xCount, yCount, _indexBuffer, _indexCount, 0);
 	//}
 	//else
 	//{
@@ -257,7 +305,7 @@ void HeightMap::setHeight(float startX, float startY, float endX, float endY, in
 			free(_indexBuffer);
 		}
 
-		this->createIndexBuffer(xCount, yCount, _indexBuffer, _indexCount);
+		this->createIndexBuffer(xCount, yCount, _indexBuffer, _indexCount, heights);
 	//}
 	//else
 	//{
