@@ -32,6 +32,8 @@ public:
 	Vector4 operator*(float op2);	  //mul per component
 	Vector4 operator/(float op2);	  //mul per component
 	void operator <(Vector4 &op2);	  //assign	
+
+    void set(float x1, float y1, float z1, float w1);
 };
 
 #endif

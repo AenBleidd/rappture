@@ -15,6 +15,8 @@
 #ifndef _VECTOR3_H_
 #define _VECTOR3_H_
 
+class Mat4x4;
+
 class Vector3{
 
 public:
@@ -37,10 +39,17 @@ public:
 	Vector3 rot_z(float degree);	  //rotation about z
 	void set(float newx, float newy, float newz);
 	void print();
-	float distance(Vector3 &another);	//compute distance
+	float distance(Vector3 &another) const;	//compute distance
+	float distanceSquare(Vector3 &another) const;	//compute distance
+	float distanceSquare(float vx, float vy, float vz) const;	//compute distance
 
 	//fast version
 	Vector3 cross(Vector3 op2);
+
+    float dot(const Vector3& vec) const;
+
+    void transform(const Vector3& vec, const Mat4x4& mat);
+    float length() const;
 };
 
 #endif

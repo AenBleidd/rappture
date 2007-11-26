@@ -13,6 +13,7 @@
  * ======================================================================
  */
 #include "Vector3.h"
+#include "Mat4x4.h"
 #include <math.h>
 #include <stdio.h>
 
@@ -46,6 +47,13 @@ float Vector3::operator *(Vector3 &op2){
 	return x*op2.x +
 		   y*op2.y +
 		   z*op2.z;
+}
+
+float Vector3::dot(const Vector3& vec) const
+{
+	return x*vec.x +
+		   y*vec.y +
+		   z*vec.z;
 }
 
 bool Vector3::equal(Vector3 &op2){
@@ -143,11 +151,38 @@ void Vector3::print(){
 	fprintf(stderr, "x:%f, y:%f, z:%f\n", x, y, z);
 }
 
-float Vector3::distance(Vector3 &another){
+float Vector3::distance(Vector3 &another) const
+{
 	return sqrtf( (x - another.x) * (x - another.x)
 				+ (y - another.y) * (y - another.y)
 				+ (z - another.z) * (z - another.z) );
 }
 
+float Vector3::distanceSquare(Vector3 &another) const
+{
+	return ( (x - another.x) * (x - another.x)
+				+ (y - another.y) * (y - another.y)
+				+ (z - another.z) * (z - another.z) );
+}
+
+float Vector3::distanceSquare(float vx, float vy, float vz) const
+{
+	return ( (x - vx) * (x - vx)
+				+ (y - vy) * (y - vy)
+				+ (z - vz) * (z - vz) );
+}
+
+void Vector3::transform(const Vector3& v, const Mat4x4& mat)
+{
+    const float* m = mat.m;
+    x = m[0] * v.x + m[4] * v.y + m[8] * v.z + m[12];
+    y = m[1] * v.x + m[5] * v.y + m[9] * v.z + m[13];
+    z = m[2] * v.x + m[6] * v.y + m[10] * v.z + m[14];
+}
 
 
+float Vector3::length() const
+{
+
+    return sqrt(x * x + y * y + z * z);
+}

@@ -88,3 +88,11 @@ void Vector4::operator <(Vector4 &op2){
 	z = op2.z;
 	w = op2.w;
 }
+
+void Vector4::set(float x1, float y1, float z1, float w1)
+{
+	x = x1;
+	y = y1;
+	z = z1;
+	w = w1;
+}
