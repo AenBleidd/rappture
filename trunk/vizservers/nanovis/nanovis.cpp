@@ -187,6 +187,10 @@ CGparameter m_mvi_vert_std_param;
 
 using namespace std;
 
+#define RM_VOLUME 1
+#define RM_POINT 2
+
+int renderMode = RM_VOLUME;
 
 // Tcl interpreter for incoming messages
 static Tcl_Interp *interp;
@@ -3741,7 +3745,8 @@ void display()
         //perf->reset();
 
         perf->enable();
-        g_vol_render->render_all();
+        //g_vol_render->render_all();
+        g_vol_render->render_all_points();
         perf->disable();
 
         for (int ii = 0; ii < g_heightMap.size(); ++ii)

@@ -109,9 +109,38 @@ int slice_sort(const void* a, const void* b){
       return -1;
 }
 
+void VolumeRenderer::render_all_points()
+{
+    double x0 = 0;
+    double y0 = 0;
+    double z0 = 0;
+
+  for(int i=0; i<n_volumes; i++){
+    int volume_index = i;
+    if(!volume[i]->is_enabled())
+      continue; //skip this volume
+
+    Vector3* location = volume[volume_index]->get_location();
+    Vector4 shift_4d(location->x, location->y, location->z, 0);
+
+    glPushMatrix();
+    glTranslatef(shift_4d.x, shift_4d.y, shift_4d.z);
+
+    if (volume[volume_index]->outline_is_enabled()) {
+        float olcolor[3];
+        volume[volume_index]->get_outline_color(olcolor);
+        draw_bounding_box(x0, y0, z0, x0+1, y0+1, z0+1,
+            (double)olcolor[0], (double)olcolor[1], (double)olcolor[2],
+            1.5);
+    }
+
+    glPopMatrix();
+  }
+}
 
 void VolumeRenderer::render_all()
 {
+
   int total_rendered_slices = 0;
 
   ConvexPolygon*** polys = new ConvexPolygon**[n_volumes];	//two dimension pointer array

@@ -22,7 +22,6 @@
 
 class ZincBlendeVolume : public Volume
 {
-	
 public:
 	Texture3D* zincblende_tex[2];	//the textures of two cubic volumes
 	Vector3 cell_size;	//the cell size in texture space
