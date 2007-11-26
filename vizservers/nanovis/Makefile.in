@@ -23,9 +23,10 @@ CC = @CC@
 AUXSRC = config.h define.h global.h
 
 R2INC = ./R2/include
+MATINC = ./newmat11
 
 LIB_NANOVIS = -L@RP_DIR@/lib -ltcl8.4 -lGL -lglut -lglui -lGLEW -lCg -lCgGL -pthread -lrappture2 -lb64 -lz
-INCLUDES = -I@RP_DIR@/include -I@RP2_INCL_DIR@ -I/usr/include/GL -I$(R2INC) -I.
+INCLUDES = -I@RP_DIR@/include -I@RP2_INCL_DIR@ -I/usr/include/GL -I$(R2INC) -I. -I$(MATINC)
 
 CFLAGS = @CFLAGS@ $(INCLUDES)
 # $(CFLAGS)
@@ -39,6 +40,10 @@ OBJS  = nanovis.o Socket.o RenderVertexArray.o Plane.o ConvexPolygon.o Vector4.o
 		NvLoadFile.o NvDefaultTFData.o NvColorTableShader.o NvColorTableRenderer.o NvParticleAdvectionShader.o \
 		NvEventLog.o NvParticleRenderer.o NvLIC.o NvZincBlendeReconstructor.o NvStdVertexShader.o \
 		ContourLineFilter.o HeightMap.o Grid.o \
+		PointShader.o PCASplit.o BucketSort.o \
+		bandmat.o cholesky.o evalue.o fft.o hholder.o jacobi.o myexcept.o newfft.o newmat1.o newmat2.o \
+		newmat3.o newmat4.o newmat5.o newmat6.o newmat7.o newmat8.o newmat9.o newmatex.o newmatnl.o \
+		newmatrm.o nm_misc.o solution.o sort.o svd.o submat.o \
 		R2string.o R2FilePath.o R2Fonts.o R2Object.o R2Geometry.o R2IndexBuffer.o R2VertexBuffer.o
 
 all: nanovis
@@ -143,4 +148,58 @@ Vector3.o: Vector3.cpp Vector3.h
 Plane.o: Plane.cpp Plane.h
 ConvexPolygon.o: ConvexPolygon.cpp ConvexPolygon.h
 PerfQuery.o: PerfQuery.cpp PerfQuery.h
+PointShader.o: PointShader.cpp PointShader.h
+PCASplit.o: PCASplit.cpp PCASplit.h
+BucketSort.o: BucketSort.cpp BucketSort.h
+bandmat.o: newmat11/bandmat.cpp
+	$(CC) $(CFLAGS) -o $@ -c $<
+cholesky.o: newmat11/cholesky.cpp
+	$(CC) $(CFLAGS) -o $@ -c $<
+evalue.o: newmat11/evalue.cpp
+	$(CC) $(CFLAGS) -o $@ -c $<
+fft.o: newmat11/fft.cpp
+	$(CC) $(CFLAGS) -o $@ -c $<
+hholder.o: newmat11/hholder.cpp
+	$(CC) $(CFLAGS) -o $@ -c $<
+jacobi.o: newmat11/jacobi.cpp
+	$(CC) $(CFLAGS) -o $@ -c $<
+myexcept.o: newmat11/myexcept.cpp
+	$(CC) $(CFLAGS) -o $@ -c $<
+newfft.o: newmat11/newfft.cpp
+	$(CC) $(CFLAGS) -o $@ -c $<
+newmat1.o: newmat11/newmat1.cpp
+	$(CC) $(CFLAGS) -o $@ -c $<
+newmat2.o: newmat11/newmat2.cpp
+	$(CC) $(CFLAGS) -o $@ -c $<
+newmat3.o: newmat11/newmat3.cpp
+	$(CC) $(CFLAGS) -o $@ -c $<
+newmat4.o: newmat11/newmat4.cpp
+	$(CC) $(CFLAGS) -o $@ -c $<
+newmat5.o: newmat11/newmat5.cpp
+	$(CC) $(CFLAGS) -o $@ -c $<
+newmat6.o: newmat11/newmat6.cpp
+	$(CC) $(CFLAGS) -o $@ -c $<
+newmat7.o: newmat11/newmat7.cpp
+	$(CC) $(CFLAGS) -o $@ -c $<
+newmat8.o: newmat11/newmat8.cpp
+	$(CC) $(CFLAGS) -o $@ -c $<
+newmat9.o: newmat11/newmat9.cpp
+	$(CC) $(CFLAGS) -o $@ -c $<
+newmatex.o: newmat11/newmatex.cpp
+	$(CC) $(CFLAGS) -o $@ -c $<
+newmatnl.o: newmat11/newmatnl.cpp
+	$(CC) $(CFLAGS) -o $@ -c $<
+newmatrm.o: newmat11/newmatrm.cpp
+	$(CC) $(CFLAGS) -o $@ -c $<
+nm_misc.o: newmat11/nm_misc.cpp
+	$(CC) $(CFLAGS) -o $@ -c $<
+solution.o: newmat11/solution.cpp
+	$(CC) $(CFLAGS) -o $@ -c $<
+sort.o: newmat11/sort.cpp
+	$(CC) $(CFLAGS) -o $@ -c $<
+svd.o: newmat11/svd.cpp
+	$(CC) $(CFLAGS) -o $@ -c $<
+submat.o: newmat11/submat.cpp
+	$(CC) $(CFLAGS) -o $@ -c $<
+
 nanovis.o: nanovis.cpp nanovis.h $(AUXSRC)
