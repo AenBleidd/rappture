@@ -66,7 +66,7 @@ itcl::body Rappture::Histogram::constructor {xmlobj path} {
 itcl::body Rappture::Histogram::destructor {} {
     itcl::delete object $_hist
     # don't destroy the _xmlobj! we don't own it!
-    blt::vector destroy $_widths _$heights $_locations
+    blt::vector destroy $_widths $_heights $_locations
 }
 
 # ----------------------------------------------------------------------
@@ -131,29 +131,42 @@ itcl::body Rappture::Histogram::limits {which} {
     set min ""
     set max ""
     switch -- $which {
-        x - xlin { set vname $_locations; set log 0; set axis xaxis }
-        xlog { set vname $_locations; set log 1; set axis xaxis }
-        y - ylin - v - vlin { set vname $_heights; set log 0; set axis yaxis }
-        ylog - vlog { set vname $_heights; set log 1; set axis yaxis }
+        x - xlin { 
+	    set vname $_locations; 
+	    set log 0; 
+	    set axis xaxis 
+	}
+        xlog { 
+	    set vname $_locations; 
+	    set log 1; 
+	    set axis xaxis 
+	}
+        y - ylin { 
+	    set vname $_heights; 
+	    set log 0; 
+	    set axis yaxis 
+	}
+        ylog { 
+	    set vname $_heights; 
+	    set log 1; 
+	    set axis yaxis 
+	}
         default {
-            error "bad option \"$which\": should be x, xlin, xlog, y, ylin, ylog, v, vlin, vlog"
+            error "bad option \"$which\": should be x, xlin, xlog, y, ylin, ylog"
         }
     }
-
-    $vname variable vec
-
+    $vname dup tmp
+    $vname dup zero
     if {$log} {
 	# on a log scale, use abs value and ignore 0's
-	$vname dup tmp
-	$vname dup zero
 	zero expr {tmp == 0}            ;# find the 0's
 	tmp expr {abs(tmp)}             ;# get the abs value
 	tmp expr {tmp + zero*max(tmp)}  ;# replace 0's with abs max
 	set vmin [blt::vector expr min(tmp)]
 	set vmax [blt::vector expr max(tmp)]
     } else {
-	set vmin $vec(min)
-	set vmax $vec(max)
+	set vmin [blt::vector expr min($vname)]
+	set vmax [blt::vector expr max($vname)]
     }
     
     if {"" == $min} {
@@ -276,9 +289,9 @@ itcl::body Rappture::Histogram::_build {} {
     #
     set xhwdata [$_hist get component.xhw]
     if {"" != $xhwdata} {
-	set _widths [blt::vector create x]
-	set _heights [blt::vector create y]
-	set _locations [blt::vector create w]
+	set _widths [blt::vector create \#auto]
+	set _heights [blt::vector create \#auto]
+	set _locations [blt::vector create \#auto]
 
 	foreach line [split $xhwdata \n] {
 	    set n [scan $line {%s %s %s} x h w]
@@ -298,21 +311,20 @@ itcl::body Rappture::Histogram::_build {} {
 	    $_widths set {}
 	}
     }
-
     # Creates lists of x and y marker data.
     set _xmarkers {}
     set _ymarkers {}
     foreach cname [$_hist children -type "marker" xaxis] {
-	set at     [$_hist get "$parent.$cname.at"]
-	set label  [$_hist get "$parent.$cname.label"]
-	set styles [$_hist get "$parent.$cname.style"]
+	set at     [$_hist get "xaxis.$cname.at"]
+	set label  [$_hist get "xaxis.$cname.label"]
+	set styles [$_hist get "xaxis.$cname.style"]
 	set data [list $at $label $styles]
 	lappend _xmarkers $data
     }
     foreach cname [$_hist children -type "marker" yaxis] {
-	set at     [$_hist get "$parent.$cname.at"]
-	set label  [$_hist get "$parent.$cname.label"]
-	set styles [$_hist get "$parent.$cname.style"]
+	set at     [$_hist get "yaxis.$cname.at"]
+	set label  [$_hist get "yaxis.$cname.label"]
+	set styles [$_hist get "yaxis.$cname.style"]
 	set data [list $at $label $styles]
 	lappend _xmarkers $data
     }

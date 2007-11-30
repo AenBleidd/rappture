@@ -208,6 +208,14 @@ itcl::body Rappture::ResultViewer::plot {option args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::ResultViewer::_plotAdd {dataobj {settings ""}} {
     switch -- [$dataobj info class] {
+        ::Rappture::Histogram {
+            set mode "histogram"
+            if {![info exists _mode2widget($mode)]} {
+                set w $itk_interior.xy
+                Rappture::HistoResult $w
+                set _mode2widget($mode) $w
+            }
+        }
         ::Rappture::Curve {
             set mode "xy"
             if {![info exists _mode2widget($mode)]} {
@@ -402,6 +410,9 @@ itcl::body Rappture::ResultViewer::_xml2data {xmlobj path} {
     switch -- $type {
         curve {
             return [Rappture::Curve ::#auto $xmlobj $path]
+        }
+	histogram {
+            return [Rappture::Histogram ::#auto $xmlobj $path]
         }
         field {
             return [Rappture::Field ::#auto $xmlobj $path]

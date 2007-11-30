@@ -62,6 +62,9 @@ itcl::body Rappture::Sequence::constructor {xmlobj path} {
                 curve {
                     set obj [Rappture::Curve ::#auto $xmlobj $path.$name.$cname]
                 }
+		histogram {
+                    set obj [Rappture::Histogram ::#auto $xmlobj $path.$name.$cname]
+                }
                 field {
                     set obj [Rappture::Field ::#auto $xmlobj $path.$name.$cname]
                 }
