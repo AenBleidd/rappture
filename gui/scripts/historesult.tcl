@@ -1,6 +1,6 @@
 
 # ----------------------------------------------------------------------
-#  COMPONENT: historesult - X/Y plot in a ResultSet
+#  COMPONENT: HistoResult - X/Y plot in a ResultSet
 #
 #  This widget is an X/Y plot, meant to view histograms produced
 #  as output from the run of a Rappture tool.  Use the "add" and
@@ -16,25 +16,31 @@
 package require Itk
 package require BLT
 
-option add *Historesult.width 3i widgetDefault
-option add *Historesult.height 3i widgetDefault
-option add *Historesult.gridColor #d9d9d9 widgetDefault
-option add *Historesult.activeColor blue widgetDefault
-option add *Historesult.dimColor gray widgetDefault
-option add *Historesult.controlBackground gray widgetDefault
-option add *Historesult.font \
+option add *HistoResult*Element.borderWidth 1 widgetDefault
+option add *HistoResult*Element.relief solid widgetDefault
+option add *HistoResult*x.loose 1 widgetDefault
+option add *HistoResult*y.loose 1 widgetDefault
+option add *HistoResult*Element.relief solid widgetDefault
+
+option add *HistoResult.width 3i widgetDefault
+option add *HistoResult.height 3i widgetDefault
+option add *HistoResult.gridColor #d9d9d9 widgetDefault
+option add *HistoResult.activeColor blue widgetDefault
+option add *HistoResult.dimColor gray widgetDefault
+option add *HistoResult.controlBackground gray widgetDefault
+option add *HistoResult.font \
     -*-helvetica-medium-r-normal-*-12-* widgetDefault
 
-option add *Historesult.autoColors {
+option add *HistoResult.autoColors {
     #0000ff #ff0000 #00cc00
     #cc00cc #ff9900 #cccc00
     #000080 #800000 #006600
     #660066 #996600 #666600
 } widgetDefault
 
-option add *Historesult*Balloon*Entry.background white widgetDefault
+option add *HistoResult*Balloon*Entry.background white widgetDefault
 
-itcl::class Rappture::Historesult {
+itcl::class Rappture::HistoResult {
     inherit itk::Widget
 
     itk_option define -gridcolor gridColor GridColor ""
@@ -58,6 +64,8 @@ itcl::class Rappture::Historesult {
     protected method _hilite {state x y}
     protected method _axis {option args}
     protected method _getAxes {xydata}
+    protected method _getLineMarkerOptions { style } 
+    protected method _getTextMarkerOptions { style } 
 
     private variable _dispatcher "" ;# dispatcher for !events
 
@@ -76,16 +84,17 @@ itcl::class Rappture::Historesult {
     private variable _axis         ;# info for axis manipulations
     private variable _axisPopup    ;# info for axis being edited in popup
     common _downloadPopup          ;# download options from popup
+
 }
                                                                                 
-itk::usual Historesult {
+itk::usual HistoResult {
     keep -background -foreground -cursor -font
 }
 
 # ----------------------------------------------------------------------
 # CONSTRUCTOR
 # ----------------------------------------------------------------------
-itcl::body Rappture::Historesult::constructor {args} {
+itcl::body Rappture::HistoResult::constructor {args} {
     Rappture::dispatcher _dispatcher
     $_dispatcher register !rebuild
     $_dispatcher dispatch $this !rebuild "[itcl::code $this _rebuild]; list"
@@ -121,14 +130,14 @@ itcl::body Rappture::Historesult::constructor {args} {
 
     itk_component add plot {
         blt::barchart $itk_interior.plot \
-            -highlightthickness 0 -plotpadx 0 -plotpady 0 \
+            -highlightthickness 0 -plotpadx 10 -plotpady 10 \
             -rightmargin 10
     } {
         keep -background -foreground -cursor -font
     }
     pack $itk_component(plot) -expand yes -fill both
     $itk_component(plot) pen configure activeBar \
-        -linewidth 2 -color black
+        -foreground red -borderwidth 0
 
     #
     # Add bindings so you can mouse over points to see values:
@@ -175,16 +184,9 @@ itcl::body Rappture::Historesult::constructor {args} {
     grid $inner.formatl -row 4 -column 0 -sticky e
     grid $inner.format -row 4 -column 1 -sticky ew -pady 4
 
-    label $inner.scalel -text "Scale:"
-    frame $inner.scales
-    radiobutton $inner.scales.linear -text "Linear" \
-        -variable [itcl::scope _axisPopup(scale)] -value "linear"
-    pack $inner.scales.linear -side left
-    radiobutton $inner.scales.log -text "Logarithmic" \
-        -variable [itcl::scope _axisPopup(scale)] -value "log"
-    pack $inner.scales.log -side left
-    grid $inner.scalel -row 5 -column 0 -sticky e
-    grid $inner.scales -row 5 -column 1 -sticky ew -pady 4
+    # I've temporarily removed the scaling controls.  Log scale isn't useful
+    # for the x-axis, but can be for the y-axis.  I need to figure out how to
+    # provide different menus for each axis.
 
     foreach axis {x y} {
         set _axisPopup(format-$axis) "%.3g"
@@ -204,7 +206,7 @@ itcl::body Rappture::Historesult::constructor {args} {
 # ----------------------------------------------------------------------
 # DESTRUCTOR
 # ----------------------------------------------------------------------
-itcl::body Rappture::Historesult::destructor {} {
+itcl::body Rappture::HistoResult::destructor {} {
 }
 
 # ----------------------------------------------------------------------
@@ -214,7 +216,7 @@ itcl::body Rappture::Historesult::destructor {} {
 # are used to configure the plot.  Allowed settings are -color,
 # -brightness, -width, -linestyle and -raise.
 # ----------------------------------------------------------------------
-itcl::body Rappture::Historesult::add {histogram {settings ""}} {
+itcl::body Rappture::HistoResult::add {histogram {settings ""}} {
     array set params {
         -color auto
         -brightness 0
@@ -290,7 +292,7 @@ itcl::body Rappture::Historesult::add {histogram {settings ""}} {
 # Clients use this to query the list of objects being plotted, in
 # order from bottom to top of this result.
 # ----------------------------------------------------------------------
-itcl::body Rappture::Historesult::get {} {
+itcl::body Rappture::HistoResult::get {} {
     # put the dataobj list in order according to -raise options
     set clist $_hlist
     foreach obj $clist {
@@ -311,7 +313,7 @@ itcl::body Rappture::Historesult::get {} {
 # Clients use this to delete a histogram from the plot.  If no histograms
 # are specified, then all histograms are deleted.
 # ----------------------------------------------------------------------
-itcl::body Rappture::Historesult::delete {args} {
+itcl::body Rappture::HistoResult::delete {args} {
     if {[llength $args] == 0} {
         set args $_hlist
     }
@@ -355,7 +357,7 @@ itcl::body Rappture::Historesult::delete {args} {
 # Because of this, the limits are appropriate for all histograms as
 # the user scans through data in the ResultSet viewer.
 # ----------------------------------------------------------------------
-itcl::body Rappture::Historesult::scale {args} {
+itcl::body Rappture::HistoResult::scale {args} {
     set allx [$itk_component(plot) x2axis use]
     lappend allx x  ;# fix main x-axis too
     foreach axis $allx {
@@ -379,6 +381,7 @@ itcl::body Rappture::Historesult::scale {args} {
                 # store results -- ex: _limits(x2log-min)
                 set id $map($axis)$type
                 foreach {min max} [$xydata limits $axis$type] break
+		puts stderr "axis=$axis min=$min, max=$max"
                 if {"" != $min && "" != $max} {
                     if {![info exists _limits($id-min)]} {
                         set _limits($id-min) $min
@@ -412,13 +415,13 @@ itcl::body Rappture::Historesult::scale {args} {
 # "ext" is the file extension (indicating the type of data) and
 # "string" is the data itself.
 # ----------------------------------------------------------------------
-itcl::body Rappture::Historesult::download {option args} {
+itcl::body Rappture::HistoResult::download {option args} {
     switch $option {
         coming {
             # nothing to do
         }
         controls {
-            set popup .historesultdownload
+            set popup .HistoResultdownload
             if {![winfo exists .historesultdownload]} {
                 # if we haven't created the popup yet, do it now
                 Rappture::Balloon $popup -title "Download as..."
@@ -426,11 +429,11 @@ itcl::body Rappture::Historesult::download {option args} {
                 label $inner.summary -text "" -anchor w
                 pack $inner.summary -side top
                 radiobutton $inner.csv -text "Data as Comma-Separated Values" \
-                    -variable Rappture::Historesult::_downloadPopup(format) \
+                    -variable Rappture::HistoResult::_downloadPopup(format) \
                     -value csv
                 pack $inner.csv -anchor w
                 radiobutton $inner.pdf -text "Image as PDF/PostScript" \
-                    -variable Rappture::Historesult::_downloadPopup(format) \
+                    -variable Rappture::HistoResult::_downloadPopup(format) \
                     -value pdf
                 pack $inner.pdf -anchor w
                 button $inner.go -text "Download Now" \
@@ -474,31 +477,23 @@ itcl::body Rappture::Historesult::download {option args} {
                     append csvdata "[string repeat - 60]\n"
 
                     append csvdata "[$dataobj hints xlabel], [$dataobj hints ylabel]\n"
-                    set first 1
-                    foreach comp [$dataobj components] {
-                        if {!$first} {
-                            # blank line between components
-                            append csvdata "\n"
-                        }
-                        set xv [$dataobj locations]
-                        set hv [$dataobj heights]
-                        set wv [$dataobj widths]
-			if { $wv == "" } {
-			    foreach x [$xv range 0 end] h [$hv range 0 end] {
-				append csvdata \
-				    [format "%20.15g, %20.15g\n" $x $h]
-			    }
-			} else {
-			    foreach x [$xv range 0 end] \
-				    h [$hv range 0 end] \
-				    w [$wv range 0 end] {
-				append csvdata [format \
-				    "%20.15g, %20.15g, %20.15g\n" $x $h $w]
-			    }
+		    set xv [$dataobj locations]
+		    set hv [$dataobj heights]
+		    set wv [$dataobj widths]
+		    if { $wv == "" } {
+			foreach x [$xv range 0 end] h [$hv range 0 end] {
+			    append csvdata \
+				[format "%20.15g, %20.15g\n" $x $h]
 			}
-			set first 0
-			append csvdata "\n"
+		    } else {
+			foreach x [$xv range 0 end] \
+			    h [$hv range 0 end] \
+			    w [$wv range 0 end] {
+				append csvdata \
+				    [format "%20.15g, %20.15g, %20.15g\n" $x $h $w]
+			    }
 		    }
+		    append csvdata "\n"
                 }
                 return [list .txt $csvdata]
               }
@@ -536,16 +531,16 @@ itcl::body Rappture::Historesult::download {option args} {
 # data in the widget.  Clears any existing data and rebuilds the
 # widget to display new data.
 # ----------------------------------------------------------------------
-itcl::body Rappture::Historesult::_rebuild {} {
+itcl::body Rappture::HistoResult::_rebuild {} {
     set g $itk_component(plot)
 
     # first clear out the widget
     eval $g element delete [$g element names]
+    eval $g marker delete [$g marker names]
     foreach axis [$g axis names] {
-        $g axis configure $axis -hide yes
+        $g axis configure $axis -hide yes 
     }
     catch {unset _label2axis}
-
     #
     # Scan through all objects and create a list of all axes.
     # The first x-axis gets mapped to "x".  The second, to "x2".
@@ -622,51 +617,109 @@ itcl::body Rappture::Historesult::_rebuild {} {
         set label [$xydata hints label]
         foreach {mapx mapy} [_getAxes $xydata] break
 
-        foreach comp [$xydata components] {
-            set xv [$xydata locations]
-            set yv [$xydata heights]
-            set zv [$xydata widths]
-		
-            if {[info exists _histo2color($xydata)]} {
-                set color $_histo2color($xydata)
-            } else {
-                set color [$xydata hints color]
-                if {"" == $color} {
-                    set color black
-                }
-            }
+	set xv [$xydata locations]
+	set yv [$xydata heights]
+	set zv [$xydata widths]
+	
+	if {[info exists _histo2color($xydata)]} {
+	    set color $_histo2color($xydata)
+	} else {
+	    set color [$xydata hints color]
+	    if {"" == $color} {
+		set color black
+	    }
+	}
+	
+	if {[info exists _histo2width($xydata)]} {
+	    set lwidth $_histo2width($xydata)
+	} else {
+	    set lwidth 2
+	}
 
-            if {[info exists _histo2width($xydata)]} {
-                set lwidth $_histo2width($xydata)
-            } else {
-                set lwidth 2
-            }
-
-            if {[info exists _histo2dashes($xydata)]} {
-                set dashes $_histo2dashes($xydata)
-            } else {
-                set dashes ""
-            }
-            set elem "elem[incr count]"
-            set _elem2histo($elem) $xydata
-            $g element line $elem -x $xv -y $yv \
-		-symbol $sym -pixels $pixels -linewidth $lwidth -label $label \
-                -color $color -dashes $dashes -smooth natural \
-                -mapx $mapx -mapy $mapy
-
-	    # Compute default bar width for histogram elements.
-	    set defwidth { [expr ($zv(max) - $zv(min)) / ([$xv length] - 1)] }
-	    foreach x [$xv range 0 end] y [$yv range 0 end] z [$zv range 0 end] {
-		if { $z == "" } {
-		    set z $defwidth
-		}
+	if {[info exists _histo2dashes($xydata)]} {
+	    set dashes $_histo2dashes($xydata)
+	} else {
+	    set dashes ""
+	}
+	if {([$xv length] <= 1) || ($lwidth == 0)} {
+	    set sym square
+	    set pixels 2
+	} else {
+	    set sym ""
+	    set pixels 6
+	}
+	if { 0 } {
+	set elem "elem[incr count]"
+	set _elem2histo($elem) $xydata
+	$g line create $elem -x $xv -y $yv \
+	    -symbol $sym -pixels $pixels -linewidth $lwidth -label $label \
+	    -color $color -dashes $dashes -smooth natural \
+	    -mapx $mapx -mapy $mapy
+	}
+	# Compute default bar width for histogram elements.
+	if { [$zv length] == [$xv length] } {
+	    foreach x [$xv range 0 end] \
+		    y [$yv range 0 end] \
+		    z [$zv range 0 end] {
 		set elem "elem[incr count]"
 		set _elem2histo($elem) $xydata
 		$g element create $elem -x $x -y $y -barwidth $z \
-			-label $label -foreground $color \
-			-mapx $mapx -mapy $mapy
+		    -label $label -foreground $color \
+		    -mapx $mapx -mapy $mapy
 	    }
-        }
+	} else {
+	    set r [blt::vector expr {max($xv) - min($xv)}]
+	    set z [expr {$r / ([$xv length]-1)}]
+	    foreach x [$xv range 0 end] y [$yv range 0 end] {
+		set elem "elem[incr count]"
+		set _elem2histo($elem) $xydata
+		$g element create $elem -x $x -y $y -barwidth $z \
+		    -label $label -foreground $color \
+		    -mapx $mapx -mapy $mapy
+	    }
+	} 
+
+	# 
+	# Create text/line markers for each *axis.marker specified. 
+	# 
+	foreach m [$xydata xmarkers] {
+	    foreach {at label style} $m break
+	    set yv [$xydata heights]
+	    set min [blt::vector expr min($yv)]
+	    set max [blt::vector expr max($yv)]
+	    set id [$g marker create line -coords [list $at $min $at $max]]
+	    set options [_getLineMarkerOptions $style]
+	    if { $options != "" } {
+		eval $g marker configure $id $options
+	    }
+	    if { $label != "" } {
+		set id [$g marker create text -anchor w -xoffset 5 \
+			-text $label -coords [list $at $max]]
+		set options [_getTextMarkerOptions $style]
+		if { $options != "" } {
+		    eval $g marker configure $id $options
+		}
+	    }
+	}
+	foreach m [$xydata ymarkers] {
+	    foreach {at label style} $m break
+	    set xv [$xydata widths]
+	    set min [blt::vector expr min($xv)]
+	    set max [blt::vector expr max($xv)]
+	    set id [$g marker create line -coords [list $min $at $max $at]]
+	    set options [_getLineMarkerOptions $style]
+	    if { $options != "" } {
+		eval $g marker configure $id $options
+	    }
+	    if { $label != "" } {
+		set id [$g marker create text -anchor se -yoffset 5 \
+			-text $label -coords [list $max $at]]
+		set options [_getTextMarkerOptions $style]
+		if { $options != "" } {
+		    eval $g marker configure $id $options
+		}
+	    }
+	}
     }
 }
 
@@ -676,7 +729,7 @@ itcl::body Rappture::Historesult::_rebuild {} {
 # Used internally to apply automatic limits to the axes for the
 # current plot.
 # ----------------------------------------------------------------------
-itcl::body Rappture::Historesult::_resetLimits {} {
+itcl::body Rappture::HistoResult::_resetLimits {} {
     set g $itk_component(plot)
 
     #
@@ -752,7 +805,7 @@ itcl::body Rappture::Historesult::_resetLimits {} {
 # Called automatically when the user clicks on one of the zoom
 # controls for this widget.  Changes the zoom for the current view.
 # ----------------------------------------------------------------------
-itcl::body Rappture::Historesult::_zoom {option args} {
+itcl::body Rappture::HistoResult::_zoom {option args} {
     switch -- $option {
         reset {
             _resetLimits
@@ -767,7 +820,7 @@ itcl::body Rappture::Historesult::_zoom {option args} {
 # on the plot.  Causes the element to highlight and a tooltip to
 # pop up with element info.
 # ----------------------------------------------------------------------
-itcl::body Rappture::Historesult::_hilite {state x y} {
+itcl::body Rappture::HistoResult::_hilite {state x y} {
     set g $itk_component(plot)
     set elem ""
     if {$state == "at"} {
@@ -977,7 +1030,7 @@ itcl::body Rappture::Historesult::_hilite {state x y} {
 # up a panel with editing options.  The changed operation applies
 # changes from the panel.
 # ----------------------------------------------------------------------
-itcl::body Rappture::Historesult::_axis {option args} {
+itcl::body Rappture::HistoResult::_axis {option args} {
     set inner [$itk_component(hull).axes component inner]
 
     switch -- $option {
@@ -1148,18 +1201,9 @@ itcl::body Rappture::Historesult::_axis {option args} {
             bind $inner.format <<Value>> \
                 [itcl::code $this _axis changed $axis format]
 
-            # fix scale control...
-            if {[$itk_component(plot) axis cget $axis -logscale]} {
-                set _axisPopup(scale) "log"
-                $inner.format configure -state disabled
-            } else {
-                set _axisPopup(scale) "linear"
-                $inner.format configure -state normal
-            }
-            $inner.scales.linear configure \
-                -command [itcl::code $this _axis changed $axis scale]
-            $inner.scales.log configure \
-                -command [itcl::code $this _axis changed $axis scale]
+	    # I removed the code for fixing the axis menus scale controls.
+	    # This needs to be added back when different menus are available
+	    # for each axis.
 
             #
             # Figure out where the window should pop up.
@@ -1329,13 +1373,61 @@ itcl::body Rappture::Historesult::_axis {option args} {
 }
 
 # ----------------------------------------------------------------------
+# USAGE: _getLineMarkerOptions <style>
+#
+# Used internally to create a list of configuration options specific to the
+# axis line marker.  The input is a list of name value pairs.  Options that
+# are not recognized are ignored.
+# ----------------------------------------------------------------------
+itcl::body Rappture::HistoResult::_getLineMarkerOptions {style} {
+    array set lineOptions {
+	"-color"  "-outline"
+	"-dashes" "-dashes"
+	"-linecolor" "-outline"
+	"-linewidth" "-linewidth"
+    }
+    set options {}
+    foreach {name value} $style {
+	if { [info exists lineOptions($name)] } {
+	    lappend options $lineOptions($name) $value
+	}
+    }
+    return $options
+}
+
+# ----------------------------------------------------------------------
+# USAGE: _getTextMarkerOptions <style>
+#
+# Used internally to create a list of configuration options specific to the
+# axis text marker.  The input is a list of name value pairs.  Options that
+# are not recognized are ignored.
+# ----------------------------------------------------------------------
+itcl::body Rappture::HistoResult::_getTextMarkerOptions {style} {
+    array set textOptions {
+	"-color"  "-outline"
+	"-textcolor"  "-outline"
+	"-font"   "-font"
+	"-xoffset" "-xoffset"
+	"-yoffset" "-yoffset"
+	"-anchor" "-anchor"
+    }
+    set options {}
+    foreach {name value} $style {
+	if { [info exists textOptions($name)] } {
+	    lappend options $textOptions($name) $value
+	}
+    }
+    return $options
+}
+
+# ----------------------------------------------------------------------
 # USAGE: _getAxes <histoObj>
 #
 # Used internally to figure out the axes used to plot the given
 # <histoObj>.  Returns a list of the form {x y}, where x is the
 # x-axis name (x, x2, x3, etc.), and y is the y-axis name.
 # ----------------------------------------------------------------------
-itcl::body Rappture::Historesult::_getAxes {xydata} {
+itcl::body Rappture::HistoResult::_getAxes {xydata} {
     # rebuild if needed, so we know about the axes
     if {[$_dispatcher ispending !rebuild]} {
         $_dispatcher cancel !rebuild
@@ -1364,7 +1456,7 @@ itcl::body Rappture::Historesult::_getAxes {xydata} {
 # ----------------------------------------------------------------------
 # CONFIGURATION OPTION: -gridcolor
 # ----------------------------------------------------------------------
-itcl::configbody Rappture::Historesult::gridcolor {
+itcl::configbody Rappture::HistoResult::gridcolor {
     if {"" == $itk_option(-gridcolor)} {
         $itk_component(plot) grid off
     } else {
@@ -1376,7 +1468,7 @@ itcl::configbody Rappture::Historesult::gridcolor {
 # ----------------------------------------------------------------------
 # CONFIGURATION OPTION: -autocolors
 # ----------------------------------------------------------------------
-itcl::configbody Rappture::Historesult::autocolors {
+itcl::configbody Rappture::HistoResult::autocolors {
     foreach c $itk_option(-autocolors) {
         if {[catch {winfo rgb $itk_component(hull) $c}]} {
             error "bad color \"$c\""
