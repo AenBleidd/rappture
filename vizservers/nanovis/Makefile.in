@@ -40,7 +40,7 @@ OBJS  = nanovis.o Socket.o RenderVertexArray.o Plane.o ConvexPolygon.o Vector4.o
 		NvLoadFile.o NvDefaultTFData.o NvColorTableShader.o NvColorTableRenderer.o NvParticleAdvectionShader.o \
 		NvEventLog.o NvParticleRenderer.o NvLIC.o NvZincBlendeReconstructor.o NvStdVertexShader.o \
 		ContourLineFilter.o HeightMap.o Grid.o \
-		PointShader.o PCASplit.o BucketSort.o PointSetRenderer.o \
+		PointShader.o PCASplit.o BucketSort.o PointSetRenderer.o PointSet.o \
 		bandmat.o cholesky.o evalue.o fft.o hholder.o jacobi.o myexcept.o newfft.o newmat1.o newmat2.o \
 		newmat3.o newmat4.o newmat5.o newmat6.o newmat7.o newmat8.o newmat9.o newmatex.o newmatnl.o \
 		newmatrm.o nm_misc.o solution.o sort.o svd.o submat.o \
@@ -153,6 +153,7 @@ PointShader.o: PointShader.cpp PointShader.h
 PCASplit.o: PCASplit.cpp PCASplit.h
 BucketSort.o: BucketSort.cpp BucketSort.h
 PointSetRenderer.o: PointSetRenderer.cpp PointSetRenderer.h
+PointSet.o: PointSet.cpp PointSet.h
 bandmat.o: newmat11/bandmat.cpp
 	$(CC) $(CFLAGS) -o $@ -c $<
 cholesky.o: newmat11/cholesky.cpp
