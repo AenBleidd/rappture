@@ -111,6 +111,7 @@ int slice_sort(const void* a, const void* b){
 
 void VolumeRenderer::render_all_points()
 {
+/*
     double x0 = 0;
     double y0 = 0;
     double z0 = 0;
@@ -136,6 +137,7 @@ void VolumeRenderer::render_all_points()
 
     glPopMatrix();
   }
+*/
 }
 
 void VolumeRenderer::render_all()

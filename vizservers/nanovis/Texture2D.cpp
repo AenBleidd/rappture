@@ -93,6 +93,11 @@ GLuint Texture2D::initialize(float *data)
 			break;
 	  }
 	}
+    else
+    {
+        int comp[5] = { -1, GL_LUMINANCE, GL_LUMINANCE_ALPHA, GL_RGB, GL_RGBA };
+		glTexImage2D(GL_TEXTURE_2D, 0, comp[n_components], width, height, 0, GL_RGBA, type, data);
+    }
 
 	assert(glGetError()==0);
 	return id;

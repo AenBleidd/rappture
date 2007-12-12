@@ -14,6 +14,7 @@ public :
 	//unsigned char color;
 	Vector4 color;
 	float size;
+    float value;
 public :
 	Point() : size(1.0f) {}
 };
