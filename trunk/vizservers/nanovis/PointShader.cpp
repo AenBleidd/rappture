@@ -16,6 +16,11 @@ PointShader::PointShader()
 		}
 
 	}
+    else
+    {
+        printf("point shader loaded...\n");
+        fflush(stdout);
+    }
 
 	this->loadVertexProgram(path, "main");
 

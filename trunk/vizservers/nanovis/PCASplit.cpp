@@ -121,6 +121,7 @@ Cluster* PCASplit::createClusterBlock(ClusterListNode* clusterList, int count, i
 	_clusterHeader->startPointerCluster[level - 1] = clusterBlock;
 
 	printf("Cluster created %d [in level %d]:total %d\n", count, level, cc);
+    fflush(stdout);
 	
 	int i = 0;
 	ClusterListNode* clusterNode = clusterList;
@@ -332,6 +333,9 @@ void PCASplit::analyze(ClusterListNode* clusterNode, Cluster* parent, int level,
 					retClusterBlock[i].color.set(
 						float(rand()) / RAND_MAX, float(rand()) / RAND_MAX, float(rand()) / RAND_MAX,
 						0.2);
+
+            printf("CLUSTER points : %d\n", node->data->numOfPoints_t);
+            fflush(stdout);
 					
 					points[i].position = node->data->centroid_t;
 					points[i].color.set(1.0f, 1.0f, 1.0f, 0.2f);

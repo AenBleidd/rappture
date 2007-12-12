@@ -9,14 +9,19 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <imgLoaders/BMPImageLoaderImpl.h>
+#include <imgLoaders/ImageLoaderFactory.h>
+#include "PointSetRenderer.h"
 
 extern void NvInitCG(); // in NvShader.cpp
 
 NvParticleRenderer* g_particleRenderer;
 NvColorTableRenderer* g_color_table_renderer;
+PointSetRenderer* g_pointset_renderer;
 VolumeRenderer* g_vol_render;
 R2Fonts* g_fonts;
 Grid* g_grid;
+
 
 //query opengl information
 static void NvPrintSystemInfo()
@@ -54,6 +59,9 @@ void NvInitGLEW()
     }
     fprintf(stdout, "Status: Using GLEW %s\n", glewGetString(GLEW_VERSION));
 }
+
+//init line integral convolution
+
 
 //init line integral convolution
 void NvInitLIC()
@@ -120,6 +128,11 @@ void NvInitVolumeRenderer()
 {
 }
 
+void NvInitPointSetRenderer()
+{
+    g_pointset_renderer = new PointSetRenderer();
+}
+
 void NvInit(char* path)
 {
     if (path != NULL) {
@@ -137,11 +150,15 @@ void NvInit(char* path)
     //g_color_table_renderer = new NvColorTableRenderer();
     // INSOO
     //g_color_table_renderer->setFonts(g_fonts);
+    //
+
+    ImageLoaderFactory::getInstance()->addLoaderImpl("bmp", new BMPImageLoaderImpl());
 
     g_grid = new Grid();
     g_grid->setFont(g_fonts);
 
     NvInitVolumeRenderer();
+    NvInitPointSetRenderer();
     NvInitParticleRenderer();
    
     printf("Nanovis GL Initialized\n");
