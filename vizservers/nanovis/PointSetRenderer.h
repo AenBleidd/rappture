@@ -20,7 +20,7 @@ private :
     void renderCluster(PCA::ClusterList** bucket, int size, int level);
 
 public :
-    void render(PCA::ClusterAccel* cluster, const Mat4x4& mat, int sortLevel);
+    void render(PCA::ClusterAccel* cluster, const Mat4x4& mat, int sortLevel, const Vector3& scale, const Vector3& origin);
 };
 
 #endif
