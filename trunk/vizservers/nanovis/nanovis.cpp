@@ -27,9 +27,11 @@
 #include <fcntl.h>
 #include <signal.h>
 
+
 #include "Nv.h"
 #include "PointSetRenderer.h"
 #include "PointSet.h"
+#include "Util.h"
 
 #include "nanovis.h"
 #include "RpField1D.h"
@@ -53,6 +55,9 @@
 #include "Grid.h"
 
 //#define  _LOCAL_ZINC_TEST_
+//
+// FOR testing new functions
+//#include "Test.h"
 
 // R2 headers
 #include <R2/R2FilePath.h>
@@ -917,21 +922,21 @@ VolumeCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
                     volume[n] = vol;
                 }
             }
-/*
+#ifdef __TEST_CODE__
             else if (!strcmp(header, "<FET>"))
             {
                 printf("FET loading...\n");
                 fflush(stdout);
                 std::stringstream fdata;
                 fdata.write(buf.bytes(),buf.size());
-                //err = load_volume_stream3(n, fdata);
+                err = load_volume_stream3(n, fdata);
 
                 if (err) {
                     Tcl_AppendResult(interp, err.remark().c_str(), (char*)NULL);
                     return TCL_ERROR;
                 }
             }
-*/
+#endif
             else
             {
                 printf("OpenDX loading...\n");
@@ -1455,93 +1460,6 @@ int AxisCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84
     Tcl_AppendResult(interp, "bad option \"", argv[1],
         "\": should be data, outline, shading, or state", (char*)NULL);
     return TCL_ERROR;
-}
-
-int TestCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]))
-{
-    std::ifstream fin;
-    fin.open("/home/nanohub/vrinside/nv/data/fet/graph-finfet.txt", std::ios::binary);
-                //std::stringstream fdata(std::ios_base::out|std::ios_base::in|std::ios_base::binary);
-
-    if (!fin) 
-    {
-        printf("file not found\n");
-        return TCL_OK;
-    }
-
-    float temp1, temp2, temp3;
-    float vmin, vmax;
-    int count;
-    char* start;
-
-    char line[128];
-    char temp[24];
-    float dx, dy, dz;
-    float x0, y0, z0;
-    do {
-        fin.getline(line,sizeof(line)-1);
-
-        // skip leading blanks
-        for (start=&line[0]; *start == ' ' || *start == '\t'; start++);
-
-        if (*start != '#') 
-        {  
-            sscanf(start, "%s%f%f%f", temp, &temp1, &temp2, &temp3);
-            if (!strcmp(temp, "size"))
-            {
-                dx = temp1;
-                dy = temp2;
-                dz = temp3;
-            }
-            else if (!strcmp(temp, "size"))
-            {
-                x0 = temp1;
-                y0 = temp2;
-                z0 = temp3;
-            }
-            else if (!strcmp(temp, "minmax"))
-            {
-                vmin = temp1;
-                vmax = temp2;
-            }
-            else if (!strcmp(temp, "count"))
-            {
-                count = temp1;
-            }
-            else if (!strcmp(temp, "</FET>"))
-            {
-                break;
-            }
-        }
-    } while (!fin.eof());
-
-    printf("data count %d \n", count);
-    fflush(stdout);
-
-    Vector4* data = new Vector4[count];
-    memset(data, 0, sizeof(Vector4) * count);
-    float min = 1e21, max = 1e-21;
-    for (int i = 0; i < count; ++i)
-    {
-        fin.getline(line,sizeof(line)-1);
-        sscanf(line, "%f%f%f%f", &data[i].x, &data[i].y, &data[i].z, &data[i].w);
-
-        if (data[i].w < min) min = data[i].w;
-        if (data[i].w > max) max = data[i].w;
-    }
-
-    float d = max - min;
-    for (int i = 0; i < count; ++i)
-    {
-        data[i].w = (data[i].w - min) / d;
-    }
-
-    PointSet* newPointSet = new PointSet();
-    newPointSet->initialize(data, count);
-    newPointSet->setVisible(true);
-    g_pointSet.push_back(newPointSet);
-    
-    return TCL_OK;
 }
 
 /*
@@ -2723,331 +2641,6 @@ load_volume_stream(int index, std::iostream& fin) {
     return result;
 }
 
-Rappture::Outcome
-load_volume_stream3(int index, std::iostream& fin) 
-{
-    Rappture::Outcome result;
-
-    Rappture::MeshTri2D xymesh;
-    int dummy, nx, ny, nz, nxy, npts;
-    double x0, y0, z0, dx, dy, dz, ddx, ddy, ddz;
-    char line[128], type[128], *start;
-
-    int isrect = 1;
-
-    float temp1, temp2, temp3;
-    float vmin, vmax;
-    int count;
-
-    char temp[24];
-    do {
-        fin.getline(line,sizeof(line)-1);
-
-        // skip leading blanks
-        for (start=&line[0]; *start == ' ' || *start == '\t'; start++);
-
-        if (*start != '#') 
-        {  
-            sscanf(start, "%s%f%f%f", temp, &temp1, &temp2, &temp3);
-            if (!strcmp(temp, "size"))
-            {
-                dx = temp1;
-                dy = temp2;
-                dz = temp3;
-            }
-            else if (!strcmp(temp, "size"))
-            {
-                x0 = temp1;
-                y0 = temp2;
-                z0 = temp3;
-            }
-            else if (!strcmp(temp, "minmax"))
-            {
-                vmin = temp1;
-                vmax = temp2;
-            }
-            else if (!strcmp(temp, "count"))
-            {
-                count = temp1;
-            }
-            else if (!strcmp(temp, "<FET>"))
-            {
-                break;
-            }
-        }
-    } while (!fin.eof());
-
-    // read data points
-    if (!fin.eof()) {
-        if (isrect) {
-            Rappture::Mesh1D xgrid(x0, x0+nx*dx, nx);
-            Rappture::Mesh1D ygrid(y0, y0+ny*dy, ny);
-            Rappture::Mesh1D zgrid(z0, z0+nz*dz, nz);
-            Rappture::FieldRect3D field(xgrid, ygrid, zgrid);
-
-            double dval[6];
-            int nread = 0;
-            int ix = 0;
-            int iy = 0;
-            int iz = 0;
-            while (!fin.eof() && nread < npts) {
-                fin.getline(line,sizeof(line)-1);
-                int n = sscanf(line, "%lg %lg %lg %lg %lg %lg", &dval[0], &dval[1], &dval[2], &dval[3], &dval[4], &dval[5]);
-
-                for (int p=0; p < n; p++) {
-                    int nindex = iz*nx*ny + iy*nx + ix;
-                    field.define(nindex, dval[p]);
-                    nread++;
-                    if (++iz >= nz) {
-                        iz = 0;
-                        if (++iy >= ny) {
-                            iy = 0;
-                            ++ix;
-                        }
-                    }
-                }
-            }
-
-            // make sure that we read all of the expected points
-            if (nread != nx*ny*nz) {
-                char mesg[256];
-                sprintf(mesg,"inconsistent data: expected %d points but found %d points", nx*ny*nz, nread);
-                result.error(mesg);
-                return result;
-            }
-
-            // figure out a good mesh spacing
-            int nsample = 30;
-            dx = field.rangeMax(Rappture::xaxis) - field.rangeMin(Rappture::xaxis);
-            dy = field.rangeMax(Rappture::yaxis) - field.rangeMin(Rappture::yaxis);
-            dz = field.rangeMax(Rappture::zaxis) - field.rangeMin(Rappture::zaxis);
-            double dmin = pow((dx*dy*dz)/(nsample*nsample*nsample), 0.333);
-
-            nx = (int)ceil(dx/dmin);
-            ny = (int)ceil(dy/dmin);
-            nz = (int)ceil(dz/dmin);
-
-#ifndef NV40
-            // must be an even power of 2 for older cards
-	        nx = (int)pow(2.0, ceil(log10((double)nx)/log10(2.0)));
-	        ny = (int)pow(2.0, ceil(log10((double)ny)/log10(2.0)));
-	        nz = (int)pow(2.0, ceil(log10((double)nz)/log10(2.0)));
-#endif
-
-            float *data = new float[4*nx*ny*nz];
-
-            double vmin = field.valueMin();
-            double dv = field.valueMax() - field.valueMin();
-            if (dv == 0.0) { dv = 1.0; }
-
-            // generate the uniformly sampled data that we need for a volume
-            int ngen = 0;
-            double nzero_min = 0.0;
-            for (int iz=0; iz < nz; iz++) {
-                double zval = z0 + iz*dmin;
-                for (int iy=0; iy < ny; iy++) {
-                    double yval = y0 + iy*dmin;
-                    for (int ix=0; ix < nx; ix++) {
-                        double xval = x0 + ix*dmin;
-                        double v = field.value(xval,yval,zval);
-
-                        if (v != 0.0f && v < nzero_min)
-                        {
-                            nzero_min = v;
-                        }
-
-                        // scale all values [0-1], -1 => out of bounds
-                        v = (isnan(v)) ? -1.0 : (v - vmin)/dv;
-
-                        data[ngen] = v;
-                        ngen += 4;
-                    }
-                }
-            }
-
-            // Compute the gradient of this data.  BE CAREFUL: center
-            // calculation on each node to avoid skew in either direction.
-            ngen = 0;
-            for (int iz=0; iz < nz; iz++) {
-                for (int iy=0; iy < ny; iy++) {
-                    for (int ix=0; ix < nx; ix++) {
-                        // gradient in x-direction
-                        double valm1 = (ix == 0) ? 0.0 : data[ngen-4];
-                        double valp1 = (ix == nx-1) ? 0.0 : data[ngen+4];
-                        if (valm1 < 0 || valp1 < 0) {
-                            data[ngen+1] = 0.0;
-                        } else {
-                            data[ngen+1] = ((valp1-valm1) + 1) *  0.5; // assume dx=1
-                        }
-
-                        // gradient in y-direction
-                        valm1 = (iy == 0) ? 0.0 : data[ngen-4*nx];
-                        valp1 = (iy == ny-1) ? 0.0 : data[ngen+4*nx];
-                        if (valm1 < 0 || valp1 < 0) {
-                            data[ngen+2] = 0.0;
-                        } else {
-                            //data[ngen+2] = valp1-valm1; // assume dy=1
-                            data[ngen+2] = ((valp1-valm1) + 1) *  0.5; // assume dx=1
-                        }
-
-                        // gradient in z-direction
-                        valm1 = (iz == 0) ? 0.0 : data[ngen-4*nx*ny];
-                        valp1 = (iz == nz-1) ? 0.0 : data[ngen+4*nx*ny];
-                        if (valm1 < 0 || valp1 < 0) {
-                            data[ngen+3] = 0.0;
-                        } else {
-                            //data[ngen+3] = valp1-valm1; // assume dz=1
-                            data[ngen+3] = ((valp1-valm1) + 1) *  0.5; // assume dz=1
-                        }
-
-                        ngen += 4;
-                    }
-                }
-            }
-
-            load_volume(index, nx, ny, nz, 4, data,
-                field.valueMin(), field.valueMax(), nzero_min);
-
-            delete [] data;
-
-        } else {
-            Rappture::Mesh1D zgrid(z0, z0+nz*dz, nz);
-            Rappture::FieldPrism3D field(xymesh, zgrid);
-
-            double dval;
-            int nread = 0;
-            int ixy = 0;
-            int iz = 0;
-            while (!fin.eof() && nread < npts) {
-                if (!(fin >> dval).fail()) {
-                    int nid = nxy*iz + ixy;
-                    field.define(nid, dval);
-
-                    nread++;
-                    if (++iz >= nz) {
-                        iz = 0;
-                        ixy++;
-                    }
-                }
-            }
-
-            // make sure that we read all of the expected points
-            if (nread != nxy*nz) {
-                char mesg[256];
-                sprintf(mesg,"inconsistent data: expected %d points but found %d points", nxy*nz, nread);
-                return result.error(mesg);
-            }
-
-            // figure out a good mesh spacing
-            int nsample = 30;
-            x0 = field.rangeMin(Rappture::xaxis);
-            dx = field.rangeMax(Rappture::xaxis) - field.rangeMin(Rappture::xaxis);
-            y0 = field.rangeMin(Rappture::yaxis);
-            dy = field.rangeMax(Rappture::yaxis) - field.rangeMin(Rappture::yaxis);
-            z0 = field.rangeMin(Rappture::zaxis);
-            dz = field.rangeMax(Rappture::zaxis) - field.rangeMin(Rappture::zaxis);
-            double dmin = pow((dx*dy*dz)/(nsample*nsample*nsample), 0.333);
-
-            nx = (int)ceil(dx/dmin);
-            ny = (int)ceil(dy/dmin);
-            nz = (int)ceil(dz/dmin);
-#ifndef NV40
-            // must be an even power of 2 for older cards
-	        nx = (int)pow(2.0, ceil(log10((double)nx)/log10(2.0)));
-	        ny = (int)pow(2.0, ceil(log10((double)ny)/log10(2.0)));
-	        nz = (int)pow(2.0, ceil(log10((double)nz)/log10(2.0)));
-#endif
-            float *data = new float[4*nx*ny*nz];
-
-            double vmin = field.valueMin();
-            double dv = field.valueMax() - field.valueMin();
-            if (dv == 0.0) { dv = 1.0; }
-
-            // generate the uniformly sampled data that we need for a volume
-            int ngen = 0;
-            double nzero_min = 0.0;
-            for (iz=0; iz < nz; iz++) {
-                double zval = z0 + iz*dmin;
-                for (int iy=0; iy < ny; iy++) {
-                    double yval = y0 + iy*dmin;
-                    for (int ix=0; ix < nx; ix++) {
-                        double xval = x0 + ix*dmin;
-                        double v = field.value(xval,yval,zval);
-
-                        if (v != 0.0f && v < nzero_min)
-                        {
-                            nzero_min = v;
-                        }
-                        // scale all values [0-1], -1 => out of bounds
-                        v = (isnan(v)) ? -1.0 : (v - vmin)/dv;
-                        data[ngen] = v;
-
-                        ngen += 4;
-                    }
-                }
-            }
-
-            // Compute the gradient of this data.  BE CAREFUL: center
-            // calculation on each node to avoid skew in either direction.
-            ngen = 0;
-            for (int iz=0; iz < nz; iz++) {
-                for (int iy=0; iy < ny; iy++) {
-                    for (int ix=0; ix < nx; ix++) {
-                        // gradient in x-direction
-                        double valm1 = (ix == 0) ? 0.0 : data[ngen-1];
-                        double valp1 = (ix == nx-1) ? 0.0 : data[ngen+1];
-                        if (valm1 < 0 || valp1 < 0) {
-                            data[ngen+1] = 0.0;
-                        } else {
-                            //data[ngen+1] = valp1-valm1; // assume dx=1
-                            data[ngen+1] = ((valp1-valm1) + 1) *  0.5; // assume dx=1
-                        }
-
-                        // gradient in y-direction
-                        valm1 = (iy == 0) ? 0.0 : data[ngen-4*nx];
-                        valp1 = (iy == ny-1) ? 0.0 : data[ngen+4*nx];
-                        if (valm1 < 0 || valp1 < 0) {
-                            data[ngen+2] = 0.0;
-                        } else {
-                            //data[ngen+2] = valp1-valm1; // assume dy=1
-                            data[ngen+2] = ((valp1-valm1) + 1) *  0.5; // assume dy=1
-                        }
-
-                        // gradient in z-direction
-                        valm1 = (iz == 0) ? 0.0 : data[ngen-4*nx*ny];
-                        valp1 = (iz == nz-1) ? 0.0 : data[ngen+4*nx*ny];
-                        if (valm1 < 0 || valp1 < 0) {
-                            data[ngen+3] = 0.0;
-                        } else {
-                            //data[ngen+3] = valp1-valm1; // assume dz=1
-                            data[ngen+3] = ((valp1-valm1) + 1) *  0.5; // assume dz=1
-                        }
-
-                        ngen += 4;
-                    }
-                }
-            }
-
-            load_volume(index, nx, ny, nz, 4, data,
-                field.valueMin(), field.valueMax(), nzero_min);
-
-            delete [] data;
-        }
-    } else {
-        return result.error("data not found in stream");
-    }
-
-    //
-    // Center this new volume on the origin.
-    //
-    float dx0 = -0.5;
-    float dy0 = -0.5*dy/dx;
-    float dz0 = -0.5*dz/dx;
-    volume[index]->move(Vector3(dx0, dy0, dz0));
-
-    return result;
-}
-
 /* Load a 3D volume
  * index: the index into the volume array, which stores pointers to 3D volume instances
  * data: pointer to an array of floats.  
@@ -3095,7 +2688,8 @@ void update_tf_texture()
   if (tf == NULL) return;
 
   float data[256*4];
-  for(int i=0; i<256; i++){
+  for(int i=0; i<256; i++)
+  {
     data[4*i+0] = color_table[i][0];
     data[4*i+1] = color_table[i][1];
     data[4*i+2] = color_table[i][2];
@@ -3397,8 +2991,10 @@ void initTcl()
     Tcl_CreateCommand(interp, "screenshot", ScreenShotCmd,
         (ClientData)NULL, (Tcl_CmdDeleteProc*)NULL);
 
+#ifdef __TEST_CODE__
     Tcl_CreateCommand(interp, "test", TestCmd,
         (ClientData)NULL, (Tcl_CmdDeleteProc*)NULL);
+#endif
 
     // create a default transfer function
     if (Tcl_Eval(interp, def_transfunc) != TCL_OK) {
@@ -3987,7 +3583,7 @@ void sortstep()
 
 
 void draw_3d_axis()
-{
+{ 
     glDisable(GL_TEXTURE_2D);
     glEnable(GL_DEPTH_TEST);
 
@@ -3996,6 +3592,7 @@ void draw_3d_axis()
 	obj = gluNewQuadric();
 	
 	glDepthFunc(GL_LESS);
+    glEnable(GL_COLOR_MATERIAL);
 	glEnable(GL_DEPTH_TEST);
 	glDisable(GL_BLEND);
 
@@ -4029,7 +3626,7 @@ void draw_3d_axis()
 	glEnable(GL_LIGHTING);
 	glEnable(GL_LIGHT0);
 
-	glColor3f(0.2, 0.2, 0.8);
+	//glColor3f(0.2, 0.2, 0.8);
 	glPushMatrix();
 	glutSolidSphere(0.02, segments, segments );
 	glPopMatrix();
@@ -4198,7 +3795,9 @@ void display()
         {
             if (g_pointSet[i]->isVisible())
             {
-                g_pointset_renderer->render(g_pointSet[i]->getCluster(), mat, g_pointSet[i]->getSortLevel());
+                g_pointset_renderer->render(g_pointSet[i]->getCluster(), mat, g_pointSet[i]->getSortLevel(), 
+                                            g_pointSet[i]->getScale(),
+                                            g_pointSet[i]->getOrigin());
             }
         }
 

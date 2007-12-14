@@ -96,13 +96,12 @@ void PCASplit::computeDistortion(Point* data, int count, const Vector3& mean, fl
 		/*
 		finalSize += data[i].size * sqrt(distance);
 		*/
-		if (distance > finalSize) finalSize = distance;;
+		if (distance > finalSize) finalSize = distance;
 	}
 
 	// equation 2
 	//finalSize = 0.5f * sqrt (finalSize) / (float) (count - 1) + maxSize;
 	finalSize = sqrt (finalSize) + maxSize;
-	
 }
 	
 void PCASplit::init()
@@ -269,6 +268,7 @@ void PCASplit::split(Point* data, int count, float limit)
 
 void PCASplit::analyze(ClusterListNode* clusterNode, Cluster* parent, int level, float limit)
 {
+    fflush(stdout);
 	if (level > _maxLevel) return;
 	else if (level > _finalMaxLevel) _finalMaxLevel = level;
 	
@@ -334,9 +334,6 @@ void PCASplit::analyze(ClusterListNode* clusterNode, Cluster* parent, int level,
 						float(rand()) / RAND_MAX, float(rand()) / RAND_MAX, float(rand()) / RAND_MAX,
 						0.2);
 
-            printf("CLUSTER points : %d\n", node->data->numOfPoints_t);
-            fflush(stdout);
-					
 					points[i].position = node->data->centroid_t;
 					points[i].color.set(1.0f, 1.0f, 1.0f, 0.2f);
 					points[i].size = node->data->scale_t;
@@ -391,7 +388,6 @@ void PCASplit::analyze(ClusterListNode* clusterNode, Cluster* parent, int level,
 					node = node->next;
 				}
 
-				printf("points %d\n", curClusterNodeCount);
 			}
 		}
 	}

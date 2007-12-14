@@ -27,8 +27,8 @@ void main(in float4 posin : POSITION,
 	//colout = float4(colin.xyz,0.1);
 	
 	
-	float tmp = posin.w * rsqrt(dot(eye.xyz, eye.xyz));
-	psize = scale.x * max(tmp, 1.0);
+//	float tmp = posin.w * rsqrt(dot(eye.xyz, eye.xyz));
+//	psize = scale.x * max(tmp, 1.0);
 	psize = 10 * p.w / -p.z;
 	
 	colout = float4(colin.xyz, colin.w * 0.25);

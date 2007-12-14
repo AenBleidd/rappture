@@ -8,6 +8,10 @@
 #include <stdio.h>
 #include <R2/R2FilePath.h>
 
+#define USE_TEXTURE 
+//#define USE_SHADER 
+#define POINT_SIZE 5
+
 PointSetRenderer::PointSetRenderer()
 {
     _shader = new PointShader();
@@ -21,6 +25,16 @@ PointSetRenderer::PointSetRenderer()
     
     ImageLoader* loader = ImageLoaderFactory::getInstance()->createLoader("bmp");
     Image* image = loader->load(path, Image::IMG_RGBA);
+
+    unsigned char* bytes = (unsigned char*) image->getImageBuffer();
+    if (bytes)
+    {
+        for (int y = 0; y < image->getHeight(); ++y)
+           for (int x = 0; x < image->getWidth(); ++x, bytes +=4)
+           {
+                bytes[3] =  (bytes[0] == 0)? 0 : 255;
+           }
+    }
 
     if (image)
     {
@@ -53,12 +67,14 @@ void PointSetRenderer::renderCluster(PCA::ClusterList** bucket, int size, int le
 {
     float quadratic[] = { 1.0f, 0.0f, 0.01f };
 
-
+    glEnable(GL_POINT_SPRITE_ARB);
     glPointParameterfvARB(GL_POINT_DISTANCE_ATTENUATION_ARB, quadratic);
     glPointParameterfARB(GL_POINT_FADE_THRESHOLD_SIZE_ARB, 60.0f);
     glPointParameterfARB(GL_POINT_SIZE_MIN_ARB, 1.0f);
     glPointParameterfARB(GL_POINT_SIZE_MAX_ARB, 100);
+#ifdef USE_TEXTURE 
     glTexEnvf(GL_POINT_SPRITE_ARB, GL_COORD_REPLACE_ARB, GL_TRUE);
+#endif
 
     glEnable(GL_POINT_SPRITE_ARB);
 
@@ -73,7 +89,9 @@ void PointSetRenderer::renderCluster(PCA::ClusterList** bucket, int size, int le
         {
             if (!setSize) 
             {
+#ifdef USE_SHADER 
                 _shader->setScale(p->data->points[0].size);
+#endif
                 setSize = true;
             }
         }
@@ -90,22 +108,59 @@ void PointSetRenderer::renderCluster(PCA::ClusterList** bucket, int size, int le
     glEnd();
 
     glDisable(GL_POINT_SPRITE_ARB);
+    glPointSize(1);
 
 }
 
-void PointSetRenderer::render(PCA::ClusterAccel* cluster, const Mat4x4& mat, int sortLevel)
+void PointSetRenderer::render(PCA::ClusterAccel* cluster, const Mat4x4& mat, int sortLevel, const Vector3& scale, const Vector3& origin)
 {
     _bucketSort->init();
     _bucketSort->sort(cluster, mat, sortLevel);
 
+    glDisable(GL_TEXTURE_2D);
+
+#ifdef USE_TEXTURE 
     _pointTexture->activate();
-    _shader->bind();
+    glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+#endif
+
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    //glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+    glEnable(GL_BLEND);
+
+    glDisable(GL_LIGHTING);
+    glEnable(GL_COLOR_MATERIAL);
+
+    glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
     glPushMatrix();
-        glTranslatef(-0.5f, -0.5f, -0.5f);
+    float s = 1.0f / scale.x;
+    Vector3 shift(origin.x + scale.x * 0.5, origin.x + scale.x * 0.5, origin.x + scale.x * 0.5);
+    glScalef(s, scale.y / scale.x * s, scale.z / scale.x * s);
+
+    //glTranslatef(-shift.x, -shift.y, -shift.z);
+    
+#ifdef USE_SHADER 
+    _shader->bind();
+#else
+    glPointSize(POINT_SIZE);
+#endif
         renderCluster(_bucketSort->getBucket(), _bucketSort->getSize(), 4);
+#ifdef USE_SHADER 
+    _shader->unbind();
+#else
+    glPointSize(1.0f);
+#endif
+    
     glPopMatrix();
 
-    _shader->unbind();
+    glDisable(GL_COLOR_MATERIAL);
+    glEnable(GL_LIGHTING);
+    glDisable(GL_VERTEX_PROGRAM_POINT_SIZE);
+    glDisable(GL_BLEND);
+
+#ifdef USE_TEXTURE 
+    glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
     _pointTexture->deactivate();
+#endif
 }
 

@@ -16,7 +16,7 @@ public :
 	float size;
     float value;
 public :
-	Point() : size(1.0f) {}
+	Point() : size(1.0f), value(0.0f) {}
 };
 
 
@@ -124,6 +124,8 @@ public :
 	~PCASplit();
 public :
 	ClusterAccel* doIt(Point* data, int count);
+    void setMinDistance(const float minDistance);
+    void setMaxLevel(int maxLevel);
 
 private :	
 	void init();
@@ -137,6 +139,16 @@ public :
 	static void computeCentroid(Point* data, int count, Vector3& mean);
 	static void computeCovariant(Point* data, int count, const Vector3& mean, float* m);
 };	
+
+inline void PCASplit::setMinDistance(const float minDistance)
+{
+    _minDistance = minDistance;
+}
+
+inline void PCASplit::setMaxLevel(int maxLevel)
+{
+    _maxLevel = maxLevel;
+}
 
 };
 
