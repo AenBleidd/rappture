@@ -45,7 +45,7 @@ OBJS  = nanovis.o Socket.o RenderVertexArray.o Plane.o ConvexPolygon.o Vector4.o
 		newmat3.o newmat4.o newmat5.o newmat6.o newmat7.o newmat8.o newmat9.o newmatex.o newmatnl.o \
 		newmatrm.o nm_misc.o solution.o sort.o svd.o submat.o \
 		Image.o ImageLoader.o ImageLoaderImpl.o BMPImageLoaderImpl.o ImageLoaderFactory.o \
-		Util.o \
+		Util.o Command.o \
 		R2string.o R2FilePath.o R2Fonts.o R2Object.o R2Geometry.o R2IndexBuffer.o R2VertexBuffer.o
 
 all: nanovis
@@ -218,5 +218,6 @@ ImageLoaderFactory.o: imgLoaders/ImageLoaderFactory.cpp
 	$(CC) $(CFLAGS) -o $@ -c $<
 
 Util.o: Util.cpp Util.h
+Command.o: Command.cpp Command.h
 
 nanovis.o: nanovis.cpp nanovis.h $(AUXSRC)
