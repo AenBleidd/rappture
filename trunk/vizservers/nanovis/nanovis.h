@@ -12,6 +12,8 @@
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  * ======================================================================
  */
+#ifndef __NANOVIS_H__
+#define __NANOVIS_H__
 
 #include <GL/glew.h>
 #include <GL/glut.h>
@@ -23,6 +25,17 @@
 #include <stdio.h>
 #include <assert.h>
 #include <float.h>
+#include <getopt.h>
+#include <stdio.h>
+#include <math.h>
+#include <fstream>
+#include <sstream>
+#include <string>
+#include <sys/time.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <signal.h>
 
 #include "define.h"
 #include "global.h"
@@ -86,6 +99,7 @@ typedef struct RegGrid2{
 };
 
 
+/*
 //variables for mouse events
 float live_rot_x = 90.;		//object rotation angles
 float live_rot_y = 180.;
@@ -119,3 +133,6 @@ float  dmax   = SCALE/NPIX;
 
 //currently active shader, default renders one volume only
 int cur_shader = 0;
+*/
+
+#endif 
