@@ -23,6 +23,7 @@
 
 class TransferFunction{
   int size;	//the resolution of the color map, how many (RGBA) quadraples
+  float* data;
   Texture1D* tex; //the texture storing the colors 
 
 public:
@@ -31,6 +32,7 @@ public:
   ~TransferFunction();
   void update(float* data);
     Texture1D* getTexture();
+  float* getData() { return data; }
 };
 
 inline Texture1D* TransferFunction::getTexture()
