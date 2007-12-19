@@ -27,6 +27,7 @@ Volume::Volume(float x, float y, float z,
 	n_components(n),
 	vmin(v0),
 	vmax(v1), 
+    pointsetIndex(-1),
     nonzero_min(nz_min),
 	enabled(true),
 	n_slice(256), // default value
@@ -63,7 +64,14 @@ Volume::Volume(float x, float y, float z,
 }
 
 
-Volume::~Volume(){ delete tex; }
+Volume::~Volume()
+{ 
+    if (pointsetIndex != -1)
+    {
+        // TBD...
+    }
+    delete tex; 
+}
 
 
 void Volume::enable() { enabled = true; }

@@ -40,7 +40,7 @@ struct CutPlane{
 enum {CUBIC, VOLQD, ZINCBLENDE};
 
 
-class Volume{
+class Volume {
 public:
 	int volume_type;	//cubic or zincblende
 
@@ -62,7 +62,7 @@ public:
 	bool outline_enabled;   // show/hide outline around volume
 	Color outline_color;    // color for outline around volume
 
-
+    int pointsetIndex;
 
 	Vector3 location;
 
