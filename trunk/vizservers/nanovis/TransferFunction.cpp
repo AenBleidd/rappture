@@ -16,21 +16,34 @@
 
 
 #include "TransferFunction.h"
+#include <memory.h>
 
 
-TransferFunction::TransferFunction(int _size, float* data){
+TransferFunction::TransferFunction(int _size, float* data)
+{
+    tex = new Texture1D(_size, GL_FLOAT);
 
-  tex = new Texture1D(_size, GL_FLOAT);
+    // _size : # of slot, 4 : rgba
+    size = _size * 4;
+    this->data = new float[size];
+    memcpy(this->data, data, sizeof(float) * size);
 
-  tex->initialize_float_rgba(data);
-  id = tex->id;
+    tex->initialize_float_rgba(data);
+    id = tex->id;
 }
 
 
-TransferFunction::~TransferFunction(){ delete tex; }
+TransferFunction::~TransferFunction()
+{ 
+    delete [] data;
+    delete tex; 
+}
 
-void TransferFunction::update(float* data){
-  tex->update_float_rgba(data);
+void TransferFunction::update(float* data)
+{
+    memcpy(this->data, data, sizeof(float) * size);
+
+    tex->update_float_rgba(data);
 }
 
 
