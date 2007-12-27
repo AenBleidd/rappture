@@ -18,7 +18,7 @@ PointSetRenderer::PointSetRenderer()
     R2string path = R2FilePath::getInstance()->getPath("particle2.bmp");
     if (path.getLength() == 0)
     {
-        printf("ERROR : file not found - %s\n", (const char*) path);
+        printf("ERROR : pointset file not found - %s\n", (const char*) path);
         fflush(stdout);
         return;
     }

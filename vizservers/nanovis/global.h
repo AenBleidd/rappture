@@ -39,14 +39,18 @@
    }
 
 
-static CGprogram loadProgram(CGcontext context, CGprofile profile, CGenum program_type, char *filename)
+inline CGprogram 
+loadProgram(CGcontext context, CGprofile profile, CGenum program_type, 
+	    char *filename)
 {
-  CGprogram program = cgCreateProgramFromFile(context, program_type, filename, profile, NULL, NULL);
-  cgGLLoadProgram(program);
-  return program;
+    CGprogram program = cgCreateProgramFromFile(context, program_type, filename, 
+						profile, NULL, NULL);
+    cgGLLoadProgram(program);
+    return program;
 }
 
-static void draw_quad(int w, int h, int tw, int th)
+inline void 
+draw_quad(int w, int h, int tw, int th)
 {
     glBegin(GL_QUADS);
     glTexCoord2f(0,         0);         glVertex2f(0,        0);
@@ -58,12 +62,15 @@ static void draw_quad(int w, int h, int tw, int th)
 
 
 //query opengl information
-static void system_info(){
-  fprintf(stderr, "-----------------------------------------------------------\n");
-  fprintf(stderr, "OpenGL driver: %s %s\n", glGetString(GL_VENDOR), glGetString(GL_VERSION));
-  fprintf(stderr, "Graphics hardware: %s\n", glGetString(GL_RENDERER));
-  fprintf(stderr, "-----------------------------------------------------------\n");
+inline void 
+system_info()
+{
+    fprintf(stderr, 
+	    "-----------------------------------------------------------\n");
+    fprintf(stderr, "OpenGL driver: %s %s\n", glGetString(GL_VENDOR), 
+	    glGetString(GL_VERSION));
+    fprintf(stderr, "Graphics hardware: %s\n", glGetString(GL_RENDERER));
+    fprintf(stderr, 
+	    "-----------------------------------------------------------\n");
 }
-
-
 #endif

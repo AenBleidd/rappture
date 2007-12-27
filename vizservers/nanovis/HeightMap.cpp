@@ -21,7 +21,7 @@ HeightMap::HeightMap()
 	R2string path = R2FilePath::getInstance()->getPath("heightcolor.cg");
 	if (path.getLength() == 0)
 	{
-	    printf("ERROR : file not found\n", "heightcolor.cg");
+	    printf("ERROR : file not found %s\n", "heightcolor.cg");
 	}
 
 	_shader->loadFragmentProgram(path, "main");

@@ -54,14 +54,15 @@
 #include "Lic.h"
 #include "VolumeRenderer.h"
 #include "PlaneRenderer.h"
+#include "NvColorTableRenderer.h"
+#include "PointSetRenderer.h"
+#include "PointSet.h"
+#include "HeightMap.h"
+#include "Grid.h"
 
 #include "config.h"
 
 #include <tcl.h>
-#ifndef CONST84
-# define CONST84 
-#endif
-
 
 //defines for the image based flow visualization
 #define	NPN 256 	//resolution of background pattern
@@ -70,69 +71,80 @@
 #define NPIX  512	//display size
 #define SCALE 3.0	//scale for background pattern. small value -> fine texture
 
-
-typedef struct Vector2{
-  float x,y;
-  float mag(){
-    return sqrt(x*x+y*y);
-  }
+typedef struct Vector2 {
+    float x, y;
+    float mag(void) {
+	return sqrt(x*x+y*y);
+    }
 };
-
 
 typedef struct RegGrid2{
-  int width, height;
-  Vector2* field;
+    int width, height;
+    Vector2* field;
+    
+    RegGrid2(int w, int h){
+	width = w;
+	height = h;
+	field = new Vector2[w*h];
+    }
 
-  RegGrid2(int w, int h){
-    width = w;
-    height = h;
-    field = new Vector2[w*h];
-  }
-
-  void put(Vector2& v, int x ,int y){
-    field[x+y*width] = v;
-  }
-
-  Vector2& get(int x, int y){
-    return field[x+y*width];
-  }
+    void put(Vector2& v, int x ,int y) {
+	field[x+y*width] = v;
+    }
+    
+    Vector2& get(int x, int y) {
+	return field[x+y*width];
+    }
 };
 
+class NanoVis {
+public:
+#ifdef notdef
+    static VolumeRenderer* g_vol_render;
+    static PointSetRenderer* g_pointset_renderer;
+    static NvColorTableRenderer* g_color_table_renderer;
 
-/*
-//variables for mouse events
-float live_rot_x = 90.;		//object rotation angles
-float live_rot_y = 180.;
-float live_rot_z = -135;
+    static vector<PointSet*> g_pointSet;
 
-float live_obj_x = -0.0;	//object translation location from the origin
-float live_obj_y = -0.0;
-float live_obj_z = -2.5;
+    static PlaneRenderer* plane_render;
+    static Texture2D* plane[10];
+#endif
+    static vector<HeightMap*> g_heightMap;
+    static unsigned char* screen_buffer;
+    static vector<Volume*> volume;
+    static int n_volumes;
+    static int updir;
+    static Camera *cam;
 
-float live_diffuse = 1.;
-float live_specular = 3.;
+    static bool axis_on;
 
-int left_last_x, left_last_y, right_last_x, right_last_y; 	//last locations mouse events
-bool left_down = false;						
-bool right_down = false;
+    static int win_width;			//size of the render window
+    static int win_height;			//size of the render window
 
-float lic_slice_x=0, lic_slice_y=0, lic_slice_z=0.3;//image based flow visualization slice location
-
-int win_width = NPIX;			//size of the render window
-int win_height = NPIX;			//size of the render window
-
-
-//image based flow visualization variables
-int    iframe = 0; 
-int    Npat   = 64;
-int    alpha  = (int)round(0.12*255);
-float  sa;
-float  tmax   = NPIX/(SCALE*NPN);
-float  dmax   = SCALE/NPIX;
-
-
-//currently active shader, default renders one volume only
-int cur_shader = 0;
-*/
-
-#endif 
+    static TransferFunction* get_transfunc(const char *name);
+    static TransferFunction* set_transfunc(const char *name, int nSlots, 
+					   float *data);
+    static void initGL(void);
+    static void init_lic(void);
+    static void init_offscreen_buffer(void);
+    static void resize_offscreen_buffer(int w, int h);
+    static void offscreen_buffer_capture(void);
+    static void bmp_write(const char* cmd);
+    static void bmp_write_to_file();
+    static void display(void);
+    static void display_offscreen_buffer();
+    static void read_screen();
+    static void zoom(double zoom);
+    static int render_legend(TransferFunction *tf, double min, double max, 
+	int width, int height, const char* volArg);
+    static void load_volume(int index, int width, int height, int depth, 
+	int n, float* data, double vmin, double vmax, double nzero_min);
+#ifndef XINETD
+    static void keyboard(unsigned char key, int x, int y);
+    static void mouse(int button, int state, int x, int y);
+    static void motion(int x, int y);
+    static void update_rot(int delta_x, int delta_y);
+    static void update_trans(int delta_x, int delta_y, int delta_z);
+#endif
+};
+#endif	/* __NANOVIS_H__ */

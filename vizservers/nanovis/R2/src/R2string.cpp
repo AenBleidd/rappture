@@ -1,13 +1,11 @@
 #include <R2/R2string.h>
 #include <string.h>
 
-R2string::R2string()
-: _string(NULL), _length(0)
+R2string::R2string() : _string(NULL), _length(0)
 {
 }
 
-R2string::R2string(const char* str)
-: _string(NULL), _length(0)
+R2string::R2string(const char* str) : _string(NULL), _length(0)
 {
 	if (str != NULL)
 	{
@@ -15,8 +13,7 @@ R2string::R2string(const char* str)
 	}
 }
 
-R2string::R2string(const R2string& string)
-: _string(NULL)
+R2string::R2string(const R2string& string) : _string(NULL)
 {
 	set(string._string, string._length);
 }

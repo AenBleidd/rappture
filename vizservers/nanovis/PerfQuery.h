@@ -24,17 +24,19 @@
 #include "define.h"
 
 //check if occlusion query is supported
-static bool check_query_support(){
-  int bitsSupported = -1;
-  glGetQueryivARB(GL_SAMPLES_PASSED_ARB, GL_QUERY_COUNTER_BITS_ARB, &bitsSupported);
-  if(bitsSupported == 0) {
-    fprintf(stderr, "occlusion query not supported!\n");
-    return false;
-  }
-  else{
-    fprintf(stderr, "Occlusion query with %d bits supported\n", bitsSupported);
-    return true;
-  }
+inline bool check_query_support()
+{
+    int bitsSupported = -1;
+    glGetQueryivARB(GL_SAMPLES_PASSED_ARB, GL_QUERY_COUNTER_BITS_ARB, 
+		    &bitsSupported);
+    if(bitsSupported == 0) {
+	fprintf(stderr, "occlusion query not supported!\n");
+	return false;
+    } else {
+	fprintf(stderr, "Occlusion query with %d bits supported\n", 
+		bitsSupported);
+	return true;
+    }
 }
 
 class PerfQuery
