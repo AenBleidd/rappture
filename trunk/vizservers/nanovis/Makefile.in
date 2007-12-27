@@ -1,8 +1,12 @@
 
+#
+# FIXME: I can see at least 3 possible candidates for separate libraries.
+#	  R2, mat, and Image.  
+#
 SHELL = /bin/sh
 
-.SUFFIX:
-.SUFFIX: .c .o .cpp
+#.SUFFIX:
+#SUFFIX: .c .o .cpp
 
 .PHONY: all install clean distclean
 
@@ -13,7 +17,7 @@ libdir          = @libdir@
 includedir      = @includedir@
 mandir          = @mandir@
 
-INSTALL			= @INSTALL@
+INSTALL		= @INSTALL@
 INSTALL_PROGRAM	= ${INSTALL} -m 755
 INSTALL_DATA	= ${INSTALL} -m 644
 INSTALL_SCRIPT	= ${INSTALL} -m 644
@@ -28,25 +32,106 @@ MATINC = ./newmat11
 LIB_NANOVIS = -L@RP_DIR@/lib -ltcl8.4 -lGL -lglut -lglui -lGLEW -lCg -lCgGL -pthread -lrappture2 -lb64 -lz
 INCLUDES = -I@RP_DIR@/include -I@RP2_INCL_DIR@ -I/usr/include/GL -I$(R2INC) -I. -I$(MATINC)
 
-CFLAGS = @CFLAGS@ $(INCLUDES)
-# $(CFLAGS)
+CFLAGS = @CFLAGS@
+EXTRA_CFLAGS = -Wall 
+DEFINES = @DEFINES@
+CC_SWITCHES = $(CFLAGS) $(EXTRA_CFLAGS) $(INCLUDES)
 
-OBJS  = nanovis.o Socket.o RenderVertexArray.o Plane.o ConvexPolygon.o Vector4.o Vector3.o Mat4x4.o \
-		Texture1D.o Texture3D.o Volume.o ZincBlendeVolume.o Texture2D.o ParticleSystem.o Sphere.o Color.o \
-		PerfQuery.o TransferFunction.o ControlPoint.o ColorGradient.o ColorPaletteWindow.o\
-		ColorGradientGLUTWindow.o TransferFunctionGLUTWindow.o MainWindow.o Event.o \
-		Lic.o Renderable.o Camera.o ScreenSnapper.o VolumeRenderer.o PlaneRenderer.o Nv.o \
-		NvZincBlendeVolumeShader.o NvShader.o NvVolumeShader.o NvRegularVolumeShader.o \
-		NvLoadFile.o NvDefaultTFData.o NvColorTableShader.o NvColorTableRenderer.o NvParticleAdvectionShader.o \
-		NvEventLog.o NvParticleRenderer.o NvLIC.o NvZincBlendeReconstructor.o NvStdVertexShader.o \
-		ContourLineFilter.o HeightMap.o Grid.o \
-		PointShader.o PCASplit.o BucketSort.o PointSetRenderer.o PointSet.o \
-		bandmat.o cholesky.o evalue.o fft.o hholder.o jacobi.o myexcept.o newfft.o newmat1.o newmat2.o \
-		newmat3.o newmat4.o newmat5.o newmat6.o newmat7.o newmat8.o newmat9.o newmatex.o newmatnl.o \
-		newmatrm.o nm_misc.o solution.o sort.o svd.o submat.o \
-		Image.o ImageLoader.o ImageLoaderImpl.o BMPImageLoaderImpl.o ImageLoaderFactory.o \
-		Util.o Command.o \
-		R2string.o R2FilePath.o R2Fonts.o R2Object.o R2Geometry.o R2IndexBuffer.o R2VertexBuffer.o
+OBJS  = \
+	BMPImageLoaderImpl.o \
+	BucketSort.o \
+	Camera.o \
+	Color.o \
+	ColorGradient.o \
+	ColorGradientGLUTWindow.o \
+	ColorPaletteWindow.o\
+	Command.o \
+	ContourLineFilter.o \
+	ControlPoint.o \
+	ConvexPolygon.o \
+	Event.o \
+	Grid.o \
+	HeightMap.o \
+	Image.o \
+	ImageLoader.o \
+	ImageLoaderFactory.o \
+	ImageLoaderImpl.o \
+	Lic.o \
+	MainWindow.o \
+	Mat4x4.o \
+	Nv.o \
+	NvColorTableRenderer.o \
+	NvColorTableShader.o \
+	NvDefaultTFData.o \
+	NvEventLog.o \
+	NvLIC.o \
+	NvLoadFile.o \
+	NvParticleAdvectionShader.o \
+	NvParticleRenderer.o \
+	NvRegularVolumeShader.o \
+	NvShader.o \
+	NvStdVertexShader.o \
+	NvVolumeShader.o \
+	NvZincBlendeReconstructor.o \
+	NvZincBlendeVolumeShader.o \
+	PCASplit.o \
+	ParticleSystem.o \
+	PerfQuery.o \
+	Plane.o \
+	PlaneRenderer.o \
+	PointSet.o \
+	PointSetRenderer.o \
+	PointShader.o \
+	R2FilePath.o \
+	R2Fonts.o \
+	R2Geometry.o \
+	R2IndexBuffer.o \
+	R2Object.o \
+	R2VertexBuffer.o \
+	R2string.o \
+	RenderVertexArray.o \
+	Renderable.o \
+	ScreenSnapper.o \
+	Socket.o \
+	Sphere.o \
+	Texture1D.o \
+	Texture2D.o \
+	Texture3D.o \
+	TransferFunction.o \
+	TransferFunctionGLUTWindow.o \
+	Util.o \
+	Vector3.o \
+	Vector4.o \
+	Volume.o \
+	VolumeRenderer.o \
+	ZincBlendeVolume.o \
+	bandmat.o \
+	cholesky.o \
+	dxReader.o \
+	evalue.o \
+	fft.o \
+	hholder.o \
+	jacobi.o \
+	myexcept.o \
+	nanovis.o \
+	newfft.o \
+	newmat1.o \
+	newmat2.o \
+	newmat3.o \
+	newmat4.o \
+	newmat5.o \
+	newmat6.o \
+	newmat7.o \
+	newmat8.o \
+	newmat9.o \
+	newmatex.o \
+	newmatnl.o \
+	newmatrm.o \
+	nm_misc.o \
+	solution.o \
+	sort.o \
+	submat.o \
+	svd.o 
 
 all: nanovis
 
@@ -67,49 +152,49 @@ distclean: clean
 	rm Makefile
 
 nanovis: $(OBJS)
-	$(CC) -g -o $@ $^ $(LIB_NANOVIS)
+	$(CC) $(CC_SWITCHES) -o $@ $^ $(LIB_NANOVIS)
 
 client: Socket.o ClientSocket.o RenderClient.o Event.o
-	$(CC) -g -o $(LIB_NANOVIS) $@ $^
+	$(CC) $(CC_SWITCHES) -o $(LIB_NANOVIS) $@ $^
 
 .cpp.o:
-	$(CC) $(CFLAGS) -o $@ -c $<
+	$(CC) $(CC_SWITCHES) -o $@ -c $<
 
 Nv.o: Nv.cpp NvShader.cpp
-	$(CC) $(CFLAGS) -c $^
+	$(CC) $(CC_SWITCHES) -c $^
 
 ColorGradient.o: transfer-function/ColorGradient.cpp
-	$(CC) $(CFLAGS) -o $@ -c $<
+	$(CC) $(CC_SWITCHES) -o $@ -c $<
 ColorPaletteWindow.o: transfer-function/ColorPaletteWindow.cpp
-	$(CC) $(CFLAGS) -o $@ -c $<
+	$(CC) $(CC_SWITCHES) -o $@ -c $<
 ColorGradientGLUTWindow.o: transfer-function/ColorGradientGLUTWindow.cpp
-	$(CC) $(CFLAGS) -o $@ -c $<
+	$(CC) $(CC_SWITCHES) -o $@ -c $<
 ControlPoint.o: transfer-function/ControlPoint.cpp
-	$(CC) $(CFLAGS) -o $@ -c $<
+	$(CC) $(CC_SWITCHES) -o $@ -c $<
 TransferFunctionGLUTWindow.o: transfer-function/TransferFunctionGLUTWindow.cpp
-	$(CC) $(CFLAGS) -o $@ -c $<
+	$(CC) $(CC_SWITCHES) -o $@ -c $<
 MainWindow.o: transfer-function/MainWindow.cpp
-	$(CC) $(CFLAGS) -o $@ -c $<
+	$(CC) $(CC_SWITCHES) -o $@ -c $<
 Socket.o: socket/Socket.cpp socket/Socket.h
-	$(CC) $(CFLAGS) -o $@ -c $<
+	$(CC) $(CC_SWITCHES) -o $@ -c $<
 ClientSocket.o: socket/ClientSocket.cpp socket/ClientSocket.h
-	$(CC) $(CFLAGS) -o $@ -c $<
+	$(CC) $(CC_SWITCHES) -o $@ -c $<
 RenderClient.o: socket/RenderClient.cpp socket/RenderClient.h
-	$(CC) $(CFLAGS) -o $@ -c $<
+	$(CC) $(CC_SWITCHES) -o $@ -c $<
 R2string.o: R2/src/R2string.cpp $(R2INC)/R2/R2string.h
-	$(CC) $(CFLAGS) -o $@ -c $<
+	$(CC) $(CC_SWITCHES) -o $@ -c $<
 R2FilePath.o: R2/src/R2FilePath.cpp $(R2INC)/R2/R2FilePath.h
-	$(CC) $(CFLAGS) -o $@ -c $<
+	$(CC) $(CC_SWITCHES) -o $@ -c $<
 R2Fonts.o: R2/src/R2Fonts.cpp $(R2INC)/R2/R2Fonts.h
-	$(CC) $(CFLAGS) -o $@ -c $<
+	$(CC) $(CC_SWITCHES) -o $@ -c $<
 R2Object.o: R2/src/R2Object.cpp $(R2INC)/R2/R2Object.h
-	$(CC) $(CFLAGS) -o $@ -c $<
+	$(CC) $(CC_SWITCHES) -o $@ -c $<
 R2Geometry.o: R2/src/R2Geometry.cpp $(R2INC)/R2/graphics/R2Geometry.h
-	$(CC) $(CFLAGS) -o $@ -c $<
+	$(CC) $(CC_SWITCHES) -o $@ -c $<
 R2VertexBuffer.o: R2/src/R2VertexBuffer.cpp $(R2INC)/R2/graphics/R2VertexBuffer.h
-	$(CC) $(CFLAGS) -o $@ -c $<
+	$(CC) $(CC_SWITCHES) -o $@ -c $<
 R2IndexBuffer.o: R2/src/R2IndexBuffer.cpp $(R2INC)/R2/graphics/R2IndexBuffer.h
-	$(CC) $(CFLAGS) -o $@ -c $<
+	$(CC) $(CC_SWITCHES) -o $@ -c $<
 
 NvStdVertexShader.o: NvStdVertexShader.cpp NvStdVertexShader.h
 ContourLineFilter.o: ContourLineFilter.cpp ContourLineFilter.h
@@ -156,66 +241,66 @@ BucketSort.o: BucketSort.cpp BucketSort.h
 PointSetRenderer.o: PointSetRenderer.cpp PointSetRenderer.h
 PointSet.o: PointSet.cpp PointSet.h
 bandmat.o: newmat11/bandmat.cpp
-	$(CC) $(CFLAGS) -o $@ -c $<
+	$(CC) $(CC_SWITCHES) -o $@ -c $<
 cholesky.o: newmat11/cholesky.cpp
-	$(CC) $(CFLAGS) -o $@ -c $<
+	$(CC) $(CC_SWITCHES) -o $@ -c $<
 evalue.o: newmat11/evalue.cpp
-	$(CC) $(CFLAGS) -o $@ -c $<
+	$(CC) $(CC_SWITCHES) -o $@ -c $<
 fft.o: newmat11/fft.cpp
-	$(CC) $(CFLAGS) -o $@ -c $<
+	$(CC) $(CC_SWITCHES) -o $@ -c $<
 hholder.o: newmat11/hholder.cpp
-	$(CC) $(CFLAGS) -o $@ -c $<
+	$(CC) $(CC_SWITCHES) -o $@ -c $<
 jacobi.o: newmat11/jacobi.cpp
-	$(CC) $(CFLAGS) -o $@ -c $<
+	$(CC) $(CC_SWITCHES) -o $@ -c $<
 myexcept.o: newmat11/myexcept.cpp
-	$(CC) $(CFLAGS) -o $@ -c $<
+	$(CC) $(CC_SWITCHES) -o $@ -c $<
 newfft.o: newmat11/newfft.cpp
-	$(CC) $(CFLAGS) -o $@ -c $<
+	$(CC) $(CC_SWITCHES) -o $@ -c $<
 newmat1.o: newmat11/newmat1.cpp
-	$(CC) $(CFLAGS) -o $@ -c $<
+	$(CC) $(CC_SWITCHES) -o $@ -c $<
 newmat2.o: newmat11/newmat2.cpp
-	$(CC) $(CFLAGS) -o $@ -c $<
+	$(CC) $(CC_SWITCHES) -o $@ -c $<
 newmat3.o: newmat11/newmat3.cpp
-	$(CC) $(CFLAGS) -o $@ -c $<
+	$(CC) $(CC_SWITCHES) -o $@ -c $<
 newmat4.o: newmat11/newmat4.cpp
-	$(CC) $(CFLAGS) -o $@ -c $<
+	$(CC) $(CC_SWITCHES) -o $@ -c $<
 newmat5.o: newmat11/newmat5.cpp
-	$(CC) $(CFLAGS) -o $@ -c $<
+	$(CC) $(CC_SWITCHES) -o $@ -c $<
 newmat6.o: newmat11/newmat6.cpp
-	$(CC) $(CFLAGS) -o $@ -c $<
+	$(CC) $(CC_SWITCHES) -o $@ -c $<
 newmat7.o: newmat11/newmat7.cpp
-	$(CC) $(CFLAGS) -o $@ -c $<
+	$(CC) $(CC_SWITCHES) -o $@ -c $<
 newmat8.o: newmat11/newmat8.cpp
-	$(CC) $(CFLAGS) -o $@ -c $<
+	$(CC) $(CC_SWITCHES) -o $@ -c $<
 newmat9.o: newmat11/newmat9.cpp
-	$(CC) $(CFLAGS) -o $@ -c $<
+	$(CC) $(CC_SWITCHES) -o $@ -c $<
 newmatex.o: newmat11/newmatex.cpp
-	$(CC) $(CFLAGS) -o $@ -c $<
+	$(CC) $(CC_SWITCHES) -o $@ -c $<
 newmatnl.o: newmat11/newmatnl.cpp
-	$(CC) $(CFLAGS) -o $@ -c $<
+	$(CC) $(CC_SWITCHES) -o $@ -c $<
 newmatrm.o: newmat11/newmatrm.cpp
-	$(CC) $(CFLAGS) -o $@ -c $<
+	$(CC) $(CC_SWITCHES) -o $@ -c $<
 nm_misc.o: newmat11/nm_misc.cpp
-	$(CC) $(CFLAGS) -o $@ -c $<
+	$(CC) $(CC_SWITCHES) -o $@ -c $<
 solution.o: newmat11/solution.cpp
-	$(CC) $(CFLAGS) -o $@ -c $<
+	$(CC) $(CC_SWITCHES) -o $@ -c $<
 sort.o: newmat11/sort.cpp
-	$(CC) $(CFLAGS) -o $@ -c $<
+	$(CC) $(CC_SWITCHES) -o $@ -c $<
 svd.o: newmat11/svd.cpp
-	$(CC) $(CFLAGS) -o $@ -c $<
+	$(CC) $(CC_SWITCHES) -o $@ -c $<
 submat.o: newmat11/submat.cpp
-	$(CC) $(CFLAGS) -o $@ -c $<
+	$(CC) $(CC_SWITCHES) -o $@ -c $<
 
 Image.o: imgLoaders/Image.cpp
-	$(CC) $(CFLAGS) -o $@ -c $<
+	$(CC) $(CC_SWITCHES) -o $@ -c $<
 ImageLoader.o: imgLoaders/ImageLoader.cpp
-	$(CC) $(CFLAGS) -o $@ -c $<
+	$(CC) $(CC_SWITCHES) -o $@ -c $<
 ImageLoaderImpl.o: imgLoaders/ImageLoaderImpl.cpp
-	$(CC) $(CFLAGS) -o $@ -c $<
+	$(CC) $(CC_SWITCHES) -o $@ -c $<
 BMPImageLoaderImpl.o: imgLoaders/BMPImageLoaderImpl.cpp
-	$(CC) $(CFLAGS) -o $@ -c $<
+	$(CC) $(CC_SWITCHES) -o $@ -c $<
 ImageLoaderFactory.o: imgLoaders/ImageLoaderFactory.cpp
-	$(CC) $(CFLAGS) -o $@ -c $<
+	$(CC) $(CC_SWITCHES) -o $@ -c $<
 
 Util.o: Util.cpp Util.h
 Command.o: Command.cpp Command.h

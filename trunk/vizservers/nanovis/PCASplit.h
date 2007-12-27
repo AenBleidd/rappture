@@ -25,7 +25,6 @@ class Cluster {
 public :
 	Vector3 centroid;
 	Vector4 color;
-	int level;
 	float scale;
 
 	int numOfChildren;
@@ -33,6 +32,8 @@ public :
 	Point* points;
 	Cluster* children;
 	unsigned int vbo;
+	int level;
+
 public :
 	void setChildren(Cluster* children, int count)
 	{

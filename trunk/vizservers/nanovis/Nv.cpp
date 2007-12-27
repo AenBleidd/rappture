@@ -169,7 +169,7 @@ void NvExit()
     if (g_particleRenderer)
     {
         delete g_particleRenderer;
-        g_particleRenderer;
+        g_particleRenderer = NULL;
     }
 
 #ifdef EVENTLOG

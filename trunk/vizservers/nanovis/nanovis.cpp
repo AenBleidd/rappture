@@ -60,16 +60,34 @@
 #include <R2/R2FilePath.h>
 #include <R2/R2Fonts.h>
 
-//render server
-
+/* FIXME: Need to eliminate global variables. */
 extern VolumeRenderer* g_vol_render;
 extern PointSetRenderer* g_pointset_renderer;
 extern NvColorTableRenderer* g_color_table_renderer;
 extern Grid* g_grid;
+
 PlaneRenderer* plane_render;
-Camera* cam;
+
+// Indicates "up" axis:  x=1, y=2, z=3, -x=-1, -y=-2, -z=-3
+enum AxisDirections { 
+    X_POS = 1, Y_POS = 2, Z_POS = 3, X_NEG = -1, Y_NEG = -2, Z_NEG = -3
+};
+
+int NanoVis::updir = Y_POS;
+Camera* NanoVis::cam = NULL;
+bool NanoVis::axis_on = true;
+int NanoVis::win_width = NPIX;			//size of the render window
+int NanoVis::win_height = NPIX;			//size of the render window
+int NanoVis::n_volumes = 0;
+unsigned char* NanoVis::screen_buffer = NULL;
+vector<HeightMap*> NanoVis::g_heightMap;
+
+// pointers to volumes, currently handle up to 10 volumes
+/*FIXME: Is the above comment true? Is there a 10 volume limit */
+vector<Volume*> NanoVis::volume;
 
 //if true nanovis renders volumes in 3D, if not renders 2D plane
+/* FIXME: This variable is always true. */
 bool volume_mode = true; 
 
 // color table for built-in transfer function editor
@@ -89,7 +107,6 @@ double get_time_interval();
 */
 
 int render_window; 		//the handle of the render window;
-bool axis_on = true;
 
 // in Command.cpp
 extern void xinetd_listen();
@@ -99,37 +116,21 @@ extern void initTcl();
 // forward declarations
 //void init_particles();
 void get_slice_vectors();
-Rappture::Outcome load_volume_stream(int index, std::iostream& fin);
-Rappture::Outcome load_volume_stream2(int index, std::iostream& fin);
-void load_volume(int index, int width, int height, int depth, int n_component, float* data, double vmin, double vmax, 
-                double nzero_min);
-extern TransferFunction* nv_get_transfunc(const char *name);
-extern void nv_resize_offscreen_buffer(int w, int h);
-extern void nv_offscreen_buffer_capture(void);
-static void bmp_header_add_int(unsigned char* header, int& pos, int data);
-void bmp_write(const char* cmd);
-void bmp_write_to_file();
-extern void nv_display(void);
-extern void nv_display_offscreen_buffer();
-extern void nv_read_screen();
 
 //ParticleSystem* psys;
 //float psys_x=0.4, psys_y=0, psys_z=0;
 
-Lic* lic;
+static Lic* lic;
 
 //frame buffer for final rendering
-unsigned char* screen_buffer = NULL;
-NVISid final_fbo, final_color_tex, final_depth_rb;
+static NVISid final_fbo, final_color_tex, final_depth_rb;
 
 //bool advect=false;
 float vert[NMESH*NMESH*3];		//particle positions in main memory
 float slice_vector[NMESH*NMESH*4];	//per slice vectors in main memory
 
-int n_volumes = 0;
 // pointers to volumes, currently handle up to 10 volumes
 vector<Volume*> volume;
-vector<HeightMap*> g_heightMap;
 vector<PointSet*> g_pointSet;
 
 // maps transfunc name to TransferFunction object
@@ -138,8 +139,6 @@ static Tcl_HashTable tftable;
 // pointers to 2D planes, currently handle up 10
 Texture2D* plane[10];
 
-// value indicates "up" axis:  x=1, y=2, z=3, -x=-1, -y=-2, -z=-3
-int updir = 2;
 
 PerfQuery* perf;			//perfromance counter
 
@@ -152,39 +151,49 @@ CGparameter m_passthru_scale_param, m_passthru_bias_param;
 
 extern R2Fonts* g_fonts;
 
-// FOR NANOVIS.H
-//variables for mouse events
-float live_rot_x = 90.;		//object rotation angles
-float live_rot_y = 180.;
-float live_rot_z = -135;
+// Variables for mouse events
 
-float live_obj_x = -0.0;	//object translation location from the origin
-float live_obj_y = -0.0;
-float live_obj_z = -2.5;
+// Object rotation angles
+static float live_rot_x = 90.;		
+static float live_rot_y = 180.;
+static float live_rot_z = -135;
 
-float live_diffuse = 1.;
-float live_specular = 3.;
+// Object translation location from the origin
+static float live_obj_x = -0.0;	
+static float live_obj_y = -0.0;
+static float live_obj_z = -2.5;
 
-int left_last_x, left_last_y, right_last_x, right_last_y; 	//last locations mouse events
-bool left_down = false;						
-bool right_down = false;
 
-float lic_slice_x=0, lic_slice_y=0, lic_slice_z=0.3;//image based flow visualization slice location
+#ifndef XINETD
+// Last locations mouse events
+static int left_last_x;
+static int left_last_y;
+static int right_last_x;
+static int right_last_y;
+static bool left_down = false;						
+static bool right_down = false;
+#endif /*XINETD*/
 
-int win_width = NPIX;			//size of the render window
-int win_height = NPIX;			//size of the render window
+/*FIXME: are the following variables used anywhere? */
+
+static float live_diffuse = 1.;
+static float live_specular = 3.;
+
+// Image based flow visualization slice location
+static float lic_slice_x = 0.0f;
+static float lic_slice_y = 0.0f; 
+static float lic_slice_z = 0.3f; 
 
 //image based flow visualization variables
-int    iframe = 0; 
-int    Npat   = 64;
-int    alpha  = (int)round(0.12*255);
-float  sa;
-float  tmax   = NPIX/(SCALE*NPN);
-float  dmax   = SCALE/NPIX;
+static int    iframe = 0; 
+static int    Npat   = 64;
+static int    alpha  = (int)round(0.12*255);
+static float  sa;
+static float  tmax   = NPIX/(SCALE*NPN);
+static float  dmax   = SCALE/NPIX;
 
-
-//currently active shader, default renders one volume only
-int cur_shader = 0;
+// currently active shader, default renders one volume only
+static int cur_shader = 0;
 
 /*
 CGprogram m_copy_texcoord_fprog;
@@ -265,910 +274,6 @@ void cgErrorCallback(void)
     }
 }
 
-/*
- * FIXME: Move the DX-related routines into their own dx.cpp file.
- */
-/* Load a 3D vector field from a dx-format file
- */
-void
-load_vector_stream(int index, std::iostream& fin) {
-    int dummy, nx, ny, nz, nxy, npts;
-    double x0, y0, z0, dx, dy, dz, ddx, ddy, ddz;
-    char line[128], type[128], *start;
-
-    do {
-        fin.getline(line,sizeof(line)-1);
-        for (start=&line[0]; *start == ' ' || *start == '\t'; start++)
-            ;  // skip leading blanks
-
-        if (*start != '#') {  // skip comment lines
-            if (sscanf(start, "object %d class gridpositions counts %d %d %d", &dummy, &nx, &ny, &nz) == 4) {
-                // found grid size
-            }
-            else if (sscanf(start, "origin %lg %lg %lg", &x0, &y0, &z0) == 3) {
-                // found origin
-            }
-            else if (sscanf(start, "delta %lg %lg %lg", &ddx, &ddy, &ddz) == 3) {
-                // found one of the delta lines
-                if (ddx != 0.0) { dx = ddx; }
-                else if (ddy != 0.0) { dy = ddy; }
-                else if (ddz != 0.0) { dz = ddz; }
-            }
-            else if (sscanf(start, "object %d class array type %s shape 3 rank 1 items %d data follows", &dummy, type, &npts) == 3) {
-                if (npts != nx*ny*nz) {
-                    std::cerr << "inconsistent data: expected " << nx*ny*nz << " points but found " << npts << " points" << std::endl;
-                    return;
-                }
-                break;
-            }
-            else if (sscanf(start, "object %d class array type %s rank 0 times %d data follows", &dummy, type, &npts) == 3) {
-                if (npts != nx*ny*nz) {
-                    std::cerr << "inconsistent data: expected " << nx*ny*nz << " points but found " << npts << " points" << std::endl;
-                    return;
-                }
-                break;
-            }
-        }
-    } while (!fin.eof());
-
-    // read data points
-    if (!fin.eof()) {
-        Rappture::Mesh1D xgrid(x0, x0+nx*dx, nx);
-        Rappture::Mesh1D ygrid(y0, y0+ny*dy, ny);
-        Rappture::Mesh1D zgrid(z0, z0+nz*dz, nz);
-        Rappture::FieldRect3D xfield(xgrid, ygrid, zgrid);
-        Rappture::FieldRect3D yfield(xgrid, ygrid, zgrid);
-        Rappture::FieldRect3D zfield(xgrid, ygrid, zgrid);
-
-        double vx, vy, vz;
-        int nread = 0;
-        for (int ix=0; ix < nx; ix++) {
-            for (int iy=0; iy < ny; iy++) {
-                for (int iz=0; iz < nz; iz++) {
-                    if (fin.eof() || nread > npts) {
-                        break;
-                    }
-                    fin.getline(line,sizeof(line)-1);
-                    if (sscanf(line, "%lg %lg %lg", &vx, &vy, &vz) == 3) {
-                        int nindex = iz*nx*ny + iy*nx + ix;
-                        xfield.define(nindex, vx);
-                        yfield.define(nindex, vy);
-                        zfield.define(nindex, vz);
-                        nread++;
-                    }
-                }
-            }
-        }
-
-        // make sure that we read all of the expected points
-        if (nread != nx*ny*nz) {
-            std::cerr << "inconsistent data: expected " << nx*ny*nz << " points but found " << nread << " points" << std::endl;
-            return;
-        }
-
-        // figure out a good mesh spacing
-        int nsample = 30;
-        dx = xfield.rangeMax(Rappture::xaxis) - xfield.rangeMin(Rappture::xaxis);
-        dy = xfield.rangeMax(Rappture::yaxis) - xfield.rangeMin(Rappture::yaxis);
-        dz = xfield.rangeMax(Rappture::zaxis) - xfield.rangeMin(Rappture::zaxis);
-        double dmin = pow((dx*dy*dz)/(nsample*nsample*nsample), 0.333);
-
-        nx = (int)ceil(dx/dmin);
-        ny = (int)ceil(dy/dmin);
-        nz = (int)ceil(dz/dmin);
-
-#ifndef NV40
-        // must be an even power of 2 for older cards
-	    nx = (int)pow(2.0, ceil(log10((double)nx)/log10(2.0)));
-	    ny = (int)pow(2.0, ceil(log10((double)ny)/log10(2.0)));
-	    nz = (int)pow(2.0, ceil(log10((double)nz)/log10(2.0)));
-#endif
-
-        float *data = new float[3*nx*ny*nz];
-
-        std::cout << "generating " << nx << "x" << ny << "x" << nz << " = " << nx*ny*nz << " points" << std::endl;
-
-        // generate the uniformly sampled data that we need for a volume
-        double vmin = 0.0;
-        double vmax = 0.0;
-        double nzero_min = 0.0;
-        int ngen = 0;
-        for (int iz=0; iz < nz; iz++) {
-            double zval = z0 + iz*dmin;
-            for (int iy=0; iy < ny; iy++) {
-                double yval = y0 + iy*dmin;
-                for (int ix=0; ix < nx; ix++) {
-                    double xval = x0 + ix*dmin;
-
-                    vx = xfield.value(xval,yval,zval);
-                    vy = yfield.value(xval,yval,zval);
-                    vz = zfield.value(xval,yval,zval);
-		    //vx = 1;
-		    //vy = 1;
-		    vz = 0;
-                    double vm = sqrt(vx*vx + vy*vy + vz*vz);
-
-                    if (vm < vmin) { vmin = vm; }
-                    if (vm > vmax) { vmax = vm; }
-                    if (vm != 0.0f && vm < nzero_min)
-                    {
-                        nzero_min = vm;
-                    }
-
-                    data[ngen++] = vx;
-                    data[ngen++] = vy;
-                    data[ngen++] = vz;
-                }
-            }
-        }
-
-        ngen = 0;
-        for (ngen=0; ngen < npts; ngen++) {
-            data[ngen] = (data[ngen]/(2.0*vmax) + 0.5);
-        }
-
-        load_volume(index, nx, ny, nz, 3, data, vmin, vmax, nzero_min);
-        delete [] data;
-    } else {
-        std::cerr << "WARNING: data not found in stream" << std::endl;
-    }
-}
-
-
-/* Load a 3D volume from a dx-format file
- */
-Rappture::Outcome
-load_volume_stream2(int index, std::iostream& fin) {
-    Rappture::Outcome result;
-
-    Rappture::MeshTri2D xymesh;
-    int dummy, nx, ny, nz, nxy, npts;
-    double x0, y0, z0, dx, dy, dz, ddx, ddy, ddz;
-    char line[128], type[128], *start;
-
-    int isrect = 1;
-
-    float* voldata = 0;
-    do {
-        fin.getline(line,sizeof(line)-1);
-        for (start=&line[0]; *start == ' ' || *start == '\t'; start++)
-            ;  // skip leading blanks
-
-        if (*start != '#') {  // skip comment lines
-            printf("%s\n", line);
-            if (sscanf(start, "object %d class gridpositions counts %d %d %d", &dummy, &nx, &ny, &nz) == 4) {
-                // found grid size
-                isrect = 1;
-            }
-            else if (sscanf(start, "object %d class array type float rank 1 shape 3 items %d data follows", &dummy, &nxy) == 2) {
-                isrect = 0;
-                double xx, yy, zz;
-                for (int i=0; i < nxy; i++) {
-                    fin.getline(line, sizeof(line));
-                    fin.getline(line,sizeof(line)-1);
-                    if (sscanf(line, "%lg %lg %lg", &xx, &yy, &zz) == 3) {
-                        xymesh.addNode( Rappture::Node2D(xx,yy) );
-                    }
-                }
-                char mesg[256];
-                sprintf(mesg,"test");
-                result.error(mesg);
-                return result;
-
-                char fpts[128];
-                sprintf(fpts, "/tmp/tmppts%d", getpid());
-                char fcells[128];
-                sprintf(fcells, "/tmp/tmpcells%d", getpid());
-
-                std::ofstream ftmp(fpts);
-                // save corners of bounding box first, to work around meshing
-                // problems in voronoi utility
-                ftmp << xymesh.rangeMin(Rappture::xaxis) << " "
-                     << xymesh.rangeMin(Rappture::yaxis) << std::endl;
-                ftmp << xymesh.rangeMax(Rappture::xaxis) << " "
-                     << xymesh.rangeMin(Rappture::yaxis) << std::endl;
-                ftmp << xymesh.rangeMax(Rappture::xaxis) << " "
-                     << xymesh.rangeMax(Rappture::yaxis) << std::endl;
-                ftmp << xymesh.rangeMin(Rappture::xaxis) << " "
-                     << xymesh.rangeMax(Rappture::yaxis) << std::endl;
-                for (int i=0; i < nxy; i++) {
-                    ftmp << xymesh.atNode(i).x() << " " << xymesh.atNode(i).y() << std::endl;
-                
-                }
-                ftmp.close();
-
-                char cmdstr[512];
-                sprintf(cmdstr, "voronoi -t < %s > %s", fpts, fcells);
-                if (system(cmdstr) == 0) {
-                    int cx, cy, cz;
-                    std::ifstream ftri(fcells);
-                    while (!ftri.eof()) {
-                        ftri.getline(line,sizeof(line)-1);
-                        if (sscanf(line, "%d %d %d", &cx, &cy, &cz) == 3) {
-                            if (cx >= 4 && cy >= 4 && cz >= 4) {
-                                // skip first 4 boundary points
-                                xymesh.addCell(cx-4, cy-4, cz-4);
-                            }
-                        }
-                    }
-                    ftri.close();
-                } else {
-                    return result.error("triangularization failed");
-                }
-
-                sprintf(cmdstr, "rm -f %s %s", fpts, fcells);
-                system(cmdstr);
-            }
-            else if (sscanf(start, "object %d class regulararray count %d", &dummy, &nz) == 2) {
-                // found z-grid
-            }
-            else if (sscanf(start, "origin %lg %lg %lg", &x0, &y0, &z0) == 3) {
-                // found origin
-            }
-            else if (sscanf(start, "delta %lg %lg %lg", &ddx, &ddy, &ddz) == 3) {
-                // found one of the delta lines
-                if (ddx != 0.0) { dx = ddx; }
-                else if (ddy != 0.0) { dy = ddy; }
-                else if (ddz != 0.0) { dz = ddz; }
-            }
-            else if (sscanf(start, "object %d class array type %s rank 0 items %d data follows", &dummy, type, &npts) == 3) {
-                if (isrect && (npts != nx*ny*nz)) {
-                    char mesg[256];
-                    sprintf(mesg,"inconsistent data: expected %d points but found %d points", nx*ny*nz, npts);
-                    return result.error(mesg);
-                }
-                else if (!isrect && (npts != nxy*nz)) {
-                    char mesg[256];
-                    sprintf(mesg,"inconsistent data: expected %d points but found %d points", nxy*nz, npts);
-                    return result.error(mesg);
-                }
-                break;
-            }
-            else if (sscanf(start, "object %d class array type %s rank 0 times %d data follows", &dummy, type, &npts) == 3) {
-                if (npts != nx*ny*nz) {
-                    char mesg[256];
-                    sprintf(mesg,"inconsistent data: expected %d points but found %d points", nx*ny*nz, npts);
-                    return result.error(mesg);
-                }
-                break;
-            }
-        }
-    } while (!fin.eof());
-
-    // read data points
-    if (!fin.eof()) {
-        if (isrect) {
-            double dval[6];
-            int nread = 0;
-            int ix = 0;
-            int iy = 0;
-            int iz = 0;
-            float* data = new float[nx *  ny *  nz * 4];
-            memset(data, 0, nx*ny*nz*4);
-            double vmin = 1e21;
-            double nzero_min = 1e21;
-            double vmax = -1e21;
-
-
-            while (!fin.eof() && nread < npts) {
-                fin.getline(line,sizeof(line)-1);
-                int n = sscanf(line, "%lg %lg %lg %lg %lg %lg", &dval[0], &dval[1], &dval[2], &dval[3], &dval[4], &dval[5]);
-
-                for (int p=0; p < n; p++) {
-                    int nindex = (iz*nx*ny + iy*nx + ix) * 4;
-                    data[nindex] = dval[p];
-
-                    if (dval[p] < vmin) vmin = dval[p];
-                    if (dval[p] > vmax) vmax = dval[p];
-                    if (dval[p] != 0.0f && dval[p] < nzero_min)
-                    {
-                         nzero_min = dval[p];
-                    }
-
-                    nread++;
-                    if (++iz >= nz) {
-                        iz = 0;
-                        if (++iy >= ny) {
-                            iy = 0;
-                            ++ix;
-                        }
-                    }
-                }
-            }
-
-            // make sure that we read all of the expected points
-            if (nread != nx*ny*nz) {
-                char mesg[256];
-                sprintf(mesg,"inconsistent data: expected %d points but found %d points", nx*ny*nz, nread);
-                result.error(mesg);
-                return result;
-            }
-
-            double dv = vmax - vmin;
-            int count = nx*ny*nz;
-            int ngen = 0;
-            double v;
-            printf("test2\n");
-                        fflush(stdout);
-            if (dv == 0.0) { dv = 1.0; }
-            for (int i = 0; i < count; ++i)
-            {
-                v = data[ngen];
-                // scale all values [0-1], -1 => out of bounds
-                v = (isnan(v)) ? -1.0 : (v - vmin)/dv;
-                data[ngen] = v;
-                ngen += 4;
-            }
-
-            // Compute the gradient of this data.  BE CAREFUL: center
-            // calculation on each node to avoid skew in either direction.
-            ngen = 0;
-            for (int iz=0; iz < nz; iz++) {
-                for (int iy=0; iy < ny; iy++) {
-                    for (int ix=0; ix < nx; ix++) {
-                        // gradient in x-direction
-                        double valm1 = (ix == 0) ? 0.0 : data[ngen - 4];
-                        double valp1 = (ix == nx-1) ? 0.0 : data[ngen + 4];
-                        if (valm1 < 0 || valp1 < 0) {
-                            data[ngen+1] = 0.0;
-                        } else {
-                            data[ngen+1] = valp1-valm1; // assume dx=1
-                            //data[ngen+1] = ((valp1-valm1) + 1) *  0.5; // assume dx=1
-                        }
-
-                        // gradient in y-direction
-                        valm1 = (iy == 0) ? 0.0 : data[ngen-4*nx];
-                        valp1 = (iy == ny-1) ? 0.0 : data[ngen+4*nx];
-                        if (valm1 < 0 || valp1 < 0) {
-                            data[ngen+2] = 0.0;
-                        } else {
-                            data[ngen+2] = valp1-valm1; // assume dx=1
-                            //data[ngen+2] = ((valp1-valm1) + 1) *  0.5; // assume dy=1
-                        }
-
-                        // gradient in z-direction
-                        valm1 = (iz == 0) ? 0.0 : data[ngen-4*nx*ny];
-                        valp1 = (iz == nz-1) ? 0.0 : data[ngen+4*nx*ny];
-                        if (valm1 < 0 || valp1 < 0) {
-                            data[ngen+3] = 0.0;
-                        } else {
-                            data[ngen+3] = valp1-valm1; // assume dx=1
-                            //data[ngen+3] = ((valp1-valm1) + 1.0) * 0.5; // assume dz=1
-                        }
-
-                        ngen += 4;
-                    }
-                }
-            }
-
-            dx = nx;
-            dy = ny;
-            dz = nz;
-            load_volume(index, nx, ny, nz, 4, data,
-                vmin, vmax, nzero_min);
-
-            delete [] data;
-
-        } else {
-            Rappture::Mesh1D zgrid(z0, z0+nz*dz, nz);
-            Rappture::FieldPrism3D field(xymesh, zgrid);
-
-            double dval;
-            int nread = 0;
-            int ixy = 0;
-            int iz = 0;
-            while (!fin.eof() && nread < npts) {
-                if (!(fin >> dval).fail()) {
-                    int nid = nxy*iz + ixy;
-                    field.define(nid, dval);
-
-                    nread++;
-                    if (++iz >= nz) {
-                        iz = 0;
-                        ixy++;
-                    }
-                }
-            }
-
-            // make sure that we read all of the expected points
-            if (nread != nxy*nz) {
-                char mesg[256];
-                sprintf(mesg,"inconsistent data: expected %d points but found %d points", nxy*nz, nread);
-                return result.error(mesg);
-            }
-
-            // figure out a good mesh spacing
-            int nsample = 30;
-            x0 = field.rangeMin(Rappture::xaxis);
-            dx = field.rangeMax(Rappture::xaxis) - field.rangeMin(Rappture::xaxis);
-            y0 = field.rangeMin(Rappture::yaxis);
-            dy = field.rangeMax(Rappture::yaxis) - field.rangeMin(Rappture::yaxis);
-            z0 = field.rangeMin(Rappture::zaxis);
-            dz = field.rangeMax(Rappture::zaxis) - field.rangeMin(Rappture::zaxis);
-            double dmin = pow((dx*dy*dz)/(nsample*nsample*nsample), 0.333);
-
-            nx = (int)ceil(dx/dmin);
-            ny = (int)ceil(dy/dmin);
-            nz = (int)ceil(dz/dmin);
-#ifndef NV40
-            // must be an even power of 2 for older cards
-	        nx = (int)pow(2.0, ceil(log10((double)nx)/log10(2.0)));
-	        ny = (int)pow(2.0, ceil(log10((double)ny)/log10(2.0)));
-	        nz = (int)pow(2.0, ceil(log10((double)nz)/log10(2.0)));
-#endif
-            float *data = new float[4*nx*ny*nz];
-
-            double vmin = field.valueMin();
-            double dv = field.valueMax() - field.valueMin();
-            if (dv == 0.0) { dv = 1.0; }
-
-            // generate the uniformly sampled data that we need for a volume
-            int ngen = 0;
-            double nzero_min = 0.0;
-            for (iz=0; iz < nz; iz++) {
-                double zval = z0 + iz*dmin;
-                for (int iy=0; iy < ny; iy++) {
-                    double yval = y0 + iy*dmin;
-                    for (int ix=0; ix < nx; ix++) {
-                        double xval = x0 + ix*dmin;
-                        double v = field.value(xval,yval,zval);
-
-                        if (v != 0.0f && v < nzero_min)
-                        {
-                            nzero_min = v;
-                        }
-                        // scale all values [0-1], -1 => out of bounds
-                        v = (isnan(v)) ? -1.0 : (v - vmin)/dv;
-                        data[ngen] = v;
-
-                        ngen += 4;
-                    }
-                }
-            }
-
-            // Compute the gradient of this data.  BE CAREFUL: center
-            // calculation on each node to avoid skew in either direction.
-            ngen = 0;
-            for (int iz=0; iz < nz; iz++) {
-                for (int iy=0; iy < ny; iy++) {
-                    for (int ix=0; ix < nx; ix++) {
-                        // gradient in x-direction
-                        double valm1 = (ix == 0) ? 0.0 : data[ngen-4];
-                        double valp1 = (ix == nx-1) ? 0.0 : data[ngen+4];
-                        if (valm1 < 0 || valp1 < 0) {
-                            data[ngen+1] = 0.0;
-                        } else {
-                            //data[ngen+1] = valp1-valm1; // assume dx=1
-                            data[ngen+1] = ((valp1-valm1) + 1.0) * 0.5; // assume dz=1
-                        }
-
-                        // gradient in y-direction
-                        valm1 = (iy == 0) ? 0.0 : data[ngen-4*nx];
-                        valp1 = (iy == ny-1) ? 0.0 : data[ngen+4*nx];
-                        if (valm1 < 0 || valp1 < 0) {
-                            data[ngen+2] = 0.0;
-                        } else {
-                            //data[ngen+2] = valp1-valm1; // assume dy=1
-                            data[ngen+2] = ((valp1-valm1) + 1.0) * 0.5; // assume dz=1
-                        }
-
-                        // gradient in z-direction
-                        valm1 = (iz == 0) ? 0.0 : data[ngen-4*nx*ny];
-                        valp1 = (iz == nz-1) ? 0.0 : data[ngen+4*nx*ny];
-                        if (valm1 < 0 || valp1 < 0) {
-                            data[ngen+3] = 0.0;
-                        } else {
-                            //data[ngen+3] = valp1-valm1; // assume dz=1
-                            data[ngen+3] = ((valp1-valm1) + 1.0) * 0.5; // assume dz=1
-                        }
-
-                        ngen += 4;
-                    }
-                }
-            }
-
-            load_volume(index, nx, ny, nz, 4, data,
-                field.valueMin(), field.valueMax(), nzero_min);
-
-            delete [] data;
-        }
-    } else {
-        return result.error("data not found in stream");
-    }
-
-    //
-    // Center this new volume on the origin.
-    //
-    float dx0 = -0.5;
-    float dy0 = -0.5*dy/dx;
-    float dz0 = -0.5*dz/dx;
-    volume[index]->move(Vector3(dx0, dy0, dz0));
-
-    return result;
-}
-
-Rappture::Outcome
-load_volume_stream(int index, std::iostream& fin) {
-    Rappture::Outcome result;
-
-    Rappture::MeshTri2D xymesh;
-    int dummy, nx, ny, nz, nxy, npts;
-    double x0, y0, z0, dx, dy, dz, ddx, ddy, ddz;
-    char line[128], type[128], *start;
-
-    int isrect = 1;
-
-    do {
-        fin.getline(line,sizeof(line)-1);
-        for (start=&line[0]; *start == ' ' || *start == '\t'; start++)
-            ;  // skip leading blanks
-
-        if (*start != '#') {  // skip comment lines
-            if (sscanf(start, "object %d class gridpositions counts %d %d %d", &dummy, &nx, &ny, &nz) == 4) {
-                // found grid size
-                isrect = 1;
-            }
-            else if (sscanf(start, "object %d class array type float rank 1 shape 3 items %d data follows", &dummy, &nxy) == 2) {
-                isrect = 0;
-
-                double xx, yy, zz;
-                for (int i=0; i < nxy; i++) {
-                    fin.getline(line,sizeof(line)-1);
-                    if (sscanf(line, "%lg %lg %lg", &xx, &yy, &zz) == 3) {
-                        xymesh.addNode( Rappture::Node2D(xx,yy) );
-                    }
-                }
-
-                char fpts[128];
-                sprintf(fpts, "/tmp/tmppts%d", getpid());
-                char fcells[128];
-                sprintf(fcells, "/tmp/tmpcells%d", getpid());
-
-                std::ofstream ftmp(fpts);
-                // save corners of bounding box first, to work around meshing
-                // problems in voronoi utility
-                ftmp << xymesh.rangeMin(Rappture::xaxis) << " "
-                     << xymesh.rangeMin(Rappture::yaxis) << std::endl;
-                ftmp << xymesh.rangeMax(Rappture::xaxis) << " "
-                     << xymesh.rangeMin(Rappture::yaxis) << std::endl;
-                ftmp << xymesh.rangeMax(Rappture::xaxis) << " "
-                     << xymesh.rangeMax(Rappture::yaxis) << std::endl;
-                ftmp << xymesh.rangeMin(Rappture::xaxis) << " "
-                     << xymesh.rangeMax(Rappture::yaxis) << std::endl;
-                for (int i=0; i < nxy; i++) {
-                    ftmp << xymesh.atNode(i).x() << " " << xymesh.atNode(i).y() << std::endl;
-                
-                }
-                ftmp.close();
-
-                char cmdstr[512];
-                sprintf(cmdstr, "voronoi -t < %s > %s", fpts, fcells);
-                if (system(cmdstr) == 0) {
-                    int cx, cy, cz;
-                    std::ifstream ftri(fcells);
-                    while (!ftri.eof()) {
-                        ftri.getline(line,sizeof(line)-1);
-                        if (sscanf(line, "%d %d %d", &cx, &cy, &cz) == 3) {
-                            if (cx >= 4 && cy >= 4 && cz >= 4) {
-                                // skip first 4 boundary points
-                                xymesh.addCell(cx-4, cy-4, cz-4);
-                            }
-                        }
-                    }
-                    ftri.close();
-                } else {
-                    return result.error("triangularization failed");
-                }
-
-                sprintf(cmdstr, "rm -f %s %s", fpts, fcells);
-                system(cmdstr);
-            }
-            else if (sscanf(start, "object %d class regulararray count %d", &dummy, &nz) == 2) {
-                // found z-grid
-            }
-            else if (sscanf(start, "origin %lg %lg %lg", &x0, &y0, &z0) == 3) {
-                // found origin
-            }
-            else if (sscanf(start, "delta %lg %lg %lg", &ddx, &ddy, &ddz) == 3) {
-                // found one of the delta lines
-                if (ddx != 0.0) { dx = ddx; }
-                else if (ddy != 0.0) { dy = ddy; }
-                else if (ddz != 0.0) { dz = ddz; }
-            }
-            else if (sscanf(start, "object %d class array type %s rank 0 items %d data follows", &dummy, type, &npts) == 3) {
-                if (isrect && (npts != nx*ny*nz)) {
-                    char mesg[256];
-                    sprintf(mesg,"inconsistent data: expected %d points but found %d points", nx*ny*nz, npts);
-                    return result.error(mesg);
-                }
-                else if (!isrect && (npts != nxy*nz)) {
-                    char mesg[256];
-                    sprintf(mesg,"inconsistent data: expected %d points but found %d points", nxy*nz, npts);
-                    return result.error(mesg);
-                }
-                break;
-            }
-            else if (sscanf(start, "object %d class array type %s rank 0 times %d data follows", &dummy, type, &npts) == 3) {
-                if (npts != nx*ny*nz) {
-                    char mesg[256];
-                    sprintf(mesg,"inconsistent data: expected %d points but found %d points", nx*ny*nz, npts);
-                    return result.error(mesg);
-                }
-                break;
-            }
-        }
-    } while (!fin.eof());
-
-    // read data points
-    if (!fin.eof()) {
-        if (isrect) {
-            Rappture::Mesh1D xgrid(x0, x0+nx*dx, nx);
-            Rappture::Mesh1D ygrid(y0, y0+ny*dy, ny);
-            Rappture::Mesh1D zgrid(z0, z0+nz*dz, nz);
-            Rappture::FieldRect3D field(xgrid, ygrid, zgrid);
-
-            double dval[6];
-            int nread = 0;
-            int ix = 0;
-            int iy = 0;
-            int iz = 0;
-            while (!fin.eof() && nread < npts) {
-                fin.getline(line,sizeof(line)-1);
-                int n = sscanf(line, "%lg %lg %lg %lg %lg %lg", &dval[0], &dval[1], &dval[2], &dval[3], &dval[4], &dval[5]);
-
-                for (int p=0; p < n; p++) {
-                    int nindex = iz*nx*ny + iy*nx + ix;
-                    field.define(nindex, dval[p]);
-                    nread++;
-                    if (++iz >= nz) {
-                        iz = 0;
-                        if (++iy >= ny) {
-                            iy = 0;
-                            ++ix;
-                        }
-                    }
-                }
-            }
-
-            // make sure that we read all of the expected points
-            if (nread != nx*ny*nz) {
-                char mesg[256];
-                sprintf(mesg,"inconsistent data: expected %d points but found %d points", nx*ny*nz, nread);
-                result.error(mesg);
-                return result;
-            }
-
-            // figure out a good mesh spacing
-            int nsample = 30;
-            dx = field.rangeMax(Rappture::xaxis) - field.rangeMin(Rappture::xaxis);
-            dy = field.rangeMax(Rappture::yaxis) - field.rangeMin(Rappture::yaxis);
-            dz = field.rangeMax(Rappture::zaxis) - field.rangeMin(Rappture::zaxis);
-            double dmin = pow((dx*dy*dz)/(nsample*nsample*nsample), 0.333);
-
-            nx = (int)ceil(dx/dmin);
-            ny = (int)ceil(dy/dmin);
-            nz = (int)ceil(dz/dmin);
-
-#ifndef NV40
-            // must be an even power of 2 for older cards
-	        nx = (int)pow(2.0, ceil(log10((double)nx)/log10(2.0)));
-	        ny = (int)pow(2.0, ceil(log10((double)ny)/log10(2.0)));
-	        nz = (int)pow(2.0, ceil(log10((double)nz)/log10(2.0)));
-#endif
-
-            float *data = new float[4*nx*ny*nz];
-
-            double vmin = field.valueMin();
-            double dv = field.valueMax() - field.valueMin();
-            if (dv == 0.0) { dv = 1.0; }
-
-            // generate the uniformly sampled data that we need for a volume
-            int ngen = 0;
-            double nzero_min = 0.0;
-            for (int iz=0; iz < nz; iz++) {
-                double zval = z0 + iz*dmin;
-                for (int iy=0; iy < ny; iy++) {
-                    double yval = y0 + iy*dmin;
-                    for (int ix=0; ix < nx; ix++) {
-                        double xval = x0 + ix*dmin;
-                        double v = field.value(xval,yval,zval);
-
-                        if (v != 0.0f && v < nzero_min)
-                        {
-                            nzero_min = v;
-                        }
-
-                        // scale all values [0-1], -1 => out of bounds
-                        v = (isnan(v)) ? -1.0 : (v - vmin)/dv;
-
-                        data[ngen] = v;
-                        ngen += 4;
-                    }
-                }
-            }
-
-            // Compute the gradient of this data.  BE CAREFUL: center
-            // calculation on each node to avoid skew in either direction.
-            ngen = 0;
-            for (int iz=0; iz < nz; iz++) {
-                for (int iy=0; iy < ny; iy++) {
-                    for (int ix=0; ix < nx; ix++) {
-                        // gradient in x-direction
-                        double valm1 = (ix == 0) ? 0.0 : data[ngen-4];
-                        double valp1 = (ix == nx-1) ? 0.0 : data[ngen+4];
-                        if (valm1 < 0 || valp1 < 0) {
-                            data[ngen+1] = 0.0;
-                        } else {
-                            data[ngen+1] = ((valp1-valm1) + 1) *  0.5; // assume dx=1
-                        }
-
-                        // gradient in y-direction
-                        valm1 = (iy == 0) ? 0.0 : data[ngen-4*nx];
-                        valp1 = (iy == ny-1) ? 0.0 : data[ngen+4*nx];
-                        if (valm1 < 0 || valp1 < 0) {
-                            data[ngen+2] = 0.0;
-                        } else {
-                            //data[ngen+2] = valp1-valm1; // assume dy=1
-                            data[ngen+2] = ((valp1-valm1) + 1) *  0.5; // assume dx=1
-                        }
-
-                        // gradient in z-direction
-                        valm1 = (iz == 0) ? 0.0 : data[ngen-4*nx*ny];
-                        valp1 = (iz == nz-1) ? 0.0 : data[ngen+4*nx*ny];
-                        if (valm1 < 0 || valp1 < 0) {
-                            data[ngen+3] = 0.0;
-                        } else {
-                            //data[ngen+3] = valp1-valm1; // assume dz=1
-                            data[ngen+3] = ((valp1-valm1) + 1) *  0.5; // assume dz=1
-                        }
-
-                        ngen += 4;
-                    }
-                }
-            }
-
-            load_volume(index, nx, ny, nz, 4, data,
-                field.valueMin(), field.valueMax(), nzero_min);
-
-            delete [] data;
-
-        } else {
-            Rappture::Mesh1D zgrid(z0, z0+nz*dz, nz);
-            Rappture::FieldPrism3D field(xymesh, zgrid);
-
-            double dval;
-            int nread = 0;
-            int ixy = 0;
-            int iz = 0;
-            while (!fin.eof() && nread < npts) {
-                if (!(fin >> dval).fail()) {
-                    int nid = nxy*iz + ixy;
-                    field.define(nid, dval);
-
-                    nread++;
-                    if (++iz >= nz) {
-                        iz = 0;
-                        ixy++;
-                    }
-                }
-            }
-
-            // make sure that we read all of the expected points
-            if (nread != nxy*nz) {
-                char mesg[256];
-                sprintf(mesg,"inconsistent data: expected %d points but found %d points", nxy*nz, nread);
-                return result.error(mesg);
-            }
-
-            // figure out a good mesh spacing
-            int nsample = 30;
-            x0 = field.rangeMin(Rappture::xaxis);
-            dx = field.rangeMax(Rappture::xaxis) - field.rangeMin(Rappture::xaxis);
-            y0 = field.rangeMin(Rappture::yaxis);
-            dy = field.rangeMax(Rappture::yaxis) - field.rangeMin(Rappture::yaxis);
-            z0 = field.rangeMin(Rappture::zaxis);
-            dz = field.rangeMax(Rappture::zaxis) - field.rangeMin(Rappture::zaxis);
-            double dmin = pow((dx*dy*dz)/(nsample*nsample*nsample), 0.333);
-
-            nx = (int)ceil(dx/dmin);
-            ny = (int)ceil(dy/dmin);
-            nz = (int)ceil(dz/dmin);
-#ifndef NV40
-            // must be an even power of 2 for older cards
-	        nx = (int)pow(2.0, ceil(log10((double)nx)/log10(2.0)));
-	        ny = (int)pow(2.0, ceil(log10((double)ny)/log10(2.0)));
-	        nz = (int)pow(2.0, ceil(log10((double)nz)/log10(2.0)));
-#endif
-            float *data = new float[4*nx*ny*nz];
-
-            double vmin = field.valueMin();
-            double dv = field.valueMax() - field.valueMin();
-            if (dv == 0.0) { dv = 1.0; }
-
-            // generate the uniformly sampled data that we need for a volume
-            int ngen = 0;
-            double nzero_min = 0.0;
-            for (iz=0; iz < nz; iz++) {
-                double zval = z0 + iz*dmin;
-                for (int iy=0; iy < ny; iy++) {
-                    double yval = y0 + iy*dmin;
-                    for (int ix=0; ix < nx; ix++) {
-                        double xval = x0 + ix*dmin;
-                        double v = field.value(xval,yval,zval);
-
-                        if (v != 0.0f && v < nzero_min)
-                        {
-                            nzero_min = v;
-                        }
-                        // scale all values [0-1], -1 => out of bounds
-                        v = (isnan(v)) ? -1.0 : (v - vmin)/dv;
-                        data[ngen] = v;
-
-                        ngen += 4;
-                    }
-                }
-            }
-
-            // Compute the gradient of this data.  BE CAREFUL: center
-            // calculation on each node to avoid skew in either direction.
-            ngen = 0;
-            for (int iz=0; iz < nz; iz++) {
-                for (int iy=0; iy < ny; iy++) {
-                    for (int ix=0; ix < nx; ix++) {
-                        // gradient in x-direction
-                        double valm1 = (ix == 0) ? 0.0 : data[ngen-1];
-                        double valp1 = (ix == nx-1) ? 0.0 : data[ngen+1];
-                        if (valm1 < 0 || valp1 < 0) {
-                            data[ngen+1] = 0.0;
-                        } else {
-                            //data[ngen+1] = valp1-valm1; // assume dx=1
-                            data[ngen+1] = ((valp1-valm1) + 1) *  0.5; // assume dx=1
-                        }
-
-                        // gradient in y-direction
-                        valm1 = (iy == 0) ? 0.0 : data[ngen-4*nx];
-                        valp1 = (iy == ny-1) ? 0.0 : data[ngen+4*nx];
-                        if (valm1 < 0 || valp1 < 0) {
-                            data[ngen+2] = 0.0;
-                        } else {
-                            //data[ngen+2] = valp1-valm1; // assume dy=1
-                            data[ngen+2] = ((valp1-valm1) + 1) *  0.5; // assume dy=1
-                        }
-
-                        // gradient in z-direction
-                        valm1 = (iz == 0) ? 0.0 : data[ngen-4*nx*ny];
-                        valp1 = (iz == nz-1) ? 0.0 : data[ngen+4*nx*ny];
-                        if (valm1 < 0 || valp1 < 0) {
-                            data[ngen+3] = 0.0;
-                        } else {
-                            //data[ngen+3] = valp1-valm1; // assume dz=1
-                            data[ngen+3] = ((valp1-valm1) + 1) *  0.5; // assume dz=1
-                        }
-
-                        ngen += 4;
-                    }
-                }
-            }
-
-            load_volume(index, nx, ny, nz, 4, data,
-                field.valueMin(), field.valueMax(), nzero_min);
-
-            delete [] data;
-        }
-    } else {
-        return result.error("data not found in stream");
-    }
-
-    //
-    // Center this new volume on the origin.
-    //
-    float dx0 = -0.5;
-    float dy0 = -0.5*dy/dx;
-    float dz0 = -0.5*dz/dx;
-    volume[index]->move(Vector3(dx0, dy0, dz0));
-
-    return result;
-}
 
 /* Load a 3D volume
  * index: the index into the volume array, which stores pointers to 3D volume instances
@@ -1178,8 +283,9 @@ load_volume_stream(int index, std::iostream& fin) {
  * width, height and depth: number of points in each dimension
  */
 void 
-load_volume(int index, int width, int height, int depth, int n_component, 
-	    float* data, double vmin, double vmax, double nzero_min)
+NanoVis::load_volume(int index, int width, int height, int depth, 
+		     int n_component, float* data, double vmin, 
+		     double vmax, double nzero_min)
 {
     while (n_volumes <= index) {
         volume.push_back(NULL);
@@ -1198,7 +304,7 @@ load_volume(int index, int width, int height, int depth, int n_component,
 
 // Gets a colormap 1D texture by name.
 TransferFunction*
-nv_get_transfunc(const char *name) 
+NanoVis::get_transfunc(const char *name) 
 {
     Tcl_HashEntry *hPtr;
     
@@ -1211,7 +317,7 @@ nv_get_transfunc(const char *name)
 
 // Creates of updates a colormap 1D texture by name.
 TransferFunction*
-nv_set_transfunc(const char *name, int nSlots, float *data) 
+NanoVis::set_transfunc(const char *name, int nSlots, float *data) 
 {
     int isNew;
     Tcl_HashEntry *hPtr;
@@ -1228,6 +334,12 @@ nv_set_transfunc(const char *name, int nSlots, float *data)
     return tf;
 }
 
+void
+NanoVis::zoom(double zoom)
+{
+    live_obj_z = -2.5 / zoom;
+    cam->move(live_obj_x, live_obj_y, live_obj_z);
+}
 
 //Update the transfer function using local GUI in the non-server mode
 void 
@@ -1236,7 +348,7 @@ update_tf_texture()
     glutSetWindow(render_window);
     
     //fprintf(stderr, "tf update\n");
-    TransferFunction *tf = nv_get_transfunc("default");
+    TransferFunction *tf = NanoVis::get_transfunc("default");
     if (tf == NULL) {
 	return;
     }
@@ -1261,7 +373,7 @@ update_tf_texture()
 }
 
 int 
-nv_render_legend(
+NanoVis::render_legend(
     TransferFunction *tf, 
     double min, double max, 
     int width, int height, 
@@ -1271,7 +383,7 @@ nv_render_legend(
     int old_height = win_height;
 
     plane_render->set_screen_size(width, height);
-    nv_resize_offscreen_buffer(width, height);
+    resize_offscreen_buffer(width, height);
 
     // generate data for the legend
     float data[512];
@@ -1282,7 +394,7 @@ nv_render_legend(
     int index = plane_render->add_plane(plane[0], tf);
     plane_render->set_active_plane(index);
 
-    nv_offscreen_buffer_capture();
+    offscreen_buffer_capture();
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); //clear screen
     plane_render->render();
 
@@ -1298,17 +410,15 @@ nv_render_legend(
     write(0, "\n", 1);
 
     plane_render->remove_plane(index);
-    nv_resize_offscreen_buffer(old_width, old_height);
+    resize_offscreen_buffer(old_width, old_height);
 
     return TCL_OK;
 }
 
 //initialize frame buffer objects for offscreen rendering
 void 
-init_offscreen_buffer()
+NanoVis::init_offscreen_buffer()
 {
-    GLenum status;
-    
     //initialize final fbo for final display
     glGenFramebuffersEXT(1, &final_fbo);
     glGenTextures(1, &final_color_tex);
@@ -1347,7 +457,7 @@ init_offscreen_buffer()
 
 //resize the offscreen buffer 
 void 
-nv_resize_offscreen_buffer(int w, int h)
+NanoVis::resize_offscreen_buffer(int w, int h)
 {
     win_width = w;
     win_height = h;
@@ -1416,10 +526,11 @@ nv_resize_offscreen_buffer(int w, int h)
 }
 
 
+#ifdef notdef
 //init line integral convolution
 void 
-init_lic() {
-    
+NanoVis::init_lic() 
+{
     lic = new Lic(NMESH, win_width, win_height, 0.3, g_context, volume[1]->id, 
 		  volume[1]->aspect_ratio_width,
 		  volume[1]->aspect_ratio_height,
@@ -1427,7 +538,7 @@ init_lic() {
 }
 
 //init the particle system using vector field volume->[1]
-/*
+
 void init_particle_system()
 {
     psys = new ParticleSystem(NMESH, NMESH, g_context, volume[1]->id,
@@ -1437,7 +548,7 @@ void init_particle_system()
 
     init_particles();	//fill initial particles
 }
-*/
+#endif
 
 void 
 make_test_2D_data()
@@ -1459,7 +570,8 @@ make_test_2D_data()
 
 
 /*----------------------------------------------------*/
-void initGL(void) 
+void 
+NanoVis::initGL(void) 
 { 
    //buffer to store data read from the screen
    if (screen_buffer) {
@@ -1510,7 +622,7 @@ void initGL(void)
    g_vol_render = new VolumeRenderer();
 
    
-   /*
+#ifdef notdef
    //I added this to debug : Wei
    float tmp_data[4*124];
    memset(tmp_data, 0, 4*4*124);
@@ -1522,23 +634,25 @@ void initGL(void)
 
    //volume[1]->move(Vector3(0.5, 0.6, 0.7));
    //g_vol_render->add_volume(volume[1], tmp_tf);
-   */
+#endif
 
 
    //create an 2D plane renderer
    plane_render = new PlaneRenderer(g_context, win_width, win_height);
    make_test_2D_data();
 
-   plane_render->add_plane(plane[0], nv_get_transfunc("default"));
+   plane_render->add_plane(plane[0], get_transfunc("default"));
 
    assert(glGetError()==0);
 
-   //init_particle_system();
-   //init_lic(); 
+#ifdef notdef
+   init_particle_system();
+   NanoVis::init_lic(); 
+#endif
 }
 
 void 
-nv_read_screen()
+NanoVis::read_screen()
 {
   glReadPixels(0, 0, win_width, win_height, GL_RGB, GL_UNSIGNED_BYTE, 
 	screen_buffer);
@@ -1553,32 +667,33 @@ short offsets[512*512*3];
 int offsets_size;
 
 void 
-do_rle(){
-  int len = win_width*win_height*3;
-  rle_size = 0;
-  offsets_size = 0;
-
-  int i=0;
-  while(i<len){
-    if (screen_buffer[i] == 0) {
-      int pos = i+1;
-      while ( (pos<len) && (screen_buffer[pos] == 0)) {
-        pos++;
-      }
-      offsets[offsets_size++] = -(pos - i);
-      i = pos;
+do_rle()
+{
+    int len = NanoVis::win_width*NanoVis::win_height*3;
+    rle_size = 0;
+    offsets_size = 0;
+    
+    int i=0;
+    while(i<len){
+	if (NanoVis::screen_buffer[i] == 0) {
+	    int pos = i+1;
+	    while ( (pos<len) && (NanoVis::screen_buffer[pos] == 0)) {
+		pos++;
+	    }
+	    offsets[offsets_size++] = -(pos - i);
+	    i = pos;
+	}
+	
+	else {
+	    int pos;
+	    for (pos = i; (pos<len) && (NanoVis::screen_buffer[pos] != 0);pos++){
+		rle[rle_size++] = NanoVis::screen_buffer[pos];
+	    }
+	    offsets[offsets_size++] = (pos - i);
+	    i = pos;
+	}
+	
     }
-
-    else {
-      int pos;
-      for (pos = i; (pos<len) && (screen_buffer[pos] != 0); pos++) {
-        rle[rle_size++] = screen_buffer[pos];
-      }
-      offsets[offsets_size++] = (pos - i);
-      i = pos;
-    }
-
-  }
 }
 #endif
 
@@ -1596,7 +711,7 @@ bmp_header_add_int(unsigned char* header, int& pos, int data)
 // INSOO
 // FOR DEBUGGING
 void
-bmp_write_to_file()
+NanoVis::bmp_write_to_file()
 {
     unsigned char header[54];
     int pos = 0;
@@ -1667,7 +782,7 @@ bmp_write_to_file()
 }
 
 void
-bmp_write(const char* cmd)
+NanoVis::bmp_write(const char* cmd)
 {
     unsigned char header[54];
     int pos = 0;
@@ -1739,28 +854,29 @@ bmp_write(const char* cmd)
 
 }
 
-/*
+#ifdef notdef
 //draw vectors 
-void draw_arrows(){
-  glColor4f(0.,0.,1.,1.);
-  for(int i=0; i<NMESH; i++){
-    for(int j=0; j<NMESH; j++){
-      Vector2 v = grid.get(i, j);
-
-      int x1 = i*DM;
-      int y1 = j*DM;
-
-      int x2 = x1 + v.x;
-      int y2 = y1 + v.y;
-
-      glBegin(GL_LINES);
-        glVertex2d(x1, y1);
-        glVertex2d(x2, y2);
-      glEnd();
+void draw_arrows()
+{
+    glColor4f(0.,0.,1.,1.);
+    for(int i=0; i<NMESH; i++){
+	for(int j=0; j<NMESH; j++){
+	    Vector2 v = grid.get(i, j);
+	    
+	    int x1 = i*DM;
+	    int y1 = j*DM;
+	    
+	    int x2 = x1 + v.x;
+	    int y2 = y1 + v.y;
+	    
+	    glBegin(GL_LINES);
+	    glVertex2d(x1, y1);
+	    glVertex2d(x2, y2);
+	    glEnd();
+	}
     }
-  }
 }
-*/
+#endif
 
 
 /*----------------------------------------------------*/
@@ -1769,13 +885,13 @@ idle()
 {
     glutSetWindow(render_window);
   
-  /*
-  struct timespec ts;
-  ts.tv_sec = 0;
-  ts.tv_nsec = 300000000;
-  nanosleep(&ts, 0);
-  */
-
+#ifdef notdef
+      struct timespec ts;
+      ts.tv_sec = 0;
+      ts.tv_nsec = 300000000;
+      nanosleep(&ts, 0);
+#endif
+    
 #ifdef XINETD
     xinetd_listen();
 #else
@@ -1784,7 +900,7 @@ idle()
 }
 
 void 
-nv_display_offscreen_buffer()
+NanoVis::display_offscreen_buffer()
 {
     glEnable(GL_TEXTURE_2D);
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
@@ -1807,14 +923,14 @@ nv_display_offscreen_buffer()
 }
 
 void 
-nv_offscreen_buffer_capture()
+NanoVis::offscreen_buffer_capture()
 {
-   glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, final_fbo);
+    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, final_fbo);
 }
 
 /* 
  * Is this routine being used? --gah
- * /
+ */
 void 
 draw_bounding_box(float x0, float y0, float z0,
 		  float x1, float y1, float z1,
@@ -1866,6 +982,7 @@ draw_bounding_box(float x0, float y0, float z0,
 }
 
 
+#ifdef notdef
 
 static int 
 particle_distance_sort(const void* a, const void* b)
@@ -1877,111 +994,112 @@ particle_distance_sort(const void* a, const void* b)
     }
 }
 
-/*
 void soft_read_verts()
 {
-  glReadPixels(0, 0, psys->psys_width, psys->psys_height, GL_RGB, GL_FLOAT, vert);
-  //fprintf(stderr, "soft_read_vert");
-
-  //cpu sort the distance  
-  Particle* p = (Particle*) malloc(sizeof(Particle)* psys->psys_width * psys->psys_height);
-  for(int i=0; i<psys->psys_width * psys->psys_height; i++){
-    float x = vert[3*i];
-    float y = vert[3*i+1];
-    float z = vert[3*i+2];
-
-    float dis = (x-live_obj_x)*(x-live_obj_x) + (y-live_obj_y)*(y-live_obj_y) + (z-live_obj_z)*(z-live_obj_z); 
-    p[i].x = x;
-    p[i].y = y;
-    p[i].z = z;
-    p[i].aux = dis;
-  }
-
-  qsort(p, psys->psys_width * psys->psys_height, sizeof(Particle), particle_distance_sort);
-
-  for(int i=0; i<psys->psys_width * psys->psys_height; i++){
-    vert[3*i] = p[i].x;
-    vert[3*i+1] = p[i].y;
-    vert[3*i+2] = p[i].z;
-  }
-
-  free(p);
+    glReadPixels(0, 0, psys->psys_width, psys->psys_height, GL_RGB, GL_FLOAT, vert);
+    //fprintf(stderr, "soft_read_vert");
+    
+    //cpu sort the distance  
+    Particle* p;
+    p = (Particle*)malloc(sizeof(Particle)*psys->psys_width*psys->psys_height);
+    for (int i=0; i<psys->psys_width * psys->psys_height; i++) {
+	float x = vert[3*i];
+	float y = vert[3*i+1];
+	float z = vert[3*i+2];
+	
+	float dis = (x-live_obj_x)*(x-live_obj_x) + (y-live_obj_y)*(y-live_obj_y) + (z-live_obj_z)*(z-live_obj_z); 
+	p[i].x = x;
+	p[i].y = y;
+	p[i].z = z;
+	p[i].aux = dis;
+    }
+    
+    qsort(p, psys->psys_width * psys->psys_height, sizeof(Particle), particle_distance_sort);
+    
+    for(int i=0; i<psys->psys_width * psys->psys_height; i++){
+	vert[3*i] = p[i].x;
+	vert[3*i+1] = p[i].y;
+	vert[3*i+2] = p[i].z;
+    }
+    
+    free(p);
 }
-*/
+#endif
 
-/*
+#ifdef notdef
 //display the content of a texture as a screen aligned quad
-void display_texture(NVISid tex, int width, int height)
+void 
+display_texture(NVISid tex, int width, int height)
 {
-   glPushMatrix();
-
-   glEnable(GL_TEXTURE_2D);
-   glBindTexture(GL_TEXTURE_RECTANGLE_NV, tex);
-
-   glViewport(0, 0, width, height);
-   glMatrixMode(GL_PROJECTION);
-   glLoadIdentity();
-   gluOrtho2D(0, width, 0, height);
-   glMatrixMode(GL_MODELVIEW);
-   glLoadIdentity();
-
-   cgGLBindProgram(m_passthru_fprog);
-   cgGLEnableProfile(CG_PROFILE_FP30);
-
-   cgGLSetParameter4f(m_passthru_scale_param, 1.0, 1.0, 1.0, 1.0);
-   cgGLSetParameter4f(m_passthru_bias_param, 0.0, 0.0, 0.0, 0.0);
-   
-   draw_quad(width, height, width, height);
-   cgGLDisableProfile(CG_PROFILE_FP30);
-
-   glPopMatrix();
-
-   assert(glGetError()==0);
+    glPushMatrix();
+    
+    glEnable(GL_TEXTURE_2D);
+    glBindTexture(GL_TEXTURE_RECTANGLE_NV, tex);
+    
+    glViewport(0, 0, width, height);
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    gluOrtho2D(0, width, 0, height);
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+    
+    cgGLBindProgram(m_passthru_fprog);
+    cgGLEnableProfile(CG_PROFILE_FP30);
+    
+    cgGLSetParameter4f(m_passthru_scale_param, 1.0, 1.0, 1.0, 1.0);
+    cgGLSetParameter4f(m_passthru_bias_param, 0.0, 0.0, 0.0, 0.0);
+    
+    draw_quad(width, height, width, height);
+    cgGLDisableProfile(CG_PROFILE_FP30);
+    
+    glPopMatrix();
+    
+    assert(glGetError()==0);
 }
-*/
+#endif
 
 
 //draw vertices in the main memory
-/*
-void soft_display_verts()
+#ifdef notdef
+void 
+soft_display_verts()
 {
-  glDisable(GL_TEXTURE_2D);
-  glEnable(GL_BLEND);
-
-  glPointSize(0.5);
-  glColor4f(0,0.8,0.8,0.6);
-  glBegin(GL_POINTS);
-  for(int i=0; i<psys->psys_width * psys->psys_height; i++){
-    glVertex3f(vert[3*i], vert[3*i+1], vert[3*i+2]);
-  }
-  glEnd();
-  //fprintf(stderr, "soft_display_vert");
+    glDisable(GL_TEXTURE_2D);
+    glEnable(GL_BLEND);
+    
+    glPointSize(0.5);
+    glColor4f(0,0.8,0.8,0.6);
+    glBegin(GL_POINTS);
+    for(int i=0; i<psys->psys_width * psys->psys_height; i++){
+	glVertex3f(vert[3*i], vert[3*i+1], vert[3*i+2]);
+    }
+    glEnd();
+    //fprintf(stderr, "soft_display_vert");
 }
-*/
+#endif
 
 #if 0
-
 //oddeven sort on GPU
 void 
 sortstep()
 {
     // perform one step of the current sorting algorithm
-
-	/*
+    
+#ifdef notdef
     // swap buffers
     int sourceBuffer = targetBuffer;
     targetBuffer = (targetBuffer+1)%2;   
     int pstage = (1<<stage);
     int ppass  = (1<<pass);
     int activeBitonicShader = 0;
-
+    
 #ifdef _WIN32
     buffer->BindBuffer(wglTargets[sourceBuffer]);
 #else
     buffer->BindBuffer(glTargets[sourceBuffer]);
 #endif
     if (buffer->IsDoubleBuffered()) glDrawBuffer(glTargets[targetBuffer]);
-    */
+#endif
 
     checkGLError("after db");
 
@@ -1996,23 +1114,25 @@ sortstep()
     glUniform3fARB(oddevenMergeSort.getUniformLocation("Param2"), float(psys_width), float(psys_height), float(ppass));
     glUniform1iARB(oddevenMergeSort.getUniformLocation("Data"), 0);
     staticdebugmsg("sort","stage "<<pstage<<" pass "<<ppass);
-
-    // This clear is not necessary for sort to function. But if we are in interactive mode 
-    // unused parts of the texture that are visible will look bad.
-    //if (!perfTest) glClear(GL_COLOR_BUFFER_BIT);
-
-    //buffer->Bind();
-    //buffer->EnableTextureTarget();
-
-    // initiate the sorting step on the GPU
-    // a full-screen quad
+    
+    // This clear is not necessary for sort to function. But if we are in
+    // interactive mode unused parts of the texture that are visible will look
+    // bad.
+#ifdef notdef
+    if (!perfTest) glClear(GL_COLOR_BUFFER_BIT);
+    
+    buffer->Bind();
+    buffer->EnableTextureTarget();
+#endif
+    
+    // Initiate the sorting step on the GPU a full-screen quad
     glBegin(GL_QUADS);
-    /*
+#ifdef notdef
     glMultiTexCoord4fARB(GL_TEXTURE0_ARB,0.0f,0.0f,0.0f,1.0f); glVertex2f(-1.0f,-1.0f);	
     glMultiTexCoord4fARB(GL_TEXTURE0_ARB,float(psys_width),0.0f,1.0f,1.0f); glVertex2f(1.0f,-1.0f);
     glMultiTexCoord4fARB(GL_TEXTURE0_ARB,float(psys_width),float(psys_height),1.0f,0.0f); glVertex2f(1.0f,1.0f);	
     glMultiTexCoord4fARB(GL_TEXTURE0_ARB,0.0f,float(psys_height),0.0f,0.0f); glVertex2f(-1.0f,1.0f);	
-    */
+#endif
     glMultiTexCoord4fARB(GL_TEXTURE0_ARB,0.0f,0.0f,0.0f,1.0f); glVertex2f(0.,0.);	
     glMultiTexCoord4fARB(GL_TEXTURE0_ARB,float(psys_width),0.0f,1.0f,1.0f); glVertex2f(float(psys_width), 0.);
     glMultiTexCoord4fARB(GL_TEXTURE0_ARB,float(psys_width),float(psys_height),1.0f,0.0f); glVertex2f(float(psys_width), float(psys_height));	
@@ -2027,7 +1147,6 @@ sortstep()
 
     assert(glGetError()==0);
 }
-
 #endif
 
 
@@ -2121,7 +1240,7 @@ draw_3d_axis()
     glDisable(GL_DEPTH_TEST);
 }
 
-/*
+#ifdef notdef
 void 
 draw_axis()
 {
@@ -2152,12 +1271,12 @@ draw_axis()
     glEnable(GL_TEXTURE_2D);
     glDisable(GL_DEPTH_TEST);
 }
-*/
+#endif
 
 
 /*----------------------------------------------------*/
 void 
-nv_display()
+NanoVis::display()
 {
     assert(glGetError()==0);
     
@@ -2228,7 +1347,7 @@ nv_display()
 	
         perf->disable();
 	
-        for (int i = 0; i < g_heightMap.size(); ++i) {
+        for (unsigned int i = 0; i < g_heightMap.size(); ++i) {
             if (g_heightMap[i]->isVisible()) {
                 g_heightMap[i]->render();
 	    }
@@ -2249,9 +1368,9 @@ nv_display()
 
 }
 
-
-static void 
-mouse(int button, int state, int x, int y)
+#ifndef XINETD
+void 
+NanoVis::mouse(int button, int state, int x, int y)
 {
     if(button==GLUT_LEFT_BUTTON){
 	if (state==GLUT_DOWN) {
@@ -2280,9 +1399,8 @@ mouse(int button, int state, int x, int y)
     }
 }
 
-
-static void 
-update_rot(int delta_x, int delta_y)
+void 
+NanoVis::update_rot(int delta_x, int delta_y)
 {
     live_rot_x += delta_x;
     live_rot_y += delta_y;
@@ -2300,28 +1418,21 @@ update_rot(int delta_x, int delta_y)
     cam->rotate(live_rot_x, live_rot_y, live_rot_z);
 }
 
-
-static void 
-update_trans(int delta_x, int delta_y, int delta_z)
+void 
+NanoVis::update_trans(int delta_x, int delta_y, int delta_z)
 {
     live_obj_x += delta_x*0.03;
     live_obj_y += delta_y*0.03;
     live_obj_z += delta_z*0.03;
 }
 
-void end_service();
-
-static void 
-keyboard(unsigned char key, int x, int y)
+void 
+NanoVis::keyboard(unsigned char key, int x, int y)
 {
    bool log = false;
 
    switch (key) {
    case 'q':
-#ifdef XINETD
-       //end_service();
-       NvExitService();
-#endif
        exit(0);
        break;
    case '+':
@@ -2379,10 +1490,10 @@ keyboard(unsigned char key, int x, int y)
        g_vol_render->switch_slice_mode();
        break;
    case 'n':
-       nv_resize_offscreen_buffer(win_width*2, win_height*2);
+       resize_offscreen_buffer(win_width*2, win_height*2);
        break;
    case 'm':
-       nv_resize_offscreen_buffer(win_width/2, win_height/2);
+       resize_offscreen_buffer(win_width/2, win_height/2);
        break;
    default:
        break;
@@ -2397,8 +1508,8 @@ keyboard(unsigned char key, int x, int y)
 #endif
 }
 
-static void 
-motion(int x, int y)
+void 
+NanoVis::motion(int x, int y)
 {
     int old_x, old_y;	
 
@@ -2437,53 +1548,65 @@ motion(int x, int y)
     tmp->write(event_log);
     delete tmp;
 #endif
-    
     glutPostRedisplay();
 }
 
-/*
+#endif /*XINETD*/
+
+#ifdef notdef
+
 #ifdef XINETD
-void init_service(){
-  //open log and map stderr to log file
-  xinetd_log = fopen("/tmp/log.txt", "w");
-  close(2);
-  dup2(fileno(xinetd_log), 2);
-  dup2(2,1);
-
-  //flush junk 
-  fflush(stdout);
-  fflush(stderr);
+void 
+init_service()
+{
+    //open log and map stderr to log file
+    xinetd_log = fopen("/tmp/log.txt", "w");
+    close(2);
+    dup2(fileno(xinetd_log), 2);
+    dup2(2,1);
+    
+    //flush junk 
+    fflush(stdout);
+    fflush(stderr);
 }
 
-void end_service(){
-  //close log file
-  fclose(xinetd_log);
+void 
+end_service()
+{
+    //close log file
+    fclose(xinetd_log);
 }
-#endif
+#endif	/*XINETD*/
 
-void init_event_log(){
-  event_log = fopen("event.txt", "w");
-  assert(event_log!=0);
-
-  struct timeval time;
-  gettimeofday(&time, NULL);
-  cur_time = time.tv_sec*1000. + time.tv_usec/1000.;
+void 
+init_event_log() 
+{
+    event_log = fopen("event.txt", "w");
+    assert(event_log!=0);
+    
+    struct timeval time;
+    gettimeofday(&time, NULL);
+    cur_time = time.tv_sec*1000. + time.tv_usec/1000.;
 }
 
-void end_event_log(){
-  fclose(event_log);
+void 
+end_event_log()
+{
+    fclose(event_log);
 }
 
-double get_time_interval(){
-  struct timeval time;
-  gettimeofday(&time, NULL);
-  double new_time = time.tv_sec*1000. + time.tv_usec/1000.;
-
-  double interval = new_time - cur_time;
-  cur_time = new_time;
-  return interval;
+double 
+get_time_interval()
+{
+    struct timeval time;
+    gettimeofday(&time, NULL);
+    double new_time = time.tv_sec*1000. + time.tv_usec/1000.;
+    
+    double interval = new_time - cur_time;
+    cur_time = new_time;
+    return interval;
 }
-*/
+#endif 
 
 void removeAllData()
 {
@@ -2492,73 +1615,73 @@ void removeAllData()
 
 
 /*----------------------------------------------------*/
-int main(int argc, char** argv) 
+int 
+main(int argc, char** argv) 
 {
 
     char *path;
     path = NULL;
     while(1) {
         int c;
-        int this_option_optind = optind ? optind : 1;
         int option_index = 0;
         struct option long_options[] = {
-          // name, has_arg, flag, val
-          { 0,0,0,0 },
+	    // name, has_arg, flag, val
+	    { 0,0,0,0 },
         };
 
         c = getopt_long(argc, argv, "+p:", long_options, &option_index);
-        if (c == -1)
+        if (c == -1) {
             break;
-
+	}
         switch(c) {
-            case 'p':
-                path = optarg;
-                break;
-            default:
-                fprintf(stderr,"Don't know what option '%c'.\n", c);
-                return 1;
+	case 'p':
+	    path = optarg;
+	    break;
+	default:
+	    fprintf(stderr,"Don't know what option '%c'.\n", c);
+	    return 1;
         }
     }
 
     R2FilePath::getInstance()->setWorkingDirectory(argc, (const char**) argv);
-
+    
 #ifdef XINETD
-   signal(SIGPIPE,SIG_IGN);
-   NvInitService();
+    signal(SIGPIPE,SIG_IGN);
+    NvInitService();
 #endif
-
-   glutInit(&argc, argv);
-   glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA);
-
-   glutInitWindowSize(win_width, win_height);
-
-   glutInitWindowPosition(10, 10);
-   render_window = glutCreateWindow(argv[0]);
-   glutDisplayFunc(nv_display);
-
+    
+    glutInit(&argc, argv);
+    glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA);
+    
+    glutInitWindowSize(NanoVis::win_width, NanoVis::win_height);
+    
+    glutInitWindowPosition(10, 10);
+    render_window = glutCreateWindow(argv[0]);
+    glutDisplayFunc(NanoVis::display);
+    
 #ifndef XINETD
-   glutMouseFunc(mouse);
-   glutMotionFunc(motion);
-   glutKeyboardFunc(keyboard);
+    glutMouseFunc(NanoVis::mouse);
+    glutMotionFunc(NanoVis::motion);
+    glutKeyboardFunc(NanoVis::keyboard);
 #endif
-
-   glutIdleFunc(idle);
-   glutReshapeFunc(nv_resize_offscreen_buffer);
-
-   NvInit(path);
-   initGL();
-   initTcl();
-
+    
+    glutIdleFunc(idle);
+    glutReshapeFunc(NanoVis::resize_offscreen_buffer);
+    
+    NvInit(path);
+    NanoVis::initGL();
+    initTcl();
+    
 #ifdef EVENTLOG
-   NvInitEventLog();
+    NvInitEventLog();
 #endif
     //event loop
     glutMainLoop();
-
+    
     removeAllData();
-
+    
     NvExit();
-
+    
     return 0;
 }
 

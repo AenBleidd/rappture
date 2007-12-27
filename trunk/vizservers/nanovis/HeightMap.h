@@ -13,21 +13,21 @@
  *@brief Create a surface from height map and line contour of the generated surface
  */
 class HeightMap {
-	unsigned int _vertexBufferObjectID;
-	unsigned int _textureBufferObjectID;
-
-	int _vertexCount;
-	CGparameter _tf;
-	R2Geometry* _contour;
-	TransferFunction* _colorMap;
-	NvShader* _shader;
-	int* _indexBuffer;
-	int _indexCount;
+    unsigned int _vertexBufferObjectID;
+    unsigned int _textureBufferObjectID;
+    
+    int _vertexCount;
+    CGparameter _tf;
+    R2Geometry* _contour;
+    TransferFunction* _colorMap;
+    NvShader* _shader;
+    int* _indexBuffer;
+    int _indexCount;
     Vector3 _contourColor;
-
-	bool _contourVisible;
-	bool _visible;
-
+    
+    bool _contourVisible;
+    bool _visible;
+    
     Vector3 _scale;
 
     double _vmin;		// minimum (unscaled) value in data
