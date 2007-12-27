@@ -134,8 +134,7 @@ build_perl:
 
 install_perl: build_perl
 	@if test "x@PERL@" != "x" ; then \
-		cd perl; \
-		make install; \
+		make -C perl install; \
 	fi
 
 build_pkgs:
