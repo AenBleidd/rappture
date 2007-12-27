@@ -65,6 +65,8 @@ void HeightMap::render()
             cgGLBindProgram(_shader->getFP());
             cgGLEnableProfile(CG_PROFILE_FP30);
 
+	    fprintf(stderr, "set texture param id=%d\n", _colorMap->id);
+	    fflush(stderr);
 			cgGLSetTextureParameter(_tf, _colorMap->id);
 			cgGLEnableTextureParameter(_tf);
 
@@ -80,7 +82,8 @@ void HeightMap::render()
 		glBindBuffer(GL_ARRAY_BUFFER, _textureBufferObjectID);
 		::glTexCoordPointer(3, GL_FLOAT, 12, 0);
 
-		glDrawElements(GL_TRIANGLES, _indexCount, GL_UNSIGNED_INT, _indexBuffer);
+		glDrawElements(GL_TRIANGLES, _indexCount, GL_UNSIGNED_INT, 
+			_indexBuffer);
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 		glDisableClientState(GL_VERTEX_ARRAY);
@@ -198,14 +201,16 @@ void HeightMap::setHeight(int xCount, int yCount, Vector3* heights)
 	_vertexCount = xCount * yCount;
 	reset();
 
-	float min = heights[0].y, max = heights[0].y;
+	_vmin = heights[0].y, _vmax = heights[0].y;
 	int count = xCount * yCount;
 	for (int i = 0; i < count; ++i)
 	{
-		if (min > heights[i].y) min = heights[i].y;
-		if (max < heights[i].y) max = heights[i].y;
+	    if (_vmin > heights[i].y) {
+		_vmin = heights[i].y;
+	    } else if (_vmax < heights[i].y) {
+		_vmax = heights[i].y;
+	    }
 	}
-
 
 	Vector3* texcoord = (Vector3*) malloc(count * sizeof(Vector3));
 	for (int i = 0; i < count; ++i)
@@ -255,22 +260,22 @@ void HeightMap::setHeight(float startX, float startY, float endX, float endY, in
 	_vertexCount = xCount * yCount;
 	reset();
 
-	float min = heights[0], max = heights[0];
+	_vmin = heights[0], _vmax = heights[0];
 	int count = xCount * yCount;
-	for (int i = 0; i < count; ++i)
-	{
-		if (min > heights[i]) min = heights[i];
-		if (max < heights[i]) max = heights[i];
+	for (int i = 0; i < count; ++i) {
+	    if (_vmin > heights[i]) {
+		_vmin = heights[i];
+	    } else if (_vmax < heights[i]) {
+		_vmax = heights[i];
+	    }
 	}
-
     //_scale.x = endX - startX;
     //_scale.y = (endY - startY) / _scale.x;
     //_scale.z = max / _scale.z;
 
 	Vector3* texcoord = (Vector3*) malloc(count * sizeof(Vector3));
-	for (int i = 0; i < count; ++i)
-	{
-		texcoord[i].set(0, 0, heights[i]);
+	for (int i = 0; i < count; ++i) {
+	    texcoord[i].set(0, 0, heights[i]);
 	}
 
 	Vector3* heightMap = createHeightVertices(startX, startY, endX, endY, xCount, yCount, heights);
@@ -343,3 +348,4 @@ void HeightMap::setColorMap(TransferFunction* colorMap)
 	//if (_colorMap) _colorMap->unrefDelete();
 	_colorMap = colorMap;
 }
+

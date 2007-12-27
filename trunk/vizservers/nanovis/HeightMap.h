@@ -30,6 +30,10 @@ class HeightMap {
 
     Vector3 _scale;
 
+    double _vmin;		// minimum (unscaled) value in data
+    double _vmax;		// maximum (unscaled) value in data
+
+
 public :
     /**
      *@brief Constructor
@@ -66,9 +70,14 @@ public :
 	void setHeight(int xCount, int yCount, Vector3* heights);
 
     /**
-     *@brief Define a color map for color shading of heighmap
+     *@brief Define a color map for color shading of heightmap
      */
 	void setColorMap(TransferFunction* colorMap);
+
+    /**
+     *@brief Get the color map defined for shading of this heightmap
+     */
+    TransferFunction *getColorMap(void);
 
     /**
      *@brief Set the visibility of the height map
@@ -89,6 +98,9 @@ public :
      *@brief Defind the color of the line contour
      */
     void setLineContourColor(float r, float g, float b);
+
+    double range_min(void);
+    double range_max(void);
 };
 
 inline void HeightMap::setVisible(bool visible)
@@ -111,5 +123,23 @@ inline void HeightMap::setLineContourColor(float r, float g, float b)
     _contourColor.x = r;
     _contourColor.y = g;
     _contourColor.z = b;
+}
+
+inline TransferFunction *
+HeightMap::getColorMap()
+{
+    return _colorMap;
+}
+
+inline double
+HeightMap::range_min()
+{
+    return _vmin;
+}
+
+inline double
+HeightMap::range_max()
+{
+    return _vmax;
 }
 #endif
