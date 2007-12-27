@@ -27,7 +27,7 @@ LIB_RAPPTURE    = -Wl,-rpath,$(LIB_DIR) -L$(LIB_DIR) -lrappture
 all: $(PROGS)
 
 fermi: fermi.c
-	if test "`uname`" == "Darwin"; then \
+	@if test "`uname`" == "Darwin"; then \
 		$(CC) $(DEBUG) -DDEBUG $(INCL_FILES) -o $@ $< -L$(LIB_DIR) -lrappture -lscew; \
 	else \
 		$(CC) $(DEBUG) -DDEBUG $(INCL_FILES) -o $@ $< $(LIB_RAPPTURE) -lm; \

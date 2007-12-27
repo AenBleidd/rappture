@@ -1,4 +1,4 @@
-AC_INIT(rappture, 1.1, rappture@nanohub.org)
+AC_INIT(Rappture Core and Bindings, 1.1, rappture@nanohub.org)
 
 VERSION=0.0.1
 AC_SUBST(VERSION)
@@ -89,21 +89,29 @@ MEX=
 MEX_ARCH=
 MEXEXT=
 dnl if test "$enable_matlab" != "no" ; then
-    AC_MSG_CHECKING([for mex])
+if test "$with_matlab" != "no" ; then
+    AC_MSG_CHECKING([for matlab's mex])
     if test "$with_matlab" != "no" ; then
         dnl WITH_MATLAB = "yes"
         if test -x "$with_matlab/bin/mex"
         then
-            echo Found mex in $with_matlab/bin/mex
+            dnl # echo Found mex in $with_matlab/bin/mex
             MEX="$with_matlab/bin/mex"
         else
             if test -x "$with_matlab"
             then
-                echo Found mex in $with_matlab
+                dnl # echo Found mex in $with_matlab
                 MEX="$with_matlab"
             else
                 AC_PATH_PROG(MEX, mex)
             fi
+        fi
+        matlab_path=`dirname $MEX`/matlab
+        if test -x "$matlab_path"
+        then
+            MEX=${MEX}
+        else
+            MEX=
         fi
         AC_MSG_RESULT([${MEX}])
         if test "$with_matlab_arch" = "check" ; then
@@ -136,12 +144,14 @@ dnl if test "$enable_matlab" != "no" ; then
             echo "Using mex file extension \"$MEXEXT\""
             AC_MSG_RESULT([${MEXEXT}])
         else
+            dnl we shouldn't bother the user if we dont find matlab
+            dnl just put out the message and don't compile matlab bindings
             echo "can't find the matlab compiler \"mex\""
             echo "use --with-matlab=DIR to specify the location of a matlab installation"
-            exit 1
+            dnl # exit 1
         fi
     fi
-dnl fi
+fi
 AC_SUBST(MEX)
 AC_SUBST(MEX_ARCH)
 AC_SUBST(MEXEXT)
@@ -165,11 +175,12 @@ AC_ARG_WITH(
 
 MKOCTFILE=
 dnl if test "$enable_octave" != "no" ; then
+if test "$with_octave" != "no" ; then
     AC_MSG_CHECKING([for mkoctfile])
     if test "$with_octave" != "no" ; then
         if test -x "$with_octave/bin/mkoctfile"
         then
-            echo Found octave in $with_octave/bin/mkoctfile
+            dnl echo Found octave in $with_octave/bin/mkoctfile
             MKOCTFILE="$with_octave/bin/mkoctfile"
         else
             if test -x "$with_octave"
@@ -178,15 +189,22 @@ dnl if test "$enable_octave" != "no" ; then
                 MKOCTFILE="$with_octave"
             else
                 AC_PATH_PROG(MKOCTFILE, mkoctfile)
+                if test "x$MKOCTFILE" == "x" ; then
+                    dnl we shouldn't bother the user if we dont find mkoctfile
+                    dnl just put out the message and don't compile octave bindings
+                    echo "can't find the matlab compiler \"mkoctfile\""
+                    echo "use --with-octave=DIR to specify the location of a mkoctfile installation"
+                    dnl # exit 1
+                fi
             fi
         fi
     fi
     AC_MSG_RESULT([${MKOCTFILE}])
-dnl fi
+fi
 AC_SUBST(MKOCTFILE)
 
 
-dnl perl and python check borrowed from 
+dnl perl and python check borrowed from
 dnl http://www.opensource.apple.com/darwinsource/Current/libxslt-8.1/libxslt/configure.in
 dnl
 dnl Perl is just needed for generating some data for XSLtmark
@@ -210,8 +228,8 @@ AC_ARG_WITH(
 PERL=
 PERL_INCLUDES=
 PERL_SITE_PACKAGES=
-AC_MSG_CHECKING([for mkoctfile])
 if test "$with_perl" != "no" ; then
+    AC_MSG_CHECKING([for perl])
     if test -x "$with_perl/bin/perl"
     then
         echo Found perl in $with_perl/bin/perl
@@ -257,6 +275,7 @@ AC_ARG_WITH(
     [with_python=check])
 
 if test "$with_python" != "no" ; then
+    AC_MSG_CHECKING([for python])
     if test -x "$with_python/bin/python"
     then
         echo Found python in $with_python/bin/python
