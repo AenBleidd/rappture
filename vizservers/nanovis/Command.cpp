@@ -1,5 +1,28 @@
-#include "Command.h"
 
+/*
+ * ----------------------------------------------------------------------
+ * Command.cpp
+ *
+ *	This modules creates the Tcl interface to the nanovis server.
+ *	The communication protocol of the server is the Tcl language.
+ *	Commands given to the server by clients are executed in a
+ *	safe interpreter and the resulting image rendered offscreen
+ *	is returned as BMP-formatted image data.
+ *
+ * ======================================================================
+ *  AUTHOR:  Wei Qiao <qiaow@purdue.edu>
+ *           Michael McLennan <mmclennan@purdue.edu>
+ *           Purdue Rendering and Perceptualization Lab (PURPL)
+ *
+ *  Copyright (c) 2004-2006  Purdue Research Foundation
+ *
+ *  See the file "license.terms" for information on usage and
+ *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+ * ======================================================================
+ */
+
+
+#include "Command.h"
 
 #include "nanovis.h"
 
@@ -33,6 +56,7 @@
 
 // EXTERN DECLARATIONS
 // in Nv.cpp
+
 extern VolumeRenderer* g_vol_render;
 extern PointSetRenderer* g_pointset_renderer;
 extern NvColorTableRenderer* g_color_table_renderer;
@@ -53,8 +77,6 @@ extern float live_obj_z;
 extern int updir;
 extern Camera* cam;
 
-extern char *def_transfunc;
-extern Tcl_HashTable tftable;
 extern float live_diffuse;
 extern float live_specular;
 
@@ -68,44 +90,99 @@ extern Texture2D* plane[10];
 
 extern Rappture::Outcome load_volume_stream(int index, std::iostream& fin);
 extern Rappture::Outcome load_volume_stream2(int index, std::iostream& fin);
-extern void load_volume(int index, int width, int height, int depth, int n_component, float* data, double vmin, double vmax, 
-                double nzero_min);
-extern TransferFunction* get_transfunc(char *name);
-extern void resize_offscreen_buffer(int w, int h);
-extern void offscreen_buffer_capture();
+extern void load_volume(int index, int width, int height, int depth, 
+	int n_component, float* data, double vmin, double vmax, 
+	double nzero_min);
+
+extern TransferFunction* nv_get_transfunc(const char *name);
+extern TransferFunction* nv_set_transfunc(const char *name, int nSlots, 
+	float *data);
+
+extern void nv_resize_offscreen_buffer(int w, int h);
+extern void nv_offscreen_buffer_capture();
 extern void bmp_header_add_int(unsigned char* header, int& pos, int data);
 extern void bmp_write(const char* cmd);
 extern void bmp_write_to_file();
-extern void display();
-extern void display_offscreen_buffer();
-extern void read_screen();
-extern int renderLegend(int ivol, int width, int height, const char* volArg);
+extern void nv_display();
+extern void nv_display_offscreen_buffer();
+extern void nv_read_screen();
+extern int nv_render_legend(TransferFunction *tf, double min, double max, 
+	int width, int height, const char* volArg);
 
 // Tcl interpreter for incoming messages
-Tcl_Interp *interp;
-Tcl_DString cmdbuffer;
+static Tcl_Interp *interp;
+static Tcl_DString cmdbuffer;
 
-static int ScreenShotCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
-static int CameraCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
-static int CutplaneCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
-static int LegendCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
-static int ScreenCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
-static int TransfuncCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
-static int UpCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
-static int VolumeCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
+// default transfer function
+static const char def_transfunc[] = "transfunc define default {\n\
+  0.0  1 1 1\n\
+  0.2  1 1 0\n\
+  0.4  0 1 0\n\
+  0.6  0 1 1\n\
+  0.8  0 0 1\n\
+  1.0  1 0 1\n\
+} {\n\
+  0.00  1.0\n\
+  0.05  0.0\n\
+  0.15  0.0\n\
+  0.20  1.0\n\
+  0.25  0.0\n\
+  0.35  0.0\n\
+  0.40  1.0\n\
+  0.45  0.0\n\
+  0.55  0.0\n\
+  0.60  1.0\n\
+  0.65  0.0\n\
+  0.75  0.0\n\
+  0.80  1.0\n\
+  0.85  0.0\n\
+  0.95  0.0\n\
+  1.00  1.0\n\
+}";
 
-static int PlaneNewCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
-static int PlaneLinkCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
-static int PlaneEnableCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
+static Tcl_CmdProc AxisCmd;
+static Tcl_CmdProc CameraCmd;
+static Tcl_CmdProc CutplaneCmd;
+static Tcl_CmdProc GridCmd;
+static Tcl_CmdProc LegendCmd;
+static Tcl_CmdProc PlaneEnableCmd;
+static Tcl_CmdProc PlaneLinkCmd;
+static Tcl_CmdProc PlaneNewCmd;
+static Tcl_CmdProc ScreenCmd;
+static Tcl_CmdProc ScreenShotCmd;
+static Tcl_CmdProc TransfuncCmd;
+static Tcl_CmdProc UniRect2dCmd;
+static Tcl_CmdProc UpCmd;
+static Tcl_CmdProc VolumeCmd;
 
-static int GridCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
-static int AxisCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]));
+static int GetVolumeIndices(Tcl_Interp *interp, int argc, const char *argv[],
+	vector<int>* vectorPtr);
+static int GetVolume(Tcl_Interp *interp, const char *string, 
+	Volume **volPtrPtr);
+static int GetVolumeIndex(Tcl_Interp *interp, const char *string, 
+	int *indexPtr);
+static int GetHeightMap(Tcl_Interp *interp, const char *string, 
+	HeightMap **hmPtrPtr);
+static int GetIndices(Tcl_Interp *interp, int argc, const char *argv[], 
+	vector<int>* vectorPtr);
+static int GetAxis(Tcl_Interp *interp, const char *string, int *valPtr);
+static int GetColor(Tcl_Interp *interp, const char *string, float *rgbPtr);
+static int FillBufferFromStdin(Tcl_Interp *interp, Rappture::Buffer &buf, 
+	int nBytes);
+static HeightMap *CreateHeightMap(ClientData clientData, Tcl_Interp *interp, 
+	int argc, const char *argv[]);
 
-static int GetVolumeIndices _ANSI_ARGS_((Tcl_Interp *interp, int argc, CONST84 char *argv[], vector<int>* vectorPtr));
-static int GetIndices(Tcl_Interp *interp, int argc, CONST84 char *argv[], vector<int>* vectorPtr);
-static int GetAxis _ANSI_ARGS_((Tcl_Interp *interp, char *str, int *valPtr));
-static int GetColor _ANSI_ARGS_((Tcl_Interp *interp, char *str, float *rgbPtr));
 
+static int
+GetFloat(Tcl_Interp *interp, const char *string, float *valuePtr)
+{
+    double value;
+
+    if (Tcl_GetDouble(interp, string, &value) != TCL_OK) {
+	return TCL_ERROR;
+    }
+    *valuePtr = (float)value;
+}
 
 /*
  * ----------------------------------------------------------------------
@@ -120,116 +197,100 @@ static int GetColor _ANSI_ARGS_((Tcl_Interp *interp, char *str, float *rgbPtr));
  * and out.
  * ----------------------------------------------------------------------
  */
-static int CameraCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
+static int
+CameraCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
 {
-	if (argc < 2) {
-		Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
-			" option arg arg...\"", (char*)NULL);
-		return TCL_ERROR;
-    }
-
-    char c = *argv[1];
-	if (c == 'a' && strcmp(argv[1],"angle") == 0) {
-        if (argc != 5) {
-		    Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
-			    " angle xangle yangle zangle\"", (char*)NULL);
-		    return TCL_ERROR;
-        }
-
-        double xangle, yangle, zangle;
-	    if (Tcl_GetDouble(interp, argv[2], &xangle) != TCL_OK) {
-		    return TCL_ERROR;
-	    }
-	    if (Tcl_GetDouble(interp, argv[3], &yangle) != TCL_OK) {
-		    return TCL_ERROR;
-	    }
-	    if (Tcl_GetDouble(interp, argv[4], &zangle) != TCL_OK) {
-		    return TCL_ERROR;
-	    }
-	    cam->rotate(xangle, yangle, zangle);
-
-	    return TCL_OK;
-	}
-	else if (c == 'a' && strcmp(argv[1],"aim") == 0) {
-        if (argc != 5) {
-		    Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
-			    " aim x y z\"", (char*)NULL);
-		    return TCL_ERROR;
-        }
-
-        double x0, y0, z0;
-	    if (Tcl_GetDouble(interp, argv[2], &x0) != TCL_OK) {
-		    return TCL_ERROR;
-	    }
-	    if (Tcl_GetDouble(interp, argv[3], &y0) != TCL_OK) {
-		    return TCL_ERROR;
-	    }
-	    if (Tcl_GetDouble(interp, argv[4], &z0) != TCL_OK) {
-		    return TCL_ERROR;
-	    }
-	    cam->aim(x0, y0, z0);
-
-	    return TCL_OK;
-	}
-	else if (c == 'z' && strcmp(argv[1],"zoom") == 0) {
-        if (argc != 3) {
-		    Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
-			    " zoom factor\"", (char*)NULL);
-		    return TCL_ERROR;
-        }
-
-        double zoom;
-	    if (Tcl_GetDouble(interp, argv[2], &zoom) != TCL_OK) {
-		    return TCL_ERROR;
-	    }
-
-        live_obj_z = -2.5/zoom;
-		cam->move(live_obj_x, live_obj_y, live_obj_z);
-
-	    return TCL_OK;
-    }
-
-	Tcl_AppendResult(interp, "bad option \"", argv[1],
-		"\": should be aim, angle, or zoom", (char*)NULL);
+    if (argc < 2) {
+	Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
+			 " option arg arg...\"", (char*)NULL);
 	return TCL_ERROR;
+    }
+
+    char c = argv[1][0];
+    if ((c == 'a') && (strcmp(argv[1],"angle") == 0)) {
+        if (argc != 5) {
+	    Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
+			     " angle xangle yangle zangle\"", (char*)NULL);
+	    return TCL_ERROR;
+        }
+        double xangle, yangle, zangle;
+	if ((Tcl_GetDouble(interp, argv[2], &xangle) != TCL_OK) || 
+	    (Tcl_GetDouble(interp, argv[3], &yangle) != TCL_OK) ||
+	    (Tcl_GetDouble(interp, argv[4], &zangle) != TCL_OK)) {
+	    return TCL_ERROR;
+	}
+	cam->rotate(xangle, yangle, zangle);
+    } else if ((c == 'a') && (strcmp(argv[1], "aim") == 0)) {
+        if (argc != 5) {
+	    Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
+			     " aim x y z\"", (char*)NULL);
+	    return TCL_ERROR;
+        }
+	
+        double x0, y0, z0;
+	if ((Tcl_GetDouble(interp, argv[2], &x0) != TCL_OK) ||
+	    (Tcl_GetDouble(interp, argv[3], &y0) != TCL_OK) ||
+	    (Tcl_GetDouble(interp, argv[4], &z0) != TCL_OK)) {
+	    return TCL_ERROR;
+	}
+	cam->aim(x0, y0, z0);
+    } else if ((c == 'z') && (strcmp(argv[1],"zoom") == 0)) {
+        if (argc != 3) {
+	    Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
+			     " zoom factor\"", (char*)NULL);
+	    return TCL_ERROR;
+        }
+	
+        double zoom;
+	if (Tcl_GetDouble(interp, argv[2], &zoom) != TCL_OK) {
+	    return TCL_ERROR;
+	}
+	
+        live_obj_z = -2.5/zoom;
+	cam->move(live_obj_x, live_obj_y, live_obj_z);
+    } else {
+	Tcl_AppendResult(interp, "bad option \"", argv[1],
+		     "\": should be aim, angle, or zoom", (char*)NULL);
+	return TCL_ERROR;
+    }
+    return TCL_OK;
 }
 
 static int
-ScreenShotCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
+ScreenShotCmd(ClientData cdata, Tcl_Interp *interp, int argc, 
+	      const char *argv[])
 {
     int old_win_width = win_width;
     int old_win_height = win_height;
 
 #ifdef XINETD
-    resize_offscreen_buffer(1024, 1024);
+    nv_resize_offscreen_buffer(1024, 1024);
     cam->set_screen_size(30, 90, 1024 - 60, 1024 - 120);
-    offscreen_buffer_capture();  //enable offscreen render
-    display();
+    nv_offscreen_buffer_capture();  //enable offscreen render
+    nv_display();
 
     // INSOO
     // TBD
     Volume* vol = volume[0];
-    TransferFunction* tf = g_vol_render->get_volume_shading(vol);
-    if (tf)
-    {
+    TransferFunction* tf;
+    tf = g_vol_render->get_volume_shading(vol);
+    if (tf != NULL) {
         float data[512];
+
         for (int i=0; i < 256; i++) {
             data[i] = data[i+256] = (float)(i/255.0);
         }
         Texture2D* plane = new Texture2D(256, 2, GL_FLOAT, GL_LINEAR, 1, data);
-        g_color_table_renderer->render(1024, 1024, plane, tf, vol->range_min(), vol->range_max());
+        g_color_table_renderer->render(1024, 1024, plane, tf, vol->range_min(),
+		vol->range_max());
         delete plane;
     }
-
-    read_screen();
+    nv_read_screen();
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
-
     bmp_write("nv>screenshot -bytes");
-    
-    resize_offscreen_buffer(old_win_width, old_win_height); 
+    nv_resize_offscreen_buffer(old_win_width, old_win_height); 
 #endif
-
-	return TCL_OK;
+    return TCL_OK;
 }
 
 /*
@@ -246,10 +307,10 @@ ScreenShotCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv
  * <volume> indices.  If no volumes are specified, then all volumes
  * are updated.
  * ----------------------------------------------------------------------
-*/
-
+ */
 static int
-CutplaneCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
+CutplaneCmd(ClientData cdata, Tcl_Interp *interp, int argc, 
+	    const char *argv[])
 {
     if (argc < 2) {
         Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
@@ -257,8 +318,8 @@ CutplaneCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]
         return TCL_ERROR;
     }
 
-    char c = *argv[1];
-    if (c == 's' && strcmp(argv[1],"state") == 0) {
+    char c = argv[1][0];
+    if ((c == 's') && (strcmp(argv[1],"state") == 0)) {
         if (argc < 4) {
             Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
                 " state on|off axis ?volume ...? \"", (char*)NULL);
@@ -279,56 +340,55 @@ CutplaneCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]
         if (GetVolumeIndices(interp, argc-4, argv+4, &ivol) != TCL_OK) {
             return TCL_ERROR;
         }
-
-        vector<int>::iterator iter = ivol.begin();
-        while (iter != ivol.end()) {
-            if (state) {
+	if (state) {
+	    vector<int>::iterator iter;
+	    for (iter = ivol.begin(); iter != ivol.end(); iter++) {
                 volume[*iter]->enable_cutplane(axis);
-            } else {
+	    } 
+	} else {
+	    vector<int>::iterator iter;
+	    for (iter = ivol.begin(); iter != ivol.end(); iter++) {
                 volume[*iter]->disable_cutplane(axis);
-            }
-            ++iter;
+	    } 
         }
-        return TCL_OK;
-    }
-    else if (c == 'p' && strcmp(argv[1],"position") == 0) {
+    } else if ((c == 'p') && (strcmp(argv[1],"position") == 0)) {
         if (argc < 4) {
             Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
                 " position relval axis ?volume ...? \"", (char*)NULL);
             return TCL_ERROR;
         }
 
-        double relval;
-        if (Tcl_GetDouble(interp, argv[2], &relval) != TCL_OK) {
+        float relval;
+        if (GetFloat(interp, argv[2], &relval) != TCL_OK) {
             return TCL_ERROR;
         }
         // keep this just inside the volume so it doesn't disappear
-        if (relval < 0.01) { relval = 0.01; }
-        if (relval > 0.99) { relval = 0.99; }
+        if (relval < 0.01f) { 
+	    relval = 0.01f; 
+	} else if (relval > 0.99f) { 
+	    relval = 0.99f; 
+	}
 
         int axis;
-        if (GetAxis(interp, (char*) argv[3], &axis) != TCL_OK) {
+        if (GetAxis(interp, argv[3], &axis) != TCL_OK) {
             return TCL_ERROR;
         }
 
         vector<int> ivol;
-        if (GetVolumeIndices(interp, argc-4, argv+4, &ivol) != TCL_OK) {
+        if (GetVolumeIndices(interp, argc - 4, argv + 4, &ivol) != TCL_OK) {
             return TCL_ERROR;
         }
-
-        vector<int>::iterator iter = ivol.begin();
-        while (iter != ivol.end()) {
-            volume[*iter]->move_cutplane(axis, (float)relval);
-            ++iter;
+	vector<int>::iterator iter;
+	for (iter = ivol.begin(); iter != ivol.end(); iter++) {
+            volume[*iter]->move_cutplane(axis, relval);
         }
-        return TCL_OK;
+    } else {
+	Tcl_AppendResult(interp, "bad option \"", argv[1],
+			 "\": should be position or state", (char*)NULL);
+	return TCL_ERROR;
     }
-
-    Tcl_AppendResult(interp, "bad option \"", argv[1],
-        "\": should be position or state", (char*)NULL);
-    return TCL_ERROR;
+    return TCL_OK;
 }
-
 
 /*
  * ----------------------------------------------------------------------
@@ -342,7 +402,7 @@ CutplaneCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]
  * ----------------------------------------------------------------------
  */
 static int
-LegendCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
+LegendCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
 {
     if (argc != 4) {
         Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
@@ -350,17 +410,15 @@ LegendCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
         return TCL_ERROR;
     }
 
-    TransferFunction *tf = NULL;
-    int ivol;
-    if (Tcl_GetInt(interp, argv[1], &ivol) != TCL_OK) {
+    Volume *vol;
+    if (GetVolume(interp, argv[1], &vol) != TCL_OK) {
         return TCL_ERROR;
     }
-
-    if (ivol < n_volumes) {
-        tf = g_vol_render->get_volume_shading(volume[ivol]);
-    }
+    TransferFunction *tf;
+    tf = g_vol_render->get_volume_shading(vol);
     if (tf == NULL) {
-        Tcl_AppendResult(interp, "transfer function not defined for volume ", argv[1], (char*)NULL);
+        Tcl_AppendResult(interp, "no transfer function defined for volume \"", 
+		argv[1], "\"", (char*)NULL);
         return TCL_ERROR;
     }
 
@@ -374,9 +432,8 @@ LegendCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
     if (Tcl_GetInt(interp, argv[3], &height) != TCL_OK) {
         return TCL_ERROR;
     }
-
-    renderLegend(ivol, width, height, argv[1]);
-
+    nv_render_legend(tf, vol->range_min(), vol->range_max(), width, height,
+	argv[1]);
     return TCL_OK;
 }
 
@@ -390,7 +447,7 @@ LegendCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
  * ----------------------------------------------------------------------
  */
 static int
-ScreenCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
+ScreenCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
 {
     int w, h;
 
@@ -405,8 +462,7 @@ ScreenCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
     if (Tcl_GetInt(interp, argv[2], &h) != TCL_OK) {
         return TCL_ERROR;
     }
-    resize_offscreen_buffer(w, h);
-
+    nv_resize_offscreen_buffer(w, h);
     return TCL_OK;
 }
 
@@ -421,83 +477,89 @@ ScreenCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
  * ----------------------------------------------------------------------
  */
 static int
-TransfuncCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
+TransfuncCmd(ClientData cdata, Tcl_Interp *interp, int argc, 
+	     const char *argv[])
 {
-	if (argc < 2) {
-		Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
-			" option arg arg...\"", (char*)NULL);
-		return TCL_ERROR;
+    if (argc < 2) {
+	Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
+			 " option arg arg...\"", (char*)NULL);
+	return TCL_ERROR;
     }
 
-    char c = *argv[1];
-	if (c == 'd' && strcmp(argv[1],"define") == 0) {
+    char c = argv[1][0];
+    if ((c == 'd') && (strcmp(argv[1],"define") == 0)) {
         if (argc != 5) {
-		    Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
-			    argv[1], " define name colormap alphamap\"", (char*)NULL);
+	    Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
+		" define name colormap alphamap\"", (char*)NULL);
             return TCL_ERROR;
         }
 
         // decode the data and store in a series of fields
         Rappture::Field1D rFunc, gFunc, bFunc, wFunc;
-        int cmapc, wmapc, i, j;
-        char **cmapv, **wmapv;
+        int cmapc, wmapc, i;
+        const char **cmapv;
+	const char **wmapv;
 
-        if (Tcl_SplitList(interp, argv[3], &cmapc, (const char***)&cmapv) != TCL_OK) {
+	wmapv = cmapv = NULL;
+        if (Tcl_SplitList(interp, argv[3], &cmapc, &cmapv) != TCL_OK) {
             return TCL_ERROR;
         }
-        if (cmapc % 4 != 0) {
-            Tcl_Free((char*)cmapv);
-		    Tcl_AppendResult(interp, "bad colormap in transfunc: should be ",
+        if ((cmapc % 4) != 0) {
+	    Tcl_AppendResult(interp, "bad colormap in transfunc: should be ",
                 "{ v r g b ... }", (char*)NULL);
-            return TCL_ERROR;
+	    Tcl_Free((char*)cmapv);
+	    return TCL_ERROR;
         }
 
-        if (Tcl_SplitList(interp, argv[4], &wmapc, (const char***)&wmapv) != TCL_OK) {
-            return TCL_ERROR;
+        if (Tcl_SplitList(interp, argv[4], &wmapc, &wmapv) != TCL_OK) {
+	    Tcl_Free((char*)cmapv);
+	    return TCL_ERROR;
         }
-        if (wmapc % 2 != 0) {
-            Tcl_Free((char*)cmapv);
-            Tcl_Free((char*)wmapv);
-		    Tcl_AppendResult(interp, "bad alphamap in transfunc: should be ",
-                "{ v w ... }", (char*)NULL);
-            return TCL_ERROR;
+        if ((wmapc % 2) != 0) {
+	    Tcl_AppendResult(interp, "wrong # elements in alphamap: should be ",
+			" { v w ... }", (char*)NULL);
+	    Tcl_Free((char*)cmapv);
+	    Tcl_Free((char*)wmapv);
+	    return TCL_ERROR;
         }
-
         for (i=0; i < cmapc; i += 4) {
+	    int j;
             double vals[4];
+
             for (j=0; j < 4; j++) {
                 if (Tcl_GetDouble(interp, cmapv[i+j], &vals[j]) != TCL_OK) {
-                    Tcl_Free((char*)cmapv);
-                    Tcl_Free((char*)wmapv);
-                    return TCL_ERROR;
+		    Tcl_Free((char*)cmapv);
+		    Tcl_Free((char*)wmapv);
+		    return TCL_ERROR;
                 }
-                if (vals[j] < 0 || vals[j] > 1) {
-                    Tcl_Free((char*)cmapv);
-                    Tcl_Free((char*)wmapv);
-		            Tcl_AppendResult(interp, "bad value \"", cmapv[i+j],
+                if ((vals[j] < 0.0) || (vals[j] > 1.0)) {
+		    Tcl_AppendResult(interp, "bad value \"", cmapv[i+j],
                         "\": should be in the range 0-1", (char*)NULL);
-                    return TCL_ERROR;
+		    Tcl_Free((char*)cmapv);
+		    Tcl_Free((char*)wmapv);
+		    return TCL_ERROR;
                 }
             }
             rFunc.define(vals[0], vals[1]);
             gFunc.define(vals[0], vals[2]);
             bFunc.define(vals[0], vals[3]);
         }
-
         for (i=0; i < wmapc; i += 2) {
             double vals[2];
+	    int j;
+
             for (j=0; j < 2; j++) {
                 if (Tcl_GetDouble(interp, wmapv[i+j], &vals[j]) != TCL_OK) {
-                    Tcl_Free((char*)cmapv);
-                    Tcl_Free((char*)wmapv);
-                    return TCL_ERROR;
+		    Tcl_Free((char*)cmapv);
+		    Tcl_Free((char*)wmapv);
+		    return TCL_ERROR;
                 }
-                if (vals[j] < 0 || vals[j] > 1) {
-                    Tcl_Free((char*)cmapv);
-                    Tcl_Free((char*)wmapv);
-		            Tcl_AppendResult(interp, "bad value \"", wmapv[i+j],
+                if ((vals[j] < 0.0) || (vals[j] > 1.0)) {
+		    Tcl_AppendResult(interp, "bad value \"", wmapv[i+j],
                         "\": should be in the range 0-1", (char*)NULL);
-                    return TCL_ERROR;
+		    Tcl_Free((char*)cmapv);
+		    Tcl_Free((char*)wmapv);
+		    return TCL_ERROR;
                 }
             }
             wFunc.define(vals[0], vals[1]);
@@ -517,26 +579,19 @@ TransfuncCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[
         }
 
         // find or create this transfer function
-        int newEntry;
-        Tcl_HashEntry *entryPtr;
         TransferFunction *tf;
-
-        entryPtr = Tcl_CreateHashEntry(&tftable, argv[2], &newEntry);
-        if (newEntry) {
-            tf = new TransferFunction(nslots, data);
-            Tcl_SetHashValue(entryPtr, (ClientData)tf);
-        } else {
-            tf = (TransferFunction*)Tcl_GetHashValue(entryPtr);
-            tf->update(data);
-        }
-
-        return TCL_OK;
+	tf = nv_get_transfunc(argv[2]);
+	if (tf != NULL) {
+	    tf->update(data);
+	} else {
+	    tf = nv_set_transfunc(argv[2], nslots, data);
+	}
+    } else {
+	Tcl_AppendResult(interp, "bad option \"", argv[1],
+		"\": should be define", (char*)NULL);
+	return TCL_ERROR;
     }
-
-
-    Tcl_AppendResult(interp, "bad option \"", argv[1],
-        "\": should be define", (char*)NULL);
-    return TCL_ERROR;
+    return TCL_OK;
 }
 
 /*
@@ -549,7 +604,7 @@ TransfuncCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[
  * ----------------------------------------------------------------------
  */
 static int
-UpCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
+UpCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
 {
     if (argc != 2) {
         Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
@@ -558,6 +613,7 @@ UpCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
     }
 
     int sign = 1;
+
     char *axisName = (char*)argv[1];
     if (*axisName == '-') {
         sign = -1;
@@ -568,9 +624,7 @@ UpCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
     if (GetAxis(interp, axisName, &axis) != TCL_OK) {
         return TCL_ERROR;
     }
-
     updir = (axis+1)*sign;
-
     return TCL_OK;
 }
 
@@ -590,9 +644,8 @@ UpCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
  * Clients send these commands to manipulate the volumes.
  * ----------------------------------------------------------------------
  */
-
 static int
-VolumeCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
+VolumeCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
 {
     if (argc < 2) {
         Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
@@ -600,15 +653,15 @@ VolumeCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
         return TCL_ERROR;
     }
 
-    char c = *argv[1];
-    if (c == 'a' && strcmp(argv[1],"axis") == 0) {
+    char c = argv[1][0];
+    if ((c == 'a') && (strcmp(argv[1],"axis") == 0)) {
         if (argc < 3) {
             Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
                 argv[1], " option ?arg arg...?\"", (char*)NULL);
             return TCL_ERROR;
         }
-        c = *argv[2];
-        if (c == 'l' && strcmp(argv[2],"label") == 0) {
+        c = argv[2][0];
+        if ((c == 'l') && (strcmp(argv[2],"label") == 0)) {
             if (argc < 4) {
                 Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
                     argv[1], " label x|y|z string ?volume ...?\"", (char*)NULL);
@@ -621,58 +674,52 @@ VolumeCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
             }
 
             vector<int> ivol;
-            if (GetVolumeIndices(interp, argc-5, argv+5, &ivol) != TCL_OK) {
+            if (GetVolumeIndices(interp, argc - 5, argv + 5, &ivol) != TCL_OK) {
                 return TCL_ERROR;
             }
 
-            vector<int>::iterator iter = ivol.begin();
-            while (iter != ivol.end()) {
+	    vector<int>::iterator iter;
+	    for (iter = ivol.begin(); iter != ivol.end(); iter++) {
                 volume[*iter]->set_label(axis, (char*)argv[4]);
-                ++iter;
             }
-            return TCL_OK;
-        }
-
-        Tcl_AppendResult(interp, "bad option \"", argv[2],
-            "\": should be label", (char*)NULL);
-        return TCL_ERROR;
-    }
-    else if (c == 'd' && strcmp(argv[1],"data") == 0) {
+        } else {
+	    Tcl_AppendResult(interp, "bad option \"", argv[2],
+			     "\": should be label", (char*)NULL);
+	    return TCL_ERROR;
+	}
+    } else if ((c == 'd') && (strcmp(argv[1],"data") == 0)) {
         if (argc < 3) {
             Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
                 argv[1], " option ?arg arg...?\"", (char*)NULL);
             return TCL_ERROR;
         }
-        c = *argv[2];
-        if (c == 's' && strcmp(argv[2],"state") == 0) {
+        c = argv[2][0];
+        if ((c == 's') && (strcmp(argv[2],"state") == 0)) {
             if (argc < 4) {
                 Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
                     argv[1], " state on|off ?volume ...?\"", (char*)NULL);
                 return TCL_ERROR;
             }
-
             int state;
             if (Tcl_GetBoolean(interp, argv[3], &state) != TCL_OK) {
                 return TCL_ERROR;
             }
-
             vector<int> ivol;
             if (GetVolumeIndices(interp, argc-4, argv+4, &ivol) != TCL_OK) {
                 return TCL_ERROR;
             }
-
-            vector<int>::iterator iter = ivol.begin();
-            while (iter != ivol.end()) {
-                if (state) {
+	    if (state) {
+		vector<int>::iterator iter;
+		for (iter = ivol.begin(); iter != ivol.end(); iter++) {
                     volume[*iter]->enable_data();
-                } else {
+		} 
+	    } else {
+		vector<int>::iterator iter;
+		for (iter = ivol.begin(); iter != ivol.end(); iter++) {
                     volume[*iter]->disable_data();
-                }
-                ++iter;
-            }
-            return TCL_OK;
-        }
-        else if (c == 'f' && strcmp(argv[2],"follows") == 0) {
+		} 
+	    }
+        } else if (c == 'f' && strcmp(argv[2],"follows") == 0) {
             printf("Data Loading\n");
             //fflush(stdout);
             //return TCL_OK;
@@ -688,10 +735,11 @@ VolumeCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
             // DEBUG
             int totalsize = nbytes;
             char buffer[8096];
-            while (nbytes > 0) 
-            {
-                int chunk = (sizeof(buffer) < nbytes) ? sizeof(buffer) : nbytes;
-                int status = fread(buffer, 1, chunk, stdin);
+            while (nbytes > 0) {
+                int chunk, status;
+
+		chunk = (sizeof(buffer) < nbytes) ? sizeof(buffer) : nbytes;
+                status = fread(buffer, 1, chunk, stdin);
                 //printf("Begin Reading [%d Read : %d Left]\n", status, nbytes - status);
                 fflush(stdout);
                 if (status > 0) {
@@ -704,7 +752,6 @@ VolumeCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
                     return TCL_ERROR;
                 }
             }
-
             err = Rappture::encoding::decode(buf,RPENC_Z|RPENC_B64|RPENC_HDR);
             if (err) {
                 printf("ERROR -- DECODING\n");
@@ -720,23 +767,21 @@ VolumeCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
 
 #ifdef _LOCAL_ZINC_TEST_
             //FILE* fp = fopen("/home/nanohub/vrinside/nv/data/HOON/QDWL_100_100_50_strain_8000i.nd_zatom_12_1", "rb");
-            FILE* fp = fopen("/home/nanohub/vrinside/nv/data/HOON/GaAs_AlGaAs_2QD_B4.nd_zc_1_wf", "rb");
-            unsigned char* b = (unsigned char*) malloc(buf.size());
-            if (fp == 0)
-            {
+            FILE* fp;
+
+	    fp = fopen("/home/nanohub/vrinside/nv/data/HOON/GaAs_AlGaAs_2QD_B4.nd_zc_1_wf", "rb");
+            if (fp == NULL) {
                 printf("cannot open the file\n");
                 fflush(stdout);
                 return TCL_ERROR;
             }
+            unsigned char* b = (unsigned char*)malloc(buf.size());
             fread(b, buf.size(), 1, fp);
             fclose(fp);
 #endif
-
-            
             printf("Checking header[%s]\n", header);
             fflush(stdout);
-            if (!strcmp(header, "<HDR>"))
-            {
+            if (strcmp(header, "<HDR>") == 0) {
                 Volume* vol = NULL;
 
                 printf("ZincBlende stream is in\n");
@@ -753,16 +798,13 @@ VolumeCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
 
                 printf("finish loading\n");
                 fflush(stdout);
-                if (vol)
-                {
-                    while (n_volumes <= n) 
-                    {
+                if (vol) {
+                    while (n_volumes <= n) {
                         volume.push_back((Volume*) NULL);
                         n_volumes++;
                     }
 
-                    if (volume[n] != NULL) 
-                    {
+                    if (volume[n] != NULL) {
                         delete volume[n];
                         volume[n] = NULL;
                     }
@@ -774,10 +816,8 @@ VolumeCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
 
                     volume[n] = vol;
                 }
-            }
 #ifdef __TEST_CODE__
-            else if (!strcmp(header, "<FET>"))
-            {
+            } else if (strcmp(header, "<FET>") == 0) {
                 printf("FET loading...\n");
                 fflush(stdout);
                 std::stringstream fdata;
@@ -788,10 +828,8 @@ VolumeCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
                     Tcl_AppendResult(interp, err.remark().c_str(), (char*)NULL);
                     return TCL_ERROR;
                 }
-            }
 #endif
-            else
-            {
+            } else {
                 printf("OpenDX loading...\n");
                 fflush(stdout);
                 std::stringstream fdata;
@@ -813,30 +851,27 @@ VolumeCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
             //   volume will overwrite the first, so the first won't
             //   appear at all.
             //
-            if (volume[n])
-            {
+            if (volume[n] != NULL) {
                 volume[n]->set_n_slice(256-n);
                 volume[n]->disable_cutplane(0);
                 volume[n]->disable_cutplane(1);
                 volume[n]->disable_cutplane(2);
 
-                g_vol_render->add_volume(volume[n], get_transfunc("default"));
+                g_vol_render->add_volume(volume[n],nv_get_transfunc("default"));
             }
-
-            return TCL_OK;
-        }
-        Tcl_AppendResult(interp, "bad option \"", argv[2],
-            "\": should be follows or state", (char*)NULL);
-        return TCL_ERROR;
-    }
-    else if (c == 'o' && strcmp(argv[1],"outline") == 0) {
+        } else {
+	    Tcl_AppendResult(interp, "bad option \"", argv[2],
+			     "\": should be follows or state", (char*)NULL);
+	    return TCL_ERROR;
+	}
+    } else if (c == 'o' && strcmp(argv[1],"outline") == 0) {
         if (argc < 3) {
             Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
                 argv[1], " option ?arg arg...?\"", (char*)NULL);
             return TCL_ERROR;
         }
-        c = *argv[2];
-        if (c == 's' && strcmp(argv[2],"state") == 0) {
+        c = argv[2][0];
+        if ((c == 's') && (strcmp(argv[2],"state") == 0)) {
             if (argc < 3) {
                 Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
                     argv[1], " state on|off ?volume ...? \"", (char*)NULL);
@@ -847,476 +882,557 @@ VolumeCmd(ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[])
             if (Tcl_GetBoolean(interp, argv[3], &state) != TCL_OK) {
                 return TCL_ERROR;
             }
-
             vector<int> ivol;
             if (GetVolumeIndices(interp, argc-4, argv+4, &ivol) != TCL_OK) {
                 return TCL_ERROR;
             }
-
-            vector<int>::iterator iter = ivol.begin();
-            while (iter != ivol.end()) {
-                if (state) {
+	    if (state) {
+		vector<int>::iterator iter;
+		for (iter = ivol.begin(); iter != ivol.end(); iter++) {
                     volume[*iter]->enable_outline();
-                } else {
+		}
+	    } else {
+		vector<int>::iterator iter;
+		for (iter = ivol.begin(); iter != ivol.end(); iter++) {
                     volume[*iter]->disable_outline();
-                }
-                ++iter;
+		}
             }
-            return TCL_OK;
-        }
-        else if (c == 'v' && strcmp(argv[2],"visible") == 0) {
-            if (argv[3] == "false")
-            {
-                for (int i = 0; i < n_volumes; ++i)
-                {
-                    if (volume[i]) volume[i]->disable_outline();
-                }
-            }
-            else if (argv[3] == "true")
-            {
-                for (int i = 0; i < n_volumes; ++i)
-                {
-                    if (volume[i]) volume[i]->enable_outline();
-                }
-            }
+        } else if (c == 'v' && strcmp(argv[2],"visible") == 0) {
+	    int ivisible;
 
-            return TCL_OK;
-        }
-        else if (c == 'c' && strcmp(argv[2],"color") == 0) {
+	    if (Tcl_GetBoolean(interp, argv[3], &ivisible) != TCL_OK) {
+		return TCL_ERROR;
+	    }		
+            if (!ivisible) {
+                for (int i = 0; i < n_volumes; ++i) {
+                    if (volume[i]) {
+			volume[i]->disable_outline();
+		    }
+                }
+            } else {
+                for (int i = 0; i < n_volumes; ++i) {
+                    if (volume[i]) {
+			volume[i]->enable_outline();
+		    }
+                }
+            }
+        } else if ((c == 'c') && (strcmp(argv[2],"color") == 0)) {
             if (argc < 3) {
                 Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
                     argv[1], " color {R G B} ?volume ...? \"", (char*)NULL);
                 return TCL_ERROR;
             }
-
             float rgb[3];
-            if (GetColor(interp, (char*) argv[3], rgb) != TCL_OK) {
+            if (GetColor(interp, argv[3], rgb) != TCL_OK) {
                 return TCL_ERROR;
             }
-
             vector<int> ivol;
-            if (GetVolumeIndices(interp, argc-4, argv+4, &ivol) != TCL_OK) {
+            if (GetVolumeIndices(interp, argc - 4, argv + 4, &ivol) != TCL_OK) {
                 return TCL_ERROR;
             }
-
-            vector<int>::iterator iter = ivol.begin();
-            while (iter != ivol.end()) {
+            vector<int>::iterator iter;
+            for (iter = ivol.begin(); iter != ivol.end(); iter++) {
                 volume[*iter]->set_outline_color(rgb);
-                ++iter;
             }
-            return TCL_OK;
-        }
-
-        Tcl_AppendResult(interp, "bad option \"", argv[2],
-            "\": should be color or state", (char*)NULL);
-        return TCL_ERROR;
-    }
-    else if (c == 's' && strcmp(argv[1],"shading") == 0) {
+        } else {
+	    Tcl_AppendResult(interp, "bad option \"", argv[2],
+			     "\": should be color or state", (char*)NULL);
+	    return TCL_ERROR;
+	}
+    } else if ((c == 's') && (strcmp(argv[1],"shading") == 0)) {
         if (argc < 3) {
             Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
                 argv[1], " option ?arg arg...?\"", (char*)NULL);
             return TCL_ERROR;
         }
-        c = *argv[2];
-        if (c == 't' && strcmp(argv[2],"transfunc") == 0) {
+        c = argv[2][0];
+        if ((c == 't') && (strcmp(argv[2],"transfunc") == 0)) {
             if (argc < 4) {
                 Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
                     argv[1], " transfunc name ?volume ...?\"", (char*)NULL);
                 return TCL_ERROR;
             }
-
-            TransferFunction *tf = get_transfunc((char*)argv[3]);
+            TransferFunction *tf;
+	    tf = nv_get_transfunc(argv[3]);
             if (tf == NULL) {
                 Tcl_AppendResult(interp, "transfer function \"", argv[3],
                     "\" is not defined", (char*)NULL);
                 return TCL_ERROR;
             }
-
             vector<int> ivol;
             if (GetVolumeIndices(interp, argc-4, argv+4, &ivol) != TCL_OK) {
                 return TCL_ERROR;
             }
-
-            vector<int>::iterator iter = ivol.begin();
-            while (iter != ivol.end()) {
+            vector<int>::iterator iter;
+            for (iter = ivol.begin(); iter != ivol.end(); iter++) {
                 g_vol_render->shade_volume(volume[*iter], tf);
-                ++iter;
             }
-            return TCL_OK;
-        }
-        else if (c == 'd' && strcmp(argv[2],"diffuse") == 0) {
+        } else if ((c == 'd') && (strcmp(argv[2], "diffuse") == 0)) {
             if (argc < 4) {
                 Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
                     argv[1], " diffuse value ?volume ...?\"", (char*)NULL);
                 return TCL_ERROR;
             }
 
-            double dval;
-            if (Tcl_GetDouble(interp, argv[3], &dval) != TCL_OK) {
+            float diffuse;
+            if (GetFloat(interp, argv[3], &diffuse) != TCL_OK) {
                 return TCL_ERROR;
             }
-
             vector<int> ivol;
             if (GetVolumeIndices(interp, argc-4, argv+4, &ivol) != TCL_OK) {
                 return TCL_ERROR;
             }
-
-            vector<int>::iterator iter = ivol.begin();
-            while (iter != ivol.end()) {
-                volume[*iter]->set_diffuse((float)dval);
-                ++iter;
+            vector<int>::iterator iter;
+            for (iter = ivol.begin(); iter != ivol.end(); iter++) {
+                volume[*iter]->set_diffuse(diffuse);
             }
-            return TCL_OK;
-        }
-        else if (c == 'o' && strcmp(argv[2],"opacity") == 0) {
+        } else if ((c == 'o') && (strcmp(argv[2], "opacity") == 0)) {
             if (argc < 4) {
                 Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
                     argv[1], " opacity value ?volume ...?\"", (char*)NULL);
                 return TCL_ERROR;
             }
-
-            double dval;
-            if (Tcl_GetDouble(interp, argv[3], &dval) != TCL_OK) {
+            float opacity;
+            if (GetFloat(interp, argv[3], &opacity) != TCL_OK) {
                 return TCL_ERROR;
             }
-
             vector<int> ivol;
             if (GetVolumeIndices(interp, argc-4, argv+4, &ivol) != TCL_OK) {
                 return TCL_ERROR;
             }
-
-            vector<int>::iterator iter = ivol.begin();
-            while (iter != ivol.end()) {
-                volume[*iter]->set_opacity_scale((float)dval);
-                ++iter;
+            vector<int>::iterator iter;
+            for (iter = ivol.begin(); iter != ivol.end(); iter++) {
+                volume[*iter]->set_opacity_scale(opacity);
             }
-            return TCL_OK;
-        }
-        else if (c == 's' && strcmp(argv[2],"specular") == 0) {
+        } else if ((c == 's') && (strcmp(argv[2], "specular") == 0)) {
             if (argc < 4) {
                 Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
                     argv[1], " specular value ?volume ...?\"", (char*)NULL);
                 return TCL_ERROR;
             }
-
-            double dval;
-            if (Tcl_GetDouble(interp, argv[3], &dval) != TCL_OK) {
+            float specular;
+            if (GetFloat(interp, argv[3], &specular) != TCL_OK) {
                 return TCL_ERROR;
             }
-
             vector<int> ivol;
             if (GetVolumeIndices(interp, argc-4, argv+4, &ivol) != TCL_OK) {
                 return TCL_ERROR;
             }
-
-            vector<int>::iterator iter = ivol.begin();
-            while (iter != ivol.end()) {
-                volume[*iter]->set_specular((float)dval);
-                ++iter;
+            vector<int>::iterator iter;
+            for (iter = ivol.begin(); iter != ivol.end(); iter++) {
+                volume[*iter]->set_specular(specular);
             }
-            return TCL_OK;
-        }
-        Tcl_AppendResult(interp, "bad option \"", argv[2],
-            "\": should be diffuse, opacity, specular, or transfunc", (char*)NULL);
-        return TCL_ERROR;
-    }
-    else if (c == 's' && strcmp(argv[1],"state") == 0) {
+        } else {
+	    Tcl_AppendResult(interp, "bad option \"", argv[2], "\": should be ",
+		"diffuse, opacity, specular, or transfunc", (char*)NULL);
+	    return TCL_ERROR;
+	}
+    } else if ((c == 's') && (strcmp(argv[1], "state") == 0)) {
         if (argc < 3) {
             Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
                 argv[1], " on|off ?volume...?\"", (char*)NULL);
             return TCL_ERROR;
         }
-
         int state;
         if (Tcl_GetBoolean(interp, argv[2], &state) != TCL_OK) {
             return TCL_ERROR;
         }
-
         vector<int> ivol;
         if (GetVolumeIndices(interp, argc-3, argv+3, &ivol) != TCL_OK) {
             return TCL_ERROR;
         }
-
-        vector<int>::iterator iter = ivol.begin();
-        while (iter != ivol.end()) {
-            if (state) {
-                volume[*iter]->enable();
-            } else {
-                volume[*iter]->disable();
-            }
-            ++iter;
-        }
-        return TCL_OK;
-    }
-    else if (c == 't' && strcmp(argv[1],"test2") == 0) {
+	if (state) {
+            vector<int>::iterator iter;
+            for (iter = ivol.begin(); iter != ivol.end(); iter++) {
+		volume[*iter]->enable();
+	    } 
+	} else {
+            vector<int>::iterator iter;
+            for (iter = ivol.begin(); iter != ivol.end(); iter++) {
+		volume[*iter]->disable();
+	    } 
+	}
+    } else if ((c == 't') && (strcmp(argv[1],"test2") == 0)) {
         volume[1]->disable_data();
         volume[1]->disable();
         return TCL_OK;
+    } else {
+	Tcl_AppendResult(interp, "bad option \"", argv[1], "\": should be ",
+		"data, outline, shading, or state", (char*)NULL);
+	return TCL_ERROR;
     }
-
-    Tcl_AppendResult(interp, "bad option \"", argv[1],
-        "\": should be data, outline, shading, or state", (char*)NULL);
-    return TCL_ERROR;
+    return TCL_OK;
 }
 
-
-int HeightMapCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]))
+static int 
+HeightMapCmd(ClientData cdata, Tcl_Interp *interp, int argc, 
+	     const char *argv[])
 {
-    if (argc < 2) 
-    {
-        {   
-        srand( (unsigned)time( NULL ) );
-        int size = 20 * 20;
-        float sigma = 5.0f;
-        float mean = exp(0.0f) / (sigma * sqrt(2.0f));
-        float* data = (float*) malloc(sizeof(float) * size);
-
-        float x;
-        for (int i = 0; i < size; ++i)
-        {
-            x = - 10 + i%20;
-            data[i] = exp(- (x * x)/(2 * sigma * sigma)) / (sigma * sqrt(2.0f)) / mean;
-        }
-
-        HeightMap* heightMap = new HeightMap();
-        heightMap->setHeight(0, 0, 1, 1, 20, 20, data);
-        heightMap->setColorMap(get_transfunc("default"));
-        heightMap->setVisible(true);
-        heightMap->setLineContourVisible(true);
-        g_heightMap.push_back(heightMap);
-        }
-
-        return TCL_OK;
+    fprintf(stderr, "in heightmap command\n");
+    fflush(stderr);
+    if (argc < 2) {
+	srand((unsigned)time(NULL));
+	int size = 20 * 20;
+	double sigma = 5.0;
+	double mean = exp(0.0) / (sigma * sqrt(2.0));
+	float* data = (float*) malloc(sizeof(float) * size);
+	
+	float x;
+	for (int i = 0; i < size; ++i) {
+	    x = - 10 + i%20;
+	    data[i] = exp(- (x * x)/(2 * sigma * sigma)) / 
+		(sigma * sqrt(2.0)) / mean;
+	}
+	HeightMap* heightMap = new HeightMap();
+	heightMap->setHeight(0.0f, 0.0f, 1.0f, 1.0f, 20, 20, data);
+	heightMap->setColorMap(nv_get_transfunc("default"));
+	heightMap->setVisible(true);
+	heightMap->setLineContourVisible(true);
+	g_heightMap.push_back(heightMap);
+	return TCL_OK;
     }
+    
+    char c = argv[1][0];
+    if ((c == 'c') && (strcmp(argv[1], "create") == 0)) {
+	HeightMap *hMap;
 
-    char c = *argv[1];
-    if (c == 'd' && strcmp(argv[1],"data") == 0) 
-    {
+	/* heightmap create xmin ymin xmax ymax xnum ynum values */
+	hMap = CreateHeightMap(cdata, interp, argc - 2, argv + 2);
+	if (hMap == NULL) {
+	    return TCL_ERROR;
+	}
+	g_heightMap.push_back(hMap);
+	/* FIXME: Convert this file to use Tcl_CmdObjProc */
+	sprintf(interp->result, "%d", g_heightMap.size() - 1);
+	return TCL_OK;
+    } else if ((c == 'd') && (strcmp(argv[1],"data") == 0)) {
+	fprintf(stderr, "heightmap data\n");
+    fflush(stderr);
         //bytes
-        vector<int> indices;
-        if (strcmp(argv[2],"visible") == 0) 
-        {
-            bool visible = !strcmp(argv[3], "true");
-            
-            if (GetIndices(interp, argc-4, argv+4, &indices) != TCL_OK) 
-            {
+        char c;
+	c = argv[2][0];
+        if ((c == 'v') && (strcmp(argv[2],"visible") == 0)) {
+	    int ivisible;
+	    vector<int> indices;
+
+	    if (Tcl_GetBoolean(interp, argv[3], &ivisible) != TCL_OK) {
+		return TCL_ERROR;
+	    }
+            if (GetIndices(interp, argc-4, argv+4, &indices) != TCL_OK) {
                return TCL_ERROR;
             }
-
-            for (int i = 0; i < indices.size(); ++i)
-            {
-                if ((indices[i] < g_heightMap.size()) && (g_heightMap[indices[i]] != NULL))
-                {
+	    bool visible;
+	    visible = (bool)ivisible;
+            for (int i = 0; i < indices.size(); ++i) {
+                if ((indices[i] < g_heightMap.size()) && 
+		    (g_heightMap[indices[i]] != NULL)) {
                     g_heightMap[indices[i]]->setVisible(visible);
                 }
             }
-            return TCL_OK;
-        }
-        else if (c == 'f' && strcmp(argv[2],"follows") == 0) {
-            int nbytes;
-            if (Tcl_GetInt(interp, argv[3], &nbytes) != TCL_OK) {
+        } else if ((c == 'f') && (strcmp(argv[2],"follows") == 0)) {
+	    Rappture::Buffer buf;
+            int nBytes;
+
+	    fprintf(stderr, "in data follows\n");
+    fflush(stderr);
+            if (Tcl_GetInt(interp, argv[3], &nBytes) != TCL_OK) {
                 return TCL_ERROR;
             }
-        }
-    }
-    else if (c == 'l' && (strcmp(argv[1], "linecontour") == 0))
-    {
+	    fprintf(stderr, "expecting %d bytes\n", nBytes);
+    fflush(stderr);
+	    if (FillBufferFromStdin(interp, buf, nBytes) != TCL_OK) {
+		return TCL_ERROR;
+	    }
+	    if (Tcl_Eval(interp, buf.bytes()) != TCL_OK) {
+		fprintf(stderr, "error in command: %s\n", 
+			Tcl_GetStringResult(interp));
+    fflush(stderr);
+		return TCL_ERROR;
+	    }
+        } else {
+	    Tcl_AppendResult(interp, "unknown option \"", argv[2], "\": ",
+			     "should be visible or follows", (char *)NULL);
+	    return TCL_ERROR;
+	}
+    } else if ((c == 'l') && (strcmp(argv[1], "linecontour") == 0)) {
         //bytes
         vector<int> indices;
-        if (strcmp(argv[2],"visible") == 0) 
-        {
-            
-            bool visible = !(strcmp("true", argv[3]));
-            printf("heightmap linecontour visible %s\n", (visible)?"true":"false");
-            if (GetIndices(interp, argc-4, argv+4, &indices) != TCL_OK) 
-            {
+	char c;
+	c = argv[2][0];
+        if ((c == 'v') && (strcmp(argv[2],"visible") == 0)) {
+	    int ivisible;
+	    bool visible;
+
+	    if (Tcl_GetBoolean(interp, argv[3], &ivisible) != TCL_OK) {
+		return TCL_ERROR;
+	    }
+            visible = (bool)ivisible;
+            if (GetIndices(interp, argc-4, argv+4, &indices) != TCL_OK) {
                 return TCL_ERROR;
             }
-
-            for (int i = 0; i < indices.size(); ++i)
-            {
-                printf("heightmap index %d\n");
-                if ((indices[i] < g_heightMap.size()) && (g_heightMap[indices[i]] != NULL))
-                {
-                    printf("heightmap index %d visible applied\n");
+            for (int i = 0; i < indices.size(); ++i) {
+                if ((indices[i] < g_heightMap.size()) && 
+		    (g_heightMap[indices[i]] != NULL)) {
                     g_heightMap[indices[i]]->setLineContourVisible(visible);
                 }
             }
-            return TCL_OK;
-        }
-        else if (strcmp(argv[2],"color") == 0) 
-        {
-            double r, g, b;
-            if ((Tcl_GetDouble(interp, argv[3], &r) == TCL_OK) &&
-                (Tcl_GetDouble(interp, argv[4], &g) == TCL_OK) &&
-                (Tcl_GetDouble(interp, argv[5], &b) == TCL_OK)) {
-                r = r / 255.0;
-                g = g / 255.0;
-                b = b / 255.0;
-            }
-            else 
-            {
+        } else if ((c == 'c') && (strcmp(argv[2],"color") == 0)) {
+            float r, g, b;
+            if ((GetFloat(interp, argv[3], &r) != TCL_OK) ||
+                (GetFloat(interp, argv[4], &g) != TCL_OK) ||
+                (GetFloat(interp, argv[5], &b) != TCL_OK)) {
                 return TCL_ERROR;
-            }
-
+	    }		
             vector<int> indices;
-            if (GetIndices(interp, argc-6, argv+6, &indices) != TCL_OK) 
-            {
+            if (GetIndices(interp, argc-6, argv+6, &indices) != TCL_OK) {
                 return TCL_ERROR;
             }
-            for (int i = 0; i < indices.size(); ++i)
-            {
-                if ((indices[i] < g_heightMap.size()) && (g_heightMap[indices[i]] != NULL))
-                {
+            for (int i = 0; i < indices.size(); ++i) {
+                if ((indices[i] < g_heightMap.size()) && 
+		    (g_heightMap[indices[i]] != NULL)) {
                     g_heightMap[indices[i]]->setLineContourColor(r, g, b);
                 }
             }
+        } else {
+	    Tcl_AppendResult(interp, "unknown option \"", argv[2], "\": ",
+			     "should be visible or color", (char *)NULL);
+	    return TCL_ERROR;
+	}
+    } else if ((c == 't') && (strcmp(argv[1], "transfunc") == 0)) {
+        TransferFunction *tf;
 
-            return TCL_OK;
-        }
-    }
-    else if (c == 't' && (strcmp(argv[1], "transfunc") == 0))
-    {
-        TransferFunction *tf = get_transfunc((char*)argv[2]);
+	tf = nv_get_transfunc(argv[2]);
         if (tf == NULL) {
-            Tcl_AppendResult(interp, "transfer function \"", argv[3],
+            Tcl_AppendResult(interp, "transfer function \"", argv[2],
                 "\" is not defined", (char*)NULL);
             return TCL_ERROR;
         }
-
         vector<int> indices;
-        if (GetVolumeIndices(interp, argc - 3, argv + 3, &indices) != TCL_OK) 
-        {
-            for (int i = 0; i < indices.size(); ++i)
-            {
-                if ((indices[i] < g_heightMap.size()) && (g_heightMap[indices[i]] != NULL))
-                {
-                    g_heightMap[indices[i]]->setColorMap(tf);
-                }
-            }
+        if (GetIndices(interp, argc - 3, argv + 3, &indices) != TCL_OK) {
+	    return TCL_ERROR;
+	}
+	for (int i = 0; i < indices.size(); ++i) {
+	    if ((indices[i] < g_heightMap.size()) && 
+		(g_heightMap[indices[i]] != NULL)) {
+		g_heightMap[indices[i]]->setColorMap(tf);
+	    }
         }
-        return TCL_OK;
+    } else if ((c == 'l') && (strcmp(argv[1], "legend") == 0)) {
+	if (argc != 5) {
+	    Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
+			     " legend index width height\"", (char*)NULL);
+	    return TCL_ERROR;
+	}
+	HeightMap *hMap;
+	if (GetHeightMap(interp, argv[2], &hMap) != TCL_OK) {
+	    return TCL_ERROR;
+	}
+	TransferFunction *tf;
+	tf = hMap->getColorMap();
+	if (tf == NULL) {
+	    Tcl_AppendResult(interp, 
+			"no transfer function defined for heightmap \"", 
+			argv[1], "\"", (char*)NULL);
+	    return TCL_ERROR;
+	}
+	int width, height;
+	if ((Tcl_GetInt(interp, argv[3], &width) != TCL_OK) || 
+	    (Tcl_GetInt(interp, argv[4], &height) != TCL_OK)) {
+	    return TCL_ERROR;
+	}
+	nv_render_legend(tf, hMap->range_min(), hMap->range_max(), 
+			 width, height, argv[1]);
+    } else {
+	Tcl_AppendResult(interp, "bad option \"", argv[1],
+        "\": should be data, linecontour, legend, or transfunc", (char*)NULL);
+	return TCL_ERROR;
     }
-    
-    Tcl_AppendResult(interp, "bad option \"", argv[1],
-        "\": should be data, outline, shading, or state", (char*)NULL);
-    return TCL_ERROR;
+    return TCL_OK;
 }
 
-int GridCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]))
+static int 
+GridCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
 {
-    char c = *argv[1];
-    if (c == 'v' && strcmp(argv[1],"visible") == 0) 
-    {
-        if (strcmp(argv[2],"true") == 0) 
-        {
-            g_grid->setVisible(true);
-            return TCL_OK;
-        }
-        else if (strcmp(argv[2],"false") == 0) 
-        {
-            g_grid->setVisible(false);
-            return TCL_OK;
-        }
-    }
-    else if (c == 'l' && strcmp(argv[1],"linecount") == 0) 
-    {
+    char c = argv[1][0];
+    if ((c == 'v') && (strcmp(argv[1],"visible") == 0)) {
+	int ivisible;
+
+	if (Tcl_GetBoolean(interp, argv[2], &ivisible) != TCL_OK) {
+	    return TCL_ERROR;
+	}
+	g_grid->setVisible((bool)ivisible);
+    } else if ((c == 'l') && (strcmp(argv[1],"linecount") == 0)) {
         int x, y, z;
 
-        if ((Tcl_GetInt(interp, argv[2], &x) == TCL_OK) &&
-            (Tcl_GetInt(interp, argv[3], &y) == TCL_OK) &&
-            (Tcl_GetInt(interp, argv[4], &z) == TCL_OK)) {
-
-            if (g_grid) g_grid->setGridLineCount(x, y, z);
-
-            return TCL_OK;
-        }
+        if ((Tcl_GetInt(interp, argv[2], &x) != TCL_OK) ||
+            (Tcl_GetInt(interp, argv[3], &y) != TCL_OK) ||
+            (Tcl_GetInt(interp, argv[4], &z) != TCL_OK)) {
+	    return TCL_ERROR;
+	}
+	if (g_grid) {
+	    g_grid->setGridLineCount(x, y, z);
+	}
+    } else if ((c == 'a') && (strcmp(argv[1],"axiscolor") == 0)) {
+        float r, g, b;
+        if ((GetFloat(interp, argv[2], &r) != TCL_OK) ||
+            (GetFloat(interp, argv[3], &g) != TCL_OK) ||
+            (GetFloat(interp, argv[4], &b) != TCL_OK)) {
+	    return TCL_ERROR;
+	}
+	if (g_grid) {
+	    g_grid->setAxisColor(r, g, b);
+	}
+    } else if ((c == 'l') && (strcmp(argv[1],"linecolor") == 0)) {
+        float r, g, b;
+        if ((GetFloat(interp, argv[2], &r) != TCL_OK) ||
+            (GetFloat(interp, argv[3], &g) != TCL_OK) ||
+	    (GetFloat(interp, argv[4], &b) != TCL_OK)) {
+	    return TCL_ERROR;
+	}
+	if (g_grid) {
+	    g_grid->setGridLineColor(r, g, b);
+	}
+    } else if ((c == 'm') && (strcmp(argv[1],"minmax") == 0)) {
+	double x1, y1, z1, x2, y2, z2;
+	if ((Tcl_GetDouble(interp, argv[2], &x1) != TCL_OK) ||
+	    (Tcl_GetDouble(interp, argv[3], &y1) != TCL_OK) ||
+	    (Tcl_GetDouble(interp, argv[4], &z1) != TCL_OK) ||
+	    (Tcl_GetDouble(interp, argv[5], &x2) != TCL_OK) ||
+	    (Tcl_GetDouble(interp, argv[6], &y2) != TCL_OK) ||
+	    (Tcl_GetDouble(interp, argv[7], &z2) != TCL_OK)) {
+	    return TCL_ERROR;
+	}
+	if (g_grid) {
+	    g_grid->setMinMax(Vector3(x1, y1, z1), Vector3(x2, y2, z2));
+	}
+    } else if ((c == 'a') && (strcmp(argv[1],"axisname") == 0)) {
+        int axisId;
+	if (GetAxis(interp, argv[2], &axisId) != TCL_OK) {
+	    return TCL_ERROR;
+	}
+        if (g_grid) {
+	    g_grid->setAxisName(axisId, argv[3]);
+	}
+    } else {
+	Tcl_AppendResult(interp, "bad option \"", argv[1],
+			 "\": should be data, outline, shading, or state", 
+			 (char*)NULL);
+	return TCL_ERROR;
     }
-    else if (c == 'a' && strcmp(argv[1],"axiscolor") == 0) 
-    {
-        int r, g, b;
-        if ((Tcl_GetInt(interp, argv[2], &r) == TCL_OK) &&
-            (Tcl_GetInt(interp, argv[3], &g) == TCL_OK) &&
-            (Tcl_GetInt(interp, argv[4], &b) == TCL_OK)) {
-
-            if (g_grid) g_grid->setAxisColor(r / 255.0f, g / 255.0f, b / 255.0f);
-            return TCL_OK;
-        }
-    }
-    else if (c == 'l' && strcmp(argv[1],"linecolor") == 0) 
-    {
-        int r, g, b;
-        if ((Tcl_GetInt(interp, argv[2], &r) == TCL_OK) &&
-            (Tcl_GetInt(interp, argv[3], &g) == TCL_OK) &&
-            (Tcl_GetInt(interp, argv[4], &b) == TCL_OK)) {
-
-            if (g_grid) g_grid->setGridLineColor(r / 255.0f, g / 255.0f, b / 255.0f);
-            return TCL_OK;
-        }
-    }
-    else if (c == 'm')
-    {
-        if (strcmp(argv[1],"minmax") == 0) 
-        {
-            double x1, y1, z1, x2, y2, z2;
-            if ((Tcl_GetDouble(interp, argv[2], &x1) == TCL_OK) &&
-                (Tcl_GetDouble(interp, argv[3], &y1) == TCL_OK) &&
-                (Tcl_GetDouble(interp, argv[4], &z1) == TCL_OK) &&
-                (Tcl_GetDouble(interp, argv[5], &x2) == TCL_OK) &&
-                (Tcl_GetDouble(interp, argv[6], &y2) == TCL_OK) &&
-                (Tcl_GetDouble(interp, argv[7], &z2) == TCL_OK)) {
-
-                if (g_grid) g_grid->setMinMax(Vector3(x1, y1, z1), Vector3(x2, y2, z2));
-
-                return TCL_OK;
-            }
-        }
-    }
-    else if (c == 'a' && strcmp(argv[1],"axisname") == 0) 
-    {
-        int axisID = 0;
-        if (!strcmp(argv[2], "x")) axisID = 0;
-        if (!strcmp(argv[2], "y")) axisID = 1;
-        if (!strcmp(argv[2], "z")) axisID = 2;
-        
-        if (g_grid) g_grid->setAxisName(axisID, argv[3]);
-        return TCL_OK;
-    }
-
-    Tcl_AppendResult(interp, "bad option \"", argv[1],
-        "\": should be data, outline, shading, or state", (char*)NULL);
-    return TCL_ERROR;
+    return TCL_OK;
 }
 
-
-int AxisCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]))
+static int 
+AxisCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
 {
     if (argc < 2) {
         Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
             " option arg arg...\"", (char*)NULL);
         return TCL_ERROR;
     }
+    char c = argv[1][0];
+    if ((c == 'v') && (strcmp(argv[1],"visible") == 0)) {
+	int ivisible;
 
-    char c = *argv[1];
-    if (c == 'v' && strcmp(argv[1],"visible") == 0) 
-    {
-        if (strcmp(argv[2],"true") == 0) 
-        {
-            axis_on = true;
-        }
-        else if (strcmp(argv[2],"false") == 0) 
-        {
-            axis_on = false;
-        }
-            
-        return TCL_OK;
+	if (Tcl_GetBoolean(interp, argv[2], &ivisible) != TCL_OK) {
+	    return TCL_ERROR;
+	}
+	axis_on = (bool)ivisible;
+    } else {
+	Tcl_AppendResult(interp, "bad axis option \"", argv[1],
+			 "\": should be visible", (char*)NULL);
+	return TCL_ERROR;
     }
-
-    Tcl_AppendResult(interp, "bad option \"", argv[1],
-        "\": should be data, outline, shading, or state", (char*)NULL);
-    return TCL_ERROR;
+    return TCL_OK;
 }
 
+/*
+ * ----------------------------------------------------------------------
+ * FUNCTION: GetHeightMap
+ *
+ * Used internally to decode a series of volume index values and
+ * store then in the specified vector.  If there are no volume index
+ * arguments, this means "all volumes" to most commands, so all
+ * active volume indices are stored in the vector.
+ *
+ * Updates pushes index values into the vector.  Returns TCL_OK or
+ * TCL_ERROR to indicate an error.
+ * ----------------------------------------------------------------------
+ */
+static int
+GetHeightMap(Tcl_Interp *interp, const char *string, HeightMap **hmPtrPtr)
+{
+    int mapIndex;
+    if (Tcl_GetInt(interp, string, &mapIndex) != TCL_OK) {
+	return TCL_ERROR;
+    }
+    if ((mapIndex < 0) || (mapIndex >= g_heightMap.size()) || 
+	(g_heightMap[mapIndex] == NULL)) {
+	Tcl_AppendResult(interp, "invalid heightmap index \"", string, "\"",
+			 (char *)NULL);
+	return TCL_ERROR;
+    }
+    *hmPtrPtr = g_heightMap[mapIndex];
+    return TCL_OK;
+}
+
+/*
+ * ----------------------------------------------------------------------
+ * FUNCTION: GetVolumeIndex
+ *
+ * Used internally to decode a series of volume index values and
+ * store then in the specified vector.  If there are no volume index
+ * arguments, this means "all volumes" to most commands, so all
+ * active volume indices are stored in the vector.
+ *
+ * Updates pushes index values into the vector.  Returns TCL_OK or
+ * TCL_ERROR to indicate an error.
+ * ----------------------------------------------------------------------
+ */
+static int
+GetVolumeIndex(Tcl_Interp *interp, const char *string, int *indexPtr)
+{
+    int ivol;
+    if (Tcl_GetInt(interp, string, &ivol) != TCL_OK) {
+	return TCL_ERROR;
+    }
+    if ((ivol < 0) || (ivol >= volume.size())) {
+	Tcl_AppendResult(interp, "bad volume index \"", string,
+			 "\"", (char*)NULL);
+	return TCL_ERROR;
+    }
+    *indexPtr = ivol;
+    return TCL_OK;
+}
+
+/*
+ * ----------------------------------------------------------------------
+ * FUNCTION: GetVolume
+ *
+ * Used internally to decode a series of volume index values and
+ * store then in the specified vector.  If there are no volume index
+ * arguments, this means "all volumes" to most commands, so all
+ * active volume indices are stored in the vector.
+ *
+ * Updates pushes index values into the vector.  Returns TCL_OK or
+ * TCL_ERROR to indicate an error.
+ * ----------------------------------------------------------------------
+ */
+static int
+GetVolume(Tcl_Interp *interp, const char *string, Volume **volPtrPtr)
+{
+    int ivol;
+    if (GetVolumeIndex(interp, string, &ivol) != TCL_OK) {
+	return TCL_ERROR;
+    }
+    if (volume[ivol] == NULL) {
+	Tcl_AppendResult(interp, "no volume defined for index \"", string,
+			 "\"", (char*)NULL);
+	return TCL_ERROR;
+    }
+    *volPtrPtr = volume[ivol];
+    return TCL_OK;
+}
 
 /*
  * ----------------------------------------------------------------------
@@ -1332,7 +1448,7 @@ int AxisCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84
  * ----------------------------------------------------------------------
  */
 static int
-GetVolumeIndices(Tcl_Interp *interp, int argc, CONST84 char *argv[],
+GetVolumeIndices(Tcl_Interp *interp, int argc, const char *argv[],
     vector<int>* vectorPtr)
 {
     if (argc == 0) {
@@ -1344,14 +1460,9 @@ GetVolumeIndices(Tcl_Interp *interp, int argc, CONST84 char *argv[],
     } else {
         int ivol;
         for (int n=0; n < argc; n++) {
-            if (Tcl_GetInt(interp, argv[n], &ivol) != TCL_OK) {
+	    if (GetVolumeIndex(interp, argv[n], &ivol) != TCL_OK) {
                 return TCL_ERROR;
-            }
-            if (ivol < 0 || ivol >= volume.size()) {
-                Tcl_AppendResult(interp, "bad volume index \"", argv[n],
-                    "\"", (char*)NULL);
-                return TCL_ERROR;
-            }
+	    }
             if (volume[ivol] != NULL) {
                 vectorPtr->push_back(ivol);
             }
@@ -1360,9 +1471,8 @@ GetVolumeIndices(Tcl_Interp *interp, int argc, CONST84 char *argv[],
     return TCL_OK;
 }
 
-
 static int
-GetIndices(Tcl_Interp *interp, int argc, CONST84 char *argv[],
+GetIndices(Tcl_Interp *interp, int argc, const char *argv[],
     vector<int>* vectorPtr)
 {
     int ivol;
@@ -1387,22 +1497,23 @@ GetIndices(Tcl_Interp *interp, int argc, CONST84 char *argv[],
  * ----------------------------------------------------------------------
  */
 static int
-GetAxis(Tcl_Interp *interp, char *str, int *valPtr)
+GetAxis(Tcl_Interp *interp, const char *string, int *valPtr)
 {
-    if (strcmp(str,"x") == 0) {
-        *valPtr = 0;
-        return TCL_OK;
+    if (string[1] == '\0') {
+	if (string[0] == 'x') {
+	    *valPtr = 0;
+	    return TCL_OK;
+	} else if (string[0] == 'y') {
+	    *valPtr = 1;
+	    return TCL_OK;
+	} else if (string[0] == 'z') {
+	    *valPtr = 2;
+	    return TCL_OK;
+	}
+	/*FALLTHRU*/
     }
-    else if (strcmp(str,"y") == 0) {
-        *valPtr = 1;
-        return TCL_OK;
-    }
-    else if (strcmp(str,"z") == 0) {
-        *valPtr = 2;
-        return TCL_OK;
-    }
-    Tcl_AppendResult(interp, "bad axis \"", str,
-        "\": should be x, y, or z", (char*)NULL);
+    Tcl_AppendResult(interp, "bad axis \"", string,
+	"\": should be x, y, or z", (char*)NULL);
     return TCL_ERROR;
 }
 
@@ -1417,134 +1528,123 @@ GetAxis(Tcl_Interp *interp, char *str, int *valPtr)
  * ----------------------------------------------------------------------
  */
 static int
-GetColor(Tcl_Interp *interp, char *str, float *rgbPtr)
+GetColor(Tcl_Interp *interp, const char *string, float *rgbPtr)
 {
-    int rgbc;
-    char **rgbv;
-    if (Tcl_SplitList(interp, str, &rgbc, (const char***)&rgbv) != TCL_OK) {
-        return TCL_ERROR;
-    }
-    if (rgbc != 3) {
-        Tcl_AppendResult(interp, "bad color \"", str,
-            "\": should be {R G B} as double values 0-1", (char*)NULL);
-        return TCL_ERROR;
-    }
+    int argc;
+    const char **argv;
 
-    double rval, gval, bval;
-    if (Tcl_GetDouble(interp, rgbv[0], &rval) != TCL_OK) {
-        Tcl_Free((char*)rgbv);
+    if (Tcl_SplitList(interp, string, &argc, &argv) != TCL_OK) {
         return TCL_ERROR;
     }
-    if (Tcl_GetDouble(interp, rgbv[1], &gval) != TCL_OK) {
-        Tcl_Free((char*)rgbv);
+    if (argc != 3) {
+        Tcl_AppendResult(interp, "bad color \"", string,
+            "\": should list of R G B values 0.0 - 1.0", (char*)NULL);
         return TCL_ERROR;
     }
-    if (Tcl_GetDouble(interp, rgbv[2], &bval) != TCL_OK) {
-        Tcl_Free((char*)rgbv);
+    if ((GetFloat(interp, argv[0], rgbPtr + 0) != TCL_OK) ||
+	(GetFloat(interp, argv[1], rgbPtr + 1) != TCL_OK) ||
+	(GetFloat(interp, argv[2], rgbPtr + 2) != TCL_OK)) {
+        Tcl_Free((char*)argv);
         return TCL_ERROR;
     }
-    Tcl_Free((char*)rgbv);
-
-    rgbPtr[0] = (float)rval;
-    rgbPtr[1] = (float)gval;
-    rgbPtr[2] = (float)bval;
-
+    Tcl_Free((char*)argv);
     return TCL_OK;
 }
 
 
 static int 
-PlaneNewCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]))
+PlaneNewCmd(ClientData cdata, Tcl_Interp *interp, int argc, 
+	    const char *argv[])
 {
-  fprintf(stderr, "load plane for 2D visualization command\n");
-
-  int index, w, h;
-
-  if (argc != 4) {
-    Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
-		" plane_index w h \"", (char*)NULL);
-    return TCL_ERROR;
-  }
-  if (Tcl_GetInt(interp, argv[1], &index) != TCL_OK) {
+    fprintf(stderr, "load plane for 2D visualization command\n");
+    
+    int index, w, h;
+    
+    if (argc != 4) {
+	Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
+			 " plane_index w h \"", (char*)NULL);
 	return TCL_ERROR;
-  }
-  if (Tcl_GetInt(interp, argv[2], &w) != TCL_OK) {
+    }
+    if (Tcl_GetInt(interp, argv[1], &index) != TCL_OK) {
 	return TCL_ERROR;
-  }
-  if (Tcl_GetInt(interp, argv[3], &h) != TCL_OK) {
+    }
+    if (Tcl_GetInt(interp, argv[2], &w) != TCL_OK) {
 	return TCL_ERROR;
-  }
-
-  //Now read w*h*4 bytes. The server expects the plane to be a stream of floats 
-  char* tmp = new char[int(w*h*sizeof(float))];
-  bzero(tmp, w*h*4);
-  int status = read(0, tmp, w*h*sizeof(float));
-  if (status <= 0){
-    exit(0);
-  }
- 
-  plane[index] = new Texture2D(w, h, GL_FLOAT, GL_LINEAR, 1, (float*)tmp);
-  
-  delete[] tmp;
-  return TCL_OK;
+    }
+    if (Tcl_GetInt(interp, argv[3], &h) != TCL_OK) {
+	return TCL_ERROR;
+    }
+    
+    //Now read w*h*4 bytes. The server expects the plane to be a stream of floats 
+    char* tmp = new char[int(w*h*sizeof(float))];
+    if (tmp == NULL) {
+	Tcl_AppendResult(interp, "can't allocate stream data", (char *)NULL);
+	return TCL_ERROR;
+    }
+    bzero(tmp, w*h*4);
+    int status = read(0, tmp, w*h*sizeof(float));
+    if (status <= 0) {
+	exit(0);		// Bail out on read error?  Should log the
+				// error and return a non-zero exit status.
+    }
+    plane[index] = new Texture2D(w, h, GL_FLOAT, GL_LINEAR, 1, (float*)tmp);
+    delete[] tmp;
+    return TCL_OK;
 }
 
 
-static 
-int PlaneLinkCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]))
+static int PlaneLinkCmd(ClientData cdata, Tcl_Interp *interp, int argc, 
+	const char *argv[])
 {
-  fprintf(stderr, "link the plane to the 2D renderer command\n");
-
-  int plane_index, tf_index;
-
-  if (argc != 3) {
-    Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
-		" plane_index tf_index \"", (char*)NULL);
-    return TCL_ERROR;
-  }
-  if (Tcl_GetInt(interp, argv[1], &plane_index) != TCL_OK) {
+    fprintf(stderr, "link the plane to the 2D renderer command\n");
+    
+    int plane_index, tf_index;
+    
+    if (argc != 3) {
+	Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
+			 " plane_index tf_index \"", (char*)NULL);
 	return TCL_ERROR;
-  }
-  if (Tcl_GetInt(interp, argv[2], &tf_index) != TCL_OK) {
+    }
+    if (Tcl_GetInt(interp, argv[1], &plane_index) != TCL_OK) {
 	return TCL_ERROR;
-  }
-
-  //plane_render->add_plane(plane[plane_index], tf[tf_index]);
-
-  return TCL_OK;
+    }
+    if (Tcl_GetInt(interp, argv[2], &tf_index) != TCL_OK) {
+	return TCL_ERROR;
+    }
+    //plane_render->add_plane(plane[plane_index], tf[tf_index]);
+    return TCL_OK;
 }
 
 //Enable a 2D plane for render
 //The plane_index is the index mantained in the 2D plane renderer
-static 
-int PlaneEnableCmd _ANSI_ARGS_((ClientData cdata, Tcl_Interp *interp, int argc, CONST84 char *argv[]))
+static int PlaneEnableCmd(ClientData cdata, Tcl_Interp *interp, int argc, 
+	const char *argv[])
 {
-  fprintf(stderr, "enable a plane so the 2D renderer can render it command\n");
-
-  int plane_index, mode;
-
-  if (argc != 3) {
-    Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
-		" plane_index mode \"", (char*)NULL);
-    return TCL_ERROR;
-  }
-  if (Tcl_GetInt(interp, argv[1], &plane_index) != TCL_OK) {
+    fprintf(stderr,"enable a plane so the 2D renderer can render it command\n");
+    
+    if (argc != 3) {
+	Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
+			 " plane_index mode \"", (char*)NULL);
 	return TCL_ERROR;
-  }
-  if (Tcl_GetInt(interp, argv[2], &mode) != TCL_OK) {
+    }
+    int plane_index;
+    if (Tcl_GetInt(interp, argv[1], &plane_index) != TCL_OK) {
 	return TCL_ERROR;
-  }
-
-  if(mode==0)
-    plane_render->set_active_plane(-1);
-  else
+    }
+    int mode;
+    if (Tcl_GetInt(interp, argv[2], &mode) != TCL_OK) {
+	return TCL_ERROR;
+    }
+    if (mode == 0) {
+	plane_index = -1;
+    }
     plane_render->set_active_plane(plane_index);
-
-  return TCL_OK;
+    return TCL_OK;
 }
 
 
-void initTcl()
+void 
+initTcl()
 {
     interp = Tcl_CreateInterp();
     Tcl_MakeSafe(interp);
@@ -1592,6 +1692,9 @@ void initTcl()
     Tcl_CreateCommand(interp, "screenshot", ScreenShotCmd,
         (ClientData)NULL, (Tcl_CmdDeleteProc*)NULL);
 
+    Tcl_CreateCommand(interp, "unirect2d", UniRect2dCmd,
+        (ClientData)NULL, (Tcl_CmdDeleteProc*)NULL);
+
 #ifdef __TEST_CODE__
     Tcl_CreateCommand(interp, "test", TestCmd,
         (ClientData)NULL, (Tcl_CmdDeleteProc*)NULL);
@@ -1604,9 +1707,10 @@ void initTcl()
     }
 }
 
-void xinetd_listen()
-{
 
+void 
+xinetd_listen()
+{
     int flags = fcntl(0, F_GETFL, 0); 
     fcntl(0, F_SETFL, flags & ~O_NONBLOCK);
 
@@ -1649,7 +1753,6 @@ void xinetd_listen()
 
         // back to original flags during command evaluation...
         fcntl(0, F_SETFL, flags & ~O_NONBLOCK);
-
         status = Tcl_Eval(interp, Tcl_DStringValue(&cmdbuffer));
         Tcl_DStringSetLength(&cmdbuffer, 0);
 
@@ -1670,17 +1773,17 @@ void xinetd_listen()
     //  Generate the latest frame and send it back to the client
     //
     // INSOO
-    offscreen_buffer_capture();  //enable offscreen render
+    nv_offscreen_buffer_capture();  //enable offscreen render
 
-    display();
+    nv_display();
 
     // INSOO
 #ifdef XINETD
-   read_screen();
+   nv_read_screen();
    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0); 
 #else
-   display_offscreen_buffer(); //display the final rendering on screen
-   read_screen();
+   nv_display_offscreen_buffer(); //display the final rendering on screen
+   nv_read_screen();
    glutSwapBuffers(); 
 #endif   
 
@@ -1696,4 +1799,238 @@ void xinetd_listen()
 #endif
 }
 
+
+/*
+ * -----------------------------------------------------------------------
+ *
+ * FillBufferFromStdin -- 
+ *
+ *	Read the requested number of bytes from standard input into the given
+ *	buffer.  The buffer is then decompressed and decoded.
+ *
+ * -----------------------------------------------------------------------
+ */
+static int
+FillBufferFromStdin(Tcl_Interp *interp, Rappture::Buffer &buf, int nBytes)
+{
+    char buffer[8096];
+
+    while (nBytes > 0) {
+	int chunk, nRead;
+
+	chunk = (sizeof(buffer) < nBytes) ? sizeof(buffer) : nBytes;
+	nRead = fread(buffer, 1, chunk, stdin);
+	if (ferror(stdin) && feof(stdin)) {
+	    Tcl_AppendResult(interp, 
+			     "data unpacking failed: unexpected EOF",
+			     (char*)NULL);
+	    return TCL_ERROR;
+	}
+	buf.append(buffer, nRead);
+	nBytes -= nRead;
+    }
+    if (strncmp("@@RP-ENC", buf.bytes(), 8) == 0) {
+	Rappture::Outcome err;
+
+	err = Rappture::encoding::decode(buf, RPENC_Z|RPENC_B64|RPENC_HDR);
+	buf.append("\0", 1);
+	fflush(stderr);
+	if (err) {
+	    printf("ERROR -- DECODING\n");
+	    fflush(stdout);
+	    Tcl_AppendResult(interp, err.remark().c_str(), (char*)NULL);
+	    return TCL_ERROR;
+	}
+    }
+    return TCL_OK;
+}
+
+/*
+ * -----------------------------------------------------------------------
+ *
+ * CreateHeightMap --
+ *
+ *	Creates a heightmap from the given the data. The format of the data
+ *	should be as follows:
+ *
+ *		xMin, xMax, xNum, yMin, yMax, yNum, heights...
+ *
+ *	xNum and yNum must be integer values, all others are real numbers.
+ *	The number of heights must be xNum * yNum;
+ *
+ * -----------------------------------------------------------------------
+ */
+static HeightMap *
+CreateHeightMap(ClientData clientData, Tcl_Interp *interp, int argc, 
+	const char *argv[])
+{
+    float xMin, yMin, xMax, yMax;
+    int xNum, yNum;
+
+    if (argc != 7) {
+	Tcl_AppendResult(interp, 
+	"wrong # of values: should be xMin yMin xMax yMax xNum yNum heights",
+		(char *)NULL);
+	return NULL;
+    }
+    if ((GetFloat(interp, argv[0], &xMin) != TCL_OK) ||
+	(GetFloat(interp, argv[1], &yMin) != TCL_OK) || 
+	(GetFloat(interp, argv[2], &xMax) != TCL_OK) ||
+	(GetFloat(interp, argv[3], &yMax) != TCL_OK) ||
+	(Tcl_GetInt(interp, argv[4], &xNum) != TCL_OK) ||
+	(Tcl_GetInt(interp, argv[5], &yNum) != TCL_OK)) {
+	return NULL;
+    }
+    int nValues;
+    const char **elem;
+    if (Tcl_SplitList(interp, argv[6], &nValues, &elem) != TCL_OK) {
+	return NULL;
+    }
+    if ((xNum <= 0) || (yNum <= 0)) {
+	Tcl_AppendResult(interp, "bad number of x or y values", (char *)NULL);
+	goto error;
+    }
+    if (nValues != (xNum * yNum)) {
+	Tcl_AppendResult(interp, "wrong # of heights", (char *)NULL);
+	goto error;
+    }
+
+    float *heights;
+    heights = new float[nValues];
+    if (heights == NULL) {
+	Tcl_AppendResult(interp, "can't allocate array of heights", 
+		(char *)NULL);
+	goto error;
+    }
+
+    int i;
+    for (i = 0; i < nValues; i++) {
+	if (GetFloat(interp, elem[i], heights + i) != TCL_OK) {
+	    delete [] heights;
+	    goto error;
+	}
+    }
+    HeightMap* hMap;
+    hMap = new HeightMap();
+    hMap->setHeight(xMin, yMin, xMax, yMax, xNum, yNum, heights);
+    hMap->setColorMap(nv_get_transfunc("default"));
+    hMap->setVisible(true);
+    hMap->setLineContourVisible(true);
+
+    Tcl_Free((char *)elem);
+    delete [] heights;
+    return hMap;
+ error:
+    Tcl_Free((char *)elem);
+    return NULL;
+}
+
+/*
+ * This command should be Tcl procedure instead of a C command.  The reason
+ * for this that 1) we are using a safe interpreter so we would need a master
+ * interpreter to load the Tcl environment properly (including our "unirect2d"
+ * procedure). And 2) the way nanovis is currently deployed, doesn't make it
+ * easy to add new directories for procedures, since it's loaded into /tmp.
+ *
+ * Ideally, the "unirect2d" proc would do a rundimentary parsing of the data
+ * to verify the structure and then pass it to the appropiate Tcl command
+ * (heightmap, volume, etc). Our C command always creates a heightmap.  
+ */
+static int
+UniRect2dCmd(ClientData, Tcl_Interp *interp, int argc, const char *argv[])
+{    
+    int xNum, yNum, zNum;
+    float xMin, yMin, xMax, yMax;
+    float *zValues;
+
+    fprintf(stderr, "in unirect2d command\n");
+    fflush(stderr);
+    if ((argc & 0x01) == 0) {
+	Tcl_AppendResult(interp, 
+		"wrong number of arguments: should be key-value pairs", 
+		(char *)NULL);
+	return TCL_ERROR;
+    }
+    xNum = yNum = zNum = 0;
+    xMin = yMin = xMax = yMax = 0.0f;
+    int i;
+    for (i = 1; i < argc; i += 2) {
+	if (strcmp(argv[i], "xmin") == 0) {
+	    if (GetFloat(interp, argv[i+1], &xMin) != TCL_OK) {
+		return TCL_ERROR;
+	    }
+	} else if (strcmp(argv[i], "xmax") == 0) {
+	    if (GetFloat(interp, argv[i+1], &xMax) != TCL_OK) {
+		return TCL_ERROR;
+	    }
+	} else if (strcmp(argv[i], "xnum") == 0) {
+	    if (Tcl_GetInt(interp, argv[i+1], &xNum) != TCL_OK) {
+		return TCL_ERROR;
+	    }
+	    if (xNum <= 0) {
+		Tcl_AppendResult(interp, "bad xnum value: must be > 0",
+				 (char *)NULL);
+		return TCL_ERROR;
+	    }
+	} else if (strcmp(argv[i], "ymin") == 0) {
+	    if (GetFloat(interp, argv[i+1], &yMin) != TCL_OK) {
+		return TCL_ERROR;
+	    }
+	} else if (strcmp(argv[i], "ymax") == 0) {
+	    if (GetFloat(interp, argv[i+1], &yMax) != TCL_OK) {
+		return TCL_ERROR;
+	    }
+	} else if (strcmp(argv[i], "ynum") == 0) {
+	    if (Tcl_GetInt(interp, argv[i+1], &yNum) != TCL_OK) {
+		return TCL_ERROR;
+	    }
+	    if (yNum <= 0) {
+		Tcl_AppendResult(interp, "bad ynum value: must be > 0",
+				 (char *)NULL);
+		return TCL_ERROR;
+	    }
+	} else if (strcmp(argv[i], "zvalues") == 0) {
+	    const char **zlist;
+
+	    if (Tcl_SplitList(interp, argv[i+1], &zNum, &zlist) != TCL_OK) {
+		return TCL_ERROR;
+	    }
+	    int j;
+	    zValues = new float[zNum];
+	    for (j = 0; j < zNum; j++) {
+		if (GetFloat(interp, zlist[j], zValues + j) != TCL_OK) {
+		    Tcl_Free((char *)zlist);
+		    return TCL_ERROR;
+		}
+	    }
+	    Tcl_Free((char *)zlist);
+	} else {
+	    Tcl_AppendResult(interp, "unknown key \"", argv[i], 
+		"\": should be xmin, xmax, xnum, ymin, ymax, ynum, or zvalues",
+		(char *)NULL);
+	    return TCL_ERROR;
+	}
+    }
+    if (zValues == NULL) {
+	Tcl_AppendResult(interp, "missing \"zvalues\" key", (char *)NULL);
+	return TCL_ERROR;
+    }
+    fprintf(stderr, "xnum=%d, ynum=%d, znum=%d\n", xNum, yNum, zNum);
+    fflush(stderr);
+    if (zNum != (xNum * yNum)) {
+	Tcl_AppendResult(interp, "wrong number of z values must be xnum*ynum",
+		(char *)NULL);
+	return TCL_ERROR;
+    }
+    
+    HeightMap* hMap;
+    hMap = new HeightMap();
+    hMap->setHeight(xMin, yMin, xMax, yMax, xNum, yNum, zValues);
+    hMap->setColorMap(nv_get_transfunc("default"));
+    hMap->setVisible(true);
+    hMap->setLineContourVisible(true);
+    g_heightMap.push_back(hMap);
+    delete [] zValues;
+    return TCL_OK;
+}
 

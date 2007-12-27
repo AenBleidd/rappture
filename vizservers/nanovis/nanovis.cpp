@@ -1,3 +1,4 @@
+
 /*
  * ----------------------------------------------------------------------
  * Nanovis: Visualization of Nanoelectronics Data
@@ -27,7 +28,6 @@
 #include <fcntl.h>
 #include <signal.h>
 
-
 #include "Nv.h"
 #include "PointSetRenderer.h"
 #include "PointSet.h"
@@ -54,6 +54,7 @@
 #include "HeightMap.h"
 #include "Grid.h"
 
+//#define  _LOCAL_ZINC_TEST_
 
 // R2 headers
 #include <R2/R2FilePath.h>
@@ -73,33 +74,6 @@ bool volume_mode = true;
 
 // color table for built-in transfer function editor
 float color_table[256][4]; 	
-
-// default transfer function
-char *def_transfunc = "transfunc define default {\n\
-  0.0  1 1 1\n\
-  0.2  1 1 0\n\
-  0.4  0 1 0\n\
-  0.6  0 1 1\n\
-  0.8  0 0 1\n\
-  1.0  1 0 1\n\
-} {\n\
-  0.00  1.0\n\
-  0.05  0.0\n\
-  0.15  0.0\n\
-  0.20  1.0\n\
-  0.25  0.0\n\
-  0.35  0.0\n\
-  0.40  1.0\n\
-  0.45  0.0\n\
-  0.55  0.0\n\
-  0.60  1.0\n\
-  0.65  0.0\n\
-  0.75  0.0\n\
-  0.80  1.0\n\
-  0.85  0.0\n\
-  0.95  0.0\n\
-  1.00  1.0\n\
-}";
 
 /*
 #ifdef XINETD
@@ -129,15 +103,15 @@ Rappture::Outcome load_volume_stream(int index, std::iostream& fin);
 Rappture::Outcome load_volume_stream2(int index, std::iostream& fin);
 void load_volume(int index, int width, int height, int depth, int n_component, float* data, double vmin, double vmax, 
                 double nzero_min);
-TransferFunction* get_transfunc(char *name);
-void resize_offscreen_buffer(int w, int h);
-void offscreen_buffer_capture();
-void bmp_header_add_int(unsigned char* header, int& pos, int data);
+extern TransferFunction* nv_get_transfunc(const char *name);
+extern void nv_resize_offscreen_buffer(int w, int h);
+extern void nv_offscreen_buffer_capture(void);
+static void bmp_header_add_int(unsigned char* header, int& pos, int data);
 void bmp_write(const char* cmd);
 void bmp_write_to_file();
-void display();
-void display_offscreen_buffer();
-void read_screen();
+extern void nv_display(void);
+extern void nv_display_offscreen_buffer();
+extern void nv_read_screen();
 
 //ParticleSystem* psys;
 //float psys_x=0.4, psys_y=0, psys_z=0;
@@ -159,7 +133,7 @@ vector<HeightMap*> g_heightMap;
 vector<PointSet*> g_pointSet;
 
 // maps transfunc name to TransferFunction object
-Tcl_HashTable tftable;
+static Tcl_HashTable tftable;
 
 // pointers to 2D planes, currently handle up 10
 Texture2D* plane[10];
@@ -200,7 +174,6 @@ float lic_slice_x=0, lic_slice_y=0, lic_slice_z=0.3;//image based flow visualiza
 int win_width = NPIX;			//size of the render window
 int win_height = NPIX;			//size of the render window
 
-
 //image based flow visualization variables
 int    iframe = 0; 
 int    Npat   = 64;
@@ -235,8 +208,6 @@ using namespace std;
 #define RM_POINT 2
 
 int renderMode = RM_VOLUME;
-
-
 
 /*
  * ----------------------------------------------------------------------
@@ -294,6 +265,9 @@ void cgErrorCallback(void)
     }
 }
 
+/*
+ * FIXME: Move the DX-related routines into their own dx.cpp file.
+ */
 /* Load a 3D vector field from a dx-format file
  */
 void
@@ -836,6 +810,7 @@ load_volume_stream(int index, std::iostream& fin) {
             }
             else if (sscanf(start, "object %d class array type float rank 1 shape 3 items %d data follows", &dummy, &nxy) == 2) {
                 isrect = 0;
+
                 double xx, yy, zz;
                 for (int i=0; i < nxy; i++) {
                     fin.getline(line,sizeof(line)-1);
@@ -1202,8 +1177,9 @@ load_volume_stream(int index, std::iostream& fin) {
  * 		All component scalars for a point are placed consequtively in data array 
  * width, height and depth: number of points in each dimension
  */
-void load_volume(int index, int width, int height, int depth,
-    int n_component, float* data, double vmin, double vmax, double nzero_min)
+void 
+load_volume(int index, int width, int height, int depth, int n_component, 
+	    float* data, double vmin, double vmax, double nzero_min)
 {
     while (n_volumes <= index) {
         volume.push_back(NULL);
@@ -1216,69 +1192,86 @@ void load_volume(int index, int width, int height, int depth,
     }
 
     volume[index] = new Volume(0.f, 0.f, 0.f, width, height, depth, 1.,
-                                 n_component, data, vmin, vmax, nzero_min);
+			       n_component, data, vmin, vmax, nzero_min);
     assert(volume[index]!=0);
 }
 
-// get a colormap 1D texture by name
+// Gets a colormap 1D texture by name.
 TransferFunction*
-get_transfunc(char *name) {
-    Tcl_HashEntry *entryPtr;
-    entryPtr = Tcl_FindHashEntry(&tftable, name);
-    if (entryPtr) {
-        return (TransferFunction*)Tcl_GetHashValue(entryPtr);
+nv_get_transfunc(const char *name) 
+{
+    Tcl_HashEntry *hPtr;
+    
+    hPtr = Tcl_FindHashEntry(&tftable, name);
+    if (hPtr == NULL) {
+	return NULL;
     }
-    return NULL;
+    return (TransferFunction*)Tcl_GetHashValue(hPtr);
+}
+
+// Creates of updates a colormap 1D texture by name.
+TransferFunction*
+nv_set_transfunc(const char *name, int nSlots, float *data) 
+{
+    int isNew;
+    Tcl_HashEntry *hPtr;
+    TransferFunction *tf;
+
+    hPtr = Tcl_CreateHashEntry(&tftable, name, &isNew);
+    if (isNew) {
+	tf = new TransferFunction(nSlots, data);
+	Tcl_SetHashValue(hPtr, (ClientData)tf);
+    } else {
+	tf = (TransferFunction*)Tcl_GetHashValue(hPtr);
+	tf->update(data);
+    }
+    return tf;
 }
 
 
 //Update the transfer function using local GUI in the non-server mode
-void update_tf_texture()
+void 
+update_tf_texture()
 {
-  glutSetWindow(render_window);
-
-  //fprintf(stderr, "tf update\n");
-  TransferFunction *tf = get_transfunc("default");
-  if (tf == NULL) return;
-
-  float data[256*4];
-  for(int i=0; i<256; i++)
-  {
-    data[4*i+0] = color_table[i][0];
-    data[4*i+1] = color_table[i][1];
-    data[4*i+2] = color_table[i][2];
-    data[4*i+3] = color_table[i][3];
-    //fprintf(stderr, "(%f,%f,%f,%f) ", data[4*i+0], data[4*i+1], data[4*i+2], data[4*i+3]);
-  }
-
-  tf->update(data);
-
+    glutSetWindow(render_window);
+    
+    //fprintf(stderr, "tf update\n");
+    TransferFunction *tf = nv_get_transfunc("default");
+    if (tf == NULL) {
+	return;
+    }
+    
+    float data[256*4];
+    for(int i=0; i<256; i++) {
+	data[4*i+0] = color_table[i][0];
+	data[4*i+1] = color_table[i][1];
+	data[4*i+2] = color_table[i][2];
+	data[4*i+3] = color_table[i][3];
+	//fprintf(stderr, "(%f,%f,%f,%f) ", data[4*i+0], data[4*i+1], data[4*i+2], data[4*i+3]);
+    }
+    
+    tf->update(data);
+    
 #ifdef EVENTLOG
-  float param[3] = {0,0,0};
-  Event* tmp = new Event(EVENT_ROTATE, param, NvGetTimeInterval());
-  tmp->write(event_log);
-  delete tmp;
+    float param[3] = {0,0,0};
+    Event* tmp = new Event(EVENT_ROTATE, param, NvGetTimeInterval());
+    tmp->write(event_log);
+    delete tmp;
 #endif
 }
 
-
-int renderLegend(int ivol, int width, int height, const char* volArg)
+int 
+nv_render_legend(
+    TransferFunction *tf, 
+    double min, double max, 
+    int width, int height, 
+    const char* volArg)
 {
-    TransferFunction *tf = NULL;
-
-    if (ivol < n_volumes) {
-        tf = g_vol_render->get_volume_shading(volume[ivol]);
-    }
-
-    if (tf == NULL) {
-        return TCL_ERROR;
-    }
-
     int old_width = win_width;
     int old_height = win_height;
 
     plane_render->set_screen_size(width, height);
-    resize_offscreen_buffer(width, height);
+    nv_resize_offscreen_buffer(width, height);
 
     // generate data for the legend
     float data[512];
@@ -1289,7 +1282,7 @@ int renderLegend(int ivol, int width, int height, const char* volArg)
     int index = plane_render->add_plane(plane[0], tf);
     plane_render->set_active_plane(index);
 
-    offscreen_buffer_capture();
+    nv_offscreen_buffer_capture();
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); //clear screen
     plane_render->render();
 
@@ -1299,134 +1292,135 @@ int renderLegend(int ivol, int width, int height, const char* volArg)
 
     std::ostringstream result;
     result << "nv>legend " << volArg;
-    result << " " << volume[ivol]->range_min();
-    result << " " << volume[ivol]->range_max();
+    result << " " << min;
+    result << " " << max;
     bmp_write(result.str().c_str());
     write(0, "\n", 1);
 
     plane_render->remove_plane(index);
-    resize_offscreen_buffer(old_width, old_height);
+    nv_resize_offscreen_buffer(old_width, old_height);
 
     return TCL_OK;
 }
 
 //initialize frame buffer objects for offscreen rendering
-void init_offscreen_buffer()
+void 
+init_offscreen_buffer()
 {
-
-  //initialize final fbo for final display
-  glGenFramebuffersEXT(1, &final_fbo);
-  glGenTextures(1, &final_color_tex);
-  glGenRenderbuffersEXT(1, &final_depth_rb);
-
-  glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, final_fbo);
-
-  //initialize final color texture
-  glBindTexture(GL_TEXTURE_2D, final_color_tex);
-  glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-  glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    GLenum status;
+    
+    //initialize final fbo for final display
+    glGenFramebuffersEXT(1, &final_fbo);
+    glGenTextures(1, &final_color_tex);
+    glGenRenderbuffersEXT(1, &final_depth_rb);
+    
+    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, final_fbo);
+    
+    //initialize final color texture
+    glBindTexture(GL_TEXTURE_2D, final_color_tex);
+    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 #ifdef NV40
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F_ARB, win_width, win_height, 0,
-               GL_RGB, GL_INT, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F_ARB, win_width, win_height, 0,
+		 GL_RGB, GL_INT, NULL);
 #else
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, win_width, win_height, 0,
-               GL_RGB, GL_INT, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, win_width, win_height, 0,
+		 GL_RGB, GL_INT, NULL);
 #endif
-  glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT,
-                            GL_COLOR_ATTACHMENT0_EXT,
-                            GL_TEXTURE_2D, final_color_tex, 0);
-
-  // initialize final depth renderbuffer
-  glBindRenderbufferEXT(GL_RENDERBUFFER_EXT, final_depth_rb);
-  glRenderbufferStorageEXT(GL_RENDERBUFFER_EXT,
-                           GL_DEPTH_COMPONENT24, win_width, win_height);
-  glFramebufferRenderbufferEXT(GL_FRAMEBUFFER_EXT,
-                               GL_DEPTH_ATTACHMENT_EXT,
-                               GL_RENDERBUFFER_EXT, final_depth_rb);
-
-  // Check framebuffer completeness at the end of initialization.
-  CHECK_FRAMEBUFFER_STATUS();
-  assert(glGetError()==0);
+    glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT,
+			      GL_COLOR_ATTACHMENT0_EXT,
+			      GL_TEXTURE_2D, final_color_tex, 0);
+    
+    // initialize final depth renderbuffer
+    glBindRenderbufferEXT(GL_RENDERBUFFER_EXT, final_depth_rb);
+    glRenderbufferStorageEXT(GL_RENDERBUFFER_EXT,
+			     GL_DEPTH_COMPONENT24, win_width, win_height);
+    glFramebufferRenderbufferEXT(GL_FRAMEBUFFER_EXT,
+				 GL_DEPTH_ATTACHMENT_EXT,
+				 GL_RENDERBUFFER_EXT, final_depth_rb);
+    
+    // Check framebuffer completeness at the end of initialization.
+    CHECK_FRAMEBUFFER_STATUS();
+    assert(glGetError()==0);
 }
 
 
 //resize the offscreen buffer 
-void resize_offscreen_buffer(int w, int h){
-  win_width = w;
-  win_height = h;
-
-    if (g_fonts)
-    {
+void 
+nv_resize_offscreen_buffer(int w, int h)
+{
+    win_width = w;
+    win_height = h;
+    
+    if (g_fonts) {
         g_fonts->resize(w, h);
     }
+    
+    //fprintf(stderr, "screen_buffer size: %d\n", sizeof(screen_buffer));
+    printf("screen_buffer size: %d %d\n", w, h);
+    
+    if (screen_buffer) {
+	delete[] screen_buffer;
+	screen_buffer = NULL;
+    }
+    
+    screen_buffer = new unsigned char[4*win_width*win_height];
+    assert(screen_buffer != NULL);
+    
+    //delete the current render buffer resources
+    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, final_fbo);
+    glDeleteTextures(1, &final_color_tex);
+    glDeleteFramebuffersEXT(1, &final_fbo);
+    
+    glBindRenderbufferEXT(GL_RENDERBUFFER_EXT, final_depth_rb);
+    glDeleteRenderbuffersEXT(1, &final_depth_rb);
+    
+    //change the camera setting
+    cam->set_screen_size(0, 0, win_width, win_height);
+    plane_render->set_screen_size(win_width, win_height);
+    
+    //Reinitialize final fbo for final display
+    glGenFramebuffersEXT(1, &final_fbo);
+    glGenTextures(1, &final_color_tex);
+    glGenRenderbuffersEXT(1, &final_depth_rb);
 
-  //fprintf(stderr, "screen_buffer size: %d\n", sizeof(screen_buffer));
-  printf("screen_buffer size: %d %d\n", w, h);
-
-  if (screen_buffer) {
-      delete[] screen_buffer;
-      screen_buffer = NULL;
-  }
-
-  screen_buffer = new unsigned char[4*win_width*win_height];
-  assert(screen_buffer != NULL);
-
-  //delete the current render buffer resources
-  glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, final_fbo);
-  glDeleteTextures(1, &final_color_tex);
-  glDeleteFramebuffersEXT(1, &final_fbo);
-
-  glBindRenderbufferEXT(GL_RENDERBUFFER_EXT, final_depth_rb);
-  glDeleteRenderbuffersEXT(1, &final_depth_rb);
-fprintf(stdin,"  after glDeleteRenderbuffers\n");
-
-  //change the camera setting
-  cam->set_screen_size(0, 0, win_width, win_height);
-  plane_render->set_screen_size(win_width, win_height);
-
-  //Reinitialize final fbo for final display
-  glGenFramebuffersEXT(1, &final_fbo);
-  glGenTextures(1, &final_color_tex);
-  glGenRenderbuffersEXT(1, &final_depth_rb);
-fprintf(stdin,"  after glGenRenderbuffers\n");
-
-  glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, final_fbo);
-
-  //initialize final color texture
-  glBindTexture(GL_TEXTURE_2D, final_color_tex);
-  glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-  glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, final_fbo);
+    
+    //initialize final color texture
+    glBindTexture(GL_TEXTURE_2D, final_color_tex);
+    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 #ifdef NV40
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F_ARB, win_width, win_height, 0,
-               GL_RGB, GL_INT, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F_ARB, win_width, win_height, 0,
+		 GL_RGB, GL_INT, NULL);
 #else
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, win_width, win_height, 0,
-               GL_RGB, GL_INT, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, win_width, win_height, 0,
+		 GL_RGB, GL_INT, NULL);
 #endif
-  glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT,
-                            GL_COLOR_ATTACHMENT0_EXT,
-                            GL_TEXTURE_2D, final_color_tex, 0);
-fprintf(stdin,"  after glFramebufferTexture2DEXT\n");
+    glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT,
+			      GL_COLOR_ATTACHMENT0_EXT,
+			      GL_TEXTURE_2D, final_color_tex, 0);
 	
-  // initialize final depth renderbuffer
-  glBindRenderbufferEXT(GL_RENDERBUFFER_EXT, final_depth_rb);
-  glRenderbufferStorageEXT(GL_RENDERBUFFER_EXT,
-                           GL_DEPTH_COMPONENT24, win_width, win_height);
-  glFramebufferRenderbufferEXT(GL_FRAMEBUFFER_EXT,
-                               GL_DEPTH_ATTACHMENT_EXT,
-                               GL_RENDERBUFFER_EXT, final_depth_rb);
-fprintf(stdin,"  after glFramebufferRenderEXT\n");
+    // initialize final depth renderbuffer
+    glBindRenderbufferEXT(GL_RENDERBUFFER_EXT, final_depth_rb);
+    glRenderbufferStorageEXT(GL_RENDERBUFFER_EXT,
+			     GL_DEPTH_COMPONENT24, win_width, win_height);
+    glFramebufferRenderbufferEXT(GL_FRAMEBUFFER_EXT,
+				 GL_DEPTH_ATTACHMENT_EXT,
+				 GL_RENDERBUFFER_EXT, final_depth_rb);
 
-  // Check framebuffer completeness at the end of initialization.
-  CHECK_FRAMEBUFFER_STATUS();
-  assert(glGetError()==0);
-fprintf(stdin,"  after assert\n");
+    // Check framebuffer completeness at the end of initialization.
+    CHECK_FRAMEBUFFER_STATUS();
+    assert(glGetError()==0);
+    fprintf(stdin,"  after assert\n");
 }
 
 
 //init line integral convolution
-void init_lic(){
-  lic = new Lic(NMESH, win_width, win_height, 0.3, g_context, volume[1]->id, 
+void 
+init_lic() {
+    
+    lic = new Lic(NMESH, win_width, win_height, 0.3, g_context, volume[1]->id, 
 		  volume[1]->aspect_ratio_width,
 		  volume[1]->aspect_ratio_height,
 		  volume[1]->aspect_ratio_depth);
@@ -1445,24 +1439,22 @@ void init_particle_system()
 }
 */
 
-
-void make_test_2D_data()
+void 
+make_test_2D_data()
 {
 
-  int w = 300;
-  int h = 200;
-  float* data = new float[w*h];
-
-  //procedurally make a gradient plane
-  for(int j=0; j<h; j++){
-    for(int i=0; i<w; i++){
-      data[w*j+i] = float(i)/float(w);
+    int w = 300;
+    int h = 200;
+    float* data = new float[w*h];
+    
+    //procedurally make a gradient plane
+    for(int j=0; j<h; j++){
+	for(int i=0; i<w; i++){
+	    data[w*j+i] = float(i)/float(w);
+	}
     }
-  }
-
-  plane[0] = new Texture2D(w, h, GL_FLOAT, GL_LINEAR, 1, data);
-
-  delete[] data;
+    plane[0] = new Texture2D(w, h, GL_FLOAT, GL_LINEAR, 1, data);
+    delete[] data;
 }
 
 
@@ -1517,6 +1509,7 @@ void initGL(void)
    //create volume renderer and add volumes to it
    g_vol_render = new VolumeRenderer();
 
+   
    /*
    //I added this to debug : Wei
    float tmp_data[4*124];
@@ -1531,11 +1524,12 @@ void initGL(void)
    //g_vol_render->add_volume(volume[1], tmp_tf);
    */
 
+
    //create an 2D plane renderer
    plane_render = new PlaneRenderer(g_context, win_width, win_height);
    make_test_2D_data();
 
-   plane_render->add_plane(plane[0], get_transfunc("default"));
+   plane_render->add_plane(plane[0], nv_get_transfunc("default"));
 
    assert(glGetError()==0);
 
@@ -1543,14 +1537,13 @@ void initGL(void)
    //init_lic(); 
 }
 
-void read_screen()
+void 
+nv_read_screen()
 {
-  glReadPixels(0, 0, win_width, win_height, GL_RGB, GL_UNSIGNED_BYTE, screen_buffer);
+  glReadPixels(0, 0, win_width, win_height, GL_RGB, GL_UNSIGNED_BYTE, 
+	screen_buffer);
   assert(glGetError()==0);
 }
-
-void display();
-
 
 #if DO_RLE
 char rle[512*512*3];
@@ -1559,7 +1552,8 @@ int rle_size;
 short offsets[512*512*3];
 int offsets_size;
 
-void do_rle(){
+void 
+do_rle(){
   int len = win_width*win_height*3;
   rle_size = 0;
   offsets_size = 0;
@@ -1590,7 +1584,7 @@ void do_rle(){
 
 // used internally to build up the BMP file header
 // writes an integer value into the header data structure at pos
-void
+static void
 bmp_header_add_int(unsigned char* header, int& pos, int data)
 {
     header[pos++] = data & 0xff;
@@ -1770,7 +1764,8 @@ void draw_arrows(){
 
 
 /*----------------------------------------------------*/
-void idle()
+static void 
+idle()
 {
     glutSetWindow(render_window);
   
@@ -1782,98 +1777,104 @@ void idle()
   */
 
 #ifdef XINETD
-    // in Command.cpp
     xinetd_listen();
 #else
     glutPostRedisplay();
 #endif
 }
 
-
-void display_offscreen_buffer()
+void 
+nv_display_offscreen_buffer()
 {
-   glEnable(GL_TEXTURE_2D);
-   glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
-   glBindTexture(GL_TEXTURE_2D, final_color_tex);
-
-   glViewport(0, 0, win_width, win_height);
-   glMatrixMode(GL_PROJECTION);
-   glLoadIdentity();
-   gluOrtho2D(0, win_width, 0, win_height);
-   glMatrixMode(GL_MODELVIEW);
-   glLoadIdentity();
-
-   glColor3f(1.,1.,1.);		//MUST HAVE THIS LINE!!!
-   glBegin(GL_QUADS);
-   glTexCoord2f(0, 0); glVertex2f(0, 0);
-   glTexCoord2f(1, 0); glVertex2f(win_width, 0);
-   glTexCoord2f(1, 1); glVertex2f(win_width, win_height);
-   glTexCoord2f(0, 1); glVertex2f(0, win_height);
-   glEnd();
-
+    glEnable(GL_TEXTURE_2D);
+    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
+    glBindTexture(GL_TEXTURE_2D, final_color_tex);
+    
+    glViewport(0, 0, win_width, win_height);
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    gluOrtho2D(0, win_width, 0, win_height);
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+    
+    glColor3f(1.,1.,1.);		//MUST HAVE THIS LINE!!!
+    glBegin(GL_QUADS);
+    glTexCoord2f(0, 0); glVertex2f(0, 0);
+    glTexCoord2f(1, 0); glVertex2f(win_width, 0);
+    glTexCoord2f(1, 1); glVertex2f(win_width, win_height);
+    glTexCoord2f(0, 1); glVertex2f(0, win_height);
+    glEnd();
 }
 
-void offscreen_buffer_capture()
+void 
+nv_offscreen_buffer_capture()
 {
    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, final_fbo);
 }
 
-void draw_bounding_box(float x0, float y0, float z0,
-		float x1, float y1, float z1,
-		float r, float g, float b, float line_width)
+/* 
+ * Is this routine being used? --gah
+ * /
+void 
+draw_bounding_box(float x0, float y0, float z0,
+		  float x1, float y1, float z1,
+		  float r, float g, float b, float line_width)
 {
-	glDisable(GL_TEXTURE_2D);
-
-	glColor4d(r, g, b, 1.0);
-	glLineWidth(line_width);
-	
-	glBegin(GL_LINE_LOOP);
-
-		glVertex3d(x0, y0, z0);
-		glVertex3d(x1, y0, z0);
-		glVertex3d(x1, y1, z0);
-		glVertex3d(x0, y1, z0);
-		
-	glEnd();
-
-	glBegin(GL_LINE_LOOP);
-
-		glVertex3d(x0, y0, z1);
-		glVertex3d(x1, y0, z1);
-		glVertex3d(x1, y1, z1);
-		glVertex3d(x0, y1, z1);
-		
-	glEnd();
-
-
-	glBegin(GL_LINE_LOOP);
-
-		glVertex3d(x0, y0, z0);
-		glVertex3d(x0, y0, z1);
-		glVertex3d(x0, y1, z1);
-		glVertex3d(x0, y1, z0);
-		
-	glEnd();
-
-	glBegin(GL_LINE_LOOP);
-
-		glVertex3d(x1, y0, z0);
-		glVertex3d(x1, y0, z1);
-		glVertex3d(x1, y1, z1);
-		glVertex3d(x1, y1, z0);
-		
-	glEnd();
-
-	glEnable(GL_TEXTURE_2D);
+    glDisable(GL_TEXTURE_2D);
+    
+    glColor4d(r, g, b, 1.0);
+    glLineWidth(line_width);
+    
+    glBegin(GL_LINE_LOOP);
+    
+    glVertex3d(x0, y0, z0);
+    glVertex3d(x1, y0, z0);
+    glVertex3d(x1, y1, z0);
+    glVertex3d(x0, y1, z0);
+    
+    glEnd();
+    
+    glBegin(GL_LINE_LOOP);
+    
+    glVertex3d(x0, y0, z1);
+    glVertex3d(x1, y0, z1);
+    glVertex3d(x1, y1, z1);
+    glVertex3d(x0, y1, z1);
+    
+    glEnd();
+    
+    
+    glBegin(GL_LINE_LOOP);
+    
+    glVertex3d(x0, y0, z0);
+    glVertex3d(x0, y0, z1);
+    glVertex3d(x0, y1, z1);
+    glVertex3d(x0, y1, z0);
+    
+    glEnd();
+    
+    glBegin(GL_LINE_LOOP);
+    
+    glVertex3d(x1, y0, z0);
+    glVertex3d(x1, y0, z1);
+    glVertex3d(x1, y1, z1);
+    glVertex3d(x1, y1, z0);
+    
+    glEnd();
+    
+    glEnable(GL_TEXTURE_2D);
 }
 
 
 
-int particle_distance_sort(const void* a, const void* b){
-  if((*((Particle*)a)).aux > (*((Particle*)b)).aux)
-    return -1;
-  else
-    return 1;
+static int 
+particle_distance_sort(const void* a, const void* b)
+{
+    if((*((Particle*)a)).aux > (*((Particle*)b)).aux) {
+	return -1;
+    } else {
+	return 1;
+    }
 }
 
 /*
@@ -1961,7 +1962,8 @@ void soft_display_verts()
 #if 0
 
 //oddeven sort on GPU
-void sortstep()
+void 
+sortstep()
 {
     // perform one step of the current sorting algorithm
 
@@ -2029,148 +2031,150 @@ void sortstep()
 #endif
 
 
-void draw_3d_axis()
-{ 
+void 
+draw_3d_axis()
+{
     glDisable(GL_TEXTURE_2D);
     glEnable(GL_DEPTH_TEST);
+    
+    //draw axes
+    GLUquadric *obj;
 
- 	//draw axes
-	GLUquadric *obj;
-	obj = gluNewQuadric();
-	
-	glDepthFunc(GL_LESS);
+    obj = gluNewQuadric();
+    
+    glDepthFunc(GL_LESS);
     glEnable(GL_COLOR_MATERIAL);
-	glEnable(GL_DEPTH_TEST);
-	glDisable(GL_BLEND);
-
-	int segments = 50;
-
-	glColor3f(0.8, 0.8, 0.8);
-	glPushMatrix();
-	glTranslatef(0.4, 0., 0.);
-	glRotatef(90, 1, 0, 0);
-	glRotatef(180, 0, 1, 0);
-	glScalef(0.0005, 0.0005, 0.0005);
-	glutStrokeCharacter(GLUT_STROKE_ROMAN, 'x');
-	glPopMatrix();	
-
-	glPushMatrix();
-	glTranslatef(0., 0.4, 0.);
-	glRotatef(90, 1, 0, 0);
-	glRotatef(180, 0, 1, 0);
-	glScalef(0.0005, 0.0005, 0.0005);
-	glutStrokeCharacter(GLUT_STROKE_ROMAN, 'y');
-	glPopMatrix();	
-
-	glPushMatrix();
-	glTranslatef(0., 0., 0.4);
-	glRotatef(90, 1, 0, 0);
-	glRotatef(180, 0, 1, 0);
-	glScalef(0.0005, 0.0005, 0.0005);
-	glutStrokeCharacter(GLUT_STROKE_ROMAN, 'z');
-	glPopMatrix();	
-
-	glEnable(GL_LIGHTING);
-	glEnable(GL_LIGHT0);
-
-	//glColor3f(0.2, 0.2, 0.8);
-	glPushMatrix();
-	glutSolidSphere(0.02, segments, segments );
-	glPopMatrix();
-
-	glPushMatrix();
-	glRotatef(-90, 1, 0, 0);	
-	gluCylinder(obj, 0.01, 0.01, 0.3, segments, segments);
-	glPopMatrix();	
-
-	glPushMatrix();
-	glTranslatef(0., 0.3, 0.);
-	glRotatef(-90, 1, 0, 0);	
-	gluCylinder(obj, 0.02, 0.0, 0.06, segments, segments);
-	glPopMatrix();	
-
-	glPushMatrix();
-	glRotatef(90, 0, 1, 0);
-	gluCylinder(obj, 0.01, 0.01, 0.3, segments, segments);
-	glPopMatrix();	
-
-	glPushMatrix();
-	glTranslatef(0.3, 0., 0.);
-	glRotatef(90, 0, 1, 0);	
-	gluCylinder(obj, 0.02, 0.0, 0.06, segments, segments);
-	glPopMatrix();	
-
-	glPushMatrix();
-	gluCylinder(obj, 0.01, 0.01, 0.3, segments, segments);
-	glPopMatrix();	
-
-	glPushMatrix();
-	glTranslatef(0., 0., 0.3);
-	gluCylinder(obj, 0.02, 0.0, 0.06, segments, segments);
-	glPopMatrix();	
-
-	glDisable(GL_LIGHTING);
-	glDisable(GL_DEPTH_TEST);
-	gluDeleteQuadric(obj);
-
+    glEnable(GL_DEPTH_TEST);
+    glDisable(GL_BLEND);
+    
+    int segments = 50;
+    
+    glColor3f(0.8, 0.8, 0.8);
+    glPushMatrix();
+    glTranslatef(0.4, 0., 0.);
+    glRotatef(90, 1, 0, 0);
+    glRotatef(180, 0, 1, 0);
+    glScalef(0.0005, 0.0005, 0.0005);
+    glutStrokeCharacter(GLUT_STROKE_ROMAN, 'x');
+    glPopMatrix();	
+    
+    glPushMatrix();
+    glTranslatef(0., 0.4, 0.);
+    glRotatef(90, 1, 0, 0);
+    glRotatef(180, 0, 1, 0);
+    glScalef(0.0005, 0.0005, 0.0005);
+    glutStrokeCharacter(GLUT_STROKE_ROMAN, 'y');
+    glPopMatrix();	
+    
+    glPushMatrix();
+    glTranslatef(0., 0., 0.4);
+    glRotatef(90, 1, 0, 0);
+    glRotatef(180, 0, 1, 0);
+    glScalef(0.0005, 0.0005, 0.0005);
+    glutStrokeCharacter(GLUT_STROKE_ROMAN, 'z');
+    glPopMatrix();	
+    
+    glEnable(GL_LIGHTING);
+    glEnable(GL_LIGHT0);
+    
+    //glColor3f(0.2, 0.2, 0.8);
+    glPushMatrix();
+    glutSolidSphere(0.02, segments, segments );
+    glPopMatrix();
+    
+    glPushMatrix();
+    glRotatef(-90, 1, 0, 0);	
+    gluCylinder(obj, 0.01, 0.01, 0.3, segments, segments);
+    glPopMatrix();	
+    
+    glPushMatrix();
+    glTranslatef(0., 0.3, 0.);
+    glRotatef(-90, 1, 0, 0);	
+    gluCylinder(obj, 0.02, 0.0, 0.06, segments, segments);
+    glPopMatrix();	
+    
+    glPushMatrix();
+    glRotatef(90, 0, 1, 0);
+    gluCylinder(obj, 0.01, 0.01, 0.3, segments, segments);
+    glPopMatrix();	
+    
+    glPushMatrix();
+    glTranslatef(0.3, 0., 0.);
+    glRotatef(90, 0, 1, 0);	
+    gluCylinder(obj, 0.02, 0.0, 0.06, segments, segments);
+    glPopMatrix();	
+    
+    glPushMatrix();
+    gluCylinder(obj, 0.01, 0.01, 0.3, segments, segments);
+    glPopMatrix();	
+    
+    glPushMatrix();
+    glTranslatef(0., 0., 0.3);
+    gluCylinder(obj, 0.02, 0.0, 0.06, segments, segments);
+    glPopMatrix();	
+    
+    glDisable(GL_LIGHTING);
+    glDisable(GL_DEPTH_TEST);
+    gluDeleteQuadric(obj);
+    
     glEnable(GL_TEXTURE_2D);
     glDisable(GL_DEPTH_TEST);
 }
 
 /*
-void draw_axis()
+void 
+draw_axis()
 {
-  glDisable(GL_TEXTURE_2D);
-  glEnable(GL_DEPTH_TEST);
-
-  //red x
-  glColor3f(1,0,0);
-  glBegin(GL_LINES);
+    glDisable(GL_TEXTURE_2D);
+    glEnable(GL_DEPTH_TEST);
+    
+    //red x
+    glColor3f(1,0,0);
+    glBegin(GL_LINES);
     glVertex3f(0,0,0);
     glVertex3f(1.5,0,0);
-  glEnd();
-
-  //blue y
-  glColor3f(0,0,1);
-  glBegin(GL_LINES);
+    glEnd();
+    
+    //blue y
+    glColor3f(0,0,1);
+    glBegin(GL_LINES);
     glVertex3f(0,0,0);
     glVertex3f(0,1.5,0);
-  glEnd();
-
-  //green z
-  glColor3f(0,1,0);
-  glBegin(GL_LINES);
+    glEnd();
+    
+    //green z
+    glColor3f(0,1,0);
+    glBegin(GL_LINES);
     glVertex3f(0,0,0);
     glVertex3f(0,0,1.5);
-  glEnd();
-
-  glEnable(GL_TEXTURE_2D);
-  glDisable(GL_DEPTH_TEST);
+    glEnd();
+    
+    glEnable(GL_TEXTURE_2D);
+    glDisable(GL_DEPTH_TEST);
 }
 */
 
 
-
 /*----------------------------------------------------*/
-void display()
+void 
+nv_display()
 {
     assert(glGetError()==0);
-
+    
     //lic->convolve(); //flow line integral convolution
     //psys->advect(); //advect particles
-
+    
     //start final rendering
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); //clear screen
 
-    if (volume_mode) 
-    {
+    if (volume_mode) {
         //3D rendering mode
         glEnable(GL_TEXTURE_2D);
         glEnable(GL_DEPTH_TEST);
-
+	
         //camera setting activated
         cam->activate();
-
+	
         //set up the orientation of items in the scene.
         glPushMatrix();
         switch (updir) {
@@ -2182,38 +2186,35 @@ void display()
         case 2:  // y
             // this is the default
             break;
-
+	    
         case 3:  // z
             glRotatef(-90, 1, 0, 0);
             glRotatef(-90, 0, 0, 1);
             break;
-
+	    
         case -1:  // -x
             glRotatef(-90, 0, 0, 1);
             break;
-
+	    
         case -2:  // -y
             glRotatef(180, 0, 0, 1);
             glRotatef(-90, 0, 1, 0);
             break;
-
+	    
         case -3:  // -z
             glRotatef(90, 1, 0, 0);
             break;
         }
-
+	
         glPushMatrix();
         //now render things in the scene
-        if (axis_on)
-        {
-            draw_3d_axis();
-        }
-
-        if (g_grid->isVisible())
-        {
+        if (axis_on) {
+	    draw_3d_axis();
+	}
+	if (g_grid->isVisible()) {
             g_grid->render();
         }
-
+	
         //lic->render(); 	//display the line integral convolution result
         //soft_display_verts();
         //perf->enable();
@@ -2221,41 +2222,24 @@ void display()
         //perf->disable();
         //fprintf(stderr, "particle pixels: %d\n", perf->get_pixel_count());
         //perf->reset();
-
+	
         perf->enable();
         g_vol_render->render_all();
-
+	
         perf->disable();
-
-        for (int ii = 0; ii < g_heightMap.size(); ++ii)
-        {
-            if (g_heightMap[ii]->isVisible())
-                g_heightMap[ii]->render();
+	
+        for (int i = 0; i < g_heightMap.size(); ++i) {
+            if (g_heightMap[i]->isVisible()) {
+                g_heightMap[i]->render();
+	    }
         }
-
         glPopMatrix();
-
-        float mat[16];
-        glGetFloatv(GL_MODELVIEW_MATRIX, mat);
-
-        for (int i = 0; i < g_pointSet.size(); ++i)
-        {
-            if (g_pointSet[i]->isVisible())
-            {
-                g_pointset_renderer->render(g_pointSet[i]->getCluster(), mat, g_pointSet[i]->getSortLevel(), 
-                                            g_pointSet[i]->getScale(),
-                                            g_pointSet[i]->getOrigin());
-            }
-        }
-
-        glPopMatrix();
-   }
-   else {
+   } else {
         //2D rendering mode
         perf->enable();
         plane_render->render();
         perf->disable();
-   }
+    }
 
 #ifdef XINETD
     float cost  = perf->get_pixel_count();
@@ -2266,195 +2250,194 @@ void display()
 }
 
 
-void mouse(int button, int state, int x, int y){
-  if(button==GLUT_LEFT_BUTTON){
+static void 
+mouse(int button, int state, int x, int y)
+{
+    if(button==GLUT_LEFT_BUTTON){
+	if (state==GLUT_DOWN) {
+	    left_last_x = x;
+	    left_last_y = y;
+	    left_down = true;
+	    right_down = false;
+	} else {
+	    left_down = false;
+	    right_down = false;
+	}
+    } else {
+	//fprintf(stderr, "right mouse\n");
 
-    if(state==GLUT_DOWN){
-      left_last_x = x;
-      left_last_y = y;
-      left_down = true;
-      right_down = false;
+	if(state==GLUT_DOWN){
+	    //fprintf(stderr, "right mouse down\n");
+	    right_last_x = x;
+	    right_last_y = y;
+	    left_down = false;
+	    right_down = true;
+	} else {
+	    //fprintf(stderr, "right mouse up\n");
+	    left_down = false;
+	    right_down = false;
+	}
     }
-    else{
-      left_down = false;
-      right_down = false;
-    }
-  }
-  else{
-    //fprintf(stderr, "right mouse\n");
-
-    if(state==GLUT_DOWN){
-      //fprintf(stderr, "right mouse down\n");
-      right_last_x = x;
-      right_last_y = y;
-      left_down = false;
-      right_down = true;
-    }
-    else{
-      //fprintf(stderr, "right mouse up\n");
-      left_down = false;
-      right_down = false;
-    }
-  }
 }
 
 
-void update_rot(int delta_x, int delta_y){
-	live_rot_x += delta_x;
-	live_rot_y += delta_y;
-
-	if(live_rot_x > 360.0)
-		live_rot_x -= 360.0;	
-	else if(live_rot_x < -360.0)
-		live_rot_x += 360.0;
-
-	if(live_rot_y > 360.0)
-		live_rot_y -= 360.0;	
-	else if(live_rot_y < -360.0)
-		live_rot_y += 360.0;
-
-	cam->rotate(live_rot_x, live_rot_y, live_rot_z);
+static void 
+update_rot(int delta_x, int delta_y)
+{
+    live_rot_x += delta_x;
+    live_rot_y += delta_y;
+    
+    if (live_rot_x > 360.0) {
+	live_rot_x -= 360.0;	
+    } else if(live_rot_x < -360.0) {
+	live_rot_x += 360.0;
+    }
+    if (live_rot_y > 360.0) {
+	live_rot_y -= 360.0;	
+    } else if(live_rot_y < -360.0) {
+	live_rot_y += 360.0;
+    }
+    cam->rotate(live_rot_x, live_rot_y, live_rot_z);
 }
 
 
-void update_trans(int delta_x, int delta_y, int delta_z){
-        live_obj_x += delta_x*0.03;
-        live_obj_y += delta_y*0.03;
-        live_obj_z += delta_z*0.03;
+static void 
+update_trans(int delta_x, int delta_y, int delta_z)
+{
+    live_obj_x += delta_x*0.03;
+    live_obj_y += delta_y*0.03;
+    live_obj_z += delta_z*0.03;
 }
 
 void end_service();
 
-void keyboard(unsigned char key, int x, int y){
-  
+static void 
+keyboard(unsigned char key, int x, int y)
+{
    bool log = false;
 
-   switch (key){
-	case 'q':
+   switch (key) {
+   case 'q':
 #ifdef XINETD
-        //end_service();
-        NvExitService();
+       //end_service();
+       NvExitService();
 #endif
-		exit(0);
-		break;
-	case '+':
-		lic_slice_z+=0.05;
-		lic->set_offset(lic_slice_z);
-		break;
-	case '-':
-		lic_slice_z-=0.05;
-		lic->set_offset(lic_slice_z);
-		break;
-	case ',':
-		lic_slice_x+=0.05;
-		//init_particles();
-		break;
-	case '.':
-		lic_slice_x-=0.05;
-		//init_particles();
-		break;
-	case '1':
-		//advect = true;
-		break;
-	case '2':
-		//psys_x+=0.05;
-		break;
-	case '3':
-		//psys_x-=0.05;
-		break;
-	case 'w': //zoom out
-		live_obj_z-=0.05;
-		log = true;
-		cam->move(live_obj_x, live_obj_y, live_obj_z);
-		break;
-	case 's': //zoom in
-		live_obj_z+=0.05;
-		log = true;
-		cam->move(live_obj_x, live_obj_y, live_obj_z);
-		break;
-	case 'a': //left
-		live_obj_x-=0.05;
-		log = true;
-		cam->move(live_obj_x, live_obj_y, live_obj_z);
-		break;
-	case 'd': //right
-		live_obj_x+=0.05;
-		log = true;
-		cam->move(live_obj_x, live_obj_y, live_obj_z);
-		break;
-	case 'i':
-		//init_particles();
-		break;
-	case 'v':
-		g_vol_render->switch_volume_mode();
-		break;
-	case 'b':
-		g_vol_render->switch_slice_mode();
-		break;
-	case 'n':
-		resize_offscreen_buffer(win_width*2, win_height*2);
-		break;
-	case 'm':
-		resize_offscreen_buffer(win_width/2, win_height/2);
-		break;
-
-	default:
-		break;
-    }	
-
+       exit(0);
+       break;
+   case '+':
+       lic_slice_z+=0.05;
+       lic->set_offset(lic_slice_z);
+       break;
+   case '-':
+       lic_slice_z-=0.05;
+       lic->set_offset(lic_slice_z);
+       break;
+   case ',':
+       lic_slice_x+=0.05;
+       //init_particles();
+       break;
+   case '.':
+       lic_slice_x-=0.05;
+       //init_particles();
+       break;
+   case '1':
+       //advect = true;
+       break;
+   case '2':
+       //psys_x+=0.05;
+       break;
+   case '3':
+       //psys_x-=0.05;
+       break;
+   case 'w': //zoom out
+       live_obj_z-=0.05;
+       log = true;
+       cam->move(live_obj_x, live_obj_y, live_obj_z);
+       break;
+   case 's': //zoom in
+       live_obj_z+=0.05;
+       log = true;
+       cam->move(live_obj_x, live_obj_y, live_obj_z);
+       break;
+   case 'a': //left
+       live_obj_x-=0.05;
+       log = true;
+       cam->move(live_obj_x, live_obj_y, live_obj_z);
+       break;
+   case 'd': //right
+       live_obj_x+=0.05;
+       log = true;
+       cam->move(live_obj_x, live_obj_y, live_obj_z);
+       break;
+   case 'i':
+       //init_particles();
+       break;
+   case 'v':
+       g_vol_render->switch_volume_mode();
+       break;
+   case 'b':
+       g_vol_render->switch_slice_mode();
+       break;
+   case 'n':
+       nv_resize_offscreen_buffer(win_width*2, win_height*2);
+       break;
+   case 'm':
+       nv_resize_offscreen_buffer(win_width/2, win_height/2);
+       break;
+   default:
+       break;
+   }	
 #ifdef EVENTLOG
    if(log){
-     float param[3] = {live_obj_x, live_obj_y, live_obj_z};
-     Event* tmp = new Event(EVENT_MOVE, param, NvGetTimeInterval());
-     tmp->write(event_log);
-     delete tmp;
+       float param[3] = {live_obj_x, live_obj_y, live_obj_z};
+       Event* tmp = new Event(EVENT_MOVE, param, NvGetTimeInterval());
+       tmp->write(event_log);
+       delete tmp;
    }
 #endif
 }
 
-void motion(int x, int y)
+static void 
+motion(int x, int y)
 {
-
     int old_x, old_y;	
 
     if(left_down){
-      old_x = left_last_x;
-      old_y = left_last_y;   
+	old_x = left_last_x;
+	old_y = left_last_y;   
+    } else if(right_down){
+	old_x = right_last_x;
+	old_y = right_last_y;   
     }
-    else if(right_down){
-      old_x = right_last_x;
-      old_y = right_last_y;   
-    }
-
+    
     int delta_x = x - old_x;
     int delta_y = y - old_y;
-
+    
     //more coarse event handling
     //if(abs(delta_x)<10 && abs(delta_y)<10)
-      //return;
-
+    //return;
+    
     if(left_down){
-      left_last_x = x;
-      left_last_y = y;
-
-      update_rot(-delta_y, -delta_x);
+	left_last_x = x;
+	left_last_y = y;
+	
+	update_rot(-delta_y, -delta_x);
+    } else if (right_down){
+	//fprintf(stderr, "right mouse motion (%d,%d)\n", x, y);
+	
+	right_last_x = x;
+	right_last_y = y;
+	
+	update_trans(0, 0, delta_x);
     }
-    else if (right_down){
-      //fprintf(stderr, "right mouse motion (%d,%d)\n", x, y);
-
-      right_last_x = x;
-      right_last_y = y;
-
-      update_trans(0, 0, delta_x);
-    }
-
+    
 #ifdef EVENTLOG
     float param[3] = {live_rot_x, live_rot_y, live_rot_z};
     Event* tmp = new Event(EVENT_ROTATE, param, NvGetTimeInterval());
     tmp->write(event_log);
     delete tmp;
 #endif
-
+    
     glutPostRedisplay();
 }
 
@@ -2512,7 +2495,8 @@ void removeAllData()
 int main(int argc, char** argv) 
 {
 
-    char path [1000];
+    char *path;
+    path = NULL;
     while(1) {
         int c;
         int this_option_optind = optind ? optind : 1;
@@ -2528,7 +2512,7 @@ int main(int argc, char** argv)
 
         switch(c) {
             case 'p':
-                strncpy(path, optarg, sizeof(path));
+                path = optarg;
                 break;
             default:
                 fprintf(stderr,"Don't know what option '%c'.\n", c);
@@ -2550,7 +2534,7 @@ int main(int argc, char** argv)
 
    glutInitWindowPosition(10, 10);
    render_window = glutCreateWindow(argv[0]);
-   glutDisplayFunc(display);
+   glutDisplayFunc(nv_display);
 
 #ifndef XINETD
    glutMouseFunc(mouse);
@@ -2559,7 +2543,7 @@ int main(int argc, char** argv)
 #endif
 
    glutIdleFunc(idle);
-   glutReshapeFunc(resize_offscreen_buffer);
+   glutReshapeFunc(nv_resize_offscreen_buffer);
 
    NvInit(path);
    initGL();
@@ -2577,3 +2561,4 @@ int main(int argc, char** argv)
 
     return 0;
 }
+
