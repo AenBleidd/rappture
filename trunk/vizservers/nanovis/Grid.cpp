@@ -3,8 +3,8 @@
 #include "Grid.h"
 
 Grid::Grid()
-: _axisColor(1.0f, 1.0f, 1.0f), _font(0), _axisGridLineCount(5.0f, 5.0f, 5.0f),
-_axisMin(0.0f, 0.0f, 0.0f), _axisMax(1.0f, 1.0f, 1.0f), _gridLineColor(1.0f, 1.0f, 1.0f), _visible(false)
+: _axisColor(1.0f, 1.0f, 1.0f, 1.0f), _font(0), _axisGridLineCount(5.0f, 5.0f, 5.0f),
+_axisMin(0.0f, 0.0f, 0.0f), _axisMax(1.0f, 1.0f, 1.0f), _gridLineColor(1.0f, 1.0f, 1.0f, 1.0f), _visible(false)
 {
 	__axisScale = _axisMax - _axisMin;
     _axisName[0] = "X";
@@ -17,8 +17,8 @@ void Grid::render()
 	glPushMatrix();
 	glEnable(GL_DEPTH_TEST);
 
-	//glTranslatef(0.5f, 0.5f, 0.5f);
-	glScalef(1.0f, __axisScale.y / __axisScale.x, __axisScale.z / __axisScale.x);
+	glScalef(1.0 / __axisScale.x, __axisScale.y / __axisScale.x, __axisScale.z / __axisScale.x);
+
 	glTranslatef(-0.5f, -0.5f, -0.5f);
 	glLineWidth(2.0f);
     glColor3f(_axisColor.x, _axisColor.y, _axisColor.z);
@@ -120,7 +120,7 @@ void Grid::render()
 			{
 				glLoadIdentity();
 				glTranslatef((int) winx, (int) viewport[3] - (int)winy, 0.0f);
-				sprintf(buff, "%0.2f", __axisScale.y / _axisGridLineCount.y * i);
+				sprintf(buff, "%0.2f", __axisScale.y / _axisGridLineCount.y * i + _axisMin.y);
 				_font->draw(buff);
 			}
 		}
@@ -131,7 +131,7 @@ void Grid::render()
 			{
 				glLoadIdentity();
 				glTranslatef((int) winx, (int) viewport[3] - (int)winy, 0.0f);
-				sprintf(buff, "%0.2f", __axisScale.z / _axisGridLineCount.z * i);
+				sprintf(buff, "%0.2f", __axisScale.z / _axisGridLineCount.z * i + _axisMin.z);
 				_font->draw(buff);
 			}
 		}
@@ -142,7 +142,7 @@ void Grid::render()
 			{
 				glLoadIdentity();
 				glTranslatef((int) winx, (int) viewport[3] - (int)winy, 0.0f);
-				sprintf(buff, "%0.2f", __axisScale.x / _axisGridLineCount.x * i);
+				sprintf(buff, "%0.2f", __axisScale.x / _axisGridLineCount.x * i + _axisMin.x);
 				_font->draw(buff);
 			}
 		}

@@ -29,6 +29,7 @@ class HeightMap {
     bool _visible;
     
     Vector3 _scale;
+    Vector3 _centerPoint;
 
     double _vmin;		// minimum (unscaled) value in data
     double _vmax;		// maximum (unscaled) value in data
