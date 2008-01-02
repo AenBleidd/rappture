@@ -14,8 +14,9 @@
 #include <fcntl.h>
 
 HeightMap::HeightMap()
-: _contour(0), _colorMap(0), _indexBuffer(0), _vertexBufferObjectID(0), _vertexCount(0), _textureBufferObjectID(0),
-  _contourVisible(true), _scale(1.0f, 1.0f, 1.0f), _contourColor(1.0f, 0.0f, 0.0f)
+: _contour(0), _colorMap(0), _indexBuffer(0), _indexCount(0), _vertexBufferObjectID(0), _vertexCount(0), 
+    _textureBufferObjectID(0), _contourVisible(true), _scale(1.0f, 1.0f, 1.0f), _contourColor(1.0f, 0.0f, 0.0f), _visible(false),
+    _vmin(0.0f), _vmax(0.0f), _centerPoint(0.0f, 0.0f, 0.0f)
 {
 	_shader = new NvShader();
 	R2string path = R2FilePath::getInstance()->getPath("heightcolor.cg");
@@ -41,8 +42,14 @@ HeightMap::~HeightMap()
 void HeightMap::render()
 {
     glPushMatrix();
-    glScalef(_scale.x, _scale.y, _scale.z);
-    glTranslatef(-0.5f, -0.5f, -0.5f);
+
+    if (_scale.x != 0)
+    {
+        glScalef(1 / _scale.x, 1 / _scale.x , 1 / _scale.x);
+    }
+
+    glTranslatef(-_centerPoint.x, - _centerPoint.y, - _centerPoint.z);
+
 	if (_contour)
 	{
 		glDepthRange (0.001, 1.0);
@@ -207,10 +214,17 @@ void HeightMap::setHeight(int xCount, int yCount, Vector3* heights)
 	{
 	    if (_vmin > heights[i].y) {
 		_vmin = heights[i].y;
-	    } else if (_vmax < heights[i].y) {
+	    } 
+        if (_vmax < heights[i].y) {
 		_vmax = heights[i].y;
 	    }
 	}
+
+    _scale.x = 1.0f;
+    _scale.z = _vmax - _vmin;
+    _scale.y = 1.0f;
+
+    _centerPoint.set(_scale.x * 0.5, _scale.z * 0.5 + _vmin, _scale.y * 0.5);
 
 	Vector3* texcoord = (Vector3*) malloc(count * sizeof(Vector3));
 	for (int i = 0; i < count; ++i)
@@ -258,6 +272,7 @@ void HeightMap::setHeight(int xCount, int yCount, Vector3* heights)
 void HeightMap::setHeight(float startX, float startY, float endX, float endY, int xCount, int yCount, float* heights)
 {
 	_vertexCount = xCount * yCount;
+
 	reset();
 
 	_vmin = heights[0], _vmax = heights[0];
@@ -265,16 +280,22 @@ void HeightMap::setHeight(float startX, float startY, float endX, float endY, in
 	for (int i = 0; i < count; ++i) {
 	    if (_vmin > heights[i]) {
 		_vmin = heights[i];
-	    } else if (_vmax < heights[i]) {
+	    } 
+
+        if (_vmax < heights[i]) {
 		_vmax = heights[i];
 	    }
 	}
-    //_scale.x = endX - startX;
-    //_scale.y = (endY - startY) / _scale.x;
-    //_scale.z = max / _scale.z;
+
+    _scale.x = endX - startX;
+    _scale.y = _vmax - _vmin;
+    _scale.z = endY - startY;
+
+    _centerPoint.set(_scale.x * 0.5 + startX, _scale.y * 0.5 + _vmin, _scale.z * 0.5 + startY);
 
 	Vector3* texcoord = (Vector3*) malloc(count * sizeof(Vector3));
-	for (int i = 0; i < count; ++i) {
+	for (int i = 0; i < count; ++i) 
+    {
 	    texcoord[i].set(0, 0, heights[i]);
 	}
 

@@ -1051,14 +1051,27 @@ HeightMapCmd(ClientData cdata, Tcl_Interp *interp, int argc,
 	for (int i = 0; i < size; ++i) {
 	    x = - 10 + i%20;
 	    data[i] = exp(- (x * x)/(2 * sigma * sigma)) / 
-		(sigma * sqrt(2.0)) / mean;
+		(sigma * sqrt(2.0)) / mean * 2;
 	}
+
 	HeightMap* heightMap = new HeightMap();
-	heightMap->setHeight(0.0f, 0.0f, 1.0f, 1.0f, 20, 20, data);
+    float minx = 0.0f;
+    float maxx = 1.0f;
+    float miny = 0.5f;
+    float maxy = 3.5f;
+	heightMap->setHeight(minx, miny, maxx, maxy, 20, 20, data);
 	heightMap->setColorMap(NanoVis::get_transfunc("default"));
 	heightMap->setVisible(true);
 	heightMap->setLineContourVisible(true);
 	NanoVis::g_heightMap.push_back(heightMap);
+
+
+    Vector3 min(minx, (float) heightMap->range_min(), miny);
+    Vector3 max(maxx, (float) heightMap->range_max(), maxy);
+
+    g_grid->setMinMax(min, max);
+    g_grid->setVisible(true);
+
 	return TCL_OK;
     }
     
@@ -1250,7 +1263,7 @@ GridCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
 	    return TCL_ERROR;
 	}
 	if (g_grid) {
-	    g_grid->setAxisColor(r, g, b);
+	    g_grid->setAxisColor(r, g, b, 1.0f);
 	}
     } else if ((c == 'l') && (strcmp(argv[1],"linecolor") == 0)) {
         float r, g, b;
@@ -1260,7 +1273,7 @@ GridCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
 	    return TCL_ERROR;
 	}
 	if (g_grid) {
-	    g_grid->setGridLineColor(r, g, b);
+	    g_grid->setGridLineColor(r, g, b, 1.0f);
 	}
     } else if ((c == 'm') && (strcmp(argv[1],"minmax") == 0)) {
 	double x1, y1, z1, x2, y2, z2;
