@@ -109,6 +109,7 @@ public:
     static PlaneRenderer* plane_render;
     static Texture2D* plane[10];
 #endif
+    static graphics::RenderContext* renderContext;
     static vector<HeightMap*> g_heightMap;
     static unsigned char* screen_buffer;
     static vector<Volume*> volume;

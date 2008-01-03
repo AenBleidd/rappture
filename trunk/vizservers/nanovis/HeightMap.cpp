@@ -12,6 +12,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <RenderContext.h>
 
 HeightMap::HeightMap()
 : _contour(0), _colorMap(0), _indexBuffer(0), _indexCount(0), _vertexBufferObjectID(0), _vertexCount(0), 
@@ -39,8 +40,21 @@ HeightMap::~HeightMap()
 	//if (_colorMap) delete _colorMap;
 }
 
-void HeightMap::render()
+void HeightMap::render(graphics::RenderContext* renderContext)
 {
+    if (renderContext->getCullMode() == graphics::RenderContext::NO_CULL)
+    {
+        glDisable(GL_CULL_FACE);
+    }
+    else
+    {
+        glEnable(GL_CULL_FACE);
+        glCullFace((GLuint) renderContext->getCullMode());
+    }
+
+    glPolygonMode(GL_FRONT_AND_BACK, (GLuint) renderContext->getPolygonMode());
+    glShadeModel((GLuint) renderContext->getShadingModel());
+
     glPushMatrix();
 
     if (_scale.x != 0)
@@ -104,6 +118,7 @@ void HeightMap::render()
 	}
 
 	glShadeModel(GL_FLAT);
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
 	if (_contour && _contourVisible)
 	{
