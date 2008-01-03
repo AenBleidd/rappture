@@ -7,6 +7,11 @@
 #include "TransferFunction.h"
 #include "NvShader.h"
 #include "Vector3.h"
+#include <RenderContext.h>
+
+namespace graphics {
+class RenderContext;
+};
 
 /**
  *@class HeightMap
@@ -50,7 +55,7 @@ private :
 	Vector3* createHeightVertices(float startX, float startY, float endX, float endY, int xCount, int yCount, float* height);
 	void reset();
 public :
-	void render();
+	void render(graphics::RenderContext* renderContext);
     /**
      *@brief Create a height map with heigh values
      *@param startX a x position of the first height value

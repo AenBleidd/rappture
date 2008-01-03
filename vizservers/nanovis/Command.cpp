@@ -49,6 +49,7 @@
 #include "HeightMap.h"
 #include "Grid.h"
 #include "Camera.h"
+#include <RenderContext.h>
 
 // FOR testing new functions
 //#define  _LOCAL_ZINC_TEST_
@@ -1184,51 +1185,100 @@ HeightMapCmd(ClientData cdata, Tcl_Interp *interp, int argc,
     } else if ((c == 't') && (strcmp(argv[1], "transfunc") == 0)) {
         TransferFunction *tf;
 
-	tf = NanoVis::get_transfunc(argv[2]);
+	    tf = NanoVis::get_transfunc(argv[2]);
         if (tf == NULL) {
             Tcl_AppendResult(interp, "transfer function \"", argv[2],
                 "\" is not defined", (char*)NULL);
             return TCL_ERROR;
         }
         vector<unsigned int> indices;
-        if (GetIndices(interp, argc - 3, argv + 3, &indices) != TCL_OK) {
-	    return TCL_ERROR;
-	}
-	for (unsigned int i = 0; i < indices.size(); ++i) {
-	    if ((indices[i] < NanoVis::g_heightMap.size()) && 
-		(NanoVis::g_heightMap[indices[i]] != NULL)) {
-		NanoVis::g_heightMap[indices[i]]->setColorMap(tf);
+        if (GetIndices(interp, argc - 3, argv + 3, &indices) != TCL_OK)     {
+	        return TCL_ERROR;
 	    }
+	    for (unsigned int i = 0; i < indices.size(); ++i) {
+	        if ((indices[i] < NanoVis::g_heightMap.size()) && 
+		    (NanoVis::g_heightMap[indices[i]] != NULL)) {
+		        NanoVis::g_heightMap[indices[i]]->setColorMap(tf);
+	        }
         }
-    } else if ((c == 'l') && (strcmp(argv[1], "legend") == 0)) {
-	if (argc != 5) {
-	    Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
+    } 
+    else if ((c == 'l') && (strcmp(argv[1], "legend") == 0)) {
+	    if (argc != 5) {
+	        Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
 			     " legend index width height\"", (char*)NULL);
-	    return TCL_ERROR;
-	}
-	HeightMap *hMap;
-	if (GetHeightMap(interp, argv[2], &hMap) != TCL_OK) {
-	    return TCL_ERROR;
-	}
-	TransferFunction *tf;
-	tf = hMap->getColorMap();
-	if (tf == NULL) {
-	    Tcl_AppendResult(interp, 
+	        return TCL_ERROR;
+	    }
+	    HeightMap *hMap;
+	    if (GetHeightMap(interp, argv[2], &hMap) != TCL_OK) {
+	        return TCL_ERROR;
+	    }
+	    TransferFunction *tf;
+	    tf = hMap->getColorMap();
+	    if (tf == NULL) {
+	        Tcl_AppendResult(interp, 
 			"no transfer function defined for heightmap \"", 
 			argv[1], "\"", (char*)NULL);
-	    return TCL_ERROR;
-	}
-	int width, height;
-	if ((Tcl_GetInt(interp, argv[3], &width) != TCL_OK) || 
-	    (Tcl_GetInt(interp, argv[4], &height) != TCL_OK)) {
-	    return TCL_ERROR;
-	}
-	NanoVis::render_legend(tf, hMap->range_min(), hMap->range_max(), 
+	        return TCL_ERROR;
+	    }
+	    int width, height;
+	    if ((Tcl_GetInt(interp, argv[3], &width) != TCL_OK) || 
+	        (Tcl_GetInt(interp, argv[4], &height) != TCL_OK)) {
+	        return TCL_ERROR;
+	    }
+	    NanoVis::render_legend(tf, hMap->range_min(), hMap->range_max(), 
 			       width, height, argv[1]);
-    } else {
-	Tcl_AppendResult(interp, "bad option \"", argv[1],
+    } 
+    else if ((c == 'p') && (strcmp(argv[1], "polygon") == 0)) 
+    {
+        if (!strcmp(argv[2],"wireframe")) 
+        {
+            NanoVis::renderContext->setPolygonMode(graphics::RenderContext::LINE);
+	        return TCL_OK;
+        }
+        else if (!strcmp(argv[2],"fill")) 
+        {
+            NanoVis::renderContext->setPolygonMode(graphics::RenderContext::FILL);
+	        return TCL_OK;
+        }
+	    return TCL_ERROR;
+    }
+    else if ((c == 'c') && (strcmp(argv[1], "cull") == 0)) 
+    {
+        if (!strcmp(argv[2],"no")) 
+        {
+            NanoVis::renderContext->setCullMode(graphics::RenderContext::NO_CULL);
+	        return TCL_OK;
+        }
+        else if (!strcmp(argv[2],"front")) 
+        {
+            NanoVis::renderContext->setCullMode(graphics::RenderContext::FRONT);
+	        return TCL_OK;
+        }
+        else if (!strcmp(argv[2],"back")) 
+        {
+            NanoVis::renderContext->setCullMode(graphics::RenderContext::BACK);
+	        return TCL_OK;
+        }
+	    return TCL_ERROR;
+    }
+    else if ((c == 's') && (strcmp(argv[1], "shade") == 0)) 
+    {
+        if (!strcmp(argv[2],"flat")) 
+        {
+            NanoVis::renderContext->setShadingModel(graphics::RenderContext::FLAT);
+	        return TCL_OK;
+        }
+        else if (!strcmp(argv[2],"smooth")) 
+        {
+            NanoVis::renderContext->setShadingModel(graphics::RenderContext::SMOOTH);
+	        return TCL_OK;
+        }
+	    return TCL_ERROR;
+    }
+    else {
+	    Tcl_AppendResult(interp, "bad option \"", argv[1],
         "\": should be data, linecontour, legend, or transfunc", (char*)NULL);
-	return TCL_ERROR;
+	    return TCL_ERROR;
     }
     return TCL_OK;
 }

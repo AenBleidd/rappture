@@ -53,6 +53,7 @@
 #include "NvZincBlendeReconstructor.h"
 #include "HeightMap.h"
 #include "Grid.h"
+#include <RenderContext.h>
 
 //#define  _LOCAL_ZINC_TEST_
 
@@ -81,6 +82,8 @@ int NanoVis::win_height = NPIX;			//size of the render window
 int NanoVis::n_volumes = 0;
 unsigned char* NanoVis::screen_buffer = NULL;
 vector<HeightMap*> NanoVis::g_heightMap;
+
+graphics::RenderContext* NanoVis::renderContext = 0;
 
 // pointers to volumes, currently handle up to 10 volumes
 /*FIXME: Is the above comment true? Is there a 10 volume limit */
@@ -621,6 +624,9 @@ NanoVis::initGL(void)
    //create volume renderer and add volumes to it
    g_vol_render = new VolumeRenderer();
 
+
+   // create
+   renderContext = new graphics::RenderContext();
    
 #ifdef notdef
    //I added this to debug : Wei
@@ -1349,7 +1355,7 @@ NanoVis::display()
 	
         for (unsigned int i = 0; i < g_heightMap.size(); ++i) {
             if (g_heightMap[i]->isVisible()) {
-                g_heightMap[i]->render();
+                g_heightMap[i]->render(renderContext);
 	    }
         }
         glPopMatrix();

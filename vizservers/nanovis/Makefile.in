@@ -89,6 +89,7 @@ OBJS  = \
 	R2Object.o \
 	R2VertexBuffer.o \
 	R2string.o \
+	RenderContext.o \
 	RenderVertexArray.o \
 	Renderable.o \
 	ScreenSnapper.o \
@@ -301,6 +302,8 @@ BMPImageLoaderImpl.o: imgLoaders/BMPImageLoaderImpl.cpp
 	$(CC) $(CC_SWITCHES) -o $@ -c $<
 ImageLoaderFactory.o: imgLoaders/ImageLoaderFactory.cpp
 	$(CC) $(CC_SWITCHES) -o $@ -c $<
+
+RenderContext.o: RenderContext.cpp RenderContext.h
 
 Util.o: Util.cpp Util.h
 Command.o: Command.cpp Command.h
