@@ -39,22 +39,12 @@ itcl::class Rappture::Field2DResult {
     public method scale {args}
     public method parameters {title args} { # do nothing }
     public method download {option args}
-
-    # resources file tells us the nanovis server
-    public common _nanovisHosts ""
-    public proc setNanovisServer {namelist} {
-        if {[regexp {^[a-zA-Z0-9\.]+:[0-9]+(,[a-zA-Z0-9\.]+:[0-9]+)*$} $namelist match]} {
-            set _nanovisHosts $namelist
-        } else {
-            error "bad nanovis server address \"$namelist\": should be host:port,host:port,..."
-        }
-    }
 }
 
 # must use this name -- plugs into Rappture::resources::load
 proc field2d_init_resources {} {
     Rappture::resources::register \
-        nanovis_server Rappture::Field2DResult::setNanovisServer
+        nanovis_server Rappture::NanovisServer::setServer
 }
 
 itk::usual Field2DResult {
@@ -70,26 +60,21 @@ itcl::body Rappture::Field2DResult::constructor {args} {
         -mode auto
     }
     array set flags $args
-
-    if {"" != $_nanovisHosts && $flags(-mode) != "vtk"} {
+    if { $flags(-mode) == "heightmap" } {
+	set servers [Rappture::NanovisServer::getServer]
+	if { $servers == "" } {
+	    error "No nanovis servers available"
+	}
         itk_component add renderer {
-            Rappture::HeightMapViewer $itk_interior.ren $_nanovisHosts
+            Rappture::HeightmapViewer $itk_interior.ren $servers
         }
         pack $itk_component(renderer) -expand yes -fill both
-
-        # can't connect to rendering farm?  then fall back to older viewer
-        if {![$itk_component(renderer) isconnected]} {
-            destroy $itk_component(renderer)
-        }
-    }
-
-    if {![info exists itk_component(renderer)]} {
+    } else {
         itk_component add renderer {
             Rappture::ContourResult $itk_interior.ren
         }
         pack $itk_component(renderer) -expand yes -fill both
     }
-
     eval itk_initialize $args
 }
 

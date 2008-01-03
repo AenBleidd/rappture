@@ -238,11 +238,13 @@ itcl::body Rappture::ResultViewer::_plotAdd {dataobj {settings ""}} {
                 2D {
                     set mode "contour"
                     if {![info exists _mode2widget($mode)]} {
+			set mesh [$dataobj mesh]
+                        set fmt [expr {("" != $mesh) ? "vtk" : "heightmap"}]
                         set w $itk_interior.contour
-                        Rappture::ContourResult $w
+                        Rappture::Field2DResult $w -mode $fmt
                         set _mode2widget($mode) $w
                     }
-                }
+		}
                 3D {
                     set mode "field3D"
                     if {![info exists _mode2widget($mode)]} {
