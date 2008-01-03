@@ -86,8 +86,6 @@ void HeightMap::render(graphics::RenderContext* renderContext)
             cgGLBindProgram(_shader->getFP());
             cgGLEnableProfile(CG_PROFILE_FP30);
 
-	    fprintf(stderr, "set texture param id=%d\n", _colorMap->id);
-	    fflush(stderr);
 			cgGLSetTextureParameter(_tf, _colorMap->id);
 			cgGLEnableTextureParameter(_tf);
 

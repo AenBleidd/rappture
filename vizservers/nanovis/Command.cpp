@@ -1039,8 +1039,6 @@ static int
 HeightMapCmd(ClientData cdata, Tcl_Interp *interp, int argc, 
 	     const char *argv[])
 {
-    fprintf(stderr, "in heightmap command\n");
-    fflush(stderr);
     if (argc < 2) {
 	srand((unsigned)time(NULL));
 	int size = 20 * 20;
@@ -1090,8 +1088,6 @@ HeightMapCmd(ClientData cdata, Tcl_Interp *interp, int argc,
 	sprintf(interp->result, "%d", NanoVis::g_heightMap.size() - 1);
 	return TCL_OK;
     } else if ((c == 'd') && (strcmp(argv[1],"data") == 0)) {
-	fprintf(stderr, "heightmap data\n");
-    fflush(stderr);
         //bytes
         char c;
 	c = argv[2][0];
@@ -1117,20 +1113,16 @@ HeightMapCmd(ClientData cdata, Tcl_Interp *interp, int argc,
 	    Rappture::Buffer buf;
             int nBytes;
 
-	    fprintf(stderr, "in data follows\n");
-    fflush(stderr);
             if (Tcl_GetInt(interp, argv[3], &nBytes) != TCL_OK) {
                 return TCL_ERROR;
             }
-	    fprintf(stderr, "expecting %d bytes\n", nBytes);
-    fflush(stderr);
 	    if (FillBufferFromStdin(interp, buf, nBytes) != TCL_OK) {
 		return TCL_ERROR;
 	    }
 	    if (Tcl_Eval(interp, buf.bytes()) != TCL_OK) {
 		fprintf(stderr, "error in command: %s\n", 
 			Tcl_GetStringResult(interp));
-    fflush(stderr);
+		fflush(stderr);
 		return TCL_ERROR;
 	    }
         } else {
@@ -1306,24 +1298,32 @@ GridCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
 	    g_grid->setGridLineCount(x, y, z);
 	}
     } else if ((c == 'a') && (strcmp(argv[1],"axiscolor") == 0)) {
-        float r, g, b;
+        float r, g, b, a;
         if ((GetFloat(interp, argv[2], &r) != TCL_OK) ||
             (GetFloat(interp, argv[3], &g) != TCL_OK) ||
             (GetFloat(interp, argv[4], &b) != TCL_OK)) {
 	    return TCL_ERROR;
 	}
+	a = 1.0f;
+	if ((argc == 6) && (GetFloat(interp, argv[5], &a) != TCL_OK)) {
+	    return TCL_ERROR;
+	}	    
 	if (g_grid) {
-	    g_grid->setAxisColor(r, g, b, 1.0f);
+	    g_grid->setAxisColor(r, g, b, a);
 	}
     } else if ((c == 'l') && (strcmp(argv[1],"linecolor") == 0)) {
-        float r, g, b;
+        float r, g, b, a;
         if ((GetFloat(interp, argv[2], &r) != TCL_OK) ||
             (GetFloat(interp, argv[3], &g) != TCL_OK) ||
 	    (GetFloat(interp, argv[4], &b) != TCL_OK)) {
 	    return TCL_ERROR;
 	}
+	a = 1.0f;
+	if ((argc == 6) && (GetFloat(interp, argv[5], &a) != TCL_OK)) {
+	    return TCL_ERROR;
+	}	    
 	if (g_grid) {
-	    g_grid->setGridLineColor(r, g, b, 1.0f);
+	    g_grid->setGridLineColor(r, g, b, a);
 	}
     } else if ((c == 'm') && (strcmp(argv[1],"minmax") == 0)) {
 	double x1, y1, z1, x2, y2, z2;
@@ -1992,8 +1992,6 @@ UniRect2dCmd(ClientData, Tcl_Interp *interp, int argc, const char *argv[])
     float xMin, yMin, xMax, yMax;
     float *zValues;
 
-    fprintf(stderr, "in unirect2d command\n");
-    fflush(stderr);
     if ((argc & 0x01) == 0) {
 	Tcl_AppendResult(interp, 
 		"wrong number of arguments: should be key-value pairs", 
@@ -2065,8 +2063,6 @@ UniRect2dCmd(ClientData, Tcl_Interp *interp, int argc, const char *argv[])
 	Tcl_AppendResult(interp, "missing \"zvalues\" key", (char *)NULL);
 	return TCL_ERROR;
     }
-    fprintf(stderr, "xnum=%d, ynum=%d, znum=%d\n", xNum, yNum, zNum);
-    fflush(stderr);
     if (zNum != (xNum * yNum)) {
 	Tcl_AppendResult(interp, "wrong number of z values must be xnum*ynum",
 		(char *)NULL);
