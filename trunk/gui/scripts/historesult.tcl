@@ -381,7 +381,6 @@ itcl::body Rappture::HistoResult::scale {args} {
                 # store results -- ex: _limits(x2log-min)
                 set id $map($axis)$type
                 foreach {min max} [$xydata limits $axis$type] break
-		puts stderr "axis=$axis min=$min, max=$max"
                 if {"" != $min && "" != $max} {
                     if {![info exists _limits($id-min)]} {
                         set _limits($id-min) $min

@@ -1,9 +1,8 @@
-
 # ----------------------------------------------------------------------
-#  COMPONENT: HeightMapViewer - 2D Surface rendering
+#  COMPONENT: heightmapviewer - 3D volume rendering
 #
-#  This widget performs surface rendering on 3D dataset.
-#  It connects to the nanovis server running on a rendering farm,
+#  This widget performs volume rendering on 3D scalar/vector datasets.
+#  It connects to the Nanovis server running on a rendering farm,
 #  transmits data, and displays the results.
 # ======================================================================
 #  AUTHOR:  Michael McLennan, Purdue University
@@ -16,18 +15,18 @@ package require Itk
 package require BLT
 package require Img
 
-option add *HeightMapViewer.width 4i widgetDefault
-option add *HeightMapViewer.height 4i widgetDefault
-option add *HeightMapViewer.foreground black widgetDefault
-option add *HeightMapViewer.controlBackground gray widgetDefault
-option add *HeightMapViewer.controlDarkBackground #999999 widgetDefault
-option add *HeightMapViewer.plotBackground black widgetDefault
-option add *HeightMapViewer.plotForeground white widgetDefault
-option add *HeightMapViewer.plotOutline gray widgetDefault
-option add *HeightMapViewer.font \
+option add *HeightmapViewer.width 4i widgetDefault
+option add *HeightmapViewer.height 4i widgetDefault
+option add *HeightmapViewer.foreground black widgetDefault
+option add *HeightmapViewer.controlBackground gray widgetDefault
+option add *HeightmapViewer.controlDarkBackground #999999 widgetDefault
+option add *HeightmapViewer.plotBackground black widgetDefault
+option add *HeightmapViewer.plotForeground white widgetDefault
+option add *HeightmapViewer.plotOutline white widgetDefault
+option add *HeightmapViewer.font \
     -*-helvetica-medium-r-normal-*-12-* widgetDefault
 
-itcl::class Rappture::HeightMapViewer {
+itcl::class Rappture::HeightmapViewer {
     inherit itk::Widget
 
     itk_option define -plotforeground plotForeground Foreground ""
@@ -60,7 +59,7 @@ itcl::class Rappture::HeightMapViewer {
     protected method _receive_echo {channel {data ""}}
 
     protected method _rebuild {}
-    protected method _currentVolumeIds {{what -all}}
+    protected method _currentHeightMapIds {{what -all}}
     protected method _zoom {option}
     protected method _move {option x y}
     protected method _probe {option args}
@@ -68,6 +67,9 @@ itcl::class Rappture::HeightMapViewer {
     protected method _state {comp}
     protected method _fixSettings {what {value ""}}
     protected method _fixLegend {}
+    protected method _fixGrid {}
+    protected method _fixAxes {}
+    protected method _fixContourLines {}
     protected method _serverDown {}
     protected method _getTransfuncData {dataobj comp}
     protected method _color2rgb {color}
@@ -91,9 +93,12 @@ itcl::class Rappture::HeightMapViewer {
     private variable _click        ;# info used for _move operations
     private variable _limits       ;# autoscale min/max for all axes
     private variable _view         ;# view params for 3D view
+
+    private common _showGrid	   ;# Array indicates whether grid is on 
+    private common _showAxes	   ;# Array indicates whether axis is on 
 }
 
-itk::usual HeightMapViewer {
+itk::usual HeightmapViewer {
     keep -background -foreground -cursor -font
     keep -plotbackground -plotforeground
 }
@@ -101,7 +106,7 @@ itk::usual HeightMapViewer {
 # ----------------------------------------------------------------------
 # CONSTRUCTOR
 # ----------------------------------------------------------------------
-itcl::body Rappture::HeightMapViewer::constructor {hostlist args} {
+itcl::body Rappture::HeightmapViewer::constructor {hostlist args} {
     Rappture::dispatcher _dispatcher
     $_dispatcher register !legend
     $_dispatcher dispatch $this !legend "[itcl::code $this _fixLegend]; list"
@@ -209,28 +214,32 @@ itcl::body Rappture::HeightMapViewer::constructor {hostlist args} {
 
     Rappture::Balloon $itk_component(controls).panel -title "Settings"
     set inner [$itk_component(controls).panel component inner]
-    frame $inner.scales
-    pack $inner.scales -side top -fill x
-    grid columnconfigure $inner.scales 1 -weight 1
+    
+    frame $inner.f
+    pack $inner.f -side top -fill x
+    grid columnconfigure $inner.f 1 -weight 1
     set fg [option get $itk_component(hull) font Font]
+    
+    set ::Rappture::HeightmapViewer::_showGrid($this) 1
+    ::checkbutton $inner.f.grid \
+	-text "Show Grid" \
+	-variable ::Rappture::HeightmapViewer::_showGrid($this) \
+	-command [itcl::code $this _fixGrid]
+    grid $inner.f.grid -row 0 -column 0 -sticky w
 
-    label $inner.scales.diml -text "Dim" -font $fg
-    grid $inner.scales.diml -row 0 -column 0 -sticky e
-    ::scale $inner.scales.light -from 0 -to 100 -orient horizontal \
-        -showvalue off -command [itcl::code $this _fixSettings light]
-    grid $inner.scales.light -row 0 -column 1 -sticky ew
-    label $inner.scales.brightl -text "Bright" -font $fg
-    grid $inner.scales.brightl -row 0 -column 2 -sticky w
-    $inner.scales.light set 40
+    set ::Rappture::HeightmapViewer::_showAxes($this) 1
+    ::checkbutton $inner.f.axes \
+	-text "Show Axes" \
+	-variable ::Rappture::HeightmapViewer::_showAxes($this) \
+	-command [itcl::code $this _fixAxes]
+    grid $inner.f.axes -row 1 -column 0 -sticky w
 
-    label $inner.scales.fogl -text "Fog" -font $fg
-    grid $inner.scales.fogl -row 1 -column 0 -sticky e
-    ::scale $inner.scales.transp -from 0 -to 100 -orient horizontal \
-        -showvalue off -command [itcl::code $this _fixSettings transp]
-    grid $inner.scales.transp -row 1 -column 1 -sticky ew
-    label $inner.scales.plasticl -text "Plastic" -font $fg
-    grid $inner.scales.plasticl -row 1 -column 2 -sticky w
-    $inner.scales.transp set 50
+    set ::Rappture::HeightmapViewer::_showContourLines($this) 1
+    ::checkbutton $inner.f.contour \
+	-text "Show Contour Lines" \
+	-variable ::Rappture::HeightmapViewer::_showContourLines($this) \
+	-command [itcl::code $this _fixContourLines]
+    grid $inner.f.contour -row 2 -column 0 -sticky w
 
     #
     # RENDERING AREA
@@ -283,7 +292,7 @@ itcl::body Rappture::HeightMapViewer::constructor {hostlist args} {
 # ----------------------------------------------------------------------
 # DESTRUCTOR
 # ----------------------------------------------------------------------
-itcl::body Rappture::HeightMapViewer::destructor {} {
+itcl::body Rappture::HeightmapViewer::destructor {} {
     set _sendobjs ""  ;# stop any send in progress
     after cancel [itcl::code $this _send_dataobjs]
     after cancel [itcl::code $this _rebuild]
@@ -300,7 +309,7 @@ itcl::body Rappture::HeightMapViewer::destructor {} {
 # <settings> are used to configure the plot.  Allowed settings are
 # -color, -brightness, -width, -linestyle, and -raise.
 # ----------------------------------------------------------------------
-itcl::body Rappture::HeightMapViewer::add {dataobj {settings ""}} {
+itcl::body Rappture::HeightmapViewer::add {dataobj {settings ""}} {
     array set params {
         -color auto
         -width 1
@@ -341,7 +350,7 @@ itcl::body Rappture::HeightMapViewer::add {dataobj {settings ""}} {
 # order from bottom to top of this result.  The optional "-image"
 # flag can also request the internal images being shown.
 # ----------------------------------------------------------------------
-itcl::body Rappture::HeightMapViewer::get {args} {
+itcl::body Rappture::HeightmapViewer::get {args} {
     if {[llength $args] == 0} {
         set args "-objects"
     }
@@ -352,7 +361,8 @@ itcl::body Rappture::HeightMapViewer::get {args} {
         # put the dataobj list in order according to -raise options
         set dlist $_dlist
         foreach obj $dlist {
-            if {[info exists _obj2ovride($obj-raise)] && $_obj2ovride($obj-raise)} {
+            if { [info exists _obj2ovride($obj-raise)] && 
+		 $_obj2ovride($obj-raise)} {
                 set i [lsearch -exact $dlist $obj]
                 if {$i >= 0} {
                     set dlist [lreplace $dlist $i $i]
@@ -390,7 +400,7 @@ itcl::body Rappture::HeightMapViewer::get {args} {
 # Clients use this to delete a dataobj from the plot.  If no dataobjs
 # are specified, then all dataobjs are deleted.
 # ----------------------------------------------------------------------
-itcl::body Rappture::HeightMapViewer::delete {args} {
+itcl::body Rappture::HeightmapViewer::delete {args} {
     if {[llength $args] == 0} {
         set args $_dlist
     }
@@ -424,7 +434,7 @@ itcl::body Rappture::HeightMapViewer::delete {args} {
 # Because of this, the limits are appropriate for all objects as
 # the user scans through data in the ResultSet viewer.
 # ----------------------------------------------------------------------
-itcl::body Rappture::HeightMapViewer::scale {args} {
+itcl::body Rappture::HeightmapViewer::scale {args} {
     foreach val {xmin xmax ymin ymax zmin zmax vmin vmax} {
         set _limits($val) ""
     }
@@ -458,10 +468,12 @@ itcl::body Rappture::HeightMapViewer::scale {args} {
 # "ext" is the file extension (indicating the type of data) and
 # "string" is the data itself.
 # ----------------------------------------------------------------------
-itcl::body Rappture::HeightMapViewer::download {option args} {
+itcl::body Rappture::HeightmapViewer::download {option args} {
     switch $option {
         coming {
-            if {[catch {blt::winop snap $itk_component(area) $_image(download)}]} {
+            if {[catch {
+		blt::winop snap $itk_component(area) $_image(download)
+	    }]} {
                 $_image(download) configure -width 1 -height 1
                 $_image(download) put #000000
             }
@@ -498,7 +510,7 @@ itcl::body Rappture::HeightMapViewer::download {option args} {
 # server, or to reestablish a connection to the previous server.
 # Any existing connection is automatically closed.
 # ----------------------------------------------------------------------
-itcl::body Rappture::HeightMapViewer::connect {{hostlist ""}} {
+itcl::body Rappture::HeightmapViewer::connect {{hostlist ""}} {
     disconnect
 
     if {"" != $hostlist} { set _nvhosts $hostlist }
@@ -569,7 +581,7 @@ itcl::body Rappture::HeightMapViewer::connect {{hostlist ""}} {
 # Clients use this method to disconnect from the current rendering
 # server.
 # ----------------------------------------------------------------------
-itcl::body Rappture::HeightMapViewer::disconnect {} {
+itcl::body Rappture::HeightmapViewer::disconnect {} {
     if {"" != $_sid} {
         catch {close $_sid}
         set _sid ""
@@ -590,7 +602,7 @@ itcl::body Rappture::HeightMapViewer::disconnect {} {
 # Clients use this method to see if we are currently connected to
 # a server.
 # ----------------------------------------------------------------------
-itcl::body Rappture::HeightMapViewer::isconnected {} {
+itcl::body Rappture::HeightmapViewer::isconnected {} {
     return [expr {"" != $_sid}]
 }
 
@@ -601,7 +613,7 @@ itcl::body Rappture::HeightMapViewer::isconnected {} {
 # This is a more convenient form of _send_text, which actually
 # does the sending.
 # ----------------------------------------------------------------------
-itcl::body Rappture::HeightMapViewer::_send {args} {
+itcl::body Rappture::HeightmapViewer::_send {args} { 
     _send_text $args
 }
 
@@ -610,7 +622,7 @@ itcl::body Rappture::HeightMapViewer::_send {args} {
 #
 # Used internally to send commands off to the rendering server.
 # ----------------------------------------------------------------------
-itcl::body Rappture::HeightMapViewer::_send_text {string} {
+itcl::body Rappture::HeightmapViewer::_send_text {string} {
     if {"" == $_sid} {
         $_dispatcher cancel !serverDown
         set x [expr {[winfo rootx $itk_component(area)]+10}]
@@ -665,16 +677,17 @@ itcl::body Rappture::HeightMapViewer::_send_text {string} {
 # server.  Sends each object, a little at a time, with updates in
 # between so the interface doesn't lock up.
 # ----------------------------------------------------------------------
-itcl::body Rappture::HeightMapViewer::_send_dataobjs {} {
+itcl::body Rappture::HeightmapViewer::_send_dataobjs {} {
     blt::busy hold $itk_component(hull); update idletasks
 
     foreach dataobj $_sendobjs {
         foreach comp [$dataobj components] {
             # send the data as one huge base64-encoded mess -- yuck!
-            set data [$dataobj values $comp]
+            set data [$dataobj blob $comp]
 
             # tell the engine to expect some data
-            set cmdstr "heightmap data follows [string length $data]"
+	    set length [string length $data]
+            set cmdstr "heightmap data follows $length"
             _send_echo >>line $cmdstr
             if {[catch {puts $_sid $cmdstr} err]} {
                 disconnect
@@ -707,8 +720,7 @@ itcl::body Rappture::HeightMapViewer::_send_dataobjs {} {
             # and make sure that it's defined on the server.
             #
             foreach {sname cmap wmap} [_getTransfuncData $dataobj $comp] break
-
-            set cmdstr [list transfunc define $sname $cmap $wmap]
+            set cmdstr [list "transfunc" "define" $sname $cmap $wmap]
             _send_echo >>line $cmdstr
             if {[catch {puts $_sid $cmdstr} err]} {
                 disconnect
@@ -727,13 +739,15 @@ itcl::body Rappture::HeightMapViewer::_send_dataobjs {} {
     if {"" != $first} {
         set axis [$first hints updir]
         if {"" != $axis} {
-            _send up $axis
+            _send "up" $axis
         }
     }
 
     foreach key [array names _obj2id *-*] {
+        set state [string match $first-* $key]
+        _send "heightmap" "data" "visible" $state $_obj2id($key)
         if {[info exists _obj2style($key)]} {
-            _send "heightmap" "transfunc" $_obj2style($key) 
+            _send "heightmap" "transfunc" $_obj2style($key) $_obj2id($key)
         }
     }
 
@@ -757,7 +771,7 @@ itcl::body Rappture::HeightMapViewer::_send_dataobjs {} {
 # invoked in the global scope with the <channel> and <data> values
 # as arguments.  Otherwise, this does nothing.
 # ----------------------------------------------------------------------
-itcl::body Rappture::HeightMapViewer::_send_echo {channel {data ""}} {
+itcl::body Rappture::HeightmapViewer::_send_echo {channel {data ""}} {
     if {[string length $itk_option(-sendcommand)] > 0} {
         uplevel #0 $itk_option(-sendcommand) [list $channel $data]
     }
@@ -770,7 +784,7 @@ itcl::body Rappture::HeightMapViewer::_send_echo {channel {data ""}} {
 # rendering server.  Reads the incoming command and executes it in
 # a safe interpreter to handle the action.
 # ----------------------------------------------------------------------
-itcl::body Rappture::HeightMapViewer::_receive {} {
+itcl::body Rappture::HeightmapViewer::_receive {} {
     if {"" != $_sid} {
         if {[gets $_sid line] < 0} {
             disconnect
@@ -787,7 +801,6 @@ itcl::body Rappture::HeightMapViewer::_receive {} {
         } else {
             # this shows errors coming back from the engine
             _receive_echo <<error $line
-            puts stderr $line
         }
     }
 }
@@ -799,7 +812,7 @@ itcl::body Rappture::HeightMapViewer::_receive {} {
 # the rendering server.  Indicates that binary image data with the
 # specified <size> will follow.
 # ----------------------------------------------------------------------
-itcl::body Rappture::HeightMapViewer::_receive_image {option size} {
+itcl::body Rappture::HeightmapViewer::_receive_image {option size} {
     if {"" != $_sid} {
         set bytes [read $_sid $size]
         $_image(plot) configure -data $bytes
@@ -814,7 +827,7 @@ itcl::body Rappture::HeightMapViewer::_receive_image {option size} {
 # the rendering server.  Indicates that binary image data with the
 # specified <size> will follow.
 # ----------------------------------------------------------------------
-itcl::body Rappture::HeightMapViewer::_receive_legend {ivol vmin vmax size} {
+itcl::body Rappture::HeightmapViewer::_receive_legend {ivol vmin vmax size} {
     if {"" != $_sid} {
         set bytes [read $_sid $size]
         $_image(legend) configure -data $bytes
@@ -856,7 +869,7 @@ itcl::body Rappture::HeightMapViewer::_receive_legend {ivol vmin vmax size} {
 # invoked in the global scope with the <channel> and <data> values
 # as arguments.  Otherwise, this does nothing.
 # ----------------------------------------------------------------------
-itcl::body Rappture::HeightMapViewer::_receive_echo {channel {data ""}} {
+itcl::body Rappture::HeightmapViewer::_receive_echo {channel {data ""}} {
     if {[string length $itk_option(-receivecommand)] > 0} {
         uplevel #0 $itk_option(-receivecommand) [list $channel $data]
     }
@@ -869,7 +882,7 @@ itcl::body Rappture::HeightMapViewer::_receive_echo {channel {data ""}} {
 # data in the widget.  Clears any existing data and rebuilds the
 # widget to display new data.
 # ----------------------------------------------------------------------
-itcl::body Rappture::HeightMapViewer::_rebuild {} {
+itcl::body Rappture::HeightmapViewer::_rebuild {} {
     # in the midst of sending data? then bail out
     if {[llength $_sendobjs] > 0} {
         return
@@ -903,12 +916,12 @@ itcl::body Rappture::HeightMapViewer::_rebuild {} {
             }
         }
         foreach key [array names _obj2id *-*] {
+            set state [string match $first-* $key]
+            _send "heightmap" "data" "visible" $state $_obj2id($key)
             if {[info exists _obj2style($key)]} {
-                _send "heightmap" "transfunc" $_obj2style($key)
+                _send "heightmap" "transfunc" $_obj2style($key) $_obj2id($key)
             }
         }
-
-        eval _send volume data state [_state volume] $vols
         $_dispatcher event -idle !legend
     }
 
@@ -917,25 +930,23 @@ itcl::body Rappture::HeightMapViewer::_rebuild {} {
     #
     eval _send camera angle [_euler2xyz $_view(theta) $_view(phi) $_view(psi)]
     _send camera zoom $_view(zoom)
-    #_fixSettings light
-    #_fixSettings transp
 
-    if {"" == $itk_option(-plotoutline)} {
-        _send heightmap linecontour visible off
-    } else {
-        _send heightmap linecontour visible on
-        _send heightmap linecontour color [_color2rgb $itk_option(-plotoutline)]
-    }
+     if {"" == $itk_option(-plotoutline)} {
+         eval _send "grid"  "linecolor" [_color2rgb $itk_option(-plotoutline)]
+     }
+    _fixGrid
+    _fixAxes
+    _fixContourLines
 }
 
 # ----------------------------------------------------------------------
-# USAGE: _currentVolumeIds ?-cutplanes?
+# USAGE: _currentHeightMapIds ?-cutplanes?
 #
 # Returns a list of volume server IDs for the current volume being
 # displayed.  This is normally a single ID, but it might be a list
 # of IDs if the current data object has multiple components.
 # ----------------------------------------------------------------------
-itcl::body Rappture::HeightMapViewer::_currentVolumeIds {{what -all}} {
+itcl::body Rappture::HeightmapViewer::_currentHeightMapIds {{what -all}} {
     set rlist ""
 
     set first [lindex [get] 0]
@@ -963,7 +974,7 @@ itcl::body Rappture::HeightMapViewer::_currentVolumeIds {{what -all}} {
 # Called automatically when the user clicks on one of the zoom
 # controls for this widget.  Changes the zoom for the current view.
 # ----------------------------------------------------------------------
-itcl::body Rappture::HeightMapViewer::_zoom {option} {
+itcl::body Rappture::HeightmapViewer::_zoom {option} {
     switch -- $option {
         in {
             set _view(zoom) [expr {$_view(zoom)*1.25}]
@@ -992,7 +1003,7 @@ itcl::body Rappture::HeightMapViewer::_zoom {option} {
 # Called automatically when the user clicks/drags/releases in the
 # plot area.  Moves the plot according to the user's actions.
 # ----------------------------------------------------------------------
-itcl::body Rappture::HeightMapViewer::_move {option x y} {
+itcl::body Rappture::HeightmapViewer::_move {option x y} {
     switch -- $option {
         click {
             $itk_component(3dview) configure -cursor fleur
@@ -1062,7 +1073,6 @@ itcl::body Rappture::HeightMapViewer::_move {option x y} {
     }
 }
 
-
 # ----------------------------------------------------------------------
 # USAGE: _probe start <x> <y>
 # USAGE: _probe update <x> <y>
@@ -1073,7 +1083,7 @@ itcl::body Rappture::HeightMapViewer::_move {option x y} {
 # transfer function to highlight the area being selected in the
 # legend.
 # ----------------------------------------------------------------------
-itcl::body Rappture::HeightMapViewer::_probe {option args} {
+itcl::body Rappture::HeightmapViewer::_probe {option args} {
     set c $itk_component(legend)
     set w [winfo width $c]
     set h [winfo height $c]
@@ -1099,7 +1109,7 @@ itcl::body Rappture::HeightMapViewer::_probe {option args} {
 
             # define a new transfer function
             _send "transfunc" "define" "probe" {0 0 0 0 1 0 0 0} {0 0 1 0}
-            _send "heightmap" "transfunc" "probe"
+            _send "heightmap" "transfunc" "probe" $_obj2id($dataobj-$comp)
 
             # now, probe this point
             eval _probe update $args
@@ -1113,21 +1123,22 @@ itcl::body Rappture::HeightMapViewer::_probe {option args} {
                     [expr {$x+2}] [expr {$y1+2}]
             }
 
-            # Value of the probe point, in the range 0-1.
+            # value of the probe point, in the range 0-1
             set val [expr {double($x-10)/($w-20)}]
             set dl [expr {($val > 0.1) ? 0.1 : $val}]
             set dr [expr {($val < 0.9) ? 0.1 : 1-$val}]
 
-            # Compute a transfer function for the probe value.
+            # compute a transfer function for the probe value
             foreach {sname cmap wmap} [_getTransfuncData $dataobj $comp] break
             set wmap "0.0 0.0 [expr {$val-$dl}] 0.0 $val 1.0 [expr {$val+$dr}] 0.0 1.0 0.0"
-            _send "transfunc" "define" "probe" $cmap $wmap
+            _send transfunc define "probe" $cmap $wmap
         }
         end {
             $c delete marker markerbg
 
-            # Put the volume back to its old transfer function.
-            _send volume "heightmap" "transfunc" $_obj2style($dataobj-$comp)
+            # put the volume back to its old transfer function
+             _send "heightmap" "transfunc" $_obj2style($dataobj-$comp) \
+ 		$_obj2id($dataobj-$comp)
         }
         default {
             error "bad option \"$option\": should be start, update, end"
@@ -1142,7 +1153,7 @@ itcl::body Rappture::HeightMapViewer::_probe {option args} {
 # The <component> is the itk component name of the button.
 # Returns on/off for the state of the button.
 # ----------------------------------------------------------------------
-itcl::body Rappture::HeightMapViewer::_state {comp} {
+itcl::body Rappture::HeightmapViewer::_state {comp} {
     if {[$itk_component($comp) cget -relief] == "sunken"} {
         return "on"
     }
@@ -1156,7 +1167,7 @@ itcl::body Rappture::HeightMapViewer::_state {comp} {
 # change in the popup settings panel.  Sends the new settings off
 # to the back end.
 # ----------------------------------------------------------------------
-itcl::body Rappture::HeightMapViewer::_fixSettings {what {value ""}} {
+itcl::body Rappture::HeightmapViewer::_fixSettings {what {value ""}} {
     set inner [$itk_component(controls).panel component inner]
     switch -- $what {
         light {
@@ -1189,35 +1200,77 @@ itcl::body Rappture::HeightMapViewer::_fixSettings {what {value ""}} {
 # or when the field changes.  Asks the server to send a new legend
 # for the current field.
 # ----------------------------------------------------------------------
-itcl::body Rappture::HeightMapViewer::_fixLegend {} {
+itcl::body Rappture::HeightmapViewer::_fixLegend {} {
     set lineht [font metrics $itk_option(-font) -linespace]
     set w [expr {[winfo width $itk_component(legend)]-20}]
     set h [expr {[winfo height $itk_component(legend)]-20-$lineht}]
-    set ivol ""
+    set imap ""
 
     set dataobj [lindex [get] 0]
     if {"" != $dataobj} {
         set comp [lindex [$dataobj components] 0]
         if {[info exists _obj2id($dataobj-$comp)]} {
-            set ivol $_obj2id($dataobj-$comp)
+            set imap $_obj2id($dataobj-$comp)
         }
     }
-
-    if {$w > 0 && $h > 0 && "" != $ivol} {
-        _send legend $ivol $w $h
+    if {$w > 0 && $h > 0 && "" != $imap} {
+        _send "heightmap" "legend" $imap $w $h
     } else {
         $itk_component(legend) delete all
     }
 }
 
 # ----------------------------------------------------------------------
-# USAGE: _serverDown
+# USAGE: _fixGrid
 #
-# Used internally to let the user know when the connection to the
-# visualization server has been lost.  Puts up a tip encouraging the
-# user to press any control to reconnect.
+# Used internally to update the legend area whenever it changes size
+# or when the field changes.  Asks the server to send a new legend
+# for the current field.
 # ----------------------------------------------------------------------
-itcl::body Rappture::HeightMapViewer::_serverDown {} {
+itcl::body Rappture::HeightmapViewer::_fixGrid {} {
+    if {[isconnected]} {
+	_send "grid" "visible" $::Rappture::HeightmapViewer::_showGrid($this)
+    }
+}
+
+
+# ----------------------------------------------------------------------
+# USAGE: _fixAxes
+# ----------------------------------------------------------------------
+itcl::body Rappture::HeightmapViewer::_fixAxes {} {
+    if {[isconnected]} {
+	_send "axis" "visible" $::Rappture::HeightmapViewer::_showAxes($this)
+    }
+}
+
+
+# ----------------------------------------------------------------------
+# USAGE: _fixLineContour
+# ----------------------------------------------------------------------
+itcl::body Rappture::HeightmapViewer::_fixContourLines {} {
+    if {[isconnected]} {
+	set dataobj [lindex [get] 0]
+	if {"" != $dataobj} {
+	    set comp [lindex [$dataobj components] 0]
+	    if {[info exists _obj2id($dataobj-$comp)]} {
+		set i $_obj2id($dataobj-$comp)
+		_send "heightmap" "linecontour" "visible" \
+		    $::Rappture::HeightmapViewer::_showContourLines($this) $i
+	    }
+	}
+    }
+}
+
+
+# ----------------------------------------------------------------------
+# USAGE: _serverDown 
+# 
+# Used internally to let the user know when the connection to the
+# visualization server has been lost.  Puts up a tip encouraging the user to
+# press any control to reconnect.  
+#
+# ----------------------------------------------------------------------
+itcl::body Rappture::HeightmapViewer::_serverDown {} {
     set x [expr {[winfo rootx $itk_component(area)]+10}]
     set y [expr {[winfo rooty $itk_component(area)]+10}]
     Rappture::Tooltip::cue @$x,$y "Lost connection to visualization server.  This happens sometimes when there are too many users and the system runs out of memory.\n\nTo reconnect, reset the view or press any other control.  Your picture should come right back up."
@@ -1230,7 +1283,7 @@ itcl::body Rappture::HeightMapViewer::_serverDown {} {
 # a transfer function for the specified component in a data object.
 # Returns: name {v r g b ...} {v w ...}
 # ----------------------------------------------------------------------
-itcl::body Rappture::HeightMapViewer::_getTransfuncData {dataobj comp} {
+itcl::body Rappture::HeightmapViewer::_getTransfuncData {dataobj comp} {
     array set style {
         -color rainbow
         -levels 6
@@ -1281,7 +1334,7 @@ itcl::body Rappture::HeightMapViewer::_getTransfuncData {dataobj comp} {
 # needed for the engine.  Each r/g/b component is scaled in the
 # range 0-1.
 # ----------------------------------------------------------------------
-itcl::body Rappture::HeightMapViewer::_color2rgb {color} {
+itcl::body Rappture::HeightmapViewer::_color2rgb {color} {
     foreach {r g b} [winfo rgb $itk_component(hull) $color] break
     set r [expr {$r/65535.0}]
     set g [expr {$g/65535.0}]
@@ -1296,7 +1349,7 @@ itcl::body Rappture::HeightMapViewer::_color2rgb {color} {
 # the to angles of rotation about the x/y/z axes, used by the engine.
 # Returns a list:  {xangle, yangle, zangle}.
 # ----------------------------------------------------------------------
-itcl::body Rappture::HeightMapViewer::_euler2xyz {theta phi psi} {
+itcl::body Rappture::HeightmapViewer::_euler2xyz {theta phi psi} {
     set xangle [expr {$theta-90.0}]
     set yangle [expr {180-$phi}]
     set zangle $psi
@@ -1306,7 +1359,7 @@ itcl::body Rappture::HeightMapViewer::_euler2xyz {theta phi psi} {
 # ----------------------------------------------------------------------
 # CONFIGURATION OPTION: -plotbackground
 # ----------------------------------------------------------------------
-itcl::configbody Rappture::HeightMapViewer::plotbackground {
+itcl::configbody Rappture::HeightmapViewer::plotbackground {
     foreach {r g b} [_color2rgb $itk_option(-plotbackground)] break
     #fix this!
     #_send color background $r $g $b
@@ -1315,7 +1368,7 @@ itcl::configbody Rappture::HeightMapViewer::plotbackground {
 # ----------------------------------------------------------------------
 # CONFIGURATION OPTION: -plotforeground
 # ----------------------------------------------------------------------
-itcl::configbody Rappture::HeightMapViewer::plotforeground {
+itcl::configbody Rappture::HeightmapViewer::plotforeground {
     foreach {r g b} [_color2rgb $itk_option(-plotforeground)] break
     #fix this!
     #_send color background $r $g $b
@@ -1324,14 +1377,8 @@ itcl::configbody Rappture::HeightMapViewer::plotforeground {
 # ----------------------------------------------------------------------
 # CONFIGURATION OPTION: -plotoutline
 # ----------------------------------------------------------------------
-itcl::configbody Rappture::HeightMapViewer::plotoutline {
+itcl::configbody Rappture::HeightmapViewer::plotoutline {
     if {[isconnected]} {
-        if {"" == $itk_option(-plotoutline)} {
-            _send "heightmap" "linecontour" "visible" "off"
-        } else {
-            _send "heightmap" "linecontour" "visible" "on"
-            _send "heightmap" "linecontour" "color" \
-		[_color2rgb $itk_option(-plotoutline)]
-        }
+	eval _send "grid" "linecolor" [_color2rgb $itk_option(-plotoutline)]
     }
 }

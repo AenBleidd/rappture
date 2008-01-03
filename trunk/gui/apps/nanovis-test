@@ -20,6 +20,8 @@ exec wish "$0" $*
 # ----------------------------------------------------------------------
 # wish executes everything from here on...
 
+lappend auto_path /usr/local/rappture/lib /usr/local/rappture/lib/vtk /usr/local/rappture/lib/vtk/tcl
+
 package require Itcl
 package require Rappture
 package require RapptureGUI
@@ -273,6 +275,8 @@ set f [.main pane 0]
 Rappture::Field3DResult $f.viewer
 pack $f.viewer -expand yes -fill both
 set widgets(nanovis) [$f.viewer component renderer]
+
+puts stderr [winfo class $widgets(nanovis)]
 
 $f.viewer component renderer configure \
     -sendcommand show_comm \
