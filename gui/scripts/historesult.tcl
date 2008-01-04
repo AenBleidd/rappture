@@ -420,8 +420,8 @@ itcl::body Rappture::HistoResult::download {option args} {
             # nothing to do
         }
         controls {
-            set popup .HistoResultdownload
-            if {![winfo exists .historesultdownload]} {
+            set popup .histogram_result_download
+            if {![winfo exists .histogram_result_download]} {
                 # if we haven't created the popup yet, do it now
                 Rappture::Balloon $popup -title "Download as..."
                 set inner [$popup component inner]
@@ -448,8 +448,8 @@ itcl::body Rappture::HistoResult::download {option args} {
             return $popup
         }
         now {
-            set popup .historesultdownload
-            if {[winfo exists .historesultdownload]} {
+            set popup .histogram_result_download
+            if {[winfo exists .histogram_result_download]} {
                 $popup deactivate
             }
             switch -- $_downloadPopup(format) {
