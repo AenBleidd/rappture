@@ -1,6 +1,6 @@
 
 # ----------------------------------------------------------------------
-#  COMPONENT: HistoResult - X/Y plot in a ResultSet
+#  COMPONENT: HistogramResult - X/Y plot in a ResultSet
 #
 #  This widget is an X/Y plot, meant to view histograms produced
 #  as output from the run of a Rappture tool.  Use the "add" and
@@ -16,31 +16,31 @@
 package require Itk
 package require BLT
 
-option add *HistoResult*Element.borderWidth 1 widgetDefault
-option add *HistoResult*Element.relief solid widgetDefault
-option add *HistoResult*x.loose 1 widgetDefault
-option add *HistoResult*y.loose 1 widgetDefault
-option add *HistoResult*Element.relief solid widgetDefault
+option add *HistogramResult*Element.borderWidth 1 widgetDefault
+option add *HistogramResult*Element.relief solid widgetDefault
+option add *HistogramResult*x.loose 1 widgetDefault
+option add *HistogramResult*y.loose 1 widgetDefault
+option add *HistogramResult*Element.relief solid widgetDefault
 
-option add *HistoResult.width 3i widgetDefault
-option add *HistoResult.height 3i widgetDefault
-option add *HistoResult.gridColor #d9d9d9 widgetDefault
-option add *HistoResult.activeColor blue widgetDefault
-option add *HistoResult.dimColor gray widgetDefault
-option add *HistoResult.controlBackground gray widgetDefault
-option add *HistoResult.font \
+option add *HistogramResult.width 3i widgetDefault
+option add *HistogramResult.height 3i widgetDefault
+option add *HistogramResult.gridColor #d9d9d9 widgetDefault
+option add *HistogramResult.activeColor blue widgetDefault
+option add *HistogramResult.dimColor gray widgetDefault
+option add *HistogramResult.controlBackground gray widgetDefault
+option add *HistogramResult.font \
     -*-helvetica-medium-r-normal-*-12-* widgetDefault
 
-option add *HistoResult.autoColors {
+option add *HistogramResult.autoColors {
     #0000ff #ff0000 #00cc00
     #cc00cc #ff9900 #cccc00
     #000080 #800000 #006600
     #660066 #996600 #666600
 } widgetDefault
 
-option add *HistoResult*Balloon*Entry.background white widgetDefault
+option add *HistogramResult*Balloon*Entry.background white widgetDefault
 
-itcl::class Rappture::HistoResult {
+itcl::class Rappture::HistogramResult {
     inherit itk::Widget
 
     itk_option define -gridcolor gridColor GridColor ""
@@ -87,14 +87,14 @@ itcl::class Rappture::HistoResult {
 
 }
                                                                                 
-itk::usual HistoResult {
+itk::usual HistogramResult {
     keep -background -foreground -cursor -font
 }
 
 # ----------------------------------------------------------------------
 # CONSTRUCTOR
 # ----------------------------------------------------------------------
-itcl::body Rappture::HistoResult::constructor {args} {
+itcl::body Rappture::HistogramResult::constructor {args} {
     Rappture::dispatcher _dispatcher
     $_dispatcher register !rebuild
     $_dispatcher dispatch $this !rebuild "[itcl::code $this _rebuild]; list"
@@ -206,7 +206,7 @@ itcl::body Rappture::HistoResult::constructor {args} {
 # ----------------------------------------------------------------------
 # DESTRUCTOR
 # ----------------------------------------------------------------------
-itcl::body Rappture::HistoResult::destructor {} {
+itcl::body Rappture::HistogramResult::destructor {} {
 }
 
 # ----------------------------------------------------------------------
@@ -216,7 +216,7 @@ itcl::body Rappture::HistoResult::destructor {} {
 # are used to configure the plot.  Allowed settings are -color,
 # -brightness, -width, -linestyle and -raise.
 # ----------------------------------------------------------------------
-itcl::body Rappture::HistoResult::add {histogram {settings ""}} {
+itcl::body Rappture::HistogramResult::add {histogram {settings ""}} {
     array set params {
         -color auto
         -brightness 0
@@ -292,7 +292,7 @@ itcl::body Rappture::HistoResult::add {histogram {settings ""}} {
 # Clients use this to query the list of objects being plotted, in
 # order from bottom to top of this result.
 # ----------------------------------------------------------------------
-itcl::body Rappture::HistoResult::get {} {
+itcl::body Rappture::HistogramResult::get {} {
     # put the dataobj list in order according to -raise options
     set clist $_hlist
     foreach obj $clist {
@@ -313,7 +313,7 @@ itcl::body Rappture::HistoResult::get {} {
 # Clients use this to delete a histogram from the plot.  If no histograms
 # are specified, then all histograms are deleted.
 # ----------------------------------------------------------------------
-itcl::body Rappture::HistoResult::delete {args} {
+itcl::body Rappture::HistogramResult::delete {args} {
     if {[llength $args] == 0} {
         set args $_hlist
     }
@@ -357,7 +357,7 @@ itcl::body Rappture::HistoResult::delete {args} {
 # Because of this, the limits are appropriate for all histograms as
 # the user scans through data in the ResultSet viewer.
 # ----------------------------------------------------------------------
-itcl::body Rappture::HistoResult::scale {args} {
+itcl::body Rappture::HistogramResult::scale {args} {
     set allx [$itk_component(plot) x2axis use]
     lappend allx x  ;# fix main x-axis too
     foreach axis $allx {
@@ -414,7 +414,7 @@ itcl::body Rappture::HistoResult::scale {args} {
 # "ext" is the file extension (indicating the type of data) and
 # "string" is the data itself.
 # ----------------------------------------------------------------------
-itcl::body Rappture::HistoResult::download {option args} {
+itcl::body Rappture::HistogramResult::download {option args} {
     switch $option {
         coming {
             # nothing to do
@@ -428,11 +428,11 @@ itcl::body Rappture::HistoResult::download {option args} {
                 label $inner.summary -text "" -anchor w
                 pack $inner.summary -side top
                 radiobutton $inner.csv -text "Data as Comma-Separated Values" \
-                    -variable Rappture::HistoResult::_downloadPopup(format) \
+                    -variable Rappture::HistogramResult::_downloadPopup(format) \
                     -value csv
                 pack $inner.csv -anchor w
                 radiobutton $inner.pdf -text "Image as PDF/PostScript" \
-                    -variable Rappture::HistoResult::_downloadPopup(format) \
+                    -variable Rappture::HistogramResult::_downloadPopup(format) \
                     -value pdf
                 pack $inner.pdf -anchor w
                 button $inner.go -text "Download Now" \
@@ -530,7 +530,7 @@ itcl::body Rappture::HistoResult::download {option args} {
 # data in the widget.  Clears any existing data and rebuilds the
 # widget to display new data.
 # ----------------------------------------------------------------------
-itcl::body Rappture::HistoResult::_rebuild {} {
+itcl::body Rappture::HistogramResult::_rebuild {} {
     set g $itk_component(plot)
 
     # first clear out the widget
@@ -728,7 +728,7 @@ itcl::body Rappture::HistoResult::_rebuild {} {
 # Used internally to apply automatic limits to the axes for the
 # current plot.
 # ----------------------------------------------------------------------
-itcl::body Rappture::HistoResult::_resetLimits {} {
+itcl::body Rappture::HistogramResult::_resetLimits {} {
     set g $itk_component(plot)
 
     #
@@ -804,7 +804,7 @@ itcl::body Rappture::HistoResult::_resetLimits {} {
 # Called automatically when the user clicks on one of the zoom
 # controls for this widget.  Changes the zoom for the current view.
 # ----------------------------------------------------------------------
-itcl::body Rappture::HistoResult::_zoom {option args} {
+itcl::body Rappture::HistogramResult::_zoom {option args} {
     switch -- $option {
         reset {
             _resetLimits
@@ -819,7 +819,7 @@ itcl::body Rappture::HistoResult::_zoom {option args} {
 # on the plot.  Causes the element to highlight and a tooltip to
 # pop up with element info.
 # ----------------------------------------------------------------------
-itcl::body Rappture::HistoResult::_hilite {state x y} {
+itcl::body Rappture::HistogramResult::_hilite {state x y} {
     set g $itk_component(plot)
     set elem ""
     if {$state == "at"} {
@@ -1029,7 +1029,7 @@ itcl::body Rappture::HistoResult::_hilite {state x y} {
 # up a panel with editing options.  The changed operation applies
 # changes from the panel.
 # ----------------------------------------------------------------------
-itcl::body Rappture::HistoResult::_axis {option args} {
+itcl::body Rappture::HistogramResult::_axis {option args} {
     set inner [$itk_component(hull).axes component inner]
 
     switch -- $option {
@@ -1378,7 +1378,7 @@ itcl::body Rappture::HistoResult::_axis {option args} {
 # axis line marker.  The input is a list of name value pairs.  Options that
 # are not recognized are ignored.
 # ----------------------------------------------------------------------
-itcl::body Rappture::HistoResult::_getLineMarkerOptions {style} {
+itcl::body Rappture::HistogramResult::_getLineMarkerOptions {style} {
     array set lineOptions {
 	"-color"  "-outline"
 	"-dashes" "-dashes"
@@ -1401,7 +1401,7 @@ itcl::body Rappture::HistoResult::_getLineMarkerOptions {style} {
 # axis text marker.  The input is a list of name value pairs.  Options that
 # are not recognized are ignored.
 # ----------------------------------------------------------------------
-itcl::body Rappture::HistoResult::_getTextMarkerOptions {style} {
+itcl::body Rappture::HistogramResult::_getTextMarkerOptions {style} {
     array set textOptions {
 	"-color"  "-outline"
 	"-textcolor"  "-outline"
@@ -1426,7 +1426,7 @@ itcl::body Rappture::HistoResult::_getTextMarkerOptions {style} {
 # <histoObj>.  Returns a list of the form {x y}, where x is the
 # x-axis name (x, x2, x3, etc.), and y is the y-axis name.
 # ----------------------------------------------------------------------
-itcl::body Rappture::HistoResult::_getAxes {xydata} {
+itcl::body Rappture::HistogramResult::_getAxes {xydata} {
     # rebuild if needed, so we know about the axes
     if {[$_dispatcher ispending !rebuild]} {
         $_dispatcher cancel !rebuild
@@ -1455,7 +1455,7 @@ itcl::body Rappture::HistoResult::_getAxes {xydata} {
 # ----------------------------------------------------------------------
 # CONFIGURATION OPTION: -gridcolor
 # ----------------------------------------------------------------------
-itcl::configbody Rappture::HistoResult::gridcolor {
+itcl::configbody Rappture::HistogramResult::gridcolor {
     if {"" == $itk_option(-gridcolor)} {
         $itk_component(plot) grid off
     } else {
@@ -1467,7 +1467,7 @@ itcl::configbody Rappture::HistoResult::gridcolor {
 # ----------------------------------------------------------------------
 # CONFIGURATION OPTION: -autocolors
 # ----------------------------------------------------------------------
-itcl::configbody Rappture::HistoResult::autocolors {
+itcl::configbody Rappture::HistogramResult::autocolors {
     foreach c $itk_option(-autocolors) {
         if {[catch {winfo rgb $itk_component(hull) $c}]} {
             error "bad color \"$c\""

@@ -212,7 +212,7 @@ itcl::body Rappture::ResultViewer::_plotAdd {dataobj {settings ""}} {
             set mode "histogram"
             if {![info exists _mode2widget($mode)]} {
                 set w $itk_interior.xy
-                Rappture::HistoResult $w
+                Rappture::HistogramResult $w
                 set _mode2widget($mode) $w
             }
         }
