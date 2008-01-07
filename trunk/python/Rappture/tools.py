@@ -6,7 +6,7 @@
 #  Copyright (c) 2005-2007  Purdue Research Foundation, West Lafayette, IN
 # ======================================================================
 
-import sys, os, re, popen2
+import sys, os, re, popen2, select
 
 # getCommandOutput function written by Steve Clark
 
