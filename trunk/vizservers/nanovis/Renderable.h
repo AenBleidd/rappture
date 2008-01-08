@@ -38,9 +38,9 @@ protected:
   BoundBox boundary;	//the bounding box
 
 public:
-  Renderable(Vector3 loc);
+  explicit Renderable(Vector3 loc);
   Renderable();
-  //~Renderable();
+  virtual ~Renderable();
 
   void move(Vector3 new_loc);
   virtual void render() = 0;

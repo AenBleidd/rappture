@@ -811,6 +811,17 @@ load_volume_stream(int index, std::iostream& fin)
 	    NanoVis::load_volume(index, nx, ny, nz, 4, data,
                 field.valueMin(), field.valueMax(), nzero_min);
 
+            // TBD..
+            // POINTSET
+            /*
+            PointSet* pset = new PointSet();
+            pset->initialize(volume[index], (float*) data);
+            pset->setVisible(true);
+            NanoVis::pointSet.push_back(pset);
+            updateColor(pset);
+            NanoVis::volume[index]->pointsetIndex = NanoVis::pointSet.size() - 1;
+            */
+ 
             delete [] data;
 
         } else {
@@ -937,8 +948,20 @@ load_volume_stream(int index, std::iostream& fin)
                 }
             }
 
-	    NanoVis::load_volume(index, nx, ny, nz, 4, data,
+	        NanoVis::load_volume(index, nx, ny, nz, 4, data,
                 field.valueMin(), field.valueMax(), nzero_min);
+
+            // TBD..
+            // POINTSET
+            /*
+            PointSet* pset = new PointSet();
+            pset->initialize(volume[index], (float*) data);
+            pset->setVisible(true);
+            NanoVis::pointSet.push_back(pset);
+            updateColor(pset);
+            NanoVis::volume[index]->pointsetIndex = NanoVis::pointSet.size() - 1;
+            */
+ 
 
             delete [] data;
         }

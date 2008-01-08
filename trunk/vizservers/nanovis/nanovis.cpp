@@ -33,6 +33,9 @@
 #include "PointSet.h"
 #include "Util.h"
 
+// for debuging new functions
+// #include "Test.h"
+
 #include "nanovis.h"
 #include "RpField1D.h"
 #include "RpFieldRect3D.h"
@@ -55,25 +58,23 @@
 #include "Grid.h"
 #include <RenderContext.h>
 
+#include <imgLoaders/BMPImageLoaderImpl.h>
+#include <imgLoaders/ImageLoaderFactory.h>
+
 //#define  _LOCAL_ZINC_TEST_
 
 // R2 headers
 #include <R2/R2FilePath.h>
 #include <R2/R2Fonts.h>
 
-/* FIXME: Need to eliminate global variables. */
-extern VolumeRenderer* g_vol_render;
-extern PointSetRenderer* g_pointset_renderer;
-extern NvColorTableRenderer* g_color_table_renderer;
-extern Grid* g_grid;
-
-PlaneRenderer* plane_render;
+extern void NvInitCG(); // in Shader.cpp
 
 // Indicates "up" axis:  x=1, y=2, z=3, -x=-1, -y=-2, -z=-3
 enum AxisDirections { 
     X_POS = 1, Y_POS = 2, Z_POS = 3, X_NEG = -1, Y_NEG = -2, Z_NEG = -3
 };
 
+// STATIC MEMBER DATA
 int NanoVis::updir = Y_POS;
 Camera* NanoVis::cam = NULL;
 bool NanoVis::axis_on = true;
@@ -81,8 +82,13 @@ int NanoVis::win_width = NPIX;			//size of the render window
 int NanoVis::win_height = NPIX;			//size of the render window
 int NanoVis::n_volumes = 0;
 unsigned char* NanoVis::screen_buffer = NULL;
-vector<HeightMap*> NanoVis::g_heightMap;
-
+vector<HeightMap*> NanoVis::heightMap;
+VolumeRenderer* NanoVis::vol_renderer = 0;
+PointSetRenderer* NanoVis::pointset_renderer = 0;
+vector<PointSet*> NanoVis::pointSet;
+PlaneRenderer* NanoVis::plane_render = 0;
+Texture2D* NanoVis::plane[10];
+NvColorTableRenderer* NanoVis::color_table_renderer = 0;
 graphics::RenderContext* NanoVis::renderContext = 0;
 
 // pointers to volumes, currently handle up to 10 volumes
@@ -123,7 +129,7 @@ void get_slice_vectors();
 //ParticleSystem* psys;
 //float psys_x=0.4, psys_y=0, psys_z=0;
 
-static Lic* lic;
+//static Lic* lic;
 
 //frame buffer for final rendering
 static NVISid final_fbo, final_color_tex, final_depth_rb;
@@ -132,15 +138,10 @@ static NVISid final_fbo, final_color_tex, final_depth_rb;
 float vert[NMESH*NMESH*3];		//particle positions in main memory
 float slice_vector[NMESH*NMESH*4];	//per slice vectors in main memory
 
-// pointers to volumes, currently handle up to 10 volumes
-vector<Volume*> volume;
-vector<PointSet*> g_pointSet;
-
 // maps transfunc name to TransferFunction object
 static Tcl_HashTable tftable;
 
 // pointers to 2D planes, currently handle up 10
-Texture2D* plane[10];
 
 
 PerfQuery* perf;			//perfromance counter
@@ -152,7 +153,7 @@ PerfQuery* perf;			//perfromance counter
 CGprogram m_passthru_fprog;
 CGparameter m_passthru_scale_param, m_passthru_bias_param;
 
-extern R2Fonts* g_fonts;
+R2Fonts* NanoVis::fonts;
 
 // Variables for mouse events
 
@@ -177,26 +178,22 @@ static bool left_down = false;
 static bool right_down = false;
 #endif /*XINETD*/
 
-/*FIXME: are the following variables used anywhere? */
-
-static float live_diffuse = 1.;
-static float live_specular = 3.;
-
+// Image based flow visualization variables
 // Image based flow visualization slice location
+// FLOW
+// TBD
+/*
 static float lic_slice_x = 0.0f;
 static float lic_slice_y = 0.0f; 
 static float lic_slice_z = 0.3f; 
 
-//image based flow visualization variables
 static int    iframe = 0; 
 static int    Npat   = 64;
 static int    alpha  = (int)round(0.12*255);
 static float  sa;
 static float  tmax   = NPIX/(SCALE*NPN);
 static float  dmax   = SCALE/NPIX;
-
-// currently active shader, default renders one volume only
-static int cur_shader = 0;
+*/
 
 /*
 CGprogram m_copy_texcoord_fprog;
@@ -295,9 +292,20 @@ NanoVis::load_volume(int index, int width, int height, int depth,
         n_volumes++;
     }
 
-    if (volume[index] != NULL) {
-        delete volume[index];
+    Volume* vol = volume[index];
+    if (vol != NULL) {
         volume[index] = NULL;
+
+        if (vol->pointsetIndex != -1)
+        {
+            if (((unsigned  int) vol->pointsetIndex) < pointSet.size() && pointSet[vol->pointsetIndex] != NULL)
+            {
+                delete pointSet[vol->pointsetIndex];
+                pointSet[vol->pointsetIndex] = 0;
+            }
+        }
+
+        delete vol;
     }
 
     volume[index] = new Volume(0.f, 0.f, 0.f, width, height, depth, 1.,
@@ -465,8 +473,8 @@ NanoVis::resize_offscreen_buffer(int w, int h)
     win_width = w;
     win_height = h;
     
-    if (g_fonts) {
-        g_fonts->resize(w, h);
+    if (fonts) {
+        fonts->resize(w, h);
     }
     
     //fprintf(stderr, "screen_buffer size: %d\n", sizeof(screen_buffer));
@@ -567,10 +575,50 @@ make_test_2D_data()
 	    data[w*j+i] = float(i)/float(w);
 	}
     }
-    plane[0] = new Texture2D(w, h, GL_FLOAT, GL_LINEAR, 1, data);
+    NanoVis::plane[0] = new Texture2D(w, h, GL_FLOAT, GL_LINEAR, 1, data);
     delete[] data;
 }
 
+
+void NanoVis::init(const char* path)
+{
+    // print system information
+    fprintf(stderr, "-----------------------------------------------------------\n");
+    fprintf(stderr, "OpenGL driver: %s %s\n", glGetString(GL_VENDOR), glGetString(GL_VERSION));
+    fprintf(stderr, "Graphics hardware: %s\n", glGetString(GL_RENDERER));
+    fprintf(stderr, "-----------------------------------------------------------\n");
+
+    // init GLEW
+    GLenum err = glewInit();
+    if (GLEW_OK != err) {
+        //glew init failed, exit.
+        fprintf(stderr, "Error: %s\n", glewGetErrorString(err));
+        getchar();
+        //assert(false);
+    }
+    fprintf(stdout, "Status: Using GLEW %s\n", glewGetString(GLEW_VERSION));
+
+    if (path)
+    {
+        R2FilePath::getInstance()->setPath(path);
+    }
+
+    NvInitCG();
+
+    fonts = new R2Fonts();
+    fonts->addFont("verdana", "verdana.fnt");
+    fonts->setFont("verdana");
+
+    color_table_renderer = new NvColorTableRenderer();
+    color_table_renderer->setFonts(fonts);
+    
+    ImageLoaderFactory::getInstance()->addLoaderImpl("bmp", new BMPImageLoaderImpl());
+
+    grid = new Grid();
+    grid->setFont(fonts);
+
+    pointset_renderer = new PointSetRenderer();
+}
 
 /*----------------------------------------------------*/
 void 
@@ -622,7 +670,7 @@ NanoVis::initGL(void)
    init_offscreen_buffer();    //frame buffer object for offscreen rendering
 
    //create volume renderer and add volumes to it
-   g_vol_render = new VolumeRenderer();
+   vol_renderer = new VolumeRenderer();
 
 
    // create
@@ -633,13 +681,13 @@ NanoVis::initGL(void)
    float tmp_data[4*124];
    memset(tmp_data, 0, 4*4*124);
    TransferFunction* tmp_tf = new TransferFunction(124, tmp_data);
-   g_vol_render->add_volume(volume[0], tmp_tf);
+   vol_renderer->add_volume(volume[0], tmp_tf);
    volume[0]->get_cutplane(0)->enabled = false;
    volume[0]->get_cutplane(1)->enabled = false;
    volume[0]->get_cutplane(2)->enabled = false;
 
    //volume[1]->move(Vector3(0.5, 0.6, 0.7));
-   //g_vol_render->add_volume(volume[1], tmp_tf);
+   //vol_renderer->add_volume(volume[1], tmp_tf);
 #endif
 
 
@@ -1336,8 +1384,8 @@ NanoVis::display()
         if (axis_on) {
 	    draw_3d_axis();
 	}
-	if (g_grid->isVisible()) {
-            g_grid->render();
+	if (grid->isVisible()) {
+            grid->render();
         }
 	
         //lic->render(); 	//display the line integral convolution result
@@ -1349,13 +1397,13 @@ NanoVis::display()
         //perf->reset();
 	
         perf->enable();
-        g_vol_render->render_all();
+        vol_renderer->render_all();
 	
         perf->disable();
 	
-        for (unsigned int i = 0; i < g_heightMap.size(); ++i) {
-            if (g_heightMap[i]->isVisible()) {
-                g_heightMap[i]->render(renderContext);
+        for (unsigned int i = 0; i < heightMap.size(); ++i) {
+            if (heightMap[i]->isVisible()) {
+                heightMap[i]->render(renderContext);
 	    }
         }
         glPopMatrix();
@@ -1490,10 +1538,10 @@ NanoVis::keyboard(unsigned char key, int x, int y)
        //init_particles();
        break;
    case 'v':
-       g_vol_render->switch_volume_mode();
+       vol_renderer->switch_volume_mode();
        break;
    case 'b':
-       g_vol_render->switch_slice_mode();
+       vol_renderer->switch_slice_mode();
        break;
    case 'n':
        resize_offscreen_buffer(win_width*2, win_height*2);
@@ -1674,7 +1722,7 @@ main(int argc, char** argv)
     glutIdleFunc(idle);
     glutReshapeFunc(NanoVis::resize_offscreen_buffer);
     
-    NvInit(path);
+    NanoVis::init(path);
     NanoVis::initGL();
     initTcl();
     

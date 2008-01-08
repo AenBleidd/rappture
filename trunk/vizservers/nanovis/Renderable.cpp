@@ -21,6 +21,7 @@ Renderable::Renderable(Vector3 loc):
   location(loc),
   enabled(true){ }
 
+Renderable::~Renderable(){}
   
 void Renderable::move(Vector3 new_loc) { location = new_loc; }
 

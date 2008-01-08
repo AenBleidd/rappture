@@ -15,23 +15,6 @@
 
 extern void NvInitCG(); // in NvShader.cpp
 
-NvParticleRenderer* g_particleRenderer;
-NvColorTableRenderer* g_color_table_renderer;
-PointSetRenderer* g_pointset_renderer;
-VolumeRenderer* g_vol_render;
-R2Fonts* g_fonts;
-Grid* g_grid;
-
-
-//query opengl information
-static void NvPrintSystemInfo()
-{
-    fprintf(stderr, "-----------------------------------------------------------\n");
-    fprintf(stderr, "OpenGL driver: %s %s\n", glGetString(GL_VENDOR), glGetString(GL_VERSION));
-    fprintf(stderr, "Graphics hardware: %s\n", glGetString(GL_RENDERER));
-    fprintf(stderr, "-----------------------------------------------------------\n");
-}
-
 void NvCgErrorCallback(void)
 {
     CGerror lastError = cgGetError();
@@ -45,19 +28,6 @@ void NvCgErrorCallback(void)
         cgDestroyContext(g_context);
         exit(-1);
     }
-}
-
-
-void NvInitGLEW()
-{
-    GLenum err = glewInit();
-    if (GLEW_OK != err) {
-        //glew init failed, exit.
-        fprintf(stderr, "Error: %s\n", glewGetErrorString(err));
-        getchar();
-        assert(false);
-    }
-    fprintf(stdout, "Status: Using GLEW %s\n", glewGetString(GLEW_VERSION));
 }
 
 //init line integral convolution
@@ -124,41 +94,17 @@ void NvInitParticleRenderer()
 */
 }
 
-void NvInitVolumeRenderer()
-{
-}
-
-void NvInitPointSetRenderer()
-{
-    g_pointset_renderer = new PointSetRenderer();
-}
 
 void NvInit(char* path)
 {
-    if (path != NULL) {
-        R2FilePath::getInstance()->setPath(path);
-    }
-
-    NvPrintSystemInfo();
-    NvInitGLEW();
-    NvInitCG();
-
-    g_fonts = new R2Fonts();
-    g_fonts->addFont("verdana", "verdana.fnt");
-    g_fonts->setFont("verdana");
 
     //g_color_table_renderer = new NvColorTableRenderer();
     // INSOO
     //g_color_table_renderer->setFonts(g_fonts);
     //
 
-    ImageLoaderFactory::getInstance()->addLoaderImpl("bmp", new BMPImageLoaderImpl());
 
-    g_grid = new Grid();
-    g_grid->setFont(g_fonts);
 
-    NvInitVolumeRenderer();
-    NvInitPointSetRenderer();
     NvInitParticleRenderer();
    
     printf("Nanovis GL Initialized\n");
@@ -166,12 +112,6 @@ void NvInit(char* path)
 
 void NvExit()
 {
-    if (g_particleRenderer)
-    {
-        delete g_particleRenderer;
-        g_particleRenderer = NULL;
-    }
-
 #ifdef EVENTLOG
     NvExitEventLog();
 #endif
