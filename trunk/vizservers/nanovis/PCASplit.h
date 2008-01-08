@@ -35,6 +35,13 @@ public :
 	int level;
 
 public :
+
+	Cluster() : color(1.0f, 1.0f, 1.0f, 1.0f), scale(0.0f), numOfChildren(0), numOfPoints(0),
+			points(0), children(0), vbo(0)/*, minValue(0.0f), maxValue(0.0f)*/
+			, level(0)
+	{
+	}
+
 	void setChildren(Cluster* children, int count)
 	{
 		this->children = children;
@@ -46,11 +53,6 @@ public :
 		numOfPoints = count;
 	}
 	
-	Cluster() : color(1.0f, 1.0f, 1.0f, 1.0f), numOfChildren(0), numOfPoints(0),
-			points(0), children(0), scale(0.0f), vbo(0)/*, minValue(0.0f), maxValue(0.0f)*/
-			, level(0)
-	{
-	}
 };
 
 class ClusterAccel {
