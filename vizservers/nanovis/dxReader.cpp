@@ -432,7 +432,13 @@ load_volume_stream2(int index, std::iostream& fin) {
             int ixy = 0;
             int iz = 0;
             while (!fin.eof() && nread < npts) {
-                if (!(fin >> dval).fail()) {
+		fin >> dval;
+                if (fin.fail()) {
+		    char mesg[256];
+		    sprintf(mesg,"after %d of %d points: can't read number", 
+			    nread, npts);
+		    return result.error(mesg);
+		} else {
                     int nid = nxy*iz + ixy;
                     field.define(nid, dval);
 
@@ -816,7 +822,13 @@ load_volume_stream(int index, std::iostream& fin)
             int ixy = 0;
             int iz = 0;
             while (!fin.eof() && nread < npts) {
-                if (!(fin >> dval).fail()) {
+		fin >> dval;
+                if (fin.fail()) {
+		    char mesg[256];
+		    sprintf(mesg,"after %d of %d points: can't read number", 
+			    nread, npts);
+		    return result.error(mesg);
+		} else {
                     int nid = nxy*iz + ixy;
                     field.define(nid, dval);
 
