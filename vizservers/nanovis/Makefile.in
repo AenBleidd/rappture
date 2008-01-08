@@ -98,6 +98,7 @@ OBJS  = \
 	Texture1D.o \
 	Texture2D.o \
 	Texture3D.o \
+	Trace.o \
 	TransferFunction.o \
 	TransferFunctionGLUTWindow.o \
 	Util.o \
@@ -307,5 +308,6 @@ RenderContext.o: RenderContext.cpp RenderContext.h
 
 Util.o: Util.cpp Util.h
 Command.o: Command.cpp Command.h
+Trace.o: Trace.cpp Trace.h
 
 nanovis.o: nanovis.cpp nanovis.h $(AUXSRC)

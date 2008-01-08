@@ -99,20 +99,22 @@ typedef struct RegGrid2{
 
 class NanoVis {
 public:
-#ifdef notdef
-    static VolumeRenderer* g_vol_render;
-    static PointSetRenderer* g_pointset_renderer;
-    static NvColorTableRenderer* g_color_table_renderer;
-
-    static vector<PointSet*> g_pointSet;
-
+    static VolumeRenderer* vol_renderer;
+    static PointSetRenderer* pointset_renderer;
+    static vector<PointSet*> pointSet;
     static PlaneRenderer* plane_render;
+
+    /**
+     *  pointers to 2D planes, currently handle up 10
+     */
     static Texture2D* plane[10];
-#endif
+    static NvColorTableRenderer* color_table_renderer;
     static graphics::RenderContext* renderContext;
-    static vector<HeightMap*> g_heightMap;
+    static vector<HeightMap*> heightMap;
     static unsigned char* screen_buffer;
     static vector<Volume*> volume;
+    static Grid* grid;
+    static R2Fonts* fonts;
     static int n_volumes;
     static int updir;
     static Camera *cam;
@@ -125,6 +127,7 @@ public:
     static TransferFunction* get_transfunc(const char *name);
     static TransferFunction* set_transfunc(const char *name, int nSlots, 
 					   float *data);
+    static void init(const char* path);
     static void initGL(void);
     static void init_lic(void);
     static void init_offscreen_buffer(void);
