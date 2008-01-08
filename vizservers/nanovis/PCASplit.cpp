@@ -15,7 +15,7 @@ using namespace NEWMAT;              // access NEWMAT namespace
 namespace PCA {
 
 PCASplit::PCASplit()
-: _maxLevel(4), _minDistance(0.5f), _distanceScale(0.2f), _finalMaxLevel(0), _indexCount(0)
+: _maxLevel(4), _minDistance(0.5f), _distanceScale(0.2f), _indexCount(0), _finalMaxLevel(0)
 {
 	_indices = new unsigned int[MAX_INDEX];
 	_memClusterChunk1 = new ClusterListNode[MAX_INDEX];
@@ -224,7 +224,7 @@ void PCASplit::split(Point* data, int count, float limit)
 	computeCovariant(data, count, mean, m);
 
 	SymmetricMatrix A(3);
-	for (int i = 1, index = 0; i <= 3; ++i) 
+	for (int i = 1; i <= 3; ++i) 
 		for (int j = 1; j <= i; ++j)
 		{
 			A(i, j) = m[(i - 1) * 3 + j - 1];
@@ -235,8 +235,6 @@ void PCASplit::split(Point* data, int count, float limit)
 	eigenvalues(A,D,U);
 	Vector3 emax(U(1, 3), U(2, 3), U(3, 3));
 	
-	int index1Count = 0, index2Count = 0;
-
 	int left = 0, right = count - 1;
 
 	Point p;
@@ -279,7 +277,6 @@ void PCASplit::analyze(ClusterListNode* clusterNode, Cluster* parent, int level,
 	// initialize the indexCount of indices
 	_indexCount = 0;
 
-	int i = 0;
 	while (clNode)
 	{
 		if (clNode->data)
@@ -296,7 +293,7 @@ void PCASplit::analyze(ClusterListNode* clusterNode, Cluster* parent, int level,
 
 	// the process values of split are in _curClusterNode and _curClusterCount
 	ClusterListNode* curClusterNode = _curClusterNode;
-	int curClusterNodeCount = _curClusterCount;
+	unsigned int curClusterNodeCount = _curClusterCount;
 
 	if (curClusterNodeCount)
 	{
@@ -317,7 +314,7 @@ void PCASplit::analyze(ClusterListNode* clusterNode, Cluster* parent, int level,
 				parent[0].setChildren(retClusterBlock, _indices[0]);
 				parent[0].setPoints(points, _indices[0]);
 
-				for (int i = 0, in = 0; i < curClusterNodeCount; ++i)
+				for (unsigned int i = 0, in = 0; i < curClusterNodeCount; ++i)
 				{
 					if (i >= _indices[in])
 					{
@@ -380,7 +377,7 @@ void PCASplit::analyze(ClusterListNode* clusterNode, Cluster* parent, int level,
 				}
 				
 				// set points of sub-clusters
-				for (int i = 0; i < curClusterNodeCount; ++i)
+				for (unsigned int i = 0; i < curClusterNodeCount; ++i)
 				{
 					points[i].position = node->data->centroid_t;
 					points[i].color.set(1.0f, 1.0f, 1.0f, 0.2f);
