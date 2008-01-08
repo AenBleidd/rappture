@@ -149,4 +149,127 @@ public:
     std::string label[3];	// the labels along each axis 0:x , 1:y, 2:z
 };
 
+inline void Volume::enable() { 
+    enabled = true; 
+}
+inline void Volume::disable() { 
+    enabled = false; 
+}
+inline void Volume::move(Vector3 _loc) { 
+    location = _loc; 
+}
+inline bool Volume::is_enabled() { 
+    return enabled; 
+}
+inline Vector3* Volume::get_location() { 
+    return &location; 
+}
+inline 
+int Volume::add_cutplane(int _orientation, float _location) {
+    plane.push_back(CutPlane(1, 0.5));
+    return plane.size() - 1;
+}
+
+inline void Volume::enable_cutplane(int index){ 
+    //assert(index < plane.size());
+    plane[index].enabled = true;
+}
+inline 
+void Volume::disable_cutplane(int index){
+    //assert(index < plane.size());
+    plane[index].enabled = false;
+}
+
+inline void Volume::move_cutplane(int index, float location){
+    //assert(index < plane.size());
+    plane[index].offset = location;
+}
+
+inline CutPlane* Volume::get_cutplane(int index){
+    //assert(index < plane.size());
+    return &plane[index];
+}
+
+inline int Volume::get_cutplane_count(){
+    return plane.size();
+}
+
+inline bool Volume::cutplane_is_enabled(int index){
+    //assert(index < plane.size());
+    return plane[index].enabled; 
+}
+
+inline void Volume::set_n_slice(int n) { 
+    n_slice = n; 
+}
+inline int Volume::get_n_slice() { 
+    return n_slice; 
+}
+
+inline void Volume::set_size(float s) { 
+    size = s; 
+    aspect_ratio_width = s*tex->aspect_ratio_width;
+    aspect_ratio_height = s*tex->aspect_ratio_height;
+    aspect_ratio_depth = s*tex->aspect_ratio_depth;
+}
+
+inline float Volume::get_specular() { 
+    return specular; 
+}
+
+inline float Volume::get_diffuse() { 
+    return diffuse; 
+}
+
+inline float Volume::get_opacity_scale() { 
+    return opacity_scale; 
+}
+
+inline void Volume::set_specular(float s) { 
+    specular = s; 
+}
+
+inline void Volume::set_diffuse(float d) { 
+    diffuse = d; 
+}
+
+inline void Volume::set_opacity_scale(float s) { 
+    opacity_scale = s; 
+}
+
+inline void Volume::enable_data() { 
+    data_enabled = true; 
+}
+
+inline void Volume::disable_data() { 
+    data_enabled = false; 
+}
+
+inline bool Volume::data_is_enabled() { 
+    return data_enabled; 
+}
+
+inline void Volume::enable_outline() { 
+    outline_enabled = true; 
+}
+
+inline void Volume::disable_outline() { 
+    outline_enabled = false; 
+}
+
+inline bool Volume::outline_is_enabled() { 
+    return outline_enabled; 
+}
+
+inline void Volume::set_outline_color(float *rgb) {
+    outline_color = Color(rgb[0],rgb[1],rgb[2]);
+}
+
+inline void Volume::get_outline_color(float *rgb) {
+    outline_color.GetRGB(rgb);
+}
+
+inline void Volume::set_label(int axis, const char* txt){
+    label[axis] = txt;
+}
 #endif
