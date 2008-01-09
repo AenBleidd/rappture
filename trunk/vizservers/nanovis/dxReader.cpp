@@ -44,7 +44,7 @@
  * Load a 3D vector field from a dx-format file
  */
 void
-load_vector_stream(int index, std::iostream& fin) 
+load_vector_stream(int index, std::istream& fin) 
 {
     int dummy, nx, ny, nz, nxy, npts;
     double x0, y0, z0, dx, dy, dz, ddx, ddy, ddz;
@@ -177,7 +177,9 @@ load_vector_stream(int index, std::iostream& fin)
         }
 
         ngen = 0;
-        for (ngen=0; ngen < npts; ngen++) {
+        // scale should be accounted.
+        for (ngen=0; ngen < npts; ngen++) 
+        {
             data[ngen] = (data[ngen]/(2.0*vmax) + 0.5);
         }
 

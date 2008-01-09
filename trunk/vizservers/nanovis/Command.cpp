@@ -23,6 +23,7 @@
 
 
 #include "Command.h"
+#include "Trace.h"
 
 #include "nanovis.h"
 
@@ -805,6 +806,7 @@ VolumeCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
                     NanoVis::volume[n] = vol;
                 }
 #ifdef __TEST_CODE__
+/*
             } else if (strcmp(header, "<FET>") == 0) {
                 printf("FET loading...\n");
                 fflush(stdout);
@@ -816,6 +818,7 @@ VolumeCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
                     Tcl_AppendResult(interp, err.remark().c_str(), (char*)NULL);
                     return TCL_ERROR;
                 }
+*/
 #endif
             } else {
                 printf("OpenDX loading...\n");
@@ -1862,10 +1865,40 @@ xinetd_listen()
     //
     //  Generate the latest frame and send it back to the client
     //
-    // INSOO
+    if (NanoVis::particleRenderer && NanoVis::particleRenderer->isActivated())
+    {
+        NanoVis::particleRenderer->advect();
+    }
+
     NanoVis::offscreen_buffer_capture();  //enable offscreen render
 
     NanoVis::display();
+    
+/*
+    // TEST
+    glClearColor(1.0f, 0.0f, 1.0f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); //clear screen
+    NanoVis::cam->activate();
+
+    //glEnable(GL_COLOR_MATERIAL);
+    glEnable(GL_TEXTURE_RECTANGLE_NV);
+    //glEnable(GL_BLEND);
+    if (NanoVis::particleRenderer->flip)
+    {
+        glBindTexture(GL_TEXTURE_RECTANGLE_NV, NanoVis::particleRenderer->psys_tex[0]);
+    }
+    else
+    {
+        glBindTexture(GL_TEXTURE_RECTANGLE_NV, NanoVis::particleRenderer->psys_tex[1]);
+    }
+
+    glColor3f(1.0f, 0.0f, 0.0f);
+    draw_quad(1, 1, 512, 512);
+
+    glBindTexture(GL_TEXTURE_RECTANGLE_NV, 0);
+    glDisable(GL_TEXTURE_RECTANGLE_NV);
+*/
+
 
     // INSOO
 #ifdef XINETD
