@@ -15,6 +15,8 @@
 #ifndef __NANOVIS_H__
 #define __NANOVIS_H__
 
+#include <tcl.h>
+
 #include <GL/glew.h>
 #include <GL/glut.h>
 #include <Cg/cgGL.h>
@@ -48,7 +50,7 @@
 #include "TransferFunction.h"
 #include "Mat4x4.h"
 #include "Volume.h"
-#include "ParticleSystem.h"
+#include "NvParticleRenderer.h"
 #include "PerfQuery.h"
 #include "Event.h"
 #include "Lic.h"
@@ -62,7 +64,6 @@
 
 #include "config.h"
 
-#include <tcl.h>
 
 //defines for the image based flow visualization
 #define	NPN 256 	//resolution of background pattern
@@ -101,6 +102,7 @@ class NanoVis {
 public:
     static VolumeRenderer* vol_renderer;
     static PointSetRenderer* pointset_renderer;
+    static NvParticleRenderer* particleRenderer;
     static vector<PointSet*> pointSet;
     static PlaneRenderer* plane_render;
 
@@ -131,6 +133,7 @@ public:
     static void initGL(void);
     static void init_lic(void);
     static void init_offscreen_buffer(void);
+    static void initParticle();
     static void resize_offscreen_buffer(int w, int h);
     static void offscreen_buffer_capture(void);
     static void bmp_write(const char* cmd);

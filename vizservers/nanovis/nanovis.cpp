@@ -33,9 +33,6 @@
 #include "PointSet.h"
 #include "Util.h"
 
-// for debuging new functions
-// #include "Test.h"
-
 #include "nanovis.h"
 #include "RpField1D.h"
 #include "RpFieldRect3D.h"
@@ -89,6 +86,7 @@ vector<PointSet*> NanoVis::pointSet;
 PlaneRenderer* NanoVis::plane_render = 0;
 Texture2D* NanoVis::plane[10];
 NvColorTableRenderer* NanoVis::color_table_renderer = 0;
+NvParticleRenderer* NanoVis::particleRenderer = 0;
 graphics::RenderContext* NanoVis::renderContext = 0;
 
 // pointers to volumes, currently handle up to 10 volumes
@@ -182,8 +180,8 @@ static bool right_down = false;
 // Image based flow visualization slice location
 // FLOW
 // TBD
-/*
 static float lic_slice_x = 0.0f;
+/*
 static float lic_slice_y = 0.0f; 
 static float lic_slice_z = 0.3f; 
 
@@ -462,7 +460,8 @@ NanoVis::init_offscreen_buffer()
     
     // Check framebuffer completeness at the end of initialization.
     CHECK_FRAMEBUFFER_STATUS();
-    assert(glGetError()==0);
+
+    //assert(glGetError()==0);
 }
 
 
@@ -532,7 +531,7 @@ NanoVis::resize_offscreen_buffer(int w, int h)
 
     // Check framebuffer completeness at the end of initialization.
     CHECK_FRAMEBUFFER_STATUS();
-    assert(glGetError()==0);
+    //assert(glGetError()==0);
     fprintf(stdin,"  after assert\n");
 }
 
@@ -579,6 +578,44 @@ make_test_2D_data()
     delete[] data;
 }
 
+void NanoVis::initParticle()
+{
+    //random placement on a slice
+    float* data = new float[particleRenderer->psys_width * particleRenderer->psys_height * 4];
+    bzero(data, sizeof(float)*4* particleRenderer->psys_width * particleRenderer->psys_height);
+
+    int index;
+    bool particle;
+    for (int i=0; i<particleRenderer->psys_width; i++) { 
+        for (int j=0; j<particleRenderer->psys_height; j++) { 
+            index = i + particleRenderer->psys_height*j;
+            //particle = rand() % 256 > 150; 
+            //if(particle) 
+            {
+                //assign any location (x,y,z) in range [0,1]
+                // TEMP
+                data[4*index] = lic_slice_x;
+                data[4*index+1]= j/float(particleRenderer->psys_height);
+                data[4*index+2]= i/float(particleRenderer->psys_width);
+                data[4*index+3]= 30; //shorter life span, quicker iterations	
+                //data[4*index+3]= 1.0f; //shorter life span, quicker iterations	
+            }
+/*
+            else
+            {
+                data[4*index] = 0;
+                data[4*index+1]= 0;
+                data[4*index+2]= 0;
+                data[4*index+3]= 0;	
+            }
+*/
+        }
+    }
+
+    particleRenderer->initialize((Particle*)data);
+
+    delete[] data;
+}
 
 void NanoVis::init(const char* path)
 {
@@ -612,6 +649,8 @@ void NanoVis::init(const char* path)
     color_table_renderer = new NvColorTableRenderer();
     color_table_renderer->setFonts(fonts);
     
+    particleRenderer = new NvParticleRenderer(NMESH, NMESH, g_context);
+
     ImageLoaderFactory::getInstance()->addLoaderImpl("bmp", new BMPImageLoaderImpl());
 
     grid = new Grid();
@@ -697,7 +736,7 @@ NanoVis::initGL(void)
 
    plane_render->add_plane(plane[0], get_transfunc("default"));
 
-   assert(glGetError()==0);
+   //assert(glGetError()==0);
 
 #ifdef notdef
    init_particle_system();
@@ -710,7 +749,7 @@ NanoVis::read_screen()
 {
   glReadPixels(0, 0, win_width, win_height, GL_RGB, GL_UNSIGNED_BYTE, 
 	screen_buffer);
-  assert(glGetError()==0);
+  //assert(glGetError()==0);
 }
 
 #if DO_RLE
@@ -1108,7 +1147,7 @@ display_texture(NVISid tex, int width, int height)
     
     glPopMatrix();
     
-    assert(glGetError()==0);
+    //assert(glGetError()==0);
 }
 #endif
 
@@ -1199,7 +1238,7 @@ sortstep()
 
     //buffer->DisableTextureTarget();
 
-    assert(glGetError()==0);
+    //assert(glGetError()==0);
 }
 #endif
 
@@ -1332,7 +1371,7 @@ draw_axis()
 void 
 NanoVis::display()
 {
-    assert(glGetError()==0);
+    //assert(glGetError()==0);
     
     //lic->convolve(); //flow line integral convolution
     //psys->advect(); //advect particles
@@ -1388,6 +1427,10 @@ NanoVis::display()
             grid->render();
         }
 	
+        if (particleRenderer && particleRenderer->isActivated())
+        {
+            particleRenderer->render();
+        }
         //lic->render(); 	//display the line integral convolution result
         //soft_display_verts();
         //perf->enable();

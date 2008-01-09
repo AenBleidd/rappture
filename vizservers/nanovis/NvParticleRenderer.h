@@ -14,8 +14,8 @@
  */
 
 
-#ifndef _PARTICLE_SYSTEM_H_
-#define _PARTICLE_SYSTEM_H_
+#ifndef _NV_PARTICLE_SYSTEM_H_
+#define _NV_PARTICLE_SYSTEM_H_
 
 #include "GL/glew.h"
 #include "Cg/cgGL.h"
@@ -43,6 +43,7 @@ typedef struct Particle {
 
 
 class NvParticleRenderer : public Renderable {
+public :
     /**
      * @brief frame buffer objects: two are defined, flip them as input output every step
      */
@@ -91,20 +92,39 @@ class NvParticleRenderer : public Renderable {
      */
     Vector3 scale;
 
+    bool _activate;
 public:
     int psys_width;	//the storage of particles is implemented as a 2D array.
     int psys_height;
 
-    NvParticleRenderer(int w, int h, CGcontext context, NVISid vector_field, 
-		  float scalex, float scaley, float scalez);
+    NvParticleRenderer(int w, int h, CGcontext context);
     ~NvParticleRenderer();
+    void setVectorField(unsigned int texID, float scaleX, float scaleY, float scaleZ, float max);
     void initialize(Particle* data);
     void advect();
     void update_vertex_buffer();
     void display_vertices();
     void reset();
     void render();
+
+    void activate();
+    void deactivate();
+    bool isActivated() const;
 };
 
+inline void NvParticleRenderer::activate()
+{
+    _activate = true;
+}
+
+inline void NvParticleRenderer::deactivate()
+{
+    _activate = false;
+}
+
+inline bool NvParticleRenderer::isActivated() const
+{
+    return _activate;
+}
 
 #endif

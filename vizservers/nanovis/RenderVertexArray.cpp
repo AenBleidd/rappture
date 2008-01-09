@@ -83,6 +83,7 @@ RenderVertexArray::LoadData(void *data)
     // load data to buffer object
     glBindBufferARB(GL_PIXEL_PACK_BUFFER_EXT, m_buffer);
     glBufferDataARB(GL_PIXEL_PACK_BUFFER_EXT, m_nverts*m_size*m_bytes_per_component, data, m_usage);
+    glBindBufferARB(GL_PIXEL_PACK_BUFFER_EXT, 0);
 }
 
 void
@@ -103,7 +104,7 @@ RenderVertexArray::SetPointer(GLuint index)
     // bind buffer object to vertex array 
     glBindBufferARB(GL_ARRAY_BUFFER, m_buffer);
     //glVertexAttribPointerARB(index, m_size, m_type, GL_FALSE, 0, 0);		//doesn't work
-    glVertexPointer(m_size, m_type, GL_FALSE, 0);
+    glVertexPointer(m_size, m_type, 0, 0);
 
     glBindBufferARB(GL_ARRAY_BUFFER, 0);
 }

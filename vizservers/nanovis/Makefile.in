@@ -75,7 +75,6 @@ OBJS  = \
 	NvZincBlendeReconstructor.o \
 	NvZincBlendeVolumeShader.o \
 	PCASplit.o \
-	ParticleSystem.o \
 	PerfQuery.o \
 	Plane.o \
 	PlaneRenderer.o \
@@ -222,7 +221,6 @@ TransferFunction.o: TransferFunction.cpp
 Texture1D.o: Texture1D.cpp Texture1D.h
 Texture2D.o: Texture2D.cpp Texture2D.h $(AUXSRC)
 Texture3D.o: Texture3D.cpp Texture3D.h $(AUXSRC)
-ParticleSystem.o: ParticleSystem.cpp $(AUXSRC)
 Renderable.o: Renderable.cpp Renderable.h
 Camera.o: Camera.cpp Camera.h
 ScreenSnapper.o: ScreenSnapper.cpp ScreenSnapper.h define.h
