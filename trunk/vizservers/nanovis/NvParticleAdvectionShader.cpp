@@ -32,10 +32,5 @@ void NvParticleAdvectionShader::init()
     _velTexParam = cgGetNamedParameter(_cgFP, "vel_tex");
     _posTexParam = cgGetNamedParameter(_cgFP, "pos_tex");
     _scaleParam = cgGetNamedParameter(_cgFP, "scale");
-
-    // TBD.
-    //cgGLSetTextureParameter(_velTexParam, volume);
-    //cgGLSetParameter3f(_scaleParam, scale.x, scale.y, scale.z);
-    Trace("update_pos.cg loaded\n");
 }
 

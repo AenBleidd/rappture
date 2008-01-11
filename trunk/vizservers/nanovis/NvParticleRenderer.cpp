@@ -259,7 +259,7 @@ void NvParticleRenderer::display_vertices()
   
     glPushMatrix();
 
-    glScaled(1./scale.x, 1./scale.y, 1./scale.z);
+    glScaled(scale.x, scale.y, scale.z);
 
     glEnableClientState(GL_VERTEX_ARRAY);
     m_vertex_array->SetPointer(0);
@@ -275,6 +275,7 @@ void NvParticleRenderer::display_vertices()
 
 void NvParticleRenderer::setVectorField(unsigned int texID, float scaleX, float scaleY, float scaleZ, float max)
 {
-  _advectionShader->setScale(Vector3(scaleX, scaleY, scaleZ));
+    scale.set(scaleX, scaleY, scaleZ);
+  _advectionShader->setScale(scale);
   _advectionShader->setVelocityVolume(texID, max);
 }

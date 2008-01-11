@@ -32,6 +32,8 @@
 #include "PointSetRenderer.h"
 #include "PointSet.h"
 #include "Util.h"
+#include <NvLIC.h>
+#include <Trace.h>
 
 #include "nanovis.h"
 #include "RpField1D.h"
@@ -88,6 +90,7 @@ Texture2D* NanoVis::plane[10];
 NvColorTableRenderer* NanoVis::color_table_renderer = 0;
 NvParticleRenderer* NanoVis::particleRenderer = 0;
 graphics::RenderContext* NanoVis::renderContext = 0;
+NvLIC* NanoVis::licRenderer = 0;
 
 // pointers to volumes, currently handle up to 10 volumes
 /*FIXME: Is the above comment true? Is there a 10 volume limit */
@@ -117,12 +120,7 @@ int render_window; 		//the handle of the render window;
 
 // in Command.cpp
 extern void xinetd_listen();
-extern void initTcl();
-
-
-// forward declarations
-//void init_particles();
-void get_slice_vectors();
+extern void initTcl(); 
 
 //ParticleSystem* psys;
 //float psys_x=0.4, psys_y=0, psys_z=0;
@@ -143,10 +141,6 @@ static Tcl_HashTable tftable;
 
 
 PerfQuery* perf;			//perfromance counter
-
-//Nvidia CG shaders and their parameters
-//INSOO
-//CGcontext g_context;
 
 CGprogram m_passthru_fprog;
 CGparameter m_passthru_scale_param, m_passthru_bias_param;
@@ -176,22 +170,11 @@ static bool left_down = false;
 static bool right_down = false;
 #endif /*XINETD*/
 
-// Image based flow visualization variables
 // Image based flow visualization slice location
 // FLOW
-// TBD
-static float lic_slice_x = 0.0f;
-/*
-static float lic_slice_y = 0.0f; 
-static float lic_slice_z = 0.3f; 
-
-static int    iframe = 0; 
-static int    Npat   = 64;
-static int    alpha  = (int)round(0.12*255);
-static float  sa;
-static float  tmax   = NPIX/(SCALE*NPN);
-static float  dmax   = SCALE/NPIX;
-*/
+float NanoVis::lic_slice_x = 1.0f;
+float NanoVis::lic_slice_y = 0.0f; 
+float NanoVis::lic_slice_z = 0.5f; 
 
 /*
 CGprogram m_copy_texcoord_fprog;
@@ -262,11 +245,11 @@ void cgErrorCallback(void)
     CGerror lastError = cgGetError();
     if(lastError) {
         const char *listing = cgGetLastListing(g_context);
-        printf("\n---------------------------------------------------\n");
-        printf("%s\n\n", cgGetErrorString(lastError));
-        printf("%s\n", listing);
-        printf("-----------------------------------------------------\n");
-        printf("Cg error, exiting...\n");
+        Trace("\n---------------------------------------------------\n");
+        Trace("%s\n\n", cgGetErrorString(lastError));
+        Trace("%s\n", listing);
+        Trace("-----------------------------------------------------\n");
+        Trace("Cg error, exiting...\n");
         cgDestroyContext(g_context);
         exit(-1);
     }
@@ -535,31 +518,6 @@ NanoVis::resize_offscreen_buffer(int w, int h)
     fprintf(stdin,"  after assert\n");
 }
 
-
-#ifdef notdef
-//init line integral convolution
-void 
-NanoVis::init_lic() 
-{
-    lic = new Lic(NMESH, win_width, win_height, 0.3, g_context, volume[1]->id, 
-		  volume[1]->aspect_ratio_width,
-		  volume[1]->aspect_ratio_height,
-		  volume[1]->aspect_ratio_depth);
-}
-
-//init the particle system using vector field volume->[1]
-
-void init_particle_system()
-{
-    psys = new ParticleSystem(NMESH, NMESH, g_context, volume[1]->id,
-        1./volume[1]->aspect_ratio_width,
-        1./volume[1]->aspect_ratio_height,
-        1./volume[1]->aspect_ratio_depth);
-
-    init_particles();	//fill initial particles
-}
-#endif
-
 void 
 make_test_2D_data()
 {
@@ -585,7 +543,7 @@ void NanoVis::initParticle()
     bzero(data, sizeof(float)*4* particleRenderer->psys_width * particleRenderer->psys_height);
 
     int index;
-    bool particle;
+    //bool particle;
     for (int i=0; i<particleRenderer->psys_width; i++) { 
         for (int j=0; j<particleRenderer->psys_height; j++) { 
             index = i + particleRenderer->psys_height*j;
@@ -617,6 +575,23 @@ void NanoVis::initParticle()
     delete[] data;
 }
 
+void CgErrorCallback(void)
+{
+    CGerror lastError = cgGetError();
+
+    if(lastError) {
+        const char *listing = cgGetLastListing(g_context);
+        printf("\n---------------------------------------------------\n");
+        printf("%s\n\n", cgGetErrorString(lastError));
+        printf("%s\n", listing);
+        printf("-----------------------------------------------------\n");
+        printf("Cg error, exiting...\n");
+        cgDestroyContext(g_context);
+        fflush(stdout);
+        exit(-1);
+    }
+}
+
 void NanoVis::init(const char* path)
 {
     // print system information
@@ -641,15 +616,19 @@ void NanoVis::init(const char* path)
     }
 
     NvInitCG();
+    NvShader::setErrorCallback(CgErrorCallback);
 
+/*
     fonts = new R2Fonts();
     fonts->addFont("verdana", "verdana.fnt");
     fonts->setFont("verdana");
+*/
 
     color_table_renderer = new NvColorTableRenderer();
     color_table_renderer->setFonts(fonts);
     
     particleRenderer = new NvParticleRenderer(NMESH, NMESH, g_context);
+    licRenderer = new NvLIC(NMESH, NPIX, NPIX, 0.5, g_context);
 
     ImageLoaderFactory::getInstance()->addLoaderImpl("bmp", new BMPImageLoaderImpl());
 
@@ -729,7 +708,6 @@ NanoVis::initGL(void)
    //vol_renderer->add_volume(volume[1], tmp_tf);
 #endif
 
-
    //create an 2D plane renderer
    plane_render = new PlaneRenderer(g_context, win_width, win_height);
    make_test_2D_data();
@@ -747,9 +725,7 @@ NanoVis::initGL(void)
 void 
 NanoVis::read_screen()
 {
-  glReadPixels(0, 0, win_width, win_height, GL_RGB, GL_UNSIGNED_BYTE, 
-	screen_buffer);
-  //assert(glGetError()==0);
+  glReadPixels(0, 0, win_width, win_height, GL_RGB, GL_UNSIGNED_BYTE, screen_buffer);
 }
 
 #if DO_RLE
@@ -1421,12 +1397,18 @@ NanoVis::display()
         glPushMatrix();
         //now render things in the scene
         if (axis_on) {
-	    draw_3d_axis();
-	}
-	if (grid->isVisible()) {
+	        draw_3d_axis();
+	    }
+
+        if (grid->isVisible()) {
             grid->render();
         }
 	
+        if (licRenderer && licRenderer->isActivated())
+        {
+            licRenderer->render();
+        }
+
         if (particleRenderer && particleRenderer->isActivated())
         {
             particleRenderer->render();

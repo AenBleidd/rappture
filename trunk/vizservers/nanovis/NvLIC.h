@@ -37,6 +37,8 @@
 class NvLIC : public Renderable { 
 
 private:
+    unsigned int disListID;
+
   int width, height;
   int size; 		//the lic is a square of size, it can be stretched
   float* slice_vector;  //storage for the per slice vectors driving the follow
@@ -50,27 +52,36 @@ private:
   float sa;
   float tmax;
   float dmax;
+    float max;
 
   //CG shader parameters
   CGcontext m_g_context;
   CGparameter m_vel_tex_param;
   CGparameter m_vel_tex_param_render_vel, m_plane_normal_param_render_vel;
   CGprogram m_render_vel_fprog;
+  CGparameter m_max_param;
 
   NVISid color_tex, pattern_tex, mag_tex;
   NVISid fbo, vel_fbo, slice_vector_tex;  //for projecting 3d vector to 2d vector on a plane
+  NVISid vectorFieldID;
 
   Volume* vector_field; 
 
+    /**
+     * flag for rendering
+     */
+    bool _activate;
 public:
   Vector3 normal; //the normal vector of the NvLIC plane, 
   		  //the inherited Vector3 location is its center
-  NvLIC(int _size, int _width, int _height, float _offset,
-	  CGcontext _context, NVISid _vector_field,
-	  float scalex, float scaley, float scalez);
+  NvLIC(int _size, int _width, int _height, float _offset, CGcontext _context);
   ~NvLIC();
 
-  void convolve();
+    /**
+     * @brief project 3D vectors to a 2D slice for line integral convolution
+     */
+    void convolve();
+
   void display();	//display the convolution result
   void render();
   void make_patterns();
@@ -79,6 +90,26 @@ public:
   void get_slice();
   void set_offset(float v);
 
+    void activate();
+    void deactivate();
+    bool isActivated() const;
+
+    void setVectorField(unsigned int texID, float scaleX, float scaleY, float scaleZ, float max);
 };
+
+inline void NvLIC::activate()
+{
+    _activate = true;
+}
+
+inline void NvLIC::deactivate()
+{
+    _activate = false;
+}
+
+inline bool NvLIC::isActivated() const
+{
+    return _activate;
+}
 
 #endif

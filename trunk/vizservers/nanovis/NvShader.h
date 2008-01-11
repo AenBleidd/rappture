@@ -4,6 +4,8 @@
 #include <Cg/cg.h>
 #include <Cg/cgGL.h>
 
+typedef void NvCgCallbackFunction(void);
+
 class NvShader {
 protected :
     CGprogram _cgVP;
@@ -17,6 +19,9 @@ public :
 
 protected :
     void resetPrograms();
+
+public :
+    static void setErrorCallback(NvCgCallbackFunction callback);
 public :
     /**
      * @brief create a Cg vertex program and load it

@@ -53,7 +53,6 @@
 #include "NvParticleRenderer.h"
 #include "PerfQuery.h"
 #include "Event.h"
-#include "Lic.h"
 #include "VolumeRenderer.h"
 #include "PlaneRenderer.h"
 #include "NvColorTableRenderer.h"
@@ -98,11 +97,14 @@ typedef struct RegGrid2{
     }
 };
 
+class NvLIC;
+
 class NanoVis {
 public:
     static VolumeRenderer* vol_renderer;
     static PointSetRenderer* pointset_renderer;
     static NvParticleRenderer* particleRenderer;
+    static NvLIC* licRenderer;
     static vector<PointSet*> pointSet;
     static PlaneRenderer* plane_render;
 
@@ -120,6 +122,10 @@ public:
     static int n_volumes;
     static int updir;
     static Camera *cam;
+
+    static float lic_slice_x;
+    static float lic_slice_y;
+    static float lic_slice_z;
 
     static bool axis_on;
 
@@ -154,4 +160,5 @@ public:
     static void update_trans(int delta_x, int delta_y, int delta_z);
 #endif
 };
+
 #endif	/* __NANOVIS_H__ */

@@ -22,7 +22,6 @@ float4 main(in float2 uv : TEXCOORD0,
             uniform float3 scale
             ) : COLOR
 {
-
     // get previous position and velocity
     float4 pos = texRECT(pos_tex, uv);
     float4 ret;
@@ -31,13 +30,13 @@ float4 main(in float2 uv : TEXCOORD0,
     //reconstruct negative value
     float4 vel = float4(tex3D(vel_tex, pos.xyz).xyz, 0) - float4(0.5, 0.5, 0.5, 0.0f);
     vel = vel * (2 * max);
-    vel.x *= scale.x;
-    vel.y *= scale.y;
-    vel.z *= scale.z;
+    //vel.x *= scale.x;
+    //vel.y *= scale.y;
+    //vel.z *= scale.z;
     ret = pos;
-    ret.x -= vel.x * timestep;
-    ret.y -= vel.y * timestep;
-    ret.z -= vel.z * timestep;
+    ret.x += vel.x * 0.0005;
+    ret.y += vel.y * 0.0005;
+    ret.z += vel.z * 0.0005;
 
     //not drawing if the particle is out of bound
     if(ret.x<0 || ret.x>1 || ret.y<0 || ret.y>1 || ret.z<0 || ret.z>1 || time==0)
