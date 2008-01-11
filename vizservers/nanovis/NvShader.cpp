@@ -49,3 +49,10 @@ void NvShader::resetPrograms()
         cgDestroyProgram(_cgFP);
     }
 }
+
+void NvShader::setErrorCallback(NvCgCallbackFunction callback)
+{
+    cgSetErrorCallback(callback);
+}
+
+

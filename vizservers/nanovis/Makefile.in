@@ -56,7 +56,6 @@ OBJS  = \
 	ImageLoader.o \
 	ImageLoaderFactory.o \
 	ImageLoaderImpl.o \
-	Lic.o \
 	MainWindow.o \
 	Mat4x4.o \
 	Nv.o \
@@ -224,7 +223,6 @@ Texture3D.o: Texture3D.cpp Texture3D.h $(AUXSRC)
 Renderable.o: Renderable.cpp Renderable.h
 Camera.o: Camera.cpp Camera.h
 ScreenSnapper.o: ScreenSnapper.cpp ScreenSnapper.h define.h
-Lic.o: Lic.cpp Lic.h $(AUXSRC)
 Volume.o: Volume.cpp Volume.h $(AUXSRC)
 ZincBlendeVolume.o: ZincBlendeVolume.cpp ZincBlendeVolume.h $(AUXSRC)
 VolumeRenderer.o: VolumeRenderer.cpp VolumeRenderer.h

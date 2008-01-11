@@ -139,12 +139,13 @@ load_vector_stream(int index, std::istream& fin)
 #endif
 
         float *data = new float[3*nx*ny*nz];
+        memset(data, 0, sizeof(float) * 3 * nx * ny * nz);
 
         std::cout << "generating " << nx << "x" << ny << "x" << nz << " = " << nx*ny*nz << " points" << std::endl;
 
         // generate the uniformly sampled data that we need for a volume
-        double vmin = 0.0;
-        double vmax = 0.0;
+        double vmin = 1e21;
+        double vmax = -1e21;
         double nzero_min = 0.0;
         int ngen = 0;
         for (int iz=0; iz < nz; iz++) {
@@ -157,9 +158,7 @@ load_vector_stream(int index, std::istream& fin)
                     vx = xfield.value(xval,yval,zval);
                     vy = yfield.value(xval,yval,zval);
                     vz = zfield.value(xval,yval,zval);
-		    //vx = 1;
-		    //vy = 1;
-		    vz = 0;
+
                     double vm = sqrt(vx*vx + vy*vy + vz*vz);
 
                     if (vm < vmin) { vmin = vm; }
@@ -177,15 +176,18 @@ load_vector_stream(int index, std::istream& fin)
         }
 
         ngen = 0;
+
         // scale should be accounted.
         for (ngen=0; ngen < npts; ngen++) 
         {
             data[ngen] = (data[ngen]/(2.0*vmax) + 0.5);
         }
 
-	NanoVis::load_volume(index, nx, ny, nz, 3, data, vmin, vmax, nzero_min);
+        NanoVis::load_volume(index, nx, ny, nz, 3, data, vmin, vmax, nzero_min);
+
         delete [] data;
-    } else {
+    } 
+    else {
         std::cerr << "WARNING: data not found in stream" << std::endl;
     }
 }
@@ -194,7 +196,8 @@ load_vector_stream(int index, std::istream& fin)
 /* Load a 3D volume from a dx-format file
  */
 Rappture::Outcome
-load_volume_stream2(int index, std::iostream& fin) {
+load_volume_stream2(int index, std::iostream& fin) 
+{
     Rappture::Outcome result;
 
     Rappture::MeshTri2D xymesh;

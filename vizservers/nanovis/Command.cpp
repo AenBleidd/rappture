@@ -51,6 +51,7 @@
 #include "Grid.h"
 #include "Camera.h"
 #include <RenderContext.h>
+#include <NvLIC.h>
 
 // FOR testing new functions
 //#define  _LOCAL_ZINC_TEST_
@@ -265,8 +266,7 @@ ScreenShotCmd(ClientData cdata, Tcl_Interp *interp, int argc,
 
     NanoVis::bmp_write("nv>screenshot -bytes");
 
-    // TEST
-    NanoVis::bmp_write_to_file();
+    //NanoVis::bmp_write_to_file();
    
     NanoVis::resize_offscreen_buffer(old_win_width, old_win_height); 
 #endif
@@ -1865,6 +1865,11 @@ xinetd_listen()
     //
     //  Generate the latest frame and send it back to the client
     //
+    if (NanoVis::licRenderer && NanoVis::licRenderer->isActivated())
+    {
+        NanoVis::licRenderer->convolve();
+    }
+
     if (NanoVis::particleRenderer && NanoVis::particleRenderer->isActivated())
     {
         NanoVis::particleRenderer->advect();
@@ -1874,32 +1879,6 @@ xinetd_listen()
 
     NanoVis::display();
     
-/*
-    // TEST
-    glClearColor(1.0f, 0.0f, 1.0f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); //clear screen
-    NanoVis::cam->activate();
-
-    //glEnable(GL_COLOR_MATERIAL);
-    glEnable(GL_TEXTURE_RECTANGLE_NV);
-    //glEnable(GL_BLEND);
-    if (NanoVis::particleRenderer->flip)
-    {
-        glBindTexture(GL_TEXTURE_RECTANGLE_NV, NanoVis::particleRenderer->psys_tex[0]);
-    }
-    else
-    {
-        glBindTexture(GL_TEXTURE_RECTANGLE_NV, NanoVis::particleRenderer->psys_tex[1]);
-    }
-
-    glColor3f(1.0f, 0.0f, 0.0f);
-    draw_quad(1, 1, 512, 512);
-
-    glBindTexture(GL_TEXTURE_RECTANGLE_NV, 0);
-    glDisable(GL_TEXTURE_RECTANGLE_NV);
-*/
-
-
     // INSOO
 #ifdef XINETD
    NanoVis::read_screen();
