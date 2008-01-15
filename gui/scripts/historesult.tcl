@@ -21,6 +21,7 @@ option add *HistogramResult*Element.relief solid widgetDefault
 option add *HistogramResult*x.loose 1 widgetDefault
 option add *HistogramResult*y.loose 1 widgetDefault
 option add *HistogramResult*Element.relief solid widgetDefault
+option add *HistogramResult*Element.borderWidth 0 widgetDefault
 
 option add *HistogramResult.width 3i widgetDefault
 option add *HistogramResult.height 3i widgetDefault
@@ -66,6 +67,8 @@ itcl::class Rappture::HistogramResult {
     protected method _getAxes {xydata}
     protected method _getLineMarkerOptions { style } 
     protected method _getTextMarkerOptions { style } 
+    protected method _enterMarker { g name x y text }
+    protected method _leaveMarker { g name }
 
     private variable _dispatcher "" ;# dispatcher for !events
 
@@ -84,7 +87,7 @@ itcl::class Rappture::HistogramResult {
     private variable _axis         ;# info for axis manipulations
     private variable _axisPopup    ;# info for axis being edited in popup
     common _downloadPopup          ;# download options from popup
-
+    private variable _markers
 }
                                                                                 
 itk::usual HistogramResult {
@@ -687,6 +690,10 @@ itcl::body Rappture::HistogramResult::_rebuild {} {
 	    set min [blt::vector expr min($yv)]
 	    set max [blt::vector expr max($yv)]
 	    set id [$g marker create line -coords [list $at $min $at $max]]
+	    $g marker bind $id <Enter> \
+		[itcl::code $this _enterMarker $g x-$label $at $min $at]
+	    $g marker bind $id <Leave> \
+		[itcl::code $this _leaveMarker $g x-$label]
 	    set options [_getLineMarkerOptions $style]
 	    if { $options != "" } {
 		eval $g marker configure $id $options
@@ -706,6 +713,10 @@ itcl::body Rappture::HistogramResult::_rebuild {} {
 	    set min [blt::vector expr min($xv)]
 	    set max [blt::vector expr max($xv)]
 	    set id [$g marker create line -coords [list $min $at $max $at]]
+	    $g marker bind $id <Enter> \
+		[itcl::code $this _enterMarker $g y-$label $at $min $at]
+	    $g marker bind $id <Leave> \
+		[itcl::code $this _leaveMarker $g y-$label]
 	    set options [_getLineMarkerOptions $style]
 	    if { $options != "" } {
 		eval $g marker configure $id $options
@@ -1475,5 +1486,22 @@ itcl::configbody Rappture::HistogramResult::autocolors {
     }
     if {$_autoColorI >= [llength $itk_option(-autocolors)]} {
         set _autoColorI 0
+    }
+}
+
+itcl::body Rappture::HistogramResult::_enterMarker { g name x y text } {
+    _leaveMarker $g $name
+    set id [$g marker create text \
+		-coords [list $x $y] \
+		-anchor n \
+		-text $text]
+    set _markers($name) $id
+}
+
+itcl::body Rappture::HistogramResult::_leaveMarker { g name } {
+    if { [info exists _markers($name)] } { 
+	set id $_markers($name)
+	$g marker delete $id
+	unset _markers($name)
     }
 }
