@@ -1349,9 +1349,6 @@ NanoVis::display()
 {
     //assert(glGetError()==0);
     
-    //lic->convolve(); //flow line integral convolution
-    //psys->advect(); //advect particles
-    
     //start final rendering
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); //clear screen
 
@@ -1394,7 +1391,9 @@ NanoVis::display()
             break;
         }
 	
-        glPushMatrix();
+        // TBD : This will be removed after being sure that all the functions work well.
+        //glPushMatrix();
+        
         //now render things in the scene
         if (axis_on) {
 	        draw_3d_axis();
@@ -1413,23 +1412,21 @@ NanoVis::display()
         {
             particleRenderer->render();
         }
-        //lic->render(); 	//display the line integral convolution result
         //soft_display_verts();
         //perf->enable();
-        //psys->render();
         //perf->disable();
         //fprintf(stderr, "particle pixels: %d\n", perf->get_pixel_count());
         //perf->reset();
 	
-        perf->enable();
+        //perf->enable();
         vol_renderer->render_all();
+        //perf->disable();
 	
-        perf->disable();
-	
-        for (unsigned int i = 0; i < heightMap.size(); ++i) {
+        for (unsigned int i = 0; i < heightMap.size(); ++i) 
+        {
             if (heightMap[i]->isVisible()) {
                 heightMap[i]->render(renderContext);
-	    }
+	        }
         }
         glPopMatrix();
    } else {

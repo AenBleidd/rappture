@@ -19,10 +19,12 @@ void NvColorTableRenderer::render(int width, int height, Texture2D* texture, Tra
     glEnable(GL_BLEND);
 
     glViewport(0, 0, width, height);
+
     glMatrixMode(GL_PROJECTION);
     glPushMatrix();
     glLoadIdentity();
     gluOrtho2D(0, width, 0, height);
+
     glMatrixMode(GL_MODELVIEW);
     glPushMatrix();
     glLoadIdentity();
@@ -43,17 +45,22 @@ void NvColorTableRenderer::render(int width, int height, Texture2D* texture, Tra
     {
         _fonts->resize(width, height);
         _fonts->begin();
+
         glPushMatrix();
-        glTranslatef(width - 110, 5, 0.0f);
-        _fonts->draw("Quantum dot lab - www.nanohub.org");
+            glTranslatef(width - 110, 5, 0.0f);
+            _fonts->draw("Quantum dot lab - www.nanohub.org");
         glPopMatrix();
+
         glPushMatrix();
-        glTranslatef(30, height - 25, 0.0f);
-        _fonts->draw("%.08lf", rangeMin);
+            glTranslatef(30, height - 25, 0.0f);
+            _fonts->draw("%.08lf", rangeMin);
         glPopMatrix();
+
         glPushMatrix();
-        glTranslatef(width - 110, height - 25, 0.0f);
-        _fonts->draw("%.08lf", rangeMax);
+            glTranslatef(width - 110, height - 25, 0.0f);
+            _fonts->draw("%.08lf", rangeMax);
+        glPopMatrix();
+
         _fonts->end();
     }
 
