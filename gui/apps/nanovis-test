@@ -116,8 +116,18 @@ proc send_file {} {
 # ----------------------------------------------------------------------
 proc send_command {} {
     global widgets
+    global last_command
 
     set cmd [$widgets(command) get]
+    
+    # Karl
+    if {[string length $cmd] > 0} {
+    	set last_command $cmd
+    } else {
+    	set cmd $last_command
+    }
+
+    
     namespace eval Rappture::NanovisViewer [list $widgets(nanovis) _send_text $cmd]
     $widgets(command) delete 0 end
 }
