@@ -482,7 +482,7 @@ itcl::body Rappture::HistogramResult::download {option args} {
 		    set xv [$dataobj locations]
 		    set hv [$dataobj heights]
 		    set wv [$dataobj widths]
-		    if { $wv == "" } {
+		    if { $wv == "" || [$wv length] == 0 } {
 			foreach x [$xv range 0 end] h [$hv range 0 end] {
 			    append csvdata \
 				[format "%20.15g, %20.15g\n" $x $h]
