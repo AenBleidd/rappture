@@ -76,7 +76,9 @@ itcl::body Rappture::UniRect2d::blob {} {
     lappend data "xmin" $_xmin "xmax" $_xmax "xnum" $_xnum
     lappend data "ymin" $_ymin "ymax" $_ymax "ynum" $_ynum
     lappend data "xmin" $_xmin "ymin" $_ymin "xmax" $_xmax "ymax" $_ymax
-    lappend data "zvalues" [$_zv range 0 end]
+    if { [$_zv length] > 0 } {
+	lappend data "zvalues" [$_zv range 0 end]
+    }
     return [Rappture::encoding::encode -as zb64 $data]
 }
 
@@ -106,7 +108,10 @@ itcl::body Rappture::UniRect2d::mesh {} {
 #	on the nanovis server.
 # ----------------------------------------------------------------------
 itcl::body Rappture::UniRect2d::values {} {
-    return [$_zv range 0 end]
+    if { [$_zv length] > 0 } {
+	return [$_zv range 0 end]
+    }
+    return ""
 }
 
 # ----------------------------------------------------------------------
