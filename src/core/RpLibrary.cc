@@ -2209,6 +2209,9 @@ RpLibrary::result(int exitStatus)
     struct tm* timeinfo = NULL;
     std::string timestamp = "";
     std::string username = "";
+    std::string hostname = "";
+    char *user = NULL;
+    char *host = NULL;
 
     if (this->root) {
         outputFile << "run" << (int)time(&t) << ".xml";
@@ -2232,15 +2235,24 @@ RpLibrary::result(int exitStatus)
         // username is left blank for windows because i dont know
         // how to retrieve username on win32 environment.
         username = "";
+        hostname = "";
 #else
         timestamp.append(timeinfo->tm_zone);
-        username = std::string(getenv("USER"));
+        user = getenv("USER");
+        if (user != NULL) {
+            username = std::string(user);
+        }
+        host = getenv("HOST");
+        if (host != NULL) {
+            hostname = std::string(host);
+        }
 #endif
 
         // add the timestamp to the run file
         put("output.time", timestamp);
         put("output.status",exitStatus);
         put("output.user",username);
+        put("output.host",hostname);
 
         if ( file.is_open() ) {
             xmlText = xml();
