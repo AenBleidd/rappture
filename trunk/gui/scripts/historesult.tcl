@@ -21,7 +21,9 @@ option add *HistogramResult*Element.relief solid widgetDefault
 option add *HistogramResult*x.loose 1 widgetDefault
 option add *HistogramResult*y.loose 1 widgetDefault
 option add *HistogramResult*Element.relief solid widgetDefault
-option add *HistogramResult*Element.borderWidth 0 widgetDefault
+option add *HistogramResult*Element.borderWidth 1 widgetDefault
+# Don't let the step size default to 1.0 (for barcharts)
+option add *HistogramResult*x.stepSize 0.0 widgetDefault
 
 option add *HistogramResult.width 3i widgetDefault
 option add *HistogramResult.height 3i widgetDefault
@@ -790,7 +792,6 @@ itcl::body Rappture::HistogramResult::_resetLimits {} {
             } else {
                 set min $_limits(${axis}lin-min)
                 set max $_limits(${axis}lin-max)
-
                 if {[string match y* $axis]} {
                     # add a little padding
                     set delta [expr {$max-$min}]

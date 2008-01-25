@@ -135,8 +135,13 @@ itcl::body Rappture::UniRect2d::limits {which} {
 	    set axis "yaxis"
 	}
 	v - xlin - vlog - z - zlin - zlog {
-	    set min [blt::vector expr min($_zv)]
-	    set max [blt::vector expr max($_zv)]
+	    if { [$_zv length] > 0 } {
+	       set min [blt::vector expr min($_zv)]
+	       set max [blt::vector expr max($_zv)]
+	    } else {
+		set min 0.0
+		set max 1.0
+	    }
 	    set axis "zaxis"
 	}
     }
