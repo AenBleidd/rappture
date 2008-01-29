@@ -81,6 +81,7 @@ extern Rappture::Outcome load_volume_stream2(int index, std::iostream& fin);
 extern void load_volume(int index, int width, int height, int depth, 
 	int n_component, float* data, double vmin, double vmax, 
 	double nzero_min);
+extern void load_vector_stream(int index, std::istream& fin);
 
 // Tcl interpreter for incoming messages
 static Tcl_Interp *interp;
@@ -127,6 +128,7 @@ static Tcl_CmdProc TransfuncCmd;
 static Tcl_CmdProc UniRect2dCmd;
 static Tcl_CmdProc UpCmd;
 static Tcl_CmdProc VolumeCmd;
+static Tcl_CmdProc FlowCmd;
 
 static int GetVolumeIndices(Tcl_Interp *interp, int argc, const char *argv[],
 	vector<unsigned int>* vectorPtr);
@@ -225,6 +227,18 @@ CameraCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
 		     "\": should be aim, angle, or zoom", (char*)NULL);
 	return TCL_ERROR;
     }
+
+    /*
+    Trace("Camera pos(%f %f %f), rot(%f %f %f), aim(%f %f %f)\n", 
+            NanoVis::cam->location.x, NanoVis::cam->location.y, NanoVis::cam->location.z,
+            NanoVis::cam->angle.x, NanoVis::cam->angle.y, NanoVis::cam->angle.z,
+            NanoVis::cam->target.x, NanoVis::cam->target.y, NanoVis::cam->target.z);
+
+    NanoVis::cam->aim(0, 0, 100);
+    NanoVis::cam->rotate(-51.868206, 88.637497, 0.000000);
+    NanoVis::cam->move(-0.000000, -0.000000, -0.819200);
+    */
+
     return TCL_OK;
 }
 
@@ -1080,13 +1094,244 @@ VolumeCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
     return TCL_OK;
 }
 
+static int getDataStream(int nbytes, Rappture::Buffer* buf)
+{
+    Rappture::Outcome err;
+
+    char buffer[8096];
+    while (nbytes > 0) {
+        unsigned int chunk;
+		int status;
+
+		chunk = (sizeof(buffer) < (unsigned int) nbytes) ? sizeof(buffer) : nbytes;
+        status = fread(buffer, 1, chunk, stdin);
+		if (status > 0) {
+           buf->append(buffer,status);
+           nbytes -= status;
+        } else {
+			printf("data unpacking failed\n");
+            Tcl_AppendResult(interp, "data unpacking failed: unexpected EOF",
+            	(char*)NULL);
+            return TCL_ERROR;
+        }
+	}
+
+    err = Rappture::encoding::decode(*buf,RPENC_Z|RPENC_B64|RPENC_HDR);
+    if (err) {
+        printf("ERROR -- DECODING\n");
+        fflush(stdout);
+        Tcl_AppendResult(interp, err.remark().c_str(), (char*)NULL);
+        return TCL_ERROR;
+    }
+}
+
+static int
+FlowCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
+{
+    Rappture::Outcome err;
+
+    char c = argv[1][0];
+    if ((c == 'v') && (strcmp(argv[1], "vectorid") == 0)) 
+    {
+        int n = 0;
+        if (Tcl_GetInt(interp, argv[2], &n) != TCL_OK) {
+            return TCL_ERROR;
+        }
+
+        if (NanoVis::particleRenderer)
+        {
+
+            NanoVis::particleRenderer->setVectorField(
+                NanoVis::volume[n]->id,
+                1.0f, 
+                NanoVis::volume[n]->height / (float) NanoVis::volume[n]->width,
+                NanoVis::volume[n]->depth / (float)  NanoVis::volume[n]->width,
+                NanoVis::volume[n]->range_max());
+        
+            NanoVis::initParticle();
+
+        }
+
+        if (NanoVis::licRenderer)
+        {
+            NanoVis::licRenderer->setVectorField(
+                NanoVis::volume[n]->id,
+                1.0f/NanoVis::volume[n]->aspect_ratio_width,
+                1.0f/NanoVis::volume[n]->aspect_ratio_height,
+                1.0f/NanoVis::volume[n]->aspect_ratio_depth,
+                NanoVis::volume[n]->range_max());
+            NanoVis::licRenderer->set_offset(NanoVis::lic_slice_z);
+        }
+    }
+    else if (c == 'l' && strcmp(argv[1],"lic") == 0) 
+    {
+        if (argc < 3) {
+            Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
+                argv[1], " on|off \"", (char*)NULL);
+            return TCL_ERROR;
+        }
+
+	char ch = argv[2][0];
+   	if (ch == 'o' && strcmp(argv[2],"on") == 0) 
+	{
+		NanoVis::lic_on = true;
+	}
+   	else if (ch == 'o' && strcmp(argv[2],"off") == 0) 
+	{
+		NanoVis::lic_on = false;
+	}
+	else
+	{
+		return TCL_ERROR;
+	}
+    }
+    else if (c == 'p' && strcmp(argv[1],"particle") == 0) 
+	{
+        if (argc < 4) {
+            Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
+                argv[1], " more parameters \"", (char*)NULL);
+            return TCL_ERROR;
+        }
+
+		char ch = argv[2][0];
+   		if (ch == 'v' && strcmp(argv[2],"visible") == 0) 
+		{
+			int state;
+        	if (Tcl_GetBoolean(interp, argv[2], &state) != TCL_OK) 
+			{
+				return TCL_ERROR;
+			}
+			NanoVis::particle_on = state;
+		}
+   		else if (ch == 's' && strcmp(argv[2],"slice") == 0) 
+		{
+			if (argv[3][0] == 'x')
+			{
+				NanoVis::lic_axis = 0;
+			}
+			else if (argv[3][0] == 'y')
+			{
+				NanoVis::lic_axis = 1;
+			}
+			else if (argv[3][0] == 'z')
+			{
+				NanoVis::lic_axis = 2;
+			}
+			else
+			{
+				// TBD.. put error message
+				return TCL_ERROR;
+			}
+
+		}
+   		else if (ch == 's' && strcmp(argv[2],"slicepos") == 0) 
+		{
+			float pos;
+        		if (GetFloat(interp, argv[2], &pos) != TCL_OK) 
+			{
+				return TCL_ERROR;
+			}
+
+			if (pos < 0.0f) pos = 0.0f;
+			if (pos > 1.0f) pos = 1.0f;
+
+			switch (NanoVis::lic_axis)
+			{
+			case 0 :
+				NanoVis::lic_slice_x = pos;
+				break;
+			case 1 :
+				NanoVis::lic_slice_y = pos;
+				break;
+			case 2 :
+				NanoVis::lic_slice_z = pos;
+				break;
+			}
+		}
+		else
+		{
+			return TCL_ERROR;
+		}
+	}
+    else if (c == 'r' && strcmp(argv[1],"reset") == 0) 
+    {
+            NanoVis::initParticle();
+    }
+    else if (c == 'c' && strcmp(argv[1],"capture") == 0) 
+    {
+		int frame_count;
+        if (Tcl_GetInt(interp, argv[2], &frame_count) != TCL_OK) 
+		{
+		return TCL_ERROR;
+		}
+
+        if (NanoVis::licRenderer) NanoVis::licRenderer->activate();
+        if (NanoVis::particleRenderer) NanoVis::particleRenderer->activate();
+
+		// Karl
+		// pur your code .. 
+
+        if (NanoVis::licRenderer) NanoVis::licRenderer->deactivate();
+        if (NanoVis::particleRenderer) NanoVis::particleRenderer->deactivate();
+        NanoVis::initParticle();
+    }
+    else if (c == 'd' && strcmp(argv[1],"data") == 0) 
+	{
+		char ch = argv[2][0];
+        if (ch == 'f' && strcmp(argv[2],"follows") == 0) {
+            int nbytes;
+            if (Tcl_GetInt(interp, argv[3], &nbytes) != TCL_OK) 
+			{
+                return TCL_ERROR;
+            }
+
+			 Rappture::Buffer buf;
+			if (getDataStream(nbytes, &buf) != TCL_OK)
+			{
+				/// TBD..
+                //Tcl_AppendResult(interp, err.remark().c_str(), (char*)NULL);
+				return TCL_ERROR;
+			}
+
+            int n = NanoVis::n_volumes;
+            std::stringstream fdata;
+            fdata.write(buf.bytes(),buf.size());
+            load_vector_stream(n, fdata);
+            
+            //
+            // BE CAREFUL:  Set the number of slices to something
+            //   slightly different for each volume.  If we have
+            //   identical volumes at exactly the same position
+            //   with exactly the same number of slices, the second
+            //   volume will overwrite the first, so the first won't
+            //   appear at all.
+            //
+            if (NanoVis::volume[n] != NULL) 
+			{
+                NanoVis::volume[n]->set_n_slice(256-n);
+                NanoVis::volume[n]->disable_cutplane(0);
+                NanoVis::volume[n]->disable_cutplane(1);
+                NanoVis::volume[n]->disable_cutplane(2);
+
+                NanoVis::vol_renderer->add_volume(NanoVis::volume[n],NanoVis::get_transfunc("default"));
+            }
+        }
+	}
+    else
+    {
+        return TCL_ERROR;
+    }
+    
+    return TCL_OK;
+}
+
 static int 
 HeightMapCmd(ClientData cdata, Tcl_Interp *interp, int argc, 
 	     const char *argv[])
 {
     if (argc < 2) {
 	srand((unsigned)time(NULL));
-	int size = 20 * 20;
+	int size = 20 * 200;
 	double sigma = 5.0;
 	double mean = exp(0.0) / (sigma * sqrt(2.0));
 	float* data = (float*) malloc(sizeof(float) * size);
@@ -1095,7 +1340,7 @@ HeightMapCmd(ClientData cdata, Tcl_Interp *interp, int argc,
 	for (int i = 0; i < size; ++i) {
 	    x = - 10 + i%20;
 	    data[i] = exp(- (x * x)/(2 * sigma * sigma)) / 
-		(sigma * sqrt(2.0)) / mean * 2;
+		(sigma * sqrt(2.0)) / mean * 2 + 1000;
 	}
 
 	HeightMap* heightMap = new HeightMap();
@@ -1103,7 +1348,7 @@ HeightMapCmd(ClientData cdata, Tcl_Interp *interp, int argc,
     float maxx = 1.0f;
     float miny = 0.5f;
     float maxy = 3.5f;
-	heightMap->setHeight(minx, miny, maxx, maxy, 20, 20, data);
+	heightMap->setHeight(minx, miny, maxx, maxy, 20, 200, data);
 	heightMap->setColorMap(NanoVis::get_transfunc("default"));
 	heightMap->setVisible(true);
 	heightMap->setLineContourVisible(true);
@@ -1770,6 +2015,25 @@ initTcl()
 
     // manipulate volume data
     Tcl_CreateCommand(interp, "volume", VolumeCmd,
+        (ClientData)NULL, (Tcl_CmdDeleteProc*)NULL);
+
+    Tcl_CreateCommand(interp, "flow", FlowCmd,
+        (ClientData)NULL, (Tcl_CmdDeleteProc*)NULL);
+
+    Tcl_CreateCommand(interp, "axis", AxisCmd,
+        (ClientData)NULL, (Tcl_CmdDeleteProc*)NULL);
+
+    Tcl_CreateCommand(interp, "grid", GridCmd,
+        (ClientData)NULL, (Tcl_CmdDeleteProc*)NULL);
+
+    Tcl_CreateCommand(interp, "heightmap", HeightMapCmd,
+        (ClientData)NULL, (Tcl_CmdDeleteProc*)NULL);
+
+    // get screenshot
+    Tcl_CreateCommand(interp, "screenshot", ScreenShotCmd,
+        (ClientData)NULL, (Tcl_CmdDeleteProc*)NULL);
+
+    Tcl_CreateCommand(interp, "unirect2d", UniRect2dCmd,
         (ClientData)NULL, (Tcl_CmdDeleteProc*)NULL);
 
     Tcl_CreateCommand(interp, "axis", AxisCmd,

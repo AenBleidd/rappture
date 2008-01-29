@@ -77,6 +77,7 @@ enum AxisDirections {
 int NanoVis::updir = Y_POS;
 Camera* NanoVis::cam = NULL;
 bool NanoVis::axis_on = true;
+//bool NanoVis::axis_on = false;
 int NanoVis::win_width = NPIX;			//size of the render window
 int NanoVis::win_height = NPIX;			//size of the render window
 int NanoVis::n_volumes = 0;
@@ -91,6 +92,10 @@ NvColorTableRenderer* NanoVis::color_table_renderer = 0;
 NvParticleRenderer* NanoVis::particleRenderer = 0;
 graphics::RenderContext* NanoVis::renderContext = 0;
 NvLIC* NanoVis::licRenderer = 0;
+
+bool NanoVis::lic_on = false;
+bool NanoVis::particle_on = false;
+bool NanoVis::vector_on = false;
 
 // pointers to volumes, currently handle up to 10 volumes
 /*FIXME: Is the above comment true? Is there a 10 volume limit */
@@ -175,6 +180,7 @@ static bool right_down = false;
 float NanoVis::lic_slice_x = 1.0f;
 float NanoVis::lic_slice_y = 0.0f; 
 float NanoVis::lic_slice_z = 0.5f; 
+int NanoVis::lic_axis = 2; 
 
 /*
 CGprogram m_copy_texcoord_fprog;
