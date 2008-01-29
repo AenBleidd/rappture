@@ -55,7 +55,7 @@
 
 // FOR testing new functions
 //#define  _LOCAL_ZINC_TEST_
-//#include "Test.h"
+#include "Test.h"
 
 // EXTERN DECLARATIONS
 // in Nv.cpp
@@ -275,6 +275,9 @@ ScreenShotCmd(ClientData cdata, Tcl_Interp *interp, int argc,
     
     }
     */
+
+
+/*
     NanoVis::read_screen();
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
 
@@ -283,6 +286,8 @@ ScreenShotCmd(ClientData cdata, Tcl_Interp *interp, int argc,
     //NanoVis::bmp_write_to_file();
    
     NanoVis::resize_offscreen_buffer(old_win_width, old_win_height); 
+*/
+    
 #endif
 
     return TCL_OK;
@@ -1123,6 +1128,7 @@ static int getDataStream(int nbytes, Rappture::Buffer* buf)
         Tcl_AppendResult(interp, err.remark().c_str(), (char*)NULL);
         return TCL_ERROR;
     }
+    return TCL_OK;
 }
 
 static int
@@ -1259,8 +1265,8 @@ FlowCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
     }
     else if (c == 'c' && strcmp(argv[1],"capture") == 0) 
     {
-		int frame_count;
-        if (Tcl_GetInt(interp, argv[2], &frame_count) != TCL_OK) 
+		int total_frame_count = 0;
+        if (Tcl_GetInt(interp, argv[2], &total_frame_count) != TCL_OK) 
 		{
 		return TCL_ERROR;
 		}
@@ -1268,8 +1274,32 @@ FlowCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
         if (NanoVis::licRenderer) NanoVis::licRenderer->activate();
         if (NanoVis::particleRenderer) NanoVis::particleRenderer->activate();
 
-		// Karl
-		// pur your code .. 
+	// Karl
+	{
+
+	for (int frame_count = 0; frame_count<total_frame_count; frame_count++) {
+
+		// Generate the latest frame and send it back to the client
+ 		if (NanoVis::licRenderer && NanoVis::licRenderer->isActivated())
+		      NanoVis::licRenderer->convolve();               
+
+		if (NanoVis::particleRenderer && NanoVis::particleRenderer->isActivated())
+		        NanoVis::particleRenderer->advect();
+
+		NanoVis::offscreen_buffer_capture();  //enable offscreen render
+		NanoVis::display();
+
+//		printf("Read Screen for Writing to file...\n");
+
+		NanoVis::read_screen();
+		glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
+
+		NanoVis::bmp_write_to_file(frame_count);
+//		printf("Writing to file...\n");
+	}
+
+
+	}// put your code... 
 
         if (NanoVis::licRenderer) NanoVis::licRenderer->deactivate();
         if (NanoVis::particleRenderer) NanoVis::particleRenderer->deactivate();
@@ -2055,6 +2085,10 @@ initTcl()
 #ifdef __TEST_CODE__
     Tcl_CreateCommand(interp, "test", TestCmd,
         (ClientData)NULL, (Tcl_CmdDeleteProc*)NULL);
+
+
+//    Tcl_CreateCommand(interp, "flow", FlowCmd,
+ //       (ClientData)NULL, (Tcl_CmdDeleteProc*)NULL);
 #endif
 
     // create a default transfer function
@@ -2127,8 +2161,10 @@ xinetd_listen()
     }
 
     //
+    // This is now in "FlowCmd()":
     //  Generate the latest frame and send it back to the client
     //
+    /*
     if (NanoVis::licRenderer && NanoVis::licRenderer->isActivated())
     {
         NanoVis::licRenderer->convolve();
@@ -2138,6 +2174,7 @@ xinetd_listen()
     {
         NanoVis::particleRenderer->advect();
     }
+    */
 
     NanoVis::offscreen_buffer_capture();  //enable offscreen render
 
