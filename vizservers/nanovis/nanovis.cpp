@@ -731,7 +731,8 @@ NanoVis::initGL(void)
 void 
 NanoVis::read_screen()
 {
-  glReadPixels(0, 0, win_width, win_height, GL_RGB, GL_UNSIGNED_BYTE, screen_buffer);
+    glReadPixels(0, 0, win_width, win_height, GL_RGB, GL_UNSIGNED_BYTE, 
+		 screen_buffer);
 }
 
 #if DO_RLE
@@ -1333,22 +1334,28 @@ draw_axis()
     //red x
     glColor3f(1,0,0);
     glBegin(GL_LINES);
-    glVertex3f(0,0,0);
-    glVertex3f(1.5,0,0);
+    {
+	glVertex3f(0,0,0);
+	glVertex3f(1.5,0,0);
+    }
     glEnd();
     
     //blue y
     glColor3f(0,0,1);
     glBegin(GL_LINES);
-    glVertex3f(0,0,0);
-    glVertex3f(0,1.5,0);
+    {
+	glVertex3f(0,0,0);
+	glVertex3f(0,1.5,0);
+    }
     glEnd();
     
     //green z
     glColor3f(0,1,0);
     glBegin(GL_LINES);
-    glVertex3f(0,0,0);
-    glVertex3f(0,0,1.5);
+    {
+	glVertex3f(0,0,0);
+	glVertex3f(0,0,1.5);
+    }
     glEnd();
     
     glEnable(GL_TEXTURE_2D);
@@ -1410,20 +1417,15 @@ NanoVis::display()
         
         //now render things in the scene
         if (axis_on) {
-	        draw_3d_axis();
-	    }
-
+	    draw_3d_axis();
+	}
         if (grid->isVisible()) {
             grid->render();
         }
-	
-        if (licRenderer && licRenderer->isActivated())
-        {
+        if (licRenderer && licRenderer->isActivated()) {
             licRenderer->render();
         }
-
-        if (particleRenderer && particleRenderer->isActivated())
-        {
+        if (particleRenderer && particleRenderer->isActivated()) {
             particleRenderer->render();
         }
         //soft_display_verts();
@@ -1436,11 +1438,10 @@ NanoVis::display()
         vol_renderer->render_all();
         //perf->disable();
 	
-        for (unsigned int i = 0; i < heightMap.size(); ++i) 
-        {
+        for (unsigned int i = 0; i < heightMap.size(); ++i) {
             if (heightMap[i]->isVisible()) {
                 heightMap[i]->render(renderContext);
-	        }
+	    }
         }
         glPopMatrix();
    } else {
