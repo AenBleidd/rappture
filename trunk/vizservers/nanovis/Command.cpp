@@ -1866,13 +1866,16 @@ static int
 GetAxis(Tcl_Interp *interp, const char *string, int *valPtr)
 {
     if (string[1] == '\0') {
-	if (string[0] == 'x') {
+	char c;
+
+	c = tolower((unsigned char)string[0]);
+	if (c == 'x') {
 	    *valPtr = 0;
 	    return TCL_OK;
-	} else if (string[0] == 'y') {
+	} else if (c == 'y') {
 	    *valPtr = 1;
 	    return TCL_OK;
-	} else if (string[0] == 'z') {
+	} else if (c == 'z') {
 	    *valPtr = 2;
 	    return TCL_OK;
 	}
