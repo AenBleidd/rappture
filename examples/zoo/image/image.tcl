@@ -26,8 +26,8 @@ blt::winop image rotate $imh $dest $angle
 
 $driver put output.image.current [$dest data -format jpeg]
 
-# add a litle html note
-set htmltext "html://<p style=\"text-align: center;\">Check out the rotation of this image!</p>"
+# add a little html note
+set htmltext "html://<p style=\"text-align: center;\"><a href=\"angles.html\">Learn more about angles...</a></p>"
 $driver put output.image.note.contents $htmltext
 
 # save the updated XML describing the run...
