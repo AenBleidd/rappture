@@ -26,6 +26,10 @@ blt::winop image rotate $imh $dest $angle
 
 $driver put output.image.current [$dest data -format jpeg]
 
+# add a litle html note
+set htmltext "html://<p style=\"text-align: center;\">Check out the rotation of this image!</p>"
+$driver put output.image.note.contents $htmltext
+
 # save the updated XML describing the run...
 Rappture::result $driver
 exit 0
