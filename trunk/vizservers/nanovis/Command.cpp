@@ -733,7 +733,8 @@ VolumeCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
 			     "\": should be label", (char*)NULL);
 	    return TCL_ERROR;
 	}
-    } else if ((c == 'd') && (strcmp(argv[1],"data") == 0)) {
+    } 
+    else if ((c == 'd') && (strcmp(argv[1],"data") == 0)) {
         if (argc < 3) {
             Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
                 argv[1], " option ?arg arg...?\"", (char*)NULL);
@@ -1066,12 +1067,20 @@ VolumeCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
             for (iter = ivol.begin(); iter != ivol.end(); iter++) {
                 NanoVis::volume[*iter]->set_specular(specular);
             }
-        } else {
+        } else if ((c == 'i') && (strcmp(argv[2], "isosurface") == 0)) {
+
+        	//vector<unsigned int> ivol;
+        	//if (GetVolumeIndices(interp, argc-3, argv+3, &ivol) != TCL_OK) 
+        	//{
+         //   		return TCL_ERROR;
+        //	}
+		}
+		else {
 	        Tcl_AppendResult(interp, "bad option \"", argv[2], "\": should be ",
 		        "diffuse, opacity, specular, or transfunc", (char*)NULL);
 	        return TCL_ERROR;
 	    }
-    } 
+	}
     else if ((c == 's') && (strcmp(argv[1], "state") == 0)) 
     {
         if (argc < 3) {
