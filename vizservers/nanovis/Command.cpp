@@ -219,8 +219,8 @@ GetPolygonMode(Tcl_Interp *interp, const char *string,
  *   camera zoom <factor>
  *
  * Clients send these commands to manipulate the camera.  The "angle"
- * operation controls the angle of the camera around the focal point.
- * The "zoom" operation sets the zoom factor, moving the camera in
+ * option controls the angle of the camera around the focal point.
+ * The "zoom" option sets the zoom factor, moving the camera in
  * and out.
  * ----------------------------------------------------------------------
  */
@@ -354,7 +354,7 @@ ScreenShotCmd(ClientData cdata, Tcl_Interp *interp, int argc,
  * more data volumes.  The "state" command turns a cutplane on or
  * off.  The "position" command changes the position to a relative
  * value in the range 0-1.  The <axis> can be x, y, or z.  These
- * operations are applied to the volumes represented by one or more
+ * options are applied to the volumes represented by one or more
  * <volume> indices.  If no volumes are specified, then all volumes
  * are updated.
  * ----------------------------------------------------------------------
@@ -1068,21 +1068,18 @@ VolumeCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
                 NanoVis::volume[*iter]->set_specular(specular);
             }
         } else if ((c == 'i') && (strcmp(argv[2], "isosurface") == 0)) {
-
-        	//vector<unsigned int> ivol;
-        	//if (GetVolumeIndices(interp, argc-3, argv+3, &ivol) != TCL_OK) 
-        	//{
-         //   		return TCL_ERROR;
-        //	}
-		}
-		else {
-	        Tcl_AppendResult(interp, "bad option \"", argv[2], "\": should be ",
-		        "diffuse, opacity, specular, or transfunc", (char*)NULL);
-	        return TCL_ERROR;
-	    }
+	    //vector<unsigned int> ivol;
+	    //if (GetVolumeIndices(interp, argc-3, argv+3, &ivol) != TCL_OK) 
+	    //{
+	    //   		return TCL_ERROR;
+	    //	}
 	}
-    else if ((c == 's') && (strcmp(argv[1], "state") == 0)) 
-    {
+	else {
+	    Tcl_AppendResult(interp, "bad option \"", argv[2], "\": should be ",
+			     "diffuse, opacity, specular, or transfunc", (char*)NULL);
+	    return TCL_ERROR;
+	}
+    } else if ((c == 's') && (strcmp(argv[1], "state") == 0)) {
         if (argc < 3) {
             Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
                 argv[1], " on|off ?volume...?\"", (char*)NULL);
@@ -1094,14 +1091,11 @@ VolumeCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
         }
 
         vector<unsigned int> ivol;
-        if (GetVolumeIndices(interp, argc-3, argv+3, &ivol) != TCL_OK) 
-        {
+        if (GetVolumeIndices(interp, argc-3, argv+3, &ivol) != TCL_OK) {
             return TCL_ERROR;
         }
-
         vector<unsigned int>::iterator iter = ivol.begin();
-        while (iter != ivol.end()) 
-        {
+        while (iter != ivol.end()) {
             if (state) {
                 NanoVis::volume[*iter]->enable();
             } else {
@@ -1135,6 +1129,11 @@ FlowCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
 {
     Rappture::Outcome err;
 
+    if (argc < 2) {
+	Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0], 
+			 " option ?arg arg?", (char *)NULL);
+	return TCL_ERROR;
+    }
     char c = argv[1][0];
     if ((c == 'v') && (strcmp(argv[1], "vectorid") == 0)) {
 	if (argc != 3) {
@@ -1229,7 +1228,7 @@ FlowCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
 		break;
 	    }
 	} else {
-	    Tcl_AppendResult(interp, "unknown operation \"", argv[2], 
+	    Tcl_AppendResult(interp, "unknown option \"", argv[2], 
 		"\": should be \"", argv[0], " visible, slice, or slicepos\"",
 		(char *)NULL);
 	    return TCL_ERROR;
@@ -1596,6 +1595,11 @@ HeightMapCmd(ClientData cdata, Tcl_Interp *interp, int argc,
 static int 
 GridCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
 {
+    if (argc < 2) {
+	Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0], 
+			 " option ?args?", (char *)NULL);
+	return TCL_ERROR;
+    }
     char c = argv[1][0];
     if ((c == 'v') && (strcmp(argv[1],"visible") == 0)) {
 	int ivisible;
@@ -1846,6 +1850,45 @@ GetIndices(Tcl_Interp *interp, int argc, const char *argv[],
 	    return TCL_ERROR;
 	}
         vectorPtr->push_back((unsigned int)index);
+    }
+    return TCL_OK;
+}
+
+
+/*
+ * ----------------------------------------------------------------------
+ * FUNCTION: GetVolumes()
+ *
+ * Used internally to decode a series of volume index values and
+ * store then in the specified vector.  If there are no volume index
+ * arguments, this means "all volumes" to most commands, so all
+ * active volume indices are stored in the vector.
+ *
+ * Updates pushes index values into the vector.  Returns TCL_OK or
+ * TCL_ERROR to indicate an error.
+ * ----------------------------------------------------------------------
+ */
+static int
+GetVolumes(Tcl_Interp *interp, int argc, const char *argv[],
+    vector<Volume *>* vectorPtr)
+{
+    if (argc == 0) {
+        for (unsigned int n = 0; n < NanoVis::volume.size(); n++) {
+            if (NanoVis::volume[n] != NULL) {
+                vectorPtr->push_back(NanoVis::volume[n]);
+            }
+        }
+    } else {
+        for (int n = 0; n < argc; n++) {
+	    Volume *volPtr;
+
+	    if (GetVolume(interp, argv[n], &volPtr) != TCL_OK) {
+                return TCL_ERROR;
+	    }
+            if (volPtr != NULL) {
+                vectorPtr->push_back(volPtr);
+            }
+        }
     }
     return TCL_OK;
 }
@@ -2239,7 +2282,7 @@ GetDataStream(Tcl_Interp *interp, Rappture::Buffer &buf, int nBytes)
 	buf.append(buffer, nRead);
 	nBytes -= nRead;
     }
-    if (strncmp("@@RP-ENC", buf.bytes(), 8) == 0) {
+    {
 	Rappture::Outcome err;
 
 	err = Rappture::encoding::decode(buf, RPENC_Z|RPENC_B64|RPENC_HDR);
