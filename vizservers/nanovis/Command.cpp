@@ -1434,6 +1434,7 @@ HeightMapCmd(ClientData cdata, Tcl_Interp *interp, int argc,
 	    if (GetDataStream(interp, buf, nBytes) != TCL_OK) {
 		return TCL_ERROR;
 	    }
+	    buf.append("\0", 1);
 	    if (Tcl_Eval(interp, buf.bytes()) != TCL_OK) {
 		fprintf(stderr, "error in command: %s\n", 
 			Tcl_GetStringResult(interp));
@@ -2286,8 +2287,6 @@ GetDataStream(Tcl_Interp *interp, Rappture::Buffer &buf, int nBytes)
 	Rappture::Outcome err;
 
 	err = Rappture::encoding::decode(buf, RPENC_Z|RPENC_B64|RPENC_HDR);
-	buf.append("\0", 1);
-	fflush(stderr);
 	if (err) {
 	    printf("ERROR -- DECODING\n");
 	    fflush(stdout);
