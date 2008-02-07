@@ -22,6 +22,7 @@ void NvRegularVolumeShader::init()
     m_vol_one_volume_param = cgGetNamedParameter(_cgFP, "volume");
     m_tf_one_volume_param = cgGetNamedParameter(_cgFP, "tf");
     m_render_param_one_volume_param = cgGetNamedParameter(_cgFP, "renderParameters");
+    m_option_one_volume_param = cgGetNamedParameter(_cgFP, "options");
 }
 
 

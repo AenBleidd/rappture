@@ -22,7 +22,8 @@ PixelOut main(v2f IN,
 		uniform sampler3D volumeB, 
 		uniform float4 cellSize,
 		uniform float4x4 modelViewInv,
-		uniform float4 renderParameters)
+		uniform float4 renderParameters,
+		uniform float4 options)
 
 {
 

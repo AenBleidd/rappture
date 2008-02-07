@@ -23,7 +23,8 @@ PixelOut main(v2f IN,
 		//uniform sampler1D tf_cutplane,
 		uniform float4x4 modelViewInv,
 		uniform float4x4 modelView,
-		uniform float4 renderParameters)
+		uniform float4 renderParameters,
+		uniform float4 options)
 {
 	
   PixelOut OUT;
@@ -61,13 +62,14 @@ PixelOut main(v2f IN,
     //float normal_dot_half = abs(dot(normal, half_vector));
 
     float ambient = 0.8;
-    //float ambient = 0.2;
     float diffuse = normal_dot_light * renderParameters.z;
     float specular = pow(normal_dot_half, renderParameters.w)*(1-ambient-diffuse);
 
     float lighting = ambient + diffuse + specular;
     color.xyz = color.xyz * lighting;
-    color.w = renderParameters.y*color.w/renderParameters.x; //opacity is modulated by the number of total slices
+
+    if (options.y < 0.5)
+    	color.w = renderParameters.y*color.w/renderParameters.x; //opacity is modulated by the number of total slices
 							//to avoid very opaque volume when number of slices is high
   }
 

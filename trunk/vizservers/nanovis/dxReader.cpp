@@ -53,7 +53,8 @@ load_vector_stream(int index, std::istream& fin)
     while (!fin.eof()) {
         fin.getline(line, sizeof(line) - 1);
 	if (fin.fail()) {
-	    return result.error("error in data stream");
+	    //return result.error("error in data stream");
+	    return;
 	}
         for (start=&line[0]; *start == ' ' || *start == '\t'; start++)
             ;  // skip leading blanks
