@@ -29,5 +29,6 @@ void NvZincBlendeVolumeShader::init()
     _cellSizeParam = cgGetNamedParameter(_cgFP, "cellSize");
     _mviParam = cgGetNamedParameter(_cgFP, "modelViewInv");
     _renderParam = cgGetNamedParameter(_cgFP, "renderParameters");
+    _option_one_volume_param = cgGetNamedParameter(_cgFP, "options");
 }
 

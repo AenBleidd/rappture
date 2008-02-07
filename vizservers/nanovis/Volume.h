@@ -94,6 +94,8 @@ public:
 
     NVISid id;			//OpenGL textue identifier (==tex->id)
 
+    int iso_surface;
+
     Volume(float x, float y, float z, int width, int height, int depth, 
 	   float size, int n_component, float* data, double vmin, double vmax, 
 	   double nonzero_min);
@@ -106,6 +108,9 @@ public:
     bool is_enabled();
     Vector3* get_location();
     
+	void set_isosurface(int iso);
+	int get_isosurface() const;
+
     double range_min() { return vmin; }
     double range_max() { return vmax; }
     double range_nzero_min() { return nonzero_min; }
@@ -272,4 +277,15 @@ inline void Volume::get_outline_color(float *rgb) {
 inline void Volume::set_label(int axis, const char* txt){
     label[axis] = txt;
 }
+
+inline int Volume::get_isosurface() const
+{
+	return iso_surface;
+}
+
+inline void Volume::set_isosurface(int iso) 
+{
+    iso_surface = iso;
+}
+
 #endif

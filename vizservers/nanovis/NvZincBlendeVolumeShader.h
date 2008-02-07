@@ -12,6 +12,7 @@ class NvZincBlendeVolumeShader : public NvVolumeShader {
     CGparameter _cellSizeParam;
     CGparameter _mviParam;
     CGparameter _renderParam;
+    CGparameter _option_one_volume_param;
 
 private :
     void init();
@@ -42,6 +43,12 @@ inline void NvZincBlendeVolumeShader::bind(unsigned int tfID, Volume* volume, in
             vol->get_opacity_scale(),
             vol->get_diffuse(),
             vol->get_specular());
+
+    cgGLSetParameter4f(_option_one_volume_param,
+    	0.0f,
+	volume->get_isosurface(),
+	0.0f,
+	0.0f);
 
     cgGLSetTextureParameter(_volumeAParam,  vol->zincblende_tex[0]->id);
     cgGLSetTextureParameter(_volumeBParam, vol->zincblende_tex[1]->id);

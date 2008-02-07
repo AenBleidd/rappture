@@ -10,6 +10,7 @@ class NvRegularVolumeShader : public NvVolumeShader {
     CGparameter m_mvi_one_volume_param;
     CGparameter m_mv_one_volume_param;
     CGparameter m_render_param_one_volume_param;
+    CGparameter m_option_one_volume_param;
 
 public :
     NvRegularVolumeShader();
@@ -46,6 +47,12 @@ inline void NvRegularVolumeShader::bind(unsigned int tfID, Volume* volume, int s
             volume->get_opacity_scale(),
             volume->get_diffuse(),
             volume->get_specular());
+
+    cgGLSetParameter4f(m_option_one_volume_param,
+    	0.0f,
+	volume->get_isosurface(),
+	0.0f,
+	0.0f);
 
     cgGLBindProgram(_cgFP);
     cgGLEnableProfile(CG_PROFILE_FP30);
