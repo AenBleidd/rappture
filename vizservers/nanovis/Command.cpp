@@ -2263,21 +2263,22 @@ GetDataStream(Tcl_Interp *interp, Rappture::Buffer &buf, int nBytes)
 {
     char buffer[8096];
 
+    clearerr(stdin);
     while (nBytes > 0) {
 	unsigned int chunk;
 	int nRead;
 
 	chunk = (sizeof(buffer) < (unsigned int) nBytes) ? 
 	    sizeof(buffer) : nBytes;
-	nRead = fread(buffer, 1, chunk, stdin);
+	nRead = fread(buffer, sizeof(char), chunk, stdin);
+	if (ferror(stdin)) {
+            Tcl_AppendResult(interp, "while reading data stream: ",
+		Tcl_PosixError(interp), (char*)NULL);
+            return TCL_ERROR;
+	}
 	if (feof(stdin)) {
             Tcl_AppendResult(interp, "premature EOF while reading data stream",
 		(char*)NULL);
-            return TCL_ERROR;
-	}
-	if (ferror(stdin)) {
-            Tcl_AppendResult(interp, "error while reading data stream: ",
-		Tcl_PosixError(interp), (char*)NULL);
             return TCL_ERROR;
 	}
 	buf.append(buffer, nRead);

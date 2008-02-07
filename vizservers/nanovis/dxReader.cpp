@@ -50,8 +50,11 @@ load_vector_stream(int index, std::istream& fin)
     double x0, y0, z0, dx, dy, dz, ddx, ddy, ddz;
     char line[128], type[128], *start;
 
-    do {
-        fin.getline(line,sizeof(line)-1);
+    while (!fin.eof()) {
+        fin.getline(line, sizeof(line) - 1);
+	if (fin.fail()) {
+	    return result.error("error in data stream");
+	}
         for (start=&line[0]; *start == ' ' || *start == '\t'; start++)
             ;  // skip leading blanks
 
@@ -83,7 +86,7 @@ load_vector_stream(int index, std::istream& fin)
                 break;
             }
         }
-    } while (!fin.eof());
+    } 
 
     // read data points
     if (!fin.eof()) {
@@ -584,17 +587,19 @@ load_volume_stream(int index, std::iostream& fin)
 
     int isrect = 1;
 
-    do {
-        fin.getline(line,sizeof(line)-1);
-        for (start=&line[0]; *start == ' ' || *start == '\t'; start++)
+    while (!fin.eof()) {
+        fin.getline(line, sizeof(line) - 1);
+	if (fin.fail()) {
+	    return result.error("error in data stream");
+	}
+        for (start=line; *start == ' ' || *start == '\t'; start++)
             ;  // skip leading blanks
 
         if (*start != '#') {  // skip comment lines
             if (sscanf(start, "object %d class gridpositions counts %d %d %d", &dummy, &nx, &ny, &nz) == 4) {
                 // found grid size
                 isrect = 1;
-            }
-            else if (sscanf(start, "object %d class array type float rank 1 shape 3 items %d data follows", &dummy, &nxy) == 2) {
+            } else if (sscanf(start, "object %d class array type float rank 1 shape 3 items %d data follows", &dummy, &nxy) == 2) {
                 isrect = 0;
 
                 double xx, yy, zz;
@@ -648,33 +653,27 @@ load_volume_stream(int index, std::iostream& fin)
 
                 sprintf(cmdstr, "rm -f %s %s", fpts, fcells);
                 system(cmdstr);
-            }
-            else if (sscanf(start, "object %d class regulararray count %d", &dummy, &nz) == 2) {
+            } else if (sscanf(start, "object %d class regulararray count %d", &dummy, &nz) == 2) {
                 // found z-grid
-            }
-            else if (sscanf(start, "origin %lg %lg %lg", &x0, &y0, &z0) == 3) {
+            } else if (sscanf(start, "origin %lg %lg %lg", &x0, &y0, &z0) == 3) {
                 // found origin
-            }
-            else if (sscanf(start, "delta %lg %lg %lg", &ddx, &ddy, &ddz) == 3) {
+            } else if (sscanf(start, "delta %lg %lg %lg", &ddx, &ddy, &ddz) == 3) {
                 // found one of the delta lines
                 if (ddx != 0.0) { dx = ddx; }
                 else if (ddy != 0.0) { dy = ddy; }
                 else if (ddz != 0.0) { dz = ddz; }
-            }
-            else if (sscanf(start, "object %d class array type %s rank 0 items %d data follows", &dummy, type, &npts) == 3) {
+            } else if (sscanf(start, "object %d class array type %s rank 0 items %d data follows", &dummy, type, &npts) == 3) {
                 if (isrect && (npts != nx*ny*nz)) {
                     char mesg[256];
                     sprintf(mesg,"inconsistent data: expected %d points but found %d points", nx*ny*nz, npts);
                     return result.error(mesg);
-                }
-                else if (!isrect && (npts != nxy*nz)) {
+                } else if (!isrect && (npts != nxy*nz)) {
                     char mesg[256];
                     sprintf(mesg,"inconsistent data: expected %d points but found %d points", nxy*nz, npts);
                     return result.error(mesg);
                 }
                 break;
-            }
-            else if (sscanf(start, "object %d class array type %s rank 0 times %d data follows", &dummy, type, &npts) == 3) {
+            } else if (sscanf(start, "object %d class array type %s rank 0 times %d data follows", &dummy, type, &npts) == 3) {
                 if (npts != nx*ny*nz) {
                     char mesg[256];
                     sprintf(mesg,"inconsistent data: expected %d points but found %d points", nx*ny*nz, npts);
@@ -683,7 +682,7 @@ load_volume_stream(int index, std::iostream& fin)
                 break;
             }
         }
-    } while (!fin.eof());
+    } 
 
     // read data points
     if (!fin.eof()) {
@@ -700,6 +699,9 @@ load_volume_stream(int index, std::iostream& fin)
             int iz = 0;
             while (!fin.eof() && nread < npts) {
                 fin.getline(line,sizeof(line)-1);
+		if (fin.fail()) {
+		    return result.error("error reading data points");
+		}
                 int n = sscanf(line, "%lg %lg %lg %lg %lg %lg", &dval[0], &dval[1], &dval[2], &dval[3], &dval[4], &dval[5]);
 
                 for (int p=0; p < n; p++) {
@@ -772,7 +774,6 @@ load_volume_stream(int index, std::iostream& fin)
                     }
                 }
             }
-
             // Compute the gradient of this data.  BE CAREFUL: center
             // calculation on each node to avoid skew in either direction.
             ngen = 0;
@@ -981,6 +982,5 @@ load_volume_stream(int index, std::iostream& fin)
     float dy0 = -0.5*dy/dx;
     float dz0 = -0.5*dz/dx;
     NanoVis::volume[index]->move(Vector3(dx0, dy0, dz0));
-
     return result;
 }
