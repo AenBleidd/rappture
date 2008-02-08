@@ -2241,10 +2241,11 @@ RpLibrary::result(int exitStatus)
         user = getenv("USER");
         if (user != NULL) {
             username = std::string(user);
-        }
-        host = getenv("HOST");
-        if (host != NULL) {
-            hostname = std::string(host);
+        } else {
+            user = getenv("LOGNAME");
+            if (user != NULL) {
+                username = std::string(user);
+            }
         }
 #endif
 

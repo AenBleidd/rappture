@@ -286,10 +286,10 @@ itcl::body Rappture::Field::limits {which} {
                 }
             }
             2D - 3D {
-		if {[info exists _comp2unirect2d($comp)]} {
-		    set limits [$_comp2unirect2d($comp) limits $which]
-		    foreach {vmin vmax} $limits break
-		    set axis vaxis
+                if {[info exists _comp2unirect2d($comp)]} {
+                    set limits [$_comp2unirect2d($comp) limits $which]
+                    foreach {vmin vmax} $limits break
+                    set axis vaxis
                 } elseif {[info exists _comp2vtk($comp)]} {
                     foreach {xv yv} $_comp2vtk($comp) break
                     switch -- $which {

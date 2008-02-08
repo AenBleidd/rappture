@@ -12,6 +12,7 @@ int main(int argc, char * argv[])
 {
 
     RpLibrary* lib = NULL;
+    RapptureBuffer buf;
 
     const char* xmlFilePath = NULL;
     const char* dxFilePath = NULL;
@@ -38,8 +39,16 @@ int main(int argc, char * argv[])
     rpPutFile(lib,"output.field(dxFile1).component.dx",
         dxFilePath,RPLIB_COMPRESS,RPLIB_OVERWRITE);
 
+    RapptureBufferInit(&buf);
+    rpGetData(lib,"output.field(dxFile1).component.dx",&buf);
+    RapptureBufferDecode(&buf,1,1);
+    RapptureBufferDump(&buf,"bufferDump.txt");
+    RapptureBufferFree(&buf);
+
     // write output to run file and signal
     rpResult(lib);
+
+    rpFreeLibrary(&lib);
 
     return 0;
 }

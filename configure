@@ -1749,9 +1749,9 @@ if test "${exec_prefix}" = "NONE"; then
 fi
 
 if test "${libdir}" != "${prefix}/lib"; then
-    LIB_SEARCH_DIRS="-L ${prefix}/lib -L ${libdir}"
+    LIB_SEARCH_DIRS="-L${prefix}/lib -L${libdir}"
 else
-    LIB_SEARCH_DIRS="-L ${libdir}"
+    LIB_SEARCH_DIRS="-L${libdir}"
 fi
 
 
@@ -5197,10 +5197,9 @@ echo "${ECHO_T}${MEX}" >&6; }
             { echo "$as_me:$LINENO: result: ${MEXEXT}" >&5
 echo "${ECHO_T}${MEXEXT}" >&6; }
         else
-            echo "can't find the matlab compiler \"mex\""
+                                    echo "can't find the matlab compiler \"mex\""
             echo "use --with-matlab=DIR to specify the location of a matlab installation"
-            exit 1
-        fi
+                    fi
     fi
 fi
 
@@ -5226,8 +5225,7 @@ echo $ECHO_N "checking for mkoctfile... $ECHO_C" >&6; }
     if test "$with_octave" != "no" ; then
         if test -x "$with_octave/bin/mkoctfile"
         then
-            echo Found octave in $with_octave/bin/mkoctfile
-            MKOCTFILE="$with_octave/bin/mkoctfile"
+                        MKOCTFILE="$with_octave/bin/mkoctfile"
         else
             if test -x "$with_octave"
             then
@@ -5274,6 +5272,10 @@ echo "${ECHO_T}no" >&6; }
 fi
 
 
+                if test "x$MKOCTFILE" == "x" ; then
+                                                            echo "can't find the matlab compiler \"mkoctfile\""
+                    echo "use --with-octave=DIR to specify the location of a mkoctfile installation"
+                                    fi
             fi
         fi
     fi

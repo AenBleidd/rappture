@@ -57,6 +57,7 @@ int main(int argc, char * argv[])
     }
     else {
         printf("lib->xml() failed\n");
+        delete lib;
         exit(1);
     }
 
@@ -65,6 +66,7 @@ int main(int argc, char * argv[])
 
     if ( xmltext.empty() ) {
         std::cout << "lib->getString(input.number(xmin).current) returns null" << std::endl;
+        delete lib;
         exit(1);
     }
 
@@ -107,6 +109,8 @@ int main(int argc, char * argv[])
 
     // write output to run file and signal
     lib->result();
+
+    delete lib;
 
     return 0;
 }

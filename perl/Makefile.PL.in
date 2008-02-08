@@ -21,24 +21,24 @@ if ($^O ne "MSWin32") {
                        q[-L$(PERL_INC) -lperl]
                      );
     }
+    @RAPPTURE_INC_SEARCHPATH = ( "@prefix@/include",
+        "../include", "/usr/local/include", "/opt/include");
+    $RAPPTURE_INC = "rappture.h";
     @EXPAT_INC_SEARCHPATH = ( "@prefix@/include",
         "/usr/local/include", "/opt/include", "../../expat-2.0.0/lib",
         "../../expat/lib", "/apps/expat-2.0.0/lib", "/apps/expat/lib",
         "/opt/expat-2.0.0/lib", "/opt/expat/lib" );
     $EXPAT_INC="expat.h";
-    @RAPPTURE_INC_SEARCHPATH = ( "@prefix@/include",
-        "../include", "/usr/local/include", "/opt/include");
-    $RAPPTURE_INC = "rappture.h";
+    @RAPPTURE_LIB_SEARCHPATH = ( "@prefix@/lib",
+        "@libdir@",
+        "../src", "/usr/local/lib", "/opt/lib" );
+    @RAPPTURE_LIBS=("librappture.so","librappture.a");
     @EXPAT_LIB_SEARCHPATH = ( "@prefix@/lib",
         "@libdir@",
         "/usr/local/lib", "/opt/lib", "../../expat-2.0.0/lib",
         "../../expat/lib", "/apps/expat-2.0.0/lib", "/apps/expat/lib",
         "/opt/expat-2.0.0/lib", "/opt/expat/lib" );
     @EXPAT_LIBS=("libexpat.so", "libexpat.a");
-    @RAPPTURE_LIB_SEARCHPATH = ( "@prefix@/lib",
-        "@libdir@",
-        "../src", "/usr/local/lib", "/opt/lib" );
-    @RAPPTURE_LIBS=("librappture.so","librappture.a");
 }
 else {
     if ($Config{"cc"} eq "cl") {
@@ -114,10 +114,10 @@ find_lib {
     return 0;
 }
 
-find_include(\@EXPAT_INC_SEARCHPATH, $EXPAT_INC, \@INCLUDES);
 find_include(\@RAPPTURE_INC_SEARCHPATH, $RAPPTURE_INC, \@INCLUDES);
-find_lib(\@EXPAT_LIB_SEARCHPATH, \@EXPAT_LIBS, \@LIBS);
+find_include(\@EXPAT_INC_SEARCHPATH, $EXPAT_INC, \@INCLUDES);
 find_lib(\@RAPPTURE_LIB_SEARCHPATH, \@RAPPTURE_LIBS, \@LIBS);
+find_lib(\@EXPAT_LIB_SEARCHPATH, \@EXPAT_LIBS, \@LIBS);
 
 WriteMakefile(
     NAME              => 'Rappture',

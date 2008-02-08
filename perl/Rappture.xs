@@ -66,6 +66,9 @@ int append
 
 void
 RpLibrary::result()
+	CODE:
+		THIS->put("tool.version.rappture.language", "perl");
+		THIS->result();
 
 MODULE = Rappture		PACKAGE = Rappture::RpUnits
 

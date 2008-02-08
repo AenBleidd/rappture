@@ -61,10 +61,10 @@ itcl::body Rappture::Field2DResult::constructor {args} {
     }
     array set flags $args
     if { $flags(-mode) == "heightmap" } {
-	set servers [Rappture::NanovisServer::getServer]
-	if { $servers == "" } {
-	    error "No nanovis servers available"
-	}
+        set servers [Rappture::NanovisServer::getServer]
+        if { $servers == "" } {
+            error "No nanovis servers available"
+        }
         itk_component add renderer {
             Rappture::HeightmapViewer $itk_interior.ren $servers
         }
