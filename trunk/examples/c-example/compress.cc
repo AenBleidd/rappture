@@ -42,6 +42,7 @@ int main(int argc, char * argv[])
 
     // write output to run file and signal
     lib->result();
+    delete lib;
 
     return 0;
 }

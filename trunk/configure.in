@@ -15,9 +15,9 @@ if test "${exec_prefix}" = "NONE"; then
 fi
 
 if test "${libdir}" != "${prefix}/lib"; then
-    LIB_SEARCH_DIRS="-L ${prefix}/lib -L ${libdir}"
+    LIB_SEARCH_DIRS="-L${prefix}/lib -L${libdir}"
 else
-    LIB_SEARCH_DIRS="-L ${libdir}"
+    LIB_SEARCH_DIRS="-L${libdir}"
 fi
 
 AC_SUBST(LIB_SEARCH_DIRS)
