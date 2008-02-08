@@ -1068,11 +1068,27 @@ VolumeCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
                 NanoVis::volume[*iter]->set_specular(specular);
             }
         } else if ((c == 'i') && (strcmp(argv[2], "isosurface") == 0)) {
-	    //vector<unsigned int> ivol;
-	    //if (GetVolumeIndices(interp, argc-3, argv+3, &ivol) != TCL_OK) 
-	    //{
-	    //   		return TCL_ERROR;
-	    //	}
+
+            if (argc < 4) {
+                Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
+                    argv[1], " isosurface value ?volume ...?\"", (char*)NULL);
+                return TCL_ERROR;
+            }
+			int iso_surface = 0;
+
+			if ((strcmp(argv[3], "true") == 0))
+			{
+				iso_surface = 1;
+			}
+
+            vector<unsigned int> ivol;
+            if (GetVolumeIndices(interp, argc-4, argv+4, &ivol) != TCL_OK) {
+                return TCL_ERROR;
+            }
+            vector<unsigned int>::iterator iter;
+            for (iter = ivol.begin(); iter != ivol.end(); iter++) {
+                NanoVis::volume[*iter]->set_isosurface(iso_surface);
+            }
 	}
 	else {
 	    Tcl_AppendResult(interp, "bad option \"", argv[2], "\": should be ",

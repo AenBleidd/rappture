@@ -158,6 +158,11 @@ void VolumeRenderer::render_all()
 
     int volume_index = i;
     int n_slices = volume[volume_index]->get_n_slice();
+    if (volume[volume_index]->get_isosurface())
+    {
+		// double the number of slices
+    	n_slices <<= 1;
+	}
 
     //volume start location
     Vector3* location = volume[volume_index]->get_location();
