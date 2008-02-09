@@ -39,7 +39,7 @@ proc Rappture::result {libobj {status 0}} {
         $libobj put output.status "ok"
     }
 
-    $libobj put tool.version.rappture.revision "$LastChangedRevision$"
+    $libobj put tool.version.rappture.revision "\$LastChangedRevision: 872 \$"
     $libobj put tool.version.rappture.modified "$LastChangedDate$"
     $libobj put tool.version.rappture.language "tcl"
 
