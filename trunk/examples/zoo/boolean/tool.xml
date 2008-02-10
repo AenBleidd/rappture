@@ -19,12 +19,28 @@ When you click the Simulate button, the input boolean will be used to generate t
       <label>Impact Ionization Model</label>
       <description>Used to enable/disable the effects of impact ionization on the mobility model.</description>
     </about>
+    <default>on</default>
+  </boolean>
+  <boolean id="iimodel1">
+    <about>
+      <label>Impact Ionization Model</label>
+      <description>Used to enable/disable the effects of impact ionization on the mobility model.</description>
+    </about>
     <default>yes</default>
   </boolean>
-</input>
-<output>
-  <boolean id="outb">
-    <about><label>Echo of boolean value</label></about>
+  <boolean id="iimodel2">
+    <about>
+      <label>Impact Ionization Model</label>
+      <description>Used to enable/disable the effects of impact ionization on the mobility model.</description>
+    </about>
+    <default>true</default>
   </boolean>
-</output>
+  <boolean id="iimodel3">
+    <about>
+      <label>Impact Ionization Model</label>
+      <description>Used to enable/disable the effects of impact ionization on the mobility model.</description>
+    </about>
+    <default>1</default>
+  </boolean>
+</input>
 </run>
