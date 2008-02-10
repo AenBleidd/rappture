@@ -89,7 +89,7 @@ itcl::body Rappture::Switch::constructor {type args} {
     set valTextPos "yes"
 
     if { ("" != $type) } {
-        set _value $type
+        set _value [string tolower $type]
     }
 
     if { ("on" == $_value) || ("off" == $_value) } {
