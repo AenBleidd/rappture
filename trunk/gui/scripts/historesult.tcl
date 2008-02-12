@@ -673,7 +673,7 @@ itcl::body Rappture::HistogramResult::_rebuild {} {
 	    }
 	} else {
 	    set r [blt::vector expr {max($xv) - min($xv)}]
-	    set z [expr {$r / ([$xv length]-1)}]
+	    set z [expr {$r / ([$xv length]-1) * 0.8}]
 	    foreach x [$xv range 0 end] y [$yv range 0 end] {
 		set elem "elem[incr count]"
 		set _elem2histo($elem) $xydata
