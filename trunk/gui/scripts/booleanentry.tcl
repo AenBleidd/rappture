@@ -51,8 +51,9 @@ itcl::body Rappture::BooleanEntry::constructor {owner path args} {
     # Create the widget and configure it properly based on other
     # hints in the XML.
     #
+    set defaultVal [$_owner xml get $path.default]
     itk_component add switch {
-        Rappture::Switch $itk_interior.switch
+        Rappture::Switch $itk_interior.switch $defaultVal
     }
     pack $itk_component(switch) -expand yes -fill both
     bind $itk_component(switch) <<Value>> [itcl::code $this _newValue]
@@ -74,9 +75,8 @@ itcl::body Rappture::BooleanEntry::constructor {owner path args} {
     #
     # Assign the default value to this widget, if there is one.
     #
-    set str [$_owner xml get $path.default]
-    if {"" != $str} {
-        $itk_component(switch) value $str
+    if {"" != $defaultVal} {
+        $itk_component(switch) value $defaultVal
     } else {
         $itk_component(switch) value off
     }
