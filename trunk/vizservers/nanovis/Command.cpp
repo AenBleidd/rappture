@@ -62,7 +62,7 @@
 #include "NvZincBlendeReconstructor.h"
 #include "HeightMap.h"
 #include "Grid.h"
-#include "Camera.h"
+#include "NvCamera.h"
 #include <RenderContext.h>
 #include <NvLIC.h>
 

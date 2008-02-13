@@ -75,7 +75,7 @@ enum AxisDirections {
 
 // STATIC MEMBER DATA
 int NanoVis::updir = Y_POS;
-Camera* NanoVis::cam = NULL;
+NvCamera* NanoVis::cam = NULL;
 bool NanoVis::axis_on = true;
 //bool NanoVis::axis_on = false;
 int NanoVis::win_width = NPIX;			//size of the render window
@@ -657,7 +657,7 @@ NanoVis::initGL(void)
    assert(screen_buffer != NULL);
 
    //create the camera with default setting
-   cam = new Camera(0, 0, win_width, win_height, 
+   cam = new NvCamera(0, 0, win_width, win_height, 
 		   live_obj_x, live_obj_y, live_obj_z,
 		   0., 0., 100.,
 		   (int)live_rot_x, (int)live_rot_y, (int)live_rot_z);

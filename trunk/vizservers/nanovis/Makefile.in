@@ -29,6 +29,7 @@ AUXSRC = config.h define.h global.h
 R2INC = ./R2/include
 MATINC = ./newmat11
 
+LIB_DX = -lDXcallm -lm
 LIB_NANOVIS = -L@RP_DIR@/lib -ltcl8.4 -lGL -lglut -lglui -lGLEW -lCg -lCgGL -pthread -lrappture2 -lb64 -lz
 INCLUDES = -I@RP_DIR@/include -I@RP2_INCL_DIR@ -I/usr/include/GL -I$(R2INC) -I. -I$(MATINC)
 
@@ -40,7 +41,7 @@ CC_SWITCHES = $(CFLAGS) $(EXTRA_CFLAGS) $(INCLUDES)
 OBJS  = \
 	BMPImageLoaderImpl.o \
 	BucketSort.o \
-	Camera.o \
+	NvCamera.o \
 	Color.o \
 	ColorGradient.o \
 	ColorGradientGLUTWindow.o \
@@ -152,10 +153,10 @@ distclean: clean
 	rm Makefile
 
 nanovis: $(OBJS)
-	$(CC) $(CC_SWITCHES) -o $@ $^ $(LIB_NANOVIS)
+	$(CC) $(CC_SWITCHES) -o $@ $^ $(LIB_NANOVIS) $(LIB_DX)
 
 client: Socket.o ClientSocket.o RenderClient.o Event.o
-	$(CC) $(CC_SWITCHES) -o $(LIB_NANOVIS) $@ $^
+	$(CC) $(CC_SWITCHES) -o $@ $^ $(LIB_NANOVIS) $(LIB_DX)
 
 .cpp.o:
 	$(CC) $(CC_SWITCHES) -o $@ -c $<
@@ -221,7 +222,7 @@ Texture1D.o: Texture1D.cpp Texture1D.h
 Texture2D.o: Texture2D.cpp Texture2D.h $(AUXSRC)
 Texture3D.o: Texture3D.cpp Texture3D.h $(AUXSRC)
 Renderable.o: Renderable.cpp Renderable.h
-Camera.o: Camera.cpp Camera.h
+NvCamera.o: NvCamera.cpp NvCamera.h
 ScreenSnapper.o: ScreenSnapper.cpp ScreenSnapper.h define.h
 Volume.o: Volume.cpp Volume.h $(AUXSRC)
 ZincBlendeVolume.o: ZincBlendeVolume.cpp ZincBlendeVolume.h $(AUXSRC)
