@@ -1,6 +1,6 @@
 /*
  * ----------------------------------------------------------------------
- * Camera.h : Camera class
+ * NvCamera.h : NvCamera class
  *
  * ======================================================================
  *  AUTHOR:  Wei Qiao <qiaow@purdue.edu>
@@ -20,7 +20,7 @@
 #include <GL/glu.h>
 #include "Vector3.h"
 
-class Camera{
+class NvCamera{
 
 public:
 	Vector3 location;	//Location of the camera in the scene
@@ -32,8 +32,8 @@ public:
     int startX;
     int startY;
 
-	~Camera();
-	Camera(int startx, int starty, int w, int h,
+	~NvCamera();
+	NvCamera(int startx, int starty, int w, int h,
 		double loc_x, double loc_y, double loc_z, 
 		double target_x, double target_y, double target_z,
 		int angle_x, int angle_y, int angle_z);

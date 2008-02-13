@@ -1,6 +1,6 @@
 /*
  * ----------------------------------------------------------------------
- * Camera.cpp : Camera class
+ * NvCamera.cpp : NvCamera class
  *
  * ======================================================================
  *  AUTHOR:  Wei Qiao <qiaow@purdue.edu>
@@ -14,9 +14,9 @@
  */
 
 #include <stdio.h>
-#include "Camera.h"
+#include "NvCamera.h"
 
-Camera::Camera(int startx, int starty, int w, int h,
+NvCamera::NvCamera(int startx, int starty, int w, int h,
 		double loc_x, double loc_y, double loc_z, 
 		double target_x, double target_y, double target_z,
 		int angle_x, int angle_y, int angle_z):
@@ -28,24 +28,24 @@ Camera::Camera(int startx, int starty, int w, int h,
 	 target(Vector3(target_x, target_y, target_z)),
 	 angle(Vector3(angle_x, angle_y, angle_z)) { }
 
-Camera::~Camera(){}	 
+NvCamera::~NvCamera(){}	 
 
-void Camera::move(double loc_x, double loc_y, double loc_z)
+void NvCamera::move(double loc_x, double loc_y, double loc_z)
 { 
   location = Vector3(loc_x, loc_y, loc_z); 
 }
 
-void Camera::aim(double target_x, double target_y, double target_z)
+void NvCamera::aim(double target_x, double target_y, double target_z)
 { 
   target = Vector3(target_x, target_y, target_z);
 }
 
-void Camera::rotate(double angle_x, double angle_y, double angle_z)
+void NvCamera::rotate(double angle_x, double angle_y, double angle_z)
 { 
   angle = Vector3(angle_x, angle_y, angle_z);
 }
 
-void Camera::activate(){
+void NvCamera::activate(){
   //fprintf(stderr, "camera: %d, %d\n", width, height);
   glViewport(startX, startY, width, height);
   glMatrixMode(GL_PROJECTION);
@@ -64,7 +64,7 @@ void Camera::activate(){
    glRotated(angle.z, 0., 0., 1.);
 }
 
-void Camera::set_screen_size(int sx, int sy, int w, int h){
+void NvCamera::set_screen_size(int sx, int sy, int w, int h){
   width = w; height = h;
   startX = sx; startY = sy;
 }

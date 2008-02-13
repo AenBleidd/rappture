@@ -42,7 +42,7 @@
 #include "define.h"
 #include "global.h"
 #include "socket/Socket.h"
-#include "Camera.h"
+#include "NvCamera.h"
 #include "ConvexPolygon.h"
 #include "Texture3D.h"
 #include "Texture2D.h"
@@ -121,7 +121,7 @@ public:
     static R2Fonts* fonts;
     static int n_volumes;
     static int updir;
-    static Camera *cam;
+    static NvCamera *cam;
 
     static float lic_slice_x;
     static float lic_slice_y;
