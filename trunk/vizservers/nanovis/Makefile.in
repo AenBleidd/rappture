@@ -14,6 +14,7 @@ prefix          = @prefix@
 exec_prefix     = @exec_prefix@
 bindir          = @bindir@
 libdir          = @libdir@
+srcdir		= @srcdir@
 includedir      = @includedir@
 mandir          = @mandir@
 
@@ -26,12 +27,34 @@ CC = @CC@
 
 AUXSRC = config.h define.h global.h
 
+RP_DIR =  @RP_DIR@
 R2INC = ./R2/include
 MATINC = ./newmat11
 
-LIB_DX = -lDXcallm -lm
-LIB_NANOVIS = -L@RP_DIR@/lib -ltcl8.4 -lGL -lglut -lglui -lGLEW -lCg -lCgGL -pthread -lrappture2 -lb64 -lz
-INCLUDES = -I@RP_DIR@/include -I@RP2_INCL_DIR@ -I/usr/include/GL -I$(R2INC) -I. -I$(MATINC)
+DX_DIR  = /usr/dx
+DX_INC_SPEC = -I$(DX_DIR)/include
+DX_LIB_SPEC = -L$(DX_DIR)/lib_linux -lDXcallm -lm
+DX_INC_SPEC = -I/usr/include/dx
+DX_LIB_SPEC = -L/usr/lib/dx/lib_linux -lDXcallm -lm
+GL_INC_SPEC = -I/usr/include/GL
+GL_LIB_SPEC = -lGL -lglut -lglui -lGLEW -lCg -lCgGL -lpthread
+MAT_INC_SPEC = -I$(MATINC)
+R2_INC_SPEC = -I$(R2INC)
+RP_INC_SPEC = -I$(RP_DIR)/include -I$(RP_DIR)/include/rappture2
+RP_LIB_SPEC = -L$(RP_DIR)/lib -lrappture2 -lb64 -lz
+
+LIBS = \
+	$(RP_LIB_SPEC) \
+	-ltcl8.4 \
+	$(GL_LIB_SPEC) \
+	$(DX_LIB_SPEC) 
+
+INCLUDES = \
+	-I. \
+	$(RP_INC_SPEC) \
+	$(GL_INC_SPEC) \
+	$(R2_INC_SPEC) \
+	$(MAT_INC_SPEC)
 
 CFLAGS = @CFLAGS@
 EXTRA_CFLAGS = -Wall 
@@ -111,6 +134,7 @@ OBJS  = \
 	bandmat.o \
 	cholesky.o \
 	dxReader.o \
+	dxReader2.o \
 	evalue.o \
 	fft.o \
 	hholder.o \
@@ -149,16 +173,16 @@ install: nanovis
 	$(INSTALL_DATA) @RP_DIR@/lib/libb64.so $(libdir)/libb64.so
 
 clean:
-	rm -f *.o nanovis client
+	rm -f nanovis client $(OBJS)
 
 distclean: clean
-	rm Makefile
+	rm -f Makefile *~
 
 nanovis: $(OBJS)
-	$(CC) $(CC_SWITCHES) -o $@ $^ $(LIB_NANOVIS) $(LIB_DX)
+	$(CC) $(CC_SWITCHES) -o $@ $^ $(LIBS)
 
 client: Socket.o ClientSocket.o RenderClient.o Event.o
-	$(CC) $(CC_SWITCHES) -o $@ $^ $(LIB_NANOVIS) $(LIB_DX)
+	$(CC) $(CC_SWITCHES) -o $@ $^ $(LIBS)
 
 .cpp.o:
 	$(CC) $(CC_SWITCHES) -o $@ -c $<
@@ -166,6 +190,8 @@ client: Socket.o ClientSocket.o RenderClient.o Event.o
 Nv.o: Nv.cpp NvShader.cpp
 	$(CC) $(CC_SWITCHES) -c $^
 
+dxReader2.o: $(srcdir)/dxReader2.cpp
+	$(CC) -c $(CC_SWITCHES) $(DX_INC_SPEC) $?
 ColorGradient.o: transfer-function/ColorGradient.cpp
 	$(CC) $(CC_SWITCHES) -o $@ -c $<
 ColorPaletteWindow.o: transfer-function/ColorPaletteWindow.cpp
