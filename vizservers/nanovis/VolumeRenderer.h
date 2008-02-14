@@ -36,12 +36,16 @@
 #include "NvRegularVolumeShader.h"
 #include "NvZincBlendeVolumeShader.h"
 #include "NvStdVertexShader.h"
+#include "VolumeInterpolator.h"
 
 class VolumeRenderer {
 
+    friend class NanoVis;
 private:
     std::vector <Volume*> volume;	    //!<- array of volumes
     std::vector <TransferFunction*> tf;    //!<- array of corresponding transfer functions 
+    VolumeInterpolator* _volumeInterpolator;
+
     int n_volumes;
 
     bool slice_mode;	//!<- enable cut planes
@@ -77,7 +81,7 @@ private:
   CGparameter m_mvi_vert_std_param;
 
   void init_shaders();
-  void activate_volume_shader(int volume_index, bool slice_mode);
+  void activate_volume_shader(Volume* vol, TransferFunction* tf, bool slice_mode);
   void deactivate_volume_shader();
 
   //draw bounding box
@@ -90,7 +94,7 @@ private:
   void init_font(const char* filename);
   GLuint font_texture; 				//the id of the font texture
   void glPrint(char* string, int set);		//there are two sets of font in the texture. 0, 1
-  void draw_label(int volume_index);		//draw label using bitmap texture
+  void draw_label(Volume* vol);		//draw label using bitmap texture
   GLuint font_base;				//the base of the font display list
   void build_font();				//register the location of each alphabet in the texture
 
@@ -116,6 +120,32 @@ public:
   void switch_volume_mode();
   void enable_volume(int index); //enable a volume
   void disable_volume(int index); //disable a volume
+
+    void clearAnimatedVolumeInfo();
+    void addAnimatedVolume(Volume* volume, unsigned int volumeId);
+    void startVolumeAnimation();
+    void stopVolumeAnimation();
 };
+
+inline void VolumeRenderer::clearAnimatedVolumeInfo()
+{
+    _volumeInterpolator->clearAll();
+}
+
+inline void VolumeRenderer::addAnimatedVolume(Volume* volume, unsigned int volumeId)
+{
+    _volumeInterpolator->addVolume(volume, volumeId);
+}
+
+inline void VolumeRenderer::startVolumeAnimation()
+{
+    _volumeInterpolator->start();
+}
+
+inline void VolumeRenderer::stopVolumeAnimation()
+{
+    _volumeInterpolator->stop();
+}
+
 
 #endif

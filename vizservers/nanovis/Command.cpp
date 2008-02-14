@@ -1127,7 +1127,34 @@ VolumeCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
                 (*iter)->disable();
             }
 	}
-    } else if ((c == 't') && (strcmp(argv[1],"test2") == 0)) {
+    } 
+    else if (strcmp(argv[1],"animation") == 0) {
+        
+        if (strcmp(argv[2],"volumes") == 0) {
+            vector<unsigned int> ivol;
+            if (GetVolumeIndices(interp, argc-4, argv+4, &ivol) != TCL_OK) {
+                return TCL_ERROR;
+            }
+
+            NanoVis::vol_renderer->clearAnimatedVolumeInfo();
+
+            vector<unsigned int>::iterator iter;
+            for (iter = ivol.begin(); iter != ivol.end(); iter++) {
+                NanoVis::vol_renderer->addAnimatedVolume(NanoVis::volume[*iter], *iter);
+            }
+        }
+        else if (strcmp(argv[2],"start") == 0) {
+                NanoVis::vol_renderer->startVolumeAnimation();
+        }
+        else if (strcmp(argv[2],"stop") == 0) {
+                NanoVis::vol_renderer->stopVolumeAnimation();
+        }
+        else if (strcmp(argv[2],"clear") == 0) {
+                NanoVis::vol_renderer->clearAnimatedVolumeInfo();
+        }
+
+    }
+    else if ((c == 't') && (strcmp(argv[1],"test2") == 0)) {
         NanoVis::volume[1]->disable_data();
         NanoVis::volume[1]->disable();
         return TCL_OK;
