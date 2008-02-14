@@ -37,8 +37,49 @@
 //transfer function headers
 #include "ZincBlendeVolume.h"
 #include "NvZincBlendeReconstructor.h"
+#include "GradientFilter.h"
 
 //#define  _LOCAL_ZINC_TEST_
+float* merge(float* scalar, float* gradient, int size)
+{
+	float* data = (float*) malloc(sizeof(float) * 4 * size);
+
+	Vector3* g = (Vector3*) gradient;
+
+	int ngen = 0, sindex = 0;
+	for (sindex = 0; sindex <size; ++sindex)
+	{
+		data[ngen++] = scalar[sindex];
+		data[ngen++] = g[sindex].x;
+		data[ngen++] = g[sindex].y;
+		data[ngen++] = g[sindex].z;
+	}
+	return data;
+}
+
+void normalizeScalar(float* fdata, int count, float min, float max)
+{
+    float v = max - min;
+    if (v != 0.0f) 
+    {
+        for (int i = 0; i < count; ++i)
+            fdata[i] = fdata[i] / v;
+    }
+}
+
+float* computeGradient(float* fdata, int width, int height, int depth, float min, float max)
+{
+		float* gradients = (float *)malloc(width * height * depth * 3 * sizeof(float));
+		float* tempGradients = (float *)malloc(width * height * depth * 3 * sizeof(float));
+		int sizes[3] = { width, height, depth };
+		computeGradients(tempGradients, fdata, sizes, DATRAW_FLOAT);
+		filterGradients(tempGradients, sizes);
+		quantizeGradients(tempGradients, gradients, sizes, DATRAW_FLOAT);
+		normalizeScalar(fdata, width * height * depth, min, max);
+		float* data = merge(fdata, gradients, width * height * depth);
+
+        return data;
+}
 
 /* 
  * Load a 3D vector field from a dx-format file
@@ -745,6 +786,36 @@ load_volume_stream(int index, std::iostream& fin)
 	        nz = (int)pow(2.0, ceil(log10((double)nz)/log10(2.0)));
 #endif
 
+            float *cdata = new float[nx*ny*nz];
+            int ngen = 0;
+            double nzero_min = 0.0;
+            for (int iz=0; iz < nz; iz++) {
+                double zval = z0 + iz*dmin;
+                for (int iy=0; iy < ny; iy++) {
+                    double yval = y0 + iy*dmin;
+                    for (int ix=0; ix < nx; ix++) 
+                    {
+                        double xval = x0 + ix*dmin;
+                        double v = field.value(xval,yval,zval);
+
+                        if (v != 0.0f && v < nzero_min)
+                        {
+                            nzero_min = v;
+                        }
+
+                        // scale all values [0-1], -1 => out of bounds
+                        v = (isnan(v)) ? -1.0 : v;
+
+                        cdata[ngen] = v;
+                        ++ngen;
+                    }
+                }
+            }
+
+            float* data = computeGradient(cdata, nx, ny, nz, field.valueMin(), field.valueMax());
+
+            // Compute the gradient of this data.  BE CAREFUL: center
+            /*
             float *data = new float[4*nx*ny*nz];
 
             double vmin = field.valueMin();
@@ -814,6 +885,7 @@ load_volume_stream(int index, std::iostream& fin)
                     }
                 }
             }
+            */
 
 	    NanoVis::load_volume(index, nx, ny, nz, 4, data,
                 field.valueMin(), field.valueMax(), nzero_min);
