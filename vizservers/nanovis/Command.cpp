@@ -90,6 +90,8 @@ extern PlaneRenderer* plane_render;
 extern Texture2D* plane[10];
 
 extern Rappture::Outcome load_volume_stream(int index, std::iostream& fin);
+extern Rappture::Outcome load_volume_stream_odx(int index, const char *buf, 
+	int nBytes);
 extern Rappture::Outcome load_volume_stream2(int index, std::iostream& fin);
 extern void load_volume(int index, int width, int height, int depth, 
 	int n_component, float* data, double vmin, double vmax, 
@@ -221,6 +223,44 @@ GetPolygonMode(Tcl_Interp *interp, const char *string,
 	"\": should be wireframe or fill\"", (char *)NULL);
 	return TCL_ERROR;
     }
+    return TCL_OK;
+}
+
+
+static int 
+GetVolumeLimits(Tcl_Interp *interp, float *minPtr, float *maxPtr) 
+{
+    int i;
+
+    /* Find the first volume. */
+    for (i = 0; i < NanoVis::n_volumes; i++) {
+	if (NanoVis::volume[i] != NULL) {
+	    break;
+	}
+    }
+    if (i == NanoVis::n_volumes) {
+	Tcl_AppendResult(interp, "no volumes found", (char *)NULL);
+	return TCL_ERROR;
+    }
+    Volume *volPtr;
+    volPtr = NanoVis::volume[i];
+    float min, max;
+    min = volPtr->range_min();
+    max = volPtr->range_max();
+    for (i++; i < NanoVis::n_volumes; i++) {
+	if (NanoVis::volume[i] == NULL) {
+	    continue;
+	}
+	volPtr = NanoVis::volume[i];
+	if (min > volPtr->range_min()) {
+	    min = volPtr->range_min();
+	}
+	if (max < volPtr->range_max()) {
+	    max = volPtr->range_max();
+	}
+    }
+    *minPtr = min;
+    *maxPtr = max;
     return TCL_OK;
 }
 
@@ -424,7 +464,7 @@ CutplaneCmd(ClientData cdata, Tcl_Interp *interp, int argc,
         }
 
         vector<Volume *> ivol;
-        if (GetVolumes(interp, argc - 4, argv + 4, &ivol) != TCL_OK) {
+        if (GetVolumes(interp, argc-4, argv+4, &ivol) != TCL_OK) {
             return TCL_ERROR;
         }
 	vector<Volume *>::iterator iter;
@@ -476,8 +516,11 @@ LegendCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
 	(Tcl_GetInt(interp, argv[3], &height) != TCL_OK)) {
         return TCL_ERROR;
     }
-    NanoVis::render_legend(tf, volPtr->range_min(), volPtr->range_max(), 
-	width, height, argv[1]);
+    float vmin, vmax;
+    if (GetVolumeLimits(interp, &vmin, &vmax) != TCL_OK) {
+	return TCL_ERROR;
+    }
+    NanoVis::render_legend(tf, vmin, vmax, width, height, argv[1]);
     return TCL_OK;
 }
 
@@ -706,7 +749,7 @@ VolumeCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
         }
         c = argv[2][0];
         if ((c == 'l') && (strcmp(argv[2],"label") == 0)) {
-            if (argc < 4) {
+            if (argc < 5) {
                 Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
                     " axis label x|y|z string ?volume ...?\"", (char*)NULL);
                 return TCL_ERROR;
@@ -716,7 +759,7 @@ VolumeCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
                 return TCL_ERROR;
             }
             vector<Volume *> ivol;
-            if (GetVolumes(interp, argc - 5, argv + 5, &ivol) != TCL_OK) {
+            if (GetVolumes(interp, argc-5, argv+5, &ivol) != TCL_OK) {
                 return TCL_ERROR;
             }
 	    vector<Volume *>::iterator iter;
@@ -773,7 +816,7 @@ VolumeCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
             if (Tcl_GetInt(interp, argv[3], &nbytes) != TCL_OK) {
                 return TCL_ERROR;
             }
-
+	    
 	    Rappture::Buffer buf;
 	    if (GetDataStream(interp, buf, nbytes) != TCL_OK) {
 		return TCL_ERROR;
@@ -849,6 +892,17 @@ VolumeCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
                 }
 */
 #endif	/*__TEST_CODE__*/
+	    } else if (strcmp(header, "<ODX>") == 0) {
+		Rappture::Outcome err;
+
+                printf("Loading DX using OpenDX library...\n");
+                fflush(stdout);
+                err = load_volume_stream_odx(n, buf.bytes()+5, buf.size()-5);
+                //err = load_volume_stream2(n, fdata);
+                if (err) {
+                    Tcl_AppendResult(interp, err.remark().c_str(), (char*)NULL);
+                    return TCL_ERROR;
+                }
             } else {
 		Rappture::Outcome err;
 
@@ -884,25 +938,14 @@ VolumeCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
 	    {
 		Volume *volPtr;
 		char info[1024];
-		float vmin, vmax, min, max;
+		float vmin, vmax;
 
-		volPtr = NanoVis::volume[n];
-		vmin = min = volPtr->range_min();
-		vmax = max = volPtr->range_max();
-		for (int i = 0; i < NanoVis::n_volumes; i++) {
-		    if (NanoVis::volume[i] == NULL) {
-			continue;
-		    }
-		    volPtr = NanoVis::volume[i];
-		    if (vmin > volPtr->range_min()) {
-			vmin = volPtr->range_min();
-		    }
-		    if (vmax < volPtr->range_max()) {
-			vmax = volPtr->range_max();
-		    }
+		if (GetVolumeLimits(interp, &vmin, &vmax) != TCL_OK) {
+		    return TCL_ERROR;
 		}
+		volPtr = NanoVis::volume[n];
 		sprintf(info, "nv>data id %d min %g max %g vmin %g vmax %g\n", 
-			n, min, max, vmin, vmax);
+			n, volPtr->range_min(), volPtr->range_max(),vmin, vmax);
 		write(0, info, strlen(info));
 	    }
         } else {
@@ -1090,12 +1133,10 @@ VolumeCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
             if (GetVolumes(interp, argc-4, argv+4, &ivol) != TCL_OK) {
                 return TCL_ERROR;
             }
-#ifndef notdef
             vector<Volume *>::iterator iter;
             for (iter = ivol.begin(); iter != ivol.end(); iter++) {
                 (*iter)->set_isosurface(iso_surface);
             }
-#endif
 	} else {
 	    Tcl_AppendResult(interp, "bad shading option \"", argv[2], 
 		"\": should be diffuse, opacity, specular, transfunc, or ",
