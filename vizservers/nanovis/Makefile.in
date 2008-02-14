@@ -31,11 +31,9 @@ RP_DIR =  @RP_DIR@
 R2INC = ./R2/include
 MATINC = ./newmat11
 
-DX_DIR  = /usr/dx
+DX_DIR  = /usr/lib/dx
 DX_INC_SPEC = -I$(DX_DIR)/include
 DX_LIB_SPEC = -L$(DX_DIR)/lib_linux -lDXcallm -lm
-DX_INC_SPEC = -I/usr/include/dx
-DX_LIB_SPEC = -L/usr/lib/dx/lib_linux -lDXcallm -lm
 GL_INC_SPEC = -I/usr/include/GL
 GL_LIB_SPEC = -lGL -lglut -lglui -lGLEW -lCg -lCgGL -lpthread
 MAT_INC_SPEC = -I$(MATINC)
