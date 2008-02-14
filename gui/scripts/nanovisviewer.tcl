@@ -43,12 +43,8 @@ itcl::class Rappture::NanovisViewer {
     public method get {args}
     public method delete {args}
     public method scale {args}
-    public method getLimits { { option "-current"} } {
-	if { $option == "-current" } {
-	    set dataobj [lindex [get] 0]
-	    return [list $_limits($dataobj-vmin) $_limits($dataobj-vmax)]
-	}
-	return [list $_limits(vmin) $_limits(vmax)]
+    public method getLimits { { option ""} } {
+	return [array get _limits]
     }
     public method download {option args}
     public method parameters {title args} { # do nothing }
@@ -83,6 +79,7 @@ itcl::class Rappture::NanovisViewer {
     protected method _genTransfuncData {dataobj comp}
     public method update_transfer_function {}
     public method remove_duplicate_isomarker { m x }
+    public method over_isomarker { m x }
     public method _addIsoMarker { x y }
     protected method _initIsoMarkers {dataobj comp}
     protected method _hideIsoMarkers {dataobj}
@@ -109,6 +106,7 @@ itcl::class Rappture::NanovisViewer {
     private variable _sendobjs2 ""  ;# list of data objs to send to server
     private variable _receiveids   ;# list of data objs to send to server
     private variable _opacity
+    private variable _thickness
 
     private variable _click        ;# info used for _move operations
     private variable _limits       ;# autoscale min/max for all axes
@@ -129,14 +127,16 @@ itcl::class Rappture::NanovisViewer::IsoMarker {
     private variable _tick	""
     private variable _canvas	""
     private variable _nvobj	""
-    private common _normal_icon ""
-    private common _active_icon ""
+    private common _normalIcon ""
+    private common _activeIcon ""
+    private variable _active_motion   0
+    private variable _active_press    0
 
     constructor {c obj args} { 
 	set _canvas $c
 	set _nvobj $obj
 	
-	if { $_normal_icon == "" } {
+	if { $_normalIcon == "" } {
 	    set normal_icon_data {
 R0lGODlhBwATAOcxAAAAAAEBAQICAgMDAwQEBAUFBQYGBgcHBwgICAkJCQoKCgsLCwwMDA0N
 DQ4ODg8PDxAQEBERERISEhMTExQUFBUVFRYWFhcXFxgYGBkZGRoaGhsbGxwcHB0dHR4eHh8f
@@ -175,19 +175,21 @@ wcLCwsPDw8TExMXFxcbGxsfHx8jIyMnJycrKysvLy8zMzM3Nzc7Ozs/Pz9DQ0NHR0dLS0tPT
 LAAAAAAHABMAAAg2AP8JHEiwoMGDCBFmW0gwG4BsDR9GhDjQIUWBFidiXPhwYbY/fwCAXBgS
 gEiSJk9+BDnSo8uAADs=
 	    }
-	    set _normal_icon [image create photo -data $normal_icon_data]
-	    set _active_icon [image create photo -data $active_icon_data]
+	    set _normalIcon [image create photo -data $normal_icon_data]
+	    set _activeIcon [image create photo -data $active_icon_data]
 	}
 	set w [winfo width $_canvas]
 	set h [winfo height $_canvas]
 	set _tick [$c create image 0 $h \
-		-image $_normal_icon -anchor s \
+		-image $_normalIcon -anchor s \
 		-tags "$this $obj" -state hidden]
 	set _label [$c create text 0 $h \
 		-anchor n -fill white -font "Helvetica 6" \
 		-tags "$this $obj" -state hidden]
 	$c bind $_tick <Enter> [itcl::code $this handle_event "enter"]
 	$c bind $_tick <Leave> [itcl::code $this handle_event "leave"]
+	$c bind $_tick <ButtonPress-1> \
+	    [itcl::code $this handle_event "start" %x %y]
 	$c bind $_tick <B1-Motion> \
 	    [itcl::code $this handle_event "update" %x %y]
 	$c bind $_tick <ButtonRelease-1> \
@@ -198,8 +200,17 @@ gEiSJk9+BDnSo8uAADs=
     }
 
     public method get_relative_value {} {
-	foreach {min max} [$_nvobj getLimits -current] break
-	return [expr {($_value-$min)/($max - $min)}]
+	array set limits [$_nvobj getLimits] 
+	return [expr {($_value-$limits(vmin))/($limits(vmax) - $limits(vmin))}]
+    }
+    public method activate { bool } {
+	if  { $bool || $_active_press || $_active_motion } {
+	    $_canvas itemconfigure $_label -state normal
+	    $_canvas itemconfigure $_tick -image $_activeIcon
+	} else {
+	    $_canvas itemconfigure $_label -state hidden
+	    $_canvas itemconfigure $_tick -image $_normalIcon
+	}
     }
     public method show {} {
 	set_absolute_value $_value
@@ -231,28 +242,32 @@ gEiSJk9+BDnSo8uAADs=
 	$_canvas coords $_label $x [expr {$y+5}]
     }
     public method set_relative_value { x } {
-	foreach {min max} [$_nvobj getLimits -current] break 
-	set r [expr $max - $min]
-	set_absolute_value [expr {($x * $r) + $min}]
+	array set limits [$_nvobj getLimits] 
+	set r [expr $limits(vmax) - $limits(vmin)]
+	set_absolute_value [expr {($x * $r) + $limits(vmin)}]
     }
     public method handle_event { option args } {
+	puts stderr "option=$option"
 	switch -- $option {
 	    enter {
-		$_canvas itemconfigure $_label -state normal
-		$_canvas itemconfigure $_tick -image $_active_icon
+		set _active_motion 1
+		activate yes
 		$_canvas raise $_tick
 	    }
 	    leave {
-		$_canvas itemconfigure $_label -state hidden
-		$_canvas itemconfigure $_tick -image $_normal_icon
+		set _active_motion 0
+		activate no
 	    }
 	    start {
 		$_canvas raise $_tick 
+		set _active_press 1
+		activate yes
 	    }
 	    update {
 		set w [winfo width $_canvas]
 		set x [lindex $args 0]
 		set_relative_value [expr {double($x-10)/($w-20)}]
+		$_nvobj over_isomarker $this $x
 		$_nvobj update_transfer_function
 	    }
 	    end {
@@ -260,6 +275,8 @@ gEiSJk9+BDnSo8uAADs=
 		if { ![$_nvobj remove_duplicate_isomarker $this $x]} {
 		    eval handle_event update $args
 		}
+		set _active_press 0
+		activate no
 	    }
 	    default {
 		error "bad option \"$option\": should be start, update, end"
@@ -307,6 +324,8 @@ itcl::body Rappture::NanovisViewer::constructor {hostlist args} {
     set _view(zfocus) 0
     set _obj2id(count) 0
     set _id2obj(count) 0
+    set _limits(vmin) 0.0
+    set _limits(vmax) 1.0
 
     itk_component add controls {
         frame $itk_interior.cntls
@@ -542,21 +561,30 @@ itcl::body Rappture::NanovisViewer::constructor {hostlist args} {
     grid $inner.scales.plasticl -row 1 -column 2 -sticky w
     $inner.scales.transp set 50
 
-    label $inner.scales.zerol -text "Transparent" -font $fg
+    label $inner.scales.zerol -text "Clear" -font $fg
     grid $inner.scales.zerol -row 2 -column 0 -sticky e
     ::scale $inner.scales.opacity -from 0 -to 100 -orient horizontal \
         -showvalue off -command [itcl::code $this _fixSettings opacity]
     grid $inner.scales.opacity -row 2 -column 1 -sticky ew
     label $inner.scales.onel -text "Opaque" -font $fg
     grid $inner.scales.onel -row 2 -column 2 -sticky w
-    $inner.scales.opacity set 50
+    $inner.scales.opacity set 100
+
+    label $inner.scales.thinl -text "Thin" -font $fg
+    grid $inner.scales.thinl -row 3 -column 0 -sticky e
+    ::scale $inner.scales.thickness -from 0 -to 1000 -orient horizontal \
+        -showvalue off -command [itcl::code $this _fixSettings thickness]
+    grid $inner.scales.thickness -row 3 -column 1 -sticky ew
+    label $inner.scales.thickl -text "Thick" -font $fg
+    grid $inner.scales.thickl -row 3 -column 2 -sticky w
+    $inner.scales.thickness set 500
 
     set ::Rappture::NanovisViewer::_isosurface($this) 1
     ::checkbutton $inner.scales.isosurface \
 	-text "Isosurface shading" \
 	-variable ::Rappture::NanovisViewer::_isosurface($this) \
 	-command [itcl::code $this _fixSettings isosurface]
-    grid $inner.scales.isosurface -row 3 -column 0 -columnspan 2 -sticky w
+    grid $inner.scales.isosurface -row 4 -column 0 -columnspan 2 -sticky w
 
 
     #
@@ -1082,7 +1110,11 @@ itcl::body Rappture::NanovisViewer::_send_transfuncs {} {
             # Determine the transfer function needed for this volume
             # and make sure that it's defined on the server.
             #
-	    _initIsoMarkers $dataobj $comp
+	    if { ![info exists _isomarkers($dataobj)] } {
+		_initIsoMarkers $dataobj $comp
+	    } else {
+		_hideIsoMarkers $dataObj
+	    }
             foreach {sname cmap wmap} [_genTransfuncData $dataobj $comp] break
             set cmdstr [list transfunc define $sname $cmap $wmap]
             _send_echo >>line $cmdstr
@@ -1321,6 +1353,8 @@ itcl::body Rappture::NanovisViewer::_rebuild {} {
     _fixSettings light
     _fixSettings transp
     _fixSettings isosurface 
+    _fixSettings opacity
+    _fixSettings thickness
 
     if {"" == $itk_option(-plotoutline)} {
         _send volume outline state off
@@ -1611,6 +1645,18 @@ itcl::body Rappture::NanovisViewer::_fixSettings {what {value ""}} {
 		}
             }
         }
+        thickness {
+            if {[isconnected]} {
+		set dataobj [lindex [get] 0]
+		if {$dataobj != 0} {
+		    set val [$inner.scales.opacity get]
+		    # Scale values between 0.00001 and 0.01000
+		    set sval [expr {0.00001*double($val)}]
+		    set _thickness($dataobj) $sval
+		    update_transfer_function
+		}
+            }
+        }
 	isosurface {
             if {[isconnected]} {
                 set val $Rappture::NanovisViewer::_isosurface($this)
@@ -1706,6 +1752,9 @@ itcl::body Rappture::NanovisViewer::_genTransfuncData {dataobj comp} {
     set isovalues [lsort -real $isovalues]
 
     set delta 0.0005
+    if { [info exists _thickness($dataobj)]} {
+	set delta $_thickness($dataobj)
+    }
     set first [lindex $isovalues 0]
     set last [lindex $isovalues end]
     set wmap ""
@@ -1713,10 +1762,10 @@ itcl::body Rappture::NanovisViewer::_genTransfuncData {dataobj comp} {
 	lappend wmap 0.0 0.0
     }
     foreach x $isovalues {
-	set x1 [expr {$x-$delta-0.001}]
+	set x1 [expr {$x-$delta}]
 	set x2 [expr {$x-$delta}]
 	set x3 [expr {$x+$delta}]
-	set x4 [expr {$x+$delta+0.001}]
+	set x4 [expr {$x+$delta}]
 	if { $x1 < 0.0 } {
 	    set x1 0.0 
 	}
@@ -1823,36 +1872,39 @@ itcl::body Rappture::NanovisViewer::_showIsoMarkers {dataobj} {
 }
 
 itcl::body Rappture::NanovisViewer::_initIsoMarkers {dataobj comp} {
-    if { [info exists _isomarkers($dataobj)] } {
-	_hideIsoMarkers $dataObj
-	return
-    }
     array set style {
-        -levels 6
+        -levels 6x
     }
     array set style [lindex [$dataobj components -style $comp] 0]
     set levels $style(-levels)
     set c $itk_component(legend)
-    if { [llength $levels] == 1 && [string is int $levels] } {
-	for {set i 1} {$i <= $levels} {incr i} {
-	    set x [expr {double($i)/($levels+1)}]
+    regsub -all "," $levels " " levels
+    foreach level $levels {
+	set n [scan $level "%g%s" value suffix]
+	if { $n == 2 && $suffix == "%" } {
+	    # ${n}% : Set relative value. 
+	    set value [expr {$value * 0.01}]
 	    set m [IsoMarker \#auto $c $this]
-	    $m set_relative_value $x
-	    lappend _isomarkers($dataobj) $m 
-	}
-    } else {
-	regsub -all "," $levels " " levels
-	foreach level $levels {
-	    set n [scan $level "%g%s" x unit]
-	    set m [IsoMarker \#auto $c $this]
+	    $m set_relative_value $value
 	    lappend _isomarkers($dataobj) $m
-	    if { $n == 2 && $unit == "%" } {
-		set x [expr {$x * 0.01}]
-		$m set_relative_value $x
-	    } else {
-		$m set_absolute_value $x
+	} elseif { $n == 2 && $suffix == "x" } {
+	    # ${n}x : Set equal number of levels 
+	    if { $value != round($value) } {
+		error "\# of levels \"$value\" must be an interger"
 	    }
-	} 
+	    set nLevels [expr round($value)]
+	    for {set i 1} {$i <= $nLevels} {incr i} {
+		set x [expr {double($i)/($nLevels+1)}]
+		set m [IsoMarker \#auto $c $this]
+		$m set_relative_value $x
+		lappend _isomarkers($dataobj) $m 
+	    }
+	} else {
+	    # ${n} : Set absolute value.
+	    set m [IsoMarker \#auto $c $this]
+	    $m set_absolute_value $value
+	    lappend _isomarkers($dataobj) $m
+	}
     }
 }
 
@@ -1903,7 +1955,7 @@ itcl::body Rappture::NanovisViewer::remove_duplicate_isomarker { marker x } {
     if {"" == $dataobj} {
         return 0
     }
-    set bool 1
+    set bool 0
     if { [info exists _isomarkers($dataobj)] } {
 	set list {}
 	set marker [namespace tail $marker]
@@ -1913,7 +1965,8 @@ itcl::body Rappture::NanovisViewer::remove_duplicate_isomarker { marker x } {
 		if { $x >= ($sx-3) && $x <= ($sx+3) } {
 		    $marker set_relative_value [$m get_relative_value]
 		    itcl::delete object $m
-		    set bool 0
+		    bell
+		    set bool 1
 		    continue
 		}
 	    }
@@ -1923,4 +1976,22 @@ itcl::body Rappture::NanovisViewer::remove_duplicate_isomarker { marker x } {
 	update_transfer_function
     }
     return $bool
+}
+
+itcl::body Rappture::NanovisViewer::over_isomarker { marker x } {
+    set dataobj [lindex [get] 0]
+    if {"" == $dataobj} {
+        return ""
+    }
+    if { [info exists _isomarkers($dataobj)] } {
+	set marker [namespace tail $marker]
+	foreach m $_isomarkers($dataobj) {
+	    set sx [$m get_screen_position]
+	    if { $m != $marker } {
+		set bool [expr { $x >= ($sx-3) && $x <= ($sx+3) }]
+		$m activate $bool
+	    }
+	}
+    }
+    return ""
 }
