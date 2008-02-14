@@ -22,11 +22,13 @@
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <time.h>
 #include <sys/time.h>
 #include <sys/types.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <signal.h>
+#include <stdlib.h>
 
 #include "Nv.h"
 #include "PointSetRenderer.h"
@@ -55,6 +57,7 @@
 #include "NvZincBlendeReconstructor.h"
 #include "HeightMap.h"
 #include "Grid.h"
+#include "VolumeInterpolator.h"
 #include <RenderContext.h>
 
 #include <imgLoaders/BMPImageLoaderImpl.h>
@@ -1363,6 +1366,24 @@ draw_axis()
 }
 #endif
 
+void NanoVis::update()
+{
+    if (vol_renderer->_volumeInterpolator->is_started())
+    {
+    struct timeval clock;
+    gettimeofday(&clock, NULL);
+    double cur_time = clock.tv_sec + clock.tv_usec/1000000.0;
+
+    float fraction;
+    float f = fmod(cur_time - vol_renderer->_volumeInterpolator->getStartTime(), 
+                    vol_renderer->_volumeInterpolator->getInterval());
+
+    if (f == 0.0f) fraction = 0.0f;
+    else fraction = f / vol_renderer->_volumeInterpolator->getInterval();
+
+    vol_renderer->_volumeInterpolator->update(fraction);
+  }
+}
 
 /*----------------------------------------------------*/
 void 

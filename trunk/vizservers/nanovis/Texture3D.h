@@ -48,6 +48,8 @@ public:
 	static void check_max_size();
 	static void check_max_unit();
 
+    void update(float* data);
+
 };
 
 #endif

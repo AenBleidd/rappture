@@ -63,6 +63,8 @@ public:
     std::vector <CutPlane> plane; // cut planes
 
     Texture3D* tex;		// OpenGL texture storing the volume
+
+    float* _data;
     
     int pointsetIndex;
 
@@ -99,6 +101,8 @@ public:
     Volume(float x, float y, float z, int width, int height, int depth, 
 	   float size, int n_component, float* data, double vmin, double vmax, 
 	   double nonzero_min);
+
+  
     ~Volume();
 	
     void enable();		// VolumeRenderer will render an enabled

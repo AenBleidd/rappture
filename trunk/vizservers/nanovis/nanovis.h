@@ -151,6 +151,7 @@ public:
     static void bmp_write(const char* cmd);
     static void bmp_write_to_file(int frame_number);
     static void display(void);
+    static void update(void);
     static void display_offscreen_buffer();
     static void read_screen();
     static void zoom(double zoom);
