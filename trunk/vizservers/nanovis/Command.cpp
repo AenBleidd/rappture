@@ -1125,7 +1125,7 @@ VolumeCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
                     " shading isosurface on|off ?volume ...?\"", (char*)NULL);
                 return TCL_ERROR;
             }
-            int iso_surface = 0;
+            int iso_surface;
             if (Tcl_GetBoolean(interp, argv[3], &iso_surface) != TCL_OK) {
                 return TCL_ERROR;
             }
@@ -1168,37 +1168,37 @@ VolumeCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
                 (*iter)->disable();
             }
         }
-    } 
-    else if (strcmp(argv[1],"animation") == 0) {
-        
+    } else if (strcmp(argv[1],"animation") == 0) {
+        if (argc < 3) {
+            Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
+                " animation option ?args...?\"", (char*)NULL);
+            return TCL_ERROR;
+        }
         if (strcmp(argv[2],"volumes") == 0) {
             vector<unsigned int> ivol;
             if (GetVolumeIndices(interp, argc-4, argv+4, &ivol) != TCL_OK) {
                 return TCL_ERROR;
             }
-
             NanoVis::vol_renderer->clearAnimatedVolumeInfo();
-
             vector<unsigned int>::iterator iter;
             for (iter = ivol.begin(); iter != ivol.end(); iter++) {
-                NanoVis::vol_renderer->addAnimatedVolume(NanoVis::volume[*iter], *iter);
+                NanoVis::vol_renderer->addAnimatedVolume(NanoVis::volume[*iter],
+			*iter);
             }
-        }
-        else if (strcmp(argv[2],"start") == 0) {
-                NanoVis::vol_renderer->startVolumeAnimation();
-        }
-        else if (strcmp(argv[2],"stop") == 0) {
+        } else if (strcmp(argv[2],"start") == 0) {
+	    NanoVis::vol_renderer->startVolumeAnimation();
+        } else if (strcmp(argv[2],"stop") == 0) {
                 NanoVis::vol_renderer->stopVolumeAnimation();
-        }
-        else if (strcmp(argv[2],"clear") == 0) {
+        } else if (strcmp(argv[2],"clear") == 0) {
                 NanoVis::vol_renderer->clearAnimatedVolumeInfo();
-        }
-
-    }
-    else if ((c == 't') && (strcmp(argv[1],"test2") == 0)) {
+        } else {
+            Tcl_AppendResult(interp, "bad animation option \"", argv[2], 
+                "\": should be volumes, start, stop,  or clear", (char*)NULL);
+            return TCL_ERROR;
+	}
+    } else if ((c == 't') && (strcmp(argv[1],"test2") == 0)) {
         NanoVis::volume[1]->disable_data();
         NanoVis::volume[1]->disable();
-        return TCL_OK;
     } else {
         Tcl_AppendResult(interp, "bad option \"", argv[1], "\": should be ",
                 "data, outline, shading, or state", (char*)NULL);
@@ -1583,7 +1583,7 @@ HeightMapCmd(ClientData cdata, Tcl_Interp *interp, int argc,
             }
         } else {
             Tcl_AppendResult(interp, "unknown option \"", argv[2], "\": ",
-                             "should be visible or color", (char *)NULL);
+		"should be visible or color", (char *)NULL);
             return TCL_ERROR;
         }
     } else if ((c == 't') && (strcmp(argv[1], "transfunc") == 0)) {
@@ -1670,7 +1670,8 @@ HeightMapCmd(ClientData cdata, Tcl_Interp *interp, int argc,
         NanoVis::renderContext->setShadingModel(model);
     } else {
         Tcl_AppendResult(interp, "bad option \"", argv[1],
-                "\": should be data, linecontour, legend, or transfunc", (char*)NULL);
+                "\": should be data, linecontour, legend, or transfunc", 
+		(char*)NULL);
         return TCL_ERROR;
     }
     return TCL_OK;
@@ -1770,7 +1771,7 @@ AxisCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
         return TCL_ERROR;
     }
     char c = argv[1][0];
-    if ((c == 'v') && (strcmp(argv[1],"visible") == 0)) {
+    if ((c == 'v') && (strcmp(argv[1], "visible") == 0)) {
         int ivisible;
 
         if (Tcl_GetBoolean(interp, argv[2], &ivisible) != TCL_OK) {
