@@ -43,7 +43,7 @@ itcl::class Rappture::NanovisViewer {
     public method get {args}
     public method delete {args}
     public method scale {args}
-    public method getLimits { { option ""} } {
+    public method get_limits { { option ""} } {
 	return [array get _limits]
     }
     public method download {option args}
@@ -199,8 +199,15 @@ gEiSJk9+BDnSo8uAADs=
 	$_canvas delete $this
     }
 
+    public method get_absolute_value {} {
+	return $_value
+    }
     public method get_relative_value {} {
-	array set limits [$_nvobj getLimits] 
+	array set limits [$_nvobj get_limits] 
+	if { $limits(vmax) == $limits(vmin) } {
+	    set limits(vmin) 0.0
+	    set limits(vmax) 1.0
+	}
 	return [expr {($_value-$limits(vmin))/($limits(vmax) - $limits(vmin))}]
     }
     public method activate { bool } {
@@ -242,12 +249,15 @@ gEiSJk9+BDnSo8uAADs=
 	$_canvas coords $_label $x [expr {$y+5}]
     }
     public method set_relative_value { x } {
-	array set limits [$_nvobj getLimits] 
+	array set limits [$_nvobj get_limits] 
+	if { $limits(vmax) == $limits(vmin) } {
+	    set limits(vmin) 0.0
+	    set limits(vmax) 1.0
+	}
 	set r [expr $limits(vmax) - $limits(vmin)]
 	set_absolute_value [expr {($x * $r) + $limits(vmin)}]
     }
     public method handle_event { option args } {
-	puts stderr "option=$option"
 	switch -- $option {
 	    enter {
 		set _active_motion 1
@@ -1113,7 +1123,7 @@ itcl::body Rappture::NanovisViewer::_send_transfuncs {} {
 	    if { ![info exists _isomarkers($dataobj)] } {
 		_initIsoMarkers $dataobj $comp
 	    } else {
-		_hideIsoMarkers $dataObj
+		_hideIsoMarkers $dataobj
 	    }
             foreach {sname cmap wmap} [_genTransfuncData $dataobj $comp] break
             set cmdstr [list transfunc define $sname $cmap $wmap]
@@ -1239,6 +1249,8 @@ itcl::body Rappture::NanovisViewer::_receive_legend {ivol vmin vmax size} {
 
         $c itemconfigure vmax -text $vmax
         $c coords vmax [expr {$w-10}] [expr {$h-8}]
+        set first [lindex [get] 0]
+	_showIsoMarkers $first
     }
 }
 
@@ -1649,9 +1661,10 @@ itcl::body Rappture::NanovisViewer::_fixSettings {what {value ""}} {
             if {[isconnected]} {
 		set dataobj [lindex [get] 0]
 		if {$dataobj != 0} {
-		    set val [$inner.scales.opacity get]
+		    set val [$inner.scales.thickness get]
 		    # Scale values between 0.00001 and 0.01000
 		    set sval [expr {0.00001*double($val)}]
+		    puts stderr "thickness($dataobj) = $sval"
 		    set _thickness($dataobj) $sval
 		    update_transfer_function
 		}
@@ -1751,10 +1764,11 @@ itcl::body Rappture::NanovisViewer::_genTransfuncData {dataobj comp} {
     # Sort the isovalues
     set isovalues [lsort -real $isovalues]
 
-    set delta 0.0005
+    set delta 0.01
     if { [info exists _thickness($dataobj)]} {
 	set delta $_thickness($dataobj)
     }
+    puts stderr "delta=$delta thickness($dataobj)=$_thickness($dataobj)"
     set first [lindex $isovalues 0]
     set last [lindex $isovalues end]
     set wmap ""
@@ -1762,10 +1776,10 @@ itcl::body Rappture::NanovisViewer::_genTransfuncData {dataobj comp} {
 	lappend wmap 0.0 0.0
     }
     foreach x $isovalues {
-	set x1 [expr {$x-$delta}]
+	set x1 [expr {$x-$delta-0.00001}]
 	set x2 [expr {$x-$delta}]
 	set x3 [expr {$x+$delta}]
-	set x4 [expr {$x+$delta}]
+	set x4 [expr {$x+$delta+0.00001}]
 	if { $x1 < 0.0 } {
 	    set x1 0.0 
 	}
