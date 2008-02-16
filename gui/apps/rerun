@@ -9,21 +9,21 @@
 #  
 #
 #  RUN AS FOLLOWS:
-#    rerun [-h | -d driver_path] <run.xml-file>
+#    rerun [-h | -d rappture_path] <runFile>
 #
 #      -h | --help                  - print the help menu
-#      -d | --driver driver_path    - specify the path to the driver 
-#                                     program. You will need to specify
-#                                     the path if the driver program is
+#      -d | --driver rappture_path  - specify the path to the rappture
+#                                     command. You will need to specify
+#                                     the path if the rappture command is
 #                                     not in your PATH environment 
 #                                     variable.
 #
-#      <run.xml-file> - the run.xml file you containing an output 
+#      <runFile>      - the run.xml file containing an output 
 #                       section you would like to re-generate.
 #
 # ======================================================================
 #  AUTHOR:  Derrick Kearney, Purdue University
-#  Copyright (c) 2004-2005  Purdue Research Foundation
+#  Copyright (c) 2004-2008  Purdue Research Foundation
 #
 #  See the file "license.terms" for information on usage and
 #  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -33,64 +33,89 @@
 
 import getopt, shutil, re, os, sys, tempfile
 
-def printHelp():
-    print """rerun [-h | -d driver_path] runFile
+def help():
+    return """rerun [-h | -d rappture_path] runFile
+      Visualize the output from a run.xml. This tool does not resimulate.
 
       -h | --help                  - print the help menu
-      -d | --driver driver_path    - specify the path to the driver
-                                     program. You will need to specify
-                                     the path if the driver program is
+      -d | --driver rappture_path  - specify the path to the rappture
+                                     command. You will need to specify
+                                     the path if the rappture command is
                                      not in your PATH environment
                                      variable.
 
-      <run.xml-file> - the run.xml file you containing an output
+      <runFile>      - the run.xml file containing an output
                        section you would like to re-generate.
 """
-    sys.exit()
 
+def main(argv=None):
 
-if __name__ == '__main__' :
+    if argv is None:
+        argv = sys.argv
 
-    if len(sys.argv) < 2:
-        printHelp()
-
-    if sys.argv[1] in ("-h", "--help"):
-        printHelp()
+    if len(argv) < 2:
+        print >>sys.stderr, "%s requires at least 2 arguments" % (argv[0])
+        print >>sys.stderr, help()
+        return 2
 
     longOpts = ["driver=","help"]
     shortOpts = "d:h"
-    opts, args = getopt.getopt(sys.argv[1:], shortOpts, longOpts)
+    try:
+        opts, args = getopt.getopt(argv[1:], shortOpts, longOpts)
+    except getopt.GetoptError, msg:
+        print >>sys.stderr, msg
+        print >>sys.stderr, help()
+        return 2
 
     driverPath = 'rappture'
-    runFile = args[0]
 
     # match options
     for o, v in opts:
         if o in ("-d", "--driver"):
             driverPath = v
         elif o in ("-h", "--help"):
-            printHelp()
+            print >>sys.stderr, help()
+            return 2
+
+    runFile = args[0]
 
     # look for the text <command> (any characters) </command>
     re_command = re.compile(r'<command>.*</command>', re.I|re.DOTALL)
 
-    # prepare text variables
+    try:
+        xmlfile = open(runFile, "rb").read()
+    except IOError, msg:
+        print >>sys.stderr, msg
+        return 2
+
     myTmpFilefd, myTmpFileName = tempfile.mkstemp()
     myTmpFile = os.fdopen(myTmpFilefd,'w+b')
-    outCmd = '<command>echo =RAPPTURE-RUN=>' + myTmpFileName.encode('string_escape') + '</command>'
+
+    outCmd =  '<command>echo =RAPPTURE-RUN=>' \
+            + myTmpFileName.encode('string_escape') \
+            + '</command>'
+
+
     # do the file <command> switheroo!
-    xmlfile = open(runFile, "rb").read()
     outText = re_command.sub(outCmd,xmlfile)
+
+    # This should be fixed in rappture,
+    # until it is fixed there, we do it here
+    # look for the pesty self terminating current tags <current/>
+    # do the file <current/> switheroo!
+    re_current = re.compile(r'<current/>',re.I|re.DOTALL)
+    outText = re_current.sub('',outText)
+
     myTmpFile.write(outText)
     myTmpFile.flush()
 
     # run driver on the temporary run file
-    print "myTmpFileName = %s" % (myTmpFileName)
     systemCmd = '%s -tool %s' % (driverPath, myTmpFileName)
+    #FIXME: do we really need to shell out? Rappture.tools.getCommandOutput()?
     os.system(systemCmd)
 
     # presto-change-o
-
+    
     # clean up our tmp file
     # tempfile module does not auto delete files created by mkstemp on close
     myTmpFile.close()
@@ -99,5 +124,8 @@ if __name__ == '__main__' :
         # is automatically removed. this is fixed in python2.5
         os.remove(myTmpFileName)
 
-    # exit gracefully
-    sys.exit()
+    return 0
+
+if __name__ == '__main__' :
+    # call main and exit gracefully
+    sys.exit(main())
