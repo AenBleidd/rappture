@@ -111,7 +111,7 @@ itcl::class Rappture::NanovisViewer {
     private variable _click        ;# info used for _move operations
     private variable _limits       ;# autoscale min/max for all axes
     private variable _view         ;# view params for 3D view
-	
+
     private variable _isomarkers    ;# array of isosurface level values 0..1
     private common _isosurface     ;# indicates to use isosurface shading
 }
@@ -122,22 +122,22 @@ itk::usual NanovisViewer {
 }
 
 itcl::class Rappture::NanovisViewer::IsoMarker {
-    private variable _value	"";	# Absolute value of marker.
-    private variable _label	""
-    private variable _tick	""
-    private variable _canvas	""
-    private variable _nvobj	""
+    private variable _value    ""; # Absolute value of marker.
+    private variable _label    ""
+    private variable _tick     ""
+    private variable _canvas   ""
+    private variable _nvobj    ""
     private common _normalIcon ""
     private common _activeIcon ""
     private variable _active_motion   0
     private variable _active_press    0
 
-    constructor {c obj args} { 
-	set _canvas $c
-	set _nvobj $obj
-	
-	if { $_normalIcon == "" } {
-	    set normal_icon_data {
+    constructor {c obj args} {
+        set _canvas $c
+        set _nvobj $obj
+
+        if { $_normalIcon == "" } {
+            set normal_icon_data {
 R0lGODlhBwATAOcxAAAAAAEBAQICAgMDAwQEBAUFBQYGBgcHBwgICAkJCQoKCgsLCwwMDA0N
 DQ4ODg8PDxAQEBERERISEhMTExQUFBUVFRYWFhcXFxgYGBkZGRoaGhsbGxwcHB0dHR4eHh8f
 HyAgICEhISIiIiMjIyQkJCUlJSYmJicnJygoKCkpKSoqKisrKywsLC0tLS4uLi8vLzAwMDEx
@@ -155,8 +155,8 @@ wcLCwsPDw8TExMXFxcbGxsfHx8jIyMnJycrKysvLy8zMzM3Nzc7Ozs/Pz9DQ0NHR0dLS0tPT
 9/j4+Pn5+fr6+vv7+/z8/P39/f7+/v///yH+EUNyZWF0ZWQgd2l0aCBHSU1QACH5BAEKAP8A
 LAAAAAAHABMAAAg2AP8JHEiwoMGDCBFmW0gw259sDR9GhDjQIUWBFidiXPhwYTZTpv6AXBjy
 j0iSJk9+BDnSo8uAADs=
-	    }
-	    set active_icon_data {
+            }
+            set active_icon_data {
 R0lGODlhBwATAOcxAAAAAAEBAQICAgMDAwQEBAUFBQYGBgcHBwgICAkJCQoKCgsLCwwMDA0N
 DQ4ODg8PDxAQEBERERISEhMTExQUFBUVFRYWFhcXFxgYGBkZGRoaGhsbGxwcHB0dHR4eHh8f
 HyAgICEhISIiIiMjIyQkJCUlJSYmJicnJygoKCkpKSoqKisrKywsLC0tLS4uLi8vLzAwMDEx
@@ -174,124 +174,124 @@ wcLCwsPDw8TExMXFxcbGxsfHx8jIyMnJycrKysvLy8zMzM3Nzc7Ozs/Pz9DQ0NHR0dLS0tPT
 9/j4+Pn5+fr6+vv7+/z8/P39/f7+/v///yH+EUNyZWF0ZWQgd2l0aCBHSU1QACH5BAEKAP8A
 LAAAAAAHABMAAAg2AP8JHEiwoMGDCBFmW0gwG4BsDR9GhDjQIUWBFidiXPhwYbY/fwCAXBgS
 gEiSJk9+BDnSo8uAADs=
-	    }
-	    set _normalIcon [image create photo -data $normal_icon_data]
-	    set _activeIcon [image create photo -data $active_icon_data]
-	}
-	set w [winfo width $_canvas]
-	set h [winfo height $_canvas]
-	set _tick [$c create image 0 $h \
-		-image $_normalIcon -anchor s \
-		-tags "$this $obj" -state hidden]
-	set _label [$c create text 0 $h \
-		-anchor n -fill white -font "Helvetica 6" \
-		-tags "$this $obj" -state hidden]
-	$c bind $_tick <Enter> [itcl::code $this handle_event "enter"]
-	$c bind $_tick <Leave> [itcl::code $this handle_event "leave"]
-	$c bind $_tick <ButtonPress-1> \
-	    [itcl::code $this handle_event "start" %x %y]
-	$c bind $_tick <B1-Motion> \
-	    [itcl::code $this handle_event "update" %x %y]
-	$c bind $_tick <ButtonRelease-1> \
-	    [itcl::code $this handle_event "end" %x %y]
+            }
+            set _normalIcon [image create photo -data $normal_icon_data]
+            set _activeIcon [image create photo -data $active_icon_data]
+        }
+        set w [winfo width $_canvas]
+        set h [winfo height $_canvas]
+        set _tick [$c create image 0 $h \
+                -image $_normalIcon -anchor s \
+                -tags "$this $obj" -state hidden]
+        set _label [$c create text 0 $h \
+                -anchor n -fill white -font "Helvetica 6" \
+                -tags "$this $obj" -state hidden]
+        $c bind $_tick <Enter> [itcl::code $this handle_event "enter"]
+        $c bind $_tick <Leave> [itcl::code $this handle_event "leave"]
+        $c bind $_tick <ButtonPress-1> \
+            [itcl::code $this handle_event "start" %x %y]
+        $c bind $_tick <B1-Motion> \
+            [itcl::code $this handle_event "update" %x %y]
+        $c bind $_tick <ButtonRelease-1> \
+            [itcl::code $this handle_event "end" %x %y]
     }
-    destructor { 
-	$_canvas delete $this
+    destructor {
+        $_canvas delete $this
     }
 
     public method get_absolute_value {} {
-	return $_value
+        return $_value
     }
     public method get_relative_value {} {
-	array set limits [$_nvobj get_limits] 
-	if { $limits(vmax) == $limits(vmin) } {
-	    set limits(vmin) 0.0
-	    set limits(vmax) 1.0
-	}
-	return [expr {($_value-$limits(vmin))/($limits(vmax) - $limits(vmin))}]
+        array set limits [$_nvobj get_limits]
+        if { $limits(vmax) == $limits(vmin) } {
+            set limits(vmin) 0.0
+            set limits(vmax) 1.0
+        }
+        return [expr {($_value-$limits(vmin))/($limits(vmax) - $limits(vmin))}]
     }
     public method activate { bool } {
-	if  { $bool || $_active_press || $_active_motion } {
-	    $_canvas itemconfigure $_label -state normal
-	    $_canvas itemconfigure $_tick -image $_activeIcon
-	} else {
-	    $_canvas itemconfigure $_label -state hidden
-	    $_canvas itemconfigure $_tick -image $_normalIcon
-	}
+        if  { $bool || $_active_press || $_active_motion } {
+            $_canvas itemconfigure $_label -state normal
+            $_canvas itemconfigure $_tick -image $_activeIcon
+        } else {
+            $_canvas itemconfigure $_label -state hidden
+            $_canvas itemconfigure $_tick -image $_normalIcon
+        }
     }
     public method show {} {
-	set_absolute_value $_value
-	$_canvas itemconfigure $_tick -state normal
-	$_canvas raise $_tick
+        set_absolute_value $_value
+        $_canvas itemconfigure $_tick -state normal
+        $_canvas raise $_tick
     }
     public method hide {} {
-	$_canvas itemconfigure $_tick -state hidden
+        $_canvas itemconfigure $_tick -state hidden
     }
-    public method get_screen_position { } { 
-	set x [get_relative_value]
-	if { $x < 0.0 } {
-	    set x 0.0
-	} elseif { $x > 1.0 } {
-	    set x 1.0 
-	}
-	set low 10 
-	set w [winfo width $_canvas]
-	set high [expr {$w  - 10}]
-	set x [expr {round($x*($high - $low) + $low)}]
-	return $x
+    public method get_screen_position { } {
+        set x [get_relative_value]
+        if { $x < 0.0 } {
+            set x 0.0
+        } elseif { $x > 1.0 } {
+            set x 1.0
+        }
+        set low 10
+        set w [winfo width $_canvas]
+        set high [expr {$w  - 10}]
+        set x [expr {round($x*($high - $low) + $low)}]
+        return $x
     }
     public method set_absolute_value { x } {
-	set _value $x
-	set y 31
-	$_canvas itemconfigure $_label -text [format %.4g $_value]
-	set x [get_screen_position]
-	$_canvas coords $_tick $x [expr {$y+3}]
-	$_canvas coords $_label $x [expr {$y+5}]
+        set _value $x
+        set y 31
+        $_canvas itemconfigure $_label -text [format %.4g $_value]
+        set x [get_screen_position]
+        $_canvas coords $_tick $x [expr {$y+3}]
+        $_canvas coords $_label $x [expr {$y+5}]
     }
     public method set_relative_value { x } {
-	array set limits [$_nvobj get_limits] 
-	if { $limits(vmax) == $limits(vmin) } {
-	    set limits(vmin) 0.0
-	    set limits(vmax) 1.0
-	}
-	set r [expr $limits(vmax) - $limits(vmin)]
-	set_absolute_value [expr {($x * $r) + $limits(vmin)}]
+        array set limits [$_nvobj get_limits]
+        if { $limits(vmax) == $limits(vmin) } {
+            set limits(vmin) 0.0
+            set limits(vmax) 1.0
+        }
+        set r [expr $limits(vmax) - $limits(vmin)]
+        set_absolute_value [expr {($x * $r) + $limits(vmin)}]
     }
     public method handle_event { option args } {
-	switch -- $option {
-	    enter {
-		set _active_motion 1
-		activate yes
-		$_canvas raise $_tick
-	    }
-	    leave {
-		set _active_motion 0
-		activate no
-	    }
-	    start {
-		$_canvas raise $_tick 
-		set _active_press 1
-		activate yes
-	    }
-	    update {
-		set w [winfo width $_canvas]
-		set x [lindex $args 0]
-		set_relative_value [expr {double($x-10)/($w-20)}]
-		$_nvobj over_isomarker $this $x
-		$_nvobj update_transfer_function
-	    }
-	    end {
-		set x [lindex $args 0]
-		if { ![$_nvobj remove_duplicate_isomarker $this $x]} {
-		    eval handle_event update $args
-		}
-		set _active_press 0
-		activate no
-	    }
-	    default {
-		error "bad option \"$option\": should be start, update, end"
-	    }
-	}
+        switch -- $option {
+            enter {
+                set _active_motion 1
+                activate yes
+                $_canvas raise $_tick
+            }
+            leave {
+                set _active_motion 0
+                activate no
+            }
+            start {
+                $_canvas raise $_tick 
+                set _active_press 1
+                activate yes
+            }
+            update {
+                set w [winfo width $_canvas]
+                set x [lindex $args 0]
+                set_relative_value [expr {double($x-10)/($w-20)}]
+                $_nvobj over_isomarker $this $x
+                $_nvobj update_transfer_function
+            }
+            end {
+                set x [lindex $args 0]
+                if { ![$_nvobj remove_duplicate_isomarker $this $x]} {
+                    eval handle_event update $args
+                }
+                set _active_press 0
+                activate no
+            }
+            default {
+                error "bad option \"$option\": should be start, update, end"
+            }
+        }
     }
 }
 

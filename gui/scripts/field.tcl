@@ -202,7 +202,7 @@ itcl::body Rappture::Field::values {{what -overall}} {
         return $_comp2dx($what)  ;# return gzipped, base64-encoded DX data
     }
     if {[info exists _comp2unirect2d($what)]} {
-	set mobj $_comp2unirect2d($what) 
+        set mobj $_comp2unirect2d($what)
         return [$mobj values]
     }
     error "bad option \"$what\": should be [join [lsort [array names _comp2dims]] {, }]"
@@ -227,7 +227,7 @@ itcl::body Rappture::Field::blob {{what -overall}} {
         return $_comp2dx($what)  ;# return gzipped, base64-encoded DX data
     }
     if {[info exists _comp2unirect2d($what)]} {
-	set mobj $_comp2unirect2d($what)
+        set mobj $_comp2unirect2d($what)
         return [$mobj blob]
     }
     error "bad option \"$what\": should be [join [lsort [array names _comp2dims]] {, }]"
@@ -502,7 +502,7 @@ itcl::body Rappture::Field::_build {} {
         set mobj [lindex $_comp2vtk($name) 0]
         set class [$mobj info class]
         ${class}::release $mobj
-	
+
         set fobj [lindex $_comp2vtk($name) 1]
         rename $fobj ""
     }
@@ -515,19 +515,19 @@ itcl::body Rappture::Field::_build {} {
     catch {unset _comp2dims}
     catch {unset _comp2style}
     array unset _comp2unirect2d
-    
+
     #
     # Scan through the components of the field and create
     # vectors for each part.
     #
     foreach cname [$_field children -type component] {
         set type ""
-        if { ([$_field element $cname.constant] != "" && 
-	      [$_field element $cname.domain] != "") || 
-	     [$_field element $cname.xy] != ""} {
+        if { ([$_field element $cname.constant] != "" &&
+            [$_field element $cname.domain] != "") ||
+            [$_field element $cname.xy] != ""} {
             set type "1D"
-        } elseif {[$_field element $cname.mesh] != "" && 
-		  [$_field element $cname.values] != ""} {
+        } elseif {[$_field element $cname.mesh] != "" &&
+            [$_field element $cname.values] != ""} {
             set type "points-on-mesh"
         } elseif {[$_field element $cname.vtk] != ""} {
             set type "vtk"
@@ -537,7 +537,7 @@ itcl::body Rappture::Field::_build {} {
             set type "dx"
         }
         set _comp2style($cname) ""
-	
+
         if {$type == "1D"} {
             #
             # 1D data can be represented as 2 BLT vectors,
@@ -545,7 +545,7 @@ itcl::body Rappture::Field::_build {} {
             #
             set xv ""
             set yv ""
-	    
+
             set val [$_field get $cname.constant]
             if {$val != ""} {
                 set domain [$_field get $cname.domain]
@@ -557,11 +557,11 @@ itcl::body Rappture::Field::_build {} {
                 }
                 set xv [blt::vector create x$_counter]
                 $xv append $z0 $z1
-		
+
                 foreach {val pcomp} [_getValue $val] break
                 set yv [blt::vector create y$_counter]
                 $yv append $val $val
-		
+
                 if {$pcomp != ""} {
                     set zm [expr {0.5*($z0+$z1)}]
                     set _comp2cntls($cname) \
@@ -572,7 +572,7 @@ itcl::body Rappture::Field::_build {} {
                 if {"" != $xydata} {
                     set xv [blt::vector create x$_counter]
                     set yv [blt::vector create y$_counter]
-		    
+
                     foreach line [split $xydata \n] {
                         if {[scan $line {%g %g} xval yval] == 2} {
                             $xv append $xval
@@ -581,11 +581,11 @@ itcl::body Rappture::Field::_build {} {
                     }
                 }
             }
-	    
+
             if {$xv != "" && $yv != ""} {
                 # sort x-coords in increasing order
                 $xv sort $yv
-		
+
                 set _comp2dims($cname) "1D"
                 set _comp2xy($cname) [list $xv $yv]
                 incr _counter
@@ -598,79 +598,79 @@ itcl::body Rappture::Field::_build {} {
             #
             set path [$_field get $cname.mesh]
             if {[$_xmlobj element $path] != ""} {
-		set element [$_xmlobj element -as type $path]
-		if { $element == "unirect2d" } {
-		    set _comp2dims($cname) "2D"
-		    set _comp2unirect2d($cname) \
-			[Rappture::UniRect2d \#auto $_xmlobj $_field $cname]
-		    set _comp2style($cname) [$_field get $cname.style]
-		    incr _counter
-		} elseif { $element == "cloud" || $element == "mesh" } {
-		    switch -- $element {
-			cloud {
-			    set mobj [Rappture::Cloud::fetch $_xmlobj $path]
-			}
-			mesh {
-			    set mobj [Rappture::Mesh::fetch $_xmlobj $path]
-			}
-		    }
-		    if {[$mobj dimensions] > 1} {
-			#
-			# 2D/3D data
-			# Store cloud/field as components
-			#
-			set values [$_field get $cname.values]
-			set farray [vtkFloatArray ::vals$_counter]
-			
-			foreach v $values {
-			    if {"" != $_units} {
-				set v [Rappture::Units::convert $v \
-					   -context $_units -to $_units -units off]
-			    }
-			    $farray InsertNextValue $v
-			}
-			
-			set _comp2dims($cname) "[$mobj dimensions]D"
-			set _comp2vtk($cname) [list $mobj $farray]
-			set _comp2style($cname) [$_field get $cname.style]
-			incr _counter
-		    } else {
-			#
-			# OOPS!  This is 1D data
-			# Forget the cloud/field -- store BLT vectors
-			#
-			set xv [blt::vector create x$_counter]
-			set yv [blt::vector create y$_counter]
-			
-			set vtkpts [$mobj points]
-			set max [$vtkpts GetNumberOfPoints]
-			for {set i 0} {$i < $max} {incr i} {
-			    set xval [lindex [$vtkpts GetPoint $i] 0]
-			    $xv append $xval
-			}
-			set class [$mobj info class]
-			${class}::release $mobj
-			
-			set values [$_field get $cname.values]
-			foreach yval $values {
-			    if {"" != $_units} {
-				set yval [Rappture::Units::convert $yval \
-					      -context $_units -to $_units -units off]
-			    }
-			    $yv append $yval
-			}
-			
-			# sort x-coords in increasing order
-			$xv sort $yv
-			
-			set _comp2dims($cname) "1D"
-			set _comp2xy($cname) [list $xv $yv]
-			incr _counter
-		    }
-		}
-	    } else {
-		puts "WARNING: can't find mesh $path for field component"
-	    }
+                set element [$_xmlobj element -as type $path]
+                if { $element == "unirect2d" } {
+                    set _comp2dims($cname) "2D"
+                    set _comp2unirect2d($cname) \
+                        [Rappture::UniRect2d \#auto $_xmlobj $_field $cname]
+                    set _comp2style($cname) [$_field get $cname.style]
+                    incr _counter
+                } elseif { $element == "cloud" || $element == "mesh" } {
+                    switch -- $element {
+                        cloud {
+                            set mobj [Rappture::Cloud::fetch $_xmlobj $path]
+                        }
+                        mesh {
+                            set mobj [Rappture::Mesh::fetch $_xmlobj $path]
+                        }
+                    }
+                    if {[$mobj dimensions] > 1} {
+                        #
+                        # 2D/3D data
+                        # Store cloud/field as components
+                        #
+                        set values [$_field get $cname.values]
+                        set farray [vtkFloatArray ::vals$_counter]
+
+                        foreach v $values {
+                            if {"" != $_units} {
+                                set v [Rappture::Units::convert $v \
+                                   -context $_units -to $_units -units off]
+                            }
+                            $farray InsertNextValue $v
+                        }
+
+                        set _comp2dims($cname) "[$mobj dimensions]D"
+                        set _comp2vtk($cname) [list $mobj $farray]
+                        set _comp2style($cname) [$_field get $cname.style]
+                        incr _counter
+                    } else {
+                        #
+                        # OOPS!  This is 1D data
+                        # Forget the cloud/field -- store BLT vectors
+                        #
+                        set xv [blt::vector create x$_counter]
+                        set yv [blt::vector create y$_counter]
+
+                        set vtkpts [$mobj points]
+                        set max [$vtkpts GetNumberOfPoints]
+                        for {set i 0} {$i < $max} {incr i} {
+                            set xval [lindex [$vtkpts GetPoint $i] 0]
+                            $xv append $xval
+                        }
+                        set class [$mobj info class]
+                        ${class}::release $mobj
+
+                        set values [$_field get $cname.values]
+                        foreach yval $values {
+                            if {"" != $_units} {
+                                set yval [Rappture::Units::convert $yval \
+                                      -context $_units -to $_units -units off]
+                            }
+                            $yv append $yval
+                        }
+
+                        # sort x-coords in increasing order
+                        $xv sort $yv
+
+                        set _comp2dims($cname) "1D"
+                        set _comp2xy($cname) [list $xv $yv]
+                        incr _counter
+                    }
+                }
+            } else {
+                puts "WARNING: can't find mesh $path for field component"
+            }
         } elseif {$type == "vtk"} {
             #
             # Extract native vtk data from the XML and use a reader
