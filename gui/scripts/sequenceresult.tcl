@@ -427,7 +427,35 @@ itcl::body Rappture::SequenceResult::_rebuild {args} {
                 pack $viewer -expand yes -fill both
             }
             ::Rappture::Field {
-                Rappture::Field3DResult $viewer
+                set dimensions ""
+                set dim ""
+                foreach dim [$dataobj components -dimensions] {
+                    # check to see if the dimensions are the same
+                    # for all elements of the field. i dont think
+                    # we can display fields of differing dimensions
+                    # within the same field object.
+                    if {"" != $dimensions} {
+                        if {$dimensions != $dim} {
+                            error "don't know how to view sequences of $type\
+                                with dimensions as follows:\
+                                [$dataobj components -dimensions]"
+                        }
+                    } else {
+                        set dimensions $dim
+                    }
+                }
+                switch -- $dimensions {
+                    2D {
+                        Rappture::Field2DResult $viewer
+                    }
+                    3D {
+                        Rappture::Field3DResult $viewer
+                    }
+                    default {
+                        error "don't know how to view sequences of $type\
+                            with $dimensions dimensions"
+                    }
+                }
                 pack $viewer -expand yes -fill both
             }
             ::Rappture::LibraryObj {
