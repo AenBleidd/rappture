@@ -35,6 +35,8 @@
  *        o Create R2, matrix, etc. libraries.
  */
 
+//#define ISO_TEST
+
 #include "Command.h"
 #include "Trace.h"
 
@@ -665,6 +667,21 @@ TransfuncCmd(ClientData cdata, Tcl_Interp *interp, int argc,
             data[4*i+3] = wFunc.value(xval);
         }
 
+#ifdef ISO_TEST
+        for (i=0; i < nslots; i++) {
+            if (i == 0) data[4*i + 3] = 0.0f;
+            else if (i == (nslots - 1)) data[4*i + 3] = 0.0f;
+            else if (i >= 245 && i < (nslots - 1))
+            {
+                data[4*i + 3] = 1.0;
+            }
+            else
+            {
+                data[4*i + 3] = 0.0f;
+            }
+        }
+#endif
+
         // find or create this transfer function
         TransferFunction *tf;
         tf = NanoVis::get_transfunc(argv[2]);
@@ -910,8 +927,11 @@ VolumeCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
                 fflush(stdout);
                 std::stringstream fdata;
                 fdata.write(buf.bytes(),buf.size());
+#ifndef ISO_TEST
                 err = load_volume_stream(n, fdata);
-                //err = load_volume_stream2(n, fdata);
+#else
+                err = load_volume_stream2(n, fdata);
+#endif
                 if (err) {
                     Tcl_AppendResult(interp, err.remark().c_str(), (char*)NULL);
                     return TCL_ERROR;
