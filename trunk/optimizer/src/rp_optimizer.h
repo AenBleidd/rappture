@@ -8,35 +8,27 @@
  *
  * ======================================================================
  *  AUTHOR:  Michael McLennan, Purdue University
- *  Copyright (c) 2004-2007  Purdue Research Foundation
+ *  Copyright (c) 2008  Purdue Research Foundation
  *
  *  See the file "license.terms" for information on usage and
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  * ======================================================================
  */
-#undef _ANSI_ARGS_
-#undef CONST
+#ifndef RP_OPTIMIZER
+#define RP_OPTIMIZER
 
-#ifndef NO_CONST
-#  define CONST const
-#else
-#  define CONST
-#endif
+#include <tcl.h>
+#include <math.h>
+#include <float.h>
+#include <string.h>
+#include <malloc.h>
 
-#ifndef NO_PROTOTYPES
-#  define _ANSI_ARGS_(x)  x
-#else
-#  define _ANSI_ARGS_(x)  ()
-#endif
-
-#ifdef EXTERN
-#  undef EXTERN
-#endif
-#ifdef __cplusplus
-#  define EXTERN extern "C"
-#else
-#  define EXTERN extern
-#endif
+/*
+ * General-purpose allocation/cleanup routines:
+ * These are used, for example, for the plug-in architecture.
+ */
+typedef ClientData (RpOptimInit)_ANSI_ARGS_(());
+typedef void (RpOptimCleanup)_ANSI_ARGS_((ClientData cdata));
 
 /*
  * This is the basic definition for each parameter within an optimization.
@@ -72,7 +64,6 @@ typedef struct RpOptimParamNumber {
 typedef struct RpOptimParamString {
     RpOptimParam base;              /* basic parameter info */
     char **values;                  /* array of allowed values */
-    int numValues;                  /* number of allowed values */
 } RpOptimParamString;
 
 /*
@@ -80,6 +71,8 @@ typedef struct RpOptimParamString {
  * the parameters that will be varied.
  */
 typedef struct RpOptimEnv {
+    ClientData pluginData;          /* data created by plugin init routine */
+    RpOptimCleanup *cleanupPtr;     /* cleanup routine for pluginData */
     RpOptimParam **paramList;       /* list of input parameters to vary */
     int numParams;                  /* current number of parameters */
     int maxParams;                  /* storage for this many paramters */
@@ -97,19 +90,26 @@ typedef enum {
 typedef RpOptimStatus (RpOptimEvaluator)_ANSI_ARGS_((RpOptimParam **values,
     int numValues, double *fitnessPtr));
 
-
 /*
  *  Here are the functions in the API:
  */
-EXTERN RpOptimEnv* RpOptimCreate _ANSI_ARGS_(());
+EXTERN RpOptimEnv* RpOptimCreate _ANSI_ARGS_((ClientData pluginData,
+    RpOptimCleanup *cleanupPtr));
 
-EXTERN void RpOptimAddParamNumber _ANSI_ARGS_((RpOptimEnv *envPtr,
-    char *name, double min, double max));
+EXTERN RpOptimParam* RpOptimAddParamNumber _ANSI_ARGS_((RpOptimEnv *envPtr,
+    char *name));
 
-EXTERN void RpOptimAddParamString _ANSI_ARGS_((RpOptimEnv *envPtr,
-    char *name, char **allowedValues));
+EXTERN RpOptimParam* RpOptimAddParamString _ANSI_ARGS_((RpOptimEnv *envPtr,
+    char *name));
+
+EXTERN RpOptimParam* RpOptimFindParam _ANSI_ARGS_((RpOptimEnv *envPtr,
+    char *name));
+
+EXTERN void RpOptimDeleteParam _ANSI_ARGS_((RpOptimEnv *envPtr, char *name));
 
 EXTERN RpOptimStatus RpOptimPerform _ANSI_ARGS_((RpOptimEnv *envPtr,
     RpOptimEvaluator *evalFuncPtr, int maxRuns));
 
 EXTERN void RpOptimDelete _ANSI_ARGS_((RpOptimEnv *envPtr));
+
+#endif
