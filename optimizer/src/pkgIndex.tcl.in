@@ -1,0 +1,7 @@
+# this file identifies RapptureOptimizer as a Tcl package
+proc @PACKAGE_NAME@_init {} [format {
+    set libfile [file join %s @PKG_LIB_FILE@]
+    load $libfile @PACKAGE_NAME@
+    package provide @PACKAGE_NAME@ @PACKAGE_VERSION@
+} $dir]
+package ifneeded @PACKAGE_NAME@ @PACKAGE_VERSION@ @PACKAGE_NAME@_init

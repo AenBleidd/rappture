@@ -8,7 +8,7 @@
  *
  * ======================================================================
  *  AUTHOR:  Michael McLennan, Purdue University
- *  Copyright (c) 2004-2007  Purdue Research Foundation
+ *  Copyright (c) 2008  Purdue Research Foundation
  *
  *  See the file "license.terms" for information on usage and
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -18,6 +18,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include "rp_optimizer.h"
+
+static void RpOptimCleanupParam _ANSI_ARGS_((RpOptimParam *paramPtr));
 
 /*
  * ----------------------------------------------------------------------
@@ -30,12 +32,17 @@
  * ----------------------------------------------------------------------
  */
 RpOptimEnv*
-RpOptimCreate()
+RpOptimCreate(pluginData, cleanupPtr)
+    ClientData pluginData;        /* special data created for this env */
+    RpOptimCleanup *cleanupPtr;   /* routine to clean up pluginData */
 {
     RpOptimEnv *envPtr;
     envPtr = (RpOptimEnv*)malloc(sizeof(RpOptimEnv));
+    envPtr->pluginData = pluginData;
+    envPtr->cleanupPtr = cleanupPtr;
+
     envPtr->numParams = 0;
-    envPtr->maxParams = 2;
+    envPtr->maxParams = 5;
     envPtr->paramList = (RpOptimParam**)malloc(
         (size_t)(envPtr->maxParams*sizeof(RpOptimParam*))
     );
@@ -89,22 +96,22 @@ RpOptimAddParam(envPtr, paramPtr)
  * of the parameter list in the given optimization context.
  * ----------------------------------------------------------------------
  */
-void
-RpOptimAddParamNumber(envPtr, name, min, max)
+RpOptimParam*
+RpOptimAddParamNumber(envPtr, name)
     RpOptimEnv *envPtr;   /* context for this optimization */
     char *name;           /* name of this parameter */
-    double min;           /* minimum value for this parameter */
-    double max;           /* minimum value for this parameter */
 {
     RpOptimParamNumber *numPtr;
     numPtr = (RpOptimParamNumber*)malloc(sizeof(RpOptimParamNumber));
     numPtr->base.name = strdup(name);
     numPtr->base.type = RP_OPTIMPARAM_NUMBER;
     numPtr->base.value.num = 0.0;
-    numPtr->min = min;
-    numPtr->max = max;
+    numPtr->min = -DBL_MAX;
+    numPtr->max = DBL_MAX;
 
     RpOptimAddParam(envPtr, (RpOptimParam*)numPtr);
+
+    return (RpOptimParam*)numPtr;
 }
 
 /*
@@ -117,36 +124,71 @@ RpOptimAddParamNumber(envPtr, name, min, max)
  * in the given optimization context.
  * ----------------------------------------------------------------------
  */
-void
-RpOptimAddParamString(envPtr, name, allowedValues)
+RpOptimParam*
+RpOptimAddParamString(envPtr, name)
     RpOptimEnv *envPtr;   /* context for this optimization */
     char *name;           /* name of this parameter */
-    char **allowedValues; /* null-term list of allowed values */
 {
-    int n;
-    RpOptimParam **endPtrPtr;
     RpOptimParamString *strPtr;
     strPtr = (RpOptimParamString*)malloc(sizeof(RpOptimParamString));
     strPtr->base.name = strdup(name);
     strPtr->base.type = RP_OPTIMPARAM_STRING;
     strPtr->base.value.str = NULL;
-
-    /* count the number of allowed values */
-    if (allowedValues) {
-        for (n=0; allowedValues[n] != NULL; n++)
-            ;
-    } else {
-        n = 0;
-    }
-    strPtr->numValues = n;
-    strPtr->values = (char**)malloc(n*sizeof(char*));
-
-    /* build a null-terminated list of copies of allowed values */
-    for (n=0; n < strPtr->numValues; n++) {
-        strPtr->values[n] = strdup(allowedValues[n]);
-    }
+    strPtr->values = NULL;
 
     RpOptimAddParam(envPtr, (RpOptimParam*)strPtr);
+
+    return (RpOptimParam*)strPtr;
+}
+
+/*
+ * ----------------------------------------------------------------------
+ * RpOptimFindParam()
+ *
+ * Used to look for an existing parameter with the specified name.
+ * Returns a pointer to the parameter, or NULL if not found.
+ * ----------------------------------------------------------------------
+ */
+RpOptimParam*
+RpOptimFindParam(envPtr, name)
+    RpOptimEnv *envPtr;   /* context for this optimization */
+    char *name;           /* name of this parameter */
+{
+    int n;
+    for (n=0; envPtr->numParams; n++) {
+        if (strcmp(name, envPtr->paramList[n]->name) == 0) {
+            return envPtr->paramList[n];
+        }
+    }
+    return NULL;
+}
+
+/*
+ * ----------------------------------------------------------------------
+ * RpOptimDeleteParam()
+ *
+ * Used to delete a parameter from the environment.  This is especially
+ * useful when an error is found while configuring the parameter, just
+ * after it was created.  If the name is not recognized, this function
+ * does nothing.
+ * ----------------------------------------------------------------------
+ */
+void
+RpOptimDeleteParam(envPtr, name)
+    RpOptimEnv *envPtr;   /* context for this optimization */
+    char *name;           /* name of this parameter */
+{
+    int n, j;
+    for (n=0; envPtr->numParams; n++) {
+        if (strcmp(name, envPtr->paramList[n]->name) == 0) {
+            RpOptimCleanupParam(envPtr->paramList[n]);
+            for (j=n+1; j < envPtr->numParams; j++) {
+                envPtr->paramList[j-1] = envPtr->paramList[j];
+            }
+            envPtr->numParams--;
+            break;
+        }
+    }
 }
 
 /*
@@ -171,7 +213,7 @@ RpOptimPerform(envPtr, evalFuncPtr, maxRuns)
 {
     RpOptimStatus status = RP_OPTIM_UNKNOWN;
 
-    int n, nruns, ival;
+    int n, nruns, ival, nvals;
     double dval, fitness;
     RpOptimParamNumber *numPtr;
     RpOptimParamString *strPtr;
@@ -200,7 +242,9 @@ RpOptimPerform(envPtr, evalFuncPtr, maxRuns)
                     break;
                 case RP_OPTIMPARAM_STRING:
                     strPtr = (RpOptimParamString*)envPtr->paramList[n];
-                    ival = (int)floor(drand48() * strPtr->numValues);
+                    for (nvals=0; strPtr->values[nvals]; nvals++)
+                        ;  /* count values */
+                    ival = (int)floor(drand48() * nvals);
                     envPtr->paramList[n]->value.str = strPtr->values[ival];
                     break;
             }
@@ -243,27 +287,48 @@ RpOptimDelete(envPtr)
     RpOptimEnv *envPtr;   /* context for this optimization */
 {
     int n;
-    RpOptimParam *paramPtr;
-    RpOptimParamNumber *numPtr;
-    RpOptimParamString *strPtr;
 
     for (n=0; n < envPtr->numParams; n++) {
-        paramPtr = envPtr->paramList[n];
-        free(paramPtr->name);
-        switch (paramPtr->type) {
-            case RP_OPTIMPARAM_NUMBER:
-                numPtr = (RpOptimParamNumber*)paramPtr;
-                /* nothing special to free here */
-                break;
-            case RP_OPTIMPARAM_STRING:
-                strPtr = (RpOptimParamString*)paramPtr;
-                for (n=0; n < strPtr->numValues; n++) {
-                    free(strPtr->values[n]);
-                }
-                break;
-        }
-        free(paramPtr);
+        RpOptimCleanupParam(envPtr->paramList[n]);
+    }
+    if (envPtr->cleanupPtr) {
+        (*envPtr->cleanupPtr)(envPtr->pluginData);
     }
     free(envPtr->paramList);
     free(envPtr);
+}
+
+/*
+ * ----------------------------------------------------------------------
+ * RpOptimCleanupParam()
+ *
+ * Used internally to free up the data associated with an optimization
+ * parameter.  Looks at the parameter type and frees up the appropriate
+ * data.
+ * ----------------------------------------------------------------------
+ */
+static void
+RpOptimCleanupParam(paramPtr)
+    RpOptimParam *paramPtr;  /* data to be freed */
+{
+    int n;
+    RpOptimParamNumber *numPtr;
+    RpOptimParamString *strPtr;
+
+    free(paramPtr->name);
+    switch (paramPtr->type) {
+        case RP_OPTIMPARAM_NUMBER:
+            numPtr = (RpOptimParamNumber*)paramPtr;
+            /* nothing special to free here */
+            break;
+        case RP_OPTIMPARAM_STRING:
+            strPtr = (RpOptimParamString*)paramPtr;
+            if (strPtr->values) {
+                for (n=0; strPtr->values[n]; n++) {
+                    free(strPtr->values[n]);
+                }
+            }
+            break;
+    }
+    free(paramPtr);
 }
