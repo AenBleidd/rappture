@@ -14,7 +14,7 @@
  * ======================================================================
  */
 #include "pgapack.h"
-#include "rp_optimizer_plugin.h"
+#include "rp_optimizer.h"
 
 typedef struct PgapackData {
     int operation;       /* operation <=> PGA_MINIMIZE/PGA_MAXIMIZE */
@@ -91,9 +91,10 @@ PgapackInit()
  * ----------------------------------------------------------------------
  */
 RpOptimStatus
-PgapackRun(envPtr, evalProc)
+PgapackRun(envPtr, evalProc, fitnessExpr)
     RpOptimEnv *envPtr;           /* optimization environment */
     RpOptimEvaluator *evalProc;   /* call this proc to run tool */
+    char *fitnessExpr;            /* fitness function in string form */
 {
     PgapackData *dataPtr =(PgapackData*)envPtr->pluginData;
     PGAContext *ctx;
@@ -108,6 +109,7 @@ PgapackRun(envPtr, evalProc)
     PGASetMaxGAIterValue(ctx, dataPtr->maxRuns);
     PGASetPopSize(ctx, dataPtr->popSize);
     PGASetPopReplaceType(ctx, dataPtr->popRepl);
+    PGASetCrossoverType(ctx, PGA_CROSSOVER_UNIFORM);
 
     PGASetUserFunction(ctx, PGA_USERFUNCTION_CREATESTRING, PgapCreateString);
     PGASetUserFunction(ctx, PGA_USERFUNCTION_MUTATION, PgapMutation);
@@ -117,7 +119,8 @@ PgapackRun(envPtr, evalProc)
     PGASetUserFunction(ctx, PGA_USERFUNCTION_DUPLICATE, PgapDuplicateString);
     PGASetUserFunction(ctx, PGA_USERFUNCTION_BUILDDATATYPE, PgapBuildDT);
 
-    envPtr->evalProc = evalProc;  /* call this later for evaluations */
+    envPtr->evalProc = evalProc;   /* plug these in for later during eval */
+    envPtr->fitnessExpr = fitnessExpr;
 
     /*
      * We need a way to convert from a PGAContext to our RpOptimEnv

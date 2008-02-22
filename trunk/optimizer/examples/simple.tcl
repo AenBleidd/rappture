@@ -47,10 +47,12 @@ set tool [Rappture::Tool ::#auto $xmlobj $installdir]
 # ----------------------------------------------------------------------
 Rappture::optimizer optim -tool $tool -using pgapack
 
-optim add number input.number(temperature) -min 200 -max 400
-optim add number input.number(Ef) -min 0 -max 1.1
-optim configure -popsize 500 -maxruns 5
+optim add number input.number(x1) -min -2 -max 2
+optim add number input.number(x2) -min -2 -max 2
+optim configure -operation minimize -popsize 100 -maxruns 200
 
-set status [optim perform -updatecommand {puts "checking"}]
+set status [optim perform \
+    -fitness output.number(f).current \
+    -updatecommand {puts "checking"}]
 
 puts "done: $status"

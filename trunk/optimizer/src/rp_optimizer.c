@@ -32,15 +32,19 @@ static void RpOptimCleanupParam _ANSI_ARGS_((RpOptimParam *paramPtr));
  * ----------------------------------------------------------------------
  */
 RpOptimEnv*
-RpOptimCreate(pluginData, cleanupProc)
-    ClientData pluginData;        /* special data created for this env */
-    RpOptimCleanup *cleanupProc;  /* routine to clean up pluginData */
+RpOptimCreate(pluginDefn)
+    RpOptimPlugin *pluginDefn;    /* plug-in handling this optimization */
 {
     RpOptimEnv *envPtr;
     envPtr = (RpOptimEnv*)malloc(sizeof(RpOptimEnv));
-    envPtr->pluginData  = pluginData;
-    envPtr->cleanupProc = cleanupProc;
-    envPtr->toolData    = NULL;
+
+    envPtr->pluginDefn = pluginDefn;
+    envPtr->pluginData = NULL;
+    envPtr->toolData   = NULL;
+
+    if (pluginDefn->initProc) {
+        envPtr->pluginData = (*pluginDefn->initProc)();
+    }
 
     envPtr->numParams = 0;
     envPtr->maxParams = 5;
@@ -210,11 +214,11 @@ RpOptimDelete(envPtr)
 {
     int n;
 
+    if (envPtr->pluginDefn && envPtr->pluginDefn->cleanupProc) {
+        (*envPtr->pluginDefn->cleanupProc)(envPtr->pluginData);
+    }
     for (n=0; n < envPtr->numParams; n++) {
         RpOptimCleanupParam(envPtr->paramList[n]);
-    }
-    if (envPtr->cleanupProc) {
-        (*envPtr->cleanupProc)(envPtr->pluginData);
     }
     free(envPtr->paramList);
     free(envPtr);
