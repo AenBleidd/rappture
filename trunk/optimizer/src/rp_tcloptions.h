@@ -48,13 +48,15 @@ typedef struct RpTclOptionType {
 typedef struct RpTclOption {
     char *optname;             /* name of option: -switch */
     RpTclOptionType *typePtr;  /* type of this switch */
-    ClientData extraInfo;      /* extra data needed for switch type */
     int offset;                /* location of data within struct */
 } RpTclOption;
 
 /*
  *  Built-in types defined in rp_tcloptions.c
  */
+extern RpTclOptionType RpOption_Boolean;
+#define RP_OPTION_BOOLEAN &RpOption_Boolean
+
 extern RpTclOptionType RpOption_Int;
 #define RP_OPTION_INT &RpOption_Int
 
@@ -66,6 +68,9 @@ extern RpTclOptionType RpOption_String;
 
 extern RpTclOptionType RpOption_List;
 #define RP_OPTION_LIST &RpOption_List
+
+extern RpTclOptionType RpOption_Choices;
+#define RP_OPTION_CHOICES &RpOption_Choices
 
 /*
  *  Here are the functions in the API:

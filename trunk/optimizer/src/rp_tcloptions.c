@@ -22,6 +22,12 @@
 /*
  *  Built-in types:
  */
+RpCustomTclOptionParse RpOption_ParseBoolean;
+RpCustomTclOptionGet RpOption_GetBoolean;
+RpTclOptionType RpOption_Boolean = {
+    "boolean", RpOption_ParseBoolean, RpOption_GetBoolean, NULL
+};
+
 RpCustomTclOptionParse RpOption_ParseInt;
 RpCustomTclOptionGet RpOption_GetInt;
 RpTclOptionType RpOption_Int = {
@@ -170,6 +176,36 @@ RpTclOptionsCleanup(options, cdata)
             (*spec->typePtr->cleanupProc)(cdata, spec->offset);
         }
     }
+}
+
+/*
+ * ======================================================================
+ *  BOOLEAN
+ * ======================================================================
+ */
+int
+RpOption_ParseBoolean(interp, valObj, cdata, offset)
+    Tcl_Interp *interp;  /* interpreter handling this request */
+    Tcl_Obj *valObj;     /* set option to this new value */
+    ClientData cdata;    /* save in this data structure */
+    int offset;          /* save at this offset in cdata */
+{
+    int *ptr = (int*)(cdata+offset);
+    if (Tcl_GetBooleanFromObj(interp, valObj, ptr) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    return TCL_OK;
+}
+
+int
+RpOption_GetBoolean(interp, cdata, offset)
+    Tcl_Interp *interp;  /* interpreter handling this request */
+    ClientData cdata;    /* get from this data structure */
+    int offset;          /* get from this offset in cdata */
+{
+    int *ptr = (int*)(cdata+offset);
+    Tcl_SetObjResult(interp, Tcl_NewBooleanObj(*ptr));
+    return TCL_OK;
 }
 
 /*
@@ -333,4 +369,45 @@ RpOption_CleanupList(cdata, offset)
     }
     free((char*)ptr);
     *(char***)(cdata+offset) = NULL;
+}
+
+/*
+ * ======================================================================
+ *  CHOICES
+ * ======================================================================
+ */
+int
+RpOption_ParseChoices(interp, valObj, cdata, offset)
+    Tcl_Interp *interp;  /* interpreter handling this request */
+    Tcl_Obj *valObj;     /* set option to this new value */
+    ClientData cdata;    /* save in this data structure */
+    int offset;          /* save at this offset in cdata */
+{
+    char **ptr = (char**)(cdata+offset);
+    char *value = Tcl_GetStringFromObj(valObj, (int*)NULL);
+    *ptr = strdup(value);
+    return TCL_OK;
+}
+
+int
+RpOption_GetChoices(interp, cdata, offset)
+    Tcl_Interp *interp;  /* interpreter handling this request */
+    ClientData cdata;    /* get from this data structure */
+    int offset;          /* get from this offset in cdata */
+{
+    char *ptr = (char*)(cdata+offset);
+    Tcl_SetObjResult(interp, Tcl_NewStringObj(ptr,-1));
+    return TCL_OK;
+}
+
+void
+RpOption_CleanupChoices(cdata, offset)
+    ClientData cdata;    /* cleanup in this data structure */
+    int offset;          /* cleanup at this offset in cdata */
+{
+    char **ptr = (char**)(cdata+offset);
+    if (*ptr != NULL) {
+        free((char*)(*ptr));
+        *ptr = NULL;
+    }
 }

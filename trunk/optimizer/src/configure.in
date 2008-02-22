@@ -73,13 +73,14 @@ TEA_SETUP_COMPILER
 
 TEA_ADD_SOURCES([rp_optimizer.c rp_tcloptions.c rp_optimizer_tcl.c plugin_pgapack.c])
 TEA_ADD_HEADERS([])
-TEA_ADD_INCLUDES([])
-TEA_ADD_CFLAGS([])
+TEA_ADD_INCLUDES([-Ipgapack/pgapack/include])
+TEA_ADD_CFLAGS([-DWL=32])
 TEA_ADD_STUB_SOURCES([])
 # uncomment this and mkindex.tcl line in makefile when you are ready to
 # install tcl rappture library bindings
 #TEA_ADD_TCL_SOURCES([scripts/exec.tcl scripts/value.tcl init.tcl ../../tcl/scripts/library.tcl ../../tcl/scripts/result.tcl])
 TEA_ADD_TCL_SOURCES([])
+TEA_ADD_LIBS([-Lpgapack/pgapack/lib/linux -lpgaO])
 
 #--------------------------------------------------------------------
 # __CHANGE__
