@@ -31,6 +31,25 @@ typedef ClientData (RpOptimInit)_ANSI_ARGS_(());
 typedef void (RpOptimCleanup)_ANSI_ARGS_((ClientData cdata));
 
 /*
+ * During each optimization, a function of the following type is
+ * called again and again to evaluate input parameters and compute
+ * the fitness function.
+ */
+typedef enum {
+    RP_OPTIM_SUCCESS=0, RP_OPTIM_UNKNOWN, RP_OPTIM_FAILURE, RP_OPTIM_ABORTED
+} RpOptimStatus;
+
+struct RpOptimEnv;   /* defined below */
+struct RpOptimParam;
+
+typedef RpOptimStatus (RpOptimEvaluator) _ANSI_ARGS_((
+    struct RpOptimEnv *envPtr, struct RpOptimParam *values, int numValues,
+    double *fitnessPtr));
+
+typedef RpOptimStatus (RpOptimHandler) _ANSI_ARGS_((
+    struct RpOptimEnv *envPtr, RpOptimEvaluator *evalProc));
+
+/*
  * This is the basic definition for each parameter within an optimization.
  * Each parameter has a name, type, and value.  The value is important
  * at the end of an optimization.  It is either the final value, or the
@@ -40,12 +59,18 @@ typedef enum {
     RP_OPTIMPARAM_NUMBER, RP_OPTIMPARAM_STRING
 } RpOptimParamType;
 
+typedef struct RpDiscreteString {
+    int num;                        /* integer representing this string */
+    char *str;                      /* actual string selected */
+} RpDiscreteString;
+
 typedef struct RpOptimParam {
     char *name;                     /* name of this parameter */
     RpOptimParamType type;          /* paramter type -- number, string, etc */
     union {
-        double num;                 /* slot for number value */
-        char *str;                  /* slot for string value */
+        double dval;                /* slot for number value */
+        int ival;                   /* slot for integer value */
+        RpDiscreteString sval;      /* slot for string value */
     } value;
 } RpOptimParam;
 
@@ -64,6 +89,7 @@ typedef struct RpOptimParamNumber {
 typedef struct RpOptimParamString {
     RpOptimParam base;              /* basic parameter info */
     char **values;                  /* array of allowed values */
+    int numValues;                  /* number of allowed values */
 } RpOptimParamString;
 
 /*
@@ -71,30 +97,20 @@ typedef struct RpOptimParamString {
  * the parameters that will be varied.
  */
 typedef struct RpOptimEnv {
+    RpOptimEvaluator *evalProc;     /* called during optimization to do run */
     ClientData pluginData;          /* data created by plugin init routine */
-    RpOptimCleanup *cleanupPtr;     /* cleanup routine for pluginData */
+    RpOptimCleanup *cleanupProc;    /* cleanup routine for pluginData */
+    ClientData toolData;            /* data used during tool execution */
     RpOptimParam **paramList;       /* list of input parameters to vary */
     int numParams;                  /* current number of parameters */
     int maxParams;                  /* storage for this many paramters */
 } RpOptimEnv;
 
 /*
- * During each optimization, a function of the following type is
- * called againa and again to evaluate input parameters and compute
- * the fitness function.
- */
-typedef enum {
-    RP_OPTIM_SUCCESS=0, RP_OPTIM_UNKNOWN, RP_OPTIM_FAILURE
-} RpOptimStatus;
-
-typedef RpOptimStatus (RpOptimEvaluator)_ANSI_ARGS_((RpOptimParam **values,
-    int numValues, double *fitnessPtr));
-
-/*
  *  Here are the functions in the API:
  */
 EXTERN RpOptimEnv* RpOptimCreate _ANSI_ARGS_((ClientData pluginData,
-    RpOptimCleanup *cleanupPtr));
+    RpOptimCleanup *cleanupProc));
 
 EXTERN RpOptimParam* RpOptimAddParamNumber _ANSI_ARGS_((RpOptimEnv *envPtr,
     char *name));
@@ -106,9 +122,6 @@ EXTERN RpOptimParam* RpOptimFindParam _ANSI_ARGS_((RpOptimEnv *envPtr,
     char *name));
 
 EXTERN void RpOptimDeleteParam _ANSI_ARGS_((RpOptimEnv *envPtr, char *name));
-
-EXTERN RpOptimStatus RpOptimPerform _ANSI_ARGS_((RpOptimEnv *envPtr,
-    RpOptimEvaluator *evalFuncPtr, int maxRuns));
 
 EXTERN void RpOptimDelete _ANSI_ARGS_((RpOptimEnv *envPtr));
 

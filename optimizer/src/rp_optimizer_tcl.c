@@ -25,11 +25,12 @@
  * ----------------------------------------------------------------------
  */
 RpOptimInit PgapackInit;
+RpOptimHandler PgapackRun;
 RpOptimCleanup PgapackCleanup;
 extern RpTclOption PgapackOptions;
 
 static RpOptimPlugin rpOptimPlugins[] = {
-    {"pgapack", PgapackInit, PgapackCleanup, &PgapackOptions},
+    {"pgapack", PgapackInit, PgapackRun, PgapackCleanup, &PgapackOptions},
     {NULL, NULL, NULL},
 };
 
@@ -38,20 +39,26 @@ typedef struct RpOptimPluginData {
     ClientData clientData;          /* data needed for particular plugin */
 } RpOptimPluginData;
 
+typedef struct RpOptimToolData {
+    Tcl_Interp *interp;             /* interp handling this tool */
+    Tcl_Obj *toolPtr;               /* command for tool object */
+    Tcl_Obj *updateCmdPtr;          /* command used to look for abort */
+} RpOptimToolData;
+
 /*
  * ----------------------------------------------------------------------
  *  Options for the various parameter types
  * ----------------------------------------------------------------------
  */
 RpTclOption rpOptimNumberOpts[] = {
-  {"-min", RP_OPTION_DOUBLE, NULL, Rp_Offset(RpOptimParamNumber,min)},
-  {"-max", RP_OPTION_DOUBLE, NULL, Rp_Offset(RpOptimParamNumber,max)},
-  {NULL, NULL, NULL, 0}
+  {"-min", RP_OPTION_DOUBLE, Rp_Offset(RpOptimParamNumber,min)},
+  {"-max", RP_OPTION_DOUBLE, Rp_Offset(RpOptimParamNumber,max)},
+  {NULL, NULL, 0}
 };
 
 RpTclOption rpOptimStringOpts[] = {
-  {"-values", RP_OPTION_LIST, NULL, Rp_Offset(RpOptimParamString,values)},
-  {NULL, NULL, NULL, 0}
+  {"-values", RP_OPTION_LIST, Rp_Offset(RpOptimParamString,values)},
+  {NULL, NULL, 0}
 };
 
 static int RpOptimizerCmd _ANSI_ARGS_((ClientData clientData,
@@ -60,6 +67,9 @@ static void RpOptimCmdDelete _ANSI_ARGS_((ClientData cdata));
 static int RpOptimInstanceCmd _ANSI_ARGS_((ClientData clientData,
     Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]));
 static void RpOptimInstanceCleanup _ANSI_ARGS_((ClientData cdata));
+static RpOptimStatus RpOptimizerPerformInTcl _ANSI_ARGS_((RpOptimEnv *envPtr,
+    RpOptimParam *values, int numValues, double *fitnessPtr));
+static int RpOptimizerUpdateInTcl _ANSI_ARGS_((RpOptimEnv *envPtr));
 
 #ifdef BUILD_Rappture
 __declspec( dllexport )
@@ -110,11 +120,17 @@ RpOptimizerCmd(cdata, interp, objc, objv)
     /* use this plugin by default for -using */
     RpOptimPlugin *usingPluginPtr = &rpOptimPlugins[0];
 
+    /* no good default for the tool being optimized */
+    Tcl_Obj *toolPtr = NULL;
+
+    /* no name for this object by default */
     char *name = NULL;
 
     RpOptimEnv* envPtr;
     RpOptimPlugin* pluginPtr;
     RpOptimPluginData* pluginDataPtr;
+    RpOptimToolData* toolDataPtr;
+
     int n;
     char *option, autoname[32], *sep;
     Tcl_CmdInfo cmdInfo;
@@ -173,10 +189,21 @@ RpOptimizerCmd(cdata, interp, objc, objv)
             usingPluginPtr = pluginPtr;
             n += 2;
         }
+        else if (strcmp(option,"-tool") == 0) {
+            if (n+1 >= objc) {
+                Tcl_AppendStringsToObj(Tcl_GetObjResult(interp),
+                    "missing value for option \"", option, "\"",
+                    (char*)NULL);
+                return TCL_ERROR;
+            }
+            toolPtr = objv[n+1];
+            Tcl_IncrRefCount(toolPtr);
+            n += 2;
+        }
         else {
             Tcl_AppendStringsToObj(Tcl_GetObjResult(interp),
                 "bad option \"", option, "\": should be ",
-                "-using", (char*)NULL);
+                "-tool, -using", (char*)NULL);
             return TCL_ERROR;
         }
     }
@@ -197,10 +224,16 @@ RpOptimizerCmd(cdata, interp, objc, objv)
     pluginDataPtr = (RpOptimPluginData*)malloc(sizeof(RpOptimPluginData));
     pluginDataPtr->pluginDefn = usingPluginPtr;
     pluginDataPtr->clientData = NULL;
-    if (usingPluginPtr->initPtr) {
-        pluginDataPtr->clientData = (*usingPluginPtr->initPtr)();
+    if (usingPluginPtr->initProc) {
+        pluginDataPtr->clientData = (*usingPluginPtr->initProc)();
     }
     envPtr = RpOptimCreate((ClientData)pluginDataPtr, RpOptimInstanceCleanup);
+
+    toolDataPtr = (RpOptimToolData*)malloc(sizeof(RpOptimToolData));
+    toolDataPtr->interp = interp;
+    toolDataPtr->toolPtr = toolPtr;
+    toolDataPtr->updateCmdPtr = NULL;
+    envPtr->toolData = (ClientData)toolDataPtr;
 
     Tcl_CreateObjCommand(interp, name, RpOptimInstanceCmd,
         (ClientData)envPtr, (Tcl_CmdDeleteProc*)RpOptimCmdDelete);
@@ -223,8 +256,21 @@ RpOptimCmdDelete(cdata)
     ClientData cdata;   /* optimizer being deleted */
 {
     RpOptimEnv *envPtr = (RpOptimEnv*)cdata;
+    RpOptimToolData *toolDataPtr;
     int n;
     ClientData paramdata;
+
+    if (envPtr->toolData) {
+        toolDataPtr = (RpOptimToolData*)envPtr->toolData;
+        if (toolDataPtr->toolPtr) {
+            Tcl_DecrRefCount(toolDataPtr->toolPtr);
+        }
+        if (toolDataPtr->updateCmdPtr) {
+            Tcl_DecrRefCount(toolDataPtr->updateCmdPtr);
+        }
+        free(toolDataPtr);
+        envPtr->toolData = NULL;
+    }
 
     for (n=0; n < envPtr->numParams; n++) {
         paramdata = (ClientData)envPtr->paramList[n];
@@ -251,7 +297,8 @@ RpOptimCmdDelete(cdata)
  *      <name> add string <path> ?-values <valueList>?
  *      <name> get ?<glob>? ?-option?
  *      <name> configure ?-option? ?value -option value ...?
- *      <name> perform ?-maxruns <num>? ?-abortvar <varName>?
+ *      <name> perform ?-tool <tool>? ?-updatecommand <varName>?
+ *      <name> using
  *
  *  The "add" command is used to add various parameter types to the
  *  optimizer context.  The "perform" command kicks off an optimization
@@ -267,12 +314,15 @@ RpOptimInstanceCmd(cdata, interp, objc, objv)
 {
     RpOptimEnv* envPtr = (RpOptimEnv*)cdata;
     RpOptimPluginData* pluginDataPtr = (RpOptimPluginData*)envPtr->pluginData;
+    RpOptimToolData* toolDataPtr = (RpOptimToolData*)envPtr->toolData;
 
-    int n, j, nmatches;
+    int n, j, nvals, nmatches;
     char *option, *type, *path;
     RpOptimParam *paramPtr;
+    RpOptimParamString *strPtr;
+    RpOptimStatus status;
     RpTclOption *optSpecPtr;
-    Tcl_Obj *rval, *rrval;
+    Tcl_Obj *rval, *rrval, *toolPtr, *updateCmdPtr;
 
     if (objc < 2) {
         Tcl_WrongNumArgs(interp, 1, objv, "option ?args...?");
@@ -313,6 +363,12 @@ RpOptimInstanceCmd(cdata, interp, objc, objv)
                 RpOptimDeleteParam(envPtr, path);
                 return TCL_ERROR;
             }
+
+            /* list of values just changed -- patch up the count */
+            strPtr = (RpOptimParamString*)paramPtr;
+            for (nvals=0; strPtr->values[nvals]; nvals++)
+                ; /* count the values */
+            strPtr->numValues = nvals;
         }
         else {
             Tcl_AppendStringsToObj(Tcl_GetObjResult(interp),
@@ -495,15 +551,101 @@ RpOptimInstanceCmd(cdata, interp, objc, objv)
     }
 
     /*
-     * OPTION:  perform ?-maxruns num? ?-abortvar name?
+     * OPTION:  perform ?-tool name? ?-updatecommand name?
      */
     else if (*option == 'p' && strcmp(option,"perform") == 0) {
+        /* use this tool by default */
+        toolPtr = toolDataPtr->toolPtr;
+
+        /* no -updatecommand by default */
+        updateCmdPtr = NULL;
+
+        n = 2;
+        while (n < objc) {
+            option = Tcl_GetStringFromObj(objv[n], (int*)NULL);
+            if (n+1 >= objc) {
+                Tcl_AppendStringsToObj(Tcl_GetObjResult(interp),
+                    "missing value for option \"", option, "\"",
+                    (char*)NULL);
+                return TCL_ERROR;
+            }
+            if (strcmp(option,"-tool") == 0) {
+                toolPtr = objv[n+1];
+                n += 2;
+            }
+            else if (strcmp(option,"-updatecommand") == 0) {
+                updateCmdPtr = objv[n+1];
+                n += 2;
+            }
+            else {
+                Tcl_AppendStringsToObj(Tcl_GetObjResult(interp),
+                    "bad option \"", option, "\": should be -tool,"
+                    " -updatecommand", (char*)NULL);
+                return TCL_ERROR;
+            }
+        }
+
+        /*
+         * Must have a tool object at this point, or else we
+         * don't know what to optimize.
+         */
+        if (toolPtr == NULL) {
+            Tcl_AppendStringsToObj(Tcl_GetObjResult(interp),
+                "tool being optimized not specified via -tool option",
+                (char*)NULL);
+            return TCL_ERROR;
+        }
+
+        Tcl_IncrRefCount(toolPtr);
+        if (updateCmdPtr) {
+            Tcl_IncrRefCount(updateCmdPtr);
+            toolDataPtr->updateCmdPtr = updateCmdPtr;
+        }
+
+        /* call the main optimization routine here */
+        status = (*pluginDataPtr->pluginDefn->runProc)(envPtr,
+            RpOptimizerPerformInTcl);
+
+        Tcl_DecrRefCount(toolPtr);
+        if (updateCmdPtr) {
+            Tcl_DecrRefCount(updateCmdPtr);
+            toolDataPtr->updateCmdPtr = NULL;
+        }
+
+        switch (status) {
+        case RP_OPTIM_SUCCESS:
+            Tcl_SetResult(interp, "success", TCL_STATIC);
+            break;
+        case RP_OPTIM_FAILURE:
+            Tcl_SetResult(interp, "failure", TCL_STATIC);
+            break;
+        case RP_OPTIM_ABORTED:
+            Tcl_SetResult(interp, "aborted", TCL_STATIC);
+            break;
+        case RP_OPTIM_UNKNOWN:
+        default:
+            Tcl_SetResult(interp, "???", TCL_STATIC);
+            break;
+        }
+        return TCL_OK;
+    }
+
+    /*
+     * OPTION:  using
+     */
+    else if (*option == 'u' && strcmp(option,"using") == 0) {
+        if (objc > 2) {
+            Tcl_WrongNumArgs(interp, 1, objv, "using");
+            return TCL_ERROR;
+        }
+        Tcl_SetResult(interp, pluginDataPtr->pluginDefn->name, TCL_STATIC);
+        return TCL_OK;
     }
 
     else {
         Tcl_AppendStringsToObj(Tcl_GetObjResult(interp),
-            "bad option \"", option, "\": should be add, perform",
-            (char*)NULL);
+            "bad option \"", option, "\": should be add, configure, "
+            "get, perform, using", (char*)NULL);
         return TCL_ERROR;
     }
     return TCL_OK;
@@ -534,11 +676,68 @@ RpOptimInstanceCleanup(cdata)
     }
 
     /* call a specialized cleanup routine to handle the rest */
-    if (pluginDataPtr->pluginDefn->cleanupPtr) {
-        (*pluginDataPtr->pluginDefn->cleanupPtr)(pluginDataPtr->clientData);
+    if (pluginDataPtr->pluginDefn->cleanupProc) {
+        (*pluginDataPtr->pluginDefn->cleanupProc)(pluginDataPtr->clientData);
     }
     pluginDataPtr->clientData = NULL;
 
     /* free the container */
     free((char*)pluginDataPtr);
+}
+
+/*
+ * ------------------------------------------------------------------------
+ *  RpOptimizerPerformInTcl()
+ *
+ *  Invoked as a call-back within RpOptimPerform() to handle each
+ *  optimization run.  Launches a run of a Rappture-based tool using
+ *  the given values and computes the value for the fitness function.
+ *
+ *  Returns RP_OPTIM_SUCCESS if the run was successful, along with
+ *  the value in the fitness function in fitnessPtr.  If something
+ *  goes wrong with the run, it returns RP_OPTIM_FAILURE.
+ * ------------------------------------------------------------------------
+ */
+static RpOptimStatus
+RpOptimizerPerformInTcl(envPtr, values, numValues, fitnessPtr)
+    RpOptimEnv *envPtr;       /* optimization environment */
+    RpOptimParam *values;     /* incoming values for the simulation */
+    int numValues;            /* number of incoming values */
+    double *fitnessPtr;       /* returns: computed value of fitness func */
+{
+    printf("running...\n");
+    *fitnessPtr = 0.0;
+    return RP_OPTIM_SUCCESS;
+}
+
+/*
+ * ------------------------------------------------------------------------
+ *  RpOptimizerUpdateInTcl()
+ *
+ *  Invoked as a call-back within RpOptimPerform() to update the
+ *  application and look for an "abort" signal.  Evaluates a bit of
+ *  optional code stored in the optimization environment.  Returns 0
+ *  if everything is okay, and non-zero if the user wants to abort.
+ * ------------------------------------------------------------------------
+ */
+static int
+RpOptimizerUpdateInTcl(envPtr)
+    RpOptimEnv *envPtr;       /* optimization environment */
+{
+    RpOptimToolData *toolDataPtr = (RpOptimToolData*)envPtr->toolData;
+    int status;
+
+    if (toolDataPtr->updateCmdPtr) {
+        status = Tcl_GlobalEvalObj(toolDataPtr->interp,
+            toolDataPtr->updateCmdPtr);
+
+        if (status == TCL_ERROR) {
+            Tcl_BackgroundError(toolDataPtr->interp);
+            return 0;
+        }
+        if (status == TCL_BREAK || status == TCL_RETURN) {
+            return 1;  /* abort! */
+        }
+    }
+    return 0;  /* keep going... */
 }

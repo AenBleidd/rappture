@@ -1,0 +1,70 @@
+# ----------------------------------------------------------------------
+#  TESTS FOR:  pgapack module in Rappture::optimizer
+#
+#  This file contains a collection of tests for Tcl commands driving
+#  the RapptureOptimizer package.  This part covers the "pgapack"
+#  plug-in module.
+#
+# ======================================================================
+#  AUTHOR:  Michael McLennan, Purdue University
+#  Copyright (c) 2008  Purdue Research Foundation
+#
+#  See the file "license.terms" for information on usage and
+#  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+# ======================================================================
+#
+# Load the tcltest package...
+if {[lsearch [namespace children] ::tcltest] < 0} {
+    package require tcltest 2
+    namespace import -force ::tcltest::*
+}
+
+test aaa-0.1 {RapptureOptimizer package can be loaded} {
+    set status [catch {package require RapptureOptimizer} result]
+    if {$status != 0} {
+        # must not be installed yet -- use build version
+        lappend auto_path ../src
+        set status [catch {package require RapptureOptimizer} result]
+    }
+    list $status $result
+} {0 1.0}
+
+# ----------------------------------------------------------------------
+test pgapack-1.1 {default plugin is pgapack} {
+  Rappture::optimizer opt
+  opt using
+} {pgapack}
+
+test pgapack-1.2 {plugin has configuration options} {
+  opt configure
+} {-maxruns 10000 -operation minimize -poprepl best -popsize 200}
+
+test pgapack-1.3 {plugin configuration option values can be queried} {
+  opt configure -popsize
+} {200}
+
+test pgapack-1.4 {plugin configuration options can be modified} {
+  opt configure -popsize 1000 -operation maximize
+  opt configure
+} {-maxruns 10000 -operation maximize -poprepl best -popsize 1000}
+
+test pgapack-1.5 {options/values must be in pairs when changing them} {
+  list [catch {opt configure -operation minimize -poprepl} result] $result
+} {1 {missing value for option "-poprepl"}}
+
+test pgapack-1.6 {only certain options are recognized} {
+  list [catch {opt configure -foo} result] $result
+} {1 {bad option "-foo": should be -maxruns, -operation, -poprepl, -popsize}}
+
+test pgapack-1.7 {custom poprepl option works properly} {
+  list [catch {opt configure -poprepl random-repl} result] $result \
+       [opt configure -poprepl]
+} {0 {} random-repl}
+
+test pgapack-1.8 {custom poprepl option catches errors} {
+  list [catch {opt configure -poprepl foo} result] $result
+} {1 {bad value "foo": should be best, random-norepl, or random-repl}}
+
+# cleanup
+::tcltest::cleanupTests
+return

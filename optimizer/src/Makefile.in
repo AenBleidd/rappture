@@ -395,16 +395,6 @@ install-lib-binaries: binaries
 	    $(INSTALL_DATA) $(srcdir)/$$p $(DESTDIR)$(pkglibdir)/scripts/$$destp; \
 	  fi; \
 	done
-	# Uncomment when you are ready to install tcl rappture library bindings
-	#$(TCLSH_PROG) $(srcdir)/tclconfig/mkindex.tcl $(DESTDIR)$(pkglibdir)/scripts
-	$(INSTALL_DATA) init.tcl $(DESTDIR)$(pkglibdir)/init.tcl
-	@list='$(PKG_TCL_SOURCES)'; for p in $$list; do \
-	  if test -f $(srcdir)/$$p; then \
-	    destp=`basename $$p`; \
-	    echo " Install $$destp $(DESTDIR)$(pkglibdir)/$$destp"; \
-	    $(INSTALL_DATA) $(srcdir)/$$p $(DESTDIR)$(pkglibdir)/$$destp; \
-	  fi; \
-	done
 	@if test "x$(SHARED_BUILD)" = "x1"; then \
 	    echo " Install pkgIndex.tcl $(DESTDIR)$(pkglibdir)"; \
 	    $(INSTALL_DATA) pkgIndex.tcl $(DESTDIR)$(pkglibdir); \

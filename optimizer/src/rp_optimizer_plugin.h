@@ -29,10 +29,11 @@
  * by defining the following data at the top of rp_optimizer_tcl.c 
  */
 typedef struct RpOptimPlugin {
-    char *name;                    /* name of this package for -using */
-    RpOptimInit *initPtr;          /* initialization routine */
-    RpOptimCleanup *cleanupPtr;    /* cleanup routine */
-    RpTclOption *optionSpec;       /* specs for config options */
+    char *name;                   /* name of this package for -using */
+    RpOptimInit *initProc;        /* initialization routine */
+    RpOptimHandler *runProc;      /* handles the core optimization */
+    RpOptimCleanup *cleanupProc;  /* cleanup routine */
+    RpTclOption *optionSpec;      /* specs for config options */
 } RpOptimPlugin;
 
 #endif

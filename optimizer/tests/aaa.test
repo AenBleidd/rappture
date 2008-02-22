@@ -42,7 +42,7 @@ test aaa-1.3 {can't clobber a name that already exists} {
 
 test aaa-1.4 {optimizer creation takes certain args} {
   list [catch {Rappture::optimizer -foo} result] $result
-} {1 {bad option "-foo": should be -using}}
+} {1 {bad option "-foo": should be -tool, -using}}
 
 test aaa-1.5 {optimizer creation: -using requires a value} {
   list [catch {Rappture::optimizer -using} result] $result
@@ -54,7 +54,7 @@ test aaa-1.6 {optimizer creation: -using requires particular values} {
 
 test aaa-1.7 {optimizer creation: extra args are processed} {
   list [catch {Rappture::optimizer -using pgapack -foo bar} result] $result
-} {1 {bad option "-foo": should be -using}}
+} {1 {bad option "-foo": should be -tool, -using}}
 
 test aaa-1.8 {optimizer can be destroyed without dumping core} {
   rename foo ""

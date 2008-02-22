@@ -32,14 +32,15 @@ static void RpOptimCleanupParam _ANSI_ARGS_((RpOptimParam *paramPtr));
  * ----------------------------------------------------------------------
  */
 RpOptimEnv*
-RpOptimCreate(pluginData, cleanupPtr)
+RpOptimCreate(pluginData, cleanupProc)
     ClientData pluginData;        /* special data created for this env */
-    RpOptimCleanup *cleanupPtr;   /* routine to clean up pluginData */
+    RpOptimCleanup *cleanupProc;  /* routine to clean up pluginData */
 {
     RpOptimEnv *envPtr;
     envPtr = (RpOptimEnv*)malloc(sizeof(RpOptimEnv));
-    envPtr->pluginData = pluginData;
-    envPtr->cleanupPtr = cleanupPtr;
+    envPtr->pluginData  = pluginData;
+    envPtr->cleanupProc = cleanupProc;
+    envPtr->toolData    = NULL;
 
     envPtr->numParams = 0;
     envPtr->maxParams = 5;
@@ -105,7 +106,7 @@ RpOptimAddParamNumber(envPtr, name)
     numPtr = (RpOptimParamNumber*)malloc(sizeof(RpOptimParamNumber));
     numPtr->base.name = strdup(name);
     numPtr->base.type = RP_OPTIMPARAM_NUMBER;
-    numPtr->base.value.num = 0.0;
+    numPtr->base.value.dval = 0.0;
     numPtr->min = -DBL_MAX;
     numPtr->max = DBL_MAX;
 
@@ -133,8 +134,10 @@ RpOptimAddParamString(envPtr, name)
     strPtr = (RpOptimParamString*)malloc(sizeof(RpOptimParamString));
     strPtr->base.name = strdup(name);
     strPtr->base.type = RP_OPTIMPARAM_STRING;
-    strPtr->base.value.str = NULL;
+    strPtr->base.value.sval.num = -1;
+    strPtr->base.value.sval.str = NULL;
     strPtr->values = NULL;
+    strPtr->numValues = 0;
 
     RpOptimAddParam(envPtr, (RpOptimParam*)strPtr);
 
@@ -193,87 +196,6 @@ RpOptimDeleteParam(envPtr, name)
 
 /*
  * ----------------------------------------------------------------------
- * RpOptimPerform()
- *
- * Used to perform an optimization in the given context.  Each run is
- * performed by calling an evaluation function represented by a
- * function pointer.  If an optimum value is found within the limit
- * on the number of runs, then this procedure returns RP_OPTIM_SUCCESS.
- * Values for the optimum input parameters are returned through the
- * paramList within the context.  If the optimization fails, this
- * function returns RP_OPTIM_FAILURE.
- * ----------------------------------------------------------------------
- */
-RpOptimStatus
-RpOptimPerform(envPtr, evalFuncPtr, maxRuns)
-    RpOptimEnv *envPtr;               /* context for this optimization */
-    RpOptimEvaluator *evalFuncPtr;    /* function called to handle run */
-    int maxRuns;                      /* limit on number of runs,
-                                       * or 0 for no limit */
-{
-    RpOptimStatus status = RP_OPTIM_UNKNOWN;
-
-    int n, nruns, ival, nvals;
-    double dval, fitness;
-    RpOptimParamNumber *numPtr;
-    RpOptimParamString *strPtr;
-    RpOptimStatus runStatus;
-
-    if (envPtr->numParams == 0) {    /* no input parameters? */
-        return RP_OPTIM_FAILURE;     /* then we can't optimize! */
-    }
-
-    /*
-     * Call the evaluation function a number of times with different
-     * values and perform the optimization.
-     */
-    nruns = 0;
-    while (status == RP_OPTIM_UNKNOWN) {
-        /*
-         * Pick random values for all inputs.
-         */
-        for (n=0; n < envPtr->numParams; n++) {
-            switch (envPtr->paramList[n]->type) {
-                case RP_OPTIMPARAM_NUMBER:
-                    numPtr = (RpOptimParamNumber*)envPtr->paramList[n];
-                    dval = drand48();
-                    envPtr->paramList[n]->value.num =
-                        (numPtr->max - numPtr->min)*dval + numPtr->min;
-                    break;
-                case RP_OPTIMPARAM_STRING:
-                    strPtr = (RpOptimParamString*)envPtr->paramList[n];
-                    for (nvals=0; strPtr->values[nvals]; nvals++)
-                        ;  /* count values */
-                    ival = (int)floor(drand48() * nvals);
-                    envPtr->paramList[n]->value.str = strPtr->values[ival];
-                    break;
-            }
-        }
-
-        /*
-         * Call the evaluation function to get the fitness value.
-         */
-        runStatus = (*evalFuncPtr)(envPtr->paramList, envPtr->numParams,
-            &fitness);
-
-        if (runStatus == RP_OPTIM_SUCCESS) {
-            /*
-             * Is the fitness function any better?
-             * Change the input values here based on fitness.
-             *  ...
-             */
-        }
-
-        if (++nruns >= maxRuns && maxRuns > 0) {
-            status = RP_OPTIM_FAILURE;  /* reached the limit of runs */
-        }
-    }
-
-    return status;
-}
-
-/*
- * ----------------------------------------------------------------------
  * RpOptimDelete()
  *
  * Used to delete the context for an optimization once it is finished
@@ -291,8 +213,8 @@ RpOptimDelete(envPtr)
     for (n=0; n < envPtr->numParams; n++) {
         RpOptimCleanupParam(envPtr->paramList[n]);
     }
-    if (envPtr->cleanupPtr) {
-        (*envPtr->cleanupPtr)(envPtr->pluginData);
+    if (envPtr->cleanupProc) {
+        (*envPtr->cleanupProc)(envPtr->pluginData);
     }
     free(envPtr->paramList);
     free(envPtr);
