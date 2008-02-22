@@ -1,42 +1,33 @@
 <?xml version="1.0"?>
 <run>
     <tool>
-        <about>Press Simulate to view results.</about>
-        <command>tclsh @tool/fermi.tcl @driver</command>
+        <about>This tool is a good example for optimization.  It implements the Rosenbrock function:
+
+f(x1,x2) = 100(x2 - x1**2)**2 + (1-x1)**2
+
+This has a minimum at (x1,x2) = (1,1).
+
+Press Simulate to view results.</about>
+        <command>tclsh @tool/rosenbrock.tcl @driver</command>
     </tool>
     <input>
-        <number id="temperature">
+        <number id="x1">
             <about>
-                <label>Ambient temperature</label>
-                <description>Temperature of the environment.</description>
+                <label>X1</label>
+                <description>first coordinate</description>
             </about>
-            <units>K</units>
-            <min>0K</min>
-            <max>500K</max>
-            <default>300K</default>
-            <preset>
-                <value>300K</value>
-                <label>300K (room temperature)</label>
-            </preset>
-            <preset>
-                <value>77K</value>
-                <label>77K (liquid nitrogen)</label>
-            </preset>
-            <preset>
-                <value>4.2K</value>
-                <label>4.2K (liquid helium)</label>
-            </preset>
+            <min>-2</min>
+            <max>2</max>
+            <default>0</default>
         </number>
-        <number id="Ef">
+        <number id="x2">
             <about>
-                <label>Fermi Level</label>
-                <description>Energy at center of distribution.</description>
+                <label>X2</label>
+                <description>second coordinate</description>
             </about>
-            <units>eV</units>
-            <min>-10eV</min>
-            <max>10eV</max>
-            <default>0eV</default>
+            <min>-2</min>
+            <max>2</max>
+            <default>0</default>
         </number>
     </input>
 </run>
-

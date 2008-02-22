@@ -22,6 +22,7 @@
 #include <float.h>
 #include <string.h>
 #include <malloc.h>
+#include "rp_tcloptions.h"
 
 /*
  * General-purpose allocation/cleanup routines:
@@ -47,7 +48,20 @@ typedef RpOptimStatus (RpOptimEvaluator) _ANSI_ARGS_((
     double *fitnessPtr));
 
 typedef RpOptimStatus (RpOptimHandler) _ANSI_ARGS_((
-    struct RpOptimEnv *envPtr, RpOptimEvaluator *evalProc));
+    struct RpOptimEnv *envPtr, RpOptimEvaluator *evalProc,
+    char *fitnessExpr));
+
+/*
+ * Each optimization package is plugged in to this infrastructure
+ * by defining the following data at the top of rp_optimizer_tcl.c
+ */
+typedef struct RpOptimPlugin {
+    char *name;                   /* name of this package for -using */
+    RpOptimInit *initProc;        /* initialization routine */
+    RpOptimHandler *runProc;      /* handles the core optimization */
+    RpOptimCleanup *cleanupProc;  /* cleanup routine */
+    RpTclOption *optionSpec;      /* specs for config options */
+} RpOptimPlugin;
 
 /*
  * This is the basic definition for each parameter within an optimization.
@@ -97,9 +111,10 @@ typedef struct RpOptimParamString {
  * the parameters that will be varied.
  */
 typedef struct RpOptimEnv {
-    RpOptimEvaluator *evalProc;     /* called during optimization to do run */
+    RpOptimPlugin *pluginDefn;      /* plug-in handling this optimization */
     ClientData pluginData;          /* data created by plugin init routine */
-    RpOptimCleanup *cleanupProc;    /* cleanup routine for pluginData */
+    RpOptimEvaluator *evalProc;     /* called during optimization to do run */
+    char *fitnessExpr;              /* fitness function in string form */
     ClientData toolData;            /* data used during tool execution */
     RpOptimParam **paramList;       /* list of input parameters to vary */
     int numParams;                  /* current number of parameters */
@@ -109,8 +124,7 @@ typedef struct RpOptimEnv {
 /*
  *  Here are the functions in the API:
  */
-EXTERN RpOptimEnv* RpOptimCreate _ANSI_ARGS_((ClientData pluginData,
-    RpOptimCleanup *cleanupProc));
+EXTERN RpOptimEnv* RpOptimCreate _ANSI_ARGS_((RpOptimPlugin *pluginDefn));
 
 EXTERN RpOptimParam* RpOptimAddParamNumber _ANSI_ARGS_((RpOptimEnv *envPtr,
     char *name));
