@@ -125,6 +125,8 @@ public:
     void addAnimatedVolume(Volume* volume, unsigned int volumeId);
     void startVolumeAnimation();
     void stopVolumeAnimation();
+
+    VolumeInterpolator* getVolumeInterpolator();
 };
 
 inline void VolumeRenderer::clearAnimatedVolumeInfo()
@@ -147,5 +149,9 @@ inline void VolumeRenderer::stopVolumeAnimation()
     _volumeInterpolator->stop();
 }
 
+inline VolumeInterpolator* VolumeRenderer::getVolumeInterpolator()
+{
+    return _volumeInterpolator;
+}
 
 #endif

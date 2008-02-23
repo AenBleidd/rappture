@@ -44,19 +44,20 @@ Volume::Volume(float x, float y, float z,
     Trace("Volume constructor\n");
 
     tex = new Texture3D(w, h, d, NVIS_FLOAT, NVIS_LINEAR_INTERP, n);
-
-    _data = new float[width * height * depth * n_components];
+    int fcount = width * height * depth * n_components;
+    _data = new float[fcount];
     if (data)
     {
         Trace("data is copied\n");
-        memcpy(_data, data, sizeof(width *height* depth * n_components *sizeof(float)));
-        tex->initialize(data);
+        memcpy(_data, data, fcount * sizeof(float));
+        tex->initialize(_data);
     }
     else
     {
         Trace("data is null\n");
         memset(_data, 0x00, sizeof(width *height* depth * n_components *sizeof(float)));
         tex->initialize(_data);
+
     }
 
     id = tex->id;

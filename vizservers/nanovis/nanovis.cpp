@@ -856,7 +856,7 @@ NanoVis::bmp_write_to_file(int frame_number)
     FILE* f;
     char filename[100];
     if (frame_number >= 0) {
-        sprintf(filename, "/tmp/flow_animation/image%03d.bmp", frame_number);
+        sprintf(filename, "/tmp/flow_animation1/image%03d.bmp", frame_number);
         printf("Writing %s\n", filename);
         f = fopen(filename, "wb");
     }
@@ -1371,18 +1371,20 @@ void NanoVis::update()
     if (vol_renderer->_volumeInterpolator->is_started()) {
         struct timeval clock;
         gettimeofday(&clock, NULL);
-        double cur_time = clock.tv_sec + clock.tv_usec/1000000.0;
+        double elapsed_time = clock.tv_sec + clock.tv_usec/1000000.0 - vol_renderer->_volumeInterpolator->getStartTime();
         
+        Trace("%lf %lf\n", elapsed_time, vol_renderer->_volumeInterpolator->getInterval());
         float fraction;
         float f;
 
-        f = fmod(cur_time - vol_renderer->_volumeInterpolator->getStartTime(), 
-                 vol_renderer->_volumeInterpolator->getInterval());
-        if (f == 0.0f) {
+        f = fmod((float) elapsed_time, (float) vol_renderer->_volumeInterpolator->getInterval());
+        if (f == 0.0) {
             fraction = 0.0f;
         } else {
             fraction = f / vol_renderer->_volumeInterpolator->getInterval();
         }
+
+        Trace("fraction : %f\n", fraction);
         vol_renderer->_volumeInterpolator->update(fraction);
     }
 }

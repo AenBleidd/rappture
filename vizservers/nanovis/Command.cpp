@@ -62,6 +62,7 @@
 #include "NvColorTableRenderer.h"
 #include "NvEventLog.h"
 #include "NvZincBlendeReconstructor.h"
+#include "VolumeInterpolator.h"
 #include "HeightMap.h"
 #include "Grid.h"
 #include "NvCamera.h"
@@ -668,18 +669,22 @@ TransfuncCmd(ClientData cdata, Tcl_Interp *interp, int argc,
         }
 
 #ifdef ISO_TEST
+/*
         for (i=0; i < nslots; i++) {
             if (i == 0) data[4*i + 3] = 0.0f;
             else if (i == (nslots - 1)) data[4*i + 3] = 0.0f;
-            else if (i >= 245 && i < (nslots - 1))
+            //else if (i >= 245 && i < (nslots - 1))
+            else if (i >= 50 && i < (nslots - 1))
             {
-                data[4*i + 3] = 1.0;
+                //data[4*i + 3] = 1.0;
+                data[4*i + 3] = 0.5;
             }
             else
             {
                 data[4*i + 3] = 0.0f;
             }
         }
+        */
 #endif
 
         // find or create this transfer function
@@ -914,7 +919,7 @@ VolumeCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
 
                 printf("Loading DX using OpenDX library...\n");
                 fflush(stdout);
-                err = load_volume_stream_odx(n, buf.bytes()+5, buf.size()-5);
+                //err = load_volume_stream_odx(n, buf.bytes()+5, buf.size()-5);
                 //err = load_volume_stream2(n, fdata);
                 if (err) {
                     Tcl_AppendResult(interp, err.remark().c_str(), (char*)NULL);
@@ -1076,6 +1081,7 @@ VolumeCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
             vector<Volume *>::iterator iter;
             for (iter = ivol.begin(); iter != ivol.end(); iter++) {
                 NanoVis::vol_renderer->shade_volume(*iter, tf);
+                
                 // TBD..
                 // POINTSET
                 /*
@@ -1196,15 +1202,48 @@ VolumeCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
         }
         if (strcmp(argv[2],"volumes") == 0) {
             vector<unsigned int> ivol;
-            if (GetVolumeIndices(interp, argc-4, argv+4, &ivol) != TCL_OK) {
+            if (GetVolumeIndices(interp, argc-3, argv+3, &ivol) != TCL_OK) {
                 return TCL_ERROR;
             }
-            NanoVis::vol_renderer->clearAnimatedVolumeInfo();
+            Trace("parsing volume index\n");
             vector<unsigned int>::iterator iter;
             for (iter = ivol.begin(); iter != ivol.end(); iter++) {
+                Trace("index: %d\n", *iter);
                 NanoVis::vol_renderer->addAnimatedVolume(NanoVis::volume[*iter],
 			*iter);
             }
+        } else if (strcmp(argv[2],"capture") == 0) {
+
+            int total_frame_count;
+
+            if (Tcl_GetInt(interp, argv[3], &total_frame_count) != TCL_OK) 
+            {
+                return TCL_ERROR;
+            }
+
+            VolumeInterpolator* interpolator = NanoVis::vol_renderer->getVolumeInterpolator(); 
+            interpolator->start();
+            if (interpolator->is_started())
+            {
+                float fraction;
+                for (int frame_num = 0; frame_num < total_frame_count; ++frame_num)
+                {
+                    fraction = ((float)frame_num) / (total_frame_count - 1);
+                    Trace("fraction : %f\n", fraction);
+                    //interpolator->update(((float)frame_num) / (total_frame_count - 1));
+                    interpolator->update(fraction);
+
+                    NanoVis::offscreen_buffer_capture();  //enable offscreen render
+
+                    NanoVis::display();
+                    NanoVis::read_screen();
+
+                    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
+            
+                    NanoVis::bmp_write_to_file(frame_num);
+                }
+            }
+
         } else if (strcmp(argv[2],"start") == 0) {
 	    NanoVis::vol_renderer->startVolumeAnimation();
         } else if (strcmp(argv[2],"stop") == 0) {
@@ -1931,7 +1970,7 @@ GetVolumeIndices(Tcl_Interp *interp, int argc, const char *argv[],
             if (GetVolumeIndex(interp, argv[n], &index) != TCL_OK) {
                 return TCL_ERROR;
             }
-            if (NanoVis::volume[index] != NULL) {
+            if (index < NanoVis::volume.size() && NanoVis::volume[index] != NULL) {
                 vectorPtr->push_back(index);
             }
         }
@@ -2324,6 +2363,8 @@ xinetd_listen()
         NanoVis::particleRenderer->advect();
     }
     */
+
+    NanoVis::update();
 
     NanoVis::offscreen_buffer_capture();  //enable offscreen render
 
