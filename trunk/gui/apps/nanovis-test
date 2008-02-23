@@ -181,6 +181,58 @@ proc show_comm {channel {data ""}} {
 }
 
 # ----------------------------------------------------------------------
+# USAGE: karl_activate_flow
+#
+# ----------------------------------------------------------------------
+proc karl_activate_flow {} {
+
+	puts "Activating flow..."
+
+	# sequence of commands to initilize flow visualization go here
+	test
+}
+
+# ----------------------------------------------------------------------
+# USAGE: karl_flow_movie
+#
+# ----------------------------------------------------------------------
+proc karl_flow_movie {} {
+
+	puts "Flow Movie"   
+	set img_storage_dir [exec mktemp -d /tmp/animation.XXXXXX]
+	puts $img_storage_dir
+
+	# flow animation command sequence goes here
+#	flow capture 100 $img_storage_dir
+	## ??
+
+	cd $img_storage_dir
+
+	# get rid of this once the animation command sequence works
+	return
+
+	if {0} {
+		# create animated gif:
+		puts "creating animated gif..."
+		exec convert -delay 20 -loop 0 image*.bmp animated_flow.gif
+	} else {
+		# create mpeg movie:
+		puts "creating mpeg movie..."
+
+		exec mogrify -format jpg *.bmp
+		exec ffmpeg -i image%03.jpg cool.mpg
+		exec rm *.jpg
+	}
+	exec rm *.bmp
+
+	# Now present the .mpg or .gif file to the user for downloading
+	## ??
+
+	# Finally, delete the temporary animation directory we have created
+	exec rmdir $img_storage_dir
+}
+
+# ----------------------------------------------------------------------
 # TOPLEVEL FOR IMAGES
 # ----------------------------------------------------------------------
 # USAGE: images_save
@@ -275,7 +327,15 @@ menu .mbar.view
     -command {wm deiconify .images}
 .mbar add cascade -label "View" -underline 0 -menu .mbar.view
 
+menu .mbar.flow
+.mbar.flow add command -label "Activate Flow" -command {karl_activate_flow}
+.mbar.flow add command -label "Capture Flow Movie" -command {karl_flow_movie}
+.mbar add cascade -label "Flow" -underline 0 -menu .mbar.flow
+
+
+
 . configure -menu .mbar
+
 
 Rappture::Panes .main -sashwidth 4 -sashrelief raised -sashpadding 4 \
     -width 6i -height 4i
