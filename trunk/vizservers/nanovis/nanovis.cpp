@@ -790,7 +790,7 @@ bmp_header_add_int(unsigned char* header, int& pos, int data)
 // INSOO
 // FOR DEBUGGING
 void
-NanoVis::bmp_write_to_file(int frame_number)
+NanoVis::bmp_write_to_file(int frame_number, char* directory_name)
 {
     unsigned char header[54];
     int pos = 0;
@@ -856,7 +856,11 @@ NanoVis::bmp_write_to_file(int frame_number)
     FILE* f;
     char filename[100];
     if (frame_number >= 0) {
-        sprintf(filename, "/tmp/flow_animation1/image%03d.bmp", frame_number);
+    	if (directory_name)
+	        sprintf(filename, "%s/image%03d.bmp", directory_name, frame_number);
+	else
+	        sprintf(filename, "/tmp/flow_animation/image%03d.bmp", frame_number);
+
         printf("Writing %s\n", filename);
         f = fopen(filename, "wb");
     }

@@ -149,7 +149,7 @@ public:
     static void resize_offscreen_buffer(int w, int h);
     static void offscreen_buffer_capture(void);
     static void bmp_write(const char* cmd);
-    static void bmp_write_to_file(int frame_number);
+    static void bmp_write_to_file(int frame_number, char* directory_name);
     static void display(void);
     static void update(void);
     static void display_offscreen_buffer();
