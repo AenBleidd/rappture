@@ -26,6 +26,8 @@ public:
 
 	Vector3 operator +(Vector3 &op2); 	
 	Vector3 operator -(Vector3 &op2);
+	Vector3 operator -(float scalar);
+	Vector3 operator +(float scalar);
 	bool equal(Vector3 &op2);
 	//float operator *(Vector3 &op2);	//dot product
 	float operator *(Vector3 &op2);		//dot product
@@ -52,4 +54,19 @@ public:
     float length() const;
 };
 
+inline Vector3 Vector3::operator +(float scalar)
+{
+    Vector3 v;
+    v.x = x + scalar;
+    v.y = y + scalar;
+    v.z = z + scalar;
+}
+
+inline Vector3 Vector3::operator -(float scalar)
+{
+    Vector3 v;
+    v.x = x - scalar;
+    v.y = y - scalar;
+    v.z = z - scalar;
+}
 #endif
