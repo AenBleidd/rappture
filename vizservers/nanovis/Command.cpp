@@ -1240,7 +1240,8 @@ VolumeCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
 
                     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
             
-                    NanoVis::bmp_write_to_file(frame_num);
+//                  NanoVis::bmp_write_to_file(frame_num, directory_name);
+                    NanoVis::bmp_write_to_file(frame_num, NULL);
                 }
             }
 
@@ -1415,8 +1416,8 @@ FlowCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
             NanoVis::read_screen();
             glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
             
-            NanoVis::bmp_write_to_file(frame_count);
-            //          printf("Writing to file...\n");
+            NanoVis::bmp_write_to_file(frame_count, NULL);
+//            NanoVis::bmp_write_to_file(frame_count, directory_name);
         }
         // put your code... 
         if (NanoVis::licRenderer) {
