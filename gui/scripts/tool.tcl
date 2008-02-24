@@ -39,22 +39,24 @@ itcl::class Rappture::Tool {
     public proc resources {{option ""}}
 
     public common _resources
-    public proc setAppName {name} { set _resources(-appname) $name }
-    public proc setHubName {name} { set _resources(-hubname) $name }
-    public proc setHubURL {name}  { set _resources(-huburl) $name }
-    public proc setSession {name} { set _resources(-session) $name }
-    public proc setJobPrt {name}  { set _resources(-jobprotocol) $name }
+    public proc setAppName {name}   { set _resources(-appname) $name }
+    public proc setHubName {name}   { set _resources(-hubname) $name }
+    public proc setHubURL {name}    { set _resources(-huburl) $name }
+    public proc setSession {name}   { set _resources(-session) $name }
+    public proc setJobPrt {name}    { set _resources(-jobprotocol) $name }
+    public proc setResultDir {name} { set _resources(-resultdir) $name }
 }
 
 # must use this name -- plugs into Rappture::resources::load
 proc tool_init_resources {} {
     Rappture::resources::register \
-        application_name Rappture::Tool::setAppName \
-        application_id   Rappture::Tool::setAppId \
-        hub_name         Rappture::Tool::setHubName \
-        hub_url          Rappture::Tool::setHubURL \
-        session_token    Rappture::Tool::setSession \
-        job_protocol     Rappture::Tool::setJobPrt
+        application_name  Rappture::Tool::setAppName \
+        application_id    Rappture::Tool::setAppId \
+        hub_name          Rappture::Tool::setHubName \
+        hub_url           Rappture::Tool::setHubURL \
+        session_token     Rappture::Tool::setSession \
+        job_protocol      Rappture::Tool::setJobPrt \
+        results_directory Rappture::Tool::setResultDir
 }
                                                                                 
 # ----------------------------------------------------------------------
@@ -262,8 +264,31 @@ itcl::body Rappture::Tool::run {args} {
     # a reference to the run.xml file containing results.
     #
     if {$status == 0} {
-        set file [string trim $job(output)]
-        return [list $status $file]
+        set result [string trim $job(output)]
+        if {[regexp {=RAPPTURE-RUN=>([^\n]+)} $result match file]} {
+            set status [catch {Rappture::library $file} result]
+            if {$status != 0} {
+                global errorInfo
+                set result "$result\n$errorInfo"
+            }
+
+            # if there's a results_directory defined in the resources
+            # file, then move the run.xml file there for storage
+            if {[info exists _resources(-resultdir)]
+                  && "" != $_resources(-resultdir)} {
+                catch {
+                    if {![file exists $_resources(-resultdir)]} {
+                        _mkdir $_resources(-resultdir)
+                    }
+                    file rename -force -- $file $_resources(-resultdir)
+                }
+            }
+        } else {
+            set status 1
+            set result "Can't find result file in output.\nDid you call Rappture
+::result in your simulator?"
+        }
+        return [list $status $result]
     } elseif {"" != $job(output) || "" != $job(error)} {
         return [list $status [string trim "$job(output)\n$job(error)"]]
     }

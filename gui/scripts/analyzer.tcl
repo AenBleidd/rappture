@@ -51,7 +51,7 @@ itcl::class Rappture::Analyzer {
 
     public method simulate {args}
     public method reset {{when -eventually}}
-    public method load {file}
+    public method load {xmlobj}
     public method clear {}
     public method download {option args}
 
@@ -76,18 +76,8 @@ itcl::class Rappture::Analyzer {
     private variable _plotlist ""      ;# items currently being plotted
 
     private common job                 ;# array var used for blt::bgexec jobs
-
-    # resources file tells us the results directory
-    public common _resultdir ""
-    public proc setResultDir {path} { set _resultdir $path }
 }
 
-# must use this name -- plugs into Rappture::resources::load
-proc analyzer_init_resources {} {
-    Rappture::resources::register \
-        results_directory Rappture::Analyzer::setResultDir
-}
-                                                                                
 itk::usual Analyzer {
     keep -background -cursor foreground -font
 }
@@ -353,29 +343,9 @@ itcl::body Rappture::Analyzer::simulate {args} {
         _simState on "Aborted"
     }
 
-    # read back the results from run.xml
+    # load results from run.xml into analyzer
     if {$status == 0 && $result != "ABORT"} {
-        if {[regexp {=RAPPTURE-RUN=>([^\n]+)} $result match file]} {
-            set status [catch {load $file} msg]
-            if {$status != 0} {
-                global errorInfo
-                set result "$msg\n$errorInfo"
-            }
-
-            # if there's a results_directory defined in the resources
-            # file, then move the run.xml file there for storage
-            if {"" != $_resultdir} {
-                catch {
-                    if {![file exists $_resultdir]} {
-                        _mkdir $_resultdir
-                    }
-                    file rename -force -- $file $_resultdir
-                }
-            }
-        } else {
-            set status 1
-            set result "Can't find result file in output.\nDid you call Rappture::result in your simulator?"
-        }
+        set status [catch {load $result} result]
     }
 
     # back to normal
@@ -440,19 +410,17 @@ itcl::body Rappture::Analyzer::reset {{when -eventually}} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: load <file>
+# USAGE: load <xmlobj>
 #
-# Loads the data from the given <file> into the appropriate results
+# Loads the data from the given <xmlobj> into the appropriate results
 # sets.  If necessary, new results sets are created to store the data.
 # ----------------------------------------------------------------------
-itcl::body Rappture::Analyzer::load {file} {
+itcl::body Rappture::Analyzer::load {xmlobj} {
     # only show the last result? then clear first
     if {[$_tool xml get tool.analyzer] == "last"} {
         clear
     }
 
-    # try to load new results from the given file
-    set xmlobj [Rappture::library $file]
     lappend _runs $xmlobj
 
     # go through the analysis and find all result sets

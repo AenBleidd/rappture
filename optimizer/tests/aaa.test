@@ -66,7 +66,7 @@ test aaa-2.1 {create an optimizer and add parameters to it} {
   Rappture::optimizer ctxt
   ctxt add number input.temperature -min 0 -max 1
   ctxt get
-} {input.temperature -min 0.0 -max 1.0}
+} {input.temperature number -min 0.0 -max 1.0}
 
 test aaa-2.2 {add a parameter with a bad type} {
   list [catch {ctxt add foo input.wrong -bar test} result] $result
@@ -86,12 +86,12 @@ test aaa-2.5 {add a number parameter with a bad option name} {
 
 test aaa-2.6 {add doesn't add parameter when there's an error} {
   ctxt get
-} {input.temperature -min 0.0 -max 1.0}
+} {input.temperature number -min 0.0 -max 1.0}
 
 test aaa-2.7 {add a string parameter} {
   ctxt add string input.choice -values {a b c}
   ctxt get input.choice
-} {-values {a b c}}
+} {string -values {a b c}}
 
 test aaa-2.8 {add a string parameter with a missing option} {
   list [catch {ctxt add string input.wrong -values} result] $result
@@ -103,7 +103,16 @@ test aaa-2.9 {add a string parameter with a bad option name} {
 
 test aaa-2.10 {add doesn't add parameter when there's an error} {
   ctxt get
-} {{input.temperature -min 0.0 -max 1.0} {input.choice -values {a b c}}}
+} {{input.temperature number -min 0.0 -max 1.0} {input.choice string -values {a b c}}}
+
+test aaa-2.11 {add another number and return } {
+  ctxt add number input.temporary -min -5 -max 5
+  lsort [ctxt get input.temp*]
+} {{input.temperature number -min 0.0 -max 1.0} {input.temporary number -min -5.0 -max 5.0}}
+
+test aaa-2.12 {query -min values for multiple parameters} {
+  lsort [ctxt get input.temp* -min]
+} {{input.temperature 0.0} {input.temporary -5.0}}
 
 # cleanup
 ::tcltest::cleanupTests
