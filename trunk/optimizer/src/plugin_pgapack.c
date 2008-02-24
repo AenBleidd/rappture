@@ -111,6 +111,11 @@ PgapackRun(envPtr, evalProc, fitnessExpr)
     PGASetPopReplaceType(ctx, dataPtr->popRepl);
     PGASetCrossoverType(ctx, PGA_CROSSOVER_UNIFORM);
 
+    /* stop if any of these are true */
+    PGASetStoppingRuleType(ctx, PGA_STOP_MAXITER);
+    PGASetStoppingRuleType(ctx, PGA_STOP_NOCHANGE);
+    PGASetStoppingRuleType(ctx, PGA_STOP_TOOSIMILAR);
+
     PGASetUserFunction(ctx, PGA_USERFUNCTION_CREATESTRING, PgapCreateString);
     PGASetUserFunction(ctx, PGA_USERFUNCTION_MUTATION, PgapMutation);
     PGASetUserFunction(ctx, PGA_USERFUNCTION_CROSSOVER, PgapCrossover);

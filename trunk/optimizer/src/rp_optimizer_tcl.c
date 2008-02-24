@@ -415,9 +415,27 @@ RpOptimInstanceCmd(cdata, interp, objc, objv)
                 switch (envPtr->paramList[n]->type) {
                 case RP_OPTIMPARAM_NUMBER:
                     optSpecPtr = rpOptimNumberOpts;
+                    if (option == NULL) {
+                        /* no particular option value? then include type */
+                        if (Tcl_ListObjAppendElement(interp, rrval,
+                              Tcl_NewStringObj("number",-1)) != TCL_OK) {
+                            Tcl_DecrRefCount(rrval);
+                            Tcl_DecrRefCount(rval);
+                            return TCL_ERROR;
+                        }
+                    }
                     break;
                 case RP_OPTIMPARAM_STRING:
                     optSpecPtr = rpOptimStringOpts;
+                    if (option == NULL) {
+                        /* no particular option value? then include type */
+                        if (Tcl_ListObjAppendElement(interp, rrval,
+                              Tcl_NewStringObj("string",-1)) != TCL_OK) {
+                            Tcl_DecrRefCount(rrval);
+                            Tcl_DecrRefCount(rval);
+                            return TCL_ERROR;
+                        }
+                    }
                     break;
                 default:
                     Tcl_AppendStringsToObj(Tcl_GetObjResult(interp),
@@ -637,6 +655,13 @@ RpOptimInstanceCmd(cdata, interp, objc, objv)
             return TCL_ERROR;
         }
         Tcl_SetResult(interp, envPtr->pluginDefn->name, TCL_STATIC);
+
+        /* if the -tool was specified, then add it as a second element */
+        toolDataPtr = (RpOptimToolData*)envPtr->toolData;
+        if (toolDataPtr->toolPtr) {
+            Tcl_AppendElement(interp,
+                Tcl_GetStringFromObj(toolDataPtr->toolPtr, (int*)NULL));
+        }
         return TCL_OK;
     }
 
@@ -670,14 +695,16 @@ RpOptimizerPerformInTcl(envPtr, values, numValues, fitnessPtr)
     double *fitnessPtr;       /* returns: computed value of fitness func */
 {
     RpOptimStatus result = RP_OPTIM_SUCCESS;
+    Tcl_Obj *xmlObj = NULL;
     RpOptimToolData *toolDataPtr = (RpOptimToolData*)envPtr->toolData;
     Tcl_Interp *interp = toolDataPtr->interp;
+
     int n, status;
 #define MAXBUILTIN 10
     int objc; Tcl_Obj **objv, *storage[MAXBUILTIN], *getcmd[3];
     int rc; Tcl_Obj **rv;
     Tcl_Obj *dataPtr;
-    char *out;
+    Tcl_DString buffer;
 
     /*
      * Set up the arguments for a Tcl evaluation.
@@ -729,11 +756,10 @@ RpOptimizerPerformInTcl(envPtr, values, numValues, fitnessPtr)
             result = RP_OPTIM_FAILURE;
             fprintf(stderr, "== JOB FAILED: malformed result: expected {status output}\n");
         } else {
-            out = Tcl_GetStringFromObj(rv[1], (int*)NULL);
             if (status != 0) {
                 result = RP_OPTIM_FAILURE;
                 fprintf(stderr, "== JOB FAILED with status code %d:\n%s\n",
-                    status, out);
+                    status, Tcl_GetStringFromObj(rv[1], (int*)NULL));
             } else {
                 /*
                  *  Get the output value from the tool output in the
@@ -744,7 +770,11 @@ RpOptimizerPerformInTcl(envPtr, values, numValues, fitnessPtr)
                  *  just query a single output value by calling:
                  *    xmlobj get fitnessExpr
                  */
-                getcmd[0] = rv[1];
+                xmlObj = rv[1];
+                /* hang onto this for -updatecommand below */
+                Tcl_IncrRefCount(xmlObj);
+
+                getcmd[0] = xmlObj;
                 getcmd[1] = Tcl_NewStringObj("get",-1);
                 getcmd[2] = Tcl_NewStringObj(envPtr->fitnessExpr,-1);
                 for (n=0; n < 3; n++) {
@@ -785,15 +815,26 @@ RpOptimizerPerformInTcl(envPtr, values, numValues, fitnessPtr)
      * to abort.
      */
     if (toolDataPtr->updateCmdPtr) {
-        status = Tcl_GlobalEvalObj(toolDataPtr->interp,
-            toolDataPtr->updateCmdPtr);
+        Tcl_DStringInit(&buffer);
+        Tcl_DStringAppend(&buffer,
+            Tcl_GetStringFromObj(toolDataPtr->updateCmdPtr, (int*)NULL), -1);
+        Tcl_DStringAppendElement(&buffer,
+            (xmlObj != NULL) ? Tcl_GetStringFromObj(xmlObj, (int*)NULL): "");
+
+        status = Tcl_GlobalEval(toolDataPtr->interp,
+            Tcl_DStringValue(&buffer));
 
         if (status == TCL_ERROR) {
             Tcl_BackgroundError(toolDataPtr->interp);
         }
         else if (status == TCL_BREAK || status == TCL_RETURN) {
-            return RP_OPTIM_ABORTED;
+            result = RP_OPTIM_ABORTED;
         }
+        Tcl_DStringFree(&buffer);
     }
-    return RP_OPTIM_SUCCESS;
+
+    if (xmlObj) {
+        Tcl_DecrRefCount(xmlObj);  /* done with this now */
+    }
+    return result;
 }
