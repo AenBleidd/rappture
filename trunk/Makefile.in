@@ -36,10 +36,14 @@ install: install_rplib install_bindings install_gui install_examples
 
 
 build_gui:
-	make -C gui
+	@if test "x@ENABLE_GUI@" == "xyes" ; then \
+		make -C gui; \
+	fi
 
 install_gui:
-	make -C gui install
+	@if test "x@ENABLE_GUI@" == "xyes" ; then \
+		make -C gui install; \
+	fi
 
 rplib:
 	@if ! test -d "include"; then \
@@ -81,10 +85,12 @@ install_examples: build_examples
 #############################################################################
 
 #tcl bindings
+#cd tcl; @TCLSH@ install.tcl
 install_tcl:
-	cd tcl; $(bindir)/tclsh install.tcl
-#	cd tcl; @TCLSH@ install.tcl
-	make -C src/tcl install
+	@if test "x@TCLSH@" != "x" ; then \
+		cd tcl; $(bindir)/tclsh install.tcl; \
+		make -C src/tcl install; \
+	fi
 
 # matlab bindings
 build_matlab:
@@ -162,7 +168,7 @@ clean:
 	rm -f include/*
 
 distclean:
-	rm examples/demo.bash
+	rm -f examples/demo.bash
 	make -C examples/app-fermi/cee distclean
 	make -C examples/app-fermi/fortran distclean
 	make -C examples/app-fermi/wrapper/cee distclean
@@ -176,6 +182,6 @@ distclean:
 	make -C src/tcl distclean
 	make -C src2/core distclean
 	make -C test distclean
-	rm gui/apps/rappture gui/apps/simsim gui/apps/rappture.env;
+	rm -f gui/apps/rappture gui/apps/simsim gui/apps/rappture.env;
 	rm -rf Makefile config.status config.log bin;
 	rm -f include/*
