@@ -863,9 +863,17 @@ NanoVis::bmp_write_to_file(int frame_number, char* directory_name)
 
         printf("Writing %s\n", filename);
         f = fopen(filename, "wb");
+	if (f == 0)
+	{
+		Trace("cannot create file\n");
+	}
     }
     else {
         f = fopen("/tmp/image.bmp", "wb");
+	if (f == 0)
+	{
+		Trace("cannot create file\n");
+	}
     }
     fwrite((void*) header, sizeof(header), 1, f);
     fwrite((void*) screen_buffer, (3*win_width+pad)*win_height, 1, f);

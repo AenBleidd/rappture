@@ -74,6 +74,7 @@
 #ifdef _LOCAL_ZINC_TEXT_
 #include "Test.h"
 #endif
+#include "Test.h"
 // EXTERN DECLARATIONS
 // in Nv.cpp
 
@@ -1240,8 +1241,10 @@ VolumeCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
 
                     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
             
-//                  NanoVis::bmp_write_to_file(frame_num, directory_name);
-                    NanoVis::bmp_write_to_file(frame_num, NULL);
+	 	    if (argc < 5)
+                        NanoVis::bmp_write_to_file(frame_num, NULL);
+                    else
+                        NanoVis::bmp_write_to_file(frame_num, (char*) argv[4]);
                 }
             }
 
@@ -1329,7 +1332,7 @@ FlowCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
                 return TCL_ERROR;
             }
             int state;
-            if (Tcl_GetBoolean(interp, argv[2], &state) != TCL_OK) {
+            if (Tcl_GetBoolean(interp, argv[3], &state) != TCL_OK) {
                 return TCL_ERROR;
             }
             NanoVis::particle_on = state;
@@ -1379,9 +1382,9 @@ FlowCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
     } else if ((c == 'r') && (strcmp(argv[1],"reset") == 0)) {
         NanoVis::initParticle();
     } else if ((c == 'c') && (strcmp(argv[1],"capture") == 0)) {
-        if (argc != 3) {
+        if (argc > 4 || argc < 3) {
             Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
-                " capture numframes\"", (char*)NULL);
+                " capture numframes [directory]\"", (char*)NULL);
             return TCL_ERROR;
         }
         int total_frame_count;
@@ -1396,6 +1399,8 @@ FlowCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
             NanoVis::particleRenderer->activate();
         }
         // Karl
+	//
+	Trace("FLOW started\n");
         for (int frame_count = 0; frame_count < total_frame_count; 
              frame_count++) {
             
@@ -1415,10 +1420,14 @@ FlowCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
             
             NanoVis::read_screen();
             glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
+
+	    if (argc < 4)
+                NanoVis::bmp_write_to_file(frame_count, NULL);
+            else
+                NanoVis::bmp_write_to_file(frame_count, (char*) argv[3]);
             
-            NanoVis::bmp_write_to_file(frame_count, NULL);
-//            NanoVis::bmp_write_to_file(frame_count, directory_name);
         }
+	Trace("FLOW end\n");
         // put your code... 
         if (NanoVis::licRenderer) {
             NanoVis::licRenderer->deactivate();

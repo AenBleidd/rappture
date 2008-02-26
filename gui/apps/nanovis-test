@@ -133,6 +133,19 @@ proc send_command {} {
 }
 
 # ----------------------------------------------------------------------
+# USAGE: karl_send_command <cmd>
+#
+# Used internally in this script (not from command prompt)
+# ----------------------------------------------------------------------
+proc karl_send_command {cmd} {
+    global widgets
+
+    namespace eval Rappture::NanovisViewer [list $widgets(nanovis) _send_text $cmd]
+
+#    $widgets(command) delete 0 end
+}
+
+# ----------------------------------------------------------------------
 # USAGE: reset
 #
 # Used internally to reset the connection to the rendering server.
@@ -186,10 +199,17 @@ proc show_comm {channel {data ""}} {
 # ----------------------------------------------------------------------
 proc karl_activate_flow {} {
 
-	puts "Activating flow..."
+	global img_storage_dir
+	puts "Preparing images..."
 
 	# sequence of commands to initilize flow visualization go here
-	test
+	karl_send_command {test}
+	karl_send_command {flow vectorid 0}
+	karl_send_command {flow particle visible on}
+
+	set renderserver render05
+	set img_storage_dir [exec ssh $renderserver mktemp -d /tmp/animation.XXXXXX]
+	karl_send_command "flow capture 117 $img_storage_dir"
 }
 
 # ----------------------------------------------------------------------
@@ -198,38 +218,28 @@ proc karl_activate_flow {} {
 # ----------------------------------------------------------------------
 proc karl_flow_movie {} {
 
-	puts "Flow Movie"   
-	set img_storage_dir [exec mktemp -d /tmp/animation.XXXXXX]
-	puts $img_storage_dir
+	global img_storage_dir
+	set renderserver render05
 
-	# flow animation command sequence goes here
-#	flow capture 100 $img_storage_dir
-	## ??
-
-	cd $img_storage_dir
-
-	# get rid of this once the animation command sequence works
-	return
 
 	if {0} {
 		# create animated gif:
 		puts "creating animated gif..."
-		exec convert -delay 20 -loop 0 image*.bmp animated_flow.gif
+		exec ssh $renderserver convert -delay 20 -loop 0 $img_storage_dir/image*.bmp $img_storage_dir/animated_flow.gif
 	} else {
 		# create mpeg movie:
-		puts "creating mpeg movie..."
-
-		exec mogrify -format jpg *.bmp
-		exec ffmpeg -i image%03.jpg cool.mpg
-		exec rm *.jpg
+		puts "creating mpeg movie in $img_storage_dir"
+		
+		exec ssh $renderserver "cd $img_storage_dir && mogrify -format jpg *.bmp && ffmpeg -i image%03d.jpg flow_movie.mpg 2>/dev/null && rm *.jpg"
 	}
-	exec rm *.bmp
 
-	# Now present the .mpg or .gif file to the user for downloading
+	# Now present the .mpg or .gif file to the user to download
 	## ??
 
+	return
+
 	# Finally, delete the temporary animation directory we have created
-	exec rmdir $img_storage_dir
+	exec ssh $renderserver rmdir $img_storage_dir
 }
 
 # ----------------------------------------------------------------------
