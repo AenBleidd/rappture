@@ -314,9 +314,6 @@ itcl::body Rappture::Pager::current {args} {
                 }
                 set _current [lindex $_pages $index]
             } else {
-# 		if { $name == $_current }  {
-# 		    return ""
-# 		}
                 if {$name == ""} {
                     set _current ""
                     set index 0
