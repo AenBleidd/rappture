@@ -40,12 +40,6 @@ itcl::class Rappture::Field3DResult {
     public method download {option args}
 }
 
-# must use this name -- plugs into Rappture::resources::load
-proc field3d_init_resources {} {
-    Rappture::resources::register \
-        nanovis_server Rappture::NanovisServer::setServer
-}
-
 itk::usual Field3DResult {
     keep -background -foreground -cursor -font
     keep -plotbackground -plotforeground
@@ -60,7 +54,7 @@ itcl::body Rappture::Field3DResult::constructor {args} {
     }
     array set flags $args
 
-    set servers [Rappture::NanovisServer::getServer]
+    set servers [Rappture::VisViewer::GetServerList "nanovis"]
     if {"" != $servers && $flags(-mode) != "vtk"} {
         itk_component add renderer {
             Rappture::NanovisViewer $itk_interior.ren $servers
