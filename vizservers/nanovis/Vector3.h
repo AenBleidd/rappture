@@ -60,6 +60,7 @@ inline Vector3 Vector3::operator +(float scalar)
     v.x = x + scalar;
     v.y = y + scalar;
     v.z = z + scalar;
+    return v;
 }
 
 inline Vector3 Vector3::operator -(float scalar)
@@ -68,5 +69,6 @@ inline Vector3 Vector3::operator -(float scalar)
     v.x = x - scalar;
     v.y = y - scalar;
     v.z = z - scalar;
+    return v;
 }
 #endif

@@ -35,7 +35,11 @@
  *        o Create R2, matrix, etc. libraries.
  */
 
-//#define ISO_TEST
+#define ISO_TEST		0
+#define PLANE_CMDS		0
+#define __TEST_CODE__		0
+// FOR testing new functions
+#define _LOCAL_ZINC_TEST_	0
 
 #include "Command.h"
 #include "Trace.h"
@@ -69,12 +73,10 @@
 #include <RenderContext.h>
 #include <NvLIC.h>
 
-// FOR testing new functions
-//#define  _LOCAL_ZINC_TEST_
-#ifdef _LOCAL_ZINC_TEXT_
+#if _LOCAL_ZINC_TEST_
 #include "Test.h"
 #endif
-#include "Test.h"
+
 // EXTERN DECLARATIONS
 // in Nv.cpp
 
@@ -82,13 +84,6 @@ extern Grid* NanoVis::grid;
 
 // in nanovis.cpp
 extern vector<PointSet*> g_pointSet;
-
-extern float live_rot_x;                //object rotation angles
-extern float live_rot_y;
-extern float live_rot_z;
-extern float live_obj_x;        //object translation location from the origin
-extern float live_obj_y;
-extern float live_obj_z;
 
 extern PlaneRenderer* plane_render;
 extern Texture2D* plane[10];
@@ -138,9 +133,11 @@ static Tcl_CmdProc CameraCmd;
 static Tcl_CmdProc CutplaneCmd;
 static Tcl_CmdProc GridCmd;
 static Tcl_CmdProc LegendCmd;
+#if PLANE_CMDS
 static Tcl_CmdProc PlaneEnableCmd;
 static Tcl_CmdProc PlaneLinkCmd;
 static Tcl_CmdProc PlaneNewCmd;
+#endif
 static Tcl_CmdProc ScreenCmd;
 static Tcl_CmdProc ScreenShotCmd;
 static Tcl_CmdProc TransfuncCmd;
@@ -162,7 +159,8 @@ static int GetHeightMap(Tcl_Interp *interp, const char *string,
 static int GetIndices(Tcl_Interp *interp, int argc, const char *argv[], 
         vector<unsigned int>* vectorPtr);
 static int GetAxis(Tcl_Interp *interp, const char *string, int *valPtr);
-static int GetColor(Tcl_Interp *interp, const char *string, float *rgbPtr);
+static int GetColor(Tcl_Interp *interp, int argc, const char *argv[], 
+	float *rgbPtr);
 static int GetDataStream(Tcl_Interp *interp, Rappture::Buffer &buf, 
         int nBytes);
 static HeightMap *CreateHeightMap(ClientData clientData, Tcl_Interp *interp, 
@@ -669,7 +667,7 @@ TransfuncCmd(ClientData cdata, Tcl_Interp *interp, int argc,
             data[4*i+3] = wFunc.value(xval);
         }
 
-#ifdef ISO_TEST
+#if ISO_TEST
 /*
         for (i=0; i < nslots; i++) {
             if (i == 0) data[4*i + 3] = 0.0f;
@@ -849,7 +847,7 @@ VolumeCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
             memcpy(header, buf.bytes(), sizeof(char) * 5);
             header[5] = '\0';
 
-#ifdef _LOCAL_ZINC_TEST_
+#if _LOCAL_ZINC_TEST_
             //FILE* fp = fopen("/home/nanohub/vrinside/nv/data/HOON/QDWL_100_100_50_strain_8000i.nd_zatom_12_1", "rb");
             FILE* fp;
 
@@ -874,7 +872,7 @@ VolumeCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
                 //fdata.write(buf.bytes(),buf.size());
                 //vol = NvZincBlendeReconstructor::getInstance()->loadFromStream(fdata);
                 
-#ifdef _LOCAL_ZINC_TEST_
+#if _LOCAL_ZINC_TEST_
                 vol = NvZincBlendeReconstructor::getInstance()->loadFromMemory(b);
 #else
                 vol = NvZincBlendeReconstructor::getInstance()->loadFromMemory((void*) buf.bytes());
@@ -900,8 +898,7 @@ VolumeCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
 
                     NanoVis::volume[n] = vol;
                 }
-#ifdef __TEST_CODE__
-/*
+#if __TEST_CODE__
             } else if (strcmp(header, "<FET>") == 0) {
                 printf("FET loading...\n");
                 fflush(stdout);
@@ -913,7 +910,6 @@ VolumeCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
                     Tcl_AppendResult(interp, err.remark().c_str(), (char*)NULL);
                     return TCL_ERROR;
                 }
-*/
 #endif  /*__TEST_CODE__*/
             } else if (strcmp(header, "<ODX>") == 0) {
                 Rappture::Outcome err;
@@ -933,10 +929,10 @@ VolumeCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
                 fflush(stdout);
                 std::stringstream fdata;
                 fdata.write(buf.bytes(),buf.size());
-#ifndef ISO_TEST
-                err = load_volume_stream(n, fdata);
-#else
+#if ISO_TEST
                 err = load_volume_stream2(n, fdata);
+#else
+                err = load_volume_stream(n, fdata);
 #endif
                 if (err) {
                     Tcl_AppendResult(interp, err.remark().c_str(), (char*)NULL);
@@ -1032,17 +1028,17 @@ VolumeCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
                 }
             }
         } else if ((c == 'c') && (strcmp(argv[2],"color") == 0)) {
-            if (argc < 3) {
+            if (argc < 6) {
                 Tcl_AppendResult(interp, "wrong # args: should be \"", argv[0],
-                    " outline color {R G B} ?volume ...? \"", (char*)NULL);
+                    " outline color R G B ?volume ...? \"", (char*)NULL);
                 return TCL_ERROR;
             }
             float rgb[3];
-            if (GetColor(interp, argv[3], rgb) != TCL_OK) {
+            if (GetColor(interp, argc - 3, argv + 3, rgb) != TCL_OK) {
                 return TCL_ERROR;
             }
             vector<Volume *> ivol;
-            if (GetVolumes(interp, argc - 4, argv + 4, &ivol) != TCL_OK) {
+            if (GetVolumes(interp, argc - 6, argv + 6, &ivol) != TCL_OK) {
                 return TCL_ERROR;
             }
             vector<Volume *>::iterator iter;
@@ -2092,30 +2088,23 @@ GetAxis(Tcl_Interp *interp, const char *string, int *valPtr)
  * ----------------------------------------------------------------------
  */
 static int
-GetColor(Tcl_Interp *interp, const char *string, float *rgbPtr)
+GetColor(Tcl_Interp *interp, int argc, const char *argv[], float *rgbPtr)
 {
-    int argc;
-    const char **argv;
-
-    if (Tcl_SplitList(interp, string, &argc, &argv) != TCL_OK) {
-        return TCL_ERROR;
-    }
-    if (argc != 3) {
-        Tcl_AppendResult(interp, "bad color \"", string,
-            "\": should list of R G B values 0.0 - 1.0", (char*)NULL);
+    if (argc < 3) {
+        Tcl_AppendResult(interp, "missing color values\": ",
+		"should list of R G B values 0.0 - 1.0", (char*)NULL);
         return TCL_ERROR;
     }
     if ((GetFloat(interp, argv[0], rgbPtr + 0) != TCL_OK) ||
         (GetFloat(interp, argv[1], rgbPtr + 1) != TCL_OK) ||
         (GetFloat(interp, argv[2], rgbPtr + 2) != TCL_OK)) {
-        Tcl_Free((char*)argv);
         return TCL_ERROR;
     }
-    Tcl_Free((char*)argv);
     return TCL_OK;
 }
 
 
+#if PLANE_CMDS
 static int 
 PlaneNewCmd(ClientData cdata, Tcl_Interp *interp, int argc, 
             const char *argv[])
@@ -2207,7 +2196,7 @@ PlaneEnableCmd(ClientData cdata, Tcl_Interp *interp, int argc,
     plane_render->set_active_plane(plane_index);
     return TCL_OK;
 }
-
+#endif	/*PLANE_CMDS*/
 
 void 
 initTcl()
@@ -2280,7 +2269,7 @@ initTcl()
     Tcl_CreateCommand(interp, "unirect2d", UniRect2dCmd,
         (ClientData)NULL, (Tcl_CmdDeleteProc*)NULL);
 
-#ifdef __TEST_CODE__
+#if __TEST_CODE__
     Tcl_CreateCommand(interp, "test", TestCmd,
         (ClientData)NULL, (Tcl_CmdDeleteProc*)NULL);
 

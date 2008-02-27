@@ -39,46 +39,51 @@
 #include "NvZincBlendeReconstructor.h"
 #include "GradientFilter.h"
 
-//#define  _LOCAL_ZINC_TEST_
-float* merge(float* scalar, float* gradient, int size)
+#define  _LOCAL_ZINC_TEST_ 0
+
+static float * 
+merge(float* scalar, float* gradient, int size)
 {
-	float* data = (float*) malloc(sizeof(float) * 4 * size);
+    float* data = (float*) malloc(sizeof(float) * 4 * size);
 
-	Vector3* g = (Vector3*) gradient;
-
-	int ngen = 0, sindex = 0;
-	for (sindex = 0; sindex <size; ++sindex)
-	{
-		data[ngen++] = scalar[sindex];
-		data[ngen++] = g[sindex].x;
-		data[ngen++] = g[sindex].y;
-		data[ngen++] = g[sindex].z;
-	}
-	return data;
+    Vector3* g = (Vector3*) gradient;
+    
+    int ngen = 0, sindex = 0;
+    for (sindex = 0; sindex <size; ++sindex) {
+	data[ngen++] = scalar[sindex];
+	data[ngen++] = g[sindex].x;
+	data[ngen++] = g[sindex].y;
+	data[ngen++] = g[sindex].z;
+    }
+    return data;
 }
 
-void normalizeScalar(float* fdata, int count, float min, float max)
+static void 
+normalizeScalar(float* fdata, int count, float min, float max)
 {
     float v = max - min;
-    if (v != 0.0f) 
-    {
-        for (int i = 0; i < count; ++i)
+    if (v != 0.0f) {
+        for (int i = 0; i < count; ++i) {
             fdata[i] = fdata[i] / v;
+	}
     }
 }
 
-float* computeGradient(float* fdata, int width, int height, int depth, float min, float max)
+static float* 
+computeGradient(float* fdata, int width, int height, int depth, 
+		float min, float max)
 {
-		float* gradients = (float *)malloc(width * height * depth * 3 * sizeof(float));
-		float* tempGradients = (float *)malloc(width * height * depth * 3 * sizeof(float));
-		int sizes[3] = { width, height, depth };
-		computeGradients(tempGradients, fdata, sizes, DATRAW_FLOAT);
-		filterGradients(tempGradients, sizes);
-		quantizeGradients(tempGradients, gradients, sizes, DATRAW_FLOAT);
-		normalizeScalar(fdata, width * height * depth, min, max);
-		float* data = merge(fdata, gradients, width * height * depth);
-
-        return data;
+    float* gradients = (float *)malloc(width * height * depth * 3 * 
+				       sizeof(float));
+    float* tempGradients = (float *)malloc(width * height * depth * 3 * 
+					   sizeof(float));
+    int sizes[3] = { width, height, depth };
+    computeGradients(tempGradients, fdata, sizes, DATRAW_FLOAT);
+    filterGradients(tempGradients, sizes);
+    quantizeGradients(tempGradients, gradients, sizes, DATRAW_FLOAT);
+    normalizeScalar(fdata, width * height * depth, min, max);
+    float* data = merge(fdata, gradients, width * height * depth);
+    return data;
 }
 
 /* 
@@ -87,10 +92,11 @@ float* computeGradient(float* fdata, int width, int height, int depth, float min
 void
 load_vector_stream(int index, std::istream& fin) 
 {
-    int dummy, nx, ny, nz, nxy, npts;
+    int dummy, nx, ny, nz, npts;
     double x0, y0, z0, dx, dy, dz, ddx, ddy, ddz;
     char line[128], type[128], *start;
 
+    dx = dy = dz = 0.0;		// Suppress compiler warning.
     while (!fin.eof()) {
         fin.getline(line, sizeof(line) - 1);
 	if (fin.fail()) {
@@ -103,24 +109,24 @@ load_vector_stream(int index, std::istream& fin)
         if (*start != '#') {  // skip comment lines
             if (sscanf(start, "object %d class gridpositions counts %d %d %d", &dummy, &nx, &ny, &nz) == 4) {
                 // found grid size
-            }
-            else if (sscanf(start, "origin %lg %lg %lg", &x0, &y0, &z0) == 3) {
+            } else if (sscanf(start, "origin %lg %lg %lg", &x0, &y0, &z0) == 3) {
                 // found origin
-            }
-            else if (sscanf(start, "delta %lg %lg %lg", &ddx, &ddy, &ddz) == 3) {
+            } else if (sscanf(start, "delta %lg %lg %lg", &ddx, &ddy, &ddz) == 3) {
                 // found one of the delta lines
-                if (ddx != 0.0) { dx = ddx; }
-                else if (ddy != 0.0) { dy = ddy; }
-                else if (ddz != 0.0) { dz = ddz; }
-            }
-            else if (sscanf(start, "object %d class array type %s shape 3 rank 1 items %d data follows", &dummy, type, &npts) == 3) {
+                if (ddx != 0.0) { 
+		    dx = ddx; 
+		} else if (ddy != 0.0) { 
+		    dy = ddy; 
+		} else if (ddz != 0.0) { 
+		    dz = ddz; 
+		}
+            } else if (sscanf(start, "object %d class array type %s shape 3 rank 1 items %d data follows", &dummy, type, &npts) == 3) {
                 if (npts != nx*ny*nz) {
                     std::cerr << "inconsistent data: expected " << nx*ny*nz << " points but found " << npts << " points" << std::endl;
                     return;
                 }
                 break;
-            }
-            else if (sscanf(start, "object %d class array type %s rank 0 times %d data follows", &dummy, type, &npts) == 3) {
+            } else if (sscanf(start, "object %d class array type %s rank 0 times %d data follows", &dummy, type, &npts) == 3) {
                 if (npts != nx*ny*nz) {
                     std::cerr << "inconsistent data: expected " << nx*ny*nz << " points but found " << npts << " points" << std::endl;
                     return;
@@ -223,16 +229,12 @@ load_vector_stream(int index, std::istream& fin)
         ngen = 0;
 
         // scale should be accounted.
-        for (ngen=0; ngen < npts; ngen++) 
-        {
+        for (ngen=0; ngen < npts; ngen++) {
             data[ngen] = (data[ngen]/(2.0*vmax) + 0.5);
         }
-
         NanoVis::load_volume(index, nx, ny, nz, 3, data, vmin, vmax, nzero_min);
-
         delete [] data;
-    } 
-    else {
+    } else {
         std::cerr << "WARNING: data not found in stream" << std::endl;
     }
 }
@@ -251,8 +253,7 @@ load_volume_stream2(int index, std::iostream& fin)
     char line[128], type[128], *start;
 
     int isrect = 1;
-
-    float* voldata = 0;
+    dx = dy = dz = 0.0;		// Suppress compiler warning.
     do {
         fin.getline(line,sizeof(line)-1);
         for (start=&line[0]; *start == ' ' || *start == '\t'; start++)
@@ -322,33 +323,27 @@ load_volume_stream2(int index, std::iostream& fin)
 
                 sprintf(cmdstr, "rm -f %s %s", fpts, fcells);
                 system(cmdstr);
-            }
-            else if (sscanf(start, "object %d class regulararray count %d", &dummy, &nz) == 2) {
+            } else if (sscanf(start, "object %d class regulararray count %d", &dummy, &nz) == 2) {
                 // found z-grid
-            }
-            else if (sscanf(start, "origin %lg %lg %lg", &x0, &y0, &z0) == 3) {
+            } else if (sscanf(start, "origin %lg %lg %lg", &x0, &y0, &z0) == 3) {
                 // found origin
-            }
-            else if (sscanf(start, "delta %lg %lg %lg", &ddx, &ddy, &ddz) == 3) {
+            } else if (sscanf(start, "delta %lg %lg %lg", &ddx, &ddy, &ddz) == 3) {
                 // found one of the delta lines
                 if (ddx != 0.0) { dx = ddx; }
                 else if (ddy != 0.0) { dy = ddy; }
                 else if (ddz != 0.0) { dz = ddz; }
-            }
-            else if (sscanf(start, "object %d class array type %s rank 0 items %d data follows", &dummy, type, &npts) == 3) {
+            } else if (sscanf(start, "object %d class array type %s rank 0 items %d data follows", &dummy, type, &npts) == 3) {
                 if (isrect && (npts != nx*ny*nz)) {
                     char mesg[256];
                     sprintf(mesg,"inconsistent data: expected %d points but found %d points", nx*ny*nz, npts);
                     return result.error(mesg);
-                }
-                else if (!isrect && (npts != nxy*nz)) {
+                } else if (!isrect && (npts != nxy*nz)) {
                     char mesg[256];
                     sprintf(mesg,"inconsistent data: expected %d points but found %d points", nxy*nz, npts);
                     return result.error(mesg);
                 }
                 break;
-            }
-            else if (sscanf(start, "object %d class array type %s rank 0 times %d data follows", &dummy, type, &npts) == 3) {
+            } else if (sscanf(start, "object %d class array type %s rank 0 times %d data follows", &dummy, type, &npts) == 3) {
                 if (npts != nx*ny*nz) {
                     char mesg[256];
                     sprintf(mesg,"inconsistent data: expected %d points but found %d points", nx*ny*nz, npts);
@@ -384,8 +379,7 @@ load_volume_stream2(int index, std::iostream& fin)
 
                     if (dval[p] < vmin) vmin = dval[p];
                     if (dval[p] > vmax) vmax = dval[p];
-                    if (dval[p] != 0.0f && dval[p] < nzero_min)
-                    {
+                    if (dval[p] != 0.0f && dval[p] < nzero_min) {
                          nzero_min = dval[p];
                     }
 
@@ -629,6 +623,7 @@ load_volume_stream(int index, std::iostream& fin)
 
     int isrect = 1;
 
+    dx = dy = dz = 0.0;		// Suppress compiler warning.
     while (!fin.eof()) {
         fin.getline(line, sizeof(line) - 1);
 	if (fin.fail()) {
@@ -793,13 +788,11 @@ load_volume_stream(int index, std::iostream& fin)
                 double zval = z0 + iz*dmin;
                 for (int iy=0; iy < ny; iy++) {
                     double yval = y0 + iy*dmin;
-                    for (int ix=0; ix < nx; ix++) 
-                    {
+                    for (int ix=0; ix < nx; ix++) {
                         double xval = x0 + ix*dmin;
                         double v = field.value(xval,yval,zval);
 
-                        if (v != 0.0f && v < nzero_min)
-                        {
+                        if (v != 0.0f && v < nzero_min) {
                             nzero_min = v;
                         }
 
@@ -812,7 +805,8 @@ load_volume_stream(int index, std::iostream& fin)
                 }
             }
 
-            float* data = computeGradient(cdata, nx, ny, nz, field.valueMin(), field.valueMax());
+            float* data = computeGradient(cdata, nx, ny, nz, field.valueMin(), 
+					  field.valueMax());
 
             // Compute the gradient of this data.  BE CAREFUL: center
             /*
