@@ -41,12 +41,6 @@ itcl::class Rappture::Field2DResult {
     public method download {option args}
 }
 
-# must use this name -- plugs into Rappture::resources::load
-proc field2d_init_resources {} {
-    Rappture::resources::register \
-        nanovis_server Rappture::NanovisServer::setServer
-}
-
 itk::usual Field2DResult {
     keep -background -foreground -cursor -font
     keep -plotbackground -plotforeground
@@ -61,7 +55,7 @@ itcl::body Rappture::Field2DResult::constructor {args} {
     }
     array set flags $args
     if { $flags(-mode) == "heightmap" } {
-        set servers [Rappture::NanovisServer::getServer]
+        set servers [Rappture::VisViewer::GetServerList "nanovis"]
         if { $servers == "" } {
             error "No nanovis servers available"
         }
