@@ -88,8 +88,8 @@ install_examples: build_examples
 #cd tcl; @TCLSH@ install.tcl
 install_tcl:
 	@if test "x@TCLSH@" != "x" ; then \
-		cd tcl; $(bindir)/tclsh install.tcl; \
 		make -C src/tcl install; \
+		cd tcl; $(bindir)/tclsh install.tcl; \
 	fi
 
 # matlab bindings
