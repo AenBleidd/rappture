@@ -1,7 +1,7 @@
 
 #
 # FIXME: I can see at least 3 possible candidates for separate libraries.
-#	  R2, mat, and Image.  
+#	  R2, mat, and Image.  (First 2 are done.)
 #
 SHELL = /bin/sh
 
@@ -27,25 +27,30 @@ CC = @CC@
 
 AUXSRC = config.h define.h global.h
 
-RP_DIR =  @RP_DIR@
-R2INC = ./R2/include
-MATINC = ./newmat11
-
-DX_DIR  = /usr/lib/dx
-DX_INC_SPEC = -I$(DX_DIR)/include
-DX_LIB_SPEC = -L$(DX_DIR)/lib_linux -lDXcallm -lm
-GL_INC_SPEC = -I/usr/include/GL
-GL_LIB_SPEC = -lGL -lglut -lglui -lGLEW -lCg -lCgGL -lpthread
-MAT_INC_SPEC = -I$(MATINC)
-R2_INC_SPEC = -I$(R2INC)
-RP_INC_SPEC = -I$(RP_DIR)/include -I$(RP_DIR)/include/rappture2
-RP_LIB_SPEC = -L$(RP_DIR)/lib -lrappture2 -lb64 -lz
+DX_DIR		= /usr/lib/dx
+DX_INC_SPEC	= -I$(DX_DIR)/include
+DX_LIB_SPEC	= -L$(DX_DIR)/lib_linux -lDXcallm -lm
+GL_INC_SPEC	= -I/usr/include/GL
+GL_LIB_SPEC	= -lGL -lglut -lglui -lGLEW -lCg -lCgGL -lpthread
+MAT_DIR		= ./newmat11
+MAT_INC_SPEC	= -I$(srcdir)/$(MAT_DIR)
+MAT_LIB		= $(MAT_DIR)/libnewmat11.a
+MAT_LIB_SPEC	= $(MAT_LIB)
+R2_DIR		= ./R2
+R2_INC_SPEC	= -I$(srcdir)/$(R2_DIR)/include
+R2_LIB		= $(R2_DIR)/src/libR2.a
+R2_LIB_SPEC	= $(R2_LIB)
+RP_DIR		=  @RP_DIR@
+RP_INC_SPEC	= -I$(RP_DIR)/include -I$(RP_DIR)/include/rappture2
+RP_LIB_SPEC	= -L$(RP_DIR)/lib -lrappture2 -lb64 -lz
 
 LIBS = \
 	$(RP_LIB_SPEC) \
 	-ltcl8.4 \
 	$(GL_LIB_SPEC) \
-	$(DX_LIB_SPEC) 
+	$(DX_LIB_SPEC) \
+	$(R2_LIB_SPEC) \
+	$(MAT_LIB_SPEC)
 
 INCLUDES = \
 	-I. \
@@ -63,6 +68,7 @@ OBJS  = \
 	BMPImageLoaderImpl.o \
 	BucketSort.o \
 	NvCamera.o \
+	CmdProc.o \
 	Color.o \
 	ColorGradient.o \
 	ColorGradientGLUTWindow.o \
@@ -103,13 +109,6 @@ OBJS  = \
 	PointSet.o \
 	PointSetRenderer.o \
 	PointShader.o \
-	R2FilePath.o \
-	R2Fonts.o \
-	R2Geometry.o \
-	R2IndexBuffer.o \
-	R2Object.o \
-	R2VertexBuffer.o \
-	R2string.o \
 	RenderContext.o \
 	RenderVertexArray.o \
 	Renderable.o \
@@ -129,34 +128,10 @@ OBJS  = \
 	VolumeInterpolator.o \
 	VolumeRenderer.o \
 	ZincBlendeVolume.o \
-	bandmat.o \
-	cholesky.o \
 	dxReader.o \
 	dxReader2.o \
-	evalue.o \
-	fft.o \
-	hholder.o \
-	jacobi.o \
-	myexcept.o \
-	nanovis.o \
-	newfft.o \
-	newmat1.o \
-	newmat2.o \
-	newmat3.o \
-	newmat4.o \
-	newmat5.o \
-	newmat6.o \
-	newmat7.o \
-	newmat8.o \
-	newmat9.o \
-	newmatex.o \
-	newmatnl.o \
-	newmatrm.o \
-	nm_misc.o \
-	solution.o \
-	sort.o \
-	submat.o \
-	svd.o 
+	nanovis.o 
+
 
 all: nanovis
 
@@ -171,12 +146,19 @@ install: nanovis
 	$(INSTALL_DATA) @RP_DIR@/lib/libb64.so $(libdir)/libb64.so
 
 clean:
+	make -C $(MAT_DIR) clean
 	rm -f nanovis client $(OBJS)
 
 distclean: clean
 	rm -f Makefile *~
 
-nanovis: $(OBJS)
+$(MAT_LIB):
+	make -C $(MAT_DIR) all
+
+$(R2_LIB): 
+	make -C $(R2_DIR)/src all
+
+nanovis: $(MAT_LIB) $(R2_LIB) $(OBJS) 
 	$(CC) $(CC_SWITCHES) -o $@ $^ $(LIBS)
 
 client: Socket.o ClientSocket.o RenderClient.o Event.o
@@ -207,20 +189,6 @@ Socket.o: socket/Socket.cpp socket/Socket.h
 ClientSocket.o: socket/ClientSocket.cpp socket/ClientSocket.h
 	$(CC) $(CC_SWITCHES) -o $@ -c $<
 RenderClient.o: socket/RenderClient.cpp socket/RenderClient.h
-	$(CC) $(CC_SWITCHES) -o $@ -c $<
-R2string.o: R2/src/R2string.cpp $(R2INC)/R2/R2string.h
-	$(CC) $(CC_SWITCHES) -o $@ -c $<
-R2FilePath.o: R2/src/R2FilePath.cpp $(R2INC)/R2/R2FilePath.h
-	$(CC) $(CC_SWITCHES) -o $@ -c $<
-R2Fonts.o: R2/src/R2Fonts.cpp $(R2INC)/R2/R2Fonts.h
-	$(CC) $(CC_SWITCHES) -o $@ -c $<
-R2Object.o: R2/src/R2Object.cpp $(R2INC)/R2/R2Object.h
-	$(CC) $(CC_SWITCHES) -o $@ -c $<
-R2Geometry.o: R2/src/R2Geometry.cpp $(R2INC)/R2/graphics/R2Geometry.h
-	$(CC) $(CC_SWITCHES) -o $@ -c $<
-R2VertexBuffer.o: R2/src/R2VertexBuffer.cpp $(R2INC)/R2/graphics/R2VertexBuffer.h
-	$(CC) $(CC_SWITCHES) -o $@ -c $<
-R2IndexBuffer.o: R2/src/R2IndexBuffer.cpp $(R2INC)/R2/graphics/R2IndexBuffer.h
 	$(CC) $(CC_SWITCHES) -o $@ -c $<
 
 NvStdVertexShader.o: NvStdVertexShader.cpp NvStdVertexShader.h
@@ -265,57 +233,6 @@ PCASplit.o: PCASplit.cpp PCASplit.h
 BucketSort.o: BucketSort.cpp BucketSort.h
 PointSetRenderer.o: PointSetRenderer.cpp PointSetRenderer.h
 PointSet.o: PointSet.cpp PointSet.h
-bandmat.o: newmat11/bandmat.cpp
-	$(CC) $(CC_SWITCHES) -o $@ -c $<
-cholesky.o: newmat11/cholesky.cpp
-	$(CC) $(CC_SWITCHES) -o $@ -c $<
-evalue.o: newmat11/evalue.cpp
-	$(CC) $(CC_SWITCHES) -o $@ -c $<
-fft.o: newmat11/fft.cpp
-	$(CC) $(CC_SWITCHES) -o $@ -c $<
-hholder.o: newmat11/hholder.cpp
-	$(CC) $(CC_SWITCHES) -o $@ -c $<
-jacobi.o: newmat11/jacobi.cpp
-	$(CC) $(CC_SWITCHES) -o $@ -c $<
-myexcept.o: newmat11/myexcept.cpp
-	$(CC) $(CC_SWITCHES) -o $@ -c $<
-newfft.o: newmat11/newfft.cpp
-	$(CC) $(CC_SWITCHES) -o $@ -c $<
-newmat1.o: newmat11/newmat1.cpp
-	$(CC) $(CC_SWITCHES) -o $@ -c $<
-newmat2.o: newmat11/newmat2.cpp
-	$(CC) $(CC_SWITCHES) -o $@ -c $<
-newmat3.o: newmat11/newmat3.cpp
-	$(CC) $(CC_SWITCHES) -o $@ -c $<
-newmat4.o: newmat11/newmat4.cpp
-	$(CC) $(CC_SWITCHES) -o $@ -c $<
-newmat5.o: newmat11/newmat5.cpp
-	$(CC) $(CC_SWITCHES) -o $@ -c $<
-newmat6.o: newmat11/newmat6.cpp
-	$(CC) $(CC_SWITCHES) -o $@ -c $<
-newmat7.o: newmat11/newmat7.cpp
-	$(CC) $(CC_SWITCHES) -o $@ -c $<
-newmat8.o: newmat11/newmat8.cpp
-	$(CC) $(CC_SWITCHES) -o $@ -c $<
-newmat9.o: newmat11/newmat9.cpp
-	$(CC) $(CC_SWITCHES) -o $@ -c $<
-newmatex.o: newmat11/newmatex.cpp
-	$(CC) $(CC_SWITCHES) -o $@ -c $<
-newmatnl.o: newmat11/newmatnl.cpp
-	$(CC) $(CC_SWITCHES) -o $@ -c $<
-newmatrm.o: newmat11/newmatrm.cpp
-	$(CC) $(CC_SWITCHES) -o $@ -c $<
-nm_misc.o: newmat11/nm_misc.cpp
-	$(CC) $(CC_SWITCHES) -o $@ -c $<
-solution.o: newmat11/solution.cpp
-	$(CC) $(CC_SWITCHES) -o $@ -c $<
-sort.o: newmat11/sort.cpp
-	$(CC) $(CC_SWITCHES) -o $@ -c $<
-svd.o: newmat11/svd.cpp
-	$(CC) $(CC_SWITCHES) -o $@ -c $<
-submat.o: newmat11/submat.cpp
-	$(CC) $(CC_SWITCHES) -o $@ -c $<
-
 Image.o: imgLoaders/Image.cpp
 	$(CC) $(CC_SWITCHES) -o $@ -c $<
 ImageLoader.o: imgLoaders/ImageLoader.cpp

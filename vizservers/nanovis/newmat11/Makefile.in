@@ -1,0 +1,76 @@
+
+SHELL = /bin/sh
+
+.PHONY: all install clean distclean
+
+prefix          = @prefix@
+exec_prefix     = @exec_prefix@
+bindir          = @bindir@
+libdir          = @libdir@
+srcdir		= @srcdir@
+includedir      = @includedir@
+mandir          = @mandir@
+
+INSTALL		= @INSTALL@
+INSTALL_PROGRAM	= ${INSTALL} -m 755
+INSTALL_DATA	= ${INSTALL} -m 644
+INSTALL_SCRIPT	= ${INSTALL} -m 644
+RM		= rm -f
+AR		= ar rc
+RANLIB		= @RANLIB@
+CC		= @CC@
+
+INCLUDES = -I$(srcdir)
+
+CFLAGS = @CFLAGS@
+EXTRA_CFLAGS = -Wall 
+DEFINES = @DEFINES@
+CC_SWITCHES = $(CFLAGS) $(EXTRA_CFLAGS) $(INCLUDES)
+
+MATLIB = libnewmat11.a
+
+OBJS  = \
+	bandmat.o \
+	cholesky.o \
+	evalue.o \
+	fft.o \
+	hholder.o \
+	jacobi.o \
+	myexcept.o \
+	newfft.o \
+	newmat1.o \
+	newmat2.o \
+	newmat3.o \
+	newmat4.o \
+	newmat5.o \
+	newmat6.o \
+	newmat7.o \
+	newmat8.o \
+	newmat9.o \
+	newmatex.o \
+	newmatnl.o \
+	newmatrm.o \
+	nm_misc.o \
+	solution.o \
+	sort.o \
+	submat.o \
+	svd.o 
+
+all: $(MATLIB)
+
+install: 
+
+$(MATLIB): $(OBJS)
+	$(RM) $@
+	$(AR) $@ $(OBJS) 
+	$(RANLIB) $@
+
+.cpp.o:
+	$(CC) $(CC_SWITCHES) -o $@ -c $<
+
+clean:
+	$(RM) $(MATLIB) $(OBJS)
+
+distclean: clean
+	$(RM) Makefile *~
+
