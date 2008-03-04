@@ -103,7 +103,7 @@ public :
     /**
      *@brief Defind the color of the line contour
      */
-    void setLineContourColor(float r, float g, float b);
+    void setLineContourColor(float *rgb);
 
     double range_min(void);
     double range_max(void);
@@ -124,11 +124,11 @@ inline void HeightMap::setLineContourVisible(bool visible)
 	_contourVisible = visible;
 }
 
-inline void HeightMap::setLineContourColor(float r, float g, float b)
+inline void HeightMap::setLineContourColor(float rgb[])
 {
-    _contourColor.x = r;
-    _contourColor.y = g;
-    _contourColor.z = b;
+    _contourColor.x = rgb[0];
+    _contourColor.y = rgb[1];
+    _contourColor.z = rgb[2];
 }
 
 inline TransferFunction *

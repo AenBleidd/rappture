@@ -1,0 +1,58 @@
+
+SHELL = /bin/sh
+
+.PHONY: all install clean distclean
+
+prefix          = @prefix@
+exec_prefix     = @exec_prefix@
+bindir          = @bindir@
+libdir          = @libdir@
+srcdir		= @srcdir@
+includedir      = @includedir@
+mandir          = @mandir@
+
+INSTALL		= @INSTALL@
+INSTALL_PROGRAM	= ${INSTALL} -m 755
+INSTALL_DATA	= ${INSTALL} -m 644
+INSTALL_SCRIPT	= ${INSTALL} -m 644
+RM		= rm -f
+AR		= ar rc
+RANLIB		= @RANLIB@
+CC		= @CC@
+
+INCLUDES	= -I$(srcdir)/../include 
+
+CFLAGS		= @CFLAGS@
+EXTRA_CFLAGS	= -Wall 
+DEFINES		= @DEFINES@
+CC_SWITCHES	= $(CFLAGS) $(EXTRA_CFLAGS) $(INCLUDES)
+
+OBJS  = \
+	R2FilePath.o \
+	R2Fonts.o \
+	R2Geometry.o \
+	R2IndexBuffer.o \
+	R2Object.o \
+	R2VertexBuffer.o \
+	R2string.o
+
+R2LIB = libR2.a
+
+all: $(R2LIB)
+
+install: 
+
+$(R2LIB): $(OBJS)
+	$(RM) $@
+	$(AR) $@ $(OBJS) 
+	$(RANLIB) $@
+
+.cpp.o:
+	$(CC) $(CC_SWITCHES) -o $@ -c $<
+
+clean:
+	$(RM) $(R2LIB) $(OBJS)
+
+distclean: clean
+	$(RM) Makefile *~
+
