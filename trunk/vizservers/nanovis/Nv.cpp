@@ -9,8 +9,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
-#include <imgLoaders/BMPImageLoaderImpl.h>
-#include <imgLoaders/ImageLoaderFactory.h>
+#include <BMPImageLoaderImpl.h>
+#include <ImageLoaderFactory.h>
 #include "PointSetRenderer.h"
 
 extern void NvInitCG(); // in NvShader.cpp
