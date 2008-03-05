@@ -3,11 +3,11 @@
  * ----------------------------------------------------------------------
  * Command.cpp
  *
- *      This modules creates the Tcl interface to the nanovis server.
- *      The communication protocol of the server is the Tcl language.
- *      Commands given to the server by clients are executed in a
- *      safe interpreter and the resulting image rendered offscreen
- *      is returned as BMP-formatted image data.
+ *      This modules creates the Tcl interface to the nanovis server.  The
+ *      communication protocol of the server is the Tcl language.  Commands
+ *      given to the server by clients are executed in a safe interpreter and
+ *      the resulting image rendered offscreen is returned as BMP-formatted
+ *      image data.
  *
  * ======================================================================
  *  AUTHOR:  Wei Qiao <qiaow@purdue.edu>
@@ -107,7 +107,8 @@ static Tcl_Interp *interp;
 static Tcl_DString cmdbuffer;
 
 // default transfer function
-static const char def_transfunc[] = "transfunc define default {\n\
+static const char def_transfunc[] = 
+    "transfunc define default {\n\
   0.0  1 1 1\n\
   0.2  1 1 0\n\
   0.4  0 1 0\n\
@@ -136,6 +137,7 @@ static const char def_transfunc[] = "transfunc define default {\n\
 static Tcl_ObjCmdProc AxisCmd;
 static Tcl_ObjCmdProc CameraCmd;
 static Tcl_ObjCmdProc CutplaneCmd;
+static Tcl_ObjCmdProc FlowCmd;
 static Tcl_ObjCmdProc GridCmd;
 static Tcl_ObjCmdProc LegendCmd;
 #if PLANE_CMD
@@ -147,28 +149,6 @@ static Tcl_ObjCmdProc TransfuncCmd;
 static Tcl_ObjCmdProc UniRect2dCmd;
 static Tcl_ObjCmdProc UpCmd;
 static Tcl_ObjCmdProc VolumeCmd;
-static Tcl_ObjCmdProc FlowCmd;
-
-static int GetVolumeIndices(Tcl_Interp *interp, int objc, Tcl_Obj *CONST *objv,
-        vector<unsigned int>* vectorPtr);
-static int GetVolumes(Tcl_Interp *interp, int objc, Tcl_Obj *CONST *objv,
-        vector<Volume *>* vectorPtr);
-static int GetVolumeFromObj(Tcl_Interp *interp, Tcl_Obj *objPtr, 
-	Volume **volPtrPtr);
-static int GetVolumeIndex(Tcl_Interp *interp, Tcl_Obj *objPtr, 
-	unsigned int *indexPtr);
-static int GetHeightMap(Tcl_Interp *interp, Tcl_Obj *objPtr, HeightMap **hmPtrPtr);
-static int GetIndices(Tcl_Interp *interp, int objc, Tcl_Obj *CONST *objv,
-        vector<unsigned int>* vectorPtr);
-static int GetAxisFromObj(Tcl_Interp *interp, Tcl_Obj *objPtr, int *indexPtr);
-static int GetAxisDirFromObj(Tcl_Interp *interp, Tcl_Obj *objPtr, int *indexPtr, 
-	int *dirPtr);
-static int GetColor(Tcl_Interp *interp, int objc, Tcl_Obj *CONST *objv, 
-	float *rgbPtr);
-static int GetDataStream(Tcl_Interp *interp, Rappture::Buffer &buf, 
-        int nBytes);
-static HeightMap *CreateHeightMap(ClientData clientData, Tcl_Interp *interp, 
-        int objc, Tcl_Obj *CONST *objv);
 
 static int
 GetFloatFromObj(Tcl_Interp *interp, Tcl_Obj *objPtr, float *valuePtr)
@@ -2572,6 +2552,13 @@ UniRect2dCmd(ClientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST *objv)
 void 
 initTcl()
 {
+    /*
+     * Ideally the connection is authenticated by nanoscale.  I still like the
+     * idea of creating a non-safe master interpreter with a safe slave
+     * interpreter.  Alias all the nanovis commands in the slave. That way we
+     * can still run Tcl code within nanovis.  The eventual goal is to create
+     * a test harness through the interpreter for nanovis.
+     */
     interp = Tcl_CreateInterp();
     Tcl_MakeSafe(interp);
 
