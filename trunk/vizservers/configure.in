@@ -192,5 +192,6 @@ AC_OUTPUT(  Makefile \
             nanovis/Makefile \
             nanovis/newmat11/Makefile \
             nanovis/R2/src/Makefile \
+            nanovis/imgLoaders/Makefile \
             pymolproxy/Makefile \
             start_viz.sh    )
