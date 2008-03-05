@@ -2,9 +2,9 @@
 #include <GL/gl.h>
 #include "PointSetRenderer.h"
 #include <PCASplit.h>
-#include <imgLoaders/Image.h>
-#include <imgLoaders/ImageLoaderFactory.h>
-#include <imgLoaders/ImageLoader.h>
+#include <Image.h>
+#include <ImageLoaderFactory.h>
+#include <ImageLoader.h>
 #include <stdio.h>
 #include <R2/R2FilePath.h>
 

@@ -2,7 +2,7 @@
 #define __IMAGE_LOADER_H__
 
 #include <map>
-#include <imgLoaders/Image.h>
+#include <Image.h>
 
 class ImageLoaderImpl;
 class Image;

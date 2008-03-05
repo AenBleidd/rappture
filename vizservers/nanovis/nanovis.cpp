@@ -60,8 +60,8 @@
 #include "VolumeInterpolator.h"
 #include <RenderContext.h>
 
-#include <imgLoaders/BMPImageLoaderImpl.h>
-#include <imgLoaders/ImageLoaderFactory.h>
+#include <BMPImageLoaderImpl.h>
+#include <ImageLoaderFactory.h>
 
 //#define  _LOCAL_ZINC_TEST_
 

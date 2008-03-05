@@ -1,7 +1,7 @@
 #ifndef __IMAGE_LOADER_IMPL_H__
 #define __IMAGE_LOADER_IMPL_H__
 
-#include <imgLoaders/Image.h>
+#include <Image.h>
 
 class ImageLoaderImpl {
     friend class ImageLoader;
