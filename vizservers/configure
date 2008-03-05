@@ -4523,7 +4523,7 @@ echo "${ECHO_T}${RP_DIR}/include" >&6; }
 
 
 
-ac_config_files="$ac_config_files Makefile nanoscale/Makefile nanovis/Makefile nanovis/newmat11/Makefile nanovis/R2/src/Makefile pymolproxy/Makefile start_viz.sh"
+ac_config_files="$ac_config_files Makefile nanoscale/Makefile nanovis/Makefile nanovis/newmat11/Makefile nanovis/R2/src/Makefile nanovis/imgLoaders/Makefile pymolproxy/Makefile start_viz.sh"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -5098,6 +5098,7 @@ do
     "nanovis/Makefile") CONFIG_FILES="$CONFIG_FILES nanovis/Makefile" ;;
     "nanovis/newmat11/Makefile") CONFIG_FILES="$CONFIG_FILES nanovis/newmat11/Makefile" ;;
     "nanovis/R2/src/Makefile") CONFIG_FILES="$CONFIG_FILES nanovis/R2/src/Makefile" ;;
+    "nanovis/imgLoaders/Makefile") CONFIG_FILES="$CONFIG_FILES nanovis/imgLoaders/Makefile" ;;
     "pymolproxy/Makefile") CONFIG_FILES="$CONFIG_FILES pymolproxy/Makefile" ;;
     "start_viz.sh") CONFIG_FILES="$CONFIG_FILES start_viz.sh" ;;
 

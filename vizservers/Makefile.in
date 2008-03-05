@@ -41,4 +41,5 @@ distclean:
 		    exit 1; \
 		fi \
 	done;
-	rm Makefile start_viz.sh
+	rm -f *~
+	rm -f Makefile start_viz.sh
