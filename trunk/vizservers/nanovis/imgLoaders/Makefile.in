@@ -1,0 +1,56 @@
+
+SHELL = /bin/sh
+
+.PHONY: all install clean distclean
+
+prefix          = @prefix@
+exec_prefix     = @exec_prefix@
+bindir          = @bindir@
+libdir          = @libdir@
+srcdir		= @srcdir@
+includedir      = @includedir@
+mandir          = @mandir@
+
+INSTALL		= @INSTALL@
+INSTALL_PROGRAM	= ${INSTALL} -m 755
+INSTALL_DATA	= ${INSTALL} -m 644
+INSTALL_SCRIPT	= ${INSTALL} -m 644
+RM		= rm -f
+AR		= ar rc
+RANLIB		= @RANLIB@
+CC		= @CC@
+
+INCLUDES = -I$(srcdir)
+
+CFLAGS = @CFLAGS@
+EXTRA_CFLAGS = -Wall 
+DEFINES = @DEFINES@
+CC_SWITCHES = $(CFLAGS) $(EXTRA_CFLAGS) $(INCLUDES)
+
+IMGLIB = libImageLoaders.a
+
+OBJS  = \
+	BMPImageLoaderImpl.o \
+	Image.o \
+	ImageLoader.o \
+	ImageLoaderFactory.o \
+	ImageLoaderImpl.o 
+
+all: $(IMGLIB)
+
+install: 
+
+$(IMGLIB): $(OBJS)
+	$(RM) $@
+	$(AR) $@ $(OBJS) 
+	$(RANLIB) $@
+
+.cpp.o:
+	$(CC) $(CC_SWITCHES) -o $@ -c $<
+
+clean:
+	$(RM) $(IMGLIB) $(OBJS)
+
+distclean: clean
+	$(RM) Makefile *~
+
