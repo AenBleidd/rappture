@@ -44,7 +44,7 @@ namespace eval Rappture::resources {
 proc Rappture::resources::register {args} {
     variable optionParser
     foreach {name proc} $args {
-        eval $optionParser alias $name $proc
+        $optionParser alias $name $proc
     }
 }
 

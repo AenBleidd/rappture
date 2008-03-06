@@ -31,7 +31,7 @@ option add *NanovisViewer.font \
 # must use this name -- plugs into Rappture::resources::load
 proc NanovisViewer_init_resources {} {
     Rappture::resources::register \
-        nanovis_server [list Rappture::VisViewer::SetServerList "nanovis"]
+        nanovis_server Rappture::VisViewer::SetNanovisServerList
 }
 
 itcl::class Rappture::NanovisViewer {
