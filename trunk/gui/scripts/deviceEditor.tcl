@@ -50,12 +50,6 @@ itcl::class Rappture::DeviceEditor {
 itk::usual DeviceEditor {
 }
 
-# must use this name -- plugs into Rappture::resources::load
-proc deviceEditor_init_resources {} {
-    Rappture::resources::register \
-        molvis_server Rappture::DeviceEditor::setMolvisServer
-}
-
 # ----------------------------------------------------------------------
 # CONSTRUCTOR
 # ----------------------------------------------------------------------
@@ -126,13 +120,10 @@ itcl::body Rappture::DeviceEditor::value {args} {
 # -brightness and -raise do anything.
 # ----------------------------------------------------------------------
 itcl::body Rappture::DeviceEditor::add {dataobj {settings ""}} {
-
     set _xmlobj $dataobj
-
     if {"" == $_current} {    # Make sure viewer instance exists
         _redraw
     }
-
     eval $_current add $dataobj [list $settings]
 }
 
@@ -143,7 +134,6 @@ itcl::body Rappture::DeviceEditor::add {dataobj {settings ""}} {
 # are specified, then all dataobjs are deleted.
 # ----------------------------------------------------------------------
 itcl::body Rappture::DeviceEditor::delete {args} {
-
     if {"" != $_current} {
         eval $_current delete $args
         set _xmlobj [lindex [$_current get] end]
@@ -182,25 +172,28 @@ itcl::body Rappture::DeviceEditor::_redraw {} {
     }
     switch -- [_type $_xmlobj] {
         molecule {
-            if {![winfo exists $itk_component(hull).mol]} {
-                catch {destroy $itk_component(hull).dev}
-                if {"" != $_molvisHosts} {
-                    Rappture::MolvisViewer $itk_component(hull).mol $_molvisHosts
+            if { ![winfo exists $itk_component(hull).mol] } {
+                catch {
+		    destroy $itk_component(hull).dev
+		}
+		set servers [Rappture::VisViewer::GetServerList "pymol"]
+                if { "" != $servers } {
+                    Rappture::MolvisViewer $itk_component(hull).mol $servers
                 } else {
                     Rappture::MoleculeViewer $itk_component(hull).mol $this
                 } 
                 pack $itk_component(hull).mol -expand yes -fill both
             }
-
             set _current $itk_component(hull).mol
         }
         device1D {
-            if {![winfo exists $itk_component(hull).dev]} {
-                catch {destroy $itk_component(hull).mol}
+            if { ![winfo exists $itk_component(hull).dev] } {
+                catch {
+		    destroy $itk_component(hull).mol
+		}
                 Rappture::DeviceViewer1D $itk_component(hull).dev $this
                 pack $itk_component(hull).dev -expand yes -fill both
             }
-
             set _current $itk_component(hull).dev
         }
     }

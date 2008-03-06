@@ -27,7 +27,6 @@ itcl::class Rappture::NanovisViewer::IsoMarker {
     private common   _activeIcon [Rappture::icon nvlegendmark2]
 
     constructor {c obj args} { 
-	puts stderr "call IsoMarker constructor"
 	set _canvas $c
 	set _nvobj $obj
 	
@@ -39,23 +38,23 @@ itcl::class Rappture::NanovisViewer::IsoMarker {
 	set _label [$c create text 0 $h \
 		-anchor n -fill white -font "Helvetica 6" \
 		-tags "$this $obj" -state hidden]
-	$c bind $_tick <Enter> [itcl::code $this handle_event "enter"]
-	$c bind $_tick <Leave> [itcl::code $this handle_event "leave"]
+	$c bind $_tick <Enter> [itcl::code $this HandleEvent "enter"]
+	$c bind $_tick <Leave> [itcl::code $this HandleEvent "leave"]
 	$c bind $_tick <ButtonPress-1> \
-	    [itcl::code $this handle_event "start" %x %y]
+	    [itcl::code $this HandleEvent "start" %x %y]
 	$c bind $_tick <B1-Motion> \
-	    [itcl::code $this handle_event "update" %x %y]
+	    [itcl::code $this HandleEvent "update" %x %y]
 	$c bind $_tick <ButtonRelease-1> \
-	    [itcl::code $this handle_event "end" %x %y]
+	    [itcl::code $this HandleEvent "end" %x %y]
     }
     destructor { 
 	$_canvas delete $this
     }
 
-    public method get_absolute_value {} {
+    public method GetAbsoluteValue {} {
 	return $_value
     }
-    public method get_relative_value {} {
+    public method GetRelativeValue {} {
 	array set limits [$_nvobj get_limits] 
 	if { $limits(vmax) == $limits(vmin) } {
 	    set limits(vmin) 0.0
@@ -63,7 +62,7 @@ itcl::class Rappture::NanovisViewer::IsoMarker {
 	}
 	return [expr {($_value-$limits(vmin))/($limits(vmax) - $limits(vmin))}]
     }
-    public method activate { bool } {
+    public method Activate { bool } {
 	if  { $bool || $_active_press || $_active_motion } {
 	    $_canvas itemconfigure $_label -state normal
 	    $_canvas itemconfigure $_tick -image $_activeIcon
@@ -72,16 +71,16 @@ itcl::class Rappture::NanovisViewer::IsoMarker {
 	    $_canvas itemconfigure $_tick -image $_normalIcon
 	}
     }
-    public method show {} {
-	set_absolute_value $_value
+    public method Show {} {
+	SetAbsoluteValue $_value
 	$_canvas itemconfigure $_tick -state normal
 	$_canvas raise $_tick
     }
-    public method hide {} {
+    public method Hide {} {
 	$_canvas itemconfigure $_tick -state hidden
     }
-    public method get_screen_position { } { 
-	set x [get_relative_value]
+    public method GetScreenPosition { } { 
+	set x [GetRelativeValue]
 	if { $x < 0.0 } {
 	    set x 0.0
 	} elseif { $x > 1.0 } {
@@ -93,53 +92,53 @@ itcl::class Rappture::NanovisViewer::IsoMarker {
 	set x [expr {round($x*($high - $low) + $low)}]
 	return $x
     }
-    public method set_absolute_value { x } {
+    public method SetAbsoluteValue { x } {
 	set _value $x
 	set y 31
 	$_canvas itemconfigure $_label -text [format %.4g $_value]
-	set x [get_screen_position]
+	set x [GetScreenPosition]
 	$_canvas coords $_tick $x [expr {$y+3}]
 	$_canvas coords $_label $x [expr {$y+5}]
     }
-    public method set_relative_value { x } {
+    public method SetRelativeValue { x } {
 	array set limits [$_nvobj get_limits] 
 	if { $limits(vmax) == $limits(vmin) } {
 	    set limits(vmin) 0.0
 	    set limits(vmax) 1.0
 	}
 	set r [expr $limits(vmax) - $limits(vmin)]
-	set_absolute_value [expr {($x * $r) + $limits(vmin)}]
+	SetAbsoluteValue [expr {($x * $r) + $limits(vmin)}]
     }
-    public method handle_event { option args } {
+    public method HandleEvent { option args } {
 	switch -- $option {
 	    enter {
 		set _active_motion 1
-		activate yes
+		Activate yes
 		$_canvas raise $_tick
 	    }
 	    leave {
 		set _active_motion 0
-		activate no
+		Activate no
 	    }
 	    start {
 		$_canvas raise $_tick 
 		set _active_press 1
-		activate yes
+		Activate yes
 	    }
 	    update {
 		set w [winfo width $_canvas]
 		set x [lindex $args 0]
-		set_relative_value [expr {double($x-10)/($w-20)}]
+		SetRelativeValue [expr {double($x-10)/($w-20)}]
 		$_nvobj OverIsoMarker $this $x
 		$_nvobj UpdateTransferFunction
 	    }
 	    end {
 		set x [lindex $args 0]
 		if { ![$_nvobj RemoveDuplicateIsoMarker $this $x]} {
-		    eval handle_event update $args
+		    eval HandleEvent update $args
 		}
 		set _active_press 0
-		activate no
+		Activate no
 	    }
 	    default {
 		error "bad option \"$option\": should be start, update, end"

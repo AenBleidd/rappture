@@ -31,7 +31,7 @@ option add *NanovisViewer.font \
 # must use this name -- plugs into Rappture::resources::load
 proc NanovisViewer_init_resources {} {
     Rappture::resources::register \
-        nanovis_server [list Rappture::VisViewer::SetServerList "nanovis" ]
+        nanovis_server [list Rappture::VisViewer::SetServerList "nanovis"]
 }
 
 itcl::class Rappture::NanovisViewer {
@@ -85,13 +85,13 @@ itcl::class Rappture::NanovisViewer {
     protected method _fixSettings {what {value ""}}
     protected method _fixLegend {}
     protected method GenTransfuncData {dataobj comp}
-    protected method UpdateTransferFunction {}
-    protected method RemoveDuplicateIsoMarker { m x }
-    protected method OverIsoMarker { m x }
-    protected method AddIsoMarker { x y }
-    protected method InitIsoMarkers {dataobj comp}
-    protected method HideIsoMarkers {dataobj}
-    protected method ShowIsoMarkers {dataobj}
+    public method UpdateTransferFunction {}
+    public method RemoveDuplicateIsoMarker { m x }
+    public method OverIsoMarker { m x }
+    private method AddIsoMarker { x y }
+    private method InitIsoMarkers {dataobj comp}
+    private method HideIsoMarkers {dataobj}
+    private method ShowIsoMarkers {dataobj}
 
     private variable _outbuf       ;# buffer for outgoing commands
 
@@ -150,13 +150,16 @@ itcl::body Rappture::NanovisViewer::constructor {hostlist args} {
     $_parser alias legend [itcl::code $this _receive_legend]
     $_parser alias data [itcl::code $this _receive_data]
 
-    set _view(theta) 45
-    set _view(phi) 45
-    set _view(psi) 0
-    set _view(zoom) 1
-    set _view(xfocus) 0
-    set _view(yfocus) 0
-    set _view(zfocus) 0
+    # Initialize the view to some default parameters.
+    array set _view {
+	theta	45
+	phi	45
+	psi	0
+	zoom	1.0
+	xfocus	0
+	yfocus	0
+	zfocus	0
+    }
     set _obj2id(count) 0
     set _id2obj(count) 0
     set _limits(vmin) 0.0
@@ -636,19 +639,11 @@ itcl::body Rappture::NanovisViewer::download {option args} {
             return ""
         }
         now {
-            #
-            # Hack alert!  Need data in binary format,
-            # so we'll save to a file and read it back.
-            #
-            set tmpfile /tmp/image[pid].jpg
-            $_image(download) write $tmpfile -format jpeg
-            set fid [open $tmpfile r]
-            fconfigure $fid -encoding binary -translation binary
-            set bytes [read $fid]
-            close $fid
-            file delete -force $tmpfile
-
-            return [list .jpg $bytes]
+	    # Doing an image base64 encode/decode has to be better than
+	    # writing the image to a file and reading it back in.
+	    set data [$_image(plot) data -format jpeg]
+	    set data [Rappture::encoding::decode -as b64 $data]
+            return [list .jpg $data]
         }
         default {
             error "bad option \"$option\": should be coming, controls, now"
@@ -664,7 +659,6 @@ itcl::body Rappture::NanovisViewer::download {option args} {
 # Any existing connection is automatically closed.
 # ----------------------------------------------------------------------
 itcl::body Rappture::NanovisViewer::Connect {} {
-    Disconnect
     set _hosts [GetServerList "nanovis"]
     if { "" == $_hosts } {
         return 0
@@ -673,23 +667,21 @@ itcl::body Rappture::NanovisViewer::Connect {} {
     return $result
 }
 
-# ----------------------------------------------------------------------
-# USAGE: isconnected ?<host:port>,<host:port>...?
 #
-# Clients use this method to establish a connection to a new
-# server, or to reestablish a connection to the previous server.
-# Any existing connection is automatically closed.
-# ----------------------------------------------------------------------
+# isconnected --
+#
+#	Indicates if we are currently connected to the visualization server.
+#
 itcl::body Rappture::NanovisViewer::isconnected {} {
     return [VisViewer::IsConnected]
 }
 
-# ----------------------------------------------------------------------
-# USAGE: Disconnect
 #
-# Clients use this method to disconnect from the current rendering
-# server.
-# ----------------------------------------------------------------------
+# Disconnect --
+#
+#	Clients use this method to disconnect from the current rendering
+#	server.
+#
 itcl::body Rappture::NanovisViewer::Disconnect {} {
     VisViewer::Disconnect
 
@@ -703,45 +695,22 @@ itcl::body Rappture::NanovisViewer::Disconnect {} {
     set _sendobjs2 ""
 }
 
-# ----------------------------------------------------------------------
-# USAGE: _send <string>
 #
-# Used internally to send commands off to the rendering server.
-# ----------------------------------------------------------------------
+# _send
+#
+#	Send commands off to the rendering server.  If we're currently
+#	sending data objects to the server, buffer the commands to be 
+#	sent later.
+#
 itcl::body Rappture::NanovisViewer::_send {string} {
-    if { ![isconnected]} {
-        $_dispatcher cancel !serverDown
-        set x [expr {[winfo rootx $itk_component(area)]+10}]
-        set y [expr {[winfo rooty $itk_component(area)]+10}]
-        Rappture::Tooltip::cue @$x,$y "Connecting..."
-
-	set code [catch { Connect } ok]
-        if { $code == 0 && $ok} {
-            set w [winfo width $itk_component(3dview)]
-            set h [winfo height $itk_component(3dview)]
-
-	    if { [Send "screen $w $h"] } {
-                set _view(theta) 45
-                set _view(phi) 45
-                set _view(psi) 0
-                set _view(zoom) 1.0
-		$_dispatcher event -idle !rebuild
-                Rappture::Tooltip::cue hide
-            }
-        } else {
-	    Rappture::Tooltip::cue @$x,$y "Can't connect to visualization server.  This may be a network problem.  Wait a few moments and try resetting the view."
-	}
+    if {[llength $_sendobjs] > 0} {
+	append _outbuf $string "\n"
     } else {
-        # If we're transmitting objects, then buffer this command.
-        if {[llength $_sendobjs] > 0} {
-            append _outbuf $string "\n"
-        } else {
-            if { [Send $string] } {
-                foreach line [split $string \n] {
-                    SendEcho >>line $line
-                }
-            }
-        }
+	if {[SendBytes $string]} {
+	    foreach line [split $string \n] {
+		SendEcho >>line $line
+	    }
+	}
     }
 }
 
@@ -761,22 +730,13 @@ itcl::body Rappture::NanovisViewer::_send_dataobjs {} {
             set data [$dataobj values $comp]
 
             # tell the engine to expect some data
-            set cmdstr "volume data follows [string length $data]"
-            if { ![Send $cmdstr] } {
+            set nbytes [string length $data]
+            if { ![SendBytes "volume data follows $nbytes"] } {
                 return
             }
-            while {[string length $data] > 0} {
-                update
-
-                set chunk [string range $data 0 8095]
-                set data [string range $data 8096 end]
-                if { ![Send $chunk -nonewline] } {
-                    return
-                }
-                Flush
-            }
-	    Send ""
-
+	    if { ![SendBytes $data] } {
+		return
+	    }
 	    set volId $_obj2id(count)
             incr _obj2id(count)
 
@@ -807,7 +767,7 @@ itcl::body Rappture::NanovisViewer::_send_dataobjs {} {
     _send "volume data state [_state volume] $vols"
 
     # if there are any commands in the buffer, send them now that we're done
-    Send $_outbuf
+    SendBytes $_outbuf
     set _outbuf ""
 
     $_dispatcher event -idle !legend
@@ -831,7 +791,7 @@ itcl::body Rappture::NanovisViewer::_send_transfuncs {} {
 	    }
             foreach {sname cmap wmap} [GenTransfuncData $dataobj $comp] break
             set cmdstr [list transfunc define $sname $cmap $wmap]
-	    if {![Send $cmdstr] } {
+	    if {![SendBytes $cmdstr] } {
                 return
             }
             set _obj2style($dataobj-$comp) $sname
@@ -851,7 +811,7 @@ itcl::body Rappture::NanovisViewer::_send_transfuncs {} {
     }
     ShowIsoMarkers $first 
     # if there are any commands in the buffer, send them now that we're done
-    Send $_outbuf
+    SendBytes $_outbuf
     set _outbuf ""
     $_dispatcher event -idle !legend
 }
@@ -865,7 +825,7 @@ itcl::body Rappture::NanovisViewer::_send_transfuncs {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::NanovisViewer::_receive_image {option size} {
     if { [isconnected] } {
-        set bytes [Receive $size]
+        set bytes [ReceiveBytes $size]
         $_image(plot) configure -data $bytes
         ReceiveEcho <<line "<read $size bytes for [image width $_image(plot)]x[image height $_image(plot)] image>"
     }
@@ -880,7 +840,7 @@ itcl::body Rappture::NanovisViewer::_receive_image {option size} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::NanovisViewer::_receive_legend { ivol vmin vmax size } {
     if { [isconnected] } {
-        set bytes [Receive $size]
+        set bytes [ReceiveBytes $size]
         $_image(legend) configure -data $bytes
         ReceiveEcho <<line "<read $size bytes for [image width $_image(legend)]x[image height $_image(legend)] legend>"
 
@@ -974,6 +934,9 @@ itcl::body Rappture::NanovisViewer::_rebuild {} {
         # send off new data objects
 	$_dispatcher event -idle !send_dataobjs
     } else {
+	set w [winfo width $itk_component(3dview)]
+	set h [winfo height $itk_component(3dview)]
+	_send "screen $w $h"
         # nothing to send -- activate the proper volume
         set first [lindex [get] 0]
         if {"" != $first} {
@@ -1057,24 +1020,24 @@ itcl::body Rappture::NanovisViewer::_currentVolumeIds {{what -all}} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::NanovisViewer::_zoom {option} {
     switch -- $option {
-        in {
-            set _view(zoom) [expr {$_view(zoom)*1.25}]
-            _send "camera zoom $_view(zoom)"
+        "in" {
+            set _view(zoom) [expr {$_view(zoom)* 1.25}]
         }
-        out {
-            set _view(zoom) [expr {$_view(zoom)*0.8}]
-            _send "camera zoom $_view(zoom)"
+        "out" {
+            set _view(zoom) [expr {$_view(zoom)* 0.8}]
         }
-        reset {
-            set _view(theta) 45
-            set _view(phi) 45
-            set _view(psi) 0
-            set _view(zoom) 1.0
+        "reset" {
+	    array set _view {
+		theta 45
+		phi 45
+		psi 0
+		zoom 1.0
+	    }
 	    set xyz [Euler2XYZ $_view(theta) $_view(phi) $_view(psi)]
             _send "camera angle $xyz"
-            _send "camera zoom $_view(zoom)"
         }
     }
+    _send "camera zoom $_view(zoom)"
 }
 
 # ----------------------------------------------------------------------
@@ -1135,10 +1098,12 @@ itcl::body Rappture::NanovisViewer::_move {option x y} {
                     while {$psi > 180} { set psi [expr {$psi-360}] }
                 }
 
-                set _view(theta) $theta
-                set _view(phi) $phi
-                set _view(psi) $psi
-		set xyz [Euler2XYZ $_view(theta) $_view(phi) $_view(psi)]
+		array set _view [subst {
+		    theta $theta
+		    phi $phi
+		    psi $psi
+		}]
+		set xyz [Euler2XYZ $theta $phi $psi]
                 _send "camera angle $xyz"
                 set _click(x) $x
                 set _click(y) $y
@@ -1281,6 +1246,7 @@ itcl::body Rappture::NanovisViewer::_fixSettings {what {value ""}} {
                 _send "volume shading specular $sval"
             }
         }
+
         transp {
             if {[isconnected]} {
                 set val [$inner.scales.transp get]
@@ -1305,7 +1271,7 @@ itcl::body Rappture::NanovisViewer::_fixSettings {what {value ""}} {
 		if {$dataobj != 0} {
 		    set val [$inner.scales.thickness get]
 		    # Scale values between 0.00001 and 0.01000
-		    set sval [expr {0.00001*double($val)}]
+		    set sval [expr {0.0001*double($val)}]
 		    set _thickness($dataobj) $sval
 		    UpdateTransferFunction
 		}
@@ -1386,7 +1352,7 @@ itcl::body Rappture::NanovisViewer::GenTransfuncData {dataobj comp} {
     set key $dataobj
     set isovalues {}
     foreach m $_isomarkers($key) {
-	lappend isovalues [$m get_relative_value]
+	lappend isovalues [$m GetRelativeValue]
     }
 
     # Sort the isovalues
@@ -1474,7 +1440,7 @@ itcl::configbody Rappture::NanovisViewer::plotoutline {
 itcl::body Rappture::NanovisViewer::HideIsoMarkers {dataobj} {
     if { [info exists _isomarkers($dataobj)] } {
 	foreach m $_isomarkers($dataobj) {
-	    $m hide
+	    $m Hide
 	}
     }
 }
@@ -1487,7 +1453,7 @@ itcl::body Rappture::NanovisViewer::ShowIsoMarkers {dataobj} {
 	return
     }
     foreach m $_isomarkers($dataobj) {
-	$m show
+	$m Show
     }
 }
 
@@ -1505,7 +1471,7 @@ itcl::body Rappture::NanovisViewer::InitIsoMarkers {dataobj comp} {
 	    # ${n}% : Set relative value. 
 	    set value [expr {$value * 0.01}]
 	    set m [IsoMarker \#auto $c $this]
-	    $m set_relative_value $value
+	    $m SetRelativeValue $value
 	    lappend _isomarkers($dataobj) $m
 	} elseif { $n == 2 && $suffix == "x" } {
 	    # ${n}x : Set equal number of levels 
@@ -1516,13 +1482,13 @@ itcl::body Rappture::NanovisViewer::InitIsoMarkers {dataobj comp} {
 	    for {set i 1} {$i <= $nLevels} {incr i} {
 		set x [expr {double($i)/($nLevels+1)}]
 		set m [IsoMarker \#auto $c $this]
-		$m set_relative_value $x
+		$m SetRelativeValue $x
 		lappend _isomarkers($dataobj) $m 
 	    }
 	} else {
 	    # ${n} : Set absolute value.
 	    set m [IsoMarker \#auto $c $this]
-	    $m set_absolute_value $value
+	    $m SetAbsoluteValue $value
 	    lappend _isomarkers($dataobj) $m
 	}
     }
@@ -1563,8 +1529,8 @@ itcl::body Rappture::NanovisViewer::AddIsoMarker { x y } {
     set c $itk_component(legend)
     set m [IsoMarker \#auto $c $this]
     set w [winfo width $c]
-    $m set_relative_value [expr {double($x-10)/($w-20)}]
-    $m show
+    $m SetRelativeValue [expr {double($x-10)/($w-20)}]
+    $m Show
     lappend _isomarkers($dataobj) $m
     UpdateTransferFunction
     return 1
@@ -1580,10 +1546,10 @@ itcl::body Rappture::NanovisViewer::RemoveDuplicateIsoMarker { marker x } {
 	set list {}
 	set marker [namespace tail $marker]
 	foreach m $_isomarkers($dataobj) {
-	    set sx [$m get_screen_position]
+	    set sx [$m GetScreenPosition]
 	    if { $m != $marker } {
 		if { $x >= ($sx-3) && $x <= ($sx+3) } {
-		    $marker set_relative_value [$m get_relative_value]
+		    $marker SetRelativeValue [$m GetRelativeValue]
 		    itcl::delete object $m
 		    bell
 		    set bool 1
@@ -1606,10 +1572,10 @@ itcl::body Rappture::NanovisViewer::OverIsoMarker { marker x } {
     if { [info exists _isomarkers($dataobj)] } {
 	set marker [namespace tail $marker]
 	foreach m $_isomarkers($dataobj) {
-	    set sx [$m get_screen_position]
+	    set sx [$m GetScreenPosition]
 	    if { $m != $marker } {
 		set bool [expr { $x >= ($sx-3) && $x <= ($sx+3) }]
-		$m activate $bool
+		$m Activate $bool
 	    }
 	}
     }
