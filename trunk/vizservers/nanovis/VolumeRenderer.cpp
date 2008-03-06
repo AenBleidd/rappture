@@ -118,33 +118,32 @@ int slice_sort(const void* a, const void* b){
 
 void VolumeRenderer::render_all_points()
 {
-/*
+#ifdef notdef
     double x0 = 0;
     double y0 = 0;
     double z0 = 0;
-
-  for(int i=0; i<n_volumes; i++){
-    int volume_index = i;
-    if(!volume[i]->is_enabled())
-      continue; //skip this volume
-
-    Vector3* location = volume[volume_index]->get_location();
-    Vector4 shift_4d(location->x, location->y, location->z, 0);
-
-    glPushMatrix();
-    glTranslatef(shift_4d.x, shift_4d.y, shift_4d.z);
-
-    if (volume[volume_index]->outline_is_enabled()) {
-        float olcolor[3];
-        volume[volume_index]->get_outline_color(olcolor);
-        draw_bounding_box(x0, y0, z0, x0+1, y0+1, z0+1,
-            (double)olcolor[0], (double)olcolor[1], (double)olcolor[2],
-            1.5);
+    
+    for(int i=0; i<n_volumes; i++){
+	int volume_index = i;
+	if(!volume[i]->is_enabled())
+	    continue; //skip this volume
+	
+	Vector3* location = volume[volume_index]->get_location();
+	Vector4 shift_4d(location->x, location->y, location->z, 0);
+	
+	glPushMatrix();
+	glTranslatef(shift_4d.x, shift_4d.y, shift_4d.z);
+	
+	if (volume[volume_index]->outline_is_enabled()) {
+	    float olcolor[3];
+	    volume[volume_index]->get_outline_color(olcolor);
+	    draw_bounding_box(x0, y0, z0, x0+1, y0+1, z0+1,
+		(double)olcolor[0], (double)olcolor[1], (double)olcolor[2], 1.5);
+	}
+	
+	glPopMatrix();
     }
-
-    glPopMatrix();
-  }
-*/
+#endif
 }
 
 void VolumeRenderer::render_all()
@@ -533,7 +532,9 @@ void VolumeRenderer::render(int volume_index)
   model_view_trans_inverse = model_view_trans.inverse();
 
   //draw volume bounding box
-  draw_bounding_box(x0, y0, z0, x0+1, y0+1, z0+1, 0.8, 0.1, 0.1, 1.5);
+  if (volume[volume_index]->outline_is_enabled()) {
+      draw_bounding_box(x0, y0, z0, x0+1, y0+1, z0+1, 0.8, 0.1, 0.1, 1.5);
+  }
   glPopMatrix();
 
   //transform volume_planes to eye coordinates.

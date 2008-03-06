@@ -1027,6 +1027,7 @@ NanoVis::offscreen_buffer_capture()
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, final_fbo);
 }
 
+#ifdef notdef
 /* 
  * Is this routine being used? --gah
  */
@@ -1079,6 +1080,7 @@ draw_bounding_box(float x0, float y0, float z0,
     
     glEnable(GL_TEXTURE_2D);
 }
+#endif
 
 
 #ifdef notdef
