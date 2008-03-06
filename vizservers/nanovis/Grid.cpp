@@ -16,12 +16,15 @@ void Grid::render()
 {
     glPushMatrix();
     glEnable(GL_DEPTH_TEST);
+    glEnable(GL_BLEND);
 
     glScalef(1.0 / __axisScale.x, __axisScale.y / __axisScale.x, __axisScale.z / __axisScale.x);
 
     glTranslatef(-0.5f, -0.5f, -0.5f);
+    glDisable(GL_TEXTURE_2D);
     glLineWidth(2.0f);
-    glColor3f(_axisColor.x, _axisColor.y, _axisColor.z);
+    glColor4f(_axisColor.x, _axisColor.y, _axisColor.z, _axisColor.w);
+    //glColor3f(_axisColor.x, _axisColor.y, _axisColor.z);
 
     glBegin(GL_LINES);
     {
@@ -34,10 +37,8 @@ void Grid::render()
     }
     glEnd();
 
-    glDisable(GL_TEXTURE_2D);
     glLineWidth(1.0f);
-    glEnable(GL_BLEND);
-    glColor3f(_gridLineColor.x, _gridLineColor.y, _gridLineColor.z);
+    glColor4f(_gridLineColor.x, _gridLineColor.y, _gridLineColor.z, _gridLineColor.w);
     glBegin(GL_LINES);
 
     float linecount = 2.0f;
