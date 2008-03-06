@@ -38,37 +38,40 @@ itcl::class ::Rappture::VisViewer {
 	# defined below 
     }
     # Used internally only.
-    private method _CheckNameList {namelist} 
     private method _Shuffle { hostlist } 
     private method _ReceiveHelper {} 
     private method _ServerDown {}
     private method _SendHelper {}
 
-    protected method SendEcho {channel {data ""}}
-    protected method ReceiveEcho {channel {data ""}}
+    protected method SendEcho { channel {data ""} }
+    protected method ReceiveEcho { channel {data ""} }
     protected method Connect { hostlist }
     protected method Disconnect {}
     protected method IsConnected {}
     protected method SendBytes { bytes }
     protected method ReceiveBytes { nbytes }
     protected method Flush {}
-    protected method Color2RGB {color}
-    protected method Euler2XYZ {theta phi psi}
+    protected method Color2RGB { color }
+    protected method Euler2XYZ { theta phi psi }
 
-    public proc SetPymolServerList {namelist} {
-	_CheckNameList $namelist
-	set _servers(pymol) $namelist
-    }
-    public proc SetNanovisServerList {namelist} {
-	_CheckNameList $namelist
-	set _servers(nanovis) $namelist
-    }
-    public proc SetServerList {tag namelist} {
-	_CheckNameList $namelist
-	set _servers($tag) $namelist
+    private proc _CheckNameList { namelist }  {
+	set pattern {^[a-zA-Z0-9\.]+:[0-9]+(,[a-zA-Z0-9\.]+:[0-9]+)*$}
+	if { ![regexp $pattern $namelist match] } {
+	    error "bad visualization server address \"$namelist\": should be host:port,host:port,..."
+	}
     }
     public proc GetServerList { tag } {
 	return $_servers($tag)
+    }
+    public proc SetServerList { tag namelist } {
+	_CheckNameList $namelist
+	set _servers($tag) $namelist
+    }
+    public proc SetPymolServerList { namelist } {
+	SetServerList "pymol" $namelist
+    }
+    public proc SetNanovisServerList { namelist } {
+	SetServerList "nanovis" $namelist
     }
 }
 
@@ -153,19 +156,6 @@ itcl::body Rappture::VisViewer::_Shuffle { hostlist } {
 	set hosts [lreplace $hosts $index $index]
     }
     return $random_hosts
-}
-
-#
-# _CheckNameList --
-# 
-#    Used within the class to check if provide list of hostname:port are
-#    correct.  Return an error if the list is invalid.
-#
-itcl::body Rappture::VisViewer::_CheckNameList { namelist } {
-    set pattern {^[a-zA-Z0-9\.]+:[0-9]+(,[a-zA-Z0-9\.]+:[0-9]+)*$}
-    if { ![regexp $pattern $namelist match] } {
-	error "bad visualization server address \"$namelist\": should be host:port,host:port,..."
-    }
 }
 
 #
