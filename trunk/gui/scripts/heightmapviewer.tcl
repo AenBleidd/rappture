@@ -41,12 +41,12 @@ itcl::class Rappture::HeightmapViewer {
     itk_option define -plotoutline plotOutline PlotOutline ""
 
     constructor { hostlist args } { 
-	Rappture::VisViewer::constructor $hostlist 
+        Rappture::VisViewer::constructor $hostlist 
     } { 
-	# defined below 
+        # defined below 
     }
     destructor { 
-	# defined below 
+        # defined below 
     }
 
     public method isconnected {}
@@ -56,7 +56,7 @@ itcl::class Rappture::HeightmapViewer {
     public method scale {args}
     public method download {option args}
     public method parameters {title args} { 
-	# do nothing 
+        # do nothing 
     }
     protected method Connect {}
     protected method Disconnect {}
@@ -91,7 +91,7 @@ itcl::class Rappture::HeightmapViewer {
     private variable _view         ;# view params for 3D view
 
     private common _settings      ;# Array used for checkbuttons and radiobuttons
-			
+                        
 }
 
 itk::usual HeightmapViewer {
@@ -106,11 +106,11 @@ itcl::body Rappture::HeightmapViewer::constructor {hostlist args} {
     # Draw legend event
     $_dispatcher register !legend
     $_dispatcher dispatch $this !legend \
-	"[itcl::code $this _fixSettings legend]; list"
+        "[itcl::code $this _fixSettings legend]; list"
     # Send dataobjs event
     $_dispatcher register !send_dataobjs
     $_dispatcher dispatch $this !send_dataobjs \
-	"[itcl::code $this _send_dataobjs]; list"
+        "[itcl::code $this _send_dataobjs]; list"
     # Rebuild event
     $_dispatcher register !rebuild
     $_dispatcher dispatch $this !rebuild "[itcl::code $this _rebuild]; list"
@@ -125,13 +125,13 @@ itcl::body Rappture::HeightmapViewer::constructor {hostlist args} {
 
     # Initialize the view to some default parameters.
     array set _view {
-	theta	45
-	phi	45
-	psi	0
-	zoom	1.0
-	xfocus	0
-	yfocus	0
-	zfocus	0
+        theta   45
+        phi     45
+        psi     0
+        zoom    1.0
+        xfocus  0
+        yfocus  0
+        zfocus  0
     }
     set _obj2id(count) 0
 
@@ -208,23 +208,23 @@ itcl::body Rappture::HeightmapViewer::constructor {hostlist args} {
     
     set ::Rappture::HeightmapViewer::_settings($this-grid) 1
     ::checkbutton $inner.f.grid \
-	-text "Show Grid" \
-	-variable ::Rappture::HeightmapViewer::_settings($this-grid) \
-	-command [itcl::code $this _fixSettings grid]
+        -text "Show Grid" \
+        -variable ::Rappture::HeightmapViewer::_settings($this-grid) \
+        -command [itcl::code $this _fixSettings grid]
     grid $inner.f.grid -row 0 -column 0 -sticky w
 
     set ::Rappture::HeightmapViewer::_settings($this-axes) 1
     ::checkbutton $inner.f.axes \
-	-text "Show Axes" \
-	-variable ::Rappture::HeightmapViewer::_settings($this-axes) \
-	-command [itcl::code $this _fixSettings axes]
+        -text "Show Axes" \
+        -variable ::Rappture::HeightmapViewer::_settings($this-axes) \
+        -command [itcl::code $this _fixSettings axes]
     grid $inner.f.axes -row 1 -column 0 -sticky w
 
     set ::Rappture::HeightmapViewer::_settings($this-contourlines) 1
     ::checkbutton $inner.f.contour \
-	-text "Show Contour Lines" \
-	-variable ::Rappture::HeightmapViewer::_settings($this-contourlines) \
-	-command [itcl::code $this _fixSettings contourlines]
+        -text "Show Contour Lines" \
+        -variable ::Rappture::HeightmapViewer::_settings($this-contourlines) \
+        -command [itcl::code $this _fixSettings contourlines]
     grid $inner.f.contour -row 2 -column 0 -sticky w
 
 
@@ -304,7 +304,7 @@ itcl::body Rappture::HeightmapViewer::add {dataobj {settings ""}} {
         set _obj2ovride($dataobj-color) $params(-color)
         set _obj2ovride($dataobj-width) $params(-width)
         set _obj2ovride($dataobj-raise) $params(-raise)
-	$_dispatcher event -idle !rebuild
+        $_dispatcher event -idle !rebuild
     }
 }
 
@@ -328,7 +328,7 @@ itcl::body Rappture::HeightmapViewer::get {args} {
         set dlist $_dlist
         foreach obj $dlist {
             if { [info exists _obj2ovride($obj-raise)] && 
-		 $_obj2ovride($obj-raise)} {
+                 $_obj2ovride($obj-raise)} {
                 set i [lsearch -exact $dlist $obj]
                 if {$i >= 0} {
                     set dlist [lreplace $dlist $i $i]
@@ -386,7 +386,7 @@ itcl::body Rappture::HeightmapViewer::delete {args} {
 
     # if anything changed, then rebuild the plot
     if {$changed} {
-	$_dispatcher event -idle !rebuild
+        $_dispatcher event -idle !rebuild
     }
 }
 
@@ -437,8 +437,8 @@ itcl::body Rappture::HeightmapViewer::download {option args} {
     switch $option {
         coming {
             if {[catch {
-		blt::winop snap $itk_component(area) $_image(download)
-	    }]} {
+                blt::winop snap $itk_component(area) $_image(download)
+            }]} {
                 $_image(download) configure -width 1 -height 1
                 $_image(download) put #000000
             }
@@ -516,19 +516,19 @@ itcl::body Rappture::HeightmapViewer::Disconnect {} {
 #
 # _send
 #
-#	Send commands off to the rendering server.  If we're currently
-#	sending data objects to the server, buffer the commands to be 
-#	sent later.
+#       Send commands off to the rendering server.  If we're currently
+#       sending data objects to the server, buffer the commands to be 
+#       sent later.
 #
 itcl::body Rappture::HeightmapViewer::_send {string} {
     if {[llength $_sendobjs] > 0} {
-	append _outbuf $string "\n"
+        append _outbuf $string "\n"
     } else {
-	if {[SendBytes $string]} {
-	    foreach line [split $string \n] {
-		SendEcho >>line $line
-	    }
-	}
+        if {[SendBytes $string]} {
+            foreach line [split $string \n] {
+                SendEcho >>line $line
+            }
+        }
     }
 }
 
@@ -544,35 +544,35 @@ itcl::body Rappture::HeightmapViewer::_send_dataobjs {} {
 
     # Reset the overall limits 
     if { $_sendobjs != "" } {
-	set _limits(vmin) ""
-	set _limits(vmax) ""
+        set _limits(vmin) ""
+        set _limits(vmax) ""
     }
     foreach dataobj $_sendobjs {
         foreach comp [$dataobj components] {
             # send the data as one huge base64-encoded mess -- yuck!
             set data [$dataobj blob $comp]
 
-	    foreach { vmin vmax }  [$dataobj limits v] break
-	    if { $_limits(vmin) == "" || $vmin < $_limits(vmin) } {
-		set _limits(vmin) $vmin
-	    }
-	    if { $_limits(vmax) == "" || $vmax > $_limits(vmax) } {
-		set _limits(vmax) $vmax
-	    }
+            foreach { vmin vmax }  [$dataobj limits v] break
+            if { $_limits(vmin) == "" || $vmin < $_limits(vmin) } {
+                set _limits(vmin) $vmin
+            }
+            if { $_limits(vmax) == "" || $vmax > $_limits(vmax) } {
+                set _limits(vmax) $vmax
+            }
 
             # tell the engine to expect some data
             set nbytes [string length $data]
             if { ![SendBytes "heightmap data follows $nbytes"] } {
                 return
             }
-	    if { ![SendBytes $data] } {
-		return
-	    }
-	    set id $_obj2id(count)
+            if { ![SendBytes $data] } {
+                return
+            }
+            set id $_obj2id(count)
             incr _obj2id(count)
-	    set _id2obj($id) [list $dataobj $comp]
+            set _id2obj($id) [list $dataobj $comp]
             set _obj2id($dataobj-$comp) $id
-	    set _receiveids($id) 1
+            set _receiveids($id) 1
 
             #
             # Determine the transfer function needed for this volume
@@ -737,13 +737,13 @@ itcl::body Rappture::HeightmapViewer::_zoom {option} {
             set _view(zoom) [expr {$_view(zoom)*0.8}]
         }
         "reset" {
-	    array set _view {
-		theta	45
-		phi	45
-		psi	0
-		zoom	1.0
-	    }
-	    set xyz [Euler2XYZ $_view(theta) $_view(phi) $_view(psi)]
+            array set _view {
+                theta   45
+                phi     45
+                psi     0
+                zoom    1.0
+            }
+            set xyz [Euler2XYZ $_view(theta) $_view(phi) $_view(psi)]
             _send "camera angle $xyz"
         }
     }
@@ -762,10 +762,10 @@ itcl::body Rappture::HeightmapViewer::_move {option x y} {
     switch -- $option {
         click {
             $itk_component(3dview) configure -cursor fleur
-            set _click(x)	$x
-            set _click(y)	$y
-            set _click(theta)	$_view(theta)
-            set _click(phi)	$_view(phi)
+            set _click(x)       $x
+            set _click(y)       $y
+            set _click(theta)   $_view(theta)
+            set _click(phi)     $_view(phi)
         }
         drag {
             if {[array size _click] == 0} {
@@ -808,10 +808,10 @@ itcl::body Rappture::HeightmapViewer::_move {option x y} {
                     while {$psi > 180} { set psi [expr {$psi-360}] }
                 }
 
-                set _view(theta)	$theta
-                set _view(phi)		$phi
-                set _view(psi)		$psi
-		set xyz [Euler2XYZ $_view(theta) $_view(phi) $_view(psi)]
+                set _view(theta)        $theta
+                set _view(phi)          $phi
+                set _view(psi)          $psi
+                set xyz [Euler2XYZ $_view(theta) $_view(phi) $_view(psi)]
                 _send "camera angle $xyz"
                 set _click(x) $x
                 set _click(y) $y
@@ -851,48 +851,48 @@ itcl::body Rappture::HeightmapViewer::_state {comp} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::HeightmapViewer::_fixSettings { what {value ""} } {
     switch -- $what {
-	"legend" {
-	    set lineht [font metrics $itk_option(-font) -linespace]
-	    set w [expr {[winfo width $itk_component(legend)]-20}]
-	    set h [expr {[winfo height $itk_component(legend)]-20-$lineht}]
-	    set imap ""
-	    
-	    set dataobj [lindex [get] 0]
-	    if {"" != $dataobj} {
-		set comp [lindex [$dataobj components] 0]
-		if {[info exists _obj2id($dataobj-$comp)]} {
-		    set imap $_obj2id($dataobj-$comp)
-		}
-	    }
-	    if {$w > 0 && $h > 0 && "" != $imap} {
-		_send "heightmap legend $imap $w $h"
-	    } else {
-		$itk_component(legend) delete all
-	    }
-	}
-	"grid" {
-	    if { [isconnected] } {
-		_send "grid visible $_settings($this-grid)"
-	    }
-	}
-	"axes" {
-	    if { [isconnected] } {
-		_send "axis visible $_settings($this-axes)"
-	    }
-	}
-	"contourlines" {
-	    if {[isconnected]} {
-		set dataobj [lindex [get] 0]
-		if {"" != $dataobj} {
-		    set comp [lindex [$dataobj components] 0]
-		    if {[info exists _obj2id($dataobj-$comp)]} {
-			set i $_obj2id($dataobj-$comp)
-			set bool $_settings($this-contourlines)
-			_send "heightmap linecontour visible $bool $i"
-		    }
-		}
-	    }
-	}
+        "legend" {
+            set lineht [font metrics $itk_option(-font) -linespace]
+            set w [expr {[winfo width $itk_component(legend)]-20}]
+            set h [expr {[winfo height $itk_component(legend)]-20-$lineht}]
+            set imap ""
+            
+            set dataobj [lindex [get] 0]
+            if {"" != $dataobj} {
+                set comp [lindex [$dataobj components] 0]
+                if {[info exists _obj2id($dataobj-$comp)]} {
+                    set imap $_obj2id($dataobj-$comp)
+                }
+            }
+            if {$w > 0 && $h > 0 && "" != $imap} {
+                _send "heightmap legend $imap $w $h"
+            } else {
+                $itk_component(legend) delete all
+            }
+        }
+        "grid" {
+            if { [isconnected] } {
+                _send "grid visible $_settings($this-grid)"
+            }
+        }
+        "axes" {
+            if { [isconnected] } {
+                _send "axis visible $_settings($this-axes)"
+            }
+        }
+        "contourlines" {
+            if {[isconnected]} {
+                set dataobj [lindex [get] 0]
+                if {"" != $dataobj} {
+                    set comp [lindex [$dataobj components] 0]
+                    if {[info exists _obj2id($dataobj-$comp)]} {
+                        set i $_obj2id($dataobj-$comp)
+                        set bool $_settings($this-contourlines)
+                        _send "heightmap linecontour visible $bool $i"
+                    }
+                }
+            }
+        }
         default {
             error "don't know how to fix $what: should be grid, axes, contourlines, or legend"
         }
@@ -973,6 +973,6 @@ itcl::configbody Rappture::HeightmapViewer::plotforeground {
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::HeightmapViewer::plotoutline {
     if {[isconnected]} {
-	_send "grid linecolor [Color2RGB $itk_option(-plotoutline)]"
+        _send "grid linecolor [Color2RGB $itk_option(-plotoutline)]"
     }
 }
