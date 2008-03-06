@@ -26,7 +26,7 @@ option add *MolvisViewer.font -*-helvetica-medium-r-normal-*-12-* widgetDefault
 # must use this name -- plugs into Rappture::resources::load
 proc MolvisViewer_init_resources {} {
     Rappture::resources::register \
-        molvis_server [list Rappture::VisViewer::SetServerList "pymol"]
+        molvis_server Rappture::VisViewer::SetPymolServerList
 }
 
 set debug 1
