@@ -5,11 +5,6 @@
 #  This class is the base class for the various visualization viewers 
 #  that use the nanoserver render farm.
 #
-#  My plan is to make this class the parent of the NanovisViewer and
-#  HeightmapViewer classes. I'm going to move out all the server-related 
-#  methods like _send*, _receive*, connect, disconnect, etc. from those
-#  classes into this one.
-#
 # ======================================================================
 #  AUTHOR:  Michael McLennan, Purdue University
 #  Copyright (c) 2004-2005  Purdue Research Foundation
@@ -25,16 +20,16 @@ itcl::class ::Rappture::VisViewer {
     itk_option define -receivecommand receiveCommand ReceiveCommand ""
 
     private common _servers          ;# array of visualization server lists
-    set _servers(nanovis) "128.210.189.216:2000" 
-    set _servers(pymol) barney
+    set _servers(nanovis) "" 
+    set _servers(pymol)   "" 
 
-    protected variable _dispatcher "" ;# dispatcher for !events
-    protected variable _hosts ""     ;# list of hosts for server
-    protected variable _sid ""       ;# socket connection to server
-    protected variable _parser ""    ;# interpreter for incoming commands
-    protected variable _inbuf        ;# buffer for incoming/outgoing commands
-    protected variable _busy 0
+    protected variable _dispatcher ""	;# dispatcher for !events
+    protected variable _hosts ""	;# list of hosts for server
+    protected variable _sid ""		;# socket connection to server
+    protected variable _parser ""	;# interpreter for incoming commands
     protected variable _image
+    private common _done		;# Used to indicate status of send.
+    private variable _buffer		;# buffer for incoming/outgoing commands
 
     constructor { hostlist args } { 
 	# defined below 
@@ -45,16 +40,17 @@ itcl::class ::Rappture::VisViewer {
     # Used internally only.
     private method _CheckNameList {namelist} 
     private method _Shuffle { hostlist } 
-    private method _ReceiveCmd {} 
+    private method _ReceiveHelper {} 
     private method _ServerDown {}
+    private method _SendHelper {}
 
     protected method SendEcho {channel {data ""}}
     protected method ReceiveEcho {channel {data ""}}
     protected method Connect { hostlist }
     protected method Disconnect {}
     protected method IsConnected {}
-    protected method Send { cmdstr { switch "" } }
-    protected method Receive { nbytes }
+    protected method SendBytes { bytes }
+    protected method ReceiveBytes { nbytes }
     protected method Flush {}
     protected method Color2RGB {color}
     protected method Euler2XYZ {theta phi psi}
@@ -79,9 +75,8 @@ itcl::body Rappture::VisViewer::constructor { hostlist args } {
 
     _CheckNameList $hostlist
     set _hostlist $hostlist
-
-    set _inbuf ""
-
+    set _buffer(in) ""
+    set _buffer(out) ""
     #
     # Create a parser to handle incoming requests
     #
@@ -190,7 +185,7 @@ itcl::body Rappture::VisViewer::_ServerDown {} {
 #
 itcl::body Rappture::VisViewer::Connect { hostlist } {
     blt::busy hold $itk_component(hull) -cursor watch
-    update idletasks
+    update
 
     # Shuffle the list of servers so as to pick random 
     set servers [_Shuffle $hostlist]
@@ -231,12 +226,12 @@ itcl::body Rappture::VisViewer::Connect { hostlist } {
             [expr {$b4 & 0xff}]]
 
         if { [string equal $addr "0.0.0.0"] } {
-	    # Success: Cancel any pending serverDown events and release the
-	    # busy window over the hull.
+	    # We're connected. Cancel any pending serverDown events and
+	    # release the busy window over the hull.
 	    $_dispatcher cancel !serverDown
 	    blt::busy release $itk_component(hull)
-	    fconfigure $_sid -buffering line 
-	    fileevent $_sid readable [itcl::code $this _ReceiveCmd]
+	    fconfigure $_sid -buffering line
+	    fileevent $_sid readable [itcl::code $this _ReceiveHelper]
             return 1
         }
         set hostname $addr
@@ -244,6 +239,195 @@ itcl::body Rappture::VisViewer::Connect { hostlist } {
     #NOTREACHED
     blt::busy release $itk_component(hull)
     return 0
+}
+
+
+#
+# Disconnect --
+#
+#    Clients use this method to disconnect from the current rendering
+#    server.
+#
+itcl::body Rappture::VisViewer::Disconnect {} {
+    if { [IsConnected] } {
+        catch {close $_sid} err
+        set _sid ""
+	$_dispatcher event -after 750 !serverDown
+    }
+    set _buffer(in) ""			
+}
+
+#
+# IsConnected --
+#
+#    Indicates if we are currently connected to a server.
+#
+itcl::body Rappture::VisViewer::IsConnected {} {
+    return [expr {"" != $_sid}]
+}
+
+#
+# _SendHelper --
+#
+#	Helper routine called from a file event to send data when the
+#	connection is writable (i.e. not blocked).  Sends data in chunks 
+#	of 8k (or less).  Sets magic variable _done($this) to indicate
+#	that we're either finished (success) or could not send bytes to
+#	the server (failure).
+#
+itcl::body Rappture::VisViewer::_SendHelper {} {
+    set bytesLeft [string length $_buffer(out)]
+    if { $bytesLeft > 0} {
+	# 8095
+	set chunk [string range $_buffer(out) 0 9]
+	# 8096
+	set _buffer(out)  [string range $_buffer(out) 10 end]
+	# -8096
+	incr bytesLeft -10
+	set code [catch {
+	    if { $bytesLeft > 0 } {
+		puts -nonewline $_sid $chunk
+	    } else {
+		puts $_sid $chunk
+	    }		
+	} err]
+	if { $code != 0 } {
+	    puts stderr "error sending data to $_sid: $err"
+	    Disconnect
+	    set _done($this) 0;		# Failure
+	} 
+    } else {
+	set _done($this) 1;		# Success
+    }
+}
+
+#
+# SendBytes --
+#
+#	Send a a string to the visualization server.  
+#
+itcl::body Rappture::VisViewer::SendBytes { bytes } {
+    SendEcho >>line $bytes
+
+    if { ![IsConnected]} {
+	# If we aren't connected, assume it's because the connection to the
+	# visualization server broke. Try to open a connection and trigger a
+	# rebuild.
+        $_dispatcher cancel !serverDown
+        set x [expr {[winfo rootx $itk_component(area)]+10}]
+        set y [expr {[winfo rooty $itk_component(area)]+10}]
+        Rappture::Tooltip::cue @$x,$y "Connecting..."
+	set code [catch { Connect } ok]
+        if { $code == 0 && $ok} {
+	    $_dispatcher event -idle !rebuild
+	    Rappture::Tooltip::cue hide
+        } else {
+	    Rappture::Tooltip::cue @$x,$y "Can't connect to visualization server.  This may be a network problem.  Wait a few moments and try resetting the view."
+	}
+	return
+    }
+    set _done($this) 1
+    set _buffer(out) $bytes
+    fileevent $_sid writable [itcl::code $this _SendHelper]
+    tkwait variable ::Rappture::VisViewer::_done($this)
+    fileevent $_sid writable ""
+    flush $_sid
+    set _buffer(out) ""
+    return $_done($this)
+}
+
+#
+# ReceiveBytes --
+#
+#    Read some number of bytes from the visualization server. 
+#
+itcl::body Rappture::VisViewer::ReceiveBytes { size } {
+    if { [eof $_sid] } {
+	error "unexpected eof on socket"
+    }
+    set bytes [read $_sid $size]
+    ReceiveEcho <<line "<read $size bytes"
+    return $bytes
+}
+
+# 
+# _ReceiveHelper --
+#
+#	Helper routine called from a file event when the connection is 
+#	readable (i.e. a command response has been sent by the rendering 
+#	server.  Reads the incoming command and executes it in a safe 
+#	interpreter to handle the action.
+#
+#       Note: This routine currently only handles command responses from
+#	      the visualization server.  It doesn't handle non-blocking
+#	      reads from the visualization server.
+#
+#	    nv>image -bytes 100000		yes
+#	    ...following 100000 bytes...	no		
+# 
+itcl::body Rappture::VisViewer::_ReceiveHelper {} {
+    if { [IsConnected] } {
+	if { [eof $_sid] } {
+	    error "_receive: unexpected eof on socket"
+	}
+        if { [gets $_sid line] < 0 } {
+            Disconnect
+        } elseif {[string equal [string range $line 0 2] "nv>"]} {
+            ReceiveEcho <<line $line
+            append _buffer(in) [string range $line 3 end]
+	    append _buffer(in) "\n"
+            if {[info complete $_buffer(in)]} {
+                set request $_buffer(in)
+                set _buffer(in) ""
+                $_parser eval $request
+            }
+        } else {
+            # this shows errors coming back from the engine
+            ReceiveEcho <<error $line
+            puts stderr $line
+        }
+    }
+}
+
+
+#
+# Flush --
+#
+#    Flushes the socket.
+#
+itcl::body Rappture::VisViewer::Flush {} {
+    if { [IsConnected] } {
+	flush $_sid
+    }
+}
+
+
+#
+# Color2RGB --
+#
+#	Converts a color name to a list of r,g,b values needed for the
+#	engine.  Each r/g/b component is scaled in the # range 0-1.  
+#
+itcl::body Rappture::VisViewer::Color2RGB {color} {
+    foreach {r g b} [winfo rgb $itk_component(hull) $color] break
+    set r [expr {$r/65535.0}]
+    set g [expr {$g/65535.0}]
+    set b [expr {$b/65535.0}]
+    return [list $r $g $b]
+}
+
+#
+# Euler2XYZ --
+#
+#	Converts euler angles for the camera placement the to angles of
+#	rotation about the x/y/z axes, used by the engine.  Returns a list:
+#	{xangle, yangle, zangle}.  
+#
+itcl::body Rappture::VisViewer::Euler2XYZ {theta phi psi} {
+    set xangle [expr {$theta-90.0}]
+    set yangle [expr {180-$phi}]
+    set zangle $psi
+    return [list $xangle $yangle $zangle]
 }
 
 
@@ -275,134 +459,4 @@ itcl::body Rappture::VisViewer::ReceiveEcho {channel {data ""}} {
     if {[string length $itk_option(-receivecommand)] > 0} {
         uplevel #0 $itk_option(-receivecommand) [list $channel $data]
     }
-}
-
-#
-# Disconnect --
-#
-#    Clients use this method to disconnect from the current rendering
-#    server.
-#
-itcl::body Rappture::VisViewer::Disconnect {} {
-    if { [IsConnected] } {
-        catch {close $_sid} err
-        set _sid ""
-	$_dispatcher event -after 750 !serverDown
-    }
-    set _inbuf ""			
-}
-
-#
-# IsConnected --
-#
-#    Indicates if we are currently connected to a server.
-#
-itcl::body Rappture::VisViewer::IsConnected {} {
-    return [expr {"" != $_sid}]
-}
-
-#
-# Send --
-#
-#    Send a string to the visualization server.
-#
-itcl::body Rappture::VisViewer::Send { cmdstr { switch "" } } {
-    SendEcho >>line $cmdstr
-    if { $switch != "" } {
-	set code [catch {puts $switch $_sid $cmdstr} err]
-    } else {
-	set code [catch {puts $_sid $cmdstr} err]
-    }
-    flush $_sid
-    if { $code != 0 } {
-	puts stderr "error sending data to $_sid: $err"
-	Disconnect
-	return 0
-    }
-    return 1
-}
-
-
-#
-# Receive --
-#
-#    Read some number of bytes from the visualization server.
-#
-itcl::body Rappture::VisViewer::Receive { size } {
-    if { [eof $_sid] } {
-	error "unexpected eof on socket"
-    }
-    set bytes [read $_sid $size]
-    ReceiveEcho <<line "<read $size bytes"
-    return $bytes
-}
-
-#
-# Flush --
-#
-#    Flushes the socket.
-#
-itcl::body Rappture::VisViewer::Flush {} {
-    if { [IsConnected] } {
-	flush $_sid
-    }
-}
-
-# 
-# _ReceiveCmd --
-#
-#     Invoked automatically whenever a command is received from the
-#     rendering server.  Reads the incoming command and executes it in
-#     a safe interpreter to handle the action.
-# 
-itcl::body Rappture::VisViewer::_ReceiveCmd {} {
-    if { [IsConnected] } {
-	if { [eof $_sid] } {
-	    error "_receive: unexpected eof on socket"
-	}
-        if {[gets $_sid line] < 0} {
-            Disconnect
-        } elseif {[string equal [string range $line 0 2] "nv>"]} {
-            ReceiveEcho <<line $line
-            append _inbuf [string range $line 3 end]
-            if {[info complete $_inbuf]} {
-                set request $_inbuf
-                set _inbuf ""
-                $_parser eval $request
-            }
-        } else {
-            # this shows errors coming back from the engine
-            ReceiveEcho <<error $line
-            puts stderr $line
-        }
-    }
-}
-
-
-#
-# Color2RGB --
-#
-#	Converts a color name to a list of r,g,b values needed for the
-#	engine.  Each r/g/b component is scaled in the # range 0-1.  
-#
-itcl::body Rappture::VisViewer::Color2RGB {color} {
-    foreach {r g b} [winfo rgb $itk_component(hull) $color] break
-    set r [expr {$r/65535.0}]
-    set g [expr {$g/65535.0}]
-    set b [expr {$b/65535.0}]
-    return [list $r $g $b]
-}
-
-#
-# Euler2XYZ --
-#
-#	Converts euler angles for the camera placement the to angles of
-#	rotation about the x/y/z axes, used by the engine.  Returns a list:
-#	{xangle, yangle, zangle}.  
-#
-itcl::body Rappture::VisViewer::Euler2XYZ {theta phi psi} {
-    set xangle [expr {$theta-90.0}]
-    set yangle [expr {180-$phi}]
-    set zangle $psi
-    return [list $xangle $yangle $zangle]
 }

@@ -144,6 +144,9 @@ itcl::body Rappture::UniRect2d::limits {which} {
 	    }
 	    set axis "zaxis"
 	}
+	default {
+	    error "unknown axis description \"$which\""
+	}
     }
 #     set val [$_field get $axis.min]
 #     if {"" != $val && "" != $min} {

@@ -66,7 +66,6 @@ itcl::class Rappture::HeightmapViewer {
     protected method _receive_image {option size}
     protected method _receive_legend {ivol vmin vmax size}
     protected method _receive_echo {channel {data ""}}
-    protected method _receive_data {args}
 
     protected method _rebuild {}
     protected method _zoom {option}
@@ -123,15 +122,17 @@ itcl::body Rappture::HeightmapViewer::constructor {hostlist args} {
     #
     $_parser alias image [itcl::code $this _receive_image]
     $_parser alias legend [itcl::code $this _receive_legend]
-    $_parser alias data [itcl::code $this _receive_data]
 
-    set _view(theta) 45
-    set _view(phi) 45
-    set _view(psi) 0
-    set _view(zoom) 1
-    set _view(xfocus) 0
-    set _view(yfocus) 0
-    set _view(zfocus) 0
+    # Initialize the view to some default parameters.
+    array set _view {
+	theta	45
+	phi	45
+	psi	0
+	zoom	1.0
+	xfocus	0
+	yfocus	0
+	zfocus	0
+    }
     set _obj2id(count) 0
 
     itk_component add zoom {
@@ -468,6 +469,16 @@ itcl::body Rappture::HeightmapViewer::download {option args} {
 }
 
 # ----------------------------------------------------------------------
+# USAGE: isconnected
+#
+# Clients use this method to see if we are currently connected to
+# a server.
+# ----------------------------------------------------------------------
+itcl::body Rappture::HeightmapViewer::isconnected {} {
+    return [VisViewer::IsConnected]
+}
+
+# ----------------------------------------------------------------------
 # USAGE: Connect ?<host:port>,<host:port>...?
 #
 # Clients use this method to establish a connection to a new
@@ -502,55 +513,22 @@ itcl::body Rappture::HeightmapViewer::Disconnect {} {
     set _sendobjs ""
 }
 
-# ----------------------------------------------------------------------
-# USAGE: isconnected
 #
-# Clients use this method to see if we are currently connected to
-# a server.
-# ----------------------------------------------------------------------
-itcl::body Rappture::HeightmapViewer::isconnected {} {
-    return [VisViewer::IsConnected]
-}
-
-# ----------------------------------------------------------------------
-# USAGE: _send <string>
+# _send
 #
-# Used internally to send commands off to the rendering server.
-# ----------------------------------------------------------------------
+#	Send commands off to the rendering server.  If we're currently
+#	sending data objects to the server, buffer the commands to be 
+#	sent later.
+#
 itcl::body Rappture::HeightmapViewer::_send {string} {
-    if { ![isconnected] } {
-        $_dispatcher cancel !serverDown
-        set x [expr {[winfo rootx $itk_component(area)]+10}]
-        set y [expr {[winfo rooty $itk_component(area)]+10}]
-        Rappture::Tooltip::cue @$x,$y "Connecting..."
-
-        set code [catch { Connect } ok]
-        if { $code == 0 && $ok} {
-            set w [winfo width $itk_component(3dview)]
-            set h [winfo height $itk_component(3dview)]
-
-            if { [Send "screen $w $h"] } {
-                set _view(theta) 45
-                set _view(phi) 45
-                set _view(psi) 0
-                set _view(zoom) 1.0
-                $_dispatcher event -idle !rebuild
-                Rappture::Tooltip::cue hide
-            }
-        } else {
-	    Rappture::Tooltip::cue @$x,$y "Can't connect to visualization server.  This may be a network problem.  Wait a few moments and try resetting the view."
-	}
+    if {[llength $_sendobjs] > 0} {
+	append _outbuf $string "\n"
     } else {
-        # if we're transmitting objects, then buffer this command
-        if {[llength $_sendobjs] > 0} {
-            append _outbuf $string "\n"
-        } else {
-            if { [Send $string] } {
-                foreach line [split $string \n] {
-                    SendEcho >>line $line
-                }
-            }
-        }
+	if {[SendBytes $string]} {
+	    foreach line [split $string \n] {
+		SendEcho >>line $line
+	    }
+	}
     }
 }
 
@@ -564,29 +542,32 @@ itcl::body Rappture::HeightmapViewer::_send {string} {
 itcl::body Rappture::HeightmapViewer::_send_dataobjs {} {
     blt::busy hold $itk_component(hull); update idletasks
 
+    # Reset the overall limits 
+    if { $_sendobjs != "" } {
+	set _limits(vmin) ""
+	set _limits(vmax) ""
+    }
     foreach dataobj $_sendobjs {
         foreach comp [$dataobj components] {
             # send the data as one huge base64-encoded mess -- yuck!
             set data [$dataobj blob $comp]
 
+	    foreach { vmin vmax }  [$dataobj limits v] break
+	    if { $_limits(vmin) == "" || $vmin < $_limits(vmin) } {
+		set _limits(vmin) $vmin
+	    }
+	    if { $_limits(vmax) == "" || $vmax > $_limits(vmax) } {
+		set _limits(vmax) $vmax
+	    }
+
             # tell the engine to expect some data
-	    set length [string length $data]
-            set cmdstr "heightmap data follows $length"
-            if { ![Send $cmdstr] } {
+            set nbytes [string length $data]
+            if { ![SendBytes "heightmap data follows $nbytes"] } {
                 return
             }
-            while {[string length $data] > 0} {
-                update
-
-                set chunk [string range $data 0 8095]
-                set data [string range $data 8096 end]
-                if { ![Send $chunk -nonewline] } {
-                    return
-                }
-                Flush
-            }
-            Send ""
-
+	    if { ![SendBytes $data] } {
+		return
+	    }
 	    set id $_obj2id(count)
             incr _obj2id(count)
 	    set _id2obj($id) [list $dataobj $comp]
@@ -599,7 +580,7 @@ itcl::body Rappture::HeightmapViewer::_send_dataobjs {} {
             #
             foreach {sname cmap wmap} [_getTransfuncData $dataobj $comp] break
             set cmdstr [list "transfunc" "define" $sname $cmap $wmap]
-            if {![Send $cmdstr]} {
+            if {![SendBytes $cmdstr]} {
                 return
             }
             set _obj2style($dataobj-$comp) $sname
@@ -626,7 +607,7 @@ itcl::body Rappture::HeightmapViewer::_send_dataobjs {} {
     }
 
     # if there are any commands in the buffer, send them now that we're done
-    Send $_outbuf
+    SendBytes $_outbuf
     set _outbuf ""
 
     $_dispatcher event -idle !legend
@@ -641,7 +622,7 @@ itcl::body Rappture::HeightmapViewer::_send_dataobjs {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::HeightmapViewer::_receive_image {option size} {
     if {[isconnected]} {
-        set bytes [Receive $size]
+        set bytes [ReceiveBytes $size]
         $_image(plot) configure -data $bytes
         ReceiveEcho <<line "<read $size bytes for [image width $_image(plot)]x[image height $_image(plot)] image>"
     }
@@ -656,7 +637,7 @@ itcl::body Rappture::HeightmapViewer::_receive_image {option size} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::HeightmapViewer::_receive_legend {ivol vmin vmax size} {
     if { [isconnected] } {
-        set bytes [Receive $size]
+        set bytes [ReceiveBytes $size]
         $_image(legend) configure -data $bytes
         ReceiveEcho <<line "<read $size bytes for [image width $_image(legend)]x[image height $_image(legend)] legend>"
 
@@ -672,43 +653,10 @@ itcl::body Rappture::HeightmapViewer::_receive_legend {ivol vmin vmax size} {
             $c create text [expr {$w-10}] [expr {$h-8}] -anchor se \
                  -fill $itk_option(-plotforeground) -tags vmax
         }
-        $c itemconfigure vmin -text $vmin
+        $c itemconfigure vmin -text $_limits(vmin)
         $c coords vmin 10 [expr {$h-8}]
-        $c itemconfigure vmax -text $vmax
+        $c itemconfigure vmax -text $_limits(vmax)
         $c coords vmax [expr {$w-10}] [expr {$h-8}]
-    }
-}
-
-# ----------------------------------------------------------------------
-# USAGE: _receive_data <id> <vmin> <vmax> 
-#
-# Invoked automatically whenever the "legend" command comes in from
-# the rendering server.  Indicates that binary image data with the
-# specified <size> will follow.
-# ----------------------------------------------------------------------
-itcl::body Rappture::HeightmapViewer::_receive_data { args } {
-    if { [isconnected] } {
-	array set info $args
-	set id $info(id)
-	foreach { dataobj comp } $_id2obj($id) break
-	if { ![info exists _limits($dataobj-vmin] } {
-	    set _limits($dataobj-vmin) $info(min)
-	    set _limits($dataobj-vmax) $info(max)
-	} else {
-	    if { $_limits($dataobj-vmin) > $info(min) } {
-		set _limits($dataobj-vmin) $info(min)
-	    } 
-	    if { $_limits($dataobj-vmax) > $info(max) } {
-		set _limits($dataobj-vmax) $info(max)
-	    } 
-	}	    
-	set _limits(vmin) $info(vmin)
-	set _limits(vmax) $info(vmax)
-	lappend _sendobjs2 $dataobj
-	unset _receiveids($info(id))
-	if { [array size _receiveids] == 0 } {
-	    #$_dispatcher event -idle !send_transfuncs
-	}
     }
 }
 
@@ -724,13 +672,9 @@ itcl::body Rappture::HeightmapViewer::_rebuild {} {
     if {[llength $_sendobjs] > 0} {
         return
     }
-
-    #
-    # Find any new data that needs to be sent to the server.
-    # Queue this up on the _sendobjs list, and send it out
-    # a little at a time.  Do this first, before we rebuild
-    # the rest.
-    #
+    # Find any new data that needs to be sent to the server.  Queue this up on
+    # the _sendobjs list, and send it out a little at a time.  Do this first,
+    # before we rebuild the rest.
     foreach dataobj [get] {
         set comp [lindex [$dataobj components] 0]
         if {![info exists _obj2id($dataobj-$comp)]} {
@@ -741,10 +685,10 @@ itcl::body Rappture::HeightmapViewer::_rebuild {} {
         }
     }
     if {[llength $_sendobjs] > 0} {
-        # send off new data objects
+        # Send off new data objects
         $_dispatcher event -idle !send_dataobjs
     } else {
-        # nothing to send -- activate the proper volume
+        # Nothing to send -- activate the proper volume
         set first [lindex [get] 0]
         if {"" != $first} {
             set axis [$first hints updir]
@@ -786,24 +730,24 @@ itcl::body Rappture::HeightmapViewer::_rebuild {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::HeightmapViewer::_zoom {option} {
     switch -- $option {
-        in {
+        "in" {
             set _view(zoom) [expr {$_view(zoom)*1.25}]
-            _send "camera zoom $_view(zoom)"
         }
-        out {
+        "out" {
             set _view(zoom) [expr {$_view(zoom)*0.8}]
-            _send "camera zoom $_view(zoom)"
         }
-        reset {
-            set _view(theta) 45
-            set _view(phi) 45
-            set _view(psi) 0
-            set _view(zoom) 1.0
+        "reset" {
+	    array set _view {
+		theta	45
+		phi	45
+		psi	0
+		zoom	1.0
+	    }
 	    set xyz [Euler2XYZ $_view(theta) $_view(phi) $_view(psi)]
             _send "camera angle $xyz"
-            _send "camera zoom $_view(zoom)"
         }
     }
+    _send "camera zoom $_view(zoom)"
 }
 
 # ----------------------------------------------------------------------
@@ -818,10 +762,10 @@ itcl::body Rappture::HeightmapViewer::_move {option x y} {
     switch -- $option {
         click {
             $itk_component(3dview) configure -cursor fleur
-            set _click(x) $x
-            set _click(y) $y
-            set _click(theta) $_view(theta)
-            set _click(phi) $_view(phi)
+            set _click(x)	$x
+            set _click(y)	$y
+            set _click(theta)	$_view(theta)
+            set _click(phi)	$_view(phi)
         }
         drag {
             if {[array size _click] == 0} {
@@ -864,9 +808,9 @@ itcl::body Rappture::HeightmapViewer::_move {option x y} {
                     while {$psi > 180} { set psi [expr {$psi-360}] }
                 }
 
-                set _view(theta) $theta
-                set _view(phi) $phi
-                set _view(psi) $psi
+                set _view(theta)	$theta
+                set _view(phi)		$phi
+                set _view(psi)		$psi
 		set xyz [Euler2XYZ $_view(theta) $_view(phi) $_view(psi)]
                 _send "camera angle $xyz"
                 set _click(x) $x
