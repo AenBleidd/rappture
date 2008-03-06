@@ -33,7 +33,7 @@ set debug 1
 proc debug { args } {
     global debug
     if { $debug } {
-	puts stderr "[info level -1]: $args"
+        puts stderr "[info level -1]: $args"
     }
 }
 
@@ -43,12 +43,12 @@ itcl::class Rappture::MolvisViewer {
     itk_option define -device device Device ""
 
     constructor { hostlist args } { 
-	Rappture::VisViewer::constructor $hostlist 
+        Rappture::VisViewer::constructor $hostlist 
     } { 
-	# defined below 
+        # defined below 
     }
     destructor { 
-	# defined below 
+        # defined below 
     }
     public method Connect {}
     public method Disconnect {}
@@ -220,17 +220,17 @@ itcl::body Rappture::MolvisViewer::constructor {hostlist args} {
     radiobutton $inner.model.bstick -text "Balls and sticks" \
         -command [itcl::code $this representation ballnstick all] \
         -variable Rappture::MolvisViewer::_settings($this-model) \
-	-value ballnstick
+        -value ballnstick
     pack $inner.model.bstick -side top -anchor w
     radiobutton $inner.model.spheres -text "Spheres" \
         -command [itcl::code $this representation spheres all] \
         -variable Rappture::MolvisViewer::_settings($this-model) \
-	-value spheres
+        -value spheres
     pack $inner.model.spheres -side top -anchor w
     radiobutton $inner.model.lines -text "Lines" \
         -command [itcl::code $this representation lines all] \
         -variable Rappture::MolvisViewer::_settings($this-model) \
-	-value lines
+        -value lines
     pack $inner.model.lines -side top -anchor w
 
     checkbutton $inner.labels -text "Show labels on atoms" \
@@ -358,7 +358,7 @@ itcl::body Rappture::MolvisViewer::download {option args} {
 #
 # isconnected --
 #
-#	Indicates if we are currently connected to the visualization server.
+#       Indicates if we are currently connected to the visualization server.
 #
 itcl::body Rappture::MolvisViewer::isconnected {} {
     return [VisViewer::IsConnected]
@@ -368,7 +368,7 @@ itcl::body Rappture::MolvisViewer::isconnected {} {
 #
 # Connect --
 #
-#	Establishes a connection to a new visualization server.
+#       Establishes a connection to a new visualization server.
 #
 itcl::body Rappture::MolvisViewer::Connect {} {
     #$_image(plot) blank
@@ -378,10 +378,10 @@ itcl::body Rappture::MolvisViewer::Connect {} {
     }
     set result [VisViewer::Connect $hosts]
     if { $result } {
-	set _rocker(server) 0
-	set _cacheid 0
-	_send "raw -defer {set auto_color,0}"
-	_send "raw -defer {set auto_show_lines,0}"
+        set _rocker(server) 0
+        set _cacheid 0
+        _send "raw -defer {set auto_color,0}"
+        _send "raw -defer {set auto_show_lines,0}"
     }
     return $result
 }
@@ -389,8 +389,8 @@ itcl::body Rappture::MolvisViewer::Connect {} {
 #
 # Disconnect --
 #
-#	Clients use this method to disconnect from the current rendering
-#	server.
+#       Clients use this method to disconnect from the current rendering
+#       server.
 #
 itcl::body Rappture::MolvisViewer::Disconnect {} {
     VisViewer::Disconnect
@@ -433,8 +433,8 @@ itcl::body Rappture::MolvisViewer::_send { args } {
 itcl::body Rappture::MolvisViewer::_receive_image { size cacheid frame rock } {
     set tag "$frame,$rock"
     if { $cacheid != $_cacheid } {
-	array unset _imagecache 
-	set _cacheid $cacheid
+        array unset _imagecache 
+        set _cacheid $cacheid
     }
     set _imagecache($tag) [ReceiveBytes $size]
  
@@ -557,15 +557,15 @@ itcl::body Rappture::MolvisViewer::_rebuild {} {
 
         if { $_mlist($obj) == 1 } {
             if {  [info exists _model($obj-newtransparency)] || 
-		  [info exists _model($obj-newrepresentation)] } {
+                  [info exists _model($obj-newrepresentation)] } {
                 if { ![info exists _model($obj-newrepresentation)] } {
                     set _model($obj-newrepresentation) $_model($obj-representation)
                 }
                 if { ![info exists _model($obj-newtransparency)] } {
                     set _model($obj-newtransparency) $_model($obj-transparency)
                 }
-		set rep $_model($obj-newrepresentation)
-		set transp $_model($obj-newtransparency)
+                set rep $_model($obj-newrepresentation)
+                set transp $_model($obj-newtransparency)
                 _send "$_model($obj-newrepresentation) -defer -model $obj -$_model($obj-newtransparency)"
                 set changed 1
                 set _model($obj-transparency) $_model($obj-newtransparency)
@@ -613,10 +613,10 @@ itcl::body Rappture::MolvisViewer::_unmap { } {
 
 itcl::body Rappture::MolvisViewer::_map { } {
     if { [isconnected] } {
-	# resume rocking loop if it was on
-	rock unpause
-	# rebuild image if modified, or redisplay cached image if not
-	$_dispatcher event -idle !rebuild
+        # resume rocking loop if it was on
+        rock unpause
+        # rebuild image if modified, or redisplay cached image if not
+        $_dispatcher event -idle !rebuild
     }
 }
 
@@ -625,13 +625,13 @@ itcl::body Rappture::MolvisViewer::_configure { w h } {
     # immediately invalidate cache, defer update until mapped
     array unset _imagecache 
     if { [isconnected] } {
-	if { [winfo ismapped $itk_component(3dview)] } {
-	    _send "screen $w $h"
-	    _send "reset -push"
-	} else {
-	    _send "screen -defer $w $h"
-	    _send "reset -push"
-	}
+        if { [winfo ismapped $itk_component(3dview)] } {
+            _send "screen $w $h"
+            _send "reset -push"
+        } else {
+            _send "screen -defer $w $h"
+            _send "reset -push"
+        }
     }
 }
 
@@ -814,7 +814,7 @@ itcl::body Rappture::MolvisViewer::_vmouse {option b m x y} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::MolvisViewer::representation {option {model "all"} } {
     if { $option == $_mrepresentation } { 
-	return 
+        return 
     }
     set _settings($this-modelimg) [Rappture::icon $option]
     set inner [$itk_component(controls).panel component inner]
@@ -840,7 +840,7 @@ itcl::body Rappture::MolvisViewer::representation {option {model "all"} } {
         }
     }
     if { [isconnected] } {
-	$_dispatcher event -idle !rebuild
+        $_dispatcher event -idle !rebuild
     }
 }
 
@@ -900,13 +900,13 @@ itcl::body Rappture::MolvisViewer::emblems {option} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::MolvisViewer::add { dataobj {options ""}} {
     array set params {
-        -color		auto
-        -brightness	0
-        -width		1
-        -raise		0
-        -linestyle	solid
-        -description	""
-        -param		""
+        -color          auto
+        -brightness     0
+        -width          1
+        -raise          0
+        -linestyle      solid
+        -description    ""
+        -param          ""
     }
 
     foreach {opt val} $options {
@@ -941,9 +941,9 @@ itcl::body Rappture::MolvisViewer::add { dataobj {options ""}} {
         }
         set _dobj2raise($dataobj) $params(-raise)
 
-	if { [isconnected] } {
-	    $_dispatcher event -idle !rebuild
-	}
+        if { [isconnected] } {
+            $_dispatcher event -idle !rebuild
+        }
     }
 }
 
@@ -996,9 +996,9 @@ itcl::body Rappture::MolvisViewer::delete {args} {
 
     # if anything changed, then rebuild the plot
     if {$changed} {
-	if { [isconnected] } {
-	    $_dispatcher event -idle !rebuild
-	}
+        if { [isconnected] } {
+            $_dispatcher event -idle !rebuild
+        }
     }
 }
 
@@ -1018,6 +1018,6 @@ itcl::configbody Rappture::MolvisViewer::device {
     }
 
     if { [isconnected] } {
-	$_dispatcher event -idle !rebuild
+        $_dispatcher event -idle !rebuild
     }
 }
