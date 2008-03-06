@@ -278,12 +278,9 @@ itcl::body Rappture::VisViewer::IsConnected {} {
 itcl::body Rappture::VisViewer::_SendHelper {} {
     set bytesLeft [string length $_buffer(out)]
     if { $bytesLeft > 0} {
-	# 8095
-	set chunk [string range $_buffer(out) 0 9]
-	# 8096
-	set _buffer(out)  [string range $_buffer(out) 10 end]
-	# -8096
-	incr bytesLeft -10
+	set chunk [string range $_buffer(out) 0 8095]
+	set _buffer(out)  [string range $_buffer(out) 8096 end]
+	incr bytesLeft -8096
 	set code [catch {
 	    if { $bytesLeft > 0 } {
 		puts -nonewline $_sid $chunk
