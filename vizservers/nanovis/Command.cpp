@@ -229,39 +229,41 @@ GetPolygonMode(Tcl_Interp *interp, Tcl_Obj *objPtr,
 
 
 static int 
-GetVolumeLimits(Tcl_Interp *interp, float *minPtr, float *maxPtr) 
+GetVolumeLimits(Tcl_Interp *interp, AxisRange *range) 
 {
-    int i;
 
     /* Find the first volume. */
-    for (i = 0; i < NanoVis::n_volumes; i++) {
-        if (NanoVis::volume[i] != NULL) {
+    int start;
+    for (start = 0; start < NanoVis::n_volumes; start++) {
+        if (NanoVis::volume[start] != NULL) {
             break;
         }
     }
-    if (i == NanoVis::n_volumes) {
+    if (start == NanoVis::n_volumes) {
         Tcl_AppendResult(interp, "no volumes found", (char *)NULL);
         return TCL_ERROR;
     }
-    Volume *volPtr;
-    volPtr = NanoVis::volume[i];
-    float min, max;
-    min = volPtr->range_min();
-    max = volPtr->range_max();
-    for (i++; i < NanoVis::n_volumes; i++) {
-        if (NanoVis::volume[i] == NULL) {
-            continue;
-        }
-        volPtr = NanoVis::volume[i];
-        if (min > volPtr->range_min()) {
-            min = volPtr->range_min();
-        }
-        if (max < volPtr->range_max()) {
-            max = volPtr->range_max();
-        }
+    int axis;
+    for (axis = AxisRange::X; axis <= AxisRange::VALUES; axis++) {
+	Volume *volPtr;
+	int i;
+
+	i = start;
+	volPtr = NanoVis::volume[i];
+	range[axis] = *volPtr->GetRange(axis);
+	for (i++; i < NanoVis::n_volumes; i++) {
+	    const AxisRange *rangePtr;
+
+	    volPtr = NanoVis::volume[i];
+	    rangePtr = volPtr->GetRange(axis);
+	    if (range[axis].max < rangePtr->max) {
+		range[axis].max = rangePtr->max;
+	    }
+	    if (range[axis].min > rangePtr->min) {
+		range[axis].min = rangePtr->min;
+	    }
+	}
     }
-    *minPtr = min;
-    *maxPtr = max;
     return TCL_OK;
 }
 
@@ -552,13 +554,13 @@ GetAxis(Tcl_Interp *interp, const char *string, int *indexPtr)
 
         c = tolower((unsigned char)string[0]);
         if (c == 'x') {
-            *indexPtr = NanoVis::X;
+            *indexPtr = AxisRange::X;
             return TCL_OK;
         } else if (c == 'y') {
-            *indexPtr = NanoVis::Y;
+            *indexPtr = AxisRange::Y;
             return TCL_OK;
         } else if (c == 'z') {
-            *indexPtr = NanoVis::Z;
+            *indexPtr = AxisRange::Z;
             return TCL_OK;
         }
         /*FALLTHRU*/
@@ -727,12 +729,11 @@ CameraZoomOp(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *CONST *obj
     return TCL_OK;
 }
 
-static Rappture::CmdSpec cameraOps[] =
-    {
-	{"aim",     2, CameraAimOp,      5, 5, "x y z",},
-	{"angle",   2, CameraAngleOp,    5, 5, "xAngle yAngle zAngle",},
-	{"zoom",    1, CameraZoomOp,     3, 3, "factor",},
-    };
+static Rappture::CmdSpec cameraOps[] = {
+    {"aim",     2, CameraAimOp,      5, 5, "x y z",},
+    {"angle",   2, CameraAngleOp,    5, 5, "xAngle yAngle zAngle",},
+    {"zoom",    1, CameraZoomOp,     3, 3, "factor",},
+};
 static int nCameraOps = NumCmdSpecs(cameraOps);
 
 /*
@@ -785,8 +786,10 @@ ScreenShotCmd(ClientData cdata, Tcl_Interp *interp, int objc,
       data[i] = data[i+256] = (float)(i/255.0);
       }
       Texture2D* plane = new Texture2D(256, 2, GL_FLOAT, GL_LINEAR, 1, data);
-      NanoVis::color_table_renderer->render(1024, 1024, plane, tf, vol->range_min(),
-      vol->range_max());
+      AxisRange *rangePtr;
+      rangePtr = vol->GetRange(AxisRange::VALUES);
+      NanoVis::color_table_renderer->render(1024, 1024, plane, tf, rangePtr->min,
+		rangePtr->max);
       delete plane;
     
       }
@@ -860,11 +863,10 @@ CutplaneStateOp(ClientData cdata, Tcl_Interp *interp, int objc,
     return TCL_OK;
 }
 
-static Rappture::CmdSpec cutplaneOps[] =
-    {
-	{"position", 1, CutplanePositionOp, 4, 0, "bool axis ?indices?",},
-	{"state",    1, CutplaneStateOp,    4, 0, "relval axis ?indices?",},
-    };
+static Rappture::CmdSpec cutplaneOps[] = {
+    {"position", 1, CutplanePositionOp, 4, 0, "bool axis ?indices?",},
+    {"state",    1, CutplaneStateOp,    4, 0, "relval axis ?indices?",},
+};
 static int nCutplaneOps = NumCmdSpecs(cutplaneOps);
 
 /*
@@ -934,11 +936,14 @@ LegendCmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *CONST *objv)
         (Tcl_GetIntFromObj(interp, objv[3], &h) != TCL_OK)) {
         return TCL_ERROR;
     }
-    float vmin, vmax;
-    if (GetVolumeLimits(interp, &vmin, &vmax) != TCL_OK) {
+    AxisRange range[4];
+    if (GetVolumeLimits(interp, range) != TCL_OK) {
         return TCL_ERROR;
     }
-    NanoVis::render_legend(tf, vmin, vmax, w, h, label);
+    NanoVis::render_legend(tf, 
+			   range[AxisRange::VALUES].min, 
+			   range[AxisRange::VALUES].max, 
+			   w, h, label);
     return TCL_OK;
 }
 
@@ -1109,7 +1114,6 @@ UpCmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *CONST *objv)
     return TCL_OK;
 }
 
-#ifndef notdef
 
 static int
 VolumeAnimationCaptureOp(ClientData cdata, Tcl_Interp *interp, int objc, 
@@ -1186,14 +1190,13 @@ VolumeAnimationVolumesOp(ClientData cdata, Tcl_Interp *interp, int objc,
     return TCL_OK;
 }
 
-static Rappture::CmdSpec volumeAnimationOps[] =
-    {
-	{"capture",   2, VolumeAnimationCaptureOp,  4, 5, "numframes ?filename?",},
-	{"clear",     2, VolumeAnimationClearOp,    3, 3, "",},
-	{"start",     3, VolumeAnimationStartOp,    3, 3, "",},
-	{"stop",      3, VolumeAnimationStopOp,     3, 3, "",},
-	{"volumes",   1, VolumeAnimationVolumesOp,  3, 0, "?indices?",},
-    };
+static Rappture::CmdSpec volumeAnimationOps[] = {
+    {"capture",   2, VolumeAnimationCaptureOp,  4, 5, "numframes ?filename?",},
+    {"clear",     2, VolumeAnimationClearOp,    3, 3, "",},
+    {"start",     3, VolumeAnimationStartOp,    3, 3, "",},
+    {"stop",      3, VolumeAnimationStopOp,     3, 3, "",},
+    {"volumes",   1, VolumeAnimationVolumesOp,  3, 0, "?indices?",},
+};
 
 static int nVolumeAnimationOps = NumCmdSpecs(volumeAnimationOps);
 
@@ -1346,14 +1349,18 @@ VolumeDataFollowsOp(ClientData cdata, Tcl_Interp *interp, int objc,
     {
         Volume *volPtr;
         char info[1024];
-        float vmin, vmax;
+        AxisRange overall[4];
         
-        if (GetVolumeLimits(interp, &vmin, &vmax) != TCL_OK) {
+        if (GetVolumeLimits(interp, overall) != TCL_OK) {
             return TCL_ERROR;
         }
         volPtr = NanoVis::volume[n];
+	const AxisRange *rangePtr;
+	rangePtr = volPtr->GetRange(AxisRange::VALUES);
         sprintf(info, "nv>data id %d min %g max %g vmin %g vmax %g\n", 
-                n, volPtr->range_min(), volPtr->range_max(),vmin, vmax);
+                n, rangePtr->min, rangePtr->max,
+		overall[AxisRange::VALUES].min, 
+		overall[AxisRange::VALUES].max);
         write(0, info, strlen(info));
     }
     return TCL_OK;
@@ -1385,11 +1392,10 @@ VolumeDataStateOp(ClientData cdata, Tcl_Interp *interp, int objc,
     return TCL_OK;
 }
 
-static Rappture::CmdSpec volumeDataOps[] =
-    {
-	{"follows",   1, VolumeDataFollowsOp, 4, 4, "size",},
-	{"state",     1, VolumeDataStateOp,   4, 0, "bool ?indices?",},
-    };
+static Rappture::CmdSpec volumeDataOps[] = {
+    {"follows",   1, VolumeDataFollowsOp, 4, 4, "size",},
+    {"state",     1, VolumeDataStateOp,   4, 0, "bool ?indices?",},
+};
 static int nVolumeDataOps = NumCmdSpecs(volumeDataOps);
 
 static int
@@ -1451,36 +1457,12 @@ VolumeOutlineStateOp(ClientData cdata, Tcl_Interp *interp, int objc,
     return TCL_OK;
 }
 
-static int
-VolumeOutlineVisibleOp(ClientData cdata, Tcl_Interp *interp, int objc, 
-		       Tcl_Obj *CONST *objv)
-{
-    bool visible;
-    if (GetBooleanFromObj(interp, objv[3], &visible) != TCL_OK) {
-	return TCL_ERROR;
-    }           
-    if (!visible) {
-	for (int i = 0; i < NanoVis::n_volumes; ++i) {
-	    if (NanoVis::volume[i]) {
-		NanoVis::volume[i]->disable_outline();
-	    }
-	}
-    } else {
-	for (int i = 0; i < NanoVis::n_volumes; ++i) {
-	    if (NanoVis::volume[i]) {
-		NanoVis::volume[i]->enable_outline();
-	    }
-	}
-    }
-    return TCL_OK;
-}
 
-static Rappture::CmdSpec volumeOutlineOps[] =
-    {
-	{"color",     1, VolumeOutlineColorOp,    6, 0, "r g b ?indices?",},
-	{"state",     1, VolumeOutlineStateOp,    4, 0, "bool ?indices?",},
-	{"visible",   1, VolumeOutlineVisibleOp,  4, 0, "bool ?indices?",},
-    };
+static Rappture::CmdSpec volumeOutlineOps[] = {
+    {"color",     1, VolumeOutlineColorOp,  6, 0, "r g b ?indices?",},
+    {"state",     1, VolumeOutlineStateOp,  4, 0, "bool ?indices?",},
+    {"visible",   1, VolumeOutlineStateOp,  4, 0, "bool ?indices?",},
+};
 static int nVolumeOutlineOps = NumCmdSpecs(volumeOutlineOps);
 
 static int
@@ -1603,14 +1585,13 @@ VolumeShadingTransFuncOp(ClientData cdata, Tcl_Interp *interp, int objc,
     return TCL_OK;
 }
 
-static Rappture::CmdSpec volumeShadingOps[] =
-    {
-	{"diffuse",     1, VolumeShadingDiffuseOp,    4, 0, "value ?indices?",},
-	{"isosurface",  1, VolumeShadingIsosurfaceOp, 4, 0, "bool ?indices?",},
-	{"opacity",     1, VolumeShadingOpacityOp,    4, 0, "value ?indices?",},
-	{"specular",    1, VolumeShadingSpecularOp,   4, 0, "value ?indices?",},
-	{"transfunc",   1, VolumeShadingTransFuncOp,  4, 0, "funcName ?indices?",},
-    };
+static Rappture::CmdSpec volumeShadingOps[] = {
+    {"diffuse",     1, VolumeShadingDiffuseOp,    4, 0, "value ?indices?",},
+    {"isosurface",  1, VolumeShadingIsosurfaceOp, 4, 0, "bool ?indices?",},
+    {"opacity",     1, VolumeShadingOpacityOp,    4, 0, "value ?indices?",},
+    {"specular",    1, VolumeShadingSpecularOp,   4, 0, "value ?indices?",},
+    {"transfunc",   1, VolumeShadingTransFuncOp,  4, 0, "funcName ?indices?",},
+};
 static int nVolumeShadingOps = NumCmdSpecs(volumeShadingOps);
 
 static int
@@ -1692,16 +1673,15 @@ VolumeTestOp(ClientData cdata, Tcl_Interp *interp, int objc,
     return TCL_OK;
 }
 
-static Rappture::CmdSpec volumeOps[] =
-    {
-	{"animation", 2, VolumeAnimationOp,   3, 3, "oper ?args?",},
-	{"axis",      2, VolumeAxisOp,        3, 3, "label axis value ?indices?",},
-	{"data",      1, VolumeDataOp,        3, 3, "oper ?args?",},
-	{"outline",   1, VolumeOutlineOp,     3, 0, "oper ?args?",},
-	{"shading",   2, VolumeShadingOp,     3, 0, "oper ?args?",},
-	{"state",     2, VolumeStateOp,       3, 0, "bool ?indices?",},
-	{"test2",     1, VolumeTestOp,        2, 2, "",},
-    };
+static Rappture::CmdSpec volumeOps[] = {
+    {"animation", 2, VolumeAnimationOp,   3, 3, "oper ?args?",},
+    {"axis",      2, VolumeAxisOp,        3, 3, "label axis value ?indices?",},
+    {"data",      1, VolumeDataOp,        3, 3, "oper ?args?",},
+    {"outline",   1, VolumeOutlineOp,     3, 0, "oper ?args?",},
+    {"shading",   2, VolumeShadingOp,     3, 0, "oper ?args?",},
+    {"state",     2, VolumeStateOp,       3, 0, "bool ?indices?",},
+    {"test2",     1, VolumeTestOp,        2, 2, "",},
+};
 static int nVolumeOps = NumCmdSpecs(volumeOps);
 
 /*
@@ -1733,543 +1713,6 @@ VolumeCmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *CONST *objv)
     return (*proc) (cdata, interp, objc, objv);
 }
 
-#else 
-
-static int
-VolumeCmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *CONST *objv)
-{
-    if (objc < 2) {
-        Tcl_AppendResult(interp, "wrong # args: should be \"", 
-			 Tcl_GetString(objv[0]), " option arg arg...\"", (char*)NULL);
-        return TCL_ERROR;
-    }
-
-    char *string = Tcl_GetString(objv[1]);
-    char c = string[0];
-    if ((c == 'a') && (strcmp(string, "axis") == 0)) {
-        if (objc < 3) {
-            Tcl_AppendResult(interp, "wrong # args: should be \"", 
-			     Tcl_GetString(objv[0]), " axis option ?arg arg...?\"", 
-			     (char*)NULL);
-            return TCL_ERROR;
-        }
-        char *string = Tcl_GetString(objv[2]);
-        c = string[0];
-        if ((c == 'l') && (strcmp(string, "label") == 0)) {
-            if (objc < 5) {
-                Tcl_AppendResult(interp, "wrong # args: should be \"", 
-				 Tcl_GetString(objv[0]), 
-				 " axis label x|y|z string ?volume ...?\"", (char*)NULL);
-                return TCL_ERROR;
-            }
-            int axis;
-            if (GetAxisFromObj(interp, objv[3], &axis) != TCL_OK) {
-                return TCL_ERROR;
-            }
-            vector<Volume *> ivol;
-            if (GetVolumes(interp, objc - 5, objv + 5, &ivol) != TCL_OK) {
-                return TCL_ERROR;
-            }
-            vector<Volume *>::iterator iter;
-            char *label;
-            label = Tcl_GetString(objv[4]);
-            for (iter = ivol.begin(); iter != ivol.end(); iter++) {
-                (*iter)->set_label(axis, label);
-            }
-        } else {
-            Tcl_AppendResult(interp, "bad option \"", string, 
-			     "\": should be label", (char*)NULL);
-            return TCL_ERROR;
-        }
-    } else if ((c == 'd') && (strcmp(string, "data") == 0)) {
-        if (objc < 3) {
-            Tcl_AppendResult(interp, "wrong # args: should be \"", 
-			     Tcl_GetString(objv[0]), " data option ?arg arg...?\"", 
-			     (char*)NULL);
-            return TCL_ERROR;
-        }
-        char *string = Tcl_GetString(objv[2]);
-        c = string[0];
-        if ((c == 's') && (strcmp(string, "state") == 0)) {
-            if (objc < 4) {
-                Tcl_AppendResult(interp, "wrong # args: should be \"", 
-				 Tcl_GetString(objv[0])," data state on|off ?volume...?\"", 
-				 (char*)NULL); 
-                return TCL_ERROR;
-            }
-            bool state;
-            if (GetBooleanFromObj(interp, objv[3], &state) != TCL_OK) {
-                return TCL_ERROR;
-            }
-            vector<Volume *> ivol;
-            if (GetVolumes(interp, objc - 4, objv + 4, &ivol) != TCL_OK) {
-                return TCL_ERROR;
-            }
-            if (state) {
-                vector<Volume *>::iterator iter;
-                for (iter = ivol.begin(); iter != ivol.end(); iter++) {
-                    (*iter)->enable_data();
-                }
-            } else {
-                vector<Volume *>::iterator iter;
-                for (iter = ivol.begin(); iter != ivol.end(); iter++) {
-                    (*iter)->disable_data();
-                }
-            }
-        } else if (c == 'f' && strcmp(string, "follows") == 0) {
-            if (objc < 4) {
-                Tcl_AppendResult(interp, "wrong # args: should be \"", 
-				 Tcl_GetString(objv[0]), " data follows size", (char*)NULL);
-                return TCL_ERROR;
-            }
-            printf("Data Loading\n");
-            fflush(stdout);
-
-            int nbytes;
-            if (Tcl_GetIntFromObj(interp, objv[3], &nbytes) != TCL_OK) {
-                return TCL_ERROR;
-            }
-            
-            Rappture::Buffer buf;
-            if (GetDataStream(interp, buf, nbytes) != TCL_OK) {
-                return TCL_ERROR;
-            }
-            int n = NanoVis::n_volumes;
-            char header[6];
-            memcpy(header, buf.bytes(), sizeof(char) * 5);
-            header[5] = '\0';
-
-#if _LOCAL_ZINC_TEST_
-            //FILE* fp = fopen("/home/nanohub/vrinside/nv/data/HOON/QDWL_100_100_50_strain_8000i.nd_zatom_12_1", "rb");
-            FILE* fp;
-
-            fp = fopen("/home/nanohub/vrinside/nv/data/HOON/GaAs_AlGaAs_2QD_B4.nd_zc_1_wf", "rb");
-            if (fp == NULL) {
-                printf("cannot open the file\n");
-                fflush(stdout);
-                return TCL_ERROR;
-            }
-            unsigned char* b = (unsigned char*)malloc(buf.size());
-            fread(b, buf.size(), 1, fp);
-            fclose(fp);
-#endif  /*_LOCAL_ZINC_TEST_*/
-            printf("Checking header[%s]\n", header);
-            fflush(stdout);
-            if (strcmp(header, "<HDR>") == 0) {
-                Volume* vol = NULL;
-
-                printf("ZincBlende stream is in\n");
-                fflush(stdout);
-                //std::stringstream fdata(std::ios_base::out|std::ios_base::in|std::ios_base::binary);
-                //fdata.write(buf.bytes(),buf.size());
-                //vol = NvZincBlendeReconstructor::getInstance()->loadFromStream(fdata);
-                
-#if _LOCAL_ZINC_TEST_
-                vol = NvZincBlendeReconstructor::getInstance()->loadFromMemory(b);
-#else
-                vol = NvZincBlendeReconstructor::getInstance()->loadFromMemory((void*) buf.bytes());
-#endif  /*_LOCAL_ZINC_TEST_*/
-
-                printf("finish loading\n");
-                fflush(stdout);
-                if (vol) {
-                    while (NanoVis::n_volumes <= n) {
-                        NanoVis::volume.push_back((Volume*) NULL);
-                        NanoVis::n_volumes++;
-                    }
-
-                    if (NanoVis::volume[n] != NULL) {
-                        delete NanoVis::volume[n];
-                        NanoVis::volume[n] = NULL;
-                    }
-
-                    float dx0 = -0.5;
-                    float dy0 = -0.5*vol->height/vol->width;
-                    float dz0 = -0.5*vol->depth/vol->width;
-                    vol->move(Vector3(dx0, dy0, dz0));
-
-                    NanoVis::volume[n] = vol;
-                }
-#if __TEST_CODE__
-            } else if (strcmp(header, "<FET>") == 0) {
-                printf("FET loading...\n");
-                fflush(stdout);
-                std::stringstream fdata;
-                fdata.write(buf.bytes(),buf.size());
-                err = load_volume_stream3(n, fdata);
-
-                if (err) {
-                    Tcl_AppendResult(interp, err.remark().c_str(), (char*)NULL);
-                    return TCL_ERROR;
-                }
-#endif  /*__TEST_CODE__*/
-            } else if (strcmp(header, "<ODX>") == 0) {
-                Rappture::Outcome err;
-
-                printf("Loading DX using OpenDX library...\n");
-                fflush(stdout);
-                //err = load_volume_stream_odx(n, buf.bytes()+5, buf.size()-5);
-                //err = load_volume_stream2(n, fdata);
-                if (err) {
-                    Tcl_AppendResult(interp, err.remark().c_str(), (char*)NULL);
-                    return TCL_ERROR;
-                }
-            } else {
-                Rappture::Outcome err;
-
-                printf("OpenDX loading...\n");
-                fflush(stdout);
-                std::stringstream fdata;
-                fdata.write(buf.bytes(),buf.size());
-                
-#if ISO_TEST
-                err = load_volume_stream2(n, fdata);
-#else
-                err = load_volume_stream(n, fdata);
-#endif
-                if (err) {
-                    Tcl_AppendResult(interp, err.remark().c_str(), (char*)NULL);
-                    return TCL_ERROR;
-                }
-            }
-
-            //
-            // BE CAREFUL:  Set the number of slices to something
-            //   slightly different for each volume.  If we have
-            //   identical volumes at exactly the same position
-            //   with exactly the same number of slices, the second
-            //   volume will overwrite the first, so the first won't
-            //   appear at all.
-            //
-            if (NanoVis::volume[n] != NULL) {
-                NanoVis::volume[n]->set_n_slice(256-n);
-                NanoVis::volume[n]->disable_cutplane(0);
-                NanoVis::volume[n]->disable_cutplane(1);
-                NanoVis::volume[n]->disable_cutplane(2);
-
-                NanoVis::vol_renderer->add_volume(NanoVis::volume[n],NanoVis::get_transfunc("default"));
-            }
-
-            {
-                Volume *volPtr;
-                char info[1024];
-                float vmin, vmax;
-
-                if (GetVolumeLimits(interp, &vmin, &vmax) != TCL_OK) {
-                    return TCL_ERROR;
-                }
-                volPtr = NanoVis::volume[n];
-                sprintf(info, "nv>data id %d min %g max %g vmin %g vmax %g\n", 
-                        n, volPtr->range_min(), volPtr->range_max(),vmin, vmax);
-                write(0, info, strlen(info));
-            }
-        } else {
-            Tcl_AppendResult(interp, "bad data option \"", string,
-			     "\": should be follows or state", (char*)NULL);
-            return TCL_ERROR;
-        }
-    } else if (c == 'o' && strcmp(string, "outline") == 0) {
-        if (objc < 3) {
-            Tcl_AppendResult(interp, "wrong # args: should be \"", 
-			     Tcl_GetString(objv[0]), " outline option ?arg arg...?\"", 
-			     (char*)NULL);
-            return TCL_ERROR;
-        }
-        char *string = Tcl_GetString(objv[2]);
-        c = string[0];
-        if ((c == 's') && (strcmp(string, "state") == 0)) {
-            if (objc < 3) {
-                Tcl_AppendResult(interp, "wrong # args: should be \"", 
-				 Tcl_GetString(objv[0]), 
-				 " outline state on|off ?volume ...? \"", (char*)NULL);
-                return TCL_ERROR;
-            }
-
-            bool state;
-            if (GetBooleanFromObj(interp, objv[3], &state) != TCL_OK) {
-                return TCL_ERROR;
-            }
-            vector<Volume *> ivol;
-            if (GetVolumes(interp, objc - 4, objv + 4, &ivol) != TCL_OK) {
-                return TCL_ERROR;
-            }
-            if (state) {
-                vector<Volume *>::iterator iter;
-                for (iter = ivol.begin(); iter != ivol.end(); iter++) {
-                    (*iter)->enable_outline();
-                }
-            } else {
-                vector<Volume *>::iterator iter;
-                for (iter = ivol.begin(); iter != ivol.end(); iter++) {
-                    (*iter)->disable_outline();
-                }
-            }
-        } else if ((c == 'v') && (strcmp(string, "visible") == 0)) {
-            bool visible;
-
-            if (GetBooleanFromObj(interp, objv[3], &visible) != TCL_OK) {
-                return TCL_ERROR;
-            }           
-            if (!visible) {
-                for (int i = 0; i < NanoVis::n_volumes; ++i) {
-                    if (NanoVis::volume[i]) {
-                        NanoVis::volume[i]->disable_outline();
-                    }
-                }
-            } else {
-                for (int i = 0; i < NanoVis::n_volumes; ++i) {
-                    if (NanoVis::volume[i]) {
-                        NanoVis::volume[i]->enable_outline();
-                    }
-                }
-            }
-        } else if ((c == 'c') && (strcmp(string, "color") == 0)) {
-            if (objc < 6) {
-                Tcl_AppendResult(interp, "wrong # args: should be \"", 
-				 Tcl_GetString(objv[0]), 
-				 " outline color R G B ?volume ...? \"", (char*)NULL);
-                return TCL_ERROR;
-            }
-            float rgb[3];
-            if (GetColor(interp, objc - 3, objv + 3, rgb) != TCL_OK) {
-                return TCL_ERROR;
-            }
-            vector<Volume *> ivol;
-            if (GetVolumes(interp, objc - 6, objv + 6, &ivol) != TCL_OK) {
-                return TCL_ERROR;
-            }
-            vector<Volume *>::iterator iter;
-            for (iter = ivol.begin(); iter != ivol.end(); iter++) {
-                (*iter)->set_outline_color(rgb);
-            }
-        } 
-        else {
-            Tcl_AppendResult(interp, "bad outline option \"", string,
-			     "\": should be color, visible, or state", (char*)NULL);
-            return TCL_ERROR;
-        }
-    } else if ((c == 's') && (strcmp(string, "shading") == 0)) {
-        if (objc < 3) {
-            Tcl_AppendResult(interp, "wrong # args: should be \"", 
-			     Tcl_GetString(objv[0]), " shading option ?arg arg...?\"", 
-			     (char*)NULL);
-            return TCL_ERROR;
-        }
-        char *string = Tcl_GetString(objv[2]);
-        c = string[0];
-        if ((c == 't') && (strcmp(string, "transfunc") == 0)) {
-            if (objc < 4) {
-                Tcl_AppendResult(interp, "wrong # args: should be \"", 
-				 Tcl_GetString(objv[0]), 
-				 " shading transfunc name ?volume ...?\"", (char*)NULL);
-                return TCL_ERROR;
-            }
-            TransferFunction *tf;
-            char *name = Tcl_GetString(objv[3]);
-            tf = NanoVis::get_transfunc(name);
-            if (tf == NULL) {
-                Tcl_AppendResult(interp, "transfer function \"", name,
-				 "\" is not defined", (char*)NULL);
-                return TCL_ERROR;
-            }
-            vector<Volume *> ivol;
-            if (GetVolumes(interp, objc - 4, objv + 4, &ivol) != TCL_OK) {
-                return TCL_ERROR;
-            }
-            vector<Volume *>::iterator iter;
-            for (iter = ivol.begin(); iter != ivol.end(); iter++) {
-                NanoVis::vol_renderer->shade_volume(*iter, tf);
-                
-                // TBD..
-                // POINTSET
-                /*
-		  if ((*iter)->pointsetIndex != -1) {
-		  g_pointSet[(*iter)->pointsetIndex]->updateColor(tf->getData(), 256);
-		  }
-                */
-            }
-        } else if ((c == 'd') && (strcmp(string, "diffuse") == 0)) {
-            if (objc < 4) {
-                Tcl_AppendResult(interp, "wrong # args: should be \"", 
-				 Tcl_GetString(objv[0]), 
-				 " shading diffuse value ?volume ...?\"", (char*)NULL);
-                return TCL_ERROR;
-            }
-
-            float diffuse;
-            if (GetFloatFromObj(interp, objv[3], &diffuse) != TCL_OK) {
-                return TCL_ERROR;
-            }
-            vector<Volume *> ivol;
-            if (GetVolumes(interp, objc - 4, objv + 4, &ivol) != TCL_OK) {
-                return TCL_ERROR;
-            }
-            vector<Volume *>::iterator iter;
-            for (iter = ivol.begin(); iter != ivol.end(); iter++) {
-                (*iter)->set_diffuse(diffuse);
-            }
-        } else if ((c == 'o') && (strcmp(string, "opacity") == 0)) {
-            if (objc < 4) {
-                Tcl_AppendResult(interp, "wrong # args: should be \"", 
-				 Tcl_GetString(objv[0]), 
-				 " shading opacity value ?volume ...?\"", (char*)NULL);
-                return TCL_ERROR;
-            }
-            float opacity;
-            if (GetFloatFromObj(interp, objv[3], &opacity) != TCL_OK) {
-                return TCL_ERROR;
-            }
-            vector<Volume *> ivol;
-            if (GetVolumes(interp, objc - 4, objv + 4, &ivol) != TCL_OK) {
-                return TCL_ERROR;
-            }
-            vector<Volume *>::iterator iter;
-            for (iter = ivol.begin(); iter != ivol.end(); iter++) {
-                (*iter)->set_opacity_scale(opacity);
-            }
-        } else if ((c == 's') && (strcmp(string, "specular") == 0)) {
-            if (objc < 4) {
-                Tcl_AppendResult(interp, "wrong # args: should be \"", 
-				 Tcl_GetString(objv[0]),
-				 " shading specular value ?volume ...?\"", (char*)NULL);
-                return TCL_ERROR;
-            }
-            float specular;
-            if (GetFloatFromObj(interp, objv[3], &specular) != TCL_OK) {
-                return TCL_ERROR;
-            }
-            vector<Volume *> ivol;
-            if (GetVolumes(interp, objc - 4, objv + 4, &ivol) != TCL_OK) {
-                return TCL_ERROR;
-            }
-            vector<Volume *>::iterator iter;
-            for (iter = ivol.begin(); iter != ivol.end(); iter++) {
-                (*iter)->set_specular(specular);
-            }
-        } else if ((c == 'i') && (strcmp(string, "isosurface") == 0)) {
-            if (objc < 4) {
-                Tcl_AppendResult(interp, "wrong # args: should be \"", 
-				 Tcl_GetString(objv[0]),
-				 " shading isosurface on|off ?volume ...?\"", (char*)NULL);
-                return TCL_ERROR;
-            }
-            bool iso_surface;
-            if (GetBooleanFromObj(interp, objv[3], &iso_surface) != TCL_OK) {
-                return TCL_ERROR;
-            }
-            vector<Volume *> ivol;
-            if (GetVolumes(interp, objc - 4, objv + 4, &ivol) != TCL_OK) {
-                return TCL_ERROR;
-            }
-            vector<Volume *>::iterator iter;
-            for (iter = ivol.begin(); iter != ivol.end(); iter++) {
-                (*iter)->set_isosurface(iso_surface);
-            }
-        } else {
-            Tcl_AppendResult(interp, "bad shading option \"", string, 
-			     "\": should be diffuse, opacity, specular, transfunc, or ",
-			     "isosurface", (char*)NULL);
-            return TCL_ERROR;
-        }
-    } else if ((c == 's') && (strcmp(string, "state") == 0)) {
-        if (objc < 3) {
-            Tcl_AppendResult(interp, "wrong # args: should be \"", 
-			     Tcl_GetString(objv[0]), " state on|off ?volume...?\"", 
-			     (char*)NULL);
-            return TCL_ERROR;
-        }
-        bool state;
-        if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
-            return TCL_ERROR;
-        }
-        vector<Volume *> ivol;
-        if (GetVolumes(interp, objc - 3, objv + 3, &ivol) != TCL_OK) {
-            return TCL_ERROR;
-        }
-        if (state) {
-            vector<Volume *>::iterator iter;
-            for (iter = ivol.begin(); iter != ivol.end(); iter++) {
-                (*iter)->enable();
-            }
-        } else {
-            vector<Volume *>::iterator iter;
-            for (iter = ivol.begin(); iter != ivol.end(); iter++) {
-                (*iter)->disable();
-            }
-        }
-    } else if (strcmp(string, "animation") == 0) {
-        if (objc < 3) {
-            Tcl_AppendResult(interp, "wrong # args: should be \"", 
-			     Tcl_GetString(objv[0]), " animation option ?args...?\"", 
-			     (char*)NULL);
-            return TCL_ERROR;
-        }
-        char *string = Tcl_GetString(objv[2]);
-        char c = string[0];
-        if ((c == 'v') && (strcmp(string,"volumes") == 0)) {
-            vector<unsigned int> ivol;
-            if (GetVolumeIndices(interp, objc - 3, objv + 3, &ivol) != TCL_OK) {
-                return TCL_ERROR;
-            }
-            Trace("parsing volume index\n");
-            vector<unsigned int>::iterator iter;
-            for (iter = ivol.begin(); iter != ivol.end(); iter++) {
-                Trace("index: %d\n", *iter);
-                NanoVis::vol_renderer->addAnimatedVolume(NanoVis::volume[*iter],
-							 *iter);
-            }
-        } else if ((c == 'c') && (strcmp(string,"capture") == 0)) {
-            int total;
-
-            if (Tcl_GetIntFromObj(interp, objv[3], &total) != TCL_OK) {
-                return TCL_ERROR;
-            }
-            VolumeInterpolator* interpolator;
-            interpolator = NanoVis::vol_renderer->getVolumeInterpolator(); 
-            interpolator->start();
-            if (interpolator->is_started()) {
-                char *fileName = (objc < 5) ? NULL : Tcl_GetString(objv[4]);
-                for (int frame_num = 0; frame_num < total; ++frame_num) {
-                    float fraction;
-
-                    fraction = ((float)frame_num) / (total - 1);
-                    Trace("fraction : %f\n", fraction);
-                    //interpolator->update(((float)frame_num) / (total - 1));
-                    interpolator->update(fraction);
-
-                    NanoVis::offscreen_buffer_capture();  //enable offscreen render
-
-                    NanoVis::display();
-                    NanoVis::read_screen();
-
-                    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
-            
-                    NanoVis::bmp_write_to_file(frame_num, fileName);
-                }
-            }
-        } else if ((c == 's') && (strcmp(string, "start") == 0)) {
-            NanoVis::vol_renderer->startVolumeAnimation();
-        } else if ((c == 's') && (strcmp(string, "stop") == 0)) {
-            NanoVis::vol_renderer->stopVolumeAnimation();
-        } else if ((c == 'c') && (strcmp(string, "clear") == 0)) {
-            NanoVis::vol_renderer->clearAnimatedVolumeInfo();
-        } else {
-            Tcl_AppendResult(interp, "bad animation option \"", string, 
-			     "\": should be volumes, start, stop,  or clear", (char*)NULL);
-            return TCL_ERROR;
-        }
-    } else if ((c == 't') && (strcmp(string, "test2") == 0)) {
-        NanoVis::volume[1]->disable_data();
-        NanoVis::volume[1]->disable();
-    } else {
-        Tcl_AppendResult(interp, "bad option \"", string, "\": should be ",
-			 "data, outline, shading, or state", (char*)NULL);
-        return TCL_ERROR;
-    }
-    return TCL_OK;
-}
-#endif
-
 static int
 FlowCmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *CONST *objv)
 {
@@ -2289,23 +1732,25 @@ FlowCmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *CONST *objv)
             return TCL_ERROR;
         }
         Volume *volPtr;
+	const AxisRange *rangePtr;
 
         if (GetVolumeFromObj(interp, objv[2], &volPtr) != TCL_OK) { 
             return TCL_ERROR;
         }
+	rangePtr = volPtr->GetRange(AxisRange::VALUES);
         if (NanoVis::particleRenderer != NULL) {
             NanoVis::particleRenderer->setVectorField(volPtr->id, 1.0f, 
-						      volPtr->height / (float)volPtr->width,
-						      volPtr->depth  / (float)volPtr->width,
-						      volPtr->range_max());
+		volPtr->height / (float)volPtr->width,
+		volPtr->depth  / (float)volPtr->width,
+		rangePtr->max);
             NanoVis::initParticle();
         }
         if (NanoVis::licRenderer != NULL) {
             NanoVis::licRenderer->setVectorField(volPtr->id,
-						 1.0f / volPtr->aspect_ratio_width,
-						 1.0f / volPtr->aspect_ratio_height,
-						 1.0f / volPtr->aspect_ratio_depth,
-						 volPtr->range_max());
+		1.0f / volPtr->aspect_ratio_width,
+		1.0f / volPtr->aspect_ratio_height,
+		1.0f / volPtr->aspect_ratio_depth,
+		rangePtr->max);
             NanoVis::licRenderer->set_offset(NanoVis::lic_slice_z);
         }
     } else if (c == 'l' && strcmp(string, "lic") == 0) {
@@ -2540,11 +1985,10 @@ HeightMapDataVisibleOp(ClientData cdata, Tcl_Interp *interp, int objc,
     return TCL_OK;
 }
 
-static Rappture::CmdSpec heightMapDataOps[] =
-    {
-	{"follows",      1, HeightMapDataFollowsOp, 4, 4, "length",},
-	{"visible",      1, HeightMapDataVisibleOp, 4, 0, "bool ?indices?",},
-    };
+static Rappture::CmdSpec heightMapDataOps[] = {
+    {"follows",      1, HeightMapDataFollowsOp, 4, 4, "length",},
+    {"visible",      1, HeightMapDataVisibleOp, 4, 0, "bool ?indices?",},
+};
 static int nHeightMapDataOps = NumCmdSpecs(heightMapDataOps);
 
 static int 
@@ -2604,11 +2048,10 @@ HeightMapLineContourVisibleOp(ClientData cdata, Tcl_Interp *interp, int objc,
     return TCL_OK;
 }
 
-static Rappture::CmdSpec heightMapLineContourOps[] =
-    {
-	{"color",   1, HeightMapLineContourColorOp,   4, 4, "length",},
-	{"visible", 1, HeightMapLineContourVisibleOp, 4, 0, "bool ?indices?",},
-    };
+static Rappture::CmdSpec heightMapLineContourOps[] = {
+    {"color",   1, HeightMapLineContourColorOp,   4, 4, "length",},
+    {"visible", 1, HeightMapLineContourVisibleOp, 4, 0, "bool ?indices?",},
+};
 static int nHeightMapLineContourOps = NumCmdSpecs(heightMapLineContourOps);
 
 static int 
@@ -2673,8 +2116,9 @@ HeightMapLegendOp(ClientData cdata, Tcl_Interp *interp, int objc,
         (Tcl_GetIntFromObj(interp, objv[4], &h) != TCL_OK)) {
         return TCL_ERROR;
     }
-    NanoVis::render_legend(tf, hMap->range_min(), hMap->range_max(), 
-                           w, h, "label");
+    const AxisRange *rangePtr;
+    rangePtr = hMap->GetRange(AxisRange::VALUES);
+    NanoVis::render_legend(tf, rangePtr->min, rangePtr->max, w, h, "label");
     return TCL_OK;
 }
 
@@ -2732,8 +2176,10 @@ HeightMapTestOp(ClientData cdata, Tcl_Interp *interp, int objc,
     NanoVis::heightMap.push_back(heightMap);
 
 
-    Vector3 min(minx, (float) heightMap->range_min(), miny);
-    Vector3 max(maxx, (float) heightMap->range_max(), maxy);
+    const AxisRange *rangePtr;
+    rangePtr = heightMap->GetRange(AxisRange::VALUES);
+    Vector3 min(minx, (float)rangePtr->min, miny);
+    Vector3 max(maxx, (float)rangePtr->max, maxy);
     
     NanoVis::grid->setMinMax(min, max);
     NanoVis::grid->setVisible(true);
@@ -2767,19 +2213,18 @@ HeightMapTransFuncOp(ClientData cdata, Tcl_Interp *interp, int objc,
     return TCL_OK;
 }
 
-static Rappture::CmdSpec heightMapOps[] =
-    {
-	{"create",       2, HeightMapCreateOp,      9, 9, 
-	 "xmin ymin xmax ymax xnum ynum values",},
-	{"cull",         2, HeightMapCullOp,        3, 3, "mode",},
-	{"data",         1, HeightMapDataOp,        3, 0, "oper ?args?",},
-	{"legend",       2, HeightMapLegendOp,      5, 5, "index width height",},
-	{"linecontour",  2, HeightMapLineContourOp, 2, 0, "oper ?args?",},
-	{"polygon",      1, HeightMapPolygonOp,     3, 3, "mode",},
-	{"shade",        1, HeightMapShadeOp,       3, 3, "model",},
-	{"test",         2, HeightMapTestOp,        2, 2, "",},
-	{"transfunc",    2, HeightMapTransFuncOp,   3, 0, "name ?indices?",},
-    };
+static Rappture::CmdSpec heightMapOps[] = {
+    {"create",       2, HeightMapCreateOp,      9, 9, 
+     "xmin ymin xmax ymax xnum ynum values",},
+    {"cull",         2, HeightMapCullOp,        3, 3, "mode",},
+    {"data",         1, HeightMapDataOp,        3, 0, "oper ?args?",},
+    {"legend",       2, HeightMapLegendOp,      5, 5, "index width height",},
+    {"linecontour",  2, HeightMapLineContourOp, 2, 0, "oper ?args?",},
+    {"polygon",      1, HeightMapPolygonOp,     3, 3, "mode",},
+    {"shade",        1, HeightMapShadeOp,       3, 3, "model",},
+    {"test",         2, HeightMapTestOp,        2, 2, "",},
+    {"transfunc",    2, HeightMapTransFuncOp,   3, 0, "name ?indices?",},
+};
 static int nHeightMapOps = NumCmdSpecs(heightMapOps);
 
 static int 
@@ -2895,15 +2340,14 @@ GridVisibleOp(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *CONST *ob
     return TCL_OK;
 }
 
-static Rappture::CmdSpec gridOps[] =
-    {
-	{"axiscolor",  5, GridAxisColorOp,  5, 6, "r g b ?a?",},
-	{"axisname",   5, GridAxisNameOp,   5, 5, "index width height",},
-	{"linecolor",  7, GridLineColorOp,  5, 6, "r g b ?a?",},
-	{"linecount",  7, GridLineCountOp,  5, 5, "xCount yCount zCount",},
-	{"minmax",     1, GridMinMaxOp,     8, 8, "xMin yMin zMin xMax yMax zMax",},
-	{"visible",    1, GridVisibleOp,    3, 3, "bool",},
-    };
+static Rappture::CmdSpec gridOps[] = {
+    {"axiscolor",  5, GridAxisColorOp,  5, 6, "r g b ?a?",},
+    {"axisname",   5, GridAxisNameOp,   5, 5, "index width height",},
+    {"linecolor",  7, GridLineColorOp,  5, 6, "r g b ?a?",},
+    {"linecount",  7, GridLineCountOp,  5, 5, "xCount yCount zCount",},
+    {"minmax",     1, GridMinMaxOp,     8, 8, "xMin yMin zMin xMax yMax zMax",},
+    {"visible",    1, GridVisibleOp,    3, 3, "bool",},
+};
 static int nGridOps = NumCmdSpecs(gridOps);
 
 static int 
@@ -3034,12 +2478,11 @@ PlaneEnableOp(ClientData cdata, Tcl_Interp *interp, int objc,
     return TCL_OK;
 }
 
-static Rappture::CmdSpec planeOps[] =
-    {
-	{"enable",     1, PlaneEnableOp,    4, 4, "planeIdx mode",},
-	{"link",       1, PlaneLinkOp,      4, 4, "planeIdx transfuncIdx",},
-	{"new",        1, PlaneNewOp,       5, 5, "planeIdx width height",},
-    };
+static Rappture::CmdSpec planeOps[] = {
+    {"enable",     1, PlaneEnableOp,    4, 4, "planeIdx mode",},
+    {"link",       1, PlaneLinkOp,      4, 4, "planeIdx transfuncIdx",},
+    {"new",        1, PlaneNewOp,       5, 5, "planeIdx width height",},
+};
 static int nPlaneOps = NumCmdSpecs(planeOps);
 
 static int 

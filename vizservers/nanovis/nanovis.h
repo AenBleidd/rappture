@@ -101,7 +101,6 @@ class NvLIC;
 
 class NanoVis {
 public:
-    enum Axis { X, Y, Z };
     static VolumeRenderer* vol_renderer;
     static PointSetRenderer* pointset_renderer;
     static NvParticleRenderer* particleRenderer;

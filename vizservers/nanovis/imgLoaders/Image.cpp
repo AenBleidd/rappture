@@ -2,8 +2,12 @@
 #include <memory.h>
 #include <stdlib.h>
 
-Image::Image(const unsigned int width, const unsigned int height, const ImageFormat format, const Image::DataType type, void* data )
-: _width(width), _height(height), _dataType(type), _format(format)
+Image::Image(const unsigned int width, const unsigned int height, 
+	     const ImageFormat format, const Image::DataType type, void* data ) : 
+    _width(width), 
+    _height(height), 
+    _format(format),
+    _dataType(type) 
 {
     switch (type)
     {

@@ -236,9 +236,9 @@ load_vector_stream(int index, std::istream& fin)
 	Volume *volPtr;
         volPtr = NanoVis::load_volume(index, nx, ny, nz, 3, data, vmin, vmax, 
 		nzero_min);
-	volPtr->set_limits(NanoVis::X, x0, x0 + (nx * ddx));
-	volPtr->set_limits(NanoVis::Y, y0, y0 + (ny * ddy));
-	volPtr->set_limits(NanoVis::Z, z0, z0 + (nz * ddz));
+	volPtr->SetRange(AxisRange::X, x0, x0 + (nx * ddx));
+	volPtr->SetRange(AxisRange::Y, y0, y0 + (ny * ddy));
+	volPtr->SetRange(AxisRange::Z, z0, z0 + (nz * ddz));
         delete [] data;
     } else {
         std::cerr << "WARNING: data not found in stream" << std::endl;
@@ -487,9 +487,9 @@ load_volume_stream2(int index, std::iostream& fin)
 	    Volume *volPtr;
             volPtr = NanoVis::load_volume(index, nx, ny, nz, 4, data,
 					  vmin, vmax, nzero_min);
-	    volPtr->set_limits(NanoVis::X, x0, x0 + (nx * ddx));
-	    volPtr->set_limits(NanoVis::Y, y0, y0 + (ny * ddy));
-	    volPtr->set_limits(NanoVis::Z, z0, z0 + (nz * ddz));
+	    volPtr->SetRange(AxisRange::X, x0, x0 + (nx * ddx));
+	    volPtr->SetRange(AxisRange::Y, y0, y0 + (ny * ddy));
+	    volPtr->SetRange(AxisRange::Z, z0, z0 + (nz * ddz));
             delete [] data;
 
         } else {
@@ -620,11 +620,11 @@ load_volume_stream2(int index, std::iostream& fin)
 	    Volume *volPtr;
             volPtr = NanoVis::load_volume(index, nx, ny, nz, 4, data,
 		field.valueMin(), field.valueMax(), nzero_min);
-	    volPtr->set_limits(NanoVis::X, field.rangeMin(Rappture::xaxis), 
+	    volPtr->SetRange(AxisRange::X, field.rangeMin(Rappture::xaxis), 
 			       field.rangeMax(Rappture::xaxis));
-	    volPtr->set_limits(NanoVis::Y, field.rangeMin(Rappture::yaxis), 
+	    volPtr->SetRange(AxisRange::Y, field.rangeMin(Rappture::yaxis), 
 			       field.rangeMax(Rappture::yaxis));
-	    volPtr->set_limits(NanoVis::Z, field.rangeMin(Rappture::zaxis), 
+	    volPtr->SetRange(AxisRange::Z, field.rangeMin(Rappture::zaxis), 
 			       field.rangeMax(Rappture::zaxis));
             delete [] data;
         }
@@ -916,11 +916,11 @@ load_volume_stream(int index, std::iostream& fin)
 	    Volume *volPtr;
             volPtr = NanoVis::load_volume(index, nx, ny, nz, 4, data,
 		field.valueMin(), field.valueMax(), nzero_min);
-	    volPtr->set_limits(NanoVis::X, field.rangeMin(Rappture::xaxis), 
+	    volPtr->SetRange(AxisRange::X, field.rangeMin(Rappture::xaxis), 
 			       field.rangeMax(Rappture::xaxis));
-	    volPtr->set_limits(NanoVis::Y, field.rangeMin(Rappture::yaxis), 
+	    volPtr->SetRange(AxisRange::Y, field.rangeMin(Rappture::yaxis), 
 			       field.rangeMax(Rappture::yaxis));
-	    volPtr->set_limits(NanoVis::Z, field.rangeMin(Rappture::zaxis), 
+	    volPtr->SetRange(AxisRange::Z, field.rangeMin(Rappture::zaxis), 
 			       field.rangeMax(Rappture::zaxis));
             // TBD..
             // POINTSET
@@ -1062,11 +1062,11 @@ load_volume_stream(int index, std::iostream& fin)
 	    Volume *volPtr;
             volPtr = NanoVis::load_volume(index, nx, ny, nz, 4, data,
 		field.valueMin(), field.valueMax(), nzero_min);
-	    volPtr->set_limits(NanoVis::X, field.rangeMin(Rappture::xaxis), 
+	    volPtr->SetRange(AxisRange::X, field.rangeMin(Rappture::xaxis), 
 			       field.rangeMax(Rappture::xaxis));
-	    volPtr->set_limits(NanoVis::Y, field.rangeMin(Rappture::yaxis), 
+	    volPtr->SetRange(AxisRange::Y, field.rangeMin(Rappture::yaxis), 
 			       field.rangeMax(Rappture::yaxis));
-	    volPtr->set_limits(NanoVis::Z, field.rangeMin(Rappture::zaxis), 
+	    volPtr->SetRange(AxisRange::Z, field.rangeMin(Rappture::zaxis), 
 			       field.rangeMax(Rappture::zaxis));
 
             // TBD..

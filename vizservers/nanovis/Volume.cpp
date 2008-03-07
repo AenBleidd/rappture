@@ -26,8 +26,6 @@ Volume::Volume(float x, float y, float z,
     depth(d),
     size(s),
     n_components(n),
-    vmin(v0),
-    vmax(v1), 
     nonzero_min(nz_min),
     pointsetIndex(-1),
     enabled(true),
@@ -62,6 +60,8 @@ Volume::Volume(float x, float y, float z,
 
     id = tex->id;
     
+    SetRange(AxisRange::VALUES, v0, v1);
+
     aspect_ratio_width = s*tex->aspect_ratio_width;
     aspect_ratio_height = s*tex->aspect_ratio_height;
     aspect_ratio_depth = s*tex->aspect_ratio_depth;

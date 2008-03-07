@@ -12,7 +12,7 @@ R2Fonts::R2Fonts() : _fontIndex(-1), _screenWidth(512), _screenHeight(512)
 
 R2Fonts::~R2Fonts()
 {
-    for (R2int32 index = 0; index < _fonts.size(); ++index) {
+    for (unsigned index = 0; index < _fonts.size(); ++index) {
         glDeleteLists(_fonts[index]._displayLists, 256);
         glDeleteTextures(1, &(_fonts[_fontIndex]. _fontTextureID));
     }
@@ -21,7 +21,7 @@ R2Fonts::~R2Fonts()
 void 
 R2Fonts::setFont(const char* fontName)
 {
-    for (R2int32 index = 0; index < _fonts.size(); ++index) {
+    for (unsigned index = 0; index < _fonts.size(); ++index) {
 	if (_fonts[index]._fontName == fontName) {
 	    _fontIndex = index;
 	    break;
@@ -137,7 +137,7 @@ R2Fonts::loadFont(const char* fontName, const char* fontFileName,
         // make sure this file is the correct type by checking the header
         unsigned int uiFileId = 0;
         fsInput.read(reinterpret_cast<char*>(&uiFileId), sizeof(unsigned int));
-        if (uiFileId == c_nFileMagicHeader) {
+        if (uiFileId == (unsigned int)c_nFileMagicHeader) {
             // read general font/texture dimensions
             unsigned int uiTextureWidth, uiTextureHeight, uiFontHeight;
             uiTextureWidth = uiTextureHeight = uiFontHeight = 0;

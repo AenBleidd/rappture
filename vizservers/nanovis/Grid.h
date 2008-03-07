@@ -10,11 +10,10 @@ class Grid {
     
     Vector4 _axisColor;
     Vector4 _gridLineColor;
-    Vector3 _axisMax;
     Vector3 _axisMin;
+    Vector3 _axisMax;
     Vector3 _axisGridLineCount;
     R2Fonts* _font;
-    bool _showGrid;
     bool _visible;
     
     R2string _axisName[3];

@@ -2,9 +2,14 @@
 #include <GL/gl.h>
 #include "Grid.h"
 
-Grid::Grid()
-: _axisColor(1.0f, 1.0f, 1.0f, 1.0f), _font(0), _axisGridLineCount(5.0f, 5.0f, 5.0f),
-_axisMin(0.0f, 0.0f, 0.0f), _axisMax(1.0f, 1.0f, 1.0f), _gridLineColor(1.0f, 1.0f, 1.0f, 1.0f), _visible(false)
+Grid::Grid() : 
+    _axisColor(1.0f, 1.0f, 1.0f, 1.0f),
+    _gridLineColor(1.0f, 1.0f, 1.0f, 1.0f), 
+    _axisMin(0.0f, 0.0f, 0.0f), 
+    _axisMax(1.0f, 1.0f, 1.0f), 
+    _axisGridLineCount(5.0f, 5.0f, 5.0f),
+    _font(0), 
+    _visible(false)
 {
     __axisScale = _axisMax - _axisMin;
     _axisName[0] = "X";
@@ -41,8 +46,6 @@ void Grid::render()
     glColor4f(_gridLineColor.x, _gridLineColor.y, _gridLineColor.z, _gridLineColor.w);
     glBegin(GL_LINES);
 
-    float linecount = 2.0f;
-    float linecountY = 4.0f;
     // +y
     for (int i = 1; i <= (int) _axisGridLineCount.y; ++i) {
 	glVertex3f(0.0f, i / _axisGridLineCount.y, 0.0f);
@@ -76,7 +79,6 @@ void Grid::render()
     glEnd();
 
     if (_font) {
-	double x = 1.0f, y = 0.0f, z = 0.0f;
 	double mv[16], prjm[16];
 	int viewport[4];
 	double winx, winy, winz;
