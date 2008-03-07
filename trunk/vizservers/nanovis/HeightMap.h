@@ -8,6 +8,7 @@
 #include "NvShader.h"
 #include "Vector3.h"
 #include <RenderContext.h>
+#include "AxisRange.h"
 
 namespace graphics {
 class RenderContext;
@@ -36,8 +37,7 @@ class HeightMap {
     Vector3 _scale;
     Vector3 _centerPoint;
 
-    double _limits[3][2];
-    double _vmin, _vmax;
+    AxisRange _ranges[4];
 public :
     /**
      *@brief Constructor
@@ -76,90 +76,50 @@ public :
     /**
      *@brief Define a color map for color shading of heightmap
      */
-	void setColorMap(TransferFunction* colorMap);
+    void setColorMap(TransferFunction* colorMap);
 
     /**
      *@brief Get the color map defined for shading of this heightmap
      */
-    TransferFunction *getColorMap(void);
-
+    TransferFunction *getColorMap(void) {
+	return _colorMap;
+    }
     /**
      *@brief Set the visibility of the height map
      */
-	void setVisible(bool visible);
+    void setVisible(bool visible) {
+	_visible = visible;
+    }
 
     /**
      *@brief Return the status of the visibility
      */
-	bool isVisible() const;
-
+    bool isVisible() const {
+	return _visible;
+    }
     /**
      *@brief Set the visibility of the line contour
      */
-	void setLineContourVisible(bool visible);
+    void setLineContourVisible(bool visible) {
+	_contourVisible = visible;
+    }
 
     /**
      *@brief Defind the color of the line contour
      */
-    void setLineContourColor(float *rgb);
+    void setLineContourColor(float *rgb) {
+	_contourColor.x = rgb[0];
+	_contourColor.y = rgb[1];
+	_contourColor.z = rgb[2];
+    }
 
-    double range_min(void);
-    double range_max(void);
-    void set_limits(int axis, double min, double max);
-    void get_limits(int axis, double *minPtr, double *maxPtr);
+    void SetRange(int axis, double min, double max) {
+	_ranges[axis].min = min;
+	_ranges[axis].max = max;
+    }
+    const AxisRange *GetRange(int axis) {
+	return _ranges + axis;
+    }
 };
 
-inline void HeightMap::setVisible(bool visible)
-{
-	_visible = visible;
-}
-
-inline bool HeightMap::isVisible() const
-{
-	return _visible;
-}
-
-inline void HeightMap::setLineContourVisible(bool visible)
-{
-	_contourVisible = visible;
-}
-
-inline void HeightMap::setLineContourColor(float rgb[])
-{
-    _contourColor.x = rgb[0];
-    _contourColor.y = rgb[1];
-    _contourColor.z = rgb[2];
-}
-
-inline TransferFunction *
-HeightMap::getColorMap()
-{
-    return _colorMap;
-}
-
-inline void 
-HeightMap::set_limits(int axis, double min, double max) 
-{
-    _limits[axis][0] = min;
-    _limits[axis][1] = max;
-}
-
-inline void 
-HeightMap::get_limits(int axis, double *minPtr, double *maxPtr)
-{
-    *minPtr = _limits[axis][0];
-    *maxPtr = _limits[axis][1];
-}
-
-inline double
-HeightMap::range_min()
-{
-    return _vmin;
-}
-
-inline double
-HeightMap::range_max()
-{
-    return _vmax;
-}
 #endif

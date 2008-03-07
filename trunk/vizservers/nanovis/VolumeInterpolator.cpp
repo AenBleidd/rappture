@@ -145,8 +145,9 @@ VolumeInterpolator::addVolume(Volume* volume, unsigned int volumeId)
                              volume->size,
                              volume->n_components, 
                              volume->_data, 
-                             volume->vmin, 
-                             volume->vmax, volume->nonzero_min);
+                             volume->_ranges[AxisRange::VALUES].min, 
+                             volume->_ranges[AxisRange::VALUES].max, 
+			     volume->nonzero_min);
         _referenceOfVolume = volumeId;
         _volume->set_n_slice(256-1);
         _volume->disable_cutplane(0);

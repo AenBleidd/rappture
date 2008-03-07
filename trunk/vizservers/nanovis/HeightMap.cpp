@@ -27,9 +27,7 @@ HeightMap::HeightMap() :
     _contourVisible(true), 
     _visible(false),
     _scale(1.0f, 1.0f, 1.0f), 
-    _centerPoint(0.0f, 0.0f, 0.0f),
-    _vmin(0.0f), 
-    _vmax(0.0f)
+    _centerPoint(0.0f, 0.0f, 0.0f)
 {
     _shader = new NvShader();
 
@@ -213,25 +211,29 @@ void HeightMap::setHeight(int xCount, int yCount, Vector3* heights)
     _vertexCount = xCount * yCount;
     reset();
     
-    _vmin = heights[0].y, _vmax = heights[0].y;
+    float min, max;
+    min = heights[0].y, max = heights[0].y;
+
     int count = xCount * yCount;
     for (int i = 0; i < count; ++i) {
-        if (_vmin > heights[i].y) {
-            _vmin = heights[i].y;
+        if (min > heights[i].y) {
+            min = heights[i].y;
         } 
-        if (_vmax < heights[i].y) {
-            _vmax = heights[i].y;
+        if (max < heights[i].y) {
+            max = heights[i].y;
         }
     }
 
     _scale.x = 1.0f;
-    _scale.z = _vmax - _vmin;
+    _scale.z = max - min;
     _scale.y = 1.0f;
-    set_limits(0, 0.0, 1.0);
-    set_limits(1, 0.0, 1.0);
-    set_limits(2, _vmin, _vmax);
 
-    _centerPoint.set(_scale.x * 0.5, _scale.z * 0.5 + _vmin, _scale.y * 0.5);
+    SetRange(AxisRange::VALUES, min, max);
+    SetRange(AxisRange::X, 0.0, 1.0);
+    SetRange(AxisRange::Y, 0.0, 1.0);
+    SetRange(AxisRange::Z, min, max);
+
+    _centerPoint.set(_scale.x * 0.5, _scale.z * 0.5 + min, _scale.y * 0.5);
 
     Vector3* texcoord = new Vector3[count];
     for (int i = 0; i < count; ++i) {
@@ -277,23 +279,27 @@ HeightMap::setHeight(float startX, float startY, float endX, float endY,
     
     reset();
 
-    _vmin = heights[0], _vmax = heights[0];
+    float min, max;
+    min = heights[0], max = heights[0];
     int count = xCount * yCount;
     for (int i = 0; i < count; ++i) {
-        if (_vmin > heights[i]) {
-            _vmin = heights[i];
-        } else if (_vmax < heights[i]) {
-            _vmax = heights[i];
+        if (min > heights[i]) {
+            min = heights[i];
+        } else if (max < heights[i]) {
+            max = heights[i];
         }
     }
     _scale.x = endX - startX;
-    _scale.y = _vmax - _vmin;
+    _scale.y = max - min;
     _scale.z = endY - startY;
-    set_limits(0, startX, endX);
-    set_limits(1, startY, endY);
-    set_limits(2, _vmin, _vmax);
-    
-    _centerPoint.set(_scale.x * 0.5 + startX, _scale.y * 0.5 + _vmin, _scale.z * 0.5 + startY);
+
+    SetRange(AxisRange::VALUES, min, max);
+    SetRange(AxisRange::X, startX, endX);
+    SetRange(AxisRange::Y, min, max);
+    SetRange(AxisRange::Z, startY, endY);
+
+    _centerPoint.set(_scale.x * 0.5 + startX, _scale.y * 0.5 + min, 
+	_scale.z * 0.5 + startY);
     
     Vector3* texcoord = new Vector3[count];
     for (int i = 0; i < count; ++i) {

@@ -23,6 +23,7 @@
 #include "Color.h"
 #include "Texture3D.h"
 #include "Vector3.h"
+#include "AxisRange.h"
 
 struct CutPlane{
     int orient;			// orientation - 1: xy slice, 2: yz slice, 3:
@@ -56,10 +57,8 @@ public:
 
     int n_components;
 
-    double _limits[3][2];	// min/max for each axis 
+    AxisRange _ranges[4];	// min/max for each axis 
 
-    double vmin;		// minimum (unscaled) value in data
-    double vmax;		// maximum (unscaled) value in data
     double nonzero_min;
     
     std::vector <CutPlane> plane; // cut planes
@@ -117,8 +116,6 @@ public:
     void set_isosurface(int iso);
     int get_isosurface() const;
 
-    double range_min() { return vmin; }
-    double range_max() { return vmax; }
     double range_nzero_min() { return nonzero_min; }
     
     void set_n_slice(int val);	// set number of slices
@@ -154,8 +151,8 @@ public:
     void set_outline_color(float* rgb);
     void get_outline_color(float* rgb);
     
-    void set_limits(int axis, double min, double max);
-    void get_limits(int axis, double *minPtr, double *maxPtr);
+    void SetRange(int axis, double min, double max);
+    const AxisRange *GetRange(int axis);
     void set_label(int axis, const char* txt); // change the label displayed
 					       // on an axis
     std::string label[3];	// the labels along each axis 0:x , 1:y, 2:z
@@ -334,17 +331,16 @@ Volume::set_label(int axis, const char* txt)
 }
 
 inline void 
-Volume::set_limits(int axis, double min, double max)
+Volume::SetRange(int axis, double min, double max)
 {
-    _limits[axis][0] = min;
-    _limits[axis][1] = max;
+    _ranges[axis].min = min;
+    _ranges[axis].max = max;
 }
 
-inline void 
-Volume::get_limits(int axis, double *minPtr, double *maxPtr)
+inline const AxisRange * 
+Volume::GetRange(int axis)
 {
-    *minPtr = _limits[axis][0];
-    *maxPtr = _limits[axis][1];
+    return _ranges + axis;
 }
 
 inline int 
