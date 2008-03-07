@@ -8,10 +8,10 @@
 class VolumeInterpolator {
     Volume* _volume;
 
-	std::vector<Volume*> _volumes;
+    std::vector<Volume*> _volumes;
 
     double _interval;
-	bool _started;
+    bool _started;
     unsigned int _numBytes;
     unsigned int _dataCount;
     unsigned int _n_components;
@@ -19,13 +19,13 @@ class VolumeInterpolator {
     double _start_time;
 
 public :
-	VolumeInterpolator();
-	void addVolume(Volume* vol, unsigned int volumeId);
-	void clearAll();
-
-	void start();
-	Volume* update(float fraction);
-	void stop();
+    VolumeInterpolator();
+    void addVolume(Volume* vol, unsigned int volumeId);
+    void clearAll();
+    
+    void start();
+    Volume* update(float fraction);
+    void stop();
     void computeKeys(float fraction, int count, float* interp, int* key1, int* key2);
     bool is_started() const;
     double getInterval() const;

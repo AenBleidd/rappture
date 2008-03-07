@@ -83,22 +83,22 @@ int VolumeRenderer::add_volume(Volume* _vol, TransferFunction* _tf){
 void
 VolumeRenderer::shade_volume(Volume* _vol, TransferFunction* _tf)
 {
-  for (int i=0; i < volume.size(); i++) {
-    if (volume[i] == _vol) {
-      tf[i] = _tf;
+    for (unsigned int i=0; i < volume.size(); i++) {
+	if (volume[i] == _vol) {
+	    tf[i] = _tf;
+	}
     }
-  }
 }
 
 TransferFunction*
 VolumeRenderer::get_volume_shading(Volume* _vol)
 {
-  for (int i=0; i < volume.size(); i++) {
-    if (volume[i] == _vol) {
-      return tf[i];
+    for (unsigned int i=0; i < volume.size(); i++) {
+        if (volume[i] == _vol) {
+            return tf[i];
+        }
     }
-  }
-  return NULL;
+    return NULL;
 }
 
 typedef struct SortElement{

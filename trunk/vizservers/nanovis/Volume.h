@@ -56,6 +56,8 @@ public:
 
     int n_components;
 
+    double _limits[3][2];	// min/max for each axis 
+
     double vmin;		// minimum (unscaled) value in data
     double vmax;		// maximum (unscaled) value in data
     double nonzero_min;
@@ -112,8 +114,8 @@ public:
     bool is_enabled();
     Vector3* get_location();
     
-	void set_isosurface(int iso);
-	int get_isosurface() const;
+    void set_isosurface(int iso);
+    int get_isosurface() const;
 
     double range_min() { return vmin; }
     double range_max() { return vmax; }
@@ -152,7 +154,8 @@ public:
     void set_outline_color(float* rgb);
     void get_outline_color(float* rgb);
     
-    
+    void set_limits(int axis, double min, double max);
+    void get_limits(int axis, double *minPtr, double *maxPtr);
     void set_label(int axis, const char* txt); // change the label displayed
 					       // on an axis
     std::string label[3];	// the labels along each axis 0:x , 1:y, 2:z
@@ -179,115 +182,179 @@ int Volume::add_cutplane(int _orientation, float _location) {
     return plane.size() - 1;
 }
 
-inline void Volume::enable_cutplane(int index){ 
+inline void 
+Volume::enable_cutplane(int index)
+{ 
     //assert(index < plane.size());
     plane[index].enabled = true;
 }
-inline 
-void Volume::disable_cutplane(int index){
+inline void 
+Volume::disable_cutplane(int index)
+{
     //assert(index < plane.size());
     plane[index].enabled = false;
 }
 
-inline void Volume::move_cutplane(int index, float location){
+inline void 
+Volume::move_cutplane(int index, float location)
+{
     //assert(index < plane.size());
     plane[index].offset = location;
 }
 
-inline CutPlane* Volume::get_cutplane(int index){
+inline CutPlane* 
+Volume::get_cutplane(int index)
+{
     //assert(index < plane.size());
     return &plane[index];
 }
 
-inline int Volume::get_cutplane_count(){
+inline int 
+Volume::get_cutplane_count()
+{
     return plane.size();
 }
 
-inline bool Volume::cutplane_is_enabled(int index){
+inline bool 
+Volume::cutplane_is_enabled(int index)
+{
     //assert(index < plane.size());
     return plane[index].enabled; 
 }
 
-inline void Volume::set_n_slice(int n) { 
+inline void 
+Volume::set_n_slice(int n) 
+{ 
     n_slice = n; 
 }
-inline int Volume::get_n_slice() { 
+
+inline int 
+Volume::get_n_slice() 
+{ 
     return n_slice; 
 }
 
-inline void Volume::set_size(float s) { 
+inline void 
+Volume::set_size(float s) 
+{ 
     size = s; 
     aspect_ratio_width = s*tex->aspect_ratio_width;
     aspect_ratio_height = s*tex->aspect_ratio_height;
     aspect_ratio_depth = s*tex->aspect_ratio_depth;
 }
 
-inline float Volume::get_specular() { 
+inline float 
+Volume::get_specular() 
+{ 
     return specular; 
 }
 
-inline float Volume::get_diffuse() { 
+inline float 
+Volume::get_diffuse() 
+{ 
     return diffuse; 
 }
 
-inline float Volume::get_opacity_scale() { 
+inline float 
+Volume::get_opacity_scale() 
+{ 
     return opacity_scale; 
 }
 
-inline void Volume::set_specular(float s) { 
+inline void 
+Volume::set_specular(float s) 
+{ 
     specular = s; 
 }
 
-inline void Volume::set_diffuse(float d) { 
+inline void 
+Volume::set_diffuse(float d) 
+{ 
     diffuse = d; 
 }
 
-inline void Volume::set_opacity_scale(float s) { 
+inline void 
+Volume::set_opacity_scale(float s) 
+{ 
     opacity_scale = s; 
 }
 
-inline void Volume::enable_data() { 
+inline void 
+Volume::enable_data() 
+{ 
     data_enabled = true; 
 }
 
-inline void Volume::disable_data() { 
+inline void 
+Volume::disable_data() 
+{ 
     data_enabled = false; 
 }
 
-inline bool Volume::data_is_enabled() { 
+inline bool 
+Volume::data_is_enabled() 
+{ 
     return data_enabled; 
 }
 
-inline void Volume::enable_outline() { 
+inline void 
+Volume::enable_outline() 
+{ 
     outline_enabled = true; 
 }
 
-inline void Volume::disable_outline() { 
+inline void 
+Volume::disable_outline() 
+{ 
     outline_enabled = false; 
 }
 
-inline bool Volume::outline_is_enabled() { 
+inline bool 
+Volume::outline_is_enabled() 
+{ 
     return outline_enabled; 
 }
 
-inline void Volume::set_outline_color(float *rgb) {
+inline void 
+Volume::set_outline_color(float *rgb) 
+{
     outline_color = Color(rgb[0],rgb[1],rgb[2]);
 }
 
-inline void Volume::get_outline_color(float *rgb) {
+inline void 
+Volume::get_outline_color(float *rgb) 
+{
     outline_color.GetRGB(rgb);
 }
 
-inline void Volume::set_label(int axis, const char* txt){
+inline void 
+Volume::set_label(int axis, const char* txt)
+{
     label[axis] = txt;
 }
 
-inline int Volume::get_isosurface() const
+inline void 
+Volume::set_limits(int axis, double min, double max)
 {
-	return iso_surface;
+    _limits[axis][0] = min;
+    _limits[axis][1] = max;
 }
 
-inline void Volume::set_isosurface(int iso) 
+inline void 
+Volume::get_limits(int axis, double *minPtr, double *maxPtr)
+{
+    *minPtr = _limits[axis][0];
+    *maxPtr = _limits[axis][1];
+}
+
+inline int 
+Volume::get_isosurface() const
+{
+    return iso_surface;
+}
+
+inline void 
+Volume::set_isosurface(int iso) 
 {
     iso_surface = iso;
 }

@@ -101,6 +101,7 @@ class NvLIC;
 
 class NanoVis {
 public:
+    enum Axis { X, Y, Z };
     static VolumeRenderer* vol_renderer;
     static PointSetRenderer* pointset_renderer;
     static NvParticleRenderer* particleRenderer;
@@ -157,7 +158,7 @@ public:
     static void zoom(double zoom);
     static int render_legend(TransferFunction *tf, double min, double max, 
 	int width, int height, const char* volArg);
-    static void load_volume(int index, int width, int height, int depth, 
+    static Volume *load_volume(int index, int width, int height, int depth, 
 	int n, float* data, double vmin, double vmax, double nzero_min);
 #ifndef XINETD
     static void keyboard(unsigned char key, int x, int y);
