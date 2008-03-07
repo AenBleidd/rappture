@@ -1674,9 +1674,9 @@ VolumeTestOp(ClientData cdata, Tcl_Interp *interp, int objc,
 }
 
 static Rappture::CmdSpec volumeOps[] = {
-    {"animation", 2, VolumeAnimationOp,   3, 3, "oper ?args?",},
-    {"axis",      2, VolumeAxisOp,        3, 3, "label axis value ?indices?",},
-    {"data",      1, VolumeDataOp,        3, 3, "oper ?args?",},
+    {"animation", 2, VolumeAnimationOp,   3, 0, "oper ?args?",},
+    {"axis",      2, VolumeAxisOp,        4, 0, "label axis value ?indices?",},
+    {"data",      1, VolumeDataOp,        3, 0, "oper ?args?",},
     {"outline",   1, VolumeOutlineOp,     3, 0, "oper ?args?",},
     {"shading",   2, VolumeShadingOp,     3, 0, "oper ?args?",},
     {"state",     2, VolumeStateOp,       3, 0, "bool ?indices?",},
