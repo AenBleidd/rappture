@@ -272,7 +272,7 @@ void cgErrorCallback(void)
  *              All component scalars for a point are placed consequtively in data array 
  * width, height and depth: number of points in each dimension
  */
-void 
+Volume *
 NanoVis::load_volume(int index, int width, int height, int depth, 
                      int n_component, float* data, double vmin, 
                      double vmax, double nzero_min)
@@ -286,21 +286,18 @@ NanoVis::load_volume(int index, int width, int height, int depth,
     if (vol != NULL) {
         volume[index] = NULL;
 
-        if (vol->pointsetIndex != -1)
-        {
-            if (((unsigned  int) vol->pointsetIndex) < pointSet.size() && pointSet[vol->pointsetIndex] != NULL)
-            {
+        if (vol->pointsetIndex != -1) {
+            if (((unsigned  int) vol->pointsetIndex) < pointSet.size() && 
+		pointSet[vol->pointsetIndex] != NULL) {
                 delete pointSet[vol->pointsetIndex];
                 pointSet[vol->pointsetIndex] = 0;
             }
         }
-
         delete vol;
     }
-
     volume[index] = new Volume(0.f, 0.f, 0.f, width, height, depth, 1.,
-                               n_component, data, vmin, vmax, nzero_min);
-    assert(volume[index]!=0);
+	n_component, data, vmin, vmax, nzero_min);
+    return volume[index];
 }
 
 // Gets a colormap 1D texture by name.

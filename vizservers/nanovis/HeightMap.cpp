@@ -1,3 +1,4 @@
+ 
 #include <GL/glew.h>
 #include <GL/gl.h>
 #include "HeightMap.h"
@@ -15,26 +16,26 @@
 #include <RenderContext.h>
 
 HeightMap::HeightMap() : 
+    _vertexBufferObjectID(0), 
+    _textureBufferObjectID(0), 
+    _vertexCount(0), 
     _contour(0), 
     _colorMap(0), 
     _indexBuffer(0), 
     _indexCount(0), 
-    _vertexBufferObjectID(0), 
-    _vertexCount(0), 
-    _textureBufferObjectID(0), 
-    _contourVisible(true), 
-    _scale(1.0f, 1.0f, 1.0f), 
     _contourColor(1.0f, 0.0f, 0.0f), 
+    _contourVisible(true), 
     _visible(false),
+    _scale(1.0f, 1.0f, 1.0f), 
+    _centerPoint(0.0f, 0.0f, 0.0f),
     _vmin(0.0f), 
-    _vmax(0.0f), 
-    _centerPoint(0.0f, 0.0f, 0.0f)
+    _vmax(0.0f)
 {
     _shader = new NvShader();
 
     R2string path = R2FilePath::getInstance()->getPath("heightcolor.cg");
     if (path.getLength() == 0) {
-	printf("ERROR : file not found %s\n", "heightcolor.cg");
+        printf("ERROR : file not found %s\n", "heightcolor.cg");
     }
     _shader->loadFragmentProgram(path, "main");
     _tf = _shader->getNamedParameterFromFP("tf");
@@ -45,7 +46,7 @@ HeightMap::~HeightMap()
     reset();
 
     if (_shader) {
-	delete _shader;
+        delete _shader;
     }
 
     // TMP
@@ -73,62 +74,62 @@ void HeightMap::render(graphics::RenderContext* renderContext)
     glTranslatef(-_centerPoint.x, -_centerPoint.y, -_centerPoint.z);
 
     if (_contour) {
-	glDepthRange (0.001, 1.0);
+        glDepthRange (0.001, 1.0);
     }
-	
+        
     glEnable(GL_DEPTH_TEST);
 
     if (_vertexBufferObjectID) {
-	glColor3f(1.0f, 1.0f, 1.0f);
-	glShadeModel(GL_SMOOTH);
-	glEnable(GL_BLEND);
-	glEnableClientState(GL_VERTEX_ARRAY);
-	glDisableClientState(GL_COLOR_ARRAY);
-	glDisableClientState(GL_INDEX_ARRAY);
-	glDisableClientState(GL_NORMAL_ARRAY);
-	
-	if (_colorMap) {
+        glColor3f(1.0f, 1.0f, 1.0f);
+        glShadeModel(GL_SMOOTH);
+        glEnable(GL_BLEND);
+        glEnableClientState(GL_VERTEX_ARRAY);
+        glDisableClientState(GL_COLOR_ARRAY);
+        glDisableClientState(GL_INDEX_ARRAY);
+        glDisableClientState(GL_NORMAL_ARRAY);
+        
+        if (_colorMap) {
             cgGLBindProgram(_shader->getFP());
             cgGLEnableProfile(CG_PROFILE_FP30);
-	    
-	    cgGLSetTextureParameter(_tf, _colorMap->id);
-	    cgGLEnableTextureParameter(_tf);
-	    
-	    glEnable(GL_TEXTURE_1D);
-	    _colorMap->getTexture()->activate();
-	    
-	    glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-	}
-	
-	glBindBuffer(GL_ARRAY_BUFFER, _vertexBufferObjectID);
-	glVertexPointer(3, GL_FLOAT, 12, 0);
-	
-	glBindBuffer(GL_ARRAY_BUFFER, _textureBufferObjectID);
-	::glTexCoordPointer(3, GL_FLOAT, 12, 0);
-	
-	glDrawElements(GL_TRIANGLES, _indexCount, GL_UNSIGNED_INT, 
-		       _indexBuffer);
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	
-	glDisableClientState(GL_VERTEX_ARRAY);
-	if (_colorMap) {
-	    _colorMap->getTexture()->deactivate();
-	    glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-	    
+            
+            cgGLSetTextureParameter(_tf, _colorMap->id);
+            cgGLEnableTextureParameter(_tf);
+            
+            glEnable(GL_TEXTURE_1D);
+            _colorMap->getTexture()->activate();
+            
+            glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+        }
+        
+        glBindBuffer(GL_ARRAY_BUFFER, _vertexBufferObjectID);
+        glVertexPointer(3, GL_FLOAT, 12, 0);
+        
+        glBindBuffer(GL_ARRAY_BUFFER, _textureBufferObjectID);
+        ::glTexCoordPointer(3, GL_FLOAT, 12, 0);
+        
+        glDrawElements(GL_TRIANGLES, _indexCount, GL_UNSIGNED_INT, 
+                       _indexBuffer);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        
+        glDisableClientState(GL_VERTEX_ARRAY);
+        if (_colorMap) {
+            _colorMap->getTexture()->deactivate();
+            glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+            
             cgGLDisableProfile(CG_PROFILE_FP30);
-	}
+        }
     }
     
     glShadeModel(GL_FLAT);
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     
     if (_contour && _contourVisible) {
-	glDisable(GL_BLEND);
-	glDisable(GL_TEXTURE_2D);
-	glColor4f(_contourColor.x, _contourColor.y, _contourColor.z, 1.0f);
-	glDepthRange (0.0, 0.999);
-	_contour->render();
-	glDepthRange (0.0, 1.0);
+        glDisable(GL_BLEND);
+        glDisable(GL_TEXTURE_2D);
+        glColor4f(_contourColor.x, _contourColor.y, _contourColor.z, 1.0f);
+        glDepthRange (0.0, 0.999);
+        _contour->render();
+        glDepthRange (0.0, 1.0);
     }
     glPopMatrix();
 }
@@ -180,8 +181,8 @@ void HeightMap::createIndexBuffer(int xCount, int zCount, int*& indexBuffer, int
                 *ptr = i * xCount + j; ++ptr;
                 *ptr = (i + 1) * xCount + j; ++ptr;
                 *ptr = (i + 1) * xCount + j + 1; ++ptr;
-		*ptr = i * xCount + j; ++ptr;
-		*ptr = (i + 1) * xCount + j + 1; ++ptr;
+                *ptr = i * xCount + j; ++ptr;
+                *ptr = (i + 1) * xCount + j + 1; ++ptr;
                 *ptr = i * xCount + j + 1; ++ptr;
             }
         }
@@ -191,19 +192,19 @@ void HeightMap::createIndexBuffer(int xCount, int zCount, int*& indexBuffer, int
 void HeightMap::reset()
 {
     if (_vertexBufferObjectID) {
-	glDeleteBuffers(1, &_vertexBufferObjectID);
+        glDeleteBuffers(1, &_vertexBufferObjectID);
     }
 
     if (_vertexBufferObjectID) {
-	glDeleteBuffers(1, &_vertexBufferObjectID);
+        glDeleteBuffers(1, &_vertexBufferObjectID);
     }
 
     //if (_contour) _contour->unrefDelete();
     if (_contour) {
-	delete _contour;
+        delete _contour;
     }
     if (_indexBuffer) {
-	free(_indexBuffer);
+        free(_indexBuffer);
     }
 }
 
@@ -215,40 +216,39 @@ void HeightMap::setHeight(int xCount, int yCount, Vector3* heights)
     _vmin = heights[0].y, _vmax = heights[0].y;
     int count = xCount * yCount;
     for (int i = 0; i < count; ++i) {
-	if (_vmin > heights[i].y) {
-	    _vmin = heights[i].y;
-	} 
+        if (_vmin > heights[i].y) {
+            _vmin = heights[i].y;
+        } 
         if (_vmax < heights[i].y) {
-	    _vmax = heights[i].y;
-	}
+            _vmax = heights[i].y;
+        }
     }
 
     _scale.x = 1.0f;
     _scale.z = _vmax - _vmin;
     _scale.y = 1.0f;
+    set_limits(0, 0.0, 1.0);
+    set_limits(1, 0.0, 1.0);
+    set_limits(2, _vmin, _vmax);
 
     _centerPoint.set(_scale.x * 0.5, _scale.z * 0.5 + _vmin, _scale.y * 0.5);
 
-    Vector3* texcoord = (Vector3*) malloc(count * sizeof(Vector3));
+    Vector3* texcoord = new Vector3[count];
     for (int i = 0; i < count; ++i) {
-	texcoord[i].set(0, 0, heights[i].y);
+        texcoord[i].set(0, 0, heights[i].y);
     }
     
     glGenBuffers(1, &_vertexBufferObjectID);
     glBindBuffer(GL_ARRAY_BUFFER, _vertexBufferObjectID);
-    glBufferData(GL_ARRAY_BUFFER, 
-		 _vertexCount * sizeof( Vector3 ),
-		 heights, 
-		 GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, _vertexCount * sizeof( Vector3 ), heights, 
+	GL_STATIC_DRAW);
     glGenBuffers(1, &_textureBufferObjectID);
     glBindBuffer(GL_ARRAY_BUFFER, _textureBufferObjectID);
-    glBufferData(GL_ARRAY_BUFFER, 
-		 _vertexCount * sizeof(float) * 3,
-		 texcoord, 
-		 GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, _vertexCount * sizeof(float) * 3, texcoord, 
+	GL_STATIC_DRAW);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     
-    free(texcoord);
+    delete [] texcoord;
     
     
     ContourLineFilter lineFilter;
@@ -256,9 +256,9 @@ void HeightMap::setHeight(int xCount, int yCount, Vector3* heights)
 
     //if (heightMap)
     //{
-    //	VertexBuffer* vertexBuffer = new VertexBuffer(VertexBuffer::POSITION3, xCount * yCount, sizeof(Vector3) * xCount * yCount, heightMap, false);
+    //  VertexBuffer* vertexBuffer = new VertexBuffer(VertexBuffer::POSITION3, xCount * yCount, sizeof(Vector3) * xCount * yCount, heightMap, false);
     if (_indexBuffer) {
-	free(_indexBuffer);
+        free(_indexBuffer);
     }
 
     this->createIndexBuffer(xCount, yCount, _indexBuffer, _indexCount, 0);
@@ -270,53 +270,49 @@ void HeightMap::setHeight(int xCount, int yCount, Vector3* heights)
 }
 
 void 
-HeightMap::setHeight(
-    float startX, float startY, 
-    float endX, float endY, 
-    int xCount, int yCount, 
-    float* heights)
+HeightMap::setHeight(float startX, float startY, float endX, float endY, 
+                     int xCount, int yCount, float* heights)
 {
     _vertexCount = xCount * yCount;
     
     reset();
-    
+
     _vmin = heights[0], _vmax = heights[0];
     int count = xCount * yCount;
     for (int i = 0; i < count; ++i) {
-	if (_vmin > heights[i]) {
-	    _vmin = heights[i];
-	} else if (_vmax < heights[i]) {
-	    _vmax = heights[i];
-	}
+        if (_vmin > heights[i]) {
+            _vmin = heights[i];
+        } else if (_vmax < heights[i]) {
+            _vmax = heights[i];
+        }
     }
     _scale.x = endX - startX;
     _scale.y = _vmax - _vmin;
     _scale.z = endY - startY;
+    set_limits(0, startX, endX);
+    set_limits(1, startY, endY);
+    set_limits(2, _vmin, _vmax);
     
     _centerPoint.set(_scale.x * 0.5 + startX, _scale.y * 0.5 + _vmin, _scale.z * 0.5 + startY);
     
-    Vector3* texcoord = (Vector3*) malloc(count * sizeof(Vector3));
+    Vector3* texcoord = new Vector3[count];
     for (int i = 0; i < count; ++i) {
-	texcoord[i].set(0, 0, heights[i]);
+        texcoord[i].set(0, 0, heights[i]);
     }
     
     Vector3* heightMap = createHeightVertices(startX, startY, endX, endY, xCount, yCount, heights);
     
     glGenBuffers(1, &_vertexBufferObjectID);
     glBindBuffer(GL_ARRAY_BUFFER, _vertexBufferObjectID);
-    glBufferData(GL_ARRAY_BUFFER, 
-		 _vertexCount * sizeof( Vector3 ),
-		 heightMap, 
-		 GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, _vertexCount * sizeof( Vector3 ), heightMap, 
+        GL_STATIC_DRAW);
     glGenBuffers(1, &_textureBufferObjectID);
     glBindBuffer(GL_ARRAY_BUFFER, _textureBufferObjectID);
-    glBufferData(GL_ARRAY_BUFFER, 
-		 _vertexCount * sizeof(float) * 3,
-		 texcoord, 
-		 GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, _vertexCount * sizeof(float) * 3, texcoord, 
+        GL_STATIC_DRAW);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     
-    free(texcoord);
+    delete [] texcoord;
     
     
     ContourLineFilter lineFilter;
@@ -325,10 +321,10 @@ HeightMap::setHeight(
     
     //if (heightMap)
     //{
-    //	VertexBuffer* vertexBuffer = new VertexBuffer(VertexBuffer::POSITION3, xCount * yCount, 
-    //									sizeof(Vector3) * xCount * yCount, heightMap, false);
+    //  VertexBuffer* vertexBuffer = new VertexBuffer(VertexBuffer::POSITION3, xCount * yCount, 
+    // sizeof(Vector3) * xCount * yCount, heightMap, false);
     if (_indexBuffer) {
-	free(_indexBuffer);
+        free(_indexBuffer);
     }
     this->createIndexBuffer(xCount, yCount, _indexBuffer, _indexCount, heights);
     //}
@@ -346,18 +342,18 @@ Vector3* HeightMap::createHeightVertices(float startX, float startY, float endX,
     float* srcDataPtr = height;
     
     for (int y = 0; y < yCount; ++y) {
-	float yCoord;
+        float yCoord;
 
-	yCoord = startY + ((endY - startY) * y) / (yCount - 1); 
-	for (int x = 0; x < xCount; ++x) {
-	    float xCoord;
+        yCoord = startY + ((endY - startY) * y) / (yCount - 1); 
+        for (int x = 0; x < xCount; ++x) {
+            float xCoord;
 
-	    xCoord = startX + ((endX - startX) * x) / (xCount - 1); 
-	    dstDataPtr->set(xCoord, *srcDataPtr, yCoord);
+            xCoord = startX + ((endX - startX) * x) / (xCount - 1); 
+            dstDataPtr->set(xCoord, *srcDataPtr, yCoord);
 
-	    ++dstDataPtr;
-	    ++srcDataPtr;
-	}
+            ++dstDataPtr;
+            ++srcDataPtr;
+        }
     }
     return vertices;
 }

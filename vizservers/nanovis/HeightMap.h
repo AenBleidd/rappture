@@ -36,10 +36,8 @@ class HeightMap {
     Vector3 _scale;
     Vector3 _centerPoint;
 
-    double _vmin;		// minimum (unscaled) value in data
-    double _vmax;		// maximum (unscaled) value in data
-
-
+    double _limits[3][2];
+    double _vmin, _vmax;
 public :
     /**
      *@brief Constructor
@@ -107,6 +105,8 @@ public :
 
     double range_min(void);
     double range_max(void);
+    void set_limits(int axis, double min, double max);
+    void get_limits(int axis, double *minPtr, double *maxPtr);
 };
 
 inline void HeightMap::setVisible(bool visible)
@@ -135,6 +135,20 @@ inline TransferFunction *
 HeightMap::getColorMap()
 {
     return _colorMap;
+}
+
+inline void 
+HeightMap::set_limits(int axis, double min, double max) 
+{
+    _limits[axis][0] = min;
+    _limits[axis][1] = max;
+}
+
+inline void 
+HeightMap::get_limits(int axis, double *minPtr, double *maxPtr)
+{
+    *minPtr = _limits[axis][0];
+    *maxPtr = _limits[axis][1];
 }
 
 inline double

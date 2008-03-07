@@ -1,10 +1,10 @@
-
+ 
 /*
  * ----------------------------------------------------------------------
  * Nanovis: Visualization of Nanoelectronics Data
  *
  *  dxReader.cpp 
- *	This module contains openDX readers for 2D and 3D volumes.
+ *      This module contains openDX readers for 2D and 3D volumes.
  *
  * ======================================================================
  *  AUTHOR:  Wei Qiao <qiaow@purdue.edu>
@@ -50,10 +50,10 @@ merge(float* scalar, float* gradient, int size)
     
     int ngen = 0, sindex = 0;
     for (sindex = 0; sindex <size; ++sindex) {
-	data[ngen++] = scalar[sindex];
-	data[ngen++] = g[sindex].x;
-	data[ngen++] = g[sindex].y;
-	data[ngen++] = g[sindex].z;
+        data[ngen++] = scalar[sindex];
+        data[ngen++] = g[sindex].x;
+        data[ngen++] = g[sindex].y;
+        data[ngen++] = g[sindex].z;
     }
     return data;
 }
@@ -65,18 +65,18 @@ normalizeScalar(float* fdata, int count, float min, float max)
     if (v != 0.0f) {
         for (int i = 0; i < count; ++i) {
             fdata[i] = fdata[i] / v;
-	}
+        }
     }
 }
 
 static float* 
 computeGradient(float* fdata, int width, int height, int depth, 
-		float min, float max)
+                float min, float max)
 {
     float* gradients = (float *)malloc(width * height * depth * 3 * 
-				       sizeof(float));
+                                       sizeof(float));
     float* tempGradients = (float *)malloc(width * height * depth * 3 * 
-					   sizeof(float));
+                                           sizeof(float));
     int sizes[3] = { width, height, depth };
     computeGradients(tempGradients, fdata, sizes, DATRAW_FLOAT);
     filterGradients(tempGradients, sizes);
@@ -96,13 +96,13 @@ load_vector_stream(int index, std::istream& fin)
     double x0, y0, z0, dx, dy, dz, ddx, ddy, ddz;
     char line[128], type[128], *start;
 
-    dx = dy = dz = 0.0;		// Suppress compiler warning.
+    dx = dy = dz = 0.0;         // Suppress compiler warning.
     while (!fin.eof()) {
         fin.getline(line, sizeof(line) - 1);
-	if (fin.fail()) {
-	    //return result.error("error in data stream");
-	    return;
-	}
+        if (fin.fail()) {
+            //return result.error("error in data stream");
+            return;
+        }
         for (start=&line[0]; *start == ' ' || *start == '\t'; start++)
             ;  // skip leading blanks
 
@@ -114,12 +114,12 @@ load_vector_stream(int index, std::istream& fin)
             } else if (sscanf(start, "delta %lg %lg %lg", &ddx, &ddy, &ddz) == 3) {
                 // found one of the delta lines
                 if (ddx != 0.0) { 
-		    dx = ddx; 
-		} else if (ddy != 0.0) { 
-		    dy = ddy; 
-		} else if (ddz != 0.0) { 
-		    dz = ddz; 
-		}
+                    dx = ddx; 
+                } else if (ddy != 0.0) { 
+                    dy = ddy; 
+                } else if (ddz != 0.0) { 
+                    dz = ddz; 
+                }
             } else if (sscanf(start, "object %d class array type %s shape 3 rank 1 items %d data follows", &dummy, type, &npts) == 3) {
                 if (npts != nx*ny*nz) {
                     std::cerr << "inconsistent data: expected " << nx*ny*nz << " points but found " << npts << " points" << std::endl;
@@ -184,9 +184,9 @@ load_vector_stream(int index, std::istream& fin)
 
 #ifndef NV40
         // must be an even power of 2 for older cards
-	    nx = (int)pow(2.0, ceil(log10((double)nx)/log10(2.0)));
-	    ny = (int)pow(2.0, ceil(log10((double)ny)/log10(2.0)));
-	    nz = (int)pow(2.0, ceil(log10((double)nz)/log10(2.0)));
+        nx = (int)pow(2.0, ceil(log10((double)nx)/log10(2.0)));
+        ny = (int)pow(2.0, ceil(log10((double)ny)/log10(2.0)));
+        nz = (int)pow(2.0, ceil(log10((double)nz)/log10(2.0)));
 #endif
 
         float *data = new float[3*nx*ny*nz];
@@ -210,15 +210,16 @@ load_vector_stream(int index, std::istream& fin)
                     vy = yfield.value(xval,yval,zval);
                     vz = zfield.value(xval,yval,zval);
 
-                    double vm = sqrt(vx*vx + vy*vy + vz*vz);
-
-                    if (vm < vmin) { vmin = vm; }
-                    if (vm > vmax) { vmax = vm; }
-                    if (vm != 0.0f && vm < nzero_min)
-                    {
+                    double vm;
+                    vm = sqrt(vx*vx + vy*vy + vz*vz);
+                    if (vm < vmin) { 
+                        vmin = vm; 
+                    } else if (vm > vmax) { 
+                        vmax = vm; 
+                    }
+                    if ((vm != 0.0f) && (vm < nzero_min)) {
                         nzero_min = vm;
                     }
-
                     data[ngen++] = vx;
                     data[ngen++] = vy;
                     data[ngen++] = vz;
@@ -232,7 +233,12 @@ load_vector_stream(int index, std::istream& fin)
         for (ngen=0; ngen < npts; ngen++) {
             data[ngen] = (data[ngen]/(2.0*vmax) + 0.5);
         }
-        NanoVis::load_volume(index, nx, ny, nz, 3, data, vmin, vmax, nzero_min);
+	Volume *volPtr;
+        volPtr = NanoVis::load_volume(index, nx, ny, nz, 3, data, vmin, vmax, 
+		nzero_min);
+	volPtr->set_limits(0, x0, x0 + (nx * ddx));
+	volPtr->set_limits(1, y0, y0 + (ny * ddy));
+	volPtr->set_limits(2, z0, z0 + (nz * ddz));
         delete [] data;
     } else {
         std::cerr << "WARNING: data not found in stream" << std::endl;
@@ -253,7 +259,7 @@ load_volume_stream2(int index, std::iostream& fin)
     char line[128], type[128], *start;
 
     int isrect = 1;
-    dx = dy = dz = 0.0;		// Suppress compiler warning.
+    dx = dy = dz = 0.0;         // Suppress compiler warning.
     do {
         fin.getline(line,sizeof(line)-1);
         for (start=&line[0]; *start == ' ' || *start == '\t'; start++)
@@ -264,8 +270,7 @@ load_volume_stream2(int index, std::iostream& fin)
             if (sscanf(start, "object %d class gridpositions counts %d %d %d", &dummy, &nx, &ny, &nz) == 4) {
                 // found grid size
                 isrect = 1;
-            }
-            else if (sscanf(start, "object %d class array type float rank 1 shape 3 items %d data follows", &dummy, &nxy) == 2) {
+            } else if (sscanf(start, "object %d class array type float rank 1 shape 3 items %d data follows", &dummy, &nxy) == 2) {
                 isrect = 0;
                 double xx, yy, zz;
                 for (int i=0; i < nxy; i++) {
@@ -328,10 +333,24 @@ load_volume_stream2(int index, std::iostream& fin)
             } else if (sscanf(start, "origin %lg %lg %lg", &x0, &y0, &z0) == 3) {
                 // found origin
             } else if (sscanf(start, "delta %lg %lg %lg", &ddx, &ddy, &ddz) == 3) {
+		int count = 0;
                 // found one of the delta lines
-                if (ddx != 0.0) { dx = ddx; }
-                else if (ddy != 0.0) { dy = ddy; }
-                else if (ddz != 0.0) { dz = ddz; }
+                if (ddx != 0.0) { 
+		    dx = ddx; 
+		    count++;
+		} 
+		if (ddy != 0.0) { 
+		    dy = ddy; 
+		    count++;
+		} 
+		if (ddz != 0.0) { 
+		    dz = ddz; 
+		    count++;
+		}
+		if (count > 1) {
+		    return result.error(
+			"don't know how to handle multiple non-zero delta values");
+		}
             } else if (sscanf(start, "object %d class array type %s rank 0 items %d data follows", &dummy, type, &npts) == 3) {
                 if (isrect && (npts != nx*ny*nz)) {
                     char mesg[256];
@@ -377,10 +396,13 @@ load_volume_stream2(int index, std::iostream& fin)
                     int nindex = (iz*nx*ny + iy*nx + ix) * 4;
                     data[nindex] = dval[p];
 
-                    if (dval[p] < vmin) vmin = dval[p];
-                    if (dval[p] > vmax) vmax = dval[p];
+                    if (dval[p] < vmin) {
+			vmin = dval[p];
+		    } else if (dval[p] > vmax) {
+			vmax = dval[p];
+		    }
                     if (dval[p] != 0.0f && dval[p] < nzero_min) {
-                         nzero_min = dval[p];
+                        nzero_min = dval[p];
                     }
 
                     nread++;
@@ -407,17 +429,17 @@ load_volume_stream2(int index, std::iostream& fin)
             int ngen = 0;
             double v;
             printf("test2\n");
-                        fflush(stdout);
-            if (dv == 0.0) { dv = 1.0; }
-            for (int i = 0; i < count; ++i)
-            {
-                v = data[ngen];
-                // scale all values [0-1], -1 => out of bounds
-                v = (isnan(v)) ? -1.0 : (v - vmin)/dv;
-                data[ngen] = v;
-                ngen += 4;
-            }
-
+            fflush(stdout);
+            if (dv == 0.0) { 
+		dv = 1.0; 
+	    }
+            for (int i = 0; i < count; ++i) {
+		v = data[ngen];
+		// scale all values [0-1], -1 => out of bounds
+		v = (isnan(v)) ? -1.0 : (v - vmin)/dv;
+		data[ngen] = v;
+		ngen += 4;
+	    }
             // Compute the gradient of this data.  BE CAREFUL: center
             // calculation on each node to avoid skew in either direction.
             ngen = 0;
@@ -462,9 +484,12 @@ load_volume_stream2(int index, std::iostream& fin)
             dx = nx;
             dy = ny;
             dz = nz;
-	    NanoVis::load_volume(index, nx, ny, nz, 4, data,
-                vmin, vmax, nzero_min);
-
+	    Volume *volPtr;
+            volPtr = NanoVis::load_volume(index, nx, ny, nz, 4, data,
+					  vmin, vmax, nzero_min);
+	    volPtr->set_limits(NanoVis::X, x0, x0 + (nx * ddx));
+	    volPtr->set_limits(NanoVis::Y, y0, y0 + (ny * ddy));
+	    volPtr->set_limits(NanoVis::Z, z0, z0 + (nz * ddz));
             delete [] data;
 
         } else {
@@ -476,13 +501,13 @@ load_volume_stream2(int index, std::iostream& fin)
             int ixy = 0;
             int iz = 0;
             while (!fin.eof() && nread < npts) {
-		fin >> dval;
+                fin >> dval;
                 if (fin.fail()) {
-		    char mesg[256];
-		    sprintf(mesg,"after %d of %d points: can't read number", 
-			    nread, npts);
-		    return result.error(mesg);
-		} else {
+                    char mesg[256];
+                    sprintf(mesg,"after %d of %d points: can't read number", 
+                            nread, npts);
+                    return result.error(mesg);
+                } else {
                     int nid = nxy*iz + ixy;
                     field.define(nid, dval);
 
@@ -516,16 +541,17 @@ load_volume_stream2(int index, std::iostream& fin)
             nz = (int)ceil(dz/dmin);
 #ifndef NV40
             // must be an even power of 2 for older cards
-	        nx = (int)pow(2.0, ceil(log10((double)nx)/log10(2.0)));
-	        ny = (int)pow(2.0, ceil(log10((double)ny)/log10(2.0)));
-	        nz = (int)pow(2.0, ceil(log10((double)nz)/log10(2.0)));
+            nx = (int)pow(2.0, ceil(log10((double)nx)/log10(2.0)));
+            ny = (int)pow(2.0, ceil(log10((double)ny)/log10(2.0)));
+            nz = (int)pow(2.0, ceil(log10((double)nz)/log10(2.0)));
 #endif
             float *data = new float[4*nx*ny*nz];
 
             double vmin = field.valueMin();
             double dv = field.valueMax() - field.valueMin();
-            if (dv == 0.0) { dv = 1.0; }
-
+            if (dv == 0.0) { 
+		dv = 1.0; 
+	    }
             // generate the uniformly sampled data that we need for a volume
             int ngen = 0;
             double nzero_min = 0.0;
@@ -538,9 +564,9 @@ load_volume_stream2(int index, std::iostream& fin)
                         double v = field.value(xval,yval,zval);
 
                         if (v != 0.0f && v < nzero_min)
-                        {
-                            nzero_min = v;
-                        }
+                            {
+                                nzero_min = v;
+                            }
                         // scale all values [0-1], -1 => out of bounds
                         v = (isnan(v)) ? -1.0 : (v - vmin)/dv;
                         data[ngen] = v;
@@ -591,9 +617,15 @@ load_volume_stream2(int index, std::iostream& fin)
                 }
             }
 
-	    NanoVis::load_volume(index, nx, ny, nz, 4, data,
-                field.valueMin(), field.valueMax(), nzero_min);
-
+	    Volume *volPtr;
+            volPtr = NanoVis::load_volume(index, nx, ny, nz, 4, data,
+		field.valueMin(), field.valueMax(), nzero_min);
+	    volPtr->set_limits(0, field.rangeMin(Rappture::xaxis), 
+			       field.rangeMax(Rappture::xaxis));
+	    volPtr->set_limits(1, field.rangeMin(Rappture::yaxis), 
+			       field.rangeMax(Rappture::yaxis));
+	    volPtr->set_limits(2, field.rangeMin(Rappture::zaxis), 
+			       field.rangeMax(Rappture::zaxis));
             delete [] data;
         }
     } else {
@@ -623,12 +655,12 @@ load_volume_stream(int index, std::iostream& fin)
 
     int isrect = 1;
 
-    dx = dy = dz = 0.0;		// Suppress compiler warning.
+    dx = dy = dz = 0.0;         // Suppress compiler warning.
     while (!fin.eof()) {
         fin.getline(line, sizeof(line) - 1);
-	if (fin.fail()) {
-	    return result.error("error in data stream");
-	}
+        if (fin.fail()) {
+            return result.error("error in data stream");
+        }
         for (start=line; *start == ' ' || *start == '\t'; start++)
             ;  // skip leading blanks
 
@@ -736,9 +768,9 @@ load_volume_stream(int index, std::iostream& fin)
             int iz = 0;
             while (!fin.eof() && nread < npts) {
                 fin.getline(line,sizeof(line)-1);
-		if (fin.fail()) {
-		    return result.error("error reading data points");
-		}
+                if (fin.fail()) {
+                    return result.error("error reading data points");
+                }
                 int n = sscanf(line, "%lg %lg %lg %lg %lg %lg", &dval[0], &dval[1], &dval[2], &dval[3], &dval[4], &dval[5]);
 
                 for (int p=0; p < n; p++) {
@@ -776,9 +808,9 @@ load_volume_stream(int index, std::iostream& fin)
 
 #ifndef NV40
             // must be an even power of 2 for older cards
-	        nx = (int)pow(2.0, ceil(log10((double)nx)/log10(2.0)));
-	        ny = (int)pow(2.0, ceil(log10((double)ny)/log10(2.0)));
-	        nz = (int)pow(2.0, ceil(log10((double)nz)/log10(2.0)));
+            nx = (int)pow(2.0, ceil(log10((double)nx)/log10(2.0)));
+            ny = (int)pow(2.0, ceil(log10((double)ny)/log10(2.0)));
+            nz = (int)pow(2.0, ceil(log10((double)nz)/log10(2.0)));
 #endif
 
             float *cdata = new float[nx*ny*nz];
@@ -806,93 +838,99 @@ load_volume_stream(int index, std::iostream& fin)
             }
 
             float* data = computeGradient(cdata, nx, ny, nz, field.valueMin(), 
-					  field.valueMax());
+                                          field.valueMax());
 
             // Compute the gradient of this data.  BE CAREFUL: center
             /*
-            float *data = new float[4*nx*ny*nz];
+              float *data = new float[4*nx*ny*nz];
 
-            double vmin = field.valueMin();
-            double dv = field.valueMax() - field.valueMin();
-            if (dv == 0.0) { dv = 1.0; }
+              double vmin = field.valueMin();
+              double dv = field.valueMax() - field.valueMin();
+              if (dv == 0.0) { dv = 1.0; }
 
-            // generate the uniformly sampled data that we need for a volume
-            int ngen = 0;
-            double nzero_min = 0.0;
-            for (int iz=0; iz < nz; iz++) {
-                double zval = z0 + iz*dmin;
-                for (int iy=0; iy < ny; iy++) {
-                    double yval = y0 + iy*dmin;
-                    for (int ix=0; ix < nx; ix++) {
-                        double xval = x0 + ix*dmin;
-                        double v = field.value(xval,yval,zval);
+              // generate the uniformly sampled data that we need for a volume
+              int ngen = 0;
+              double nzero_min = 0.0;
+              for (int iz=0; iz < nz; iz++) {
+              double zval = z0 + iz*dmin;
+              for (int iy=0; iy < ny; iy++) {
+              double yval = y0 + iy*dmin;
+              for (int ix=0; ix < nx; ix++) {
+              double xval = x0 + ix*dmin;
+              double v = field.value(xval,yval,zval);
 
-                        if (v != 0.0f && v < nzero_min)
-                        {
-                            nzero_min = v;
-                        }
+              if (v != 0.0f && v < nzero_min)
+              {
+              nzero_min = v;
+              }
 
-                        // scale all values [0-1], -1 => out of bounds
-                        v = (isnan(v)) ? -1.0 : (v - vmin)/dv;
+              // scale all values [0-1], -1 => out of bounds
+              v = (isnan(v)) ? -1.0 : (v - vmin)/dv;
 
-                        data[ngen] = v;
-                        ngen += 4;
-                    }
-                }
-            }
-            // Compute the gradient of this data.  BE CAREFUL: center
-            // calculation on each node to avoid skew in either direction.
-            ngen = 0;
-            for (int iz=0; iz < nz; iz++) {
-                for (int iy=0; iy < ny; iy++) {
-                    for (int ix=0; ix < nx; ix++) {
-                        // gradient in x-direction
-                        double valm1 = (ix == 0) ? 0.0 : data[ngen-4];
-                        double valp1 = (ix == nx-1) ? 0.0 : data[ngen+4];
-                        if (valm1 < 0 || valp1 < 0) {
-                            data[ngen+1] = 0.0;
-                        } else {
-                            data[ngen+1] = ((valp1-valm1) + 1) *  0.5; // assume dx=1
-                        }
+              data[ngen] = v;
+              ngen += 4;
+              }
+              }
+              }
+              // Compute the gradient of this data.  BE CAREFUL: center
+              // calculation on each node to avoid skew in either direction.
+              ngen = 0;
+              for (int iz=0; iz < nz; iz++) {
+              for (int iy=0; iy < ny; iy++) {
+              for (int ix=0; ix < nx; ix++) {
+              // gradient in x-direction
+              double valm1 = (ix == 0) ? 0.0 : data[ngen-4];
+              double valp1 = (ix == nx-1) ? 0.0 : data[ngen+4];
+              if (valm1 < 0 || valp1 < 0) {
+              data[ngen+1] = 0.0;
+              } else {
+              data[ngen+1] = ((valp1-valm1) + 1) *  0.5; // assume dx=1
+              }
 
-                        // gradient in y-direction
-                        valm1 = (iy == 0) ? 0.0 : data[ngen-4*nx];
-                        valp1 = (iy == ny-1) ? 0.0 : data[ngen+4*nx];
-                        if (valm1 < 0 || valp1 < 0) {
-                            data[ngen+2] = 0.0;
-                        } else {
-                            //data[ngen+2] = valp1-valm1; // assume dy=1
-                            data[ngen+2] = ((valp1-valm1) + 1) *  0.5; // assume dx=1
-                        }
+              // gradient in y-direction
+              valm1 = (iy == 0) ? 0.0 : data[ngen-4*nx];
+              valp1 = (iy == ny-1) ? 0.0 : data[ngen+4*nx];
+              if (valm1 < 0 || valp1 < 0) {
+              data[ngen+2] = 0.0;
+              } else {
+              //data[ngen+2] = valp1-valm1; // assume dy=1
+              data[ngen+2] = ((valp1-valm1) + 1) *  0.5; // assume dx=1
+              }
 
-                        // gradient in z-direction
-                        valm1 = (iz == 0) ? 0.0 : data[ngen-4*nx*ny];
-                        valp1 = (iz == nz-1) ? 0.0 : data[ngen+4*nx*ny];
-                        if (valm1 < 0 || valp1 < 0) {
-                            data[ngen+3] = 0.0;
-                        } else {
-                            //data[ngen+3] = valp1-valm1; // assume dz=1
-                            data[ngen+3] = ((valp1-valm1) + 1) *  0.5; // assume dz=1
-                        }
+              // gradient in z-direction
+              valm1 = (iz == 0) ? 0.0 : data[ngen-4*nx*ny];
+              valp1 = (iz == nz-1) ? 0.0 : data[ngen+4*nx*ny];
+              if (valm1 < 0 || valp1 < 0) {
+              data[ngen+3] = 0.0;
+              } else {
+              //data[ngen+3] = valp1-valm1; // assume dz=1
+              data[ngen+3] = ((valp1-valm1) + 1) *  0.5; // assume dz=1
+              }
 
-                        ngen += 4;
-                    }
-                }
-            }
+              ngen += 4;
+              }
+              }
+              }
             */
 
-	    NanoVis::load_volume(index, nx, ny, nz, 4, data,
-                field.valueMin(), field.valueMax(), nzero_min);
-
+	    Volume *volPtr;
+            volPtr = NanoVis::load_volume(index, nx, ny, nz, 4, data,
+		field.valueMin(), field.valueMax(), nzero_min);
+	    volPtr->set_limits(0, field.rangeMin(Rappture::xaxis), 
+			       field.rangeMax(Rappture::xaxis));
+	    volPtr->set_limits(1, field.rangeMin(Rappture::yaxis), 
+			       field.rangeMax(Rappture::yaxis));
+	    volPtr->set_limits(2, field.rangeMin(Rappture::zaxis), 
+			       field.rangeMax(Rappture::zaxis));
             // TBD..
             // POINTSET
             /*
-            PointSet* pset = new PointSet();
-            pset->initialize(volume[index], (float*) data);
-            pset->setVisible(true);
-            NanoVis::pointSet.push_back(pset);
-            updateColor(pset);
-            NanoVis::volume[index]->pointsetIndex = NanoVis::pointSet.size() - 1;
+              PointSet* pset = new PointSet();
+              pset->initialize(volume[index], (float*) data);
+              pset->setVisible(true);
+              NanoVis::pointSet.push_back(pset);
+              updateColor(pset);
+              NanoVis::volume[index]->pointsetIndex = NanoVis::pointSet.size() - 1;
             */
  
             delete [] data;
@@ -906,13 +944,13 @@ load_volume_stream(int index, std::iostream& fin)
             int ixy = 0;
             int iz = 0;
             while (!fin.eof() && nread < npts) {
-		fin >> dval;
+                fin >> dval;
                 if (fin.fail()) {
-		    char mesg[256];
-		    sprintf(mesg,"after %d of %d points: can't read number", 
-			    nread, npts);
-		    return result.error(mesg);
-		} else {
+                    char mesg[256];
+                    sprintf(mesg,"after %d of %d points: can't read number", 
+                            nread, npts);
+                    return result.error(mesg);
+                } else {
                     int nid = nxy*iz + ixy;
                     field.define(nid, dval);
 
@@ -946,9 +984,9 @@ load_volume_stream(int index, std::iostream& fin)
             nz = (int)ceil(dz/dmin);
 #ifndef NV40
             // must be an even power of 2 for older cards
-	        nx = (int)pow(2.0, ceil(log10((double)nx)/log10(2.0)));
-	        ny = (int)pow(2.0, ceil(log10((double)ny)/log10(2.0)));
-	        nz = (int)pow(2.0, ceil(log10((double)nz)/log10(2.0)));
+            nx = (int)pow(2.0, ceil(log10((double)nx)/log10(2.0)));
+            ny = (int)pow(2.0, ceil(log10((double)ny)/log10(2.0)));
+            nz = (int)pow(2.0, ceil(log10((double)nz)/log10(2.0)));
 #endif
             float *data = new float[4*nx*ny*nz];
 
@@ -968,9 +1006,9 @@ load_volume_stream(int index, std::iostream& fin)
                         double v = field.value(xval,yval,zval);
 
                         if (v != 0.0f && v < nzero_min)
-                        {
-                            nzero_min = v;
-                        }
+                            {
+                                nzero_min = v;
+                            }
                         // scale all values [0-1], -1 => out of bounds
                         v = (isnan(v)) ? -1.0 : (v - vmin)/dv;
                         data[ngen] = v;
@@ -1021,18 +1059,25 @@ load_volume_stream(int index, std::iostream& fin)
                 }
             }
 
-	        NanoVis::load_volume(index, nx, ny, nz, 4, data,
-                field.valueMin(), field.valueMax(), nzero_min);
+	    Volume *volPtr;
+            volPtr = NanoVis::load_volume(index, nx, ny, nz, 4, data,
+		field.valueMin(), field.valueMax(), nzero_min);
+	    volPtr->set_limits(0, field.rangeMin(Rappture::xaxis), 
+			       field.rangeMax(Rappture::xaxis));
+	    volPtr->set_limits(1, field.rangeMin(Rappture::yaxis), 
+			       field.rangeMax(Rappture::yaxis));
+	    volPtr->set_limits(2, field.rangeMin(Rappture::zaxis), 
+			       field.rangeMax(Rappture::zaxis));
 
             // TBD..
             // POINTSET
             /*
-            PointSet* pset = new PointSet();
-            pset->initialize(volume[index], (float*) data);
-            pset->setVisible(true);
-            NanoVis::pointSet.push_back(pset);
-            updateColor(pset);
-            NanoVis::volume[index]->pointsetIndex = NanoVis::pointSet.size() - 1;
+              PointSet* pset = new PointSet();
+              pset->initialize(volume[index], (float*) data);
+              pset->setVisible(true);
+              NanoVis::pointSet.push_back(pset);
+              updateColor(pset);
+              NanoVis::volume[index]->pointsetIndex = NanoVis::pointSet.size() - 1;
             */
  
 
