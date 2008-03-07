@@ -1,4 +1,4 @@
- 
+
 /*
  * ----------------------------------------------------------------------
  * Command.cpp
@@ -519,7 +519,7 @@ GetVolumes(Tcl_Interp *interp, int objc, Tcl_Obj *CONST *objv,
             }
         }
     } else {
-        for (unsigned int n = 0; n < objc; n++) {
+        for (int n = 0; n < objc; n++) {
             Volume *volPtr;
 
             if (GetVolumeFromObj(interp, objv[n], &volPtr) != TCL_OK) {
@@ -552,13 +552,13 @@ GetAxis(Tcl_Interp *interp, const char *string, int *indexPtr)
 
         c = tolower((unsigned char)string[0]);
         if (c == 'x') {
-            *indexPtr = 0;
+            *indexPtr = NanoVis::X;
             return TCL_OK;
         } else if (c == 'y') {
-            *indexPtr = 1;
+            *indexPtr = NanoVis::Y;
             return TCL_OK;
         } else if (c == 'z') {
-            *indexPtr = 2;
+            *indexPtr = NanoVis::Z;
             return TCL_OK;
         }
         /*FALLTHRU*/
