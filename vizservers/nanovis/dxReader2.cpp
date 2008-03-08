@@ -1,6 +1,5 @@
 
-//opendx (libdx4-dev) headers
-#include <dx/dx.h>
+#include "dxReaderCommon.h"
 
 #include <stdio.h>
 #include <iostream>
@@ -16,25 +15,21 @@
 #include "RpFieldRect3D.h"
 #include "RpFieldPrism3D.h"
 
+
+// FIXME: move newCoolInterplation to the Rappture::DX object
+// this definition is kept only so we can test newCoolInterpolation
 typedef struct {
-    int n;
-    int rank;
-    int shape[3];
-    Category category;
-    Type type;
-} arrayInfo;
+    int nx;
+    int ny;
+    int nz;
+    double dataMin;
+    double dataMax;
+    double nzero_min;
+    float* data;
+} dataInfo;
 
-int initArrayInfo(arrayInfo* a)
-{
-    a->n = 0;
-    a->rank = 0;
-    a->shape[0] = 0;
-    a->shape[1] = 0;
-    a->shape[2] = 0;
-    return 0;
-}
-
-int getInterpPos2(  float* numPts, float *origin,
+// This is legacy code that can be removed during code cleanup
+int getInterpPos(  float* numPts, float *origin,
                     float* max, int rank, float* arr)
 {
     float dn[rank];
@@ -45,7 +40,8 @@ int getInterpPos2(  float* numPts, float *origin,
 
     // dn holds the delta you want for interpolation
     for (i = 0; i < rank; i++) {
-        dn[i] = (max[i] - origin[i]) / (numPts[i] - 1);
+        // dn[i] = (max[i] - origin[i]) / (numPts[i] - 1);
+        dn[i] = (max[i] - origin[i]) / (numPts[i]);
     }
 
     // points are calculated based on the new delta
@@ -61,49 +57,59 @@ int getInterpPos2(  float* numPts, float *origin,
         }
     }
 
-    /*
-    for (z = origin[2]-(numPts[2]/2.0); z < origin[2]+(numPts[2]/2.0); z++) {
-        for (y = origin[1]-(numPts[1]/2.0); y < origin[1]+(numPts[1]/2.0); y++) {
-            for (x = origin[0]-(numPts[0]/2.0); x < origin[0]+(numPts[0]/2.0); x++) {
-                arr[i++] = x*dn[0];
-                arr[i++] = y*dn[1];
-                arr[i++] = z*dn[2];
-                fprintf(stderr, "(%f,%f,%f)\n",arr[i-3],arr[i-2],arr[i-1]);
-            }
-        }
-    }
-    */
-
     return 0;
 }
 
-
-int getDataStats(   int n, int rank, int shape,
-                    float* data, float* delta, float* max)
+// This is legacy code that can be removed during code cleanup
+int getInterpData(  int rank, float* numPts, float* max, float* dxpos, Object* dxobj,
+                    double* dataMin, double* dataMax, float** result)
 {
-    int lcv = 0;
-    int r = rank*shape;
+    int pts = int(numPts[0]*numPts[1]*numPts[2]);
+    int interppts = pts;
+    int arrSize = interppts*rank;
+    float interppos[arrSize];
+    Interpolator interpolator;
 
-    // initialize the max array and delta array
-    // max holds the maximum value found for each index
-    // delta holds the difference between each entry's value
-    for (lcv = 0; lcv < r; lcv++) {
-        max[lcv] = data[lcv];
-        delta[lcv] = data[lcv];
+//     commented this out to see what happens when we use the dxpos array
+//     which holds the positions dx generated for interpolation.
+//
+    // generate the positions we want to interpolate on
+//    getInterpPos(numPts,dxpos,max,rank,interppos);
+//    fprintf(stdout, "after getInterpPos\n");
+//    fflush(stdout);
+
+    // build the interpolator and interpolate
+    interpolator = DXNewInterpolator(*dxobj,INTERP_INIT_IMMEDIATE,-1.0);
+    fprintf(stdout, "after DXNewInterpolator=%x\n", (unsigned int)interpolator);
+    fflush(stdout);
+//    DXInterpolate(interpolator,&interppts,interppos,*result);
+    DXInterpolate(interpolator,&interppts,dxpos,*result);
+    fprintf(stdout,"interppts = %i\n",interppts);
+    fflush(stdout);
+
+    // print debug info
+    for (int lcv = 0, pt = 0; lcv < pts; lcv+=3,pt+=9) {
+        fprintf(stdout,
+            "(%f,%f,%f)|->% 8e\n(%f,%f,%f)|->% 8e\n(%f,%f,%f)|->% 8e\n",
+//            interppos[pt],interppos[pt+1],interppos[pt+2], (*result)[lcv],
+//            interppos[pt+3],interppos[pt+4],interppos[pt+5],(*result)[lcv+1],
+//            interppos[pt+6],interppos[pt+7],interppos[pt+8],(*result)[lcv+2]);
+            dxpos[pt],dxpos[pt+1],dxpos[pt+2], (*result)[lcv],
+            dxpos[pt+3],dxpos[pt+4],dxpos[pt+5],(*result)[lcv+1],
+            dxpos[pt+6],dxpos[pt+7],dxpos[pt+8],(*result)[lcv+2]);
+        fflush(stdout);
     }
 
-    for (lcv=lcv; lcv < n*r; lcv++) {
-        if (data[lcv] > max[lcv%r]) {
-            max[lcv%r] = data[lcv];
+    for (int lcv = 0; lcv < pts; lcv=lcv+3) {
+        if ((*result)[lcv] < *dataMin) {
+            *dataMin = (*result)[lcv];
         }
-        if (delta[lcv%r] == data[lcv%r]) {
-            if (data[lcv] != data[lcv-r]) {
-                delta[lcv%r] = data[lcv] - data[lcv-r];
-            }
+        if ((*result)[lcv] > *dataMax) {
+            *dataMax = (*result)[lcv];
         }
     }
 
-    return lcv;
+    return 0;
 }
 
 /*
@@ -117,7 +123,7 @@ int getDataStats(   int n, int rank, int shape,
  * Outputs:
  * xyz - array containing the values of the x, y, and z axis
  */
-int idx2xyz(int *axisLen, int idx, int *xyz) {
+int idx2xyz(const int *axisLen, int idx, int *xyz) {
     int mult = 1;
     int axis = 0;
 
@@ -140,7 +146,7 @@ int idx2xyz(int *axisLen, int idx, int *xyz) {
  * Outputs:
  * idx - the index that represents xyz in a linear array
  */
-int xyz2idx(int *axisLen, int *xyz, int *idx) {
+int xyz2idx(const int *axisLen, int *xyz, int *idx) {
     int mult = 1;
     int axis = 0;
 
@@ -154,20 +160,139 @@ int xyz2idx(int *axisLen, int *xyz, int *idx) {
     return 0;
 }
 
+Rappture::FieldRect3D* fillRectMesh(const int* numPts, const float* delta, const float* dxpos, const float* data)
+{
+    Rappture::Mesh1D xgrid(dxpos[0], dxpos[0]+numPts[0]*delta[0], (int)(ceil(numPts[0])));
+    Rappture::Mesh1D ygrid(dxpos[1], dxpos[1]+numPts[1]*delta[1], (int)(ceil(numPts[1])));
+    Rappture::Mesh1D zgrid(dxpos[2], dxpos[2]+numPts[2]*delta[2], (int)(ceil(numPts[2])));
+    Rappture::FieldRect3D* field = new Rappture::FieldRect3D(xgrid, ygrid, zgrid);
+
+    int i = 0;
+    int idx = 0;
+    int xyz[] = {0,0,0};
+
+    //FIXME: This can be switched to 3 for loops to avoid the if checks
+    for (i=0; i<numPts[0]*numPts[1]*numPts[2]; i++,xyz[2]++) {
+        if (xyz[2] >= numPts[2]) {
+            xyz[2] = 0;
+            xyz[1]++;
+            if (xyz[1] >= numPts[1]) {
+                xyz[1] = 0;
+                xyz[0]++;
+                if (xyz[0] >= numPts[0]) {
+                    xyz[0] = 0;
+                }
+            }
+        }
+        xyz2idx(numPts,xyz,&idx);
+        field->define(idx, data[i]);
+        fprintf(stdout,"xyz = {%i,%i,%i}\tidx = %i\tdata[%i] = % 8e\n",xyz[0],xyz[1],xyz[2],idx,i,data[i]);
+        fflush(stdout);
+    }
+
+    return field;
+}
+
+float* oldCrustyInterpolation(int* nx, int* ny, int* nz, double* dx, double* dy, double* dz, const float* dxpos, Rappture::FieldRect3D* field, double* nzero_min)
+{
+    // figure out a good mesh spacing
+    int nsample = 30;
+    *dx = field->rangeMax(Rappture::xaxis) - field->rangeMin(Rappture::xaxis);
+    *dy = field->rangeMax(Rappture::yaxis) - field->rangeMin(Rappture::yaxis);
+    *dz = field->rangeMax(Rappture::zaxis) - field->rangeMin(Rappture::zaxis);
+    double dmin = pow((*dx**dy**dz)/(nsample*nsample*nsample), 0.333);
+
+    *nx = (int)ceil(*dx/dmin);
+    *ny = (int)ceil(*dy/dmin);
+    *nz = (int)ceil(*dz/dmin);
+
+#ifndef NV40
+    // must be an even power of 2 for older cards
+    *nx = (int)pow(2.0, ceil(log10((double)nx)/log10(2.0)));
+    *ny = (int)pow(2.0, ceil(log10((double)ny)/log10(2.0)));
+    *nz = (int)pow(2.0, ceil(log10((double)nz)/log10(2.0)));
+#endif
+
+    float *cdata = new float[*nx**ny**nz];
+    int ngen = 0;
+    *nzero_min = 0.0;
+    for (int iz=0; iz < *nz; iz++) {
+        double zval = dxpos[2] + iz*dmin;
+        for (int iy=0; iy < *ny; iy++) {
+            double yval = dxpos[1] + iy*dmin;
+            for (int ix=0; ix < *nx; ix++)
+            {
+                double xval = dxpos[0] + ix*dmin;
+                double v = field->value(xval,yval,zval);
+
+                if (v != 0.0f && v < *nzero_min)
+                {
+                    *nzero_min = v;
+                }
+
+                // scale all values [0-1], -1 => out of bounds
+                v = (isnan(v)) ? -1.0 : v;
+
+                cdata[ngen] = v;
+                ++ngen;
+            }
+        }
+    }
+
+    float* data = computeGradient(cdata, *nx, *ny, *nz, field->valueMin(), field->valueMax());
+
+    delete[] cdata;
+    return data;
+}
+
+// FIXME: move newCoolInterplation to the Rappture::DX object
+int
+newCoolInterpolation(int pts, dataInfo* inData, dataInfo* outData, float* max, float* dxpos, float* delta, float* numPts, double* dx, double* dy, double* dz)
+{
+    // wouldnt dataMin have the non-zero min of the data?
+    //double nzero_min = 0.0;
+    outData->nzero_min = inData->dataMin;
+
+    // need to rewrite this starting here!!! dsk
+    // figure out a good mesh spacing
+    // dxpos[0,1,2] are the origins for x,y,z axis
+    *dx = max[0] - dxpos[0];
+    *dy = max[1] - dxpos[1];
+    *dz = max[2] - dxpos[2];
+    double dmin = pow((*dx**dy**dz)/(pts), (double)(1.0/3.0));
+
+    fprintf(stdout, "dx = %f    dy = %f    dz = %f\n",*dx,*dy,*dz);
+    fprintf(stdout, "dmin = %f\n",dmin);
+    fprintf(stdout, "max = [%f,%f,%f]\n",max[0],max[1],max[2]);
+    fprintf(stdout, "delta = [%f,%f,%f]\n",delta[0],delta[1],delta[2]);
+    fprintf(stdout, "numPts = [%f,%f,%f]\n",numPts[0],numPts[1],numPts[2]);
+    fflush(stdout);
+
+
+    outData->nx = (int)ceil(numPts[0]);
+    outData->ny = (int)ceil(numPts[1]);
+    outData->nz = (int)ceil(numPts[2]);
+
+    fprintf(stdout, "nx = %i    ny = %i    nz = %i\n",outData->nx,outData->ny,outData->nz);
+
+    outData->data = new float[outData->nx*outData->ny*outData->nz];
+    for (int i=0; i<(outData->nx*outData->ny*outData->nz); i+=1) {
+        // scale all values [0,1], -1 => out of bounds
+        outData->data[i] = (isnan(inData->data[i])) ? -1.0 :
+            (inData->data[i] - inData->dataMin)/(inData->dataMax-inData->dataMin);
+        fprintf(stdout, "outData[%i] = % 8e\tinData[%i] = % 8e\n",i,outData->data[i],i,inData->data[i]);
+    }
+
+    return 0;
+}
+
 /* Load a 3D volume from a dx-format file the new way
  */
 Rappture::Outcome
 load_volume_stream_odx(int index, const char *buf, int nBytes) {
     Rappture::Outcome outcome;
 
-    int nx, ny, nz;
-    double dx, dy, dz;
     char dxfilename[128];
-
-    Object dxobj;
-    Array dxarr;
-    arrayInfo dataInfo;
-    arrayInfo posInfo;
 
     if (nBytes == 0) {
         return outcome.error("data not found in stream");
@@ -177,134 +302,64 @@ load_volume_stream_odx(int index, const char *buf, int nBytes) {
     // george suggested using a pipe here
     sprintf(dxfilename, "/tmp/dx%d.dx", getpid());
 
-#ifdef notdef
-    std::ofstream ftmp(dxfilename);
-    fin.seekg(0,std::ios::end);
-    int finLen = fin.tellg();
-    fin.seekg(0,std::ios::beg);
-    char *finBuf = new char[finLen+1];
-    finBuf[finLen] = '\0';
-    fprintf(stderr, "length = %d\n",finLen);
-    fin.read(finBuf,finLen);
-    ftmp << finBuf;
-    ftmp.close();
-#else
     FILE *f;
-    
+
     f = fopen(dxfilename, "w");
     fwrite(buf, sizeof(char), nBytes, f);
     fclose(f);
-#endif
 
-    fprintf(stdout, "Calling DXImportDX(%s)\n", dxfilename);
-    fflush(stdout);
-    dxobj = DXImportDX(dxfilename,NULL,NULL,NULL,NULL);
-    fprintf(stdout, "dxobj=%x\n", dxobj);
-    fflush(stdout);
-    initArrayInfo(&dataInfo);
-    dxarr = (Array)DXGetComponentValue((Field) dxobj, (char *)"data");
+    Rappture::DX dxObj(dxfilename);
 
-    DXGetArrayInfo( dxarr, &dataInfo.n, &dataInfo.type,
-                    &dataInfo.category, &dataInfo.rank, dataInfo.shape);
-    fprintf(stdout, "after DXGetArrayInfo\n");
-    fflush(stdout);
+    if (remove(dxfilename) != 0) {
+        fprintf(stderr, "Error deleting dx file: %s\n", dxfilename);
+        fflush(stderr);
+    }
 
-    initArrayInfo(&posInfo);
-    dxarr = (Array) DXGetComponentValue((Field) dxobj, (char *)"positions");
-    DXGetArrayInfo( dxarr, &posInfo.n, &posInfo.type, 
-                    &posInfo.category, &posInfo.rank, posInfo.shape);
-    fprintf(stdout, "after DXGetArrayInfo\n");
-    fflush(stdout);
-    float* dxpos = (float*) DXGetArrayData(dxarr);
+    // store our data in a rappture structure to be interpolated
+    Rappture::FieldRect3D* field = fillRectMesh(dxObj.axisLen(),
+                                                dxObj.delta(),
+                                                dxObj.positions(),
+                                                dxObj.data());
 
-    float delta[] = {0.0,0.0,0.0};
-    float max[] = {0.0,0.0,0.0};
-    getDataStats(posInfo.n,posInfo.rank,posInfo.shape[0],dxpos,delta,max);
-    fprintf(stdout, "after getDataStats\n");
-
-    int rank = 3;
-    int nsample = 30;
-    float numPts[] = { nsample, nsample, nsample};
-    int pts = int(numPts[0]*numPts[1]*numPts[2]);
-    int interppts = pts;
-    int arrSize = interppts*rank;
-    float interppos[arrSize];
-    float result[interppts];
-    Interpolator interpolator;
-    double dataMin = 0.0;
-    double dataMax = 0.0;
+    int nx = 0;
+    int ny = 0;
+    int nz = 0;
+    double dx = 0.0;
+    double dy = 0.0;
+    double dz = 0.0;
     double nzero_min = 0.0;
-    
-    getInterpPos2(numPts,dxpos,max,rank,interppos);
-    fprintf(stdout, "after getInterpPos2\n");
-    fflush(stdout);
-    interpolator = DXNewInterpolator(dxobj,INTERP_INIT_IMMEDIATE,-1.0);
-    fprintf(stdout, "after DXNewInterpolator=%x\n", interpolator);
-    fflush(stdout);
-    DXInterpolate(interpolator,&interppts,interppos,result);
-    fprintf(stdout,"interppts = %i\n",interppts);
-    fflush(stdout);
-    for (int lcv = 0, pt = 0; lcv < pts; lcv+=3,pt+=9) {
-	fprintf(stdout,
-		"(%f,%f,%f)|->% 8e\n(%f,%f,%f)|->% 8e\n(%f,%f,%f)|->% 8e\n",
-		interppos[pt],interppos[pt+1],interppos[pt+2], result[lcv],
-		interppos[pt+3],interppos[pt+4],interppos[pt+5],result[lcv+1],
-		interppos[pt+6],interppos[pt+7],interppos[pt+8],result[lcv+2]);
-    fflush(stdout);
-    }
-    
-    for (int lcv = 0; lcv < pts; lcv=lcv+3) {
-	if (result[lcv] < dataMin) {
-	    dataMin = result[lcv];
-	}
-	if (result[lcv] > dataMax) {
-	    dataMax = result[lcv];
-	}
-    }
-    
-    // i dont understand what nzero_min is for
-    // i assume it means non-zero min, but its the non-zero min of what?
-    // wouldnt dataMin have the non-zero min of the data?
-    nzero_min = dataMin;
-    
-    // need to rewrite this starting here!!! dsk
-    // figure out a good mesh spacing
-    // dxpos[0,1,2] are the origins for x,y,z axis
-    dx = max[0] - dxpos[0];
-    dy = max[1] - dxpos[1];
-    dz = max[2] - dxpos[2];
-    double dmin = pow((dx*dy*dz)/(nsample*nsample*nsample), 0.333);
-    
-    fprintf(stdout, "dx = %f    dy = %f    dz = %f\n",dx,dy,dz);
-    fprintf(stdout, "dmin = %f\n",dmin);
-    fflush(stdout);
-    nx = (int)ceil(dx/dmin);
-    ny = (int)ceil(dy/dmin);
-    nz = (int)ceil(dz/dmin);
-    
-    fprintf(stdout, "nx = %i    ny = %i    nz = %i\n",nx,ny,nz);
-#ifndef NV40
-    // must be an even power of 2 for older cards
-    nx = (int)pow(2.0, ceil(log10((double)nx)/log10(2.0)));
-    ny = (int)pow(2.0, ceil(log10((double)ny)/log10(2.0)));
-    nz = (int)pow(2.0, ceil(log10((double)nz)/log10(2.0)));
-#endif
-    
-    fprintf(stdout, "nx = %i    ny = %i    nz = %i\n",nx,ny,nz);
-    float *data = new float[nx*ny*nz];
-    for (int i=0; i<(nx*ny*nz); i+=1) {
-	// scale all values [0,1], -1 => out of bounds
-	data[i] = (isnan(result[i])) ? -1.0 :
-	    (result[i] - dataMin)/(dataMax-dataMin);
-	fprintf(stdout, "data[%i] = % 8e\n",i,data[i]);
-    }
-    NanoVis::load_volume(index, nx, ny, nz, 1, data, dataMin, dataMax, 
-			 nzero_min);
+    float* data = oldCrustyInterpolation(&nx,&ny,&nz,&dx,&dy,&dz,
+                                        dxObj.positions(),field,&nzero_min);
 
+    double dataMin = field->valueMin();
+    double dataMax = field->valueMax();
+
+
+    for (int i=0; i<nx*ny*nz; i++) {
+        fprintf(stdout,"enddata[%i] = %lg\n",i,data[i]);
+        fflush(stdout);
+    }
+
+    fprintf(stdout,"End Data Stats index = %i\n",index);
+    fprintf(stdout,"nx = %i ny = %i nz = %i\n",nx,ny,nz);
+    fprintf(stdout,"dx = %lg dy = %lg dz = %lg\n",dx,dy,dz);
+    fprintf(stdout,"dataMin = %lg\tdataMax = %lg\tnzero_min = %lg\n", dataMin,dataMax,nzero_min);
+    fflush(stdout);
+    NanoVis::load_volume(index, nx, ny, nz, 4, data, dataMin, dataMax,
+                             nzero_min);
+
+    // free the result array
+    // delete[] data;
+    // delete[] result;
+    // delete field;
+
+    //
+    // Center this new volume on the origin.
+    //
     float dx0 = -0.5;
     float dy0 = -0.5*dy/dx;
     float dz0 = -0.5*dz/dx;
     NanoVis::volume[index]->move(Vector3(dx0, dy0, dz0));
+
     return outcome;
 }
-

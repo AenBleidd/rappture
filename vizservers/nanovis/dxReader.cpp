@@ -18,6 +18,9 @@
  * ======================================================================
  */
 
+// common dx functions
+#include "dxReaderCommon.h"
+
 #include <stdio.h>
 #include <math.h>
 #include <fstream>
@@ -37,60 +40,14 @@
 //transfer function headers
 #include "ZincBlendeVolume.h"
 #include "NvZincBlendeReconstructor.h"
-#include "GradientFilter.h"
 
 #define  _LOCAL_ZINC_TEST_ 0
 
-static float * 
-merge(float* scalar, float* gradient, int size)
-{
-    float* data = (float*) malloc(sizeof(float) * 4 * size);
-
-    Vector3* g = (Vector3*) gradient;
-    
-    int ngen = 0, sindex = 0;
-    for (sindex = 0; sindex <size; ++sindex) {
-        data[ngen++] = scalar[sindex];
-        data[ngen++] = g[sindex].x;
-        data[ngen++] = g[sindex].y;
-        data[ngen++] = g[sindex].z;
-    }
-    return data;
-}
-
-static void 
-normalizeScalar(float* fdata, int count, float min, float max)
-{
-    float v = max - min;
-    if (v != 0.0f) {
-        for (int i = 0; i < count; ++i) {
-            fdata[i] = fdata[i] / v;
-        }
-    }
-}
-
-static float* 
-computeGradient(float* fdata, int width, int height, int depth, 
-                float min, float max)
-{
-    float* gradients = (float *)malloc(width * height * depth * 3 * 
-                                       sizeof(float));
-    float* tempGradients = (float *)malloc(width * height * depth * 3 * 
-                                           sizeof(float));
-    int sizes[3] = { width, height, depth };
-    computeGradients(tempGradients, fdata, sizes, DATRAW_FLOAT);
-    filterGradients(tempGradients, sizes);
-    quantizeGradients(tempGradients, gradients, sizes, DATRAW_FLOAT);
-    normalizeScalar(fdata, width * height * depth, min, max);
-    float* data = merge(fdata, gradients, width * height * depth);
-    return data;
-}
-
-/* 
+/*
  * Load a 3D vector field from a dx-format file
  */
 void
-load_vector_stream(int index, std::istream& fin) 
+load_vector_stream(int index, std::istream& fin)
 {
     int dummy, nx, ny, nz, npts;
     double x0, y0, z0, dx, dy, dz, ddx, ddy, ddz;
@@ -113,12 +70,12 @@ load_vector_stream(int index, std::istream& fin)
                 // found origin
             } else if (sscanf(start, "delta %lg %lg %lg", &ddx, &ddy, &ddz) == 3) {
                 // found one of the delta lines
-                if (ddx != 0.0) { 
-                    dx = ddx; 
-                } else if (ddy != 0.0) { 
-                    dy = ddy; 
-                } else if (ddz != 0.0) { 
-                    dz = ddz; 
+                if (ddx != 0.0) {
+                    dx = ddx;
+                } else if (ddy != 0.0) {
+                    dy = ddy;
+                } else if (ddz != 0.0) {
+                    dz = ddz;
                 }
             } else if (sscanf(start, "object %d class array type %s shape 3 rank 1 items %d data follows", &dummy, type, &npts) == 3) {
                 if (npts != nx*ny*nz) {
@@ -134,7 +91,7 @@ load_vector_stream(int index, std::istream& fin)
                 break;
             }
         }
-    } 
+    }
 
     // read data points
     if (!fin.eof()) {
@@ -233,12 +190,12 @@ load_vector_stream(int index, std::istream& fin)
         for (ngen=0; ngen < npts; ngen++) {
             data[ngen] = (data[ngen]/(2.0*vmax) + 0.5);
         }
-	Volume *volPtr;
-        volPtr = NanoVis::load_volume(index, nx, ny, nz, 3, data, vmin, vmax, 
-		nzero_min);
-	volPtr->SetRange(AxisRange::X, x0, x0 + (nx * ddx));
-	volPtr->SetRange(AxisRange::Y, y0, y0 + (ny * ddy));
-	volPtr->SetRange(AxisRange::Z, z0, z0 + (nz * ddz));
+        Volume *volPtr;
+        volPtr = NanoVis::load_volume(index, nx, ny, nz, 3, data, vmin, vmax,
+                    nzero_min);
+        volPtr->SetRange(AxisRange::X, x0, x0 + (nx * ddx));
+        volPtr->SetRange(AxisRange::Y, y0, y0 + (ny * ddy));
+        volPtr->SetRange(AxisRange::Z, z0, z0 + (nz * ddz));
         delete [] data;
     } else {
         std::cerr << "WARNING: data not found in stream" << std::endl;
@@ -249,7 +206,7 @@ load_vector_stream(int index, std::istream& fin)
 /* Load a 3D volume from a dx-format file
  */
 Rappture::Outcome
-load_volume_stream2(int index, std::iostream& fin) 
+load_volume_stream2(int index, std::iostream& fin)
 {
     Rappture::Outcome result;
 
@@ -303,7 +260,6 @@ load_volume_stream2(int index, std::iostream& fin)
                      << xymesh.rangeMax(Rappture::yaxis) << std::endl;
                 for (int i=0; i < nxy; i++) {
                     ftmp << xymesh.atNode(i).x() << " " << xymesh.atNode(i).y() << std::endl;
-                
                 }
                 ftmp.close();
 
@@ -333,24 +289,24 @@ load_volume_stream2(int index, std::iostream& fin)
             } else if (sscanf(start, "origin %lg %lg %lg", &x0, &y0, &z0) == 3) {
                 // found origin
             } else if (sscanf(start, "delta %lg %lg %lg", &ddx, &ddy, &ddz) == 3) {
-		int count = 0;
+        int count = 0;
                 // found one of the delta lines
-                if (ddx != 0.0) { 
-		    dx = ddx; 
-		    count++;
-		} 
-		if (ddy != 0.0) { 
-		    dy = ddy; 
-		    count++;
-		} 
-		if (ddz != 0.0) { 
-		    dz = ddz; 
-		    count++;
-		}
-		if (count > 1) {
-		    return result.error(
-			"don't know how to handle multiple non-zero delta values");
-		}
+                if (ddx != 0.0) {
+            dx = ddx;
+            count++;
+        }
+        if (ddy != 0.0) {
+            dy = ddy;
+            count++;
+        }
+        if (ddz != 0.0) {
+            dz = ddz;
+            count++;
+        }
+        if (count > 1) {
+            return result.error(
+            "don't know how to handle multiple non-zero delta values");
+        }
             } else if (sscanf(start, "object %d class array type %s rank 0 items %d data follows", &dummy, type, &npts) == 3) {
                 if (isrect && (npts != nx*ny*nz)) {
                     char mesg[256];
@@ -397,10 +353,10 @@ load_volume_stream2(int index, std::iostream& fin)
                     data[nindex] = dval[p];
 
                     if (dval[p] < vmin) {
-			vmin = dval[p];
-		    } else if (dval[p] > vmax) {
-			vmax = dval[p];
-		    }
+            vmin = dval[p];
+            } else if (dval[p] > vmax) {
+            vmax = dval[p];
+            }
                     if (dval[p] != 0.0f && dval[p] < nzero_min) {
                         nzero_min = dval[p];
                     }
@@ -430,16 +386,16 @@ load_volume_stream2(int index, std::iostream& fin)
             double v;
             printf("test2\n");
             fflush(stdout);
-            if (dv == 0.0) { 
-		dv = 1.0; 
-	    }
+            if (dv == 0.0) {
+        dv = 1.0;
+        }
             for (int i = 0; i < count; ++i) {
-		v = data[ngen];
-		// scale all values [0-1], -1 => out of bounds
-		v = (isnan(v)) ? -1.0 : (v - vmin)/dv;
-		data[ngen] = v;
-		ngen += 4;
-	    }
+        v = data[ngen];
+        // scale all values [0-1], -1 => out of bounds
+        v = (isnan(v)) ? -1.0 : (v - vmin)/dv;
+        data[ngen] = v;
+        ngen += 4;
+        }
             // Compute the gradient of this data.  BE CAREFUL: center
             // calculation on each node to avoid skew in either direction.
             ngen = 0;
@@ -484,12 +440,12 @@ load_volume_stream2(int index, std::iostream& fin)
             dx = nx;
             dy = ny;
             dz = nz;
-	    Volume *volPtr;
+            Volume *volPtr;
             volPtr = NanoVis::load_volume(index, nx, ny, nz, 4, data,
-					  vmin, vmax, nzero_min);
-	    volPtr->SetRange(AxisRange::X, x0, x0 + (nx * ddx));
-	    volPtr->SetRange(AxisRange::Y, y0, y0 + (ny * ddy));
-	    volPtr->SetRange(AxisRange::Z, z0, z0 + (nz * ddz));
+                                          vmin, vmax, nzero_min);
+            volPtr->SetRange(AxisRange::X, x0, x0 + (nx * ddx));
+            volPtr->SetRange(AxisRange::Y, y0, y0 + (ny * ddy));
+            volPtr->SetRange(AxisRange::Z, z0, z0 + (nz * ddz));
             delete [] data;
 
         } else {
@@ -549,9 +505,9 @@ load_volume_stream2(int index, std::iostream& fin)
 
             double vmin = field.valueMin();
             double dv = field.valueMax() - field.valueMin();
-            if (dv == 0.0) { 
-		dv = 1.0; 
-	    }
+            if (dv == 0.0) {
+                dv = 1.0; 
+            }
             // generate the uniformly sampled data that we need for a volume
             int ngen = 0;
             double nzero_min = 0.0;
@@ -617,15 +573,15 @@ load_volume_stream2(int index, std::iostream& fin)
                 }
             }
 
-	    Volume *volPtr;
+            Volume *volPtr;
             volPtr = NanoVis::load_volume(index, nx, ny, nz, 4, data,
-		field.valueMin(), field.valueMax(), nzero_min);
-	    volPtr->SetRange(AxisRange::X, field.rangeMin(Rappture::xaxis), 
-			       field.rangeMax(Rappture::xaxis));
-	    volPtr->SetRange(AxisRange::Y, field.rangeMin(Rappture::yaxis), 
-			       field.rangeMax(Rappture::yaxis));
-	    volPtr->SetRange(AxisRange::Z, field.rangeMin(Rappture::zaxis), 
-			       field.rangeMax(Rappture::zaxis));
+            field.valueMin(), field.valueMax(), nzero_min);
+            volPtr->SetRange(AxisRange::X, field.rangeMin(Rappture::xaxis),
+                   field.rangeMax(Rappture::xaxis));
+            volPtr->SetRange(AxisRange::Y, field.rangeMin(Rappture::yaxis),
+                   field.rangeMax(Rappture::yaxis));
+            volPtr->SetRange(AxisRange::Z, field.rangeMin(Rappture::zaxis),
+                   field.rangeMax(Rappture::zaxis));
             delete [] data;
         }
     } else {
@@ -644,7 +600,7 @@ load_volume_stream2(int index, std::iostream& fin)
 }
 
 Rappture::Outcome
-load_volume_stream(int index, std::iostream& fin) 
+load_volume_stream(int index, std::iostream& fin)
 {
     Rappture::Outcome result;
 
@@ -697,7 +653,7 @@ load_volume_stream(int index, std::iostream& fin)
                      << xymesh.rangeMax(Rappture::yaxis) << std::endl;
                 for (int i=0; i < nxy; i++) {
                     ftmp << xymesh.atNode(i).x() << " " << xymesh.atNode(i).y() << std::endl;
-                
+
                 }
                 ftmp.close();
 
@@ -751,7 +707,7 @@ load_volume_stream(int index, std::iostream& fin)
                 break;
             }
         }
-    } 
+    }
 
     // read data points
     if (!fin.eof()) {
@@ -776,6 +732,8 @@ load_volume_stream(int index, std::iostream& fin)
                 for (int p=0; p < n; p++) {
                     int nindex = iz*nx*ny + iy*nx + ix;
                     field.define(nindex, dval[p]);
+                    fprintf(stdout,"nindex = %i\tdval[%i] = %lg\n",nindex,p,dval[p]);
+                    fflush(stdout);
                     nread++;
                     if (++iz >= nz) {
                         iz = 0;
@@ -837,9 +795,13 @@ load_volume_stream(int index, std::iostream& fin)
                 }
             }
 
-            float* data = computeGradient(cdata, nx, ny, nz, field.valueMin(), 
+            float* data = computeGradient(cdata, nx, ny, nz, field.valueMin(),
                                           field.valueMax());
 
+            for (int i=0; i<nx*ny*nz; i++) {
+                fprintf(stdout,"enddata[%i] = %lg\n",i,data[i]);
+                fflush(stdout);
+            }
             // Compute the gradient of this data.  BE CAREFUL: center
             /*
               float *data = new float[4*nx*ny*nz];
@@ -913,15 +875,15 @@ load_volume_stream(int index, std::iostream& fin)
               }
             */
 
-	    Volume *volPtr;
+            Volume *volPtr;
             volPtr = NanoVis::load_volume(index, nx, ny, nz, 4, data,
-		field.valueMin(), field.valueMax(), nzero_min);
-	    volPtr->SetRange(AxisRange::X, field.rangeMin(Rappture::xaxis), 
-			       field.rangeMax(Rappture::xaxis));
-	    volPtr->SetRange(AxisRange::Y, field.rangeMin(Rappture::yaxis), 
-			       field.rangeMax(Rappture::yaxis));
-	    volPtr->SetRange(AxisRange::Z, field.rangeMin(Rappture::zaxis), 
-			       field.rangeMax(Rappture::zaxis));
+            field.valueMin(), field.valueMax(), nzero_min);
+            volPtr->SetRange(AxisRange::X, field.rangeMin(Rappture::xaxis),
+                       field.rangeMax(Rappture::xaxis));
+            volPtr->SetRange(AxisRange::Y, field.rangeMin(Rappture::yaxis),
+                       field.rangeMax(Rappture::yaxis));
+            volPtr->SetRange(AxisRange::Z, field.rangeMin(Rappture::zaxis),
+                       field.rangeMax(Rappture::zaxis));
             // TBD..
             // POINTSET
             /*
@@ -932,7 +894,7 @@ load_volume_stream(int index, std::iostream& fin)
               updateColor(pset);
               NanoVis::volume[index]->pointsetIndex = NanoVis::pointSet.size() - 1;
             */
- 
+
             delete [] data;
 
         } else {
@@ -1059,15 +1021,15 @@ load_volume_stream(int index, std::iostream& fin)
                 }
             }
 
-	    Volume *volPtr;
+            Volume *volPtr;
             volPtr = NanoVis::load_volume(index, nx, ny, nz, 4, data,
-		field.valueMin(), field.valueMax(), nzero_min);
-	    volPtr->SetRange(AxisRange::X, field.rangeMin(Rappture::xaxis), 
-			       field.rangeMax(Rappture::xaxis));
-	    volPtr->SetRange(AxisRange::Y, field.rangeMin(Rappture::yaxis), 
-			       field.rangeMax(Rappture::yaxis));
-	    volPtr->SetRange(AxisRange::Z, field.rangeMin(Rappture::zaxis), 
-			       field.rangeMax(Rappture::zaxis));
+            field.valueMin(), field.valueMax(), nzero_min);
+            volPtr->SetRange(AxisRange::X, field.rangeMin(Rappture::xaxis),
+                       field.rangeMax(Rappture::xaxis));
+            volPtr->SetRange(AxisRange::Y, field.rangeMin(Rappture::yaxis),
+                       field.rangeMax(Rappture::yaxis));
+            volPtr->SetRange(AxisRange::Z, field.rangeMin(Rappture::zaxis),
+                       field.rangeMax(Rappture::zaxis));
 
             // TBD..
             // POINTSET
@@ -1079,7 +1041,7 @@ load_volume_stream(int index, std::iostream& fin)
               updateColor(pset);
               NanoVis::volume[index]->pointsetIndex = NanoVis::pointSet.size() - 1;
             */
- 
+
 
             delete [] data;
         }
@@ -1096,3 +1058,4 @@ load_volume_stream(int index, std::iostream& fin)
     NanoVis::volume[index]->move(Vector3(dx0, dy0, dz0));
     return result;
 }
+
