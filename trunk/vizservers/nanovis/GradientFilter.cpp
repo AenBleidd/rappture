@@ -11,39 +11,39 @@
 #define SQR(a) ((a) * (a))
 #endif
 
-#define GRADIENTS_EXT		".grd"
+#define GRADIENTS_EXT       ".grd"
 int g_numOfSlices[3] = { 256, 256, 256 };
 void* g_volData = 0;
 float g_sliceDists[3];
 
-#define SOBEL				1
+#define SOBEL               1
 #define GRAD_FILTER_SIZE    5
-#define SIGMA2				5.0
+#define SIGMA2              5.0
 #define MAX(a,b) ((a) > (b) ? (a) : (b))
 #define MIN(a,b) ((a) < (b) ? (a) : (b))
 #define EPS 1e-5f
 
 static char *getFloatGradientsFilename(void)
 {
-	char floatExt[] = "_float";
+    char floatExt[] = "_float";
     char *filename;
 
-	/*
+    /*
     if (! (filename = (char *)malloc(strlen(g.basename) +
-									 strlen(floatExt) +
+                                     strlen(floatExt) +
                                      strlen(GRADIENTS_EXT) + 1))) {
-										 */
-	if (! (filename = (char *)malloc(strlen("base") +
-									 strlen(floatExt) +
+                                         */
+    if (! (filename = (char *)malloc(strlen("base") +
+                                     strlen(floatExt) +
                                      strlen(GRADIENTS_EXT) + 1))) {
         fprintf(stderr, "not enough memory for filename\n");
         exit(1);
     }
 
     //strcpy(filename, g.basename);
-	strcpy(filename, "base");
-	
-	strcat(filename, floatExt);
+    strcpy(filename, "base");
+
+    strcat(filename, floatExt);
     strcat(filename, GRADIENTS_EXT);
 
     return filename;
@@ -61,8 +61,8 @@ static void saveFloatGradients(float *gradients, int *sizes)
         exit(1);
     }
 
-    if (fwrite(gradients, 3 * sizes[0] * sizes[1] * sizes[2] * sizeof(float), 
-			   1, fp) != 1) {
+    if (fwrite(gradients, 3 * sizes[0] * sizes[1] * sizes[2] * sizeof(float),
+               1, fp) != 1) {
         fprintf(stderr, "writing float gradients failed\n");
         exit(1);
     }
@@ -73,68 +73,68 @@ static void saveFloatGradients(float *gradients, int *sizes)
 
 int getNextPowerOfTwo(int n)
 {
-	int i;
+    int i;
 
-	i = 1;
-	while (i < n) {
-		i *= 2;
-	}
+    i = 1;
+    while (i < n) {
+        i *= 2;
+    }
 
-	return i;
+    return i;
 }
 
 static unsigned char getVoxel8(int x, int y, int z)
 {
-	return ((unsigned char*)g_volData)[z * g_numOfSlices[0] * g_numOfSlices[1] + 
-									   y * g_numOfSlices[0] + 
-									   x];
+    return ((unsigned char*)g_volData)[z * g_numOfSlices[0] * g_numOfSlices[1] +
+                                       y * g_numOfSlices[0] +
+                                       x];
 }
 
 static unsigned short getVoxel16(int x, int y, int z)
 {
-	return ((unsigned short*)g_volData)[z * g_numOfSlices[0] * g_numOfSlices[1] + 
-										y * g_numOfSlices[0] + 
-										x];
+    return ((unsigned short*)g_volData)[z * g_numOfSlices[0] * g_numOfSlices[1] +
+                                        y * g_numOfSlices[0] +
+                                        x];
 }
 
 static unsigned char getVoxelFloat(int x, int y, int z)
 {
-	return ((float*)g_volData)[z * g_numOfSlices[0] * g_numOfSlices[1] + 
-									   y * g_numOfSlices[0] + 
-									   x];
+    return ((float*)g_volData)[z * g_numOfSlices[0] * g_numOfSlices[1] +
+                                       y * g_numOfSlices[0] +
+                                       x];
 }
 
 static float getVoxel(int x, int y, int z, DataType dataType)
 {
-	switch (dataType) {
-		case DATRAW_UCHAR:
-			return (float)getVoxel8(x, y, z);
-			break;
-		case DATRAW_USHORT:
-			return (float)getVoxel16(x, y, z);
-			break;
-		case DATRAW_FLOAT :
-			return (float)getVoxelFloat(x, y, z);
-			break;
-		default:
-			fprintf(stderr, "Unsupported data type\n");
-			exit(1);
-			break;
-	}
-	return 0.0;
+    switch (dataType) {
+        case DATRAW_UCHAR:
+            return (float)getVoxel8(x, y, z);
+            break;
+        case DATRAW_USHORT:
+            return (float)getVoxel16(x, y, z);
+            break;
+        case DATRAW_FLOAT :
+            return (float)getVoxelFloat(x, y, z);
+            break;
+        default:
+            fprintf(stderr, "Unsupported data type\n");
+            exit(1);
+            break;
+    }
+    return 0.0;
 }
 
 
 void computeGradients(float *gradients, void* volData, int *sizes, DataType dataType)
 {
-	::g_volData = volData;
-	g_numOfSlices[0] = sizes[0];
-	g_numOfSlices[1] = sizes[1];
-	g_numOfSlices[2] = sizes[2];
+    ::g_volData = volData;
+    g_numOfSlices[0] = sizes[0];
+    g_numOfSlices[1] = sizes[1];
+    g_numOfSlices[2] = sizes[2];
 
-	g_sliceDists[0] = 1.0f / sizes[0];
-	g_sliceDists[1] = 1.0f / sizes[1];
-	g_sliceDists[2] = 1.0f / sizes[2];
+    g_sliceDists[0] = 1.0f / sizes[0];
+    g_sliceDists[1] = 1.0f / sizes[1];
+    g_sliceDists[2] = 1.0f / sizes[2];
 
     int i, j, k, dir, di, vdi, idz, idy, idx;
     float *gp;
@@ -169,11 +169,11 @@ void computeGradients(float *gradients, void* volData, int *sizes, DataType data
           {-1,  0,  1}}}
     };
 
-	fprintf(stderr, "computing gradients ... may take a while\n");
+    fprintf(stderr, "computing gradients ... may take a while\n");
 
     di = 0;
     vdi = 0;
-	gp = gradients;
+    gp = gradients;
     for (idz = 0; idz < sizes[2]; idz++) {
         for (idy = 0; idy < sizes[1]; idy++) {
             for (idx = 0; idx < sizes[0]; idx++) {
@@ -193,12 +193,12 @@ void computeGradients(float *gradients, void* volData, int *sizes, DataType data
                                                getVoxel(idx + i,
                                                       idy + j,
                                                       idz + k,
-													  dataType);
+                                                      dataType);
                                 }
                             }
                         }
 
-						gp[dir] /= 2.0 * g_sliceDists[dir];
+                        gp[dir] /= 2.0 * g_sliceDists[dir];
                     }
                 } else {
                     /* X-direction */
@@ -292,61 +292,61 @@ void filterGradients(float *gradients, int *sizes)
     int i, j, k, idz, idy, idx, gi, ogi, filterWidth, n, borderDist[3];
     float sum, *filteredGradients, ****filter;
 
-	fprintf(stderr, "filtering gradients ... may also take a while\n");
+    fprintf(stderr, "filtering gradients ... may also take a while\n");
 
     if (! (filteredGradients = (float *)malloc(sizes[0] * sizes[1] * sizes[2]
-											   * 3 * sizeof(float)))) {
+                                               * 3 * sizeof(float)))) {
         fprintf(stderr, "not enough memory for filtered gradients\n");
         exit(1);
     }
 
-	/* Allocate storage for filter kernels */
-	if (! (filter = (float ****)malloc((GRAD_FILTER_SIZE/2 + 1) * 
-									   sizeof(float ***)))) {
-		fprintf(stderr, "failed to allocate gradient filter\n");
-		exit(1);
-	}
-	
-	for (i = 0; i < GRAD_FILTER_SIZE/2 + 1; i++) {
-		if (! (filter[i] = (float ***)malloc((GRAD_FILTER_SIZE) * 
-											 sizeof(float **)))) {
-			fprintf(stderr, "failed to allocate gradient filter\n");
-			exit(1);
-		}
-	}
-	for (i = 0; i < GRAD_FILTER_SIZE/2 + 1; i++) {
-		for (j = 0; j < GRAD_FILTER_SIZE; j++) {
-			if (! (filter[i][j] = (float **)malloc((GRAD_FILTER_SIZE) * 
-												   sizeof(float *)))) {
-				fprintf(stderr, "failed to allocate gradient filter\n");
-				exit(1);
-			}
-		}
-	}
-	for (i = 0; i < GRAD_FILTER_SIZE/2 + 1; i++) {
-		for (j = 0; j < GRAD_FILTER_SIZE; j++) {
-			for (k = 0; k < GRAD_FILTER_SIZE; k++) {
-				if (! (filter[i][j][k] = (float *)malloc((GRAD_FILTER_SIZE) *
-														 sizeof(float)))) {
-					fprintf(stderr, "failed to allocate gradient filter\n");
-					exit(1);
-				}
-			}
-		}
-	}
+    /* Allocate storage for filter kernels */
+    if (! (filter = (float ****)malloc((GRAD_FILTER_SIZE/2 + 1) * 
+                                       sizeof(float ***)))) {
+        fprintf(stderr, "failed to allocate gradient filter\n");
+        exit(1);
+    }
+
+    for (i = 0; i < GRAD_FILTER_SIZE/2 + 1; i++) {
+        if (! (filter[i] = (float ***)malloc((GRAD_FILTER_SIZE) * 
+                                             sizeof(float **)))) {
+            fprintf(stderr, "failed to allocate gradient filter\n");
+            exit(1);
+        }
+    }
+    for (i = 0; i < GRAD_FILTER_SIZE/2 + 1; i++) {
+        for (j = 0; j < GRAD_FILTER_SIZE; j++) {
+            if (! (filter[i][j] = (float **)malloc((GRAD_FILTER_SIZE) * 
+                                                   sizeof(float *)))) {
+                fprintf(stderr, "failed to allocate gradient filter\n");
+                exit(1);
+            }
+        }
+    }
+    for (i = 0; i < GRAD_FILTER_SIZE/2 + 1; i++) {
+        for (j = 0; j < GRAD_FILTER_SIZE; j++) {
+            for (k = 0; k < GRAD_FILTER_SIZE; k++) {
+                if (! (filter[i][j][k] = (float *)malloc((GRAD_FILTER_SIZE) *
+                                                         sizeof(float)))) {
+                    fprintf(stderr, "failed to allocate gradient filter\n");
+                    exit(1);
+                }
+            }
+        }
+    }
 
     filterWidth = GRAD_FILTER_SIZE/2;
-	
-	/* Compute the filter kernels */
+
+    /* Compute the filter kernels */
     for (n = 0; n <= filterWidth; n++) {
         sum = 0.0f;
         for (k = -filterWidth; k <= filterWidth; k++) {
             for (j = -filterWidth; j <= filterWidth; j++) {
                 for (i = -filterWidth; i <= filterWidth; i++) {
                     sum += (filter[n][filterWidth + k]
-									 [filterWidth + j]
-									 [filterWidth + i] =
-							exp(-(SQR(i) + SQR(j) + SQR(k)) / SIGMA2));
+                                     [filterWidth + j]
+                                     [filterWidth + i] =
+                            exp(-(SQR(i) + SQR(j) + SQR(k)) / SIGMA2));
                 }
             }
         }
@@ -354,8 +354,8 @@ void filterGradients(float *gradients, int *sizes)
             for (j = -filterWidth; j <= filterWidth; j++) {
                 for (i = -filterWidth; i <= filterWidth; i++) {
                     filter[n][filterWidth + k]
-							 [filterWidth + j]
-							 [filterWidth + i] /= sum;
+                             [filterWidth + j]
+                             [filterWidth + i] /= sum;
                 }
             }
         }
@@ -372,8 +372,8 @@ void filterGradients(float *gradients, int *sizes)
 
                 filterWidth = MIN(GRAD_FILTER_SIZE/2,
                                   MIN(MIN(borderDist[0], 
-								  		  borderDist[1]),
-										  borderDist[2]));
+                                          borderDist[1]),
+                                          borderDist[2]));
 
                 for (n = 0; n < 3; n++) {
                     filteredGradients[gi] = 0.0;
@@ -381,13 +381,13 @@ void filterGradients(float *gradients, int *sizes)
                         for (j = -filterWidth; j <= filterWidth; j++) {
                             for (i = -filterWidth; i <= filterWidth; i++) {
                                 ogi = (((idz + k) * sizes[1]  + (idy + j)) *
-									  sizes[0] + (idx + i)) * 3 + 
-									  n;
+                                      sizes[0] + (idx + i)) * 3 + 
+                                      n;
                                 filteredGradients[gi] += filter[filterWidth]
-													   [filterWidth + k]
-													   [filterWidth + j]
-													   [filterWidth + i] * 
-													   gradients[ogi];
+                                                       [filterWidth + k]
+                                                       [filterWidth + j]
+                                                       [filterWidth + i] * 
+                                                       gradients[ogi];
                             }
                         }
                     }
@@ -397,119 +397,119 @@ void filterGradients(float *gradients, int *sizes)
         }
     }
 
-	/* Replace the orignal gradients by the filtered gradients */
-	memcpy(gradients, filteredGradients, 
-		   sizes[0] * sizes[1] * sizes[2] * 3 * sizeof(float));
+    /* Replace the orignal gradients by the filtered gradients */
+    memcpy(gradients, filteredGradients,
+           sizes[0] * sizes[1] * sizes[2] * 3 * sizeof(float));
 
     free(filteredGradients);
 
-	/* free storage of filter kernel(s) */
-	for (i = 0; i < GRAD_FILTER_SIZE/2 + 1; i++) {
-		for (j = 0; j < GRAD_FILTER_SIZE; j++) {
-			for (k = 0; k < GRAD_FILTER_SIZE; k++) {
-				free(filter[i][j][k]);
-			}
-		}
-	}
-	for (i = 0; i < GRAD_FILTER_SIZE/2 + 1; i++) {
-		for (j = 0; j < GRAD_FILTER_SIZE; j++) {
-			free(filter[i][j]);
-		}
-	}
-	for (i = 0; i < GRAD_FILTER_SIZE/2 + 1; i++) {
-		free(filter[i]);
-	}
-	free(filter);
+    /* free storage of filter kernel(s) */
+    for (i = 0; i < GRAD_FILTER_SIZE/2 + 1; i++) {
+        for (j = 0; j < GRAD_FILTER_SIZE; j++) {
+            for (k = 0; k < GRAD_FILTER_SIZE; k++) {
+                free(filter[i][j][k]);
+            }
+        }
+    }
+    for (i = 0; i < GRAD_FILTER_SIZE/2 + 1; i++) {
+        for (j = 0; j < GRAD_FILTER_SIZE; j++) {
+            free(filter[i][j]);
+        }
+    }
+    for (i = 0; i < GRAD_FILTER_SIZE/2 + 1; i++) {
+        free(filter[i]);
+    }
+    free(filter);
 }
 
 
 void quantize8(float *grad, unsigned char *data)
 {
-	float len;
-	int i;
+    float len;
+    int i;
 
-	len = sqrt(SQR(grad[0]) + SQR(grad[1]) + SQR(grad[2]));
+    len = sqrt(SQR(grad[0]) + SQR(grad[1]) + SQR(grad[2]));
 
-	if (len < EPS) {
-		grad[0] = grad[1] = grad[2] = 0.0;
-	} else {
-		grad[0] /= len;
-		grad[1] /= len;
-		grad[2] /= len;
-	}
+    if (len < EPS) {
+        grad[0] = grad[1] = grad[2] = 0.0;
+    } else {
+        grad[0] /= len;
+        grad[1] /= len;
+        grad[2] /= len;
+    }
 
-	for (i = 0; i < 3; i++) {
-		data[i] = (unsigned char)((grad[i] + 1.0)/2.0 * UCHAR_MAX);
-	}
+    for (i = 0; i < 3; i++) {
+        data[i] = (unsigned char)((grad[i] + 1.0)/2.0 * UCHAR_MAX);
+    }
 }
 
 void quantize16(float *grad, unsigned short *data)
 {
-	float len;
-	int i;
+    float len;
+    int i;
 
-	len = sqrt(SQR(grad[0]) + SQR(grad[1]) + SQR(grad[2]));
+    len = sqrt(SQR(grad[0]) + SQR(grad[1]) + SQR(grad[2]));
 
-	if (len < EPS) {
-		grad[0] = grad[1] = grad[2] = 0.0;
-	} else {
-		grad[0] /= len;
-		grad[1] /= len;
-		grad[2] /= len;
-	}
+    if (len < EPS) {
+        grad[0] = grad[1] = grad[2] = 0.0;
+    } else {
+        grad[0] /= len;
+        grad[1] /= len;
+        grad[2] /= len;
+    }
 
-	for (i = 0; i < 3; i++) {
-		data[i] = (unsigned short)((grad[i] + 1.0)/2.0 * USHRT_MAX);
-	}
+    for (i = 0; i < 3; i++) {
+        data[i] = (unsigned short)((grad[i] + 1.0)/2.0 * USHRT_MAX);
+    }
 }
 
 void quantizeFloat(float *grad, float *data)
 {
-	float len;
-	int i;
+    float len;
+    int i;
 
-	len = sqrt(SQR(grad[0]) + SQR(grad[1]) + SQR(grad[2]));
+    len = sqrt(SQR(grad[0]) + SQR(grad[1]) + SQR(grad[2]));
 
-	if (len < EPS) {
-		grad[0] = grad[1] = grad[2] = 0.0;
-	} else {
-		grad[0] /= len;
-		grad[1] /= len;
-		grad[2] /= len;
-	}
+    if (len < EPS) {
+        grad[0] = grad[1] = grad[2] = 0.0;
+    } else {
+        grad[0] /= len;
+        grad[1] /= len;
+        grad[2] /= len;
+    }
 
-	for (i = 0; i < 3; i++) {
-		data[i] = (float)((grad[i] + 1.0)/2.0);
-	}
+    for (i = 0; i < 3; i++) {
+        data[i] = (float)((grad[i] + 1.0)/2.0);
+    }
 }
 
 void quantizeGradients(float *gradientsIn, void *gradientsOut,
-					   int *sizes, DataType dataType)
+                       int *sizes, DataType dataType)
 {
 
-	int idx, idy, idz, di;
-	
+    int idx, idy, idz, di;
+
     di = 0;
     for (idz = 0; idz < sizes[2]; idz++) {
         for (idy = 0; idy < sizes[1]; idy++) {
             for (idx = 0; idx < sizes[0]; idx++) {
-				switch (dataType) {
-				case DATRAW_UCHAR:
-					quantize8(&gradientsIn[di], 
-							  &((unsigned char*)gradientsOut)[di]);
-					break;
-				case DATRAW_USHORT:
-					quantize16(&gradientsIn[di], 
-							   &((unsigned short*)gradientsOut)[di]);
-					break;
-				case DATRAW_FLOAT:
-					quantizeFloat(&gradientsIn[di], 
-							   &((float*)gradientsOut)[di]);
-					break;
-				default:
-					fprintf(stderr, "unsupported data type\n");
-					break;
-				}
+                switch (dataType) {
+                case DATRAW_UCHAR:
+                    quantize8(&gradientsIn[di], 
+                              &((unsigned char*)gradientsOut)[di]);
+                    break;
+                case DATRAW_USHORT:
+                    quantize16(&gradientsIn[di], 
+                               &((unsigned short*)gradientsOut)[di]);
+                    break;
+                case DATRAW_FLOAT:
+                    quantizeFloat(&gradientsIn[di], 
+                               &((float*)gradientsOut)[di]);
+                    break;
+                default:
+                    fprintf(stderr, "unsupported data type\n");
+                    break;
+                }
                 di += 3;
             }
         }
@@ -520,7 +520,7 @@ void quantizeGradients(float *gradientsIn, void *gradientsOut,
 void saveGradients(void *gradients, int *sizes, DataType dataType)
 {
     char *filename;
-	int size;
+    int size;
     FILE *fp;
 
     filename = getGradientsFilename();
@@ -529,9 +529,9 @@ void saveGradients(void *gradients, int *sizes, DataType dataType)
         exit(1);
     }
 
-	size = 3 * sizes[0] * sizes[1] * sizes[2]
-		   * getDataTypeSize(dataType);
-	
+    size = 3 * sizes[0] * sizes[1] * sizes[2]
+           * getDataTypeSize(dataType);
+
     if (fwrite(gradients, size, 1, fp) != 1) {
         fprintf(stderr, "writing gradients failed\n");
         exit(1);

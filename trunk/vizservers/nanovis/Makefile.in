@@ -113,6 +113,7 @@ OBJS  = \
 	RenderContext.o \
 	RenderVertexArray.o \
 	Renderable.o \
+	RpDX.o \
 	ScreenSnapper.o \
 	Socket.o \
 	Sphere.o \
@@ -131,7 +132,8 @@ OBJS  = \
 	ZincBlendeVolume.o \
 	dxReader.o \
 	dxReader2.o \
-	nanovis.o 
+	dxReaderCommon.o \
+	nanovis.o
 
 
 all: nanovis
@@ -178,6 +180,9 @@ Nv.o: Nv.cpp NvShader.cpp
 
 dxReader2.o: $(srcdir)/dxReader2.cpp
 	$(CC) -c $(CC_SWITCHES) $(DX_INC_SPEC) $?
+RpDX.o: $(srcdir)/RpDX.cpp
+	$(CC) -c $(CC_SWITCHES) $(DX_INC_SPEC) $?
+
 ColorGradient.o: transfer-function/ColorGradient.cpp
 	$(CC) $(CC_SWITCHES) -o $@ -c $<
 ColorPaletteWindow.o: transfer-function/ColorPaletteWindow.cpp

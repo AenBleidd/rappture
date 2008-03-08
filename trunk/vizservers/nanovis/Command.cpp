@@ -1305,7 +1305,7 @@ VolumeDataFollowsOp(ClientData cdata, Tcl_Interp *interp, int objc,
         
         printf("Loading DX using OpenDX library...\n");
         fflush(stdout);
-        //err = load_volume_stream_odx(n, buf.bytes()+5, buf.size()-5);
+        err = load_volume_stream_odx(n, buf.bytes()+5, buf.size()-5);
         //err = load_volume_stream2(n, fdata);
         if (err) {
             Tcl_AppendResult(interp, err.remark().c_str(), (char*)NULL);
