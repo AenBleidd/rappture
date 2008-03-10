@@ -145,8 +145,8 @@ VolumeInterpolator::addVolume(Volume* volume, unsigned int volumeId)
                              volume->size,
                              volume->n_components, 
                              volume->_data, 
-                             volume->_ranges[AxisRange::VALUES].min, 
-                             volume->_ranges[AxisRange::VALUES].max, 
+                             volume->wAxis.Min(), 
+                             volume->wAxis.Max(), 
 			     volume->nonzero_min);
         _referenceOfVolume = volumeId;
         _volume->set_n_slice(256-1);

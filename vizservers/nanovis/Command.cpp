@@ -227,47 +227,6 @@ GetPolygonMode(Tcl_Interp *interp, Tcl_Obj *objPtr,
     return TCL_OK;
 }
 
-
-static int 
-GetVolumeLimits(Tcl_Interp *interp, AxisRange *range) 
-{
-
-    /* Find the first volume. */
-    int start;
-    for (start = 0; start < NanoVis::n_volumes; start++) {
-        if (NanoVis::volume[start] != NULL) {
-            break;
-        }
-    }
-    if (start == NanoVis::n_volumes) {
-        Tcl_AppendResult(interp, "no volumes found", (char *)NULL);
-        return TCL_ERROR;
-    }
-    int axis;
-    for (axis = AxisRange::X; axis <= AxisRange::VALUES; axis++) {
-	Volume *volPtr;
-	int i;
-
-	i = start;
-	volPtr = NanoVis::volume[i];
-	range[axis] = *volPtr->GetRange(axis);
-	for (i++; i < NanoVis::n_volumes; i++) {
-	    const AxisRange *rangePtr;
-
-	    volPtr = NanoVis::volume[i];
-	    rangePtr = volPtr->GetRange(axis);
-	    if (range[axis].max < rangePtr->max) {
-		range[axis].max = rangePtr->max;
-	    }
-	    if (range[axis].min > rangePtr->min) {
-		range[axis].min = rangePtr->min;
-	    }
-	}
-    }
-    return TCL_OK;
-}
-
-
 /*
  * -----------------------------------------------------------------------
  *
@@ -333,43 +292,66 @@ CreateHeightMap(ClientData clientData, Tcl_Interp *interp, int objc,
             return NULL;
         }
     }
-    HeightMap* hMap;
-    hMap = new HeightMap();
-    hMap->setHeight(xMin, yMin, xMax, yMax, xNum, yNum, heights);
-    hMap->setColorMap(NanoVis::get_transfunc("default"));
-    hMap->setVisible(true);
-    hMap->setLineContourVisible(true);
+    HeightMap* hmPtr;
+    hmPtr = new HeightMap();
+    hmPtr->setHeight(xMin, yMin, xMax, yMax, xNum, yNum, heights);
+    hmPtr->setColorMap(NanoVis::get_transfunc("default"));
+    hmPtr->setVisible(true);
+    hmPtr->setLineContourVisible(true);
     delete [] heights;
-    return hMap;
+    return hmPtr;
 }
 
 /*
  * ----------------------------------------------------------------------
- * FUNCTION: GetHeightMap
  *
- * Used internally to decode a series of volume index values and
- * store then in the specified vector.  If there are no volume index
- * arguments, this means "all volumes" to most commands, so all
- * active volume indices are stored in the vector.
+ * GetHeightMapIndex --
  *
- * Updates pushes index values into the vector.  Returns TCL_OK or
- * TCL_ERROR to indicate an error.
  * ----------------------------------------------------------------------
  */
 static int
-GetHeightMap(Tcl_Interp *interp, Tcl_Obj *objPtr, HeightMap **hmPtrPtr)
+GetHeightMapIndex(Tcl_Interp *interp, Tcl_Obj *objPtr, unsigned int *indexPtr)
 {
-    int mapIndex;
-    if (Tcl_GetIntFromObj(interp, objPtr, &mapIndex) != TCL_OK) {
+    int index;
+    if (Tcl_GetIntFromObj(interp, objPtr, &index) != TCL_OK) {
         return TCL_ERROR;
     }
-    if ((mapIndex < 0) || (mapIndex >= (int)NanoVis::heightMap.size()) || 
-        (NanoVis::heightMap[mapIndex] == NULL)) {
-        Tcl_AppendResult(interp, "invalid heightmap index \"", 
-			 Tcl_GetString(objPtr), "\"", (char *)NULL);
+    if (index < 0) {
+        Tcl_AppendResult(interp, "can't have negative index \"", 
+			 Tcl_GetString(objPtr), "\"", (char*)NULL);
         return TCL_ERROR;
     }
-    *hmPtrPtr = NanoVis::heightMap[mapIndex];
+    if (index >= (int)NanoVis::heightMap.size()) {
+        Tcl_AppendResult(interp, "index \"", Tcl_GetString(objPtr),
+                         "\" is out of range", (char*)NULL);
+        return TCL_ERROR;
+    }
+    *indexPtr = (unsigned int)index;
+    return TCL_OK;
+}
+
+/*
+ * ----------------------------------------------------------------------
+ *
+ * GetHeightMapFromObj --
+ *
+ * ----------------------------------------------------------------------
+ */
+static int
+GetHeightMapFromObj(Tcl_Interp *interp, Tcl_Obj *objPtr, HeightMap **hmPtrPtr)
+{
+    unsigned int index;
+    if (GetHeightMapIndex(interp, objPtr, &index) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    HeightMap *hmPtr;
+    hmPtr = NanoVis::heightMap[index];
+    if (hmPtr == NULL) {
+        Tcl_AppendResult(interp, "no heightmap defined for index \"", 
+			 Tcl_GetString(objPtr), "\"", (char*)NULL);
+        return TCL_ERROR;
+    }
+    *hmPtrPtr = hmPtr;
     return TCL_OK;
 }
 
@@ -476,27 +458,6 @@ GetVolumeIndices(Tcl_Interp *interp, int objc, Tcl_Obj *CONST *objv,
     return TCL_OK;
 }
 
-static int
-GetIndices(Tcl_Interp *interp, int objc, Tcl_Obj *CONST *objv,
-	   vector<unsigned int>* vectorPtr)
-{
-    for (int n = 0; n < objc; n++) {
-        int index;
-
-        if (Tcl_GetIntFromObj(interp, objv[n], &index) != TCL_OK) {
-            return TCL_ERROR;
-        }
-        if (index < 0) {
-            Tcl_AppendResult(interp, "can't have negative index \"", 
-			     Tcl_GetString(objv[n]), "\"", (char *)NULL);
-            return TCL_ERROR;
-        }
-        vectorPtr->push_back((unsigned int)index);
-    }
-    return TCL_OK;
-}
-
-
 /*
  * ----------------------------------------------------------------------
  * FUNCTION: GetVolumes()
@@ -527,9 +488,43 @@ GetVolumes(Tcl_Interp *interp, int objc, Tcl_Obj *CONST *objv,
             if (GetVolumeFromObj(interp, objv[n], &volPtr) != TCL_OK) {
                 return TCL_ERROR;
             }
-            if (volPtr != NULL) {
-                vectorPtr->push_back(volPtr);
+	    vectorPtr->push_back(volPtr);
+        }
+    }
+    return TCL_OK;
+}
+
+/*
+ * ----------------------------------------------------------------------
+ * FUNCTION: GetHeightMaps()
+ *
+ * Used internally to decode a series of volume index values and
+ * store then in the specified vector.  If there are no volume index
+ * arguments, this means "all volumes" to most commands, so all
+ * active volume indices are stored in the vector.
+ *
+ * Updates pushes index values into the vector.  Returns TCL_OK or
+ * TCL_ERROR to indicate an error.
+ * ----------------------------------------------------------------------
+ */
+static int
+GetHeightMaps(Tcl_Interp *interp, int objc, Tcl_Obj *CONST *objv,
+	   vector<HeightMap *>* vectorPtr)
+{
+    if (objc == 0) {
+        for (unsigned int n = 0; n < NanoVis::heightMap.size(); n++) {
+            if (NanoVis::heightMap[n] != NULL) {
+                vectorPtr->push_back(NanoVis::heightMap[n]);
             }
+        }
+    } else {
+        for (int n = 0; n < objc; n++) {
+            HeightMap *hmPtr;
+
+            if (GetHeightMapFromObj(interp, objv[n], &hmPtr) != TCL_OK) {
+                return TCL_ERROR;
+            }
+	    vectorPtr->push_back(hmPtr);
         }
     }
     return TCL_OK;
@@ -554,13 +549,13 @@ GetAxis(Tcl_Interp *interp, const char *string, int *indexPtr)
 
         c = tolower((unsigned char)string[0]);
         if (c == 'x') {
-            *indexPtr = AxisRange::X;
+            *indexPtr = 0;
             return TCL_OK;
         } else if (c == 'y') {
-            *indexPtr = AxisRange::Y;
+            *indexPtr = 1;
             return TCL_OK;
         } else if (c == 'z') {
-            *indexPtr = AxisRange::Z;
+            *indexPtr = 2;
             return TCL_OK;
         }
         /*FALLTHRU*/
@@ -786,10 +781,8 @@ ScreenShotCmd(ClientData cdata, Tcl_Interp *interp, int objc,
       data[i] = data[i+256] = (float)(i/255.0);
       }
       Texture2D* plane = new Texture2D(256, 2, GL_FLOAT, GL_LINEAR, 1, data);
-      AxisRange *rangePtr;
-      rangePtr = vol->GetRange(AxisRange::VALUES);
-      NanoVis::color_table_renderer->render(1024, 1024, plane, tf, rangePtr->min,
-		rangePtr->max);
+      NanoVis::color_table_renderer->render(1024, 1024, plane, tf, vol->wAxis.Min(),
+		vol->wAxis.Max());
       delete plane;
     
       }
@@ -936,14 +929,10 @@ LegendCmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *CONST *objv)
         (Tcl_GetIntFromObj(interp, objv[3], &h) != TCL_OK)) {
         return TCL_ERROR;
     }
-    AxisRange range[4];
-    if (GetVolumeLimits(interp, range) != TCL_OK) {
-        return TCL_ERROR;
+    if (volPtr->update_pending) {
+	NanoVis::SetVolumeRanges();
     }
-    NanoVis::render_legend(tf, 
-			   range[AxisRange::VALUES].min, 
-			   range[AxisRange::VALUES].max, 
-			   w, h, label);
+    NanoVis::render_legend(tf, Volume::valueMin, Volume::valueMin, w, h, label);
     return TCL_OK;
 }
 
@@ -1349,18 +1338,14 @@ VolumeDataFollowsOp(ClientData cdata, Tcl_Interp *interp, int objc,
     {
         Volume *volPtr;
         char info[1024];
-        AxisRange overall[4];
         
-        if (GetVolumeLimits(interp, overall) != TCL_OK) {
-            return TCL_ERROR;
+        if (Volume::update_pending) {
+	    NanoVis::SetVolumeRanges();
         }
         volPtr = NanoVis::volume[n];
-	const AxisRange *rangePtr;
-	rangePtr = volPtr->GetRange(AxisRange::VALUES);
         sprintf(info, "nv>data id %d min %g max %g vmin %g vmax %g\n", 
-                n, rangePtr->min, rangePtr->max,
-		overall[AxisRange::VALUES].min, 
-		overall[AxisRange::VALUES].max);
+                n, volPtr->wAxis.Min(), volPtr->wAxis.Max(),
+		Volume::valueMin, Volume::valueMax);
         write(0, info, strlen(info));
     }
     return TCL_OK;
@@ -1601,7 +1586,7 @@ VolumeShadingOp(ClientData cdata, Tcl_Interp *interp, int objc,
     Tcl_ObjCmdProc *proc;
 
     proc = Rappture::GetOpFromObj(interp, nVolumeShadingOps, volumeShadingOps, 
-				  Rappture::CMDSPEC_ARG2, objc, objv, 0);
+	Rappture::CMDSPEC_ARG2, objc, objv, 0);
     if (proc == NULL) {
         return TCL_ERROR;
     }
@@ -1706,7 +1691,7 @@ VolumeCmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *CONST *objv)
     Tcl_ObjCmdProc *proc;
 
     proc = Rappture::GetOpFromObj(interp, nVolumeOps, volumeOps, 
-				  Rappture::CMDSPEC_ARG1, objc, objv, 0);
+	Rappture::CMDSPEC_ARG1, objc, objv, 0);
     if (proc == NULL) {
         return TCL_ERROR;
     }
@@ -1720,7 +1705,7 @@ FlowCmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *CONST *objv)
 
     if (objc < 2) {
         Tcl_AppendResult(interp, "wrong # args: should be \"", 
-			 Tcl_GetString(objv[0]), " option ?arg arg?", (char *)NULL);
+		Tcl_GetString(objv[0]), " option ?arg arg?", (char *)NULL);
         return TCL_ERROR;
     }
     char *string = Tcl_GetString(objv[1]);
@@ -1728,21 +1713,18 @@ FlowCmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *CONST *objv)
     if ((c == 'v') && (strcmp(string, "vectorid") == 0)) {
         if (objc != 3) {
             Tcl_AppendResult(interp, "wrong # args: should be \"", 
-			     Tcl_GetString(objv[0]), " vectorid volume", (char *)NULL);
+		Tcl_GetString(objv[0]), " vectorid volume", (char *)NULL);
             return TCL_ERROR;
         }
         Volume *volPtr;
-	const AxisRange *rangePtr;
-
         if (GetVolumeFromObj(interp, objv[2], &volPtr) != TCL_OK) { 
             return TCL_ERROR;
         }
-	rangePtr = volPtr->GetRange(AxisRange::VALUES);
         if (NanoVis::particleRenderer != NULL) {
             NanoVis::particleRenderer->setVectorField(volPtr->id, 1.0f, 
 		volPtr->height / (float)volPtr->width,
 		volPtr->depth  / (float)volPtr->width,
-		rangePtr->max);
+		volPtr->wAxis.Max());
             NanoVis::initParticle();
         }
         if (NanoVis::licRenderer != NULL) {
@@ -1750,7 +1732,7 @@ FlowCmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *CONST *objv)
 		1.0f / volPtr->aspect_ratio_width,
 		1.0f / volPtr->aspect_ratio_height,
 		1.0f / volPtr->aspect_ratio_depth,
-		rangePtr->max);
+		volPtr->wAxis.Max());
             NanoVis::licRenderer->set_offset(NanoVis::lic_slice_z);
         }
     } else if (c == 'l' && strcmp(string, "lic") == 0) {
@@ -1767,8 +1749,8 @@ FlowCmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *CONST *objv)
     } else if ((c == 'p') && (strcmp(string, "particle") == 0)) {
         if (objc < 3) {
             Tcl_AppendResult(interp, "wrong # args: should be \"", 
-			     Tcl_GetString(objv[0]), " particle visible|slice|slicepos arg \"",
-			     (char*)NULL);
+		Tcl_GetString(objv[0]), " particle visible|slice|slicepos arg \"",
+		(char*)NULL);
             return TCL_ERROR;
         }
         char *string = Tcl_GetString(objv[2]);
@@ -1930,7 +1912,7 @@ FlowCmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *CONST *objv)
                 volPtr->disable_cutplane(2);
 
                 NanoVis::vol_renderer->add_volume(volPtr, 
-						  NanoVis::get_transfunc("default"));
+			NanoVis::get_transfunc("default"));
             }
         }
     } else {
@@ -1972,15 +1954,13 @@ HeightMapDataVisibleOp(ClientData cdata, Tcl_Interp *interp, int objc,
     if (GetBooleanFromObj(interp, objv[3], &visible) != TCL_OK) {
         return TCL_ERROR;
     }
-    vector<unsigned int> indices;
-    if (GetIndices(interp, objc - 4, objv + 4, &indices) != TCL_OK) {
+    vector<HeightMap *> imap;
+    if (GetHeightMaps(interp, objc - 4, objv + 4, &imap) != TCL_OK) {
         return TCL_ERROR;
     }
-    for (unsigned int i = 0; i < indices.size(); ++i) {
-        if ((indices[i] < NanoVis::heightMap.size()) && 
-            (NanoVis::heightMap[indices[i]] != NULL)) {
-            NanoVis::heightMap[indices[i]]->setVisible(visible);
-        }
+    vector<HeightMap *>::iterator iter;
+    for (iter = imap.begin(); iter != imap.end(); iter++) {
+	(*iter)->setVisible(visible);
     }
     return TCL_OK;
 }
@@ -2014,15 +1994,13 @@ HeightMapLineContourColorOp(ClientData cdata, Tcl_Interp *interp, int objc,
     if (GetColor(interp, objc - 3, objv + 3, rgb) != TCL_OK) {
         return TCL_ERROR;
     }           
-    vector<unsigned int> indices;
-    if (GetIndices(interp, objc-6, objv + 6, &indices) != TCL_OK) {
+    vector<HeightMap *> imap;
+    if (GetHeightMaps(interp, objc - 6, objv + 6, &imap) != TCL_OK) {
         return TCL_ERROR;
     }
-    for (unsigned int i = 0; i < indices.size(); ++i) {
-        if ((indices[i] < NanoVis::heightMap.size()) && 
-            (NanoVis::heightMap[indices[i]] != NULL)) {
-            NanoVis::heightMap[indices[i]]->setLineContourColor(rgb);
-        }
+    vector<HeightMap *>::iterator iter;
+    for (iter = imap.begin(); iter != imap.end(); iter++) {
+	(*iter)->setLineContourColor(rgb);
     }
     return TCL_OK;
 }
@@ -2035,15 +2013,13 @@ HeightMapLineContourVisibleOp(ClientData cdata, Tcl_Interp *interp, int objc,
     if (GetBooleanFromObj(interp, objv[3], &visible) != TCL_OK) {
         return TCL_ERROR;
     }
-    vector<unsigned int> indices;
-    if (GetIndices(interp, objc-4, objv+4, &indices) != TCL_OK) {
+    vector<HeightMap *> imap;
+    if (GetHeightMaps(interp, objc - 4, objv + 4, &imap) != TCL_OK) {
         return TCL_ERROR;
     }
-    for (unsigned int i = 0; i < indices.size(); ++i) {
-        if ((indices[i] < NanoVis::heightMap.size()) && 
-            (NanoVis::heightMap[indices[i]] != NULL)) {
-            NanoVis::heightMap[indices[i]]->setLineContourVisible(visible);
-        }
+    vector<HeightMap *>::iterator iter;
+    for (iter = imap.begin(); iter != imap.end(); iter++) {
+	(*iter)->setLineContourVisible(visible);
     }
     return TCL_OK;
 }
@@ -2061,7 +2037,7 @@ HeightMapLineContourOp(ClientData cdata, Tcl_Interp *interp, int objc,
     Tcl_ObjCmdProc *proc;
 
     proc = Rappture::GetOpFromObj(interp, nHeightMapLineContourOps, 
-				  heightMapLineContourOps, Rappture::CMDSPEC_ARG2, objc, objv, 0);
+	heightMapLineContourOps, Rappture::CMDSPEC_ARG2, objc, objv, 0);
     if (proc == NULL) {
         return TCL_ERROR;
     }
@@ -2084,14 +2060,14 @@ static int
 HeightMapCreateOp(ClientData cdata, Tcl_Interp *interp, int objc, 
                   Tcl_Obj *CONST *objv)
 {
-    HeightMap *hMap;
+    HeightMap *hmPtr;
     
     /* heightmap create xmin ymin xmax ymax xnum ynum values */
-    hMap = CreateHeightMap(cdata, interp, objc - 2, objv + 2);
-    if (hMap == NULL) {
+    hmPtr = CreateHeightMap(cdata, interp, objc - 2, objv + 2);
+    if (hmPtr == NULL) {
         return TCL_ERROR;
     }
-    NanoVis::heightMap.push_back(hMap);
+    NanoVis::heightMap.push_back(hmPtr);
     Tcl_SetIntObj(Tcl_GetObjResult(interp), NanoVis::heightMap.size() - 1);;
     return TCL_OK;
 }
@@ -2100,12 +2076,12 @@ static int
 HeightMapLegendOp(ClientData cdata, Tcl_Interp *interp, int objc, 
                   Tcl_Obj *CONST *objv)
 {
-    HeightMap *hMap;
-    if (GetHeightMap(interp, objv[2], &hMap) != TCL_OK) {
+    HeightMap *hmPtr;
+    if (GetHeightMapFromObj(interp, objv[2], &hmPtr) != TCL_OK) {
         return TCL_ERROR;
     }
     TransferFunction *tf;
-    tf = hMap->getColorMap();
+    tf = hmPtr->getColorMap();
     if (tf == NULL) {
         Tcl_AppendResult(interp, "no transfer function defined for heightmap \"", 
 			 Tcl_GetString(objv[2]), "\"", (char*)NULL);
@@ -2116,9 +2092,11 @@ HeightMapLegendOp(ClientData cdata, Tcl_Interp *interp, int objc,
         (Tcl_GetIntFromObj(interp, objv[4], &h) != TCL_OK)) {
         return TCL_ERROR;
     }
-    const AxisRange *rangePtr;
-    rangePtr = hMap->GetRange(AxisRange::VALUES);
-    NanoVis::render_legend(tf, rangePtr->min, rangePtr->max, w, h, "label");
+    if (HeightMap::update_pending) {
+	NanoVis::SetHeightmapRanges();
+    }
+    NanoVis::render_legend(tf, HeightMap::valueMin, HeightMap::valueMax, w, h, 
+	"label");
     return TCL_OK;
 }
 
@@ -2135,7 +2113,7 @@ HeightMapPolygonOp(ClientData cdata, Tcl_Interp *interp, int objc,
 }
 
 static int
-HeightMapShadeOp(ClientData cdata, Tcl_Interp *interp, int objc, 
+HeightMapShadingOp(ClientData cdata, Tcl_Interp *interp, int objc, 
 		 Tcl_Obj *CONST *objv)
 {
     graphics::RenderContext::ShadingModel model;
@@ -2164,26 +2142,17 @@ HeightMapTestOp(ClientData cdata, Tcl_Interp *interp, int objc,
             (sigma * sqrt(2.0)) / mean * 2 + 1000;
     }
     
-    HeightMap* heightMap = new HeightMap();
+    HeightMap* hmPtr = new HeightMap();
     float minx = 0.0f;
     float maxx = 1.0f;
     float miny = 0.5f;
     float maxy = 3.5f;
-    heightMap->setHeight(minx, miny, maxx, maxy, 20, 200, data);
-    heightMap->setColorMap(NanoVis::get_transfunc("default"));
-    heightMap->setVisible(true);
-    heightMap->setLineContourVisible(true);
-    NanoVis::heightMap.push_back(heightMap);
-
-
-    const AxisRange *rangePtr;
-    rangePtr = heightMap->GetRange(AxisRange::VALUES);
-    Vector3 min(minx, (float)rangePtr->min, miny);
-    Vector3 max(maxx, (float)rangePtr->max, maxy);
-    
-    NanoVis::grid->setMinMax(min, max);
+    hmPtr->setHeight(minx, miny, maxx, maxy, 20, 200, data);
+    hmPtr->setColorMap(NanoVis::get_transfunc("default"));
+    hmPtr->setVisible(true);
+    hmPtr->setLineContourVisible(true);
     NanoVis::grid->setVisible(true);
-    
+    NanoVis::heightMap.push_back(hmPtr);
     return TCL_OK;
 }
 
@@ -2200,15 +2169,13 @@ HeightMapTransFuncOp(ClientData cdata, Tcl_Interp *interp, int objc,
                          "\" is not defined", (char*)NULL);
         return TCL_ERROR;
     }
-    vector<unsigned int> indices;
-    if (GetIndices(interp, objc - 3, objv + 3, &indices) != TCL_OK) {
+    vector<HeightMap *> imap;
+    if (GetHeightMaps(interp, objc - 3, objv + 3, &imap) != TCL_OK) {
         return TCL_ERROR;
     }
-    for (unsigned int i = 0; i < indices.size(); ++i) {
-        if ((indices[i] < NanoVis::heightMap.size()) && 
-            (NanoVis::heightMap[indices[i]] != NULL)) {
-            NanoVis::heightMap[indices[i]]->setColorMap(tf);
-        }
+    vector<HeightMap *>::iterator iter;
+    for (iter = imap.begin(); iter != imap.end(); iter++) {
+	(*iter)->setColorMap(tf);
     }
     return TCL_OK;
 }
@@ -2221,7 +2188,7 @@ static Rappture::CmdSpec heightMapOps[] = {
     {"legend",       2, HeightMapLegendOp,      5, 5, "index width height",},
     {"linecontour",  2, HeightMapLineContourOp, 2, 0, "oper ?args?",},
     {"polygon",      1, HeightMapPolygonOp,     3, 3, "mode",},
-    {"shade",        1, HeightMapShadeOp,       3, 3, "model",},
+    {"shading",      1, HeightMapShadingOp,     3, 3, "model",},
     {"test",         2, HeightMapTestOp,        2, 2, "",},
     {"transfunc",    2, HeightMapTransFuncOp,   3, 0, "name ?indices?",},
 };
@@ -2269,7 +2236,9 @@ GridAxisNameOp(ClientData cdata, Tcl_Interp *interp, int objc,
         return TCL_ERROR;
     }
     if (NanoVis::grid) {
+#ifdef notdef
         NanoVis::grid->setAxisName(axisId, Tcl_GetString(objv[3]));
+#endif
     }
     return TCL_OK;
 }
@@ -2289,42 +2258,7 @@ GridLineColorOp(ClientData cdata, Tcl_Interp *interp, int objc,
         return TCL_ERROR;
     }           
     if (NanoVis::grid) {
-        NanoVis::grid->setGridLineColor(r, g, b, a);
-    }
-    return TCL_OK;
-}
-
-static int
-GridLineCountOp(ClientData cdata, Tcl_Interp *interp, int objc, 
-                Tcl_Obj *CONST *objv)
-{
-    int x, y, z;
-    
-    if ((Tcl_GetIntFromObj(interp, objv[2], &x) != TCL_OK) ||
-        (Tcl_GetIntFromObj(interp, objv[3], &y) != TCL_OK) ||
-        (Tcl_GetIntFromObj(interp, objv[4], &z) != TCL_OK)) {
-        return TCL_ERROR;
-    }
-    if (NanoVis::grid) {
-        NanoVis::grid->setGridLineCount(x, y, z);
-    }
-    return TCL_OK;
-}
-
-static int
-GridMinMaxOp(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *CONST *objv)
-{
-    double x1, y1, z1, x2, y2, z2;
-    if ((Tcl_GetDoubleFromObj(interp, objv[2], &x1) != TCL_OK) ||
-        (Tcl_GetDoubleFromObj(interp, objv[3], &y1) != TCL_OK) ||
-        (Tcl_GetDoubleFromObj(interp, objv[4], &z1) != TCL_OK) ||
-        (Tcl_GetDoubleFromObj(interp, objv[5], &x2) != TCL_OK) ||
-        (Tcl_GetDoubleFromObj(interp, objv[6], &y2) != TCL_OK) ||
-        (Tcl_GetDoubleFromObj(interp, objv[7], &z2) != TCL_OK)) {
-        return TCL_ERROR;
-    }
-    if (NanoVis::grid) {
-        NanoVis::grid->setMinMax(Vector3(x1, y1, z1), Vector3(x2, y2, z2));
+        NanoVis::grid->setLineColor(r, g, b, a);
     }
     return TCL_OK;
 }
@@ -2344,8 +2278,6 @@ static Rappture::CmdSpec gridOps[] = {
     {"axiscolor",  5, GridAxisColorOp,  5, 6, "r g b ?a?",},
     {"axisname",   5, GridAxisNameOp,   5, 5, "index width height",},
     {"linecolor",  7, GridLineColorOp,  5, 6, "r g b ?a?",},
-    {"linecount",  7, GridLineCountOp,  5, 5, "xCount yCount zCount",},
-    {"minmax",     1, GridMinMaxOp,     8, 8, "xMin yMin zMin xMax yMax zMax",},
     {"visible",    1, GridVisibleOp,    3, 3, "bool",},
 };
 static int nGridOps = NumCmdSpecs(gridOps);
@@ -2595,13 +2527,13 @@ UniRect2dCmd(ClientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST *objv)
 			 (char *)NULL);
         return TCL_ERROR;
     }
-    HeightMap* hMap;
-    hMap = new HeightMap();
-    hMap->setHeight(xMin, yMin, xMax, yMax, xNum, yNum, zValues);
-    hMap->setColorMap(NanoVis::get_transfunc("default"));
-    hMap->setVisible(true);
-    hMap->setLineContourVisible(true);
-    NanoVis::heightMap.push_back(hMap);
+    HeightMap* hmPtr;
+    hmPtr = new HeightMap();
+    hmPtr->setHeight(xMin, yMin, xMax, yMax, xNum, yNum, zValues);
+    hmPtr->setColorMap(NanoVis::get_transfunc("default"));
+    hmPtr->setVisible(true);
+    hmPtr->setLineContourVisible(true);
+    NanoVis::heightMap.push_back(hmPtr);
     delete [] zValues;
     return TCL_OK;
 }

@@ -17,6 +17,9 @@
 #include "Volume.h"
 #include "Trace.h"
 
+bool Volume::update_pending = false;
+double Volume::valueMin = 0.0;
+double Volume::valueMax = 1.0;
 
 Volume::Volume(float x, float y, float z,
 		int w, int h, int d, float s, 
@@ -44,23 +47,20 @@ Volume::Volume(float x, float y, float z,
     tex = new Texture3D(w, h, d, NVIS_FLOAT, NVIS_LINEAR_INTERP, n);
     int fcount = width * height * depth * n_components;
     _data = new float[fcount];
-    if (data)
-    {
+    if (data) {
         Trace("data is copied\n");
         memcpy(_data, data, fcount * sizeof(float));
         tex->initialize(_data);
-    }
-    else
-    {
+    } else {
         Trace("data is null\n");
-        memset(_data, 0x00, sizeof(width *height* depth * n_components *sizeof(float)));
+        memset(_data, 0, sizeof(width * height * depth * n_components * 
+				sizeof(float)));
         tex->initialize(_data);
-
     }
 
     id = tex->id;
     
-    SetRange(AxisRange::VALUES, v0, v1);
+    wAxis.SetRange(v0, v1);
 
     aspect_ratio_width = s*tex->aspect_ratio_width;
     aspect_ratio_height = s*tex->aspect_ratio_height;

@@ -37,8 +37,11 @@ class HeightMap {
     Vector3 _scale;
     Vector3 _centerPoint;
 
-    AxisRange _ranges[4];
 public :
+    AxisRange xAxis, yAxis, zAxis, wAxis;
+    static bool update_pending;
+    static double valueMin, valueMax;
+
     /**
      *@brief Constructor
      */
@@ -111,14 +114,6 @@ public :
 	_contourColor.x = rgb[0];
 	_contourColor.y = rgb[1];
 	_contourColor.z = rgb[2];
-    }
-
-    void SetRange(int axis, double min, double max) {
-	_ranges[axis].min = min;
-	_ranges[axis].max = max;
-    }
-    const AxisRange *GetRange(int axis) {
-	return _ranges + axis;
     }
 };
 

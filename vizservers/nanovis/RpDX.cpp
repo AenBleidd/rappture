@@ -15,27 +15,25 @@
  */
 #include "RpDX.h"
 #include <math.h>
-
-#ifdef __cplusplus
-    extern "C" {
-#endif // ifdex __cplusplus
+#include <stdio.h>
+#include <stdlib.h>
 
 using namespace Rappture;
 
-DX::DX(const char* filename)
-    : _dataMin(0),
-      _dataMax(0),
-      _nzero_min(0),
-      _numAxis(0),
-      _axisLen(NULL),
-      _data(NULL),
-      _n(0),
-      _rank(0),
-      _shape(0),
-      _positions(NULL),
-      _delta(NULL),
-      _max(NULL),
-      _origin(NULL)
+DX::DX(const char* filename) : 
+    _dataMin(0),
+    _dataMax(0),
+    _nzero_min(0),
+    _numAxis(0),
+    _axisLen(NULL),
+    _data(NULL),
+    _n(0),
+    _rank(0),
+    _shape(0),
+    _positions(NULL),
+    _delta(NULL),
+    _max(NULL),
+    _origin(NULL)
 {
     Array dxarr;
     // category and type are probably not needed
@@ -43,11 +41,11 @@ DX::DX(const char* filename)
     // we could replace them with NULL inthe DXGetArrayInfo fxn call
     Category category;
     Type type;
-
+    
     if (filename == NULL) {
         // error
     }
-
+    
     // open the file with libdx
     fprintf(stdout, "Calling DXImportDX(%s)\n", filename);
     fflush(stdout);
@@ -270,6 +268,5 @@ DX::nzero_min() const
     return _nzero_min;
 }
 
-#ifdef __cplusplus
-    }
-#endif // ifdef __cplusplus
+
+

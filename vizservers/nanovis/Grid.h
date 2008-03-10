@@ -2,101 +2,59 @@
 #define _AXIS_H_
 
 #include <R2/R2Fonts.h>
-#include "Vector3.h"
-#include "Vector4.h"
+#include "Axis.h"
+#include "AxisRange.h"
+
+class RGBA {
+public:
+    float red, green, blue, alpha;
+    RGBA(float r, float g, float b, float a) : 
+	red(r), green(g), blue(b), alpha(a)
+    { /*empty*/ }
+    void SetColor(float r, float g, float b, float a) {
+	red   = r;
+	green = g;
+	blue  = b;
+	alpha = a;
+    }
+};
 
 class Grid {
-    Vector3 __axisScale;
-    
-    Vector4 _axisColor;
-    Vector4 _gridLineColor;
-    Vector3 _axisMin;
-    Vector3 _axisMax;
-    Vector3 _axisGridLineCount;
+    RGBA _axisColor, _majorColor, _minorColor;
     R2Fonts* _font;
     bool _visible;
-    
-    R2string _axisName[3];
 
 public :
+    Axis xAxis;
+    Axis yAxis;
+    Axis zAxis;
+
     Grid();
-public :
-    bool isVisible() const; 
+    bool isVisible() const {
+	return _visible;
+    }
     void render();
-    
-    void setMin(const Vector3& min);
-    void setMax(const Vector3& max);
     
     void setFont(R2Fonts* font);
     void setVisible(bool visible);
-    
-    void setGridLineCount(int x, int y, int z);
     void setAxisColor(float r, float g, float b, float a);
-    void setGridLineColor(float r, float g, float b, float a);
-    void setMinMax(const Vector3& min, const Vector3& max);
-    void setAxisName(int axisID, const char* name);
+    void setLineColor(float r, float g, float b, float a);
 };
-
-inline bool Grid::isVisible() const
-{
-    return _visible;
-}
-
-inline void Grid::setMin(const Vector3& min)
-{
-    _axisMin = min;
-    __axisScale = _axisMax - _axisMin;
-}
-
-inline void Grid::setMax(const Vector3& max)
-{
-    _axisMax = max;
-    __axisScale = _axisMax - _axisMin;
-}
 
 inline void Grid::setVisible(bool visible)
 {
     _visible = visible;
 }
 
-inline void Grid::setGridLineCount(int x, int y, int z)
-{
-    _axisGridLineCount.x = x;
-    _axisGridLineCount.y = y;
-    _axisGridLineCount.z = z;
-}
-
 inline void Grid::setAxisColor(float r, float g, float b, float a)
 {
-    _axisColor.x = r;
-    _axisColor.y = g;
-    _axisColor.z = b;
-    _axisColor.w = a;
+    _axisColor.SetColor(r, g, b, a);
 }
 
-inline void Grid::setGridLineColor(float r, float g, float b, float a)
+inline void Grid::setLineColor(float r, float g, float b, float a)
 {
-    _gridLineColor.x = r;
-    _gridLineColor.y = g;
-    _gridLineColor.z = b;
-    _gridLineColor.w = a;
+    _majorColor.SetColor(r, g, b, a);
+    _minorColor = _majorColor;
 }
-
-inline void Grid::setMinMax(const Vector3& min, const Vector3& max)
-{
-    _axisMin = min;
-    _axisMax = max;
-    __axisScale.x = _axisMax.x - _axisMin.x;
-    __axisScale.y = _axisMax.y - _axisMin.y;
-    __axisScale.z = _axisMax.z - _axisMin.z;
-}
-
-inline void Grid::setAxisName(int axisID, const char* name)
-{
-    if (axisID >= 0 && axisID < 3) {
-        _axisName[axisID] = name;
-    }
-}
-
 
 #endif 
