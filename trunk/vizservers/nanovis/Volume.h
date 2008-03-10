@@ -54,10 +54,11 @@ public:
 				// objects. This size is provided by the
 				// render engine.
 
+    AxisRange xAxis, yAxis, zAxis, wAxis;
+    static bool update_pending;
+    static double valueMin, valueMax;
 
     int n_components;
-
-    AxisRange _ranges[4];	// min/max for each axis 
 
     double nonzero_min;
     
@@ -151,8 +152,6 @@ public:
     void set_outline_color(float* rgb);
     void get_outline_color(float* rgb);
     
-    void SetRange(int axis, double min, double max);
-    const AxisRange *GetRange(int axis);
     void set_label(int axis, const char* txt); // change the label displayed
 					       // on an axis
     std::string label[3];	// the labels along each axis 0:x , 1:y, 2:z
@@ -328,19 +327,6 @@ inline void
 Volume::set_label(int axis, const char* txt)
 {
     label[axis] = txt;
-}
-
-inline void 
-Volume::SetRange(int axis, double min, double max)
-{
-    _ranges[axis].min = min;
-    _ranges[axis].max = max;
-}
-
-inline const AxisRange * 
-Volume::GetRange(int axis)
-{
-    return _ranges + axis;
 }
 
 inline int 

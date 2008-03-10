@@ -193,9 +193,12 @@ load_vector_stream(int index, std::istream& fin)
         Volume *volPtr;
         volPtr = NanoVis::load_volume(index, nx, ny, nz, 3, data, vmin, vmax,
                     nzero_min);
-        volPtr->SetRange(AxisRange::X, x0, x0 + (nx * ddx));
-        volPtr->SetRange(AxisRange::Y, y0, y0 + (ny * ddy));
-        volPtr->SetRange(AxisRange::Z, z0, z0 + (nz * ddz));
+
+	volPtr->xAxis.SetRange(x0, x0 + (nx * ddx));
+        volPtr->yAxis.SetRange(y0, y0 + (ny * ddy));
+        volPtr->zAxis.SetRange(z0, z0 + (nz * ddz));
+        volPtr->wAxis.SetRange(y0, y0 + (ny * ddy));
+	volPtr->update_pending = true;
         delete [] data;
     } else {
         std::cerr << "WARNING: data not found in stream" << std::endl;
@@ -442,10 +445,19 @@ load_volume_stream2(int index, std::iostream& fin)
             dz = nz;
             Volume *volPtr;
             volPtr = NanoVis::load_volume(index, nx, ny, nz, 4, data,
-                                          vmin, vmax, nzero_min);
-            volPtr->SetRange(AxisRange::X, x0, x0 + (nx * ddx));
-            volPtr->SetRange(AxisRange::Y, y0, y0 + (ny * ddy));
-            volPtr->SetRange(AxisRange::Z, z0, z0 + (nz * ddz));
+					  vmin, vmax, nzero_min);
+	    fprintf(stderr, "x nx=%d ddx=%g min=%g max=%g\n", nx, ddx,
+		    x0, x0 + (nx * ddx));
+	    fflush(stderr);
+#ifdef notdef
+	    volPtr->xAxis.SetRange(x0, x0 + (nx * ddx));
+	    volPtr->yAxis.SetRange(y0, y0 + (ny * ddy));
+	    volPtr->zAxis.SetRange(z0, z0 + (nz * ddz));
+#endif
+	    volPtr->xAxis.SetRange(-20.0, 108.0);
+	    volPtr->yAxis.SetRange(0.001, 102.2);
+	    volPtr->zAxis.SetRange(-21, 19);
+	    volPtr->update_pending = true;
             delete [] data;
 
         } else {
@@ -575,13 +587,18 @@ load_volume_stream2(int index, std::iostream& fin)
 
             Volume *volPtr;
             volPtr = NanoVis::load_volume(index, nx, ny, nz, 4, data,
-            field.valueMin(), field.valueMax(), nzero_min);
-            volPtr->SetRange(AxisRange::X, field.rangeMin(Rappture::xaxis),
-                   field.rangeMax(Rappture::xaxis));
-            volPtr->SetRange(AxisRange::Y, field.rangeMin(Rappture::yaxis),
-                   field.rangeMax(Rappture::yaxis));
-            volPtr->SetRange(AxisRange::Z, field.rangeMin(Rappture::zaxis),
-                   field.rangeMax(Rappture::zaxis));
+		field.valueMin(), field.valueMax(), nzero_min);
+	    fprintf(stderr, "x min=%g max=%g\n", 
+		    field.rangeMin(Rappture::xaxis), 
+		    field.rangeMax(Rappture::xaxis));
+	    fflush(stderr);
+	    volPtr->xAxis.SetRange(field.rangeMin(Rappture::xaxis), 
+			       field.rangeMax(Rappture::xaxis));
+	    volPtr->yAxis.SetRange(field.rangeMin(Rappture::yaxis), 
+			       field.rangeMax(Rappture::yaxis));
+	    volPtr->zAxis.SetRange(field.rangeMin(Rappture::zaxis), 
+			       field.rangeMax(Rappture::zaxis));
+	    volPtr->update_pending = true;
             delete [] data;
         }
     } else {
@@ -732,8 +749,9 @@ load_volume_stream(int index, std::iostream& fin)
                 for (int p=0; p < n; p++) {
                     int nindex = iz*nx*ny + iy*nx + ix;
                     field.define(nindex, dval[p]);
-                    fprintf(stdout,"nindex = %i\tdval[%i] = %lg\n",nindex,p,dval[p]);
-                    fflush(stdout);
+                    fprintf(stderr,"nindex = %i\tdval[%i] = %lg\n", nindex, p, 
+			    dval[p]);
+                    fflush(stderr);
                     nread++;
                     if (++iz >= nz) {
                         iz = 0;
@@ -799,8 +817,8 @@ load_volume_stream(int index, std::iostream& fin)
                                           field.valueMax());
 
             for (int i=0; i<nx*ny*nz; i++) {
-                fprintf(stdout,"enddata[%i] = %lg\n",i,data[i]);
-                fflush(stdout);
+                fprintf(stderr,"enddata[%i] = %lg\n",i,data[i]);
+                fflush(stderr);
             }
             // Compute the gradient of this data.  BE CAREFUL: center
             /*
@@ -878,12 +896,13 @@ load_volume_stream(int index, std::iostream& fin)
             Volume *volPtr;
             volPtr = NanoVis::load_volume(index, nx, ny, nz, 4, data,
             field.valueMin(), field.valueMax(), nzero_min);
-            volPtr->SetRange(AxisRange::X, field.rangeMin(Rappture::xaxis),
-                       field.rangeMax(Rappture::xaxis));
-            volPtr->SetRange(AxisRange::Y, field.rangeMin(Rappture::yaxis),
-                       field.rangeMax(Rappture::yaxis));
-            volPtr->SetRange(AxisRange::Z, field.rangeMin(Rappture::zaxis),
-                       field.rangeMax(Rappture::zaxis));
+            volPtr->xAxis.SetRange(field.rangeMin(Rappture::xaxis),
+			       field.rangeMax(Rappture::xaxis));
+            volPtr->yAxis.SetRange(field.rangeMin(Rappture::yaxis),
+			       field.rangeMax(Rappture::yaxis));
+            volPtr->zAxis.SetRange(field.rangeMin(Rappture::zaxis),
+			       field.rangeMax(Rappture::zaxis));
+	    volPtr->update_pending = true;
             // TBD..
             // POINTSET
             /*
@@ -1024,13 +1043,13 @@ load_volume_stream(int index, std::iostream& fin)
             Volume *volPtr;
             volPtr = NanoVis::load_volume(index, nx, ny, nz, 4, data,
             field.valueMin(), field.valueMax(), nzero_min);
-            volPtr->SetRange(AxisRange::X, field.rangeMin(Rappture::xaxis),
-                       field.rangeMax(Rappture::xaxis));
-            volPtr->SetRange(AxisRange::Y, field.rangeMin(Rappture::yaxis),
-                       field.rangeMax(Rappture::yaxis));
-            volPtr->SetRange(AxisRange::Z, field.rangeMin(Rappture::zaxis),
-                       field.rangeMax(Rappture::zaxis));
-
+            volPtr->xAxis.SetRange(field.rangeMin(Rappture::xaxis),
+			       field.rangeMax(Rappture::xaxis));
+            volPtr->yAxis.SetRange(field.rangeMin(Rappture::yaxis),
+			       field.rangeMax(Rappture::yaxis));
+            volPtr->zAxis.SetRange(field.rangeMin(Rappture::zaxis),
+			       field.rangeMax(Rappture::zaxis));
+	    volPtr->update_pending = true;
             // TBD..
             // POINTSET
             /*

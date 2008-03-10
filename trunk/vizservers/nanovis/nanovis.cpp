@@ -99,6 +99,7 @@ NvLIC* NanoVis::licRenderer = 0;
 bool NanoVis::lic_on = false;
 bool NanoVis::particle_on = false;
 bool NanoVis::vector_on = false;
+bool NanoVis::config_pending = false;
 
 // pointers to volumes, currently handle up to 10 volumes
 /*FIXME: Is the above comment true? Is there a 10 volume limit */
@@ -624,11 +625,9 @@ void NanoVis::init(const char* path)
     NvInitCG();
     NvShader::setErrorCallback(CgErrorCallback);
 
-/*
     fonts = new R2Fonts();
     fonts->addFont("verdana", "verdana.fnt");
     fonts->setFont("verdana");
-*/
 
     color_table_renderer = new NvColorTableRenderer();
     color_table_renderer->setFonts(fonts);
@@ -987,7 +986,6 @@ idle()
       ts.tv_nsec = 300000000;
       nanosleep(&ts, 0);
 #endif
-    
 #ifdef XINETD
     xinetd_listen();
 #else
@@ -1011,10 +1009,12 @@ NanoVis::display_offscreen_buffer()
     
     glColor3f(1.,1.,1.);                //MUST HAVE THIS LINE!!!
     glBegin(GL_QUADS);
-    glTexCoord2f(0, 0); glVertex2f(0, 0);
-    glTexCoord2f(1, 0); glVertex2f(win_width, 0);
-    glTexCoord2f(1, 1); glVertex2f(win_width, win_height);
-    glTexCoord2f(0, 1); glVertex2f(0, win_height);
+    {
+	glTexCoord2f(0, 0); glVertex2f(0, 0);
+	glTexCoord2f(1, 0); glVertex2f(win_width, 0);
+	glTexCoord2f(1, 1); glVertex2f(win_width, win_height);
+	glTexCoord2f(0, 1); glVertex2f(0, win_height);
+    }
     glEnd();
 }
 
@@ -1034,47 +1034,40 @@ draw_bounding_box(float x0, float y0, float z0,
                   float r, float g, float b, float line_width)
 {
     glDisable(GL_TEXTURE_2D);
-    
     glColor4d(r, g, b, 1.0);
     glLineWidth(line_width);
-    
     glBegin(GL_LINE_LOOP);
-    
-    glVertex3d(x0, y0, z0);
-    glVertex3d(x1, y0, z0);
-    glVertex3d(x1, y1, z0);
-    glVertex3d(x0, y1, z0);
-    
+    {
+	glVertex3d(x0, y0, z0);
+	glVertex3d(x1, y0, z0);
+	glVertex3d(x1, y1, z0);
+	glVertex3d(x0, y1, z0);
+    }
     glEnd();
-    
     glBegin(GL_LINE_LOOP);
-    
-    glVertex3d(x0, y0, z1);
-    glVertex3d(x1, y0, z1);
-    glVertex3d(x1, y1, z1);
-    glVertex3d(x0, y1, z1);
-    
+    {
+	glVertex3d(x0, y0, z1);
+	glVertex3d(x1, y0, z1);
+	glVertex3d(x1, y1, z1);
+	glVertex3d(x0, y1, z1);
+    }
     glEnd();
-    
-    
     glBegin(GL_LINE_LOOP);
-    
-    glVertex3d(x0, y0, z0);
-    glVertex3d(x0, y0, z1);
-    glVertex3d(x0, y1, z1);
-    glVertex3d(x0, y1, z0);
-    
+    {
+	glVertex3d(x0, y0, z0);
+	glVertex3d(x0, y0, z1);
+	glVertex3d(x0, y1, z1);
+	glVertex3d(x0, y1, z0);
+    }
     glEnd();
-    
     glBegin(GL_LINE_LOOP);
-    
-    glVertex3d(x1, y0, z0);
-    glVertex3d(x1, y0, z1);
-    glVertex3d(x1, y1, z1);
-    glVertex3d(x1, y1, z0);
-    
+    {
+	glVertex3d(x1, y0, z0);
+	glVertex3d(x1, y0, z1);
+	glVertex3d(x1, y1, z1);
+	glVertex3d(x1, y1, z0);
+    }
     glEnd();
-    
     glEnable(GL_TEXTURE_2D);
 }
 #endif
@@ -1168,8 +1161,10 @@ soft_display_verts()
     glPointSize(0.5);
     glColor4f(0,0.8,0.8,0.6);
     glBegin(GL_POINTS);
-    for(int i=0; i<psys->psys_width * psys->psys_height; i++){
-        glVertex3f(vert[3*i], vert[3*i+1], vert[3*i+2]);
+    {
+	for(int i=0; i < psys->psys_width * psys->psys_height; i++){
+	    glVertex3f(vert[3*i], vert[3*i+1], vert[3*i+2]);
+	}
     }
     glEnd();
     //fprintf(stderr, "soft_display_vert");
@@ -1209,7 +1204,8 @@ sortstep()
     oddevenMergeSort.bind();
     glUniform3fARB(oddevenMergeSort.getUniformLocation("Param1"), float(pstage+pstage), 
                    float(ppass%pstage), float((pstage+pstage)-(ppass%pstage)-1));
-    glUniform3fARB(oddevenMergeSort.getUniformLocation("Param2"), float(psys_width), float(psys_height), float(ppass));
+    glUniform3fARB(oddevenMergeSort.getUniformLocation("Param2"), 
+		   float(psys_width), float(psys_height), float(ppass));
     glUniform1iARB(oddevenMergeSort.getUniformLocation("Data"), 0);
     staticdebugmsg("sort","stage "<<pstage<<" pass "<<ppass);
     
@@ -1225,18 +1221,27 @@ sortstep()
     
     // Initiate the sorting step on the GPU a full-screen quad
     glBegin(GL_QUADS);
+    {
 #ifdef notdef
-    glMultiTexCoord4fARB(GL_TEXTURE0_ARB,0.0f,0.0f,0.0f,1.0f); glVertex2f(-1.0f,-1.0f); 
-    glMultiTexCoord4fARB(GL_TEXTURE0_ARB,float(psys_width),0.0f,1.0f,1.0f); glVertex2f(1.0f,-1.0f);
-    glMultiTexCoord4fARB(GL_TEXTURE0_ARB,float(psys_width),float(psys_height),1.0f,0.0f); glVertex2f(1.0f,1.0f);        
-    glMultiTexCoord4fARB(GL_TEXTURE0_ARB,0.0f,float(psys_height),0.0f,0.0f); glVertex2f(-1.0f,1.0f);    
+	glMultiTexCoord4fARB(GL_TEXTURE0_ARB,0.0f,0.0f,0.0f,1.0f); 
+	glVertex2f(-1.0f,-1.0f); 
+	glMultiTexCoord4fARB(GL_TEXTURE0_ARB,float(psys_width),0.0f,1.0f,1.0f); 
+	glVertex2f(1.0f,-1.0f);
+	glMultiTexCoord4fARB(GL_TEXTURE0_ARB,float(psys_width),float(psys_height),1.0f,0.0f); 
+	glVertex2f(1.0f,1.0f);        
+	glMultiTexCoord4fARB(GL_TEXTURE0_ARB,0.0f,float(psys_height),0.0f,0.0f); 
+	glVertex2f(-1.0f,1.0f);    
 #endif
-    glMultiTexCoord4fARB(GL_TEXTURE0_ARB,0.0f,0.0f,0.0f,1.0f); glVertex2f(0.,0.);       
-    glMultiTexCoord4fARB(GL_TEXTURE0_ARB,float(psys_width),0.0f,1.0f,1.0f); glVertex2f(float(psys_width), 0.);
-    glMultiTexCoord4fARB(GL_TEXTURE0_ARB,float(psys_width),float(psys_height),1.0f,0.0f); glVertex2f(float(psys_width), float(psys_height));    
-    glMultiTexCoord4fARB(GL_TEXTURE0_ARB,0.0f,float(psys_height),0.0f,0.0f); glVertex2f(0., float(psys_height));        
+	glMultiTexCoord4fARB(GL_TEXTURE0_ARB,0.0f,0.0f,0.0f,1.0f); 
+	glVertex2f(0.,0.);       
+	glMultiTexCoord4fARB(GL_TEXTURE0_ARB,float(psys_width),0.0f,1.0f,1.0f); 
+	glVertex2f(float(psys_width), 0.);
+	glMultiTexCoord4fARB(GL_TEXTURE0_ARB,float(psys_width),float(psys_height),1.0f,0.0f); 
+	glVertex2f(float(psys_width), float(psys_height));    
+	glMultiTexCoord4fARB(GL_TEXTURE0_ARB,0.0f,float(psys_height),0.0f,0.0f); 
+	glVertex2f(0., float(psys_height));        
+    }
     glEnd();
-
 
     // switch off sorting shader
     oddevenMergeSort.release();
@@ -1382,22 +1387,137 @@ void NanoVis::update()
     if (vol_renderer->_volumeInterpolator->is_started()) {
         struct timeval clock;
         gettimeofday(&clock, NULL);
-        double elapsed_time = clock.tv_sec + clock.tv_usec/1000000.0 - vol_renderer->_volumeInterpolator->getStartTime();
+        double elapsed_time;
+
+	elapsed_time = clock.tv_sec + clock.tv_usec/1000000.0 - 
+	    vol_renderer->_volumeInterpolator->getStartTime();
         
         Trace("%lf %lf\n", elapsed_time, vol_renderer->_volumeInterpolator->getInterval());
         float fraction;
         float f;
 
-        f = fmod((float) elapsed_time, (float) vol_renderer->_volumeInterpolator->getInterval());
+        f = fmod((float) elapsed_time, (float)vol_renderer->_volumeInterpolator->getInterval());
         if (f == 0.0) {
             fraction = 0.0f;
         } else {
             fraction = f / vol_renderer->_volumeInterpolator->getInterval();
         }
-
         Trace("fraction : %f\n", fraction);
         vol_renderer->_volumeInterpolator->update(fraction);
     }
+}
+
+void
+NanoVis::SetVolumeRanges() 
+{
+    double xMin, xMax, yMin, yMax, zMin, zMax, wMin, wMax;
+    
+    xMin = yMin = zMin = wMin = DBL_MAX;
+    xMax = yMax = zMax = wMax = -DBL_MAX;
+    for (unsigned int i = 0; i < volume.size(); i++) {
+	Volume *volPtr;
+	
+	volPtr = volume[i];
+	if (volPtr == NULL) {
+	    continue;
+	}
+	if (!volPtr->enabled) {
+	    continue;
+	}
+	if (xMin > volPtr->xAxis.Min()) {
+	    xMin = volPtr->xAxis.Min();
+	}
+	if (xMax < volPtr->xAxis.Max()) {
+	    xMax = volPtr->xAxis.Max();
+	}
+	if (yMin > volPtr->yAxis.Min()) {
+	    yMin = volPtr->yAxis.Min();
+	}
+	if (yMax < volPtr->yAxis.Max()) {
+	    yMax = volPtr->yAxis.Max();
+	}
+	if (zMin > volPtr->zAxis.Min()) {
+	    zMin = volPtr->zAxis.Min();
+	}
+	if (zMax < volPtr->zAxis.Max()) {
+	    zMax = volPtr->zAxis.Max();
+	}
+	if (wMin > volPtr->wAxis.Min()) {
+	    wMin = volPtr->wAxis.Min();
+	}
+	if (wMax < volPtr->wAxis.Max()) {
+	    wMax = volPtr->wAxis.Max();
+	}
+    }
+    if ((xMin < DBL_MAX) && (xMax > -DBL_MAX)) {
+	grid->xAxis.SetScale(xMin, xMax);
+    }
+    if ((yMin < DBL_MAX) && (yMax > -DBL_MAX)) {
+	grid->yAxis.SetScale(yMin, yMax);
+    }
+    if ((zMin < DBL_MAX) && (zMax > -DBL_MAX)) {
+	grid->zAxis.SetScale(zMin, zMax);
+    }
+    if ((wMin < DBL_MAX) && (wMax > -DBL_MAX)) {
+	Volume::valueMin = wMin;
+	Volume::valueMax = wMax;
+    }
+    Volume::update_pending = false;
+}
+
+void
+NanoVis::SetHeightmapRanges()
+{
+    double xMin, xMax, yMin, yMax, zMin, zMax, wMin, wMax;
+    
+    xMin = yMin = zMin = wMin = DBL_MAX;
+    xMax = yMax = zMax = wMax = -DBL_MAX;
+    for (unsigned int i = 0; i < heightMap.size(); i++) {
+	HeightMap *hmPtr;
+	
+	hmPtr = heightMap[i];
+	if (hmPtr == NULL) {
+	    continue;
+	}
+	if (xMin > hmPtr->xAxis.Min()) {
+	    xMin = hmPtr->xAxis.Min();
+	}
+	if (xMax < hmPtr->xAxis.Max()) {
+	    xMax = hmPtr->xAxis.Max();
+	}
+	if (yMin > hmPtr->yAxis.Min()) {
+	    yMin = hmPtr->yAxis.Min();
+	}
+	if (yMax < hmPtr->yAxis.Max()) {
+	    yMax = hmPtr->yAxis.Max();
+	}
+	if (zMin > hmPtr->zAxis.Min()) {
+	    zMin = hmPtr->zAxis.Min();
+	}
+	if (zMax < hmPtr->zAxis.Max()) {
+	    zMax = hmPtr->zAxis.Max();
+	}
+	if (wMin > hmPtr->wAxis.Min()) {
+	    wMin = hmPtr->wAxis.Min();
+	}
+	if (wMax < hmPtr->wAxis.Max()) {
+	    wMax = hmPtr->wAxis.Max();
+	}
+    }
+    if ((xMin < DBL_MAX) && (xMax > -DBL_MAX)) {
+	grid->xAxis.SetScale(xMin, xMax);
+    }
+    if ((yMin < DBL_MAX) && (yMax > -DBL_MAX)) {
+	grid->yAxis.SetScale(yMin, yMax);
+    }
+    if ((zMin < DBL_MAX) && (zMax > -DBL_MAX)) {
+	grid->zAxis.SetScale(zMin, zMax);
+    }
+    if ((wMin < DBL_MAX) && (wMax > -DBL_MAX)) {
+	HeightMap::valueMin = wMin;
+	HeightMap::valueMax = wMax;
+    }
+    HeightMap::update_pending = false;
 }
 
 /*----------------------------------------------------*/
@@ -1405,7 +1525,12 @@ void
 NanoVis::display()
 {
     //assert(glGetError()==0);
-    
+    if (HeightMap::update_pending) {
+	SetHeightmapRanges();
+    }
+    if (Volume::update_pending) {
+	SetVolumeRanges();
+    }
     //start final rendering
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); //clear screen
 

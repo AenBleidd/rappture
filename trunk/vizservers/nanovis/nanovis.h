@@ -126,12 +126,12 @@ public:
     static float lic_slice_x;
     static float lic_slice_y;
     static float lic_slice_z;
-    static int lic_axis; /* 0:x, 1:y, 2:z */
+    static int lic_axis;	/* 0:x, 1:y, 2:z */
 
     static bool axis_on;
-
-    static int win_width;			//size of the render window
-    static int win_height;			//size of the render window
+    static bool config_pending;	// Indicates if the limits need to be recomputed.
+    static int win_width;	//size of the render window
+    static int win_height;	//size of the render window
  
 
     static bool lic_on;
@@ -141,6 +141,8 @@ public:
     static TransferFunction* get_transfunc(const char *name);
     static TransferFunction* set_transfunc(const char *name, int nSlots, 
 					   float *data);
+    static void SetVolumeRanges(void);
+    static void SetHeightmapRanges(void);
     static void init(const char* path);
     static void initGL(void);
     static void init_lic(void);

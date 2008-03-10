@@ -2,8 +2,20 @@
 #define _AXIS_RANGE_H
 
 class AxisRange {
+    double _min, _max;
 public:
-    enum Axes { X, Y, Z, VALUES };
-    double min, max;
+    AxisRange(void) {
+	SetRange(0.0, 1.0);
+    }
+    void SetRange(double min, double max) {
+	_min = min, _max = max;
+    }
+    double Min(void) {
+	return _min;
+    }
+    double Max(void) {
+	return _max;
+    }
 };
+
 #endif /*_AXIS_RANGE_H*/

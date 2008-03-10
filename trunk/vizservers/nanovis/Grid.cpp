@@ -2,149 +2,198 @@
 #include <GL/gl.h>
 #include "Grid.h"
 
+#define NUMDIGITS	6
+
 Grid::Grid() : 
-    _axisColor(1.0f, 1.0f, 1.0f, 1.0f),
-    _gridLineColor(1.0f, 1.0f, 1.0f, 1.0f), 
-    _axisMin(0.0f, 0.0f, 0.0f), 
-    _axisMax(1.0f, 1.0f, 1.0f), 
-    _axisGridLineCount(5.0f, 5.0f, 5.0f),
+    _axisColor(1.0f, 1.0f, 1.0f, 1.0f), 
+    _majorColor(1.0f, 1.0f, 1.0f, 1.0f), 
+    _minorColor(0.7f, 0.7f, 0.7f, 1.0f), 
     _font(0), 
-    _visible(false)
+    _visible(false),
+    xAxis("X"), 
+    yAxis("Y"), 
+    zAxis("Z")
 {
-    __axisScale = _axisMax - _axisMin;
-    _axisName[0] = "X";
-    _axisName[1] = "Y";
-    _axisName[2] = "Z";
+    /*empty*/
 }
 
 void Grid::render()
 {
     glPushMatrix();
     glEnable(GL_DEPTH_TEST);
-    glEnable(GL_BLEND);
-
-    glScalef(1.0 / __axisScale.x, __axisScale.y / __axisScale.x, __axisScale.z / __axisScale.x);
+#ifdef notdef
+    glEnable(GL_LINE_SMOOTH);
+#endif
+#ifdef notdef
+    glScalef(xAxis.Scale(), 
+	     yAxis.Range() / xAxis.Range(), 
+	     zAxis.Range() / xAxis.Range());
+#endif
+    glScalef(1.0, 1.0, 1.0);
 
     glTranslatef(-0.5f, -0.5f, -0.5f);
-    glDisable(GL_TEXTURE_2D);
     glLineWidth(2.0f);
-    glColor4f(_axisColor.x, _axisColor.y, _axisColor.z, _axisColor.w);
-    //glColor3f(_axisColor.x, _axisColor.y, _axisColor.z);
+    glColor4f(_axisColor.red, _axisColor.green, _axisColor.blue, 
+	      _axisColor.alpha);
 
     glBegin(GL_LINES);
     {
-	glVertex3f(0.0f,0.0f,0.0f);
-	glVertex3f(1.2f,0.0f,0.0f);
-	glVertex3f(0.0f,0.0f,0.0f);
-	glVertex3f(0.0f,1.2f,0.0f);
 	glVertex3f(0.0f, 0.0f, 0.0f);
-	glVertex3f(0.0f, 0.0f, 1.2f);
+	glVertex3f(1.15f, 0.0f, 0.0f);
+	glVertex3f(0.0f, 0.0f, 0.0f);
+	glVertex3f(0.0f, 1.15f, 0.0f);
+	glVertex3f(0.0f, 0.0f, 0.0f);
+	glVertex3f(0.0f, 0.0f, 1.15f);
     }
     glEnd();
 
+    glDisable(GL_TEXTURE_2D);
     glLineWidth(1.0f);
-    glColor4f(_gridLineColor.x, _gridLineColor.y, _gridLineColor.z, _gridLineColor.w);
-    glBegin(GL_LINES);
+    glEnable(GL_BLEND);
+    glColor4f(_majorColor.red, _majorColor.green, _majorColor.blue, 
+	      _majorColor.alpha);
 
-    // +y
-    for (int i = 1; i <= (int) _axisGridLineCount.y; ++i) {
-	glVertex3f(0.0f, i / _axisGridLineCount.y, 0.0f);
-	glVertex3f(1.1f, i / _axisGridLineCount.y, 0.0f);
-    }
-    
-    for (int i = 1; i <= (int) _axisGridLineCount.x; ++i) {
-	glVertex3f(i / _axisGridLineCount.x, 0.0f, 0.0f);
-	glVertex3f(i / _axisGridLineCount.x, 1.0f, 0.0f);
-    }
-    
-    for (int i = 1; i <= (int) _axisGridLineCount.z; ++i) {
-	glVertex3f(0.0f, 0.0f, i / _axisGridLineCount.z);
-	glVertex3f(0.0f, 1.0f, i / _axisGridLineCount.z);
-    }
-    
-    for (int i = 1; i <= (int) _axisGridLineCount.y; ++i) {
-	glVertex3f(0.0f, i / _axisGridLineCount.y, 0.0f);
-	glVertex3f(0.0f, i / _axisGridLineCount.y, 1.0f);
-    }
-    
-    for (int i = 1; i <= (int) _axisGridLineCount.x; ++i) {
-	glVertex3f(i / _axisGridLineCount.x,0.0f, 0.0f);
-	glVertex3f(i / _axisGridLineCount.x,0.0f, 1.1f);
-    }
-    
-    for (int i = 1; i <= (int) _axisGridLineCount.z; ++i) {
-	glVertex3f(0.0f, 0.0f, i / _axisGridLineCount.z);
-	glVertex3f(1.1f, 0.0f, i / _axisGridLineCount.z);
+    glBegin(GL_LINES);
+    {
+	bool result;
+	TickIter iter;
+
+	for (result = xAxis.FirstMajor(iter); result; result = iter.Next()) {
+	    float x;
+	    x = xAxis.Map(iter.GetValue());
+	    glVertex3f(x, 0.0f, 0.0f);
+	    glVertex3f(x, 1.0f, 0.0f);
+	    glVertex3f(x, 0.0f, 0.0f);
+	    glVertex3f(x, 0.0f, 1.1f);
+	}
+	for (result = yAxis.FirstMajor(iter); result; result = iter.Next()) {
+	    float y;
+	    y = yAxis.Map(iter.GetValue());
+	    glVertex3f(0.0f, y, 0.0f);
+	    glVertex3f(1.1f, y, 0.0f);
+	    glVertex3f(0.0f, y, 0.0f);
+	    glVertex3f(0.0f, y, 1.0f);
+	}
+	for (result = zAxis.FirstMajor(iter); result; result = iter.Next()) {
+	    float z;
+	    z = zAxis.Map(iter.GetValue());
+	    glVertex3f(0.0f, 0.0f, z);
+	    glVertex3f(0.0f, 1.0f, z);
+	    glVertex3f(0.0f, 0.0f, z);
+	    glVertex3f(1.1f, 0.0f, z);
+	}
     }
     glEnd();
 
-    if (_font) {
+    // Set minor line color
+    glColor4f(_minorColor.red, _minorColor.green, _minorColor.blue,
+	      _minorColor.alpha);
+
+    glBegin(GL_LINES);
+    {
+	bool result;
+	TickIter iter;
+
+	for (result = xAxis.FirstMinor(iter); result; result = iter.Next()) {
+	    float x;
+	    x = xAxis.Map(iter.GetValue());
+	    glVertex3f(x, 0.0f, 0.0f);
+	    glVertex3f(x, 1.0f, 0.0f);
+	    glVertex3f(x, 0.0f, 0.0f);
+	    glVertex3f(x, 0.0f, 1.0f);
+	}
+	for (result = yAxis.FirstMinor(iter); result; result = iter.Next()) {
+	    float y;
+	    y = yAxis.Map(iter.GetValue());
+	    glVertex3f(0.0f, y, 0.0f);
+	    glVertex3f(1.0f, y, 0.0f);
+	    glVertex3f(0.0f, y, 0.0f);
+	    glVertex3f(0.0f, y, 1.0f);
+	}
+	for (result = zAxis.FirstMinor(iter); result; result = iter.Next()) {
+	    float z;
+	    z = zAxis.Map(iter.GetValue());
+	    glVertex3f(0.0f, 0.0f, z);
+	    glVertex3f(0.0f, 1.0f, z);
+	    glVertex3f(0.0f, 0.0f, z);
+	    glVertex3f(1.0f, 0.0f, z);
+	}
+    }
+    glEnd();
+
+    if (_font != NULL) {
 	double mv[16], prjm[16];
 	int viewport[4];
-	double winx, winy, winz;
+	double wx, wy, wz;
+	bool result;
+	TickIter iter;
+
 	glGetDoublev(GL_MODELVIEW_MATRIX, mv);
 	glGetDoublev(GL_PROJECTION_MATRIX, prjm);
 	glGetIntegerv(GL_VIEWPORT, viewport);
 	
-	
 	_font->begin();
-	if (gluProject(1.2, 0.0, 0.0, mv, prjm, viewport, &winx, &winy, 
-		       &winz)) {
+	if (gluProject(1.2, 0.0, 0.0, mv, prjm, viewport, &wx, &wy, &wz)) {
 	    glLoadIdentity();
-	    glTranslatef((int) winx, viewport[3] - (int) winy, 0);
-	    _font->draw((const char*) _axisName[0]);
+	    glTranslatef((int) wx, viewport[3] - (int) wy, 0);
+	    _font->draw(xAxis.GetName());
 	}
 	
-	if (gluProject(0.0, 1.2, 0.0, mv, prjm, viewport, &winx, &winy, 
-		       &winz)) {
+	if (gluProject(0.0, 1.2, 0.0, mv, prjm, viewport, &wx, &wy, &wz)) {
 	    glLoadIdentity();
-	    glTranslatef((int) winx, viewport[3] - (int)winy, 0);
-	    _font->draw((const char*) _axisName[1]);
+	    glTranslatef((int) wx, viewport[3] - (int)wy, 0);
+	    _font->draw(yAxis.GetName());
 	}
 	
-	if (gluProject(0.0, 0.0, 1.2, mv, prjm, viewport, &winx, &winy, 
-		       &winz)) {
+	if (gluProject(0.0, 0.0, 1.2, mv, prjm, viewport, &wx, &wy, &wz)) {
 	    glLoadIdentity();
-	    glTranslatef((int) winx, (int) viewport[3] - (int)winy, 0.0f);
-	    _font->draw((const char*) _axisName[2]);
+	    glTranslatef((int) wx, (int) viewport[3] - (int)wy, 0.0f);
+	    _font->draw(zAxis.GetName());
 	}
 	
-	glColor4f(1.0f, 1.0f, 0.0f, 0.5f);
-	char buff[20];
-	// Y
-	for (int i = 1; i <= (int) _axisGridLineCount.y; ++i) {
-	    if (gluProject(1.2, i / _axisGridLineCount.y, 0.0f, mv, prjm, viewport, &winx, &winy, &winz)) {
+	glColor4f(1.0f, 1.0f, 0.0f, 1.0f); 
+
+	for (result = xAxis.FirstMajor(iter); result; result = iter.Next()) {
+	    float x;
+	    x = xAxis.Map(iter.GetValue());
+	    if (gluProject(x, 0.0f, 1.11f, mv, prjm, viewport, &wx, &wy, &wz)) {
+		char buff[20];
 		glLoadIdentity();
-		glTranslatef((int) winx, (int) viewport[3] - (int)winy, 0.0f);
-		sprintf(buff, "%0.2f", __axisScale.y / _axisGridLineCount.y * i + _axisMin.y);
+		glTranslatef((int) wx, (int) viewport[3] - (int)wy, 0.0f);
+		sprintf(buff, "%.*g", NUMDIGITS, iter.GetValue());
 		_font->draw(buff);
 	    }
 	}
-	
-	for (int i = 1; i <= (int) _axisGridLineCount.z; ++i) {
-	    if (gluProject(1.2, 0.0, i / _axisGridLineCount.z , mv, prjm, viewport, &winx, &winy, &winz)) {
+	for (result = yAxis.FirstMajor(iter); result; result = iter.Next()) {
+	    float y;
+	    y = yAxis.Map(iter.GetValue());
+	    if (gluProject(1.11f, y, 0.0f, mv, prjm, viewport, &wx, &wy, &wz)) {
+		char buff[20];
 		glLoadIdentity();
-		glTranslatef((int) winx, (int) viewport[3] - (int)winy, 0.0f);
-		sprintf(buff, "%0.2f", __axisScale.z / _axisGridLineCount.z * i + _axisMin.z);
+		glTranslatef((int) wx, (int) viewport[3] - (int)wy, 0.0f);
+		sprintf(buff, "%.*g", NUMDIGITS, iter.GetValue());
 		_font->draw(buff);
 	    }
 	}
-	
-	for (int i = 1; i <= (int) _axisGridLineCount.x; ++i) {
-	    if (gluProject( i / _axisGridLineCount.x, 0.0f, 1.2, mv, prjm, viewport, &winx, &winy, &winz)) {
+	for (result = zAxis.FirstMajor(iter); result; result = iter.Next()) {
+	    float z;
+	    z = zAxis.Map(iter.GetValue());
+	    if (gluProject(1.11f, 0.0f, z, mv, prjm, viewport, &wx, &wy, &wz)) {
+		char buff[20];
 		glLoadIdentity();
-		glTranslatef((int) winx, (int) viewport[3] - (int)winy, 0.0f);
-		sprintf(buff, "%0.2f", __axisScale.x / _axisGridLineCount.x * i + _axisMin.x);
+		glTranslatef((int) wx, (int) viewport[3] - (int)wy, 0.0f);
+		sprintf(buff, "%.*g", NUMDIGITS, iter.GetValue());
 		_font->draw(buff);
 	    }
 	}
-	
 	_font->end();
     };
-    
     glPopMatrix();
     glDisable(GL_DEPTH_TEST);
     glDisable(GL_BLEND);
+#ifdef notdef
+    glDisable(GL_LINE_SMOOTH);
+#endif
 }
  
 void Grid::setFont(R2Fonts* font)
@@ -155,3 +204,4 @@ void Grid::setFont(R2Fonts* font)
 	
     _font = font;
 }
+

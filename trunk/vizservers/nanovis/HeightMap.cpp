@@ -15,6 +15,10 @@
 #include <fcntl.h>
 #include <RenderContext.h>
 
+bool HeightMap::update_pending = false;
+double HeightMap::valueMin = 0.0;
+double HeightMap::valueMax = 1.0;
+
 HeightMap::HeightMap() : 
     _vertexBufferObjectID(0), 
     _textureBufferObjectID(0), 
@@ -65,7 +69,7 @@ void HeightMap::render(graphics::RenderContext* renderContext)
 
     glPushMatrix();
 
-    if (_scale.x != 0) {
+    if (_scale.x != 0.0) {
         glScalef(1 / _scale.x, 1 / _scale.x , 1 / _scale.x);
     }
 
@@ -132,7 +136,9 @@ void HeightMap::render(graphics::RenderContext* renderContext)
     glPopMatrix();
 }
 
-void HeightMap::createIndexBuffer(int xCount, int zCount, int*& indexBuffer, int& indexCount, float* heights)
+void 
+HeightMap::createIndexBuffer(int xCount, int zCount, int*& indexBuffer, 
+			     int& indexCount, float* heights)
 {
     indexCount = (xCount - 1) * (zCount - 1) * 6;
 
@@ -187,7 +193,8 @@ void HeightMap::createIndexBuffer(int xCount, int zCount, int*& indexBuffer, int
     }
 }
 
-void HeightMap::reset()
+void 
+HeightMap::reset()
 {
     if (_vertexBufferObjectID) {
         glDeleteBuffers(1, &_vertexBufferObjectID);
@@ -206,7 +213,8 @@ void HeightMap::reset()
     }
 }
 
-void HeightMap::setHeight(int xCount, int yCount, Vector3* heights)
+void 
+HeightMap::setHeight(int xCount, int yCount, Vector3* heights)
 {
     _vertexCount = xCount * yCount;
     reset();
@@ -228,11 +236,12 @@ void HeightMap::setHeight(int xCount, int yCount, Vector3* heights)
     _scale.z = max - min;
     _scale.y = 1.0f;
 
-    SetRange(AxisRange::VALUES, min, max);
-    SetRange(AxisRange::X, 0.0, 1.0);
-    SetRange(AxisRange::Y, 0.0, 1.0);
-    SetRange(AxisRange::Z, min, max);
-
+    xAxis.SetRange(0.0, 1.0);
+    yAxis.SetRange(0.0, 1.0);
+    zAxis.SetRange(0.0, 1.0);
+    wAxis.SetRange(min, max);
+    update_pending = true;
+    
     _centerPoint.set(_scale.x * 0.5, _scale.z * 0.5 + min, _scale.y * 0.5);
 
     Vector3* texcoord = new Vector3[count];
@@ -293,10 +302,11 @@ HeightMap::setHeight(float startX, float startY, float endX, float endY,
     _scale.y = max - min;
     _scale.z = endY - startY;
 
-    SetRange(AxisRange::VALUES, min, max);
-    SetRange(AxisRange::X, startX, endX);
-    SetRange(AxisRange::Y, min, max);
-    SetRange(AxisRange::Z, startY, endY);
+    wAxis.SetRange(min, max);
+    xAxis.SetRange(startX, endX);
+    yAxis.SetRange(min, max);
+    zAxis.SetRange(startY, endY);
+    update_pending = true;
 
     _centerPoint.set(_scale.x * 0.5 + startX, _scale.y * 0.5 + min, 
 	_scale.z * 0.5 + startY);

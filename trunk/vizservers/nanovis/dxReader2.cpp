@@ -1,4 +1,5 @@
 
+#include "RpDX.h"
 #include "dxReaderCommon.h"
 
 #include <stdio.h>
