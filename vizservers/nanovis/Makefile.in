@@ -74,6 +74,8 @@ OBJS  = \
 	BucketSort.o \
 	NvCamera.o \
 	CmdProc.o \
+	Axis.o \
+	Chain.o \
 	Color.o \
 	ColorGradient.o \
 	ColorGradientGLUTWindow.o \
