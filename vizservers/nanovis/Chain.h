@@ -29,8 +29,6 @@
 /*
  * A ChainLink is the container structure for the Chain.
  */
-
-
 class ChainLink {
     friend class Chain;
 private:
