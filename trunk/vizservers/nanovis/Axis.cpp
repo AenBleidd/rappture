@@ -546,5 +546,3 @@ Axis::InvMap(double x)
     }
     return x;
 }
-
-

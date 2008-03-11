@@ -149,7 +149,7 @@ public:
 	return _autoscale;
     }
     void SweepTicks(void) {
-	if (_flags & AUTOSCALE) {
+	if (_autoscale) {
 	    if (_ticks != NULL) {
 		delete [] _ticks;
 	    }
