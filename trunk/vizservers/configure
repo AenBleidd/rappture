@@ -678,6 +678,7 @@ TCL_LIB_VERSION
 TCL_INCL_DIR
 RP2_INCL_DIR
 RP_DIR
+DX_DIR
 LIBOBJS
 LTLIBOBJS'
 ac_subst_files=''
@@ -4752,11 +4753,38 @@ fi
 
 done
 
+
+
 fi
 { echo "$as_me:$LINENO: result: ${RP_DIR}/include" >&5
 echo "${ECHO_T}${RP_DIR}/include" >&6; }
 
 
+
+{ echo "$as_me:$LINENO: checking for DX installation" >&5
+echo $ECHO_N "checking for DX installation... $ECHO_C" >&6; }
+DX_DIR=""
+for dir in \
+ /apps/rappture \
+ /usr/dx \
+ /usr
+do
+  if test -r "${dir}/include/dx/dx.h" ; then
+    DX_DIR="$dir"
+    break
+  fi
+done
+if test "x${DX_DIR}" = "x" ; then
+  { { echo "$as_me:$LINENO: error: can't find OpenDX installation" >&5
+echo "$as_me: error: can't find OpenDX installation" >&2;}
+   { (exit 1); exit 1; }; }
+fi
+if test "${DX_DIR}" = "/usr" ; then
+  DX_DIR=""
+fi
+
+{ echo "$as_me:$LINENO: result: ${DX_DIR}" >&5
+echo "${ECHO_T}${DX_DIR}" >&6; }
 
 
 
@@ -5463,11 +5491,12 @@ TCL_LIB_VERSION!$TCL_LIB_VERSION$ac_delim
 TCL_INCL_DIR!$TCL_INCL_DIR$ac_delim
 RP2_INCL_DIR!$RP2_INCL_DIR$ac_delim
 RP_DIR!$RP_DIR$ac_delim
+DX_DIR!$DX_DIR$ac_delim
 LIBOBJS!$LIBOBJS$ac_delim
 LTLIBOBJS!$LTLIBOBJS$ac_delim
 _ACEOF
 
-  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 66; then
+  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 67; then
     break
   elif $ac_last_try; then
     { { echo "$as_me:$LINENO: error: could not make $CONFIG_STATUS" >&5
