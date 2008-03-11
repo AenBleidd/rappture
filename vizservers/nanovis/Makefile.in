@@ -19,6 +19,7 @@ INSTALL		= @INSTALL@
 INSTALL_PROGRAM	= ${INSTALL} -m 755
 INSTALL_DATA	= ${INSTALL} -m 644
 INSTALL_SCRIPT	= ${INSTALL} -m 644
+RM		= rm -f
 
 AUXSRC		= config.h define.h global.h
 
@@ -160,16 +161,16 @@ all: nanovis
 install: install-nanovis install-resources install-shaders
 
 $(MAT_LIB):
-	make -C $(MAT_DIR) all
+	$(MAKE) -C $(MAT_DIR) all
 
 $(R2_LIB): 
-	make -C $(R2_DIR)/src all
+	$(MAKE) -C $(R2_DIR)/src all
 
 $(IMG_LIB): 
-	make -C $(IMG_DIR) all
+	$(MAKE) -C $(IMG_DIR) all
 
 $(TF_LIB): 
-	make -C $(TF_DIR) all
+	$(MAKE) -C $(TF_DIR) all
 
 nanovis: $(MAT_LIB) $(R2_LIB) $(IMG_LIB) $(TF_LIB) $(OBJS) 
 	$(CC) $(CC_SWITCHES) -o $@ $^ $(LIBS)
@@ -218,14 +219,14 @@ install-nanovis: nanovis
 
 
 clean:
-	make -C $(MAT_DIR) clean
-	make -C $(R2_DIR)/src clean
-	make -C $(IMG_DIR) clean
-	make -C $(TF_DIR) clean
-	rm -f nanovis client $(OBJS)
+	$(MAKE) -C $(MAT_DIR) clean
+	$(MAKE) -C $(R2_DIR)/src clean
+	$(MAKE) -C $(IMG_DIR) clean
+	$(MAKE) -C $(TF_DIR) clean
+	$(RM) nanovis client $(OBJS)
 
 distclean: clean
-	rm -f Makefile *~
+	$(RM) Makefile *~
 
 NvStdVertexShader.o: NvStdVertexShader.cpp NvStdVertexShader.h
 ContourLineFilter.o: ContourLineFilter.cpp ContourLineFilter.h
