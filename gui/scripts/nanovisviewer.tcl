@@ -31,7 +31,7 @@ option add *NanovisViewer.font \
 # must use this name -- plugs into Rappture::resources::load
 proc NanovisViewer_init_resources {} {
     Rappture::resources::register \
-        nanovis_server Rappture::VisViewer::SetNanovisServerList
+        nanovis_server Rappture::NanovisViewer::SetServerList
 }
 
 itcl::class Rappture::NanovisViewer {
@@ -48,6 +48,9 @@ itcl::class Rappture::NanovisViewer {
     }
     destructor { 
         # defined below 
+    }
+    public proc SetServerList { namelist } {
+	Rappture::VisViewer::SetServerList "nanovis" $namelist
     }
     public method add {dataobj {settings ""}}
     public method get {args}
@@ -418,21 +421,21 @@ itcl::body Rappture::NanovisViewer::constructor {hostlist args} {
 
     set ::Rappture::NanovisViewer::_settings($this-axes) 1
     ::checkbutton $inner.scales.axes \
-        -text "Show Axes" \
+        -text "Axes" \
         -variable ::Rappture::NanovisViewer::_settings($this-axes) \
         -command [itcl::code $this _fixSettings axes]
     grid $inner.scales.axes -row 5 -column 0 -columnspan 2 -sticky w
 
     set ::Rappture::NanovisViewer::_settings($this-grid) 0
     ::checkbutton $inner.scales.grid \
-        -text "Show Grid" \
+        -text "Grid" \
         -variable ::Rappture::NanovisViewer::_settings($this-grid) \
         -command [itcl::code $this _fixSettings grid]
     grid $inner.scales.grid -row 6 -column 0 -columnspan 2 -sticky w
 
     set ::Rappture::NanovisViewer::_settings($this-outline) 1
     ::checkbutton $inner.scales.outline \
-        -text "Show Outline" \
+        -text "Outline" \
         -variable ::Rappture::NanovisViewer::_settings($this-outline) \
         -command [itcl::code $this _fixSettings outline]
     grid $inner.scales.outline -row 7 -column 0 -columnspan 2 -sticky w
