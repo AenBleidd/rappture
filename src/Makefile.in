@@ -1,12 +1,13 @@
 
-prefix          = @prefix@
-exec_prefix     = @exec_prefix@
 bindir          = @bindir@
-libdir          = @libdir@
+datadir		= @datarootdir@
+exec_prefix     = @exec_prefix@
 includedir      = @includedir@
+libdir          = @libdir@
 mandir          = @mandir@
+prefix          = @prefix@
 
-INSTALL			= @INSTALL@
+INSTALL		= @INSTALL@
 INSTALL_PROGRAM	= ${INSTALL} -m 755
 INSTALL_DATA	= ${INSTALL} -m 644
 INSTALL_SCRIPT	= ${INSTALL}

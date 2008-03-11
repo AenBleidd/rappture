@@ -1,4 +1,4 @@
-# Makefile.in --
+e Makefile.in --
 #
 #	This file is a Makefile for Sample TEA Extension.  If it has the name
 #	"Makefile.in" then it is a template for a Makefile;  to generate the
@@ -73,7 +73,7 @@ exec_prefix	= @exec_prefix@
 
 bindir		= @bindir@
 libdir		= @libdir@
-datadir		= @datadir@
+datadir		= @datarootdir@
 mandir		= @mandir@
 includedir	= @includedir@
 

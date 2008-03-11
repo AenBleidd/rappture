@@ -388,6 +388,9 @@ if test "$TCLSH" != "" ; then
     AC_CONFIG_SUBDIRS( src/tcl )
 fi
 
+ls
+AC_CONFIG_SUBDIRS( [optimizer/src] )
+
 dnl read Makefile.in and write Makefile
 AC_OUTPUT(  Makefile \
             examples/demo.bash
@@ -395,6 +398,7 @@ AC_OUTPUT(  Makefile \
             examples/app-fermi/fortran/Makefile \
             examples/app-fermi/wrapper/cee/Makefile \
             examples/c-example/Makefile \
+	    optimizer/src/Makefile \
             perl/Makefile.PL \
             python/setup.py \
             src/Makefile \

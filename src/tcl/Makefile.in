@@ -77,7 +77,7 @@ exec_prefix	= @exec_prefix@
 
 bindir		= @bindir@
 libdir		= @libdir@
-datadir		= @datadir@
+datadir		= @datarootdir@
 mandir		= @mandir@
 includedir	= @includedir@
 

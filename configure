@@ -709,7 +709,8 @@ CXXCPP
 F77
 FFLAGS'
 ac_subdirs_all='gui
-src/tcl '
+src/tcl
+optimizer/src '
 
 # Initialize some variables set by options.
 ac_init_help=
@@ -5588,7 +5589,10 @@ if test "$TCLSH" != "" ; then
 
 fi
 
-ac_config_files="$ac_config_files Makefile examples/demo.bash examples/app-fermi/cee/Makefile examples/app-fermi/fortran/Makefile examples/app-fermi/wrapper/cee/Makefile examples/c-example/Makefile perl/Makefile.PL python/setup.py src/Makefile src/matlab/Makefile src/octave/Makefile src2/core/Makefile test/Makefile gui/apps/simsim gui/apps/rappture gui/apps/rappture.env"
+subdirs="$subdirs optimizer/src"
+
+
+ac_config_files="$ac_config_files Makefile examples/demo.bash examples/app-fermi/cee/Makefile examples/app-fermi/fortran/Makefile examples/app-fermi/wrapper/cee/Makefile examples/c-example/Makefile optimizer/src/Makefile perl/Makefile.PL python/setup.py src/Makefile src/matlab/Makefile src/octave/Makefile src2/core/Makefile test/Makefile gui/apps/simsim gui/apps/rappture gui/apps/rappture.env"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -6164,6 +6168,7 @@ do
     "examples/app-fermi/fortran/Makefile") CONFIG_FILES="$CONFIG_FILES examples/app-fermi/fortran/Makefile" ;;
     "examples/app-fermi/wrapper/cee/Makefile") CONFIG_FILES="$CONFIG_FILES examples/app-fermi/wrapper/cee/Makefile" ;;
     "examples/c-example/Makefile") CONFIG_FILES="$CONFIG_FILES examples/c-example/Makefile" ;;
+    "optimizer/src/Makefile") CONFIG_FILES="$CONFIG_FILES optimizer/src/Makefile" ;;
     "perl/Makefile.PL") CONFIG_FILES="$CONFIG_FILES perl/Makefile.PL" ;;
     "python/setup.py") CONFIG_FILES="$CONFIG_FILES python/setup.py" ;;
     "src/Makefile") CONFIG_FILES="$CONFIG_FILES src/Makefile" ;;

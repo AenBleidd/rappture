@@ -11,6 +11,10 @@ When you click the Simulate button, the inputs will be used to generate output f
   <command>
     tclsh @tool/field.tcl @driver
   </command>
+  <limits>
+    <cputime>unlimited</cputime>
+    <filesize>unlimited</filesize>
+  </limits>
 </tool>
 <input>
   <string id="formula">
@@ -61,7 +65,9 @@ When you click the Simulate button, the inputs will be used to generate output f
   <field id="f3d">
     <about><label>3D Field</label></about>
     <component>
-      <style>-color yellow</style>
+      <style>
+      	-color blue:yellow:red
+      </style>
     </component>
   </field>
 </output>
