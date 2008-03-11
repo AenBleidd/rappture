@@ -172,10 +172,37 @@ if test "x$with_rappture" != "x" ; then
 else
     AC_CHECK_HEADERS([rappture.h], [],
            [AC_MSG_ERROR([cannot find rappture.h, try using --with-rappture])])
+
+
 fi
 AC_MSG_RESULT([${RP_DIR}/include])
 AC_SUBST(RP2_INCL_DIR)
 AC_SUBST(RP_DIR)
+
+AC_CHECK_HEADER([GL/glui.h])
+AC_CHECK_HEADER([glui.h])
+AC_CHECK_HEADER([GL/glut.h])
+
+AC_MSG_CHECKING([for DX installation])
+DX_DIR=""
+for dir in \
+ /apps/rappture \
+ /usr/dx \
+ /usr
+do
+  if test -r "${dir}/include/dx/dx.h" ; then
+    DX_DIR="$dir"
+    break
+  fi
+done
+if test "x${DX_DIR}" = "x" ; then
+  AC_MSG_ERROR([can't find OpenDX installation])
+fi
+if test "${DX_DIR}" = "/usr" ; then
+  DX_DIR=""
+fi
+AC_SUBST(DX_DIR)
+AC_MSG_RESULT([${DX_DIR}])
 
 dnl AC_MSG_CHECKING(tcl library version)
 dnl TCL=`AC_TRY_RUN([#include <tcl.h>

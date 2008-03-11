@@ -18,7 +18,7 @@
 #define COLOR_GRADIENT_GLUT_WINDOW_H 
 
 
-#include "glui.h"
+#include <glui.h>
 #include "ColorGradient.h"
 #include "ControlPoint.h"
 
