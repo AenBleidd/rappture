@@ -30,7 +30,7 @@ option add *HeightmapViewer.font \
 # must use this name -- plugs into Rappture::resources::load
 proc HeightmapViewer_init_resources {} {
     Rappture::resources::register \
-        nanovis_server Rappture::VisViewer::SetNanovisServerList
+        nanovis_server Rappture::HeightmapViewer::SetServerList
 }
 
 itcl::class Rappture::HeightmapViewer {
@@ -49,6 +49,9 @@ itcl::class Rappture::HeightmapViewer {
         # defined below 
     }
 
+    public proc SetServerList { namelist } {
+	Rappture::VisViewer::SetServerList "nanovis" $namelist
+    }
     public method isconnected {}
     public method add {dataobj {settings ""}}
     public method get {args}
@@ -208,25 +211,40 @@ itcl::body Rappture::HeightmapViewer::constructor {hostlist args} {
     
     set ::Rappture::HeightmapViewer::_settings($this-grid) 1
     ::checkbutton $inner.f.grid \
-        -text "Show Grid" \
+        -text "Grid" \
         -variable ::Rappture::HeightmapViewer::_settings($this-grid) \
         -command [itcl::code $this _fixSettings grid]
     grid $inner.f.grid -row 0 -column 0 -sticky w
 
     set ::Rappture::HeightmapViewer::_settings($this-axes) 1
     ::checkbutton $inner.f.axes \
-        -text "Show Axes" \
+        -text "Axes" \
         -variable ::Rappture::HeightmapViewer::_settings($this-axes) \
         -command [itcl::code $this _fixSettings axes]
     grid $inner.f.axes -row 1 -column 0 -sticky w
 
     set ::Rappture::HeightmapViewer::_settings($this-contourlines) 1
     ::checkbutton $inner.f.contour \
-        -text "Show Contour Lines" \
+        -text "Contour Lines" \
         -variable ::Rappture::HeightmapViewer::_settings($this-contourlines) \
         -command [itcl::code $this _fixSettings contourlines]
     grid $inner.f.contour -row 2 -column 0 -sticky w
 
+    set ::Rappture::HeightmapViewer::_settings($this-wireframe) "fill"
+    ::checkbutton $inner.f.wireframe \
+        -text "Wireframe" \
+	-onvalue "wireframe" -offvalue "fill" \
+        -variable ::Rappture::HeightmapViewer::_settings($this-wireframe) \
+        -command [itcl::code $this _fixSettings wireframe]
+    grid $inner.f.wireframe -row 3 -column 0 -sticky w
+
+    set ::Rappture::HeightmapViewer::_settings($this-shading) "smooth"
+    ::checkbutton $inner.f.shading \
+        -text "Flat Shading" \
+	-onvalue "flat" -offvalue "smooth" \
+        -variable ::Rappture::HeightmapViewer::_settings($this-shading) \
+        -command [itcl::code $this _fixSettings shading]
+    grid $inner.f.shading -row 4 -column 0 -sticky w
 
     # Legend
     set _image(legend) [image create photo]
@@ -715,6 +733,8 @@ itcl::body Rappture::HeightmapViewer::_rebuild {} {
      if {"" == $itk_option(-plotoutline)} {
          _send "grid linecolor [Color2RGB $itk_option(-plotoutline)]"
      }
+    _fixSettings shading
+    _fixSettings wireframe
     _fixSettings grid
     _fixSettings axes
     _fixSettings contourlines
@@ -878,6 +898,16 @@ itcl::body Rappture::HeightmapViewer::_fixSettings { what {value ""} } {
         "axes" {
             if { [isconnected] } {
                 _send "axis visible $_settings($this-axes)"
+            }
+        }
+        "shading" {
+            if { [isconnected] } {
+                _send "heightmap shading $_settings($this-shading)"
+            }
+        }
+        "wireframe" {
+            if { [isconnected] } {
+                _send "heightmap polygon $_settings($this-wireframe)"
             }
         }
         "contourlines" {
