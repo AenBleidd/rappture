@@ -79,13 +79,12 @@ NiceNum(
     return nice * EXP10(expt);
 }
 
-Ticks::Ticks(TickSweep &sweep)
+void 
+Ticks::SetTicks(void)
 {
     _nTicks = 0;
-    fprintf(stderr, "Ticks nsteps=%d, step=%g, initial=%g\n",
-	    sweep.NumSteps(), sweep.Step(), sweep.Initial());
-    _ticks = new float[sweep.NumSteps()];
-    if (sweep.Step() == 0.0) { 
+    _ticks = new float[_nSteps];
+    if (_step == 0.0) { 
 	/* Hack: A zero step indicates to use log values. */
 	unsigned int i;
 	/* Precomputed log10 values [1..10] */
@@ -101,51 +100,33 @@ Ticks::Ticks(TickSweep &sweep)
 	    0.954242509439325, 
 	    1.0
 	};
-	for (i = 0; i < sweep.NumSteps(); i++) {
+	for (i = 0; i < _nSteps; i++) {
 	    _ticks[i] = logTable[i];
 	}
     } else {
 	double value;
 	unsigned int i;
     
-	value = sweep.Initial(); /* Start from smallest axis tick */
-	for (i = 0; i < sweep.NumSteps(); i++) {
-	    value = sweep.Initial() + (sweep.Step() * i);
-	    _ticks[i] = UROUND(value, sweep.Step());
-	    fprintf(stderr, "ticks[%d] = %g (value=%g)\n", 
-		    i, _ticks[i], value);
+	value = _initial;	/* Start from smallest axis tick */
+	for (i = 0; i < _nSteps; i++) {
+	    value = _initial + (_step * i);
+	    _ticks[i] = UROUND(value, _step);
 	}
     }
-    _nTicks = sweep.NumSteps();
+    _nTicks = _nSteps;
 }
 
-Axis::Axis(const char *name)
+Axis::Axis(const char *name) :
+    _major(5), _minor(2) 
 {
     _name = NULL;
     SetName(name);
-    _flags = AUTOSCALE_MAJOR | AUTOSCALE_MINOR;
     _title = NULL;
     _valueMin = DBL_MAX, _valueMax = -DBL_MAX;
     _min = DBL_MAX, _max = -DBL_MAX;
     _reqMin = _reqMax = _NaN;
     _range = 0.0, _scale = 0.0;
     _reqStep = 0.0;
-    _reqNumMinorTicks = 2;
-    _reqNumMajorTicks = 5;
-    _reqStep = 0.0;
-    _t1Ptr = _t2Ptr = NULL;
-}
-
-Axis::~Axis(void)
-{
-    if (_t1Ptr != NULL) {
-	delete _t1Ptr;
-    }
-    if (_t2Ptr != NULL) {
-	delete _t2Ptr;
-    }
-    _minorTicks.Reset();
-    _majorTicks.Reset();
 }
 
 /*
@@ -330,7 +311,7 @@ Axis::LogScale()
 	    /* There are too many decades to display a major tick at every
 	     * decade.  Instead, treat the axis as a linear scale.  */
 	    range = NiceNum(range, 0);
-	    majorStep = NiceNum(range / _reqNumMajorTicks, 1);
+	    majorStep = NiceNum(range / _major.reqNumTicks, 1);
 	    tickMin = UFLOOR(tickMin, majorStep);
 	    tickMax = UCEIL(tickMax, majorStep);
 	    nMajor = (int)((tickMax - tickMin) / majorStep) + 1;
@@ -363,8 +344,8 @@ Axis::LogScale()
 	    tickMax = max;
 	}
     }
-    _majorSweep.SetValues(majorStep, nMajor, floor(tickMin));
-    _minorSweep.SetValues(minorStep, nMinor, minorStep);
+    _major.SetValues(majorStep, nMajor, floor(tickMin));
+    _minor.SetValues(minorStep, nMinor, minorStep);
     _min = tickMin;
     _max = tickMax;
     _range = _max - _min;
@@ -459,7 +440,7 @@ Axis::LinearScale()
 	    }
 	} else {
 	    range = NiceNum(range, 0);
-	    step = NiceNum(range / _reqNumMajorTicks, 1);
+	    step = NiceNum(range / _major.reqNumTicks, 1);
 	}
 	
 	/* Find the outer tick values. Add 0.0 to prevent getting -0.0. */
@@ -470,7 +451,7 @@ Axis::LinearScale()
     } 
     fprintf(stderr, "LinearScale %s (nTicks=%d, step=%g)\n", _name,
 	    nTicks, step);
-    _majorSweep.SetValues(tickMin, step, nTicks);
+    _major.SetValues(tickMin, step, nTicks);
 
     /*
      * The limits of the axis are either the range of the data ("tight") or at
@@ -487,8 +468,8 @@ Axis::LinearScale()
 
     /* Now calculate the minor tick step and number. */
 
-    if ((_reqNumMinorTicks > 0) && (_flags & AUTOSCALE_MAJOR)) {
-	nTicks = _reqNumMinorTicks - 1;
+    if ((_minor.reqNumTicks > 0) && (_minor.IsAutoScale())) {
+	nTicks = _minor.reqNumTicks - 1;
 	step = 1.0 / (nTicks + 1);
     } else {
 	nTicks = 0;		/* No minor ticks. */
@@ -496,28 +477,11 @@ Axis::LinearScale()
 				 * 0.0. It makes the GenerateTicks routine
 				 * create minor log-scale tick marks.  */
     }
-    _minorSweep.SetValues(step, step, nTicks);
+    _minor.SetValues(step, step, nTicks);
     fprintf(stderr, "leaving LinearScale %s (min=%g, max=%g)\n", 
 	    _name, _min, _max);
 }
 
-
-void
-Axis::SweepTicks()
-{
-    if (_flags & AUTOSCALE_MAJOR) {
-	if (_t1Ptr != NULL) {
-	    delete _t1Ptr;
-	}
-	_t1Ptr = new Ticks(_majorSweep);
-    }
-    if (_flags & AUTOSCALE_MINOR) {
-	if (_t2Ptr != NULL) {
-	    delete _t2Ptr;
-	}
-	_t2Ptr = new Ticks(_minorSweep);
-    }
-}
 
 void
 Axis::SetScale(double min, double max)
@@ -528,7 +492,8 @@ Axis::SetScale(double min, double max)
     } else {
 	LinearScale();
     }
-    SweepTicks();
+    _major.SweepTicks();
+    _minor.SweepTicks();
     MakeTicks();
 }
 
@@ -536,57 +501,30 @@ Axis::SetScale(double min, double max)
 void
 Axis::MakeTicks(void)
 {
+    _major.Reset();
+    _minor.Reset();
     int i;
-
-    _majorTicks.Reset();
-    _minorTicks.Reset();
-    for (i = 0; i < _t1Ptr->NumTicks(); i++) {
-	union {
-	    float x;
-	    void *clientData;
-	} value;
+    for (i = 0; i < _major.NumTicks(); i++) {
 	double t1, t2;
 	int j;
 	
-	t1 = _t1Ptr->GetTick(i);
+	t1 = _major.GetTick(i);
 	/* Minor ticks */
-	for (j = 0; j < _t2Ptr->NumTicks(); j++) {
-	    t2 = t1 + (_majorSweep.Step() * _t2Ptr->GetTick(j));
+	for (j = 0; j < _minor.NumTicks(); j++) {
+	    t2 = t1 + (_major.Step() * _minor.GetTick(j));
 	    if (!InRange(t2)) {
 		continue;
 	    }
 	    if (t1 == t2) {
-		continue;		// Don't add duplicate minor ticks.
+		continue;	// Don't add duplicate minor ticks.
 	    }
-	    value.x = t2;
-	    _minorTicks.Append(value.clientData);
+	    _minor.Append(t2);
 	}
 	if (!InRange(t1)) {
 	    continue;
 	}
-	value.x = t1;
-	_majorTicks.Append(value.clientData);
+	_major.Append(t1);
     }
-}
-
-bool
-Axis::FirstMajor(TickIter &iter)
-{
-    ChainLink *linkPtr;
-
-    linkPtr = _majorTicks.FirstLink();
-    iter.SetStartingLink(linkPtr);
-    return (linkPtr != NULL);
-}
-
-bool
-Axis::FirstMinor(TickIter &iter)
-{
-    ChainLink *linkPtr;
-
-    linkPtr = _minorTicks.FirstLink();
-    iter.SetStartingLink(linkPtr);
-    return (linkPtr != NULL);
 }
 
 double

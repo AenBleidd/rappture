@@ -3,6 +3,8 @@
 
 #include "Chain.h"
 
+class Axis;
+
 class NaN {
 private:
     double _x;
@@ -55,36 +57,6 @@ public:
 /*
  * ----------------------------------------------------------------------
  *
- * TickSweep --
- *
- * 	Structure containing information where step intervalthe ticks (major or
- *	minor) will be displayed on the graph.
- *
- * ----------------------------------------------------------------------
- */
-class TickSweep {
-private:
-    double _initial;		/* Initial value */
-    double _step;		/* Size of interval */
-    unsigned int _nSteps;	/* Number of intervals. */
-public:
-    void SetValues(double initial, double step, unsigned int nSteps) {
-	_initial = initial, _step = step, _nSteps = nSteps;
-    }
-    double Initial(void) {
-	return _initial;
-    }
-    double Step(void) {
-	return _step;
-    }
-    unsigned int NumSteps(void) {
-	return _nSteps;
-    }
-};
-
-/*
- * ----------------------------------------------------------------------
- *
  * Ticks --
  *
  * 	Structure containing information where the ticks (major or
@@ -93,18 +65,64 @@ public:
  * ----------------------------------------------------------------------
  */
 class Ticks {
-private:
+    bool _autoscale;		/* Indicates if the ticks are autoscaled. */
+    /* 
+     * Tick locations may be generated in two fashions
+     */
+    /*	 1. an array of values provided by the user. */
     int _nTicks;		/* # of ticks on axis */
-    float *_ticks;		/* Array of tick values (malloc-ed). */
+    float *_ticks;		/* Array of tick values (alloc-ed).  Right now
+				 * it's a float so we don't have to allocate
+				 * store for the list of ticks generated.  In
+				 * the future when we store both the tick
+				 * label and the value in the list, we may
+				 * extend this to a double.
+				 */
+    /*
+     *   2. a defined sweep of initial, step, and nsteps.  This in turn
+     *      will generate the an array of values.
+     */
+    double _initial;		/* Initial value */
+    double _step;		/* Size of interval */
+    unsigned int _nSteps;	/* Number of intervals. */
+
+    /* 
+     *This finally generates a list of ticks values that exclude duplicate
+     * minor ticks (that are always represented by major ticks).  In the
+     * future, the string representing the tick label will be stored in 
+     * the chain.
+     */
+    Chain _chain;		
+
+    void SetTicks(void);	/* Routine used internally to create the array
+				 * of ticks as defined by a given sweep. */
+    void *GetClientData(float x) {
+	union {
+	    float x;
+	    void *clientData;
+	} value;
+	value.x = x;
+	return value.clientData;
+    }
+
 public:
-    Ticks(TickSweep &sweep);
-    Ticks(float *ticks, int nTicks) {
-	_ticks = ticks, _nTicks = nTicks;
+    int reqNumTicks;		/* Default number of ticks to be displayed. */
+
+    Ticks(int numTicks) {
+	reqNumTicks = numTicks;
+	_ticks = NULL;
+	_nTicks = 0;
+	_autoscale = true;
     }
     ~Ticks(void) {
 	if (_ticks != NULL) {
 	    delete [] _ticks;
 	}
+	_chain.Reset();
+	
+    }
+    void SetTicks(float *ticks, int nTicks) {
+	_ticks = ticks, _nTicks = nTicks;
     }
     int NumTicks(void) {
 	return _nTicks;
@@ -115,7 +133,38 @@ public:
 	}
 	return _ticks[i];
     }
+    void Reset(void) {
+	_chain.Reset();
+    }
+    float Step() {
+	return _step;
+    }
+    void Append (float x) {
+	_chain.Append(GetClientData(x));
+    }    
+    void SetValues(double initial, double step, unsigned int nSteps) {
+	_initial = initial, _step = step, _nSteps = nSteps;
+    }
+    bool IsAutoScale(void) {
+	return _autoscale;
+    }
+    void SweepTicks(void) {
+	if (_flags & AUTOSCALE) {
+	    if (_ticks != NULL) {
+		delete [] _ticks;
+	    }
+	    SetTicks();
+	}
+    }
+    bool FirstTick(TickIter &iter) {
+	ChainLink *linkPtr;
+
+	linkPtr = _chain.FirstLink();
+	iter.SetStartingLink(linkPtr);
+	return (linkPtr != NULL);
+    }
 };
+
 
 /*
  * ----------------------------------------------------------------------
@@ -130,12 +179,11 @@ public:
 class Axis {
     /* Flags associated with the axis. */
     enum AxisFlags {
-	AUTOSCALE_MAJOR=(1<<0),
-	AUTOSCALE_MINOR=(1<<1),
-	DESCENDING=(1<<2),
-	LOGSCALE=(1<<3),
-	TIGHT_MIN=(1<<4),
-	TIGHT_MAX=(1<<5)
+	AUTOSCALE=(1<<0),
+	DESCENDING=(1<<1),
+	LOGSCALE=(1<<2),
+	TIGHT_MIN=(1<<3),
+	TIGHT_MAX=(1<<4)
     };
 
     char *_name;		/* Name of the axis. Malloc-ed */
@@ -163,29 +211,13 @@ class Axis {
     double _range;		/* Range of values on axis (_max - _min) */
     double _scale;		/* Scale factor for axis (1.0/_range) */
 
-    double _reqStep;		/* If > 0.0, overrides the computed major 
-				 * tick interval.  Otherwise a stepsize 
-				 * is automatically calculated, based 
-				 * upon the range of elements mapped to the 
-				 * axis. The default value is 0.0. */
+    double _reqStep;		/* If > 0.0, overrides the computed major tick
+				 * interval.  Otherwise a stepsize is
+				 * automatically calculated, based upon the
+				 * range of elements mapped to the axis. The
+				 * default value is 0.0. */
 
-    Ticks *_t1Ptr;		/* Array of major tick positions. May be
-				 * set by the user or generated from the 
-				 * major sweep below. */
-
-    Ticks *_t2Ptr;		/* Array of minor tick positions. May be
-				 * set by the user or generated from the
-				 * minor sweep below. */
-
-    TickSweep _minorSweep, _majorSweep;
-    
-    Chain _minorTicks, _majorTicks;
-
-    int _reqNumMajorTicks;	/* Default number of ticks to be displayed. */
-    int _reqNumMinorTicks;	/* If non-zero, represents the
-				 * requested the number of minor ticks
-				 * to be uniformally displayed along
-				 * each major tick. */
+    Ticks _major, _minor;
 
     void LogScale(void);
     void LinearScale(void);
@@ -193,11 +225,10 @@ class Axis {
     void MakeTicks(void);
 
 public:
+    Axis(const char *name);
+
     void ResetRange(void);
     void FixRange(double min, double max);
-    Axis(const char *name);
-    ~Axis(void);
-    void SweepTicks(void);
     void SetScale(double min, double max);
     double Scale(void) {
 	return _scale;
@@ -205,8 +236,12 @@ public:
     double Range(void) {
 	return _range;
     }
-    bool FirstMinor(TickIter &iter);
-    bool FirstMajor(TickIter &iter);
+    bool FirstMajor(TickIter &iter) {
+	return _major.FirstTick(iter);
+    }
+    bool FirstMinor(TickIter &iter) {
+	return _minor.FirstTick(iter);
+    }
     void GetDataLimits(double min, double max);
     double Map(double x);
     double InvMap(double x);
@@ -261,13 +296,11 @@ public:
 	_reqStep = value;	// Setting to 0.0 resets step to "auto"
     }
     void SetNumMinorTicksOption(int n) {
-	_reqNumMinorTicks = n;
+	_minor.reqNumTicks = n;
     }
     void SetNumMajorTicksOption(int n) {
-	_reqNumMajorTicks = n;
+	_major.reqNumTicks = n;
     }
 };
-
-
 
 #endif /*_AXIS_H*/
