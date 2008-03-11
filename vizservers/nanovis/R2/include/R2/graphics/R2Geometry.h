@@ -13,7 +13,7 @@ public :
         LINE_STRIP = GL_LINE_STRIP,
         TRIANGLES = GL_TRIANGLES,
         TRIANGLE_STRIP = GL_TRIANGLE_STRIP,
-        QUADS = GL_QUADS,
+        QUADS = GL_QUADS
     };
 
 private :

@@ -41,20 +41,20 @@ enum R2DATATYPE {
 
 enum R2TEXFILTER {
     R2_NEAREST = GL_NEAREST,        /*< GL_NEAREST */
-    R2_LINEAR = GL_LINEAR,          /*< GL_LINEAR */
+    R2_LINEAR = GL_LINEAR           /*< GL_LINEAR */
 };
 
 enum R2TEXTARGET {
     R2_TEXTURE_1D = GL_TEXTURE_1D,  /*< R2_TEXTURE_1D */
     R2_TEXTURE_2D = GL_TEXTURE_2D,  /*< GL_TEXTURE_2D */
     R2_TEXTURE_RECTANGLE = GL_TEXTURE_RECTANGLE_NV, /*< GL_TEXTURE_RECTANGLE_NV */
-    R2_TEXTURE_3D = GL_TEXTURE_3D,  /*< GL_TEXTURE_3D */
+    R2_TEXTURE_3D = GL_TEXTURE_3D  /*< GL_TEXTURE_3D */
 
 };
 enum R2TEXWRAP {
     R2_CLAMP = GL_CLAMP,                    /*< GL_CLAMP */
     R2_CLAMP_TO_EDGE = GL_CLAMP_TO_EDGE,    /*< GL_CLAMP_TO_EDGE */
-    R2_REPEAT = GL_REPEAT,                  /*< GL_REPEAT */
+    R2_REPEAT = GL_REPEAT                   /*< GL_REPEAT */
 };
 
 #define R2Assert(s) 

@@ -62,23 +62,25 @@ int getInterpPos(  float* numPts, float *origin,
 }
 
 // This is legacy code that can be removed during code cleanup
-int getInterpData(  int rank, float* numPts, float* max, float* dxpos, Object* dxobj,
-                    double* dataMin, double* dataMax, float** result)
+int 
+getInterpData(int rank, float* numPts, float* max, float* dxpos, Object* dxobj,
+	      double* dataMin, double* dataMax, float** result)
 {
     int pts = int(numPts[0]*numPts[1]*numPts[2]);
     int interppts = pts;
-    int arrSize = interppts*rank;
-    float interppos[arrSize];
     Interpolator interpolator;
 
+#ifdef test
+    int arrSize = interppts*rank;
+    float interppos[arrSize];
 //     commented this out to see what happens when we use the dxpos array
 //     which holds the positions dx generated for interpolation.
 //
-    // generate the positions we want to interpolate on
+//    generate the positions we want to interpolate on
 //    getInterpPos(numPts,dxpos,max,rank,interppos);
 //    fprintf(stdout, "after getInterpPos\n");
 //    fflush(stdout);
-
+#endif
     // build the interpolator and interpolate
     interpolator = DXNewInterpolator(*dxobj,INTERP_INIT_IMMEDIATE,-1.0);
     fprintf(stdout, "after DXNewInterpolator=%x\n", (unsigned int)interpolator);
@@ -92,9 +94,11 @@ int getInterpData(  int rank, float* numPts, float* max, float* dxpos, Object* d
     for (int lcv = 0, pt = 0; lcv < pts; lcv+=3,pt+=9) {
         fprintf(stdout,
             "(%f,%f,%f)|->% 8e\n(%f,%f,%f)|->% 8e\n(%f,%f,%f)|->% 8e\n",
+#ifdef test
 //            interppos[pt],interppos[pt+1],interppos[pt+2], (*result)[lcv],
 //            interppos[pt+3],interppos[pt+4],interppos[pt+5],(*result)[lcv+1],
 //            interppos[pt+6],interppos[pt+7],interppos[pt+8],(*result)[lcv+2]);
+#endif
             dxpos[pt],dxpos[pt+1],dxpos[pt+2], (*result)[lcv],
             dxpos[pt+3],dxpos[pt+4],dxpos[pt+5],(*result)[lcv+1],
             dxpos[pt+6],dxpos[pt+7],dxpos[pt+8],(*result)[lcv+2]);
