@@ -8,19 +8,19 @@ namespace graphics {
 class RenderContext {
 public :
     enum ShadingModel {
-        FLAT = GL_FLAT ,   //!< Flat Shading
-        SMOOTH = GL_SMOOTH, //!< Smooth shading (Goraud shading model)
+        FLAT = GL_FLAT ,	//!< Flat Shading
+        SMOOTH = GL_SMOOTH	//!< Smooth shading (Goraud shading model)
     };
 
     enum PolygonMode {
         LINE = GL_LINE,
-        FILL = GL_FILL,
+        FILL = GL_FILL
     };
 
     enum CullMode {
-        NO_CULL,    //!< No culling
-        BACK= GL_BACK,  //!< Back face culling
-        FRONT= GL_FRONT, //!< Front face culling
+        NO_CULL,		//!< No culling
+        BACK= GL_BACK,		//!< Back face culling
+        FRONT= GL_FRONT		//!< Front face culling
     };
 
 private :
@@ -84,6 +84,6 @@ inline RenderContext::PolygonMode RenderContext::getPolygonMode() const
     return _fillMode;
 }
 
-};
+}
 
 #endif //

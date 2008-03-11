@@ -153,7 +153,7 @@ inline void PCASplit::setMaxLevel(int maxLevel)
     _maxLevel = maxLevel;
 }
 
-};
+}
 
 #endif 
 

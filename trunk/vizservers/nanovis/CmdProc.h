@@ -48,9 +48,9 @@ typedef enum {
 extern Tcl_ObjCmdProc *GetOpFromObj(Tcl_Interp *interp, int nSpecs, 
 	CmdSpec *specs, int operPos, int objc, Tcl_Obj *const *objv, int flags);
 
-#define NumCmdSpecs(s) (sizeof(s) / sizeof(Rappture::CmdSpec));
+#define NumCmdSpecs(s) (sizeof(s) / sizeof(Rappture::CmdSpec))
 
-};
+}
 
 
 #endif /* CMDSPEC_H */

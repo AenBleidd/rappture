@@ -85,8 +85,6 @@
 // EXTERN DECLARATIONS
 // in Nv.cpp
 
-extern Grid* NanoVis::grid;
-
 // in nanovis.cpp
 extern vector<PointSet*> g_pointSet;
 

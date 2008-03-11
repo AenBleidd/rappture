@@ -11,8 +11,8 @@
 #include "AxisRange.h"
 
 namespace graphics {
-class RenderContext;
-};
+    class RenderContext;
+}
 
 /**
  *@class HeightMap

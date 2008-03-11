@@ -30,7 +30,6 @@
  * A ChainLink is the container structure for the Chain.
  */
 
-class Chain;
 
 class ChainLink {
     friend class Chain;
@@ -45,7 +44,7 @@ public:
     }
     ChainLink(void *clientData) {
 	_clientData = clientData;
-	_next = _prev = NULL;
+ 	_next = _prev = NULL;
     }
     void *GetValue(void) {
 	return _clientData;

@@ -5,12 +5,12 @@ class Image {
 public :
     enum DataType {
         IMG_UNSIGNED_BYTE,
-        IMG_FLOAT,
+        IMG_FLOAT
     };
 
     enum ImageFormat {
         IMG_RGB = 3,
-        IMG_RGBA = 4,
+        IMG_RGBA = 4
     };
 
 private :

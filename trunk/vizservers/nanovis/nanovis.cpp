@@ -77,6 +77,7 @@ enum AxisDirections {
 };
 
 // STATIC MEMBER DATA
+Grid *NanoVis::grid = NULL;
 int NanoVis::updir = Y_POS;
 NvCamera* NanoVis::cam = NULL;
 bool NanoVis::axis_on = true;
@@ -100,6 +101,7 @@ bool NanoVis::lic_on = false;
 bool NanoVis::particle_on = false;
 bool NanoVis::vector_on = false;
 bool NanoVis::config_pending = false;
+
 
 // pointers to volumes, currently handle up to 10 volumes
 /*FIXME: Is the above comment true? Is there a 10 volume limit */

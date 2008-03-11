@@ -1,8 +1,4 @@
 
-#
-# FIXME: I can see at least 3 possible candidates for separate libraries.
-#	  R2, mat, and Image.  (First 2 are done.)
-#
 SHELL = /bin/sh
 
 #.SUFFIX:
@@ -19,13 +15,12 @@ includedir      = @includedir@
 mandir          = @mandir@
 
 INSTALL		= @INSTALL@
+#Why are these files installed owner writable?
 INSTALL_PROGRAM	= ${INSTALL} -m 755
 INSTALL_DATA	= ${INSTALL} -m 644
 INSTALL_SCRIPT	= ${INSTALL} -m 644
 
-CC = @CC@
-
-AUXSRC = config.h define.h global.h
+AUXSRC		= config.h define.h global.h
 
 DX_DIR		= /usr/lib/dx
 DX_INC_SPEC	= -I$(DX_DIR)/include
@@ -43,121 +38,126 @@ MAT_LIB_SPEC	= $(MAT_LIB)
 R2_DIR		= ./R2
 R2_INC_SPEC	= -I$(srcdir)/$(R2_DIR)/include
 R2_LIB		= $(R2_DIR)/src/libR2.a
-R2_LIB_SPEC	= $(R2_LIB)
+R2_LIB_SPEC     = $(R2_LIB)
+
 RP_DIR		=  @RP_DIR@
 RP_INC_SPEC	= -I$(RP_DIR)/include -I$(RP_DIR)/include/rappture2
 RP_LIB_SPEC	= -L$(RP_DIR)/lib -lrappture2 -lb64 -lz
 
-LIBS = \
-	$(RP_LIB_SPEC) \
-	-ltcl8.4 \
-	$(GL_LIB_SPEC) \
-	$(DX_LIB_SPEC) \
-	$(IMG_LIB_SPEC) \
-	$(R2_LIB_SPEC) \
-	$(MAT_LIB_SPEC)
+TF_DIR		= ./transfer-function
+TF_INC_SPEC	= -I$(TF_DIR) 
+TF_LIB		= $(TF_DIR)/libTransferFunction.a
+TF_LIB_SPEC	= $(TF_LIB)
 
-INCLUDES = \
-	-I. \
-	$(RP_INC_SPEC) \
-	$(GL_INC_SPEC) \
-	$(R2_INC_SPEC) \
-	$(IMG_INC_SPEC) \
-	$(MAT_INC_SPEC)
+LIBS		= \
+		$(RP_LIB_SPEC) \
+		$(DX_LIB_SPEC) \
+		$(IMG_LIB_SPEC) \
+		$(R2_LIB_SPEC) \
+		$(TF_LIB_SPEC) \
+		$(MAT_LIB_SPEC) \
+		-ltcl8.4 \
+		$(GL_LIB_SPEC) 
 
-CFLAGS = @CFLAGS@
-EXTRA_CFLAGS = -Wall 
-DEFINES = @DEFINES@
-CC_SWITCHES = $(CFLAGS) $(EXTRA_CFLAGS) $(INCLUDES)
+INCLUDES	= \
+		-I. \
+		$(RP_INC_SPEC) \
+		$(GL_INC_SPEC) \
+		$(R2_INC_SPEC) \
+		$(IMG_INC_SPEC) \
+		$(MAT_INC_SPEC)
 
-OBJS  = \
-	BucketSort.o \
-	NvCamera.o \
-	CmdProc.o \
-	Axis.o \
-	Chain.o \
-	Color.o \
-	ColorGradient.o \
-	ColorGradientGLUTWindow.o \
-	ColorPaletteWindow.o\
-	Command.o \
-	ContourLineFilter.o \
-	ControlPoint.o \
-	ConvexPolygon.o \
-	Event.o \
-	GradientFilter.o \
-	Grid.o \
-	HeightMap.o \
-	MainWindow.o \
-	Mat4x4.o \
-	Nv.o \
-	NvColorTableRenderer.o \
-	NvColorTableShader.o \
-	NvDefaultTFData.o \
-	NvEventLog.o \
-	NvLIC.o \
-	NvLoadFile.o \
-	NvParticleAdvectionShader.o \
-	NvParticleRenderer.o \
-	NvRegularVolumeShader.o \
-	NvShader.o \
-	NvStdVertexShader.o \
-	NvVolumeShader.o \
-	NvZincBlendeReconstructor.o \
-	NvZincBlendeVolumeShader.o \
-	PCASplit.o \
-	PerfQuery.o \
-	Plane.o \
-	PlaneRenderer.o \
-	PointSet.o \
-	PointSetRenderer.o \
-	PointShader.o \
-	RenderContext.o \
-	RenderVertexArray.o \
-	Renderable.o \
-	RpDX.o \
-	ScreenSnapper.o \
-	Socket.o \
-	Sphere.o \
-	Texture1D.o \
-	Texture2D.o \
-	Texture3D.o \
-	Trace.o \
-	TransferFunction.o \
-	TransferFunctionGLUTWindow.o \
-	Util.o \
-	Vector3.o \
-	Vector4.o \
-	Volume.o \
-	VolumeInterpolator.o \
-	VolumeRenderer.o \
-	ZincBlendeVolume.o \
-	dxReader.o \
-	dxReader2.o \
-	dxReaderCommon.o \
-	nanovis.o
+CC		= @CC@
+CFLAGS		= @CFLAGS@
+EXTRA_CFLAGS	= -Wall 
+DEFINES		= @DEFINES@
+CC_SWITCHES	= $(CFLAGS) $(EXTRA_CFLAGS) $(INCLUDES)
 
+OBJS		= \
+		Axis.o \
+		BucketSort.o \
+		Chain.o \
+		CmdProc.o \
+		Color.o \
+		Command.o \
+		ContourLineFilter.o \
+		ConvexPolygon.o \
+		Event.o \
+		GradientFilter.o \
+		Grid.o \
+		HeightMap.o \
+		Mat4x4.o \
+		Nv.o \
+		NvCamera.o \
+		NvColorTableRenderer.o \
+		NvColorTableShader.o \
+		NvDefaultTFData.o \
+		NvEventLog.o \
+		NvLIC.o \
+		NvLoadFile.o \
+		NvParticleAdvectionShader.o \
+		NvParticleRenderer.o \
+		NvRegularVolumeShader.o \
+		NvShader.o \
+		NvStdVertexShader.o \
+		NvVolumeShader.o \
+		NvZincBlendeReconstructor.o \
+		NvZincBlendeVolumeShader.o \
+		PCASplit.o \
+		PerfQuery.o \
+		Plane.o \
+		PlaneRenderer.o \
+		PointSet.o \
+		PointSetRenderer.o \
+		PointShader.o \
+		RenderContext.o \
+		RenderVertexArray.o \
+		Renderable.o \
+		RpDX.o \
+		ScreenSnapper.o \
+		Sphere.o \
+		Texture1D.o \
+		Texture2D.o \
+		Texture3D.o \
+		Trace.o \
+		TransferFunction.o \
+		Util.o \
+		Vector3.o \
+		Vector4.o \
+		Volume.o \
+		VolumeInterpolator.o \
+		VolumeRenderer.o \
+		ZincBlendeVolume.o \
+		dxReader.o \
+		dxReader2.o \
+		dxReaderCommon.o \
+		nanovis.o
+
+resources	= \
+		$(srcdir)/resources/Font.bmp \
+		$(srcdir)/resources/particle2.bmp \
+		$(srcdir)/resources/verdana.fnt \
+		$(srcdir)/resources/verdana_bold.fnt
+
+shaders		= \
+		$(srcdir)/shaders/common.cg \
+		$(srcdir)/shaders/copy_texcoord.cg \
+		$(srcdir)/shaders/heightcolor.cg \
+		$(srcdir)/shaders/one_plane.cg \
+		$(srcdir)/shaders/one_volume.cg \
+		$(srcdir)/shaders/passthru.cg \
+		$(srcdir)/shaders/pointsvp.cg \
+		$(srcdir)/shaders/render_vel.cg \
+		$(srcdir)/shaders/update_pos.cg \
+		$(srcdir)/shaders/update_pos_vel.cg \
+		$(srcdir)/shaders/update_vel.cg \
+		$(srcdir)/shaders/vertex_std.cg \
+		$(srcdir)/shaders/volqd_volume.cg \
+		$(srcdir)/shaders/zincblende_volume.cg 
 
 all: nanovis
 
-install: nanovis
-	$(INSTALL_PROGRAM) nanovis $(bindir)/nanovis
-	$(INSTALL_PROGRAM) @RP_DIR@/bin/voronoi $(bindir)/voronoi
-	$(INSTALL_PROGRAM) -d $(libdir)/resources $(libdir)/shaders
-	$(INSTALL_DATA) resources/* $(libdir)/resources
-	$(INSTALL_DATA) shaders/* $(libdir)/shaders
-	$(INSTALL_DATA) @RP_DIR@/lib/librappture2.so $(libdir)/librappture2.so
-	$(INSTALL_DATA) @RP_DIR@/lib/libz.so $(libdir)/libz.so
-	$(INSTALL_DATA) @RP_DIR@/lib/libb64.so $(libdir)/libb64.so
-
-clean:
-	make -C $(MAT_DIR) clean
-	make -C $(R2_DIR)/src clean
-	make -C $(IMG_DIR) clean
-	rm -f nanovis client $(OBJS)
-
-distclean: clean
-	rm -f Makefile *~
+install: install-nanovis install-resources install-shaders
 
 $(MAT_LIB):
 	make -C $(MAT_DIR) all
@@ -168,41 +168,64 @@ $(R2_LIB):
 $(IMG_LIB): 
 	make -C $(IMG_DIR) all
 
-nanovis: $(MAT_LIB) $(R2_LIB) $(IMG_LIB) $(OBJS) 
-	$(CC) $(CC_SWITCHES) -o $@ $^ $(LIBS)
+$(TF_LIB): 
+	make -C $(TF_DIR) all
 
-client: Socket.o ClientSocket.o RenderClient.o Event.o
+nanovis: $(MAT_LIB) $(R2_LIB) $(IMG_LIB) $(TF_LIB) $(OBJS) 
 	$(CC) $(CC_SWITCHES) -o $@ $^ $(LIBS)
 
 .cpp.o:
 	$(CC) $(CC_SWITCHES) -o $@ -c $<
-
-Nv.o: Nv.cpp NvShader.cpp
-	$(CC) $(CC_SWITCHES) -c $^
 
 dxReader2.o: $(srcdir)/dxReader2.cpp
 	$(CC) -c $(CC_SWITCHES) $(DX_INC_SPEC) $?
 RpDX.o: $(srcdir)/RpDX.cpp
 	$(CC) -c $(CC_SWITCHES) $(DX_INC_SPEC) $?
 
-ColorGradient.o: transfer-function/ColorGradient.cpp
-	$(CC) $(CC_SWITCHES) -o $@ -c $<
-ColorPaletteWindow.o: transfer-function/ColorPaletteWindow.cpp
-	$(CC) $(CC_SWITCHES) -o $@ -c $<
-ColorGradientGLUTWindow.o: transfer-function/ColorGradientGLUTWindow.cpp
-	$(CC) $(CC_SWITCHES) -o $@ -c $<
-ControlPoint.o: transfer-function/ControlPoint.cpp
-	$(CC) $(CC_SWITCHES) -o $@ -c $<
-TransferFunctionGLUTWindow.o: transfer-function/TransferFunctionGLUTWindow.cpp
-	$(CC) $(CC_SWITCHES) -o $@ -c $<
-MainWindow.o: transfer-function/MainWindow.cpp
-	$(CC) $(CC_SWITCHES) -o $@ -c $<
+client: Socket.o ClientSocket.o RenderClient.o Event.o
+	$(CC) $(CC_SWITCHES) -o $@ $^ $(LIBS)
+
 Socket.o: socket/Socket.cpp socket/Socket.h
 	$(CC) $(CC_SWITCHES) -o $@ -c $<
 ClientSocket.o: socket/ClientSocket.cpp socket/ClientSocket.h
 	$(CC) $(CC_SWITCHES) -o $@ -c $<
 RenderClient.o: socket/RenderClient.cpp socket/RenderClient.h
 	$(CC) $(CC_SWITCHES) -o $@ -c $<
+
+install-resources:
+	mkdir -p $(libdir)/resources
+	@for i in $(resources) ; do \
+	    echo "installing $$i..." ; \
+	    $(INSTALL_DATA) -m 0444 $$i $(libdir)/resources ; \
+	done
+
+install-shaders:
+	mkdir -p $(libdir)/shaders
+	@for i in $(shaders) ; do \
+	    echo "installing $$i..." ; \
+	    $(INSTALL_DATA) -m 0444 $$i $(libdir)/shaders ; \
+	done
+
+install-nanovis: nanovis
+	$(INSTALL) -m 0555 nanovis $(bindir)/nanovis
+
+# Only do what's necessary: These items assume an already installed version
+# of rappture. We won't install them.
+#	$(INSTALL_PROGRAM) $(RP_DIR)/bin/voronoi $(bindir)/voronoi
+#	$(INSTALL_DATA) $(RP_DIR)/lib/librappture2.so $(libdir)/librappture2.so
+#	$(INSTALL_DATA) $(RP_DIR)/lib/libz.so $(libdir)/libz.so
+#	$(INSTALL_DATA) $(RP_DIR)/lib/libb64.so $(libdir)/libb64.so
+
+
+clean:
+	make -C $(MAT_DIR) clean
+	make -C $(R2_DIR)/src clean
+	make -C $(IMG_DIR) clean
+	make -C $(TF_DIR) clean
+	rm -f nanovis client $(OBJS)
+
+distclean: clean
+	rm -f Makefile *~
 
 NvStdVertexShader.o: NvStdVertexShader.cpp NvStdVertexShader.h
 ContourLineFilter.o: ContourLineFilter.cpp ContourLineFilter.h

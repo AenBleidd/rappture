@@ -33,28 +33,19 @@ public :
     bool isVisible() const {
 	return _visible;
     }
+    void setVisible(bool visible) {
+	_visible = visible;
+    }
+    void setAxisColor(float r, float g, float b, float a) {
+	_axisColor.SetColor(r, g, b, a);
+    }
+    void setLineColor(float r, float g, float b, float a) {
+	_majorColor.SetColor(r, g, b, a);
+	_minorColor = _majorColor;
+    }
     void render();
-    
     void setFont(R2Fonts* font);
-    void setVisible(bool visible);
-    void setAxisColor(float r, float g, float b, float a);
-    void setLineColor(float r, float g, float b, float a);
 };
 
-inline void Grid::setVisible(bool visible)
-{
-    _visible = visible;
-}
-
-inline void Grid::setAxisColor(float r, float g, float b, float a)
-{
-    _axisColor.SetColor(r, g, b, a);
-}
-
-inline void Grid::setLineColor(float r, float g, float b, float a)
-{
-    _majorColor.SetColor(r, g, b, a);
-    _minorColor = _majorColor;
-}
 
 #endif 

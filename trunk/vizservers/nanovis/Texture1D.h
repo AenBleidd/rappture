@@ -17,26 +17,25 @@
 
 #include <GL/glew.h>
 
-class Texture1D{
-	
+class Texture1D {
 public:
-	int width;
-	bool gl_resource_allocated;
-	
-	GLuint type;
-	GLuint id;
-	GLuint tex_unit;
+    int width;
+    bool gl_resource_allocated;
+    
+    GLuint type;
+    GLuint id;
+    GLuint tex_unit;
 
-	Texture1D();
-	Texture1D(int length, int type = GL_UNSIGNED_BYTE);
-	~Texture1D();
-	
-	void activate();
-	void deactivate();
-	GLuint initialize_float_rgba(float* data);
-	void update_float_rgba(float* data);
-	static void check_max_size();
-	static void check_max_unit();
+    Texture1D();
+    Texture1D(int length, int type = GL_UNSIGNED_BYTE);
+    ~Texture1D();
+        
+    void activate();
+    void deactivate();
+    GLuint initialize_float_rgba(float* data);
+    void update_float_rgba(float* data);
+    static void check_max_size();
+    static void check_max_unit();
 };
 
 #endif
