@@ -329,8 +329,8 @@ Axis::LogScale()
 	    nMajor = (int)(tickMax - tickMin + 1); /* FIXME: Check this. */
 	    
 	    minorStep = 0.0;	/* This is a special hack to pass
-				 * information to the GenerateTicks
-				 * routine. An interval of 0.0 tells
+				 * information to the SetTicks
+				 * method. An interval of 0.0 indicates
 				 *	1) this is a minor sweep and 
 				 *	2) the axis is log scale.  
 				 */
