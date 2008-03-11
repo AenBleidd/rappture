@@ -1,28 +1,29 @@
 
-prefix          = @prefix@
-exec_prefix     = @exec_prefix@
 bindir          = @bindir@
-libdir          = @libdir@
+datadir		= @datarootdir@
+exec_prefix     = @exec_prefix@
 includedir      = @includedir@
+libdir          = @libdir@
 mandir          = @mandir@
+prefix          = @prefix@
 
-INSTALL			= @INSTALL@
+INSTALL		= @INSTALL@
 INSTALL_PROGRAM	= ${INSTALL} -m 755
 INSTALL_DATA	= ${INSTALL} -m 644
 INSTALL_SCRIPT	= ${INSTALL} -m 644
 
 
-build_date := $(shell date +%Y%m%d)
-machine := $(shell uname -m | sed 's/\ //')
-os := $(shell uname -s)
-bn := $(shell basename $(prefix))
+build_date	:= $(shell date +%Y%m%d)
+machine		:= $(shell uname -m | sed 's/\ //')
+os		:= $(shell uname -s)
+bn		:= $(shell basename $(prefix))
 TarfileBasename=rappture-$(os)-$(machine)-$(build_date)
 
 # fix this before commiting
 all: rplib build_bindings build_gui
 install: install_rplib install_bindings install_gui install_examples
 	${INSTALL_PROGRAM}  gui/apps/rappture      $(bindir)/rappture
-	${INSTALL_DATA}  gui/apps/rappture.env  $(bindir)/rappture.env
+	${INSTALL_DATA}     gui/apps/rappture.env  $(bindir)/rappture.env
 	${INSTALL_PROGRAM}  gui/apps/driver        $(bindir)/driver
 	${INSTALL_PROGRAM}  gui/apps/nanovis-test  $(bindir)/nanovis-test
 	${INSTALL_PROGRAM}  gui/apps/rerun         $(bindir)/rerun
@@ -37,24 +38,24 @@ install: install_rplib install_bindings install_gui install_examples
 
 build_gui:
 	@if test "x@ENABLE_GUI@" == "xyes" ; then \
-		make -C gui; \
+		$(MAKE) -C gui; \
 	fi
 
 install_gui:
 	@if test "x@ENABLE_GUI@" == "xyes" ; then \
-		make -C gui install; \
+		$(MAKE) -C gui install; \
 	fi
 
 rplib:
 	@if ! test -d "include"; then \
 		mkdir include;\
 	fi
-	make -C src2/core librappture2.a librappture2.so.0.0
-	make -C src librappture;
+	$(MAKE) -C src2/core librappture2.a librappture2.so.0.0
+	$(MAKE) -C src librappture
 
 install_rplib:
-	make -C src2/core install;
-	make -C src install_rappture;
+	$(MAKE) -C src2/core install
+	$(MAKE) -C src install_rappture
 
 build_bindings: build_matlab build_octave build_python build_perl
 
@@ -67,12 +68,12 @@ install_bindings: install_matlab install_octave install_python install_perl inst
 #############################################################################
 build_examples:
 ifneq ($(strip @F77@),)
-	make -C examples/app-fermi/fortran
+	$(MAKE) -C examples/app-fermi/fortran
 endif
 ifneq ($(strip @CC@),)
-	make -C examples/app-fermi/cee
-	make -C examples/app-fermi/wrapper/cee
-	make -C examples/c-example
+	$(MAKE) -C examples/app-fermi/cee
+	$(MAKE) -C examples/app-fermi/wrapper/cee
+	$(MAKE) -C examples/c-example
 endif
 
 install_examples: build_examples
@@ -89,29 +90,29 @@ install_examples: build_examples
 install_tcl:
 	@if test "x@TCLSH@" != "x" ; then \
 		cd tcl; $(bindir)/tclsh install.tcl; cd -;\
-		make -C src/tcl install; \
+		$(MAKE) -C src/tcl install; \
 	fi
 
 # matlab bindings
 build_matlab:
 	@if test "x@MEX@" != "x" ; then \
-		make -C src/matlab; \
+		$(MAKE) -C src/matlab; \
 	fi
 
 install_matlab: build_matlab
 	@if test "x@MEX@" != "x" ; then \
-		make -C src/matlab install; \
+		$(MAKE) -C src/matlab install; \
 	fi
 
 # octave bindings
 build_octave:
 	@if test "x@MKOCTFILE@" != "x" ; then \
-		make -C src/octave; \
+		$(MAKE) -C src/octave; \
 	fi
 
 install_octave: build_octave
 	@if test "x@MKOCTFILE@" != "x" ; then \
-		make -C src/octave install; \
+		$(MAKE) -C src/octave install; \
 	fi
 
 build_python:
@@ -135,12 +136,12 @@ build_perl:
 	@if test "x@PERL@" != "x" ; then \
 		cd perl; \
 		@PERL@ Makefile.PL INSTALLSITELIB=$(libdir)/perl5 INSTALLSITEARCH=$(libdir)/perl5 INSTALLSITEMAN3DIR=$(mandir)/man3; \
-		make; LD_LIBRARY_PATH=$(libdir):../src make test; \
+		$(MAKE); LD_LIBRARY_PATH=$(libdir):../src $(MAKE) test; \
 	fi
 
 install_perl: build_perl
 	@if test "x@PERL@" != "x" ; then \
-		make -C perl install; \
+		$(MAKE) -C perl install; \
 	fi
 
 build_pkgs:
@@ -151,37 +152,37 @@ build_pkgs:
 	cd $(prefix)/..; tar czf @RP_BASE@/bin/$(TarfileBasename).tar.gz $(bn)
 
 clean:
-	make -C examples/app-fermi/cee clean
-	make -C examples/app-fermi/fortran clean
-	make -C examples/app-fermi/wrapper/cee clean
-	make -C examples/c-example clean
-	make -C gui clean
+	$(MAKE) -C examples/app-fermi/cee clean
+	$(MAKE) -C examples/app-fermi/fortran clean
+	$(MAKE) -C examples/app-fermi/wrapper/cee clean
+	$(MAKE) -C examples/c-example clean
+	$(MAKE) -C gui clean
 	@if test -r "perl/Makefile" ; then \
-		make -C perl clean; \
+		$(MAKE) -C perl clean; \
 	fi
 	rm -rf python/build
-	make -C src clean
-	make -C src/matlab clean
-	make -C src/octave clean
-	make -C src/tcl clean
-	make -C src2/core clean
+	$(MAKE) -C src clean
+	$(MAKE) -C src/matlab clean
+	$(MAKE) -C src/octave clean
+	$(MAKE) -C src/tcl clean
+	$(MAKE) -C src2/core clean
 	rm -f include/*
 
 distclean:
 	rm -f examples/demo.bash
-	make -C examples/app-fermi/cee distclean
-	make -C examples/app-fermi/fortran distclean
-	make -C examples/app-fermi/wrapper/cee distclean
-	make -C examples/c-example distclean
-	make -C gui distclean
-	make -C perl clean; rm perl/Makefile.PL
+	$(MAKE) -C examples/app-fermi/cee distclean
+	$(MAKE) -C examples/app-fermi/fortran distclean
+	$(MAKE) -C examples/app-fermi/wrapper/cee distclean
+	$(MAKE) -C examples/c-example distclean
+	$(MAKE) -C gui distclean
+	$(MAKE) -C perl clean; rm perl/Makefile.PL
 	rm -rf python/build python/setup.py
-	make -C src distclean
-	make -C src/matlab distclean
-	make -C src/octave distclean
-	make -C src/tcl distclean
-	make -C src2/core distclean
-	make -C test distclean
+	$(MAKE) -C src distclean
+	$(MAKE) -C src/matlab distclean
+	$(MAKE) -C src/octave distclean
+	$(MAKE) -C src/tcl distclean
+	$(MAKE) -C src2/core distclean
+	$(MAKE) -C test distclean
 	rm -f gui/apps/rappture gui/apps/simsim gui/apps/rappture.env;
 	rm -rf Makefile config.status config.log bin;
 	rm -f include/*

@@ -193,6 +193,7 @@ AC_SUBST(PATCHLEVEL)
 AC_SUBST(EXACT_VERSION)
 AC_SUBST(NODOT_VERSION)
 
+AC_CONFIG_SUBDIRS( [pgapack/gekco/pgapack] )
 #--------------------------------------------------------------------
 # Finally, substitute all of the various values into the Makefile.
 # You may alternatively have a special pkgIndex.tcl.in or other files
