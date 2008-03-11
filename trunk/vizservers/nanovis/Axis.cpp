@@ -420,8 +420,6 @@ Axis::LinearScale()
     double tickMin, tickMax;
     unsigned int nTicks;
 
-    fprintf(stderr, "entering LinearScale %s (min=%g, max=%g)\n", 
-	    _name, _valueMin, _valueMax);
     nTicks = 0;
     step = 1.0;
     /* Suppress compiler warning. */
@@ -449,8 +447,6 @@ Axis::LinearScale()
 	
 	nTicks = ROUND((tickMax - tickMin) / step) + 1;
     } 
-    fprintf(stderr, "LinearScale %s (nTicks=%d, step=%g)\n", _name,
-	    nTicks, step);
     _major.SetValues(tickMin, step, nTicks);
 
     /*
@@ -478,8 +474,6 @@ Axis::LinearScale()
 				 * create minor log-scale tick marks.  */
     }
     _minor.SetValues(step, step, nTicks);
-    fprintf(stderr, "leaving LinearScale %s (min=%g, max=%g)\n", 
-	    _name, _min, _max);
 }
 
 
@@ -496,7 +490,6 @@ Axis::SetScale(double min, double max)
     _minor.SweepTicks();
     MakeTicks();
 }
-
 
 void
 Axis::MakeTicks(void)
