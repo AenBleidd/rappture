@@ -111,18 +111,18 @@ dyBufferSetLength(DyBuffer *buffer, int length)
 {
     assert(buffer != NULL);
     if (length == 0) {
-	dyBufferFree(buffer);
+        dyBufferFree(buffer);
     } else if (length > buffer->used) {
-	char *newdata;
-	
-	newdata = realloc(buffer->data, length);
-	if (newdata != NULL) {
-	    buffer->data = newdata;
-	    buffer->used = length;
-	    buffer->allocated = length;
-	}
+        char *newdata;
+        
+        newdata = realloc(buffer->data, length);
+        if (newdata != NULL) {
+            buffer->data = newdata;
+            buffer->used = length;
+            buffer->allocated = length;
+        }
     } else {
-	buffer->used = length;
+        buffer->used = length;
     }
 }
 
@@ -166,49 +166,45 @@ bread(int sock, char *buffer, int size)
 {
     int result, total, left;
 
-    for( total = 0, left = size; left > 0; left -= result)
-        {
-            result = read(sock,buffer+total,left);
-
-            if (result > 0) {
-                total += result;
-                continue;
-            }
-                
-            if ((result < 0) && (errno != EAGAIN) && (errno != EINTR))
-                { 
-                    trace("pymolproxy: Error reading sock(%d), %d/%s\n", 
-                          sock, errno,strerror(errno));
-                    break;
-                }
-
-            result = 0;
-        }
-
+    for( total = 0, left = size; left > 0; left -= result) {
+	result = read(sock,buffer+total,left);
+	
+	if (result > 0) {
+	    total += result;
+	    continue;
+	}
+        
+	if ((result < 0) && (errno != EAGAIN) && (errno != EINTR)) { 
+	    trace("pymolproxy: Error reading sock(%d), %d/%s\n", 
+		  sock, errno,strerror(errno));
+	    break;
+	}
+	
+	result = 0;
+    }
     return(total);
 }
+
+#ifdef notdef
 
 static int 
 bflush(int sock, char *buffer, int size, int bytes)
 {
     int bsize;
 
-    while(bytes)
-        {
-            if (bytes > size)
-                bsize = size;
-            else
-                bsize = bytes;
-
-            bsize = bread(sock,buffer,bsize);
+    while(bytes) {
+	if (bytes > size)
+	    bsize = size;
+	else
+	    bsize = bytes;
+	
+	bsize = bread(sock,buffer,bsize);
         
-            bytes -= bsize;     
-        }
+	bytes -= bsize;     
+    }
 }
 
 #undef timersub
-#undef timeradd
-
 static void
 timersub(struct timeval *a, struct timeval *b, struct timeval *result)
 {
@@ -220,6 +216,8 @@ timersub(struct timeval *a, struct timeval *b, struct timeval *result)
         result->tv_usec += 1000000;
     }
 }
+
+#endif
 
 static void
 timersub_ms(struct timeval *a, struct timeval *b, int *result)
@@ -237,14 +235,14 @@ timersub_ms(struct timeval *a, struct timeval *b, int *result)
     *result = (tmp.tv_sec * 1000) + (tmp.tv_usec / 1000);
 }
 
-
+#undef timeradd
 static void
-timeradd(struct timeval *a, struct timeval *b, struct timeval *result)
+timeradd (struct timeval *a, struct timeval *b, struct timeval *result)
 {
     result->tv_sec = a->tv_sec + b->tv_sec;
     result->tv_usec = a->tv_usec + b->tv_usec;
 
-    while(result->tv_usec >= 1000000) {
+    while (result->tv_usec >= 1000000) {
         result->tv_sec += 1;
         result->tv_usec -= 1000000;
     }
@@ -292,14 +290,11 @@ getline(int sock, char *buffer, int size, long timeout)
         if (status <= 0)
             break;
                         
-        if (buffer[pos] == '\n')
-            {
-                pos++;
-                break;
-            }
-
+        if (buffer[pos] == '\n') {
+            pos++;
+            break;
+        }
         pos++;
-
     }
 
     buffer[pos]=0;
@@ -324,13 +319,13 @@ waitForString(PymolProxy *pymol, char *string, char *buffer, int length)
             pymol->status = TCL_ERROR;
             break;
         }
+        trace("stdout-u>read(%s)", buffer);
         if (strncmp(buffer, string, strlen(string)) == 0) {
             trace("stdout-e> %s",buffer);
             pymol->error = 0;
             pymol->status = TCL_OK;
             break;
         }
-        trace("stdout-u>(%s)", buffer);
     }
 
     return pymol->status;
@@ -347,11 +342,9 @@ clear_error(PymolProxy *pymol)
 static int
 send_expect(PymolProxy *pymol, char *expect, char *cmd)
 {
-    char string[800];
-
-    if (pymol->error)
+    if (pymol->error) {
         return(TCL_ERROR);
-
+    }
     trace("to-pymol>(%s)", cmd);
     write(pymol->p_stdin, cmd, strlen(cmd));
     if (waitForString(pymol, expect, cmd, 800)) {
@@ -660,7 +653,7 @@ RawCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
         else if (strcmp(argv[arg], "-push") == 0)
             push = 1;
         else {
-	    cmd = argv[arg];
+            cmd = argv[arg];
         }
     }
 
@@ -833,16 +826,14 @@ ViewportCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
 static int
 LoadPDBCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
 {
-    const char *pdbdata, *pdb, *name;
-    char *buf;
-    char buffer[800];
+    const char *pdbdata, *name;
     PymolProxy *pymol = (PymolProxy *) cdata;
     int state = 1;
     int arg, defer = 0, push = 0, varg = 1;
-    char filename[] = "/tmp/fileXXXXXX.pdb";
 
     clear_error(pymol);
 
+    pdbdata = name = NULL;	/* Suppress compiler warning. */
     for(arg = 1; arg < argc; arg++) {
         if ( strcmp(argv[arg],"-defer") == 0 )
             defer = 1;
@@ -865,59 +856,37 @@ LoadPDBCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
     pymol->need_update = !defer || push;
     pymol->immediate_update |= push;
 
-#ifdef notdef
     {
-	/* Pymol expects to load the pdb from a file. 
-	 * Should create a rappture owned directory to write files.
-	 */
-	int fd;
-	char fileName[200];
+        int count;
+        const char *p;
+        char *q, *newdata;
 
-	sprintf(fileName, "/tmp/pymol-%d.pdb", getpid());
-	fd = open(fileName,O_WRONLY | O_TRUNC | O_CREAT, 0600);
-	if (fd < 0) {
-	    Tcl_AppendResult(interp, "pymolproxy: error opening \"", fileName, 
-		"\": ", strerror(errno), (char *)NULL);
-	    pymol->status = TCL_ERROR;
-	    return TCL_ERROR;
-	}
-	write(fd, pdbdata, strlen(pdbdata));
-	close(fd);
-	sendf(pymol, "load %s, %s, %d\n", fileName, name, state);
+        count = 0;
+        for (p = pdbdata; *p != '\0'; p++) {
+            if (*p == '\n') {
+                count++;
+            }
+            count++;
+        }
+        
+        q = newdata = malloc(count + 100);
+        strcpy(newdata, "cmd.read_pdbstr(\"\"\"\\\n");
+        q = newdata + strlen(newdata);
+        for (p = pdbdata; *p != '\0'; p++, q++) {
+            if (*p == '\n') {
+                *q++ = '\\';
+            } 
+            *q = *p;
+        }
+        sprintf(q, "\\\n\"\"\",\"%s\",%d)\n", name, state);
+        {
+            char expect[800];
+
+            sprintf(expect, "PyMOL>\"\"\",\"%s\",%d)\n", name, state);
+            send_expect(pymol, expect, newdata);
+        }
+        free(newdata);
     }
-#else 
-    {
-	int count;
-	const char *p;
-	char *q, *newdata;
-
-	count = 0;
-	for (p = pdbdata; *p != '\0'; p++) {
-	    if (*p == '\n') {
-		count++;
-	    }
-	    count++;
-	}
-	
-	q = newdata = malloc(count + 100);
-	strcpy(newdata, "cmd.read_pdbstr(\"\"\"\\\n");
-	q = newdata + strlen(newdata);
-	for (p = pdbdata; *p != '\0'; p++, q++) {
-	    if (*p == '\n') {
-		*q++ = '\\';
-	    } 
-	    *q = *p;
-	}
-	sprintf(q, "\\\n\"\"\",\"%s\",%d)\n", name, state);
-	{
-	    char expect[800];
-
-	    sprintf(expect, "PyMOL>\"\"\",\"%s\",%d)\n", name, state);
-	    send_expect(pymol, expect, newdata);
-	}
-	free(newdata);
-    }
-#endif
     sendf(pymol, "zoom buffer=2\n");
 
     return pymol->status;
@@ -1090,7 +1059,6 @@ ProxyInit(int c_in, int c_out, char *const *argv)
     int pairIn[2];
     int pairOut[2];
     int pairErr[2];
-    char buffer[800];
     Tcl_Interp *interp;
     Tcl_DString cmdbuffer;
     DyBuffer dybuffer, dybuffer2;
@@ -1124,33 +1092,34 @@ ProxyInit(int c_in, int c_out, char *const *argv)
 
     pid = fork();
         
-    if (pid < 0) 
+    if (pid < 0) {
+        fprintf(stderr, "can't fork process: %s\n", strerror(errno));
         return(-3);
+    }
+    if (pid == 0) {
+        int fd;
 
-    if (pid == 0)  /* child process */
-        {
-            int i, fd;
-
-            /* Create a new process group, so we can later kill this process
-             * and all its children without affecting the process that created
-             * this one
-             */
-
-            setpgid(pid, 0); 
-
-            /* Redirect stdin, stdout, and stderr to pipes before execing               */
-
-            dup2(pairIn[0] ,0);  // stdin
-            dup2(pairOut[1],1);  // stdout
-            dup2(pairErr[1],2);  // stderr
-
-            for(fd = 3; fd < FD_SETSIZE; fd++)  /* close all other descriptors  */
-                close(fd);
-
-            execvp(argv[0], argv);
-            trace("pymolproxy: Failed to start pyMol\n");
-            exit(-1);
-        }
+        /* Child process */
+        
+        /* 
+         * Create a new process group, so we can later kill this process and
+         * all its children without affecting the process that created this
+         * one.
+         */
+        setpgid(pid, 0); 
+        
+        /* Redirect stdin, stdout, and stderr to pipes before execing */ 
+        dup2(pairIn[0] ,0);  // stdin
+        dup2(pairOut[1],1);  // stdout
+        dup2(pairErr[1],2);  // stderr
+        
+        for(fd = 3; fd < FD_SETSIZE; fd++)  /* close all other descriptors  */
+            close(fd);
+        
+        execvp(argv[0], argv);
+        trace("pymolproxy: Failed to start pyMol %s\n", argv[0]);
+        exit(-1);
+    }
        
     /* close opposite end of pipe, these now belong to the child process        */
     close(pairIn[0]);
@@ -1192,24 +1161,24 @@ ProxyInit(int c_in, int c_out, char *const *argv)
     dyBufferInit(&dybuffer);
     dyBufferInit(&dybuffer2);
 
-    Tcl_CreateCommand(interp, "bmp",	 BMPCmd,	&pymol, NULL);
-    Tcl_CreateCommand(interp, "png",	 PNGCmd,	&pymol, NULL);
-    Tcl_CreateCommand(interp, "screen",	 ViewportCmd,	&pymol, NULL);
-    Tcl_CreateCommand(interp, "viewport",ViewportCmd,	&pymol, NULL);
-    Tcl_CreateCommand(interp, "rotate",	 RotateCmd,	&pymol, NULL);
-    Tcl_CreateCommand(interp, "zoom",	 ZoomCmd,	&pymol, NULL);
-    Tcl_CreateCommand(interp, "loadpdb", LoadPDBCmd,	&pymol, NULL);
+    Tcl_CreateCommand(interp, "bmp",     BMPCmd,        &pymol, NULL);
+    Tcl_CreateCommand(interp, "png",     PNGCmd,        &pymol, NULL);
+    Tcl_CreateCommand(interp, "screen",  ViewportCmd,   &pymol, NULL);
+    Tcl_CreateCommand(interp, "viewport",ViewportCmd,   &pymol, NULL);
+    Tcl_CreateCommand(interp, "rotate",  RotateCmd,     &pymol, NULL);
+    Tcl_CreateCommand(interp, "zoom",    ZoomCmd,       &pymol, NULL);
+    Tcl_CreateCommand(interp, "loadpdb", LoadPDBCmd,    &pymol, NULL);
     Tcl_CreateCommand(interp, "ballnstick",BallNStickCmd, &pymol, NULL);
-    Tcl_CreateCommand(interp, "spheres", SpheresCmd,	&pymol, NULL);
-    Tcl_CreateCommand(interp, "lines",	 LinesCmd,	&pymol, NULL);
-    Tcl_CreateCommand(interp, "raw",	 RawCmd,	&pymol, NULL);
-    Tcl_CreateCommand(interp, "label",	 LabelCmd,	&pymol, NULL);
-    Tcl_CreateCommand(interp, "reset",	 ResetCmd,	&pymol, NULL);
-    Tcl_CreateCommand(interp, "rock",	 RockCmd,	&pymol, NULL);
-    Tcl_CreateCommand(interp, "frame",	 FrameCmd,	&pymol, NULL);
-    Tcl_CreateCommand(interp, "vmouse",	 VMouseCmd,	&pymol, NULL);
-    Tcl_CreateCommand(interp, "disable", DisableCmd,	&pymol, NULL);
-    Tcl_CreateCommand(interp, "enable",	 EnableCmd,	&pymol, NULL);
+    Tcl_CreateCommand(interp, "spheres", SpheresCmd,    &pymol, NULL);
+    Tcl_CreateCommand(interp, "lines",   LinesCmd,      &pymol, NULL);
+    Tcl_CreateCommand(interp, "raw",     RawCmd,        &pymol, NULL);
+    Tcl_CreateCommand(interp, "label",   LabelCmd,      &pymol, NULL);
+    Tcl_CreateCommand(interp, "reset",   ResetCmd,      &pymol, NULL);
+    Tcl_CreateCommand(interp, "rock",    RockCmd,       &pymol, NULL);
+    Tcl_CreateCommand(interp, "frame",   FrameCmd,      &pymol, NULL);
+    Tcl_CreateCommand(interp, "vmouse",  VMouseCmd,     &pymol, NULL);
+    Tcl_CreateCommand(interp, "disable", DisableCmd,    &pymol, NULL);
+    Tcl_CreateCommand(interp, "enable",  EnableCmd,     &pymol, NULL);
 
     // Main Proxy Loop
     //  accept tcl commands from socket
@@ -1373,8 +1342,8 @@ int
 main(int argc, char *argv[])
 {
     if (debug) {
-	flog = stderr;
-	flog = fopen("/tmp/pymolproxy.log", "w");
+        flog = stderr;
+        flog = fopen("/tmp/pymolproxy.log", "w");
     }    
     ProxyInit(fileno(stdout), fileno(stdin), argv + 1);
     return 0;

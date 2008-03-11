@@ -6,19 +6,22 @@ SHELL = /bin/sh
 
 .PHONY: all install clean distclean
 
-prefix          = @prefix@
-exec_prefix     = @exec_prefix@
 bindir          = @bindir@
-libdir          = @libdir@
-srcdir		= @srcdir@
+datadir		= @datarootdir@
+exec_prefix     = @exec_prefix@
 includedir      = @includedir@
+libdir          = @libdir@
 mandir          = @mandir@
+prefix          = @prefix@
+srcdir		= @srcdir@
+
+VPATH		= $(srcdir)
 
 INSTALL		= @INSTALL@
 #Why are these files installed owner writable?
-INSTALL_PROGRAM	= ${INSTALL} -m 755
-INSTALL_DATA	= ${INSTALL} -m 644
-INSTALL_SCRIPT	= ${INSTALL} -m 644
+INSTALL_PROGRAM	= ${INSTALL} -m 555
+INSTALL_DATA	= ${INSTALL} -m 444
+INSTALL_SCRIPT	= ${INSTALL} -m 444
 RM		= rm -f
 
 AUXSRC		= config.h define.h global.h
@@ -30,15 +33,15 @@ GL_INC_SPEC	= -I/usr/include/GL
 GL_LIB_SPEC	= -lGL -lglut -lglui -lGLEW -lCg -lCgGL -lpthread
 IMG_DIR		= ./imgLoaders
 IMG_INC_SPEC	= -I$(srcdir)/$(IMG_DIR)
-IMG_LIB		= $(IMG_DIR)/libImageLoaders.a
+IMG_LIB		= $(IMG_DIR)/ImageLoaders.a
 IMG_LIB_SPEC	= $(IMG_LIB)
 MAT_DIR		= ./newmat11
 MAT_INC_SPEC	= -I$(srcdir)/$(MAT_DIR)
-MAT_LIB		= $(MAT_DIR)/libnewmat11.a
+MAT_LIB		= $(MAT_DIR)/newmat11.a
 MAT_LIB_SPEC	= $(MAT_LIB)
 R2_DIR		= ./R2
 R2_INC_SPEC	= -I$(srcdir)/$(R2_DIR)/include
-R2_LIB		= $(R2_DIR)/src/libR2.a
+R2_LIB		= $(R2_DIR)/src/R2.a
 R2_LIB_SPEC     = $(R2_LIB)
 
 RP_DIR		=  @RP_DIR@
@@ -47,7 +50,7 @@ RP_LIB_SPEC	= -L$(RP_DIR)/lib -lrappture2 -lb64 -lz
 
 TF_DIR		= ./transfer-function
 TF_INC_SPEC	= -I$(TF_DIR) 
-TF_LIB		= $(TF_DIR)/libTransferFunction.a
+TF_LIB		= $(TF_DIR)/transfer-function.a
 TF_LIB_SPEC	= $(TF_LIB)
 
 LIBS		= \
@@ -61,7 +64,7 @@ LIBS		= \
 		$(GL_LIB_SPEC) 
 
 INCLUDES	= \
-		-I. \
+		-I$(srcdir) \
 		$(RP_INC_SPEC) \
 		$(GL_INC_SPEC) \
 		$(R2_INC_SPEC) \

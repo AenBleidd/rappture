@@ -1,33 +1,46 @@
-TARGETS = pymolproxy
 
-CC      = @CC@
-CFLAGS  = @CFLAGS@ -I@TCL_INCL_DIR@
-LDFLAGS = @LDFLAGS@
-# LDFLAGS = $(LDFLAGS)
+TARGETS		= pymolproxy
 
-prefix          = @prefix@
-exec_prefix     = @exec_prefix@
+CC		= @CC@
+INCLUDES	= -I@TCL_INCL_DIR@
+CFLAGS		= @CFLAGS@ 
+EXTRA_CFLAGS	= -Wall 
+DEFINES		= -DSTANDALONE
+CC_SWITCHES	= $(CFLAGS) $(EXTRA_CFLAGS) $(DEFINES) $(INCLUDES)
+
 bindir          = @bindir@
-libdir          = @libdir@
+datadir		= @datarootdir@
+exec_prefix     = @exec_prefix@
 includedir      = @includedir@
+libdir          = @libdir@
 mandir          = @mandir@
+prefix          = @prefix@
+srcdir		= @srcdir@
 
+RP_DIR		= @RP_DIR@
 INSTALL         = @INSTALL@
 INSTALL_PROGRAM = ${INSTALL} -m 755
 INSTALL_DATA    = ${INSTALL} -m 644
 INSTALL_SCRIPT  = ${INSTALL} -m 644
+VPATH		= $(srcdir)
 
 .PHONY: all install clean distclean
 
+OBJS		= pymolproxy.o
+LIBS		= -ltcl8.4
+
 all: $(TARGETS)
 
-pymolproxy: pymolproxy.o
-	$(CC) $(CFLAGS) $(LDFLAGS) -DSTANDALONE pymolproxy.c -o pymolproxy -ltcl8.4
+pymolproxy: $(OBJS) 
+	$(CC) $(CC_SWITCHES) -o $@ $^ $(LIBS)
+
+.c.o:
+	$(CC) $(CC_SWITCHES) -o $@ -c $<
 
 install: pymolproxy
 	$(INSTALL_PROGRAM) pymolproxy $(bindir)/pymolproxy
-	$(INSTALL_PROGRAM) pymol $(bindir)/pymol
-	cp -rL @RP_DIR@/lib/pymol $(libdir)/pymol
+	$(INSTALL_PROGRAM) $(srcdir)/pymol $(bindir)/pymol
+	cp -rL $(RP_DIR)/lib/pymol $(libdir)/pymol
 
 clean:
 	rm -rf a.out *.o *~ core* $(TARGETS) *.log *.tmp logfile* .deps/*.d

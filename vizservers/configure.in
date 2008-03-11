@@ -34,6 +34,8 @@ AC_PROG_RANLIB
 AC_PROG_CXX
 AC_LANG_CPLUSPLUS
 
+AC_C_BIGENDIAN
+
 SUBDIRS="nanoscale nanovis pymolproxy"
 AC_SUBST(SUBDIRS)
 
@@ -193,5 +195,6 @@ AC_OUTPUT(  Makefile \
             nanovis/newmat11/Makefile \
             nanovis/R2/src/Makefile \
             nanovis/imgLoaders/Makefile \
+            nanovis/transfer-function/Makefile \
             pymolproxy/Makefile \
             start_viz.sh    )
