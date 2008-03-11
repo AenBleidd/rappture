@@ -4,17 +4,21 @@ CC              = @CC@
 CFLAGS          = @CFLAGS@
 LDFLAGS         = @LDFLAGS@
 
-prefix          = @prefix@
-exec_prefix     = @exec_prefix@
 bindir          = @bindir@
-libdir          = @libdir@
+datadir		= @datarootdir@
+exec_prefix     = @exec_prefix@
 includedir      = @includedir@
+libdir          = @libdir@
 mandir          = @mandir@
+prefix          = @prefix@
+srcdir		= @srcdir@
+
+VPATH		= $(srcdir)
 
 INSTALL         = @INSTALL@
-INSTALL_PROGRAM = ${INSTALL} -m 755
-INSTALL_DATA    = ${INSTALL} -m 644
-INSTALL_SCRIPT  = ${INSTALL} -m 644
+INSTALL_PROGRAM = ${INSTALL} -m 555
+INSTALL_DATA    = ${INSTALL} -m 444
+INSTALL_SCRIPT  = ${INSTALL} -m 444
 
 .PHONY: all install clean distclean
 
@@ -33,3 +37,4 @@ clean:
 
 distclean: clean
 	rm Makefile
+
