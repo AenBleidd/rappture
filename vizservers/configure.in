@@ -46,6 +46,20 @@ AC_ARG_WITH(
     [with_tcllib=$withval],
     [with_tcllib=/usr/lib])
 
+#
+# Need to check for the following dependencies:
+#	Rappture headers and library (done)
+#       Tcl headers and library (done)
+#       GL headers and library
+#       GLuT headers and library
+#       GLui header and library
+#       GLEW header and library
+#       Cg headers and library
+#       CgGL headers and library
+#       pthread library
+#       DX headers and library (done, sort of)
+#
+
 TCL_LIB_DIR=""
 TCL_LIB=""
 TCL_LIB_VERSION=""
