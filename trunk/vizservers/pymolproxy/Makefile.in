@@ -40,7 +40,9 @@ pymolproxy: $(OBJS)
 install: pymolproxy
 	$(INSTALL_PROGRAM) pymolproxy $(bindir)/pymolproxy
 	$(INSTALL_PROGRAM) $(srcdir)/pymol $(bindir)/pymol
-	cp -rL $(RP_DIR)/lib/pymol $(libdir)/pymol
+	@if test "$(RP_DIR)/lib" != "$(libdir)" ; then \
+	  cp -rL $(RP_DIR)/lib/pymol $(libdir)/pymol; \
+	fi
 
 clean:
 	rm -rf a.out *.o *~ core* $(TARGETS) *.log *.tmp logfile* .deps/*.d
