@@ -3,9 +3,14 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-PointSet::PointSet()
-: _visible(false), _cluster(0), _sortLevel(4), _min(0.0f), _max(1.0f)
+PointSet::PointSet() : 
+    _sortLevel(4), 
+    _cluster(0), 
+    _max(1.0f),
+    _min(0.0f), 
+    _visible(false)
 {
+    /*empty*/
 }
 
 PointSet::~PointSet()

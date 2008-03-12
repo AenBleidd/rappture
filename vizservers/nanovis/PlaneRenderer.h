@@ -1,3 +1,4 @@
+
 /*
  * ----------------------------------------------------------------------
  * PlaneRenderer.h : PlaneRenderer class for 2D visualization
@@ -35,37 +36,36 @@ using namespace std;
 class PlaneRenderer{
 
 private:
-  vector <Texture2D*> plane;	 //array of volumes
-  vector <TransferFunction*> tf; //array of corresponding transfer functions 
-  int active_plane;		 //the active plane, only one is rendered
-  int n_planes;
+    vector <Texture2D*> plane;	// Array of volumes
+    vector <TransferFunction*> tf; // Array of corresponding transfer functions 
+    int active_plane;		// The active plane, only one is rendered
+    int n_planes;
 
-  int render_width;	//render size
-  int render_height;	
+    int render_width;   //render size
+    int render_height;  
 
-  //cg related
-  CGcontext g_context;		//the Nvidia cg context 
-  CGprogram m_fprog;
-  CGparameter m_data_param;
-  CGparameter m_tf_param;
-  CGparameter m_render_param;
+    //cg related
+    CGcontext g_context;	// The Nvidia cg context 
+    CGprogram m_fprog;
+    CGparameter m_data_param;
+    CGparameter m_tf_param;
+    CGparameter m_render_param;
 
-  void init_shaders();
-  void activate_shader(int plane_index);
-  void deactivate_shader();
+    void init_shaders();
+    void activate_shader(int plane_index);
+    void deactivate_shader();
 
 public:
-  PlaneRenderer(CGcontext _context, int width, int height);
-  ~PlaneRenderer();
+    PlaneRenderer(CGcontext _context, int width, int height);
+    ~PlaneRenderer();
 
-  int add_plane(Texture2D* _p, TransferFunction* _tf);
-  						//add a plane and its transfer function
-  						//we require a transfer function when a 
-						//plane is added.
-  void remove_plane(int index);
-  void set_active_plane(int index);		//set the active plane to be rendered
-  void set_screen_size(int w, int h);		//change the rendering size
-  void render();
+    int add_plane(Texture2D* _p, TransferFunction* _tf);
+    // Add a plane and its transfer function. We require a transfer function
+    // when a plane is added.
+    void remove_plane(int index);
+    void set_active_plane(int index); //set the active plane to be rendered
+    void set_screen_size(int w, int h);	//change the rendering size
+    void render();
 };
 
 #endif

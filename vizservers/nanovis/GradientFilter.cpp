@@ -50,7 +50,9 @@ static char *getFloatGradientsFilename(void)
 }
 
 
-static void saveFloatGradients(float *gradients, int *sizes)
+#ifdef notused
+static void 
+saveFloatGradients(float *gradients, int *sizes)
 {
     char *filename;
     FILE *fp;
@@ -60,18 +62,17 @@ static void saveFloatGradients(float *gradients, int *sizes)
         perror("cannot open gradients file for writing");
         exit(1);
     }
-
     if (fwrite(gradients, 3 * sizes[0] * sizes[1] * sizes[2] * sizeof(float),
                1, fp) != 1) {
         fprintf(stderr, "writing float gradients failed\n");
         exit(1);
     }
-
     fclose(fp);
 }
+#endif
 
-
-int getNextPowerOfTwo(int n)
+int 
+getNextPowerOfTwo(int n)
 {
     int i;
 

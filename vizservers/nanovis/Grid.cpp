@@ -21,6 +21,9 @@ void Grid::render()
 {
     glPushMatrix();
     glEnable(GL_DEPTH_TEST);
+    glDisable(GL_TEXTURE_2D);
+    glEnable(GL_BLEND);
+
 #ifdef notdef
     glEnable(GL_LINE_SMOOTH);
 #endif
@@ -47,9 +50,7 @@ void Grid::render()
     }
     glEnd();
 
-    glDisable(GL_TEXTURE_2D);
     glLineWidth(1.0f);
-    glEnable(GL_BLEND);
     glColor4f(_majorColor.red, _majorColor.green, _majorColor.blue, 
 	      _majorColor.alpha);
 

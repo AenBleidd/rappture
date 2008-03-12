@@ -1,3 +1,4 @@
+
 #ifndef __POINT_SET_H__
 #define __POINT_SET_H__
 

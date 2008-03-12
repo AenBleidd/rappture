@@ -1,3 +1,4 @@
+
 /*
  * ----------------------------------------------------------------------
  * Sphere.h : Sphere class
@@ -24,19 +25,20 @@
 class Sphere : public Renderable{
 
 public:
-	float radius;
-	Color color;
-	int stack;
-	int slice;
+    float radius;
+    Color color;
+    int stack;
+    int slice;
 
-	~Sphere();
-	Sphere(float x, float y, float z, float r, float g, float b, float _radius, int _stack, int _slice);
-	void set_vertical_res(int _stack);
-	void set_horizontal_res(int _slice);
-	
-	//display the sphere
-	void draw(GLUquadric* q);
-	void render();
+    ~Sphere();
+    Sphere(float x, float y, float z, float r, float g, float b, float _radius,
+	   int _stack, int _slice);
+    void set_vertical_res(int _stack);
+    void set_horizontal_res(int _slice);
+        
+    //display the sphere
+    void draw(GLUquadric* q);
+    void render();
 };
 
 #endif
