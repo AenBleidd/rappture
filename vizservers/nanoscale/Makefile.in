@@ -6,7 +6,7 @@ LDFLAGS         = @LDFLAGS@
 
 bindir          = @bindir@
 datadir		= @datadir@
-dataroootdir	= @datarootdir@
+datarootdir	= @datarootdir@
 exec_prefix     = @exec_prefix@
 includedir      = @includedir@
 libdir          = @libdir@
