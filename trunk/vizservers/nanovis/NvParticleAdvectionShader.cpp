@@ -2,8 +2,11 @@
 #include <Trace.h>
 #include "NvParticleAdvectionShader.h"
 
-NvParticleAdvectionShader::NvParticleAdvectionShader()
-: _scale(1.0f, 1.0f, 1.0f), _velocityVolumeID(0), _max(1.0f), _timeStep(0.005f)
+NvParticleAdvectionShader::NvParticleAdvectionShader() : 
+    _velocityVolumeID(0), 
+    _scale(1.0f, 1.0f, 1.0f), 
+    _max(1.0f), 
+    _timeStep(0.005f)
 {
     init();
 }

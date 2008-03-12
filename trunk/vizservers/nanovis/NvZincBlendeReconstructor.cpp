@@ -29,10 +29,6 @@ NvZincBlendeReconstructor* NvZincBlendeReconstructor::getInstance()
 ZincBlendeVolume* NvZincBlendeReconstructor::loadFromFile(const char* fileName)
 {
     Vector3 origin, delta;
-    double temp;
-    int width = 0, height = 0, depth = 0;
-    void* data = NULL;
-
 
     std::ifstream stream;
     stream.open(fileName, std::ios::binary);
@@ -48,7 +44,6 @@ ZincBlendeVolume* NvZincBlendeReconstructor::loadFromStream(std::istream& stream
 {
     ZincBlendeVolume* volume = 0;
     Vector3 origin, delta;
-    double temp;
     int width = 0, height = 0, depth = 0;
     void* data = NULL;
     int version = 1;
@@ -81,17 +76,18 @@ ZincBlendeVolume* NvZincBlendeReconstructor::loadFromStream(std::istream& stream
     } while(1);
 
 
-    if (version == 1)
-    {
+    if (version == 1) {
+	float dummy;
+
         sscanf(buff, "%s%s%s%s%s%d%d%d", str[0], str[1], str[2], str[3], str[4],&width, &height, &depth);
         getLine(stream); 
         sscanf(buff, "%s%f%f%f", str[0], &(origin.x), &(origin.y), &(origin.z));
         getLine(stream); 
-        sscanf(buff, "%s%f%f%f", str[0], &(delta.x), &temp, &temp);
+        sscanf(buff, "%s%f%f%f", str[0], &(delta.x), &dummy, &dummy);
         getLine(stream); 
-        sscanf(buff, "%s%f%f%f", str[0], &temp, &(delta.y), &temp);
+        sscanf(buff, "%s%f%f%f", str[0], &dummy, &(delta.y), &dummy);
         getLine(stream); 
-        sscanf(buff, "%s%f%f%f", str[0], &temp, &temp, &(delta.z));
+        sscanf(buff, "%s%f%f%f", str[0], &dummy, &dummy, &(delta.z));
         do {
             getLine(stream);
         } while(strcmp(buff, "<\\HDR>") != 0);
@@ -223,7 +219,9 @@ template<class T>
 inline T _NvMin4(T* a) { return _NvMin2(_NvMin2(a[0], a[1]), _NvMin2(a[2], a[3])); }
 
 
-ZincBlendeVolume* NvZincBlendeReconstructor::buildUp(const Vector3& origin, const Vector3& delta, int width, int height, int depth, void* data)
+ZincBlendeVolume* 
+NvZincBlendeReconstructor::buildUp(const Vector3& origin, const Vector3& delta,
+	int width, int height, int depth, void* data)
 {
     ZincBlendeVolume* zincBlendeVolume = NULL;
 
@@ -238,6 +236,7 @@ ZincBlendeVolume* NvZincBlendeReconstructor::buildUp(const Vector3& origin, cons
     float* component4A, *component4B;
     int index;
 
+    nzero_min = 0.0f;		/* Suppress compiler warning. */
     vmin = vmax = srcPtr->atom;
 
     int i;
@@ -406,7 +405,6 @@ ZincBlendeVolume* NvZincBlendeReconstructor::loadFromMemory(void* dataBlock)
 {
     ZincBlendeVolume* volume = 0;
     Vector3 origin, delta;
-    double temp;
     int width = 0, height = 0, depth = 0;
     void* data = NULL;
     int version = 1;
@@ -438,15 +436,17 @@ ZincBlendeVolume* NvZincBlendeReconstructor::loadFromMemory(void* dataBlock)
 
     if (version == 1)
     {
+	float dummy;
+
         sscanf(buff, "%s%s%s%s%s%d%d%d", str[0], str[1], str[2], str[3], str[4],&width, &height, &depth);
         getLine(stream); 
         sscanf(buff, "%s%f%f%f", str[0], &(origin.x), &(origin.y), &(origin.z));
         getLine(stream); 
-        sscanf(buff, "%s%f%f%f", str[0], &(delta.x), &temp, &temp);
+        sscanf(buff, "%s%f%f%f", str[0], &(delta.x), &dummy, &dummy);
         getLine(stream); 
-        sscanf(buff, "%s%f%f%f", str[0], &temp, &(delta.y), &temp);
+        sscanf(buff, "%s%f%f%f", str[0], &dummy, &(delta.y), &dummy);
         getLine(stream); 
-        sscanf(buff, "%s%f%f%f", str[0], &temp, &temp, &(delta.z));
+        sscanf(buff, "%s%f%f%f", str[0], &dummy, &dummy, &(delta.z));
         do {
             getLine(stream);
         } while(strcmp(buff, "<\\HDR>") != 0);

@@ -1,3 +1,4 @@
+
 #include "Nv.h"
 #include <GL/gl.h>
 #include "PointSetRenderer.h"
@@ -16,8 +17,7 @@ PointSetRenderer::PointSetRenderer()
 {
     _shader = new PointShader();
     R2string path = R2FilePath::getInstance()->getPath("particle2.bmp");
-    if (path.getLength() == 0)
-    {
+    if (path.getLength() == 0) {
         printf("ERROR : pointset file not found - %s\n", (const char*) path);
         fflush(stdout);
         return;
@@ -27,27 +27,23 @@ PointSetRenderer::PointSetRenderer()
     Image* image = loader->load(path, Image::IMG_RGBA);
 
     unsigned char* bytes = (unsigned char*) image->getImageBuffer();
-    if (bytes)
-    {
-        for (int y = 0; y < image->getHeight(); ++y)
-           for (int x = 0; x < image->getWidth(); ++x, bytes +=4)
-           {
+    if (bytes) {
+        for (unsigned int y = 0; y < image->getHeight(); ++y) {
+            for (unsigned int x = 0; x < image->getWidth(); ++x, bytes +=4) {
                 bytes[3] =  (bytes[0] == 0)? 0 : 255;
-           }
+            }
+        }
     }
 
-    if (image)
-    {
-        _pointTexture = new Texture2D(image->getWidth(), image->getHeight(), GL_UNSIGNED_BYTE, GL_LINEAR,    
-                                4, (float*) image->getImageBuffer());
-    }
-    else
-    {
+    if (image) {
+        _pointTexture = new Texture2D(image->getWidth(), image->getHeight(), 
+                                      GL_UNSIGNED_BYTE, GL_LINEAR,    
+                                      4, (float*) image->getImageBuffer());
+    } else {
         printf("fail to load image [%s]\n", "particles2.bmp");
     }
 
     delete loader;
-
     _bucketSort = new PCA::BucketSort(1024);
 }
 
