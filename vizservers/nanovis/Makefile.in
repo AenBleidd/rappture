@@ -197,27 +197,27 @@ RenderClient.o: socket/RenderClient.cpp socket/RenderClient.h
 	$(CC) $(CC_SWITCHES) -o $@ -c $<
 
 install-resources:
-	mkdir -p $(libdir)/resources
+	$(INSTALL) -d $(libdir)/resources
 	@for i in $(resources) ; do \
 	    echo "installing $$i..." ; \
 	    $(INSTALL_DATA) -m 0444 $$i $(libdir)/resources ; \
 	done
 
 install-shaders:
-	mkdir -p $(libdir)/shaders
+	$(INSTALL) -d $(libdir)/shaders
 	@for i in $(shaders) ; do \
 	    echo "installing $$i..." ; \
 	    $(INSTALL_DATA) -m 0444 $$i $(libdir)/shaders ; \
 	done
 
 install-nanovis: nanovis
-	mkdir -p $(bindir)
 	$(INSTALL) -m 0555 nanovis $(bindir)
 	@if test "$(RP_DIR)/bin" != "$(bindir)" ; then \
+	  $(INSTALL) -d $(bindir) ; \
 	  $(INSTALL_PROGRAM) $(RP_DIR)/bin/voronoi $(bindir) ; \
 	fi
-	mkdir -p $(libdir)
 	@if test "$(RP_DIR)/lib" != "$(libdir)" ; then \
+	  $(INSTALL) -d $(libdir) ; \
 	  $(INSTALL_DATA) $(RP_DIR)/lib/librappture2.so $(libdir) ; \
 	  $(INSTALL_DATA) $(RP_DIR)/lib/libz.so $(libdir) ; \
 	  $(INSTALL_DATA) $(RP_DIR)/lib/libb64.so $(libdir) ; \
