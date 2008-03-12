@@ -9,7 +9,8 @@ DEFINES		= -DSTANDALONE
 CC_SWITCHES	= $(CFLAGS) $(EXTRA_CFLAGS) $(DEFINES) $(INCLUDES)
 
 bindir          = @bindir@
-datadir		= @datarootdir@
+datadir		= @datadir@
+datarootdir	= @datarootdir@
 exec_prefix     = @exec_prefix@
 includedir      = @includedir@
 libdir          = @libdir@
