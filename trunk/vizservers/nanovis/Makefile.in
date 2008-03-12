@@ -212,14 +212,13 @@ install-shaders:
 
 install-nanovis: nanovis
 	$(INSTALL) -m 0555 nanovis $(bindir)/nanovis
-
-# Only do what's necessary: These items assume an already installed version
-# of rappture. We won't install them.
-#	$(INSTALL_PROGRAM) $(RP_DIR)/bin/voronoi $(bindir)/voronoi
-#	$(INSTALL_DATA) $(RP_DIR)/lib/librappture2.so $(libdir)/librappture2.so
-#	$(INSTALL_DATA) $(RP_DIR)/lib/libz.so $(libdir)/libz.so
-#	$(INSTALL_DATA) $(RP_DIR)/lib/libb64.so $(libdir)/libb64.so
-
+	$(INSTALL_PROGRAM) $(RP_DIR)/bin/voronoi $(bindir)/voronoi
+	if "$(RP_DIR)/lib" != "$(libdir)" ; then \
+	   $(INSTALL_DATA) $(RP_DIR)/lib/librappture2.so \
+		$(libdir)/librappture2.so ; \
+	   $(INSTALL_DATA) $(RP_DIR)/lib/libz.so $(libdir)/libz.so ; \
+	   $(INSTALL_DATA) $(RP_DIR)/lib/libb64.so $(libdir)/libb64.so ; \
+	fi
 
 clean:
 	$(MAKE) -C $(MAT_DIR) clean
