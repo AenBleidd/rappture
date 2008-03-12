@@ -36,6 +36,8 @@ SHELL=/bin/sh
 EXE=
 
 prefix = @prefix@
+datadir = @datadir@
+datarootdir = @datarootdir@
 exec_prefix = ${prefix}
 libdir = ${exec_prefix}/lib
 includedir = ${prefix}/include

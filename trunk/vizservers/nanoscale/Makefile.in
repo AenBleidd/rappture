@@ -5,7 +5,8 @@ CFLAGS          = @CFLAGS@
 LDFLAGS         = @LDFLAGS@
 
 bindir          = @bindir@
-datadir		= @datarootdir@
+datadir		= @datadir@
+dataroootdir	= @datarootdir@
 exec_prefix     = @exec_prefix@
 includedir      = @includedir@
 libdir          = @libdir@
