@@ -40,7 +40,15 @@ proc Rappture::library {args} {
             error "wrong # args: should be \"library isvalid object\""
         }
         set obj [lindex $args 1]
-        if {[catch {$obj isa ::Rappture::LibraryObj} valid] == 0 && $valid} {
+        #
+        # BE CAREFUL with the object test:
+        # The command should look like a LibraryObj formed by #auto.
+        # We want to avoid things like "split" or "set", which are
+        # valid Tcl commands but won't respond well to isa.
+        #
+        if {[regexp {libraryObj[0-9]+$} $obj]
+              && [catch {$obj isa ::Rappture::LibraryObj} valid] == 0
+              && $valid} {
             return 1
         }
         return 0
