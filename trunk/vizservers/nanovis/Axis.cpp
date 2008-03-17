@@ -127,6 +127,7 @@ Axis::Axis(const char *name) :
     _reqMin = _reqMax = _NaN;
     _range = 0.0, _scale = 0.0;
     _reqStep = 0.0;
+    _flags = AUTOSCALE;
 }
 
 /*

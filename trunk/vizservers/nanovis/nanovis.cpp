@@ -855,22 +855,19 @@ NanoVis::bmp_write_to_file(int frame_number, char* directory_name)
     char filename[100];
     if (frame_number >= 0) {
     	if (directory_name)
-	        sprintf(filename, "%s/image%03d.bmp", directory_name, frame_number);
+	    sprintf(filename, "%s/image%03d.bmp", directory_name, frame_number);
 	else
-	        sprintf(filename, "/tmp/flow_animation/image%03d.bmp", frame_number);
+	    sprintf(filename, "/tmp/flow_animation/image%03d.bmp", frame_number);
 
         printf("Writing %s\n", filename);
         f = fopen(filename, "wb");
-	if (f == 0)
-	{
-		Trace("cannot create file\n");
+	if (f == 0) {
+	    Trace("cannot create file\n");
 	}
-    }
-    else {
+    } else {
         f = fopen("/tmp/image.bmp", "wb");
-	if (f == 0)
-	{
-		Trace("cannot create file\n");
+	if (f == 0) {
+	    Trace("cannot create file\n");
 	}
     }
     fwrite((void*) header, sizeof(header), 1, f);
