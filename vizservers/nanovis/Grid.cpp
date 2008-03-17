@@ -3,11 +3,12 @@
 #include "Grid.h"
 
 #define NUMDIGITS	6
+#define GRID_TICK	0.05
 
 Grid::Grid() : 
     _axisColor(1.0f, 1.0f, 1.0f, 1.0f), 
     _majorColor(1.0f, 1.0f, 1.0f, 1.0f), 
-    _minorColor(0.7f, 0.7f, 0.7f, 1.0f), 
+    _minorColor(0.5f, 0.5f, 0.5f, 1.0f), 
     _font(0), 
     _visible(false),
     xAxis("X"), 
@@ -42,11 +43,11 @@ void Grid::render()
     glBegin(GL_LINES);
     {
 	glVertex3f(0.0f, 0.0f, 0.0f);
-	glVertex3f(1.15f, 0.0f, 0.0f);
+	glVertex3f(1.0f + GRID_TICK, 0.0f, 0.0f);
 	glVertex3f(0.0f, 0.0f, 0.0f);
-	glVertex3f(0.0f, 1.15f, 0.0f);
+	glVertex3f(0.0f, 1.0f + GRID_TICK, 0.0f);
 	glVertex3f(0.0f, 0.0f, 0.0f);
-	glVertex3f(0.0f, 0.0f, 1.15f);
+	glVertex3f(0.0f, 0.0f, 1.0f + GRID_TICK);
     }
     glEnd();
 
@@ -65,13 +66,13 @@ void Grid::render()
 	    glVertex3f(x, 0.0f, 0.0f);
 	    glVertex3f(x, 1.0f, 0.0f);
 	    glVertex3f(x, 0.0f, 0.0f);
-	    glVertex3f(x, 0.0f, 1.1f);
+	    glVertex3f(x, 0.0f, 1.0f + GRID_TICK);
 	}
 	for (result = yAxis.FirstMajor(iter); result; result = iter.Next()) {
 	    float y;
 	    y = yAxis.Map(iter.GetValue());
 	    glVertex3f(0.0f, y, 0.0f);
-	    glVertex3f(1.1f, y, 0.0f);
+	    glVertex3f(1.0f + GRID_TICK, y, 0.0f);
 	    glVertex3f(0.0f, y, 0.0f);
 	    glVertex3f(0.0f, y, 1.0f);
 	}
@@ -81,7 +82,7 @@ void Grid::render()
 	    glVertex3f(0.0f, 0.0f, z);
 	    glVertex3f(0.0f, 1.0f, z);
 	    glVertex3f(0.0f, 0.0f, z);
-	    glVertex3f(1.1f, 0.0f, z);
+	    glVertex3f(1.0f + GRID_TICK, 0.0f, z);
 	}
     }
     glEnd();
@@ -157,7 +158,7 @@ void Grid::render()
 	for (result = xAxis.FirstMajor(iter); result; result = iter.Next()) {
 	    float x;
 	    x = xAxis.Map(iter.GetValue());
-	    if (gluProject(x, 0.0f, 1.11f, mv, prjm, viewport, &wx, &wy, &wz)) {
+	    if (gluProject(x, 0.0f, 1.06f, mv, prjm, viewport, &wx, &wy, &wz)) {
 		char buff[20];
 		glLoadIdentity();
 		glTranslatef((int) wx, (int) viewport[3] - (int)wy, 0.0f);
@@ -168,7 +169,7 @@ void Grid::render()
 	for (result = yAxis.FirstMajor(iter); result; result = iter.Next()) {
 	    float y;
 	    y = yAxis.Map(iter.GetValue());
-	    if (gluProject(1.11f, y, 0.0f, mv, prjm, viewport, &wx, &wy, &wz)) {
+	    if (gluProject(1.06f, y, 0.0f, mv, prjm, viewport, &wx, &wy, &wz)) {
 		char buff[20];
 		glLoadIdentity();
 		glTranslatef((int) wx, (int) viewport[3] - (int)wy, 0.0f);
@@ -179,7 +180,7 @@ void Grid::render()
 	for (result = zAxis.FirstMajor(iter); result; result = iter.Next()) {
 	    float z;
 	    z = zAxis.Map(iter.GetValue());
-	    if (gluProject(1.11f, 0.0f, z, mv, prjm, viewport, &wx, &wy, &wz)) {
+	    if (gluProject(1.06f, 0.0f, z, mv, prjm, viewport, &wx, &wy, &wz)) {
 		char buff[20];
 		glLoadIdentity();
 		glTranslatef((int) wx, (int) viewport[3] - (int)wy, 0.0f);
