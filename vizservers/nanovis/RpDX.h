@@ -45,6 +45,7 @@ public:
     virtual float dataMax() const;
     virtual float nzero_min() const;
 
+    virtual DX& interpolate(int* newAxisLen);
     virtual int n() const;
     virtual int rank() const;
     virtual int shape() const;
@@ -71,8 +72,10 @@ private:
 
     Object _dxobj;
 
-    void __findPosDeltaMax();
-    void __getInterpData2();
+    void __findPosMax();
+    void __collectDataStats();
+    void __getInterpPos();
+    void __getInterpData();
 
 
 };
