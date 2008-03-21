@@ -88,13 +88,15 @@ load_volume_stream_odx(int index, const char *buf, int nBytes)
     Volume *volPtr;
     volPtr = NanoVis::load_volume(index, nx, ny, nz, 4, data,
                                   dxObj.dataMin(), dxObj.dataMax(), dxObj.nzero_min());
-#ifdef notdef
-    volPtr->SetRange(AxisRange::X, x0, x0 + (nx * ddx));
-    volPtr->SetRange(AxisRange::Y, y0, y0 + (ny * ddy));
-    volPtr->SetRange(AxisRange::Z, z0, z0 + (nz * ddz));
-#endif
+    const float *origin = dxObj.origin();
+    const float *max = dxObj.max();
 
+    volPtr->xAxis.SetRange(origin[0], max[0]);
+    volPtr->yAxis.SetRange(origin[1], max[1]);
+    volPtr->zAxis.SetRange(origin[2], max[2]);
+    volPtr->wAxis.SetRange(origin[2], max[2]);
     volPtr->update_pending = true;
+
     delete [] data;
 
     //

@@ -54,6 +54,7 @@ load_vector_stream(int index, std::istream& fin)
     char line[128], type[128], *start;
 
     dx = dy = dz = 0.0;         // Suppress compiler warning.
+    x0 = y0 = z0 = 0.0;		// May not have an origin line.
     while (!fin.eof()) {
         fin.getline(line, sizeof(line) - 1);
         if (fin.fail()) {
@@ -194,10 +195,10 @@ load_vector_stream(int index, std::istream& fin)
         volPtr = NanoVis::load_volume(index, nx, ny, nz, 3, data, vmin, vmax,
                     nzero_min);
 
-        volPtr->xAxis.SetRange(x0, x0 + (nx * ddx));
-        volPtr->yAxis.SetRange(y0, y0 + (ny * ddy));
-        volPtr->zAxis.SetRange(z0, z0 + (nz * ddz));
-        volPtr->wAxis.SetRange(y0, y0 + (ny * ddy));
+        volPtr->xAxis.SetRange(x0, x0 + (nx * dx));
+        volPtr->yAxis.SetRange(y0, y0 + (ny * dy));
+        volPtr->zAxis.SetRange(z0, z0 + (nz * dz));
+        volPtr->wAxis.SetRange(y0, y0 + (ny * dy));
         volPtr->update_pending = true;
         delete [] data;
     } else {
@@ -220,6 +221,7 @@ load_volume_stream2(int index, std::iostream& fin)
 
     int isrect = 1;
     dx = dy = dz = 0.0;         // Suppress compiler warning.
+    x0 = y0 = z0 = 0.0;		// May not have an origin line.
     do {
         fin.getline(line,sizeof(line)-1);
         for (start=&line[0]; *start == ' ' || *start == '\t'; start++)
@@ -410,19 +412,11 @@ load_volume_stream2(int index, std::iostream& fin)
             Volume *volPtr;
             volPtr = NanoVis::load_volume(index, nx, ny, nz, 4, data,
                       vmin, vmax, nzero_min);
-#ifdef notdef
-            fprintf(stderr, "x nx=%d ddx=%g min=%g max=%g\n", nx, ddx,
-                    x0, x0 + (nx * ddx));
-            fflush(stderr);
-            volPtr->xAxis.SetRange(x0, x0 + (nx * ddx));
-            volPtr->yAxis.SetRange(y0, y0 + (ny * ddy));
-            volPtr->zAxis.SetRange(z0, z0 + (nz * ddz));
-#else 
-            volPtr->xAxis.SetRange(-20.0, 108.0);
-            volPtr->yAxis.SetRange(0.001, 102.2);
-            volPtr->zAxis.SetRange(-21, 19);
-#endif
-            volPtr->update_pending = true;
+            volPtr->xAxis.SetRange(x0, x0 + (nx * dx));
+            volPtr->yAxis.SetRange(y0, y0 + (ny * dy));
+            volPtr->zAxis.SetRange(z0, z0 + (nz * dz)); 
+            volPtr->wAxis.SetRange(z0, z0 + (nz * dz));
+	    volPtr->update_pending = true;
             delete [] data;
 
         } else {
@@ -559,17 +553,13 @@ load_volume_stream2(int index, std::iostream& fin)
             Volume *volPtr;
             volPtr = NanoVis::load_volume(index, nx, ny, nz, 4, data,
                         field.valueMin(), field.valueMax(), nzero_min);
-#ifdef notdef
-            fprintf(stderr, "x min=%g max=%g\n",
-                    field.rangeMin(Rappture::xaxis),
-                    field.rangeMax(Rappture::xaxis));
-            fflush(stderr);
-#endif
             volPtr->xAxis.SetRange(field.rangeMin(Rappture::xaxis),
                    field.rangeMax(Rappture::xaxis));
             volPtr->yAxis.SetRange(field.rangeMin(Rappture::yaxis),
                    field.rangeMax(Rappture::yaxis));
             volPtr->zAxis.SetRange(field.rangeMin(Rappture::zaxis),
+                   field.rangeMax(Rappture::zaxis));
+            volPtr->wAxis.SetRange(field.rangeMin(Rappture::zaxis),
                    field.rangeMax(Rappture::zaxis));
             volPtr->update_pending = true;
             delete [] data;
@@ -602,6 +592,7 @@ load_volume_stream(int index, std::iostream& fin)
     int isrect = 1;
 
     dx = dy = dz = 0.0;         // Suppress compiler warning.
+    x0 = y0 = z0 = 0.0;		// May not have an origin line.
     while (!fin.eof()) {
         fin.getline(line, sizeof(line) - 1);
         if (fin.fail()) {
@@ -809,6 +800,8 @@ load_volume_stream(int index, std::iostream& fin)
                    field.rangeMax(Rappture::yaxis));
             volPtr->zAxis.SetRange(field.rangeMin(Rappture::zaxis),
                    field.rangeMax(Rappture::zaxis));
+            volPtr->wAxis.SetRange(field.rangeMin(Rappture::zaxis),
+                   field.rangeMax(Rappture::zaxis));
             volPtr->update_pending = true;
             // TBD..
             // POINTSET
@@ -955,6 +948,8 @@ load_volume_stream(int index, std::iostream& fin)
             volPtr->yAxis.SetRange(field.rangeMin(Rappture::yaxis),
                    field.rangeMax(Rappture::yaxis));
             volPtr->zAxis.SetRange(field.rangeMin(Rappture::zaxis),
+                   field.rangeMax(Rappture::zaxis));
+            volPtr->wAxis.SetRange(field.rangeMin(Rappture::zaxis),
                    field.rangeMax(Rappture::zaxis));
             volPtr->update_pending = true;
             // TBD..
