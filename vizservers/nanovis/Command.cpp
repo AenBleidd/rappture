@@ -930,7 +930,7 @@ LegendCmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *CONST *objv)
     if (volPtr->update_pending) {
 	NanoVis::SetVolumeRanges();
     }
-    NanoVis::render_legend(tf, Volume::valueMin, Volume::valueMin, w, h, label);
+    NanoVis::render_legend(tf, Volume::valueMin, Volume::valueMax, w, h, label);
     return TCL_OK;
 }
 
@@ -1936,8 +1936,7 @@ HeightMapDataFollowsOp(ClientData cdata, Tcl_Interp *interp, int objc,
     int result;
     result = Tcl_Eval(interp, buf.bytes());
     if (result != TCL_OK) {
-        fprintf(stderr, "error in command: %s\n", 
-                Tcl_GetStringResult(interp));
+        fprintf(stderr, "error in command: %s\n", Tcl_GetStringResult(interp));
         fflush(stderr);
     }
     return result;
