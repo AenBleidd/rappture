@@ -20,10 +20,10 @@
 
 using namespace Rappture;
 
-DX::DX(const char* filename) : 
-    _dataMin(0),
-    _dataMax(0),
-    _nzero_min(0),
+DX::DX(const char* filename) :
+    _dataMin(1e21),
+    _dataMax(1e-21),
+    _nzero_min(1e21),
     _numAxis(0),
     _axisLen(NULL),
     _data(NULL),
@@ -35,17 +35,19 @@ DX::DX(const char* filename) :
     _max(NULL),
     _origin(NULL)
 {
-    Array dxarr;
+    Array dxpos;
+    Array dxdata;
+    Array dxgrid;
     // category and type are probably not needed
     // we keep them around in case they hold useful info for the future
     // we could replace them with NULL inthe DXGetArrayInfo fxn call
     Category category;
     Type type;
-    
+
     if (filename == NULL) {
         // error
     }
-    
+
     // open the file with libdx
     fprintf(stdout, "Calling DXImportDX(%s)\n", filename);
     fflush(stdout);
@@ -55,29 +57,62 @@ DX::DX(const char* filename) :
     fflush(stdout);
 
     // parse out the positions array
-    dxarr = (Array) DXGetComponentValue((Field) _dxobj, (char *)"positions");
-    DXGetArrayInfo(dxarr, &_n, &type, &category, &_rank, &_shape);
+    // FIXME: nanowire will need a different way to parse out the positions array
+    // since it uses a productarray to store its positions.
+    // possibly use DXGetProductArray()
+    dxpos = (Array) DXGetComponentValue((Field) _dxobj, (char *)"positions");
+    DXGetArrayInfo(dxpos, &_n, &type, &category, &_rank, &_shape);
 
-    _positions = (float*) DXGetArrayData(dxarr);
-    if (_positions == NULL) {
+    fprintf(stdout, "_n = %d\n",_n);
+    fprintf(stdout, "_rank = %d\n",_rank);
+    fprintf(stdout, "_shape = %d\n",_shape);
+
+    float* pos = NULL;
+    pos = (float*) DXGetArrayData(dxpos);
+    if (pos == NULL) {
         fprintf(stdout, "DXGetArrayData failed to return positions array\n");
         fflush(stdout);
     }
 
-    _numAxis = _rank*_shape;
+    // first call to get the number of axis needed
+    dxgrid = (Array) DXGetComponentValue((Field) _dxobj, (char *)"connections");
+    if (DXQueryGridConnections(dxgrid, &_numAxis, NULL) == NULL) {
+        // raise error, data is not a regular grid and we cannot handle it
+        fprintf(stdout,"DX says our grid is not regular, we cannot handle this data\n");
+        fflush(stdout);
+    }
+
+    _positions = new float[_n*_numAxis];
+    if (_positions == NULL) {
+        // malloc failed, raise error
+        fprintf(stdout, "malloc of _positions array failed");
+        fflush(stdout);
+    }
+    memcpy(_positions,pos,sizeof(float)*_n*_numAxis);
+
     _axisLen = new int[_numAxis];
     if (_axisLen == NULL) {
         // malloc failed, raise error
         fprintf(stdout, "malloc of _axisLen array failed");
         fflush(stdout);
     }
+    memset(_axisLen, 0, _numAxis);
 
-    _delta = new float[_numAxis];
+    _delta = new float[_numAxis*_numAxis];
     if (_delta == NULL) {
         // malloc failed, raise error
         fprintf(stdout, "malloc of _delta array failed");
         fflush(stdout);
     }
+    memset(_delta, 0, _numAxis*_numAxis);
+
+    _origin = new float[_numAxis];
+    if (_origin == NULL) {
+        // malloc failed, raise error
+        fprintf(stdout, "malloc of _origin array failed");
+        fflush(stdout);
+    }
+    memset(_origin, 0, _numAxis);
 
     _max = new float[_numAxis];
     if (_max == NULL) {
@@ -85,35 +120,45 @@ DX::DX(const char* filename) :
         fprintf(stdout, "malloc of _max array failed");
         fflush(stdout);
     }
+    memset(_max, 0, _numAxis);
 
-    __findPosDeltaMax();
+    __findPosMax();
 
-    for (int lcv = 0; lcv < _numAxis; lcv++) {
-        if (_delta[lcv] == 0) {
-            // div by 0, raise error
-            fprintf(stdout, "delta is 0, can't divide by zero\n");
-            fflush(stdout);
-        }
-        // FIXME: find a way to grab the number of points per axis in dx
-        // this is a horrible way to find the number of points
-        // per axis and only works when each axis has equal number of pts
-        _axisLen[lcv] = (int)ceil(pow((double)_n,(double)(1.0/_numAxis)));
+    // parse out the gridconnections (length of each axis) array
+    // dxgrid = (Array) DXQueryGridConnections(dxpos, &_numAxis, _axisLen);
+    DXQueryGridPositions(dxpos, NULL, _axisLen, _origin, _delta);
 
-    }
-
-    fprintf(stdout, "_max = [%lg,%lg,%lg]\n",_max[0],_max[1],_max[2]);
-    fprintf(stdout, "_delta = [%lg,%lg,%lg]\n",_delta[0],_delta[1],_delta[2]);
+    fprintf(stdout, "_max = [%g,%g,%g]\n",_max[0],_max[1],_max[2]);
+    fprintf(stdout, "_delta = [%g,%g,%g]\n",_delta[0],_delta[1],_delta[2]);
+    fprintf(stdout, "         [%g,%g,%g]\n",_delta[3],_delta[4],_delta[5]);
+    fprintf(stdout, "         [%g,%g,%g]\n",_delta[6],_delta[7],_delta[8]);
+    fprintf(stdout, "_origin = [%g,%g,%g]\n",_origin[0],_origin[1],_origin[2]);
     fprintf(stdout, "_axisLen = [%i,%i,%i]\n",_axisLen[0],_axisLen[1],_axisLen[2]);
     fflush(stdout);
 
+    // grab the data array from the dx object and store it in _data
+    float *data = NULL;
+    dxdata = (Array) DXGetComponentValue((Field) _dxobj, (char *)"data");
+    data = (float*) DXGetArrayData(dxdata);
     _data = new float[_n];
     if (_data == NULL) {
         // malloc failed, raise error
         fprintf(stdout, "malloc of _data array failed");
         fflush(stdout);
     }
+    memcpy(_data,data,sizeof(float)*_n);
 
-    __getInterpData2();
+    // print debug info
+    for (int lcv = 0, pt = 0; lcv < _n; lcv+=3,pt+=9) {
+        fprintf(stdout,
+            "(%f,%f,%f)|->% 8e\n(%f,%f,%f)|->% 8e\n(%f,%f,%f)|->% 8e\n",
+            _positions[pt],_positions[pt+1],_positions[pt+2], _data[lcv],
+            _positions[pt+3],_positions[pt+4],_positions[pt+5],_data[lcv+1],
+            _positions[pt+6],_positions[pt+7],_positions[pt+8],_data[lcv+2]);
+        fflush(stdout);
+    }
+
+    __collectDataStats();
 
 }
 
@@ -121,42 +166,111 @@ DX::~DX()
 {
     delete[] _axisLen;
     delete[] _delta;
+    delete[] _origin;
     delete[] _max;
     delete[] _data;
     delete[] _positions;
 }
 
 void
-DX::__findPosDeltaMax()
+DX::__findPosMax()
 {
     int lcv = 0;
 
     // initialize the max array and delta array
     // max holds the maximum value found for each index
-    // delta holds the difference between each entry's value
     for (lcv = 0; lcv < _numAxis; lcv++) {
         _max[lcv] = _positions[lcv];
-        _delta[lcv] = _positions[lcv];
     }
 
     for (lcv=lcv; lcv < _n*_numAxis; lcv++) {
-        if (_positions[lcv] > _max[lcv%_numAxis]) {
-            _max[lcv%_numAxis] = _positions[lcv];
-        }
-        if (_delta[lcv%_numAxis] == _positions[lcv%_numAxis]) {
-            if (_positions[lcv] != _positions[lcv-_numAxis]) {
-                _delta[lcv%_numAxis] = _positions[lcv] - _positions[lcv-_numAxis];
-            }
+        int maxIdx = lcv%_numAxis;
+        if (_positions[lcv] > _max[maxIdx]) {
+            _max[maxIdx] = _positions[lcv];
         }
     }
 }
 
 void
-DX::__getInterpData2()
+DX::__collectDataStats()
+{
+    _dataMin = 1e21;
+    _dataMax = 1e-21;
+    _nzero_min = 1e21;
+
+    // populate _dataMin, _dataMax, _nzero_min
+    for (int lcv = 0; lcv < _n; lcv=lcv+3) {
+        if (_data[lcv] < _dataMin) {
+            _dataMin = _data[lcv];
+        }
+        if (_data[lcv] > _dataMax) {
+            _dataMax = _data[lcv];
+        }
+        if ((_data[lcv] != 0) && (_data[lcv] < _nzero_min)) {
+            _nzero_min = _data[lcv];
+        }
+    }
+}
+
+/*
+ * getInterpPos()
+ *
+ * creates a new grid of positions which can be used for interpolation.
+ * we create the positions array using the function DXMakeGridPositionsV
+ * which creates an n-dimensional grid of regularly spaced positions.
+ * This function overwrites the original positions array
+ */
+void
+DX::__getInterpPos()
+{
+    Array dxpos;
+    float* pos = NULL;
+
+    // gather the positions we want to interpolate over
+    dxpos = DXMakeGridPositionsV(_numAxis, _axisLen, _origin, _delta);
+    DXGetArrayInfo(dxpos, &_n, NULL, NULL, &_rank, &_shape);
+    pos = (float*) DXGetArrayData(dxpos);
+    if (pos == NULL) {
+        fprintf(stdout, "DXGetArrayData failed to return positions array\n");
+        fflush(stdout);
+    }
+
+    if (_positions != NULL) {
+        delete[] _positions;
+    }
+    _positions = new float[_n*_numAxis];
+    if (_positions == NULL) {
+        // malloc failed, raise error
+        fprintf(stdout, "malloc of _axisLen array failed");
+        fflush(stdout);
+    }
+    memcpy(_positions,pos,sizeof(float)*_n*_numAxis);
+
+    pos = NULL;
+    DXDelete((object*)dxpos);
+}
+
+/*
+ * getInterpData()
+ *
+ * this function interpolates over a positions array to produce data for each
+ * point in the positions array. we use the position data stored in _positions
+ * array.
+ */
+void
+DX::__getInterpData()
 {
     int pts = _n;
     int interppts = pts;
     Interpolator interpolator;
+
+    _data = new float[_n];
+    if (_data == NULL) {
+        // malloc failed, raise error
+        fprintf(stdout, "malloc of _data array failed");
+        fflush(stdout);
+    }
+    memset(_data,0,_n);
 
     // build the interpolator and interpolate
     fprintf(stdout, "creating DXNewInterpolator...\n");
@@ -182,19 +296,33 @@ DX::__getInterpData2()
         fflush(stdout);
     }
 
-    for (int lcv = 0; lcv < pts; lcv=lcv+3) {
-        if (_data[lcv] < _dataMin) {
-            _dataMin = _data[lcv];
-            if (_dataMin != 0) {
-                _nzero_min = _dataMin;
-            }
-        }
-        if (_data[lcv] > _dataMax) {
-            _dataMax = _data[lcv];
-        }
-    }
+    __collectDataStats();
 }
 
+/*
+ * interpolate()
+ *
+ * generate a positions array with optional new axis length and
+ * interpolate to get the new data values at each point in
+ * the positions array. this function currently only works if you
+ * do not change the axis length (i.e. newAxisLen == NULL).
+ */
+DX&
+DX::interpolate(int* newAxisLen)
+{
+    fprintf(stdout, "----begin interpolation----\n");
+    fflush(stdout);
+    if (newAxisLen != NULL) {
+        for (int i = 0; i < _numAxis; i++) {
+            _axisLen[i] = newAxisLen[i];
+        }
+    }
+    __getInterpPos();
+    __getInterpData();
+    fprintf(stdout, "----end interpolation----\n");
+    fflush(stdout);
+    return *this;
+}
 
 int
 DX::n() const
@@ -267,6 +395,3 @@ DX::nzero_min() const
 {
     return _nzero_min;
 }
-
-
-

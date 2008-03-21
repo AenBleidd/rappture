@@ -169,10 +169,10 @@ load_vector_stream(int index, std::istream& fin)
 
                     double vm;
                     vm = sqrt(vx*vx + vy*vy + vz*vz);
-                    if (vm < vmin) { 
-                        vmin = vm; 
-                    } else if (vm > vmax) { 
-                        vmax = vm; 
+                    if (vm < vmin) {
+                        vmin = vm;
+                    } else if (vm > vmax) {
+                        vmax = vm;
                     }
                     if ((vm != 0.0f) && (vm < nzero_min)) {
                         nzero_min = vm;
@@ -194,11 +194,11 @@ load_vector_stream(int index, std::istream& fin)
         volPtr = NanoVis::load_volume(index, nx, ny, nz, 3, data, vmin, vmax,
                     nzero_min);
 
-	volPtr->xAxis.SetRange(x0, x0 + (nx * ddx));
+        volPtr->xAxis.SetRange(x0, x0 + (nx * ddx));
         volPtr->yAxis.SetRange(y0, y0 + (ny * ddy));
         volPtr->zAxis.SetRange(z0, z0 + (nz * ddz));
         volPtr->wAxis.SetRange(y0, y0 + (ny * ddy));
-	volPtr->update_pending = true;
+        volPtr->update_pending = true;
         delete [] data;
     } else {
         std::cerr << "WARNING: data not found in stream" << std::endl;
@@ -356,10 +356,10 @@ load_volume_stream2(int index, std::iostream& fin)
                     data[nindex] = dval[p];
 
                     if (dval[p] < vmin) {
-            vmin = dval[p];
-            } else if (dval[p] > vmax) {
-            vmax = dval[p];
-            }
+                        vmin = dval[p];
+                    } else if (dval[p] > vmax) {
+                        vmax = dval[p];
+                    }
                     if (dval[p] != 0.0f && dval[p] < nzero_min) {
                         nzero_min = dval[p];
                     }
@@ -390,74 +390,38 @@ load_volume_stream2(int index, std::iostream& fin)
             printf("test2\n");
             fflush(stdout);
             if (dv == 0.0) {
-        dv = 1.0;
-        }
-            for (int i = 0; i < count; ++i) {
-        v = data[ngen];
-        // scale all values [0-1], -1 => out of bounds
-        v = (isnan(v)) ? -1.0 : (v - vmin)/dv;
-        data[ngen] = v;
-        ngen += 4;
-        }
-            // Compute the gradient of this data.  BE CAREFUL: center
-            // calculation on each node to avoid skew in either direction.
-            ngen = 0;
-            for (int iz=0; iz < nz; iz++) {
-                for (int iy=0; iy < ny; iy++) {
-                    for (int ix=0; ix < nx; ix++) {
-                        // gradient in x-direction
-                        double valm1 = (ix == 0) ? 0.0 : data[ngen - 4];
-                        double valp1 = (ix == nx-1) ? 0.0 : data[ngen + 4];
-                        if (valm1 < 0 || valp1 < 0) {
-                            data[ngen+1] = 0.0;
-                        } else {
-                            data[ngen+1] = valp1-valm1; // assume dx=1
-                            //data[ngen+1] = ((valp1-valm1) + 1) *  0.5; // assume dx=1
-                        }
-
-                        // gradient in y-direction
-                        valm1 = (iy == 0) ? 0.0 : data[ngen-4*nx];
-                        valp1 = (iy == ny-1) ? 0.0 : data[ngen+4*nx];
-                        if (valm1 < 0 || valp1 < 0) {
-                            data[ngen+2] = 0.0;
-                        } else {
-                            data[ngen+2] = valp1-valm1; // assume dx=1
-                            //data[ngen+2] = ((valp1-valm1) + 1) *  0.5; // assume dy=1
-                        }
-
-                        // gradient in z-direction
-                        valm1 = (iz == 0) ? 0.0 : data[ngen-4*nx*ny];
-                        valp1 = (iz == nz-1) ? 0.0 : data[ngen+4*nx*ny];
-                        if (valm1 < 0 || valp1 < 0) {
-                            data[ngen+3] = 0.0;
-                        } else {
-                            data[ngen+3] = valp1-valm1; // assume dx=1
-                            //data[ngen+3] = ((valp1-valm1) + 1.0) * 0.5; // assume dz=1
-                        }
-
-                        ngen += 4;
-                    }
-                }
+                dv = 1.0;
             }
+
+            for (int i = 0; i < count; ++i) {
+                v = data[ngen];
+                // scale all values [0-1], -1 => out of bounds
+                v = (isnan(v)) ? -1.0 : (v - vmin)/dv;
+                data[ngen] = v;
+                ngen += 4;
+            }
+
+            computeSimpleGradient(data, nx, ny, nz);
 
             dx = nx;
             dy = ny;
             dz = nz;
+
             Volume *volPtr;
             volPtr = NanoVis::load_volume(index, nx, ny, nz, 4, data,
-					  vmin, vmax, nzero_min);
-	    fprintf(stderr, "x nx=%d ddx=%g min=%g max=%g\n", nx, ddx,
-		    x0, x0 + (nx * ddx));
-	    fflush(stderr);
+                      vmin, vmax, nzero_min);
+            fprintf(stderr, "x nx=%d ddx=%g min=%g max=%g\n", nx, ddx,
+                    x0, x0 + (nx * ddx));
+            fflush(stderr);
 #ifdef notdef
-	    volPtr->xAxis.SetRange(x0, x0 + (nx * ddx));
-	    volPtr->yAxis.SetRange(y0, y0 + (ny * ddy));
-	    volPtr->zAxis.SetRange(z0, z0 + (nz * ddz));
+            volPtr->xAxis.SetRange(x0, x0 + (nx * ddx));
+            volPtr->yAxis.SetRange(y0, y0 + (ny * ddy));
+            volPtr->zAxis.SetRange(z0, z0 + (nz * ddz));
 #endif
-	    volPtr->xAxis.SetRange(-20.0, 108.0);
-	    volPtr->yAxis.SetRange(0.001, 102.2);
-	    volPtr->zAxis.SetRange(-21, 19);
-	    volPtr->update_pending = true;
+            volPtr->xAxis.SetRange(-20.0, 108.0);
+            volPtr->yAxis.SetRange(0.001, 102.2);
+            volPtr->zAxis.SetRange(-21, 19);
+            volPtr->update_pending = true;
             delete [] data;
 
         } else {
@@ -544,6 +508,12 @@ load_volume_stream2(int index, std::iostream& fin)
                 }
             }
 
+            // FIXME: This next section of code should be replaced by a
+            // call to the computeSimpleGradient() function. There is a slight
+            // difference in the code below and the aforementioned function
+            // in that the commented out lines in the else statements are
+            // different.
+            //
             // Compute the gradient of this data.  BE CAREFUL: center
             // calculation on each node to avoid skew in either direction.
             ngen = 0;
@@ -587,18 +557,18 @@ load_volume_stream2(int index, std::iostream& fin)
 
             Volume *volPtr;
             volPtr = NanoVis::load_volume(index, nx, ny, nz, 4, data,
-		field.valueMin(), field.valueMax(), nzero_min);
-	    fprintf(stderr, "x min=%g max=%g\n", 
-		    field.rangeMin(Rappture::xaxis), 
-		    field.rangeMax(Rappture::xaxis));
-	    fflush(stderr);
-	    volPtr->xAxis.SetRange(field.rangeMin(Rappture::xaxis), 
-			       field.rangeMax(Rappture::xaxis));
-	    volPtr->yAxis.SetRange(field.rangeMin(Rappture::yaxis), 
-			       field.rangeMax(Rappture::yaxis));
-	    volPtr->zAxis.SetRange(field.rangeMin(Rappture::zaxis), 
-			       field.rangeMax(Rappture::zaxis));
-	    volPtr->update_pending = true;
+                        field.valueMin(), field.valueMax(), nzero_min);
+            fprintf(stderr, "x min=%g max=%g\n",
+                    field.rangeMin(Rappture::xaxis),
+                    field.rangeMax(Rappture::xaxis));
+            fflush(stderr);
+            volPtr->xAxis.SetRange(field.rangeMin(Rappture::xaxis),
+                   field.rangeMax(Rappture::xaxis));
+            volPtr->yAxis.SetRange(field.rangeMin(Rappture::yaxis),
+                   field.rangeMax(Rappture::yaxis));
+            volPtr->zAxis.SetRange(field.rangeMin(Rappture::zaxis),
+                   field.rangeMax(Rappture::zaxis));
+            volPtr->update_pending = true;
             delete [] data;
         }
     } else {
@@ -749,8 +719,8 @@ load_volume_stream(int index, std::iostream& fin)
                 for (int p=0; p < n; p++) {
                     int nindex = iz*nx*ny + iy*nx + ix;
                     field.define(nindex, dval[p]);
-                    fprintf(stderr,"nindex = %i\tdval[%i] = %lg\n", nindex, p, 
-			    dval[p]);
+                    fprintf(stderr,"nindex = %i\tdval[%i] = %lg\n", nindex, p,
+                        dval[p]);
                     fflush(stderr);
                     nread++;
                     if (++iz >= nz) {
@@ -820,89 +790,23 @@ load_volume_stream(int index, std::iostream& fin)
                 fprintf(stderr,"enddata[%i] = %lg\n",i,data[i]);
                 fflush(stderr);
             }
-            // Compute the gradient of this data.  BE CAREFUL: center
-            /*
-              float *data = new float[4*nx*ny*nz];
 
-              double vmin = field.valueMin();
-              double dv = field.valueMax() - field.valueMin();
-              if (dv == 0.0) { dv = 1.0; }
-
-              // generate the uniformly sampled data that we need for a volume
-              int ngen = 0;
-              double nzero_min = 0.0;
-              for (int iz=0; iz < nz; iz++) {
-              double zval = z0 + iz*dmin;
-              for (int iy=0; iy < ny; iy++) {
-              double yval = y0 + iy*dmin;
-              for (int ix=0; ix < nx; ix++) {
-              double xval = x0 + ix*dmin;
-              double v = field.value(xval,yval,zval);
-
-              if (v != 0.0f && v < nzero_min)
-              {
-              nzero_min = v;
-              }
-
-              // scale all values [0-1], -1 => out of bounds
-              v = (isnan(v)) ? -1.0 : (v - vmin)/dv;
-
-              data[ngen] = v;
-              ngen += 4;
-              }
-              }
-              }
-              // Compute the gradient of this data.  BE CAREFUL: center
-              // calculation on each node to avoid skew in either direction.
-              ngen = 0;
-              for (int iz=0; iz < nz; iz++) {
-              for (int iy=0; iy < ny; iy++) {
-              for (int ix=0; ix < nx; ix++) {
-              // gradient in x-direction
-              double valm1 = (ix == 0) ? 0.0 : data[ngen-4];
-              double valp1 = (ix == nx-1) ? 0.0 : data[ngen+4];
-              if (valm1 < 0 || valp1 < 0) {
-              data[ngen+1] = 0.0;
-              } else {
-              data[ngen+1] = ((valp1-valm1) + 1) *  0.5; // assume dx=1
-              }
-
-              // gradient in y-direction
-              valm1 = (iy == 0) ? 0.0 : data[ngen-4*nx];
-              valp1 = (iy == ny-1) ? 0.0 : data[ngen+4*nx];
-              if (valm1 < 0 || valp1 < 0) {
-              data[ngen+2] = 0.0;
-              } else {
-              //data[ngen+2] = valp1-valm1; // assume dy=1
-              data[ngen+2] = ((valp1-valm1) + 1) *  0.5; // assume dx=1
-              }
-
-              // gradient in z-direction
-              valm1 = (iz == 0) ? 0.0 : data[ngen-4*nx*ny];
-              valp1 = (iz == nz-1) ? 0.0 : data[ngen+4*nx*ny];
-              if (valm1 < 0 || valp1 < 0) {
-              data[ngen+3] = 0.0;
-              } else {
-              //data[ngen+3] = valp1-valm1; // assume dz=1
-              data[ngen+3] = ((valp1-valm1) + 1) *  0.5; // assume dz=1
-              }
-
-              ngen += 4;
-              }
-              }
-              }
-            */
+            fprintf(stdout,"End Data Stats index = %i\n",index);
+            fprintf(stdout,"nx = %i ny = %i nz = %i\n",nx,ny,nz);
+            fprintf(stdout,"dx = %lg dy = %lg dz = %lg\n",dx,dy,dz);
+            fprintf(stdout,"dataMin = %lg\tdataMax = %lg\tnzero_min = %lg\n", field.valueMin(),field.valueMax(),nzero_min);
+            fflush(stdout);
 
             Volume *volPtr;
             volPtr = NanoVis::load_volume(index, nx, ny, nz, 4, data,
             field.valueMin(), field.valueMax(), nzero_min);
             volPtr->xAxis.SetRange(field.rangeMin(Rappture::xaxis),
-			       field.rangeMax(Rappture::xaxis));
+                   field.rangeMax(Rappture::xaxis));
             volPtr->yAxis.SetRange(field.rangeMin(Rappture::yaxis),
-			       field.rangeMax(Rappture::yaxis));
+                   field.rangeMax(Rappture::yaxis));
             volPtr->zAxis.SetRange(field.rangeMin(Rappture::zaxis),
-			       field.rangeMax(Rappture::zaxis));
-	    volPtr->update_pending = true;
+                   field.rangeMax(Rappture::zaxis));
+            volPtr->update_pending = true;
             // TBD..
             // POINTSET
             /*
@@ -1044,12 +948,12 @@ load_volume_stream(int index, std::iostream& fin)
             volPtr = NanoVis::load_volume(index, nx, ny, nz, 4, data,
             field.valueMin(), field.valueMax(), nzero_min);
             volPtr->xAxis.SetRange(field.rangeMin(Rappture::xaxis),
-			       field.rangeMax(Rappture::xaxis));
+                   field.rangeMax(Rappture::xaxis));
             volPtr->yAxis.SetRange(field.rangeMin(Rappture::yaxis),
-			       field.rangeMax(Rappture::yaxis));
+                   field.rangeMax(Rappture::yaxis));
             volPtr->zAxis.SetRange(field.rangeMin(Rappture::zaxis),
-			       field.rangeMax(Rappture::zaxis));
-	    volPtr->update_pending = true;
+                   field.rangeMax(Rappture::zaxis));
+            volPtr->update_pending = true;
             // TBD..
             // POINTSET
             /*

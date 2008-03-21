@@ -92,12 +92,12 @@ extern PlaneRenderer* plane_render;
 extern Texture2D* plane[10];
 
 extern Rappture::Outcome load_volume_stream(int index, std::iostream& fin);
-extern Rappture::Outcome load_volume_stream_odx(int index, const char *buf, 
-						int nBytes);
+extern Rappture::Outcome load_volume_stream_odx(int index, const char *buf,
+                        int nBytes);
 extern Rappture::Outcome load_volume_stream2(int index, std::iostream& fin);
-extern void load_volume(int index, int width, int height, int depth, 
-			int n_component, float* data, double vmin, double vmax, 
-			double nzero_min);
+extern void load_volume(int index, int width, int height, int depth,
+            int n_component, float* data, double vmin, double vmax,
+            double nzero_min);
 extern void load_vector_stream(int index, std::istream& fin);
 
 // Tcl interpreter for incoming messages
@@ -1263,17 +1263,17 @@ VolumeDataFollowsOp(ClientData cdata, Tcl_Interp *interp, int objc,
             NanoVis::volume.push_back((Volume*) NULL);
             NanoVis::n_volumes++;
         }
-        
+
         if (NanoVis::volume[n] != NULL) {
             delete NanoVis::volume[n];
             NanoVis::volume[n] = NULL;
         }
-        
+
         float dx0 = -0.5;
         float dy0 = -0.5*vol->height/vol->width;
         float dz0 = -0.5*vol->depth/vol->width;
         vol->move(Vector3(dx0, dy0, dz0));
-        
+
         NanoVis::volume[n] = vol;
 #if __TEST_CODE__
     } else if (strcmp(header, "<FET>") == 0) {
@@ -1289,23 +1289,22 @@ VolumeDataFollowsOp(ClientData cdata, Tcl_Interp *interp, int objc,
 #endif  /*__TEST_CODE__*/
     } else if (strcmp(header, "<ODX>") == 0) {
         Rappture::Outcome err;
-        
+
         printf("Loading DX using OpenDX library...\n");
         fflush(stdout);
         err = load_volume_stream_odx(n, buf.bytes()+5, buf.size()-5);
-        //err = load_volume_stream2(n, fdata);
         if (err) {
             Tcl_AppendResult(interp, err.remark().c_str(), (char*)NULL);
             return TCL_ERROR;
         }
     } else {
         Rappture::Outcome err;
-        
+
         printf("OpenDX loading...\n");
         fflush(stdout);
         std::stringstream fdata;
         fdata.write(buf.bytes(),buf.size());
-        
+
 #if ISO_TEST
         err = load_volume_stream2(n, fdata);
 #else
@@ -1316,7 +1315,7 @@ VolumeDataFollowsOp(ClientData cdata, Tcl_Interp *interp, int objc,
             return TCL_ERROR;
         }
     }
-    
+
     //
     // BE CAREFUL: Set the number of slices to something slightly different
     // for each volume.  If we have identical volumes at exactly the same
