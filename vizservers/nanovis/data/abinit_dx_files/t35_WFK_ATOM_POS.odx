@@ -1,0 +1,14 @@
+<ODX>#
+#
+#    BALL AND STICK INFO:
+#
+#
+object "atomcoord" array type float rank 1 shape 3 items     2 data follows
+   -0.0000000000   -0.0000000000   -0.0000000000
+    1.3516508907    1.3516508907    1.3516508907
+object "colorcode" array type float rank 0 items     2 data follows
+   14.0000
+   14.0000
+object "molecule" field
+component "positions" value "atomcoord"
+component "data" value "colorcode"
