@@ -410,17 +410,18 @@ load_volume_stream2(int index, std::iostream& fin)
             Volume *volPtr;
             volPtr = NanoVis::load_volume(index, nx, ny, nz, 4, data,
                       vmin, vmax, nzero_min);
+#ifdef notdef
             fprintf(stderr, "x nx=%d ddx=%g min=%g max=%g\n", nx, ddx,
                     x0, x0 + (nx * ddx));
             fflush(stderr);
-#ifdef notdef
             volPtr->xAxis.SetRange(x0, x0 + (nx * ddx));
             volPtr->yAxis.SetRange(y0, y0 + (ny * ddy));
             volPtr->zAxis.SetRange(z0, z0 + (nz * ddz));
-#endif
+#else 
             volPtr->xAxis.SetRange(-20.0, 108.0);
             volPtr->yAxis.SetRange(0.001, 102.2);
             volPtr->zAxis.SetRange(-21, 19);
+#endif
             volPtr->update_pending = true;
             delete [] data;
 
@@ -558,10 +559,12 @@ load_volume_stream2(int index, std::iostream& fin)
             Volume *volPtr;
             volPtr = NanoVis::load_volume(index, nx, ny, nz, 4, data,
                         field.valueMin(), field.valueMax(), nzero_min);
+#ifdef notdef
             fprintf(stderr, "x min=%g max=%g\n",
                     field.rangeMin(Rappture::xaxis),
                     field.rangeMax(Rappture::xaxis));
             fflush(stderr);
+#endif
             volPtr->xAxis.SetRange(field.rangeMin(Rappture::xaxis),
                    field.rangeMax(Rappture::xaxis));
             volPtr->yAxis.SetRange(field.rangeMin(Rappture::yaxis),
