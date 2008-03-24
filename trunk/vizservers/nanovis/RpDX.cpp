@@ -17,13 +17,14 @@
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <float.h>
 
 using namespace Rappture;
 
 DX::DX(const char* filename) :
-    _dataMin(1e21),
-    _dataMax(1e-21),
-    _nzero_min(1e21),
+    _dataMin(FLT_MAX),
+    _dataMax(-FLT_MAX),
+    _nzero_min(FLT_MAX),
     _numAxis(0),
     _axisLen(NULL),
     _data(NULL),
@@ -64,6 +65,11 @@ DX::DX(const char* filename) :
     DXGetArrayInfo(dxpos, &_n, &type, &category, &_rank, &_shape);
 
     fprintf(stdout, "_n = %d\n",_n);
+    if (type != 7) {
+	fprintf(stderr, "WARNING: positions is not type float (type=%d)\n"
+		type);
+	fflush(stderr);
+    }
     fprintf(stdout, "_rank = %d\n",_rank);
     fprintf(stdout, "_shape = %d\n",_shape);
 
@@ -137,19 +143,36 @@ DX::DX(const char* filename) :
     fflush(stdout);
 
     // grab the data array from the dx object and store it in _data
-    float *data = NULL;
     dxdata = (Array) DXGetComponentValue((Field) _dxobj, (char *)"data");
-    data = (float*) DXGetArrayData(dxdata);
+    DXGetArrayInfo(dxdata, NULL, &type, NULL, NULL, NULL);
     _data = new float[_n];
     if (_data == NULL) {
         // malloc failed, raise error
         fprintf(stdout, "malloc of _data array failed");
         fflush(stdout);
     }
-    memcpy(_data,data,sizeof(float)*_n);
+
+    switch (type) {
+    case TYPE_FLOAT:
+	float *float_data;
+
+	float_data = (float*) DXGetArrayData(dxdata);
+	memcpy(_data, float_data, sizeof(float)*_n);
+	break;
+    case TYPE_DOUBLE:
+	double *double_data;
+	double_data = (double*) DXGetArrayData(dxdata);
+	for (i = 0; i < _n; i++) {
+	    fprintf(stderr, "data[%d]=%g\n", i, double_data[i]);
+	    _data[i] = double_data[i];
+	}
+    default:
+        fprintf(stdout, "don't know how to handle data of type %d\n", type);
+        fflush(stdout);
+    }
 
     // print debug info
-    for (int lcv = 0, pt = 0; lcv < _n; lcv+=3,pt+=9) {
+    for (int lcv = 0, pt = 0; lcv < _n; lcv +=3, pt+=9) {
         fprintf(stdout,
             "(%f,%f,%f)|->% 8e\n(%f,%f,%f)|->% 8e\n(%f,%f,%f)|->% 8e\n",
             _positions[pt],_positions[pt+1],_positions[pt+2], _data[lcv],
@@ -157,9 +180,7 @@ DX::DX(const char* filename) :
             _positions[pt+6],_positions[pt+7],_positions[pt+8],_data[lcv+2]);
         fflush(stdout);
     }
-
     __collectDataStats();
-
 }
 
 DX::~DX()
@@ -194,21 +215,25 @@ DX::__findPosMax()
 void
 DX::__collectDataStats()
 {
-    _dataMin = 1e21;
-    _dataMax = 1e-21;
-    _nzero_min = 1e21;
+    _dataMin = FLT_MAX;
+    _dataMax = -FLT_MAX;
+    _nzero_min = FLT_MAX;
 
     // populate _dataMin, _dataMax, _nzero_min
-    for (int lcv = 0; lcv < _n; lcv=lcv+3) {
+    for (int lcv = 0; lcv < _n; lcv++) {
         if (_data[lcv] < _dataMin) {
             _dataMin = _data[lcv];
         }
         if (_data[lcv] > _dataMax) {
             _dataMax = _data[lcv];
         }
-        if ((_data[lcv] != 0) && (_data[lcv] < _nzero_min)) {
+        if ((_data[lcv] > 0.0f) && (_data[lcv] < _nzero_min)) {
             _nzero_min = _data[lcv];
         }
+    }
+    if (_nzero_min == FLT_MAX) {
+	fprintf(stderr, "could not find a positive minimum value\n");
+	fflush(stderr);
     }
 }
 

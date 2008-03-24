@@ -198,7 +198,7 @@ load_vector_stream(int index, std::istream& fin)
         volPtr->xAxis.SetRange(x0, x0 + (nx * dx));
         volPtr->yAxis.SetRange(y0, y0 + (ny * dy));
         volPtr->zAxis.SetRange(z0, z0 + (nz * dz));
-        volPtr->wAxis.SetRange(y0, y0 + (ny * dy));
+        volPtr->wAxis.SetRange(vmin, vmax);
         volPtr->update_pending = true;
         delete [] data;
     } else {
@@ -415,7 +415,7 @@ load_volume_stream2(int index, std::iostream& fin)
             volPtr->xAxis.SetRange(x0, x0 + (nx * dx));
             volPtr->yAxis.SetRange(y0, y0 + (ny * dy));
             volPtr->zAxis.SetRange(z0, z0 + (nz * dz)); 
-            volPtr->wAxis.SetRange(z0, z0 + (nz * dz));
+            volPtr->wAxis.SetRange(vmin, vmax);
 	    volPtr->update_pending = true;
             delete [] data;
 
@@ -559,8 +559,7 @@ load_volume_stream2(int index, std::iostream& fin)
                    field.rangeMax(Rappture::yaxis));
             volPtr->zAxis.SetRange(field.rangeMin(Rappture::zaxis),
                    field.rangeMax(Rappture::zaxis));
-            volPtr->wAxis.SetRange(field.rangeMin(Rappture::zaxis),
-                   field.rangeMax(Rappture::zaxis));
+            volPtr->wAxis.SetRange(field.valueMin(), field.valueMax());
             volPtr->update_pending = true;
             delete [] data;
         }
@@ -800,8 +799,7 @@ load_volume_stream(int index, std::iostream& fin)
                    field.rangeMax(Rappture::yaxis));
             volPtr->zAxis.SetRange(field.rangeMin(Rappture::zaxis),
                    field.rangeMax(Rappture::zaxis));
-            volPtr->wAxis.SetRange(field.rangeMin(Rappture::zaxis),
-                   field.rangeMax(Rappture::zaxis));
+            volPtr->wAxis.SetRange(field.valueMin(), field.valueMax());
             volPtr->update_pending = true;
             // TBD..
             // POINTSET
@@ -949,8 +947,7 @@ load_volume_stream(int index, std::iostream& fin)
                    field.rangeMax(Rappture::yaxis));
             volPtr->zAxis.SetRange(field.rangeMin(Rappture::zaxis),
                    field.rangeMax(Rappture::zaxis));
-            volPtr->wAxis.SetRange(field.rangeMin(Rappture::zaxis),
-                   field.rangeMax(Rappture::zaxis));
+            volPtr->wAxis.SetRange(field.valueMin(), field.valueMax());
             volPtr->update_pending = true;
             // TBD..
             // POINTSET

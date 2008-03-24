@@ -94,10 +94,10 @@ load_volume_stream_odx(int index, const char *buf, int nBytes)
     volPtr->xAxis.SetRange(origin[0], max[0]);
     volPtr->yAxis.SetRange(origin[1], max[1]);
     volPtr->zAxis.SetRange(origin[2], max[2]);
-    volPtr->wAxis.SetRange(origin[2], max[2]);
+    volPtr->wAxis.SetRange(dxObj.dataMin(), dxObj.dataMax());
     volPtr->update_pending = true;
 
-    delete [] data;
+    delete [] data; 
 
     //
     // Center this new volume on the origin.
