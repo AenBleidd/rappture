@@ -26,7 +26,6 @@ RpEncode_isbinary(PyObject *self, PyObject *args, PyObject *keywds)
     const char* data = NULL;
     int dlen = 0;
     PyObject* rv = NULL;
-    int result = 0;
 
     static char *kwlist[] = {"data", NULL};
 

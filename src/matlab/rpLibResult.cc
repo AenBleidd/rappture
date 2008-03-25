@@ -16,7 +16,7 @@
 #include "RpMatlabInterface.h"
 
 /**********************************************************************/
-// METHOD: [err] = rpLibResult (libHandle)
+// METHOD: [err] = rpLibResult (libHandle,status)
 /// Write Rappture Library to run.xml and signal end of processing.
 /**
  * Usually the last call of the program, this function signals to the gui
@@ -29,22 +29,31 @@ void mexFunction(int nlhs, mxArray *plhs[],
 {
     int libIndex = 0;
     int err = 1;
+    int status = 0;
     RpLibrary* lib = NULL;
 
     /* Check for proper number of arguments. */
-    if (nrhs != 1) {
+    if (nrhs > 2) {
+        mexErrMsgTxt("At most two input allowed.");
+    }
+
+    if (nrhs < 1) {
         mexErrMsgTxt("One input required.");
     }
 
     // grab the integer value of the library handle
     libIndex = getIntInput(prhs[0]);
 
+    if (nrhs == 2) {
+        status = getIntInput(prhs[1]);
+    }
+
     /* Call the C subroutine. */
     if (libIndex > 0) {
         lib = getObject_Lib(libIndex);
         if (lib) {
             lib->put("tool.version.rappture.language", "matlab");
-            lib->result();
+            lib->result(status);
             err = 0;
             // cleanLibDict();
         }

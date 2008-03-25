@@ -46,8 +46,8 @@ err = 0 is success, anything else is failure.")
     if (nargin == 1) {
         if (args(0).is_string ()) {
             path = args(0).string_value ();
-            if (!path.empty()) {
-                lib = new RpLibrary(path);
+            lib = new RpLibrary(path);
+            if (lib != NULL) {
                 err = 0;
             }
         }

@@ -1,5 +1,8 @@
 /*
  * ======================================================================
+ *  RpDict
+ *
+ *  AUTHOR:  Derrick Kearney, Purdue University
  *  Copyright (c) 2004-2005  Purdue Research Foundation
  *
  *  See the file "license.terms" for information on usage and

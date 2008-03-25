@@ -39,14 +39,12 @@ void mexFunction(int nlhs, mxArray *plhs[],
     path = getStringInput(prhs[0]);
 
     /* Call the C++ subroutine. */
-    if (!path.empty()) {
-        lib = new RpLibrary(path);
-        if (lib) {
-            // store the library and return a dictionary key
-            libIndex = storeObject_Lib(lib);
-            if (libIndex) {
-                err = 0;
-            }
+    lib = new RpLibrary(path);
+    if (lib) {
+        // store the library and return a dictionary key
+        libIndex = storeObject_Lib(lib);
+        if (libIndex) {
+            err = 0;
         }
     }
 
