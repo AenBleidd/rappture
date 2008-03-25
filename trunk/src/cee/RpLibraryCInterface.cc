@@ -22,6 +22,10 @@ extern "C" {
 RpLibrary*
 rpLibrary (const char* path)
 {
+    if (path == NULL) {
+        return (new RpLibrary());
+    }
+
     return (new RpLibrary(path));
 }
 

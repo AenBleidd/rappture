@@ -1749,7 +1749,7 @@ RpLibrary::put (    std::string path,
     if (!this->root) {
         // library doesn't exist, do nothing;
         status.error("invalid library object");
-        status.addContext("RpLibrary::put()");
+        status.addContext("RpLibrary::put() - putString");
         return *this;
     }
 
@@ -1762,22 +1762,15 @@ RpLibrary::put (    std::string path,
 
     retNode = _find(path,CREATE_PATH);
 
-    if (retNode) {
+    if (retNode == NULL) {
+        // node not found, set error
+        status.error("Error while searching for node: node not found");
+        status.addContext("RpLibrary::put() - putString");
+        return *this;
+    }
 
-        if (append == RPLIB_APPEND) {
-            if ( (contents = scew_element_contents(retNode)) ) {
-                tmpVal = std::string(contents);
-            }
-            value = tmpVal + value;
-        }
-
-        if (translateFlag == RPLIB_TRANSLATE) {
-            translatedContents = ERTranslator.encode(value.c_str(),0);
-        }
-        else {
-            translatedContents = value.c_str();
-        }
-
+    if (translateFlag == RPLIB_TRANSLATE) {
+        translatedContents = ERTranslator.encode(value.c_str(),0);
         if (translatedContents == NULL) {
             // entity referene translation failed
             if (!status) {
@@ -1785,16 +1778,20 @@ RpLibrary::put (    std::string path,
             }
         }
         else {
-            scew_element_set_contents(retNode,translatedContents);
+            value = std::string(translatedContents);
             translatedContents = NULL;
         }
     }
-    else {
-        // node not found, set error
-        if (!status) {
-            status.error("Error while searching for node: node not found");
+
+    if (append == RPLIB_APPEND) {
+        contents = scew_element_contents(retNode);
+        if (contents != NULL) {
+            tmpVal = std::string(contents);
+            value = tmpVal + value;
         }
     }
+
+    scew_element_set_contents(retNode,value.c_str());
 
     status.addContext("RpLibrary::put() - putString");
     return *this;
@@ -2211,7 +2208,6 @@ RpLibrary::result(int exitStatus)
     std::string username = "";
     std::string hostname = "";
     char *user = NULL;
-    char *host = NULL;
 
     if (this->root) {
         outputFile << "run" << (int)time(&t) << ".xml";
