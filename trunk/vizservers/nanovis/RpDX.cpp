@@ -162,7 +162,7 @@ DX::DX(const char* filename) :
     case TYPE_DOUBLE:
         double *double_data;
         double_data = (double*) DXGetArrayData(dxdata);
-        for (i = 0; i < _n; i++) {
+        for (int i = 0; i < _n; i++) {
             fprintf(stderr, "data[%d]=%g\n", i, double_data[i]);
             _data[i] = double_data[i];
         }
