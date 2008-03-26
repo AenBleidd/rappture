@@ -66,9 +66,9 @@ DX::DX(const char* filename) :
 
     fprintf(stdout, "_n = %d\n",_n);
     if (type != 7) {
-	fprintf(stderr, "WARNING: positions is not type float (type=%d)\n"
-		type);
-	fflush(stderr);
+        fprintf(stderr, "WARNING: positions is not type float (type=%d)\n",
+            type);
+        fflush(stderr);
     }
     fprintf(stdout, "_rank = %d\n",_rank);
     fprintf(stdout, "_shape = %d\n",_shape);
@@ -154,18 +154,18 @@ DX::DX(const char* filename) :
 
     switch (type) {
     case TYPE_FLOAT:
-	float *float_data;
+        float *float_data;
 
-	float_data = (float*) DXGetArrayData(dxdata);
-	memcpy(_data, float_data, sizeof(float)*_n);
-	break;
+        float_data = (float*) DXGetArrayData(dxdata);
+        memcpy(_data, float_data, sizeof(float)*_n);
+        break;
     case TYPE_DOUBLE:
-	double *double_data;
-	double_data = (double*) DXGetArrayData(dxdata);
-	for (i = 0; i < _n; i++) {
-	    fprintf(stderr, "data[%d]=%g\n", i, double_data[i]);
-	    _data[i] = double_data[i];
-	}
+        double *double_data;
+        double_data = (double*) DXGetArrayData(dxdata);
+        for (i = 0; i < _n; i++) {
+            fprintf(stderr, "data[%d]=%g\n", i, double_data[i]);
+            _data[i] = double_data[i];
+        }
     default:
         fprintf(stdout, "don't know how to handle data of type %d\n", type);
         fflush(stdout);
@@ -232,8 +232,8 @@ DX::__collectDataStats()
         }
     }
     if (_nzero_min == FLT_MAX) {
-	fprintf(stderr, "could not find a positive minimum value\n");
-	fflush(stderr);
+        fprintf(stderr, "could not find a positive minimum value\n");
+        fflush(stderr);
     }
 }
 
