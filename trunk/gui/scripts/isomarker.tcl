@@ -36,7 +36,7 @@ itcl::class Rappture::NanovisViewer::IsoMarker {
 		-image $_normalIcon -anchor s \
 		-tags "$this $obj" -state hidden]
 	set _label [$c create text 0 $h \
-		-anchor n -fill white -font "Helvetica 6" \
+		-anchor n -fill white -font "Helvetica 8" \
 		-tags "$this $obj" -state hidden]
 	$c bind $_tick <Enter> [itcl::code $this HandleEvent "enter"]
 	$c bind $_tick <Leave> [itcl::code $this HandleEvent "leave"]
