@@ -867,7 +867,6 @@ itcl::body Rappture::NanovisViewer::_receive_image {option size} {
 # specified <size> will follow.
 # ----------------------------------------------------------------------
 itcl::body Rappture::NanovisViewer::_receive_legend { ivol vmin vmax size } {
-    puts stderr "called _receive_legend $ivol $vmin $vmax $size"
     if { [isconnected] } {
         set bytes [ReceiveBytes $size]
         $_image(legend) configure -data $bytes
@@ -905,7 +904,6 @@ itcl::body Rappture::NanovisViewer::_receive_legend { ivol vmin vmax size } {
 # specified <size> will follow.
 # ----------------------------------------------------------------------
 itcl::body Rappture::NanovisViewer::_receive_data { args } {
-    puts stderr "called _receive_data $args"
     if { [isconnected] } {
         array set info $args
         set volume $info(id)
@@ -929,8 +927,6 @@ itcl::body Rappture::NanovisViewer::_receive_data { args } {
         if { [array size _receiveids] == 0 } {
             $_dispatcher event -idle !send_transfuncs
         }
-	puts stderr "compute limits are "
-	parray _limits
     }
 }
 
@@ -1514,7 +1510,7 @@ itcl::body Rappture::NanovisViewer::_ParseLevelsOption {dataobj levels} {
     set c $itk_component(legend)
     regsub -all "," $levels " " levels
     for {set i 1} { $i <= $levels } {incr i} {
-	set x [expr {double($i)/($nLevels+1)}]
+	set x [expr {double($i)/($levels+1)}]
 	set m [IsoMarker \#auto $c $this]
 	$m SetRelativeValue $x
 	lappend _isomarkers($dataobj) $m 
