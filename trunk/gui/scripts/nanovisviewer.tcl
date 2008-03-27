@@ -64,9 +64,13 @@ itcl::class Rappture::NanovisViewer {
         # do nothing 
     }
     public method isconnected {}
+    public method UpdateTransferFunction {}
+    public method RemoveDuplicateIsoMarker { m x }
+    public method OverIsoMarker { m x }
 
     protected method Connect {}
     protected method Disconnect {}
+
     protected method _send {string}
     protected method _send_dataobjs {}
     protected method _send_transfuncs {}
@@ -88,13 +92,14 @@ itcl::class Rappture::NanovisViewer {
     protected method _fixSettings {what {value ""}}
     protected method _fixLegend {}
     protected method GenTransfuncData {dataobj comp}
-    public method UpdateTransferFunction {}
-    public method RemoveDuplicateIsoMarker { m x }
-    public method OverIsoMarker { m x }
-    private method AddIsoMarker { x y }
-    private method InitIsoMarkers {dataobj comp}
-    private method HideIsoMarkers {dataobj}
-    private method ShowIsoMarkers {dataobj}
+
+    # The following methods are only used by this class. 
+    private method _AddIsoMarker { x y }
+    private method _InitIsoMarkers {dataobj comp}
+    private method _HideIsoMarkers {dataobj}
+    private method _ShowIsoMarkers {dataobj}
+    private method _ParseMarkersOption {dataobj markers}
+    private method _ParseLevelsOption {dataobj markers}
 
     private variable _outbuf       ;# buffer for outgoing commands
 
@@ -116,7 +121,7 @@ itcl::class Rappture::NanovisViewer {
     private variable _view         ;# view params for 3D view
         
     private variable _isomarkers    ;# array of isosurface level values 0..1
-    private common _settings
+    private common   _settings
 }
 
 itk::usual NanovisViewer {
@@ -412,7 +417,7 @@ itcl::body Rappture::NanovisViewer::constructor {hostlist args} {
     grid $inner.scales.thickl -row 3 -column 2 -sticky w
     $inner.scales.thickness set 500
 
-    set ::Rappture::NanovisViewer::_settings($this-isosurface) 1
+    set ::Rappture::NanovisViewer::_settings($this-isosurface) 0
     ::checkbutton $inner.scales.isosurface \
         -text "Isosurface shading" \
         -variable ::Rappture::NanovisViewer::_settings($this-isosurface) \
@@ -808,9 +813,9 @@ itcl::body Rappture::NanovisViewer::_send_transfuncs {} {
             # and make sure that it's defined on the server.
             #
             if { ![info exists _isomarkers($dataobj)] } {
-                InitIsoMarkers $dataobj $comp
+                _InitIsoMarkers $dataobj $comp
             } else {
-                HideIsoMarkers $dataobj
+                _HideIsoMarkers $dataobj
             }
             foreach {sname cmap wmap} [GenTransfuncData $dataobj $comp] break
             set cmdstr [list transfunc define $sname $cmap $wmap]
@@ -832,7 +837,7 @@ itcl::body Rappture::NanovisViewer::_send_transfuncs {} {
             _send "volume shading transfunc $_obj2style($key) $_obj2id($key)"
         }
     }
-    ShowIsoMarkers $first 
+    _ShowIsoMarkers $first 
     # if there are any commands in the buffer, send them now that we're done
     SendBytes $_outbuf
     set _outbuf ""
@@ -862,6 +867,7 @@ itcl::body Rappture::NanovisViewer::_receive_image {option size} {
 # specified <size> will follow.
 # ----------------------------------------------------------------------
 itcl::body Rappture::NanovisViewer::_receive_legend { ivol vmin vmax size } {
+    puts stderr "called _receive_legend $ivol $vmin $vmax $size"
     if { [isconnected] } {
         set bytes [ReceiveBytes $size]
         $_image(legend) configure -data $bytes
@@ -879,7 +885,7 @@ itcl::body Rappture::NanovisViewer::_receive_legend { ivol vmin vmax size } {
                  -fill $itk_option(-plotforeground) -tags vmax
             $c lower transfunc
             $c bind transfunc <ButtonRelease-1> \
-                [itcl::code $this AddIsoMarker %x %y]
+                [itcl::code $this _AddIsoMarker %x %y]
         }
         $c itemconfigure vmin -text $vmin
         $c coords vmin 10 [expr {$h-8}]
@@ -887,7 +893,7 @@ itcl::body Rappture::NanovisViewer::_receive_legend { ivol vmin vmax size } {
         $c itemconfigure vmax -text $vmax
         $c coords vmax [expr {$w-10}] [expr {$h-8}]
         set first [lindex [get] 0]
-        ShowIsoMarkers $first
+        _ShowIsoMarkers $first
     }
 }
 
@@ -899,6 +905,7 @@ itcl::body Rappture::NanovisViewer::_receive_legend { ivol vmin vmax size } {
 # specified <size> will follow.
 # ----------------------------------------------------------------------
 itcl::body Rappture::NanovisViewer::_receive_data { args } {
+    puts stderr "called _receive_data $args"
     if { [isconnected] } {
         array set info $args
         set volume $info(id)
@@ -911,7 +918,7 @@ itcl::body Rappture::NanovisViewer::_receive_data { args } {
             if { $_limits($dataobj-vmin) > $info(min) } {
                 set _limits($dataobj-vmin) $info(min)
             } 
-            if { $_limits($dataobj-vmax) > $info(max) } {
+            if { $_limits($dataobj-vmax) < $info(max) } {
                 set _limits($dataobj-vmax) $info(max)
             }
         }
@@ -922,6 +929,8 @@ itcl::body Rappture::NanovisViewer::_receive_data { args } {
         if { [array size _receiveids] == 0 } {
             $_dispatcher event -idle !send_transfuncs
         }
+	puts stderr "compute limits are "
+	parray _limits
     }
 }
 
@@ -968,7 +977,7 @@ itcl::body Rappture::NanovisViewer::_rebuild {} {
                 _send "up $axis"
             }
         }
-        ShowIsoMarkers $first
+        _ShowIsoMarkers $first
         UpdateTransferFunction
 
         # sync the state of slicers
@@ -1476,7 +1485,7 @@ itcl::configbody Rappture::NanovisViewer::plotoutline {
     }
 }
 
-itcl::body Rappture::NanovisViewer::HideIsoMarkers {dataobj} {
+itcl::body Rappture::NanovisViewer::_HideIsoMarkers {dataobj} {
     if { [info exists _isomarkers($dataobj)] } {
         foreach m $_isomarkers($dataobj) {
             $m Hide
@@ -1484,9 +1493,9 @@ itcl::body Rappture::NanovisViewer::HideIsoMarkers {dataobj} {
     }
 }
 
-itcl::body Rappture::NanovisViewer::ShowIsoMarkers {dataobj} {
+itcl::body Rappture::NanovisViewer::_ShowIsoMarkers {dataobj} {
     foreach obj [array names _all_data_objs] {
-        HideIsoMarkers $obj
+        _HideIsoMarkers $obj
     }
     if { ![info exists _isomarkers($dataobj)] } {
         return
@@ -1496,40 +1505,63 @@ itcl::body Rappture::NanovisViewer::ShowIsoMarkers {dataobj} {
     }
 }
 
-itcl::body Rappture::NanovisViewer::InitIsoMarkers {dataobj comp} {
-    array set style {
-        -levels 6x
-    }
-    array set style [lindex [$dataobj components -style $comp] 0]
-    set levels $style(-levels)
+#
+# The -levels option takes a single value that represents the number
+# of evenly distributed markers based on the current data range. Each
+# marker is a relative value from 0.0 to 1.0.
+#
+itcl::body Rappture::NanovisViewer::_ParseLevelsOption {dataobj levels} {
     set c $itk_component(legend)
     regsub -all "," $levels " " levels
-    foreach level $levels {
-        set n [scan $level "%g%s" value suffix]
+    for {set i 1} { $i <= $levels } {incr i} {
+	set x [expr {double($i)/($nLevels+1)}]
+	set m [IsoMarker \#auto $c $this]
+	$m SetRelativeValue $x
+	lappend _isomarkers($dataobj) $m 
+    }
+}
+
+#
+# The -markers option takes a list of zero or more values (the values
+# may be separated either by spaces or commas) that have the following 
+# format:
+#
+# 	N%	Percent of current total data range.  Converted to
+#		to a relative value between 0.0 and 1.0.
+#	N	Absolute value of marker.  If the marker is outside of
+#		the current range, it will be displayed on the outer
+#		edge of the legends, but it range it represents will
+#		not be seen.
+#
+itcl::body Rappture::NanovisViewer::_ParseMarkersOption {dataobj markers} {
+    set c $itk_component(legend)
+    regsub -all "," $markers " " markers
+    foreach marker $markers {
+        set n [scan $marker "%g%s" value suffix]
         if { $n == 2 && $suffix == "%" } {
             # ${n}% : Set relative value. 
             set value [expr {$value * 0.01}]
             set m [IsoMarker \#auto $c $this]
             $m SetRelativeValue $value
             lappend _isomarkers($dataobj) $m
-        } elseif { $n == 2 && $suffix == "x" } {
-            # ${n}x : Set equal number of levels 
-            if { $value != round($value) } {
-                error "\# of levels \"$value\" must be an interger"
-            }
-            set nLevels [expr round($value)]
-            for {set i 1} {$i <= $nLevels} {incr i} {
-                set x [expr {double($i)/($nLevels+1)}]
-                set m [IsoMarker \#auto $c $this]
-                $m SetRelativeValue $x
-                lappend _isomarkers($dataobj) $m 
-            }
         } else {
             # ${n} : Set absolute value.
             set m [IsoMarker \#auto $c $this]
             $m SetAbsoluteValue $value
             lappend _isomarkers($dataobj) $m
         }
+    }
+}
+
+itcl::body Rappture::NanovisViewer::_InitIsoMarkers {dataobj comp} {
+    array set style {
+        -levels 6
+    }
+    array set style [lindex [$dataobj components -style $comp] 0]
+    if { [info exists style(-markers)] } {
+	_ParseMarkersOption $dataobj $style(-markers)
+    } else {
+	_ParseLevelsOption $dataobj $style(-levels)
     }
 }
 
@@ -1560,7 +1592,7 @@ itcl::body Rappture::NanovisViewer::UpdateTransferFunction {} {
     _fixLegend
 }
 
-itcl::body Rappture::NanovisViewer::AddIsoMarker { x y } {
+itcl::body Rappture::NanovisViewer::_AddIsoMarker { x y } {
     set dataobj [lindex [get] 0]
     if {$dataobj == ""} {
         return 0;                       # No data sets defined
