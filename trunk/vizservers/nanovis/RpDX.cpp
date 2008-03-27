@@ -65,7 +65,7 @@ DX::DX(const char* filename) :
     DXGetArrayInfo(dxpos, &_n, &type, &category, &_rank, &_shape);
 
     fprintf(stdout, "_n = %d\n",_n);
-    if (type != 7) {
+    if (type != TYPE_FLOAT) {
         fprintf(stderr, "WARNING: positions is not type float (type=%d)\n",
             type);
         fflush(stderr);
@@ -163,7 +163,6 @@ DX::DX(const char* filename) :
         double *double_data;
         double_data = (double*) DXGetArrayData(dxdata);
         for (int i = 0; i < _n; i++) {
-            fprintf(stderr, "data[%d]=%g\n", i, double_data[i]);
             _data[i] = double_data[i];
         }
     default:
