@@ -21,15 +21,17 @@ itcl::class Rappture::NanovisViewer::IsoMarker {
     private variable _tick	""
     private variable _canvas	""
     private variable _nvobj	"";	# Parent nanovis object.
+    private variable _ivol	"";	# Id of volume that this marker is 
+					# associated with.
     private variable _active_motion   0
     private variable _active_press    0
     private common   _normalIcon [Rappture::icon nvlegendmark]
     private common   _activeIcon [Rappture::icon nvlegendmark2]
 
-    constructor {c obj args} { 
+    constructor {c obj ivol args} { 
 	set _canvas $c
 	set _nvobj $obj
-	
+	set _ivol $ivol
 	set w [winfo width $_canvas]
 	set h [winfo height $_canvas]
 	set _tick [$c create image 0 $h \
@@ -55,12 +57,16 @@ itcl::class Rappture::NanovisViewer::IsoMarker {
 	return $_value
     }
     public method GetRelativeValue {} {
-	array set limits [$_nvobj get_limits] 
-	if { $limits(vmax) == $limits(vmin) } {
-	    set limits(vmin) 0.0
-	    set limits(vmax) 1.0
+	array set limits [$_nvobj GetLimits $_ivol] 
+	if { $limits(max) == $limits(min) } {
+	    if { $limits(max) == 0.0 } {
+		set limits(min) 0.0
+		set limits(max) 1.0
+	    } else {
+		set limits(max) [expr $limits(min) + 1.0]
+	    }
 	}
-	return [expr {($_value-$limits(vmin))/($limits(vmax) - $limits(vmin))}]
+	return [expr {($_value-$limits(min))/($limits(max) - $limits(min))}]
     }
     public method Activate { bool } {
 	if  { $bool || $_active_press || $_active_motion } {
@@ -101,13 +107,13 @@ itcl::class Rappture::NanovisViewer::IsoMarker {
 	$_canvas coords $_label $x [expr {$y+5}]
     }
     public method SetRelativeValue { x } {
-	array set limits [$_nvobj get_limits] 
-	if { $limits(vmax) == $limits(vmin) } {
-	    set limits(vmin) 0.0
-	    set limits(vmax) 1.0
+	array set limits [$_nvobj GetLimits $_ivol] 
+	if { $limits(max) == $limits(min) } {
+	    set limits(min) 0.0
+	    set limits(max) 1.0
 	}
-	set r [expr $limits(vmax) - $limits(vmin)]
-	SetAbsoluteValue [expr {($x * $r) + $limits(vmin)}]
+	set r [expr $limits(max) - $limits(min)]
+	SetAbsoluteValue [expr {($x * $r) + $limits(min)}]
     }
     public method HandleEvent { option args } {
 	switch -- $option {
@@ -130,7 +136,8 @@ itcl::class Rappture::NanovisViewer::IsoMarker {
 		set x [lindex $args 0]
 		SetRelativeValue [expr {double($x-10)/($w-20)}]
 		$_nvobj OverIsoMarker $this $x
-		$_nvobj UpdateTransferFunction
+		foreach { dataobj comp } [$_nvobj GetDataObj $_ivol] break
+		$_nvobj UpdateTransferFunction $dataobj $comp
 	    }
 	    end {
 		set x [lindex $args 0]
