@@ -52,7 +52,9 @@ itcl::class Rappture::NanovisViewer::IsoMarker {
     destructor { 
 	$_canvas delete $this
     }
-
+    public method GetVolume {} {
+    	return $_ivol
+    }
     public method GetAbsoluteValue {} {
 	return $_value
     }
@@ -136,8 +138,7 @@ itcl::class Rappture::NanovisViewer::IsoMarker {
 		set x [lindex $args 0]
 		SetRelativeValue [expr {double($x-10)/($w-20)}]
 		$_nvobj OverIsoMarker $this $x
-		foreach { dataobj comp } [$_nvobj GetDataObj $_ivol] break
-		$_nvobj UpdateTransferFunction $dataobj $comp
+		$_nvobj UpdateTransferFunction $_ivol
 	    }
 	    end {
 		set x [lindex $args 0]
