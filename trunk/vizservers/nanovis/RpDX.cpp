@@ -52,6 +52,7 @@ DX::DX(const char* filename) :
     // open the file with libdx
     fprintf(stdout, "Calling DXImportDX(%s)\n", filename);
     fflush(stdout);
+    DXenable_locks(0);
     _dxobj = DXImportDX((char*)filename,NULL,NULL,NULL,NULL);
 
     fprintf(stdout, "dxobj=%x\n", (unsigned int)_dxobj);
