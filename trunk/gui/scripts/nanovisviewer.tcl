@@ -1633,7 +1633,7 @@ itcl::body Rappture::NanovisViewer::_AddIsoMarker { x y } {
     $m SetRelativeValue [expr {double($x-10)/($w-20)}]
     $m Show
     lappend _isomarkers($dataobj) $m
-    UpdateTransferFunction
+    UpdateTransferFunction $dataobj $comp
     return 1
 }
 
@@ -1643,6 +1643,7 @@ itcl::body Rappture::NanovisViewer::RemoveDuplicateIsoMarker { marker x } {
         return 0
     }
     set bool 0
+    set comp [lindex [$dataobj components] 0]
     if { [info exists _isomarkers($dataobj)] } {
         set list {}
         set marker [namespace tail $marker]
@@ -1660,7 +1661,7 @@ itcl::body Rappture::NanovisViewer::RemoveDuplicateIsoMarker { marker x } {
             lappend list $m
         }
         set _isomarkers($dataobj) $list
-        UpdateTransferFunction
+        UpdateTransferFunction $dataobj $comp
     }
     return $bool
 }
