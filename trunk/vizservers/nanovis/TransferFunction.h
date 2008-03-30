@@ -22,22 +22,24 @@
 
 
 class TransferFunction{
-  int size;	//the resolution of the color map, how many (RGBA) quadraples
-  float* data;
-  Texture1D* tex; //the texture storing the colors 
-
+    int _size;			//the resolution of the color map, how many
+				//(RGBA) quadraples
+    float* _data;
+    Texture1D* _tex;		//the texture storing the colors 
+    
 public:
-  GLuint id;	//OpenGL's texture identifier
-  TransferFunction(int _size, float* data);
-  ~TransferFunction();
-  void update(float* data);
-    Texture1D* getTexture();
-  float* getData() { return data; }
-};
+    GLuint id;			//OpenGL's texture identifier
 
-inline Texture1D* TransferFunction::getTexture()
-{
-    return tex;
-}
+    TransferFunction(int size, float *data);
+    ~TransferFunction();
+    void update(float *data);
+    void update(int size, float *data);
+    Texture1D* getTexture(void) {
+	return _tex;
+    }
+    float* getData(void) { 
+	return _data; 
+    }
+};
 
 #endif

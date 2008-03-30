@@ -972,11 +972,12 @@ ScreenCmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *CONST *objv)
  * ----------------------------------------------------------------------
  */
 static int
-TransfuncCmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *CONST *objv)
+TransfuncCmd(ClientData cdata, Tcl_Interp *interp, int objc, 
+	     Tcl_Obj *CONST *objv)
 {
     if (objc < 2) {
         Tcl_AppendResult(interp, "wrong # args: should be \"", 
-			 Tcl_GetString(objv[0]), " option arg arg...\"", (char*)NULL);
+		Tcl_GetString(objv[0]), " option arg arg...\"", (char*)NULL);
         return TCL_ERROR;
     }
 
@@ -985,8 +986,8 @@ TransfuncCmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *CONST *obj
     if ((c == 'd') && (strcmp(string, "define") == 0)) {
         if (objc != 5) {
             Tcl_AppendResult(interp, "wrong # args: should be \"", 
-			     Tcl_GetString(objv[0]), " define name colormap alphamap\"", 
-			     (char*)NULL);
+		Tcl_GetString(objv[0]), " define name colorMap alphaMap\"", 
+		(char*)NULL);
             return TCL_ERROR;
         }
 
@@ -1001,8 +1002,8 @@ TransfuncCmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *CONST *obj
             return TCL_ERROR;
         }
         if ((cmapc % 4) != 0) {
-            Tcl_AppendResult(interp, "bad colormap in transfunc: should be ",
-			     "{ v r g b ... }", (char*)NULL);
+            Tcl_AppendResult(interp, "wrong # elements is colormap: should be ",
+		"{ v r g b ... }", (char*)NULL);
             return TCL_ERROR;
         }
         if (Tcl_ListObjGetElements(interp, objv[4], &wmapc, &wmapv) != TCL_OK) {
@@ -1010,65 +1011,60 @@ TransfuncCmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *CONST *obj
         }
         if ((wmapc % 2) != 0) {
             Tcl_AppendResult(interp, "wrong # elements in alphamap: should be ",
-			     " { v w ... }", (char*)NULL);
+		" { v w ... }", (char*)NULL);
             return TCL_ERROR;
         }
         for (i = 0; i < cmapc; i += 4) {
             int j;
-            double vals[4];
+            double q[4];
 
             for (j=0; j < 4; j++) {
-                if (Tcl_GetDoubleFromObj(interp, cmapv[i+j], &vals[j]) != TCL_OK) {
+                if (Tcl_GetDoubleFromObj(interp, cmapv[i+j], &q[j]) != TCL_OK) {
                     return TCL_ERROR;
                 }
-                if ((vals[j] < 0.0) || (vals[j] > 1.0)) {
-                    Tcl_AppendResult(interp, "bad value \"", cmapv[i+j],
-				     "\": should be in the range 0-1", (char*)NULL);
+                if ((q[j] < 0.0) || (q[j] > 1.0)) {
+                    Tcl_AppendResult(interp, "bad colormap value \"", 
+			Tcl_GetString(cmapv[i+j]), 
+			"\": should be in the range 0-1", (char*)NULL);
                     return TCL_ERROR;
                 }
             }
-            rFunc.define(vals[0], vals[1]);
-            gFunc.define(vals[0], vals[2]);
-            bFunc.define(vals[0], vals[3]);
+            rFunc.define(q[0], q[1]);
+            gFunc.define(q[0], q[2]);
+            bFunc.define(q[0], q[3]);
         }
         for (i=0; i < wmapc; i += 2) {
-            double vals[2];
+            double q[2];
             int j;
 
             for (j=0; j < 2; j++) {
-                if (Tcl_GetDoubleFromObj(interp, wmapv[i+j], &vals[j]) != TCL_OK) {
+                if (Tcl_GetDoubleFromObj(interp, wmapv[i+j], &q[j]) != TCL_OK) {
                     return TCL_ERROR;
                 }
-                if ((vals[j] < 0.0) || (vals[j] > 1.0)) {
-                    Tcl_AppendResult(interp, "bad value \"", wmapv[i+j],
-				     "\": should be in the range 0-1", (char*)NULL);
+                if ((q[j] < 0.0) || (q[j] > 1.0)) {
+                    Tcl_AppendResult(interp, "bad alphamap value \"", 
+			Tcl_GetString(wmapv[i+j]),
+			"\": should be in the range 0-1", (char*)NULL);
                     return TCL_ERROR;
                 }
             }
-            wFunc.define(vals[0], vals[1]);
+            wFunc.define(q[0], q[1]);
         }
         // sample the given function into discrete slots
         const int nslots = 256;
         float data[4*nslots];
         for (i=0; i < nslots; i++) {
-            double xval = double(i)/(nslots-1);
-            data[4*i]   = rFunc.value(xval);
-            data[4*i+1] = gFunc.value(xval);
-            data[4*i+2] = bFunc.value(xval);
-            data[4*i+3] = wFunc.value(xval);
+            double x = double(i)/(nslots-1);
+            data[4*i]   = rFunc.value(x);
+            data[4*i+1] = gFunc.value(x);
+            data[4*i+2] = bFunc.value(x);
+            data[4*i+3] = wFunc.value(x);
         }
-
         // find or create this transfer function
-        TransferFunction *tf;
-        tf = NanoVis::get_transfunc(Tcl_GetString(objv[2]));
-        if (tf != NULL) {
-            tf->update(data);
-        } else {
-            tf = NanoVis::set_transfunc(Tcl_GetString(objv[2]), nslots, data);
-        }
+        NanoVis::DefineTransferFunction(Tcl_GetString(objv[2]), nslots, data);
     } else {
         Tcl_AppendResult(interp, "bad option \"", string,
-			 "\": should be define", (char*)NULL);
+		"\": should be define", (char*)NULL);
         return TCL_ERROR;
     }
     return TCL_OK;

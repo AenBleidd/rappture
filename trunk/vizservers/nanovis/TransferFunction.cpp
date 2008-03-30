@@ -17,33 +17,40 @@
 
 #include "TransferFunction.h"
 #include <memory.h>
+#include <assert.h>
 
-
-TransferFunction::TransferFunction(int _size, float* data)
+TransferFunction::TransferFunction(int size, float *data)
 {
-    tex = new Texture1D(_size, GL_FLOAT);
+    _tex = new Texture1D(size, GL_FLOAT);
 
     // _size : # of slot, 4 : rgba
-    size = _size * 4;
-    this->data = new float[size];
-    memcpy(this->data, data, sizeof(float) * size);
+    _size = size * 4;
+    _data = new float[_size];
+    memcpy(_data, data, sizeof(float) * _size);
 
-    tex->initialize_float_rgba(data);
-    id = tex->id;
+    _tex->initialize_float_rgba(_data);
+    id = _tex->id;
 }
 
 
 TransferFunction::~TransferFunction()
 { 
-    delete [] data;
-    delete tex; 
+    delete [] _data;
+    delete _tex; 
 }
 
-void TransferFunction::update(float* data)
+void 
+TransferFunction::update(float* data)
 {
-    memcpy(this->data, data, sizeof(float) * size);
-
-    tex->update_float_rgba(data);
+    memcpy(_data, data, sizeof(float) * _size);
+    _tex->update_float_rgba(_data);
 }
 
+
+void 
+TransferFunction::update(int size, float *data)
+{
+    assert((size*4) == _size);
+    update(data);
+}
 

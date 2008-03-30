@@ -318,7 +318,7 @@ NanoVis::get_transfunc(const char *name)
 
 // Creates of updates a colormap 1D texture by name.
 TransferFunction*
-NanoVis::set_transfunc(const char *name, int nSlots, float *data) 
+NanoVis::DefineTransferFunction(const char *name, size_t n, float *data) 
 {
     int isNew;
     Tcl_HashEntry *hPtr;
@@ -326,11 +326,15 @@ NanoVis::set_transfunc(const char *name, int nSlots, float *data)
 
     hPtr = Tcl_CreateHashEntry(&tftable, name, &isNew);
     if (isNew) {
-        tf = new TransferFunction(nSlots, data);
-        Tcl_SetHashValue(hPtr, (ClientData)tf);
+	tf = new TransferFunction(n, data);
+	Tcl_SetHashValue(hPtr, (ClientData)tf);
     } else {
-        tf = (TransferFunction*)Tcl_GetHashValue(hPtr);
-        tf->update(data);
+	/* 
+	 * You can't delete the transfer function because many 
+	 * objects may be holding its pointer.  We must update it.
+	 */
+	tf = (TransferFunction *)Tcl_GetHashValue(hPtr);
+	tf->update(n, data);
     }
     return tf;
 }

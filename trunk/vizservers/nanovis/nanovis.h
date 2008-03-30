@@ -139,8 +139,8 @@ public:
     static bool vector_on;
 
     static TransferFunction* get_transfunc(const char *name);
-    static TransferFunction* set_transfunc(const char *name, int nSlots, 
-					   float *data);
+    static TransferFunction* DefineTransferFunction(const char *name, 
+	size_t n, float *data);
     static void SetVolumeRanges(void);
     static void SetHeightmapRanges(void);
     static void init(const char* path);
