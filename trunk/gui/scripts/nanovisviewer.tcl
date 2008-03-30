@@ -56,12 +56,6 @@ itcl::class Rappture::NanovisViewer {
     public method get {args}
     public method delete {args}
     public method scale {args}
-    public method GetDataObj { ivol } {
-	if { ![info exists _id2obj($ivol)] } {
-	    return ""
-	}
-	return $_id2obj($ivol)
-    }
     public method GetLimits { {ivol ""} } {
 	if { $ivol != "" } {
 	    set _limits(min) $_limits($ivol-min)
@@ -83,7 +77,7 @@ itcl::class Rappture::NanovisViewer {
 
     protected method _send {string}
     protected method _send_dataobjs {}
-    protected method _send_transfuncs {}
+    protected method _send_transfunc {}
 
     protected method _ReceiveImage {option size}
     protected method _ReceiveLegend { ivol vmin vmax size }
@@ -103,7 +97,7 @@ itcl::class Rappture::NanovisViewer {
     protected method _fixLegend {}
 
     # The following methods are only used by this class. 
-    private method _SetTransfuncData { ivol }
+    private method _DefineTransferFunction { ivol }
     private method _AddIsoMarker { ivol x y }
     private method _InitIsoMarkers { ivol }
     private method _HideIsoMarkers { ivol }
@@ -129,7 +123,9 @@ itcl::class Rappture::NanovisViewer {
     private variable _view         ;# view params for 3D view
         
     private variable _isomarkers    ;# array of isosurface level values 0..1
+    private variable _styles
     private common   _settings
+    private variable _currentVolId ""
 }
 
 itk::usual NanovisViewer {
@@ -150,9 +146,9 @@ itcl::body Rappture::NanovisViewer::constructor {hostlist args} {
     $_dispatcher dispatch $this !send_dataobjs \
         "[itcl::code $this _send_dataobjs]; list"
     # Send transfer functions event
-    $_dispatcher register !send_transfuncs
-    $_dispatcher dispatch $this !send_transfuncs \
-        "[itcl::code $this _send_transfuncs]; list"
+    $_dispatcher register !send_transfunc
+    $_dispatcher dispatch $this !send_transfunc \
+        "[itcl::code $this _send_transfunc]; list"
     # Rebuild event
     $_dispatcher register !rebuild
     $_dispatcher dispatch $this !rebuild "[itcl::code $this _rebuild]; list"
@@ -492,7 +488,7 @@ itcl::body Rappture::NanovisViewer::destructor {} {
     set _sendobjs2 ""  ;# stop any send in progress
     $_dispatcher cancel !rebuild
     $_dispatcher cancel !send_dataobjs
-    $_dispatcher cancel !send_transfuncs
+    $_dispatcher cancel !send_transfunc
     image delete $_image(plot)
     image delete $_image(legend)
     image delete $_image(download)
@@ -764,8 +760,6 @@ itcl::body Rappture::NanovisViewer::_send_dataobjs {} {
         foreach comp [$dataobj components] {
             # send the data as one huge base64-encoded mess -- yuck!
             set data [$dataobj values $comp]
-
-            # tell the engine to expect some data
             set nbytes [string length $data]
             if { ![SendBytes "volume data follows $nbytes"] } {
                 return
@@ -773,12 +767,13 @@ itcl::body Rappture::NanovisViewer::_send_dataobjs {} {
             if { ![SendBytes $data] } {
                 return
             }
-            set volId $_obj2id(count)
+            set ivol $_obj2id(count)
             incr _obj2id(count)
 
-            set _id2obj($volId) [list $dataobj $comp]
-            set _obj2id($dataobj-$comp) $volId
-            set _receiveids($volId) 1
+            set _id2obj($ivol) [list $dataobj $comp]
+            set _obj2id($dataobj-$comp) $ivol
+            set _receiveids($ivol) 1
+
         }
     }
     set _sendobjs ""
@@ -818,45 +813,13 @@ itcl::body Rappture::NanovisViewer::_send_dataobjs {} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: _send_transfuncs
+# USAGE: _send_transfunc
 # ----------------------------------------------------------------------
-itcl::body Rappture::NanovisViewer::_send_transfuncs {} {
-    blt::busy hold $itk_component(hull); update idletasks
-    foreach dataobj $_sendobjs2 {
-        foreach comp [$dataobj components] {
-            #
-            # Determine the transfer function needed for this volume
-            # and make sure that it's defined on the server.
-            #
-	    set ivol $_obj2id($dataobj-$comp)
-            if { ![info exists _isomarkers($ivol)] } {
-                _InitIsoMarkers $ivol
-            } else {
-                _HideIsoMarkers $ivol
-            }
-            if { ![_SetTransfuncData $ivol] } {
-                return
-            }
-        }
+itcl::body Rappture::NanovisViewer::_send_transfunc {} {
+    if { ![_DefineTransferFunction $_currentVolId] } {
+	return
     }
-    set _sendobjs2 ""
-    blt::busy release $itk_component(hull)
-
-    # activate the proper volume
-    set first [lindex [get] 0]
-    foreach key [array names _obj2id *-*] {
-        set state [string match $first-* $key]
-	set ivol $_obj2id($key)
-        _send "volume state $state $ivol"
-        if {[info exists _id2style($ivol)]} {
-            _send "volume shading transfunc $_id2style($ivol) $ivol"
-        }
-    }
-    set comp [lindex [$dataobj components] 0]
-    _ShowIsoMarkers $_obj2id($first-$comp)
-    # if there are any commands in the buffer, send them now that we're done
-    SendBytes $_outbuf
-    set _outbuf ""
+    _fixLegend
     $_dispatcher event -idle !legend
 }
 
@@ -923,10 +886,10 @@ itcl::body Rappture::NanovisViewer::_ReceiveLegend { ivol vmin vmax size } {
 itcl::body Rappture::NanovisViewer::_ReceiveData { args } {
     if { [isconnected] } {
         array set info $args
-        set volume $info(id)
-	set _limits($volume-min) $info(min)
-	set _limits($volume-max) $info(max)
-        foreach { dataobj comp } $_id2obj($volume) break
+        set ivol $info(id)
+	set _limits($ivol-min) $info(min)
+	set _limits($ivol-max) $info(max)
+        foreach { dataobj comp } $_id2obj($ivol) break
 
         if { ![info exists _limits($dataobj-vmin)] } {
             set _limits($dataobj-vmin) $info(min)
@@ -943,9 +906,17 @@ itcl::body Rappture::NanovisViewer::_ReceiveData { args } {
         set _limits(vmax) $info(vmax)
         lappend _sendobjs2 $dataobj
         unset _receiveids($info(id))
-        if { [array size _receiveids] == 0 } {
-            $_dispatcher event -idle !send_transfuncs
-        }
+
+	if { ![info exists _isomarkers($ivol)] } {
+	    _InitIsoMarkers $ivol
+	} else {
+	    _HideIsoMarkers $ivol
+	}
+	# We can update the transfer function now that we know the data limits.
+	if { ![_DefineTransferFunction $ivol] } {
+	    return
+	}
+	_fixLegend
     }
 }
 
@@ -981,7 +952,7 @@ itcl::body Rappture::NanovisViewer::_rebuild {} {
         set w [winfo width $itk_component(3dview)]
         set h [winfo height $itk_component(3dview)]
         _send "screen $w $h"
-        # nothing to send -- activate the proper volume
+        # nothing to send -- activate the proper ivol
         set first [lindex [get] 0]
         if {"" != $first} {
             set axis [$first hints updir]
@@ -997,6 +968,19 @@ itcl::body Rappture::NanovisViewer::_rebuild {} {
 	set ivol $_obj2id($first-$comp) 
 
         _ShowIsoMarkers $ivol 
+
+	if { [info exists _settings($this-$ivol-opacity)] } {
+	    set inner [$itk_component(controls).panel component inner]
+	    set sval $_settings($this-$ivol-opacity)
+	    set sval [expr {round($sval * 100)}]
+	    $inner.scales.opacity set $sval
+	}
+	if { [info exists _settings($this-$ivol-thickness)] } {
+	    set inner [$itk_component(controls).panel component inner]
+	    set sval $_settings($this-$ivol-thickness)
+	    set sval [expr {round($sval * 10000.0)}]
+	    $inner.scales.thickness set $sval
+	}
         UpdateTransferFunction $ivol
 
         # sync the state of slicers
@@ -1222,7 +1206,7 @@ itcl::body Rappture::NanovisViewer::_slice {option args} {
 #                  + 0.5*($_limits(${axis}max)+$_limits(${axis}min))}]
 
             # show the current value in the readout
-#puts "readout: $axis = $newval"
+	    #puts "readout: $axis = $newval"
 
             set ids [_currentVolumeIds -cutplanes]
             _send "cutplane position $newpos $axis $ids"
@@ -1312,14 +1296,17 @@ itcl::body Rappture::NanovisViewer::_fixSettings {what {value ""}} {
             if {[isconnected]} {
                 set dataobj [lindex [get] 0]
                 if {$dataobj != 0} {
-                    set val [$inner.scales.opacity get]
-                    set sval [expr { 0.01 * double($val) }]
+		    set val [$inner.scales.opacity get]
+		    set sval [expr { 0.01 * double($val) }]
 		    # FIXME: This will change when we can select the current 
 		    #        volume.
 		    set comp [lindex [$dataobj components] 0]
 		    set tag $dataobj-$comp
-                    set _settings($this-$tag-opacity) $sval
-                    UpdateTransferFunction $_obj2id($tag)
+		    if { [info exists _obj2id($tag)] } {
+			set ivol $_obj2id($tag)
+			set _settings($this-$ivol-opacity) $sval
+			UpdateTransferFunction $ivol
+		    }
                 }
             }
         }
@@ -1335,8 +1322,11 @@ itcl::body Rappture::NanovisViewer::_fixSettings {what {value ""}} {
 		    #        volume.
 		    set comp [lindex [$dataobj components] 0]
 		    set tag $dataobj-$comp
-                    set _settings($this-$tag-thickness) $sval
-                    UpdateTransferFunction $_obj2id($dataobj-$comp)
+		    if { [info exists _obj2id($tag)] } {
+			set ivol $_obj2id($tag)
+			set _settings($this-$ivol-thickness) $sval
+			UpdateTransferFunction $ivol
+		    }
                 }
             }
         }
@@ -1378,14 +1368,14 @@ itcl::body Rappture::NanovisViewer::_fixLegend {} {
     set w [expr {[winfo width $itk_component(legend)]-20}]
     set h [expr {[winfo height $itk_component(legend)]-20-$lineht}]
     set ivol ""
-
-    # The changes when we can select the current volume.
-    set dataobj [lindex [get] 0]
-    if {"" != $dataobj} {
-        set comp [lindex [$dataobj components] 0]
-        if {[info exists _obj2id($dataobj-$comp)]} {
-            set ivol $_obj2id($dataobj-$comp)
-        }
+    if { $ivol == "" } {
+	set dataobj [lindex [get] 0]
+	if {"" != $dataobj} {
+	    set comp [lindex [$dataobj components] 0]
+	    if {[info exists _obj2id($dataobj-$comp)]} {
+		set ivol $_obj2id($dataobj-$comp)
+	    }
+	}
     }
     if {$w > 0 && $h > 0 && "" != $ivol} {
         _send "legend $ivol $w $h"
@@ -1395,13 +1385,13 @@ itcl::body Rappture::NanovisViewer::_fixLegend {} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: _SetTransfuncData <ivol>
+# USAGE: _DefineTransferFunction <ivol>
 #
 # Used internally to compute the colormap and alpha map used to define
 # a transfer function for the specified component in a data object.
 # Returns: name {v r g b ...} {v w ...}
 # ----------------------------------------------------------------------
-itcl::body Rappture::NanovisViewer::_SetTransfuncData { ivol } {
+itcl::body Rappture::NanovisViewer::_DefineTransferFunction { ivol } {
     array set style {
         -color rainbow
         -levels 6
@@ -1410,7 +1400,6 @@ itcl::body Rappture::NanovisViewer::_SetTransfuncData { ivol } {
     foreach {dataobj comp} $_id2obj($ivol) break
     array set style [lindex [$dataobj components -style $comp] 0]
     set sname "$style(-color):$style(-levels):$style(-opacity)"
-
     if {$style(-color) == "rainbow"} {
         set style(-color) "white:yellow:green:cyan:blue:magenta"
     }
@@ -1437,10 +1426,11 @@ itcl::body Rappture::NanovisViewer::_SetTransfuncData { ivol } {
     # Sort the isovalues
     set isovalues [lsort -real $isovalues]
 
-    set delta 0.01
-    if { [info exists _settings($tag-thickness)]} {
-        set delta $_settings($tag-thickness)
+    if { ![info exists _settings($tag-thickness)]} {
+	set _settings($tag-thickness) 0.05
     }
+    set delta $_settings($tag-thickness)
+
     set first [lindex $isovalues 0]
     set last [lindex $isovalues end]
     set wmap ""
@@ -1474,7 +1464,12 @@ itcl::body Rappture::NanovisViewer::_SetTransfuncData { ivol } {
         lappend wmap 1.0 0.0
     }
     set _id2style($ivol) $sname
-    return [_send transfunc define $sname $cmap $wmap]
+    set _styles($sname) 1
+    set cmds [subst {
+	transfunc define $sname { $cmap } { $wmap }
+	volume shading transfunc $sname $ivol
+    }]
+    return [SendBytes $cmds]
 }
 
 # ----------------------------------------------------------------------
@@ -1529,7 +1524,7 @@ itcl::body Rappture::NanovisViewer::_ShowIsoMarkers { ivol } {
     # Clear all markers
     foreach dataobj [array names _all_data_objs] {
         foreach comp [$dataobj components] {
-	    _HideIsoMarkers _$obj2id($dataobj-$comp)
+	    _HideIsoMarkers $_obj2id($dataobj-$comp)
 	}
     }
     if { ![info exists _isomarkers($ivol)] } {
@@ -1548,11 +1543,19 @@ itcl::body Rappture::NanovisViewer::_ShowIsoMarkers { ivol } {
 itcl::body Rappture::NanovisViewer::_ParseLevelsOption { ivol levels } {
     set c $itk_component(legend)
     regsub -all "," $levels " " levels
-    for {set i 1} { $i <= $levels } {incr i} {
-	set x [expr {double($i)/($levels+1)}]
-	set m [IsoMarker \#auto $c $this $ivol]
-	$m SetRelativeValue $x
-	lappend _isomarkers($ivol) $m 
+    if {[string is int $levels]} {
+	for {set i 1} { $i <= $levels } {incr i} {
+	    set x [expr {double($i)/($levels+1)}]
+	    set m [IsoMarker \#auto $c $this $ivol]
+	    $m SetRelativeValue $x
+	    lappend _isomarkers($ivol) $m 
+	}
+    } else {
+        foreach x $levels {
+	    set m [IsoMarker \#auto $c $this $ivol]
+	    $m SetRelativeValue $x
+	    lappend _isomarkers($ivol) $m 
+        }
     }
 }
 
@@ -1592,9 +1595,9 @@ itcl::body Rappture::NanovisViewer::_InitIsoMarkers { ivol } {
     array set style {
         -levels 6
     }
+    set _isomarkers($ivol) ""
     foreach {dataobj comp} $_id2obj($ivol) break
     array set style [lindex [$dataobj components -style $comp] 0]
-
     if { [info exists style(-markers)] } {
 	_ParseMarkersOption $ivol $style(-markers)
     } else {
@@ -1616,10 +1619,8 @@ itcl::body Rappture::NanovisViewer::UpdateTransferFunction { ivol } {
     if {![info exists _id2style($ivol)]} {
         return
     }
-    # Compute a transfer function for the current data set.
-    _SetTransfuncData $ivol
-    _send [list volume shading transfunc $_id2style($ivol) $ivol]
-    _fixLegend
+    set _currentVolId $ivol
+    $_dispatcher event -idle !send_transfunc
 }
 
 itcl::body Rappture::NanovisViewer::_AddIsoMarker { ivol x y } {
@@ -1639,7 +1640,7 @@ itcl::body Rappture::NanovisViewer::RemoveDuplicateIsoMarker { marker x } {
     if { [info exists _isomarkers($ivol)] } {
         set list {}
         set marker [namespace tail $marker]
-        foreach m $_isomarkers($tag) {
+        foreach m $_isomarkers($ivol) {
             set sx [$m GetScreenPosition]
             if { $m != $marker } {
                 if { $x >= ($sx-3) && $x <= ($sx+3) } {
