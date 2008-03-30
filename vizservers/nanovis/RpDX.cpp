@@ -48,7 +48,6 @@ DX::DX(const char* filename) :
     if (filename == NULL) {
         // error
     }
-
     // open the file with libdx
     fprintf(stdout, "Calling DXImportDX(%s)\n", filename);
     fflush(stdout);
