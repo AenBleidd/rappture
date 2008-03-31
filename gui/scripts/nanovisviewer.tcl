@@ -98,7 +98,7 @@ itcl::class Rappture::NanovisViewer {
 
     # The following methods are only used by this class. 
     private method _DefineTransferFunction { ivol }
-    private method _AddIsoMarker { ivol x y }
+    private method _AddIsoMarker { x y }
     private method _InitIsoMarkers { ivol }
     private method _HideIsoMarkers { ivol }
     private method _ShowIsoMarkers { ivol }
@@ -125,7 +125,10 @@ itcl::class Rappture::NanovisViewer {
     private variable _isomarkers    ;# array of isosurface level values 0..1
     private variable _styles
     private common   _settings
-    private variable _currentVolId ""
+    private variable _activeVol "" ;# The currently active volume.  This 
+				    # indicates which isomarkers and transfer
+				    # function to use when changing markers,
+				    # opacity, or thickness.
 }
 
 itk::usual NanovisViewer {
@@ -816,11 +819,10 @@ itcl::body Rappture::NanovisViewer::_send_dataobjs {} {
 # USAGE: _send_transfunc
 # ----------------------------------------------------------------------
 itcl::body Rappture::NanovisViewer::_send_transfunc {} {
-    if { ![_DefineTransferFunction $_currentVolId] } {
+    if { ![_DefineTransferFunction $_activeVol] } {
 	return
     }
     _fixLegend
-    $_dispatcher event -idle !legend
 }
 
 # ----------------------------------------------------------------------
@@ -830,8 +832,11 @@ itcl::body Rappture::NanovisViewer::_send_transfunc {} {
 # the rendering server.  Indicates that binary image data with the
 # specified <size> will follow.
 # ----------------------------------------------------------------------
+set counter 0
 itcl::body Rappture::NanovisViewer::_ReceiveImage {option size} {
     if { [isconnected] } {
+	global counter
+	incr counter
         set bytes [ReceiveBytes $size]
         $_image(plot) configure -data $bytes
         ReceiveEcho <<line "<read $size bytes for [image width $_image(plot)]x[image height $_image(plot)] image>"
@@ -863,8 +868,8 @@ itcl::body Rappture::NanovisViewer::_ReceiveLegend { ivol vmin vmax size } {
             $c create text [expr {$w-10}] [expr {$h-8}] -anchor se \
                  -fill $itk_option(-plotforeground) -tags vmax
             $c lower transfunc
-            $c bind transfunc <ButtonRelease-1> \
-                [itcl::code $this _AddIsoMarker $ivol %x %y]
+	    $c bind transfunc <ButtonRelease-1> \
+		[itcl::code $this _AddIsoMarker %x %y]
         }
         $c itemconfigure vmin -text $_limits($ivol-min)
         $c coords vmin 10 [expr {$h-8}]
@@ -916,6 +921,8 @@ itcl::body Rappture::NanovisViewer::_ReceiveData { args } {
 	if { ![_DefineTransferFunction $ivol] } {
 	    return
 	}
+    }
+    if { [array size _receiveids] == 0 } {
 	_fixLegend
     }
 }
@@ -1293,42 +1300,24 @@ itcl::body Rappture::NanovisViewer::_fixSettings {what {value ""}} {
             }
         }
         opacity {
-            if {[isconnected]} {
-                set dataobj [lindex [get] 0]
-                if {$dataobj != 0} {
-		    set val [$inner.scales.opacity get]
-		    set sval [expr { 0.01 * double($val) }]
-		    # FIXME: This will change when we can select the current 
-		    #        volume.
-		    set comp [lindex [$dataobj components] 0]
-		    set tag $dataobj-$comp
-		    if { [info exists _obj2id($tag)] } {
-			set ivol $_obj2id($tag)
-			set _settings($this-$ivol-opacity) $sval
-			UpdateTransferFunction $ivol
-		    }
-                }
-            }
+            if {[isconnected] && $_activeVol != "" } {
+		set val [$inner.scales.opacity get]
+		set sval [expr { 0.01 * double($val) }]
+		set ivol $_activeVol
+		set _settings($this-$ivol-opacity) $sval
+		UpdateTransferFunction $ivol
+	    }
         }
 
         thickness {
-            if {[isconnected]} {
-                set dataobj [lindex [get] 0]
-                if {$dataobj != 0} {
-                    set val [$inner.scales.thickness get]
-                    # Scale values between 0.00001 and 0.01000
-                    set sval [expr {0.0001*double($val)}]
-		    # FIXME: This will change when we can select the current 
-		    #        volume.
-		    set comp [lindex [$dataobj components] 0]
-		    set tag $dataobj-$comp
-		    if { [info exists _obj2id($tag)] } {
-			set ivol $_obj2id($tag)
-			set _settings($this-$ivol-thickness) $sval
-			UpdateTransferFunction $ivol
-		    }
-                }
-            }
+            if {[isconnected] && $_activeVol != "" } {
+		set val [$inner.scales.thickness get]
+		# Scale values between 0.00001 and 0.01000
+		set sval [expr {0.0001*double($val)}]
+		set ivol $_activeVol
+		set _settings($this-$ivol-thickness) $sval
+		UpdateTransferFunction $ivol
+	    }
         }
         "outline" {
             if {[isconnected]} {
@@ -1367,16 +1356,7 @@ itcl::body Rappture::NanovisViewer::_fixLegend {} {
     set lineht [font metrics $itk_option(-font) -linespace]
     set w [expr {[winfo width $itk_component(legend)]-20}]
     set h [expr {[winfo height $itk_component(legend)]-20-$lineht}]
-    set ivol ""
-    if { $ivol == "" } {
-	set dataobj [lindex [get] 0]
-	if {"" != $dataobj} {
-	    set comp [lindex [$dataobj components] 0]
-	    if {[info exists _obj2id($dataobj-$comp)]} {
-		set ivol $_obj2id($dataobj-$comp)
-	    }
-	}
-    }
+    set ivol $_activeVol
     if {$w > 0 && $h > 0 && "" != $ivol} {
         _send "legend $ivol $w $h"
     } else {
@@ -1527,6 +1507,7 @@ itcl::body Rappture::NanovisViewer::_ShowIsoMarkers { ivol } {
 	    _HideIsoMarkers $_obj2id($dataobj-$comp)
 	}
     }
+    set _activeVol $ivol
     if { ![info exists _isomarkers($ivol)] } {
         return
     }
@@ -1619,11 +1600,15 @@ itcl::body Rappture::NanovisViewer::UpdateTransferFunction { ivol } {
     if {![info exists _id2style($ivol)]} {
         return
     }
-    set _currentVolId $ivol
+    set _activeVol $ivol
     $_dispatcher event -idle !send_transfunc
 }
 
-itcl::body Rappture::NanovisViewer::_AddIsoMarker { ivol x y } {
+itcl::body Rappture::NanovisViewer::_AddIsoMarker { x y } {
+    if { $_activeVol == "" } {
+	error "active volume isn't set"
+    }
+    set ivol $_activeVol
     set c $itk_component(legend)
     set m [IsoMarker \#auto $c $this $ivol]
     set w [winfo width $c]
