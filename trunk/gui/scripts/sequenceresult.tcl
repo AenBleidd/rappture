@@ -52,7 +52,7 @@ itcl::class Rappture::SequenceResult {
     private variable _afterId ""    ;# current "after" event for play op
 
     private common _play            ;# options for "play" operation
-    set _play(speed) 40
+    set _play(speed) 60
     set _play(loop) 0
 }
                                                                                 
