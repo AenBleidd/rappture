@@ -228,7 +228,6 @@ load_volume_stream2(int index, std::iostream& fin)
             ;  // skip leading blanks
 
         if (*start != '#') {  // skip comment lines
-            printf("%s\n", line);
             if (sscanf(start, "object %d class gridpositions counts %d %d %d", &dummy, &nx, &ny, &nz) == 4) {
                 // found grid size
                 isrect = 1;
@@ -236,16 +235,11 @@ load_volume_stream2(int index, std::iostream& fin)
                 isrect = 0;
                 double xx, yy, zz;
                 for (int i=0; i < nxy; i++) {
-                    fin.getline(line, sizeof(line));
                     fin.getline(line,sizeof(line)-1);
                     if (sscanf(line, "%lg %lg %lg", &xx, &yy, &zz) == 3) {
                         xymesh.addNode( Rappture::Node2D(xx,yy) );
                     }
                 }
-                char mesg[256];
-                sprintf(mesg,"test");
-                result.error(mesg);
-                return result;
 
                 char fpts[128];
                 sprintf(fpts, "/tmp/tmppts%d", getpid());
