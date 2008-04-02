@@ -15,6 +15,8 @@
  */
 #include "rp_optimizer.h"
 
+extern int pgapack_abort;
+
 /*
  * ----------------------------------------------------------------------
  * KNOWN OPTIMIZATION PACKAGES
@@ -66,6 +68,8 @@ static RpOptimStatus RpOptimizerPerformInTcl _ANSI_ARGS_((RpOptimEnv *envPtr,
 #ifdef BUILD_Rappture
 __declspec( dllexport )
 #endif
+
+extern int pgapack_abort;
 
 int
 Rapptureoptimizer_Init(Tcl_Interp *interp)   /* interpreter being initialized */
@@ -361,12 +365,22 @@ RpOptimInstanceCmd(cdata, interp, objc, objv)
                 (char*)NULL);
             return TCL_ERROR;
         }
-    }
+    } else if (*option == 'a' && strcmp(option,"abort") == 0) {
+	int value;
 
-    /*
-     * OPTION:  get ?globPattern? ?-option?
-     */
-    else if (*option == 'g' && strcmp(option,"get") == 0) {
+        if (objc < 3) {
+            Tcl_WrongNumArgs(interp, 1, objv, "abort bool");
+            return TCL_ERROR;
+        }
+	if (Tcl_GetBooleanFromObj(interp, objv[2], &value) != TCL_OK) {
+	    return TCL_ERROR;
+	}
+	pgapack_abort = value;
+	return TCL_OK;
+    } else if (*option == 'g' && strcmp(option,"get") == 0) {
+	/*
+	 * OPTION:  get ?globPattern? ?-option?
+	 */
         if (objc > 2) {
             path = Tcl_GetStringFromObj(objv[2], (int*)NULL);
         } else {
@@ -622,6 +636,8 @@ RpOptimInstanceCmd(cdata, interp, objc, objv)
         status = (*envPtr->pluginDefn->runProc)(envPtr,
             RpOptimizerPerformInTcl, fitnessExpr);
 
+	fprintf(stderr, ">>>status=%d\n", status);
+
         Tcl_DecrRefCount(toolPtr);
         if (updateCmdPtr) {
             Tcl_DecrRefCount(updateCmdPtr);
@@ -636,6 +652,7 @@ RpOptimInstanceCmd(cdata, interp, objc, objv)
             Tcl_SetResult(interp, "failure", TCL_STATIC);
             break;
         case RP_OPTIM_ABORTED:
+	    fprintf(stderr, "Got abort status=%d\n", status);
             Tcl_SetResult(interp, "aborted", TCL_STATIC);
             break;
         case RP_OPTIM_UNKNOWN:
@@ -823,13 +840,9 @@ RpOptimizerPerformInTcl(envPtr, values, numValues, fitnessPtr)
 
         status = Tcl_GlobalEval(toolDataPtr->interp,
             Tcl_DStringValue(&buffer));
-
         if (status == TCL_ERROR) {
             Tcl_BackgroundError(toolDataPtr->interp);
-        }
-        else if (status == TCL_BREAK || status == TCL_RETURN) {
-            result = RP_OPTIM_ABORTED;
-        }
+        } 
         Tcl_DStringFree(&buffer);
     }
 

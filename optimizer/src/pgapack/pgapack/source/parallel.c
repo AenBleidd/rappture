@@ -68,6 +68,10 @@
 ******************************************************************************/
 
 #include "pgapack.h"
+#include <setjmp.h>
+
+extern jmp_buf pgapack_jmpbuf;
+extern int *pgapack_abortPtr;
 
 #define DEBUG_EVAL 0
 
@@ -110,6 +114,7 @@ void PGARunGM(PGAContext *ctx, double (*f)(PGAContext *, int, int),
     rank = PGAGetRank(ctx, comm);
 
     PGAEvaluate(ctx, PGA_OLDPOP, f, comm);
+	
     if (rank == 0)
 	PGAFitness(ctx, PGA_OLDPOP);
 
@@ -191,12 +196,16 @@ void PGAEvaluateSeq(PGAContext *ctx, int pop,
 		e = (*((double(*)(void *, void *, void *))f))(&ctx, &p, &pop);
 		PGASetEvaluation (ctx, p-1, pop, e);
 	    }
-    } else {
-	for (p=0; p<ctx->ga.PopSize; p++) 
+    } else { 
+	for (p=0; p<ctx->ga.PopSize; p++) {
+	    if ((pgapack_abortPtr != NULL) && (*pgapack_abortPtr == 1)) {
+		longjmp(pgapack_jmpbuf, 1);
+	    }
 	    if (!PGAGetEvaluationUpToDateFlag(ctx, p, pop)) {
 		e = (*f)(ctx, p, pop);
 		PGASetEvaluation(ctx, p, pop, e);
-	    }
+	    } 
+	}
     }
     PGADebugExited("PGAEvaluateSeq");
 }
@@ -484,7 +493,6 @@ void PGAEvaluate(PGAContext *ctx, int pop,
     } else {
 	PGAEvaluateSlave(ctx, pop, f, comm);
     }
-
     PGADebugExited("PGAEvaluate");
 }
 

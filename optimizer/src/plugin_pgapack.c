@@ -78,9 +78,10 @@ PgapackInit()
     dataPtr->maxRuns = 10000;
     dataPtr->popRepl = PGA_POPREPL_BEST;
     dataPtr->popSize = 200;
-
     return (ClientData)dataPtr;
 }
+
+int pgapack_abort = 0;
 
 /*
  * ----------------------------------------------------------------------
@@ -102,6 +103,9 @@ PgapackRun(envPtr, evalProc, fitnessExpr)
     /* pgapack requires at least one arg -- the executable name */
     /* fake it here by just saying something like "rappture" */
     int argc = 1; char *argv[] = {"rappture"};
+
+    pgapack_abort = 0;		/* FALSE */
+    PGASetAbortVar(&pgapack_abort);
 
     ctx = PGACreate(&argc, argv, PGA_DATATYPE_USER, envPtr->numParams,
         dataPtr->operation);
@@ -142,6 +146,9 @@ PgapackRun(envPtr, evalProc, fitnessExpr)
 
     PgapUnlinkContext2Env(ctx);
 
+    if (pgapack_abort) {
+	return RP_OPTIM_ABORTED;
+    }
     return RP_OPTIM_SUCCESS;
 }
 
@@ -171,6 +178,11 @@ PgapEvaluate(ctx, p, pop)
 
     status = (*envPtr->evalProc)(envPtr, paramPtr, envPtr->numParams, &fit);
 
+    if (pgapack_abort) {
+        fprintf(stderr, "==WARNING: run aborted!");
+        return 0.0;
+    }
+	
     if (status != RP_OPTIM_SUCCESS) {
         fprintf(stderr, "==WARNING: run failed!");
         PgapPrintString(ctx, stderr, p, pop);

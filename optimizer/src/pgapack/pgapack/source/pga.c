@@ -70,6 +70,9 @@
 *****************************************************************************/
 
 #include "pgapack.h"
+#include <setjmp.h>
+
+jmp_buf pgapack_jmpbuf;
 
 /*U****************************************************************************
   PGARun - Highest level routine to execute the genetic algorithm.  It
@@ -111,11 +114,13 @@ void PGARun(PGAContext *ctx, double (*evaluate)(PGAContext *c, int p, int pop))
      npops  = PGAGetNumIslands  (ctx);
      ndemes = PGAGetNumDemes    (ctx);
 
+    if (setjmp(pgapack_jmpbuf)) {
+	return;			/* PGA pack was aborted. */
+    }
      /**********************************************************************/
      /*              Global model, one island, one deme                    */
      /**********************************************************************/
-     if     ( (npops == 1) && (ndemes == 1) ) {
-
+     if ( (npops == 1) && (ndemes == 1) ) {
 	 PGARunGM(ctx, evaluate, comm);
      }
      
