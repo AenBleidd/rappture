@@ -35,7 +35,7 @@
  * ======================================================================
  */
 #include "RenderVertexArray.h"
-#include <GL/glut.h>
+#include <GL/gl.h>
 #include <stdio.h>
 
 using namespace std;
