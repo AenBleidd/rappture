@@ -43,18 +43,21 @@ class PerfQuery
 {
 
 public:
-  NVISid id;
-  int pixel;
+    NVISid id;
+    int pixel;
+    
+    PerfQuery();
+    ~PerfQuery();
+    
+    void enable(void);	//start counting how many pixels are rendered
+    void disable(void);	//stop counting
 
-  PerfQuery();
-  ~PerfQuery();
-
-  void enable();	//start counting how many pixels are rendered
-  void disable();	//stop counting
-
-  void reset();		//reset pixel count to 0;
-  int get_pixel_count();//return current pixel count
-
+    void reset(void) { 
+	pixel = 0; 
+    }
+    int get_pixel_count(void) {
+	return pixel;		//return current pixel count
+    }
 };
 
 
