@@ -1,3 +1,4 @@
+
 /*
  * ----------------------------------------------------------------------
  * PerfQuery.cpp: performance query class
@@ -26,8 +27,6 @@ PerfQuery::~PerfQuery(){
   glDeleteQueriesARB(1, &id);
 }
 
-void PerfQuery::reset(){ pixel=0; }
-
 //There can only be one active query at any given moment
 void PerfQuery::enable(){
   glBeginQueryARB(GL_SAMPLES_PASSED_ARB, id);
@@ -43,4 +42,3 @@ void PerfQuery::disable(){
   pixel+=count;
 }
 
-int PerfQuery::get_pixel_count(){ return pixel; }
