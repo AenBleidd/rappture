@@ -71,6 +71,8 @@
 
 #include "pgapack.h"
 
+int *pgapack_abortPtr = NULL;
+
 /*U****************************************************************************
   PGADone - Returns PGA_TRUE if the stopping conditions have been met,
   otherwise returns false.  Calls exactly one of the user defined C or
@@ -375,4 +377,9 @@ void PGASetMaxSimilarityValue(PGAContext *ctx, int max_similarity)
     ctx->ga.MaxSimilarity = max_similarity;
 
     PGADebugExited("PGASetMaxSimilarityValue");
+}
+
+void PGASetAbortVar(int *abortPtr)
+{
+    pgapack_abortPtr = abortPtr;
 }
