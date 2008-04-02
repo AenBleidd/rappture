@@ -13,7 +13,6 @@
  * ======================================================================
  */
 
-//#include <GL/freeglut.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <sstream>
