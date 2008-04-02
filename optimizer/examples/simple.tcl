@@ -60,6 +60,13 @@ blt::graph .value
 .value legend configure -hide yes
 pack .value -side left -expand yes -fill both
 
+proc SetAbortFlag {} {
+    global doAbort
+    set doAbort 1
+}
+set doAbort 0
+button .quit -text Quit -command SetAbortFlag
+pack .quit
 set colors {magenta purple blue DeepSkyBlue cyan green yellow Gold orange tomato red FireBrick black}
 
 for {set pop [expr [llength $colors]-1]} {$pop >= 0} {incr pop -1} {
@@ -83,6 +90,10 @@ proc add_to_plot {xmlobj} {
     jobvec$pop append $jobnumber
     fvec$pop append [$xmlobj get output.number(f).current]
     incr jobnumber
+    global doAbort
+    if { $doAbort } {
+	optim abort yes
+    }
 }
 
 # ----------------------------------------------------------------------
