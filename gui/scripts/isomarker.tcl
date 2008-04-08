@@ -1,3 +1,4 @@
+
 # ----------------------------------------------------------------------
 #  COMPONENT: nanovisviewer::isomarker - Marker for 3D volume rendering
 #
@@ -103,7 +104,7 @@ itcl::class Rappture::NanovisViewer::IsoMarker {
     public method SetAbsoluteValue { x } {
 	set _value $x
 	set y 31
-	$_canvas itemconfigure $_label -text [format %.4g $_value]
+	$_canvas itemconfigure $_label -text [format %.2g $_value]
 	set x [GetScreenPosition]
 	$_canvas coords $_tick $x [expr {$y+3}]
 	$_canvas coords $_label $x [expr {$y+5}]
@@ -132,6 +133,7 @@ itcl::class Rappture::NanovisViewer::IsoMarker {
 		$_canvas raise $_tick 
 		set _active_press 1
 		Activate yes
+		$_canvas itemconfigure limits -state hidden
 	    }
 	    update {
 		set w [winfo width $_canvas]
@@ -147,6 +149,7 @@ itcl::class Rappture::NanovisViewer::IsoMarker {
 		}
 		set _active_press 0
 		Activate no
+		$_canvas itemconfigure limits -state normal
 	    }
 	    default {
 		error "bad option \"$option\": should be start, update, end"
@@ -154,4 +157,3 @@ itcl::class Rappture::NanovisViewer::IsoMarker {
 	}
     }
 }
-
