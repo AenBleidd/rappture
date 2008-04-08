@@ -53,7 +53,7 @@ itcl::class Rappture::Pager {
     public method index {name}
     public method page {args}
     public method current {args}
-    public method busy { how } 
+    public method busy { bool } 
 
     protected method _layout {}
     protected method _fixSize {}
