@@ -636,7 +636,7 @@ itcl::body Rappture::Pager::_drawCrumbs {how} {
 #
 # busy --
 #
-#	If true the widget (this indicates a simulation is occurring)
+#	If true (this indicates a simulation is occurring), the widget
 #	should prevent the user from 
 #		1) clicking an item previous in the breadcrumbs, and 
 #		2) using the "back" button.
