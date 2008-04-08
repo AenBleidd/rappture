@@ -53,6 +53,7 @@ itcl::class Rappture::Pager {
     public method index {name}
     public method page {args}
     public method current {args}
+    public method busy { how } 
 
     protected method _layout {}
     protected method _fixSize {}
@@ -628,5 +629,18 @@ itcl::body Rappture::Pager::_drawCrumbs {how} {
                 }
             }
         }
+    }
+}
+
+# ----------------------------------------------------------------------
+# CONSTRUCTOR
+# ----------------------------------------------------------------------
+itcl::body Rappture::Pager::busy { bool } {
+    if { $bool } {
+	blt::busy hold $itk_component(breadcrumbs) 
+	$itk_component(back) configure -state disabled
+    } else { 
+	blt::busy release $itk_component(breadcrumbs) 
+	$itk_component(back) configure -state normal
     }
 }
