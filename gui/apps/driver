@@ -190,10 +190,10 @@ foreach comp $phases {
 $win.pager insert end -name analyzer -title "Simulate"
 set f [$win.pager page analyzer]
 $win.pager page analyzer -command [subst {
-    blt::busy hold $win.pager 
+    $win.pager busy yes
     update
     $f.analyze simulate -ifneeded
-    blt::busy release $win.pager
+    $win.pager busy no
 }]
 
 Rappture::Analyzer $f.analyze $tool -simcontrol auto
