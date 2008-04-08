@@ -476,18 +476,8 @@ itcl::body Rappture::ContourResult::download {option args} {
             return ""
         }
         now {
-            #
-            # Hack alert!  Need data in binary format,
-            # so we'll save to a file and read it back.
-            #
-            set tmpfile /tmp/image[pid].jpg
-            $_download write $tmpfile -format jpeg
-            set fid [open $tmpfile r]
-            fconfigure $fid -encoding binary -translation binary
-            set bytes [read $fid]
-            close $fid
-            file delete -force $tmpfile
-
+            set data [$_download data -format jpeg]
+            set bytes [Rappture::encoding::decode -as b64 $data]
             return [list .jpg $bytes]
         }
         default {
