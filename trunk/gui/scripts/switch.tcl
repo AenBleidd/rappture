@@ -42,7 +42,6 @@ itcl::class Rappture::Switch {
     protected method _resize {}
     protected method _hilite {comp state}
     protected method _presets {option}
-    protected method _val2boolstr {args}
 
     private variable _value "no"  ;# value for this widget
 
@@ -53,7 +52,7 @@ itcl::class Rappture::Switch {
            0x7f, 0x00, 0x3e, 0x00, 0x1c, 0x00, 0x08, 0x00};
     }
 }
-
+                                                                                
 itk::usual Switch {
     keep -cursor -font -foreground -background
     keep -selectbackground -selectforeground -selectborderwidth
@@ -61,15 +60,8 @@ itk::usual Switch {
 
 # ----------------------------------------------------------------------
 # CONSTRUCTOR
-#   the type is one of the following: 
-#       "yes", "no",
-#       "true", "false",
-#       "on", "off",
-#       "1", "0",
-#   and determines what text is used as the dropdown options.
-#   if left empty or is a non-boolean value, type defaults to "no"
 # ----------------------------------------------------------------------
-itcl::body Rappture::Switch::constructor {type args} {
+itcl::body Rappture::Switch::constructor {args} {
     itk_component add icon {
         canvas $itk_interior.icon -borderwidth 0 -highlightthickness 0
     } {
@@ -83,36 +75,6 @@ itcl::body Rappture::Switch::constructor {type args} {
         frame $itk_interior.vframe
     }
 
-    set valNumNeg 2
-    set valNumPos 3
-    set valTextNeg "no"
-    set valTextPos "yes"
-
-    if { ("" != $type) } {
-        set _value [string tolower $type]
-    }
-
-    if { ("on" == $_value) || ("off" == $_value) } {
-        set valNumNeg 4
-        set valNumPos 5
-        set valTextNeg "off"
-        set valTextPos "on"
-    } elseif { ("true" == $_value) || ("false" == $_value) } {
-        set valNumNeg 6
-        set valNumPos 7
-        set valTextNeg "false"
-        set valTextPos "true"
-    } elseif { ("1" == $_value) || ("0" == $_value) } {
-        # assigning values this way avoids a 
-        # "string is integer -strict" problem in _val2boolstr
-        set valNumNeg 0
-        set valNumPos 1
-        set valTextNeg "0"
-        set valTextPos "1"
-    } else {
-        set _value "no"
-    }
-
     itk_component add value {
         label $itk_component(vframe).value -borderwidth 1 -width 7 \
             -textvariable [itcl::scope _value]
@@ -120,6 +82,9 @@ itcl::body Rappture::Switch::constructor {type args} {
         rename -background -textbackground textBackground Background
     }
     pack $itk_component(value) -side left -expand yes -fill both
+
+    bind $itk_component(value) <Enter> [itcl::code $this _hilite value on]
+    bind $itk_component(value) <Leave> [itcl::code $this _hilite value off]
 
     itk_component add presets {
         button $itk_component(vframe).psbtn -bitmap SwitchArrow \
@@ -130,16 +95,15 @@ itcl::body Rappture::Switch::constructor {type args} {
         rename -background -textbackground textBackground Background
     }
 
-    bind $itk_component(presets) <Enter> [itcl::code $this _hilite presets $valTextPos]
-    bind $itk_component(presets) <Leave> [itcl::code $this _hilite presets $valTextNeg]
+    bind $itk_component(presets) <Enter> [itcl::code $this _hilite presets on]
+    bind $itk_component(presets) <Leave> [itcl::code $this _hilite presets off]
 
     itk_component add presetlist {
         Rappture::Dropdownlist $itk_component(presets).plist \
             -postcommand [itcl::code $this _presets post] \
             -unpostcommand [itcl::code $this _presets unpost] \
     }
-
-    $itk_component(presetlist) insert end $valNumPos $valTextPos $valNumNeg $valTextNeg
+    $itk_component(presetlist) insert end 1 yes 0 no
 
     bind $itk_component(presetlist) <<DropdownlistSelect>> \
         [itcl::code $this _presets select]
@@ -170,11 +134,11 @@ itcl::body Rappture::Switch::value {args} {
     }
 
     if {[llength $args] == 1} {
-
-        set newval [_val2boolstr [lindex $args 0]]
+        set newval [lindex $args 0]
         if {![string is boolean -strict $newval]} {
             error "Should be a boolean value"
         }
+        set newval [expr {($newval) ? "yes" : "no"}]
 
         if {$onlycheck} {
             return
@@ -187,41 +151,6 @@ itcl::body Rappture::Switch::value {args} {
         error "wrong # args: should be \"value ?-check? ?newval?\""
     }
     return $_value
-}
-
-# ----------------------------------------------------------------------
-# USAGE: _val2boolstr <val>
-#
-# Clients use this to query/set the value for this widget.  With
-# no args, it returns the current value for the widget.  If the
-# <newval> is specified, it sets the value of the widget and
-# sends a <<Value>> event.  If the -check flag is included, the
-# new value is not actually applied, but just checked for correctness.
-# ----------------------------------------------------------------------
-itcl::body Rappture::Switch::_val2boolstr {args} {
-    set newval ""
-    if {[llength $args] == 1} {
-        set val [lindex $args 0]
-
-        if {![string is integer -strict $val]} {
-            return $val
-        }
-
-        if { (2 == $val) || (3 == $val) } {
-            set newval [expr {($val%2) ? "yes" : "no"}]
-        } elseif { (4 == $val) || (5 == $val) } {
-            set newval [expr {($val%2) ? "on" : "off"}]
-        } elseif { (6 == $val) || (7 == $val) } {
-            set newval [expr {($val%2) ? "true" : "false"}]
-        } elseif { (0 == $val) || (1 == $val) } {
-            set newval [expr {($val%2) ? "1" : "0"}]
-        }
-
-    } elseif {[llength $args] != 0} {
-        error "wrong # args: should be \"_val2boolstr val\""
-    }
-
-    return $newval
 }
 
 # ----------------------------------------------------------------------
