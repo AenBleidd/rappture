@@ -22,12 +22,14 @@ itcl::class Rappture::Sequence {
     destructor { # defined below }
 
     public method value {pos}
+    public method label {pos}
     public method index {pos}
     public method size {}
     public method hints {{keyword ""}}
 
     private variable _xmlobj ""  ;# ref to lib obj with sequence data
     private variable _dataobjs   ;# maps index => data object
+    private variable _labels     ;# maps index => labels
     private variable _indices    ;# list of sorted index values
     private variable _hints      ;# cache of hints stored in XML
 }
@@ -50,12 +52,20 @@ itcl::body Rappture::Sequence::constructor {xmlobj path} {
             continue
         }
 
+        # check for an element about.label stanza
+        set elelabel [$xmlobj get $path.$name.about.label]
+
         set ctype ""
         set _dataobjs($index) ""
+        set _labels($index) ""
         foreach cname [$_xmlobj children $name] {
             set type [$xmlobj element -as type $path.$name.$cname]
             switch -- $type {
                 index {
+                    # ignore this
+                    continue
+                }
+                about {
                     # ignore this
                     continue
                 }
@@ -99,6 +109,7 @@ itcl::body Rappture::Sequence::constructor {xmlobj path} {
             }
             if {$type == $ctype} {
                 lappend _dataobjs($index) $obj
+                set _labels($index) $elelabel
             } else {
                 itcl::delete object $obj
             }
@@ -168,6 +179,17 @@ itcl::body Rappture::Sequence::destructor {} {
 itcl::body Rappture::Sequence::value {pos} {
     set i [lindex [lindex $_indices $pos] 0]
     return $_dataobjs($i)
+}
+
+# ----------------------------------------------------------------------
+# USAGE: label <pos>
+#
+# Returns the label for the element as position <pos> in the
+# list of all elements.  Here, <pos> runs from 0 to size-1.
+# ----------------------------------------------------------------------
+itcl::body Rappture::Sequence::label {pos} {
+    set i [lindex [lindex $_indices $pos] 0]
+    return $_labels($i)
 }
 
 # ----------------------------------------------------------------------

@@ -115,6 +115,12 @@ itcl::body Rappture::SequenceResult::constructor {args} {
     }
     pack $itk_component(indexValue) -side left
 
+    # add an element.about.label stanza
+    itk_component add eleLabel {
+        label $itk_component(info).elabel -padx 10
+    }
+    pack $itk_component(eleLabel) -side left
+
     itk_component add options {
         button $itk_component(player).options -text "Options..." \
             -padx 1 -pady 0 -relief flat -overrelief raised
@@ -537,9 +543,15 @@ itcl::body Rappture::SequenceResult::_fixValue {} {
         return
     }
 
-    set val [$itk_component(dial) get -format label current]
-    $itk_component(indexValue) configure -text "= $val"
-    set _pos [lsearch -glob $_indices $val*]
+    # if the indexLabel is empty, don't show indexValue
+    if {"" != [$_topmost hints indexlabel]} {
+        set val [$itk_component(dial) get -format label current]
+        $itk_component(indexValue) configure -text "= $val"
+        set _pos [lsearch -glob $_indices $val*]
+    }
+
+    # populate the label for this element
+    $itk_component(eleLabel) configure -text "[$_topmost label $_pos]"
 
     $viewer delete
     if {"" != $_topmost} {
