@@ -43,7 +43,7 @@ itcl::class Rappture::ResultViewer {
     private variable _mode2widget    ;# maps plotting mode => widget
     private variable _dataslots ""   ;# list of all data objects in this widget
 }
-                                                                                
+
 itk::usual ResultViewer {
     keep -background -foreground -cursor -font
 }
@@ -238,13 +238,13 @@ itcl::body Rappture::ResultViewer::_plotAdd {dataobj {settings ""}} {
                 2D {
                     set mode "contour"
                     if {![info exists _mode2widget($mode)]} {
-			set mesh [$dataobj mesh]
+                        set mesh [$dataobj mesh]
                         set fmt [expr {("" != $mesh) ? "vtk" : "heightmap"}]
                         set w $itk_interior.contour
                         Rappture::Field2DResult $w -mode $fmt
                         set _mode2widget($mode) $w
                     }
-		}
+                }
                 3D {
                     set mode "field3D"
                     if {![info exists _mode2widget($mode)]} {
@@ -413,7 +413,7 @@ itcl::body Rappture::ResultViewer::_xml2data {xmlobj path} {
         curve {
             return [Rappture::Curve ::#auto $xmlobj $path]
         }
-	histogram {
+        histogram {
             return [Rappture::Histogram ::#auto $xmlobj $path]
         }
         field {
