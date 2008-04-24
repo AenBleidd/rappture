@@ -27,6 +27,9 @@ set zwd [expr {round(0.5*$wd)}]
 set zht [expr {round(0.5*$ht)}]
 set zoomi [image create photo -width $zwd -height $zht]
 
+$driver put output.sequence(outs).about.label "Animated sequence"
+$driver put output.sequence(outs).index.label "Frame"
+
 for {set n 0} {$n < $nframes} {incr n} {
     set frac [expr {($n+1)/double($nframes)}]
     set x0 [expr {round(0.5*$frac*$wd)}]
@@ -34,9 +37,11 @@ for {set n 0} {$n < $nframes} {incr n} {
 
     $zoomi copy $imh -from $x0 $y0
 
-    $driver put output.sequence(outs).element($n).index [expr {$n+1}]
+    set index [expr {$n+1}]
+    $driver put output.sequence(outs).element($n).index $index
     $driver put output.sequence(outs).element($n).image.current \
         [$zoomi data -format jpeg]
+    $driver put output.sequence(outs).element($n).about.label "$index of $nframes"
 }
 
 # save the updated XML describing the run...
