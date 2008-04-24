@@ -35,10 +35,4 @@ When you click the Simulate button, the input image will be resized several time
     <default>10</default>
   </integer>
 </input>
-<output>
-  <sequence id="outs">
-    <about><label>Animated sequence</label></about>
-    <index><label>Frame</label></index>
-  </sequence>
-</output>
 </run>
