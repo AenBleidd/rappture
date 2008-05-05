@@ -26,7 +26,6 @@ PixelOut main(v2f IN,
 		uniform float4 renderParameters,
 		uniform float4 options)
 {
-	
   PixelOut OUT;
   float4 tex_coord = mul(modelViewInv, IN.TexCoord);
   float4 sample = tex3D(volume, tex_coord.xyz);
@@ -42,13 +41,14 @@ PixelOut main(v2f IN,
   }
   else 
   { //regular volume rendering, we do PHONG SHADING 
-
     //lighting parameters 
     float3 normal;
     if(length(sample.yzw)>0.0)
     {
-        normal = sample.yzw * 2.0 - 1.0;
-        normal = normalize(normal);
+        // INSOO (iso)
+        //normal = sample.yzw * 2.0 - 1.0; //(iso)
+        //normal = normalize(normal);
+        normal = normalize(sample.yzw);
     }
 
     float3 light_vector = normalize(IN.Light);
@@ -58,25 +58,31 @@ PixelOut main(v2f IN,
     //lighting computation
     float normal_dot_light = max(dot(normal, light_vector), 0);
     float normal_dot_half = max(dot(normal, half_vector), 0);
+
+    // INSOO (iso)
     //float normal_dot_light = abs(dot(normal, light_vector));
     //float normal_dot_half = abs(dot(normal, half_vector));
 
 
     float ambient = 0.8;
+
     float diffuse = normal_dot_light * renderParameters.z;
+
     float specular = pow(normal_dot_half, renderParameters.w)*(1-ambient-diffuse);
 
     float lighting = ambient + diffuse + specular;
     color.xyz = color.xyz * lighting;
 
     if (options.y < 0.5)
+    {
     	color.w = renderParameters.y*color.w/renderParameters.x; //opacity is modulated by the number of total slices
 							//to avoid very opaque volume when number of slices is high
+        // INSOO (iso)
+    	//color.w = renderParameters.y*color.w/renderParameters.x * 0.2; //opacity is modulated by the number of total slices
+    }
   }
 
   OUT.Color = color;
-  //debug
-  //OUT.Color = float4(tex_coord.xyz, 1);
 
   return OUT;
 }

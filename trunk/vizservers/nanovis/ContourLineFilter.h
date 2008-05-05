@@ -18,15 +18,15 @@ public :
 
 	private :
 		bool isValueWithIn(float Val1, float Val2); 
-		void getContourPoint(int vertexIndex1, int vertexIndex2, Vector3* vertices, int width);
-		void getContourPoint(int vertexIndex1, int vertexIndex2, Vector4* vertices, int width);
+		void getContourPoint(int vertexIndex1, int vertexIndex2, Vector3* vertices, int width, bool top);
+		void getContourPoint(int vertexIndex1, int vertexIndex2, Vector4* vertices, int width, bool top);
 	public :  
 		/**
 		 * @brief
 		 * @ret Returns the number of points
 		 */
-		int createLine(int width, int height, Vector3* vertices);
-		int createLine(int width, int height, Vector4* vertices);
+		int createLine(int width, int height, Vector3* vertices, bool top);
+		int createLine(int width, int height, Vector4* vertices, bool top);
 	};
 
 	typedef std::list<ContourLine*> ContourLineList;
@@ -34,6 +34,7 @@ public :
 private :
 	ContourLineList _lines;
 	Vector3Array* _colorMap;
+    bool _top;
 public :
 	ContourLineFilter();
 
@@ -44,6 +45,11 @@ public :
 	R2Geometry* create(float min, float max, int linecount, Vector3* vertices, int width, int height);
 	R2Geometry* create(float min, float max, int linecount, Vector4* vertices, int width, int height);
 	void setColorMap(Vector3Array* colorMap);
+
+    void setHeightTop(bool top)
+    {
+       _top = top;
+    }
 };
 
 #endif 

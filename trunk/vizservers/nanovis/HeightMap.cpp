@@ -19,16 +19,19 @@ bool HeightMap::update_pending = false;
 double HeightMap::valueMin = 0.0;
 double HeightMap::valueMax = 1.0;
 
+#define TOPCONTOUR
 HeightMap::HeightMap() : 
     _vertexBufferObjectID(0), 
     _textureBufferObjectID(0), 
     _vertexCount(0), 
     _contour(0), 
+    _topContour(0), 
     _colorMap(0), 
     _indexBuffer(0), 
     _indexCount(0), 
     _contourColor(1.0f, 0.0f, 0.0f), 
-    _contourVisible(true), 
+    _contourVisible(false), 
+    _topContourVisible(true),
     _visible(false),
     _scale(1.0f, 1.0f, 1.0f), 
     _centerPoint(0.0f, 0.0f, 0.0f)
@@ -91,6 +94,10 @@ void HeightMap::render(graphics::RenderContext* renderContext)
         glDisableClientState(GL_NORMAL_ARRAY);
         
         if (_colorMap) {
+            // PUT vertex program here
+            //
+            //
+            
             cgGLBindProgram(_shader->getFP());
             cgGLEnableProfile(CG_PROFILE_FP30);
             
@@ -109,8 +116,15 @@ void HeightMap::render(graphics::RenderContext* renderContext)
         glBindBuffer(GL_ARRAY_BUFFER, _textureBufferObjectID);
         ::glTexCoordPointer(3, GL_FLOAT, 12, 0);
         
+#define _TRIANGLES_
+#ifdef _TRIANGLES_
         glDrawElements(GL_TRIANGLES, _indexCount, GL_UNSIGNED_INT, 
                        _indexBuffer);
+#else                   
+        glDrawElements(GL_QUADS, _indexCount, GL_UNSIGNED_INT, 
+                       _indexBuffer);
+#endif
+
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         
         glDisableClientState(GL_VERTEX_ARRAY);
@@ -125,13 +139,26 @@ void HeightMap::render(graphics::RenderContext* renderContext)
     glShadeModel(GL_FLAT);
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     
-    if (_contour && _contourVisible) {
-        glDisable(GL_BLEND);
-        glDisable(GL_TEXTURE_2D);
-        glColor4f(_contourColor.x, _contourColor.y, _contourColor.z, 1.0f);
-        glDepthRange (0.0, 0.999);
-        _contour->render();
-        glDepthRange (0.0, 1.0);
+    if (_contour) {
+        if (_contourVisible) {
+            glDisable(GL_BLEND);
+            glDisable(GL_TEXTURE_2D);
+            glColor4f(_contourColor.x, _contourColor.y, _contourColor.z, 1.0f);
+            glDepthRange (0.0, 0.999);
+            _contour->render();
+            glDepthRange (0.0, 1.0);
+        }
+
+#ifdef TOPCONTOUR
+        if (_topContourVisible) {
+            glDisable(GL_BLEND);
+            glDisable(GL_TEXTURE_2D);
+            glColor4f(_contourColor.x, _contourColor.y, _contourColor.z, 1.0f);
+            //glDepthRange (0.0, 0.999);
+            _topContour->render();
+            //glDepthRange (0.0, 1.0);
+        }
+#endif
     }
     glPopMatrix();
 }
@@ -148,7 +175,7 @@ HeightMap::createIndexBuffer(int xCount, int zCount, int*& indexBuffer,
     int boundaryWidth = xCount - 1;
     int boundaryHeight = zCount - 1;
     int* ptr = indexBuffer;
-    int index1, index2, index3, index4;
+        int index1, index2, index3, index4;
     bool index1Valid, index2Valid, index3Valid, index4Valid;
     index1Valid = index2Valid = index3Valid = index4Valid = true;
 
@@ -165,6 +192,7 @@ HeightMap::createIndexBuffer(int xCount, int zCount, int*& indexBuffer,
                 index4 = i * xCount + j + 1;
                 if (isnan(heights[index4])) index4Valid = false;
             
+#ifdef _TRIANGLES_
                 if (index1Valid && index2Valid && index3Valid) {
                     *ptr = index1; ++ptr;
                     *ptr = index2; ++ptr;
@@ -177,6 +205,15 @@ HeightMap::createIndexBuffer(int xCount, int zCount, int*& indexBuffer,
                     *ptr = index4; ++ptr;
                     ++ic;
                 }
+#else
+                if (index1Valid && index2Valid && index3Valid && index4Valid) {
+                    *ptr = index1; ++ptr;
+                    *ptr = index2; ++ptr;
+                    *ptr = index3; ++ptr;
+                    *ptr = index4; ++ptr;
+                    ++ic;
+                }
+#endif
             }
         }
     } else {
@@ -265,6 +302,12 @@ HeightMap::setHeight(int xCount, int yCount, Vector3* heights)
     ContourLineFilter lineFilter;
     _contour = lineFilter.create(0.0f, 1.0f, 10, heights, xCount, yCount);
 
+#ifdef TOPCONTOUR
+    ContourLineFilter topLineFilter;
+    topLineFilter.setHeightTop(true);
+    _topContour = topLineFilter.create(0.0f, 1.0f, 10, heights, xCount, yCount);
+#endif
+
     //if (heightMap)
     //{
     //  VertexBuffer* vertexBuffer = new VertexBuffer(VertexBuffer::POSITION3, xCount * yCount, sizeof(Vector3) * xCount * yCount, heightMap, false);
@@ -335,6 +378,13 @@ HeightMap::setHeight(float startX, float startY, float endX, float endY,
     //lineFilter.setColorMap(_colorMap);
     _contour = lineFilter.create(0.0f, 1.0f, 10, heightMap, xCount, yCount);
     
+#ifdef TOPCONTOUR
+    ContourLineFilter topLineFilter;
+    topLineFilter.setHeightTop(true);
+    _topContour = topLineFilter.create(0.0f, 1.0f, 10, heightMap, xCount, yCount);
+#endif
+
+
     //if (heightMap)
     //{
     //  VertexBuffer* vertexBuffer = new VertexBuffer(VertexBuffer::POSITION3, xCount * yCount, 

@@ -59,12 +59,14 @@ computeSimpleGradient(float* data, int nx, int ny, int nz)
         for (int iy=0; iy < ny; iy++) {
             for (int ix=0; ix < nx; ix++) {
                 // gradient in x-direction
+                
+                // INSOO -teST
                 double valm1 = (ix == 0) ? 0.0 : data[ngen - 4];
                 double valp1 = (ix == nx-1) ? 0.0 : data[ngen + 4];
                 if (valm1 < 0 || valp1 < 0) {
                     data[ngen+1] = 0.0;
                 } else {
-                    data[ngen+1] = valp1-valm1; // assume dx=1
+                    data[ngen+1] = valp1-valm1; // assume dx=1                  // ISO
                     //data[ngen+1] = ((valp1-valm1) + 1) *  0.5; // assume dx=1
                 }
 
@@ -75,7 +77,7 @@ computeSimpleGradient(float* data, int nx, int ny, int nz)
                     data[ngen+2] = 0.0;
                 } else {
                     data[ngen+2] = valp1-valm1; // assume dx=1
-                    //data[ngen+2] = ((valp1-valm1) + 1) *  0.5; // assume dy=1
+                    //data[ngen+2] = ((valp1-valm1) + 1) *  0.5; // assume dy=1 // ISO
                 }
 
                 // gradient in z-direction
@@ -85,7 +87,7 @@ computeSimpleGradient(float* data, int nx, int ny, int nz)
                     data[ngen+3] = 0.0;
                 } else {
                     data[ngen+3] = valp1-valm1; // assume dx=1
-                    //data[ngen+3] = ((valp1-valm1) + 1.0) * 0.5; // assume dz=1
+                    //data[ngen+3] = ((valp1-valm1) + 1.0) * 0.5; // assume dz=1 //ISO
                 }
 
                 ngen += 4;

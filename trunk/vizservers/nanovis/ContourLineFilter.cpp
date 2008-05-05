@@ -12,7 +12,7 @@
 #include "Vector3.h"
 
 ContourLineFilter::ContourLineFilter()
-    : _colorMap(0)
+    : _colorMap(0), _top(false)
 {
 }
 
@@ -41,7 +41,7 @@ ContourLineFilter::create(float min, float max, int linecount,
 	val = min + i * transtion;
 	
 	ContourLine* c = new ContourLine(val);
-	numOfPoints = c->createLine(width, height, vertices);
+	numOfPoints = c->createLine(width, height, vertices, _top);
 	if (numOfPoints != 0) {
 	    totalNumOfPoints += numOfPoints;
 	    _lines.push_back(c);
@@ -104,7 +104,7 @@ ContourLineFilter::create(float min, float max, int linecount,
 	val = min + i * transtion;
 	
 	ContourLine* c = new ContourLine(val);
-	numOfPoints = c->createLine(width, height, vertices);
+	numOfPoints = c->createLine(width, height, vertices, _top);
 	if (numOfPoints != 0) {
 	    totalNumOfPoints += numOfPoints;
 	    _lines.push_back(c);
@@ -154,7 +154,7 @@ ContourLineFilter::ContourLine::ContourLine(float value)
 
 int 
 ContourLineFilter::ContourLine::createLine(int width, int height, 
-					   Vector3* vertices)
+					   Vector3* vertices, bool top)
 {
     _points.clear();
 
@@ -169,18 +169,18 @@ ContourLineFilter::ContourLine::createLine(int width, int height,
 	    index4 = j + (i + 1) * width;
 	    
 	    if (isValueWithIn(vertices[index1].y, vertices[index2].y)) 
-		getContourPoint(index1, index2, vertices, width);
+		getContourPoint(index1, index2, vertices, width, top);
 	    if (isValueWithIn(vertices[index2].y, vertices[index3].y)) 
-		getContourPoint(index2, index3, vertices, width);
+		getContourPoint(index2, index3, vertices, width, top);
 	    if (isValueWithIn(vertices[index3].y, vertices[index1].y)) 
-		getContourPoint(index3, index1, vertices, width);
+		getContourPoint(index3, index1, vertices, width, top);
 	    
 	    if (isValueWithIn(vertices[index1].y, vertices[index3].y)) 
-		getContourPoint(index1, index3, vertices, width);
+		getContourPoint(index1, index3, vertices, width, top);
 	    if (isValueWithIn(vertices[index3].y, vertices[index4].y)) 
-		getContourPoint(index3, index4, vertices, width);
+		getContourPoint(index3, index4, vertices, width, top);
 	    if (isValueWithIn(vertices[index4].y, vertices[index1].y)) 
-		getContourPoint(index4, index1, vertices, width);
+		getContourPoint(index4, index1, vertices, width, top);
 	}
     }
     return _points.size();
@@ -189,7 +189,7 @@ ContourLineFilter::ContourLine::createLine(int width, int height,
 
 int 
 ContourLineFilter::ContourLine::createLine(int width, int height, 
-					   Vector4* vertices)
+					   Vector4* vertices, bool top)
 {
     _points.clear();
 
@@ -204,18 +204,18 @@ ContourLineFilter::ContourLine::createLine(int width, int height,
 	    index4 = j + (i + 1) * width;
 	    
 	    if (isValueWithIn(vertices[index1].y, vertices[index2].y)) 
-		getContourPoint(index1, index2, vertices, width);
+		getContourPoint(index1, index2, vertices, width, top);
 	    if (isValueWithIn(vertices[index2].y, vertices[index3].y)) 
-		getContourPoint(index2, index3, vertices, width);
+		getContourPoint(index2, index3, vertices, width, top);
 	    if (isValueWithIn(vertices[index3].y, vertices[index1].y)) 
-		getContourPoint(index3, index1, vertices, width);
+		getContourPoint(index3, index1, vertices, width, top);
 	    
 	    if (isValueWithIn(vertices[index1].y, vertices[index3].y)) 
-		getContourPoint(index1, index3, vertices, width);
+		getContourPoint(index1, index3, vertices, width, top);
 	    if (isValueWithIn(vertices[index3].y, vertices[index4].y)) 
-		getContourPoint(index3, index4, vertices, width);
+		getContourPoint(index3, index4, vertices, width, top);
 	    if (isValueWithIn(vertices[index4].y, vertices[index1].y)) 
-		getContourPoint(index4, index1, vertices, width);
+		getContourPoint(index4, index1, vertices, width, top);
 	}
     }
     
@@ -231,19 +231,28 @@ ContourLineFilter::ContourLine::isValueWithIn(float val1, float Val2)
 
 void 
 ContourLineFilter::ContourLine::getContourPoint(int vertexIndex1, 
-	int vertexIndex2, Vector3* vertices, int width)
+	int vertexIndex2, Vector3* vertices, int width, bool top)
 {
     float diff = vertices[vertexIndex2].y - vertices[vertexIndex1].y;
     float t = 0.0;
     if (diff != 0) {
-	t = (_value - vertices[vertexIndex1].y) / diff; 
+	    t = (_value - vertices[vertexIndex1].y) / diff; 
     }
 
     Vector3 p;
     p.x = vertices[vertexIndex1].x + t * 
 	(vertices[vertexIndex2].x - vertices[vertexIndex1].x);
+
+    if (top)
+    {
+        p.y = 1.0f;
+    }
+    else
+    {
     p.y = vertices[vertexIndex1].y + t * 
 	(vertices[vertexIndex2].y - vertices[vertexIndex1].y);
+    }
+
     p.z = vertices[vertexIndex1].z + t * 
 	(vertices[vertexIndex2].z - vertices[vertexIndex1].z);
     _points.push_back(p);
@@ -251,7 +260,7 @@ ContourLineFilter::ContourLine::getContourPoint(int vertexIndex1,
 
 void 
 ContourLineFilter::ContourLine::getContourPoint(int vertexIndex1, 
-	int vertexIndex2, Vector4* vertices, int width)
+	int vertexIndex2, Vector4* vertices, int width, bool top)
 {
     float diff = vertices[vertexIndex2].y - vertices[vertexIndex1].y;
     float t = 0.0;
@@ -262,8 +271,16 @@ ContourLineFilter::ContourLine::getContourPoint(int vertexIndex1,
     Vector3 p;
     p.x = vertices[vertexIndex1].x + 
 	t * (vertices[vertexIndex2].x - vertices[vertexIndex1].x);
-    p.y = vertices[vertexIndex1].y + 
-	t * (vertices[vertexIndex2].y - vertices[vertexIndex1].y);
+    if (top)
+    {
+        p.y = 1.0f;
+    }
+    else
+    {
+        p.y = vertices[vertexIndex1].y + 
+	    t * (vertices[vertexIndex2].y - vertices[vertexIndex1].y);
+    }
+
     p.z = vertices[vertexIndex1].z + 
 	t * (vertices[vertexIndex2].z - vertices[vertexIndex1].z);
     _points.push_back(p);
