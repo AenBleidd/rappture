@@ -199,6 +199,16 @@ double meter2angstrom (double meter)
     return meter*(1.0e10);
 }
 
+double bohr2meter (double bohr)
+{
+    return bohr*(52.9177e-12);
+}
+
+double meter2bohr (double meter)
+{
+    return meter*(52.9177e12);
+}
+
 double meter2inch (double meter)
 {
     return meter*(39.37008);

@@ -1,0 +1,7 @@
+
+    * added bohr units and conversion to meters
+    * added a free text label so users can label each element of a sequence.
+    * added example using Ruby's Rappture bindings.
+
+2008-03-31: nanovis 20080331 released
+2008-03-30: Rappture 20080330 released

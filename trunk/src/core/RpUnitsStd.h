@@ -55,6 +55,8 @@ double base2exa (double base);
 
 double angstrom2meter (double angstrom);
 double meter2angstrom (double meter);
+double bohr2meter (double bohr);
+double meter2bohr (double meter);
 double meter2inch (double meter);
 double inch2meter (double inch);
 double inch2feet (double inch);
