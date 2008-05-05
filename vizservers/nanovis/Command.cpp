@@ -72,7 +72,7 @@
 #include <RenderContext.h>
 #include <NvLIC.h>
 
-#define ISO_TEST                1
+//#define ISO_TEST                1
 #define PLANE_CMD               0
 #define __TEST_CODE__           0
 // FOR testing new functions
@@ -983,10 +983,11 @@ TransfuncCmd(ClientData cdata, Tcl_Interp *interp, int objc,
 
     char *string = Tcl_GetString(objv[1]);
     char c = string[0];
-    if ((c == 'd') && (strcmp(string, "define") == 0)) {
+    if ((c == 'd') && (strcmp(string, "define") == 0)) 
+    {
         if (objc != 5) {
             Tcl_AppendResult(interp, "wrong # args: should be \"", 
-		Tcl_GetString(objv[0]), " define name colorMap alphaMap\"", 
+		    Tcl_GetString(objv[0]), " define name colorMap alphaMap\"", 
 		(char*)NULL);
             return TCL_ERROR;
         }
@@ -1465,13 +1466,14 @@ VolumeShadingDiffuseOp(ClientData cdata, Tcl_Interp *interp, int objc,
     if (GetFloatFromObj(interp, objv[3], &diffuse) != TCL_OK) {
 	return TCL_ERROR;
     }
+
     vector<Volume *> ivol;
     if (GetVolumes(interp, objc - 4, objv + 4, &ivol) != TCL_OK) {
 	return TCL_ERROR;
     }
     vector<Volume *>::iterator iter;
     for (iter = ivol.begin(); iter != ivol.end(); iter++) {
-	(*iter)->set_diffuse(diffuse);
+	    (*iter)->set_diffuse(diffuse);
     }
     return TCL_OK;
 }
@@ -1499,10 +1501,12 @@ static int
 VolumeShadingOpacityOp(ClientData cdata, Tcl_Interp *interp, int objc, 
 		       Tcl_Obj *CONST *objv)
 {
+
     float opacity;
     if (GetFloatFromObj(interp, objv[3], &opacity) != TCL_OK) {
 	return TCL_ERROR;
     }
+    printf("set opacity %f\n", opacity);
     vector<Volume *> ivol;
     if (GetVolumes(interp, objc - 4, objv + 4, &ivol) != TCL_OK) {
 	return TCL_ERROR;

@@ -25,6 +25,7 @@ class HeightMap {
     int _vertexCount;
     CGparameter _tf;
     R2Geometry* _contour;
+    R2Geometry* _topContour;
     TransferFunction* _colorMap;
     NvShader* _shader;
     int* _indexBuffer;
@@ -32,6 +33,7 @@ class HeightMap {
     Vector3 _contourColor;
     
     bool _contourVisible;
+    bool _topContourVisible;
     bool _visible;
     
     Vector3 _scale;
@@ -105,6 +107,10 @@ public :
      */
     void setLineContourVisible(bool visible) {
 	_contourVisible = visible;
+    }
+
+    void setTopLineContourVisible(bool visible) {
+	    _topContourVisible = visible;
     }
 
     /**
