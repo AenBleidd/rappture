@@ -2614,6 +2614,7 @@ RpUnitsPreset::addPresetLength () {
 
     RpUnits* meters     = NULL;
     RpUnits* angstrom   = NULL;
+    RpUnits* bohr       = NULL;
     RpUnits* inch       = NULL;
     RpUnits* feet       = NULL;
     RpUnits* yard       = NULL;
@@ -2621,6 +2622,7 @@ RpUnitsPreset::addPresetLength () {
 
     meters     = RpUnits::define("m", NULL, RP_TYPE_LENGTH, RPUNITS_METRIC);
     angstrom   = RpUnits::define("A", NULL, RP_TYPE_LENGTH);
+    bohr       = RpUnits::define("bohr", NULL, RP_TYPE_LENGTH);
     inch       = RpUnits::define("in", NULL, RP_TYPE_LENGTH);
     feet       = RpUnits::define("ft", inch, RP_TYPE_LENGTH);
     yard       = RpUnits::define("yd", inch, RP_TYPE_LENGTH);
@@ -2630,6 +2632,7 @@ RpUnitsPreset::addPresetLength () {
 
     // add length definitions
     RpUnits::define(angstrom, meters, angstrom2meter, meter2angstrom);
+    RpUnits::define(bohr, meters, bohr2meter, meter2bohr);
     RpUnits::define(inch, feet, inch2feet, feet2inch);
     RpUnits::define(inch, yard, inch2yard, yard2inch);
     RpUnits::define(inch, meters, inch2meter, meter2inch);
