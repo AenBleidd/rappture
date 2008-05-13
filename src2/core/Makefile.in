@@ -13,7 +13,7 @@
 
 CXX             = @CXX@
 
-CFLAGS=-g -Wall -fPIC
+CFLAGS=-g -Wall -pg -fPIC
 #CFLAGS=-O
 #CFLAGS=-O -DMAX_WBITS=14 -DMAX_MEM_LEVEL=7
 #CFLAGS=-g -DDEBUG
@@ -46,7 +46,8 @@ man3dir = ${mandir}/man3
 
 OBJS = RpMesh1D.o RpField1D.o RpMeshTri2D.o RpMeshRect3D.o \
        RpFieldRect3D.o RpMeshPrism3D.o RpFieldPrism3D.o RpSerialBuffer.o \
-       RpSerializer.o RpSerializable.o RpBuffer.o RpEncode.o Ptr.o Outcome.o
+       RpSerializer.o RpSerializable.o RpSimpleBuffer.o RpBuffer.o \
+	   RpEncode.o Ptr.o Outcome.o
        # Lookup.o
 
 OBJA =
@@ -133,7 +134,7 @@ depend:
 viz: viz.o librappture2.a
 	$(CXX) $(CFLAGS) -o viz $^
 
-libviz.a: Outcome.o RpMesh1D.o RpField1D.o RpMeshTri2D.o RpMeshRect3D.o RpFieldRect3D.o RpMeshPrism3D.o RpFieldPrism3D.o RpSerialBuffer.o RpSerializer.o RpSerializable.o RpBuffer.o
+libviz.a: Outcome.o RpMesh1D.o RpField1D.o RpMeshTri2D.o RpMeshRect3D.o RpFieldRect3D.o RpMeshPrism3D.o RpFieldPrism3D.o RpSerialBuffer.o RpSerializer.o RpSerializable.o RpSimpleBuffer.o RpBuffer.o
 	$(AR) $@ $^
 
 viz.o: viz.cc
@@ -203,3 +204,5 @@ RpBuffer.o: RpBuffer.cc RpBuffer.h
 RpBuffer_test.o: RpBuffer_test.cc
 	$(CXX) $(CFLAGS) -c -o $@ -I ${includedir} RpBuffer_test.cc
 
+RpSimpleBuffer.o: RpSimpleBuffer.cc RpSimpleBuffer.h
+	$(CXX) $(CFLAGS) -c -o $@ -I ${includedir} RpSimpleBuffer.cc
