@@ -31,8 +31,7 @@ PROGS           =   librappture    \
 #
 CC              = @CC@
 CXX             = @CXX@
-DEBUG           = -g -Wall
-DEBUG_PLUS      = -g -DDEBUG
+DEBUG           = -g -Wall -pg
 LN              = ln
 CFLAGS = -fPIC
 
@@ -72,7 +71,7 @@ RP_OTHER_DEPS   = RpFortranCommon.o RpBindingsDict.o \
 RP_OBJS_DEP     = RpVariable.o RpAbout.o RpNumber.o RpString.o RpBoolean.o \
                   RpChoice.o RpOption.o RpUnitsStd.o RpUnits.o
                   #RpValue.o RpValueDouble.o RpValueString.o
-RP2_OBJ_DEP     = $(CORE2_SRC)/Outcome.o $(CORE2_SRC)/Ptr.o $(CORE2_SRC)/RpBuffer.o $(CORE2_SRC)/RpEncode.o
+RP2_OBJ_DEP     = $(CORE2_SRC)/Outcome.o $(CORE2_SRC)/Ptr.o $(CORE2_SRC)/RpSimpleBuffer.o $(CORE2_SRC)/RpBuffer.o $(CORE2_SRC)/RpEncode.o
 
 
 LDLIB_MACOSX = -dynamiclib -o $(LIB_DIR)/$@.dylib
@@ -83,12 +82,13 @@ LDLIB_LINUX = -shared -Wl,-soname,$@.so -o $(LIB_DIR)/$@.so.0.0
 #### librappture shared object ###########################################
 
 librappture: $(RP_IO_DEPS) $(RP_UTILS_DEPS) $(RP_UNITS_DEPS) $(RP_OTHER_DEPS)
-	(cd ../src2/core/; make Outcome.o Ptr.o RpBuffer.o RpEncode.o)
+	(cd ../src2/core/; make Outcome.o Ptr.o RpSimpleBuffer.o RpBuffer.o RpEncode.o)
 	$(INSTALL_DATA) $(CORE_SRC)/*.h $(INCLUDES_DIR)
 	$(INSTALL_DATA) $(CEE_SRC)/*.h $(INCLUDES_DIR)
 	$(INSTALL_DATA) $(FORT_SRC)/*.h $(INCLUDES_DIR)
 	$(INSTALL_DATA) $(CORE2_SRC)/Outcome.h $(INCLUDES_DIR)
 	$(INSTALL_DATA) $(CORE2_SRC)/Ptr.h $(INCLUDES_DIR)
+	$(INSTALL_DATA) $(CORE2_SRC)/RpSimpleBuffer.h $(INCLUDES_DIR)
 	$(INSTALL_DATA) $(CORE2_SRC)/RpBuffer.h $(INCLUDES_DIR)
 	$(INSTALL_DATA) $(CORE2_SRC)/RpEncode.h $(INCLUDES_DIR)
 	$(INSTALL_DATA) $(CORE2_SRC)/rappture2.h $(INCLUDES_DIR)
