@@ -64,7 +64,6 @@ itcl::class Rappture::Analyzer {
     protected method _simState {state args}
     protected method _simOutput {message}
     protected method _resultTooltip {}
-    protected method _mkdir {dir}
 
     private variable _tool ""          ;# belongs to this tool
     private variable _control "manual" ;# start mode
@@ -987,22 +986,6 @@ itcl::body Rappture::Analyzer::_resultTooltip {} {
         append tip "Use this control to display other output results."
     }
     return $tip
-}
-
-# ----------------------------------------------------------------------
-# USAGE: _mkdir <directory>
-#
-# Used internally to create the <directory> in the file system.
-# The parent directory is also created, as needed.
-# ----------------------------------------------------------------------
-itcl::body Rappture::Analyzer::_mkdir {dir} {
-    set parent [file dirname $dir]
-    if {"." != $parent && "/" != $parent} {
-        if {![file exists $parent]} {
-            _mkdir $parent
-        }
-    }
-    file mkdir $dir
 }
 
 # ----------------------------------------------------------------------

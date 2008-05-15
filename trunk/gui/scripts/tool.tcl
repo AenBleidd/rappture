@@ -28,6 +28,7 @@ itcl::class Rappture::Tool {
     public method run {args}
     public method abort {}
 
+    protected method _mkdir {dir}
     protected method _output {data}
 
     private variable _installdir ""  ;# installation directory for this tool
@@ -294,6 +295,23 @@ itcl::body Rappture::Tool::run {args} {
     }
     return [list $status $result]
 }
+
+# ----------------------------------------------------------------------
+# USAGE: _mkdir <directory>
+#
+# Used internally to create the <directory> in the file system.
+# The parent directory is also created, as needed.
+# ----------------------------------------------------------------------
+itcl::body Rappture::Tool::_mkdir {dir} {
+    set parent [file dirname $dir]
+    if {"." != $parent && "/" != $parent} {
+        if {![file exists $parent]} {
+            _mkdir $parent
+        }
+    }
+    file mkdir $dir
+}
+
 
 # ----------------------------------------------------------------------
 # USAGE: abort
