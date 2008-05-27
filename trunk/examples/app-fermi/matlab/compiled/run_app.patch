@@ -1,0 +1,38 @@
+7c7
+< echo "------------------------------------------"
+---
+> #echo "------------------------------------------"
+12c12
+<   echo Setting up environment variables
+---
+> #  echo Setting up environment variables
+14c14
+<   echo ---
+---
+> #  echo ---
+17c17
+< 	LD_LIBRARY_PATH=.:/usr/lib/lwp:${MCRROOT}/runtime/glnx86 ; 
+---
+> 	LD_LIBRARY_PATH=.:${LD_LIBRARY_PATH}:/usr/lib/lwp:${MCRROOT}/runtime/glnx86 ; 
+19c19
+<   	LD_LIBRARY_PATH=.:${MCRROOT}/runtime/glnx86 ;
+---
+>   	LD_LIBRARY_PATH=.:${LD_LIBRARY_PATH}:${MCRROOT}/runtime/glnx86 ;
+27c27
+< 	echo Found MCR Java JRE version: $MCRJREVER ; 
+---
+> #	echo Found MCR Java JRE version: $MCRJREVER ; 
+37c37
+<   echo LD_LIBRARY_PATH is ${LD_LIBRARY_PATH};
+---
+> #  echo LD_LIBRARY_PATH is ${LD_LIBRARY_PATH};
+39c39,45
+< ./YOURAPPNAME $*
+---
+> #./YOURAPPNAME $*
+> 
+>   appPath=`dirname $0`
+>   if [ "$appPath" = "" ]; then
+>     appPath="."
+>   fi
+>   $appPath/YOURAPPNAME $*
