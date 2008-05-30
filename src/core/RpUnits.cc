@@ -2264,7 +2264,7 @@ int
 RpUnits::printList(convertList& l1) {
 
     for (convertList::iterator iter = l1.begin(); iter != l1.end(); iter++) {
-        printf("%x\n", int((*iter)));
+        printf("%p\n", *iter);
     }
     return 0;
 
