@@ -7,6 +7,8 @@
 #include<stdlib.h>
 #include<time.h>
 
+//I think this structure needs to be included with PGAPACK code. A list of current gene values can be maintained and 
+//before each evaluation the gene values can be updated.
 typedef struct Gene{
 	int geneID;
 	double weight;
@@ -39,7 +41,7 @@ double gene_value_raised_to_power(int geneID){
 }
 
 /*
- * Return the absolute value of a geneeter.
+ * Return the absolute value of a gene.
  */
  
 double gene_abs_value(int geneID){
@@ -58,4 +60,5 @@ double weighted_sum_of_nth_power_distances(){
 }
 
 int main(){
+	return 0;
 }
