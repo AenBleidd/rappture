@@ -27,8 +27,8 @@ class RpLibrary;
 class RpUnits;
 */
 
-#define DICT_TEMPLATE_L <int,RpLibrary*>
-#define DICT_TEMPLATE_U <int,std::string>
+#define DICT_TEMPLATE_L <long,RpLibrary*>
+#define DICT_TEMPLATE_U <long,std::string>
 
 // global declaration of library and units dictionaries
 // for languages that cannot return rappture objects.
