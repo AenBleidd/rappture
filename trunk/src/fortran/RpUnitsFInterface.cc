@@ -32,7 +32,8 @@ rp_define_unit( char* unitName,
     inText = null_terminate(unitName,unitName_len);
 
     if (basisName && *basisName) {
-        basisStrName = ObjDictUnits.find(*basisName);
+        long int basisNameKey = *basisName;
+        basisStrName = ObjDictUnits.find(basisNameKey);
 
         if (basisStrName != "") {
             basis = RpUnits::find(basisStrName);
