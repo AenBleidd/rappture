@@ -3,7 +3,7 @@
  *  RpDict
  *
  *  AUTHOR:  Derrick Kearney, Purdue University
- *  Copyright (c) 2004-2005  Purdue Research Foundation
+ *  Copyright (c) 2004-2008  Purdue Research Foundation
  *
  *  See the file "license.terms" for information on usage and
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -14,7 +14,6 @@
 #include <string>
 #include <stdlib.h>
 #include <errno.h>
-//#include <malloc.h>
 
 #ifndef _RpDICT_H
 #define _RpDICT_H
@@ -57,10 +56,6 @@ class RpDictIterator
 {
 
     public:
-
-        // public data members
-
-        // public member functions
 
         // retrieve the table the iterator is iterating
         // virtual RpDict<KeyType,ValType,_Compare>& getTable();
@@ -114,8 +109,6 @@ class RpDictEntry
 {
     public:
 
-        // public member functions 
-
         operator int() const;
         // operator==(const RpDictEntry& entry) const;
         //
@@ -132,25 +125,8 @@ class RpDictEntry
         // erases this entry from its table
         void erase();
 
-        // template <KeyType,ValType> friend class RpDict;
-        // template <KeyType,ValType> friend class RpDictIterator;
-
         friend class RpDict<KeyType,ValType,_Compare>;
         friend class RpDictIterator<KeyType,ValType,_Compare>;
-
-        // one-arg constructor
-        // maybe get rid of this one?
-        // use the clientData's default [no-arg] constructor
-        /*
-        RpDictEntry(KeyType newKey)
-           : nextPtr    (NULL),
-             tablePtr   (NULL),
-             hash       (0),
-             // clientData (NULL),
-             key        (newKey)
-        {
-        }
-        */
 
         // two-arg constructor
         RpDictEntry(KeyType newKey, ValType newVal)
@@ -163,25 +139,6 @@ class RpDictEntry
         {
         }
 
-/*
-        RpDictEntry(KeyType* newKey, ValType* newVal)
-           : nextPtr    (NULL),
-             tablePtr   (NULL),
-             hash       (0),
-             clientData (*newVal),
-             key        (*newKey)
-        {
-        }
-
-        RpDictEntry(KeyType newKey, RpDict* table)
-           : nextPtr    (NULL),
-             tablePtr   (table),
-             hash       (0),
-             // clientData (NULL),
-             key        (newKey)
-        {
-        }
-*/
         // copy constructor
         RpDictEntry (const RpDictEntry<KeyType,ValType,_Compare>& entry)
         {
@@ -202,7 +159,6 @@ class RpDictEntry
 
     private:
 
-        // private data members
         RpDictEntry<KeyType,ValType,_Compare>*
             nextPtr;                /* Pointer to next entry in this
                                      * hash bucket, or NULL for end of
@@ -220,9 +176,6 @@ class RpDictEntry
 
         ValType* valid;            /* is this a valid object */
 
-
-        // no_arg constructor
-        // 
         RpDictEntry()
            : nextPtr (NULL),
              tablePtr (NULL),
@@ -300,7 +253,6 @@ class RpDict
               mask(3),
               caseInsensitive(ci)
         {
-
             staticBuckets[0] = staticBuckets[1] = 0;
             staticBuckets[2] = staticBuckets[3] = 0;
 
@@ -308,9 +260,6 @@ class RpDict
             nullEntry = new RpDictEntry<KeyType,ValType,_Compare>();
 
             assert(nullEntry != NULL);
-
-            // std::cout << "inside RpDict Constructor" << std::endl;
-
         }
 
         // copy constructor 
@@ -337,7 +286,6 @@ class RpDict
                     **buckets;        /* Pointer to bucket array.  Each
                                        * element points to first entry in
                                        * bucket's hash chain, or NULL. */
-        // RpDictEntry *staticBuckets[SMALL_RP_DICT_SIZE];
         RpDictEntry<KeyType,ValType,_Compare>
                     *staticBuckets[4];
                                       /* Bucket array used for small tables
@@ -381,10 +329,6 @@ class RpDict
 /*--------------------------------------------------------------------------*/
 /*--------------------------------------------------------------------------*/
 
-
-// public RpDict member functions
-
-
 /**************************************************************************
  *
  * int RpDict::size()
@@ -399,8 +343,8 @@ class RpDict
  *
  *************************************************************************/
 
-template <typename KeyType, typename ValType, class _Compare> 
-const int 
+template <typename KeyType, typename ValType, class _Compare>
+const int
 RpDict<KeyType,ValType,_Compare>::size() const
 {
     return numEntries;
@@ -410,12 +354,12 @@ RpDict<KeyType,ValType,_Compare>::size() const
 /**************************************************************************
  *
  * RpDict::set()
- *  checks to make sure the table exists. 
+ *  checks to make sure the table exists.
  *  places a key/value pair into the hash table
  *
  * Results:
  *  Returns a reference to the RpDict object allowing the user to chain 
- *  together different commands such as 
+ *  together different commands such as
  *      rpdict_obj.set(key).find(a).erase(a);
  *
  * Side Effects:
@@ -1014,8 +958,6 @@ RpDictEntry<KeyType,ValType,_Compare>::isValid() const
 /*************************************************************************/
 /*************************************************************************/
 
-// private member functions
-
 /*
  *----------------------------------------------------------------------
  *
@@ -1045,8 +987,6 @@ RpDict<KeyType,ValType,_Compare>::RebuildTable()
     RpDictEntry<KeyType,ValType,_Compare> **oldChainPtr = NULL, **newChainPtr = NULL;
     RpDictEntry<KeyType,ValType,_Compare> *hPtr = NULL;
 
-    // void *key = NULL;
-
     oldSize = numBuckets;
     oldBuckets = buckets;
 
@@ -1062,7 +1002,7 @@ RpDict<KeyType,ValType,_Compare>::RebuildTable()
         (numBuckets * sizeof(RpDictEntry<KeyType,ValType,_Compare> *)));
 
     for (count = numBuckets, newChainPtr = buckets;
-        count > 0; 
+        count > 0;
         count--, newChainPtr++) {
 
         *newChainPtr = NULL;
@@ -1079,8 +1019,6 @@ RpDict<KeyType,ValType,_Compare>::RebuildTable()
     for (oldChainPtr = oldBuckets; oldSize > 0; oldSize--, oldChainPtr++) {
         for (hPtr = *oldChainPtr; hPtr != NULL; hPtr = *oldChainPtr) {
             *oldChainPtr = hPtr->nextPtr;
-
-            // key = (void *) hPtr->getKey();
 
             index = randomIndex(hPtr->hash);
 

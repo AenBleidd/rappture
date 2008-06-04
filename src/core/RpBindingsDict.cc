@@ -4,7 +4,7 @@
  *
  * ======================================================================
  *  AUTHOR:  Derrick S. Kearney, Purdue University
- *  Copyright (c) 2004-2005  Purdue Research Foundation
+ *  Copyright (c) 2004-2008  Purdue Research Foundation
  *
  *  See the file "license.terms" for information on usage and
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -43,7 +43,8 @@ storeObject_Lib(RpLibrary* objectName, int key) {
         if (dictKey == 0) {
             dictKey = ObjDict_Lib.size() + 1;
         }
-        ObjDict_Lib.set(dictKey,objectName, NULL,&newEntry);
+        long int dictKey_long = dictKey;
+        ObjDict_Lib.set(dictKey_long,objectName,NULL,&newEntry);
         retVal = dictKey;
     }
 
@@ -69,7 +70,8 @@ getObject_Lib(int objKey) {
     RpDictEntry DICT_TEMPLATE_L* libEntry = &(ObjDict_Lib.getNullEntry());
     RpDictEntry DICT_TEMPLATE_L* nullEntry = &(ObjDict_Lib.getNullEntry());
 
-    libEntry = &(ObjDict_Lib.find(objKey));
+    long int objKey_long = objKey;
+    libEntry = &(ObjDict_Lib.find(objKey_long));
 
 
     if ( (!libEntry->isValid()) || (libEntry == nullEntry) ) {
@@ -137,7 +139,8 @@ storeObject_UnitsStr(std::string objectName) {
         // dictionary returns a reference to the inserted value
         // no error checking to make sure it was successful in entering
         // the new entry.
-        ObjDictUnits.set(dictNextKey,objectName, NULL, &newEntry);
+        long int dictNextKey_long = dictNextKey;
+        ObjDictUnits.set(dictNextKey_long,objectName, NULL, &newEntry);
         retVal = dictNextKey;
     }
 
@@ -159,21 +162,11 @@ storeObject_UnitsStr(std::string objectName) {
 const RpUnits*
 getObject_UnitsStr(int objKey) {
 
-    /*
-    std::string basisName = *(ObjDictUnits.find(objKey).getValue());
-
-    if (basisName == *(ObjDictUnits.getNullEntry().getValue())) {
-        // basisName = "";
-        return NULL;
-    }
-
-    return RpUnits::find(basisName);
-    */
-
     RpDictEntry DICT_TEMPLATE_U* unitEntry = &(ObjDictUnits.getNullEntry());
     RpDictEntry DICT_TEMPLATE_U* nullEntry = &(ObjDictUnits.getNullEntry());
 
-    unitEntry = &(ObjDictUnits.find(objKey));
+    long int objKey_long = objKey;
+    unitEntry = &(ObjDictUnits.find(objKey_long));
 
 
     if ( (!unitEntry->isValid()) || (unitEntry == nullEntry) ) {
@@ -198,22 +191,18 @@ cleanUnitsDict () {
     // clean up the dictionary
 
     RpDictEntry DICT_TEMPLATE_U *hPtr;
-    // RpDictIterator DICT_TEMPLATE iter(fortObjDict_Lib);
     // should rp_quit clean up the dict or some function in RpBindingsCommon.h
     RpDictIterator DICT_TEMPLATE_U iter(ObjDictUnits);
 
     hPtr = iter.first();
 
     while (hPtr) {
-        // Py_DECREF(*(hPtr->getValue()));
         hPtr->erase();
         hPtr = iter.next();
     }
 
-    // if (fortObjDict_Lib.size()) {
     if (ObjDictUnits.size()) {
         // probably want to change the warning sometime
         // printf("\nWARNING: internal dictionary is not empty..deleting\n");
     }
-
 }
