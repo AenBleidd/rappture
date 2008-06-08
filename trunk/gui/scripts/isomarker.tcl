@@ -22,7 +22,7 @@ itcl::class Rappture::NanovisViewer::IsoMarker {
     private variable _tick	""
     private variable _canvas	""
     private variable _nvobj	"";	# Parent nanovis object.
-    private variable _ivol	"";	# Id of volume that this marker is 
+    private variable _ivol	"";	# Transfer function that this marker is 
 					# associated with.
     private variable _active_motion   0
     private variable _active_press    0
@@ -54,7 +54,7 @@ itcl::class Rappture::NanovisViewer::IsoMarker {
 	$_canvas delete $this
     }
     public method GetVolume {} {
-    	return $_ivol
+	return $_ivol
     }
     public method GetAbsoluteValue {} {
 	return $_value
@@ -140,7 +140,7 @@ itcl::class Rappture::NanovisViewer::IsoMarker {
 		set x [lindex $args 0]
 		SetRelativeValue [expr {double($x-10)/($w-20)}]
 		$_nvobj OverIsoMarker $this $x
-		$_nvobj UpdateTransferFunction $_ivol
+		$_nvobj UpdateTransferFunctions
 	    }
 	    end {
 		set x [lindex $args 0]

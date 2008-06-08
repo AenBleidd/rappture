@@ -77,7 +77,7 @@ itcl::class Rappture::MolvisViewer {
     protected method _vmouse2 {option b m x y}
     protected method _vmouse  {option b m x y}
 
-    private method _receive_image { args }
+    private method _receive_image { size cacheid frame rock } 
 
     private variable _inrebuild 0
 

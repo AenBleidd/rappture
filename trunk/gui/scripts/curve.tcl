@@ -28,6 +28,8 @@ itcl::class Rappture::Curve {
     public method values {{what -overall}}
     public method limits {which}
     public method hints {{key ""}}
+    public method xmarkers {}
+    public method ymarkers {}
 
     protected method _build {}
 
@@ -35,6 +37,9 @@ itcl::class Rappture::Curve {
     private variable _curve ""   ;# lib obj representing this curve
     private variable _comp2xy    ;# maps component name => x,y vectors
     private variable _hints      ;# cache of hints stored in XML
+
+    private variable _xmarkers "";# list of {x,label,options} triplets.
+    private variable _ymarkers "";# list of {y,label,options} triplets.
 
     private common _counter 0    ;# counter for unique vector names
 }
@@ -278,4 +283,41 @@ itcl::body Rappture::Curve::_build {} {
             incr _counter
         }
     }
+    # Creates lists of x and y marker data.
+    set _xmarkers {}
+    set _ymarkers {}
+    foreach cname [$_curve children -type "marker" xaxis] {
+	set at     [$_curve get "xaxis.$cname.at"]
+	set label  [$_curve get "xaxis.$cname.label"]
+	set styles [$_curve get "xaxis.$cname.style"]
+	set data [list $at $label $styles]
+	lappend _xmarkers $data
+    }
+    foreach cname [$_curve children -type "marker" yaxis] {
+	set at     [$_curve get "yaxis.$cname.at"]
+	set label  [$_curve get "yaxis.$cname.label"]
+	set styles [$_curve get "yaxis.$cname.style"]
+	set data [list $at $label $styles]
+	lappend _xmarkers $data
+    }
+}
+
+# ----------------------------------------------------------------------
+# USAGE: xmarkers
+#
+# Returns the list of settings for each marker on the x-axis.
+# If no markers have been specified the empty string is returned.
+# ----------------------------------------------------------------------
+itcl::body Rappture::Curve::xmarkers {} {
+    return $_xmarkers;
+}
+
+# ----------------------------------------------------------------------
+# USAGE: ymarkers
+#
+# Returns the list of settings for each marker on the y-axis.
+# If no markers have been specified the empty string is returned.
+# ----------------------------------------------------------------------
+itcl::body Rappture::Curve::ymarkers {} {
+    return $_ymarkers;
 }
