@@ -29,6 +29,7 @@ public:
     Outcome& operator=(const Outcome& status);
     virtual ~Outcome();
 
+    Outcome& AddError(const char* format, ...);
     virtual Outcome& error(const char* errmsg, int status=1);
     virtual Outcome& clear();
 
