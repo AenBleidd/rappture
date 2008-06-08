@@ -567,7 +567,6 @@ itcl::body Rappture::HeightmapViewer::_send_dataobjs {} {
     }
     foreach dataobj $_sendobjs {
         foreach comp [$dataobj components] {
-            # send the data as one huge base64-encoded mess -- yuck!
             set data [$dataobj blob $comp]
 
             foreach { vmin vmax }  [$dataobj limits v] break
@@ -949,32 +948,43 @@ itcl::body Rappture::HeightmapViewer::_getTransfuncData {dataobj comp} {
         set style(-color) "white:yellow:green:cyan:blue:magenta"
     }
     set clist [split $style(-color) :]
-    set cmap "0.0 [Color2RGB white] "
+    set color white
+    set cmap "0.0 [Color2RGB $color] "
+    append cmap "$_limits(vmin) [Color2RGB $color] "
+    set range [expr $_limits(vmax) - $_limits(vmin)]
     for {set i 0} {$i < [llength $clist]} {incr i} {
         set xval [expr {double($i+1)/([llength $clist]+1)}]
+	set xval [expr ($xval * $range) + $_limits(vmin)]
         set color [lindex $clist $i]
         append cmap "$xval [Color2RGB $color] "
     }
+    append cmap "$_limits(vmax) [Color2RGB $color] "
     append cmap "1.0 [Color2RGB $color]"
 
-    set max $style(-opacity)
+    set opacity $style(-opacity)
     set levels $style(-levels)
+    set wmap {}
     if {[string is int $levels]} {
-        set wmap "0.0 0.0 "
+        lappend wmap 0.0 0.0
         set delta [expr {0.125/($levels+1)}]
         for {set i 1} {$i <= $levels} {incr i} {
             # add spikes in the middle
             set xval [expr {double($i)/($levels+1)}]
-            append wmap "[expr {$xval-$delta-0.01}] 0.0  [expr {$xval-$delta}] $max [expr {$xval+$delta}] $max  [expr {$xval+$delta+0.01}] 0.0 "
+	    lappend wmap [expr {$xval-$delta-0.01}] 0.0
+	    lappend wmap [expr {$xval-$delta}] $opacity 
+	    lappend wmap [expr {$xval+$delta}] $opacity
+	    lappend wmap [expr {$xval+$delta+0.01}] 0.0
         }
-        append wmap "1.0 0.0 "
+        lappend wmap 1.0 0.0
     } else {
-        set wmap "0.0 0.0 "
+        lappend wmap 0.0 0.0
         set delta 0.05
         foreach xval [split $levels ,] {
-            append wmap "[expr {$xval-$delta}] 0.0  $xval $max [expr {$xval+$delta}] 0.0 "
+            lappend wmap [expr {$xval-$delta}] 0.0  
+	    lappend $xval $opacity
+	    lappend [expr {$xval+$delta}] 0.0
         }
-        append wmap "1.0 0.0 "
+        lappend wmap 1.0 0.0
     }
 
     return [list $sname $cmap $wmap]

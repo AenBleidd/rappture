@@ -1,3 +1,4 @@
+
 # ----------------------------------------------------------------------
 #  COMPONENT: xyresult - X/Y plot in a ResultSet
 #
@@ -56,6 +57,10 @@ itcl::class Rappture::XyResult {
     protected method _hilite {state x y}
     protected method _axis {option args}
     protected method _getAxes {xydata}
+    protected method _getLineMarkerOptions { style } 
+    protected method _getTextMarkerOptions { style } 
+    protected method _enterMarker { g name x y text }
+    protected method _leaveMarker { g name }
 
     private variable _dispatcher "" ;# dispatcher for !events
 
@@ -74,6 +79,7 @@ itcl::class Rappture::XyResult {
     private variable _axis         ;# info for axis manipulations
     private variable _axisPopup    ;# info for axis being edited in popup
     common _downloadPopup          ;# download options from popup
+    private variable _markers
 }
                                                                                 
 itk::usual XyResult {
@@ -654,6 +660,56 @@ itcl::body Rappture::XyResult::_rebuild {} {
                 -color $color -dashes $dashes \
                 -mapx $mapx -mapy $mapy
         }
+    }
+
+    foreach xydata [get] {
+	set xmin -Inf
+	set ymin -Inf
+	set xmax Inf
+	set ymax Inf
+	# 
+	# Create text/line markers for each *axis.marker specified. 
+	# 
+	foreach m [$xydata xmarkers] {
+	    foreach {at label style} $m break
+	    set id [$g marker create line -coords [list $at $ymin $at $ymax]]
+	    $g marker bind $id <Enter> \
+		[itcl::code $this _enterMarker $g x-$label $at $ymin $at]
+	    $g marker bind $id <Leave> \
+		[itcl::code $this _leaveMarker $g x-$label]
+	    set options [_getLineMarkerOptions $style]
+	    if { $options != "" } {
+		eval $g marker configure $id $options
+	    }
+	    if { $label != "" } {
+		set id [$g marker create text -anchor nw \
+			    -text $label -coords [list $at $ymax]]
+		set options [_getTextMarkerOptions $style]
+		if { $options != "" } {
+		    eval $g marker configure $id $options
+		}
+	    }
+	}
+	foreach m [$xydata ymarkers] {
+	    foreach {at label style} $m break
+	    set id [$g marker create line -coords [list $xmin $at $xmax $at]]
+	    $g marker bind $id <Enter> \
+		[itcl::code $this _enterMarker $g y-$label $at $xmin $at]
+	    $g marker bind $id <Leave> \
+		[itcl::code $this _leaveMarker $g y-$label]
+	    set options [_getLineMarkerOptions $style]
+	    if { $options != "" } {
+		eval $g marker configure $id $options
+	    }
+	    if { $label != "" } {
+		set id [$g marker create text -anchor se \
+			-text $label -coords [list $xmax $at]]
+		set options [_getTextMarkerOptions $style]
+		if { $options != "" } {
+		    eval $g marker configure $id $options
+		}
+	    }
+	}
     }
 }
 
@@ -1315,6 +1371,55 @@ itcl::body Rappture::XyResult::_axis {option args} {
     }
 }
 
+
+# ----------------------------------------------------------------------
+# USAGE: _getLineMarkerOptions <style>
+#
+# Used internally to create a list of configuration options specific to the
+# axis line marker.  The input is a list of name value pairs.  Options that
+# are not recognized are ignored.
+# ----------------------------------------------------------------------
+itcl::body Rappture::XyResult::_getLineMarkerOptions {style} {
+    array set lineOptions {
+	"-color"  "-outline"
+	"-dashes" "-dashes"
+	"-linecolor" "-outline"
+	"-linewidth" "-linewidth"
+    }
+    set options {}
+    foreach {name value} $style {
+	if { [info exists lineOptions($name)] } {
+	    lappend options $lineOptions($name) $value
+	}
+    }
+    return $options
+}
+
+# ----------------------------------------------------------------------
+# USAGE: _getTextMarkerOptions <style>
+#
+# Used internally to create a list of configuration options specific to the
+# axis text marker.  The input is a list of name value pairs.  Options that
+# are not recognized are ignored.
+# ----------------------------------------------------------------------
+itcl::body Rappture::XyResult::_getTextMarkerOptions {style} {
+    array set textOptions {
+	"-color"  "-outline"
+	"-textcolor"  "-outline"
+	"-font"   "-font"
+	"-xoffset" "-xoffset"
+	"-yoffset" "-yoffset"
+	"-anchor" "-anchor"
+    }
+    set options {}
+    foreach {name value} $style {
+	if { [info exists textOptions($name)] } {
+	    lappend options $textOptions($name) $value
+	}
+    }
+    return $options
+}
+
 # ----------------------------------------------------------------------
 # USAGE: _getAxes <curveObj>
 #
@@ -1371,5 +1476,23 @@ itcl::configbody Rappture::XyResult::autocolors {
     }
     if {$_autoColorI >= [llength $itk_option(-autocolors)]} {
         set _autoColorI 0
+    }
+}
+
+itcl::body Rappture::XyResult::_enterMarker { g name x y text } {
+    _leaveMarker $g $name
+    set id [$g marker create text \
+		-coords [list $x $y] \
+		-yoffset -1 \
+		-anchor s \
+		-text $text]
+    set _markers($name) $id
+}
+
+itcl::body Rappture::XyResult::_leaveMarker { g name } {
+    if { [info exists _markers($name)] } { 
+	set id $_markers($name)
+	$g marker delete $id
+	unset _markers($name)
     }
 }

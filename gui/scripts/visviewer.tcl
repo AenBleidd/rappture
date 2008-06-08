@@ -20,6 +20,7 @@ itcl::class ::Rappture::VisViewer {
     itk_option define -receivecommand receiveCommand ReceiveCommand ""
 
     private common _servers          ;# array of visualization server lists
+    #set _servers(nanovis) "128.210.189.216:2000" 
     set _servers(nanovis) "" 
     set _servers(pymol)   "" 
 
@@ -361,6 +362,10 @@ itcl::body Rappture::VisViewer::ReceiveBytes { size } {
 #	    nv>image -bytes 100000		yes
 #	    ...following 100000 bytes...	no		
 # 
+#	Note: All commands from the render server are on one line. 
+#	      This is because the render server can send anything
+#	      as an error message (restricted again to one line).
+#	     
 itcl::body Rappture::VisViewer::_ReceiveHelper {} {
     if { [IsConnected] } {
 	if { [eof $_sid] } {
@@ -368,7 +373,12 @@ itcl::body Rappture::VisViewer::_ReceiveHelper {} {
 	}
         if { [gets $_sid line] < 0 } {
             Disconnect
-        } elseif {[string equal [string range $line 0 2] "nv>"]} {
+        } 
+	set line [string trim $line]
+	if { $line == "" } {
+	    return
+	}
+	if { [string equal [string range $line 0 2] "nv>"] } {
             ReceiveEcho <<line $line
             append _buffer(in) [string range $line 3 end]
 	    append _buffer(in) "\n"
@@ -380,7 +390,7 @@ itcl::body Rappture::VisViewer::_ReceiveHelper {} {
         } else {
             # this shows errors coming back from the engine
             ReceiveEcho <<error $line
-            puts stderr $line
+            puts stderr "Render Server Error: $line"
         }
     }
 }
@@ -436,7 +446,7 @@ itcl::body Rappture::VisViewer::Euler2XYZ {theta phi psi} {
 #     nothing.
 #
 itcl::body Rappture::VisViewer::SendEcho {channel {data ""}} {
-    #puts stderr ">>line $data"
+    #puts stderr ">>$data"
     if {[string length $itk_option(-sendcommand)] > 0} {
         uplevel #0 $itk_option(-sendcommand) [list $channel $data]
     }
