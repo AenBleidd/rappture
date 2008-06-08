@@ -11,13 +11,15 @@
  */
 #include "Outcome.h"
 
+#include <stdarg.h>
+
 using namespace Rappture;
 
 /**
  *  Create a negative outcome, with the given error message.
  */
-Outcome::Outcome(const char *errmsg)
-  : _status(0),
+Outcome::Outcome(const char *errmsg) : 
+    _status(0),
     _remarkPtr(NULL),
     _contextPtr(NULL)
 {
@@ -27,8 +29,8 @@ Outcome::Outcome(const char *errmsg)
 }
 
 /// Copy constructor
-Outcome::Outcome(const Outcome& oc)
-  : _status(oc._status),
+Outcome::Outcome(const Outcome& oc) : 
+    _status(oc._status),
     _remarkPtr(oc._remarkPtr),
     _contextPtr(oc._contextPtr)
 {
@@ -57,6 +59,35 @@ Outcome::error(const char* errmsg, int status)
     _status = status;
     _remarkPtr = Ptr<std::string>(new std::string(errmsg));
     _contextPtr.clear();
+    return *this;
+}
+
+Outcome&
+Outcome::AddError(const char* format, ...)
+{
+    char stackSpace[1024];
+    va_list lst;
+    size_t n;
+    char *bufPtr;
+
+    va_start(lst, format);
+    bufPtr = stackSpace;
+    n = vsnprintf(bufPtr, 1024, format, lst);
+    if (n >= 1024) {
+	bufPtr = (char *)malloc(n);
+	vsnprintf(bufPtr, n, format, lst);
+    }
+    if (_remarkPtr.isNull()) {
+	_remarkPtr = Ptr<std::string>(new std::string(bufPtr));
+    } else {
+        _remarkPtr->append("\n");
+	_remarkPtr->append(bufPtr);
+    }
+    _contextPtr.clear();
+    _status = 1;		/* Set to error */
+    if (bufPtr != stackSpace) {
+	free(bufPtr);
+    }
     return *this;
 }
 
