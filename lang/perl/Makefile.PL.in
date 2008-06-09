@@ -20,7 +20,7 @@ if ($^O ne "MSWin32") {
                        q[-L$(PERL_INC) -lperl]
                      );
     }
-    @RAPPTURE_INC_SEARCHPATH = ( "@prefix@/include",
+    @RAPPTURE_INC_SEARCHPATH = ( "../../src/core", "@prefix@/include",
         "../include", "/usr/local/include", "/opt/include");
     $RAPPTURE_INC = "rappture.h";
     @EXPAT_INC_SEARCHPATH = ( "@prefix@/include",
