@@ -1,0 +1,40 @@
+
+bindir          = @bindir@
+datadir		= @datadir@
+datarootdir	= @datarootdir@
+exec_prefix     = @exec_prefix@
+includedir      = @includedir@
+libdir          = @libdir@
+mandir          = @mandir@
+srcdir		= @srcdir@
+prefix          = @prefix@
+
+INSTALL		= @INSTALL@
+INSTALL_DATA	= @INSTALL_DATA@
+VPATH		= $(srcdir)
+RM		= rm -f
+
+FILES		= \
+		$(srcdir)/sequence.tcl \
+		$(srcdir)/sequence2.tcl \
+		$(srcdir)/tool2.xml \
+		$(srcdir)/tool.xml 
+
+destdir		= $(prefix)/examples/zoo/sequence
+
+all: 
+	$(MAKE) -C examples all
+
+install: 
+	$(INSTALL) -d $(destdir)
+	for i in $(FILES) ; do \
+	  $(INSTALL) -m 444  $$i $(destdir) ; \
+	done
+	$(MAKE) -C examples install
+
+clean:
+	$(MAKE) -C examples clean
+
+distclean: 
+	$(MAKE) -C examples distclean
+	$(RM) Makefile *~

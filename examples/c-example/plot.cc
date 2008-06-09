@@ -11,6 +11,12 @@
 #include <iostream>
 #include <sstream>
 
+#ifdef DEBUG
+static int debug = 1;
+#else 
+static int debug = 0;
+#endif
+
 int main(int argc, char * argv[])
 {
 
@@ -28,7 +34,7 @@ int main(int argc, char * argv[])
 
     filePath = std::string(argv[1]);
 
-    if (DEBUG) {
+    if (debug) {
         std::cout << "filePath: " << filePath << std::endl;
     }
 
@@ -36,7 +42,7 @@ int main(int argc, char * argv[])
     lib = new RpLibrary(filePath);
 
     if (lib) {
-        if(DEBUG) {
+        if(debug) {
             std::cout << "created Rappture Library successfully" << std::endl;
         }
     }
@@ -50,7 +56,7 @@ int main(int argc, char * argv[])
     xmltext = lib->xml();
 
     if(! (xmltext.empty()) ) {
-        if(DEBUG) {
+        if(debug) {
         //printf("XML file content:\n");
         //printf("%s\n", xmltext);
     }
@@ -70,20 +76,20 @@ int main(int argc, char * argv[])
         exit(1);
     }
 
-    if(DEBUG) {
+    if(debug) {
         std::cout << "xml min :" << xmltext << ": len=" << xmltext.size() << std::endl;
     }
 
     // grab a double value from the xml
     fmin = lib->getDouble("input.number(min).current");
 
-    if(DEBUG) {
+    if(debug) {
         std::cout << "min: " << fmin << std::endl;
     }
 
     // get the max
     fmax = lib->getDouble("input.(max).current");
-    if(DEBUG) {
+    if(debug) {
         std::cout << "max: " << fmax << std::endl;
     }
 

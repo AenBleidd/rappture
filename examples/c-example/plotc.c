@@ -12,7 +12,14 @@
 #include <stdio.h>
 #include <math.h>
 
-int main(int argc, char * argv[])
+#ifdef DEBUG
+static int debug = 1;
+#else 
+static int debug = 0;
+#endif
+
+int 
+main(int argc, char **argv)
 {
 
     RpLibrary* lib = NULL;
@@ -36,14 +43,14 @@ int main(int argc, char * argv[])
 
     filePath = argv[1];
 
-    if (DEBUG)
+    if (debug)
         printf("filePath: %s:\n", filePath);
 
     // create a rappture library from the file filePath
     lib = rpLibrary(argv[1]);
 
     if (lib) {
-        if(DEBUG) {
+        if(debug) {
             printf("created Rappture Library successfully\n");
         }
     }
@@ -56,7 +63,7 @@ int main(int argc, char * argv[])
     // get the xml that is stored in the rappture library lib
     err = rpXml(lib,&xmltext);
     if( !err ) {
-        if(DEBUG) {
+        if(debug) {
         //printf("XML file content:\n");
         //printf("%s\n", xmltext);
         }
@@ -78,19 +85,19 @@ int main(int argc, char * argv[])
     // space for it and strncpy() it to your own space. 
     // it will live in rappture's memory until the next call to getString()
 
-    if(DEBUG) {
-        printf("xml min: %s: len=%d\n", xmltext, strlen(xmltext));
+    if(debug) {
+      printf("xml min: %s: len=%d\n", xmltext, (int)strlen(xmltext));
     }
 
     fmin = atof(xmltext);
     // fmin = getDouble(lib,"input.number(min).current");
-    if(DEBUG) {
+    if(debug) {
         printf("min: %f\n", fmin);
     }
 
     // get the max
     rpGetDouble(lib,"input.(max).current",&fmax);
-    if(DEBUG) {
+    if(debug) {
         printf("max: %f\n", fmax);
     }
 

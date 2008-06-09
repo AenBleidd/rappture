@@ -1,0 +1,44 @@
+
+bindir          = @bindir@
+datadir		= @datadir@
+datarootdir	= @datarootdir@
+exec_prefix     = @exec_prefix@
+includedir      = @includedir@
+libdir          = @libdir@
+mandir          = @mandir@
+srcdir		= @srcdir@
+prefix          = @prefix@
+
+INSTALL		= @INSTALL@
+INSTALL_DATA	= @INSTALL_DATA@
+VPATH		= $(srcdir)
+RM		= rm -f
+
+FILES		= \
+		$(srcdir)/image.tcl \
+		$(srcdir)/image1.gif \
+		$(srcdir)/image2.gif \
+		$(srcdir)/tool.xml 
+
+destdir		= $(prefix)/examples/zoo/image
+
+all: 
+	$(MAKE) -C examples all
+	$(MAKE) -C docs all
+
+install: 
+	$(INSTALL) -d $(destdir)
+	for i in $(FILES) ; do \
+	  $(INSTALL) -m 444  $$i $(destdir) ; \
+	done
+	$(MAKE) -C examples install
+	$(MAKE) -C docs install
+
+clean:
+	$(MAKE) -C examples clean
+	$(MAKE) -C docs clean
+
+distclean: 
+	$(MAKE) -C examples distclean
+	$(MAKE) -C docs distclean
+	$(RM) Makefile *~

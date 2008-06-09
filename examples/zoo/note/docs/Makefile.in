@@ -1,0 +1,34 @@
+
+bindir          = @bindir@
+datadir		= @datadir@
+datarootdir	= @datarootdir@
+exec_prefix     = @exec_prefix@
+includedir      = @includedir@
+libdir          = @libdir@
+mandir          = @mandir@
+srcdir		= @srcdir@
+prefix          = @prefix@
+
+INSTALL		= @INSTALL@
+INSTALL_DATA	= @INSTALL_DATA@
+VPATH		= $(srcdir)
+RM		= rm -f
+
+FILES		= \
+		$(srcdir)/bysize.gif \
+		$(srcdir)/bysize.html
+
+destdir		= $(prefix)/examples/zoo/note/docs
+
+all: 
+
+install: 
+	$(INSTALL) -d $(destdir)
+	for i in $(FILES) ; do \
+	  $(INSTALL) -m 444  $$i $(destdir) ; \
+	done
+
+clean:
+
+distclean: 
+	$(RM) Makefile *~

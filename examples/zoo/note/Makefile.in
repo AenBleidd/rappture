@@ -1,0 +1,38 @@
+
+bindir          = @bindir@
+datadir		= @datadir@
+datarootdir	= @datarootdir@
+exec_prefix     = @exec_prefix@
+includedir      = @includedir@
+libdir          = @libdir@
+mandir          = @mandir@
+srcdir		= @srcdir@
+prefix          = @prefix@
+
+INSTALL		= @INSTALL@
+INSTALL_DATA	= @INSTALL_DATA@
+VPATH		= $(srcdir)
+RM		= rm -f
+
+FILES		= \
+		$(srcdir)/note.tcl \
+		$(srcdir)/tool.xml 
+
+destdir		= $(prefix)/examples/zoo/note
+
+all: 
+	$(MAKE) -C docs all
+
+install: 
+	$(INSTALL) -d $(destdir)
+	for i in $(FILES) ; do \
+	  $(INSTALL) -m 444  $$i $(destdir) ; \
+	done
+	$(MAKE) -C docs install
+
+clean:
+	$(MAKE) -C docs clean
+
+distclean: 
+	$(MAKE) -C docs distclean
+	$(RM) Makefile *~

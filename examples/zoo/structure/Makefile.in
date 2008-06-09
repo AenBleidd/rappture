@@ -1,0 +1,44 @@
+
+bindir          = @bindir@
+datadir		= @datadir@
+datarootdir	= @datarootdir@
+exec_prefix     = @exec_prefix@
+includedir      = @includedir@
+libdir          = @libdir@
+mandir          = @mandir@
+srcdir		= @srcdir@
+prefix          = @prefix@
+
+INSTALL		= @INSTALL@
+INSTALL_DATA	= @INSTALL_DATA@
+VPATH		= $(srcdir)
+RM		= rm -f
+
+FILES		= \
+		$(srcdir)/device.gif \
+		$(srcdir)/structure.tcl \
+		$(srcdir)/structure1.gif \
+		$(srcdir)/structure2.gif \
+		$(srcdir)/structure3.gif \
+		$(srcdir)/structure4.gif \
+		$(srcdir)/structure5.gif \
+		$(srcdir)/tool.xml
+
+destdir		= $(prefix)/examples/zoo/structure
+
+all: 
+	$(MAKE) -C examples all
+
+install: 
+	$(INSTALL) -d $(destdir)
+	for i in $(FILES) ; do \
+	  $(INSTALL) -m 444  $$i $(destdir) ; \
+	done
+	$(MAKE) -C examples install
+
+clean:
+	$(MAKE) -C examples clean
+
+distclean: 
+	$(MAKE) -C examples distclean
+	$(RM) Makefile *~
