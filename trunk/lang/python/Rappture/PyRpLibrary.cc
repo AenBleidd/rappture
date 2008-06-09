@@ -506,7 +506,7 @@ RpLibraryObject_put(RpLibraryObject *self, PyObject *args, PyObject *keywds)
     PyObject *value = NULL;
     PyObject *valueStrObj = NULL;
     char *value_char = NULL;
-    int value_len = 0;
+    Py_ssize_t value_len = 0;
 
     char *id = NULL;
 
