@@ -17,7 +17,7 @@
 #include "RpUnitsFStubs.c"
 #include "RpBindingsDict.h"
 
-int
+extern "C" int
 rp_define_unit( char* unitName,
                     int* basisName,
                     int unitName_len    ) {
@@ -32,7 +32,8 @@ rp_define_unit( char* unitName,
     inText = null_terminate(unitName,unitName_len);
 
     if (basisName && *basisName) {
-        basisStrName = ObjDictUnits.find(*basisName);
+	long key = (long)*basisName;
+        basisStrName = ObjDictUnits.find(key);
 
         if (basisStrName != "") {
             basis = RpUnits::find(basisStrName);
