@@ -11,8 +11,8 @@
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  * ======================================================================
  */
-#ifndef RAPPTURE_SERIALBUFFER_H
-#define RAPPTURE_SERIALBUFFER_H
+#ifndef RPSERIALBUFFER_H
+#define RPSERIALBUFFER_H
 
 #include <string>
 #include <vector>
@@ -61,4 +61,4 @@ private:
 
 } // namespace Rappture
 
-#endif
+#endif /*RPSERIALBUFFER_H*/

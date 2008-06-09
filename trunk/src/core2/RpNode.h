@@ -13,14 +13,14 @@
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  * ======================================================================
  */
-#ifndef RAPPTURE_NODE_H
-#define RAPPTURE_NODE_H
-
-#include <assert.h>
+#ifndef RPNODE_H
+#define RPNODE_H
 
 namespace Rappture {
 
-enum Axis {xaxis=0, yaxis, zaxis};
+enum Axis {
+   xaxis, yaxis, zaxis
+};
 
 class Node {
 public:
@@ -95,4 +95,4 @@ private:
 
 } // namespace Rappture
 
-#endif
+#endif /*RPNODE_H*/

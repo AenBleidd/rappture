@@ -15,11 +15,12 @@
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  * ======================================================================
  */
-#ifndef RAPPTURE_SERIALIZER_H
-#define RAPPTURE_SERIALIZER_H
+#ifndef RPSERIALIZER_H
+#define RPSERIALIZER_H
 
 #include <map>
-#include "rappture2.h"
+#include <RpPtr.h>
+#include <RpOutcome.h>
 #include "RpSerialBuffer.h"
 #include "RpSerializable.h"
 

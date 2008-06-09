@@ -13,13 +13,13 @@
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  * ======================================================================
  */
-#ifndef RAPPTURE_FIELDRECT3D_H
-#define RAPPTURE_FIELDRECT3D_H
+#ifndef RPFIELDRECT3D_H
+#define RPFIELDRECT3D_H
 
 #include <math.h>
 #include <vector>
-#include "rappture2.h"
-#include "RpMeshRect3D.h"
+#include <RpPtr.h>
+#include <RpMeshRect3D.h>
 
 namespace Rappture {
 

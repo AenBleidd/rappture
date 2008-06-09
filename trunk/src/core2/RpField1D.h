@@ -14,11 +14,11 @@
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  * ======================================================================
  */
-#ifndef RAPPTURE_FIELD1D_H
-#define RAPPTURE_FIELD1D_H
+#ifndef RPFIELD1D_H
+#define RPFIELD1D_H
 
-#include "rappture2.h"
-#include "RpMesh1D.h"
+#include <RpPtr.h>
+#include <RpMesh1D.h>
 
 namespace Rappture {
 
@@ -55,4 +55,4 @@ private:
 
 } // namespace Rappture
 
-#endif
+#endif /*RPFIELD1D_H*/

@@ -15,12 +15,12 @@
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  * ======================================================================
  */
-#ifndef RAPPTURE_MESH1D_H
-#define RAPPTURE_MESH1D_H
+#ifndef RPMESH1D_H
+#define RPMESH1D_H
 
 #include <deque>
-#include "RpNode.h"
-#include "RpSerializable.h"
+#include <RpNode.h>
+#include <RpSerializable.h>
 
 namespace Rappture {
 
@@ -83,4 +83,4 @@ private:
 
 } // namespace Rappture
 
-#endif
+#endif /*RPMESH1D_H*/

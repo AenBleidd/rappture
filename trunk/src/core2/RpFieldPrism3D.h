@@ -13,13 +13,13 @@
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  * ======================================================================
  */
-#ifndef RAPPTURE_FIELDPRISM3D_H
-#define RAPPTURE_FIELDPRISM3D_H
+#ifndef RPFIELDPRISM3D_H
+#define RPFIELDPRISM3D_H
 
 #include <math.h>
 #include <vector>
-#include "rappture2.h"
-#include "RpMeshPrism3D.h"
+#include <RpPtr.h>
+#include <RpMeshPrism3D.h>
 
 namespace Rappture {
 
