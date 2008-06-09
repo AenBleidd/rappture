@@ -17,8 +17,8 @@
 #include <string>
 #include <map>
 #include <RpOutcome.h>
-#include <Ptr.h>
-#include "RpSerialBuffer.h"
+#include <RpPtr.h>
+#include <RpSerialBuffer.h>
 
 namespace Rappture {
 
