@@ -12,11 +12,11 @@
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  * ======================================================================
  */
-#ifndef RAPPTURE_MESHPRISM3D_H
-#define RAPPTURE_MESHPRISM3D_H
+#ifndef RPMESHPRISM3D_H
+#define RPMESHPRISM3D_H
 
-#include "RpMesh1D.h"
-#include "RpMeshTri2D.h"
+#include <RpMesh1D.h>
+#include <RpMeshTri2D.h>
 
 namespace Rappture {
 

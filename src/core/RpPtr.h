@@ -13,6 +13,7 @@
 #define RAPPTURE_PTR_H
 
 #include <assert.h>
+#include <stddef.h>
 
 namespace Rappture {
 

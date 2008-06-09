@@ -13,13 +13,13 @@
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  * ======================================================================
  */
-#ifndef RAPPTURE_FIELDTRI2D_H
-#define RAPPTURE_FIELDTRI2D_H
+#ifndef RPFIELDTRI2D_H
+#define RPFIELDTRI2D_H
 
 #include <math.h>
 #include <vector>
-#include "rappture2.h"
-#include "RpMeshTri2D.h"
+#include <RpPtr.h>
+#include <RpMeshTri2D.h>
 
 namespace Rappture {
 

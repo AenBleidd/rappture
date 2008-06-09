@@ -45,10 +45,12 @@
 #include "nanovis.h"
 #include "CmdProc.h"
 
-#include "RpField1D.h"
-#include "RpFieldRect3D.h"
-#include "RpFieldPrism3D.h"
-#include "RpEncode.h"
+#include <RpField1D.h>
+#include <RpFieldRect3D.h>
+#include <RpFieldPrism3D.h>
+#include <RpEncode.h>
+#include <RpOutcome.h>
+#include <RpBuffer.h>
 
 #include "transfer-function/TransferFunctionMain.h"
 #include "transfer-function/ControlPoint.h"
@@ -71,8 +73,6 @@
 #include "NvCamera.h"
 #include <RenderContext.h>
 #include <NvLIC.h>
-#include <RpOutcome.h>
-#include <RpBuffer.h>
 
 #define ISO_TEST                1
 #define PLANE_CMD               0

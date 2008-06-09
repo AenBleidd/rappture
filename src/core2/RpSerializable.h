@@ -11,12 +11,13 @@
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  * ======================================================================
  */
-#ifndef RAPPTURE_SERIALIZABLE_H
-#define RAPPTURE_SERIALIZABLE_H
+#ifndef RPSERIALIZABLE_H
+#define RPSERIALIZABLE_H
 
 #include <string>
 #include <map>
-#include "rappture2.h"
+#include <RpOutcome.h>
+#include <Ptr.h>
 #include "RpSerialBuffer.h"
 
 namespace Rappture {
@@ -75,4 +76,4 @@ public:
 
 } // namespace Rappture
 
-#endif
+#endif /*RPSERIALIZABLE_H*/
