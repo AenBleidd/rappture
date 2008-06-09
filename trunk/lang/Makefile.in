@@ -59,17 +59,17 @@ build_octave:
 build_ruby: 
 	$(MAKE) -C ruby all
 
-install_python:  build_python
+install_python:
 	$(MAKE) -C python install
-install_perl:  build_perl
+install_perl: 
 	$(MAKE) -C perl install
-install_tcl:  build_tcl
+install_tcl: 
 	$(MAKE) -C tcl install
-install_matlab: build_matlab
+install_matlab:
 	$(MAKE) -C matlab install
-install_octave: build_octave
+install_octave:
 	$(MAKE) -C octave install
-install_ruby: build_ruby
+install_ruby: 
 	$(MAKE) -C ruby install
 
 clean:

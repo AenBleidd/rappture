@@ -47,7 +47,7 @@ R2_LIB_SPEC     = $(R2_LIB)
 
 RP_DIR		=  @RP_DIR@
 RP_INC_SPEC	= -I$(RP_DIR)/include -I$(RP_DIR)/include/rappture2
-RP_LIB_SPEC	= -L$(RP_DIR)/lib -lrappture2 -lb64 -lz
+RP_LIB_SPEC	= -L$(RP_DIR)/lib -lrappture2 -lrappture -lexpat -lb64 -lz
 
 TF_DIR		= ./transfer-function
 TF_INC_SPEC	= -I$(TF_DIR) 

@@ -71,6 +71,8 @@
 #include "NvCamera.h"
 #include <RenderContext.h>
 #include <NvLIC.h>
+#include <RpOutcome.h>
+#include <RpBuffer.h>
 
 #define ISO_TEST                1
 #define PLANE_CMD               0

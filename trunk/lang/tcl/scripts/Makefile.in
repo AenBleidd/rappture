@@ -49,8 +49,8 @@ tclIndex: $(FILES)
 
 install: tclIndex
 	$(INSTALL) -d $(destdir)
-	@for i in $(FILES); do \
-	    $(INSTALL) -m 444 $(srcdir)/$$i $(destdir) ; \
+	for i in $(FILES); do \
+	    $(INSTALL) -m 444 $$i $(destdir) ; \
 	done 
 	$(INSTALL) -m 0444 tclIndex $(destdir)
 
