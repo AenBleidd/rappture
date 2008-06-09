@@ -1,0 +1,111 @@
+
+bindir          = @bindir@
+datadir		= @datadir@
+datarootdir	= @datarootdir@
+exec_prefix     = @exec_prefix@
+includedir      = @includedir@
+libdir          = @libdir@
+mandir          = @mandir@
+prefix          = @prefix@
+
+INSTALL		= @INSTALL@
+INSTALL_PROGRAM	= ${INSTALL} -m 755
+INSTALL_DATA	= ${INSTALL} -m 644
+INSTALL_SCRIPT	= ${INSTALL} -m 644
+
+F77 = 		@F77@
+CC =		@CC@
+CXX = 		@CXX@
+RUBY = 		@RUBY@
+PERL = 		@PERL@
+TCLSH = 	@TCLSH@
+PYTHON = 	@PYTHON@
+MEX = 		@MEX@
+MKOCTFILE = 	@MKOCTFILE@
+
+LANGS = target_c target_tcl target_wrapper
+ifneq ($(F77),)
+    LANGS += target_fortran
+endif
+ifneq ($(MKOCTFILE),)
+    LANGS += target_octave
+endif
+ifneq ($(MEX),)
+    LANGS += target_matlab 
+endif
+ifneq ($(PERL),)
+    LANGS += target_perl
+endif
+ifneq ($(PYTHON),)
+    LANGS += target_python
+endif
+ifneq ($(RUBY),)
+    LANGS += target_ruby
+endif
+
+BUILD_TARGETS =	$(patsubst target_%,build_%,$(LANGS)) 
+INSTALL_TARGETS = $(patsubst target_%,install_%,$(LANGS)) 
+
+all:	$(BUILD_TARGETS)
+install: $(INSTALL_TARGETS)
+
+build_c:
+	$(MAKE) -C cee all
+build_fortran:
+	$(MAKE) -C fortran all
+build_python: 
+	$(MAKE) -C python all
+build_perl: 
+	$(MAKE) -C perl all
+build_tcl: 
+	$(MAKE) -C tcl all
+build_matlab: 
+	$(MAKE) -C matlab all
+build_octave: 
+	$(MAKE) -C octave all
+build_ruby: 
+	$(MAKE) -C ruby all
+build_wrapper:
+	$(MAKE) -C wrapper all
+
+install_c: 
+	$(MAKE) -C cee install
+install_fortran: 
+	$(MAKE) -C fortran install
+install_python: 
+	$(MAKE) -C python install
+install_perl: 
+	$(MAKE) -C perl install
+install_tcl: 
+	$(MAKE) -C tcl install
+install_matlab: 
+	$(MAKE) -C matlab install
+install_octave: 
+	$(MAKE) -C octave install
+install_ruby: 
+	$(MAKE) -C ruby install
+install_wrapper:
+	$(MAKE) -C wrapper install
+
+clean:
+	$(MAKE) -C cee clean
+	$(MAKE) -C fortran clean
+	$(MAKE) -C matlab clean
+	$(MAKE) -C octave clean
+	$(MAKE) -C perl clean
+	$(MAKE) -C python clean
+	$(MAKE) -C ruby clean
+	$(MAKE) -C tcl clean
+	$(MAKE) -C wrapper clean
+
+distclean: 
+	$(MAKE) -C cee distclean
+	$(MAKE) -C fortran distclean
+	$(MAKE) -C matlab distclean
+	$(MAKE) -C octave distclean
+	$(MAKE) -C perl distclean
+	$(MAKE) -C python distclean
+	$(MAKE) -C ruby distclean
+	$(MAKE) -C tcl distclean
+	$(MAKE) -C wrapper distclean
+	$(RM) Makefile

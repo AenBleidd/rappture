@@ -6,6 +6,8 @@
 # screen.
 #
 
+PYTHONPATH=@prefix@/lib/python2.5/site-packages
+export PYTHONPATH
 rpdir=@prefix@
 
 exdir=$rpdir/examples

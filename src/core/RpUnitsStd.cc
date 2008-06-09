@@ -9,10 +9,6 @@
 #include <RpUnitsStd.h>
 #include <math.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 double invert (double inVal)
 {
     return (1.0/inVal);
@@ -21,7 +17,6 @@ double invert (double inVal)
 /****************************************
  * METRIC CONVERSIONS
  ****************************************/
-
 
 double deci2base (double deci)
 {
@@ -571,6 +566,3 @@ double pOH2pH (double pOH)
     return (14.00 - pOH);
 }
 
-#ifdef __cplusplus
-}
-#endif

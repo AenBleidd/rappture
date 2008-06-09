@@ -1,0 +1,82 @@
+
+bindir          = @bindir@
+datadir		= @datadir@
+datarootdir	= @datarootdir@
+exec_prefix     = @exec_prefix@
+includedir      = @includedir@
+libdir          = @libdir@
+mandir          = @mandir@
+prefix          = @prefix@
+srcdir		= @srcdir@
+
+destdir 	= $(libdir)/matlab 
+
+INSTALL		= @INSTALL@
+VPATH		= $(srcdir)
+RM		= rm -f
+
+MEX             = @MEX@ 
+MEX_ARCH	= @MEX_ARCH@
+EXT		= .mexglx
+INCLUDES  	= \
+		-I$(srcdir)/../../src/core \
+		-I$(prefix)/include 
+DEFINES		= -g 
+LIBS		=  -L../../src/core -L$(libdir) -lrappture
+
+MEX_FLAGS	= $(MEX_ARCH) $(INCLUDES) $(DEFINES)
+
+OBJS		= \
+		rpAddPresets$(EXT) \
+		rpLib$(EXT) \
+		rpLibChildren$(EXT) \
+		rpLibChildrenByType$(EXT) \
+		rpLibElement$(EXT) \
+		rpLibElementAsComp$(EXT) \
+		rpLibElementAsId$(EXT) \
+		rpLibElementAsObject$(EXT) \
+		rpLibElementAsType$(EXT) \
+		rpLibGet$(EXT) \
+		rpLibGetDouble$(EXT) \
+		rpLibGetString$(EXT) \
+		rpLibNodeComp$(EXT) \
+		rpLibNodeId$(EXT) \
+		rpLibNodeType$(EXT) \
+		rpLibPut$(EXT) \
+		rpLibPutData$(EXT) \
+		rpLibPutDouble$(EXT) \
+		rpLibPutFile$(EXT) \
+		rpLibPutString$(EXT) \
+		rpLibResult$(EXT) \
+		rpLibXml$(EXT) \
+		rpUnitsConvert$(EXT) \
+		rpUnitsConvertDbl$(EXT) \
+		rpUnitsConvertObjDbl$(EXT) \
+		rpUnitsConvertObjStr$(EXT) \
+		rpUnitsConvertStr$(EXT) \
+		rpUnitsDefineUnit$(EXT) \
+		rpUnitsFind$(EXT) \
+		rpUnitsGetBasis$(EXT) \
+		rpUnitsGetExponent$(EXT) \
+		rpUnitsGetUnits$(EXT) \
+		rpUnitsGetUnitsName$(EXT) \
+		rpUtilsProgress$(EXT) 
+
+all: $(OBJS) 
+
+.SUFFIXES: .cc $(EXT)
+
+.cc$(EXT):
+	$(MEX) $(MEX_FLAGS) $< $(srcdir)/RpMatlabInterface.cc $(LIBS)
+
+install: $(OBJS) 
+	$(INSTALL) -d $(destdir)
+	for i in $(OBJS) ; do \
+	  $(INSTALL) -m 444  $$i $(destdir) ; \
+	done
+
+clean: 
+	$(RM) $(OBJS)
+
+distclean: clean
+	$(RM) Makefile *~

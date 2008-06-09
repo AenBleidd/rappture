@@ -1,0 +1,37 @@
+
+bindir          = @bindir@
+datadir		= @datadir@
+datarootdir	= @datarootdir@
+exec_prefix     = @exec_prefix@
+includedir      = @includedir@
+libdir          = @libdir@
+mandir          = @mandir@
+prefix          = @prefix@
+srcdir		= @srcdir@
+
+INSTALL		= @INSTALL@
+INSTALL_PROGRAM	= ${INSTALL} -m 755
+INSTALL_DATA	= ${INSTALL} -m 644
+INSTALL_SCRIPT	= ${INSTALL} -m 644
+RM 		= rm -f
+
+PERL = 	@PERL@
+
+all: Makefile.perl
+	$(MAKE) -f Makefile.perl
+
+Makefile.perl: Makefile.PL
+	$(PERL) Makefile.PL MAKEFILE=$@
+
+install: Makefile.perl
+	$(MAKE) -f Makefile.perl install
+
+test: Makefile.perl
+	LD_LIBRARY_PATH=`pwd`/../../src/core $(MAKE) -f Makefile.perl test
+
+clean: Makefile.perl
+	$(MAKE) -f Makefile.perl clean
+
+distclean: clean
+	$(RM) Makefile.perl*
+

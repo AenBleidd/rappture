@@ -1,0 +1,61 @@
+
+bindir          = @bindir@
+datadir		= @datadir@
+datarootdir	= @datarootdir@
+exec_prefix     = @exec_prefix@
+includedir      = @includedir@
+libdir          = @libdir@
+mandir          = @mandir@
+prefix          = @prefix@
+
+destdir		= $(libdir)/Rappture$(PACKAGE_VERSION)
+
+PACKAGE_VERSION = @PACKAGE_VERSION@
+
+INSTALL		= @INSTALL@
+
+CXX             = @CXX@
+CC              = @CC@
+CFLAGS_DEBUG    = @CFLAGS_DEBUG@
+CFLAGS_OPTIMIZE = @CFLAGS_OPTIMIZE@
+STLIB_LD        = @STLIB_LD@
+SHLIB_LD        = @SHLIB_LD@
+SHLIB_CFLAGS    = @SHLIB_CFLAGS@
+SHLIB_LDFLAGS   = @SHLIB_LDFLAGS@
+SHLIB_SUFFIX    = @SHLIB_SUFFIX@
+CFLAGS_DEFAULT  = @CFLAGS_DEFAULT@
+LIB_SEARCH_DIRS = @LIB_SEARCH_DIRS@
+CFLAGS          = @CFLAGS@
+
+RANLIB 		= @RANLIB@
+AR 		= ar
+RM		= rm -f
+
+# The script directory is moved from src/tcl.
+
+.PHONY:	src scripts tests
+
+all:
+	$(MAKE) -C src all
+	$(MAKE) -C scripts all
+
+install: 
+	$(INSTALL) -d $(destdir)
+	$(INSTALL) -m 0444 pkgIndex.tcl $(destdir)
+	$(MAKE) -C src install
+	$(MAKE) -C scripts install
+
+test:	
+	$(MAKE) -C tests all
+
+clean: 
+	$(MAKE) -C src clean
+	$(MAKE) -C tests clean
+	$(MAKE) -C scripts clean
+
+distclean: clean
+	$(MAKE) -C src distclean
+	$(MAKE) -C tests distclean
+	$(MAKE) -C scripts distclean
+	$(RM) Makefile
+

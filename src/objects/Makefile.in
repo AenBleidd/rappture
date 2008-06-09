@@ -1,0 +1,101 @@
+
+bindir          = @bindir@
+datadir		= @datadir@
+datarootdir	= @datarootdir@
+exec_prefix     = @exec_prefix@
+includedir      = @includedir@
+libdir          = @libdir@
+mandir          = @mandir@
+prefix          = @prefix@
+srcdir		= @srcdir@
+incdir		= $(prefix)/include
+
+INSTALL		= @INSTALL@
+
+CXX             = @CXX@
+CC              = @CXX@
+CFLAGS_DEBUG    = @CFLAGS_DEBUG@
+CFLAGS_OPTIMIZE = @CFLAGS_OPTIMIZE@
+STLIB_LD        = @STLIB_LD@
+SHLIB_LD        = @SHLIB_LD@
+SHLIB_CFLAGS    = @SHLIB_CFLAGS@
+SHLIB_LDFLAGS   = @SHLIB_LDFLAGS@
+SHLIB_SUFFIX    = @SHLIB_SUFFIX@
+CFLAGS_DEFAULT  = @CFLAGS_DEFAULT@
+LIB_SEARCH_DIRS = @LIB_SEARCH_DIRS@
+CFLAGS          = @CFLAGS@
+RM		= rm -f
+CC_SWITCHES	= $(CFLAGS) $(INCLUDES) $(DEFINES)
+
+INCLUDES	= \
+		-I$(srcdir) \
+		-I$(srcdir)/../core \
+		-I$(includedir)
+LIBS		= -L../core -lrappture
+
+RANLIB 		= @RANLIB@
+AR 		= ar
+VPATH		= $(srcdir)
+
+# tell make where to find the expat & libscew headers
+INCL_RP_DEPS    = -I$(includedir)
+
+# define our compiling environment
+#
+DEBUG           = -g -Wall
+DEBUG_PLUS      = -g -DDEBUG
+LN              = ln -s
+
+HEADERS = \
+		RpBoolean.h \
+		RpAbout.h \
+		RpNumber.h \
+		RpOption.h \
+		RpString.h \
+		RpChoice.h \
+		RpVariable.h
+
+OBJS = \
+		RpAbout.o \
+		RpBoolean.o \
+		RpChoice.o \
+		RpNumber.o \
+		RpOption.o \
+		RpString.o \
+		RpVariable.o
+
+name 		= RpObjects
+lib		= lib$(name).a
+shared_lib	= lib$(name)$(SHLIB_SUFFIX)
+
+all: build_lib
+
+build_lib: $(lib) $(shared_lib)
+
+$(shared_lib): $(OBJS)
+	$(RM) $@
+	$(SHLIB_LD) $(SHLIB_LDFLAGS) -o $@ $(OBJS) \
+		$(LIB_SEARCH_DIRS) $(LIBS)  -lstdc++
+
+$(lib): $(OBJS)
+	$(RM) $@
+	$(AR) -r $@ $(OBJS)
+	$(RANLIB) $@
+
+install: $(lib) $(shared_lib)
+	$(INSTALL) -m 444 $(lib) $(libdir)
+	$(INSTALL) -m 555 $(shared_lib) $(libdir)
+	for i in $(HEADERS) ; do \
+	  $(INSTALL) -m 444  $(srcdir)/$$i $(incdir) ; \
+	done
+
+.cc.o: 
+	$(CXX) $(CC_SWITCHES) -c $? 
+.c.o: 
+	$(CC) $(CC_SWITCHES) -c $? 
+
+clean: 
+	$(RM) $(OBJS) $(lib) $(shared_lib)
+
+distclean: clean
+	rm Makefile

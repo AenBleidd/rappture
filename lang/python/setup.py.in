@@ -1,0 +1,48 @@
+from distutils.core import setup, Extension
+
+rp_install_dir = '@prefix@'
+tmpdir = 'build/tmp/'
+srcdir = '@srcdir@/Rappture/'
+incdir = '@prefix@/include'
+libdir = '@prefix@/lib'
+
+library_module = Extension('Rappture.library',
+                           include_dirs = [incdir, '../include'],
+                           sources = [ tmpdir+'PyRpLibrary.cc' ],
+                           library_dirs = [ libdir, '../src' ],
+                           libraries = [ 'rappture' ] )
+
+units_module = Extension('Rappture.Units',
+                         include_dirs = [incdir, '../include'],
+                         sources = [ tmpdir+'PyRpUnits.cc' ],
+                         library_dirs = [ libdir, '../src' ],
+                         libraries = [ 'rappture' ] )
+
+utils_module = Extension('Rappture.Utils',
+                         include_dirs = [ incdir, '../include'],
+                         sources = [ tmpdir+'PyRpUtils.cc' ],
+                         library_dirs = [ libdir, '../src' ],
+                         libraries = [ 'rappture' ] )
+
+encode_module = Extension('Rappture.encoding',
+                          include_dirs = [ incdir, '../include'],
+                          sources = [ tmpdir+'PyRpEncode.cc' ],
+                          library_dirs = [ libdir, '../src' ],
+                          libraries = [ 'rappture' ] )
+
+setup(  name='Rappture',
+        version='0.1',
+        description='Rapid Application Infrastructure library for nanoHUB.org',
+        url='http://www.nanohub.org/',
+        package_dir={ 'Rappture' : srcdir },
+        py_modules=[ 'Rappture.interface',
+                     'Rappture.number',
+                     'Rappture.queue',
+                     'Rappture.signalHandler',
+                     'Rappture.tools',
+                     'Rappture.result'],
+        ext_modules=[ encode_module,
+                      library_module,
+                      units_module,
+                      utils_module ]
+  )

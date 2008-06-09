@@ -10,15 +10,14 @@
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  * ======================================================================
  */
+
 #include "scew/scew.h"
 #include "scew/xelement.h"
 #include "scew/xattribute.h"
 #include "scew/xerror.h"
 #include "scew/str.h"
-
-#include <assert.h>
-
 #include "scew_extras.h"
+#include <assert.h>
 
 scew_element*
 scew_element_parent(scew_element const* element)

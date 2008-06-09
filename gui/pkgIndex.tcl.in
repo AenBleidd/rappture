@@ -1,2 +1,12 @@
-# this file identifies RapptureGUI as a Tcl package
-package ifneeded RapptureGUI @VERSION@ [list source [file join $dir init.tcl]]
+
+package ifneeded RapptureGUI @PACKAGE_VERSION@ [format {
+    set dir [file normalize "%s"]
+    set version @PACKAGE_VERSION@
+    lappend auto_path [file join $dir scripts]
+    namespace eval RapptureGUI {
+	variable version $version
+	variable library $dir
+    }
+    package provide RapptureGUI $version
+} $dir]
+

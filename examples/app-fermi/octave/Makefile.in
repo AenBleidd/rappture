@@ -1,0 +1,32 @@
+
+bindir          = @bindir@
+datadir		= @datadir@
+datarootdir	= @datarootdir@
+exec_prefix     = @exec_prefix@
+includedir      = @includedir@
+libdir          = @libdir@
+mandir          = @mandir@
+prefix          = @prefix@
+srcdir		= @srcdir@
+
+destdir		= $(prefix)/examples/app-fermi/octave
+
+INSTALL		= @INSTALL@
+
+FILES 		= \
+		$(srcdir)/tool.xml \
+		$(srcdir)/fermi.m
+
+all:	
+
+install: 
+	$(INSTALL) -d $(destdir)
+	for i in $(FILES) ; do \
+	  $(INSTALL) -m 444 $$i $(destdir) ; \
+	done
+
+clean:
+
+distclean: clean
+	$(RM) Makefile
+

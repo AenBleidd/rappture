@@ -1,0 +1,53 @@
+
+bindir          = @bindir@
+datadir		= @datadir@
+datarootdir	= @datarootdir@
+exec_prefix     = @exec_prefix@
+includedir      = @includedir@
+libdir          = @libdir@
+mandir          = @mandir@
+prefix          = @prefix@
+destdir		= $(prefix)/examples/3D
+
+INSTALL		= @INSTALL@
+INSTALL_DATA	= @INSTALL_DATA@
+
+destdir		= $(prefix)/examples
+
+FILES		= \
+		demo.bash
+
+all:  build
+
+build:
+	$(MAKE) -C app-fermi
+	$(MAKE) -C c-example
+	$(MAKE) -C canvas
+	$(MAKE) -C graph
+	$(MAKE) -C zoo
+
+install: build
+	$(INSTALL) -d $(destdir)
+	for i in $(FILES) ; do \
+	  $(INSTALL) -m 555 $$i $(destdir) ; \
+	done
+	$(MAKE) -C app-fermi install
+	$(MAKE) -C 3D install
+	$(MAKE) -C graph install
+	$(MAKE) -C zoo install
+	$(MAKE) -C c-example install
+
+clean:
+	$(MAKE) -C app-fermi clean
+	$(MAKE) -C 3D clean
+	$(MAKE) -C graph clean
+	$(MAKE) -C zoo clean
+	$(MAKE) -C c-example clean
+
+distclean: clean
+	$(MAKE) -C app-fermi distclean
+	$(MAKE) -C 3D distclean
+	$(MAKE) -C graph distclean
+	$(MAKE) -C zoo distclean
+	$(MAKE) -C c-example distclean
+	$(RM) Makefile *~
