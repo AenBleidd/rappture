@@ -65,7 +65,7 @@
 
 #define RP_BUFFER_MIN_SIZE    200
 
-#include "RpOutcome.h"
+#include <RpOutcome.h>
 
 #ifdef __cplusplus
     extern "C" {

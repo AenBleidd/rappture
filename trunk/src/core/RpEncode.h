@@ -14,9 +14,8 @@
 #ifndef RAPPTURE_ENCODE_H
 #define RAPPTURE_ENCODE_H
 
-// #include "rappture.h"
-#include "RpBuffer.h"
-#include "RpOutcome.h"
+#include <RpBuffer.h>
+#include <RpOutcome.h>
 
 #define RPENC_Z      1
 #define RPENC_B64    2
