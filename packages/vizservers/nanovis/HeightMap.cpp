@@ -19,7 +19,7 @@ bool HeightMap::update_pending = false;
 double HeightMap::valueMin = 0.0;
 double HeightMap::valueMax = 1.0;
 
-#define TOPCONTOUR
+#define TOPCONTOUR	0
 HeightMap::HeightMap() : 
     _vertexBufferObjectID(0), 
     _textureBufferObjectID(0), 
@@ -149,7 +149,7 @@ void HeightMap::render(graphics::RenderContext* renderContext)
             glDepthRange (0.0, 1.0);
         }
 
-#ifdef TOPCONTOUR
+#if TOPCONTOUR
         if (_topContourVisible) {
             glDisable(GL_BLEND);
             glDisable(GL_TEXTURE_2D);
@@ -302,7 +302,7 @@ HeightMap::setHeight(int xCount, int yCount, Vector3* heights)
     ContourLineFilter lineFilter;
     _contour = lineFilter.create(0.0f, 1.0f, 10, heights, xCount, yCount);
 
-#ifdef TOPCONTOUR
+#if TOPCONTOUR
     ContourLineFilter topLineFilter;
     topLineFilter.setHeightTop(true);
     _topContour = topLineFilter.create(0.0f, 1.0f, 10, heights, xCount, yCount);
@@ -378,7 +378,7 @@ HeightMap::setHeight(float startX, float startY, float endX, float endY,
     //lineFilter.setColorMap(_colorMap);
     _contour = lineFilter.create(0.0f, 1.0f, 10, heightMap, xCount, yCount);
     
-#ifdef TOPCONTOUR
+#if TOPCONTOUR
     ContourLineFilter topLineFilter;
     topLineFilter.setHeightTop(true);
     _topContour = topLineFilter.create(0.0f, 1.0f, 10, heightMap, xCount, yCount);

@@ -18,13 +18,14 @@
 
 // #include "rappture2.h"
 #include <dx/dx.h>
+#include <RpOutcome.h>
 
 namespace Rappture {
 
 class DX {
 public:
     DX();
-    DX(const char* filename);
+    DX(const char* filename, RpOutcome *resultPtr);
     DX(const DX& rpdx);
     DX& operator=(const DX& rpdx);
     virtual ~DX();

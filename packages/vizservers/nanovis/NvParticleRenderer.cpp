@@ -1,3 +1,4 @@
+
 /*
  * ----------------------------------------------------------------------
  * NvParticleRenderer.cpp: particle system class
@@ -26,69 +27,69 @@
 #define NV_32
 
 NvParticleRenderer::NvParticleRenderer(int w, int h, CGcontext context)
-: scale(1, 1, 1), _activate(false)
+    : scale(1, 1, 1), _activate(false)
 {
-  psys_width = w;
-  psys_height = h;
+    psys_width = w;
+    psys_height = h;
 
-  psys_frame = 0;
-  reborn = true;
-  flip = true;
-  max_life = 500;
+    psys_frame = 0;
+    reborn = true;
+    flip = true;
+    max_life = 500;
 
-  data = (Particle*) malloc(w*h*sizeof(Particle));
+    data = (Particle*) malloc(w*h*sizeof(Particle));
 
-  m_vertex_array = new RenderVertexArray(psys_width*psys_height, 3, GL_FLOAT);
+    m_vertex_array = new RenderVertexArray(psys_width*psys_height, 3, GL_FLOAT);
 
-  assert(glGetError()==0);
+    assert(glGetError()==0);
 
-  glGenFramebuffersEXT(2, psys_fbo);
-  glGenTextures(2, psys_tex);
+    glGenFramebuffersEXT(2, psys_fbo);
+    glGenTextures(2, psys_tex);
 
-  glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, psys_fbo[0]);
+    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, psys_fbo[0]);
 
-  glBindTexture(GL_TEXTURE_RECTANGLE_NV, psys_tex[0]);
-  glTexParameterf(GL_TEXTURE_RECTANGLE_NV, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-  glTexParameterf(GL_TEXTURE_RECTANGLE_NV, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glBindTexture(GL_TEXTURE_RECTANGLE_NV, psys_tex[0]);
+    glTexParameterf(GL_TEXTURE_RECTANGLE_NV, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameterf(GL_TEXTURE_RECTANGLE_NV, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
 #ifdef NV_32
-  glTexImage2D(GL_TEXTURE_RECTANGLE_NV, 0, GL_FLOAT_RGBA32_NV, psys_width, psys_height, 0, GL_RGBA, GL_FLOAT, NULL);
+    glTexImage2D(GL_TEXTURE_RECTANGLE_NV, 0, GL_FLOAT_RGBA32_NV, psys_width, psys_height, 0, GL_RGBA, GL_FLOAT, NULL);
 #else
-  glTexImage2D(GL_TEXTURE_RECTANGLE_NV, 0, GL_RGBA, psys_width, psys_height, 0, GL_RGBA, GL_FLOAT, NULL);
+    glTexImage2D(GL_TEXTURE_RECTANGLE_NV, 0, GL_RGBA, psys_width, psys_height, 0, GL_RGBA, GL_FLOAT, NULL);
 #endif
-  glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, GL_TEXTURE_RECTANGLE_NV, psys_tex[0], 0);
+    glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, GL_TEXTURE_RECTANGLE_NV, psys_tex[0], 0);
 
-  glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, psys_fbo[1]);
+    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, psys_fbo[1]);
 
-  glBindTexture(GL_TEXTURE_RECTANGLE_NV, psys_tex[1]);
-  glTexParameterf(GL_TEXTURE_RECTANGLE_NV, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-  glTexParameterf(GL_TEXTURE_RECTANGLE_NV, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glBindTexture(GL_TEXTURE_RECTANGLE_NV, psys_tex[1]);
+    glTexParameterf(GL_TEXTURE_RECTANGLE_NV, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameterf(GL_TEXTURE_RECTANGLE_NV, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 #ifdef NV_32
-  glTexImage2D(GL_TEXTURE_RECTANGLE_NV, 0, GL_FLOAT_RGBA32_NV, psys_width, psys_height, 0, GL_RGBA, GL_FLOAT, NULL);
+    glTexImage2D(GL_TEXTURE_RECTANGLE_NV, 0, GL_FLOAT_RGBA32_NV, psys_width, psys_height, 0, GL_RGBA, GL_FLOAT, NULL);
 #else
-  glTexImage2D(GL_TEXTURE_RECTANGLE_NV, 0, GL_RGBA, psys_width, psys_height, 0, GL_RGBA, GL_FLOAT, NULL);
+    glTexImage2D(GL_TEXTURE_RECTANGLE_NV, 0, GL_RGBA, psys_width, psys_height, 0, GL_RGBA, GL_FLOAT, NULL);
 #endif
-  glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, GL_TEXTURE_RECTANGLE_NV, psys_tex[1], 0);
+    glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, GL_TEXTURE_RECTANGLE_NV, psys_tex[1], 0);
 
-  glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
+    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
 
-  CHECK_FRAMEBUFFER_STATUS();
+    CHECK_FRAMEBUFFER_STATUS();
 
-  //load related shaders
-  /*
-  m_g_context = context;
+    //load related shaders
+    /*
+      m_g_context = context;
 
-  R2string path = R2FilePath::getInstance()->getPath("update_pos.cg");
-  m_pos_fprog = loadProgram(m_g_context, CG_PROFILE_FP30, CG_SOURCE, path);
-  m_pos_timestep_param  = cgGetNamedParameter(m_pos_fprog, "timestep");
-  m_vel_tex_param = cgGetNamedParameter(m_pos_fprog, "vel_tex");
-  m_pos_tex_param = cgGetNamedParameter(m_pos_fprog, "pos_tex");
-  m_scale_param = cgGetNamedParameter(m_pos_fprog, "scale");
-  cgGLSetTextureParameter(m_vel_tex_param, volume);
-  cgGLSetParameter3f(m_scale_param, scale_x, scale_y, scale_z);
-  */
+      R2string path = R2FilePath::getInstance()->getPath("update_pos.cg");
+      m_pos_fprog = loadProgram(m_g_context, CG_PROFILE_FP30, CG_SOURCE, path);
+      m_pos_timestep_param  = cgGetNamedParameter(m_pos_fprog, "timestep");
+      m_vel_tex_param = cgGetNamedParameter(m_pos_fprog, "vel_tex");
+      m_pos_tex_param = cgGetNamedParameter(m_pos_fprog, "pos_tex");
+      m_scale_param = cgGetNamedParameter(m_pos_fprog, "scale");
+      cgGLSetTextureParameter(m_vel_tex_param, volume);
+      cgGLSetParameter3f(m_scale_param, scale_x, scale_y, scale_z);
+    */
 
-  _advectionShader = new NvParticleAdvectionShader();
+    _advectionShader = new NvParticleAdvectionShader();
 
 }
 
@@ -134,7 +135,7 @@ void NvParticleRenderer::reset()
 #else
     glTexImage2D(GL_TEXTURE_RECTANGLE_NV, 0, GL_RGBA, psys_width, psys_height, 0, GL_RGBA, GL_FLOAT, (float*)data);#
 #endif
-    glBindTexture(GL_TEXTURE_RECTANGLE_NV, 0);
+                                                                                                                       glBindTexture(GL_TEXTURE_RECTANGLE_NV, 0);
   
     flip = true;
     reborn = false;
@@ -150,85 +151,85 @@ void NvParticleRenderer::advect()
     glDisable(GL_DEPTH_TEST);
    
     if (flip) 
-    {
-        glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, psys_fbo[1]);
-        glEnable(GL_TEXTURE_RECTANGLE_NV);
-        glBindTexture(GL_TEXTURE_RECTANGLE_NV, psys_tex[0]);
+        {
+            glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, psys_fbo[1]);
+            glEnable(GL_TEXTURE_RECTANGLE_NV);
+            glBindTexture(GL_TEXTURE_RECTANGLE_NV, psys_tex[0]);
 
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        //glClear(GL_COLOR_BUFFER_BIT);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            //glClear(GL_COLOR_BUFFER_BIT);
 
-        glViewport(0, 0, psys_width, psys_height);
-        glMatrixMode(GL_PROJECTION);
-        glLoadIdentity();
-        //gluOrtho2D(0, psys_width, 0, psys_height);
-        glOrtho(0, psys_width, 0, psys_height, -10.0f, 10.0f);
-        glMatrixMode(GL_MODELVIEW);
-        glLoadIdentity();
+            glViewport(0, 0, psys_width, psys_height);
+            glMatrixMode(GL_PROJECTION);
+            glLoadIdentity();
+            //gluOrtho2D(0, psys_width, 0, psys_height);
+            glOrtho(0, psys_width, 0, psys_height, -10.0f, 10.0f);
+            glMatrixMode(GL_MODELVIEW);
+            glLoadIdentity();
 
-        _advectionShader->bind(psys_tex[0]);
+            _advectionShader->bind(psys_tex[0]);
      
-     //cgGLBindProgram(m_pos_fprog);
-     //cgGLSetParameter1f(m_pos_timestep_param, 0.05);
-     //cgGLEnableTextureParameter(m_vel_tex_param);
-     //cgGLSetTextureParameter(m_pos_tex_param, psys_tex[0]);
-     //cgGLEnableTextureParameter(m_pos_tex_param);
-     //cgGLEnableProfile(CG_PROFILE_FP30);
+            //cgGLBindProgram(m_pos_fprog);
+            //cgGLSetParameter1f(m_pos_timestep_param, 0.05);
+            //cgGLEnableTextureParameter(m_vel_tex_param);
+            //cgGLSetTextureParameter(m_pos_tex_param, psys_tex[0]);
+            //cgGLEnableTextureParameter(m_pos_tex_param);
+            //cgGLEnableProfile(CG_PROFILE_FP30);
      
-     draw_quad(psys_width, psys_height, psys_width, psys_height);
+            draw_quad(psys_width, psys_height, psys_width, psys_height);
 
-     //cgGLDisableProfile(CG_PROFILE_FP30);
-     //cgGLDisableTextureParameter(m_vel_tex_param);
-     //cgGLDisableTextureParameter(m_pos_tex_param);
-        glDisable(GL_TEXTURE_RECTANGLE_NV);
-   }
-   else
-   {
-        glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, psys_fbo[0]);
-        glBindTexture(GL_TEXTURE_RECTANGLE_NV, psys_tex[1]);
+            //cgGLDisableProfile(CG_PROFILE_FP30);
+            //cgGLDisableTextureParameter(m_vel_tex_param);
+            //cgGLDisableTextureParameter(m_pos_tex_param);
+            glDisable(GL_TEXTURE_RECTANGLE_NV);
+        }
+    else
+        {
+            glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, psys_fbo[0]);
+            glBindTexture(GL_TEXTURE_RECTANGLE_NV, psys_tex[1]);
 
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        //glClear(GL_COLOR_BUFFER_BIT);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            //glClear(GL_COLOR_BUFFER_BIT);
 
-        glViewport(0, 0, psys_width, psys_height);
-        glMatrixMode(GL_PROJECTION);
-        glLoadIdentity();
-        //gluOrtho2D(0, psys_width, 0, psys_height);
-        glOrtho(0, psys_width, 0, psys_height, -10.0f, 10.0f);
-        glMatrixMode(GL_MODELVIEW);
-        glLoadIdentity();
+            glViewport(0, 0, psys_width, psys_height);
+            glMatrixMode(GL_PROJECTION);
+            glLoadIdentity();
+            //gluOrtho2D(0, psys_width, 0, psys_height);
+            glOrtho(0, psys_width, 0, psys_height, -10.0f, 10.0f);
+            glMatrixMode(GL_MODELVIEW);
+            glLoadIdentity();
 
-        _advectionShader->bind(psys_tex[1]);
+            _advectionShader->bind(psys_tex[1]);
 
-     //cgGLBindProgram(m_pos_fprog);
-     //cgGLSetParameter1f(m_pos_timestep_param, 0.05);
-     //cgGLEnableTextureParameter(m_vel_tex_param);
-     //cgGLSetTextureParameter(m_pos_tex_param, psys_tex[1]);
-     //cgGLEnableTextureParameter(m_pos_tex_param);
-     //cgGLEnableProfile(CG_PROFILE_FP30);
+            //cgGLBindProgram(m_pos_fprog);
+            //cgGLSetParameter1f(m_pos_timestep_param, 0.05);
+            //cgGLEnableTextureParameter(m_vel_tex_param);
+            //cgGLSetTextureParameter(m_pos_tex_param, psys_tex[1]);
+            //cgGLEnableTextureParameter(m_pos_tex_param);
+            //cgGLEnableProfile(CG_PROFILE_FP30);
 
-        draw_quad(psys_width, psys_height, psys_width, psys_height);
-        //draw_quad(psys_width, psys_height, 1.0f, 1.0f);
+            draw_quad(psys_width, psys_height, psys_width, psys_height);
+            //draw_quad(psys_width, psys_height, 1.0f, 1.0f);
 
-     //cgGLDisableProfile(CG_PROFILE_FP30);
-     //cgGLDisableTextureParameter(m_vel_tex_param);
-     //cgGLDisableTextureParameter(m_pos_tex_param);
-    }
+            //cgGLDisableProfile(CG_PROFILE_FP30);
+            //cgGLDisableTextureParameter(m_vel_tex_param);
+            //cgGLDisableTextureParameter(m_pos_tex_param);
+        }
 
     _advectionShader->unbind();
 
-   //soft_read_verts();
+    //soft_read_verts();
    
-   update_vertex_buffer();
+    update_vertex_buffer();
 
     flip = (!flip);
 
     psys_frame++;
     if(psys_frame==max_life)
-    {
-        psys_frame=0;
-        reborn = true;
-    }
+        {
+            psys_frame=0;
+            reborn = true;
+        }
 
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
 }
@@ -276,6 +277,6 @@ void NvParticleRenderer::display_vertices()
 void NvParticleRenderer::setVectorField(unsigned int texID, float scaleX, float scaleY, float scaleZ, float max)
 {
     scale.set(scaleX, scaleY, scaleZ);
-  _advectionShader->setScale(scale);
-  _advectionShader->setVelocityVolume(texID, max);
+    _advectionShader->setScale(scale);
+    _advectionShader->setVelocityVolume(texID, max);
 }

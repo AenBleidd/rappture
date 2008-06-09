@@ -100,6 +100,8 @@ typedef struct RegGrid2{
 class NvLIC;
 
 class NanoVis {
+    //frame buffer for final rendering
+    static NVISid final_fbo, final_color_tex, final_depth_rb;
 public:
     static VolumeRenderer* vol_renderer;
     static PointSetRenderer* pointset_renderer;
@@ -138,6 +140,7 @@ public:
     static bool particle_on;
     static bool vector_on;
 
+
     static TransferFunction* get_transfunc(const char *name);
     static TransferFunction* DefineTransferFunction(const char *name, 
 	size_t n, float *data);
@@ -149,13 +152,12 @@ public:
     static void init_offscreen_buffer(void);
     static void initParticle();
     static void resize_offscreen_buffer(int w, int h);
-    static void offscreen_buffer_capture(void);
-    static void bmp_write(const char* cmd);
-    static void bmp_write_to_file(int frame_number, char* directory_name);
+    static void ppm_write(const char *prefix);
+    static void bmp_write(const char *prefix);
+    static void bmp_write_to_file(int frame_number, const char* directory_name);
     static void display(void);
     static void update(void);
     static void display_offscreen_buffer();
-    static void read_screen();
     static void zoom(double zoom);
     static int render_legend(TransferFunction *tf, double min, double max, 
 	int width, int height, const char* volArg);
@@ -168,6 +170,14 @@ public:
     static void update_rot(int delta_x, int delta_y);
     static void update_trans(int delta_x, int delta_y, int delta_z);
 #endif
+
+    static void read_screen(void) {
+	glReadPixels(0, 0, win_width, win_height, GL_RGB, GL_UNSIGNED_BYTE, 
+		     screen_buffer);
+    }
+    static void offscreen_buffer_capture(void) {
+	glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, final_fbo);
+    }
 };
 
 #endif	/* __NANOVIS_H__ */

@@ -21,7 +21,7 @@
 
 using namespace Rappture;
 
-DX::DX(const char* filename) :
+DX::DX(const char* filename, Outcome *resultPtr) :
     _dataMin(FLT_MAX),
     _dataMax(-FLT_MAX),
     _nzero_min(FLT_MAX),
@@ -46,29 +46,38 @@ DX::DX(const char* filename) :
     Type type;
 
     if (filename == NULL) {
-        // error
+	resultPtr->AddError("filename is NULL");
+	return;
     }
     // open the file with libdx
     fprintf(stdout, "Calling DXImportDX(%s)\n", filename);
     fflush(stdout);
     DXenable_locks(0);
     _dxobj = DXImportDX((char*)filename,NULL,NULL,NULL,NULL);
+    if (_dxobj == NULL) {
+	resultPtr->AddError("can't import DX file \"%s\"", filename);
+	return;
+    }
 
     fprintf(stdout, "dxobj=%x\n", (unsigned int)_dxobj);
     fflush(stdout);
 
-    // parse out the positions array
-    // FIXME: nanowire will need a different way to parse out the positions array
-    // since it uses a productarray to store its positions.
-    // possibly use DXGetProductArray()
+    // parse out the positions array 
+
+    // FIXME: nanowire will need a different way to parse out the positions
+    //	      array since it uses a productarray to store its positions.  
+    //	      Possibly use DXGetProductArray().
     dxpos = (Array) DXGetComponentValue((Field) _dxobj, (char *)"positions");
+    if (dxpos == NULL) {
+	resultPtr->AddError("can't get component value of \"positions\"");
+	return;
+    }
     DXGetArrayInfo(dxpos, &_n, &type, &category, &_rank, &_shape);
 
     fprintf(stdout, "_n = %d\n",_n);
     if (type != TYPE_FLOAT) {
-        fprintf(stderr, "WARNING: positions is not type float (type=%d)\n",
-            type);
-        fflush(stderr);
+        resultPtr->AddError("\"positions\" is not type float (type=%d)\n", type);
+        return;
     }
     fprintf(stdout, "_rank = %d\n",_rank);
     fprintf(stdout, "_shape = %d\n",_shape);
@@ -76,55 +85,52 @@ DX::DX(const char* filename) :
     float* pos = NULL;
     pos = (float*) DXGetArrayData(dxpos);
     if (pos == NULL) {
-        fprintf(stdout, "DXGetArrayData failed to return positions array\n");
-        fflush(stdout);
+	resultPtr->AddError("DXGetArrayData failed to return positions array");
+	return;
     }
 
     // first call to get the number of axis needed
     dxgrid = (Array) DXGetComponentValue((Field) _dxobj, (char *)"connections");
     if (DXQueryGridConnections(dxgrid, &_numAxis, NULL) == NULL) {
         // raise error, data is not a regular grid and we cannot handle it
-        fprintf(stdout,"DX says our grid is not regular, we cannot handle this data\n");
-        fflush(stdout);
+        resultPtr->AddError("DX says our grid is not regular, we cannot handle this data");
+	return;
     }
 
     _positions = new float[_n*_numAxis];
     if (_positions == NULL) {
         // malloc failed, raise error
-        fprintf(stdout, "malloc of _positions array failed");
-        fflush(stdout);
+	resultPtr->AddError("malloc of _positions array failed");
+	return;
     }
     memcpy(_positions,pos,sizeof(float)*_n*_numAxis);
 
     _axisLen = new int[_numAxis];
     if (_axisLen == NULL) {
         // malloc failed, raise error
-        fprintf(stdout, "malloc of _axisLen array failed");
-        fflush(stdout);
+        resultPtr->AddError("malloc of _axisLen array failed");
+	return;
     }
     memset(_axisLen, 0, _numAxis);
 
     _delta = new float[_numAxis*_numAxis];
     if (_delta == NULL) {
-        // malloc failed, raise error
-        fprintf(stdout, "malloc of _delta array failed");
-        fflush(stdout);
+        resultPtr->AddError("malloc of _delta array failed");
+	return;
     }
     memset(_delta, 0, _numAxis*_numAxis);
 
     _origin = new float[_numAxis];
     if (_origin == NULL) {
-        // malloc failed, raise error
-        fprintf(stdout, "malloc of _origin array failed");
-        fflush(stdout);
+        resultPtr->AddError("malloc of _origin array failed");
+	return;
     }
     memset(_origin, 0, _numAxis);
 
     _max = new float[_numAxis];
     if (_max == NULL) {
-        // malloc failed, raise error
-        fprintf(stdout, "malloc of _max array failed");
-        fflush(stdout);
+        resultPtr->AddError("malloc of _max array failed");
+	return;
     }
     memset(_max, 0, _numAxis);
 
@@ -147,9 +153,8 @@ DX::DX(const char* filename) :
     DXGetArrayInfo(dxdata, NULL, &type, NULL, NULL, NULL);
     _data = new float[_n];
     if (_data == NULL) {
-        // malloc failed, raise error
-        fprintf(stdout, "malloc of _data array failed");
-        fflush(stdout);
+        resultPtr->AddError("malloc of _data array failed");
+	return;
     }
 
     switch (type) {
@@ -166,8 +171,8 @@ DX::DX(const char* filename) :
             _data[i] = double_data[i];
         }
     default:
-        fprintf(stdout, "don't know how to handle data of type %d\n", type);
-        fflush(stdout);
+        resultPtr->AddError("don't know how to handle data of type %d\n", type);
+	return;
     }
 
     // print debug info
