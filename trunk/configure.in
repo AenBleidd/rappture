@@ -454,7 +454,6 @@ AC_OUTPUT( [
 	gui/apps/simsim 
 	gui/pkgIndex.tcl 
 	gui/scripts/Makefile
-	gui/src/Makefile
 	lang/Makefile 
 	lang/perl/Makefile 
 	lang/perl/Makefile.PL 
