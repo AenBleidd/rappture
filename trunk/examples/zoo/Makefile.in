@@ -1,0 +1,59 @@
+
+bindir          = @bindir@
+datadir		= @datadir@
+datarootdir	= @datarootdir@
+exec_prefix     = @exec_prefix@
+includedir      = @includedir@
+libdir          = @libdir@
+mandir          = @mandir@
+srcdir		= @srcdir@
+prefix          = @prefix@
+
+INSTALL		= @INSTALL@
+INSTALL_DATA	= @INSTALL_DATA@
+VPATH		= $(srcdir)
+RM		= rm -f
+
+examples	= \
+		binary \
+		boolean	\
+		choice \
+		cloud \
+		curve \
+		enable \
+		field \
+		group \
+		image \
+		integer \
+		loader \
+		log \
+		note \
+		number \
+		phase \
+		sequence \
+		string \
+		structure \
+		table 
+
+destdir		= $(prefix)/examples/zoo
+
+all: 
+	for i in $(examples) ; do \
+	  $(MAKE) -C $$i all; \
+	done
+
+install: 
+	for i in $(examples) ; do \
+	  $(MAKE) -C $$i install; \
+	done
+
+clean:
+	for i in $(examples) ; do \
+	  $(MAKE) -C $$i clean; \
+	done
+
+distclean: 
+	for i in $(examples) ; do \
+	  $(MAKE) -C $$i distclean; \
+	done
+	$(RM) Makefile *~
