@@ -1,3 +1,4 @@
+
 /*
  * ----------------------------------------------------------------------
  * Mat4x4.cpp: Mat4x4 class
@@ -17,26 +18,24 @@
 #include <stdio.h>
 #include <assert.h>
 
-Mat4x4::Mat4x4(){}
-
-Mat4x4::Mat4x4(float *vals){
-	int i;
-	for (i=0;i<16;i++)
-		m[i] = vals[i];
+Mat4x4::Mat4x4(float *vals) {
+    int i;
+    for (i=0;i<16;i++)
+	m[i] = vals[i];
 }
 
-Mat4x4::~Mat4x4(){}
-
-void Mat4x4::print(){
-	fprintf(stderr, "\n%f %f %f %f\n", m[0], m[1], m[2], m[3]);
-	fprintf(stderr, "%f %f %f %f\n", m[4], m[5], m[6], m[7]);
-	fprintf(stderr, "%f %f %f %f\n", m[8], m[9], m[10], m[11]);
-	fprintf(stderr, "%f %f %f %f\n\n", m[12], m[13], m[14], m[15]);
+void 
+Mat4x4::print(){
+    fprintf(stderr, "\n%f %f %f %f\n", m[0], m[1], m[2], m[3]);
+    fprintf(stderr, "%f %f %f %f\n", m[4], m[5], m[6], m[7]);
+    fprintf(stderr, "%f %f %f %f\n", m[8], m[9], m[10], m[11]);
+    fprintf(stderr, "%f %f %f %f\n\n", m[12], m[13], m[14], m[15]);
 }
 
-Mat4x4 Mat4x4::inverse(){
-	Mat4x4 p;
-
+Mat4x4 
+Mat4x4::inverse(){
+    Mat4x4 p;
+	
     float m00 = m[0], m01 = m[4], m02 = m[8], m03 = m[12];
     float m10 = m[1], m11 = m[5], m12 = m[9], m13 = m[13];
     float m20 = m[2], m21 = m[6], m22 = m[10], m23 = m[14];
@@ -104,148 +103,65 @@ Mat4x4 Mat4x4::inverse(){
     p.m[14] = cof32 * inv0;
     p.m[15]= cof33 * inv0;	
 	
-	return p;
-	/*
-	Mat4x4 ret;
-	int i, j;
-	double dst[4][4];
-	double tmp[12];
+    return p;
+}
 
-	// calculate pairs for first 8 mements (cofactors)
-	tmp[0] = m[10] * m[15];
-	tmp[1] = m[11] * m[14];
-	tmp[2] = m[9] * m[15];
-	tmp[3] = m[11] * m[13];
-	tmp[4] = m[9] * m[14];
-	tmp[5] = m[10] * m[13];
-	tmp[6] = m[8] * m[15];
-	tmp[7] = m[11] * m[12];
-	tmp[8] = m[8] * m[14];
-	tmp[9] = m[10] * m[12];
-	tmp[10] = m[8] * m[13];
-	tmp[11] = m[9] * m[12];
+Vector4 
+Mat4x4::multiply_row_vector(Vector4 v){
+    Vector4 ret;
+    ret.x = (m[0]  * v.x) + (m[1]  * v.y) + (m[2]  * v.z) + (m[3]  * v.w);
+    ret.y = (m[4]  * v.x) + (m[5]  * v.y) + (m[6]  * v.z) + (m[7]  * v.w);
+    ret.z = (m[8]  * v.x) + (m[9]  * v.y) + (m[10] * v.z) + (m[11] * v.w);
+    ret.w = (m[12] * v.x) + (m[13] * v.y) + (m[14] * v.z) + (m[15] * v.w);
+    return ret;
+}
 
-	// calculate first 8 mements (cofactors) 
-	dst[0][0] = tmp[0]*m[5] + tmp[3]*m[6] + tmp[4]*m[7];
-	dst[0][0] -= tmp[1]*m[5] + tmp[2]*m[6] + tmp[5]*m[7];
-	dst[0][1] = tmp[1]*m[4] + tmp[6]*m[6] + tmp[9]*m[7];
-	dst[0][1]-= tmp[0]*m[4] + tmp[7]*m[6] + tmp[8]*m[7];
-	dst[0][2] = tmp[2]*m[4] + tmp[7]*m[5] + tmp[10]*m[7];
-	dst[0][2] -= tmp[3]*m[4] + tmp[6]*m[5] + tmp[11]*m[7];
-	dst[0][3] = tmp[5]*m[4] + tmp[8]*m[5] + tmp[11]*m[6];
-	dst[0][3] -= tmp[4]*m[4] + tmp[9]*m[5] + tmp[10]*m[6];
-	dst[1][0] = tmp[1]*m[1] + tmp[2]*m[2] + tmp[5]*m[3];
-	dst[1][0] -= tmp[0]*m[1] + tmp[3]*m[2] + tmp[4]*m[3];
-	dst[1][1] = tmp[0]*m[0] + tmp[7]*m[2] + tmp[8]*m[3];
-	dst[1][1] -= tmp[1]*m[0] + tmp[6]*m[2] + tmp[9]*m[3];
-	dst[1][2] = tmp[3]*m[0] + tmp[6]*m[1] + tmp[11]*m[3];
-	dst[1][2] -= tmp[2]*m[0] + tmp[7]*m[1] + tmp[10]*m[3];
-	dst[1][3] = tmp[4]*m[0] + tmp[9]*m[1] + tmp[10]*m[2];
-	dst[1][3] -= tmp[5]*m[0] + tmp[8]*m[1] + tmp[11]*m[2];
+Vector4 
+Mat4x4::transform(Vector4 v){
+    Vector4 ret;
+    ret.x = v.x*m[0]+v.y*m[4]+v.z*m[8]+v.w*m[12];
+    ret.y = v.x*m[1]+v.y*m[5]+v.z*m[9]+v.w*m[13];
+    ret.z = v.x*m[2]+v.y*m[6]+v.z*m[10]+v.w*m[14];
+    ret.w = v.x*m[3]+v.y*m[7]+v.z*m[11]+v.w*m[15];
+    return ret;
+}
 
-	// calculate pairs for second 8 mements (cofactors)
-	tmp[0] = m[2]*m[7];
-	tmp[1] = m[3]*m[6];
-	tmp[2] = m[1]*m[7];
-	tmp[3] = m[3]*m[5];
-	tmp[4] = m[1]*m[6];
-	tmp[5] = m[2]*m[5];
-	tmp[6] = m[0]*m[7];
-	tmp[7] = m[3]*m[4];
-	tmp[8] = m[0]*m[6];
-	tmp[9] = m[2]*m[4];
-	tmp[10] = m[0]*m[5];
-	tmp[11] = m[1]*m[4];
+Mat4x4 
+Mat4x4::operator *(Mat4x4 mat){
+    Mat4x4 ret;
+    
+    ret.m[0] = m[0]*mat.m[0]+m[1]*mat.m[4]+m[2]*mat.m[8]+m[3]*mat.m[12];
+    ret.m[1] = m[0]*mat.m[1]+m[1]*mat.m[5]+m[2]*mat.m[9]+m[3]*mat.m[13];
+    ret.m[2] = m[0]*mat.m[2]+m[1]*mat.m[6]+m[2]*mat.m[10]+m[3]*mat.m[14];
+    ret.m[3] = m[0]*mat.m[3]+m[1]*mat.m[7]+m[2]*mat.m[11]+m[3]*mat.m[15];
+    
+    ret.m[4] = m[4]*mat.m[0]+m[5]*mat.m[4]+m[6]*mat.m[8]+m[7]*mat.m[12];
+    ret.m[5] = m[4]*mat.m[1]+m[5]*mat.m[5]+m[6]*mat.m[9]+m[7]*mat.m[13];
+    ret.m[6] = m[4]*mat.m[2]+m[5]*mat.m[6]+m[6]*mat.m[10]+m[7]*mat.m[14];
+    ret.m[7] = m[4]*mat.m[3]+m[5]*mat.m[7]+m[6]*mat.m[11]+m[7]*mat.m[15];
+    
+    ret.m[8] = m[8]*mat.m[0]+m[9]*mat.m[4]+m[10]*mat.m[8]+m[11]*mat.m[12];
+    ret.m[9] = m[8]*mat.m[1]+m[9]*mat.m[5]+m[10]*mat.m[9]+m[11]*mat.m[13];
+    ret.m[10] = m[8]*mat.m[2]+m[9]*mat.m[6]+m[10]*mat.m[10]+m[11]*mat.m[14];
+    ret.m[11] = m[8]*mat.m[3]+m[9]*mat.m[7]+m[10]*mat.m[11]+m[11]*mat.m[15];
+    
+    ret.m[12] = m[12]*mat.m[0]+m[13]*mat.m[4]+m[14]*mat.m[8]+m[15]*mat.m[12];
+    ret.m[13] = m[12]*mat.m[1]+m[13]*mat.m[5]+m[14]*mat.m[9]+m[15]*mat.m[13];
+    ret.m[14] = m[12]*mat.m[2]+m[13]*mat.m[6]+m[14]*mat.m[10]+m[15]*mat.m[14];
+    ret.m[15] = m[12]*mat.m[3]+m[13]*mat.m[7]+m[14]*mat.m[11]+m[15]*mat.m[15];
+    
+    return ret;
+}
 
-	// calculate second 8 mements (cofactors)
-	dst[2][0] = tmp[0]*m[13] + tmp[3]*m[14] + tmp[4]*m[15];
-	dst[2][0] -= tmp[1]*m[13] + tmp[2]*m[14] + tmp[5]*m[15];
-	dst[2][1] = tmp[1]*m[12] + tmp[6]*m[14] + tmp[9]*m[15];
-	dst[2][1] -= tmp[0]*m[12] + tmp[7]*m[14] + tmp[8]*m[15];
-	dst[2][2] = tmp[2]*m[12] + tmp[7]*m[13] + tmp[10]*m[15];
-	dst[2][2]-= tmp[3]*m[12] + tmp[6]*m[13] + tmp[11]*m[15];
-	dst[2][3] = tmp[5]*m[12] + tmp[8]*m[13] + tmp[11]*m[14];
-	dst[2][3]-= tmp[4]*m[12] + tmp[9]*m[13] + tmp[10]*m[14];
-	dst[3][0] = tmp[2]*m[10] + tmp[5]*m[11] + tmp[1]*m[9];
-	dst[3][0]-= tmp[4]*m[11] + tmp[0]*m[9] + tmp[3]*m[10];
-	dst[3][1] = tmp[8]*m[11] + tmp[0]*m[8] + tmp[7]*m[10];
-	dst[3][1]-= tmp[6]*m[10] + tmp[9]*m[11] + tmp[1]*m[8];
-	dst[3][2] = tmp[6]*m[9] + tmp[11]*m[11] + tmp[3]*m[8];
-	dst[3][2]-= tmp[10]*m[11] + tmp[2]*m[8] + tmp[7]*m[9];
-	dst[3][3] = tmp[10]*m[10] + tmp[4]*m[8] + tmp[9]*m[9];
-	dst[3][3]-= tmp[8]*m[9] + tmp[11]*m[10] + tmp[5]*m[8];
-
-	// calculate determinant
-	double determinant=m[0]*dst[0][0]+m[1]*dst[0][1]+m[2]*dst[0][2]+m[3]*dst[0][3];
-
-	assert(fabs(determinant) != 0.0);
-
-	// calculate matrix inverse
-	determinant = 1/determinant;
-	for(i = 0; i < 4; i++){
-		for (j = 0; j < 4; j++){
-			dst[i][j] *= determinant;
-			ret.m[i*4+j] = dst[i][j];
-		}
+Mat4x4 
+Mat4x4::transpose(){
+    Mat4x4 ret;
+    for(int i=0; i<4; i++){
+	for(int j=0; j<4; j++){
+	    ret.m[j+4*i] = this->m[i+4*j];
 	}
-
-	return ret;
-	*/
-}
-
-Vector4 Mat4x4::multiply_row_vector(Vector4 v){
-	Vector4 ret;
-    ret.x = m[0]*v.x + m[1]*v.y + m[2]*v.z + m[3]*v.w;
-    ret.y = m[4]*v.x + m[5]*v.y + m[6]*v.z + m[7]*v.w;
-    ret.z = m[8]*v.x + m[9]*v.y + m[10]*v.z + m[11]*v.w;
-	ret.w = m[12]*v.x + m[13]*v.y + m[14]*v.z + m[15]*v.w;
-	return ret;
-}
-
-Vector4 Mat4x4::transform(Vector4 vector){
-	Vector4 ret;
-	ret.x = vector.x*m[0]+vector.y*m[4]+vector.z*m[8]+vector.w*m[12];
-	ret.y = vector.x*m[1]+vector.y*m[5]+vector.z*m[9]+vector.w*m[13];
-	ret.z = vector.x*m[2]+vector.y*m[6]+vector.z*m[10]+vector.w*m[14];
-	ret.w = vector.x*m[3]+vector.y*m[7]+vector.z*m[11]+vector.w*m[15];
-
-	return ret;
-}
-
-Mat4x4 Mat4x4::operator *(Mat4x4 mat){
-	Mat4x4 ret;
-	
-	ret.m[0] = m[0]*mat.m[0]+m[1]*mat.m[4]+m[2]*mat.m[8]+m[3]*mat.m[12];
-	ret.m[1] = m[0]*mat.m[1]+m[1]*mat.m[5]+m[2]*mat.m[9]+m[3]*mat.m[13];
-	ret.m[2] = m[0]*mat.m[2]+m[1]*mat.m[6]+m[2]*mat.m[10]+m[3]*mat.m[14];
-	ret.m[3] = m[0]*mat.m[3]+m[1]*mat.m[7]+m[2]*mat.m[11]+m[3]*mat.m[15];
-
-	ret.m[4] = m[4]*mat.m[0]+m[5]*mat.m[4]+m[6]*mat.m[8]+m[7]*mat.m[12];
-	ret.m[5] = m[4]*mat.m[1]+m[5]*mat.m[5]+m[6]*mat.m[9]+m[7]*mat.m[13];
-	ret.m[6] = m[4]*mat.m[2]+m[5]*mat.m[6]+m[6]*mat.m[10]+m[7]*mat.m[14];
-	ret.m[7] = m[4]*mat.m[3]+m[5]*mat.m[7]+m[6]*mat.m[11]+m[7]*mat.m[15];
-
-	ret.m[8] = m[8]*mat.m[0]+m[9]*mat.m[4]+m[10]*mat.m[8]+m[11]*mat.m[12];
-	ret.m[9] = m[8]*mat.m[1]+m[9]*mat.m[5]+m[10]*mat.m[9]+m[11]*mat.m[13];
-	ret.m[10] = m[8]*mat.m[2]+m[9]*mat.m[6]+m[10]*mat.m[10]+m[11]*mat.m[14];
-	ret.m[11] = m[8]*mat.m[3]+m[9]*mat.m[7]+m[10]*mat.m[11]+m[11]*mat.m[15];
-
-	ret.m[12] = m[12]*mat.m[0]+m[13]*mat.m[4]+m[14]*mat.m[8]+m[15]*mat.m[12];
-	ret.m[13] = m[12]*mat.m[1]+m[13]*mat.m[5]+m[14]*mat.m[9]+m[15]*mat.m[13];
-	ret.m[14] = m[12]*mat.m[2]+m[13]*mat.m[6]+m[14]*mat.m[10]+m[15]*mat.m[14];
-	ret.m[15] = m[12]*mat.m[3]+m[13]*mat.m[7]+m[14]*mat.m[11]+m[15]*mat.m[15];
-
-	return ret;
-}
-
-Mat4x4 Mat4x4::transpose(){
-	Mat4x4 ret;
-	for(int i=0; i<4; i++){
-		for(int j=0; j<4; j++){
-			ret.m[j+4*i] = this->m[i+4*j];
-		}
-	}
-	return ret;
+    }
+    return ret;
 }
 
 

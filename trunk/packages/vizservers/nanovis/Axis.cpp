@@ -121,6 +121,7 @@ Axis::Axis(const char *name) :
 {
     _name = NULL;
     SetName(name);
+    _units = NULL;
     _title = NULL;
     _valueMin = DBL_MAX, _valueMax = -DBL_MAX;
     _min = DBL_MAX, _max = -DBL_MAX;

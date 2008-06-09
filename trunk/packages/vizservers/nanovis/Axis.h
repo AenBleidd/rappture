@@ -186,11 +186,13 @@ class Axis {
 	TIGHT_MAX=(1<<4)
     };
 
-    char *_name;		/* Name of the axis. Malloc-ed */
+    const char *_name;		/* Name of the axis. Malloc-ed */
 
     unsigned int _flags;
 
-    char *_title;		/* Title of the axis. */
+    const char *_title;		/* Title of the axis. */
+
+    const char *_units;		/* Units of the axis. */
 
     double _valueMin, _valueMax; /* The limits of the data. */
 
@@ -226,6 +228,17 @@ class Axis {
 
 public:
     Axis(const char *name);
+    ~Axis(void) {
+	if (_name != NULL) {
+	    free((void *)_name);
+	}
+	if (_units != NULL) {
+	    free((void *)_units);
+	}
+	if (_title != NULL) {
+	    free((void *)_title);
+	}
+    }
 
     void ResetRange(void);
     void FixRange(double min, double max);
@@ -242,15 +255,37 @@ public:
     bool FirstMinor(TickIter &iter) {
 	return _minor.FirstTick(iter);
     }
-    void GetDataLimits(double min, double max);
+    void GetDataLimits(double &min, double &max) {
+	min = _valueMin, max = _valueMax;
+    }
     double Map(double x);
     double InvMap(double x);
-    char *GetName(void) {
-	return _name;
+    const char *GetName(void) {
+	return (_name == NULL) ? "???" : _name;
     }
     void SetName(const char *name) {
-	_name = new char[strlen(name) + 1];
-	strcpy(_name, name);
+	if (_name != NULL) {
+	    free((void *)_name);
+	}
+	_name = strdup(name);
+    }
+    const char *GetUnits(void) {
+	return (_units == NULL) ? "???" : _units;
+    }
+    void SetUnits(const char *units) {
+	if (_units != NULL) {
+	    free((void *)_units);
+	}
+	_units = strdup(units);
+    }
+    const char *GetTitle(void) {
+	return (_title == NULL) ? "???" : _title;
+    }
+    void SetTitle(const char *title) {
+	if (_title != NULL) {
+	    free((void *)_title);
+	}
+	_title = strdup(title);
     }
     void SetMin(double min) {
 	_reqMin = min;		// Setting to NaN resets min to "auto"

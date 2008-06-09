@@ -15,60 +15,110 @@
 #ifndef _VECTOR3_H_
 #define _VECTOR3_H_
 
-class Mat4x4;
+/*
+ * FIXME: The files that explicitly use the "rot*", "length", "distance", or
+ * "normalize" methods, should include the following headers.  Don't do it
+ * here.
+ */
+#include <math.h> 
+#include "Mat4x4.h"
 
 class Vector3{
-
+private:
+    float radians(float degree) const {
+	return (M_PI * degree) / 180.0;
+    }
 public:
-	float x, y, z;
-	Vector3(float _x, float _y, float _z);
-	Vector3();
-
-	Vector3 operator +(Vector3 &op2); 	
-	Vector3 operator -(Vector3 &op2);
-	Vector3 operator -(float scalar);
-	Vector3 operator +(float scalar);
-	bool equal(Vector3 &op2);
-	//float operator *(Vector3 &op2);	//dot product
-	float operator *(Vector3 &op2);		//dot product
-	Vector3 operator *(float op2);	  //mul per component
-	Vector3 operator /(float op2);	  //mul per component
-	void operator <(Vector3 &op2);	  //assign	
-	Vector3 operator ^(Vector3 &op2); //cross product
-	Vector3 normalize();
-	Vector3 rot_x(float degree);	  //rotation about x
-	Vector3 rot_y(float degree);	  //rotation about y
-	Vector3 rot_z(float degree);	  //rotation about z
-	void set(float newx, float newy, float newz);
-	void print();
-	float distance(Vector3 &another) const;	//compute distance
-	float distanceSquare(Vector3 &another) const;	//compute distance
-	float distanceSquare(float vx, float vy, float vz) const;	//compute distance
-
-	//fast version
-	Vector3 cross(Vector3 op2);
-
-    float dot(const Vector3& vec) const;
-
-    void transform(const Vector3& vec, const Mat4x4& mat);
-    float length() const;
+    float x, y, z;
+    Vector3(void) {
+	/*empty*/
+    }
+    Vector3(float x_val, float y_val, float z_val) {
+	set(x_val, y_val, z_val);
+    }
+    Vector3 operator +(float scalar) {
+	return Vector3(x + scalar, y + scalar, z + scalar);
+    }
+    Vector3 operator -(float scalar) {
+	return Vector3(x - scalar, y - scalar, z - scalar);
+    }
+    Vector3 operator *(float scalar) {
+	return Vector3(x * scalar, y * scalar, z * scalar);
+    }
+    Vector3 operator /(float scalar) {
+	return Vector3(x / scalar, y / scalar, z / scalar);
+    }
+    Vector3 operator +(Vector3 &op2) {
+	return Vector3(x + op2.x, y + op2.y, z + op2.z);
+    }
+    Vector3 operator -(Vector3 &op2) {
+	return Vector3(x - op2.x, y - op2.y, z - op2.z);
+    }
+    float operator *(Vector3 &op2){
+	return x*op2.x + y*op2.y + z*op2.z;
+    }
+    float dot(const Vector3& vec) const {
+	return x*vec.x + y*vec.y + z*vec.z;
+    }
+    bool equal(Vector3 &op2) {
+	return (x==op2.x) && (y==op2.y) && (z==op2.z);
+    }
+    Vector3 cross(Vector3 op2) {
+	return Vector3(y*op2.z - z*op2.y, z*op2.x - x*op2.z, x*op2.y - y*op2.x);
+    }
+    void operator<(Vector3 &op2) {
+	set(op2.x, op2.y, op2.z);
+    }
+    Vector3 operator ^(Vector3 &op2) {
+	return cross(op2);
+    }
+    Vector3 normalize(void) {
+	float len = length();
+	return Vector3(x / len, y / len, z / len);
+    }
+    Vector3 rot_x(float degree) {
+	float rad = radians(degree);
+	return Vector3(x, 
+		       y*cos(rad) - z*sin(rad), 
+		       y*sin(rad) + z*cos(rad));
+    }
+    Vector3 rot_y(float degree) {
+	float rad = radians(degree);
+	return Vector3(x*cos(rad) + z*sin(rad), 
+		       y, 
+		       -x*sin(rad) + z*cos(rad));
+    }
+    Vector3 rot_z(float degree) {
+	float rad = radians(degree);
+	return Vector3(x*cos(rad) - y*sin(rad), 
+		       x*sin(rad) + y*cos(rad), 
+		       z);
+    }
+    void set(float x_val, float y_val, float z_val) {
+	x = x_val, y = y_val, z = z_val;
+    }
+    void print(void){
+	fprintf(stderr, "x:%f, y:%f, z:%f\n", x, y, z);
+    }
+    float distance(Vector3 &v) const {
+	return sqrtf(distanceSquare(v));
+    }
+    float distanceSquare(Vector3 &v) const {
+	return (x-v.x)*(x-v.x) + (y-v.y)*(y-v.y) + (z-v.z)*(z-v.z);
+    }
+    float distanceSquare(float vx, float vy, float vz) const {
+	return (x-vx)*(x-vx) + (y-vy)*(y-vy) + (z-vz)*(z-vz);
+    }
+    void transform(const Vector3& v, const Mat4x4& mat) {
+	const float* m = mat.m;
+	x = m[0] * v.x + m[4] * v.y + m[8]  * v.z + m[12];
+	y = m[1] * v.x + m[5] * v.y + m[9]  * v.z + m[13];
+	z = m[2] * v.x + m[6] * v.y + m[10] * v.z + m[14];
+    }
+    float length(void) const {
+	return sqrt(x*x + y*y + z*z);
+    }
 };
 
-inline Vector3 Vector3::operator +(float scalar)
-{
-    Vector3 v;
-    v.x = x + scalar;
-    v.y = y + scalar;
-    v.z = z + scalar;
-    return v;
-}
 
-inline Vector3 Vector3::operator -(float scalar)
-{
-    Vector3 v;
-    v.x = x - scalar;
-    v.y = y - scalar;
-    v.z = z - scalar;
-    return v;
-}
 #endif

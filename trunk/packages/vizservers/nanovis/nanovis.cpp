@@ -69,6 +69,8 @@
 #include <R2/R2FilePath.h>
 #include <R2/R2Fonts.h>
 
+#define SIZEOF_BMP_HEADER	54
+
 extern void NvInitCG(); // in Shader.cpp
 
 // Indicates "up" axis:  x=1, y=2, z=3, -x=-1, -y=-2, -z=-3
@@ -102,6 +104,11 @@ bool NanoVis::particle_on = false;
 bool NanoVis::vector_on = false;
 bool NanoVis::config_pending = false;
 
+
+//frame buffer for final rendering
+NVISid NanoVis::final_fbo;
+NVISid NanoVis::final_color_tex;
+NVISid NanoVis::final_depth_rb;
 
 // pointers to volumes, currently handle up to 10 volumes
 /*FIXME: Is the above comment true? Is there a 10 volume limit */
@@ -138,8 +145,6 @@ extern void initTcl();
 
 //static Lic* lic;
 
-//frame buffer for final rendering
-static NVISid final_fbo, final_color_tex, final_depth_rb;
 
 //bool advect=false;
 float vert[NMESH*NMESH*3];              //particle positions in main memory
@@ -252,7 +257,8 @@ debug(char *str, double v1, double v2, double v3)
 }
 
 //report errors related to CG shaders
-void cgErrorCallback(void)
+void 
+cgErrorCallback(void)
 {
     CGerror lastError = cgGetError();
     if(lastError) {
@@ -407,11 +413,9 @@ NanoVis::render_legend(
     glReadPixels(0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, screen_buffer);
     //glReadPixels(0, 0, width, height, GL_BGR, GL_UNSIGNED_BYTE, screen_buffer); // INSOO's
 
-    std::ostringstream result;
-    result << "nv>legend " << volArg;
-    result << " " << min;
-    result << " " << max;
-    bmp_write(result.str().c_str());
+    char prefix[200];
+    sprintf(prefix, "nv>legend %s %g %g", volArg, min, max);
+    ppm_write(prefix);
     write(0, "\n", 1);
 
     plane_render->remove_plane(index);
@@ -528,13 +532,17 @@ NanoVis::resize_offscreen_buffer(int w, int h)
     // Check framebuffer completeness at the end of initialization.
     CHECK_FRAMEBUFFER_STATUS();
     //assert(glGetError()==0);
-    fprintf(stdin,"  after assert\n");
 }
 
+/*
+ * FIXME: This routine is fairly expensive (60000 floating pt divides).  
+ *	  I've put an ifdef around the call to it so that the released
+ *	  builds don't include it.  Define PROTOTYPE to 1 in config.h 
+ *	  to turn it back on.
+ */
 void 
 make_test_2D_data()
 {
-
     int w = 300;
     int h = 200;
     float* data = new float[w*h];
@@ -639,10 +647,12 @@ void NanoVis::init(const char* path)
     color_table_renderer->setFonts(fonts);
     
     particleRenderer = new NvParticleRenderer(NMESH, NMESH, g_context);
+
+#if PROTOTYPE
     licRenderer = new NvLIC(NMESH, NPIX, NPIX, 0.5, g_context);
+#endif
 
     ImageLoaderFactory::getInstance()->addLoaderImpl("bmp", new BMPImageLoaderImpl());
-
     grid = new Grid();
     grid->setFont(fonts);
 
@@ -721,8 +731,9 @@ NanoVis::initGL(void)
 
    //create an 2D plane renderer
    plane_render = new PlaneRenderer(g_context, win_width, win_height);
+#if PROTOTYPE
    make_test_2D_data();
-
+#endif	/* PROTOTYPE */
    plane_render->add_plane(plane[0], get_transfunc("default"));
 
    //assert(glGetError()==0);
@@ -731,13 +742,6 @@ NanoVis::initGL(void)
    init_particle_system();
    NanoVis::init_lic(); 
 #endif
-}
-
-void 
-NanoVis::read_screen()
-{
-    glReadPixels(0, 0, win_width, win_height, GL_RGB, GL_UNSIGNED_BYTE, 
-                 screen_buffer);
 }
 
 #if DO_RLE
@@ -779,22 +783,29 @@ do_rle()
 #endif
 
 // used internally to build up the BMP file header
-// writes an integer value into the header data structure at pos
-static void
+// Writes an integer value into the header data structure at pos
+static inline void
 bmp_header_add_int(unsigned char* header, int& pos, int data)
 {
+#ifdef WORDS_BIGENDIAN
+    header[pos++] = (data >> 24) & 0xFF;
+    header[pos++] = (data >> 16) & 0xFF;
+    header[pos++] = (data >> 8)  & 0xFF;
+    header[pos++] = (data)       & 0xFF;
+#else
     header[pos++] = data & 0xff;
     header[pos++] = (data >> 8) & 0xff;
     header[pos++] = (data >> 16) & 0xff;
     header[pos++] = (data >> 24) & 0xff;
+#endif
 }
 
 // INSOO
 // FOR DEBUGGING
 void
-NanoVis::bmp_write_to_file(int frame_number, char* directory_name)
+NanoVis::bmp_write_to_file(int frame_number, const char *directory_name)
 {
-    unsigned char header[54];
+    unsigned char header[SIZEOF_BMP_HEADER];
     int pos = 0;
     header[pos++] = 'B';
     header[pos++] = 'M';
@@ -807,14 +818,14 @@ NanoVis::bmp_write_to_file(int frame_number, char* directory_name)
     }
 
     // file size in bytes
-    int fsize = (3*win_width+pad)*win_height + sizeof(header);
+    int fsize = (3*win_width+pad)*win_height + SIZEOF_BMP_HEADER;
     bmp_header_add_int(header, pos, fsize);
 
     // reserved value (must be 0)
     bmp_header_add_int(header, pos, 0);
 
     // offset in bytes to start of bitmap data
-    bmp_header_add_int(header, pos, sizeof(header));
+    bmp_header_add_int(header, pos, SIZEOF_BMP_HEADER);
 
     // size of the BITMAPINFOHEADER
     bmp_header_add_int(header, pos, 40);
@@ -874,18 +885,16 @@ NanoVis::bmp_write_to_file(int frame_number, char* directory_name)
 	    Trace("cannot create file\n");
 	}
     }
-    fwrite((void*) header, sizeof(header), 1, f);
+    fwrite((void*) header, SIZEOF_BMP_HEADER, 1, f);
     fwrite((void*) screen_buffer, (3*win_width+pad)*win_height, 1, f);
     fclose(f);
 }
 
 void
-NanoVis::bmp_write(const char* cmd)
+NanoVis::bmp_write(const char *prefix)
 {
-    unsigned char header[54];
+    unsigned char header[SIZEOF_BMP_HEADER];
     int pos = 0;
-    header[pos++] = 'B';
-    header[pos++] = 'M';
 
     // BE CAREFUL:  BMP files must have an even multiple of 4 bytes
     // on each scan line.  If need be, we add padding to each line.
@@ -893,16 +902,24 @@ NanoVis::bmp_write(const char* cmd)
     if ((3*win_width) % 4 > 0) {
         pad = 4 - ((3*win_width) % 4);
     }
+    pad = 0;
+    int fsize = (3*win_width+pad)*win_height + sizeof(header);
+
+    char string[200];
+    sprintf(string, "%s %d\n", prefix, fsize);
+    write(0, string, strlen(string));
+
+    header[pos++] = 'B';
+    header[pos++] = 'M';
 
     // file size in bytes
-    int fsize = (3*win_width+pad)*win_height + sizeof(header);
     bmp_header_add_int(header, pos, fsize);
 
     // reserved value (must be 0)
     bmp_header_add_int(header, pos, 0);
 
     // offset in bytes to start of bitmap data
-    bmp_header_add_int(header, pos, sizeof(header));
+    bmp_header_add_int(header, pos, SIZEOF_BMP_HEADER);
 
     // size of the BITMAPINFOHEADER
     bmp_header_add_int(header, pos, 40);
@@ -943,13 +960,68 @@ NanoVis::bmp_write(const char* cmd)
         scr += pad;  // skip over padding already in screen data
     }
 
-    std::ostringstream result;
-    result << cmd << " " << fsize << "\n";
-    write(0, result.str().c_str(), result.str().size());
-
-    write(0, header, sizeof(header));
+    write(0, header, SIZEOF_BMP_HEADER);
     write(0, screen_buffer, (3*win_width+pad)*win_height);
+}
 
+/*
+ * ppm_write --
+ *
+ *	Writes the screen image as PPM binary data to the nanovisviewer
+ *	client.  The PPM binary format is very simple.  
+ *
+ *		P6 w h 255\n
+ *		3-byte RGB pixel data.
+ *
+ *	The nanovisviewer client (using the TkImg library) will do less work
+ *	to unpack this format, as opposed to BMP or PNG.  (This doesn't
+ *	eliminate the need to look into DXT compression performed on the GPU).
+ *
+ *      Note that currently the image data from the screen is both row-padded
+ *      and the scan lines are reversed.  This routine could be made even
+ *      simpler (faster) if the screen buffer is an array of packed 3-bytes
+ *      per pixels (no padding) and where the origin is the top-left corner.
+ */
+void
+NanoVis::ppm_write(const char *prefix)
+{
+#define PPM_MAXVAL 255
+    char header[200];
+
+    // Generate the PPM binary file header
+    sprintf(header, "P6 %d %d %d\n", win_width, win_height, PPM_MAXVAL);
+
+    size_t header_length = strlen(header);
+    size_t data_length = win_width * win_height * 3;
+
+    char command[200];
+    sprintf(command, "%s %d\n", prefix, header_length + data_length);
+
+    size_t wordsPerRow = (win_width * 24 + 31) / 32;
+    size_t bytesPerRow = wordsPerRow * 4;
+    size_t rowLength = win_width * 3;
+    size_t nRecs = win_height + 2;
+
+    struct iovec *iov;
+    iov = (struct iovec *)malloc(sizeof(struct iovec) * nRecs);
+
+    // Write the nanovisviewer command, then the image header and data.
+    // Command
+    iov[0].iov_base = command;
+    iov[0].iov_len = strlen(command);
+    // Header of image data
+    iov[1].iov_base = header;
+    iov[1].iov_len = header_length;
+    // Image data.
+    int y;
+    unsigned char *srcRowPtr = screen_buffer;
+    for (y = win_height + 1; y >= 2; y--) {
+	iov[y].iov_base = srcRowPtr;
+	iov[y].iov_len = rowLength;
+	srcRowPtr += bytesPerRow;
+    }
+    writev(0, iov, nRecs);
+    free(iov);
 }
 
 #ifdef notdef
@@ -1021,60 +1093,6 @@ NanoVis::display_offscreen_buffer()
     glEnd();
 }
 
-void 
-NanoVis::offscreen_buffer_capture()
-{
-    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, final_fbo);
-}
-
-#ifdef notdef
-/* 
- * Is this routine being used? --gah
- */
-void 
-draw_bounding_box(float x0, float y0, float z0,
-                  float x1, float y1, float z1,
-                  float r, float g, float b, float line_width)
-{
-    glDisable(GL_TEXTURE_2D);
-    glColor4d(r, g, b, 1.0);
-    glLineWidth(line_width);
-    glBegin(GL_LINE_LOOP);
-    {
-	glVertex3d(x0, y0, z0);
-	glVertex3d(x1, y0, z0);
-	glVertex3d(x1, y1, z0);
-	glVertex3d(x0, y1, z0);
-    }
-    glEnd();
-    glBegin(GL_LINE_LOOP);
-    {
-	glVertex3d(x0, y0, z1);
-	glVertex3d(x1, y0, z1);
-	glVertex3d(x1, y1, z1);
-	glVertex3d(x0, y1, z1);
-    }
-    glEnd();
-    glBegin(GL_LINE_LOOP);
-    {
-	glVertex3d(x0, y0, z0);
-	glVertex3d(x0, y0, z1);
-	glVertex3d(x0, y1, z1);
-	glVertex3d(x0, y1, z0);
-    }
-    glEnd();
-    glBegin(GL_LINE_LOOP);
-    {
-	glVertex3d(x1, y0, z0);
-	glVertex3d(x1, y0, z1);
-	glVertex3d(x1, y1, z1);
-	glVertex3d(x1, y1, z0);
-    }
-    glEnd();
-    glEnable(GL_TEXTURE_2D);
-}
-#endif
-
 
 #ifdef notdef
 
@@ -1090,7 +1108,8 @@ particle_distance_sort(const void* a, const void* b)
 
 void soft_read_verts()
 {
-    glReadPixels(0, 0, psys->psys_width, psys->psys_height, GL_RGB, GL_FLOAT, vert);
+    glReadPixels(0, 0, psys->psys_width, psys->psys_height, GL_RGB, GL_FLOAT, 
+		 vert);
     //fprintf(stderr, "soft_read_vert");
     
     //cpu sort the distance  
@@ -1541,7 +1560,7 @@ NanoVis::display()
         //3D rendering mode
         glEnable(GL_TEXTURE_2D);
         glEnable(GL_DEPTH_TEST);
-        
+
         //camera setting activated
         cam->activate();
         
@@ -1873,7 +1892,6 @@ void removeAllData()
 int 
 main(int argc, char** argv) 
 {
-
     char *path;
     path = NULL;
     while(1) {

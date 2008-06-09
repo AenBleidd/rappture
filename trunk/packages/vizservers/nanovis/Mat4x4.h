@@ -1,3 +1,4 @@
+
 /*
  * ----------------------------------------------------------------------
  * Mat4x4.h: Mat4x4 class
@@ -19,19 +20,20 @@
 
 class Mat4x4  
 {
-	
+        
 public:
-	float m[16];	//row by row
-	Mat4x4();
-	Mat4x4(float *vals);
-	~Mat4x4();
+    float m[16];        //row by row
+    Mat4x4() {
+	/*empty*/
+    };
+    Mat4x4(float *vals);
 
-	void print();
-	Mat4x4 inverse();
-	Mat4x4 transpose();
-	Vector4 multiply_row_vector(Vector4 v);
-	Vector4 transform(Vector4 v);
-	Mat4x4 operator*(Mat4x4 op);
+    void print(void);
+    Mat4x4 inverse(void);
+    Mat4x4 transpose(void);
+    Vector4 multiply_row_vector(Vector4 v);
+    Vector4 transform(Vector4 v);
+    Mat4x4 operator*(Mat4x4 op);
 };
 
 #endif

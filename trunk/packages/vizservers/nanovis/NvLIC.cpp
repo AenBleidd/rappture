@@ -1,3 +1,4 @@
+
 /*
  * ----------------------------------------------------------------------
  * NvLIC.h: line integral convolution class
@@ -22,21 +23,22 @@
 #include "NvLIC.h"
 #include <Trace.h>
 
-NvLIC::NvLIC(int _size, int _width, int _height, float _offset, CGcontext _context)
-    : Renderable(Vector3(0.0f,0.0f,0.0f)),
+NvLIC::NvLIC(int _size, int _width, int _height, float _offset, 
+             CGcontext _context) : 
+    Renderable(Vector3(0.0f,0.0f,0.0f)),
     disListID(0),
-	width(_width),
-	height(_height),
-	size(_size),
+    width(_width),
+    height(_height),
+    size(_size),
     scale(1.0f, 1.0f, 1.0f),
-	offset(_offset),
+    offset(_offset),
     iframe(0),
-	Npat(64),
-  	alpha((int) 0.12*255),
-	tmax(NPIX/(SCALE*NPN)),
-	dmax(SCALE/NPIX),
+    Npat(64),
+    alpha((int) 0.12*255),
+    tmax(NPIX/(SCALE*NPN)),
+    dmax(SCALE/NPIX),
     max(1.0f),
-	m_g_context(_context),
+    m_g_context(_context),
     vectorFieldID((NVISid) 0),
     _activate(false)
 {
@@ -77,7 +79,7 @@ NvLIC::NvLIC(int _size, int _width, int _height, float _offset, CGcontext _conte
         GL_FLOAT_RGBA32_NV, size, size, 0, GL_RGBA, GL_FLOAT, NULL);
 
     glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, 
-		  GL_TEXTURE_RECTANGLE_NV, slice_vector_tex, 0);
+                  GL_TEXTURE_RECTANGLE_NV, slice_vector_tex, 0);
 
 
     //render buffer for the convolution
@@ -148,33 +150,32 @@ NvLIC::make_patterns()
     int i, j, k, t;
     
     for (i = 0; i < 256; i++) {
-	lut[i] = i < 127 ? 0 : 255;
+        lut[i] = i < 127 ? 0 : 255;
     }
     for (i = 0; i < NPN; i++) {
-	for (j = 0; j < NPN; j++) {
-            phase[i][j] = rand() % 256; 
+        for (j = 0; j < NPN; j++) {
+            phase[i][j] = rand() >> 8; 
         }
     }
     for (k = 0; k < Npat; k++) {
-	t = k*256/Npat;
-	for (i = 0; i < NPN; i++) {
-	    for (j = 0; j < NPN; j++) {
-		pat[i][j][0] =
-		    pat[i][j][1] =
-		    pat[i][j][2] = lut[(t + phase[i][j]) % 255];
-		pat[i][j][3] = alpha;
-	    }
-	}
-	glNewList(disListID + k, GL_COMPILE);
-	glBindTexture(GL_TEXTURE_2D, pattern_tex);
-	glTexImage2D(GL_TEXTURE_2D, 0, 4, NPN, NPN, 0, 
-		     GL_RGBA, GL_UNSIGNED_BYTE, pat);
-	glEndList();
+        t = (k << 8) / Npat;
+        for (i = 0; i < NPN; i++) {
+            for (j = 0; j < NPN; j++) {
+                pat[i][j][0] = pat[i][j][1] = pat[i][j][2] = 
+                    lut[(t + phase[i][j]) % 255];
+                pat[i][j][3] = alpha;
+            }
+        }
+        glNewList(disListID + k, GL_COMPILE);
+        glBindTexture(GL_TEXTURE_2D, pattern_tex);
+        glTexImage2D(GL_TEXTURE_2D, 0, 4, NPN, NPN, 0, GL_RGBA, 
+                     GL_UNSIGNED_BYTE, pat);
+        glEndList();
     }
     
     glBindTexture(GL_TEXTURE_2D, pattern_tex);
     glTexImage2D(GL_TEXTURE_2D, 0, 4, NPN, NPN, 0, 
-		 GL_RGBA, GL_UNSIGNED_BYTE, pat);
+                 GL_RGBA, GL_UNSIGNED_BYTE, pat);
     Trace("finish make_patterns\n");
 }
 
@@ -186,22 +187,21 @@ void NvLIC::make_magnitudes()
     //read vector filed
     for(int i=0; i<NMESH; i++){
         for(int j=0; j<NMESH; j++){
-
-      float x=DM*i;
-      float y=DM*j;
-
-      float magnitude = sqrt(x*x+y*y)/1.414;
-      
-      //from green to red
-      GLubyte r = (GLubyte) floor(magnitude*255);
-      GLubyte g = 0;
-      GLubyte b = 255 - r;
-      GLubyte a = 122;
-
-      mag[i][j][0] = r;
-      mag[i][j][1] = g;
-      mag[i][j][2] = b;
-      mag[i][j][3] = a;
+            float x=DM*i;
+            float y=DM*j;
+            
+            float magnitude = sqrt(x*x+y*y)/1.414;
+            
+            //from green to red
+            GLubyte r = (GLubyte) floor(magnitude*255);
+            GLubyte g = 0;
+            GLubyte b = 255 - r;
+            GLubyte a = 122;
+            
+            mag[i][j][0] = r;
+            mag[i][j][1] = g;
+            mag[i][j][2] = b;
+            mag[i][j][3] = a;
         }
     }
 
@@ -212,11 +212,13 @@ void NvLIC::make_magnitudes()
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     //glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_BLEND);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, NMESH, NMESH, 0, GL_RGBA, GL_UNSIGNED_BYTE, mag);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, NMESH, NMESH, 0, GL_RGBA, 
+                 GL_UNSIGNED_BYTE, mag);
     glBindTexture(GL_TEXTURE_2D, 0);
 }
 
-void NvLIC::get_slice()
+void 
+NvLIC::get_slice()
 {
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, vel_fbo);
 
@@ -241,10 +243,12 @@ void NvLIC::get_slice()
     cgGLEnableProfile(CG_PROFILE_FP30);
 
     glBegin(GL_QUADS);
+    {
         glTexCoord3f(0., 0., offset); glVertex2f(0.,   0.);
         glTexCoord3f(1., 0., offset); glVertex2f(size, 0.);
         glTexCoord3f(1., 1., offset); glVertex2f(size, size);
         glTexCoord3f(0., 1., offset); glVertex2f(0.,   size);
+    }
     glEnd();
     
     cgGLDisableProfile(CG_PROFILE_FP30);
@@ -260,21 +264,23 @@ void NvLIC::get_slice()
 
     int lim = size * size * 4;
     float* v= slice_vector;
-    for (int i = 0; i < lim; ++i)
-    {
-        if (isnan(*v)) *v = 0.0f;    
+    for (int i = 0; i < lim; ++i) {
+        if (isnan(*v)) {
+            *v = 0.0f;    
+        }
         ++v;
     }
 }
 
 //line integral convolution
-void NvLIC::convolve()
+void 
+NvLIC::convolve()
 {
     int   i, j; 
     float x1, x2, y, px, py;
-
+    
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, fbo);
-
+    
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity(); 
     glPushAttrib(GL_VIEWPORT_BIT | GL_ENABLE_BIT);
@@ -282,85 +288,84 @@ void NvLIC::convolve()
     //glTranslatef(-1.0, -1.0, 0.0); 
     //glScalef(2.0, 2.0, 1.0);
     glOrtho(0.0f, 1.0f, 0.0f, 1.0f, -10.0f, 10.0f);
-
+    
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity(); 
-
+    
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
+    
     //sa = 0.010*cos(iframe*2.0*M_PI/200.0);
     glEnable(GL_TEXTURE_2D);
     glBindTexture(GL_TEXTURE_2D, pattern_tex);
     sa = 0.01;
-
-    for (i = 0; i < NMESH-1; i++) 
-    {
+    
+    for (i = 0; i < NMESH-1; i++) {
         x1 = DM*i; x2 = x1 + DM;
         glBegin(GL_QUAD_STRIP);
         for (j = 0; j < NMESH-1; j++) {
-          y = DM*j;
-          glTexCoord2f(x1, y); 
-          get_velocity(x1, y, &px, &py);
-          glVertex2f(px, py);
-
-          glTexCoord2f(x2, y); 
-          get_velocity(x2, y, &px, &py); 
-          glVertex2f(px, py);
+            y = DM*j;
+            glTexCoord2f(x1, y); 
+            get_velocity(x1, y, &px, &py);
+            glVertex2f(px, py);
+            
+            glTexCoord2f(x2, y); 
+            get_velocity(x2, y, &px, &py); 
+            glVertex2f(px, py);
         }
         glEnd();
-   }
-   iframe = iframe + 1;
-
-   glEnable(GL_BLEND); 
-
+    }
+    iframe = iframe + 1;
+    
+    glEnable(GL_BLEND); 
+    
     // INSOO ADD
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
+    
     glEnable(GL_TEXTURE_2D);
-   glCallList(iframe % Npat + disListID);
-   glBegin(GL_QUAD_STRIP);
-      glTexCoord2f(0.0,  0.0);  glVertex2f(0.0, 0.0);
-      glTexCoord2f(0.0,  tmax); glVertex2f(0.0, 1.0);
-      glTexCoord2f(tmax, 0.0);  glVertex2f(1.0, 0.0);
-      glTexCoord2f(tmax, tmax); glVertex2f(1.0, 1.0);
-   glEnd();
+    glCallList(iframe % Npat + disListID);
+    glBegin(GL_QUAD_STRIP);
+    {
+        glTexCoord2f(0.0,  0.0);  glVertex2f(0.0, 0.0);
+        glTexCoord2f(0.0,  tmax); glVertex2f(0.0, 1.0);
+        glTexCoord2f(tmax, 0.0);  glVertex2f(1.0, 0.0);
+        glTexCoord2f(tmax, tmax); glVertex2f(1.0, 1.0);
+        glEnd();
+    }
     glDisable(GL_TEXTURE_2D);
-
-   /*
-   //inject dye
-   glDisable(GL_TEXTURE_2D);
-   glColor4f(1.,0.8,0.,1.);
-   glBegin(GL_QUADS);
-     glVertex2d(0.6, 0.6);
-     glVertex2d(0.6, 0.62);
-     glVertex2d(0.62, 0.62);
-     glVertex2d(0.62, 0.6);
-   glEnd();
-   */
-
+    
+    /*
+    //inject dye
+    glDisable(GL_TEXTURE_2D);
+    glColor4f(1.,0.8,0.,1.);
+    glBegin(GL_QUADS);
+    glVertex2d(0.6, 0.6);
+    glVertex2d(0.6, 0.62);
+    glVertex2d(0.62, 0.62);
+    glVertex2d(0.62, 0.6);
+    glEnd();
+    */
+    
     /// INSOO ADDED
     glDisable(GL_ALPHA_TEST);
+    
+    glDisable(GL_BLEND);
+    glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 0, 0, NPIX, NPIX, 0);
+    
+    /*
+    //blend magnitude texture
+    glBindTexture(GL_TEXTURE_2D, mag_tex);
+    glEnable(GL_TEXTURE_2D);
+    glEnable(GL_BLEND);
+    glBegin(GL_QUADS);
+    glTexCoord2f(0.0,  0.0);  glVertex2f(0.0, 0.0);
+    glTexCoord2f(0.0,  1.0); glVertex2f(0.0, 1.);
+    glTexCoord2f(1.0, 1.0);  glVertex2f(1., 1.);
+    glTexCoord2f(1.0, 0.0); glVertex2f(1., 0.0);
+    glEnd();
+    */
 
-   glDisable(GL_BLEND);
-   glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 0, 0, NPIX, NPIX, 0);
-   
-   /*
-   //blend magnitude texture
-   glBindTexture(GL_TEXTURE_2D, mag_tex);
-   glEnable(GL_TEXTURE_2D);
-   glEnable(GL_BLEND);
-   glBegin(GL_QUADS);
-      glTexCoord2f(0.0,  0.0);  glVertex2f(0.0, 0.0);
-      glTexCoord2f(0.0,  1.0); glVertex2f(0.0, 1.);
-      glTexCoord2f(1.0, 1.0);  glVertex2f(1., 1.);
-      glTexCoord2f(1.0, 0.0); glVertex2f(1., 0.0);
-   glEnd();
-   */
-
-   glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
-
+    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
     glPopAttrib();
-
     glPopMatrix();
     glMatrixMode(GL_PROJECTION);
     glPopMatrix();
@@ -370,35 +375,38 @@ void NvLIC::convolve()
 void NvLIC::render(){ display(); }
 
 
-void NvLIC::display()
+void 
+NvLIC::display()
 {
-  glBindTexture(GL_TEXTURE_2D, color_tex);
-  glEnable(GL_TEXTURE_2D);
-
-  //draw line integral convolution quad
-  glEnable(GL_DEPTH_TEST);
-
-  glPushMatrix();
-
+    glBindTexture(GL_TEXTURE_2D, color_tex);
+    glEnable(GL_TEXTURE_2D);
+    
+    //draw line integral convolution quad
+    glEnable(GL_DEPTH_TEST);
+    
+    glPushMatrix();
+    
     //glScalef(scale.x, scale.y, scale.z); 
     float w = 1.0f / scale.x;
     glScalef(1.0f, 1.0f / scale.y / w, 1.0f / scale.z / w); 
-
-  glBegin(GL_QUADS);
-    glTexCoord2f(0, 0); glVertex3f(0, 0, offset);
-    glTexCoord2f(1, 0); glVertex3f(1, 0, offset);
-    glTexCoord2f(1, 1); glVertex3f(1, 1, offset);
-    glTexCoord2f(0, 1); glVertex3f(0, 1, offset);
-  glEnd();
-
-  glPopMatrix();
-
-  glBindTexture(GL_TEXTURE_2D,0);
-
-  glDisable(GL_DEPTH_TEST);
-  glDisable(GL_TEXTURE_2D);
-
+    
+    glBegin(GL_QUADS);
+    {
+        glTexCoord2f(0, 0); glVertex3f(0, 0, offset);
+        glTexCoord2f(1, 0); glVertex3f(1, 0, offset);
+        glTexCoord2f(1, 1); glVertex3f(1, 1, offset);
+        glTexCoord2f(0, 1); glVertex3f(0, 1, offset);
+    }
+    glEnd();
+    
+    glPopMatrix();
+    
+    glBindTexture(GL_TEXTURE_2D,0);
+    
+    glDisable(GL_DEPTH_TEST);
+    glDisable(GL_TEXTURE_2D);
 }
+
 /*
 {
     //Trace("RENDER LIC\n");
@@ -432,7 +440,9 @@ void NvLIC::display()
 */
 
 
-void NvLIC::setVectorField(unsigned int texID, float scaleX, float scaleY, float scaleZ, float max)
+void 
+NvLIC::setVectorField(unsigned int texID, float scaleX, float scaleY, 
+                      float scaleZ, float max)
 {
     Trace("NvLIC: vector field is assigned [%d]\n", texID);
     vectorFieldID = texID;
@@ -442,7 +452,8 @@ void NvLIC::setVectorField(unsigned int texID, float scaleX, float scaleY, float
     get_slice();
 }
 
-void NvLIC::get_velocity(float x, float y, float *px, float *py) 
+void 
+NvLIC::get_velocity(float x, float y, float *px, float *py) 
 {
    float vx, vy, r;
 
@@ -455,7 +466,7 @@ void NvLIC::get_velocity(float x, float y, float *px, float *py)
    r  = vx*vx + vy*vy;
 
     //Trace("(vx vx) = (%f %f), r=%f, ", vx, vy, r);
-   if (r > dmax*dmax) { 
+   if (r > (dmax*dmax)) { 
       r  = sqrt(r); 
       vx *= dmax/r; 
       vy *= dmax/r; 
@@ -467,8 +478,9 @@ void NvLIC::get_velocity(float x, float y, float *px, float *py)
     //Trace("vel %f %f -> %f %f, (dmax = %f)\n", x, y, *px, *py, dmax);
 }
 
-void NvLIC::set_offset(float v)
+void 
+NvLIC::set_offset(float v)
 {
-  offset = v;
-  get_slice();
+    offset = v;
+    get_slice();
 }

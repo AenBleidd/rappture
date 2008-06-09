@@ -28,6 +28,8 @@ load_volume_stream_odx(int index, const char *buf, int nBytes)
 
     // write the dx file to disk, because DXImportDX takes a file name
     // george suggested using a pipe here
+
+    // You can do it like this.  Give 
     sprintf(dxfilename, "/tmp/dx%d.dx", getpid());
 
     FILE *f;
@@ -36,7 +38,7 @@ load_volume_stream_odx(int index, const char *buf, int nBytes)
     fwrite(buf, sizeof(char), nBytes, f);
     fclose(f);
 
-    Rappture::DX dxObj(dxfilename);
+    Rappture::DX dxObj(dxfilename, &outcome);
 
     if (remove(dxfilename) != 0) {
         fprintf(stderr, "Error deleting dx file: %s\n", dxfilename);
