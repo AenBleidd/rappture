@@ -1,0 +1,149 @@
+
+bindir          = @bindir@
+datadir		= @datadir@
+datarootdir	= @datarootdir@
+exec_prefix     = @exec_prefix@
+includedir      = @includedir@
+libdir          = @libdir@
+mandir          = @mandir@
+prefix          = @prefix@
+srcdir		= @srcdir@
+incdir		= $(prefix)/include
+
+INSTALL		= @INSTALL@
+
+CXX             = @CXX@
+CC              = @CC@
+CFLAGS_DEBUG    = @CFLAGS_DEBUG@ -Wall
+CFLAGS_OPTIMIZE = @CFLAGS_OPTIMIZE@
+STLIB_LD        = @STLIB_LD@
+SHLIB_LD        = @SHLIB_LD@
+SHLIB_CFLAGS    = @SHLIB_CFLAGS@
+SHLIB_LDFLAGS   = @SHLIB_LDFLAGS@
+SHLIB_SUFFIX    = @SHLIB_SUFFIX@
+CFLAGS_DEFAULT  = @CFLAGS_DEFAULT@
+LIB_SEARCH_DIRS = @LIB_SEARCH_DIRS@
+CFLAGS          = @CFLAGS@
+
+CC_SWITCHES	= $(CFLAGS) $(CFLAGS_DEBUG) $(INCLUDES) $(DEFINES)
+CXX_SWITCHES	= $(CFLAGS) $(CFLAGS_DEBUG) $(INCLUDES) $(DEFINES)
+
+INCLUDES	= -I$(srcdir) \
+		  -I$(includedir)
+
+RANLIB 		= @RANLIB@
+AR 		= ar
+VPATH		= $(srcdir):$(srcdir)/scew
+RM		= rm -f
+
+CDEBUGFLAGS     = -g -Wall
+
+LIBS		= -lexpat -lz -lb64 -lm -lstdc++
+
+HEADERS = \
+		RpOutcome.h \
+		RpPtr.h \
+		RpBindingsDict.h \
+		RpBuffer.h \
+		RpBufferCHelper.h \
+		RpBufferCInterface.h \
+		RpDict.h \
+		RpEncode.h \
+		RpEntityRef.h \
+		RpFortranCommon.h \
+		RpLibrary.h \
+		RpLibraryCInterface.h \
+		RpLibraryFInterface.h \
+		RpLibraryFStubs.h \
+		RpOutcomeCHelper.h \
+		RpOutcomeCInterface.h \
+		RpUnits.h \
+		RpUnitsCInterface.h \
+		RpUnitsFInterface.h \
+		RpUnitsFStubs.h \
+		RpUnitsStd.h \
+		RpUtils.h \
+		RpUtilsCInterface.h \
+		RpUtilsFInterface.h \
+		RpUtilsFStubs.h \
+		rappture.h \
+		scew_extras.h
+
+# Build the scew library directly into Rappture for now.  
+# Note: This works because of viewpath-ing. See the VPATH variable.
+SCEW_OBJS 	= \
+		attribute.o \
+		element.o \
+		error.o \
+		parser.o \
+		scew_extras.o  \
+		str.o \
+		tree.o \
+		writer.o \
+		xattribute.o \
+		xerror.o \
+		xhandler.o \
+		xparser.o \
+		xprint.o 
+
+OBJS = 		\
+		RpBindingsDict.o \
+		RpBuffer.o \
+		RpBufferCInterface.o \
+		RpEncode.o \
+		RpEntityRef.o \
+		RpFortranCommon.o \
+		RpLibrary.o \
+		RpLibraryCInterface.o \
+		RpLibraryFInterface.o \
+		RpOutcome.o \
+		RpOutcomeCInterface.o \
+		RpPtr.o \
+		RpResult.o \
+		RpUnits.o \
+		RpUnitsCInterface.o \
+		RpUnitsFInterface.o \
+		RpUnitsStd.o \
+		RpUtils.o \
+		RpUtilsCInterface.o \
+		RpUtilsFInterface.o  \
+		$(SCEW_OBJS)
+
+name		= rappture
+libname 	= lib$(name)
+lib		= $(libname).a
+shared_lib	= $(libname)$(SHLIB_SUFFIX)
+
+all: $(lib) $(shared_lib)
+
+$(lib): $(OBJS)
+	$(RM) $@
+	$(AR) -r $@ $(OBJS) 
+	$(RANLIB) $@
+
+$(shared_lib): $(OBJS)
+	$(SHLIB_LD) $(SHLIB_LDFLAGS) -o $@ $(OBJS) \
+		$(LIB_SEARCH_DIRS) $(LIBS) 
+
+install: install_libs install_headers
+
+install_libs: $(lib)  $(shared_lib)
+	$(INSTALL) -m 444 $(lib) $(libdir)
+	$(INSTALL) -m 555 $(shared_lib) $(libdir) 
+
+install_headers: 
+	$(INSTALL) -d $(incdir)
+	for i in $(HEADERS) ; do \
+	  $(INSTALL) -m 444  $(srcdir)/$$i $(incdir) ; \
+	done
+
+.cc.o: 
+	$(CXX) $(CXX_SWITCHES) -c $? 
+.c.o: 
+	$(CC) $(CC_SWITCHES)-c $? 
+
+clean: 
+	$(RM) $(OBJS) $(lib) $(shared_lib)
+
+distclean: clean
+	rm Makefile *~

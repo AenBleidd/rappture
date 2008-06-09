@@ -13,228 +13,50 @@ INSTALL_PROGRAM	= ${INSTALL} -m 755
 INSTALL_DATA	= ${INSTALL} -m 644
 INSTALL_SCRIPT	= ${INSTALL}
 
-
-# tell make where to find the expat & libscew headers
-INCL_RP_DEPS    = -I$(includedir)
-
-EXTERNAL_RP_LIBS   = @LIB_SEARCH_DIRS@ -lexpat -lscew -lz -lb64 -lm
-
-
-# define the top of the rappture directory structure
-RP_BASE   = @RP_BASE@
-
-# define which programs can be made
-PROGS           =   librappture    \
-                    libRpObjects
-
-# define our compiling environment
-#
-CC              = @CC@
 CXX             = @CXX@
-DEBUG           = -g -Wall -pg
-LN              = ln
-CFLAGS = -fPIC
+CC              = @CC@
+CFLAGS_DEBUG    = @CFLAGS_DEBUG@
+CFLAGS_OPTIMIZE = @CFLAGS_OPTIMIZE@
+STLIB_LD        = @STLIB_LD@
+SHLIB_LD        = @SHLIB_LD@
+SHLIB_CFLAGS    = @SHLIB_CFLAGS@
+SHLIB_LDFLAGS   = @SHLIB_LDFLAGS@
+SHLIB_SUFFIX    = @SHLIB_SUFFIX@
+CFLAGS_DEFAULT  = @CFLAGS_DEFAULT@
+LIB_SEARCH_DIRS = @LIB_SEARCH_DIRS@
+CFLAGS          = @CFLAGS@
 
-# define our directories
-#
-INCLUDES_DIR    = $(RP_BASE)/include
-BIN_DIR         = $(RP_BASE)/bin
-LIB_DIR         = $(RP_BASE)/src
-SRC_DIR         = $(RP_BASE)/src
-SRC2_DIR        = $(RP_BASE)/src2
-TEST_DIR        = $(RP_BASE)/test
+RANLIB 		= @RANLIB@
+AR 		= ar
+RM		= rm -f
 
-CORE_SRC        = $(SRC_DIR)/core
-CORE2_SRC       = $(SRC2_DIR)/core
-FORT_SRC        = $(SRC_DIR)/fortran
-CEE_SRC         = $(SRC_DIR)/cee
+.PHONY:	core core2 objects 
 
-INCL_CORE       = -I$(CORE_SRC)
-INCL_CORE2      = -I$(CORE2_SRC)
-INCL_CEE        = -I$(CEE_SRC)
-INCL_FORTRAN    = -I$(FORT_SRC)
-INCL_MATLAB     = -I$(MATLAB_SRC)
-INCL_OCTAVE     = -I$(OCTAVE_SRC)
+all: 	core core2 objects 
 
-# default:
+core:
+	$(MAKE) -C core all
+core2:
+	$(MAKE) -C core2 all
+objects:
+	$(MAKE) -C objects all
 
-all: ${PROGS}
-install: 	install_rappture \
-			install_rpobjs
-
-RP_IO_DEPS      = RpLibrary.o RpLibraryCInterface.o RpLibraryFInterface.o \
-                  scew_extras.o RpEntityRef.o RpUtils.o
-RP_UNITS_DEPS   = RpUnitsStd.o RpUnits.o RpUnitsCInterface.o RpUnitsFInterface.o
-RP_UTILS_DEPS   = RpUtils.o RpUtilsCInterface.o RpUtilsFInterface.o
-RP_OTHER_DEPS   = RpFortranCommon.o RpBindingsDict.o \
-                  RpBufferCInterface.o RpOutcomeCInterface.o
-RP_OBJS_DEP     = RpVariable.o RpAbout.o RpNumber.o RpString.o RpBoolean.o \
-                  RpChoice.o RpOption.o RpUnitsStd.o RpUnits.o
-                  #RpValue.o RpValueDouble.o RpValueString.o
-RP2_OBJ_DEP     = $(CORE2_SRC)/Outcome.o $(CORE2_SRC)/Ptr.o $(CORE2_SRC)/RpSimpleBuffer.o $(CORE2_SRC)/RpBuffer.o $(CORE2_SRC)/RpEncode.o
-
-
-LDLIB_MACOSX = -dynamiclib -o $(LIB_DIR)/$@.dylib
-LDLIB_LINUX = -shared -Wl,-soname,$@.so -o $(LIB_DIR)/$@.so.0.0
-
-# include rappture library definitions
-
-#### librappture shared object ###########################################
-
-librappture: $(RP_IO_DEPS) $(RP_UTILS_DEPS) $(RP_UNITS_DEPS) $(RP_OTHER_DEPS)
-	(cd ../src2/core/; make Outcome.o Ptr.o RpSimpleBuffer.o RpBuffer.o RpEncode.o)
-	$(INSTALL_DATA) $(CORE_SRC)/*.h $(INCLUDES_DIR)
-	$(INSTALL_DATA) $(CEE_SRC)/*.h $(INCLUDES_DIR)
-	$(INSTALL_DATA) $(FORT_SRC)/*.h $(INCLUDES_DIR)
-	$(INSTALL_DATA) $(CORE2_SRC)/Outcome.h $(INCLUDES_DIR)
-	$(INSTALL_DATA) $(CORE2_SRC)/Ptr.h $(INCLUDES_DIR)
-	$(INSTALL_DATA) $(CORE2_SRC)/RpSimpleBuffer.h $(INCLUDES_DIR)
-	$(INSTALL_DATA) $(CORE2_SRC)/RpBuffer.h $(INCLUDES_DIR)
-	$(INSTALL_DATA) $(CORE2_SRC)/RpEncode.h $(INCLUDES_DIR)
-	$(INSTALL_DATA) $(CORE2_SRC)/rappture2.h $(INCLUDES_DIR)
-	@if test "`uname`" == "Darwin"; then \
-		$(CXX) $(DEGUG) $(LDLIB_MACOSX) $^ $(RP2_OBJ_DEP) $(EXTERNAL_RP_LIBS); \
-		ar -r $@.a $^ $(RP2_OBJ_DEP); \
-		ranlib -s $@.a; \
-	else \
-		$(CXX) $(DEGUG) $(LDLIB_LINUX) $^ $(RP2_OBJ_DEP) $(EXTERNAL_RP_LIBS); \
-		/sbin/ldconfig -n $(LIB_DIR); \
-		ar -r $@.a $^ $(RP2_OBJ_DEP); \
-		ranlib $@.a; \
-	fi
-
-install_rappture: librappture
-	@if test "`uname`" == "Darwin"; then \
-		cp $<.dylib $(libdir); \
-		cp $<.a $(libdir); \
-	else \
-		cp -d $<.so* $(libdir); \
-		cp -d $<.a $(libdir); \
-	fi
-	$(INSTALL_DATA) $(INCLUDES_DIR)/* $(includedir)
-
-#### libRpObjects ########################################################
-libRpObjects: $(RP_OBJS_DEP)
-	@if test "`uname`" == "Darwin"; then \
-		$(CXX) $(DEGUG) $(LDLIB_MACOSX) $^ -lstdc++; \
-	else \
-		$(CXX) $(DEGUG) $(LDLIB_LINUX) $^ -lstdc++; \
-		/sbin/ldconfig -n $(LIB_DIR); \
-	fi
-
-install_rpobjs: libRpObjects
-	@if test "`uname`" == "Darwin"; then \
-		cp $<.dylib $(libdir); \
-	else \
-		cp -d $<.so* $(libdir); \
-	fi
-
-####################################################################
-
-# include core source files
-
-RpLibrary.o: $(CORE_SRC)/RpLibrary.cc
-	$(CXX) $(CFLAGS) $(DEBUG) -o $@ -c $? $(INCL_CORE) $(INCL_CORE2) $(INCL_RP_DEPS)
-
-scew_extras.o: $(CORE_SRC)/scew_extras.c
-	$(CC) $(CFLAGS) $(DEBUG) -o $@ -c $? $(INCL_CORE) $(INCL_RP_DEPS)
-
-RpEntityRef.o: $(CORE_SRC)/RpEntityRef.cc
-	$(CXX) $(CFLAGS) $(DEBUG) -o $@ -c $? $(INCL_CORE) $(INCL_CORE2)
-
-RpUtils.o: $(CORE_SRC)/RpUtils.cc
-	$(CXX) $(CFLAGS) $(DEBUG) -o $@ -c $? $(INCL_CORE)
-
-RpUnitsStd.o: $(CORE_SRC)/RpUnitsStd.cc
-	$(CXX) $(CFLAGS) $(DEBUG) -o $@ -c $? $(INCL_CORE)
-
-RpUnits.o: $(CORE_SRC)/RpUnits.cc
-	$(CXX) $(CFLAGS) $(DEBUG) -o $@ -c $? $(INCL_CORE)
-
-RpBindingsDict.o: $(CORE_SRC)/RpBindingsDict.cc
-	$(CXX) $(CFLAGS) $(DEBUG) -o $@ -c $? $(INCL_CORE)
-
-
-# objects for rappture 2 developement
-
-RpVariable.o: $(CORE_SRC)/RpVariable.cc
-	$(CXX) $(CFLAGS) $(DEBUG) -o $@ -c $? $(INCL_CORE)
-
-RpAbout.o: $(CORE_SRC)/RpAbout.cc
-	$(CXX) $(CFLAGS) $(DEBUG) -o $@ -c $? $(INCL_CORE)
-
-RpNumber.o: $(CORE_SRC)/RpNumber.cc
-	$(CXX) $(CFLAGS) $(DEBUG) -o $@ -c $? $(INCL_CORE)
-
-RpString.o: $(CORE_SRC)/RpString.cc
-	$(CXX) $(CFLAGS) $(DEBUG) -o $@ -c $? $(INCL_CORE)
-
-RpBoolean.o: $(CORE_SRC)/RpBoolean.cc
-	$(CXX) $(CFLAGS) $(DEBUG) -o $@ -c $? $(INCL_CORE)
-
-RpChoice.o: $(CORE_SRC)/RpChoice.cc
-	$(CXX) $(CFLAGS) $(DEBUG) -o $@ -c $? $(INCL_CORE)
-
-RpOption.o: $(CORE_SRC)/RpOption.cc
-	$(CXX) $(CFLAGS) $(DEBUG) -o $@ -c $? $(INCL_CORE)
-
-RpValue.o: $(CORE_SRC)/RpValue.cc
-	$(CXX) $(CFLAGS) $(DEBUG) -o $@ -c $? $(INCL_CORE)
-
-RpValueDouble.o: $(CORE_SRC)/RpValueDouble.cc
-	$(CXX) $(CFLAGS) $(DEBUG) -o $@ -c $? $(INCL_CORE)
-
-RpValueString.o: $(CORE_SRC)/RpValueString.cc
-	$(CXX) $(CFLAGS) $(DEBUG) -o $@ -c $? $(INCL_CORE)
-
-
-# include cee binding definitions
-
-RpUtilsCInterface.o: $(CEE_SRC)/RpUtilsCInterface.cc
-	$(CXX) $(CFLAGS) $(DEBUG) -o $@ -c $? $(INCL_CORE) $(INCL_CEE)
-
-RpUnitsCInterface.o: $(CEE_SRC)/RpUnitsCInterface.cc
-	$(CXX) $(CFLAGS) $(DEBUG) -o $@ -c $? $(INCL_CORE) $(INCL_CEE)
-
-RpLibraryCInterface.o: $(CEE_SRC)/RpLibraryCInterface.cc $(CEE_SRC)/RpLibraryCInterface.h $(CEE_SRC)/RpBufferCInterface.h
-	$(CXX) $(CFLAGS) $(DEBUG) -o $@ -c $< $(INCL_CORE) $(INCL_CORE2) $(INCL_CEE) $(INCL_RP_DEPS)
-
-RpBufferCInterface.o: $(CEE_SRC)/RpBufferCInterface.cc $(CEE_SRC)/RpBufferCInterface.h $(CEE_SRC)/RpOutcomeCInterface.h
-	$(CXX) $(CFLAGS) $(DEBUG) -o $@ -c $< $(INCL_CORE) $(INCL_CORE2) $(INCL_CEE) $(INCL_RP_DEPS)
-
-RpOutcomeCInterface.o: $(CEE_SRC)/RpOutcomeCInterface.cc
-	$(CXX) $(CFLAGS) $(DEBUG) -o $@ -c $< $(INCL_CORE) $(INCL_CORE2) $(INCL_CEE) $(INCL_RP_DEPS)
-
-
-
-# include fortran binding definitions
-
-RpUtilsFInterface.o: $(FORT_SRC)/RpUtilsFInterface.cc
-	$(CXX) $(CFLAGS) $(DEBUG) -o $@ -c $? $(INCL_CORE) $(INCL_FORTRAN)
-
-RpUnitsFInterface.o: $(FORT_SRC)/RpUnitsFInterface.cc
-	$(CXX) $(CFLAGS) $(DEBUG) -o $@ -c $? $(INCL_CORE) $(INCL_FORTRAN)
-
-RpFortranCommon.o: $(FORT_SRC)/RpFortranCommon.cc
-	$(CXX) $(CFLAGS) $(DEBUG) -o $@ -c $< $(INCL_FORTRAN)
-
-RpLibraryFInterface.o: $(FORT_SRC)/RpLibraryFInterface.cc
-	$(CXX) $(CFLAGS) $(DEBUG) -o $@ -c $? $(INCL_CORE) $(INCL_CORE2) $(INCL_FORTRAN) $(INCL_RP_DEPS)
-
+install: 
+	$(MAKE) -C core install
+	$(MAKE) -C core2 install
+	$(MAKE) -C objects install
 
 docs:
-	if test ! -d docs; then \
-		mkdir docs; \
-	fi
-	if test ! -d docs/doxygen; then \
-		mkdir docs/doxygen; \
-	fi
+	$(INSTALL) -d docs/doxygen
 	doxygen
 
-#### CLEAN UP ############################################################
 clean: 
-	- rm -f *.o librappture.* libRp*.so*
-	- rm -rf build
+	$(MAKE) -C core clean
+	$(MAKE) -C core2 clean
+	$(MAKE) -C objects clean
 
 distclean: clean
-	- rm Makefile
+	$(MAKE) -C core distclean
+	$(MAKE) -C core2 distclean
+	$(MAKE) -C objects distclean
+	$(RM) Makefile

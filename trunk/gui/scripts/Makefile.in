@@ -1,0 +1,137 @@
+
+
+srcdir		= @srcdir@
+prefix		= @prefix@
+exec_prefix	= @exec_prefix@
+bindir		= @bindir@
+libdir		= @libdir@
+datadir		= @datadir@
+datarootdir	= @datarootdir@
+mandir		= @mandir@
+includedir	= @includedir@
+
+SHELL		= @SHELL@
+INSTALL		= @INSTALL@
+TCLSH		= $(bindir)/tclsh
+VPATH		= $(srcdir)
+PACKAGE_VERSION = @PACKAGE_VERSION@
+
+FILES		= \
+		$(srcdir)/analyzer.tcl \
+		$(srcdir)/animicon.tcl \
+		$(srcdir)/animover.tcl \
+		$(srcdir)/balloon.tcl \
+		$(srcdir)/booleanentry.tcl \
+		$(srcdir)/bugreport.tcl \
+		$(srcdir)/choiceentry.tcl \
+		$(srcdir)/cloud.tcl \
+		$(srcdir)/color.tcl \
+		$(srcdir)/combobox.tcl \
+		$(srcdir)/contourresult.tcl \
+		$(srcdir)/controlOwner.tcl \
+		$(srcdir)/controls.tcl \
+		$(srcdir)/curve.tcl \
+		$(srcdir)/deviceEditor.tcl \
+		$(srcdir)/deviceLayout1D.tcl \
+		$(srcdir)/deviceViewer1D.tcl \
+		$(srcdir)/deviceresult.tcl \
+		$(srcdir)/dispatcher.tcl \
+		$(srcdir)/drawing.tcl \
+		$(srcdir)/drawingentry.tcl \
+		$(srcdir)/dropdown.tcl \
+		$(srcdir)/dropdownlist.tcl \
+		$(srcdir)/editor.tcl \
+		$(srcdir)/energyLevels.tcl \
+		$(srcdir)/field.tcl \
+		$(srcdir)/field2dresult.tcl \
+		$(srcdir)/field3dresult.tcl \
+		$(srcdir)/filexfer.tcl \
+		$(srcdir)/gauge.tcl \
+		$(srcdir)/getopts.tcl \
+		$(srcdir)/grab.tcl \
+		$(srcdir)/groupentry.tcl \
+		$(srcdir)/heightmapviewer.tcl \
+		$(srcdir)/histogram.tcl \
+		$(srcdir)/historesult.tcl \
+		$(srcdir)/htmlviewer.tcl \
+		$(srcdir)/icons.tcl \
+		$(srcdir)/image.tcl \
+		$(srcdir)/imageentry.tcl \
+		$(srcdir)/imageresult.tcl \
+		$(srcdir)/integerentry.tcl \
+		$(srcdir)/isomarker.tcl \
+		$(srcdir)/loader.tcl \
+		$(srcdir)/mainwin.tcl \
+		$(srcdir)/mesh.tcl \
+		$(srcdir)/meshresult.tcl \
+		$(srcdir)/moleculeViewer.tcl \
+		$(srcdir)/molvisviewer.tcl \
+		$(srcdir)/nanovisviewer.tcl \
+		$(srcdir)/note.tcl \
+		$(srcdir)/notebook.tcl \
+		$(srcdir)/numberentry.tcl \
+		$(srcdir)/numberresult.tcl \
+		$(srcdir)/page.tcl \
+		$(srcdir)/pager.tcl \
+		$(srcdir)/panes.tcl \
+		$(srcdir)/postern.tcl \
+		$(srcdir)/progress.tcl \
+		$(srcdir)/radiodial.tcl \
+		$(srcdir)/resources.tcl \
+		$(srcdir)/resultset.tcl \
+		$(srcdir)/resultviewer.tcl \
+		$(srcdir)/scroller.tcl \
+		$(srcdir)/sequence.tcl \
+		$(srcdir)/sequenceresult.tcl \
+		$(srcdir)/service.tcl \
+		$(srcdir)/spectrum.tcl \
+		$(srcdir)/spinint.tcl \
+		$(srcdir)/switch.tcl \
+		$(srcdir)/table.tcl \
+		$(srcdir)/tempgauge.tcl \
+		$(srcdir)/textentry.tcl \
+		$(srcdir)/textresult.tcl \
+		$(srcdir)/tool.tcl \
+		$(srcdir)/tooltip.tcl \
+		$(srcdir)/tuples.tcl \
+		$(srcdir)/unirect2d.tcl \
+		$(srcdir)/units.tcl \
+		$(srcdir)/utils.tcl \
+		$(srcdir)/valueresult.tcl \
+		$(srcdir)/visviewer.tcl \
+		$(srcdir)/xyresult.tcl 
+
+version 	= $(PACKAGE_VERSION)
+name 		= RapptureGUI$(version)
+
+destdir		= $(libdir)/$(name)/scripts
+
+all: tclIndex
+
+tclIndex: $(FILES)
+	$(TCLSH) $(srcdir)/../tclconfig/mkindex.tcl --srcdir $(srcdir) \
+		--outfile tclIndex
+
+install: install_scripts install_images 
+
+install_scripts: 
+	$(INSTALL) -d $(destdir)
+	@for i in $(FILES); do \
+	    echo "Installing $$i" ; \
+	    $(INSTALL) -m 444 $$i $(destdir) ; \
+	done 
+	$(INSTALL) -m 444 tclIndex $(destdir)
+
+install_images:
+	$(INSTALL) -d $(destdir)/images
+	@for i in $(srcdir)/images/*.gif $(srcdir)/images/*.xbm; do \
+	    echo "Installing $$i" ; \
+	    $(INSTALL) -m 444 $$i $(destdir)/images ; \
+	done 
+
+clean:
+	$(RM) tclIndex
+
+distclean: clean
+	$(RM) Makefile *~
+

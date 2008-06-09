@@ -1,41 +1,47 @@
-# define rappture src directory
-ifndef RP_BASE
-RP_BASE         = @prefix@
-endif
 
-PROGS           = fermi
+bindir          = @bindir@
+datadir         = @datadir@
+datarootdir     = @datarootdir@
+exec_prefix     = @exec_prefix@
+includedir      = @includedir@
+libdir          = @libdir@
+mandir          = @mandir@
+prefix          = @prefix@
+srcdir		= @srcdir@
 
-# define our compiling environment
-# 
+destdir		= $(prefix)/examples/app-fermi/cee
+
+INSTALL         = @INSTALL@
+
 CC              = @CC@
-CXX             = @CXX@
-DEBUG           = -g -Wall
-DEBUG_PLUS      = -g -DDEBUG
+CFLAGS		= @CFLAGS@
+CDEBUGFLAGS	= -g -Wall
+VPATH		= $(srcdir)
 
-# define our directories
-#
-INCLUDES_DIR    = $(RP_BASE)/include
-INCL_CEE        = -I $(INCLUDES_DIR)/cee
-INCL_CORE       = -I $(INCLUDES_DIR)/core
-INCL_RP_DEPS    = -I $(RP_BASE)/include
+INCLUDES    	= -I$(srcdir)/../../../src/core
+LIBS		= -L../../../src/core -lrappture \
+		  -L$(libdir) -lexpat -lb64 -lz
 
-INCL_FILES      = $(INCL_CEE) $(INCL_CORE) $(INCL_RP_DEPS)
+CC_SWITCHES 	= $(CFLAGS) $(CDEBUGFLAGS) $(DEFINES) $(INCLUDES)
 
-LIB_DIR         = $(RP_BASE)/lib
-LIB_RAPPTURE    = -Wl,-rpath,$(LIB_DIR) -L$(LIB_DIR) -lrappture
+FILES		= \
+		$(srcdir)/tool.xml \
+		$(srcdir)/fermi.c
 
-all: $(PROGS)
+all: fermi
 
 fermi: fermi.c
-	@if test "`uname`" == "Darwin"; then \
-		$(CC) $(DEBUG) -DDEBUG $(INCL_FILES) -o $@ $< -L$(LIB_DIR) -lrappture -lscew; \
-	else \
-		$(CC) $(DEBUG) -DDEBUG $(INCL_FILES) -o $@ $< $(LIB_RAPPTURE) -lm; \
-	fi
+	$(CC) $(CC_SWITCHES) $< -o $@ $(LIBS)
 
-#### CLEAN UP ############################################################
+install: fermi
+	$(INSTALL) -d $(destdir)
+	for i in $(FILES) ; do \
+	  $(INSTALL) -m 444 $$i $(destdir) ; \
+	done
+	$(INSTALL) -m 555 fermi $(destdir)
+
 clean:
-	rm -f $(PROGS) run*.xml
+	$(RM) fermi run*.xml
 
 distclean: clean
-	rm Makefile
+	$(RM) Makefile

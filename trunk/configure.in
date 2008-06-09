@@ -1,7 +1,4 @@
-AC_INIT(Rappture Core and Bindings, 1.1, rappture@nanohub.org)
-
-VERSION=0.0.1
-AC_SUBST(VERSION)
+AC_INIT([Rappture], [1.1], [rappture@nanohub.org])
 
 #------------------------------------------------------------------------
 # Handle the --prefix=... option
@@ -29,6 +26,10 @@ dnl find and test the C compiler
 AC_PROG_CC
 AC_LANG_C
 
+AC_PROG_INSTALL
+AC_PROG_RANLIB
+AC_PROG_LN_S
+
 AC_HEADER_STDC
 AC_CHECK_FUNC(atol,,AC_MSG_ERROR(oops! no atol ?!?))
 
@@ -41,10 +42,11 @@ AC_CHECK_HEADERS(string,,AC_MSG_WARN(STL classes missing ?))
 AC_CHECK_HEADERS(list,,AC_MSG_WARN(STL classes missing ?))
 AC_CHECK_HEADERS(vector,,AC_MSG_WARN(STL classes missing ?))
 
-AC_PROG_F77([g77 f77 fort77 f90 xlf xlf90 fl32])
+AC_PROG_F77([g77 gfortran f77 fort77 f90 xlf xlf90 fl32])
 
-
-
+SC_CONFIG_GCC
+SC_CONFIG_CFLAGS
+SC_MAKE_LIB
 
 AC_ARG_ENABLE(
     [gui],
@@ -67,6 +69,7 @@ dnl
 dnl BUILD_TCL=yes
 dnl AC_SUBST(BUILD_TCL)
 
+with_tclsh="check"
 AC_ARG_WITH(
     [tclsh],
     [AS_HELP_STRING([--with-tclsh[=DIR]],
@@ -376,36 +379,142 @@ AC_SUBST(PYTHON_VERSION)
 AC_SUBST(PYTHON_INCLUDES)
 AC_SUBST(PYTHON_SITE_PACKAGES)
 
+AC_ARG_WITH(
+    [ruby],
+    [AS_HELP_STRING([--with-ruby[=DIR]], [location of ruby @<:@default=check@:>@])],
+    [],
+    [with_ruby=check])
+
+RUBY=""
+if test "$with_ruby" != "no" ; then
+    AC_MSG_CHECKING([for ruby])
+    if test -x "$with_ruby/bin/ruby"
+    then
+        echo Found perl in $with_ruby/bin/ruby
+        PERL="$with_ruby/bin/ruby"
+    else
+        if test -x "$with_ruby"
+        then
+            echo Found ruby in $with_ruby
+            PERL="$with_ruby"
+        else
+            AC_PATH_PROG(RUBY, ruby)
+        fi
+    fi
+fi
+AC_MSG_RESULT([${RUBY}])
+AC_SUBST(RUBY)
 
 RP_BASE=`pwd`
 AC_SUBST(RP_BASE)
 
-if test "$ENABLE_GUI" == "yes" ; then
-    AC_CONFIG_SUBDIRS( gui )
+SC_ENABLE_SHARED
+
+#--------------------------------------------------------------------
+# This macro figures out what flags to use with the compiler/linker
+# when building shared/static debug/optimized objects.  This information
+# is all taken from the tclConfig.sh file.
+#--------------------------------------------------------------------
+
+AC_SUBST(CFLAGS_DEBUG)
+AC_SUBST(CFLAGS_OPTIMIZE)
+AC_SUBST(STLIB_LD)
+AC_SUBST(SHLIB_LD)
+AC_SUBST(SHLIB_CFLAGS)
+AC_SUBST(SHLIB_LDFLAGS)
+AC_SUBST(SHLIB_SUFFIX)
+
+#--------------------------------------------------------------------
+# Set the default compiler switches based on the --enable-symbols 
+# option.
+#--------------------------------------------------------------------
+
+SC_ENABLE_SYMBOLS
+
+if test "${SHARED_BUILD}" = "1" ; then
+    CFLAGS='${CFLAGS_DEFAULT} ${CFLAGS_WARNING} ${SHLIB_CFLAGS}'
+else
+    CFLAGS='${CFLAGS_DEFAULT} ${CFLAGS_WARNING}'
 fi
 
-if test "$TCLSH" != "" ; then
-    AC_CONFIG_SUBDIRS( src/tcl )
-fi
-
-ls
-AC_CONFIG_SUBDIRS( [optimizer/src] )
+AC_CONFIG_SUBDIRS( [packages/optimizer/src] )
 
 dnl read Makefile.in and write Makefile
-AC_OUTPUT(  Makefile \
-            examples/demo.bash
-            examples/app-fermi/cee/Makefile \
-            examples/app-fermi/fortran/Makefile \
-            examples/app-fermi/wrapper/cee/Makefile \
-            examples/c-example/Makefile \
-	    optimizer/src/Makefile \
-            perl/Makefile.PL \
-            python/setup.py \
-            src/Makefile \
-            src/matlab/Makefile \
-            src/octave/Makefile \
-            src2/core/Makefile \
-            test/Makefile \
-            gui/apps/simsim \
-            gui/apps/rappture \
-            gui/apps/rappture.env   )
+AC_OUTPUT( [
+	Makefile 
+	packages/Makefile 
+	src/Makefile 
+	src/core/Makefile 
+	src/core2/Makefile 
+	src/objects/Makefile 
+	gui/Makefile
+	gui/apps/Makefile
+	gui/apps/rappture 
+	gui/apps/rappture.env
+	gui/apps/simsim 
+	gui/pkgIndex.tcl 
+	gui/scripts/Makefile
+	gui/src/Makefile
+	lang/Makefile 
+	lang/perl/Makefile 
+	lang/perl/Makefile.PL 
+	lang/python/Makefile 
+	lang/python/setup.py 
+	lang/matlab/Makefile 
+	lang/octave/Makefile 
+	lang/ruby/Makefile 
+	lang/ruby/build.rb 
+	lang/tcl/Makefile 
+	lang/tcl/pkgIndex.tcl
+	lang/tcl/src/Makefile 
+	lang/tcl/scripts/Makefile 
+	lang/tcl/tests/Makefile 
+	examples/Makefile 
+	examples/3D/Makefile 
+	examples/app-fermi/Makefile 
+	examples/app-fermi/cee/Makefile 
+	examples/app-fermi/fortran/Makefile 
+	examples/app-fermi/matlab/Makefile 
+	examples/app-fermi/octave/Makefile 
+	examples/app-fermi/perl/Makefile 
+	examples/app-fermi/python/Makefile 
+	examples/app-fermi/ruby/Makefile 
+	examples/app-fermi/tcl/Makefile 
+	examples/app-fermi/wrapper/Makefile 
+	examples/app-fermi/wrapper/cee/Makefile 
+	examples/app-fermi/wrapper/python/Makefile 
+	examples/app-fermi/wrapper/tcl/Makefile 
+	examples/c-example/Makefile 
+	examples/canvas/Makefile 
+	examples/demo.bash 
+	examples/graph/Makefile 
+	examples/zoo/Makefile 
+	examples/zoo/binary/Makefile 
+	examples/zoo/boolean/Makefile 
+	examples/zoo/choice/Makefile 
+	examples/zoo/cloud/Makefile 
+	examples/zoo/cloud/matlab/Makefile 
+	examples/zoo/curve/Makefile 
+	examples/zoo/enable/Makefile 
+	examples/zoo/field/Makefile 
+	examples/zoo/group/Makefile 
+	examples/zoo/image/Makefile 
+	examples/zoo/image/docs/Makefile 
+	examples/zoo/image/examples/Makefile  
+	examples/zoo/integer/Makefile 
+	examples/zoo/loader/Makefile 
+	examples/zoo/loader/examples/Makefile 
+	examples/zoo/log/Makefile 
+	examples/zoo/note/Makefile 
+	examples/zoo/note/docs/Makefile 
+	examples/zoo/number/Makefile 
+	examples/zoo/phase/Makefile 
+	examples/zoo/sequence/Makefile 
+	examples/zoo/sequence/examples/Makefile 
+	examples/zoo/string/Makefile 
+	examples/zoo/structure/Makefile 
+	examples/zoo/structure/examples/Makefile 
+	examples/zoo/table/Makefile 
+	test/Makefile 
+	test/src/Makefile 
+])

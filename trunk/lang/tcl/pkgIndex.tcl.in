@@ -1,0 +1,15 @@
+package ifneeded Rappture @PACKAGE_VERSION@ [format {
+    set dir "%s"
+    set version @PACKAGE_VERSION@
+    lappend auto_path [file join $dir scripts]
+    namespace eval Rappture {
+	variable version $version
+	variable installdir [file normalize $dir]
+    }
+    namespace eval Rappture::LibraryObj {
+	#empty
+    }
+    set ext [info sharedlibextension] 
+    load [file join $dir "Rappture${version}${ext}"]
+    package provide Rappture $version
+} $dir]

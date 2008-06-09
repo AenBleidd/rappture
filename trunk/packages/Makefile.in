@@ -1,0 +1,32 @@
+
+bindir          = @bindir@
+datadir		= @datadir@
+datarootdir	= @datarootdir@
+exec_prefix     = @exec_prefix@
+includedir      = @includedir@
+libdir          = @libdir@
+mandir          = @mandir@
+prefix          = @prefix@
+srcdir		= @srcdir@
+
+INSTALL		= @INSTALL@
+SHELL		= @SHELL@
+RM		= rm -f
+VPATH		= $(srcdir)
+
+.PHONY: optimizer
+
+all: 
+
+optimizer:
+	$(MAKE) -C optimizer/src all
+install: 
+	$(MAKE) -C optimizer/src install
+
+clean:
+	$(MAKE) -C optimizer/src clean
+
+distclean: 
+	$(MAKE) -C optimizer/src distclean
+	$(RM) Makefile *~
+

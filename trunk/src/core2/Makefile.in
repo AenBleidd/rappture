@@ -1,0 +1,145 @@
+# Makefile for Rappture2
+# Copyright (C) 2004-2007 Derrick S. Kearney.
+# For conditions of distribution and use, see license.terms
+
+# To compile and test, type:
+#    ./configure; make test
+# The call of configure is optional if you don't have special requirements
+#
+# To install librappture2.* and rappture2.h, type:
+#    make install
+# To install in $HOME instead of /usr/local, use:
+#    make install prefix=$HOME
+
+bindir		= @bindir@
+datadir 	= @datadir@
+datarootdir 	= @datarootdir@
+exec_prefix 	= @exec_prefix@
+includedir 	= @includedir@
+libdir 		= @libdir@
+man3dir 	= ${mandir}/man3
+mandir 		= @mandir@
+prefix 		= @prefix@
+scriptdir	= $(exec_prefix)/lib
+srcdir		= @srcdir@
+incdir		= $(prefix)/include
+
+CXX             = @CXX@
+CC		= @CXX@
+CFLAGS_DEBUG    = @CFLAGS_DEBUG@
+CFLAGS_OPTIMIZE = @CFLAGS_OPTIMIZE@
+STLIB_LD	= @STLIB_LD@
+SHLIB_LD	= @SHLIB_LD@
+SHLIB_CFLAGS	= @SHLIB_CFLAGS@
+SHLIB_LDFLAGS	= @SHLIB_LDFLAGS@
+SHLIB_SUFFIX	= @SHLIB_SUFFIX@
+CFLAGS_DEFAULT  = @CFLAGS_DEFAULT@
+LIB_SEARCH_DIRS = -L../core @LIB_SEARCH_DIRS@
+CFLAGS		= @CFLAGS@
+CPP		= @CPP@
+
+INSTALL 	= @INSTALL@
+INSTALL_DATA 	= @INSTALL_DATA@
+VPATH 		= $(srcdir)
+
+name		= rappture2
+libname		= lib$(name)
+lib		= $(libname).a
+shared_lib	= $(libname)$(SHLIB_SUFFIX)
+
+AR		= ar rcv
+RANLIB		= @RANLIB@
+SHELL		= @SHELL@
+VPATH		= $(srcdir)
+
+LIBS 		= -lrappture -lb64 -lz
+
+INCLUDES	= \
+		-I$(srcdir) \
+		-I$(srcdir)/../core \
+		-I$(includedir)
+
+OBJS 		= \
+		RpMesh1D.o \
+		RpField1D.o \
+		RpMeshTri2D.o \
+		RpMeshRect3D.o \
+		RpFieldRect3D.o \
+		RpMeshPrism3D.o \
+		RpFieldPrism3D.o \
+		RpSerialBuffer.o \
+		RpSerializer.o \
+		RpSerializable.o 
+
+HEADERS		= \
+		RpField1D.h \
+		RpFieldPrism3D.h \
+		RpFieldRect3D.h \
+		RpFieldTri2D.h \
+		RpMesh1D.h \
+		RpMeshPrism3D.h \
+		RpMeshRect3D.h \
+		RpMeshTri2D.h \
+		RpNode.h \
+		RpSerialBuffer.h \
+		RpSerializable.h \
+		RpSerializer.h \
+		rappture2.h
+
+all: $(lib) $(shared_lib) 
+
+$(lib): $(OBJS)
+	$(RM) $@
+	$(AR) $@ $(OBJS) 
+	$(RANLIB) $@ 
+
+$(shared_lib): $(OBJS)
+	$(SHLIB_LD) $(SHLIB_LDFLAGS) -o $@ $(OBJS) $(LIB_SEARCH_DIRS) $(LIBS)
+
+install: install_libs install_headers
+
+install_libs: $(lib) $(shared_lib)
+	$(INSTALL) -d $(libdir)
+	$(INSTALL) -m 444 $(lib) $(libdir)
+	$(INSTALL) -m 555 $(shared_lib) $(libdir)
+
+# This is no manual page for rappture yet.
+install_man: 
+	$(INSTALL) -d $(man3dir)
+	$(INSTALL) -m 444 rappture.3 $(man3dir)
+
+install_headers:
+	$(INSTALL) -d $(includedir)/rappture2
+	for i in $(HEADERS) ; do \
+	  $(INSTALL) -m 444 $(srcdir)/$$i $(includedir)/rappture2; \
+	done
+
+uninstall: uninstall_libs uninstall_man uninstall_headers
+
+uninstall_libs: $(lib) $(shared_lib)
+	$(RM) $(libdir)/$(lib) $(libdir)/$(shared_lib)
+
+uninstall_man: 
+	$(RM) $(man3dir)/rappture.3
+
+uninstall_headers:
+	for i in $(HEADERS) ; do \
+	  $(RM) $(includedir)/rappture2/$$i; \
+	done
+.cc.o: 
+	$(CXX) $(CFLAGS) $(INCLUDES) $(DEBUG) -c $? 
+.c.o: 
+	$(CC) $(CFLAGS) $(INCLUDES) $(DEBUG) -c $? 
+
+
+clean:
+	$(RM) $(OBJS) $(lib) $(shared_lib)
+	$(RM) buffer1.txt RpBuffer_test$(EXE) 
+
+distclean: clean
+	$(RM) Makefile *~
+
+docs:
+	$(INSTALL) -d ../../docs/rappture2
+	doxygen
+

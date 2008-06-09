@@ -1,30 +1,48 @@
-# Makefile for app-fermi/fortran example
-#
-# Replace this with the location of your rappture installation:
-ifndef RP_BASE
-RP_BASE = @prefix@
-endif
 
-# no need to edit the rest...
-PROGS = fermi
+bindir          = @bindir@
+datadir         = @datadir@
+datarootdir     = @datarootdir@
+exec_prefix     = @exec_prefix@
+includedir      = @includedir@
+libdir          = @libdir@
+mandir          = @mandir@
+prefix          = @prefix@
+srcdir		= @srcdir@
 
-F77 = @F77@
+destdir		= $(prefix)/examples/app-fermi/fortran
 
-LIB_DIR = $(RP_BASE)/lib
-LIB_RAPPTURE = -Wl,-rpath,$(LIB_DIR) -L$(LIB_DIR) -lrappture
+INSTALL         = @INSTALL@
 
-all: $(PROGS)
+FC              = @F77@
+FCFLAGS		= @CFLAGS@ 
+FCDEBUGFLAGS	= -Wall -g
+VPATH		= $(srcdir)
 
-fermi: fermi.f
-	@if test "`uname`" == "Darwin"; then \
-		$(F77) -g -L$(LIB_DIR) -lrappture -lscew -o $@ $< ;\
-	else \
-		$(F77) -g -Wall $(LIB_RAPPTURE) -o $@ $< ;\
-	fi
+INCLUDES    	= -I$(srcdir)/../../../src/core
+LIBS		= -L../../../src/core -lrappture \
+		  -L$(libdir) -lexpat -lb64 -lz
+
+FC_SWITCHES 	= $(FCFLAGS) $(FCDEBUGFLAGS) $(DEFINES) $(INCLUDES)
+
+FILES		= \
+		$(srcdir)/fermi.f \
+		$(srcdir)/tool.xml 
+
+all: fermi
+
+fermi: $(srcdir)/fermi.f
+	$(FC) $(FC_SWITCHES) $< -o $@ $(LIBS)
+
+install: fermi
+	$(INSTALL) -d $(destdir)
+	for i in $(FILES) ; do \
+	  $(INSTALL) -m 444 $$i $(destdir) ; \
+	done
+	$(INSTALL) -m 555 fermi $(destdir)
 
 
 clean:
-	rm -f *.o $(PROGS) run*.xml
+	$(RM) fermi run*.xml
 
 distclean: clean
-	rm Makefile
+	$(RM) Makefile

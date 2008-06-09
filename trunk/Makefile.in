@@ -7,183 +7,61 @@ includedir      = @includedir@
 libdir          = @libdir@
 mandir          = @mandir@
 prefix          = @prefix@
+srcdir		= @srcdir@
 
 INSTALL		= @INSTALL@
-INSTALL_PROGRAM	= ${INSTALL} -m 755
-INSTALL_DATA	= ${INSTALL} -m 644
-INSTALL_SCRIPT	= ${INSTALL} -m 644
-
+SHELL		= @SHELL@
+RM		= rm -f
+VPATH		= $(srcdir)
 
 build_date	:= $(shell date +%Y%m%d)
 machine		:= $(shell uname -m | sed 's/\ //')
 os		:= $(shell uname -s)
 bn		:= $(shell basename $(prefix))
-TarfileBasename=rappture-$(os)-$(machine)-$(build_date)
 
-# fix this before commiting
-all: rplib build_bindings build_gui
-install: install_rplib install_bindings install_gui install_examples
-	${INSTALL_PROGRAM}  gui/apps/rappture      $(bindir)/rappture
-	${INSTALL_DATA}     gui/apps/rappture.env  $(bindir)/rappture.env
-	${INSTALL_PROGRAM}  gui/apps/driver        $(bindir)/driver
-	${INSTALL_PROGRAM}  gui/apps/nanovis-test  $(bindir)/nanovis-test
-	${INSTALL_PROGRAM}  gui/apps/rerun         $(bindir)/rerun
-	${INSTALL_PROGRAM}  gui/apps/simsim        $(bindir)/simsim
-	${INSTALL_PROGRAM}  gui/apps/simsim.tcl    $(bindir)/simsim.tcl
-	find $(prefix) -name .svn | xargs rm -rf
+tarfile		= rappture-$(os)-$(machine)-$(build_date).tar.gz
 
-###########################################################################
-# Makefile - build and install all Rappture libraries
-###########################################################################
+ENABLE_GUI = @ENABLE_GUI@
 
-
-build_gui:
-	@if test "x@ENABLE_GUI@" == "xyes" ; then \
-		$(MAKE) -C gui; \
-	fi
-
-install_gui:
-	@if test "x@ENABLE_GUI@" == "xyes" ; then \
-		$(MAKE) -C gui install; \
-	fi
-
-rplib:
-	@if ! test -d "include"; then \
-		mkdir include;\
-	fi
-	$(MAKE) -C src2/core librappture2.a librappture2.so.0.0
-	$(MAKE) -C src librappture
-
-install_rplib:
-	$(MAKE) -C src2/core install
-	$(MAKE) -C src install_rappture
-
-build_bindings: build_matlab build_octave build_python build_perl
-
-install_bindings: install_matlab install_octave install_python install_perl install_tcl
-
-#############################################################################
-# build rappture examples
-# examples:
-# 	- compile rappture examples in rappture/examples
-#############################################################################
-build_examples:
-ifneq ($(strip @F77@),)
-	$(MAKE) -C examples/app-fermi/fortran
-endif
-ifneq ($(strip @CC@),)
-	$(MAKE) -C examples/app-fermi/cee
-	$(MAKE) -C examples/app-fermi/wrapper/cee
-	$(MAKE) -C examples/c-example
+ifneq ($(ENABLE_GUI),)
+   GUI = gui
 endif
 
-install_examples: build_examples
-	cp -r examples $(prefix)
-	rm -f $(prefix)/examples/demo.bash.in
-	find $(prefix)/examples -name .svn | xargs rm -rf
+.PHONY: src gui lang test examples
 
+all: src gui lang examples test
 
+src:
+	$(MAKE) -C src all
+gui:
+	$(MAKE) -C gui all
+lang:
+	$(MAKE) -C lang all
+examples:
+	$(MAKE) -C examples all
+test:
+	#$(MAKE) -C test all
 
-#############################################################################
-
-#tcl bindings
-#cd tcl; @TCLSH@ install.tcl
-install_tcl:
-	@if test "x@TCLSH@" != "x" ; then \
-		cd tcl; $(bindir)/tclsh install.tcl; cd -;\
-		$(MAKE) -C src/tcl install; \
-	fi
-
-# matlab bindings
-build_matlab:
-	@if test "x@MEX@" != "x" ; then \
-		$(MAKE) -C src/matlab; \
-	fi
-
-install_matlab: build_matlab
-	@if test "x@MEX@" != "x" ; then \
-		$(MAKE) -C src/matlab install; \
-	fi
-
-# octave bindings
-build_octave:
-	@if test "x@MKOCTFILE@" != "x" ; then \
-		$(MAKE) -C src/octave; \
-	fi
-
-install_octave: build_octave
-	@if test "x@MKOCTFILE@" != "x" ; then \
-		$(MAKE) -C src/octave install; \
-	fi
-
-build_python:
-	@if test "x@PYTHON@" != "x" ; then \
-		set -x; \
-		cd python; \
-		@PYTHON@ setup.py \
-			build_ext \
-			--library-dirs=$(libdir):../src \
-			--include-dirs=$(includedir) \
-			build; \
-	fi
-
-install_python: build_python
-	@if test "x@PYTHON@" != "x" ; then \
-		cd python; \
-		@PYTHON@ setup.py install --prefix=$(prefix); \
-	fi
-
-build_perl:
-	@if test "x@PERL@" != "x" ; then \
-		cd perl; \
-		@PERL@ Makefile.PL INSTALLSITELIB=$(libdir)/perl5 INSTALLSITEARCH=$(libdir)/perl5 INSTALLSITEMAN3DIR=$(mandir)/man3; \
-		$(MAKE); LD_LIBRARY_PATH=$(libdir):../src $(MAKE) test; \
-	fi
-
-install_perl: build_perl
-	@if test "x@PERL@" != "x" ; then \
-		$(MAKE) -C perl install; \
-	fi
-
-build_pkgs:
-	@if ! test -d "bin"; then \
-		mkdir bin;\
-	fi
-	# building rappture binary package
-	cd $(prefix)/..; tar czf @RP_BASE@/bin/$(TarfileBasename).tar.gz $(bn)
+install: 
+	$(MAKE) -C examples install
+	$(MAKE) -C gui install
+	$(MAKE) -C lang install
+	$(MAKE) -C src install
 
 clean:
-	$(MAKE) -C examples/app-fermi/cee clean
-	$(MAKE) -C examples/app-fermi/fortran clean
-	$(MAKE) -C examples/app-fermi/wrapper/cee clean
-	$(MAKE) -C examples/c-example clean
+	$(MAKE) -C examples clean
 	$(MAKE) -C gui clean
-	@if test -r "perl/Makefile" ; then \
-		$(MAKE) -C perl clean; \
-	fi
-	rm -rf python/build
+	$(MAKE) -C lang clean
 	$(MAKE) -C src clean
-	$(MAKE) -C src/matlab clean
-	$(MAKE) -C src/octave clean
-	$(MAKE) -C src/tcl clean
-	$(MAKE) -C src2/core clean
-	rm -f include/*
+	$(MAKE) -C test clean
 
-distclean:
-	rm -f examples/demo.bash
-	$(MAKE) -C examples/app-fermi/cee distclean
-	$(MAKE) -C examples/app-fermi/fortran distclean
-	$(MAKE) -C examples/app-fermi/wrapper/cee distclean
-	$(MAKE) -C examples/c-example distclean
+distclean: 
+	$(MAKE) -C examples distclean
 	$(MAKE) -C gui distclean
-	$(MAKE) -C perl clean; rm perl/Makefile.PL
-	rm -rf python/build python/setup.py
+	$(MAKE) -C lang distclean
 	$(MAKE) -C src distclean
-	$(MAKE) -C src/matlab distclean
-	$(MAKE) -C src/octave distclean
-	$(MAKE) -C src/tcl distclean
-	$(MAKE) -C src2/core distclean
 	$(MAKE) -C test distclean
-	rm -f gui/apps/rappture gui/apps/simsim gui/apps/rappture.env;
-	rm -rf Makefile config.status config.log bin;
-	rm -f include/*
+	$(RM) Makefile config.status config.log  *~
+
+package: 
+	tar -C $(prefix) -czf $(tarfile) .

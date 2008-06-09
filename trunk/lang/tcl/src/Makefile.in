@@ -1,0 +1,93 @@
+
+bindir          = @bindir@
+datadir		= @datadir@
+datarootdir	= @datarootdir@
+exec_prefix     = @exec_prefix@
+includedir      = @includedir@
+libdir          = @libdir@
+mandir          = @mandir@
+prefix          = @prefix@
+srcdir		= @srcdir@
+
+SHELL		= @SHELL@
+INSTALL		= @INSTALL@
+INSTALL_PROGRAM	= ${INSTALL} -m 555
+INSTALL_DATA	= ${INSTALL} -m 444
+INSTALL_SCRIPT	= ${INSTALL}
+
+CXX             = @CXX@
+CC              = @CC@
+CFLAGS_DEBUG    = @CFLAGS_DEBUG@ -Wall
+CFLAGS_OPTIMIZE = @CFLAGS_OPTIMIZE@
+STLIB_LD        = @STLIB_LD@
+SHLIB_LD        = @SHLIB_LD@
+SHLIB_CFLAGS    = @SHLIB_CFLAGS@
+SHLIB_LDFLAGS   = @SHLIB_LDFLAGS@
+SHLIB_SUFFIX    = @SHLIB_SUFFIX@
+CFLAGS_DEFAULT  = @CFLAGS_DEFAULT@
+LIB_SEARCH_DIRS = @LIB_SEARCH_DIRS@
+CFLAGS          = @CFLAGS@
+
+CC_SWITCHES	= $(CFLAGS) $(CFLAGS_DEBUG) $(INCLUDES) $(DEFINES)
+CXX_SWITCHES	= $(CFLAGS) $(CFLAGS_DEBUG) $(INCLUDES) $(DEFINES)
+
+INCLUDES	= -I$(srcdir) \
+		  -I$(srcdir)/../../../src/core \
+		  -I$(includedir)
+version 	= @PACKAGE_VERSION@
+DEFINES 	= -DPACKAGE_VERSION=\"$(version)\"	
+
+RANLIB 		= @RANLIB@
+AR 		= ar
+VPATH		= $(srcdir)
+RM		= rm -f
+
+CDEBUGFLAGS     = -g -Wall
+
+LIBS		= \
+		-L../../../src/core -lrappture \
+		-L$(libdir) -ltcl -lexpat -lz -lb64 -lm -lstdc++ 
+
+OBJS 		= \
+		Rappture_Init.o \
+		RpDaemon.o \
+		RpEncodeTclInterface.o \
+		RpOp.o \
+		RpRlimit.o  \
+		RpRusage.o \
+		RpSignal.o  \
+		RpUnitsTclInterface.o \
+		RpUtilsTclInterface.o 
+
+ifeq ($(WIN32),"")
+   OBJS += RpWinResource.o 
+endif
+
+# Not using     RpLibraryTclInterface.o \
+
+name		= Rappture$(version)
+libname 	= $(name)
+lib		= $(libname)$(SHLIB_SUFFIX)
+destdir		= $(libdir)/$(name)
+
+all: $(lib)
+
+$(lib): $(OBJS)
+	$(SHLIB_LD) $(SHLIB_LDFLAGS) -o $@ $(OBJS) \
+		$(LIB_SEARCH_DIRS) $(LIBS) 
+
+install: $(lib)
+	$(INSTALL) -d $(destdir)
+	$(INSTALL) -m 555 $(lib) $(destdir) 
+
+.cc.o: 
+	$(CXX) $(CXX_SWITCHES) -c $? 
+.c.o:
+	$(CC) $(CC_SWITCHES)-c $? 
+
+clean: 
+	$(RM) $(OBJS) $(lib)
+
+distclean: clean
+	$(RM) Makefile *~
+

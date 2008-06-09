@@ -30,7 +30,7 @@ enum RP_LIBRARY_CONSTS {
 #include "scew_extras.h"
 #include <list>
 #include "RpBuffer.h"
-#include "Outcome.h"
+#include "RpOutcome.h"
 
 /* indentation size (in whitespaces) */
 

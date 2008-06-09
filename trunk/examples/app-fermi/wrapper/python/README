@@ -1,0 +1,4 @@
+This example requires that both octave and python have been
+installed on your system.  Only the Rappture API for python
+is used.
+

@@ -16,15 +16,18 @@
  */
 #include <stdlib.h>
 #include <time.h>
+#include <RpLibrary.h>
+#include <errno.h>
 
 void
-rpResult(PyObject* lib) {
+rpResult(RpLibrary* lib) 
+{
     char outputFile[100];
-    char* xtext;
+    std::string xtext;
     FILE* fp;
     time_t t;
 
-    xtext = rpXml(lib);
+    xtext = lib->xml();
 
     // create output filename
     snprintf(outputFile, 50, "run%d.xml", (int)time(&t));
@@ -35,9 +38,13 @@ rpResult(PyObject* lib) {
         fprintf(stderr,"can't save results (err=%d)\n", errno);
         return;
     }
-    int fsize = fwrite(xtext, strlen(xtext), sizeof(char), fp);
+    int fsize = fwrite(xtext.c_str(), xtext.length(), sizeof(char), fp);
+    if (fsize != (int)xtext.length()) {
+        fprintf(stderr, "short write: can't save results (err=%d)\n", errno);
+        fclose(fp);
+        return;
+    }
     fclose(fp);
-
     // tell Rappture the file name
     printf("=RAPPTURE-RUN=>%s\n", outputFile);
 }

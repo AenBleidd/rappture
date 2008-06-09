@@ -1,0 +1,61 @@
+
+bindir          = @bindir@
+datadir		= @datadir@
+datarootdir	= @datarootdir@
+exec_prefix     = @exec_prefix@
+includedir      = @includedir@
+libdir          = @libdir@
+mandir          = @mandir@
+prefix          = @prefix@
+srcdir          = @srcdir@
+
+INSTALL		= @INSTALL@
+INSTALL_PROGRAM	= ${INSTALL} -m 755
+INSTALL_DATA	= ${INSTALL} -m 644
+INSTALL_SCRIPT	= ${INSTALL}
+TCLSH		= $(bindir)/tclsh
+VERSION		= @PACKAGE_VERSION@
+VPATH		= $(srcdir)
+
+CXX             = @CXX@
+CC              = @CC@
+CFLAGS_DEBUG    = @CFLAGS_DEBUG@
+CFLAGS_OPTIMIZE = @CFLAGS_OPTIMIZE@
+SHLIB_LD        = @SHLIB_LD@
+SHLIB_CFLAGS    = @SHLIB_CFLAGS@
+SHLIB_LDFLAGS   = @SHLIB_LDFLAGS@
+SHLIB_SUFFIX    = @SHLIB_SUFFIX@
+CFLAGS_DEFAULT  = @CFLAGS_DEFAULT@
+LIB_SEARCH_DIRS = @LIB_SEARCH_DIRS@
+CFLAGS          = @CFLAGS@
+
+RANLIB 		= @RANLIB@
+AR 		= ar
+RM		= rm -f
+
+destdir		= $(prefix)/lib/Rappture$(VERSION)/scripts
+
+FILES		= \
+		$(srcdir)/exec.tcl \
+		$(srcdir)/library.tcl \
+		$(srcdir)/result.tcl \
+		$(srcdir)/units.tcl
+
+all: tclIndex
+
+tclIndex: $(FILES)
+	$(TCLSH) $(srcdir)/../tclconfig/mkindex.tcl --srcdir $(srcdir) \
+		--outfile tclIndex
+
+install: tclIndex
+	$(INSTALL) -d $(destdir)
+	@for i in $(FILES); do \
+	    $(INSTALL) -m 444 $(srcdir)/$$i $(destdir) ; \
+	done 
+	$(INSTALL) -m 0444 tclIndex $(destdir)
+
+clean: 
+	$(RM) tclIndex
+
+distclean: clean
+	$(RM) Makefile *~

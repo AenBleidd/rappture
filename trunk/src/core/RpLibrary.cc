@@ -1448,14 +1448,13 @@ RpLibrary::children (   std::string path,
  */
 
 RpLibrary&
-RpLibrary::childCount ( std::string path,
-                        int* childCount )
+RpLibrary::childCount(std::string path, int* childCount)
 {
-    scew_element* parentNode;
-    int myChildCount = 0;
-
     if (this->root) {
+        scew_element* parentNode;
+        int myChildCount = 0;
 
+	parentNode = NULL;
         if (path.empty()) {
             // an empty path uses the current RpLibrary as parent
             parentNode = this->root;
@@ -1468,9 +1467,7 @@ RpLibrary::childCount ( std::string path,
         if (childCount) {
             *childCount = myChildCount;
         }
-
     }
-
     return *this;
 }
 

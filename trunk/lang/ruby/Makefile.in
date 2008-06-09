@@ -1,0 +1,35 @@
+
+bindir          = @bindir@
+datadir		= @datadir@
+datarootdir	= @datarootdir@
+exec_prefix     = @exec_prefix@
+includedir      = @includedir@
+libdir          = @libdir@
+mandir          = @mandir@
+prefix          = @prefix@
+srcdir		= @srcdir@
+
+destdir		= $(libdir)/ruby/ruby_site
+
+INSTALL		= @INSTALL@
+EXT		= @SHLIB_SUFFIX@
+
+package		= Rappture$(EXT)
+
+RUBY		= ruby
+
+all: Makefile.ruby
+	$(MAKE) -f Makefile.ruby all
+
+Makefile.ruby: build.rb
+	$(RUBY) build.rb
+
+install: Makefile.ruby
+	$(INSTALL) -d $(destdir)
+	$(MAKE) -f Makefile.ruby  install
+
+clean: Makefile.ruby
+	$(RM) $(package) Rappture.bundle Makefile.ruby 
+
+distclean: clean
+	$(RM) Makefile *~ build.rb 

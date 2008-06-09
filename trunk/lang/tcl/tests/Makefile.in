@@ -1,0 +1,46 @@
+
+SHELL		= @SHELL@
+
+srcdir		= @srcdir@
+prefix		= @prefix@
+exec_prefix	= @exec_prefix@
+bindir		= @bindir@
+libdir		= @libdir@
+datadir		= @datadir@
+datarootdir	= @datarootdir@
+mandir		= @mandir@
+includedir	= @includedir@
+
+pkgdatadir	= $(datadir)/$(PKG_DIR)
+pkglibdir	= $(libdir)/$(PKG_DIR)
+pkgincludedir	= $(includedir)/$(PKG_DIR)
+top_builddir	= .
+
+INSTALL		= @INSTALL@
+INSTALL_PROGRAM	= @INSTALL_PROGRAM@
+INSTALL_DATA	= @INSTALL_DATA@
+INSTALL_SCRIPT	= @INSTALL_SCRIPT@
+
+VPATH		= $(srcdir)
+PACKAGE_VERSION = @PACKAGE_VERSION@
+TCLSH		= $(bindir)/tclsh
+
+SCRIPTS		= \
+		$(srcdir)/exec.tcl \
+		$(srcdir)/value.tcl 
+
+version 	= $(PACKAGE_VERSION)
+name 		= Rappture$(version)
+scriptdir	= $(pkglibdir)/$(name)/scripts
+
+all:
+	$(INSTALL) -m 0444 $(srcdir)/rplib_test.xml .
+	$(TCLSH) $(srcdir)/all.tcl
+
+clean:
+	$(RM) rplib_test.xml
+
+distclean: clean
+	$(RM) Makefile *~
+
+
