@@ -541,6 +541,8 @@ itcl::body Rappture::XyResult::_rebuild {} {
     foreach axis [$g axis names] {
         $g axis configure $axis -hide yes
     }
+    $g xaxis configure -hide no
+    $g yaxis configure -hide no
     catch {unset _label2axis}
 
     #
