@@ -25,7 +25,7 @@ namespace Rappture {
 class DX {
 public:
     DX();
-    DX(const char* filename, RpOutcome *resultPtr);
+    DX(const char* filename, Rappture::Outcome *resultPtr);
     DX(const DX& rpdx);
     DX& operator=(const DX& rpdx);
     virtual ~DX();

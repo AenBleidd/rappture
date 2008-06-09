@@ -32,7 +32,7 @@ copy_sources:
 	$(INSTALL) -d build/tmp
 	$(INSTALL_DATA) $(srcdir)/Rappture/*.cc build/tmp
  
-install: all
+install: 
 	$(PYTHON) setup.py install --prefix=$(prefix) 
 
 clean:

@@ -1,7 +1,10 @@
 TARGETS         = client mycat nanoscale
 
-CC              = @CC@
-CFLAGS          = @CFLAGS@
+CC		= @CC@
+CFLAGS		= @CFLAGS@
+EXTRA_CFLAGS	= -Wall 
+DEFINES		= @DEFINES@
+CC_SWITCHES	= $(CFLAGS) $(EXTRA_CFLAGS) $(INCLUDES)
 LDFLAGS         = @LDFLAGS@
 
 bindir          = @bindir@
@@ -21,20 +24,26 @@ INSTALL_PROGRAM = ${INSTALL} -m 555
 INSTALL_DATA    = ${INSTALL} -m 444
 INSTALL_SCRIPT  = ${INSTALL} -m 444
 
+SERVER_OBJS	= server.o
+CLIENT_OBJS	= client.o clientlib.o
+
 .PHONY: all install clean distclean
 
 all: $(TARGETS)
 
-nanoscale: server.o
-	$(CC) $(CFLAGS) $(LDFLAGS) server.o -o nanoscale
+nanoscale: $(SERVER_OBJS)
+	$(CC) $(CC_SWITCHES) -o $@ $^ $(LIBS)
 
 install: nanoscale
 	$(INSTALL_PROGRAM) -D nanoscale $(bindir)/nanoscale
 
-client: client.o clientlib.o
+client: $(CLIENT_OBJS)
+
+.c.o:
+	$(CC) $(CC_SWITCHES) -o $@ -c $<
 
 clean:
-	rm -rf a.out *.o *~ core* $(TARGETS) *.log *.tmp logfile* .deps/*.d
+	rm -rf a.out $(SERVER_OBJS) *~ core* $(TARGETS) *.log *.tmp logfile* .deps/*.d
 
 distclean: clean
 	rm Makefile
