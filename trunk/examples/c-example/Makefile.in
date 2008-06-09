@@ -1,63 +1,74 @@
-# define rappture src directory
-ifndef RP_BASE
-RP_BASE         = @prefix@
-endif
 
-PROGS           = plot plotc compress compressc
+bindir          = @bindir@
+datadir		= @datadir@
+datarootdir	= @datarootdir@
+exec_prefix     = @exec_prefix@
+includedir      = @includedir@
+libdir          = @libdir@
+mandir          = @mandir@
+prefix          = @prefix@
+srcdir		= @srcdir@
 
-# define our compiling environment
-# 
+INSTALL		= @INSTALL@
+INSTALL_DATA	= @INSTALL_DATA@
+
 CC              = @CC@
+CFLAGS		= @CFLAGS@
 CXX             = @CXX@
-DEBUG           = -g -Wall
-DEBUG_PLUS      = -g -DDEBUG
+CXXFLAGS	= @CFLAGS@
+DEFINES		= -g -Wall
+INCLUDES	= -I$(srcdir)/../../src/core \
+		  -I$(includedir)
+LIBS		= \
+		-L../../src/core -lrappture \
+		-L$(libdir) -lexpat -lb64 -lz
+VPATH		= $(srcdir)
 
-# define our directories
-#
-INCLUDES_DIR    = $(RP_BASE)/include
-INCL_CEE        = -I $(INCLUDES_DIR)/cee
-INCL_CORE       = -I $(INCLUDES_DIR)/core
-INCL_RP_DEPS    = -I $(RP_BASE)/include
+CXX_SWITCHES	= $(CXXFLAGS) $(INCLUDES) $(DEFINES)	
+CC_SWITCHES	= $(CFLAGS) $(INCLUDES) $(DEFINES)	
 
-INCL_FILES      = $(INCL_CEE) $(INCL_CORE) $(INCL_RP_DEPS)
+FILES		= \
+		$(srcdir)/README \
+		$(srcdir)/compress.c \
+		$(srcdir)/compress.cc \
+		$(srcdir)/output.dx \
+		$(srcdir)/plot.cc \
+		$(srcdir)/plotc.c \
+		$(srcdir)/tool.xml \
+		$(srcdir)/tool2.xml \
+		Makefile 
 
-LIB_DIR         = $(RP_BASE)/lib
-LIB_RAPPTURE    = -Wl,-rpath,$(LIB_DIR) -L$(LIB_DIR) -lrappture
-LIB_RAPPTURE_MAC = -L$(LIB_DIR) -lrappture -lscew
+destdir		= $(prefix)/examples/c-example
+
+
+PROGS		= \
+		compress \
+		compressc \
+		plot \
+		plotc \
 
 all: $(PROGS)
 
-compress: compress.cc
-	@if test "`uname`" == "Darwin"; then \
-		$(CXX) $(DEBUG) $(INCL_FILES) -o $@ $< $(LIB_RAPPTURE_MAC); \
-	else \
-		$(CXX) $(DEBUG) $(INCL_FILES) -o $@ $< $(LIB_RAPPTURE); \
-	fi
+compress: $(srcdir)/compress.cc
+	$(CXX) $(CXX_SWITCHES) -o $@ $< $(LIBS)
+compressc: $(srcdir)/compress.c
+	$(CC) $(CC_SWITCHES) -o $@ $< $(LIBS)
+plot: $(srcdir)/plot.cc
+	$(CXX) $(CXX_SWITCHES) -o $@ $< $(LIBS)
+plotc: $(srcdir)/plotc.c
+	$(CC) $(CC_SWITCHES) -o $@ $< $(LIBS)
 
-compressc: compress.c
-	@if test "`uname`" == "Darwin"; then \
-		$(CC) $(DEBUG) $(INCL_FILES) -o $@ $< $(LIB_RAPPTURE_MAC); \
-	else \
-		$(CC) $(DEBUG) $(INCL_FILES) -o $@ $< $(LIB_RAPPTURE); \
-	fi
+install:
+	$(INSTALL) -d $(destdir)
+	for i in $(FILES) ; do \
+	  $(INSTALL) -m 444  $$i $(destdir) ; \
+	done
+	for i in $(PROGS) ; do \
+	  $(INSTALL) -m 555 $$i $(destdir) ; \
+	done
 
-plot: plot.cc
-	@if test "`uname`" == "Darwin"; then \
-		$(CXX) $(DEBUG) -DDEBUG $(INCL_FILES) -o $@ $< $(LIB_RAPPTURE_MAC); \
-	else \
-		$(CXX) $(DEBUG) -DDEBUG $(INCL_FILES) -o $@ $< $(LIB_RAPPTURE); \
-	fi
-
-plotc: plotc.c
-	@if test "`uname`" == "Darwin"; then \
-		$(CXX) $(DEBUG) -DDEBUG $(INCL_FILES) -o $@ $< $(LIB_RAPPTURE_MAC); \
-	else \
-		$(CC) $(DEBUG) -DDEBUG $(INCL_FILES) -o $@ $< $(LIB_RAPPTURE) -lm; \
-	fi
-
-#### CLEAN UP ############################################################
 clean:
-	rm -f $(PROGS) run*.xml
+	$(RM) $(PROGS) run*.xml
 
 distclean: clean
-	- rm Makefile
+	$(RM) Makefile *~
