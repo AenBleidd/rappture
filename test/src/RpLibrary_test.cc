@@ -13,152 +13,157 @@
 
 #include "RpLibrary.h"
 #include <list>
+#include <string>
+#include <iostream>
 
-int test_element (RpLibrary* lib, std::string path );
-int test_parent (RpLibrary* lib, std::string path );
-int test_get (RpLibrary* lib, std::string path );
-int test_getString (RpLibrary* lib, std::string path );
-int test_getDouble (RpLibrary* lib, std::string path );
-int test_getInt (RpLibrary* lib, std::string path );
-int test_getBool (RpLibrary* lib, std::string path );
-int test_putObj (RpLibrary* fromLib, std::string fromPath,
-                 RpLibrary* toLib, std::string toPath);
-int test_copy (RpLibrary* fromLib, std::string fromPath,
-               RpLibrary* toLib, std::string toPath);
-int test_remove (RpLibrary* lib, std::string path);
+using namespace std;
 
-int test_element (RpLibrary* lib, std::string path )
+int test_element (RpLibrary* lib, string path);
+int test_parent (RpLibrary* lib, string path);
+int test_get (RpLibrary* lib, string path);
+int test_getString (RpLibrary* lib, string path);
+int test_getDouble (RpLibrary* lib, string path);
+int test_getInt (RpLibrary* lib, string path);
+int test_getBool (RpLibrary* lib, string path);
+int test_putObj (RpLibrary* fromLib, string fromPath,
+                 RpLibrary* toLib, string toPath);
+int test_copy (RpLibrary* fromLib, string fromPath,
+               RpLibrary* toLib, string toPath);
+int test_remove (RpLibrary* lib, string path);
+
+int test_element (RpLibrary* lib, string path)
 {
     int retVal = 1;
     RpLibrary* searchEle = lib->element(path);
 
-    std::cout << "TESTING ELEMENT: path = " << path << std::endl;
+    cout << "TESTING ELEMENT: path = " << path << endl;
 
     if (!searchEle) {
-        std::cout << "searchEle is NULL" << std::endl;
+        cout << "searchEle is NULL" << endl;
         retVal = 1;
     }
     else {
-        std::cout << "searchEle path = :" << searchEle->nodePath() << ":" << std::endl;
-        std::cout << "searchEle comp = :" << searchEle->nodeComp() << ":" << std::endl;
-        std::cout << "searchEle   id = :" << searchEle->nodeId()   << ":" << std::endl;
-        std::cout << "searchEle type = :" << searchEle->nodeType() << ":" << std::endl;
+        cout << "searchEle path = :" << searchEle->nodePath() << ":" << endl;
+        cout << "searchEle comp = :" << searchEle->nodeComp() << ":" << endl;
+        cout << "searchEle   id = :" << searchEle->nodeId()   << ":" << endl;
+        cout << "searchEle type = :" << searchEle->nodeType() << ":" << endl;
         retVal = 0;
     }
 
     return retVal;
 }
 
-int test_parent (RpLibrary* lib, std::string path )
+int test_parent (RpLibrary* lib, string path)
 {
     int retVal = 1;
     RpLibrary* searchEle = lib->parent(path);
 
-    std::cout << "TESTING PARENT: path = " << path << std::endl;
+    cout << "TESTING PARENT: path = " << path << endl;
 
     if (!searchEle) {
-        std::cout << "searchEle is NULL" << std::endl;
+        cout << "searchEle is NULL" << endl;
         retVal = 1;
-    }
-    else {
-        std::cout << "searchParent path = :" << searchEle->nodePath() << ":" << std::endl;
-        std::cout << "searchParent comp = :" << searchEle->nodeComp() << ":" << std::endl;
-        std::cout << "searchParent   id = :" << searchEle->nodeId()   << ":" << std::endl;
-        std::cout << "searchParent type = :" << searchEle->nodeType() << ":" << std::endl;
+    } else {
+        cout << "searchParent path = :" << searchEle->nodePath() << ":" << endl;
+        cout << "searchParent comp = :" << searchEle->nodeComp() << ":" << endl;
+        cout << "searchParent   id = :" << searchEle->nodeId()   << ":" << endl;
+        cout << "searchParent type = :" << searchEle->nodeType() << ":" << endl;
         retVal = 0;
     }
 
     return retVal;
 }
 
-int test_get (RpLibrary* lib, std::string path )
+int test_get (RpLibrary* lib, string path)
 {
     int retVal = 1;
-    std::string searchVal = lib->get(path);
+    string searchVal = lib->get(path);
 
-    std::cout << "TESTING GET       : path = " << path << std::endl;
+    cout << "TESTING GET       : path = " << path << endl;
 
     if (searchVal.empty()) {
-        std::cout << "searchVal is EMPTY STRING" << std::endl;
+        cout << "searchVal is EMPTY STRING" << endl;
         retVal = 1;
     }
     else {
-        std::cout << "searchVal = :" << searchVal << ":" << std::endl;
+        cout << "searchVal = :" << searchVal << ":" << endl;
         retVal = 0;
     }
 
     return retVal;
 }
 
-int test_getString (RpLibrary* lib, std::string path )
+int test_getString (RpLibrary* lib, string path)
 {
     int retVal = 1;
-    std::string searchVal = lib->getString(path);
+    string searchVal = lib->getString(path);
 
-    std::cout << "TESTING GET String: path = " << path << std::endl;
+    cout << "TESTING GET String: path = " << path << endl;
 
     if (searchVal.empty()) {
-        std::cout << "searchVal is EMPTY STRING" << std::endl;
+        cout << "searchVal is EMPTY STRING" << endl;
         retVal = 1;
     }
     else {
-        std::cout << "searchVal = :" << searchVal << ":" << std::endl;
+        cout << "searchVal = :" << searchVal << ":" << endl;
         retVal = 0;
     }
 
     return retVal;
 }
 
-int test_getDouble (RpLibrary* lib, std::string path )
+int test_getDouble (RpLibrary* lib, string path)
 {
     int retVal = 1;
     double searchVal = lib->getDouble(path);
 
-    std::cout << "TESTING GET Double: path = " << path << std::endl;
+    cout << "TESTING GET Double: path = " << path << endl;
 
-    std::cout << "searchVal = :" << searchVal << ":" << std::endl;
+    cout << "searchVal = :" << searchVal << ":" << endl;
     retVal = 0;
 
     return retVal;
 }
 
-int test_getInt (RpLibrary* lib, std::string path )
+int test_getInt (RpLibrary* lib, string path)
 {
     int retVal = 1;
     int searchVal = lib->getInt(path);
 
-    std::cout << "TESTING GET INT: path = " << path << std::endl;
+    cout << "TESTING GET INT: path = " << path << endl;
 
-    std::cout << "searchVal = :" << searchVal << ":" << std::endl;
+    cout << "searchVal = :" << searchVal << ":" << endl;
     retVal = 0;
 
     return retVal;
 }
 
-int test_getBool (RpLibrary* lib, std::string path )
+int 
+test_getBool (RpLibrary* lib, string path)
 {
     int retVal = 1;
     bool searchVal = lib->getBool(path);
 
-    std::cout << "TESTING GET Bool: path = " << path << std::endl;
+    cout << "TESTING GET Bool: path = " << path << endl;
 
-    std::cout << "searchVal = :" << searchVal << ":" << std::endl;
+    cout << "searchVal = :" << searchVal << ":" << endl;
     retVal = 0;
 
     return retVal;
 }
 
-int test_putObj (   RpLibrary* fromLib, std::string fromPath,
-                    RpLibrary* toLib, std::string toPath)
+int 
+test_putObj (   RpLibrary* fromLib, string fromPath,
+                    RpLibrary* toLib, string toPath)
 {
     int retVal = 1;
     RpLibrary* fromEle = fromLib->element(fromPath);
     RpLibrary* foundEle = NULL;
-    std::string newNodeName = "";
+    string newNodeName = "";
 
-    std::cout << "TESTING PUT Object:" << std::endl;
-    std::cout << "fromPath = " << fromPath << std::endl;
-    std::cout << "toPath = " << toPath << std::endl;
+    cout << "TESTING PUT Object:" << endl;
+    cout << "fromPath = " << fromPath << endl;
+    cout << "toPath = " << toPath << endl;
 
     // put the element into the new library/xmltree
     toLib->put(toPath,fromEle);
@@ -168,24 +173,24 @@ int test_putObj (   RpLibrary* fromLib, std::string fromPath,
     newNodeName = toPath + "." + fromEle->nodeComp();
     // grab the element
     if ((foundEle = toLib->element(newNodeName))){
-        std::cout << "SUCCESS: foundEle was found" << std::endl;
+        cout << "SUCCESS: foundEle was found" << endl;
         retVal = 0;
     }
 
     return retVal;
 }
 
-int test_copy (   RpLibrary* fromLib, std::string fromPath,
-                    RpLibrary* toLib, std::string toPath)
+int test_copy (   RpLibrary* fromLib, string fromPath,
+                    RpLibrary* toLib, string toPath)
 {
     int retVal = 1;
     RpLibrary* fromEle = fromLib->element(fromPath);
     RpLibrary* foundEle = NULL;
-    std::string newNodeName = "";
+    string newNodeName = "";
 
-    std::cout << "TESTING COPY:" << std::endl;
-    std::cout << "fromPath = " << fromPath << std::endl;
-    std::cout << "toPath = " << toPath << std::endl;
+    cout << "TESTING COPY:" << endl;
+    cout << "fromPath = " << fromPath << endl;
+    cout << "toPath = " << toPath << endl;
 
     // put the element into the new library/xmltree
     toLib->copy(toPath,fromPath);
@@ -195,32 +200,32 @@ int test_copy (   RpLibrary* fromLib, std::string fromPath,
     newNodeName = toPath + "." + fromEle->nodeComp();
     // grab the element
     if ((foundEle = toLib->element(newNodeName))){
-        std::cout << "SUCCESS: foundEle was found" << std::endl;
+        cout << "SUCCESS: foundEle was found" << endl;
         retVal = 0;
     }
     else {
-        std::cout << "FAILURE: foundEle WAS NOT found" << std::endl;
+        cout << "FAILURE: foundEle WAS NOT found" << endl;
     }
 
     return retVal;
 }
 
-int test_remove (RpLibrary* lib, std::string path)
+int test_remove (RpLibrary* lib, string path)
 {
     RpLibrary* getRslt = NULL;
     int retVal = 1;
-    std::cout << "TESTING REMOVE:" << std::endl;
-    // std::cout << "lib's xml:" << std::endl << lib->xml() << std::endl;
+    cout << "TESTING REMOVE:" << endl;
+    // cout << "lib's xml:" << endl << lib->xml() << endl;
     if (lib) {
         lib->remove(path);
         if (lib) {
             getRslt = lib->element(path);
             if (getRslt) {
-                std::cout << "FAILURE: " << path << " not removed" << std::endl;
-                std::cout << "lib's xml:" << std::endl << lib->xml() << std::endl;
+                cout << "FAILURE: " << path << " not removed" << endl;
+                cout << "lib's xml:" << endl << lib->xml() << endl;
             }
             else {
-                std::cout << "SUCCESS: " << path << " removed" << std::endl;
+                cout << "SUCCESS: " << path << " removed" << endl;
                 retVal = 0;
             }
         }
@@ -231,74 +236,74 @@ int test_remove (RpLibrary* lib, std::string path)
 
 int test_entities (RpLibrary* lib)
 {
-    std::list<std::string>::iterator iter;
-    std::list<std::string> elist = lib->entities();
+    list<string>::iterator iter;
+    list<string> elist = lib->entities();
 
     iter = elist.begin();
 
-    std::cout << "TESTING ENTITIES BEGIN" << std::endl;
-    std::cout << "path = "<< lib->nodePath() << std::endl;
+    cout << "TESTING ENTITIES BEGIN" << endl;
+    cout << "path = "<< lib->nodePath() << endl;
 
     while (iter != elist.end() ) {
-        std::cout << *iter << std::endl;
+        cout << *iter << endl;
         iter++;
     }
 
-    std::cout << "TESTING ENTITIES END" << std::endl;
+    cout << "TESTING ENTITIES END" << endl;
 
     return 0;
 }
 
 int test_diff (RpLibrary* lib1, RpLibrary* lib2)
 {
-    std::list<std::string>::iterator iter;
-    std::list<std::string> elist;
+    list<string>::iterator iter;
+    list<string> elist;
 
     elist = lib1->diff(lib2,"input");
 
     iter = elist.begin();
 
-    std::cout << "TESTING DIFF BEGIN" << std::endl;
+    cout << "TESTING DIFF BEGIN" << endl;
 
     int count = 0;
     while (iter != elist.end() ) {
-        std::cout << *iter << " ";
+        cout << *iter << " ";
         iter++;
         count++;
         if (count == 4) {
-            std::cout << std::endl;
+            cout << endl;
             count = 0;
         }
 
     }
 
-    std::cout << "TESTING DIFF END" << std::endl;
+    cout << "TESTING DIFF END" << endl;
 
     return 0;
 }
 
 /*
-int test_children (RpLibrary* lib, std::string path, std::string type )
+int test_children (RpLibrary* lib, string path, string type )
 {
     int retVal = 1;
     int childNum = -1;
 
-    std::cout << "TESTING CHILDREN: path = " << path << std::endl;
+    cout << "TESTING CHILDREN: path = " << path << endl;
     RpLibrary** searchEle = lib->children(path,"",type);
 
     if (!searchEle || !*searchEle) {
-        std::cout << "searchEle is NULL -> NO CHILDREN" << std::endl;
+        cout << "searchEle is NULL -> NO CHILDREN" << endl;
         retVal = 1;
     }
     else {
 
         while (searchEle[++childNum]) {
-            std::cout << "searchEle comp = :" << searchEle[childNum]->nodeComp() 
-                << ":" << std::endl;
-            std::cout << "searchEle   id = :" << searchEle[childNum]->nodeId()   
-                << ":" << std::endl;
-            std::cout << "searchEle type = :" << searchEle[childNum]->nodeType() 
-                << ":" << std::endl;
+            cout << "searchEle comp = :" << searchEle[childNum]->nodeComp() 
+                << ":" << endl;
+            cout << "searchEle   id = :" << searchEle[childNum]->nodeId()   
+                << ":" << endl;
+            cout << "searchEle type = :" << searchEle[childNum]->nodeType() 
+                << ":" << endl;
             delete (searchEle[childNum]);
             searchEle[childNum] = NULL;
         }
@@ -313,30 +318,30 @@ int test_children (RpLibrary* lib, std::string path, std::string type )
 }
 */
 
-int test_children (RpLibrary* lib, std::string path, std::string type )
+int test_children (RpLibrary* lib, string path, string type )
 {
     int retVal = 1;
     RpLibrary* childEle = NULL;
 
-    std::cout << "TESTING CHILDREN: path = " << path << std::endl;
+    cout << "TESTING CHILDREN: path = " << path << endl;
 
     while ( (childEle = lib->children(path,childEle,type)) ) {
 
-        std::cout << "childEle path = :" << childEle->nodePath() 
-            << ":" << std::endl;
-        std::cout << "childEle comp = :" << childEle->nodeComp() 
-            << ":" << std::endl;
-        std::cout << "childEle   id = :" << childEle->nodeId()   
-            << ":" << std::endl;
-        std::cout << "childEle type = :" << childEle->nodeType() 
-            << ":" << std::endl;
+        cout << "childEle path = :" << childEle->nodePath() 
+            << ":" << endl;
+        cout << "childEle comp = :" << childEle->nodeComp() 
+            << ":" << endl;
+        cout << "childEle   id = :" << childEle->nodeId()   
+            << ":" << endl;
+        cout << "childEle type = :" << childEle->nodeType() 
+            << ":" << endl;
 
         retVal = 0;
 
     }
 
     if (!childEle) {
-        std::cout << "No more children" << std::endl;
+        cout << "No more children" << endl;
     }
 
     return retVal;
@@ -354,7 +359,7 @@ main(int argc, char** argv)
         return EXIT_FAILURE;
     }
 
-    lib = new RpLibrary(std::string(argv[1]));
+    lib = new RpLibrary(string(argv[1]));
 
     test_element(lib,"");
     test_element(lib,"input.number(min)");
@@ -423,39 +428,39 @@ main(int argc, char** argv)
     test_children(lib,"input","");
     test_children(lib,"input","number");
 
-    std::cout << lib->xml() << std::endl;
+    cout << lib->xml() << endl;
 
     RpLibrary* remEle = lib->element("input.test.(min)");
     test_remove(remEle,"");
     remEle->remove();
     test_remove(lib, "input.test.(min)");
     test_remove(lib, "input.test.(max)");
-    std::cout << lib->xml() << std::endl;
+    cout << lib->xml() << endl;
 
     RpLibrary* libInput = lib->element("input");
     test_entities(lib);
     test_entities(libInput);
 
     /*
-    std::list<std::string> l1 = lib->value("input.number(min)");
-    std::list<std::string> l2 = lib->value("input.number(max)");
-    std::cout << "l1 = " << l1.front() << " " << l1.back() << std::endl;
-    std::cout << "l2 = " << l2.front() << " " << l2.back() << std::endl;
+    list<string> l1 = lib->value("input.number(min)");
+    list<string> l2 = lib->value("input.number(max)");
+    cout << "l1 = " << l1.front() << " " << l1.back() << endl;
+    cout << "l2 = " << l2.front() << " " << l2.back() << endl;
     */
 
-    RpLibrary* dlib1 = new RpLibrary(std::string(argv[1]));
-    RpLibrary* dlib2 = new RpLibrary(std::string(argv[1]));
+    RpLibrary* dlib1 = new RpLibrary(string(argv[1]));
+    RpLibrary* dlib2 = new RpLibrary(string(argv[1]));
     test_diff(dlib1,dlib2);
-    std::cout << "dlib1-------------------------------------" << std::endl;
-    std::cout << dlib1->xml() << std::endl;
-    std::cout << "dlib2-------------------------------------" << std::endl;
-    std::cout << dlib1->xml() << std::endl;
+    cout << "dlib1-------------------------------------" << endl;
+    cout << dlib1->xml() << endl;
+    cout << "dlib2-------------------------------------" << endl;
+    cout << dlib1->xml() << endl;
     dlib1 = lib;
     test_diff(dlib1,dlib2);
-    std::cout << "dlib1-------------------------------------" << std::endl;
-    std::cout << dlib1->xml() << std::endl;
-    std::cout << "dlib2-------------------------------------" << std::endl;
-    std::cout << dlib2->xml() << std::endl;
+    cout << "dlib1-------------------------------------" << endl;
+    cout << dlib1->xml() << endl;
+    cout << "dlib2-------------------------------------" << endl;
+    cout << dlib2->xml() << endl;
 
 
 
@@ -483,34 +488,34 @@ main(int argc, char** argv)
     lib2.put("input.output.curve(curve2).xy.current", "15e-4 5.0\n","",1);
 
 
-    std::cout << "//////////////////// LIB 2 ////////////////////" << std::endl;
-    std::cout << lib2.xml() << std::endl;
-    std::cout << "//////////////////// LIB 3 ////////////////////" << std::endl;
-    std::cout << lib3.xml() << std::endl;
+    cout << "//////////////////// LIB 2 ////////////////////" << endl;
+    cout << lib2.xml() << endl;
+    cout << "//////////////////// LIB 3 ////////////////////" << endl;
+    cout << lib3.xml() << endl;
 
     lib2.result();
 
 
-    std::cout << "testing with &lt;number&gt;" << std::endl;
+    cout << "testing with &lt;number&gt;" << endl;
     lib2.put("input.dsk.test", "slkdjfs slkdfj lks &lt;number&gt; sdlkfj sdlkjf","",1);
-    std::cout << lib2.xml() << std::endl;
-    std::cout << "testing get &lt;number&gt;" << std::endl;
-    std::cout << lib2.get("input.dsk.test") << std::endl;
-    std::cout << "testing with <number>" << std::endl;
+    cout << lib2.xml() << endl;
+    cout << "testing get &lt;number&gt;" << endl;
+    cout << lib2.get("input.dsk.test") << endl;
+    cout << "testing with <number>" << endl;
     lib2.put("input.dsk.test2", "slkdjfs slkdfj lks <number> sdlkfj sdlkjf","",1);
-    std::cout << lib2.xml() << std::endl;
+    cout << lib2.xml() << endl;
 
     /*
     RpLibrary* childEle  = NULL;
     RpLibrary* childEle2 = NULL;
     while ( (childEle = lib2.children("input",childEle)) ) {
-        std::cout << "childEle path = :" << childEle->nodePath() << ":" << std::endl;
+        cout << "childEle path = :" << childEle->nodePath() << ":" << endl;
         while ( (childEle2 = childEle->children("",childEle2)) ) {
-            std::cout << "childEle2 path = :" << childEle2->nodePath() << ":" << std::endl;
+            cout << "childEle2 path = :" << childEle2->nodePath() << ":" << endl;
         }
         childEle2 = NULL;
         if (!childEle) {
-            std::cout << "childEle Not null" << std::endl;
+            cout << "childEle Not null" << endl;
         }
     }
     */
