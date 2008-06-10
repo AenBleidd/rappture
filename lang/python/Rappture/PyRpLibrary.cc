@@ -10,6 +10,10 @@
 #include <Python.h>
 #include <RpLibrary.h>
 
+#ifndef Py_RETURN_NONE
+#define Py_RETURN_NONE return Py_INCREF(Py_None), Py_None
+typedef int Py_ssize_t;
+#endif
 
 static PyObject *ErrorObject;
 RpLibrary* RpLibraryObject_AsLibrary(PyObject *lib);
