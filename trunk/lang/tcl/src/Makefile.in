@@ -46,7 +46,7 @@ CDEBUGFLAGS     = -g -Wall
 
 LIBS		= \
 		-L../../../src/core -lrappture \
-		-L$(libdir) -ltcl -lexpat -lz -lb64 -lm -lstdc++ 
+		-L$(libdir) -ltcl8.4 -lexpat -lz -lb64 -lm -lstdc++ 
 
 OBJS 		= \
 		Rappture_Init.o \
