@@ -21,7 +21,7 @@ INCLUDES	= -I$(srcdir)/../../src/core \
 		  -I$(includedir)
 LIBS		= \
 		-L../../src/core -lrappture \
-		-L$(libdir) -lexpat -lb64 -lz
+		-L$(libdir) -lexpat -lz
 VPATH		= $(srcdir)
 
 CXX_SWITCHES	= $(CXXFLAGS) $(INCLUDES) $(DEFINES)	

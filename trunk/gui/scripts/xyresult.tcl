@@ -541,6 +541,7 @@ itcl::body Rappture::XyResult::_rebuild {} {
     foreach axis [$g axis names] {
         $g axis configure $axis -hide yes
     }
+    # Presumably you want at least an X-axis and Y-axis displayed.
     $g xaxis configure -hide no
     $g yaxis configure -hide no
     catch {unset _label2axis}
