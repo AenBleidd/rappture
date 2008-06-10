@@ -36,7 +36,7 @@ ifneq ($(MEX),)
   LANGS += target_matlab
 endif
 ifneq ($(RUBY),)
-  LANGS += target_ruby
+#  LANGS += target_ruby
 endif
 
 BUILD_TARGETS =	$(patsubst target_%,build_%,$(LANGS)) 
