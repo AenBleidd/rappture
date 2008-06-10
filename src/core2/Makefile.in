@@ -52,7 +52,7 @@ RANLIB		= @RANLIB@
 SHELL		= @SHELL@
 VPATH		= $(srcdir)
 
-LIBS 		= -lrappture -lb64 -lz
+LIBS 		= -lrappture -lz
 
 INCLUDES	= \
 		-I$(srcdir) \

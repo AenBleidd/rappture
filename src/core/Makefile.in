@@ -33,12 +33,12 @@ INCLUDES	= -I$(srcdir) \
 
 RANLIB 		= @RANLIB@
 AR 		= ar
-VPATH		= $(srcdir):$(srcdir)/scew
+VPATH		= $(srcdir):$(srcdir)/scew:$(srcdir)/b64
 RM		= rm -f
 
 CDEBUGFLAGS     = -g -Wall
 
-LIBS		= -lexpat -lz -lb64 -lm -lstdc++
+LIBS		= -lexpat -lz -lm -lstdc++
 
 HEADERS = \
 		RpOutcome.h \
@@ -72,6 +72,10 @@ HEADERS = \
 
 # Build the scew library directly into Rappture for now.  
 # Note: This works because of viewpath-ing. See the VPATH variable.
+B64_OBJS	= \
+		cdecode.o \
+		cencode.o
+
 SCEW_OBJS 	= \
 		attribute.o \
 		element.o \
@@ -109,7 +113,8 @@ OBJS = 		\
 		RpUtils.o \
 		RpUtilsCInterface.o \
 		RpUtilsFInterface.o  \
-		$(SCEW_OBJS)
+		$(SCEW_OBJS) \
+		$(B64_OBJS) 
 
 name		= rappture
 libname 	= lib$(name)

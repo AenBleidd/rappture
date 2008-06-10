@@ -20,7 +20,7 @@ VPATH		= $(srcdir)
 
 INCLUDES    	= -I$(srcdir)/../../../src/core
 LIBS		= -L../../../src/core -lrappture \
-		  -L$(libdir) -lexpat -lb64 -lz
+		  -L$(libdir) -lexpat -lz
 
 FC_SWITCHES 	= $(FCFLAGS) $(FCDEBUGFLAGS) $(DEFINES) $(INCLUDES)
 
