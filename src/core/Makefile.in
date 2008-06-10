@@ -146,4 +146,4 @@ clean:
 	$(RM) $(OBJS) $(lib) $(shared_lib)
 
 distclean: clean
-	rm Makefile *~
+	$(RM) Makefile *~
