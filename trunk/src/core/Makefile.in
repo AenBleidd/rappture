@@ -57,6 +57,7 @@ HEADERS = \
 		RpLibraryFStubs.h \
 		RpOutcomeCHelper.h \
 		RpOutcomeCInterface.h \
+		RpSimpleBuffer.h \
 		RpUnits.h \
 		RpUnitsCInterface.h \
 		RpUnitsFInterface.h \
@@ -100,6 +101,7 @@ OBJS = 		\
 		RpOutcomeCInterface.o \
 		RpPtr.o \
 		RpResult.o \
+		RpSimpleBuffer.o \
 		RpUnits.o \
 		RpUnitsCInterface.o \
 		RpUnitsFInterface.o \
