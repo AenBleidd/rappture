@@ -1,7 +1,7 @@
 /*
  * ======================================================================
  *  AUTHOR:  Derrick S. Kearney, Purdue University
- *  Copyright (c) 2004-2007  Purdue Research Foundation
+ *  Copyright (c) 2004-2008  Purdue Research Foundation
  *
  *  See the file "license.terms" for information on usage and
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -12,7 +12,17 @@
 
 #ifndef Py_RETURN_NONE
 #define Py_RETURN_NONE return Py_INCREF(Py_None), Py_None
+#endif
+
+/*
+ * As suggested by PEP353
+ * http://www.python.org/dev/peps/pep-0353/
+ */
+
+#if PY_VERSION_HEX < 0x02050000 && !defined(PY_SSIZE_T_MIN)
 typedef int Py_ssize_t;
+#define PY_SSIZE_T_MAX INT_MAX
+#define PY_SSIZE_T_MIN INT_MIN
 #endif
 
 static PyObject *ErrorObject;
