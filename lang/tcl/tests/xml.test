@@ -29,8 +29,7 @@ test xml-1.1 {xml command, 0 args} {
     catch {unset lib}
     set lib [Rappture::library rplib_test.xml]
     set xmltext [$lib xml]
-} {<?xml version="1.0"?>
-<run>
+} {<run>
     <tool>
         <title>Graphing Calculator</title>
         <about>Press Simulate to view results.</about>
@@ -82,7 +81,7 @@ test xml-2.1 {xml command, 1 argument} {
     catch {unset lib}
     set lib [Rappture::library rplib_test.xml]
     list [catch {$lib xml "1moreArg"} msg] $msg
-} {1 {wrong # args: should be "::libraryObj1 xml "}}
+} {1 {wrong # args: should be "libraryObj1 xml"}}
 
 
 ::tcltest::cleanupTests

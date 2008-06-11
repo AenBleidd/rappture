@@ -27,12 +27,11 @@ catch {unset lib}
 set lib [Rappture::library rplib_test.xml]
 test library-11.0.1 {remove command, 2 arguments} {
     list [catch {$lib remove output junk} msg] $msg
-} {1 {wrong # args: should be "::libraryObj0 remove ?<path>?"}}
+} {1 {wrong # args: should be "libraryObj0 remove ?path?"}}
 test library-11.1.1 {remove command, 1 argument, valid path} {
     $lib remove output
     $lib xml
-} {<?xml version="1.0"?>
-<run>
+} {<run>
     <tool>
         <title>Graphing Calculator</title>
         <about>Press Simulate to view results.</about>

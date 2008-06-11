@@ -30,7 +30,7 @@ test get-1.0.1 {get command, zero arguments } {
 } {}
 test get-1.0.2 {get command, two arguments } {
     list [ catch {$lib get "input.number(min).default" "ggg"} msg] $msg
-} {1 {wrong # args: should be "::libraryObj0 get ?path?"}}
+} {1 {wrong # args: should be "get ?-decode yes? ?path?"}}
 #----------------------------------------------------------
 test get-1.1 {get command valid path} {
     set cmd [$lib get "tool.command"]

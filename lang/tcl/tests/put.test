@@ -35,7 +35,7 @@ test library-4.0.1 {put command valid path 0 arg} {
     catch {unset libPut}
     set libPut [Rappture::library rplib_test.xml]
     list [catch {$libPut put} msg] $msg
-} {1 {wrong # args: should be "put ?-append yes? ?-id num? ?<path>? <string>"}}
+} {1 {wrong # args: should be "put ?-append bval? ?-id num? ?-type string|file? ?-compress bval? ?path? string"}}
 test library-4.1.1 {put command valid path 1 arg} {
     catch {unset libPut}
     set libPut [Rappture::library rplib_test.xml]
@@ -94,11 +94,6 @@ test library-4.2.3 {put command test append blank} {
     list [catch {$libPut put -append "input.test(withId)" "val2"} msg] $msg
     # $libPut xml
 } {1 {expected boolean value but got "input.test(withId)"}}
-test library-4.2.4 {put command test append blank} {
-    # catch {unset libPut}
-    # set libPut [Rappture::library rplib_test.xml]
-    list [catch {$libPut put -append} msg] $msg
-} {1 {expected boolean value but got ""}}
 test library-4.2.5 {put command test append junk} {
     catch {unset libPut}
     set libPut [Rappture::library rplib_test.xml]
@@ -154,7 +149,7 @@ test library-4.3.1 {put command valid path 3 arg} {
     catch {unset libPut}
     set libPut [Rappture::library rplib_test.xml]
     list [catch {$libPut put "input.test" "val1" "val2"} msg] $msg
-} {1 {wrong # args: should be "put ?-append yes? ?-id num? ?<path>? <string>"}}
+} {1 {wrong # args: should be "put ?-append bval? ?-id num? ?-type string|file? ?-compress bval? ?path? string"}}
 
 
 ::tcltest::cleanupTests
