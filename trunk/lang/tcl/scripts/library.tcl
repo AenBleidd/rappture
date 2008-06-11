@@ -346,6 +346,9 @@ itcl::body Rappture::LibraryObj::parent {args} {
         return ""
     }
     set node [$node parentNode]
+    if {$node == ""} {
+        return ""
+    }
 
     switch -- $params(-as) {
       object {
@@ -452,7 +455,7 @@ itcl::body Rappture::LibraryObj::children {args} {
           }
       }
       default {
-          error "bad flavor \"$params(-as)\": should be component, id, object, type"
+          error "bad flavor \"$params(-as)\": should be component, id, object, path, type"
       }
     }
     return $rlist
@@ -501,7 +504,7 @@ itcl::body Rappture::LibraryObj::get {args} {
         return ""
     }
     if {$params(-decode) == "yes"} {
-        return [Rappture::encoding::decode [string trim [$node text]]]
+        return [Rappture::encoding::decode -- [string trim [$node text]]]
     } else {
         return [string trim [$node text]]
     }
@@ -542,7 +545,7 @@ itcl::body Rappture::LibraryObj::put {args} {
             break
         }
     }
-    if {[llength $args] > 2} {
+    if {[llength $args] < 1 || [llength $args] > 2} {
         error "wrong # args: should be \"put ?-append bval? ?-id num? ?-type string|file? ?-compress bval? ?path? string\""
     }
     if {[llength $args] == 2} {
@@ -562,7 +565,7 @@ itcl::body Rappture::LibraryObj::put {args} {
     }
 
     if {$params(-compress) || [Rappture::encoding::is binary $str]} {
-        set str [Rappture::encoding::encode $str]
+        set str [Rappture::encoding::encode -- $str]
     }
 
     set node [find -create $path]

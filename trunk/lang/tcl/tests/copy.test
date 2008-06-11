@@ -25,45 +25,21 @@ catch {unset lib}
 #----------------------------------------------------------
 catch {unset lib}
 set lib [Rappture::library rplib_test.xml]
-# this test works for old tcl bindings, different error message
-#test library-9.0.1.1 {copy command, 0 args} {
-#    list [catch {$lib copy} msg] $msg
-#} {1 {wrong # args: should be "libraryObj0 copy path from ?arg arg ...?"}}
-# this test works for new tcl bindings, different error message
-test library-9.0.1.2 {copy command, 0 args} {
+test library-9.0.1.1 {copy command, 0 args} {
     list [catch {$lib copy} msg] $msg
-} {1 {wrong # args: should be "::libraryObj0 copy path from ?xmlobj? path"}}
-# this test works for old tcl bindings, different error message
-#test library-9.0.2.1 {copy command, 0 args} {
-#    list [catch {$lib copy "input.number(min)"} msg] $msg
-#} {1 {wrong # args: should be "libraryObj0 copy path from ?arg arg ...?"}}
-# this test works for new tcl bindings, different error message
-test library-9.0.2.2 {copy command, 0 args} {
+} {1 {wrong # args: should be "libraryObj0 copy path from ?arg arg ...?"}}
+test library-9.0.2.1 {copy command, 0 args} {
     list [catch {$lib copy "input.number(min)"} msg] $msg
-} {1 {wrong # args: should be "::libraryObj0 copy path from ?xmlobj? path"}}
-# this test works for old tcl bindings, different error message
-#test library-9.0.3.1 {copy command, 1 arg} {
-#    list [catch {$lib copy "input.number(min)" from } msg] $msg
-#} {1 {wrong # args: should be "copy path from ?xmlobj? path"}}
-# this test works for new tcl bindings, different error message
-test library-9.0.3.2 {copy command, 1 arg} {
+} {1 {wrong # args: should be "libraryObj0 copy path from ?arg arg ...?"}}
+test library-9.0.3.1 {copy command, 1 arg} {
     list [catch {$lib copy "input.number(min)" from } msg] $msg
-} {1 {wrong # args: should be "::libraryObj0 copy path from ?xmlobj? path"}}
-# this test works for old tcl bindings
-# does not work for new tcl bindings because the bad paths are not
-# discovered in the binding, but in the core copy function and
-# currently errors from the core functions are not relayed to 
-# the bindings.
-#test library-9.0.4 {copy command not enough arg} {
-#    list [catch {$lib copy "input.number(min)" from $lib} msg] $msg
-#} {1 {bad path component "::libraryObj0"}}
-# this test works for old tcl bindings, different error message
-#test library-9.0.5.1 {copy command not enough arg} {
-#    list [catch {$lib copy "input.number(min)" from } msg] $msg
-#} {1 {wrong # args: should be "copy path from ?xmlobj? path"}}
-test library-9.0.5.2 {copy command not enough arg} {
+} {1 {wrong # args: should be "copy path from ?xmlobj? path"}}
+test library-9.0.4 {copy command not enough arg} {
+    list [catch {$lib copy "input.number(min)" from $lib} msg] $msg
+} {1 {bad path component "::libraryObj0"}}
+test library-9.0.5.1 {copy command not enough arg} {
     list [catch {$lib copy "input.number(min)" from } msg] $msg
-} {1 {wrong # args: should be "::libraryObj0 copy path from ?xmlobj? path"}}
+} {1 {wrong # args: should be "copy path from ?xmlobj? path"}}
 test library-9.1.1 {copy command, bad syntax, switched from -> junk} {
     list [catch {$lib copy "input.number(blah)" junk "input.number(min)"} msg] $msg
 } {1 {bad syntax: should be "copy path from ?xmlobj? path"}}

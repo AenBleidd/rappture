@@ -136,10 +136,10 @@ RpTclEncodingEncode (   ClientData cdata,
     cmdName = Tcl_GetString(objv[nextarg++]);
 
     // parse through command line options
-    if ((objc <= 2) && (objc >= 5)) {
+    if (objc < 1) {
         Tcl_AppendResult(interp,
                 "wrong # args: should be \"", cmdName,
-                " ?-as z|b64|zb64? ?-no-header? <string>\"", (char*)NULL);
+                " ?-as z|b64|zb64? ?-no-header? ?--? <string>\"", (char*)NULL);
         return TCL_ERROR;
     }
 
@@ -184,8 +184,15 @@ RpTclEncodingEncode (   ClientData cdata,
                 nextarg++;
                 addHeader = 0;
             }
-            else {
+            else if ( strcmp(option,"--") == 0 ) {
+                nextarg++;
                 break;
+            }
+            else {
+                Tcl_AppendResult(interp,
+                    "bad option \"", option,
+                    "\": should be -as, -no-header, --", (char*)NULL);
+                return TCL_ERROR;
             }
         }
         else {
@@ -196,7 +203,7 @@ RpTclEncodingEncode (   ClientData cdata,
     if ((objc - nextarg) != 1) {
         Tcl_AppendResult(interp,
                 "wrong # args: should be \"", cmdName,
-                " ?-as z|b64|zb64? ?-no-header? <string>\"", (char*)NULL);
+                " ?-as z|b64|zb64? ?-no-header? ?--? <string>\"", (char*)NULL);
         return TCL_ERROR;
     }
 
@@ -268,55 +275,67 @@ RpTclEncodingDecode (   ClientData cdata,
     cmdName = Tcl_GetString(objv[nextarg++]);
 
     // parse through command line options
-    if ((objc != 2) && (objc != 4)) {
+    if (objc < 1) {
         Tcl_AppendResult(interp,
                 "wrong # args: should be \"", cmdName,
-                " ?-as z|b64|zb64? <string>\"", (char*)NULL);
+                " ?-as z|b64|zb64? ?--? <string>\"", (char*)NULL);
         return TCL_ERROR;
     }
 
-    option = Tcl_GetStringFromObj(objv[nextarg], &optionLen);
-    if (*option == '-') {
-        if ( strncmp(option,"-as",optionLen) == 0 ) {
-            nextarg++;
-            typeLen = 0;
-            if (nextarg < objc) {
-                encodeType = Tcl_GetStringFromObj(objv[nextarg],&typeLen);
+    while ((objc - nextarg) > 0) {
+        option = Tcl_GetStringFromObj(objv[nextarg], &optionLen);
+        if (*option == '-') {
+            if ( strncmp(option,"-as",optionLen) == 0 ) {
                 nextarg++;
-            }
-            if (        (typeLen == 1) &&
-                        (strncmp(encodeType,"z",typeLen) == 0) ) {
-                decompress = 1;
-                base64 = 0;
-            }
-            else if (   (typeLen == 3) &&
-                        (strncmp(encodeType,"b64",typeLen) == 0) ) {
-                decompress = 0;
-                base64 = 1;
-            }
-            else if (   (typeLen == 4) &&
-                        (strncmp(encodeType,"zb64",typeLen) == 0) ) {
-                decompress = 1;
-                base64 = 1;
-            }
-            else {
-                // user did not specify recognized wishes for this option,
-                Tcl_AppendResult(interp, "bad value \"",(char*)NULL);
-                if (encodeType != NULL) {
-                    Tcl_AppendResult(interp, encodeType,(char*)NULL);
+                typeLen = 0;
+                if (nextarg < objc) {
+                    encodeType = Tcl_GetStringFromObj(objv[nextarg],&typeLen);
+                    nextarg++;
                 }
+                if (        (typeLen == 1) &&
+                            (strncmp(encodeType,"z",typeLen) == 0) ) {
+                    decompress = 1;
+                    base64 = 0;
+                }
+                else if (   (typeLen == 3) &&
+                            (strncmp(encodeType,"b64",typeLen) == 0) ) {
+                    decompress = 0;
+                    base64 = 1;
+                }
+                else if (   (typeLen == 4) &&
+                            (strncmp(encodeType,"zb64",typeLen) == 0) ) {
+                    decompress = 1;
+                    base64 = 1;
+                }
+                else {
+                    // user did not specify recognized wishes for this option,
+                    Tcl_AppendResult(interp, "bad value \"",(char*)NULL);
+                    if (encodeType != NULL) {
+                        Tcl_AppendResult(interp, encodeType,(char*)NULL);
+                    }
+                    Tcl_AppendResult(interp,
+                            "\": should be one of z, b64, zb64",
+                            (char*)NULL);
+                    return TCL_ERROR;
+                }
+            } else if ( strcmp(option,"--") == 0 ) {
+                nextarg++;
+                break;
+            } else {
                 Tcl_AppendResult(interp,
-                        "\": should be one of z, b64, zb64",
-                        (char*)NULL);
+                    "bad option \"", option,
+                    "\": should be -as, --", (char*)NULL);
                 return TCL_ERROR;
             }
+        } else {
+            break;
         }
     }
 
     if ((objc - nextarg) != 1) {
         Tcl_AppendResult(interp,
                 "wrong # args: should be \"", cmdName,
-                " ?-as z|b64|zb64? <string>\"", (char*)NULL);
+                " ?-as z|b64|zb64? ?--? <string>\"", (char*)NULL);
         return TCL_ERROR;
     }
 

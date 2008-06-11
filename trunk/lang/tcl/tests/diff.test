@@ -33,14 +33,9 @@ set libnew [Rappture::library rplib_test.xml]
 set libDefault [Rappture::library rplib_test.xml]
 set libFromGet [$libDefault element -as object "input.number(max)"]
 
-# this test works for old tcl bindings, different error message
-#test library-10.0.1.1 {diff command, no arguments} {
-#    list [catch {$lib diff} msg] $msg
-#} {1 {wrong # args: should be "libraryObj0 diff libobj"}}
-# this test works for new tcl bindings, different error message
-test library-10.0.1.2 {diff command, no arguments} {
+test library-10.0.1.1 {diff command, no arguments} {
     list [catch {$lib diff} msg] $msg
-} {1 {wrong # args: should be "::libraryObj0 diff xmlobj"}}
+} {1 {wrong # args: should be "libraryObj0 diff libobj"}}
 test library-10.1.1 {diff command, one argument, no difference} {
     $lib diff $libnew
 } {}
@@ -66,7 +61,7 @@ test library-10.2.2 {diff command, one argument} {
 } {+ input.structure {} input.structure + input.structure.current.parameters.number(w) {} 6nm}
 test library-10.3.1 {diff command, two arguments, returns error} {
     list [catch {$lib diff $libnew $libnew} msg] $msg
-} {1 {wrong # args: should be "::libraryObj0 diff xmlobj"}}
+} {1 {wrong # args: should be "libraryObj0 diff libobj"}}
 test library-10.3.2 {diff command, bad second arg, returns error} {
     list [catch {$lib diff slfd} msg] $msg
 } {1 {invalid command name "slfd"}}

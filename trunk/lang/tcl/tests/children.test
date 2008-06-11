@@ -40,13 +40,9 @@ test library-8.1.3 {children command non-existant path 1 arg} {
 test library-8.2.1 {children command path 2 arg} {
     list [catch {$lib children "input.number(min)" "wreew"} msg] $msg
 } {1 {wrong # args: should be "children ?-as fval? ?-type name? ?path?"}}
-# this test works for tcl version of rappture, different error message
-#test library-8.3.1.1 {children command path -as flag  no option} {
-#    list [catch {$lib children -as} msg] $msg
-#} {1 {bad path component "-as"}}
-test library-8.3.1.2 {children command path -as flag  no option} {
+test library-8.3.1 {children command path -as flag  no option} {
     list [catch {$lib children -as} msg] $msg
-} {1 {bad flavor "" for -as: should be component, id, object, path, type}}
+} {1 {bad path component "-as"}}
 test library-8.3.2 {children command path -as flag component path} {
     $lib children -as component "input"
 } {string(formula) string(name) number(min) number(max)}
@@ -62,14 +58,9 @@ test library-8.3.5 {children command path -as path type path} {
 test library-8.3.6 {children command path -as object type path} {
     $lib children -as object "input"
 } {::libraryObj1 ::libraryObj2 ::libraryObj3 ::libraryObj4}
-# this test works for old tcl bindings, different error message
-#test library-8.3.7 {children command path -as junk type path} {
-#    list [catch {$lib children -as junk "input"} msg] $msg
-#} {1 {bad flavor "junk": should be component, id, object, path, type}}
-# this test works for new tcl bindings, different error message
 test library-8.3.7 {children command path -as junk type path} {
     list [catch {$lib children -as junk "input"} msg] $msg
-} {1 {bad flavor "junk" for -as: should be component, id, object, path, type}}
+} {1 {bad flavor "junk": should be component, id, object, path, type}}
 test library-8.4.1 {children command path -type number path} {
     $lib children -type "number" "input"
 } {number(min) number(max)}
