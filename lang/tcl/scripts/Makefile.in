@@ -13,7 +13,7 @@ INSTALL		= @INSTALL@
 INSTALL_PROGRAM	= ${INSTALL} -m 755
 INSTALL_DATA	= ${INSTALL} -m 644
 INSTALL_SCRIPT	= ${INSTALL}
-TCLSH		= $(bindir)/tclsh
+TCLSH		= $(bindir)/tclsh8.4
 VERSION		= @PACKAGE_VERSION@
 VPATH		= $(srcdir)
 

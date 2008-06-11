@@ -26,8 +26,10 @@ enum RP_LIBRARY_CONSTS {
 
 #ifdef __cplusplus
 
-#include "scew/scew.h"
-#include "scew_extras.h"
+typedef struct _scew_parser scew_parser;
+typedef struct _scew_tree scew_tree;
+typedef struct _scew_element scew_element;
+
 #include <list>
 #include "RpBuffer.h"
 #include "RpOutcome.h"

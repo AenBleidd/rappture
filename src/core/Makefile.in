@@ -67,8 +67,26 @@ HEADERS = \
 		RpUtilsCInterface.h \
 		RpUtilsFInterface.h \
 		RpUtilsFStubs.h \
-		rappture.h \
-		scew_extras.h
+		rappture.h 
+
+SCEW_HEADERS 	= \
+		attribute.h  \
+		element.h \
+		error.h \
+		parser.h \
+		scew.h \
+		scew_extras.h  \
+		str.h \
+		tree.h \
+		types.h \
+		xattribute.h \
+		xelement.h \
+		xhandler.h \
+		xparser.h \
+		xprint.h \
+		xtree.h \
+	        writer.h \
+	        xerror.h 
 
 # Build the scew library directly into Rappture for now.  
 # Note: This works because of viewpath-ing. See the VPATH variable.

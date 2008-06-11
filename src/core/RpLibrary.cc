@@ -11,6 +11,8 @@
  * ======================================================================
  */
 
+#include "scew/scew.h"
+#include "scew_extras.h"
 #include "RpLibrary.h"
 #include "RpEntityRef.h"
 #include "RpEncode.h"
