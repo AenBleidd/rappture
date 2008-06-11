@@ -243,9 +243,10 @@ RbRp_PutFile(VALUE self, VALUE path, VALUE filename, VALUE append,
 
    if (T_STRING == TYPE(filename))
    {
-      ID id_filetest = rb_intern("FileTest.file?");
+      VALUE ft = rb_const_get(rb_cObject, rb_intern("FileTest")); 
+      ID id_filetest = rb_intern("file?");
 
-      if (Qtrue == rb_funcall(filename, id_filetest, 0))  /* valid filename */
+      if (Qtrue == rb_funcall(ft, id_filetest, 1, filename))  /* valid filename */
       {
          lib->putFile(STR2CSTR(path), STR2CSTR(filename), NUM2INT(compress), 
                       NUM2INT(append));
