@@ -25,6 +25,7 @@ LIBS		= -L../../../../src/core -lrappture \
 CC_SWITCHES 	= $(CFLAGS) $(CDEBUGFLAGS) $(DEFINES) $(INCLUDES)
 
 FILES		= \
+		Makefile \
 		$(srcdir)/fermi.m \
 		$(srcdir)/fermi.c \
 		$(srcdir)/tool.xml 

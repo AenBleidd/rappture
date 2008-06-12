@@ -17,14 +17,7 @@ namespace import -force tcltest::*
 
 if {$tcl_platform(platform) == "macintosh"} {
 	tcltest::singleProcess 1
-    set env(LD_LIBRARY_PATH) /usr/local/rappture/lib
-    load [pwd]/../src/Rappture1.1.so
-} else {
-    set env(LD_LIBRARY_PATH) /usr/local/rappture/lib
-    load [pwd]/../src/Rappture1.1.so
 }
-lappend auto_path [pwd]/../../../tcl/scripts/tmp.build \
-	[pwd]/../../../gui/scripts/tmp.build
 
 tcltest::testsDirectory [file dir [info script]]
 tcltest::runAllTests

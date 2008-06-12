@@ -17,37 +17,38 @@ destdir		= $(prefix)/examples
 FILES		= \
 		demo.bash
 
+SUBDIRS		= \
+		3D \
+		app-fermi \
+		c-example \
+		canvas \
+		graph \
+		zoo 
+
 all:  build
 
 build:
-	$(MAKE) -C app-fermi
-	$(MAKE) -C c-example
-	$(MAKE) -C canvas
-	$(MAKE) -C graph
-	$(MAKE) -C zoo
+	for i in $(SUBDIRS); do \
+	    $(MAKE) -C $$i all || exit 1 ; \
+	done
 
-install: build
+install: 
 	$(INSTALL) -d $(destdir)
 	for i in $(FILES) ; do \
 	  $(INSTALL) -m 555 $$i $(destdir) ; \
 	done
-	$(MAKE) -C app-fermi install
-	$(MAKE) -C 3D install
-	$(MAKE) -C graph install
-	$(MAKE) -C zoo install
-	$(MAKE) -C c-example install
+	for i in $(SUBDIRS); do \
+	    $(MAKE) -C $$i install || exit 1 ; \
+	done
 
 clean:
-	$(MAKE) -C app-fermi clean
-	$(MAKE) -C 3D clean
-	$(MAKE) -C graph clean
-	$(MAKE) -C zoo clean
-	$(MAKE) -C c-example clean
+	for i in $(SUBDIRS); do \
+	    $(MAKE) -C $$i clean || exit 1 ; \
+	done
 
 distclean: clean
-	$(MAKE) -C app-fermi distclean
-	$(MAKE) -C 3D distclean
-	$(MAKE) -C graph distclean
-	$(MAKE) -C zoo distclean
-	$(MAKE) -C c-example distclean
+	for i in $(SUBDIRS); do \
+	    $(MAKE) -C $$i distclean || exit 1 ; \
+	done
 	$(RM) Makefile *~
+

@@ -26,6 +26,7 @@ CC_SWITCHES 	= $(CFLAGS) $(CDEBUGFLAGS) $(DEFINES) $(INCLUDES)
 
 FILES		= \
 		$(srcdir)/tool.xml \
+		$(srcdir)/original.c \
 		$(srcdir)/fermi.c
 
 all: fermi

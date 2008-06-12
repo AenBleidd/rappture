@@ -23,7 +23,7 @@ PYTHON = 	@PYTHON@
 MEX = 		@MEX@
 MKOCTFILE = 	@MKOCTFILE@
 
-LANGS = target_c target_tcl target_wrapper
+LANGS = target_c target_tcl target_wrapper target_2_0
 ifneq ($(F77),)
     LANGS += target_fortran
 endif
@@ -67,6 +67,8 @@ build_ruby:
 	$(MAKE) -C ruby all
 build_wrapper:
 	$(MAKE) -C wrapper all
+build_2_0:
+	$(MAKE) -C 2.0 all
 
 install_c: 
 	$(MAKE) -C cee install
@@ -86,6 +88,8 @@ install_ruby:
 	$(MAKE) -C ruby install
 install_wrapper:
 	$(MAKE) -C wrapper install
+install_2_0:
+	$(MAKE) -C 2.0 install
 
 clean:
 	$(MAKE) -C cee clean
@@ -97,7 +101,8 @@ clean:
 	$(MAKE) -C ruby clean
 	$(MAKE) -C tcl clean
 	$(MAKE) -C wrapper clean
-
+	$(MAKE) -C 2.0 clean
+	
 distclean: 
 	$(MAKE) -C cee distclean
 	$(MAKE) -C fortran distclean
@@ -108,4 +113,5 @@ distclean:
 	$(MAKE) -C ruby distclean
 	$(MAKE) -C tcl distclean
 	$(MAKE) -C wrapper distclean
+	$(MAKE) -C 2.0 distclean
 	$(RM) Makefile
