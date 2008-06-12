@@ -18,7 +18,7 @@ FILES		= \
 		$(srcdir)/angles.html \
 		$(srcdir)/image2.gif
 
-destdir		= $(prefix)/examples/zoo/images/docs
+destdir		= $(prefix)/examples/zoo/image/docs
 
 all: 
 
