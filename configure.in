@@ -197,7 +197,6 @@ AC_SUBST(MEX)
 AC_SUBST(MEX_ARCH)
 AC_SUBST(MEXEXT)
 
-
 dnl AC_ARG_ENABLE(
 dnl     [octave],
 dnl     [AS_HELP_STRING([--enable-octave], [build octave bindings @<:@default=check@:>@])],
@@ -316,60 +315,67 @@ AC_ARG_WITH(
     [with_python=check])
 
 if test "$with_python" != "no" ; then
-    AC_MSG_CHECKING([for python])
-    if test -x "$with_python/bin/python"
+  AC_MSG_CHECKING([for python])
+  if test -x "$with_python/bin/python"
+  then
+    echo Found python in $with_python/bin/python
+    PYTHON="$with_python/bin/python"
+  else
+    if test -x "$with_python"
     then
-        echo Found python in $with_python/bin/python
-        PYTHON="$with_python/bin/python"
+      echo Found python in $with_python
+      PYTHON="$with_python"
     else
-        if test -x "$with_python"
-        then
-            echo Found python in $with_python
-            PYTHON="$with_python"
-        else
-            AC_PATH_PROG(PYTHON, python python2.5 python2.4 python2.3 python2.2 python2.1 python2.0 python1.6 python1.5)
-        fi
+      AC_PATH_PROG(PYTHON, python python2.5 python2.4 python2.3 python2.2 python2.1 python2.0 python1.6 python1.5)
     fi
-    if test "$PYTHON" != ""
-    then
-        PYTHON_VERSION=`$PYTHON -c "import sys; print sys.version[[0:3]]"`
-        echo Using python version $PYTHON_VERSION
-    fi
-    if test "$PYTHON_VERSION" != ""
-    then
+  fi
+  if test "$PYTHON" != ""
+  then
+    PYTHON_VERSION=`$PYTHON -c "import sys; print sys.version[[0:3]]"`
+    echo Using python version $PYTHON_VERSION
+  fi
+  if test "$PYTHON_VERSION" != ""
+  then
     if test -r $with_python/include/python$PYTHON_VERSION/Python.h -a \
-       -d $with_python/lib/python$PYTHON_VERSION/site-packages
+     -d $with_python/lib/python$PYTHON_VERSION/site-packages
     then
-        PYTHON_INCLUDES=$with_python/include/python$PYTHON_VERSION
-        PYTHON_SITE_PACKAGES=$with_python/lib/python$PYTHON_VERSION/site-packages
+      PYTHON_INCLUDES=$with_python/include/python$PYTHON_VERSION
+      PYTHON_SITE_PACKAGES=$with_python/lib/python$PYTHON_VERSION/site-packages
     else
-        if test -r $prefix/include/python$PYTHON_VERSION/Python.h
-        then
-            PYTHON_INCLUDES='$(prefix)/include/python$(PYTHON_VERSION)'
-            PYTHON_SITE_PACKAGES='$(libdir)/python$(PYTHON_VERSION)/site-packages'
-        else
-            if test -r /usr/include/python$PYTHON_VERSION/Python.h
-            then
-                PYTHON_INCLUDES=/usr/include/python$PYTHON_VERSION
-                PYTHON_SITE_PACKAGES='$(libdir)/python$(PYTHON_VERSION)/site-packages'
-            else
-                echo could not find python$PYTHON_VERSION/Python.h
-            fi
-        fi
-        if test ! -d "$PYTHON_SITE_PACKAGES"
-        then
-            PYTHON_SITE_PACKAGES=`$PYTHON -c "from distutils import sysconfig; print sysconfig.get_python_lib()"`
-        fi
+      if test -r $prefix/include/python$PYTHON_VERSION/Python.h
+      then
+	PYTHON_INCLUDES='$(prefix)/include/python$(PYTHON_VERSION)'
+	PYTHON_SITE_PACKAGES='$(libdir)/python$(PYTHON_VERSION)/site-packages'
+      else
+	if test -r /usr/include/python$PYTHON_VERSION/Python.h
+	then
+	  PYTHON_INCLUDES=/usr/include/python$PYTHON_VERSION
+	  PYTHON_SITE_PACKAGES='$(libdir)/python$(PYTHON_VERSION)/site-packages'
+	else
+	  echo could not find python$PYTHON_VERSION/Python.h
+	fi
+      fi
+      if test ! -d "$PYTHON_SITE_PACKAGES"
+      then
+	PYTHON_SITE_PACKAGES=`$PYTHON -c "from distutils import sysconfig; print sysconfig.get_python_lib()"`
+      fi
     fi
-    fi
-    if test "$with_python" != ""
-    then
-        pythondir='$(PYTHON_SITE_PACKAGES)'
-    else
-        pythondir='$(libdir)/python${PYTHON_VERSION}/site-packages'
-    fi
+  fi
+  if test "x$with_python" != "x" ;  then
+    pythondir='$(PYTHON_SITE_PACKAGES)'
+  else
+    pythondir='$(libdir)/python${PYTHON_VERSION}/site-packages'
+  fi
+  AC_MSG_CHECKING([for python distutils])
+  python_result="`$PYTHON -c 'import distutils;' 2>&1`"
+  if test -z "$python_result" ; then
+    PYTHON_HAS_DISTUTILS="yes"
+  else
+    PYTHON_HAS_DISTUTILS="no"
+  fi
+  AC_MSG_RESULT([$PYTHON_HAS_DISTUTILS])
 fi
-
+  
 AC_SUBST(pythondir)
 dnl AC_SUBST(PYTHON_SUBDIR)
 
@@ -377,6 +383,7 @@ AC_SUBST(PYTHON)
 AC_SUBST(PYTHON_VERSION)
 AC_SUBST(PYTHON_INCLUDES)
 AC_SUBST(PYTHON_SITE_PACKAGES)
+AC_SUBST(PYTHON_HAS_DISTUTILS)
 
 AC_ARG_WITH(
     [ruby],

@@ -19,23 +19,36 @@ VPATH		= $(srcdir)
 PYTHON = 	@PYTHON@
 PYTHON_FLAGS = --library-dirs=$(libdir):../../src/core \
                --include-dirs=$(srcdir)/../../src/core:$(includedir)
+PYTHON_SITE_PACKAGES = 	@PYTHON_SITE_PACKAGES@
 
 #
 # Python distutils doesn't handle VPATH correctly. So copy the sources 
 # into a temporary directory.
 #
-all: copy_sources
+ifneq($(PYTHON_SITE_PACKAGES),)
+   MODULE_BUILD		= build_module
+   MODULE_INSTALL	= install_module
+   MODULE_CLEAN		= clean_module
+endif
+
+all: $(MODULE_BUILD)
+
+build_module: copy_sources
 	$(PYTHON) setup.py build_ext $(PYTHON_FLAGS) build
 
-copy_sources:	
+copy_sources:
 	$(RM) -r build/tmp
 	$(INSTALL) -d build/tmp
 	$(INSTALL_DATA) $(srcdir)/Rappture/*.cc build/tmp
  
-install: 
+install: $(MODULE_INSTALL)
+
+install_module:
 	$(PYTHON) setup.py install --prefix=$(prefix) 
 
-clean:
+clean: $(MODULE_CLEAN)
+
+clean_module: 
 	$(PYTHON) setup.py clean
 	$(RM) -rf build 
 
