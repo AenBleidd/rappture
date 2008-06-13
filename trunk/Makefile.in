@@ -27,9 +27,9 @@ ifneq ($(ENABLE_GUI),)
    GUI = gui
 endif
 
-.PHONY: src gui lang test examples
+.PHONY: src gui lang test examples lib
 
-all: src gui lang examples test lib
+all: src gui examples test lib lang
 
 src:
 	$(MAKE) -C src all
@@ -47,9 +47,9 @@ test:
 install: 
 	$(MAKE) -C examples install
 	$(MAKE) -C gui install
-	$(MAKE) -C lang install
 	$(MAKE) -C lib install
 	$(MAKE) -C src install
+	$(MAKE) -C lang install
 
 clean:
 	$(MAKE) -C examples clean

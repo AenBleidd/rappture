@@ -23,17 +23,17 @@ MKOCTFILE = 	@MKOCTFILE@
 # Rappture requires we always build a Tcl language API.
 LANGS = target_tcl
 
-ifneq ($(PERL),)
-  LANGS += target_perl
-endif
-ifneq ($(PYTHON),)
-  LANGS += target_python
-endif
 ifneq ($(MKOCTFILE),)
   LANGS += target_octave
 endif
 ifneq ($(MEX),)
   LANGS += target_matlab
+endif
+ifneq ($(PERL),)
+  LANGS += target_perl
+endif
+ifneq ($(PYTHON),)
+  LANGS += target_python
 endif
 ifneq ($(RUBY),)
 #  LANGS += target_ruby
