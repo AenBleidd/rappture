@@ -29,7 +29,7 @@ endif
 
 .PHONY: src gui lang test examples
 
-all: src gui lang examples test
+all: src gui lang examples test lib
 
 src:
 	$(MAKE) -C src all
@@ -37,6 +37,8 @@ gui:
 	$(MAKE) -C gui all
 lang:
 	$(MAKE) -C lang all
+lib:
+	$(MAKE) -C lib all
 examples:
 	$(MAKE) -C examples all
 test:
@@ -46,12 +48,14 @@ install:
 	$(MAKE) -C examples install
 	$(MAKE) -C gui install
 	$(MAKE) -C lang install
+	$(MAKE) -C lib install
 	$(MAKE) -C src install
 
 clean:
 	$(MAKE) -C examples clean
 	$(MAKE) -C gui clean
 	$(MAKE) -C lang clean
+	$(MAKE) -C lib clean
 	$(MAKE) -C src clean
 	$(MAKE) -C test clean
 
@@ -59,9 +63,10 @@ distclean:
 	$(MAKE) -C examples distclean
 	$(MAKE) -C gui distclean
 	$(MAKE) -C lang distclean
+	$(MAKE) -C lib distclean
 	$(MAKE) -C src distclean
 	$(MAKE) -C test distclean
 	$(RM) Makefile config.status config.log  *~
 
 package: 
-	tar -C $(prefix) -czf $(tarfile) .
+	tar -C $(prefix) -czlf $(tarfile) .

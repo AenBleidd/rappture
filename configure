@@ -663,6 +663,9 @@ CPPFLAGS
 ac_ct_CC
 EXEEXT
 OBJEXT
+F77
+FFLAGS
+ac_ct_F77
 RANLIB
 LN_S
 CPP
@@ -672,9 +675,6 @@ CXX
 CXXFLAGS
 ac_ct_CXX
 CXXCPP
-F77
-FFLAGS
-ac_ct_F77
 AR
 DL_LIBS
 DL_OBJS
@@ -729,13 +729,13 @@ CFLAGS
 LDFLAGS
 LIBS
 CPPFLAGS
+F77
+FFLAGS
 CPP
 CXX
 CXXFLAGS
 CCC
-CXXCPP
-F77
-FFLAGS'
+CXXCPP'
 ac_subdirs_all='packages/optimizer/src '
 
 # Initialize some variables set by options.
@@ -1338,12 +1338,12 @@ Some influential environment variables:
   LIBS        libraries to pass to the linker, e.g. -l<library>
   CPPFLAGS    C/C++/Objective C preprocessor flags, e.g. -I<include dir> if
               you have headers in a nonstandard directory <include dir>
+  F77         Fortran 77 compiler command
+  FFLAGS      Fortran 77 compiler flags
   CPP         C preprocessor
   CXX         C++ compiler command
   CXXFLAGS    C++ compiler flags
   CXXCPP      C++ preprocessor
-  F77         Fortran 77 compiler command
-  FFLAGS      Fortran 77 compiler flags
 
 Use these variables to override the choices made by `configure' or to help
 it to find libraries and programs with nonstandard names/locations.
@@ -2851,6 +2851,266 @@ echo "${ECHO_T}$ac_cv_prog_cc_c89" >&6; } ;;
 esac
 
 
+ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+ac_ext=f
+ac_compile='$F77 -c $FFLAGS conftest.$ac_ext >&5'
+ac_link='$F77 -o conftest$ac_exeext $FFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_f77_compiler_gnu
+if test -n "$ac_tool_prefix"; then
+  for ac_prog in g77 xlf f77 frt pgf77 cf77 fort77 fl32 af77 xlf90 f90 pgf90 pghpf epcf90 gfortran g95 xlf95 f95 fort ifort ifc efc pgf95 lf95 ftn
+  do
+    # Extract the first word of "$ac_tool_prefix$ac_prog", so it can be a program name with args.
+set dummy $ac_tool_prefix$ac_prog; ac_word=$2
+{ echo "$as_me:$LINENO: checking for $ac_word" >&5
+echo $ECHO_N "checking for $ac_word... $ECHO_C" >&6; }
+if test "${ac_cv_prog_F77+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  if test -n "$F77"; then
+  ac_cv_prog_F77="$F77" # Let the user override the test.
+else
+as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+  for ac_exec_ext in '' $ac_executable_extensions; do
+  if { test -f "$as_dir/$ac_word$ac_exec_ext" && $as_test_x "$as_dir/$ac_word$ac_exec_ext"; }; then
+    ac_cv_prog_F77="$ac_tool_prefix$ac_prog"
+    echo "$as_me:$LINENO: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+done
+IFS=$as_save_IFS
+
+fi
+fi
+F77=$ac_cv_prog_F77
+if test -n "$F77"; then
+  { echo "$as_me:$LINENO: result: $F77" >&5
+echo "${ECHO_T}$F77" >&6; }
+else
+  { echo "$as_me:$LINENO: result: no" >&5
+echo "${ECHO_T}no" >&6; }
+fi
+
+
+    test -n "$F77" && break
+  done
+fi
+if test -z "$F77"; then
+  ac_ct_F77=$F77
+  for ac_prog in g77 xlf f77 frt pgf77 cf77 fort77 fl32 af77 xlf90 f90 pgf90 pghpf epcf90 gfortran g95 xlf95 f95 fort ifort ifc efc pgf95 lf95 ftn
+do
+  # Extract the first word of "$ac_prog", so it can be a program name with args.
+set dummy $ac_prog; ac_word=$2
+{ echo "$as_me:$LINENO: checking for $ac_word" >&5
+echo $ECHO_N "checking for $ac_word... $ECHO_C" >&6; }
+if test "${ac_cv_prog_ac_ct_F77+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  if test -n "$ac_ct_F77"; then
+  ac_cv_prog_ac_ct_F77="$ac_ct_F77" # Let the user override the test.
+else
+as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+  for ac_exec_ext in '' $ac_executable_extensions; do
+  if { test -f "$as_dir/$ac_word$ac_exec_ext" && $as_test_x "$as_dir/$ac_word$ac_exec_ext"; }; then
+    ac_cv_prog_ac_ct_F77="$ac_prog"
+    echo "$as_me:$LINENO: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+done
+IFS=$as_save_IFS
+
+fi
+fi
+ac_ct_F77=$ac_cv_prog_ac_ct_F77
+if test -n "$ac_ct_F77"; then
+  { echo "$as_me:$LINENO: result: $ac_ct_F77" >&5
+echo "${ECHO_T}$ac_ct_F77" >&6; }
+else
+  { echo "$as_me:$LINENO: result: no" >&5
+echo "${ECHO_T}no" >&6; }
+fi
+
+
+  test -n "$ac_ct_F77" && break
+done
+
+  if test "x$ac_ct_F77" = x; then
+    F77=""
+  else
+    case $cross_compiling:$ac_tool_warned in
+yes:)
+{ echo "$as_me:$LINENO: WARNING: In the future, Autoconf will not detect cross-tools
+whose name does not start with the host triplet.  If you think this
+configuration is useful to you, please write to autoconf@gnu.org." >&5
+echo "$as_me: WARNING: In the future, Autoconf will not detect cross-tools
+whose name does not start with the host triplet.  If you think this
+configuration is useful to you, please write to autoconf@gnu.org." >&2;}
+ac_tool_warned=yes ;;
+esac
+    F77=$ac_ct_F77
+  fi
+fi
+
+
+# Provide some information about the compiler.
+echo "$as_me:$LINENO: checking for Fortran 77 compiler version" >&5
+ac_compiler=`set X $ac_compile; echo $2`
+{ (ac_try="$ac_compiler --version >&5"
+case "(($ac_try" in
+  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+  *) ac_try_echo=$ac_try;;
+esac
+eval "echo \"\$as_me:$LINENO: $ac_try_echo\"") >&5
+  (eval "$ac_compiler --version >&5") 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }
+{ (ac_try="$ac_compiler -v >&5"
+case "(($ac_try" in
+  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+  *) ac_try_echo=$ac_try;;
+esac
+eval "echo \"\$as_me:$LINENO: $ac_try_echo\"") >&5
+  (eval "$ac_compiler -v >&5") 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }
+{ (ac_try="$ac_compiler -V >&5"
+case "(($ac_try" in
+  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+  *) ac_try_echo=$ac_try;;
+esac
+eval "echo \"\$as_me:$LINENO: $ac_try_echo\"") >&5
+  (eval "$ac_compiler -V >&5") 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }
+rm -f a.out
+
+# If we don't use `.F' as extension, the preprocessor is not run on the
+# input file.  (Note that this only needs to work for GNU compilers.)
+ac_save_ext=$ac_ext
+ac_ext=F
+{ echo "$as_me:$LINENO: checking whether we are using the GNU Fortran 77 compiler" >&5
+echo $ECHO_N "checking whether we are using the GNU Fortran 77 compiler... $ECHO_C" >&6; }
+if test "${ac_cv_f77_compiler_gnu+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  cat >conftest.$ac_ext <<_ACEOF
+      program main
+#ifndef __GNUC__
+       choke me
+#endif
+
+      end
+_ACEOF
+rm -f conftest.$ac_objext
+if { (ac_try="$ac_compile"
+case "(($ac_try" in
+  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+  *) ac_try_echo=$ac_try;;
+esac
+eval "echo \"\$as_me:$LINENO: $ac_try_echo\"") >&5
+  (eval "$ac_compile") 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } && {
+	 test -z "$ac_f77_werror_flag" ||
+	 test ! -s conftest.err
+       } && test -s conftest.$ac_objext; then
+  ac_compiler_gnu=yes
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+	ac_compiler_gnu=no
+fi
+
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+ac_cv_f77_compiler_gnu=$ac_compiler_gnu
+
+fi
+{ echo "$as_me:$LINENO: result: $ac_cv_f77_compiler_gnu" >&5
+echo "${ECHO_T}$ac_cv_f77_compiler_gnu" >&6; }
+ac_ext=$ac_save_ext
+ac_test_FFLAGS=${FFLAGS+set}
+ac_save_FFLAGS=$FFLAGS
+FFLAGS=
+{ echo "$as_me:$LINENO: checking whether $F77 accepts -g" >&5
+echo $ECHO_N "checking whether $F77 accepts -g... $ECHO_C" >&6; }
+if test "${ac_cv_prog_f77_g+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  FFLAGS=-g
+cat >conftest.$ac_ext <<_ACEOF
+      program main
+
+      end
+_ACEOF
+rm -f conftest.$ac_objext
+if { (ac_try="$ac_compile"
+case "(($ac_try" in
+  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+  *) ac_try_echo=$ac_try;;
+esac
+eval "echo \"\$as_me:$LINENO: $ac_try_echo\"") >&5
+  (eval "$ac_compile") 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } && {
+	 test -z "$ac_f77_werror_flag" ||
+	 test ! -s conftest.err
+       } && test -s conftest.$ac_objext; then
+  ac_cv_prog_f77_g=yes
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+	ac_cv_prog_f77_g=no
+fi
+
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+
+fi
+{ echo "$as_me:$LINENO: result: $ac_cv_prog_f77_g" >&5
+echo "${ECHO_T}$ac_cv_prog_f77_g" >&6; }
+if test "$ac_test_FFLAGS" = set; then
+  FFLAGS=$ac_save_FFLAGS
+elif test $ac_cv_prog_f77_g = yes; then
+  if test "x$ac_cv_f77_compiler_gnu" = xyes; then
+    FFLAGS="-g -O2"
+  else
+    FFLAGS="-g"
+  fi
+else
+  if test "x$ac_cv_f77_compiler_gnu" = xyes; then
+    FFLAGS="-O2"
+  else
+    FFLAGS=
+  fi
+fi
+
+G77=`test $ac_compiler_gnu = yes && echo yes`
 ac_ext=c
 ac_cpp='$CPP $CPPFLAGS'
 ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
@@ -5301,7 +5561,6 @@ ac_link='$CXX -o conftest$ac_exeext $CXXFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ex
 ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
 
 
-SC_CONFIG_GCC
 
 
     # Step 0.a: Enable 64 bit support?
@@ -7939,7 +8198,6 @@ fi
 
 
 
-SC_MAKE_LIB
 
 # Check whether --enable-gui was given.
 if test "${enable_gui+set}" = set; then
@@ -8623,7 +8881,7 @@ fi
 subdirs="$subdirs packages/optimizer/src"
 
 
-ac_config_files="$ac_config_files Makefile packages/Makefile src/Makefile src/core/Makefile src/core2/Makefile src/objects/Makefile gui/Makefile gui/apps/Makefile gui/apps/rappture gui/apps/rappture.env gui/apps/simsim gui/pkgIndex.tcl gui/scripts/Makefile lang/Makefile lang/perl/Makefile lang/perl/Makefile.PL lang/python/Makefile lang/python/setup.py lang/matlab/Makefile lang/octave/Makefile lang/ruby/Makefile lang/ruby/build.rb lang/tcl/Makefile lang/tcl/pkgIndex.tcl lang/tcl/src/Makefile lang/tcl/scripts/Makefile lang/tcl/tests/Makefile examples/Makefile examples/3D/Makefile examples/app-fermi/Makefile examples/app-fermi/2.0/Makefile examples/app-fermi/cee/Makefile examples/app-fermi/fortran/Makefile examples/app-fermi/matlab/Makefile examples/app-fermi/octave/Makefile examples/app-fermi/perl/Makefile examples/app-fermi/python/Makefile examples/app-fermi/ruby/Makefile examples/app-fermi/tcl/Makefile examples/app-fermi/wrapper/Makefile examples/app-fermi/wrapper/cee/Makefile examples/app-fermi/wrapper/python/Makefile examples/app-fermi/wrapper/tcl/Makefile examples/c-example/Makefile examples/canvas/Makefile examples/demo.bash examples/graph/Makefile examples/zoo/Makefile examples/zoo/binary/Makefile examples/zoo/boolean/Makefile examples/zoo/choice/Makefile examples/zoo/cloud/Makefile examples/zoo/cloud/matlab/Makefile examples/zoo/curve/Makefile examples/zoo/enable/Makefile examples/zoo/field/Makefile examples/zoo/group/Makefile examples/zoo/image/Makefile examples/zoo/image/docs/Makefile examples/zoo/image/examples/Makefile examples/zoo/integer/Makefile examples/zoo/loader/Makefile examples/zoo/loader/examples/Makefile examples/zoo/log/Makefile examples/zoo/note/Makefile examples/zoo/note/docs/Makefile examples/zoo/number/Makefile examples/zoo/phase/Makefile examples/zoo/sequence/Makefile examples/zoo/sequence/examples/Makefile examples/zoo/string/Makefile examples/zoo/structure/Makefile examples/zoo/structure/examples/Makefile examples/zoo/table/Makefile test/Makefile test/src/Makefile"
+ac_config_files="$ac_config_files Makefile packages/Makefile src/Makefile src/core/Makefile src/core2/Makefile src/objects/Makefile gui/Makefile gui/apps/Makefile gui/apps/rappture gui/apps/rappture.env gui/apps/simsim gui/pkgIndex.tcl gui/scripts/Makefile lang/Makefile lang/perl/Makefile lang/perl/Makefile.PL lang/python/Makefile lang/python/setup.py lang/matlab/Makefile lang/octave/Makefile lang/ruby/Makefile lang/ruby/build.rb lang/tcl/Makefile lang/tcl/pkgIndex.tcl lang/tcl/src/Makefile lang/tcl/scripts/Makefile lang/tcl/tests/Makefile lib/Makefile examples/Makefile examples/3D/Makefile examples/app-fermi/Makefile examples/app-fermi/2.0/Makefile examples/app-fermi/cee/Makefile examples/app-fermi/fortran/Makefile examples/app-fermi/matlab/Makefile examples/app-fermi/octave/Makefile examples/app-fermi/perl/Makefile examples/app-fermi/python/Makefile examples/app-fermi/ruby/Makefile examples/app-fermi/tcl/Makefile examples/app-fermi/wrapper/Makefile examples/app-fermi/wrapper/cee/Makefile examples/app-fermi/wrapper/python/Makefile examples/app-fermi/wrapper/tcl/Makefile examples/c-example/Makefile examples/canvas/Makefile examples/demo.bash examples/graph/Makefile examples/zoo/Makefile examples/zoo/binary/Makefile examples/zoo/boolean/Makefile examples/zoo/choice/Makefile examples/zoo/cloud/Makefile examples/zoo/cloud/matlab/Makefile examples/zoo/curve/Makefile examples/zoo/enable/Makefile examples/zoo/field/Makefile examples/zoo/group/Makefile examples/zoo/image/Makefile examples/zoo/image/docs/Makefile examples/zoo/image/examples/Makefile examples/zoo/integer/Makefile examples/zoo/loader/Makefile examples/zoo/loader/examples/Makefile examples/zoo/log/Makefile examples/zoo/note/Makefile examples/zoo/note/docs/Makefile examples/zoo/number/Makefile examples/zoo/phase/Makefile examples/zoo/sequence/Makefile examples/zoo/sequence/examples/Makefile examples/zoo/string/Makefile examples/zoo/structure/Makefile examples/zoo/structure/examples/Makefile examples/zoo/table/Makefile test/Makefile test/src/Makefile"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -9220,6 +9478,7 @@ do
     "lang/tcl/src/Makefile") CONFIG_FILES="$CONFIG_FILES lang/tcl/src/Makefile" ;;
     "lang/tcl/scripts/Makefile") CONFIG_FILES="$CONFIG_FILES lang/tcl/scripts/Makefile" ;;
     "lang/tcl/tests/Makefile") CONFIG_FILES="$CONFIG_FILES lang/tcl/tests/Makefile" ;;
+    "lib/Makefile") CONFIG_FILES="$CONFIG_FILES lib/Makefile" ;;
     "examples/Makefile") CONFIG_FILES="$CONFIG_FILES examples/Makefile" ;;
     "examples/3D/Makefile") CONFIG_FILES="$CONFIG_FILES examples/3D/Makefile" ;;
     "examples/app-fermi/Makefile") CONFIG_FILES="$CONFIG_FILES examples/app-fermi/Makefile" ;;
@@ -9378,6 +9637,9 @@ CPPFLAGS!$CPPFLAGS$ac_delim
 ac_ct_CC!$ac_ct_CC$ac_delim
 EXEEXT!$EXEEXT$ac_delim
 OBJEXT!$OBJEXT$ac_delim
+F77!$F77$ac_delim
+FFLAGS!$FFLAGS$ac_delim
+ac_ct_F77!$ac_ct_F77$ac_delim
 RANLIB!$RANLIB$ac_delim
 LN_S!$LN_S$ac_delim
 CPP!$CPP$ac_delim
@@ -9387,9 +9649,6 @@ CXX!$CXX$ac_delim
 CXXFLAGS!$CXXFLAGS$ac_delim
 ac_ct_CXX!$ac_ct_CXX$ac_delim
 CXXCPP!$CXXCPP$ac_delim
-F77!$F77$ac_delim
-FFLAGS!$FFLAGS$ac_delim
-ac_ct_F77!$ac_ct_F77$ac_delim
 AR!$AR$ac_delim
 DL_LIBS!$DL_LIBS$ac_delim
 DL_OBJS!$DL_OBJS$ac_delim
