@@ -16,6 +16,7 @@ CXX = 		@CXX@
 RUBY = 		@RUBY@
 PERL = 		@PERL@
 TCLSH = 	@TCLSH@
+PYTHON_SITE_PACKAGES = 	@PYTHON_SITE_PACKAGES@
 PYTHON = 	@PYTHON@
 MEX = 		@MEX@
 MKOCTFILE = 	@MKOCTFILE@
@@ -32,7 +33,7 @@ endif
 ifneq ($(PERL),)
   LANGS += target_perl
 endif
-ifneq ($(PYTHON),)
+ifneq ($(PYTHON_SITE_PACKAGES),)
   LANGS += target_python
 endif
 ifneq ($(RUBY),)
