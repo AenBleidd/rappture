@@ -442,8 +442,6 @@ if test "$with_ruby" != "no" ; then
     fi
 fi
 
-SVN_VERSION=`svnversion $srcdir`
-AC_SUBST(SVN_VERSION)
 AC_MSG_RESULT([${RUBY}])
 AC_SUBST(RUBY)
 
