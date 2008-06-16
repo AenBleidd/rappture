@@ -126,12 +126,12 @@ AC_ARG_WITH(
     [],
     [with_mexext=check])
 
-MEX=
-MEX_ARCH=
-MEXEXT=
+MEX=""
+MEX_ARCH=""
+MEXEXT=""
 dnl if test "$enable_matlab" != "no" ; then
 if test "$with_matlab" != "no" ; then
-    AC_MSG_CHECKING([for matlab's mex])
+    AC_MSG_CHECKING([for MATLAB MEX compiler])
     if test "$with_matlab" != "no" ; then
         dnl WITH_MATLAB = "yes"
         if test -x "$with_matlab/bin/mex"
@@ -303,60 +303,57 @@ dnl
 dnl BUILD_PYTHON=yes
 dnl AC_SUBST(BUILD_PYTHON)
 
-PYTHON=
-PYTHON_VERSION=
-PYTHON_INCLUDES=
-PYTHON_SITE_PACKAGES=
-pythondir=
-AC_ARG_WITH(
-    [python],
+PYTHON=""
+PYTHON_CFLAGS=""
+PYTHON_CPPFLAGS=""
+PYTHON_DISTUTILS=""
+PYTHON_INCLUDES=""
+PYTHON_LDFLAGS=""
+PYTHON_LIB=""
+PYTHON_LIBDIR=""
+PYTHON_SITE_PACKAGES=""
+PYTHON_SITE_DIR=""
+PYTHON_VERSION=""
+pythondir=""
+
+AC_ARG_WITH([python],
     [AS_HELP_STRING([--with-python[=DIR]],[location of python @<:@default=check@:>@])],
     [],
     [with_python=check])
 
 if test "$with_python" != "no" ; then
   AC_MSG_CHECKING([for python])
-  if test -x "$with_python/bin/python"
-  then
+  if test -x "$with_python/bin/python"; then
     echo Found python in $with_python/bin/python
     PYTHON="$with_python/bin/python"
+  elif test -x "$with_python"; then
+    echo Found python in $with_python
+    PYTHON="$with_python"
   else
-    if test -x "$with_python"
-    then
-      echo Found python in $with_python
-      PYTHON="$with_python"
-    else
-      AC_PATH_PROG(PYTHON, python python2.5 python2.4 python2.3 python2.2 python2.1 python2.0 python1.6 python1.5)
-    fi
+    AC_PATH_PROG(PYTHON, python python2.5 python2.4 python2.3 python2.2 python2.1 python2.0 python1.6 python1.5)
   fi
-  if test "$PYTHON" != ""
-  then
+  if test "x${PYTHON}" != "x"; then
     PYTHON_VERSION=`$PYTHON -c "import sys; print sys.version[[0:3]]"`
     echo Using python version $PYTHON_VERSION
   fi
-  if test "$PYTHON_VERSION" != ""
-  then
+  if test "x${PYTHON_VERSION}" != "x"; then
     if test -r $with_python/include/python$PYTHON_VERSION/Python.h -a \
-     -d $with_python/lib/python$PYTHON_VERSION/site-packages
-    then
+     -d $with_python/lib/python$PYTHON_VERSION/site-packages; then
       PYTHON_INCLUDES=$with_python/include/python$PYTHON_VERSION
       PYTHON_SITE_PACKAGES=$with_python/lib/python$PYTHON_VERSION/site-packages
     else
-      if test -r $prefix/include/python$PYTHON_VERSION/Python.h
-      then
+      if test -r $prefix/include/python$PYTHON_VERSION/Python.h; then
 	PYTHON_INCLUDES='$(prefix)/include/python$(PYTHON_VERSION)'
 	PYTHON_SITE_PACKAGES='$(libdir)/python$(PYTHON_VERSION)/site-packages'
       else
-	if test -r /usr/include/python$PYTHON_VERSION/Python.h
-	then
+	if test -r /usr/include/python$PYTHON_VERSION/Python.h; then
 	  PYTHON_INCLUDES=/usr/include/python$PYTHON_VERSION
 	  PYTHON_SITE_PACKAGES='$(libdir)/python$(PYTHON_VERSION)/site-packages'
 	else
 	  echo could not find python$PYTHON_VERSION/Python.h
 	fi
       fi
-      if test ! -d "$PYTHON_SITE_PACKAGES"
-      then
+      if test ! -d "$PYTHON_SITE_PACKAGES"; then
 	PYTHON_SITE_PACKAGES=`$PYTHON -c "from distutils import sysconfig; print sysconfig.get_python_lib()"`
       fi
     fi
@@ -366,24 +363,60 @@ if test "$with_python" != "no" ; then
   else
     pythondir='$(libdir)/python${PYTHON_VERSION}/site-packages'
   fi
+
   AC_MSG_CHECKING([for python distutils])
-  python_result="`$PYTHON -c 'import distutils;' 2>&1`"
-  if test -z "$python_result" ; then
-    PYTHON_HAS_DISTUTILS="yes"
+  python_result="`${PYTHON} -c 'import distutils;' 2>&1`"
+  if test "x${python_result}" = "x" ; then
+    PYTHON_DISTUTILS="yes"
   else
-    PYTHON_HAS_DISTUTILS="no"
+    PYTHON_DISTUTILS="no"
   fi
-  AC_MSG_RESULT([$PYTHON_HAS_DISTUTILS])
-fi
+  AC_MSG_RESULT([$PYTHON_DISTUTILS])
   
+  if test "${PYTHON_DISTUTILS}" = "yes"; then
+    #
+    # Check for Python include path
+    #
+    AC_MSG_CHECKING([for Python include path])
+    if test "x${PYTHON_CPPFLAGS}" = "x"; then
+      python_path=`${PYTHON} -c "import distutils.sysconfig; \
+       print distutils.sysconfig.get_python_inc();"`
+      if test -n "${python_path}"; then
+	python_path="-I$python_path"
+      fi
+      PYTHON_CPPFLAGS=$python_path
+    fi
+    AC_MSG_RESULT([$PYTHON_CPPFLAGS])
+    AC_SUBST([PYTHON_CPPFLAGS])
+    #
+    # python distutils found, get settings from python directly
+    #
+    AC_MSG_CHECKING([location of site-packages])
+    PYTHON_SITE_DIR="`${PYTHON} -c 'from distutils import sysconfig; print sysconfig.get_python_lib(0);'`"
+    
+    PYTHON_CFLAGS="`$PYTHON -c 'from distutils import sysconfig; flags = [[\"-I\" + sysconfig.get_python_inc(0), \"-I\" + sysconfig.get_python_inc(1), \" \".join(sysconfig.get_config_var(\"CFLAGS\").split())]]; print \" \".join(flags);'`"
+    PYTHON_LDFLAGS="`$PYTHON -c 'from distutils import sysconfig; libs = sysconfig.get_config_var(\"LIBS\").split() + sysconfig.get_config_var(\"SYSLIBS\").split(); libs.append(\"-lpython\"+sysconfig.get_config_var(\"VERSION\")); print \" \".join(libs);'`"
+    PYTHON_LIB="`$PYTHON -c 'from distutils import sysconfig; print \"python\" + sysconfig.get_config_var(\"VERSION\");'`"
+    PYTHON_LIBDIR="`$PYTHON -c 'from distutils import sysconfig; print sysconfig.get_config_var(\"LIBDIR\");'`"
+  fi
+fi  
 AC_SUBST(pythondir)
 dnl AC_SUBST(PYTHON_SUBDIR)
+
+echo "PYTHON=${PYTHON}"
+echo "PYTHON_INCLUDES=${PYTHON_INCLUDES}"
+echo "PYTHON_DISTUTILS=${PYTHON_DISTUTILS}"
+echo "PYTHON_CPPFLAGS=${PYTHON_CPPFLAGS}"
+echo "PYTHON_SITE_PACKAGES=${PYTHON_SITE_PACKAGES}"
+echo "PYTHON_SITE_DIR=${PYTHON_SITE_DIR}"
+echo "PYTHON_VERSION=${PYTHON_VERSION}"
+echo "pythondir=${pythondir}"
 
 AC_SUBST(PYTHON)
 AC_SUBST(PYTHON_VERSION)
 AC_SUBST(PYTHON_INCLUDES)
 AC_SUBST(PYTHON_SITE_PACKAGES)
-AC_SUBST(PYTHON_HAS_DISTUTILS)
+AC_SUBST(PYTHON_DISTUTILS)
 
 AC_ARG_WITH(
     [ruby],
@@ -408,6 +441,9 @@ if test "$with_ruby" != "no" ; then
         fi
     fi
 fi
+
+SVN_VERSION=`svnversion $srcdir`
+AC_SUBST(SVN_VERSION)
 AC_MSG_RESULT([${RUBY}])
 AC_SUBST(RUBY)
 
