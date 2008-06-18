@@ -11,6 +11,7 @@
  */
 #include "RpOutcome.h"
 #include <stdarg.h>
+#include <stdlib.h>
 using namespace Rappture;
 
 /**

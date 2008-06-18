@@ -17,6 +17,7 @@
 #include <RpOutcome.h>
 #include <RpSimpleBuffer.h>
 
+
 #ifdef __cplusplus
     extern "C" {
 #endif // ifdef __cplusplus
@@ -28,7 +29,6 @@ enum RP_COMPRESS_CONSTS {
 
 namespace Rappture {
 
-
 /**
  * Block of memory that dynamically resizes itself as needed.
  * The buffer also allows caller to massage the data it holds
@@ -36,7 +36,7 @@ namespace Rappture {
  * and base64 encoding based on libb64.
  */
 
-class Buffer : public SimpleBuffer{
+class Buffer : public SimpleCharBuffer{
 public:
     Buffer();
     Buffer(int nbytes);
@@ -66,17 +66,17 @@ protected:
     enum { CHUNK = 4096 };
 
     void do_compress(   Outcome& status,
-                        SimpleBuffer& bin,
-                        SimpleBuffer& bout  );
+                        SimpleCharBuffer& bin,
+                        SimpleCharBuffer& bout  );
     void do_decompress( Outcome& status,
-                        SimpleBuffer& bin,
-                        SimpleBuffer& bout  );
+                        SimpleCharBuffer& bin,
+                        SimpleCharBuffer& bout  );
     void do_base64_enc( Outcome& status,
-                        const SimpleBuffer& bin,
-                        SimpleBuffer& bout  );
+                        const SimpleCharBuffer& bin,
+                        SimpleCharBuffer& bout  );
     void do_base64_dec( Outcome& status,
-                        const SimpleBuffer& bin,
-                        SimpleBuffer& bout  );
+                        const SimpleCharBuffer& bin,
+                        SimpleCharBuffer& bout  );
 };
 
 } // namespace Rappture
