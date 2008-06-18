@@ -15,12 +15,12 @@
 #  See the file "license.terms" for information on usage and
 #  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 # ======================================================================
+set auto_path [linsert $auto_path 0 /tmp/opt/lib] 
 package require BLT
 package require Itcl
 package require Rappture
 package require RapptureGUI
-package require RapptureOptimizer
-
+package require -exact RapptureOptimizer 1.1
 set popsize 100  ;# size of each population for genetic algorithm
 
 # ----------------------------------------------------------------------
