@@ -48,6 +48,7 @@ HEADERS = \
 		RpBufferCHelper.h \
 		RpBufferCInterface.h \
 		RpDict.h \
+		RpDXWriter.h \
 		RpEncode.h \
 		RpEntityRef.h \
 		RpFortranCommon.h \
@@ -113,6 +114,7 @@ OBJS = 		\
 		RpBindingsDict.o \
 		RpBuffer.o \
 		RpBufferCInterface.o \
+		RpDXWriter.o \
 		RpEncode.o \
 		RpEntityRef.o \
 		RpFortranCommon.o \
@@ -123,7 +125,6 @@ OBJS = 		\
 		RpOutcomeCInterface.o \
 		RpPtr.o \
 		RpResult.o \
-		RpSimpleBuffer.o \
 		RpUnits.o \
 		RpUnitsCInterface.o \
 		RpUnitsFInterface.o \
@@ -132,7 +133,7 @@ OBJS = 		\
 		RpUtilsCInterface.o \
 		RpUtilsFInterface.o  \
 		$(SCEW_OBJS) \
-		$(B64_OBJS) 
+		$(B64_OBJS)
 
 name		= rappture
 libname 	= lib$(name)
@@ -143,31 +144,31 @@ all: $(lib) $(shared_lib)
 
 $(lib): $(OBJS)
 	$(RM) $@
-	$(AR) -r $@ $(OBJS) 
+	$(AR) -r $@ $(OBJS)
 	$(RANLIB) $@
 
 $(shared_lib): $(OBJS)
 	$(SHLIB_LD) $(SHLIB_LDFLAGS) -o $@ $(OBJS) \
-		$(LIB_SEARCH_DIRS) $(LIBS) 
+		$(LIB_SEARCH_DIRS) $(LIBS)
 
 install: install_libs install_headers
 
 install_libs: $(lib)  $(shared_lib)
 	$(INSTALL) -m 444 $(lib) $(libdir)
-	$(INSTALL) -m 555 $(shared_lib) $(libdir) 
+	$(INSTALL) -m 555 $(shared_lib) $(libdir)
 
-install_headers: 
+install_headers:
 	$(INSTALL) -d $(incdir)
 	for i in $(HEADERS) ; do \
 	  $(INSTALL) -m 444  $(srcdir)/$$i $(incdir) ; \
 	done
 
-.cc.o: 
-	$(CXX) $(CXX_SWITCHES) -c $? 
+.cc.o:
+	$(CXX) $(CXX_SWITCHES) -c $?
 .c.o: 
-	$(CC) $(CC_SWITCHES)-c $? 
+	$(CC) $(CC_SWITCHES)-c $?
 
-clean: 
+clean:
 	$(RM) $(OBJS) $(lib) $(shared_lib)
 
 distclean: clean

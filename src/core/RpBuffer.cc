@@ -29,7 +29,7 @@ using namespace Rappture;
  * Construct an empty Buffer.
  */
 Buffer::Buffer()
-  : SimpleBuffer(),
+  : SimpleCharBuffer(),
     _level(6),
     _compressionType(RPCOMPRESS_GZIP),
     _windowBits(15)
@@ -40,7 +40,7 @@ Buffer::Buffer()
  * Construct an empty Buffer of specified size.
  */
 Buffer::Buffer(int nbytes)
-  : SimpleBuffer(nbytes),
+  : SimpleCharBuffer(nbytes),
     _level(6),
     _compressionType(RPCOMPRESS_GZIP),
     _windowBits(15)
@@ -54,7 +54,7 @@ Buffer::Buffer(int nbytes)
  * @param nbytes number of bytes being stored.
  */
 Buffer::Buffer(const char* bytes, int nbytes)
-  : SimpleBuffer(bytes,nbytes),
+  : SimpleCharBuffer(bytes,nbytes),
     _level(6),
     _compressionType(RPCOMPRESS_GZIP),
     _windowBits(15)
@@ -65,7 +65,7 @@ Buffer::Buffer(const char* bytes, int nbytes)
  * @param Buffer object to copy
  */
 Buffer::Buffer(const Buffer& b)
-  : SimpleBuffer(b),
+  : SimpleCharBuffer(b),
     _level(b._level),
     _compressionType(b._compressionType),
     _windowBits(b._windowBits)
@@ -78,7 +78,7 @@ Buffer::Buffer(const Buffer& b)
 Buffer&
 Buffer::operator=(const Buffer& b)
 {
-    SimpleBuffer::operator=(b);
+    SimpleCharBuffer::operator=(b);
 
     _level = b._level;
     _compressionType = b._compressionType;
@@ -100,7 +100,7 @@ Buffer::operator+(const Buffer& b) const
 Buffer&
 Buffer::operator+=(const Buffer& b)
 {
-    SimpleBuffer::operator+=(b);
+    SimpleCharBuffer::operator+=(b);
     return *this;
 }
 
@@ -175,8 +175,8 @@ Outcome
 Buffer::encode (unsigned int compress, unsigned int base64)
 {
     Outcome err;
-    SimpleBuffer bin;
-    SimpleBuffer bout;
+    SimpleCharBuffer bin;
+    SimpleCharBuffer bout;
 
     if ((base64 == 0) && (compress == 0)) {
         return err;
@@ -215,8 +215,8 @@ Outcome
 Buffer::decode (unsigned int decompress, unsigned int base64)
 {
     Outcome err;
-    SimpleBuffer bin;
-    SimpleBuffer bout;
+    SimpleCharBuffer bin;
+    SimpleCharBuffer bout;
 
     if ((base64 == 0) && (decompress == 0)) {
         return err;
@@ -253,8 +253,8 @@ Buffer::decode (unsigned int decompress, unsigned int base64)
 
 void
 Buffer::do_compress(    Outcome& status,
-                        SimpleBuffer& bin,
-                        SimpleBuffer& bout  )
+                        SimpleCharBuffer& bin,
+                        SimpleCharBuffer& bout  )
 {
     int ret=0, flush=0;
     unsigned have=0;
@@ -327,8 +327,8 @@ Buffer::do_compress(    Outcome& status,
 
 void
 Buffer::do_decompress(  Outcome& status,
-                        SimpleBuffer& bin,
-                        SimpleBuffer& bout  )
+                        SimpleCharBuffer& bin,
+                        SimpleCharBuffer& bout  )
 {
     int ret;
     unsigned have;
@@ -408,8 +408,8 @@ Buffer::do_decompress(  Outcome& status,
 
 void
 Buffer::do_base64_enc(  Outcome& status,
-                        const SimpleBuffer& bin,
-                        SimpleBuffer& bout )
+                        const SimpleCharBuffer& bin,
+                        SimpleCharBuffer& bout )
 {
     int tBufSize = 0;
     unsigned int tBufAvl = 2*bin.size();
@@ -420,7 +420,7 @@ Buffer::do_base64_enc(  Outcome& status,
     tBufSize = E.encode(bin.bytes(),bin.size(),tBuf);
     tBufSize += E.encode_end(tBuf+tBufSize);
 
-    bout = SimpleBuffer(tBuf,tBufSize);
+    bout = SimpleCharBuffer(tBuf,tBufSize);
     delete [] tBuf;
 
     return;
@@ -429,8 +429,8 @@ Buffer::do_base64_enc(  Outcome& status,
 
 void
 Buffer::do_base64_dec(  Outcome& status,
-                        const SimpleBuffer& bin,
-                        SimpleBuffer& bout )
+                        const SimpleCharBuffer& bin,
+                        SimpleCharBuffer& bout )
 {
     int tBufSize = 0;
     unsigned int tBufAvl = bin.size();
@@ -440,7 +440,7 @@ Buffer::do_base64_dec(  Outcome& status,
 
     tBufSize = D.decode(bin.bytes(),bin.size(),tBuf);
 
-    bout = SimpleBuffer(tBuf,tBufSize);
+    bout = SimpleCharBuffer(tBuf,tBufSize);
     delete [] tBuf;
 
     return;

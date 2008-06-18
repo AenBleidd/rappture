@@ -12,6 +12,7 @@
  * ======================================================================
  */
 #include "RpEncode.h"
+#include <cstring>
 
 #ifdef __cplusplus
 extern "C" {
