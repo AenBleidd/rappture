@@ -60,7 +60,10 @@ TEA_PREFIX
 #-----------------------------------------------------------------------
 
 TEA_SETUP_COMPILER
-
+AC_PROG_F77
+AC_PROG_CC
+AC_PROG_CPP
+AC_PROG_CXX
 #-----------------------------------------------------------------------
 # __CHANGE__
 # Specify the C source files to compile in TEA_ADD_SOURCES,
@@ -73,7 +76,7 @@ TEA_SETUP_COMPILER
 
 TEA_ADD_SOURCES([rp_optimizer.c rp_tcloptions.c rp_optimizer_tcl.c plugin_pgapack.c])
 TEA_ADD_HEADERS([])
-TEA_ADD_INCLUDES([-Ipgapack/pgapack/include])
+TEA_ADD_INCLUDES([-I\$(srcdir)/pgapack/pgapack/include])
 TEA_ADD_CFLAGS([-DWL=32])
 TEA_ADD_STUB_SOURCES([])
 # uncomment this and mkindex.tcl line in makefile when you are ready to
@@ -193,7 +196,8 @@ AC_SUBST(PATCHLEVEL)
 AC_SUBST(EXACT_VERSION)
 AC_SUBST(NODOT_VERSION)
 
-#AC_CONFIG_SUBDIRS( [pgapack/gekco/pgapack] )
+AC_CONFIG_SUBDIRS( [pgapack] )
+
 #--------------------------------------------------------------------
 # Finally, substitute all of the various values into the Makefile.
 # You may alternatively have a special pkgIndex.tcl.in or other files

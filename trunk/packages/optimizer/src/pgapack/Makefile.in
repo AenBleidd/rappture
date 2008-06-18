@@ -1,0 +1,30 @@
+
+srcdir		= @srcdir@
+prefix		= @prefix@
+exec_prefix	= @exec_prefix@
+bindir		= @bindir@
+libdir		= @libdir@
+datadir		= @datadir@
+datarootdir	= @datarootdir@
+mandir		= @mandir@
+includedir	= @includedir@
+
+PGAPACK		= @PGAPACK@
+
+.PHONY:	pgapack
+
+all: pgapack
+
+pgapack:
+	$(MAKE) -C pgapack install
+install:
+	$(MAKE) -C install
+test: 
+	#$(TCLSH) `@CYGPATH@ $(srcdir)/tests/all.tcl` $(TESTFLAGS)
+clean:
+	$(MAKE) -C pgapack clean
+
+distclean: 
+	$(MAKE) -C pgapack spotless
+	$(RM) Makefile config.cache config.log config.status *~
+

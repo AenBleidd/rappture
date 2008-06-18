@@ -1,0 +1,45 @@
+AC_INIT([PGAPACK], [1.1], [rappture@nanohub.org])
+
+#------------------------------------------------------------------------
+# Handle the --prefix=... option
+#------------------------------------------------------------------------
+
+if test "${prefix}" = "NONE"; then
+    prefix=/usr/local
+fi
+if test "${exec_prefix}" = "NONE"; then
+    exec_prefix=$prefix
+fi
+
+if test "${libdir}" != "${prefix}/lib"; then
+    LIB_SEARCH_DIRS="-L${prefix}/lib -L${libdir}"
+else
+    LIB_SEARCH_DIRS="-L${libdir}"
+fi
+
+AC_SUBST(LIB_SEARCH_DIRS)
+
+AC_PROG_INSTALL
+AC_PROG_MAKE_SET
+
+dnl find and test the C compiler
+AC_PROG_CC
+AC_PROG_F77
+AC_LANG_C
+
+AC_PROG_INSTALL
+AC_PROG_RANLIB
+AC_PROG_LN_S
+
+pgapack=pgapack
+
+if test "$srcdir" != "."; then
+  rm -rf $pgapack
+  echo "tar -C $srcdir -clf - $pgapack | tar -xpf -"
+  tar -C $srcdir -clf - $pgapack | tar -xpf - 
+fi
+host=linux
+CFLAGS="-fPIC $CFLAGS"
+(cd $pgapack ; ./configure -arch $host -f77 $F77 -cc $CC -cflags $CFLAGS -fflags $FFLAGS)
+
+AC_OUTPUT( [ Makefile ])
