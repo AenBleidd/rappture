@@ -13,6 +13,7 @@
  * ======================================================================
  */
 
+#include <memory.h>
 #include <assert.h>
 #include "Volume.h"
 #include "Trace.h"

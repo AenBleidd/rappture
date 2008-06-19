@@ -4,7 +4,6 @@
 #include "NvColorTableRenderer.h"
 #include "NvEventLog.h"
 #include "VolumeRenderer.h"
-#include "Grid.h"
 #include <R2/R2FilePath.h>
 #include <stdio.h>
 #include <stdlib.h>

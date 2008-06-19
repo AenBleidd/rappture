@@ -50,7 +50,7 @@ Texture2D::initialize(float *data)
 
     glGenTextures(1, &id);
     glBindTexture(GL_TEXTURE_2D, id);
-    assert(id!=-1);
+    assert(id != (GLuint)-1);
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);

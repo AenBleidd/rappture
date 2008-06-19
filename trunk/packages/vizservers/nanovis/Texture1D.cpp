@@ -43,7 +43,7 @@ GLuint Texture1D::initialize_float_rgba(float *data)
 
     glGenTextures(1, &id);
     glBindTexture(GL_TEXTURE_1D, id);
-    assert(id != -1);
+    assert(id != (GLuint)-1);
 
     glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 

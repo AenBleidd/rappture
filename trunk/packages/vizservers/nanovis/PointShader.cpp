@@ -1,3 +1,6 @@
+
+#include <stdio.h>
+#include <stdlib.h>
 #include "PointShader.h"
 #include <R2/R2FilePath.h>
 #include <R2/R2string.h>

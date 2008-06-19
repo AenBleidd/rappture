@@ -4,6 +4,7 @@
  * @note : for this class
  */
 
+#include <string>
 #include "ContourLineFilter.h"
 #include <R2/graphics/R2VertexBuffer.h>
 #include <stdlib.h>

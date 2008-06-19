@@ -30,7 +30,7 @@
 
 #include "NvParticleAdvectionShader.h"
 
-typedef struct Particle {
+struct Particle {
   float x;
   float y;
   float z;
