@@ -83,7 +83,8 @@ HEADERS		= \
 		RpNode.h \
 		RpSerialBuffer.h \
 		RpSerializable.h \
-		RpSerializer.h 
+		RpSerializer.h  \
+		rappture2.h
 
 all: $(lib) $(shared_lib) 
 
