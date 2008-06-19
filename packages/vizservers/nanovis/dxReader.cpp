@@ -785,7 +785,6 @@ load_volume_stream(int index, std::iostream& fin)
             double nzero_min = 0;
             float *data = new float[nx*ny*nz * 4];
             double dv = vmax - vmin;
-            double v;
             int ngen = 0;
             if (dv == 0.0)  dv = 1.0; 
 

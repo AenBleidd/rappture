@@ -60,7 +60,7 @@ void Texture3D::update(float* data)
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
     glBindTexture(GL_TEXTURE_3D, id);
-    assert(id!=-1);
+    assert(id != (GLuint)-1);
 
     glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
@@ -128,7 +128,7 @@ GLuint Texture3D::initialize(float *data)
 
     glGenTextures(1, &id);
     glBindTexture(GL_TEXTURE_3D, id);
-    assert(id!=-1);
+    assert(id != (GLuint)-1);
 
     glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);

@@ -71,14 +71,14 @@
 #define NPIX  512	//display size
 #define SCALE 3.0	//scale for background pattern. small value -> fine texture
 
-typedef struct Vector2 {
+struct Vector2 {
     float x, y;
     float mag(void) {
 	return sqrt(x*x+y*y);
     }
 };
 
-typedef struct RegGrid2{
+struct RegGrid2{
     int width, height;
     Vector2* field;
     

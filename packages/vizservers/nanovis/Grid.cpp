@@ -1,5 +1,7 @@
 #include <GL/glew.h>
 #include <GL/gl.h>
+#include <stdlib.h>
+#include <stdio.h>
 #include "Grid.h"
 
 #define NUMDIGITS	6

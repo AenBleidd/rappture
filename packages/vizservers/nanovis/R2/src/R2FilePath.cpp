@@ -1,8 +1,11 @@
+
 #include <R2/R2FilePath.h>
 #include <string.h>
 #ifdef _WIN32
 #include <direct.h>
 #endif
+#include <unistd.h>
+#include <stdio.h>
 
 R2string R2FilePath::_curDirectory;
 R2FilePath R2FilePath::_instance;

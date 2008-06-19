@@ -23,7 +23,9 @@ float g_sliceDists[3];
 #define MIN(a,b) ((a) < (b) ? (a) : (b))
 #define EPS 1e-5f
 
-static char *getFloatGradientsFilename(void)
+#ifdef notused
+static char *
+getFloatGradientsFilename(void)
 {
     char floatExt[] = "_float";
     char *filename;
@@ -49,8 +51,6 @@ static char *getFloatGradientsFilename(void)
     return filename;
 }
 
-
-#ifdef notused
 static void 
 saveFloatGradients(float *gradients, int *sizes)
 {

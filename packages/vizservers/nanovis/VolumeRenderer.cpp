@@ -104,7 +104,7 @@ VolumeRenderer::get_volume_shading(Volume* _vol)
     return NULL;
 }
 
-typedef struct SortElement{
+struct SortElement{
   float z;
   int volume_id;
   int slice_id;

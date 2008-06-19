@@ -2227,6 +2227,7 @@ GridAxisNameOp(ClientData cdata, Tcl_Interp *interp, int objc,
     if (NanoVis::grid != NULL) {
         Axis *axisPtr;
 
+	axisPtr = NULL;		/* Suppress compiler warning. */
         switch (axis) {
         case 0: axisPtr = &NanoVis::grid->xAxis; break;
         case 1: axisPtr = &NanoVis::grid->yAxis; break;
