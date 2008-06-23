@@ -131,82 +131,26 @@ AC_ARG_WITH(
 MEX=""
 MEX_ARCH=""
 MEXEXT=""
-dnl if test "$enable_matlab" != "no" ; then
 if test "$with_matlab" != "no" ; then
-    AC_MSG_CHECKING([for MATLAB MEX compiler])
-    if test "$with_matlab" != "no" ; then
-        dnl WITH_MATLAB = "yes"
-        if test -x "$with_matlab/bin/mex"
-        then
-            dnl # echo Found mex in $with_matlab/bin/mex
-            MEX="$with_matlab/bin/mex"
-        else
-            if test -x "$with_matlab"
-            then
-                dnl # echo Found mex in $with_matlab
-                MEX="$with_matlab"
-            else
-                AC_PATH_PROG(MEX, mex)
-            fi
-        fi
-        matlab_path=`dirname $MEX`/matlab
-        if test -x "$matlab_path"
-        then
-            MEX=${MEX}
-        else
-            MEX=
-        fi
-        AC_MSG_RESULT([${MEX}])
-        if test "$with_matlab_arch" = "check" ; then
-            dnl still need to write the code to check the arch type
-            with_matlab_arch=""
-        fi
-        if test "x$with_matlab_arch" != "x" ; then
-            echo "using matlab architecture \"$with_matlab_arch\""
-            MEX_ARCH="-arch=$with_matlab_arch"
-        dnl else
-            dnl # if $with_matlab_arch is blank, get the os name from uname
-        fi
-        if test "x$MEX" != "x" ; then 
-            mexext_fxn=`dirname $MEX`/mexext
-            if test -x "$mexext_fxn" ; then
-                MEXEXT=`$mexext_fxn`
-                if test "x${MEXEXT}" = "x" ; then
-                    dnl not even mexext can figure out what extension to use....
-                    dnl # we should be doing an os type check instead of default mexglx
-                    dnl # use $with_matlab_arch
-                    if test "$with_mexext" != "check" ; then
-                        MEXEXT="mexglx"
-                    fi
-                fi
-            else
-                if test "$with_mexext" != "check" ; then
-                    MEXEXT="mexglx"
-                fi
-            fi
-            echo "Using mex file extension \"$MEXEXT\""
-            AC_MSG_RESULT([${MEXEXT}])
-        else
-            dnl we shouldn't bother the user if we dont find matlab
-            dnl just put out the message and don't compile matlab bindings
-            echo "can't find the matlab compiler \"mex\""
-            echo "use --with-matlab=DIR to specify the location of a matlab installation"
-            dnl # exit 1
-        fi
-    fi
+  AC_MSG_CHECKING([for MATLAB MEX compiler])
+  if test "$with_matlab" = "yes" ; then
+    AC_PATH_PROG(MEX, mex)
+  else
+    for i in "${with_matlab}/bin/mex" "${with_matlab}" ; do
+      if test -x "$i" ; then
+	MEX="$i"; break
+      fi
+      if test "x${MEX}" = "x" ; then
+	AC_ERROR([cannot find mex in $with_matlab])
+      fi
+    done
+  fi
+  AC_MSG_RESULT([${MEX}])
 fi
+
 AC_SUBST(MEX)
 AC_SUBST(MEX_ARCH)
 AC_SUBST(MEXEXT)
-
-dnl AC_ARG_ENABLE(
-dnl     [octave],
-dnl     [AS_HELP_STRING([--enable-octave], [build octave bindings @<:@default=check@:>@])],
-dnl     [],
-dnl     [enable_octave=check])
-dnl BUILD_OCTAVE=yes
-dnl AC_SUBST(BUILD_OCTAVE)
-
 
 AC_ARG_WITH(
     [octave],
@@ -216,32 +160,21 @@ AC_ARG_WITH(
     [with_octave=check])
 
 MKOCTFILE=
-dnl if test "$enable_octave" != "no" ; then
 if test "$with_octave" != "no" ; then
-    AC_MSG_CHECKING([for mkoctfile])
-    if test "$with_octave" != "no" ; then
-        if test -x "$with_octave/bin/mkoctfile"
-        then
-            dnl echo Found octave in $with_octave/bin/mkoctfile
-            MKOCTFILE="$with_octave/bin/mkoctfile"
-        else
-            if test -x "$with_octave"
-            then
-                echo Found mkoctfile in $with_octave
-                MKOCTFILE="$with_octave"
-            else
-                AC_PATH_PROG(MKOCTFILE, mkoctfile)
-                if test "x$MKOCTFILE" == "x" ; then
-                    dnl we shouldn't bother the user if we dont find mkoctfile
-                    dnl just put out the message and don't compile octave bindings
-                    echo "can't find the matlab compiler \"mkoctfile\""
-                    echo "use --with-octave=DIR to specify the location of a mkoctfile installation"
-                    dnl # exit 1
-                fi
-            fi
-        fi
-    fi
-    AC_MSG_RESULT([${MKOCTFILE}])
+  AC_MSG_CHECKING([for mkoctfile])
+  if test "$with_octave" = "yes" ; then
+    AC_PATH_PROG(MKOCTFILE, mkoctfile)
+  else
+    for i in "${with_octave}/bin/mkoctfile" "${with_octave}" ; do
+      if test -x "$i" ; then
+	MEX="$i"; break
+      fi
+      if test "x${MEX}" = "x" ; then
+	AC_ERROR([cannot find mkoctfile in $with_octave])
+      fi
+    done
+  fi
+  AC_MSG_RESULT([${MKOCTFILE}])
 fi
 AC_SUBST(MKOCTFILE)
 
