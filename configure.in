@@ -49,6 +49,19 @@ AC_PROG_F77([g77 gfortran f77 fort77 f90 xlf xlf90 fl32])
 
 SC_CONFIG_CFLAGS
 
+make_command=""
+for m in "$MAKE" make gmake gnumake ; do 
+  if test "x${m}" != "x" ; then 
+    if  ( sh -c "$m --version" 2>/dev/null | grep GNU >/dev/null ) ; then 
+      make_command=$m; break;
+    fi
+  fi
+done
+if test "x${make_command}" = "x" ; then
+  AC_ERROR([Requires GNU make. You can specify a version with \$MAKE])
+fi
+AC_SUBST(MAKE, ${make_command})
+
 AC_ARG_ENABLE(
     [gui],
     [AS_HELP_STRING([--enable-gui], [build code related to the graphical user interface @<:@default=yes@:>@])],
@@ -99,34 +112,12 @@ AC_MSG_RESULT([${TCLSH}])
 AC_SUBST(TCLSH)
 
 
-dnl AC_ARG_ENABLE (
-dnl     [matlab],
-dnl     [AS_HELP_STRING([--enable-matlab], [build matlab bindings @<:@default=check@:>@])],
-dnl     [],
-dnl     [enable_matlab=check])
-dnl BUILD_MATLAB=yes
-dnl AC_SUBST(BUILD_MATLAB)
-
 AC_ARG_WITH(
     [matlab],
     [AS_HELP_STRING([--with-matlab[=DIR]],
         [location of matlab and mex compiler @<:@default=check@:>@])],
-    [],
-    [with_matlab=check])
-
-AC_ARG_WITH(
-    [matlab_arch],
-    [AS_HELP_STRING([--with-matlab-arch[=ARCH]],
-        [build Matlab bindings for ARCH architecture @<:@default=check@:>@])],
-    [],
-    [with_matlab_arch=check])
-
-AC_ARG_WITH(
-    [mexext],
-    [AS_HELP_STRING([--with-mexext[=ARCH]],
-        [fallback extension for building mex files @<:@default=check@:>@])],
-    [],
-    [with_mexext=check])
+    [with_matlab=$withval],
+    [with_matlab=yes])
 
 MEX=""
 MEX_ARCH=""
@@ -156,8 +147,8 @@ AC_ARG_WITH(
     [octave],
     [AS_HELP_STRING([--with-octave[=DIR]],
         [location of octave compiler MKOCTFILE @<:@default=check@:>@])],
-    [],
-    [with_octave=check])
+    [with_octave=$withval],
+    [with_octave=yes])
 
 MKOCTFILE=
 if test "$with_octave" != "no" ; then

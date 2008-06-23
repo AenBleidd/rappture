@@ -721,6 +721,7 @@ MAKE_LIB
 MAKE_STUB_LIB
 INSTALL_LIB
 INSTALL_STUB_LIB
+MAKE
 ENABLE_GUI
 TCLSH
 MEX
@@ -755,8 +756,6 @@ enable_load
 enable_gui
 with_tclsh
 with_matlab
-with_matlab_arch
-with_mexext
 with_octave
 with_perl
 with_python
@@ -1414,10 +1413,6 @@ Optional Packages:
   --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
   --with-tclsh=DIR        location of tclsh [default=check]
   --with-matlab=DIR       location of matlab and mex compiler [default=check]
-  --with-matlab-arch=ARCH build Matlab bindings for ARCH architecture
-                          [default=check]
-  --with-mexext=ARCH      fallback extension for building mex files
-                          [default=check]
   --with-octave=DIR       location of octave compiler MKOCTFILE
                           [default=check]
   --with-perl=DIR         location of perl [default=check]
@@ -8457,6 +8452,22 @@ fi
 
 
 
+make_command=""
+for m in "$MAKE" make gmake gnumake ; do
+  if test "x${m}" != "x" ; then
+    if  ( sh -c "$m --version" 2>/dev/null | grep GNU >/dev/null ) ; then
+      make_command=$m; break;
+    fi
+  fi
+done
+if test "x${make_command}" = "x" ; then
+  { { $as_echo "$as_me:$LINENO: error: Requires GNU make. You can specify a version with \$MAKE" >&5
+$as_echo "$as_me: error: Requires GNU make. You can specify a version with \$MAKE" >&2;}
+   { (exit 1); exit 1; }; }
+fi
+MAKE=${make_command}
+
+
 # Check whether --enable-gui was given.
 if test "${enable_gui+set}" = set; then
   enableval=$enable_gui;
@@ -8545,30 +8556,11 @@ $as_echo "${TCLSH}" >&6; }
 
 
 
-
 # Check whether --with-matlab was given.
 if test "${with_matlab+set}" = set; then
-  withval=$with_matlab;
+  withval=$with_matlab; with_matlab=$withval
 else
-  with_matlab=check
-fi
-
-
-
-# Check whether --with-matlab_arch was given.
-if test "${with_matlab_arch+set}" = set; then
-  withval=$with_matlab_arch;
-else
-  with_matlab_arch=check
-fi
-
-
-
-# Check whether --with-mexext was given.
-if test "${with_mexext+set}" = set; then
-  withval=$with_mexext;
-else
-  with_mexext=check
+  with_matlab=yes
 fi
 
 
@@ -8642,9 +8634,9 @@ fi
 
 # Check whether --with-octave was given.
 if test "${with_octave+set}" = set; then
-  withval=$with_octave;
+  withval=$with_octave; with_octave=$withval
 else
-  with_octave=check
+  with_octave=yes
 fi
 
 
