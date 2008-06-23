@@ -16,16 +16,17 @@ INSTALL_SCRIPT	= ${INSTALL} -m 644
 RM 		= rm -f
 VPATH		= $(srcdir)
 
-PYTHON = 	@PYTHON@
-PYTHON_FLAGS = --library-dirs=$(libdir):../../src/core \
-               --include-dirs=$(srcdir)/../../src/core:$(includedir)
-
+PYTHON 		= @PYTHON@
+PYTHON_FLAGS 	= --library-dirs=$(libdir):../../src/core \
+               --include-dirs=$(srcdir)/../../src/core:$(includedir) 
+ARCHFLAGS	=
+export ARCHFLAGS
 #
 # Python distutils doesn't handle VPATH correctly. So copy the sources 
 # into a temporary directory.
 #
 all: copy_sources
-	$(PYTHON) setup.py build_ext $(PYTHON_FLAGS) build
+	$(PYTHON) setup.py build_ext $(PYTHON_FLAGS) build 
 
 copy_sources:	
 	$(RM) -r build/tmp
