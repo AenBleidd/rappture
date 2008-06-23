@@ -22,70 +22,48 @@ MEX = 		@MEX@
 MKOCTFILE = 	@MKOCTFILE@
 
 # Rappture requires we always build a Tcl language API.
-LANGS = target_tcl
+LANGS = tcl
 
 ifneq ($(MKOCTFILE),)
-  LANGS += target_octave
+  LANGS += octave
 endif
 ifneq ($(MEX),)
-  LANGS += target_matlab
+  LANGS += matlab
 endif
 ifneq ($(PERL),)
-  LANGS += target_perl
+  LANGS += perl
 endif
 ifeq ($(PYTHON_DISTUTILS),yes)
-  LANGS += target_python
+  LANGS += python
 endif
 ifneq ($(RUBY),)
-#  LANGS += target_ruby
+#  LANGS += ruby
 endif
 
-BUILD_TARGETS =	$(patsubst target_%,build_%,$(LANGS)) 
-INSTALL_TARGETS = $(patsubst target_%,install_%,$(LANGS)) 
+.PHONY:	tcl octave matlab perl python ruby
 
-all:	$(BUILD_TARGETS)
+all:	
+	for i in $(LANGS) ; do \
+	  $(MAKE) -C $$i all || exit 1 ;\
+	done
 
-install: $(INSTALL_TARGETS)
+install: 
+	for i in $(LANGS) ; do \
+	  $(MAKE) -C $$i install || exit 1 ;\
+	done
 
-build_python: 
-	$(MAKE) -C python all
-build_perl: 
-	$(MAKE) -C perl all
-build_tcl: 
-	$(MAKE) -C tcl all
-build_matlab: 
-	$(MAKE) -C matlab all
-build_octave: 
-	$(MAKE) -C octave all
-build_ruby: 
-	$(MAKE) -C ruby all
+test: 
+	for i in $(LANGS) ; do \
+	  $(MAKE) -C $$i test || exit 1 ;\
+	done
 
-install_python:
-	$(MAKE) -C python install
-install_perl: 
-	$(MAKE) -C perl install
-install_tcl: 
-	$(MAKE) -C tcl install
-install_matlab:
-	$(MAKE) -C matlab install
-install_octave:
-	$(MAKE) -C octave install
-install_ruby: 
-	$(MAKE) -C ruby install
-
-clean:
-	$(MAKE) -C matlab clean
-	$(MAKE) -C octave clean
-	$(MAKE) -C perl clean
-	$(MAKE) -C python clean
-	$(MAKE) -C ruby clean
-	$(MAKE) -C tcl clean
+clean: 
+	for i in $(LANGS) ; do \
+	  $(MAKE) -C $$i clean ;\
+	done
 
 distclean: 
-	$(MAKE) -C matlab distclean
-	$(MAKE) -C octave distclean
-	$(MAKE) -C perl distclean
-	$(MAKE) -C python distclean
-	$(MAKE) -C ruby distclean
-	$(MAKE) -C tcl distclean
+	for i in $(LANGS) ; do \
+	  $(MAKE) -C $$i distclean ;\
+	done
 	$(RM) Makefile *~

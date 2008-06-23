@@ -29,11 +29,11 @@ DXWriter::DXWriter() :
     _delta(NULL),
     _origin(NULL)
 {
-    _delta  = (float*) malloc(_rank*_rank*sizeof(float));
+    _delta  = (float*) malloc(_rank * _rank* sizeof(float));
     if (_delta == NULL) {
         fprintf(stderr,
-            "Error allocating %d bytes, for _delta, inside DXWriter Constructor\n",
-            _rank*_rank*sizeof(float));
+            "Error allocating %lu bytes, for _delta, inside DXWriter Constructor\n",
+		(unsigned long)(_rank *_rank * sizeof(float)));
             return;
     }
     for (size_t j=0; j < _rank; j++) {
@@ -51,8 +51,8 @@ DXWriter::DXWriter() :
     _origin = (float*) malloc(_rank*sizeof(float));
     if (_origin == NULL) {
         fprintf(stderr,
-            "Error allocating %d bytes, for _origin, inside DXWriter Constructor\n",
-            _rank*sizeof(float));
+            "Error allocating %lu bytes, for _origin, inside DXWriter Constructor\n",
+		(unsigned long)(_rank * sizeof(float)));
             return;
     }
     for (size_t i=0; i < _rank; i++) {
@@ -72,8 +72,8 @@ DXWriter::DXWriter(float* data, size_t nmemb, size_t rank, size_t shape) :
     _delta  = (float*) malloc(_rank*_rank*sizeof(float));
     if (_delta == NULL) {
         fprintf(stderr,
-            "Error allocating %d bytes, for _delta, inside DXWriter Constructor\n",
-            _rank*_rank*sizeof(float));
+            "Error allocating %lu bytes, for _delta, inside DXWriter Constructor\n",
+		(unsigned long)(_rank * _rank * sizeof(float)));
             return;
     }
     for (size_t j=0; j < _rank; j++) {
@@ -91,8 +91,8 @@ DXWriter::DXWriter(float* data, size_t nmemb, size_t rank, size_t shape) :
     _origin = (float*) malloc(_rank*sizeof(float));
     if (_origin == NULL) {
         fprintf(stderr,
-            "Error allocating %d bytes, for _origin, inside DXWriter Constructor\n",
-            _rank*sizeof(float));
+            "Error allocating %lu bytes, for _origin, inside DXWriter Constructor\n",
+		(unsigned long)(_rank*sizeof(float)));
             return;
     }
     for (size_t i=0; i < _rank; i++) {
@@ -118,18 +118,14 @@ DXWriter::~DXWriter()
 DXWriter&
 DXWriter::origin(float* o)
 {
-    float *tmp = NULL;
-    size_t nbytes = 0;
-
     if (o == NULL) {
         return *this;
     }
-
-    nbytes = _rank*sizeof(float);
-    tmp = (float*) malloc(nbytes);
+    size_t nbytes = _rank * sizeof(float);
+    float *tmp = (float*) malloc(nbytes);
     if (tmp == NULL) {
-        fprintf(stderr,"Unable to malloc %d bytes inside DXWriter::origin\n",
-            nbytes);
+        fprintf(stderr,"Unable to malloc %lu bytes inside DXWriter::origin\n",
+		(unsigned long)nbytes);
         return *this;
     }
     memcpy((void*)tmp,(void const*)o,nbytes);
@@ -146,18 +142,15 @@ DXWriter::origin(float* o)
 DXWriter&
 DXWriter::delta(float* d)
 {
-    float *tmp = NULL;
-    size_t nbytes = 0;
-
     if (d == NULL) {
         return *this;
     }
 
-    nbytes = pow(_rank,2)*sizeof(float);
-    tmp = (float*) malloc(nbytes);
+    size_t nbytes = _rank * _rank * sizeof(float);
+    float *tmp = (float*)malloc(nbytes);
     if (tmp == NULL) {
-        fprintf(stderr,"Unable to malloc %d bytes inside DXWriter::delta\n",
-            nbytes);
+        fprintf(stderr,"Unable to malloc %lu bytes inside DXWriter::delta\n",
+		(unsigned long)nbytes);
         return *this;
     }
     memcpy((void*)tmp,(void const*)d,nbytes);
@@ -174,18 +167,14 @@ DXWriter::delta(float* d)
 DXWriter&
 DXWriter::counts(size_t *p)
 {
-    size_t *tmp = NULL;
-    size_t nbytes = 0;
-
     if (p == NULL) {
         return *this;
     }
-
-    nbytes = _rank*sizeof(size_t);
-    tmp = (size_t*) malloc(nbytes);
+    size_t nbytes = _rank * sizeof(size_t);
+    size_t *tmp = (size_t*) malloc(nbytes);
     if (tmp == NULL) {
-        fprintf(stderr,"Unable to malloc %d bytes inside DXWriter::pos\n",
-            nbytes);
+        fprintf(stderr,"Unable to malloc %lu bytes inside DXWriter::pos\n",
+		(unsigned long)nbytes);
         return *this;
     }
     memcpy((void*)tmp,(void const*)p,nbytes);
@@ -195,7 +184,6 @@ DXWriter::counts(size_t *p)
     }
 
     _positions = tmp;
-
     return *this;
 }
 
@@ -240,7 +228,7 @@ DXWriter::write(FILE *stream)
 
     dxfile.append("object 1 class gridpositions counts",35);
     for (size_t i=0; i < _rank; i++) {
-        sprintf(b, " %10d",_positions[i]);
+        sprintf(b, " %10lu", (unsigned long)_positions[i]);
         dxfile.append(b,11);
     }
 
@@ -260,7 +248,7 @@ DXWriter::write(FILE *stream)
 
     dxfile.append("\nobject 2 class gridconnections counts", 38);
     for (size_t i=0; i < _rank; i++) {
-        sprintf(b, " %10d",_positions[i]);
+        sprintf(b, " %10lu",(unsigned long)_positions[i]);
         dxfile.append(b,11);
     }
 

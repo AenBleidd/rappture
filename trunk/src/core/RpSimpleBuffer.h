@@ -411,7 +411,8 @@ SimpleBuffer<T>::set(size_t nmemb)
     }
 
     if (buf == NULL) {
-        fprintf(stderr,"Can't allocate %i bytes of memory\n",nbytes);
+        fprintf(stderr,"Can't allocate %lu bytes of memory\n", 
+		(long unsigned int)nbytes);
         _fileState = false;
         return 0;
     }
