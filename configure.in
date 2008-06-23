@@ -1,5 +1,7 @@
 AC_INIT([Rappture], [1.1], [rappture@nanohub.org])
 
+set -e
+
 #------------------------------------------------------------------------
 # Handle the --prefix=... option
 #------------------------------------------------------------------------
@@ -311,8 +313,8 @@ PYTHON_INCLUDES=""
 PYTHON_LDFLAGS=""
 PYTHON_LIB=""
 PYTHON_LIBDIR=""
-PYTHON_SITE_PACKAGES=""
 PYTHON_SITE_DIR=""
+PYTHON_SITE_PACKAGES=""
 PYTHON_VERSION=""
 pythondir=""
 
@@ -365,8 +367,9 @@ if test "$with_python" != "no" ; then
   fi
 
   AC_MSG_CHECKING([for python distutils])
-  python_result="`${PYTHON} -c 'import distutils;' 2>&1`"
-  if test "x${python_result}" = "x" ; then
+  ${PYTHON} -c "from distutils.core import setup; setup(name='test')" \
+	build build_ext 2>&1 > /dev/null
+  if test $? = 0 ; then
     PYTHON_DISTUTILS="yes"
   else
     PYTHON_DISTUTILS="no"
@@ -379,10 +382,10 @@ if test "$with_python" != "no" ; then
     #
     AC_MSG_CHECKING([for Python include path])
     if test "x${PYTHON_CPPFLAGS}" = "x"; then
-      python_path=`${PYTHON} -c "import distutils.sysconfig; \
+      incdir_path=`${PYTHON} -c "import distutils.sysconfig; \
        print distutils.sysconfig.get_python_inc();"`
-      if test -n "${python_path}"; then
-	python_path="-I$python_path"
+      if test -n "${incdir}"; then
+	python_path="-I${incdir}"
       fi
       PYTHON_CPPFLAGS=$python_path
     fi
@@ -404,11 +407,14 @@ AC_SUBST(pythondir)
 dnl AC_SUBST(PYTHON_SUBDIR)
 
 echo "PYTHON=${PYTHON}"
-echo "PYTHON_INCLUDES=${PYTHON_INCLUDES}"
-echo "PYTHON_DISTUTILS=${PYTHON_DISTUTILS}"
 echo "PYTHON_CPPFLAGS=${PYTHON_CPPFLAGS}"
-echo "PYTHON_SITE_PACKAGES=${PYTHON_SITE_PACKAGES}"
+echo "PYTHON_DISTUTILS=${PYTHON_DISTUTILS}"
+echo "PYTHON_INCLUDES=${PYTHON_INCLUDES}"
+echo "PYTHON_LDFLAGS=${PYTHON_LDFLAGS}"
+echo "PYTHON_LIB=${PYTHON_LIB}"
+echo "PYTHON_LIBDIR=${PYTHON_LIBDIR}"
 echo "PYTHON_SITE_DIR=${PYTHON_SITE_DIR}"
+echo "PYTHON_SITE_PACKAGES=${PYTHON_SITE_PACKAGES}"
 echo "PYTHON_VERSION=${PYTHON_VERSION}"
 echo "pythondir=${pythondir}"
 
@@ -477,6 +483,7 @@ else
     CFLAGS='${CFLAGS_DEFAULT} ${CFLAGS_WARNING}'
 fi
 
+ac_configure_args="--disable-threads --enable-shared"
 AC_CONFIG_SUBDIRS( [packages/optimizer/src] )
 
 dnl read Makefile.in and write Makefile

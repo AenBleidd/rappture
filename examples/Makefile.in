@@ -25,6 +25,9 @@ SUBDIRS		= \
 		graph \
 		zoo 
 
+
+.PHONY: 	$(SUBDIRS)
+
 all:  build
 
 build:
@@ -37,17 +40,17 @@ install:
 	for i in $(FILES) ; do \
 	  $(INSTALL) -m 555 $$i $(destdir) ; \
 	done
-	for i in $(SUBDIRS); do \
+	for i in $(SUBDIRS) ; do \
 	    $(MAKE) -C $$i install || exit 1 ; \
 	done
 
 clean:
-	for i in $(SUBDIRS); do \
+	for i in $(SUBDIRS) ; do \
 	    $(MAKE) -C $$i clean || exit 1 ; \
 	done
 
 distclean: clean
-	for i in $(SUBDIRS); do \
+	for i in $(SUBDIRS) ; do \
 	    $(MAKE) -C $$i distclean || exit 1 ; \
 	done
 	$(RM) Makefile *~

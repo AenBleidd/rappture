@@ -89,7 +89,7 @@ SCEW_HEADERS 	= \
 	        writer.h \
 	        xerror.h 
 
-# Build the scew library directly into Rappture for now.  
+# Build the scew and b64 libraries directly into Rappture for now.  
 # Note: This works because of viewpath-ing. See the VPATH variable.
 B64_OBJS	= \
 		cdecode.o \
