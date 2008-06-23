@@ -8576,18 +8576,10 @@ MEX=""
 MEX_ARCH=""
 MEXEXT=""
 if test "$with_matlab" != "no" ; then
-    { $as_echo "$as_me:$LINENO: checking for MATLAB MEX compiler" >&5
+  { $as_echo "$as_me:$LINENO: checking for MATLAB MEX compiler" >&5
 $as_echo_n "checking for MATLAB MEX compiler... " >&6; }
-    if test "$with_matlab" != "no" ; then
-                if test -x "$with_matlab/bin/mex"
-        then
-                        MEX="$with_matlab/bin/mex"
-        else
-            if test -x "$with_matlab"
-            then
-                                MEX="$with_matlab"
-            else
-                # Extract the first word of "mex", so it can be a program name with args.
+  if test "$with_matlab" = "yes" ; then
+    # Extract the first word of "mex", so it can be a program name with args.
 set dummy mex; ac_word=$2
 { $as_echo "$as_me:$LINENO: checking for $ac_word" >&5
 $as_echo_n "checking for $ac_word... " >&6; }
@@ -8627,48 +8619,21 @@ $as_echo "no" >&6; }
 fi
 
 
-            fi
-        fi
-        matlab_path=`dirname $MEX`/matlab
-        if test -x "$matlab_path"
-        then
-            MEX=${MEX}
-        else
-            MEX=
-        fi
-        { $as_echo "$as_me:$LINENO: result: ${MEX}" >&5
+  else
+    for i in "${with_matlab}/bin/mex" "${with_matlab}" ; do
+      if test -x "$i" ; then
+	MEX="$i"; break
+      fi
+      if test "x${MEX}" = "x" ; then
+	{ { $as_echo "$as_me:$LINENO: error: cannot find mex in $with_matlab" >&5
+$as_echo "$as_me: error: cannot find mex in $with_matlab" >&2;}
+   { (exit 1); exit 1; }; }
+      fi
+    done
+  fi
+  { $as_echo "$as_me:$LINENO: result: ${MEX}" >&5
 $as_echo "${MEX}" >&6; }
-        if test "$with_matlab_arch" = "check" ; then
-                        with_matlab_arch=""
-        fi
-        if test "x$with_matlab_arch" != "x" ; then
-            echo "using matlab architecture \"$with_matlab_arch\""
-            MEX_ARCH="-arch=$with_matlab_arch"
-                            fi
-        if test "x$MEX" != "x" ; then
-            mexext_fxn=`dirname $MEX`/mexext
-            if test -x "$mexext_fxn" ; then
-                MEXEXT=`$mexext_fxn`
-                if test "x${MEXEXT}" = "x" ; then
-                                                                                if test "$with_mexext" != "check" ; then
-                        MEXEXT="mexglx"
-                    fi
-                fi
-            else
-                if test "$with_mexext" != "check" ; then
-                    MEXEXT="mexglx"
-                fi
-            fi
-            echo "Using mex file extension \"$MEXEXT\""
-            { $as_echo "$as_me:$LINENO: result: ${MEXEXT}" >&5
-$as_echo "${MEXEXT}" >&6; }
-        else
-                                    echo "can't find the matlab compiler \"mex\""
-            echo "use --with-matlab=DIR to specify the location of a matlab installation"
-                    fi
-    fi
 fi
-
 
 
 
@@ -8685,19 +8650,10 @@ fi
 
 MKOCTFILE=
 if test "$with_octave" != "no" ; then
-    { $as_echo "$as_me:$LINENO: checking for mkoctfile" >&5
+  { $as_echo "$as_me:$LINENO: checking for mkoctfile" >&5
 $as_echo_n "checking for mkoctfile... " >&6; }
-    if test "$with_octave" != "no" ; then
-        if test -x "$with_octave/bin/mkoctfile"
-        then
-                        MKOCTFILE="$with_octave/bin/mkoctfile"
-        else
-            if test -x "$with_octave"
-            then
-                echo Found mkoctfile in $with_octave
-                MKOCTFILE="$with_octave"
-            else
-                # Extract the first word of "mkoctfile", so it can be a program name with args.
+  if test "$with_octave" = "yes" ; then
+    # Extract the first word of "mkoctfile", so it can be a program name with args.
 set dummy mkoctfile; ac_word=$2
 { $as_echo "$as_me:$LINENO: checking for $ac_word" >&5
 $as_echo_n "checking for $ac_word... " >&6; }
@@ -8737,14 +8693,19 @@ $as_echo "no" >&6; }
 fi
 
 
-                if test "x$MKOCTFILE" == "x" ; then
-                                                            echo "can't find the matlab compiler \"mkoctfile\""
-                    echo "use --with-octave=DIR to specify the location of a mkoctfile installation"
-                                    fi
-            fi
-        fi
-    fi
-    { $as_echo "$as_me:$LINENO: result: ${MKOCTFILE}" >&5
+  else
+    for i in "${with_octave}/bin/mkoctfile" "${with_octave}" ; do
+      if test -x "$i" ; then
+	MEX="$i"; break
+      fi
+      if test "x${MEX}" = "x" ; then
+	{ { $as_echo "$as_me:$LINENO: error: cannot find mkoctfile in $with_octave" >&5
+$as_echo "$as_me: error: cannot find mkoctfile in $with_octave" >&2;}
+   { (exit 1); exit 1; }; }
+      fi
+    done
+  fi
+  { $as_echo "$as_me:$LINENO: result: ${MKOCTFILE}" >&5
 $as_echo "${MKOCTFILE}" >&6; }
 fi
 
