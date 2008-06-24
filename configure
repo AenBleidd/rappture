@@ -1881,8 +1881,6 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
 
-set -e
-
 #------------------------------------------------------------------------
 # Handle the --prefix=... option
 #------------------------------------------------------------------------
@@ -8568,8 +8566,6 @@ MEX=""
 MEX_ARCH=""
 MEXEXT=""
 if test "$with_matlab" != "no" ; then
-  { $as_echo "$as_me:$LINENO: checking for MATLAB MEX compiler" >&5
-$as_echo_n "checking for MATLAB MEX compiler... " >&6; }
   if test "$with_matlab" = "yes" ; then
     # Extract the first word of "mex", so it can be a program name with args.
 set dummy mex; ac_word=$2
@@ -8612,6 +8608,8 @@ fi
 
 
   else
+    { $as_echo "$as_me:$LINENO: checking for matlab mex compiler" >&5
+$as_echo_n "checking for matlab mex compiler... " >&6; }
     for i in "${with_matlab}/bin/mex" "${with_matlab}" ; do
       if test -x "$i" ; then
 	MEX="$i"; break
@@ -8622,9 +8620,9 @@ $as_echo "$as_me: error: cannot find mex in $with_matlab" >&2;}
    { (exit 1); exit 1; }; }
       fi
     done
-  fi
-  { $as_echo "$as_me:$LINENO: result: ${MEX}" >&5
+    { $as_echo "$as_me:$LINENO: result: ${MEX}" >&5
 $as_echo "${MEX}" >&6; }
+  fi
 fi
 
 
@@ -8642,8 +8640,6 @@ fi
 
 MKOCTFILE=
 if test "$with_octave" != "no" ; then
-  { $as_echo "$as_me:$LINENO: checking for mkoctfile" >&5
-$as_echo_n "checking for mkoctfile... " >&6; }
   if test "$with_octave" = "yes" ; then
     # Extract the first word of "mkoctfile", so it can be a program name with args.
 set dummy mkoctfile; ac_word=$2
@@ -8686,6 +8682,8 @@ fi
 
 
   else
+    { $as_echo "$as_me:$LINENO: checking for mkoctfile" >&5
+$as_echo_n "checking for mkoctfile... " >&6; }
     for i in "${with_octave}/bin/mkoctfile" "${with_octave}" ; do
       if test -x "$i" ; then
 	MEX="$i"; break
@@ -8696,9 +8694,9 @@ $as_echo "$as_me: error: cannot find mkoctfile in $with_octave" >&2;}
    { (exit 1); exit 1; }; }
       fi
     done
-  fi
-  { $as_echo "$as_me:$LINENO: result: ${MKOCTFILE}" >&5
+    { $as_echo "$as_me:$LINENO: result: ${MKOCTFILE}" >&5
 $as_echo "${MKOCTFILE}" >&6; }
+  fi
 fi
 
 

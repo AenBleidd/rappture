@@ -9,8 +9,8 @@ mandir          = @mandir@
 prefix          = @prefix@
 destdir		= $(prefix)/examples/3D
 
+SHELL		= @SHELL@
 INSTALL		= @INSTALL@
-INSTALL_DATA	= @INSTALL_DATA@
 
 destdir		= $(prefix)/examples
 
@@ -31,7 +31,7 @@ SUBDIRS		= \
 all:  build
 
 build:
-	for i in $(SUBDIRS); do \
+	for i in $(SUBDIRS) ; do \
 	    $(MAKE) -C $$i all || exit 1 ; \
 	done
 

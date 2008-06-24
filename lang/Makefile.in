@@ -10,18 +10,19 @@ prefix          = @prefix@
 
 INSTALL		= @INSTALL@
 
-F77 = 		@F77@
-CC =		@CC@
-CXX = 		@CXX@
-RUBY = 		@RUBY@
-PERL = 		@PERL@
-TCLSH = 	@TCLSH@
-PYTHON_DISTUTILS = 	@PYTHON_DISTUTILS@
-PYTHON = 	@PYTHON@
-MEX = 		@MEX@
-MKOCTFILE = 	@MKOCTFILE@
+SHELL  		= @SHELL@
+F77 		= @F77@
+CC		= @CC@
+CXX 		= @CXX@
+RUBY 		= @RUBY@
+PERL 		= @PERL@
+TCLSH 		= @TCLSH@
+PYTHON_DISTUTILS= @PYTHON_DISTUTILS@
+PYTHON 		= @PYTHON@
+MEX 		= @MEX@
+MKOCTFILE 	= @MKOCTFILE@
 
-# Rappture requires we always build a Tcl language API.
+# Rappture requires it. We always build a Tcl language API.
 LANGS = tcl
 
 ifneq ($(MKOCTFILE),)
