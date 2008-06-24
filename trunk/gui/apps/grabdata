@@ -1,0 +1,106 @@
+#!/usr/bin/env python
+# ----------------------------------------------------------------------
+#  grabdata
+#
+#  script to grab dx files from a run.xml file
+#
+#  RUN AS FOLLOWS:
+#    grabdata [-h|-t] <runFile>
+#
+#      -h | --help    - print the help menu
+#      -t | --type    - type of data to grab
+#
+#      <runFile>      - the run.xml file containing dx files
+#
+# ======================================================================
+#  AUTHOR:  Derrick Kearney, Purdue University
+#  Copyright (c) 2005-2008  Purdue Research Foundation
+#
+#  See the file "license.terms" for information on usage and
+#  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+# ======================================================================
+#
+#
+
+import re
+import os
+import sys
+import getopt
+import Rappture
+
+def help(argv=sys.argv):
+    return """%(prog)s [-h|-t] runFile
+      Grab DX, PDB, or other files from a run.xml file
+
+      -h | --help    - print the help menu
+      -t | --type    - type of data to grab
+
+      <runFile>      - the run.xml file containing dx, pdb or other files
+
+      Examples:
+        %(prog)s run1234.xml
+        %(prog)s -t dx run1234.xml
+        %(prog)s -t pbs run1234.xml
+""" % {'prog':os.path.basename(argv[0])}
+
+def main(argv=None):
+
+    if argv is None:
+        argv = sys.argv
+
+    if len(argv) < 2:
+        msg = "%(prog)s requires at least 1 arguments" % {'prog':argv[0]}
+        print >>sys.stderr, msg
+        print >>sys.stderr, help()
+        return 2
+
+    longOpts = ["type=","help"]
+    shortOpts = "t:h"
+    try:
+        opts, args = getopt.getopt(argv[1:], shortOpts, longOpts)
+    except getopt.GetoptError, msg:
+        print >>sys.stderr, msg
+        print >>sys.stderr, help()
+        return 2
+
+    tag = 'dx'
+
+    # match options
+    for o, v in opts:
+        if o in ("-t", "--type"):
+            tag = v
+        elif o in ("-h", "--help"):
+            print >>sys.stderr, help()
+            return 2
+
+    runFile = args[0]
+
+    # look for the text <tag> (any characters non-greedy) </tag>
+    regexp = r'<%(tag)s>(?P<data>.*?)</%(tag)s>' % {'tag':tag}
+    re_command = re.compile(regexp,re.I|re.DOTALL)
+
+    try:
+        xmlfile = open(runFile, "rb").read()
+    except IOError, msg:
+        print >>sys.stderr, msg
+        return 2
+
+    cnt = 0
+    runFileBase = os.path.basename(runFile)
+    prefix,ext = os.path.splitext(runFileBase)
+
+    outTextIter = re_command.finditer(xmlfile)
+    for match in outTextIter:
+        if match:
+            encoded_data = match.group('data')
+            # This needs to be a python static variable:
+            # RPENC_HDR == 4
+            unencoded_data = Rappture.encoding.decode(encoded_data,4)
+            newDXFile = open('%s_%i_.%s'%(prefix,cnt,tag),'wb')
+            newDXFile.write(unencoded_data)
+            newDXFile.close()
+            cnt += 1
+
+if __name__ == '__main__' :
+    # call main and exit gracefully
+    sys.exit(main())
