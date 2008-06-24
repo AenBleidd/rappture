@@ -13,7 +13,11 @@ incdir		= $(prefix)/include
 INSTALL		= @INSTALL@
 
 CXX             = @CXX@
-CC              = @CC@
+# This hack is because the tcl.m4 file generates the line
+# SHLIB_LD = ${CC} ...
+# We need to link with g++ on MacOS 10.4
+CC              = $(CXX)
+CCC		= @CC@
 CFLAGS_DEBUG    = @CFLAGS_DEBUG@ -Wall
 CFLAGS_OPTIMIZE = @CFLAGS_OPTIMIZE@
 STLIB_LD        = @STLIB_LD@
@@ -166,7 +170,7 @@ install_headers:
 .cc.o:
 	$(CXX) $(CXX_SWITCHES) -c $?
 .c.o: 
-	$(CC) $(CC_SWITCHES)-c $?
+	$(CCC) $(CC_SWITCHES)-c $?
 
 clean:
 	$(RM) $(OBJS) $(lib) $(shared_lib)
