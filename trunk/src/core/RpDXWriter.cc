@@ -255,8 +255,8 @@ DXWriter::write(FILE *stream)
     dxfile.append("\nattribute \"element type\" string \"cubes\"\n",41);
     dxfile.append("attribute \"ref\" string \"positions\"\n",35);
 
-    sprintf(b,"object 3 class array type float rank 0 items %d data follows\n",
-        _dataBuf.nmemb());
+    sprintf(b,"object 3 class array type float rank 0 items %lu data follows\n",
+        (unsigned long)_dataBuf.nmemb());
     dxfile.append(b);
 
     _dataBuf.seek(0,SEEK_SET);
