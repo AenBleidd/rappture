@@ -15,11 +15,12 @@
 #  See the file "license.terms" for information on usage and
 #  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 # ======================================================================
-set auto_path [linsert $auto_path 0 /tmp/opt/lib] 
+set auto_path [linsert $auto_path 0 /tmp/opt/lib]
 package require BLT
 package require Itcl
 package require Rappture
 package require RapptureGUI
+set auto_path [linsert $auto_path 0 /home/ganesh/workspace/optim_post_dir_changes/src/lib]
 package require -exact RapptureOptimizer 1.1
 set popsize 100  ;# size of each population for genetic algorithm
 
@@ -76,6 +77,7 @@ for {set pop [expr [llength $colors]-1]} {$pop >= 0} {incr pop -1} {
         -color [lindex $colors $pop] -symbol none
 }
 
+
 set jobnumber 0
 proc add_to_plot {xmlobj} {
     global jobnumber popsize
@@ -85,6 +87,7 @@ proc add_to_plot {xmlobj} {
     jobvec$pop append $jobnumber
     fvec$pop append [$xmlobj get output.number(f).current]
     incr jobnumber
+#    optim samples $jobnumber
 }
 
 # ----------------------------------------------------------------------
@@ -100,5 +103,4 @@ optim configure -operation minimize -popsize $popsize -maxruns 1000
 set status [optim perform \
     -fitness output.number(f).current \
     -updatecommand add_to_plot]
-
 puts "done: $status"
