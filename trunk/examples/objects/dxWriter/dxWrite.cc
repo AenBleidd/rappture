@@ -6,14 +6,14 @@ int main()
 {
     Rappture::DXWriter d;
     float i = 0.0;
-//    int rank = 3;
+    int rank = 3;
     size_t p[] = {3,5,5};
-//    float origin[] = {0.0,0.0,0.0};
-//    float delta[] = {1.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,1.0};
+    float origin[] = {0.0,0.0,0.0};
+    float delta[] = {1.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,1.0};
 
-//    d.rank(rank);
-//    d.origin(origin);
-//    d.delta(delta);
+    d.rank(rank);
+    d.origin(origin);
+    d.delta(delta);
     d.counts(p);
 
     for(size_t z = 0; z < p[2]; z++) {

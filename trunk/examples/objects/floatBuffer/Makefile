@@ -1,3 +1,5 @@
+all: floatBuffer
+
 floatBuffer: floatBuffer.cc
 	g++ -g -Wall -o $@ $< -lrappture
 

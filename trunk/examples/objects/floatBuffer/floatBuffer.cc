@@ -3,7 +3,7 @@
 
 int main()
 {
-    Rappture::SimpleBuffer<int> fbuf;
+    Rappture::SimpleBuffer<float> fbuf;
     float val = 0;
 
     fbuf.set(10);
@@ -11,7 +11,6 @@ int main()
     for (int i=0; i < 100; i++) {
         std::cout << "storing " << val << std::endl;
         fbuf.append(&val,1);
-        // fbuf.show();
         val += 1.1;
     }
 
@@ -32,7 +31,7 @@ int main()
     fbuf.seek(-20,SEEK_END);
     std::cout << "SEEK_END -20 pos = " << fbuf.tell() << std::endl;;
 
-    Rappture::SimpleBuffer<int> cbuf;
+    Rappture::SimpleBuffer<float> cbuf;
     cbuf.move(fbuf);
     cbuf.show();
 

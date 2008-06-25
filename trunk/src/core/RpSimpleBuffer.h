@@ -422,6 +422,22 @@ SimpleBuffer<T>::set(size_t nmemb)
 }
 
 
+template<> inline
+SimpleBuffer<char>&
+SimpleBuffer<char>::show()
+{
+    size_t curMemb = 0;
+
+    while (curMemb != _nMembStored) {
+        fprintf(stdout,"_buf[%d] = :%c:\n",curMemb,_buf[curMemb]);
+        curMemb += 1;
+    }
+    fprintf(stdout,"_nMembAvl = :%d:\n",_nMembAvl);
+
+    return *this;
+}
+
+
 template<class T>
 SimpleBuffer<T>&
 SimpleBuffer<T>::show()
@@ -429,7 +445,7 @@ SimpleBuffer<T>::show()
     size_t curMemb = 0;
 
     while (curMemb != _nMembStored) {
-        fprintf(stdout,"_buf[%d] = :%#x:\n",curMemb,_buf[curMemb]);
+        fprintf(stdout,"_buf[%d] = :%g:\n",curMemb,(double)_buf[curMemb]);
         curMemb += 1;
     }
     fprintf(stdout,"_nMembAvl = :%d:\n",_nMembAvl);
