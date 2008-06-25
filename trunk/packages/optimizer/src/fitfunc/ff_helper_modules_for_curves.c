@@ -10,6 +10,7 @@ fitfunc.c is a program that contains modules for enabling the user to write his 
 #include<math.h>
 #include<stdlib.h>
 #include<time.h>
+//#include <tcl.h>
 
 #define EPSILON 0.005
 #define TRUE 1
@@ -19,6 +20,7 @@ fitfunc.c is a program that contains modules for enabling the user to write his 
 #define NO_OF_POINTS 1500
 #define INVALID_SLOPE 99999.9999
 #define TOLERANCE 1e-5
+#define BLOCK_SIZE 160
 
 typedef struct Curve{
 	int curveID;
@@ -38,7 +40,8 @@ typedef struct Curve{
 typedef struct MaxOrMinList{
 	double *yvals;
 	double *xvals;
-	int no_of_actual_max_or_mins;	
+	int no_of_actual_max_or_mins;
+	int size_allotted;	//While using the structure, be sure you initialize this to the amount of memory malloc'ed, else there is no way to keep track of memory allocated dynamically
 }MaxOrMinList;
 
 
@@ -62,7 +65,7 @@ void InitializeCurves(int ID){
 				Y_Axis_Values[index] = exp(-X_Axis_Values[index]);
 			}
 			break;
-		case 3://Y = EXP(-x)*SINC(X);
+		case 3://Y = EXP(-x)*SIN(10X);
 //			init = -5;
 			for(index=0;index<NO_OF_POINTS;index++){
 //				init+=INCREMENT;
@@ -189,9 +192,14 @@ MaxOrMinList* get_local_max_list(MaxOrMinList* buffer){
 				if(slope_at_point != INVALID_SLOPE && slope_at_prev_point != INVALID_SLOPE){
 					if(slope_at_prev_point>0 && slope_at_point<=0){
 						++no_of_actual_max;
-						if(no_of_actual_max>1){
-							buffer->xvals = realloc(buffer->xvals,(sizeof(double))*(no_of_actual_max));
-							buffer->yvals = realloc(buffer->yvals,(sizeof(double))*(no_of_actual_max));
+						if(no_of_actual_max>((buffer->size_allotted)/sizeof(double))){
+							buffer->size_allotted*=2;
+							buffer->xvals = realloc(buffer->xvals,buffer->size_allotted);
+							buffer->yvals = realloc(buffer->yvals,buffer->size_allotted);
+							if(buffer->xvals==NULL || buffer->yvals==NULL){
+								printf("\nError: Reallocation for buffer failed while populating local maxima list");
+								return NULL;
+							}
 						}
 						buffer->yvals[no_of_actual_max-1]=Y_Axis_Values[i];
 						buffer->xvals[no_of_actual_max-1]=X_Axis_Values[i];
@@ -222,9 +230,14 @@ MaxOrMinList* get_local_min_list(MaxOrMinList* buffer){
 				if(slope_at_point != INVALID_SLOPE && slope_at_prev_point != INVALID_SLOPE){
 					if(slope_at_prev_point<0 && slope_at_point>=0){
 						++no_of_actual_min;
-						if(no_of_actual_min>1){
-							buffer->xvals = realloc(buffer->xvals,(sizeof(double))*(no_of_actual_min));
-							buffer->yvals = realloc(buffer->yvals,(sizeof(double))*(no_of_actual_min));
+						if(no_of_actual_min>((buffer->size_allotted)/sizeof(double))){
+							buffer->size_allotted*=2;
+							buffer->xvals = realloc(buffer->xvals,buffer->size_allotted);
+							buffer->yvals = realloc(buffer->yvals,buffer->size_allotted);
+							if(buffer->xvals==NULL || buffer->yvals==NULL){
+								printf("\nError: Reallocation for buffer failed while populating local maxima list");
+								return NULL;
+							}
 						}
 						buffer->yvals[no_of_actual_min-1]=Y_Axis_Values[i];
 						buffer->xvals[no_of_actual_min-1]=X_Axis_Values[i];
@@ -246,8 +259,10 @@ MaxOrMinList* get_global_max_list(MaxOrMinList* buffer){
 	int i,no_of_actual_global_max;
 	double temp_glob_max;
 	if(buffer!=NULL){
-		local_max_list_buffer.xvals = malloc(sizeof(double));
-		local_max_list_buffer.yvals = malloc(sizeof(double));
+		//size_allotted must be specified, or you sow what you reap...
+		local_max_list_buffer.xvals = malloc(BLOCK_SIZE);
+		local_max_list_buffer.yvals = malloc(BLOCK_SIZE);
+		local_max_list_buffer.size_allotted = BLOCK_SIZE;
 		if(local_max_list_buffer.xvals!=NULL && local_max_list_buffer.yvals!=NULL){
 			local_max_list = get_local_max_list(&local_max_list_buffer);
 			if(local_max_list != NULL){
@@ -257,33 +272,35 @@ MaxOrMinList* get_global_max_list(MaxOrMinList* buffer){
 						buffer->xvals[0] = local_max_list->xvals[0];
 						buffer->no_of_actual_max_or_mins = 1;
 						no_of_actual_global_max=1;
-					if(local_max_list->no_of_actual_max_or_mins == 1){
-						return buffer;
-					}
-					for(i=1;i<local_max_list->no_of_actual_max_or_mins;i++){
-						if(fabs(temp_glob_max-local_max_list->yvals[i])<TOLERANCE){
-							++no_of_actual_global_max;
-						}else{
-							if(temp_glob_max < local_max_list->yvals[i]){
-								no_of_actual_global_max =1;
-								temp_glob_max = local_max_list->yvals[i];
+						if(local_max_list->no_of_actual_max_or_mins == 1){
+							return buffer;
+						}
+						for(i=1;i<local_max_list->no_of_actual_max_or_mins;i++){
+							if(fabs(temp_glob_max-local_max_list->yvals[i])<TOLERANCE){
+								++no_of_actual_global_max;
 							}else{
-								continue;
+								if(temp_glob_max < local_max_list->yvals[i]){
+									no_of_actual_global_max =1;
+									temp_glob_max = local_max_list->yvals[i];
+								}else{
+									continue;
+								}
 							}
-						}
-						if(no_of_actual_global_max>1){
-							//Reallocate space if necessary...
-							buffer->yvals = realloc(buffer->yvals,no_of_actual_global_max*sizeof(double));
-							buffer->xvals = realloc(buffer->xvals,no_of_actual_global_max*sizeof(double));
-							if(buffer->xvals == NULL || buffer->yvals == NULL){
-								printf("\nError: Could not Reallocate space for the Global Maxima List.\n");
-								return NULL;
+							if(no_of_actual_global_max>((buffer->size_allotted)/sizeof(double))){
+								printf("Buffer Size allotted for Global Max list = %d", buffer->size_allotted);
+								//Reallocate space if necessary...
+								buffer->size_allotted*=2;
+								buffer->yvals = realloc(buffer->yvals,buffer->size_allotted);
+								buffer->xvals = realloc(buffer->xvals,buffer->size_allotted);
+								if(buffer->xvals == NULL || buffer->yvals == NULL){
+									printf("\nError: Could not Reallocate space for the Global Maxima List.\n");
+									return NULL;
+								}
 							}
+							buffer->yvals[no_of_actual_global_max-1] = temp_glob_max;
+							buffer->xvals[no_of_actual_global_max-1] = local_max_list->xvals[i];
+							buffer->no_of_actual_max_or_mins = no_of_actual_global_max;
 						}
-						buffer->yvals[no_of_actual_global_max-1] = temp_glob_max;
-						buffer->xvals[no_of_actual_global_max-1] = local_max_list->xvals[i];
-						buffer->no_of_actual_max_or_mins = no_of_actual_global_max;
-					}
 				}else{
 					printf("\nThere are no Local Maxima, consequently a Global Maxima List cannot be generated\n");
 					buffer->no_of_actual_max_or_mins = 0;
@@ -312,8 +329,10 @@ MaxOrMinList* get_global_min_list(MaxOrMinList* buffer){
 	int i,no_of_actual_global_min;
 	double temp_glob_min;
 	if(buffer!=NULL){
-		local_min_list_buffer.xvals = malloc(sizeof(double));
-		local_min_list_buffer.yvals = malloc(sizeof(double));
+		//size_allotted must be specified, or you sow what you reap...
+		local_min_list_buffer.xvals = malloc(BLOCK_SIZE);
+		local_min_list_buffer.yvals = malloc(BLOCK_SIZE);
+		local_min_list_buffer.size_allotted = BLOCK_SIZE;
 		if(local_min_list_buffer.xvals!=NULL && local_min_list_buffer.yvals!=NULL){
 			local_min_list = get_local_min_list(&local_min_list_buffer);
 			if(local_min_list != NULL){
@@ -323,33 +342,35 @@ MaxOrMinList* get_global_min_list(MaxOrMinList* buffer){
 						buffer->xvals[0] = local_min_list->xvals[0];
 						buffer->no_of_actual_max_or_mins = 1;
 						no_of_actual_global_min=1;
-					if(local_min_list->no_of_actual_max_or_mins == 1){
-						return buffer;
-					}
-					for(i=1;i<local_min_list->no_of_actual_max_or_mins;i++){
-						if(fabs(temp_glob_min-local_min_list->yvals[i])<TOLERANCE){
-							++no_of_actual_global_min;
-						}else{
-							if(temp_glob_min > local_min_list->yvals[i]){
-								no_of_actual_global_min =1;
-								temp_glob_min = local_min_list->yvals[i];
+						if(local_min_list->no_of_actual_max_or_mins == 1){
+							return buffer;
+						}
+						for(i=1;i<local_min_list->no_of_actual_max_or_mins;i++){
+							if(fabs(temp_glob_min-local_min_list->yvals[i])<TOLERANCE){
+								++no_of_actual_global_min;
 							}else{
-								continue;
+								if(temp_glob_min > local_min_list->yvals[i]){
+									no_of_actual_global_min =1;
+									temp_glob_min = local_min_list->yvals[i];
+								}else{
+									continue;
+								}
 							}
-						}
-						if(no_of_actual_global_min>1){
-							//Reallocate space if necessary...
-							buffer->yvals = realloc(buffer->yvals,no_of_actual_global_min*sizeof(double));
-							buffer->xvals = realloc(buffer->xvals,no_of_actual_global_min*sizeof(double));
-							if(buffer->xvals == NULL || buffer->yvals == NULL){
-								printf("\nError: Could not Reallocate space for the Global Minima List.\n");
-								return NULL;
+							if(no_of_actual_global_min>((buffer->size_allotted)/sizeof(double))){
+								//Reallocate space if necessary...
+								printf("Buffer Size allotted for Global Max list = %d", buffer->size_allotted);
+								buffer->size_allotted*=2;
+								buffer->yvals = realloc(buffer->yvals,buffer->size_allotted);
+								buffer->xvals = realloc(buffer->xvals,buffer->size_allotted);
+								if(buffer->xvals == NULL || buffer->yvals == NULL){
+									printf("\nError: Could not Reallocate space for the Global Minima List.\n");
+									return NULL;
+								}
 							}
+							buffer->yvals[no_of_actual_global_min-1] = temp_glob_min;
+							buffer->xvals[no_of_actual_global_min-1] = local_min_list->xvals[i];
+							buffer->no_of_actual_max_or_mins = no_of_actual_global_min;
 						}
-						buffer->yvals[no_of_actual_global_min-1] = temp_glob_min;
-						buffer->xvals[no_of_actual_global_min-1] = local_min_list->xvals[i];
-						buffer->no_of_actual_max_or_mins = no_of_actual_global_min;
-					}
 				}else{
 					printf("\nThere are no Local Minima, consequently a Global Minima List cannot be generated\n");
 					buffer->no_of_actual_max_or_mins = 0;
@@ -398,9 +419,14 @@ MaxOrMinList* get_max_list_bet_xvals(MaxOrMinList* buffer, double xval1, double 
 				if(slope_at_point != INVALID_SLOPE && slope_at_prev_point != INVALID_SLOPE){
 					if(slope_at_prev_point>0 && slope_at_point<=0){
 						++no_of_actual_max;
-						if(no_of_actual_max>1){
-							buffer->xvals = realloc(buffer->xvals,(sizeof(double))*(no_of_actual_max));
-							buffer->yvals = realloc(buffer->yvals,(sizeof(double))*(no_of_actual_max));
+						if(no_of_actual_max>((buffer->size_allotted)/sizeof(double))){
+							buffer->size_allotted*=2;
+							buffer->xvals = realloc(buffer->xvals,buffer->size_allotted);
+							buffer->yvals = realloc(buffer->yvals,buffer->size_allotted);
+							if(buffer->xvals == NULL || buffer->yvals == NULL){
+									printf("\nError: Could not Reallocate space for the Global Minima List.\n");
+									return NULL;
+							}
 						}
 						buffer->yvals[no_of_actual_max-1]=Y_Axis_Values[i];
 						buffer->xvals[no_of_actual_max-1]=X_Axis_Values[i];
@@ -445,9 +471,14 @@ MaxOrMinList* get_min_list_bet_xvals(MaxOrMinList* buffer, double xval1, double 
 				if(slope_at_point != INVALID_SLOPE && slope_at_prev_point != INVALID_SLOPE){
 					if(slope_at_prev_point<0 && slope_at_point>=0){
 						++no_of_actual_min;
-						if(no_of_actual_min>1){
-							buffer->xvals = realloc(buffer->xvals,(sizeof(double))*(no_of_actual_min));
-							buffer->yvals = realloc(buffer->yvals,(sizeof(double))*(no_of_actual_min));
+						if(no_of_actual_min>((buffer->size_allotted)/sizeof(double))){
+							buffer->size_allotted*=2;
+							buffer->xvals = realloc(buffer->xvals,buffer->size_allotted);
+							buffer->yvals = realloc(buffer->yvals,buffer->size_allotted);
+							if(buffer->xvals == NULL || buffer->yvals == NULL){
+									printf("\nError: Could not Reallocate space for the Global Minima List.\n");
+									return NULL;
+							}
 						}
 						buffer->yvals[no_of_actual_min-1]=Y_Axis_Values[i];
 						buffer->xvals[no_of_actual_min-1]=X_Axis_Values[i];
@@ -473,8 +504,9 @@ void display_max_min_lists(){
 	MaxOrMinList list,*buffer;
 	int i; 
 	double xval1,xval2;
-	list.xvals = malloc(sizeof(double));
-	list.yvals = malloc(sizeof(double));
+	list.xvals = malloc(BLOCK_SIZE);
+	list.yvals = malloc(BLOCK_SIZE);
+	list.size_allotted =BLOCK_SIZE;
 	if(list.xvals!=NULL && list.yvals!=NULL){
 		buffer = get_local_max_list(&list);
 		if(buffer!=NULL){

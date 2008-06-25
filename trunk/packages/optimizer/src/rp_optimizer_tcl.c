@@ -70,6 +70,9 @@ __declspec( dllexport )
 #endif
 
 extern int pgapack_abort;
+extern void PGARuntimeDataTableInit();
+extern void PGARuntimeDataTableDeInit();
+extern void GetSampleInformation();
 
 int
 Rapptureoptimizer_Init(Tcl_Interp *interp)   /* interpreter being initialized */
@@ -223,10 +226,8 @@ RpOptimizerCmd(cdata, interp, objc, objv)
     toolDataPtr->toolPtr = toolPtr;
     toolDataPtr->updateCmdPtr = NULL;
     envPtr->toolData = (ClientData)toolDataPtr;
-
     Tcl_CreateObjCommand(interp, name, RpOptimInstanceCmd,
         (ClientData)envPtr, (Tcl_CmdDeleteProc*)RpOptimCmdDelete);
-
     Tcl_SetResult(interp, name, TCL_VOLATILE);
     return TCL_OK;
 }
@@ -249,6 +250,7 @@ RpOptimCmdDelete(cdata)
     int n;
     ClientData paramdata;
 
+    PGARuntimeDataTableDeInit();/*Free space allocated to data table here*/
     if (envPtr->toolData) {
         toolDataPtr = (RpOptimToolData*)envPtr->toolData;
         if (toolDataPtr->toolPtr) {
@@ -289,10 +291,11 @@ RpOptimCmdDelete(cdata)
  *      <name> perform ?-tool <tool>? ?-fitness <expr>? \
  *                     ?-updatecommand <varName>?
  *      <name> using
+ *      <name> samples ?number?
  *
  *  The "add" command is used to add various parameter types to the
  *  optimizer context.  The "perform" command kicks off an optimization
- *  run.
+ *  run. The "samples" command displays sample info during an optimization run.
  * ------------------------------------------------------------------------
  */
 static int
@@ -312,7 +315,7 @@ RpOptimInstanceCmd(cdata, interp, objc, objv)
     RpOptimStatus status;
     RpTclOption *optSpecPtr;
     Tcl_Obj *rval, *rrval, *toolPtr, *updateCmdPtr;
-
+    
     if (objc < 2) {
         Tcl_WrongNumArgs(interp, 1, objv, "option ?args...?");
         return TCL_ERROR;
@@ -579,7 +582,9 @@ RpOptimInstanceCmd(cdata, interp, objc, objv)
 
         /* no -updatecommand by default */
         updateCmdPtr = NULL;
-
+		
+		PGARuntimeDataTableInit(envPtr);/*Initialize Data table here....*/
+		
         n = 2;
         while (n < objc) {
             option = Tcl_GetStringFromObj(objv[n], (int*)NULL);
@@ -631,12 +636,12 @@ RpOptimInstanceCmd(cdata, interp, objc, objv)
             Tcl_IncrRefCount(updateCmdPtr);
             toolDataPtr->updateCmdPtr = updateCmdPtr;
         }
-
+		
         /* call the main optimization routine here */
         status = (*envPtr->pluginDefn->runProc)(envPtr,
             RpOptimizerPerformInTcl, fitnessExpr);
-
-	fprintf(stderr, ">>>status=%d\n", status);
+		
+		fprintf(stderr, ">>>status=%d\n", status);
 
         Tcl_DecrRefCount(toolPtr);
         if (updateCmdPtr) {
@@ -681,11 +686,38 @@ RpOptimInstanceCmd(cdata, interp, objc, objv)
         }
         return TCL_OK;
     }
+    
+    else if(*option == 's' && strcmp(option,"samples") == 0){
+    	int sampleNumber = -1; /*initing sampnum to -1, use it when no sample number is specified*/
+    	char *sampleDataBuffer;
+    	if(objc>3){
+    		Tcl_WrongNumArgs(interp, 2, objv, "?sampleNumber?");
+            return TCL_ERROR;
+    	}
+    	
+    	if(objc == 3){
+	    	if(Tcl_GetIntFromObj(interp,objv[2],&sampleNumber) != TCL_OK){
+	    		return TCL_ERROR; 
+	    	}
+    		sampleDataBuffer = malloc(sizeof(char)*SINGLE_SAMPLE_DATA_BUFFER_DEFAULT_SIZE);
+    	}else{
+    		sampleDataBuffer = malloc(sizeof(char)*50);
+    	}
+    	
+    	if(sampleDataBuffer == NULL){
+    		panic("Error: Could not allocate memory for sample data buffer.");
+    	}
+    	GetSampleInformation(sampleDataBuffer,sampleNumber);
+		fprintf(stdout,sampleDataBuffer);/**TODO GTG check if this should be fprintf or something else*/
+		free(sampleDataBuffer);
+    	return TCL_OK;
+    	
+    }
 
     else {
         Tcl_AppendStringsToObj(Tcl_GetObjResult(interp),
             "bad option \"", option, "\": should be add, configure, "
-            "get, perform, using", (char*)NULL);
+            "get, perform, using, samples", (char*)NULL);
         return TCL_ERROR;
     }
     return TCL_OK;

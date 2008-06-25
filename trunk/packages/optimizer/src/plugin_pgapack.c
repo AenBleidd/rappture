@@ -23,6 +23,7 @@ typedef struct PgapackData {
     int popRepl;         /* replacement <=> PGASetPopReplacementType() */
 } PgapackData;
 
+
 RpCustomTclOptionParse RpOption_ParseOper;
 RpCustomTclOptionGet RpOption_GetOper;
 RpTclOptionType RpOption_Oper = {
@@ -34,6 +35,13 @@ RpCustomTclOptionGet RpOption_GetPopRepl;
 RpTclOptionType RpOption_PopRepl = {
     "pga_poprepl", RpOption_ParsePopRepl, RpOption_GetPopRepl, NULL
 };
+
+typedef struct PgapackRuntimeDataTable{
+	double **data;				/*Actual data per sample, like values of the genes, fitness of a sample, etc*/
+	int num_of_rows;			/*Number of rows alloced..should be constant for a run*/
+	int no_of_samples_evaled;	/*Number of samples evaluated so far*/
+	int no_of_columns;					/*Number of columns allocated to the data table so far*/
+}PgapackRuntimeDataTable;
 
 RpTclOption PgapackOptions[] = {
   {"-maxruns", RP_OPTION_INT, Rp_Offset(PgapackData,maxRuns)},
@@ -57,8 +65,11 @@ static void PgapLinkContext2Env _ANSI_ARGS_((PGAContext *ctx,
     RpOptimEnv *envPtr));
 static RpOptimEnv* PgapGetEnvForContext _ANSI_ARGS_((PGAContext *ctx));
 static void PgapUnlinkContext2Env _ANSI_ARGS_((PGAContext *ctx));
-
-
+void PGARuntimeDataTableInit _ANSI_ARGS_((RpOptimEnv *envPtr));
+void PGARuntimeDataTableDeInit();
+void GetSampleInformation _ANSI_ARGS_((char *buffer, int sampleNumber));
+void PGARuntimeDataTableSetSampleValue _ANSI_ARGS_((RpOptimParam *chrom, double fitness));
+static PgapackRuntimeDataTable table;
 /*
  * ----------------------------------------------------------------------
  * PgapackInit()
@@ -143,7 +154,6 @@ PgapackRun(envPtr, evalProc, fitnessExpr)
     PGASetUp(ctx);
     PGARun(ctx, PgapEvaluate);
     PGADestroy(ctx);
-
     PgapUnlinkContext2Env(ctx);
 
     if (pgapack_abort) {
@@ -167,17 +177,16 @@ PgapEvaluate(ctx, p, pop)
     PGAContext *ctx;  /* pgapack context for this optimization */
     int p;            /* sample #p being run */
     int pop;          /* identifier for this population */
+    
 {
     double fit = 0.0;
     RpOptimEnv *envPtr;
     RpOptimParam *paramPtr;
     RpOptimStatus status;
-
     envPtr = PgapGetEnvForContext(ctx);
     paramPtr = (RpOptimParam*)PGAGetIndividual(ctx, p, pop)->chrom;
-
     status = (*envPtr->evalProc)(envPtr, paramPtr, envPtr->numParams, &fit);
-
+	
     if (pgapack_abort) {
         fprintf(stderr, "==WARNING: run aborted!");
         return 0.0;
@@ -187,7 +196,9 @@ PgapEvaluate(ctx, p, pop)
         fprintf(stderr, "==WARNING: run failed!");
         PgapPrintString(ctx, stderr, p, pop);
     }
-
+	
+	/*populate the table with this sample*/
+	PGARuntimeDataTableSetSampleValue(paramPtr,fit);
     return fit;
 }
 
@@ -517,6 +528,8 @@ PgapDuplicateString(ctx, p1, pop1, p2, pop2)
     return 1;
 }
 
+
+
 /*
  * ----------------------------------------------------------------------
  * PgapCopyString()
@@ -705,4 +718,129 @@ PgapUnlinkContext2Env(ctx)
             Tcl_DeleteHashEntry(entryPtr);
         }
     }
+}
+/*---------------------------------------------------------------------------------
+ * PGARuntimeDTInit(): It initializes the runtime data table.
+ * The table is organized slightly counter-intuitively
+ * Instead of a
+ *  param1|param2|param3  |param4...
+ * 	val11 |val12 |val13   |val14...
+ * 	val12 |val22 |val23   |val24....
+ * orientation, it is organized as
+ * 	param1|val11|val12
+ * 	param2|val21|val22
+ * 	param3|val31|val32
+ * 	param4|val41|val42
+ * Reallocating for additional columns is easier than reallocating additional rows and then
+ * reallocating for columns 
+ * --------------------------------------------------------------------------------
+ */
+
+void PGARuntimeDataTableInit(envPtr)
+RpOptimEnv *envPtr;
+{    
+	int i;
+	if(envPtr != NULL){
+		table.num_of_rows = (envPtr->numParams)+1;
+		table.data = malloc((table.num_of_rows)*sizeof(double*));
+		if(table.data == NULL){
+			panic("\nAllocation for Runtime Data Table failed\n");
+		}
+		for(i=0;i<table.num_of_rows;i++){
+			table.data[i] = malloc(PGAPACK_RUNTIME_TABLE_DEFAULT_SIZE*sizeof(double));
+			if(table.data[i] == NULL){
+				panic("\nAllocation for Runtime Data Table failed\n");
+			}			
+		}
+		table.no_of_samples_evaled = 0;
+		table.no_of_columns = PGAPACK_RUNTIME_TABLE_DEFAULT_SIZE;
+		
+	}else{
+		panic("\nError: NULL Environment variable OR Table pointer passed to Data Table Init\n");
+	}
+}
+
+void PGARuntimeDataTableDeInit()
+{	
+	int i;
+	if((&table) == NULL){
+		panic("Error: Table not present, therefore cannot free memory..");
+	}
+	for(i=0;i<table.num_of_rows;i++){
+		free(table.data[i]);
+	}
+	free(table.data);
+}
+
+void PGARuntimeDataTableSetSampleValue(chrom,fitness)
+RpOptimParam *chrom;
+double fitness;
+{
+	int i;
+	printf("\nSetting sample value.......................\n");
+	if(chrom!=NULL && (&table)!=NULL){
+		(table.no_of_samples_evaled)+=1;
+		if((table.no_of_samples_evaled) > table.no_of_columns){
+			/* then Reallocate space for more columns)*/
+			(table.no_of_columns)+=(table.no_of_columns);
+				//TODO GTG: Delete printing stuff
+			for(i=0;i<(table.num_of_rows);i++){
+				table.data[i] = realloc(table.data[i],table.no_of_columns);
+				if(table.data[i]==NULL){
+					panic("\nError: Could not Reallocate more space for the table");
+				}				
+			}
+		}else{
+			if(chrom->type == RP_OPTIMPARAM_NUMBER){
+				for(i=0;i<(table.num_of_rows);i++){
+					if(i==0){
+						table.data[i][(table.no_of_samples_evaled)-1] = fitness;
+						printf("\nSample Number %d:- Fitness: %lf\t",table.no_of_samples_evaled,fitness);
+					}else{
+						table.data[i][(table.no_of_samples_evaled)-1] = chrom[i-1].value.dval;
+						printf("Param %d %lf\t",i,table.data[i][(table.no_of_samples_evaled)-1]);
+					}
+                }
+			}else{
+				panic("\n Chromosome value is RP_OPTIMPARAM_STRING\n");
+				//GTG TODO: find out what happens in this case. Will we be better off handling Tcl_objects?
+			}	
+		}
+	}else{
+		panic("\nError:Either Chromosome, or table passed to PGARuntimeDataTableSetSampleValue() is NULL\n"); 
+	}
+	
+}
+
+void GetSampleInformation(buffer,sampleNumber)
+	char *buffer;
+	int sampleNumber;
+{
+	int i;
+	char tempBuff[50];
+	printf("\nFetching sample information.........................\n");
+	if((&table) == NULL){
+		panic("Table uninitialized");
+	}
+	if(sampleNumber<=0){
+		sprintf(buffer,"\nNumber of Samples Evaluated so far: %d\n",(table.no_of_samples_evaled)+1);
+		return;
+	}
+	if(((table.num_of_rows)-1)*10>SINGLE_SAMPLE_DATA_BUFFER_DEFAULT_SIZE){
+		buffer = realloc(buffer,50+25*(table.num_of_rows));
+		//resizing the buffer, keeping 50 for display related jazz, around 12-15 characs for param names
+		//and 10 characs for Fl.pt. display of the value
+		if(buffer == NULL){
+			panic("\nError: Could not reallocate space for sample data buffer");
+		}
+	}
+	for(i=0;i<(table.num_of_rows);i++){
+		if(i==0){
+			sprintf(buffer,"\nSample Number %d ----> Fitness: %lf  ",sampleNumber,table.data[i][sampleNumber-1]);
+		}else{
+			sprintf(tempBuff,"Param %d: %lf  ",i,table.data[i][sampleNumber-1]);
+			strcat(buffer,tempBuff);
+		}
+	}
+	strcat(buffer,"\n");
 }
