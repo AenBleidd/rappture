@@ -6,59 +6,39 @@
 #include<math.h>
 #include<stdlib.h>
 #include<time.h>
-
-//I think this structure needs to be included with PGAPACK code. A list of current gene values can be maintained and 
-//before each evaluation the gene values can be updated.
-typedef struct Gene{
-	int geneID;
-	double weight;
-	double value;
-	double rangemin;
-	double rangemax;
-}Gene;
+#include "pgapack.h"
+#include "rp_optimizer.h"
 
 
 /*Idea behind this function: Whenever a user would want to get the value of a certain i/p geneeter
 *during the course of a GA, he would use this function. The work of interfacing it to the GA Algo
 * is not yet complete.
 */
-double get_gene(int geneID){
+double get_gene(char* name){
 	return 0;
 }
 
 /*
- * Return the actual values of all the genes in the current string
+ * Return the actual values of all the genes in the currently evaluated chromosome
  */
 double* get_all_genes(){
 	return 0;
 }
 
 /*
- * Return the gene value raised to a power
+ * The way to go about doing this is to fetch  
  */
-double gene_value_raised_to_power(int geneID){
+double weighted_sum_of_variances(double* array_of_current_values, double* array_of_desired_values){
 	return 0;
 }
 
-/*
- * Return the absolute value of a gene.
- */
- 
-double gene_abs_value(int geneID){
- 	return 0;
-}
- 
-double weighted_sum_of_genes(){
-	return 0;
-}
 
-/*
- * I need to verify this yet. 
- */
-double weighted_sum_of_nth_power_distances(){
-	return 0;
+double abs_nth_power_distance(double actual_value, double desired_value,double power){
+	return pow(fabs(actual_value-desired_value),power);
 }
 
 int main(){
+	double actual=5,desired=30,power=0.2;
+	printf("Actual - %lf, Desired - %lf, (Actual-Desired)^ %lf is %lf\n", actual,desired,power,abs_nth_power_distance(actual,desired,power));
 	return 0;
 }

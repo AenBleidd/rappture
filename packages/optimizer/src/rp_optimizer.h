@@ -24,6 +24,9 @@
 #include <malloc.h>
 #include "rp_tcloptions.h"
 
+#define PGAPACK_RUNTIME_TABLE_DEFAULT_SIZE 5000 /*Approx Number of Samples in a run*/
+#define SINGLE_SAMPLE_DATA_BUFFER_DEFAULT_SIZE 5000
+
 /*
  * General-purpose allocation/cleanup routines:
  * These are used, for example, for the plug-in architecture.
@@ -138,5 +141,6 @@ EXTERN RpOptimParam* RpOptimFindParam _ANSI_ARGS_((RpOptimEnv *envPtr,
 EXTERN void RpOptimDeleteParam _ANSI_ARGS_((RpOptimEnv *envPtr, char *name));
 
 EXTERN void RpOptimDelete _ANSI_ARGS_((RpOptimEnv *envPtr));
+
 
 #endif
