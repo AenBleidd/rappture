@@ -57,7 +57,7 @@ itcl::class Rappture::NanovisViewer {
     public method delete {args}
     public method scale {args}
     public method GetLimits { ivol } {
-	if { if [info exists _id2style($ivol)] } {
+	if { [info exists _id2style($ivol)] } {
 	    set tf $_id2style($ivol)
 	    set _limits(min) ""
 	    set _limits(max) ""
