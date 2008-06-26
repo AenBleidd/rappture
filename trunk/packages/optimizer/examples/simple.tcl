@@ -98,9 +98,10 @@ Rappture::optimizer optim -tool $tool -using pgapack
 
 optim add number input.number(x1) -min -2 -max 2
 optim add number input.number(x2) -min -2 -max 2
-optim configure -operation minimize -popsize $popsize -maxruns 1000
+optim configure -operation minimize -popsize 50 -maxruns 100 -mutnrate 0.01 -crossovrate 0.9 -randnumseed 24 -stpcriteria nochange
 
 set status [optim perform \
     -fitness output.number(f).current \
     -updatecommand add_to_plot]
+optim samples 10
 puts "done: $status"
