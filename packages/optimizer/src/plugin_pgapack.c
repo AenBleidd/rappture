@@ -21,8 +21,17 @@ typedef struct PgapackData {
     int maxRuns;         /* maximum runs <=> PGASetMaxGAIterValue() */
     int popSize;         /* population size <=> PGASetPopSize() */
     int popRepl;         /* replacement <=> PGASetPopReplacementType() */
+    int stpcriteria;     /*stoppage criteria <=> PGASetStoppingRuleType()*/
+    int randnumseed;  /*Random Number Seed <=> PGASetRandomSeed()*/
+    double mutnrate;     /*Mutation Rate <=> PGASetMutationProb()*/
+    double crossovrate;  /*Crossover Rate <=> PGASetCrossoverProb();*/
 } PgapackData;
 
+RpCustomTclOptionGet RpOption_GetStpCriteria;
+RpCustomTclOptionParse RpOption_ParseStpCriteria;
+RpTclOptionType RpOption_StpCriteria = {
+	"pga_stpcriteria", RpOption_ParseStpCriteria,RpOption_GetStpCriteria,NULL
+};
 
 RpCustomTclOptionParse RpOption_ParseOper;
 RpCustomTclOptionGet RpOption_GetOper;
@@ -36,6 +45,7 @@ RpTclOptionType RpOption_PopRepl = {
     "pga_poprepl", RpOption_ParsePopRepl, RpOption_GetPopRepl, NULL
 };
 
+
 typedef struct PgapackRuntimeDataTable{
 	double **data;				/*Actual data per sample, like values of the genes, fitness of a sample, etc*/
 	int num_of_rows;			/*Number of rows alloced..should be constant for a run*/
@@ -48,6 +58,10 @@ RpTclOption PgapackOptions[] = {
   {"-operation", &RpOption_Oper, Rp_Offset(PgapackData,operation)},
   {"-poprepl", &RpOption_PopRepl, Rp_Offset(PgapackData,popRepl)},
   {"-popsize", RP_OPTION_INT, Rp_Offset(PgapackData,popSize)},
+  {"-mutnrate",RP_OPTION_DOUBLE,Rp_Offset(PgapackData,mutnrate)},
+  {"-crossovrate",RP_OPTION_DOUBLE,Rp_Offset(PgapackData,crossovrate)},
+  {"-randnumseed",RP_OPTION_INT,Rp_Offset(PgapackData,randnumseed)},
+  {"-stpcriteria",&RpOption_StpCriteria,Rp_Offset(PgapackData,stpcriteria)},
   {NULL, NULL, 0}
 };
 
@@ -89,6 +103,10 @@ PgapackInit()
     dataPtr->maxRuns = 10000;
     dataPtr->popRepl = PGA_POPREPL_BEST;
     dataPtr->popSize = 200;
+    dataPtr->crossovrate = 0.85;
+    dataPtr->mutnrate = 0.05; /*by default in PGAPack 1/stringlength*/
+    dataPtr->randnumseed = 1; /*should be a number greater than one, PGAPack requires it*/
+    dataPtr->stpcriteria = PGA_STOP_NOCHANGE;
     return (ClientData)dataPtr;
 }
 
@@ -124,12 +142,12 @@ PgapackRun(envPtr, evalProc, fitnessExpr)
     PGASetMaxGAIterValue(ctx, dataPtr->maxRuns);
     PGASetPopSize(ctx, dataPtr->popSize);
     PGASetPopReplaceType(ctx, dataPtr->popRepl);
+    PGASetStoppingRuleType(ctx, dataPtr->stpcriteria);
+    PGASetMutationProb(ctx,dataPtr->mutnrate);
+    PGASetCrossoverProb(ctx,dataPtr->crossovrate);
+    PGASetRandomSeed(ctx,dataPtr->randnumseed);
     PGASetCrossoverType(ctx, PGA_CROSSOVER_UNIFORM);
 
-    /* stop if any of these are true */
-    PGASetStoppingRuleType(ctx, PGA_STOP_MAXITER);
-    PGASetStoppingRuleType(ctx, PGA_STOP_NOCHANGE);
-    PGASetStoppingRuleType(ctx, PGA_STOP_TOOSIMILAR);
 
     PGASetUserFunction(ctx, PGA_USERFUNCTION_CREATESTRING, PgapCreateString);
     PGASetUserFunction(ctx, PGA_USERFUNCTION_MUTATION, PgapMutation);
@@ -646,6 +664,62 @@ RpOption_GetPopRepl(interp, cdata, offset)
     case PGA_POPREPL_RANDOM_NOREP:
         Tcl_SetResult(interp, "random-norepl", TCL_STATIC);
         break;
+    default:
+        Tcl_SetResult(interp, "???", TCL_STATIC);
+        break;
+    }
+    return TCL_OK;
+}
+
+/*
+ * ======================================================================
+ *  OPTION:  -stpcriteria <=> PGA_STOP_MAXITER / PGA_STOP_NOCHANGE / PGA_STOP_TOOSIMILAR
+ * ======================================================================
+ */
+int
+RpOption_ParseStpCriteria(interp, valObj, cdata, offset)
+    Tcl_Interp *interp;  /* interpreter handling this request */
+    Tcl_Obj *valObj;     /* set option to this new value */
+    ClientData cdata;    /* save in this data structure */
+    int offset;          /* save at this offset in cdata */
+{
+    int *ptr = (int*)(cdata+offset);
+    char *val = Tcl_GetStringFromObj(valObj, (int*)NULL);
+    if (strcmp(val,"maxiter") == 0) {
+        *ptr = PGA_STOP_MAXITER;
+    }
+    else if (strcmp(val,"nochange") == 0) {
+        *ptr = PGA_STOP_NOCHANGE;
+    }
+    else if (strcmp(val,"toosimilar") == 0){
+    	*ptr = PGA_STOP_TOOSIMILAR;
+    }
+    else {
+        Tcl_AppendStringsToObj(Tcl_GetObjResult(interp),
+            "bad value \"", val, "\": should be maxiter, nochange or toosimilar",
+            (char*)NULL);
+        return TCL_ERROR;
+    }
+    return TCL_OK;
+}
+
+int
+RpOption_GetStpCriteria(interp, cdata, offset)
+    Tcl_Interp *interp;  /* interpreter handling this request */
+    ClientData cdata;    /* get from this data structure */
+    int offset;          /* get from this offset in cdata */
+{
+    int *ptr = (int*)(cdata+offset);
+    switch (*ptr) {
+    case PGA_STOP_MAXITER:
+        Tcl_SetResult(interp, "maxiter", TCL_STATIC);
+        break;
+    case PGA_STOP_NOCHANGE:
+        Tcl_SetResult(interp, "nochange", TCL_STATIC);
+        break;
+    case PGA_STOP_TOOSIMILAR:
+    	Tcl_SetResult(interp, "toosimilar", TCL_STATIC);
+    	break;
     default:
         Tcl_SetResult(interp, "???", TCL_STATIC);
         break;
