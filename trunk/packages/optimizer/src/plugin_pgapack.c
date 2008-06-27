@@ -290,9 +290,26 @@ PgapCreateString(ctx, p, pop, initFlag)
             switch (newParamPtr[n].type) {
             case RP_OPTIMPARAM_NUMBER:
                 numPtr = (RpOptimParamNumber*)envPtr->paramList[n];
-                dval = PGARandom01(ctx,0);
-                newParamPtr[n].value.dval =
+                if(numPtr->randdist == RAND_NUMBER_DIST_UNIFORM){
+                	dval = PGARandom01(ctx,0);
+                	newParamPtr[n].value.dval =
                     (numPtr->max - numPtr->min)*dval + numPtr->min;
+                }else if(numPtr->randdist == RAND_NUMBER_DIST_GAUSSIAN){
+	                	dval = PGARandomGaussian(ctx,numPtr->mean,numPtr->stddev);
+	            		if(numPtr->strictmax){
+	            			if(dval>numPtr->max){
+	            				dval = numPtr->max;
+	            			}
+	            		}
+	            		if(numPtr->strictmin){
+	            			if(dval<numPtr->min){
+	            				dval = numPtr->min;
+	            			}
+	            		}
+	            		newParamPtr[n].value.dval = dval;
+                }else{
+                	panic("Incorrect Random Number distribution option in PgapcreateString()");
+                }
                 break;
             case RP_OPTIMPARAM_STRING:
                 strPtr = (RpOptimParamString*)envPtr->paramList[n];
@@ -324,7 +341,7 @@ PgapMutation(ctx, p, pop, mr)
 {
     int count = 0;    /* number of mutations */
 
-    int n, ival;
+    int n, ival,tempmr;
     RpOptimEnv *envPtr;
     RpOptimParam *paramPtr;
     RpOptimParamNumber *numPtr;
@@ -334,46 +351,69 @@ PgapMutation(ctx, p, pop, mr)
     paramPtr = (RpOptimParam*)PGAGetIndividual(ctx, p, pop)->chrom;
 
     for (n=0; n < envPtr->numParams; n++) {
-        if (PGARandomFlip(ctx, mr)) {
-            /* won the coin toss -- change this parameter */
-            count++;
+
 
             switch (paramPtr[n].type) {
             case RP_OPTIMPARAM_NUMBER:
-                /* bump the value up/down a little, randomly */
-                if (PGARandomFlip(ctx, 0.5)) {
-                    paramPtr[n].value.dval += 0.1*paramPtr[n].value.dval;
-                } else {
-                    paramPtr[n].value.dval -= 0.1*paramPtr[n].value.dval;
-                }
-                /* make sure the resulting value is still in bounds */
                 numPtr = (RpOptimParamNumber*)envPtr->paramList[n];
-                if (paramPtr[n].value.dval > numPtr->max) {
-                    paramPtr[n].value.dval = numPtr->max;
+                if(numPtr->mutnrate!=PARAM_NUM_UNSPEC_MUTN_RATE){
+                	tempmr = numPtr->mutnrate;
+                }else{
+                	tempmr = mr;
                 }
-                if (paramPtr[n].value.dval < numPtr->min) {
-                    paramPtr[n].value.dval = numPtr->min;
+                if (PGARandomFlip(ctx, tempmr)) {
+		            /* won the coin toss -- change this parameter */
+		            	count++;
+		            	
+	                /* bump the value up/down a little, randomly */
+	                if (PGARandomFlip(ctx, 0.5)) {
+	                    paramPtr[n].value.dval += 0.1*paramPtr[n].value.dval;
+	                } else {
+	                    paramPtr[n].value.dval -= 0.1*paramPtr[n].value.dval;
+	                }
+	                /* make sure the resulting value is still in bounds */
+	                if(numPtr->randdist == RAND_NUMBER_DIST_UNIFORM ||
+	                 (numPtr->randdist == RAND_NUMBER_DIST_GAUSSIAN && numPtr->strictmax)){
+		                if (paramPtr[n].value.dval > numPtr->max) {
+		                    paramPtr[n].value.dval = numPtr->max;
+		                }
+	                 }
+	                 /*also make sure it obeys configured parameters when gaussian*/
+	                 if(numPtr->randdist == RAND_NUMBER_DIST_UNIFORM ||
+	                 (numPtr->randdist == RAND_NUMBER_DIST_GAUSSIAN && numPtr->strictmin)){
+		                if (paramPtr[n].value.dval < numPtr->min) {
+		                    paramPtr[n].value.dval = numPtr->min;
+		                }
+	                 }
+	                
                 }
                 break;
+                
 
             case RP_OPTIMPARAM_STRING:
-                ival = paramPtr[n].value.sval.num;
-                if (PGARandomFlip(ctx, 0.5)) {
-                    ival += 1;
-                } else {
-                    ival -= 1;
-                }
-                strPtr = (RpOptimParamString*)envPtr->paramList[n];
-                if (ival < 0) ival = 0;
-                if (ival >= strPtr->numValues) ival = strPtr->numValues-1;
-                paramPtr[n].value.sval.num = ival;
-                paramPtr[n].value.sval.str = strPtr->values[ival];
-                break;
-
+	            if (PGARandomFlip(ctx, mr)) {
+	            /* won the coin toss -- change this parameter */
+	            	count++;
+	        
+	                ival = paramPtr[n].value.sval.num;
+	                if (PGARandomFlip(ctx, 0.5)) {
+	                    ival += 1;
+	                } else {
+	                    ival -= 1;
+	                }
+	                strPtr = (RpOptimParamString*)envPtr->paramList[n];
+	                if (ival < 0) ival = 0;
+	                if (ival >= strPtr->numValues) ival = strPtr->numValues-1;
+	                paramPtr[n].value.sval.num = ival;
+	                paramPtr[n].value.sval.str = strPtr->values[ival];
+	            }
+	            
+	            break;
+	            
             default:
                 panic("bad parameter type in PgapMutation()");
             }
-        }
+        
     }
     return count;
 }
