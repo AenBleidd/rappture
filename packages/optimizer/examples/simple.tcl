@@ -96,9 +96,11 @@ proc add_to_plot {xmlobj} {
 # ----------------------------------------------------------------------
 Rappture::optimizer optim -tool $tool -using pgapack
 
-optim add number input.number(x1) -min -2 -max 2
-optim add number input.number(x2) -min -2 -max 2
-optim configure -operation minimize -popsize 50 -maxruns 100 -mutnrate 0.01 -crossovrate 0.9 -randnumseed 24 -stpcriteria nochange
+optim add number input.number(x1) -min -2 -max 2 -randdist gaussian -stddev 0.7 -mean 1 -mutnrate 0.01 -strictmin yes -strictmax yes
+optim add number input.number(x2) -min -2 -max 2 -randdist gaussian -stddev 0.5 -mean 1 -mutnrate 0.01 -strictmin yes -strictmax yes
+#optim configure -operation minimize -popsize 50 -maxruns 100 -mutnrate 0.01 -crossovrate 0.9 -randnumseed 24 -stpcriteria toosimilar
+
+optim get configure 
 
 set status [optim perform \
     -fitness output.number(f).current \
