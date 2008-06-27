@@ -27,6 +27,13 @@
 #define PGAPACK_RUNTIME_TABLE_DEFAULT_SIZE 5000 /*Approx Number of Samples in a run*/
 #define SINGLE_SAMPLE_DATA_BUFFER_DEFAULT_SIZE 5000
 
+/*User defined Random Number Distributions*/
+#define RAND_NUMBER_DIST_GAUSSIAN 1
+#define RAND_NUMBER_DIST_UNIFORM 2
+
+/* Used to indicate unspecified mutation rate for a param, will result in global mutn rate being applied*/
+#define PARAM_NUM_UNSPEC_MUTN_RATE -1.0
+
 /*
  * General-purpose allocation/cleanup routines:
  * These are used, for example, for the plug-in architecture.
@@ -92,12 +99,18 @@ typedef struct RpOptimParam {
 } RpOptimParam;
 
 /*
- * NUMBER PARAMETERS have additional min/max values as constraints.
+ * NUMBER PARAMETERS have additional constraints.
  */
 typedef struct RpOptimParamNumber {
     RpOptimParam base;              /* basic parameter info */
     double min;                     /* optimization constraint: min value */
     double max;                     /* optimization constraint: max value */
+    double mutnrate;            	/* independently sets mutation rate for each parameter*/
+    int randdist;             		/* gaussian or uniform distribution*/
+    int strictmin;					/* whether a strict min is to be applied for gauss. rand. numbers*/
+    int strictmax;					/* whether a strict max is to be applied for gauss. rand. numbers*/
+    double stddev;					/* std deviaton for gaussian profile*/
+    double mean;					/* mean for gaussian profile*/
 } RpOptimParamNumber;
 
 /*

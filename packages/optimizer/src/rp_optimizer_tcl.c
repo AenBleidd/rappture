@@ -46,9 +46,21 @@ typedef struct RpOptimToolData {
  *  Options for the various parameter types
  * ----------------------------------------------------------------------
  */
+ 
+RpCustomTclOptionGet RpOption_GetRandDist;
+RpCustomTclOptionParse RpOption_ParseRandDist;
+RpTclOptionType RpOption_RandDist = {
+	"pga_randdist", RpOption_ParseRandDist,RpOption_GetRandDist,NULL
+}; 
 RpTclOption rpOptimNumberOpts[] = {
   {"-min", RP_OPTION_DOUBLE, Rp_Offset(RpOptimParamNumber,min)},
   {"-max", RP_OPTION_DOUBLE, Rp_Offset(RpOptimParamNumber,max)},
+  {"-mutnrate",RP_OPTION_DOUBLE, Rp_Offset(RpOptimParamNumber,mutnrate)},
+  {"-randdist",&RpOption_RandDist,Rp_Offset(RpOptimParamNumber,randdist)},
+  {"-strictmin",RP_OPTION_BOOLEAN,Rp_Offset(RpOptimParamNumber,strictmin)},
+  {"-strictmax",RP_OPTION_BOOLEAN,Rp_Offset(RpOptimParamNumber,strictmax)},
+  {"-stddev",RP_OPTION_DOUBLE,Rp_Offset(RpOptimParamNumber,stddev)},
+  {"-mean",RP_OPTION_DOUBLE,Rp_Offset(RpOptimParamNumber,mean)},
   {NULL, NULL, 0}
 };
 
@@ -882,4 +894,54 @@ RpOptimizerPerformInTcl(envPtr, values, numValues, fitnessPtr)
         Tcl_DecrRefCount(xmlObj);  /* done with this now */
     }
     return result;
+}
+
+/*
+ * ======================================================================
+ *  OPTION:  -randdist <=> RAND_NUMBER_DIST_GAUSSIAN / RAND_NUMBER_DIST_UNIFORM 
+ * ======================================================================
+ */
+int
+RpOption_ParseRandDist(interp, valObj, cdata, offset)
+    Tcl_Interp *interp;  /* interpreter handling this request */
+    Tcl_Obj *valObj;     /* set option to this new value */
+    ClientData cdata;    /* save in this data structure */
+    int offset;          /* save at this offset in cdata */
+{
+    int *ptr = (int*)(cdata+offset);
+    char *val = Tcl_GetStringFromObj(valObj, (int*)NULL);
+    if (strcmp(val,"gaussian") == 0) {
+        *ptr = RAND_NUMBER_DIST_GAUSSIAN;
+    }
+    else if (strcmp(val,"uniform") == 0) {
+        *ptr = RAND_NUMBER_DIST_UNIFORM;
+    }
+    else {
+        Tcl_AppendStringsToObj(Tcl_GetObjResult(interp),
+            "bad value \"", val, "\": should be gaussian or uniform",
+            (char*)NULL);
+        return TCL_ERROR;
+    }
+    return TCL_OK;
+}
+
+int
+RpOption_GetRandDist(interp, cdata, offset)
+    Tcl_Interp *interp;  /* interpreter handling this request */
+    ClientData cdata;    /* get from this data structure */
+    int offset;          /* get from this offset in cdata */
+{
+    int *ptr = (int*)(cdata+offset);
+    switch (*ptr) {
+    case RAND_NUMBER_DIST_GAUSSIAN:
+        Tcl_SetResult(interp, "gaussian", TCL_STATIC);
+        break;
+    case RAND_NUMBER_DIST_UNIFORM:
+        Tcl_SetResult(interp, "uniform", TCL_STATIC);
+        break;
+    default:
+        Tcl_SetResult(interp, "???", TCL_STATIC);
+        break;
+    }
+    return TCL_OK;
 }
