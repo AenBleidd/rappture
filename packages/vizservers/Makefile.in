@@ -1,45 +1,46 @@
 
-subdirs         = @SUBDIRS@
+bindir          = @bindir@
+datadir		= @datadir@
+datarootdir	= @datarootdir@
+exec_prefix     = @exec_prefix@
+includedir      = @includedir@
+libdir          = @libdir@
+mandir          = @mandir@
+prefix          = @prefix@
+srcdir		= @srcdir@
+
+destdir		= $(prefix)/bin
+
+INSTALL		= @INSTALL@
+SHELL		= @SHELL@
+RM		= rm -f
+VPATH		= $(srcdir)
+
+SUBDIRS         = nanoscale nanovis pymolproxy
+FILES		= \
+		start_viz.sh
+
+.PHONY: nanoscale nanovis pymolproxy
 
 all:
-	for dir in $(subdirs) ; do \
-		if test -d $$dir ; then \
-		    echo "$$dir: $(MAKE) $@" ; \
-		    if (cd $$dir; $(MAKE) $@) ; then true ; else exit 1; fi ; \
-		else \
-		    exit 1; \
-		fi \
-	done;
+	for i in $(SUBDIRS) ; do \
+	  $(MAKE) -C $$i all || exit 1 ; \
+	done
 
 install:
-	for dir in $(subdirs) ; do \
-		if test -d $$dir ; then \
-		    echo "$$dir: $(MAKE) $@" ; \
-		    if (cd $$dir; $(MAKE) $@) ; then true ; else exit 1; fi ; \
-		else \
-		    exit 1; \
-		fi \
-	done;
-	install -c -m 755 start_viz.sh @prefix@/start_viz.sh
+	$(INSTALL) -d $(destdir)
+	for i in $(SUBDIRS) ; do \
+	  $(MAKE) -C $$i install || exit 1 ; \
+	done
+	$(INSTALL) -m 555 start_viz.sh $(prefix)/start_viz.sh
 
 clean:
-	for dir in $(subdirs) ; do \
-		if test -d $$dir ; then \
-		    echo "$$dir: $(MAKE) $@" ; \
-		    if (cd $$dir; $(MAKE) $@) ; then true ; else exit 1; fi ; \
-		else \
-		    exit 1; \
-		fi \
-	done;
+	for i in $(SUBDIRS) ; do \
+	  $(MAKE) -C $$i clean ; \
+	done
 
 distclean:
-	for dir in $(subdirs) ; do \
-		if test -d $$dir ; then \
-		    echo "$$dir: $(MAKE) $@" ; \
-		    if (cd $$dir; $(MAKE) $@) ; then true ; else exit 1; fi ; \
-		else \
-		    exit 1; \
-		fi \
-	done;
-	rm -f *~
-	rm -f Makefile start_viz.sh
+	for i in $(SUBDIRS) ; do \
+	  $(MAKE) -C $$i distclean ; \
+	done
+	rm -f Makefile start_viz.sh *~
