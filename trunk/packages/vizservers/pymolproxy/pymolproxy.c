@@ -824,6 +824,60 @@ ViewportCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
 }
 
 static int
+LoadPDBStrCmd(ClientData cdata, Tcl_Interp *interp, int argc, 
+	      const char *argv[])
+{
+    const char *pdbdata, *pdb, *name;
+    char *buf;
+    char buffer[800];
+    struct pymol_proxy *pymol = (struct pymol_proxy *) cdata;
+    int state = 1;
+    int tmpf;
+    int arg, defer = 0, push = 0, varg = 1;
+    char filename[] = "/tmp/fileXXXXXX.pdb";
+    
+    if (pymol == NULL)
+	return(TCL_ERROR);
+    
+    clear_error(pymol);
+    
+    for(arg = 1; arg < argc; arg++) {
+	if ( strcmp(argv[arg],"-defer") == 0 )
+	    defer = 1;
+	else if (strcmp(argv[arg],"-push") == 0)
+	    push = 1;
+        else if (varg == 1) {
+	    pdbdata = argv[arg];
+	    varg++;
+	}
+	else if (varg == 2) {
+	    name = argv[arg];
+	    varg++;
+	}
+	else if (varg == 3) {
+	    state = atoi( argv[arg] );
+	    varg++;
+	}
+    }
+    
+    pymol->need_update = !defer || push;
+    pymol->immediate_update |= push;
+    
+    tmpf = open(filename,O_RDWR|O_TRUNC|O_CREAT,0700);
+    
+    if (tmpf <= 0) 
+	fprintf(stderr,"pymolproxy: error opening file %d\n",errno);
+    
+    write(tmpf,pdbdata,strlen(pdbdata));
+    close(tmpf);
+    
+    sendf(pymol, "load %s, %s, %d\n", filename, name, state);
+    sendf(pymol, "zoom buffer=2\n");
+    
+    return(pymol->status);
+}
+
+static int
 LoadPDBCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
 {
     const char *pdbdata, *name;
@@ -891,6 +945,7 @@ LoadPDBCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
 
     return pymol->status;
 }
+
 
 static int
 RotateCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])

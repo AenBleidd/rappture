@@ -2632,9 +2632,18 @@ xinetd_listen()
     fcntl(0, F_SETFL, flags);
 
     if (status != TCL_OK) {
-        std::ostringstream errmsg;
-        errmsg << "NanoVis Server Error: " << Tcl_GetStringResult(interp) << std::endl;
-        write(0, errmsg.str().c_str(), errmsg.str().size());
+	const char *string;
+	int nBytes;
+	string = Tcl_GetStringFromObj(Tcl_GetObjResult(_interp), &nBytes);
+
+	struct iovec iov[3];
+	iov[0].iov_base = "NanoVis Server Error: ";
+	iov[0].iov_len = strlen(iov[0].iov_base);
+	iov[1].iov_base = string;
+	iov[1].iov_len = nBytes;
+	iov[2].iov_base = '\n';
+	iov[2].iov_len = 1;
+	writev(0, iov, 3);
         return;
     }
 

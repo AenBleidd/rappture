@@ -20,9 +20,6 @@ srcdir		= @srcdir@
 
 RP_DIR		= @RP_DIR@
 INSTALL         = @INSTALL@
-INSTALL_PROGRAM = ${INSTALL} -m 755
-INSTALL_DATA    = ${INSTALL} -m 644
-INSTALL_SCRIPT  = ${INSTALL} -m 644
 VPATH		= $(srcdir)
 
 .PHONY: all install clean distclean
@@ -39,14 +36,12 @@ pymolproxy: $(OBJS)
 	$(CC) $(CC_SWITCHES) -o $@ -c $<
 
 install: pymolproxy
-	$(INSTALL_PROGRAM) pymolproxy $(bindir)/pymolproxy
-	$(INSTALL_PROGRAM) $(srcdir)/pymol $(bindir)/pymol
-	@if test "$(RP_DIR)/lib" != "$(libdir)" ; then \
-	  cp -rL $(RP_DIR)/lib/pymol $(libdir)/pymol; \
-	fi
+	$(INSTALL) -d $(bindir)
+	$(INSTALL) -m 555 pymolproxy $(bindir)/pymolproxy
+	$(INSTALL) -m 555 $(srcdir)/pymol $(bindir)/pymol
 
 clean:
-	rm -rf a.out *.o *~ core* $(TARGETS) *.log *.tmp logfile* .deps/*.d
+	$(RM) a.out *.o *~ core* $(TARGETS) *.log *.tmp logfile* .deps/*.d
 
 distclean: clean
-	rm Makefile
+	$(RM) Makefile
