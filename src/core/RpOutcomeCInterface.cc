@@ -133,7 +133,7 @@ RapptureOutcomeContext(RapptureOutcome* status)
 int
 RapptureOutcomeCheck(RapptureOutcome* status)
 {
-    return ((int)((Rappture::Outcome*)status->_status));
+  return (Rappture::Outcome*)status->_status != NULL;
 }
 
 #ifdef __cplusplus
