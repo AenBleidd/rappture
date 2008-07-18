@@ -71,9 +71,12 @@ itcl::body Rappture::IntegerEntry::constructor {owner path args} {
     # if there is a color, use it for the min/max spectrum
     set color [$_owner xml get $path.about.color]
     if {$color != "" && $min != "" && $max != ""} {
+	# For compatibility. If only one color use white for min
+	if {[llength $color] == 1} {
+	    set color [list $min white $max $color]
+	}
         $itk_component(spinner) configure \
-            -spectrum [Rappture::Spectrum ::#auto [list \
-                $min white $max $color]]
+            -spectrum [Rappture::Spectrum ::#auto $color]
     }
 
     # if the control has an icon, plug it in

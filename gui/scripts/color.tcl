@@ -161,3 +161,66 @@ proc Rappture::color::HSVtoRGB {h s v} {
     }
     return [format "#%.2x%.2x%.2x" $r $g $b]
 }
+
+# ---------------------------------------------------------------------
+# USAGE: wave2RGB <wavelength>
+#
+# Given a visible wavelength in nm, returns a Tk color of the form
+# #RRGGBB. Returns black for nonvisible wavelengths.  Based on code from
+# Dan Bruton (astro@tamu.edu) http://www.physics.sfasu.edu/astro/color/spectra.html
+# ----------------------------------------------------------------------
+
+proc Rappture::color::wave2RGB {wl} {
+
+    # strip off any units
+    set wl [string trimright $wl "nm"]
+
+    if {$wl < 380 || $wl > 780} {
+	return black
+    }
+    set gamma 0.8
+    set r 0.0
+    set g 0.0
+    set b 0.0
+    if {$wl <= 440} {
+	set r [expr (440.0 - $wl) / 60.0]
+	set b 1.0
+    } elseif {$wl <= 490} {
+	set g [expr ($wl - 440.0) / 50.0]
+	set b 1.0
+    } elseif {$wl <= 510} {
+	set g 1.0
+	set b [expr (510.0 - $wl) / 20.0]
+    } elseif {$wl <= 580} {
+	set g 1.0
+	set r [expr ($wl - 510.0) / 70.0]
+    } elseif {$wl <= 645} {
+	set r 1.0
+	set g [expr (645.0 - $wl) / 65.0]
+    } else {
+	set r 1.0
+    }
+
+    if {$wl > 700} {
+	set sss [expr 0.3 + 0.7 * (780.0 - $wl) / 80.0]
+    } elseif {$wl < 420} {
+	set sss [expr 0.3 + 0.7 * ($wl - 380.0) / 40.0]
+    } else {
+	set sss 1.0
+    }
+    set r [expr int(255.0 * pow(($sss * $r), $gamma))]
+    set g [expr int(255.0 * pow(($sss * $g), $gamma))]
+    set b [expr int(255.0 * pow(($sss * $b), $gamma))]
+    return [format "#%.2X%.2X%.2X" $r $g $b]
+}
+
+# Returns a list containing three decimal values in the range 0 to 65535, 
+# which are the red, green, and blue intensities that correspond to color 
+# in the window given by window. Color may be specified in any of the forms 
+# acceptable for a color option. 
+proc Rappture::color::RGB {color} {
+    if {[string match "*nm" $color]} {
+	set color [Rappture::color::wave2RGB [string trimright $color "nm"]]
+    }
+    return [winfo rgb . $color]
+}

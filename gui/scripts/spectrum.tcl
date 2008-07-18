@@ -35,6 +35,9 @@ itcl::class Rappture::Spectrum {
     private variable _rvals ""      ;# list of red components along axis
     private variable _gvals ""      ;# list of green components along axis
     private variable _bvals ""      ;# list of blue components along axis
+    private variable _spectrum 0    ;# use continuous visible spectrum
+    private variable _specv0 0      ;# minimum value
+    private variable _specw0 0      ;# wavelength for minimum
 }
                                                                                 
 # ----------------------------------------------------------------------
@@ -60,13 +63,43 @@ itcl::body Rappture::Spectrum::constructor {{sdata ""} args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Spectrum::insert {args} {
     set changed 0
+
+    # special case. Two values in nm, then use
+    # spectrum instead of gradient.
+    if {[llength $args] == 4} {
+	set cnt 0
+	foreach {value color} $args {
+	    if {[string match "*nm" $color]} {
+		incr cnt
+	    }
+	}
+	if {$cnt == 2} {
+	    set val0 [lindex $args 0]
+	    set color0 [string trimright [lindex $args 1] "nm"]
+	    set val1 [lindex $args 2]
+	    set color1 [string trimright [lindex $args 3] "nm"]
+	    
+	    if {"" != $units} {
+		set val0 [Rappture::Units::convert $val0 \
+			      -context $units -to $units -units off]
+		set val1 [Rappture::Units::convert $val1 \
+			      -context $units -to $units -units off]
+	    }
+
+	    set _spectrum [expr (double($color1) - double($color0)) \
+			   / (double($val1) - double($val0))]
+	    set _specv0 $val0
+	    set _specw0 $color0
+	    return
+	}
+    }
+
     foreach {value color} $args {
         if {"" != $units} {
             set value [Rappture::Units::convert $value \
                 -context $units -to $units -units off]
         }
-        foreach {r g b} [winfo rgb . $color] { break }
-
+	foreach {r g b} [Rappture::color::RGB $color] { break }
         set i 0
         foreach v $_axis {
             if {$value == $v} {
@@ -171,6 +204,11 @@ itcl::body Rappture::Spectrum::get {args} {
 
     switch -- $what {
         -color {
+	    if {$_spectrum != 0} {
+		# continuous spectrum. just compute wavelength
+		set waveln [expr ($value - $_specv0) * $_spectrum + $_specw0]
+		return [Rappture::color::wave2RGB $waveln]
+	    }
             set i 0
             set ilast ""
             while {$i <= [llength $_axis]} {

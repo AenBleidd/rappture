@@ -81,19 +81,25 @@ itcl::body Rappture::NumberEntry::constructor {owner path args} {
 
     set max [$_owner xml get $path.max]
     if {"" != $max} { $itk_component(gauge) configure -maxvalue $max }
-
+    
     if {$class == "Rappture::Gauge" && "" != $min && "" != $max} {
-        set color [$_owner xml get $path.color]
-        if {$color == ""} {
-            set color blue
-        }
-        if {$units != ""} {
-            set min [Rappture::Units::convert $min -to $units -units off]
-            set max [Rappture::Units::convert $max -to $units -units off]
-        }
-        $itk_component(gauge) configure \
-            -spectrum [Rappture::Spectrum ::#auto [list \
-                $min white $max $color] -units $units]
+	set color [$_owner xml get $path.about.color]
+	if {$color == ""} {
+	    # deprecated.  Color should be in "about"
+	    set color [$_owner xml get $path.color]
+	}
+	if {$color != ""}  {
+	    if {$units != ""} {
+		set min [Rappture::Units::convert $min -to $units -units off]
+		set max [Rappture::Units::convert $max -to $units -units off]
+	    }
+	    # For compatibility. If only one color use white for min
+	    if {[llength $color] == 1} {
+		set color [list $min white $max $color]
+	    }
+	    $itk_component(gauge) configure \
+		-spectrum [Rappture::Spectrum ::#auto $color -units $units]
+	}
     }
 
     # if the control has an icon, plug it in
