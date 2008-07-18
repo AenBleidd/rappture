@@ -32,6 +32,7 @@ When you click the Simulate button, the input boolean will be used to generate t
     <about>
       <label>Impact Ionization Model</label>
       <description>Used to enable/disable the effects of impact ionization on the mobility model.</description>
+      <color>purple</color>
     </about>
     <default>true</default>
   </boolean>
@@ -39,6 +40,10 @@ When you click the Simulate button, the input boolean will be used to generate t
     <about>
       <label>Impact Ionization Model</label>
       <description>Used to enable/disable the effects of impact ionization on the mobility model.</description>
+      <icon>R0lGODlhGQAZAPAAAP///wAAACH5BAAAAAAALAAAAAAZABkAAAJQhI+py+0dYnByphoZtmDn
+9WGgxl1ieYiGhHyg+1AVBbFtl0IavtbzToJ1Zqjc6wQ0nVDC1Ian4LhUwmorMyn2bpdV0eb8
+aa+02NAzNqvXigIAOw==
+      </icon>
     </about>
     <default>1</default>
   </boolean>

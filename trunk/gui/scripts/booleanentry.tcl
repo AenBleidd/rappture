@@ -47,28 +47,44 @@ itcl::body Rappture::BooleanEntry::constructor {owner path args} {
     set _owner $owner
     set _path $path
 
+    itk_component add -protected vframe {
+        frame $itk_interior.vframe
+    }
+
+    # if the control has an icon, plug it in
+    set icon [$_owner xml get $path.about.icon]
+    if {$icon != ""} {
+	itk_component add icon {
+	    set icon [image create photo -data $icon]
+	    set w [image width $icon]
+	    set h [image height $icon]
+	    canvas $itk_component(vframe).icon -height $h -width $w -borderwidth 0 -highlightthickness 0
+	} {
+	    usual
+	    ignore -highlightthickness -highlightbackground -highlightcolor
+	}
+	set c $itk_component(icon)
+        $c create image [expr {0.5*$w}] [expr {0.5*$h}] \
+            -anchor center -image $icon
+	pack $itk_component(icon) -fill x -side left
+    }
+    
     #
     # Create the widget and configure it properly based on other
     # hints in the XML.
     #
     itk_component add switch {
-        Rappture::Switch $itk_interior.switch
+	set color [$_owner xml get $path.about.color]
+	if {$color != ""} {
+	    Rappture::Switch $itk_component(vframe).switch -oncolor $color
+	} else {
+	    Rappture::Switch $itk_component(vframe).switch
+	}
     }
-    pack $itk_component(switch) -expand yes -fill both
+
     bind $itk_component(switch) <<Value>> [itcl::code $this _newValue]
-
-    set color [$_owner xml get $path.about.color]
-    if {$color != ""} {
-        $itk_component(switch) configure -oncolor $color
-    }
-
-    # if the control has an icon, plug it in
-    set str [$_owner xml get $path.about.icon]
-    if {$str != ""} {
-        $itk_component(switch) configure -onimage \
-            [image create photo -data $str]
-    }
-
+    pack $itk_component(switch) -fill x -side left
+    pack $itk_component(vframe) -side left -expand yes -fill both
     eval itk_initialize $args
 
     #
