@@ -16,6 +16,7 @@ and shows a wavelength value on the spectrum.
     <about>
       <label>Wavelength</label>
       <description>Enter a wavelength of light in the visible spectrum.</description>
+      <color>380 380nm 750 750nm</color>
     </about>
     <units>nm</units>
     <min>380nm</min>
@@ -26,7 +27,7 @@ and shows a wavelength value on the spectrum.
       <label>472nm (blue)</label>
     </preset>
     <preset>
-      <value>685nm</value>
+      <value>532nm</value>
       <label>532nm (green)</label>
     </preset>
     <preset>

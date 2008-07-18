@@ -1,4 +1,3 @@
-
 bindir          = @bindir@
 datadir		= @datadir@
 datarootdir	= @datarootdir@
@@ -25,10 +24,12 @@ examples	= \
 		group \
 		image \
 		integer \
+		integer2 \
 		loader \
 		log \
 		note \
 		number \
+		number2 \
 		phase \
 		sequence \
 		string \
