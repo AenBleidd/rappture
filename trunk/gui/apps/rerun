@@ -103,7 +103,7 @@ def main(argv=None):
     # until it is fixed there, we do it here
     # look for the pesty self terminating current tags <current/>
     # do the file <current/> switheroo!
-    re_current = re.compile(r'<current/>',re.I|re.DOTALL)
+    re_current = re.compile(r'(<current/>)|(<current>\s*</current>)',re.I|re.DOTALL)
     outText = re_current.sub('',outText)
 
     myTmpFile.write(outText)
