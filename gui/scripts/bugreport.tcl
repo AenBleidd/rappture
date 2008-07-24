@@ -82,12 +82,6 @@ proc Rappture::bugreport::activate {err} {
         set dosubmit 0
     }
 
-    if {[Rappture::filexfer::enabled]} {
-        .bugreport.details.cntls.dload configure -state normal
-    } else {
-        .bugreport.details.cntls.dload configure -state disabled
-    }
-
     set w [winfo reqwidth .bugreport]
     set h [winfo reqheight .bugreport]
     set x [expr {([winfo screenwidth .bugreport]-$w)/2}]
@@ -179,10 +173,8 @@ proc Rappture::bugreport::submit {} {
 # desktop.
 # ----------------------------------------------------------------------
 proc Rappture::bugreport::download {} {
-    if {[Rappture::filexfer::enabled]} {
-        set info [.bugreport.details.info.text get 1.0 end]
-        Rappture::filexfer::download $info bugreport.txt
-    }
+    set info [.bugreport.details.info.text get 1.0 end]
+    Rappture::filexfer::download $info bugreport.txt
 }
 
 # ----------------------------------------------------------------------

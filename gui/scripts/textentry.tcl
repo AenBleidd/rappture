@@ -310,10 +310,14 @@ itcl::body Rappture::TextEntry::_layout {} {
                 -command [list event generate $itk_component(text) <<Paste>>]
             $itk_component(tmenu) add command -label "Select All" -accelerator "^A" -command [list $itk_component(text) tag add sel 1.0 end]
             $itk_component(tmenu) add separator
-            $itk_component(tmenu) add command -label "Upload..." \
+
+            $itk_component(tmenu) add command \
+                -label [Rappture::filexfer::label upload] \
                 -command [itcl::code $this _uploadValue -start]
-            $itk_component(tmenu) add command -label "Download" \
+            $itk_component(tmenu) add command \
+                -label [Rappture::filexfer::label download] \
                 -command [itcl::code $this _downloadValue]
+
             bind $itk_component(text) <<PopupMenu>> \
                 [itcl::code $this _edit menu tmenu %X %Y]
 

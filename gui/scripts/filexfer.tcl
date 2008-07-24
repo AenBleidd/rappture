@@ -65,12 +65,51 @@ proc Rappture::filexfer::init {} {
 # Clients use this to see if the filexfer stuff is up and running.
 # If so, then the GUI will provide "Download..." and other filexfer
 # options.  If not, then Rappture must be running within an
-# environment that doesn't support it.
+# environment that doesn't support it.  As a backup, Rappture provides
+# file load/save operations instead.
 # ----------------------------------------------------------------------
 proc Rappture::filexfer::enabled {} {
     variable enabled
     return $enabled
 }
+
+# ----------------------------------------------------------------------
+# USAGE: Rappture::filexfer::label upload|download
+#
+# Clients use this to query the proper label for an "upload" or
+# "download" opertion.  These are usually "Upload..." and "Download",
+# but could change to "Load File..." and "Save As..." for applications
+# in desktop mode.
+# ----------------------------------------------------------------------
+proc Rappture::filexfer::label {operation} {
+    switch -- $operation {
+        upload {
+            if {[Rappture::filexfer::enabled]} {
+                return "Upload..."
+            } else {
+                return "Load File..."
+            }
+        }
+        download {
+            if {[Rappture::filexfer::enabled]} {
+                return "Download"
+            } else {
+                return "Save As..."
+            }
+        }
+        downloadWord {
+            if {[Rappture::filexfer::enabled]} {
+                return "Download"
+            } else {
+                return "Save"
+            }
+        }
+        default {
+            error "bad option \"$operation\": should be upload, download, or downloadWord"
+        }
+    }
+}
+
 
 # ----------------------------------------------------------------------
 # USAGE: Rappture::filexfer::upload <toolName> <controlList> <callback>
@@ -152,6 +191,37 @@ proc Rappture::filexfer::upload {tool controlList callback} {
         } else {
             uplevel #0 [list $callback error $job(error)]
         }
+    } else {
+        #
+        # Filexfer via importfile is disabled.  This tool must be
+        # running in a desktop environment.  Instead of uploading,
+        # perform a "Load File..." operation with a standard file
+        # selection dialog.
+        #
+        set i 0
+        foreach {path label desc} $controlList {
+            set file [tk_getOpenFile -title "Load File: $label"]
+            if {"" != $file} {
+                set cmds {
+                    # try to read first as binary
+                    set fid [open $file r]
+                    fconfigure $fid -encoding binary -translation binary
+                    set info [read $fid]
+                    close $fid
+                    if {![Rappture::encoding::is binary $info]} {
+                        # not binary? then re-read and translate CR/LF
+                        set fid [open $file r]
+                        set info [read $fid]
+                        close $fid
+                    }
+                }
+                if {[catch $cmds err]} {
+                    uplevel #0 [list $callback error "Error loading file [file tail $file]: $err"]
+                } else {
+                    uplevel #0 [list $callback path $path data $info]
+                }
+            }
+        }
     }
 }
 
@@ -222,6 +292,28 @@ proc Rappture::filexfer::download {string {filename "output.txt"}} {
 
         if {$status != 0} {
             return $Rappture::filexfer::job(error)
+        }
+    } else {
+        #
+        # Filexfer via exportfile is disabled.  This tool must be
+        # running in a desktop environment.  Instead of downloading,
+        # perform a "Save As..." operation with a standard file
+        # selection dialog.
+        #
+        set file [tk_getSaveFile -title "Save As..." -initialfile $filename]
+        if {"" != $file} {
+            if {[catch {
+                set fid [open $file w]
+                if {[Rappture::encoding::is binary $string]} {
+                    fconfigure $fid -encoding binary -translation binary
+                    puts -nonewline $fid $string
+                } else {
+                    puts $fid $string
+                }
+                close $fid
+            } result]} {
+                return $result
+            }
         }
     }
     return ""

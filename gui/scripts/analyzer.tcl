@@ -202,24 +202,27 @@ itcl::body Rappture::Analyzer::constructor {tool args} {
     Rappture::Tooltip::for $itk_component(resultselector) \
         "@[itcl::code $this _resultTooltip]"
 
-    if {[Rappture::filexfer::enabled]} {
-        $itk_component(resultselector) choices insert end \
-            --- "---"
-        $itk_component(resultselector) choices insert end \
-            @download "Download..."
+    $itk_component(resultselector) choices insert end \
+        --- "---"
 
-        itk_component add download {
-            button $w.top.dl -image [Rappture::icon download] -anchor e \
-                -borderwidth 1 -relief flat -overrelief raised \
-                -command [itcl::code $this download start $w.top.dl]
-        }
-        pack $itk_component(download) -side right -padx {4 0}
+    itk_component add download {
+        button $w.top.dl -image [Rappture::icon download] -anchor e \
+            -borderwidth 1 -relief flat -overrelief raised \
+            -command [itcl::code $this download start $w.top.dl]
+    }
+    pack $itk_component(download) -side right -padx {4 0}
+    bind $itk_component(download) <Enter> \
+        [itcl::code $this download coming]
+
+    $itk_component(resultselector) choices insert end \
+        @download [Rappture::filexfer::label download]
+
+    if {[Rappture::filexfer::enabled]} {
         Rappture::Tooltip::for $itk_component(download) "Downloads the current result to a new web browser window on your desktop.  From there, you can easily print or save results.
 
 NOTE:  Your web browser must allow pop-ups from this site.  If your output does not appear, look for a 'pop-up blocked' message and enable pop-ups."
-
-        bind $itk_component(download) <Enter> \
-            [itcl::code $this download coming]
+    } else {
+        Rappture::Tooltip::for $itk_component(download) "Saves the current result to a file on your desktop."
     }
 
     itk_component add results {
@@ -549,12 +552,9 @@ itcl::body Rappture::Analyzer::clear {} {
     catch {unset _label2desc}
     set _plotlist ""
 
-    if {[Rappture::filexfer::enabled]} {
-        $itk_component(resultselector) choices insert end \
-            --- "---"
-        $itk_component(resultselector) choices insert end \
-            @download "Download..."
-    }
+    $itk_component(resultselector) choices insert end --- "---"
+    $itk_component(resultselector) choices insert end \
+        @download [Rappture::filexfer::label download]
     set _lastlabel ""
 
     #
@@ -580,93 +580,91 @@ itcl::body Rappture::Analyzer::clear {} {
 # Spools the current result so the user can download it.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Analyzer::download {option args} {
-    if {[Rappture::filexfer::enabled]} {
-        set title [$itk_component(resultselector) value]
-        set page [$itk_component(resultselector) translate $title]
+    set title [$itk_component(resultselector) value]
+    set page [$itk_component(resultselector) translate $title]
 
-        switch -- $option {
-            coming {
-                #
-                # Warn result that a download is coming, in case
-                # it needs to take a screen snap.
-                #
-                if {![regexp {^(|@download|---)$} $page]} {
-                    set f [$itk_component(resultpages) page $page]
-                    $f.rviewer download coming
+    switch -- $option {
+        coming {
+            #
+            # Warn result that a download is coming, in case
+            # it needs to take a screen snap.
+            #
+            if {![regexp {^(|@download|---)$} $page]} {
+                set f [$itk_component(resultpages) page $page]
+                $f.rviewer download coming
+            }
+        }
+        controls {
+            # no controls for this download yet
+            return ""
+        }
+        start {
+            set widget $itk_component(download)
+            if {[llength $args] > 0} {
+                set widget [lindex $args 0]
+                if {[catch {winfo class $widget}]} {
+                    set widget $itk_component(download)
                 }
             }
-            controls {
-                # no controls for this download yet
-                return ""
-            }
-            start {
-                set widget $itk_component(download)
-                if {[llength $args] > 0} {
-                    set widget [lindex $args 0]
-                    if {[catch {winfo class $widget}]} {
-                        set widget $itk_component(download)
-                    }
-                }
-                #
-                # See if this download has any controls.  If so, then
-                # post them now and let the user continue the download
-                # after selecting a file format.
-                #
-                if {$page != ""} {
-                    set ext ""
-                    set f [$itk_component(resultpages) page $page]
-                    set popup [$f.rviewer download controls \
-                        [itcl::code $this download now $widget]]
+            #
+            # See if this download has any controls.  If so, then
+            # post them now and let the user continue the download
+            # after selecting a file format.
+            #
+            if {$page != ""} {
+                set ext ""
+                set f [$itk_component(resultpages) page $page]
+                set popup [$f.rviewer download controls \
+                    [itcl::code $this download now $widget]]
 
-                    if {"" != $popup} {
-                        $popup activate $widget below
-                    } else {
-                        download now $widget
-                    }
+                if {"" != $popup} {
+                    $popup activate $widget below
                 } else {
-                    # this shouldn't happen
-                    set file error.html
-                    set data "<h1>Not Found</h1>There is no result selected."
+                    download now $widget
+                }
+            } else {
+                # this shouldn't happen
+                set file error.html
+                set data "<h1>Not Found</h1>There is no result selected."
+            }
+        }
+        now {
+            set widget $itk_component(download)
+            if {[llength $args] > 0} {
+                set widget [lindex $args 0]
+                if {[catch {winfo class $widget}]} {
+                    set widget $itk_component(download)
                 }
             }
-            now {
-                set widget $itk_component(download)
-                if {[llength $args] > 0} {
-                    set widget [lindex $args 0]
-                    if {[catch {winfo class $widget}]} {
-                        set widget $itk_component(download)
+            #
+            # Perform the actual download.
+            #
+            if {$page != ""} {
+                set ext ""
+                set f [$itk_component(resultpages) page $page]
+                foreach {ext data} [$f.rviewer download now] break
+                if {"" == $ext} {
+                    if {"" != $widget} {
+                        Rappture::Tooltip::cue $widget \
+                            "Can't download this result."
                     }
+                    return
                 }
-                #
-                # Perform the actual download.
-                #
-                if {$page != ""} {
-                    set ext ""
-                    set f [$itk_component(resultpages) page $page]
-                    foreach {ext data} [$f.rviewer download now] break
-                    if {"" == $ext} {
-                        if {"" != $widget} {
-                            Rappture::Tooltip::cue $widget \
-                                "Can't download this result."
-                        }
-                        return
-                    }
-                    regsub -all {[\ -\/\:-\@\{-\~]} $title {} title
-                    set file "$title$ext"
-                } else {
-                    # this shouldn't happen
-                    set file error.html
-                    set data "<h1>Not Found</h1>There is no result selected."
-                }
+                regsub -all {[\ -\/\:-\@\{-\~]} $title {} title
+                set file "$title$ext"
+            } else {
+                # this shouldn't happen
+                set file error.html
+                set data "<h1>Not Found</h1>There is no result selected."
+            }
 
-                set mesg [Rappture::filexfer::download $data $file]
-                if {[string length $mesg] > 0} {
-                    Rappture::Tooltip::cue $widget $mesg
-                }
+            set mesg [Rappture::filexfer::download $data $file]
+            if {[string length $mesg] > 0} {
+                Rappture::Tooltip::cue $widget $mesg
             }
-            default {
-                error "bad option \"$option\": should be coming, controls, now, start"
-            }
+        }
+        default {
+            error "bad option \"$option\": should be coming, controls, now, start"
         }
     }
 }
