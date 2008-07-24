@@ -422,7 +422,8 @@ itcl::body Rappture::EnergyLevels::download {option args} {
             set popup .energyresultdownload
             if {![winfo exists .energyresultdownload]} {
                 # if we haven't created the popup yet, do it now
-                Rappture::Balloon $popup -title "Download as..."
+                Rappture::Balloon $popup \
+                    -title "[Rappture::filexfer::label downloadWord] as..."
                 set inner [$popup component inner]
                 label $inner.summary -text "" -anchor w
                 pack $inner.summary -side top
@@ -434,7 +435,7 @@ itcl::body Rappture::EnergyLevels::download {option args} {
                     -variable Rappture::EnergyLevels::_downloadPopup(format) \
                     -value pdf
                 pack $inner.pdf -anchor w
-                button $inner.go -text "Download Now" \
+                button $inner.go -text [Rappture::filexfer::label download] \
                     -command [lindex $args 0]
                 pack $inner.go -pady 4
             } else {
@@ -442,7 +443,7 @@ itcl::body Rappture::EnergyLevels::download {option args} {
             }
             set num [llength [get]]
             set num [expr {($num == 1) ? "1 result" : "$num results"}]
-            $inner.summary configure -text "Download $num in the following format:"
+            $inner.summary configure -text "[Rappture::filexfer::label downloadWord] $num in the following format:"
             update idletasks ;# fix initial sizes
             return $popup
         }

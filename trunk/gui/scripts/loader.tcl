@@ -120,7 +120,8 @@ itcl::body Rappture::Loader::constructor {owner path args} {
         break
     }
     if {[llength $_uppath] > 0} {
-        $itk_component(combo) choices insert end @upload "Upload..."
+        $itk_component(combo) choices insert end \
+            @upload [Rappture::filexfer::label upload]
     }
 
     #
@@ -129,7 +130,7 @@ itcl::body Rappture::Loader::constructor {owner path args} {
     # one download element.
     #
     Rappture::Balloon $itk_component(hull).download \
-        -title "Choose what to download:"
+        -title "Choose what to [string tolower [Rappture::filexfer::label downloadWord]]:"
     set inner [$itk_component(hull).download component inner]
 
     set i 0
@@ -148,12 +149,13 @@ itcl::body Rappture::Loader::constructor {owner path args} {
             }
         }
     }
-    button $inner.go -text "Download" \
+    button $inner.go -text [Rappture::filexfer::label download] \
         -command [itcl::code $this _downloadValues]
     pack $inner.go -side bottom -padx 50 -pady {4 2}
 
     if {[llength $_dnpaths] > 0} {
-        $itk_component(combo) choices insert end @download "Download..."
+        $itk_component(combo) choices insert end \
+            @download [Rappture::filexfer::label download]
     }
 
     if {[$itk_component(combo) choices size] > 0} {
@@ -303,11 +305,9 @@ itcl::body Rappture::Loader::_newValue {} {
     set newval [$itk_component(combo) value]
     set obj [$itk_component(combo) translate $newval]
     if {$obj == "@upload"} {
-        if {[Rappture::filexfer::enabled]} {
-            set tool [Rappture::Tool::resources -appname]
-            Rappture::filexfer::upload \
-                $tool $_uppath [itcl::code $this _uploadValue]
-        }
+        set tool [Rappture::Tool::resources -appname]
+        Rappture::filexfer::upload \
+            $tool $_uppath [itcl::code $this _uploadValue]
 
         # put the combobox back to its last value
         $itk_component(combo) component entry configure -state normal
@@ -416,13 +416,11 @@ itcl::body Rappture::Loader::_downloadValues {} {
     $itk_component(hull).download deactivate
 
     set mesg ""
-    if {[Rappture::filexfer::enabled]} {
-        foreach path $_dnpaths {
-            if {$_dnpath2state($this-$path)} {
-                set info [$itk_option(-tool) valuefor $path]
-                set mesg [Rappture::filexfer::download $info input.txt]
-                if {"" != $mesg} { break }
-            }
+    foreach path $_dnpaths {
+        if {$_dnpath2state($this-$path)} {
+            set info [$itk_option(-tool) valuefor $path]
+            set mesg [Rappture::filexfer::download $info input.txt]
+            if {"" != $mesg} { break }
         }
     }
 
