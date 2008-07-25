@@ -1,0 +1,5639 @@
+<?xml version="1.0"?>
+<run>
+    <tool>
+        <title>Self-consistent Band Structure Lab</title>
+        <about>This is a tool developed for obtaining Band-Structure of various materials used in different situations like bulk material, in ultra thin bodies, and in nanowires. This tool provides a way to test the effect of confinement, real edges and applied biases on the band structure of the material. User can simulate the electrostatics of nanowires and UTBs and obtain the important bandstructure effects on the CV curves.This tool has been developed at Purdue University, West Lafayette, USA. 
+-- Material 
+   Available semiconductor materials that can be simulated in the tool.
+
+--Credits
+	NCN, Purdue University
+
+--Powered by
+   nanoHUB.org
+
+--Developers:
+    Neophytos Neophytou, Abhijeet Paul, Mathieu Luiseir and Raseong Kim at Purdue University.</about>
+        <limits>
+            <filesize>10000000</filesize>
+            <cputime>86400</cputime>
+        </limits>
+        <control>manual</control>
+        <command><!-- @tool/bslabwr @driver -->
+   ./Rapmain @driver</command>
+        <name>Workspace (800x600)</name>
+        <version>
+            <rappture>
+                <language>c</language>
+                <revision>$LastChangedRevision: 962 $</revision>
+                <modified>$LastChangedDate: 2008-03-25 15:19:50 -0400 (Tue, 25 Mar 2008) $</modified>
+            </rappture>
+        </version>
+    </tool>
+    <input>
+        <phase id="device">
+            <about>
+                <label>Device Structure</label>
+            </about>
+            <loader id="geom">
+                <about>
+                    <label>Geometry</label>
+                    <description>Choose the structure that you want to simulate.  At the nano scale, the geometry of the physical structure will influence the band structure.</description>
+                </about>
+                <examples>*.xml</examples>
+                <default>Bulk material</default>
+                <current>Ultra-thin body MOSFET</current>
+            </loader>
+            <structure>                <current>
+                    <parameters>
+                        <string id="geom">
+                            <about>
+                                <enable>off</enable>
+                            </about>
+                            <default>utb</default>
+                            <current>utb</current>
+                        </string>
+                        <group id="dev_info">
+                            <about>
+                                <label>Device Information</label>
+                            </about>
+                            <group id="sim_type">
+                                <about>
+                                    <label>Job type</label>
+                                    <description>The list of simulations that can be done</description>
+                                </about>
+                                <choice id="job">                                    <about>
+                                        <label>Job Type</label>
+                                        <description>The kind of simulation you are interested in.</description>
+                                    </about>
+                                    <option>
+                                        <about>
+                                            <label>Calculate the UTB Band-structure</label>
+                                            <description>Calculation of band-structure in the X-Yplane in the wire(Fixed EK calculation).</description>
+                                        </about>
+                                        <value>UTBEK</value>
+                                    </option>
+                                    <option>
+                                        <about>
+                                            <label>Calculate the UTB Band-Structure Self consistently</label>
+                                            <description>Band structure calculation is dene self-consistently under a gate and drain bias.</description>
+                                        </about>
+                                        <value>USCEK</value>
+                                    </option>
+                                    <default>UTBEK</default>
+                                    <current>UTBEK</current>
+<!-- removed presently since its very slow --><!--
+			<option>
+              <about>
+                <label>Calculate CV for UTB using Self-Consistent Band Structure</label>
+                <description>CV for UTB is calculated using Self Consistent Band Structure.</description>
+             </about>
+                <value>USCCV</value>
+            </option>
+			--></choice>
+                            </group>
+                            <group id="dimension">
+                                <about>
+                                    <label>Dimension</label>
+                                    <description>Dimension of the nanostructure</description>
+                                </about>
+                                <number id="Lz">
+                                    <about>
+                                        <label>Thickness Lz</label>
+                                        <description>Thickness of the channel region in the z-direction.</description>
+                                    </about>
+                                    <units>nm</units>
+                                    <default>1nm</default>
+                                    <current>1nm</current>
+                                </number>
+                                <number id="Topox">
+                                    <about>
+                                        <enable>parameters.(dev_info).(sim_type).(job)=="SCCV" || parameters.(dev_info).(sim_type).(job)=="USCEK"</enable>
+                                        <label>Top Gate Oxide Thickness (tox1)</label>
+                                        <description>Thickness of the top oxide region in the z-direction.</description>
+                                    </about>
+                                    <units>nm</units>
+                                    <min>0.1nm</min>
+                                    <max>5000nm</max>
+                                    <default>1nm</default>
+                                    <current>1nm</current>
+                                </number>
+                                <number id="Botox">
+                                    <about>
+                                        <label>Bottom Gate Oxide Thickness (tox2)</label>
+                                        <enable>parameters.(dev_info).(sim_type).(job)=="SCCV" || parameters.(dev_info).(sim_type).(job)=="USCEK"</enable>
+                                        <description>Thickness of the bottom oxide region in the z-direction.</description>
+                                    </about>
+                                    <units>nm</units>
+                                    <min>0.1nm</min>
+                                    <max>5000nm</max>
+                                    <default>1nm</default>
+                                    <current>1nm</current>
+                                </number>
+                            </group>
+                            <group id="crystal_info">
+                                <about>
+                                    <label>Crystal Info</label>
+                                    <description>Select the Transport and Crystal growth direction. Dispaersion and transport properties are calculated according to these directions.</description>
+                                </about>
+                                <choice id="cgdir">
+                                    <about>
+                                        <label>Crystal growth direction (Z)</label>
+                                        <description>Orient the material so that this direction of the unit cell is oriented in the z-direction.</description>
+                                    </about>
+                                    <option>
+                                        <about>
+                                            <label>(100)</label>
+                                            <description>Vector along the x-direction of the unit cell.</description>
+                                        </about>
+                                    </option>
+                                    <option>
+                                        <about>
+                                            <label>(110)</label>
+                                            <description>Vector along the diagonal of the x-y face of the unit cell.</description>
+                                        </about>
+                                    </option>
+                                    <option>
+                                        <about>
+                                            <label>(111)</label>
+                                            <description>Vector along the diagonal of the unit cell.</description>
+                                        </about>
+                                    </option>
+                                    <default>(100)</default>
+                                    <current>(100)</current>
+                                </choice>
+                                <group id="for100">
+                                    <about>
+                                        <enable>parameters.(dev_info).(crystal_info).choice(cgdir) == "(100)"</enable>
+                                    </about>
+                                    <choice id="trdir">
+                                        <about>
+                                            <label>Transport direction (x)</label>
+                                            <description>Orient the material so that this direction of the unit cell is oriented in the x-direction (direction where electrons flow through the channel).</description>
+                                        </about>
+                                        <option>
+                                            <about>
+                                                <label>[010]</label>
+                                                <description>Vector along the y-direction of the unit cell.</description>
+                                            </about>
+                                        </option>
+                                        <option>
+                                            <about>
+                                                <label>[011]</label>
+                                                <description>Vector along the diagonal of the y-z face of the unit cell.</description>
+                                            </about>
+                                        </option>
+                                        <default>[010]</default>
+                                        <current>[010]</current>
+                                    </choice>
+                                </group>
+                                <group id="for110">
+                                    <about>
+                                        <enable>parameters.(dev_info).(crystal_info).choice(cgdir) == "(110)"</enable>
+                                    </about>
+                                    <choice id="trdir">
+                                        <about>
+                                            <label>Transport direction (x)</label>
+                                            <description>Orient the material so that this direction of the unit cell is oriented in the x-direction (direction where electrons flow through the channel).</description>
+                                        </about>
+                                        <option>
+                                            <about>
+                                                <label>[001]</label>
+                                                <description>Vector along the z-direction of the unit cell.</description>
+                                            </about>
+                                        </option>
+                                        <option>
+                                            <about>
+                                                <label>[-110]</label>
+                                                <description>Vector outside the unit cell, in the x-y plane, perpendicular to (110).</description>
+                                            </about>
+                                        </option>
+                                        <default>[001]</default>
+                                        <current>[001]</current>
+                                    </choice>
+                                </group>
+                                <group id="for111">
+                                    <about>
+                                        <enable>parameters.(dev_info).(crystal_info).choice(cgdir) == "(111)"</enable>
+                                    </about>
+                                    <choice id="trdir">
+                                        <about>
+                                            <label>Transport direction (x)</label>
+                                            <description>Orient the material so that this direction of the unit cell is oriented in the x-direction (direction where electrons flow through the channel).</description>
+                                        </about>
+                                        <option>
+                                            <about>
+                                                <label>[-110]</label>
+                                                <description>Vector outside the unit cell, in the x-y plane, perpendicular to (110).</description>
+                                            </about>
+                                        </option>
+                                        <option>
+                                            <about>
+                                                <label>[11-2]</label>
+                                                <description>Vector outside the unit cell, similar to (111) but pointing downward in z.</description>
+                                            </about>
+                                        </option>
+                                        <default>[-110]</default>
+                                        <current>[-110]</current>
+                                    </choice>
+                                </group>
+                            </group>
+                        </group>
+                        <image>
+                            <about>
+                                <label>Ultra Thinbody Structure</label>
+                                <enable>parameters.(dev_info).(sim_type).choice(job) == "UTBEK"</enable>
+                            </about>
+                            <resize>height=180</resize>
+                            <resize>width=180</resize>
+                            <current>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
+YII=</current>
+                        </image>
+                        <image>
+                            <about>
+                                <label>UTB MOSFET</label>
+                                <enable>parameters.(dev_info).(sim_type).choice(job) == "USCEK" || parameters.(dev_info).(sim_type).choice(job) == "SCCV"</enable>
+                            </about>
+                            <resize>width=300</resize>
+                            <resize>height=220</resize>
+                            <current>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
+/B/WYey9AsMPoQAAAABJRU5ErkJggg==</current>
+                        </image>
+                    </parameters>
+                </current>
+<!--examples get loaded here by the loader--></structure>
+            <choice id="material">
+                <about>
+                    <label>Material</label>
+                    <description>Inner core is made using this semiconductor material.</description>
+                </about>
+                <option>
+                    <about>
+                        <label>Si</label>
+                        <description>Silicon, bulk values EG = 1.12eV, Ec = 1.12eV, Ev = 0.0eV</description>
+                    </about>
+                </option>
+                <option>
+                    <about>
+                        <label>GaAs</label>
+                        <description>Galium Arsenide, bulk values EG = 1.424eV, Ec = 1.424eV, Ev = 0.0eV</description>
+                    </about>
+                </option>
+                <option>
+                    <about>
+                        <label>InAs</label>
+                        <description>Indium Arsenide, bulk values EG = 0.3714eV, Ec = 0.5957eV, Ev = 0.2243eV</description>
+                    </about>
+                </option>
+                <option>
+                    <about>
+                        <label>Ge</label>
+                        <description>Germanium, bulk values EG = 0.678eV, Ec = 1.448eV, Ev = 0.77eV</description>
+                    </about>
+                </option>
+                <default>Si</default>
+                <current>Si</current>
+            </choice>
+        </phase>
+        <phase id="tb_params">
+            <about>
+                <label>TB Parameters</label>
+            </about>
+            <choice id="TBmodel">                <about>
+                    <label>Tight Binding Model</label>
+                    <description>Select the basis set for Tight Binding.</description>
+                </about>
+                <option>
+                    <about>
+                        <label>sp3d5s*</label>
+                        <description>10 orbital model</description>
+                    </about>
+                    <value>sp3sd5</value>
+                </option>
+                <option>
+                    <about>
+                        <label>sp3s*</label>
+                        <description>5 orbital model</description>
+                    </about>
+                    <value>sp3_sstar</value>
+                </option>
+                <default>sp3sd5</default>
+                <current>sp3sd5</current>
+<!--                <option>
+                    <about>
+                        <label>sp3</label>
+                        <description>4 orbital model</description>
+                    </about>
+					<value>sp3</value>
+                </option>
+
+	  <option>
+        <about><label>s_orbital</label><description>1 orbital model</description></about>
+		<value>s_orbital</value>
+      </option>
+
+      <option>
+        <about><label>Effective_Mass </label><description>continuum model</description></about>
+	 <value>eff_m</value>
+      </option>
+      --></choice>
+            <boolean id="spin_orbit_coupling">
+                <about>
+                    <label>Spin-Orbit Coupling</label>
+                    <description>Include the effects of spin-orbit coupling on band structure.</description>
+                </about>
+                <default>true</default>
+                <current>yes</current>
+            </boolean>
+            <number id="dsp3">
+                <about>
+                    <label>Dangling Bond Energy</label>
+                    <description>This accounts for the effects of dangling bonds on the surface of the structure.  It applies only when the geometry is constrained and therefore the dangling bonds are close to the transport region.</description>
+                    <enable>input.phase(device).structure.current.parameters.string(geom) != "bulk"</enable>
+                </about>
+                <min>0eV</min>
+                <max>100eV</max>
+                <units>eV</units>
+                <default>30eV</default>
+                <current>30eV</current>
+            </number>
+        </phase>
+        <phase id="analysis">            <about>
+                <label>Analysis</label>
+            </about>
+            <group id="bulk">                <about>
+                    <enable>input.phase(device).structure.current.parameters.string(geom) == "bulk"</enable>
+                </about>
+                <choice id="bulk_jobs">
+                    <about>
+                        <label>Select the type of job</label>
+                        <description>You can run the simple band-structure analysis or strain sweep.</description>
+                    </about>
+                    <option>
+                        <about>
+                            <label>Explore bands; run Ek calculation.</label>
+                        </about>
+                        <value>EKcal</value>
+                    </option>
+                    <option>
+                        <about>
+                            <label>Strain Analysis; run strain sweep.</label>
+                        </about>
+                        <value>straincal</value>
+                    </option>
+                    <default>EKcal</default>
+                    <current>EKcal</current>
+                </choice>
+                <group id="ekcal">                    <about>
+                        <enable>input.phase(analysis).group(bulk).choice(bulk_jobs) == "EKcal"</enable>
+                    </about>
+                    <choice id="kdir">
+                        <about>
+                            <label>Explore bands along</label>
+                            <description>Compute energy bands along this direction in k-space.
+
+NOTE:  If there is no strain, the various paths from Gamma-&gt;X are equivalent.  The same is true for Gamma-&gt;L.  But when strain is applied, the bands along these paths can be different.</description>
+                        </about>
+                        <option>
+                            <about>
+                                <label>Full domain</label>
+                                <description>Explore a path through k-space along L-&gt;Gamma-&gt;X-&gt;U-&gt;K-&gt;X.</description>
+                            </about>
+                            <value>full</value>
+                        </option>
+                        <option>
+                            <about>
+                                <label>Gamma -&gt; X along [100]</label>
+                                <description>Explore a path through k-space along Gamma-&gt;X in the [100] direction.</description>
+                            </about>
+                            <value>X1</value>
+                        </option>
+                        <option>
+                            <about>
+                                <label>Gamma -&gt; X along [010]</label>
+                                <description>Explore a path through k-space along Gamma-&gt;X in the [010] direction.</description>
+                            </about>
+                            <value>X2</value>
+                        </option>
+                        <option>
+                            <about>
+                                <label>Gamma -&gt; X along [001]</label>
+                                <description>Explore a path through k-space along Gamma-&gt;X in the [001] direction.</description>
+                            </about>
+                            <value>X3</value>
+                        </option>
+                        <option>
+                            <about>
+                                <label>Gamma -&gt; L along [111]</label>
+                                <description>Explore a path through k-space along Gamma-&gt;L in the [111] direction.</description>
+                            </about>
+                            <value>L1</value>
+                        </option>
+                        <option>
+                            <about>
+                                <label>Gamma -&gt; L along [-111]</label>
+                                <description>Explore a path through k-space along Gamma-&gt;L in the [-111] direction.</description>
+                            </about>
+                            <value>L2</value>
+                        </option>
+                        <option>
+                            <about>
+                                <label>Gamma -&gt; L along [1-11]</label>
+                                <description>Explore a path through k-space along Gamma-&gt;L in the [1-11] direction.</description>
+                            </about>
+                            <value>L3</value>
+                        </option>
+                        <option>
+                            <about>
+                                <label>Gamma -&gt; L along [11-1]</label>
+                                <description>Explore a path through k-space along Gamma-&gt;L in the [11-1] direction.</description>
+                            </about>
+                            <value>L4</value>
+                        </option>
+                        <default>Full domain</default>
+                        <current>full</current>
+                    </choice>
+                    <group id="Full">
+                        <about>
+                            <enable>input.phase(analysis).group(bulk).group(ekcal).choice(kdir) == "full"</enable>
+                        </about>
+                        <choice id="BZ_tD">
+                            <about>
+                                <label>Show 3D Brillouin Zone</label>
+                                <description>Show the 3D Brillouin Zone</description>
+                            </about>
+                            <option>
+                                <about>
+                                    <label>YES</label>
+                                </about>
+                                <value>YES</value>
+                            </option>
+                            <option>
+                                <about>
+                                    <label>NO</label>
+                                </about>
+                                <value>NO</value>
+                            </option>
+                            <default>NO</default>
+                            <current>YES</current>
+                        </choice>
+                        <group id="3d_vis">
+                            <about>
+                                <enable>input.phase(analysis).group(bulk).group(ekcal).(Full).choice(BZ_tD) == "YES"</enable>
+                            </about>
+                            <choice id="Zones">
+                                <about>
+                                    <label>Which bands to show ?</label>
+                                </about>
+                                <option>
+                                    <about>
+                                        <label>Conduction Band</label>
+                                        <description>Show the full 3D CB</description>
+                                    </about>
+                                    <value>CBtD</value>
+                                </option>
+                                <option>
+                                    <about>
+                                        <label>Valence Band (HH,LH,SOH)</label>
+                                        <description>show the full 3D VB</description>
+                                    </about>
+                                    <value>VBtD</value>
+                                </option>
+                                <option>
+                                    <about>
+                                        <label>Conduction and Valence Bands</label>
+                                        <description>Show both 3D CB and VB(HH,LH,SOH)</description>
+                                    </about>
+                                    <value>CBVBtD</value>
+                                </option>
+                                <default>CBtD</default>
+                                <current>CBtD</current>
+                            </choice>
+                            <group id="cb_vals">
+                                <about>
+                                    <enable>input.phase(analysis).group(bulk).(ekcal).(Full).(3d_vis).choice(Zones) == "CBtD"</enable>
+                                </about>
+                                <number id="CBtD">
+                                    <about>
+                                        <label>Energy band from bottom of CB (meV):</label>
+                                    </about>
+                                    <units>meV</units>
+                                    <min>1.0meV</min>
+                                    <max>3500eV</max>
+                                    <default>10meV</default>
+                                    <current>100meV</current>
+                                </number>
+                            </group>
+                            <group id="vb_vals">
+                                <about>
+                                    <enable>input.phase(analysis).group(bulk).(ekcal).(Full).(3d_vis).choice(Zones) == "VBtD"</enable>
+                                </about>
+                                <number id="VBtD">
+                                    <about>
+                                        <label>Energy band from top of VB (meV):</label>
+                                    </about>
+                                    <units>meV</units>
+                                    <min>1.0meV</min>
+                                    <max>3000meV</max>
+                                    <default>10meV</default>
+                                    <current>10meV</current>
+                                </number>
+                            </group>
+                            <group id="CBVB_vals">
+                                <about>
+                                    <enable>input.phase(analysis).group(bulk).(ekcal).(Full).(3d_vis).choice(Zones) == "CBVBtD"</enable>
+                                </about>
+                                <number id="CB_vals">
+                                    <about>
+                                        <label>Energy band from bottom of CB (meV):</label>
+                                    </about>
+                                    <units>meV</units>
+                                    <min>1.0meV</min>
+                                    <max>3500meV</max>
+                                    <default>10meV</default>
+                                    <current>10meV</current>
+                                </number>
+                                <number id="VB_vals">
+                                    <about>
+                                        <label>Energy band from top of VB (meV):</label>
+                                    </about>
+                                    <units>meV</units>
+                                    <min>1meV</min>
+                                    <max>2000meV</max>
+                                    <default>10meV</default>
+                                    <current>10meV</current>
+                                </number>
+                            </group>
+                        </group>
+                    </group>
+<!-- Added options for 3D BZ vizualization by Abhijeet Paul April 2007 --></group>
+                <group id="STRAINCAL">                    <about>
+                        <enable>input.phase(analysis).group(bulk).choice(bulk_jobs) == "straincal"</enable>
+                    </about>
+                    <choice id="strain_job">
+                        <about>
+                            <label>Select the job to be performed:</label>
+                        </about>
+                        <option>
+                            <about>
+                                <label>Bandgap vs Strain</label>
+                            </about>
+                            <value>eg_sweep</value>
+                        </option>
+                        <option>
+                            <about>
+                                <label>Effective mass vs Strain</label>
+                            </about>
+                            <value>meff_sweep</value>
+                        </option>
+                        <default>eg_sweep</default>
+                        <current>eg_sweep</current>
+                    </choice>
+                    <group id="meff_sweep_job">                        <about>
+                            <enable>input.phase(analysis).group(bulk).(STRAINCAL).choice(strain_job)=="meff_sweep"</enable>
+                        </about>
+                        <choice id="band_type">
+                            <about>
+                                <label>Select the band type :</label>
+                                <description>the bands on which strain analysis for effective mass will be done.</description>
+                            </about>
+                            <option>
+                                <about>
+                                    <label>Conduction Band</label>
+                                </about>
+                                <value>Ec</value>
+                            </option>
+                            <option>
+                                <about>
+                                    <label>Valance Bands</label>
+                                </about>
+                                <value>Ev</value>
+                            </option>
+                            <default>Ec</default>
+                            <current>Ec</current>
+                        </choice>
+                        <group id="Ecmeff_valley">                            <about>
+                                <enable>input.phase(analysis).group(bulk).(STRAINCAL).(meff_sweep_job).choice(band_type) == "Ec"</enable>
+                                <label>Select the valley for the conduction band</label>
+                            </about>
+                            <choice id="meff_choice">
+                                <about>
+                                    <label>Valley :</label>
+                                </about>
+                                <option>
+                                    <about>
+                                        <label>Gamma</label>
+                                        <description>explore from gamma along [1 0 0] direction</description>
+                                    </about>
+                                    <value>Gamma</value>
+                                </option>
+                                <option>
+                                    <about>
+                                        <label>X1</label>
+                                        <description>explore along [1 0 0] direction</description>
+                                    </about>
+                                    <value>X1</value>
+                                </option>
+                                <option>
+                                    <about>
+                                        <label>X2</label>
+                                        <description>explore along [0 1 0] direction</description>
+                                    </about>
+                                    <value>X2</value>
+                                </option>
+                                <option>
+                                    <about>
+                                        <label>X3</label>
+                                        <description>explore along [0 0 1] direction</description>
+                                    </about>
+                                    <value>X3</value>
+                                </option>
+                                <option>
+                                    <about>
+                                        <label>L1</label>
+                                        <description>explore along [1 1 1] direction</description>
+                                    </about>
+                                    <value>L1</value>
+                                </option>
+                                <option>
+                                    <about>
+                                        <label>L2</label>
+                                        <description>explore along [-1 1 1] direction</description>
+                                    </about>
+                                    <value>L2</value>
+                                </option>
+                                <option>
+                                    <about>
+                                        <label>L3</label>
+                                        <description>explore along [1 -1 1] direction</description>
+                                    </about>
+                                    <value>L3</value>
+                                </option>
+                                <option>
+                                    <about>
+                                        <label>L4</label>
+                                        <description>explore along [1 1 -1] direction</description>
+                                    </about>
+                                    <value>L4</value>
+                                </option>
+                                <default>Gamma</default>
+                                <current>Gamma</current>
+                            </choice>
+                            <group id="gamma_meff">
+                                <about>
+                                    <enable>input.phase(analysis).group(bulk).(STRAINCAL).(meff_sweep_job).(Ecmeff_valley).choice(meff_choice) == "Gamma"</enable>
+                                    <label>Choose the direction:</label>
+                                </about>
+                                <choice id="gamma_dir">
+                                    <option>
+                                        <about>
+                                            <label>[1 0 0]</label>
+                                        </about>
+                                        <value>[100]</value>
+                                    </option>
+                                    <option>
+                                        <about>
+                                            <label>[1 1 0]</label>
+                                        </about>
+                                        <value>[110]</value>
+                                    </option>
+                                    <option>
+                                        <about>
+                                            <label>[1 1 1]</label>
+                                        </about>
+                                        <value>[111]</value>
+                                    </option>
+                                    <default>[100]</default>
+                                    <current>[100]</current>
+                                </choice>
+                            </group>
+                            <group id="x1_meff">
+                                <about>
+                                    <enable>input.phase(analysis).group(bulk).(STRAINCAL).(meff_sweep_job).(Ecmeff_valley).choice(meff_choice) == "X1"</enable>
+                                    <label>Choose the direction:</label>
+                                </about>
+                                <choice id="x1_dir">
+                                    <option>
+                                        <about>
+                                            <label>[1 0 0]</label>
+                                            <description>Longitudinal direction EM</description>
+                                        </about>
+                                        <value>[100]</value>
+                                    </option>
+                                    <option>
+                                        <about>
+                                            <label>[0 1 0]</label>
+                                            <description>Transverse direction EM</description>
+                                        </about>
+                                        <value>[010]</value>
+                                    </option>
+                                    <option>
+                                        <about>
+                                            <label>[1 1 0]</label>
+                                            <description>Transverse direction EM</description>
+                                        </about>
+                                        <value>[110]</value>
+                                    </option>
+                                    <option>
+                                        <about>
+                                            <label>[1 1 1]</label>
+                                            <description>Diagonal direction EM</description>
+                                        </about>
+                                        <value>[111]</value>
+                                    </option>
+                                    <default>[100]</default>
+                                    <current>[100]</current>
+                                </choice>
+                            </group>
+                            <group id="x2_meff">
+                                <about>
+                                    <enable>input.phase(analysis).group(bulk).(STRAINCAL).(meff_sweep_job).(Ecmeff_valley).choice(meff_choice) == "X2"</enable>
+                                    <label>Choose the direction:</label>
+                                </about>
+                                <choice id="x2_dir">
+                                    <option>
+                                        <about>
+                                            <label>[0 1 0]</label>
+                                            <description>Longitudinal direction EM</description>
+                                        </about>
+                                        <value>[010]</value>
+                                    </option>
+                                    <option>
+                                        <about>
+                                            <label>[1 0 0]</label>
+                                            <description>Transverse direction EM</description>
+                                        </about>
+                                        <value>[100]</value>
+                                    </option>
+                                    <option>
+                                        <about>
+                                            <label>[1 1 0]</label>
+                                            <description>Transverse direction EM</description>
+                                        </about>
+                                        <value>[110]</value>
+                                    </option>
+                                    <option>
+                                        <about>
+                                            <label>[1 1 1]</label>
+                                            <description>Diagonal direction EM</description>
+                                        </about>
+                                        <value>[111]</value>
+                                    </option>
+                                    <default>[010]</default>
+                                    <current>[010]</current>
+                                </choice>
+                            </group>
+                            <group id="x3_meff">
+                                <about>
+                                    <enable>input.phase(analysis).group(bulk).(STRAINCAL).(meff_sweep_job).(Ecmeff_valley).choice(meff_choice) == "X3"</enable>
+                                    <label>Choose the direction:</label>
+                                </about>
+                                <choice id="x3_dir">
+                                    <option>
+                                        <about>
+                                            <label>[0 0 1]</label>
+                                            <description>Longitudinal direction EM</description>
+                                        </about>
+                                        <value>[001]</value>
+                                    </option>
+                                    <option>
+                                        <about>
+                                            <label>[1 0 0]</label>
+                                            <description>Transverse direction EM</description>
+                                        </about>
+                                        <value>[100]</value>
+                                    </option>
+                                    <option>
+                                        <about>
+                                            <label>[1 0 1]</label>
+                                            <description>Transverse direction EM</description>
+                                        </about>
+                                        <value>[101]</value>
+                                    </option>
+                                    <option>
+                                        <about>
+                                            <label>[1 1 1]</label>
+                                            <description>Diagonal direction EM</description>
+                                        </about>
+                                        <value>[111]</value>
+                                    </option>
+                                    <default>[001]</default>
+                                    <current>[001]</current>
+                                </choice>
+                            </group>
+                            <group id="l1_meff">
+                                <about>
+                                    <enable>input.phase(analysis).group(bulk).(STRAINCAL).(meff_sweep_job).(Ecmeff_valley).choice(meff_choice) == "L1"</enable>
+                                    <label>Choose the direction:</label>
+                                </about>
+                                <choice id="l1_dir">
+                                    <option>
+                                        <about>
+                                            <label>[1 1 1]</label>
+                                            <description>Longitudinal direction EM</description>
+                                        </about>
+                                        <value>[111]</value>
+                                    </option>
+                                    <option>
+                                        <about>
+                                            <label>[1 -1 0]</label>
+                                            <description>Transverse direction EM</description>
+                                        </about>
+                                        <value>[1-10]</value>
+                                    </option>
+                                    <option>
+                                        <about>
+                                            <label>[1 1 -2]</label>
+                                            <description>Transverse direction EM</description>
+                                        </about>
+                                        <value>[11-2]</value>
+                                    </option>
+                                    <default>[111]</default>
+                                    <current>[111]</current>
+                                </choice>
+                            </group>
+                            <group id="l2_meff">
+                                <about>
+                                    <enable>input.phase(analysis).group(bulk).(STRAINCAL).(meff_sweep_job).(Ecmeff_valley).choice(meff_choice) == "L2"</enable>
+                                    <label>Choose the direction:</label>
+                                </about>
+                                <choice id="l2_dir">
+                                    <option>
+                                        <about>
+                                            <label>[-1 1 1]</label>
+                                            <description>Longitudinal direction EM</description>
+                                        </about>
+                                        <value>[-111]</value>
+                                    </option>
+                                    <option>
+                                        <about>
+                                            <label>[0 1 -1 ]</label>
+                                            <description>Transverse direction EM</description>
+                                        </about>
+                                        <value>[01-1]</value>
+                                    </option>
+                                    <option>
+                                        <about>
+                                            <label>[2 1 1]</label>
+                                            <description>Transverse direction EM</description>
+                                        </about>
+                                        <value>[211]</value>
+                                    </option>
+                                    <default>[-111]</default>
+                                    <current>[-111]</current>
+                                </choice>
+                            </group>
+                            <group id="l3_meff">
+                                <about>
+                                    <enable>input.phase(analysis).group(bulk).(STRAINCAL).(meff_sweep_job).(Ecmeff_valley).choice(meff_choice) == "L3"</enable>
+                                    <label>Choose the direction:</label>
+                                </about>
+                                <choice id="l3_dir">
+                                    <option>
+                                        <about>
+                                            <label>[1 -1 1]</label>
+                                            <description>Longitudinal direction EM</description>
+                                        </about>
+                                        <value>[1-11]</value>
+                                    </option>
+                                    <option>
+                                        <about>
+                                            <label>[1 0 -1 ]</label>
+                                            <description>Transverse direction EM</description>
+                                        </about>
+                                        <value>[10-1]</value>
+                                    </option>
+                                    <option>
+                                        <about>
+                                            <label>[1 2 1]</label>
+                                            <description>Transverse direction EM</description>
+                                        </about>
+                                        <value>[121]</value>
+                                    </option>
+                                    <default>[1-11]</default>
+                                    <current>[1-11]</current>
+                                </choice>
+                            </group>
+                            <group id="l4_meff">
+                                <about>
+                                    <enable>input.phase(analysis).group(bulk).(STRAINCAL).(meff_sweep_job).(Ecmeff_valley).choice(meff_choice) == "L4"</enable>
+                                    <label>Choose the direction:</label>
+                                </about>
+                                <choice id="l4_dir">
+                                    <option>
+                                        <about>
+                                            <label>[1 1 -1]</label>
+                                            <description>Longitudinal direction EM</description>
+                                        </about>
+                                        <value>[11-1]</value>
+                                    </option>
+                                    <option>
+                                        <about>
+                                            <label>[1 -1 0]</label>
+                                            <description>Transverse direction EM</description>
+                                        </about>
+                                        <value>[1-10]</value>
+                                    </option>
+                                    <option>
+                                        <about>
+                                            <label>[1 1 2]</label>
+                                            <description>Transverse direction EM</description>
+                                        </about>
+                                        <value>[112]</value>
+                                    </option>
+                                    <default>[11-1]</default>
+                                    <current>[11-1]</current>
+                                </choice>
+                            </group>
+<!-- grp for gamma -->
+<!-- grp for x1 -->
+<!-- grp for x2 -->
+<!-- grp for x3 -->
+<!-- grp for l1 -->
+<!-- grp for l2 -->
+<!-- grp for l3 -->
+<!-- grp for l4 --></group>
+                        <group id="Evmeff_valley">
+                            <about>
+                                <enable>input.phase(analysis).group(bulk).(STRAINCAL).(meff_sweep_job).choice(band_type) == "Ev"</enable>
+                                <label>Select the direction to explore for Gamma Valley</label>
+                            </about>
+                            <choice id="Evmeff_choice">
+                                <about>
+                                    <label>Direction :</label>
+                                    <description>Along longitudinal and transverse direction strain will change the effective masses. Effective mass becomes anisotropic.</description>
+                                </about>
+                                <option>
+                                    <about>
+                                        <label>[1 0 0]</label>
+                                    </about>
+                                    <value>[100]</value>
+                                </option>
+                                <option>
+                                    <about>
+                                        <label>[1 1 0]</label>
+                                    </about>
+                                    <value>[110]</value>
+                                </option>
+                                <option>
+                                    <about>
+                                        <label>[1 1 1]</label>
+                                    </about>
+                                    <value>[111]</value>
+                                </option>
+                                <default>[100]</default>
+                                <current>[100]</current>
+                            </choice>
+                            <choice id="Ev_band">
+                                <about>
+                                    <label>Select the valance band :</label>
+                                    <description>Effect of strain on this band will be observed .</description>
+                                </about>
+                                <option>
+                                    <about>
+                                        <label>Heavy Hole(HH)</label>
+                                    </about>
+                                    <value>Evhh</value>
+                                </option>
+                                <option>
+                                    <about>
+                                        <label>Light Hole (LH)</label>
+                                    </about>
+                                    <value>Evlh</value>
+                                </option>
+                                <option>
+                                    <about>
+                                        <label>Split off Hole(SO)</label>
+                                    </about>
+                                    <value>Evso</value>
+                                </option>
+                                <default>Evhh</default>
+                                <current>Evhh</current>
+                            </choice>
+                        </group>
+<!-- this is for the con band valley -->
+<!-- for EV --></group>
+<!-- for meff sweep job --></group>
+<!--- select the type of job to be done -->
+<!-- <choice id="bands">
+        <about>
+          <label>Explore</label>
+          <description>Compute these energy bands.</description>
+        </about>
+        <option>
+          <about>
+            <label>All bands</label>
+            <description>Compute all available bands, including the conduction band, valence bands, and others higher and lower in energy.</description>
+          </about>
+          <value>all</value>
+        </option>
+        <option>
+          <about>
+            <label>Conduction band</label>
+            <description>Compute only the conduction band.</description>
+          </about>
+          <value>Ec</value>
+        </option>
+        <option>
+          <about>
+            <label>Valence bands</label>
+			<enable>input.phase(device).structure.current.parameters.group(dev_info).group(sim_type).choice(job) != "SSCV" || 
+			   input.phase(device).structure.current.parameters.group(dev_info).group(sim_type).choice(job) != "NSCCV"|| 
+			   input.phase(device).structure.current.parameters.group(dev_info).group(sim_type).choice(job) != "WSCBS"|| 
+			   input.phase(device).structure.current.parameters.group(dev_info).group(sim_type).choice(job) != "USCEK"|| 
+			</enable>
+			<description>Compute only the valence bands, including light hole, heavy hold, and split-off.</description>
+          </about>
+          <value>Ev</value>
+        </option>
+        <option>
+          <about>
+            <label>Conduction/Valence bands</label>
+            <description>Compute a combination of conduction and valence bands.</description>
+          </about>
+          <value>EcEv</value>
+        </option>
+        <default>All bands</default>
+      </choice> -->
+<!-- for ekcal -->
+<!-- for strain sweep --></group>
+            <group id="utb">
+                <about>
+                    <enable>input.phase(device).structure.current.parameters.string(geom) == "utb"</enable>
+                </about>
+                <choice id="bands">
+                    <about>
+                        <label>Explore in UTB:</label>
+                        <description>Compute these energy bands.</description>
+                    </about>
+                    <option>
+                        <about>
+                            <label>Conduction bands</label>
+                            <description>Compute only bands above the energy gap.</description>
+                        </about>
+                        <value>CB</value>
+                    </option>
+                    <option>
+                        <about>
+                            <label>Valence bands</label>
+                            <enable>input.phase(device).structure.current.parameters.group(dev_info).group(sim_type).choice(job) == "UTBEK"</enable>
+                            <description>Compute only bands below the energy gap.</description>
+                        </about>
+                        <value>VB</value>
+                    </option>
+                    <default>Conduction bands</default>
+                    <current>CB</current>
+                </choice>
+                <group id="EK_dir">                    <about>
+                        <label>EK calculation directions</label>
+                        <enable>input.phase(device).structure.current.parameters.group(dev_info).group(sim_type).choice(job) == "UTBEK"</enable>
+                    </about>
+                    <choice id="kdir">
+                        <about>
+                            <label>along</label>
+                            <description>Compute energy bands along this direction in k-space.
+
+NOTE:  If there is no strain, the various paths from Gamma-&gt;X are equivalent. The same is true for Gamma-&gt;L. But when strain is applied, the bands along these paths can be different.</description>
+                        </about>
+                        <option>
+                            <about>
+                                <label>Gamma-&gt;X along [100]</label>
+                                <description>Explore a path through k-apce along Gamma-&gt;X in the [100] direction.</description>
+                            </about>
+                            <value>X1_utb</value>
+                        </option>
+                        <option>
+                            <about>
+                                <label>Gamma-&gt;X along [010]</label>
+                                <description>Explore a path through k-space along Gamma-&gt;X in the [010] direction.</description>
+                            </about>
+                            <value>X2_utb</value>
+                        </option>
+                        <option>
+                            <about>
+                                <label>Gamma-&gt;L along [110]</label>
+                                <description>Explore a path through k-space along [110] direction.</description>
+                            </about>
+                            <value>L1_utb</value>
+                        </option>
+                        <option>
+                            <about>
+                                <label>Gamma-&gt;L along [1-10]</label>
+                                <description>Explore a path through k-space along [1-10] direction.</description>
+                            </about>
+                            <value>L2_utb</value>
+                        </option>
+                        <option>
+                            <about>
+                                <label>Full domain</label>
+                                <description>Explore inside the 2-dimensional 1st Brillouin zone. 
+
+NOTE:  It takes long time to get the E-k result with this option.</description>
+                            </about>
+                            <value>full</value>
+                        </option>
+                        <default>Gamma-&gt;X along [100]</default>
+                        <current>full</current>
+                    </choice>
+<!-- these are the available directions during Ek calculations in utb. Changed by Abhijeet Paul, Aug 2007--></group>
+                <group id="CVEKdir">
+                    <about>
+                        <label>CV calculation direction</label>
+                        <enable>input.phase(device).structure.current.parameters.group(dev_info).group(sim_type).choice(job) == "SSCV" || 
+			   input.phase(device).structure.current.parameters.group(dev_info).group(sim_type).choice(job) == "NSCCV"</enable>
+                    </about>
+                    <choice id="kdir">
+                        <option>
+                            <about>
+                                <label>Full domain</label>
+                                <description>Entire domain is selected</description>
+                            </about>
+                            <value>full</value>
+                        </option>
+                        <default>full</default>
+                        <current>full</current>
+                    </choice>
+                </group>
+                <integer id="nbands">
+                    <about>
+                        <label>Number of bands</label>
+                        <description>Limit the number of bands computed to this number on the conduction or valence side of the gap. The more bands you include, the longer the calculation.</description>
+                    </about>
+                    <min>1</min>
+                    <default>4</default>
+                    <current>2</current>
+                </integer>
+                <integer id="Nk">
+                    <about>
+                        <label>Number of k-points</label>
+                        <description>Specify the number of k-points in the given k-domain.
+	  
+EXAMPLE:  When the "Gamma-&gt;X(L)" option is chosen above, this value is used to divide k-points from (0,0,0) to 2pi/a(1,1,1) or 2pi/a(0.5,0,5,0.5). When the "Full domain" option is selected, this number is used to generate k-vectors from -2pi/a to 2pi/a.</description>
+                    </about>
+                    <min>2</min>
+                    <default>41</default>
+                    <current>41</current>
+                </integer>
+            </group>
+            <group id="wire">
+                <about>
+                    <enable>input.phase(device).structure.current.parameters.string(geom) == "wire"</enable>
+                </about>
+                <choice id="bands">
+                    <about>
+                        <label>Explore:</label>
+                        <description>Compute these energy bands.</description>
+                    </about>
+                    <option>
+                        <about>
+                            <label>Conduction bands</label>
+                            <description>Compute only bands above the energy gap.</description>
+                        </about>
+                        <value>CB</value>
+                    </option>
+                    <option>
+                        <about>
+                            <label>Valence bands</label>
+                            <description>Compute only bands below the energy gap.These are the filled states in the semiconductor.</description>
+                        </about>
+                        <value>VB</value>
+                    </option>
+                    <option>
+                        <about>
+                            <label>Conduction and Valence bands</label>
+                            <description>Compute both type of bands in the semiconductor nanowire.</description>
+                        </about>
+                        <value>both</value>
+                    </option>
+                    <default>Conduction bands</default>
+                    <current>both</current>
+                </choice>
+                <integer id="nbands">
+                    <about>
+                        <label>Number of bands</label>
+                        <description>Limit the number of bands computed to this number on the conduction or valence side of the gap.  The more bands you include, the longer the calculation.</description>
+                    </about>
+                    <min>1</min>
+                    <default>4</default>
+                    <current>10</current>
+                </integer>
+                <integer id="Nk">
+                    <about>
+                        <label>Number of k-points</label>
+                        <description>Specify the number of k-points from -2pi/a to 2pi/a.</description>
+                    </about>
+                    <min>2</min>
+                    <default>41</default>
+                    <current>41</current>
+                </integer>
+                <current>
+                </current>
+            </group>
+            <group id="finfet">
+                <about>
+                    <enable>input.phase(device).structure.current.parameters.string(geom) == "finfet"</enable>
+                </about>
+                <choice id="bands">
+                    <about>
+                        <label>Explore</label>
+                        <description>Compute these energy bands.</description>
+                    </about>
+                    <option>
+                        <about>
+                            <label>Conduction bands</label>
+                            <description>Compute only bands above the energy gap.</description>
+                        </about>
+                        <value>CB</value>
+                    </option>
+                    <option>
+                        <about>
+                            <label>Valence bands</label>
+                            <description>Compute only bands below the energy gap.</description>
+                        </about>
+                        <value>VB</value>
+                    </option>
+                    <default>Conduction bands</default>
+                    <current>CB</current>
+                </choice>
+                <integer id="nbands">
+                    <about>
+                        <label>Number of bands</label>
+                        <description>Limit the number of bands computed to this number on the conduction or valence side of the gap.  The more bands you include, the longer the calculation.</description>
+                    </about>
+                    <min>1</min>
+                    <default>4</default>
+                    <current>4</current>
+                </integer>
+                <integer id="Nk">
+                    <about>
+                        <label>Number of k-points</label>
+                        <description>Specify the number of k-points from -2pi/a to 2pi/a.</description>
+                    </about>
+                    <min>2</min>
+                    <default>41</default>
+                    <current>41</current>
+                </integer>
+                <current>
+                </current>
+            </group>
+            <group id="str_ek_cal">
+                <about>
+                    <enable>(input.phase(device).structure.current.parameters.string(geom) == "bulk" &amp;&amp; input.phase(analysis).group(bulk).choice(bulk_jobs) == "EKcal") || input.phase(device).structure.current.parameters.string(geom) == "wire" || input.phase(device).structure.current.parameters.string(geom) == "utb" || input.phase(device).structure.current.parameters.string(geom) == "finfet"</enable>
+                    <label>Choose the strain model:</label>
+                </about>
+                <choice id="model">
+                    <about>
+                        <label>Strain model</label>
+                        <description>Choose a model for the strain applied to your structure.</description>
+                    </about>
+                    <option>
+                        <about>
+                            <label>Biaxial (strain in X,Y)</label>
+                            <description>Strain is applied in two directions, X and Y.</description>
+                        </about>
+                        <value>biaxial</value>
+                    </option>
+                    <option>
+                        <about>
+                            <label>Hydrostatic (strain in X,Y,Z)</label>
+                            <description>Strain is applied uniformly in all directions.</description>
+                        </about>
+                        <value>hydrostatic</value>
+                    </option>
+                    <option>
+                        <about>
+                            <label>Free choice</label>
+                            <description>Choose your own values for strain in X, Y, and Z directions.</description>
+                        </about>
+                        <value>free_choice</value>
+                    </option>
+                    <option>
+                        <about>
+                            <label>None</label>
+                            <description>No strain applied to material.</description>
+                        </about>
+                        <value>none</value>
+                    </option>
+                    <default>none</default>
+                    <current>none</current>
+                </choice>
+                <group id="bulk_strain">
+                    <about>
+                        <enable>input.phase(device).structure.current.parameters.string(geom) == "bulk" &amp;&amp; input.phase(analysis).(str_ek_cal).choice(model) == "biaxial"</enable>
+                    </about>
+                    <choice id="dir">
+                        <about>
+                            <label>Strain direction</label>
+                            <description>Choose the strain direction from among the high-symmetry directions.</description>
+                        </about>
+                        <option>
+                            <about>
+                                <label>[001]</label>
+                                <description>Vector along the z-direction of the unit cell.</description>
+                            </about>
+                        </option>
+                        <option>
+                            <about>
+                                <label>[110]</label>
+                                <description>Vector along the diagonal of the x-y face of the unit cell.</description>
+                            </about>
+                        </option>
+                        <option>
+                            <about>
+                                <label>[111]</label>
+                                <description>Vector along the diagonal of the unit cell.</description>
+                            </about>
+                        </option>
+                        <default>[001]</default>
+                        <current>[001]</current>
+                    </choice>
+                    <current>
+                    </current>
+                </group>
+                <group id="one_value">
+                    <about>
+                        <enable>input.phase(analysis).group(str_ek_cal).choice(model) == "biaxial" || input.phase(analysis).group(str_ek_cal).choice(model) == "hydrostatic"</enable>
+                    </about>
+                    <number id="eps">
+                        <about>
+                            <label>Epsilon</label>
+                            <description>This is the amount of strain applied, as a fraction--typically a small fraction.  If negative, it is a compressive strain, and if positive, an expansive strain.</description>
+                        </about>
+                        <default>0.02</default>
+                        <current>0.02</current>
+                    </number>
+                    <current>
+                    </current>
+                </group>
+                <group id="free_choice">
+                    <about>
+                        <enable>input.phase(analysis).(str_ek_cal).choice(model) == "free_choice"</enable>
+                    </about>
+                    <number id="epsx">
+                        <about>
+                            <label>Epsilon(x)</label>
+                            <description>This is the amount of strain applied in the x-direction, as a fraction--typically a small fraction.  If negative, it is a compressive strain, and if positive, an expansive strain.</description>
+                        </about>
+                        <default>0.02</default>
+                        <current>0.02</current>
+                    </number>
+                    <number id="epsy">
+                        <about>
+                            <label>Epsilon(y)</label>
+                            <description>This is the amount of strain applied in the y-direction, as a fraction--typically a small fraction.  If negative, it is a compressive strain, and if positive, an expansive strain.</description>
+                        </about>
+                        <default>0.02</default>
+                        <current>0.02</current>
+                    </number>
+                    <number id="epsz">
+                        <about>
+                            <label>Epsilon(z)</label>
+                            <description>This is the amount of strain applied in the z-direction, as a fraction--typically a small fraction.  If negative, it is a compressive strain, and if positive, an expansive strain.</description>
+                        </about>
+                        <default>-0.02</default>
+                        <current>-0.02</current>
+                    </number>
+                    <current>
+                    </current>
+                </group>
+                <current>
+                </current>
+            </group>
+            <group id="str_sweep_cal">                <about>
+                    <enable>input.phase(device).structure.current.parameters.string(geom) == "bulk" &amp;&amp; input.phase(analysis).group(bulk).choice(bulk_jobs) == "straincal"</enable>
+                    <label>Choose the strain model:</label>
+                </about>
+                <choice id="model">
+                    <about>
+                        <label>Strain model</label>
+                        <description>Choose a model for the strain applied to your structure.</description>
+                    </about>
+                    <option>
+                        <about>
+                            <label>Biaxial (strain in X,Y)</label>
+                            <description>Strain is applied in two directions, X and Y.</description>
+                        </about>
+                        <value>biaxial</value>
+                    </option>
+                    <option>
+                        <about>
+                            <label>Hydrostatic (strain in X,Y,Z)</label>
+                            <description>Strain is applied uniformly in all directions.</description>
+                        </about>
+                        <value>hydrostatic</value>
+                    </option>
+                    <default>biaxial</default>
+                    <current>biaxial</current>
+                </choice>
+                <group id="biax_sweep_dir">
+                    <about>
+                        <enable>input.phase(analysis).group(str_sweep_cal).choice(model)=="biaxial"</enable>
+                    </about>
+                    <choice id="dir">
+                        <about>
+                            <label>Strain direction</label>
+                            <description>Choose the strain direction from among the high-symmetry directions.</description>
+                        </about>
+                        <option>
+                            <about>
+                                <label>[001]</label>
+                                <description>Vector along the z-direction of the unit cell.</description>
+                            </about>
+                            <value>001</value>
+                        </option>
+                        <option>
+                            <about>
+                                <label>[110]</label>
+                                <description>Vector along the diagonal of the x-y face of the unit cell.</description>
+                            </about>
+                            <value>110</value>
+                        </option>
+                        <option>
+                            <about>
+                                <label>[111]</label>
+                                <description>Vector along the diagonal of the unit cell.</description>
+                            </about>
+                            <value>111</value>
+                        </option>
+                        <default>[001]</default>
+                        <current>001</current>
+                    </choice>
+                    <current>
+                    </current>
+                </group>
+                <group id="strain_sweep_vals">
+                    <about>
+                        <enable>input.phase(analysis).(str_sweep_cal).choice(model)=="biaxial" ||
+     input.phase(analysis).(str_sweep_cal).choice(model)=="hydrostatic"</enable>
+                    </about>
+                    <number id="exx_s">
+                        <about>
+                            <label>Initial Strain(Exx):</label>
+                            <description>Initial strain along direction.</description>
+                        </about>
+                        <min>-0.05</min>
+                        <max>0.0</max>
+                        <default>0.0</default>
+                        <current>0</current>
+                    </number>
+                    <number id="exx_f">
+                        <about>
+                            <label>Final Strain(Exx):</label>
+                            <description>Initial strain along direction.</description>
+                        </about>
+                        <min>0.0</min>
+                        <max>0.05</max>
+                        <default>0.02</default>
+                        <current>0.02</current>
+                    </number>
+                    <number id="exx_n">
+                        <about>
+                            <label>Number of Points(num):</label>
+                            <description>Initial strain along direction.</description>
+                        </about>
+                        <min>2</min>
+                        <max>10</max>
+                        <default>2</default>
+                        <current>2</current>
+                    </number>
+                    <current>
+                    </current>
+                </group>
+                <current>
+                </current>
+<!-- grp of str sweep val over --></group>
+            <group id="NWbias">                <about>
+                    <enable>input.phase(device).structure.current.parameters.group(dev_info).group(sim_type).choice(job) == "WSCBS"</enable>
+                    <label>Inputs for Self Consistent EK Calculation</label>
+                </about>
+                <number id="gatebias">
+                    <about>
+                        <label>Gate bias(V) :</label>
+                    </about>
+                    <units>V</units>
+                    <min>0.0V</min>
+                    <max>1.5V</max>
+                    <default>0.0V</default>
+                    <current>0V</current>
+                </number>
+                <number id="drainbias">
+                    <about>
+                        <label>Drain bias(V) :</label>
+                    </about>
+                    <units>V</units>
+                    <min>-1.0V</min>
+                    <max>1.5V</max>
+                    <default>0.0V</default>
+                    <current>0V</current>
+                </number>
+                <number id="fermilevel">
+                    <about>
+                        <label>Fermi Level(V) :</label>
+                        <description>Set the fermi-level for the source, this indicates the doping in the source. This value is set with respect to the bulk conduction band minima. So set it accordingly to do the simulations.</description>
+                    </about>
+                    <units>V</units>
+                    <min>-2V</min>
+                    <max>1.5V</max>
+                    <default>0.1V</default>
+                    <current>0.1V</current>
+                </number>
+                <number id="electron_temp">
+                    <about>
+                        <label>Electron Temperature(T) :</label>
+                        <description>The temperature at which the simulation is done. This controls the spreading of Fermi-Dirac function which in turn controls the filling of bands in the nanodevice.</description>
+                    </about>
+                    <units>K</units>
+                    <min>4K</min>
+                    <max>1000K</max>
+                    <default>300K</default>
+                    <current>300K</current>
+                </number>
+                <current>
+                </current>
+<!-- this group is fpr setting the bias options for the self consistent run --></group>
+            <group id="utbbias">                <about>
+                    <enable>input.phase(device).structure.current.parameters.group(dev_info).group(sim_type).choice(job) == "USCEK"</enable>
+                    <label>Inputs for Self Consistent EK Calculation</label>
+                </about>
+                <number id="gatebiasf">
+                    <about>
+                        <label>Front Gate bias(V) :</label>
+                    </about>
+                    <units>V</units>
+                    <min>0.0V</min>
+                    <max>1.5V</max>
+                    <default>0.1V</default>
+                    <current>0.1V</current>
+                </number>
+                <number id="gatebiasb">
+                    <about>
+                        <label>Back Gate bias(V) :</label>
+                    </about>
+                    <units>V</units>
+                    <min>0.0V</min>
+                    <max>1.5V</max>
+                    <default>0.0V</default>
+                    <current>0V</current>
+                </number>
+                <number id="drainbias">
+                    <about>
+                        <label>Drain bias(V) :</label>
+                    </about>
+                    <units>V</units>
+                    <min>-1.0V</min>
+                    <max>1.5V</max>
+                    <default>0.001V</default>
+                    <current>0.001V</current>
+                </number>
+                <number id="fermilevel">
+                    <about>
+                        <label>Fermi Level(V) :</label>
+                        <description>Set the fermi-level for the source, this indicates the doping in the source. This value is set with respect to the bulk conduction band minima. So set it accordingly to do the simulations.</description>
+                    </about>
+                    <units>V</units>
+                    <min>-2V</min>
+                    <max>1.5V</max>
+                    <default>0.1V</default>
+                    <current>0.1V</current>
+                </number>
+                <number id="electron_temp">
+                    <about>
+                        <label>Electron Temperature(T) :</label>
+                        <description>The temperature at which the simulation is done. This controls the spreading of Fermi-Dirac function which in turn controls the filling of bands in the nanodevice.</description>
+                    </about>
+                    <units>K</units>
+                    <min>4K</min>
+                    <max>1000K</max>
+                    <default>300K</default>
+                    <current>300K</current>
+                </number>
+                <current>
+                </current>
+<!-- this group is for setting the bias options for the self consistent run --></group>
+            <group id="NWCV">                <about>
+                    <enable>input.phase(device).structure.current.parameters.string(geom) == "wire" &amp;&amp;
+			input.phase(device).structure.current.parameters.group(dev_info).group(sim_type).choice(job) == "SCCV" || 
+					input.phase(device).structure.current.parameters.group(dev_info).group(sim_type).choice(job) == "NSCCV"</enable>
+                    <label>Inputs for CV Calculation in NW</label>
+                </about>
+                <number id="vgmin">
+                    <about>
+                        <label>Initial Gate bias(V) :</label>
+                    </about>
+                    <units>V</units>
+                    <min>0.0V</min>
+                    <max>1.5V</max>
+                    <default>0.0V</default>
+                    <current>0V</current>
+                </number>
+                <number id="vgmax">
+                    <about>
+                        <label>Final Gate bias(V) :</label>
+                    </about>
+                    <units>V</units>
+                    <min>0.0V</min>
+                    <max>1.5V</max>
+                    <default>0.1V</default>
+                    <current>0.1V</current>
+                </number>
+                <number id="vgdiv">
+                    <about>
+                        <label>Number of Bias Points :</label>
+                    </about>
+                    <min>1</min>
+                    <max>30</max>
+                    <default>1</default>
+                    <current>1</current>
+                </number>
+                <number id="drainbias">
+                    <about>
+                        <label>Drain bias(V) :</label>
+                    </about>
+                    <units>V</units>
+                    <min>-0.05V</min>
+                    <max>0.05V</max>
+                    <default>0.0001V</default>
+                    <current>0.0001V</current>
+                </number>
+                <number id="fermilevel">
+                    <about>
+                        <label>Fermi Level(V) :</label>
+                        <description>Set the fermi-level for the source, this indicates the doping in the source. This value is set with respect to the bulk conduction band minima. So set it accordingly to do the simulations.</description>
+                    </about>
+                    <units>V</units>
+                    <min>-2V</min>
+                    <max>1.5V</max>
+                    <default>0.1V</default>
+                    <current>0.1V</current>
+                </number>
+                <number id="electron_temp">
+                    <about>
+                        <label>Electron Temperature(T) :</label>
+                        <description>The temperature at which the simulation is done. This controls the spreading of Fermi-Dirac function which in turn controls the filling of bands in the nanodevice.</description>
+                    </about>
+                    <units>K</units>
+                    <min>4K</min>
+                    <max>1000K</max>
+                    <default>300K</default>
+                    <current>300K</current>
+                </number>
+                <current>
+                </current>
+<!-- this group is fpr setting the bias options for the self consistent run --></group>
+            <group id="UTBCV">                <about>
+                    <enable>(input.phase(device).structure.current.parameters.string(geom) == "utb" )&amp;&amp;
+			(input.phase(device).structure.current.parameters.group(dev_info).group(sim_type).choice(job) == "SCCV" || 
+					input.phase(device).structure.current.parameters.group(dev_info).group(sim_type).choice(job) == "NSCCV")</enable>
+                    <label>Inputs for CV Calculation in UTB</label>
+                </about>
+                <number id="vgmin">
+                    <about>
+                        <label>Initial Front Gate bias(V) :</label>
+                    </about>
+                    <units>V</units>
+                    <min>0.0V</min>
+                    <max>1.5V</max>
+                    <default>0.0V</default>
+                    <current>0V</current>
+                </number>
+                <number id="vgmax">
+                    <about>
+                        <label>Final Front Gate bias(V) :</label>
+                    </about>
+                    <units>V</units>
+                    <min>0.0V</min>
+                    <max>1.5V</max>
+                    <default>0.1V</default>
+                    <current>0.1V</current>
+                </number>
+                <number id="vgdiv">
+                    <about>
+                        <label>Number of Bias Points :</label>
+                    </about>
+                    <min>1</min>
+                    <max>30</max>
+                    <default>1</default>
+                    <current>1</current>
+                </number>
+                <number id="drainbias">
+                    <about>
+                        <label>Drain bias(V) :</label>
+                    </about>
+                    <units>V</units>
+                    <min>-0.05V</min>
+                    <max>0.05V</max>
+                    <default>0.0001V</default>
+                    <current>0.0001V</current>
+                </number>
+                <number id="fermilevel">
+                    <about>
+                        <label>Fermi Level(V) :</label>
+                        <description>Set the fermi-level for the source, this indicates the doping in the source. This value is set with respect to the bulk conduction band minima. So set it accordingly to do the simulations.</description>
+                    </about>
+                    <units>V</units>
+                    <min>-1V</min>
+                    <max>1.5V</max>
+                    <default>1.2V</default>
+                    <current>1.2V</current>
+                </number>
+                <number id="electron_temp">
+                    <about>
+                        <label>Electron Temperature(T) :</label>
+                        <description>The temperature at which the simulation is done. This controls the spreading of Fermi-Dirac function which in turn controls the filling of bands in the nanodevice.</description>
+                    </about>
+                    <units>K</units>
+                    <min>4K</min>
+                    <max>1000K</max>
+                    <default>300K</default>
+                    <current>300K</current>
+                </number>
+                <group id="back_gate">                    <about>
+                        <label>Select the back gate configuration</label>
+                        <description>How the back gate voltage varies with respect to the front gate voltage</description>
+                    </about>
+                    <choice id="back_gate_config">
+                        <about>
+                        </about>
+                        <option>
+                            <about>
+                                <label>Connected to front gate</label>
+                            </about>
+                            <value>TFG</value>
+                        </option>
+                        <option>
+                            <about>
+                                <label>Fixed bias</label>
+                            </about>
+                            <value>FGB</value>
+                        </option>
+                        <default>TFG</default>
+                        <current>TFG</current>
+                    </choice>
+                    <number id="vbackgate">
+                        <about>
+                            <enable>input.phase(analysis).(UTBCV).(back_gate).choice(back_gate_config) == "FGB"</enable>
+                            <label>Back Gate bias (V):</label>
+                        </about>
+                        <units>V</units>
+                        <min>0.0V</min>
+                        <max>2.0V</max>
+                        <default>0.01V</default>
+                        <current>0.01V</current>
+                    </number>
+                    <current>
+                    </current>
+<!-- back gate potential --></group>
+                <current>
+                </current>
+<!-- this group is fpr setting the bias options for the self consistent run --></group>
+            <separator>
+                <current>
+                </current>
+            </separator>
+<!-- utb group is over -->
+            
+            
+            
+            
+<!-- biases group is over -->
+<!-- biases group is over -->
+<!-- NWCV group is over -->
+<!-- UTBCV group is over --></phase>
+    </input>
+    <output>
+        <unirect2d id="UTBCB_1">
+            <hide>yes</hide>
+            <about>
+                <label>UTB_2D_BZ </label>
+            </about>
+            <xaxis>
+                <label>KX[norm]</label>
+                <min>-3.14159</min>
+                <max>3.14159</max>
+                <numpoints>41</numpoints>
+            </xaxis>
+            <yaxis>
+                <label>KZ[norm]</label>
+                <min>-3.14159</min>
+                <max>3.14159</max>
+                <numpoints>41</numpoints>
+            </yaxis>
+        </unirect2d>
+        <field id="UTBCB_1">
+            <about>
+                <label>UTB (CB) no._1</label>
+            </about>
+            <component>
+                <mesh>output.unirect2d(UTBCB_1)</mesh>
+                <values>2.78667
+2.79614
+2.82383
+2.86762
+2.92419
+2.98911
+3.05682
+3.11991
+3.1671
+3.18066
+3.14555
+3.07212
+2.98331
+2.89367
+2.81029
+2.73692
+2.67582
+2.62846
+2.59583
+2.57852
+2.57673
+2.57852
+2.59583
+2.62846
+2.67582
+2.73692
+2.81029
+2.89367
+2.98331
+3.07212
+3.14555
+3.18066
+3.1671
+3.11991
+3.05682
+2.98911
+2.92419
+2.86762
+2.82383
+2.79614
+2.78667
+2.79614
+2.78647
+2.79574
+2.82331
+2.8672
+2.92419
+2.98334
+3.04552
+3.11224
+3.17048
+3.15921
+3.07172
+2.97737
+2.88435
+2.79707
+2.71829
+2.65001
+2.59375
+2.55073
+2.52193
+2.50802
+2.50945
+2.52633
+2.55846
+2.60533
+2.66604
+2.7393
+2.8232
+2.91485
+3.00928
+3.09706
+3.16118
+3.1341
+3.0738
+3.00504
+2.93887
+2.88316
+2.84158
+2.81726
+2.81229
+2.79614
+2.82383
+2.79574
+2.78574
+2.79472
+2.82208
+2.85771
+2.89887
+2.9505
+3.01098
+3.07857
+3.11074
+3.01546
+2.91739
+2.82246
+2.73416
+2.65485
+2.58629
+2.52987
+2.48672
+2.45774
+2.44359
+2.44467
+2.46109
+2.49269
+2.53898
+2.59915
+2.67203
+2.75595
+2.84849
+2.94582
+3.04122
+3.08809
+3.02577
+2.97107
+2.92522
+2.87716
+2.83443
+2.80901
+2.80301
+2.81726
+2.82383
+2.86762
+2.82331
+2.79472
+2.7842
+2.78595
+2.79405
+2.81617
+2.85168
+2.89958
+2.95862
+3.02727
+2.96017
+2.85987
+2.76381
+2.67496
+2.5954
+2.52675
+2.47029
+2.42708
+2.39798
+2.3836
+2.38433
+2.40028
+2.43131
+2.47695
+2.53647
+2.60878
+2.69237
+2.78512
+2.88385
+2.98333
+2.95601
+2.90225
+2.86114
+2.83335
+2.8185
+2.80331
+2.79608
+2.80901
+2.84158
+2.86762
+2.92419
+2.8672
+2.82208
+2.78595
+2.75622
+2.74091
+2.74092
+2.75651
+2.78732
+2.8325
+2.89084
+2.90715
+2.80556
+2.70892
+2.61985
+2.54025
+2.47164
+2.41522
+2.37202
+2.34282
+2.32822
+2.32859
+2.34405
+2.37446
+2.4194
+2.47817
+2.54976
+2.63275
+2.72524
+2.82441
+2.87237
+2.81788
+2.77816
+2.75447
+2.74741
+2.75657
+2.78011
+2.80331
+2.83443
+2.88316
+2.92419
+2.98911
+2.92419
+2.85771
+2.79405
+2.74091
+2.70144
+2.67781
+2.67119
+2.68191
+2.70958
+2.75325
+2.81164
+2.75498
+2.65815
+2.56911
+2.48964
+2.42118
+2.36488
+2.32171
+2.29243
+2.27762
+2.27762
+2.29256
+2.32231
+2.36648
+2.4244
+2.49511
+2.57728
+2.6691
+2.76799
+2.72539
+2.68531
+2.66275
+2.65875
+2.67374
+2.70705
+2.75657
+2.8185
+2.87716
+2.93887
+2.98911
+3.05682
+2.98334
+2.89887
+2.81617
+2.74092
+2.67781
+2.63021
+2.60026
+2.58901
+2.59662
+2.62253
+2.66568
+2.70847
+2.61179
+2.52299
+2.4438
+2.37558
+2.31946
+2.27635
+2.247
+2.23196
+2.23158
+2.24596
+2.27499
+2.31831
+2.37526
+2.44493
+2.52602
+2.61678
+2.62936
+2.58797
+2.56505
+2.56185
+2.5791
+2.61677
+2.67374
+2.74741
+2.83335
+2.92522
+3.00504
+3.05682
+3.11991
+3.04552
+2.9505
+2.85168
+2.75651
+2.67119
+2.60026
+2.54677
+2.51255
+2.49839
+2.50427
+2.52949
+2.57283
+2.57007
+2.48172
+2.40294
+2.33505
+2.27915
+2.23614
+2.20672
+2.19144
+2.19063
+2.20441
+2.23265
+2.27501
+2.33086
+2.39928
+2.47899
+2.53269
+2.48935
+2.46518
+2.46153
+2.47929
+2.51869
+2.5791
+2.65875
+2.75447
+2.86114
+2.97107
+3.0738
+3.11991
+3.1671
+3.11224
+3.01098
+2.89958
+2.78732
+2.68191
+2.58901
+2.51255
+2.45511
+2.41823
+2.40249
+2.40768
+2.43294
+2.4769
+2.44547
+2.36724
+2.29977
+2.24416
+2.20126
+2.17178
+2.15624
+2.15496
+2.16805
+2.19541
+2.23668
+2.29123
+2.35813
+2.43604
+2.39164
+2.3656
+2.36066
+2.37784
+2.41751
+2.47929
+2.56185
+2.66275
+2.77816
+2.90225
+3.02577
+3.1341
+3.1671
+3.18066
+3.17048
+3.07857
+2.95862
+2.8325
+2.70958
+2.59662
+2.49839
+2.41823
+2.35836
+2.32004
+2.30368
+2.30889
+2.33461
+2.3793
+2.33687
+2.26993
+2.21466
+2.17191
+2.14237
+2.12653
+2.12473
+2.13705
+2.1634
+2.20339
+2.25637
+2.32135
+2.29642
+2.26805
+2.26122
+2.27703
+2.31598
+2.37784
+2.46153
+2.56505
+2.68531
+2.81788
+2.95601
+3.08809
+3.16118
+3.18066
+3.14555
+3.15921
+3.11074
+3.02727
+2.89084
+2.75325
+2.62253
+2.50427
+2.40249
+2.32004
+2.25886
+2.21999
+2.20363
+2.20923
+2.23551
+2.28065
+2.24571
+2.19085
+2.14828
+2.11868
+2.10252
+2.10011
+2.11156
+2.13671
+2.17516
+2.22619
+2.20481
+2.17384
+2.16468
+2.17854
+2.21602
+2.27703
+2.36066
+2.46518
+2.58797
+2.72539
+2.87237
+2.98333
+3.04122
+3.09706
+3.14555
+3.07212
+3.07172
+3.01546
+2.96017
+2.90715
+2.81164
+2.66568
+2.52949
+2.40768
+2.30368
+2.21999
+2.15828
+2.1194
+2.10338
+2.10942
+2.13598
+2.18092
+2.1729
+2.13057
+2.1009
+2.08438
+2.08129
+2.0917
+2.11542
+2.15197
+2.11746
+2.08386
+2.07213
+2.08363
+2.11909
+2.17854
+2.26122
+2.3656
+2.48935
+2.62936
+2.76799
+2.82441
+2.88385
+2.94582
+3.00928
+3.07212
+2.98331
+2.97737
+2.91739
+2.85987
+2.80556
+2.75498
+2.70847
+2.57283
+2.43294
+2.30889
+2.20363
+2.1194
+2.05765
+2.01904
+2.00336
+2.00957
+2.03584
+2.0796
+2.11895
+2.08924
+2.07231
+2.06842
+2.07759
+2.08986
+2.03449
+1.99855
+1.98426
+1.9932
+2.02626
+2.08363
+2.16468
+2.26805
+2.39164
+2.53269
+2.61678
+2.6691
+2.72524
+2.78512
+2.84849
+2.91485
+2.98331
+2.89367
+2.88435
+2.82246
+2.76381
+2.70892
+2.65815
+2.61179
+2.57007
+2.4769
+2.33461
+2.20923
+2.10338
+2.01904
+1.95746
+1.9191
+1.90353
+1.90948
+1.93481
+1.97666
+2.03139
+2.06649
+2.06167
+2.01144
+1.95541
+1.91779
+1.90126
+1.9077
+1.93823
+1.9932
+2.07213
+2.17384
+2.29642
+2.43604
+2.47899
+2.52602
+2.57728
+2.63275
+2.69237
+2.75595
+2.8232
+2.89367
+2.81029
+2.79707
+2.73416
+2.67496
+2.61985
+2.56911
+2.52299
+2.48172
+2.44547
+2.3793
+2.23551
+2.10942
+2.00336
+1.9191
+1.85772
+1.8195
+1.80386
+1.80936
+1.83381
+1.87436
+1.92765
+1.93493
+1.87944
+1.84103
+1.82285
+1.82713
+1.85523
+1.9077
+1.98426
+2.08386
+2.20481
+2.32135
+2.35813
+2.39928
+2.44493
+2.49511
+2.54976
+2.60878
+2.67203
+2.7393
+2.81029
+2.73692
+2.71829
+2.65485
+2.5954
+2.54025
+2.48964
+2.4438
+2.40294
+2.36724
+2.33687
+2.28065
+2.13598
+2.00957
+1.90353
+1.8195
+1.75844
+1.72057
+1.70531
+1.71138
+1.73688
+1.77952
+1.80667
+1.76784
+1.7485
+1.75104
+1.77702
+1.82713
+1.90126
+1.99855
+2.11746
+2.22619
+2.25637
+2.29123
+2.33086
+2.37526
+2.4244
+2.47817
+2.53647
+2.59915
+2.66604
+2.73692
+2.67582
+2.65001
+2.58629
+2.52675
+2.47164
+2.42118
+2.37558
+2.33505
+2.29977
+2.26993
+2.24571
+2.18092
+2.03584
+1.90948
+1.80386
+1.72057
+1.66062
+1.62441
+1.61167
+1.62157
+1.65287
+1.69932
+1.67855
+1.67919
+1.70314
+1.75104
+1.82285
+1.91779
+2.03449
+2.15197
+2.17516
+2.20339
+2.23668
+2.27501
+2.31831
+2.36648
+2.4194
+2.47695
+2.53898
+2.60533
+2.67582
+2.62846
+2.59375
+2.52987
+2.47029
+2.41522
+2.36488
+2.31946
+2.27915
+2.24416
+2.21466
+2.19085
+2.1729
+2.0796
+1.93481
+1.80936
+1.70531
+1.62441
+1.56795
+1.53674
+1.53101
+1.5505
+1.59438
+1.61321
+1.63399
+1.67919
+1.7485
+1.84103
+1.95541
+2.08986
+2.11542
+2.13671
+2.1634
+2.19541
+2.23265
+2.27499
+2.32231
+2.37446
+2.43131
+2.49269
+2.55846
+2.62846
+2.59583
+2.55073
+2.48672
+2.42708
+2.37202
+2.32171
+2.27635
+2.23614
+2.20126
+2.17191
+2.14828
+2.13057
+2.11895
+1.97666
+1.83381
+1.71138
+1.61167
+1.53674
+1.4883
+1.46755
+1.47505
+1.5106
+1.57202
+1.61321
+1.67855
+1.76784
+1.87944
+2.01144
+2.07759
+2.0917
+2.11156
+2.13705
+2.16805
+2.20441
+2.24596
+2.29256
+2.34405
+2.40028
+2.46109
+2.52633
+2.59583
+2.57852
+2.52193
+2.45774
+2.39798
+2.34282
+2.29243
+2.247
+2.20672
+2.17178
+2.14237
+2.11868
+2.1009
+2.08924
+2.03139
+1.87436
+1.73688
+1.62157
+1.53101
+1.46755
+1.43308
+1.42875
+1.45484
+1.5106
+1.59438
+1.69932
+1.80667
+1.93493
+2.06167
+2.06842
+2.08129
+2.10011
+2.12473
+2.15496
+2.19063
+2.23158
+2.27762
+2.32859
+2.38433
+2.44467
+2.50945
+2.57852
+2.57673
+2.50802
+2.44359
+2.3836
+2.32822
+2.27762
+2.23196
+2.19144
+2.15624
+2.12653
+2.10252
+2.08438
+2.07231
+2.06649
+1.92765
+1.77952
+1.65287
+1.5505
+1.47505
+1.42875
+1.41314
+1.42875
+1.47505
+1.5505
+1.65287
+1.77952
+1.92765
+2.06649
+2.07231
+2.08438
+2.10252
+2.12653
+2.15624
+2.19144
+2.23196
+2.27762
+2.32822
+2.3836
+2.44359
+2.50802
+2.57673
+2.57852
+2.50945
+2.44467
+2.38433
+2.32859
+2.27762
+2.23158
+2.19063
+2.15496
+2.12473
+2.10011
+2.08129
+2.06842
+2.06167
+1.93493
+1.80667
+1.69932
+1.59438
+1.5106
+1.45484
+1.42875
+1.43308
+1.46755
+1.53101
+1.62157
+1.73688
+1.87436
+2.03139
+2.08924
+2.1009
+2.11868
+2.14237
+2.17178
+2.20672
+2.247
+2.29243
+2.34282
+2.39798
+2.45774
+2.52193
+2.57852
+2.59583
+2.52633
+2.46109
+2.40028
+2.34405
+2.29256
+2.24596
+2.20441
+2.16805
+2.13705
+2.11156
+2.0917
+2.07759
+2.01144
+1.87944
+1.76784
+1.67855
+1.61321
+1.57202
+1.5106
+1.47505
+1.46755
+1.4883
+1.53674
+1.61167
+1.71138
+1.83381
+1.97666
+2.11895
+2.13057
+2.14828
+2.17191
+2.20126
+2.23614
+2.27635
+2.32171
+2.37202
+2.42708
+2.48672
+2.55073
+2.59583
+2.62846
+2.55846
+2.49269
+2.43131
+2.37446
+2.32231
+2.27499
+2.23265
+2.19541
+2.1634
+2.13671
+2.11542
+2.08986
+1.95541
+1.84103
+1.7485
+1.67919
+1.63399
+1.61321
+1.59438
+1.5505
+1.53101
+1.53674
+1.56795
+1.62441
+1.70531
+1.80936
+1.93481
+2.0796
+2.1729
+2.19085
+2.21466
+2.24416
+2.27915
+2.31946
+2.36488
+2.41522
+2.47029
+2.52987
+2.59375
+2.62846
+2.67582
+2.60533
+2.53898
+2.47695
+2.4194
+2.36648
+2.31831
+2.27501
+2.23668
+2.20339
+2.17516
+2.15197
+2.03449
+1.91779
+1.82285
+1.75104
+1.70314
+1.67919
+1.67855
+1.69932
+1.65287
+1.62157
+1.61167
+1.62441
+1.66062
+1.72057
+1.80386
+1.90948
+2.03584
+2.18092
+2.24571
+2.26993
+2.29977
+2.33505
+2.37558
+2.42118
+2.47164
+2.52675
+2.58629
+2.65001
+2.67582
+2.73692
+2.66604
+2.59915
+2.53647
+2.47817
+2.4244
+2.37526
+2.33086
+2.29123
+2.25637
+2.22619
+2.11746
+1.99855
+1.90126
+1.82713
+1.77702
+1.75104
+1.7485
+1.76784
+1.80667
+1.77952
+1.73688
+1.71138
+1.70531
+1.72057
+1.75844
+1.8195
+1.90353
+2.00957
+2.13598
+2.28065
+2.33687
+2.36724
+2.40294
+2.4438
+2.48964
+2.54025
+2.5954
+2.65485
+2.71829
+2.73692
+2.81029
+2.7393
+2.67203
+2.60878
+2.54976
+2.49511
+2.44493
+2.39928
+2.35813
+2.32135
+2.20481
+2.08386
+1.98426
+1.9077
+1.85523
+1.82713
+1.82285
+1.84103
+1.87944
+1.93493
+1.92765
+1.87436
+1.83381
+1.80936
+1.80386
+1.8195
+1.85772
+1.9191
+2.00336
+2.10942
+2.23551
+2.3793
+2.44547
+2.48172
+2.52299
+2.56911
+2.61985
+2.67496
+2.73416
+2.79707
+2.81029
+2.89367
+2.8232
+2.75595
+2.69237
+2.63275
+2.57728
+2.52602
+2.47899
+2.43604
+2.29642
+2.17384
+2.07213
+1.9932
+1.93823
+1.9077
+1.90126
+1.91779
+1.95541
+2.01144
+2.06167
+2.06649
+2.03139
+1.97666
+1.93481
+1.90948
+1.90353
+1.9191
+1.95746
+2.01904
+2.10338
+2.20923
+2.33461
+2.4769
+2.57007
+2.61179
+2.65815
+2.70892
+2.76381
+2.82246
+2.88435
+2.89367
+2.98331
+2.91485
+2.84849
+2.78512
+2.72524
+2.6691
+2.61678
+2.53269
+2.39164
+2.26805
+2.16468
+2.08363
+2.02626
+1.9932
+1.98426
+1.99855
+2.03449
+2.08986
+2.07759
+2.06842
+2.07231
+2.08924
+2.11895
+2.0796
+2.03584
+2.00957
+2.00336
+2.01904
+2.05765
+2.1194
+2.20363
+2.30889
+2.43294
+2.57283
+2.70847
+2.75498
+2.80556
+2.85987
+2.91739
+2.97737
+2.98331
+3.07212
+3.00928
+2.94582
+2.88385
+2.82441
+2.76799
+2.62936
+2.48935
+2.3656
+2.26122
+2.17854
+2.11909
+2.08363
+2.07213
+2.08386
+2.11746
+2.15197
+2.11542
+2.0917
+2.08129
+2.08438
+2.1009
+2.13057
+2.1729
+2.18092
+2.13598
+2.10942
+2.10338
+2.1194
+2.15828
+2.21999
+2.30368
+2.40768
+2.52949
+2.66568
+2.81164
+2.90715
+2.96017
+3.01546
+3.07172
+3.07212
+3.14555
+3.09706
+3.04122
+2.98333
+2.87237
+2.72539
+2.58797
+2.46518
+2.36066
+2.27703
+2.21602
+2.17854
+2.16468
+2.17384
+2.20481
+2.22619
+2.17516
+2.13671
+2.11156
+2.10011
+2.10252
+2.11868
+2.14828
+2.19085
+2.24571
+2.28065
+2.23551
+2.20923
+2.20363
+2.21999
+2.25886
+2.32004
+2.40249
+2.50427
+2.62253
+2.75325
+2.89084
+3.02727
+3.11074
+3.15921
+3.14555
+3.18066
+3.16118
+3.08809
+2.95601
+2.81788
+2.68531
+2.56505
+2.46153
+2.37784
+2.31598
+2.27703
+2.26122
+2.26805
+2.29642
+2.32135
+2.25637
+2.20339
+2.1634
+2.13705
+2.12473
+2.12653
+2.14237
+2.17191
+2.21466
+2.26993
+2.33687
+2.3793
+2.33461
+2.30889
+2.30368
+2.32004
+2.35836
+2.41823
+2.49839
+2.59662
+2.70958
+2.8325
+2.95862
+3.07857
+3.17048
+3.18066
+3.1671
+3.1341
+3.02577
+2.90225
+2.77816
+2.66275
+2.56185
+2.47929
+2.41751
+2.37784
+2.36066
+2.3656
+2.39164
+2.43604
+2.35813
+2.29123
+2.23668
+2.19541
+2.16805
+2.15496
+2.15624
+2.17178
+2.20126
+2.24416
+2.29977
+2.36724
+2.44547
+2.4769
+2.43294
+2.40768
+2.40249
+2.41823
+2.45511
+2.51255
+2.58901
+2.68191
+2.78732
+2.89958
+3.01098
+3.11224
+3.1671
+3.11991
+3.0738
+2.97107
+2.86114
+2.75447
+2.65875
+2.5791
+2.51869
+2.47929
+2.46153
+2.46518
+2.48935
+2.53269
+2.47899
+2.39928
+2.33086
+2.27501
+2.23265
+2.20441
+2.19063
+2.19144
+2.20672
+2.23614
+2.27915
+2.33505
+2.40294
+2.48172
+2.57007
+2.57283
+2.52949
+2.50427
+2.49839
+2.51255
+2.54677
+2.60026
+2.67119
+2.75651
+2.85168
+2.9505
+3.04552
+3.11991
+3.05682
+3.00504
+2.92522
+2.83335
+2.74741
+2.67374
+2.61677
+2.5791
+2.56185
+2.56505
+2.58797
+2.62936
+2.61678
+2.52602
+2.44493
+2.37526
+2.31831
+2.27499
+2.24596
+2.23158
+2.23196
+2.247
+2.27635
+2.31946
+2.37558
+2.4438
+2.52299
+2.61179
+2.70847
+2.66568
+2.62253
+2.59662
+2.58901
+2.60026
+2.63021
+2.67781
+2.74092
+2.81617
+2.89887
+2.98334
+3.05682
+2.98911
+2.93887
+2.87716
+2.8185
+2.75657
+2.70705
+2.67374
+2.65875
+2.66275
+2.68531
+2.72539
+2.76799
+2.6691
+2.57728
+2.49511
+2.4244
+2.36648
+2.32231
+2.29256
+2.27762
+2.27762
+2.29243
+2.32171
+2.36488
+2.42118
+2.48964
+2.56911
+2.65815
+2.75498
+2.81164
+2.75325
+2.70958
+2.68191
+2.67119
+2.67781
+2.70144
+2.74091
+2.79405
+2.85771
+2.92419
+2.98911
+2.92419
+2.88316
+2.83443
+2.80331
+2.78011
+2.75657
+2.74741
+2.75447
+2.77816
+2.81788
+2.87237
+2.82441
+2.72524
+2.63275
+2.54976
+2.47817
+2.4194
+2.37446
+2.34405
+2.32859
+2.32822
+2.34282
+2.37202
+2.41522
+2.47164
+2.54025
+2.61985
+2.70892
+2.80556
+2.90715
+2.89084
+2.8325
+2.78732
+2.75651
+2.74092
+2.74091
+2.75622
+2.78595
+2.82208
+2.8672
+2.92419
+2.86762
+2.84158
+2.80901
+2.79608
+2.80331
+2.8185
+2.83335
+2.86114
+2.90225
+2.95601
+2.98333
+2.88385
+2.78512
+2.69237
+2.60878
+2.53647
+2.47695
+2.43131
+2.40028
+2.38433
+2.3836
+2.39798
+2.42708
+2.47029
+2.52675
+2.5954
+2.67496
+2.76381
+2.85987
+2.96017
+3.02727
+2.95862
+2.89958
+2.85168
+2.81617
+2.79405
+2.78595
+2.7842
+2.79472
+2.82331
+2.86762
+2.82383
+2.81726
+2.80301
+2.80901
+2.83443
+2.87716
+2.92522
+2.97107
+3.02577
+3.08809
+3.04122
+2.94582
+2.84849
+2.75595
+2.67203
+2.59915
+2.53898
+2.49269
+2.46109
+2.44467
+2.44359
+2.45774
+2.48672
+2.52987
+2.58629
+2.65485
+2.73416
+2.82246
+2.91739
+3.01546
+3.11074
+3.07857
+3.01098
+2.9505
+2.89887
+2.85771
+2.82208
+2.79472
+2.78574
+2.79574
+2.82383
+2.79614
+2.81229
+2.81726
+2.84158
+2.88316
+2.93887
+3.00504
+3.0738
+3.1341
+3.16118
+3.09706
+3.00928
+2.91485
+2.8232
+2.7393
+2.66604
+2.60533
+2.55846
+2.52633
+2.50945
+2.50802
+2.52193
+2.55073
+2.59375
+2.65001
+2.71829
+2.79707
+2.88435
+2.97737
+3.07172
+3.15921
+3.17048
+3.11224
+3.04552
+2.98334
+2.92419
+2.8672
+2.82331
+2.79574
+2.78647
+2.79614
+2.78667
+2.79614
+2.82383
+2.86762
+2.92419
+2.98911
+3.05682
+3.11991
+3.1671
+3.18066
+3.14555
+3.07212
+2.98331
+2.89367
+2.81029
+2.73692
+2.67582
+2.62846
+2.59583
+2.57852
+2.57673
+2.57852
+2.59583
+2.62846
+2.67582
+2.73692
+2.81029
+2.89367
+2.98331
+3.07212
+3.14555
+3.18066
+3.1671
+3.11991
+3.05682
+2.98911
+2.92419
+2.86762
+2.82383
+2.79614
+2.78667
+</values>
+            </component>
+        </field>
+        <unirect2d id="UTBCB_2">
+            <hide>yes</hide>
+            <about>
+                <label>UTB_2D_BZ </label>
+            </about>
+            <xaxis>
+                <label>KX[norm]</label>
+                <min>-3.14159</min>
+                <max>3.14159</max>
+                <numpoints>41</numpoints>
+            </xaxis>
+            <yaxis>
+                <label>KZ[norm]</label>
+                <min>-3.14159</min>
+                <max>3.14159</max>
+                <numpoints>41</numpoints>
+            </yaxis>
+        </unirect2d>
+        <field id="UTBCB_2">
+            <about>
+                <label>UTB (CB) no._2</label>
+            </about>
+            <component>
+                <mesh>output.unirect2d(UTBCB_2)</mesh>
+                <values>2.78667
+2.79614
+2.82383
+2.86762
+2.92419
+2.98911
+3.05682
+3.11991
+3.1671
+3.18066
+3.14555
+3.07212
+2.98331
+2.89367
+2.81029
+2.73692
+2.67582
+2.62846
+2.59583
+2.57852
+2.57673
+2.57852
+2.59583
+2.62846
+2.67582
+2.73692
+2.81029
+2.89367
+2.98331
+3.07212
+3.14555
+3.18066
+3.1671
+3.11991
+3.05682
+2.98911
+2.92419
+2.86762
+2.82383
+2.79614
+2.78667
+2.79614
+2.78647
+2.79574
+2.82331
+2.8672
+2.92419
+2.98334
+3.04552
+3.11224
+3.17048
+3.15921
+3.07172
+2.97737
+2.88435
+2.79707
+2.71829
+2.65001
+2.59375
+2.55073
+2.52193
+2.50802
+2.50945
+2.52633
+2.55846
+2.60533
+2.66604
+2.7393
+2.8232
+2.91485
+3.00928
+3.09706
+3.16118
+3.1341
+3.0738
+3.00504
+2.93887
+2.88316
+2.84158
+2.81726
+2.81229
+2.79614
+2.82383
+2.79574
+2.78574
+2.79472
+2.82208
+2.85771
+2.89887
+2.9505
+3.01098
+3.07857
+3.11074
+3.01546
+2.91739
+2.82246
+2.73416
+2.65485
+2.58629
+2.52987
+2.48672
+2.45774
+2.44359
+2.44467
+2.46109
+2.49269
+2.53898
+2.59915
+2.67203
+2.75595
+2.84849
+2.94582
+3.04122
+3.08809
+3.02577
+2.97107
+2.92522
+2.87716
+2.83443
+2.80901
+2.80301
+2.81726
+2.82383
+2.86762
+2.82331
+2.79472
+2.7842
+2.78595
+2.79405
+2.81617
+2.85168
+2.89958
+2.95862
+3.02727
+2.96017
+2.85987
+2.76381
+2.67496
+2.5954
+2.52675
+2.47029
+2.42708
+2.39798
+2.3836
+2.38433
+2.40028
+2.43131
+2.47695
+2.53647
+2.60878
+2.69237
+2.78512
+2.88385
+2.98333
+2.95601
+2.90225
+2.86114
+2.83335
+2.8185
+2.80331
+2.79608
+2.80901
+2.84158
+2.86762
+2.92419
+2.8672
+2.82208
+2.78595
+2.75622
+2.74091
+2.74092
+2.75651
+2.78732
+2.8325
+2.89084
+2.90715
+2.80556
+2.70892
+2.61985
+2.54025
+2.47164
+2.41522
+2.37202
+2.34282
+2.32822
+2.32859
+2.34405
+2.37446
+2.4194
+2.47817
+2.54976
+2.63275
+2.72524
+2.82441
+2.87237
+2.81788
+2.77816
+2.75447
+2.74741
+2.75657
+2.78011
+2.80331
+2.83443
+2.88316
+2.92419
+2.98911
+2.92419
+2.85771
+2.79405
+2.74091
+2.70144
+2.67781
+2.67119
+2.68191
+2.70958
+2.75325
+2.81164
+2.75498
+2.65815
+2.56911
+2.48964
+2.42118
+2.36488
+2.32171
+2.29243
+2.27762
+2.27762
+2.29256
+2.32231
+2.36648
+2.4244
+2.49511
+2.57728
+2.6691
+2.76799
+2.72539
+2.68531
+2.66275
+2.65875
+2.67374
+2.70705
+2.75657
+2.8185
+2.87716
+2.93887
+2.98911
+3.05682
+2.98334
+2.89887
+2.81617
+2.74092
+2.67781
+2.63021
+2.60026
+2.58901
+2.59662
+2.62253
+2.66568
+2.70847
+2.61179
+2.52299
+2.4438
+2.37558
+2.31946
+2.27635
+2.247
+2.23196
+2.23158
+2.24596
+2.27499
+2.31831
+2.37526
+2.44493
+2.52602
+2.61678
+2.62936
+2.58797
+2.56505
+2.56185
+2.5791
+2.61677
+2.67374
+2.74741
+2.83335
+2.92522
+3.00504
+3.05682
+3.11991
+3.04552
+2.9505
+2.85168
+2.75651
+2.67119
+2.60026
+2.54677
+2.51255
+2.49839
+2.50427
+2.52949
+2.57283
+2.57007
+2.48172
+2.40294
+2.33505
+2.27915
+2.23614
+2.20672
+2.19144
+2.19063
+2.20441
+2.23265
+2.27501
+2.33086
+2.39928
+2.47899
+2.53269
+2.48935
+2.46518
+2.46153
+2.47929
+2.51869
+2.5791
+2.65875
+2.75447
+2.86114
+2.97107
+3.0738
+3.11991
+3.1671
+3.11224
+3.01098
+2.89958
+2.78732
+2.68191
+2.58901
+2.51255
+2.45511
+2.41823
+2.40249
+2.40768
+2.43294
+2.4769
+2.44547
+2.36724
+2.29977
+2.24416
+2.20126
+2.17178
+2.15624
+2.15496
+2.16805
+2.19541
+2.23668
+2.29123
+2.35813
+2.43604
+2.39164
+2.3656
+2.36066
+2.37784
+2.41751
+2.47929
+2.56185
+2.66275
+2.77816
+2.90225
+3.02577
+3.1341
+3.1671
+3.18066
+3.17048
+3.07857
+2.95862
+2.8325
+2.70958
+2.59662
+2.49839
+2.41823
+2.35836
+2.32004
+2.30368
+2.30889
+2.33461
+2.3793
+2.33687
+2.26993
+2.21466
+2.17191
+2.14237
+2.12653
+2.12473
+2.13705
+2.1634
+2.20339
+2.25637
+2.32135
+2.29642
+2.26805
+2.26122
+2.27703
+2.31598
+2.37784
+2.46153
+2.56505
+2.68531
+2.81788
+2.95601
+3.08809
+3.16118
+3.18066
+3.14555
+3.15921
+3.11074
+3.02727
+2.89084
+2.75325
+2.62253
+2.50427
+2.40249
+2.32004
+2.25886
+2.21999
+2.20363
+2.20923
+2.23551
+2.28065
+2.24571
+2.19085
+2.14828
+2.11868
+2.10252
+2.10011
+2.11156
+2.13671
+2.17516
+2.22619
+2.20481
+2.17384
+2.16468
+2.17854
+2.21602
+2.27703
+2.36066
+2.46518
+2.58797
+2.72539
+2.87237
+2.98333
+3.04122
+3.09706
+3.14555
+3.07212
+3.07172
+3.01546
+2.96017
+2.90715
+2.81164
+2.66568
+2.52949
+2.40768
+2.30368
+2.21999
+2.15828
+2.1194
+2.10338
+2.10942
+2.13598
+2.18092
+2.1729
+2.13057
+2.1009
+2.08438
+2.08129
+2.0917
+2.11542
+2.15197
+2.11746
+2.08386
+2.07213
+2.08363
+2.11909
+2.17854
+2.26122
+2.3656
+2.48935
+2.62936
+2.76799
+2.82441
+2.88385
+2.94582
+3.00928
+3.07212
+2.98331
+2.97737
+2.91739
+2.85987
+2.80556
+2.75498
+2.70847
+2.57283
+2.43294
+2.30889
+2.20363
+2.1194
+2.05765
+2.01904
+2.00336
+2.00957
+2.03584
+2.0796
+2.11895
+2.08924
+2.07231
+2.06842
+2.07759
+2.08986
+2.03449
+1.99855
+1.98426
+1.9932
+2.02626
+2.08363
+2.16468
+2.26805
+2.39164
+2.53269
+2.61678
+2.6691
+2.72524
+2.78512
+2.84849
+2.91485
+2.98331
+2.89367
+2.88435
+2.82246
+2.76381
+2.70892
+2.65815
+2.61179
+2.57007
+2.4769
+2.33461
+2.20923
+2.10338
+2.01904
+1.95746
+1.9191
+1.90353
+1.90948
+1.93481
+1.97666
+2.03139
+2.06649
+2.06167
+2.01144
+1.95541
+1.91779
+1.90126
+1.9077
+1.93823
+1.9932
+2.07213
+2.17384
+2.29642
+2.43604
+2.47899
+2.52602
+2.57728
+2.63275
+2.69237
+2.75595
+2.8232
+2.89367
+2.81029
+2.79707
+2.73416
+2.67496
+2.61985
+2.56911
+2.52299
+2.48172
+2.44547
+2.3793
+2.23551
+2.10942
+2.00336
+1.9191
+1.85772
+1.8195
+1.80386
+1.80936
+1.83381
+1.87436
+1.92765
+1.93493
+1.87944
+1.84103
+1.82285
+1.82713
+1.85523
+1.9077
+1.98426
+2.08386
+2.20481
+2.32135
+2.35813
+2.39928
+2.44493
+2.49511
+2.54976
+2.60878
+2.67203
+2.7393
+2.81029
+2.73692
+2.71829
+2.65485
+2.5954
+2.54025
+2.48964
+2.4438
+2.40294
+2.36724
+2.33687
+2.28065
+2.13598
+2.00957
+1.90353
+1.8195
+1.75844
+1.72057
+1.70531
+1.71138
+1.73688
+1.77952
+1.80667
+1.76784
+1.7485
+1.75104
+1.77702
+1.82713
+1.90126
+1.99855
+2.11746
+2.22619
+2.25637
+2.29123
+2.33086
+2.37526
+2.4244
+2.47817
+2.53647
+2.59915
+2.66604
+2.73692
+2.67582
+2.65001
+2.58629
+2.52675
+2.47164
+2.42118
+2.37558
+2.33505
+2.29977
+2.26993
+2.24571
+2.18092
+2.03584
+1.90948
+1.80386
+1.72057
+1.66062
+1.62441
+1.61167
+1.62157
+1.65287
+1.69932
+1.67855
+1.67919
+1.70314
+1.75104
+1.82285
+1.91779
+2.03449
+2.15197
+2.17516
+2.20339
+2.23668
+2.27501
+2.31831
+2.36648
+2.4194
+2.47695
+2.53898
+2.60533
+2.67582
+2.62846
+2.59375
+2.52987
+2.47029
+2.41522
+2.36488
+2.31946
+2.27915
+2.24416
+2.21466
+2.19085
+2.1729
+2.0796
+1.93481
+1.80936
+1.70531
+1.62441
+1.56795
+1.53674
+1.53101
+1.5505
+1.59438
+1.61321
+1.63399
+1.67919
+1.7485
+1.84103
+1.95541
+2.08986
+2.11542
+2.13671
+2.1634
+2.19541
+2.23265
+2.27499
+2.32231
+2.37446
+2.43131
+2.49269
+2.55846
+2.62846
+2.59583
+2.55073
+2.48672
+2.42708
+2.37202
+2.32171
+2.27635
+2.23614
+2.20126
+2.17191
+2.14828
+2.13057
+2.11895
+1.97666
+1.83381
+1.71138
+1.61167
+1.53674
+1.4883
+1.46755
+1.47505
+1.5106
+1.57202
+1.61321
+1.67855
+1.76784
+1.87944
+2.01144
+2.07759
+2.0917
+2.11156
+2.13705
+2.16805
+2.20441
+2.24596
+2.29256
+2.34405
+2.40028
+2.46109
+2.52633
+2.59583
+2.57852
+2.52193
+2.45774
+2.39798
+2.34282
+2.29243
+2.247
+2.20672
+2.17178
+2.14237
+2.11868
+2.1009
+2.08924
+2.03139
+1.87436
+1.73688
+1.62157
+1.53101
+1.46755
+1.43308
+1.42875
+1.45484
+1.5106
+1.59438
+1.69932
+1.80667
+1.93493
+2.06167
+2.06842
+2.08129
+2.10011
+2.12473
+2.15496
+2.19063
+2.23158
+2.27762
+2.32859
+2.38433
+2.44467
+2.50945
+2.57852
+2.57673
+2.50802
+2.44359
+2.3836
+2.32822
+2.27762
+2.23196
+2.19144
+2.15624
+2.12653
+2.10252
+2.08438
+2.07231
+2.06649
+1.92765
+1.77952
+1.65287
+1.5505
+1.47505
+1.42875
+1.41314
+1.42875
+1.47505
+1.5505
+1.65287
+1.77952
+1.92765
+2.06649
+2.07231
+2.08438
+2.10252
+2.12653
+2.15624
+2.19144
+2.23196
+2.27762
+2.32822
+2.3836
+2.44359
+2.50802
+2.57673
+2.57852
+2.50945
+2.44467
+2.38433
+2.32859
+2.27762
+2.23158
+2.19063
+2.15496
+2.12473
+2.10011
+2.08129
+2.06842
+2.06167
+1.93493
+1.80667
+1.69932
+1.59438
+1.5106
+1.45484
+1.42875
+1.43308
+1.46755
+1.53101
+1.62157
+1.73688
+1.87436
+2.03139
+2.08924
+2.1009
+2.11868
+2.14237
+2.17178
+2.20672
+2.247
+2.29243
+2.34282
+2.39798
+2.45774
+2.52193
+2.57852
+2.59583
+2.52633
+2.46109
+2.40028
+2.34405
+2.29256
+2.24596
+2.20441
+2.16805
+2.13705
+2.11156
+2.0917
+2.07759
+2.01144
+1.87944
+1.76784
+1.67855
+1.61321
+1.57202
+1.5106
+1.47505
+1.46755
+1.4883
+1.53674
+1.61167
+1.71138
+1.83381
+1.97666
+2.11895
+2.13057
+2.14828
+2.17191
+2.20126
+2.23614
+2.27635
+2.32171
+2.37202
+2.42708
+2.48672
+2.55073
+2.59583
+2.62846
+2.55846
+2.49269
+2.43131
+2.37446
+2.32231
+2.27499
+2.23265
+2.19541
+2.1634
+2.13671
+2.11542
+2.08986
+1.95541
+1.84103
+1.7485
+1.67919
+1.63399
+1.61321
+1.59438
+1.5505
+1.53101
+1.53674
+1.56795
+1.62441
+1.70531
+1.80936
+1.93481
+2.0796
+2.1729
+2.19085
+2.21466
+2.24416
+2.27915
+2.31946
+2.36488
+2.41522
+2.47029
+2.52987
+2.59375
+2.62846
+2.67582
+2.60533
+2.53898
+2.47695
+2.4194
+2.36648
+2.31831
+2.27501
+2.23668
+2.20339
+2.17516
+2.15197
+2.03449
+1.91779
+1.82285
+1.75104
+1.70314
+1.67919
+1.67855
+1.69932
+1.65287
+1.62157
+1.61167
+1.62441
+1.66062
+1.72057
+1.80386
+1.90948
+2.03584
+2.18092
+2.24571
+2.26993
+2.29977
+2.33505
+2.37558
+2.42118
+2.47164
+2.52675
+2.58629
+2.65001
+2.67582
+2.73692
+2.66604
+2.59915
+2.53647
+2.47817
+2.4244
+2.37526
+2.33086
+2.29123
+2.25637
+2.22619
+2.11746
+1.99855
+1.90126
+1.82713
+1.77702
+1.75104
+1.7485
+1.76784
+1.80667
+1.77952
+1.73688
+1.71138
+1.70531
+1.72057
+1.75844
+1.8195
+1.90353
+2.00957
+2.13598
+2.28065
+2.33687
+2.36724
+2.40294
+2.4438
+2.48964
+2.54025
+2.5954
+2.65485
+2.71829
+2.73692
+2.81029
+2.7393
+2.67203
+2.60878
+2.54976
+2.49511
+2.44493
+2.39928
+2.35813
+2.32135
+2.20481
+2.08386
+1.98426
+1.9077
+1.85523
+1.82713
+1.82285
+1.84103
+1.87944
+1.93493
+1.92765
+1.87436
+1.83381
+1.80936
+1.80386
+1.8195
+1.85772
+1.9191
+2.00336
+2.10942
+2.23551
+2.3793
+2.44547
+2.48172
+2.52299
+2.56911
+2.61985
+2.67496
+2.73416
+2.79707
+2.81029
+2.89367
+2.8232
+2.75595
+2.69237
+2.63275
+2.57728
+2.52602
+2.47899
+2.43604
+2.29642
+2.17384
+2.07213
+1.9932
+1.93823
+1.9077
+1.90126
+1.91779
+1.95541
+2.01144
+2.06167
+2.06649
+2.03139
+1.97666
+1.93481
+1.90948
+1.90353
+1.9191
+1.95746
+2.01904
+2.10338
+2.20923
+2.33461
+2.4769
+2.57007
+2.61179
+2.65815
+2.70892
+2.76381
+2.82246
+2.88435
+2.89367
+2.98331
+2.91485
+2.84849
+2.78512
+2.72524
+2.6691
+2.61678
+2.53269
+2.39164
+2.26805
+2.16468
+2.08363
+2.02626
+1.9932
+1.98426
+1.99855
+2.03449
+2.08986
+2.07759
+2.06842
+2.07231
+2.08924
+2.11895
+2.0796
+2.03584
+2.00957
+2.00336
+2.01904
+2.05765
+2.1194
+2.20363
+2.30889
+2.43294
+2.57283
+2.70847
+2.75498
+2.80556
+2.85987
+2.91739
+2.97737
+2.98331
+3.07212
+3.00928
+2.94582
+2.88385
+2.82441
+2.76799
+2.62936
+2.48935
+2.3656
+2.26122
+2.17854
+2.11909
+2.08363
+2.07213
+2.08386
+2.11746
+2.15197
+2.11542
+2.0917
+2.08129
+2.08438
+2.1009
+2.13057
+2.1729
+2.18092
+2.13598
+2.10942
+2.10338
+2.1194
+2.15828
+2.21999
+2.30368
+2.40768
+2.52949
+2.66568
+2.81164
+2.90715
+2.96017
+3.01546
+3.07172
+3.07212
+3.14555
+3.09706
+3.04122
+2.98333
+2.87237
+2.72539
+2.58797
+2.46518
+2.36066
+2.27703
+2.21602
+2.17854
+2.16468
+2.17384
+2.20481
+2.22619
+2.17516
+2.13671
+2.11156
+2.10011
+2.10252
+2.11868
+2.14828
+2.19085
+2.24571
+2.28065
+2.23551
+2.20923
+2.20363
+2.21999
+2.25886
+2.32004
+2.40249
+2.50427
+2.62253
+2.75325
+2.89084
+3.02727
+3.11074
+3.15921
+3.14555
+3.18066
+3.16118
+3.08809
+2.95601
+2.81788
+2.68531
+2.56505
+2.46153
+2.37784
+2.31598
+2.27703
+2.26122
+2.26805
+2.29642
+2.32135
+2.25637
+2.20339
+2.1634
+2.13705
+2.12473
+2.12653
+2.14237
+2.17191
+2.21466
+2.26993
+2.33687
+2.3793
+2.33461
+2.30889
+2.30368
+2.32004
+2.35836
+2.41823
+2.49839
+2.59662
+2.70958
+2.8325
+2.95862
+3.07857
+3.17048
+3.18066
+3.1671
+3.1341
+3.02577
+2.90225
+2.77816
+2.66275
+2.56185
+2.47929
+2.41751
+2.37784
+2.36066
+2.3656
+2.39164
+2.43604
+2.35813
+2.29123
+2.23668
+2.19541
+2.16805
+2.15496
+2.15624
+2.17178
+2.20126
+2.24416
+2.29977
+2.36724
+2.44547
+2.4769
+2.43294
+2.40768
+2.40249
+2.41823
+2.45511
+2.51255
+2.58901
+2.68191
+2.78732
+2.89958
+3.01098
+3.11224
+3.1671
+3.11991
+3.0738
+2.97107
+2.86114
+2.75447
+2.65875
+2.5791
+2.51869
+2.47929
+2.46153
+2.46518
+2.48935
+2.53269
+2.47899
+2.39928
+2.33086
+2.27501
+2.23265
+2.20441
+2.19063
+2.19144
+2.20672
+2.23614
+2.27915
+2.33505
+2.40294
+2.48172
+2.57007
+2.57283
+2.52949
+2.50427
+2.49839
+2.51255
+2.54677
+2.60026
+2.67119
+2.75651
+2.85168
+2.9505
+3.04552
+3.11991
+3.05682
+3.00504
+2.92522
+2.83335
+2.74741
+2.67374
+2.61677
+2.5791
+2.56185
+2.56505
+2.58797
+2.62936
+2.61678
+2.52602
+2.44493
+2.37526
+2.31831
+2.27499
+2.24596
+2.23158
+2.23196
+2.247
+2.27635
+2.31946
+2.37558
+2.4438
+2.52299
+2.61179
+2.70847
+2.66568
+2.62253
+2.59662
+2.58901
+2.60026
+2.63021
+2.67781
+2.74092
+2.81617
+2.89887
+2.98334
+3.05682
+2.98911
+2.93887
+2.87716
+2.8185
+2.75657
+2.70705
+2.67374
+2.65875
+2.66275
+2.68531
+2.72539
+2.76799
+2.6691
+2.57728
+2.49511
+2.4244
+2.36648
+2.32231
+2.29256
+2.27762
+2.27762
+2.29243
+2.32171
+2.36488
+2.42118
+2.48964
+2.56911
+2.65815
+2.75498
+2.81164
+2.75325
+2.70958
+2.68191
+2.67119
+2.67781
+2.70144
+2.74091
+2.79405
+2.85771
+2.92419
+2.98911
+2.92419
+2.88316
+2.83443
+2.80331
+2.78011
+2.75657
+2.74741
+2.75447
+2.77816
+2.81788
+2.87237
+2.82441
+2.72524
+2.63275
+2.54976
+2.47817
+2.4194
+2.37446
+2.34405
+2.32859
+2.32822
+2.34282
+2.37202
+2.41522
+2.47164
+2.54025
+2.61985
+2.70892
+2.80556
+2.90715
+2.89084
+2.8325
+2.78732
+2.75651
+2.74092
+2.74091
+2.75622
+2.78595
+2.82208
+2.8672
+2.92419
+2.86762
+2.84158
+2.80901
+2.79608
+2.80331
+2.8185
+2.83335
+2.86114
+2.90225
+2.95601
+2.98333
+2.88385
+2.78512
+2.69237
+2.60878
+2.53647
+2.47695
+2.43131
+2.40028
+2.38433
+2.3836
+2.39798
+2.42708
+2.47029
+2.52675
+2.5954
+2.67496
+2.76381
+2.85987
+2.96017
+3.02727
+2.95862
+2.89958
+2.85168
+2.81617
+2.79405
+2.78595
+2.7842
+2.79472
+2.82331
+2.86762
+2.82383
+2.81726
+2.80301
+2.80901
+2.83443
+2.87716
+2.92522
+2.97107
+3.02577
+3.08809
+3.04122
+2.94582
+2.84849
+2.75595
+2.67203
+2.59915
+2.53898
+2.49269
+2.46109
+2.44467
+2.44359
+2.45774
+2.48672
+2.52987
+2.58629
+2.65485
+2.73416
+2.82246
+2.91739
+3.01546
+3.11074
+3.07857
+3.01098
+2.9505
+2.89887
+2.85771
+2.82208
+2.79472
+2.78574
+2.79574
+2.82383
+2.79614
+2.81229
+2.81726
+2.84158
+2.88316
+2.93887
+3.00504
+3.0738
+3.1341
+3.16118
+3.09706
+3.00928
+2.91485
+2.8232
+2.7393
+2.66604
+2.60533
+2.55846
+2.52633
+2.50945
+2.50802
+2.52193
+2.55073
+2.59375
+2.65001
+2.71829
+2.79707
+2.88435
+2.97737
+3.07172
+3.15921
+3.17048
+3.11224
+3.04552
+2.98334
+2.92419
+2.8672
+2.82331
+2.79574
+2.78647
+2.79614
+2.78667
+2.79614
+2.82383
+2.86762
+2.92419
+2.98911
+3.05682
+3.11991
+3.1671
+3.18066
+3.14555
+3.07212
+2.98331
+2.89367
+2.81029
+2.73692
+2.67582
+2.62846
+2.59583
+2.57852
+2.57673
+2.57852
+2.59583
+2.62846
+2.67582
+2.73692
+2.81029
+2.89367
+2.98331
+3.07212
+3.14555
+3.18066
+3.1671
+3.11991
+3.05682
+2.98911
+2.92419
+2.86762
+2.82383
+2.79614
+2.78667
+</values>
+            </component>
+        </field>
+        <structure id="pdb_data">
+            <about>
+                <label>Unitcell Structure</label>
+            </about>
+            <components>
+                <molecule>
+                    <pdb>@@RP-ENC:zb64
+H4sIAAAAAAAAA31TS04rMRDc5xRzAUZ2257PMoKRkBBBCnACxAIJvdXj/mTKaVPOuCcLTMpd
+XU519eNyfFjOh/PyfDw/da9fdz//vv5/fH5/H45vL88dPv6CX47301PXOed8Ru9cf/ly+ed6
+5u9Ek32a9KNPehIt7NNSH4NvqMV92tT7ODTUUpPW+T6k6fYk2rBPi70bg55EG/dpQz9Oc0Nt
+2qfNfXKxoTa3aWp8NYg/mnf7tOt5OwDfTkmhXee2UWunpNCuc9uotVNSjK8GQbR2Sup5bQfg
+jZRouc7tVs1IidJ0brdqRkrUQWPfvJGSyvjGAIyUKM3YNzFSojRj38RISZX8rSVipKQyfjsA
+MVKiNGPfxEiJlhv7JkZK1Apj38RISeVgYwBGSpRm7JsYKVGasW9ipKSK8NaSYKSkcnA7gGCk
+RGnGvgUjJUqr9+3+5bTcv633qEsECACMnNAAYP0zEhoBwEJCQZ61l3eQofuhoPj5eIHQ/VhQ
+PBgPCnQ/FTQSOqu0p9osA8FQ7omVZSAYSyW5kWUgmEol+YKuflQlP+EldB8VhZLHwjm6TwVd
+lQRNyCs/FJQcyoKrtHDtpILiyz2zZhUUKZXkVZaBYCiV5BW6SlIlgVeUBnTN6KokeCTlAl2B
+QknwXPJKoqJCDkEwS3PtUARnvQ/MGlUwOK0M5FWWiUBLJXmVu0KE0pB7oTVlIHdAQ3Ij4HHT
+YTk9HH4B2NzM3GgKAAA=
+</pdb>
+                </molecule>
+            </components>
+        </structure>
+        <string id="Sim_time">
+            <about>
+                <label>Total Simulation time[s]</label>
+            </about>
+            <current>Total simulation time = 105.878 seconds</current>
+        </string>
+        <time>Thu Jul 24 14:40:19 2008 EDT</time>
+        <status>0</status>
+        <user>paul_nano_tran</user>
+        <host></host>
+    </output>
+</run>
