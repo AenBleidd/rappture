@@ -757,11 +757,10 @@ itcl::body Rappture::NanovisViewer::_send {string} {
     if {[llength $_sendobjs] > 0} {
         append _outbuf $string "\n"
     } else {
-        if {[SendBytes $string]} {
-            foreach line [split $string \n] {
-                SendEcho >>line $line
-            }
-        }
+	foreach line [split $string \n] {
+	    SendEcho >>line $line
+	}
+        SendBytes $string
     }
 }
 

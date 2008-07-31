@@ -14,11 +14,10 @@ SHELL  		= @SHELL@
 F77 		= @F77@
 CC		= @CC@
 CXX 		= @CXX@
-RUBY 		= @RUBY@
+RUBY 		= @HAVE_RUBY_DEVEL@
 PERL 		= @PERL@
 TCLSH 		= @TCLSH@
-PYTHON_DISTUTILS= @PYTHON_DISTUTILS@
-PYTHON 		= @PYTHON@
+PYTHON		= @HAVE_PYTHON_DISTUTILS@
 MEX 		= @MEX@
 MKOCTFILE 	= @MKOCTFILE@
 
@@ -34,10 +33,10 @@ endif
 ifneq ($(PERL),)
   LANGS += perl
 endif
-ifeq ($(PYTHON_DISTUTILS),yes)
+ifeq ($(PYTHON),yes)
   LANGS += python
 endif
-ifneq ($(RUBY),)
+ifeq ($(RUBY),yes)
   LANGS += ruby
 endif
 

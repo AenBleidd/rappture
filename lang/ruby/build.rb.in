@@ -23,7 +23,7 @@ require 'rbconfig'
 objext        = Config::CONFIG["OBJEXT"]
 dlext         = Config::CONFIG["DLEXT"]
 rubydir       = Config::CONFIG["prefix"]
-rb_archdir        = Config::CONFIG["archdir"]
+rb_archdir    = Config::CONFIG["archdir"]
 sitedir       = Config::CONFIG["sitedir"]
 ldshared      = Config::CONFIG["LDSHARED"]
 ldflags       = Config::CONFIG["LDFLAGS"]
