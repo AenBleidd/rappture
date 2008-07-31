@@ -16,10 +16,8 @@ pkglibdir	= $(libdir)/$(PKG_DIR)
 pkgincludedir	= $(includedir)/$(PKG_DIR)
 top_builddir	= .
 
+MKDIR_P		= @MKDIR_P@
 INSTALL		= @INSTALL@
-INSTALL_PROGRAM	= @INSTALL_PROGRAM@
-INSTALL_DATA	= @INSTALL_DATA@
-INSTALL_SCRIPT	= @INSTALL_SCRIPT@
 
 SCRIPTS	= \
 		$(srcdir)/driver \
@@ -38,7 +36,7 @@ WINDOWS_SCRIPTS =  \
 all: 
 
 install: 
-	$(INSTALL) -d $(bindir)
+	$(MKDIR_P) $(bindir)
 	@for i in $(SCRIPTS); do \
 	    echo "Installing $$i" ; \
 	    $(INSTALL) -m 555 $$i $(bindir) ; \

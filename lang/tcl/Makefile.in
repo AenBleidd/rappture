@@ -26,24 +26,35 @@ SHLIB_SUFFIX    = @SHLIB_SUFFIX@
 CFLAGS_DEFAULT  = @CFLAGS_DEFAULT@
 LIB_SEARCH_DIRS = @LIB_SEARCH_DIRS@
 CFLAGS          = @CFLAGS@
+TCL_VERSION	= @TCL_VERSION@
+TK_VERSION	= @TK_VERSION@
 
 RANLIB 		= @RANLIB@
+MKDIR_P		= @MKDIR_P@
 AR 		= ar
 RM		= rm -f
+
+tcllib		= $$RAPPTURE_INSTALL_DIR/lib/tcl$(TCL_VERSION)
+tklib		= $$RAPPTURE_INSTALL_DIR/lib/tk$(TK_VERSION)
 
 # The script directory is moved from src/tcl.
 
 .PHONY:	src scripts tests
 
-all:
+all: tcl.env
 	$(MAKE) -C src all
 	$(MAKE) -C scripts all
 
+tcl.env:
+	echo 'export TCL_LIBRARY=$(tcllib):$$TCL_LIBRARY' > tcl.env
+	echo 'export TK_LIBRARY=$(tklib):$$TK_LIBRARY' >> tcl.env
+
 install: 
-	$(INSTALL) -d $(destdir)
+	$(MKDIR_P) $(destdir)
 	$(INSTALL) -m 0444 pkgIndex.tcl $(destdir)
 	$(MAKE) -C src install
 	$(MAKE) -C scripts install
+	$(INSTALL) -m 0555 tcl.env $(bindir)
 
 test:	
 	$(MAKE) -C tests all

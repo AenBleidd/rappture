@@ -10,7 +10,7 @@ srcdir		= @srcdir@
 prefix          = @prefix@
 
 INSTALL		= @INSTALL@
-INSTALL_DATA	= @INSTALL_DATA@
+MKDIR_P		= @MKDIR_P@
 VPATH		= $(srcdir)
 RM		= rm -f
 
@@ -23,7 +23,7 @@ destdir		= $(prefix)/examples/zoo/image/examples
 all: 
 
 install: 
-	$(INSTALL) -d $(destdir)
+	$(MKDIR_P) $(destdir)
 	for i in $(FILES) ; do \
 	  $(INSTALL) -m 444  $$i $(destdir) ; \
 	done

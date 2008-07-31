@@ -12,6 +12,7 @@ srcdir		= @srcdir@
 destdir		= $(prefix)/bin
 
 INSTALL		= @INSTALL@
+MKDIR_P		= @MKDIR_P@
 SHELL		= @SHELL@
 RM		= rm -f
 VPATH		= $(srcdir)
@@ -28,7 +29,7 @@ all:
 	done
 
 install:
-	$(INSTALL) -d $(destdir)
+	$(MKDIR_P) $(destdir)
 	for i in $(SUBDIRS) ; do \
 	  $(MAKE) -C $$i install || exit 1 ; \
 	done

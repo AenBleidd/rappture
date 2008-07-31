@@ -12,6 +12,7 @@ srcdir 		= @srcdir@
 destdir 	= $(libdir)/octave
 
 INSTALL		= @INSTALL@
+MKDIR_P		= @MKDIR_P@
 VPATH		= $(srcdir)
 RM		= rm -f
 
@@ -22,6 +23,8 @@ INCLUDES  	= \
 DEFINES		= 
 LIBS		= -L../../src/core -lrappture
 OCT_FLAGS	= $(INCLUDES) $(DEFINES)
+
+octavedir	= $$RAPPTURE_INSTALL_DIR/lib/octave
 
 OBJS		= \
 		rpAddPresets.oct \
@@ -58,7 +61,7 @@ OBJS		= \
 		rpUnitsGetUnits.oct \
 		rpUnitsGetUnitsName.oct
 
-all: $(OBJS)
+all: $(OBJS) octave.env
 
 .SUFFIXES: .cc .o .oct
 
@@ -69,13 +72,17 @@ all: $(OBJS)
 	$(OCT) $(OCT_FLAGS) -c $< -o $@ 
 
 install: $(OBJS) 
-	$(INSTALL) -d $(destdir)
+	$(MKDIR_P) $(destdir)
 	for i in $(OBJS) ; do \
 	  $(INSTALL) -m 444  $$i $(destdir) ; \
 	done
+	$(INSTALL) -m 555 octave.env $(bindir) 
+
+octave.env:
+	echo 'export OCTAVE_PATH=$(octavedir):$$OCTAVE_PATH' > octave.env
 
 clean: 
-	$(RM) $(OBJS)
+	$(RM) $(OBJS) octave.env
 
 distclean: clean
 	$(RM) Makefile *~

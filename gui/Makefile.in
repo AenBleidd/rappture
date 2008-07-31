@@ -11,6 +11,7 @@ includedir	= @includedir@
 
 SHELL		= @SHELL@
 INSTALL		= @INSTALL@
+MKDIR_P		= @MKDIR_P@
 VPATH		= $(srcdir)
 TCLSH		= @TCLSH@
 
@@ -36,7 +37,7 @@ apps:
 	$(MAKE) -C apps all
 
 install: install_scripts install_apps
-	$(INSTALL) -d $(destdir)
+	$(MKDIR_P) $(destdir)
 	@for i in $(FILES); do \
 	    echo "Installing $$i" ; \
 	    $(INSTALL) -m 444 $$i $(destdir) ; \

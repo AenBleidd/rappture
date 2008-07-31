@@ -11,6 +11,7 @@ destdir		= $(prefix)/examples/3D
 
 SHELL		= @SHELL@
 INSTALL		= @INSTALL@
+MKDIR_P		= @MKDIR_P@
 
 destdir		= $(prefix)/examples
 
@@ -36,7 +37,7 @@ build:
 	done
 
 install: 
-	$(INSTALL) -d $(destdir)
+	$(MKDIR_P) $(destdir)
 	for i in $(FILES) ; do \
 	  $(INSTALL) -m 555 $$i $(destdir) ; \
 	done

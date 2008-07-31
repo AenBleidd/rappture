@@ -10,6 +10,7 @@ prefix          = @prefix@
 srcdir		= @srcdir@
 
 INSTALL		= @INSTALL@
+MKDIR_P		= @MKDIR_P@
 INSTALL_PROGRAM	= ${INSTALL} -m 755
 INSTALL_DATA	= ${INSTALL} -m 644
 INSTALL_SCRIPT	= ${INSTALL} -m 644
@@ -19,25 +20,31 @@ VPATH		= $(srcdir)
 PYTHON 		= @PYTHON@
 PYTHON_FLAGS 	= --library-dirs=$(libdir):../../src/core \
                --include-dirs=$(srcdir)/../../src/core:$(includedir) 
+PYTHON_VERSION  = @PYTHON_VERSION@
+pythonlib	= $$RAPPTURE_INSTALL_DIR/lib/python$(PYTHON_VERSION)/site-packages
+
 ARCHFLAGS	=
 export ARCHFLAGS
 #
 # Python distutils doesn't handle VPATH correctly. So copy the sources 
 # into a temporary directory.
 #
-all: copy_sources
+all: copy_sources python.env
 	$(PYTHON) setup.py build_ext $(PYTHON_FLAGS) build 
 
 copy_sources:	
 	$(RM) -r build/tmp
-	$(INSTALL) -d build/tmp
+	$(MKDIR_P) build/tmp
 	$(INSTALL_DATA) $(srcdir)/Rappture/*.cc build/tmp
  
 install: 
 	$(PYTHON) setup.py install --prefix=$(prefix) 
-
+	$(INSTALL) -m 555 python.env $(bindir)
 clean:
 	$(PYTHON) setup.py clean
 	$(RM) -rf build 
+
+python.env:
+	echo 'export PYTHONPATH=$(pythonlib):$$PYTHONPATH' > python.env
 
 distclean: clean

@@ -10,6 +10,7 @@ prefix          = @prefix@
 srcdir		= @srcdir@
 
 INSTALL		= @INSTALL@
+MKDIR_P		= @MKDIR_P@
 VPATH		= @srcdir@
 
 destdir		= $(prefix)/examples/app-fermi/python
@@ -20,7 +21,7 @@ FILES 		= \
 all:	
 
 install: 
-	$(INSTALL) -d $(destdir)
+	$(MKDIR_P) $(destdir)
 	for i in $(FILES) ; do \
 	  $(INSTALL) -m 444  $$i $(destdir) ; \
 	done

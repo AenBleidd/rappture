@@ -12,6 +12,7 @@ srcdir		= @srcdir@
 destdir		= $(prefix)/examples/app-fermi/perl
 
 INSTALL		= @INSTALL@
+MKDIR_P		= @MKDIR_P@
 
 FILES 		= \
 		$(srcdir)/tool.xml \
@@ -20,7 +21,7 @@ FILES 		= \
 all:	
 
 install: 
-	$(INSTALL) -d $(destdir)
+	$(MKDIR_P) $(destdir)
 	for i in $(FILES) ; do \
 	  $(INSTALL) -m 444 $$i $(destdir) ; \
 	done

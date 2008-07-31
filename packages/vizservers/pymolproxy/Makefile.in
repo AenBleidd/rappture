@@ -20,6 +20,7 @@ srcdir		= @srcdir@
 
 RP_DIR		= @RP_DIR@
 INSTALL         = @INSTALL@
+MKDIR_P		= @MKDIR_P@
 VPATH		= $(srcdir)
 
 .PHONY: all install clean distclean
@@ -36,7 +37,7 @@ pymolproxy: $(OBJS)
 	$(CC) $(CC_SWITCHES) -o $@ -c $<
 
 install: pymolproxy
-	$(INSTALL) -d $(bindir)
+	$(MKDIR_P) $(bindir)
 	$(INSTALL) -m 555 pymolproxy $(bindir)/pymolproxy
 	$(INSTALL) -m 555 $(srcdir)/pymol $(bindir)/pymol
 

@@ -10,7 +10,7 @@ prefix          = @prefix@
 srcdir		= @srcdir@
 
 INSTALL		= @INSTALL@
-INSTALL_DATA	= @INSTALL_DATA@
+MKDIR_P		= @MKDIR_P@
 
 CC              = @CC@
 CFLAGS		= @CFLAGS@
@@ -59,7 +59,7 @@ plotc: $(srcdir)/plotc.c
 	$(CC) $(CC_SWITCHES) -o $@ $< $(LIBS)
 
 install:
-	$(INSTALL) -d $(destdir)
+	$(MKDIR_P) $(destdir)
 	for i in $(FILES) ; do \
 	  $(INSTALL) -m 444  $$i $(destdir) ; \
 	done

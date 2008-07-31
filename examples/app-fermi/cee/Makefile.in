@@ -12,6 +12,7 @@ srcdir		= @srcdir@
 destdir		= $(prefix)/examples/app-fermi/cee
 
 INSTALL         = @INSTALL@
+MKDIR_P		= @MKDIR_P@
 
 CC              = @CC@
 CFLAGS		= @CFLAGS@
@@ -35,7 +36,7 @@ fermi: fermi.c
 	$(CC) $(CC_SWITCHES) $< -o $@ $(LIBS)
 
 install: fermi
-	$(INSTALL) -d $(destdir)
+	$(MKDIR_P) $(destdir)
 	for i in $(FILES) ; do \
 	  $(INSTALL) -m 444 $$i $(destdir) ; \
 	done

@@ -9,18 +9,20 @@ mandir          = @mandir@
 prefix          = @prefix@
 srcdir		= @srcdir@
 
-destdir		= $(libdir)/ruby/ruby_site
-
 INSTALL		= @INSTALL@
 SOEXT		= @SHLIB_SUFFIX@
 
 
 HAVE_RUBY_DEVEL = @HAVE_RUBY_DEVEL@
 RUBY		= @RUBY@
+RUBY_VERSION	= @RUBY_VERSION@
 RUBY_CPPFLAGS	= @RUBY_CPPFLAGS@
 RUBY_EXTRA_LIBS = @RUBY_EXTRA_LIBS@
 RUBY_LDFLAGS	= @RUBY_LDFLAGS@
 RUBY_SITE_PKG	= @RUBY_SITE_PKG@
+destsuffix	:= $(shell echo "$(RUBY_SITE_PKG)" | sed s/.\*site_ruby//)
+destdir		= $(libdir)/lib/ruby/site_ruby/$(destsuffix)
+rubydir		= $$RAPPTURE_INSTALL_DIR/ruby/site_ruby/$(destsuffix)
 
 CXX             = @CXX@
 CC              = @CC@
@@ -42,6 +44,7 @@ INCLUDES	= -I$(srcdir) \
 		  $(RUBY_CPPFLAGS)
 
 RANLIB 		= @RANLIB@
+MKDIR_P		= @MKDIR_P@
 AR 		= ar
 VPATH		= $(srcdir)
 RM		= rm -f
@@ -61,20 +64,21 @@ OBJS		= \
 
 lib		= Rappture$(SOEXT)
 
-all: $(lib)
+all: $(lib) ruby.env
 
 $(lib): $(OBJS)
 	$(SHLIB_LD) $(SHLIB_LDFLAGS) -o $@ $(OBJS) \
 		$(LIB_SEARCH_DIRS) $(LIBS) 
-install: 
-	$(INSTALL) -d $(destdir)
+install: $(lib) ruby.env
+	$(MKDIR_P) $(destdir)
 	$(INSTALL) -m 555 $(lib) $(destdir)
+	$(INSTALL) -m 555 ruby.env $(bindir)
 
 clean: 
 	$(RM) $(lib) $(OBJS)
 
 distclean: clean
-	$(RM) Makefile *~ build.rb 
+	$(RM) Makefile *~ build.rb ruby.env
 
 Makefile.ruby: build.rb
 	$(RUBY) build.rb
@@ -84,5 +88,8 @@ Makefile.ruby: build.rb
 .c.o:
 	$(CC) $(CC_SWITCHES)-c $? 
 
+ruby.env:
+	echo 'export RUBYLIB=$(rubydir):$$RUBYLIB' > ruby.env
+
 old: Makefile.ruby
-	$(MAKE) -f Makefile.ruby all
+	$(MAKE) -f Makefile.ruby all 

@@ -40,7 +40,7 @@ CFLAGS		= @CFLAGS@
 CPP		= @CPP@
 
 INSTALL 	= @INSTALL@
-INSTALL_DATA 	= @INSTALL_DATA@
+MKDIR_P		= @MKDIR_P@
 VPATH 		= $(srcdir)
 
 name		= rappture2
@@ -100,17 +100,17 @@ $(shared_lib): $(OBJS)
 install: install_libs install_headers
 
 install_libs: $(lib) $(shared_lib)
-	$(INSTALL) -d $(libdir)
+	$(MKDIR_P) $(libdir)
 	$(INSTALL) -m 444 $(lib) $(libdir)
 	$(INSTALL) -m 555 $(shared_lib) $(libdir)
 
 # This is no manual page for rappture yet.
 install_man: 
-	$(INSTALL) -d $(man3dir)
+	$(MKDIR_P) $(man3dir)
 	$(INSTALL) -m 444 rappture.3 $(man3dir)
 
 install_headers:
-	$(INSTALL) -d $(includedir)/rappture2
+	$(MKDIR_P) $(includedir)/rappture2
 	for i in $(HEADERS) ; do \
 	  $(INSTALL) -m 444 $(srcdir)/$$i $(includedir)/rappture2; \
 	done
@@ -141,6 +141,6 @@ distclean: clean
 	$(RM) Makefile *~
 
 docs:
-	$(INSTALL) -d ../../docs/rappture2
+	$(MKDIR_P) ../../docs/rappture2
 	doxygen
 
