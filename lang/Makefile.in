@@ -38,7 +38,7 @@ ifeq ($(PYTHON_DISTUTILS),yes)
   LANGS += python
 endif
 ifneq ($(RUBY),)
-#  LANGS += ruby
+  LANGS += ruby
 endif
 
 .PHONY:	tcl octave matlab perl python ruby
