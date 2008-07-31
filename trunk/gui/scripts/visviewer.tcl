@@ -43,6 +43,7 @@ itcl::class ::Rappture::VisViewer {
     private method _ReceiveHelper {} 
     private method _ServerDown {}
     private method _SendHelper {}
+    private method _SendHelper.old {}
 
     protected method SendEcho { channel {data ""} }
     protected method ReceiveEcho { channel {data ""} }
@@ -276,6 +277,12 @@ itcl::body Rappture::VisViewer::IsConnected {} {
 #	the server (failure).
 #
 itcl::body Rappture::VisViewer::_SendHelper {} {
+    puts $_sid $_buffer(out)
+    flush $_sid 
+    set _done($this) 1;		# Success
+}
+
+itcl::body Rappture::VisViewer::_SendHelper.old {} {
     set bytesLeft [string length $_buffer(out)]
     if { $bytesLeft > 0} {
 	set chunk [string range $_buffer(out) 0 8095]

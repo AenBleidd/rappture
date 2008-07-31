@@ -32,9 +32,12 @@
  * File scope variables
  ******************************************************************************/
 
+
 /* The new Rappture class */
 VALUE classRappture;
 
+
+extern "C" void Init_Rappture(void);
 
 /******************************************************************************
  * RbRp_GetString()
@@ -484,9 +487,6 @@ RbRp_New(VALUE classval, VALUE driver)
  * Create the Rappture class, add constants, and register methods.
  ******************************************************************************/
 
-extern "C"  
-{
-
 void
 Init_Rappture(void)
 {
@@ -507,21 +507,19 @@ Init_Rappture(void)
 
    /* Register methods; last argument gives the expected number of arguments, 
       not counting self (i.e. number of arguments from Ruby code) */
-   rb_define_singleton_method(classRappture, "new", RB_FUNC(RbRp_New), 1);
-   rb_define_method(classRappture, "initialize", RB_FUNC(RbRp_Init), 1);
-   rb_define_method(classRappture, "get", RB_FUNC(RbRp_GetString), 1);
-   rb_define_method(classRappture, "getdata", RB_FUNC(RbRp_GetData), 1);
-   rb_define_method(classRappture, "put", RB_FUNC(RbRp_PutObject), 3);
-   rb_define_method(classRappture, "putdata", RB_FUNC(RbRp_PutData), 3);
-   rb_define_method(classRappture, "putfile", RB_FUNC(RbRp_PutFile), 4);
-   rb_define_method(classRappture, "result", RB_FUNC(RbRp_Result), 1);
-   rb_define_method(classRappture, "xml", RB_FUNC(RbRp_Xml), 0);
-   rb_define_method(classRappture, "convert", RB_FUNC(RbRp_Convert), 3);
-   rb_define_method(classRappture, "progress", RB_FUNC(RbRp_Progress), 2);
+   rb_define_singleton_method(classRappture, "new", RB_FUNC(RbRp_New),    1);
+   rb_define_method(classRappture, "initialize", RB_FUNC(RbRp_Init),      1);
+   rb_define_method(classRappture, "get",        RB_FUNC(RbRp_GetString), 1);
+   rb_define_method(classRappture, "getdata",    RB_FUNC(RbRp_GetData),   1);
+   rb_define_method(classRappture, "put",        RB_FUNC(RbRp_PutObject), 3);
+   rb_define_method(classRappture, "putdata",    RB_FUNC(RbRp_PutData),   3);
+   rb_define_method(classRappture, "putfile",    RB_FUNC(RbRp_PutFile),   4);
+   rb_define_method(classRappture, "result",     RB_FUNC(RbRp_Result),    1);
+   rb_define_method(classRappture, "xml",        RB_FUNC(RbRp_Xml),       0);
+   rb_define_method(classRappture, "convert",    RB_FUNC(RbRp_Convert),   3);
+   rb_define_method(classRappture, "progress",   RB_FUNC(RbRp_Progress),  2);
 
 }  /* end Init_Rappture */
-
-}  /* end extern "C" */
 
 /* TODO rpElement*(), rpChildren*() */
 

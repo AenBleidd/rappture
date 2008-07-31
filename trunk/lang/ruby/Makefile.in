@@ -12,24 +12,77 @@ srcdir		= @srcdir@
 destdir		= $(libdir)/ruby/ruby_site
 
 INSTALL		= @INSTALL@
-EXT		= @SHLIB_SUFFIX@
+SOEXT		= @SHLIB_SUFFIX@
 
-package		= Rappture$(EXT)
 
-RUBY		= ruby
+HAVE_RUBY_DEVEL = @HAVE_RUBY_DEVEL@
+RUBY		= @RUBY@
+RUBY_CPPFLAGS	= @RUBY_CPPFLAGS@
+RUBY_EXTRA_LIBS = @RUBY_EXTRA_LIBS@
+RUBY_LDFLAGS	= @RUBY_LDFLAGS@
+RUBY_SITE_PKG	= @RUBY_SITE_PKG@
 
-all: Makefile.ruby
-	$(MAKE) -f Makefile.ruby all
+CXX             = @CXX@
+CC              = @CC@
+CFLAGS_DEBUG    = @CFLAGS_DEBUG@
+CFLAGS_OPTIMIZE = @CFLAGS_OPTIMIZE@
+STLIB_LD        = @STLIB_LD@
+SHLIB_LD        = @SHLIB_LD@
+SHLIB_CFLAGS    = @SHLIB_CFLAGS@ 
+SHLIB_LDFLAGS   = @SHLIB_LDFLAGS@ $(RUBY_LDFLAGS)
+SHLIB_SUFFIX    = @SHLIB_SUFFIX@
+CFLAGS_DEFAULT  = @CFLAGS_DEFAULT@
+LIB_SEARCH_DIRS = @LIB_SEARCH_DIRS@
+
+DEFINES		= -Wall -DRAISE_EXCEPTIONS
+CFLAGS          = @CFLAGS@ @SHLIB_CFLAGS@ 
+INCLUDES	= -I$(srcdir) \
+		  -I$(srcdir)/../../src/core \
+		  -I$(includedir) \
+		  $(RUBY_CPPFLAGS)
+
+RANLIB 		= @RANLIB@
+AR 		= ar
+VPATH		= $(srcdir)
+RM		= rm -f
+
+CDEBUGFLAGS     = -g -Wall
+
+LIBS		= \
+		-L../../src/core -lrappture \
+		$(RUBY_LDFLAGS)
+
+CC_SWITCHES	= $(CFLAGS) $(CFLAGS_DEBUG) $(INCLUDES) $(DEFINES)
+CXX_SWITCHES	= $(CFLAGS) $(CFLAGS_DEBUG) $(INCLUDES) $(DEFINES)
+
+
+OBJS		= \
+		Ruby_Rappture.o
+
+lib		= Rappture$(SOEXT)
+
+all: $(lib)
+
+$(lib): $(OBJS)
+	$(SHLIB_LD) $(SHLIB_LDFLAGS) -o $@ $(OBJS) \
+		$(LIB_SEARCH_DIRS) $(LIBS) 
+install: 
+	$(INSTALL) -d $(destdir)
+	$(INSTALL) -m 555 $(lib) $(destdir)
+
+clean: 
+	$(RM) $(lib) $(OBJS)
+
+distclean: clean
+	$(RM) Makefile *~ build.rb 
 
 Makefile.ruby: build.rb
 	$(RUBY) build.rb
 
-install: Makefile.ruby
-	$(INSTALL) -d $(destdir)
-	$(MAKE) -f Makefile.ruby  install
+.cc.o: 
+	$(CXX) $(CXX_SWITCHES) -c $? 
+.c.o:
+	$(CC) $(CC_SWITCHES)-c $? 
 
-clean: Makefile.ruby
-	$(RM) $(package) Rappture.bundle Makefile.ruby 
-
-distclean: clean
-	$(RM) Makefile *~ build.rb 
+old: Makefile.ruby
+	$(MAKE) -f Makefile.ruby all
