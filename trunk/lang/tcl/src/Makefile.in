@@ -11,9 +11,7 @@ srcdir		= @srcdir@
 
 SHELL		= @SHELL@
 INSTALL		= @INSTALL@
-INSTALL_PROGRAM	= ${INSTALL} -m 555
-INSTALL_DATA	= ${INSTALL} -m 444
-INSTALL_SCRIPT	= ${INSTALL}
+MKDIR_P		= @MKDIR_P@
 
 CXX             = @CXX@
 CC              = @CC@
@@ -77,7 +75,7 @@ $(lib): $(OBJS)
 		$(LIB_SEARCH_DIRS) $(LIBS) 
 
 install: $(lib)
-	$(INSTALL) -d $(destdir)
+	$(MKDIR_P) $(destdir)
 	$(INSTALL) -m 555 $(lib) $(destdir) 
 
 .cc.o: 

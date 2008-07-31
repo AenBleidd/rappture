@@ -12,6 +12,7 @@ srcdir		= @srcdir@
 destdir		= $(prefix)/examples/app-fermi/fortran
 
 INSTALL         = @INSTALL@
+MKDIR_P		= @MKDIR_P@
 
 FC              = @F77@
 FCFLAGS		= @CFLAGS@ 
@@ -34,7 +35,7 @@ fermi: $(srcdir)/fermi.f
 	$(FC) $(FC_SWITCHES) $< -o $@ $(LIBS)
 
 install: fermi
-	$(INSTALL) -d $(destdir)
+	$(MKDIR_P) $(destdir)
 	for i in $(FILES) ; do \
 	  $(INSTALL) -m 444 $$i $(destdir) ; \
 	done

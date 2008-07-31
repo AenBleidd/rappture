@@ -10,6 +10,7 @@ srcdir		= @srcdir@
 prefix          = @prefix@
 
 INSTALL		= @INSTALL@
+MKDIR_P		= @MKDIR_P@
 INSTALL_DATA	= @INSTALL_DATA@
 VPATH		= $(srcdir)
 RM		= rm -f
@@ -23,7 +24,7 @@ destdir		= $(prefix)/examples/3D
 all: 
 
 install: 
-	$(INSTALL) -d $(destdir)
+	$(MKDIR_P) $(destdir)
 	for i in $(FILES) ; do \
 	  $(INSTALL) -m 444  $$i $(destdir) ; \
 	done

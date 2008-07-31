@@ -12,12 +12,15 @@ srcdir		= @srcdir@
 destdir 	= $(libdir)/matlab 
 
 INSTALL		= @INSTALL@
+MKDIR_P		= @MKDIR_P@
 VPATH		= $(srcdir)
 RM		= rm -f
 
 MEX             = @MEX@ 
 MEX_ARCH	= @MEX_ARCH@
 EXT		= .mexglx
+matlabdir	= $$RAPPTURE_INSTALL_DIR/lib/matlab
+
 INCLUDES  	= \
 		-I$(srcdir)/../../src/core \
 		-I$(prefix)/include 
@@ -62,7 +65,7 @@ OBJS		= \
 		rpUnitsGetUnitsName$(EXT) \
 		rpUtilsProgress$(EXT) 
 
-all: $(OBJS) 
+all: $(OBJS) matlab.env
 
 .SUFFIXES: .cc $(EXT)
 
@@ -70,13 +73,17 @@ all: $(OBJS)
 	$(MEX) $(MEX_FLAGS) $< $(srcdir)/RpMatlabInterface.cc $(LIBS)
 
 install: $(OBJS) 
-	$(INSTALL) -d $(destdir)
+	$(MKDIR_P) $(destdir)
 	for i in $(OBJS) ; do \
 	  $(INSTALL) -m 444  $$i $(destdir) ; \
 	done
+	$(INSTALL) -m 555 matlab.env $(bindir)
+
+matlab.env:
+	echo 'export MATLABPATH=$(matlabdir):$$MATLABPATH' > matlab.env
 
 clean: 
-	$(RM) $(OBJS)
+	$(RM) $(OBJS) matlab.env
 
 distclean: clean
 	$(RM) Makefile *~

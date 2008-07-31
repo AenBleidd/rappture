@@ -12,6 +12,7 @@ includedir	= @includedir@
 
 SHELL		= @SHELL@
 INSTALL		= @INSTALL@
+MKDIR_P		= @MKDIR_P@
 TCLSH		= $(bindir)/tclsh8.4
 VPATH		= $(srcdir)
 PACKAGE_VERSION = @PACKAGE_VERSION@
@@ -115,7 +116,7 @@ tclIndex: $(FILES)
 install: install_scripts install_images 
 
 install_scripts: 
-	$(INSTALL) -d $(destdir)
+	$(MKDIR_P) $(destdir)
 	@for i in $(FILES); do \
 	    echo "Installing $$i" ; \
 	    $(INSTALL) -m 444 $$i $(destdir) ; \
@@ -123,7 +124,7 @@ install_scripts:
 	$(INSTALL) -m 444 tclIndex $(destdir)
 
 install_images:
-	$(INSTALL) -d $(destdir)/images
+	$(MKDIR_P) $(destdir)/images
 	@for i in $(srcdir)/images/*.gif $(srcdir)/images/*.xbm; do \
 	    echo "Installing $$i" ; \
 	    $(INSTALL) -m 444 $$i $(destdir)/images ; \

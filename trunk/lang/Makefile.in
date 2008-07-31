@@ -24,12 +24,6 @@ MKOCTFILE 	= @MKOCTFILE@
 # Rappture requires it. We always build a Tcl language API.
 LANGS = tcl
 
-ifneq ($(MKOCTFILE),)
-  LANGS += octave
-endif
-ifneq ($(MEX),)
-  LANGS += matlab
-endif
 ifneq ($(PERL),)
   LANGS += perl
 endif
@@ -38,6 +32,12 @@ ifeq ($(PYTHON),yes)
 endif
 ifeq ($(RUBY),yes)
   LANGS += ruby
+endif
+ifneq ($(MEX),)
+  LANGS += matlab
+endif
+ifneq ($(MKOCTFILE),)
+  LANGS += octave
 endif
 
 .PHONY:	tcl octave matlab perl python ruby

@@ -19,6 +19,8 @@ srcdir		= @srcdir@
 VPATH		= $(srcdir)
 
 INSTALL		= @INSTALL@
+MKDIR_P		= @MKDIR_P@
+
 #Why are these files installed owner writable?
 INSTALL_PROGRAM	= ${INSTALL} -m 555
 INSTALL_DATA	= ${INSTALL} -m 444
@@ -196,14 +198,14 @@ RenderClient.o: socket/RenderClient.cpp socket/RenderClient.h
 	$(CC) $(CC_SWITCHES) -o $@ -c $<
 
 install-resources:
-	$(INSTALL) -d $(libdir)/resources
+	$(MKDIR_P) $(libdir)/resources
 	@for i in $(resources) ; do \
 	    echo "installing $$i..." ; \
 	    $(INSTALL_DATA) -m 0444 $$i $(libdir)/resources ; \
 	done
 
 install-shaders:
-	$(INSTALL) -d $(libdir)/shaders
+	$(MKDIR_P) $(libdir)/shaders
 	@for i in $(shaders) ; do \
 	    echo "installing $$i..." ; \
 	    $(INSTALL_DATA) -m 0444 $$i $(libdir)/shaders ; \
@@ -212,11 +214,11 @@ install-shaders:
 install-nanovis: nanovis
 	$(INSTALL) -m 0555 nanovis $(bindir)
 	@if test "$(RP_DIR)/bin" != "$(bindir)" ; then \
-	  $(INSTALL) -d $(bindir) ; \
+	  $(MKDIR_P) $(bindir) ; \
 	  $(INSTALL_PROGRAM) $(RP_DIR)/bin/voronoi $(bindir) ; \
 	fi
 	@if test "$(RP_DIR)/lib" != "$(libdir)" ; then \
-	  $(INSTALL) -d $(libdir) ; \
+	  $(MKDIR_P) $(libdir) ; \
 	  $(INSTALL_DATA) $(RP_DIR)/lib/librappture2.so $(libdir) ; \
 	  $(INSTALL_DATA) $(RP_DIR)/lib/libz.so $(libdir) ; \
 	  $(INSTALL_DATA) $(RP_DIR)/lib/libb64.so $(libdir) ; \
