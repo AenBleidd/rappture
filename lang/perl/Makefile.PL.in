@@ -20,7 +20,7 @@ if ($^O ne "MSWin32") {
                        q[-L$(PERL_INC) -lperl]
                      );
     }
-    @RAPPTURE_INC_SEARCHPATH = ( "../../src/core", "@prefix@/include",
+    @RAPPTURE_INC_SEARCHPATH = ( "@srcdir@/../../src/core", "@prefix@/include",
         "../include", "/usr/local/include", "/opt/include");
     $RAPPTURE_INC = "rappture.h";
     @EXPAT_INC_SEARCHPATH = ( "@prefix@/include",
@@ -28,7 +28,7 @@ if ($^O ne "MSWin32") {
         "../../expat/lib", "/apps/expat-2.0.0/lib", "/apps/expat/lib",
         "/opt/expat-2.0.0/lib", "/opt/expat/lib" );
     $EXPAT_INC="expat.h";
-    @RAPPTURE_LIB_SEARCHPATH = ( "../../src/core", "@prefix@/lib",
+    @RAPPTURE_LIB_SEARCHPATH = ( "../../../src/core", "@prefix@/lib",
         "@libdir@",
         "../src", "/usr/local/lib", "/opt/lib" );
     @RAPPTURE_LIBS=("librappture.so","librappture.a");
@@ -82,7 +82,6 @@ find_include {
             last;
         }
     }
-
     return 0;
 }
 
