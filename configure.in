@@ -50,9 +50,9 @@ AC_PROG_F77([g77 gfortran f77 fort77 f90 xlf xlf90 fl32])
 SC_CONFIG_CFLAGS
 
 make_command=""
-for m in "$MAKE" make gmake gnumake ; do 
-  if test "x${m}" != "x" ; then 
-    if  ( sh -c "$m --version" 2>/dev/null | grep GNU >/dev/null ) ; then 
+for m in "$MAKE" make gmake gnumake ; do
+  if test "x${m}" != "x" ; then
+    if  ( sh -c "$m --version" 2>/dev/null | grep GNU >/dev/null ) ; then
       make_command=$m; break;
     fi
   fi
@@ -120,10 +120,10 @@ if test "$with_matlab" != "no" ; then
     AC_MSG_CHECKING([for matlab mex compiler])
     for i in "${with_matlab}/bin/mex" "${with_matlab}" ; do
       if test -x "$i" ; then
-	MEX="$i"; break
+        MEX="$i"; break
       fi
       if test "x${MEX}" = "x" ; then
-	AC_ERROR([cannot find mex in $with_matlab])
+        AC_ERROR([cannot find mex in $with_matlab])
       fi
     done
     AC_MSG_RESULT([${MEX}])
@@ -149,10 +149,10 @@ if test "$with_octave" != "no" ; then
     AC_MSG_CHECKING([for mkoctfile])
     for i in "${with_octave}/bin/mkoctfile" "${with_octave}" ; do
       if test -x "$i" ; then
-	MEX="$i"; break
+        MEX="$i"; break
       fi
       if test "x${MEX}" = "x" ; then
-	AC_ERROR([cannot find mkoctfile in $with_octave])
+        AC_ERROR([cannot find mkoctfile in $with_octave])
       fi
     done
     AC_MSG_RESULT([${MKOCTFILE}])
@@ -169,8 +169,9 @@ AC_ARG_WITH(
 
 PERL=
 PERL_INCLUDES=
-PERL_SITE_PACKAGES=
 PERL_ARCHLIB=
+PERL_VERSION=
+PERL_VERSION_RV=
 if test "$with_perl" != "no" ; then
     AC_MSG_CHECKING([for perl])
     if test "$with_perl" != "yes" ; then 
@@ -180,14 +181,16 @@ if test "$with_perl" != "no" ; then
     fi
     if test "x${PERL}" != "x" ; then 
       PERL_ARCHLIB=`${PERL} -MConfig -e 'print $Config{archlib}'`
-      PERL_SITE_PACKAGES='$(libdir)/perl5'
+      PERL_VERSION=`${PERL} -MConfig -e 'print $Config{version}'`
+      PERL_VERSION_RV=`echo ${PERL_VERSION} | cut -d'.' -f1-2`
     fi
 fi
 AC_MSG_RESULT([${PERL}])
 AC_SUBST(PERL)
 AC_SUBST(PERL_INCLUDES)
-AC_SUBST(PERL_SITE_PACKAGES)
 AC_SUBST(PERL_ARCHLIB)
+AC_SUBST(PERL_VERSION)
+AC_SUBST(PERL_VERSION_RV)
 
 PYTHON=""
 PYTHON_CFLAGS=""
@@ -229,18 +232,18 @@ if test "$with_python" != "no" ; then
       PYTHON_SITE_PACKAGES=$with_python/lib/python$PYTHON_VERSION/site-packages
     else
       if test -r $prefix/include/python$PYTHON_VERSION/Python.h; then
-	PYTHON_INCLUDES='$(prefix)/include/python$(PYTHON_VERSION)'
-	PYTHON_SITE_PACKAGES='$(libdir)/python$(PYTHON_VERSION)/site-packages'
+        PYTHON_INCLUDES='$(prefix)/include/python$(PYTHON_VERSION)'
+        PYTHON_SITE_PACKAGES='$(libdir)/python$(PYTHON_VERSION)/site-packages'
       else
-	if test -r /usr/include/python$PYTHON_VERSION/Python.h; then
-	  PYTHON_INCLUDES=/usr/include/python$PYTHON_VERSION
-	  PYTHON_SITE_PACKAGES='$(libdir)/python$(PYTHON_VERSION)/site-packages'
-	else
-	  echo could not find python$PYTHON_VERSION/Python.h
-	fi
+        if test -r /usr/include/python$PYTHON_VERSION/Python.h; then
+          PYTHON_INCLUDES=/usr/include/python$PYTHON_VERSION
+          PYTHON_SITE_PACKAGES='$(libdir)/python$(PYTHON_VERSION)/site-packages'
+        else
+          echo could not find python$PYTHON_VERSION/Python.h
+        fi
       fi
       if test ! -d "$PYTHON_SITE_PACKAGES"; then
-	PYTHON_SITE_PACKAGES=`$PYTHON -c "from distutils import sysconfig; print sysconfig.get_python_lib()"`
+        PYTHON_SITE_PACKAGES=`$PYTHON -c "from distutils import sysconfig; print sysconfig.get_python_lib()"`
       fi
     fi
   fi
@@ -252,14 +255,14 @@ if test "$with_python" != "no" ; then
 
   AC_MSG_CHECKING([for python distutils])
   ${PYTHON} -c "from distutils.core import setup; setup(name='test')" \
-	build build_ext 2>&1 > /dev/null
+        build build_ext 2>&1 > /dev/null
   if test $? = 0 ; then
     HAVE_PYTHON_DISTUTILS="yes"
   else
     HAVE_PYTHON_DISTUTILS="no"
   fi
   AC_MSG_RESULT([$HAVE_PYTHON_DISTUTILS])
-  
+
   if test "${HAVE_PYTHON_DISTUTILS}" = "yes"; then
     #
     # Check for Python include path
@@ -269,7 +272,7 @@ if test "$with_python" != "no" ; then
       incdir_path=`${PYTHON} -c "import distutils.sysconfig; \
        print distutils.sysconfig.get_python_inc();"`
       if test -n "${incdir}"; then
-	python_path="-I${incdir}"
+        python_path="-I${incdir}"
       fi
       PYTHON_CPPFLAGS=$python_path
     fi
@@ -280,7 +283,7 @@ if test "$with_python" != "no" ; then
     #
     AC_MSG_CHECKING([location of site-packages])
     PYTHON_SITE_DIR="`${PYTHON} -c 'from distutils import sysconfig; print sysconfig.get_python_lib(0);'`"
-    
+
     PYTHON_CFLAGS="`$PYTHON -c 'from distutils import sysconfig; flags = [[\"-I\" + sysconfig.get_python_inc(0), \"-I\" + sysconfig.get_python_inc(1), \" \".join(sysconfig.get_config_var(\"CFLAGS\").split())]]; print \" \".join(flags);'`"
     PYTHON_LDFLAGS="`$PYTHON -c 'from distutils import sysconfig; libs = sysconfig.get_config_var(\"LIBS\").split() + sysconfig.get_config_var(\"SYSLIBS\").split(); libs.append(\"-lpython\"+sysconfig.get_config_var(\"VERSION\")); print \" \".join(libs);'`"
     PYTHON_LIB="`$PYTHON -c 'from distutils import sysconfig; print \"python\" + sysconfig.get_config_var(\"VERSION\");'`"
@@ -300,21 +303,25 @@ rappture_with_ruby="yes"
 RUBY=""
 RUBY_DEV_PKG="no"
 
-AC_ARG_WITH(ruby, 
-  AS_HELP_STRING([--with-ruby=PATH], [absolute path to ruby executable]), 
+AC_ARG_WITH(ruby,
+  AS_HELP_STRING([--with-ruby=PATH], [absolute path to ruby executable]),
   [rappture_with_ruby=$with_val])
-if test "${rappture_with_ruby}" != "no" ; then 
+if test "${rappture_with_ruby}" != "no" ; then
   if test "${rappture_with_ruby}" = "yes" ; then
     AC_PATH_PROG(RUBY, ruby)
   else
-    AC_PATH_PROG(RUBY, ruby, 
+    AC_PATH_PROG(RUBY, ruby,
       [${rappture_with_ruby}/bin/ruby:${rappture_with_ruby}])
   fi
 fi
 AC_SUBST(RUBY)
 
+RUBY_VERSION_RV=
+RUBY_PLATFORM=
 if test "x${RUBY}" != "x" ; then
   AX_PROG_RUBY_VERSION
+  RUBY_VERSION_RV=`echo ${RUBY_VERSION} | cut -d'.' -f1-2`
+  RUBY_PLATFORM=`ruby -e 'puts RUBY_PLATFORM'`
   ac_mkmf_result=`${RUBY} -r mkmf -e ";" 2>&1`
   if test -z "$ac_mkmf_result"; then
     HAVE_RUBY_DEVEL="yes"
@@ -322,6 +329,8 @@ if test "x${RUBY}" != "x" ; then
   fi
 fi
 AC_SUBST(HAVE_RUBY_DEVEL)
+AC_SUBST(RUBY_VERSION_RV)
+AC_SUBST(RUBY_PLATFORM)
 
 RP_BASE=`pwd`
 AC_SUBST(RP_BASE)
@@ -365,83 +374,83 @@ AC_CONFIG_SUBDIRS( [packages/optimizer/src] )
 
 dnl read Makefile.in and write Makefile
 AC_OUTPUT( [
-	Makefile 
-	packages/Makefile 
-	src/Makefile 
-	src/core/Makefile 
-	src/core2/Makefile 
-	src/objects/Makefile 
-	gui/Makefile
-	gui/apps/Makefile
-	gui/apps/rappture 
-	gui/apps/rappture.env
-	gui/apps/simsim 
-	gui/pkgIndex.tcl 
-	gui/scripts/Makefile
-	lang/Makefile 
-	lang/perl/Makefile 
-	lang/perl/Makefile.PL 
-	lang/python/Makefile 
-	lang/python/setup.py 
-	lang/matlab/Makefile 
-	lang/octave/Makefile 
-	lang/ruby/Makefile 
-	lang/ruby/build.rb 
-	lang/tcl/Makefile 
-	lang/tcl/pkgIndex.tcl
-	lang/tcl/src/Makefile 
-	lang/tcl/scripts/Makefile 
-	lang/tcl/tests/Makefile 
-	lib/Makefile 
-	examples/Makefile 
-	examples/3D/Makefile 
-	examples/app-fermi/Makefile 
-	examples/app-fermi/2.0/Makefile 
-	examples/app-fermi/cee/Makefile 
-	examples/app-fermi/fortran/Makefile 
-	examples/app-fermi/matlab/Makefile 
-	examples/app-fermi/octave/Makefile 
-	examples/app-fermi/perl/Makefile 
-	examples/app-fermi/python/Makefile 
-	examples/app-fermi/ruby/Makefile 
-	examples/app-fermi/tcl/Makefile 
-	examples/app-fermi/wrapper/Makefile 
-	examples/app-fermi/wrapper/cee/Makefile 
-	examples/app-fermi/wrapper/python/Makefile 
-	examples/app-fermi/wrapper/tcl/Makefile 
-	examples/c-example/Makefile 
-	examples/canvas/Makefile 
-	examples/demo.bash 
-	examples/graph/Makefile 
-	examples/zoo/Makefile 
-	examples/zoo/binary/Makefile 
-	examples/zoo/boolean/Makefile 
-	examples/zoo/choice/Makefile 
-	examples/zoo/cloud/Makefile 
-	examples/zoo/cloud/matlab/Makefile 
-	examples/zoo/curve/Makefile 
-	examples/zoo/enable/Makefile 
-	examples/zoo/field/Makefile 
-	examples/zoo/group/Makefile 
-	examples/zoo/image/Makefile 
-	examples/zoo/image/docs/Makefile 
-	examples/zoo/image/examples/Makefile  
-	examples/zoo/integer/Makefile 
-	examples/zoo/integer2/Makefile 
-	examples/zoo/loader/Makefile 
-	examples/zoo/loader/examples/Makefile 
-	examples/zoo/log/Makefile 
-	examples/zoo/note/Makefile 
-	examples/zoo/note/docs/Makefile 
-	examples/zoo/number/Makefile 
-	examples/zoo/number2/Makefile 
-	examples/zoo/phase/Makefile 
-	examples/zoo/sequence/Makefile 
-	examples/zoo/sequence/examples/Makefile 
-	examples/zoo/string/Makefile 
-	examples/zoo/structure/Makefile 
-	examples/zoo/structure/examples/Makefile 
-	examples/zoo/table/Makefile 
-	test/Makefile 
-	test/src/Makefile 
+    Makefile 
+    packages/Makefile
+    src/Makefile
+    src/core/Makefile
+    src/core2/Makefile
+    src/objects/Makefile
+    gui/Makefile
+    gui/apps/Makefile
+    gui/apps/rappture
+    gui/apps/rappture.env
+    gui/apps/simsim
+    gui/pkgIndex.tcl
+    gui/scripts/Makefile
+    lang/Makefile
+    lang/perl/Makefile
+    lang/perl/Makefile.PL
+    lang/python/Makefile
+    lang/python/setup.py
+    lang/matlab/Makefile
+    lang/octave/Makefile
+    lang/ruby/Makefile
+    lang/ruby/build.rb
+    lang/tcl/Makefile
+    lang/tcl/pkgIndex.tcl
+    lang/tcl/src/Makefile
+    lang/tcl/scripts/Makefile
+    lang/tcl/tests/Makefile
+    lib/Makefile
+    examples/Makefile
+    examples/3D/Makefile
+    examples/app-fermi/Makefile
+    examples/app-fermi/2.0/Makefile
+    examples/app-fermi/cee/Makefile
+    examples/app-fermi/fortran/Makefile
+    examples/app-fermi/matlab/Makefile
+    examples/app-fermi/octave/Makefile
+    examples/app-fermi/perl/Makefile
+    examples/app-fermi/python/Makefile
+    examples/app-fermi/ruby/Makefile
+    examples/app-fermi/tcl/Makefile
+    examples/app-fermi/wrapper/Makefile
+    examples/app-fermi/wrapper/cee/Makefile
+    examples/app-fermi/wrapper/python/Makefile
+    examples/app-fermi/wrapper/tcl/Makefile
+    examples/c-example/Makefile
+    examples/canvas/Makefile
+    examples/demo.bash
+    examples/graph/Makefile
+    examples/zoo/Makefile
+    examples/zoo/binary/Makefile
+    examples/zoo/boolean/Makefile
+    examples/zoo/choice/Makefile
+    examples/zoo/cloud/Makefile
+    examples/zoo/cloud/matlab/Makefile
+    examples/zoo/curve/Makefile
+    examples/zoo/enable/Makefile
+    examples/zoo/field/Makefile
+    examples/zoo/group/Makefile
+    examples/zoo/image/Makefile
+    examples/zoo/image/docs/Makefile
+    examples/zoo/image/examples/Makefile
+    examples/zoo/integer/Makefile
+    examples/zoo/integer2/Makefile
+    examples/zoo/loader/Makefile
+    examples/zoo/loader/examples/Makefile
+    examples/zoo/log/Makefile
+    examples/zoo/note/Makefile
+    examples/zoo/note/docs/Makefile
+    examples/zoo/number/Makefile
+    examples/zoo/number2/Makefile
+    examples/zoo/phase/Makefile
+    examples/zoo/sequence/Makefile
+    examples/zoo/sequence/examples/Makefile
+    examples/zoo/string/Makefile
+    examples/zoo/structure/Makefile
+    examples/zoo/structure/examples/Makefile
+    examples/zoo/table/Makefile
+    test/Makefile
+    test/src/Makefile
 ])

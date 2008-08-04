@@ -1,23 +1,24 @@
 
 bindir          = @bindir@
-datadir		= @datadir@
-datarootdir	= @datarootdir@
+datadir         = @datadir@
+datarootdir     = @datarootdir@
 exec_prefix     = @exec_prefix@
 includedir      = @includedir@
 libdir          = @libdir@
 mandir          = @mandir@
 prefix          = @prefix@
-srcdir		= @srcdir@
+srcdir          = @srcdir@
 
-INSTALL		= @INSTALL@
-MKDIR_P		= @MKDIR_P@
-RM 		= rm -f
-PERL		= @PERL@
-PERL_ARCHLIB	= @PERL_ARCHLIB@
-suffix		:= $(shell echo $(PERL_ARCHLIB) | sed s/.\*perl5//)
-perl5dir	= $$RAPPTURE_INSTALL_DIR/lib/perl5/$(suffix)
+INSTALL         = @INSTALL@
+MKDIR_P         = @MKDIR_P@
+RM              = rm -f
+PERL            = @PERL@
+PERL_ARCHLIB    = @PERL_ARCHLIB@
+PERL_VERSION    = @PERL_VERSION@
+PERL_VERSION_RV = @PERL_VERSION_RV@
+perl5dir        = $$RAPPTURE_INSTALL_DIR/lib/perl/$(PERL_VERSION_RV)
 
-build_dir	= build
+build_dir       = build
 
 all: tmp perl.env
 	$(MAKE) -C $(build_dir)
@@ -26,7 +27,7 @@ tmp:
 	$(RM) -r $(build_dir)
 	$(MKDIR_P) $(build_dir)
 	cp -p Makefile.PL $(build_dir)/Makefile.PL
-	tar -C $(srcdir) -clf - . | tar -C $(build_dir) -xpf - 
+	tar -C $(srcdir) -clf - . | tar -C $(build_dir) -xpf -
 	(cd $(build_dir); $(PERL) Makefile.PL)
 
 perl.env:

@@ -1,28 +1,30 @@
 
 bindir          = @bindir@
-datadir		= @datadir@
-datarootdir	= @datarootdir@
+datadir         = @datadir@
+datarootdir     = @datarootdir@
 exec_prefix     = @exec_prefix@
 includedir      = @includedir@
 libdir          = @libdir@
 mandir          = @mandir@
 prefix          = @prefix@
-srcdir		= @srcdir@
+srcdir          = @srcdir@
 
-INSTALL		= @INSTALL@
-SOEXT		= @SHLIB_SUFFIX@
+INSTALL         = @INSTALL@
+SOEXT           = @SHLIB_SUFFIX@
 
 
 HAVE_RUBY_DEVEL = @HAVE_RUBY_DEVEL@
-RUBY		= @RUBY@
-RUBY_VERSION	= @RUBY_VERSION@
-RUBY_CPPFLAGS	= @RUBY_CPPFLAGS@
+RUBY            = @RUBY@
+RUBY_VERSION    = @RUBY_VERSION@
+RUBY_CPPFLAGS   = @RUBY_CPPFLAGS@
 RUBY_EXTRA_LIBS = @RUBY_EXTRA_LIBS@
-RUBY_LDFLAGS	= @RUBY_LDFLAGS@
-RUBY_SITE_PKG	= @RUBY_SITE_PKG@
-destsuffix	:= $(shell echo "$(RUBY_SITE_PKG)" | sed s/.\*site_ruby//)
-destdir		= $(libdir)/lib/ruby/site_ruby/$(destsuffix)
-rubydir		= $$RAPPTURE_INSTALL_DIR/ruby/site_ruby/$(destsuffix)
+RUBY_LDFLAGS    = @RUBY_LDFLAGS@
+RUBY_SITE_PKG   = @RUBY_SITE_PKG@
+RUBY_VERSION_RV = @RUBY_VERSION_RV@
+RUBY_PLATFORM   = @RUBY_PLATFORM@
+destsuffix      = $(RUBY_VERSION_RV)/$(RUBY_PLATFORM)
+destdir         = $(libdir)/ruby/site_ruby/$(destsuffix)
+rubydir         = $$RAPPTURE_INSTALL_DIR/lib/ruby/site_ruby/$(destsuffix)
 
 CXX             = @CXX@
 CC              = @CC@
@@ -36,45 +38,45 @@ SHLIB_SUFFIX    = @SHLIB_SUFFIX@
 CFLAGS_DEFAULT  = @CFLAGS_DEFAULT@
 LIB_SEARCH_DIRS = @LIB_SEARCH_DIRS@
 
-DEFINES		= -Wall -DRAISE_EXCEPTIONS
-CFLAGS          = @CFLAGS@ @SHLIB_CFLAGS@ 
-INCLUDES	= -I$(srcdir) \
+DEFINES         = -Wall -DRAISE_EXCEPTIONS
+CFLAGS          = @CFLAGS@ @SHLIB_CFLAGS@
+INCLUDES        = -I$(srcdir) \
 		  -I$(srcdir)/../../src/core \
 		  -I$(includedir) \
 		  $(RUBY_CPPFLAGS)
 
-RANLIB 		= @RANLIB@
-MKDIR_P		= @MKDIR_P@
-AR 		= ar
-VPATH		= $(srcdir)
-RM		= rm -f
+RANLIB          = @RANLIB@
+MKDIR_P         = @MKDIR_P@
+AR              = ar
+VPATH           = $(srcdir)
+RM              = rm -f
 
 CDEBUGFLAGS     = -g -Wall
 
-LIBS		= \
+LIBS            = \
 		-L../../src/core -lrappture \
 		$(RUBY_LDFLAGS)
 
-CC_SWITCHES	= $(CFLAGS) $(CFLAGS_DEBUG) $(INCLUDES) $(DEFINES)
-CXX_SWITCHES	= $(CFLAGS) $(CFLAGS_DEBUG) $(INCLUDES) $(DEFINES)
+CC_SWITCHES     = $(CFLAGS) $(CFLAGS_DEBUG) $(INCLUDES) $(DEFINES)
+CXX_SWITCHES    = $(CFLAGS) $(CFLAGS_DEBUG) $(INCLUDES) $(DEFINES)
 
 
-OBJS		= \
+OBJS            = \
 		Ruby_Rappture.o
 
-lib		= Rappture$(SOEXT)
+lib             = Rappture$(SOEXT)
 
 all: $(lib) ruby.env
 
 $(lib): $(OBJS)
 	$(SHLIB_LD) $(SHLIB_LDFLAGS) -o $@ $(OBJS) \
-		$(LIB_SEARCH_DIRS) $(LIBS) 
+		$(LIB_SEARCH_DIRS) $(LIBS)
 install: $(lib) ruby.env
 	$(MKDIR_P) $(destdir)
 	$(INSTALL) -m 555 $(lib) $(destdir)
 	$(INSTALL) -m 555 ruby.env $(bindir)
 
-clean: 
+clean:
 	$(RM) $(lib) $(OBJS)
 
 distclean: clean
@@ -83,13 +85,13 @@ distclean: clean
 Makefile.ruby: build.rb
 	$(RUBY) build.rb
 
-.cc.o: 
-	$(CXX) $(CXX_SWITCHES) -c $? 
+.cc.o:
+	$(CXX) $(CXX_SWITCHES) -c $?
 .c.o:
-	$(CC) $(CC_SWITCHES)-c $? 
+	$(CC) $(CC_SWITCHES)-c $?
 
 ruby.env:
 	echo 'export RUBYLIB=$(rubydir):$$RUBYLIB' > ruby.env
 
 old: Makefile.ruby
-	$(MAKE) -f Makefile.ruby all 
+	$(MAKE) -f Makefile.ruby all
