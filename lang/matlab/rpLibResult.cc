@@ -50,7 +50,7 @@ void mexFunction(int nlhs, mxArray *plhs[],
 
     /* Call the C subroutine. */
     if (libIndex > 0) {
-        lib = getObject_Lib(libIndex);
+        lib = (RpLibrary*) getObject_Void(libIndex);
         if (lib) {
             lib->put("tool.version.rappture.language", "matlab");
             lib->result(status);

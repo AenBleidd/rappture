@@ -68,7 +68,7 @@ Error Codes: @var{err} = 0 is success, anything else is failure.")
 
     /* Call the C subroutine. */
     if (libHandle > 0) {
-        lib = getObject_Lib(libHandle);
+        lib = (RpLibrary*) getObject_Void(libHandle);
         if (lib) {
             lib->put("tool.version.rappture.language", "octave");
             lib->result(status);

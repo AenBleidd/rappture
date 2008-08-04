@@ -69,8 +69,8 @@ Error code, err=0 on success, anything else is failure.")
                     !path.empty()        &&
                     (prevNodeIndex >= 0)    ) {
 
-                lib = getObject_Lib(libIndex);
-                prevLib = getObject_Lib(prevNodeIndex);
+                lib = (RpLibrary*) getObject_Void(libIndex);
+                prevLib = (RpLibrary*) getObject_Void(prevNodeIndex);
 
                 if (lib) {
                     newLib = lib->children(path,prevLib);
@@ -87,7 +87,7 @@ Error code, err=0 on success, anything else is failure.")
         print_usage (who.c_str());
     }
 
-    retval(0) = storeObject_Lib(newLib,prevNodeIndex);
+    retval(0) = storeObject_Void((void*)newLib,prevNodeIndex);
     retval(1) = err;
     return retval;
 }

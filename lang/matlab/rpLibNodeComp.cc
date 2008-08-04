@@ -43,7 +43,7 @@ void mexFunction(int nlhs, mxArray *plhs[],
 
     /* Call the C subroutine. */
     if (libIndex > 0) {
-        lib = getObject_Lib(libIndex);
+        lib = (RpLibrary*) getObject_Void(libIndex);
         if (lib) {
             retStr = lib->nodeComp();
             if (!retStr.empty()) {

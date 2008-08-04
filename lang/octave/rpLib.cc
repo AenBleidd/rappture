@@ -56,7 +56,7 @@ err = 0 is success, anything else is failure.")
         print_usage ("rpLib");
     }
 
-    retval(0) = storeObject_Lib(lib);
+    retval(0) = storeObject_Void((void*)lib);
     retval(1) = err;
 
   return retval;

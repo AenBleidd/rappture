@@ -49,7 +49,7 @@ void mexFunction(int nlhs, mxArray *plhs[],
 
     /* Call the C++ subroutine. */
     if ( (libIndex > 0) && (!path.empty()) ) {
-        lib = getObject_Lib(libIndex);
+        lib = (RpLibrary*) getObject_Void(libIndex);
         if (lib) {
             eleLib = lib->element(path);
             if (eleLib) {

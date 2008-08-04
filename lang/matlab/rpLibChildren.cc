@@ -56,15 +56,15 @@ void mexFunction(int nlhs, mxArray *plhs[],
          (!path.empty())      &&
          (childIndex >= 0)      ) {
 
-        lib = getObject_Lib(libIndex);
+        lib = (RpLibrary*) getObject_Void(libIndex);
 
         if (childIndex > 0) {
-            child = getObject_Lib(childIndex);
+            child = (RpLibrary*) getObject_Void(childIndex);
         }
 
         if (lib) {
             retLib = lib->children(path,child);
-            retLibIndex = storeObject_Lib(retLib);
+            retLibIndex = storeObject_Void((void*)retLib);
             if (retLibIndex) {
                 err = 0;
             }
