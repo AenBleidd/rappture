@@ -9,51 +9,51 @@
 
 using namespace std;
 
-MODULE = Rappture		PACKAGE = Rappture::RpLibrary
+MODULE = Rappture        PACKAGE = Rappture::RpLibrary
 PROTOTYPES: ENABLE
 
 RpLibrary *
 RpLibrary::new(filename = "")
 char *filename
-	CODE:
+    CODE:
         RpLibrary *library;
-		if ((filename == NULL) || (*filename == '\0'))
-			library = new RpLibrary();
-		else
-			library = new RpLibrary(filename);
+        if ((filename == NULL) || (*filename == '\0'))
+            library = new RpLibrary();
+        else
+            library = new RpLibrary(filename);
 
-		if (library->isNull())
+        if (library->isNull())
                 {
                         delete library;
-			XSRETURN_UNDEF;
+            XSRETURN_UNDEF;
                 }
-		else
-			RETVAL = library;
-	OUTPUT:
-		RETVAL
+        else
+            RETVAL = library;
+    OUTPUT:
+        RETVAL
 
 void *
 RpLibrary::DESTROY()
-	CODE:
-		RETVAL = 0;
+    CODE:
+        RETVAL = 0;
 
 const char *
 RpLibrary::get( path )
 char *path
-	CODE:
-		string result;
-		result = THIS->get(path);
-		RETVAL = result.c_str();
-	OUTPUT:
-		RETVAL
+    CODE:
+        string result;
+        result = THIS->get(path);
+        RETVAL = result.c_str();
+    OUTPUT:
+        RETVAL
 
 void
 RpLibrary::put( path, value, append )
 char *path
 char *value
 int append
-	CODE:
-		THIS->put(path,value,"",append);
+    CODE:
+        THIS->put(path,value,"",append);
 
 void
 RpLibrary::putFile( path, fileName, compress, append )
@@ -61,40 +61,40 @@ char *path
 char *fileName
 int compress
 int append
-	CODE:
-		THIS->putFile(path,fileName,compress,append);
+    CODE:
+        THIS->putFile(path,fileName,compress,append);
 
 void
 RpLibrary::result()
-	CODE:
-		THIS->put("tool.version.rappture.language", "perl");
-		THIS->result();
+    CODE:
+        THIS->put("tool.version.rappture.language", "perl");
+        THIS->result();
 
-MODULE = Rappture		PACKAGE = Rappture::RpUnits
+MODULE = Rappture        PACKAGE = Rappture::RpUnits
 
 const char *
 convert( fromVal, toUnitsName, showUnits = 1 )
 const char *fromVal
 const char *toUnitsName
 int showUnits
-	CODE:
-		string result;
-		result = RpUnits::convert(fromVal,toUnitsName,showUnits);
+    CODE:
+        string result;
+        result = RpUnits::convert(fromVal,toUnitsName,showUnits);
 
                 if (result.empty())
                     XSRETURN_UNDEF;
 
-		RETVAL = result.c_str();
-	OUTPUT:
-		RETVAL
+        RETVAL = result.c_str();
+    OUTPUT:
+        RETVAL
 
-MODULE = Rappture		PACKAGE = Rappture::Utils
+MODULE = Rappture        PACKAGE = Rappture::Utils
 
 int
 progress( percent, message )
 int percent
 const char *message
-	CODE:
-		RETVAL = Rappture::Utils::progress(percent,message);
-	OUTPUT:
-		RETVAL
+    CODE:
+        RETVAL = Rappture::Utils::progress(percent,message);
+    OUTPUT:
+        RETVAL
