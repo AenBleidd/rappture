@@ -42,7 +42,7 @@ void mexFunction(int nlhs, mxArray *plhs[],
     lib = new RpLibrary(path);
     if (lib) {
         // store the library and return a dictionary key
-        libIndex = storeObject_Lib(lib);
+        libIndex = storeObject_Void((void*)lib);
         if (libIndex) {
             err = 0;
         }

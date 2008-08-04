@@ -51,7 +51,7 @@ Error code, err=0 on success, anything else is failure.")
             /* Call the C subroutine. */
             if ( (libHandle >= 0) ) {
 
-                lib = getObject_Lib(libHandle);
+                lib = (RpLibrary*) getObject_Void(libHandle);
                 if (lib) {
                     retStr = lib->nodeComp();
                     if (!retStr.empty()) {

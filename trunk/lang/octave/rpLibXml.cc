@@ -47,7 +47,7 @@ err = 0 is success, anything else is failure.")
         if (args(0).is_real_scalar ()) {
             libIndex = args(0).int_value ();
             if (libIndex > 0) {
-                lib = getObject_Lib(libIndex);
+                lib = (RpLibrary*) getObject_Void(libIndex);
                 if (lib) {
                     output_buf = lib->xml();
                     if (output_buf.length() > 0) {

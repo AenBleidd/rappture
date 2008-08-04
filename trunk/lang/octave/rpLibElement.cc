@@ -60,7 +60,7 @@ Error code, err=0 on success, anything else is failure.")
             // path can be an empty string
             if ( (libHandle != 0) ) {
 
-                lib = getObject_Lib(libHandle);
+                lib = (RpLibrary*) getObject_Void(libHandle);
 
                 if (lib) {
                     eleLib = lib->element(path);
@@ -82,7 +82,7 @@ Error code, err=0 on success, anything else is failure.")
         print_usage (who.c_str());
     }
 
-    retval(0) = storeObject_Lib(eleLib);
+    retval(0) = storeObject_Void((void*)eleLib);
     retval(1) = err;
     return retval;
 }

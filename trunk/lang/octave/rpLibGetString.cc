@@ -58,7 +58,7 @@ Error code, err=0 on success, anything else is failure.")
             // path can be an empty string
             if ( (libHandle >= 0) ) {
 
-                lib = getObject_Lib(libHandle);
+                lib = (RpLibrary*) getObject_Void(libHandle);
 
                 if (lib) {
                     retStr = lib->getString(path);

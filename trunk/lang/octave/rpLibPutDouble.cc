@@ -73,7 +73,7 @@ Error Codes: err = 0 is success, anything else is failure.")
             // all other inputs may be empty strings or any integer value
             if ( (libHandle >= 0) ) {
 
-                lib = getObject_Lib(libHandle);
+                lib = (RpLibrary*) getObject_Void(libHandle);
                 if (lib) {
                     lib->put(path,value,"",append);
                     err = 0;
