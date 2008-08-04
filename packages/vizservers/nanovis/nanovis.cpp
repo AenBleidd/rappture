@@ -69,7 +69,7 @@
 #include <R2/R2FilePath.h>
 #include <R2/R2Fonts.h>
 
-#define SIZEOF_BMP_HEADER	54
+#define SIZEOF_BMP_HEADER   54
 
 extern void NvInitCG(); // in Shader.cpp
 
@@ -119,7 +119,7 @@ vector<Volume*> NanoVis::volume;
 bool volume_mode = true; 
 
 // color table for built-in transfer function editor
-float color_table[256][4];      
+float color_table[256][4];
 
 /*
 #ifdef XINETD
@@ -138,7 +138,7 @@ int render_window;              //the handle of the render window;
 
 // in Command.cpp
 extern void xinetd_listen();
-extern void initTcl(); 
+extern void initTcl();
 
 //ParticleSystem* psys;
 //float psys_x=0.4, psys_y=0, psys_z=0;
@@ -166,12 +166,12 @@ R2Fonts* NanoVis::fonts;
 // Variables for mouse events
 
 // Object rotation angles
-static float live_rot_x = 90.;          
+static float live_rot_x = 90.;
 static float live_rot_y = 180.;
 static float live_rot_z = -135;
 
 // Object translation location from the origin
-static float live_obj_x = -0.0; 
+static float live_obj_x = -0.0;
 static float live_obj_y = -0.0;
 static float live_obj_z = -2.5;
 
@@ -182,16 +182,16 @@ static int left_last_x;
 static int left_last_y;
 static int right_last_x;
 static int right_last_y;
-static bool left_down = false;                                          
+static bool left_down = false;
 static bool right_down = false;
 #endif /*XINETD*/
 
 // Image based flow visualization slice location
 // FLOW
 float NanoVis::lic_slice_x = 1.0f;
-float NanoVis::lic_slice_y = 0.0f; 
-float NanoVis::lic_slice_z = 0.5f; 
-int NanoVis::lic_axis = 2; 
+float NanoVis::lic_slice_y = 0.0f;
+float NanoVis::lic_slice_z = 0.5f;
+int NanoVis::lic_axis = 2;
 
 /*
 CGprogram m_copy_texcoord_fprog;
@@ -257,7 +257,7 @@ debug(char *str, double v1, double v2, double v3)
 }
 
 //report errors related to CG shaders
-void 
+void
 cgErrorCallback(void)
 {
     CGerror lastError = cgGetError();
@@ -276,14 +276,14 @@ cgErrorCallback(void)
 
 /* Load a 3D volume
  * index: the index into the volume array, which stores pointers to 3D volume instances
- * data: pointer to an array of floats.  
- * n_component: the number of scalars for each space point. 
- *              All component scalars for a point are placed consequtively in data array 
+ * data: pointer to an array of floats.
+ * n_component: the number of scalars for each space point.
+ *              All component scalars for a point are placed consequtively in data array
  * width, height and depth: number of points in each dimension
  */
 Volume *
-NanoVis::load_volume(int index, int width, int height, int depth, 
-                     int n_component, float* data, double vmin, 
+NanoVis::load_volume(int index, int width, int height, int depth,
+                     int n_component, float* data, double vmin,
                      double vmax, double nzero_min)
 {
     while (n_volumes <= index) {
@@ -296,8 +296,8 @@ NanoVis::load_volume(int index, int width, int height, int depth,
         volume[index] = NULL;
 
         if (vol->pointsetIndex != -1) {
-            if (((unsigned  int) vol->pointsetIndex) < pointSet.size() && 
-		pointSet[vol->pointsetIndex] != NULL) {
+            if (((unsigned  int) vol->pointsetIndex) < pointSet.size() &&
+        pointSet[vol->pointsetIndex] != NULL) {
                 delete pointSet[vol->pointsetIndex];
                 pointSet[vol->pointsetIndex] = 0;
             }
@@ -305,7 +305,7 @@ NanoVis::load_volume(int index, int width, int height, int depth,
         delete vol;
     }
     volume[index] = new Volume(0.f, 0.f, 0.f, width, height, depth, 1.,
-	n_component, data, vmin, vmax, nzero_min);
+        n_component, data, vmin, vmax, nzero_min);
     return volume[index];
 }
 
@@ -314,7 +314,7 @@ TransferFunction*
 NanoVis::get_transfunc(const char *name) 
 {
     Tcl_HashEntry *hPtr;
-    
+
     hPtr = Tcl_FindHashEntry(&tftable, name);
     if (hPtr == NULL) {
         return NULL;
@@ -324,7 +324,7 @@ NanoVis::get_transfunc(const char *name)
 
 // Creates of updates a colormap 1D texture by name.
 TransferFunction*
-NanoVis::DefineTransferFunction(const char *name, size_t n, float *data) 
+NanoVis::DefineTransferFunction(const char *name, size_t n, float *data)
 {
     int isNew;
     Tcl_HashEntry *hPtr;
@@ -332,15 +332,15 @@ NanoVis::DefineTransferFunction(const char *name, size_t n, float *data)
 
     hPtr = Tcl_CreateHashEntry(&tftable, name, &isNew);
     if (isNew) {
-	tf = new TransferFunction(n, data);
-	Tcl_SetHashValue(hPtr, (ClientData)tf);
+        tf = new TransferFunction(n, data);
+        Tcl_SetHashValue(hPtr, (ClientData)tf);
     } else {
-	/* 
-	 * You can't delete the transfer function because many 
-	 * objects may be holding its pointer.  We must update it.
-	 */
-	tf = (TransferFunction *)Tcl_GetHashValue(hPtr);
-	tf->update(n, data);
+        /* 
+         * You can't delete the transfer function because many 
+         * objects may be holding its pointer.  We must update it.
+         */
+        tf = (TransferFunction *)Tcl_GetHashValue(hPtr);
+        tf->update(n, data);
     }
     return tf;
 }
@@ -357,13 +357,13 @@ void
 update_tf_texture()
 {
     glutSetWindow(render_window);
-    
+
     //fprintf(stderr, "tf update\n");
     TransferFunction *tf = NanoVis::get_transfunc("default");
     if (tf == NULL) {
         return;
     }
-    
+
     float data[256*4];
     for(int i=0; i<256; i++) {
         data[4*i+0] = color_table[i][0];
@@ -372,9 +372,9 @@ update_tf_texture()
         data[4*i+3] = color_table[i][3];
         //fprintf(stderr, "(%f,%f,%f,%f) ", data[4*i+0], data[4*i+1], data[4*i+2], data[4*i+3]);
     }
-    
+
     tf->update(data);
-    
+
 #ifdef EVENTLOG
     float param[3] = {0,0,0};
     Event* tmp = new Event(EVENT_ROTATE, param, NvGetTimeInterval());
@@ -383,11 +383,11 @@ update_tf_texture()
 #endif
 }
 
-int 
+int
 NanoVis::render_legend(
-    TransferFunction *tf, 
-    double min, double max, 
-    int width, int height, 
+    TransferFunction *tf,
+    double min, double max,
+    int width, int height,
     const char* volArg)
 {
     int old_width = win_width;
@@ -425,16 +425,16 @@ NanoVis::render_legend(
 }
 
 //initialize frame buffer objects for offscreen rendering
-void 
+void
 NanoVis::init_offscreen_buffer()
 {
     //initialize final fbo for final display
     glGenFramebuffersEXT(1, &final_fbo);
     glGenTextures(1, &final_color_tex);
     glGenRenderbuffersEXT(1, &final_depth_rb);
-    
+
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, final_fbo);
-    
+
     //initialize final color texture
     glBindTexture(GL_TEXTURE_2D, final_color_tex);
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -449,7 +449,7 @@ NanoVis::init_offscreen_buffer()
     glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT,
                               GL_COLOR_ATTACHMENT0_EXT,
                               GL_TEXTURE_2D, final_color_tex, 0);
-    
+
     // initialize final depth renderbuffer
     glBindRenderbufferEXT(GL_RENDERBUFFER_EXT, final_depth_rb);
     glRenderbufferStorageEXT(GL_RENDERBUFFER_EXT,
@@ -457,7 +457,7 @@ NanoVis::init_offscreen_buffer()
     glFramebufferRenderbufferEXT(GL_FRAMEBUFFER_EXT,
                                  GL_DEPTH_ATTACHMENT_EXT,
                                  GL_RENDERBUFFER_EXT, final_depth_rb);
-    
+
     // Check framebuffer completeness at the end of initialization.
     CHECK_FRAMEBUFFER_STATUS();
 
@@ -471,41 +471,41 @@ NanoVis::resize_offscreen_buffer(int w, int h)
 {
     win_width = w;
     win_height = h;
-    
+
     if (fonts) {
         fonts->resize(w, h);
     }
-    
+
     //fprintf(stderr, "screen_buffer size: %d\n", sizeof(screen_buffer));
     printf("screen_buffer size: %d %d\n", w, h);
-    
+
     if (screen_buffer) {
         delete[] screen_buffer;
         screen_buffer = NULL;
     }
-    
+
     screen_buffer = new unsigned char[4*win_width*win_height];
     assert(screen_buffer != NULL);
-    
+
     //delete the current render buffer resources
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, final_fbo);
     glDeleteTextures(1, &final_color_tex);
     glDeleteFramebuffersEXT(1, &final_fbo);
-    
+
     glBindRenderbufferEXT(GL_RENDERBUFFER_EXT, final_depth_rb);
     glDeleteRenderbuffersEXT(1, &final_depth_rb);
-    
+
     //change the camera setting
     cam->set_screen_size(0, 0, win_width, win_height);
     plane_render->set_screen_size(win_width, win_height);
-    
+
     //Reinitialize final fbo for final display
     glGenFramebuffersEXT(1, &final_fbo);
     glGenTextures(1, &final_color_tex);
     glGenRenderbuffersEXT(1, &final_depth_rb);
 
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, final_fbo);
-    
+
     //initialize final color texture
     glBindTexture(GL_TEXTURE_2D, final_color_tex);
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -520,7 +520,7 @@ NanoVis::resize_offscreen_buffer(int w, int h)
     glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT,
                               GL_COLOR_ATTACHMENT0_EXT,
                               GL_TEXTURE_2D, final_color_tex, 0);
-        
+
     // initialize final depth renderbuffer
     glBindRenderbufferEXT(GL_RENDERBUFFER_EXT, final_depth_rb);
     glRenderbufferStorageEXT(GL_RENDERBUFFER_EXT,
@@ -535,10 +535,10 @@ NanoVis::resize_offscreen_buffer(int w, int h)
 }
 
 /*
- * FIXME: This routine is fairly expensive (60000 floating pt divides).  
- *	  I've put an ifdef around the call to it so that the released
- *	  builds don't include it.  Define PROTOTYPE to 1 in config.h 
- *	  to turn it back on.
+ * FIXME: This routine is fairly expensive (60000 floating pt divides).
+ *      I've put an ifdef around the call to it so that the released
+ *      builds don't include it.  Define PROTOTYPE to 1 in config.h
+ *      to turn it back on.
  */
 void 
 make_test_2D_data()
@@ -546,7 +546,7 @@ make_test_2D_data()
     int w = 300;
     int h = 200;
     float* data = new float[w*h];
-    
+
     //procedurally make a gradient plane
     for(int j=0; j<h; j++){
         for(int i=0; i<w; i++){
@@ -565,8 +565,8 @@ void NanoVis::initParticle()
 
     int index;
     //bool particle;
-    for (int i=0; i<particleRenderer->psys_width; i++) { 
-        for (int j=0; j<particleRenderer->psys_height; j++) { 
+    for (int i=0; i<particleRenderer->psys_width; i++) {
+        for (int j=0; j<particleRenderer->psys_height; j++) {
             index = i + particleRenderer->psys_height*j;
             //particle = rand() % 256 > 150; 
             //if(particle) 
@@ -576,8 +576,8 @@ void NanoVis::initParticle()
                 data[4*index] = lic_slice_x;
                 data[4*index+1]= j/float(particleRenderer->psys_height);
                 data[4*index+2]= i/float(particleRenderer->psys_width);
-                data[4*index+3]= 30; //shorter life span, quicker iterations    
-                //data[4*index+3]= 1.0f; //shorter life span, quicker iterations        
+                data[4*index+3]= 30; //shorter life span, quicker iterations
+                //data[4*index+3]= 1.0f; //shorter life span, quicker iterations
             }
 /*
             else
@@ -585,7 +585,7 @@ void NanoVis::initParticle()
                 data[4*index] = 0;
                 data[4*index+1]= 0;
                 data[4*index+2]= 0;
-                data[4*index+3]= 0;     
+                data[4*index+3]= 0;
             }
 */
         }
@@ -645,7 +645,7 @@ void NanoVis::init(const char* path)
 
     color_table_renderer = new NvColorTableRenderer();
     color_table_renderer->setFonts(fonts);
-    
+
     particleRenderer = new NvParticleRenderer(NMESH, NMESH, g_context);
 
 #if PROTOTYPE
@@ -660,9 +660,9 @@ void NanoVis::init(const char* path)
 }
 
 /*----------------------------------------------------*/
-void 
-NanoVis::initGL(void) 
-{ 
+void
+NanoVis::initGL(void)
+{
    //buffer to store data read from the screen
    if (screen_buffer) {
        delete[] screen_buffer;
@@ -672,7 +672,7 @@ NanoVis::initGL(void)
    assert(screen_buffer != NULL);
 
    //create the camera with default setting
-   cam = new NvCamera(0, 0, win_width, win_height, 
+   cam = new NvCamera(0, 0, win_width, win_height,
                    live_obj_x, live_obj_y, live_obj_z,
                    0., 0., 100.,
                    (int)live_rot_x, (int)live_rot_y, (int)live_rot_z);
@@ -693,9 +693,9 @@ NanoVis::initGL(void)
    glMaterialfv(GL_FRONT, GL_SPECULAR, mat_specular);
    glMaterialfv(GL_FRONT, GL_SHININESS, mat_shininess);
    glLightfv(GL_LIGHT0, GL_DIFFUSE, white_light);
-   glLightfv(GL_LIGHT0, GL_SPECULAR, white_light);      
+   glLightfv(GL_LIGHT0, GL_SPECULAR, white_light);
    glLightfv(GL_LIGHT1, GL_DIFFUSE, green_light);
-   glLightfv(GL_LIGHT1, GL_SPECULAR, white_light);      
+   glLightfv(GL_LIGHT1, GL_SPECULAR, white_light);
 
    // init table of transfer functions
    Tcl_InitHashTable(&tftable, TCL_STRING_KEYS);
@@ -703,7 +703,7 @@ NanoVis::initGL(void)
    //check if performance query is supported
    if(check_query_support()){
      //create queries to count number of rendered pixels
-     perf = new PerfQuery(); 
+     perf = new PerfQuery();
    }
 
    init_offscreen_buffer();    //frame buffer object for offscreen rendering
@@ -733,14 +733,14 @@ NanoVis::initGL(void)
    plane_render = new PlaneRenderer(g_context, win_width, win_height);
 #if PROTOTYPE
    make_test_2D_data();
-#endif	/* PROTOTYPE */
+#endif  /* PROTOTYPE */
    plane_render->add_plane(plane[0], get_transfunc("default"));
 
    //assert(glGetError()==0);
 
 #ifdef notdef
    init_particle_system();
-   NanoVis::init_lic(); 
+   NanoVis::init_lic();
 #endif
 }
 
@@ -757,7 +757,7 @@ do_rle()
     int len = NanoVis::win_width*NanoVis::win_height*3;
     rle_size = 0;
     offsets_size = 0;
-    
+
     int i=0;
     while(i<len){
         if (NanoVis::screen_buffer[i] == 0) {
@@ -768,7 +768,7 @@ do_rle()
             offsets[offsets_size++] = -(pos - i);
             i = pos;
         }
-        
+
         else {
             int pos;
             for (pos = i; (pos<len) && (NanoVis::screen_buffer[pos] != 0);pos++){
@@ -777,7 +777,7 @@ do_rle()
             offsets[offsets_size++] = (pos - i);
             i = pos;
         }
-        
+
     }
 }
 #endif
@@ -869,21 +869,21 @@ NanoVis::bmp_write_to_file(int frame_number, const char *directory_name)
     FILE* f;
     char filename[100];
     if (frame_number >= 0) {
-    	if (directory_name)
-	    sprintf(filename, "%s/image%03d.bmp", directory_name, frame_number);
-	else
-	    sprintf(filename, "/tmp/flow_animation/image%03d.bmp", frame_number);
+        if (directory_name)
+            sprintf(filename, "%s/image%03d.bmp", directory_name, frame_number);
+        else
+            sprintf(filename, "/tmp/flow_animation/image%03d.bmp", frame_number);
 
         printf("Writing %s\n", filename);
         f = fopen(filename, "wb");
-	if (f == 0) {
-	    Trace("cannot create file\n");
-	}
+        if (f == 0) {
+            Trace("cannot create file\n");
+        }
     } else {
         f = fopen("/tmp/image.bmp", "wb");
-	if (f == 0) {
-	    Trace("cannot create file\n");
-	}
+        if (f == 0) {
+            Trace("cannot create file\n");
+        }
     }
     fwrite((void*) header, SIZEOF_BMP_HEADER, 1, f);
     fwrite((void*) screen_buffer, (3*win_width+pad)*win_height, 1, f);
@@ -967,15 +967,15 @@ NanoVis::bmp_write(const char *prefix)
 /*
  * ppm_write --
  *
- *	Writes the screen image as PPM binary data to the nanovisviewer
- *	client.  The PPM binary format is very simple.  
+ *  Writes the screen image as PPM binary data to the nanovisviewer
+ *  client.  The PPM binary format is very simple.
  *
- *		P6 w h 255\n
- *		3-byte RGB pixel data.
+ *      P6 w h 255\n
+ *      3-byte RGB pixel data.
  *
- *	The nanovisviewer client (using the TkImg library) will do less work
- *	to unpack this format, as opposed to BMP or PNG.  (This doesn't
- *	eliminate the need to look into DXT compression performed on the GPU).
+ *  The nanovisviewer client (using the TkImg library) will do less work
+ *  to unpack this format, as opposed to BMP or PNG.  (This doesn't
+ *  eliminate the need to look into DXT compression performed on the GPU).
  *
  *      Note that currently the image data from the screen is both row-padded
  *      and the scan lines are reversed.  This routine could be made even
@@ -1016,9 +1016,9 @@ NanoVis::ppm_write(const char *prefix)
     int y;
     unsigned char *srcRowPtr = screen_buffer;
     for (y = win_height + 1; y >= 2; y--) {
-	iov[y].iov_base = srcRowPtr;
-	iov[y].iov_len = rowLength;
-	srcRowPtr += bytesPerRow;
+        iov[y].iov_base = srcRowPtr;
+        iov[y].iov_len = rowLength;
+        srcRowPtr += bytesPerRow;
     }
     writev(0, iov, nRecs);
     free(iov);
@@ -1032,13 +1032,13 @@ void draw_arrows()
     for(int i=0; i<NMESH; i++){
         for(int j=0; j<NMESH; j++){
             Vector2 v = grid.get(i, j);
-            
+
             int x1 = i*DM;
             int y1 = j*DM;
-            
+
             int x2 = x1 + v.x;
             int y2 = y1 + v.y;
-            
+
             glBegin(GL_LINES);
             glVertex2d(x1, y1);
             glVertex2d(x2, y2);
@@ -1050,11 +1050,11 @@ void draw_arrows()
 
 
 /*----------------------------------------------------*/
-static void 
+static void
 idle()
 {
     glutSetWindow(render_window);
-  
+
 #ifdef notdef
       struct timespec ts;
       ts.tv_sec = 0;
@@ -1074,21 +1074,21 @@ NanoVis::display_offscreen_buffer()
     glEnable(GL_TEXTURE_2D);
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
     glBindTexture(GL_TEXTURE_2D, final_color_tex);
-    
+
     glViewport(0, 0, win_width, win_height);
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
     gluOrtho2D(0, win_width, 0, win_height);
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
-    
+
     glColor3f(1.,1.,1.);                //MUST HAVE THIS LINE!!!
     glBegin(GL_QUADS);
     {
-	glTexCoord2f(0, 0); glVertex2f(0, 0);
-	glTexCoord2f(1, 0); glVertex2f(win_width, 0);
-	glTexCoord2f(1, 1); glVertex2f(win_width, win_height);
-	glTexCoord2f(0, 1); glVertex2f(0, win_height);
+        glTexCoord2f(0, 0); glVertex2f(0, 0);
+        glTexCoord2f(1, 0); glVertex2f(win_width, 0);
+        glTexCoord2f(1, 1); glVertex2f(win_width, win_height);
+        glTexCoord2f(0, 1); glVertex2f(0, win_height);
     }
     glEnd();
 }
@@ -1108,33 +1108,33 @@ particle_distance_sort(const void* a, const void* b)
 
 void soft_read_verts()
 {
-    glReadPixels(0, 0, psys->psys_width, psys->psys_height, GL_RGB, GL_FLOAT, 
-		 vert);
+    glReadPixels(0, 0, psys->psys_width, psys->psys_height, GL_RGB, GL_FLOAT,
+         vert);
     //fprintf(stderr, "soft_read_vert");
-    
-    //cpu sort the distance  
+
+    //cpu sort the distance
     Particle* p;
     p = (Particle*)malloc(sizeof(Particle)*psys->psys_width*psys->psys_height);
     for (int i=0; i<psys->psys_width * psys->psys_height; i++) {
         float x = vert[3*i];
         float y = vert[3*i+1];
         float z = vert[3*i+2];
-        
-        float dis = (x-live_obj_x)*(x-live_obj_x) + (y-live_obj_y)*(y-live_obj_y) + (z-live_obj_z)*(z-live_obj_z); 
+
+        float dis = (x-live_obj_x)*(x-live_obj_x) + (y-live_obj_y)*(y-live_obj_y) + (z-live_obj_z)*(z-live_obj_z);
         p[i].x = x;
         p[i].y = y;
         p[i].z = z;
         p[i].aux = dis;
     }
-    
+
     qsort(p, psys->psys_width * psys->psys_height, sizeof(Particle), particle_distance_sort);
-    
+
     for(int i=0; i<psys->psys_width * psys->psys_height; i++){
         vert[3*i] = p[i].x;
         vert[3*i+1] = p[i].y;
         vert[3*i+2] = p[i].z;
     }
-    
+
     free(p);
 }
 #endif
@@ -1145,28 +1145,28 @@ void
 display_texture(NVISid tex, int width, int height)
 {
     glPushMatrix();
-    
+
     glEnable(GL_TEXTURE_2D);
     glBindTexture(GL_TEXTURE_RECTANGLE_NV, tex);
-    
+
     glViewport(0, 0, width, height);
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
     gluOrtho2D(0, width, 0, height);
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
-    
+
     cgGLBindProgram(m_passthru_fprog);
     cgGLEnableProfile(CG_PROFILE_FP30);
-    
+
     cgGLSetParameter4f(m_passthru_scale_param, 1.0, 1.0, 1.0, 1.0);
     cgGLSetParameter4f(m_passthru_bias_param, 0.0, 0.0, 0.0, 0.0);
-    
+
     draw_quad(width, height, width, height);
     cgGLDisableProfile(CG_PROFILE_FP30);
-    
+
     glPopMatrix();
-    
+
     //assert(glGetError()==0);
 }
 #endif
@@ -1174,19 +1174,19 @@ display_texture(NVISid tex, int width, int height)
 
 //draw vertices in the main memory
 #ifdef notdef
-void 
+void
 soft_display_verts()
 {
     glDisable(GL_TEXTURE_2D);
     glEnable(GL_BLEND);
-    
+
     glPointSize(0.5);
     glColor4f(0,0.8,0.8,0.6);
     glBegin(GL_POINTS);
     {
-	for(int i=0; i < psys->psys_width * psys->psys_height; i++){
-	    glVertex3f(vert[3*i], vert[3*i+1], vert[3*i+2]);
-	}
+        for(int i=0; i < psys->psys_width * psys->psys_height; i++){
+            glVertex3f(vert[3*i], vert[3*i+1], vert[3*i+2]);
+        }
     }
     glEnd();
     //fprintf(stderr, "soft_display_vert");
@@ -1195,19 +1195,19 @@ soft_display_verts()
 
 #if 0
 //oddeven sort on GPU
-void 
+void
 sortstep()
 {
     // perform one step of the current sorting algorithm
-    
+
 #ifdef notdef
     // swap buffers
     int sourceBuffer = targetBuffer;
-    targetBuffer = (targetBuffer+1)%2;   
+    targetBuffer = (targetBuffer+1)%2;
     int pstage = (1<<stage);
     int ppass  = (1<<pass);
     int activeBitonicShader = 0;
-    
+
 #ifdef _WIN32
     buffer->BindBuffer(wglTargets[sourceBuffer]);
 #else
@@ -1224,44 +1224,44 @@ sortstep()
 
     // switch on correct sorting shader
     oddevenMergeSort.bind();
-    glUniform3fARB(oddevenMergeSort.getUniformLocation("Param1"), float(pstage+pstage), 
+    glUniform3fARB(oddevenMergeSort.getUniformLocation("Param1"), float(pstage+pstage),
                    float(ppass%pstage), float((pstage+pstage)-(ppass%pstage)-1));
-    glUniform3fARB(oddevenMergeSort.getUniformLocation("Param2"), 
-		   float(psys_width), float(psys_height), float(ppass));
+    glUniform3fARB(oddevenMergeSort.getUniformLocation("Param2"),
+           float(psys_width), float(psys_height), float(ppass));
     glUniform1iARB(oddevenMergeSort.getUniformLocation("Data"), 0);
     staticdebugmsg("sort","stage "<<pstage<<" pass "<<ppass);
-    
+
     // This clear is not necessary for sort to function. But if we are in
     // interactive mode unused parts of the texture that are visible will look
     // bad.
 #ifdef notdef
     if (!perfTest) glClear(GL_COLOR_BUFFER_BIT);
-    
+
     buffer->Bind();
     buffer->EnableTextureTarget();
 #endif
-    
+
     // Initiate the sorting step on the GPU a full-screen quad
     glBegin(GL_QUADS);
     {
 #ifdef notdef
-	glMultiTexCoord4fARB(GL_TEXTURE0_ARB,0.0f,0.0f,0.0f,1.0f); 
-	glVertex2f(-1.0f,-1.0f); 
-	glMultiTexCoord4fARB(GL_TEXTURE0_ARB,float(psys_width),0.0f,1.0f,1.0f); 
-	glVertex2f(1.0f,-1.0f);
-	glMultiTexCoord4fARB(GL_TEXTURE0_ARB,float(psys_width),float(psys_height),1.0f,0.0f); 
-	glVertex2f(1.0f,1.0f);        
-	glMultiTexCoord4fARB(GL_TEXTURE0_ARB,0.0f,float(psys_height),0.0f,0.0f); 
-	glVertex2f(-1.0f,1.0f);    
+        glMultiTexCoord4fARB(GL_TEXTURE0_ARB,0.0f,0.0f,0.0f,1.0f);
+        glVertex2f(-1.0f,-1.0f);
+        glMultiTexCoord4fARB(GL_TEXTURE0_ARB,float(psys_width),0.0f,1.0f,1.0f);
+        glVertex2f(1.0f,-1.0f);
+        glMultiTexCoord4fARB(GL_TEXTURE0_ARB,float(psys_width),float(psys_height),1.0f,0.0f);
+        glVertex2f(1.0f,1.0f);
+        glMultiTexCoord4fARB(GL_TEXTURE0_ARB,0.0f,float(psys_height),0.0f,0.0f);
+        glVertex2f(-1.0f,1.0f);
 #endif
-	glMultiTexCoord4fARB(GL_TEXTURE0_ARB,0.0f,0.0f,0.0f,1.0f); 
-	glVertex2f(0.,0.);       
-	glMultiTexCoord4fARB(GL_TEXTURE0_ARB,float(psys_width),0.0f,1.0f,1.0f); 
-	glVertex2f(float(psys_width), 0.);
-	glMultiTexCoord4fARB(GL_TEXTURE0_ARB,float(psys_width),float(psys_height),1.0f,0.0f); 
-	glVertex2f(float(psys_width), float(psys_height));    
-	glMultiTexCoord4fARB(GL_TEXTURE0_ARB,0.0f,float(psys_height),0.0f,0.0f); 
-	glVertex2f(0., float(psys_height));        
+        glMultiTexCoord4fARB(GL_TEXTURE0_ARB,0.0f,0.0f,0.0f,1.0f);
+        glVertex2f(0.,0.);
+        glMultiTexCoord4fARB(GL_TEXTURE0_ARB,float(psys_width),0.0f,1.0f,1.0f);
+        glVertex2f(float(psys_width), 0.);
+        glMultiTexCoord4fARB(GL_TEXTURE0_ARB,float(psys_width),float(psys_height),1.0f,0.0f);
+        glVertex2f(float(psys_width), float(psys_height));
+        glMultiTexCoord4fARB(GL_TEXTURE0_ARB,0.0f,float(psys_height),0.0f,0.0f);
+        glVertex2f(0., float(psys_height));
     }
     glEnd();
 
@@ -1280,19 +1280,19 @@ draw_3d_axis()
 {
     glDisable(GL_TEXTURE_2D);
     glEnable(GL_DEPTH_TEST);
-    
+
     //draw axes
     GLUquadric *obj;
 
     obj = gluNewQuadric();
-    
+
     glDepthFunc(GL_LESS);
     glEnable(GL_COLOR_MATERIAL);
     glEnable(GL_DEPTH_TEST);
     glDisable(GL_BLEND);
-    
+
     int segments = 50;
-    
+
     glColor3f(0.8, 0.8, 0.8);
     glPushMatrix();
     glTranslatef(0.4, 0., 0.);
@@ -1300,78 +1300,78 @@ draw_3d_axis()
     glRotatef(180, 0, 1, 0);
     glScalef(0.0005, 0.0005, 0.0005);
     glutStrokeCharacter(GLUT_STROKE_ROMAN, 'x');
-    glPopMatrix();      
-    
+    glPopMatrix();
+
     glPushMatrix();
     glTranslatef(0., 0.4, 0.);
     glRotatef(90, 1, 0, 0);
     glRotatef(180, 0, 1, 0);
     glScalef(0.0005, 0.0005, 0.0005);
     glutStrokeCharacter(GLUT_STROKE_ROMAN, 'y');
-    glPopMatrix();      
-    
+    glPopMatrix();
+
     glPushMatrix();
     glTranslatef(0., 0., 0.4);
     glRotatef(90, 1, 0, 0);
     glRotatef(180, 0, 1, 0);
     glScalef(0.0005, 0.0005, 0.0005);
     glutStrokeCharacter(GLUT_STROKE_ROMAN, 'z');
-    glPopMatrix();      
-    
+    glPopMatrix();
+
     glEnable(GL_LIGHTING);
     glEnable(GL_LIGHT0);
-    
+
     //glColor3f(0.2, 0.2, 0.8);
     glPushMatrix();
     glutSolidSphere(0.02, segments, segments );
     glPopMatrix();
-    
+
     glPushMatrix();
-    glRotatef(-90, 1, 0, 0);    
+    glRotatef(-90, 1, 0, 0);
     gluCylinder(obj, 0.01, 0.01, 0.3, segments, segments);
-    glPopMatrix();      
-    
+    glPopMatrix();
+
     glPushMatrix();
     glTranslatef(0., 0.3, 0.);
-    glRotatef(-90, 1, 0, 0);    
+    glRotatef(-90, 1, 0, 0);
     gluCylinder(obj, 0.02, 0.0, 0.06, segments, segments);
-    glPopMatrix();      
-    
+    glPopMatrix();
+
     glPushMatrix();
     glRotatef(90, 0, 1, 0);
     gluCylinder(obj, 0.01, 0.01, 0.3, segments, segments);
-    glPopMatrix();      
-    
+    glPopMatrix();
+
     glPushMatrix();
     glTranslatef(0.3, 0., 0.);
-    glRotatef(90, 0, 1, 0);     
+    glRotatef(90, 0, 1, 0);
     gluCylinder(obj, 0.02, 0.0, 0.06, segments, segments);
-    glPopMatrix();      
-    
+    glPopMatrix();
+
     glPushMatrix();
     gluCylinder(obj, 0.01, 0.01, 0.3, segments, segments);
-    glPopMatrix();      
-    
+    glPopMatrix();
+
     glPushMatrix();
     glTranslatef(0., 0., 0.3);
     gluCylinder(obj, 0.02, 0.0, 0.06, segments, segments);
-    glPopMatrix();      
-    
+    glPopMatrix();
+
     glDisable(GL_LIGHTING);
     glDisable(GL_DEPTH_TEST);
     gluDeleteQuadric(obj);
-    
+
     glEnable(GL_TEXTURE_2D);
     glDisable(GL_DEPTH_TEST);
 }
 
 #ifdef notdef
-void 
+void
 draw_axis()
 {
     glDisable(GL_TEXTURE_2D);
     glEnable(GL_DEPTH_TEST);
-    
+
     //red x
     glColor3f(1,0,0);
     glBegin(GL_LINES);
@@ -1380,7 +1380,7 @@ draw_axis()
         glVertex3f(1.5,0,0);
     }
     glEnd();
-    
+
     //blue y
     glColor3f(0,0,1);
     glBegin(GL_LINES);
@@ -1389,7 +1389,7 @@ draw_axis()
         glVertex3f(0,1.5,0);
     }
     glEnd();
-    
+
     //green z
     glColor3f(0,1,0);
     glBegin(GL_LINES);
@@ -1398,7 +1398,7 @@ draw_axis()
         glVertex3f(0,0,1.5);
     }
     glEnd();
-    
+
     glEnable(GL_TEXTURE_2D);
     glDisable(GL_DEPTH_TEST);
 }
@@ -1411,9 +1411,9 @@ void NanoVis::update()
         gettimeofday(&clock, NULL);
         double elapsed_time;
 
-	elapsed_time = clock.tv_sec + clock.tv_usec/1000000.0 - 
-	    vol_renderer->_volumeInterpolator->getStartTime();
-        
+        elapsed_time = clock.tv_sec + clock.tv_usec/1000000.0 -
+            vol_renderer->_volumeInterpolator->getStartTime();
+
         Trace("%lf %lf\n", elapsed_time, vol_renderer->_volumeInterpolator->getInterval());
         float fraction;
         float f;
@@ -1430,59 +1430,59 @@ void NanoVis::update()
 }
 
 void
-NanoVis::SetVolumeRanges() 
+NanoVis::SetVolumeRanges()
 {
     double xMin, xMax, yMin, yMax, zMin, zMax, wMin, wMax;
-    
+
     xMin = yMin = zMin = wMin = DBL_MAX;
     xMax = yMax = zMax = wMax = -DBL_MAX;
     for (unsigned int i = 0; i < volume.size(); i++) {
-	Volume *volPtr;
-	
-	volPtr = volume[i];
-	if (volPtr == NULL) {
-	    continue;
-	}
-	if (!volPtr->enabled) {
-	    continue;
-	}
-	if (xMin > volPtr->xAxis.Min()) {
-	    xMin = volPtr->xAxis.Min();
-	}
-	if (xMax < volPtr->xAxis.Max()) {
-	    xMax = volPtr->xAxis.Max();
-	}
-	if (yMin > volPtr->yAxis.Min()) {
-	    yMin = volPtr->yAxis.Min();
-	}
-	if (yMax < volPtr->yAxis.Max()) {
-	    yMax = volPtr->yAxis.Max();
-	}
-	if (zMin > volPtr->zAxis.Min()) {
-	    zMin = volPtr->zAxis.Min();
-	}
-	if (zMax < volPtr->zAxis.Max()) {
-	    zMax = volPtr->zAxis.Max();
-	}
-	if (wMin > volPtr->wAxis.Min()) {
-	    wMin = volPtr->wAxis.Min();
-	}
-	if (wMax < volPtr->wAxis.Max()) {
-	    wMax = volPtr->wAxis.Max();
-	}
+        Volume *volPtr;
+
+        volPtr = volume[i];
+        if (volPtr == NULL) {
+            continue;
+        }
+        if (!volPtr->enabled) {
+            continue;
+        }
+        if (xMin > volPtr->xAxis.Min()) {
+            xMin = volPtr->xAxis.Min();
+        }
+        if (xMax < volPtr->xAxis.Max()) {
+            xMax = volPtr->xAxis.Max();
+        }
+        if (yMin > volPtr->yAxis.Min()) {
+            yMin = volPtr->yAxis.Min();
+        }
+        if (yMax < volPtr->yAxis.Max()) {
+            yMax = volPtr->yAxis.Max();
+        }
+        if (zMin > volPtr->zAxis.Min()) {
+            zMin = volPtr->zAxis.Min();
+        }
+        if (zMax < volPtr->zAxis.Max()) {
+            zMax = volPtr->zAxis.Max();
+        }
+        if (wMin > volPtr->wAxis.Min()) {
+            wMin = volPtr->wAxis.Min();
+        }
+        if (wMax < volPtr->wAxis.Max()) {
+            wMax = volPtr->wAxis.Max();
+        }
     }
     if ((xMin < DBL_MAX) && (xMax > -DBL_MAX)) {
-	grid->xAxis.SetScale(xMin, xMax);
+        grid->xAxis.SetScale(xMin, xMax);
     }
     if ((yMin < DBL_MAX) && (yMax > -DBL_MAX)) {
-	grid->yAxis.SetScale(yMin, yMax);
+        grid->yAxis.SetScale(yMin, yMax);
     }
     if ((zMin < DBL_MAX) && (zMax > -DBL_MAX)) {
-	grid->zAxis.SetScale(zMin, zMax);
+        grid->zAxis.SetScale(zMin, zMax);
     }
     if ((wMin < DBL_MAX) && (wMax > -DBL_MAX)) {
-	Volume::valueMin = wMin;
-	Volume::valueMax = wMax;
+        Volume::valueMin = wMin;
+        Volume::valueMax = wMax;
     }
     Volume::update_pending = false;
 }
@@ -1491,67 +1491,67 @@ void
 NanoVis::SetHeightmapRanges()
 {
     double xMin, xMax, yMin, yMax, zMin, zMax, wMin, wMax;
-    
+
     xMin = yMin = zMin = wMin = DBL_MAX;
     xMax = yMax = zMax = wMax = -DBL_MAX;
     for (unsigned int i = 0; i < heightMap.size(); i++) {
-	HeightMap *hmPtr;
-	
-	hmPtr = heightMap[i];
-	if (hmPtr == NULL) {
-	    continue;
-	}
-	if (xMin > hmPtr->xAxis.Min()) {
-	    xMin = hmPtr->xAxis.Min();
-	}
-	if (xMax < hmPtr->xAxis.Max()) {
-	    xMax = hmPtr->xAxis.Max();
-	}
-	if (yMin > hmPtr->yAxis.Min()) {
-	    yMin = hmPtr->yAxis.Min();
-	}
-	if (yMax < hmPtr->yAxis.Max()) {
-	    yMax = hmPtr->yAxis.Max();
-	}
-	if (zMin > hmPtr->zAxis.Min()) {
-	    zMin = hmPtr->zAxis.Min();
-	}
-	if (zMax < hmPtr->zAxis.Max()) {
-	    zMax = hmPtr->zAxis.Max();
-	}
-	if (wMin > hmPtr->wAxis.Min()) {
-	    wMin = hmPtr->wAxis.Min();
-	}
-	if (wMax < hmPtr->wAxis.Max()) {
-	    wMax = hmPtr->wAxis.Max();
-	}
+        HeightMap *hmPtr;
+
+        hmPtr = heightMap[i];
+        if (hmPtr == NULL) {
+            continue;
+        }
+        if (xMin > hmPtr->xAxis.Min()) {
+            xMin = hmPtr->xAxis.Min();
+        }
+        if (xMax < hmPtr->xAxis.Max()) {
+            xMax = hmPtr->xAxis.Max();
+        }
+        if (yMin > hmPtr->yAxis.Min()) {
+            yMin = hmPtr->yAxis.Min();
+        }
+        if (yMax < hmPtr->yAxis.Max()) {
+            yMax = hmPtr->yAxis.Max();
+        }
+        if (zMin > hmPtr->zAxis.Min()) {
+            zMin = hmPtr->zAxis.Min();
+        }
+        if (zMax < hmPtr->zAxis.Max()) {
+            zMax = hmPtr->zAxis.Max();
+        }
+        if (wMin > hmPtr->wAxis.Min()) {
+            wMin = hmPtr->wAxis.Min();
+        }
+        if (wMax < hmPtr->wAxis.Max()) {
+            wMax = hmPtr->wAxis.Max();
+        }
     }
     if ((xMin < DBL_MAX) && (xMax > -DBL_MAX)) {
-	grid->xAxis.SetScale(xMin, xMax);
+        grid->xAxis.SetScale(xMin, xMax);
     }
     if ((yMin < DBL_MAX) && (yMax > -DBL_MAX)) {
-	grid->yAxis.SetScale(yMin, yMax);
+        grid->yAxis.SetScale(yMin, yMax);
     }
     if ((zMin < DBL_MAX) && (zMax > -DBL_MAX)) {
-	grid->zAxis.SetScale(zMin, zMax);
+        grid->zAxis.SetScale(zMin, zMax);
     }
     if ((wMin < DBL_MAX) && (wMax > -DBL_MAX)) {
-	HeightMap::valueMin = wMin;
-	HeightMap::valueMax = wMax;
+        HeightMap::valueMin = wMin;
+        HeightMap::valueMax = wMax;
     }
     HeightMap::update_pending = false;
 }
 
 /*----------------------------------------------------*/
-void 
+void
 NanoVis::display()
 {
     //assert(glGetError()==0);
     if (HeightMap::update_pending) {
-	SetHeightmapRanges();
+        SetHeightmapRanges();
     }
     if (Volume::update_pending) {
-	SetVolumeRanges();
+        SetVolumeRanges();
     }
     //start final rendering
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); //clear screen
@@ -1563,7 +1563,7 @@ NanoVis::display()
 
         //camera setting activated
         cam->activate();
-        
+
         //set up the orientation of items in the scene.
         glPushMatrix();
         switch (updir) {
@@ -1575,29 +1575,29 @@ NanoVis::display()
         case 2:  // y
             // this is the default
             break;
-            
+
         case 3:  // z
             glRotatef(-90, 1, 0, 0);
             glRotatef(-90, 0, 0, 1);
             break;
-            
+
         case -1:  // -x
             glRotatef(-90, 0, 0, 1);
             break;
-            
+
         case -2:  // -y
             glRotatef(180, 0, 0, 1);
             glRotatef(-90, 0, 1, 0);
             break;
-            
+
         case -3:  // -z
             glRotatef(90, 1, 0, 0);
             break;
         }
-        
+
         // TBD : This will be removed after being sure that all the functions work well.
         //glPushMatrix();
-        
+
         //now render things in the scene
         if (axis_on) {
             draw_3d_axis();
@@ -1616,11 +1616,11 @@ NanoVis::display()
         //perf->disable();
         //fprintf(stderr, "particle pixels: %d\n", perf->get_pixel_count());
         //perf->reset();
-        
+
         //perf->enable();
         vol_renderer->render_all();
         //perf->disable();
-        
+
         for (unsigned int i = 0; i < heightMap.size(); ++i) {
             if (heightMap[i]->isVisible()) {
                 heightMap[i]->render(renderContext);
@@ -1673,19 +1673,19 @@ NanoVis::mouse(int button, int state, int x, int y)
     }
 }
 
-void 
+void
 NanoVis::update_rot(int delta_x, int delta_y)
 {
     live_rot_x += delta_x;
     live_rot_y += delta_y;
-    
+
     if (live_rot_x > 360.0) {
-        live_rot_x -= 360.0;    
+        live_rot_x -= 360.0;
     } else if(live_rot_x < -360.0) {
         live_rot_x += 360.0;
     }
     if (live_rot_y > 360.0) {
-        live_rot_y -= 360.0;    
+        live_rot_y -= 360.0;
     } else if(live_rot_y < -360.0) {
         live_rot_y += 360.0;
     }
@@ -1771,7 +1771,7 @@ NanoVis::keyboard(unsigned char key, int x, int y)
        break;
    default:
        break;
-   }    
+   }
 #ifdef EVENTLOG
    if(log){
        float param[3] = {live_obj_x, live_obj_y, live_obj_z};
@@ -1785,37 +1785,37 @@ NanoVis::keyboard(unsigned char key, int x, int y)
 void 
 NanoVis::motion(int x, int y)
 {
-    int old_x, old_y;   
+    int old_x, old_y;
 
     if(left_down){
         old_x = left_last_x;
-        old_y = left_last_y;   
+        old_y = left_last_y;
     } else if(right_down){
         old_x = right_last_x;
-        old_y = right_last_y;   
+        old_y = right_last_y;
     }
-    
+
     int delta_x = x - old_x;
     int delta_y = y - old_y;
-    
+
     //more coarse event handling
     //if(abs(delta_x)<10 && abs(delta_y)<10)
     //return;
-    
+
     if(left_down){
         left_last_x = x;
         left_last_y = y;
-        
+
         update_rot(-delta_y, -delta_x);
     } else if (right_down){
         //fprintf(stderr, "right mouse motion (%d,%d)\n", x, y);
-        
+
         right_last_x = x;
         right_last_y = y;
-        
+
         update_trans(0, 0, delta_x);
     }
-    
+
 #ifdef EVENTLOG
     float param[3] = {live_rot_x, live_rot_y, live_rot_z};
     Event* tmp = new Event(EVENT_ROTATE, param, NvGetTimeInterval());
@@ -1830,7 +1830,7 @@ NanoVis::motion(int x, int y)
 #ifdef notdef
 
 #ifdef XINETD
-void 
+void
 init_service()
 {
     //open log and map stderr to log file
@@ -1838,13 +1838,13 @@ init_service()
     close(2);
     dup2(fileno(xinetd_log), 2);
     dup2(2,1);
-    
-    //flush junk 
+
+    //flush junk
     fflush(stdout);
     fflush(stderr);
 }
 
-void 
+void
 end_service()
 {
     //close log file
@@ -1852,35 +1852,35 @@ end_service()
 }
 #endif  /*XINETD*/
 
-void 
-init_event_log() 
+void
+init_event_log()
 {
     event_log = fopen("event.txt", "w");
     assert(event_log!=0);
-    
+
     struct timeval time;
     gettimeofday(&time, NULL);
     cur_time = time.tv_sec*1000. + time.tv_usec/1000.;
 }
 
-void 
+void
 end_event_log()
 {
     fclose(event_log);
 }
 
-double 
+double
 get_time_interval()
 {
     struct timeval time;
     gettimeofday(&time, NULL);
     double new_time = time.tv_sec*1000. + time.tv_usec/1000.;
-    
+
     double interval = new_time - cur_time;
     cur_time = new_time;
     return interval;
 }
-#endif 
+#endif
 
 void removeAllData()
 {
@@ -1890,7 +1890,7 @@ void removeAllData()
 
 /*----------------------------------------------------*/
 int 
-main(int argc, char** argv) 
+main(int argc, char** argv)
 {
     char *path;
     path = NULL;
@@ -1917,44 +1917,44 @@ main(int argc, char** argv)
     }
 
     R2FilePath::getInstance()->setWorkingDirectory(argc, (const char**) argv);
-    
+
 #ifdef XINETD
     signal(SIGPIPE,SIG_IGN);
     NvInitService();
 #endif
-    
+
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA);
-    
+
     glutInitWindowSize(NanoVis::win_width, NanoVis::win_height);
-    
+
     glutInitWindowPosition(10, 10);
     render_window = glutCreateWindow(argv[0]);
     glutDisplayFunc(NanoVis::display);
-    
+
 #ifndef XINETD
     glutMouseFunc(NanoVis::mouse);
     glutMotionFunc(NanoVis::motion);
     glutKeyboardFunc(NanoVis::keyboard);
 #endif
-    
+
     glutIdleFunc(idle);
     glutReshapeFunc(NanoVis::resize_offscreen_buffer);
-    
+
     NanoVis::init(path);
     NanoVis::initGL();
     initTcl();
-    
+
 #ifdef EVENTLOG
     NvInitEventLog();
 #endif
     //event loop
     glutMainLoop();
-    
+
     removeAllData();
-    
+
     NvExit();
-    
+
     return 0;
 }
 
