@@ -14,6 +14,7 @@
 
 RpDict DICT_TEMPLATE_L ObjDict_Lib;
 RpDict DICT_TEMPLATE_U ObjDictUnits;
+RpDict DICT_TEMPLATE_V ObjDict_Void;
 
 /**********************************************************************/
 // FUNCTION: storeObject_Lib()
@@ -34,6 +35,7 @@ storeObject_Lib(RpLibrary* objectName, int key) {
     int retVal = 0;
     int dictKey = key;
     int newEntry = 0;
+    bool ci = false;
 
     if (objectName) {
         // dictionary returns a reference to the inserted value
@@ -44,7 +46,7 @@ storeObject_Lib(RpLibrary* objectName, int key) {
             dictKey = ObjDict_Lib.size() + 1;
         }
         long int dictKey_long = dictKey;
-        ObjDict_Lib.set(dictKey_long,objectName,NULL,&newEntry);
+        ObjDict_Lib.set(dictKey_long,objectName,NULL,&newEntry,ci);
         retVal = dictKey;
     }
 
@@ -93,22 +95,17 @@ getObject_Lib(int objKey) {
 
 void
 cleanLibDict () {
-    // clean up the dictionary
-
     RpDictEntry DICT_TEMPLATE_L *hPtr;
-    // RpDictIterator DICT_TEMPLATE iter(fortObjDict_Lib);
     // should rp_quit clean up the dict or some function in RpBindingsCommon.h
     RpDictIterator DICT_TEMPLATE_L iter(ObjDict_Lib);
 
     hPtr = iter.first();
 
     while (hPtr) {
-        // Py_DECREF(*(hPtr->getValue()));
         hPtr->erase();
         hPtr = iter.next();
     }
 
-    // if (fortObjDict_Lib.size()) {
     if (ObjDict_Lib.size()) {
         // probably want to change the warning sometime
         // printf("\nWARNING: internal dictionary is not empty..deleting\n");
@@ -134,13 +131,14 @@ storeObject_UnitsStr(std::string objectName) {
     int retVal = -1;
     int dictNextKey = ObjDictUnits.size() + 1;
     int newEntry = 0;
+    bool ci = false;
 
     if (objectName != "") {
         // dictionary returns a reference to the inserted value
         // no error checking to make sure it was successful in entering
         // the new entry.
         long int dictNextKey_long = dictNextKey;
-        ObjDictUnits.set(dictNextKey_long,objectName, NULL, &newEntry);
+        ObjDictUnits.set(dictNextKey_long,objectName,NULL,&newEntry,ci);
         retVal = dictNextKey;
     }
 
@@ -188,8 +186,6 @@ getObject_UnitsStr(int objKey) {
 
 void
 cleanUnitsDict () {
-    // clean up the dictionary
-
     RpDictEntry DICT_TEMPLATE_U *hPtr;
     // should rp_quit clean up the dict or some function in RpBindingsCommon.h
     RpDictIterator DICT_TEMPLATE_U iter(ObjDictUnits);
@@ -206,3 +202,97 @@ cleanUnitsDict () {
         // printf("\nWARNING: internal dictionary is not empty..deleting\n");
     }
 }
+
+/**********************************************************************/
+// FUNCTION: storeObject_Void()
+/// Store an object into the general dictionary.
+/**
+ * This function stores a void* object pointed to by 'objectName'
+ * into the general dictionary. This is helpful for writing bindings
+ * for languages that can not accept pointers to provide back to the
+ * function's caller.
+ *
+ * Returns the key of the object in the dictionary
+ * On Error, returns 0 (which also means nothing can be stored at 0)
+ */
+
+size_t
+storeObject_Void(void* objectName, size_t key) {
+
+    size_t retVal = 0;
+    size_t dictKey = key;
+    int newEntry = 0;
+    bool ci = false;
+
+    if (objectName) {
+        // dictionary returns a reference to the inserted value
+        // no error checking to make sure it was successful in entering
+        // the new entry.
+
+        if (dictKey == 0) {
+            dictKey = ObjDict_Void.size() + 1;
+        }
+        ObjDict_Void.set(dictKey,objectName,NULL,&newEntry,ci);
+        retVal = dictKey;
+    }
+
+    return retVal;
+}
+
+/**********************************************************************/
+// FUNCTION: getObject_Void()
+/// Get an object from the general dictionary.
+/**
+ * This function retrieves the void* object associated with the key
+ * 'objKey' from the general dictionary and returns its address to the
+ * caller. This is helpful for writing bindings for languages that can
+ * not accept pointers to provide back to the function's caller.
+ *
+ * Returns the address of the void* object in the dictionary
+ */
+
+void*
+getObject_Void(size_t objKey) {
+
+    RpDictEntry DICT_TEMPLATE_V* voidEntry = &(ObjDict_Void.getNullEntry());
+    RpDictEntry DICT_TEMPLATE_V* nullEntry = &(ObjDict_Void.getNullEntry());
+
+    voidEntry = &(ObjDict_Void.find(objKey));
+
+    if ( (!voidEntry->isValid()) || (voidEntry == nullEntry) ) {
+        return NULL;
+    }
+
+   return *(voidEntry->getValue());
+
+}
+
+/**********************************************************************/
+// FUNCTION: cleanVoidDict()
+/// Clean the library dictionary, removing all entries in the dictionary
+/**
+ * This function removes all entries from the library dictionary.
+ *
+ * \sa {storeObject_Lib,getObject_Lib}
+ */
+
+void
+cleanVoidDict () {
+    RpDictEntry DICT_TEMPLATE_V *hPtr;
+    // should rp_quit clean up the dict or some function in RpBindingsCommon.h
+    RpDictIterator DICT_TEMPLATE_V iter(ObjDict_Void);
+
+    hPtr = iter.first();
+
+    while (hPtr) {
+        hPtr->erase();
+        hPtr = iter.next();
+    }
+
+    if (ObjDict_Lib.size()) {
+        // probably want to change the warning sometime
+        // printf("\nWARNING: internal dictionary is not empty..deleting\n");
+    }
+
+}
+
