@@ -54,6 +54,8 @@ HEADERS = \
 		RpBufferCInterface.h \
 		RpDict.h \
 		RpDXWriter.h \
+		RpDXWriterFInterface.h \
+		RpDXWriterFStubs.h \
 		RpEncode.h \
 		RpEntityRef.h \
 		RpFortranCommon.h \
@@ -120,6 +122,7 @@ OBJS = 		\
 		RpBuffer.o \
 		RpBufferCInterface.o \
 		RpDXWriter.o \
+		RpDXWriterFInterface.o \
 		RpEncode.o \
 		RpEntityRef.o \
 		RpFortranCommon.o \

@@ -113,12 +113,12 @@ void rp_lib_put_file (      int* handle,
 /*
  * rp_lib_put_obj still needs to be written
  * keep function declaration around
+*/
 void rp_lib_put_obj (       int* handle,
                             char* path,
                             int* valHandle,
                             int* append,
                             int path_len );
-*/
 
 /*
  * rp_lib_put_id_obj still needs to be written
