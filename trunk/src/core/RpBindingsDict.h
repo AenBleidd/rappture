@@ -29,6 +29,7 @@ class RpUnits;
 
 #define DICT_TEMPLATE_L <long,RpLibrary*>
 #define DICT_TEMPLATE_U <long,std::string>
+#define DICT_TEMPLATE_V <size_t,void*>
 
 // global declaration of library and units dictionaries
 // for languages that cannot return rappture objects.
@@ -36,16 +37,20 @@ class RpUnits;
 
 extern RpDict DICT_TEMPLATE_L ObjDict_Lib;
 extern RpDict DICT_TEMPLATE_U ObjDictUnits;
+extern RpDict DICT_TEMPLATE_V ObjDict_Void;
 
 
 int storeObject_Lib(RpLibrary* objectName, int key=0);
 int storeObject_UnitsStr(std::string objectName);
+size_t storeObject_Void(void* objectName, size_t key=0);
 
 RpLibrary* getObject_Lib(int objKey);
 const RpUnits* getObject_UnitsStr(int objKey);
+void* getObject_Void(size_t objKey);
 
 void cleanLibDict();
 void cleanUnitsDict();
+void cleanVoidDict();
 
 #ifdef __cplusplus
 }
