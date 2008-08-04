@@ -13,9 +13,6 @@
  * ======================================================================
  */
 
-#include <stdlib.h>
-#include <ctype.h>
-#include <string.h>
 #include <string>
 
 #ifndef _RpFORTRAN_COMMON_H

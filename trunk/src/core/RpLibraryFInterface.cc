@@ -14,6 +14,7 @@
 #include "RpLibraryFInterface.h"
 #include "RpBindingsDict.h"
 #include "RpLibraryFStubs.c"
+#include "RpDXWriter.h"
 
 /**********************************************************************/
 // FUNCTION: rp_lib(const char* filePath, int filePath_len)
@@ -59,7 +60,7 @@ int rp_lib_element_obj(int* handle,     /* integer handle of library */
     inPath = null_terminate_str(path,path_len);
 
     if ((handle) && (*handle != 0)) {
-        lib = getObject_Lib(*handle);
+        lib = (RpLibrary*) getObject_Void(*handle);
         if (lib) {
             retObj = lib->element(inPath);
 
@@ -90,7 +91,7 @@ void rp_lib_element_comp( int* handle, /* integer handle of library */
 
     inPath = null_terminate_str(path,path_len);
 
-    lib = getObject_Lib(*handle);
+    lib = (RpLibrary*) getObject_Void(*handle);
 
     if (lib) {
         retStr = lib->element(inPath)->nodeComp();
@@ -119,7 +120,7 @@ void rp_lib_element_id(   int* handle,       /* integer handle of library    */
 
     inPath = null_terminate_str(path,path_len);
 
-    lib = getObject_Lib(*handle);
+    lib = (RpLibrary*) getObject_Void(*handle);
 
     if (lib) {
         retStr = lib->element(inPath)->nodeId();
@@ -147,7 +148,7 @@ void rp_lib_element_type( int* handle,       /* integer handle of library */
 
     inPath = null_terminate_str(path,path_len);
 
-    lib = getObject_Lib(*handle);
+    lib = (RpLibrary*) getObject_Void(*handle);
 
     if (lib) {
         retStr = lib->element(inPath)->nodeType();
@@ -174,12 +175,12 @@ int rp_lib_children (   int* handle, /* integer handle of library */
     inPath = null_terminate_str(path,path_len);
 
     if (handle && (*handle >= 0) ) {
-        lib = getObject_Lib(*handle);
+        lib = (RpLibrary*) getObject_Void(*handle);
         if (lib) {
 
             if (*childHandle > 0) {
                 // check to see if there were any previously returned children
-                childNode = getObject_Lib(*childHandle);
+                childNode = (RpLibrary*) getObject_Void(*childHandle);
             }
 
             // call the children base method
@@ -406,7 +407,7 @@ int rp_lib_child_obj ( int* handle,
 
     if (rapptureStarted) {
         if ((handle) && (*handle != 0)) {
-            lib = getObject_Lib(*handle);
+            lib = (RpLibrary*) getObject_Void(*handle);
 
             if (lib) {
                 list = rpChildren_f(lib, inPath, "object");
@@ -459,7 +460,7 @@ void rp_lib_get( int* handle, /* integer handle of library */
     inPath = null_terminate_str(path,path_len);
 
     if ((handle) && (*handle != 0)) {
-        lib = getObject_Lib(*handle);
+        lib = (RpLibrary*) getObject_Void(*handle);
 
         if (lib) {
             xmlText = lib->get(inPath);
@@ -492,7 +493,7 @@ void rp_lib_get_str( int* handle, /* integer handle of library */
     inPath = null_terminate_str(path,path_len);
 
     if ((handle) && (*handle != 0)) {
-        lib = getObject_Lib(*handle);
+        lib = (RpLibrary*) getObject_Void(*handle);
 
         if (lib) {
             xmlText = lib->getString(inPath);
@@ -524,7 +525,7 @@ double rp_lib_get_double( int* handle,   /* integer handle of library */
     inPath = null_terminate_str(path,path_len);
 
     if ((handle) && (*handle != 0)) {
-        lib = getObject_Lib(*handle);
+        lib = (RpLibrary*) getObject_Void(*handle);
 
         if (lib) {
             retVal = lib->getDouble(inPath);
@@ -554,7 +555,7 @@ int rp_lib_get_integer( int* handle,   /* integer handle of library */
     inPath = null_terminate_str(path,path_len);
 
     if ((handle) && (*handle != 0)) {
-        lib = getObject_Lib(*handle);
+        lib = (RpLibrary*) getObject_Void(*handle);
 
         if (lib) {
             retVal = lib->getInt(inPath);
@@ -585,7 +586,7 @@ int rp_lib_get_boolean( int* handle,   /* integer handle of library */
     inPath = null_terminate_str(path,path_len);
 
     if ((handle) && (*handle != 0)) {
-        lib = getObject_Lib(*handle);
+        lib = (RpLibrary*) getObject_Void(*handle);
 
         if (lib) {
             value = lib->getBool(inPath);
@@ -623,7 +624,7 @@ void rp_lib_put_str( int* handle,
     inValue = null_terminate_str(value,value_len);
 
     if ((handle) && (*handle != 0)) {
-        lib = getObject_Lib(*handle);
+        lib = (RpLibrary*) getObject_Void(*handle);
 
         if (lib) {
             lib->put(inPath,inValue,"",*append);
@@ -661,7 +662,7 @@ void rp_lib_put_id_str ( int* handle,
     inId = null_terminate_str(id,id_len);
 
     if ((handle) && (*handle != 0)) {
-        lib = getObject_Lib(*handle);
+        lib = (RpLibrary*) getObject_Void(*handle);
 
         if (lib) {
             lib->put(inPath,inValue,inId,*append);
@@ -699,7 +700,7 @@ void rp_lib_put_data( int* handle,
     }
 
     if ((handle) && (*handle != 0)) {
-        lib = getObject_Lib(*handle);
+        lib = (RpLibrary*) getObject_Void(*handle);
 
         if (lib) {
             lib->putData(inPath,bytes,bufferSize,*append);
@@ -733,7 +734,7 @@ void rp_lib_put_file( int* handle,
     inFileName = null_terminate_str(fileName,fileName_len);
 
     if ((handle) && (*handle != 0)) {
-        lib = getObject_Lib(*handle);
+        lib = (RpLibrary*) getObject_Void(*handle);
 
         if (lib) {
             lib->putFile(inPath,inFileName,*compress,*append);
@@ -745,44 +746,41 @@ void rp_lib_put_file( int* handle,
 }
 
 
-//void rp_lib_put_obj( int* handle, 
-//                        char* path, 
-//                        int* valHandle, 
-//                        int* append,
-//                        int path_len
-//                      ) 
-//{
-//    std::string inPath = "";
-//    RpLibrary* lib = NULL;
-//
-//    // inPath = null_terminate(path,path_len);
-//    inPath = std::string(path,path_len);
-//
-//    /*
-//    if (inPath) {
-//        path_len = strlen(inPath) + 1;
-//    }
-//    */
-//
-//    if ((handle) && (*handle != 0)) {
-//        lib = getObject_Lib(*handle);
-//        
-//        if (lib) {
-//            // rpPut(lib, inPath, inValue, inId, *append);
-//            lib->put(inPath,inValue,"",*append);
-//        }
-//    }
-//
-//    /*
-//    rp_lib_put_id_obj(handle,inPath,valHandle,NULL,append,path_len,0);
-//
-//    if (inPath) {
-//        free(inPath);
-//        inPath = NULL;
-//    }
-//    */
-//
-//}
+void rp_lib_put_obj( int* handle,
+                        char* path,
+                        int* valHandle,
+                        int* append,
+                        int path_len
+                      )
+{
+    std::string inPath = "";
+    RpLibrary* lib = NULL;
+    // Rp_Obj does not currently exist
+    Rappture::DXWriter* obj = NULL;
+    char* objStr = NULL;
+
+
+    inPath = null_terminate_str(path,path_len);
+
+    if ((handle) && (*handle != 0)) {
+        lib = (RpLibrary*) getObject_Void(*handle);
+        if (!lib) {
+            // return error, lib was not found
+        }
+
+        obj = (Rappture::DXWriter*) getObject_Void(*valHandle);
+        if (!obj) {
+            // return error, obj was not found
+        }
+
+        // textsize function does not currently exist
+        objStr = (char*) malloc(obj->size()*sizeof(char));
+        obj->write(objStr);
+        lib->put(inPath,objStr,"",*append);
+        free(objStr);
+    }
+}
+
 
 /*
 void rp_lib_put_id_obj ( int* handle, 
@@ -805,8 +803,8 @@ void rp_lib_put_id_obj ( int* handle,
 
     if (rapptureStarted) {
         if ((handle) && (*handle != 0)) {
-            lib = getObject_Lib(*handle);
-            value = getObject_Lib(*valHandle);
+            lib = (RpLibrary*) getObject_Void(*handle);
+            value = (RpLibrary*) getObject_Void(*valHandle);
 
             if (lib && value) {
                 // retObj is a borrowed object 
@@ -843,7 +841,7 @@ int rp_lib_remove (int* handle, char* path, int path_len)
 
     if (rapptureStarted) {
         if ((handle) && (*handle != 0)) {
-            lib = getObject_Lib(*handle);
+            lib = (RpLibrary*) getObject_Void(*handle);
 
             if (lib) {
                 removedObj = rpRemove(lib, inPath);
@@ -876,7 +874,7 @@ int rp_lib_xml_len (int* handle)
 
     if (rapptureStarted) {
         if ((handle) && (*handle != 0)) {
-            lib = getObject_Lib(*handle);
+            lib = (RpLibrary*) getObject_Void(*handle);
 
             if (lib) {
                 // dont modify xmlText, borrowed pointer
@@ -916,7 +914,7 @@ int rp_lib_write_xml(int* handle, char* outFile, int outFile_len)
 
     if ( file.is_open() ) {
         if ((handle) && (*handle != 0)) {
-            lib = getObject_Lib(*handle);
+            lib = (RpLibrary*) getObject_Void(*handle);
 
             if (lib) {
                 xmlText = lib->xml();
@@ -945,7 +943,7 @@ void  rp_lib_xml(int* handle, char* retText, int retText_len)
     RpLibrary* lib = NULL;
 
     if ((handle) && (*handle != 0)) {
-        lib = getObject_Lib(*handle);
+        lib = (RpLibrary*) getObject_Void(*handle);
 
         if (lib) {
             xmlText = lib->xml();
@@ -967,7 +965,7 @@ void rp_lib_node_comp ( int* handle, char* retText, int retText_len ) {
     RpLibrary* node = NULL;
 
     if ((handle) && (*handle != 0)) {
-        node = getObject_Lib(*handle);
+        node = (RpLibrary*) getObject_Void(*handle);
 
         if (node) {
             retStr = node->nodeComp();
@@ -989,7 +987,7 @@ void rp_lib_node_type ( int* handle, char* retText, int retText_len ) {
     RpLibrary* node = NULL;
 
     if ((handle) && (*handle != 0)) {
-        node = getObject_Lib(*handle);
+        node = (RpLibrary*) getObject_Void(*handle);
 
         if (node) {
             retStr = node->nodeType();
@@ -1011,7 +1009,7 @@ void rp_lib_node_id ( int* handle, char* retText, int retText_len ) {
     RpLibrary* node = NULL;
 
     if ((handle) && (*handle != 0)) {
-        node = getObject_Lib(*handle);
+        node = (RpLibrary*) getObject_Void(*handle);
 
         if (node) {
             retStr = node->nodeId();
@@ -1031,7 +1029,7 @@ void rp_result(int* handle) {
     RpLibrary* lib = NULL;
 
     if (handle && *handle != 0) {
-        lib = getObject_Lib(*handle);
+        lib = (RpLibrary*) getObject_Void(*handle);
         if (lib) {
             lib->put("tool.version.rappture.language", "fortran");
             lib->result();

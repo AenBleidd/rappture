@@ -12,7 +12,11 @@
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  * ======================================================================
  */
+
 #include "RpFortranCommon.h"
+#include <stdlib.h>
+#include <ctype.h>
+#include <string.h>
 
 char* null_terminate(char* inStr, int len) {
     int retVal = 0;
@@ -85,7 +89,7 @@ std::string null_terminate_str(const char* inStr, int len)
     // return retVal;
 
     return newStr;
-}             
+}
 
 
 void fortranify(const char* inBuff, char* retText, int retTextLen) {
