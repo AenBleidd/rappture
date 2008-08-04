@@ -92,7 +92,7 @@ RpEncode_encode(PyObject *self, PyObject *args, PyObject *keywds)
 PyDoc_STRVAR(RpEncode_decode_doc,
 "decode(data,flags)\n\
 \n\
-Encode the provided data with gzip compression and base64 \n\
+Decode the provided data with gzip compression and base64 \n\
 according to the provided flags");
 
 static PyObject*
@@ -109,13 +109,13 @@ RpEncode_decode(PyObject *self, PyObject *args, PyObject *keywds)
     static char *kwlist[] = {"data", "flags", NULL};
 
     if (PyTuple_Size(args) != 2) {
-        PyErr_SetString(PyExc_TypeError,"encode() takes exactly 2 arguments");
+        PyErr_SetString(PyExc_TypeError,"decode() takes exactly 2 arguments");
         return NULL;
     }
 
     if (!PyArg_ParseTupleAndKeywords(args, keywds, "s#i",
             kwlist, &data, &dlen, &flags)) {
-        PyErr_SetString(PyExc_TypeError,"encode() takes exactly 2 arguments");
+        PyErr_SetString(PyExc_TypeError,"decode() takes exactly 2 arguments");
         return NULL;
     }
 
