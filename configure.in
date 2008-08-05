@@ -173,6 +173,7 @@ if test "$with_perl" != "no" ; then
       PERL_CPPFLAGS=`${PERL} -MConfig -e 'print $Config{cppflags}'`
       PERL_VENDORLIB=`${PERL} -MConfig -e 'print $Config{vendorlib}'`
       PERL_PRIVLIB=`${PERL} -MConfig -e 'print $Config{privlib}'`
+      PERL_INSTALLARCHLIB=`${PERL} -MConfig -e 'print $Config{installarchlib}'`
       PERL_VERSION_RV=`echo ${PERL_VERSION} | cut -d'.' -f1-2`
     fi
 fi
@@ -185,6 +186,7 @@ AC_SUBST(PERL_CCFLAGS)
 AC_SUBST(PERL_CPPFLAGS)
 AC_SUBST(PERL_VENDORLIB)
 AC_SUBST(PERL_PRIVLIB)
+AC_SUBST(PERL_INSTALLARCHLIB)
 AC_SUBST(PERL_VERSION_RV)
 
 PYTHON=""
