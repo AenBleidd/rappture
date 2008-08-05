@@ -28,7 +28,7 @@ CXX_SWITCHES	= $(CFLAGS) $(CFLAGS_DEBUG) $(INCLUDES) $(DEFINES)
 INCLUDES	= \
 		-I$(srcdir) \
 		-I$(srcdir)/../../src/core \
-		-I$(privlib)/i686-linux/CORE
+		-I$(installarchlib)/CORE
 
 LIBS		= \
 		-L../../src/core -lrappture \
@@ -44,19 +44,19 @@ INSTALL         = @INSTALL@
 MKDIR_P         = @MKDIR_P@
 RM              = rm -f
 PERL            = @PERL@
-POD2MAN		= @POD2MAN@
-XSUBPP		= @XSUBPP@
 PERL_ARCHLIB    = @PERL_ARCHLIB@
 PERL_VERSION    = @PERL_VERSION@
 PERL_VERSION_RV = @PERL_VERSION_RV@
 MAN3EXT		= .3pm
 perl5dir        = $$RAPPTURE_INSTALL_DIR/lib/perl/$(PERL_VERSION_RV)
 envfile		= perl.env
+includes	= @PERL_INCLUDES@
 ccflags        	= @PERL_CCFLAGS@
 cppflags	= @PERL_CPPFLAGS@
 vendorlib	= @PERL_VENDORLIB@
 privlib		= @PERL_PRIVLIB@
 archlib		= @PERL_ARCHLIB@
+installarchlib  = @PERL_INSTALLARCHLIB@
 
 name 		= Rappture
 lib		= $(name)$(SHLIB_SUFFIX)
@@ -78,7 +78,7 @@ tmp:
 	(cd $(build_dir); $(PERL) Makefile.PL)
 
 $(envfile):
-	echo 'export PERL5LIB=$(perl5dir):$$PERL5LIB' > $(envfile)
+	echo 'export PERL5LIB=$(destdir):$$PERL5LIB' > $(envfile)
 
 install: 
 	$(MAKE) -C $(build_dir) install_perl

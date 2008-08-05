@@ -737,6 +737,7 @@ PERL_CCFLAGS
 PERL_CPPFLAGS
 PERL_VENDORLIB
 PERL_PRIVLIB
+PERL_INSTALLARCHLIB
 PERL_VERSION_RV
 PYTHON
 PYTHON_CPPFLAGS
@@ -8927,11 +8928,13 @@ fi
       PERL_CPPFLAGS=`${PERL} -MConfig -e 'print $Config{cppflags}'`
       PERL_VENDORLIB=`${PERL} -MConfig -e 'print $Config{vendorlib}'`
       PERL_PRIVLIB=`${PERL} -MConfig -e 'print $Config{privlib}'`
+      PERL_INSTALLARCHLIB=`${PERL} -MConfig -e 'print $Config{installarchlib}'`
       PERL_VERSION_RV=`echo ${PERL_VERSION} | cut -d'.' -f1-2`
     fi
 fi
 { $as_echo "$as_me:$LINENO: result: ${PERL}" >&5
 $as_echo "${PERL}" >&6; }
+
 
 
 
