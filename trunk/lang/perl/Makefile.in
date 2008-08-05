@@ -9,17 +9,63 @@ mandir          = @mandir@
 prefix          = @prefix@
 srcdir          = @srcdir@
 
+CC              = $(CXX)
+CCC		= @CC@
+CFLAGS_DEBUG    = @CFLAGS_DEBUG@ -Wall
+CFLAGS_OPTIMIZE = @CFLAGS_OPTIMIZE@
+STLIB_LD        = @STLIB_LD@
+SHLIB_LD        = @SHLIB_LD@
+SHLIB_CFLAGS    = @SHLIB_CFLAGS@
+SHLIB_LDFLAGS   = @SHLIB_LDFLAGS@
+SHLIB_SUFFIX    = @SHLIB_SUFFIX@
+CFLAGS_DEFAULT  = @CFLAGS_DEFAULT@
+LIB_SEARCH_DIRS = @LIB_SEARCH_DIRS@
+CFLAGS          = @CFLAGS@ $(cppflags)
+
+CC_SWITCHES	= $(CFLAGS) $(CFLAGS_DEBUG) $(INCLUDES) $(DEFINES)
+CXX_SWITCHES	= $(CFLAGS) $(CFLAGS_DEBUG) $(INCLUDES) $(DEFINES)
+
+INCLUDES	= \
+		-I$(srcdir) \
+		-I$(srcdir)/../../src/core \
+		-I$(privlib)/i686-linux/CORE
+
+LIBS		= \
+		-L../../src/core -lrappture \
+		-lexpat 
+RANLIB 		= @RANLIB@
+AR 		= ar
+VPATH		= $(srcdir)
+RM		= rm -f
+
+CDEBUGFLAGS     = -g -Wall
+
 INSTALL         = @INSTALL@
 MKDIR_P         = @MKDIR_P@
 RM              = rm -f
 PERL            = @PERL@
+POD2MAN		= @POD2MAN@
+XSUBPP		= @XSUBPP@
 PERL_ARCHLIB    = @PERL_ARCHLIB@
 PERL_VERSION    = @PERL_VERSION@
 PERL_VERSION_RV = @PERL_VERSION_RV@
+MAN3EXT		= .3pm
 perl5dir        = $$RAPPTURE_INSTALL_DIR/lib/perl/$(PERL_VERSION_RV)
-envfile		= _perl.env
+envfile		= perl.env
+ccflags        	= @PERL_CCFLAGS@
+cppflags	= @PERL_CPPFLAGS@
+vendorlib	= @PERL_VENDORLIB@
+privlib		= @PERL_PRIVLIB@
+archlib		= @PERL_ARCHLIB@
+
+name 		= Rappture
+lib		= $(name)$(SHLIB_SUFFIX)
+man		= $(name)$(MAN3EXT)
+bootstrap	= $(name).bs
+pod		= perllocal.pod
 
 build_dir       = build
+destdir		= $(libdir)/perl
 
 all: tmp $(envfile)
 	$(MAKE) -C $(build_dir)
@@ -45,3 +91,42 @@ clean:
 
 distclean: clean
 
+testme: $(lib) $(bootstrap) $(man) $(pod) $(envfile)
+
+Rappture.c: $(srcdir)/Rappture.xs
+	$(PERL) $(privlib)/ExtUtils/xsubpp -C++ \
+		-typemap $(privlib)/ExtUtils/typemap \
+		-typemap $(srcdir)/typemap $? > $@
+Rappture.o: Rappture.c
+	$(CXX) -c $(CXX_SWITCHES) $? 
+
+$(bootstrap):
+	$(PERL) "-MExtUtils::Mkbootstrap" \
+		-e "Mkbootstrap('Rappture','rappture');"
+
+$(lib): Rappture.o
+	$(SHLIB_LD) $(SHLIB_CFLAGS) -o $@ $< $(LIB_SEARCH_DIRS) $(LIBS)
+
+$(man): $(srcdir)/lib/Rappture.pm 
+	$(PERL) "-MExtUtils::Command::MM" -e "pod2man" -- \
+		--section=3 --perm_rw=444 $? $@
+perllocal.pod:
+	$(PERL) "-MExtUtils::Command::MM" -e perllocal_install \
+		"Module" "Rappture" \
+                "installed into" "$(destdir)" \
+                LINKTYPE "dynamic" \
+                VERSION "0.01" \
+                EXE_FILES "" >> $@
+
+myinstall: $(lib) $(bootstrap) $(man) $(pod) $(envfile)
+	$(MKDIR_P) $(destdir)
+	$(INSTALL) -m 555 $(lib) $(destdir)
+	$(INSTALL) -m 444 $(srcdir)/lib/Rappture.pm $(destdir)
+	$(INSTALL) -m 444 $(bootstrap) $(destdir)
+	$(INSTALL) -m 444 $(man) $(destdir)
+	$(INSTALL) -m 444 $(pod) $(destdir)
+	$(MKDIR_P) $(bindir)/lang
+	$(INSTALL) -m 555 $(envfile) $(bindir)/lang
+
+myclean:
+	$(RM) $(lib) $(bootstrap) $(man) $(pod) Rappture.o $(envfile)
