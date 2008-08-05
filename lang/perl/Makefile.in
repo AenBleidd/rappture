@@ -22,27 +22,16 @@ CFLAGS_DEFAULT  = @CFLAGS_DEFAULT@
 LIB_SEARCH_DIRS = @LIB_SEARCH_DIRS@
 CFLAGS          = @CFLAGS@ $(cppflags)
 
-CC_SWITCHES	= $(CFLAGS) $(CFLAGS_DEBUG) $(INCLUDES) $(DEFINES)
-CXX_SWITCHES	= $(CFLAGS) $(CFLAGS_DEBUG) $(INCLUDES) $(DEFINES)
-
-INCLUDES	= \
-		-I$(srcdir) \
-		-I$(srcdir)/../../src/core \
-		-I$(installarchlib)/CORE
-
-LIBS		= \
-		-L../../src/core -lrappture \
-		-lexpat 
-RANLIB 		= @RANLIB@
 AR 		= ar
-VPATH		= $(srcdir)
+INSTALL         = @INSTALL@
+MKDIR_P         = @MKDIR_P@
+RANLIB 		= @RANLIB@
 RM		= rm -f
+RM              = rm -f
+VPATH		= $(srcdir)
 
 CDEBUGFLAGS     = -g -Wall
 
-INSTALL         = @INSTALL@
-MKDIR_P         = @MKDIR_P@
-RM              = rm -f
 PERL            = @PERL@
 PERL_ARCHLIB    = @PERL_ARCHLIB@
 PERL_VERSION    = @PERL_VERSION@
@@ -64,39 +53,27 @@ man		= $(name)$(MAN3EXT)
 bootstrap	= $(name).bs
 pod		= perllocal.pod
 
-build_dir       = build
 destdir		= $(libdir)/perl
 
-all: tmp $(envfile)
-	$(MAKE) -C $(build_dir)
+CC_SWITCHES	= $(CFLAGS) $(CFLAGS_DEBUG) $(INCLUDES) $(DEFINES)
+CXX_SWITCHES	= $(CFLAGS) $(CFLAGS_DEBUG) $(INCLUDES) $(DEFINES)
 
-tmp:
-	$(RM) -r $(build_dir)
-	$(MKDIR_P) $(build_dir)
-	cp -p Makefile.PL $(build_dir)/Makefile.PL
-	tar -C $(srcdir) -clf - . | tar -C $(build_dir) -xpf -
-	(cd $(build_dir); $(PERL) Makefile.PL)
+INCLUDES	= \
+		-I$(srcdir) \
+		-I$(srcdir)/../../src/core \
+		-I$(installarchlib)/CORE
 
-$(envfile):
-	echo 'export PERL5LIB=$(destdir):$$PERL5LIB' > $(envfile)
+LIBS		= \
+		-L../../src/core -lrappture \
+		-lexpat 
 
-install: 
-	$(MAKE) -C $(build_dir) install_perl
-	$(INSTALL) -m 555 $(envfile) $(bindir)
-
-clean: 
-	$(MAKE) -C $(build_dir) clean
-	$(RM) -rf $(build_dir)
-	$(RM) $(envfile)
-
-distclean: clean
-
-testme: $(lib) $(bootstrap) $(man) $(pod) $(envfile)
+all: $(lib) $(bootstrap) $(man) $(pod) $(envfile)
 
 Rappture.c: $(srcdir)/Rappture.xs
 	$(PERL) $(privlib)/ExtUtils/xsubpp -C++ \
 		-typemap $(privlib)/ExtUtils/typemap \
 		-typemap $(srcdir)/typemap $? > $@
+
 Rappture.o: Rappture.c
 	$(CXX) -c $(CXX_SWITCHES) $? 
 
@@ -110,7 +87,7 @@ $(lib): Rappture.o
 $(man): $(srcdir)/lib/Rappture.pm 
 	$(PERL) "-MExtUtils::Command::MM" -e "pod2man" -- \
 		--section=3 --perm_rw=444 $? $@
-perllocal.pod:
+$(pod):
 	$(PERL) "-MExtUtils::Command::MM" -e perllocal_install \
 		"Module" "Rappture" \
                 "installed into" "$(destdir)" \
@@ -118,7 +95,10 @@ perllocal.pod:
                 VERSION "0.01" \
                 EXE_FILES "" >> $@
 
-myinstall: $(lib) $(bootstrap) $(man) $(pod) $(envfile)
+$(envfile):
+	echo 'export PERL5LIB=$(destdir):$$PERL5LIB' > $(envfile)
+
+install: $(lib) $(bootstrap) $(man) $(pod) $(envfile)
 	$(MKDIR_P) $(destdir)
 	$(INSTALL) -m 555 $(lib) $(destdir)
 	$(INSTALL) -m 444 $(srcdir)/lib/Rappture.pm $(destdir)
@@ -128,5 +108,32 @@ myinstall: $(lib) $(bootstrap) $(man) $(pod) $(envfile)
 	$(MKDIR_P) $(bindir)/lang
 	$(INSTALL) -m 555 $(envfile) $(bindir)/lang
 
-myclean:
+clean:
 	$(RM) $(lib) $(bootstrap) $(man) $(pod) Rappture.o $(envfile)
+
+distclean: clean
+
+
+# Old build procedure
+
+#build_dir       = build
+
+# all: tmp $(envfile)
+# 	$(MAKE) -C $(build_dir)
+
+# tmp:
+# 	$(RM) -r $(build_dir)
+# 	$(MKDIR_P) $(build_dir)
+# 	cp -p Makefile.PL $(build_dir)/Makefile.PL
+# 	tar -C $(srcdir) -clf - . | tar -C $(build_dir) -xpf -
+# 	(cd $(build_dir); $(PERL) Makefile.PL)
+
+# install: 
+# 	$(MAKE) -C $(build_dir) install_perl
+# 	$(INSTALL) -m 555 $(envfile) $(bindir)
+
+# clean: 
+# 	$(MAKE) -C $(build_dir) clean
+# 	$(RM) -rf $(build_dir)
+# 	$(RM) $(envfile)
+
