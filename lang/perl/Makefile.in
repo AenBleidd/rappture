@@ -17,10 +17,11 @@ PERL_ARCHLIB    = @PERL_ARCHLIB@
 PERL_VERSION    = @PERL_VERSION@
 PERL_VERSION_RV = @PERL_VERSION_RV@
 perl5dir        = $$RAPPTURE_INSTALL_DIR/lib/perl/$(PERL_VERSION_RV)
+envfile		= _perl.env
 
 build_dir       = build
 
-all: tmp perl.env
+all: tmp $(envfile)
 	$(MAKE) -C $(build_dir)
 
 tmp:
@@ -30,17 +31,17 @@ tmp:
 	tar -C $(srcdir) -clf - . | tar -C $(build_dir) -xpf -
 	(cd $(build_dir); $(PERL) Makefile.PL)
 
-perl.env:
-	echo 'export PERL5LIB=$(perl5dir):$$PERL5LIB' > perl.env
+$(envfile):
+	echo 'export PERL5LIB=$(perl5dir):$$PERL5LIB' > $(envfile)
 
 install: 
 	$(MAKE) -C $(build_dir) install_perl
-	$(INSTALL) -m 555 perl.env $(bindir)
+	$(INSTALL) -m 555 $(envfile) $(bindir)
 
 clean: 
 	$(MAKE) -C $(build_dir) clean
 	$(RM) -rf $(build_dir)
-	$(RM) perl.env
+	$(RM) $(envfile)
 
 distclean: clean
 

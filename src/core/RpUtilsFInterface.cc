@@ -17,8 +17,10 @@
 #include "RpFortranCommon.h"
 
 #ifdef __cplusplus
-extern "C" {
+extern "C" int rp_utils_progress(int *percent, char *text, int text_len);
 #endif
+
+#include <stdlib.h>
 
 /**********************************************************************/
 // FUNCTION: rp_utils_progress(int percent, const char* text, int text_len)
@@ -26,18 +28,17 @@ extern "C" {
 /**
  */
 
-int rp_utils_progress(int* percent, char* text, int text_len)
+int 
+rp_utils_progress(int *percentPtr, char *text, int text_len)
 {
-    int retVal = 1;
-    const char* inText = NULL;
+    const char* inText;
     inText = null_terminate(text, text_len);
     if (inText != NULL) {
-        retVal = Rappture::Utils::progress(*percent,inText);
-        free((void*)inText);
-    }
+	return 1;
+    } 
+    int retVal;
+    retVal = Rappture::Utils::progress(*percentPtr, inText);
+    free((void*)inText);
     return retVal;
 }
 
-#ifdef __cplusplus
-}
-#endif

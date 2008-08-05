@@ -20,6 +20,7 @@ MEX             = @MEX@
 MEX_ARCH	= @MEX_ARCH@
 EXT		= .mexglx
 matlabdir	= $$RAPPTURE_INSTALL_DIR/lib/matlab
+envfile 	= _matlab.env
 
 INCLUDES  	= \
 		-I$(srcdir)/../../src/core \
@@ -65,7 +66,7 @@ OBJS		= \
 		rpUnitsGetUnitsName$(EXT) \
 		rpUtilsProgress$(EXT) 
 
-all: $(OBJS) matlab.env
+all: $(OBJS) $(envfile)
 
 .SUFFIXES: .cc $(EXT)
 
@@ -77,13 +78,13 @@ install: $(OBJS)
 	for i in $(OBJS) ; do \
 	  $(INSTALL) -m 444  $$i $(destdir) ; \
 	done
-	$(INSTALL) -m 555 matlab.env $(bindir)
+	$(INSTALL) -m 555 $(envfile) $(bindir)
 
-matlab.env:
-	echo 'export MATLABPATH=$(matlabdir):$$MATLABPATH' > matlab.env
+$(envfile):
+	echo 'export MATLABPATH=$(matlabdir):$$MATLABPATH' > $(envfile)
 
 clean: 
-	$(RM) $(OBJS) matlab.env
+	$(RM) $(OBJS) $(envfile)
 
 distclean: clean
 	$(RM) Makefile *~
