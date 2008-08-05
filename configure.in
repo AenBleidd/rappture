@@ -154,6 +154,10 @@ PERL=
 PERL_INCLUDES=
 PERL_ARCHLIB=
 PERL_VERSION=
+PERL_VENDORLIB=
+PERL_PRIVLIB=
+PERL_CPPFLAGS=
+PERL_CCFlAGS=
 PERL_VERSION_RV=
 if test "$with_perl" != "no" ; then
     AC_MSG_CHECKING([for perl])
@@ -165,6 +169,10 @@ if test "$with_perl" != "no" ; then
     if test "x${PERL}" != "x" ; then 
       PERL_ARCHLIB=`${PERL} -MConfig -e 'print $Config{archlib}'`
       PERL_VERSION=`${PERL} -MConfig -e 'print $Config{version}'`
+      PERL_CCFLAGS=`${PERL} -MConfig -e 'print $Config{ccflags}'`
+      PERL_CPPFLAGS=`${PERL} -MConfig -e 'print $Config{cppflags}'`
+      PERL_VENDORLIB=`${PERL} -MConfig -e 'print $Config{vendorlib}'`
+      PERL_PRIVLIB=`${PERL} -MConfig -e 'print $Config{privlib}'`
       PERL_VERSION_RV=`echo ${PERL_VERSION} | cut -d'.' -f1-2`
     fi
 fi
@@ -173,6 +181,10 @@ AC_SUBST(PERL)
 AC_SUBST(PERL_INCLUDES)
 AC_SUBST(PERL_ARCHLIB)
 AC_SUBST(PERL_VERSION)
+AC_SUBST(PERL_CCFLAGS)
+AC_SUBST(PERL_CPPFLAGS)
+AC_SUBST(PERL_VENDORLIB)
+AC_SUBST(PERL_PRIVLIB)
 AC_SUBST(PERL_VERSION_RV)
 
 PYTHON=""

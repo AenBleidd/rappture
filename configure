@@ -733,6 +733,10 @@ PERL
 PERL_INCLUDES
 PERL_ARCHLIB
 PERL_VERSION
+PERL_CCFLAGS
+PERL_CPPFLAGS
+PERL_VENDORLIB
+PERL_PRIVLIB
 PERL_VERSION_RV
 PYTHON
 PYTHON_CPPFLAGS
@@ -8664,20 +8668,47 @@ fi
 
 
   else
-    { $as_echo "$as_me:$LINENO: checking for matlab mex compiler" >&5
-$as_echo_n "checking for matlab mex compiler... " >&6; }
-    for i in "${with_matlab}/bin/mex" "${with_matlab}" ; do
-      if test -x "$i" ; then
-        MEX="$i"; break
-      fi
-      if test "x${MEX}" = "x" ; then
-        { { $as_echo "$as_me:$LINENO: error: cannot find mex in $with_matlab" >&5
-$as_echo "$as_me: error: cannot find mex in $with_matlab" >&2;}
-   { (exit 1); exit 1; }; }
-      fi
-    done
-    { $as_echo "$as_me:$LINENO: result: ${MEX}" >&5
-$as_echo "${MEX}" >&6; }
+    # Extract the first word of "mex", so it can be a program name with args.
+set dummy mex; ac_word=$2
+{ $as_echo "$as_me:$LINENO: checking for $ac_word" >&5
+$as_echo_n "checking for $ac_word... " >&6; }
+if test "${ac_cv_path_MEX+set}" = set; then
+  $as_echo_n "(cached) " >&6
+else
+  case $MEX in
+  [\\/]* | ?:[\\/]*)
+  ac_cv_path_MEX="$MEX" # Let the user override the test with a path.
+  ;;
+  *)
+  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+  for ac_exec_ext in '' $ac_executable_extensions; do
+  if { test -f "$as_dir/$ac_word$ac_exec_ext" && $as_test_x "$as_dir/$ac_word$ac_exec_ext"; }; then
+    ac_cv_path_MEX="$as_dir/$ac_word$ac_exec_ext"
+    $as_echo "$as_me:$LINENO: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+done
+IFS=$as_save_IFS
+
+  test -z "$ac_cv_path_MEX" && ac_cv_path_MEX="${with_matlab}/bin/mex:${with_matlab}"
+  ;;
+esac
+fi
+MEX=$ac_cv_path_MEX
+if test -n "$MEX"; then
+  { $as_echo "$as_me:$LINENO: result: $MEX" >&5
+$as_echo "$MEX" >&6; }
+else
+  { $as_echo "$as_me:$LINENO: result: no" >&5
+$as_echo "no" >&6; }
+fi
+
+
   fi
 fi
 
@@ -8784,6 +8815,7 @@ fi
 
 
 
+
 # Check whether --with-perl was given.
 if test "${with_perl+set}" = set; then
   withval=$with_perl;
@@ -8796,6 +8828,10 @@ PERL=
 PERL_INCLUDES=
 PERL_ARCHLIB=
 PERL_VERSION=
+PERL_VENDORLIB=
+PERL_PRIVLIB=
+PERL_CPPFLAGS=
+PERL_CCFlAGS=
 PERL_VERSION_RV=
 if test "$with_perl" != "no" ; then
     { $as_echo "$as_me:$LINENO: checking for perl" >&5
@@ -8887,11 +8923,19 @@ fi
     if test "x${PERL}" != "x" ; then
       PERL_ARCHLIB=`${PERL} -MConfig -e 'print $Config{archlib}'`
       PERL_VERSION=`${PERL} -MConfig -e 'print $Config{version}'`
+      PERL_CCFLAGS=`${PERL} -MConfig -e 'print $Config{ccflags}'`
+      PERL_CPPFLAGS=`${PERL} -MConfig -e 'print $Config{cppflags}'`
+      PERL_VENDORLIB=`${PERL} -MConfig -e 'print $Config{vendorlib}'`
+      PERL_PRIVLIB=`${PERL} -MConfig -e 'print $Config{privlib}'`
       PERL_VERSION_RV=`echo ${PERL_VERSION} | cut -d'.' -f1-2`
     fi
 fi
 { $as_echo "$as_me:$LINENO: result: ${PERL}" >&5
 $as_echo "${PERL}" >&6; }
+
+
+
+
 
 
 

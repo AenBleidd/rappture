@@ -319,7 +319,7 @@ DXWriter::_writeDxToBuffer(SimpleCharBuffer *dxfile)
     while (!_dataBuf.eof()) {
         _dataBuf.read(&f,1);
         // nanovis and many other progs fail when you send it inf data
-        if (!isfinite(f)) {
+        if (!std::isfinite(f)) {
             f = 0.0;
         }
         sprintf(b,"    %10g\n",f);
