@@ -81,8 +81,7 @@ DXWriter::DXWriter(double* data, size_t nmemb, size_t rank, size_t shape) :
             size_t idx = (_rank*j)+i;
             if (j != i) {
                 _delta[idx] = 0.0f;
-            }
-            else {
+            } else {
                 _delta[idx] = 1.0f;
             }
         }
@@ -320,7 +319,7 @@ DXWriter::_writeDxToBuffer(SimpleCharBuffer *dxfile)
     while (!_dataBuf.eof()) {
         _dataBuf.read(&f,1);
         // nanovis and many other progs fail when you send it inf data
-        if (isinf(f)) {
+        if (!isfinite(f)) {
             f = 0.0;
         }
         sprintf(b,"    %10g\n",f);

@@ -117,16 +117,7 @@ if test "$with_matlab" != "no" ; then
   if test "$with_matlab" = "yes" ; then
     AC_PATH_PROG(MEX, mex)
   else
-    AC_MSG_CHECKING([for matlab mex compiler])
-    for i in "${with_matlab}/bin/mex" "${with_matlab}" ; do
-      if test -x "$i" ; then
-        MEX="$i"; break
-      fi
-      if test "x${MEX}" = "x" ; then
-        AC_ERROR([cannot find mex in $with_matlab])
-      fi
-    done
-    AC_MSG_RESULT([${MEX}])
+    AC_PATH_PROG(MEX, mex, [${with_matlab}/bin/mex:${with_matlab}])
   fi
 fi
 
@@ -146,16 +137,8 @@ if test "$with_octave" != "no" ; then
   if test "$with_octave" = "yes" ; then
     AC_PATH_PROG(MKOCTFILE, mkoctfile)
   else
-    AC_MSG_CHECKING([for mkoctfile])
-    for i in "${with_octave}/bin/mkoctfile" "${with_octave}" ; do
-      if test -x "$i" ; then
-        MEX="$i"; break
-      fi
-      if test "x${MEX}" = "x" ; then
-        AC_ERROR([cannot find mkoctfile in $with_octave])
-      fi
-    done
-    AC_MSG_RESULT([${MKOCTFILE}])
+    AC_PATH_PROG(MKOCTFILE, mkoctfile, 
+	[${with_octave}/bin/mkoctfile:${with_octave}])
   fi
 fi
 AC_SUBST(MKOCTFILE)

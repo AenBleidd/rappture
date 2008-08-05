@@ -20,16 +20,15 @@
 
 using namespace Rappture::Utils;
 
-int progress(int percent, const char* text)
+int 
+progress(int percent, const char* text)
 {
-    int retVal = 0;
     if (text != NULL) {
         std::cout << "=RAPPTURE-PROGRESS=>" << percent << " " << text << std::endl;
-    }
-    else {
+    } else {
         std::cout << "=RAPPTURE-PROGRESS=>" << percent << std::endl;
     }
-    return retVal;
+    return 0;
 }
 
 
