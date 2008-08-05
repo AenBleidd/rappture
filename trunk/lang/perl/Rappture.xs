@@ -14,7 +14,7 @@ PROTOTYPES: ENABLE
 
 RpLibrary *
 RpLibrary::new(filename = "")
-char *filename
+const char *filename
     CODE:
         RpLibrary *library;
         if ((filename == NULL) || (*filename == '\0'))
@@ -39,7 +39,7 @@ RpLibrary::DESTROY()
 
 const char *
 RpLibrary::get( path )
-char *path
+const char *path
     CODE:
         string result;
         result = THIS->get(path);
@@ -49,16 +49,16 @@ char *path
 
 void
 RpLibrary::put( path, value, append )
-char *path
-char *value
+const char *path
+const char *value
 int append
     CODE:
         THIS->put(path,value,"",append);
 
 void
 RpLibrary::putFile( path, fileName, compress, append )
-char *path
-char *fileName
+const char *path
+const char *fileName
 int compress
 int append
     CODE:
