@@ -20,14 +20,13 @@ SHLIB_LDFLAGS   = @SHLIB_LDFLAGS@
 SHLIB_SUFFIX    = @SHLIB_SUFFIX@
 CFLAGS_DEFAULT  = @CFLAGS_DEFAULT@
 LIB_SEARCH_DIRS = @LIB_SEARCH_DIRS@
-CFLAGS          = @CFLAGS@ $(cppflags)
+CFLAGS          = @CFLAGS@ 
 
 AR 		= ar
 INSTALL         = @INSTALL@
 MKDIR_P         = @MKDIR_P@
 RANLIB 		= @RANLIB@
 RM		= rm -f
-RM              = rm -f
 VPATH		= $(srcdir)
 
 CDEBUGFLAGS     = -g -Wall
@@ -55,8 +54,7 @@ pod		= perllocal.pod
 
 destdir		= $(libdir)/perl
 
-CC_SWITCHES	= $(CFLAGS) $(CFLAGS_DEBUG) $(INCLUDES) $(DEFINES)
-CXX_SWITCHES	= $(CFLAGS) $(CFLAGS_DEBUG) $(INCLUDES) $(DEFINES)
+CXX_SWITCHES	= $(CFLAGS) $(cppflags) $(CFLAGS_DEBUG) $(INCLUDES) $(DEFINES)
 
 INCLUDES	= \
 		-I$(srcdir) \
