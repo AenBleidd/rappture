@@ -399,10 +399,10 @@ AC_OUTPUT( [
     lang/tcl/scripts/Makefile
     lang/tcl/tests/Makefile
     lib/Makefile
-    examples/Makefile
     examples/3D/Makefile
-    examples/app-fermi/Makefile
+    examples/Makefile
     examples/app-fermi/2.0/Makefile
+    examples/app-fermi/Makefile
     examples/app-fermi/cee/Makefile
     examples/app-fermi/fortran/Makefile
     examples/app-fermi/matlab/Makefile
@@ -419,6 +419,9 @@ AC_OUTPUT( [
     examples/canvas/Makefile
     examples/demo.bash
     examples/graph/Makefile
+    examples/objects/Makefile
+    examples/objects/dxWriter/Makefile
+    examples/objects/floatBuffer/Makefile
     examples/zoo/Makefile
     examples/zoo/binary/Makefile
     examples/zoo/boolean/Makefile

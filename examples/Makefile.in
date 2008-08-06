@@ -24,6 +24,7 @@ SUBDIRS		= \
 		c-example \
 		canvas \
 		graph \
+		objects \
 		zoo 
 
 
