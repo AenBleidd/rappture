@@ -1,0 +1,58 @@
+
+bindir          = @bindir@
+datadir		= @datadir@
+datarootdir	= @datarootdir@
+exec_prefix     = @exec_prefix@
+includedir      = @includedir@
+libdir          = @libdir@
+mandir          = @mandir@
+prefix          = @prefix@
+srcdir		= @srcdir@
+
+INSTALL		= @INSTALL@
+MKDIR_P		= @MKDIR_P@
+
+CC              = @CC@
+CFLAGS		= @CFLAGS@
+CXX             = @CXX@
+CXXFLAGS	= @CFLAGS@
+DEFINES		= -g -Wall
+INCLUDES	= -I$(srcdir)/../../src/core \
+		  -I$(includedir)
+LIBS		= \
+		-L../../src/core -lrappture \
+		-L$(libdir) -lexpat -lz
+VPATH		= $(srcdir)
+
+CXX_SWITCHES	= $(CXXFLAGS) $(INCLUDES) $(DEFINES)	
+CC_SWITCHES	= $(CFLAGS) $(INCLUDES) $(DEFINES)	
+
+FILES		= \
+		$(srcdir)/dxWrite.cc \
+		Makefile 
+
+destdir		= $(prefix)/examples/objects/floatBuffer
+
+PROGS		= \
+		floatbuffer \
+
+all: $(PROGS)
+
+
+floatbuffer: $(srcdir)/floatBuffer.cc
+	$(CXX) $(CXX_SWITCHES) -o $@ $< $(LIBS)
+
+install:
+	$(MKDIR_P) $(destdir)
+	for i in $(FILES) ; do \
+	  $(INSTALL) -m 444  $$i $(destdir) ; \
+	done
+	for i in $(PROGS) ; do \
+	  $(INSTALL) -m 555 $$i $(destdir) ; \
+	done
+
+clean:
+	$(RM) $(PROGS) 
+
+distclean: clean
+	$(RM) Makefile *~
