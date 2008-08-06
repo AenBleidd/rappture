@@ -732,6 +732,7 @@ MKOCTFILE
 PERL
 PERL_INCLUDES
 PERL_ARCHLIB
+PERL_ARCHLIBEXP
 PERL_VERSION
 PERL_CCFLAGS
 PERL_CPPFLAGS
@@ -8828,6 +8829,7 @@ fi
 PERL=
 PERL_INCLUDES=
 PERL_ARCHLIB=
+PERL_ARCHLIBEXP=
 PERL_VERSION=
 PERL_VENDORLIB=
 PERL_PRIVLIB=
@@ -8929,11 +8931,13 @@ fi
       PERL_VENDORLIB=`${PERL} -MConfig -e 'print $Config{vendorlib}'`
       PERL_PRIVLIB=`${PERL} -MConfig -e 'print $Config{privlib}'`
       PERL_INSTALLARCHLIB=`${PERL} -MConfig -e 'print $Config{installarchlib}'`
+      PERL_ARCHLIBEXP=`${PERL} -MConfig -e 'print $Config{archlibexp}'`
       PERL_VERSION_RV=`echo ${PERL_VERSION} | cut -d'.' -f1-2`
     fi
 fi
 { $as_echo "$as_me:$LINENO: result: ${PERL}" >&5
 $as_echo "${PERL}" >&6; }
+
 
 
 
