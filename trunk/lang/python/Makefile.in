@@ -22,7 +22,7 @@ PYTHON_FLAGS 	= --library-dirs=$(libdir):../../src/core \
                --include-dirs=$(srcdir)/../../src/core:$(includedir) 
 PYTHON_VERSION  = @PYTHON_VERSION@
 pythonlib	= $$RAPPTURE_INSTALL_DIR/lib/python$(PYTHON_VERSION)/site-packages
-envfile		= _python.env
+envfile		= python.env
 
 ARCHFLAGS	=
 export ARCHFLAGS
@@ -40,7 +40,8 @@ copy_sources:
  
 install: 
 	$(PYTHON) setup.py install --prefix=$(prefix) 
-	$(INSTALL) -m 555 $(envfile) $(bindir)
+	$(MKDIR_P) $(bindir)/lang
+	$(INSTALL) -m 555 $(envfile) $(bindir)/lang
 clean:
 	$(PYTHON) setup.py clean
 	$(RM) -rf build 
