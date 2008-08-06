@@ -17,10 +17,10 @@ CFLAGS		= @CFLAGS@
 CXX             = @CXX@
 CXXFLAGS	= @CFLAGS@
 DEFINES		= -g -Wall
-INCLUDES	= -I$(srcdir)/../../src/core \
+INCLUDES	= -I$(srcdir)/../../../src/core \
 		  -I$(includedir)
 LIBS		= \
-		-L../../src/core -lrappture \
+		-L../../../src/core -lrappture \
 		-L$(libdir) -lexpat -lz
 VPATH		= $(srcdir)
 

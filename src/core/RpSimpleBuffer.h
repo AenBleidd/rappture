@@ -429,10 +429,11 @@ SimpleBuffer<char>::show()
     size_t curMemb = 0;
 
     while (curMemb != _nMembStored) {
-        fprintf(stdout,"_buf[%d] = :%c:\n",curMemb,_buf[curMemb]);
+        fprintf(stdout,"_buf[%lu] = :%c:\n", (long unsigned int)curMemb,
+		_buf[curMemb]);
         curMemb += 1;
     }
-    fprintf(stdout,"_nMembAvl = :%d:\n",_nMembAvl);
+    fprintf(stdout,"_nMembAvl = :%lu:\n", (long unsigned int)_nMembAvl);
 
     return *this;
 }
@@ -445,10 +446,11 @@ SimpleBuffer<T>::show()
     size_t curMemb = 0;
 
     while (curMemb != _nMembStored) {
-        fprintf(stdout,"_buf[%d] = :%#x:\n",curMemb,(unsigned long)_buf[curMemb]);
+        fprintf(stdout,"_buf[%lu] = :%#x:\n", (long unsigned int)curMemb,
+		(unsigned long)_buf[curMemb]);
         curMemb += 1;
     }
-    fprintf(stdout,"_nMembAvl = :%d:\n",_nMembAvl);
+    fprintf(stdout,"_nMembAvl = :%lu:\n", (long unsigned int)_nMembAvl);
 
     return *this;
 }

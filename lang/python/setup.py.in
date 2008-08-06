@@ -3,13 +3,14 @@ from distutils.core import setup, Extension
 rp_install_dir = '@prefix@'
 tmpdir = 'build/tmp/'
 srcdir = '@srcdir@/Rappture/'
-incdir = '@prefix@/include'
-libdir = '@prefix@/lib'
+incdir = '@srcdir@/../../src/core'
+libdir = '@srcdir@/../../src/core'
 
 library_module = Extension('Rappture.library',
                            include_dirs = [incdir, '../include'],
                            sources = [ tmpdir+'PyRpLibrary.cc' ],
                            library_dirs = [ libdir, '../src' ],
+			   output_dir = ['/tmp'],
                            libraries = [ 'rappture' ] )
 
 units_module = Extension('Rappture.Units',

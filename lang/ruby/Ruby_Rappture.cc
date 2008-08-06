@@ -386,7 +386,6 @@ RbRp_Convert(VALUE self, VALUE fromVal, VALUE toUnitsName, VALUE showUnits)
    /* Convert */
    strRetVal = RpUnits::convert(STR2CSTR(fromVal), STR2CSTR(toUnitsName), 
                                 NUM2INT(showUnits), &result);
-                                   
    /* Return value */
    if (0 == result)
    {
@@ -399,7 +398,7 @@ RbRp_Convert(VALUE self, VALUE fromVal, VALUE toUnitsName, VALUE showUnits)
    }
 #ifdef RAISE_EXCEPTIONS
    else
-      rb_raise(rb_eRuntimeError, "Unable to convert %s to %s", 
+      rb_raise(rb_eRuntimeError, "Unable to convert \"%s\" to \"%s\"", 
                STR2CSTR(fromVal), STR2CSTR(toUnitsName));
 #endif
    return retVal;
