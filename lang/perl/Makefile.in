@@ -44,7 +44,7 @@ cppflags	= @PERL_CPPFLAGS@
 vendorlib	= @PERL_VENDORLIB@
 privlib		= @PERL_PRIVLIB@
 archlib		= @PERL_ARCHLIB@
-installarchlib  = @PERL_INSTALLARCHLIB@
+archlibexp	= @PERL_ARCHLIBEXP@
 
 name 		= Rappture
 lib		= $(name)$(SHLIB_SUFFIX)
@@ -59,7 +59,7 @@ CXX_SWITCHES	= $(CFLAGS) $(cppflags) $(CFLAGS_DEBUG) $(INCLUDES) $(DEFINES)
 INCLUDES	= \
 		-I$(srcdir) \
 		-I$(srcdir)/../../src/core \
-		-I$(installarchlib)/CORE
+		-I$(archlibexp)/CORE
 
 LIBS		= \
 		-L../../src/core -lrappture \
