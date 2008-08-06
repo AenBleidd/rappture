@@ -113,15 +113,22 @@ AC_ARG_WITH(
 MEX=""
 MEX_ARCH=""
 MEXEXT=""
+MATLAB=
 if test "$with_matlab" != "no" ; then
   if test "$with_matlab" = "yes" ; then
     AC_PATH_PROG(MEX, mex)
+    AC_PATH_PROG(MATLAB, matlab)
   else
     AC_PATH_PROG(MEX, mex, [${with_matlab}/bin/mex:${with_matlab}])
+    AC_PATH_PROG(MATLAB, matlab, [${with_matlab}/bin/mex:${with_matlab}])
   fi
 fi
-
+if test "x$MATLAB" = "x" ; then
+  # No matlab, no mex. Debian 3.1 has mex script that calls mkoctfile.
+  MEX=""
+fi
 AC_SUBST(MEX)
+AC_SUBST(MATLAB)
 AC_SUBST(MEX_ARCH)
 AC_SUBST(MEXEXT)
 
