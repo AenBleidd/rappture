@@ -44,54 +44,40 @@ Error code, err=0 on success, anything else is failure.")
 
     // The list of values to return.
     octave_value_list retval;
-
-    int err            = 1;
-    int nargin         = args.length ();
-    int fromObjHandle  = 0;
-    int toObjHandle    = 0;
-    int showUnits      = 0;
-    double inVal       = 0;
+    int err = 1;
     std::string outVal = "";
+    if (args.length() == 4) {
+        if ((args(0).is_real_scalar()) && (args(1).is_real_scalar()) &&
+	    (args(2).is_real_scalar()) && (args(3).is_real_scalar())) {
+	    int fromObjHandle;
+	    int toObjHandle;
+	    int showUnits;
+	    double inVal;
 
-    const RpUnits* fromObj = NULL;
-    const RpUnits* toObj   = NULL;
-
-    if (nargin == 4) {
-
-        if (    args(0).is_real_scalar () &&
-                args(1).is_real_scalar () &&
-                args(2).is_real_scalar () &&
-                args(3).is_real_scalar ()   ) {
-
-            fromObjHandle = args(0).int_value ();
-            toObjHandle   = args(1).int_value ();
-            inVal         = args(2).double_value ();
-            showUnits     = args(3).int_value ();
+            fromObjHandle = args(0).int_value();
+            toObjHandle   = args(1).int_value();
+            inVal         = args(2).double_value();
+            showUnits     = args(3).int_value();
 
             /* Call the C subroutine. */
-            if (    (fromObjHandle != 0) &&
-                    (toObjHandle != 0)    ) {
+            if ((fromObjHandle != 0) && (toObjHandle != 0)) {
+		const RpUnits* fromObj;
+		const RpUnits* toObj;
 
                 fromObj = getObject_UnitsStr(fromObjHandle);
-                toObj   = getObject_UnitsStr(toObjHandle);
-
-                if ( fromObj && toObj) {
-                    outVal = fromObj->convert(toObj,inVal,showUnits,&err);
+                toObj = getObject_UnitsStr(toObjHandle);
+                if (fromObj && toObj) {
+                    outVal = fromObj->convert(toObj, inVal, showUnits, &err);
                 }
-
+            } else {
+                print_usage(who.c_str());
             }
-            else {
-                print_usage (who.c_str());
-            }
+        } else {
+            print_usage(who.c_str());
         }
-        else {
-            print_usage (who.c_str());
-        }
+    } else {
+        print_usage(who.c_str());
     }
-    else {
-        print_usage (who.c_str());
-    }
-
     retval(0) = outVal;
     retval(1) = err;
     return retval;

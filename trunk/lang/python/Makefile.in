@@ -31,10 +31,10 @@ export ARCHFLAGS
 # Python distutils doesn't handle VPATH correctly. So copy the sources 
 # into a temporary directory.
 #
-all: link_sources $(envfile)
+all: build/tmp $(envfile)
 	$(PYTHON) setup.py build_ext $(PYTHON_FLAGS) build 
 
-link_sources: build/tmp
+build/tmp: 
 	$(MKDIR_P) build/tmp
 	$(LN_S) $(srcdir)/Rappture/*.cc build/tmp
  
