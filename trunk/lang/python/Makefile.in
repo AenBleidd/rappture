@@ -8,6 +8,7 @@ libdir          = @libdir@
 mandir          = @mandir@
 prefix          = @prefix@
 srcdir		= @srcdir@
+srcdir2		:= $(shell cd $(srcdir); pwd)
 
 INSTALL		= @INSTALL@
 MKDIR_P		= @MKDIR_P@
@@ -36,7 +37,7 @@ all: build/tmp $(envfile)
 
 build/tmp: 
 	$(MKDIR_P) build/tmp
-	$(LN_S) $(srcdir)/Rappture/*.cc build/tmp
+	$(LN_S) $(srcdir2)/Rappture/*.cc build/tmp
  
 install: 
 	$(PYTHON) setup.py install --prefix=$(prefix) 
