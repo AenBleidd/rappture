@@ -61,6 +61,7 @@ itcl::class Rappture::XyResult {
     protected method _getTextMarkerOptions { style } 
     protected method _enterMarker { g name x y text }
     protected method _leaveMarker { g name }
+    protected method _legend { what }
 
     private variable _dispatcher "" ;# dispatcher for !events
 
@@ -196,10 +197,33 @@ itcl::body Rappture::XyResult::constructor {args} {
     _axis scale x linear
     _axis scale y linear
 
+    
+    #
+    # Add support for editing hidden/elements:
+    #
+    itk_component add legend {
+        button $itk_component(controls).legend \
+            -borderwidth 1 -padx 3 -pady 0 \
+	    -text "L" -font "-*-times new roman-bold-i-*-*-11-*-*-*-*-*-*-*" \
+       -command [list $itk_component(hull).legend activate \
+			  $itk_component(controls).legend left]
+    } {
+        usual
+        ignore -borderwidth -font
+        rename -highlightbackground -controlbackground controlBackground Background
+    }
+    pack $itk_component(legend) -padx 4 -pady 4
+    Rappture::Tooltip::for $itk_component(legend) "Display legend to hide/show elements"
+
+    Rappture::Balloon $itk_component(hull).legend -title "Legend"
+    set inner [$itk_component(hull).legend component inner]
+    $itk_component(plot) legend configure -position $inner.legend \
+	-activeforeground grey60 -activebackground grey90 -relief flat
+    grid $inner.legend -sticky nsew
+    #$itk_component(plot) legend configure -hide yes
+
     # quick-and-dirty zoom functionality, for now...
     Blt_ZoomStack $itk_component(plot)
-    $itk_component(plot) legend configure -hide yes
-
     eval itk_initialize $args
 
     set _hilite(elem) ""
@@ -613,6 +637,7 @@ itcl::body Rappture::XyResult::_rebuild {} {
         $g axis bind $axis <KeyPress> \
             [list ::Rappture::Tooltip::tooltip cancel]
     }
+    $g legend bind all <ButtonRelease> [itcl::code $this _legend toggle]
 
     #
     # Plot all of the curves.
@@ -896,6 +921,7 @@ itcl::body Rappture::XyResult::_hilite {state x y} {
         $g element activate $elem
         set _hilite(elem) $elem
 
+	if 0 {
         set dlist [$g element show]
         set i [lsearch -exact $dlist $elem]
         if {$i >= 0} {
@@ -903,7 +929,7 @@ itcl::body Rappture::XyResult::_hilite {state x y} {
             lappend dlist $elem
             $g element show $dlist
         }
-
+	}
         foreach {mapx mapy} [_getAxes $_elem2curve($elem)] break
 
         set allx [$g x2axis use]
@@ -1497,5 +1523,22 @@ itcl::body Rappture::XyResult::_leaveMarker { g name } {
 	set id $_markers($name)
 	$g marker delete $id
 	unset _markers($name)
+    }
+}
+
+itcl::body Rappture::XyResult::_legend { what } {
+    switch -- $what {
+	"toggle" {
+	    set g $itk_component(plot)
+	    set name [$g legend get current]
+	    set hidden [$g element cget $name -hide]
+	    if { $hidden } {
+		$g legend deactivate $name
+		$g element configure $name -hide no
+	    } else {
+		$g legend activate $name
+		$g element configure $name -hide yes
+	    }
+	}
     }
 }
