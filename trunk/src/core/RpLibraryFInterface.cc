@@ -34,7 +34,7 @@ int rp_lib(const char* filePath, int filePath_len) {
     lib = new RpLibrary(inFilePath);
 
     if (lib) {
-        handle = storeObject_Lib(lib);
+        handle = storeObject_Void((void*)lib);
     }
 
     return handle;
@@ -65,7 +65,7 @@ int rp_lib_element_obj(int* handle,     /* integer handle of library */
             retObj = lib->element(inPath);
 
             if (retObj) {
-                newObjHandle = storeObject_Lib(retObj);
+                newObjHandle = storeObject_Void((void*)retObj);
             }
         }
     }
@@ -197,10 +197,10 @@ int rp_lib_children (   int* handle, /* integer handle of library */
 
             if (childNode) {
                 if (*childHandle < 1) {
-                    newObjHandle = storeObject_Lib(childNode);
+                    newObjHandle = storeObject_Void((void*)childNode);
                 }
                 else {
-                    newObjHandle = storeObject_Lib(childNode,*childHandle);
+                    newObjHandle = storeObject_Void((void*)childNode,*childHandle);
                 }
             }
         }
@@ -414,7 +414,7 @@ int rp_lib_child_obj ( int* handle,
                 if (list) {
                     // store the whole list,
                     // need to make a way to read the nodes
-                    newObjHandle = storeObject_Lib(list);
+                    newObjHandle = storeObject_Void((void*)list);
                     // Py_DECREF(list);
                 }
                 else {
@@ -847,7 +847,7 @@ int rp_lib_remove (int* handle, char* path, int path_len)
                 removedObj = rpRemove(lib, inPath);
 
                 if (removedObj) {
-                    newObjHandle = storeObject_Lib(removedObj);
+                    newObjHandle = storeObject_Void((void*)removedObj);
                     // Py_DECREF(removedObj);
                 }
 

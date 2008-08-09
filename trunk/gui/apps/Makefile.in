@@ -21,6 +21,7 @@ INSTALL		= @INSTALL@
 
 SCRIPTS	= \
 		$(srcdir)/driver \
+		$(srcdir)/grabdata \
 		$(srcdir)/nanovis-test \
 		rappture \
 		$(srcdir)/rerun \
