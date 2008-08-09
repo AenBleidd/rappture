@@ -32,13 +32,11 @@ int
 rp_utils_progress(int *percentPtr, char *text, int text_len)
 {
     const char* inText;
-    inText = null_terminate(text, text_len);
-    if (inText != NULL) {
-	return 1;
-    } 
     int retVal;
+    inText = null_terminate(text, text_len);
     retVal = Rappture::Utils::progress(*percentPtr, inText);
     free((void*)inText);
+    inText = NULL;
     return retVal;
 }
 
