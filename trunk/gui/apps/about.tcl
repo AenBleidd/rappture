@@ -1,0 +1,92 @@
+#!/bin/sh
+# ----------------------------------------------------------------------
+#  ABOUT PANEL
+#
+#  This little script lets developers create an "about" page for
+#  the first page of a nanoWhim application.  It's sort of like a
+#  web browser, but it shows only one page and handles the links
+#  so they pop things up on the user's desktop
+#
+#  RUN AS FOLLOWS:
+#    about <file.html>
+#
+# ======================================================================
+#  AUTHOR:  Michael McLennan, Purdue University
+#  Copyright (c) 2004-2008  Purdue Research Foundation
+#
+#  See the file "license.terms" for information on usage and
+#  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+# ======================================================================
+#\
+exec wish "$0" $*
+# ----------------------------------------------------------------------
+# wish executes everything from here on...
+
+package require http
+package require Rappture
+package require RapptureGUI
+
+option add *BugReport*banner*foreground white
+option add *BugReport*banner*background #a9a9a9
+option add *BugReport*banner*highlightBackground #a9a9a9
+option add *BugReport*banner*font -*-helvetica-bold-r-normal-*-18-*
+
+# install a better bug handler
+Rappture::bugreport::install
+
+proc escapeChars {info} {
+    regsub -all & $info \001 info
+    regsub -all \" $info {\&quot;} info
+    regsub -all < $info {\&lt;} info
+    regsub -all > $info {\&gt;} info
+    regsub -all \001 $info {\&amp;} info
+    return $info
+}
+
+#
+# Process command line args to get the name of the HTML file...
+#
+if {[llength $argv] != 1} {
+    puts stderr "usage: about.tcl <file.html>"
+    exit 1
+}
+set url [lindex $argv 0]
+
+Rappture::Scroller .scroller -xscrollmode auto -yscrollmode auto
+pack .scroller -expand yes -fill both
+
+Rappture::HTMLviewer .scroller.html -width 640 -height 480
+.scroller contents .scroller.html
+
+switch -regexp -- $url {
+    ^https?:// {
+        if {[catch {http::geturl $url} token] == 0} {
+            set html [http::data $token]
+            http::cleanup $token
+        } else {
+            set html "<html><body><h1>Oops! Internal Error</h1><p>[escapeChars $token]</p></body></html>"
+        }
+        .scroller.html load $html
+    }
+    default {
+        if {[string range $url 0 6] == "file://"} {
+            set file [string range $url 7 end]
+        } else {
+            set file $url
+        }
+        set cmds {
+            set fid [open $file r]
+            set html [read $fid]
+            close $fid
+        }
+        if {[catch $cmds result]} {
+            set html "<html><body><h1>Oops! File Not Found</h1><p>[escapeChars $result]</p></body></html>"
+        }
+
+        # not HTML? then escape nasty characters and display it.
+        if {![regexp {<html>.*</html>} $html]} {
+            set html "<html><body><p>[escapeChars $html]</p></body></html>"
+        }
+        .scroller.html load $html -in $file
+    }
+}
