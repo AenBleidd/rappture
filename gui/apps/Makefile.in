@@ -27,7 +27,9 @@ SCRIPTS	= \
 		$(srcdir)/rerun \
 		rappture.env \
 		simsim  \
-		$(srcdir)/simsim.tcl
+		$(srcdir)/simsim.tcl \
+		about  \
+		$(srcdir)/about.tcl \
 
 WINDOWS_SCRIPTS =  \
 		$(srcdir)/rappture.cmd \
