@@ -1,0 +1,105 @@
+#!/bin/sh
+# \
+exec wish "$0" ${1+"$@"}
+package require Rappture
+package require RapptureGUI
+
+#        value -tool tool.xml
+#        value -apname ""
+Rappture::getopts argv params {
+        value -title ""
+}
+
+#####TK code #####
+package require fileutil
+proc is_xml {name} {return [string match *.xml $name]}
+
+######Starting main tk code ######
+
+##################
+package require BLT
+if { $tcl_version >= 8.0 } {
+	namespace import blt::*
+	namespace import -force blt::tile::*
+}
+proc SortColumn { column } {
+	set old [.t sort cget -column]
+	set decreasing 0
+	if { "$old" == "$column" } {
+		set decreasing [.t sort cget -decreasing]
+		set decreasing [expr !$decreasing]
+	}
+	.t sort configure -decreasing $decreasing -column $column -mode integer
+	if { ![.t cget -flat] } {
+		.t configure -flat yes
+	}
+	.t sort auto yes
+	blt::busy hold .t
+	update
+	blt::busy release .t
+}
+set tree [tree create]
+treeview .t \
+	-width 0 \
+	-yscrollcommand { .vs set } \
+	-xscrollcommand { .hs set } \
+	-selectmode single \
+	-tree $tree
+.t column configure treeView -text ""
+.t column configure treeView -hide no -edit no -icon blt::tv::normalOpenFolder
+focus .t
+scrollbar .vs -orient vertical -command { .t yview }
+scrollbar .hs -orient horizontal -command { .t xview }
+
+table . \
+    0,0 .t  -fill both \
+    0,1 .vs -fill y \
+    1,0 .hs -fill x
+table configure . c1 r1 -resize none
+
+###Starting tk code
+.t column insert end "tname" -text "Tool Name"
+.t column insert end "date"  -text "Date"
+set files [fileutil::find /home/nanohub/wwinthan/data/results is_xml]
+if {$files == ""} {
+} else {
+	foreach line $files {
+		#########
+		set fileone [open $line]
+		set content [read $fileone]
+		close $fileone
+		regexp {<title>(.*)</title>} $content junk answer
+		regexp {<time>(.*)</time>} $content junk1 answer1
+		#########
+		if {($params(-title) == "") || ($params(-title) == $answer)} {
+			set id [.t insert end $line]
+			.t entry configure $id -data [list tname $answer date $answer1]
+		}
+		unset fileone
+		unset content
+	#	unset answer
+	#	unset answer1
+		unset junk
+		unset junk1
+		unset line
+	 
+		if {"" == $answer} {
+			set answer "no title"
+		}
+		if {"" == $answer1} {
+			set answer1 "no found"
+		}
+	}
+	unset answer
+	unset answer1
+}
+.t bind all <ButtonRelease-1> {
+	set ids [.t curselection]
+	set names [eval .t get -full $ids]
+	set status [catch {eval blt::bgexec run rerun $names } result]
+	# do something with $result or $catch if needed
+}
+###################
+foreach column [.t column names] {
+	.t column configure $column -command [list SortColumn $column]
+}
