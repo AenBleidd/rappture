@@ -7,7 +7,7 @@ c
 c ======================================================================
 c  AUTHOR:  Michael McLennan, Purdue University
 c  AUTHOR:  Derrick Kearney, Purdue University
-c  Copyright (c) 2004-2005  Purdue Research Foundation
+c  Copyright (c) 2004-2008  Purdue Research Foundation
 c
 c  See the file "license.terms" for information on usage and
 c  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -25,14 +25,32 @@ c ======================================================================
 
         call getarg(1,inFile)
         driver = rp_lib(inFile)
+        if (driver .eq. 0) then
+            write(0,*) "Error while opening ",inFile
+            stop
+        endif
 
         call rp_lib_get(driver,
      +        "input.number(temperature).current", strVal)
         ok = rp_units_convert_dbl(strVal,"K",T)
+        if (ok .ne. 0) then
+            write(strVal,*) "Error while converting temperature"
+            write(0,*) strVal
+            call rp_lib_put_str (driver,"output.log",strVal,0)
+            call rp_result(driver)
+            stop
+        endif
 
         call rp_lib_get(driver,
      +        "input.number(Ef).current", strVal)
         ok = rp_units_convert_dbl(strVal,"eV",Ef)
+        if (ok .ne. 0) then
+            write(strVal,*) "Error while converting Ef"
+            write(0,*) strVal
+            call rp_lib_put_str (driver,"output.log",strVal,0)
+            call rp_result(driver)
+            stop
+        endif
 
         kT = 8.61734e-5 * T
         Emin = Ef - 10*kT
