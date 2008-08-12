@@ -383,6 +383,7 @@ proc printHelp {} {
     puts "                         driver.xml file."
     puts " --compare <path>      - compare the results with the provided"
     puts "                         run.xml file."
+    puts " --driver-only <fname> - only create the driver file, do not run"
     puts " --help                - print this help menu."
     exit 0
 }
@@ -507,10 +508,12 @@ wm withdraw .
 # set default values
 set intf "./tool.xml"
 set cintf ""
-set defaults false
+set defaults true
 array set presets []
 set i 0
 set oParams {}
+set runapp true
+set outf "driver.xml"
 
 # parse command line arguments
 set argc [llength $argv]
@@ -542,6 +545,14 @@ for {set i 0} {$i < $argc} {incr i} {
             set cintf [lindex $argv $i]
             # puts "comparing results with $cintf"
             # need to check to see if file exists, if not raise error
+        } else {
+            printHelp
+        }
+    } elseif {("-do" == $opt) || ("--driver-only" == $opt)} {
+        set runapp false
+        if {[expr {$i + 1}] < $argc} {
+            incr i
+            set outf [lindex $argv $i]
         } else {
             printHelp
         }
@@ -580,6 +591,14 @@ if {true == $defaults} {
 }
 # pick defaults $xmlobj $presets
 # pick randoms $xmlobj $presets
+
+# if driver only flag was given, write driver and exit.
+if {$runapp == false} {
+    set fid [open $outf w]
+    puts $fid [$xmlobj xml]
+    close $fid
+    exit 0
+}
 
 set tool [Rappture::Tool ::#auto $xmlobj $installdir]
 
