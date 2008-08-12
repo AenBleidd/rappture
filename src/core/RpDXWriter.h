@@ -54,8 +54,8 @@ private:
     size_t _shape;         // array of the extents of each dimension
 
     size_t* _positions;    // array holding the number of x,y,z points
-    double* _delta;      // array holding deltas of the uniform mesh
-    double* _origin;     // array holding coord of origin
+    double* _delta;        // array holding deltas of the uniform mesh
+    double* _origin;       // array holding coord of origin
 
     DXWriter& _writeDxToBuffer(SimpleCharBuffer *dxfile);
 };

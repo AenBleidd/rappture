@@ -2,7 +2,7 @@
  * ----------------------------------------------------------------------
  *  INTERFACE: Matlab Rappture Library Source
  *
- *    [err] = rpLibResult(lib)
+ *    [err] = rpLibResult(lib,status)
  *
  * ======================================================================
  *  AUTHOR:  Derrick Kearney, Purdue University

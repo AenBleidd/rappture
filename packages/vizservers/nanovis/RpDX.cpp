@@ -46,8 +46,8 @@ DX::DX(const char* filename, Outcome *resultPtr) :
     Type type;
 
     if (filename == NULL) {
-	resultPtr->AddError("filename is NULL");
-	return;
+        resultPtr->AddError("filename is NULL");
+        return;
     }
     // open the file with libdx
     fprintf(stdout, "Calling DXImportDX(%s)\n", filename);
@@ -55,8 +55,8 @@ DX::DX(const char* filename, Outcome *resultPtr) :
     DXenable_locks(0);
     _dxobj = DXImportDX((char*)filename,NULL,NULL,NULL,NULL);
     if (_dxobj == NULL) {
-	resultPtr->AddError("can't import DX file \"%s\"", filename);
-	return;
+        resultPtr->AddError("can't import DX file \"%s\"", filename);
+        return;
     }
 
     fprintf(stdout, "dxobj=%x\n", (unsigned int)_dxobj);
@@ -65,12 +65,12 @@ DX::DX(const char* filename, Outcome *resultPtr) :
     // parse out the positions array 
 
     // FIXME: nanowire will need a different way to parse out the positions
-    //	      array since it uses a productarray to store its positions.  
-    //	      Possibly use DXGetProductArray().
+    //        array since it uses a productarray to store its positions.
+    //        Possibly use DXGetProductArray().
     dxpos = (Array) DXGetComponentValue((Field) _dxobj, (char *)"positions");
     if (dxpos == NULL) {
-	resultPtr->AddError("can't get component value of \"positions\"");
-	return;
+        resultPtr->AddError("can't get component value of \"positions\"");
+        return;
     }
     DXGetArrayInfo(dxpos, &_n, &type, &category, &_rank, &_shape);
 
@@ -85,8 +85,8 @@ DX::DX(const char* filename, Outcome *resultPtr) :
     float* pos = NULL;
     pos = (float*) DXGetArrayData(dxpos);
     if (pos == NULL) {
-	resultPtr->AddError("DXGetArrayData failed to return positions array");
-	return;
+        resultPtr->AddError("DXGetArrayData failed to return positions array");
+        return;
     }
 
     // first call to get the number of axis needed
@@ -94,14 +94,14 @@ DX::DX(const char* filename, Outcome *resultPtr) :
     if (DXQueryGridConnections(dxgrid, &_numAxis, NULL) == NULL) {
         // raise error, data is not a regular grid and we cannot handle it
         resultPtr->AddError("DX says our grid is not regular, we cannot handle this data");
-	return;
+        return;
     }
 
     _positions = new float[_n*_numAxis];
     if (_positions == NULL) {
         // malloc failed, raise error
-	resultPtr->AddError("malloc of _positions array failed");
-	return;
+        resultPtr->AddError("malloc of _positions array failed");
+        return;
     }
     memcpy(_positions,pos,sizeof(float)*_n*_numAxis);
 
@@ -109,28 +109,28 @@ DX::DX(const char* filename, Outcome *resultPtr) :
     if (_axisLen == NULL) {
         // malloc failed, raise error
         resultPtr->AddError("malloc of _axisLen array failed");
-	return;
+        return;
     }
     memset(_axisLen, 0, _numAxis);
 
     _delta = new float[_numAxis*_numAxis];
     if (_delta == NULL) {
         resultPtr->AddError("malloc of _delta array failed");
-	return;
+        return;
     }
     memset(_delta, 0, _numAxis*_numAxis);
 
     _origin = new float[_numAxis];
     if (_origin == NULL) {
         resultPtr->AddError("malloc of _origin array failed");
-	return;
+        return;
     }
     memset(_origin, 0, _numAxis);
 
     _max = new float[_numAxis];
     if (_max == NULL) {
         resultPtr->AddError("malloc of _max array failed");
-	return;
+        return;
     }
     memset(_max, 0, _numAxis);
 
@@ -154,7 +154,7 @@ DX::DX(const char* filename, Outcome *resultPtr) :
     _data = new float[_n];
     if (_data == NULL) {
         resultPtr->AddError("malloc of _data array failed");
-	return;
+        return;
     }
 
     switch (type) {
@@ -172,7 +172,7 @@ DX::DX(const char* filename, Outcome *resultPtr) :
         }
     default:
         resultPtr->AddError("don't know how to handle data of type %d\n", type);
-	return;
+        return;
     }
 
     // print debug info
