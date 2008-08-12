@@ -5,7 +5,7 @@
 //  written in C.
 // ======================================================================
 //  AUTHOR:  Derrick Kearney, Purdue University
-//  Copyright (c) 2004-2005  Purdue Research Foundation
+//  Copyright (c) 2004-2008  Purdue Research Foundation
 //
 //  See the file "license.terms" for information on usage and
 //  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -46,18 +46,18 @@ int main(int argc, char * argv[]) {
     }
 
 
-    rpGetString(lib,"input.(temperature).current",&data);
+    rpGetString(lib,"input.number(temperature).current",&data);
     T = rpConvertDbl(data, "K", &err);
     if (err) {
-        printf ("Error while retrieving input.(temperature).current\n");
+        printf ("Error while retrieving input.number(temperature).current\n");
         return(1);
     }
 
 
-    rpGetString(lib,"input.(Ef).current",&data);
+    rpGetString(lib,"input.number(Ef).current",&data);
     Ef = rpConvertDbl(data, "eV", &err);
     if (err) {
-        printf ("Error while retrieving input.(Ef).current\n");
+        printf ("Error while retrieving input.number(Ef).current\n");
         return(1);
     }
 
