@@ -14,14 +14,19 @@ namespace graphics {
     class RenderContext;
 }
 
+class Grid;
+
 /**
  *@class HeightMap
  *@brief Create a surface from height map and line contour of the generated surface
  */
+
 class HeightMap {
     unsigned int _vertexBufferObjectID;
     unsigned int _textureBufferObjectID;
-    
+    int xNum_, yNum_;		// Number of elements x and y axes in grid.
+    float *heights_;		// Array of original (unscaled) heights
+				// (y-values)
     int _vertexCount;
     CGparameter _tf;
     R2Geometry* _contour;
@@ -58,7 +63,7 @@ private :
 	Vector3* createHeightVertices(float startX, float startY, float endX, float endY, int xCount, int yCount, float* height);
 	void reset();
 public :
-	void render(graphics::RenderContext* renderContext);
+    void render(graphics::RenderContext* renderContext);
     /**
      *@brief Create a height map with heigh values
      *@param startX a x position of the first height value
@@ -69,15 +74,17 @@ public :
      *@param yCount the number of rows of height values
      *@param height a pointer value adrressing xCount * yCount values of heights
      */
-	void setHeight(float startX, float startY, float endX, float endY, int xCount, int yCount, float* height);
+    void setHeight(float startX, float startY, float endX, float endY, 
+		   int xCount, int yCount, float* height);
 
     /**
      *@brief Create a height map with a set of points
      *@param xCount the number of columns of height values
      *@param yCount the number of rows of height values
      */
-	void setHeight(int xCount, int yCount, Vector3* heights);
+    void setHeight(int xCount, int yCount, Vector3* heights);
 
+    void MapToGrid(Grid *gridPtr);
     /**
      *@brief Define a color map for color shading of heightmap
      */

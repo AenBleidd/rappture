@@ -22,6 +22,7 @@
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <memory.h>
 #include <time.h>
 #include <sys/time.h>
 #include <sys/types.h>
@@ -99,6 +100,9 @@ NvParticleRenderer* NanoVis::particleRenderer = 0;
 graphics::RenderContext* NanoVis::renderContext = 0;
 NvLIC* NanoVis::licRenderer = 0;
 
+FILE *NanoVis::stdin = NULL;
+FILE *NanoVis::logfile = NULL;
+
 bool NanoVis::lic_on = false;
 bool NanoVis::particle_on = false;
 bool NanoVis::vector_on = false;
@@ -121,6 +125,7 @@ bool volume_mode = true;
 // color table for built-in transfer function editor
 float color_table[256][4];
 
+int debug_flag = false;
 /*
 #ifdef XINETD
 FILE* xinetd_log;
@@ -273,6 +278,23 @@ cgErrorCallback(void)
     }
 }
 
+
+CGprogram 
+LoadCgSourceProgram(CGcontext context, const char *fileName, CGprofile profile, 
+		    const char *entryPoint)
+{
+    const char *path = R2FilePath::getInstance()->getPath(fileName);
+    if (path == NULL) {
+	fprintf(stderr, "can't find program \"%s\"\n", fileName);
+	assert(path != NULL);
+    }
+    CGprogram program;
+    program = cgCreateProgramFromFile(context, CG_SOURCE, path, profile, 
+	entryPoint, NULL);
+    delete [] path;
+    cgGLLoadProgram(program);
+    return program;
+}
 
 /* Load a 3D volume
  * index: the index into the volume array, which stores pointers to 3D volume instances
@@ -620,7 +642,11 @@ void NanoVis::init(const char* path)
     fprintf(stderr, "OpenGL driver: %s %s\n", glGetString(GL_VENDOR), glGetString(GL_VERSION));
     fprintf(stderr, "Graphics hardware: %s\n", glGetString(GL_RENDERER));
     fprintf(stderr, "-----------------------------------------------------------\n");
-
+    if (path == NULL) {
+	fprintf(stderr, "no path defined for shaders or resources\n");
+	fflush(stderr);
+	exit(1);
+    }
     // init GLEW
     GLenum err = glewInit();
     if (GLEW_OK != err) {
@@ -631,9 +657,10 @@ void NanoVis::init(const char* path)
     }
     fprintf(stdout, "Status: Using GLEW %s\n", glewGetString(GLEW_VERSION));
 
-    if (path)
-    {
-        R2FilePath::getInstance()->setPath(path);
+    if (!R2FilePath::getInstance()->setPath(path)) {
+	fprintf(stderr, "can't set file path to %s\n", path);
+	fflush(stderr);
+	exit(1);
     }
 
     NvInitCG();
@@ -1446,29 +1473,29 @@ NanoVis::SetVolumeRanges()
         if (!volPtr->enabled) {
             continue;
         }
-        if (xMin > volPtr->xAxis.Min()) {
-            xMin = volPtr->xAxis.Min();
+        if (xMin > volPtr->xAxis.min()) {
+            xMin = volPtr->xAxis.min();
         }
-        if (xMax < volPtr->xAxis.Max()) {
-            xMax = volPtr->xAxis.Max();
+        if (xMax < volPtr->xAxis.max()) {
+            xMax = volPtr->xAxis.max();
         }
-        if (yMin > volPtr->yAxis.Min()) {
-            yMin = volPtr->yAxis.Min();
+        if (yMin > volPtr->yAxis.min()) {
+            yMin = volPtr->yAxis.min();
         }
-        if (yMax < volPtr->yAxis.Max()) {
-            yMax = volPtr->yAxis.Max();
+        if (yMax < volPtr->yAxis.max()) {
+            yMax = volPtr->yAxis.max();
         }
-        if (zMin > volPtr->zAxis.Min()) {
-            zMin = volPtr->zAxis.Min();
+        if (zMin > volPtr->zAxis.min()) {
+            zMin = volPtr->zAxis.min();
         }
-        if (zMax < volPtr->zAxis.Max()) {
-            zMax = volPtr->zAxis.Max();
+        if (zMax < volPtr->zAxis.max()) {
+            zMax = volPtr->zAxis.max();
         }
-        if (wMin > volPtr->wAxis.Min()) {
-            wMin = volPtr->wAxis.Min();
+        if (wMin > volPtr->wAxis.min()) {
+            wMin = volPtr->wAxis.min();
         }
-        if (wMax < volPtr->wAxis.Max()) {
-            wMax = volPtr->wAxis.Max();
+        if (wMax < volPtr->wAxis.max()) {
+            wMax = volPtr->wAxis.max();
         }
     }
     if ((xMin < DBL_MAX) && (xMax > -DBL_MAX)) {
@@ -1501,29 +1528,29 @@ NanoVis::SetHeightmapRanges()
         if (hmPtr == NULL) {
             continue;
         }
-        if (xMin > hmPtr->xAxis.Min()) {
-            xMin = hmPtr->xAxis.Min();
+        if (xMin > hmPtr->xAxis.min()) {
+            xMin = hmPtr->xAxis.min();
         }
-        if (xMax < hmPtr->xAxis.Max()) {
-            xMax = hmPtr->xAxis.Max();
+        if (xMax < hmPtr->xAxis.max()) {
+            xMax = hmPtr->xAxis.max();
         }
-        if (yMin > hmPtr->yAxis.Min()) {
-            yMin = hmPtr->yAxis.Min();
+        if (yMin > hmPtr->yAxis.min()) {
+            yMin = hmPtr->yAxis.min();
         }
-        if (yMax < hmPtr->yAxis.Max()) {
-            yMax = hmPtr->yAxis.Max();
+        if (yMax < hmPtr->yAxis.max()) {
+            yMax = hmPtr->yAxis.max();
         }
-        if (zMin > hmPtr->zAxis.Min()) {
-            zMin = hmPtr->zAxis.Min();
+        if (zMin > hmPtr->zAxis.min()) {
+            zMin = hmPtr->zAxis.min();
         }
-        if (zMax < hmPtr->zAxis.Max()) {
-            zMax = hmPtr->zAxis.Max();
+        if (zMax < hmPtr->zAxis.max()) {
+            zMax = hmPtr->zAxis.max();
         }
-        if (wMin > hmPtr->wAxis.Min()) {
-            wMin = hmPtr->wAxis.Min();
+        if (wMin > hmPtr->wAxis.min()) {
+            wMin = hmPtr->wAxis.min();
         }
-        if (wMax < hmPtr->wAxis.Max()) {
-            wMax = hmPtr->wAxis.Max();
+        if (wMax < hmPtr->wAxis.max()) {
+            wMax = hmPtr->wAxis.max();
         }
     }
     if ((xMin < DBL_MAX) && (xMax > -DBL_MAX)) {
@@ -1536,8 +1563,17 @@ NanoVis::SetHeightmapRanges()
         grid->zAxis.SetScale(zMin, zMax);
     }
     if ((wMin < DBL_MAX) && (wMax > -DBL_MAX)) {
-        HeightMap::valueMin = wMin;
-        HeightMap::valueMax = wMax;
+        HeightMap::valueMin = grid->yAxis.min();
+        HeightMap::valueMax = grid->yAxis.max();
+    }
+    for (unsigned int i = 0; i < heightMap.size(); i++) {
+        HeightMap *hmPtr;
+
+        hmPtr = heightMap[i];
+        if (hmPtr == NULL) {
+            continue;
+        }
+	hmPtr->MapToGrid(grid);
     }
     HeightMap::update_pending = false;
 }
@@ -1833,12 +1869,13 @@ NanoVis::motion(int x, int y)
 void
 init_service()
 {
-    //open log and map stderr to log file
-    xinetd_log = fopen("/tmp/log.txt", "w");
-    close(2);
-    dup2(fileno(xinetd_log), 2);
-    dup2(2,1);
-
+    if (!debug_flag) {
+	//open log and map stderr to log file
+	xinetd_log = fopen("/tmp/log.txt", "w");
+	close(2);
+	dup2(fileno(xinetd_log), 2);
+	dup2(2,1);
+    }
     //flush junk
     fflush(stdout);
     fflush(stderr);
@@ -1892,30 +1929,93 @@ void removeAllData()
 int 
 main(int argc, char** argv)
 {
-    char *path;
-    path = NULL;
-    while(1) {
-        int c;
-        int option_index = 0;
-        struct option long_options[] = {
-            // name, has_arg, flag, val
-            { 0,0,0,0 },
-        };
+    const char *path;
+    char *newPath;
 
-        c = getopt_long(argc, argv, "+p:", long_options, &option_index);
+    newPath = NULL;
+    path = NULL;
+    NanoVis::stdin = stdin;
+    NanoVis::logfile = stderr;
+    opterr = 1;
+    while (1) {
+	static struct option long_options[] = {
+	    {"infile",  required_argument, NULL,	   0},
+	    {"logfile", required_argument, NULL,	   1},
+	    {"path",    required_argument, NULL,	   2},
+	    {"debug",   no_argument,       NULL,	   3},
+	    {0, 0, 0, 0}
+	};
+	int option_index = 0;
+	int c;
+
+	c = getopt_long(argc, argv, ":dp:i:l:", long_options, &option_index);
         if (c == -1) {
             break;
         }
-        switch(c) {
-        case 'p':
+	switch (c) {
+	case '?':
+	    fprintf(stderr, "unknown option -%c\n", optopt);
+	    return 1;
+	case ':':
+	    if (optopt < 4) {
+		fprintf(stderr, "argument missing for --%s option\n", 
+		    long_options[optopt].name);
+	    } else {
+		fprintf(stderr, "argument missing for -%c option\n", optopt);
+	    }
+	    return 1;
+	case 2:
+	case 'p':
             path = optarg;
-            break;
-        default:
-            fprintf(stderr,"Don't know what option '%c'.\n", c);
+	    break;
+	case 3:
+	case 'd':
+	    debug_flag = true;
+	    break;
+	case 0:
+	case 'i':
+	    fprintf(stderr, "opening infile %s\n", optarg);
+	    NanoVis::stdin = fopen(optarg, "r");
+	    if (NanoVis::stdin == NULL) {
+		perror(optarg);
+		return 2;
+	    }
+	    break;
+	case 1:
+	case 'l':
+	    fprintf(stderr, "opening logfile %s\n", optarg);
+	    NanoVis::logfile = fopen(optarg, "w");
+	    if (NanoVis::logfile == NULL) {
+		perror(optarg);
+		return 2;
+	    }
+	    break;
+	default:
+            fprintf(stderr,"unknown option '%c'.\n", c);
             return 1;
         }
-    }
+    }     
+    if (path == NULL) {
+	char *p;
 
+	// See if we can derive the path from the location of the program.
+	// Assume program is in the form <path>/bin/nanovis.
+
+	path = argv[0];
+	p = strrchr(path, '/');
+	if (p != NULL) {
+	    *p = '\0';
+	    p = strrchr(path, '/');
+	}
+	if (p == NULL) {
+	    fprintf(stderr, "path not specified\n");
+	    return 1;
+	}
+	*p = '\0';
+	newPath = new char[(strlen(path) + 15) * 2 + 1];
+	sprintf(newPath, "%s/lib/shaders:%s/lib/resources", path, path);
+	path = newPath;
+    }
     R2FilePath::getInstance()->setWorkingDirectory(argc, (const char**) argv);
 
 #ifdef XINETD
@@ -1942,6 +2042,9 @@ main(int argc, char** argv)
     glutReshapeFunc(NanoVis::resize_offscreen_buffer);
 
     NanoVis::init(path);
+    if (newPath != NULL) {
+	delete [] newPath;
+    }
     NanoVis::initGL();
     initTcl();
 
@@ -1954,7 +2057,6 @@ main(int argc, char** argv)
     removeAllData();
 
     NvExit();
-
     return 0;
 }
 

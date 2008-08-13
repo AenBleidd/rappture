@@ -2,19 +2,25 @@
 #define _AXIS_RANGE_H
 
 class AxisRange {
-    double _min, _max;
+    double min_, max_;
 public:
     AxisRange(void) {
-	SetRange(0.0, 1.0);
+	min(0.0), max(1.0);
     }
     void SetRange(double min, double max) {
-	_min = min, _max = max;
+	min_ = min, max_ = max;
     }
-    double Min(void) {
-	return _min;
+    double min(void) {
+	return min_;
     }
-    double Max(void) {
-	return _max;
+    void min(double min) {
+	min_ = min;
+    }
+    double max(void) {
+	return max_;
+    }
+    void max(double max) {
+	max_ = max;
     }
 };
 

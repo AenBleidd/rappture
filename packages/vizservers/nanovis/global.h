@@ -39,16 +39,6 @@
    }
 
 
-inline CGprogram 
-loadProgram(CGcontext context, CGprofile profile, CGenum program_type, 
-	    char *filename)
-{
-    CGprogram program = cgCreateProgramFromFile(context, program_type, filename, 
-						profile, NULL, NULL);
-    cgGLLoadProgram(program);
-    return program;
-}
-
 inline void 
 draw_quad(int w, int h, int tw, int th)
 {
@@ -73,4 +63,8 @@ system_info()
     fprintf(stderr, 
 	    "-----------------------------------------------------------\n");
 }
+
+extern CGprogram LoadCgSourceProgram(CGcontext context, const char *filename, 
+	CGprofile profile, const char *entryPoint);
+
 #endif

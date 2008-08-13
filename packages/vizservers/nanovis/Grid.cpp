@@ -31,9 +31,9 @@ void Grid::render()
     glEnable(GL_LINE_SMOOTH);
 #endif
 #ifdef notdef
-    glScalef(xAxis.Scale(), 
-	     yAxis.Range() / xAxis.Range(), 
-	     zAxis.Range() / xAxis.Range());
+    glScalef(xAxis.scale(), 
+	     yAxis.range() / xAxis.range(), 
+	     zAxis.range() / xAxis.range());
 #endif
     glScalef(1.0, 1.0, 1.0);
 
@@ -140,19 +140,19 @@ void Grid::render()
 	if (gluProject(1.2, 0.0, 0.0, mv, prjm, viewport, &wx, &wy, &wz)) {
 	    glLoadIdentity();
 	    glTranslatef((int) wx, viewport[3] - (int) wy, 0);
-	    _font->draw(xAxis.GetName());
+	    _font->draw(xAxis.name());
 	}
 	
 	if (gluProject(0.0, 1.2, 0.0, mv, prjm, viewport, &wx, &wy, &wz)) {
 	    glLoadIdentity();
 	    glTranslatef((int) wx, viewport[3] - (int)wy, 0);
-	    _font->draw(yAxis.GetName());
+	    _font->draw(yAxis.name());
 	}
 	
 	if (gluProject(0.0, 0.0, 1.2, mv, prjm, viewport, &wx, &wy, &wz)) {
 	    glLoadIdentity();
 	    glTranslatef((int) wx, (int) viewport[3] - (int)wy, 0.0f);
-	    _font->draw(zAxis.GetName());
+	    _font->draw(zAxis.name());
 	}
 	
 	glColor4f(1.0f, 1.0f, 0.0f, 1.0f); 

@@ -32,8 +32,7 @@
  *        o Rationalize volume id scheme. Right now it's the index in
  *          the vector. 1) Use a list instead of a vector. 2) carry
  *          an id field that's a number that gets incremented each new volume.
- *        x Create R2, matrix, etc. libraries. (done)
- *        o Add bookkeeping for volumes, heightmaps, flows, etc. to track
+ *        x Create R2, matrix, etc. libraries. (done) *        o Add bookkeeping for volumes, heightmaps, flows, etc. to track
  *          1) id #  2) simulation # 3) include/exclude.  The include/exclude
  *          is to indicate whether the item should contribute to the overall
  *          limits of the axes.
@@ -89,6 +88,7 @@
 
 // in nanovis.cpp
 extern vector<PointSet*> g_pointSet;
+extern int debug_flag;
 
 extern PlaneRenderer* plane_render;
 extern Texture2D* plane[10];
@@ -654,20 +654,20 @@ GetDataStream(Tcl_Interp *interp, Rappture::Buffer &buf, int nBytes)
 {
     char buffer[8096];
 
-    clearerr(stdin);
+    clearerr(NanoVis::stdin);
     while (nBytes > 0) {
         unsigned int chunk;
         int nRead;
 
         chunk = (sizeof(buffer) < (unsigned int) nBytes) ?
             sizeof(buffer) : nBytes;
-        nRead = fread(buffer, sizeof(char), chunk, stdin);
-        if (ferror(stdin)) {
+        nRead = fread(buffer, sizeof(char), chunk, NanoVis::stdin);
+        if (ferror(NanoVis::stdin)) {
             Tcl_AppendResult(interp, "while reading data stream: ",
                              Tcl_PosixError(interp), (char*)NULL);
             return TCL_ERROR;
         }
-        if (feof(stdin)) {
+        if (feof(NanoVis::stdin)) {
             Tcl_AppendResult(interp, "premature EOF while reading data stream",
                              (char*)NULL);
             return TCL_ERROR;
@@ -924,7 +924,9 @@ LegendCmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const *objv)
     if (volPtr->update_pending) {
         NanoVis::SetVolumeRanges();
     }
-    NanoVis::render_legend(tf, Volume::valueMin, Volume::valueMax, w, h, label);
+    NanoVis::render_legend(tf, 
+			   NanoVis::grid->yAxis.min(), 
+			   NanoVis::grid->yAxis.max(), w, h, label);
     return TCL_OK;
 }
 
@@ -1331,7 +1333,7 @@ VolumeDataFollowsOp(ClientData cdata, Tcl_Interp *interp, int objc,
         }
         volPtr = NanoVis::volume[n];
         sprintf(info, "nv>data id %d min %g max %g vmin %g vmax %g\n",
-                n, volPtr->wAxis.Min(), volPtr->wAxis.Max(),
+                n, volPtr->wAxis.min(), volPtr->wAxis.max(),
                 Volume::valueMin, Volume::valueMax);
         write(0, info, strlen(info));
     }
@@ -1714,7 +1716,7 @@ FlowCmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const *objv)
             NanoVis::particleRenderer->setVectorField(volPtr->id, 1.0f,
                 volPtr->height / (float)volPtr->width,
                 volPtr->depth  / (float)volPtr->width,
-                volPtr->wAxis.Max());
+                volPtr->wAxis.max());
             NanoVis::initParticle();
         }
         if (NanoVis::licRenderer != NULL) {
@@ -1722,7 +1724,7 @@ FlowCmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const *objv)
                 1.0f / volPtr->aspect_ratio_width,
                 1.0f / volPtr->aspect_ratio_height,
                 1.0f / volPtr->aspect_ratio_depth,
-                volPtr->wAxis.Max());
+                volPtr->wAxis.max());
             NanoVis::licRenderer->set_offset(NanoVis::lic_slice_z);
         }
     } else if (c == 'l' && strcmp(string, "lic") == 0) {
@@ -1929,8 +1931,9 @@ HeightMapDataFollowsOp(ClientData cdata, Tcl_Interp *interp, int objc,
     int result;
     result = Tcl_Eval(interp, buf.bytes());
     if (result != TCL_OK) {
-        fprintf(stderr, "error in command: %s\n", Tcl_GetStringResult(interp));
-        fflush(stderr);
+        fprintf(NanoVis::logfile, "error in command: %s\n", 
+		Tcl_GetStringResult(interp));
+        fflush(NanoVis::logfile);
     }
     return result;
 }
@@ -2233,8 +2236,8 @@ GridAxisNameOp(ClientData cdata, Tcl_Interp *interp, int objc,
         case 1: axisPtr = &NanoVis::grid->yAxis; break;
         case 2: axisPtr = &NanoVis::grid->zAxis; break;
         }
-        axisPtr->SetName(Tcl_GetString(objv[3]));
-        axisPtr->SetUnits(Tcl_GetString(objv[4]));
+        axisPtr->name(Tcl_GetString(objv[3]));
+        axisPtr->units(Tcl_GetString(objv[4]));
     }
     return TCL_OK;
 }
@@ -2527,12 +2530,12 @@ UniRect2dCmd(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     HeightMap* hmPtr;
     hmPtr = new HeightMap();
+
     hmPtr->setHeight(xMin, yMin, xMax, yMax, xNum, yNum, zValues);
     hmPtr->setColorMap(NanoVis::get_transfunc("default"));
     hmPtr->setVisible(true);
     hmPtr->setLineContourVisible(true);
     NanoVis::heightMap.push_back(hmPtr);
-    delete [] zValues;
     return TCL_OK;
 }
 
@@ -2571,8 +2574,8 @@ initTcl()
 
     // create a default transfer function
     if (Tcl_Eval(interp, def_transfunc) != TCL_OK) {
-        fprintf(stdin, "WARNING: bad default transfer function\n");
-        fprintf(stdin, Tcl_GetStringResult(interp));
+        fprintf(NanoVis::logfile, "WARNING: bad default transfer function\n");
+        fprintf(NanoVis::logfile, Tcl_GetStringResult(interp));
     }
 }
 
@@ -2600,7 +2603,8 @@ xinetd_listen()
         //  here.
         //
         while (1) {
-            char c = getchar();
+            int c = fgetc(NanoVis::stdin);
+	    char ch;
             if (c <= 0) {
                 if (npass == 0) {
                     exit(0);  // EOF -- we're done!
@@ -2608,13 +2612,13 @@ xinetd_listen()
                     break;
                 }
             }
-            Tcl_DStringAppend(&cmdbuffer, &c, 1);
+	    ch = (char)c;
+            Tcl_DStringAppend(&cmdbuffer, &ch, 1);
 
-            if (c=='\n' && Tcl_CommandComplete(Tcl_DStringValue(&cmdbuffer))) {
+            if (ch=='\n' && Tcl_CommandComplete(Tcl_DStringValue(&cmdbuffer))) {
                 break;
             }
         }
-
         // no command? then we're done for now
         if (Tcl_DStringLength(&cmdbuffer) == 0) {
             break;
@@ -2622,6 +2626,9 @@ xinetd_listen()
 
         // back to original flags during command evaluation...
         fcntl(0, F_SETFL, flags & ~O_NONBLOCK);
+	if (debug_flag) {
+	    fprintf(NanoVis::logfile, "%s\n", Tcl_DStringValue(&cmdbuffer));
+	}
         status = Tcl_Eval(interp, Tcl_DStringValue(&cmdbuffer));
         Tcl_DStringSetLength(&cmdbuffer, 0);
 
@@ -2634,14 +2641,14 @@ xinetd_listen()
     if (status != TCL_OK) {
         const char *string;
         int nBytes;
-        string = Tcl_GetStringFromObj(Tcl_GetObjResult(_interp), &nBytes);
 
+        string = Tcl_GetStringFromObj(Tcl_GetObjResult(interp), &nBytes);
         struct iovec iov[3];
-        iov[0].iov_base = "NanoVis Server Error: ";
-        iov[0].iov_len = strlen(iov[0].iov_base);
-        iov[1].iov_base = string;
+        iov[0].iov_base = (char *)"NanoVis Server Error: ";
+        iov[0].iov_len = strlen((char *)iov[0].iov_base);
+        iov[1].iov_base = (char *)string;
         iov[1].iov_len = nBytes;
-        iov[2].iov_base = '\n';
+        iov[2].iov_base = (char *)'\n';
         iov[2].iov_len = 1;
         writev(0, iov, 3);
         return;

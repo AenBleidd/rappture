@@ -16,16 +16,16 @@
 PointSetRenderer::PointSetRenderer()
 {
     _shader = new PointShader();
-    R2string path = R2FilePath::getInstance()->getPath("particle2.bmp");
-    if (path.getLength() == 0) {
-        printf("ERROR : pointset file not found - %s\n", (const char*) path);
+    const char *path = R2FilePath::getInstance()->getPath("particle2.bmp");
+    if (path == NULL) {
+        fprintf(stderr, "ERROR : pointset file not found - %s\n", path);
         fflush(stdout);
         return;
     }
     
     ImageLoader* loader = ImageLoaderFactory::getInstance()->createLoader("bmp");
     Image* image = loader->load(path, Image::IMG_RGBA);
-
+    delete [] path;
     unsigned char* bytes = (unsigned char*) image->getImageBuffer();
     if (bytes) {
         for (unsigned int y = 0; y < image->getHeight(); ++y) {

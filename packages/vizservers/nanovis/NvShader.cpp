@@ -1,5 +1,6 @@
-#include "NvShader.h"
 #include <stdio.h>
+#include "global.h"
+#include "NvShader.h"
 
 CGcontext g_context = 0;
 
@@ -9,6 +10,7 @@ void NvInitCG()
 }
 
 NvShader::NvShader()
+
 : _cgVP(0), _cgFP(0)
 {
 }
@@ -21,20 +23,12 @@ void NvShader::loadVertexProgram(const char* fileName, const char* entryPoint)
 {
     resetPrograms();
 
-    printf("[%s] loading\n", fileName);
-    _cgVP = cgCreateProgramFromFile(g_context, CG_SOURCE, fileName, CG_PROFILE_VP30,
-                            entryPoint, NULL);
-
-    cgGLLoadProgram(_cgVP);
+    _cgFP = LoadCgSourceProgram(g_context, fileName, CG_PROFILE_VP30, entryPoint);
 }
 
 void NvShader::loadFragmentProgram(const char* fileName, const char* entryPoint)
 {
-    printf("[%s] loading\n", fileName);
-    _cgFP = cgCreateProgramFromFile(g_context, CG_SOURCE, fileName, CG_PROFILE_FP30,
-                            entryPoint, NULL);
-
-    cgGLLoadProgram(_cgFP);
+    _cgFP = LoadCgSourceProgram(g_context, fileName, CG_PROFILE_FP30, entryPoint);
 }
 
 void NvShader::resetPrograms()

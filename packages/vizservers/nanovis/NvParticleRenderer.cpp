@@ -79,8 +79,8 @@ NvParticleRenderer::NvParticleRenderer(int w, int h, CGcontext context)
     /*
       m_g_context = context;
 
-      R2string path = R2FilePath::getInstance()->getPath("update_pos.cg");
-      m_pos_fprog = loadProgram(m_g_context, CG_PROFILE_FP30, CG_SOURCE, path);
+      m_pos_fprog = LoadCgSourceProgram(m_g_context, "update_pos.cg", 
+	CG_PROFILE_FP30, NULL);
       m_pos_timestep_param  = cgGetNamedParameter(m_pos_fprog, "timestep");
       m_vel_tex_param = cgGetNamedParameter(m_pos_fprog, "vel_tex");
       m_pos_tex_param = cgGetNamedParameter(m_pos_fprog, "pos_tex");

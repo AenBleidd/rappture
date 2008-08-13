@@ -123,7 +123,6 @@ itcl::body Rappture::XyResult::constructor {args} {
     pack $itk_component(reset) -padx 4 -pady 4
     Rappture::Tooltip::for $itk_component(reset) "Reset the view to the default zoom level"
 
-
     itk_component add plot {
         blt::graph $itk_interior.plot \
             -highlightthickness 0 -plotpadx 0 -plotpady 0 \
@@ -133,7 +132,8 @@ itcl::body Rappture::XyResult::constructor {args} {
     }
     pack $itk_component(plot) -expand yes -fill both
     $itk_component(plot) pen configure activeLine \
-        -symbol square -pixels 3 -linewidth 2 -color black
+        -symbol square -pixels 3 -linewidth 2 \
+	-outline black -fill red -color black
 
     #
     # Add bindings so you can mouse over points to see values:
@@ -199,13 +199,13 @@ itcl::body Rappture::XyResult::constructor {args} {
 
     
     #
-    # Add support for editing hidden/elements:
+    # Add legend for editing hidden/elements:
     #
     itk_component add legend {
         button $itk_component(controls).legend \
             -borderwidth 1 -padx 3 -pady 0 \
 	    -text "L" -font "-*-times new roman-bold-i-*-*-11-*-*-*-*-*-*-*" \
-       -command [list $itk_component(hull).legend activate \
+	    -command [list $itk_component(hull).legend activate \
 			  $itk_component(controls).legend left]
     } {
         usual
@@ -213,7 +213,8 @@ itcl::body Rappture::XyResult::constructor {args} {
         rename -highlightbackground -controlbackground controlBackground Background
     }
     pack $itk_component(legend) -padx 4 -pady 4
-    Rappture::Tooltip::for $itk_component(legend) "Display legend to hide/show elements"
+    Rappture::Tooltip::for $itk_component(legend) \
+	"Display legend to hide/show elements"
 
     Rappture::Balloon $itk_component(hull).legend -title "Legend"
     set inner [$itk_component(hull).legend component inner]
@@ -638,6 +639,8 @@ itcl::body Rappture::XyResult::_rebuild {} {
             [list ::Rappture::Tooltip::tooltip cancel]
     }
     $g legend bind all <ButtonRelease> [itcl::code $this _legend toggle]
+    $g legend bind all <ButtonRelease-3> [itcl::code $this _legend showall]
+    $g legend bind all <ButtonRelease-2> [itcl::code $this _legend showone]
 
     #
     # Plot all of the curves.
@@ -841,6 +844,12 @@ itcl::body Rappture::XyResult::_zoom {option args} {
 itcl::body Rappture::XyResult::_hilite {state x y} {
     set g $itk_component(plot)
     set elem ""
+  
+    # Peek inside of Blt_ZoomStack package to see if we're currently in the
+    # middle of a zoom selection.
+    if {[info exists ::zoomInfo($g,corner)] && $::zoomInfo($g,corner) == "B" } {
+	return;
+    }
     if {$state == "at"} {
         if {[$g element closest $x $y info -interpolate yes]} {
             # for dealing with xy line plots
@@ -1539,6 +1548,27 @@ itcl::body Rappture::XyResult::_legend { what } {
 		$g legend activate $name
 		$g element configure $name -hide yes
 	    }
+	}
+	"showall" {
+	    set g $itk_component(plot)
+	    set cur [$g legend get current]
+	    foreach name [$g element show] {
+		$g legend deactivate $name
+		$g element configure $name -hide no
+		update
+	    }
+	    $g element configure $cur -hide yes
+	    $g legend activate $cur
+	}
+	"showone" {
+	    set g $itk_component(plot)
+	    set cur [$g legend get current]
+	    foreach name [$g element show] {
+		$g legend activate $name
+		$g element configure $name -hide yes
+	    }
+	    $g element configure $cur -hide no
+	    $g legend deactivate $cur
 	}
     }
 }

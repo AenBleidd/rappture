@@ -14,7 +14,7 @@
  * ======================================================================
  */
 
-#include <R2/R2FilePath.h>
+#include "global.h"
 #include "PlaneRenderer.h"
 
 PlaneRenderer::PlaneRenderer(CGcontext _context, int _width, int _height):
@@ -39,8 +39,8 @@ void
 PlaneRenderer::init_shaders()
 {
     //plane rendering shader
-    R2string path = R2FilePath::getInstance()->getPath("one_plane.cg");
-    m_fprog = loadProgram(g_context, CG_PROFILE_FP30, CG_SOURCE, path);
+    m_fprog = LoadCgSourceProgram(g_context, "one_plane.cg", CG_PROFILE_FP30, 
+	NULL);
     m_data_param = cgGetNamedParameter(m_fprog, "data");
     m_tf_param = cgGetNamedParameter(m_fprog, "tf");
     m_render_param = cgGetNamedParameter(m_fprog, "render_param");

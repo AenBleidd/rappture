@@ -9,7 +9,7 @@
 class R2Fonts : public R2Object {
 
     struct R2FontAttributes {
-        R2string _fontName;
+        char *_fontName;
         R2int32 _textureWidth;
         R2int32 _textureHeight;
         R2int32 _fontHeight;

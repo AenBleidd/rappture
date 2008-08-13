@@ -1,19 +1,21 @@
  
-#include <GL/glew.h>
-#include <GL/gl.h>
-#include "HeightMap.h"
-#include "ContourLineFilter.h"
-#include "TypeDefs.h"
-#include <Texture1D.h>
-#include <stdlib.h>
 #include <memory.h>
-#include <R2/R2FilePath.h>
-#include "RpField1D.h"
+#include <stdlib.h>
 #include <sys/time.h>
 #include <sys/types.h>
 #include <unistd.h>
 #include <fcntl.h>
-#include <RenderContext.h>
+#include <stdlib.h>
+#include <GL/glew.h>
+#include <GL/gl.h>
+#include "Grid.h"
+#include "HeightMap.h"
+#include "ContourLineFilter.h"
+#include "TypeDefs.h"
+#include "Texture1D.h"
+#include "R2/R2FilePath.h"
+#include "RpField1D.h"
+#include "RenderContext.h"
 
 bool HeightMap::update_pending = false;
 double HeightMap::valueMin = 0.0;
@@ -34,15 +36,11 @@ HeightMap::HeightMap() :
     _topContourVisible(true),
     _visible(false),
     _scale(1.0f, 1.0f, 1.0f), 
-    _centerPoint(0.0f, 0.0f, 0.0f)
+    _centerPoint(0.0f, 0.0f, 0.0f),
+    heights_(NULL)
 {
     _shader = new NvShader();
-
-    R2string path = R2FilePath::getInstance()->getPath("heightcolor.cg");
-    if (path.getLength() == 0) {
-        printf("ERROR : file not found %s\n", "heightcolor.cg");
-    }
-    _shader->loadFragmentProgram(path, "main");
+    _shader->loadFragmentProgram("heightcolor.cg", "main");
     _tf = _shader->getNamedParameterFromFP("tf");
 }
 
@@ -72,13 +70,14 @@ void HeightMap::render(graphics::RenderContext* renderContext)
 
     glPushMatrix();
 
+#ifndef notdef
     if (_scale.x != 0.0) {
-        glScalef(1 / _scale.x, 1 / _scale.x , 1 / _scale.x);
+        glScalef(1 / _scale.x, 1 / _scale.y , 1 / _scale.z);
     }
-
+#endif
     glTranslatef(-_centerPoint.x, -_centerPoint.y, -_centerPoint.z);
 
-    if (_contour) {
+    if (_contour != NULL) {
         glDepthRange (0.001, 1.0);
     }
         
@@ -139,7 +138,7 @@ void HeightMap::render(graphics::RenderContext* renderContext)
     glShadeModel(GL_FLAT);
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     
-    if (_contour) {
+    if (_contour != NULL) {
         if (_contourVisible) {
             glDisable(GL_BLEND);
             glDisable(GL_TEXTURE_2D);
@@ -175,7 +174,7 @@ HeightMap::createIndexBuffer(int xCount, int zCount, int*& indexBuffer,
     int boundaryWidth = xCount - 1;
     int boundaryHeight = zCount - 1;
     int* ptr = indexBuffer;
-        int index1, index2, index3, index4;
+    int index1, index2, index3, index4;
     bool index1Valid, index2Valid, index3Valid, index4Valid;
     index1Valid = index2Valid = index3Valid = index4Valid = true;
 
@@ -256,6 +255,7 @@ HeightMap::setHeight(int xCount, int yCount, Vector3* heights)
     _vertexCount = xCount * yCount;
     reset();
     
+    heights_ = (float *)heights; 
     float min, max;
     min = heights[0].y, max = heights[0].y;
 
@@ -324,42 +324,47 @@ HeightMap::setHeight(int xCount, int yCount, Vector3* heights)
 }
 
 void 
-HeightMap::setHeight(float startX, float startY, float endX, float endY, 
-                     int xCount, int yCount, float* heights)
+HeightMap::setHeight(float xMin, float yMin, float xMax, float yMax, 
+                     int xNum, int yNum, float* heights)
 {
-    _vertexCount = xCount * yCount;
-    
+    _vertexCount = xNum * yNum;
+    xNum_ = xNum, yNum_ = yNum;
+    heights_ = heights; 
     reset();
-
+    
+    // Get the min/max of the heights. */
     float min, max;
-    min = heights[0], max = heights[0];
-    int count = xCount * yCount;
-    for (int i = 0; i < count; ++i) {
+    min = max = heights[0];
+    for (int i = 0; i < _vertexCount; ++i) {
         if (min > heights[i]) {
             min = heights[i];
         } else if (max < heights[i]) {
             max = heights[i];
         }
     }
-    _scale.x = endX - startX;
-    _scale.y = max - min;
-    _scale.z = endY - startY;
-
     wAxis.SetRange(min, max);
-    xAxis.SetRange(startX, endX);
     yAxis.SetRange(min, max);
-    zAxis.SetRange(startY, endY);
+    xAxis.SetRange(xMin, xMax);
+    zAxis.SetRange(yMin, yMax);
+    
+    
+    min = 0.0, max = 1.0;
+    xMin = yMin = min = 0.0; 
+    xMax = yMax = max = 1.0;
+    // Save the scales.
+    _scale.x = _scale.y = _scale.z = 1.0;
+
     update_pending = true;
 
-    _centerPoint.set(_scale.x * 0.5 + startX, _scale.y * 0.5 + min, 
-	_scale.z * 0.5 + startY);
+    _centerPoint.set(0.5, 0.5, 0.5);
     
-    Vector3* texcoord = new Vector3[count];
-    for (int i = 0; i < count; ++i) {
+#ifndef notdef
+    Vector3* texcoord = new Vector3[_vertexCount];
+    for (int i = 0; i < _vertexCount; ++i) {
         texcoord[i].set(0, 0, heights[i]);
     }
     
-    Vector3* heightMap = createHeightVertices(startX, startY, endX, endY, xCount, yCount, heights);
+    Vector3* heightMap = createHeightVertices(xMin, yMin, xMax, yMax, xNum, yNum, heights);
     
     glGenBuffers(1, &_vertexBufferObjectID);
     glBindBuffer(GL_ARRAY_BUFFER, _vertexBufferObjectID);
@@ -376,45 +381,48 @@ HeightMap::setHeight(float startX, float startY, float endX, float endY,
     
     ContourLineFilter lineFilter;
     //lineFilter.setColorMap(_colorMap);
-    _contour = lineFilter.create(0.0f, 1.0f, 10, heightMap, xCount, yCount);
+    _contour = lineFilter.create(0.0f, 1.0f, 10, heightMap, xNum, yNum);
     
 #if TOPCONTOUR
     ContourLineFilter topLineFilter;
     topLineFilter.setHeightTop(true);
-    _topContour = topLineFilter.create(0.0f, 1.0f, 10, heightMap, xCount, yCount);
+    _topContour = topLineFilter.create(0.0f, 1.0f, 10, heightMap, xNum, yNum);
 #endif
 
 
     //if (heightMap)
     //{
-    //  VertexBuffer* vertexBuffer = new VertexBuffer(VertexBuffer::POSITION3, xCount * yCount, 
-    // sizeof(Vector3) * xCount * yCount, heightMap, false);
+    //  VertexBuffer* vertexBuffer = new VertexBuffer(VertexBuffer::POSITION3, xNum * yNum, 
+    // sizeof(Vector3) * xNum * yNum, heightMap, false);
     if (_indexBuffer) {
         free(_indexBuffer);
     }
-    this->createIndexBuffer(xCount, yCount, _indexBuffer, _indexCount, heights);
+    this->createIndexBuffer(xNum, yNum, _indexBuffer, _indexCount, heights);
     //}
     //else
     //{
     //printf("ERROR - HeightMap::setHeight\n");
     //}
+#endif
 }
 
-Vector3* HeightMap::createHeightVertices(float startX, float startY, float endX, float endY, int xCount, int yCount, float* height)
+Vector3* 
+HeightMap::createHeightVertices(float xMin, float yMin, float xMax, 
+				float yMax, int xNum, int yNum, float* height)
 {
-    Vector3* vertices = (Vector3*) malloc(sizeof(Vector3) * xCount * yCount);
+    Vector3* vertices = (Vector3*) malloc(sizeof(Vector3) * xNum * yNum);
 
     Vector3* dstDataPtr = vertices;
     float* srcDataPtr = height;
     
-    for (int y = 0; y < yCount; ++y) {
+    for (int y = 0; y < yNum; ++y) {
         float yCoord;
 
-        yCoord = startY + ((endY - startY) * y) / (yCount - 1); 
-        for (int x = 0; x < xCount; ++x) {
+        yCoord = yMin + ((yMax - yMin) * y) / (yNum - 1); 
+        for (int x = 0; x < xNum; ++x) {
             float xCoord;
 
-            xCoord = startX + ((endX - startX) * x) / (xCount - 1); 
+            xCoord = xMin + ((xMax - xMin) * x) / (xNum - 1); 
             dstDataPtr->set(xCoord, *srcDataPtr, yCoord);
 
             ++dstDataPtr;
@@ -431,3 +439,71 @@ void HeightMap::setColorMap(TransferFunction* colorMap)
     _colorMap = colorMap;
 }
 
+// Maps the data coordinates of the surface into the grid's axes.
+void 
+HeightMap::MapToGrid(Grid *gridPtr)
+{
+    int count = xNum_ * yNum_;
+
+    reset();
+
+    // The range of the grid's y-axis 0..1 represents the distance between the
+    // smallest and largest major ticks for all surfaces plotted.  Translate 
+    // this surface's y-values (heights) into the grid's axis coordinates.
+
+    float yScale = 1.0 / (gridPtr->yAxis.max() - gridPtr->yAxis.min());
+    float *p, *q, *pend;
+    float *normHeights = new float[count];
+    for (p = heights_, pend = p + count, q = normHeights; p < pend; p++, q++) {
+	*q = (*p - gridPtr->yAxis.min()) * yScale;
+    }
+    Vector3 *t, *texcoord;
+    texcoord = new Vector3[count];
+    for (t = texcoord, p = normHeights, pend = p + count; p < pend; p++, t++) {
+        t->set(0, 0, *p);
+    }
+
+    // Normalize the mesh coordinates (x and z min/max) the range of 
+    // the major ticks for the x and z grid axes as well.
+
+    float xScale, zScale;
+    float xMin, xMax, zMin, zMax;
+
+    xScale = 1.0 / (gridPtr->xAxis.max() - gridPtr->xAxis.min());
+    xMin = (xAxis.min() - gridPtr->xAxis.min()) * xScale;
+    xMax = (xAxis.max() - gridPtr->xAxis.min()) * xScale;
+    zScale = 1.0 / (gridPtr->zAxis.max() - gridPtr->zAxis.min());
+    zMin = (zAxis.min() - gridPtr->zAxis.min()) * zScale;
+    zMax = (zAxis.max() - gridPtr->zAxis.min()) * zScale;
+
+    Vector3* vertices;
+    vertices = createHeightVertices(xMin, zMin, xMax, zMax, xNum_, yNum_, 
+	normHeights);
+    
+    glGenBuffers(1, &_vertexBufferObjectID);
+    glBindBuffer(GL_ARRAY_BUFFER, _vertexBufferObjectID);
+    glBufferData(GL_ARRAY_BUFFER, _vertexCount * sizeof(Vector3), vertices, 
+        GL_STATIC_DRAW);
+    glGenBuffers(1, &_textureBufferObjectID);
+    glBindBuffer(GL_ARRAY_BUFFER, _textureBufferObjectID);
+    glBufferData(GL_ARRAY_BUFFER, _vertexCount * sizeof(float) * 3, texcoord, 
+        GL_STATIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    delete [] texcoord;
+
+    ContourLineFilter lineFilter;
+    //lineFilter.setColorMap(_colorMap);
+    _contour = lineFilter.create(0.0f, 1.0f, 10, vertices, xNum_, yNum_);
+    
+#if TOPCONTOUR
+    ContourLineFilter topLineFilter;
+    topLineFilter.setHeightTop(true);
+    _topContour = topLineFilter.create(0.0f, 1.0f, 10, vertices, xNum_, yNum_);
+#endif
+    if (_indexBuffer) {
+        free(_indexBuffer);
+    }
+    this->createIndexBuffer(xNum_, yNum_, _indexBuffer, _indexCount, 
+    	normHeights);
+    delete [] normHeights;
+}

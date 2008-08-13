@@ -824,13 +824,11 @@ ViewportCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
 }
 
 static int
-LoadPDBStrCmd(ClientData cdata, Tcl_Interp *interp, int argc, 
+LoadPDB2Cmd(ClientData cdata, Tcl_Interp *interp, int argc, 
 	      const char *argv[])
 {
-    const char *pdbdata, *pdb, *name;
-    char *buf;
-    char buffer[800];
-    struct pymol_proxy *pymol = (struct pymol_proxy *) cdata;
+    const char *pdbdata, *name;
+    PymolProxy *pymol = (PymolProxy *) cdata;
     int state = 1;
     int tmpf;
     int arg, defer = 0, push = 0, varg = 1;
@@ -840,7 +838,7 @@ LoadPDBStrCmd(ClientData cdata, Tcl_Interp *interp, int argc,
 	return(TCL_ERROR);
     
     clear_error(pymol);
-    
+    pdbdata = name = NULL;	/* Suppress compiler warning. */
     for(arg = 1; arg < argc; arg++) {
 	if ( strcmp(argv[arg],"-defer") == 0 )
 	    defer = 1;
@@ -849,12 +847,10 @@ LoadPDBStrCmd(ClientData cdata, Tcl_Interp *interp, int argc,
         else if (varg == 1) {
 	    pdbdata = argv[arg];
 	    varg++;
-	}
-	else if (varg == 2) {
+	} else if (varg == 2) {
 	    name = argv[arg];
 	    varg++;
-	}
-	else if (varg == 3) {
+	} else if (varg == 3) {
 	    state = atoi( argv[arg] );
 	    varg++;
 	}
@@ -873,7 +869,8 @@ LoadPDBStrCmd(ClientData cdata, Tcl_Interp *interp, int argc,
     
     sendf(pymol, "load %s, %s, %d\n", filename, name, state);
     sendf(pymol, "zoom buffer=2\n");
-    
+    /* Can't clean up the temporary file, since we don't when pymol will be
+     * done reading it. */
     return(pymol->status);
 }
 
@@ -958,26 +955,22 @@ RotateCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
 
     clear_error(pymol);
 
-    for(arg = 1; arg < argc; arg++)
-        {
-            if (strcmp(argv[arg],"-defer") == 0)
-                defer = 1;
-            else if (strcmp(argv[arg],"-push") == 0)
-                push = 1;
-            else  if (varg == 1) {
-                turnx = atof(argv[arg]);
-                varg++;
-            }
-            else if (varg == 2) {
-                turny = atof(argv[arg]);
-                varg++;
-            }
-            else if (varg == 3) {
-                turnz = atof(argv[arg]);
-                varg++;
-            }
-        } 
- 
+    for(arg = 1; arg < argc; arg++) {
+	if (strcmp(argv[arg],"-defer") == 0) {
+	    defer = 1; 
+	} else if (strcmp(argv[arg],"-push") == 0) {
+	    push = 1;
+	} else  if (varg == 1) {
+	    turnx = atof(argv[arg]);
+	    varg++;
+	} else if (varg == 2) {
+	    turny = atof(argv[arg]);
+	    varg++;
+	} else if (varg == 3) {
+	    turnz = atof(argv[arg]);
+	    varg++;
+	}
+    } 
     pymol->need_update = !defer || push;
     pymol->immediate_update  |= push;
     pymol->invalidate_cache = 1;
@@ -1004,18 +997,16 @@ ZoomCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
 
     clear_error(pymol);
 
-    for(arg = 1; arg < argc; arg++)
-        {
-            if (strcmp(argv[arg],"-defer") == 0)
-                defer = 1;
-            else if (strcmp(argv[arg],"-push") == 0)
-                push = 1;
-            else if (varg == 1) {
-                factor = atof(argv[arg]);
-                varg++;
-            }
-        }
-
+    for(arg = 1; arg < argc; arg++) {
+	if (strcmp(argv[arg],"-defer") == 0)
+	    defer = 1;
+	else if (strcmp(argv[arg],"-push") == 0)
+	    push = 1;
+	else if (varg == 1) {
+	    factor = atof(argv[arg]);
+	    varg++;
+	}
+    }
     zmove = factor * -75;
  
     pymol->need_update = !defer || push;
@@ -1223,6 +1214,7 @@ ProxyInit(int c_in, int c_out, char *const *argv)
     Tcl_CreateCommand(interp, "rotate",  RotateCmd,     &pymol, NULL);
     Tcl_CreateCommand(interp, "zoom",    ZoomCmd,       &pymol, NULL);
     Tcl_CreateCommand(interp, "loadpdb", LoadPDBCmd,    &pymol, NULL);
+    Tcl_CreateCommand(interp, "loadpdb2", LoadPDB2Cmd,  &pymol, NULL);
     Tcl_CreateCommand(interp, "ballnstick",BallNStickCmd, &pymol, NULL);
     Tcl_CreateCommand(interp, "spheres", SpheresCmd,    &pymol, NULL);
     Tcl_CreateCommand(interp, "lines",   LinesCmd,      &pymol, NULL);
