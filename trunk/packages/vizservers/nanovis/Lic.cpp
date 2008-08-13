@@ -89,10 +89,12 @@ Lic::Lic(int _size, int _width, int _height, float _offset,
   CHECK_FRAMEBUFFER_STATUS();
   assert(glGetError()==0);
 
-  R2string path = R2FilePath::getInstance()->getPath("render_vel.cg");
-  m_render_vel_fprog = loadProgram(m_g_context, CG_PROFILE_FP30, CG_SOURCE, path);
-  m_vel_tex_param_render_vel = cgGetNamedParameter(m_render_vel_fprog, "vel_tex");
-  m_plane_normal_param_render_vel = cgGetNamedParameter(m_render_vel_fprog, "plane_normal");
+  m_render_vel_fprog = LoadProgram(m_g_context, CG_PROFILE_FP30, CG_SOURCE, 
+	NULL, "render_vel.cg");
+  m_vel_tex_param_render_vel = cgGetNamedParameter(m_render_vel_fprog, 
+	"vel_tex");
+  m_plane_normal_param_render_vel = cgGetNamedParameter(m_render_vel_fprog, 
+	"plane_normal");
   cgGLSetTextureParameter(m_vel_tex_param_render_vel, _vector_field);
 
   get_slice();

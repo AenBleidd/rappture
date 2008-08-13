@@ -82,9 +82,9 @@ NiceNum(
 void 
 Ticks::SetTicks(void)
 {
-    _nTicks = 0;
-    _ticks = new float[_nSteps];
-    if (_step == 0.0) { 
+    numTicks_ = 0;
+    ticks_ = new float[nSteps_];
+    if (step_ == 0.0) { 
 	/* Hack: A zero step indicates to use log values. */
 	unsigned int i;
 	/* Precomputed log10 values [1..10] */
@@ -100,35 +100,35 @@ Ticks::SetTicks(void)
 	    0.954242509439325, 
 	    1.0
 	};
-	for (i = 0; i < _nSteps; i++) {
-	    _ticks[i] = logTable[i];
+	for (i = 0; i < nSteps_; i++) {
+	    ticks_[i] = logTable[i];
 	}
     } else {
 	double value;
 	unsigned int i;
     
-	value = _initial;	/* Start from smallest axis tick */
-	for (i = 0; i < _nSteps; i++) {
-	    value = _initial + (_step * i);
-	    _ticks[i] = UROUND(value, _step);
+	value = initial_;	/* Start from smallest axis tick */
+	for (i = 0; i < nSteps_; i++) {
+	    value = initial_ + (step_ * i);
+	    ticks_[i] = UROUND(value, step_);
 	}
     }
-    _nTicks = _nSteps;
+    numTicks_ = nSteps_;
 }
 
-Axis::Axis(const char *name) :
-    _major(5), _minor(2) 
+Axis::Axis(const char *axisName) :
+    major_(5), minor_(2) 
 {
-    _name = NULL;
-    SetName(name);
-    _units = NULL;
-    _title = NULL;
-    _valueMin = DBL_MAX, _valueMax = -DBL_MAX;
-    _min = DBL_MAX, _max = -DBL_MAX;
-    _reqMin = _reqMax = _NaN;
-    _range = 0.0, _scale = 0.0;
-    _reqStep = 0.0;
-    _flags = AUTOSCALE;
+    name_ = NULL;
+    name(axisName);
+    units_ = NULL;
+    title_ = NULL;
+    valueMin_ = DBL_MAX, valueMax_ = -DBL_MAX;
+    min_ = DBL_MAX, max_ = -DBL_MAX;
+    reqMin_ = reqMax_ = _NaN;
+    range_ = 0.0, scale_ = 0.0;
+    reqStep_ = 0.0;
+    flags_ = AUTOSCALE;
 }
 
 /*
@@ -155,10 +155,10 @@ Axis::Axis(const char *name) :
 bool
 Axis::InRange(double x)
 {
-    if (_range < DBL_EPSILON) {
-	return (fabs(_max - x) >= DBL_EPSILON);
+    if (range_ < DBL_EPSILON) {
+	return (fabs(max_ - x) >= DBL_EPSILON);
     } else {
-	x = (x - _min) * _scale;
+	x = (x - min_) * scale_;
 	return ((x >= -DBL_EPSILON) && ((x - 1.0) < DBL_EPSILON));
     }
 }
@@ -167,15 +167,15 @@ void
 Axis::FixRange(double min, double max)
 {
     if (min == DBL_MAX) {
-	if (DEFINED(_reqMin)) {
-	    min = _reqMin;
+	if (DEFINED(reqMin_)) {
+	    min = reqMin_;
 	} else {
-	    min = (_flags & LOGSCALE) ? 0.001 : 0.0;
+	    min = (flags_ & LOGSCALE) ? 0.001 : 0.0;
 	}
     }
     if (max == -DBL_MAX) {
-	if (DEFINED(_reqMax)) {
-	    max = _reqMax;
+	if (DEFINED(reqMax_)) {
+	    max = reqMax_;
 	} else {
 	    max = 1.0;
 	}
@@ -196,20 +196,20 @@ Axis::FixRange(double min, double max)
      * The axis limits are either the current data range or overridden by the
      * values selected by the user with the -min or -max options.
      */
-    _valueMin = (DEFINED(_reqMin)) ? _reqMin : min;
-    _valueMax = (DEFINED(_reqMax)) ? _reqMax : max;
-    if (_valueMax < _valueMin) {
+    valueMin_ = (DEFINED(reqMin_)) ? reqMin_ : min;
+    valueMax_ = (DEFINED(reqMax_)) ? reqMax_ : max;
+    if (valueMax_ < valueMin_) {
 	/*   
 	 * If the limits still don't make sense, it's because one limit
 	 * configuration option (-min or -max) was set and the other default
 	 * (based upon the data) is too small or large.  Remedy this by making
 	 * up a new min or max from the user-defined limit.
 	 */
-	if (!DEFINED(_reqMin)) {
-	    _valueMin = _valueMax - (fabs(_valueMax) * 0.1);
+	if (!DEFINED(reqMin_)) {
+	    valueMin_ = valueMax_ - (fabs(valueMax_) * 0.1);
 	}
-	if (!DEFINED(_reqMax)) {
-	    _valueMax = _valueMin + (fabs(_valueMax) * 0.1);
+	if (!DEFINED(reqMax_)) {
+	    valueMax_ = valueMin_ + (fabs(valueMax_) * 0.1);
 	}
     }
 }
@@ -300,7 +300,7 @@ Axis::LogScale()
     /* Suppress compiler warnings. */
     majorStep = minorStep = 0.0;
     tickMin = tickMax = _NaN;
-    min = _valueMin, max = _valueMax;
+    min = valueMin_, max = valueMax_;
     if (min < max) {
 	min = (min != 0.0) ? log10(fabs(min)) : 0.0;
 	max = (max != 0.0) ? log10(fabs(max)) : 1.0;
@@ -313,7 +313,7 @@ Axis::LogScale()
 	    /* There are too many decades to display a major tick at every
 	     * decade.  Instead, treat the axis as a linear scale.  */
 	    range = NiceNum(range, 0);
-	    majorStep = NiceNum(range / _major.reqNumTicks, 1);
+	    majorStep = NiceNum(range / major_.reqNumTicks, 1);
 	    tickMin = UFLOOR(tickMin, majorStep);
 	    tickMax = UCEIL(tickMax, majorStep);
 	    nMajor = (int)((tickMax - tickMin) / majorStep) + 1;
@@ -338,20 +338,20 @@ Axis::LogScale()
 				 */
 	    nMinor = 10;
 	}
-	if ((_flags & TIGHT_MIN) || (DEFINED(_reqMin))) {
+	if ((flags_ & TIGHT_MIN) || (DEFINED(reqMin_))) {
 	    tickMin = min;
 	    nMajor++;
 	}
-	if ((_flags & TIGHT_MAX) || (DEFINED(_reqMax))) {
+	if ((flags_ & TIGHT_MAX) || (DEFINED(reqMax_))) {
 	    tickMax = max;
 	}
     }
-    _major.SetValues(majorStep, nMajor, floor(tickMin));
-    _minor.SetValues(minorStep, nMinor, minorStep);
-    _min = tickMin;
-    _max = tickMax;
-    _range = _max - _min;
-    _scale = 1.0 / _range;
+    major_.SetValues(majorStep, nMajor, floor(tickMin));
+    minor_.SetValues(minorStep, nMinor, minorStep);
+    min_ = tickMin;
+    max_ = tickMax;
+    range_ = max_ - min_;
+    scale_ = 1.0 / range_;
 }
 
 /*
@@ -426,30 +426,30 @@ Axis::LinearScale()
     step = 1.0;
     /* Suppress compiler warning. */
     tickMin = tickMax = 0.0;
-    if (_valueMin < _valueMax) {
+    if (valueMin_ < valueMax_) {
 	double range;
 
-	range = _valueMax - _valueMin;
+	range = valueMax_ - valueMin_;
 	/* Calculate the major tick stepping. */
-	if (_reqStep > 0.0) {
+	if (reqStep_ > 0.0) {
 	    /* An interval was designated by the user.  Keep scaling it until
 	     * it fits comfortably within the current range of the axis.  */
-	    step = _reqStep;
+	    step = reqStep_;
 	    while ((2 * step) >= range) {
 		step *= 0.5;
 	    }
 	} else {
 	    range = NiceNum(range, 0);
-	    step = NiceNum(range / _major.reqNumTicks, 1);
+	    step = NiceNum(range / major_.reqNumTicks, 1);
 	}
 	
 	/* Find the outer tick values. Add 0.0 to prevent getting -0.0. */
-	tickMin = floor(_valueMin / step) * step + 0.0;
-	tickMax = ceil(_valueMax / step) * step + 0.0;
+	tickMin = floor(valueMin_ / step) * step + 0.0;
+	tickMax = ceil(valueMax_ / step) * step + 0.0;
 	
 	nTicks = ROUND((tickMax - tickMin) / step) + 1;
     } 
-    _major.SetValues(tickMin, step, nTicks);
+    major_.SetValues(tickMin, step, nTicks);
 
     /*
      * The limits of the axis are either the range of the data ("tight") or at
@@ -459,15 +459,15 @@ Axis::LinearScale()
      * option).  The axis limit is always at the selected limit (otherwise we
      * assume that user would have picked a different number).
      */
-    _min = ((_flags & TIGHT_MIN)||(DEFINED(_reqMin))) ? _valueMin : tickMin;
-    _max = ((_flags & TIGHT_MAX)||(DEFINED(_reqMax))) ? _valueMax : tickMax;
-    _range = _max - _min;
-    _scale = 1.0 / _range;
+    min_ = ((flags_ & TIGHT_MIN)||(DEFINED(reqMin_))) ? valueMin_ : tickMin;
+    max_ = ((flags_ & TIGHT_MAX)||(DEFINED(reqMax_))) ? valueMax_ : tickMax;
+    range_ = max_ - min_;
+    scale_ = 1.0 / range_;
 
     /* Now calculate the minor tick step and number. */
 
-    if ((_minor.reqNumTicks > 0) && (_minor.IsAutoScale())) {
-	nTicks = _minor.reqNumTicks - 1;
+    if ((minor_.reqNumTicks > 0) && (minor_.autoscale())) {
+	nTicks = minor_.reqNumTicks - 1;
 	step = 1.0 / (nTicks + 1);
     } else {
 	nTicks = 0;		/* No minor ticks. */
@@ -475,7 +475,7 @@ Axis::LinearScale()
 				 * 0.0. It makes the GenerateTicks routine
 				 * create minor log-scale tick marks.  */
     }
-    _minor.SetValues(step, step, nTicks);
+    minor_.SetValues(step, step, nTicks);
 }
 
 
@@ -483,54 +483,54 @@ void
 Axis::SetScale(double min, double max)
 {
     FixRange(min, max);
-    if (_flags & LOGSCALE) {
+    if (flags_ & LOGSCALE) {
 	LogScale();
     } else {
 	LinearScale();
     }
-    _major.SweepTicks();
-    _minor.SweepTicks();
+    major_.SweepTicks();
+    minor_.SweepTicks();
     MakeTicks();
 }
 
 void
 Axis::MakeTicks(void)
 {
-    _major.Reset();
-    _minor.Reset();
+    major_.Reset();
+    minor_.Reset();
     int i;
-    for (i = 0; i < _major.NumTicks(); i++) {
+    for (i = 0; i < major_.numTicks(); i++) {
 	double t1, t2;
 	int j;
 	
-	t1 = _major.GetTick(i);
+	t1 = major_.tick(i);
 	/* Minor ticks */
-	for (j = 0; j < _minor.NumTicks(); j++) {
-	    t2 = t1 + (_major.Step() * _minor.GetTick(j));
+	for (j = 0; j < minor_.numTicks(); j++) {
+	    t2 = t1 + (major_.step() * minor_.tick(j));
 	    if (!InRange(t2)) {
 		continue;
 	    }
 	    if (t1 == t2) {
 		continue;	// Don't add duplicate minor ticks.
 	    }
-	    _minor.Append(t2);
+	    minor_.Append(t2);
 	}
 	if (!InRange(t1)) {
 	    continue;
 	}
-	_major.Append(t1);
+	major_.Append(t1);
     }
 }
 
 double
 Axis::Map(double x)
 {
-    if ((_flags & LOGSCALE) && (x != 0.0)) {
+    if ((flags_ & LOGSCALE) && (x != 0.0)) {
 	x = log10(fabs(x));
     }
     /* Map graph coordinate to normalized coordinates [0..1] */
-    x = (x - _min) * _scale;
-    if (_flags & DESCENDING) {
+    x = (x - min_) * scale_;
+    if (flags_ & DESCENDING) {
 	x = 1.0 - x;
     }
     return x;
@@ -539,11 +539,11 @@ Axis::Map(double x)
 double
 Axis::InvMap(double x)
 {
-    if (_flags & DESCENDING) {
+    if (flags_ & DESCENDING) {
 	x = 1.0 - x;
     }
-    x = (x * _range) + _min;
-    if (_flags & LOGSCALE) {
+    x = (x * range_) + min_;
+    if (flags_ & LOGSCALE) {
 	x = EXP10(x);
     }
     return x;

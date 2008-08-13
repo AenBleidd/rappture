@@ -37,7 +37,6 @@ PERL_VERSION    = @PERL_VERSION@
 PERL_VERSION_RV = @PERL_VERSION_RV@
 MAN3EXT		= .3pm
 perl5dir        = $$RAPPTURE_INSTALL_DIR/lib/perl/$(PERL_VERSION_RV)
-envfile		= perl.env
 includes	= @PERL_INCLUDES@
 ccflags        	= @PERL_CCFLAGS@
 cppflags	= @PERL_CPPFLAGS@
@@ -65,7 +64,7 @@ LIBS		= \
 		-L../../src/core -lrappture \
 		-lexpat 
 
-all: $(lib) $(bootstrap) $(man) $(pod) $(envfile)
+all: $(lib) $(bootstrap) $(man) $(pod) 
 
 Rappture.c: $(srcdir)/Rappture.xs
 	$(PERL) $(privlib)/ExtUtils/xsubpp -C++ \
@@ -93,45 +92,36 @@ $(pod):
                 VERSION "0.01" \
                 EXE_FILES "" >> $@
 
-$(envfile):
-	echo 'export PERL5LIB=$(destdir):$$PERL5LIB' > $(envfile)
-
-install: $(lib) $(bootstrap) $(man) $(pod) $(envfile)
+install: $(lib) $(bootstrap) $(man) $(pod) 
 	$(MKDIR_P) $(destdir)
 	$(INSTALL) -m 555 $(lib) $(destdir)
 	$(INSTALL) -m 444 $(srcdir)/lib/Rappture.pm $(destdir)
 	$(INSTALL) -m 444 $(bootstrap) $(destdir)
 	$(INSTALL) -m 444 $(man) $(destdir)
 	$(INSTALL) -m 444 $(pod) $(destdir)
-	$(MKDIR_P) $(bindir)/lang
-	$(INSTALL) -m 555 $(envfile) $(bindir)/lang
 
 clean:
-	$(RM) $(lib) $(bootstrap) $(man) $(pod) Rappture.o $(envfile)
+	$(RM) $(lib) $(bootstrap) $(man) $(pod) Rappture.o 
 
 distclean: clean
 
+# Package build procedure
 
-# Old build procedure
+pkg_build_dir       = build
 
-#build_dir       = build
+pkg: pkgtmp 
+	$(MAKE) -C $(pkg_build_dir)
 
-# all: tmp $(envfile)
-# 	$(MAKE) -C $(build_dir)
+pkgtmp:
+	$(RM) -r $(pkg_build_dir)
+	$(MKDIR_P) $(pkg_build_dir)
+	cp -p Makefile.PL $(pkg_build_dir)/Makefile.PL
+	tar -C $(srcdir) -clf - . | tar -C $(pkg_build_dir) -xpf -
+	(cd $(pkg_build_dir); $(PERL) Makefile.PL)
 
-# tmp:
-# 	$(RM) -r $(build_dir)
-# 	$(MKDIR_P) $(build_dir)
-# 	cp -p Makefile.PL $(build_dir)/Makefile.PL
-# 	tar -C $(srcdir) -clf - . | tar -C $(build_dir) -xpf -
-# 	(cd $(build_dir); $(PERL) Makefile.PL)
+pkginstall: 
+	$(MAKE) -C $(pkg_build_dir) install_perl
 
-# install: 
-# 	$(MAKE) -C $(build_dir) install_perl
-# 	$(INSTALL) -m 555 $(envfile) $(bindir)
-
-# clean: 
-# 	$(MAKE) -C $(build_dir) clean
-# 	$(RM) -rf $(build_dir)
-# 	$(RM) $(envfile)
-
+pkgclean: 
+	$(MAKE) -C $(pkg_build_dir) clean
+	$(RM) -rf $(pkg_build_dir)

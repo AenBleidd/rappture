@@ -24,6 +24,7 @@ void NvInitService()
     const char* user = getenv("USER");
     char* logName = NULL;
     int logNameLen = 0;
+    extern int debug_flag;
 
     if (user == NULL) {
         logNameLen = 20+1;
@@ -37,15 +38,16 @@ void NvInitService()
         strncat(logName,user,strlen(user));
     }
 
-    //open log and map stderr to log file
-    xinetd_log = fopen(logName, "w");
-    close(2);
-    dup2(fileno(xinetd_log), 2);
-    dup2(2,1);
-
-    //flush junk
-    fflush(stdout);
-    fflush(stderr);
+    if (!debug_flag) {
+	//open log and map stderr to log file
+	xinetd_log = fopen(logName, "w");
+	close(2);
+	dup2(fileno(xinetd_log), 2);
+	dup2(2,1);
+	//flush junk
+	fflush(stdout);
+	fflush(stderr);
+    }
 
     // clean up malloc'd memory
     if (logName != NULL) {

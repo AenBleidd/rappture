@@ -389,10 +389,10 @@ AC_OUTPUT( [
     src/objects/Makefile
     gui/Makefile
     gui/apps/Makefile
+    gui/apps/about
     gui/apps/rappture
     gui/apps/rappture.env
     gui/apps/simsim
-    gui/apps/about
     gui/pkgIndex.tcl
     gui/scripts/Makefile
     lang/Makefile

@@ -1,10 +1,10 @@
 
-#include <R2/R2string.h>
-#include <R2/R2FilePath.h>
+
+#include <string.h>
+#include "global.h"
 #include "Nv.h"
 #include "NvZincBlendeVolumeShader.h"
 
-#include <string.h>
 
 NvZincBlendeVolumeShader::NvZincBlendeVolumeShader()
 {
@@ -17,12 +17,8 @@ NvZincBlendeVolumeShader::~NvZincBlendeVolumeShader()
 
 void NvZincBlendeVolumeShader::init()
 {
-    R2string path = R2FilePath::getInstance()->getPath("zincblende_volume.cg");
-    _cgFP = cgCreateProgramFromFile(g_context, CG_SOURCE, 
-        (const char*) path, CG_PROFILE_FP30, "main", NULL);
-
-    cgGLLoadProgram(_cgFP);
-
+    _cgFP = LoadCgSourceProgram(g_context, "zincblende_volume.cg", 
+	CG_PROFILE_FP30, "main");
     _tfParam = cgGetNamedParameter(_cgFP, "tf");
     _volumeAParam = cgGetNamedParameter(_cgFP, "volumeA");
     _volumeBParam = cgGetNamedParameter(_cgFP, "volumeB");

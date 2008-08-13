@@ -67,7 +67,7 @@ itcl::class Rappture::HeightmapViewer {
     protected method _send {string}
     protected method _send_dataobjs {}
     protected method _receive_image {option size}
-    protected method _receive_legend {ivol vmin vmax size}
+    protected method ReceiveLegend {ivol vmin vmax size}
     protected method _receive_echo {channel {data ""}}
 
     protected method _rebuild {}
@@ -124,7 +124,7 @@ itcl::body Rappture::HeightmapViewer::constructor {hostlist args} {
     # Populate parser with commands handle incoming requests
     #
     $_parser alias image [itcl::code $this _receive_image]
-    $_parser alias legend [itcl::code $this _receive_legend]
+    $_parser alias legend [itcl::code $this ReceiveLegend]
 
     # Initialize the view to some default parameters.
     array set _view {
@@ -579,7 +579,7 @@ itcl::body Rappture::HeightmapViewer::_send_dataobjs {} {
 
             # tell the engine to expect some data
             set nbytes [string length $data]
-            if { ![SendBytes "heightmap data follows $nbytes"] } {
+	    if { ![SendBytes "heightmap data follows $nbytes"] } {
                 return
             }
             if { ![SendBytes $data] } {
@@ -646,13 +646,13 @@ itcl::body Rappture::HeightmapViewer::_receive_image {option size} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: _receive_legend <volume> <vmin> <vmax> <size>
+# USAGE: ReceiveLegend <volume> <vmin> <vmax> <size>
 #
 # Invoked automatically whenever the "legend" command comes in from
 # the rendering server.  Indicates that binary image data with the
 # specified <size> will follow.
 # ----------------------------------------------------------------------
-itcl::body Rappture::HeightmapViewer::_receive_legend {ivol vmin vmax size} {
+itcl::body Rappture::HeightmapViewer::ReceiveLegend {ivol vmin vmax size} {
     if { [isconnected] } {
         set bytes [ReceiveBytes $size]
         $_image(legend) configure -data $bytes
@@ -670,9 +670,9 @@ itcl::body Rappture::HeightmapViewer::_receive_legend {ivol vmin vmax size} {
             $c create text [expr {$w-10}] [expr {$h-8}] -anchor se \
                  -fill $itk_option(-plotforeground) -tags vmax
         }
-        $c itemconfigure vmin -text $_limits(vmin)
+        $c itemconfigure vmin -text $vmin
         $c coords vmin 10 [expr {$h-8}]
-        $c itemconfigure vmax -text $_limits(vmax)
+        $c itemconfigure vmax -text $vmax
         $c coords vmax [expr {$w-10}] [expr {$h-8}]
     }
 }
@@ -950,16 +950,13 @@ itcl::body Rappture::HeightmapViewer::_getTransfuncData {dataobj comp} {
     set clist [split $style(-color) :]
     set color white
     set cmap "0.0 [Color2RGB $color] "
-    append cmap "$_limits(vmin) [Color2RGB $color] "
     set range [expr $_limits(vmax) - $_limits(vmin)]
     for {set i 0} {$i < [llength $clist]} {incr i} {
         set xval [expr {double($i+1)/([llength $clist]+1)}]
-	set xval [expr ($xval * $range) + $_limits(vmin)]
         set color [lindex $clist $i]
         append cmap "$xval [Color2RGB $color] "
     }
-    append cmap "$_limits(vmax) [Color2RGB $color] "
-    append cmap "1.0 [Color2RGB $color]"
+    append cmap "1.0 [Color2RGB $color] "
 
     set opacity $style(-opacity)
     set levels $style(-levels)
@@ -986,7 +983,6 @@ itcl::body Rappture::HeightmapViewer::_getTransfuncData {dataobj comp} {
         }
         lappend wmap 1.0 0.0
     }
-
     return [list $sname $cmap $wmap]
 }
 

@@ -22,6 +22,7 @@
 #include <R2/R2FilePath.h>
 #include "NvLIC.h"
 #include <Trace.h>
+#include "global.h"
 
 NvLIC::NvLIC(int _size, int _width, int _height, float _offset, 
              CGcontext _context) : 
@@ -109,10 +110,12 @@ NvLIC::NvLIC(int _size, int _width, int _height, float _offset,
 
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
 
-    R2string path = R2FilePath::getInstance()->getPath("render_vel.cg");
-    m_render_vel_fprog = loadProgram(m_g_context, CG_PROFILE_FP30, CG_SOURCE, path);
-    m_vel_tex_param_render_vel = cgGetNamedParameter(m_render_vel_fprog, "vel_tex");
-    m_plane_normal_param_render_vel = cgGetNamedParameter(m_render_vel_fprog, "plane_normal");
+    m_render_vel_fprog = LoadCgSourceProgram(m_g_context, "render_vel.cg", 
+	CG_PROFILE_FP30, "main");
+    m_vel_tex_param_render_vel = cgGetNamedParameter(m_render_vel_fprog, 
+	"vel_tex");
+    m_plane_normal_param_render_vel = cgGetNamedParameter(m_render_vel_fprog, 
+	"plane_normal");
     m_max_param = cgGetNamedParameter(m_render_vel_fprog, "vmax");
 
 

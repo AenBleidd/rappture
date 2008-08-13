@@ -36,9 +36,13 @@ VolumeRenderer::VolumeRenderer():
 
     init_shaders();
 
-    R2string path = R2FilePath::getInstance()->getPath("Font.bmp");
-    init_font((const char*) path);
-
+    const char *path = R2FilePath::getInstance()->getPath("Font.bmp");
+    if (path == NULL) {
+	fprintf(stderr, "can't find Font.bmp\n");
+	assert(path != NULL);
+    }
+    init_font(path);
+    delete [] path;
     _volumeInterpolator = new VolumeInterpolator();
 }
 

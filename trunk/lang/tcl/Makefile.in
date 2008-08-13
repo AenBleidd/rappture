@@ -32,30 +32,31 @@ TK_VERSION	= @TK_VERSION@
 RANLIB 		= @RANLIB@
 MKDIR_P		= @MKDIR_P@
 AR 		= ar
+LN_S		= @LN_S@
 RM		= rm -f
 
 tcllib		= $$RAPPTURE_INSTALL_DIR/lib/tcl$(TCL_VERSION)
 tklib		= $$RAPPTURE_INSTALL_DIR/lib/tk$(TK_VERSION)
-envfile		= _tcl.env
 
 # The script directory is moved from src/tcl.
 
 .PHONY:	src scripts tests
 
-all: $(envfile)
+all: 
 	$(MAKE) -C src all
 	$(MAKE) -C scripts all
 
-$(envfile):
-	echo 'export TCL_LIBRARY=$(tcllib):$$TCL_LIBRARY' > $(envfile)
-	echo 'export TK_LIBRARY=$(tklib):$$TK_LIBRARY' >> $(envfile)
+links:	
 
 install: 
 	$(MKDIR_P) $(destdir)
 	$(INSTALL) -m 0444 pkgIndex.tcl $(destdir)
 	$(MAKE) -C src install
 	$(MAKE) -C scripts install
-	$(INSTALL) -m 0555 $(envfile) $(bindir)
+	$(RM) $(bindir)/tclsh
+	(cd $(bindir); $(LN_S) tclsh$(TCL_VERSION) tclsh)
+	$(RM) $(bindir)/wish
+	(cd $(bindir); $(LN_S) wish$(TK_VERSION) wish)
 
 test:	
 	$(MAKE) -C tests all

@@ -41,8 +41,8 @@ build/tmp:
  
 install: 
 	$(PYTHON) setup.py install --prefix=$(prefix) 
-	$(MKDIR_P) $(bindir)/lang
-	$(INSTALL) -m 555 $(envfile) $(bindir)/lang
+	$(MKDIR_P) $(bindir)
+	$(INSTALL) -m 555 $(envfile) $(bindir)
 clean:
 	$(PYTHON) setup.py clean
 	$(RM) -rf build 

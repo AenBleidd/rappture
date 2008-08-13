@@ -24,11 +24,14 @@ R2Fonts::~R2Fonts()
 void 
 R2Fonts::setFont(const char* fontName)
 {
-    for (unsigned index = 0; index < _fonts.size(); ++index) {
-        if (_fonts[index]._fontName == fontName) {
-            _fontIndex = index;
-            break;
-        }
+    if (fontName != NULL) {
+	unsigned int i;
+	for (i = 0; i < _fonts.size(); ++i) {
+	    if (strcmp(_fonts[i]._fontName, fontName) == 0) {
+		_fontIndex = i;
+		break;
+	    }
+	}
     }
 }
 
@@ -133,12 +136,16 @@ R2Fonts::loadFont(const char* fontName, const char* fontFileName,
                   R2FontAttributes& sFont)
 {
     R2bool bSuccess = false;
-    R2string path = R2FilePath::getInstance()->getPath(fontFileName);
-    
-    std::ifstream fsInput((const char*) path, std::ios::binary);
+
+    const char *path = R2FilePath::getInstance()->getPath(fontFileName);
+    if (path == NULL) {
+	return false;
+    }
+    std::ifstream fsInput(path, std::ios::binary);
     if (fsInput) {
-        sFont._fontName = fontName;
-        
+        sFont._fontName = new char [strlen(fontName)+1];
+        strcpy(sFont._fontName, fontName);
+
         // make sure this file is the correct type by checking the header
         unsigned int uiFileId = 0;
         fsInput.read(reinterpret_cast<char*>(&uiFileId), sizeof(unsigned int));
@@ -218,7 +225,7 @@ R2Fonts::loadFont(const char* fontName, const char* fontFileName,
 
         fsInput.close( );
     }
-
+    delete [] path;
     return bSuccess;
 }
 
