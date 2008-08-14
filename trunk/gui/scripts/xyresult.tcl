@@ -24,13 +24,82 @@ option add *XyResult.controlBackground gray widgetDefault
 option add *XyResult.font \
     -*-helvetica-medium-r-normal-*-12-* widgetDefault
 
-option add *XyResult.autoColors {
+set autocolors {
     #0000ff #ff0000 #00cc00
     #cc00cc #ff9900 #cccc00
     #000080 #800000 #006600
     #660066 #996600 #666600
-} widgetDefault
+}
+set autocolors {
+#4876ff
+#00bfff
+#cae1ff
+#98f5ff
+#7fffd4
+#00ff7f
+#caff70
+#ffff00
+#ffc1c1
+#ffe7ba
+#ff4040
+#ff7f00
+#ff0000
+#ffaeb9
+#ff00ff
+#bf3dff
+#0000ff
+#87ceff
+#bfefff
+#00f5ff
+#c1ffc1
+#00ff00
+#fff68f
+#ffd700
+#ff6a6a
+#ffa54f
+#ff8c69
+#ff7256
+#ff1493
+#ff82ab
+#ff93fa
+#9b30ff
+}
+set autocolors {
+#0000cd
+#cd0000
+#00cd00
+#3a5fcd
+#cdcd00
+#cd1076
+#009acd
+#00c5cd
+#a2b5cd
+#7ac5cd
+#66cdaa
+#a2cd5a
+#cd9b9b
+#cdba96
+#cd3333
+#cd6600
+#cd8c95
+#cd00cd
+#9a32cd
+#6ca6cd
+#9ac0cd
+#9bcd9b
+#00cd66
+#cdc673
+#cdad00
+#cd5555
+#cd853f
+#cd7054
+#cd5b45
+#cd6889
+#cd69c9
+#551a8b
+}
 
+option add *XyResult.autoColors $autocolors widgetDefault
 option add *XyResult*Balloon*Entry.background white widgetDefault
 
 itcl::class Rappture::XyResult {
@@ -1555,7 +1624,6 @@ itcl::body Rappture::XyResult::_legend { what } {
 	    foreach name [$g element show] {
 		$g legend deactivate $name
 		$g element configure $name -hide no
-		update
 	    }
 	    $g element configure $cur -hide yes
 	    $g legend activate $cur
