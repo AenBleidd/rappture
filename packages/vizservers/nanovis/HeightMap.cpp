@@ -163,17 +163,18 @@ void HeightMap::render(graphics::RenderContext* renderContext)
 }
 
 void 
-HeightMap::createIndexBuffer(int xCount, int zCount, int*& indexBuffer, 
-			     int& indexCount, float* heights)
+HeightMap::createIndexBuffer(int xCount, int zCount, float* heights)
 {
-    indexCount = (xCount - 1) * (zCount - 1) * 6;
-
-    indexBuffer = new int[indexCount];
+    if (_indexBuffer != NULL) {
+        delete [] _indexBuffer;
+    }
+    _indexCount = (xCount - 1) * (zCount - 1) * 6;
+    _indexBuffer = new int[_indexCount];
    
     int i, j;
     int boundaryWidth = xCount - 1;
     int boundaryHeight = zCount - 1;
-    int* ptr = indexBuffer;
+    int* ptr = _indexBuffer;
     int index1, index2, index3, index4;
     bool index1Valid, index2Valid, index3Valid, index4Valid;
     index1Valid = index2Valid = index3Valid = index4Valid = true;
@@ -234,18 +235,15 @@ HeightMap::reset()
 {
     if (_vertexBufferObjectID) {
         glDeleteBuffers(1, &_vertexBufferObjectID);
+	_vertexBufferObjectID = 0;
     }
-
-    if (_vertexBufferObjectID) {
-        glDeleteBuffers(1, &_vertexBufferObjectID);
+    if (_textureBufferObjectID) {
+        glDeleteBuffers(1, &_textureBufferObjectID);
+	_textureBufferObjectID = 0;
     }
-
-    //if (_contour) _contour->unrefDelete();
-    if (_contour) {
+    if (_contour != NULL) {
         delete _contour;
-    }
-    if (_indexBuffer) {
-        free(_indexBuffer);
+	_contour = NULL;
     }
 }
 
@@ -311,11 +309,7 @@ HeightMap::setHeight(int xCount, int yCount, Vector3* heights)
     //if (heightMap)
     //{
     //  VertexBuffer* vertexBuffer = new VertexBuffer(VertexBuffer::POSITION3, xCount * yCount, sizeof(Vector3) * xCount * yCount, heightMap, false);
-    if (_indexBuffer) {
-        free(_indexBuffer);
-    }
-
-    this->createIndexBuffer(xCount, yCount, _indexBuffer, _indexCount, 0);
+    this->createIndexBuffer(xCount, yCount, 0);
     //}
     //else
     //{
@@ -394,10 +388,11 @@ HeightMap::setHeight(float xMin, float yMin, float xMax, float yMax,
     //{
     //  VertexBuffer* vertexBuffer = new VertexBuffer(VertexBuffer::POSITION3, xNum * yNum, 
     // sizeof(Vector3) * xNum * yNum, heightMap, false);
-    if (_indexBuffer) {
+    if (_indexBuffer != NULL) {
         free(_indexBuffer);
+	_indexBuffer = NULL;
     }
-    this->createIndexBuffer(xNum, yNum, _indexBuffer, _indexCount, heights);
+    this->createIndexBuffer(xNum, yNum, heights);
     //}
     //else
     //{
@@ -500,10 +495,6 @@ HeightMap::MapToGrid(Grid *gridPtr)
     topLineFilter.setHeightTop(true);
     _topContour = topLineFilter.create(0.0f, 1.0f, 10, vertices, xNum_, yNum_);
 #endif
-    if (_indexBuffer) {
-        free(_indexBuffer);
-    }
-    this->createIndexBuffer(xNum_, yNum_, _indexBuffer, _indexCount, 
-    	normHeights);
+    this->createIndexBuffer(xNum_, yNum_, normHeights);
     delete [] normHeights;
 }

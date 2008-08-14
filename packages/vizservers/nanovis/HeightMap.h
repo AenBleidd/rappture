@@ -24,16 +24,13 @@ class Grid;
 class HeightMap {
     unsigned int _vertexBufferObjectID;
     unsigned int _textureBufferObjectID;
-    int xNum_, yNum_;		// Number of elements x and y axes in grid.
-    float *heights_;		// Array of original (unscaled) heights
-				// (y-values)
     int _vertexCount;
     CGparameter _tf;
     R2Geometry* _contour;
     R2Geometry* _topContour;
     TransferFunction* _colorMap;
     NvShader* _shader;
-    int* _indexBuffer;
+    int *_indexBuffer;
     int _indexCount;
     Vector3 _contourColor;
     
@@ -44,6 +41,9 @@ class HeightMap {
     Vector3 _scale;
     Vector3 _centerPoint;
 
+    int xNum_, yNum_;		// Number of elements x and y axes in grid.
+    float *heights_;		// Array of original (unscaled) heights
+				// (y-values)
 public :
     AxisRange xAxis, yAxis, zAxis, wAxis;
     static bool update_pending;
@@ -59,7 +59,7 @@ public :
 	~HeightMap();
 
 private :
-	void createIndexBuffer(int xCount, int zCount, int*& indexBuffer, int& indexCount, float* heights);
+    void createIndexBuffer(int xCount, int zCount, float* heights);
 	Vector3* createHeightVertices(float startX, float startY, float endX, float endY, int xCount, int yCount, float* height);
 	void reset();
 public :

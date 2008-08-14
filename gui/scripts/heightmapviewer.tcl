@@ -581,6 +581,7 @@ itcl::body Rappture::HeightmapViewer::_send_dataobjs {} {
             set nbytes [string length $data]
 	    if { ![SendBytes "heightmap data follows $nbytes"] } {
                 return
+
             }
             if { ![SendBytes $data] } {
                 return
