@@ -547,7 +547,7 @@ void ColorPalette::cpMotion(int x, int y){ }
 
 
 //interpolate GRB color
-Color ColorPalette::getColor(int x, int y){
+Color ColorPalette::getColor(double x, double y){
     if (color_model==RGB){
         float unitWidth = cp_winx/6;            
         GLfloat rainbowColor[21] = {1, 0, 0, 1, 1, 0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 1, 1, 0, 0};

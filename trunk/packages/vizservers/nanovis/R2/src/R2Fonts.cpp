@@ -113,16 +113,16 @@ R2Fonts::initializeFont(R2FontAttributes& attr)
             glBegin(GL_TRIANGLE_STRIP);
             
             glTexCoord2f(charInfo._left, charInfo._top ); 
-            glVertex2i(0.0f, 0.0f);
+            glVertex2i(0, 0);
             
             glTexCoord2f(charInfo._left, charInfo._bottom);
-            glVertex2i(0.0f,  attr._fontHeight);
+            glVertex2i(0, attr._fontHeight);
             
             glTexCoord2f(charInfo._right, charInfo._top);
-            glVertex2i(charInfo._width, 0.0f);
+            glVertex2i(charInfo._width, 0);
             
             glTexCoord2f(charInfo._right,  charInfo._bottom);
-            glVertex2i(charInfo._width, attr._fontHeight);
+            glVertex2i((int)charInfo._width, (int)attr._fontHeight);
             
             glEnd( );
             glTranslatef(charInfo._width, 0.0f, 0.0f);

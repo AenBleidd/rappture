@@ -40,7 +40,7 @@ public:
 	static void cpSyncLive();
 
 	static void createGLUIWidgets();
-	static Color getColor(int x, int y);
+	static Color getColor(double x, double y);
 	static void confirm(int arg);
 	static void cmdHandler(int arg);
 	static void openFile();
