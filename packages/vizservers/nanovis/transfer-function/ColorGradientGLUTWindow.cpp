@@ -66,7 +66,7 @@ ColorGradientGLUTWindow::cmInit(int main_win_x, int main_win_y)
     cm_winx=main_win_x;
     //cm_winy=main_win_y/3;
     cm_winy=100;
-    cm_unitWidth=tf_winx*0.95;
+    cm_unitWidth=(int)((double)tf_winx*0.95);
     map=new ColorGradient();
     cm_editState=0;
     cm_gvIsDragging=false;
@@ -230,10 +230,9 @@ ColorGradientGLUTWindow::cmReshape(int x, int y)
     //printf("cmReshape");
     cm_winx=x;
     cm_winy=100;
-        
 
     double scale=((double)tf_winx*0.95)/((double)cm_unitWidth);
-    cm_unitWidth=tf_winx*0.95;
+    cm_unitWidth=(int)((double)tf_winx*0.95);
     map->scaleKeys(scale, cm_unitWidth);
 
     glViewport( 0, 0, x, y );
@@ -430,19 +429,19 @@ ColorGradientGLUTWindow::WriteControlPoints()
 
     //special case: all points have the same color
     Color* curColor=map->keyColors;
-    int allSameY=1;
-    int R=map->keyColors->R;
-    int G=map->keyColors->G;
-    int B=map->keyColors->B;
+    bool allSameY=true;
+    double R = map->keyColors->R;
+    double G = map->keyColors->G;
+    double B = map->keyColors->B;
     while (curColor!=0){
         if (curColor->R!=R || curColor->G!=G || curColor->B!=B){
-            allSameY=0;
+            allSameY=false;
             break;
         }
         curColor=curColor->next;
     }
 
-    if (allSameY==1){
+    if (allSameY){
         int i=0;
                 
         for(i=0;i<mapNumOfOutput;i++){
