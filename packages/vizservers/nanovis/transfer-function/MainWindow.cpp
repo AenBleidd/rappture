@@ -271,7 +271,7 @@ void MainTransferFunctionWindow::loadFile(char* fileName){
 
 	fgets(buf, 100, fp);
 	token=strtok(buf, seps);
-	num_of_control_point=atof(token);
+	num_of_control_point=(int)atof(token);
 
 	//read control points
 	for(int i=0; i<num_of_control_point; i++){
@@ -293,7 +293,7 @@ void MainTransferFunctionWindow::loadFile(char* fileName){
 
 	fgets(buf, 100, fp);
 	token=strtok(buf, seps);
-	num_of_color_point=atof(token);
+	num_of_color_point=(int)atof(token);
 
 
 	//read color points
