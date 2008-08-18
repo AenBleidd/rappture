@@ -552,25 +552,24 @@ Color ColorPalette::getColor(double x, double y){
         float unitWidth = cp_winx/6;            
         GLfloat rainbowColor[21] = {1, 0, 0, 1, 1, 0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 1, 1, 0, 0};
 
-        int pos = floor(x/unitWidth);
-        int red_left = rainbowColor[3*pos];
-        int red_right = rainbowColor[3*(pos+1)];
+        int pos = (int)floor(x/unitWidth);
+        int red_left = (int)rainbowColor[3*pos];
+        int red_right = (int)rainbowColor[3*(pos+1)];
 
-        int green_left = rainbowColor[3*pos+1];
-        int green_right = rainbowColor[3*(pos+1)+1];
+        int green_left = (int)rainbowColor[3*pos+1];
+        int green_right = (int)rainbowColor[3*(pos+1)+1];
 
-        int blue_left = rainbowColor[3*pos+2];
-        int blue_right = rainbowColor[3*(pos+1)+2];
+        int blue_left = (int)rainbowColor[3*pos+2];
+        int blue_right = (int)rainbowColor[3*(pos+1)+2];
 
         double r, g, b;
-        r = (red_left+((float)x/(float)unitWidth-pos)*(red_right-red_left));
-        g = (green_left+((float)x/(float)unitWidth-pos)*(green_right-green_left));
-        b = (blue_left+((float)x/(float)unitWidth-pos)*(blue_right-blue_left));
+        r = (red_left+(x/unitWidth-pos)*(red_right-red_left));
+        g = (green_left+(x/unitWidth-pos)*(green_right-green_left));
+        b = (blue_left+(x/unitWidth-pos)*(blue_right-blue_left));
 
-        cp_color_r=255*r;
-        cp_color_g=255*g;
-        cp_color_b=255*b;
-
+        cp_color_r = (int)(255.0*r);
+        cp_color_g = (int)(255.0*g);
+        cp_color_b = (int)(255.0*b);
 
         cp_glui->sync_live();
         return Color(r,g,b);
@@ -583,9 +582,9 @@ Color ColorPalette::getColor(double x, double y){
         g = t;
         b = t;
 
-        cp_color_r=255*r;
-        cp_color_g=255*g;
-        cp_color_b=255*b;
+        cp_color_r = (int)(255.0*r);
+        cp_color_g = (int)(255.0*g);
+        cp_color_b = (int)(255.0*b);
 
         cp_glui->sync_live();
         return Color(r,g,b);
@@ -597,22 +596,22 @@ Color ColorPalette::getColor(double x, double y){
             float unitWidth = cp_winx/6;                
             GLfloat rainbowColor[21] = {1, 0, 0, 1, 1, 0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 1, 1, 0, 0};
 
-            int pos = floor(x/unitWidth);
-            int red_left = rainbowColor[3*pos];
-            int red_right = rainbowColor[3*(pos+1)];
+            int pos = (int)floor(x/unitWidth);
+            int red_left = (int)rainbowColor[3*pos];
+            int red_right = (int)rainbowColor[3*(pos+1)];
 
-            int green_left = rainbowColor[3*pos+1];
-            int green_right = rainbowColor[3*(pos+1)+1];
+            int green_left = (int)rainbowColor[3*pos+1];
+            int green_right = (int)rainbowColor[3*(pos+1)+1];
 
-            int blue_left = rainbowColor[3*pos+2];
-            int blue_right = rainbowColor[3*(pos+1)+2];
+            int blue_left = (int)rainbowColor[3*pos+2];
+            int blue_right = (int)rainbowColor[3*(pos+1)+2];
 
                 
-            r = (red_left+((float)x/(float)unitWidth-pos)*(red_right-red_left));
-            g = (green_left+((float)x/(float)unitWidth-pos)*(green_right-green_left));
-            b = (blue_left+((float)x/(float)unitWidth-pos)*(blue_right-blue_left));
+            r = (red_left+(x/unitWidth-pos)*(red_right-red_left));
+            g = (green_left+(x/unitWidth-pos)*(green_right-green_left));
+            b = (blue_left+(x/unitWidth-pos)*(blue_right-blue_left));
 
-            cp_color_H=360*((double)x/(double)cp_winx);
+            cp_color_H= (int)(360.0*(x/(double)cp_winx));
 
             hue_color->R=r;
             hue_color->G=g;
@@ -620,8 +619,8 @@ Color ColorPalette::getColor(double x, double y){
                         
         }
         else{
-            cp_color_S=100*(1-(double)color_point_1->x/(double)cp_winx);
-            cp_color_B=100*((double)(color_point_1->y-(double)(2*cp_winy/3))/((double)cp_winy/3));
+            cp_color_S=(int)(100.0*(1-(double)color_point_1->x/(double)cp_winx));
+            cp_color_B=(int)(100.0*((double)(color_point_1->y-(double)(2*cp_winy/3))/((double)cp_winy/3)));
         }
 
         //convert HSB to RGB
@@ -629,21 +628,19 @@ Color ColorPalette::getColor(double x, double y){
         //1. horizontal interpolation:
         //upper left: (1,1,1)
         //upper right: hue color
-        r=(double)1+(double)color_point_1->x/((double)cp_winx)*(double)(hue_color->R-1);
-        g=(double)1+(double)color_point_1->x/((double)cp_winx)*(double)(hue_color->G-1);
-        b=(double)1+(double)color_point_1->x/((double)cp_winx)*(double)(hue_color->B-1);
+        r=1.0+(double)color_point_1->x/((double)cp_winx)*(double)(hue_color->R-1);
+        g=1.0+(double)color_point_1->x/((double)cp_winx)*(double)(hue_color->G-1);
+        b=1.0+(double)color_point_1->x/((double)cp_winx)*(double)(hue_color->B-1);
 
         //2. vertical interpolation:
         //buttom (0,0,0)
-        r=(double)r+((double)cp_winy-(double)color_point_1->y)/((double)cp_winy/3)*((double)(0-r));
-        g=(double)g+((double)cp_winy-(double)color_point_1->y)/((double)cp_winy/3)*((double)(0-g));
-        b=(double)b+((double)cp_winy-(double)color_point_1->y)/((double)cp_winy/3)*((double)(0-b));
+        r += ((double)cp_winy-(double)color_point_1->y)/((double)cp_winy/3)*(-r);
+        g += ((double)cp_winy-(double)color_point_1->y)/((double)cp_winy/3)*(-g);
+        b += ((double)cp_winy-(double)color_point_1->y)/((double)cp_winy/3)*(-b);
 
-        cp_color_r=255*r;
-        cp_color_g=255*g;
-        cp_color_b=255*b;
-
-
+        cp_color_r = (int)(255.0*r);
+        cp_color_g = (int)(255.0*g);
+        cp_color_b = (int)(255.0*b);
 
         //printf("(%d,%d,%d)    ", cp_color_r, cp_color_g, cp_color_b);
 
