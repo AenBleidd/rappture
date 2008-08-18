@@ -164,20 +164,20 @@ shaders		= \
 		$(srcdir)/shaders/volqd_volume.cg \
 		$(srcdir)/shaders/zincblende_volume.cg 
 
-all: nanovis
+all: mat_lib r2_lib img_lib tf_lib nanovis
 
 install: install-nanovis install-resources install-shaders
 
-$(MAT_LIB):
+mat_lib:
 	$(MAKE) -C $(MAT_DIR) all
 
-$(R2_LIB): 
+r2_lib: 
 	$(MAKE) -C $(R2_DIR)/src all
 
-$(IMG_LIB): 
+img_lib: 
 	$(MAKE) -C $(IMG_DIR) all
 
-$(TF_LIB): 
+tf_lib: 
 	$(MAKE) -C $(TF_DIR) all
 
 nanovis: $(MAT_LIB) $(R2_LIB) $(IMG_LIB) $(TF_LIB) $(OBJS) 
