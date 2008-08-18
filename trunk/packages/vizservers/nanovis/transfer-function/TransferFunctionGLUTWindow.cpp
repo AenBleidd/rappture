@@ -92,8 +92,8 @@ void TransferFunctionGLUTWindow::tfInit(int main_window_x, int main_window_y)
     tf_winx=main_window_x;
     tf_winy=main_window_y*2/3;
 
-    unitHeight = 0.8*tf_winy;
-    tf_unitWidth = 0.95*tf_winx;
+    unitHeight = (int)(0.8*tf_winy);
+    tf_unitWidth = (int)(0.95*tf_winx);
 
 
     //printf("tf_unitWidth=%d\n", tf_unitWidth);
@@ -381,7 +381,7 @@ void TransferFunctionGLUTWindow::tfMotion(int x, int y)
         last_lv_tf_height_scale=lv_tf_height_scale;
         lv_tf_height_scale += (scY - gv_lastY)*0.007;
         gv_lastY = scY;
-        scalePointsY(scY - gv_lastY);
+        scalePointsY((int)(scY - gv_lastY));
     }   
 
     WriteControlPoints();
@@ -465,8 +465,8 @@ void  TransferFunctionGLUTWindow::tfReshape(int x, int y){
     winx = x;
     winy = y;
 
-    unitHeight = 0.8*y;
-    tf_unitWidth = 0.95*x;
+    unitHeight = (int)(0.8*y);
+    tf_unitWidth = (int)(0.95*x);
 
     xy_aspect = (float)x / (float)y;
     glViewport( 0, 0, x, y );
@@ -504,7 +504,7 @@ void TransferFunctionGLUTWindow::WriteControlPoints()
     //special case: all points have the same y coordinates,generate an error
     ControlPoint* cur=tf_pointList;
     int allSameY=1;
-    int y=tf_pointList->y;
+    int y=(int)tf_pointList->y;
     while (cur!=0){
         if (cur->y!=y){
             allSameY=0;
