@@ -43,7 +43,6 @@ R2FilePath::setPath(const char *filePath)
     char *p;
     strcpy(buff, filePath);
     for (p = strtok(buff, seps); p != NULL; p = strtok(NULL, seps)) {
-	int lastIndex;
 	char *last;
 	struct stat buf;
 	if ((stat(p, &buf) != 0) || (!S_ISDIR(buf.st_mode))) {
