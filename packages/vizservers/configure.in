@@ -1,4 +1,5 @@
 AC_INIT(vizservers, 0.1, rappture@nanohub.org)
+AC_CONFIG_HEADER(nanoscale/config.h)
 
 VERSION=0.0.1
 AC_SUBST(VERSION)
@@ -148,6 +149,9 @@ AC_SUBST(RP_DIR)
 AC_CHECK_HEADER([GL/glui.h])
 AC_CHECK_HEADER([glui.h])
 AC_CHECK_HEADER([GL/glut.h])
+
+AC_CHECK_HEADERS([stdio.h unistd.h stdlib.h string.h sys/types.h])
+AC_CHECK_HEADERS([sys/socket.h sys/time.h netinet/in.h arpa/inet.h netdb.h])
 
 AC_MSG_CHECKING([for DX installation])
 DX_DIR=""
