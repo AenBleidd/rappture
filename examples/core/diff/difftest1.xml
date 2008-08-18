@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<run>
+  <tool>
+    <command></command>
+  </tool>
+  <input>
+    <group>
+      <choice id="pseudopotentialGa">
+        <about>
+          <label>Ga Pseudopotential</label>
+          <description>available Ga pseudopotentials</description>
+        </about>
+        <option>
+          <about>
+            <label>Ga pbe-nsp-van</label>
+            <description>...</description>
+          </about>
+          <value>Ga.pbe-nsp-van.UPF</value>
+        </option>
+        <default>Ga.pbe-nsp-van.UPF</default>
+        <current>Ga.pbe-nsp-van.UPF</current>
+      </choice>
+      <integer>
+        <default>10</default>
+        <current>12</current>
+      </integer>
+      <current/>
+    </group>
+  </input>
+  <output>
+      <number>
+          <about>
+              <label>ddd</label>
+          </about>
+          <current>1222</current>
+      </number>
+  </output>
+</run>
