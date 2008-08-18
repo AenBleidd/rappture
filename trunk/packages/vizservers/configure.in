@@ -52,7 +52,7 @@ AC_ARG_WITH(
     [AS_HELP_STRING([--with-tcllib[=DIR]],
         [location of Tcl binary library libtclstubs.a @<:@default=/usr/lib@:>@])],
     [with_tcllib=$withval],
-    [with_tcllib=/usr/lib])
+    [with_tcllib=""])
 
 #
 # Need to check for the following dependencies:
@@ -68,99 +68,34 @@ AC_ARG_WITH(
 #       DX headers and library (done, sort of)
 #
 
-for dir in ${exec_prefix} ${with_rappture} ; do
-  tclconfig="${dir}/lib/tclConfig.sh"
-  if test -x "$tclconfig" ; then
+TCL_VERSION="8.4"
+for dir in \
+ ${exec_prefix} \
+ ${exec_prefix}/lib \
+ ${with_rappture} \
+ ${with_rappture}/lib ; do
+  tclconfig="${dir}/tclConfig.sh"
+  if test -f "$tclconfig" ; then
     . $tclconfig
     break
   fi
 done
+TCL_INC_SPEC="$TCL_INCLUDE_SPEC"
+
+if test "x$with_tcllib" != "x" ; then
+   tclconfig="${with_tcllib}/tclConfig.sh"
+   if test -f "$tclconfig" ; then
+    . $tclconfig
+   fi
+   TCL_LIB_SPEC="-L${with_tcllib} -ltcl${TCL_VERSION}"
+fi
+if test "x$with_tclinclude" != "x" ; then
+   TCL_INC_SPEC="-I${with_tclinclude}"
+fi
 
 AC_SUBST(TCL_VERSION)
-TCL_LIB_DIR=""
-TCL_LIB=""
-TCL_LIB_VERSION="$TCL_VERSION"
-AC_MSG_CHECKING([for tcl binary libraries])
-if test "x$with_tcllib" != "x" ; then
-    if test -f "$with_tcllib"
-    then
-        if test -n `basename $with_tcllib | grep libtcl[0-9]\.[0-9].so`
-        then
-            TCL_LIB_DIR="$with_tcllib"
-        fi
-    else
-        if test -d "$with_tcllib"
-        then
-            if test -x "$with_tcllib/`ls $with_tcllib | grep libtcl[0-9]\.[0-9]\.so$`"
-            then
-                TCL_LIB_DIR="$with_tcllib"
-            else
-                AC_MSG_RESULT([no])
-                AC_MSG_ERROR([cannot find tcl binary libraries, try using --with-tcllib])
-            fi
-        else
-            AC_MSG_RESULT([no])
-            AC_MSG_ERROR([cannot find tcl binary libraries inside $with_tcllib, try using --with-tcllib])
-        fi
-    fi
-else
-    AC_CHECK_HEADERS([tcl.h], [],
-           [AC_MSG_ERROR([cannot find tcl.h, try using --with-tclinclude])])
-fi
-# TCL_LIB=$(ls ${TCL_LIB_DIR} | grep -o libtcl[0-9]\.[0-9])
-# TCL_LIB=`ls ${TCL_LIB_DIR} | awk '/libtcl([0-9]\.?[0-9])?\.so/ { print }'`
-# TCL_LIB=`ls ${TCL_LIB_DIR} | sed -e '/libtcl([0-9]\.?[0-9])?\.so$/ {p}'`
-# TCL_LIB_VERSION=$(echo ${TCL_LIB} | sed -e s/libtcl// -e s/\.so//)
-AC_MSG_RESULT([${TCL_LIB_DIR}/${TCL_LIB}])
-# echo TCL_LIB_DIR = ${TCL_LIB_DIR}
-# echo TCL_LIB = ${TCL_LIB}
-# echo TCL_LIB_VERSION = ${TCL_LIB_VERSION}
-AC_SUBST(TCL_LIB_DIR)
-AC_SUBST(TCL_LIB)
-AC_SUBST(TCL_LIB_VERSION)
-
-AC_ARG_WITH(
-    [tclinclude],
-    [AS_HELP_STRING([--with-tclinclude[=DIR]],
-        [location of tcl.h header file @<:@default=/usr/include@:>@])],
-    [with_tclinclude=$withval],
-    [with_tclinclude=/usr/include])
-
-TCL_INCL_DIR=""
-AC_MSG_CHECKING([for tcl.h])
-if test "x$with_tclinclude" != "x" ; then
-    if test -f "$with_tclinclude"
-    then
-        if test `basename $with_tclinclude` = "tcl.h"
-        then
-            TCL_INCL_DIR="`dirname $with_tclinclude`"
-        fi
-    else
-        if test -d "$with_tclinclude"
-        then
-            if test -r "$with_tclinclude/tcl.h"
-            then
-                TCL_INCL_DIR="$with_tclinclude"
-            else
-                if test -r "$with_tclinclude/tcl${TCL_LIB_VERSION}/tcl.h"
-                then
-                    TCL_INCL_DIR="$with_tclinclude/tcl${TCL_LIB_VERSION}"
-                else
-                    AC_MSG_RESULT([no])
-                    AC_MSG_ERROR([cannot find tcl.h, try using --with-tclinclude])
-                fi
-            fi
-        else
-            AC_MSG_RESULT([no])
-            AC_MSG_ERROR([cannot find tcl.h inside $with_tclinclude, try using --with-tclinclude])
-        fi
-    fi
-else
-    AC_CHECK_HEADERS([tcl.h], [],
-           [AC_MSG_ERROR([cannot find tcl.h, try using --with-tclinclude])])
-fi
-AC_MSG_RESULT([${TCL_INCL_DIR}])
-AC_SUBST(TCL_INCL_DIR)
+AC_SUBST(TCL_INC_SPEC)
+AC_SUBST(TCL_LIB_SPEC)
 
 AC_ARG_WITH(
     [rappture],

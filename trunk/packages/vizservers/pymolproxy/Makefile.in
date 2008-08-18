@@ -1,8 +1,10 @@
 
 TARGETS		= pymolproxy
 
+TCL_INC_SPEC	= @TCL_INC_SPEC@
+TCL_LIB_SPEC	= @TCL_LIB_SPEC@
 CC		= @CC@
-INCLUDES	= -I@TCL_INCL_DIR@
+INCLUDES	= $(TCL_INC_SPEC)
 CFLAGS		= @CFLAGS@ 
 EXTRA_CFLAGS	= -Wall 
 DEFINES		= -DSTANDALONE
@@ -26,7 +28,7 @@ VPATH		= $(srcdir)
 .PHONY: all install clean distclean
 
 OBJS		= pymolproxy.o
-LIBS		= -ltcl8.4
+LIBS		= $(TCL_LIB_SPEC)
 
 all: $(TARGETS)
 

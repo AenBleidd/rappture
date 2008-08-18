@@ -720,10 +720,8 @@ ac_ct_CXX
 CXXCPP
 SUBDIRS
 TCL_VERSION
-TCL_LIB_DIR
-TCL_LIB
-TCL_LIB_VERSION
-TCL_INCL_DIR
+TCL_INC_SPEC
+TCL_LIB_SPEC
 RP2_INCL_DIR
 RP_DIR
 DX_DIR
@@ -737,7 +735,6 @@ enable_64bit_vis
 enable_corefoundation
 enable_load
 with_tcllib
-with_tclinclude
 with_rappture
 '
       ac_precious_vars='build_alias
@@ -1384,7 +1381,6 @@ Optional Packages:
   --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
   --with-tcllib=DIR       location of Tcl binary library libtclstubs.a
                           [default=/usr/lib]
-  --with-tclinclude=DIR   location of tcl.h header file [default=/usr/include]
   --with-rappture=DIR     location of rappture files lib/librappture2.a and
                           include/rappture2/rappture2.h [default=/usr]
 
@@ -8660,7 +8656,7 @@ SUBDIRS="nanoscale nanovis pymolproxy"
 if test "${with_tcllib+set}" = set; then
   withval=$with_tcllib; with_tcllib=$withval
 else
-  with_tcllib=/usr/lib
+  with_tcllib=""
 fi
 
 
@@ -8678,421 +8674,33 @@ fi
 #       DX headers and library (done, sort of)
 #
 
-for dir in ${exec_prefix} ${with_rappture} ; do
-  tclconfig="${dir}/lib/tclConfig.sh"
-  if test -x "$tclconfig" ; then
+TCL_VERSION="8.4"
+for dir in \
+ ${exec_prefix} \
+ ${exec_prefix}/lib \
+ ${with_rappture} \
+ ${with_rappture}/lib ; do
+  tclconfig="${dir}/tclConfig.sh"
+  if test -f "$tclconfig" ; then
     . $tclconfig
     break
   fi
 done
+TCL_INC_SPEC="$TCL_INCLUDE_SPEC"
 
-
-TCL_LIB_DIR=""
-TCL_LIB=""
-TCL_LIB_VERSION="$TCL_VERSION"
-{ $as_echo "$as_me:$LINENO: checking for tcl binary libraries" >&5
-$as_echo_n "checking for tcl binary libraries... " >&6; }
 if test "x$with_tcllib" != "x" ; then
-    if test -f "$with_tcllib"
-    then
-        if test -n `basename $with_tcllib | grep libtcl0-9\.0-9.so`
-        then
-            TCL_LIB_DIR="$with_tcllib"
-        fi
-    else
-        if test -d "$with_tcllib"
-        then
-            if test -x "$with_tcllib/`ls $with_tcllib | grep libtcl0-9\.0-9\.so$`"
-            then
-                TCL_LIB_DIR="$with_tcllib"
-            else
-                { $as_echo "$as_me:$LINENO: result: no" >&5
-$as_echo "no" >&6; }
-                { { $as_echo "$as_me:$LINENO: error: cannot find tcl binary libraries, try using --with-tcllib" >&5
-$as_echo "$as_me: error: cannot find tcl binary libraries, try using --with-tcllib" >&2;}
-   { (exit 1); exit 1; }; }
-            fi
-        else
-            { $as_echo "$as_me:$LINENO: result: no" >&5
-$as_echo "no" >&6; }
-            { { $as_echo "$as_me:$LINENO: error: cannot find tcl binary libraries inside $with_tcllib, try using --with-tcllib" >&5
-$as_echo "$as_me: error: cannot find tcl binary libraries inside $with_tcllib, try using --with-tcllib" >&2;}
-   { (exit 1); exit 1; }; }
-        fi
-    fi
-else
-
-
-for ac_header in tcl.h
-do
-as_ac_Header=`$as_echo "ac_cv_header_$ac_header" | $as_tr_sh`
-if { as_var=$as_ac_Header; eval "test \"\${$as_var+set}\" = set"; }; then
-  { $as_echo "$as_me:$LINENO: checking for $ac_header" >&5
-$as_echo_n "checking for $ac_header... " >&6; }
-if { as_var=$as_ac_Header; eval "test \"\${$as_var+set}\" = set"; }; then
-  $as_echo_n "(cached) " >&6
+   tclconfig="${with_tcllib}/tclConfig.sh"
+   if test -f "$tclconfig" ; then
+    . $tclconfig
+   fi
+   TCL_LIB_SPEC="-L${with_tcllib} -ltcl${TCL_VERSION}"
 fi
-ac_res=`eval 'as_val=${'$as_ac_Header'}
-		 $as_echo "$as_val"'`
-	       { $as_echo "$as_me:$LINENO: result: $ac_res" >&5
-$as_echo "$ac_res" >&6; }
-else
-  # Is the header compilable?
-{ $as_echo "$as_me:$LINENO: checking $ac_header usability" >&5
-$as_echo_n "checking $ac_header usability... " >&6; }
-cat >conftest.$ac_ext <<_ACEOF
-/* confdefs.h.  */
-_ACEOF
-cat confdefs.h >>conftest.$ac_ext
-cat >>conftest.$ac_ext <<_ACEOF
-/* end confdefs.h.  */
-$ac_includes_default
-#include <$ac_header>
-_ACEOF
-rm -f conftest.$ac_objext
-if { (ac_try="$ac_compile"
-case "(($ac_try" in
-  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
-  *) ac_try_echo=$ac_try;;
-esac
-eval ac_try_echo="\"\$as_me:$LINENO: $ac_try_echo\""
-$as_echo "$ac_try_echo") >&5
-  (eval "$ac_compile") 2>conftest.er1
-  ac_status=$?
-  grep -v '^ *+' conftest.er1 >conftest.err
-  rm -f conftest.er1
-  cat conftest.err >&5
-  $as_echo "$as_me:$LINENO: \$? = $ac_status" >&5
-  (exit $ac_status); } && {
-	 test -z "$ac_cxx_werror_flag" ||
-	 test ! -s conftest.err
-       } && test -s conftest.$ac_objext; then
-  ac_header_compiler=yes
-else
-  $as_echo "$as_me: failed program was:" >&5
-sed 's/^/| /' conftest.$ac_ext >&5
-
-	ac_header_compiler=no
-fi
-
-rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
-{ $as_echo "$as_me:$LINENO: result: $ac_header_compiler" >&5
-$as_echo "$ac_header_compiler" >&6; }
-
-# Is the header present?
-{ $as_echo "$as_me:$LINENO: checking $ac_header presence" >&5
-$as_echo_n "checking $ac_header presence... " >&6; }
-cat >conftest.$ac_ext <<_ACEOF
-/* confdefs.h.  */
-_ACEOF
-cat confdefs.h >>conftest.$ac_ext
-cat >>conftest.$ac_ext <<_ACEOF
-/* end confdefs.h.  */
-#include <$ac_header>
-_ACEOF
-if { (ac_try="$ac_cpp conftest.$ac_ext"
-case "(($ac_try" in
-  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
-  *) ac_try_echo=$ac_try;;
-esac
-eval ac_try_echo="\"\$as_me:$LINENO: $ac_try_echo\""
-$as_echo "$ac_try_echo") >&5
-  (eval "$ac_cpp conftest.$ac_ext") 2>conftest.er1
-  ac_status=$?
-  grep -v '^ *+' conftest.er1 >conftest.err
-  rm -f conftest.er1
-  cat conftest.err >&5
-  $as_echo "$as_me:$LINENO: \$? = $ac_status" >&5
-  (exit $ac_status); } >/dev/null && {
-	 test -z "$ac_cxx_preproc_warn_flag$ac_cxx_werror_flag" ||
-	 test ! -s conftest.err
-       }; then
-  ac_header_preproc=yes
-else
-  $as_echo "$as_me: failed program was:" >&5
-sed 's/^/| /' conftest.$ac_ext >&5
-
-  ac_header_preproc=no
-fi
-
-rm -f conftest.err conftest.$ac_ext
-{ $as_echo "$as_me:$LINENO: result: $ac_header_preproc" >&5
-$as_echo "$ac_header_preproc" >&6; }
-
-# So?  What about this header?
-case $ac_header_compiler:$ac_header_preproc:$ac_cxx_preproc_warn_flag in
-  yes:no: )
-    { $as_echo "$as_me:$LINENO: WARNING: $ac_header: accepted by the compiler, rejected by the preprocessor!" >&5
-$as_echo "$as_me: WARNING: $ac_header: accepted by the compiler, rejected by the preprocessor!" >&2;}
-    { $as_echo "$as_me:$LINENO: WARNING: $ac_header: proceeding with the compiler's result" >&5
-$as_echo "$as_me: WARNING: $ac_header: proceeding with the compiler's result" >&2;}
-    ac_header_preproc=yes
-    ;;
-  no:yes:* )
-    { $as_echo "$as_me:$LINENO: WARNING: $ac_header: present but cannot be compiled" >&5
-$as_echo "$as_me: WARNING: $ac_header: present but cannot be compiled" >&2;}
-    { $as_echo "$as_me:$LINENO: WARNING: $ac_header:     check for missing prerequisite headers?" >&5
-$as_echo "$as_me: WARNING: $ac_header:     check for missing prerequisite headers?" >&2;}
-    { $as_echo "$as_me:$LINENO: WARNING: $ac_header: see the Autoconf documentation" >&5
-$as_echo "$as_me: WARNING: $ac_header: see the Autoconf documentation" >&2;}
-    { $as_echo "$as_me:$LINENO: WARNING: $ac_header:     section \"Present But Cannot Be Compiled\"" >&5
-$as_echo "$as_me: WARNING: $ac_header:     section \"Present But Cannot Be Compiled\"" >&2;}
-    { $as_echo "$as_me:$LINENO: WARNING: $ac_header: proceeding with the preprocessor's result" >&5
-$as_echo "$as_me: WARNING: $ac_header: proceeding with the preprocessor's result" >&2;}
-    { $as_echo "$as_me:$LINENO: WARNING: $ac_header: in the future, the compiler will take precedence" >&5
-$as_echo "$as_me: WARNING: $ac_header: in the future, the compiler will take precedence" >&2;}
-    ( cat <<\_ASBOX
-## ----------------------------------- ##
-## Report this to rappture@nanohub.org ##
-## ----------------------------------- ##
-_ASBOX
-     ) | sed "s/^/$as_me: WARNING:     /" >&2
-    ;;
-esac
-{ $as_echo "$as_me:$LINENO: checking for $ac_header" >&5
-$as_echo_n "checking for $ac_header... " >&6; }
-if { as_var=$as_ac_Header; eval "test \"\${$as_var+set}\" = set"; }; then
-  $as_echo_n "(cached) " >&6
-else
-  eval "$as_ac_Header=\$ac_header_preproc"
-fi
-ac_res=`eval 'as_val=${'$as_ac_Header'}
-		 $as_echo "$as_val"'`
-	       { $as_echo "$as_me:$LINENO: result: $ac_res" >&5
-$as_echo "$ac_res" >&6; }
-
-fi
-if test `eval 'as_val=${'$as_ac_Header'}
-		 $as_echo "$as_val"'` = yes; then
-  cat >>confdefs.h <<_ACEOF
-#define `$as_echo "HAVE_$ac_header" | $as_tr_cpp` 1
-_ACEOF
-
-else
-  { { $as_echo "$as_me:$LINENO: error: cannot find tcl.h, try using --with-tclinclude" >&5
-$as_echo "$as_me: error: cannot find tcl.h, try using --with-tclinclude" >&2;}
-   { (exit 1); exit 1; }; }
-fi
-
-done
-
-fi
-# TCL_LIB=$(ls ${TCL_LIB_DIR} | grep -o libtcl[0-9]\.[0-9])
-# TCL_LIB=`ls ${TCL_LIB_DIR} | awk '/libtcl([0-9]\.?[0-9])?\.so/ { print }'`
-# TCL_LIB=`ls ${TCL_LIB_DIR} | sed -e '/libtcl([0-9]\.?[0-9])?\.so$/ {p}'`
-# TCL_LIB_VERSION=$(echo ${TCL_LIB} | sed -e s/libtcl// -e s/\.so//)
-{ $as_echo "$as_me:$LINENO: result: ${TCL_LIB_DIR}/${TCL_LIB}" >&5
-$as_echo "${TCL_LIB_DIR}/${TCL_LIB}" >&6; }
-# echo TCL_LIB_DIR = ${TCL_LIB_DIR}
-# echo TCL_LIB = ${TCL_LIB}
-# echo TCL_LIB_VERSION = ${TCL_LIB_VERSION}
-
-
-
-
-
-# Check whether --with-tclinclude was given.
-if test "${with_tclinclude+set}" = set; then
-  withval=$with_tclinclude; with_tclinclude=$withval
-else
-  with_tclinclude=/usr/include
-fi
-
-
-TCL_INCL_DIR=""
-{ $as_echo "$as_me:$LINENO: checking for tcl.h" >&5
-$as_echo_n "checking for tcl.h... " >&6; }
 if test "x$with_tclinclude" != "x" ; then
-    if test -f "$with_tclinclude"
-    then
-        if test `basename $with_tclinclude` = "tcl.h"
-        then
-            TCL_INCL_DIR="`dirname $with_tclinclude`"
-        fi
-    else
-        if test -d "$with_tclinclude"
-        then
-            if test -r "$with_tclinclude/tcl.h"
-            then
-                TCL_INCL_DIR="$with_tclinclude"
-            else
-                if test -r "$with_tclinclude/tcl${TCL_LIB_VERSION}/tcl.h"
-                then
-                    TCL_INCL_DIR="$with_tclinclude/tcl${TCL_LIB_VERSION}"
-                else
-                    { $as_echo "$as_me:$LINENO: result: no" >&5
-$as_echo "no" >&6; }
-                    { { $as_echo "$as_me:$LINENO: error: cannot find tcl.h, try using --with-tclinclude" >&5
-$as_echo "$as_me: error: cannot find tcl.h, try using --with-tclinclude" >&2;}
-   { (exit 1); exit 1; }; }
-                fi
-            fi
-        else
-            { $as_echo "$as_me:$LINENO: result: no" >&5
-$as_echo "no" >&6; }
-            { { $as_echo "$as_me:$LINENO: error: cannot find tcl.h inside $with_tclinclude, try using --with-tclinclude" >&5
-$as_echo "$as_me: error: cannot find tcl.h inside $with_tclinclude, try using --with-tclinclude" >&2;}
-   { (exit 1); exit 1; }; }
-        fi
-    fi
-else
-
-for ac_header in tcl.h
-do
-as_ac_Header=`$as_echo "ac_cv_header_$ac_header" | $as_tr_sh`
-if { as_var=$as_ac_Header; eval "test \"\${$as_var+set}\" = set"; }; then
-  { $as_echo "$as_me:$LINENO: checking for $ac_header" >&5
-$as_echo_n "checking for $ac_header... " >&6; }
-if { as_var=$as_ac_Header; eval "test \"\${$as_var+set}\" = set"; }; then
-  $as_echo_n "(cached) " >&6
-fi
-ac_res=`eval 'as_val=${'$as_ac_Header'}
-		 $as_echo "$as_val"'`
-	       { $as_echo "$as_me:$LINENO: result: $ac_res" >&5
-$as_echo "$ac_res" >&6; }
-else
-  # Is the header compilable?
-{ $as_echo "$as_me:$LINENO: checking $ac_header usability" >&5
-$as_echo_n "checking $ac_header usability... " >&6; }
-cat >conftest.$ac_ext <<_ACEOF
-/* confdefs.h.  */
-_ACEOF
-cat confdefs.h >>conftest.$ac_ext
-cat >>conftest.$ac_ext <<_ACEOF
-/* end confdefs.h.  */
-$ac_includes_default
-#include <$ac_header>
-_ACEOF
-rm -f conftest.$ac_objext
-if { (ac_try="$ac_compile"
-case "(($ac_try" in
-  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
-  *) ac_try_echo=$ac_try;;
-esac
-eval ac_try_echo="\"\$as_me:$LINENO: $ac_try_echo\""
-$as_echo "$ac_try_echo") >&5
-  (eval "$ac_compile") 2>conftest.er1
-  ac_status=$?
-  grep -v '^ *+' conftest.er1 >conftest.err
-  rm -f conftest.er1
-  cat conftest.err >&5
-  $as_echo "$as_me:$LINENO: \$? = $ac_status" >&5
-  (exit $ac_status); } && {
-	 test -z "$ac_cxx_werror_flag" ||
-	 test ! -s conftest.err
-       } && test -s conftest.$ac_objext; then
-  ac_header_compiler=yes
-else
-  $as_echo "$as_me: failed program was:" >&5
-sed 's/^/| /' conftest.$ac_ext >&5
-
-	ac_header_compiler=no
+   TCL_INC_SPEC="-I${with_tclinclude}"
 fi
 
-rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
-{ $as_echo "$as_me:$LINENO: result: $ac_header_compiler" >&5
-$as_echo "$ac_header_compiler" >&6; }
 
-# Is the header present?
-{ $as_echo "$as_me:$LINENO: checking $ac_header presence" >&5
-$as_echo_n "checking $ac_header presence... " >&6; }
-cat >conftest.$ac_ext <<_ACEOF
-/* confdefs.h.  */
-_ACEOF
-cat confdefs.h >>conftest.$ac_ext
-cat >>conftest.$ac_ext <<_ACEOF
-/* end confdefs.h.  */
-#include <$ac_header>
-_ACEOF
-if { (ac_try="$ac_cpp conftest.$ac_ext"
-case "(($ac_try" in
-  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
-  *) ac_try_echo=$ac_try;;
-esac
-eval ac_try_echo="\"\$as_me:$LINENO: $ac_try_echo\""
-$as_echo "$ac_try_echo") >&5
-  (eval "$ac_cpp conftest.$ac_ext") 2>conftest.er1
-  ac_status=$?
-  grep -v '^ *+' conftest.er1 >conftest.err
-  rm -f conftest.er1
-  cat conftest.err >&5
-  $as_echo "$as_me:$LINENO: \$? = $ac_status" >&5
-  (exit $ac_status); } >/dev/null && {
-	 test -z "$ac_cxx_preproc_warn_flag$ac_cxx_werror_flag" ||
-	 test ! -s conftest.err
-       }; then
-  ac_header_preproc=yes
-else
-  $as_echo "$as_me: failed program was:" >&5
-sed 's/^/| /' conftest.$ac_ext >&5
 
-  ac_header_preproc=no
-fi
-
-rm -f conftest.err conftest.$ac_ext
-{ $as_echo "$as_me:$LINENO: result: $ac_header_preproc" >&5
-$as_echo "$ac_header_preproc" >&6; }
-
-# So?  What about this header?
-case $ac_header_compiler:$ac_header_preproc:$ac_cxx_preproc_warn_flag in
-  yes:no: )
-    { $as_echo "$as_me:$LINENO: WARNING: $ac_header: accepted by the compiler, rejected by the preprocessor!" >&5
-$as_echo "$as_me: WARNING: $ac_header: accepted by the compiler, rejected by the preprocessor!" >&2;}
-    { $as_echo "$as_me:$LINENO: WARNING: $ac_header: proceeding with the compiler's result" >&5
-$as_echo "$as_me: WARNING: $ac_header: proceeding with the compiler's result" >&2;}
-    ac_header_preproc=yes
-    ;;
-  no:yes:* )
-    { $as_echo "$as_me:$LINENO: WARNING: $ac_header: present but cannot be compiled" >&5
-$as_echo "$as_me: WARNING: $ac_header: present but cannot be compiled" >&2;}
-    { $as_echo "$as_me:$LINENO: WARNING: $ac_header:     check for missing prerequisite headers?" >&5
-$as_echo "$as_me: WARNING: $ac_header:     check for missing prerequisite headers?" >&2;}
-    { $as_echo "$as_me:$LINENO: WARNING: $ac_header: see the Autoconf documentation" >&5
-$as_echo "$as_me: WARNING: $ac_header: see the Autoconf documentation" >&2;}
-    { $as_echo "$as_me:$LINENO: WARNING: $ac_header:     section \"Present But Cannot Be Compiled\"" >&5
-$as_echo "$as_me: WARNING: $ac_header:     section \"Present But Cannot Be Compiled\"" >&2;}
-    { $as_echo "$as_me:$LINENO: WARNING: $ac_header: proceeding with the preprocessor's result" >&5
-$as_echo "$as_me: WARNING: $ac_header: proceeding with the preprocessor's result" >&2;}
-    { $as_echo "$as_me:$LINENO: WARNING: $ac_header: in the future, the compiler will take precedence" >&5
-$as_echo "$as_me: WARNING: $ac_header: in the future, the compiler will take precedence" >&2;}
-    ( cat <<\_ASBOX
-## ----------------------------------- ##
-## Report this to rappture@nanohub.org ##
-## ----------------------------------- ##
-_ASBOX
-     ) | sed "s/^/$as_me: WARNING:     /" >&2
-    ;;
-esac
-{ $as_echo "$as_me:$LINENO: checking for $ac_header" >&5
-$as_echo_n "checking for $ac_header... " >&6; }
-if { as_var=$as_ac_Header; eval "test \"\${$as_var+set}\" = set"; }; then
-  $as_echo_n "(cached) " >&6
-else
-  eval "$as_ac_Header=\$ac_header_preproc"
-fi
-ac_res=`eval 'as_val=${'$as_ac_Header'}
-		 $as_echo "$as_val"'`
-	       { $as_echo "$as_me:$LINENO: result: $ac_res" >&5
-$as_echo "$ac_res" >&6; }
-
-fi
-if test `eval 'as_val=${'$as_ac_Header'}
-		 $as_echo "$as_val"'` = yes; then
-  cat >>confdefs.h <<_ACEOF
-#define `$as_echo "HAVE_$ac_header" | $as_tr_cpp` 1
-_ACEOF
-
-else
-  { { $as_echo "$as_me:$LINENO: error: cannot find tcl.h, try using --with-tclinclude" >&5
-$as_echo "$as_me: error: cannot find tcl.h, try using --with-tclinclude" >&2;}
-   { (exit 1); exit 1; }; }
-fi
-
-done
-
-fi
-{ $as_echo "$as_me:$LINENO: result: ${TCL_INCL_DIR}" >&5
-$as_echo "${TCL_INCL_DIR}" >&6; }
 
 
 
@@ -9148,6 +8756,7 @@ $as_echo "$as_me: error: cannot find rappture2.h and librappture2.a inside $with
 $as_echo "set to prefix" >&6; }
     fi
 else
+
 
 for ac_header in rappture.h
 do
