@@ -116,17 +116,26 @@ MEXEXT=""
 MATLAB=
 if test "$with_matlab" != "no" ; then
   if test "$with_matlab" = "yes" ; then
-    AC_PATH_PROG(MEX, mex)
     AC_PATH_PROG(MATLAB, matlab)
   else
-    AC_PATH_PROG(MEX, mex, [${with_matlab}/bin/mex:${with_matlab}])
-    AC_PATH_PROG(MATLAB, matlab, [${with_matlab}/bin/mex:${with_matlab}])
+    AC_PATH_PROG(MATLAB, matlab, [${with_matlab}/bin:${with_matlab}])
   fi
 fi
-if test "x$MATLAB" = "x" ; then
-  # No matlab, no mex. Debian 3.1 has mex script that calls mkoctfile.
-  MEX=""
+
+if test "x$MATLAB" != "x" ; then
+  matlab_bindir=AS_DIRNAME(${MATLAB})
+  AC_PATH_PROG(MEX, mex, [${matlab_bindir}])
+  AC_PATH_PROG(MEXEXT, mexext, [${matlab_bindir}])
+  AC_MSG_CHECKING([for mex extension])
+  if test "x$MEXEXT" != "x" ; then 
+    mexext=`$MEXEXT`
+  else 
+    mexext="mexglx"
+  fi
+  AC_MSG_RESULT([$mexext])
+  MEXEXT=$mexext
 fi
+
 AC_SUBST(MEX)
 AC_SUBST(MATLAB)
 AC_SUBST(MEX_ARCH)
