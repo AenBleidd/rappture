@@ -725,10 +725,10 @@ INSTALL_STUB_LIB
 MAKE
 ENABLE_GUI
 TCLSH
-MEX
 MATLAB
-MEX_ARCH
+MEX
 MEXEXT
+MEX_ARCH
 MKOCTFILE
 PERL
 PERL_INCLUDES
@@ -8631,46 +8631,6 @@ MEXEXT=""
 MATLAB=
 if test "$with_matlab" != "no" ; then
   if test "$with_matlab" = "yes" ; then
-    # Extract the first word of "mex", so it can be a program name with args.
-set dummy mex; ac_word=$2
-{ $as_echo "$as_me:$LINENO: checking for $ac_word" >&5
-$as_echo_n "checking for $ac_word... " >&6; }
-if test "${ac_cv_path_MEX+set}" = set; then
-  $as_echo_n "(cached) " >&6
-else
-  case $MEX in
-  [\\/]* | ?:[\\/]*)
-  ac_cv_path_MEX="$MEX" # Let the user override the test with a path.
-  ;;
-  *)
-  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-for as_dir in $PATH
-do
-  IFS=$as_save_IFS
-  test -z "$as_dir" && as_dir=.
-  for ac_exec_ext in '' $ac_executable_extensions; do
-  if { test -f "$as_dir/$ac_word$ac_exec_ext" && $as_test_x "$as_dir/$ac_word$ac_exec_ext"; }; then
-    ac_cv_path_MEX="$as_dir/$ac_word$ac_exec_ext"
-    $as_echo "$as_me:$LINENO: found $as_dir/$ac_word$ac_exec_ext" >&5
-    break 2
-  fi
-done
-done
-IFS=$as_save_IFS
-
-  ;;
-esac
-fi
-MEX=$ac_cv_path_MEX
-if test -n "$MEX"; then
-  { $as_echo "$as_me:$LINENO: result: $MEX" >&5
-$as_echo "$MEX" >&6; }
-else
-  { $as_echo "$as_me:$LINENO: result: no" >&5
-$as_echo "no" >&6; }
-fi
-
-
     # Extract the first word of "matlab", so it can be a program name with args.
 set dummy matlab; ac_word=$2
 { $as_echo "$as_me:$LINENO: checking for $ac_word" >&5
@@ -8712,47 +8672,6 @@ fi
 
 
   else
-    # Extract the first word of "mex", so it can be a program name with args.
-set dummy mex; ac_word=$2
-{ $as_echo "$as_me:$LINENO: checking for $ac_word" >&5
-$as_echo_n "checking for $ac_word... " >&6; }
-if test "${ac_cv_path_MEX+set}" = set; then
-  $as_echo_n "(cached) " >&6
-else
-  case $MEX in
-  [\\/]* | ?:[\\/]*)
-  ac_cv_path_MEX="$MEX" # Let the user override the test with a path.
-  ;;
-  *)
-  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-for as_dir in $PATH
-do
-  IFS=$as_save_IFS
-  test -z "$as_dir" && as_dir=.
-  for ac_exec_ext in '' $ac_executable_extensions; do
-  if { test -f "$as_dir/$ac_word$ac_exec_ext" && $as_test_x "$as_dir/$ac_word$ac_exec_ext"; }; then
-    ac_cv_path_MEX="$as_dir/$ac_word$ac_exec_ext"
-    $as_echo "$as_me:$LINENO: found $as_dir/$ac_word$ac_exec_ext" >&5
-    break 2
-  fi
-done
-done
-IFS=$as_save_IFS
-
-  test -z "$ac_cv_path_MEX" && ac_cv_path_MEX="${with_matlab}/bin/mex:${with_matlab}"
-  ;;
-esac
-fi
-MEX=$ac_cv_path_MEX
-if test -n "$MEX"; then
-  { $as_echo "$as_me:$LINENO: result: $MEX" >&5
-$as_echo "$MEX" >&6; }
-else
-  { $as_echo "$as_me:$LINENO: result: no" >&5
-$as_echo "no" >&6; }
-fi
-
-
     # Extract the first word of "matlab", so it can be a program name with args.
 set dummy matlab; ac_word=$2
 { $as_echo "$as_me:$LINENO: checking for $ac_word" >&5
@@ -8780,7 +8699,7 @@ done
 done
 IFS=$as_save_IFS
 
-  test -z "$ac_cv_path_MATLAB" && ac_cv_path_MATLAB="${with_matlab}/bin/mex:${with_matlab}"
+  test -z "$ac_cv_path_MATLAB" && ac_cv_path_MATLAB="${with_matlab}/bin:${with_matlab}"
   ;;
 esac
 fi
@@ -8796,10 +8715,125 @@ fi
 
   fi
 fi
-if test "x$MATLAB" = "x" ; then
-  # No matlab, no mex. Debian 3.1 has mex script that calls mkoctfile.
-  MEX=""
+
+if test "x$MATLAB" != "x" ; then
+  matlab_bindir=$as_dirname -- ${MATLAB} ||
+$as_expr X${MATLAB} : 'X\(.*[^/]\)//*[^/][^/]*/*$' \| \
+	 X${MATLAB} : 'X\(//\)[^/]' \| \
+	 X${MATLAB} : 'X\(//\)$' \| \
+	 X${MATLAB} : 'X\(/\)' \| . 2>/dev/null ||
+$as_echo X${MATLAB} |
+    sed '/^X\(.*[^/]\)\/\/*[^/][^/]*\/*$/{
+	    s//\1/
+	    q
+	  }
+	  /^X\(\/\/\)[^/].*/{
+	    s//\1/
+	    q
+	  }
+	  /^X\(\/\/\)$/{
+	    s//\1/
+	    q
+	  }
+	  /^X\(\/\).*/{
+	    s//\1/
+	    q
+	  }
+	  s/.*/./; q'
+  # Extract the first word of "mex", so it can be a program name with args.
+set dummy mex; ac_word=$2
+{ $as_echo "$as_me:$LINENO: checking for $ac_word" >&5
+$as_echo_n "checking for $ac_word... " >&6; }
+if test "${ac_cv_path_MEX+set}" = set; then
+  $as_echo_n "(cached) " >&6
+else
+  case $MEX in
+  [\\/]* | ?:[\\/]*)
+  ac_cv_path_MEX="$MEX" # Let the user override the test with a path.
+  ;;
+  *)
+  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+  for ac_exec_ext in '' $ac_executable_extensions; do
+  if { test -f "$as_dir/$ac_word$ac_exec_ext" && $as_test_x "$as_dir/$ac_word$ac_exec_ext"; }; then
+    ac_cv_path_MEX="$as_dir/$ac_word$ac_exec_ext"
+    $as_echo "$as_me:$LINENO: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+done
+IFS=$as_save_IFS
+
+  test -z "$ac_cv_path_MEX" && ac_cv_path_MEX="${matlab_bindir}"
+  ;;
+esac
 fi
+MEX=$ac_cv_path_MEX
+if test -n "$MEX"; then
+  { $as_echo "$as_me:$LINENO: result: $MEX" >&5
+$as_echo "$MEX" >&6; }
+else
+  { $as_echo "$as_me:$LINENO: result: no" >&5
+$as_echo "no" >&6; }
+fi
+
+
+  # Extract the first word of "mexext", so it can be a program name with args.
+set dummy mexext; ac_word=$2
+{ $as_echo "$as_me:$LINENO: checking for $ac_word" >&5
+$as_echo_n "checking for $ac_word... " >&6; }
+if test "${ac_cv_path_MEXEXT+set}" = set; then
+  $as_echo_n "(cached) " >&6
+else
+  case $MEXEXT in
+  [\\/]* | ?:[\\/]*)
+  ac_cv_path_MEXEXT="$MEXEXT" # Let the user override the test with a path.
+  ;;
+  *)
+  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+  for ac_exec_ext in '' $ac_executable_extensions; do
+  if { test -f "$as_dir/$ac_word$ac_exec_ext" && $as_test_x "$as_dir/$ac_word$ac_exec_ext"; }; then
+    ac_cv_path_MEXEXT="$as_dir/$ac_word$ac_exec_ext"
+    $as_echo "$as_me:$LINENO: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+done
+IFS=$as_save_IFS
+
+  test -z "$ac_cv_path_MEXEXT" && ac_cv_path_MEXEXT="${matlab_bindir}"
+  ;;
+esac
+fi
+MEXEXT=$ac_cv_path_MEXEXT
+if test -n "$MEXEXT"; then
+  { $as_echo "$as_me:$LINENO: result: $MEXEXT" >&5
+$as_echo "$MEXEXT" >&6; }
+else
+  { $as_echo "$as_me:$LINENO: result: no" >&5
+$as_echo "no" >&6; }
+fi
+
+
+  { $as_echo "$as_me:$LINENO: checking for mex extension" >&5
+$as_echo_n "checking for mex extension... " >&6; }
+  if test "x$MEXEXT" != "x" ; then
+    mexext=`$MEXEXT`
+  else
+    mexext="mexglx"
+  fi
+  { $as_echo "$as_me:$LINENO: result: $mexext" >&5
+$as_echo "$mexext" >&6; }
+  MEXEXT=$mexext
+fi
+
 
 
 
