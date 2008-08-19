@@ -216,7 +216,7 @@ itcl::body Rappture::HeightmapViewer::constructor {hostlist args} {
         -command [itcl::code $this _fixSettings grid]
     grid $inner.f.grid -row 0 -column 0 -sticky w
 
-    set ::Rappture::HeightmapViewer::_settings($this-axes) 1
+    set ::Rappture::HeightmapViewer::_settings($this-axes) 0
     ::checkbutton $inner.f.axes \
         -text "Axes" \
         -variable ::Rappture::HeightmapViewer::_settings($this-axes) \

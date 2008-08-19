@@ -15,11 +15,12 @@ package require Itk
 itcl::class Rappture::Switch {
     inherit itk::Widget
 
-    itk_option define -oncolor onColor Color "green"
+    itk_option define -oncolor onColor Color "#00cc00"
     itk_option define -state state State "normal"
 
     constructor {args} { # defined below }
     public method value {args}
+    public method updateText {}
     private variable _value 0  ;# value for this widget
 }
                                                                                 
@@ -33,9 +34,11 @@ itk::usual Switch {
 itcl::body Rappture::Switch::constructor {args} {
 
     itk_component add value {
-        checkbutton $itk_interior.value  -variable [itcl::scope _value]
+        checkbutton $itk_interior.value \
+	    -variable [itcl::scope _value] \
+	    -command [itcl::code $this updateText]
     } {
-        rename -background -textbackground textBackground Background
+        #rename -background -textbackground textBackground Background
     }
     pack $itk_component(value) -side left -expand yes -fill both
     eval itk_initialize $args 
@@ -69,13 +72,18 @@ itcl::body Rappture::Switch::value {args} {
         }
         set _value $newval
         event generate $itk_component(hull) <<Value>>
-
+	updateText
     } elseif {[llength $args] != 0} {
         error "wrong # args: should be \"value ?-check? ?newval?\""
     }
     return [expr {($_value) ? "yes" : "no"}]
 }
 
+itcl::body Rappture::Switch::updateText {} {
+    set mesg [expr {($_value) ? "on" : "off"}]
+    $itk_component(value) configure -text $mesg
+}
+   
 
 # ----------------------------------------------------------------------
 # CONFIGURATION OPTION: -oncolor
