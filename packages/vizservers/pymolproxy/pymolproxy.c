@@ -1213,8 +1213,8 @@ ProxyInit(int c_in, int c_out, char *const *argv)
     Tcl_CreateCommand(interp, "viewport",ViewportCmd,   &pymol, NULL);
     Tcl_CreateCommand(interp, "rotate",  RotateCmd,     &pymol, NULL);
     Tcl_CreateCommand(interp, "zoom",    ZoomCmd,       &pymol, NULL);
-    Tcl_CreateCommand(interp, "loadpdb", LoadPDBCmd,    &pymol, NULL);
-    Tcl_CreateCommand(interp, "loadpdb2", LoadPDB2Cmd,  &pymol, NULL);
+    Tcl_CreateCommand(interp, "loadpdb.old", LoadPDBCmd,    &pymol, NULL);
+    Tcl_CreateCommand(interp, "loadpdb", LoadPDB2Cmd,  &pymol, NULL);
     Tcl_CreateCommand(interp, "ballnstick",BallNStickCmd, &pymol, NULL);
     Tcl_CreateCommand(interp, "spheres", SpheresCmd,    &pymol, NULL);
     Tcl_CreateCommand(interp, "lines",   LinesCmd,      &pymol, NULL);

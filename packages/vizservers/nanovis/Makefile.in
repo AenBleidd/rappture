@@ -217,16 +217,6 @@ install-shaders:
 
 install-nanovis: nanovis
 	$(INSTALL) -m 0555 nanovis $(bindir)
-	@if test "$(RP_DIR)/bin" != "$(bindir)" ; then \
-	  $(MKDIR_P) $(bindir) ; \
-	  $(INSTALL_PROGRAM) $(RP_DIR)/bin/voronoi $(bindir) ; \
-	fi
-	@if test "$(RP_DIR)/lib" != "$(libdir)" ; then \
-	  $(MKDIR_P) $(libdir) ; \
-	  $(INSTALL_DATA) $(RP_DIR)/lib/librappture2.so $(libdir) ; \
-	  $(INSTALL_DATA) $(RP_DIR)/lib/libz.so $(libdir) ; \
-	  $(INSTALL_DATA) $(RP_DIR)/lib/libb64.so $(libdir) ; \
-	fi
 
 clean:
 	$(MAKE) -C $(MAT_DIR) clean
