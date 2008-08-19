@@ -18,7 +18,9 @@ RM		= rm -f
 
 MEX             = @MEX@ 
 MEX_ARCH	= @MEX_ARCH@
-EXT		= .mexglx
+MEXEXT		= @MEXEXT@
+EXT		= .$(MEXEXT)
+
 matlabdir	= $$RAPPTURE_INSTALL_DIR/lib/matlab
 
 INCLUDES  	= \
