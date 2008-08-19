@@ -150,6 +150,7 @@ itcl::class Rappture::XyResult {
     private variable _axisPopup    ;# info for axis being edited in popup
     common _downloadPopup          ;# download options from popup
     private variable _markers
+    private variable cur_ ""
 }
                                                                                 
 itk::usual XyResult {
@@ -274,8 +275,11 @@ itcl::body Rappture::XyResult::constructor {args} {
         button $itk_component(controls).legend \
             -borderwidth 1 -padx 3 -pady 0 \
 	    -text "L" -font "-*-times new roman-bold-i-*-*-11-*-*-*-*-*-*-*" \
-	    -command [list $itk_component(hull).legend activate \
-			  $itk_component(controls).legend left]
+	    -command [subst {
+		$itk_component(hull).legend activate \
+		    $itk_component(controls).legend left
+		focus $itk_component(hull).legend
+	    }]
     } {
         usual
         ignore -borderwidth -font
@@ -707,9 +711,15 @@ itcl::body Rappture::XyResult::_rebuild {} {
         $g axis bind $axis <KeyPress> \
             [list ::Rappture::Tooltip::tooltip cancel]
     }
-    $g legend bind all <ButtonRelease> [itcl::code $this _legend toggle]
+    $g legend bind all <ButtonRelease-1> [itcl::code $this _legend toggle]
     $g legend bind all <ButtonRelease-3> [itcl::code $this _legend showall]
     $g legend bind all <ButtonRelease-2> [itcl::code $this _legend showone]
+    bind $itk_component(hull).legend <KeyPress-Down> \
+	[itcl::code $this _legend raise]
+    bind $itk_component(hull).legend <KeyPress-Up> \
+	[itcl::code $this _legend lower]
+    bind $itk_component(hull).legend <Shift-ButtonRelease-1> \
+	[itcl::code $this _legend select]
 
     #
     # Plot all of the curves.
@@ -1637,6 +1647,52 @@ itcl::body Rappture::XyResult::_legend { what } {
 	    }
 	    $g element configure $cur -hide no
 	    $g legend deactivate $cur
+	}
+	"raise" {
+	    if { $cur_ != "" } {
+		set g $itk_component(plot)
+		set display_list [$g element show] 
+		set j [lsearch $display_list $cur_]
+		if { $j >= 1 } {
+		    set i [expr $j-1]
+		    set last [lindex $display_list $i]
+		    set display_list [lreplace $display_list $i $j]
+		    set display_list [linsert $display_list $i $cur_ $last]
+		    $g element show $display_list
+		    update
+		}
+	    }
+	}
+	"lower" {
+	    if { $cur_ != "" } {
+		set g $itk_component(plot)
+		set display_list [$g element show] 
+		set i [lsearch $display_list $cur_]
+		if { $i >= 0 && $i < ([llength $display_list] - 1) } {
+		    set j [expr $i+1]
+		    set next [lindex $display_list $j]
+		    set display_list [lreplace $display_list $i $j]
+		    set display_list [linsert $display_list $i $next $cur_]
+		    $g element show $display_list
+		    update
+		}
+	    }
+	}
+	"select" {
+	    set g $itk_component(plot)
+	    if { $cur_ != "" } {
+		$g element configure $cur_ -labelrelief flat
+	    }
+	    set cur_ [$g legend get current]
+	    $g element configure $cur_ -hide no
+	    $g legend deactivate $cur_
+	    set relief [$g element cget $cur_ -labelrelief] 
+	    set relief [expr {($relief == "raised") ? "flat" : "raised"}]
+	    $g element configure $cur_ -labelrelief $relief
+	    if { $relief == "flat" } {
+		set cur_ ""
+	    }
+	    $g legend configure -relief flat
 	}
     }
 }
