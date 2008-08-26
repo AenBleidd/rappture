@@ -119,6 +119,7 @@ itcl::class Rappture::XyResult {
     public method scale {args}
     public method parameters {title args} { # do nothing }
     public method download {option args}
+    public method legend {option args}
 
     protected method _rebuild {}
     protected method _resetLimits {}
@@ -130,7 +131,6 @@ itcl::class Rappture::XyResult {
     protected method _getTextMarkerOptions { style } 
     protected method _enterMarker { g name x y text }
     protected method _leaveMarker { g name }
-    protected method _legend { what }
 
     private variable _dispatcher "" ;# dispatcher for !events
 
@@ -190,7 +190,7 @@ itcl::body Rappture::XyResult::constructor {args} {
         ignore -borderwidth
         rename -highlightbackground -controlbackground controlBackground Background
     }
-    pack $itk_component(reset) -padx 4 -pady 4
+    pack $itk_component(reset) -padx 4 -pady 4 -anchor e
     Rappture::Tooltip::for $itk_component(reset) "Reset the view to the default zoom level"
 
     itk_component add plot {
@@ -267,34 +267,31 @@ itcl::body Rappture::XyResult::constructor {args} {
     _axis scale x linear
     _axis scale y linear
 
-    
+    $itk_component(plot) legend configure -hide yes
     #
     # Add legend for editing hidden/elements:
     #
-    itk_component add legend {
-        button $itk_component(controls).legend \
-            -borderwidth 1 -padx 3 -pady 0 \
+    itk_component add legendbutton {
+	button $itk_component(controls).legendbutton \
+	    -borderwidth 1 -padx 3 -pady 0 \
 	    -text "L" -font "-*-times new roman-bold-i-*-*-11-*-*-*-*-*-*-*" \
-	    -command [subst {
-		$itk_component(hull).legend activate \
-		    $itk_component(controls).legend left
-		focus $itk_component(hull).legend
-	    }]
+	    -command [itcl::code $this legend toggle]
     } {
         usual
         ignore -borderwidth -font
         rename -highlightbackground -controlbackground controlBackground Background
     }
-    pack $itk_component(legend) -padx 4 -pady 4
-    Rappture::Tooltip::for $itk_component(legend) \
-	"Display legend to hide/show elements"
-
-    Rappture::Balloon $itk_component(hull).legend -title "Legend"
-    set inner [$itk_component(hull).legend component inner]
-    $itk_component(plot) legend configure -position $inner.legend \
-	-activeforeground grey60 -activebackground grey90 -relief flat
-    grid $inner.legend -sticky nsew
-    #$itk_component(plot) legend configure -hide yes
+    pack $itk_component(legendbutton) -padx 4 -pady 4 -anchor e
+    
+    itk_component add legend {
+	Rappture::XyLegend $itk_component(controls).legend $itk_component(plot)
+    }
+    after idle [subst {
+	update idletasks
+	$itk_component(legend) Activate 
+    }]
+    Rappture::Tooltip::for $itk_component(legendbutton) \
+	"Display legend"
 
     # quick-and-dirty zoom functionality, for now...
     Blt_ZoomStack $itk_component(plot)
@@ -711,15 +708,6 @@ itcl::body Rappture::XyResult::_rebuild {} {
         $g axis bind $axis <KeyPress> \
             [list ::Rappture::Tooltip::tooltip cancel]
     }
-    $g legend bind all <ButtonRelease-1> [itcl::code $this _legend toggle]
-    $g legend bind all <ButtonRelease-3> [itcl::code $this _legend showall]
-    $g legend bind all <ButtonRelease-2> [itcl::code $this _legend showone]
-    bind $itk_component(hull).legend <KeyPress-Down> \
-	[itcl::code $this _legend raise]
-    bind $itk_component(hull).legend <KeyPress-Up> \
-	[itcl::code $this _legend lower]
-    bind $itk_component(hull).legend <Shift-ButtonRelease-1> \
-	[itcl::code $this _legend select]
 
     #
     # Plot all of the curves.
@@ -1614,85 +1602,33 @@ itcl::body Rappture::XyResult::_leaveMarker { g name } {
     }
 }
 
-itcl::body Rappture::XyResult::_legend { what } {
-    switch -- $what {
+itcl::body Rappture::XyResult::legend { what args } {
+    switch -- ${what} {
+	"activate" {
+	    pack $itk_component(legend) 
+	    focus $itk_component(legend)
+	}
+	"deactivate" {
+	    pack forget $itk_component(legend) 
+	}
 	"toggle" {
-	    set g $itk_component(plot)
-	    set name [$g legend get current]
-	    set hidden [$g element cget $name -hide]
-	    if { $hidden } {
-		$g legend deactivate $name
-		$g element configure $name -hide no
+	    set slaves [pack slave $itk_component(controls)]
+	    if { [lsearch $slaves $itk_component(legend)] >= 0 } {
+		legend deactivate
 	    } else {
-		$g legend activate $name
-		$g element configure $name -hide yes
+		legend activate
 	    }
 	}
-	"showall" {
-	    set g $itk_component(plot)
-	    set cur [$g legend get current]
-	    foreach name [$g element show] {
-		$g legend deactivate $name
-		$g element configure $name -hide no
-	    }
-	    $g element configure $cur -hide yes
-	    $g legend activate $cur
-	}
-	"showone" {
-	    set g $itk_component(plot)
-	    set cur [$g legend get current]
-	    foreach name [$g element show] {
-		$g legend activate $name
-		$g element configure $name -hide yes
-	    }
-	    $g element configure $cur -hide no
-	    $g legend deactivate $cur
-	}
-	"raise" {
-	    if { $cur_ != "" } {
-		set g $itk_component(plot)
-		set display_list [$g element show] 
-		set j [lsearch $display_list $cur_]
-		if { $j >= 1 } {
-		    set i [expr $j-1]
-		    set last [lindex $display_list $i]
-		    set display_list [lreplace $display_list $i $j]
-		    set display_list [linsert $display_list $i $cur_ $last]
-		    $g element show $display_list
-		    update
-		}
-	    }
-	}
-	"lower" {
-	    if { $cur_ != "" } {
-		set g $itk_component(plot)
-		set display_list [$g element show] 
-		set i [lsearch $display_list $cur_]
-		if { $i >= 0 && $i < ([llength $display_list] - 1) } {
-		    set j [expr $i+1]
-		    set next [lindex $display_list $j]
-		    set display_list [lreplace $display_list $i $j]
-		    set display_list [linsert $display_list $i $next $cur_]
-		    $g element show $display_list
-		    update
-		}
-	    }
-	}
-	"select" {
-	    set g $itk_component(plot)
-	    if { $cur_ != "" } {
-		$g element configure $cur_ -labelrelief flat
-	    }
-	    set cur_ [$g legend get current]
-	    $g element configure $cur_ -hide no
-	    $g legend deactivate $cur_
-	    set relief [$g element cget $cur_ -labelrelief] 
-	    set relief [expr {($relief == "raised") ? "flat" : "raised"}]
-	    $g element configure $cur_ -labelrelief $relief
-	    if { $relief == "flat" } {
-		set cur_ ""
-	    }
-	    $g legend configure -relief flat
-	}
+    }
+}
+
+rename focus focus_ok
+
+proc focus { args } {
+    puts stderr "focus called [info level 1]"
+    puts stderr "focus is [focus_ok]"
+    eval focus_ok $args
+    if { $args != "" } {
+	puts stderr "focus changed to [focus_ok]"
     }
 }
