@@ -3,5 +3,7 @@
     * added a free text label so users can label each element of a sequence.
     * added example using Ruby's Rappture bindings.
 
+2008-06-11: fixed bug in Ruby putfile() method (bhaley)
 2008-03-31: nanovis 20080331 released
 2008-03-30: Rappture 20080330 released
+2008-02-18: added initial bindings and build scripts for Ruby (bhaley)
