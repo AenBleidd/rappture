@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<run>
+<tool>
+  <title>string</title>
+  <about>Example of using the Rappture "put file" function in Tcl.
+
+$lib put ?-append yes? ?-type string|file? ?-compress no? ?&lt;path&gt;? &lt;string&gt;
+
+The put function can be used to place files on disk into the xml library. Thsi saves the user a little bit of hassel regarding any transformations that need to happen to the file before it can be placed in the xml file. The put file functionality is enabled when the -type flag is set to "file". The -compress flag is still optional, but if Rappture thinks the file contains binary characters, it will automatically mime encode the file. When the user gets the file, the mime encoding is automatically stripped off by Rappture.
+
+Press the Simulate button to see put file functionality work!
+  </about>
+  <command>
+    tclsh @tool/putfile.tcl @driver
+  </command>
+</tool>
+<input>
+</input>
+</run>
