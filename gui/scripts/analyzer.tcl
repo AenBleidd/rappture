@@ -96,8 +96,12 @@ itcl::body Rappture::Analyzer::constructor {tool args} {
     frame $itk_interior.simol.simbg -borderwidth 0
     pack $itk_interior.simol.simbg -expand yes -fill both
 
+    set simtxt [$tool xml get tool.action.label]
+    if {"" == $simtxt} {
+        set simtxt "Simulate"
+    }
     itk_component add simulate {
-        button $itk_interior.simol.simbg.simulate -text "Simulate" \
+        button $itk_interior.simol.simbg.simulate -text $simtxt \
             -command [itcl::code $this simulate]
     }
     pack $itk_component(simulate) -side left -padx 4 -pady 4
