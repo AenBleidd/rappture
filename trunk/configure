@@ -9725,8 +9725,12 @@ _ACEOF
 
 
 
-. ${exec_prefix}/lib/tclConfig.sh
-. ${exec_prefix}/lib/tkConfig.sh
+if test -f "${exec_prefix}/lib/tclConfig.sh" ; then
+  . ${exec_prefix}/lib/tclConfig.sh
+fi
+if test -f "${exec_prefix}/lib/tclConfig.sh" ; then
+  . ${exec_prefix}/lib/tkConfig.sh
+fi
 
 
 

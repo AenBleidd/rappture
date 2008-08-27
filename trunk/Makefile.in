@@ -21,15 +21,18 @@ bn		:= $(shell basename $(prefix))
 
 tarfile		= rappture-$(os)-$(machine)-$(build_date).tar.gz
 
-ENABLE_GUI = @ENABLE_GUI@
+ENABLE_GUI	= @ENABLE_GUI@
+
+TARGETS		= src 
 
 ifneq ($(ENABLE_GUI),)
-   GUI = gui
+  TARGETS += gui lang test examples lib
 endif
 
-.PHONY: src gui lang test examples lib
 
-all: src gui examples test lib lang
+.PHONY: $(TARGETS)
+
+all: $(TARGETS)
 
 src:
 	$(MAKE) -C src all
@@ -45,11 +48,9 @@ test:
 	#$(MAKE) -C test all
 
 install: 
-	$(MAKE) -C examples install
-	$(MAKE) -C gui install
-	$(MAKE) -C lib install
-	$(MAKE) -C src install
-	$(MAKE) -C lang install
+	for i in $(TARGETS) ; do \
+	  $(MAKE) -C $$i install || exit 1 ;\
+	done
 
 clean:
 	$(MAKE) -C examples clean

@@ -28,22 +28,25 @@ itcl::class ::Rappture::XyLegend {
     private variable graph_	""
     private variable tree_	""
     private variable diff_	""
+    private variable focus_	-1
     private variable diffelements_
 
     constructor {args} { graph }
     destructor {}
 
     public method Activate {} 
+    public method Average {} 
+    public method Check {}
     public method Deactivate {} 
+    public method Delete { args } 
+    public method Difference {} 
+    public method Editor { option args }
     public method Hide { args } 
+    public method Lower { args } 
+    public method Raise { args } 
+    public method Rename {} 
     public method Show { args } 
     public method Toggle { args } 
-    public method Raise { args } 
-    public method Lower { args } 
-    public method Check {}
-    public method Difference {} 
-    public method Delete { args } 
-    public method Average {} 
     private method GetData { elem what } 
     private method Add { elem label {flags ""}} 
     private method SelectAll {}
@@ -89,7 +92,7 @@ itcl::body Rappture::XyLegend::constructor { graph args } {
 	-onvalue 0 -offvalue 1 \
 	-boxcolor grey50 -checkcolor black -activebackground grey90
     $itk_component(legend) column configure "treeView" -justify left \
-	-weight 1.0 -text "" -pad 0 -borderwidth 0
+	-weight 1.0 -text "" -pad 0 -borderwidth 0 
     $itk_component(legend) column configure "show" -style "check" -pad {0 0} \
 	-edit yes
     itk_component add controls {
@@ -109,6 +112,7 @@ itcl::body Rappture::XyLegend::constructor { graph args } {
 	average ""
 	difference ""
 	delete ""
+	rename ""
     }
     foreach { but icon} $commands {
 	set title [string totitle $but]
@@ -117,14 +121,15 @@ itcl::body Rappture::XyLegend::constructor { graph args } {
 	    -command [itcl::code $this $title]  -overrelief flat \
 	    -activebackground grey90
     }
-    grid $controls.hide       -column 0 -row 0  -sticky w 
-    grid $controls.show       -column 0 -row 1  -sticky w
+    grid $controls.hide       -column 0 -row 0 -sticky w 
+    grid $controls.show       -column 0 -row 1 -sticky w
     grid $controls.toggle     -column 0 -row 2 -sticky w
     grid $controls.raise      -column 0 -row 3 -sticky w
     grid $controls.lower      -column 0 -row 4 -sticky w
     grid $controls.difference -column 1 -row 0 -sticky w
     grid $controls.average    -column 1 -row 1 -sticky w
-    grid $controls.delete     -column 1 -row 2 -sticky w
+    grid $controls.rename     -column 1 -row 2 -sticky w
+    grid $controls.delete     -column 1 -row 3 -sticky w
 
     grid columnconfigure $controls 0  -weight 1
     grid columnconfigure $controls 1 -weight 1
@@ -148,6 +153,13 @@ itcl::body Rappture::XyLegend::constructor { graph args } {
 	"$itk_component(legend) selection clearall"
     $itk_component(legend) configure -selectcommand \
 	[itcl::code $this Check]
+
+    itk_component add editor {
+        Rappture::Editor $itk_interior.editor \
+            -activatecommand [itcl::code $this Editor activate] \
+            -validatecommand [itcl::code $this Editor validate] \
+            -applycommand [itcl::code $this Editor apply]
+    }
     Check
     eval itk_initialize $args
 }
@@ -330,7 +342,8 @@ itcl::body Rappture::XyLegend::Delete { args } {
 
 itcl::body Rappture::XyLegend::Check {} {
     set nodes [$itk_component(legend) curselection]
-    foreach n { hide show toggle raise lower average difference delete } {
+    foreach n { hide show toggle raise lower 
+	rename average difference delete } {
 	$itk_component(controls).$n configure -state disabled
     }
     foreach node $nodes {
@@ -338,6 +351,9 @@ itcl::body Rappture::XyLegend::Check {} {
 	    $itk_component(controls).delete configure -state normal
 	    break
 	}
+    }
+    if { [$itk_component(legend) index focus] != -1 } {
+	    $itk_component(controls).rename configure -state normal
     }
     if { [$tree_ degree 0] > 1  && [llength $nodes] > 0 } {
 	foreach n { raise lower } {
@@ -540,4 +556,58 @@ itcl::body Rappture::XyLegend::SelectAll { } {
     foreach node [$tree_ children 0] {
 	$itk_component(legend) selection set $node
     }  
+}
+
+itcl::body Rappture::XyLegend::Rename {} {
+    Editor popup
+}
+
+# ----------------------------------------------------------------------
+# USAGE: Editor popup
+# USAGE: Editor activate
+# USAGE: Editor validate <value>
+# USAGE: Editor apply <value>
+# USAGE: Editor menu <rootx> <rooty>
+#
+# Used internally to handle the various functions of the pop-up
+# editor for the value of this gauge.
+# ----------------------------------------------------------------------
+itcl::body Rappture::XyLegend::Editor {option args} {
+    switch -- $option {
+        popup {
+	    $itk_component(editor) activate
+        }
+        activate {
+	    set focus_ [$itk_component(legend) index focus]
+	    if { $focus_ == -1 } {
+		return;
+	    }
+	    set label [$itk_component(legend) entry cget $focus_ -label]
+	    foreach { l r t b } [$itk_component(legend) bbox $focus_] break
+	    set info(text) $label
+	    set info(x) [expr $l + [winfo rootx $itk_component(legend)]]
+	    set info(y) [expr $r + [winfo rooty $itk_component(legend)]] 
+	    set info(w) [expr $r - $l] 
+	    set info(h) [expr $b - $t]
+            return [array get info]
+        }
+        validate {
+            if {[llength $args] != 1} {
+                error "wrong # args: should be \"editor validate value\""
+            }
+        }
+        apply {
+            if {[llength $args] != 1} {
+                error "wrong # args: should be \"editor apply value\""
+            }
+	    set label [lindex $args 0]
+	    $itk_component(legend) entry configure $focus_ -label $label
+        }
+        menu {
+            eval tk_popup $itk_component(emenu) $args
+        }
+        default {
+            error "bad option \"$option\": should be popup, activate, validate, apply, and menu"
+        }
+    }
 }
