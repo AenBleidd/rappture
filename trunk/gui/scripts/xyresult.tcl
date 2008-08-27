@@ -1606,7 +1606,7 @@ itcl::body Rappture::XyResult::legend { what args } {
     switch -- ${what} {
 	"activate" {
 	    pack $itk_component(legend) 
-	    focus $itk_component(legend)
+	    after idle [list focus $itk_component(legend)]
 	}
 	"deactivate" {
 	    pack forget $itk_component(legend) 
@@ -1622,13 +1622,3 @@ itcl::body Rappture::XyResult::legend { what args } {
     }
 }
 
-rename focus focus_ok
-
-proc focus { args } {
-    puts stderr "focus called [info level 1]"
-    puts stderr "focus is [focus_ok]"
-    eval focus_ok $args
-    if { $args != "" } {
-	puts stderr "focus changed to [focus_ok]"
-    }
-}
