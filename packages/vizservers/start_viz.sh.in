@@ -4,34 +4,46 @@ DISPLAY=:0
 export DISPLAY
 
 broadcast="192.168.200.255"
-install_dir="@prefix@"
+render_dir="@prefix@"
 nanoscale_port=2000
 nanovis_port=2000
 pymol_port=2020
 
-dir=$( mktemp -d /tmp/nanorun.XXXXXX )
+# Build the name of the run directory. This is where nanoscale and the
+# visualization programs will reside.  The directory name is the same as the
+# render directory.
+dir="/tmp/`basename $render_dir`"
 
 PATH=${dir}/bin:$PATH
 LD_LIBRARY_PATH=${dir}/lib:$LD_LIBRARY_PATH
 PYMOL_PATH=${dir}/lib/pymol
+
 export PATH LD_LIBRARY_PATH PYMOL_PATH
 
 nanoscale="${dir}/bin/nanoscale -b $nanoscale_port -s $broadcast"
 nanovis="${dir}/bin/nanovis -p ${dir}/lib/shaders:${dir}/lib/resources"
 pymolproxy="${dir}/bin/pymolproxy ${dir}/bin/pymol -p -q -i -x -X 0 -Y 0"
 
-cp -r ${install_dir}/* ${dir}
+# Copy from render directory if the run copy doesn't already exist.
+# Otherwise use what's there.  This means that successive invocations
+# of nanoscale won't create their own run directories (only the first
+# one will).
+
+if test -f "$dir" ; then
+  echo "Reusing previously installed version from $render_dir"
+else 
+  echo "Copying rappture from $render_dir"
+  mkdir -p $dir
+  tar -C ${render_dir} -clf - . | tar -C $dir -xpf - 
+fi
 
 cd ${dir}
 
+# Don't let nanoscale run and the visualization servers run away.
+# Limit cpu time to 20 minutes.
 minutes=20
 ulimit -t $(expr ${minutes} \* 60 )
 
-#$nanoscale -d -l $nanovis_port -c $nanovis
-#$nanoscale -d -l $pymol_port -c $pymolproxy
+echo "$nanoscale -l $nanovis_port -c \"$nanovis\" -l $pymol_port -c \"$pymolproxy\""
+$nanoscale -l $nanovis_port -c "$nanovis" -l $pymol_port -c "$pymolproxy"
 
-#echo "$nanoscale -l $nanovis_port -c \"$nanovis\" -l $pymol_port -c \"$pymolproxy\""
-#$nanoscale -l $nanovis_port -c "$nanovis" -l $pymol_port -c "$pymolproxy"
-
-echo "$nanoscale -l $nanovis_port -c \"$nanovis\""
-$nanoscale -l $nanovis_port -c "$nanovis" 
