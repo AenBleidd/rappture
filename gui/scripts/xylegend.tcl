@@ -15,8 +15,11 @@
 package require Itk
 package require BLT
 
-option add *XyLegend.font \
-    -*-helvetica-medium-r-normal-*-10-* widgetDefault
+option add *Xylegend.font \
+    -*-helvetica-medium-r-normal-*-8-* widgetDefault
+
+option add *Xylegend.Button.font \
+    -*-helvetica-medium-r-normal-*-9-* widgetDefault
 
 itcl::class ::Rappture::XyLegend {
     inherit itk::Widget
@@ -47,11 +50,11 @@ itcl::class ::Rappture::XyLegend {
 }
                                                                                 
 itk::usual XyLegend {
-    keep -background -foreground -cursor -font
+    keep -background -foreground -cursor 
 }
 
 itk::usual TreeView {
-    keep -background -foreground -cursor -font
+    keep -background -foreground -cursor 
 }
 
 blt::bitmap define dot1 {
@@ -74,7 +77,10 @@ itcl::body Rappture::XyLegend::constructor { graph args } {
     itk_component add legend {
         blt::treeview $itk_component(scrollbars).legend -linewidth 0 \
 	    -bg white -selectmode multiple -width 0 \
-	    -highlightthickness 0 -tree $tree_ -flat yes -separator /
+	    -highlightthickness 0 \
+	    -tree $tree_ \
+	    -font "Arial 9" \
+	    -flat yes -separator / 
     }
     $itk_component(scrollbars) contents $itk_component(legend)
     $itk_component(legend) column insert 0 "show" \
@@ -107,7 +113,7 @@ itcl::body Rappture::XyLegend::constructor { graph args } {
     foreach { but icon} $commands {
 	set title [string totitle $but]
 	button $controls.$but -text $title \
-	    -relief flat -pady 0 -padx 0 -font "Arial 10" \
+	    -relief flat -pady 0 -padx 0  -font "Arial 9" \
 	    -command [itcl::code $this $title]  -overrelief flat \
 	    -activebackground grey90
     }
