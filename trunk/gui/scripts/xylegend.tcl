@@ -602,6 +602,8 @@ itcl::body Rappture::XyLegend::Editor {option args} {
             }
 	    set label [lindex $args 0]
 	    $itk_component(legend) entry configure $focus_ -label $label
+	    set elem [$tree_ label $focus_]
+	    $graph_ element configure $elem -label $label
         }
         menu {
             eval tk_popup $itk_component(emenu) $args
