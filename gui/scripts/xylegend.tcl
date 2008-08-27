@@ -70,21 +70,21 @@ itcl::body Rappture::XyLegend::constructor { graph args } {
 	Rappture::Scroller $itk_interior.scrl \
 	    -xscrollmode auto -yscrollmode auto 
     }
+    set tree_ [blt::tree create]
     itk_component add legend {
         blt::treeview $itk_component(scrollbars).legend -linewidth 0 \
 	    -bg white -selectmode multiple -width 0 \
-	    -highlightthickness 0 
+	    -highlightthickness 0 -tree $tree_ -flat yes -separator /
     }
     $itk_component(scrollbars) contents $itk_component(legend)
-    $itk_component(legend) column insert end  "show" "image" "label" \
-	-text "" -weight 0.0 
-    $itk_component(legend) column configure treeView -hide yes 
-    $itk_component(legend) column configure "label" -justify left \
-	-weight 1.0
+    $itk_component(legend) column insert 0 "show" \
+	-text "" -weight 0.0 -pad 0 -borderwidth 0
     $itk_component(legend) style checkbox "check" -showvalue no \
 	-onvalue 0 -offvalue 1 \
 	-boxcolor grey50 -checkcolor black -activebackground grey90
-    $itk_component(legend) column configure "show" -style "check" -pad {0 10} \
+    $itk_component(legend) column configure "treeView" -justify left \
+	-weight 1.0 -text "" -pad 0 -borderwidth 0
+    $itk_component(legend) column configure "show" -style "check" -pad {0 0} \
 	-edit yes
     itk_component add controls {
         frame $itk_component(hull).controls -width 100 -relief sunken -bd 2
@@ -123,7 +123,6 @@ itcl::body Rappture::XyLegend::constructor { graph args } {
     grid columnconfigure $controls 0  -weight 1
     grid columnconfigure $controls 1 -weight 1
 
-    set tree_ [blt::tree create]
     set graph_ $graph
     set cmd [itcl::code $this Toggle current]
     $itk_component(legend) bind CheckBoxStyle <ButtonRelease-1> \
@@ -134,8 +133,11 @@ itcl::body Rappture::XyLegend::constructor { graph args } {
 		break
 	    }
 	}]]
+    bind $itk_component(legend) <Enter> { focus %W }
     $itk_component(legend) bind Entry <Control-KeyRelease-a> \
 	[itcl::code $this SelectAll]
+    $itk_component(legend) bind Entry <KeyRelease-Return> \
+	+[itcl::code $this Toggle focus]
     $itk_component(legend) bind Entry <Escape> \
 	"$itk_component(legend) selection clearall"
     $itk_component(legend) configure -selectcommand \
@@ -159,7 +161,10 @@ itcl::body Rappture::XyLegend::Add { elem label {flags ""} } {
     set data(show) $hide
     set data(image) @$im
     set data(delete) [expr { $flags == "-delete" }]
-    return [$tree_ insert root -at 0 -label $elem -data [array get data]]
+    set node [$tree_ insert root -at 0 -label $elem -data [array get data]]
+    $itk_component(legend) entry configure $node -label $label -icon $im \
+	-activeicon $im
+    return $node
 }
 
 # ----------------------------------------------------------------------
@@ -192,9 +197,6 @@ itcl::body Rappture::XyLegend::Deactivate {} {
 }
 
 itcl::body Rappture::XyLegend::Hide { args } {
-    puts stderr "focus=[focus]"
-    focus $itk_component(legend)
-    puts stderr "focus=[focus]"
     if { $args == "" } {
 	set nodes [$itk_component(legend) curselection]
     } else {
@@ -350,12 +352,12 @@ itcl::body Rappture::XyLegend::Check {} {
 	    }
 	}
 	2 {
-	    foreach n { hide show toggle \#average difference } {
+	    foreach n { hide show toggle difference } {
 		$itk_component(controls).$n configure -state normal
 	    }
 	}
 	default {
-	    foreach n { hide show toggle \#average } {
+	    foreach n { hide show toggle } {
 		$itk_component(controls).$n configure -state normal
 	    }
 	}
