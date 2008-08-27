@@ -917,6 +917,7 @@ itcl::body Rappture::XyResult::_hilite {state x y} {
     if {[info exists ::zoomInfo($g,corner)] && $::zoomInfo($g,corner) == "B" } {
 	return;
     }
+    set tip ""
     if {$state == "at"} {
         if {[$g element closest $x $y info -interpolate yes]} {
             # for dealing with xy line plots
@@ -932,7 +933,8 @@ itcl::body Rappture::XyResult::_hilite {state x y} {
 
                 if {[info exists _elem2curve($elem)]} {
                     set curve $_elem2curve($elem)
-                    set tip [$curve hints tooltip]
+                    #set tip [$curve hints tooltip]
+		    set tip [$g element cget $elem -label]
                     if {[info exists info(y)]} {
                         set val [_axis format y dummy $info(y)]
                         set units [$curve hints yunits]
@@ -961,7 +963,8 @@ itcl::body Rappture::XyResult::_hilite {state x y} {
 
                 if {[info exists _elem2curve($elem)]} {
                     set curve $_elem2curve($elem)
-                    set tip [$curve hints tooltip]
+                    #set tip [$curve hints tooltip]
+		    set tip [$g element cget $elem -label]
                     if {[info exists info(y)]} {
                         set val [_axis format y dummy $info(y)]
                         set units [$curve hints yunits]
