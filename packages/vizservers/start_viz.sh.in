@@ -39,7 +39,7 @@ fi
 
 cd ${dir}
 
-# Don't let nanoscale run and the visualization servers run away.
+# Don't let nanoscale and the visualization servers run away.
 # Limit cpu time to 20 minutes.
 minutes=20
 ulimit -t $(expr ${minutes} \* 60 )

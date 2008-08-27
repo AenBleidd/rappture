@@ -23,20 +23,22 @@ AC_SUBST(LIB_SEARCH_DIRS)
 AC_PROG_INSTALL
 AC_PROG_MAKE_SET
 
-dnl find and test the C compiler
+# Check for C, C++, and FORTRAN 
 AC_PROG_CC
-AC_PROG_F77
-AC_LANG_C
-
+AC_PROG_CXX
+# Avoid g95 
 AC_PROG_INSTALL
 AC_PROG_RANLIB
 AC_PROG_LN_S
 AC_PROG_MKDIR_P
 
+AC_PROG_F77([g77 gfortran f77 fort77 f90 xlf xlf90 fl32])
+
+AC_LANG_C
+
 AC_HEADER_STDC
 AC_CHECK_FUNC(atol,,AC_MSG_ERROR(oops! no atol ?!?))
 
-AC_PROG_CXX
 AC_LANG_CPLUSPLUS
 
 AC_CHECK_LIB(stdc++, main,,AC_MSG_ERROR(librappture requires libstdc++))
@@ -45,7 +47,6 @@ AC_CHECK_HEADERS(string,,AC_MSG_WARN(STL classes missing ?))
 AC_CHECK_HEADERS(list,,AC_MSG_WARN(STL classes missing ?))
 AC_CHECK_HEADERS(vector,,AC_MSG_WARN(STL classes missing ?))
 
-AC_PROG_F77([g77 gfortran f77 fort77 f90 xlf xlf90 fl32])
 
 SC_CONFIG_CFLAGS
 
@@ -367,8 +368,12 @@ AC_SUBST(SHLIB_CFLAGS)
 AC_SUBST(SHLIB_LDFLAGS)
 AC_SUBST(SHLIB_SUFFIX)
 
-. ${exec_prefix}/lib/tclConfig.sh
-. ${exec_prefix}/lib/tkConfig.sh
+if test -f "${exec_prefix}/lib/tclConfig.sh" ; then 
+  . ${exec_prefix}/lib/tclConfig.sh
+fi
+if test -f "${exec_prefix}/lib/tclConfig.sh" ; then 
+  . ${exec_prefix}/lib/tkConfig.sh	
+fi
 AC_SUBST(TCL_VERSION)
 AC_SUBST(TK_VERSION)
 
