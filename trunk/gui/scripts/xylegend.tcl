@@ -163,9 +163,7 @@ itcl::body Rappture::XyLegend::Add { elem label {flags ""} } {
     set hide [$graph_ element cget $elem -hide]
     set im [image create photo]
     $graph_ legend icon $elem $im
-    set data(label) $label
     set data(show) $hide
-    set data(image) @$im
     set data(delete) [expr { $flags == "-delete" }]
     set node [$tree_ insert root -at 0 -label $elem -data [array get data]]
     $itk_component(legend) entry configure $node -label $label -icon $im \
@@ -188,16 +186,11 @@ itcl::body Rappture::XyLegend::Activate {} {
 	}
 	Add $elem $label
     }
-    $itk_component(legend) configure -tree $tree_
-    focus $itk_component(legend)
     $itk_component(legend) open -recurse root
 }
 
 itcl::body Rappture::XyLegend::Deactivate {} {
     foreach node [$tree_ children root] {
-	set image [$tree_ get $node "image"]
-	set image [string trimleft $image "@"]
-	image delete $image
 	$tree_ delete $node
     }
 }
@@ -291,10 +284,12 @@ itcl::body Rappture::XyLegend::Lower { args } {
 	set elements [linsert $elements 0 $elem]
     }
     set pos [$tree_ degree 0]
+
     foreach elem $elements {
 	incr pos -1
 	$tree_ move [$tree_ index $elem] 0 -at $pos
     }
+
     set list {}
     foreach elem [$graph_ element show] {
 	if { [info exists found($elem)] }  {
