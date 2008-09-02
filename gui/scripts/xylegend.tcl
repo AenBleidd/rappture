@@ -589,6 +589,7 @@ itcl::body Rappture::XyLegend::Editor {option args} {
 	    set info(y) [expr $r + [winfo rooty $itk_component(legend)]] 
 	    set info(w) [expr $r - $l] 
 	    set info(h) [expr $b - $t]
+	    puts stderr "focus bbox=$info(x) $info(y) $info(w) $info(h)"
             return [array get info]
         }
         validate {
