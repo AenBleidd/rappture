@@ -2,7 +2,7 @@
 #  COMPONENT: switch - on/off switch
 #
 #  This widget is used to control a (boolean) on/off value.  
-# It is just a wrapper around a checkbutton.
+# It is just a wrapper around a button.
 # ======================================================================
 #  AUTHOR:  Michael McLennan, Purdue University
 #  Copyright (c) 2004-2005  Purdue Research Foundation
@@ -21,6 +21,7 @@ itcl::class Rappture::Switch {
     constructor {args} { # defined below }
     public method value {args}
     public method updateText {}
+    private method _toggle {args}
     private variable _value 0  ;# value for this widget
 }
                                                                                 
@@ -33,14 +34,15 @@ itk::usual Switch {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Switch::constructor {args} {
 
-    itk_component add value {
-        checkbutton $itk_interior.value \
-	    -variable [itcl::scope _value] \
-	    -command [itcl::code $this updateText]
+    itk_component add button {
+        button $itk_interior.value \
+	    -compound left \
+	    -overrelief flat -relief flat -padx 3 -pady 0 -bd 0 \
+	    -command [itcl::code $this _toggle]
     } {
         #rename -background -textbackground textBackground Background
     }
-    pack $itk_component(value) -side left -expand yes -fill both
+    pack $itk_component(button) -side left -expand yes -fill both
     eval itk_initialize $args 
 }
 
@@ -60,7 +62,6 @@ itcl::body Rappture::Switch::value {args} {
         set onlycheck 1
         set args [lreplace $args $i $i]
     }
-
     if {[llength $args] == 1} {
         set newval [lindex $args 0]
         if {![string is boolean -strict $newval]} {
@@ -79,9 +80,31 @@ itcl::body Rappture::Switch::value {args} {
     return [expr {($_value) ? "yes" : "no"}]
 }
 
+# ----------------------------------------------------------------------
+# _toggle 
+#
+#	Use internally to convert the toggled button into the
+#	proper boolean format.  Yes, right now it's hardcoded to 
+#	yes/no.  But in the future it could be some other text.
+#
+#	Can't use old "value" method because _value is already set
+#	be the widget and doesn't pass the value on the command line.
+#
+# ----------------------------------------------------------------------
+itcl::body Rappture::Switch::_toggle {} {
+    set _value [expr ($_value==0) ]
+    event generate $itk_component(hull) <<Value>>
+    updateText
+}
+
 itcl::body Rappture::Switch::updateText {} {
-    set mesg [expr {($_value) ? "on" : "off"}]
-    $itk_component(value) configure -text $mesg
+    if { $_value } {
+	$itk_component(button) configure -text "yes" \
+	    -image [Rappture::icon cbon] 
+    } else {
+	$itk_component(button) configure -text "no" \
+	    -image [Rappture::icon cboff] 
+    }
 }
    
 
@@ -89,7 +112,7 @@ itcl::body Rappture::Switch::updateText {} {
 # CONFIGURATION OPTION: -oncolor
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::Switch::oncolor {
-    $itk_component(value) configure -selectcolor $itk_option(-oncolor) 
+    #$itk_component(button) configure -selectcolor $itk_option(-oncolor) 
 }
 
 # ----------------------------------------------------------------------
@@ -100,5 +123,5 @@ itcl::configbody Rappture::Switch::state {
     if {[lsearch -exact $valid $itk_option(-state)] < 0} {
         error "bad value \"$itk_option(-state)\": should be [join $valid {, }]"
     }
-    $itk_component(value) configure -state $itk_option(-state)
+    $itk_component(button) configure -state $itk_option(-state)
 }
