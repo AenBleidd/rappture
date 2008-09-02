@@ -211,7 +211,6 @@ itcl::body Rappture::SequenceResult::add {dataobj {settings ""}} {
         set _topmost $dataobj
     }
     lappend _dlist $dataobj
-
     $_dispatcher event -idle !rebuild
 }
 
@@ -288,9 +287,12 @@ itcl::body Rappture::SequenceResult::scale {args} {
 # "string" is the data itself.
 # ----------------------------------------------------------------------
 itcl::body Rappture::SequenceResult::download {option args} {
+    if { ![winfo exists $itk_component(area).viewer] } {
+	return ""; # No data, no viewer, no download.
+    }
     switch $option {
         coming {
-            return [$itk_component(area).viewer download coming]
+	    return [$itk_component(area).viewer download coming]
         }
         controls {
             return [eval $itk_component(area).viewer download controls $args]
@@ -335,6 +337,9 @@ itcl::body Rappture::SequenceResult::download {option args} {
 # sequence of frames as a movie.
 # ----------------------------------------------------------------------
 itcl::body Rappture::SequenceResult::play {} {
+    if { [llength $_indices] == 0 } {
+	return;				# No frames (i.e. no data).
+    }
     # cancel any existing animation
     pause
 
@@ -476,7 +481,9 @@ itcl::body Rappture::SequenceResult::_rebuild {args} {
                 }
             }
             default {
-                error "don't know how to view sequences of $type"
+                puts stderr "don't know how to view sequences of type \"$type\""
+		puts stderr "Is the sequence empty?"
+		return
             }
         }
     }
