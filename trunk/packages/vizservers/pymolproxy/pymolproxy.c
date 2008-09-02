@@ -48,7 +48,7 @@
 #define IO_TIMEOUT (30000)
 
 static FILE *flog;
-static int debug = 1;
+static int debug = 0;
 
 static void
 trace TCL_VARARGS_DEF(char *, arg1)
