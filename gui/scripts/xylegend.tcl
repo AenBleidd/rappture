@@ -583,13 +583,12 @@ itcl::body Rappture::XyLegend::Editor {option args} {
 		return;
 	    }
 	    set label [$itk_component(legend) entry cget $focus_ -label]
-	    foreach { l r t b } [$itk_component(legend) bbox $focus_] break
+	    foreach { l r w h } [$itk_component(legend) bbox $focus_] break
 	    set info(text) $label
 	    set info(x) [expr $l + [winfo rootx $itk_component(legend)]]
 	    set info(y) [expr $r + [winfo rooty $itk_component(legend)]] 
-	    set info(w) [expr $r - $l] 
-	    set info(h) [expr $b - $t]
-	    puts stderr "focus bbox=$info(x) $info(y) $info(w) $info(h)"
+	    set info(w) $w
+	    set info(h) $h
             return [array get info]
         }
         validate {
