@@ -922,63 +922,70 @@ itcl::body Rappture::XyResult::_hilite {state x y} {
         if {[$g element closest $x $y info -interpolate yes]} {
             # for dealing with xy line plots
             set elem $info(name)
-            foreach {mapx mapy} [_getAxes $_elem2curve($elem)] break
+
+	    # Some elements are generated dynamically and therefore will
+	    # not have a curve object associated with them.
+	    set mapx [$g element cget $elem -mapx]
+	    set mapy [$g element cget $elem -mapy]
+	    if {[info exists _elem2curve($elem)]} {
+		foreach {mapx mapy} [_getAxes $_elem2curve($elem)] break
+	    }
 
             # search again for an exact point -- this time don't interpolate
             set tip ""
+	    array unset info
             if {[$g element closest $x $y info -interpolate no]
                   && $info(name) == $elem} {
-                set x [$g axis transform $mapx $info(x)]
-                set y [$g axis transform $mapy $info(y)]
 
-                if {[info exists _elem2curve($elem)]} {
-                    set curve $_elem2curve($elem)
-                    #set tip [$curve hints tooltip]
-		    set tip [$g element cget $elem -label]
-                    if {[info exists info(y)]} {
-                        set val [_axis format y dummy $info(y)]
-                        set units [$curve hints yunits]
-                        append tip "\n$val$units"
-
-                        if {[info exists info(x)]} {
-                            set val [_axis format x dummy $info(x)]
-                            set units [$curve hints xunits]
-                            append tip " @ $val$units"
-                        }
-                    }
-                    set tip [string trim $tip]
-                }
+		set x [$g axis transform $mapx $info(x)]
+		set y [$g axis transform $mapy $info(y)]
+		
+		if {[info exists _elem2curve($elem)]} {
+		    set curve $_elem2curve($elem)
+		    set yunits [$curve hints yunits]
+		    set xunits [$curve hints xunits]
+		} else {
+		    set xunits ""
+		    set yunits ""
+		}
+		set tip [$g element cget $elem -label]
+		set yval [_axis format y dummy $info(y)]
+		append tip "\n$yval$yunits"
+		set xval [_axis format x dummy $info(x)]
+		append tip " @ $xval$xunits"
+		set tip [string trim $tip]
             }
             set state 1
         } elseif {[$g element closest $x $y info -interpolate no]} {
             # for dealing with xy scatter plot
             set elem $info(name)
-            foreach {mapx mapy} [_getAxes $_elem2curve($elem)] break
 
-            # search again for an exact point -- this time don't interpolate
+	    # Some elements are generated dynamically and therefore will
+	    # not have a curve object associated with them.
+	    set mapx [$g element cget $elem -mapx]
+	    set mapy [$g element cget $elem -mapy]
+	    if {[info exists _elem2curve($elem)]} {
+		foreach {mapx mapy} [_getAxes $_elem2curve($elem)] break
+	    }
+
             set tip ""
-            if {$info(name) == $elem} {
-                set x [$g axis transform $mapx $info(x)]
-                set y [$g axis transform $mapy $info(y)]
-
-                if {[info exists _elem2curve($elem)]} {
-                    set curve $_elem2curve($elem)
-                    #set tip [$curve hints tooltip]
-		    set tip [$g element cget $elem -label]
-                    if {[info exists info(y)]} {
-                        set val [_axis format y dummy $info(y)]
-                        set units [$curve hints yunits]
-                        append tip "\n$val$units"
-
-                        if {[info exists info(x)]} {
-                            set val [_axis format x dummy $info(x)]
-                            set units [$curve hints xunits]
-                            append tip " @ $val$units"
-                        }
-                    }
-                    set tip [string trim $tip]
-                }
-            }
+	    set x [$g axis transform $mapx $info(x)]
+	    set y [$g axis transform $mapy $info(y)]
+		
+	    if {[info exists _elem2curve($elem)]} {
+		set curve $_elem2curve($elem)
+		set yunits [$curve hints yunits]
+		set xunits [$curve hints xunits]
+	    } else {
+		set xunits ""
+		set yunits ""
+	    }
+	    set tip [$g element cget $elem -label]
+	    set yval [_axis format y dummy $info(y)]
+	    append tip "\n$yval$yunits"
+	    set xval [_axis format x dummy $info(x)]
+	    append tip " @ $xval$xunits"
+	    set tip [string trim $tip]
             set state 1
         } else {
             set state 0
@@ -1000,17 +1007,11 @@ itcl::body Rappture::XyResult::_hilite {state x y} {
         $g element activate $elem
         set _hilite(elem) $elem
 
-	if 0 {
-        set dlist [$g element show]
-        set i [lsearch -exact $dlist $elem]
-        if {$i >= 0} {
-            set dlist [lreplace $dlist $i $i]
-            lappend dlist $elem
-            $g element show $dlist
-        }
+	set mapx [$g element cget $elem -mapx]
+	set mapy [$g element cget $elem -mapy]
+	if {[info exists _elem2curve($elem)]} {
+	    foreach {mapx mapy} [_getAxes $_elem2curve($elem)] break
 	}
-        foreach {mapx mapy} [_getAxes $_elem2curve($elem)] break
-
         set allx [$g x2axis use]
         if {[llength $allx] > 0} {
             lappend allx x  ;# fix main x-axis too
@@ -1608,7 +1609,7 @@ itcl::body Rappture::XyResult::_leaveMarker { g name } {
 itcl::body Rappture::XyResult::legend { what args } {
     switch -- ${what} {
 	"activate" {
-	    pack $itk_component(legend) 
+	    pack $itk_component(legend) -expand yes -fill both 
 	    after idle [list focus $itk_component(legend)]
 	}
 	"deactivate" {
