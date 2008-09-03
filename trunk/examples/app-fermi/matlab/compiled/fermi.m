@@ -1,5 +1,5 @@
 % ----------------------------------------------------------------------
-%  EXAMPLE: Fermi-Dirac function in Octave.
+%  EXAMPLE: Fermi-Dirac function in Matlab.
 %
 %  This script represents a newly written application with rappture 
 %  bindings and interface.
@@ -7,16 +7,16 @@
 % ======================================================================
 %  AUTHOR:  Michael McLennan, Purdue University
 %  AUTHOR:  Derrick Kearney, Purdue University
-%  Copyright (c) 2004-2007  Purdue Research Foundation
+%  Copyright (c) 2004-2008  Purdue Research Foundation
 %
 %  See the file "license.terms" for information on usage and
 %  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 % ======================================================================
 
-function retVal=fermi(infile);
+function retVal=fermi;
 
-% open our xml input file.
-lib = rpLib(infile);
+% We open the xml file in the main function and make lib global
+global lib;
 
 % retrieve user specified data out of the input file
 % convert values to correct units.
