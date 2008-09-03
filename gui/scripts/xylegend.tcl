@@ -100,6 +100,7 @@ itcl::body Rappture::XyLegend::constructor { graph args } {
     }
     set controls $itk_component(controls)
     grid $itk_component(controls) -column 0 -row 1 -sticky nsew
+    grid columnconfigure $itk_component(hull) 0 -weight 1
     grid rowconfigure $itk_component(hull) 1 -weight 0
     grid rowconfigure $itk_component(hull) 0 -weight 1
     grid $itk_component(scrollbars) -column 0 -row 0 -sticky nsew
@@ -369,12 +370,12 @@ itcl::body Rappture::XyLegend::Check {} {
 	    }
 	}
 	2 {
-	    foreach n { hide show toggle difference } {
+	    foreach n { hide show toggle difference average } {
 		$itk_component(controls).$n configure -state normal
 	    }
 	}
 	default {
-	    foreach n { hide show toggle } {
+	    foreach n { hide show toggle average } {
 		$itk_component(controls).$n configure -state normal
 	    }
 	}

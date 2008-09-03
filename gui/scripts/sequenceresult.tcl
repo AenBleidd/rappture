@@ -288,7 +288,7 @@ itcl::body Rappture::SequenceResult::scale {args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::SequenceResult::download {option args} {
     if { ![winfo exists $itk_component(area).viewer] } {
-	return ""; # No data, no viewer, no download.
+	return "";	# No data, no viewer, no download.
     }
     switch $option {
         coming {
