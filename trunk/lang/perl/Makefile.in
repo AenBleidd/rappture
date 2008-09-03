@@ -66,12 +66,12 @@ LIBS		= \
 
 all: $(lib) $(bootstrap) $(man) $(pod) 
 
-Rappture.c: $(srcdir)/Rappture.xs
+Rappture.cc: $(srcdir)/Rappture.xs
 	$(PERL) $(privlib)/ExtUtils/xsubpp -C++ \
-		-typemap $(privlib)/ExtUtils/typemap \
-		-typemap $(srcdir)/typemap $? > $@
+		-typemap $(privlib)/ExtUtils/typemap -typemap typemap \
+		$? > $@
 
-Rappture.o: Rappture.c
+Rappture.o: Rappture.cc
 	$(CXX) -c $(CXX_SWITCHES) $? 
 
 $(bootstrap):
@@ -101,7 +101,7 @@ install: $(lib) $(bootstrap) $(man) $(pod)
 	$(INSTALL) -m 444 $(pod) $(destdir)
 
 clean:
-	$(RM) $(lib) $(bootstrap) $(man) $(pod) Rappture.o 
+	$(RM) $(lib) $(bootstrap) $(man) $(pod) Rappture.o Rappture.cc
 
 distclean: clean
 
