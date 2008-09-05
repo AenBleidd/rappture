@@ -28,7 +28,7 @@ itcl::class ::Rappture::XyLegend {
     private variable graph_	""
     private variable tree_	""
     private variable diff_	""
-    private variable focus_	-1
+    private variable focus_	""
     private variable diffelements_
 
     constructor {args} { graph }
@@ -101,7 +101,8 @@ itcl::body Rappture::XyLegend::constructor { graph args } {
     set controls $itk_component(controls)
     grid $itk_component(controls) -column 0 -row 1 -sticky nsew
     grid columnconfigure $itk_component(hull) 0 -weight 1
-    grid rowconfigure $itk_component(hull) 1 -weight 0
+    grid rowconfigure $itk_component(hull) 1 \
+	-minsize [winfo reqheight $itk_component(scrollbars)]
     grid rowconfigure $itk_component(hull) 0 -weight 1
     grid $itk_component(scrollbars) -column 0 -row 0 -sticky nsew
     set commands {
@@ -195,7 +196,7 @@ itcl::body Rappture::XyLegend::Activate {} {
     foreach elem [$graph_ element show] {
 	set label [$graph_ element cget $elem -label]
 	if { $label == "" } {
-	    continue
+	    set label $elem
 	}
 	Add $elem $label
     }
@@ -329,7 +330,7 @@ itcl::body Rappture::XyLegend::Delete { args } {
 	lappend elements $elem
 	lappend delnodes $node
 	if { $diff_ != "" && [info exists diffelements_($elem)] } {
-	    $graph_ element delete $diff_
+	    $graph_ marker delete $diff_
 	    array unset diffelements_
 	    set diff_ ""
 	}
@@ -456,68 +457,6 @@ itcl::body Rappture::XyLegend::Average {} {
 }
 
 itcl::body Rappture::XyLegend::Difference {} {
-    set nodes [$itk_component(legend) curselection]
-    set elements {}
-    set sum [blt::vector create \#auto -command ""]
-
-    set xcoords [blt::vector create \#auto -command ""]
-    set ycoords [blt::vector create \#auto -command ""]
-
-    # Step 1. Get the x-values for each curve, then sort them to get the
-    #	      unique values.
-
-    foreach node $nodes {
-	set elem [$tree_ label $node]
-	$xcoords append [GetData $elem -x]
-	set elements [linsert $elements 0 $elem]
-    }
-    # Sort the abscissas keeping unique values.
-    $xcoords sort -uniq
-
-    # Step 2. Now for each curve, generate a cubic spline of that curve
-    #	      and interpolate to get the corresponding y-values for each 
-    #	      abscissa.  Normally the abscissa are the same, so we're
-    #	      interpolation the knots.
-
-    set x [blt::vector create \#auto -command ""]
-    set y [blt::vector create \#auto -command ""]
-    $sum length [$xcoords length]
-
-    foreach node $nodes {
-	set elem [$tree_ label $node]
-	$x set [GetData $elem -x]
-	$y set [GetData $elem -y]
-	blt::spline natural $x $y $xcoords $ycoords
-
-	# Sum the interpolated y-coordinate values.
-	$sum expr "fabs($ycoords - $sum)" 
-    }
-    blt::vector destroy $x $y
-
-    # Get the average
-    #$sum expr "$sum / [llength $elements]"
-
-    # Step 3.  Create a new curve which is the average. Append it to the
-    #	       the end.
-
-    set count 0
-    while {[$graph_ element exists diff$count] } {
-	incr count
-    }
-    set elements [lsort -dictionary $elements]
-    set name "diff$count" 
-    set label "Diff. [join $elements ,]"
-
-    # Don't use the vector because we don't know when it will be cleaned up.
-
-    $graph_ element create $name -label $label -x [$xcoords range 0 end] \
-	-y [$sum range 0 end]
-    blt::vector destroy $xcoords $ycoords $sum
-    set node [Add $name $label]
-    Raise $node
-}
-
-itcl::body Rappture::XyLegend::Difference {} {
 
     if { $diff_ != "" } {
 	$graph_ marker delete $diff_
@@ -528,8 +467,8 @@ itcl::body Rappture::XyLegend::Difference {} {
     set elem2 [$tree_ label [lindex $nodes 1]]
     if { [info exists diffelements_($elem1)] && 
 	 [info exists diffelements_($elem2)] } {
-	array unset diffelements_
-	return
+	array unset diffelements_;	# Toggle the difference.
+	return;				
     }
     array unset diffelements_
     set x [blt::vector create \#auto -command ""]
@@ -580,7 +519,7 @@ itcl::body Rappture::XyLegend::Editor {option args} {
         }
         activate {
 	    set focus_ [$itk_component(legend) index focus]
-	    if { $focus_ == -1 } {
+	    if { $focus_ == "" } {
 		return;
 	    }
 	    set label [$itk_component(legend) entry cget $focus_ -label]

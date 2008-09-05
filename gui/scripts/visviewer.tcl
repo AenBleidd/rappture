@@ -22,8 +22,8 @@ itcl::class ::Rappture::VisViewer {
     private common _servers          ;# array of visualization server lists
     set _servers(nanovis) "" 
     set _servers(pymol)   "" 
-    #set _servers(nanovis) "128.210.189.216:2000" 
-    #set _servers(pymol) "128.210.189.216:2020" 
+    set _servers(nanovis) "128.210.189.216:2000" 
+    set _servers(pymol) "128.210.189.216:2020" 
 
     protected variable _dispatcher ""	;# dispatcher for !events
     protected variable _hosts ""	;# list of hosts for server
@@ -272,10 +272,8 @@ itcl::body Rappture::VisViewer::IsConnected {} {
 # _SendHelper --
 #
 #	Helper routine called from a file event to send data when the
-#	connection is writable (i.e. not blocked).  Sends data in chunks 
-#	of 8k (or less).  Sets magic variable _done($this) to indicate
-#	that we're either finished (success) or could not send bytes to
-#	the server (failure).
+#	connection is writable (i.e. not blocked).  Sets a magic 
+#	variable _done($this) when we're done.
 #
 itcl::body Rappture::VisViewer::_SendHelper {} {
     puts $_sid $_buffer(out)
@@ -283,6 +281,15 @@ itcl::body Rappture::VisViewer::_SendHelper {} {
     set _done($this) 1;		# Success
 }
 
+#
+# _SendHelper.old --
+#
+#	Helper routine called from a file event to send data when the
+#	connection is writable (i.e. not blocked).  Sends data in chunks 
+#	of 8k (or less).  Sets magic variable _done($this) to indicate
+#	that we're either finished (success) or could not send bytes to
+#	the server (failure).
+#
 itcl::body Rappture::VisViewer::_SendHelper.old {} {
     set bytesLeft [string length $_buffer(out)]
     if { $bytesLeft > 0} {
@@ -325,12 +332,16 @@ itcl::body Rappture::VisViewer::SendBytes { bytes } {
 	set code [catch { Connect } ok]
         if { $code == 0 && $ok} {
 	    $_dispatcher event -idle !rebuild
-	    Rappture::Tooltip::cue hide
-        } else {
+	    Rappture::Tooltip::cue hide 
+	    return 1
+       } else {
 	    Rappture::Tooltip::cue @$x,$y "Can't connect to visualization server.  This may be a network problem.  Wait a few moments and try resetting the view."
+	   return 0
 	}
-	return
     }
+    # Even though the data is sent in only 1 "puts", we need to verify that
+    # the server is ready first.  Wait for the socket to become writable
+    # before sending anything.
     set _done($this) 1
     set _buffer(out) $bytes
     fileevent $_sid writable [itcl::code $this _SendHelper]
