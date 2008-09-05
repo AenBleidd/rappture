@@ -56,29 +56,7 @@ itcl::class Rappture::NanovisViewer {
     public method get {args}
     public method delete {args}
     public method scale {args}
-    public method GetLimits { ivol } {
-	if { [info exists _id2style($ivol)] } {
-	    set tf $_id2style($ivol)
-	    set _limits(min) ""
-	    set _limits(max) ""
-	    foreach ivol $_style2ids($tf) {
-	    if { ![info exists _limits($ivol-min)] } {
-		puts stderr "In GetLimits $ivol"
-		parray _limits
-		error "can't find $ivol limits"
-	    }
-		if { $_limits(min) == "" || 
-		     $_limits(min) > $_limits($ivol-min) } {
-		    set _limits(min) $_limits($ivol-min)
-		}
-		if { $_limits(max) == "" || 
-		     $_limits(max) < $_limits($ivol-max) } {
-		    set _limits(max) $_limits($ivol-max)
-		}
-	    }
-	}
-	return [array get _limits] 
-    }
+    public method GetLimits { ivol } 
     public method download {option args}
     public method parameters {title args} { 
         # do nothing 
@@ -608,18 +586,20 @@ itcl::body Rappture::NanovisViewer::get {args} {
 # ----------------------------------------------------------------------
 # USAGE: delete ?<dataobj1> <dataobj2> ...?
 #
-# Clients use this to delete a dataobj from the plot.  If no dataobjs
-# are specified, then all dataobjs are deleted.
+#	Clients use this to delete a dataobj from the plot.  If no dataobjs
+#	are specified, then all dataobjs are deleted.  No data objects are
+#	deleted.  They are only removed from the display list.
+#
 # ----------------------------------------------------------------------
 itcl::body Rappture::NanovisViewer::delete {args} {
     if {[llength $args] == 0} {
         set args $_dlist
     }
-    # delete all specified dataobjs
+    # Delete all specified dataobjs
     set changed 0
     foreach dataobj $args {
         set pos [lsearch -exact $_dlist $dataobj]
-        if {$pos >= 0} {
+        if { $pos >= 0 } {
             set _dlist [lreplace $_dlist $pos $pos]
             foreach key [array names _obj2ovride $dataobj-*] {
                 unset _obj2ovride($key)
@@ -627,7 +607,7 @@ itcl::body Rappture::NanovisViewer::delete {args} {
             set changed 1
         }
     }
-    # if anything changed, then rebuild the plot
+    # If anything changed, then rebuild the plot
     if {$changed} {
         $_dispatcher event -idle !rebuild
     }
@@ -716,6 +696,11 @@ itcl::body Rappture::NanovisViewer::Connect {} {
         return 0
     }
     set result [VisViewer::Connect $_hosts]
+    if { $result } {
+	set w [winfo width $itk_component(3dview)]
+	set h [winfo height $itk_component(3dview)]
+	_send "screen $w $h"
+    }
     return $result
 }
 
@@ -825,6 +810,7 @@ itcl::body Rappture::NanovisViewer::_SendDataObjs {} {
     _send "volume data state [_state volume] $vols"
 
     if 0 {
+	# Add this when we fix grid for volumes
     _send "volume axis label x \"\""
     _send "volume axis label y \"\""
     _send "volume axis label z \"\""
@@ -1034,15 +1020,29 @@ itcl::body Rappture::NanovisViewer::_rebuild {} {
             }
         }
     }
+    set w [winfo width $itk_component(3dview)]
+    set h [winfo height $itk_component(3dview)]
+    _send "screen $w $h"
+
+    #
+    # Reset the camera and other view parameters
+    #
+    set xyz [Euler2XYZ $_view(theta) $_view(phi) $_view(psi)]
+    _send "camera angle $xyz"
+    _send "camera zoom $_view(zoom)"
+    
+    _fixSettings light
+    _fixSettings transp
+    _fixSettings isosurface 
+    _fixSettings grid
+    _fixSettings axes
+    _fixSettings outline
+
     if {[llength $_sendobjs] > 0} {
         # send off new data objects
         $_dispatcher event -idle !send_dataobjs
 	return
     } 
-
-    set w [winfo width $itk_component(3dview)]
-    set h [winfo height $itk_component(3dview)]
-    _send "screen $w $h"
 
     # nothing to send -- activate the proper ivol
     set first [lindex [get] 0]
@@ -1081,19 +1081,6 @@ itcl::body Rappture::NanovisViewer::_rebuild {} {
     }
     _send "volume data state [_state volume] $vols"
     $_dispatcher event -idle !legend
-    
-    #
-    # Reset the camera and other view parameters
-    #
-    _send "camera angle [Euler2XYZ $_view(theta) $_view(phi) $_view(psi)]"
-    _send "camera zoom $_view(zoom)"
-    
-    _fixSettings light
-    _fixSettings transp
-    _fixSettings isosurface 
-    _fixSettings grid
-    _fixSettings axes
-    _fixSettings outline
 }
 
 # ----------------------------------------------------------------------
@@ -1576,7 +1563,6 @@ itcl::body Rappture::NanovisViewer::_ComputeTransferFunction { tf } {
         lappend wmap 1.0 0.0
     }
     SendBytes "transfunc define $tf { $cmap } { $wmap }\n"
-    #puts stdout "transfunc define $tf { $cmap } { $wmap }\n"
     return [SendBytes "volume shading transfunc $tf $_style2ids($tf)\n"]
 }
 
@@ -1743,4 +1729,25 @@ itcl::body Rappture::NanovisViewer::OverIsoMarker { marker x } {
         }
     }
     return ""
+}
+
+itcl::body Rappture::NanovisViewer::GetLimits { ivol } {
+    if { ![info exists _id2style($ivol)] } {
+	return
+    }
+    set tf $_id2style($ivol)
+    set _limits(min) ""
+    set _limits(max) ""
+    foreach ivol $_style2ids($tf) {
+	if { ![info exists _limits($ivol-min)] } {
+	    error "can't find $ivol limits"
+	}
+	if { $_limits(min) == "" || $_limits(min) > $_limits($ivol-min) } {
+	    set _limits(min) $_limits($ivol-min)
+	}
+	if { $_limits(max) == "" || $_limits(max) < $_limits($ivol-max) } {
+	    set _limits(max) $_limits($ivol-max)
+	}
+    }
+    return [array get _limits] 
 }
