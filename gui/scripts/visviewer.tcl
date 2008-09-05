@@ -22,8 +22,6 @@ itcl::class ::Rappture::VisViewer {
     private common _servers          ;# array of visualization server lists
     set _servers(nanovis) "" 
     set _servers(pymol)   "" 
-    set _servers(nanovis) "128.210.189.216:2000" 
-    set _servers(pymol) "128.210.189.216:2020" 
 
     protected variable _dispatcher ""	;# dispatcher for !events
     protected variable _hosts ""	;# list of hosts for server

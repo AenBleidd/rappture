@@ -409,7 +409,6 @@ itcl::body Rappture::LibraryObj::children {args} {
         error "wrong # args: should be \"children ?-as fval? ?-type name? ?path?\""
     }
     set path [lindex $args 0]
-
     set node [find $path]
     if {$node == ""} {
         return ""

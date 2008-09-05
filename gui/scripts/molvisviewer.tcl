@@ -29,7 +29,7 @@ proc MolvisViewer_init_resources {} {
         molvis_server Rappture::MolvisViewer::SetServerList
 }
 
-set debug 1
+set debug 0
 proc debug { args } {
     global debug
     if { $debug } {
@@ -517,12 +517,10 @@ itcl::body Rappture::MolvisViewer::_rebuild {} {
             if {"" != $data1} {
                 _send "loadpdb -defer \"$data1\" $model $state"
                 set _dataobjs($model-$state)  1
-                puts stderr "loaded model $model into state $state"
             }
             if {"" != $data2} {
                 _send "loadpdb -defer \"$data2\" $model $state"
                 set _dataobjs($model-$state)  1
-                puts stderr "loaded model $model into state $state"
             }
         }
         if { ![info exists _model($model-transparency)] } {
@@ -596,6 +594,9 @@ itcl::body Rappture::MolvisViewer::_rebuild {} {
         set _state(client) $state
         _update
     }
+    set w  [winfo width $itk_component(3dview)] 
+    set h  [winfo height $itk_component(3dview)] 
+    _send "screen $w $h"
 
     set _inrebuild 0
     $itk_component(3dview) configure -cursor ""
