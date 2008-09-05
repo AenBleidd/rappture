@@ -48,7 +48,7 @@
 #define IO_TIMEOUT (30000)
 
 static FILE *flog;
-static int debug = 0;
+static int debug = 1;
 
 static void
 trace TCL_VARARGS_DEF(char *, arg1)
@@ -830,13 +830,10 @@ LoadPDB2Cmd(ClientData cdata, Tcl_Interp *interp, int argc,
     const char *pdbdata, *name;
     PymolProxy *pymol = (PymolProxy *) cdata;
     int state = 1;
-    int tmpf;
     int arg, defer = 0, push = 0, varg = 1;
-    char filename[] = "/tmp/fileXXXXXX.pdb";
     
     if (pymol == NULL)
 	return(TCL_ERROR);
-    
     clear_error(pymol);
     pdbdata = name = NULL;	/* Suppress compiler warning. */
     for(arg = 1; arg < argc; arg++) {
@@ -858,19 +855,30 @@ LoadPDB2Cmd(ClientData cdata, Tcl_Interp *interp, int argc,
     
     pymol->need_update = !defer || push;
     pymol->immediate_update |= push;
-    
-    tmpf = open(filename,O_RDWR|O_TRUNC|O_CREAT,0700);
-    
-    if (tmpf <= 0) 
-	fprintf(stderr,"pymolproxy: error opening file %d\n",errno);
-    
-    write(tmpf,pdbdata,strlen(pdbdata));
-    close(tmpf);
-    
-    sendf(pymol, "load %s, %s, %d\n", filename, name, state);
+
+    {
+	char fileName[200];
+	FILE *f;
+	size_t nBytes, nWritten;
+
+	sprintf(fileName, "/tmp/pymol%d.pdb", getpid());
+	f = fopen(fileName, "w");
+	trace("pymolproxy: open file %s as %x\n", fileName, f);
+	if (f == NULL) {
+	    trace("pymolproxy: failed to open %s %d\n", fileName, errno);
+	    perror("pymolproxy");
+	}
+	nBytes = strlen(pdbdata);
+	nWritten = fwrite(pdbdata, sizeof(char), nBytes, f);
+	if (nBytes != nWritten) {
+	    trace("pymolproxy: short write %d wanted %d bytes\n", nWritten,
+		  nBytes);
+	    perror("pymolproxy");
+	}
+	fclose(f);
+	sendf(pymol, "load %s, %s, %d\n", fileName, name, state);
+    }
     sendf(pymol, "zoom buffer=2\n");
-    /* Can't clean up the temporary file, since we don't when pymol will be
-     * done reading it. */
     return(pymol->status);
 }
 
@@ -1388,9 +1396,11 @@ ProxyInit(int c_in, int c_out, char *const *argv)
 int
 main(int argc, char *argv[])
 {
+    flog = stderr;
     if (debug) {
-        flog = stderr;
-        flog = fopen("/tmp/pymolproxy.log", "w");
+	char fileName[200];
+	sprintf(fileName, "/tmp/pymolproxy%d.log", getpid());
+        flog = fopen(fileName, "w");
     }    
     ProxyInit(fileno(stdout), fileno(stdin), argv + 1);
     return 0;
