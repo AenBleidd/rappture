@@ -8777,7 +8777,7 @@ fi
 
     # libperl may or may not be installed.  Check for its existence.
     if test -f "${PERL_ARCHLIBEXP}/CORE/libperl${SHLIB_SUFFIX}" ; then
-      PERL_LIBSPEC="-L${PERL_ARCHLIBEXP}/CORE/libperl${SHLIB_SUFFIX} -lperl"
+      PERL_LIBSPEC="-L${PERL_ARCHLIBEXP}/CORE -lperl"
     fi
   fi
 fi
