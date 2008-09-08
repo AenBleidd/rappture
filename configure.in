@@ -124,17 +124,23 @@ if test "$with_matlab" != "no" ; then
 fi
 
 if test "x$MATLAB" != "x" ; then
-  matlab_bindir=AS_DIRNAME(${MATLAB})
-  AC_PATH_PROG(MEX, mex, [${matlab_bindir}])
-  AC_PATH_PROG(MEXEXT, mexext, [${matlab_bindir}])
+  # Found matlab.  May be a symlink to the real binary.  Run "matlab -e"
+  # to tell where matlab is installed.
+
+  matlab_bindir=`${MATLAB} -e | grep "MATLAB=" | sed s/MATLAB=//`/bin
+
+  # Now see if we can find "mex" or "mexext" there.
+  AC_PATH_PROG(MEX, mex, [${matlab_bindir}/mex])
+  AC_PATH_PROG(MEXEXT, mexext, [${matlab_bindir}/mexext])
+
+  # Run "mexext" to get the expected module extension for this platform.
   AC_MSG_CHECKING([for mex extension])
   if test "x$MEXEXT" != "x" ; then 
-    mexext=`$MEXEXT`
+    MEXEXT=`$MEXEXT`
   else 
-    mexext="mexglx"
+    MEXEXT="mexglx"
   fi
-  AC_MSG_RESULT([$mexext])
-  MEXEXT=$mexext
+  AC_MSG_RESULT([$MEXEXT])
 fi
 
 AC_SUBST(MEX)
@@ -177,24 +183,31 @@ PERL_PRIVLIB=
 PERL_CPPFLAGS=
 PERL_CCFlAGS=
 PERL_VERSION_RV=
+PERL_LIBSPEC=
 if test "$with_perl" != "no" ; then
-    AC_MSG_CHECKING([for perl])
-    if test "$with_perl" != "yes" ; then 
-      AC_PATH_PROG(PERL, perl, [$with_perl/bin:$with_perl])
-    else
-      AC_PATH_PROG(PERL, perl)
+  AC_MSG_CHECKING([for perl])
+  if test "$with_perl" != "yes" ; then 
+    AC_PATH_PROG(PERL, perl, [$with_perl/bin:$with_perl])
+  else
+    AC_PATH_PROG(PERL, perl)
+  fi
+  if test "x${PERL}" != "x" ; then 
+    PERL_ARCHLIB=`${PERL} -MConfig -e 'print $Config{archlib}'`
+    PERL_VERSION=`${PERL} -MConfig -e 'print $Config{version}'`
+    PERL_CCFLAGS=`${PERL} -MConfig -e 'print $Config{ccflags}'`
+    PERL_CPPFLAGS=`${PERL} -MConfig -e 'print $Config{cppflags}'`
+    PERL_VENDORLIB=`${PERL} -MConfig -e 'print $Config{vendorlib}'`
+    PERL_PRIVLIB=`${PERL} -MConfig -e 'print $Config{privlib}'`
+    PERL_INSTALLARCHLIB=`${PERL} -MConfig -e 'print $Config{installarchlib}'`
+    PERL_ARCHLIBEXP=`${PERL} -MConfig -e 'print $Config{archlibexp}'`
+    PERL_VERSION_RV=`echo ${PERL_VERSION} | cut -d'.' -f1-2`
+    echo perllib="${PERL_ARCHLIBEXP}/CORE/libperl${SHLIB_SUFFIX}" 
+
+    # libperl may or may not be installed.  Check for its existence.
+    if test -f "${PERL_ARCHLIBEXP}/CORE/libperl${SHLIB_SUFFIX}" ; then 
+      PERL_LIBSPEC="-L${PERL_ARCHLIBEXP}/CORE/libperl${SHLIB_SUFFIX} -lperl"
     fi
-    if test "x${PERL}" != "x" ; then 
-      PERL_ARCHLIB=`${PERL} -MConfig -e 'print $Config{archlib}'`
-      PERL_VERSION=`${PERL} -MConfig -e 'print $Config{version}'`
-      PERL_CCFLAGS=`${PERL} -MConfig -e 'print $Config{ccflags}'`
-      PERL_CPPFLAGS=`${PERL} -MConfig -e 'print $Config{cppflags}'`
-      PERL_VENDORLIB=`${PERL} -MConfig -e 'print $Config{vendorlib}'`
-      PERL_PRIVLIB=`${PERL} -MConfig -e 'print $Config{privlib}'`
-      PERL_INSTALLARCHLIB=`${PERL} -MConfig -e 'print $Config{installarchlib}'`
-      PERL_ARCHLIBEXP=`${PERL} -MConfig -e 'print $Config{archlibexp}'`
-      PERL_VERSION_RV=`echo ${PERL_VERSION} | cut -d'.' -f1-2`
-    fi
+  fi
 fi
 AC_MSG_RESULT([${PERL}])
 AC_SUBST(PERL)
@@ -208,6 +221,7 @@ AC_SUBST(PERL_VENDORLIB)
 AC_SUBST(PERL_PRIVLIB)
 AC_SUBST(PERL_INSTALLARCHLIB)
 AC_SUBST(PERL_VERSION_RV)
+AC_SUBST(PERL_LIBSPEC)
 
 PYTHON=""
 PYTHON_CFLAGS=""
