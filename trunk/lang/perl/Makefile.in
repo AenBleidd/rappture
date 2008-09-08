@@ -35,6 +35,7 @@ PERL            = @PERL@
 PERL_ARCHLIB    = @PERL_ARCHLIB@
 PERL_VERSION    = @PERL_VERSION@
 PERL_VERSION_RV = @PERL_VERSION_RV@
+PERL_LIBSPEC	= @PERL_LIBSPEC@
 MAN3EXT		= .3pm
 perl5dir        = $$RAPPTURE_INSTALL_DIR/lib/perl/$(PERL_VERSION_RV)
 includes	= @PERL_INCLUDES@
@@ -62,7 +63,7 @@ INCLUDES	= \
 
 LIBS		= \
 		-L../../src/core -lrappture \
-		-L$(archlibexp)/CORE -lperl \
+		$(PERL_LIBSPEC) \
 		-lexpat 
 
 all: $(lib) $(bootstrap) $(man) $(pod) 
