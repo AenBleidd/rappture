@@ -62,6 +62,7 @@ INCLUDES	= \
 
 LIBS		= \
 		-L../../src/core -lrappture \
+		-L$(archlibexp)/CORE -lperl \
 		-lexpat 
 
 all: $(lib) $(bootstrap) $(man) $(pod) 
