@@ -62,7 +62,6 @@ INCLUDES	= \
 
 LIBS		= \
 		-L../../src/core -lrappture \
-		-L$(archlibexp)/CORE -lperl \
 		-lexpat 
 
 all: $(lib) $(bootstrap) $(man) $(pod) 
@@ -101,8 +100,8 @@ install: $(lib) $(bootstrap) $(man) $(pod)
 	$(INSTALL) -m 444 $(man) $(destdir)
 	$(INSTALL) -m 444 $(pod) $(destdir)
 
-clean:
-	$(RM) $(lib) $(bootstrap) $(man) $(pod) Rappture.o Rappture.cc
+clean: pkgclean
+	$(RM) $(lib) $(bootstrap) $(man) $(pod) Rappture.o Rappture.cc 
 
 distclean: clean
 
