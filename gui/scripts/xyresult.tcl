@@ -31,40 +31,6 @@ set autocolors {
     #660066 #996600 #666600
 }
 set autocolors {
-#4876ff
-#00bfff
-#cae1ff
-#98f5ff
-#7fffd4
-#00ff7f
-#caff70
-#ffff00
-#ffc1c1
-#ffe7ba
-#ff4040
-#ff7f00
-#ff0000
-#ffaeb9
-#ff00ff
-#bf3dff
-#0000ff
-#87ceff
-#bfefff
-#00f5ff
-#c1ffc1
-#00ff00
-#fff68f
-#ffd700
-#ff6a6a
-#ffa54f
-#ff8c69
-#ff7256
-#ff1493
-#ff82ab
-#ff93fa
-#9b30ff
-}
-set autocolors {
 #0000cd
 #cd0000
 #00cd00
@@ -190,7 +156,7 @@ itcl::body Rappture::XyResult::constructor {args} {
         ignore -borderwidth
         rename -highlightbackground -controlbackground controlBackground Background
     }
-    pack $itk_component(reset) -padx 4 -pady 4 -anchor e
+    pack $itk_component(reset) -padx 4 -pady 2 -anchor e
     Rappture::Tooltip::for $itk_component(reset) "Reset the view to the default zoom level"
 
     itk_component add plot {
@@ -273,7 +239,7 @@ itcl::body Rappture::XyResult::constructor {args} {
     #
     itk_component add legendbutton {
 	button $itk_component(controls).legendbutton \
-	    -borderwidth 1 -padx 3 -pady 0 \
+	    -borderwidth 1 -padx 2 -pady 0 -highlightthickness 0 \
 	    -text "L" -font "-*-times new roman-bold-i-*-*-11-*-*-*-*-*-*-*" \
 	    -command [itcl::code $this legend toggle]
     } {
@@ -281,14 +247,14 @@ itcl::body Rappture::XyResult::constructor {args} {
         ignore -borderwidth -font
         rename -highlightbackground -controlbackground controlBackground Background
     }
-    pack $itk_component(legendbutton) -padx 4 -pady 4 -anchor e
+    pack $itk_component(legendbutton) -padx 4 -pady { 0 2 } -anchor e
     
     itk_component add legend {
 	Rappture::XyLegend $itk_component(controls).legend $itk_component(plot)
     }
     after idle [subst {
 	update idletasks
-	$itk_component(legend) Activate 
+	$itk_component(legend) reset 
     }]
     Rappture::Tooltip::for $itk_component(legendbutton) \
 	"Display legend"
@@ -438,12 +404,12 @@ itcl::body Rappture::XyResult::delete {args} {
         }
     }
 
-    # if anything changed, then rebuild the plot
+    # If anything changed, then rebuild the plot
     if {$changed} {
         $_dispatcher event -idle !rebuild
     }
 
-    # nothing left? then start over with auto colors
+    # Nothing left? then start over with auto colors
     if {[llength $_clist] == 0} {
         set _autoColorI 0
     }
@@ -809,6 +775,7 @@ itcl::body Rappture::XyResult::_rebuild {} {
 	    }
 	}
     }
+    $itk_component(legend) reset 
 }
 
 # ----------------------------------------------------------------------

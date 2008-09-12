@@ -24,20 +24,54 @@ option add *Xylegend.Button.font \
 itcl::class ::Rappture::XyLegend {
     inherit itk::Widget
 
+    private variable autocolors_ {
+	#0000cd
+	#cd0000
+	#00cd00
+	#3a5fcd
+	#cdcd00
+	#cd1076
+	#009acd
+	#00c5cd
+	#a2b5cd
+	#7ac5cd
+	#66cdaa
+	#a2cd5a
+	#cd9b9b
+	#cdba96
+	#cd3333
+	#cd6600
+	#cd8c95
+	#cd00cd
+	#9a32cd
+	#6ca6cd
+	#9ac0cd
+	#9bcd9b
+	#00cd66
+	#cdc673
+	#cdad00
+	#cd5555
+	#cd853f
+	#cd7054
+	#cd5b45
+	#cd6889
+	#cd69c9
+	#551a8b
+    }
+    private variable lastColorIndex_ ""
     private variable _dispatcher "" ;# dispatcher for !events
     private variable graph_	""
     private variable tree_	""
-    private variable diff_	""
-    private variable focus_	""
+    private variable diff_	"";	# Polygon marker used for difference.
+    private variable rename_	"";	# Node selected to be renamed.
     private variable diffelements_
 
     constructor {args} { graph }
     destructor {}
 
-    public method Activate {} 
+    public method reset {} 
     public method Average {} 
     public method Check {}
-    public method Deactivate {} 
     public method Delete { args } 
     public method Difference {} 
     public method Editor { option args }
@@ -162,6 +196,7 @@ itcl::body Rappture::XyLegend::constructor { graph args } {
             -validatecommand [itcl::code $this Editor validate] \
             -applycommand [itcl::code $this Editor apply]
     }
+    set lastColorIndex_ [llength $autocolors_]
     Check
     eval itk_initialize $args
 }
@@ -170,7 +205,12 @@ itcl::body Rappture::XyLegend::constructor { graph args } {
 # DESTRUCTOR
 # ----------------------------------------------------------------------
 itcl::body Rappture::XyLegend::destructor {} {
-    Deactivate 
+    foreach node [$tree_ children root] {
+	$tree_ delete $node
+    }
+    if { $diff_ != "" } {
+	catch { $graph_ marker delete $diff_ }
+    }
 }
 
 itcl::body Rappture::XyLegend::Add { elem label {flags ""} } {
@@ -182,17 +222,21 @@ itcl::body Rappture::XyLegend::Add { elem label {flags ""} } {
     set node [$tree_ insert root -at 0 -label $elem -data [array get data]]
     $itk_component(legend) entry configure $node -label $label -icon $im \
 	-activeicon $im
+    update idletasks
     return $node
 }
 
 # ----------------------------------------------------------------------
-# USAGE: activate <curve> ?<settings>?
+# USAGE: reset <curve> ?<settings>?
 #
 # Clients use this to add a curve to the plot.  The optional <settings>
 # are used to configure the plot.  Allowed settings are -color,
 # -brightness, -width, -linestyle and -raise.
 # ----------------------------------------------------------------------
-itcl::body Rappture::XyLegend::Activate {} {
+itcl::body Rappture::XyLegend::reset {} {
+    foreach node [$tree_ children root] {
+	$tree_ delete $node
+    }
     foreach elem [$graph_ element show] {
 	set label [$graph_ element cget $elem -label]
 	if { $label == "" } {
@@ -201,12 +245,7 @@ itcl::body Rappture::XyLegend::Activate {} {
 	Add $elem $label
     }
     $itk_component(legend) open -recurse root
-}
-
-itcl::body Rappture::XyLegend::Deactivate {} {
-    foreach node [$tree_ children root] {
-	$tree_ delete $node
-    }
+    Check
 }
 
 itcl::body Rappture::XyLegend::Hide { args } {
@@ -354,9 +393,6 @@ itcl::body Rappture::XyLegend::Check {} {
 	    break
 	}
     }
-    if { [$itk_component(legend) index focus] != -1 } {
-	    $itk_component(controls).rename configure -state normal
-    }
     if { [$tree_ degree 0] > 1  && [llength $nodes] > 0 } {
 	foreach n { raise lower } {
 	    $itk_component(controls).$n configure -state normal
@@ -366,7 +402,7 @@ itcl::body Rappture::XyLegend::Check {} {
 	0 {
 	}
 	1 {
-	    foreach n { hide show toggle } {
+	    foreach n { hide show toggle rename } {
 		$itk_component(controls).$n configure -state normal
 	    }
 	}
@@ -402,6 +438,8 @@ itcl::body Rappture::XyLegend::Average {} {
     set xcoords [blt::vector create \#auto -command ""]
     set ycoords [blt::vector create \#auto -command ""]
 
+    blt::busy hold $itk_component(hull)
+    update
     # Step 1. Get the x-values for each curve, then sort them to get the
     #	      unique values.
 
@@ -449,11 +487,17 @@ itcl::body Rappture::XyLegend::Average {} {
 
     # Don't use the vector because we don't know when it will be cleaned up.
 
+    if { $lastColorIndex_ == 0 } {
+	set lastColorIndex_ [llength $autocolors_]
+    }
+    incr lastColorIndex_ -1
+    set color [lindex $autocolors_ $lastColorIndex_]
     $graph_ element create $name -label $label -x [$xcoords range 0 end]\
-	-y [$sum range 0 end] -symbol scross
+	-y [$sum range 0 end] -symbol scross -pixels 3 -color $color
     blt::vector destroy $xcoords $ycoords $sum
     set node [Add $name $label -delete]
     Raise $node
+    blt::busy forget $itk_component(hull)
 }
 
 itcl::body Rappture::XyLegend::Difference {} {
@@ -483,9 +527,9 @@ itcl::body Rappture::XyLegend::Difference {} {
     $m merge $x $y
     set diff_ [$graph_ marker create polygon \
 		   -coords [$m range 0 end] \
-		   -elem $elem1 \
+		   -element $elem1 \
 		   -stipple dot1 \
-		   -outline "" -fill blue4 ]
+		   -outline "" -fill "#cd69c9"]
     blt::vector destroy $m $x $y
     set diffelements_($elem1) 1
     set diffelements_($elem2) 1
@@ -518,12 +562,12 @@ itcl::body Rappture::XyLegend::Editor {option args} {
 	    $itk_component(editor) activate
         }
         activate {
-	    set focus_ [$itk_component(legend) index focus]
-	    if { $focus_ == "" } {
+	    set rename_ [$itk_component(legend) curselection]
+	    if { $rename_ == "" } {
 		return;
 	    }
-	    set label [$itk_component(legend) entry cget $focus_ -label]
-	    foreach { l r w h } [$itk_component(legend) bbox $focus_] break
+	    set label [$itk_component(legend) entry cget $rename_ -label]
+	    foreach { l r w h } [$itk_component(legend) bbox $rename_] break
 	    set info(text) $label
 	    set info(x) [expr $l + [winfo rootx $itk_component(legend)]]
 	    set info(y) [expr $r + [winfo rooty $itk_component(legend)]] 
@@ -541,8 +585,8 @@ itcl::body Rappture::XyLegend::Editor {option args} {
                 error "wrong # args: should be \"editor apply value\""
             }
 	    set label [lindex $args 0]
-	    $itk_component(legend) entry configure $focus_ -label $label
-	    set elem [$tree_ label $focus_]
+	    $itk_component(legend) entry configure $rename_ -label $label
+	    set elem [$tree_ label $rename_]
 	    $graph_ element configure $elem -label $label
         }
         menu {

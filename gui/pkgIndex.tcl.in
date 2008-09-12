@@ -7,6 +7,7 @@ package ifneeded RapptureGUI @PACKAGE_VERSION@ [format {
 	variable version $version
 	variable library $dir
     }
+    package require Rappture
     package provide RapptureGUI $version
 } $dir]
 

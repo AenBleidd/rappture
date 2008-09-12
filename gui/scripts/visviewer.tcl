@@ -148,6 +148,8 @@ itcl::body Rappture::VisViewer::destructor {} {
 itcl::body Rappture::VisViewer::_Shuffle { hostlist } {
     set hosts [split $hostlist ,]
     set random_hosts {}
+    set ticks [clock ticks]
+    expr {srand($ticks)}
     for { set i [llength $hosts] } { $i > 0 } { incr i -1 } {
 	set index [expr {round(rand()*$i - 0.5)}]
 	if { $index == $i } {

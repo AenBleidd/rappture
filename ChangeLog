@@ -1,12 +1,31 @@
+2008-09-09:
 
+    * Created legend for xy plots.  You can raise/lower/show/hide/rename
+      traces (curves).  There is also a provision for displaying the
+      fill area between two curves and taking the average of two or
+      more curves.
+    * Nanovis markers now change the transfer function globally. Previously
+      changing the a marker changes the transfer function for that volume
+      only.  Now all volumes using that transfer function are affected.
+    * Pymolproxy changed to use file transfer for PDB files.  This should 
+      prevent large datasets from breaking pymol.
+    * Data sent to render servers now made in one write. Should improve
+      performance for large datasets.
+    * Nanovis server was profiled and improvements made to protocol.
+    * "Abort" button fixed.  Previous version abort was disabled during
+      simulation.
+    * New checkbutton indicator for booleanentry (switch).
+    * Empty sequences (pymol) are now checked.
+    * Fixed heightmap (surface plot) grid to accurately measure the surface.
     * added bohr units and conversion to meters
     * added a free text label so users can label each element of a sequence.
     * added example using Ruby's Rappture bindings.
     * changed boolean widget to use a simple checkbutton 
     * added ability to set the color of integer and number widgets
-	to a wavelength or range of wavelengths.
+      to a wavelength or range of wavelengths.
 	
 2008-06-11: fixed bug in Ruby putfile() method (bhaley)
 2008-03-31: nanovis 20080331 released
 2008-03-30: Rappture 20080330 released
 2008-02-18: added initial bindings and build scripts for Ruby (bhaley)
+
