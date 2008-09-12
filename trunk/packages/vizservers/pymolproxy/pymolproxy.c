@@ -47,6 +47,17 @@
 
 #define IO_TIMEOUT (30000)
 
+typedef struct {
+    unsigned int date;
+    size_t nFrames;		/* # of frames sent to client. */
+    size_t nBytes;		/* # of bytes for all frames. */
+    size_t nCommands;		/* # of commands executed */
+    double cmdTime;		/* Elasped time spend executing commands. */
+    struct timeval start;	/* Start of elapsed time. */
+} Stats;
+
+static Stats stats;
+
 static FILE *flog;
 static int debug = 1;
 
@@ -89,6 +100,70 @@ typedef struct {
     int error;
     int status;
 } PymolProxy;
+
+static int
+ExecuteCommand(Tcl_Interp *interp, Tcl_DString *dsPtr, Stats *statsPtr) 
+{
+    struct timeval tv;
+    double start, finish;
+
+    gettimeofday(&tv, NULL);
+    start = ((double)tv.tv_sec) + ((double)tv.tv_usec * 1.0e-6);
+    Tcl_Eval(interp, Tcl_DStringValue(dsPtr));
+    trace("Executed (%s)", Tcl_DStringValue(dsPtr));
+    Tcl_DStringSetLength(dsPtr, 0);
+    gettimeofday(&tv, NULL);
+    
+    finish = ((double)tv.tv_sec) + ((double)tv.tv_usec * 1.0e-6);
+    statsPtr->cmdTime += finish - start;
+    statsPtr->nCommands++;
+}
+
+static int
+WriteStats(Stats *statsPtr, int code) 
+{
+    struct timeval tv;
+    double start, finish;
+    int lockf;
+    FILE *f;
+    char *lockFileName, *statsFileName;
+
+    /* Get ending time.  */
+    gettimeofday(&tv, NULL);
+    finish = ((double)tv.tv_sec) + ((double)tv.tv_usec * 1.0e-6);
+    tv = statsPtr->start;
+    start = ((double)tv.tv_sec) + ((double)tv.tv_usec * 1.0e-6);
+    for(;;) {
+	lockf = open(lockFileName, O_EXCL | O_CREAT | O_TRUNC | O_WRONLY, 0600);
+	if (lockf >= 0) {
+	    break;
+	}
+	if (errno != EEXIST) {
+	    fprintf(stderr, "can't open lock file \"%s\"\n: %s\n",
+		    lockFileName, strerror(errno));
+	    return 0;
+	}
+	/* Need to turn off alarms first. */
+	alarm(0);
+	sleep(1);
+    }
+    f = fopen(statsFileName, "a+");
+    if (f == NULL) {
+	fprintf(f, "\"pymolproxy\",%d,%d,%d,%d,%d,%d,%g,%g", 
+		getpid(),
+		code,
+		statsPtr->date, 
+		statsPtr->nFrames, 
+		statsPtr->nBytes, 
+		statsPtr->nCommands, 
+		statsPtr->cmdTime, 
+		finish - start);
+	fclose(f);
+    }
+    close(lockf);
+    unlink(lockFileName);
+    return 1;
+}
 
 INLINE static void
 dyBufferInit(DyBuffer *buffer)
@@ -182,7 +257,7 @@ bread(int sock, char *buffer, int size)
 	
 	result = 0;
     }
-    return(total);
+    return total;
 }
 
 #ifdef notdef
@@ -1031,7 +1106,7 @@ static int
 PNGCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
 {
     char buffer[800];
-    unsigned int bytes=0;
+    unsigned int nBytes=0;
     float samples = 0.0;
     PymolProxy *pymol = (PymolProxy *) cdata;
 
@@ -1048,22 +1123,24 @@ PNGCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
 
     waitForString(pymol, "image follows: ", buffer, 800);
 
-    sscanf(buffer, "image follows: %d %f\n", &bytes, &samples);
+    sscanf(buffer, "image follows: %d %f\n", &nBytes, &samples);
  
-    write(3,&samples,sizeof(samples));
+    write(3, &samples, sizeof(samples));
   
-    dyBufferSetLength(&pymol->image, bytes);
+    dyBufferSetLength(&pymol->image, nBytes);
 
     bread(pymol->p_stdout, pymol->image.data, pymol->image.used);
 
     waitForString(pymol, " ScenePNG", buffer,800);
 
-    if (bytes && (pymol->image.used == bytes)) {
+    if ((nBytes > 0) && (pymol->image.used == nBytes)) {
         sprintf(buffer, "nv>image %d %d %d %d\n", 
-                bytes, pymol->cacheid, pymol->frame, pymol->rock_offset);
+                nBytes, pymol->cacheid, pymol->frame, pymol->rock_offset);
         trace("to-molvis> %s", buffer);
         write(pymol->c_stdin, buffer, strlen(buffer));
-        bwrite(pymol->c_stdin, pymol->image.data, bytes);
+        bwrite(pymol->c_stdin, pymol->image.data, nBytes);
+	stats.nFrames++;
+	stats.nBytes += nBytes;
     }
     return pymol->status;
 }
@@ -1072,7 +1149,7 @@ static int
 BMPCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
 {
     char buffer[800];
-    unsigned int bytes=0;
+    unsigned int nBytes=0;
     float samples = 0.0;
     PymolProxy *pymol = (PymolProxy *) cdata;
 
@@ -1089,19 +1166,21 @@ BMPCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
 
     waitForString(pymol, "image follows: ", buffer, 800);
 
-    sscanf(buffer, "image follows: %d %f\n", &bytes, &samples);
+    sscanf(buffer, "image follows: %d %f\n", &nBytes, &samples);
     write(3,&samples,sizeof(samples));
 
-    dyBufferSetLength(&pymol->image, bytes);
+    dyBufferSetLength(&pymol->image, nBytes);
 
     bread(pymol->p_stdout, pymol->image.data, pymol->image.used);
 
-    if (bytes && (pymol->image.used == bytes)) {
+    if ((nBytes > 0) && (pymol->image.used == nBytes)) {
         sprintf(buffer, "nv>image %d %d %d %d\n", 
-                bytes, pymol->cacheid, pymol->frame, pymol->rock_offset);
+                nBytes, pymol->cacheid, pymol->frame, pymol->rock_offset);
         write(pymol->c_stdin, buffer, strlen(buffer));
         trace("to-molvis buffer=%s\n", buffer);
-        bwrite(pymol->c_stdin, pymol->image.data, bytes);
+        bwrite(pymol->c_stdin, pymol->image.data, nBytes);
+	stats.nFrames++;
+	stats.nBytes += nBytes;
     }
     return pymol->status;
 }
@@ -1119,7 +1198,7 @@ ProxyInit(int c_in, int c_out, char *const *argv)
     struct pollfd ufd[3];
     int pid;
     PymolProxy pymol;
-    struct timeval now,end;
+    struct timeval now, end;
     int timeout;
 
     /* Create three pipes for communication with the external application. One
@@ -1241,128 +1320,109 @@ ProxyInit(int c_in, int c_out, char *const *argv)
     //  send images back
 
     gettimeofday(&end, NULL);
+    stats.start = end;
+    while(1) {
+	char ch;
+	
+	gettimeofday(&now,NULL);
+	
+	if ( (!pymol.need_update) )
+	    timeout = -1;
+	else if ((now.tv_sec > end.tv_sec) || ( (now.tv_sec == end.tv_sec) && (now.tv_usec >= end.tv_usec)) )
+	    timeout = 0; 
+	else {
+	    timeout = (end.tv_sec - now.tv_sec) * 1000;
+	    
+	    if (end.tv_usec > now.tv_usec)
+		timeout += (end.tv_usec - now.tv_usec) / 1000;
+	    else
+		timeout += (((1000000 + end.tv_usec) - now.tv_usec) / 1000) - 1000;
+	    
+	}
+	
+	if (!pymol.immediate_update)
+	    status = poll(ufd, 3, timeout);
+	else
+	    status = 0;
+	
+	if ( status < 0 ) {
+	    trace("pymolproxy: POLL ERROR: status = %d, errno = %d, %s \n", status,errno,strerror(errno));
+	} else if (status > 0) {
+	    gettimeofday(&now,NULL);
+	    
+	    if (ufd[0].revents) { /* Client Stdout Connection: command input */
+		if (read(ufd[0].fd,&ch,1) <= 0) {
+		    if (errno != EINTR) {
+			trace("pymolproxy: lost client connection (%d).\n", errno);
+			break;
+		    }
+		} else {
+		    Tcl_DStringAppend(&cmdbuffer, &ch, 1);
+		    
+		    if (ch == '\n' && Tcl_CommandComplete(Tcl_DStringValue(&cmdbuffer))) {
+			ExecuteCommand(interp, &cmdbuffer, &stats);
+			if (timeout == 0) status = 0; // send update
+		    }
+		}
+	    }
 
-    while(1) 
-        {
-            char ch;
-
-            gettimeofday(&now,NULL);
-
-            if ( (!pymol.need_update) )
-                timeout = -1;
-            else if ((now.tv_sec > end.tv_sec) || ( (now.tv_sec == end.tv_sec) && (now.tv_usec >= end.tv_usec)) )
-                timeout = 0; 
-            else
-                {
-                    timeout = (end.tv_sec - now.tv_sec) * 1000;
-
-                    if (end.tv_usec > now.tv_usec)
-                        timeout += (end.tv_usec - now.tv_usec) / 1000;
-                    else
-                        timeout += (((1000000 + end.tv_usec) - now.tv_usec) / 1000) - 1000;
-
-                }
-
-            if (!pymol.immediate_update)
-                status = poll(ufd, 3, timeout);
-            else
-                status = 0;
-
-            if ( status < 0 )
-                {
-                    trace("pymolproxy: POLL ERROR: status = %d, errno = %d, %s \n", status,errno,strerror(errno));
-                }
-            else if (status > 0)
-                {
-                    gettimeofday(&now,NULL);
-
-                    if (ufd[0].revents) { /* Client Stdout Connection: command input */
-                        if (read(ufd[0].fd,&ch,1) <= 0) 
-                            {
-                                if (errno != EINTR)
-                                    {
-                                        trace("pymolproxy: lost client connection (%d).\n", errno);
-                                        break;
-                                    }
-                            }
-                        else
-                            {
-                                Tcl_DStringAppend(&cmdbuffer, &ch, 1);
-
-                                if (ch == '\n' && Tcl_CommandComplete(Tcl_DStringValue(&cmdbuffer))) {
-                                    Tcl_Eval(interp, Tcl_DStringValue(&cmdbuffer));
-                                    trace("Executed(%d,%d): %s", pymol.need_update, pymol.immediate_update, Tcl_DStringValue(&cmdbuffer));
-                                    Tcl_DStringSetLength(&cmdbuffer, 0);
-
-                                    if (timeout == 0) status = 0; // send update
-                                }
-                            }
-                    }
-
-                    if (ufd[1].revents ) { /* pyMol Stdout Connection: pymol (unexpected) output */
-                        if (read(ufd[1].fd, &ch, 1) <= 0)
-                            {
-                                if (errno != EINTR) {
-                                    trace("pymolproxy: lost connection (stdout) to pymol server\n");
-                                    break;
-                                }
-                            }
-                        else
-                            {
-                                dyBufferAppend(&dybuffer, &ch, 1);
-
-                                if (ch == '\n') {
-                                    ch = 0;
-                                    dyBufferAppend(&dybuffer, &ch, 1);
-                                    trace("STDOUT>%s",dybuffer.data);
-                                    dyBufferSetLength(&dybuffer,0);
-                                }
-                            }
-                    }
-
-                    if (ufd[2].revents) { /* pyMol Stderr Connection: pymol standard error output */
-                        if (read(ufd[2].fd, &ch, 1) <= 0)
-                            {
-                                if (errno != EINTR) { 
-                                    trace("pymolproxy: lost connection (stderr) to pymol server\n");
-                                    break;
-                                }
-                            }
-                        else {
-                            dyBufferAppend(&dybuffer2, &ch, 1);
-
-                            if (ch == '\n') {
-                                ch = 0;
-                                dyBufferAppend(&dybuffer2, &ch, 1);
-                                trace("stderr>%s", dybuffer2.data);
-                                dyBufferSetLength(&dybuffer2,0);
-                            }
-                        }
-                    }
-                }
-
-            if (status == 0) 
-                {
-                    gettimeofday(&now,NULL);
-
-                    if (pymol.need_update && pymol.can_update)
-                        Tcl_Eval(interp, "bmp -\n");
-
-                    end.tv_sec = now.tv_sec;
-                    end.tv_usec = now.tv_usec + 150000;
-
-                    if (end.tv_usec >= 1000000)
-                        {
-                            end.tv_sec++;
-                            end.tv_usec -= 1000000;
-                        }
-
-                }
-
-        }
-
+	    if (ufd[1].revents ) { /* pyMol Stdout Connection: pymol (unexpected) output */
+		if (read(ufd[1].fd, &ch, 1) <= 0) {
+		    if (errno != EINTR) {
+			trace("pymolproxy: lost connection (stdout) to pymol server\n");
+			break;
+		    }
+		} else {
+		    dyBufferAppend(&dybuffer, &ch, 1);
+		    
+		    if (ch == '\n') {
+			ch = 0;
+			dyBufferAppend(&dybuffer, &ch, 1);
+			trace("STDOUT>%s",dybuffer.data);
+			dyBufferSetLength(&dybuffer,0);
+		    }
+		}
+	    }
+	    
+	    if (ufd[2].revents) { /* pyMol Stderr Connection: pymol standard error output */
+		if (read(ufd[2].fd, &ch, 1) <= 0) {
+		    if (errno != EINTR) { 
+			trace("pymolproxy: lost connection (stderr) to pymol server\n");
+			break;
+		    }
+		} else {
+		    dyBufferAppend(&dybuffer2, &ch, 1);
+		    
+		    if (ch == '\n') {
+			ch = 0;
+			dyBufferAppend(&dybuffer2, &ch, 1);
+			trace("stderr>%s", dybuffer2.data);
+			dyBufferSetLength(&dybuffer2,0);
+		    }
+		}
+	    }
+	}
+	
+	if (status == 0) {
+	    gettimeofday(&now,NULL);
+	    
+	    if (pymol.need_update && pymol.can_update)
+		Tcl_Eval(interp, "bmp -\n");
+	    
+	    end.tv_sec = now.tv_sec;
+	    end.tv_usec = now.tv_usec + 150000;
+	    
+	    if (end.tv_usec >= 1000000) {
+		end.tv_sec++;
+		end.tv_usec -= 1000000;
+	    }
+	    
+	}
+	
+    }
+    
     status = waitpid(pid, &result, WNOHANG);
-
+    WriteStats(&stats, status);
     if (status == -1) {
         trace("pymolproxy: error waiting on pymol server to exit (%d)\n", errno);
     } else if (status == 0) {
@@ -1372,22 +1432,21 @@ ProxyInit(int c_in, int c_out, char *const *argv)
         status = waitpid(pid, &result, 0);
         alarm(0);
 
-        while ((status == -1) && (errno == EINTR))
-            {
-                trace("pymolproxy: Attempting to SIGKILL process.\n");
-                kill(-pid, SIGKILL); // kill process group
-                alarm(10);
-                status = waitpid(pid, &result, 0);
-                alarm(0); 
-            }
+        while ((status == -1) && (errno == EINTR)) {
+	    trace("pymolproxy: Attempting to SIGKILL process.\n");
+	    kill(-pid, SIGKILL); // kill process group
+	    alarm(10);
+	    status = waitpid(pid, &result, 0);
+	    alarm(0); 
+	}
     }
-
+    
     trace("pymolproxy: pymol server process ended (%d)\n", result);
-
+    
     dyBufferFree(&pymol.image);
-
+    
     Tcl_DeleteInterp(interp);
-
+    
     return( (status == pid) ? 0 : 1);
 }
 
