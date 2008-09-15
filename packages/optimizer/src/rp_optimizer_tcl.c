@@ -61,6 +61,7 @@ RpTclOption rpOptimNumberOpts[] = {
   {"-strictmax",RP_OPTION_BOOLEAN,Rp_Offset(RpOptimParamNumber,strictmax)},
   {"-stddev",RP_OPTION_DOUBLE,Rp_Offset(RpOptimParamNumber,stddev)},
   {"-mean",RP_OPTION_DOUBLE,Rp_Offset(RpOptimParamNumber,mean)},
+  {"-units",RP_OPTION_STRING,Rp_Offset(RpOptimParamNumber,units)},
   {NULL, NULL, 0}
 };
 
@@ -766,6 +767,8 @@ RpOptimizerPerformInTcl(envPtr, values, numValues, fitnessPtr)
     int rc; Tcl_Obj **rv;
     Tcl_Obj *dataPtr;
     Tcl_DString buffer;
+    RpOptimParamNumber *numPtr;
+    char dvalBuffer[50];
 
     /*
      * Set up the arguments for a Tcl evaluation.
@@ -784,7 +787,12 @@ RpOptimizerPerformInTcl(envPtr, values, numValues, fitnessPtr)
 
         switch (values[n].type) {
         case RP_OPTIMPARAM_NUMBER:
-            objv[2*n+3] = Tcl_NewDoubleObj(values[n].value.dval);
+        	numPtr = (RpOptimParamNumber*)envPtr->paramList[n];
+        	status = sprintf(dvalBuffer,"%lf%s",values[n].value.dval,numPtr->units);
+        	if(status<0){
+        		panic("Could not convert number into number+units format");
+        	}
+            objv[2*n+3] = Tcl_NewStringObj(dvalBuffer,-1);
             Tcl_IncrRefCount(objv[2*n+3]);
             break;
         case RP_OPTIMPARAM_STRING:
@@ -846,11 +854,11 @@ RpOptimizerPerformInTcl(envPtr, values, numValues, fitnessPtr)
 
                 if (status != TCL_OK) {
                     result = RP_OPTIM_FAILURE;
-                    fprintf(stderr, "== UNEXPECTED ERROR while extracting output value:%s\n", Tcl_GetStringResult(interp));
+                    fprintf(stderr, "==UNEXPECTED ERROR while extracting output value:%s\n", Tcl_GetStringResult(interp));
                 } else if (Tcl_GetDoubleFromObj(interp,
                       Tcl_GetObjResult(interp), fitnessPtr) != TCL_OK) {
                     result = RP_OPTIM_FAILURE;
-                    fprintf(stderr, "== ERROR while extracting output value:%s\n", Tcl_GetStringResult(interp));
+                    fprintf(stderr, "==ERROR while extracting output value:%s\n", Tcl_GetStringResult(interp));
                 }
                 for (n=0; n < 3; n++) {
                     Tcl_DecrRefCount(getcmd[n]);

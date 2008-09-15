@@ -117,9 +117,9 @@ RpOptimAddParamNumber(envPtr, name)
     numPtr->randdist = RAND_NUMBER_DIST_GAUSSIAN ;/*Gaussian by default*/
     numPtr->stddev = 1; 
     numPtr->mean = 0;
-    numPtr->strictmax = 0; /*no strict truncation by default*/
-    numPtr->strictmax = 0; /*no strict maximum truncation by default*/
-
+    numPtr->strictmax = 0; /*no strictmax truncation by default*/
+    numPtr->strictmin = 0; /*no strict minimum truncation by default*/
+	numPtr->units = ""; /* Blank Units by default*/
     RpOptimAddParam(envPtr, (RpOptimParam*)numPtr);
 
     return (RpOptimParam*)numPtr;
