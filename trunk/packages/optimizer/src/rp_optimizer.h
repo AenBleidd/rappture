@@ -111,6 +111,7 @@ typedef struct RpOptimParamNumber {
     int strictmax;					/* whether a strict max is to be applied for gauss. rand. numbers*/
     double stddev;					/* std deviaton for gaussian profile*/
     double mean;					/* mean for gaussian profile*/
+    char *units;
 } RpOptimParamNumber;
 
 /*

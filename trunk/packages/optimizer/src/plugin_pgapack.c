@@ -292,8 +292,7 @@ PgapCreateString(ctx, p, pop, initFlag)
                 numPtr = (RpOptimParamNumber*)envPtr->paramList[n];
                 if(numPtr->randdist == RAND_NUMBER_DIST_UNIFORM){
                 	dval = PGARandom01(ctx,0);
-                	newParamPtr[n].value.dval =
-                    (numPtr->max - numPtr->min)*dval + numPtr->min;
+                	newParamPtr[n].value.dval = (numPtr->max - numPtr->min)*dval + numPtr->min;
                 }else if(numPtr->randdist == RAND_NUMBER_DIST_GAUSSIAN){
 	                	dval = PGARandomGaussian(ctx,numPtr->mean,numPtr->stddev);
 	            		if(numPtr->strictmax){
@@ -891,7 +890,7 @@ RpOptimParam *chrom;
 double fitness;
 {
 	int i;
-	printf("\nSetting sample value.......................\n");
+	//printf("\nSetting sample value.......................\n");
 	if(chrom!=NULL && (&table)!=NULL){
 		(table.no_of_samples_evaled)+=1;
 		if((table.no_of_samples_evaled) > table.no_of_columns){
@@ -909,10 +908,10 @@ double fitness;
 				for(i=0;i<(table.num_of_rows);i++){
 					if(i==0){
 						table.data[i][(table.no_of_samples_evaled)-1] = fitness;
-						printf("\nSample Number %d:- Fitness: %lf\t",table.no_of_samples_evaled,fitness);
+						//printf("\nSample Number %d:- Fitness: %lf\t",table.no_of_samples_evaled,fitness);
 					}else{
 						table.data[i][(table.no_of_samples_evaled)-1] = chrom[i-1].value.dval;
-						printf("Param %d %lf\t",i,table.data[i][(table.no_of_samples_evaled)-1]);
+						//printf("Param %d %lf\t",i,table.data[i][(table.no_of_samples_evaled)-1]);
 					}
                 }
 			}else{
