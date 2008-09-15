@@ -46,6 +46,7 @@
 #endif
 
 #define IO_TIMEOUT (30000)
+#define STATSFILE	"/var/tmp/pymolproxy.csv"
 
 typedef struct {
     unsigned int date;
@@ -106,10 +107,11 @@ ExecuteCommand(Tcl_Interp *interp, Tcl_DString *dsPtr, Stats *statsPtr)
 {
     struct timeval tv;
     double start, finish;
+    int result;
 
     gettimeofday(&tv, NULL);
     start = ((double)tv.tv_sec) + ((double)tv.tv_usec * 1.0e-6);
-    Tcl_Eval(interp, Tcl_DStringValue(dsPtr));
+    result = Tcl_Eval(interp, Tcl_DStringValue(dsPtr));
     trace("Executed (%s)", Tcl_DStringValue(dsPtr));
     Tcl_DStringSetLength(dsPtr, 0);
     gettimeofday(&tv, NULL);
@@ -117,53 +119,46 @@ ExecuteCommand(Tcl_Interp *interp, Tcl_DString *dsPtr, Stats *statsPtr)
     finish = ((double)tv.tv_sec) + ((double)tv.tv_usec * 1.0e-6);
     statsPtr->cmdTime += finish - start;
     statsPtr->nCommands++;
+    return result;
 }
+
+#ifdef KEEPSTATS
 
 static int
 WriteStats(Stats *statsPtr, int code) 
 {
     struct timeval tv;
     double start, finish;
-    int lockf;
-    FILE *f;
-    char *lockFileName, *statsFileName;
+    int f;
+    size_t length;
+    char buf[4000];
 
     /* Get ending time.  */
     gettimeofday(&tv, NULL);
     finish = ((double)tv.tv_sec) + ((double)tv.tv_usec * 1.0e-6);
     tv = statsPtr->start;
     start = ((double)tv.tv_sec) + ((double)tv.tv_usec * 1.0e-6);
-    for(;;) {
-	lockf = open(lockFileName, O_EXCL | O_CREAT | O_TRUNC | O_WRONLY, 0600);
-	if (lockf >= 0) {
-	    break;
-	}
-	if (errno != EEXIST) {
-	    fprintf(stderr, "can't open lock file \"%s\"\n: %s\n",
-		    lockFileName, strerror(errno));
-	    return 0;
-	}
-	/* Need to turn off alarms first. */
-	alarm(0);
-	sleep(1);
+    sprintf(buf, "\"pymolproxy\",%d,%d,%d,%d,%d,%d,%g,%g", 
+	    getpid(),
+	    code,
+	    statsPtr->date, 
+	    statsPtr->nFrames, 
+	    statsPtr->nBytes, 
+	    statsPtr->nCommands, 
+	    statsPtr->cmdTime, 
+	    finish - start);
+    f = open(STATSFILE, O_APPEND | O_CREAT | O_WRONLY, 0600);
+    if (f < 0) {
+	return 0;
     }
-    f = fopen(statsFileName, "a+");
-    if (f == NULL) {
-	fprintf(f, "\"pymolproxy\",%d,%d,%d,%d,%d,%d,%g,%g", 
-		getpid(),
-		code,
-		statsPtr->date, 
-		statsPtr->nFrames, 
-		statsPtr->nBytes, 
-		statsPtr->nCommands, 
-		statsPtr->cmdTime, 
-		finish - start);
-	fclose(f);
+    length = strlen(buf);
+    if (write(f, buf, length) != length) {
+	return 0;
     }
-    close(lockf);
-    unlink(lockFileName);
+    close(f);
     return 1;
 }
+#endif
 
 INLINE static void
 dyBufferInit(DyBuffer *buffer)
@@ -1360,7 +1355,9 @@ ProxyInit(int c_in, int c_out, char *const *argv)
 		    Tcl_DStringAppend(&cmdbuffer, &ch, 1);
 		    
 		    if (ch == '\n' && Tcl_CommandComplete(Tcl_DStringValue(&cmdbuffer))) {
-			ExecuteCommand(interp, &cmdbuffer, &stats);
+			int result;
+
+			result = ExecuteCommand(interp, &cmdbuffer, &stats);
 			if (timeout == 0) status = 0; // send update
 		    }
 		}
@@ -1422,7 +1419,9 @@ ProxyInit(int c_in, int c_out, char *const *argv)
     }
     
     status = waitpid(pid, &result, WNOHANG);
+#ifdef KEEPSTATS
     WriteStats(&stats, status);
+#endif
     if (status == -1) {
         trace("pymolproxy: error waiting on pymol server to exit (%d)\n", errno);
     } else if (status == 0) {
