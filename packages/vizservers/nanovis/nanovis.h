@@ -163,6 +163,8 @@ public:
 	int width, int height, const char* volArg);
     static Volume *load_volume(int index, int width, int height, int depth, 
 	int n, float* data, double vmin, double vmax, double nzero_min);
+    static int render_2d_contour(HeightMap* heightmap, int width, int height);
+
 #ifndef XINETD
     static void keyboard(unsigned char key, int x, int y);
     static void mouse(int button, int state, int x, int y);

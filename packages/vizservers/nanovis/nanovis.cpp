@@ -2060,3 +2060,53 @@ main(int argc, char** argv)
     return 0;
 }
 
+int
+NanoVis::render_2d_contour(HeightMap* heightmap, int width, int height)
+{
+    int old_width = win_width;
+    int old_height = win_height;
+
+    resize_offscreen_buffer(width, height);
+
+/*
+    plane_render->set_screen_size(width, height);
+
+    // generate data for the legend
+    float data[512];
+    for (int i=0; i < 256; i++) {
+        data[i] = data[i+256] = (float)(i/255.0);
+    }
+    plane[0] = new Texture2D(256, 2, GL_FLOAT, GL_LINEAR, 1, data);
+    int index = plane_render->add_plane(plane[0], tf);
+    plane_render->set_active_plane(index);
+
+    offscreen_buffer_capture();
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); //clear screen
+
+    //plane_render->render();
+    // INSOO : is going to implement here for the topview of the heightmap
+    heightmap->render(renderContext);
+
+    // INSOO
+    glReadPixels(0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, screen_buffer);
+    //glReadPixels(0, 0, width, height, GL_BGR, GL_UNSIGNED_BYTE, screen_buffer); // INSOO's
+*/
+
+
+    // HELP ME
+    // GEORGE
+    // I am not sure what I should do
+    //char prefix[200];
+    //sprintf(prefix, "nv>height_top_view %s %g %g", volArg, min, max);
+    //ppm_write(prefix);
+    //write(0, "\n", 1);
+    
+
+
+
+    //plane_render->remove_plane(index);
+    
+    resize_offscreen_buffer(old_width, old_height);
+
+    return TCL_OK;
+}
