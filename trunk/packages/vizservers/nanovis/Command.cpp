@@ -2117,6 +2117,26 @@ HeightMapShadingOp(ClientData cdata, Tcl_Interp *interp, int objc,
 }
 
 static int
+HeightMapTopView(ClientData data, Tcl_Interp *interp, int objc,
+                Tcl_Obj *const *objv)
+{
+
+    // the variables below should be reassigned
+    int heightmap_index = 0;
+    int image_width = 512;
+    int image_height = 512;
+    HeightMap* heightmap = 0;
+
+    // HELP ME
+    // GEORGE
+
+
+    NanoVis::render_2d_contour(heightmap, image_width, image_height);
+    
+    return TCL_OK;
+}
+
+static int
 HeightMapTestOp(ClientData cdata, Tcl_Interp *interp, int objc,
                 Tcl_Obj *const *objv)
 {
@@ -2183,6 +2203,10 @@ static Rappture::CmdSpec heightMapOps[] = {
     {"shading",      1, HeightMapShadingOp,     3, 3, "model",},
     {"test",         2, HeightMapTestOp,        2, 2, "",},
     {"transfunc",    2, HeightMapTransFuncOp,   3, 0, "name ?indices?",},
+
+    // HELP ME
+    // GOERGE
+    {"topview",      1, HeightMapTopView,     3, 3, "model",},
 };
 static int nHeightMapOps = NumCmdSpecs(heightMapOps);
 
@@ -2697,3 +2721,4 @@ xinetd_listen()
     NanoVis::ppm_write("nv>image -bytes");
 #endif
 }
+
