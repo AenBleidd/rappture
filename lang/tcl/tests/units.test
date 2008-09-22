@@ -53,7 +53,7 @@ test convert-1.1.1 {Rappture::Units::convert, 1 invalid argument} {
 
 test convert-1.1.2 {Rappture::Units::convert, invalid value, valid context} {
     list [catch {Rappture::Units::convert re -context mm} msg] $msg
-} {1 {bad value "re": should be a real number with units of (A,in,m)}}
+} {1 {bad value "re": should be a real number with units of (A,bohr,in,m)}}
 
 test convert-1.1.3 {Rappture::Units::convert, 1 valid argument} {
     list [catch {Rappture::Units::convert 5} msg] $msg
@@ -163,12 +163,12 @@ test convert-1.7.0 {Rappture::Units::convert, val w/o units} {
 test convert-1.7.1.2 {Rappture::Units::convert, invalid val w/ -context} {
 # this test passes for new tcl bindings, fails for old tcl version
     list [catch {Rappture::Units::convert de -context m } msg] $msg
-} {1 {bad value "de": should be a real number with units of (A,in,m)}}
+} {1 {bad value "de": should be a real number with units of (A,bohr,in,m)}}
 
 test convert-1.8.0 {Rappture::Units::convert, convert undefined unit} {
     list [catch {Rappture::Units::convert 33Q -to nm } msg] $msg
 } {1 {Unrecognized units: "Q".
-Should be units of type length (A,in,m)}}
+Should be units of type length (A,bohr,in,m)}}
 
 #----------------------------------------------------------
 #----------------------------------------------------------
@@ -194,15 +194,15 @@ test desc-2.2.0 {Rappture::Units::descption, valid units} {
 
 test desc-2.2.1 {Rappture::Units::descption, *cm2*K/Vs} {
     list [catch {Rappture::Units::description *cm2*K/Vs} msg] $msg
-} {0 {length*temperature/electric_potential*time (/V,/s,A2,C,F,K,R,in2,m2)}}
+} {0 {length*temperature/electric_potential*time (/V,/s,A2,C,F,K,R,bohr2,in2,m2)}}
 
 test desc-2.2.2 {Rappture::Units::descption, cm2 areas} {
     list [catch {Rappture::Units::description cm2} msg] $msg
-} {0 {area (A2,in2,m2)}}
+} {0 {area (A2,bohr2,in2,m2)}}
 
 test desc-2.2.3 {Rappture::Units::descption, cm3 volumes} {
     list [catch {Rappture::Units::description cm3} msg] $msg
-} {0 {volume (A3,in3,m3)}}
+} {0 {volume (A3,bohr3,in3,m3)}}
 
 test desc-2.2.4 {Rappture::Units::descption, K temperature} {
     list [catch {Rappture::Units::description K} msg] $msg
@@ -222,19 +222,19 @@ test desc-2.3.1 {Rappture::Units::descption, incorrect input type} {
 
 test desc-2.4.0 {Rappture::Units::descption, "mm" correct units retrieval} {
     list [catch {Rappture::Units::description mm} msg] $msg
-} {0 {length (A,in,m)}}
+} {0 {length (A,bohr,in,m)}}
 
 test desc-2.4.1 {Rappture::Units::descption, "MM" correct units retrieval} {
     list [catch {Rappture::Units::description MM} msg] $msg
-} {0 {length (A,in,m)}}
+} {0 {length (A,bohr,in,m)}}
 
 test desc-2.4.2 {Rappture::Units::descption, "mM" correct units retrieval} {
     list [catch {Rappture::Units::description mM} msg] $msg
-} {0 {length (A,in,m)}}
+} {0 {length (A,bohr,in,m)}}
 
 test desc-2.4.3 {Rappture::Units::descption, "Mm" correct units retrieval} {
     list [catch {Rappture::Units::description Mm} msg] $msg
-} {0 {length (A,in,m)}}
+} {0 {length (A,bohr,in,m)}}
 
 test desc-2.4.4 {Rappture::Units::descption, "mv" correct units retrieval} {
     list [catch {Rappture::Units::description mv} msg] $msg
@@ -531,67 +531,67 @@ test convert_units-5.4.4.1 {Rappture::Units::convert, cm2/Vs->m2/kQus} {
 test convert_units-5.4.4.2 {Rappture::Units::convert, cm2nZ/Vs->m2/us} {
     list [catch {Rappture::Units::convert 2cm2nZ/Vs -to m2/us} msg] $msg
 } {1 {Unrecognized units: "cm2nZ/Vs".
-Should be units of type length/time (/s,A2,in2,m2)}}
+Should be units of type length/time (/s,A2,bohr2,in2,m2)}}
 
 test convert_units-5.4.4.3 {Rappture::Units::convert, cm2/s->m2/kVus} {
     list [catch {Rappture::Units::convert 2cm2/s -to m2/kVus} msg] $msg
 } {1 {unmatched units in conversion: (kV-1)
-Please enter units of type length/electric_potential*time (/V,/s,A2,in2,m2)}}
+Please enter units of type length/electric_potential*time (/V,/s,A2,bohr2,in2,m2)}}
 
 test convert_units-5.4.4.4 {Rappture::Units::convert, cm2/s->m2/uskV} {
     list [catch {Rappture::Units::convert 2cm2/s -to m2/uskV} msg] $msg
 } {1 {unmatched units in conversion: (kV-1)
-Please enter units of type length/time*electric_potential (/V,/s,A2,in2,m2)}}
+Please enter units of type length/time*electric_potential (/V,/s,A2,bohr2,in2,m2)}}
 
 test convert_units-5.4.4.5 {Rappture::Units::convert, cm2V/s->m2/us} {
     list [catch {Rappture::Units::convert 2cm2V/s -to m2/us} msg] $msg
 } {1 {unmatched units in conversion: (V)
-Please enter units of type length/time (/s,A2,in2,m2)}}
+Please enter units of type length/time (/s,A2,bohr2,in2,m2)}}
 
 test convert_units-5.4.4.6 {Rappture::Units::convert, cm2V/s->m2/us} {
     list [catch {Rappture::Units::convert 2cm2V/s -to m2/us} msg] $msg
 } {1 {unmatched units in conversion: (V)
-Please enter units of type length/time (/s,A2,in2,m2)}}
+Please enter units of type length/time (/s,A2,bohr2,in2,m2)}}
 
 test convert_units-5.4.4.7 {Rappture::Units::convert, cm2V->m2} {
     list [catch {Rappture::Units::convert 2cm2V -to m2} msg] $msg
 } {1 {unmatched units in conversion: (V)
-Please enter units of type length (A2,in2,m2)}}
+Please enter units of type length (A2,bohr2,in2,m2)}}
 
 test convert_units-5.4.4.8 {Rappture::Units::convert, Vcm2->m2} {
     list [catch {Rappture::Units::convert 2Vcm2 -to m2} msg] $msg
 } {1 {unmatched units in conversion: (V)
-Please enter units of type length (A2,in2,m2)}}
+Please enter units of type length (A2,bohr2,in2,m2)}}
 
 test convert_units-5.4.4.9 {Rappture::Units::convert, cm2->Vm2} {
     list [catch {Rappture::Units::convert 2cm2 -to Vm2} msg] $msg
 } {1 {unmatched units in conversion: (V)
-Please enter units of type electric_potential*length (A2,V,in2,m2)}}
+Please enter units of type electric_potential*length (A2,V,bohr2,in2,m2)}}
 
 test convert_units-5.4.4.10 {Rappture::Units::convert, cm2->m2V} {
     list [catch {Rappture::Units::convert 2cm2 -to m2V} msg] $msg
 } {1 {unmatched units in conversion: (V)
-Please enter units of type length*electric_potential (A2,V,in2,m2)}}
+Please enter units of type length*electric_potential (A2,V,bohr2,in2,m2)}}
 
 test convert_units-5.4.4.11 {Rappture::Units::convert, cm2A->Vm2} {
     list [catch {Rappture::Units::convert 2cm2A -to Vm2} msg] $msg
 } {1 {unmatched units in conversion: (A) -> (V)
-Please enter units of type electric_potential*length (A2,V,in2,m2)}}
+Please enter units of type electric_potential*length (A2,V,bohr2,in2,m2)}}
 
 test convert_units-5.4.4.12 {Rappture::Units::convert, cm2A->m2V} {
     list [catch {Rappture::Units::convert 2cm2A -to m2V} msg] $msg
 } {1 {Conversion unavailable: (A) -> (V)
-Please enter units of type length*electric_potential (A2,V,in2,m2)}}
+Please enter units of type length*electric_potential (A2,V,bohr2,in2,m2)}}
 
 test convert_units-5.4.4.13 {Rappture::Units::convert, Acm2->Vm2} {
     list [catch {Rappture::Units::convert 2Acm2 -to Vm2} msg] $msg
 } {1 {unmatched units in conversion: (A) -> (V)
-Please enter units of type electric_potential*length (A2,V,in2,m2)}}
+Please enter units of type electric_potential*length (A2,V,bohr2,in2,m2)}}
 
 test convert_units-5.4.4.14 {Rappture::Units::convert, Acm2->m2V} {
     list [catch {Rappture::Units::convert 2Acm2 -to m2V} msg] $msg
 } {1 {Conversion unavailable: (A) -> (V)
-Please enter units of type length*electric_potential (A2,V,in2,m2)}}
+Please enter units of type length*electric_potential (A2,V,bohr2,in2,m2)}}
 
 #--------------------------------------------------------------------
 # Inverse Unit Conversions
@@ -604,7 +604,7 @@ test convert_units-5.4.5.0 {Rappture::Units::convert, /cm2->/m2} {
 test convert_units-5.4.5.1 {Rappture::Units::convert, cm2->/m2} {
     list [catch {Rappture::Units::convert 1cm -to /m2} msg] $msg
 } {1 {Conversion unavailable: (cm) -> (m-2)
-Please enter units of type /area (/A2,/in2,/m2)}}
+Please enter units of type /area (/A2,/bohr2,/in2,/m2)}}
 
 #--------------------------------------------------------------------
 # Temperature Conversions
