@@ -1,5 +1,7 @@
-
+#!/usr/bin/wish
 # ----------------------------------------------------------------------
+
+
 #  VisViewer - 
 #
 #  This class is the base class for the various visualization viewers 
@@ -20,26 +22,26 @@ itcl::class ::Rappture::VisViewer {
     itk_option define -receivecommand receiveCommand ReceiveCommand ""
 
     private common _servers          ;# array of visualization server lists
-    set _servers(nanovis) "" 
-    set _servers(pymol)   "" 
+    set _servers(nanovis) ""
+    set _servers(pymol)   ""
 
-    protected variable _dispatcher ""	;# dispatcher for !events
-    protected variable _hosts ""	;# list of hosts for server
-    protected variable _sid ""		;# socket connection to server
-    protected variable _parser ""	;# interpreter for incoming commands
+    protected variable _dispatcher ""   # dispatcher for !events
+    protected variable _hosts ""    ;# list of hosts for server
+    protected variable _sid ""      ;# socket connection to server
+    protected variable _parser ""   ;# interpreter for incoming commands
     protected variable _image
-    private common _done		;# Used to indicate status of send.
-    private variable _buffer		;# buffer for incoming/outgoing commands
+    private common _done            ;# Used to indicate status of send.
+    private variable _buffer        ;# buffer for incoming/outgoing commands
 
-    constructor { hostlist args } { 
-	# defined below 
+    constructor { hostlist args } {
+        # defined below
     }
-    destructor { 
-	# defined below 
+    destructor {
+        # defined below
     }
     # Used internally only.
-    private method _Shuffle { hostlist } 
-    private method _ReceiveHelper {} 
+    private method _Shuffle { hostlist }
+    private method _ReceiveHelper {}
     private method _ServerDown {}
     private method _SendHelper {}
     private method _SendHelper.old {}
@@ -56,23 +58,23 @@ itcl::class ::Rappture::VisViewer {
     protected method Euler2XYZ { theta phi psi }
 
     private proc _CheckNameList { namelist }  {
-	set pattern {^[a-zA-Z0-9\.]+:[0-9]+(,[a-zA-Z0-9\.]+:[0-9]+)*$}
-	if { ![regexp $pattern $namelist match] } {
-	    error "bad visualization server address \"$namelist\": should be host:port,host:port,..."
-	}
+        set pattern {^[a-zA-Z0-9\.]+:[0-9]+(,[a-zA-Z0-9\.]+:[0-9]+)*$}
+        if { ![regexp $pattern $namelist match] } {
+            error "bad visualization server address \"$namelist\": should be host:port,host:port,..."
+        }
     }
     public proc GetServerList { tag } {
-	return $_servers($tag)
+        return $_servers($tag)
     }
     public proc SetServerList { tag namelist } {
-	_CheckNameList $namelist
-	set _servers($tag) $namelist
+        _CheckNameList $namelist
+        set _servers($tag) $namelist
     }
     public proc SetPymolServerList { namelist } {
-	SetServerList "pymol" $namelist
+        SetServerList "pymol" $namelist
     }
     public proc SetNanovisServerList { namelist } {
-	SetServerList "nanovis" $namelist
+        SetServerList "nanovis" $namelist
     }
 }
 
@@ -132,31 +134,31 @@ itcl::body Rappture::VisViewer::constructor { hostlist args } {
     eval itk_initialize $args
 }
 
-# 
+#
 # destructor --
-# 
+#
 itcl::body Rappture::VisViewer::destructor {} {
     interp delete $_parser
     array unset _done $this
 }
 
-# 
-# _Shuffle --  
 #
-#	Shuffle the list of server hosts. 
+# _Shuffle --
+#
+#   Shuffle the list of server hosts.
 #
 itcl::body Rappture::VisViewer::_Shuffle { hostlist } {
     set hosts [split $hostlist ,]
     set random_hosts {}
-    set ticks [clock ticks]
+    set ticks [clock clicks]
     expr {srand($ticks)}
     for { set i [llength $hosts] } { $i > 0 } { incr i -1 } {
-	set index [expr {round(rand()*$i - 0.5)}]
-	if { $index == $i } {
-	    set index [expr $i - 1]
-	}
-	lappend random_hosts [lindex $hosts $index]
-	set hosts [lreplace $hosts $index $index]
+        set index [expr {round(rand()*$i - 0.5)}]
+        if { $index == $i } {
+            set index [expr $i - 1]
+        }
+        lappend random_hosts [lindex $hosts $index]
+        set hosts [lreplace $hosts $index $index]
     }
     return $random_hosts
 }
@@ -170,20 +172,20 @@ itcl::body Rappture::VisViewer::_Shuffle { hostlist } {
 #
 itcl::body Rappture::VisViewer::_ServerDown {} {
     if { [info exists itk_component(area)] } {
-	set x [expr {[winfo rootx $itk_component(area)]+10}]
-	set y [expr {[winfo rooty $itk_component(area)]+10}]
+        set x [expr {[winfo rootx $itk_component(area)]+10}]
+        set y [expr {[winfo rooty $itk_component(area)]+10}]
     } else {
-	set x 0; set y 0
+        set x 0; set y 0
     }
     Rappture::Tooltip::cue @$x,$y "Lost connection to visualization server.  This happens sometimes when there are too many users and the system runs out of memory.\n\nTo reconnect, reset the view or press any other control.  Your picture should come right back up."
 }
 
 #
 # Connect --
-# 
+#
 #    Connect to the visualization server (e.g. nanovis, pymolproxy).  Send
 #    the server some estimate of the size of our job.  If it's too busy, that
-#    server may forward us to another.  
+#    server may forward us to another.
 #
 itcl::body Rappture::VisViewer::Connect { hostlist } {
     blt::busy hold $itk_component(hull) -cursor watch
@@ -201,10 +203,10 @@ itcl::body Rappture::VisViewer::Connect { hostlist } {
         SendEcho <<line "connecting to $hostname:$port..."
         if { [catch {socket $hostname $port} _sid] != 0 } {
             if {[llength $servers] == 0} {
-		blt::busy release $itk_component(hull)
+                blt::busy release $itk_component(hull)
                 return 0
             }
-	    # Get the next server
+            # Get the next server
             foreach {hostname port} [split [lindex $servers 0] :] break
             set servers [lrange $servers 1 end]
             continue
@@ -214,11 +216,11 @@ itcl::body Rappture::VisViewer::Connect { hostlist } {
         # send memory requirement to the load balancer
         puts -nonewline $_sid [binary format I $memorySize]
         flush $_sid
-	
+
         # read back a reconnection order
         set data [read $_sid 4]
         if {[binary scan $data cccc b1 b2 b3 b4] != 4} {
-	    blt::busy release $itk_component(hull)
+            blt::busy release $itk_component(hull)
             error "couldn't read redirection request"
         }
         set addr [format "%u.%u.%u.%u" \
@@ -228,12 +230,12 @@ itcl::body Rappture::VisViewer::Connect { hostlist } {
             [expr {$b4 & 0xff}]]
 
         if { [string equal $addr "0.0.0.0"] } {
-	    # We're connected. Cancel any pending serverDown events and
-	    # release the busy window over the hull.
-	    $_dispatcher cancel !serverDown
-	    blt::busy release $itk_component(hull)
-	    fconfigure $_sid -buffering line
-	    fileevent $_sid readable [itcl::code $this _ReceiveHelper]
+            # We're connected. Cancel any pending serverDown events and
+            # release the busy window over the hull.
+            $_dispatcher cancel !serverDown
+            blt::busy release $itk_component(hull)
+            fconfigure $_sid -buffering line
+            fileevent $_sid readable [itcl::code $this _ReceiveHelper]
             return 1
         }
         set hostname $addr
@@ -254,9 +256,9 @@ itcl::body Rappture::VisViewer::Disconnect {} {
     if { [IsConnected] } {
         catch {close $_sid} err
         set _sid ""
-	$_dispatcher event -after 750 !serverDown
+        $_dispatcher event -after 750 !serverDown
     }
-    set _buffer(in) ""			
+    set _buffer(in) ""
 }
 
 #
@@ -271,73 +273,73 @@ itcl::body Rappture::VisViewer::IsConnected {} {
 #
 # _SendHelper --
 #
-#	Helper routine called from a file event to send data when the
-#	connection is writable (i.e. not blocked).  Sets a magic 
-#	variable _done($this) when we're done.
+#   Helper routine called from a file event to send data when the
+#   connection is writable (i.e. not blocked).  Sets a magic
+#   variable _done($this) when we're done.
 #
 itcl::body Rappture::VisViewer::_SendHelper {} {
     puts $_sid $_buffer(out)
     flush $_sid 
-    set _done($this) 1;		# Success
+    set _done($this) 1;     # Success
 }
 
 #
 # _SendHelper.old --
 #
-#	Helper routine called from a file event to send data when the
-#	connection is writable (i.e. not blocked).  Sends data in chunks 
-#	of 8k (or less).  Sets magic variable _done($this) to indicate
-#	that we're either finished (success) or could not send bytes to
-#	the server (failure).
+#   Helper routine called from a file event to send data when the
+#   connection is writable (i.e. not blocked).  Sends data in chunks 
+#   of 8k (or less).  Sets magic variable _done($this) to indicate
+#   that we're either finished (success) or could not send bytes to
+#   the server (failure).
 #
 itcl::body Rappture::VisViewer::_SendHelper.old {} {
     set bytesLeft [string length $_buffer(out)]
     if { $bytesLeft > 0} {
-	set chunk [string range $_buffer(out) 0 8095]
-	set _buffer(out)  [string range $_buffer(out) 8096 end]
-	incr bytesLeft -8096
-	set code [catch {
-	    if { $bytesLeft > 0 } {
-		puts -nonewline $_sid $chunk
-	    } else {
-		puts $_sid $chunk
-	    }		
-	} err]
-	if { $code != 0 } {
-	    puts stderr "error sending data to $_sid: $err"
-	    Disconnect
-	    set _done($this) 0;		# Failure
-	} 
+        set chunk [string range $_buffer(out) 0 8095]
+        set _buffer(out)  [string range $_buffer(out) 8096 end]
+        incr bytesLeft -8096
+        set code [catch {
+            if { $bytesLeft > 0 } {
+                puts -nonewline $_sid $chunk
+            } else {
+                puts $_sid $chunk
+            }
+        } err]
+        if { $code != 0 } {
+            puts stderr "error sending data to $_sid: $err"
+            Disconnect
+            set _done($this) 0;     # Failure
+        }
     } else {
-	set _done($this) 1;		# Success
+        set _done($this) 1;     # Success
     }
 }
 
 #
 # SendBytes --
 #
-#	Send a a string to the visualization server.  
+#   Send a a string to the visualization server.
 #
 itcl::body Rappture::VisViewer::SendBytes { bytes } {
     SendEcho >>line $bytes
 
     if { ![IsConnected]} {
-	# If we aren't connected, assume it's because the connection to the
-	# visualization server broke. Try to open a connection and trigger a
-	# rebuild.
+        # If we aren't connected, assume it's because the connection to the
+        # visualization server broke. Try to open a connection and trigger a
+        # rebuild.
         $_dispatcher cancel !serverDown
         set x [expr {[winfo rootx $itk_component(area)]+10}]
         set y [expr {[winfo rooty $itk_component(area)]+10}]
         Rappture::Tooltip::cue @$x,$y "Connecting..."
-	set code [catch { Connect } ok]
+        set code [catch { Connect } ok]
         if { $code == 0 && $ok} {
-	    $_dispatcher event -idle !rebuild
-	    Rappture::Tooltip::cue hide 
-	    return 1
+            $_dispatcher event -idle !rebuild
+            Rappture::Tooltip::cue hide 
+            return 1
        } else {
-	    Rappture::Tooltip::cue @$x,$y "Can't connect to visualization server.  This may be a network problem.  Wait a few moments and try resetting the view."
-	   return 0
-	}
+            Rappture::Tooltip::cue @$x,$y "Can't connect to visualization server.  This may be a network problem.  Wait a few moments and try resetting the view."
+           return 0
+        }
     }
     # Even though the data is sent in only 1 "puts", we need to verify that
     # the server is ready first.  Wait for the socket to become writable
@@ -359,48 +361,48 @@ itcl::body Rappture::VisViewer::SendBytes { bytes } {
 #
 itcl::body Rappture::VisViewer::ReceiveBytes { size } {
     if { [eof $_sid] } {
-	error "unexpected eof on socket"
+        error "unexpected eof on socket"
     }
     set bytes [read $_sid $size]
     ReceiveEcho <<line "<read $size bytes"
     return $bytes
 }
 
-# 
+#
 # _ReceiveHelper --
 #
-#	Helper routine called from a file event when the connection is 
-#	readable (i.e. a command response has been sent by the rendering 
-#	server.  Reads the incoming command and executes it in a safe 
-#	interpreter to handle the action.
+#   Helper routine called from a file event when the connection is 
+#   readable (i.e. a command response has been sent by the rendering 
+#   server.  Reads the incoming command and executes it in a safe 
+#   interpreter to handle the action.
 #
 #       Note: This routine currently only handles command responses from
-#	      the visualization server.  It doesn't handle non-blocking
-#	      reads from the visualization server.
+#         the visualization server.  It doesn't handle non-blocking
+#         reads from the visualization server.
 #
-#	    nv>image -bytes 100000		yes
-#	    ...following 100000 bytes...	no		
-# 
-#	Note: All commands from the render server are on one line. 
-#	      This is because the render server can send anything
-#	      as an error message (restricted again to one line).
-#	     
+#       nv>image -bytes 100000      yes
+#       ...following 100000 bytes...    no
+#
+#   Note: All commands from the render server are on one line.
+#         This is because the render server can send anything
+#         as an error message (restricted again to one line).
+#
 itcl::body Rappture::VisViewer::_ReceiveHelper {} {
     if { [IsConnected] } {
-	if { [eof $_sid] } {
-	    error "_receive: unexpected eof on socket"
-	}
+        if { [eof $_sid] } {
+            error "_receive: unexpected eof on socket"
+        }
         if { [gets $_sid line] < 0 } {
             Disconnect
-        } 
-	set line [string trim $line]
-	if { $line == "" } {
-	    return
-	}
-	if { [string equal [string range $line 0 2] "nv>"] } {
+        }
+        set line [string trim $line]
+        if { $line == "" } {
+            return
+        }
+        if { [string equal [string range $line 0 2] "nv>"] } {
             ReceiveEcho <<line $line
             append _buffer(in) [string range $line 3 end]
-	    append _buffer(in) "\n"
+            append _buffer(in) "\n"
             if {[info complete $_buffer(in)]} {
                 set request $_buffer(in)
                 set _buffer(in) ""
@@ -422,7 +424,7 @@ itcl::body Rappture::VisViewer::_ReceiveHelper {} {
 #
 itcl::body Rappture::VisViewer::Flush {} {
     if { [IsConnected] } {
-	flush $_sid
+        flush $_sid
     }
 }
 
@@ -430,8 +432,8 @@ itcl::body Rappture::VisViewer::Flush {} {
 #
 # Color2RGB --
 #
-#	Converts a color name to a list of r,g,b values needed for the
-#	engine.  Each r/g/b component is scaled in the # range 0-1.  
+#   Converts a color name to a list of r,g,b values needed for the
+#   engine.  Each r/g/b component is scaled in the # range 0-1.
 #
 itcl::body Rappture::VisViewer::Color2RGB {color} {
     foreach {r g b} [winfo rgb $itk_component(hull) $color] break
@@ -444,9 +446,9 @@ itcl::body Rappture::VisViewer::Color2RGB {color} {
 #
 # Euler2XYZ --
 #
-#	Converts euler angles for the camera placement the to angles of
-#	rotation about the x/y/z axes, used by the engine.  Returns a list:
-#	{xangle, yangle, zangle}.  
+#   Converts euler angles for the camera placement the to angles of
+#   rotation about the x/y/z axes, used by the engine.  Returns a list:
+#   {xangle, yangle, zangle}.
 #
 itcl::body Rappture::VisViewer::Euler2XYZ {theta phi psi} {
     set xangle [expr {$theta-90.0}]
