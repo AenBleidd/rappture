@@ -1,0 +1,36 @@
+#!/bin/sh
+# ----------------------------------------------------------------------
+#  rerun
+#
+#  script to view the output of a previously created run.xml file.
+#  this is just a wrapper around the "rappture -load ..." command
+#  you can use this command to load and compare run.xml files from
+#  the same application. loading xml files from different applciations
+#  will result in undefined actions, and possibly errors.
+#  after loading a run.xml file, you can still enter new values into
+#  the rappture gui and continue simulation experiments.
+#
+#  RUN AS FOLLOWS:
+#    rerun <runFile>,...
+#
+#      <runFile>      - the run.xml file containing an output 
+#                       section you would like to re-generate.
+#      ...            - optional comma separated list of runFiles
+#
+#
+#   ex: rerun run1234.xml,run5678.xml,run0123.xml
+#
+# ======================================================================
+#  AUTHOR:  Derrick Kearney, Purdue University
+#  Copyright (c) 2004-2008  Purdue Research Foundation
+#
+#  See the file "license.terms" for information on usage and
+#  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+# ======================================================================
+#
+#
+
+RAPPTURE_INSTALL_DIR=@prefix@
+
+. $RAPPTURE_INSTALL_DIR/bin/rappture.env
+exec $RAPPTURE_INSTALL_DIR/bin/driver -load $*

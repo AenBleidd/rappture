@@ -84,13 +84,61 @@ Rappture::grab::init
 #
 Rappture::getopts argv params {
     value -tool tool.xml
+    value -load ""
+    value -nosim 0
+}
+
+# rewrite out params(-load) variable with a properly split list of files
+array set params [list -load [split $params(-load) ","]]
+
+set loadobjs {}
+foreach runfile $params(-load) {
+    if {![file exists $runfile]} {
+        puts stderr "can't find run: \"$runfile\""
+        exit 1
+    }
+    set status [catch {Rappture::library $runfile} result]
+    lappend loadobjs $result
 }
 
 # open the XML file containing the tool parameters
 if {![file exists $params(-tool)]} {
-    puts stderr "can't find tool \"$params(-tool)\""
-    exit 1
+    # check to see if the user specified any run.xml files to load.
+    # if so, we can use that as the tool.xml. if we can find where
+    # the original application was installed using the xml tag
+    # tool.version.application.directory(top), the user can
+    # run new simulations, otherwise they can only revisualize the
+    # run.xml files they are loading.
+    set pseudotool ""
+    set lflen [llength $loadobjs)]
+    if {0 == $lflen} {
+        puts stderr "can't find tool \"$params(-tool)\""
+        exit 1
+    }
+    if {!$params(-nosim)} {
+        foreach runobj $loadobjs {
+            set tdir [$runobj get tool.version.application.directory(tool)]
+            if {[file isdirectory $tdir] && \
+                [file exists $tdir/tool.xml]} {
+                set pseudotool $tdir/tool.xml
+                break
+            }
+        }
+    }
+    if {![file exists $pseudotool]} {
+        # we didn't find a tool.xml file,
+        # use info from a runfile to build gui
+        # disable simulation, because no tool.xml
+        set pseudotool [lindex $params(-load) 0]
+        array set params [list -nosim true]
+    }
+    if {![file exists $pseudotool]} {
+        puts stderr "can't find tool \"$params(-tool)\""
+        exit 1
+    }
+    array set params [list -tool $pseudotool]
 }
+
 set xmlobj [Rappture::library $params(-tool)]
 
 set installdir [file dirname $params(-tool)]
@@ -200,7 +248,8 @@ $win.pager page analyzer -command [subst {
     $win.pager busy no
 }]
 
-Rappture::Analyzer $f.analyze $tool -simcontrol auto
+# can we call analyzer without specifying -notebookpage?
+Rappture::Analyzer $f.analyze $tool -simcontrol auto -notebookpage about
 pack $f.analyze -expand yes -fill both
 
 $tool notify add analyzer * [list $f.analyze reset]
@@ -235,4 +284,16 @@ if {[llength [$win.pager page]] == 2} {
         }
     }
 }
+
+# load previous xml runfiles
+if {0 != [llength $params(-load)]} {
+    foreach runobj $loadobjs {
+        $f.analyze load $runobj
+    }
+    $f.analyze configure -notebookpage analyze
+    if {$params(-nosim)} {
+        $f.analyze configure -simcontrol off
+    }
+}
+
 wm deiconify .main
