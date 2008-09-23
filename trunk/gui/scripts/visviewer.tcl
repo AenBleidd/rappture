@@ -25,7 +25,7 @@ itcl::class ::Rappture::VisViewer {
     set _servers(nanovis) ""
     set _servers(pymol)   ""
 
-    protected variable _dispatcher ""   # dispatcher for !events
+    protected variable _dispatcher ""   ;# dispatcher for !events
     protected variable _hosts ""    ;# list of hosts for server
     protected variable _sid ""      ;# socket connection to server
     protected variable _parser ""   ;# interpreter for incoming commands
