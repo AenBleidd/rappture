@@ -245,6 +245,12 @@ itcl::body Rappture::ControlOwner::load {newobj} {
     }
 
     foreach path [array names _path2widget] {
+        # the following elements do not accept "current" tags, skip them
+        set type [[tool] xml element -as type $path]
+        if {[lsearch {group separator control note} $type] >= 0} {
+            continue
+        }
+
         # copy new value to the XML tree
         [tool] xml copy $path.current from $newobj $path.current
 

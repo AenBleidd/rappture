@@ -23,6 +23,7 @@ option add *Analyzer.simControlBackground "" widgetDefault
 option add *Analyzer.simControlOutline gray widgetDefault
 option add *Analyzer.simControlActiveBackground #ffffcc widgetDefault
 option add *Analyzer.simControlActiveOutline black widgetDefault
+option add *Analyzer.notebookpage "about" widgetDefault
 
 option add *Analyzer.font \
     -*-helvetica-medium-r-normal-*-12-* widgetDefault
@@ -45,6 +46,7 @@ itcl::class Rappture::Analyzer {
     itk_option define -simcontrolactiveoutline simControlActiveOutline Background ""
     itk_option define -simcontrolactivebackground simControlActiveBackground Background ""
     itk_option define -holdwindow holdWindow HoldWindow ""
+    itk_option define -notebookpage notebookPage NotebookPage ""
 
     constructor {tool args} { # defined below }
     destructor { # defined below }
@@ -61,6 +63,7 @@ itcl::class Rappture::Analyzer {
     protected method _fixResult {}
     protected method _fixSize {}
     protected method _fixSimControl {}
+    protected method _fixNotebook {}
     protected method _simState {state args}
     protected method _simOutput {message}
     protected method _resultTooltip {}
@@ -819,7 +822,8 @@ itcl::body Rappture::Analyzer::_fixSize {} {
 #
 # Used internally to change the "Simulation" button on or off.
 # If the <boolean> is on, then any <message> and <settings> are
-# displayed as well.  The <message> is a note to the user about
+# displayed as well.  If the <boolean> is off, then only display
+# the message. The <message> is a note to the user about
 # what will be simulated, and the <settings> are a list of
 # tool parameter settings of the form {path1 val1 path2 val2 ...}.
 # When these are in place, the next Simulate operation will use
@@ -892,8 +896,10 @@ itcl::body Rappture::Analyzer::_simState {state args} {
 
         $itk_component(simstatus) configure -state normal
         $itk_component(simstatus) delete 1.0 end
-        $itk_component(simstatus) configure -state disabled
-        Rappture::Tooltip::for $itk_component(simstatus) ""
+        set mesg [lindex $args 0]
+        if {"" != $mesg} {
+            $itk_component(simstatus) insert end $mesg
+        }
     }
 }
 
@@ -1024,6 +1030,28 @@ itcl::body Rappture::Analyzer::_fixSimControl {} {
 }
 
 # ----------------------------------------------------------------------
+# USAGE: _fixNotebook
+#
+# Used internally to switch the active notebook page
+# ----------------------------------------------------------------------
+itcl::body Rappture::Analyzer::_fixNotebook {} {
+    switch -- $itk_option(-notebookpage) {
+        about {
+            $itk_component(notebook) current about
+        }
+        simulate {
+            $itk_component(notebook) current simulate
+        }
+        analyze {
+            $itk_component(notebook) current analyze
+        }
+        default {
+            error "bad value \"$itk_option(-notebookpage)\": should be about, simulate, analyze"
+        }
+    }
+}
+
+# ----------------------------------------------------------------------
 # CONFIGURATION OPTION: -simcontrol
 #
 # Controls whether or not the Simulate button is showing.  In some
@@ -1031,4 +1059,16 @@ itcl::body Rappture::Analyzer::_fixSimControl {} {
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::Analyzer::simcontrol {
     _fixSimControl
+}
+
+# ----------------------------------------------------------------------
+# CONFIGURATION OPTION: -notebookpage
+#
+# Controls which page of the analyzer notebook is shown. It is
+# particularly needed when using rerun, when you don't want to
+# "simulate -ifneeded" because an actual simulation might be
+# kicked off due to differences between tool.xml and run.xml
+# ----------------------------------------------------------------------
+itcl::configbody Rappture::Analyzer::notebookpage {
+    _fixNotebook
 }

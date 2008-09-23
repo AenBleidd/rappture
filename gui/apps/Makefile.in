@@ -24,28 +24,28 @@ SCRIPTS	= \
 		$(srcdir)/grabdata \
 		$(srcdir)/nanovis-test \
 		rappture \
-		$(srcdir)/rerun \
 		rappture.env \
+		rerun \
 		simsim  \
-		about  
+		about
 
 WINDOWS_SCRIPTS =  \
 		$(srcdir)/rappture.cmd \
 		$(srcdir)/driver.cmd \
-		$(srcdir)/rerun.cmd 
+		$(srcdir)/rerun.cmd
 
-all: 
+all:
 
-install: 
+install:
 	$(MKDIR_P) $(bindir)
 	@for i in $(SCRIPTS); do \
 	    echo "Installing $$i" ; \
 	    $(INSTALL) -m 555 $$i $(bindir) ; \
-	done 
+	done
 
 clean:
 
 distclean: clean
 	$(RM) rappture.env rappture simsim
-	$(RM) Makefile *~ 
+	$(RM) Makefile *~
 
