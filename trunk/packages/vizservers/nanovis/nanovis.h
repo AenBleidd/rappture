@@ -140,6 +140,8 @@ public:
     static bool particle_on;
     static bool vector_on;
 
+    static Tcl_Interp *interp;
+    static Tcl_DString cmdbuffer;
 
     static TransferFunction* get_transfunc(const char *name);
     static TransferFunction* DefineTransferFunction(const char *name, 
@@ -163,6 +165,7 @@ public:
 	int width, int height, const char* volArg);
     static Volume *load_volume(int index, int width, int height, int depth, 
 	int n, float* data, double vmin, double vmax, double nzero_min);
+    static void xinetd_listen(void);
     static int render_2d_contour(HeightMap* heightmap, int width, int height);
 
 #ifndef XINETD
