@@ -261,7 +261,7 @@ public:
     double Map(double x);
     double InvMap(double x);
     const char *name(void) {
-	return (name_ == NULL) ? "???" : name_;
+	return name_;
     }
     void name(const char *name) {
 	if (name_ != NULL) {
@@ -270,7 +270,7 @@ public:
 	name_ = strdup(name);
     }
     const char *units(void) {
-	return (units_ == NULL) ? "???" : units_;
+	return units_;
     }
     void units(const char *units) {
 	if (units_ != NULL) {
@@ -279,7 +279,7 @@ public:
 	units_ = strdup(units);
     }
     const char *title(void) {
-	return (title_ == NULL) ? "???" : title_;
+	return title_;
     }
     void title(const char *title) {
 	if (title_ != NULL) {

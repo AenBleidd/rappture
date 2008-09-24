@@ -140,19 +140,31 @@ void Grid::render()
 	if (gluProject(1.2, 0.0, 0.0, mv, prjm, viewport, &wx, &wy, &wz)) {
 	    glLoadIdentity();
 	    glTranslatef((int) wx, viewport[3] - (int) wy, 0);
-	    _font->draw(xAxis.name());
+	    const char *name = xAxis.name();
+	    if (name == NULL) {
+		name = "???";
+	    }
+	    _font->draw(name);
 	}
 	
 	if (gluProject(0.0, 1.2, 0.0, mv, prjm, viewport, &wx, &wy, &wz)) {
 	    glLoadIdentity();
 	    glTranslatef((int) wx, viewport[3] - (int)wy, 0);
-	    _font->draw(yAxis.name());
+	    const char *name = yAxis.name();
+	    if (name == NULL) {
+		name = "???";
+	    }
+	    _font->draw(name);
 	}
 	
 	if (gluProject(0.0, 0.0, 1.2, mv, prjm, viewport, &wx, &wy, &wz)) {
 	    glLoadIdentity();
 	    glTranslatef((int) wx, (int) viewport[3] - (int)wy, 0.0f);
-	    _font->draw(zAxis.name());
+	    const char *name = zAxis.name();
+	    if (name == NULL) {
+		name = "???";
+	    }
+	    _font->draw(name);
 	}
 	
 	glColor4f(1.0f, 1.0f, 0.0f, 1.0f); 

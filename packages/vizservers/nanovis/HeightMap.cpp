@@ -64,7 +64,6 @@ void HeightMap::render(graphics::RenderContext* renderContext)
         glEnable(GL_CULL_FACE);
         glCullFace((GLuint) renderContext->getCullMode());
     }
-
     glPolygonMode(GL_FRONT_AND_BACK, (GLuint) renderContext->getPolygonMode());
     glShadeModel((GLuint) renderContext->getShadingModel());
 
@@ -336,6 +335,19 @@ HeightMap::setHeight(float xMin, float yMin, float xMax, float yMax,
             max = heights[i];
         }
     }
+#ifdef notdef
+    if (retainScale_) {
+	// Check the units of each axis.  If they are the same, we want to
+	// retain the surface's aspect ratio when transforming coordinates to
+	// the grid. Use the range of the longest axis when the units are the
+	// same.  
+	if (xAxis.units() != NULL) && (xAxis.units() == yAxis.units()) {
+	}
+	if (yAxis.units() != NULL) && (yAxis.units() == zAxis.units()) {
+	}
+    }
+#endif
+
     wAxis.SetRange(min, max);
     yAxis.SetRange(min, max);
     xAxis.SetRange(xMin, xMax);
@@ -443,7 +455,7 @@ HeightMap::MapToGrid(Grid *gridPtr)
     reset();
 
     // The range of the grid's y-axis 0..1 represents the distance between the
-    // smallest and largest major ticks for all surfaces plotted.  Translate 
+    // smallest and largest major ticks for all surfaces plotted.  Translate
     // this surface's y-values (heights) into the grid's axis coordinates.
 
     float yScale = 1.0 / (gridPtr->yAxis.max() - gridPtr->yAxis.min());
@@ -458,8 +470,8 @@ HeightMap::MapToGrid(Grid *gridPtr)
         t->set(0, 0, *p);
     }
 
-    // Normalize the mesh coordinates (x and z min/max) the range of 
-    // the major ticks for the x and z grid axes as well.
+    // Normalize the mesh coordinates (x and z min/max) the range of the major
+    // ticks for the x and z grid axes as well.
 
     float xScale, zScale;
     float xMin, xMax, zMin, zMax;
@@ -498,3 +510,4 @@ HeightMap::MapToGrid(Grid *gridPtr)
     this->createIndexBuffer(xNum_, yNum_, normHeights);
     delete [] normHeights;
 }
+

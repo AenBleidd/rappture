@@ -19,6 +19,7 @@
  */
 
 #include <stdio.h>
+#include <time.h>
 #include <assert.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -30,6 +31,7 @@
 #include <sys/select.h>
 #include <poll.h>
 #include <sys/time.h>
+#include <sys/times.h>
 #include <fcntl.h>
 #include <netinet/in.h>
 #include <getopt.h>
@@ -45,11 +47,16 @@
 #  define INLINE
 #endif
 
+#define FALSE 0
+#define TRUE  1
+
 #define IO_TIMEOUT (30000)
-#define STATSFILE	"/var/tmp/pymolproxy.csv"
+#define STATSFILE	"/var/tmp/visservers/data.xml"
+#define KEEPSTATS	1
+#define CVT2SECS(x)  ((double)(x).tv_sec) + ((double)(x).tv_usec * 1.0e-6)
 
 typedef struct {
-    unsigned int date;
+    pid_t child;		/* Child process. */
     size_t nFrames;		/* # of frames sent to client. */
     size_t nBytes;		/* # of bytes for all frames. */
     size_t nCommands;		/* # of commands executed */
@@ -62,19 +69,6 @@ static Stats stats;
 static FILE *flog;
 static int debug = 1;
 
-static void
-trace TCL_VARARGS_DEF(char *, arg1)
-{
-    if (debug) {
-        char *format;
-        va_list args;
-
-        format = TCL_VARARGS_START(char *, arg1, args);
-        vfprintf(flog, format, args);
-        fprintf(flog, "\n");
-        fflush(flog);
-    }
-}
 
 typedef struct {
     char *data;
@@ -102,63 +96,161 @@ typedef struct {
     int status;
 } PymolProxy;
 
+static void
+trace TCL_VARARGS_DEF(char *, arg1)
+{
+    if (debug) {
+        char *format;
+        va_list args;
+
+        format = TCL_VARARGS_START(char *, arg1, args);
+        vfprintf(flog, format, args);
+        fprintf(flog, "\n");
+        fflush(flog);
+    }
+}
+
+#ifdef KEEPSTATS
+
 static int
-ExecuteCommand(Tcl_Interp *interp, Tcl_DString *dsPtr, Stats *statsPtr) 
+WriteStats(const char *who, int code) 
+{
+    double start, finish;
+    pid_t pid;
+    char buf[BUFSIZ];
+    Tcl_DString ds;
+
+    {
+	struct timeval tv;
+
+	/* Get ending time.  */
+	gettimeofday(&tv, NULL);
+	finish = CVT2SECS(tv);
+	tv = stats.start;
+	start = CVT2SECS(tv);
+    }
+    /* 
+     * Session information:
+     *   1. Start date of session in seconds.
+     *   2. Process ID
+     *	 3. Number of frames returned.
+     *	 4. Number of bytes total returned (in frames).
+     *	 5. Total elapsed time of all commands.
+     *   6. Total elapsed time of session.
+     *	 7. Exit code of pymol server.
+     *   8. User time.  
+     *	 9. System time.
+     *  10. Maximum resident size.
+     */ 
+    pid = getpid();
+    Tcl_DStringInit(&ds);
+
+    sprintf(buf, "<session server=\"%s\" ", who);
+    Tcl_DStringAppend(&ds, buf, -1);
+
+    strcpy(buf, ctime(&stats.start.tv_sec));
+
+    buf[strlen(buf) - 1] = '\0';
+    Tcl_DStringAppend(&ds, "date=\"", -1);
+    Tcl_DStringAppend(&ds, buf, -1);
+    Tcl_DStringAppend(&ds, "\" ", -1);
+
+    sprintf(buf, "date_secs=\"%ld\" ", stats.start.tv_sec);
+    Tcl_DStringAppend(&ds, buf, -1);
+
+    sprintf(buf, "pid=\"%d\" ", pid);
+    Tcl_DStringAppend(&ds, buf, -1);
+    sprintf(buf, "num_frames=\"%lu\" ", (unsigned long int)stats.nFrames);
+    Tcl_DStringAppend(&ds, buf, -1);
+    sprintf(buf, "frame_bytes=\"%lu\" ", (unsigned long int)stats.nBytes);
+    Tcl_DStringAppend(&ds, buf, -1);
+    sprintf(buf, "num_commands=\"%lu\" ", (unsigned long int)stats.nCommands);
+    Tcl_DStringAppend(&ds, buf, -1);
+    sprintf(buf, "cmd_time=\"%g\" ", stats.cmdTime);
+    Tcl_DStringAppend(&ds, buf, -1);
+    sprintf(buf, "session_time=\"%g\" ", finish - start);
+    Tcl_DStringAppend(&ds, buf, -1);
+    sprintf(buf, "status=\"%d\" ", code);
+    Tcl_DStringAppend(&ds, buf, -1);
+    {
+	long clocksPerSec = sysconf(_SC_CLK_TCK);
+	double clockRes = 1.0 / clocksPerSec;
+	struct tms tms;
+
+	memset(&tms, 0, sizeof(tms));
+	if (times(&tms) < 0) {
+	    fprintf(flog, "can't get times: %s\n", strerror(errno));
+	}
+	sprintf(buf, "utime=\"%g\" ", tms.tms_utime * clockRes);
+	Tcl_DStringAppend(&ds, buf, -1);
+	sprintf(buf, "stime=\"%g\" ", tms.tms_stime * clockRes);
+	Tcl_DStringAppend(&ds, buf, -1);
+	sprintf(buf, "cutime=\"%g\" ", tms.tms_cutime * clockRes);
+	Tcl_DStringAppend(&ds, buf, -1);
+	sprintf(buf, "cstime=\"%g\" ", tms.tms_cstime * clockRes);
+	Tcl_DStringAppend(&ds, buf, -1);
+    }
+    Tcl_DStringAppend(&ds, "/>\n", -1);
+
+    {
+	int f;
+	ssize_t length;
+	int result;
+
+	length = Tcl_DStringLength(&ds);
+	f = open(STATSFILE, O_APPEND | O_CREAT | O_WRONLY, 0600);
+	result = FALSE;
+	if (f < 0) {
+	    goto error;
+	}
+	if (write(f, Tcl_DStringValue(&ds), length) != length) {
+	    goto error;
+	}
+	result = TRUE;
+ error:
+	if (f >= 0) {
+	    close(f);
+	}
+	Tcl_DStringFree(&ds);
+	return result;
+    }
+}
+#endif
+
+static void
+DoExit(int code)
+{
+    char fileName[200];
+#ifdef KEEPSTATS
+    WriteStats("pymolproxy", code);
+#endif
+    sprintf(fileName, "/tmp/pymol%d.pdb", getpid());
+    unlink(fileName);
+    exit(code);
+}
+
+static int
+ExecuteCommand(Tcl_Interp *interp, Tcl_DString *dsPtr) 
 {
     struct timeval tv;
     double start, finish;
     int result;
 
     gettimeofday(&tv, NULL);
-    start = ((double)tv.tv_sec) + ((double)tv.tv_usec * 1.0e-6);
+    start = CVT2SECS(tv);
+
     result = Tcl_Eval(interp, Tcl_DStringValue(dsPtr));
     trace("Executed (%s)", Tcl_DStringValue(dsPtr));
     Tcl_DStringSetLength(dsPtr, 0);
+
     gettimeofday(&tv, NULL);
-    
-    finish = ((double)tv.tv_sec) + ((double)tv.tv_usec * 1.0e-6);
-    statsPtr->cmdTime += finish - start;
-    statsPtr->nCommands++;
+    finish = CVT2SECS(tv);
+
+    stats.cmdTime += finish - start;
+    stats.nCommands++;
     return result;
 }
 
-#ifdef KEEPSTATS
-
-static int
-WriteStats(Stats *statsPtr, int code) 
-{
-    struct timeval tv;
-    double start, finish;
-    int f;
-    size_t length;
-    char buf[4000];
-
-    /* Get ending time.  */
-    gettimeofday(&tv, NULL);
-    finish = ((double)tv.tv_sec) + ((double)tv.tv_usec * 1.0e-6);
-    tv = statsPtr->start;
-    start = ((double)tv.tv_sec) + ((double)tv.tv_usec * 1.0e-6);
-    sprintf(buf, "\"pymolproxy\",%d,%d,%d,%d,%d,%d,%g,%g", 
-	    getpid(),
-	    code,
-	    statsPtr->date, 
-	    statsPtr->nFrames, 
-	    statsPtr->nBytes, 
-	    statsPtr->nCommands, 
-	    statsPtr->cmdTime, 
-	    finish - start);
-    f = open(STATSFILE, O_APPEND | O_CREAT | O_WRONLY, 0600);
-    if (f < 0) {
-	return 0;
-    }
-    length = strlen(buf);
-    if (write(f, buf, length) != length) {
-	return 0;
-    }
-    close(f);
-    return 1;
-}
-#endif
 
 INLINE static void
 dyBufferInit(DyBuffer *buffer)
@@ -1246,9 +1338,10 @@ ProxyInit(int c_in, int c_out, char *const *argv)
         
         execvp(argv[0], argv);
         trace("pymolproxy: Failed to start pyMol %s\n", argv[0]);
-        exit(-1);
+	exit(-1);
     }
-       
+    stats.child = pid;
+
     /* close opposite end of pipe, these now belong to the child process        */
     close(pairIn[0]);
     close(pairOut[1]);
@@ -1357,7 +1450,7 @@ ProxyInit(int c_in, int c_out, char *const *argv)
 		    if (ch == '\n' && Tcl_CommandComplete(Tcl_DStringValue(&cmdbuffer))) {
 			int result;
 
-			result = ExecuteCommand(interp, &cmdbuffer, &stats);
+			result = ExecuteCommand(interp, &cmdbuffer);
 			if (timeout == 0) status = 0; // send update
 		    }
 		}
@@ -1419,9 +1512,6 @@ ProxyInit(int c_in, int c_out, char *const *argv)
     }
     
     status = waitpid(pid, &result, WNOHANG);
-#ifdef KEEPSTATS
-    WriteStats(&stats, status);
-#endif
     if (status == -1) {
         trace("pymolproxy: error waiting on pymol server to exit (%d)\n", errno);
     } else if (status == 0) {
@@ -1445,8 +1535,8 @@ ProxyInit(int c_in, int c_out, char *const *argv)
     dyBufferFree(&pymol.image);
     
     Tcl_DeleteInterp(interp);
-    
-    return( (status == pid) ? 0 : 1);
+    DoExit(result);
+    return 0;
 }
 
 #ifdef STANDALONE

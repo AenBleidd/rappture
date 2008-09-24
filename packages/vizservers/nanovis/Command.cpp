@@ -103,8 +103,6 @@ extern void load_volume(int index, int width, int height, int depth,
 extern void load_vector_stream(int index, std::istream& fin);
 
 // Tcl interpreter for incoming messages
-static Tcl_Interp *interp;
-static Tcl_DString cmdbuffer;
 
 // default transfer function
 static const char def_transfunc[] =
@@ -452,7 +450,7 @@ GetVolumeIndices(Tcl_Interp *interp, int objc, Tcl_Obj *const *objv,
             if (GetVolumeIndex(interp, objv[n], &index) != TCL_OK) {
                 return TCL_ERROR;
             }
-            if (index < NanoVis::volume.size() && NanoVis::volume[index] != NULL) {
+            if (NanoVis::volume[index] != NULL) {
                 vectorPtr->push_back(index);
             }
         }
@@ -1913,7 +1911,6 @@ FlowCmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const *objv)
     return TCL_OK;
 }
 
-
 static int
 HeightMapDataFollowsOp(ClientData cdata, Tcl_Interp *interp, int objc,
                        Tcl_Obj *const *objv)
@@ -2115,6 +2112,7 @@ HeightMapShadingOp(ClientData cdata, Tcl_Interp *interp, int objc,
     NanoVis::renderContext->setShadingModel(model);
     return TCL_OK;
 }
+
 
 static int
 HeightMapTopView(ClientData data, Tcl_Interp *interp, int objc,
@@ -2474,6 +2472,7 @@ UniRect2dCmd(ClientData clientData, Tcl_Interp *interp, int objc,
     int xNum, yNum, zNum;
     float xMin, yMin, xMax, yMax;
     float *zValues;
+    const char *xUnits, *yUnits, *zUnits;
 
     if ((objc & 0x01) == 0) {
         Tcl_AppendResult(interp, Tcl_GetString(objv[0]), ": ",
@@ -2484,37 +2483,42 @@ UniRect2dCmd(ClientData clientData, Tcl_Interp *interp, int objc,
     zValues = NULL;
     xNum = yNum = zNum = 0;
     xMin = yMin = xMax = yMax = 0.0f;
+    xUnits = yUnits = zUnits = NULL;
     int i;
     for (i = 1; i < objc; i += 2) {
         const char *string;
+	char c;
 
         string = Tcl_GetString(objv[i]);
-        if (strcmp(string, "xmin") == 0) {
-            if (GetFloatFromObj(interp, objv[i+1], &xMin) != TCL_OK) {
-                return TCL_ERROR;
-            }
-        } else if (strcmp(string, "xmax") == 0) {
-            if (GetFloatFromObj(interp, objv[i+1], &xMax) != TCL_OK) {
-                return TCL_ERROR;
-            }
-        } else if (strcmp(string, "xnum") == 0) {
-            if (Tcl_GetIntFromObj(interp, objv[i+1], &xNum) != TCL_OK) {
-                return TCL_ERROR;
-            }
-            if (xNum <= 0) {
-                Tcl_AppendResult(interp, "bad xnum value: must be > 0",
-                                 (char *)NULL);
-                return TCL_ERROR;
-            }
-        } else if (strcmp(string, "ymin") == 0) {
+	c = string[0];
+	if ((c == 'x') && (strcmp(string, "xmin") == 0)) {
+	    if (GetFloatFromObj(interp, objv[i+1], &xMin) != TCL_OK) {
+		return TCL_ERROR;
+	    }
+	} else if ((c == 'x') && (strcmp(string, "xmax") == 0)) {
+	    if (GetFloatFromObj(interp, objv[i+1], &xMax) != TCL_OK) {
+		return TCL_ERROR;
+	    }
+	} else if ((c == 'x') && (strcmp(string, "xnum") == 0)) {
+	    if (Tcl_GetIntFromObj(interp, objv[i+1], &xNum) != TCL_OK) {
+		return TCL_ERROR;
+	    }
+	    if (xNum <= 0) {
+		Tcl_AppendResult(interp, "bad xnum value: must be > 0",
+				 (char *)NULL);
+		return TCL_ERROR;
+	    }
+	} else if ((c == 'x') && (strcmp(string, "xunits") == 0)) {
+	    xUnits = Tcl_GetString(objv[i+1]);
+	} else if ((c == 'y') && (strcmp(string, "ymin") == 0)) {
             if (GetFloatFromObj(interp, objv[i+1], &yMin) != TCL_OK) {
                 return TCL_ERROR;
             }
-        } else if (strcmp(string, "ymax") == 0) {
+        } else if ((c == 'y') && (strcmp(string, "ymax") == 0)) {
             if (GetFloatFromObj(interp, objv[i+1], &yMax) != TCL_OK) {
                 return TCL_ERROR;
             }
-        } else if (strcmp(string, "ynum") == 0) {
+        } else if ((c == 'y') && (strcmp(string, "ynum") == 0)) {
             if (Tcl_GetIntFromObj(interp, objv[i+1], &yNum) != TCL_OK) {
                 return TCL_ERROR;
             }
@@ -2523,7 +2527,9 @@ UniRect2dCmd(ClientData clientData, Tcl_Interp *interp, int objc,
                                  (char *)NULL);
                 return TCL_ERROR;
             }
-        } else if (strcmp(string, "zvalues") == 0) {
+	} else if ((c == 'y') && (strcmp(string, "yunits") == 0)) {
+	    yUnits = Tcl_GetString(objv[i+1]);
+        } else if ((c == 'z') && (strcmp(string, "zvalues") == 0)) {
             Tcl_Obj **zObj;
 
             if (Tcl_ListObjGetElements(interp, objv[i+1], &zNum, &zObj)!= TCL_OK) {
@@ -2536,9 +2542,11 @@ UniRect2dCmd(ClientData clientData, Tcl_Interp *interp, int objc,
                     return TCL_ERROR;
                 }
             }
+	} else if ((c == 'z') && (strcmp(string, "zunits") == 0)) {
+	    zUnits = Tcl_GetString(objv[i+1]);
         } else {
             Tcl_AppendResult(interp, "unknown key \"", string,
-                "\": should be xmin, xmax, xnum, ymin, ymax, ynum, or zvalues",
+                "\": should be xmin, xmax, xnum, xunits, ymin, ymax, ynum, yunits, zvalues, or zunits",
                 (char *)NULL);
             return TCL_ERROR;
         }
@@ -2555,6 +2563,11 @@ UniRect2dCmd(ClientData clientData, Tcl_Interp *interp, int objc,
     HeightMap* hmPtr;
     hmPtr = new HeightMap();
 
+    // Must set units before the heights.
+    hmPtr->xAxis.units(xUnits);
+    hmPtr->yAxis.units(yUnits);
+    hmPtr->zAxis.units(zUnits);
+    hmPtr->wAxis.units(yUnits);
     hmPtr->setHeight(xMin, yMin, xMax, yMax, xNum, yNum, zValues);
     hmPtr->setColorMap(NanoVis::get_transfunc("default"));
     hmPtr->setVisible(true);
@@ -2564,9 +2577,10 @@ UniRect2dCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 
-void 
+Tcl_Interp *
 initTcl()
 {
+
     /*
      * Ideally the connection is authenticated by nanoscale.  I still like the
      * idea of creating a non-safe master interpreter with a safe slave
@@ -2574,10 +2588,9 @@ initTcl()
      * can still run Tcl code within nanovis.  The eventual goal is to create
      * a test harness through the interpreter for nanovis.
      */
+    Tcl_Interp *interp;
     interp = Tcl_CreateInterp();
     Tcl_MakeSafe(interp);
-
-    Tcl_DStringInit(&cmdbuffer);
 
     Tcl_CreateObjCommand(interp, "axis",        AxisCmd,        NULL, NULL);
     Tcl_CreateObjCommand(interp, "camera",      CameraCmd,      NULL, NULL);
@@ -2601,124 +2614,58 @@ initTcl()
         fprintf(NanoVis::logfile, "WARNING: bad default transfer function\n");
         fprintf(NanoVis::logfile, Tcl_GetStringResult(interp));
     }
+    return interp;
 }
 
 
-void 
-xinetd_listen()
+
+int
+NanoVis::render_2d_contour(HeightMap* heightmap, int width, int height)
 {
-    int flags = fcntl(0, F_GETFL, 0);
-    fcntl(0, F_SETFL, flags & ~O_NONBLOCK);
+    int old_width = win_width;
+    int old_height = win_height;
 
-    int status = TCL_OK;
-    int npass = 0;
+    resize_offscreen_buffer(width, height);
 
-    //
-    //  Read and execute as many commands as we can from stdin...
-    //
-    while (status == TCL_OK) {
-        //
-        //  Read the next command from the buffer.  First time through we
-        //  block here and wait if necessary until a command comes in.
-        //
-        //  BE CAREFUL: Read only one command, up to a newline.  The "volume
-        //  data follows" command needs to be able to read the data
-        //  immediately following the command, and we shouldn't consume it
-        //  here.
-        //
-        while (1) {
-            int c = fgetc(NanoVis::stdin);
-	    char ch;
-            if (c <= 0) {
-                if (npass == 0) {
-                    exit(0);  // EOF -- we're done!
-                } else {
-                    break;
-                }
-            }
-	    ch = (char)c;
-            Tcl_DStringAppend(&cmdbuffer, &ch, 1);
+/* plane_render->set_screen_size(width, height);
 
-            if (ch=='\n' && Tcl_CommandComplete(Tcl_DStringValue(&cmdbuffer))) {
-                break;
-            }
-        }
-        // no command? then we're done for now
-        if (Tcl_DStringLength(&cmdbuffer) == 0) {
-            break;
-        }
-
-        // back to original flags during command evaluation...
-        fcntl(0, F_SETFL, flags & ~O_NONBLOCK);
-	if (debug_flag) {
-	    fprintf(NanoVis::logfile, "%s\n", Tcl_DStringValue(&cmdbuffer));
-	}
-        status = Tcl_Eval(interp, Tcl_DStringValue(&cmdbuffer));
-        Tcl_DStringSetLength(&cmdbuffer, 0);
-
-        // non-blocking for next read -- we might not get anything
-        fcntl(0, F_SETFL, flags | O_NONBLOCK);
-        npass++;
+    // generate data for the legend
+    float data[512];
+    for (int i=0; i < 256; i++) {
+        data[i] = data[i+256] = (float)(i/255.0);
     }
-    fcntl(0, F_SETFL, flags);
+    plane[0] = new Texture2D(256, 2, GL_FLOAT, GL_LINEAR, 1, data);
+    int index = plane_render->add_plane(plane[0], tf);
+    plane_render->set_active_plane(index);
 
-    if (status != TCL_OK) {
-        const char *string;
-        int nBytes;
+    offscreen_buffer_capture();
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); //clear screen
 
-        string = Tcl_GetStringFromObj(Tcl_GetObjResult(interp), &nBytes);
-        struct iovec iov[3];
-        iov[0].iov_base = (char *)"NanoVis Server Error: ";
-        iov[0].iov_len = strlen((char *)iov[0].iov_base);
-        iov[1].iov_base = (char *)string;
-        iov[1].iov_len = nBytes;
-        iov[2].iov_base = (char *)'\n';
-        iov[2].iov_len = 1;
-        writev(0, iov, 3);
-        return;
-    }
-
-    //
-    // This is now in "FlowCmd()":
-    //  Generate the latest frame and send it back to the client
-    //
-    /*
-      if (NanoVis::licRenderer && NanoVis::licRenderer->isActivated())
-      {
-      NanoVis::licRenderer->convolve();
-      }
-
-      if (NanoVis::particleRenderer && NanoVis::particleRenderer->isActivated())
-      {
-      NanoVis::particleRenderer->advect();
-      }
-    */
-
-    NanoVis::update();
-
-    NanoVis::offscreen_buffer_capture();  //enable offscreen render
-
-    NanoVis::display();
+    //plane_render->render();
+    // INSOO : is going to implement here for the topview of the heightmap
+    heightmap->render(renderContext);
 
     // INSOO
-#ifdef XINETD
-    NanoVis::read_screen();
-    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
-#else
-    NanoVis::display_offscreen_buffer(); //display the final rendering on screen
-    NanoVis::read_screen();
-    glutSwapBuffers();
-#endif
+    glReadPixels(0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, screen_buffer);
+    //glReadPixels(0, 0, width, height, GL_BGR, GL_UNSIGNED_BYTE, screen_buffer); // INSOO's
+*/
 
-#if DO_RLE
-    do_rle();
-    int sizes[2] = {  offsets_size*sizeof(offsets[0]), rle_size };
-    fprintf(stderr, "Writing %d,%d\n", sizes[0], sizes[1]); fflush(stderr);
-    write(0, &sizes, sizeof(sizes));
-    write(0, offsets, offsets_size*sizeof(offsets[0]));
-    write(0, rle, rle_size);    //unsigned byte
-#else
-    NanoVis::ppm_write("nv>image -bytes");
-#endif
+
+    // HELP ME
+    // GEORGE
+    // I am not sure what I should do
+    //char prefix[200];
+    //sprintf(prefix, "nv>height_top_view %s %g %g", volArg, min, max);
+    //ppm_write(prefix);
+    //write(0, "\n", 1);
+    
+
+
+
+    //plane_render->remove_plane(index);
+    
+    resize_offscreen_buffer(old_width, old_height);
+
+    return TCL_OK;
 }
 
