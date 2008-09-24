@@ -357,9 +357,7 @@ WriteStats(const char *who, int code)
 	struct tms tms;
 
 	memset(&tms, 0, sizeof(tms));
-	if (times(&tms) < 0) {
-	    fprintf(NanoVis::logfile, "can't get times: %s\n", strerror(errno));
-	}
+	times(&tms);
 	sprintf(buf, "utime=\"%g\" ", tms.tms_utime * clockRes);
 	Tcl_DStringAppend(&ds, buf, -1);
 	sprintf(buf, "stime=\"%g\" ", tms.tms_stime * clockRes);

@@ -178,9 +178,7 @@ WriteStats(const char *who, int code)
 	struct tms tms;
 
 	memset(&tms, 0, sizeof(tms));
-	if (times(&tms) < 0) {
-	    fprintf(flog, "can't get times: %s\n", strerror(errno));
-	}
+	times(&tms);
 	sprintf(buf, "utime=\"%g\" ", tms.tms_utime * clockRes);
 	Tcl_DStringAppend(&ds, buf, -1);
 	sprintf(buf, "stime=\"%g\" ", tms.tms_stime * clockRes);
@@ -193,8 +191,8 @@ WriteStats(const char *who, int code)
     Tcl_DStringAppend(&ds, "/>\n", -1);
 
     {
-	int f;
-	ssize_t length;
+	int f;			/* File descriptor */
+	ssize_t length;		/* Length of buffer. */
 	int result;
 
 	length = Tcl_DStringLength(&ds);
@@ -207,7 +205,7 @@ WriteStats(const char *who, int code)
 	    goto error;
 	}
 	result = TRUE;
- error:
+    error:
 	if (f >= 0) {
 	    close(f);
 	}
