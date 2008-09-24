@@ -81,7 +81,6 @@ enum AxisDirections {
     X_POS = 1, Y_POS = 2, Z_POS = 3, X_NEG = -1, Y_NEG = -2, Z_NEG = -3
 };
 
-#define STATSFILE	"/var/tmp/visservers/data.xml"
 #define KEEPSTATS	1
 
 #define CVT2SECS(x)  ((double)(x).tv_sec) + ((double)(x).tv_usec * 1.0e-6)
@@ -289,7 +288,7 @@ void removeAllData()
 }
 
 
-#ifdef KEEPSTATS
+#if KEEPSTATS
 
 static int
 WriteStats(const char *who, int code) 
@@ -374,6 +373,11 @@ WriteStats(const char *who, int code)
 	ssize_t length;
 	int result;
 
+#define STATSDIR	"/var/tmp/visservers"
+#define STATSFILE	STATSDIR "/" "data.xml"
+	if (access(STATSDIR, X_OK) != 0) {
+	    mkdir(STATSDIR, 0770);
+	}
 	length = Tcl_DStringLength(&ds);
 	f = open(STATSFILE, O_APPEND | O_CREAT | O_WRONLY, 0600);
 	result = FALSE;
@@ -399,7 +403,7 @@ DoExit(int code)
 {
     removeAllData();
     NvExit();
-#ifdef KEEPSTATS
+#if KEEPSTATS
     WriteStats("nanovis", code);
 #endif
     exit(code);

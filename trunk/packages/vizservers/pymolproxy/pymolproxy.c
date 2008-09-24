@@ -25,6 +25,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <signal.h>
+#include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/wait.h>
@@ -51,7 +52,6 @@
 #define TRUE  1
 
 #define IO_TIMEOUT (30000)
-#define STATSFILE	"/var/tmp/visservers/data.xml"
 #define KEEPSTATS	1
 #define CVT2SECS(x)  ((double)(x).tv_sec) + ((double)(x).tv_usec * 1.0e-6)
 
@@ -110,7 +110,7 @@ trace TCL_VARARGS_DEF(char *, arg1)
     }
 }
 
-#ifdef KEEPSTATS
+#if KEEPSTATS
 
 static int
 WriteStats(const char *who, int code) 
@@ -144,7 +144,7 @@ WriteStats(const char *who, int code)
      */ 
     pid = getpid();
     Tcl_DStringInit(&ds);
-
+    
     sprintf(buf, "<session server=\"%s\" ", who);
     Tcl_DStringAppend(&ds, buf, -1);
 
@@ -191,10 +191,15 @@ WriteStats(const char *who, int code)
     Tcl_DStringAppend(&ds, "/>\n", -1);
 
     {
-	int f;			/* File descriptor */
-	ssize_t length;		/* Length of buffer. */
+	int f;
+	ssize_t length;
 	int result;
 
+#define STATSDIR	"/var/tmp/visservers"
+#define STATSFILE	STATSDIR "/" "data.xml"
+	if (access(STATSDIR, X_OK) != 0) {
+	    mkdir(STATSDIR, 0770);
+	}
 	length = Tcl_DStringLength(&ds);
 	f = open(STATSFILE, O_APPEND | O_CREAT | O_WRONLY, 0600);
 	result = FALSE;
@@ -205,7 +210,7 @@ WriteStats(const char *who, int code)
 	    goto error;
 	}
 	result = TRUE;
-    error:
+ error:
 	if (f >= 0) {
 	    close(f);
 	}
@@ -219,7 +224,7 @@ static void
 DoExit(int code)
 {
     char fileName[200];
-#ifdef KEEPSTATS
+#if KEEPSTATS
     WriteStats("pymolproxy", code);
 #endif
     sprintf(fileName, "/tmp/pymol%d.pdb", getpid());
