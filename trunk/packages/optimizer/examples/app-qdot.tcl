@@ -23,13 +23,20 @@ set auto_path [linsert $auto_path 0 /home/ganesh/workspace/optim_post_dir_change
 package require -exact RapptureOptimizer 1.1
 set popsize 100  ;# size of each population for genetic algorithm
 
+set xml_path [lindex $argv 0]
+puts $xml_path
+
+
 # ----------------------------------------------------------------------
 #  Create a Tool object based on the tool.xml file...
 # ----------------------------------------------------------------------
 Rappture::getopts argv params {
-    value -tool tool.xml
+     value -tool tool.xml
 }
 
+after 2000
+puts $params(-tool)
+after 2000
 #blt::bltdebug 100
 
 # open the XML file containing the tool parameters

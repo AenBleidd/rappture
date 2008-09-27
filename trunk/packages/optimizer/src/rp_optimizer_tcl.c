@@ -16,6 +16,7 @@
 #include "rp_optimizer.h"
 
 extern int pgapack_abort;
+extern int pgapack_restart_user_action;
 
 /*
  * ----------------------------------------------------------------------
@@ -56,6 +57,7 @@ RpTclOption rpOptimNumberOpts[] = {
   {"-min", RP_OPTION_DOUBLE, Rp_Offset(RpOptimParamNumber,min)},
   {"-max", RP_OPTION_DOUBLE, Rp_Offset(RpOptimParamNumber,max)},
   {"-mutnrate",RP_OPTION_DOUBLE, Rp_Offset(RpOptimParamNumber,mutnrate)},
+  {"-mutnValue",RP_OPTION_DOUBLE, Rp_Offset(RpOptimParamNumber,mutnValue)},
   {"-randdist",&RpOption_RandDist,Rp_Offset(RpOptimParamNumber,randdist)},
   {"-strictmin",RP_OPTION_BOOLEAN,Rp_Offset(RpOptimParamNumber,strictmin)},
   {"-strictmax",RP_OPTION_BOOLEAN,Rp_Offset(RpOptimParamNumber,strictmax)},
@@ -82,7 +84,7 @@ static RpOptimStatus RpOptimizerPerformInTcl _ANSI_ARGS_((RpOptimEnv *envPtr,
 __declspec( dllexport )
 #endif
 
-extern int pgapack_abort;
+
 extern void PGARuntimeDataTableInit();
 extern void PGARuntimeDataTableDeInit();
 extern void GetSampleInformation();
@@ -393,7 +395,18 @@ RpOptimInstanceCmd(cdata, interp, objc, objv)
 	}
 	pgapack_abort = value;
 	return TCL_OK;
-    } else if (*option == 'g' && strcmp(option,"get") == 0) {
+    }else if (*option == 'r' && strcmp(option,"restart") == 0){
+		int value;
+        if (objc < 3) {
+            Tcl_WrongNumArgs(interp, 1, objv, "restart bool");
+            return TCL_ERROR;
+        }
+		if (Tcl_GetBooleanFromObj(interp, objv[2], &value) != TCL_OK) {
+	    	return TCL_ERROR;
+		}
+		pgapack_restart_user_action = value;
+		return TCL_OK;    
+	}else if (*option == 'g' && strcmp(option,"get") == 0) {
 	/*
 	 * OPTION:  get ?globPattern? ?-option?
 	 */

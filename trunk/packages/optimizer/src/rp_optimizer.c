@@ -114,6 +114,7 @@ RpOptimAddParamNumber(envPtr, name)
     numPtr->min = -DBL_MAX;
     numPtr->max = DBL_MAX;
     numPtr->mutnrate = PARAM_NUM_UNSPEC_MUTN_RATE; /*Unspecified by default, should result in global mutn rate being applied*/
+    numPtr->mutnValue = 0.01; /* value of this number will be changed by plus/minus hundredth of its current value*/
     numPtr->randdist = RAND_NUMBER_DIST_GAUSSIAN ;/*Gaussian by default*/
     numPtr->stddev = 1; 
     numPtr->mean = 0;
