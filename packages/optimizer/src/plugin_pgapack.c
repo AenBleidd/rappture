@@ -21,10 +21,14 @@ typedef struct PgapackData {
     int maxRuns;         /* maximum runs <=> PGASetMaxGAIterValue() */
     int popSize;         /* population size <=> PGASetPopSize() */
     int popRepl;         /* replacement <=> PGASetPopReplacementType() */
+    int numReplPerPop;    /* number of new strings created per population, the rest are the best strings from the previous population*/
     int stpcriteria;     /*stoppage criteria <=> PGASetStoppingRuleType()*/
     int randnumseed;  /*Random Number Seed <=> PGASetRandomSeed()*/
     double mutnrate;     /*Mutation Rate <=> PGASetMutationProb()*/
+    double mutnValue;     /*use this value while mutating*/
     double crossovrate;  /*Crossover Rate <=> PGASetCrossoverProb();*/
+    int allowdup;        /*Allow duplicate strings in the population or not*/
+    int mutnandcrossover;/*By default strings that do not undergo crossover undergo mutation, this option allows strings to crossover and be mutated*/
 } PgapackData;
 
 RpCustomTclOptionGet RpOption_GetStpCriteria;
@@ -57,11 +61,15 @@ RpTclOption PgapackOptions[] = {
   {"-maxruns", RP_OPTION_INT, Rp_Offset(PgapackData,maxRuns)},
   {"-operation", &RpOption_Oper, Rp_Offset(PgapackData,operation)},
   {"-poprepl", &RpOption_PopRepl, Rp_Offset(PgapackData,popRepl)},
+  {"-numReplPerPop",RP_OPTION_INT,Rp_Offset(PgapackData,numReplPerPop)},
   {"-popsize", RP_OPTION_INT, Rp_Offset(PgapackData,popSize)},
   {"-mutnrate",RP_OPTION_DOUBLE,Rp_Offset(PgapackData,mutnrate)},
+  {"-mutnValue",RP_OPTION_DOUBLE,Rp_Offset(PgapackData,mutnValue)},
   {"-crossovrate",RP_OPTION_DOUBLE,Rp_Offset(PgapackData,crossovrate)},
   {"-randnumseed",RP_OPTION_INT,Rp_Offset(PgapackData,randnumseed)},
   {"-stpcriteria",&RpOption_StpCriteria,Rp_Offset(PgapackData,stpcriteria)},
+  {"-allowdup",RP_OPTION_BOOLEAN,Rp_Offset(PgapackData,allowdup)},
+  {"-mutnandcrossover",RP_OPTION_BOOLEAN,Rp_Offset(PgapackData,mutnandcrossover)},
   {NULL, NULL, 0}
 };
 
@@ -103,14 +111,19 @@ PgapackInit()
     dataPtr->maxRuns = 10000;
     dataPtr->popRepl = PGA_POPREPL_BEST;
     dataPtr->popSize = 200;
+    dataPtr->numReplPerPop = (dataPtr->popSize)/10; /*10% replaced by default, change to whatever value you need*/
     dataPtr->crossovrate = 0.85;
     dataPtr->mutnrate = 0.05; /*by default in PGAPack 1/stringlength*/
+    dataPtr->mutnValue = 0.01;/*value of this number will be changed by plus/minus hundredth of its current value*/
     dataPtr->randnumseed = 1; /*should be a number greater than one, PGAPack requires it*/
     dataPtr->stpcriteria = PGA_STOP_NOCHANGE;
+    dataPtr->allowdup = PGA_FALSE; /*Do not allow duplicate strings by default*/
+    dataPtr->mutnandcrossover = PGA_FALSE;/*do not allow mutation and crossover to take place on the same string by default*/
     return (ClientData)dataPtr;
 }
 
 int pgapack_abort = 0;
+int pgapack_restart_user_action = 0;
 
 /*
  * ----------------------------------------------------------------------
@@ -135,6 +148,7 @@ PgapackRun(envPtr, evalProc, fitnessExpr)
 
     pgapack_abort = 0;		/* FALSE */
     PGASetAbortVar(&pgapack_abort);
+    PGASetRestartUserAction(&pgapack_restart_user_action);
 
     ctx = PGACreate(&argc, argv, PGA_DATATYPE_USER, envPtr->numParams,
         dataPtr->operation);
@@ -144,9 +158,13 @@ PgapackRun(envPtr, evalProc, fitnessExpr)
     PGASetPopReplaceType(ctx, dataPtr->popRepl);
     PGASetStoppingRuleType(ctx, dataPtr->stpcriteria);
     PGASetMutationProb(ctx,dataPtr->mutnrate);
+    PGASetMutationRealValue(ctx,dataPtr->mutnValue);
     PGASetCrossoverProb(ctx,dataPtr->crossovrate);
     PGASetRandomSeed(ctx,dataPtr->randnumseed);
     PGASetCrossoverType(ctx, PGA_CROSSOVER_UNIFORM);
+    PGASetNoDuplicatesFlag(ctx,dataPtr->allowdup);
+    PGASetMutationAndCrossoverFlag(ctx,dataPtr->mutnandcrossover);
+    PGASetNumReplaceValue(ctx,dataPtr->numReplPerPop);
 
 
     PGASetUserFunction(ctx, PGA_USERFUNCTION_CREATESTRING, PgapCreateString);
@@ -341,6 +359,7 @@ PgapMutation(ctx, p, pop, mr)
     int count = 0;    /* number of mutations */
 
     int n, ival,tempmr;
+    double mutnVal;
     RpOptimEnv *envPtr;
     RpOptimParam *paramPtr;
     RpOptimParamNumber *numPtr;
@@ -357,8 +376,10 @@ PgapMutation(ctx, p, pop, mr)
                 numPtr = (RpOptimParamNumber*)envPtr->paramList[n];
                 if(numPtr->mutnrate!=PARAM_NUM_UNSPEC_MUTN_RATE){
                 	tempmr = numPtr->mutnrate;
+                	mutnVal = numPtr->mutnValue;
                 }else{
                 	tempmr = mr;
+                	mutnVal = PGAGetMutationRealValue(ctx);
                 }
                 if (PGARandomFlip(ctx, tempmr)) {
 		            /* won the coin toss -- change this parameter */
@@ -366,9 +387,9 @@ PgapMutation(ctx, p, pop, mr)
 		            	
 	                /* bump the value up/down a little, randomly */
 	                if (PGARandomFlip(ctx, 0.5)) {
-	                    paramPtr[n].value.dval += 0.1*paramPtr[n].value.dval;
+	                    paramPtr[n].value.dval += mutnVal*paramPtr[n].value.dval; /*Made the mutation amount configurable*/
 	                } else {
-	                    paramPtr[n].value.dval -= 0.1*paramPtr[n].value.dval;
+	                    paramPtr[n].value.dval -= mutnVal*paramPtr[n].value.dval;
 	                }
 	                /* make sure the resulting value is still in bounds */
 	                if(numPtr->randdist == RAND_NUMBER_DIST_UNIFORM ||

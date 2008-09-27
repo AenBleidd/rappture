@@ -22,7 +22,7 @@ package require Rappture
 package require RapptureGUI
 set auto_path [linsert $auto_path 0 /home/ganesh/workspace/optim_post_dir_changes/src/lib]
 package require -exact RapptureOptimizer 1.1
-set popsize 100  ;# size of each population for genetic algorithm
+
 
 # ----------------------------------------------------------------------
 #  Create a Tool object based on the tool.xml file...
@@ -63,6 +63,9 @@ pack .value -side left -expand yes -fill both
 
 button .quit -text Quit -command "optim abort yes"
 pack .quit
+button .restart -text Restart -command "optim restart yes"
+pack .restart
+
 set colors {magenta purple blue DeepSkyBlue cyan green yellow Gold orange tomato red FireBrick black}
 
 for {set pop [expr [llength $colors]-1]} {$pop >= 0} {incr pop -1} {
@@ -96,11 +99,12 @@ proc add_to_plot {xmlobj} {
 # ----------------------------------------------------------------------
 Rappture::optimizer optim -tool $tool -using pgapack
 
-optim add number input.number(x1) -min -2 -max 2 -randdist gaussian -stddev 0.7 -mean 1 -mutnrate 0.01 -strictmin yes -strictmax yes
-optim add number input.number(x2) -min -2 -max 2 -randdist gaussian -stddev 0.5 -mean 1 -mutnrate 0.01 -strictmin yes -strictmax yes
-#optim configure -operation minimize -popsize 50 -maxruns 100 -mutnrate 0.01 -crossovrate 0.9 -randnumseed 24 -stpcriteria toosimilar
-
+optim add number input.number(x1) -min -2 -max 2 -randdist uniform -strictmin yes -strictmax yes
+optim add number input.number(x2) -min -2 -max 2 -randdist uniform -strictmin yes -strictmax yes
+optim configure -operation minimize -popsize 200 -maxruns 100 -mutnrate 0.5 -crossovrate 0.8 -randnumseed 20 -stpcriteria toosimilar -mutnandcrossover no -allowdup no -numReplPerPop 50 -mutnValue 0.1
 optim get configure 
+
+set popsize 200  ;# size of each population for genetic algorithm
 
 set status [optim perform \
     -fitness output.number(f).current \

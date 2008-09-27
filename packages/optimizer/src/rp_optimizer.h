@@ -47,7 +47,7 @@ typedef void (RpOptimCleanup)_ANSI_ARGS_((ClientData cdata));
  * the fitness function.
  */
 typedef enum {
-    RP_OPTIM_SUCCESS=0, RP_OPTIM_UNKNOWN, RP_OPTIM_FAILURE, RP_OPTIM_ABORTED
+    RP_OPTIM_SUCCESS=0, RP_OPTIM_UNKNOWN, RP_OPTIM_FAILURE, RP_OPTIM_ABORTED, RP_OPTIM_RESTARTED
 } RpOptimStatus;
 
 struct RpOptimEnv;   /* defined below */
@@ -106,6 +106,7 @@ typedef struct RpOptimParamNumber {
     double min;                     /* optimization constraint: min value */
     double max;                     /* optimization constraint: max value */
     double mutnrate;            	/* independently sets mutation rate for each parameter*/
+    double mutnValue;               /* on mutation bumps up/down the value by val (+-) mutnValue*val */
     int randdist;             		/* gaussian or uniform distribution*/
     int strictmin;					/* whether a strict min is to be applied for gauss. rand. numbers*/
     int strictmax;					/* whether a strict max is to be applied for gauss. rand. numbers*/
