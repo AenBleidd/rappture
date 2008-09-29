@@ -71,6 +71,7 @@ itcl::class ::Rappture::XyLegend {
 
     public method reset {} 
     public method Average {} 
+    public method Recolor {} 
     public method Check {}
     public method Delete { args } 
     public method Difference {} 
@@ -149,6 +150,7 @@ itcl::body Rappture::XyLegend::constructor { graph args } {
 	difference ""
 	delete ""
 	rename ""
+	recolor ""
     }
     foreach { but icon} $commands {
 	set title [string totitle $but]
@@ -166,6 +168,7 @@ itcl::body Rappture::XyLegend::constructor { graph args } {
     grid $controls.average    -column 1 -row 1 -sticky w
     grid $controls.rename     -column 1 -row 2 -sticky w
     grid $controls.delete     -column 1 -row 3 -sticky w
+    grid $controls.recolor    -column 1 -row 4 -sticky w
 
     grid columnconfigure $controls 0  -weight 1
     grid columnconfigure $controls 1 -weight 1
@@ -384,7 +387,7 @@ itcl::body Rappture::XyLegend::Delete { args } {
 itcl::body Rappture::XyLegend::Check {} {
     set nodes [$itk_component(legend) curselection]
     foreach n { hide show toggle raise lower 
-	rename average difference delete } {
+	rename average difference delete recolor } {
 	$itk_component(controls).$n configure -state disabled
     }
     foreach node $nodes {
@@ -402,17 +405,17 @@ itcl::body Rappture::XyLegend::Check {} {
 	0 {
 	}
 	1 {
-	    foreach n { hide show toggle rename } {
+	    foreach n { hide show toggle rename recolor } {
 		$itk_component(controls).$n configure -state normal
 	    }
 	}
 	2 {
-	    foreach n { hide show toggle difference average } {
+	    foreach n { hide show toggle difference average recolor } {
 		$itk_component(controls).$n configure -state normal
 	    }
 	}
 	default {
-	    foreach n { hide show toggle average } {
+	    foreach n { hide show toggle average recolor } {
 		$itk_component(controls).$n configure -state normal
 	    }
 	}
@@ -535,6 +538,24 @@ itcl::body Rappture::XyLegend::Difference {} {
     set diffelements_($elem2) 1
 }
 
+
+itcl::body Rappture::XyLegend::Recolor {} {
+    set nodes [$itk_component(legend) curselection]
+    if { $nodes == "" } {
+	return
+    }
+    foreach node $nodes {
+	set elem [$tree_ label $node]
+	if { $lastColorIndex_ == 0 } {
+	    set lastColorIndex_ [llength $autocolors_]
+	}
+	incr lastColorIndex_ -1
+	set color [lindex $autocolors_ $lastColorIndex_]
+	$graph_ element configure $elem -color $color
+	set im [$itk_component(legend) entry cget $node -icon]
+	$graph_ legend icon $elem $im
+    }
+}
 
 itcl::body Rappture::XyLegend::SelectAll { } {
     foreach node [$tree_ children 0] {

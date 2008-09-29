@@ -307,19 +307,6 @@ WriteStats(const char *who, int code)
 	tv = stats.start;
 	start = CVT2SECS(tv);
     }
-    /* 
-     * Session information:
-     *   1. Start date of session in seconds.
-     *   2. Process ID
-     *	 3. Number of frames returned.
-     *	 4. Number of bytes total returned (in frames).
-     *	 5. Total elapsed time of all commands.
-     *   6. Total elapsed time of session.
-     *	 7. Exit code of pymol server.
-     *   8. User time.  
-     *	 9. System time.
-     *  10. Maximum resident size.
-     */ 
     pid = getpid();
     Tcl_DStringInit(&ds);
     
@@ -388,7 +375,7 @@ WriteStats(const char *who, int code)
 	    goto error;
 	}
 	result = TRUE;
- error:
+    error:
 	if (f >= 0) {
 	    close(f);
 	}
