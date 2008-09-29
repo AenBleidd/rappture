@@ -900,6 +900,7 @@ itcl::body Rappture::Analyzer::_simState {state args} {
         if {"" != $mesg} {
             $itk_component(simstatus) insert end $mesg
         }
+        $itk_component(simstatus) configure -state disabled
     }
 }
 
