@@ -313,8 +313,13 @@ WriteStats(const char *who, int code)
     sprintf(buf, "<session server=\"%s\" ", who);
     Tcl_DStringAppend(&ds, buf, -1);
 
-    strcpy(buf, ctime(&stats.start.tv_sec));
+    gethostname(buf, BUFSIZ-1);
+    buf[BUFSIZ-1] = '\0';
+    Tcl_DStringAppend(&ds, "host=\"", -1);
+    Tcl_DStringAppend(&ds, buf, -1);
+    Tcl_DStringAppend(&ds, "\" ", -1);
 
+    strcpy(buf, ctime(&stats.start.tv_sec));
     buf[strlen(buf) - 1] = '\0';
     Tcl_DStringAppend(&ds, "date=\"", -1);
     Tcl_DStringAppend(&ds, buf, -1);
