@@ -1188,7 +1188,8 @@ NanoVis::ppm_write(const char *prefix)
     size_t data_length = win_width * win_height * 3;
 
     char command[200];
-    sprintf(command, "%s %d\n", prefix, header_length + data_length);
+    sprintf(command, "%s %lu\n", prefix, 
+    	(unsigned long)header_length + data_length);
 
     size_t wordsPerRow = (win_width * 24 + 31) / 32;
     size_t bytesPerRow = wordsPerRow * 4;

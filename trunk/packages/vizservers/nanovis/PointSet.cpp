@@ -50,7 +50,7 @@ PointSet::updateColor(float* color,  int colorCount)
     int numOfPoints;
     int index;
     float d = _max - _min;
-    for (/*empty*/; c <= end; c = (PCA::Cluster*)((int)c+sizeof(PCA::Cluster))){
+    for (/*empty*/; c <= end; c = (PCA::Cluster*)((char *)c+sizeof(PCA::Cluster))){
         points = c->points;
         numOfPoints = c->numOfPoints;
 	
