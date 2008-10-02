@@ -59,9 +59,6 @@ DX::DX(const char* filename, Outcome *resultPtr) :
         return;
     }
 
-    fprintf(stdout, "dxobj=%x\n", (unsigned int)_dxobj);
-    fflush(stdout);
-
     // parse out the positions array 
 
     // FIXME: nanowire will need a different way to parse out the positions
@@ -305,7 +302,6 @@ DX::__getInterpData()
     fprintf(stdout, "creating DXNewInterpolator...\n");
     fflush(stdout);
     interpolator = DXNewInterpolator(_dxobj,INTERP_INIT_IMMEDIATE,-1.0);
-    fprintf(stdout, "DXNewInterpolator=%x\n", (unsigned int)interpolator);
     fprintf(stdout,"_rank = %i\n",_rank);
     fprintf(stdout,"_shape = %i\n",_shape);
     fprintf(stdout,"_n = %i\n",_n);

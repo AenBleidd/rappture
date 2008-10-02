@@ -20,7 +20,7 @@ BucketSort::sort(ClusterAccel* clusterAccel, const Mat4x4& cameraMat, int level)
     Cluster* end = &(cluster[clusterAccel->numOfClusters[level - 1] - 1]);
 
     Vector3 pos;
-    for (; c <= end; c = (Cluster*) ((int) c + sizeof(Cluster))) {
+    for (; c <= end; c = (Cluster*) ((char *)c + sizeof(Cluster))) {
 	pos.transform(c->centroid, cameraMat);
 	addBucket(c, pos.length()*_invMaxLength);
     }
