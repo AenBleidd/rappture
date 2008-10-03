@@ -1612,8 +1612,6 @@ EXAMPLE:  When the "Gamma-&gt;X(L)" option is chosen above, this value is used t
                     <default>41</default>
                     <current>41</current>
                 </integer>
-                <current>
-                </current>
             </group>
             <group id="finfet">
                 <about>
@@ -1659,8 +1657,6 @@ EXAMPLE:  When the "Gamma-&gt;X(L)" option is chosen above, this value is used t
                     <default>41</default>
                     <current>41</current>
                 </integer>
-                <current>
-                </current>
             </group>
             <group id="str_ek_cal">
                 <about>
@@ -1733,8 +1729,6 @@ EXAMPLE:  When the "Gamma-&gt;X(L)" option is chosen above, this value is used t
                         <default>[001]</default>
                         <current>[001]</current>
                     </choice>
-                    <current>
-                    </current>
                 </group>
                 <group id="one_value">
                     <about>
@@ -1748,8 +1742,6 @@ EXAMPLE:  When the "Gamma-&gt;X(L)" option is chosen above, this value is used t
                         <default>0.02</default>
                         <current>0.02</current>
                     </number>
-                    <current>
-                    </current>
                 </group>
                 <group id="free_choice">
                     <about>
@@ -1779,11 +1771,7 @@ EXAMPLE:  When the "Gamma-&gt;X(L)" option is chosen above, this value is used t
                         <default>-0.02</default>
                         <current>-0.02</current>
                     </number>
-                    <current>
-                    </current>
                 </group>
-                <current>
-                </current>
             </group>
             <group id="str_sweep_cal">                <about>
                     <enable>input.phase(device).structure.current.parameters.string(geom) == "bulk" &amp;&amp; input.phase(analysis).group(bulk).choice(bulk_jobs) == "straincal"</enable>
@@ -1844,8 +1832,6 @@ EXAMPLE:  When the "Gamma-&gt;X(L)" option is chosen above, this value is used t
                         <default>[001]</default>
                         <current>001</current>
                     </choice>
-                    <current>
-                    </current>
                 </group>
                 <group id="strain_sweep_vals">
                     <about>
@@ -1882,11 +1868,7 @@ EXAMPLE:  When the "Gamma-&gt;X(L)" option is chosen above, this value is used t
                         <default>2</default>
                         <current>2</current>
                     </number>
-                    <current>
-                    </current>
                 </group>
-                <current>
-                </current>
 <!-- grp of str sweep val over --></group>
             <group id="NWbias">                <about>
                     <enable>input.phase(device).structure.current.parameters.group(dev_info).group(sim_type).choice(job) == "WSCBS"</enable>
@@ -1934,8 +1916,6 @@ EXAMPLE:  When the "Gamma-&gt;X(L)" option is chosen above, this value is used t
                     <default>300K</default>
                     <current>300K</current>
                 </number>
-                <current>
-                </current>
 <!-- this group is fpr setting the bias options for the self consistent run --></group>
             <group id="utbbias">                <about>
                     <enable>input.phase(device).structure.current.parameters.group(dev_info).group(sim_type).choice(job) == "USCEK"</enable>
@@ -1993,8 +1973,6 @@ EXAMPLE:  When the "Gamma-&gt;X(L)" option is chosen above, this value is used t
                     <default>300K</default>
                     <current>300K</current>
                 </number>
-                <current>
-                </current>
 <!-- this group is for setting the bias options for the self consistent run --></group>
             <group id="NWCV">                <about>
                     <enable>input.phase(device).structure.current.parameters.string(geom) == "wire" &amp;&amp;
@@ -2063,8 +2041,6 @@ EXAMPLE:  When the "Gamma-&gt;X(L)" option is chosen above, this value is used t
                     <default>300K</default>
                     <current>300K</current>
                 </number>
-                <current>
-                </current>
 <!-- this group is fpr setting the bias options for the self consistent run --></group>
             <group id="UTBCV">                <about>
                     <enable>(input.phase(device).structure.current.parameters.string(geom) == "utb" )&amp;&amp;
@@ -2166,11 +2142,7 @@ EXAMPLE:  When the "Gamma-&gt;X(L)" option is chosen above, this value is used t
                         <default>0.01V</default>
                         <current>0.01V</current>
                     </number>
-                    <current>
-                    </current>
 <!-- back gate potential --></group>
-                <current>
-                </current>
 <!-- this group is fpr setting the bias options for the self consistent run --></group>
             <separator>
                 <current>
