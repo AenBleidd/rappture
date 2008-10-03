@@ -15,7 +15,7 @@
 #\
 RAPPTURE_INSTALL_DIR=@prefix@ ; \
 . $RAPPTURE_INSTALL_DIR/bin/rappture.env ; \
-exec wish $0 $*
+exec wish "$0" $*
 # ----------------------------------------------------------------------
 # wish executes everything from here on...
 
