@@ -1523,7 +1523,7 @@ ProxyInit(int c_in, int c_out, char *const *argv)
         alarm(5);
         status = waitpid(pid, &result, 0);
         alarm(0);
-
+	
         while ((status == -1) && (errno == EINTR)) {
 	    trace("pymolproxy: Attempting to SIGKILL process.\n");
 	    kill(-pid, SIGKILL); // kill process group
@@ -1538,6 +1538,9 @@ ProxyInit(int c_in, int c_out, char *const *argv)
     dyBufferFree(&pymol.image);
     
     Tcl_DeleteInterp(interp);
+    if (WIFEXITED(result)) {
+	result = WEXITSTATUS(result);
+    }
     DoExit(result);
     return 0;
 }

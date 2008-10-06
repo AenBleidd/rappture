@@ -7,7 +7,9 @@ class AxisRange {
     double min_, max_;
     char *units_;
 public:
-    AxisRange(void) : min(0,0), max(1,0) {
+    AxisRange(void) {
+	min(0.0);
+	max(1.0);
     	units_ = NULL;
     }
     ~AxisRange(void) {
@@ -37,8 +39,9 @@ public:
 	if (units_ != NULL) {
 	    delete [] units_;
 	}
-	units_ = units;
-	if (units != NULL) {
+	if (units == NULL) {
+	    units_ = NULL;
+	} else {
 	    units_ = new char [strlen(units) + 1];
 	    strcpy(units_, units);
 	}
