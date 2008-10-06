@@ -423,6 +423,7 @@ AC_OUTPUT( [
     gui/apps/Makefile
     gui/apps/about
     gui/apps/rappture
+    gui/apps/rappture-csh.env
     gui/apps/rappture.env
     gui/apps/rerun
     gui/apps/simsim
