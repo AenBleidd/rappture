@@ -25,6 +25,7 @@ SCRIPTS	= \
 		$(srcdir)/nanovis-test \
 		rappture \
 		rappture.env \
+		rappture-csh.env \
 		rerun \
 		simsim  \
 		about
