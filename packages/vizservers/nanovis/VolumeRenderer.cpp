@@ -902,10 +902,10 @@ void VolumeRenderer::init_font(const char* filename) {
 
     FILE *file;
     unsigned short int bfType;
-    long int bfOffBits;
+    int bfOffBits;
     short int biPlanes;
     short int biBitCount;
-    long int biSizeImage;
+    int biSizeImage;
     int width, height;
     int i;
     unsigned char temp;
@@ -933,7 +933,7 @@ void VolumeRenderer::init_font(const char* filename) {
     fseek(file, 8, SEEK_CUR);
     
     /* get the position of the actual bitmap data */
-    if (!fread(&bfOffBits, sizeof(long int), 1, file)) {
+    if (!fread(&bfOffBits, sizeof(int), 1, file)) {
 	assert(false);
 	//printf("Error reading file!\n");
     }
