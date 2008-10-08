@@ -71,6 +71,7 @@
 
 #include "pgapack.h"
 
+int *pgapack_user_cmd_restart = NULL;
 /*U****************************************************************************
    PGARestart - reseeds a population from the best string
 
@@ -326,5 +327,31 @@ double PGAGetRestartAlleleChangeProb(PGAContext *ctx)
     PGADebugExited("PGAGetRestartAlleleChangeProb");
 
     return (ctx->ga.restartAlleleProb);
+}
+
+void PGASetRestartUserAction(int *userRestartCommand)
+{
+	pgapack_user_cmd_restart = userRestartCommand; 
+}
+
+int PGARestartCondition(PGAContext *ctx){
+	int ifRestart = PGA_FALSE;
+	if (  (pgapack_user_cmd_restart!=NULL && *pgapack_user_cmd_restart==PGA_TRUE)       ||
+			(
+				(ctx->ga.restart == PGA_TRUE) &&
+				(ctx->ga.ItersOfSame % ctx->ga.restartFreq == 0)
+			)
+	   ) {
+			ifRestart = PGA_TRUE;
+		 }
+		 
+	if ((ctx->ga.restart == PGA_TRUE) &&
+	(ctx->ga.ItersOfSame % ctx->ga.restartFreq == 0)) {
+		ctx->ga.ItersOfSame++;
+	}
+	if (pgapack_user_cmd_restart!=NULL){
+		*pgapack_user_cmd_restart = PGA_FALSE;
+	}
+	return ifRestart;
 }
 

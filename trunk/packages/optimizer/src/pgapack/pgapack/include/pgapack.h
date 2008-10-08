@@ -764,6 +764,8 @@ void PGASetRestartFrequencyValue(PGAContext *ctx, int numiter);
 int PGAGetRestartFrequencyValue(PGAContext *ctx);
 void PGASetRestartAlleleChangeProb(PGAContext *ctx, double prob);
 double PGAGetRestartAlleleChangeProb(PGAContext *ctx);
+void PGASetRestartUserAction(int *userRestartCommand);
+int PGARestartCondition(PGAContext *ctx);
 
 /*****************************************
 *          select.c
