@@ -69,7 +69,6 @@ static Stats stats;
 static FILE *flog;
 static int debug = FALSE;
 
-
 typedef struct {
     char *data;
     int   used;
@@ -421,7 +420,7 @@ timerset_ms(struct timeval *result, int timeout)
 }
 
 static int
-getline(int sock, char *buffer, int size, long timeout)
+getline(int sock, char *buffer, int size, int timeout)
 {
     int pos = 0, status, timeo;
     struct timeval now, end, tmo;
@@ -479,7 +478,7 @@ waitForString(PymolProxy *pymol, char *string, char *buffer, int length)
     sock = pymol->p_stdout;
     trace("want to match (%s)\n", string);
     while(1) {
-        if (getline(sock,buffer,length,IO_TIMEOUT) == 0) {
+        if (getline(sock,buffer,length, IO_TIMEOUT) == 0) {
             pymol->error = 2;
             pymol->status = TCL_ERROR;
             break;
@@ -1024,7 +1023,7 @@ LoadPDB2Cmd(ClientData cdata, Tcl_Interp *interp, int argc,
     {
 	char fileName[200];
 	FILE *f;
-	size_t nBytes, nWritten;
+	ssize_t nBytes, nWritten;
 
 	sprintf(fileName, "/tmp/pymol%d.pdb", getpid());
 	f = fopen(fileName, "w");
