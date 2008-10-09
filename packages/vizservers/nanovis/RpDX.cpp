@@ -158,13 +158,13 @@ DX::DX(const char* filename, Outcome *resultPtr) :
     case TYPE_FLOAT:
         float *float_data;
 
-        float_data = (float*) DXGetArrayData(dxdata);
+        float_data = (float *)DXGetArrayData(dxdata);
         memcpy(_data, float_data, sizeof(float)*_n);
         break;
 
     case TYPE_DOUBLE:
         double *double_data;
-        double_data = (double*) DXGetArrayData(dxdata);
+        double_data = (double *)DXGetArrayData(dxdata);
         for (int i = 0; i < _n; i++) {
             _data[i] = double_data[i];
         }
