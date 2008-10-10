@@ -176,7 +176,7 @@ public:
     static void update_trans(int delta_x, int delta_y, int delta_z);
 #endif
 
-    static FILE *stdin, *logfile;
+    static FILE *stdin, *logfile, *recfile;
 
     static void read_screen(void) {
 	glReadPixels(0, 0, win_width, win_height, GL_RGB, GL_UNSIGNED_BYTE, 
