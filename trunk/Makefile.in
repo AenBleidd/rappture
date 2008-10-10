@@ -11,6 +11,7 @@ srcdir		= @srcdir@
 
 INSTALL		= @INSTALL@
 SHELL		= @SHELL@
+MKDIR_P		= @MKDIR_P@
 RM		= rm -f
 VPATH		= $(srcdir)
 
@@ -19,7 +20,8 @@ machine		:= $(shell uname -m | sed 's/\ //')
 os		:= $(shell uname -s)
 bn		:= $(shell basename $(prefix))
 
-tarfile		= rappture-$(os)-$(machine)-$(build_date).tar.gz
+binary_tarfile	= rappture-$(os)-$(machine)-$(build_date).tar.gz
+source_tarfile	= rappture-src-$(build_date).tar.gz
 
 ENABLE_GUI	= @ENABLE_GUI@
 
@@ -70,4 +72,12 @@ distclean:
 	$(RM) Makefile config.status config.log  *~
 
 package: 
-	tar -C $(prefix) -czlf $(tarfile) .
+	tar -C $(prefix) -czlf $(binary_tarfile) .
+
+distrib: 
+	$(RM) -r exported
+	$(MKDIR_P) exported
+	(cd exported; \
+	    svn exported https://repo.nanohub.org/svn/rappture/trunk rappture)
+	tar -C exported -czlf $(source_tarfile) rappture
+	$(RM) -r exported
