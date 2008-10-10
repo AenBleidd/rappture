@@ -122,6 +122,7 @@ NvLIC* NanoVis::licRenderer = 0;
 
 FILE *NanoVis::stdin = NULL;
 FILE *NanoVis::logfile = NULL;
+FILE *NanoVis::recfile = NULL;
 
 bool NanoVis::lic_on = false;
 bool NanoVis::particle_on = false;
@@ -448,6 +449,10 @@ ExecuteCommand(Tcl_Interp *interp, Tcl_DString *dsPtr)
 
     if (debug_flag) {
 	fprintf(NanoVis::logfile, "%s\n", Tcl_DStringValue(dsPtr));
+    }
+    if (NanoVis::recfile != NULL) {
+	fprintf(NanoVis::recfile, "%s\n", Tcl_DStringValue(dsPtr));
+	fflush(NanoVis::recfile);
     }
     result = Tcl_Eval(interp, Tcl_DStringValue(dsPtr));
     Tcl_DStringSetLength(dsPtr, 0);
@@ -2225,12 +2230,13 @@ main(int argc, char** argv)
 	    {"logfile", required_argument, NULL,	   1},
 	    {"path",    required_argument, NULL,	   2},
 	    {"debug",   no_argument,       NULL,	   3},
+	    {"record",  required_argument, NULL,	   4},
 	    {0, 0, 0, 0}
 	};
 	int option_index = 0;
 	int c;
 
-	c = getopt_long(argc, argv, ":dp:i:l:", long_options, &option_index);
+	c = getopt_long(argc, argv, ":dp:i:l:r:", long_options, &option_index);
         if (c == -1) {
             break;
         }
@@ -2268,6 +2274,22 @@ main(int argc, char** argv)
 	    fprintf(stderr, "opening logfile %s\n", optarg);
 	    NanoVis::logfile = fopen(optarg, "w");
 	    if (NanoVis::logfile == NULL) {
+		perror(optarg);
+		return 2;
+	    }
+	    break;
+	case 4:
+	case 'r':
+	    Tcl_DString ds;
+	    char buf[200];
+
+	    fprintf(stderr, "Recording commands to %s\n", optarg);
+	    Tcl_DStringInit(&ds);
+	    Tcl_DStringAppend(&ds, optarg, -1);
+	    sprintf(buf, ".%d", getpid());
+	    Tcl_DStringAppend(&ds, buf, -1);
+	    NanoVis::recfile = fopen(Tcl_DStringValue(&ds), "w");
+	    if (NanoVis::recfile == NULL) {
 		perror(optarg);
 		return 2;
 	    }
