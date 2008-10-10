@@ -29,7 +29,7 @@ pymolproxy="${dir}/bin/pymolproxy ${dir}/bin/pymol -p -q -i -x -X 0 -Y 0"
 # of nanoscale won't create their own run directories (only the first
 # one will).
 
-if test -f "$dir" ; then
+if test -d "$dir" ; then
   echo "Reusing previously installed version from $render_dir"
 else 
   echo "Copying rappture from $render_dir"
