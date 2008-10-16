@@ -59,4 +59,7 @@ void debug(char *message, double v1);
 void debug(char *message, double v1, double v2);
 void debug(char *message, double v1, double v2, double v3);
 
+#define __NANOVIS_DEBUG__ 0
+//#define __NANOVIS_DEBUG__ 1
+
 #endif

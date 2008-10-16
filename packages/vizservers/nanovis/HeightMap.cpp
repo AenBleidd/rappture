@@ -22,6 +22,7 @@ double HeightMap::valueMin = 0.0;
 double HeightMap::valueMax = 1.0;
 
 #define TOPCONTOUR	0
+//#define TOPCONTOUR	1
 HeightMap::HeightMap() : 
     _vertexBufferObjectID(0), 
     _textureBufferObjectID(0), 
@@ -509,5 +510,137 @@ HeightMap::MapToGrid(Grid *gridPtr)
 #endif
     this->createIndexBuffer(xNum_, yNum_, normHeights);
     delete [] normHeights;
+}
+
+void HeightMap::render_topview(graphics::RenderContext* renderContext, int render_width, int render_height)
+{
+   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glPushAttrib(GL_VIEWPORT_BIT);
+    glViewport(0, 0, render_width, render_height);
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
+    glLoadIdentity();
+    //gluOrtho2D(0, render_width, 0, render_height);
+    glOrtho(-.5, .5, -.5, .5, -50, 50);
+    glMatrixMode(GL_MODELVIEW);
+    glPushMatrix();
+    glLoadIdentity();
+
+    glTranslatef(0.0, 0.0, -10.0);
+
+    // put camera rotation and traslation
+    //glScalef(1 / _scale.x, 1 / _scale.y , 1 / _scale.z);
+
+    if (renderContext->getCullMode() == graphics::RenderContext::NO_CULL) {
+        glDisable(GL_CULL_FACE);
+    } else {
+        glEnable(GL_CULL_FACE);
+        glCullFace((GLuint) renderContext->getCullMode());
+    }
+
+    glPolygonMode(GL_FRONT_AND_BACK, (GLuint) renderContext->getPolygonMode());
+    glShadeModel((GLuint) renderContext->getShadingModel());
+
+    glPushMatrix();
+
+    //glTranslatef(-_centerPoint.x, -_centerPoint.y, -_centerPoint.z);
+
+    //glScalef(0.01, 0.01, 0.01f);
+    glRotatef(90.0f, 1.0f, 0.0f, 0.0f);
+    glTranslatef(-_centerPoint.x, -_centerPoint.y, -_centerPoint.z);
+    if (_contour != NULL) {
+        glDepthRange (0.001, 1.0);
+    }
+        
+    glEnable(GL_DEPTH_TEST);
+
+    glEnable(GL_BLEND);
+    glEnable(GL_TEXTURE_2D);
+    if (_vertexBufferObjectID) 
+    {
+        printf("TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT\n");
+        glColor3f(1.0f, 1.0f, 1.0f);
+        glShadeModel(GL_SMOOTH);
+        glEnable(GL_BLEND);
+        glEnableClientState(GL_VERTEX_ARRAY);
+        glDisableClientState(GL_COLOR_ARRAY);
+        glDisableClientState(GL_INDEX_ARRAY);
+        glDisableClientState(GL_NORMAL_ARRAY);
+        
+        if (_colorMap) {
+            cgGLBindProgram(_shader->getFP());
+            cgGLEnableProfile(CG_PROFILE_FP30);
+            
+            cgGLSetTextureParameter(_tf, _colorMap->id);
+            cgGLEnableTextureParameter(_tf);
+            
+            glEnable(GL_TEXTURE_1D);
+            _colorMap->getTexture()->activate();
+            
+            glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+        }
+        else {
+            glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+        }
+        
+        glBindBuffer(GL_ARRAY_BUFFER, _vertexBufferObjectID);
+        glVertexPointer(3, GL_FLOAT, 12, 0);
+        
+        glBindBuffer(GL_ARRAY_BUFFER, _textureBufferObjectID);
+        ::glTexCoordPointer(3, GL_FLOAT, 12, 0);
+        
+#define _TRIANGLES_
+#ifdef _TRIANGLES_
+        glDrawElements(GL_TRIANGLES, _indexCount, GL_UNSIGNED_INT, 
+                       _indexBuffer);
+#else                   
+        glDrawElements(GL_QUADS, _indexCount, GL_UNSIGNED_INT, 
+                       _indexBuffer);
+#endif
+
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        
+        glDisableClientState(GL_VERTEX_ARRAY);
+        if (_colorMap) {
+            _colorMap->getTexture()->deactivate();
+            glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+            
+            cgGLDisableProfile(CG_PROFILE_FP30);
+        }
+    }
+    
+    glShadeModel(GL_FLAT);
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    
+    if (_contour != NULL) {
+        if (_contourVisible) {
+            glDisable(GL_BLEND);
+            glDisable(GL_TEXTURE_2D);
+            glColor4f(_contourColor.x, _contourColor.y, _contourColor.z, 1.0f);
+            glDepthRange (0.0, 0.999);
+            _contour->render();
+            glDepthRange (0.0, 1.0);
+        }
+
+#if TOPCONTOUR
+        if (_topContourVisible) {
+            glDisable(GL_BLEND);
+            glDisable(GL_TEXTURE_2D);
+            glColor4f(_contourColor.x, _contourColor.y, _contourColor.z, 1.0f);
+            //glDepthRange (0.0, 0.999);
+            _topContour->render();
+            //glDepthRange (0.0, 1.0);
+        }
+#endif
+    }
+    
+    glPopMatrix();
+    glPopMatrix();
+
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
+    glMatrixMode(GL_MODELVIEW);
+
+    glPopAttrib();
 }
 

@@ -64,6 +64,7 @@ private :
 	void reset();
 public :
     void render(graphics::RenderContext* renderContext);
+    void render_topview(graphics::RenderContext* renderContext, int render_width, int render_height);
     /**
      *@brief Create a height map with heigh values
      *@param startX a x position of the first height value

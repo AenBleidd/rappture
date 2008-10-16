@@ -63,7 +63,6 @@ PixelOut main(v2f IN,
     //float normal_dot_light = abs(dot(normal, light_vector));
     //float normal_dot_half = abs(dot(normal, half_vector));
 
-
     float ambient = 0.8;
 
     float diffuse = normal_dot_light * renderParameters.z;
@@ -86,3 +85,4 @@ PixelOut main(v2f IN,
 
   return OUT;
 }
+
