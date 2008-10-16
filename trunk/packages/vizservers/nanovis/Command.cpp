@@ -39,6 +39,7 @@
  */
 
 #include <tcl.h>
+#include <stdlib.h>
 #include "Trace.h"
 #include "Command.h"
 #include "nanovis.h"
@@ -1313,6 +1314,7 @@ VolumeDataFollowsOp(ClientData cdata, Tcl_Interp *interp, int objc,
     // overwrite the first, so the first won't appear at all.
     //
     if (NanoVis::volume[n] != NULL) {
+        //NanoVis::volume[n]->set_n_slice(512-n);
         NanoVis::volume[n]->set_n_slice(256-n);
         NanoVis::volume[n]->disable_cutplane(0);
         NanoVis::volume[n]->disable_cutplane(1);
@@ -1896,7 +1898,8 @@ FlowCmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const *objv)
             //   appear at all.
             //
             if (volPtr != NULL) {
-                volPtr->set_n_slice(256-n);
+                //volPtr->set_n_slice(256-n);
+                volPtr->set_n_slice(512-n);
                 volPtr->disable_cutplane(0);
                 volPtr->disable_cutplane(1);
                 volPtr->disable_cutplane(2);
@@ -2128,7 +2131,6 @@ HeightMapTopView(ClientData data, Tcl_Interp *interp, int objc,
     // HELP ME
     // GEORGE
 
-
     NanoVis::render_2d_contour(heightmap, image_width, image_height);
     
     return TCL_OK;
@@ -2140,16 +2142,18 @@ HeightMapTestOp(ClientData cdata, Tcl_Interp *interp, int objc,
 {
     srand((unsigned)time(NULL));
 
-    int size = 20 * 200;
+    int size = 20 * 20;
     double sigma = 5.0;
     double mean = exp(0.0) / (sigma * sqrt(2.0));
     float* data = (float*) malloc(sizeof(float) * size);
 
-    float x;
+    float x, y;
     for (int i = 0; i < size; ++i) {
         x = - 10 + i%20;
-        data[i] = exp(- (x * x)/(2 * sigma * sigma)) /
+        y = - 10 + (i/20);
+        data[i] = exp(- (x * y)/(2 * sigma * sigma)) /
             (sigma * sqrt(2.0)) / mean * 2 + 1000;
+        //data[i] = ((float)rand()) / RAND_MAX * 1.0;
     }
 
     HeightMap* hmPtr = new HeightMap();
@@ -2157,12 +2161,18 @@ HeightMapTestOp(ClientData cdata, Tcl_Interp *interp, int objc,
     float maxx = 1.0f;
     float miny = 0.5f;
     float maxy = 3.5f;
-    hmPtr->setHeight(minx, miny, maxx, maxy, 20, 200, data);
+    hmPtr->setHeight(minx, miny, maxx, maxy, 20, 20, data);
     hmPtr->setColorMap(NanoVis::get_transfunc("default"));
     hmPtr->setVisible(true);
     hmPtr->setLineContourVisible(true);
     NanoVis::grid->setVisible(true);
     NanoVis::heightMap.push_back(hmPtr);
+
+    int image_width = 512;
+    int image_height = 512;
+
+    NanoVis::render_2d_contour(hmPtr, image_width, image_height);
+
     return TCL_OK;
 }
 
@@ -2204,7 +2214,7 @@ static Rappture::CmdSpec heightMapOps[] = {
 
     // HELP ME
     // GOERGE
-    {"topview",      1, HeightMapTopView,     3, 3, "model",},
+    {"topview",      2, HeightMapTopView,     2, 2, "",},
 };
 static int nHeightMapOps = NumCmdSpecs(heightMapOps);
 

@@ -878,6 +878,7 @@ NanoVis::initGL(void)
    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
    glClearColor(0,0,0,1);
+   //glClearColor(0.7,0.7,0.7,1);
    glClear(GL_COLOR_BUFFER_BIT);
 
    //initialize lighting
@@ -2402,11 +2403,28 @@ NanoVis::render_2d_contour(HeightMap* heightmap, int width, int height)
     //sprintf(prefix, "nv>height_top_view %s %g %g", volArg, min, max);
     //ppm_write(prefix);
     //write(0, "\n", 1);
-    
-
-
-
     //plane_render->remove_plane(index);
+
+    // CURRENT
+    offscreen_buffer_capture();
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); //clear screen
+        //glEnable(GL_TEXTURE_2D);
+        //glEnable(GL_DEPTH_TEST);
+    //heightmap->render_topview(renderContext, width, height);
+    //NanoVis::display();
+    if (HeightMap::update_pending) {
+        SetHeightmapRanges();
+    }
+
+    //cam->activate();
+
+    heightmap->render_topview(renderContext, width, height);
+
+    NanoVis::read_screen();
+    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
+
+    // INSOO TEST CODE
+    bmp_write_to_file(1, "/tmp");
     
     resize_offscreen_buffer(old_width, old_height);
 

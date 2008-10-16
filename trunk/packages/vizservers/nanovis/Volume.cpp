@@ -33,7 +33,8 @@ Volume::Volume(float x, float y, float z,
     nonzero_min(nz_min),
     pointsetIndex(-1),
     enabled(true),
-    n_slice(256),		// default value
+    //n_slice(256),		// default value
+    n_slice(512),		// default value
     specular(6.),		// default value
     diffuse(3.),		// default value
     opacity_scale(10.),		// default value
