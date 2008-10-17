@@ -457,7 +457,12 @@ itcl::body Rappture::SequenceResult::_rebuild {args} {
                 }
                 switch -- $dimensions {
                     2D {
-                        Rappture::Field2DResult $viewer
+			if { [$dataobj isunirect2d] } {
+			    set mode "heightmap"
+			} else {
+			    set mode "auto"
+			}
+			Rappture::Field2DResult $viewer -mode $mode
                     }
                     3D {
                         Rappture::Field3DResult $viewer

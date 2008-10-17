@@ -27,6 +27,7 @@ itcl::class Rappture::Field {
     public method limits {axis}
     public method controls {option args}
     public method hints {{key ""}}
+    public method isunirect2d {}
 
     protected method _build {}
     protected method _getValue {expr}
@@ -763,4 +764,15 @@ itcl::body Rappture::Field::_getValue {expr} {
     }
 
     return [list $expr $pcomp]
+}
+
+# ----------------------------------------------------------------------
+# USAGE: mesh ?<name>?
+#
+# Returns a list {xvec yvec} for the specified field component <name>.
+# If the name is not specified, then it returns the vectors for the
+# overall field (sum of all components).
+# ----------------------------------------------------------------------
+itcl::body Rappture::Field::isunirect2d { } {
+    return [expr [array size _comp2unirect2d] > 0]
 }
