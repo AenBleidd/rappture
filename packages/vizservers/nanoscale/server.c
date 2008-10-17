@@ -38,6 +38,9 @@ struct sockaddr_in send_addr;  // The subnet address we broadcast to.
 fd_set saved_rfds;          // Descriptors we're reading from.
 fd_set pipe_rfds;           // Descriptors that are pipes to children.
 fd_set service_rfds[MAX_SERVICES];
+int maxScreens = 1;
+unsigned long nRequests = 0;
+char displayVar[200];
 
 struct host_info {
     struct in_addr in_addr;
@@ -53,9 +56,6 @@ struct child_info {
 
 struct host_info host_array[100];
 struct child_info child_array[100];
-
-
-
 
 /*
  * min()/max() macros that also do
@@ -102,7 +102,6 @@ find_best_host(void)
     //printf("I choose %d\n", index);
     return index;
 }
-
 
 static void 
 broadcast_load(void)
@@ -226,6 +225,10 @@ main(int argc, char *argv[])
     listen_port[0] = -1;
     server_command[0][0] = 0;
 
+    strcpy(displayVar, "DISPLAY=:0.0");
+    if (putenv(displayVar) < 0) {
+	perror("putenv");
+    }
     while(1) {
 	int c;
 	int option_index = 0;
@@ -580,7 +583,7 @@ main(int argc, char *argv[])
 			    // disassociate
 			    if ( daemon(0,1) == 0 ) { 
 				int fd;
-			      
+
 				dup2(i, 0);  // stdin
 				dup2(i, 1);  // stdout
 				dup2(i, 2);  // stderr
@@ -592,6 +595,13 @@ main(int argc, char *argv[])
 				for(fd=5; fd<FD_SETSIZE; fd++)
 				    close(fd);
 			      
+				if (maxScreens > 1) {
+				    int dispNum;
+
+				    dispNum = nRequests % maxScreens;
+				    nRequests++;
+				    displayVar[11] = dispNum + '0';
+				}
 				execvp(command_argv[n][0], command_argv[n]);
 			    }
 			    _exit(errno);
