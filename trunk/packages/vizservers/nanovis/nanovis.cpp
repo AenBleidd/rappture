@@ -2225,6 +2225,24 @@ main(int argc, char** argv)
     gettimeofday(&tv, NULL);
     stats.start = tv;
 
+    /* Initialize GLUT here so it can parse and remove GLUT-specific 
+     * command-line options before we parse the command-line below. */
+    glutInit(&argc, argv);
+    glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA);
+    glutInitWindowSize(NanoVis::win_width, NanoVis::win_height);
+    glutInitWindowPosition(10, 10);
+    glutDisplayFunc(NanoVis::display);
+    glutIdleFunc(idle);
+    glutReshapeFunc(NanoVis::resize_offscreen_buffer);
+#ifndef XINETD
+    glutMouseFunc(NanoVis::mouse);
+    glutMotionFunc(NanoVis::motion);
+    glutKeyboardFunc(NanoVis::keyboard);
+#endif
+
+    render_window = glutCreateWindow(argv[0]);
+
+
     while (1) {
 	static struct option long_options[] = {
 	    {"infile",  required_argument, NULL,	   0},
@@ -2327,24 +2345,6 @@ main(int argc, char** argv)
     signal(SIGPIPE,SIG_IGN);
     NvInitService();
 #endif
-
-    glutInit(&argc, argv);
-    glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA);
-
-    glutInitWindowSize(NanoVis::win_width, NanoVis::win_height);
-
-    glutInitWindowPosition(10, 10);
-    render_window = glutCreateWindow(argv[0]);
-    glutDisplayFunc(NanoVis::display);
-
-#ifndef XINETD
-    glutMouseFunc(NanoVis::mouse);
-    glutMotionFunc(NanoVis::motion);
-    glutKeyboardFunc(NanoVis::keyboard);
-#endif
-
-    glutIdleFunc(idle);
-    glutReshapeFunc(NanoVis::resize_offscreen_buffer);
 
     NanoVis::init(path);
     if (newPath != NULL) {
