@@ -674,6 +674,10 @@ GetDataStream(Tcl_Interp *interp, Rappture::Buffer &buf, int nBytes)
         buf.append(buffer, nRead);
         nBytes -= nRead;
     }
+    if (NanoVis::recfile != NULL) {
+    	fwrite(buf.bytes(), sizeof(char), buf.size(), NanoVis::recfile);
+	fflush(NanoVis::recfile);
+    }
     {
         Rappture::Outcome err;
 

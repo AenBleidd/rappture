@@ -103,11 +103,8 @@ static Stats stats;
 Grid *NanoVis::grid = NULL;
 int NanoVis::updir = Y_POS;
 NvCamera* NanoVis::cam = NULL;
-bool NanoVis::axis_on = true;
-int NanoVis::win_width = NPIX;                  //size of the render window
-int NanoVis::win_height = NPIX;                 //size of the render window
 int NanoVis::n_volumes = 0;
-unsigned char* NanoVis::screen_buffer = NULL;
+vector<Volume*> NanoVis::volume;
 vector<HeightMap*> NanoVis::heightMap;
 VolumeRenderer* NanoVis::vol_renderer = 0;
 PointSetRenderer* NanoVis::pointset_renderer = 0;
@@ -118,6 +115,7 @@ NvColorTableRenderer* NanoVis::color_table_renderer = 0;
 NvParticleRenderer* NanoVis::particleRenderer = 0;
 graphics::RenderContext* NanoVis::renderContext = 0;
 NvLIC* NanoVis::licRenderer = 0;
+R2Fonts* NanoVis::fonts;
 
 FILE *NanoVis::stdin = NULL;
 FILE *NanoVis::logfile = NULL;
@@ -126,7 +124,9 @@ FILE *NanoVis::recfile = NULL;
 bool NanoVis::lic_on = false;
 bool NanoVis::particle_on = false;
 bool NanoVis::vector_on = false;
+bool NanoVis::axis_on = true;
 bool NanoVis::config_pending = false;
+bool NanoVis::debug_flag = false;
 
 Tcl_Interp *NanoVis::interp;
 Tcl_DString NanoVis::cmdbuffer;
@@ -135,20 +135,19 @@ Tcl_DString NanoVis::cmdbuffer;
 NVISid NanoVis::final_fbo = 0;
 NVISid NanoVis::final_color_tex = 0;
 NVISid NanoVis::final_depth_rb = 0;
-int render_window;              //the handle of the render window;
+int NanoVis::render_window = 0;       /* GLUT handle for the render window */
+int NanoVis::win_width = NPIX;        /* Width of the render window */
+int NanoVis::win_height = NPIX;       /* Height of the render window */
 
-// pointers to volumes, currently handle up to 10 volumes
-/*FIXME: Is the above comment true? Is there a 10 volume limit */
-vector<Volume*> NanoVis::volume;
+unsigned char* NanoVis::screen_buffer = NULL;
 
-//if true nanovis renders volumes in 3D, if not renders 2D plane
 /* FIXME: This variable is always true. */
 bool volume_mode = true; 
 
+#ifdef notdef
 // color table for built-in transfer function editor
 float color_table[256][4];
-
-int debug_flag = false;
+#endif
 
 // in Command.cpp
 extern Tcl_Interp *initTcl();
@@ -167,7 +166,6 @@ PerfQuery* perf;                        //perfromance counter
 CGprogram m_passthru_fprog;
 CGparameter m_passthru_scale_param, m_passthru_bias_param;
 
-R2Fonts* NanoVis::fonts;
 
 // Variables for mouse events
 
@@ -410,11 +408,11 @@ ExecuteCommand(Tcl_Interp *interp, Tcl_DString *dsPtr)
     gettimeofday(&tv, NULL);
     start = CVT2SECS(tv);
 
-    if (debug_flag) {
-	fprintf(NanoVis::logfile, "%s\n", Tcl_DStringValue(dsPtr));
+    if (NanoVis::debug_flag) {
+	fprintf(NanoVis::logfile, "(%s)\n", Tcl_DStringValue(dsPtr));
     }
     if (NanoVis::recfile != NULL) {
-	fprintf(NanoVis::recfile, "%s\n", Tcl_DStringValue(dsPtr));
+	fprintf(NanoVis::recfile, "%s", Tcl_DStringValue(dsPtr));
 	fflush(NanoVis::recfile);
     }
     result = Tcl_Eval(interp, Tcl_DStringValue(dsPtr));
@@ -506,11 +504,12 @@ NanoVis::zoom(double zoom)
     cam->move(live_obj_x, live_obj_y, live_obj_z);
 }
 
+#ifdef notdef
 //Update the transfer function using local GUI in the non-server mode
 void 
 update_tf_texture()
 {
-    glutSetWindow(render_window);
+    glutSetWindow(NanoVis::render_window);
 
     //fprintf(stderr, "tf update\n");
     TransferFunction *tf = NanoVis::get_transfunc("default");
@@ -536,6 +535,7 @@ update_tf_texture()
     delete tmp;
 #endif
 }
+#endif
 
 int
 NanoVis::render_legend(
@@ -1215,9 +1215,12 @@ void draw_arrows()
 
 
 /*----------------------------------------------------*/
-static void
-idle()
+void
+NanoVis::idle()
 {
+    if (debug_flag) {
+        fprintf(stderr, "in idle()\n");
+    }
     glutSetWindow(render_window);
 
 #ifdef notdef
@@ -1227,15 +1230,21 @@ idle()
     nanosleep(&ts, 0);
 #endif
 #ifdef XINETD
-    NanoVis::xinetd_listen();
+    xinetd_listen();
 #else
     glutPostRedisplay();
 #endif
+    if (debug_flag) {
+        fprintf(stderr, "leaving idle()\n");
+    }
 }
 
 void 
 NanoVis::display_offscreen_buffer()
 {
+    if (debug_flag) {
+        fprintf(stderr, "in display_offscreen_buffer\n");
+    }
     glEnable(GL_TEXTURE_2D);
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
     glBindTexture(GL_TEXTURE_2D, final_color_tex);
@@ -1256,6 +1265,9 @@ NanoVis::display_offscreen_buffer()
         glTexCoord2f(0, 1); glVertex2f(0, win_height);
     }
     glEnd();
+    if (debug_flag) {
+        fprintf(stderr, "leaving display_offscreen_buffer\n");
+    }
 }
 
 
@@ -1599,6 +1611,9 @@ NanoVis::SetVolumeRanges()
 {
     double xMin, xMax, yMin, yMax, zMin, zMax, wMin, wMax;
 
+    if (debug_flag) {
+        fprintf(stderr, "in SetVolumeRanges\n");
+    }
     xMin = yMin = zMin = wMin = DBL_MAX;
     xMax = yMax = zMax = wMax = -DBL_MAX;
     for (unsigned int i = 0; i < volume.size(); i++) {
@@ -1650,6 +1665,9 @@ NanoVis::SetVolumeRanges()
         Volume::valueMax = wMax;
     }
     Volume::update_pending = false;
+    if (debug_flag) {
+        fprintf(stderr, "leaving SetVolumeRanges\n");
+    }
 }
 
 void
@@ -1657,6 +1675,9 @@ NanoVis::SetHeightmapRanges()
 {
     double xMin, xMax, yMin, yMax, zMin, zMax, wMin, wMax;
 
+    if (debug_flag) {
+        fprintf(stderr, "in SetHeightmapRanges\n");
+    }
     xMin = yMin = zMin = wMin = DBL_MAX;
     xMax = yMax = zMax = wMax = -DBL_MAX;
     for (unsigned int i = 0; i < heightMap.size(); i++) {
@@ -1714,12 +1735,18 @@ NanoVis::SetHeightmapRanges()
 	hmPtr->MapToGrid(grid);
     }
     HeightMap::update_pending = false;
+    if (debug_flag) {
+        fprintf(stderr, "leaving SetHeightmapRanges\n");
+    }
 }
 
 /*----------------------------------------------------*/
 void
 NanoVis::display()
 {
+    if (debug_flag) {
+        fprintf(stderr, "in display\n");
+    }
     //assert(glGetError()==0);
     if (HeightMap::update_pending) {
         SetHeightmapRanges();
@@ -1727,10 +1754,16 @@ NanoVis::display()
     if (Volume::update_pending) {
         SetVolumeRanges();
     }
+    if (debug_flag) {
+        fprintf(stderr, "in display: glClear\n");
+    }
     //start final rendering
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); //clear screen
 
     if (volume_mode) {
+        if (debug_flag) {
+           fprintf(stderr, "in display: volume_mode\n");
+        }
         //3D rendering mode
         glEnable(GL_TEXTURE_2D);
         glEnable(GL_DEPTH_TEST);
@@ -1795,6 +1828,9 @@ NanoVis::display()
         vol_renderer->render_all();
         //perf->disable();
 
+        if (debug_flag) {
+           fprintf(stderr, "in display: render heightmap\n");
+        }
         for (unsigned int i = 0; i < heightMap.size(); ++i) {
             if (heightMap[i]->isVisible()) {
                 heightMap[i]->render(renderContext);
@@ -1813,6 +1849,9 @@ NanoVis::display()
     write(3, &cost, sizeof(cost));
 #endif
     perf->reset();
+    if (debug_flag) {
+        fprintf(stderr, "leaving display\n");
+    }
 
 }
 
@@ -2007,7 +2046,7 @@ NanoVis::motion(int x, int y)
 void
 init_service()
 {
-    if (!debug_flag) {
+    if (!NanoVis::debug_flag) {
 	//open log and map stderr to log file
 	xinetd_log = fopen("/tmp/log.txt", "w");
 	close(2);
@@ -2108,6 +2147,9 @@ NanoVis::xinetd_listen(void)
         // non-blocking for next read -- we might not get anything
         fcntl(0, F_SETFL, flags | O_NONBLOCK);
         npass++;
+	if (NanoVis::debug_flag) {
+    	   break;
+	}
     }
     fcntl(0, F_SETFL, flags);
 
@@ -2194,16 +2236,16 @@ main(int argc, char** argv)
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA);
     glutInitWindowSize(NanoVis::win_width, NanoVis::win_height);
     glutInitWindowPosition(10, 10);
+    NanoVis::render_window = glutCreateWindow("nanovis");
     glutDisplayFunc(NanoVis::display);
-    glutIdleFunc(idle);
+    glutIdleFunc(NanoVis::idle);
     glutReshapeFunc(NanoVis::resize_offscreen_buffer);
+
 #ifndef XINETD
     glutMouseFunc(NanoVis::mouse);
     glutMotionFunc(NanoVis::motion);
     glutKeyboardFunc(NanoVis::keyboard);
 #endif
-
-    render_window = glutCreateWindow("nanovis");
 
 
     while (1) {
@@ -2240,11 +2282,10 @@ main(int argc, char** argv)
 	    break;
 	case 3:
 	case 'd':
-	    debug_flag = true;
+	    NanoVis::debug_flag = true;
 	    break;
 	case 0:
 	case 'i':
-	    fprintf(stderr, "opening infile %s\n", optarg);
 	    NanoVis::stdin = fopen(optarg, "r");
 	    if (NanoVis::stdin == NULL) {
 		perror(optarg);
@@ -2253,7 +2294,6 @@ main(int argc, char** argv)
 	    break;
 	case 1:
 	case 'l':
-	    fprintf(stderr, "opening logfile %s\n", optarg);
 	    NanoVis::logfile = fopen(optarg, "w");
 	    if (NanoVis::logfile == NULL) {
 		perror(optarg);
@@ -2265,7 +2305,6 @@ main(int argc, char** argv)
 	    Tcl_DString ds;
 	    char buf[200];
 
-	    fprintf(stderr, "Recording commands to %s\n", optarg);
 	    Tcl_DStringInit(&ds);
 	    Tcl_DStringAppend(&ds, optarg, -1);
 	    sprintf(buf, ".%d", getpid());
@@ -2320,7 +2359,6 @@ main(int argc, char** argv)
 #ifdef EVENTLOG
     NvInitEventLog();
 #endif
-    //event loop
     glutMainLoop();
 
     DoExit(0);

@@ -134,8 +134,9 @@ public:
     static bool config_pending;	// Indicates if the limits need to be recomputed.
     static int win_width;	//size of the render window
     static int win_height;	//size of the render window
- 
+    static int render_window; 
 
+    static bool debug_flag;
     static bool lic_on;
     static bool particle_on;
     static bool vector_on;
@@ -158,6 +159,7 @@ public:
     static void bmp_write(const char *prefix);
     static void bmp_write_to_file(int frame_number, const char* directory_name);
     static void display(void);
+    static void idle(void);
     static void update(void);
     static void display_offscreen_buffer();
     static void zoom(double zoom);
