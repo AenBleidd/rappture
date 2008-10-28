@@ -104,7 +104,6 @@ Grid *NanoVis::grid = NULL;
 int NanoVis::updir = Y_POS;
 NvCamera* NanoVis::cam = NULL;
 bool NanoVis::axis_on = true;
-//bool NanoVis::axis_on = false;
 int NanoVis::win_width = NPIX;                  //size of the render window
 int NanoVis::win_height = NPIX;                 //size of the render window
 int NanoVis::n_volumes = 0;
@@ -133,9 +132,10 @@ Tcl_Interp *NanoVis::interp;
 Tcl_DString NanoVis::cmdbuffer;
 
 //frame buffer for final rendering
-NVISid NanoVis::final_fbo;
-NVISid NanoVis::final_color_tex;
-NVISid NanoVis::final_depth_rb;
+NVISid NanoVis::final_fbo = 0;
+NVISid NanoVis::final_color_tex = 0;
+NVISid NanoVis::final_depth_rb = 0;
+int render_window;              //the handle of the render window;
 
 // pointers to volumes, currently handle up to 10 volumes
 /*FIXME: Is the above comment true? Is there a 10 volume limit */
@@ -149,31 +149,10 @@ bool volume_mode = true;
 float color_table[256][4];
 
 int debug_flag = false;
-/*
-#ifdef XINETD
-FILE* xinetd_log;
-#endif
-
-FILE* event_log;
-//log
-void init_event_log();
-void end_event_log();
-double cur_time;        //in seconds
-double get_time_interval();
-*/
-
-int render_window;              //the handle of the render window;
 
 // in Command.cpp
 extern Tcl_Interp *initTcl();
 
-//ParticleSystem* psys;
-//float psys_x=0.4, psys_y=0, psys_z=0;
-
-//static Lic* lic;
-
-
-//bool advect=false;
 float vert[NMESH*NMESH*3];              //particle positions in main memory
 float slice_vector[NMESH*NMESH*4];      //per slice vectors in main memory
 
@@ -219,22 +198,6 @@ float NanoVis::lic_slice_x = 1.0f;
 float NanoVis::lic_slice_y = 0.0f;
 float NanoVis::lic_slice_z = 0.5f;
 int NanoVis::lic_axis = 2;
-
-/*
-CGprogram m_copy_texcoord_fprog;
-CGprogram m_one_volume_fprog;
-CGparameter m_vol_one_volume_param;
-CGparameter m_tf_one_volume_param;
-CGparameter m_mvi_one_volume_param;
-CGparameter m_mv_one_volume_param;
-CGparameter m_render_param_one_volume_param;
-*/
-
-/*
-CGprogram m_vert_std_vprog;
-CGparameter m_mvp_vert_std_param;
-CGparameter m_mvi_vert_std_param;
-*/
 
 using namespace std;
 
@@ -2240,7 +2203,7 @@ main(int argc, char** argv)
     glutKeyboardFunc(NanoVis::keyboard);
 #endif
 
-    render_window = glutCreateWindow(argv[0]);
+    render_window = glutCreateWindow("nanovis");
 
 
     while (1) {

@@ -58,7 +58,10 @@ void NvInitService()
 void NvExitService()
 {
     //close log file
-    fclose(xinetd_log);
+    if (xinetd_log != NULL) {
+        fclose(xinetd_log);
+        xinetd_log = NULL;
+    }
 }
 #endif
 
