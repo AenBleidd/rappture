@@ -1,4 +1,3 @@
-#include "NvEventLog.h"
 #include "config.h"
 #include <stdio.h>
 #include <assert.h>
@@ -8,7 +7,8 @@
 #include <fcntl.h>
 #include <stdlib.h>
 #include <string.h>
-
+#include "NvEventLog.h"
+#include "nanovis.h"
 
 
 #ifdef XINETD
@@ -24,7 +24,6 @@ void NvInitService()
     const char* user = getenv("USER");
     char* logName = NULL;
     int logNameLen = 0;
-    extern int debug_flag;
 
     if (user == NULL) {
         logNameLen = 20+1;
@@ -38,7 +37,7 @@ void NvInitService()
         strncat(logName,user,strlen(user));
     }
 
-    if (!debug_flag) {
+    if (!NanoVis::debug_flag) {
 	//open log and map stderr to log file
 	xinetd_log = fopen(logName, "w");
 	close(2);
