@@ -355,6 +355,9 @@ WriteStats(const char *who, int code)
 static void
 DoExit(int code)
 {
+    if (NanoVis::debug_flag) {
+	fprintf(stderr, "in DoExit\n");
+    }
     removeAllData();
     NvExit();
 #if KEEPSTATS
@@ -408,9 +411,12 @@ ExecuteCommand(Tcl_Interp *interp, Tcl_DString *dsPtr)
     gettimeofday(&tv, NULL);
     start = CVT2SECS(tv);
 
+#ifdef notdef
     if (NanoVis::debug_flag) {
-	fprintf(NanoVis::logfile, "(%s)\n", Tcl_DStringValue(dsPtr));
+	fprintf(NanoVis::logfile, "%s\n", Tcl_DStringValue(dsPtr));
+	fflush(NanoVis::logfile);
     }
+#endif
     if (NanoVis::recfile != NULL) {
 	fprintf(NanoVis::recfile, "%s", Tcl_DStringValue(dsPtr));
 	fflush(NanoVis::recfile);
@@ -567,11 +573,12 @@ NanoVis::render_legend(
     glReadPixels(0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, screen_buffer);
     //glReadPixels(0, 0, width, height, GL_BGR, GL_UNSIGNED_BYTE, screen_buffer); // INSOO's
 
-    char prefix[200];
-    sprintf(prefix, "nv>legend %s %g %g", volArg, min, max);
-    ppm_write(prefix);
-    write(0, "\n", 1);
-
+    if (!debug_flag) {
+	char prefix[200];
+	sprintf(prefix, "nv>legend %s %g %g", volArg, min, max);
+	ppm_write(prefix);
+	write(0, "\n", 1);
+    }
     plane_render->remove_plane(index);
     resize_offscreen_buffer(old_width, old_height);
 
@@ -2100,6 +2107,9 @@ get_time_interval()
 void 
 NanoVis::xinetd_listen(void)
 {
+    if (debug_flag) {
+	fprintf(stderr, "in xinetd_listen\n");
+    }
     int flags = fcntl(0, F_GETFL, 0);
     fcntl(0, F_SETFL, flags & ~O_NONBLOCK);
 
@@ -2119,8 +2129,19 @@ NanoVis::xinetd_listen(void)
         //  immediately following the command, and we shouldn't consume it
         //  here.
         //
-        while (1) {
+	if (debug_flag) {
+	    fprintf(stderr, "in xinetd_listen: check eof %d\n", feof(NanoVis::stdin));
+	}
+        while (!feof(NanoVis::stdin)) {
+	    if (debug_flag) {
+		fprintf(stderr, "in xinetd_listen: reading 1 char\n");
+		fflush(stderr);
+	    }
             int c = fgetc(NanoVis::stdin);
+	    if (debug_flag) {
+		fprintf(stderr, "in xinetd_listen: read %c,%x\n", c, c);
+		fflush(stderr);
+	    }
 	    char ch;
             if (c <= 0) {
                 if (npass == 0) {
@@ -2131,7 +2152,9 @@ NanoVis::xinetd_listen(void)
             }
 	    ch = (char)c;
             Tcl_DStringAppend(&cmdbuffer, &ch, 1);
-
+	    if (debug_flag) {
+		fprintf(stderr, "in xinetd_listen: appending 1 char\n");
+	    }
             if (ch=='\n' && Tcl_CommandComplete(Tcl_DStringValue(&cmdbuffer))) {
                 break;
             }
@@ -2147,9 +2170,6 @@ NanoVis::xinetd_listen(void)
         // non-blocking for next read -- we might not get anything
         fcntl(0, F_SETFL, flags | O_NONBLOCK);
         npass++;
-	if (NanoVis::debug_flag) {
-    	   break;
-	}
     }
     fcntl(0, F_SETFL, flags);
 
@@ -2166,6 +2186,9 @@ NanoVis::xinetd_listen(void)
         iov[2].iov_base = (char *)'\n';
         iov[2].iov_len = 1;
         writev(0, iov, 3);
+	if (debug_flag) {
+	    fprintf(stderr, "leaving xinetd_listen\n");
+	}
         return;
     }
 
@@ -2209,8 +2232,16 @@ NanoVis::xinetd_listen(void)
     write(0, offsets, offsets_size*sizeof(offsets[0]));
     write(0, rle, rle_size);    //unsigned byte
 #else
-    NanoVis::ppm_write("nv>image -bytes");
+    if (!debug_flag) {
+	NanoVis::ppm_write("nv>image -bytes");
+    }
 #endif
+    if (feof(NanoVis::stdin)) {
+	exit(2);
+    }
+    if (debug_flag) {
+	fprintf(stderr, "leaving xinetd_listen\n");
+    }
 }
 
 
