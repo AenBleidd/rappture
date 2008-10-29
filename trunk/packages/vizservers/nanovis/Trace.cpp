@@ -17,74 +17,79 @@ void Trace(const char* format, ...)
     fflush(stdout);
 }
 
-void 
-CheckFramebuffer(const char *string) 
+bool
+CheckFramebuffer(GLenum *statusPtr) 
 {
+    *statusPtr = (GLenum)glCheckFramebufferStatusEXT(GL_FRAMEBUFFER_EXT);
+    return (*statusPtr == GL_FRAMEBUFFER_COMPLETE_EXT);
+}
+
+
+
+void
+PrintFramebufferStatus(GLenum status, const char *string) 
+{
+  const char *mesg;
   fprintf(stderr, "FB Status: %s: ", string);
-  GLenum status = (GLenum)glCheckFramebufferStatusEXT(GL_FRAMEBUFFER_EXT);
   switch(status) {
     case GL_FRAMEBUFFER_COMPLETE_EXT:
-      fprintf(stderr, "<<<< OK >>>>\n");
+      mesg = "<<<< OK >>>>";
       break;
     case GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT_EXT:
-      fprintf(stderr, "GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT_EXT\n");
+      mesg = "GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT_EXT";
       break;
     case GL_FRAMEBUFFER_UNSUPPORTED_EXT:
-      fprintf(stderr, "GL_FRAMEBUFFER_UNSUPPORTED_EXT\n");
+      mesg = "GL_FRAMEBUFFER_UNSUPPORTED_EXT";
       break;
     case GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT_EXT:
-      fprintf(stderr, "GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT_EXT\n");
+      mesg = "GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT_EXT";
       break;
     case GL_FRAMEBUFFER_INCOMPLETE_DIMENSIONS_EXT:
-      fprintf(stderr, "GL_FRAMEBUFFER_INCOMPLETE_DIMENSIONS_EXT\n");
+      mesg = "GL_FRAMEBUFFER_INCOMPLETE_DIMENSIONS_EXT";
       break;
     case GL_FRAMEBUFFER_INCOMPLETE_FORMATS_EXT:
-      fprintf(stderr, "GL_FRAMEBUFFER_INCOMPLETE_FORMATS_EXT\n");
+      mesg = "GL_FRAMEBUFFER_INCOMPLETE_FORMATS_EXT";
       break;
     case GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER_EXT:
-      fprintf(stderr, "GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER_EXT\n");
+      mesg = "GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER_EXT";
       break;
     case GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER_EXT:
-      fprintf(stderr, "GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER_EXT\n");
+      mesg = "GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER_EXT";
       break;
     default:
-      fprintf(stderr, "UNKNOWN framebuffer status %d\n", status);
+      fprintf(stderr, "UNKNOWN framebuffer status %u\n", (unsigned int)status);
+      return;
   }
+  fprintf(stderr, "%d\n", mesg);
 }
 
 bool
 CheckGL(const char *string)
 {
-  fprintf(stderr, "GL Status: %s: ", string);
+  const char *mesg;
   GLenum status = (GLenum)glGetError();
   switch(status) {
     case GL_NO_ERROR:
-      fprintf(stderr, "OK\n");
       return true;
     case GL_INVALID_ENUM:
-      fprintf(stderr, "GL_INVALID_ENUM\n");
-      break;
+      mesg = "GL_INVALID_ENUM"; break;
     case GL_INVALID_VALUE:
-      fprintf(stderr, "GL_INVALID_VALUE\n");
-      break;
+      mesg = "GL_INVALID_VALUE"; break;
     case GL_INVALID_OPERATION:
-      fprintf(stderr, "GL_INVALID_OPERATION\n");
-      break;
+      mesg = "GL_INVALID_OPERATION"; break;
     case GL_STACK_OVERFLOW:
-      fprintf(stderr, "GL_STACK_OVERFLOW\n");
-      break;
+      mesg = "GL_STACK_OVERFLOW"; break;
     case GL_STACK_UNDERFLOW:
-      fprintf(stderr, "GL_STACK_UNDERFLOW\n");
-      break;
+      mesg = "GL_STACK_UNDERFLOW"; break;
     case GL_OUT_OF_MEMORY:
-      fprintf(stderr, "GL_OUT_OF_MEMORY\n");
-      break;
+      mesg = "GL_OUT_OF_MEMORY"; break;
     case GL_INVALID_FRAMEBUFFER_OPERATION_EXT:
-      fprintf(stderr, "GL_INVALID_FRAMEBUFFER_OPERATION_EXT\n");
-      break;
+      mesg = "GL_INVALID_FRAMEBUFFER_OPERATION_EXT"; break;
     default:
-      fprintf(stderr, "UNKNOWN GL status %d\n", status);
+      fprintf(stderr, "UNKNOWN GL status %d: %s\n", status, string);
+      return false;
   } 
+  fprintf(stderr, "GL Status: %s: %s", string, mesg);
   return false;
 }
 
