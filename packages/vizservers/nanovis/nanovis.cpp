@@ -41,6 +41,7 @@
 #include <Trace.h>
 
 #include "nanovis.h"
+#include "define.h"
 #include "RpField1D.h"
 #include "RpFieldRect3D.h"
 #include "RpFieldPrism3D.h"
@@ -132,14 +133,19 @@ Tcl_Interp *NanoVis::interp;
 Tcl_DString NanoVis::cmdbuffer;
 
 //frame buffer for final rendering
-NVISid NanoVis::final_fbo = 0;
+char dummy0[2000];
 NVISid NanoVis::final_color_tex = 0;
 NVISid NanoVis::final_depth_rb = 0;
+char dummy1[2000];
+NVISid NanoVis::final_fbo = 0;
 int NanoVis::render_window = 0;       /* GLUT handle for the render window */
+char dummy2[2000];
 int NanoVis::win_width = NPIX;        /* Width of the render window */
 int NanoVis::win_height = NPIX;       /* Height of the render window */
 
+char dummy3[2000];
 unsigned char* NanoVis::screen_buffer = NULL;
+char dummy4[2000];
 
 /* FIXME: This variable is always true. */
 bool volume_mode = true; 
@@ -165,7 +171,6 @@ PerfQuery* perf;                        //perfromance counter
 
 CGprogram m_passthru_fprog;
 CGparameter m_passthru_scale_param, m_passthru_bias_param;
-
 
 // Variables for mouse events
 
@@ -544,12 +549,12 @@ update_tf_texture()
 #endif
 
 int
-NanoVis::render_legend(
-    TransferFunction *tf,
-    double min, double max,
-    int width, int height,
-    const char* volArg)
+NanoVis::render_legend(TransferFunction *tf, double min, double max,
+	    		int width, int height, const char* volArg)
 {
+    if (debug_flag) {
+    	fprintf(stderr, "in render_legend\n");
+    }
     int old_width = win_width;
     int old_height = win_height;
 
@@ -582,6 +587,9 @@ NanoVis::render_legend(
     plane_render->remove_plane(index);
     resize_offscreen_buffer(old_width, old_height);
 
+    if (debug_flag) {
+    	fprintf(stderr, "leaving render_legend\n");
+    }
     return TCL_OK;
 }
 
@@ -589,15 +597,13 @@ NanoVis::render_legend(
 void
 NanoVis::init_offscreen_buffer()
 {
-    //initialize final fbo for final display
-    glGenFramebuffersEXT(1, &final_fbo);
+    if (debug_flag) {
+       fprintf(stderr, "in init_offscreen_buffer\n");
+    }
+   
     glGenTextures(1, &final_color_tex);
-    glGenRenderbuffersEXT(1, &final_depth_rb);
-
-    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, final_fbo);
-
-    //initialize final color texture
     glBindTexture(GL_TEXTURE_2D, final_color_tex);
+
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 #ifdef NV40
@@ -605,24 +611,39 @@ NanoVis::init_offscreen_buffer()
                  GL_RGB, GL_INT, NULL);
 #else
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, win_width, win_height, 0,
-                 GL_RGB, GL_INT, NULL);
-#endif
-    glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT,
-                              GL_COLOR_ATTACHMENT0_EXT,
-                              GL_TEXTURE_2D, final_color_tex, 0);
+                 GL_RGBA, GL_INT, NULL);
 
-    // initialize final depth renderbuffer
+#endif
+    if (!CheckGL("glTexImage2D")) {
+        return;
+    }
+
+    glGenRenderbuffersEXT(1, &final_depth_rb);
     glBindRenderbufferEXT(GL_RENDERBUFFER_EXT, final_depth_rb);
     glRenderbufferStorageEXT(GL_RENDERBUFFER_EXT,
                              GL_DEPTH_COMPONENT24, win_width, win_height);
+
+    // Initialize a fbo for final display.
+    glGenFramebuffersEXT(1, &final_fbo);
+    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, final_fbo);
+    glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT,
+                              GL_COLOR_ATTACHMENT0_EXT,
+                              GL_TEXTURE_2D, final_color_tex, 0);
     glFramebufferRenderbufferEXT(GL_FRAMEBUFFER_EXT,
-                                 GL_DEPTH_ATTACHMENT_EXT,
-                                 GL_RENDERBUFFER_EXT, final_depth_rb);
+                             GL_DEPTH_ATTACHMENT_EXT,
+                             GL_RENDERBUFFER_EXT, final_depth_rb);
+    CheckGL("glFramebufferTexture2DEXT");
+    CheckFramebuffer("final_fbo");
+
 
     // Check framebuffer completeness at the end of initialization.
-    CHECK_FRAMEBUFFER_STATUS();
+    //CHECK_FRAMEBUFFER_STATUS();
+    //NanoVis::display();
 
     //assert(glGetError()==0);
+    if (debug_flag) {
+       fprintf(stderr, "leaving init_offscreen_buffer\n");
+    }
 }
 
 
@@ -630,6 +651,9 @@ NanoVis::init_offscreen_buffer()
 void 
 NanoVis::resize_offscreen_buffer(int w, int h)
 {
+    if (debug_flag) {
+       fprintf(stderr, "in resize_offscreen_buffer(%d, %d)\n", w, h);
+    }
     win_width = w;
     win_height = h;
 
@@ -649,7 +673,6 @@ NanoVis::resize_offscreen_buffer(int w, int h)
     assert(screen_buffer != NULL);
 
     //delete the current render buffer resources
-    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, final_fbo);
     glDeleteTextures(1, &final_color_tex);
     glDeleteFramebuffersEXT(1, &final_fbo);
 
@@ -666,6 +689,7 @@ NanoVis::resize_offscreen_buffer(int w, int h)
     glGenRenderbuffersEXT(1, &final_depth_rb);
 
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, final_fbo);
+    CheckFramebuffer("final_fbo");
 
     //initialize final color texture
     glBindTexture(GL_TEXTURE_2D, final_color_tex);
@@ -682,6 +706,10 @@ NanoVis::resize_offscreen_buffer(int w, int h)
                               GL_COLOR_ATTACHMENT0_EXT,
                               GL_TEXTURE_2D, final_color_tex, 0);
 
+    CheckGL("glFramebufferText2DEXT");
+    CheckFramebuffer("final_color_tex");
+    CHECK_FRAMEBUFFER_STATUS();
+
     // initialize final depth renderbuffer
     glBindRenderbufferEXT(GL_RENDERBUFFER_EXT, final_depth_rb);
     glRenderbufferStorageEXT(GL_RENDERBUFFER_EXT,
@@ -691,8 +719,12 @@ NanoVis::resize_offscreen_buffer(int w, int h)
                                  GL_RENDERBUFFER_EXT, final_depth_rb);
 
     // Check framebuffer completeness at the end of initialization.
+    CheckGL("glFramebufferRenderbufferEXT");
+    CheckFramebuffer("final_depth_rb");
     CHECK_FRAMEBUFFER_STATUS();
-    //assert(glGetError()==0);
+    if (debug_flag) {
+       fprintf(stderr, "leaving resize_offscreen_buffer(%d, %d)\n", w, h);
+    }
 }
 
 /*
@@ -789,7 +821,6 @@ void NanoVis::init(const char* path)
     // init GLEW
     GLenum err = glewInit();
     if (GLEW_OK != err) {
-        //glew init failed, exit.
         fprintf(stderr, "Error: %s\n", glewGetErrorString(err));
         getchar();
         //assert(false);
@@ -822,13 +853,18 @@ void NanoVis::init(const char* path)
     grid = new Grid();
     grid->setFont(fonts);
 
+#ifdef notdef
     pointset_renderer = new PointSetRenderer();
+#endif
 }
 
 /*----------------------------------------------------*/
 void
 NanoVis::initGL(void)
 {
+   if (debug_flag) {
+       fprintf(stderr, "in initGL\n");
+   }
    //buffer to store data read from the screen
    if (screen_buffer) {
        delete[] screen_buffer;
@@ -878,24 +914,9 @@ NanoVis::initGL(void)
    //create volume renderer and add volumes to it
    vol_renderer = new VolumeRenderer();
 
-
    // create
    renderContext = new graphics::RenderContext();
    
-#ifdef notdef
-   //I added this to debug : Wei
-   float tmp_data[4*124];
-   memset(tmp_data, 0, 4*4*124);
-   TransferFunction* tmp_tf = new TransferFunction(124, tmp_data);
-   vol_renderer->add_volume(volume[0], tmp_tf);
-   volume[0]->get_cutplane(0)->enabled = false;
-   volume[0]->get_cutplane(1)->enabled = false;
-   volume[0]->get_cutplane(2)->enabled = false;
-
-   //volume[1]->move(Vector3(0.5, 0.6, 0.7));
-   //vol_renderer->add_volume(volume[1], tmp_tf);
-#endif
-
    //create an 2D plane renderer
    plane_render = new PlaneRenderer(g_context, win_width, win_height);
 #if PROTOTYPE
@@ -909,6 +930,9 @@ NanoVis::initGL(void)
    init_particle_system();
    NanoVis::init_lic();
 #endif
+   if (debug_flag) {
+       fprintf(stderr, "leaving initGL\n");
+   }
 }
 
 #if DO_RLE
@@ -2384,12 +2408,12 @@ main(int argc, char** argv)
 	delete [] newPath;
     }
     NanoVis::initGL();
-    Tcl_DStringInit(&NanoVis::cmdbuffer);
-    NanoVis::interp = initTcl();
-
 #ifdef EVENTLOG
     NvInitEventLog();
 #endif
+    Tcl_DStringInit(&NanoVis::cmdbuffer);
+    NanoVis::interp = initTcl();
+
     glutMainLoop();
 
     DoExit(0);
