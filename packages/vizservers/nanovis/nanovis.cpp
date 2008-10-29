@@ -578,7 +578,9 @@ NanoVis::render_legend(TransferFunction *tf, double min, double max,
     glReadPixels(0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, screen_buffer);
     //glReadPixels(0, 0, width, height, GL_BGR, GL_UNSIGNED_BYTE, screen_buffer); // INSOO's
 
-    if (!debug_flag) {
+    if (debug_flag) {
+	fprintf(stderr, "ppm legend image not written (debug mode)\n");
+    } else {
 	char prefix[200];
 	sprintf(prefix, "nv>legend %s %g %g", volArg, min, max);
 	ppm_write(prefix);
@@ -630,8 +632,12 @@ NanoVis::init_offscreen_buffer()
     glFramebufferRenderbufferEXT(GL_FRAMEBUFFER_EXT, GL_DEPTH_ATTACHMENT_EXT,
         GL_RENDERBUFFER_EXT, final_depth_rb);
     CheckGL("glFramebufferTexture2DEXT");
-    CheckFramebuffer("final_fbo");
-
+    GLenum status;
+    if (!CheckFramebuffer(&status)) {
+       if (debug_flag) {
+       	  PrintFramebufferStatus(status, "final_fbo");
+       }
+    }
     // Check framebuffer completeness at the end of initialization.
     //CHECK_FRAMEBUFFER_STATUS();
     //NanoVis::display();
@@ -707,8 +713,13 @@ NanoVis::resize_offscreen_buffer(int w, int h)
                                  GL_RENDERBUFFER_EXT, final_depth_rb);
 
     CheckGL("glFramebufferText2DEXT");
-    CheckFramebuffer("final_fbo");
-    CHECK_FRAMEBUFFER_STATUS();
+    GLenum status;
+    if (!CheckFramebuffer(&status)) {
+       if (debug_flag) {
+       	  PrintFramebufferStatus(status, "final_fbo");
+       }
+    }
+    //CHECK_FRAMEBUFFER_STATUS();
     if (debug_flag) {
        fprintf(stderr, "leaving resize_offscreen_buffer(%d, %d)\n", w, h);
     }
@@ -2232,12 +2243,14 @@ NanoVis::xinetd_listen(void)
     write(0, offsets, offsets_size*sizeof(offsets[0]));
     write(0, rle, rle_size);    //unsigned byte
 #else
-    if (!debug_flag) {
+    if (debug_flag) {
+	fprintf(stderr, "ppm image not written (debug mode)\n");
+    } else {
 	NanoVis::ppm_write("nv>image -bytes");
     }
 #endif
     if (feof(NanoVis::stdin)) {
-	exit(2);
+	DoExit(2);
     }
     if (debug_flag) {
 	fprintf(stderr, "leaving xinetd_listen\n");
