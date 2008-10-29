@@ -126,14 +126,12 @@ void PGARunGM(PGAContext *ctx, double (*f)(PGAContext *, int, int),
     while (!PGADone(ctx, comm)) {
 	if (rank == 0) {
 	    Restarted = PGA_FALSE;
-	    if ((ctx->ga.restart == PGA_TRUE) &&
-		(ctx->ga.ItersOfSame % ctx->ga.restartFreq == 0)) {
-		ctx->ga.ItersOfSame++;
-		Restarted = PGA_TRUE;
-		PGARestart(ctx, PGA_OLDPOP, PGA_NEWPOP);
+	    if (PGARestartCondition(ctx)) {
+			Restarted = PGA_TRUE;
+			PGARestart(ctx, PGA_OLDPOP, PGA_NEWPOP);
 	    } else {
-		PGASelect(ctx, PGA_OLDPOP);
-		CreateNewGeneration(ctx, PGA_OLDPOP, PGA_NEWPOP);
+			PGASelect(ctx, PGA_OLDPOP);
+			CreateNewGeneration(ctx, PGA_OLDPOP, PGA_NEWPOP);
 	    }
 	}
 	MPI_Bcast(&Restarted, 1, MPI_INT, 0, comm);

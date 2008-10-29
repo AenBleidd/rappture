@@ -197,18 +197,21 @@ void PGAChange( PGAContext *ctx, int p, int pop )
     PGADebugPrint( ctx, PGA_DEBUG_PRINTVAR, "PGAChange", " mr = ",
                    PGA_DOUBLE, (void *) &mr );
 
-    while (( changed == PGA_FALSE ) && (mr <= 1.0)) {
-	if (ctx->fops.Mutation) {
-	    fp = ((p == PGA_TEMP1) || (p == PGA_TEMP2)) ? p : p+1;
-            nflips = (*ctx->fops.Mutation)(&ctx, &fp, &pop, &mr);
-	} else {
-	    nflips = (*ctx->cops.Mutation)( ctx, p, pop, mr );
-	}
-
-        if ( nflips > 0 )
-            changed = PGA_TRUE;
-        else
-            mr = 1.1*mr;
+/**TODO: GTG (Clear)I dont see why we need to wait for iterations to mutate?****/
+/**TODO: can't we directly set mr = 1??**/
+    while (changed == PGA_FALSE) {
+		if (ctx->fops.Mutation) {
+		    fp = ((p == PGA_TEMP1) || (p == PGA_TEMP2)) ? p : p+1;
+	            nflips = (*ctx->fops.Mutation)(&ctx, &fp, &pop, &mr);
+		} else {
+		    	nflips = (*ctx->cops.Mutation)( ctx, p, pop, mr );
+		}
+	
+	        if ( nflips > 0 )
+	            changed = PGA_TRUE;
+	        else
+	            mr = ( mr>1 ? 1 :1.1*mr);
+	            
     }
 
     if (changed == PGA_FALSE) {

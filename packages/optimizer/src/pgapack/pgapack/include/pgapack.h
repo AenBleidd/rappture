@@ -143,6 +143,7 @@
 #define PGA_CROSSOVER_ONEPT     1    /* One point crossover                */
 #define PGA_CROSSOVER_TWOPT     2    /* Two point crossover                */
 #define PGA_CROSSOVER_UNIFORM   3    /* Uniform   crossover                */
+#define PGA_CROSSOVER_SBX		4    /* Simulated Binary crossover		   */
 
 /*****************************************
 *            SELECTION                   *
@@ -277,6 +278,7 @@ typedef struct {
     double FitnessRankMax;   /* MAX value for use in ranking              */
     double FitnessCmaxValue; /* Cmax value used to convert minimizations  */
     double restartAlleleProb;/* prob of changing an allele in a restart   */
+    double randreplprop;     /* proportion of randomly generated individuals per generation post initialization*/
     int restart;             /* whether to use the restart operator       */
     int restartFreq;         /* frequency with which to restart           */
     int *selected;           /* array of indices for selection            */
@@ -714,6 +716,8 @@ double PGARandomUniform( PGAContext *ctx, double start, double end);
 double PGARandomGaussian( PGAContext *ctx, double mean, double sigma);
 int PGAGetRandomSeed(PGAContext *ctx);
 void PGASetRandomSeed(PGAContext *ctx, int seed);
+double PGAGetRandReplProp(PGAContext *ctx);
+void PGASetRandReplProp(PGAContext *ctx, double randreplprop);
 
 /*****************************************
 *          real.c

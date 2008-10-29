@@ -27,8 +27,11 @@ typedef struct PgapackData {
     double mutnrate;     /*Mutation Rate <=> PGASetMutationProb()*/
     double mutnValue;     /*use this value while mutating*/
     double crossovrate;  /*Crossover Rate <=> PGASetCrossoverProb();*/
+    int crossovtype;	/*Crossover Type <=> UNIFORM/SBX (SBX Defined from Deb and Kumar 1995)*/
     int allowdup;        /*Allow duplicate strings in the population or not*/
     int mutnandcrossover;/*By default strings that do not undergo crossover undergo mutation, this option allows strings to crossover and be mutated*/
+    double randReplProp; /*By default, random replacement is off, therefore randReplaceProp is zero by default, */
+    						/*a nonzero replacement value causes random generation of individuals in later generations*/
 } PgapackData;
 
 RpCustomTclOptionGet RpOption_GetStpCriteria;
@@ -41,6 +44,12 @@ RpCustomTclOptionParse RpOption_ParseOper;
 RpCustomTclOptionGet RpOption_GetOper;
 RpTclOptionType RpOption_Oper = {
     "pga_operation", RpOption_ParseOper, RpOption_GetOper, NULL
+};
+
+RpCustomTclOptionParse RpOption_ParseCrossovType;
+RpCustomTclOptionGet RpOption_GetCrossovType;
+RpTclOptionType RpOption_CrossovType = {
+	"pga_crossovtype", RpOption_ParseCrossovType,RpOption_GetCrossovType,NULL
 };
 
 RpCustomTclOptionParse RpOption_ParsePopRepl;
@@ -66,10 +75,12 @@ RpTclOption PgapackOptions[] = {
   {"-mutnrate",RP_OPTION_DOUBLE,Rp_Offset(PgapackData,mutnrate)},
   {"-mutnValue",RP_OPTION_DOUBLE,Rp_Offset(PgapackData,mutnValue)},
   {"-crossovrate",RP_OPTION_DOUBLE,Rp_Offset(PgapackData,crossovrate)},
+  {"-crossovtype",&RpOption_CrossovType,Rp_Offset(PgapackData,crossovtype)},
   {"-randnumseed",RP_OPTION_INT,Rp_Offset(PgapackData,randnumseed)},
   {"-stpcriteria",&RpOption_StpCriteria,Rp_Offset(PgapackData,stpcriteria)},
   {"-allowdup",RP_OPTION_BOOLEAN,Rp_Offset(PgapackData,allowdup)},
   {"-mutnandcrossover",RP_OPTION_BOOLEAN,Rp_Offset(PgapackData,mutnandcrossover)},
+  {"-randReplProp",RP_OPTION_DOUBLE,Rp_Offset(PgapackData,randReplProp)},
   {NULL, NULL, 0}
 };
 
@@ -110,6 +121,7 @@ PgapackInit()
     dataPtr->operation = PGA_MINIMIZE;
     dataPtr->maxRuns = 10000;
     dataPtr->popRepl = PGA_POPREPL_BEST;
+    dataPtr->crossovtype = PGA_CROSSOVER_UNIFORM;
     dataPtr->popSize = 200;
     dataPtr->numReplPerPop = (dataPtr->popSize)/10; /*10% replaced by default, change to whatever value you need*/
     dataPtr->crossovrate = 0.85;
@@ -119,6 +131,7 @@ PgapackInit()
     dataPtr->stpcriteria = PGA_STOP_NOCHANGE;
     dataPtr->allowdup = PGA_FALSE; /*Do not allow duplicate strings by default*/
     dataPtr->mutnandcrossover = PGA_FALSE;/*do not allow mutation and crossover to take place on the same string by default*/
+    dataPtr->randReplProp = 0; /*0 randomly generated individuals after initialization, per generation*/
     return (ClientData)dataPtr;
 }
 
@@ -161,10 +174,11 @@ PgapackRun(envPtr, evalProc, fitnessExpr)
     PGASetMutationRealValue(ctx,dataPtr->mutnValue);
     PGASetCrossoverProb(ctx,dataPtr->crossovrate);
     PGASetRandomSeed(ctx,dataPtr->randnumseed);
-    PGASetCrossoverType(ctx, PGA_CROSSOVER_UNIFORM);
-    PGASetNoDuplicatesFlag(ctx,dataPtr->allowdup);
+    PGASetCrossoverType(ctx, dataPtr->crossovtype);
+    PGASetNoDuplicatesFlag(ctx,!(dataPtr->allowdup));
     PGASetMutationAndCrossoverFlag(ctx,dataPtr->mutnandcrossover);
     PGASetNumReplaceValue(ctx,dataPtr->numReplPerPop);
+    PGASetRandReplProp(ctx,dataPtr->randReplProp);
 
 
     PGASetUserFunction(ctx, PGA_USERFUNCTION_CREATESTRING, PgapCreateString);
@@ -460,26 +474,58 @@ PgapCrossover(ctx, p1, p2, pop1, c1, c2, pop2)
     RpOptimEnv *envPtr;
     RpOptimParam *parent1, *parent2, *child1, *child2;
     double pu;
+    PgapackData *dataPtr;
+    /*declare variables for SBX*/
+    double ui,beta,eta,powVal;
 
     envPtr = PgapGetEnvForContext(ctx);
     parent1 = (RpOptimParam*)PGAGetIndividual(ctx, p1, pop1)->chrom;
     parent2 = (RpOptimParam*)PGAGetIndividual(ctx, p2, pop1)->chrom;
     child1  = (RpOptimParam*)PGAGetIndividual(ctx, c1, pop2)->chrom;
     child2  = (RpOptimParam*)PGAGetIndividual(ctx, c2, pop2)->chrom;
-
-    pu = PGAGetUniformCrossoverProb(ctx);
-
-    for (n=0; n < envPtr->numParams; n++) {
+	
+	pu = PGAGetCrossoverProb(ctx);
+	dataPtr =(PgapackData*)envPtr->pluginData;
+	
+	for (n=0; n < envPtr->numParams; n++) {
         if (PGARandomFlip(ctx, pu)) {
+            /* crossover */
+            switch(dataPtr->crossovtype){
+            	case PGA_CROSSOVER_UNIFORM:
+            		memcpy(&child1[n], &parent2[n], sizeof(RpOptimParam));
+            		memcpy(&child2[n], &parent1[n], sizeof(RpOptimParam));
+            		break;
+            	case PGA_CROSSOVER_SBX:
+            		/*Implement a Simulated Binary Crossover for Real Encoding*/
+            		/*From Deb and Agrawal, 1995; Deb and Kumar, 1995)*/
+            		switch(parent1[n].type){
+            			case RP_OPTIMPARAM_NUMBER:
+            				ui = PGARandom01(ctx,0);
+	            			eta = 1.5;/*We can adjust eta later....keeping it 1.5 for now*/
+	            			powVal = 1/(eta+1);
+            				if(ui<=0.5){
+	            				beta = pow(2*ui,powVal);
+            				}else{
+            					beta = pow(0.5/(1-ui),powVal);
+            				}
+            				child1[n].value.dval = 0.5*((1+beta)*(parent1[n].value.dval) + (1-beta)*(parent2[n].value.dval));
+            				child2[n].value.dval = 0.5*((1-beta)*(parent1[n].value.dval) + (1+beta)*(parent2[n].value.dval));
+            				break;
+            			default:
+            				panic("Bad Optim Param Type in PgapCrossover()");
+            		}
+            		break;
+            	default:
+            		panic("bad parameter type in PgapCrossover()");
+            }
+        } else {
             /* child inherits from parent */
             memcpy(&child1[n], &parent1[n], sizeof(RpOptimParam));
             memcpy(&child2[n], &parent2[n], sizeof(RpOptimParam));
-        } else {
-            /* crossover */
-            memcpy(&child1[n], &parent2[n], sizeof(RpOptimParam));
-            memcpy(&child2[n], &parent1[n], sizeof(RpOptimParam));
         }
     }
+			
+		
 }
 
 /*
@@ -674,6 +720,60 @@ RpOption_GetOper(interp, cdata, offset)
     }
     return TCL_OK;
 }
+
+
+/*
+ * ======================================================================
+ *  OPTION:  -crossovtype <=> PGA_CROSSOVER_UNIFORM / PGA_CROSSOVER_SBX
+ * ======================================================================
+ */
+int
+RpOption_ParseCrossovType(interp, valObj, cdata, offset)
+    Tcl_Interp *interp;  /* interpreter handling this request */
+    Tcl_Obj *valObj;     /* set option to this new value */
+    ClientData cdata;    /* save in this data structure */
+    int offset;          /* save at this offset in cdata */
+{
+    int *ptr = (int*)(cdata+offset);
+    char *val = Tcl_GetStringFromObj(valObj, (int*)NULL);
+    if (strcmp(val,"uniform") == 0) {
+        *ptr = PGA_CROSSOVER_UNIFORM;
+    }
+    else if (strcmp(val,"sbx") == 0) {
+        *ptr = PGA_CROSSOVER_SBX;
+    }
+    else {
+        Tcl_AppendStringsToObj(Tcl_GetObjResult(interp),
+            "bad value \"", val, "\": should be either 'uniform' or 'sbx'",
+            (char*)NULL);
+        return TCL_ERROR;
+    }
+    return TCL_OK;
+}
+
+int
+RpOption_GetCrossovType(interp, cdata, offset)
+    Tcl_Interp *interp;  /* interpreter handling this request */
+    ClientData cdata;    /* get from this data structure */
+    int offset;          /* get from this offset in cdata */
+{
+    int *ptr = (int*)(cdata+offset);
+    switch (*ptr) {
+    case PGA_CROSSOVER_UNIFORM:
+        Tcl_SetResult(interp, "uniform", TCL_STATIC);
+        break;
+    case PGA_CROSSOVER_SBX:
+        Tcl_SetResult(interp, "sbx", TCL_STATIC);
+        break;
+    default:
+        Tcl_SetResult(interp, "???", TCL_STATIC);
+        break;
+    }
+    return TCL_OK;
+}
+
+
+
 
 /*
  * ======================================================================

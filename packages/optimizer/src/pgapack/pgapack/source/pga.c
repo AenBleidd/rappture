@@ -199,23 +199,25 @@ void PGARun(PGAContext *ctx, double (*evaluate)(PGAContext *c, int p, int pop))
 void PGARunMutationAndCrossover (PGAContext *ctx, int oldpop, int newpop)
 {
     int i, j, n, m1, m2;
-    int popsize, numreplace;
-    double pc;
+    int popsize, numreplace, randnumreplace;
+    double pc, randreplprop;
 
     PGADebugEntered("PGARunMutationAndCrossover");
 
     popsize = PGAGetPopSize(ctx);
     numreplace = PGAGetNumReplaceValue(ctx);
+    randreplprop = PGAGetRandReplProp(ctx);
+    randnumreplace = (int)randreplprop*popsize;
     /*** first, copy n best strings (sorted by fitness) to new pop ***/
     PGASortPop( ctx, oldpop );
-    n = popsize - numreplace;
+    n = popsize - numreplace - randnumreplace;
     for ( i=0; i < n; i++ ) {
         j = PGAGetSortedPopIndex( ctx, i );
         PGACopyIndividual ( ctx, j, oldpop, i, newpop );
     }
     pc = PGAGetCrossoverProb(ctx);
     /*** reproduce to create the rest of the new population ***/
-    while ( n < popsize) {
+    while ( n < (popsize- randnumreplace)) {
         m1 = PGASelectNextIndex( ctx );
         m2 = PGASelectNextIndex( ctx );
         if ( PGARandomFlip(ctx, pc) ) {
@@ -229,7 +231,7 @@ void PGARunMutationAndCrossover (PGAContext *ctx, int oldpop, int newpop)
               PGACopyIndividual ( ctx, PGA_TEMP1, newpop, n, newpop);
               n++;
 
-              if ( n < popsize ) {
+              if ( n < (popsize-randnumreplace) ) {
               /*** mutate and copy second string to new population ***/
               PGAMutate ( ctx, PGA_TEMP2, newpop);
               while ( PGADuplicate( ctx, PGA_TEMP2, newpop, newpop, n))
@@ -241,11 +243,18 @@ void PGARunMutationAndCrossover (PGAContext *ctx, int oldpop, int newpop)
          else {
             PGACopyIndividual ( ctx, m1, oldpop, n, newpop );
             n++;
-            if ( n < ctx->ga.PopSize ) {
+            if ( n < (popsize-randnumreplace) ) {
                 PGACopyIndividual ( ctx, m2, oldpop, n, newpop );
                 n++;
             }
        }
+    }
+    
+    if(randnumreplace > 0){
+	    while(n < popsize){
+	    	PGACreateIndividual(ctx,n,newpop,PGA_TRUE);
+	    	n++;
+	    }
     }
 
     PGADebugExited("PGARunMutationAndCrossover");
@@ -275,23 +284,25 @@ void PGARunMutationAndCrossover (PGAContext *ctx, int oldpop, int newpop)
 void PGARunMutationOrCrossover ( PGAContext *ctx, int oldpop, int newpop )
 {
     int i, j, n, m1, m2;
-    int popsize, numreplace;
-    double pc;
+    int popsize, numreplace, randnumreplace;
+    double pc, randreplprop;
 
     PGADebugEntered("PGARunMutationOrCrossover");
 
     popsize = PGAGetPopSize(ctx);
     numreplace = PGAGetNumReplaceValue(ctx);
+    randreplprop = PGAGetRandReplProp(ctx);
+    randnumreplace = (int)randreplprop*popsize;
     /*** first, copy n best strings (sorted by fitness) to new pop ***/
     PGASortPop( ctx, oldpop );
-    n = popsize - numreplace;
+    n = popsize - numreplace - randnumreplace ;
     for ( i=0; i < n; i++ ) {
         j = PGAGetSortedPopIndex( ctx, i );
         PGACopyIndividual ( ctx, j, oldpop, i, newpop );
     }
     pc = PGAGetCrossoverProb(ctx);
     /*** reproduce to create the rest of the new population ***/
-    while ( n < popsize ) {
+    while ( n < (popsize-randnumreplace) ) {
         m1 = PGASelectNextIndex( ctx );
         m2 = PGASelectNextIndex( ctx );
         if ( PGARandomFlip(ctx, pc) ) {
@@ -304,7 +315,7 @@ void PGARunMutationOrCrossover ( PGAContext *ctx, int oldpop, int newpop )
             PGACopyIndividual ( ctx, PGA_TEMP1, newpop, n, newpop);
             n++;
 
-            if ( n < popsize )
+            if ( n < (popsize-randnumreplace) )
             {
                  /*** copy second string to new population ***/
                  while (PGADuplicate(ctx, PGA_TEMP2, newpop,  newpop, n))
@@ -322,7 +333,7 @@ void PGARunMutationOrCrossover ( PGAContext *ctx, int oldpop, int newpop )
              PGACopyIndividual ( ctx, PGA_TEMP1, newpop, n, newpop);
              n++;
 
-             if ( n < popsize ) {
+             if ( n < (popsize-randnumreplace) ) {
                   PGACopyIndividual(ctx, m2, oldpop, PGA_TEMP2, newpop);
                   PGAMutate ( ctx, PGA_TEMP2, newpop );
                   while (PGADuplicate(ctx, PGA_TEMP2, newpop, newpop, n ))
@@ -331,6 +342,13 @@ void PGARunMutationOrCrossover ( PGAContext *ctx, int oldpop, int newpop )
                   n++;
              }
         }
+    }
+    
+    if(randnumreplace > 0){
+	    while(n < popsize){
+	    	PGACreateIndividual(ctx,n,newpop,PGA_TRUE);
+	    	n++;
+	    }
     }
 
     PGADebugExited("PGARunMutationOrCrossover");

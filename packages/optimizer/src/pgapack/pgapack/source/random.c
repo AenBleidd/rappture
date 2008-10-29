@@ -402,3 +402,53 @@ void PGASetRandomSeed(PGAContext *ctx, int seed)
     
     PGADebugExited("PGASetRandomSeed");
 }
+
+/*****************************************************************************
+ Category: Generation/Utility
+ 
+ Inputs:
+ 		ctx - context variable
+ 		randreplaceprop - proportion of individuals to be replaced per generation randomly, post initialization
+ 		
+ Outputs:
+ 		None
+ 		
+ Example:
+ 	PGAContext *ctx;
+ 	.
+ 	.
+ 	PGASetRandReplProp(ctx, 0.05);		
+ ***************************************************************************/
+void PGASetRandReplProp(PGAContext *ctx, double randreplprop){
+	PGADebugEntered("PGASetRandReplProp");
+	PGAFailIfSetUp("PGASetRandReplProp");
+	if(randreplprop < 0 || randreplprop > 1){
+		PGAError ( ctx, "PGASetRandReplProp: Invalid value set:",
+		  PGA_FATAL, PGA_DOUBLE, (void *) &randreplprop);
+	}else{
+		ctx->ga.randreplprop = randreplprop;
+	}
+	PGADebugExited("PGASetRandReplProp");
+}
+
+/*****************************************************************************
+ Category: Generation/Utility
+ 
+ Inputs:
+ 		ctx - context variable
+ 		
+ Outputs:
+ 		randreplprop - proportion of randomly generated individuals per population, post initialization
+ 		
+ Example:
+ 	PGAContext *ctx;
+ 	double randreplprop;
+ 	.
+ 	.
+ 	randreplprop = PGAGetRandReplProp(ctx);		
+ ***************************************************************************/
+double PGAGetRandReplProp(PGAContext *ctx){
+	PGADebugEntered("PGAGetRandReplProp");
+	PGADebugExited("PGAGetRandReplProp");
+	return ctx->ga.randreplprop;
+}
