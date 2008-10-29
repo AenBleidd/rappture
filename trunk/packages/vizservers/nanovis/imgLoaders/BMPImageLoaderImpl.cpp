@@ -19,6 +19,7 @@ Image* BMPImageLoaderImpl::load(const char* fileName)
     fflush(stdout);
     Image* image = 0;
 
+    printf("opening image file \"%s\"\n", fileName);
     FILE* f = fopen(fileName, "rb");
 
     if (!f)  {
