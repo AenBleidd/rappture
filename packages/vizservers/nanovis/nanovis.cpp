@@ -600,6 +600,8 @@ NanoVis::init_offscreen_buffer()
     if (debug_flag) {
        fprintf(stderr, "in init_offscreen_buffer\n");
     }
+    // Initialize a fbo for final display.
+    glGenFramebuffersEXT(1, &final_fbo);
    
     glGenTextures(1, &final_color_tex);
     glBindTexture(GL_TEXTURE_2D, final_color_tex);
@@ -617,15 +619,13 @@ NanoVis::init_offscreen_buffer()
     if (!CheckGL("glTexImage2D")) {
         return;
     }
+    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, final_fbo);
 
     glGenRenderbuffersEXT(1, &final_depth_rb);
     glBindRenderbufferEXT(GL_RENDERBUFFER_EXT, final_depth_rb);
     glRenderbufferStorageEXT(GL_RENDERBUFFER_EXT,
                              GL_DEPTH_COMPONENT24, win_width, win_height);
 
-    // Initialize a fbo for final display.
-    glGenFramebuffersEXT(1, &final_fbo);
-    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, final_fbo);
     glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT,
                               GL_COLOR_ATTACHMENT0_EXT,
                               GL_TEXTURE_2D, final_color_tex, 0);
@@ -685,13 +685,8 @@ NanoVis::resize_offscreen_buffer(int w, int h)
 
     //Reinitialize final fbo for final display
     glGenFramebuffersEXT(1, &final_fbo);
+
     glGenTextures(1, &final_color_tex);
-    glGenRenderbuffersEXT(1, &final_depth_rb);
-
-    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, final_fbo);
-    CheckFramebuffer("final_fbo");
-
-    //initialize final color texture
     glBindTexture(GL_TEXTURE_2D, final_color_tex);
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -702,15 +697,12 @@ NanoVis::resize_offscreen_buffer(int w, int h)
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, win_width, win_height, 0,
                  GL_RGB, GL_INT, NULL);
 #endif
+    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, final_fbo);
     glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT,
                               GL_COLOR_ATTACHMENT0_EXT,
                               GL_TEXTURE_2D, final_color_tex, 0);
 
-    CheckGL("glFramebufferText2DEXT");
-    CheckFramebuffer("final_color_tex");
-    CHECK_FRAMEBUFFER_STATUS();
-
-    // initialize final depth renderbuffer
+    glGenRenderbuffersEXT(1, &final_depth_rb);
     glBindRenderbufferEXT(GL_RENDERBUFFER_EXT, final_depth_rb);
     glRenderbufferStorageEXT(GL_RENDERBUFFER_EXT,
                              GL_DEPTH_COMPONENT24, win_width, win_height);
@@ -718,9 +710,8 @@ NanoVis::resize_offscreen_buffer(int w, int h)
                                  GL_DEPTH_ATTACHMENT_EXT,
                                  GL_RENDERBUFFER_EXT, final_depth_rb);
 
-    // Check framebuffer completeness at the end of initialization.
-    CheckGL("glFramebufferRenderbufferEXT");
-    CheckFramebuffer("final_depth_rb");
+    CheckGL("glFramebufferText2DEXT");
+    CheckFramebuffer("final_fbo");
     CHECK_FRAMEBUFFER_STATUS();
     if (debug_flag) {
        fprintf(stderr, "leaving resize_offscreen_buffer(%d, %d)\n", w, h);
@@ -2157,15 +2148,7 @@ NanoVis::xinetd_listen(void)
 	    fprintf(stderr, "in xinetd_listen: check eof %d\n", feof(NanoVis::stdin));
 	}
         while (!feof(NanoVis::stdin)) {
-	    if (debug_flag) {
-		fprintf(stderr, "in xinetd_listen: reading 1 char\n");
-		fflush(stderr);
-	    }
             int c = fgetc(NanoVis::stdin);
-	    if (debug_flag) {
-		fprintf(stderr, "in xinetd_listen: read %c,%x\n", c, c);
-		fflush(stderr);
-	    }
 	    char ch;
             if (c <= 0) {
                 if (npass == 0) {
@@ -2176,9 +2159,6 @@ NanoVis::xinetd_listen(void)
             }
 	    ch = (char)c;
             Tcl_DStringAppend(&cmdbuffer, &ch, 1);
-	    if (debug_flag) {
-		fprintf(stderr, "in xinetd_listen: appending 1 char\n");
-	    }
             if (ch=='\n' && Tcl_CommandComplete(Tcl_DStringValue(&cmdbuffer))) {
                 break;
             }
@@ -2413,6 +2393,7 @@ main(int argc, char** argv)
 #endif
     Tcl_DStringInit(&NanoVis::cmdbuffer);
     NanoVis::interp = initTcl();
+    NanoVis::resize_offscreen_buffer(NanoVis::win_width, NanoVis::win_height);
 
     glutMainLoop();
 
