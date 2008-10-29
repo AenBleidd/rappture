@@ -600,14 +600,14 @@ void
 NanoVis::init_offscreen_buffer()
 {
     if (debug_flag) {
-       fprintf(stderr, "in init_offscreen_buffer\n");
+	fprintf(stderr, "in init_offscreen_buffer\n");
     }
     // Initialize a fbo for final display.
     glGenFramebuffersEXT(1, &final_fbo);
-   
+    
     glGenTextures(1, &final_color_tex);
     glBindTexture(GL_TEXTURE_2D, final_color_tex);
-
+    
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 #ifdef NV40
@@ -628,23 +628,25 @@ NanoVis::init_offscreen_buffer()
     	win_width, win_height);
 
     glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT,
-        GL_TEXTURE_2D, final_color_tex, 0);
+	GL_TEXTURE_2D, final_color_tex, 0);
     glFramebufferRenderbufferEXT(GL_FRAMEBUFFER_EXT, GL_DEPTH_ATTACHMENT_EXT,
-        GL_RENDERBUFFER_EXT, final_depth_rb);
+	GL_RENDERBUFFER_EXT, final_depth_rb);
+
     CheckGL("glFramebufferTexture2DEXT");
+
     GLenum status;
-    if (!CheckFramebuffer(&status)) {
-       if (debug_flag) {
-       	  PrintFramebufferStatus(status, "final_fbo");
-       }
+    if (!CheckFBO(&status)) {
+	if (debug_flag) {
+	    PrintFBOStatus(status, "final_fbo");
+	}
     }
+
     // Check framebuffer completeness at the end of initialization.
     //CHECK_FRAMEBUFFER_STATUS();
-    //NanoVis::display();
-
+    
     //assert(glGetError()==0);
     if (debug_flag) {
-       fprintf(stderr, "leaving init_offscreen_buffer\n");
+	fprintf(stderr, "leaving init_offscreen_buffer\n");
     }
 }
 
@@ -654,40 +656,39 @@ void
 NanoVis::resize_offscreen_buffer(int w, int h)
 {
     if (debug_flag) {
-       fprintf(stderr, "in resize_offscreen_buffer(%d, %d)\n", w, h);
+	fprintf(stderr, "in resize_offscreen_buffer(%d, %d)\n", w, h);
     }
     win_width = w;
     win_height = h;
-
+    
     if (fonts) {
         fonts->resize(w, h);
     }
-
     //fprintf(stderr, "screen_buffer size: %d\n", sizeof(screen_buffer));
     printf("screen_buffer size: %d %d\n", w, h);
-
+    
     if (screen_buffer) {
         delete[] screen_buffer;
         screen_buffer = NULL;
     }
-
+    
     screen_buffer = new unsigned char[4*win_width*win_height];
     assert(screen_buffer != NULL);
-
+    
     //delete the current render buffer resources
     glDeleteTextures(1, &final_color_tex);
     glDeleteFramebuffersEXT(1, &final_fbo);
-
+    
     glBindRenderbufferEXT(GL_RENDERBUFFER_EXT, final_depth_rb);
     glDeleteRenderbuffersEXT(1, &final_depth_rb);
-
+    
     //change the camera setting
     cam->set_screen_size(0, 0, win_width, win_height);
     plane_render->set_screen_size(win_width, win_height);
-
+    
     //Reinitialize final fbo for final display
     glGenFramebuffersEXT(1, &final_fbo);
-
+    
     glGenTextures(1, &final_color_tex);
     glBindTexture(GL_TEXTURE_2D, final_color_tex);
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -700,28 +701,27 @@ NanoVis::resize_offscreen_buffer(int w, int h)
                  GL_RGB, GL_INT, NULL);
 #endif
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, final_fbo);
-    glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT,
-                              GL_COLOR_ATTACHMENT0_EXT,
-                              GL_TEXTURE_2D, final_color_tex, 0);
-
+    glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT,
+	GL_TEXTURE_2D, final_color_tex, 0);
+    
     glGenRenderbuffersEXT(1, &final_depth_rb);
     glBindRenderbufferEXT(GL_RENDERBUFFER_EXT, final_depth_rb);
-    glRenderbufferStorageEXT(GL_RENDERBUFFER_EXT,
-                             GL_DEPTH_COMPONENT24, win_width, win_height);
-    glFramebufferRenderbufferEXT(GL_FRAMEBUFFER_EXT,
-                                 GL_DEPTH_ATTACHMENT_EXT,
-                                 GL_RENDERBUFFER_EXT, final_depth_rb);
-
+    glRenderbufferStorageEXT(GL_RENDERBUFFER_EXT, GL_DEPTH_COMPONENT24, 
+	win_width, win_height);
+    glFramebufferRenderbufferEXT(GL_FRAMEBUFFER_EXT, GL_DEPTH_ATTACHMENT_EXT,
+	GL_RENDERBUFFER_EXT, final_depth_rb);
+    
     CheckGL("glFramebufferText2DEXT");
     GLenum status;
-    if (!CheckFramebuffer(&status)) {
-       if (debug_flag) {
-       	  PrintFramebufferStatus(status, "final_fbo");
-       }
+    if (!CheckFBO(&status)) {
+	if (debug_flag) {
+	    PrintFBOStatus(status, "final_fbo");
+	}
     }
+
     //CHECK_FRAMEBUFFER_STATUS();
     if (debug_flag) {
-       fprintf(stderr, "leaving resize_offscreen_buffer(%d, %d)\n", w, h);
+	fprintf(stderr, "leaving resize_offscreen_buffer(%d, %d)\n", w, h);
     }
 }
 
@@ -807,16 +807,18 @@ void CgErrorCallback(void)
 void NanoVis::init(const char* path)
 {
     // print system information
-    fprintf(stderr, "-----------------------------------------------------------\n");
-    fprintf(stderr, "OpenGL driver: %s %s\n", glGetString(GL_VENDOR), glGetString(GL_VERSION));
+    fprintf(stderr, 
+	    "-----------------------------------------------------------\n");
+    fprintf(stderr, "OpenGL driver: %s %s\n", glGetString(GL_VENDOR), 
+	    glGetString(GL_VERSION));
     fprintf(stderr, "Graphics hardware: %s\n", glGetString(GL_RENDERER));
-    fprintf(stderr, "-----------------------------------------------------------\n");
+    fprintf(stderr, 
+	    "-----------------------------------------------------------\n");
     if (path == NULL) {
-	fprintf(stderr, "no path defined for shaders or resources\n");
+	fprintf(stderr, "No path defined for shaders or resources\n");
 	fflush(stderr);
-	DoExit(-1);
+	DoExit(1);
     }
-    // init GLEW
     GLenum err = glewInit();
     if (GLEW_OK != err) {
         fprintf(stderr, "Error: %s\n", glewGetErrorString(err));
@@ -830,17 +832,16 @@ void NanoVis::init(const char* path)
 	fflush(stderr);
 	DoExit(1);
     }
-
+    
     NvInitCG();
     NvShader::setErrorCallback(CgErrorCallback);
-
+    
     fonts = new R2Fonts();
     fonts->addFont("verdana", "verdana.fnt");
     fonts->setFont("verdana");
-
+    
     color_table_renderer = new NvColorTableRenderer();
     color_table_renderer->setFonts(fonts);
-
     particleRenderer = new NvParticleRenderer(NMESH, NMESH, g_context);
 
 #if PROTOTYPE
@@ -851,9 +852,7 @@ void NanoVis::init(const char* path)
     grid = new Grid();
     grid->setFont(fonts);
 
-#ifdef notdef
     pointset_renderer = new PointSetRenderer();
-#endif
 }
 
 /*----------------------------------------------------*/
