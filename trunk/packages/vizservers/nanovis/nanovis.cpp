@@ -613,8 +613,7 @@ NanoVis::init_offscreen_buffer()
                  GL_RGB, GL_INT, NULL);
 #else
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, win_width, win_height, 0,
-                 GL_RGBA, GL_INT, NULL);
-
+                 GL_RGB, GL_UNSIGNED_BYTE, NULL);
 #endif
     if (!CheckGL("glTexImage2D")) {
         return;
@@ -623,18 +622,15 @@ NanoVis::init_offscreen_buffer()
 
     glGenRenderbuffersEXT(1, &final_depth_rb);
     glBindRenderbufferEXT(GL_RENDERBUFFER_EXT, final_depth_rb);
-    glRenderbufferStorageEXT(GL_RENDERBUFFER_EXT,
-                             GL_DEPTH_COMPONENT24, win_width, win_height);
+    glRenderbufferStorageEXT(GL_RENDERBUFFER_EXT, GL_DEPTH_COMPONENT24, 
+    	win_width, win_height);
 
-    glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT,
-                              GL_COLOR_ATTACHMENT0_EXT,
-                              GL_TEXTURE_2D, final_color_tex, 0);
-    glFramebufferRenderbufferEXT(GL_FRAMEBUFFER_EXT,
-                             GL_DEPTH_ATTACHMENT_EXT,
-                             GL_RENDERBUFFER_EXT, final_depth_rb);
+    glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT,
+        GL_TEXTURE_2D, final_color_tex, 0);
+    glFramebufferRenderbufferEXT(GL_FRAMEBUFFER_EXT, GL_DEPTH_ATTACHMENT_EXT,
+        GL_RENDERBUFFER_EXT, final_depth_rb);
     CheckGL("glFramebufferTexture2DEXT");
     CheckFramebuffer("final_fbo");
-
 
     // Check framebuffer completeness at the end of initialization.
     //CHECK_FRAMEBUFFER_STATUS();
