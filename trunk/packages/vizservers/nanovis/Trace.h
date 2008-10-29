@@ -5,7 +5,7 @@
 #include <GL/glut.h>
 
 extern void Trace(const char* format, ...);
-extern bool CheckFramebuffer(GLenum *statusPtr);
-extern void PrintFramebufferStatus(GLenum status, const char *string);
-extern bool CheckGL(const char *string);
+extern bool CheckFBO(GLenum *statusPtr);
+extern void PrintFBOStatus(GLenum status, const char *prefix);
+extern bool CheckGL(const char *prefix);
 #endif
