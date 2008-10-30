@@ -2249,7 +2249,7 @@ NanoVis::xinetd_listen(void)
     }
 #endif
     if (feof(NanoVis::stdin)) {
-	DoExit(2);
+	DoExit(0);
     }
     if (debug_flag) {
 	fprintf(stderr, "leaving xinetd_listen\n");
