@@ -133,19 +133,14 @@ Tcl_Interp *NanoVis::interp;
 Tcl_DString NanoVis::cmdbuffer;
 
 //frame buffer for final rendering
-char dummy0[2000];
 NVISid NanoVis::final_color_tex = 0;
 NVISid NanoVis::final_depth_rb = 0;
-char dummy1[2000];
 NVISid NanoVis::final_fbo = 0;
 int NanoVis::render_window = 0;       /* GLUT handle for the render window */
-char dummy2[2000];
 int NanoVis::win_width = NPIX;        /* Width of the render window */
 int NanoVis::win_height = NPIX;       /* Height of the render window */
 
-char dummy3[2000];
 unsigned char* NanoVis::screen_buffer = NULL;
-char dummy4[2000];
 
 /* FIXME: This variable is always true. */
 bool volume_mode = true; 
@@ -413,15 +408,17 @@ ExecuteCommand(Tcl_Interp *interp, Tcl_DString *dsPtr)
     double start, finish;
     int result;
 
+    if (NanoVis::debug_flag) {
+	fprintf(stderr, "in ExecuteCommand(%s)\n", Tcl_DStringValue(dsPtr));
+    }
+
     gettimeofday(&tv, NULL);
     start = CVT2SECS(tv);
 
-#ifdef notdef
-    if (NanoVis::debug_flag) {
-	fprintf(NanoVis::logfile, "%s\n", Tcl_DStringValue(dsPtr));
+    if (NanoVis::logfile != NULL) {
+	fprintf(NanoVis::logfile, "%s", Tcl_DStringValue(dsPtr));
 	fflush(NanoVis::logfile);
     }
-#endif
     if (NanoVis::recfile != NULL) {
 	fprintf(NanoVis::recfile, "%s", Tcl_DStringValue(dsPtr));
 	fflush(NanoVis::recfile);
@@ -434,6 +431,9 @@ ExecuteCommand(Tcl_Interp *interp, Tcl_DString *dsPtr)
 
     stats.cmdTime += finish - start;
     stats.nCommands++;
+    if (NanoVis::debug_flag) {
+	fprintf(stderr, "leaving ExecuteCommand status=%d\n", result);
+    }
     return result;
 }
 
@@ -615,24 +615,17 @@ NanoVis::init_offscreen_buffer()
                  GL_RGB, GL_INT, NULL);
 #else
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, win_width, win_height, 0,
-                 GL_RGB, GL_UNSIGNED_BYTE, NULL);
+                 GL_RGB, GL_INT, NULL);
 #endif
-    if (!CheckGL("glTexImage2D")) {
-        return;
-    }
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, final_fbo);
-
     glGenRenderbuffersEXT(1, &final_depth_rb);
     glBindRenderbufferEXT(GL_RENDERBUFFER_EXT, final_depth_rb);
     glRenderbufferStorageEXT(GL_RENDERBUFFER_EXT, GL_DEPTH_COMPONENT24, 
     	win_width, win_height);
-
     glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT,
 	GL_TEXTURE_2D, final_color_tex, 0);
     glFramebufferRenderbufferEXT(GL_FRAMEBUFFER_EXT, GL_DEPTH_ATTACHMENT_EXT,
 	GL_RENDERBUFFER_EXT, final_depth_rb);
-
-    CheckGL("glFramebufferTexture2DEXT");
 
     GLenum status;
     if (!CheckFBO(&status)) {
@@ -654,9 +647,17 @@ NanoVis::init_offscreen_buffer()
 void 
 NanoVis::resize_offscreen_buffer(int w, int h)
 {
+    if ((w == win_width) && (h == win_height)) {
+	return;
+    }
+    if (NanoVis::stdin != ::stdin) {
+	return;
+    }
+
     if (debug_flag) {
 	fprintf(stderr, "in resize_offscreen_buffer(%d, %d)\n", w, h);
     }
+
     win_width = w;
     win_height = h;
     
@@ -664,7 +665,9 @@ NanoVis::resize_offscreen_buffer(int w, int h)
         fonts->resize(w, h);
     }
     //fprintf(stderr, "screen_buffer size: %d\n", sizeof(screen_buffer));
-    printf("screen_buffer size: %d %d\n", w, h);
+    if (debug_flag) {
+    fprintf(stderr, "screen_buffer size: %d %d\n", w, h);
+    }
     
     if (screen_buffer) {
         delete[] screen_buffer;
@@ -676,20 +679,23 @@ NanoVis::resize_offscreen_buffer(int w, int h)
     
     //delete the current render buffer resources
     glDeleteTextures(1, &final_color_tex);
-    glDeleteFramebuffersEXT(1, &final_fbo);
-    
     glBindRenderbufferEXT(GL_RENDERBUFFER_EXT, final_depth_rb);
     glDeleteRenderbuffersEXT(1, &final_depth_rb);
-    
-    //change the camera setting
-    cam->set_screen_size(0, 0, win_width, win_height);
-    plane_render->set_screen_size(win_width, win_height);
-    
+
+    if (debug_flag) {
+    fprintf(stderr, "before deleteframebuffers\n");
+    }
+    glDeleteFramebuffersEXT(1, &final_fbo);
+
+    if (debug_flag) {
+	fprintf(stderr, "reinitialize FBO\n");
+    }
     //Reinitialize final fbo for final display
     glGenFramebuffersEXT(1, &final_fbo);
-    
+
     glGenTextures(1, &final_color_tex);
     glBindTexture(GL_TEXTURE_2D, final_color_tex);
+
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 #ifdef NV40
@@ -699,18 +705,22 @@ NanoVis::resize_offscreen_buffer(int w, int h)
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, win_width, win_height, 0,
                  GL_RGB, GL_INT, NULL);
 #endif
+    if (debug_flag) {
+	fprintf(stderr, "before bindframebuffer\n");
+    }
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, final_fbo);
-    glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT,
-	GL_TEXTURE_2D, final_color_tex, 0);
-    
+    if (debug_flag) {
+	fprintf(stderr, "after bindframebuffer\n");
+    }
     glGenRenderbuffersEXT(1, &final_depth_rb);
     glBindRenderbufferEXT(GL_RENDERBUFFER_EXT, final_depth_rb);
     glRenderbufferStorageEXT(GL_RENDERBUFFER_EXT, GL_DEPTH_COMPONENT24, 
 	win_width, win_height);
+    glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT,
+	GL_TEXTURE_2D, final_color_tex, 0);
     glFramebufferRenderbufferEXT(GL_FRAMEBUFFER_EXT, GL_DEPTH_ATTACHMENT_EXT,
 	GL_RENDERBUFFER_EXT, final_depth_rb);
     
-    CheckGL("glFramebufferText2DEXT");
     GLenum status;
     if (!CheckFBO(&status)) {
 	PrintFBOStatus(status, "final_fbo");
@@ -718,6 +728,13 @@ NanoVis::resize_offscreen_buffer(int w, int h)
     }
 
     //CHECK_FRAMEBUFFER_STATUS();
+    if (debug_flag) {
+    fprintf(stderr, "change camera\n");
+    }
+    //change the camera setting
+    cam->set_screen_size(0, 0, win_width, win_height);
+    plane_render->set_screen_size(win_width, win_height);
+
     if (debug_flag) {
 	fprintf(stderr, "leaving resize_offscreen_buffer(%d, %d)\n", w, h);
     }
@@ -2149,7 +2166,8 @@ NanoVis::xinetd_listen(void)
         //  here.
         //
 	if (debug_flag) {
-	    fprintf(stderr, "in xinetd_listen: check eof %d\n", feof(NanoVis::stdin));
+	    fprintf(stderr, "in xinetd_listen: check eof %d\n", 
+		    feof(NanoVis::stdin));
 	}
         while (!feof(NanoVis::stdin)) {
             int c = fgetc(NanoVis::stdin);
@@ -2242,6 +2260,7 @@ NanoVis::xinetd_listen(void)
 #else
     if (debug_flag) {
 	fprintf(stderr, "ppm image not written (debug mode)\n");
+	bmp_write_to_file(1, "/tmp");
     } else {
 	NanoVis::ppm_write("nv>image -bytes");
     }
@@ -2400,7 +2419,6 @@ main(int argc, char** argv)
     Tcl_DStringInit(&NanoVis::cmdbuffer);
     NanoVis::interp = initTcl();
     NanoVis::resize_offscreen_buffer(NanoVis::win_width, NanoVis::win_height);
-
     glutMainLoop();
 
     DoExit(0);
