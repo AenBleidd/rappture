@@ -523,6 +523,7 @@ main(int argc, char *argv[])
 		// find the new memory increment
 		int newmemory = ntohl(msg);
 	      
+#ifdef notdef
 		// Find the best host to create a new child on.
 		int index = find_best_host();
 	      
@@ -548,10 +549,12 @@ main(int argc, char *argv[])
 		    close(i);
 		    continue;
 		}
-	      
+#endif 
 		memory_in_use += newmemory;
 		load += 2*INITIAL_LOAD;
+#ifdef notdef
 		broadcast_load();
+#endif
 		printf("Accepted new job with memory %d\n", newmemory);
 		//printf("My load is now %f\n", load);
 	      
