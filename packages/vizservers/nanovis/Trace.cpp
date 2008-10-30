@@ -51,7 +51,7 @@ PrintFBOStatus(GLenum status, const char *prefix)
 		prefix, (unsigned int)status);
 	return;
     }
-    fprintf(stderr, "FB Status: %s: %s", prefix, mesg);
+    fprintf(stderr, "FB Status: %s: %s\n", prefix, mesg);
 }
 
 bool
@@ -80,7 +80,7 @@ CheckGL(const char *prefix)
 	fprintf(stderr, "GL Status: %s: Unknown status %d\n", prefix, status);
 	return false;
     } 
-    fprintf(stderr, "GL Status: %s: %s", prefix, mesg);
+    fprintf(stderr, "GL Status: %s: %s\n", prefix, mesg);
     return false;
 }
 

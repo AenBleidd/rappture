@@ -636,9 +636,8 @@ NanoVis::init_offscreen_buffer()
 
     GLenum status;
     if (!CheckFBO(&status)) {
-	if (debug_flag) {
-	    PrintFBOStatus(status, "final_fbo");
-	}
+	PrintFBOStatus(status, "final_fbo");
+    	DoExit(3);
     }
 
     // Check framebuffer completeness at the end of initialization.
@@ -714,9 +713,8 @@ NanoVis::resize_offscreen_buffer(int w, int h)
     CheckGL("glFramebufferText2DEXT");
     GLenum status;
     if (!CheckFBO(&status)) {
-	if (debug_flag) {
-	    PrintFBOStatus(status, "final_fbo");
-	}
+	PrintFBOStatus(status, "final_fbo");
+    	DoExit(3);
     }
 
     //CHECK_FRAMEBUFFER_STATUS();
