@@ -1,33 +1,60 @@
 
 bindir          = @bindir@
-datadir		= @datadir@
-datarootdir	= @datarootdir@
+datadir         = @datadir@
+datarootdir     = @datarootdir@
 exec_prefix     = @exec_prefix@
 includedir      = @includedir@
 libdir          = @libdir@
 mandir          = @mandir@
 prefix          = @prefix@
-srcdir		= @srcdir@
+srcdir          = @srcdir@
 
-destdir		= $(prefix)/examples/app-fermi/matlab
+destdir         = $(prefix)/examples/app-fermi/matlab
 
-INSTALL		= @INSTALL@
-MKDIR_P		= @MKDIR_P@
+INSTALL         = @INSTALL@
+MKDIR_P         = @MKDIR_P@
+MCC             = @MCC@
 
-FILES 		= \
+MCC_FLAGS       = -m -R -nojvm
+INCLUDES        = -I ../../../lang/matlab
+MCC_SWITCHES    = $(MCC_FLAGS) $(INCLUDES)
+VPATH           = $(srcdir)
+
+APPNAME = fermi
+
+FILES   = \
 		$(srcdir)/tool.xml \
-		$(srcdir)/fermi.m
+		$(srcdir)/Makefile.example \
+		${APPNAME}.ctf
 
-all:	
+${APPNAME}: fermi_main.m fermi.m
+	$(MCC) $(MCC_SWITCHES) -o $@ $^
 
-install: 
+all: ${APPNAME}
+
+install: ${APPNAME}
+	sed s/YOURAPPNAME/$^/ < $(srcdir)/run_app.patch | patch run_$^.sh
 	$(MKDIR_P) $(destdir)
 	for i in $(FILES) ; do \
 	  $(INSTALL) -m 444 $$i $(destdir) ; \
 	done
+	$(INSTALL) -m 444 readme.txt $(destdir)/$^.readme
+	$(INSTALL) -m 555 run_$^.sh $^ $(destdir)
+	$(bindir)/simsim --tool $(srcdir)/tool.xml --values default --nosim --driver driver.$^
+	LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:$(libdir) $(destdir)/run_$^.sh /apps/matlab/mcr driver.$^
+	rm -f run*.xml driver.$^
+	@echo "Install Successful"
 
 clean:
+	rm -rf ${APPNAME} \
+		${APPNAME}_main.c \
+		${APPNAME}.ctf \
+		${APPNAME}.prj \
+		${APPNAME}_mcc_component_data.c \
+		run_${APPNAME}.sh \
+		mccExcludedFiles.log \
+		readme.txt \
+		${APPNAME}_mcr
 
 distclean: clean
 	$(RM) Makefile
-
