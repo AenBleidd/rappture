@@ -39,10 +39,11 @@ itcl::class Rappture::ControlOwner {
     protected variable _xmlobj ""    ;# Rappture XML description
     private variable _path2widget    ;# maps path => widget on this page
     private variable _owner2paths    ;# for notify: maps owner => interests
+    private variable _type2curpath   ;# maps type(path) => path's current value
     private variable _callbacks      ;# for notify: maps owner/path => callback
     private variable _dependencies   ;# maps path => other paths dep on this
 }
-                                                                                
+
 # ----------------------------------------------------------------------
 # CONSTRUCTOR
 # ----------------------------------------------------------------------
@@ -52,6 +53,19 @@ itcl::body Rappture::ControlOwner::constructor {owner} {
         set _owner [lindex $parts 0]
         set _path [lindex $parts 1]
         $_owner _slave add $this
+    }
+
+    # we are adding this so notes can be used
+    # in coordination with loaders inside the load function
+    array set _type2curpath {
+        choice current
+        boolean current
+        image current
+        integer current
+        loader current
+        note contents
+        number current
+        string current
     }
 }
 
@@ -247,21 +261,29 @@ itcl::body Rappture::ControlOwner::load {newobj} {
     foreach path [array names _path2widget] {
         # the following elements do not accept "current" tags, skip them
         set type [[tool] xml element -as type $path]
-        if {[lsearch {group separator control note} $type] >= 0} {
+        if {[lsearch {group separator control} $type] >= 0} {
             continue
         }
 
+        set type [[tool] xml element -as type $path]
+        if {[info exists _type2curpath($type)]} {
+            set currentpath $path.$_type2curpath($type)
+        } else {
+            # default incase i forgot an inpuit type in _type2curpath
+            set currentpath $path.current
+        }
+
         # copy new value to the XML tree
-        [tool] xml copy $path.current from $newobj $path.current
+        [tool] xml copy $currentpath from $newobj $currentpath
 
         # also copy to the widget associated with the tree
-        if {"" != [$newobj element -as type $path.current]} {
-            set val [$newobj get $path.current]
+        if {"" != [$newobj element -as type $path]} {
+            set val [$newobj get $currentpath]
             if {[string length $val] > 0
-                  || [llength [$newobj children $path.current]] == 0} {
+                  || [llength [$newobj children $currentpath]] == 0} {
                 $_path2widget($path) value $val
             } else {
-                set obj [$newobj element -as object $path.current]
+                set obj [$newobj element -as object $currentpath]
                 $_path2widget($path) value $obj
             }
         }
