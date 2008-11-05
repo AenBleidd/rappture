@@ -28,6 +28,7 @@ SCRIPTS	= \
 		rappture-csh.env \
 		rerun \
 		simsim  \
+		xmldiff \
 		about
 
 WINDOWS_SCRIPTS =  \
@@ -47,6 +48,6 @@ install:
 clean:
 
 distclean: clean
-	$(RM) rappture.env rappture simsim
+	$(RM) rappture.env rappture simsim xmldiff
 	$(RM) Makefile *~
 

@@ -9,7 +9,7 @@
 #\
 RAPPTURE_INSTALL_DIR=@prefix@ ; \
 . $RAPPTURE_INSTALL_DIR/bin/rappture.env ; \
-exec wish $0 $* 
+exec wish $0 $*
 
 package require Rappture
 package require RapptureGUI
@@ -383,17 +383,39 @@ proc parsePathVal {listVar returnVar} {
 }
 
 proc printHelp {} {
-    puts "simsim ?--tool <path> | --driver <path>? ?--randomize? ?--compare <path>? ?--help?"
+    puts "simsim [OPTIONS]"
     puts ""
-    puts " --tool <path>         - use the tool.xml file specified at <path>"
-    puts " --randomize           - use random values instead of default"
-    puts "                         values for inputs elements"
-    puts " --driver <path>       - run the application with the provided"
-    puts "                         driver.xml file."
-    puts " --compare <path>      - compare the results with the provided"
-    puts "                         run.xml file."
-    puts " --driver-only <fname> - only create the driver file, do not run"
-    puts " --help                - print this help menu."
+    puts "simulator simulator - simulate simulation"
+    puts ""
+    puts "OPTIONS:"
+    puts " --tool <path>        - use the tool.xml file specified at <path>"
+    puts " --values <valtype>   - choose the type of values to use for input."
+    puts "                        valid <valtype>'s include:"
+    puts "                        \"default\",\"current\",\"random\"."
+    puts " --driver <path>      - write a driver file to <path>."
+    puts " --compare <path>     - compare the results with the run.xml"
+    puts "                        file at <path>."
+    puts " --nosim              - no simulation."
+    puts " --help               - print this help menu."
+    puts ""
+    puts "EXAMPLES:"
+    puts "simulate using ./tool.xml, default values, no comparisons or driver"
+    puts "simsim"
+    puts ""
+    puts "simulate using ./tool.xml, random values, no comparisons or driver"
+    puts "simsim --values randomize"
+    puts ""
+    puts "from ./tool.xml, create a driver file named \"mydriverfile.xml\""
+    puts "with random values"
+    puts "simsim --values randomize --nosim --driver mydriverfile.xml"
+    puts ""
+    puts "run a simulation using the current values from driver.xml"
+    puts "simsim --tool driver.xml --values current"
+    puts ""
+    puts "compare two xml file, don't do a simulation, don't print a driver.xml"
+    puts "simsim --tool driver.xml --compare previousrun.xml --nosim"
+    puts ""
+    puts ""
     exit 0
 }
 
@@ -508,21 +530,55 @@ proc value {libobj path} {
     return [list $raw $raw]
 }
 
+proc compare {orig result} {
+    if {"" == $orig} {
+        return
+    }
+    if {"" == $result} {
+        return
+    }
 
+    if {![Rappture::library isvalid $orig]} {
+        set origObj [Rappture::library $orig]
+        if {![Rappture::library isvalid $origObj]} {
+            puts "cannot create Rappture library from $orig\n"
+            return
+        }
+    } else {
+        set origObj $orig
+    }
+
+    if {![Rappture::library isvalid $result]} {
+        set resultObj [Rappture::library $result]
+        if {![Rappture::library isvalid $resultObj]} {
+            puts "cannot create Rappture library from $result\n"
+            return
+        }
+    } else {
+        set resultObj $result
+    }
+
+    foreach {op vpath oldval newval} [diffs $origObj $resultObj] {
+        puts "$op $vpath $oldval $newval"
+    }
+}
 
 
 # keep the wish window from popping up
 wm withdraw .
 
 # set default values
-set intf "./tool.xml"
-set cintf ""
-set defaults true
 array set presets []
 set i 0
 set oParams {}
-set runapp true
-set outf "driver.xml"
+
+array set params {
+    --compare ""
+    --values default
+    --nosim true
+    --driver ""
+    --tool "./tool.xml"
+}
 
 # parse command line arguments
 set argc [llength $argv]
@@ -531,8 +587,7 @@ for {set i 0} {$i < $argc} {incr i} {
     if {("-t" == $opt) || ("--tool" == $opt)} {
         if {[expr {$i + 1}] < $argc} {
             incr i
-            set intf [lindex $argv $i]
-            # puts "using $intf"
+            set params(--tool) [lindex $argv $i]
             # need to check to see if file exists, if not raise error
         } else {
             printHelp
@@ -540,31 +595,38 @@ for {set i 0} {$i < $argc} {incr i} {
     } elseif {("-d" == $opt) || ("--driver" == $opt)} {
         if {[expr {$i + 1}] < $argc} {
             incr i
-            set intf [lindex $argv $i]
-            # puts "using $intf"
+            set params(--driver) [lindex $argv $i]
             # need to check to see if file exists, if not raise error
         } else {
             printHelp
         }
-    } elseif {("-r" == $opt) || ("--randomize" == $opt)} {
-        set defaults false
+    } elseif {("-v" == $opt) || ("--values" == $opt)} {
+        if {[expr {$i + 1}] < $argc} {
+            incr i
+            set params(--value) [lindex $argv $i]
+            if {"default" == $params(--values)} {
+                continue
+            } elseif {"current" == $params(--values)} {
+                continue
+            } elseif {"random" == $params(--values)} {
+                continue
+            } else {
+                printHelp
+            }
+        } else {
+            printHelp
+        }
     } elseif {("-c" == $opt) || ("--compare" == $opt)} {
         if {[expr {$i + 1}] < $argc} {
             incr i
-            set cintf [lindex $argv $i]
-            # puts "comparing results with $cintf"
+            set params(--compare) [lindex $argv $i]
             # need to check to see if file exists, if not raise error
         } else {
             printHelp
         }
-    } elseif {("-do" == $opt) || ("--driver-only" == $opt)} {
-        set runapp false
-        if {[expr {$i + 1}] < $argc} {
-            incr i
-            set outf [lindex $argv $i]
-        } else {
-            printHelp
-        }
+    } elseif {("-n" == $opt) || ("--nosim" == $opt)} {
+        incr i
+        set params(--nosim) true
     } elseif {("-h" == $opt) || ("--help" == $opt)} {
         printHelp
     } else {
@@ -584,28 +646,34 @@ if {0 != [llength $oParams]} {
 }
 
 set err ""
-if {! [file exists $intf]} {
-    append err "\ntool file \"" $intf "\" does not exist, use -t option\n"
+if {! [file exists $params(--tool)]} {
+    append err "\ntool file \""
+    append err $params(--tool)
+    append err "\" does not exist, use -t option\n"
     puts $err
     printHelp
 }
 
-set xmlobj [Rappture::library $intf]
-set installdir [file dirname $intf]
+set xmlobj [Rappture::library $params(--tool)]
+set installdir [file dirname $params(--tool)]
 
-if {true == $defaults} {
-    defaultize $xmlobj
-} else {
-    randomize presets $xmlobj $installdir
+switch -- $params(--values) {
+    random      { randomize presets $xmlobj $installdir }
+    current     { continue }
+    default     { defaultize $xmlobj }
 }
-# pick defaults $xmlobj $presets
-# pick randoms $xmlobj $presets
 
-# if driver only flag was given, write driver and exit.
-if {$runapp == false} {
-    set fid [open $outf w]
+
+if {"" != $params(--driver)} {
+    set fid [open $params(--driver) w]
     puts $fid [$xmlobj xml]
     close $fid
+}
+
+if {$params(--nosim)} {
+    if {"" != $params(--compare)} {
+        compare $xmlobj $params(--compare)
+    }
     exit 0
 }
 
@@ -623,14 +691,8 @@ if {$status == 0 && $result != "ABORT"} {
         set resultxmlobj [Rappture::library $file]
 
         # do comparison if user chose to compare with other results
-        if {"" != $cintf} {
-            if {"" != $resultxmlobj} {
-                set compobj [Rappture::library $cintf]
-                set difflist [diffs $resultxmlobj $compobj]
-                if {[llength $difflist] > 0} {
-                    puts $difflist
-                }
-            }
+        if {"" != $params(--compare)} {
+            compare $params(--compare) $resultxmlobj
         }
     } else {
         set status 1

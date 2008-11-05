@@ -110,19 +110,20 @@ if {![file exists $params(-tool)]} {
     # run new simulations, otherwise they can only revisualize the
     # run.xml files they are loading.
     set pseudotool ""
-    set lflen [llength $loadobjs)]
-    if {0 == $lflen} {
+    if {0 == [llength $loadobjs]} {
         puts stderr "can't find tool \"$params(-tool)\""
         exit 1
     }
-    if {!$params(-nosim)} {
-        foreach runobj $loadobjs {
-            set tdir [$runobj get tool.version.application.directory(tool)]
-            if {[file isdirectory $tdir] && \
-                [file exists $tdir/tool.xml]} {
-                set pseudotool $tdir/tool.xml
-                break
-            }
+    # search the loadfiles for the install location
+    # we could just use run.xml files as tool.xml, but
+    # if there are loaders or notes, they will still need
+    # examples/ and docs/ dirs from the install location
+    foreach runobj $loadobjs {
+        set tdir [$runobj get tool.version.application.directory(tool)]
+        if {[file isdirectory $tdir] && \
+            [file exists $tdir/tool.xml]} {
+            set pseudotool $tdir/tool.xml
+            break
         }
     }
     if {![file exists $pseudotool]} {
@@ -242,13 +243,14 @@ if {"" == $simtxt} {
 $win.pager insert end -name analyzer -title $simtxt
 set f [$win.pager page analyzer]
 $win.pager page analyzer -command [subst {
-    $win.pager busy yes
-    update
-    $f.analyze simulate -ifneeded
-    $win.pager busy no
+    if { !$params(-nosim) } {
+        $win.pager busy yes
+        update
+        $f.analyze simulate -ifneeded
+        $win.pager busy no
+    }
 }]
 
-# can we call analyzer without specifying -notebookpage?
 Rappture::Analyzer $f.analyze $tool -simcontrol auto -notebookpage about
 pack $f.analyze -expand yes -fill both
 
@@ -288,12 +290,18 @@ if {[llength [$win.pager page]] == 2} {
 # load previous xml runfiles
 if {0 != [llength $params(-load)]} {
     foreach runobj $loadobjs {
+        # this doesn't seem to work with loaders
+        # loaders seem to get their value after this point
+        # may need to tell loader elements to update its value
+        $tool load $runobj
         $f.analyze load $runobj
     }
-    $f.analyze configure -notebookpage analyze
+    # don't need simulate button if we cannot simulate
     if {$params(-nosim)} {
         $f.analyze configure -simcontrol off
     }
+    $f.analyze configure -notebookpage analyze
+    $win.pager current analyzer
 }
 
 wm deiconify .main

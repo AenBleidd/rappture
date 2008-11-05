@@ -1,24 +1,4 @@
 #!/bin/sh
-#
-#  This little script lets developers create an "about" page for
-#  the first page of a nanoWhim application.  It's sort of like a
-#  web browser, but it shows only one page and handles the links
-#  so they pop things up on the user's desktop
-#
-# ======================================================================
-#  AUTHOR:  Michael McLennan, Purdue University
-#  Copyright (c) 2004-2008  Purdue Research Foundation
-#
-#  See the file "license.terms" for information on usage and
-#  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
-# ======================================================================
-#\
-RAPPTURE_INSTALL_DIR=@prefix@ ; \
-. $RAPPTURE_INSTALL_DIR/bin/rappture.env ; \
-exec wish "$0" $*
-# ----------------------------------------------------------------------
-# wish executes everything from here on...
-
 # ----------------------------------------------------------------------
 #  ABOUT PANEL
 #
@@ -37,6 +17,10 @@ exec wish "$0" $*
 #  See the file "license.terms" for information on usage and
 #  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 # ======================================================================
+#\
+exec wish "$0" $*
+# ----------------------------------------------------------------------
+# wish executes everything from here on...
 
 package require http
 package require Rappture
