@@ -79,7 +79,31 @@ itcl::body Rappture::Note::constructor {owner path args} {
 # new value is not actually applied, but just checked for correctness.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Note::value {args} {
-    error "can't set value"
+    set onlycheck 0
+    set i [lsearch -exact $args -check]
+    if {$i >= 0} {
+        set onlycheck 1
+        set args [lreplace $args $i $i]
+    }
+
+    if {[llength $args] == 1} {
+        if {$onlycheck} {
+            # someday we may add validation...
+            return
+        }
+        set newval [lindex $args 0]
+        _setContents $newval
+        return $newval
+
+    } elseif {[llength $args] != 0} {
+        error "wrong # args: should be \"value ?-check? ?newval?\""
+    }
+
+    #
+    # Query the value and return.
+    #
+    error "don't know how to check value of <note>"
+    return
 }
 
 # ----------------------------------------------------------------------
