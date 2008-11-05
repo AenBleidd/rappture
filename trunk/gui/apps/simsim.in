@@ -148,7 +148,8 @@ proc loaderHandler {child toolDir} {
 
     set exDir [file join $toolDir "examples"]
     if {! [file isdirectory $exDir]} {
-        puts "could not find examples directory"
+        # in this case we should try to keep processing, not exit
+        puts "could not find examples directory: $exDir"
         exit 0
     }
 
@@ -212,7 +213,7 @@ proc choiceHandler {child} {
     }
 }
 
-proc defaultize {xmlobj} {
+proc defaultize {xmlobj toolDir} {
     set childList [$xmlobj children -as object input]
 
     while {[llength $childList]} {
@@ -225,7 +226,7 @@ proc defaultize {xmlobj} {
             boolean     { defaultHandler $child }
             string      { defaultHandler $child }
             choice      { defaultHandler $child }
-            loader      { loaderHandler  $child }
+            loader      { loaderHandler  $child $toolDir }
             structure   { defaultHandler $child }
             group       { set cclist [groupHandler $child]
                           set childList [concat $childList $cclist] }
@@ -625,7 +626,6 @@ for {set i 0} {$i < $argc} {incr i} {
             printHelp
         }
     } elseif {("-n" == $opt) || ("--nosim" == $opt)} {
-        incr i
         set params(--nosim) true
     } elseif {("-h" == $opt) || ("--help" == $opt)} {
         printHelp
@@ -657,12 +657,15 @@ if {! [file exists $params(--tool)]} {
 set xmlobj [Rappture::library $params(--tool)]
 set installdir [file dirname $params(--tool)]
 
-switch -- $params(--values) {
-    random      { randomize presets $xmlobj $installdir }
-    current     { continue }
-    default     { defaultize $xmlobj }
+# need a better way to do this,
+# maybe just take xmldiff functionality out of simsim
+if {(!$params(--nosim)) || ("" != $params(--driver))} {
+    switch -- $params(--values) {
+        random      { randomize presets $xmlobj $installdir }
+        current     { continue }
+        default     { defaultize $xmlobj $installdir }
+    }
 }
-
 
 if {"" != $params(--driver)} {
     set fid [open $params(--driver) w]
