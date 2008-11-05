@@ -33,4 +33,4 @@
 RAPPTURE_INSTALL_DIR=@prefix@
 
 . $RAPPTURE_INSTALL_DIR/bin/rappture.env
-exec $RAPPTURE_INSTALL_DIR/bin/driver -load $*
+exec $RAPPTURE_INSTALL_DIR/bin/driver -nosim true -load $*

@@ -427,6 +427,7 @@ AC_OUTPUT( [
     gui/apps/rappture.env
     gui/apps/rerun
     gui/apps/simsim
+    gui/apps/xmldiff
     gui/pkgIndex.tcl
     gui/scripts/Makefile
     lang/Makefile
