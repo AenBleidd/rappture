@@ -8,12 +8,11 @@ all: ${APPNAME}
 install: ${APPNAME}
 	sed s/YOURAPPNAME/$^/ < run_app.patch | patch run_$^.sh
 	chmod +x run_$^.sh
-#	mv $^ $^.ctf run_$^.sh ../bin
-#	mv readme.txt ../bin/$^.readme
-#	LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/apps/rappture/lib `pwd`/../bin/run_$^.sh /apps/matlab/mcr `pwd`/driver.xml `pwd`/../data
-	simsim --tool tool.xml --driver-only driver.${APPNAME}
-	LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/apps/rappture/lib `pwd`/run_$^.sh /apps/matlab/mcr `pwd`/driver.${APPNAME}
-	rm -f run*.xml driver.${APPNAME}
+	mv $^ $^.ctf run_$^.sh ../bin
+	mv readme.txt ../bin/$^.readme
+	simsim --tool tool.xml --values default --nosim --driver driver.$^
+	LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/apps/rappture/lib `pwd`/../bin/run_$^.sh /apps/matlab/mcr `pwd`/driver.$^
+	rm -f run*.xml driver.$^
 	@echo "Install Successful"
 
 clean:
@@ -24,8 +23,9 @@ clean:
 		${APPNAME}_mcc_component_data.c \
 		run_${APPNAME}.sh \
 		mccExcludedFiles.log \
+		${APPNAME}.readme \
 		readme.txt \
 		${APPNAME}_mcr
 
 distclean: clean
-#	rm -rf ../bin/*
+	rm -rf ../bin/*
