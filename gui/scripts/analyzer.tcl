@@ -439,6 +439,12 @@ itcl::body Rappture::Analyzer::load {xmlobj} {
             log* {
                 _autoLabel $xmlobj output.$item "Output Log" counters
             }
+            number* {
+                _autoLabel $xmlobj output.$item "Number" counters
+            }
+            integer* {
+                _autoLabel $xmlobj output.$item "Integer" counters
+            }
             string* {
                 _autoLabel $xmlobj output.$item "String" counters
             }
