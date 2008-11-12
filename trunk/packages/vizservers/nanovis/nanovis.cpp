@@ -650,10 +650,6 @@ NanoVis::resize_offscreen_buffer(int w, int h)
     if ((w == win_width) && (h == win_height)) {
 	return;
     }
-    if (NanoVis::stdin != ::stdin) {
-	return;
-    }
-
     if (debug_flag) {
 	fprintf(stderr, "in resize_offscreen_buffer(%d, %d)\n", w, h);
     }

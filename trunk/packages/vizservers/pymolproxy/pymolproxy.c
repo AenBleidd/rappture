@@ -67,7 +67,7 @@ typedef struct {
 static Stats stats;
 
 static FILE *flog;
-static int debug = FALSE;
+static int debug = TRUE;
 
 typedef struct {
     char *data;
@@ -1196,7 +1196,7 @@ PNGCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
 {
     char buffer[800];
     unsigned int nBytes=0;
-    float samples = 0.0;
+    float samples = 10.0;
     PymolProxy *pymol = (PymolProxy *) cdata;
 
     clear_error(pymol);
@@ -1212,7 +1212,7 @@ PNGCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
 
     waitForString(pymol, "image follows: ", buffer, 800);
 
-    sscanf(buffer, "image follows: %d %f\n", &nBytes, &samples);
+    sscanf(buffer, "image follows: %d\n", &nBytes);
  
     write(3, &samples, sizeof(samples));
   
@@ -1239,7 +1239,7 @@ BMPCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
 {
     char buffer[800];
     unsigned int nBytes=0;
-    float samples = 0.0;
+    float samples = 10.0;
     PymolProxy *pymol = (PymolProxy *) cdata;
 
     clear_error(pymol);
@@ -1255,7 +1255,7 @@ BMPCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
 
     waitForString(pymol, "image follows: ", buffer, 800);
 
-    sscanf(buffer, "image follows: %d %f\n", &nBytes, &samples);
+    sscanf(buffer, "image follows: %d\n", &nBytes);
     write(3,&samples,sizeof(samples));
 
     dyBufferSetLength(&pymol->image, nBytes);
