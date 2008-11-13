@@ -1,7 +1,7 @@
 #!/bin/sh
 # ======================================================================
 #  AUTHOR:  Derrick S. Kearney, Purdue University
-#  Copyright (c) 2004-2007  Purdue Research Foundation
+#  Copyright (c) 2004-2008  Purdue Research Foundation
 #
 #  See the file "license.terms" for information on usage and
 #  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -9,7 +9,7 @@
 #\
 RAPPTURE_INSTALL_DIR=@prefix@ ; \
 . $RAPPTURE_INSTALL_DIR/bin/rappture.env ; \
-exec wish $0 $*
+exec wish "$0" $*
 
 package require Rappture
 package require RapptureGUI
@@ -240,15 +240,10 @@ proc randomize {presetArr xmlobj toolDir} {
     set childList [$xmlobj children -as object input]
 
     while {[llength $childList]} {
-#foreach c $childList {
-#    puts "c = [$c element -as path]"
-#}
-#puts "-------------------------------------------"
 
         set child [lrange $childList 0 0]
         set childList [lreplace $childList 0 0]
 
-#puts [$child element -as path]
         set cpath [cleanPath [$child element -as path]]
 
         set ppath [$child parent -as path]
@@ -263,15 +258,8 @@ proc randomize {presetArr xmlobj toolDir} {
             unset presets($cPresetsPath)
 
             # if the value was set on a current node, then set a preset flag
-            set lastdot [string last "." $iPath]
-            if {$lastdot > 0} {
-                incr lastdot 1
-                set tailNode [string range $iPath $lastdot end]
-                if {"current" == $tailNode} {
-                    incr lastdot -2
-                    set headNode [string range $iPath 0 $lastdot]
-                    $child put $headNode.simset "yes"
-                }
+            if {"current" == $iPath} {
+                $child put simset "yes"
             }
         }
 
@@ -384,39 +372,65 @@ proc parsePathVal {listVar returnVar} {
 }
 
 proc printHelp {} {
-    puts "simsim [OPTIONS]"
-    puts ""
-    puts "simulator simulator - simulate simulation"
-    puts ""
-    puts "OPTIONS:"
-    puts " --tool <path>        - use the tool.xml file specified at <path>"
-    puts " --values <valtype>   - choose the type of values to use for input."
-    puts "                        valid <valtype>'s include:"
-    puts "                        \"default\",\"current\",\"random\"."
-    puts " --driver <path>      - write a driver file to <path>."
-    puts " --compare <path>     - compare the results with the run.xml"
-    puts "                        file at <path>."
-    puts " --nosim              - no simulation."
-    puts " --help               - print this help menu."
-    puts ""
-    puts "EXAMPLES:"
-    puts "simulate using ./tool.xml, default values, no comparisons or driver"
-    puts "simsim"
-    puts ""
-    puts "simulate using ./tool.xml, random values, no comparisons or driver"
-    puts "simsim --values randomize"
-    puts ""
-    puts "from ./tool.xml, create a driver file named \"mydriverfile.xml\""
-    puts "with random values"
-    puts "simsim --values randomize --nosim --driver mydriverfile.xml"
-    puts ""
-    puts "run a simulation using the current values from driver.xml"
-    puts "simsim --tool driver.xml --values current"
-    puts ""
-    puts "compare two xml file, don't do a simulation, don't print a driver.xml"
-    puts "simsim --tool driver.xml --compare previousrun.xml --nosim"
-    puts ""
-    puts ""
+    set help {
+simsim [OPTIONS] [CONST]
+
+simulator simulator - simulate simulation
+
+OPTIONS:
+ -tool <path>        - use the tool.xml file specified at <path>
+ -values <valtype>   - choose the type of values to use for input.
+                       valid <valtype>'s include:
+                       "default","current","random".
+ -driver <path>      - write a driver file to <path>.
+ -compare <path>     - compare the results with the run.xml
+                       file at <path>.
+ -nosim              - no simulation.
+ -help               - print this help menu.
+
+CONST:
+ when -values is set to random, constant values can be set for
+ specific inputs. the general form for constant values is:
+
+   xmlpath(id)=value
+
+ where xmlpath is the path of the element in the xml tree,
+ id is the id of the xml node and value is the constant value
+ you want to place in the element. the following the constant
+ will set input.number(Ef).current to the value "2eV":
+
+   input.number(Ef)=2eV
+
+EXAMPLES:
+simulate using ./tool.xml, default values, no comparisons or driver
+    simsim
+
+simulate using ./tool.xml, random values, no comparisons or driver
+    simsim -values random
+
+from ./tool.xml, create a driver file named "mydriverfile.xml"
+with default values
+    simsim -nosim -driver mydriverfile.xml
+
+from ./tool.xml, create a driver file named "mydriverfile.xml"
+with random values
+    simsim -values random -nosim -driver mydriverfile.xml
+
+from ./tool.xml, simulate with random values but set
+input.number(Ef) to "2eV"
+    simsim -values random input.number(Ef).current=2eV
+
+run a simulation using the current values from driver.xml
+    simsim -tool driver.xml -values current
+
+compare two xml file, don't do a simulation, don't print a driver.xml
+    simsim -tool driver.xml -compare previousrun.xml -nosim
+
+run a simulation and compare the result to previousrun.xml
+    simsim -compare previousrun.xml
+
+}
+    puts $help
     exit 0
 }
 
@@ -564,145 +578,160 @@ proc compare {orig result} {
     }
 }
 
+proc parseOptions {listVar returnVar} {
+    upvar $listVar argv
+    upvar $returnVar params
 
-# keep the wish window from popping up
-wm withdraw .
-
-# set default values
-array set presets []
-set i 0
-set oParams {}
-
-array set params {
-    --compare ""
-    --values default
-    --nosim true
-    --driver ""
-    --tool "./tool.xml"
-}
-
-# parse command line arguments
-set argc [llength $argv]
-for {set i 0} {$i < $argc} {incr i} {
-    set opt [lindex $argv $i]
-    if {("-t" == $opt) || ("--tool" == $opt)} {
-        if {[expr {$i + 1}] < $argc} {
-            incr i
-            set params(--tool) [lindex $argv $i]
-            # need to check to see if file exists, if not raise error
-        } else {
-            printHelp
-        }
-    } elseif {("-d" == $opt) || ("--driver" == $opt)} {
-        if {[expr {$i + 1}] < $argc} {
-            incr i
-            set params(--driver) [lindex $argv $i]
-            # need to check to see if file exists, if not raise error
-        } else {
-            printHelp
-        }
-    } elseif {("-v" == $opt) || ("--values" == $opt)} {
-        if {[expr {$i + 1}] < $argc} {
-            incr i
-            set params(--value) [lindex $argv $i]
-            if {"default" == $params(--values)} {
-                continue
-            } elseif {"current" == $params(--values)} {
-                continue
-            } elseif {"random" == $params(--values)} {
-                continue
+    # parse command line arguments
+    set argc [llength $argv]
+    for {set i 0} {$i < $argc} {incr i} {
+        set opt [lindex $argv $i]
+        if {("-t" == $opt) || ("-tool" == $opt) || ("--tool" == $opt)} {
+            if {[expr {$i + 1}] < $argc} {
+                incr i
+                set params(--tool) [lindex $argv $i]
+                # need to check to see if file exists, if not raise error
             } else {
                 printHelp
             }
-        } else {
+        } elseif {  ("-d" == $opt)      ||
+                    ("-driver" == $opt) ||
+                    ("--driver" == $opt)    } {
+            if {[expr {$i + 1}] < $argc} {
+                incr i
+                set params(--driver) [lindex $argv $i]
+                # need to check to see if file exists, if not raise error
+            } else {
+                printHelp
+            }
+        } elseif {  ("-v" == $opt)      ||
+                    ("-values" == $opt) ||
+                    ("--values" == $opt)    } {
+            if {[expr {$i + 1}] < $argc} {
+                incr i
+                set valuesFlag [lindex $argv $i]
+                if {("default" == $valuesFlag) ||
+                    ("current" == $valuesFlag) ||
+                    ("random" == $valuesFlag)  } {
+                    set params(--values) $valuesFlag
+                } else {
+                    printHelp
+                }
+            } else {
+                printHelp
+            }
+        } elseif {  ("-c" == $opt)      ||
+                    ("-compare" == $opt)||
+                    ("--compare" == $opt)   } {
+            if {[expr {$i + 1}] < $argc} {
+                incr i
+                set params(--compare) [lindex $argv $i]
+                # need to check to see if file exists, if not raise error
+            } else {
+                printHelp
+            }
+        } elseif {  ("-n" == $opt)      ||
+                    ("-nosim" == $opt)  ||
+                    ("--nosim" == $opt)     } {
+            set params(--nosim) true
+        } elseif {  ("-h" == $opt)      ||
+                    ("-help" == $opt)   ||
+                    ("--help" == $opt)      } {
             printHelp
-        }
-    } elseif {("-c" == $opt) || ("--compare" == $opt)} {
-        if {[expr {$i + 1}] < $argc} {
-            incr i
-            set params(--compare) [lindex $argv $i]
-            # need to check to see if file exists, if not raise error
         } else {
-            printHelp
+            # place all extra params in the params array
+            lappend params(oParams) $opt
         }
-    } elseif {("-n" == $opt) || ("--nosim" == $opt)} {
-        set params(--nosim) true
-    } elseif {("-h" == $opt) || ("--help" == $opt)} {
+    }
+}
+
+proc main {argv} {
+    # set default values
+    array set presets []
+    set i 0
+
+    array set params {
+        --compare ""
+        --values default
+        --nosim false
+        --driver ""
+        --tool "./tool.xml"
+        oParams {}
+    }
+
+    parseOptions argv params
+
+    # keep the wish window from popping up
+    wm withdraw .
+
+    # parse out path=val combinations from the list of orphaned parameters
+    parsePathVal params(oParams) presets
+    if {0 != [llength $params(oParams)]} {
+        puts "Could not understand the following parameters"
+        puts "params(oParams) = $params(oParams)"
+        puts "length params(oParams) = [llength $params(oParams)]"
+    }
+
+    set err ""
+    if {! [file exists $params(--tool)]} {
+        append err "\ntool file \""
+        append err $params(--tool)
+        append err "\" does not exist, use -t option\n"
+        puts $err
         printHelp
-    } else {
-        # puts "bad value: $argv"
-        # printHelp
-        # place all extra params in the params array
-        lappend oParams $opt
     }
-}
 
-# parse out path=val combinations from the list of orphaned parameters
-parsePathVal oParams presets
-if {0 != [llength $oParams]} {
-    puts "Could not understand the following parameters"
-    puts "oParams = $oParams"
-    puts "length oParams = [llength $oParams]"
-}
+    set xmlobj [Rappture::library $params(--tool)]
+    set installdir [file dirname $params(--tool)]
 
-set err ""
-if {! [file exists $params(--tool)]} {
-    append err "\ntool file \""
-    append err $params(--tool)
-    append err "\" does not exist, use -t option\n"
-    puts $err
-    printHelp
-}
-
-set xmlobj [Rappture::library $params(--tool)]
-set installdir [file dirname $params(--tool)]
-
-# need a better way to do this,
-# maybe just take xmldiff functionality out of simsim
-if {(!$params(--nosim)) || ("" != $params(--driver))} {
-    switch -- $params(--values) {
-        random      { randomize presets $xmlobj $installdir }
-        current     { continue }
-        default     { defaultize $xmlobj $installdir }
+    # need a better way to do this,
+    # maybe just take xmldiff functionality out of simsim
+    if {(!$params(--nosim)) || ("" != $params(--driver))} {
+        switch -- $params(--values) {
+            random      { randomize presets $xmlobj $installdir }
+            current     { }
+            default     { defaultize $xmlobj $installdir }
+        }
     }
-}
 
-if {"" != $params(--driver)} {
-    set fid [open $params(--driver) w]
-    puts $fid [$xmlobj xml]
-    close $fid
-}
-
-if {$params(--nosim)} {
-    if {"" != $params(--compare)} {
-        compare $xmlobj $params(--compare)
+    if {"" != $params(--driver)} {
+        set fid [open $params(--driver) w]
+        puts $fid {<?xml version="1.0"?>}
+        puts $fid [$xmlobj xml]
+        close $fid
     }
-    exit 0
-}
 
-set tool [Rappture::Tool ::#auto $xmlobj $installdir]
-
-# read the run.xml file.
-# from analyzer.tcl:
-
-# execute the job
-foreach {status result} [eval $tool run] break
-
-# read back the result from run.xml
-if {$status == 0 && $result != "ABORT"} {
-    if {[regexp {=RAPPTURE-RUN=>([^\n]+)} $result match file]} {
-        set resultxmlobj [Rappture::library $file]
-
-        # do comparison if user chose to compare with other results
+    if {$params(--nosim)} {
         if {"" != $params(--compare)} {
-            compare $params(--compare) $resultxmlobj
+            compare $xmlobj $params(--compare)
+        }
+        exit 0
+    }
+
+    set tool [Rappture::Tool ::#auto $xmlobj $installdir]
+
+    # read the run.xml file.
+    # from analyzer.tcl:
+
+    set result ""
+    # execute the job
+    foreach {status result} [eval $tool run] break
+
+    # read back the result from run.xml
+    if {$status == 0 && $result != "ABORT"} {
+        if {[Rappture::library isvalid $result]} {
+            # do comparison if user chose to compare with other results
+            if {"" != $params(--compare)} {
+                compare $params(--compare) $result
+            }
+        } else {
+            set status 1
+            puts "Can't find result file in output.\nDid you call Rappture::result in your simulator?"
         }
     } else {
-        set status 1
-        puts "Can't find result file in output.\nDid you call Rappture::result in your simulator?"
+        puts $result
     }
-} else {
-    puts $result
 }
 
+main $argv
 exit 0
