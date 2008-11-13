@@ -170,14 +170,14 @@ CGparameter m_passthru_scale_param, m_passthru_bias_param;
 // Variables for mouse events
 
 // Object rotation angles
-static float live_rot_x = 90.;
-static float live_rot_y = 180.;
-static float live_rot_z = -135;
+const float def_rot_x = 90.;
+const float def_rot_y = 180.;
+const float def_rot_z = -135;
 
 // Object translation location from the origin
-static float live_obj_x = -0.0;
-static float live_obj_y = -0.0;
-static float live_obj_z = -2.5;
+const float def_obj_x = -0.0;
+const float def_obj_y = -0.0;
+const float def_obj_z = -2.5;
 
 
 #ifndef XINETD
@@ -506,13 +506,6 @@ NanoVis::DefineTransferFunction(const char *name, size_t n, float *data)
         tf->update(n, data);
     }
     return tf;
-}
-
-void
-NanoVis::zoom(double zoom)
-{
-    live_obj_z = -2.5 / zoom;
-    cam->move(live_obj_x, live_obj_y, live_obj_z);
 }
 
 #ifdef notdef
@@ -883,9 +876,9 @@ NanoVis::initGL(void)
 
    //create the camera with default setting
    cam = new NvCamera(0, 0, win_width, win_height,
-                   live_obj_x, live_obj_y, live_obj_z,
-                   0., 0., 100.,
-                   (int)live_rot_x, (int)live_rot_y, (int)live_rot_z);
+		      def_obj_x, def_obj_y, def_obj_z,
+		      0., 0., 100.,
+		      def_rot_x, def_rot_y, def_rot_z);
 
    glEnable(GL_TEXTURE_2D);
    glShadeModel(GL_FLAT);
@@ -1335,8 +1328,11 @@ void soft_read_verts()
         float x = vert[3*i];
         float y = vert[3*i+1];
         float z = vert[3*i+2];
-
-        float dis = (x-live_obj_x)*(x-live_obj_x) + (y-live_obj_y)*(y-live_obj_y) + (z-live_obj_z)*(z-live_obj_z);
+	float dx, dy, dz;
+	dx = x - cam->x();
+	dy = y - cam->y();
+	dz = z - cam->z();
+        float dis = (dx * dx) + (dy * dy) + (dz * dz);
         p[i].x = x;
         p[i].y = y;
         p[i].z = z;
@@ -1928,28 +1924,31 @@ NanoVis::mouse(int button, int state, int x, int y)
 void
 NanoVis::update_rot(int delta_x, int delta_y)
 {
-    live_rot_x += delta_x;
-    live_rot_y += delta_y;
+    Vector3 angle;
 
-    if (live_rot_x > 360.0) {
-        live_rot_x -= 360.0;
-    } else if(live_rot_x < -360.0) {
-        live_rot_x += 360.0;
+    angle = cam->rotate();
+    angle.x += delta.x;
+    angle.y += delta.y;
+
+    if (angle.x > 360.0) {
+        angle.x -= 360.0;
+    } else if(angle.x < -360.0) {
+        angle.x += 360.0;
     }
-    if (live_rot_y > 360.0) {
-        live_rot_y -= 360.0;
-    } else if(live_rot_y < -360.0) {
-        live_rot_y += 360.0;
+    if (angle.y > 360.0) {
+        angle.y -= 360.0;
+    } else if(angle.y < -360.0) {
+        angle.y += 360.0;
     }
-    cam->rotate(live_rot_x, live_rot_y, live_rot_z);
+    cam->rotate(angle);
 }
 
 void 
 NanoVis::update_trans(int delta_x, int delta_y, int delta_z)
 {
-    live_obj_x += delta_x*0.03;
-    live_obj_y += delta_y*0.03;
-    live_obj_z += delta_z*0.03;
+    cam->x(cam->x() + delta_x * 0.03);
+    cam->y(cam->y() + delta_y * 0.03);
+    cam->z(cam->z() + delta_z * 0.03);
 }
 
 void 
@@ -1987,24 +1986,20 @@ NanoVis::keyboard(unsigned char key, int x, int y)
        //psys_x-=0.05;
        break;
    case 'w': //zoom out
-       live_obj_z-=0.05;
+       cam->z(cam->z() - 0.05);
        log = true;
-       cam->move(live_obj_x, live_obj_y, live_obj_z);
        break;
    case 's': //zoom in
-       live_obj_z+=0.05;
+       cam->z(cam->z() + 0.05);
        log = true;
-       cam->move(live_obj_x, live_obj_y, live_obj_z);
        break;
    case 'a': //left
-       live_obj_x-=0.05;
+       cam->x(cam->x() - 0.05);
        log = true;
-       cam->move(live_obj_x, live_obj_y, live_obj_z);
        break;
    case 'd': //right
-       live_obj_x+=0.05;
+       cam->x(cam->x() + 0.05);
        log = true;
-       cam->move(live_obj_x, live_obj_y, live_obj_z);
        break;
    case 'i':
        //init_particles();
@@ -2026,7 +2021,10 @@ NanoVis::keyboard(unsigned char key, int x, int y)
    }
 #ifdef EVENTLOG
    if(log){
-       float param[3] = {live_obj_x, live_obj_y, live_obj_z};
+       float param[3];
+       param[0] = cam->x();
+       param[1] = cam->y();
+       param[2] = cam->z();
        Event* tmp = new Event(EVENT_MOVE, param, NvGetTimeInterval());
        tmp->write(event_log);
        delete tmp;
@@ -2069,8 +2067,8 @@ NanoVis::motion(int x, int y)
     }
 
 #ifdef EVENTLOG
-    float param[3] = {live_rot_x, live_rot_y, live_rot_z};
-    Event* tmp = new Event(EVENT_ROTATE, param, NvGetTimeInterval());
+    Vector3 angle = cam->rotate();
+    Event* tmp = new Event(EVENT_ROTATE, &angle, NvGetTimeInterval());
     tmp->write(event_log);
     delete tmp;
 #endif

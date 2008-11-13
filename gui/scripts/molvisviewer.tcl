@@ -70,7 +70,8 @@ itcl::class Rappture::MolvisViewer {
     protected method _send {args}
     protected method _update { args }
     protected method _rebuild { }
-    protected method _zoom {option}
+    protected method _zoom {option {factor 10}}
+    protected method _pan {option x y}
     protected method _configure {w h}
     protected method _unmap {}
     protected method _map {}
@@ -293,12 +294,24 @@ itcl::body Rappture::MolvisViewer::constructor {hostlist args} {
     set _image(id) ""
 
     # set up bindings for rotation
-    bind $itk_component(3dview) <ButtonPress> \
+    bind $itk_component(3dview) <ButtonPress-1> \
         [itcl::code $this _vmouse click %b %s %x %y]
     bind $itk_component(3dview) <B1-Motion> \
         [itcl::code $this _vmouse drag 1 %s %x %y]
-    bind $itk_component(3dview) <ButtonRelease> \
+    bind $itk_component(3dview) <ButtonRelease-1> \
         [itcl::code $this _vmouse release %b %s %x %y]
+
+    bind $itk_component(3dview) <ButtonPress-2> \
+        [itcl::code $this _pan click %x %y]
+    bind $itk_component(3dview) <B2-Motion> \
+        [itcl::code $this _pan drag %x %y]
+    bind $itk_component(3dview) <ButtonRelease-2> \
+        [itcl::code $this _pan release %x %y]
+
+    if {[string equal "x11" [tk windowingsystem]]} {
+	bind $itk_component(3dview) <4> [itcl::code $this _zoom out 2]
+	bind $itk_component(3dview) <5> [itcl::code $this _zoom in 2]
+    }
 
     # set up bindings to bridge mouse events to server
     #bind $itk_component(3dview) <ButtonPress> \
@@ -640,6 +653,33 @@ itcl::body Rappture::MolvisViewer::_configure { w h } {
 }
 
 # ----------------------------------------------------------------------
+# USAGE: $this _pan click x y
+#        $this _pan drag x y
+#	 $this _pan release x y
+#
+# Called automatically when the user clicks on one of the zoom
+# controls for this widget.  Changes the zoom for the current view.
+# ----------------------------------------------------------------------
+itcl::body Rappture::MolvisViewer::_pan {option x y} {
+    if { ![info exists _mevent(x)] } {
+        set option "click"
+    }
+    if { $option == "click" } { 
+        $itk_component(3dview) configure -cursor hand1
+    }
+    if { $option == "drag" || $option == "release" } {
+        set dx [expr $x - $_mevent(x)]
+        set dy [expr $y - $_mevent(y)]
+        _send "pan $dx $dy"
+    }
+    set _mevent(x) $x
+    set _mevent(y) $y
+    if { $option == "release" } {
+        $itk_component(3dview) configure -cursor ""
+    }
+}
+
+# ----------------------------------------------------------------------
 # USAGE: _zoom in
 # USAGE: _zoom out
 # USAGE: _zoom reset
@@ -647,13 +687,13 @@ itcl::body Rappture::MolvisViewer::_configure { w h } {
 # Called automatically when the user clicks on one of the zoom
 # controls for this widget.  Changes the zoom for the current view.
 # ----------------------------------------------------------------------
-itcl::body Rappture::MolvisViewer::_zoom {option} {
+itcl::body Rappture::MolvisViewer::_zoom {option {factor 10}} {
     switch -- $option {
         "in" {
-            _send "zoom 10"
+            _send "zoom $factor"
         }
         "out" {
-            _send "zoom -10"
+            _send "zoom -$factor"
         }
         "reset" {
             _send "reset"
