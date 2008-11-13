@@ -81,7 +81,8 @@ itcl::class Rappture::NanovisViewer {
     protected method _rebuild {}
     protected method _currentVolumeIds {{what -all}}
     protected method _zoom {option}
-    protected method _move {option x y}
+    protected method _pan {option x y}
+    protected method _rotate {option x y}
     protected method _slice {option args}
     protected method _slicertip {axis}
     protected method _probe {option args}
@@ -112,10 +113,10 @@ itcl::class Rappture::NanovisViewer {
     private variable _obj2styles   ;# maps id => style settings
     private variable _style2ids    ;# maps id => style settings
 
-    private variable _click        ;# info used for _move operations
+    private variable _click        ;# info used for _rotate operations
     private variable _limits       ;# autoscale min/max for all axes
     private variable _view         ;# view params for 3D view
-        
+    private variable _mevent
     private variable _isomarkers    ;# array of isosurface level values 0..1
     private variable _styles
     private common   _settings
@@ -167,9 +168,9 @@ itcl::body Rappture::NanovisViewer::constructor {hostlist args} {
         phi     45
         psi     0
         zoom    1.0
-        xfocus  0
-        yfocus  0
-        zfocus  0
+        x	0
+        y	0
+        z	0
     }
     set _obj2id(count) 0
     set _id2obj(count) 0
@@ -463,14 +464,26 @@ itcl::body Rappture::NanovisViewer::constructor {hostlist args} {
         [list $_dispatcher event -idle !legend]
 
     # set up bindings for rotation
-    bind $itk_component(3dview) <ButtonPress> \
-        [itcl::code $this _move click %x %y]
+    bind $itk_component(3dview) <ButtonPress-1> \
+        [itcl::code $this _rotate click %x %y]
     bind $itk_component(3dview) <B1-Motion> \
-        [itcl::code $this _move drag %x %y]
-    bind $itk_component(3dview) <ButtonRelease> \
-        [itcl::code $this _move release %x %y]
+        [itcl::code $this _rotate drag %x %y]
+    bind $itk_component(3dview) <ButtonRelease-1> \
+        [itcl::code $this _rotate release %x %y]
     bind $itk_component(3dview) <Configure> \
         [itcl::code $this _send "screen %w %h"]
+
+    bind $itk_component(3dview) <ButtonPress-2> \
+        [itcl::code $this _pan click %x %y]
+    bind $itk_component(3dview) <B2-Motion> \
+        [itcl::code $this _pan drag %x %y]
+    bind $itk_component(3dview) <ButtonRelease-2> \
+        [itcl::code $this _pan release %x %y]
+
+    if {[string equal "x11" [tk windowingsystem]]} {
+	bind $itk_component(3dview) <4> [itcl::code $this _zoom out]
+	bind $itk_component(3dview) <5> [itcl::code $this _zoom in]
+    }
 
     set _image(download) [image create photo]
 
@@ -1141,14 +1154,14 @@ itcl::body Rappture::NanovisViewer::_zoom {option} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: _move click <x> <y>
-# USAGE: _move drag <x> <y>
-# USAGE: _move release <x> <y>
+# USAGE: _rotate click <x> <y>
+# USAGE: _rotate drag <x> <y>
+# USAGE: _rotate release <x> <y>
 #
 # Called automatically when the user clicks/drags/releases in the
 # plot area.  Moves the plot according to the user's actions.
 # ----------------------------------------------------------------------
-itcl::body Rappture::NanovisViewer::_move {option x y} {
+itcl::body Rappture::NanovisViewer::_rotate {option x y} {
     switch -- $option {
         click {
             $itk_component(3dview) configure -cursor fleur
@@ -1159,7 +1172,7 @@ itcl::body Rappture::NanovisViewer::_move {option x y} {
         }
         drag {
             if {[array size _click] == 0} {
-                _move click $x $y
+                _rotate click $x $y
             } else {
                 set w [winfo width $itk_component(3dview)]
                 set h [winfo height $itk_component(3dview)]
@@ -1210,13 +1223,35 @@ itcl::body Rappture::NanovisViewer::_move {option x y} {
             }
         }
         release {
-            _move drag $x $y
+            _rotate drag $x $y
             $itk_component(3dview) configure -cursor ""
             catch {unset _click}
         }
         default {
             error "bad option \"$option\": should be click, drag, release"
         }
+    }
+}
+
+# ----------------------------------------------------------------------
+# USAGE: $this _pan click x y
+#        $this _pan drag x y
+#	 $this _pan release x y
+#
+# Called automatically when the user clicks on one of the zoom
+# controls for this widget.  Changes the zoom for the current view.
+# ----------------------------------------------------------------------
+itcl::body Rappture::NanovisViewer::_pan {option x y} {
+    if { $option == "click" } { 
+        $itk_component(3dview) configure -cursor hand1
+    }
+    if { $option == "drag" || $option == "release" } {
+	set _view(x) [expr $_view(x) + $x]
+	set _view(y) [expr $_view(y) + $y]
+	_send "camera pan $_view(x) $_view(y) 0"
+    }
+    if { $option == "release" } {
+        $itk_component(3dview) configure -cursor ""
     }
 }
 

@@ -162,7 +162,6 @@ public:
     static void idle(void);
     static void update(void);
     static void display_offscreen_buffer();
-    static void zoom(double zoom);
     static int render_legend(TransferFunction *tf, double min, double max, 
 	int width, int height, const char* volArg);
     static Volume *load_volume(int index, int width, int height, int depth, 

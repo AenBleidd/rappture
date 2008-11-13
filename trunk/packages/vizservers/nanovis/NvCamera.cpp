@@ -19,68 +19,41 @@
 #include "NvCamera.h"
 
 NvCamera::NvCamera(int startx, int starty, int w, int h,
-		   double loc_x, double loc_y, double loc_z, 
-		   double target_x, double target_y, double target_z,
-		   int angle_x, int angle_y, int angle_z):
-    location(Vector3(loc_x, loc_y, loc_z)),
-    target(Vector3(target_x, target_y, target_z)),
-    angle(Vector3(angle_x, angle_y, angle_z)),
-    width(w),
-    height(h),
-    startX(startx),
-    startY(starty)
+		   float loc_x, float loc_y, float loc_z, 
+		   float target_x, float target_y, float target_z,
+		   float angle_x, float angle_y, float angle_z):
+    location_(Vector3(loc_x, loc_y, loc_z)),
+    target_(Vector3(target_x, target_y, target_z)),
+    angle_(Vector3(angle_x, angle_y, angle_z)),
+    width_(w),
+    height_(h),
+    startX_(startx),
+    startY_(starty)
 { 
     /*empty*/
 }
 
-NvCamera::~NvCamera()
-{
-    /*empty*/
-}	 
-
-void 
-NvCamera::move(double loc_x, double loc_y, double loc_z)
-{ 
-    location = Vector3(loc_x, loc_y, loc_z); 
-}
-
-void 
-NvCamera::aim(double target_x, double target_y, double target_z)
-{ 
-    target = Vector3(target_x, target_y, target_z);
-}
-
-void 
-NvCamera::rotate(double angle_x, double angle_y, double angle_z)
-{ 
-    angle = Vector3(angle_x, angle_y, angle_z);
-}
 
 void 
 NvCamera::activate()
 {
     //fprintf(stderr, "camera: %d, %d\n", width, height);
-    glViewport(startX, startY, width, height);
+    glViewport(startX_, startY_, width_, height_);
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    gluPerspective(30, (GLdouble)(width - startX)/(GLdouble)(height - startY), 
-	0.1, 50.0);
+    gluPerspective(30, 
+		   (GLdouble)(width_ - startX_)/(GLdouble)(height_ - startY_), 
+		   0.1, 50.0);
 
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
 
-    gluLookAt(location.x, location.y, location.z,
-	      target.x, target.y, target.z,
+    gluLookAt(location_.x, location_.y, location_.z,
+	      target_.x, target_.y, target_.z,
 	      0., 1., 0.);
 
-    glRotated(angle.x, 1., 0., 0.);
-    glRotated(angle.y, 0., 1., 0.);
-    glRotated(angle.z, 0., 0., 1.);
+    glRotated(angle_.x, 1., 0., 0.);
+    glRotated(angle_.y, 0., 1., 0.);
+    glRotated(angle_.z, 0., 0., 1.);
 }
 
-void 
-NvCamera::set_screen_size(int sx, int sy, int w, int h)
-{
-    width = w, height = h;
-    startX = sx, startY = sy;
-}

@@ -72,7 +72,8 @@ itcl::class Rappture::HeightmapViewer {
 
     protected method _rebuild {}
     protected method _zoom {option}
-    protected method _move {option x y}
+    protected method _pan {option x y}
+    protected method _rotate {option x y}
 
     protected method _state {comp}
     protected method _fixSettings {what {value ""}}
@@ -89,7 +90,7 @@ itcl::class Rappture::HeightmapViewer {
     private variable _id2obj       ;# maps heightmap ID => dataobj in server
     private variable _sendobjs ""  ;# list of data objs to send to server
     private variable _receiveids   ;# list of data responses from the server
-    private variable _click        ;# info used for _move operations
+    private variable _click        ;# info used for _rotate operations
     private variable _limits       ;# autoscale min/max for all axes
     private variable _view         ;# view params for 3D view
 
@@ -260,14 +261,26 @@ itcl::body Rappture::HeightmapViewer::constructor {hostlist args} {
         [list $_dispatcher event -idle !legend]
 
     # set up bindings for rotation
-    bind $itk_component(3dview) <ButtonPress> \
-        [itcl::code $this _move click %x %y]
+    bind $itk_component(3dview) <ButtonPress-1> \
+        [itcl::code $this _rotate click %x %y]
     bind $itk_component(3dview) <B1-Motion> \
-        [itcl::code $this _move drag %x %y]
-    bind $itk_component(3dview) <ButtonRelease> \
-        [itcl::code $this _move release %x %y]
+        [itcl::code $this _rotate drag %x %y]
+    bind $itk_component(3dview) <ButtonRelease-1> \
+        [itcl::code $this _rotate release %x %y]
     bind $itk_component(3dview) <Configure> \
         [itcl::code $this _send "screen %w %h"]
+
+    bind $itk_component(3dview) <ButtonPress-2> \
+        [itcl::code $this _pan click %x %y]
+    bind $itk_component(3dview) <B2-Motion> \
+        [itcl::code $this _pan drag %x %y]
+    bind $itk_component(3dview) <ButtonRelease-2> \
+        [itcl::code $this _pan release %x %y]
+
+    if {[string equal "x11" [tk windowingsystem]]} {
+	bind $itk_component(3dview) <4> [itcl::code $this _zoom out]
+	bind $itk_component(3dview) <5> [itcl::code $this _zoom in]
+    }
 
     set _image(download) [image create photo]
 
@@ -771,14 +784,36 @@ itcl::body Rappture::HeightmapViewer::_zoom {option} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: _move click <x> <y>
-# USAGE: _move drag <x> <y>
-# USAGE: _move release <x> <y>
+# USAGE: $this _pan click x y
+#        $this _pan drag x y
+#	 $this _pan release x y
+#
+# Called automatically when the user clicks on one of the zoom
+# controls for this widget.  Changes the zoom for the current view.
+# ----------------------------------------------------------------------
+itcl::body Rappture::HeightmapViewer::_pan {option x y} {
+    if { $option == "click" } { 
+        $itk_component(3dview) configure -cursor hand1
+    }
+    if { $option == "drag" || $option == "release" } {
+	set _view(x) [expr $_view(x) + $x]
+	set _view(y) [expr $_view(y) + $y]
+	_send "camera pan $_view(x) $_view(y) 0"
+    }
+    if { $option == "release" } {
+        $itk_component(3dview) configure -cursor ""
+    }
+}
+
+# ----------------------------------------------------------------------
+# USAGE: _rotate click <x> <y>
+# USAGE: _rotate drag <x> <y>
+# USAGE: _rotate release <x> <y>
 #
 # Called automatically when the user clicks/drags/releases in the
 # plot area.  Moves the plot according to the user's actions.
 # ----------------------------------------------------------------------
-itcl::body Rappture::HeightmapViewer::_move {option x y} {
+itcl::body Rappture::HeightmapViewer::_rotate {option x y} {
     switch -- $option {
         click {
             $itk_component(3dview) configure -cursor fleur
@@ -789,7 +824,7 @@ itcl::body Rappture::HeightmapViewer::_move {option x y} {
         }
         drag {
             if {[array size _click] == 0} {
-                _move click $x $y
+                _rotate click $x $y
             } else {
                 set w [winfo width $itk_component(3dview)]
                 set h [winfo height $itk_component(3dview)]
@@ -838,7 +873,7 @@ itcl::body Rappture::HeightmapViewer::_move {option x y} {
             }
         }
         release {
-            _move drag $x $y
+            _rotate drag $x $y
             $itk_component(3dview) configure -cursor ""
             catch {unset _click}
         }

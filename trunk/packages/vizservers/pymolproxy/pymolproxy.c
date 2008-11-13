@@ -1086,7 +1086,6 @@ ZoomCmd(ClientData clientData, Tcl_Interp *interp, int argc,
 	const char *argv[])
 {
     double factor = 0.0;
-    double zmove = 0.0;
     PymolProxy *proxyPtr = clientData;
     int defer = 0, push = 0, arg, varg = 1;
 
@@ -1102,15 +1101,48 @@ ZoomCmd(ClientData clientData, Tcl_Interp *interp, int argc,
 	    varg++;
 	}
     }
-    zmove = factor * -75;
- 
     proxyPtr->need_update = !defer || push;
     proxyPtr->immediate_update  |= push;
     proxyPtr->invalidate_cache = 1;
+    if (factor != 0.0) {
+        Send(proxyPtr,"move z,%f\n", factor);
+    }
+    return proxyPtr->status;
+}
 
-    if (zmove != 0.0)
-        Send(proxyPtr,"move z, %f\n", factor);
+static int
+PanCmd(ClientData clientData, Tcl_Interp *interp, int argc, 
+	const char *argv[])
+{
+    PymolProxy *proxyPtr = clientData;
+    double x, y;
+    int i;
+    int defer, push;
 
+    clear_error(proxyPtr);
+    defer = push = FALSE;
+    for (i = 1; i < argc; i++) {
+	if (strcmp(argv[i],"-defer") == 0) {
+	    defer = 1;
+	} else if (strcmp(argv[i],"-push") == 0) {
+	    push = 1;
+	} else { 
+	    break;
+	}
+    }
+    if ((Tcl_GetDouble(interp, argv[i], &x) != TCL_OK) ||
+	(Tcl_GetDouble(interp, argv[i+1], &y) != TCL_OK)) {
+	return TCL_ERROR;
+    }
+    proxyPtr->need_update = !defer || push;
+    proxyPtr->immediate_update  |= push;
+    proxyPtr->invalidate_cache = 1;
+    if (x != 0.0) {
+        Send(proxyPtr,"move x,%f\n", x * 0.005);
+    }	
+    if (y != 0.0) {
+        Send(proxyPtr,"move y,%f\n", -y * 0.005);
+    }	
     return proxyPtr->status;
 }
 
@@ -1325,6 +1357,7 @@ ProxyInit(int c_in, int c_out, char *const *argv)
     Tcl_CreateCommand(interp, "vmouse",  VMouseCmd,     &proxy, NULL);
     Tcl_CreateCommand(interp, "disable", DisableCmd,    &proxy, NULL);
     Tcl_CreateCommand(interp, "enable",  EnableCmd,     &proxy, NULL);
+    Tcl_CreateCommand(interp, "pan",     PanCmd,        &proxy, NULL);
 
     // Main Proxy Loop
     //  accept tcl commands from socket
@@ -1354,7 +1387,6 @@ ProxyInit(int c_in, int c_out, char *const *argv)
 	errno = 0;
 	if (!proxy.immediate_update) {
 	    status = poll(ufd, 3, timeout);
-	    trace("result of poll = %d: %s", status, strerror(errno));
 	}
 	if ( status < 0 ) {
 	    trace("POLL ERROR: status = %d: %s", status, strerror(errno));
@@ -1404,7 +1436,7 @@ ProxyInit(int c_in, int c_out, char *const *argv)
 		nRead = read(ufd[1].fd, &ch, 1);
 		if (nRead <= 0) {
 		    /* It's possible to have already drained the channel in
-		     * response to a client command (handled above). Skip
+		     * response to a client command handled above. Skip
 		     * it if we're blocking. */
 		    if ((errno == EAGAIN) || (errno == EINTR)) {
 			trace("try again to read (stdout) to pymol server.");
