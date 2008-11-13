@@ -103,6 +103,7 @@ trace TCL_VARARGS_DEF(char *, arg1)
         va_list args;
 
         format = TCL_VARARGS_START(char *, arg1, args);
+        fprintf(flog, "pymolproxy: ");
         vfprintf(flog, format, args);
         fprintf(flog, "\n");
         fflush(flog);
@@ -270,7 +271,7 @@ dyBufferFree(DyBuffer *buffer)
     dyBufferInit(buffer);
 }
 
-void
+static void
 dyBufferSetLength(DyBuffer *buffer, int length)
 {
     assert(buffer != NULL);
@@ -308,7 +309,7 @@ bwrite(int sock, char *buffer, int size)
     int total = 0;
     int left = size;
 
-    trace("bwrite: want to write %d bytes\n", size);
+    trace("bwrite: want to write %d bytes.", size);
     while(1) {
         result = write(sock,buffer+total,left);
 
@@ -321,8 +322,8 @@ bwrite(int sock, char *buffer, int size)
         if (total == size)
             break;
     }
-    trace("bwrite: wrote %d bytes\n", total);
-    return(total);
+    trace("bwrite: wrote %d bytes.", total);
+    return total;
 }
 
 static int
@@ -339,8 +340,8 @@ bread(int sock, char *buffer, int size)
 	}
         
 	if ((result < 0) && (errno != EAGAIN) && (errno != EINTR)) { 
-	    trace("pymolproxy: Error reading sock(%d), %d/%s\n", 
-		  sock, errno,strerror(errno));
+	    trace("Error reading sock(%d), %d/%s.", sock, errno, 
+		  strerror(errno));
 	    break;
 	}
 	
@@ -419,6 +420,13 @@ timerset_ms(struct timeval *result, int timeout)
     result->tv_usec = (timeout % 1000) * 1000;
 }
 
+INLINE static void
+clear_error(PymolProxy *proxyPtr)
+{
+    proxyPtr->error = 0;
+    proxyPtr->status = TCL_OK;
+}
+
 static int
 getline(int sock, char *buffer, int size, int timeout)
 {
@@ -451,9 +459,10 @@ getline(int sock, char *buffer, int size, int timeout)
         if ( (status < 0) && ( (errno == EINTR) || (errno == EAGAIN) ) )
             continue; /* try again, if interrupted/blocking */
 
-        if (status <= 0)
+        if (status <= 0) {
+	    trace("getline: status=%d, errno=%d", status, errno);
             break;
-                        
+	}
         if (buffer[pos] == '\n') {
             pos++;
             break;
@@ -462,97 +471,79 @@ getline(int sock, char *buffer, int size, int timeout)
     }
 
     buffer[pos]=0;
-
-    return(pos);
+    return pos;
 }
 
 static int
-waitForString(PymolProxy *pymol, char *string, char *buffer, int length)
+Expect(PymolProxy *proxyPtr, char *match, char *buffer, int length)
 {
     int sock;
+    char c;
+    size_t mlen;
 
     assert(buffer != NULL);
-    if (pymol->status != TCL_OK)
-        return pymol->status;
+    if (proxyPtr->status != TCL_OK)
+        return proxyPtr->status;
 
-    sock = pymol->p_stdout;
-    trace("want to match (%s)\n", string);
-    while(1) {
-        if (getline(sock,buffer,length, IO_TIMEOUT) == 0) {
-            pymol->error = 2;
-            pymol->status = TCL_ERROR;
+    sock = proxyPtr->p_stdout;
+    trace("Expect(%s)", match);
+    c = match[0];
+    mlen = strlen(match);
+    for (;;) {
+        if (getline(sock, buffer, length, IO_TIMEOUT) == 0) {
+            proxyPtr->error = 2;
+            proxyPtr->status = TCL_ERROR;
             break;
         }
         trace("stdout-u>read(%s)", buffer);
-        if (strncmp(buffer, string, strlen(string)) == 0) {
-            trace("stdout-e> %s",buffer);
-            pymol->error = 0;
-            pymol->status = TCL_OK;
+        if ((c == buffer[0]) && (strncmp(buffer, match, mlen) == 0)) {
+            trace("stdout-e> %s", buffer);
+	    clear_error(proxyPtr);
             break;
         }
     }
 
-    return pymol->status;
-}
-
-INLINE static int
-clear_error(PymolProxy *pymol)
-{
-    pymol->error = 0;
-    pymol->status = TCL_OK;
-    return pymol->status;
+    return proxyPtr->status;
 }
 
 static int
-send_expect(PymolProxy *pymol, char *expect, char *cmd)
-{
-    if (pymol->error) {
-        return(TCL_ERROR);
-    }
-    trace("to-pymol>(%s)", cmd);
-    write(pymol->p_stdin, cmd, strlen(cmd));
-    if (waitForString(pymol, expect, cmd, 800)) {
-        trace("pymolproxy: Timeout reading data [%s]\n",cmd);
-        pymol->error = 1;
-        pymol->status = TCL_ERROR;
-        return pymol->status;
-    }
-    return( pymol->status );
-}
-
-static int
-sendf(PymolProxy *pymol, char *format, ...)
+Send(PymolProxy *proxyPtr, char *format, ...)
 {
     va_list ap;
-    char buffer[800];
+    char iobuffer[BUFSIZ];
 
-    if (pymol->error)
-        return(TCL_ERROR);
-
-    va_start(ap, format);
-    vsnprintf(buffer, 800, format, ap);
-    va_end(ap);
-    trace("to-pymol>(%s)", buffer);
-    write(pymol->p_stdin, buffer, strlen(buffer));
-
-    if (waitForString(pymol, "PyMOL>", buffer, 800)) {
-        trace("pymolproxy: Timeout reading data [%s]\n",buffer);
-        pymol->error = 1;
-        pymol->status = TCL_ERROR;
-        return pymol->status;
+    if (proxyPtr->error) {
+        return TCL_ERROR;
     }
+    va_start(ap, format);
+    vsnprintf(iobuffer, 800, format, ap);
+    va_end(ap);
 
-    return( pymol->status );
+    trace("to-pymol>(%s)", iobuffer);
+
+    /* Write the command out to the server. */
+    write(proxyPtr->p_stdin, iobuffer, strlen(iobuffer));
+
+    /* Now wait for the "PyMOL>" prompt. */
+    if (Expect(proxyPtr, "PyMOL>", iobuffer, BUFSIZ)) {
+        trace("timeout reading data (iobuffer=%s)", iobuffer);
+        proxyPtr->error = 1;
+        proxyPtr->status = TCL_ERROR;
+        return proxyPtr->status;
+    }
+    return  proxyPtr->status;
 }
 
 static int
-BallNStickCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
+BallNStickCmd(ClientData clientData, Tcl_Interp *interp, int argc, 
+	      const char *argv[])
 {
+    float radius, transparency;
     int ghost = 0, defer = 0, push = 0, arg;
     const char *model = "all";
-    PymolProxy *pymol = (PymolProxy *) cdata;
+    PymolProxy *proxyPtr = clientData;
 
-    clear_error(pymol);
+    clear_error(proxyPtr);
 
     for(arg = 1; arg < argc; arg++) {
         if ( strcmp(argv[arg],"-defer") == 0 )
@@ -571,46 +562,41 @@ BallNStickCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[]
             model = argv[arg];
     }
 
-    pymol->invalidate_cache = 1;
-    pymol->need_update = !defer || push;
-    pymol->immediate_update |= push;
+    proxyPtr->invalidate_cache = 1;
+    proxyPtr->need_update = !defer || push;
+    proxyPtr->immediate_update |= push;
 
-    sendf(pymol, "hide everything,%s\n",model);
-    sendf(pymol, "set stick_color,white,%s\n",model);
-        
-    if (ghost)
-        sendf(pymol, "set stick_radius,0.1,%s\n",model);
-    else
-        sendf(pymol, "set stick_radius,0.14,%s\n",model);
-
-    sendf(pymol, "set sphere_scale=0.25,%s\n", model);
-
+    Send(proxyPtr, "hide everything,%s\n",model);
+    Send(proxyPtr, "set stick_color,white,%s\n",model);
     if (ghost) {
-        sendf(pymol, "set sphere_transparency,0.75,%s\n", model);
-        sendf(pymol, "set stick_transparency,0.75,%s\n", model);
+	radius = 0.1f;
+	transparency = 0.75f;
+    } else {
+	radius = 0.14f;
+	transparency = 0.0f;
     }
-    else {
-        sendf(pymol, "set sphere_transparency,0,%s\n", model);
-        sendf(pymol, "set stick_transparency,0,%s\n", model);
-    }
+    Send(proxyPtr, "set stick_radius,%g,%s\n", radius, model);
+    Send(proxyPtr, "set sphere_scale=0.25,%s\n", model);
+    Send(proxyPtr, "set sphere_transparency,%g,%s\n", transparency, model);
+    Send(proxyPtr, "set stick_transparency,%g,%s\n", transparency, model);
+    Send(proxyPtr, "show sticks,%s\n",model);
+    Send(proxyPtr, "show spheres,%s\n",model);
 
-    sendf(pymol, "show sticks,%s\n",model);
-    sendf(pymol, "show spheres,%s\n",model);
+    if (proxyPtr->labels)
+        Send(proxyPtr, "show labels,%s\n", model);
 
-    if (pymol->labels)
-        sendf(pymol, "show labels,%s\n", model);
-
-    return( pymol->status );
+    return proxyPtr->status;
 }
 
 static int
-SpheresCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
+SpheresCmd(ClientData clientData, Tcl_Interp *interp, int argc, 
+	   const char *argv[])
 {
     int defer = 0, ghost = 0, push = 0, arg;
     const char *model = "all";
-    PymolProxy *pymol = (PymolProxy *) cdata;
+    PymolProxy *proxyPtr = clientData;
 
-    clear_error(pymol);
+    clear_error(proxyPtr);
 
     for(arg = 1; arg < argc; arg++) {
         if ( strcmp(argv[arg],"-defer") == 0 )
@@ -629,36 +615,38 @@ SpheresCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
             model = argv[arg];
     }
 
-    pymol->invalidate_cache = 1;
-    pymol->need_update = !defer || push;
-    pymol->immediate_update |= push;
+    proxyPtr->invalidate_cache = 1;
+    proxyPtr->need_update = !defer || push;
+    proxyPtr->immediate_update |= push;
 
-    sendf(pymol, "hide everything, %s\n", model);
-    sendf(pymol, "set sphere_scale,0.41,%s\n", model);
-    //sendf(pymol, "set sphere_quality,2,%s\n", model);
-    sendf(pymol, "set ambient,.2,%s\n", model);
+    Send(proxyPtr, "hide everything, %s\n", model);
+    Send(proxyPtr, "set sphere_scale,0.41,%s\n", model);
+    //Send(proxyPtr, "set sphere_quality,2,%s\n", model);
+    Send(proxyPtr, "set ambient,.2,%s\n", model);
 
     if (ghost)
-        sendf(pymol, "set sphere_transparency,.75,%s\n", model);
+        Send(proxyPtr, "set sphere_transparency,.75,%s\n", model);
     else
-        sendf(pymol, "set sphere_transparency,0,%s\n", model);
+        Send(proxyPtr, "set sphere_transparency,0,%s\n", model);
 
-    sendf(pymol, "show spheres,%s\n", model);
+    Send(proxyPtr, "show spheres,%s\n", model);
 
-    if (pymol->labels)
-        sendf(pymol, "show labels,%s\n", model);
+    if (proxyPtr->labels)
+        Send(proxyPtr, "show labels,%s\n", model);
 
-    return pymol->status;
+    return proxyPtr->status;
 }
 
 static int
-LinesCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
+LinesCmd(ClientData clientData, Tcl_Interp *interp, int argc, 
+	 const char *argv[])
 {
     int ghost = 0, defer = 0, push = 0, arg;
     const char *model = "all";
-    PymolProxy *pymol = (PymolProxy *) cdata;
+    PymolProxy *proxyPtr = clientData;
+    float lineWidth;
 
-    clear_error(pymol);
+    clear_error(proxyPtr);
 
     for(arg = 1; arg < argc; arg++) {
         if ( strcmp(argv[arg],"-defer") == 0 )
@@ -677,33 +665,30 @@ LinesCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
             model = argv[arg];
     }
 
-    pymol->invalidate_cache = 1;
-    pymol->need_update = !defer || push;
-    pymol->immediate_update |= push;
+    proxyPtr->invalidate_cache = 1;
+    proxyPtr->need_update = !defer || push;
+    proxyPtr->immediate_update |= push;
 
-    sendf(pymol, "hide everything,%s\n",model);
+    Send(proxyPtr, "hide everything,%s\n",model);
 
-    if (ghost)
-        sendf(pymol, "set line_width,.25,%s\n",model);
-    else
-        sendf(pymol, "set line_width,1,%s\n",model);
+    lineWidth = (ghost) ? 0.25f : 1.0f;
+    Send(proxyPtr, "set line_width,%g,%s\n", lineWidth, model);
+    Send(proxyPtr, "show lines,%s\n",model);
+    if (proxyPtr->labels)
+        Send(proxyPtr, "show labels,%s\n",model);
 
-    sendf(pymol, "show lines,%s\n",model);
-
-    if (pymol->labels)
-        sendf(pymol, "show labels,%s\n",model);
-
-    return pymol->status;
+    return proxyPtr->status;
 }
 
 static int
-DisableCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
+DisableCmd(ClientData clientData, Tcl_Interp *interp, int argc, 
+	   const char *argv[])
 {
-    PymolProxy *pymol = (PymolProxy *) cdata;
+    PymolProxy *proxyPtr = clientData;
     const char *model = "all";
     int arg, defer = 0, push = 0;
 
-    clear_error(pymol);
+    clear_error(proxyPtr);
 
     for(arg = 1; arg < argc; arg++) {
 
@@ -716,23 +701,24 @@ DisableCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
         
     }
 
-    pymol->need_update = !defer || push;
-    pymol->immediate_update |= push;
-    pymol->invalidate_cache = 1;
+    proxyPtr->need_update = !defer || push;
+    proxyPtr->immediate_update |= push;
+    proxyPtr->invalidate_cache = 1;
 
-    sendf( pymol, "disable %s\n", model);
+    Send( proxyPtr, "disable %s\n", model);
 
-    return pymol->status;
+    return proxyPtr->status;
 }
 
 static int
-EnableCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
+EnableCmd(ClientData clientData, Tcl_Interp *interp, int argc, 
+	  const char *argv[])
 {
-    PymolProxy *pymol = (PymolProxy *) cdata;
+    PymolProxy *proxyPtr = clientData;
     const char *model = "all";
     int arg, defer = 0, push = 0;
 
-    clear_error(pymol);
+    clear_error(proxyPtr);
 
     for(arg = 1; arg < argc; arg++) {
                 
@@ -745,23 +731,24 @@ EnableCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
 
     }
 
-    pymol->need_update = !defer || push;
-    pymol->immediate_update |= push;
-    pymol->invalidate_cache = 1;
+    proxyPtr->need_update = !defer || push;
+    proxyPtr->immediate_update |= push;
+    proxyPtr->invalidate_cache = 1;
 
-    sendf( pymol, "enable %s\n", model);
+    Send( proxyPtr, "enable %s\n", model);
 
-    return pymol->status;
+    return proxyPtr->status;
 }
 
 static int
-VMouseCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
+VMouseCmd(ClientData clientData, Tcl_Interp *interp, int argc, 
+	  const char *argv[])
 {
-    PymolProxy *pymol = (PymolProxy *) cdata;
+    PymolProxy *proxyPtr = clientData;
     int arg, defer = 0, push = 0, varg = 1;
     int arg1 = 0, arg2 = 0, arg3 = 0, arg4 = 0, arg5 = 0;
 
-    clear_error(pymol);
+    clear_error(proxyPtr);
 
     for(arg = 1; arg < argc; arg++) {
         if (strcmp(argv[arg], "-defer") == 0)
@@ -790,23 +777,24 @@ VMouseCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
         }
     }
 
-    pymol->need_update = !defer || push;
-    pymol->immediate_update |= push;
-    pymol->invalidate_cache = 1;
+    proxyPtr->need_update = !defer || push;
+    proxyPtr->immediate_update |= push;
+    proxyPtr->invalidate_cache = 1;
 
-    sendf(pymol, "vmouse %d,%d,%d,%d,%d\n", arg1,arg2,arg3,arg4,arg5);
+    Send(proxyPtr, "vmouse %d,%d,%d,%d,%d\n", arg1, arg2, arg3, 
+		    arg4, arg5);
 
-    return pymol->status;
+    return proxyPtr->status;
 }
 
 static int
-RawCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
+RawCmd(ClientData clientData, Tcl_Interp *interp, int argc, const char *argv[])
 {
-    PymolProxy *pymol = (PymolProxy *) cdata;
+    PymolProxy *proxyPtr = clientData;
     DyBuffer buffer;
     int arg, defer = 0, push = 0;
     const char *cmd;
-    clear_error(pymol);
+    clear_error(proxyPtr);
 
     dyBufferInit(&buffer);
 
@@ -821,24 +809,25 @@ RawCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
         }
     }
 
-    pymol->need_update = !defer || push;
-    pymol->immediate_update |= push;
-    pymol->invalidate_cache = 1;
+    proxyPtr->need_update = !defer || push;
+    proxyPtr->immediate_update |= push;
+    proxyPtr->invalidate_cache = 1;
 
-    sendf(pymol,"%s\n", cmd);
+    Send(proxyPtr,"%s\n", cmd);
     dyBufferFree(&buffer);
 
-    return pymol->status;
+    return proxyPtr->status;
 }
 
 static int
-LabelCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
+LabelCmd(ClientData clientData, Tcl_Interp *interp, int argc, 
+	 const char *argv[])
 {
-    PymolProxy *pymol = (PymolProxy *) cdata;
+    PymolProxy *proxyPtr = clientData;
     int state = 1;
     int arg, push = 0, defer = 0;
 
-    clear_error(pymol);
+    clear_error(proxyPtr);
 
     for(arg = 1; arg < argc; arg++) {
         if ( strcmp(argv[arg],"-defer") == 0 )
@@ -850,34 +839,35 @@ LabelCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
         else if (strcmp(argv[arg],"off") == 0 )
             state = 0;
         else if (strcmp(argv[arg],"toggle") == 0 )
-            state =  !pymol->labels;
+            state =  !proxyPtr->labels;
     }
 
-    pymol->need_update = !defer || push;
-    pymol->immediate_update |= push;
-    pymol->invalidate_cache = 1;
+    proxyPtr->need_update = !defer || push;
+    proxyPtr->immediate_update |= push;
+    proxyPtr->invalidate_cache = 1;
 
     if (state) {
-        sendf(pymol, "set label_color,white,all\n");
-        sendf(pymol, "set label_size,14,all\n");
-        sendf(pymol, "label all,\"%%s%%s\" %% (ID,name)\n");
+        Send(proxyPtr, "set label_color,white,all\n");
+        Send(proxyPtr, "set label_size,14,all\n");
+        Send(proxyPtr, "label all,\"%%s%%s\" %% (ID,name)\n");
     }
     else
-        sendf(pymol, "label all\n");
+        Send(proxyPtr, "label all\n");
 
-    pymol->labels = state;
+    proxyPtr->labels = state;
 
-    return pymol->status;
+    return proxyPtr->status;
 }
 
 static int
-FrameCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
+FrameCmd(ClientData clientData, Tcl_Interp *interp, int argc, 
+	 const char *argv[])
 {
-    PymolProxy *pymol = (PymolProxy *) cdata;
+    PymolProxy *proxyPtr = clientData;
     int frame = 0;
     int arg, push = 0, defer = 0;
 
-    clear_error(pymol);
+    clear_error(proxyPtr);
 
     for(arg = 1; arg < argc; arg++) {
         if ( strcmp(argv[arg],"-defer") == 0 )
@@ -888,23 +878,24 @@ FrameCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
             frame = atoi(argv[arg]);
     }
                 
-    pymol->need_update = !defer || push;
-    pymol->immediate_update |= push;
+    proxyPtr->need_update = !defer || push;
+    proxyPtr->immediate_update |= push;
 
-    pymol->frame = frame;
+    proxyPtr->frame = frame;
 
-    sendf(pymol,"frame %d\n", frame);
+    Send(proxyPtr,"frame %d\n", frame);
         
-    return pymol->status;
+    return proxyPtr->status;
 }
 
 static int
-ResetCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
+ResetCmd(ClientData clientData, Tcl_Interp *interp, int argc, 
+	 const char *argv[])
 {
-    PymolProxy *pymol = (PymolProxy *) cdata;
+    PymolProxy *proxyPtr = clientData;
     int arg, push = 0, defer = 0;
 
-    clear_error(pymol);
+    clear_error(proxyPtr);
 
     for(arg = 1; arg < argc; arg++) {
         if ( strcmp(argv[arg],"-defer") == 0 )
@@ -913,24 +904,25 @@ ResetCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
             push = 1;
     }
                 
-    pymol->need_update = !defer || push;
-    pymol->immediate_update |= push;
-    pymol->invalidate_cache = 1;
+    proxyPtr->need_update = !defer || push;
+    proxyPtr->immediate_update |= push;
+    proxyPtr->invalidate_cache = 1;
         
-    sendf(pymol, "reset\n");
-    sendf(pymol, "zoom buffer=2\n");
+    Send(proxyPtr, "reset\n");
+    Send(proxyPtr, "zoom buffer=2\n");
 
-    return pymol->status;
+    return proxyPtr->status;
 }
 
 static int
-RockCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
+RockCmd(ClientData clientData, Tcl_Interp *interp, int argc, 
+	const char *argv[])
 {
-    PymolProxy *pymol = (PymolProxy *) cdata;
+    PymolProxy *proxyPtr = clientData;
     float y = 0.0;
     int arg, push = 0, defer = 0;
 
-    clear_error(pymol);
+    clear_error(proxyPtr);
 
     for(arg = 1; arg < argc; arg++) {
         if ( strcmp(argv[arg],"-defer") == 0 )
@@ -941,24 +933,25 @@ RockCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
             y = atof( argv[arg] );
     }
                 
-    pymol->need_update = !defer || push;
-    pymol->immediate_update |= push;
+    proxyPtr->need_update = !defer || push;
+    proxyPtr->immediate_update |= push;
 
-    sendf(pymol,"turn y, %f\n", y - pymol->rock_offset);
+    Send(proxyPtr,"turn y, %f\n", y - proxyPtr->rock_offset);
 
-    pymol->rock_offset = y;
+    proxyPtr->rock_offset = y;
 
-    return pymol->status;
+    return proxyPtr->status;
 }
 
 static int
-ViewportCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
+ViewportCmd(ClientData clientData, Tcl_Interp *interp, int argc, 
+	    const char *argv[])
 {
-    PymolProxy *pymol = (PymolProxy *) cdata;
+    PymolProxy *proxyPtr = clientData;
     int width = 640, height = 480;
     int defer = 0, push = 0, arg, varg = 1;
 
-    clear_error(pymol);
+    clear_error(proxyPtr);
 
     for(arg = 1; arg < argc; arg++) {
         if ( strcmp(argv[arg],"-defer") == 0 ) 
@@ -976,29 +969,29 @@ ViewportCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
         }
     }
 
-    pymol->need_update = !defer || push;
-    pymol->immediate_update |= push;
-    pymol->invalidate_cache = 1;
+    proxyPtr->need_update = !defer || push;
+    proxyPtr->immediate_update |= push;
+    proxyPtr->invalidate_cache = 1;
 
-    sendf(pymol, "viewport %d,%d\n", width, height);
+    Send(proxyPtr, "viewport %d,%d\n", width, height);
 
     //usleep(205000); // .2s delay for pymol to update its geometry *HACK ALERT*
         
-    return pymol->status;
+    return proxyPtr->status;
 }
 
 static int
-LoadPDB2Cmd(ClientData cdata, Tcl_Interp *interp, int argc, 
-	      const char *argv[])
+LoadPDBCmd(ClientData clientData, Tcl_Interp *interp, int argc, 
+	   const char *argv[])
 {
     const char *pdbdata, *name;
-    PymolProxy *pymol = (PymolProxy *) cdata;
+    PymolProxy *proxyPtr = clientData;
     int state = 1;
     int arg, defer = 0, push = 0, varg = 1;
     
-    if (pymol == NULL)
-	return(TCL_ERROR);
-    clear_error(pymol);
+    if (proxyPtr == NULL)
+	return TCL_ERROR;
+    clear_error(proxyPtr);
     pdbdata = name = NULL;	/* Suppress compiler warning. */
     for(arg = 1; arg < argc; arg++) {
 	if ( strcmp(argv[arg],"-defer") == 0 )
@@ -1017,8 +1010,8 @@ LoadPDB2Cmd(ClientData cdata, Tcl_Interp *interp, int argc,
 	}
     }
     
-    pymol->need_update = !defer || push;
-    pymol->immediate_update |= push;
+    proxyPtr->need_update = !defer || push;
+    proxyPtr->immediate_update |= push;
 
     {
 	char fileName[200];
@@ -1027,105 +1020,34 @@ LoadPDB2Cmd(ClientData cdata, Tcl_Interp *interp, int argc,
 
 	sprintf(fileName, "/tmp/pymol%d.pdb", getpid());
 	f = fopen(fileName, "w");
-	trace("pymolproxy: open file %s as %x\n", fileName, f);
 	if (f == NULL) {
-	    trace("pymolproxy: failed to open %s %d\n", fileName, errno);
+	    trace("can't open `%s': %s", fileName, strerror(errno));
 	    perror("pymolproxy");
 	}
 	nBytes = strlen(pdbdata);
 	nWritten = fwrite(pdbdata, sizeof(char), nBytes, f);
 	if (nBytes != nWritten) {
-	    trace("pymolproxy: short write %d wanted %d bytes\n", nWritten,
-		  nBytes);
+	    trace("short write %d wanted %d bytes", nWritten, nBytes);
 	    perror("pymolproxy");
 	}
 	fclose(f);
-	sendf(pymol, "load %s, %s, %d\n", fileName, name, state);
+	Send(proxyPtr, "load %s, %s, %d\n", fileName, name, state);
     }
-    sendf(pymol, "zoom buffer=2\n");
-    return(pymol->status);
+    Send(proxyPtr, "zoom buffer=2\n");
+    return proxyPtr->status;
 }
 
 static int
-LoadPDBCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
-{
-    const char *pdbdata, *name;
-    PymolProxy *pymol = (PymolProxy *) cdata;
-    int state = 1;
-    int arg, defer = 0, push = 0, varg = 1;
-
-    clear_error(pymol);
-
-    pdbdata = name = NULL;	/* Suppress compiler warning. */
-    for(arg = 1; arg < argc; arg++) {
-        if ( strcmp(argv[arg],"-defer") == 0 )
-            defer = 1;
-        else if (strcmp(argv[arg],"-push") == 0)
-            push = 1;
-        else if (varg == 1) {
-            pdbdata = argv[arg];
-            varg++;
-        }
-        else if (varg == 2) {
-            name = argv[arg];
-            varg++;
-        }
-        else if (varg == 3) {
-            state = atoi( argv[arg] );
-            varg++;
-        }
-    }
-
-    pymol->need_update = !defer || push;
-    pymol->immediate_update |= push;
-
-    {
-        int count;
-        const char *p;
-        char *q, *newdata;
-
-        count = 0;
-        for (p = pdbdata; *p != '\0'; p++) {
-            if (*p == '\n') {
-                count++;
-            }
-            count++;
-        }
-        
-        q = newdata = malloc(count + 100);
-        strcpy(newdata, "cmd.read_pdbstr(\"\"\"\\\n");
-        q = newdata + strlen(newdata);
-        for (p = pdbdata; *p != '\0'; p++, q++) {
-            if (*p == '\n') {
-                *q++ = '\\';
-            } 
-            *q = *p;
-        }
-        sprintf(q, "\\\n\"\"\",\"%s\",%d)\n", name, state);
-        {
-            char expect[800];
-
-            sprintf(expect, "PyMOL>\"\"\",\"%s\",%d)\n", name, state);
-            send_expect(pymol, expect, newdata);
-        }
-        free(newdata);
-    }
-    sendf(pymol, "zoom buffer=2\n");
-
-    return pymol->status;
-}
-
-
-static int
-RotateCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
+RotateCmd(ClientData clientData, Tcl_Interp *interp, int argc, 
+	  const char *argv[])
 {
     double turnx = 0.0;
     double turny = 0.0;
     double turnz = 0.0;
-    PymolProxy *pymol = (PymolProxy *) cdata;
+    PymolProxy *proxyPtr = clientData;
     int defer = 0, push = 0, arg, varg = 1;
 
-    clear_error(pymol);
+    clear_error(proxyPtr);
 
     for(arg = 1; arg < argc; arg++) {
 	if (strcmp(argv[arg],"-defer") == 0) {
@@ -1143,31 +1065,32 @@ RotateCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
 	    varg++;
 	}
     } 
-    pymol->need_update = !defer || push;
-    pymol->immediate_update  |= push;
-    pymol->invalidate_cache = 1;
+    proxyPtr->need_update = !defer || push;
+    proxyPtr->immediate_update  |= push;
+    proxyPtr->invalidate_cache = 1;
 
     if (turnx != 0.0)
-        sendf(pymol,"turn x, %f\n", turnx);
+        Send(proxyPtr,"turn x, %f\n", turnx);
         
     if (turny != 0.0)
-        sendf(pymol,"turn y, %f\n", turny);
+        Send(proxyPtr,"turn y, %f\n", turny);
         
     if (turnz != 0.0) 
-        sendf(pymol,"turn z, %f\n", turnz);
+        Send(proxyPtr,"turn z, %f\n", turnz);
 
-    return pymol->status;
+    return proxyPtr->status;
 }
 
 static int
-ZoomCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
+ZoomCmd(ClientData clientData, Tcl_Interp *interp, int argc, 
+	const char *argv[])
 {
     double factor = 0.0;
     double zmove = 0.0;
-    PymolProxy *pymol = (PymolProxy *) cdata;
+    PymolProxy *proxyPtr = clientData;
     int defer = 0, push = 0, arg, varg = 1;
 
-    clear_error(pymol);
+    clear_error(proxyPtr);
 
     for(arg = 1; arg < argc; arg++) {
 	if (strcmp(argv[arg],"-defer") == 0)
@@ -1181,97 +1104,97 @@ ZoomCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
     }
     zmove = factor * -75;
  
-    pymol->need_update = !defer || push;
-    pymol->immediate_update  |= push;
-    pymol->invalidate_cache = 1;
+    proxyPtr->need_update = !defer || push;
+    proxyPtr->immediate_update  |= push;
+    proxyPtr->invalidate_cache = 1;
 
     if (zmove != 0.0)
-        sendf(pymol,"move z, %f\n", factor);
+        Send(proxyPtr,"move z, %f\n", factor);
 
-    return pymol->status;
+    return proxyPtr->status;
 }
 
 static int
-PNGCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
+PNGCmd(ClientData clientData, Tcl_Interp *interp, int argc, const char *argv[])
 {
     char buffer[800];
     unsigned int nBytes=0;
     float samples = 10.0;
-    PymolProxy *pymol = (PymolProxy *) cdata;
+    PymolProxy *proxyPtr = clientData;
 
-    clear_error(pymol);
+    clear_error(proxyPtr);
 
-    if (pymol->invalidate_cache)
-        pymol->cacheid++;
+    if (proxyPtr->invalidate_cache)
+        proxyPtr->cacheid++;
 
-    pymol->need_update = 0;
-    pymol->immediate_update = 0;
-    pymol->invalidate_cache = 0;
+    proxyPtr->need_update = 0;
+    proxyPtr->immediate_update = 0;
+    proxyPtr->invalidate_cache = 0;
 
-    sendf(pymol,"png -\n");
+    Send(proxyPtr,"png -\n");
 
-    waitForString(pymol, "image follows: ", buffer, 800);
+    Expect(proxyPtr, "image follows: ", buffer, 800);
 
     sscanf(buffer, "image follows: %d\n", &nBytes);
  
     write(3, &samples, sizeof(samples));
   
-    dyBufferSetLength(&pymol->image, nBytes);
+    dyBufferSetLength(&proxyPtr->image, nBytes);
 
-    bread(pymol->p_stdout, pymol->image.data, pymol->image.used);
+    bread(proxyPtr->p_stdout, proxyPtr->image.data, proxyPtr->image.used);
 
-    waitForString(pymol, " ScenePNG", buffer,800);
+    Expect(proxyPtr, " ScenePNG", buffer,800);
 
-    if ((nBytes > 0) && (pymol->image.used == nBytes)) {
+    if ((nBytes > 0) && (proxyPtr->image.used == nBytes)) {
         sprintf(buffer, "nv>image %d %d %d %d\n", 
-                nBytes, pymol->cacheid, pymol->frame, pymol->rock_offset);
+                nBytes, proxyPtr->cacheid, proxyPtr->frame, proxyPtr->rock_offset);
         trace("to-molvis> %s", buffer);
-        write(pymol->c_stdin, buffer, strlen(buffer));
-        bwrite(pymol->c_stdin, pymol->image.data, nBytes);
+        write(proxyPtr->c_stdin, buffer, strlen(buffer));
+        bwrite(proxyPtr->c_stdin, proxyPtr->image.data, nBytes);
 	stats.nFrames++;
 	stats.nBytes += nBytes;
     }
-    return pymol->status;
+    return proxyPtr->status;
 }
 
 static int
-BMPCmd(ClientData cdata, Tcl_Interp *interp, int argc, const char *argv[])
+BMPCmd(ClientData clientData, Tcl_Interp *interp, int argc, const char *argv[])
 {
     char buffer[800];
     unsigned int nBytes=0;
     float samples = 10.0;
-    PymolProxy *pymol = (PymolProxy *) cdata;
+    PymolProxy *proxyPtr = clientData;
 
-    clear_error(pymol);
+    clear_error(proxyPtr);
 
-    if (pymol->invalidate_cache)
-        pymol->cacheid++;
+    if (proxyPtr->invalidate_cache)
+        proxyPtr->cacheid++;
 
-    pymol->need_update = 0;
-    pymol->immediate_update = 0;
-    pymol->invalidate_cache = 0;
+    proxyPtr->need_update = 0;
+    proxyPtr->immediate_update = 0;
+    proxyPtr->invalidate_cache = 0;
 
-    sendf(pymol,"bmp -\n");
+    Send(proxyPtr,"bmp -\n");
 
-    waitForString(pymol, "image follows: ", buffer, 800);
+    Expect(proxyPtr, "image follows: ", buffer, 800);
 
     sscanf(buffer, "image follows: %d\n", &nBytes);
     write(3,&samples,sizeof(samples));
 
-    dyBufferSetLength(&pymol->image, nBytes);
+    dyBufferSetLength(&proxyPtr->image, nBytes);
 
-    bread(pymol->p_stdout, pymol->image.data, pymol->image.used);
+    bread(proxyPtr->p_stdout, proxyPtr->image.data, proxyPtr->image.used);
 
-    if ((nBytes > 0) && (pymol->image.used == nBytes)) {
+    if ((nBytes > 0) && (proxyPtr->image.used == nBytes)) {
         sprintf(buffer, "nv>image %d %d %d %d\n", 
-                nBytes, pymol->cacheid, pymol->frame, pymol->rock_offset);
-        write(pymol->c_stdin, buffer, strlen(buffer));
-        trace("to-molvis buffer=%s\n", buffer);
-        bwrite(pymol->c_stdin, pymol->image.data, nBytes);
+                nBytes, proxyPtr->cacheid, proxyPtr->frame, proxyPtr->rock_offset);
+        write(proxyPtr->c_stdin, buffer, strlen(buffer));
+        trace("to-molvis buffer=%s", buffer);
+        bwrite(proxyPtr->c_stdin, proxyPtr->image.data, nBytes);
 	stats.nFrames++;
 	stats.nBytes += nBytes;
     }
-    return pymol->status;
+    return proxyPtr->status;
 }
         
 static int 
@@ -1286,7 +1209,7 @@ ProxyInit(int c_in, int c_out, char *const *argv)
     DyBuffer dybuffer, dybuffer2;
     struct pollfd ufd[3];
     int pid;
-    PymolProxy pymol;
+    PymolProxy proxy;
     struct timeval now, end;
     int timeout;
 
@@ -1294,12 +1217,12 @@ ProxyInit(int c_in, int c_out, char *const *argv)
      * each for the applications's: stdin, stdout, and stderr  */
 
     if (pipe(pairIn) == -1)
-        return(-1);
+        return -1;
 
     if (pipe(pairOut) == -1) {
         close(pairIn[0]);
         close(pairIn[1]);
-        return(-1);
+        return -1;
     }
 
     if (pipe(pairErr) == -1) {
@@ -1307,7 +1230,7 @@ ProxyInit(int c_in, int c_out, char *const *argv)
         close(pairIn[1]);
         close(pairOut[0]);
         close(pairOut[1]);
-        return(-1);
+        return -1;
     }
 
     /* Fork the new process.  Connect i/o to the new socket.  */
@@ -1316,7 +1239,7 @@ ProxyInit(int c_in, int c_out, char *const *argv)
         
     if (pid < 0) {
         fprintf(stderr, "can't fork process: %s\n", strerror(errno));
-        return(-3);
+        return -3;
     }
     if (pid == 0) {
         int fd;
@@ -1339,7 +1262,7 @@ ProxyInit(int c_in, int c_out, char *const *argv)
             close(fd);
         
         execvp(argv[0], argv);
-        trace("pymolproxy: Failed to start pyMol %s\n", argv[0]);
+        trace("Failed to start pymol `%s'", argv[0]);
 	exit(-1);
     }
     stats.child = pid;
@@ -1351,58 +1274,57 @@ ProxyInit(int c_in, int c_out, char *const *argv)
 
     signal(SIGPIPE, SIG_IGN); // ignore SIGPIPE (ie if nanoscale terminates)
 
-    pymol.p_stdin = pairIn[1];
-    pymol.p_stdout = pairOut[0];
-    pymol.p_stderr = pairErr[0];
-    pymol.c_stdin  = c_in;
-    pymol.c_stdout = c_out;
-    pymol.labels = 0;
-    pymol.need_update = 0;
-    pymol.can_update = 1;
-    pymol.immediate_update = 0;
-    pymol.sync = 0;
-    pymol.frame = 1;
-    pymol.rock_offset = 0;
-    pymol.cacheid = 0;
-    pymol.invalidate_cache = 0;
+    proxy.p_stdin = pairIn[1];
+    proxy.p_stdout = pairOut[0];
+    proxy.p_stderr = pairErr[0];
+    proxy.c_stdin  = c_in;
+    proxy.c_stdout = c_out;
+    proxy.labels = 0;
+    proxy.need_update = 0;
+    proxy.can_update = 1;
+    proxy.immediate_update = 0;
+    proxy.sync = 0;
+    proxy.frame = 1;
+    proxy.rock_offset = 0;
+    proxy.cacheid = 0;
+    proxy.invalidate_cache = 0;
 
-    ufd[0].fd = pymol.c_stdout;
+    ufd[0].fd = proxy.c_stdout;
     ufd[0].events = POLLIN | POLLHUP; /* ensure catching EOF */
-    ufd[1].fd = pymol.p_stdout;
+    ufd[1].fd = proxy.p_stdout;
     ufd[1].events = POLLIN | POLLHUP;
-    ufd[2].fd = pymol.p_stderr;
+    ufd[2].fd = proxy.p_stderr;
     ufd[2].events = POLLIN | POLLHUP;
 
-    flags = fcntl(pymol.p_stdout, F_GETFL);
-    fcntl(pymol.p_stdout, F_SETFL, flags|O_NONBLOCK);
+    flags = fcntl(proxy.p_stdout, F_GETFL);
+    fcntl(proxy.p_stdout, F_SETFL, flags|O_NONBLOCK);
 
     interp = Tcl_CreateInterp();
     Tcl_MakeSafe(interp);
 
     Tcl_DStringInit(&cmdbuffer);
-    dyBufferInit(&pymol.image);
+    dyBufferInit(&proxy.image);
     dyBufferInit(&dybuffer);
     dyBufferInit(&dybuffer2);
 
-    Tcl_CreateCommand(interp, "bmp",     BMPCmd,        &pymol, NULL);
-    Tcl_CreateCommand(interp, "png",     PNGCmd,        &pymol, NULL);
-    Tcl_CreateCommand(interp, "screen",  ViewportCmd,   &pymol, NULL);
-    Tcl_CreateCommand(interp, "viewport",ViewportCmd,   &pymol, NULL);
-    Tcl_CreateCommand(interp, "rotate",  RotateCmd,     &pymol, NULL);
-    Tcl_CreateCommand(interp, "zoom",    ZoomCmd,       &pymol, NULL);
-    Tcl_CreateCommand(interp, "loadpdb.old", LoadPDBCmd,    &pymol, NULL);
-    Tcl_CreateCommand(interp, "loadpdb", LoadPDB2Cmd,  &pymol, NULL);
-    Tcl_CreateCommand(interp, "ballnstick",BallNStickCmd, &pymol, NULL);
-    Tcl_CreateCommand(interp, "spheres", SpheresCmd,    &pymol, NULL);
-    Tcl_CreateCommand(interp, "lines",   LinesCmd,      &pymol, NULL);
-    Tcl_CreateCommand(interp, "raw",     RawCmd,        &pymol, NULL);
-    Tcl_CreateCommand(interp, "label",   LabelCmd,      &pymol, NULL);
-    Tcl_CreateCommand(interp, "reset",   ResetCmd,      &pymol, NULL);
-    Tcl_CreateCommand(interp, "rock",    RockCmd,       &pymol, NULL);
-    Tcl_CreateCommand(interp, "frame",   FrameCmd,      &pymol, NULL);
-    Tcl_CreateCommand(interp, "vmouse",  VMouseCmd,     &pymol, NULL);
-    Tcl_CreateCommand(interp, "disable", DisableCmd,    &pymol, NULL);
-    Tcl_CreateCommand(interp, "enable",  EnableCmd,     &pymol, NULL);
+    Tcl_CreateCommand(interp, "bmp",     BMPCmd,        &proxy, NULL);
+    Tcl_CreateCommand(interp, "png",     PNGCmd,        &proxy, NULL);
+    Tcl_CreateCommand(interp, "screen",  ViewportCmd,   &proxy, NULL);
+    Tcl_CreateCommand(interp, "viewport",ViewportCmd,   &proxy, NULL);
+    Tcl_CreateCommand(interp, "rotate",  RotateCmd,     &proxy, NULL);
+    Tcl_CreateCommand(interp, "zoom",    ZoomCmd,       &proxy, NULL);
+    Tcl_CreateCommand(interp, "loadpdb", LoadPDBCmd,    &proxy, NULL);
+    Tcl_CreateCommand(interp, "ballnstick",BallNStickCmd, &proxy, NULL);
+    Tcl_CreateCommand(interp, "spheres", SpheresCmd,    &proxy, NULL);
+    Tcl_CreateCommand(interp, "lines",   LinesCmd,      &proxy, NULL);
+    Tcl_CreateCommand(interp, "raw",     RawCmd,        &proxy, NULL);
+    Tcl_CreateCommand(interp, "label",   LabelCmd,      &proxy, NULL);
+    Tcl_CreateCommand(interp, "reset",   ResetCmd,      &proxy, NULL);
+    Tcl_CreateCommand(interp, "rock",    RockCmd,       &proxy, NULL);
+    Tcl_CreateCommand(interp, "frame",   FrameCmd,      &proxy, NULL);
+    Tcl_CreateCommand(interp, "vmouse",  VMouseCmd,     &proxy, NULL);
+    Tcl_CreateCommand(interp, "disable", DisableCmd,    &proxy, NULL);
+    Tcl_CreateCommand(interp, "enable",  EnableCmd,     &proxy, NULL);
 
     // Main Proxy Loop
     //  accept tcl commands from socket
@@ -1412,11 +1334,9 @@ ProxyInit(int c_in, int c_out, char *const *argv)
     gettimeofday(&end, NULL);
     stats.start = end;
     while(1) {
-	char ch;
-	
 	gettimeofday(&now,NULL);
 	
-	if ( (!pymol.need_update) )
+	if ( (!proxy.need_update) )
 	    timeout = -1;
 	else if ((now.tv_sec > end.tv_sec) || ( (now.tv_sec == end.tv_sec) && (now.tv_usec >= end.tv_usec)) )
 	    timeout = 0; 
@@ -1430,40 +1350,68 @@ ProxyInit(int c_in, int c_out, char *const *argv)
 	    
 	}
 	
-	if (!pymol.immediate_update)
+	status = 0;
+	errno = 0;
+	if (!proxy.immediate_update) {
 	    status = poll(ufd, 3, timeout);
-	else
-	    status = 0;
-	
+	    trace("result of poll = %d: %s", status, strerror(errno));
+	}
 	if ( status < 0 ) {
-	    trace("pymolproxy: POLL ERROR: status = %d, errno = %d, %s \n", status,errno,strerror(errno));
+	    trace("POLL ERROR: status = %d: %s", status, strerror(errno));
 	} else if (status > 0) {
+
 	    gettimeofday(&now,NULL);
-	    
-	    if (ufd[0].revents) { /* Client Stdout Connection: command input */
-		if (read(ufd[0].fd,&ch,1) <= 0) {
+	    if (ufd[0].revents & POLLIN) { 
+		/* Client Stdout Connection: command input */
+		ssize_t nRead;
+		char ch;
+
+		nRead = read(ufd[0].fd, &ch, 1);
+		if (nRead <= 0) {
+		    trace("unexpected read error from client (stdout): %s",
+			  strerror(errno));
 		    if (errno != EINTR) {
-			trace("pymolproxy: lost client connection (%d).\n", errno);
+			trace("lost client connection: %s", strerror(errno));
 			break;
 		    }
 		} else {
 		    Tcl_DStringAppend(&cmdbuffer, &ch, 1);
 		    
-		    if (ch == '\n' && Tcl_CommandComplete(Tcl_DStringValue(&cmdbuffer))) {
+		    if (ch == '\n' && 
+			Tcl_CommandComplete(Tcl_DStringValue(&cmdbuffer))) {
 			int result;
 
 			result = ExecuteCommand(interp, &cmdbuffer);
-			if (timeout == 0) status = 0; // send update
+			if (timeout == 0) {
+			    status = 0; // send update
+			}
 		    }
 		}
+	    } else if (ufd[0].revents & POLLHUP) {
+		trace("received hangup on stdout from client.");
+		break;
 	    }
 
-	    if (ufd[1].revents ) { /* pyMol Stdout Connection: pymol (unexpected) output */
-		if (read(ufd[1].fd, &ch, 1) <= 0) {
-		    if (errno != EINTR) {
-			trace("pymolproxy: lost connection (stdout) to pymol server\n");
-			break;
+	    if (ufd[1].revents & POLLIN) { 
+		ssize_t nRead;
+		char ch;
+
+		/* This is supposed to suck up all the extra output from the
+		 * pymol server output after we've matched the command
+		 * prompt.  */
+
+		/* pyMol Stdout Connection: pymol (unexpected) output */
+		nRead = read(ufd[1].fd, &ch, 1);
+		if (nRead <= 0) {
+		    /* It's possible to have already drained the channel in
+		     * response to a client command (handled above). Skip
+		     * it if we're blocking. */
+		    if ((errno == EAGAIN) || (errno == EINTR)) {
+			trace("try again to read (stdout) to pymol server.");
+			goto nextchannel;
 		    }
+		    trace("lost connection (stdout) from pymol server.");
+		    break;
 		} else {
 		    dyBufferAppend(&dybuffer, &ch, 1);
 		    
@@ -1474,17 +1422,27 @@ ProxyInit(int c_in, int c_out, char *const *argv)
 			dyBufferSetLength(&dybuffer,0);
 		    }
 		}
+	    } else if (ufd[1].revents & POLLHUP) { 
+		trace("received hangup on stdout to pymol server.");
+		break;
 	    }
-	    
-	    if (ufd[2].revents) { /* pyMol Stderr Connection: pymol standard error output */
-		if (read(ufd[2].fd, &ch, 1) <= 0) {
+	nextchannel:
+	    if (ufd[2].revents & POLLIN) { 
+		ssize_t nRead;
+		char ch;
+
+		/* pyMol Stderr Connection: pymol standard error output */
+
+		nRead = read(ufd[2].fd, &ch, 1);
+		if (nRead <= 0) {
+		    trace("unexpected read error from server (stderr): %s",
+			  strerror(errno));
 		    if (errno != EINTR) { 
-			trace("pymolproxy: lost connection (stderr) to pymol server\n");
+			trace("lost connection (stderr) to pymol server.");
 			break;
 		    }
 		} else {
 		    dyBufferAppend(&dybuffer2, &ch, 1);
-		    
 		    if (ch == '\n') {
 			ch = 0;
 			dyBufferAppend(&dybuffer2, &ch, 1);
@@ -1492,13 +1450,16 @@ ProxyInit(int c_in, int c_out, char *const *argv)
 			dyBufferSetLength(&dybuffer2,0);
 		    }
 		}
+	    } else if (ufd[2].revents & POLLHUP) { 
+		trace("received hangup on stderr from pymol server.");
+		break;
 	    }
 	}
 	
 	if (status == 0) {
 	    gettimeofday(&now,NULL);
 	    
-	    if (pymol.need_update && pymol.can_update)
+	    if (proxy.need_update && proxy.can_update)
 		Tcl_Eval(interp, "bmp -\n");
 	    
 	    end.tv_sec = now.tv_sec;
@@ -1515,16 +1476,16 @@ ProxyInit(int c_in, int c_out, char *const *argv)
     
     status = waitpid(pid, &result, WNOHANG);
     if (status == -1) {
-        trace("pymolproxy: error waiting on pymol server to exit (%d)\n", errno);
+        trace("error waiting on pymol server to exit: %s", strerror(errno));
     } else if (status == 0) {
-        trace("pymolproxy: attempting to SIGTERM pymol server\n");
+        trace("attempting to signal (SIGTERM) pymol server.");
         kill(-pid, SIGTERM); // kill process group
         alarm(5);
         status = waitpid(pid, &result, 0);
         alarm(0);
 	
         while ((status == -1) && (errno == EINTR)) {
-	    trace("pymolproxy: Attempting to SIGKILL process.\n");
+	    trace("Attempting to signal (SIGKILL) pymol server.");
 	    kill(-pid, SIGKILL); // kill process group
 	    alarm(10);
 	    status = waitpid(pid, &result, 0);
@@ -1532,9 +1493,9 @@ ProxyInit(int c_in, int c_out, char *const *argv)
 	}
     }
     
-    trace("pymolproxy: pymol server process ended (%d)\n", result);
+    trace("pymol server process ended (result=%d)", result);
     
-    dyBufferFree(&pymol.image);
+    dyBufferFree(&proxy.image);
     
     Tcl_DeleteInterp(interp);
     if (WIFEXITED(result)) {
