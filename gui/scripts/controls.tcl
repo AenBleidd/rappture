@@ -46,6 +46,7 @@ itcl::class Rappture::Controls {
     private variable _counter 0      ;# counter for control names
     private variable _dispatcher ""  ;# dispatcher for !events
     private variable _controls ""    ;# list of known controls
+    private variable _showing ""     ;# list of enabled (showing) controls
     private variable _name2info      ;# maps control name => info
     private variable _scheme ""      ;# layout scheme (tabs/hlabels)
 }
@@ -445,6 +446,9 @@ itcl::body Rappture::Controls::_layout {} {
         }
     }
 
+    # store the showing tabs in the object so it can be used in _changeTabs
+    set _showing $showing
+
     #
     # Decide on a layout scheme:
     #   tabs ...... best if all elements within are groups
@@ -688,7 +692,10 @@ itcl::body Rappture::Controls::_formatLabel {str} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Controls::_changeTabs {} {
     set i [$_tabs index select]
-    set name [lindex $_controls $i]
+    # we use _showing here instead of _controls because sometimes tabs
+    # are disabled, and the index of the choosen tab always matches
+    # _showing, even if tabs are disabled.
+    set name [lindex $_showing $i]
     if {"" != $name} {
         foreach w [grid slaves $_frame] {
             grid forget $w

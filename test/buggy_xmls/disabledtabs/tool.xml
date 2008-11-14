@@ -1,0 +1,73 @@
+<?xml version="1.0"?>
+<run>
+<tool>
+    <layout>wizard</layout>
+</tool>
+<input>
+    <integer id="layers">
+        <default>1</default>
+    </integer>
+    <group id="tabs">
+        <group id="front">
+            <about>
+                <label>FRONT</label>
+            </about>
+            <loader>
+                <about>
+                    <label>Front</label>
+                    <description>Specify the material.</description>
+                </about>
+            </loader>
+        </group>
+        <group id="layer1">
+            <about>
+                <label>Layer 1</label>
+            </about>
+            <loader>
+                <about>
+                    <label>Layer 1</label>
+                    <description>Specify the material.</description>
+                </about>
+            </loader>
+        </group>
+        <group id="layer2">
+            <about>
+                <label>Layer 2</label>
+                <enable>input.integer(layers) &gt;=2 </enable>
+            </about>
+            <loader>
+                <about>
+                    <label>Layer 2</label>
+                    <description>Specify the material.</description>
+                    <!-- <enable>input.integer(layers) &gt;=2 </enable> -->
+                </about>
+            </loader>
+        </group>
+        <group id="layer3">
+            <about>
+                <label>Layer 3</label>
+                <enable>input.integer(layers) &gt;=3 </enable>
+            </about>
+            <loader>
+                <about>
+                    <label>Layer 3</label>
+                    <description>Specify the material.</description>
+                    <enable>input.integer(layers) &gt;=3 </enable>
+                </about>
+            </loader>
+        </group>
+        <group id="back">
+            <about>
+                <label>BACK</label>
+                <enable>input.integer(layers) &gt;=0 </enable>
+            </about>
+            <loader>
+                <about>
+                    <label>Back</label>
+                    <description>Specify the material.</description>
+                </about>
+            </loader>
+        </group>
+    </group>
+</input>
+</run>
