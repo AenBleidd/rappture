@@ -737,10 +737,14 @@ itcl::body Rappture::HeightmapViewer::_rebuild {} {
         $_dispatcher event -idle !legend
     }
 
-    #
+    # Reset the screen size.  
+    set w [winfo width $itk_component(3dview)]
+    set h [winfo height $itk_component(3dview)]
+    _send "screen $w $h"
+
     # Reset the camera and other view parameters
-    #
-    _send "camera angle [Euler2XYZ $_view(theta) $_view(phi) $_view(psi)]"
+    set xyz [Euler2XYZ $_view(theta) $_view(phi) $_view(psi)]
+    _send "camera angle $xyz"
     _send "camera zoom $_view(zoom)"
 
      if {"" == $itk_option(-plotoutline)} {

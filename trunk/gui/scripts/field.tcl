@@ -573,13 +573,10 @@ itcl::body Rappture::Field::_build {} {
                 if {"" != $xydata} {
                     set xv [blt::vector create x$_counter]
                     set yv [blt::vector create y$_counter]
-
-                    foreach line [split $xydata \n] {
-                        if {[scan $line {%g %g} xval yval] == 2} {
-                            $xv append $xval
-                            $yv append $yval
-                        }
-                    }
+		    set tmp [blt::vector create \#auto]
+		    $tmp set $xydata
+		    $tmp split $xv $yv
+		    blt::vector destroy $tmp
                 }
             }
 
