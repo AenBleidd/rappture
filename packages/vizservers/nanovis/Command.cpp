@@ -693,19 +693,18 @@ GetDataStream(Tcl_Interp *interp, Rappture::Buffer &buf, int nBytes)
 }
 
 static int
-CameraPanOp(ClientData cdata, Tcl_Interp *interp, int objc, 
+CameraEyeOp(ClientData cdata, Tcl_Interp *interp, int objc, 
 	     Tcl_Obj *const *objv)
 {
-    double dx, dy, dz;
-    if ((Tcl_GetDoubleFromObj(interp, objv[2], &dx) != TCL_OK) ||
-        (Tcl_GetDoubleFromObj(interp, objv[3], &dy) != TCL_OK) ||
-        (Tcl_GetDoubleFromObj(interp, objv[4], &dz) != TCL_OK)) {
+    float x, y, z;
+    if ((GetFloatFromObj(interp, objv[2], &x) != TCL_OK) ||
+        (GetFloatFromObj(interp, objv[3], &y) != TCL_OK) ||
+        (GetFloatFromObj(interp, objv[4], &z) != TCL_OK)) {
         return TCL_ERROR;
     }
-    NanoVis::cam->aim(dx, dy, dz);
-    NanoVis::cam->x(dx);
-    NanoVis::cam->y(dy);
-    NanoVis::cam->z(dz);
+    NanoVis::cam->x(x);
+    NanoVis::cam->y(y);
+    NanoVis::cam->z(z);
     return TCL_OK;
 }
 
@@ -713,10 +712,10 @@ static int
 CameraAimOp(ClientData cdata, Tcl_Interp *interp, int objc, 
 	    Tcl_Obj *const *objv)
 {
-    double x, y, z;
-    if ((Tcl_GetDoubleFromObj(interp, objv[2], &x) != TCL_OK) ||
-        (Tcl_GetDoubleFromObj(interp, objv[3], &y) != TCL_OK) ||
-        (Tcl_GetDoubleFromObj(interp, objv[4], &z) != TCL_OK)) {
+    float x, y, z;
+    if ((GetFloatFromObj(interp, objv[2], &x) != TCL_OK) ||
+        (GetFloatFromObj(interp, objv[3], &y) != TCL_OK) ||
+        (GetFloatFromObj(interp, objv[4], &z) != TCL_OK)) {
         return TCL_ERROR;
     }
     NanoVis::cam->aim(x, y, z);
@@ -752,7 +751,7 @@ CameraZoomOp(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const *obj
 static Rappture::CmdSpec cameraOps[] = {
     {"aim",     2, CameraAimOp,      5, 5, "x y z",},
     {"angle",   2, CameraAngleOp,    5, 5, "xAngle yAngle zAngle",},
-    {"pan",     1, CameraPanOp,      5, 5, "x y z",},
+    {"eye",     1, CameraEyeOp,      5, 5, "x y z",},
     {"zoom",    1, CameraZoomOp,     3, 3, "factor",},
 };
 static int nCameraOps = NumCmdSpecs(cameraOps);

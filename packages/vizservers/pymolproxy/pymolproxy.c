@@ -1138,10 +1138,10 @@ PanCmd(ClientData clientData, Tcl_Interp *interp, int argc,
     proxyPtr->immediate_update  |= push;
     proxyPtr->invalidate_cache = 1;
     if (x != 0.0) {
-        Send(proxyPtr,"move x,%f\n", x * 0.005);
+        Send(proxyPtr,"move x,%f\n", x * 0.05);
     }	
     if (y != 0.0) {
-        Send(proxyPtr,"move y,%f\n", -y * 0.005);
+        Send(proxyPtr,"move y,%f\n", -y * 0.05);
     }	
     return proxyPtr->status;
 }
