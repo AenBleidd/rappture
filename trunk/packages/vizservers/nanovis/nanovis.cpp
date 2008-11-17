@@ -169,15 +169,20 @@ CGparameter m_passthru_scale_param, m_passthru_bias_param;
 
 // Variables for mouse events
 
-// Object rotation angles
-const float def_rot_x = 90.;
-const float def_rot_y = 180.;
-const float def_rot_z = -135;
+// Default camera rotation angles.
+const float def_rot_x = 90.0f;
+const float def_rot_y = 180.0f;
+const float def_rot_z = -135.0f;
 
-// Object translation location from the origin
-const float def_obj_x = -0.0;
-const float def_obj_y = -0.0;
-const float def_obj_z = -2.5;
+// Default camera target.
+const float def_target_x = 0.0f;
+const float def_target_y = 0.0f;
+const float def_target_z = 100.0f; 
+
+// Default camera location.
+const float def_eye_x = -0.0f;
+const float def_eye_y = -0.0f;
+const float def_eye_z = -2.5f;
 
 
 #ifndef XINETD
@@ -876,9 +881,9 @@ NanoVis::initGL(void)
 
    //create the camera with default setting
    cam = new NvCamera(0, 0, win_width, win_height,
-		      def_obj_x, def_obj_y, def_obj_z,
-		      0., 0., 100.,
-		      def_rot_x, def_rot_y, def_rot_z);
+		      def_eye_x, def_eye_y, def_eye_z,          /* location. */
+		      def_target_x, def_target_y, def_target_z, /* target. */
+		      def_rot_x, def_rot_y, def_rot_z);         /* angle. */
 
    glEnable(GL_TEXTURE_2D);
    glShadeModel(GL_FLAT);
