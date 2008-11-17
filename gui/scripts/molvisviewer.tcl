@@ -66,6 +66,7 @@ itcl::class Rappture::MolvisViewer {
     public method emblems {option}
     public method rock {option}
     public method representation {option {model "all"} }
+    public method ResetView {} 
 
     protected method _send {args}
     protected method _update { args }
@@ -77,7 +78,6 @@ itcl::class Rappture::MolvisViewer {
     protected method _map {}
     protected method _vmouse2 {option b m x y}
     protected method _vmouse  {option b m x y}
-
     private method _receive_image { size cacheid frame rock } 
 
     private variable _inrebuild 0
@@ -89,6 +89,8 @@ itcl::class Rappture::MolvisViewer {
     private variable _dobj2transparency  ;# maps dataobj => transparency
     private variable _dobj2raise  ;# maps dataobj => raise flag 0/1
     private variable _dobj2ghost
+
+    private variable view_
 
     private variable _model
     private variable _mlist
@@ -137,6 +139,16 @@ itcl::body Rappture::MolvisViewer::constructor {hostlist args} {
     set _state(client) 1
     set _hostlist $hostlist
 
+    array set view_ {
+	zoom 0
+	mx 0
+	my 0
+	mz 0
+	x  0
+	y  0
+	z  0
+    }
+
     array set _settings [subst {
         $this-model $_mrepresentation 
         $this-modelimg [Rappture::icon ballnstick]
@@ -159,7 +171,7 @@ itcl::body Rappture::MolvisViewer::constructor {hostlist args} {
         button $itk_component(zoom).reset \
             -borderwidth 1 -padx 1 -pady 1 \
             -bitmap [Rappture::icon reset] \
-            -command [itcl::code $this _send "reset"]
+            -command [itcl::code $this ResetView]
     } {
         usual
         ignore -borderwidth
@@ -592,6 +604,7 @@ itcl::body Rappture::MolvisViewer::_rebuild {} {
         }
 
     }
+
     if { $changed } {
         array unset _imagecache
     }
@@ -607,9 +620,15 @@ itcl::body Rappture::MolvisViewer::_rebuild {} {
         set _state(client) $state
         _update
     }
+    # Reset screen size
     set w  [winfo width $itk_component(3dview)] 
     set h  [winfo height $itk_component(3dview)] 
     _send "screen $w $h"
+    # Reset viewing parameters
+    _send "reset"
+    _send "rotate $view_(mx) $view_(my) $view_(mz)"
+    _send "pan $view_(x) $view_(y)"
+    _send "zoom $view_(zoom)"
 
     set _inrebuild 0
     $itk_component(3dview) configure -cursor ""
@@ -644,10 +663,12 @@ itcl::body Rappture::MolvisViewer::_configure { w h } {
     if { [isconnected] } {
         if { [winfo ismapped $itk_component(3dview)] } {
             _send "screen $w $h"
-            _send "reset -push"
+	    # Why do a reset?
+            #_send "reset -push"
         } else {
             _send "screen -defer $w $h"
-            _send "reset -push"
+	    # Why do a reset?
+            #_send "reset -push"
         }
     }
 }
@@ -670,6 +691,8 @@ itcl::body Rappture::MolvisViewer::_pan {option x y} {
     if { $option == "drag" || $option == "release" } {
         set dx [expr $x - $_mevent(x)]
         set dy [expr $y - $_mevent(y)]
+	set view_(x) [expr $view_(x) + $dx]
+	set view_(y) [expr $view_(y) + $dy]
         _send "pan $dx $dy"
     }
     set _mevent(x) $x
@@ -690,12 +713,15 @@ itcl::body Rappture::MolvisViewer::_pan {option x y} {
 itcl::body Rappture::MolvisViewer::_zoom {option {factor 10}} {
     switch -- $option {
         "in" {
+	    set view_(zoom) [expr $view_(zoom) + $factor]
             _send "zoom $factor"
         }
         "out" {
+	    set view_(zoom) [expr $view_(zoom) - $factor]
             _send "zoom -$factor"
         }
         "reset" {
+	    set view_(zoom) 0
             _send "reset"
         }
     }
@@ -838,6 +864,10 @@ itcl::body Rappture::MolvisViewer::_vmouse {option b m x y} {
         } else {
             set mz $dx
         }
+	# Accumlate movements
+	set view_(mx) [expr {$view_(mx) + $mx}]
+	set view_(my) [expr {$view_(my) + $my}]
+	set view_(mz) [expr {$view_(mz) + $mz}]
         _send "rotate $mx $my $mz"
     }
     set _mevent(x) $x
@@ -991,6 +1021,22 @@ itcl::body Rappture::MolvisViewer::add { dataobj {options ""}} {
     }
 }
 
+#
+# ResetView
+#
+itcl::body Rappture::MolvisViewer::ResetView {} {
+    array set view_ {
+	mx 0 
+	my 0
+	mz 0
+	x 0
+	y 0
+	z 0
+	zoom 0
+    }
+    _send "reset"
+}
+
 # ----------------------------------------------------------------------
 # USAGE: get
 #
@@ -1065,3 +1111,4 @@ itcl::configbody Rappture::MolvisViewer::device {
         $_dispatcher event -idle !rebuild
     }
 }
+

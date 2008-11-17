@@ -1242,6 +1242,8 @@ itcl::body Rappture::NanovisViewer::_rotate {option x y} {
 # controls for this widget.  Changes the zoom for the current view.
 # ----------------------------------------------------------------------
 itcl::body Rappture::NanovisViewer::_pan {option x y} {
+    return
+    # Experimental stuff
     if { $option == "click" } { 
         $itk_component(3dview) configure -cursor hand1
     }

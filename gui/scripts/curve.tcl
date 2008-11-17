@@ -267,15 +267,12 @@ itcl::body Rappture::Curve::_build {} {
 
         set xydata [$_curve get $cname.xy]
         if {"" != $xydata} {
-            set xv [blt::vector create x$_counter]
-            set yv [blt::vector create y$_counter]
-
-            foreach line [split $xydata \n] {
-                if {[scan $line {%g %g} xval yval] == 2} {
-                    $xv append $xval
-                    $yv append $yval
-                }
-            }
+            set xv [blt::vector create \#auto]
+            set yv [blt::vector create \#auto]
+	    set tmp [blt::vector create \#auto]
+	    $tmp set $xydata
+	    $tmp split $xv $yv
+	    blt::vector destroy $tmp
         }
 
         if {$xv != "" && $yv != ""} {
@@ -321,3 +318,4 @@ itcl::body Rappture::Curve::xmarkers {} {
 itcl::body Rappture::Curve::ymarkers {} {
     return $_ymarkers;
 }
+
