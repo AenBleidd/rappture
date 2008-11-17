@@ -22,16 +22,19 @@ itcl::class ::Rappture::VisViewer {
     itk_option define -receivecommand receiveCommand ReceiveCommand ""
 
     private common servers_         ;# array of visualization server lists
-    set servers_(nanovis) "bilby.hubzero.org:2000"
-    set servers_(pymol)   "bilby.hubzero.org:2020"
+    set servers_(nanovis) ""
+    set servers_(pymol)   ""
 
     private variable sid_ ""        ;# socket connection to server
     private common done_            ;# Used to indicate status of send.
     private variable buffer_        ;# buffer for incoming/outgoing commands
+
     # Number of milliseconds to wait before idle timeout.
-    #private variable idleTimeout_ 3600000
-    #private variable idleTimeout_ 0 
-    private variable idleTimeout_ 5000 
+    # If greater than 0, automatically disconnect from the visualization
+    # server when idle timeout is reached.
+    #private variable idleTimeout_ 3600000; # 1 hour
+    #private variable idleTimeout_ 5000;    # 5 seconds
+    private variable idleTimeout_ 0;	    # No timeout
 
     protected variable _dispatcher ""   ;# dispatcher for !events
     protected variable _hosts ""    ;# list of hosts for server
@@ -192,9 +195,12 @@ itcl::body Rappture::VisViewer::_ServerDown {} {
 #
 # Connect --
 #
-#    Connect to the visualization server (e.g. nanovis, pymolproxy).  Send
-#    the server some estimate of the size of our job.  If it's too busy, that
-#    server may forward us to another.
+#    Connect to the visualization server (e.g. nanovis, pymolproxy).  
+#    Creates an event callback that is triggered when we are idle 
+#    (no I/O with the server) for some specified time. Sends the server 
+#    some estimate of the size of our job [soon to be deprecated].  
+#    If it's too busy, that server may forward us to another [this 
+#    was been turned off in nanoscale].
 #
 itcl::body Rappture::VisViewer::Connect { hostlist } {
     blt::busy hold $itk_component(hull) -cursor watch
@@ -222,11 +228,11 @@ itcl::body Rappture::VisViewer::Connect { hostlist } {
         }
         fconfigure $sid_ -translation binary -encoding binary
 
-        # send memory requirement to the load balancer
+        # Send memory requirement to the load balancer
         puts -nonewline $sid_ [binary format I $memorySize]
         flush $sid_
 
-        # read back a reconnection order
+        # Read back a reconnection order
         set data [read $sid_ 4]
         if {[binary scan $data cccc b1 b2 b3 b4] != 4} {
             blt::busy release $itk_component(hull)
@@ -262,12 +268,12 @@ itcl::body Rappture::VisViewer::Connect { hostlist } {
 # Disconnect --
 #
 #    Clients use this method to disconnect from the current rendering
-#    server.
+#    server.  Cancel any pending idle timeout events.
 #
 itcl::body Rappture::VisViewer::Disconnect {} {
     $_dispatcher cancel !timeout
     if { [IsConnected] } {
-        catch {close $sid_} err
+        catch {close $sid_} 
         set sid_ ""
     }
     set buffer_(in) ""
@@ -285,9 +291,10 @@ itcl::body Rappture::VisViewer::IsConnected {} {
 #
 # CheckConection --
 #
-#   Helper routine called from a file event to send data when the
-#   connection is writable (i.e. not blocked).  Sets a magic
-#   variable done_($this) when we're done.
+#   This routine is called whenever we're about to send/recieve data on 
+#   the socket connection to the visualization server.  If we're connected, 
+#   then reset the timeout event.  Otherwise try to reconnect to the 
+#   visualization server.
 #
 itcl::body Rappture::VisViewer::_CheckConnection {} {
     if { [IsConnected] } {
@@ -513,7 +520,7 @@ itcl::body Rappture::VisViewer::SendEcho {channel {data ""}} {
 # 
 # ReceiveEcho --
 #
-#     Echoes received data tzo clients interested in this widget.  If the
+#     Echoes received data to clients interested in this widget.  If the
 #     -receivecommand option is set, then it is # invoked in the global
 #     scope with the <channel> and <data> values # as arguments.  Otherwise,
 #     this does nothing.
