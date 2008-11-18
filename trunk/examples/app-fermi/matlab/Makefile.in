@@ -1,0 +1,36 @@
+
+bindir          = @bindir@
+datadir         = @datadir@
+datarootdir     = @datarootdir@
+exec_prefix     = @exec_prefix@
+includedir      = @includedir@
+libdir          = @libdir@
+mandir          = @mandir@
+prefix          = @prefix@
+
+INSTALL         = @INSTALL@
+INSTALL_PROGRAM = ${INSTALL} -m 755
+INSTALL_DATA    = ${INSTALL} -m 644
+INSTALL_SCRIPT  = ${INSTALL} -m 644
+
+all: build_uncompiled
+install: install_uncompiled
+
+build_compiled:
+	$(MAKE) -C compiled all
+build_uncompiled:
+	$(MAKE) -C uncompiled all
+
+install_compiled:
+	$(MAKE) -C uncompiled install
+install_uncompiled:
+	$(MAKE) -C uncompiled install
+
+clean:
+	$(MAKE) -C compiled clean
+	$(MAKE) -C uncompiled clean
+
+distclean:
+	$(MAKE) -C compiled distclean
+	$(MAKE) -C uncompiled distclean
+	$(RM) Makefile
