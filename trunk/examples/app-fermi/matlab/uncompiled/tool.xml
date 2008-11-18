@@ -2,7 +2,7 @@
 <run>
     <tool>
         <about>Press Simulate to view results.</about>
-        <command>@tool/run_fermi.sh /apps/matlab/mcr @driver</command>
+        <command>matlab -nodisplay -r infile='@driver',path('@tool',path),fermi</command>
     </tool>
     <input>
         <number id="temperature">

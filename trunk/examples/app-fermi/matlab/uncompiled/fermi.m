@@ -1,5 +1,5 @@
 % ----------------------------------------------------------------------
-%  EXAMPLE: Fermi-Dirac function in Matlab.
+%  EXAMPLE: Fermi-Dirac function in Octave.
 %
 %  This script represents a newly written application with rappture 
 %  bindings and interface.
@@ -7,16 +7,21 @@
 % ======================================================================
 %  AUTHOR:  Michael McLennan, Purdue University
 %  AUTHOR:  Derrick Kearney, Purdue University
-%  Copyright (c) 2004-2008  Purdue Research Foundation
+%  Copyright (c) 2004-2007  Purdue Research Foundation
 %
 %  See the file "license.terms" for information on usage and
 %  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 % ======================================================================
 
-function retVal=fermi;
+% get out input file from the command line
+% invoke this script with the following command:
+% matlab -nodisplay -r infile=\'driver1234.xml\',fermi
+% the above command sets variable infile to the name 'driver1234.xml'
 
-% We open the xml file in the main function and make lib global
-global lib;
+% infile = 'driver31619.xml'
+
+% open our xml input file.
+lib = rpLib(infile);
 
 % retrieve user specified data out of the input file
 % convert values to correct units.
@@ -50,4 +55,4 @@ end
 % signal the end of processing
 rpLibResult(lib);
 
-retVal = 0;
+quit;
