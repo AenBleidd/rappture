@@ -52,7 +52,9 @@ itcl::class Rappture::HTMLviewer {
     private variable _hover ""   ;# list of nodes that mouse is hovering over
 
     protected method _getImage {file}
-    private common _icons        ;# maps file name => image handle
+    protected method _freeImage {file}
+    private common _file2icon        ;# maps file name => image handle
+    private common _icon2file        ;# maps image handle => file name
     private variable _dirlist "" ;# list of directories where HTML came from
 }
 
@@ -319,8 +321,9 @@ itcl::body Rappture::HTMLviewer::_fixHeight {args} {
 # or the broken image icon if anything goes wrong.
 # ----------------------------------------------------------------------
 itcl::body Rappture::HTMLviewer::_getImage {fileName} {
-    if {[info exists _icons($fileName)]} {
-        return $_icons($fileName)
+    if {[info exists _file2icon($fileName)]} {
+  	set imh $_file2icon($fileName)
+        return [list $imh [itcl::code $this _freeImage]]
     }
 
     set searchlist $fileName
@@ -332,11 +335,21 @@ itcl::body Rappture::HTMLviewer::_getImage {fileName} {
 
     foreach name $searchlist {
         if {[catch {image create photo -file $name} imh] == 0} {
-            set _icons($fileName) $imh
-            return $imh
+            set _file2icon($fileName) $imh
+	    set _icon2file($imh) $fileName
+            return [list $imh [itcl::code $this _freeImage]]
         }
     }
     return [Rappture::icon exclaim]
+}
+
+itcl::body Rappture::HTMLviewer::_freeImage { imh } {
+    if {[info exists _icon2file($imh)]} {
+	image delete $imh
+	set fileName $_icon2file($imh)
+	unset _icon2file($imh)
+    	unset _file2icon($fileName)
+    }
 }
 
 # ----------------------------------------------------------------------
