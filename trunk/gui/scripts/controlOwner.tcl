@@ -274,6 +274,8 @@ itcl::body Rappture::ControlOwner::load {newobj} {
         }
 
         # copy new value to the XML tree
+        # also copy to the widget associated with the tree
+        #
         # we only copy the values if they existed in newobj
         # so we don't overwrite values that were set in previous loads.
         # this is needed for when the users specify copy.from and copy.to
@@ -286,12 +288,8 @@ itcl::body Rappture::ControlOwner::load {newobj} {
         # in [tool] xml set by the first loader. the solution is to check
         # newobj and see if the path exists. if the path exists, then we copy
         # it over to [tool] xml, otherwise we ignore it.
-        if {"" != [$newobj element -as component $currentpath]} {
+        if {"" != [$newobj element -as type $currentpath]} {
             [tool] xml copy $currentpath from $newobj $currentpath
-        }
-
-        # also copy to the widget associated with the tree
-        if {"" != [$newobj element -as type $path]} {
             set val [$newobj get $currentpath]
             if {[string length $val] > 0
                   || [llength [$newobj children $currentpath]] == 0} {
