@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<run>
+    <about>
+        <label>Silver</label>
+        <description>Silver</description>
+    </about>
+    <input>
+        <note>
+            <contents>file://AG.html</contents>
+        </note>
+    </input>
+</run>

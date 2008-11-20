@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<run>
+    <about>
+        <label>Gallium Phosphide</label>
+        <description>Gallium Phosphide</description>
+    </about>
+    <input>
+        <note>
+            <contents>file://GAP.html</contents>
+        </note>
+    </input>
+</run>
