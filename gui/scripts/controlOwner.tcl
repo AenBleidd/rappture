@@ -269,12 +269,26 @@ itcl::body Rappture::ControlOwner::load {newobj} {
         if {[info exists _type2curpath($type)]} {
             set currentpath $path.$_type2curpath($type)
         } else {
-            # default incase i forgot an inpuit type in _type2curpath
+            # default incase i forgot an input type in _type2curpath
             set currentpath $path.current
         }
 
         # copy new value to the XML tree
-        [tool] xml copy $currentpath from $newobj $currentpath
+        # we only copy the values if they existed in newobj
+        # so we don't overwrite values that were set in previous loads.
+        # this is needed for when the users specify copy.from and copy.to
+        # in a loader. in this case, _path2widget holds a list of all
+        # widgets. if there are two loaders loading two different widgets,
+        # and each loader uses the copy from/to functionality,
+        # the second load could wipe out the values set in the first load
+        # because on the second load, the copied paths from the first load no
+        # longer exist in newobj and blanks are copied to the paths
+        # in [tool] xml set by the first loader. the solution is to check
+        # newobj and see if the path exists. if the path exists, then we copy
+        # it over to [tool] xml, otherwise we ignore it.
+        if {"" != [$newobj element -as component $currentpath]} {
+            [tool] xml copy $currentpath from $newobj $currentpath
+        }
 
         # also copy to the widget associated with the tree
         if {"" != [$newobj element -as type $path]} {

@@ -41,6 +41,9 @@ itcl::class Rappture::Loader {
     private variable _uppath ""   ;# list: path label desc ...
     private variable _dnpaths ""  ;# list of download element paths
     private common _dnpath2state  ;# maps download path => yes/no state
+    private variable _copyfrom "" ;# copy xml objects from here in example lib
+    private variable _copyto ""   ;# copy xml objects here in example lib
+    private variable _label2file  ;# maps combobox labels to filenames
 }
 
 itk::usual Loader {
@@ -198,6 +201,7 @@ itcl::body Rappture::Loader::constructor {owner path args} {
                     # if this is new, add it
                     if {![info exists entries($label)]} {
                         set entries($label) $obj
+                        set _label2file($label) [file tail $fname]
                     }
 
                     # translate default file name => default label
@@ -213,6 +217,9 @@ itcl::body Rappture::Loader::constructor {owner path args} {
     foreach label [lsort -dictionary [array names entries]] {
         $itk_component(combo) choices insert end $entries($label) $label
     }
+
+    set _copyfrom [$_owner xml get $path.copy.from]
+    set _copyto [$_owner xml get $path.copy.to]
 
     #
     # Assign the default value to this widget, if there is one.
@@ -335,6 +342,10 @@ itcl::body Rappture::Loader::_newValue {} {
         $itk_component(combo) component entry insert end $_lastlabel
         $itk_component(combo) component entry configure -state disabled
     } elseif {$obj != "" && $itk_option(-tool) != ""} {
+        if {("" != $_copyfrom) && ("" != $_copyto)} {
+            $obj copy $_copyto from $_copyfrom
+        }
+        $_owner xml put $_path.file $_label2file($newval)
         $itk_option(-tool) load $obj
         set _lastlabel $newval
     }
