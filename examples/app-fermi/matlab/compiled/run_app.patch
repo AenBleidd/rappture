@@ -26,11 +26,12 @@
 <   echo LD_LIBRARY_PATH is ${LD_LIBRARY_PATH};
 ---
 > #  echo LD_LIBRARY_PATH is ${LD_LIBRARY_PATH};
-39c39,45
+39c39,46
 < ./YOURAPPNAME $*
 ---
 > #./YOURAPPNAME $*
 > 
+>   export MCR_INHIBIT_CTF_LOCK=1;
 >   appPath=`dirname $0`
 >   if [ "$appPath" = "" ]; then
 >     appPath="."
