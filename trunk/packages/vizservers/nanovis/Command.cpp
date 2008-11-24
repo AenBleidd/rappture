@@ -692,21 +692,6 @@ GetDataStream(Tcl_Interp *interp, Rappture::Buffer &buf, int nBytes)
     return TCL_OK;
 }
 
-static int
-CameraEyeOp(ClientData cdata, Tcl_Interp *interp, int objc, 
-	     Tcl_Obj *const *objv)
-{
-    float x, y, z;
-    if ((GetFloatFromObj(interp, objv[2], &x) != TCL_OK) ||
-        (GetFloatFromObj(interp, objv[3], &y) != TCL_OK) ||
-        (GetFloatFromObj(interp, objv[4], &z) != TCL_OK)) {
-        return TCL_ERROR;
-    }
-    NanoVis::cam->x(x);
-    NanoVis::cam->y(y);
-    NanoVis::cam->z(z);
-    return TCL_OK;
-}
 
 static int
 CameraAimOp(ClientData cdata, Tcl_Interp *interp, int objc, 
@@ -726,10 +711,10 @@ static int
 CameraAngleOp(ClientData cdata, Tcl_Interp *interp, int objc, 
 	      Tcl_Obj *const *objv)
 {
-    double theta, phi, psi;
-    if ((Tcl_GetDoubleFromObj(interp, objv[2], &phi) != TCL_OK) ||
-        (Tcl_GetDoubleFromObj(interp, objv[3], &theta) != TCL_OK) ||
-        (Tcl_GetDoubleFromObj(interp, objv[4], &psi) != TCL_OK)) {
+    float theta, phi, psi;
+    if ((GetFloatFromObj(interp, objv[2], &phi) != TCL_OK) ||
+        (GetFloatFromObj(interp, objv[3], &theta) != TCL_OK) ||
+        (GetFloatFromObj(interp, objv[4], &psi) != TCL_OK)) {
         return TCL_ERROR;
     }
     NanoVis::cam->rotate(phi, theta, psi);
@@ -738,20 +723,48 @@ CameraAngleOp(ClientData cdata, Tcl_Interp *interp, int objc,
 
 
 static int
-CameraZoomOp(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const *objv)
+CameraPanOp(ClientData cdata, Tcl_Interp *interp, int objc, 
+	     Tcl_Obj *const *objv)
 {
-    double zoom;
-    if (Tcl_GetDoubleFromObj(interp, objv[2], &zoom) != TCL_OK) {
+    float x, y;
+    if ((GetFloatFromObj(interp, objv[2], &x) != TCL_OK) ||
+        (GetFloatFromObj(interp, objv[3], &y) != TCL_OK)) {
         return TCL_ERROR;
     }
-    NanoVis::cam->z(-2.5 / zoom);
+    /* Convert to normalized coordinates */
+    x = x / (float)NanoVis::win_width;
+    y = y / (float)NanoVis::win_height;
+    /* Move the camera and its target by equal amounts along the x and y
+     * axes. */
+    NanoVis::cam->x(NanoVis::cam->x() + x);
+    NanoVis::cam->y(NanoVis::cam->y() + y);
+    fprintf(stderr, "dx=%f, dy=%f\n", x, y);
+    fprintf(stderr, "set eye to %f %f\n", NanoVis::cam->x(), NanoVis::cam->y());
+    Vector3 target;
+    target = NanoVis::cam->aim();
+    x += target.x;
+    y += target.y;
+    NanoVis::cam->aim(x, y, target.z);
+    fprintf(stderr, "set aim to %f %f\n", x, y);
+    return TCL_OK;
+}
+
+static int
+CameraZoomOp(ClientData cdata, Tcl_Interp *interp, int objc, 
+	     Tcl_Obj *const *objv)
+{
+    float zoom;
+    if (GetFloatFromObj(interp, objv[2], &zoom) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    NanoVis::cam->z(-2.5f / zoom);
     return TCL_OK;
 }
 
 static Rappture::CmdSpec cameraOps[] = {
     {"aim",     2, CameraAimOp,      5, 5, "x y z",},
     {"angle",   2, CameraAngleOp,    5, 5, "xAngle yAngle zAngle",},
-    {"eye",     1, CameraEyeOp,      5, 5, "x y z",},
+    {"pan",     1, CameraPanOp,      4, 4, "x y",},
     {"zoom",    1, CameraZoomOp,     3, 3, "factor",},
 };
 static int nCameraOps = NumCmdSpecs(cameraOps);
