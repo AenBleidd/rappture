@@ -237,16 +237,24 @@ main(int argc, char *argv[])
 	    { 0,0,0,0 },
 	};
 
-	c = getopt_long(argc, argv, "+b:c:l:s:d", long_options, &option_index);
+	c = getopt_long(argc, argv, "+b:c:l:s:d:S", long_options, 
+			&option_index);
 	if (c == -1)
 	    break;
 
 	switch(c) {
+	case 'S': /* Number of screens */
+	    maxScreens = strtoul(optarg, 0, 0);
+	    if ((maxScreens < 1) || (maxScreens > 10)) {
+		fprintf(stderr, "bad number of max screens specified\n");
+		return 1;
+	    }
+	    break;
 	case 'd':
 	    debug_flag = 1;
 	    break;
 	case 'b':
-	    recv_port = strtoul(optarg,0,0);
+	    recv_port = strtoul(optarg, 0, 0);
 	    break;
 	case 'c':
 	    strncpy(server_command[nservices], optarg, sizeof(server_command[0]));
