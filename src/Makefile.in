@@ -35,14 +35,20 @@ RM		= rm -f
 
 all: 	core core2 objects 
 
-core:
+RAPPTURE_LIB = core/librappture.a
+
+core: $(RAPPTURE_LIB)
+
+$(RAPPTURE_LIB):
 	$(MAKE) -C core all
-core2:
+
+core2: $(RAPPTURE_LIB)
 	$(MAKE) -C core2 all
-objects:
+
+objects: $(RAPPTURE_LIB)
 	$(MAKE) -C objects all
 
-install: 
+install: $(RAPPTURE_LIB)
 	$(MAKE) -C core install
 	$(MAKE) -C core2 install
 	$(MAKE) -C objects install

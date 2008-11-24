@@ -103,6 +103,9 @@ itcl::class Rappture::MolvisViewer {
     private variable _cacheimage ""
     private variable _busy 0
 
+    private variable delta1_ 10
+    private variable delta2_ 2
+
     private common _settings  ;# array of settings for all known widgets
 }
 
@@ -319,6 +322,30 @@ itcl::body Rappture::MolvisViewer::constructor {hostlist args} {
         [itcl::code $this _pan drag %x %y]
     bind $itk_component(3dview) <ButtonRelease-2> \
         [itcl::code $this _pan release %x %y]
+
+    bind $itk_component(3dview) <KeyPress-Left> \
+        [itcl::code $this _pan set -10 0]
+    bind $itk_component(3dview) <KeyPress-Right> \
+        [itcl::code $this _pan set 10 0]
+    bind $itk_component(3dview) <KeyPress-Up> \
+        [itcl::code $this _pan set 0 -10]
+    bind $itk_component(3dview) <KeyPress-Down> \
+        [itcl::code $this _pan set 0 10]
+    bind $itk_component(3dview) <Shift-KeyPress-Left> \
+        [itcl::code $this _pan set -2 0]
+    bind $itk_component(3dview) <Shift-KeyPress-Right> \
+        [itcl::code $this _pan set 2 0]
+    bind $itk_component(3dview) <Shift-KeyPress-Up> \
+        [itcl::code $this _pan set 0 -2]
+    bind $itk_component(3dview) <Shift-KeyPress-Down> \
+        [itcl::code $this _pan set 0 2]
+    bind $itk_component(3dview) <KeyPress-Prior> \
+	[itcl::code $this _zoom out 2]
+    bind $itk_component(3dview) <KeyPress-Next> \
+	[itcl::code $this _zoom in 2]
+
+    bind $itk_component(3dview) <Enter> "focus $itk_component(3dview)"
+
 
     if {[string equal "x11" [tk windowingsystem]]} {
 	bind $itk_component(3dview) <4> [itcl::code $this _zoom out 2]
@@ -682,6 +709,14 @@ itcl::body Rappture::MolvisViewer::_configure { w h } {
 # controls for this widget.  Changes the zoom for the current view.
 # ----------------------------------------------------------------------
 itcl::body Rappture::MolvisViewer::_pan {option x y} {
+    if { $option == "set" } {
+        set dx $x
+        set dy $y
+	set view_(x) [expr $view_(x) + $dx]
+	set view_(y) [expr $view_(y) + $dy]
+        _send "pan $dx $dy"
+	return
+    }
     if { ![info exists _mevent(x)] } {
         set option "click"
     }

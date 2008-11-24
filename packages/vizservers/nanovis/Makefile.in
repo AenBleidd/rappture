@@ -168,16 +168,21 @@ all: mat_lib r2_lib img_lib tf_lib nanovis
 
 install: install-nanovis install-resources install-shaders
 
-mat_lib:
+mat_lib: $(MAT_LIB)
+r2_lib:  $(R2_LIB)
+img_lib: $(IMG_LIB)
+tf_lib:  $(TF_LIB)
+
+$(MAT_LIB):
 	$(MAKE) -C $(MAT_DIR) all
 
-r2_lib: 
+$(R2_LIB): 
 	$(MAKE) -C $(R2_DIR)/src all
 
-img_lib: 
+$(IMG_LIB): 
 	$(MAKE) -C $(IMG_DIR) all
 
-tf_lib: 
+$(TF_LIB): 
 	$(MAKE) -C $(TF_DIR) all
 
 nanovis: $(MAT_LIB) $(R2_LIB) $(IMG_LIB) $(TF_LIB) $(OBJS) 
