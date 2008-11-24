@@ -99,7 +99,7 @@ itcl::class Rappture::NanovisViewer {
     private method _ParseMarkersOption { tf ivol markers }
     private method _ParseLevelsOption { tf ivol levels }
 
-    private variable _outbuf       ;# buffer for outgoing commands
+    private variable outbuf_       ;# buffer for outgoing commands
 
     private variable _dlist ""     ;# list of data objects
     private variable _all_data_objs
@@ -113,14 +113,12 @@ itcl::class Rappture::NanovisViewer {
     private variable _obj2styles   ;# maps id => style settings
     private variable _style2ids    ;# maps id => style settings
 
-    private variable _click        ;# info used for _rotate operations
-    private variable _limits       ;# autoscale min/max for all axes
-    private variable _view         ;# view params for 3D view
-    private variable _mevent
-    private variable _isomarkers    ;# array of isosurface level values 0..1
-    private variable _styles
-    private common   _settings
-    private variable _activeId ""   ;# The currently active volume.  This 
+    private variable click_        ;# info used for _rotate operations
+    private variable limits_       ;# autoscale min/max for all axes
+    private variable view_         ;# view params for 3D view
+    private variable isomarkers_    ;# array of isosurface level values 0..1
+    private common   settings_
+    private variable activeId_ ""   ;# The currently active volume.  This 
 				    # indicates which isomarkers and transfer
 				    # function to use when changing markers,
 				    # opacity, or thickness.
@@ -152,7 +150,7 @@ itcl::body Rappture::NanovisViewer::constructor {hostlist args} {
     $_dispatcher register !rebuild
     $_dispatcher dispatch $this !rebuild "[itcl::code $this _rebuild]; list"
 
-    set _outbuf ""
+    set outbuf_ ""
 
     #
     # Populate parser with commands handle incoming requests
@@ -163,7 +161,7 @@ itcl::body Rappture::NanovisViewer::constructor {hostlist args} {
     #$_parser alias print [itcl::code $this _ReceivePrint]
 
     # Initialize the view to some default parameters.
-    array set _view {
+    array set view_ {
         theta   45
         phi     45
         psi     0
@@ -174,8 +172,8 @@ itcl::body Rappture::NanovisViewer::constructor {hostlist args} {
     }
     set _obj2id(count) 0
     set _id2obj(count) 0
-    set _limits(vmin) 0.0
-    set _limits(vmax) 1.0
+    set limits_(vmin) 0.0
+    set limits_(vmax) 1.0
 
     itk_component add zoom {
         frame $itk_component(controls).zoom
@@ -421,31 +419,31 @@ itcl::body Rappture::NanovisViewer::constructor {hostlist args} {
     grid $inner.scales.thickl -row 3 -column 2 -sticky w
     $inner.scales.thickness set 350
 
-    set ::Rappture::NanovisViewer::_settings($this-isosurface) 0
+    set ::Rappture::NanovisViewer::settings_($this-isosurface) 0
     ::checkbutton $inner.scales.isosurface \
         -text "Isosurface shading" \
-        -variable ::Rappture::NanovisViewer::_settings($this-isosurface) \
+        -variable ::Rappture::NanovisViewer::settings_($this-isosurface) \
         -command [itcl::code $this _fixSettings isosurface]
     grid $inner.scales.isosurface -row 4 -column 0 -columnspan 2 -sticky w
 
-    set ::Rappture::NanovisViewer::_settings($this-axes) 1
+    set ::Rappture::NanovisViewer::settings_($this-axes) 1
     ::checkbutton $inner.scales.axes \
         -text "Axes" \
-        -variable ::Rappture::NanovisViewer::_settings($this-axes) \
+        -variable ::Rappture::NanovisViewer::settings_($this-axes) \
         -command [itcl::code $this _fixSettings axes]
     grid $inner.scales.axes -row 5 -column 0 -columnspan 2 -sticky w
 
-    set ::Rappture::NanovisViewer::_settings($this-grid) 0
+    set ::Rappture::NanovisViewer::settings_($this-grid) 0
     ::checkbutton $inner.scales.grid \
         -text "Grid" \
-        -variable ::Rappture::NanovisViewer::_settings($this-grid) \
+        -variable ::Rappture::NanovisViewer::settings_($this-grid) \
         -command [itcl::code $this _fixSettings grid]
     grid $inner.scales.grid -row 6 -column 0 -columnspan 2 -sticky w
 
-    set ::Rappture::NanovisViewer::_settings($this-outline) 1
+    set ::Rappture::NanovisViewer::settings_($this-outline) 1
     ::checkbutton $inner.scales.outline \
         -text "Outline" \
-        -variable ::Rappture::NanovisViewer::_settings($this-outline) \
+        -variable ::Rappture::NanovisViewer::settings_($this-outline) \
         -command [itcl::code $this _fixSettings outline]
     grid $inner.scales.outline -row 7 -column 0 -columnspan 2 -sticky w
 
@@ -463,7 +461,7 @@ itcl::body Rappture::NanovisViewer::constructor {hostlist args} {
     bind $itk_component(legend) <Configure> \
         [list $_dispatcher event -idle !legend]
 
-    # set up bindings for rotation
+    # Bindings for rotation via mouse
     bind $itk_component(3dview) <ButtonPress-1> \
         [itcl::code $this _rotate click %x %y]
     bind $itk_component(3dview) <B1-Motion> \
@@ -473,6 +471,7 @@ itcl::body Rappture::NanovisViewer::constructor {hostlist args} {
     bind $itk_component(3dview) <Configure> \
         [itcl::code $this _send "screen %w %h"]
 
+    # Bindings for panning via mouse
     bind $itk_component(3dview) <ButtonPress-2> \
         [itcl::code $this _pan click %x %y]
     bind $itk_component(3dview) <B2-Motion> \
@@ -480,7 +479,34 @@ itcl::body Rappture::NanovisViewer::constructor {hostlist args} {
     bind $itk_component(3dview) <ButtonRelease-2> \
         [itcl::code $this _pan release %x %y]
 
+    # Bindings for panning via keyboard
+    bind $itk_component(3dview) <KeyPress-Left> \
+        [itcl::code $this _pan set -10 0]
+    bind $itk_component(3dview) <KeyPress-Right> \
+        [itcl::code $this _pan set 10 0]
+    bind $itk_component(3dview) <KeyPress-Up> \
+        [itcl::code $this _pan set 0 -10]
+    bind $itk_component(3dview) <KeyPress-Down> \
+        [itcl::code $this _pan set 0 10]
+    bind $itk_component(3dview) <Shift-KeyPress-Left> \
+        [itcl::code $this _pan set -2 0]
+    bind $itk_component(3dview) <Shift-KeyPress-Right> \
+        [itcl::code $this _pan set 2 0]
+    bind $itk_component(3dview) <Shift-KeyPress-Up> \
+        [itcl::code $this _pan set 0 -2]
+    bind $itk_component(3dview) <Shift-KeyPress-Down> \
+        [itcl::code $this _pan set 0 2]
+
+    # Bindings for zoom via keyboard
+    bind $itk_component(3dview) <KeyPress-Prior> \
+	[itcl::code $this _zoom out]
+    bind $itk_component(3dview) <KeyPress-Next> \
+	[itcl::code $this _zoom in]
+
+    bind $itk_component(3dview) <Enter> "focus $itk_component(3dview)"
+
     if {[string equal "x11" [tk windowingsystem]]} {
+	# Bindings for zoom via mouse
 	bind $itk_component(3dview) <4> [itcl::code $this _zoom out]
 	bind $itk_component(3dview) <5> [itcl::code $this _zoom in]
     }
@@ -503,7 +529,7 @@ itcl::body Rappture::NanovisViewer::destructor {} {
     image delete $_image(plot)
     image delete $_image(legend)
     image delete $_image(download)
-    array unset _settings $this-*
+    array unset settings_ $this-*
 }
 
 # ----------------------------------------------------------------------
@@ -637,7 +663,7 @@ itcl::body Rappture::NanovisViewer::delete {args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::NanovisViewer::scale {args} {
     foreach val {xmin xmax ymin ymax zmin zmax vmin vmax} {
-        set _limits($val) ""
+        set limits_($val) ""
     }
     foreach obj $args {
         foreach axis {x y z v} {
@@ -645,15 +671,15 @@ itcl::body Rappture::NanovisViewer::scale {args} {
             foreach { min max } [$obj limits $axis] break
 
             if {"" != $min && "" != $max} {
-                if {"" == $_limits(${axis}min)} {
-                    set _limits(${axis}min) $min
-                    set _limits(${axis}max) $max
+                if {"" == $limits_(${axis}min)} {
+                    set limits_(${axis}min) $min
+                    set limits_(${axis}max) $max
                 } else {
-                    if {$min < $_limits(${axis}min)} {
-                        set _limits(${axis}min) $min
+                    if {$min < $limits_(${axis}min)} {
+                        set limits_(${axis}min) $min
                     }
-                    if {$max > $_limits(${axis}max)} {
-                        set _limits(${axis}max) $max
+                    if {$max > $limits_(${axis}max)} {
+                        set limits_(${axis}max) $max
                     }
                 }
             }
@@ -736,7 +762,7 @@ itcl::body Rappture::NanovisViewer::Disconnect {} {
     VisViewer::Disconnect
 
     # disconnected -- no more data sitting on server
-    set _outbuf ""
+    set outbuf_ ""
     catch {unset _obj2id}
     array unset _id2obj
     set _obj2id(count) 0
@@ -753,7 +779,7 @@ itcl::body Rappture::NanovisViewer::Disconnect {} {
 #
 itcl::body Rappture::NanovisViewer::_send {string} {
     if {[llength $_sendobjs] > 0} {
-        append _outbuf $string "\n"
+        append outbuf_ $string "\n"
     } else {
 	foreach line [split $string \n] {
 	    SendEcho >>line $line
@@ -805,7 +831,7 @@ itcl::body Rappture::NanovisViewer::_SendDataObjs {} {
 	# data object.  This assumes that the data is always successfully
 	# transferred.
 	set comp [lindex [$first components] 0]
-	set _activeId $_obj2id($first-$comp)
+	set activeId_ $_obj2id($first-$comp)
     }
     foreach key [array names _obj2id *-*] {
         set state [string match $first-* $key]
@@ -832,8 +858,8 @@ itcl::body Rappture::NanovisViewer::_SendDataObjs {} {
     _send "grid axisname z Z eV"
     }
     # if there are any commands in the buffer, send them now that we're done
-    SendBytes $_outbuf
-    set _outbuf ""
+    SendBytes $outbuf_
+    set outbuf_ ""
 
     $_dispatcher event -idle !legend
 }
@@ -846,16 +872,16 @@ itcl::body Rappture::NanovisViewer::_SendTransferFunctions {} {
 
     # Insure that the global opacity and thickness settings (in the slider
     # settings widgets) are used for the transfer-function used by the active
-    # volume.  Update the values in the _settings varible.
+    # volume.  Update the values in the settings_ varible.
     set inner [$itk_component(controls).panel component inner]
-    set tf $_id2style($_activeId)
+    set tf $_id2style($activeId_)
     set value [$inner.scales.opacity get]
     set opacity [expr { double($value) * 0.01 }]
-    set _settings($this-$tf-opacity) $opacity
+    set settings_($this-$tf-opacity) $opacity
     set value [$inner.scales.thickness get]
     # Scale values between 0.00001 and 0.01000
     set thickness [expr {double($value) * 0.0001}]
-    set _settings($this-$tf-thickness) $thickness
+    set settings_($this-$tf-thickness) $thickness
 
     if { ![info exists $_obj2styles($first)] } {
 	foreach tf $_obj2styles($first) {
@@ -931,9 +957,9 @@ itcl::body Rappture::NanovisViewer::_ReceiveLegend { ivol vmin vmax size } {
     $c coords vmax [expr {$w-$lx}] $ly
 
     # Display the markers used by the active volume.
-    set tf $_id2style($_activeId)
-    if { [info exists _isomarkers($tf)] } {
-	foreach m $_isomarkers($tf) {
+    set tf $_id2style($activeId_)
+    if { [info exists isomarkers_($tf)] } {
+	foreach m $isomarkers_($tf) {
 	    $m Show
 	}
     }
@@ -969,10 +995,10 @@ itcl::body Rappture::NanovisViewer::_ReceiveData { args } {
 
     set ivol $info(id);			# Id of volume created by server.
 
-    set _limits($ivol-min) $info(min);	# Minimum value of the volume.
-    set _limits($ivol-max) $info(max);	# Maximum value of the volume.
-    set _limits(vmin)	   $info(vmin);	# Overall minimum value.
-    set _limits(vmax)      $info(vmax);	# Overall maximum value.
+    set limits_($ivol-min) $info(min);	# Minimum value of the volume.
+    set limits_($ivol-max) $info(max);	# Maximum value of the volume.
+    set limits_(vmin)	   $info(vmin);	# Overall minimum value.
+    set limits_(vmax)      $info(vmax);	# Overall maximum value.
 
     unset _receiveids($ivol)
     if { [array size _receiveids] == 0 } {
@@ -1010,8 +1036,8 @@ itcl::body Rappture::NanovisViewer::_rebuild {} {
     # Hide all the isomarkers. Can't remove them. Have to remember the
     # settings since the user may have created/deleted/moved markers.
 
-    foreach tf [array names _isomarkers] {
-	foreach m $_isomarkers($tf) {
+    foreach tf [array names isomarkers_] {
+	foreach m $isomarkers_($tf) {
             $m Hide
         }
     }
@@ -1040,9 +1066,9 @@ itcl::body Rappture::NanovisViewer::_rebuild {} {
     #
     # Reset the camera and other view parameters
     #
-    set xyz [Euler2XYZ $_view(theta) $_view(phi) $_view(psi)]
+    set xyz [Euler2XYZ $view_(theta) $view_(phi) $view_(psi)]
     _send "camera angle $xyz"
-    _send "camera zoom $_view(zoom)"
+    _send "camera zoom $view_(zoom)"
     
     _fixSettings light
     _fixSettings transp
@@ -1134,23 +1160,23 @@ itcl::body Rappture::NanovisViewer::_currentVolumeIds {{what -all}} {
 itcl::body Rappture::NanovisViewer::_zoom {option} {
     switch -- $option {
         "in" {
-            set _view(zoom) [expr {$_view(zoom)* 1.25}]
+            set view_(zoom) [expr {$view_(zoom)* 1.25}]
         }
         "out" {
-            set _view(zoom) [expr {$_view(zoom)* 0.8}]
+            set view_(zoom) [expr {$view_(zoom)* 0.8}]
         }
         "reset" {
-            array set _view {
+            array set view_ {
                 theta 45
                 phi 45
                 psi 0
                 zoom 1.0
             }
-            set xyz [Euler2XYZ $_view(theta) $_view(phi) $_view(psi)]
+            set xyz [Euler2XYZ $view_(theta) $view_(phi) $view_(psi)]
             _send "camera angle $xyz"
         }
     }
-    _send "camera zoom $_view(zoom)"
+    _send "camera zoom $view_(zoom)"
 }
 
 # ----------------------------------------------------------------------
@@ -1165,13 +1191,13 @@ itcl::body Rappture::NanovisViewer::_rotate {option x y} {
     switch -- $option {
         click {
             $itk_component(3dview) configure -cursor fleur
-            set _click(x) $x
-            set _click(y) $y
-            set _click(theta) $_view(theta)
-            set _click(phi) $_view(phi)
+            set click_(x) $x
+            set click_(y) $y
+            set click_(theta) $view_(theta)
+            set click_(phi) $view_(phi)
         }
         drag {
-            if {[array size _click] == 0} {
+            if {[array size click_] == 0} {
                 _rotate click $x $y
             } else {
                 set w [winfo width $itk_component(3dview)]
@@ -1182,8 +1208,8 @@ itcl::body Rappture::NanovisViewer::_rotate {option x y} {
 
                 if {[catch {
                     # this fails sometimes for no apparent reason
-                    set dx [expr {double($x-$_click(x))/$w}]
-                    set dy [expr {double($y-$_click(y))/$h}]
+                    set dx [expr {double($x-$click_(x))/$w}]
+                    set dy [expr {double($y-$click_(y))/$h}]
                 }]} {
                     return
                 }
@@ -1191,41 +1217,41 @@ itcl::body Rappture::NanovisViewer::_rotate {option x y} {
                 #
                 # Rotate the camera in 3D
                 #
-                if {$_view(psi) > 90 || $_view(psi) < -90} {
+                if {$view_(psi) > 90 || $view_(psi) < -90} {
                     # when psi is flipped around, theta moves backwards
                     set dy [expr {-$dy}]
                 }
-                set theta [expr {$_view(theta) - $dy*180}]
+                set theta [expr {$view_(theta) - $dy*180}]
                 while {$theta < 0} { set theta [expr {$theta+180}] }
                 while {$theta > 180} { set theta [expr {$theta-180}] }
 
                 if {abs($theta) >= 30 && abs($theta) <= 160} {
-                    set phi [expr {$_view(phi) - $dx*360}]
+                    set phi [expr {$view_(phi) - $dx*360}]
                     while {$phi < 0} { set phi [expr {$phi+360}] }
                     while {$phi > 360} { set phi [expr {$phi-360}] }
-                    set psi $_view(psi)
+                    set psi $view_(psi)
                 } else {
-                    set phi $_view(phi)
-                    set psi [expr {$_view(psi) - $dx*360}]
+                    set phi $view_(phi)
+                    set psi [expr {$view_(psi) - $dx*360}]
                     while {$psi < -180} { set psi [expr {$psi+360}] }
                     while {$psi > 180} { set psi [expr {$psi-360}] }
                 }
 
-                array set _view [subst {
+                array set view_ [subst {
                     theta $theta
                     phi $phi
                     psi $psi
                 }]
                 set xyz [Euler2XYZ $theta $phi $psi]
                 _send "camera angle $xyz"
-                set _click(x) $x
-                set _click(y) $y
+                set click_(x) $x
+                set click_(y) $y
             }
         }
         release {
             _rotate drag $x $y
             $itk_component(3dview) configure -cursor ""
-            catch {unset _click}
+            catch {unset click_}
         }
         default {
             error "bad option \"$option\": should be click, drag, release"
@@ -1244,13 +1270,21 @@ itcl::body Rappture::NanovisViewer::_rotate {option x y} {
 itcl::body Rappture::NanovisViewer::_pan {option x y} {
     return
     # Experimental stuff
+    if { $option == "set" } {
+        set dx $x
+        set dy $y
+	set view_(x) [expr $view_(x) + $dx]
+	set view_(y) [expr $view_(y) + $dy]
+        _send "pan $dx $dy"
+	return
+    }
     if { $option == "click" } { 
         $itk_component(3dview) configure -cursor hand1
     }
     if { $option == "drag" || $option == "release" } {
-	set _view(x) [expr $_view(x) + $x]
-	set _view(y) [expr $_view(y) + $y]
-	_send "camera pan $_view(x) $_view(y) 0"
+	set view_(x) [expr $view_(x) + $x]
+	set view_(y) [expr $view_(y) + $y]
+	_send "camera pan $view_(x) $view_(y) 0"
     }
     if { $option == "release" } {
         $itk_component(3dview) configure -cursor ""
@@ -1300,8 +1334,8 @@ itcl::body Rappture::NanovisViewer::_slice {option args} {
 
             set newpos [expr {0.01*$newval}]
 #            set newval [expr {0.01*($newval-50)
-#                *($_limits(${axis}max)-$_limits(${axis}min))
-#                  + 0.5*($_limits(${axis}max)+$_limits(${axis}min))}]
+#                *($limits_(${axis}max)-$limits_(${axis}min))
+#                  + 0.5*($limits_(${axis}max)+$limits_(${axis}min))}]
 
             # show the current value in the readout
 	    #puts "readout: $axis = $newval"
@@ -1344,8 +1378,8 @@ itcl::body Rappture::NanovisViewer::_slice {option args} {
 itcl::body Rappture::NanovisViewer::_slicertip {axis} {
     set val [$itk_component(${axis}slicer) get]
 #    set val [expr {0.01*($val-50)
-#        *($_limits(${axis}max)-$_limits(${axis}min))
-#          + 0.5*($_limits(${axis}max)+$_limits(${axis}min))}]
+#        *($limits_(${axis}max)-$limits_(${axis}min))
+#          + 0.5*($limits_(${axis}max)+$limits_(${axis}min))}]
     return "Move the [string toupper $axis] cut plane.\nCurrently:  $axis = $val%"
 }
 
@@ -1391,43 +1425,43 @@ itcl::body Rappture::NanovisViewer::_fixSettings {what {value ""}} {
             }
         }
         opacity {
-            if {[isconnected] && $_activeId != "" } {
+            if {[isconnected] && $activeId_ != "" } {
 		set val [$inner.scales.opacity get]
 		set sval [expr { 0.01 * double($val) }]
-		set tf $_id2style($_activeId)
-		set _settings($this-$tf-opacity) $sval
+		set tf $_id2style($activeId_)
+		set settings_($this-$tf-opacity) $sval
 		UpdateTransferFunctions
 	    }
         }
 
         thickness {
-            if {[isconnected] && $_activeId != "" } {
+            if {[isconnected] && $activeId_ != "" } {
 		set val [$inner.scales.thickness get]
 		# Scale values between 0.00001 and 0.01000
 		set sval [expr {0.0001*double($val)}]
-		set tf $_id2style($_activeId)
-		set _settings($this-$tf-thickness) $sval
+		set tf $_id2style($activeId_)
+		set settings_($this-$tf-thickness) $sval
 		UpdateTransferFunctions
 	    }
         }
         "outline" {
             if {[isconnected]} {
-                _send "volume outline state $_settings($this-outline)"
+                _send "volume outline state $settings_($this-outline)"
             }
         }           
         "isosurface" {
             if {[isconnected]} {
-                _send "volume shading isosurface $_settings($this-isosurface)"
+                _send "volume shading isosurface $settings_($this-isosurface)"
             }
         }           
         "grid" {
             if { [isconnected] } {
-                _send "grid visible $_settings($this-grid)"
+                _send "grid visible $settings_($this-grid)"
             }
         }
         "axes" {
             if { [isconnected] } {
-                _send "axis visible $_settings($this-axes)"
+                _send "axis visible $settings_($this-axes)"
             }
         }
         default {
@@ -1447,7 +1481,7 @@ itcl::body Rappture::NanovisViewer::_fixLegend {} {
     set lineht [font metrics $itk_option(-font) -linespace]
     set w [expr {[winfo width $itk_component(legend)]-20}]
     set h [expr {[winfo height $itk_component(legend)]-20-$lineht}]
-    set ivol $_activeId
+    set ivol $activeId_
     if {$w > 0 && $h > 0 && "" != $ivol} {
         _send "legend $ivol $w $h"
     } else {
@@ -1521,7 +1555,7 @@ itcl::body Rappture::NanovisViewer::_ComputeTransferFunction { tf } {
     #        color, levels, marker, opacity.  I think the cow's out of the
     #	     barn on this one.
 
-    if { ![info exists _isomarkers($tf)] } {
+    if { ![info exists isomarkers_($tf)] } {
 	# Have to defer creation of isomarkers until we have data limits
 	if { [info exists style(-markers)] } {
 	    _ParseMarkersOption $tf $ivol $style(-markers)
@@ -1542,22 +1576,22 @@ itcl::body Rappture::NanovisViewer::_ComputeTransferFunction { tf } {
     append cmap "1.0 [Color2RGB $color]"
 
     set tag $this-$tf
-    if { ![info exists _settings($tag-opacity)] } {
-	set _settings($tag-opacity) $style(-opacity)
+    if { ![info exists settings_($tag-opacity)] } {
+	set settings_($tag-opacity) $style(-opacity)
     }
-    set max $_settings($tag-opacity)
+    set max $settings_($tag-opacity)
 
     set isovalues {}
-    foreach m $_isomarkers($tf) {
+    foreach m $isomarkers_($tf) {
         lappend isovalues [$m GetRelativeValue]
     }
     # Sort the isovalues
     set isovalues [lsort -real $isovalues]
 
-    if { ![info exists _settings($tag-thickness)]} {
-	set _settings($tag-thickness) 0.05
+    if { ![info exists settings_($tag-thickness)]} {
+	set settings_($tag-thickness) 0.05
     }
-    set delta $_settings($tag-thickness)
+    set delta $settings_($tag-thickness)
 
     set first [lindex $isovalues 0]
     set last [lindex $isovalues end]
@@ -1656,13 +1690,13 @@ itcl::body Rappture::NanovisViewer::_ParseLevelsOption { tf ivol levels } {
 	    set x [expr {double($i)/($levels+1)}]
 	    set m [IsoMarker \#auto $c $this $ivol]
 	    $m SetRelativeValue $x
-	    lappend _isomarkers($tf) $m 
+	    lappend isomarkers_($tf) $m 
 	}
     } else {
         foreach x $levels {
 	    set m [IsoMarker \#auto $c $this $ivol]
 	    $m SetRelativeValue $x
-	    lappend _isomarkers($tf) $m 
+	    lappend isomarkers_($tf) $m 
         }
     }
 }
@@ -1689,12 +1723,12 @@ itcl::body Rappture::NanovisViewer::_ParseMarkersOption { tf ivol markers } {
             set value [expr {$value * 0.01}]
             set m [IsoMarker \#auto $c $this $ivol]
             $m SetRelativeValue $value
-            lappend _isomarkers($tf) $m
+            lappend isomarkers_($tf) $m
         } else {
             # ${n} : Set absolute value.
             set m [IsoMarker \#auto $c $this $ivol]
             $m SetAbsoluteValue $value
-            lappend _isomarkers($tf) $m
+            lappend isomarkers_($tf) $m
         }
     }
 }
@@ -1714,15 +1748,15 @@ itcl::body Rappture::NanovisViewer::UpdateTransferFunctions {} {
 }
 
 itcl::body Rappture::NanovisViewer::_AddIsoMarker { x y } {
-    if { $_activeId == "" } {
+    if { $activeId_ == "" } {
 	error "active volume isn't set"
     }
-    set tf $_id2style($_activeId)
+    set tf $_id2style($activeId_)
     set c $itk_component(legend)
-    set m [IsoMarker \#auto $c $this $_activeId]
+    set m [IsoMarker \#auto $c $this $activeId_]
     set w [winfo width $c]
     $m SetRelativeValue [expr {double($x-10)/($w-20)}]
-    lappend _isomarkers($tf) $m
+    lappend isomarkers_($tf) $m
     UpdateTransferFunctions
     return 1
 }
@@ -1731,10 +1765,10 @@ itcl::body Rappture::NanovisViewer::RemoveDuplicateIsoMarker { marker x } {
     set ivol [$marker GetVolume]
     set tf $_id2style($ivol)
     set bool 0
-    if { [info exists _isomarkers($tf)] } {
+    if { [info exists isomarkers_($tf)] } {
         set list {}
         set marker [namespace tail $marker]
-        foreach m $_isomarkers($tf) {
+        foreach m $isomarkers_($tf) {
             set sx [$m GetScreenPosition]
             if { $m != $marker } {
                 if { $x >= ($sx-3) && $x <= ($sx+3) } {
@@ -1747,7 +1781,7 @@ itcl::body Rappture::NanovisViewer::RemoveDuplicateIsoMarker { marker x } {
             }
             lappend list $m
         }
-        set _isomarkers($tf) $list
+        set isomarkers_($tf) $list
         UpdateTransferFunctions
     }
     return $bool
@@ -1755,9 +1789,9 @@ itcl::body Rappture::NanovisViewer::RemoveDuplicateIsoMarker { marker x } {
 
 itcl::body Rappture::NanovisViewer::OverIsoMarker { marker x } {
     set ivol [$marker GetVolume]
-    if { [info exists _isomarkers($ivol)] } {
+    if { [info exists isomarkers_($ivol)] } {
         set marker [namespace tail $marker]
-        foreach m $_isomarkers($ivol) {
+        foreach m $isomarkers_($ivol) {
             set sx [$m GetScreenPosition]
             if { $m != $marker } {
                 set bool [expr { $x >= ($sx-3) && $x <= ($sx+3) }]
@@ -1773,18 +1807,18 @@ itcl::body Rappture::NanovisViewer::GetLimits { ivol } {
 	return
     }
     set tf $_id2style($ivol)
-    set _limits(min) ""
-    set _limits(max) ""
+    set limits_(min) ""
+    set limits_(max) ""
     foreach ivol $_style2ids($tf) {
-	if { ![info exists _limits($ivol-min)] } {
+	if { ![info exists limits_($ivol-min)] } {
 	    error "can't find $ivol limits"
 	}
-	if { $_limits(min) == "" || $_limits(min) > $_limits($ivol-min) } {
-	    set _limits(min) $_limits($ivol-min)
+	if { $limits_(min) == "" || $limits_(min) > $limits_($ivol-min) } {
+	    set limits_(min) $limits_($ivol-min)
 	}
-	if { $_limits(max) == "" || $_limits(max) < $_limits($ivol-max) } {
-	    set _limits(max) $_limits($ivol-max)
+	if { $limits_(max) == "" || $limits_(max) < $limits_($ivol-max) } {
+	    set limits_(max) $limits_($ivol-max)
 	}
     }
-    return [array get _limits] 
+    return [array get limits_] 
 }

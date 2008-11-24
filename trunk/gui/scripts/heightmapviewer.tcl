@@ -52,7 +52,6 @@ itcl::class Rappture::HeightmapViewer {
     public proc SetServerList { namelist } {
 	Rappture::VisViewer::SetServerList "nanovis" $namelist
     }
-    public method isconnected {}
     public method add {dataobj {settings ""}}
     public method get {args}
     public method delete {args}
@@ -66,8 +65,8 @@ itcl::class Rappture::HeightmapViewer {
 
     protected method _send {string}
     protected method _send_dataobjs {}
-    protected method _receive_image {option size}
-    protected method ReceiveLegend {ivol vmin vmax size}
+    protected method ReceiveImage {option size}
+    private method ReceiveLegend {ivol vmin vmax size}
     protected method _receive_echo {channel {data ""}}
 
     protected method _rebuild {}
@@ -80,21 +79,20 @@ itcl::class Rappture::HeightmapViewer {
     protected method _getTransfuncData {dataobj comp}
 
 
-    private variable _outbuf       ;# buffer for outgoing commands
+    private variable outbuf_       ;# buffer for outgoing commands
 
-    private variable _dlist ""     ;# list of data objects
-    private variable _dims ""      ;# dimensionality of data objects
-    private variable _obj2style    ;# maps dataobj => style settings
-    private variable _obj2ovride   ;# maps dataobj => style override
-    private variable _obj2id       ;# maps dataobj => heightmap ID in server
-    private variable _id2obj       ;# maps heightmap ID => dataobj in server
-    private variable _sendobjs ""  ;# list of data objs to send to server
-    private variable _receiveids   ;# list of data responses from the server
-    private variable _click        ;# info used for _rotate operations
-    private variable _limits       ;# autoscale min/max for all axes
-    private variable _view         ;# view params for 3D view
+    private variable dlist_ ""     ;# list of data objects
+    private variable obj2style_    ;# maps dataobj => style settings
+    private variable obj2ovride_   ;# maps dataobj => style override
+    private variable obj2id_       ;# maps dataobj => heightmap ID in server
+    private variable id2obj_       ;# maps heightmap ID => dataobj in server
+    private variable sendobjs_ ""  ;# list of data objs to send to server
+    private variable receiveIds_   ;# list of data responses from the server
+    private variable click_        ;# info used for _rotate operations
+    private variable limits_       ;# autoscale min/max for all axes
+    private variable view_         ;# view params for 3D view
 
-    private common _settings      ;# Array used for checkbuttons and radiobuttons
+    private common settings_      ;# Array used for checkbuttons and radiobuttons
                         
 }
 
@@ -119,16 +117,16 @@ itcl::body Rappture::HeightmapViewer::constructor {hostlist args} {
     $_dispatcher register !rebuild
     $_dispatcher dispatch $this !rebuild "[itcl::code $this _rebuild]; list"
 
-    set _outbuf ""
+    set outbuf_ ""
 
     #
     # Populate parser with commands handle incoming requests
     #
-    $_parser alias image [itcl::code $this _receive_image]
+    $_parser alias image [itcl::code $this ReceiveImage]
     $_parser alias legend [itcl::code $this ReceiveLegend]
 
     # Initialize the view to some default parameters.
-    array set _view {
+    array set view_ {
         theta   45
         phi     45
         psi     0
@@ -137,7 +135,7 @@ itcl::body Rappture::HeightmapViewer::constructor {hostlist args} {
         yfocus  0
         zfocus  0
     }
-    set _obj2id(count) 0
+    set obj2id_(count) 0
 
     itk_component add zoom {
         frame $itk_component(controls).zoom
@@ -210,40 +208,40 @@ itcl::body Rappture::HeightmapViewer::constructor {hostlist args} {
     grid columnconfigure $inner.f 1 -weight 1
     set fg [option get $itk_component(hull) font Font]
     
-    set ::Rappture::HeightmapViewer::_settings($this-grid) 1
+    set ::Rappture::HeightmapViewer::settings_($this-grid) 1
     ::checkbutton $inner.f.grid \
         -text "Grid" \
-        -variable ::Rappture::HeightmapViewer::_settings($this-grid) \
+        -variable ::Rappture::HeightmapViewer::settings_($this-grid) \
         -command [itcl::code $this _fixSettings grid]
     grid $inner.f.grid -row 0 -column 0 -sticky w
 
-    set ::Rappture::HeightmapViewer::_settings($this-axes) 0
+    set ::Rappture::HeightmapViewer::settings_($this-axes) 0
     ::checkbutton $inner.f.axes \
         -text "Axes" \
-        -variable ::Rappture::HeightmapViewer::_settings($this-axes) \
+        -variable ::Rappture::HeightmapViewer::settings_($this-axes) \
         -command [itcl::code $this _fixSettings axes]
     grid $inner.f.axes -row 1 -column 0 -sticky w
 
-    set ::Rappture::HeightmapViewer::_settings($this-contourlines) 1
+    set ::Rappture::HeightmapViewer::settings_($this-contourlines) 1
     ::checkbutton $inner.f.contour \
         -text "Contour Lines" \
-        -variable ::Rappture::HeightmapViewer::_settings($this-contourlines) \
+        -variable ::Rappture::HeightmapViewer::settings_($this-contourlines) \
         -command [itcl::code $this _fixSettings contourlines]
     grid $inner.f.contour -row 2 -column 0 -sticky w
 
-    set ::Rappture::HeightmapViewer::_settings($this-wireframe) "fill"
+    set ::Rappture::HeightmapViewer::settings_($this-wireframe) "fill"
     ::checkbutton $inner.f.wireframe \
         -text "Wireframe" \
 	-onvalue "wireframe" -offvalue "fill" \
-        -variable ::Rappture::HeightmapViewer::_settings($this-wireframe) \
+        -variable ::Rappture::HeightmapViewer::settings_($this-wireframe) \
         -command [itcl::code $this _fixSettings wireframe]
     grid $inner.f.wireframe -row 3 -column 0 -sticky w
 
-    set ::Rappture::HeightmapViewer::_settings($this-shading) "smooth"
+    set ::Rappture::HeightmapViewer::settings_($this-shading) "smooth"
     ::checkbutton $inner.f.shading \
         -text "Flat Shading" \
 	-onvalue "flat" -offvalue "smooth" \
-        -variable ::Rappture::HeightmapViewer::_settings($this-shading) \
+        -variable ::Rappture::HeightmapViewer::settings_($this-shading) \
         -command [itcl::code $this _fixSettings shading]
     grid $inner.f.shading -row 4 -column 0 -sticky w
 
@@ -260,7 +258,7 @@ itcl::body Rappture::HeightmapViewer::constructor {hostlist args} {
     bind $itk_component(legend) <Configure> \
         [list $_dispatcher event -idle !legend]
 
-    # set up bindings for rotation
+    # Bindings for rotation via mouse
     bind $itk_component(3dview) <ButtonPress-1> \
         [itcl::code $this _rotate click %x %y]
     bind $itk_component(3dview) <B1-Motion> \
@@ -270,6 +268,7 @@ itcl::body Rappture::HeightmapViewer::constructor {hostlist args} {
     bind $itk_component(3dview) <Configure> \
         [itcl::code $this _send "screen %w %h"]
 
+    # Bindings for panning via mouse
     bind $itk_component(3dview) <ButtonPress-2> \
         [itcl::code $this _pan click %x %y]
     bind $itk_component(3dview) <B2-Motion> \
@@ -277,7 +276,34 @@ itcl::body Rappture::HeightmapViewer::constructor {hostlist args} {
     bind $itk_component(3dview) <ButtonRelease-2> \
         [itcl::code $this _pan release %x %y]
 
+    # Bindings for panning via keyboard
+    bind $itk_component(3dview) <KeyPress-Left> \
+        [itcl::code $this _pan set -10 0]
+    bind $itk_component(3dview) <KeyPress-Right> \
+        [itcl::code $this _pan set 10 0]
+    bind $itk_component(3dview) <KeyPress-Up> \
+        [itcl::code $this _pan set 0 -10]
+    bind $itk_component(3dview) <KeyPress-Down> \
+        [itcl::code $this _pan set 0 10]
+    bind $itk_component(3dview) <Shift-KeyPress-Left> \
+        [itcl::code $this _pan set -2 0]
+    bind $itk_component(3dview) <Shift-KeyPress-Right> \
+        [itcl::code $this _pan set 2 0]
+    bind $itk_component(3dview) <Shift-KeyPress-Up> \
+        [itcl::code $this _pan set 0 -2]
+    bind $itk_component(3dview) <Shift-KeyPress-Down> \
+        [itcl::code $this _pan set 0 2]
+
+    # Bindings for zoom via keyboard
+    bind $itk_component(3dview) <KeyPress-Prior> \
+	[itcl::code $this _zoom out]
+    bind $itk_component(3dview) <KeyPress-Next> \
+	[itcl::code $this _zoom in]
+
+    bind $itk_component(3dview) <Enter> "focus $itk_component(3dview)"
+
     if {[string equal "x11" [tk windowingsystem]]} {
+	# Bindings for zoom via mouse
 	bind $itk_component(3dview) <4> [itcl::code $this _zoom out]
 	bind $itk_component(3dview) <5> [itcl::code $this _zoom in]
     }
@@ -293,7 +319,7 @@ itcl::body Rappture::HeightmapViewer::constructor {hostlist args} {
 # DESTRUCTOR
 # ----------------------------------------------------------------------
 itcl::body Rappture::HeightmapViewer::destructor {} {
-    set _sendobjs ""  ;# stop any send in progress
+    set sendobjs_ ""  ;# stop any send in progress
     $_dispatcher cancel !rebuild
     $_dispatcher cancel !send_dataobjs
     image delete $_image(plot)
@@ -329,12 +355,12 @@ itcl::body Rappture::HeightmapViewer::add {dataobj {settings ""}} {
         set params(-color) black
     }
 
-    set pos [lsearch -exact $dataobj $_dlist]
+    set pos [lsearch -exact $dataobj $dlist_]
     if {$pos < 0} {
-        lappend _dlist $dataobj
-        set _obj2ovride($dataobj-color) $params(-color)
-        set _obj2ovride($dataobj-width) $params(-width)
-        set _obj2ovride($dataobj-raise) $params(-raise)
+        lappend dlist_ $dataobj
+        set obj2ovride_($dataobj-color) $params(-color)
+        set obj2ovride_($dataobj-width) $params(-width)
+        set obj2ovride_($dataobj-raise) $params(-raise)
         $_dispatcher event -idle !rebuild
     }
 }
@@ -356,10 +382,10 @@ itcl::body Rappture::HeightmapViewer::get {args} {
     switch -- $op {
       -objects {
         # put the dataobj list in order according to -raise options
-        set dlist $_dlist
+        set dlist $dlist_
         foreach obj $dlist {
-            if { [info exists _obj2ovride($obj-raise)] && 
-                 $_obj2ovride($obj-raise)} {
+            if { [info exists obj2ovride_($obj-raise)] && 
+                 $obj2ovride_($obj-raise)} {
                 set i [lsearch -exact $dlist $obj]
                 if {$i >= 0} {
                     set dlist [lreplace $dlist $i $i]
@@ -399,17 +425,17 @@ itcl::body Rappture::HeightmapViewer::get {args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::HeightmapViewer::delete {args} {
     if {[llength $args] == 0} {
-        set args $_dlist
+        set args $dlist_
     }
 
     # delete all specified dataobjs
     set changed 0
     foreach dataobj $args {
-        set pos [lsearch -exact $_dlist $dataobj]
+        set pos [lsearch -exact $dlist_ $dataobj]
         if {$pos >= 0} {
-            set _dlist [lreplace $_dlist $pos $pos]
-            foreach key [array names _obj2ovride $dataobj-*] {
-                unset _obj2ovride($key)
+            set dlist_ [lreplace $dlist_ $pos $pos]
+            foreach key [array names obj2ovride_ $dataobj-*] {
+                unset obj2ovride_($key)
             }
             set changed 1
         }
@@ -432,21 +458,21 @@ itcl::body Rappture::HeightmapViewer::delete {args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::HeightmapViewer::scale {args} {
     foreach val {xmin xmax ymin ymax zmin zmax vmin vmax} {
-        set _limits($val) ""
+        set limits_($val) ""
     }
     foreach obj $args {
         foreach axis {x y z v} {
             foreach {min max} [$obj limits $axis] break
             if {"" != $min && "" != $max} {
-                if {"" == $_limits(${axis}min)} {
-                    set _limits(${axis}min) $min
-                    set _limits(${axis}max) $max
+                if {"" == $limits_(${axis}min)} {
+                    set limits_(${axis}min) $min
+                    set limits_(${axis}max) $max
                 } else {
-                    if {$min < $_limits(${axis}min)} {
-                        set _limits(${axis}min) $min
+                    if {$min < $limits_(${axis}min)} {
+                        set limits_(${axis}min) $min
                     }
-                    if {$max > $_limits(${axis}max)} {
-                        set _limits(${axis}max) $max
+                    if {$max > $limits_(${axis}max)} {
+                        set limits_(${axis}max) $max
                     }
                 }
             }
@@ -500,16 +526,6 @@ itcl::body Rappture::HeightmapViewer::download {option args} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: isconnected
-#
-# Clients use this method to see if we are currently connected to
-# a server.
-# ----------------------------------------------------------------------
-itcl::body Rappture::HeightmapViewer::isconnected {} {
-    return [VisViewer::IsConnected]
-}
-
-# ----------------------------------------------------------------------
 # USAGE: Connect ?<host:port>,<host:port>...?
 #
 # Clients use this method to establish a connection to a new
@@ -535,13 +551,13 @@ itcl::body Rappture::HeightmapViewer::Connect {} {
 itcl::body Rappture::HeightmapViewer::Disconnect {} {
     VisViewer::Disconnect
 
-    set _outbuf ""
+    set outbuf_ ""
     # disconnected -- no more data sitting on server
-    catch {unset _obj2id}
-    array unset _id2obj
-    set _obj2id(count) 0
-    set _id2obj(cound) 0
-    set _sendobjs ""
+    catch {unset obj2id_}
+    array unset id2obj_
+    set obj2id_(count) 0
+    set id2obj_(cound) 0
+    set sendobjs_ ""
 }
 
 #
@@ -552,8 +568,8 @@ itcl::body Rappture::HeightmapViewer::Disconnect {} {
 #       sent later.
 #
 itcl::body Rappture::HeightmapViewer::_send {string} {
-    if {[llength $_sendobjs] > 0} {
-        append _outbuf $string "\n"
+    if {[llength $sendobjs_] > 0} {
+        append outbuf_ $string "\n"
     } else {
         if {[SendBytes $string]} {
             foreach line [split $string \n] {
@@ -574,20 +590,20 @@ itcl::body Rappture::HeightmapViewer::_send_dataobjs {} {
     blt::busy hold $itk_component(hull); update idletasks
 
     # Reset the overall limits 
-    if { $_sendobjs != "" } {
-        set _limits(vmin) ""
-        set _limits(vmax) ""
+    if { $sendobjs_ != "" } {
+        set limits_(vmin) ""
+        set limits_(vmax) ""
     }
-    foreach dataobj $_sendobjs {
+    foreach dataobj $sendobjs_ {
         foreach comp [$dataobj components] {
             set data [$dataobj blob $comp]
 
             foreach { vmin vmax }  [$dataobj limits v] break
-            if { $_limits(vmin) == "" || $vmin < $_limits(vmin) } {
-                set _limits(vmin) $vmin
+            if { $limits_(vmin) == "" || $vmin < $limits_(vmin) } {
+                set limits_(vmin) $vmin
             }
-            if { $_limits(vmax) == "" || $vmax > $_limits(vmax) } {
-                set _limits(vmax) $vmax
+            if { $limits_(vmax) == "" || $vmax > $limits_(vmax) } {
+                set limits_(vmax) $vmax
             }
 
             # tell the engine to expect some data
@@ -599,11 +615,11 @@ itcl::body Rappture::HeightmapViewer::_send_dataobjs {} {
             if { ![SendBytes $data] } {
                 return
             }
-            set id $_obj2id(count)
-            incr _obj2id(count)
-            set _id2obj($id) [list $dataobj $comp]
-            set _obj2id($dataobj-$comp) $id
-            set _receiveids($id) 1
+            set id $obj2id_(count)
+            incr obj2id_(count)
+            set id2obj_($id) [list $dataobj $comp]
+            set obj2id_($dataobj-$comp) $id
+            set receiveIds_($id) 1
 
             #
             # Determine the transfer function needed for this volume
@@ -614,10 +630,10 @@ itcl::body Rappture::HeightmapViewer::_send_dataobjs {} {
             if {![SendBytes $cmdstr]} {
                 return
             }
-            set _obj2style($dataobj-$comp) $sname
+            set obj2style_($dataobj-$comp) $sname
         }
     }
-    set _sendobjs ""
+    set sendobjs_ ""
     blt::busy release $itk_component(hull)
 
     # activate the proper volume
@@ -629,30 +645,30 @@ itcl::body Rappture::HeightmapViewer::_send_dataobjs {} {
         }
     }
 
-    foreach key [array names _obj2id *-*] {
+    foreach key [array names obj2id_ *-*] {
         set state [string match $first-* $key]
-        _send "heightmap data visible $state $_obj2id($key)"
-        if {[info exists _obj2style($key)]} {
-            _send "heightmap transfunc $_obj2style($key) $_obj2id($key)"
+        _send "heightmap data visible $state $obj2id_($key)"
+        if {[info exists obj2style_($key)]} {
+            _send "heightmap transfunc $obj2style_($key) $obj2id_($key)"
         }
     }
 
     # if there are any commands in the buffer, send them now that we're done
-    SendBytes $_outbuf
-    set _outbuf ""
+    SendBytes $outbuf_
+    set outbuf_ ""
 
     $_dispatcher event -idle !legend
 }
 
 # ----------------------------------------------------------------------
-# USAGE: _receive_image -bytes <size>
+# USAGE: ReceiveImage -bytes <size>
 #
 # Invoked automatically whenever the "image" command comes in from
 # the rendering server.  Indicates that binary image data with the
 # specified <size> will follow.
 # ----------------------------------------------------------------------
-itcl::body Rappture::HeightmapViewer::_receive_image {option size} {
-    if {[isconnected]} {
+itcl::body Rappture::HeightmapViewer::ReceiveImage {option size} {
+    if {[IsConnected]} {
         set bytes [ReceiveBytes $size]
         $_image(plot) configure -data $bytes
         ReceiveEcho <<line "<read $size bytes for [image width $_image(plot)]x[image height $_image(plot)] image>"
@@ -667,7 +683,7 @@ itcl::body Rappture::HeightmapViewer::_receive_image {option size} {
 # specified <size> will follow.
 # ----------------------------------------------------------------------
 itcl::body Rappture::HeightmapViewer::ReceiveLegend {ivol vmin vmax size} {
-    if { [isconnected] } {
+    if { [IsConnected] } {
         set bytes [ReceiveBytes $size]
         $_image(legend) configure -data $bytes
         ReceiveEcho <<line "<read $size bytes for [image width $_image(legend)]x[image height $_image(legend)] legend>"
@@ -700,22 +716,22 @@ itcl::body Rappture::HeightmapViewer::ReceiveLegend {ivol vmin vmax size} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::HeightmapViewer::_rebuild {} {
     # in the midst of sending data? then bail out
-    if {[llength $_sendobjs] > 0} {
+    if {[llength $sendobjs_] > 0} {
         return
     }
     # Find any new data that needs to be sent to the server.  Queue this up on
-    # the _sendobjs list, and send it out a little at a time.  Do this first,
+    # the sendobjs_ list, and send it out a little at a time.  Do this first,
     # before we rebuild the rest.
     foreach dataobj [get] {
         set comp [lindex [$dataobj components] 0]
-        if {![info exists _obj2id($dataobj-$comp)]} {
-            set i [lsearch -exact $_sendobjs $dataobj]
+        if {![info exists obj2id_($dataobj-$comp)]} {
+            set i [lsearch -exact $sendobjs_ $dataobj]
             if {$i < 0} {
-                lappend _sendobjs $dataobj
+                lappend sendobjs_ $dataobj
             }
         }
     }
-    if {[llength $_sendobjs] > 0} {
+    if {[llength $sendobjs_] > 0} {
         # Send off new data objects
         $_dispatcher event -idle !send_dataobjs
     } else {
@@ -727,11 +743,11 @@ itcl::body Rappture::HeightmapViewer::_rebuild {} {
                 _send "up $axis"
             }
         }
-        foreach key [array names _obj2id *-*] {
+        foreach key [array names obj2id_ *-*] {
             set state [string match $first-* $key]
-            _send "heightmap data visible $state $_obj2id($key)"
-            if {[info exists _obj2style($key)]} {
-                _send "heightmap transfunc $_obj2style($key) $_obj2id($key)"
+            _send "heightmap data visible $state $obj2id_($key)"
+            if {[info exists obj2style_($key)]} {
+                _send "heightmap transfunc $obj2style_($key) $obj2id_($key)"
             }
         }
         $_dispatcher event -idle !legend
@@ -743,9 +759,9 @@ itcl::body Rappture::HeightmapViewer::_rebuild {} {
     _send "screen $w $h"
 
     # Reset the camera and other view parameters
-    set xyz [Euler2XYZ $_view(theta) $_view(phi) $_view(psi)]
+    set xyz [Euler2XYZ $view_(theta) $view_(phi) $view_(psi)]
     _send "camera angle $xyz"
-    _send "camera zoom $_view(zoom)"
+    _send "camera zoom $view_(zoom)"
 
      if {"" == $itk_option(-plotoutline)} {
          _send "grid linecolor [Color2RGB $itk_option(-plotoutline)]"
@@ -768,23 +784,23 @@ itcl::body Rappture::HeightmapViewer::_rebuild {} {
 itcl::body Rappture::HeightmapViewer::_zoom {option} {
     switch -- $option {
         "in" {
-            set _view(zoom) [expr {$_view(zoom)*1.25}]
+            set view_(zoom) [expr {$view_(zoom)*1.25}]
         }
         "out" {
-            set _view(zoom) [expr {$_view(zoom)*0.8}]
+            set view_(zoom) [expr {$view_(zoom)*0.8}]
         }
         "reset" {
-            array set _view {
+            array set view_ {
                 theta   45
                 phi     45
                 psi     0
                 zoom    1.0
             }
-            set xyz [Euler2XYZ $_view(theta) $_view(phi) $_view(psi)]
+            set xyz [Euler2XYZ $view_(theta) $view_(phi) $view_(psi)]
             _send "camera angle $xyz"
         }
     }
-    _send "camera zoom $_view(zoom)"
+    _send "camera zoom $view_(zoom)"
 }
 
 # ----------------------------------------------------------------------
@@ -796,13 +812,23 @@ itcl::body Rappture::HeightmapViewer::_zoom {option} {
 # controls for this widget.  Changes the zoom for the current view.
 # ----------------------------------------------------------------------
 itcl::body Rappture::HeightmapViewer::_pan {option x y} {
+    return
+    # Experimental stuff
+    if { $option == "set" } {
+        set dx $x
+        set dy $y
+	set view_(x) [expr $view_(x) + $dx]
+	set view_(y) [expr $view_(y) + $dy]
+        _send "pan $dx $dy"
+	return
+    }
     if { $option == "click" } { 
         $itk_component(3dview) configure -cursor hand1
     }
     if { $option == "drag" || $option == "release" } {
-	set _view(x) [expr $_view(x) + $x]
-	set _view(y) [expr $_view(y) + $y]
-	_send "camera pan $_view(x) $_view(y) 0"
+	set view_(x) [expr $view_(x) + $x]
+	set view_(y) [expr $view_(y) + $y]
+	_send "camera pan $view_(x) $view_(y) 0"
     }
     if { $option == "release" } {
         $itk_component(3dview) configure -cursor ""
@@ -821,13 +847,15 @@ itcl::body Rappture::HeightmapViewer::_rotate {option x y} {
     switch -- $option {
         click {
             $itk_component(3dview) configure -cursor fleur
-            set _click(x)       $x
-            set _click(y)       $y
-            set _click(theta)   $_view(theta)
-            set _click(phi)     $_view(phi)
+	    array set click [subst {
+		x       $x
+		y       $y
+		theta   $view_(theta)
+		phi     $view_(phi)
+	    }]
         }
         drag {
-            if {[array size _click] == 0} {
+            if {[array size click_] == 0} {
                 _rotate click $x $y
             } else {
                 set w [winfo width $itk_component(3dview)]
@@ -838,8 +866,8 @@ itcl::body Rappture::HeightmapViewer::_rotate {option x y} {
 
                 if {[catch {
                     # this fails sometimes for no apparent reason
-                    set dx [expr {double($x-$_click(x))/$w}]
-                    set dy [expr {double($y-$_click(y))/$h}]
+                    set dx [expr {double($x-$click_(x))/$w}]
+                    set dy [expr {double($y-$click_(y))/$h}]
                 }]} {
                     return
                 }
@@ -847,39 +875,39 @@ itcl::body Rappture::HeightmapViewer::_rotate {option x y} {
                 #
                 # Rotate the camera in 3D
                 #
-                if {$_view(psi) > 90 || $_view(psi) < -90} {
+                if {$view_(psi) > 90 || $view_(psi) < -90} {
                     # when psi is flipped around, theta moves backwards
                     set dy [expr {-$dy}]
                 }
-                set theta [expr {$_view(theta) - $dy*180}]
+                set theta [expr {$view_(theta) - $dy*180}]
                 while {$theta < 0} { set theta [expr {$theta+180}] }
                 while {$theta > 180} { set theta [expr {$theta-180}] }
 
                 if {abs($theta) >= 30 && abs($theta) <= 160} {
-                    set phi [expr {$_view(phi) - $dx*360}]
+                    set phi [expr {$view_(phi) - $dx*360}]
                     while {$phi < 0} { set phi [expr {$phi+360}] }
                     while {$phi > 360} { set phi [expr {$phi-360}] }
-                    set psi $_view(psi)
+                    set psi $view_(psi)
                 } else {
-                    set phi $_view(phi)
-                    set psi [expr {$_view(psi) - $dx*360}]
+                    set phi $view_(phi)
+                    set psi [expr {$view_(psi) - $dx*360}]
                     while {$psi < -180} { set psi [expr {$psi+360}] }
                     while {$psi > 180} { set psi [expr {$psi-360}] }
                 }
 
-                set _view(theta)        $theta
-                set _view(phi)          $phi
-                set _view(psi)          $psi
-                set xyz [Euler2XYZ $_view(theta) $_view(phi) $_view(psi)]
+                set view_(theta)        $theta
+                set view_(phi)          $phi
+                set view_(psi)          $psi
+                set xyz [Euler2XYZ $view_(theta) $view_(phi) $view_(psi)]
                 _send "camera angle $xyz"
-                set _click(x) $x
-                set _click(y) $y
+                set click_(x) $x
+                set click_(y) $y
             }
         }
         release {
             _rotate drag $x $y
             $itk_component(3dview) configure -cursor ""
-            catch {unset _click}
+            catch {unset click_}
         }
         default {
             error "bad option \"$option\": should be click, drag, release"
@@ -919,8 +947,8 @@ itcl::body Rappture::HeightmapViewer::_fixSettings { what {value ""} } {
             set dataobj [lindex [get] 0]
             if {"" != $dataobj} {
                 set comp [lindex [$dataobj components] 0]
-                if {[info exists _obj2id($dataobj-$comp)]} {
-                    set imap $_obj2id($dataobj-$comp)
+                if {[info exists obj2id_($dataobj-$comp)]} {
+                    set imap $obj2id_($dataobj-$comp)
                 }
             }
             if {$w > 0 && $h > 0 && "" != $imap} {
@@ -930,33 +958,33 @@ itcl::body Rappture::HeightmapViewer::_fixSettings { what {value ""} } {
             }
         }
         "grid" {
-            if { [isconnected] } {
-                _send "grid visible $_settings($this-grid)"
+            if { [IsConnected] } {
+                _send "grid visible $settings_($this-grid)"
             }
         }
         "axes" {
-            if { [isconnected] } {
-                _send "axis visible $_settings($this-axes)"
+            if { [IsConnected] } {
+                _send "axis visible $settings_($this-axes)"
             }
         }
         "shading" {
-            if { [isconnected] } {
-                _send "heightmap shading $_settings($this-shading)"
+            if { [IsConnected] } {
+                _send "heightmap shading $settings_($this-shading)"
             }
         }
         "wireframe" {
-            if { [isconnected] } {
-                _send "heightmap polygon $_settings($this-wireframe)"
+            if { [IsConnected] } {
+                _send "heightmap polygon $settings_($this-wireframe)"
             }
         }
         "contourlines" {
-            if {[isconnected]} {
+            if {[IsConnected]} {
                 set dataobj [lindex [get] 0]
                 if {"" != $dataobj} {
                     set comp [lindex [$dataobj components] 0]
-                    if {[info exists _obj2id($dataobj-$comp)]} {
-                        set i $_obj2id($dataobj-$comp)
-                        set bool $_settings($this-contourlines)
+                    if {[info exists obj2id_($dataobj-$comp)]} {
+                        set i $obj2id_($dataobj-$comp)
+                        set bool $settings_($this-contourlines)
                         _send "heightmap linecontour visible $bool $i"
                     }
                 }
@@ -990,7 +1018,7 @@ itcl::body Rappture::HeightmapViewer::_getTransfuncData {dataobj comp} {
     set clist [split $style(-color) :]
     set color white
     set cmap "0.0 [Color2RGB $color] "
-    set range [expr $_limits(vmax) - $_limits(vmin)]
+    set range [expr $limits_(vmax) - $limits_(vmin)]
     for {set i 0} {$i < [llength $clist]} {incr i} {
         set xval [expr {double($i+1)/([llength $clist]+1)}]
         set color [lindex $clist $i]
@@ -1048,7 +1076,7 @@ itcl::configbody Rappture::HeightmapViewer::plotforeground {
 # CONFIGURATION OPTION: -plotoutline
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::HeightmapViewer::plotoutline {
-    if {[isconnected]} {
+    if {[IsConnected]} {
         _send "grid linecolor [Color2RGB $itk_option(-plotoutline)]"
     }
 }

@@ -34,9 +34,10 @@ ENABLE_GUI	= @ENABLE_GUI@
 TARGETS		= src 
 
 ifneq ($(ENABLE_GUI),)
-  TARGETS += gui lang examples lib
+  TARGETS += gui lang lib examples
 endif
 
+.NOTPARALLEL:
 
 .PHONY: $(TARGETS)
 
@@ -44,15 +45,15 @@ all: $(TARGETS)
 
 src:
 	$(MAKE) -C src all
-gui:
+gui: 
 	$(MAKE) -C gui all
-lang:
+lang: 
 	$(MAKE) -C lang all
-lib:
-	$(MAKE) -C lib all
-examples:
+examples: 
 	$(MAKE) -C examples all
-test:
+lib: 
+	$(MAKE) -C lib all
+test: 
 	#$(MAKE) -C test all
 
 install: 

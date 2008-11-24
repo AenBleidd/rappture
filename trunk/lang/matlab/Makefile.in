@@ -67,6 +67,10 @@ OBJS		= \
 		rpUnitsGetUnitsName$(EXT) \
 		rpUtilsProgress$(EXT) 
 
+# MEX can't be run in parallel since it generates temporary files
+# that collide with further compilations.
+.NOTPARALLEL:
+
 all: $(OBJS) 
 
 .SUFFIXES: .cc $(EXT)
