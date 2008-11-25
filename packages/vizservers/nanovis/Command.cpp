@@ -731,21 +731,7 @@ CameraPanOp(ClientData cdata, Tcl_Interp *interp, int objc,
         (GetFloatFromObj(interp, objv[3], &y) != TCL_OK)) {
         return TCL_ERROR;
     }
-    /* Convert to normalized coordinates */
-    x = x / (float)NanoVis::win_width;
-    y = y / (float)NanoVis::win_height;
-    /* Move the camera and its target by equal amounts along the x and y
-     * axes. */
-    NanoVis::cam->x(NanoVis::cam->x() + x);
-    NanoVis::cam->y(NanoVis::cam->y() + y);
-    fprintf(stderr, "dx=%f, dy=%f\n", x, y);
-    fprintf(stderr, "set eye to %f %f\n", NanoVis::cam->x(), NanoVis::cam->y());
-    Vector3 target;
-    target = NanoVis::cam->aim();
-    x += target.x;
-    y += target.y;
-    NanoVis::cam->aim(x, y, target.z);
-    fprintf(stderr, "set aim to %f %f\n", x, y);
+    NanoVis::pan(x, y);
     return TCL_OK;
 }
 

@@ -41,32 +41,46 @@ public:
              float angle_x, float angle_y, float angle_z);
 
     //move location of camera
-    void x(double loc_x) {
+    void x(float loc_x) {
 	location_.x = loc_x;
     }
     float x(void) {
 	return location_.x;
     }
-    void y(double loc_y) {
+    void y(float loc_y) {
 	location_.y = loc_y;
     }
     float y(void) {
 	return location_.y;
     }
-    void z(double loc_z) {
+    void z(float loc_z) {
 	location_.z = loc_z;
     }
     float z(void) {
 	return location_.z;
     }
 
-    void aim(double target_x, double target_y, double target_z) {
-	target_ = Vector3(target_x, target_y, target_z);
+    //move location of target
+    void xAim(float x) {
+	aim_.x = x;
     }
-    Vector3 aim(void) { 
-	return target_;
+    float xAim(void) {
+	return aim_.x;
     }
-    void rotate(double angle_x, double angle_y, double angle_z) { 
+    void yAim(float y) {
+	aim_.y = y;
+    }
+    float yAim(void) {
+	return aim_.y;
+    }
+    void zAim(float z) {
+	aim_.z = z;
+    }
+    float zAim(void) {
+	return aim_.z;
+    }
+
+    void rotate(float angle_x, float angle_y, float angle_z) { 
 	angle_ = Vector3(angle_x, angle_y, angle_z);
     }
     void rotate(Vector3 angle) { 

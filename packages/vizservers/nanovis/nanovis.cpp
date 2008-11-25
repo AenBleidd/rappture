@@ -442,6 +442,29 @@ ExecuteCommand(Tcl_Interp *interp, Tcl_DString *dsPtr)
     return result;
 }
 
+static void
+NanoVis::pan(int dx, int dy)
+{
+    float x, y;
+
+    /* Normalize coordinates */
+    x = (float)dx / (float)win_width;
+    y = (float)dy / (float)win_height;
+
+    /* Move the camera and its target by equal amounts along the x and y
+     * axes. */
+    fprintf(stderr, "x=%f, y=%f\n", x, y);
+    
+    cam->x(cam->x() + x);
+    cam->y(cam->y() + y);
+    fprintf(stderr, "set eye to %f %f\n", cam->x(), cam->y());
+
+    cam->xAim(cam->xAim() + x);
+    cam->yAim(cam->yAim() + y);
+    fprintf(stderr, "set aim to %f %f\n", cam->xAim(), cam->yAim());
+}
+
+
 /* Load a 3D volume
  * index: the index into the volume array, which stores pointers to 3D volume instances
  * data: pointer to an array of floats.
