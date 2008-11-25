@@ -244,7 +244,7 @@ main(int argc, char *argv[])
 
 	switch(c) {
 	case 'x': /* Number of video cards */
-	    maxScreens = strtoul(optarg, 0, 0);
+	    maxCards = strtoul(optarg, 0, 0);
 	    if ((maxCards < 1) || (maxCards > 10)) {
 		fprintf(stderr, "bad number of max videocards specified\n");
 		return 1;
