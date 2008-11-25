@@ -703,7 +703,9 @@ CameraAimOp(ClientData cdata, Tcl_Interp *interp, int objc,
         (GetFloatFromObj(interp, objv[4], &z) != TCL_OK)) {
         return TCL_ERROR;
     }
-    NanoVis::cam->aim(x, y, z);
+    NanoVis::cam->xAim(x);
+    NanoVis::cam->yAim(y);
+    NanoVis::cam->zAim(z);
     return TCL_OK;
 }
 
