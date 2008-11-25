@@ -39,7 +39,7 @@ fd_set saved_rfds;          // Descriptors we're reading from.
 fd_set pipe_rfds;           // Descriptors that are pipes to children.
 fd_set service_rfds[MAX_SERVICES];
 int maxScreens = 1;
-unsigned long nRequests = 0;
+int nRequests = -1;
 char displayVar[200];
 
 struct host_info {
@@ -237,13 +237,13 @@ main(int argc, char *argv[])
 	    { 0,0,0,0 },
 	};
 
-	c = getopt_long(argc, argv, "+b:c:l:s:d:S", long_options, 
+	c = getopt_long(argc, argv, "+b:c:l:s:d:x:", long_options, 
 			&option_index);
 	if (c == -1)
 	    break;
 
 	switch(c) {
-	case 'S': /* Number of screens */
+	case 'x': /* Number of screens */
 	    maxScreens = strtoul(optarg, 0, 0);
 	    if ((maxScreens < 1) || (maxScreens > 10)) {
 		fprintf(stderr, "bad number of max screens specified\n");
@@ -581,6 +581,7 @@ main(int argc, char *argv[])
 		if (status < 0) {
 		    perror("fcntl");
 		}
+		nRequests++;
 	      
 		// Fork the new process.  Connect i/o to the new socket.
 		status = fork();
@@ -610,7 +611,6 @@ main(int argc, char *argv[])
 				    int dispNum;
 
 				    dispNum = nRequests % maxScreens;
-				    nRequests++;
 				    displayVar[11] = dispNum + '0';
 				}
 				execvp(command_argv[n][0], command_argv[n]);
