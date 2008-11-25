@@ -38,8 +38,8 @@ struct sockaddr_in send_addr;  // The subnet address we broadcast to.
 fd_set saved_rfds;          // Descriptors we're reading from.
 fd_set pipe_rfds;           // Descriptors that are pipes to children.
 fd_set service_rfds[MAX_SERVICES];
-int maxScreens = 1;
-int nRequests = -1;
+int maxCards = 1;
+int dispNum = -1;
 char displayVar[200];
 
 struct host_info {
@@ -243,10 +243,10 @@ main(int argc, char *argv[])
 	    break;
 
 	switch(c) {
-	case 'x': /* Number of screens */
+	case 'x': /* Number of video cards */
 	    maxScreens = strtoul(optarg, 0, 0);
-	    if ((maxScreens < 1) || (maxScreens > 10)) {
-		fprintf(stderr, "bad number of max screens specified\n");
+	    if ((maxCards < 1) || (maxCards > 10)) {
+		fprintf(stderr, "bad number of max videocards specified\n");
 		return 1;
 	    }
 	    break;
@@ -581,8 +581,10 @@ main(int argc, char *argv[])
 		if (status < 0) {
 		    perror("fcntl");
 		}
-		nRequests++;
-	      
+		dispNum++;
+		if (dispNum >= maxCards) {
+		    dispNum = 0;
+		}
 		// Fork the new process.  Connect i/o to the new socket.
 		status = fork();
 		if (status < 0) {
@@ -607,10 +609,7 @@ main(int argc, char *argv[])
 				for(fd=5; fd<FD_SETSIZE; fd++)
 				    close(fd);
 			      
-				if (maxScreens > 1) {
-				    int dispNum;
-
-				    dispNum = nRequests % maxScreens;
+				if (maxCards > 1) {
 				    displayVar[11] = dispNum + '0';
 				}
 				execvp(command_argv[n][0], command_argv[n]);
