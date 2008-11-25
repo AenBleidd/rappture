@@ -1271,20 +1271,28 @@ itcl::body Rappture::NanovisViewer::_rotate {option x y} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::NanovisViewer::_pan {option x y} {
     # Experimental stuff
-    set x [$x * 0.01]
-    set y [$y * 0.01]
+    set w [winfo width $itk_component(3dview)]
+    set h [winfo height $itk_component(3dview)]
     if { $option == "set" } {
-	set view_(dx) $x
-	set view_(dy) $y
+	set x [expr $x / double($w)]
+	set y [expr $y / double($h)]
+	set view_(dx) [expr $view_(dx) + $x]
+	set view_(dy) [expr $view_(dy) + $y]
         _send "camera pan $view_(dx) $view_(dy)"
 	return
     }
     if { $option == "click" } { 
+	set click_(x) $x
+	set click_(y) $y
         $itk_component(3dview) configure -cursor hand1
     }
     if { $option == "drag" || $option == "release" } {
-	set view_(dx) [expr $view_(dx) + $x]
-	set view_(dy) [expr $view_(dy) + $y]
+	set dx [expr ($click_(x) - $x)/double($w)]
+	set dy [expr ($click_(y) - $y)/double($h)]
+	set click_(x) $x
+	set click_(y) $y
+	set view_(dx) [expr $view_(dx) - $dx]
+	set view_(dy) [expr $view_(dy) - $dy]
 	_send "camera pan $view_(dx) $view_(dy)"
     }
     if { $option == "release" } {
