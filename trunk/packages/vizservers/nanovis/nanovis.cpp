@@ -443,24 +443,18 @@ ExecuteCommand(Tcl_Interp *interp, Tcl_DString *dsPtr)
 }
 
 static void
-NanoVis::pan(int x, int y)
+NanoVis::pan(float dx, float dy)
 {
-    float x, y;
-
-    /* Normalize coordinates */
-    x = (float)dx / (float)win_width;
-    y = (float)dy / (float)win_height;
-
     /* Move the camera and its target by equal amounts along the x and y
      * axes. */
-    fprintf(stderr, "x=%f, y=%f\n", x, y);
+    fprintf(stderr, "x=%f, y=%f\n", dx, dy);
     
-    cam->x(def_eye_x + x);
-    cam->y(def_eye_y + y);
+    cam->x(def_eye_x + dx);
+    cam->y(def_eye_y + dy);
     fprintf(stderr, "set eye to %f %f\n", cam->x(), cam->y());
 
-    cam->xAim(def_target_x + x);
-    cam->yAim(def_target_y + y);
+    cam->xAim(def_target_x + dx);
+    cam->yAim(def_target_y + dy);
     fprintf(stderr, "set aim to %f %f\n", cam->xAim(), cam->yAim());
 }
 
