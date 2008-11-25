@@ -3,6 +3,9 @@
 DISPLAY=:0
 export DISPLAY
 
+# Fail on errors
+set -e
+
 broadcast="192.168.200.255"
 render_dir="@prefix@"
 nanoscale_port=2000
@@ -14,13 +17,15 @@ pymol_port=2020
 # render directory.
 dir="/tmp/`basename $render_dir`"
 
+
 PATH=${dir}/bin:$PATH
 LD_LIBRARY_PATH=${dir}/lib:$LD_LIBRARY_PATH
 PYMOL_PATH=${dir}/lib/pymol
 
 export PATH LD_LIBRARY_PATH PYMOL_PATH
 
-nanoscale="${dir}/bin/nanoscale -b $nanoscale_port -s $broadcast"
+nscreens=`lspci | fgrep VGA | wc -l`
+nanoscale="${dir}/bin/nanoscale -S${nscreens} -b $nanoscale_port -s $broadcast"
 nanovis="${dir}/bin/nanovis -p ${dir}/lib/shaders:${dir}/lib/resources"
 pymolproxy="${dir}/bin/pymolproxy ${dir}/bin/pymol -p -q -i -x -X 0 -Y 0"
 
