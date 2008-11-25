@@ -24,8 +24,8 @@ PYMOL_PATH=${dir}/lib/pymol
 
 export PATH LD_LIBRARY_PATH PYMOL_PATH
 
-nscreens=`lspci | fgrep VGA | wc -l`
-nanoscale="${dir}/bin/nanoscale -S${nscreens} -b $nanoscale_port -s $broadcast"
+nvideo=`lspci | fgrep VGA | wc -l`
+nanoscale="${dir}/bin/nanoscale -x ${nvideo} -b $nanoscale_port -s $broadcast"
 nanovis="${dir}/bin/nanovis -p ${dir}/lib/shaders:${dir}/lib/resources"
 pymolproxy="${dir}/bin/pymolproxy ${dir}/bin/pymol -p -q -i -x -X 0 -Y 0"
 
