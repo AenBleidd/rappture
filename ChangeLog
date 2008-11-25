@@ -1,3 +1,64 @@
+2008-11-25:
+
+ * Fixed sequenceviewer to handle sequences for heightmaps (surface plots)
+   properly.  Rappture was defaulting to VTK and segfaulting. 
+ * Added keyboard and mousewheel bindings for zooms in nanovisviewer, 
+   heightmapviewer, and molvisviewer.
+ * Added panning function to nanovisviewer, heightmapviewer, and 
+   molvisviewer.  Feature available via mouse and keyboard.
+ * Fixed pymolproxy to handle non-blocking reads from pymol server where
+   where previous client command would drain stdout.  The bug appears in
+   64-bit versions.
+ * Changed curve object to use a vector to read/parse xy data and then
+   split into the correspondings x and y vectors.  Rough testing shows
+   to be 8x faster than scan-ing every line.  This was also done
+   for fields (points).
+ * Added feature to VisViewer base class to disconnect from the render
+   server after a specified interval "idleTimeout_".  If zero, no
+   timeout is set.  This affects molvisviewer, heightmapviewer, and
+   nanovisviewer.  The viewers will reconnect on the next read or write
+   request to the server.  See _CheckConnection method.
+ * Fixed molvisviewer to properly set screen dimensions when reconnecting
+   to the pymol server.  This caused the object to be scaled and shifted
+   improperly.
+ * Fixed nanovisviewer to properly reset screen dimensions and rotation
+   angles when reconnecting to the nanovis server.
+ * Extended color set (8 to 32) of automatic colors for xy graphs.
+ * Removed load-balancing feature from nanoscale.  It always returns 
+   0.0.0.0 (no redirect).
+ * Added isunirect2d to field object.  This is a cleaner way of determining
+   whether to connect to a nanovis server or use VTK.
+ * Fixed -imagecmd in htmlviewer.tcl.  Added _freeImage method/callback.
+   The htmlwidget was destroying the cached icon images.
+ * Added recolor option the XyLegend object.  It recolors all the selected
+   traces.
+ * Removed split $params(-load) from driver. 
+ * Added "list" type to getopts.tcl to allow for command line
+   specifications like "rappture -load file1 file2 file3".  The list
+   type can only be used at the end of the command line.
+ * Added rappture-csh.env script for c-shell users.
+ * Fixed lang/matlab/Makefile.in to allow prevent parallel builds of
+   matlab bindings.  "mex" generates temporary files that collide when
+   multiple compilations are using the same directory.
+ * Added -x flag to nanoscale to automatically rotate between screens
+   as new requests are made.  
+ * Added separate method in nanovis NvCamera.h to handle camera eye and 
+   target positions (for panning).
+ * Added pan call to nanovis.	
+ * Added checks to nanovis for valid framebuffer objects.
+ * Fixed packages/vizservers/nanovis/Makefile.in to allow parallel builds.
+ * Added xunits, yunits, and zunits attributes for unirect2d data.
+ * Added statistics generation for nanovis and pymolproxy servers. Writes
+   to /var/tmp/visservers/data.xml.
+ * units.tcl
+ * table
+ * simsim.tcl
+ * analyzer.tcl
+ * note.tcl
+ * controls.tcl
+ * loader.tcl
+
+	
 2008-09-09:
 
     * Created legend for xy plots.  You can raise/lower/show/hide/rename

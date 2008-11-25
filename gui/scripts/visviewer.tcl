@@ -22,8 +22,8 @@ itcl::class ::Rappture::VisViewer {
     itk_option define -receivecommand receiveCommand ReceiveCommand ""
 
     private common servers_         ;# array of visualization server lists
-    set servers_(nanovis) "bilby.hubzero.org:2000"
-    set servers_(pymol)   "bilby.hubzero.org:2020"
+    set servers_(nanovis) ""
+    set servers_(pymol)   ""
 
     private variable sid_ ""        ;# socket connection to server
     private common done_            ;# Used to indicate status of send.
@@ -33,8 +33,8 @@ itcl::class ::Rappture::VisViewer {
     # If greater than 0, automatically disconnect from the visualization
     # server when idle timeout is reached.
     #private variable idleTimeout_ 3600000; # 1 hour
-    #private variable idleTimeout_ 5000;    # 5 seconds
-    private variable idleTimeout_ 0;	    # No timeout
+    private variable idleTimeout_ 5000;    # 5 seconds
+    #private variable idleTimeout_ 0;	    # No timeout
 
     protected variable _dispatcher ""   ;# dispatcher for !events
     protected variable _hosts ""    ;# list of hosts for server
