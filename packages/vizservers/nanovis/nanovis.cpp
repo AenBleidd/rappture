@@ -442,7 +442,7 @@ ExecuteCommand(Tcl_Interp *interp, Tcl_DString *dsPtr)
     return result;
 }
 
-static void
+void
 NanoVis::pan(float dx, float dy)
 {
     /* Move the camera and its target by equal amounts along the x and y
