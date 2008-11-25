@@ -131,9 +131,8 @@ itcl::body Rappture::HeightmapViewer::constructor {hostlist args} {
         phi     45
         psi     0
         zoom    1.0
-        xfocus  0
-        yfocus  0
-        zfocus  0
+        dx	0
+        dy	0
     }
     set obj2id_(count) 0
 
@@ -795,9 +794,12 @@ itcl::body Rappture::HeightmapViewer::_zoom {option} {
                 phi     45
                 psi     0
                 zoom    1.0
+		dx 0
+		dy 0
             }
             set xyz [Euler2XYZ $view_(theta) $view_(phi) $view_(psi)]
             _send "camera angle $xyz"
+            _send "camera pan $view_(dx) $view_(dy)"
         }
     }
     _send "camera zoom $view_(zoom)"
@@ -811,24 +813,31 @@ itcl::body Rappture::HeightmapViewer::_zoom {option} {
 # Called automatically when the user clicks on one of the zoom
 # controls for this widget.  Changes the zoom for the current view.
 # ----------------------------------------------------------------------
-itcl::body Rappture::HeightmapViewer::_pan {option x y} {
-    return
+itcl::body Rappture::NanovisViewer::_pan {option x y} {
     # Experimental stuff
+    set w [winfo width $itk_component(3dview)]
+    set h [winfo height $itk_component(3dview)]
     if { $option == "set" } {
-        set dx $x
-        set dy $y
-	set view_(x) [expr $view_(x) + $dx]
-	set view_(y) [expr $view_(y) + $dy]
-        _send "pan $dx $dy"
+	set x [expr $x / double($w)]
+	set y [expr $y / double($h)]
+	set view_(dx) [expr $view_(dx) + $x]
+	set view_(dy) [expr $view_(dy) + $y]
+        _send "camera pan $view_(dx) $view_(dy)"
 	return
     }
     if { $option == "click" } { 
+	set click_(x) $x
+	set click_(y) $y
         $itk_component(3dview) configure -cursor hand1
     }
     if { $option == "drag" || $option == "release" } {
-	set view_(x) [expr $view_(x) + $x]
-	set view_(y) [expr $view_(y) + $y]
-	_send "camera pan $view_(x) $view_(y) 0"
+	set dx [expr ($click_(x) - $x)/double($w)]
+	set dy [expr ($click_(y) - $y)/double($h)]
+	set click_(x) $x
+	set click_(y) $y
+	set view_(dx) [expr $view_(dx) - $dx]
+	set view_(dy) [expr $view_(dy) - $dy]
+	_send "camera pan $view_(dx) $view_(dy)"
     }
     if { $option == "release" } {
         $itk_component(3dview) configure -cursor ""
