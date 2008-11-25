@@ -168,6 +168,7 @@ public:
 	int n, float* data, double vmin, double vmax, double nzero_min);
     static void xinetd_listen(void);
     static int render_2d_contour(HeightMap* heightmap, int width, int height);
+    static void pan(float dx, float dy);
 
 #ifndef XINETD
     static void keyboard(unsigned char key, int x, int y);

@@ -726,9 +726,9 @@ static int
 CameraPanOp(ClientData cdata, Tcl_Interp *interp, int objc, 
 	     Tcl_Obj *const *objv)
 {
-    int x, y;
-    if ((Tcl_GetIntFromObj(interp, objv[2], &x) != TCL_OK) ||
-        (Tcl_GetIntFromObj(interp, objv[3], &y) != TCL_OK)) {
+    float x, y;
+    if ((GetFloatFromObj(interp, objv[2], &x) != TCL_OK) ||
+        (GetFloatFromObj(interp, objv[3], &y) != TCL_OK)) {
         return TCL_ERROR;
     }
     NanoVis::pan(x, y);

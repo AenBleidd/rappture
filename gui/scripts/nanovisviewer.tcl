@@ -1270,8 +1270,9 @@ itcl::body Rappture::NanovisViewer::_rotate {option x y} {
 # controls for this widget.  Changes the zoom for the current view.
 # ----------------------------------------------------------------------
 itcl::body Rappture::NanovisViewer::_pan {option x y} {
-    return
     # Experimental stuff
+    set x [$x * 0.01]
+    set y [$y * 0.01]
     if { $option == "set" } {
 	set view_(dx) $x
 	set view_(dy) $y
