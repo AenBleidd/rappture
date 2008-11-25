@@ -237,7 +237,7 @@ main(int argc, char *argv[])
 	    { 0,0,0,0 },
 	};
 
-	c = getopt_long(argc, argv, "+b:c:l:s:d:x:", long_options, 
+	c = getopt_long(argc, argv, "+b:c:l:s:x:d", long_options, 
 			&option_index);
 	if (c == -1)
 	    break;
