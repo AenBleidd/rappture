@@ -62,22 +62,22 @@ public:
 
     //move location of target
     void xAim(float x) {
-	aim_.x = x;
+	target_.x = x;
     }
     float xAim(void) {
-	return aim_.x;
+	return target_.x;
     }
     void yAim(float y) {
-	aim_.y = y;
+	target_.y = y;
     }
     float yAim(void) {
-	return aim_.y;
+	return target_.y;
     }
     void zAim(float z) {
-	aim_.z = z;
+	target_.z = z;
     }
     float zAim(void) {
-	return aim_.z;
+	return target_.z;
     }
 
     void rotate(float angle_x, float angle_y, float angle_z) { 
