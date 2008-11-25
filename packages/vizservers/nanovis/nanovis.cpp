@@ -443,7 +443,7 @@ ExecuteCommand(Tcl_Interp *interp, Tcl_DString *dsPtr)
 }
 
 static void
-NanoVis::pan(int dx, int dy)
+NanoVis::pan(int x, int y)
 {
     float x, y;
 
@@ -455,12 +455,12 @@ NanoVis::pan(int dx, int dy)
      * axes. */
     fprintf(stderr, "x=%f, y=%f\n", x, y);
     
-    cam->x(cam->x() + x);
-    cam->y(cam->y() + y);
+    cam->x(def_eye_x + x);
+    cam->y(def_eye_y + y);
     fprintf(stderr, "set eye to %f %f\n", cam->x(), cam->y());
 
-    cam->xAim(cam->xAim() + x);
-    cam->yAim(cam->yAim() + y);
+    cam->xAim(def_target_x + x);
+    cam->yAim(def_target_y + y);
     fprintf(stderr, "set aim to %f %f\n", cam->xAim(), cam->yAim());
 }
 

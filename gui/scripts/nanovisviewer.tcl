@@ -166,9 +166,8 @@ itcl::body Rappture::NanovisViewer::constructor {hostlist args} {
         phi     45
         psi     0
         zoom    1.0
-        x	0
-        y	0
-        z	0
+        dx	0
+        dy	0
     }
     set _obj2id(count) 0
     set _id2obj(count) 0
@@ -1171,9 +1170,12 @@ itcl::body Rappture::NanovisViewer::_zoom {option} {
                 phi 45
                 psi 0
                 zoom 1.0
+		dx 0
+		dy 0
             }
             set xyz [Euler2XYZ $view_(theta) $view_(phi) $view_(psi)]
             _send "camera angle $xyz"
+            _send "camera pan $view_(dx) $view_(dy)"
         }
     }
     _send "camera zoom $view_(zoom)"
@@ -1271,18 +1273,18 @@ itcl::body Rappture::NanovisViewer::_pan {option x y} {
     return
     # Experimental stuff
     if { $option == "set" } {
-	set view_(x) $x
-	set view_(y) $y
-        _send "camera pan $view_(x) $view_(y)"
+	set view_(dx) $x
+	set view_(dy) $y
+        _send "camera pan $view_(dx) $view_(dy)"
 	return
     }
     if { $option == "click" } { 
         $itk_component(3dview) configure -cursor hand1
     }
     if { $option == "drag" || $option == "release" } {
-	set view_(x) [expr $view_(x) + $x]
-	set view_(y) [expr $view_(y) + $y]
-	_send "camera pan $view_(x) $view_(y)"
+	set view_(dx) [expr $view_(dx) + $x]
+	set view_(dy) [expr $view_(dy) + $y]
+	_send "camera pan $view_(dx) $view_(dy)"
     }
     if { $option == "release" } {
         $itk_component(3dview) configure -cursor ""
