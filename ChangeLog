@@ -1,10 +1,10 @@
 2008-11-25:
 
  * Fixed sequenceviewer to handle sequences for heightmaps (surface plots)
-   properly.  Rappture was defaulting to VTK and segfaulting. 
- * Added keyboard and mousewheel bindings for zooms in nanovisviewer, 
+   properly.  Rappture was defaulting to VTK and segfaulting.
+ * Added keyboard and mousewheel bindings for zooms in nanovisviewer,
    heightmapviewer, and molvisviewer.
- * Added panning function to nanovisviewer, heightmapviewer, and 
+ * Added panning function to nanovisviewer, heightmapviewer, and
    molvisviewer.  Feature available via mouse and keyboard.
  * Fixed pymolproxy to handle non-blocking reads from pymol server where
    where previous client command would drain stdout.  The bug appears in
@@ -24,7 +24,7 @@
  * Fixed nanovisviewer to properly reset screen dimensions and rotation
    angles when reconnecting to the nanovis server.
  * Extended color set (8 to 32) of automatic colors for xy graphs.
- * Removed load-balancing feature from nanoscale.  It always returns 
+ * Removed load-balancing feature from nanoscale.  It always returns
    0.0.0.0 (no redirect).
  * Added isunirect2d to field object.  This is a cleaner way of determining
    whether to connect to a nanovis server or use VTK.
@@ -32,7 +32,7 @@
    The htmlwidget was destroying the cached icon images.
  * Added recolor option the XyLegend object.  It recolors all the selected
    traces.
- * Removed split $params(-load) from driver. 
+ * Removed split $params(-load) from driver.
  * Added "list" type to getopts.tcl to allow for command line
    specifications like "rappture -load file1 file2 file3".  The list
    type can only be used at the end of the command line.
@@ -41,52 +41,73 @@
    matlab bindings.  "mex" generates temporary files that collide when
    multiple compilations are using the same directory.
  * Added -x flag to nanoscale to automatically rotate between screens
-   as new requests are made.  
+   as new requests are made.
  * Added separate method in nanovis NvCamera.h to handle camera eye and 
    target positions (for panning).
- * Added pan call to nanovis.	
+ * Added pan call to nanovis.
  * Added checks to nanovis for valid framebuffer objects.
  * Fixed packages/vizservers/nanovis/Makefile.in to allow parallel builds.
  * Added xunits, yunits, and zunits attributes for unirect2d data.
  * Added statistics generation for nanovis and pymolproxy servers. Writes
    to /var/tmp/visservers/data.xml.
- * units.tcl
- * table
- * simsim.tcl
- * analyzer.tcl
- * note.tcl
- * controls.tcl
- * loader.tcl
+ * Added MCR_INHIBIT_CTF_LOCK flag to the compiled matlab patch file to
+   prevent matlab from trying to create a lock on CTF file.
+ * Added copy feature to loaders. Copy feature allows users to specify where
+   to put data from xml files loaded from the examples directory. See
+   rappture/examples/lang/tcl/loadercopy for sample use.
+ * Added compiled matlab example to rappture/examples/app-fermi/matlab 
+   currently only for 32bit, if using on 64bit, need to adjust patch file.
+ * Fix allowing enabled tabs (groups within groups), which are a part of a
+   list of tabs, to show the correct information when one or more tabs
+   before them are disabled.
+ * Reorganize command line options for simsim
+ * Added autolabel to number and integer outputs, but everyone should still
+   put labels on all outputs.
+ * Allow the contents of a note to be dynamically changed, for example
+   through a loader.
+ * Added xmldiff to find the difference between two rappture xml files.
+ * Added -nosim flag to rerun so it works as it did in previous releases.
+   Currently, rerun is strictly for viewing old run.xml files.
+ * Updating rappture to allow for loading of old run.xml files using the
+   -load flag. This feature differs from rerun in that if rappture can find
+   where the tool was installed, it will allow you to continue running
+   simulations.
+ * Added bohrs to the units test cases
 
-	
-2008-09-09:
+2008-10-10: nanovis 20081010 released
+2008-09-26: nanovis 20080926 released
+2008-09-26: Rappture 20080924 released
 
-    * Created legend for xy plots.  You can raise/lower/show/hide/rename
-      traces (curves).  There is also a provision for displaying the
-      fill area between two curves and taking the average of two or
-      more curves.
-    * Nanovis markers now change the transfer function globally. Previously
-      changing the a marker changes the transfer function for that volume
-      only.  Now all volumes using that transfer function are affected.
-    * Pymolproxy changed to use file transfer for PDB files.  This should 
-      prevent large datasets from breaking pymol.
-    * Data sent to render servers now made in one write. Should improve
-      performance for large datasets.
-    * Nanovis server was profiled and improvements made to protocol.
-    * "Abort" button fixed.  Previous version abort was disabled during
-      simulation.
-    * New checkbutton indicator for booleanentry (switch).
-    * Empty sequences (pymol) are now checked.
-    * Fixed heightmap (surface plot) grid to accurately measure the surface.
-    * added bohr units and conversion to meters
-    * added a free text label so users can label each element of a sequence.
-    * added example using Ruby's Rappture bindings.
-    * changed boolean widget to use a simple checkbutton 
-    * added ability to set the color of integer and number widgets
-      to a wavelength or range of wavelengths.
-	
-2008-06-11: fixed bug in Ruby putfile() method (bhaley)
+ * Added stats collection to nanovis
+
+2008-09-09: Rappture 20080909 released
+
+ * Created legend for xy plots.  You can raise/lower/show/hide/rename
+   traces (curves).  There is also a provision for displaying the
+   fill area between two curves and taking the average of two or
+   more curves.
+ * Nanovis markers now change the transfer function globally. Previously
+   changing the a marker changes the transfer function for that volume
+   only.  Now all volumes using that transfer function are affected.
+ * Pymolproxy changed to use file transfer for PDB files.  This should 
+   prevent large datasets from breaking pymol.
+ * Data sent to render servers now made in one write. Should improve
+   performance for large datasets.
+ * Nanovis server was profiled and improvements made to protocol.
+ * "Abort" button fixed.  Previous version abort was disabled during
+   simulation.
+ * New checkbutton indicator for booleanentry (switch).
+ * Empty sequences (pymol) are now checked.
+ * Fixed heightmap (surface plot) grid to accurately measure the surface.
+ * added bohr units and conversion to meters
+ * added a free text label so users can label each element of a sequence.
+ * added example using Ruby's Rappture bindings.
+ * changed boolean widget to use a simple checkbutton 
+ * added ability to set the color of integer and number widgets
+   to a wavelength or range of wavelengths.
+ * fixed bug in Ruby putfile() method (bhaley)
+
 2008-03-31: nanovis 20080331 released
 2008-03-30: Rappture 20080330 released
-2008-02-18: added initial bindings and build scripts for Ruby (bhaley)
 
+ * added initial bindings and build scripts for Ruby (bhaley)
