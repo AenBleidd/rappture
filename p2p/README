@@ -1,0 +1,53 @@
+----------------------------------------------------------------------
+ P2P job management infrastructure
+ Michael McLennan (mmclennan@purdue.edu)
+======================================================================
+ Copyright (c) 2008  Purdue Research Foundation
+======================================================================
+
+ The files in this directory form the basis for a peer-to-peer
+ job management infrastructure.  The basic idea is that a client
+ connects to a network of workers, asks for bids on a series of
+ jobs it wants to execute, and then farms the jobs out to the
+ workers and collects the results.  In addition to the client
+ and the workers, there are "authority" servers that act like
+ superpeers, helping clients/workers find each other and manage
+ the transfer of points for completed jobs.
+
+ TO RUN THE DEMO:
+
+ $ wish test.tcl
+
+ Press the "Start" button to launch an authority server and a
+ series of workers.  Press the "Reload" button after that to
+ load log information from the workers as they run.  Press
+ "Stop" to kill all processes and load the final log information
+ for visualization.
+
+ Use the "<" and ">" buttons at the bottom to move forward/backward
+ through time, visualizing the communication traffic and the P2P
+ network formation.  Use the slider to jump quickly to a specific
+ point in time.
+
+
+ CLASSES:
+   Handler ... Basis of all servers and clients.  Knows how to
+               receive and interpret Tcl-based commands.  Has a
+               notion of various "protocols" which are collections
+               of messages that can be received and understood.
+               Protocols can be versioned, so each handler should
+               be able to support new and old clients if the protocol
+               changes over time.
+
+   Server .... Derived class based on Handler.  Sits at a particular
+               port and listens for client connections.  The first
+               message any client should send defines the protocol,
+               and then the client sends Tcl-based commands after
+               that.
+
+   Client .... Derived class based on Handler.  Opens a socket to a
+               particular host:port and begins sending/receiving
+               messages.  The first message that it sends should
+               define the protocol for outgoing messages, and the
+               first message it receives should define the protocol
+               for incoming messages.

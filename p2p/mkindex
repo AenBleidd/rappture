@@ -1,0 +1,6 @@
+#!/usr/bin/tclsh
+package require Itcl
+if {"" == $argv} {
+    set argv *
+}
+eval auto_mkindex . $argv
