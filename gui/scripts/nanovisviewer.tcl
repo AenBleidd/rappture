@@ -118,7 +118,8 @@ itcl::class Rappture::NanovisViewer {
     private variable view_         ;# view params for 3D view
     private variable isomarkers_    ;# array of isosurface level values 0..1
     private common   settings_
-    private variable activeId_ ""   ;# The currently active volume.  This 
+    private variable activeTf_ ""  ;# The currently active transfer function.  
+				    # This 
 				    # indicates which isomarkers and transfer
 				    # function to use when changing markers,
 				    # opacity, or thickness.
@@ -826,11 +827,11 @@ itcl::body Rappture::NanovisViewer::_SendDataObjs {} {
         if {"" != $axis} {
             _send "up $axis"
         }
-	# The active volume is by default the first component of the first
-	# data object.  This assumes that the data is always successfully
-	# transferred.
+	# The active transfer function is by default the first component of
+	# the first data object.  This assumes that the data is always
+	# successfully transferred.
 	set comp [lindex [$first components] 0]
-	set activeId_ $_obj2id($first-$comp)
+	set activeTf_ $_id2style($_obj2id($first-$comp))
     }
     foreach key [array names _obj2id *-*] {
         set state [string match $first-* $key]
@@ -867,13 +868,16 @@ itcl::body Rappture::NanovisViewer::_SendDataObjs {} {
 # USAGE: _SendTransferFunctions
 # ----------------------------------------------------------------------
 itcl::body Rappture::NanovisViewer::_SendTransferFunctions {} {
+    if { $activeTf_ == "" } {
+	return
+    }
+    set tf $activeTf_
     set first [lindex [get] 0] 
 
     # Insure that the global opacity and thickness settings (in the slider
-    # settings widgets) are used for the transfer-function used by the active
-    # volume.  Update the values in the settings_ varible.
+    # settings widgets) are used for the active transfer-function.  Update the
+    # values in the settings_ varible.
     set inner [$itk_component(controls).panel component inner]
-    set tf $_id2style($activeId_)
     set value [$inner.scales.opacity get]
     set opacity [expr { double($value) * 0.01 }]
     set settings_($this-$tf-opacity) $opacity
@@ -915,7 +919,7 @@ itcl::body Rappture::NanovisViewer::_ReceiveImage {option size} {
 #	command.  The server sends back a "legend" command invoked our
 #	the slave interpreter.  The purpose is to collect data of the image 
 #	representing the legend in the canvas.  In addition, the isomarkers
-#	of the active volume are displayed.
+#	of the active transfer function are displayed.
 #
 #	I don't know is this is the right place to display the isomarkers.
 #	I don't know all the different paths used to draw the plot. There's 
@@ -946,8 +950,8 @@ itcl::body Rappture::NanovisViewer::_ReceiveLegend { ivol vmin vmax size } {
 	$c bind transfunc <ButtonRelease-1> \
 	    [itcl::code $this _AddIsoMarker %x %y]
     }
-    # Display the markers used by the active volume.
-    set tf $_id2style($activeId_)
+    # Display the markers used by the active transfer function.
+    set tf $activeTf_
 
     array set limits [GetLimits $tf]
     $c itemconfigure vmin -text [format %.2g $limits(min)]
@@ -1100,8 +1104,6 @@ itcl::body Rappture::NanovisViewer::_rebuild {} {
 	set comp [lindex [$first components] 0]
 	set ivol $_obj2id($first-$comp) 
 	
-	set tf _id2style($ivol)
-    
 	foreach comp [$first components] {
 	    foreach ivol $_obj2id($first-$comp) {
 		_NameTransferFunction $ivol
@@ -1433,21 +1435,21 @@ itcl::body Rappture::NanovisViewer::_fixSettings {what {value ""}} {
             }
         }
         opacity {
-            if {[isconnected] && $activeId_ != "" } {
+            if {[isconnected] && $activeTf_ != "" } {
 		set val [$inner.scales.opacity get]
 		set sval [expr { 0.01 * double($val) }]
-		set tf $_id2style($activeId_)
+		set tf $activeTf_
 		set settings_($this-$tf-opacity) $sval
 		UpdateTransferFunctions
 	    }
         }
 
         thickness {
-            if {[isconnected] && $activeId_ != "" } {
+            if {[isconnected] && $activeTf_ != "" } {
 		set val [$inner.scales.thickness get]
 		# Scale values between 0.00001 and 0.01000
 		set sval [expr {0.0001*double($val)}]
-		set tf $_id2style($activeId_)
+		set tf $activeTf_
 		set settings_($this-$tf-thickness) $sval
 		UpdateTransferFunctions
 	    }
@@ -1489,9 +1491,8 @@ itcl::body Rappture::NanovisViewer::_fixLegend {} {
     set lineht [font metrics $itk_option(-font) -linespace]
     set w [expr {[winfo width $itk_component(legend)]-20}]
     set h [expr {[winfo height $itk_component(legend)]-20-$lineht}]
-    set ivol $activeId_
-    if {$w > 0 && $h > 0 && "" != $ivol} {
-        _send "legend $ivol $w $h"
+    if {$w > 0 && $h > 0 && "" != $activeTf_} {
+        _send "legend $activeTf_ $w $h"
     } else {
 	# Can't do this as this will remove the items associated with the
 	# isomarkers.  
@@ -1764,10 +1765,10 @@ itcl::body Rappture::NanovisViewer::UpdateTransferFunctions {} {
 }
 
 itcl::body Rappture::NanovisViewer::_AddIsoMarker { x y } {
-    if { $activeId_ == "" } {
-	error "active volume isn't set"
+    if { $activeTf_ == "" } {
+	error "active transfer function isn't set"
     }
-    set tf $_id2style($activeId_)
+    set tf $activeTf_ 
     set c $itk_component(legend)
     set m [IsoMarker \#auto $c $this $tf]
     set w [winfo width $c]

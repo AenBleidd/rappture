@@ -922,31 +922,24 @@ LegendCmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const *objv)
 {
     if (objc != 4) {
         Tcl_AppendResult(interp, "wrong # args: should be \"",
-            Tcl_GetString(objv[0]), " volIndex width height\"", (char*)NULL);
+            Tcl_GetString(objv[0]), " transfunc width height\"", (char*)NULL);
         return TCL_ERROR;
     }
 
-    Volume *volPtr;
-    if (GetVolumeFromObj(interp, objv[1], &volPtr) != TCL_OK) {
-        return TCL_ERROR;
-    }
+    const char *string = Tcl_GetString(objv[1]);
     TransferFunction *tf;
-    tf = NanoVis::vol_renderer->get_volume_shading(volPtr);
+    tf = NanoVis::get_transfunc(string);
     if (tf == NULL) {
-        Tcl_AppendResult(interp, "no transfer function defined for volume \"",
-                         Tcl_GetString(objv[1]), "\"", (char*)NULL);
+        Tcl_AppendResult(interp, "unknown transfer function \"", string, "\"", 
+			 (char*)NULL);
         return TCL_ERROR;
     }
     const char *label;
     label = Tcl_GetString(objv[1]);
-
     int w, h;
     if ((Tcl_GetIntFromObj(interp, objv[2], &w) != TCL_OK) ||
         (Tcl_GetIntFromObj(interp, objv[3], &h) != TCL_OK)) {
         return TCL_ERROR;
-    }
-    if (volPtr->update_pending) {
-        NanoVis::SetVolumeRanges();
     }
     NanoVis::render_legend(tf, 
 			   NanoVis::grid->yAxis.min(), 
