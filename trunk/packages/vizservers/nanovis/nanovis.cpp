@@ -2192,8 +2192,7 @@ NanoVis::xinetd_listen(void)
                 if (npass == 0) {
 		    DoExit(0);
                 } else {
-		    fcntl(0, F_SETFL, flags);
-		    return;
+		    break;
                 }
             }
 	    ch = (char)c;
@@ -2219,16 +2218,18 @@ NanoVis::xinetd_listen(void)
     if (status != TCL_OK) {
         const char *string;
         int nBytes;
+	int count;
 
-        string = Tcl_GetStringFromObj(Tcl_GetObjResult(interp), &nBytes);
+	string = Tcl_GetVar(interp, "errorInfo", TCL_GLOBAL_ONLY);
+	nBytes = strlen(string);
         struct iovec iov[3];
         iov[0].iov_base = (char *)"NanoVis Server Error: ";
         iov[0].iov_len = strlen((char *)iov[0].iov_base);
         iov[1].iov_base = (char *)string;
         iov[1].iov_len = nBytes;
-        iov[2].iov_base = (char *)'\n';
-        iov[2].iov_len = 1;
-        writev(0, iov, 3);
+	iov[2].iov_len = 1;
+	iov[2].iov_base = (char *)'\n';
+	writev(0, iov, 3);
 	if (debug_flag) {
 	    fprintf(stderr, "leaving xinetd_listen\n");
 	}
