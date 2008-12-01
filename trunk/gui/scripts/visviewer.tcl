@@ -456,7 +456,7 @@ itcl::body Rappture::VisViewer::_ReceiveHelper {} {
     if { $line == "" } {
 	return
     }
-    if { [string equal [string range $line 0 2] "nv>"] } {
+    if { [string compare -length 3 $line "nv>"] == 0 } {
 	ReceiveEcho <<line $line
 	append buffer_(in) [string range $line 3 end]
 	append buffer_(in) "\n"
@@ -465,10 +465,14 @@ itcl::body Rappture::VisViewer::_ReceiveHelper {} {
 	    set buffer_(in) ""
 	    $_parser eval $request
 	}
+    } elseif { [string compare -length 20 $line "NanoVis Server Error:"] == 0} {
+	# this shows errors coming back from the engine
+	ReceiveEcho <<error $line
+	puts stderr "Render Server Error: $line\n"
     } else {
 	# this shows errors coming back from the engine
 	ReceiveEcho <<error $line
-	puts stderr "Render Server Error: $line"
+	puts stderr "Garbled message: $line\n"
     }
 }
 
@@ -531,3 +535,4 @@ itcl::body Rappture::VisViewer::ReceiveEcho {channel {data ""}} {
         uplevel #0 $itk_option(-receivecommand) [list $channel $data]
     }
 }
+

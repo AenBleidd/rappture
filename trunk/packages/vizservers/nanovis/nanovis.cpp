@@ -2192,7 +2192,8 @@ NanoVis::xinetd_listen(void)
                 if (npass == 0) {
 		    DoExit(0);
                 } else {
-                    break;
+		    fcntl(0, F_SETFL, flags);
+		    return;
                 }
             }
 	    ch = (char)c;
