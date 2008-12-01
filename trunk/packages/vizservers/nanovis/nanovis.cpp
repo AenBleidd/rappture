@@ -2166,11 +2166,11 @@ NanoVis::xinetd_listen(void)
     fcntl(0, F_SETFL, flags & ~O_NONBLOCK);
 
     int status = TCL_OK;
-    int npass = 0;
 
     //
     //  Read and execute as many commands as we can from stdin...
     //
+    bool isComplete = false;
     while (status == TCL_OK) {
         //
         //  Read the next command from the buffer.  First time through we
@@ -2189,16 +2189,18 @@ NanoVis::xinetd_listen(void)
             int c = fgetc(NanoVis::stdin);
 	    char ch;
             if (c <= 0) {
-                if (npass == 0) {
-		    DoExit(0);
-                } else {
+		if (errno == EWOULDBLOCK) {
 		    break;
-                }
+		}
+		DoExit(0);
             }
 	    ch = (char)c;
             Tcl_DStringAppend(&cmdbuffer, &ch, 1);
-            if (ch=='\n' && Tcl_CommandComplete(Tcl_DStringValue(&cmdbuffer))) {
-                break;
+            if (ch == '\n') {
+		isComplete = Tcl_CommandComplete(Tcl_DStringValue(&cmdbuffer));
+		if (isComplete) {
+		    break;
+		}
             }
         }
         // no command? then we're done for now
@@ -2206,12 +2208,14 @@ NanoVis::xinetd_listen(void)
             break;
         }
 
-        // back to original flags during command evaluation...
-        fcntl(0, F_SETFL, flags & ~O_NONBLOCK);
-	status = ExecuteCommand(interp, &cmdbuffer);
-        // non-blocking for next read -- we might not get anything
-        fcntl(0, F_SETFL, flags | O_NONBLOCK);
-        npass++;
+	if (isComplete) {
+	    // back to original flags during command evaluation...
+	    fcntl(0, F_SETFL, flags & ~O_NONBLOCK);
+	    status = ExecuteCommand(interp, &cmdbuffer);
+	    // non-blocking for next read -- we might not get anything
+	    fcntl(0, F_SETFL, flags | O_NONBLOCK);
+	    isComplete = false;
+	}
     }
     fcntl(0, F_SETFL, flags);
 

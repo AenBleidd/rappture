@@ -861,7 +861,8 @@ itcl::body Rappture::NanovisViewer::_SendDataObjs {} {
     SendBytes $outbuf_
     set outbuf_ ""
 
-    $_dispatcher event -idle !legend
+    #_fixLegend
+    #$_dispatcher event -idle !legend
 }
 
 # ----------------------------------------------------------------------
@@ -925,7 +926,7 @@ itcl::body Rappture::NanovisViewer::_ReceiveImage {option size} {
 #	I don't know all the different paths used to draw the plot. There's 
 #	"_rebuild", "add", etc.
 #
-itcl::body Rappture::NanovisViewer::_ReceiveLegend { ivol vmin vmax size } {
+itcl::body Rappture::NanovisViewer::_ReceiveLegend { tf vmin vmax size } {
     if { ![isconnected] } {
 	return
     }
@@ -936,7 +937,7 @@ itcl::body Rappture::NanovisViewer::_ReceiveLegend { ivol vmin vmax size } {
     set c $itk_component(legend)
     set w [winfo width $c]
     set h [winfo height $c]
-    foreach { dataobj comp } $_id2obj($ivol) break
+    #foreach { dataobj comp } $_id2obj($ivol) break
     set lx 10
     set ly [expr {$h - 1}]
     if {"" == [$c find withtag transfunc]} {
@@ -951,7 +952,7 @@ itcl::body Rappture::NanovisViewer::_ReceiveLegend { ivol vmin vmax size } {
 	    [itcl::code $this _AddIsoMarker %x %y]
     }
     # Display the markers used by the active transfer function.
-    set tf $activeTf_
+    #set tf $activeTf_
 
     array set limits [GetLimits $tf]
     $c itemconfigure vmin -text [format %.2g $limits(min)]
