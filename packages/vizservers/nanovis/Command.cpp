@@ -941,6 +941,9 @@ LegendCmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const *objv)
         (Tcl_GetIntFromObj(interp, objv[3], &h) != TCL_OK)) {
         return TCL_ERROR;
     }
+    if (Volume::update_pending) {
+        NanoVis::SetVolumeRanges();
+    }
     NanoVis::render_legend(tf, 
 			   NanoVis::grid->yAxis.min(), 
 			   NanoVis::grid->yAxis.max(), w, h, label);
