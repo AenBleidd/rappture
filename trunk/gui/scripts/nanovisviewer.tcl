@@ -860,9 +860,6 @@ itcl::body Rappture::NanovisViewer::_SendDataObjs {} {
     # if there are any commands in the buffer, send them now that we're done
     SendBytes $outbuf_
     set outbuf_ ""
-
-    #_fixLegend
-    #$_dispatcher event -idle !legend
 }
 
 # ----------------------------------------------------------------------

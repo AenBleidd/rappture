@@ -1,3 +1,4 @@
+
 # ----------------------------------------------------------------------
 #  COMPONENT: heightmapviewer - 3D volume rendering
 #
@@ -66,7 +67,7 @@ itcl::class Rappture::HeightmapViewer {
     protected method _send {string}
     protected method _send_dataobjs {}
     protected method ReceiveImage {option size}
-    private method ReceiveLegend {ivol vmin vmax size}
+    private method ReceiveLegend {tf vmin vmax size}
     protected method _receive_echo {channel {data ""}}
 
     protected method _rebuild {}
@@ -235,14 +236,6 @@ itcl::body Rappture::HeightmapViewer::constructor {hostlist args} {
         -variable ::Rappture::HeightmapViewer::settings_($this-wireframe) \
         -command [itcl::code $this _fixSettings wireframe]
     grid $inner.f.wireframe -row 3 -column 0 -sticky w
-
-    set ::Rappture::HeightmapViewer::settings_($this-shading) "smooth"
-    ::checkbutton $inner.f.shading \
-        -text "Flat Shading" \
-	-onvalue "flat" -offvalue "smooth" \
-        -variable ::Rappture::HeightmapViewer::settings_($this-shading) \
-        -command [itcl::code $this _fixSettings shading]
-    grid $inner.f.shading -row 4 -column 0 -sticky w
 
     # Legend
     set _image(legend) [image create photo]
@@ -675,13 +668,13 @@ itcl::body Rappture::HeightmapViewer::ReceiveImage {option size} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: ReceiveLegend <volume> <vmin> <vmax> <size>
+# USAGE: ReceiveLegend <tf> <vmin> <vmax> <size>
 #
 # Invoked automatically whenever the "legend" command comes in from
 # the rendering server.  Indicates that binary image data with the
 # specified <size> will follow.
 # ----------------------------------------------------------------------
-itcl::body Rappture::HeightmapViewer::ReceiveLegend {ivol vmin vmax size} {
+itcl::body Rappture::HeightmapViewer::ReceiveLegend {tf vmin vmax size} {
     if { [IsConnected] } {
         set bytes [ReceiveBytes $size]
         $_image(legend) configure -data $bytes
@@ -765,7 +758,6 @@ itcl::body Rappture::HeightmapViewer::_rebuild {} {
      if {"" == $itk_option(-plotoutline)} {
          _send "grid linecolor [Color2RGB $itk_option(-plotoutline)]"
      }
-    _fixSettings shading
     _fixSettings wireframe
     _fixSettings grid
     _fixSettings axes
@@ -856,7 +848,7 @@ itcl::body Rappture::HeightmapViewer::_rotate {option x y} {
     switch -- $option {
         click {
             $itk_component(3dview) configure -cursor fleur
-	    array set click [subst {
+	    array set click_ [subst {
 		x       $x
 		y       $y
 		theta   $view_(theta)
@@ -877,7 +869,7 @@ itcl::body Rappture::HeightmapViewer::_rotate {option x y} {
                     # this fails sometimes for no apparent reason
                     set dx [expr {double($x-$click_(x))/$w}]
                     set dy [expr {double($y-$click_(y))/$h}]
-                }]} {
+                }] != 0 } {
                     return
                 }
 
@@ -974,11 +966,6 @@ itcl::body Rappture::HeightmapViewer::_fixSettings { what {value ""} } {
         "axes" {
             if { [IsConnected] } {
                 _send "axis visible $settings_($this-axes)"
-            }
-        }
-        "shading" {
-            if { [IsConnected] } {
-                _send "heightmap shading $settings_($this-shading)"
             }
         }
         "wireframe" {
