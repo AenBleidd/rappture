@@ -7,11 +7,11 @@
  * Added panning function to nanovisviewer, heightmapviewer, and
    molvisviewer.  Feature available via mouse and keyboard.
  * Fixed pymolproxy to handle non-blocking reads from pymol server where
-   where previous client command would drain stdout.  The bug appears in
+   previous client command would drain stdout.  The bug appears in
    64-bit versions.
  * Changed curve object to use a vector to read/parse xy data and then
-   split into the correspondings x and y vectors.  Rough testing shows
-   to be 8x faster than scan-ing every line.  This was also done
+   split into the corresponding x and y vectors.  Rough testing shows
+   to be 8x faster than split/scan-ing every line.  This was also done
    for fields (points).
  * Added feature to VisViewer base class to disconnect from the render
    server after a specified interval "idleTimeout_".  If zero, no
@@ -37,7 +37,7 @@
    specifications like "rappture -load file1 file2 file3".  The list
    type can only be used at the end of the command line.
  * Added rappture-csh.env script for c-shell users.
- * Fixed lang/matlab/Makefile.in to allow prevent parallel builds of
+ * Fixed lang/matlab/Makefile.in to prevent parallel builds of
    matlab bindings.  "mex" generates temporary files that collide when
    multiple compilations are using the same directory.
  * Added -x flag to nanoscale to automatically rotate between screens

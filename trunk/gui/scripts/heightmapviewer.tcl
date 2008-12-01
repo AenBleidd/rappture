@@ -813,7 +813,7 @@ itcl::body Rappture::HeightmapViewer::_zoom {option} {
 # Called automatically when the user clicks on one of the zoom
 # controls for this widget.  Changes the zoom for the current view.
 # ----------------------------------------------------------------------
-itcl::body Rappture::NanovisViewer::_pan {option x y} {
+itcl::body Rappture::HeightmapViewer::_pan {option x y} {
     # Experimental stuff
     set w [winfo width $itk_component(3dview)]
     set h [winfo height $itk_component(3dview)]

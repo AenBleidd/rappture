@@ -32,8 +32,8 @@ itcl::class ::Rappture::VisViewer {
     # Number of milliseconds to wait before idle timeout.
     # If greater than 0, automatically disconnect from the visualization
     # server when idle timeout is reached.
-    #private variable idleTimeout_ 3600000; # 1 hour
-    private variable idleTimeout_ 5000;    # 5 seconds
+    private variable idleTimeout_ 43200000; # 12 hours
+    #private variable idleTimeout_ 5000;    # 5 seconds
     #private variable idleTimeout_ 0;	    # No timeout
 
     protected variable _dispatcher ""   ;# dispatcher for !events
