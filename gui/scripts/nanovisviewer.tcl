@@ -56,7 +56,7 @@ itcl::class Rappture::NanovisViewer {
     public method get {args}
     public method delete {args}
     public method scale {args}
-    public method GetLimits { ivol } 
+    public method GetLimits { tf } 
     public method download {option args}
     public method parameters {title args} { 
         # do nothing 
@@ -884,9 +884,7 @@ itcl::body Rappture::NanovisViewer::_SendTransferFunctions {} {
 
     if { ![info exists $_obj2styles($first)] } {
 	foreach tf $_obj2styles($first) {
-	    if { ![_ComputeTransferFunction $tf] } {
-		return
-	    }
+	    _ComputeTransferFunction $tf
 	}
 	_fixLegend
     }
@@ -948,15 +946,16 @@ itcl::body Rappture::NanovisViewer::_ReceiveLegend { ivol vmin vmax size } {
 	$c bind transfunc <ButtonRelease-1> \
 	    [itcl::code $this _AddIsoMarker %x %y]
     }
-    array set limits [GetLimits $ivol]
+    # Display the markers used by the active volume.
+    set tf $_id2style($activeId_)
+
+    array set limits [GetLimits $tf]
     $c itemconfigure vmin -text [format %.2g $limits(min)]
     $c coords vmin $lx $ly
     
     $c itemconfigure vmax -text [format %.2g $limits(max)]
     $c coords vmax [expr {$w-$lx}] $ly
 
-    # Display the markers used by the active volume.
-    set tf $_id2style($activeId_)
     if { [info exists isomarkers_($tf)] } {
 	foreach m $isomarkers_($tf) {
 	    $m Show
@@ -1546,8 +1545,16 @@ itcl::body Rappture::NanovisViewer::_ComputeTransferFunction { tf } {
 	-levels 6
 	-opacity 1.0
     }
-    set ivol [lindex $_style2ids($tf) 0]
-    foreach {dataobj comp} $_id2obj($ivol) break
+    set dataobj ""; set comp ""
+    foreach ivol $_style2ids($tf) {
+        if { [info exists _id2obj($ivol)] } {
+            foreach {dataobj comp} $_id2obj($ivol) break
+            break
+        }
+    }
+    if { $dataobj == "" } {
+        return 0
+    }
     array set style [lindex [$dataobj components -style $comp] 0]
 
 
@@ -1697,13 +1704,13 @@ itcl::body Rappture::NanovisViewer::_ParseLevelsOption { tf ivol levels } {
     if {[string is int $levels]} {
 	for {set i 1} { $i <= $levels } {incr i} {
 	    set x [expr {double($i)/($levels+1)}]
-	    set m [IsoMarker \#auto $c $this $ivol]
+	    set m [IsoMarker \#auto $c $this $tf]
 	    $m SetRelativeValue $x
 	    lappend isomarkers_($tf) $m 
 	}
     } else {
         foreach x $levels {
-	    set m [IsoMarker \#auto $c $this $ivol]
+	    set m [IsoMarker \#auto $c $this $tf]
 	    $m SetRelativeValue $x
 	    lappend isomarkers_($tf) $m 
         }
@@ -1730,12 +1737,12 @@ itcl::body Rappture::NanovisViewer::_ParseMarkersOption { tf ivol markers } {
         if { $n == 2 && $suffix == "%" } {
             # ${n}% : Set relative value. 
             set value [expr {$value * 0.01}]
-            set m [IsoMarker \#auto $c $this $ivol]
+            set m [IsoMarker \#auto $c $this $tf]
             $m SetRelativeValue $value
             lappend isomarkers_($tf) $m
         } else {
             # ${n} : Set absolute value.
-            set m [IsoMarker \#auto $c $this $ivol]
+            set m [IsoMarker \#auto $c $this $tf]
             $m SetAbsoluteValue $value
             lappend isomarkers_($tf) $m
         }
@@ -1762,7 +1769,7 @@ itcl::body Rappture::NanovisViewer::_AddIsoMarker { x y } {
     }
     set tf $_id2style($activeId_)
     set c $itk_component(legend)
-    set m [IsoMarker \#auto $c $this $activeId_]
+    set m [IsoMarker \#auto $c $this $tf]
     set w [winfo width $c]
     $m SetRelativeValue [expr {double($x-10)/($w-20)}]
     lappend isomarkers_($tf) $m
@@ -1771,8 +1778,7 @@ itcl::body Rappture::NanovisViewer::_AddIsoMarker { x y } {
 }
 
 itcl::body Rappture::NanovisViewer::RemoveDuplicateIsoMarker { marker x } {
-    set ivol [$marker GetVolume]
-    set tf $_id2style($ivol)
+    set tf [$marker GetTransferFunction]
     set bool 0
     if { [info exists isomarkers_($tf)] } {
         set list {}
@@ -1797,10 +1803,10 @@ itcl::body Rappture::NanovisViewer::RemoveDuplicateIsoMarker { marker x } {
 }
 
 itcl::body Rappture::NanovisViewer::OverIsoMarker { marker x } {
-    set ivol [$marker GetVolume]
-    if { [info exists isomarkers_($ivol)] } {
+    set tf [$marker GetTransferFunction]
+    if { [info exists isomarkers_($tf)] } {
         set marker [namespace tail $marker]
-        foreach m $isomarkers_($ivol) {
+        foreach m $isomarkers_($tf) {
             set sx [$m GetScreenPosition]
             if { $m != $marker } {
                 set bool [expr { $x >= ($sx-3) && $x <= ($sx+3) }]
@@ -1811,11 +1817,7 @@ itcl::body Rappture::NanovisViewer::OverIsoMarker { marker x } {
     return ""
 }
 
-itcl::body Rappture::NanovisViewer::GetLimits { ivol } {
-    if { ![info exists _id2style($ivol)] } {
-	return
-    }
-    set tf $_id2style($ivol)
+itcl::body Rappture::NanovisViewer::GetLimits { tf } {
     set limits_(min) ""
     set limits_(max) ""
     foreach ivol $_style2ids($tf) {

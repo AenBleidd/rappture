@@ -17,50 +17,50 @@ package require BLT
 package require Img
 
 itcl::class Rappture::NanovisViewer::IsoMarker {
-    private variable _value	"";	# Absolute value of marker.
-    private variable _label	""
-    private variable _tick	""
-    private variable _canvas	""
-    private variable _nvobj	"";	# Parent nanovis object.
-    private variable _ivol	"";	# Transfer function that this marker is 
+    private variable value_	"";	# Absolute value of marker.
+    private variable label_	""
+    private variable tick_	""
+    private variable canvas_	""
+    private variable nvobj_	"";	# Parent nanovis object.
+    private variable tf_	"";	# Transfer function that this marker is 
 					# associated with.
-    private variable _active_motion   0
-    private variable _active_press    0
-    private common   _normalIcon [Rappture::icon nvlegendmark]
-    private common   _activeIcon [Rappture::icon nvlegendmark2]
+    private variable active_motion_   0
+    private variable active_press_    0
+    private common   normalIcon_ [Rappture::icon nvlegendmark]
+    private common   activeIcon_ [Rappture::icon nvlegendmark2]
 
-    constructor {c obj ivol args} { 
-	set _canvas $c
-	set _nvobj $obj
-	set _ivol $ivol
-	set w [winfo width $_canvas]
-	set h [winfo height $_canvas]
-	set _tick [$c create image 0 $h \
-		-image $_normalIcon -anchor s \
+    constructor {c obj tf args} { 
+	set canvas_ $c
+	set nvobj_ $obj
+	set tf_ $tf
+	set w [winfo width $canvas_]
+	set h [winfo height $canvas_]
+	set tick_ [$c create image 0 $h \
+		-image $normalIcon_ -anchor s \
 		-tags "$this $obj" -state hidden]
-	set _label [$c create text 0 $h \
+	set label_ [$c create text 0 $h \
 		-anchor n -fill white -font "Helvetica 8" \
 		-tags "$this $obj" -state hidden]
-	$c bind $_tick <Enter> [itcl::code $this HandleEvent "enter"]
-	$c bind $_tick <Leave> [itcl::code $this HandleEvent "leave"]
-	$c bind $_tick <ButtonPress-1> \
+	$c bind $tick_ <Enter> [itcl::code $this HandleEvent "enter"]
+	$c bind $tick_ <Leave> [itcl::code $this HandleEvent "leave"]
+	$c bind $tick_ <ButtonPress-1> \
 	    [itcl::code $this HandleEvent "start" %x %y]
-	$c bind $_tick <B1-Motion> \
+	$c bind $tick_ <B1-Motion> \
 	    [itcl::code $this HandleEvent "update" %x %y]
-	$c bind $_tick <ButtonRelease-1> \
+	$c bind $tick_ <ButtonRelease-1> \
 	    [itcl::code $this HandleEvent "end" %x %y]
     }
     destructor { 
-	$_canvas delete $this
+	$canvas_ delete $this
     }
-    public method GetVolume {} {
-	return $_ivol
+    public method GetTransferFunction {} {
+	return $tf_
     }
     public method GetAbsoluteValue {} {
-	return $_value
+	return $value_
     }
     public method GetRelativeValue {} {
-	array set limits [$_nvobj GetLimits $_ivol] 
+	array set limits [$nvobj_ GetLimits $tf_] 
 	if { $limits(max) == $limits(min) } {
 	    if { $limits(max) == 0.0 } {
 		set limits(min) 0.0
@@ -69,24 +69,24 @@ itcl::class Rappture::NanovisViewer::IsoMarker {
 		set limits(max) [expr $limits(min) + 1.0]
 	    }
 	}
-	return [expr {($_value-$limits(min))/($limits(max) - $limits(min))}]
+	return [expr {($value_-$limits(min))/($limits(max) - $limits(min))}]
     }
     public method Activate { bool } {
-	if  { $bool || $_active_press || $_active_motion } {
-	    $_canvas itemconfigure $_label -state normal
-	    $_canvas itemconfigure $_tick -image $_activeIcon
+	if  { $bool || $active_press_ || $active_motion_ } {
+	    $canvas_ itemconfigure $label_ -state normal
+	    $canvas_ itemconfigure $tick_ -image $activeIcon_
 	} else {
-	    $_canvas itemconfigure $_label -state hidden
-	    $_canvas itemconfigure $_tick -image $_normalIcon
+	    $canvas_ itemconfigure $label_ -state hidden
+	    $canvas_ itemconfigure $tick_ -image $normalIcon_
 	}
     }
     public method Show {} {
-	SetAbsoluteValue $_value
-	$_canvas itemconfigure $_tick -state normal
-	$_canvas raise $_tick
+	SetAbsoluteValue $value_
+	$canvas_ itemconfigure $tick_ -state normal
+	$canvas_ raise $tick_
     }
     public method Hide {} {
-	$_canvas itemconfigure $_tick -state hidden
+	$canvas_ itemconfigure $tick_ -state hidden
     }
     public method GetScreenPosition { } { 
 	set x [GetRelativeValue]
@@ -96,21 +96,21 @@ itcl::class Rappture::NanovisViewer::IsoMarker {
 	    set x 1.0 
 	}
 	set low 10 
-	set w [winfo width $_canvas]
+	set w [winfo width $canvas_]
 	set high [expr {$w  - 10}]
 	set x [expr {round($x*($high - $low) + $low)}]
 	return $x
     }
     public method SetAbsoluteValue { x } {
-	set _value $x
+	set value_ $x
 	set y 31
-	$_canvas itemconfigure $_label -text [format %.2g $_value]
+	$canvas_ itemconfigure $label_ -text [format %.2g $value_]
 	set x [GetScreenPosition]
-	$_canvas coords $_tick $x [expr {$y+3}]
-	$_canvas coords $_label $x [expr {$y+5}]
+	$canvas_ coords $tick_ $x [expr {$y+3}]
+	$canvas_ coords $label_ $x [expr {$y+5}]
     }
     public method SetRelativeValue { x } {
-	array set limits [$_nvobj GetLimits $_ivol] 
+	array set limits [$nvobj_ GetLimits $tf_] 
 	if { $limits(max) == $limits(min) } {
 	    set limits(min) 0.0
 	    set limits(max) 1.0
@@ -121,35 +121,35 @@ itcl::class Rappture::NanovisViewer::IsoMarker {
     public method HandleEvent { option args } {
 	switch -- $option {
 	    enter {
-		set _active_motion 1
+		set active_motion_ 1
 		Activate yes
-		$_canvas raise $_tick
+		$canvas_ raise $tick_
 	    }
 	    leave {
-		set _active_motion 0
+		set active_motion_ 0
 		Activate no
 	    }
 	    start {
-		$_canvas raise $_tick 
-		set _active_press 1
+		$canvas_ raise $tick_ 
+		set active_press_ 1
 		Activate yes
-		$_canvas itemconfigure limits -state hidden
+		$canvas_ itemconfigure limits -state hidden
 	    }
 	    update {
-		set w [winfo width $_canvas]
+		set w [winfo width $canvas_]
 		set x [lindex $args 0]
 		SetRelativeValue [expr {double($x-10)/($w-20)}]
-		$_nvobj OverIsoMarker $this $x
-		$_nvobj UpdateTransferFunctions
+		$nvobj_ OverIsoMarker $this $x
+		$nvobj_ UpdateTransferFunctions
 	    }
 	    end {
 		set x [lindex $args 0]
-		if { ![$_nvobj RemoveDuplicateIsoMarker $this $x]} {
+		if { ![$nvobj_ RemoveDuplicateIsoMarker $this $x]} {
 		    eval HandleEvent update $args
 		}
-		set _active_press 0
+		set active_press_ 0
 		Activate no
-		$_canvas itemconfigure limits -state normal
+		$canvas_ itemconfigure limits -state normal
 	    }
 	    default {
 		error "bad option \"$option\": should be start, update, end"
