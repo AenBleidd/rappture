@@ -99,7 +99,6 @@ itcl::class Rappture::XyResult {
     protected method _leaveMarker { g name }
 
     private variable _dispatcher "" ;# dispatcher for !events
-
     private variable _clist ""     ;# list of curve objects
     private variable _curve2color  ;# maps curve => plotting color
     private variable _curve2width  ;# maps curve => line width
@@ -117,10 +116,15 @@ itcl::class Rappture::XyResult {
     common _downloadPopup          ;# download options from popup
     private variable _markers
     private variable cur_ ""
+    private variable initialized_ 0
 }
                                                                                 
 itk::usual XyResult {
     keep -background -foreground -cursor -font
+}
+
+itk::usual Panedwindow {
+    keep -background -cursor
 }
 
 # ----------------------------------------------------------------------
@@ -158,15 +162,20 @@ itcl::body Rappture::XyResult::constructor {args} {
     }
     pack $itk_component(reset) -padx 4 -pady 2 -anchor e
     Rappture::Tooltip::for $itk_component(reset) "Reset the view to the default zoom level"
-
+    itk_component add drawer {
+ 	panedwindow $itk_interior.drawer \
+ 	    -orient horizontal -opaqueresize 1 -handlepad 0 \
+ 	    -handlesize 1 -sashwidth 2     
+    }
+    pack $itk_component(drawer) -expand yes -fill both
     itk_component add plot {
-        blt::graph $itk_interior.plot \
+        blt::graph $itk_component(drawer).plot \
             -highlightthickness 0 -plotpadx 0 -plotpady 0 \
             -rightmargin 10
     } {
         keep -background -foreground -cursor -font
     }
-    pack $itk_component(plot) -expand yes -fill both
+    $itk_component(drawer) add $itk_component(plot) -sticky nsew
     $itk_component(plot) pen configure activeLine \
         -symbol square -pixels 3 -linewidth 2 \
 	-outline black -fill red -color black
@@ -250,7 +259,7 @@ itcl::body Rappture::XyResult::constructor {args} {
     pack $itk_component(legendbutton) -padx 4 -pady { 0 2 } -anchor e
     
     itk_component add legend {
-	Rappture::XyLegend $itk_component(controls).legend $itk_component(plot)
+	Rappture::XyLegend $itk_component(drawer).legend $itk_component(plot)
     }
     after idle [subst {
 	update idletasks
@@ -1576,14 +1585,20 @@ itcl::body Rappture::XyResult::_leaveMarker { g name } {
 itcl::body Rappture::XyResult::legend { what args } {
     switch -- ${what} {
 	"activate" {
-	    pack $itk_component(legend) -expand yes -fill both 
+	    $itk_component(drawer) add $itk_component(legend) -sticky nsew
 	    after idle [list focus $itk_component(legend)]
+	    if { !$initialized_ } {
+		set w [winfo width $itk_component(drawer)]
+		set x [expr $w - 100]
+		$itk_component(drawer) sash place 0 $x 0
+		set initialized_ 1
+	    }
 	}
 	"deactivate" {
-	    pack forget $itk_component(legend) 
+	    $itk_component(drawer) forget $itk_component(legend)
 	}
 	"toggle" {
-	    set slaves [pack slave $itk_component(controls)]
+	    set slaves [$itk_component(drawer) panes]
 	    if { [lsearch $slaves $itk_component(legend)] >= 0 } {
 		legend deactivate
 	    } else {

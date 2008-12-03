@@ -107,14 +107,16 @@ static unsigned char dot1_bits[] = {
 # ----------------------------------------------------------------------
 itcl::body Rappture::XyLegend::constructor { graph args } {
     option add hull.width hull.height
+    pack propagate $itk_component(hull) no
     itk_component add scrollbars {
 	Rappture::Scroller $itk_interior.scrl \
-	    -xscrollmode auto -yscrollmode auto 
+	    -xscrollmode auto -yscrollmode auto \
+	    -width 200 -height 100
     }
     set tree_ [blt::tree create]
     itk_component add legend {
         blt::treeview $itk_component(scrollbars).legend -linewidth 0 \
-	    -bg white -selectmode multiple -width 0 \
+	    -bg white -selectmode multiple \
 	    -highlightthickness 0 \
 	    -tree $tree_ \
 	    -font "Arial 9" \
