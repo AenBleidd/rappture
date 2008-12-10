@@ -1,0 +1,180 @@
+<?xml version="1.0"?>
+<run>
+    <tool>
+        <title>structure</title>
+        <about>Example of a Rappture &lt;structure&gt; object.
+
+A structure is a collection of geometrical objects describing a physical structure.  A structure can have embedded parameters (such as the size of certain parts of the structure) along with fields that represent numerical quantities defined within the structure.
+
+This example uses a loader element to load various structure definitions from example files.  You can see the real action here by selecting various examples from the loader.  The simulate button doesn't do very much.  It just copies the input parameters in the structure (if there are any) to the output log.
+  </about>
+        <command>
+    tclsh @tool/structure.tcl @driver
+  </command>
+        <name>Workspace (800x600)</name>
+        <version>
+            <rappture>
+                <revision>$LastChangedRevision: 1018 $</revision>
+                <modified>$LastChangedDate: 2008-06-08 21:24:34 -0400 (Sun, 08 Jun 2008) $</modified>
+                <language>tcl</language>
+            </rappture>
+        </version>
+    </tool>
+    <input>
+        <loader>
+            <about>
+                <label>Example</label>
+                <description>Use this to load examples.</description>
+            </about>
+            <example>*.xml</example>
+            <default>Simple Structure</default>
+            <current>Molecular Structure</current>
+            <file>molecule.xml</file>
+        </loader>
+        <structure>
+            <!-- examples get loaded in here by loader -->
+            <current>
+                <components>
+                    <molecule>
+                        <about>
+                            <emblems>on</emblems>
+                        </about>
+                        <formula>pdt</formula>
+                        <atom id="0">
+                            <symbol>H</symbol>
+                            <xyz>-1.24935 -3.41562 0.0</xyz>
+                        </atom>
+                        <atom id="1">
+                            <symbol>S</symbol>
+                            <xyz>0.08092 -3.19426 0.0</xyz>
+                        </atom>
+                        <atom id="2">
+                            <symbol>C</symbol>
+                            <xyz>0.00055 -1.40789 0.0</xyz>
+                        </atom>
+                        <atom id="3">
+                            <symbol>H</symbol>
+                            <xyz>2.15434 -1.22709 0.0</xyz>
+                        </atom>
+                        <atom id="4">
+                            <symbol>H</symbol>
+                            <xyz>-2.1543 -1.22326 0.0</xyz>
+                        </atom>
+                        <atom id="5">
+                            <symbol>C</symbol>
+                            <xyz>1.20684 -0.69505 0.0</xyz>
+                        </atom>
+                        <atom id="6">
+                            <symbol>C</symbol>
+                            <xyz>-1.20381 -0.69647 0.0</xyz>
+                        </atom>
+                        <atom id="7">
+                            <symbol>C</symbol>
+                            <xyz>-1.20385 0.69776 0.0</xyz>
+                        </atom>
+                        <atom id="8">
+                            <symbol>C</symbol>
+                            <xyz>1.20676 0.69618 0.0</xyz>
+                        </atom>
+                        <atom id="9">
+                            <symbol>H</symbol>
+                            <xyz>-2.15434 1.22458 0.0</xyz>
+                        </atom>
+                        <atom id="10">
+                            <symbol>H</symbol>
+                            <xyz>2.15422 1.22819 0.0</xyz>
+                        </atom>
+                        <atom id="11">
+                            <symbol>C</symbol>
+                            <xyz>0.00054 1.40909 0.0</xyz>
+                        </atom>
+                        <atom id="12">
+                            <symbol>S</symbol>
+                            <xyz>0.08111 3.19538 0.0</xyz>
+                        </atom>
+                        <atom id="13">
+                            <symbol>H</symbol>
+                            <xyz>-1.24934 3.41562 0.0</xyz>
+                        </atom>
+                    </molecule>
+                </components>
+            </current>
+        </structure>
+    </input>
+    <output>
+        <log>Structure: Molecular Structure</log>
+        <structure>
+            <components>
+                <molecule>
+                    <about>
+                        <emblems>on</emblems>
+                    </about>
+                    <formula>pdt</formula>
+                    <atom id="0">
+                        <symbol>H</symbol>
+                        <xyz>-1.24935 -3.41562 0.0</xyz>
+                    </atom>
+                    <atom id="1">
+                        <symbol>S</symbol>
+                        <xyz>0.08092 -3.19426 0.0</xyz>
+                    </atom>
+                    <atom id="2">
+                        <symbol>C</symbol>
+                        <xyz>0.00055 -1.40789 0.0</xyz>
+                    </atom>
+                    <atom id="3">
+                        <symbol>H</symbol>
+                        <xyz>2.15434 -1.22709 0.0</xyz>
+                    </atom>
+                    <atom id="4">
+                        <symbol>H</symbol>
+                        <xyz>-2.1543 -1.22326 0.0</xyz>
+                    </atom>
+                    <atom id="5">
+                        <symbol>C</symbol>
+                        <xyz>1.20684 -0.69505 0.0</xyz>
+                    </atom>
+                    <atom id="6">
+                        <symbol>C</symbol>
+                        <xyz>-1.20381 -0.69647 0.0</xyz>
+                    </atom>
+                    <atom id="7">
+                        <symbol>C</symbol>
+                        <xyz>-1.20385 0.69776 0.0</xyz>
+                    </atom>
+                    <atom id="8">
+                        <symbol>C</symbol>
+                        <xyz>1.20676 0.69618 0.0</xyz>
+                    </atom>
+                    <atom id="9">
+                        <symbol>H</symbol>
+                        <xyz>-2.15434 1.22458 0.0</xyz>
+                    </atom>
+                    <atom id="10">
+                        <symbol>H</symbol>
+                        <xyz>2.15422 1.22819 0.0</xyz>
+                    </atom>
+                    <atom id="11">
+                        <symbol>C</symbol>
+                        <xyz>0.00054 1.40909 0.0</xyz>
+                    </atom>
+                    <atom id="12">
+                        <symbol>S</symbol>
+                        <xyz>0.08111 3.19538 0.0</xyz>
+                    </atom>
+                    <atom id="13">
+                        <symbol>H</symbol>
+                        <xyz>-1.24934 3.41562 0.0</xyz>
+                    </atom>
+                </molecule>
+            </components>
+            <about>
+                <label>Structure</label>
+            </about>
+        </structure>
+        <time>Wed Dec 10 02:37:37 EST 2008</time>
+        <status>ok</status>
+        <user>dkearney</user>
+    </output>
+</run>
+

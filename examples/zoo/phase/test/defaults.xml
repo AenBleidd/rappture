@@ -1,0 +1,57 @@
+<?xml version="1.0"?>
+<run>
+    <tool>
+        <title>phase</title>
+        <about>Example of a Rappture &lt;phase&gt; object.
+
+A phase is like a group of input controls, but it represents a whole page within the graphical interface.  A complicated tool may have too many controls to fit on one page, even if you use groups.  Or, it may have a series of tasks that must be linked together to form a complete analysis.  Each page of input is represented by a phase.
+
+Note that instead of a Simulate button, the phases are arranged one after another, in a Next, Next, Next manner.  The very last Next operation is Simulate.
+  </about>
+        <command>
+    tclsh @tool/phase.tcl @driver
+  </command>
+        <name>Workspace (800x600)</name>
+        <version>
+            <rappture>
+                <revision>$LastChangedRevision: 1018 $</revision>
+                <modified>$LastChangedDate: 2008-06-08 21:24:34 -0400 (Sun, 08 Jun 2008) $</modified>
+                <language>tcl</language>
+            </rappture>
+        </version>
+    </tool>
+    <input>
+        <phase id="one">
+            <about>
+                <label>First Page</label>
+            </about>
+            <string id="first">
+                <about>
+                    <label>First input</label>
+                </about>
+                <default>one</default>
+                <current>one</current>
+            </string>
+        </phase>
+        <phase id="two">
+            <about>
+                <label>Second Page</label>
+            </about>
+            <string id="second">
+                <about>
+                    <label>Second input</label>
+                </about>
+                <default>two</default>
+                <current>two</current>
+            </string>
+        </phase>
+    </input>
+    <output>
+        <log>first = one
+second= two</log>
+        <time>Wed Dec 10 01:59:36 EST 2008</time>
+        <status>ok</status>
+        <user>dkearney</user>
+    </output>
+</run>
+

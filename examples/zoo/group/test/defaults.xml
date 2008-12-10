@@ -1,0 +1,88 @@
+<?xml version="1.0"?>
+<run>
+    <tool>
+        <title>group</title>
+        <about>Examples of Rappture &lt;group&gt; objects.
+
+Groups provide a way of grouping input elements.
+
+Groups can be used two ways:  A group of elements is normally drawn with a gray border around it.  A group of groups is drawn as a set of tabs.  You can see both examples in the inputs on the left.
+
+Group tags can also be used in the output section to overlay plots, but that's really a coincidence.  The name conflict is confusing and should probably be changed.
+  </about>
+        <command>
+    tclsh @tool/group.tcl @driver
+  </command>
+        <name>Workspace (800x600)</name>
+        <version>
+            <rappture>
+                <revision>$LastChangedRevision: 1018 $</revision>
+                <modified>$LastChangedDate: 2008-06-08 21:24:34 -0400 (Sun, 08 Jun 2008) $</modified>
+                <language>tcl</language>
+            </rappture>
+        </version>
+    </tool>
+    <input>
+        <!-- This group of groups is drawn as a set of tabs -->
+        <group id="tabs">
+            <group id="models">
+                <about>
+                    <label>Models</label>
+                </about>
+                <boolean id="recomb">
+                    <about>
+                        <label>Recombination Model</label>
+                    </about>
+                    <default>on</default>
+                    <current>yes</current>
+                </boolean>
+                <!-- This group has a gray border around it-->
+                <group id="tau">
+                    <about>
+                        <label>Minority carrier lifetimes</label>
+                    </about>
+                    <number id="taun">
+                        <about>
+                            <label>For electrons</label>
+                        </about>
+                        <default>1e-6</default>
+                        <current>1e-6</current>
+                    </number>
+                    <number id="taup">
+                        <about>
+                            <label>For holes</label>
+                        </about>
+                        <default>1e-6</default>
+                        <current>1e-6</current>
+                    </number>
+                </group>
+            </group>
+            <group id="ambient">
+                <about>
+                    <label>Ambient</label>
+                </about>
+                <number id="temp">
+                    <about>
+                        <label>Temperature</label>
+                    </about>
+                    <units>K</units>
+                    <default>300K</default>
+                    <current>300K</current>
+                </number>
+            </group>
+        </group>
+    </input>
+    <output>
+        <log>Models:
+  Recombination: yes
+  taun = 1e-6
+  taup = 1e-6
+
+Ambient:
+  tempK = 300K</log>
+        <time>Wed Dec 10 00:57:01 EST 2008</time>
+        <status>ok</status>
+        <user>dkearney</user>
+    </output>
+</run>
+

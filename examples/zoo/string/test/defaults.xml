@@ -1,0 +1,69 @@
+<?xml version="1.0"?>
+<run>
+    <tool>
+        <title>string</title>
+        <about>Example of a Rappture &lt;string&gt; object.
+
+Strings are bits of text--single line or multiple lines.
+The description appears in a tooltip when you hover over the string control with your mouse.
+
+When you click the Simulate button, the input strings will be used to generate output strings.
+  </about>
+        <command>
+    tclsh @tool/string.tcl @driver
+  </command>
+        <name>Workspace (800x600)</name>
+        <version>
+            <rappture>
+                <revision>$LastChangedRevision: 1018 $</revision>
+                <modified>$LastChangedDate: 2008-06-08 21:24:34 -0400 (Sun, 08 Jun 2008) $</modified>
+                <language>tcl</language>
+            </rappture>
+        </version>
+    </tool>
+    <input>
+        <string id="title">
+            <about>
+                <label>Title</label>
+                <description>This text will be used as the title for all plots.</description>
+            </about>
+            <default>untitled</default>
+            <current>untitled</current>
+        </string>
+        <separator/>
+        <string id="indeck">
+            <about>
+                <label>Input</label>
+                <description>This is the control file for the program.</description>
+                <hints>EXAMPLE:  .print ac vm(11) mag(i(vcc))</hints>
+            </about>
+            <size>40x10</size>
+            <default>Enter your SPICE commands
+in this area.  Right-click
+for a menu of editing options.</default>
+            <current>Enter your SPICE commands
+in this area.  Right-click
+for a menu of editing options.</current>
+        </string>
+    </input>
+    <output>
+        <string id="outt">
+            <about>
+                <label>Echo of title</label>
+            </about>
+            <current>untitled</current>
+        </string>
+        <string id="outi">
+            <about>
+                <label>Echo of input</label>
+            </about>
+            <current>Enter your SPICE commands
+in this area.  Right-click
+for a menu of editing options.</current>
+        </string>
+        <time>Wed Dec 10 02:04:11 EST 2008</time>
+        <status>ok</status>
+        <user>dkearney</user>
+    </output>
+</run>
+
