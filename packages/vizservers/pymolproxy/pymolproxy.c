@@ -67,7 +67,7 @@ typedef struct {
 static Stats stats;
 
 static FILE *flog;
-static int debug = TRUE;
+static int debug = 0;
 
 typedef struct {
     char *data;

@@ -692,6 +692,7 @@ itcl::body Rappture::Field::_build {} {
             set _comp2dx($cname) [$_field get -decode no $cname.dx]
             set _comp2style($cname) [$_field get $cname.style]
             incr _counter
+
         } elseif {$type == "opendx"} {
             #
             # HACK ALERT!  Extract gzipped, base64-encoded OpenDX
@@ -701,15 +702,6 @@ itcl::body Rappture::Field::_build {} {
             set _comp2dims($cname) "3D"
 	    set data [$_field get -decode yes $cname.opendx]
 	    set data [Rappture::encoding::decode -as zb64 $data]
-
-	    global fcount
-	    if { ![info exists fcount] } {
-		set fcount 0
-	    }
-	    incr fcount
-	    set f [open "opendx-$fcount.dx" "w"]
-	    puts $f $data
-	    close $f
 
 	    set data "<ODX>$data"
 	    set data [Rappture::encoding::encode -as zb64 $data]

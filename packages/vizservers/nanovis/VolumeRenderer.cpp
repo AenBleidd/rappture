@@ -108,12 +108,12 @@ VolumeRenderer::get_volume_shading(Volume* _vol)
     return NULL;
 }
 
-struct SortElement{
-  float z;
-  int volume_id;
-  int slice_id;
-  SortElement(float _z, int _v, int _s):
-	  z(_z), volume_id(_v), slice_id(_s){}
+struct SortElement {
+    float z;
+    int volume_id;
+    int slice_id;
+    SortElement(float _z, int _v, int _s):
+	z(_z), volume_id(_v), slice_id(_s){}
 };
 
 int slice_sort(const void* a, const void* b){
@@ -153,7 +153,8 @@ void VolumeRenderer::render_all_points()
 #endif
 }
 
-void VolumeRenderer::render_all()
+void 
+VolumeRenderer::render_all()
 {
     Volume* cur_vol = 0;
     Volume* ani_vol = 0;
@@ -162,25 +163,22 @@ void VolumeRenderer::render_all()
     int total_rendered_slices = 0;
     int num_volumes = n_volumes;
 
-    if (_volumeInterpolator->is_started())
-    {
-        ++ num_volumes;
+    if (_volumeInterpolator->is_started()) {
+        ++num_volumes;
         ani_tf = tf[_volumeInterpolator->getReferenceVolumeID()];
         ani_vol = _volumeInterpolator->getVolume();
     }
 
-    ConvexPolygon*** polys = new ConvexPolygon**[num_volumes];	//two dimension pointer array
-    int* actual_slices = new int[num_volumes]; //number of actual slices for each volume
+    //two dimension pointer array
+    ConvexPolygon*** polys = new ConvexPolygon**[num_volumes];	
+    //number of actual slices for each volume
+    int* actual_slices = new int[num_volumes]; 
 
-    for(int vol_index = 0; vol_index< num_volumes; vol_index++) 
-    {
-        if (vol_index != n_volumes)
-        {
+    for(int vol_index = 0; vol_index< num_volumes; vol_index++) {
+        if (vol_index != n_volumes) {
             cur_vol = volume[vol_index];
             cur_tf = tf[vol_index];
-        }
-        else
-        {
+        } else {
             cur_vol = ani_vol;
             cur_tf = ani_tf;
         }
@@ -192,91 +190,90 @@ void VolumeRenderer::render_all()
             continue; //skip this volume
 
         int n_slices = cur_vol->get_n_slice();
-        if (cur_vol->get_isosurface())
-        {
-		    // double the number of slices
+        if (cur_vol->get_isosurface()) {
+	    // double the number of slices
     	    n_slices <<= 1;
-	    }
-
+	}
+	
         //volume start location
         Vector3* location = cur_vol->get_location();
         Vector4 shift_4d(location->x, location->y, location->z, 0);
-
+	
         double x0 = 0;
         double y0 = 0;
         double z0 = 0;
-
+	
         Mat4x4 model_view_no_trans, model_view_trans;
         Mat4x4 model_view_no_trans_inverse, model_view_trans_inverse;
-
+	
         double zNear, zFar;
-
-    //initialize volume plane with world coordinates
+	
+	//initialize volume plane with world coordinates
         Plane volume_planes[6];
-        volume_planes[0].set_coeffs(1, 0, 0, -x0);
-        volume_planes[1].set_coeffs(-1, 0, 0, x0+1);
-        volume_planes[2].set_coeffs(0, 1, 0, -y0);
-        volume_planes[3].set_coeffs(0, -1, 0, y0+1);
-        volume_planes[4].set_coeffs(0, 0, 1, -z0);
-        volume_planes[5].set_coeffs(0, 0, -1, z0+1);
-  
-    //get modelview matrix with no translation
+        volume_planes[0].set_coeffs( 1,  0,  0, -x0);
+        volume_planes[1].set_coeffs(-1,  0,  0,  x0+1);
+        volume_planes[2].set_coeffs( 0,  1,  0, -y0);
+        volume_planes[3].set_coeffs( 0, -1,  0,  y0+1);
+        volume_planes[4].set_coeffs( 0,  0,  1, -z0);
+        volume_planes[5].set_coeffs( 0,  0, -1,  z0+1);
+	
+	//get modelview matrix with no translation
         glPushMatrix();
         glScalef(cur_vol->aspect_ratio_width, 
-	        cur_vol->aspect_ratio_height, 
-	        cur_vol->aspect_ratio_depth);
-
+		 cur_vol->aspect_ratio_height, 
+		 cur_vol->aspect_ratio_depth);
+	
         glEnable(GL_DEPTH_TEST);
-
+	
         GLfloat mv_no_trans[16];
         glGetFloatv(GL_MODELVIEW_MATRIX, mv_no_trans);
-
+	
         model_view_no_trans = Mat4x4(mv_no_trans);
         model_view_no_trans_inverse = model_view_no_trans.inverse();
-
+	
         glPopMatrix();
-
-    //get modelview matrix with translation
+	
+	//get modelview matrix with translation
         glPushMatrix();
         glTranslatef(shift_4d.x, shift_4d.y, shift_4d.z);
         glScalef(cur_vol->aspect_ratio_width, 
-	        cur_vol->aspect_ratio_height, 
-	        cur_vol->aspect_ratio_depth);
+		 cur_vol->aspect_ratio_height, 
+		 cur_vol->aspect_ratio_depth);
         GLfloat mv_trans[16];
         glGetFloatv(GL_MODELVIEW_MATRIX, mv_trans);
-
+	
         model_view_trans = Mat4x4(mv_trans);
         model_view_trans_inverse = model_view_trans.inverse();
-
+	
 	//draw volume bounding box with translation (the correct location in
 	//space)
         if (cur_vol->outline_is_enabled()) {
             float olcolor[3];
             cur_vol->get_outline_color(olcolor);
             draw_bounding_box(x0, y0, z0, x0+1, y0+1, z0+1,
-                (double)olcolor[0], (double)olcolor[1], (double)olcolor[2],
-            1.5);
+		(double)olcolor[0], (double)olcolor[1], (double)olcolor[2],
+		1.5);
         }
         glPopMatrix();
-
+	
         //draw labels
         glPushMatrix();
         glTranslatef(shift_4d.x, shift_4d.y, shift_4d.z);
         if(cur_vol->outline_is_enabled()) {
-        //draw_label(i);
+	    //draw_label(i);
         }
         glPopMatrix();
-
-    //transform volume_planes to eye coordinates.
+	
+	//transform volume_planes to eye coordinates.
         for(int i=0; i<6; i++)
             volume_planes[i].transform(model_view_no_trans);
-
+	
         get_near_far_z(mv_no_trans, zNear, zFar);
-
-    //compute actual rendering slices
+	
+	//compute actual rendering slices
         float z_step = fabs(zNear-zFar)/n_slices;		
         int n_actual_slices;
-
+	
         if (cur_vol->data_is_enabled()) {
             n_actual_slices = (int)(fabs(zNear-zFar)/z_step + 1);
             polys[vol_index] = new ConvexPolygon*[n_actual_slices];
@@ -285,139 +282,136 @@ void VolumeRenderer::render_all()
             polys[vol_index] = NULL;
         }
         actual_slices[vol_index] = n_actual_slices;
-
+	
         Vector4 vert1 = (Vector4(-10, -10, -0.5, 1));
         Vector4 vert2 = (Vector4(-10, +10, -0.5, 1));
         Vector4 vert3 = (Vector4(+10, +10, -0.5, 1));
         Vector4 vert4 = (Vector4(+10, -10, -0.5, 1));
-
-    
-    //Render cutplanes first with depth test enabled.
-    //They will mark the image with their depth values. Then we render other volume slices.
-    //These volume slices will be occluded correctly by the cutplanes and vice versa.
-
-    ConvexPolygon static_poly;
-    for(int i=0; i<cur_vol->get_cutplane_count(); i++)
-    {
-      if(!cur_vol->cutplane_is_enabled(i))
-        continue;
-
-      float offset = cur_vol->get_cutplane(i)->offset;
-      int axis = cur_vol->get_cutplane(i)->orient;
-
-      if(axis==3){
-        vert1 = Vector4(-10, -10, offset, 1);
-        vert2 = Vector4(-10, +10, offset, 1);
-        vert3 = Vector4(+10, +10, offset, 1);
-        vert4 = Vector4(+10, -10, offset, 1);
-	//continue;
-      }
-      else if(axis==1){
-        vert1 = Vector4(offset, -10, -10, 1);
-        vert2 = Vector4(offset, +10, -10, 1);
-        vert3 = Vector4(offset, +10, +10, 1);
-        vert4 = Vector4(offset, -10, +10, 1);
-	//continue;
-      }
-      else if(axis==2){
-        vert1 = Vector4(-10, offset, -10, 1);
-        vert2 = Vector4(+10, offset, -10, 1);
-        vert3 = Vector4(+10, offset, +10, 1);
-        vert4 = Vector4(-10, offset, +10, 1);
-	//continue;
-      }
-
-      vert1 = model_view_no_trans.transform(vert1);
-      vert2 = model_view_no_trans.transform(vert2);
-      vert3 = model_view_no_trans.transform(vert3);
-      vert4 = model_view_no_trans.transform(vert4);
-
-      ConvexPolygon* p = &static_poly;
-      p->vertices.clear();
-
-      p->append_vertex(vert1);
-      p->append_vertex(vert2);
-      p->append_vertex(vert3);
-      p->append_vertex(vert4);
-
-      for(int k=0; k<6; k++){
-        p->clip(volume_planes[k], true);
-      }
-
-      p->transform(model_view_no_trans_inverse);
-      p->transform(model_view_trans);
-
-      glPushMatrix();
-      glScalef(cur_vol->aspect_ratio_width, cur_vol->aspect_ratio_height, cur_vol->aspect_ratio_depth);
-
-      activate_volume_shader(cur_vol, cur_tf, true);
-      glPopMatrix();
-
-      glEnable(GL_DEPTH_TEST);
-      glDisable(GL_BLEND);
-
-      glBegin(GL_POLYGON);
-        p->Emit(true); 
-      glEnd();
-      glDisable(GL_DEPTH_TEST);
-
-      deactivate_volume_shader();
-    } //done cutplanes
-
-   
-    //Now do volume rendering
-
+	
+	
+	// Render cutplanes first with depth test enabled.  They will mark the
+	// image with their depth values.  Then we render other volume slices.
+	// These volume slices will be occluded correctly by the cutplanes and
+	// vice versa.
+	
+	ConvexPolygon static_poly;
+	for(int i=0; i<cur_vol->get_cutplane_count(); i++) {
+	    if(!cur_vol->cutplane_is_enabled(i))
+		continue;
+	    
+	    float offset = cur_vol->get_cutplane(i)->offset;
+	    int axis = cur_vol->get_cutplane(i)->orient;
+	    
+	    if(axis==3){
+		vert1 = Vector4(-10, -10, offset, 1);
+		vert2 = Vector4(-10, +10, offset, 1);
+		vert3 = Vector4(+10, +10, offset, 1);
+		vert4 = Vector4(+10, -10, offset, 1);
+		//continue;
+	    } else if(axis==1){
+		vert1 = Vector4(offset, -10, -10, 1);
+		vert2 = Vector4(offset, +10, -10, 1);
+		vert3 = Vector4(offset, +10, +10, 1);
+		vert4 = Vector4(offset, -10, +10, 1);
+		//continue;
+	    } else if(axis==2){
+		vert1 = Vector4(-10, offset, -10, 1);
+		vert2 = Vector4(+10, offset, -10, 1);
+		vert3 = Vector4(+10, offset, +10, 1);
+		vert4 = Vector4(-10, offset, +10, 1);
+		//continue;
+	    }
+	    
+	    vert1 = model_view_no_trans.transform(vert1);
+	    vert2 = model_view_no_trans.transform(vert2);
+	    vert3 = model_view_no_trans.transform(vert3);
+	    vert4 = model_view_no_trans.transform(vert4);
+	    
+	    ConvexPolygon* p = &static_poly;
+	    p->vertices.clear();
+	    
+	    p->append_vertex(vert1);
+	    p->append_vertex(vert2);
+	    p->append_vertex(vert3);
+	    p->append_vertex(vert4);
+	    
+	    for(int k=0; k<6; k++){
+		p->clip(volume_planes[k], true);
+	    }
+	    
+	    p->transform(model_view_no_trans_inverse);
+	    p->transform(model_view_trans);
+	    
+	    glPushMatrix();
+	    glScalef(cur_vol->aspect_ratio_width, cur_vol->aspect_ratio_height,
+		     cur_vol->aspect_ratio_depth);
+	    
+	    activate_volume_shader(cur_vol, cur_tf, true);
+	    glPopMatrix();
+	    
+	    glEnable(GL_DEPTH_TEST);
+	    glDisable(GL_BLEND);
+	    
+	    glBegin(GL_POLYGON);
+	    p->Emit(true); 
+	    glEnd();
+	    glDisable(GL_DEPTH_TEST);
+	    
+	    deactivate_volume_shader();
+	} //done cutplanes
+	
+	
+	//Now do volume rendering
+	
         vert1 = (Vector4(-10, -10, -0.5, 1));
         vert2 = (Vector4(-10, +10, -0.5, 1));
         vert3 = (Vector4(+10, +10, -0.5, 1));
         vert4 = (Vector4(+10, -10, -0.5, 1));
-
+	
         int counter = 0;
-    
-    //transform slices and store them
+	
+	//transform slices and store them
         float slice_z;
-        for (int i=0; i<n_actual_slices; i++)
-        {
-            slice_z = zFar + i * z_step;	//back to front
-
+        for (int i=0; i<n_actual_slices; i++) {
+	    slice_z = zFar + i * z_step;	//back to front
+	    
             ConvexPolygon *poly = new ConvexPolygon();
             polys[vol_index][counter] = poly;
             counter++;
-
+	    
             poly->vertices.clear();
             poly->set_id(vol_index);
-
+	    
             //Setting Z-coordinate 
             vert1.z = slice_z;
             vert2.z = slice_z;
             vert3.z = slice_z;
             vert4.z = slice_z;
-		
+	    
             poly->append_vertex(vert1);
             poly->append_vertex(vert2);
             poly->append_vertex(vert3);
             poly->append_vertex(vert4);
-	
-            for(int k=0; k<6; k++)
-            {
-                poly->clip(volume_planes[k], true);
-            }
-
+	    
+            for(int k=0; k<6; k++) {
+		poly->clip(volume_planes[k], true);
+	    }
+	    
             poly->transform(model_view_no_trans_inverse);
             poly->transform(model_view_trans);
-
+	    
             if(poly->vertices.size()>=3)
-	            total_rendered_slices++; 
+		total_rendered_slices++; 
         }
+	
+    } //iterate all volumes
+    //fprintf(stderr, "total slices: %d\n", total_rendered_slices); 
     
-  } //iterate all volumes
-  //fprintf(stderr, "total slices: %d\n", total_rendered_slices); 
-
-  //We sort all the polygons according to their eye-space depth, from farthest to the closest.
-  //This step is critical for correct blending
-
-    SortElement* slices = (SortElement*) malloc(sizeof(SortElement)*total_rendered_slices);
-
+    //We sort all the polygons according to their eye-space depth, from farthest to the closest.
+    //This step is critical for correct blending
+    
+    SortElement* slices = (SortElement*)malloc(sizeof(SortElement)*total_rendered_slices);
+    
     int counter = 0;
     for(int i=0; i<num_volumes; i++){
         for(int j=0; j<actual_slices[i]; j++){
@@ -427,60 +421,56 @@ void VolumeRenderer::render_all()
             }
         }
     }
-
-  //sort them
+    
+    //sort them
     qsort(slices, total_rendered_slices, sizeof(SortElement), slice_sort);
-
-  //Now we are ready to render all the slices from back to front
+    
+    //Now we are ready to render all the slices from back to front
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_BLEND);
-
+    
     for(int i=0; i<total_rendered_slices; i++){
         int volume_index = slices[i].volume_id;
         int slice_index = slices[i].slice_id;
         ConvexPolygon* cur = polys[volume_index][slice_index];
-
-        if (volume_index == n_volumes)
-        {
-            cur_vol = ani_vol;
-            cur_tf = ani_tf;
-        }
-        else
-        {
+	
+        if (volume_index == n_volumes) {
+	    cur_vol = ani_vol;
+	    cur_tf = ani_tf;
+	} else {
             cur_vol = volume[volume_index];
             cur_tf = tf[volume_index];
         }
-
-
+	
+	
         glPushMatrix();
         glScalef(cur_vol->aspect_ratio_width, cur_vol->aspect_ratio_height, cur_vol->aspect_ratio_depth);
-    
+	
         activate_volume_shader(cur_vol, cur_tf, false);
         glPopMatrix();
-
+	
         glBegin(GL_POLYGON);
         cur->Emit(true); 
         glEnd();
 
         deactivate_volume_shader();
     }
-
-
+    
+    
     glDisable(GL_DEPTH_TEST);
     glDisable(GL_BLEND);
-
+    
     //Deallocate all the memory used
     for(int i=0; i<num_volumes; i++){
         for(int j=0; j<actual_slices[i]; j++){
             delete polys[i][j];
         }
-
-        if (polys[i]) 
-        {
+	
+        if (polys[i]) {
             delete[] polys[i];
         }
     }
-
+    
     delete[] polys;
     delete[] actual_slices;
     free(slices);
