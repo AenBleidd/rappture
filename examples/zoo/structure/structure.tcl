@@ -16,9 +16,8 @@ set name [$driver get input.loader.current]
 
 $driver put output.log "Structure: $name"
 
-set obj [$driver element -as object input.structure.current]
-$driver put output.structure.about.label "Structure"
 $driver copy output.structure from input.structure.current
+$driver put output.structure.about.label "Structure"
 
 # save the updated XML describing the run...
 Rappture::result $driver
