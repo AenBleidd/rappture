@@ -1,0 +1,41 @@
+# Commands covered: Rappture::sysinfo
+#
+# This file contains a collection of tests for one of the Rappture Tcl
+# commands.  Sourcing this file into Tcl runs the tests and
+# generates output for errors.  No output means no errors were found.
+#
+# ======================================================================
+# AUTHOR:  Michael McLennan, Purdue University
+# Copyright (c) 2004-2008  Purdue Research Foundation
+#
+# See the file "license.terms" for information on usage and redistribution
+# of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+
+
+if {[lsearch [namespace children] ::tcltest] == -1} {
+    package require tcltest
+    package require Rappture
+    namespace import -force ::tcltest::*
+}
+
+#----------------------------------------------------------
+# Rappture::sysinfo ?<key> <key> ...?
+#----------------------------------------------------------
+test sysinfo-1 {query all system info} {
+    set rval ""
+    foreach {key val} [Rappture::sysinfo] {
+        lappend rval $key
+    }
+} {}
+
+test sysinfo-2 {query just a few parameters} {
+    set info [Rappture::sysinfo uptime freeram totalram]
+    regexp {^[0-9]+ +[0-9]+ +[0-9]+$} $info
+} {1}
+
+test sysinfo-3 {if a key name is not recognized, we get an error} {
+    list [catch {Rappture::sysinfo uptime foo} msg] $msg
+} {1 {bad parameter "foo": should be one of freeram, freeswap, load1, load5, load15, procs, totalram, totalswap, uptime}}
+
+::tcltest::cleanupTests
+return
