@@ -9,7 +9,11 @@
 #  Michael McLennan (mmclennan@purdue.edu)
 # ======================================================================
 #  Copyright (c) 2008  Purdue Research Foundation
+#
+#  See the file "license.terms" for information on usage and
+#  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 # ======================================================================
+package require Rappture
 
 # recognize other library files in this same directory
 set dir [file dirname [info script]]
@@ -40,6 +44,9 @@ set options(time_between_registers) 10000
 # this worker should try to connect with this many other peers
 set options(max_peer_connections) 4
 
+# number of seconds between each check of system load
+set options(time_between_load_checks) 60000
+
 # ======================================================================
 #  PEERS
 # ======================================================================
@@ -48,6 +55,19 @@ set peers(all) ""
 
 # list of peers that we're testing connections with
 set peers(testing) ""
+
+# ======================================================================
+#  SYSTEM LOAD
+# ======================================================================
+# Check system load every so often.  When the load changes
+# significantly, execute a "perftest" run to compute the current
+# number of wonks available to this worker.
+
+set sysload(lastLoad) -1
+set sysload(wonks) -1
+set sysload(measured) -1
+
+after idle worker_load_check
 
 # ======================================================================
 #  PROTOCOL: hubzero:peer/1
@@ -193,6 +213,67 @@ proc worker_register {} {
     # register again at regular intervals in case the authority
     # gets restarted in between.
     after $options(time_between_registers) worker_register
+}
+
+# ----------------------------------------------------------------------
+#  COMMAND:  worker_load_check
+#
+#  Invoked when this worker first starts up and periodically thereafter
+#  to compute the system load available to the worker.  If the system
+#  load has changed significantly, then the "perftest" program is
+#  executed to get a measure of performance available.  This program
+#  returns a number of "wonks" which we report to peers as our available
+#  performance.
+# ----------------------------------------------------------------------
+proc worker_load_check {} {
+    global options sysload dir
+
+    # see if the load has changed significantly
+    set changed 0
+    if {$sysload(lastLoad) < 0} {
+        set changed 1
+    } else {
+        set load [Rappture::sysinfo load5]
+        if {$load < 0.9*$sysload(lastLoad) || $load > 1.1*$sysload(lastLoad)} {
+            set changed 1
+        }
+    }
+
+    if {$changed} {
+        set sysload(lastLoad) [Rappture::sysinfo load5]
+puts "LOAD CHANGED: $sysload(lastLoad) [Rappture::sysinfo freeram freeswap]"
+        set sysload(measured) [clock seconds]
+
+        # Run the program, but don't use exec, since it blocks.
+        # Instead, run it in the background and harvest its output later.
+        set sysload(test) [open "| [file join $dir perftest]" r]
+        fileevent $sysload(test) readable worker_load_results
+    }
+
+    # monitor the system load at regular intervals
+    after $options(time_between_load_checks) worker_load_check
+}
+
+# ----------------------------------------------------------------------
+#  COMMAND:  worker_load_results
+#
+#  Invoked automatically when the "perftest" run finishes.  Reads the
+#  number of wonks reported on standard output and reports them to
+#  other peers.
+# ----------------------------------------------------------------------
+proc worker_load_results {} {
+    global sysload
+
+    if {[catch {read $sysload(test)} msg] == 0} {
+        if {[regexp {[0-9]+} $msg match]} {
+puts "WONKS: $match"
+            set sysload(wonks) $match
+        } else {
+            log system "ERROR: performance test failed: $msg"
+        }
+    }
+    catch {close $sysload(test)}
+    set sysload(test) ""
 }
 
 # ----------------------------------------------------------------------

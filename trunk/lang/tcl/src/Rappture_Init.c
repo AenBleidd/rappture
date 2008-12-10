@@ -24,6 +24,7 @@ extern Tcl_AppInitProc Rappture_Init;
 extern Tcl_AppInitProc RpRlimit_Init;
 extern Tcl_AppInitProc RpRusage_Init;
 extern Tcl_AppInitProc RpSignal_Init;
+extern Tcl_AppInitProc RpSysinfo_Init;
 extern Tcl_AppInitProc RpDaemon_Init;
 
 #ifdef notdef
@@ -69,6 +70,9 @@ Rappture_Init( Tcl_Interp * interp)
         return TCL_ERROR;
     }
     if (RpSignal_Init(interp) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (RpSysinfo_Init(interp) != TCL_OK) {
         return TCL_ERROR;
     }
     if (RpDaemon_Init(interp) != TCL_OK) {

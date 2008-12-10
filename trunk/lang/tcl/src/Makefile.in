@@ -54,6 +54,7 @@ OBJS 		= \
 		RpRlimit.o  \
 		RpRusage.o \
 		RpSignal.o  \
+		RpSysinfo.o  \
 		RpUnitsTclInterface.o \
 		RpUtilsTclInterface.o 
 
