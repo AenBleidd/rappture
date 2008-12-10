@@ -1,0 +1,173 @@
+<?xml version="1.0"?>
+<run>
+    <tool>
+        <title>image</title>
+        <about>Example of a Rappture &lt;image&gt; object.
+
+Images are used to decorate input and show output.
+
+When you click the Simulate button, the input image will be rotated to produce the output image.
+  </about>
+        <command>
+    tclsh @tool/image.tcl @driver
+  </command>
+        <name>Workspace (800x600)</name>
+        <version>
+            <rappture>
+                <revision>$LastChangedRevision: 1018 $</revision>
+                <modified>$LastChangedDate: 2008-06-08 21:24:34 -0400 (Sun, 08 Jun 2008) $</modified>
+                <language>tcl</language>
+            </rappture>
+        </version>
+    </tool>
+    <input>
+        <loader>
+            <about>
+                <label>Image</label>
+                <description>Use this to load different images.</description>
+            </about>
+            <example>*.xml</example>
+            <default>nanoHUB</default>
+            <current>nanoHUB</current>
+        </loader>
+        <image>
+            <about>
+                <diffs>ignore</diffs>
+            </about>
+            <current>R0lGODlhtAA8APcAAFeBu////0VurKW829Ld7YSjzWKJwLzN5HmayfT3+unu9sfV6G2SxJqz1t3m
+8Y+r0rHE31aAus3Y6VJ5sEpysEdvrXeVwlV+uVB6tVZ/uEhwrlV/uEx1slN8t1eAuk50qFF4rlJ7
+tkZol5yy0092q0dqmVV+t053tElxr0VmlEVnlU92qlR8tFN7sk12s0VtrEVtqkRrpktvoUxxpEt0
+sUdpmEVtq0hqmktvoERqpE94tEJmm1Z/uVV+tklsnUZnlkxwo1R9uEdpmVR9tUVsqVV9tkVsp01y
+pUNon4+ozURrpdri7k91qsHP401yplB2rEVsqERpoEVpnlF3rUNpoVF4skRqo05zp01zplJ6sEVo
+mkZroUhrm1J6sUZqnURmlkFjlICdxUFjlkJnnqCzzkRqosHO4kJlmFJ6sk50qURqpUtwo1N8s0hr
+mkVmlkVpnEJkmUNpoENooEhsoElsnEtvosLN3URonkVsptHc6pyuxkNklEltnkpwpp6xy0Rlk6i7
+2EZpm0Jkk0JklrXF3nyXvERnmvP1+ejt9EJll0ltoE50qpKnxEFkmJuuyM7X5NHc60droUpvpG2Q
+wkNmm4KfyEhtoEJnnURom0NnmkJlmUpvokdtpJyx0kptnkZpmWqIsUZomYOhy87X43eRto6lx83W
+5Obs9KS510Vqol6Bt0VmlURml7XF3YKgyfP2+XiRtEltobTC1kNkk3+bw4OeyEdrn3eQtUZsolJ5
+r2iCqE92rkJijkJklFFxoEJnnERnmM7Y5Uhsn0RpotLd7KG20kVrpENnnUJij9Da6MXT5Upvo5qs
+xneUwaK200NnnHSOtKO41URmlefs80ZpnUZolniStEVomM3X5UVrp3qUuklto8/Z5kdsoEZpmk1z
+qU91qbrJ33yXvVJ6s5yuylN8tEpuoFJzo0Zrn0JmnERonEVmk01zqENmmIOizExxppuuy0Vnlkpu
+okFklsHN3FF5sFp9rp6xykJmnUtwpV17qAAAAAAAAAAAAAAAAAAAACH5BAAAAAAALAAAAAC0ADwA
+AAj/AAEIHEiwoMGDCBMqXMiwocOHECNKnEixosWLGDNq3Mixo8ePIEOKzLgLDx5O40aqXMmyIy4B
+MGH0aUmzpk2G5crAFBBjw82fQG1GkBQljhYfPoMqXapyggocGVrqoECBw8AQVC8IjHACBcwKNDAA
+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
+O3iGFr4v//77//+8ERAAOw==</current>
+        </image>
+        <number id="angle">
+            <about>
+                <label>Rotate</label>
+                <description>Rotate image by this amount in degrees.</description>
+            </about>
+            <units>deg</units>
+            <min>0deg</min>
+            <max>360deg</max>
+            <default>0deg</default>
+            <current>0deg</current>
+        </number>
+    </input>
+    <output>
+        <image id="outi">
+            <about>
+                <label>Rotated Image</label>
+            </about>
+            <current>/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRof
+Hh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwh
+MjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAAR
+CAA8ALQDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAA
+AgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkK
+FhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWG
+h4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl
+5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREA
+AgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYk
+NOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOE
+hYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk
+5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwCKiiivoDyAooooAKKKKACiiigAooqtJcss
+hUKMD1oAcJnV8SJhf7wHAqcHIyKijnRxyQrehNOMeDlDtP6H8KAH0UzzNv8ArBt9+1PoAKKK
+KAEyCcAjNGQehHFVFJTE3qTmlUZEaHoxyfenYC0HUnAYH6GgMCMggio5FRFLAAMB2qucxIR2
+daALoIIyKKai7UUegp1IAooooAKljtp5WRY4ZHL52hUJ3Y649airsLjU7vTfAuhtZzGF5GnV
+pEGGwJCcA9QP8BUTk42t1KjFO9zkZI3ikMciMjr1Vhgj8Kkls7qCNZJraaNG6M6EA/ia6nXj
+dX48N3sS79RuIgNwAy7KwwTW3ZG8n/tOw1bWbe+drVzJaoMmNgOoOMcegrJ1mknY0VK7secJ
+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
+FMR//9k=</current>
+            <note>
+                <contents>html://&lt;p style="text-align: center;"&gt;&lt;a href="angles.html"&gt;Learn more about angles...&lt;/a&gt;&lt;/p&gt;</contents>
+            </note>
+        </image>
+        <time>Wed Dec 10 01:16:57 EST 2008</time>
+        <status>ok</status>
+        <user>dkearney</user>
+    </output>
+</run>
+

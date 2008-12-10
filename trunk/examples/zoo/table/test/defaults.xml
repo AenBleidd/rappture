@@ -1,0 +1,83 @@
+<?xml version="1.0"?>
+<run>
+    <tool>
+        <title>table</title>
+        <about>Example of a Rappture &lt;table&gt; object.
+
+Some simulators produce a list of energies, which can be stored in a &lt;table&gt; and displayed as discrete energy levels by Rappture.  When Rappture sees a table with an energy column, it uses the built-in energy viewer.
+
+When you click the Simulate button, the simulator will generate a series of energies for the particle in a box problem.
+  </about>
+        <command>
+    tclsh @tool/energies.tcl @driver
+  </command>
+        <name>Workspace (800x600)</name>
+        <version>
+            <rappture>
+                <revision>$LastChangedRevision: 1018 $</revision>
+                <modified>$LastChangedDate: 2008-06-08 21:24:34 -0400 (Sun, 08 Jun 2008) $</modified>
+                <language>tcl</language>
+            </rappture>
+        </version>
+    </tool>
+    <input>
+        <number id="L">
+            <about>
+                <label>Box size</label>
+                <description>Size of the 1D quantum well containing an electron</description>
+            </about>
+            <units>nm</units>
+            <min>0.1</min>
+            <default>10</default>
+            <current>10nm</current>
+        </number>
+        <number id="emass">
+            <about>
+                <label>Effective mass</label>
+                <description>Mass of the electron in a crystal, relative to the normal electron mass m0.  The value 1 corresponds to the usual electron mass in free space (crystal has no effect on the mass).</description>
+            </about>
+            <min>1e-5</min>
+            <default>0.067</default>
+            <current>0.067</current>
+        </number>
+    </input>
+    <output>
+        <table>
+            <about>
+                <label>Energy Levels</label>
+            </about>
+            <column id="labels">
+                <label>Name</label>
+            </column>
+            <column id="energies">
+                <label>Energy</label>
+                <units>eV</units>
+            </column>
+            <data>1 0.561
+2 2.24
+3 5.05
+4 8.98
+5 14
+6 20.2
+7 27.5
+8 35.9
+9 45.5
+10 56.1
+11 67.9
+12 80.8
+13 94.8
+14 110
+15 126
+16 144
+HOMO 162
+18 182
+19 203
+20 224
+</data>
+        </table>
+        <time>Wed Dec 10 02:41:02 EST 2008</time>
+        <status>ok</status>
+        <user>dkearney</user>
+    </output>
+</run>
+

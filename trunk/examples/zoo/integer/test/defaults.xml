@@ -1,0 +1,48 @@
+<?xml version="1.0"?>
+<run>
+    <tool>
+        <title>integer</title>
+        <about>Example of a Rappture &lt;integer&gt; object.
+
+Integers are integer values with no units.
+The description appears in a tooltip when you hover over the integer control with your mouse.
+
+When you click the Simulate button, the input integers will be used to generate output integers.
+  </about>
+        <command>
+    tclsh @tool/integer.tcl @driver
+  </command>
+        <name>Workspace (800x600)</name>
+        <version>
+            <rappture>
+                <revision>$LastChangedRevision: 1018 $</revision>
+                <modified>$LastChangedDate: 2008-06-08 21:24:34 -0400 (Sun, 08 Jun 2008) $</modified>
+                <language>tcl</language>
+            </rappture>
+        </version>
+    </tool>
+    <input>
+        <integer id="points">
+            <about>
+                <label>Grid points</label>
+                <description>Number of nodes used in the simulation mesh.</description>
+            </about>
+            <min>10</min>
+            <max>1000</max>
+            <default>100</default>
+            <current>100</current>
+        </integer>
+    </input>
+    <output>
+        <integer id="outn">
+            <about>
+                <label>Echo of points</label>
+            </about>
+            <current>100</current>
+        </integer>
+        <time>Wed Dec 10 01:24:01 EST 2008</time>
+        <status>ok</status>
+        <user>dkearney</user>
+    </output>
+</run>
+

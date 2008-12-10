@@ -1,0 +1,70 @@
+<?xml version="1.0"?>
+<run>
+    <tool>
+        <title>integer2</title>
+        <about>Example of a Rappture &lt;integer&gt; object with colors.
+Each integer object has a different color range.
+  </about>
+        <command>
+    tclsh @tool/integer.tcl @driver
+  </command>
+        <name>Workspace (800x600)</name>
+        <version>
+            <rappture>
+                <revision>$LastChangedRevision: 1018 $</revision>
+                <modified>$LastChangedDate: 2008-06-08 21:24:34 -0400 (Sun, 08 Jun 2008) $</modified>
+                <language>tcl</language>
+            </rappture>
+        </version>
+    </tool>
+    <input>
+        <integer id="input1">
+            <about>
+                <label>Widgets</label>
+                <description>Number of widgets. Color range is from red to blue</description>
+                <color>10 red 20 blue</color>
+            </about>
+            <min>10</min>
+            <max>20</max>
+            <default>10</default>
+            <current>10</current>
+        </integer>
+        <integer id="input2">
+            <about>
+                <label>Randomness</label>
+                <description>Pick a number. Color range goes from yellow to green to blue.</description>
+                <color>-10 yellow 0 green 10 blue</color>
+            </about>
+            <min>-10</min>
+            <max>10</max>
+            <default>0</default>
+            <current>0</current>
+        </integer>
+        <integer id="input3">
+            <about>
+                <label>Magic</label>
+                <description>Magic value.  Color range is spectrum from 400nm to 700nm.</description>
+                <color>0 400nm 20 700nm</color>
+            </about>
+            <min>0</min>
+            <max>20</max>
+            <default>10</default>
+            <current>10</current>
+        </integer>
+    </input>
+    <output>
+        <string id="out">
+            <about>
+                <label>Print of inputs</label>
+            </about>
+            <current>input1=10
+input2=0
+input3=10
+</current>
+        </string>
+        <time>Wed Dec 10 01:29:18 EST 2008</time>
+        <status>ok</status>
+        <user>dkearney</user>
+    </output>
+</run>
+

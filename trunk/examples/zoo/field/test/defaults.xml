@@ -1,0 +1,148 @@
+<?xml version="1.0"?>
+<run>
+    <tool>
+        <title>field</title>
+        <about>Example of a Rappture &lt;field&gt; object.
+
+Fields are a set of values defined on a mesh of some sort (see &lt;mesh&gt; and &lt;cloud&gt; elements for details).
+
+When you click the Simulate button, the inputs will be used to generate output fields.
+  </about>
+        <command>
+    tclsh @tool/field.tcl @driver
+  </command>
+        <limits>
+            <cputime>unlimited</cputime>
+            <filesize>unlimited</filesize>
+        </limits>
+        <name>Workspace (800x600)</name>
+        <version>
+            <rappture>
+                <revision>$LastChangedRevision: 1018 $</revision>
+                <modified>$LastChangedDate: 2008-06-08 21:24:34 -0400 (Sun, 08 Jun 2008) $</modified>
+                <language>tcl</language>
+            </rappture>
+        </version>
+    </tool>
+    <input>
+        <string id="formula">
+            <about>
+                <label>Formula</label>
+                <description>Formula used to calculate the value of the field.</description>
+                <hints>Example:  2*x*y + z</hints>
+            </about>
+            <default>x*y*z</default>
+            <current>x*y*z</current>
+        </string>
+        <separator/>
+        <choice id="3D">
+            <about>
+                <label>3D Rendering</label>
+                <description>Determines the method used for 3D rendering--either the built-in Vtk library or the external nanoVIS engine.</description>
+            </about>
+            <option>
+                <about>
+                    <label>Vtk library</label>
+                    <description>This is the older visualization solution, implemented in Vtk and linked into the Rappture environment.</description>
+                </about>
+                <value>vtk</value>
+            </option>
+            <option>
+                <about>
+                    <label>nanoVIS</label>
+                    <description>This is the newer nanoVIS engine running on accelerated hardware in the nanoHUB environment.</description>
+                </about>
+                <value>nanovis</value>
+            </option>
+            <default>nanovis</default>
+            <current>nanovis</current>
+        </choice>
+    </input>
+    <output>
+        <cloud id="m2d">
+            <about>
+                <label>2D Mesh</label>
+            </about>
+            <units>um</units>
+            <hide>yes</hide>
+            <points>0 0
+1 0
+2 0
+3 0
+4 0
+0 1
+1 1
+2 1
+3 1
+4 1
+0 2
+1 2
+2 2
+3 2
+4 2
+0 3
+1 3
+2 3
+3 3
+4 3
+0 4
+1 4
+2 4
+3 4
+4 4
+</points>
+        </cloud>
+        <field id="f2d">
+            <about>
+                <label>2D Field</label>
+            </about>
+            <component>
+                <mesh>output.cloud(m2d)</mesh>
+                <values>0
+0
+0
+0
+0
+0
+1
+2
+3
+4
+0
+2
+4
+6
+8
+0
+3
+6
+9
+12
+0
+4
+8
+12
+16
+</values>
+            </component>
+        </field>
+        <field id="f3d">
+            <about>
+                <label>3D Field</label>
+            </about>
+            <component>
+                <style>-color blue:yellow:red</style>
+                <dx>H4sICHNYP0kAA2R4MTIyODg4ODE3OQClUdGOwiAQfN+v2PAFLWiv9zm0rA2KbAPUi39/W0Wt
+3uOxCczODkMy8HCksWCLY7A545S8mzn74jlmHHmJJeNeyoCjUKwIG2wqbtbuiaUDvrvpjdvI
+MQr3169qTdXalOwVy3UmdLwMgTDZeBJXX+ic8WuPzso7Bw6BfzI0/6oWNBjYCdKyd9ALMnJ+
+Q6sF7oQQ0HZvl17S7by7oR706tavnCCjwZaS/LAUQuVoVpiljROqZ7oKUFZNQSWalmATvsJ/
+MJsAVc3q4Cm42/WRzzNHimVrjBcbFpLv+FC8Od01+lOzhvwYGvgFb6Ijqx4CAAA=
+</dx>
+            </component>
+        </field>
+        <time>Wed Dec 10 00:49:39 EST 2008</time>
+        <status>ok</status>
+        <user>dkearney</user>
+    </output>
+</run>
+

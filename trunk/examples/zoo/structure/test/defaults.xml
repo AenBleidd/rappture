@@ -1,0 +1,104 @@
+<?xml version="1.0"?>
+<run>
+    <tool>
+        <title>structure</title>
+        <about>Example of a Rappture &lt;structure&gt; object.
+
+A structure is a collection of geometrical objects describing a physical structure.  A structure can have embedded parameters (such as the size of certain parts of the structure) along with fields that represent numerical quantities defined within the structure.
+
+This example uses a loader element to load various structure definitions from example files.  You can see the real action here by selecting various examples from the loader.  The simulate button doesn't do very much.  It just copies the input parameters in the structure (if there are any) to the output log.
+  </about>
+        <command>
+    tclsh @tool/structure.tcl @driver
+  </command>
+        <name>Workspace (800x600)</name>
+        <version>
+            <rappture>
+                <revision>$LastChangedRevision: 1018 $</revision>
+                <modified>$LastChangedDate: 2008-06-08 21:24:34 -0400 (Sun, 08 Jun 2008) $</modified>
+                <language>tcl</language>
+            </rappture>
+        </version>
+    </tool>
+    <input>
+        <loader>
+            <about>
+                <label>Example</label>
+                <description>Use this to load examples.</description>
+            </about>
+            <example>*.xml</example>
+            <default>Simple Structure</default>
+            <current>Simple Structure</current>
+            <file>simple.xml</file>
+        </loader>
+        <structure>
+            <!-- examples get loaded in here by loader -->
+            <current>
+                <components>
+                    <box>
+                        <about>
+                            <label>GaAs</label>
+                            <color>green</color>
+                        </about>
+                        <corner>0</corner>
+                        <corner>100A</corner>
+                    </box>
+                    <box>
+                        <about>
+                            <label>AlGaAs</label>
+                            <color>white</color>
+                        </about>
+                        <corner>100A</corner>
+                        <corner>110A</corner>
+                    </box>
+                    <box>
+                        <about>
+                            <label>GaAs</label>
+                            <color>green</color>
+                        </about>
+                        <corner>110A</corner>
+                        <corner>200A</corner>
+                    </box>
+                </components>
+            </current>
+        </structure>
+    </input>
+    <output>
+        <log>Structure: Simple Structure</log>
+        <structure>
+            <components>
+                <box>
+                    <about>
+                        <label>GaAs</label>
+                        <color>green</color>
+                    </about>
+                    <corner>0</corner>
+                    <corner>100A</corner>
+                </box>
+                <box>
+                    <about>
+                        <label>AlGaAs</label>
+                        <color>white</color>
+                    </about>
+                    <corner>100A</corner>
+                    <corner>110A</corner>
+                </box>
+                <box>
+                    <about>
+                        <label>GaAs</label>
+                        <color>green</color>
+                    </about>
+                    <corner>110A</corner>
+                    <corner>200A</corner>
+                </box>
+            </components>
+            <about>
+                <label>Structure</label>
+            </about>
+        </structure>
+        <time>Wed Dec 10 02:37:28 EST 2008</time>
+        <status>ok</status>
+        <user>dkearney</user>
+    </output>
+</run>
+
