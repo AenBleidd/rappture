@@ -460,11 +460,12 @@ NanoVis::pan(float dx, float dy)
 
 
 /* Load a 3D volume
- * index: the index into the volume array, which stores pointers to 3D volume instances
- * data: pointer to an array of floats.
- * n_component: the number of scalars for each space point.
- *              All component scalars for a point are placed consequtively in data array
- * width, height and depth: number of points in each dimension
+ * index:	the index into the volume array, which stores pointers 
+ *		to 3D volume instances
+ * data:	pointer to an array of floats.
+ * n_component: the number of scalars for each space point. All component 
+ *		scalars for a point are placed consequtively in data array
+ *		width, height and depth: number of points in each dimension
  */
 Volume *
 NanoVis::load_volume(int index, int width, int height, int depth,
