@@ -35,7 +35,8 @@ examples	= \
 		sequence \
 		string \
 		structure \
-		table 
+		table  \
+		unirect2d 
 
 destdir		= $(prefix)/examples/zoo
 
