@@ -45,12 +45,19 @@ rpLibPutString(lib,'output.curve(f12).xaxis.label','Fermi-Dirac Factor',0);
 rpLibPutString(lib,'output.curve(f12).yaxis.label','Energy',0);
 rpLibPutString(lib,'output.curve(f12).yaxis.units','eV',0);
 
-for j=1:200
-  rpUtilsProgress((j/200*100),'Iterating');
-  putStr = sprintf('%12g  %12g\n', f(j), E(j));
-  % put the data into the xml file
-  rpLibPutString(lib,'output.curve(f12).component.xy',putStr,1);
-end
+% this is a slow and inefficient method of putting
+% large amounts of data back in to the rappture library object
+%for j=1:200
+%  rpUtilsProgress((j/200*100),'Iterating');
+%  putStr = sprintf('%12g  %12g\n', f(j), E(j));
+%  % put the data into the xml file
+%  rpLibPutString(lib,'output.curve(f12).component.xy',putStr,1);
+%end
+
+% a better way is to take advantage of matlab's vector operations.
+outData = [f;E];
+putStr = sprintf('%12g  %12g\n', outData);
+rpLibPutString(lib,'output.curve(f12).component.xy',putStr,0);
 
 % signal the end of processing
 rpLibResult(lib);
