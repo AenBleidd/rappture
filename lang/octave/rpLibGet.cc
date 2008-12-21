@@ -70,17 +70,17 @@ Error code, err=0 on success, anything else is failure.")
             }
             else {
                 // invalid libHandle
-                print_usage (who.c_str());
+                _PRINT_USAGE (who.c_str());
             }
         }
         else {
             // wrong arg types
-            print_usage (who.c_str());
+            _PRINT_USAGE (who.c_str());
         }
     }
     else {
         // wrong number of args.
-        print_usage (who.c_str());
+        _PRINT_USAGE (who.c_str());
     }
 
     retval(0) = retStr;

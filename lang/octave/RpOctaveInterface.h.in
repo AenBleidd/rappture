@@ -26,4 +26,17 @@ extern "C" {
 }
 #endif
 
+// octave versions before 3.0 used a version of the
+// print_usage function that accepted a parameter
+// telling the name of the function to print the
+// usage of. octave 3.0 introduced a print_usage()
+// function that automatically finds the name of
+// the function it is being called from.
+#define OCTAVE_VERSION_MAJOR @OCTAVE_VERSION_MAJOR@
+#if (OCTAVE_VERSION_MAJOR >= 3)
+    #define _PRINT_USAGE(x) print_usage()
+#else
+    #define _PRINT_USAGE(x) print_usage(x)
+#endif // (OCTAVE_VERSION_MAJOR >= 3)
+
 #endif // _Rp_OCTAVE_HELPER_H

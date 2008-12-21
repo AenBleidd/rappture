@@ -44,13 +44,13 @@ Error Codes: @var{err} = 0 is success, anything else is failure.")
 
     if ((nargin < 1) || (nargin > 2)) {
         // wrong number of arguments
-        print_usage ("rpLibResult");
+        _PRINT_USAGE ("rpLibResult");
         goto done;
     }
 
     if (! args(0).is_real_scalar()) {
         // wrong argument type
-        print_usage ("rpLibResult");
+        _PRINT_USAGE ("rpLibResult");
         goto done;
     }
 
@@ -59,7 +59,7 @@ Error Codes: @var{err} = 0 is success, anything else is failure.")
     if (nargin == 2) {
         if (! args(1).is_real_scalar()) {
             // wrong argument type
-            print_usage ("rpLibResult");
+            _PRINT_USAGE ("rpLibResult");
             goto done;
         }
 

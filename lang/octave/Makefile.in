@@ -1,32 +1,33 @@
 
 bindir          = @bindir@
-datadir		= @datadir@
-datarootdir	= @datarootdir@
+datadir         = @datadir@
+datarootdir     = @datarootdir@
 exec_prefix     = @exec_prefix@
 includedir      = @includedir@
 libdir          = @libdir@
 mandir          = @mandir@
 prefix          = @prefix@
-srcdir 		= @srcdir@
+srcdir          = @srcdir@
 
-destdir 	= $(libdir)/octave
+destdir         = $(libdir)/octave
 
-INSTALL		= @INSTALL@
-MKDIR_P		= @MKDIR_P@
-VPATH		= $(srcdir)
-RM		= rm -f
+INSTALL         = @INSTALL@
+MKDIR_P         = @MKDIR_P@
+VPATH           = $(srcdir)
+RM              = rm -f
 
 OCT             = @MKOCTFILE@
-INCLUDES  	= \
+INCLUDES    = \
+		-I. \
 		-I$(srcdir)/../../src/core \
-		-I$(prefix)/include 
-DEFINES		= 
-LIBS		= -L../../src/core -lrappture
-OCT_FLAGS	= $(INCLUDES) $(DEFINES)
+		-I$(prefix)/include
+DEFINES     =
+LIBS        = -L../../src/core -lrappture
+OCT_FLAGS   = $(INCLUDES) $(DEFINES)
 
-octavedir	= $$RAPPTURE_INSTALL_DIR/lib/octave
+octavedir   = $$RAPPTURE_INSTALL_DIR/lib/octave
 
-OBJS		= \
+OBJS        = \
 		rpAddPresets.oct \
 		rpUtilsProgress.oct \
 		rpLib.oct \
@@ -61,7 +62,7 @@ OBJS		= \
 		rpUnitsGetUnits.oct \
 		rpUnitsGetUnitsName.oct
 
-all: $(OBJS) 
+all: $(OBJS)
 
 .SUFFIXES: .cc .o .oct
 
@@ -69,16 +70,16 @@ all: $(OBJS)
 	$(OCT) $(OCT_FLAGS) $< -o $@ $(LIBS)
 
 .cc.o:
-	$(OCT) $(OCT_FLAGS) -c $< -o $@ 
+	$(OCT) $(OCT_FLAGS) -c $< -o $@
 
-install: $(OBJS) 
+install: $(OBJS)
 	$(MKDIR_P) $(destdir)
 	for i in $(OBJS) ; do \
 	  $(INSTALL) -m 444  $$i $(destdir) ; \
 	done
 
-clean: 
-	$(RM) $(OBJS) 
+clean:
+	$(RM) $(OBJS)
 
 distclean: clean
 	$(RM) Makefile *~

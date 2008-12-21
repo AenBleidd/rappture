@@ -85,17 +85,17 @@ Error Codes: err = 0 is success, anything else is failure.")
             }
             else {
                 // libHandle is negative
-                print_usage (who.c_str());
+                _PRINT_USAGE (who.c_str());
             }
         }
         else {
             // wrong argument types
-            print_usage (who.c_str());
+            _PRINT_USAGE (who.c_str());
         }
     }
     else {
         // wrong number of arguments
-        print_usage (who.c_str());
+        _PRINT_USAGE (who.c_str());
     }
 
     retval(0) = err;

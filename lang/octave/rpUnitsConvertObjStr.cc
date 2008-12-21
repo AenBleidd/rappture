@@ -70,13 +70,13 @@ Error code, err=0 on success, anything else is failure.")
                     outVal = fromObj->convert(toObj, inVal, showUnits, &err);
                 }
             } else {
-                print_usage(who.c_str());
+                _PRINT_USAGE(who.c_str());
             }
         } else {
-            print_usage(who.c_str());
+            _PRINT_USAGE(who.c_str());
         }
     } else {
-        print_usage(who.c_str());
+        _PRINT_USAGE(who.c_str());
     }
     retval(0) = outVal;
     retval(1) = err;

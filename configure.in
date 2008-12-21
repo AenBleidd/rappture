@@ -41,11 +41,45 @@ AC_CHECK_FUNC(atol,,AC_MSG_ERROR(oops! no atol ?!?))
 
 AC_LANG_CPLUSPLUS
 
+AC_CHECK_LIB(m, main,,AC_MSG_ERROR(librappture requires libm))
 AC_CHECK_LIB(stdc++, main,,AC_MSG_ERROR(librappture requires libstdc++))
+AC_CHECK_HEADERS(algorithm,,AC_MSG_WARN(STL classes missing ?))
+AC_CHECK_HEADERS(cctype,,AC_MSG_WARN(STL classes missing ?))
+AC_CHECK_HEADERS(cfloat,,AC_MSG_WARN(STL classes missing ?))
+AC_CHECK_HEADERS(cmath,,AC_MSG_WARN(STL classes missing ?))
+AC_CHECK_HEADERS(cstdio,,AC_MSG_WARN(STL classes missing ?))
+AC_CHECK_HEADERS(cstdlib,,AC_MSG_WARN(STL classes missing ?))
+AC_CHECK_HEADERS(cstring,,AC_MSG_WARN(STL classes missing ?))
+AC_CHECK_HEADERS(fstream,,AC_MSG_WARN(STL classes missing ?))
+AC_CHECK_HEADERS(list,,AC_MSG_WARN(STL classes missing ?))
+AC_CHECK_HEADERS(iostream,,AC_MSG_WARN(STL classes missing ?))
+AC_CHECK_HEADERS(iterator,,AC_MSG_WARN(STL classes missing ?))
+AC_CHECK_HEADERS(sstream,,AC_MSG_WARN(STL classes missing ?))
 AC_CHECK_HEADERS(stack,,AC_MSG_WARN(STL classes missing ?))
 AC_CHECK_HEADERS(string,,AC_MSG_WARN(STL classes missing ?))
-AC_CHECK_HEADERS(list,,AC_MSG_WARN(STL classes missing ?))
 AC_CHECK_HEADERS(vector,,AC_MSG_WARN(STL classes missing ?))
+
+AC_CHECK_HEADERS(assert.h,,AC_MSG_WARN(C headers missing ?))
+AC_CHECK_HEADERS(ctype.h,,AC_MSG_WARN(C headers missing ?))
+AC_CHECK_HEADERS(errno.h,,AC_MSG_WARN(C headers missing ?))
+AC_CHECK_HEADERS(limits.h,,AC_MSG_WARN(C headers missing ?))
+AC_CHECK_HEADERS(string.h,,AC_MSG_WARN(C headers missing ?))
+AC_CHECK_HEADERS(stdlib.h,,AC_MSG_WARN(C headers missing ?))
+AC_CHECK_HEADERS(stddef.h,,AC_MSG_WARN(C headers missing ?))
+AC_CHECK_HEADERS(float.h,,AC_MSG_WARN(C headers missing ?))
+AC_CHECK_HEADERS(math.h,,AC_MSG_WARN(C headers missing ?))
+dnl AC_CHECK_HEADERS(ieeefp.h,,AC_MSG_WARN(C headers missing ?))
+AC_CHECK_HEADERS(malloc.h,,AC_MSG_WARN(C headers missing ?))
+AC_CHECK_HEADERS(memory.h,,AC_MSG_WARN(C headers missing ?))
+AC_CHECK_HEADERS(unistd.h,,AC_MSG_WARN(C headers missing ?))
+
+AC_CHECK_HEADERS(inttypes.h,,AC_MSG_WARN(C headers missing ?))
+if test "${ac_cv_header_inttypes_h}" = "yes" ; then
+  HAVE_INTTYPES_H=1
+else
+  HAVE_INTTYPES_H=0
+fi
+AC_SUBST(HAVE_INTTYPES_H)
 
 
 SC_CONFIG_CFLAGS
@@ -159,15 +193,28 @@ AC_ARG_WITH(
     [with_octave=$withval],
     [with_octave=yes])
 
+OCTAVE=
+OCTAVE_VERSION=
+OCTAVE_VERSION_MAJOR=
 MKOCTFILE=
 if test "$with_octave" != "no" ; then
+  AC_MSG_CHECKING([for octave and mkoctfile])
   if test "$with_octave" = "yes" ; then
+    AC_PATH_PROG(OCTAVE, octave)
     AC_PATH_PROG(MKOCTFILE, mkoctfile)
   else
+    AC_PATH_PROG(OCTAVE, octave, [$with_octave/bin:$with_octave])
     AC_PATH_PROG(MKOCTFILE, mkoctfile,
         [${with_octave}/bin/mkoctfile:${with_octave}])
   fi
+  if test "x${OCTAVE}" != "x" ; then 
+    OCTAVE_VERSION=`${OCTAVE} -v | grep version | cut -d' ' -f4`
+    OCTAVE_VERSION_MAJOR=`echo ${OCTAVE_VERSION} | cut -d'.' -f1`
+  fi
 fi
+AC_SUBST(OCTAVE)
+AC_SUBST(OCTAVE_VERSION)
+AC_SUBST(OCTAVE_VERSION_MAJOR)
 AC_SUBST(MKOCTFILE)
 
 
@@ -395,6 +442,29 @@ fi
 AC_SUBST(TCL_VERSION)
 AC_SUBST(TK_VERSION)
 
+# -----------------------------------------------------------------------
+#
+# Compiler characteristics:
+#   Check for existence of types of size_t and pid_t
+#
+# -----------------------------------------------------------------------
+
+AC_C_BIGENDIAN
+AC_CHECK_SIZEOF(int)
+AC_CHECK_SIZEOF(long)
+AC_CHECK_SIZEOF(long long)
+AC_CHECK_SIZEOF(void *)
+
+SIZEOF_LONG="${ac_cv_sizeof_long}"
+SIZEOF_LONG_LONG="${ac_cv_sizeof_long_long}"
+SIZEOF_VOID_P="${ac_cv_sizeof_void_p}"
+SIZEOF_INT="${ac_cv_sizeof_int}"
+AC_SUBST(SIZEOF_INT)
+AC_SUBST(SIZEOF_LONG)
+AC_SUBST(SIZEOF_LONG_LONG)
+AC_SUBST(SIZEOF_VOID_P)
+
+
 #--------------------------------------------------------------------
 # Set the default compiler switches based on the --enable-symbols 
 # option.
@@ -437,6 +507,7 @@ AC_OUTPUT( [
     lang/python/setup.py
     lang/matlab/Makefile
     lang/octave/Makefile
+    lang/octave/RpOctaveInterface.h
     lang/ruby/Makefile
     lang/ruby/build.rb
     lang/tcl/Makefile
@@ -500,6 +571,7 @@ AC_OUTPUT( [
     examples/zoo/structure/Makefile
     examples/zoo/structure/examples/Makefile
     examples/zoo/table/Makefile
+    examples/zoo/unirect2d/Makefile
     test/Makefile
     test/src/Makefile
 ])
