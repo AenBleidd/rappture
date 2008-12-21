@@ -59,7 +59,7 @@ Error code, err=0 on success, anything else is failure.")
         }
     }
     else {
-        print_usage ("rpAddPresets");
+        _PRINT_USAGE ("rpAddPresets");
     }
 
   return retval;

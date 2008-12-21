@@ -59,7 +59,7 @@ err = 0 is success, anything else is failure.")
         }
     }
     else {
-        print_usage (who.c_str());
+        _PRINT_USAGE (who.c_str());
     }
 
   return retval;

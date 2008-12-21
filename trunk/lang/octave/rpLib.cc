@@ -53,7 +53,7 @@ err = 0 is success, anything else is failure.")
         }
     }
     else {
-        print_usage ("rpLib");
+        _PRINT_USAGE ("rpLib");
     }
 
     retval(0) = storeObject_Void((void*)lib);

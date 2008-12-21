@@ -43,7 +43,7 @@ err = 0 is success, anything else is failure.")
         }
     }
     else {
-        print_usage ("fopen");
+        _PRINT_USAGE ("fopen");
     }
 
     retval(0) = storeObject_Void((void*)lib);
