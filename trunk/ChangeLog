@@ -1,3 +1,11 @@
+
+ * Fixed bug regarding loaders using <new> tag where file was not loading
+ * Fixes for Octave 3.0's print_help function
+ * Adding rappture to OCTAVE_LOADPATH environment variable for octave 3.01
+
+2008-12-10: nanovis 20081207 released
+2008-12-10: Rappture 20081205 released
+
 2008-11-25:
 
  * Fixed sequenceviewer to handle sequences for heightmaps (surface plots)

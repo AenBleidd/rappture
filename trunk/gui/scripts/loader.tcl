@@ -93,11 +93,20 @@ itcl::body Rappture::Loader::constructor {owner path args} {
 
         if {[file exists $fname]} {
             set newfile $fname
+
             if {[catch {set obj [Rappture::library $fname]} result]} {
                 puts stderr "WARNING: can't load example file \"$fname\""
                 puts stderr "  $result"
             } else {
-                $itk_component(combo) choices insert end $obj "New"
+                set label "New"
+                $itk_component(combo) choices insert end $obj $label
+
+                # if this is new, add it to the label->file hash
+                if {![info exists entries($label)]} {
+                    set entries($label) $obj
+                    set _label2file($label) [file tail $fname]
+                }
+
                 # translate default file name => default label
                 if {[string equal $defval [file tail $fname]]} {
                     $_owner xml put $path.default "New"
@@ -198,7 +207,7 @@ itcl::body Rappture::Loader::constructor {owner path args} {
                         set label "Example #[incr _counter]"
                     }
 
-                    # if this is new, add it
+                    # if this is new, add it to the label->file hash
                     if {![info exists entries($label)]} {
                         set entries($label) $obj
                         set _label2file($label) [file tail $fname]
