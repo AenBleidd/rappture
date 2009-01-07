@@ -6,7 +6,11 @@ export DISPLAY
 # Fail on errors
 set -e
 
-broadcast="192.168.200.255"
+# Use the IP address of this host to construct a broadcast address.  This
+# feature will be hopefully going away very soon.
+
+broadcast=`hostname -i | sed 's/\.[0-9]* $/.255'`
+
 render_dir="@prefix@"
 nanoscale_port=2000
 nanovis_port=2000
@@ -24,7 +28,12 @@ PYMOL_PATH=${dir}/lib/pymol
 
 export PATH LD_LIBRARY_PATH PYMOL_PATH
 
-nvideo=`lspci | fgrep VGA | wc -l`
+# Determine the number of video cards we have.  The new render server
+# motherboards have the useless XGI Volaria onboard video controllers (no 3D
+# capabilities) so we have to make sure we count only the nVidia cards.
+
+nvideo=`lspci | fgrep VGA | fgrep nVidia | wc -l`
+
 nanoscale="${dir}/bin/nanoscale -x ${nvideo} -b $nanoscale_port -s $broadcast"
 nanovis="${dir}/bin/nanovis -p ${dir}/lib/shaders:${dir}/lib/resources"
 pymolproxy="${dir}/bin/pymolproxy ${dir}/bin/pymol -p -q -i -x -X 0 -Y 0"
