@@ -33,6 +33,10 @@ using namespace Rappture::encoding;
 int
 isbinary(const char* buf, int size)
 {
+    if (buf == NULL) {
+        return 0;
+    }
+
     if (size < 0) {
         size = strlen(buf);
     }
@@ -50,9 +54,71 @@ isbinary(const char* buf, int size)
     return 0;
 }
 
+/**********************************************************************/
+// FUNCTION: Rappture::encoding::isencoded()
+/// checks header of given string to determine if it was encoded by rappture.
+/**
+ * Checks to see if the string buf was encoded by rappture
+ * and contains the proper "@@RP-ENC:" header.
+ * rappture encoded strings start with the string "@@RP-ENC:X\n"
+ * where X is one of z, b64, zb64
+ * This function will not work for strings that do not have the header.
+ * Full function call:
+ * Rappture::encoding::isencoded(buf,size);
+ *
+ */
 
+size_t
+isencoded(const char* buf, int size)
+{
+    size_t flags = 0;
+    size_t len = 0;
 
+    if (buf == NULL) {
+        return flags;
+    }
 
+    if (size < 0) {
+        len = strlen(buf);
+    } else {
+        len = size;
+    }
+
+    // check the following for valid rappture encoded string:
+    // all strings encoded by rappture are at least 11 characters
+    // rappture encoded strings start with the '@' character
+    // rappture encoded strings start with the string "@@RP-ENC:X\n"
+    // where X is one of z, b64, zb64
+    if (    (len >= 11)
+        &&  ('@' == *buf)
+        &&  (strncmp("@@RP-ENC:",buf,9) == 0) ) {
+
+        size_t idx = 9;
+
+        // check the string length and if the z flag was specified
+        // add 1 for \n
+        if (    (len >= (idx + 1))
+            &&  (buf[idx] == 'z') ) {
+            flags |= RPENC_Z;
+            ++idx;
+        }
+        // check the string length and if the b64 flag was specified
+        // add 1 for \n
+        if (    (len >= (idx + 2 + 1))
+            &&  (buf[idx]   == 'b')
+            &&  (buf[idx+1] == '6')
+            &&  (buf[idx+2] == '4') ) {
+            flags |= RPENC_B64;
+            idx += 3;
+        }
+        // check for the '\n' at the end of the header
+        if (buf[idx] != '\n') {
+            flags = 0;
+        }
+    }
+
+    return flags;
+}
 
 /**********************************************************************/
 // FUNCTION: Rappture::encoding::encode()
@@ -65,7 +131,7 @@ isbinary(const char* buf, int size)
  */
 
 Rappture::Outcome
-encode (Rappture::Buffer& buf, int flags)
+encode (Rappture::Buffer& buf, size_t flags)
 {
 
     int compress              = 0;
@@ -124,7 +190,7 @@ encode (Rappture::Buffer& buf, int flags)
  */
 
 Rappture::Outcome
-decode (Rappture::Buffer& buf, int flags)
+decode (Rappture::Buffer& buf, size_t flags)
 {
 
     int decompress            = 0;

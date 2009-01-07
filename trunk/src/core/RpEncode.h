@@ -28,8 +28,9 @@ namespace Rappture {
 #endif // ifdef __cplusplus
 
 int isbinary(const char* buf, int size);
-Rappture::Outcome encode (Rappture::Buffer& buf, int flags);
-Rappture::Outcome decode (Rappture::Buffer& buf, int flags);
+size_t isencoded(const char* buf, int size);
+Rappture::Outcome encode (Rappture::Buffer& buf, size_t flags);
+Rappture::Outcome decode (Rappture::Buffer& buf, size_t flags);
 
 #ifdef __cplusplus
     } // namespace encoding

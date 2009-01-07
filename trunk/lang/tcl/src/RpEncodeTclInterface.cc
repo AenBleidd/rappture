@@ -67,7 +67,7 @@ RpTclEncodingIs (ClientData cdata, Tcl_Interp *interp,
     if (objc != 3) {
         Tcl_AppendResult(interp,
             "wrong # args: should be \"",
-            Tcl_GetString(objv[0])," binary <string>\"",
+            Tcl_GetString(objv[0])," binary|encoded <string>\"",
             (char*)NULL);
         return TCL_ERROR;
     }
@@ -77,7 +77,7 @@ RpTclEncodingIs (ClientData cdata, Tcl_Interp *interp,
     int bufLen;
     const char *buf = (const char*) Tcl_GetByteArrayFromObj(objv[2],&bufLen);
 
-    if (strcmp(type,"binary") == 0) {
+    if (('b' == *type) && (strcmp(type,"binary") == 0)) {
         if (Rappture::encoding::isbinary(buf,bufLen) != 0) {
             // non-ascii character found, return yes
             Tcl_AppendResult(interp, "yes", (char*)NULL);
@@ -85,9 +85,17 @@ RpTclEncodingIs (ClientData cdata, Tcl_Interp *interp,
             Tcl_AppendResult(interp, "no",(char*)NULL);
         }
         return TCL_OK;
+    } else if (('e' == *type) && (strcmp(type,"encoded") == 0)) {
+        if (Rappture::encoding::isencoded(buf,bufLen) != 0) {
+            // valid "@@RP-ENC:" header found, return yes
+            Tcl_AppendResult(interp, "yes", (char*)NULL);
+        } else {
+            Tcl_AppendResult(interp, "no",(char*)NULL);
+        }
+        return TCL_OK;
     }
     Tcl_AppendResult(interp, "bad option \"", type,
-            "\": should be binary",
+            "\": should be one of binary, encoded",
             (char*)NULL);
     return TCL_ERROR;
 }

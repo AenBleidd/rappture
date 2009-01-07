@@ -1456,7 +1456,7 @@ RpLibrary::childCount(std::string path, int* childCount)
         scew_element* parentNode;
         int myChildCount = 0;
 
-	parentNode = NULL;
+        parentNode = NULL;
         if (path.empty()) {
             // an empty path uses the current RpLibrary as parent
             parentNode = this->root;
@@ -1538,27 +1538,31 @@ RpLibrary::getString (std::string path, int translateFlag) const
     }
 
     inData = Rappture::Buffer(retCStr);
-    status &= Rappture::encoding::decode(inData,0);
-    status.addContext("RpLibrary::getSting");
-    // inData.append("\0",1);
 
-    if (translateFlag == RPLIB_TRANSLATE) {
-        translatedContents = ERTranslator.decode(inData.bytes(),inData.size());
-        if (translatedContents == NULL) {
-            // translation failed
-            if (!status) {
-                status.error("Error while translating entity references");
-                status.addContext("RpLibrary::getSting");
+    if (Rappture::encoding::isencoded(inData.bytes(),inData.size()) != 0) {
+        // data is encoded,
+        // coming from an rplib, this means it was at least base64 encoded
+        // there is no reason to do entity translation
+        // because base64 character set does not include xml entity chars
+        status &= Rappture::encoding::decode(inData,0);
+        status.addContext("RpLibrary::getSting");
+        retStr = std::string(inData.bytes(),inData.size());
+    } else {
+        // check translateFlag to see if we need to translate entity refs
+        if (translateFlag == RPLIB_TRANSLATE) {
+            translatedContents = ERTranslator.decode(inData.bytes(),inData.size());
+            if (translatedContents == NULL) {
+                // translation failed
+                if (!status) {
+                    status.error("Error while translating entity references");
+                    status.addContext("RpLibrary::getSting");
+                }
+            } else {
+                // subtract 1 from size because ERTranslator adds extra NULL
+                retStr = std::string(translatedContents,ERTranslator.size()-1);
+                translatedContents = NULL;
             }
         }
-        else {
-            // subtract 1 from size because ERTranslator adds extra NULL
-            retStr = std::string(translatedContents,ERTranslator.size()-1);
-            translatedContents = NULL;
-        }
-    }
-    else {
-        retStr = std::string(inData.bytes(),inData.size());
     }
 
     inData.clear();
@@ -1956,7 +1960,7 @@ RpLibrary::putData (std::string path,
     const char* contents = NULL;
     Rappture::Buffer inData;
     unsigned int bytesWritten = 0;
-    int flags = 0;
+    size_t flags = 0;
 
     if (!this->root) {
         // library doesn't exist, do nothing;
