@@ -28,11 +28,11 @@ if {[lsearch [namespace children] ::tcltest] == -1} {
 #----------------------------------------------------------
 test is-1.0.1 {Rappture::encoding::is, 0 arguments} {
     list [catch {Rappture::encoding::is} msg] $msg
-} {1 {wrong # args: should be "Rappture::encoding::is binary <string>"}}
+} {1 {wrong # args: should be "Rappture::encoding::is binary|encoded <string>"}}
 
 test is-1.1.1 {Rappture::encoding::is, 1 incomplete subcommand} {
     list [catch {Rappture::encoding::is binary} msg] $msg
-} {1 {wrong # args: should be "Rappture::encoding::is binary <string>"}}
+} {1 {wrong # args: should be "Rappture::encoding::is binary|encoded <string>"}}
 
 test is-1.1.2 {Rappture::encoding::is, 1 subcommand w/ string} {
     list [catch {Rappture::encoding::is binary "hi"} msg] $msg
@@ -46,14 +46,67 @@ test is-1.1.3 {Rappture::encoding::is, 1 subcommand w/ string} {
 
 test is-1.2.0 {Rappture::encoding::is, 1 invalid subcommand} {
     list [catch {Rappture::encoding::is binaryy "hi"} msg] $msg
-} {1 {bad option "binaryy": should be binary}}
+} {1 {bad option "binaryy": should be one of binary, encoded}}
 
 test is-1.2.1 {Rappture::encoding::is, too many arguments} {
     list [catch {Rappture::encoding::is binary binary "hi"} msg] $msg
-} {1 {wrong # args: should be "Rappture::encoding::is binary <string>"}}
+} {1 {wrong # args: should be "Rappture::encoding::is binary|encoded <string>"}}
 
 test is-1.2.2 {Rappture::encoding::is, with an embedded null} {
     list [catch {Rappture::encoding::is binary "x\000x"} msg] $msg
+} {0 yes}
+
+test is-1.3.1 {Rappture::encoding::is, encoded subcommand w/ false string} {
+    list [catch {Rappture::encoding::is encoded "hi"} msg] $msg
+} {0 no}
+
+test is-1.3.2 {Rappture::encoding::is, encoded b64 flag and extra string} {
+    set h "@@RP-ENC:b64\nH4sIAAAAAAAAA8vIBACsKpPYAgAAAA=="
+    list [catch {Rappture::encoding::is encoded $h} msg] $msg
+} {0 yes}
+
+test is-1.3.3 {Rappture::encoding::is, encoded zb64 flag and extra string} {
+    set h "@@RP-ENC:zb64\nH4sIAAAAAAAAA8vIBACsKpPYAgAAAA=="
+    list [catch {Rappture::encoding::is encoded $h} msg] $msg
+} {0 yes}
+
+test is-1.3.4 {Rappture::encoding::is, encoded z flag and extra string} {
+    set h "@@RP-ENC:z\nH4sIAAAAAAAAA8vIBACsKpPYAgAAAA=="
+    list [catch {Rappture::encoding::is encoded $h} msg] $msg
+} {0 yes}
+
+test is-1.3.5 {Rappture::encoding::is, encoded z flag newline no string} {
+    set h "@@RP-ENC:z\n"
+    list [catch {Rappture::encoding::is encoded $h} msg] $msg
+} {0 yes}
+
+test is-1.3.6 {Rappture::encoding::is, encoded b64 flag newline no string} {
+    set h "@@RP-ENC:b64\n"
+    list [catch {Rappture::encoding::is encoded $h} msg] $msg
+} {0 yes}
+
+test is-1.3.7 {Rappture::encoding::is, encoded zb64 flag newline no string} {
+    set h "@@RP-ENC:zb64\n"
+    list [catch {Rappture::encoding::is encoded $h} msg] $msg
+} {0 yes}
+
+test is-1.3.7 {Rappture::encoding::is, encoded z flag no newline no string} {
+    set h "@@RP-ENC:zb64"
+    list [catch {Rappture::encoding::is encoded $h} msg] $msg
+} {0 no}
+
+test is-1.3.8 {Rappture::encoding::is, encoded b64 flag no newline no string} {
+    set h "@@RP-ENC:b64"
+    list [catch {Rappture::encoding::is encoded $h} msg] $msg
+} {0 no}
+
+test is-1.3.9 {Rappture::encoding::is, encoded zb64 flag no newline no string} {
+    set h "@@RP-ENC:zb64"
+    list [catch {Rappture::encoding::is encoded $h} msg] $msg
+} {0 no}
+
+test is-1.3.10 {Rappture::encoding::is, encoded with an embedded null} {
+    list [catch {Rappture::encoding::is encoded "@@RP-ENC:zb64\nx\000x"} msg] $msg
 } {0 yes}
 
 #----------------------------------------------------------
