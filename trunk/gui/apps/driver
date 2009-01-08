@@ -236,6 +236,9 @@ foreach comp $phases {
 # ----------------------------------------------------------------------
 # OUTPUT AREA
 # ----------------------------------------------------------------------
+
+# adjust the title of the page here.
+# to adjust the button text, look in analyzer.tcl
 set simtxt [$xmlobj get tool.action.label]
 if {"" == $simtxt} {
     set simtxt "Simulate"

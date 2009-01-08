@@ -234,7 +234,7 @@ itcl::body Rappture::Loader::constructor {owner path args} {
     # Assign the default value to this widget, if there is one.
     #
     set str [$_owner xml get $path.default]
-    if {$str != ""} { after 2500 [itcl::code $this value $str] }
+    if {$str != ""} { after 50 [itcl::code $this value $str] }
 }
 
 # ----------------------------------------------------------------------
