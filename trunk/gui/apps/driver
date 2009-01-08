@@ -233,6 +233,9 @@ foreach comp $phases {
     pack $f.cntls -expand yes -fill both
 }
 
+# let components (loaders) in the newly created pages settle
+update
+
 # ----------------------------------------------------------------------
 # OUTPUT AREA
 # ----------------------------------------------------------------------
