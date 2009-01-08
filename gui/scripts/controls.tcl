@@ -270,6 +270,9 @@ itcl::body Rappture::Controls::insert {pos path} {
     $_dispatcher event -idle !layout
     _controlChanged $name
 
+    # let the waiting events in the gui (like loader) settle
+    update
+
     return $name
 }
 
