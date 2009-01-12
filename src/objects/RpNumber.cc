@@ -4,147 +4,126 @@
  *
  * ======================================================================
  *  AUTHOR:  Derrick Kearney, Purdue University
- *  Copyright (c) 2004-2005  Purdue Research Foundation
+ *  Copyright (c) 2005-2009  Purdue Research Foundation
  *
  *  See the file "license.terms" for information on usage and
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  * ======================================================================
  */
 
+#include <cstring>
+#include <stdlib.h>
 #include "RpNumber.h"
 
-/**********************************************************************/
-// METHOD: setDefaultValue()
-/// set the default value of a RpNumber object.
-/**
- */
+#ifndef _RpUNITS_H
+    #include "RpUnits.h"
+#endif
 
-RpNumber&
-RpNumber::setDefaultValue(double newDefaultVal) {
+RpNumber::RpNumber (
+            const char *path,
+            const char *unit,
+            double val
+        )
+    :   RpVariable  (),
+        _default    (val),
+        _current    (val),
+        _min        (0.0),
+        _max        (0.0),
+        _minmaxSet  (0.0)
+{
+    const RpUnits *u = NULL;
 
-    double* def = NULL;
+    property("path",(const void *)path);
 
-    def = (double*) RpVariable::getDefaultValue(); 
+    u = RpUnits::find(std::string(unit));
+    if (!u) {
+        u = RpUnits::define(unit,NULL);
+    }
+    property("units",(const void *)unit);
 
-    if (!def) {
-        RpVariable::setDefaultValue(new double (newDefaultVal));
+    property("default",(const void *)&_default);
+    property("current",(const void *)&_current);
+    property("min",(const void *)&_min);
+    property("max",(const void *)&_max);
+}
+
+RpNumber::RpNumber (
+            const char *path,
+            const char *unit,
+            double val,
+            double min,
+            double max,
+            const char *label,
+            const char *desc
+        )
+    :   RpVariable  (),
+        _default    (val),
+        _current    (val),
+        _min         (min),
+        _max         (max),
+        _minmaxSet   (0)
+{
+    const RpUnits *u = NULL;
+
+    property("path",(const void *)path);
+
+    u = RpUnits::find(std::string(unit));
+    if (! u) {
+        u = RpUnits::define(unit,NULL);
+    }
+    property("units",(const void *)unit);
+
+    if ((min == 0) && (max == 0)) {
+        _minmaxSet = 0;
     }
     else {
-        *def = newDefaultVal;
+
+        if (min > val) {
+            _min = val;
+        }
+
+        if (max < val) {
+            _max = val;
+        }
     }
 
-    return *this;
+    property("default",(const void *)&_default);
+    property("current",(const void *)&_current);
+    property("min",(const void *)&_min);
+    property("max",(const void *)&_max);
+}
+
+// copy constructor
+RpNumber::RpNumber ( const RpNumber& o )
+    :   RpVariable(o),
+        _default    (o._default),
+        _current    (o._current),
+        _min        (o._min),
+        _max        (o._max),
+        _minmaxSet  (o._minmaxSet)
+{}
+
+// default destructor
+RpNumber::~RpNumber ()
+{
+    // clean up dynamic memory
+
 }
 
 /**********************************************************************/
-// METHOD: setCurrentValue()
-/// Set the current value of a RpNumber object.
+// METHOD: units()
+/// get / set the units of this number
 /**
+ * get / set the units property of this object
  */
 
-RpNumber&
-RpNumber::setCurrentValue(double newCurrentVal) {
-
-    double* cur = (double*) RpVariable::getCurrentValue();
-    double* def = (double*) RpVariable::getDefaultValue();
-
-    if (cur == def) {
-        RpVariable::setCurrentValue(new double (newCurrentVal));
-    }
-    else {
-        *cur = newCurrentVal;
-    }
-
-    return *this;
+const char *
+RpNumber::units(
+    const char *val)
+{
+    return (const char *) property("units",val);
 }
 
-
-/**********************************************************************/
-// METHOD: setMin()
-/// Set the min value of a RpNumber object.
-/**
- */
-
-RpNumber&
-RpNumber::setMin(double newMin) {
-
-    min = newMin;
-    return *this;
-}
-
-/**********************************************************************/
-// METHOD: setMax()
-/// set the min value of a RpNumber object
-/**
- */
-
-RpNumber&
-RpNumber::setMax(double newMax) {
-
-    max = newMax;
-    return *this;
-}
-
-/**********************************************************************/
-// METHOD: getUnits()
-/// Report the units of the object.
-/**
- */
-
-std::string 
-RpNumber::getUnits() const {
-
-    return units->getUnitsName(); 
-}
-
-
-/**********************************************************************/
-// METHOD: getDefaultValue()
-/// Report the default value of the object.
-/**
- */
-
-double
-RpNumber::getDefaultValue(void* null_val) const {
-
-    return *((double*) RpVariable::getDefaultValue()); 
-}
-
-/**********************************************************************/
-// METHOD: getCurrentValue()
-/// Report the current value of the object.
-/**
- */
-
-double
-RpNumber::getCurrentValue(void* null_val) const {
-
-    return *((double*) RpVariable::getCurrentValue()); 
-}
-
-/**********************************************************************/
-// METHOD: getMin()
-/// Report the min of the object.
-/**
- */
-
-double
-RpNumber::getMin() const {
-
-    return min;
-}
-
-/**********************************************************************/
-// METHOD: getMax()
-/// report the max of the object.
-/**
- */
-
-double
-RpNumber::getMax() const {
-
-    return max;
-}
 
 /**********************************************************************/
 // METHOD: convert()
@@ -154,93 +133,45 @@ RpNumber::getMax() const {
  */
 
 double
-RpNumber::convert(std::string toUnitStr, int storeResult, int* result) {
+RpNumber::convert(const char *to) {
 
     const RpUnits* toUnit = NULL;
-    double retVal = 0;
-    int my_result = 0;
+    const RpUnits* fromUnit = NULL;
+    double convertedVal = _current;
+    int err = 0;
 
-    toUnit = RpUnits::find(toUnitStr);
-
-    // set the result to the default value if it exists
-    if (result) {
-        *result = my_result;
+    // make sure all units functions accept char*'s
+    toUnit = RpUnits::find(std::string(to));
+    if (!toUnit) {
+        // should raise error!
+        // conversion not defined because unit does not exist
+        return _current;
     }
 
-    if (!toUnit) {
-        // should raise error! 
+    fromUnit = RpUnits::find(std::string(units(NULL)));
+    if (!fromUnit) {
+        // should raise error!
         // conversion not defined because unit does not exist
-        return retVal;
+        return _current;
     }
 
     // perform the conversion
-    retVal = convert(toUnit,&my_result); 
-
-    // check the result of the conversion and store if necessary
-    if (my_result) {
-        if (result) {
-            *result = my_result;
-        }
-
-        // check if we should store the value and change units
-        if (storeResult) {
-            // no need to deallocate old units, 
-            // because they are stored in static dictionary
-            units = toUnit;
-            RpNumber::setCurrentValue(retVal);
-        }
+    convertedVal = fromUnit->convert(toUnit,_default, &err);
+    if (!err) {
+        _default = convertedVal;
     }
 
-    return retVal;
-}
-
-/**********************************************************************/
-// METHOD: convert()
-/// Convert the number object to another unit from string.
-/**
- */
-
-double
-RpNumber::convert(std::string toUnitStr, int* result) {
-
-    const RpUnits* toUnit = NULL;
-    toUnit = RpUnits::find(toUnitStr);
-    if (!toUnit) {
-        // should raise error! 
-        // conversion not defined because unit does not exist
-        if (result) {
-            *result = -1;
-        }
-        return 0.0;
+    convertedVal = fromUnit->convert(toUnit,_current, &err);
+    if (!err) {
+        _current = convertedVal;
     }
-    return convert(toUnit, result); 
+
+    if (err) {
+        convertedVal = _current;
+    }
+
+    return convertedVal;
 }
-
-/**********************************************************************/
-// METHOD: convert()
-/// Convert the number object to another unit from RpUnits object.
-/**
- */
-
-double
-RpNumber::convert(const RpUnits* toUnit, int *result) {
-
-    return units->convert(toUnit,getCurrentValue(), result); 
-}
-
-/**********************************************************************/
-// METHOD: put()
-/// Store the information of this Rappture Object into the xml
-/**
- */
-//
-//RpNumber&
-//RpNumber::put() const {
-//
-//    
-//    return *this; 
-//}
-
 
 // -------------------------------------------------------------------- //
 

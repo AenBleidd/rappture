@@ -1,24 +1,24 @@
 
 bindir          = @bindir@
-datadir		= @datadir@
-datarootdir	= @datarootdir@
+datadir         = @datadir@
+datarootdir     = @datarootdir@
 exec_prefix     = @exec_prefix@
 includedir      = @includedir@
 libdir          = @libdir@
 mandir          = @mandir@
 prefix          = @prefix@
-srcdir		= @srcdir@
-incdir		= $(prefix)/include
+srcdir          = @srcdir@
+incdir          = $(prefix)/include
 
-INSTALL		= @INSTALL@
-MKDIR_P		= @MKDIR_P@
+INSTALL         = @INSTALL@
+MKDIR_P         = @MKDIR_P@
 
 CXX             = @CXX@
 # This hack is because the tcl.m4 file generates the line
 # SHLIB_LD = ${CC} ...
 # We need to link with g++ on MacOS 10.4
 CC              = $(CXX)
-CCC		= @CC@
+CCC             = @CC@
 CFLAGS_DEBUG    = @CFLAGS_DEBUG@ -Wall
 CFLAGS_OPTIMIZE = @CFLAGS_OPTIMIZE@
 STLIB_LD        = @STLIB_LD@
@@ -30,20 +30,22 @@ CFLAGS_DEFAULT  = @CFLAGS_DEFAULT@
 LIB_SEARCH_DIRS = @LIB_SEARCH_DIRS@
 CFLAGS          = @CFLAGS@
 
-CC_SWITCHES	= $(CFLAGS) $(CFLAGS_DEBUG) $(INCLUDES) $(DEFINES)
-CXX_SWITCHES	= $(CFLAGS) $(CFLAGS_DEBUG) $(INCLUDES) $(DEFINES)
+CC_SWITCHES     = $(CFLAGS) $(CFLAGS_DEBUG) $(INCLUDES) $(DEFINES)
+CXX_SWITCHES    = $(CFLAGS) $(CFLAGS_DEBUG) $(INCLUDES) $(DEFINES)
 
-INCLUDES	= -I$(srcdir) \
-		  -I$(includedir)
+INCLUDES        = \
+		-I. \
+		-I$(srcdir) \
+		-I$(includedir)
 
-RANLIB 		= @RANLIB@
-AR 		= ar
-VPATH		= $(srcdir):$(srcdir)/scew:$(srcdir)/b64
-RM		= rm -f
+RANLIB          = @RANLIB@
+AR              = ar
+VPATH           = $(srcdir):$(srcdir)/scew:$(srcdir)/b64
+RM              = rm -f
 
 CDEBUGFLAGS     = -g -Wall
 
-LIBS		= -lexpat -lz -lm -lstdc++
+LIBS            = -lexpat -lz -lm -lstdc++
 
 HEADERS = \
 		RpOutcome.h \
@@ -75,7 +77,7 @@ HEADERS = \
 		RpUtilsCInterface.h \
 		RpUtilsFInterface.h \
 		RpUtilsFStubs.h \
-		rappture.h 
+		rappture.h
 
 SCEW_HEADERS 	= \
 		attribute.h  \
@@ -93,8 +95,8 @@ SCEW_HEADERS 	= \
 		xparser.h \
 		xprint.h \
 		xtree.h \
-	        writer.h \
-	        xerror.h 
+		writer.h \
+		xerror.h
 
 # Build the scew and b64 libraries directly into Rappture for now.  
 # Note: This works because of viewpath-ing. See the VPATH variable.
@@ -115,7 +117,7 @@ SCEW_OBJS 	= \
 		xerror.o \
 		xhandler.o \
 		xparser.o \
-		xprint.o 
+		xprint.o
 
 OBJS = 		\
 		RpBindingsDict.o \
@@ -143,10 +145,10 @@ OBJS = 		\
 		$(SCEW_OBJS) \
 		$(B64_OBJS)
 
-name		= rappture
-libname 	= lib$(name)
-lib		= $(libname).a
-shared_lib	= $(libname)$(SHLIB_SUFFIX)
+name        = rappture
+libname     = lib$(name)
+lib         = $(libname).a
+shared_lib  = $(libname)$(SHLIB_SUFFIX)
 
 all: $(lib) $(shared_lib)
 

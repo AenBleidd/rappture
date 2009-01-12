@@ -6,216 +6,124 @@
  *
  * ======================================================================
  *  AUTHOR:  Derrick Kearney, Purdue University
- *  Copyright (c) 2004-2005  Purdue Research Foundation
+ *  Copyright (c) 2005-2009  Purdue Research Foundation
  *
  *  See the file "license.terms" for information on usage and
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  * ======================================================================
  */
 
- #include "RpVariable.h"
+#include <cstring>
+#include <stdlib.h>
+#include "RpVariable.h"
+#include "RpHashHelper.h"
 
-/**********************************************************************/
-// METHOD: setPath()
-/// Set the path of this object
-/**
- */
-
-RpVariable&
-RpVariable::setPath(std::string newPath)
+RpVariable::RpVariable()
 {
-    path = newPath;
-    return *this; 
+    __init();
 }
 
-/**********************************************************************/
-// METHOD: setDefaultValue()
-/// Set the default value of this object
-/**
- */
-
-RpVariable&
-RpVariable::setDefaultValue(void* newDefaultVal)
+RpVariable::RpVariable(const RpVariable& o)
+    :
+        _path (o._path)
 {
-    // who is responsible for freeing the pointer?
-    defaultVal = newDefaultVal; 
-    return *this; 
+    if (o._h != NULL) {
+        Rp_HashCopy(_h,o._h,charCpyFxn);
+    }
 }
 
-/**********************************************************************/
-// METHOD: setCurrentValue()
-/// Set the current value of this object
-/**
- */
-
-RpVariable&
-RpVariable::setCurrentValue(void* newCurrentVal)
+RpVariable::~RpVariable()
 {
-    // who is responsible for freeing the pointer?
-    currentVal = newCurrentVal; 
-    return *this; 
+    __close();
 }
 
-/**********************************************************************/
-// METHOD: setLabel()
-/// Set the label of this object
-/**
- */
-
-RpVariable&
-RpVariable::setLabel(std::string newLabel)
+const char *
+RpVariable::label(
+    const char *val)
 {
-    about.setLabel(newLabel); 
-    return *this; 
+    return (const char *) property("label",val);
 }
 
-/**********************************************************************/
-// METHOD: setDesc()
-/// Set the desc of this object
-/**
- */
-
-RpVariable& 
-RpVariable::setDesc(std::string newDesc)
+const char *
+RpVariable::desc(
+    const char *val)
 {
-    about.setDesc(newDesc); 
-    return *this; 
+    return (const char *) property("desc",val);
 }
 
-/**********************************************************************/
-// METHOD: setHints()
-/// Set the hints of this object
-/**
- */
-
-RpVariable& 
-RpVariable::setHints(std::string newHints)
+const char *
+RpVariable::hints(
+    const char *val)
 {
-    about.setHints(newHints); 
-    return *this; 
+    return (const char *) property("hints",val);
 }
 
-/**********************************************************************/
-// METHOD: setColor()
-/// Set the color of this object
-/**
- */
-
-RpVariable& 
-RpVariable::setColor(std::string newColor)
+const char *
+RpVariable::color(
+    const char *val)
 {
-    about.setColor(newColor); 
-    return *this; 
+    return (const char *) property("color",val);
 }
 
-/**********************************************************************/
-// METHOD: setIcon()
-/// Set the icon of this object 
-/**
- */
-
-RpVariable& 
-RpVariable::setIcon(std::string newIcon)
+const char *
+RpVariable::icon(
+    const char *val)
 {
-    about.setIcon(newIcon); 
-    return *this; 
+    return (const char *) property("icon",val);
 }
 
-
-/**********************************************************************/
-// METHOD: getPath()
-/// Report the path of this object
-/**
- */
-
-std::string 
-RpVariable::getPath() const
+const char *
+RpVariable::path(
+    const char *val)
 {
-    return path; 
+    return (const char *) property("path",val);
 }
 
-/**********************************************************************/
-// METHOD: getDefaultValue()
-/// Report the default value of the object
-/**
- */
-
-void*
-RpVariable::getDefaultValue() const
+const void *
+RpVariable::property(
+    const char *key,
+    const void *val)
 {
-    return defaultVal; 
+    const void *r = NULL;
+    if (_h == NULL) {
+        // hash table does not exist, create it
+        _h = (Rp_HashTable*) malloc(sizeof(Rp_HashTable));
+        Rp_InitHashTable(_h,RP_STRING_KEYS);
+        return NULL;
+    }
+
+    if (val == NULL) {
+        // get the value
+        r = Rp_HashSearchNode(_h,key);
+    } else {
+        //set the value
+        Rp_HashRemoveNode(_h,key);
+        Rp_HashAddNode(_h,key,val);
+        r = val;
+    }
+
+    return r;
 }
 
-/**********************************************************************/
-// METHOD: getCurrentValue()
-/// Report the current value of the object
-/**
- */
-
-void* 
-RpVariable::getCurrentValue() const
+void
+RpVariable::__init()
 {
-    return currentVal; 
+    _path = NULL;
+    _h = NULL;
 }
 
-/**********************************************************************/
-// METHOD: getLabel()
-/// Report the label of the object
-/**
- */
-
-std::string 
-RpVariable::getLabel() const
+void
+RpVariable::__close()
 {
-    return about.getLabel(); 
-}
+    if (_path != NULL) {
+        free((void *)_path);
+    }
 
-/**********************************************************************/
-// METHOD: getDesc()
-/// Report the desc of the object
-/**
- */
+    if (_h != NULL) {
+        Rp_DeleteHashTable(_h);
+    }
 
-std::string 
-RpVariable::getDesc() const
-{
-    return about.getDesc(); 
-}
-
-/**********************************************************************/
-// METHOD: getHints()
-/// Report the hints of this object
-/**
- */
-
-std::string 
-RpVariable::getHints() const
-{
-    return about.getHints(); 
-}
-
-/**********************************************************************/
-// METHOD: getColor()
-/// Report the color of this object
-/**
- */
-
-std::string 
-RpVariable::getColor() const
-{
-    return about.getColor(); 
-}
-
-/**********************************************************************/
-// METHOD: getIcon()
-/// Report the icon of this object
-/**
- */
-
-std::string 
-RpVariable::getIcon() const
-{
-    return about.getIcon(); 
+    __init();
 }
 
 
