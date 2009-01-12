@@ -1,4 +1,5 @@
-AC_INIT([Rappture], [1.1], [rappture@nanohub.org])
+AC_INIT([Rappture],[1.1],[rappture@nanohub.org])
+dnl AC_CONFIG_HEADER(src/core/RpConfig.h)
 AC_CONFIG_AUX_DIR(cf)
 
 #------------------------------------------------------------------------
@@ -34,12 +35,12 @@ AC_PROG_MKDIR_P
 
 AC_PROG_F77([g77 gfortran f77 fort77 f90 xlf xlf90 fl32])
 
-AC_LANG_C
+AC_LANG([C])
 
 AC_HEADER_STDC
 AC_CHECK_FUNC(atol,,AC_MSG_ERROR(oops! no atol ?!?))
 
-AC_LANG_CPLUSPLUS
+AC_LANG([C++])
 
 AC_CHECK_LIB(m, main,,AC_MSG_ERROR(librappture requires libm))
 AC_CHECK_LIB(stdc++, main,,AC_MSG_ERROR(librappture requires libstdc++))
@@ -93,7 +94,7 @@ for m in "$MAKE" make gmake gnumake ; do
   fi
 done
 if test "x${make_command}" = "x" ; then
-  AC_ERROR([Requires GNU make. You can specify a version with \$MAKE])
+  AC_MSG_ERROR([Requires GNU make. You can specify a version with \$MAKE])
 fi
 AC_SUBST(MAKE, ${make_command})
 
@@ -482,13 +483,14 @@ ac_configure_args="--disable-threads --enable-shared"
 AC_CONFIG_SUBDIRS( [packages/optimizer/src] )
 
 dnl read Makefile.in and write Makefile
-AC_OUTPUT( [
+AC_CONFIG_FILES([
     Makefile
     packages/Makefile
     src/Makefile
     src/core/Makefile
     src/core2/Makefile
     src/objects/Makefile
+    src/objects/RpHash.h
     gui/Makefile
     gui/apps/Makefile
     gui/apps/about
@@ -575,3 +577,4 @@ AC_OUTPUT( [
     test/Makefile
     test/src/Makefile
 ])
+AC_OUTPUT
