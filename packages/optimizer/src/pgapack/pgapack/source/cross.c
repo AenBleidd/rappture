@@ -266,6 +266,7 @@ void PGASetCrossoverType (PGAContext *ctx, int crossover_type)
         case PGA_CROSSOVER_TWOPT:
         case PGA_CROSSOVER_UNIFORM:
         case PGA_CROSSOVER_SBX:
+        case PGA_CROSSOVER_TRIANGULAR:
             ctx->ga.CrossoverType = crossover_type;
             break;
         default:

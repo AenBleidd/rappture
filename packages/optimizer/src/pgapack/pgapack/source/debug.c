@@ -294,6 +294,11 @@ PGAFuncRec PGAFuncIndex[PGA_DEBUG_MAXPGAPACKFUNCTIONS] =
         { "PGACheckStoppingConditions",     394 },
         { "PGASetMaxNoChangeValue",         395 },
         { "PGASetMaxSimilarityValue",       396 },
+        { "PGASetTgtFitnessVal",			398 },
+        { "PGASetFitnessTol",				399 },
+        { "PGASetTgtFitnessVariance",		400 },
+        { "PGASetVarTol",					401 },
+        { "PGASetTgtElapsedTime",			402 },
 	{ "PGADone",                        397 },
 
 /* Fitness and Evaluation Routines 500 - 599 */

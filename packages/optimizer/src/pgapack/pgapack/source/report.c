@@ -560,7 +560,38 @@ void PGAPrintContextVariable ( PGAContext *ctx, FILE *fp )
          fprintf( fp,"On\n");
      else
          fprintf( fp,"Off\n");
+         
+     fprintf(fp, " 	  Stop: Average Fitness			 : ");
+     if ((ctx->ga.StoppingRule & PGA_STOP_AV_FITNESS) == PGA_STOP_AV_FITNESS){
+         fprintf(fp,"On\n");
+         fprintf(fp,"The target average fitness is %lf and tolerance is %lf\n", ctx->ga.TgtFitnessVal, ctx->ga.FitnessTol);
+     }else{
+         fprintf(fp,"Off\n");
+     }         
 
+	 fprintf(fp, " 	  Stop: Best Fitness			 : ");
+     if ((ctx->ga.StoppingRule & PGA_STOP_BEST_FITNESS) == PGA_STOP_BEST_FITNESS){
+         fprintf(fp,"On\n");
+         fprintf(fp,"The target best fitness is %lf and tolerance is %lf\n", ctx->ga.TgtFitnessVal, ctx->ga.FitnessTol);
+     }else{
+         fprintf(fp,"Off\n");
+     }
+     
+     fprintf(fp, " 	  Stop: Fitness Variance			 : ");
+     if ((ctx->ga.StoppingRule & PGA_STOP_VARIANCE) == PGA_STOP_VARIANCE){
+         fprintf(fp,"On\n");
+         fprintf(fp,"The target variance is %lf and tolerance is %lf\n", ctx->ga.TgtFitnessVar, ctx->ga.VarTol);
+     }else{
+         fprintf(fp,"Off\n");
+     }
+     
+     fprintf(fp, " 	  Stop: Time Elapsed			 : ");
+     if ((ctx->ga.StoppingRule & PGA_STOP_TIMEELAPSED) == PGA_STOP_TIMEELAPSED){
+         fprintf(fp,"On\n");
+         fprintf(fp,"The max time for execution is %lf minutes\n", ctx->ga.TgtElapsedTime);
+     }else{
+         fprintf(fp,"Off\n");
+     }
 
      fprintf(fp, "        Percent Similarity         : ");
      switch(ctx->ga.MaxSimilarity)

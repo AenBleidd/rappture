@@ -104,12 +104,12 @@ int PGADone(PGAContext *ctx, MPI_Comm comm)
     size = PGAGetNumProcs(ctx, comm);
 
     if (rank == 0) {
-	if (ctx->fops.StopCond)
-	    done = (*ctx->fops.StopCond)(&ctx);
-	else if (ctx->cops.StopCond)
-	    done = (*ctx->cops.StopCond)(ctx);
-	else
-	    done = PGACheckStoppingConditions(ctx);
+		if (ctx->fops.StopCond)
+		    done = (*ctx->fops.StopCond)(&ctx);
+		else if (ctx->cops.StopCond)
+		    done = (*ctx->cops.StopCond)(ctx);
+		else
+		    done = PGACheckStoppingConditions(ctx);
     }
 
     if (size > 1)
@@ -143,6 +143,7 @@ int PGADone(PGAContext *ctx, MPI_Comm comm)
 int PGACheckStoppingConditions( PGAContext *ctx)
 {
     int done = PGA_FALSE;
+    double diff;
 
     PGADebugEntered("PGACheckStoppingConditions");
 
@@ -157,6 +158,47 @@ int PGACheckStoppingConditions( PGAContext *ctx)
     if (((ctx->ga.StoppingRule & PGA_STOP_TOOSIMILAR) == PGA_STOP_TOOSIMILAR) &&
 	(ctx->ga.PercentSame >= ctx->ga.MaxSimilarity))
 	done |= PGA_TRUE;
+	
+	if(((ctx->ga.StoppingRule & PGA_STOP_AV_FITNESS) == PGA_STOP_AV_FITNESS)){
+		if(ctx->ga.TgtFitnessVal == PGA_UNINITIALIZED_DOUBLE){
+			fprintf(stderr,"Uninitialized Value 'Target Average'");
+			done |= PGA_TRUE;
+		}else{
+			diff = ((ctx->ga.TgtFitnessVal - ctx->rep.Average)/(ctx->ga.TgtFitnessVal))*100;
+			if(fabs(diff) <= ctx->ga.FitnessTol){
+				done |= PGA_TRUE;
+			}
+		}
+	}
+	
+	if(((ctx->ga.StoppingRule & PGA_STOP_BEST_FITNESS) == PGA_STOP_BEST_FITNESS)){
+		if(ctx->ga.TgtFitnessVal == PGA_UNINITIALIZED_DOUBLE){
+			fprintf(stderr,"Uninitialized Value 'Target Best Fitness'");
+			done |= PGA_TRUE;
+		}else{
+			diff =(((double)ctx->ga.TgtFitnessVal -(double)ctx->rep.Best)/((double)ctx->ga.TgtFitnessVal))*100;
+			if(fabs(diff) <= ctx->ga.FitnessTol){
+				done |= PGA_TRUE;
+			}
+		}
+	}
+	
+	if(((ctx->ga.StoppingRule & PGA_STOP_VARIANCE) == PGA_STOP_VARIANCE)){
+		if(ctx->ga.TgtFitnessVar == PGA_UNINITIALIZED_DOUBLE){
+			fprintf(stderr,"Uninitialized Value 'Target Fitness Variance'");
+			done |= PGA_TRUE;
+		}else{
+			diff =(((double)ctx->ga.TgtFitnessVar -(double)ctx->rep.Variance)/((double)ctx->ga.TgtFitnessVar))*100;
+			if(fabs(diff) <= ctx->ga.VarTol){
+				done |= PGA_TRUE;
+			}
+		}
+	}
+	
+	if(((ctx->ga.StoppingRule & PGA_STOP_TIMEELAPSED) == PGA_STOP_TIMEELAPSED)){
+		//TODO :GTG Add code for setting initial time and current time and comparing
+		done |= PGA_TRUE;
+	}
 
     PGADebugExited("PGACheckStoppingConditions");
     return(done);
@@ -194,8 +236,12 @@ void PGASetStoppingRuleType (PGAContext *ctx, int stoprule)
 
     switch (stoprule) {
 	case PGA_STOP_MAXITER  :
-        case PGA_STOP_NOCHANGE :
+    case PGA_STOP_NOCHANGE :
 	case PGA_STOP_TOOSIMILAR :
+	case PGA_STOP_AV_FITNESS :
+	case PGA_STOP_BEST_FITNESS :
+	case PGA_STOP_VARIANCE :
+	case PGA_STOP_TIMEELAPSED :
 	    ctx->ga.StoppingRule |= stoprule;
 	    break;
 	default:
@@ -382,4 +428,137 @@ void PGASetMaxSimilarityValue(PGAContext *ctx, int max_similarity)
 void PGASetAbortVar(int *abortPtr)
 {
     pgapack_abortPtr = abortPtr;
+}
+
+
+/*U****************************************************************************
+   PGASetTgtFitnessVal 
+
+   Category: Initialization
+
+   Inputs:
+      ctx         - context variable
+      tgt_fitness_val - tgt fitness required for stopping. either target average or best fitness depending 
+      				on stoppage criteria.
+      				Requires setting fitness tolerance using PGASetFitnessTol in order to specify
+      				what % difeerence between current and target fitness is acceptable. 
+
+   Outputs:
+      None
+
+   Example:
+      PGAContext *ctx;
+      :
+      PGASetTgtFitnessVal(ctx,0);
+
+****************************************************************************U*/
+void PGASetTgtFitnessVal(PGAContext *ctx, double tgt_fitness_val){
+	PGADebugEntered("PGASetTgtFitnessVal");
+    PGAFailIfSetUp("PGASetTgtFitnessVal");
+	ctx->ga.TgtFitnessVal = tgt_fitness_val;
+	PGADebugExited("PGASetTgtFitnessVal");
+}
+
+/*U****************************************************************************
+   PGASetFitnessTol 
+
+   Category: Initialization
+
+   Inputs:
+      ctx - context variable
+      fitness_tol - tolerance between current pop fitness (avg or best, depending on stoppage criteria)
+      		target fitness set using PGASetTgtFitnessVal. once this tolerance is achieved, the GA can be stopped.
+
+   Outputs:
+      None
+
+   Example:
+      PGAContext *ctx;
+      :
+      PGASetFitnessTol(ctx,0);
+
+****************************************************************************U*/
+void PGASetFitnessTol(PGAContext *ctx,double fitness_tol){
+	PGADebugEntered("PGASetFitnessTol");
+    PGAFailIfSetUp("PGASetFitnessTol");
+	ctx->ga.FitnessTol = fitness_tol;
+	PGADebugExited("PGASetFitnessTol");
+}
+
+
+/*U****************************************************************************
+   PGASetTgtFitnessVariance 
+
+   Category: Initialization
+
+   Inputs:
+      ctx - context variable
+      tgt_fitness_var - tgt fitness variance required for stopping. 
+      				Requires setting fitness variance tolerance using PGASetVarTol in order to specify
+      				what % difeerence between current and target fitness variance is acceptable.
+   Outputs:
+      None
+
+   Example:
+      PGAContext *ctx;
+      :
+      PGASetTgtFitnessVariance(ctx,0);
+
+****************************************************************************U*/
+void PGASetTgtFitnessVariance(PGAContext *ctx,double tgt_fitness_var){
+	PGADebugEntered("PGASetTgtFitnessVariance");
+    PGAFailIfSetUp("PGASetTgtFitnessVariance");
+	ctx->ga.TgtFitnessVar = tgt_fitness_var;
+	PGADebugExited("PGASetTgtFitnessVariance");
+}
+
+/*U****************************************************************************
+   PGASetVarTol 
+
+   Category: Initialization
+
+   Inputs:
+      ctx - context variable
+      var_tol - tolerance between current pop fitness variance and target fitness set using PGASetTgtFitnessVariance. 
+      			Once this tolerance is achieved, the GA can be stopped.
+   Outputs:
+      None
+
+   Example:
+      PGAContext *ctx;
+      :
+      PGASetVarTol(ctx,0);
+
+****************************************************************************U*/
+void PGASetVarTol(PGAContext *ctx,double var_tol){
+	PGADebugEntered("PGASetVarTol");
+    PGAFailIfSetUp("PGASetVarTol");
+	ctx->ga.VarTol = var_tol;
+	PGADebugExited("PGASetVarTol");
+}
+
+/*U****************************************************************************
+   PGASetTgtElapsedTime 
+
+   Category: Initialization
+
+   Inputs:
+      ctx - context variable
+      tgt_elapsed_time - stop the GA if stoppage criteria is PGA_STOP_TIMEELAPSED
+      					 and time between start of execution and end of current evaluation 
+      					 is equal to tgt_elapsed_time.
+   Outputs:
+      None
+
+   Example:
+      PGAContext *ctx;
+      :
+      PGASetTgtElapsedTime(ctx,0);
+
+****************************************************************************U*/
+void PGASetTgtElapsedTime(PGAContext *ctx,double tgt_elapsed_time){
+	PGADebugEntered("PGASetTgtElapsedTime");
+    PGAFailIfSetUp("PGASetTgtElapsedTime");
+	ctx->ga.TgtElapsedTime = tgt_elapsed_time;
+	PGADebugExited("PGASetTgtElapsedTime");
 }
