@@ -476,7 +476,7 @@ PGAIndividual *PGAGetIndividual ( PGAContext *ctx, int p, int pop)
 
 
 /*I****************************************************************************
-   PGAUpdateAverage - Updates the average fitness statistic for reporting.
+   PGAUpdateAverage - Updates the average and variance fitness statistic for reporting.
 
    Inputs:
        ctx - context variable
@@ -490,6 +490,8 @@ PGAIndividual *PGAGetIndividual ( PGAContext *ctx, int p, int pop)
 void PGAUpdateAverage(PGAContext *ctx, int pop)
 {
     double ThisGensTotal = 0;
+    double ThisGensIndivSquareTotal = 0;
+    double fitness, average, variance;
     int p;
 
     PGADebugEntered("PGAUpdateAverage");
@@ -499,10 +501,15 @@ void PGAUpdateAverage(PGAContext *ctx, int pop)
 	    PGAError(ctx, "PGAUpdateOnline: Evaluate function not up to "
 		     "date:", PGA_FATAL, PGA_INT, (void *) &p);
 
-    for (p = 0; p < ctx->ga.PopSize; p++)
-	ThisGensTotal += PGAGetEvaluation(ctx, p, pop);
-    
-    ctx->rep.Average = ThisGensTotal / (double)ctx->ga.PopSize;
+    for (p = 0; p < ctx->ga.PopSize; p++){
+ 		fitness = PGAGetEvaluation(ctx, p, pop);   	
+		ThisGensTotal += fitness;
+		ThisGensIndivSquareTotal += fitness*fitness;
+    }
+    average = ThisGensTotal / (double)ctx->ga.PopSize;
+    ctx->rep.Average = average;
+    variance = ThisGensIndivSquareTotal / (double)ctx->ga.PopSize;
+    ctx->rep.Variance = (ThisGensIndivSquareTotal - average*average);
     
     PGADebugExited("PGAUpdateAverage");
 }

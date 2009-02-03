@@ -232,6 +232,11 @@ PGAContext *PGACreate ( int *argc, char **argv,
      *  default value.
      */
     ctx->ga.PopSize            = PGA_UNINITIALIZED_INT;
+    ctx->ga.TgtFitnessVal	   = PGA_UNINITIALIZED_DOUBLE;
+    ctx->ga.FitnessTol		   = 0;
+    ctx->ga.TgtFitnessVar	   = PGA_UNINITIALIZED_DOUBLE;
+    ctx->ga.VarTol			   = 0;
+    ctx->ga.TgtElapsedTime	   = PGA_UNINITIALIZED_DOUBLE;
     ctx->ga.StoppingRule       = PGA_STOP_MAXITER;
     ctx->ga.MaxIter            = PGA_UNINITIALIZED_INT;
     ctx->ga.MaxNoChange        = PGA_UNINITIALIZED_INT;

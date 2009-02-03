@@ -21,13 +21,18 @@ typedef struct PgapackData {
     int maxRuns;         /* maximum runs <=> PGASetMaxGAIterValue() */
     int popSize;         /* population size <=> PGASetPopSize() */
     int popRepl;         /* replacement <=> PGASetPopReplacementType() */
-    int numReplPerPop;    /* number of new strings created per population, the rest are the best strings from the previous population*/
+    int numReplPerPop;   /* number of new strings created per population, the rest are the best strings from the previous population*/
+    double tgtFitness;   /* target fitness for stoppage --either best or average*/ 
+    double fitnessTol;   /* %diff betn tgt fit. and current population fit. -- best or avg*/
+    double tgtVariance;  /* target fitness variance*/
+    double varianceTol;  /* tolerance : %diff betn tgt and current pop. fitness variance*/
+    double tgtElapsedTime;   /* target stoppage time from start of execution*/
     int stpcriteria;     /*stoppage criteria <=> PGASetStoppingRuleType()*/
     int randnumseed;  /*Random Number Seed <=> PGASetRandomSeed()*/
-    double mutnrate;     /*Mutation Rate <=> PGASetMutationProb()*/
+    double mutnrate;     /*Mutation Rate <=> PGASetMutatuionProb()*/
     double mutnValue;     /*use this value while mutating*/
     double crossovrate;  /*Crossover Rate <=> PGASetCrossoverProb();*/
-    int crossovtype;	/*Crossover Type <=> UNIFORM/SBX (SBX Defined from Deb and Kumar 1995)*/
+    int crossovtype;	/*Crossover Type <=> UNIFORM/SBX/TRIANGULAR (SBX Defined from Deb and Kumar 1995)*/
     int allowdup;        /*Allow duplicate strings in the population or not*/
     int mutnandcrossover;/*By default strings that do not undergo crossover undergo mutation, this option allows strings to crossover and be mutated*/
     double randReplProp; /*By default, random replacement is off, therefore randReplaceProp is zero by default, */
@@ -77,6 +82,11 @@ RpTclOption PgapackOptions[] = {
   {"-crossovrate",RP_OPTION_DOUBLE,Rp_Offset(PgapackData,crossovrate)},
   {"-crossovtype",&RpOption_CrossovType,Rp_Offset(PgapackData,crossovtype)},
   {"-randnumseed",RP_OPTION_INT,Rp_Offset(PgapackData,randnumseed)},
+  {"-tgtFitness",RP_OPTION_DOUBLE,Rp_Offset(PgapackData,tgtFitness)},
+  {"-fitnessTol",RP_OPTION_DOUBLE,Rp_Offset(PgapackData,fitnessTol)},
+  {"-tgtVariance",RP_OPTION_DOUBLE,Rp_Offset(PgapackData,tgtVariance)},
+  {"-varianceTol",RP_OPTION_DOUBLE,Rp_Offset(PgapackData,varianceTol)},
+  {"-tgtElapsedTime",RP_OPTION_DOUBLE,Rp_Offset(PgapackData,tgtElapsedTime)},
   {"-stpcriteria",&RpOption_StpCriteria,Rp_Offset(PgapackData,stpcriteria)},
   {"-allowdup",RP_OPTION_BOOLEAN,Rp_Offset(PgapackData,allowdup)},
   {"-mutnandcrossover",RP_OPTION_BOOLEAN,Rp_Offset(PgapackData,mutnandcrossover)},
@@ -128,6 +138,11 @@ PgapackInit()
     dataPtr->mutnrate = 0.05; /*by default in PGAPack 1/stringlength*/
     dataPtr->mutnValue = 0.01;/*value of this number will be changed by plus/minus hundredth of its current value*/
     dataPtr->randnumseed = 1; /*should be a number greater than one, PGAPack requires it*/
+    dataPtr->tgtFitness = PGA_UNINITIALIZED_DOUBLE;  
+    dataPtr->fitnessTol = PGA_UNINITIALIZED_DOUBLE;  /*by default stop only if desired fitness is exactly achieved*/
+    dataPtr->tgtVariance = PGA_UNINITIALIZED_DOUBLE; 
+    dataPtr->varianceTol = PGA_UNINITIALIZED_DOUBLE; /* by default stop only if desired variance is exactly achieved*/
+    dataPtr->tgtElapsedTime = PGA_UNINITIALIZED_DOUBLE; /* stop if 100 minutes have elapsed since start of optim run*/ 
     dataPtr->stpcriteria = PGA_STOP_NOCHANGE;
     dataPtr->allowdup = PGA_FALSE; /*Do not allow duplicate strings by default*/
     dataPtr->mutnandcrossover = PGA_FALSE;/*do not allow mutation and crossover to take place on the same string by default*/
@@ -169,6 +184,11 @@ PgapackRun(envPtr, evalProc, fitnessExpr)
     PGASetMaxGAIterValue(ctx, dataPtr->maxRuns);
     PGASetPopSize(ctx, dataPtr->popSize);
     PGASetPopReplaceType(ctx, dataPtr->popRepl);
+    PGASetTgtFitnessVal(ctx,dataPtr->tgtFitness);
+    PGASetFitnessTol(ctx,dataPtr->fitnessTol);
+    PGASetTgtFitnessVariance(ctx,dataPtr->tgtVariance);
+    PGASetVarTol(ctx,dataPtr->varianceTol);
+    PGASetTgtElapsedTime(ctx,dataPtr->tgtElapsedTime);
     PGASetStoppingRuleType(ctx, dataPtr->stpcriteria);
     PGASetMutationProb(ctx,dataPtr->mutnrate);
     PGASetMutationRealValue(ctx,dataPtr->mutnValue);
@@ -476,7 +496,8 @@ PgapCrossover(ctx, p1, p2, pop1, c1, c2, pop2)
     double pu;
     PgapackData *dataPtr;
     /*declare variables for SBX*/
-    double ui,beta,eta,powVal;
+    double ui,beta,eta = 1.5,powVal;
+    double slope = 3,xi;
 
     envPtr = PgapGetEnvForContext(ctx);
     parent1 = (RpOptimParam*)PGAGetIndividual(ctx, p1, pop1)->chrom;
@@ -501,7 +522,6 @@ PgapCrossover(ctx, p1, p2, pop1, c1, c2, pop2)
             		switch(parent1[n].type){
             			case RP_OPTIMPARAM_NUMBER:
             				ui = PGARandom01(ctx,0);
-	            			eta = 1.5;/*We can adjust eta later....keeping it 1.5 for now*/
 	            			powVal = 1/(eta+1);
             				if(ui<=0.5){
 	            				beta = pow(2*ui,powVal);
@@ -515,6 +535,28 @@ PgapCrossover(ctx, p1, p2, pop1, c1, c2, pop2)
             				panic("Bad Optim Param Type in PgapCrossover()");
             		}
             		break;
+            		
+            		
+            		case PGA_CROSSOVER_TRIANGULAR:
+            		xi = 1/sqrt(slope);
+            		switch(parent1[n].type){
+            			case RP_OPTIMPARAM_NUMBER:
+            				ui = PGARandom01(ctx,0);
+	            			
+            				if(ui<=0.5){
+                				beta = sqrt(2*ui/slope);
+        					}else{
+                				beta = 2*xi-sqrt(2*(1-ui)/slope);
+        					}
+            				child1[n].value.dval = beta + (parent1[n].value.dval - xi) ;
+            				child2[n].value.dval = beta + (parent2[n].value.dval - xi) ;
+            				break;
+            			default:
+            				panic("Bad Optim Param Type in PgapCrossover()");
+            		}
+            		break;
+            		
+            		
             	default:
             		panic("bad parameter type in PgapCrossover()");
             }
@@ -742,6 +784,9 @@ RpOption_ParseCrossovType(interp, valObj, cdata, offset)
     else if (strcmp(val,"sbx") == 0) {
         *ptr = PGA_CROSSOVER_SBX;
     }
+    else if (strcmp(val,"triangular")== 0 ){
+    	*ptr = PGA_CROSSOVER_TRIANGULAR;
+    }
     else {
         Tcl_AppendStringsToObj(Tcl_GetObjResult(interp),
             "bad value \"", val, "\": should be either 'uniform' or 'sbx'",
@@ -765,6 +810,9 @@ RpOption_GetCrossovType(interp, cdata, offset)
     case PGA_CROSSOVER_SBX:
         Tcl_SetResult(interp, "sbx", TCL_STATIC);
         break;
+    case PGA_CROSSOVER_TRIANGULAR:
+    	Tcl_SetResult(interp,"triangular",TCL_STATIC);
+    	break;    
     default:
         Tcl_SetResult(interp, "???", TCL_STATIC);
         break;
@@ -832,9 +880,10 @@ RpOption_GetPopRepl(interp, cdata, offset)
 }
 
 /*
- * ======================================================================
- *  OPTION:  -stpcriteria <=> PGA_STOP_MAXITER / PGA_STOP_NOCHANGE / PGA_STOP_TOOSIMILAR
- * ======================================================================
+ * ==================================================================================================================
+ *  OPTION:  -stpcriteria <=> PGA_STOP_MAXITER / PGA_STOP_NOCHANGE / PGA_STOP_TOOSIMILAR /
+ * 	PGA_STOP_AV_FITNESS / PGA_STOP_BEST_FITNESS / PGA_STOP_VARIANCE / PGA_STOP_TIMEELAPSED
+ * ==================================================================================================================
  */
 int
 RpOption_ParseStpCriteria(interp, valObj, cdata, offset)
@@ -854,9 +903,22 @@ RpOption_ParseStpCriteria(interp, valObj, cdata, offset)
     else if (strcmp(val,"toosimilar") == 0){
     	*ptr = PGA_STOP_TOOSIMILAR;
     }
+    else if (strcmp(val,"avfitness") == 0){
+    	*ptr = PGA_STOP_AV_FITNESS;
+    }
+    else if (strcmp(val,"bestfitness") == 0){
+    	*ptr = PGA_STOP_BEST_FITNESS;
+    }
+    else if (strcmp(val,"varoffitness") == 0){
+    	*ptr = PGA_STOP_VARIANCE;
+    }
+    else if (strcmp(val,"timeelapsed") == 0){
+    	*ptr = PGA_STOP_TIMEELAPSED;
+    }
+    
     else {
         Tcl_AppendStringsToObj(Tcl_GetObjResult(interp),
-            "bad value \"", val, "\": should be maxiter, nochange or toosimilar",
+            "bad value \"", val, "\": should be one of the following: maxiter, nochange, toosimilar, avfitness, bestfitness, varoffitness or timeelapsed",
             (char*)NULL);
         return TCL_ERROR;
     }
@@ -880,6 +942,18 @@ RpOption_GetStpCriteria(interp, cdata, offset)
     case PGA_STOP_TOOSIMILAR:
     	Tcl_SetResult(interp, "toosimilar", TCL_STATIC);
     	break;
+    case PGA_STOP_AV_FITNESS:
+        Tcl_SetResult(interp, "avfitness", TCL_STATIC);
+        break;
+    case PGA_STOP_BEST_FITNESS:
+        Tcl_SetResult(interp, "bestfitness", TCL_STATIC);
+        break;
+    case PGA_STOP_VARIANCE:
+        Tcl_SetResult(interp, "varoffitness", TCL_STATIC);
+        break;
+    case PGA_STOP_TIMEELAPSED:
+        Tcl_SetResult(interp, "timeelapsed", TCL_STATIC);
+        break;        
     default:
         Tcl_SetResult(interp, "???", TCL_STATIC);
         break;

@@ -69,6 +69,7 @@
 
 #include "pgapack.h"
 #include <setjmp.h>
+#include <time.h>
 
 extern jmp_buf pgapack_jmpbuf;
 extern int *pgapack_abortPtr;
@@ -124,31 +125,31 @@ void PGARunGM(PGAContext *ctx, double (*f)(PGAContext *, int, int),
 	CreateNewGeneration = PGARunMutationAndCrossover;
 
     while (!PGADone(ctx, comm)) {
-	if (rank == 0) {
-	    Restarted = PGA_FALSE;
-	    if (PGARestartCondition(ctx)) {
-			Restarted = PGA_TRUE;
-			PGARestart(ctx, PGA_OLDPOP, PGA_NEWPOP);
-	    } else {
-			PGASelect(ctx, PGA_OLDPOP);
-			CreateNewGeneration(ctx, PGA_OLDPOP, PGA_NEWPOP);
-	    }
-	}
-	MPI_Bcast(&Restarted, 1, MPI_INT, 0, comm);
-
-	PGAEvaluate(ctx, PGA_NEWPOP, f, comm);
-	if (rank == 0)
-	    PGAFitness(ctx, PGA_NEWPOP);
-
-	/*  If the GA wasn't restarted, update the generation and print
-         *  stuff.  We do this because a restart is NOT counted as a 
-         *  complete generation.
-	 */
-	if (!Restarted) {
-	    PGAUpdateGeneration(ctx, comm);
-	    if (rank == 0)
-		PGAPrintReport(ctx, stdout, PGA_OLDPOP);
-	}
+		if (rank == 0) {
+		    Restarted = PGA_FALSE;
+		    if (PGARestartCondition(ctx)) {
+				Restarted = PGA_TRUE;
+				PGARestart(ctx, PGA_OLDPOP, PGA_NEWPOP);
+		    } else {
+				PGASelect(ctx, PGA_OLDPOP);
+				CreateNewGeneration(ctx, PGA_OLDPOP, PGA_NEWPOP);
+		    }
+		}
+		MPI_Bcast(&Restarted, 1, MPI_INT, 0, comm);
+	
+		PGAEvaluate(ctx, PGA_NEWPOP, f, comm);
+		if (rank == 0)
+		    PGAFitness(ctx, PGA_NEWPOP);
+	
+		/*  If the GA wasn't restarted, update the generation and print
+	         *  stuff.  We do this because a restart is NOT counted as a 
+	         *  complete generation.
+		 */
+		if (!Restarted) {
+		    PGAUpdateGeneration(ctx, comm);
+		    if (rank == 0)
+			PGAPrintReport(ctx, stdout, PGA_OLDPOP);
+		}
     }
 
     if (rank == 0) {
