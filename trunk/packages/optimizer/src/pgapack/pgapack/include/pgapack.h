@@ -136,6 +136,10 @@
 #define PGA_STOP_MAXITER        1    /* Stop: for maximum iterations      */
 #define PGA_STOP_NOCHANGE       2    /* Stop: no change in best string    */
 #define PGA_STOP_TOOSIMILAR     4    /* Stop: homogeneous population      */
+#define PGA_STOP_AV_FITNESS     5    /* Stop: if within a certain % of target av.fitness per pop.*/
+#define PGA_STOP_BEST_FITNESS   6    /* Stop: if best fitness in a pop is within % of target best fitness*/
+#define PGA_STOP_VARIANCE       7	 /* Stop: if variance of fitness in pop is within % of target variance */
+#define PGA_STOP_TIMEELAPSED	8	 /* Stop: if elapsed time >= target*/
 
 /*****************************************
 *            CROSSOVER                   *
@@ -144,7 +148,7 @@
 #define PGA_CROSSOVER_TWOPT     2    /* Two point crossover                */
 #define PGA_CROSSOVER_UNIFORM   3    /* Uniform   crossover                */
 #define PGA_CROSSOVER_SBX		4    /* Simulated Binary crossover		   */
-
+#define PGA_CROSSOVER_TRIANGULAR 5   /* Triangular Crossover*/
 /*****************************************
 *            SELECTION                   *
 *****************************************/
@@ -251,6 +255,11 @@ typedef struct {
     int eb;                  /* number of extra bits in last NOT full word*/
     int PopSize;             /* Number of strings to use                  */
     int StringLen;           /* string lengths                            */
+    double TgtFitnessVal;		 /* Target Fitness, best or average depending on stpg criteria*/
+    double FitnessTol;		 /* Min Fitness Tolerance to be achieved for stoppage*/ 
+    double TgtFitnessVar;       /* Target Fitness Variance for stoppage */
+    double VarTol; 			 /* Tolerance for variance to be achieved for stoppage*/ 	
+    double TgtElapsedTime;   /* Max Execution time of GA before stoppage */
     int StoppingRule;        /* Termination Criteria                      */
     int MaxIter;             /* Maximum number of iterations to run       */
     int MaxNoChange;         /* # of iters with no change before stopping */
@@ -337,6 +346,7 @@ typedef struct {
      double Offline;
      double Online;
      double Average;
+     double Variance;
      double Best;
      time_t starttime;
 } PGAReport;
@@ -798,6 +808,11 @@ void PGASetMaxGAIterValue(PGAContext *ctx, int maxiter);
 int PGAGetMaxGAIterValue (PGAContext *ctx);
 void PGASetMaxNoChangeValue(PGAContext *ctx, int max_no_change);
 void PGASetMaxSimilarityValue(PGAContext *ctx, int max_similarity);
+void PGASetTgtFitnessVal(PGAContext *ctx, double tgt_fitness_val);
+void PGASetFitnessTol(PGAContext *ctx,double fitness_tol);
+void PGASetTgtFitnessVariance(PGAContext *ctx,double tgt_fitness_var);
+void PGASetVarTol(PGAContext *ctx,double var_tol);
+void PGASetTgtElapsedTime(PGAContext *ctx,double tgt_elapsed_time);
 
 /*****************************************
 *          system.c

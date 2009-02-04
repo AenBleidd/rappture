@@ -70,6 +70,7 @@
 *****************************************************************************/
 
 #include "pgapack.h"
+#include <time.h>
 
 int *pgapack_abortPtr = NULL;
 
@@ -143,7 +144,8 @@ int PGADone(PGAContext *ctx, MPI_Comm comm)
 int PGACheckStoppingConditions( PGAContext *ctx)
 {
     int done = PGA_FALSE;
-    double diff;
+    double diff, process_execution_time;
+    time_t endtime;
 
     PGADebugEntered("PGACheckStoppingConditions");
 
@@ -161,11 +163,11 @@ int PGACheckStoppingConditions( PGAContext *ctx)
 	
 	if(((ctx->ga.StoppingRule & PGA_STOP_AV_FITNESS) == PGA_STOP_AV_FITNESS)){
 		if(ctx->ga.TgtFitnessVal == PGA_UNINITIALIZED_DOUBLE){
-			fprintf(stderr,"Uninitialized Value 'Target Average'");
+			PGAError(ctx,"Uninitialized Value 'Target Average'",PGA_FATAL, PGA_DOUBLE, (void *)&(ctx->ga.TgtFitnessVal));
 			done |= PGA_TRUE;
 		}else{
 			diff = ((ctx->ga.TgtFitnessVal - ctx->rep.Average)/(ctx->ga.TgtFitnessVal))*100;
-			if(fabs(diff) <= ctx->ga.FitnessTol){
+			if(fabs(diff) <= fabs((double)ctx->ga.FitnessTol)){
 				done |= PGA_TRUE;
 			}
 		}
@@ -173,11 +175,11 @@ int PGACheckStoppingConditions( PGAContext *ctx)
 	
 	if(((ctx->ga.StoppingRule & PGA_STOP_BEST_FITNESS) == PGA_STOP_BEST_FITNESS)){
 		if(ctx->ga.TgtFitnessVal == PGA_UNINITIALIZED_DOUBLE){
-			fprintf(stderr,"Uninitialized Value 'Target Best Fitness'");
+			PGAError(ctx,"Undefined Value 'Target Best Fitness'", PGA_FATAL, PGA_DOUBLE, (void *) &(ctx->ga.TgtFitnessVal));
 			done |= PGA_TRUE;
 		}else{
 			diff =(((double)ctx->ga.TgtFitnessVal -(double)ctx->rep.Best)/((double)ctx->ga.TgtFitnessVal))*100;
-			if(fabs(diff) <= ctx->ga.FitnessTol){
+			if(fabs(diff) <= fabs((double)ctx->ga.FitnessTol)){
 				done |= PGA_TRUE;
 			}
 		}
@@ -185,19 +187,25 @@ int PGACheckStoppingConditions( PGAContext *ctx)
 	
 	if(((ctx->ga.StoppingRule & PGA_STOP_VARIANCE) == PGA_STOP_VARIANCE)){
 		if(ctx->ga.TgtFitnessVar == PGA_UNINITIALIZED_DOUBLE){
-			fprintf(stderr,"Uninitialized Value 'Target Fitness Variance'");
+			PGAError(ctx,"Undefined Value 'Target Fitness Variance'",PGA_FATAL,PGA_DOUBLE, (void *)&(ctx->ga.TgtFitnessVar));
 			done |= PGA_TRUE;
 		}else{
 			diff =(((double)ctx->ga.TgtFitnessVar -(double)ctx->rep.Variance)/((double)ctx->ga.TgtFitnessVar))*100;
-			if(fabs(diff) <= ctx->ga.VarTol){
+			if(fabs(diff) <= fabs((double)ctx->ga.VarTol)){
 				done |= PGA_TRUE;
 			}
 		}
 	}
 	
 	if(((ctx->ga.StoppingRule & PGA_STOP_TIMEELAPSED) == PGA_STOP_TIMEELAPSED)){
-		//TODO :GTG Add code for setting initial time and current time and comparing
-		done |= PGA_TRUE;
+		endtime = time(NULL);
+		process_execution_time = difftime(endtime, (time_t)ctx->rep.starttime);
+		if(ctx->ga.TgtElapsedTime == PGA_UNINITIALIZED_DOUBLE){
+			PGAError(ctx,"Undefined target time of execution",PGA_FATAL,PGA_DOUBLE,(void *)&(ctx->ga.TgtElapsedTime));
+		}
+		if(((double)process_execution_time/60) >= ((double)ctx->ga.TgtElapsedTime)){
+			done |= PGA_TRUE;
+		}
 	}
 
     PGADebugExited("PGACheckStoppingConditions");
@@ -481,6 +489,9 @@ void PGASetTgtFitnessVal(PGAContext *ctx, double tgt_fitness_val){
 void PGASetFitnessTol(PGAContext *ctx,double fitness_tol){
 	PGADebugEntered("PGASetFitnessTol");
     PGAFailIfSetUp("PGASetFitnessTol");
+    if(fitness_tol < 0){
+    	PGAError(ctx,"Fitness tolerance invalid. Should be a positive quantity.\n",PGA_FATAL,PGA_DOUBLE,(void *)&fitness_tol);
+    }
 	ctx->ga.FitnessTol = fitness_tol;
 	PGADebugExited("PGASetFitnessTol");
 }
@@ -508,6 +519,9 @@ void PGASetFitnessTol(PGAContext *ctx,double fitness_tol){
 void PGASetTgtFitnessVariance(PGAContext *ctx,double tgt_fitness_var){
 	PGADebugEntered("PGASetTgtFitnessVariance");
     PGAFailIfSetUp("PGASetTgtFitnessVariance");
+    if(tgt_fitness_var < 0){
+    	PGAError(ctx,"Fitness variance invalid. Should be a positive quantity.\n",PGA_FATAL,PGA_DOUBLE,(void *)&tgt_fitness_var);
+    }
 	ctx->ga.TgtFitnessVar = tgt_fitness_var;
 	PGADebugExited("PGASetTgtFitnessVariance");
 }
@@ -533,6 +547,9 @@ void PGASetTgtFitnessVariance(PGAContext *ctx,double tgt_fitness_var){
 void PGASetVarTol(PGAContext *ctx,double var_tol){
 	PGADebugEntered("PGASetVarTol");
     PGAFailIfSetUp("PGASetVarTol");
+    if(var_tol < 0){
+    	PGAError(ctx,"Variance Tolerance Invalid, should be positive quantity", PGA_FATAL, PGA_DOUBLE, (void *) &var_tol);
+    }
 	ctx->ga.VarTol = var_tol;
 	PGADebugExited("PGASetVarTol");
 }
@@ -559,6 +576,9 @@ void PGASetVarTol(PGAContext *ctx,double var_tol){
 void PGASetTgtElapsedTime(PGAContext *ctx,double tgt_elapsed_time){
 	PGADebugEntered("PGASetTgtElapsedTime");
     PGAFailIfSetUp("PGASetTgtElapsedTime");
+    if(tgt_elapsed_time < 0){
+    	PGAError(ctx,"Invalid Time of execution, cannot be a negative quantity", PGA_FATAL, PGA_DOUBLE, (void*) &tgt_elapsed_time);
+    }
 	ctx->ga.TgtElapsedTime = tgt_elapsed_time;
 	PGADebugExited("PGASetTgtElapsedTime");
 }
