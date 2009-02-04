@@ -69,7 +69,6 @@
 
 #include "pgapack.h"
 #include <setjmp.h>
-#include <time.h>
 
 extern jmp_buf pgapack_jmpbuf;
 extern int *pgapack_abortPtr;

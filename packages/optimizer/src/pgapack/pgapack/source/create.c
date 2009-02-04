@@ -458,6 +458,26 @@ void PGASetUp ( PGAContext *ctx )
 
     if ( ctx->ga.MaxSimilarity      == PGA_UNINITIALIZED_INT)
          ctx->ga.MaxSimilarity       = 95;
+         
+    if (ctx->ga.TgtFitnessVal 		== PGA_UNINITIALIZED_DOUBLE){
+    	 ctx->ga.TgtFitnessVal		= 0;
+    }
+    
+    if (ctx->ga.FitnessTol 			== PGA_UNINITIALIZED_DOUBLE){
+    	 ctx->ga.FitnessTol			= 0;
+    }
+    
+    if (ctx->ga.VarTol 				== PGA_UNINITIALIZED_DOUBLE){
+    	 ctx->ga.VarTol				= 0;
+    }
+    
+    if (ctx->ga.TgtFitnessVar 		== PGA_UNINITIALIZED_DOUBLE){
+    	 ctx->ga.TgtFitnessVar		= 0;
+    }
+    
+    if (ctx->ga.TgtElapsedTime 		== PGA_UNINITIALIZED_DOUBLE){
+    	 ctx->ga.TgtElapsedTime		= 0;
+    }     
 
     if ( ctx->ga.NumReplace         == PGA_UNINITIALIZED_INT)
          ctx->ga.NumReplace          = (int) ceil(ctx->ga.PopSize * 0.1);
