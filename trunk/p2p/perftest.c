@@ -90,7 +90,7 @@ main(argc,argv)
     tval = (tend.tv_sec - tstart.tv_sec)*1000000
              + tend.tv_usec - tstart.tv_usec;
 
-    printf("%ld\n", tval);
+    printf("rappture-wonks/v1 %ld\n", tval);
     exit(0);
 }
 

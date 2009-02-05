@@ -11,6 +11,46 @@
 # ======================================================================
 package require Itcl
 
+namespace eval p2p { # forward declaration }
+
+# ======================================================================
+#  USAGE: p2p::client ?-option value -option value ...?
+#
+#  Used to create a client connection to a peer-to-peer server.
+#  Recognizes the following options:
+#    -address ........... connect to server at this host:port
+#    -sendprotocol ...... tell server we're speaking this protocol
+#    -receiveprotocol ... server replies back with these commands
+# ======================================================================
+proc p2p::client {args} {
+    array set options {
+        -address ?
+        -sendprotocol ""
+        -receiveprotocol ""
+    }
+    foreach {key val} $args {
+        if {![info exists options($key)]} {
+            error "bad option \"$key\": should be [join [lsort [array names options]] {, }]"
+        }
+        set options($key) $val
+    }
+
+    # create the client
+    set client [eval Client ::#auto $options(-address)]
+
+    # install the protocol for incoming commands
+    p2p::protocol::init $client $options(-receiveprotocol)
+
+    # tell the server what protocol we'll be speaking
+    $client send [list protocol $options(-sendprotocol)]
+
+    return $client
+}
+
+# ======================================================================
+#  CLASS: Client
+# ======================================================================
+
 itcl::class Client {
     inherit Handler
 

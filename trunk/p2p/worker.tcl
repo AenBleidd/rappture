@@ -20,126 +20,52 @@ set dir [file dirname [info script]]
 lappend auto_path $dir
 
 # handle log file for this worker
-log channel debug on
+log channel error on
 log channel system on
+log channel debug on
 
-# set up a server at the first open port above 9101
-set server [Server ::#auto 9101? -servername worker \
-    -onprotocol worker_peers_protocol]
+proc ::bgerror {err} { log error "ERROR: $err $::errorInfo" }
 
-# ======================================================================
-#  OPTIONS
-#  These options get the worker started, but new option settings
-#  some from the authority after this worker first connects.
-# ======================================================================
-set authority ""     ;# file handle for authority connection
+
 set myaddress "?:?"  ;# address/port for this worker
 
 # set of connections for authority servers
-set options(authority_hosts) 127.0.0.1:9001
+p2p::options register authority_hosts 127.0.0.1:9001
 
 # register with the central authority at this frequency
-set options(time_between_registers) 10000
+p2p::options register time_between_authority_checks 60000
+
+# rebuild the peer-to-peer network at this frequency
+p2p::options register time_between_network_rebuilds 600000
 
 # this worker should try to connect with this many other peers
-set options(max_peer_connections) 4
+p2p::options register max_peer_connections 4
 
-# number of seconds between each check of system load
-set options(time_between_load_checks) 60000
-
-# ======================================================================
-#  PEERS
-# ======================================================================
-# eventually set to the list of all peers in the network
-set peers(all) ""
-
-# list of peers that we're testing connections with
-set peers(testing) ""
+# workers propagate messages until time-to-live reaches 0
+p2p::options register peer_time_to_live 4
 
 # ======================================================================
-#  SYSTEM LOAD
+#  PROTOCOL: hubzero:worker<-authority/1
+#
+#  The worker initiates communication with the authority, and the
+#  authority responds by sending these messages.
 # ======================================================================
-# Check system load every so often.  When the load changes
-# significantly, execute a "perftest" run to compute the current
-# number of wonks available to this worker.
-
-set sysload(lastLoad) -1
-set sysload(wonks) -1
-set sysload(measured) -1
-
-after idle worker_load_check
-
-# ======================================================================
-#  PROTOCOL: hubzero:peer/1
-#  This protocol gets used when another worker connects to this one.
-# ======================================================================
-$server protocol hubzero:peer/1
-
-$server define hubzero:peer/1 exception {message} {
-    log system "ERROR: $message"
-}
-
-# ----------------------------------------------------------------------
-#  DIRECTIVE: identity
-#  Used for debugging, so that each client can identify itself by
-#  name to this worker.
-# ----------------------------------------------------------------------
-$server define hubzero:peer/1 identity {name} {
-    variable cid
-    variable handler
-    $handler connectionName $cid $name
-    return ""
-}
-
-# ----------------------------------------------------------------------
-#  DIRECTIVE: ping
-# ----------------------------------------------------------------------
-$server define hubzero:peer/1 ping {} {
-    return "pong"
-}
-
-# ======================================================================
-#  PROTOCOL: hubzero:worker/1
-#  The authority_connect procedure connects this worker to an authority
-#  and begins the authority/worker protocol.  The directives below
-#  handle the incoming (authority->worker) traffic.
-# ======================================================================
-proc authority_connect {} {
-    global authority options
-    log system "connecting to authorities..."
-
-    authority_disconnect
-
-    # scan through list of authorities and try to connect
-    foreach addr [randomize $options(authority_hosts)] {
-        if {[catch {Client ::#auto $addr} result] == 0} {
-            set authority $result
-            break
-        }
-    }
-
-    if {"" == $authority} {
-        error "can't connect to any known authorities"
-    }
-
-    # add handlers to process the incoming commands...
-    $authority protocol hubzero:worker/1
-    $authority define hubzero:worker/1 exception {args} {
-        log system "error from authority: $args"
-    }
+p2p::protocol::register hubzero:worker<-authority/1 {
 
     # ------------------------------------------------------------------
-    #  DIRECTIVE: options <key1> <value1> <key2> <value2> ...
+    #  INCOMING: options <key1> <value1> <key2> <value2> ...
     #  These option settings coming from the authority override the
-    #  option settings built into the client at the top of this
-    #  script.  The authority probably has a more up-to-date list
-    #  of other authorities and better policies for living within
-    #  the network.
+    #  option settings built into the client.  The authority probably
+    #  has a more up-to-date list of other authorities and better
+    #  policies for living within the network.
     # ------------------------------------------------------------------
-    $authority define hubzero:worker/1 options {args} {
-        global options server myaddress
+    define options {args} {
+        global server myaddress
 
         array set options $args
+        foreach key [array names options] {
+            catch {p2p::options set $key $options($key)}
+        }
 
         if {[info exists options(ip)]} {
             set myaddress $options(ip):[$server port]
@@ -149,153 +75,410 @@ proc authority_connect {} {
     }
 
     # ------------------------------------------------------------------
-    #  DIRECTIVE: peers <listOfAddresses>
+    #  INCOMING: peers <listOfAddresses>
     #  This message comes in after this worker has sent the "peers"
     #  message to request the current list of peers.  The
     #  <listOfAddresses> is a list of host:port addresses that this
     #  worker should contact to enter the p2p network.
     # ------------------------------------------------------------------
-    $authority define hubzero:worker/1 peers {plist} {
+    define peers {plist} {
         global peers
         set peers(all) $plist
-        after idle worker_peers_update
+        after idle {peer-network goto measure}
 
         # now that we've gotten the peers, we're done with the authority
-        authority_disconnect
+        authority-connection goto idle
+        return ""
     }
 
     # ------------------------------------------------------------------
-    #  DIRECTIVE: identity
+    #  INCOMING: identity
     #  Used for debugging, so that each client can identify itself by
     #  name to this worker.
     # ------------------------------------------------------------------
-    $authority define hubzero:worker/1 identity {name} {
+    define identity {name} {
+        variable cid
+        variable handler
+        $handler connectionName $cid $name
+        return ""
+    }
+}
+
+# ======================================================================
+#  PROTOCOL: hubzero:worker<-foreman/1
+#
+#  The foreman initiates communication with a worker, and sends the
+#  various messages supported below.
+# ======================================================================
+p2p::protocol::register hubzero:worker<-foreman/1 {
+
+    # ------------------------------------------------------------------
+    #  INCOMING: solicit
+    #  Foremen send this message to solicit bids for a simulation job.
+    # ------------------------------------------------------------------
+    define solicit {args} {
+log debug "SOLICIT from foreman: $args"
+        variable cid
+        log debug "solicitation request from foreman: $args"
+        eval Solicitation ::#auto $args -connection $cid
+        return ""
+    }
+}
+
+# ======================================================================
+#  PROTOCOL: hubzero:workers<-workerc/1
+#
+#  Workers initiate connections with other workers as peers.  The
+#  following messages are sent by worker clients to the worker server.
+# ======================================================================
+p2p::protocol::register hubzero:workers<-workerc/1 {
+    # ------------------------------------------------------------------
+    #  INCOMING: identity
+    #  Used for debugging, so that each client can identify itself by
+    #  name to this worker.
+    # ------------------------------------------------------------------
+    define identity {name} {
         variable cid
         variable handler
         $handler connectionName $cid $name
         return ""
     }
 
-    $authority send "protocol hubzero:worker/1"
-    return $authority
-}
+    # ------------------------------------------------------------------
+    #  INCOMING: ping
+    #  If another worker sends "ping", they are trying to measure the
+    #  speed of the connection.  Send back a "pong" message.  If this
+    #  worker is close by, the other worker will stay connected to it.
+    # ------------------------------------------------------------------
+    define ping {} {
+        return "pong"
+    }
 
-proc authority_disconnect {} {
-    global authority
-    if {"" != $authority} {
-        catch {itcl::delete object $authority}
-        set authority ""
+    # ------------------------------------------------------------------
+    #  INCOMING: solicit -job info -path hosts -token xxx
+    #  Workers send this message on to their peers to solicit bids
+    #  for a simulation job.
+    # ------------------------------------------------------------------
+    define solicit {args} {
+log debug "SOLICIT from peer: $args"
+        variable cid
+        log debug "solicitation request from peer: $args"
+        eval Solicitation ::#auto $args -connection $cid
+        return ""
+    }
+
+    # ------------------------------------------------------------------
+    #  INCOMING: proffer <token> <details>
+    #  Workers send this message back after a "solicit" request with
+    #  details about what they can offer in terms of CPU power.  When
+    #  a worker has received all replies from its peers, it sends back
+    #  its own proffer message to the client that started the
+    #  solicitation.
+    # ------------------------------------------------------------------
+    define proffer {token details} {
+log debug "PROFFER from peer: $token $details"
+        Solicitation::proffer $token $details
+        return ""
     }
 }
 
 # ======================================================================
-#  USEFUL ROUTINES
-# ======================================================================
-# ----------------------------------------------------------------------
-#  COMMAND:  worker_register
+#  PROTOCOL: hubzero:workerc<-workers/1
 #
-#  Invoked when this worker first starts up and periodically thereafter
-#  to register the worker with the central authority, and to request
-#  a list of peers that this peer can talk to.
+#  The following messages are received by a worker client in response
+#  to the requests that they send to a worker server.
+# ======================================================================
+p2p::protocol::register hubzero:workerc<-workers/1 {
+    # ------------------------------------------------------------------
+    #  INCOMING: identity
+    #  Used for debugging, so that each client can identify itself by
+    #  name to this worker.
+    # ------------------------------------------------------------------
+    define identity {name} {
+        variable cid
+        variable handler
+        $handler connectionName $cid $name
+        return ""
+    }
+
+    # ------------------------------------------------------------------
+    #  INCOMING: pong
+    #  When forming the peer-to-peer network, workers send ping/pong
+    #  messages to one another to measure the latency.
+    # ------------------------------------------------------------------
+    define pong {} {
+        global peers
+        variable handler
+        set now [clock clicks -milliseconds]
+        set delay [expr {$now - $peers(ping-$handler-start)}]
+        set peers(ping-$handler-latency) $delay
+        if {[incr peers(responses)] >= [llength $peers(testing)]} {
+            after cancel {peer-network goto finalize}
+            after idle {peer-network goto finalize}
+        }
+        return ""
+    }
+
+    # ------------------------------------------------------------------
+    #  INCOMING: solicit -job info -path hosts -token xxx
+    #  Workers send this message on to their peers to solicit bids
+    #  for a simulation job.
+    # ------------------------------------------------------------------
+    define solicit {args} {
+log debug "SOLICIT from peer: $args"
+        variable cid
+        log debug "solicitation request from peer: $args"
+        eval Solicitation ::#auto $args -connection $cid
+        return ""
+    }
+
+    # ------------------------------------------------------------------
+    #  INCOMING: proffer <token> <details>
+    #  Workers send this message back after a "solicit" request with
+    #  details about what they can offer in terms of CPU power.  When
+    #  a worker has received all replies from its peers, it sends back
+    #  its own proffer message to the client that started the
+    #  solicitation.
+    # ------------------------------------------------------------------
+    define proffer {token details} {
+log debug "PROFFER from peer: $token $details"
+        Solicitation::proffer $token $details
+        return ""
+    }
+}
+
 # ----------------------------------------------------------------------
-proc worker_register {} {
-    global options server
+#  COMMAND:  broadcast_to_peers <message> ?<avoidList>?
+#
+#  Used to broadcast a message out to all peers.  The <message> must
+#  be one of the commands defined in the worker protocol.  If there
+#  are no peer connections yet, this command does nothing.  If any
+#  peer appears on the <avoidList>, it is skipped.  Returns the
+#  number of messages sent out, so this peer knows how many replies
+#  to wait for.
+# ----------------------------------------------------------------------
+proc broadcast_to_peers {message {avoidList ""}} {
+    global server peers
+
+    #
+    # Build a list of all peer addresses, so we know who we're
+    # going to send this message out to.
+    #
+    set recipients ""
+    foreach key [array names peers current-*] {
+        set addr [$peers($key) address]
+        if {[lsearch $avoidList $addr] < 0} {
+            lappend recipients $addr
+        }
+    }
+    foreach cid [$server connections hubzero:workers<-workerc/1] {
+        set addr [lindex [$server connectionName $cid] 0]  ;# x.x.x.x (sockN)
+        if {[llength $avoidList] == 0 || [lsearch $avoidList $addr] < 0} {
+            lappend recipients $addr
+        }
+    }
+
+    #
+    # If the message has any @RECIPIENTS fields, replace them
+    # with the list of recipients
+    #
+    regsub -all @RECIPIENTS $message $recipients message
+
+    #
+    # Send the message out to all peers.  Keep a count and double-check
+    # it against the list of recipients generated above.
+    #
+    set nmesgs 0
+
+    # send off to other workers that this one has connected to
+    foreach key [array names peers current-*] {
+        set addr [$peers($key) address]
+        if {[lsearch $avoidList $addr] < 0} {
+            if {[catch {$peers($key) send $message} err] == 0} {
+                incr nmesgs
+            } else {
+                log error "ERROR: broadcast failed to [$peers($key) address]: $result\n  (message was \"$message\")"
+            }
+        }
+    }
+
+    # send off to other workers that connected to this one
+    foreach cid [$server connections hubzero:workers<-workerc/1] {
+        set addr [lindex [$server connectionName $cid] 0]  ;# x.x.x.x (sockN)
+        if {[llength $avoidList] == 0 || [lsearch $avoidList $addr] < 0} {
+            if {[catch {puts $cid $message} result] == 0} {
+                incr nmesgs
+            } else {
+                log error "ERROR: broadcast failed for $cid: $result"
+                log error "  (message was $message)"
+            }
+        }
+    }
+
+    # did we send the right number of messages?
+    if {[llength $recipients] != $nmesgs} {
+        log error "ERROR: sent only $nmesgs messages to peers {$recipients}"
+    }
+
+    return $nmesgs
+}
+
+# ----------------------------------------------------------------------
+#  COMMAND:  worker_got_protocol
+#
+#  Invoked whenever a peer sends their protocol message to this
+#  worker.  Sends the same protocol name back, so the other worker
+#  understands what protocol we're speaking.
+# ----------------------------------------------------------------------
+proc worker_got_protocol {cid protocol} {
+    switch -glob -- $protocol {
+        *<-worker* {
+            puts $cid [list protocol hubzero:workerc<-workers/1]
+        }
+        *<-foreman* {
+            puts $cid [list protocol hubzero:foreman<-worker/1]
+        }
+        DEF* {
+            # do nothing
+        }
+        default {
+            error "don't recognize protocol \"$protocol\""
+        }
+    }
+}
+
+# ----------------------------------------------------------------------
+#  COMMAND:  worker_got_dropped <address>
+#
+#  Invoked whenever an inbound connection to this worker drops.
+#  At some point we should try updating our connections to other
+#  peers, to replace this missing connection.
+# ----------------------------------------------------------------------
+proc worker_got_dropped {addr} {
+    global peers
+    if {[info exists peers(current-$addr)]} {
+        unset peers(current-$addr)
+        after cancel {peer-network goto measure}
+        after 5000 {peer-network goto measure}
+log debug "peer dropped: $addr"
+    }
+}
+
+# ======================================================================
+#  Connect to one of the authorities to get a list of peers.  Then,
+#  sit in the event loop and process events.
+# ======================================================================
+p2p::wonks::init
+
+set server [p2p::server -port 9101? \
+        -protocols {hubzero:workers<-workerc hubzero:worker<-foreman} \
+        -servername worker \
+        -onprotocol worker_got_protocol \
+        -ondisconnect worker_got_dropped]
+
+# ----------------------------------------------------------------------
+#  AUTHORITY CONNECTION
+#
+#  This is the state machine representing the connection to the
+#  authority server.  We start in the "idle" state.  Whenever we
+#  try to move to "connected", we'll open a connection to an authority
+#  and request updated information on workers.  If that connection
+#  fails, we'll get kicked back to "idle" and we'll try again later.
+# ----------------------------------------------------------------------
+StateMachine authority-connection
+authority-connection statedata cnx ""
+
+# sit here whenever we don't have a connection
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+authority-connection state idle -onenter {
+    # have an open connection? then close it
+    if {"" != [statedata cnx]} {
+        catch {itcl::delete object [statedata cnx]}
+        statedata cnx ""
+    }
+    # try to connect again later
+    set delay [p2p::options get time_between_authority_checks]
+    after $delay {authority-connection goto connected}
+} -onleave {
+    after cancel {authority-connection goto connected}
+}
+
+# sit here after we're connected and waiting for a response
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+authority-connection state connected
+
+# when moving to the connected state, make a connection
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+authority-connection transition idle->connected -onchange {
+    global server
 
     # connect to the authority and request a list of peers
-    if {[catch {
-        set client [authority_connect]
-        $client send "listening [$server port]"
-        $client send "peers"
-    } result]} {
-        log system "ERROR: $result"
+    statedata cnx ""
+    foreach addr [randomize [p2p::options get authority_hosts]] {
+        if {[catch {p2p::client -address $addr \
+            -sendprotocol hubzero:authority<-worker/1 \
+            -receiveprotocol hubzero:worker<-authority/1} result] == 0} {
+            statedata cnx $result
+            break
+        }
     }
 
-    # register again at regular intervals in case the authority
-    # gets restarted in between.
-    after $options(time_between_registers) worker_register
-}
-
-# ----------------------------------------------------------------------
-#  COMMAND:  worker_load_check
-#
-#  Invoked when this worker first starts up and periodically thereafter
-#  to compute the system load available to the worker.  If the system
-#  load has changed significantly, then the "perftest" program is
-#  executed to get a measure of performance available.  This program
-#  returns a number of "wonks" which we report to peers as our available
-#  performance.
-# ----------------------------------------------------------------------
-proc worker_load_check {} {
-    global options sysload dir
-
-    # see if the load has changed significantly
-    set changed 0
-    if {$sysload(lastLoad) < 0} {
-        set changed 1
+    if {"" != [statedata cnx]} {
+        [statedata cnx] send "listening [$server port]"
+        [statedata cnx] send "peers"
     } else {
-        set load [Rappture::sysinfo load5]
-        if {$load < 0.9*$sysload(lastLoad) || $load > 1.1*$sysload(lastLoad)} {
-            set changed 1
-        }
+        error "can't connect to any authority\nAUTHORITY LIST: [p2p::options get authority_hosts]"
     }
-
-    if {$changed} {
-        set sysload(lastLoad) [Rappture::sysinfo load5]
-puts "LOAD CHANGED: $sysload(lastLoad) [Rappture::sysinfo freeram freeswap]"
-        set sysload(measured) [clock seconds]
-
-        # Run the program, but don't use exec, since it blocks.
-        # Instead, run it in the background and harvest its output later.
-        set sysload(test) [open "| [file join $dir perftest]" r]
-        fileevent $sysload(test) readable worker_load_results
-    }
-
-    # monitor the system load at regular intervals
-    after $options(time_between_load_checks) worker_load_check
 }
 
 # ----------------------------------------------------------------------
-#  COMMAND:  worker_load_results
+#  PEER-TO-PEER CONNECTIONS
 #
-#  Invoked automatically when the "perftest" run finishes.  Reads the
-#  number of wonks reported on standard output and reports them to
-#  other peers.
+#  This is the state machine representing the network of worker peers.
+#  We start in the "idle" state.  From time to time we move to the
+#  "measure" state and attempt to establish connections with a set
+#  peers.  We then wait for ping/pong responses and move to "finalize".
+#  When we have all responses, we move to "finalize" and finalize all
+#  connections, and then move back to "idle".
 # ----------------------------------------------------------------------
-proc worker_load_results {} {
-    global sysload
+StateMachine peer-network
+peer-network statedata cnx ""
 
-    if {[catch {read $sysload(test)} msg] == 0} {
-        if {[regexp {[0-9]+} $msg match]} {
-puts "WONKS: $match"
-            set sysload(wonks) $match
-        } else {
-            log system "ERROR: performance test failed: $msg"
-        }
-    }
-    catch {close $sysload(test)}
-    set sysload(test) ""
+# sit here when the peer network is okay
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+peer-network state idle -onenter {
+    # try to connect again later
+    set delay [p2p::options get time_between_network_rebuilds]
+    after $delay {peer-network goto measure}
+} -onleave {
+    after cancel {peer-network goto measure}
 }
 
-# ----------------------------------------------------------------------
-#  COMMAND:  worker_peers_update
-#
-#  Invoked when this worker has received a list of peers, and from
-#  time to time thereafter, to establish connections with other peers
-#  in the network.  This worker picks a number of peers randomly from
-#  the list of all available peers, and then pings each of them.
-#  Timing results from the pings are stored away, and when all pings
-#  have completed, this worker picks the best few connections and
-#  keeps those.
-# ----------------------------------------------------------------------
-proc worker_peers_update {} {
-    global options peers myaddress
-    worker_peers_cleanup
+# sit here when we need to rebuild the peer-to-peer network
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+peer-network state measure
+
+# when moving to the start state, make connections to a bunch of peers
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+peer-network transition idle->measure -onchange {
+    global server myaddress peers
+
+    #
+    # Get a list of workers already connected to this one
+    # with an inbound connection to the server.
+    #
+    foreach cid [$server connections hubzero:workers<-workerc/1] {
+        set addr [lindex [$server connectionName $cid] 0]
+        set inbound($addr) $cid
+    }
 
     #
     # Pick a random group of peers and try to connect to them.
-    # Start with the existing peers, and then add a random
-    # bunch of others.
+    # Start with the existing peers to see if their connection
+    # is still favorable, and then add a random bunch of others.
     #
+    set peers(testing) ""
+    set peers(responses) 0
     foreach key [array names peers current-*] {
         set peer $peers($key)
         lappend peers(testing) $peer
@@ -306,138 +489,105 @@ proc worker_peers_update {} {
     # peers--just some number that is much larger than the
     # final number we want to talk to.
     #
-    set ntest [expr {10 * $options(max_peer_connections)}]
-    foreach addr [randomize $peers(all) $ntest] {
-        if {$addr == $myaddress} {
+    set maxpeers [p2p::options get max_peer_connections]
+    foreach addr [randomize $peers(all) [expr {10*$maxpeers}]] {
+        #
+        # Avoid connecting to ourself, or to peers that we're
+        # already connected to (either as inbound connections
+        # to the server or as outbound connections to others).
+        #
+        if {$addr == $myaddress
+              || [info exists peers(current-$addr)]
+              || [info exists inbound($addr)]} {
             continue
         }
-        if {![info exists peers(current-$addr)]
-              && [catch {Client ::#auto $addr} peer] == 0} {
-            # open a new connection to this address
-            lappend peers(testing) $peer
-            $peer protocol hubzero:peer/1
 
-            $peer define hubzero:peer/1 exception {message} {
-                log system "ERROR: $message"
-            }
+        if {[catch {p2p::client -address $addr \
+            -sendprotocol hubzero:workers<-workerc/1 \
+            -receiveprotocol hubzero:workerc<-workers/1} cnx]} {
+            continue
+        }
+        $cnx send "identity $myaddress"
+        lappend peers(testing) $cnx
 
-            $peer define hubzero:peer/1 identity {name} {
-                variable cid
-                variable handler
-                $handler connectionName $cid $name
-                return ""
-            }
-
-            # when we get a "pong" back, store the latency
-            $peer define hubzero:peer/1 pong {} {
-                global peers
-                variable handler
-puts "  pong from $handler"
-                set now [clock clicks -milliseconds]
-                set delay [expr {$now - $peers(ping-$handler-start)}]
-                set peers(ping-$handler-latency) $delay
-                incr peers(responses)
-                worker_peers_finalize
-                return ""
-            }
-
-            # start the ping/pong session with the peer
-            $peer send "protocol hubzero:peer/1"
-
-            # send tell this peer our name (for debugging)
-            if {[log channel debug]} {
-                $peer send "identity $myaddress"
-            }
+        # have enough connections to test?
+        if {[llength $peers(testing)] >= 2*$maxpeers} {
+            break
         }
     }
 
     #
     # Now, loop through all peers and send a "ping" message.
     #
-    foreach peer $peers(testing) {
-puts "pinging $peer = [$peer address]..."
+    foreach cnx $peers(testing) {
         # mark the time and send a ping to this peer
-        set peers(ping-$peer-start) [clock clicks -milliseconds]
-        $peer send "ping"
+        set peers(ping-$cnx-start) [clock clicks -milliseconds]
+        $cnx send "ping"
     }
 
     # if this test takes too long, just give up
-    after 10000 worker_peers_finalize -force
+    after 10000 {peer-network goto finalize}
 }
 
-# ----------------------------------------------------------------------
-#  COMMAND:  worker_peers_finalize ?-force?
-#
-#  Called after worker_peers_update has finished its business to
-#  clean up all of the connections that were open for testing.
-# ----------------------------------------------------------------------
-proc worker_peers_finalize {{option -check}} {
-    global peers options
-    if {$option == "-force" || $peers(responses) == [llength $peers(testing)]} {
-        # build a list:  {peer latency} {peer latency} ...
-        set plist ""
-        foreach obj $peers(testing) {
-            if {[info exists peers(ping-$obj-latency)]} {
-                lappend plist [list $obj $peers(ping-$obj-latency)]
-            }
-        }
-puts "-------------------\nFINALIZING $::myaddress"
-puts "PINGS: $plist"
+# sit here when we need to rebuild the peer-to-peer network
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+peer-network state finalize -onenter {
+    after cancel {peer-network goto finalize}
 
-        # sort the list and extract the top peers
-        set plist [lsort -increasing -index 1 $plist]
-        set plist [lrange $plist 0 [expr {$options(max_peer_connections)-1}]]
-puts "TOP: $plist"
-
-        set current [array names peers current-*]
-puts "  current: $current"
-
-        # transfer the top peers to the "current" list
-        set all ""
-        foreach rec $plist {
-            set peer [lindex $rec 0]
-            set addr [$peer address]
-            set peers(current-$addr) $peer
-            lappend all $addr
-
-            # if it is already on the "current" list, then keep it
-            set i [lsearch $current current-$addr]
-            if {$i >= 0} {
-                set current [lreplace $current $i $i]
-            }
-            set i [lsearch $peers(testing) $peer]
-            if {$i >= 0} {
-                set peers(testing) [lreplace $peers(testing) $i $i]
-            }
-        }
-        log system "connected to peers: $all"
-puts "  new current: [array names peers current-*]"
-puts "  final: $all"
-puts "  leftover: $current $peers(testing)"
-
-        # get rid of old peers that we no longer want to talk to
-        foreach leftover $current {
-            itcl::delete object $peers($leftover)
-            unset peers($leftover)
-puts "  cleaned up $leftover (was on current list)"
-        }
-
-        # clean up after this test
-        worker_peers_cleanup
-    }
+    # everything is finalized now, so go to idle
+    after idle {peer-network goto idle}
 }
 
-# ----------------------------------------------------------------------
-#  COMMAND:  worker_peers_cleanup
-#
-#  Called after worker_peers_update has finished its business to
-#  clean up all of the connections that were open for testing.
-# ----------------------------------------------------------------------
-proc worker_peers_cleanup {} {
+# when moving to the finalize state, decide on the network of peers
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+peer-network transition measure->finalize -onchange {
     global peers
+
+    set maxpeers [p2p::options get max_peer_connections]
+
+    # build a list:  {peer latency} {peer latency} ...
+    set plist ""
+    foreach obj $peers(testing) {
+        if {[info exists peers(ping-$obj-latency)]} {
+            lappend plist [list $obj $peers(ping-$obj-latency)]
+        }
+    }
+
+    # sort the list and extract the top peers
+    set plist [lsort -increasing -index 1 $plist]
+    set plist [lrange $plist 0 [expr {$maxpeers-1}]]
+
+    set currentpeers [array names peers current-*]
+
+    # transfer the top peers to the "current" list
+    set all ""
+    foreach rec $plist {
+        set peer [lindex $rec 0]
+        set addr [$peer address]
+        set peers(current-$addr) $peer
+        lappend all $addr
+
+        # if it is already on the "current" list, then keep it
+        set i [lsearch $currentpeers current-$addr]
+        if {$i >= 0} {
+            set currentpeers [lreplace $currentpeers $i $i]
+        }
+        set i [lsearch $peers(testing) $peer]
+        if {$i >= 0} {
+            set peers(testing) [lreplace $peers(testing) $i $i]
+        }
+    }
+    log system "connected to peers: $all"
+
+    # get rid of old peers that we no longer want to talk to
+    foreach leftover $currentpeers {
+        itcl::delete object $peers($leftover)
+        unset peers($leftover)
+    }
+
+    # clean up after this test
     foreach obj $peers(testing) {
         catch {itcl::delete object $obj}
-puts "  cleaned up $obj (was on testing list)"
     }
     set peers(testing) ""
 
@@ -445,27 +595,111 @@ puts "  cleaned up $obj (was on testing list)"
         unset peers($key)
     }
     set peers(responses) 0
-
-    after cancel worker_peers_finalize -force
 }
 
 # ----------------------------------------------------------------------
-#  COMMAND:  worker_peers_protocol
+#  JOB SOLICITATION
 #
-#  Invoked whenever a peer sends their protocol message to this
-#  worker.  Sends the same protocol name back, so the other worker
-#  understands what protocol we're speaking.
+#  Each worker can receive a "solicit" request, asking for information
+#  about performance and price of peers available to work.  Each worker
+#  sends the request on to its peers, then gathers the information
+#  and sends it back to the client or to the peer requesting the
+#  information.  There can be multiple requests going on at once,
+#  and each may have different job types and return different info,
+#  so the class below helps to watch over each request until it has
+#  completed.
 # ----------------------------------------------------------------------
-proc worker_peers_protocol {cid protocol} {
-    if {"DEFAULT" != $protocol} {
-        puts $cid [list protocol $protocol]
+itcl::class Solicitation {
+    public variable connection ""
+    public variable job ""
+    public variable path ""
+    public variable avoid ""
+    public variable token ""
+
+    private variable _serial ""
+    private variable _response ""
+    private variable _waitfor 0
+    private variable _timeout ""
+
+    constructor {args} {
+        eval configure $args
+
+        global myaddress
+        lappend path $myaddress
+        lappend avoid $myaddress
+        set _serial [incr counter]
+        set all($_serial) $this
+
+        set delay "idle"  ;# finalize after waiting for responses
+        set ttl [p2p::options get peer_time_to_live]
+        if {[llength $path] < $ttl} {
+            set mesg [list solicit -job $job -path $path -avoid "$avoid @RECIPIENTS" -token $_serial]
+            set _waitfor [broadcast_to_peers $mesg $avoid]
+log debug "WAIT FOR: $_waitfor"
+
+            if {$_waitfor > 0} {
+                # add a delay proportional to ttl + time for wonks measurement
+                set delay [expr {($ttl-[llength $path]-1)*1000 + 3000}]
+            }
+        }
+log debug "TIMEOUT: $delay"
+        set _timeout [after $delay [itcl::code $this finalize]]
     }
+    destructor {
+        after cancel $_timeout
+        catch {unset all($_serial)}
+    }
+
+    # this adds the info from each proffer to this solicitation
+    method response {details} {
+        set addr [lindex $details 0]
+        append _response $details "\n"
+        if {[incr _waitfor -1] <= 0} {
+log debug "ALL RESPONSES"
+            finalize
+        }
+    }
+
+    # called to finalize when all peers have responded back
+    method finalize {} {
+        global myaddress
+
+        # filter out duplicate info from clients
+        set block ""
+        foreach line [split $_response \n] {
+            set addr [lindex $line 0]
+            if {"" != $addr && ![info exists response($addr)]} {
+                append block $line "\n"
+                set response($addr) 1
+            }
+        }
+        # add details about this client to the message
+        append block "$myaddress -job $job -cost 1 -wonks [p2p::wonks::current]"
+log debug "FINALIZE {$block}"
+
+        # send the composite results back to the caller
+        set cmd [list proffer $token $block]
+        if {[catch {puts $connection $cmd} err]} {
+            log error "ERROR while sending back proffer: $err"
+        }
+        itcl::delete object $this
+    }
+
+    proc proffer {serial details} {
+        if {[info exists all($serial)]} {
+            $all($serial) response $details
+        }
+    }
+
+    common counter 0 ;# generates serial nums for objects
+    common all       ;# maps serial num => solicitation object
 }
 
-# ======================================================================
-#  Connect to one of the authorities to get a list of peers.  Then,
-#  sit in the event loop and process events.
-# ======================================================================
-after idle worker_register
+# ----------------------------------------------------------------------
 log system "starting..."
+
+after idle {
+    authority-connection goto connected
+}
+
 vwait main-loop

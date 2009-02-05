@@ -23,6 +23,11 @@ set processes ""
 set nodes(all) ""
 set nodeRadius 15
 
+option add *highlightBackground [. cget -background]
+option add *client*background gray
+option add *client*highlightBackground gray
+option add *client*troughColor darkGray
+
 # ======================================================================
 #  SHAPES
 # ======================================================================
@@ -161,6 +166,26 @@ itcl::class Shape {
 # ======================================================================
 #  Build the main interface
 # ======================================================================
+frame .client -borderwidth 8 -relief flat
+pack .client -side right -fill y
+button .client.getbids -text "Get Bids:" -command test_bids
+pack .client.getbids -side top -anchor w
+frame .client.cntls
+pack .client.cntls -side bottom -fill x
+button .client.cntls.run -text "Spend" -command test_spend
+pack .client.cntls.run -side left
+entry .client.cntls.points -width 8
+pack .client.cntls.points -side left
+label .client.cntls.pointsl -text "points"
+pack .client.cntls.pointsl -side left
+
+frame .client.bids
+pack .client.bids -side bottom -expand yes -fill both
+scrollbar .client.bids.ysbar -orient vertical -command {.client.bids.info yview}
+pack .client.bids.ysbar -side right -fill y
+listbox .client.bids.info -yscrollcommand {.client.bids.ysbar set}
+pack .client.bids.info -side left -expand yes -fill both
+
 frame .cntls
 pack .cntls -fill x
 
@@ -180,6 +205,12 @@ button .cntls.layout -text "New Layout" -command {
     after idle test_reload
 }
 pack .cntls.layout -side left -padx 4 -pady 2
+
+entry .cntls.workers -width 5
+pack .cntls.workers -side right -padx {0 4} -pady 2
+.cntls.workers insert end "3"
+label .cntls.workersl -text "Workers:"
+pack .cntls.workersl -side right -pady 2
 
 frame .player
 pack .player -side bottom -fill x
@@ -237,7 +268,7 @@ proc test_start {} {
     lappend processes [exec tclsh authority.tcl &]
 
     # launch a series of workers
-    for {set i 0} {$i < 20} {incr i} {
+    for {set i 0} {$i < [.cntls.workers get]} {incr i} {
         lappend processes [exec tclsh worker.tcl &]
         after [expr {int(rand()*5000)}]
     }
@@ -265,6 +296,11 @@ proc test_reload {} {
         set fid [open $fname r]
         set info [read $fid]
         close $fid
+
+        if {[regexp -- {foreman<-} $info]} {
+            # skip log file from foreman
+            continue
+        }
 
         # get the address for this host
         regexp {started at port ([0-9]+)} $info match port
@@ -322,6 +358,11 @@ proc test_reload {} {
         close $fid
 puts "\nscanning $fname"
 
+        if {[regexp -- {foreman<-} $info]} {
+            # skip log file from foreman
+            continue
+        }
+
         catch {unset started}
         set peerlist(addrs) ""
         set peerlist(time) 0
@@ -357,7 +398,7 @@ puts "\nscanning $fname"
                     unset started(connect$cid-time)
                     unset started(connect$cid-addr)
 
-                } elseif {[regexp {server message from ([a-zA-Z0-9\.]+:[0-9]+) \(([a-z0-9]+)\): +(.+) => (.*)} $mesg match addr cid cmd result]} {
+                } elseif {[regexp {(server|client) message from ([a-zA-Z0-9\.]+:[0-9]+) \(([a-z0-9]+)\): +(.+) => (.*)} $mesg match which addr cid cmd result]} {
                     if {![string match identity* $cmd]} {
                         append actions($tval) $mesg \n
                         set from $nodes($fname)
@@ -433,6 +474,12 @@ puts "\nscanning $fname"
             regexp {connect([^-]+)-addr} $key match cid
             set from $nodes($fname)
             set addr $started($key)
+
+            if {![info exists nodes($addr-x)]} {
+                unset started(connect$cid-time)
+                unset started(connect$cid-addr)
+                continue
+            }
             set x0 $nodes($from-x)
             set y0 $nodes($from-y)
             set x1 $nodes($addr-x)
@@ -556,4 +603,10 @@ proc test_view_change {} {
         catch {pack forget $widget}
     }
     pack .diagram.$view -expand yes -fill both
+}
+
+proc test_bids {} {
+    set info [Rappture::foreman::bids]
+    .client.bids.info delete 0 end
+    eval .client.bids.info insert end $info
 }
