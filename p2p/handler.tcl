@@ -33,6 +33,9 @@ itcl::class Handler {
             $handler connectionSpeaks $cid $version
             return ""
         }
+        define DEFAULT exception {message} {
+            log error "ERROR: $message"
+        }
 
         eval configure $args
     }
@@ -48,11 +51,13 @@ itcl::class Handler {
 
     public method protocol {name}
     public method define {protocol name arglist body}
+    public method connections {{protocol *}}
     public method connectionName {cid {name ""}}
     public method connectionSpeaks {cid protocol}
 
     protected method handle {cid}
     protected method finalize {protocol}
+    protected method dropped {cid}
     protected method handlerType {}
 }
 
@@ -100,6 +105,24 @@ itcl::body Handler::define {protocol name arglist body} {
 }
 
 # ----------------------------------------------------------------------
+#  USAGE: connections ?<protocol>?
+#
+#  Returns a list of file handles for current connections that match
+#  the glob-style <protocol> pattern.  If no pattern is given, then
+#  it returns all connections.  Each handle can be passed to
+#  connectionName and connectionSpeaks to get more information.
+# ----------------------------------------------------------------------
+itcl::body Handler::connections {{pattern *}} {
+    set rlist ""
+    foreach cid [array names _protocol] {
+        if {[string match $pattern $_protocol($cid)]} {
+            lappend rlist $cid
+        }
+    }
+    return $rlist
+}
+
+# ----------------------------------------------------------------------
 #  USAGE: connectionName <sockId> ?<name>?
 #
 #  Used to set/get the nice name associated with a <sockId> connection.
@@ -143,12 +166,7 @@ itcl::body Handler::connectionSpeaks {cid protocol} {
 # ----------------------------------------------------------------------
 itcl::body Handler::handle {cid} {
     if {[gets $cid request] < 0} {
-        log system "dropped: [connectionName $cid]"
-        # connection has connection -- forget this entity
-        catch {close $cid}
-        catch {unset _buffer($cid)}
-        catch {unset _protocol($cid)}
-        catch {unset _cname($cid)}
+        dropped $cid
     } elseif {[info exists _protocol($cid)]} {
         # complete command? then process it below...
         append _buffer($cid) $request "\n"
@@ -170,11 +188,11 @@ itcl::body Handler::handle {cid} {
             set mesg " => "
             if {[catch {$_parser($protocol) eval $request} result] == 0} {
                 if {[string length $result] > 0} {
-                    puts $cid $result
+                    catch {puts $cid $result}
                     append mesg "ok: $result"
                 }
             } else {
-                puts $cid [list exception $result]
+                catch {puts $cid [list exception $result]}
                 append mesg "exception: $result"
             }
             log debug "[handlerType] message from [connectionName $cid]: [string trimright $request \n] $mesg"
@@ -200,6 +218,23 @@ itcl::body Handler::finalize {protocol} {
     $p invokehidden proc unknown {cmd args} [format {
         error "bad command \"$cmd\": should be %s"
     } [join $cmds {, }]]
+}
+
+# ----------------------------------------------------------------------
+#  USAGE: dropped <cid>
+#
+#  Invoked automatically whenever a client connection drops, to
+#  log the event and remove all trace of the client.  Derived classes
+#  can override this method to perform other functions too.
+# ----------------------------------------------------------------------
+itcl::body Handler::dropped {cid} {
+    log system "dropped: [connectionName $cid]"
+
+    # connection has connection -- forget this entity
+    catch {close $cid}
+    catch {unset _buffer($cid)}
+    catch {unset _protocol($cid)}
+    catch {unset _cname($cid)}
 }
 
 # ----------------------------------------------------------------------

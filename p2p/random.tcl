@@ -37,3 +37,13 @@ proc randomize {entries {pickThisMany -1}} {
     }
     return $rlist
 }
+
+# ----------------------------------------------------------------------
+#  USAGE: random <list>
+#
+#  Picks one element at random from the given <list>.
+# ----------------------------------------------------------------------
+proc random {entries} {
+    set nrand [expr {int(rand()*[llength $entries])}]
+    return [lindex $entries $nrand]
+}
