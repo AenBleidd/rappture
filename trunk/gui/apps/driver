@@ -63,6 +63,13 @@ option add *BugReport*banner*foreground white
 option add *BugReport*banner*background #a9a9a9
 option add *BugReport*banner*highlightBackground #a9a9a9
 option add *BugReport*banner*font -*-helvetica-bold-r-normal-*-18-*
+option add *hubcntls*Button.padX 0 widgetDefault
+option add *hubcntls*Button.padY 0 widgetDefault
+option add *hubcntls*Button.relief flat widgetDefault
+option add *hubcntls*Button.overRelief raised widgetDefault
+option add *hubcntls*Button.borderWidth 1 widgetDefault
+option add *hubcntls*Button.font \
+    -*-helvetica-medium-r-normal-*-8-* widgetDefault
 
 switch $tcl_platform(platform) {
     unix - windows {
@@ -207,6 +214,28 @@ pack $win.postern -side bottom -fill x
 Rappture::Pager $win.pager
 pack $win.pager -expand yes -fill both
 
+#
+# Add a place for about/questions in the breadcrumbs area of this pager.
+#
+set app [$tool xml get tool.id]
+set url [Rappture::Tool::resources -huburl]
+if {"" != $url && "" != $app} {
+    set f [$win.pager component breadcrumbarea]
+    frame $f.hubcntls
+    pack $f.hubcntls -side right -padx 4
+    label $f.hubcntls.icon -image [Rappture::icon ask] -highlightthickness 0
+    pack $f.hubcntls.icon -side left
+    button $f.hubcntls.about -text "About this tool" \
+        -command [list Rappture::filexfer::webpage "$url/tools/$app"]
+    pack $f.hubcntls.about -side top -anchor w
+    button $f.hubcntls.questions -text Questions? \
+        -command [list Rappture::filexfer::webpage "$url/resources/$app/questions"]
+    pack $f.hubcntls.questions -side top -anchor w
+}
+
+#
+# Load up the components in the various phases of input.
+#
 set phases [$tool xml children -type phase input]
 if {[llength $phases] > 0} {
     set plist ""
