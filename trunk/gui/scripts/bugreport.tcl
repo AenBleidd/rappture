@@ -260,9 +260,9 @@ proc Rappture::bugreport::register {stackTrace} {
     
     set url [Rappture::Tool::resources -huburl]
     if {[string index $url end] == "/"} {
-        append url "index2.php"
+        append url "index.php"
     } else {
-        append url "/index2.php"
+        append url "/index.php"
     }
 
     set token [http::geturl $url -query $query -timeout 60000]
@@ -271,10 +271,13 @@ proc Rappture::bugreport::register {stackTrace} {
         error [http::code $token]
     }
     upvar #0 $token rval
-    if {[regexp {Ticket #[0-9]* +\(.*?\) +[0-9]+ +times} $rval(body) match]} {
+    set info $rval(body)
+    http::cleanup $token
+
+    if {[regexp {Ticket #[0-9]* +\(.*?\) +[0-9]+ +times} $info match]} {
         return $match
     }
-    error "Report received, but ticket may not have been filed.  Here's the result...\n$rval(body)"
+    error "Report received, but ticket may not have been filed.  Here's the result...\n$info"
 }
 
 # ----------------------------------------------------------------------

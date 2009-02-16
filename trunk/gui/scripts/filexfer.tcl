@@ -41,7 +41,7 @@ proc Rappture::filexfer::init {} {
         set prog "${op}file"
         set path [auto_execok $prog]
         if {"" == $path} {
-            foreach dir {/apps/filexfer/bin /apps/bin} {
+            foreach dir {/apps/bin /apps/filexfer/bin} {
                 set p [file join $dir $prog]
                 if {[file executable $p]} {
                     set path $p
@@ -317,4 +317,31 @@ proc Rappture::filexfer::download {string {filename "output.txt"}} {
         }
     }
     return ""
+}
+
+# ----------------------------------------------------------------------
+# USAGE: Rappture::filexfer::webpage <url>
+#
+# Clients use this to pop up a web page for the specified <url> on
+# the user's desktop.  The <url> should start with http:// or https://.
+# If anything goes wrong, this function beeps.
+# ----------------------------------------------------------------------
+proc Rappture::filexfer::webpage {url} {
+    if {[regexp -nocase {^https?://} $url]} {
+        foreach prog {
+              clientaction
+              /apps/bin/clientaction
+              /apps/xvnc/bin/clientaction
+              ""
+        } {
+            if {"" != [auto_execok $prog]} {
+                break
+            }
+        }
+        if {"" != $prog} {
+            exec $prog url $url &
+            return
+        }
+    }
+    bell
 }

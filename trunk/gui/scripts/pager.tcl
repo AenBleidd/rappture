@@ -98,9 +98,15 @@ itcl::body Rappture::Pager::constructor {args} {
 
     set font [$itk_component(next) cget -font]
     set ht [font metrics $font -linespace]
-    itk_component add breadcrumbs {
-        canvas $itk_interior.breadcrumbs -width 10 -height [expr {$ht+2}]
+    itk_component add breadcrumbarea {
+        frame $itk_interior.bcarea
     }
+    itk_component add breadcrumbs {
+        canvas $itk_component(breadcrumbarea).breadcrumbs \
+            -width 10 -height [expr {$ht+2}]
+    }
+    pack $itk_component(breadcrumbs) -side left -expand yes -fill both \
+        -padx 8 -pady 8
 
     itk_component add line {
         frame $itk_interior.line -height 2 -borderwidth 1 -relief sunken
@@ -484,8 +490,7 @@ itcl::configbody Rappture::Pager::arrangement {
             pack forget $itk_component(inside)
             pack $itk_component(controls) -side bottom -fill x -padx 8 -pady 8
             if {[llength $_pages] > 2} {
-                pack $itk_component(breadcrumbs) -side top -fill x \
-                    -padx 8 -pady 8
+                pack $itk_component(breadcrumbarea) -side top -fill x
                 pack $itk_component(line) -side top -fill x
             }
             pack $itk_component(inside) -expand yes -fill both
@@ -494,7 +499,7 @@ itcl::configbody Rappture::Pager::arrangement {
         side-by-side {
             pack forget $itk_component(controls)
             pack forget $itk_component(line)
-            pack forget $itk_component(breadcrumbs)
+            pack forget $itk_component(breadcrumbarea)
 
             foreach w [pack slaves $itk_component(inside)] {
                 pack forget $w
