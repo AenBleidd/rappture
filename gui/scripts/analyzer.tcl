@@ -96,26 +96,80 @@ itcl::body Rappture::Analyzer::constructor {tool args} {
     frame $itk_interior.simol -borderwidth 1 -relief flat
     pack $itk_interior.simol -fill x
 
-    frame $itk_interior.simol.simbg -borderwidth 0
-    pack $itk_interior.simol.simbg -expand yes -fill both
+    itk_component add simbg {
+        frame $itk_interior.simol.simbg -borderwidth 0
+    } {
+        usual
+        rename -background -simcontrolcolor simControlColor Color
+    }
+    pack $itk_component(simbg) -expand yes -fill both
 
     set simtxt [$tool xml get tool.action.label]
     if {"" == $simtxt} {
         set simtxt "Simulate"
     }
     itk_component add simulate {
-        button $itk_interior.simol.simbg.simulate -text $simtxt \
+        button $itk_component(simbg).simulate -text $simtxt \
             -command [itcl::code $this simulate]
+    } {
+        usual
+        rename -highlightbackground -simcontrolcolor simControlColor Color
     }
     pack $itk_component(simulate) -side left -padx 4 -pady 4
 
+    # if there's a hub url, then add "About" and "Questions" links
+    set app [$_tool xml get tool.id]
+    set url [Rappture::Tool::resources -huburl]
+    if {"" != $url && "" != $app} {
+        itk_component add hubcntls {
+            frame $itk_component(simbg).hubcntls
+        } {
+            usual
+            rename -background -simcontrolcolor simControlColor Color
+        }
+        pack $itk_component(hubcntls) -side right -padx 4
+
+        itk_component add icon {
+            label $itk_component(hubcntls).icon -image [Rappture::icon ask] \
+                -highlightthickness 0
+        } {
+            usual
+            ignore -highlightthickness
+            rename -background -simcontrolcolor simControlColor Color
+        }
+        pack $itk_component(icon) -side left
+
+        itk_component add about {
+            button $itk_component(hubcntls).about -text "About this tool" \
+                -command [list Rappture::filexfer::webpage "$url/tools/$app"]
+        } {
+            usual
+            ignore -font
+            rename -background -simcontrolcolor simControlColor Color
+            rename -highlightbackground -simcontrolcolor simControlColor Color
+        }
+        pack $itk_component(about) -side top -anchor w
+
+        itk_component add questions {
+            button $itk_component(hubcntls).questions -text Questions? \
+                -command [list Rappture::filexfer::webpage "$url/resources/$app/questions"]
+        } {
+            usual
+            ignore -font
+            rename -background -simcontrolcolor simControlColor Color
+            rename -highlightbackground -simcontrolcolor simControlColor Color
+        }
+        pack $itk_component(questions) -side top -anchor w
+    }
+
     itk_component add simstatus {
-        text $itk_interior.simol.simbg.simstatus -borderwidth 0 \
+        text $itk_component(simbg).simstatus -borderwidth 0 \
             -highlightthickness 0 -height 1 -width 1 -wrap none \
             -state disabled
     } {
         usual
         ignore -highlightthickness
+        rename -background -simcontrolcolor simControlColor Color
         rename -font -textfont textFont Font
     }
     pack $itk_component(simstatus) -side left -expand yes -fill x
@@ -867,12 +921,7 @@ itcl::body Rappture::Analyzer::_simState {state args} {
     if {$state} {
         $itk_interior.simol configure \
             -background $itk_option(-simcontrolactiveoutline)
-        $itk_interior.simol.simbg configure \
-            -background $itk_option(-simcontrolactivebackground)
-        $itk_component(simulate) configure \
-            -highlightbackground $itk_option(-simcontrolactivebackground)
-        $itk_component(simstatus) configure \
-            -background $itk_option(-simcontrolactivebackground)
+        configure -simcontrolcolor $itk_option(-simcontrolactivebackground)
 
         $itk_component(abort) configure -state disabled
         $itk_component(simulate) configure -state normal \
@@ -921,9 +970,7 @@ itcl::body Rappture::Analyzer::_simState {state args} {
         }
         $itk_interior.simol configure \
             -background $itk_option(-simcontroloutline)
-        $itk_interior.simol.simbg configure -background $simcbg
-        $itk_component(simulate) configure -highlightbackground $simcbg
-        $itk_component(simstatus) configure -background $simcbg
+        configure -simcontrolcolor $simcbg
 
         $itk_component(simulate) configure -state disabled
         $itk_component(abort) configure -state normal

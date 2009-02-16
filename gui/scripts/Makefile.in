@@ -126,7 +126,7 @@ install_scripts:
 
 install_images:
 	$(MKDIR_P) $(destdir)/images
-	@for i in $(srcdir)/images/*.gif $(srcdir)/images/*.xbm; do \
+	@for i in $(srcdir)/images/*.gif $(srcdir)/images/*.png $(srcdir)/images/*.xbm; do \
 	    echo "Installing $$i" ; \
 	    $(INSTALL) -m 444 $$i $(destdir)/images ; \
 	done 

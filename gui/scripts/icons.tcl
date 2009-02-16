@@ -49,7 +49,7 @@ proc Rappture::icon {name} {
     set imh ""
     if {"" != $file} {
         switch -- [file extension $file] {
-            .gif - .jpg {
+            .gif - .jpg - .png {
                 set imh [image create photo -file $file]
             }
             .xbm {
