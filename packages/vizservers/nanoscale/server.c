@@ -137,7 +137,9 @@ close_child(int pipe_fd)
     printf("processes=%d, memory=%d, load=%f\n",
 	   children, memory_in_use, load);
 
+#ifdef notdef
     broadcast_load();
+#endif
 }
 
 void note_request(int fd, float value)
@@ -394,8 +396,9 @@ main(int argc, char *argv[])
 
     // We're ready to go.  Before going into the main loop,
     // broadcast a load announcement to other machines.
+#ifdef notdef
     broadcast_load();
-
+#endif
     int maxfd = send_fd;
     FD_ZERO(&saved_rfds);
     FD_ZERO(&pipe_rfds);
@@ -409,7 +412,7 @@ main(int argc, char *argv[])
 
     FD_SET(send_fd, &saved_rfds);
 
-    if (debug_flag == 0) {
+    if (!debug_flag) {
 	if ( daemon(0,0) != 0 ) {
 	    perror("daemon");
 	    exit(1);
@@ -593,9 +596,14 @@ main(int argc, char *argv[])
 		  
 		    for(n = 0; n < MAX_SERVICES; n++) {
 			if (FD_ISSET(i, &service_rfds[n])) {
-			  
-			    // disassociate
-			    if ( daemon(0,1) == 0 ) { 
+			    int status = 0;
+
+			    if (!debug_flag) {
+				// disassociate
+				status = daemon(0,1);
+			    }
+			    
+			    if (status == 0) { 
 				int fd;
 
 				dup2(i, 0);  // stdin

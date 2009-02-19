@@ -45,6 +45,8 @@ AC_LANG_CPLUSPLUS
 
 AC_C_BIGENDIAN
 
+LD_RPATH="";
+
 SUBDIRS="nanoscale nanovis pymolproxy"
 AC_SUBST(SUBDIRS)
 
@@ -150,6 +152,7 @@ AC_CHECK_HEADER([GL/glui.h])
 AC_CHECK_HEADER([glui.h])
 AC_CHECK_HEADER([GL/glut.h])
 AC_CHECK_HEADER([GL/glew.h])
+AC_CHECK_HEADER([Cg/cgGL.h])
 
 AC_CHECK_HEADERS([stdio.h unistd.h stdlib.h string.h sys/types.h])
 AC_CHECK_HEADERS([sys/socket.h sys/time.h netinet/in.h arpa/inet.h netdb.h])
@@ -169,11 +172,41 @@ done
 if test "x${DX_DIR}" = "x" ; then
   AC_MSG_ERROR([can't find OpenDX installation])
 fi
+
 if test "${DX_DIR}" = "/usr" ; then
   DX_DIR=""
+else 
+  LD_RPATH="$loader_run_path:${DX_DIR}/lib"
 fi
+
 AC_SUBST(DX_DIR)
 AC_MSG_RESULT([${DX_DIR}])
+
+AC_MSG_CHECKING([for nVidia Cg installation])
+CG_DIR=""
+for dir in \
+ /opt/nvidia-cg-toolkit \
+ /usr/cg \
+ /usr
+do
+  if test -r "${dir}/include/Cg/cgGL.h" ; then
+    CG_DIR="$dir"
+    break
+  fi
+done
+if test "x${CG_DIR}" = "x" ; then
+  AC_MSG_ERROR([can't find nVidia Cg installation])
+fi
+
+if test "${CG_DIR}" = "/usr" ; then
+  CG_DIR=""
+else 
+  LD_RPATH="$loader_run_path:${CG_DIR}/lib"
+fi
+
+AC_SUBST(CG_DIR)
+AC_MSG_RESULT([${CG_DIR}])
+AC_SUBST(LD_RPATH)
 
 dnl AC_MSG_CHECKING(tcl library version)
 dnl TCL=`AC_TRY_RUN([#include <tcl.h>

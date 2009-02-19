@@ -29,11 +29,14 @@ RM		= rm -f
 
 AUXSRC		= config.h define.h global.h
 
+CG_DIR		= @CG_DIR@
+CG_INC_SPEC	= -I$(CG_DIR)/include
+CG_LIB_SPEC	= -L$(CG_DIR)/lib -lCg -lCgGL
 DX_DIR		= @DX_DIR@
 DX_INC_SPEC	= -I$(DX_DIR)/include
-DX_LIB_SPEC	= -L$(DX_DIR)/lib_linux -lDXcallm -lm
+DX_LIB_SPEC	= -L$(DX_DIR)/lib_linux -lDXcallm
 GL_INC_SPEC	= -I/usr/include/GL
-GL_LIB_SPEC	= -lGL -lglut -lglui -lGLEW -lCg -lCgGL -lpthread
+GL_LIB_SPEC	= -lGL -lglut -lglui -lGLEW
 IMG_DIR		= ./imgLoaders
 IMG_INC_SPEC	= -I$(srcdir)/$(IMG_DIR)
 IMG_LIB		= $(IMG_DIR)/ImageLoaders.a
@@ -47,6 +50,7 @@ R2_INC_SPEC	= -I$(srcdir)/$(R2_DIR)/include
 R2_LIB		= $(R2_DIR)/src/R2.a
 R2_LIB_SPEC     = $(R2_LIB)
 
+EXTRA_LIBS      = -lm -lpthread	 
 RP_DIR		=  @RP_DIR@
 RP_INC_SPEC	= -I$(RP_DIR)/include -I$(RP_DIR)/include/rappture2
 RP_LIB_SPEC	= -L$(RP_DIR)/lib -lrappture2 -lrappture -lexpat -lz
@@ -59,6 +63,8 @@ TF_LIB_SPEC	= $(TF_LIB)
 TCL_LIB_SPEC	= @TCL_LIB_SPEC@
 TCL_INC_SPEC	= @TCL_INC_SPEC@
 
+LD_RUN_PATH	= @LD_RPATH@
+
 LIBS		= \
 		$(RP_LIB_SPEC) \
 		$(DX_LIB_SPEC) \
@@ -67,12 +73,16 @@ LIBS		= \
 		$(TF_LIB_SPEC) \
 		$(MAT_LIB_SPEC) \
 		$(TCL_LIB_SPEC) \
-		$(GL_LIB_SPEC) 
+		$(CG_LIB_SPEC) \
+		$(GL_LIB_SPEC) \
+		$(EXTRA_LIBS) \
+		-Wl,-rpath,$(LD_RUN_PATH)
 
 INCLUDES	= \
 		-I$(srcdir) \
 		$(TCL_INC_SPEC) \
 		$(RP_INC_SPEC) \
+		$(CG_INC_SPEC) \
 		$(GL_INC_SPEC) \
 		$(R2_INC_SPEC) \
 		$(IMG_INC_SPEC) \
