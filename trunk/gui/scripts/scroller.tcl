@@ -160,6 +160,14 @@ itcl::body Rappture::Scroller::contents {{widget "!@#query"}} {
     $itk_component(ysbar) configure -command [list $widget yview]
     set _contents $widget
 
+    if {[string equal "x11" [tk windowingsystem]]} {
+	bind ${widget} <4> { %W yview scroll -5 units }
+	bind ${widget} <5> { %W yview scroll 5 units }
+    } else {
+	bind ${widget} <MouseWheel> {
+	    %W yview scroll [expr {- (%D / 120) * 4}] units
+	}
+    }
     if {$widget == $_frame} {
         return $_frame.f
     }

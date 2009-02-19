@@ -188,7 +188,7 @@ itcl::body Rappture::NanovisViewer::constructor {hostlist args} {
     itk_component add reset {
         button $itk_component(zoom).reset \
             -borderwidth 1 -padx 1 -pady 1 \
-            -bitmap [Rappture::icon reset] \
+            -image [Rappture::icon reset-view] \
             -command [itcl::code $this _zoom reset]
     } {
         usual
@@ -201,7 +201,7 @@ itcl::body Rappture::NanovisViewer::constructor {hostlist args} {
     itk_component add zoomin {
         button $itk_component(zoom).zin \
             -borderwidth 1 -padx 1 -pady 1 \
-            -bitmap [Rappture::icon zoomin] \
+            -image [Rappture::icon zoom-in] \
             -command [itcl::code $this _zoom in]
     } {
         usual
@@ -214,7 +214,7 @@ itcl::body Rappture::NanovisViewer::constructor {hostlist args} {
     itk_component add zoomout {
         button $itk_component(zoom).zout \
             -borderwidth 1 -padx 1 -pady 1 \
-            -bitmap [Rappture::icon zoomout] \
+            -image [Rappture::icon zoom-out] \
             -command [itcl::code $this _zoom out]
     } {
         usual

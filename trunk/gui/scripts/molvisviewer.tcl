@@ -64,22 +64,26 @@ itcl::class Rappture::MolvisViewer {
     public method parameters {title args} { # do nothing }
 
     public method emblems {option}
+    public method projection {option}
     public method rock {option}
     public method representation {option {model "all"} }
+    public method atomscale {option {model "all"} }
     public method ResetView {} 
+    public method settings {option args}
 
     protected method _send {args}
     protected method _update { args }
     protected method _rebuild { }
     protected method _zoom {option {factor 10}}
     protected method _pan {option x y}
+    protected method _rotate {option x y}
     protected method _configure {w h}
     protected method _unmap {}
     protected method _map {}
     protected method _vmouse2 {option b m x y}
     protected method _vmouse  {option b m x y}
-    private method _receive_image { size cacheid frame rock } 
-
+    private method _ReceiveImage { size cacheid frame rock } 
+    private method _BuildSettingsDrawer {}
     private variable _inrebuild 0
 
     private variable _mevent       ;# info used for mouse event operations
@@ -91,6 +95,7 @@ itcl::class Rappture::MolvisViewer {
     private variable _dobj2ghost
 
     private variable view_
+    private variable click_
 
     private variable _model
     private variable _mlist
@@ -101,12 +106,12 @@ itcl::class Rappture::MolvisViewer {
     private variable _labels  "default"
     private variable _cacheid ""
     private variable _cacheimage ""
-    private variable _busy 0
 
     private variable delta1_ 10
     private variable delta2_ 2
 
     private common _settings  ;# array of settings for all known widgets
+    private variable initialized_ "no";
 }
 
 itk::usual MolvisViewer {
@@ -132,7 +137,7 @@ itcl::body Rappture::MolvisViewer::constructor {hostlist args} {
 
     # Populate the slave interpreter with commands to handle responses from
     # the visualization server.
-    $_parser alias image [itcl::code $this _receive_image]
+    $_parser alias image [itcl::code $this _ReceiveImage]
 
     set _rocker(dir) 1
     set _rocker(client) 0
@@ -143,6 +148,12 @@ itcl::body Rappture::MolvisViewer::constructor {hostlist args} {
     set _hostlist $hostlist
 
     array set view_ {
+        theta   45
+        phi     45
+        psi     0
+	vx 0 
+	vy 0
+	vz 0
 	zoom 0
 	mx 0
 	my 0
@@ -150,118 +161,66 @@ itcl::body Rappture::MolvisViewer::constructor {hostlist args} {
 	x  0
 	y  0
 	z  0
+	width 0
+	height 0
     }
 
+    # Setup default settings for widget.
     array set _settings [subst {
-        $this-model $_mrepresentation 
-        $this-modelimg [Rappture::icon ballnstick]
-        $this-emblems 0 
-        $this-rock 0 
+        $this-model		ballnstick
+        $this-modelimg		[Rappture::icon ballnstick]
+        $this-emblems		no
+        $this-rock		no
+	$this-ortho		no
+	$this-atomscale		0.25
     }]
 
     #
     # Set up the widgets in the main body
     #
-    itk_component add zoom {
-        frame $itk_component(controls).zoom
-    } {
-        usual
-        rename -background -controlbackground controlBackground Background
-    }
-    pack $itk_component(zoom) -side top
-
     itk_component add reset {
-        button $itk_component(zoom).reset \
+        button $itk_component(controls).reset \
             -borderwidth 1 -padx 1 -pady 1 \
-            -bitmap [Rappture::icon reset] \
+            -image [Rappture::icon reset-view] \
             -command [itcl::code $this ResetView]
     } {
         usual
         ignore -borderwidth
-        rename -highlightbackground -controlbackground controlBackground Background
+        rename -highlightbackground -controlbackground controlBackground \
+	    Background
     }
-    pack $itk_component(reset) -side left -padx {4 1} -pady 4
-    Rappture::Tooltip::for $itk_component(reset) "Reset the view to the default zoom level"
+    pack $itk_component(reset) -padx 1 -pady 2
+    Rappture::Tooltip::for $itk_component(reset) \
+	"Reset the view to the default zoom level"
 
     itk_component add zoomin {
-        button $itk_component(zoom).zin \
+        button $itk_component(controls).zin \
             -borderwidth 1 -padx 1 -pady 1 \
-            -bitmap [Rappture::icon zoomin] \
+            -image [Rappture::icon zoom-in] \
             -command [itcl::code $this _zoom in]
     } {
         usual
         ignore -borderwidth
-        rename -highlightbackground -controlbackground controlBackground Background
+        rename -highlightbackground -controlbackground \
+	    controlBackground Background
     }
-    pack $itk_component(zoomin) -side left -padx 1 -pady 4
+    pack $itk_component(zoomin) -padx 2 -pady { 0 2 }
     Rappture::Tooltip::for $itk_component(zoomin) "Zoom in"
 
     itk_component add zoomout {
-        button $itk_component(zoom).zout \
+        button $itk_component(controls).zout \
             -borderwidth 1 -padx 1 -pady 1 \
-            -bitmap [Rappture::icon zoomout] \
+            -image [Rappture::icon zoom-out] \
             -command [itcl::code $this _zoom out]
     } {
         usual
         ignore -borderwidth
-        rename -highlightbackground -controlbackground controlBackground Background
+        rename -highlightbackground -controlbackground controlBackground \
+	    Background
     }
-    pack $itk_component(zoomout) -side left -padx {1 4} -pady 4
-
+    pack $itk_component(zoomout) -padx 2 -pady { 0 2 }
     Rappture::Tooltip::for $itk_component(zoomout) "Zoom out"
-
-    #
-    # Settings panel...
-    #
-    itk_component add settings {
-        button $itk_component(controls).settings -text "Settings..." \
-            -borderwidth 1 -relief flat -overrelief raised \
-            -padx 2 -pady 1 \
-            -command [list $itk_component(controls).panel activate $itk_component(controls).settings left]
-    } {
-        usual
-        ignore -borderwidth
-        rename -background -controlbackground controlBackground Background
-        rename -highlightbackground -controlbackground controlBackground Background
-    }
-    pack $itk_component(settings) -side top -pady {8 2}
-
-    Rappture::Balloon $itk_component(controls).panel -title "Rendering Options"
-    set inner [$itk_component(controls).panel component inner]
-    frame $inner.model
-    pack $inner.model -side top -fill x
-    set fg [option get $itk_component(hull) font Font]
-
-    label $inner.model.pict -image $_settings($this-modelimg)
-    pack $inner.model.pict -side left -anchor n
-    label $inner.model.heading -text "Method for drawing atoms:"
-    pack $inner.model.heading -side top -anchor w
-    radiobutton $inner.model.bstick -text "Balls and sticks" \
-        -command [itcl::code $this representation ballnstick all] \
-        -variable Rappture::MolvisViewer::_settings($this-model) \
-        -value ballnstick
-    pack $inner.model.bstick -side top -anchor w
-    radiobutton $inner.model.spheres -text "Spheres" \
-        -command [itcl::code $this representation spheres all] \
-        -variable Rappture::MolvisViewer::_settings($this-model) \
-        -value spheres
-    pack $inner.model.spheres -side top -anchor w
-    radiobutton $inner.model.lines -text "Lines" \
-        -command [itcl::code $this representation lines all] \
-        -variable Rappture::MolvisViewer::_settings($this-model) \
-        -value lines
-    pack $inner.model.lines -side top -anchor w
-
-    checkbutton $inner.labels -text "Show labels on atoms" \
-        -command [itcl::code $this emblems update] \
-        -variable Rappture::MolvisViewer::_settings($this-emblems)
-    pack $inner.labels -side top -anchor w -pady {4 1}
-
-    checkbutton $inner.rock -text "Rock model back and forth" \
-        -command [itcl::code $this rock toggle] \
-        -variable Rappture::MolvisViewer::_settings($this-rock)
-    pack $inner.rock -side top -anchor w -pady {1 4}
-
+    
     #
     # Shortcuts
     #
@@ -276,31 +235,73 @@ itcl::body Rappture::MolvisViewer::constructor {hostlist args} {
     itk_component add labels {
         label $itk_component(shortcuts).labels \
             -borderwidth 1 -padx 1 -pady 1 \
-            -relief "raised" -bitmap [Rappture::icon atoms]
+            -relief "raised" -image [Rappture::icon atom-label]
     } {
         usual
         ignore -borderwidth
-        rename -highlightbackground -controlbackground controlBackground Background
+        rename -highlightbackground -controlbackground controlBackground \
+	    Background
     }
-    pack $itk_component(labels) -side left -padx {4 1} -pady 4 -ipadx 1 -ipady 1
-    Rappture::Tooltip::for $itk_component(labels) "Show/hide the labels on atoms"
+    pack $itk_component(labels) -padx 2 -pady { 0 2} -ipadx 1 -ipady 1
+    Rappture::Tooltip::for $itk_component(labels) \
+	"Show/hide the labels on atoms"
     bind $itk_component(labels) <ButtonPress> \
         [itcl::code $this emblems toggle]
 
     itk_component add rock {
         label $itk_component(shortcuts).rock \
             -borderwidth 1 -padx 1 -pady 1 \
-            -relief "raised" -bitmap [Rappture::icon rocker]
+            -relief "raised" -image [Rappture::icon rock-view]
     } {
         usual
         ignore -borderwidth
-        rename -highlightbackground -controlbackground controlBackground Background
+        rename -highlightbackground -controlbackground controlBackground \
+	    Background
     }
-    pack $itk_component(rock) -side left -padx 1 -pady 4 -ipadx 1 -ipady 1
+    pack $itk_component(rock) -padx 2 -pady { 0 2 } -ipadx 1 -ipady 1
     Rappture::Tooltip::for $itk_component(rock) "Rock model back and forth"
 
     bind $itk_component(rock) <ButtonPress> \
         [itcl::code $this rock toggle]
+
+
+    itk_component add ortho {
+        label $itk_component(shortcuts).ortho \
+            -borderwidth 1 -padx 1 -pady 1 \
+            -relief "raised" -image [Rappture::icon 3dpers]
+    } {
+        usual
+        ignore -borderwidth
+        rename -highlightbackground -controlbackground controlBackground \
+	    Background
+    }
+    pack $itk_component(ortho) -padx 2 -pady { 0 2 } -ipadx 1 -ipady 1
+    Rappture::Tooltip::for $itk_component(ortho) \
+	"Change to orthoscopic projection"
+
+    bind $itk_component(ortho) <ButtonPress> \
+        [itcl::code $this projection toggle]
+    $this projection perspective
+
+    itk_component add settings_button {
+        label $itk_component(controls).settingsbutton \
+            -borderwidth 1 -padx 1 -pady 1 \
+            -relief "raised" -image [Rappture::icon wrench]
+    } {
+        usual
+        ignore -borderwidth
+        rename -highlightbackground -controlbackground controlBackground \
+	    Background
+    }
+    pack $itk_component(settings_button) -padx 2 -pady { 0 2 } -ipadx 1 -ipady 1
+    Rappture::Tooltip::for $itk_component(settings_button) \
+	"Configure settings"
+    bind $itk_component(settings_button) <ButtonPress> \
+        [itcl::code $this settings toggle]
+    pack $itk_component(settings_button) -side bottom \
+	-padx 2 -pady 2 -anchor e
+
+    _BuildSettingsDrawer
 
     #
     # RENDERING AREA
@@ -309,12 +310,21 @@ itcl::body Rappture::MolvisViewer::constructor {hostlist args} {
     set _image(id) ""
 
     # set up bindings for rotation
-    bind $itk_component(3dview) <ButtonPress-1> \
-        [itcl::code $this _vmouse click %b %s %x %y]
-    bind $itk_component(3dview) <B1-Motion> \
-        [itcl::code $this _vmouse drag 1 %s %x %y]
-    bind $itk_component(3dview) <ButtonRelease-1> \
-        [itcl::code $this _vmouse release %b %s %x %y]
+    if 0 {
+	bind $itk_component(3dview) <ButtonPress-1> \
+	    [itcl::code $this _rotate click %x %y]
+	bind $itk_component(3dview) <B1-Motion> \
+	    [itcl::code $this _rotate drag %x %y]
+	bind $itk_component(3dview) <ButtonRelease-1> \
+	    [itcl::code $this _rotate release %x %y]
+    } else {
+	bind $itk_component(3dview) <ButtonPress-1> \
+	    [itcl::code $this _vmouse click %b %s %x %y]
+	bind $itk_component(3dview) <B1-Motion> \
+	    [itcl::code $this _vmouse drag 1 %s %x %y]
+	bind $itk_component(3dview) <ButtonRelease-1> \
+	    [itcl::code $this _vmouse release %b %s %x %y]
+    }
 
     bind $itk_component(3dview) <ButtonPress-2> \
         [itcl::code $this _pan click %x %y]
@@ -332,13 +342,13 @@ itcl::body Rappture::MolvisViewer::constructor {hostlist args} {
     bind $itk_component(3dview) <KeyPress-Down> \
         [itcl::code $this _pan set 0 10]
     bind $itk_component(3dview) <Shift-KeyPress-Left> \
-        [itcl::code $this _pan set -2 0]
+        [itcl::code $this _pan set -50 0]
     bind $itk_component(3dview) <Shift-KeyPress-Right> \
-        [itcl::code $this _pan set 2 0]
+        [itcl::code $this _pan set 50 0]
     bind $itk_component(3dview) <Shift-KeyPress-Up> \
-        [itcl::code $this _pan set 0 -2]
+        [itcl::code $this _pan set 0 -50]
     bind $itk_component(3dview) <Shift-KeyPress-Down> \
-        [itcl::code $this _pan set 0 2]
+        [itcl::code $this _pan set 0 50]
     bind $itk_component(3dview) <KeyPress-Prior> \
 	[itcl::code $this _zoom out 2]
     bind $itk_component(3dview) <KeyPress-Next> \
@@ -376,6 +386,84 @@ itcl::body Rappture::MolvisViewer::constructor {hostlist args} {
     eval itk_initialize $args
     Connect 
 }
+
+itcl::body Rappture::MolvisViewer::_BuildSettingsDrawer {} {
+
+    itk_component add settings {
+	Rappture::Scroller $itk_component(drawer).scrl \
+	    -xscrollmode auto -yscrollmode auto \
+	    -width 200 -height 100
+    }
+
+    itk_component add settings_canvas {
+	canvas $itk_component(settings).canvas
+    }
+    $itk_component(settings) contents $itk_component(settings_canvas)
+
+    itk_component add settings_frame {
+	frame $itk_component(settings_canvas).frame -bg white
+    } 
+    $itk_component(settings_canvas) create window 0 0 \
+	-anchor nw -window $itk_component(settings_frame)
+    bind $itk_component(settings_frame) <Configure> \
+	[itcl::code $this settings resize]
+
+    set fg [option get $itk_component(hull) font Font]
+
+    set inner $itk_component(settings_frame)
+    label $inner.drawinglabel -text "Drawing Method:" -font "Arial 9 bold"
+
+    label $inner.pict -image $_settings($this-modelimg)
+    radiobutton $inner.bstick -text "Balls and sticks" \
+        -command [itcl::code $this representation ballnstick all] \
+        -variable Rappture::MolvisViewer::_settings($this-model) \
+        -value ballnstick -font "Arial 9" -pady 0 
+    radiobutton $inner.spheres -text "Spheres" \
+        -command [itcl::code $this representation spheres all] \
+        -variable Rappture::MolvisViewer::_settings($this-model) \
+        -value spheres -font "Arial 9" -pady 0
+    radiobutton $inner.lines -text "Lines" \
+        -command [itcl::code $this representation lines all] \
+        -variable Rappture::MolvisViewer::_settings($this-model) \
+        -value lines -font "Arial 9" -pady 0
+
+    label $inner.sizelabel -text "Atom Scale:" -font "Arial 9 bold"
+    scale $inner.atomscale \
+	-from 0.1 -to 2.0 -resolution 0.05 \
+	-showvalue true -orient horizontal \
+	-command [itcl::code $this atomscale] \
+        -variable Rappture::MolvisViewer::_settings($this-atomscale) 
+    $inner.atomscale set $_settings($this-atomscale)
+
+    checkbutton $inner.labels -text "Show labels on atoms" \
+        -command [itcl::code $this emblems update] \
+        -variable Rappture::MolvisViewer::_settings($this-emblems) \
+	-font "Arial 9 bold"
+    checkbutton $inner.rock -text "Rock model back and forth" \
+        -command [itcl::code $this rock toggle] \
+        -variable Rappture::MolvisViewer::_settings($this-rock) \
+	-font "Arial 9 bold"
+    checkbutton $inner.ortho -text "Orthoscopic projection" \
+        -command [itcl::code $this projection update] \
+        -variable Rappture::MolvisViewer::_settings($this-ortho) \
+	 -font "Arial 9 bold"
+    blt::table $inner \
+	0,0 $inner.drawinglabel -anchor w -columnspan 4 \
+	1,1 $inner.pict -anchor w -rowspan 3 \
+	1,2 $inner.spheres -anchor w -columnspan 2 \
+	2,2 $inner.lines -anchor w -columnspan 2 \
+	3,2 $inner.bstick -anchor w -columnspan 2 \
+	4,0 $inner.sizelabel -columnspan 4 -anchor w \
+	5,1 $inner.atomscale -anchor w -columnspan 3 \
+	8,0 $inner.labels -anchor w -columnspan 4 \
+	9,0 $inner.rock -anchor w -columnspan 4 \
+	10,0 $inner.ortho -anchor w -columnspan 4
+
+    blt::table configure $inner c0 -resize expand -width 2
+    blt::table configure $inner c1 c2 -resize none
+    blt::table configure $inner c3 -resize expand
+}
+
 
 # ----------------------------------------------------------------------
 # DESTRUCTOR
@@ -426,17 +514,19 @@ itcl::body Rappture::MolvisViewer::isconnected {} {
 #       Establishes a connection to a new visualization server.
 #
 itcl::body Rappture::MolvisViewer::Connect {} {
-    #$_image(plot) blank
+    if { [isconnected] } {
+	return 1
+    }
     set hosts [GetServerList "pymol"]
     if { "" == $hosts } {
-        return 0
+	return 0
     }
     set result [VisViewer::Connect $hosts]
     if { $result } {
-        set _rocker(server) 0
-        set _cacheid 0
-        _send "raw -defer {set auto_color,0}"
-        _send "raw -defer {set auto_show_lines,0}"
+	set _rocker(server) 0
+	set _cacheid 0
+	_send "raw -defer {set auto_color,0}"
+	_send "raw -defer {set auto_show_lines,0}"
     }
     return $result
 }
@@ -464,6 +554,7 @@ itcl::body Rappture::MolvisViewer::Disconnect {} {
 }
 
 itcl::body Rappture::MolvisViewer::_send { args } {
+    debug "_send $args"
     if { $_state(server) != $_state(client) } {
         if { ![SendBytes "frame -defer $_state(client)"] } {
             set _state(server) $_state(client)
@@ -479,21 +570,27 @@ itcl::body Rappture::MolvisViewer::_send { args } {
 }
 
 #
-# _receive_image -bytes <size>
+# _ReceiveImage -bytes <size>
 #
 #     Invoked automatically whenever the "image" command comes in from
 #     the rendering server.  Indicates that binary image data with the
 #     specified <size> will follow.
 #
-itcl::body Rappture::MolvisViewer::_receive_image { size cacheid frame rock } {
+set count 0 
+itcl::body Rappture::MolvisViewer::_ReceiveImage { size cacheid frame rock } {
     set tag "$frame,$rock"
+    global count
+    incr count
+    debug "$count: cacheid=$cacheid frame=$frame\n"
     if { $cacheid != $_cacheid } {
         array unset _imagecache 
         set _cacheid $cacheid
     }
+#    debug "reading $size bytes from proxy\n"
     set _imagecache($tag) [ReceiveBytes $size]
+#    debug "success: reading $size bytes from proxy\n"
  
-    #puts stderr "CACHED: $tag,$cacheid"
+    #debug "CACHED: $tag,$cacheid"
     $_image(plot) configure -data $_imagecache($tag)
     set _image(id) $tag
 }
@@ -511,15 +608,14 @@ itcl::body Rappture::MolvisViewer::_rebuild {} {
         # don't allow overlapping rebuild calls
         return
     }
-
+    debug "in rebuild"
     #set _inrebuild 1
     set changed 0
-    set _busy 1
 
     $itk_component(3dview) configure -cursor watch
 
     # refresh GUI (primarily to make pending cursor changes visible)
-    update idletasks 
+    #update idletasks 
     set dlist [get]
     foreach dev $dlist {
         set model [$dev get components.molecule.model]
@@ -542,7 +638,7 @@ itcl::body Rappture::MolvisViewer::_rebuild {} {
         }
         if { ![info exists _dataobjs($model-$state)] } {
             set data1      ""
-            set serial   0
+            set serial    0
 
             foreach _atom [$dev children -type atom components.molecule] {
                 set symbol [$dev get components.molecule.$_atom.symbol]
@@ -638,27 +734,34 @@ itcl::body Rappture::MolvisViewer::_rebuild {} {
     if { $dlist == "" } {
         set _state(server) 1
         set _state(client) 1
-        _send "frame -push 1"
+        _send "frame 1"
     } elseif { ![info exists _imagecache($state,$_rocker(client))] } {
         set _state(server) $state
         set _state(client) $state
-        _send "frame -push $state"
+        _send "frame $state"
     } else {
         set _state(client) $state
         _update
     }
-    # Reset screen size
+    # Reset viewing parameters
     set w  [winfo width $itk_component(3dview)] 
     set h  [winfo height $itk_component(3dview)] 
-    _send "screen $w $h"
-    # Reset viewing parameters
-    _send "reset"
-    _send "rotate $view_(mx) $view_(my) $view_(mz)"
-    _send "pan $view_(x) $view_(y)"
-    _send "zoom $view_(zoom)"
+    _send [subst { 
+	reset
+	screen $w $h
+	rotate $view_(mx) $view_(my) $view_(mz)
+	pan $view_(x) $view_(y)
+	zoom $view_(zoom)
+    }]
+    debug "rebuild: rotate $view_(mx) $view_(my) $view_(mz)"
+
+    $this projection update
+    $this atomscale update
+    $this emblems update
 
     set _inrebuild 0
     $itk_component(3dview) configure -cursor ""
+    debug "exiting rebuild"
 }
 
 itcl::body Rappture::MolvisViewer::_unmap { } {
@@ -684,20 +787,11 @@ itcl::body Rappture::MolvisViewer::_map { } {
 }
 
 itcl::body Rappture::MolvisViewer::_configure { w h } {
+    debug "in _configure $w $h"
     $_image(plot) configure -width $w -height $h
     # immediately invalidate cache, defer update until mapped
     array unset _imagecache 
-    if { [isconnected] } {
-        if { [winfo ismapped $itk_component(3dview)] } {
-            _send "screen $w $h"
-	    # Why do a reset?
-            #_send "reset -push"
-        } else {
-            _send "screen -defer $w $h"
-	    # Why do a reset?
-            #_send "reset -push"
-        }
-    }
+    _send "screen $w $h"
 }
 
 # ----------------------------------------------------------------------
@@ -821,6 +915,7 @@ itcl::body Rappture::MolvisViewer::rock { option } {
     }
 }
 
+
 itcl::body Rappture::MolvisViewer::_vmouse2 {option b m x y} {
     set now [clock clicks -milliseconds]
     set vButton [expr $b - 1]
@@ -864,19 +959,19 @@ itcl::body Rappture::MolvisViewer::_vmouse {option b m x y} {
     }
     if { $option == "drag" || $option == "release" } {
         set diff 0
-        catch { set diff [expr $now - $_mevent(time) ] }
-        if {$diff < 75 && $option == "drag" } { # 75ms between motion updates
-            set _mevent(afterid) [after [expr 75 - $diff] [itcl::code $this _vmouse drag $b $m $x $y]]
-            return
-        }
+         catch { set diff [expr $now - $_mevent(time) ] }
+         if {$diff < 25 && $option == "drag" } { # 75ms between motion updates
+             set _mevent(afterid) [after [expr 25 - $diff] [itcl::code $this _vmouse drag $b $m $x $y]]
+             return
+         }
         set w [winfo width $itk_component(3dview)]
         set h [winfo height $itk_component(3dview)]
         if {$w <= 0 || $h <= 0} {
             return
         }
-        set x1 [expr $w / 3]
+        set x1 [expr double($w) / 3]
         set x2 [expr $x1 * 2]
-        set y1 [expr $h / 3]
+        set y1 [expr double($h) / 3]
         set y2 [expr $y1 * 2]
         set dx [expr $x - $_mevent(x)]
         set dy [expr $y - $_mevent(y)]
@@ -904,6 +999,7 @@ itcl::body Rappture::MolvisViewer::_vmouse {option b m x y} {
 	set view_(my) [expr {$view_(my) + $my}]
 	set view_(mz) [expr {$view_(mz) + $mz}]
         _send "rotate $mx $my $mz"
+	debug "_vmmouse: rotate $view_(mx) $view_(my) $view_(mz)"
     }
     set _mevent(x) $x
     set _mevent(y) $y
@@ -911,6 +1007,109 @@ itcl::body Rappture::MolvisViewer::_vmouse {option b m x y} {
     if { $option == "release" } {
         $itk_component(3dview) configure -cursor ""
     }
+}
+
+# ----------------------------------------------------------------------
+# USAGE: _rotate click <x> <y>
+# USAGE: _rotate drag <x> <y>
+# USAGE: _rotate release <x> <y>
+#
+# Called automatically when the user clicks/drags/releases in the
+# plot area.  Moves the plot according to the user's actions.
+# ----------------------------------------------------------------------
+itcl::body Rappture::MolvisViewer::_rotate {option x y} {
+    set now  [clock clicks -milliseconds]
+    update idletasks
+    # cancel any pending delayed dragging events
+    if { [info exists _mevent(afterid)] } { 
+        after cancel $_mevent(afterid)
+        unset _mevent(afterid)
+    }
+    switch -- $option {
+        click {
+            $itk_component(3dview) configure -cursor fleur
+            set click_(x) $x
+            set click_(y) $y
+            set click_(theta) $view_(theta)
+            set click_(phi) $view_(phi)
+        }
+        drag {
+            if {[array size click_] == 0} {
+                _rotate click $x $y
+            } else {
+                set w [winfo width $itk_component(3dview)]
+                set h [winfo height $itk_component(3dview)]
+                if {$w <= 0 || $h <= 0} {
+                    return
+                }
+#         set diff 0
+#          catch { set diff [expr $now - $_mevent(time) ] }
+#          if {$diff < 175 && $option == "drag" } { # 75ms between motion updates
+#              set _mevent(afterid) [after [expr 175 - $diff] [itcl::code $this _rotate drag $x $y]]
+#              return
+#          }
+
+                if {[catch {
+                    # this fails sometimes for no apparent reason
+                    set dx [expr {double($x-$click_(x))/$w}]
+                    set dy [expr {double($y-$click_(y))/$h}]
+                }]} {
+                    return
+                }
+
+                #
+                # Rotate the camera in 3D
+                #
+                if {$view_(psi) > 90 || $view_(psi) < -90} {
+                    # when psi is flipped around, theta moves backwards
+                    set dy [expr {-$dy}]
+                }
+                set theta [expr {$view_(theta) - $dy*180}]
+                while {$theta < 0} { set theta [expr {$theta+180}] }
+                while {$theta > 180} { set theta [expr {$theta-180}] }
+
+                if {abs($theta) >= 30 && abs($theta) <= 160} {
+                    set phi [expr {$view_(phi) - $dx*360}]
+                    while {$phi < 0} { set phi [expr {$phi+360}] }
+                    while {$phi > 360} { set phi [expr {$phi-360}] }
+                    set psi $view_(psi)
+                } else {
+                    set phi $view_(phi)
+                    set psi [expr {$view_(psi) - $dx*360}]
+                    while {$psi < -180} { set psi [expr {$psi+360}] }
+                    while {$psi > 180} { set psi [expr {$psi-360}] }
+                }
+                array set view_ [subst {
+                    theta $theta
+                    phi $phi
+                    psi $psi
+                }]
+		foreach { vx vy vz } [Euler2XYZ $theta $phi $psi] break
+                set a [expr $vx - $view_(vx)]
+                set a [expr -$a]
+                set b [expr $vy - $view_(vy)]
+                set c [expr $vz - $view_(vz)]
+                array set view_ [subst {
+                    vx $vx
+                    vy $vy
+                    vz $vz
+                }]
+                _send "rotate $a $b $c"
+                debug "_rotate $x $y: rotate $view_(vx) $view_(vy) $view_(vz)"
+                set click_(x) $x
+                set click_(y) $y
+            }
+        }
+        release {
+            _rotate drag $x $y
+            $itk_component(3dview) configure -cursor ""
+            catch {unset click_}
+        }
+        default {
+            error "bad option \"$option\": should be click, drag, release"
+        }
+    }
+    set _mevent(time) $now
 }
 
 # ----------------------------------------------------------------------
@@ -926,8 +1125,9 @@ itcl::body Rappture::MolvisViewer::representation {option {model "all"} } {
         return 
     }
     set _settings($this-modelimg) [Rappture::icon $option]
-    set inner [$itk_component(controls).panel component inner]
-    $inner.model.pict configure -image $_settings($this-modelimg)
+    #@set inner [$itk_component(controls).panel component inner]
+    set inner $itk_component(settings_frame)
+    $inner.pict configure -image $_settings($this-modelimg)
 
     # Save the current option to set all radiobuttons -- just in case.
     # This method gets called without the user clicking on a radiobutton.
@@ -939,6 +1139,7 @@ itcl::body Rappture::MolvisViewer::representation {option {model "all"} } {
     } else {
         set models $model
     }
+
     foreach obj $models {
         if { [info exists _model($obj-representation)] } {
             if { $_model($obj-representation) != $option } {
@@ -949,7 +1150,8 @@ itcl::body Rappture::MolvisViewer::representation {option {model "all"} } {
         }
     }
     if { [isconnected] } {
-        $_dispatcher event -idle !rebuild
+	_send "$option -model $model"
+        #$_dispatcher event -idle !rebuild
     }
 }
 
@@ -996,6 +1198,75 @@ itcl::body Rappture::MolvisViewer::emblems {option} {
         $itk_component(labels) configure -relief raised
         set _settings($this-emblems) 0
         _send "label off"
+    }
+}
+
+# ----------------------------------------------------------------------
+# USAGE: projection on|off|toggle
+# USAGE: projection update
+#
+# Used internally to turn labels associated with atoms on/off, and to
+# update the positions of the labels so they sit on top of each atom.
+# ----------------------------------------------------------------------
+itcl::body Rappture::MolvisViewer::projection {option} {
+    switch -- $option {
+        "orthoscopic" {
+            set ortho 1
+        }
+        "perspective" {
+            set ortho 0
+        }
+        "toggle" {
+            set ortho [expr {$_settings($this-ortho) == 0}]
+        }
+        "update" {
+            set ortho $_settings($this-ortho)
+        }
+        default {
+            error "bad option \"$option\": should be on, off, toggle, or update"
+        }
+    }
+    if { $ortho == $_settings($this-ortho) && $option != "update"} {
+        # nothing to do
+        return
+    }
+    if { $ortho } {
+        $itk_component(ortho) configure -image [Rappture::icon 3dorth]
+	Rappture::Tooltip::for $itk_component(ortho) \
+	    "Change to perspective projection"
+        set _settings($this-ortho) 1
+        _send "orthoscopic on"
+    } else {
+        $itk_component(ortho) configure -image [Rappture::icon 3dpers]
+	Rappture::Tooltip::for $itk_component(ortho) \
+	    "Change to orthoscopic projection"
+        set _settings($this-ortho) 0
+        _send "orthoscopic off"
+    }
+}
+
+# ----------------------------------------------------------------------
+# USAGE: atomscale scale ?model?
+#        atomscale update
+#
+# Used internally to change the molecular representation used to render
+# our scene.
+# ----------------------------------------------------------------------
+
+itcl::body Rappture::MolvisViewer::atomscale { option {model "all"} } {
+    if { $option == "update" } {
+	set scale $_settings($this-atomscale)
+    } elseif { [string is double $option] } {
+	set scale $option
+	if { ($scale < 0.1) || ($scale > 2.0) } {
+	    error "bad atom size \"$scale\""
+	}
+    } else {
+	error "bad option \"$option\""
+    }
+    set _settings($this-atomscale) $scale
+    if { [isconnected] } {
+	_send "atomscale -model $model $scale"
     }
 }
 
@@ -1061,6 +1332,9 @@ itcl::body Rappture::MolvisViewer::add { dataobj {options ""}} {
 #
 itcl::body Rappture::MolvisViewer::ResetView {} {
     array set view_ {
+        theta   45
+        phi     45
+        psi     0
 	mx 0 
 	my 0
 	mz 0
@@ -1068,8 +1342,14 @@ itcl::body Rappture::MolvisViewer::ResetView {} {
 	y 0
 	z 0
 	zoom 0
+	width 0
+	height 0
     }
     _send "reset"
+    _send "rotate $view_(mx) $view_(my) $view_(mz)"
+    debug "ResetView: rotate $view_(mx) $view_(my) $view_(mz)"
+    _send "pan $view_(x) $view_(y)"
+    _send "zoom $view_(zoom)"
 }
 
 # ----------------------------------------------------------------------
@@ -1146,4 +1426,41 @@ itcl::configbody Rappture::MolvisViewer::device {
         $_dispatcher event -idle !rebuild
     }
 }
+
+
+itcl::body Rappture::MolvisViewer::settings { what args } {
+    switch -- ${what} {
+	"activate" {
+	    $itk_component(drawer) add $itk_component(settings) -sticky nsew
+	    after idle [list focus $itk_component(settings)]
+	    if { !$initialized_ } {
+		set w [winfo width $itk_component(drawer)]
+		set x [expr $w - 100]
+		$itk_component(drawer) sash place 0 $x 0
+		set initialized_ 1
+	    }
+	    $itk_component(settings_button) configure -relief sunken
+	}
+	"deactivate" {
+	    $itk_component(drawer) forget $itk_component(settings)
+	    $itk_component(settings_button) configure -relief raised
+	}
+	"toggle" {
+	    set slaves [$itk_component(drawer) panes]
+	    if { [lsearch $slaves $itk_component(settings)] >= 0 } {
+		settings deactivate
+	    } else {
+		settings activate
+	    }
+	}
+	"resize" {
+	    set bbox [$itk_component(settings_canvas) bbox all]
+	    set wid [winfo width $itk_component(settings_frame)]
+	    $itk_component(settings_canvas) configure -width $wid \
+		-scrollregion $bbox -yscrollincrement 0.1i
+	}
+    }
+}
+
+
 

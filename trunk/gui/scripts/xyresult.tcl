@@ -153,7 +153,7 @@ itcl::body Rappture::XyResult::constructor {args} {
     itk_component add reset {
         button $itk_component(controls).reset \
             -borderwidth 1 -padx 1 -pady 1 \
-            -bitmap [Rappture::icon reset] \
+            -image [Rappture::icon reset-view] \
             -command [itcl::code $this _zoom reset]
     } {
         usual
@@ -176,6 +176,7 @@ itcl::body Rappture::XyResult::constructor {args} {
         keep -background -foreground -cursor -font
     }
     $itk_component(drawer) add $itk_component(plot) -sticky nsew
+
     $itk_component(plot) pen configure activeLine \
         -symbol square -pixels 3 -linewidth 2 \
 	-outline black -fill red -color black
@@ -249,14 +250,15 @@ itcl::body Rappture::XyResult::constructor {args} {
     itk_component add legendbutton {
 	button $itk_component(controls).legendbutton \
 	    -borderwidth 1 -padx 2 -pady 0 -highlightthickness 0 \
-	    -text "L" -font "-*-times new roman-bold-i-*-*-11-*-*-*-*-*-*-*" \
+	    -image [Rappture::icon wrench] \
 	    -command [itcl::code $this legend toggle]
     } {
         usual
         ignore -borderwidth -font
         rename -highlightbackground -controlbackground controlBackground Background
     }
-    pack $itk_component(legendbutton) -padx 4 -pady { 0 2 } -anchor e
+    pack $itk_component(legendbutton) \
+	-side bottom -padx 4 -pady { 0 2 } -anchor e 
     
     itk_component add legend {
 	Rappture::XyLegend $itk_component(drawer).legend $itk_component(plot)

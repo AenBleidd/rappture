@@ -1,3 +1,4 @@
+
 # ----------------------------------------------------------------------
 #  COMPONENT: combobox - entry widget with a drop-down list of values
 #
