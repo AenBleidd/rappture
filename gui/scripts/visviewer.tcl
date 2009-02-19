@@ -87,6 +87,10 @@ itcl::class ::Rappture::VisViewer {
     }
 }
 
+itk::usual Panedwindow {
+    keep -background -cursor
+}
+
 # ----------------------------------------------------------------------
 # CONSTRUCTOR
 # ----------------------------------------------------------------------
@@ -127,10 +131,17 @@ itcl::body Rappture::VisViewer::constructor { hostlist args } {
     #
     # RENDERING AREA
     #
+    itk_component add drawer {
+ 	panedwindow $itk_interior.drawer \
+ 	    -orient horizontal -opaqueresize 1 -handlepad 0 \
+ 	    -handlesize 1 -sashwidth 2     
+    }
+    pack $itk_component(drawer) -expand yes -fill both
+
     itk_component add area {
         frame $itk_interior.area
     }
-    pack $itk_component(area) -expand yes -fill both
+    $itk_component(drawer) add $itk_component(area) -sticky nsew
 
     set _image(plot) [image create photo]
     itk_component add 3dview {
@@ -272,10 +283,8 @@ itcl::body Rappture::VisViewer::Connect { hostlist } {
 #
 itcl::body Rappture::VisViewer::Disconnect {} {
     $_dispatcher cancel !timeout
-    if { [IsConnected] } {
-        catch {close $sid_} 
-        set sid_ ""
-    }
+    catch {close $sid_} 
+    set sid_ ""
     set buffer_(in) ""
 }
 
@@ -449,8 +458,11 @@ itcl::body Rappture::VisViewer::_ReceiveHelper {} {
     if { ![_CheckConnection] } {
 	return 0
     }
-    if { [gets $sid_ line] < 0 } {
+    set n [gets $sid_ line]
+    
+    if { $n < 0 } {
 	Disconnect
+	return 0
     }
     set line [string trim $line]
     if { $line == "" } {
