@@ -9,7 +9,7 @@ set -e
 # Use the IP address of this host to construct a broadcast address.  This
 # feature will be hopefully going away very soon.
 
-broadcast=`hostname -i | sed 's/\.[0-9]* $/.255/'`
+broadcast=`hostname -i | sed 's/\.[0-9]*$/.255/'`
 
 render_dir="@prefix@"
 nanoscale_port=2000
