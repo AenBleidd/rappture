@@ -79,6 +79,15 @@ proc Rappture::getopts {listVar returnVar spec} {
                 }
                 lappend opts $name
             }
+	    list {
+                if {[llength $line] < 3} {
+                    error "bad value spec \"$line\": should be \"list -flag default\""
+                }
+                set name [lindex $line 1]
+                set flags($name) $type
+                set params($name) [lindex $line 2]
+                lappend opts $name
+            }
             default {
                 error "bad arg type \"$type\": should be flag or value"
             }
@@ -114,6 +123,13 @@ proc Rappture::getopts {listVar returnVar spec} {
                 set params($first) 1
                 set args [lrange $args 1 end]
             }
+	    list {
+                if {[llength $args] < 2} {
+                    error "missing value for option $first"
+                }
+                set params($first) [lrange $args 1 end]
+                set args ""
+	    }
         }
     }
     return ""
