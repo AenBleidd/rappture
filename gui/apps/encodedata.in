@@ -1,0 +1,103 @@
+#!/bin/sh
+# ======================================================================
+#  AUTHOR:  Derrick S. Kearney, Purdue University
+#  Copyright (c) 2004-2009  Purdue Research Foundation
+#
+#  See the file "license.terms" for information on usage and
+#  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+# ======================================================================
+#\
+RAPPTURE_INSTALL_DIR=@prefix@ ; \
+. $RAPPTURE_INSTALL_DIR/bin/rappture.env ; \
+exec wish "$0" $*
+
+package require Rappture
+
+proc printHelp {} {
+    set help {
+encodedata [OPTIONS] <infile> <outfile>
+
+simulator simulator - simulate simulation
+
+OPTIONS:
+ -as z|b64|zb64      - how to encode the file
+ -no-header          - don't include the header
+}
+    puts $help
+    exit 0
+}
+
+
+proc parseOptions {listVar returnVar} {
+    upvar $listVar argv
+    upvar $returnVar params
+
+    set argc [llength $argv]
+    for {set i 0} {$i < $argc} {incr i} {
+        set opt [lindex $argv $i]
+        if {("-as" == $opt)} {
+            if {[expr {$i+1}] < $argc} {
+                incr i
+                set params(-as) [lindex $argv $i]
+            } else {
+                printHelp
+            }
+        } elseif {("-no-header" == $opt)} {
+            set params(-no-header) "-no-header"
+        } else {
+            # place all extra params in the params array
+            lappend params(oParams) $opt
+        }
+    }
+}
+
+proc main {argv} {
+    array set params {
+        -as "zb64"
+        -no-header ""
+        oParams {}
+    }
+
+    parseOptions argv params
+
+    if {[llength $params(oParams)] < 2} {
+        printHelp
+        return
+    }
+    set infile [lindex $params(oParams) 0]
+    set outfile [lindex $params(oParams) 1]
+
+    if {[catch {
+            set fid [open $infile r]
+            fconfigure $fid -translation binary
+            set info [read $fid]
+            close $fid
+         }] != 0 } {
+        puts "could not open $infile for reading"
+        return
+    }
+
+    puts "as = $params(-as)"
+    puts "header = $params(-no-header)"
+
+    # FIXME: i hate this
+    if {"" != $params(-no-header)} {
+        set encdata [Rappture::encoding::encode -as $params(-as) $params(-no-header) -- $info]
+    } else {
+        set encdata [Rappture::encoding::encode -as $params(-as) -- $info]
+    }
+
+    if {[catch {
+            set fid [open $outfile w]
+            fconfigure $fid -translation binary
+            puts $fid $encdata
+            close $fid
+         }] != 0 } {
+        puts "could not open $outfile for writing"
+        return
+    }
+
+}
+
+main $argv
+exit 0

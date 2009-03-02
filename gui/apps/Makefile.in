@@ -20,6 +20,7 @@ MKDIR_P		= @MKDIR_P@
 INSTALL		= @INSTALL@
 
 SCRIPTS	= \
+		encodedata \
 		$(srcdir)/driver \
 		$(srcdir)/grabdata \
 		$(srcdir)/nanovis-test \
@@ -48,6 +49,6 @@ install:
 clean:
 
 distclean: clean
-	$(RM) rappture.env rappture simsim xmldiff
+	$(RM) encodedata rappture.env rappture rerun simsim xmldiff
 	$(RM) Makefile *~
 
