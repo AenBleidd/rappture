@@ -63,9 +63,9 @@ option add *BugReport*banner*font -*-helvetica-bold-r-normal-*-*-180-*
 Rappture::resources::load
 
 # ----------------------------------------------------------------------
-# Fake data object for sending DX data...
+# Fake data object for sending DX or flow data...
 # ----------------------------------------------------------------------
-itcl::class DxData {
+itcl::class visData {
     constructor {args} {
         set _data [Rappture::encoding::encode -as zb64 [lindex $args 0]]
     }
@@ -102,8 +102,53 @@ proc send_file {} {
             set info [read $fid]
             close $fid
           }] == 0} {
-        set obj [DxData #auto $info]
+        set obj [visData #auto $info]
         $widgets(nanovis) add $obj
+    }
+}
+
+# ----------------------------------------------------------------------
+# USAGE: send_flow_file
+#
+# Prompts the user for a text file, and then sends the text within
+# that file along to the rendering widget.
+# ----------------------------------------------------------------------
+proc send_flow_file {} {
+    global widgets
+
+    set file [tk_getOpenFile -title "Open Command File"]
+    if {"" != $file && [catch {
+            set fid [open $file r]
+            fconfigure $fid -translation binary
+            set info [read $fid]
+            close $fid
+          }] == 0} {
+        set _data [Rappture::encoding::encode -as zb64 $info ]
+        set _data "flow data follows [string length $_data]\n$_data"
+        $widgets(command) insert 0 $_data
+        send_command
+    }
+}
+
+# ----------------------------------------------------------------------
+# USAGE: load_script
+#
+# Prompts the user for a text file, and then sends the text within
+# that file along to the rendering widget.
+# ----------------------------------------------------------------------
+proc load_script {} {
+    global widgets
+
+    set file [tk_getOpenFile -title "Open Command File"]
+    if {"" != $file && [catch {
+            set fid [open $file r]
+            fconfigure $fid -translation binary
+            set info [read $fid]
+            close $fid
+          }] == 0} {
+
+        $widgets(command) insert 0 $info
+        send_command
     }
 }
 
@@ -119,27 +164,14 @@ proc send_command {} {
     global last_command
 
     set cmd [$widgets(command) get]
-    
-    # Karl
+
     if {[string length $cmd] > 0} {
-    	set last_command $cmd
+        set last_command $cmd
     } else {
-    	set cmd $last_command
+        set cmd $last_command
     }
     namespace eval Rappture::NanovisViewer [list $widgets(nanovis) _send $cmd]
     $widgets(command) delete 0 end
-}
-
-# ----------------------------------------------------------------------
-# USAGE: karl_send_command <cmd>
-#
-# Used internally in this script (not from command prompt)
-# ----------------------------------------------------------------------
-proc karl_send_command {cmd} {
-    global widgets
-
-    namespace eval Rappture::NanovisViewer [list $widgets(nanovis) _send $cmd]
-#    $widgets(command) delete 0 end
 }
 
 # ----------------------------------------------------------------------
@@ -191,52 +223,22 @@ proc show_comm {channel {data ""}} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: karl_activate_flow
+# USAGE: activate_flow
 #
 # ----------------------------------------------------------------------
-proc karl_activate_flow {} {
+proc activate_flow {} {
+    global widgets
+    # global img_storage_dir
+    # "flow capture 117 $img_storage_dir"
 
-	global img_storage_dir
-	puts "Preparing images..."
+    set info {flow vectorid 0
+              flow particle visible on
+              flow lic on
+              flow capture 100}
 
-	# sequence of commands to initilize flow visualization go here
-	karl_send_command {test}
-	karl_send_command {flow vectorid 0}
-	karl_send_command {flow particle visible on}
+    $widgets(command) insert 0 $info
+    send_command
 
-	set renderserver render05
-	set img_storage_dir [exec ssh $renderserver mktemp -d /tmp/animation.XXXXXX]
-	karl_send_command "flow capture 117 $img_storage_dir"
-}
-
-# ----------------------------------------------------------------------
-# USAGE: karl_flow_movie
-#
-# ----------------------------------------------------------------------
-proc karl_flow_movie {} {
-
-	global img_storage_dir
-	set renderserver render05
-
-
-	if {0} {
-		# create animated gif:
-		puts "creating animated gif..."
-		exec ssh $renderserver convert -delay 20 -loop 0 $img_storage_dir/image*.bmp $img_storage_dir/animated_flow.gif
-	} else {
-		# create mpeg movie:
-		puts "creating mpeg movie in $img_storage_dir"
-		
-		exec ssh $renderserver "cd $img_storage_dir && mogrify -format jpg *.bmp && ffmpeg -i image%03d.jpg flow_movie.mpg 2>/dev/null && rm *.jpg"
-	}
-
-	# Now present the .mpg or .gif file to the user to download
-	## ??
-
-	return
-
-	# Finally, delete the temporary animation directory we have created
-	exec ssh $renderserver rmdir $img_storage_dir
 }
 
 # ----------------------------------------------------------------------
@@ -323,7 +325,9 @@ $widgets(viewer) create rectangle 0 0 1 1 -width 2 -outline red -fill "" \
 # ----------------------------------------------------------------------
 menu .mbar
 menu .mbar.file
-.mbar.file add command -label "Send file..." -underline 0 -command send_file
+.mbar.file add command -label "Send Volume File..." -underline 0 -command send_file
+.mbar.file add command -label "Send Flow File..." -underline 0 -command send_flow_file
+.mbar.file add command -label "Load script..." -underline 0 -command load_script
 .mbar.file add command -label "Reset" -underline 0 -command reset
 .mbar.file add separator
 .mbar.file add command -label "Exit" -underline 1 -command exit
@@ -335,8 +339,7 @@ menu .mbar.view
 .mbar add cascade -label "View" -underline 0 -menu .mbar.view
 
 menu .mbar.flow
-.mbar.flow add command -label "Activate Flow" -command {karl_activate_flow}
-.mbar.flow add command -label "Capture Flow Movie" -command {karl_flow_movie}
+.mbar.flow add command -label "Activate Flow" -command {activate_flow}
 .mbar add cascade -label "Flow" -underline 0 -menu .mbar.flow
 
 
