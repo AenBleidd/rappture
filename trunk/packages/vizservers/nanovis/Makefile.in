@@ -7,67 +7,72 @@ SHELL = /bin/sh
 .PHONY: all install clean distclean
 
 bindir          = @bindir@
-datadir		= @datadir@
-datarootdir	= @datarootdir@
+datadir         = @datadir@
+datarootdir     = @datarootdir@
 exec_prefix     = @exec_prefix@
 includedir      = @includedir@
 libdir          = @libdir@
 mandir          = @mandir@
 prefix          = @prefix@
-srcdir		= @srcdir@
+srcdir          = @srcdir@
 
-VPATH		= $(srcdir)
+VPATH           = $(srcdir)
 
-INSTALL		= @INSTALL@
-MKDIR_P		= @MKDIR_P@
+INSTALL         = @INSTALL@
+MKDIR_P         = @MKDIR_P@
 
 #Why are these files installed owner writable?
-INSTALL_PROGRAM	= ${INSTALL} -m 555
-INSTALL_DATA	= ${INSTALL} -m 444
-INSTALL_SCRIPT	= ${INSTALL} -m 444
-RM		= rm -f
+INSTALL_PROGRAM = ${INSTALL} -m 555
+INSTALL_DATA    = ${INSTALL} -m 444
+INSTALL_SCRIPT  = ${INSTALL} -m 444
+RM              = rm -f
 
-AUXSRC		= config.h define.h global.h
+AUXSRC          = config.h define.h global.h
 
-CG_DIR		= @CG_DIR@
-CG_INC_SPEC	= -I$(CG_DIR)/include
-CG_LIB_SPEC	= -L$(CG_DIR)/lib -lCg -lCgGL
-DX_DIR		= @DX_DIR@
-DX_INC_SPEC	= -I$(DX_DIR)/include
-DX_LIB_SPEC	= -L$(DX_DIR)/lib_linux -lDXcallm
-GL_INC_SPEC	= -I/usr/include/GL
-GL_LIB_SPEC	= -lGL -lglut -lglui -lGLEW
-IMG_DIR		= ./imgLoaders
-IMG_INC_SPEC	= -I$(srcdir)/$(IMG_DIR)
-IMG_LIB		= $(IMG_DIR)/ImageLoaders.a
-IMG_LIB_SPEC	= $(IMG_LIB)
-MAT_DIR		= ./newmat11
-MAT_INC_SPEC	= -I$(srcdir)/$(MAT_DIR)
-MAT_LIB		= $(MAT_DIR)/newmat11.a
-MAT_LIB_SPEC	= $(MAT_LIB)
-R2_DIR		= ./R2
-R2_INC_SPEC	= -I$(srcdir)/$(R2_DIR)/include
-R2_LIB		= $(R2_DIR)/src/R2.a
+CG_DIR          = @CG_DIR@
+CG_INC_SPEC     = -I$(CG_DIR)/include
+CG_LIB_SPEC     = -L$(CG_DIR)/lib -lCg -lCgGL
+DX_DIR          = @DX_DIR@
+DX_INC_SPEC     = -I$(DX_DIR)/include
+DX_LIB_SPEC     = -L$(DX_DIR)/lib_linux -lDXcallm
+FFMPEG_DIR      = @FFMPEG_DIR@
+FF_INC_SPEC     = -I$(FFMPEG_DIR)/include
+FF_LIB_SPEC     = -L$(FFMPEG_DIR)/lib -lavformat -lavcodec
+# might also need -lavutil
+GL_INC_SPEC     = -I/usr/include/GL
+GL_LIB_SPEC     = -lGL -lglut -lglui -lGLEW
+IMG_DIR         = ./imgLoaders
+IMG_INC_SPEC    = -I$(srcdir)/$(IMG_DIR)
+IMG_LIB         = $(IMG_DIR)/ImageLoaders.a
+IMG_LIB_SPEC    = $(IMG_LIB)
+MAT_DIR         = ./newmat11
+MAT_INC_SPEC    = -I$(srcdir)/$(MAT_DIR)
+MAT_LIB         = $(MAT_DIR)/newmat11.a
+MAT_LIB_SPEC    = $(MAT_LIB)
+R2_DIR          = ./R2
+R2_INC_SPEC     = -I$(srcdir)/$(R2_DIR)/include
+R2_LIB          = $(R2_DIR)/src/R2.a
 R2_LIB_SPEC     = $(R2_LIB)
 
-EXTRA_LIBS      = -lm -lpthread	 
-RP_DIR		=  @RP_DIR@
-RP_INC_SPEC	= -I$(RP_DIR)/include -I$(RP_DIR)/include/rappture2
-RP_LIB_SPEC	= -L$(RP_DIR)/lib -lrappture2 -lrappture -lexpat -lz
+EXTRA_LIBS      = -lm -lpthread
+RP_DIR          =  @RP_DIR@
+RP_INC_SPEC     = -I$(RP_DIR)/include -I$(RP_DIR)/include/rappture2
+RP_LIB_SPEC     = -L$(RP_DIR)/lib -lrappture2 -lrappture -lexpat -lz
 
-TF_DIR		= ./transfer-function
-TF_INC_SPEC	= -I$(TF_DIR) 
-TF_LIB		= $(TF_DIR)/transfer-function.a
-TF_LIB_SPEC	= $(TF_LIB)
+TF_DIR          = ./transfer-function
+TF_INC_SPEC     = -I$(TF_DIR)
+TF_LIB          = $(TF_DIR)/transfer-function.a
+TF_LIB_SPEC     = $(TF_LIB)
 
-TCL_LIB_SPEC	= @TCL_LIB_SPEC@
-TCL_INC_SPEC	= @TCL_INC_SPEC@
+TCL_LIB_SPEC    = @TCL_LIB_SPEC@
+TCL_INC_SPEC    = @TCL_INC_SPEC@
 
-LD_RUN_PATH	= @LD_RPATH@
+LD_RUN_PATH     = @LD_RPATH@
 
 LIBS		= \
 		$(RP_LIB_SPEC) \
 		$(DX_LIB_SPEC) \
+		$(FF_LIB_SPEC) \
 		$(IMG_LIB_SPEC) \
 		$(R2_LIB_SPEC) \
 		$(TF_LIB_SPEC) \
@@ -88,11 +93,11 @@ INCLUDES	= \
 		$(IMG_INC_SPEC) \
 		$(MAT_INC_SPEC)
 
-CC		= @CC@
-CFLAGS		= @CFLAGS@
-EXTRA_CFLAGS	= -Wall 
-DEFINES		= @DEFINES@
-CC_SWITCHES	= $(CFLAGS) $(EXTRA_CFLAGS) $(INCLUDES)
+CC              = @CC@
+CFLAGS          = @CFLAGS@
+EXTRA_CFLAGS    = -Wall
+DEFINES         = @DEFINES@
+CC_SWITCHES     = $(CFLAGS) $(EXTRA_CFLAGS) $(INCLUDES)
 
 OBJS		= \
 		Axis.o \
@@ -134,6 +139,7 @@ OBJS		= \
 		RenderContext.o \
 		RenderVertexArray.o \
 		Renderable.o \
+		RpAVTranslate.o \
 		RpDX.o \
 		ScreenSnapper.o \
 		Sphere.o \
@@ -172,7 +178,7 @@ shaders		= \
 		$(srcdir)/shaders/update_vel.cg \
 		$(srcdir)/shaders/vertex_std.cg \
 		$(srcdir)/shaders/volqd_volume.cg \
-		$(srcdir)/shaders/zincblende_volume.cg 
+		$(srcdir)/shaders/zincblende_volume.cg
 
 all: mat_lib r2_lib img_lib tf_lib nanovis
 
@@ -195,7 +201,7 @@ $(IMG_LIB):
 $(TF_LIB): 
 	$(MAKE) -C $(TF_DIR) all
 
-nanovis: $(MAT_LIB) $(R2_LIB) $(IMG_LIB) $(TF_LIB) $(OBJS) 
+nanovis: $(MAT_LIB) $(R2_LIB) $(IMG_LIB) $(TF_LIB) $(OBJS)
 	$(CC) $(CC_SWITCHES) -o $@ $^ $(LIBS)
 
 .cpp.o:
@@ -205,6 +211,8 @@ dxReader2.o: $(srcdir)/dxReader2.cpp
 	$(CC) -c $(CC_SWITCHES) $(DX_INC_SPEC) $?
 RpDX.o: $(srcdir)/RpDX.cpp
 	$(CC) -c $(CC_SWITCHES) $(DX_INC_SPEC) $?
+RpAVTranslate.o: $(srcdir)/RpAVTranslate.cpp
+	$(CC) -c $(CC_SWITCHES) $(FF_INC_SPEC) $?
 
 client: Socket.o ClientSocket.o RenderClient.o Event.o
 	$(CC) $(CC_SWITCHES) -o $@ $^ $(LIBS)

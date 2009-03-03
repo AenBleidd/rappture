@@ -69,6 +69,7 @@ AC_ARG_WITH(
 #       CgGL headers and library
 #       pthread library
 #       DX headers and library (done, sort of)
+#       ffmpeg headers and library (started)
 #
 
 TCL_VERSION="8.4"
@@ -181,6 +182,30 @@ fi
 
 AC_SUBST(DX_DIR)
 AC_MSG_RESULT([${DX_DIR}])
+
+AC_MSG_CHECKING([for FFmpeg installation])
+FFMPEG_DIR=""
+for dir in \
+ /apps/rappture \
+ /usr
+do
+  if test -r "${dir}/include/ffmpeg/avcodec.h" ; then
+    FFMPEG_DIR="$dir"
+    break
+  fi
+done
+if test "x${FFMPEG_DIR}" = "x" ; then
+  AC_MSG_ERROR([can't find FFmpeg installation])
+fi
+
+if test "${FFMPEG_DIR}" = "/usr" ; then
+  FFMPEG_DIR=""
+#else
+#  LD_RPATH="$loader_run_path:${FFMPEG_DIR}/lib"
+fi
+
+AC_SUBST(FFMPEG_DIR)
+AC_MSG_RESULT([${FFMPEG_DIR}])
 
 AC_MSG_CHECKING([for nVidia Cg installation])
 CG_DIR=""
