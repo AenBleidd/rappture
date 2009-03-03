@@ -32,7 +32,8 @@
  *        o Rationalize volume id scheme. Right now it's the index in
  *          the vector. 1) Use a list instead of a vector. 2) carry
  *          an id field that's a number that gets incremented each new volume.
- *        x Create R2, matrix, etc. libraries. (done) *        o Add bookkeeping for volumes, heightmaps, flows, etc. to track
+ *        x Create R2, matrix, etc. libraries. (done)
+ *        o Add bookkeeping for volumes, heightmaps, flows, etc. to track
  *          1) id #  2) simulation # 3) include/exclude.  The include/exclude
  *          is to indicate whether the item should contribute to the overall
  *          limits of the axes.
@@ -51,6 +52,7 @@
 #include <RpEncode.h>
 #include <RpOutcome.h>
 #include <RpBuffer.h>
+#include <RpAVTranslate.h>
 
 #include "transfer-function/TransferFunctionMain.h"
 #include "transfer-function/ControlPoint.h"
@@ -675,8 +677,8 @@ GetDataStream(Tcl_Interp *interp, Rappture::Buffer &buf, int nBytes)
         nBytes -= nRead;
     }
     if (NanoVis::recfile != NULL) {
-    	fwrite(buf.bytes(), sizeof(char), buf.size(), NanoVis::recfile);
-	fflush(NanoVis::recfile);
+        fwrite(buf.bytes(), sizeof(char), buf.size(), NanoVis::recfile);
+        fflush(NanoVis::recfile);
     }
     {
         Rappture::Outcome err;
@@ -695,7 +697,7 @@ GetDataStream(Tcl_Interp *interp, Rappture::Buffer &buf, int nBytes)
 
 static int
 CameraAimOp(ClientData cdata, Tcl_Interp *interp, int objc, 
-	    Tcl_Obj *const *objv)
+            Tcl_Obj *const *objv)
 {
     float x, y, z;
     if ((GetFloatFromObj(interp, objv[2], &x) != TCL_OK) ||
@@ -711,7 +713,7 @@ CameraAimOp(ClientData cdata, Tcl_Interp *interp, int objc,
 
 static int
 CameraAngleOp(ClientData cdata, Tcl_Interp *interp, int objc, 
-	      Tcl_Obj *const *objv)
+              Tcl_Obj *const *objv)
 {
     float theta, phi, psi;
     if ((GetFloatFromObj(interp, objv[2], &phi) != TCL_OK) ||
@@ -726,7 +728,7 @@ CameraAngleOp(ClientData cdata, Tcl_Interp *interp, int objc,
 
 static int
 CameraPanOp(ClientData cdata, Tcl_Interp *interp, int objc, 
-	     Tcl_Obj *const *objv)
+             Tcl_Obj *const *objv)
 {
     float x, y;
     if ((GetFloatFromObj(interp, objv[2], &x) != TCL_OK) ||
@@ -739,7 +741,7 @@ CameraPanOp(ClientData cdata, Tcl_Interp *interp, int objc,
 
 static int
 CameraZoomOp(ClientData cdata, Tcl_Interp *interp, int objc, 
-	     Tcl_Obj *const *objv)
+             Tcl_Obj *const *objv)
 {
     float zoom;
     if (GetFloatFromObj(interp, objv[2], &zoom) != TCL_OK) {
@@ -930,8 +932,8 @@ LegendCmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const *objv)
     TransferFunction *tf;
     tf = NanoVis::get_transfunc(string);
     if (tf == NULL) {
-        Tcl_AppendResult(interp, "unknown transfer function \"", string, "\"", 
-			 (char*)NULL);
+        Tcl_AppendResult(interp, "unknown transfer function \"", string, "\"",
+                             (char*)NULL);
         return TCL_ERROR;
     }
     const char *label;
@@ -944,9 +946,8 @@ LegendCmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const *objv)
     if (Volume::update_pending) {
         NanoVis::SetVolumeRanges();
     }
-    NanoVis::render_legend(tf, 
-			   NanoVis::grid->yAxis.min(), 
-			   NanoVis::grid->yAxis.max(), w, h, label);
+    NanoVis::render_legend(tf, NanoVis::grid->yAxis.min(),
+                           NanoVis::grid->yAxis.max(), w, h, label);
     return TCL_OK;
 }
 
@@ -1353,6 +1354,7 @@ VolumeDataFollowsOp(ClientData cdata, Tcl_Interp *interp, int objc,
             NanoVis::SetVolumeRanges();
         }
         volPtr = NanoVis::volume[n];
+        // FIXME: strlen(info) is the return value of sprintf
         sprintf(info, "nv>data id %d min %g max %g vmin %g vmax %g\n",
                 n, volPtr->wAxis.min(), volPtr->wAxis.max(),
                 Volume::valueMin, Volume::valueMax);
@@ -1711,229 +1713,294 @@ VolumeCmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const *objv)
     return (*proc) (cdata, interp, objc, objv);
 }
 
-static int
-FlowCmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const *objv)
-{
-    Rappture::Outcome err;
+// ========================= VOLUME END ==================================
 
-    if (objc < 2) {
-        Tcl_AppendResult(interp, "wrong # args: should be \"", 
-                Tcl_GetString(objv[0]), " option ?arg arg?", (char *)NULL);
+// ============================= FLOW ==================================
+
+static int
+FlowDataFollowsOp(ClientData cdata, Tcl_Interp *interp, int objc,
+                    Tcl_Obj *const *objv)
+{
+    Trace("Flow Data Loading\n");
+
+    int nbytes;
+    if (Tcl_GetIntFromObj(interp, objv[3], &nbytes) != TCL_OK) {
         return TCL_ERROR;
     }
-    const char *string = Tcl_GetString(objv[1]);
-    char c = string[0];
-    if ((c == 'v') && (strcmp(string, "vectorid") == 0)) {
-        if (objc != 3) {
-            Tcl_AppendResult(interp, "wrong # args: should be \"",
-                Tcl_GetString(objv[0]), " vectorid volume", (char *)NULL);
-            return TCL_ERROR;
-        }
-        Volume *volPtr;
-        if (GetVolumeFromObj(interp, objv[2], &volPtr) != TCL_OK) {
-            return TCL_ERROR;
-        }
-        if (NanoVis::particleRenderer != NULL) {
-            NanoVis::particleRenderer->setVectorField(volPtr->id, 1.0f,
-                volPtr->height / (float)volPtr->width,
-                volPtr->depth  / (float)volPtr->width,
-                volPtr->wAxis.max());
-            NanoVis::initParticle();
-        }
-        if (NanoVis::licRenderer != NULL) {
-            NanoVis::licRenderer->setVectorField(volPtr->id,
-                1.0f / volPtr->aspect_ratio_width,
-                1.0f / volPtr->aspect_ratio_height,
-                1.0f / volPtr->aspect_ratio_depth,
-                volPtr->wAxis.max());
-            NanoVis::licRenderer->set_offset(NanoVis::lic_slice_z);
-        }
-    } else if (c == 'l' && strcmp(string, "lic") == 0) {
-        if (objc != 3) {
-            Tcl_AppendResult(interp, "wrong # args: should be \"", 
-                             Tcl_GetString(objv[0]), " lic on|off\"", (char*)NULL);
-            return TCL_ERROR;
-        }
-        bool state;
-        if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
-            return TCL_ERROR;
-        }
-        NanoVis::lic_on = state;
-    } else if ((c == 'p') && (strcmp(string, "particle") == 0)) {
-        if (objc < 3) {
-            Tcl_AppendResult(interp, "wrong # args: should be \"",
-                Tcl_GetString(objv[0]), " particle visible|slice|slicepos arg \"",
-                (char*)NULL);
-            return TCL_ERROR;
-        }
-        const char *string = Tcl_GetString(objv[2]);
-        c = string[0];
-        if ((c == 'v') && (strcmp(string, "visible") == 0)) {
-            if (objc != 4) {
-                Tcl_AppendResult(interp, "wrong # args: should be \"",
-                                 Tcl_GetString(objv[0]), " particle visible on|off\"",
-                                 (char*)NULL);
-                return TCL_ERROR;
-            }
-            bool state;
-            if (GetBooleanFromObj(interp, objv[3], &state) != TCL_OK) {
-                return TCL_ERROR;
-            }
-            NanoVis::particle_on = state;
-        } else if ((c == 's') && (strcmp(string, "slice") == 0)) {
-            if (objc != 4) {
-                Tcl_AppendResult(interp, "wrong # args: should be \"",
-                                 Tcl_GetString(objv[0]),
-                                 " particle slice volume\"", (char*)NULL);
-                return TCL_ERROR;
-            }
-            int axis;
-            if (GetAxisFromObj(interp, objv[3], &axis) != TCL_OK) {
-                return TCL_ERROR;
-            }
-            NanoVis::lic_axis = axis;
-        } else if ((c == 's') && (strcmp(string, "slicepos") == 0)) {
-            if (objc != 4) {
-                Tcl_AppendResult(interp, "wrong # args: should be \"",
-                                 Tcl_GetString(objv[0]), " particle slicepos value\"",
-                                 (char*)NULL);
-                return TCL_ERROR;
-            }
-            float pos;
-            if (GetFloatFromObj(interp, objv[2], &pos) != TCL_OK) {
-                return TCL_ERROR;
-            }
-            if (pos < 0.0f) {
-                pos = 0.0f;
-            } else if (pos > 1.0f) {
-                pos = 1.0f;
-            }
-            switch (NanoVis::lic_axis) {
-            case 0 :
-                NanoVis::lic_slice_x = pos;
-                break;
-            case 1 :
-                NanoVis::lic_slice_y = pos;
-                break;
-            case 2 :
-                NanoVis::lic_slice_z = pos;
-                break;
-            }
-        } else {
-            Tcl_AppendResult(interp, "unknown option \"", string,
-                "\": should be \"", Tcl_GetString(objv[0]),
-                " visible, slice, or slicepos\"", (char *)NULL);
-            return TCL_ERROR;
-        }
-    } else if ((c == 'r') && (strcmp(string, "reset") == 0)) {
-        NanoVis::initParticle();
-    } else if ((c == 'c') && (strcmp(string, "capture") == 0)) {
-        if (objc > 4 || objc < 3) {
-            Tcl_AppendResult(interp, "wrong # args: should be \"",
-                             Tcl_GetString(objv[0]), " capture numframes [directory]\"",
-                             (char*)NULL);
-            return TCL_ERROR;
-        }
-        int total_frame_count;
 
-        if (Tcl_GetIntFromObj(interp, objv[2], &total_frame_count) != TCL_OK) {
-            return TCL_ERROR;
-        }
-        if (NanoVis::licRenderer) {
-            NanoVis::licRenderer->activate();
-        }
-        if (NanoVis::particleRenderer) {
-            NanoVis::particleRenderer->activate();
-        }
-        // Karl
-        //
-        Trace("FLOW started\n");
-        const char *fileName;
-        fileName = (objc < 4) ? NULL : Tcl_GetString(objv[3]);
-        for (int frame_count = 0; frame_count < total_frame_count;
-             frame_count++) {
-
-            // Generate the latest frame and send it back to the client
-            if (NanoVis::licRenderer &&
-                NanoVis::licRenderer->isActivated()) {
-                NanoVis::licRenderer->convolve();
-            }
-            if (NanoVis::particleRenderer &&
-                NanoVis::particleRenderer->isActivated()) {
-                NanoVis::particleRenderer->advect();
-            }
-            NanoVis::offscreen_buffer_capture();  //enable offscreen render
-            NanoVis::display();
-
-            //          printf("Read Screen for Writing to file...\n");
-
-            NanoVis::read_screen();
-            glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
-
-            NanoVis::bmp_write_to_file(frame_count, fileName);
-        }
-        Trace("FLOW end\n");
-        // put your code...
-        if (NanoVis::licRenderer) {
-            NanoVis::licRenderer->deactivate();
-        }
-        if (NanoVis::particleRenderer) {
-            NanoVis::particleRenderer->deactivate();
-        }
-        NanoVis::initParticle();
-    } else if ((c == 'd') && (strcmp(string, "data") == 0)) {
-        if (objc < 3) {
-            Tcl_AppendResult(interp, "wrong # args: should be \"",
-                Tcl_GetString(objv[0]), " data follows ?args?", (char *)NULL);
-            return TCL_ERROR;
-        }
-        const char *string = Tcl_GetString(objv[2]);;
-        c = string[0];
-        if ((c == 'f') && (strcmp(string,"follows") == 0)) {
-            if (objc != 4) {
-                Tcl_AppendResult(interp, "wrong # args: should be \"",
-                    Tcl_GetString(objv[0]), " data follows length",
-                    (char *)NULL);
-                return TCL_ERROR;
-            }
-            int nbytes;
-            if (Tcl_GetIntFromObj(interp, objv[3], &nbytes) != TCL_OK) {
-                return TCL_ERROR;
-            }
-            Rappture::Buffer buf;
-            if (GetDataStream(interp, buf, nbytes) != TCL_OK) {
-                return TCL_ERROR;
-            }
-            int n = NanoVis::n_volumes;
-            std::stringstream fdata;
-            fdata.write(buf.bytes(),buf.size());
-            load_vector_stream(n, fdata);
-            Volume *volPtr = NanoVis::volume[n];
-
-            //
-            // BE CAREFUL:  Set the number of slices to something
-            //   slightly different for each volume.  If we have
-            //   identical volumes at exactly the same position
-            //   with exactly the same number of slices, the second
-            //   volume will overwrite the first, so the first won't
-            //   appear at all.
-            //
-            if (volPtr != NULL) {
-                //volPtr->set_n_slice(256-n);
-                volPtr->set_n_slice(512-n);
-                volPtr->disable_cutplane(0);
-                volPtr->disable_cutplane(1);
-                volPtr->disable_cutplane(2);
-
-                NanoVis::vol_renderer->add_volume(volPtr,
-                        NanoVis::get_transfunc("default"));
-            }
-        }
-    } else {
+    Rappture::Buffer buf;
+    if (GetDataStream(interp, buf, nbytes) != TCL_OK) {
         return TCL_ERROR;
+    }
+    int n = NanoVis::n_volumes;
+    std::stringstream fdata;
+    fdata.write(buf.bytes(),buf.size());
+    load_vector_stream(n, fdata);
+    Volume *volPtr = NanoVis::volume[n];
+
+    //
+    // BE CAREFUL:  Set the number of slices to something
+    //   slightly different for each volume.  If we have
+    //   identical volumes at exactly the same position
+    //   with exactly the same number of slices, the second
+    //   volume will overwrite the first, so the first won't
+    //   appear at all.
+    //
+    if (volPtr != NULL) {
+        //volPtr->set_n_slice(256-n);
+        volPtr->set_n_slice(512-n);
+        volPtr->disable_cutplane(0);
+        volPtr->disable_cutplane(1);
+        volPtr->disable_cutplane(2);
+
+        NanoVis::vol_renderer->add_volume(volPtr,
+                NanoVis::get_transfunc("default"));
+    }
+
+    return TCL_OK;
+}
+
+static Rappture::CmdSpec flowDataOps[] = {
+    {"follows",   1, FlowDataFollowsOp, 4, 4, "size",},
+};
+static int nFlowDataOps = NumCmdSpecs(flowDataOps);
+
+static int
+FlowDataOp(ClientData cdata, Tcl_Interp *interp, int objc,
+             Tcl_Obj *const *objv)
+{
+    Tcl_ObjCmdProc *proc;
+
+    proc = Rappture::GetOpFromObj(interp, nFlowDataOps, flowDataOps,
+                                  Rappture::CMDSPEC_ARG2, objc, objv, 0);
+    if (proc == NULL) {
+        return TCL_ERROR;
+    }
+    return (*proc) (cdata, interp, objc, objv);
+}
+
+static int
+FlowCaptureOp(ClientData cdata, Tcl_Interp *interp, int objc,
+             Tcl_Obj *const *objv)
+{
+    int total_frame_count;
+
+    if (Tcl_GetIntFromObj(interp, objv[2], &total_frame_count) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (NanoVis::licRenderer) {
+        NanoVis::licRenderer->activate();
+    }
+    if (NanoVis::particleRenderer) {
+        NanoVis::particleRenderer->activate();
+    }
+
+    const char *fileName = Tcl_GetString(objv[3]);
+
+    Trace("FLOW started\n");
+
+    Rappture::AVTranslate movie(NanoVis::win_width,NanoVis::win_height);
+
+    int pad = 0;
+    if ((3*NanoVis::win_width) % 4 > 0) {
+        pad = 4 - ((3*NanoVis::win_width) % 4);
+    }
+
+    movie.init(fileName);
+
+    for (int frame_count = 0; frame_count < total_frame_count; frame_count++) {
+
+        // Generate the latest frame and send it back to the client
+        if (NanoVis::licRenderer &&
+            NanoVis::licRenderer->isActivated()) {
+            NanoVis::licRenderer->convolve();
+        }
+        if (NanoVis::particleRenderer &&
+            NanoVis::particleRenderer->isActivated()) {
+            NanoVis::particleRenderer->advect();
+        }
+        NanoVis::offscreen_buffer_capture();  //enable offscreen render
+        NanoVis::display();
+
+        NanoVis::read_screen();
+        glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
+
+        // this is done before bmp_write_to_file because bmp_write_to_file
+        // turns rgb data to bgr
+        movie.append(NanoVis::screen_buffer,pad);
+        // NanoVis::bmp_write_to_file(frame_count, fileName);
+    }
+
+    movie.close();
+    Trace("FLOW end\n");
+
+    if (NanoVis::licRenderer) {
+        NanoVis::licRenderer->deactivate();
+    }
+    if (NanoVis::particleRenderer) {
+        NanoVis::particleRenderer->deactivate();
+    }
+    NanoVis::initParticle();
+    return TCL_OK;
+}
+
+static int
+FlowLicOp(ClientData cdata, Tcl_Interp *interp, int objc,
+             Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    NanoVis::lic_on = state;
+    return TCL_OK;
+}
+
+static int
+FlowParticleVisibleOp(ClientData cdata, Tcl_Interp *interp, int objc,
+             Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[3], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    NanoVis::particle_on = state;
+    return TCL_OK;
+}
+
+static int
+FlowParticleSliceOp(ClientData cdata, Tcl_Interp *interp, int objc,
+             Tcl_Obj *const *objv)
+{
+    int axis;
+    if (GetAxisFromObj(interp, objv[3], &axis) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    NanoVis::lic_axis = axis;
+    return TCL_OK;
+}
+
+static int
+FlowParticleSliceposOp(ClientData cdata, Tcl_Interp *interp, int objc,
+             Tcl_Obj *const *objv)
+{
+    float pos;
+    if (GetFloatFromObj(interp, objv[2], &pos) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (pos < 0.0f) {
+        pos = 0.0f;
+    } else if (pos > 1.0f) {
+        pos = 1.0f;
+    }
+    switch (NanoVis::lic_axis) {
+    case 0 :
+        NanoVis::lic_slice_x = pos;
+        break;
+    case 1 :
+        NanoVis::lic_slice_y = pos;
+        break;
+    case 2 :
+        NanoVis::lic_slice_z = pos;
+        break;
     }
     return TCL_OK;
 }
+
+static Rappture::CmdSpec flowParticleOps[] = {
+    {"slice",      1, FlowParticleSliceOp,    4, 4, "index",},
+    {"slicepos",   1, FlowParticleSliceposOp, 4, 4, "value",},
+    {"visible",    1, FlowParticleVisibleOp,  4, 4, "on|off",},
+};
+static int nFlowParticleOps = NumCmdSpecs(flowParticleOps);
+
+static int
+FlowParticleOp(ClientData cdata, Tcl_Interp *interp, int objc,
+             Tcl_Obj *const *objv)
+{
+    Tcl_ObjCmdProc *proc;
+
+    proc = Rappture::GetOpFromObj(interp, nFlowParticleOps, flowParticleOps,
+                                  Rappture::CMDSPEC_ARG2, objc, objv, 0);
+    if (proc == NULL) {
+        return TCL_ERROR;
+    }
+    return (*proc) (cdata, interp, objc, objv);
+}
+
+static int
+FlowResetOp(ClientData cdata, Tcl_Interp *interp, int objc,
+             Tcl_Obj *const *objv)
+{
+    NanoVis::initParticle();
+    return TCL_OK;
+}
+
+static int
+FlowVectorIdOp(ClientData cdata, Tcl_Interp *interp, int objc,
+             Tcl_Obj *const *objv)
+{
+    Volume *volPtr;
+    if (GetVolumeFromObj(interp, objv[2], &volPtr) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (NanoVis::particleRenderer != NULL) {
+        NanoVis::particleRenderer->setVectorField(volPtr->id, 1.0f,
+            volPtr->height / (float)volPtr->width,
+            volPtr->depth  / (float)volPtr->width,
+            volPtr->wAxis.max());
+        NanoVis::initParticle();
+    }
+    if (NanoVis::licRenderer != NULL) {
+        NanoVis::licRenderer->setVectorField(volPtr->id,
+            1.0f / volPtr->aspect_ratio_width,
+            1.0f / volPtr->aspect_ratio_height,
+            1.0f / volPtr->aspect_ratio_depth,
+            volPtr->wAxis.max());
+        NanoVis::licRenderer->set_offset(NanoVis::lic_slice_z);
+    }
+    return TCL_OK;
+}
+
+static Rappture::CmdSpec flowOps[] = {
+    {"capture",   1, FlowCaptureOp,       4, 4, "frames filename",},
+    {"data",      1, FlowDataOp,          3, 0, "oper ?args?",},
+    {"lic",       1, FlowLicOp,           3, 3, "on|off",},
+    {"particle",  1, FlowParticleOp,      3, 0, "oper ?args?",},
+    {"reset",     1, FlowResetOp,         2, 2, "",},
+    {"vectorid",  1, FlowVectorIdOp,      3, 3, "index",},
+};
+static int nFlowOps = NumCmdSpecs(flowOps);
+
+/*
+ * ----------------------------------------------------------------------
+ * CLIENT COMMAND:
+ *   flow data follows <value>
+ *   flow capture
+ *   flow lic on|off
+ *   flow particle visible on|off
+ *   flow particle slice <volumeId>
+ *   flow particle slicepos <value>
+ *   flow reset
+ *   flow vectorid <volumeId>
+ *
+ * Clients send these commands to manipulate the flow.
+ * ----------------------------------------------------------------------
+ */
+static int
+FlowCmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const *objv)
+{
+    Tcl_ObjCmdProc *proc;
+
+    proc = Rappture::GetOpFromObj(interp, nFlowOps, flowOps,
+        Rappture::CMDSPEC_ARG1, objc, objv, 0);
+    if (proc == NULL) {
+        return TCL_ERROR;
+    }
+    return (*proc) (cdata, interp, objc, objv);
+}
+
+// ============================ FLOW END ==================================
 
 static int
 HeightMapDataFollowsOp(ClientData cdata, Tcl_Interp *interp, int objc,
@@ -1952,8 +2019,8 @@ HeightMapDataFollowsOp(ClientData cdata, Tcl_Interp *interp, int objc,
     int result;
     result = Tcl_Eval(interp, buf.bytes());
     if (result != TCL_OK) {
-        fprintf(NanoVis::logfile, "error in command: %s\n", 
-		Tcl_GetStringResult(interp));
+        fprintf(NanoVis::logfile, "error in command: %s\n",
+                Tcl_GetStringResult(interp));
         fflush(NanoVis::logfile);
     }
     return result;
@@ -2152,7 +2219,7 @@ HeightMapTopView(ClientData data, Tcl_Interp *interp, int objc,
     // GEORGE
 
     NanoVis::render_2d_contour(heightmap, image_width, image_height);
-    
+
     return TCL_OK;
 }
 
@@ -2469,9 +2536,9 @@ static Rappture::CmdSpec planeOps[] = {
 };
 static int nPlaneOps = NumCmdSpecs(planeOps);
 
-static int 
+static int
 PlaneCmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const *objv)
-{ 
+{
     Tcl_ObjCmdProc *proc;
 
     proc = Rappture::GetOpFromObj(interp, nPlaneOps, planeOps,
@@ -2517,30 +2584,30 @@ UniRect2dCmd(ClientData clientData, Tcl_Interp *interp, int objc,
     int i;
     for (i = 1; i < objc; i += 2) {
         const char *string;
-	char c;
+        char c;
 
         string = Tcl_GetString(objv[i]);
-	c = string[0];
-	if ((c == 'x') && (strcmp(string, "xmin") == 0)) {
-	    if (GetFloatFromObj(interp, objv[i+1], &xMin) != TCL_OK) {
-		return TCL_ERROR;
-	    }
-	} else if ((c == 'x') && (strcmp(string, "xmax") == 0)) {
-	    if (GetFloatFromObj(interp, objv[i+1], &xMax) != TCL_OK) {
-		return TCL_ERROR;
-	    }
-	} else if ((c == 'x') && (strcmp(string, "xnum") == 0)) {
-	    if (Tcl_GetIntFromObj(interp, objv[i+1], &xNum) != TCL_OK) {
-		return TCL_ERROR;
-	    }
-	    if (xNum <= 0) {
-		Tcl_AppendResult(interp, "bad xnum value: must be > 0",
-				 (char *)NULL);
-		return TCL_ERROR;
-	    }
-	} else if ((c == 'x') && (strcmp(string, "xunits") == 0)) {
-	    xUnits = Tcl_GetString(objv[i+1]);
-	} else if ((c == 'y') && (strcmp(string, "ymin") == 0)) {
+        c = string[0];
+        if ((c == 'x') && (strcmp(string, "xmin") == 0)) {
+            if (GetFloatFromObj(interp, objv[i+1], &xMin) != TCL_OK) {
+                return TCL_ERROR;
+            }
+        } else if ((c == 'x') && (strcmp(string, "xmax") == 0)) {
+            if (GetFloatFromObj(interp, objv[i+1], &xMax) != TCL_OK) {
+                return TCL_ERROR;
+            }
+        } else if ((c == 'x') && (strcmp(string, "xnum") == 0)) {
+            if (Tcl_GetIntFromObj(interp, objv[i+1], &xNum) != TCL_OK) {
+                return TCL_ERROR;
+            }
+            if (xNum <= 0) {
+                Tcl_AppendResult(interp, "bad xnum value: must be > 0",
+                     (char *)NULL);
+                return TCL_ERROR;
+            }
+        } else if ((c == 'x') && (strcmp(string, "xunits") == 0)) {
+            xUnits = Tcl_GetString(objv[i+1]);
+        } else if ((c == 'y') && (strcmp(string, "ymin") == 0)) {
             if (GetFloatFromObj(interp, objv[i+1], &yMin) != TCL_OK) {
                 return TCL_ERROR;
             }
@@ -2557,8 +2624,8 @@ UniRect2dCmd(ClientData clientData, Tcl_Interp *interp, int objc,
                                  (char *)NULL);
                 return TCL_ERROR;
             }
-	} else if ((c == 'y') && (strcmp(string, "yunits") == 0)) {
-	    yUnits = Tcl_GetString(objv[i+1]);
+        } else if ((c == 'y') && (strcmp(string, "yunits") == 0)) {
+            yUnits = Tcl_GetString(objv[i+1]);
         } else if ((c == 'z') && (strcmp(string, "zvalues") == 0)) {
             Tcl_Obj **zObj;
 
@@ -2572,8 +2639,8 @@ UniRect2dCmd(ClientData clientData, Tcl_Interp *interp, int objc,
                     return TCL_ERROR;
                 }
             }
-	} else if ((c == 'z') && (strcmp(string, "zunits") == 0)) {
-	    zUnits = Tcl_GetString(objv[i+1]);
+        } else if ((c == 'z') && (strcmp(string, "zunits") == 0)) {
+            zUnits = Tcl_GetString(objv[i+1]);
         } else {
             Tcl_AppendResult(interp, "unknown key \"", string,
                 "\": should be xmin, xmax, xnum, xunits, ymin, ymax, ynum, yunits, zvalues, or zunits",
