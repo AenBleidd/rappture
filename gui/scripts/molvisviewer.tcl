@@ -41,13 +41,13 @@ itcl::class Rappture::MolvisViewer {
 
     itk_option define -device device Device ""
 
-    constructor { hostlist args } { 
-        Rappture::VisViewer::constructor $hostlist 
-    } { 
-        # defined below 
+    constructor { hostlist args } {
+        Rappture::VisViewer::constructor $hostlist
+    } {
+        # defined below
     }
-    destructor { 
-        # defined below 
+    destructor {
+        # defined below
     }
     public proc SetServerList { namelist } {
         Rappture::VisViewer::SetServerList "pymol" $namelist
@@ -81,7 +81,7 @@ itcl::class Rappture::MolvisViewer {
     protected method _map {}
     protected method _vmouse2 {option b m x y}
     protected method _vmouse  {option b m x y}
-    private method _ReceiveImage { size cacheid frame rock } 
+    private method _ReceiveImage { size cacheid frame rock }
     private method _BuildSettingsDrawer {}
     private variable _inrebuild 0
 
@@ -124,7 +124,7 @@ itk::usual MolvisViewer {
 # CONSTRUCTOR
 # ----------------------------------------------------------------------
 itcl::body Rappture::MolvisViewer::constructor {hostlist args} {
-    # Register events to the dispatcher.  Base class expects !rebuild 
+    # Register events to the dispatcher.  Base class expects !rebuild
     # event to be registered.
 
     # Rebuild
@@ -390,7 +390,7 @@ itcl::body Rappture::MolvisViewer::constructor {hostlist args} {
         [itcl::code $this _map]
 
     eval itk_initialize $args
-    Connect 
+    Connect
 }
 
 itcl::body Rappture::MolvisViewer::_BuildSettingsDrawer {} {
@@ -438,7 +438,7 @@ itcl::body Rappture::MolvisViewer::_BuildSettingsDrawer {} {
         -from 0.1 -to 2.0 -resolution 0.05 \
         -showvalue true -orient horizontal \
         -command [itcl::code $this atomscale] \
-        -variable Rappture::MolvisViewer::_settings($this-atomscale) 
+        -variable Rappture::MolvisViewer::_settings($this-atomscale)
     $inner.atomscale set $_settings($this-atomscale)
 
     checkbutton $inner.labels -text "Show labels on atoms" \
@@ -985,7 +985,7 @@ itcl::body Rappture::MolvisViewer::_vmouse2 {option b m x y} {
     if { $vState == 2 || $vState == 3} {
         set diff 0
 
-        catch { set diff [expr $now - $_mevent(time)] } 
+        catch { set diff [expr $now - $_mevent(time)] }
         if {$diff < 75} { # 75ms between motion updates
             return
         }
@@ -997,7 +997,7 @@ itcl::body Rappture::MolvisViewer::_vmouse2 {option b m x y} {
 itcl::body Rappture::MolvisViewer::_vmouse {option b m x y} {
     set now  [clock clicks -milliseconds]
     # cancel any pending delayed dragging events
-    if { [info exists _mevent(afterid)] } { 
+    if { [info exists _mevent(afterid)] } {
         after cancel $_mevent(afterid)
         unset _mevent(afterid)
     }
@@ -1005,7 +1005,7 @@ itcl::body Rappture::MolvisViewer::_vmouse {option b m x y} {
     if { ![info exists _mevent(x)] } {
         set option "click"
     }
-    if { $option == "click" } { 
+    if { $option == "click" } {
         $itk_component(3dview) configure -cursor fleur
     }
     if { $option == "drag" || $option == "release" } {
@@ -1172,7 +1172,7 @@ itcl::body Rappture::MolvisViewer::_rotate {option x y} {
 # our scene.
 # ----------------------------------------------------------------------
 itcl::body Rappture::MolvisViewer::representation {option {model "all"} } {
-    if { $option == $_mrepresentation } { 
+    if { $option == $_mrepresentation } {
         return 
     }
     set _settings($this-modelimg) [Rappture::icon $option]
@@ -1386,15 +1386,15 @@ itcl::body Rappture::MolvisViewer::ResetView {} {
         theta   45
         phi     45
         psi     0
-        mx 0 
-        my 0
-        mz 0
-        x 0
-        y 0
-        z 0
-        zoom 0
-        width 0
-        height 0
+        mx      0
+        my      0
+        mz      0
+        x       0
+        y       0
+        z       0
+        zoom    0
+        width   0
+        height  0
     }
     _send "reset"
     _send "rotate $view_(mx) $view_(my) $view_(mz)"
@@ -1512,6 +1512,3 @@ itcl::body Rappture::MolvisViewer::settings { what args } {
         }
     }
 }
-
-
-

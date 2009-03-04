@@ -55,7 +55,7 @@ itcl::class Rappture::SequenceResult {
     set _play(speed) 60
     set _play(loop) 0
 }
-                                                                                
+
 itk::usual SequenceResult {
     keep -background -foreground -cursor -font
 }

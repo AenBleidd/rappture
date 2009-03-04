@@ -162,9 +162,9 @@ itcl::body Rappture::XyResult::constructor {args} {
     pack $itk_component(reset) -padx 4 -pady 2 -anchor e
     Rappture::Tooltip::for $itk_component(reset) "Reset the view to the default zoom level"
     itk_component add drawer {
- 	panedwindow $itk_interior.drawer \
- 	    -orient horizontal -opaqueresize 1 -handlepad 0 \
- 	    -handlesize 1 -sashwidth 2     
+        panedwindow $itk_interior.drawer \
+            -orient horizontal -opaqueresize 1 -handlepad 0 \
+            -handlesize 1 -sashwidth 2
     }
     pack $itk_component(drawer) -expand yes -fill both
     itk_component add plot {
@@ -178,7 +178,7 @@ itcl::body Rappture::XyResult::constructor {args} {
 
     $itk_component(plot) pen configure activeLine \
         -symbol square -pixels 3 -linewidth 2 \
-	-outline black -fill red -color black
+        -outline black -fill red -color black
 
     #
     # Add bindings so you can mouse over points to see values:
