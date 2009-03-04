@@ -155,15 +155,10 @@ itcl::body Rappture::Tool::run {args} {
         close $fid
     } result]
 
-    # set limits for cpu time and file size
+    # set limits for cpu time
     set limit [$_xmlobj get tool.limits.cputime]
     if {"" == $limit || [catch {Rappture::rlimit set cputime $limit}]} {
         Rappture::rlimit set cputime 900  ;# 15 mins by default
-    }
-
-    set limit [$_xmlobj get tool.limits.filesize]
-    if {"" == $limit || [catch {Rappture::rlimit set filesize $limit}]} {
-        Rappture::rlimit set filesize 1000000  ;# 1MB by default
     }
 
     # execute the tool using the path from the tool description
