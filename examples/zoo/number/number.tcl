@@ -12,7 +12,10 @@ package require Rappture
 # open the XML file containing the run parameters
 set driver [Rappture::library [lindex $argv 0]]
 
+$driver put output.number(outt).about.label "Echo of temperature"
 $driver copy output.number(outt) from input.(temperature)
+
+$driver put output.number(outv).about.label "Echo of voltage sweep"
 $driver copy output.number(outv) from input.(vsweep)
 
 # save the updated XML describing the run...
