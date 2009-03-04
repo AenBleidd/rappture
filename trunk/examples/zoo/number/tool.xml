@@ -52,13 +52,4 @@ RQEAOw==
     <color>purple</color>
   </number>
 </input>
-<output>
-  <number id="outt">
-    <about><label>Echo of temperature</label></about>
-  </number>
-
-  <number id="outv">
-    <about><label>Echo of voltage sweep</label></about>
-  </number>
-</output>
 </run>
