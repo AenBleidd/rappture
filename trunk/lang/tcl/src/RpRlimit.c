@@ -94,8 +94,8 @@ RpRlimitCmd(cdata, interp, objc, objv)
 {
     Tcl_ObjCmdProc *proc;
 
-    proc = Rp_GetOpFromObj(interp, nRlimitOps, rlimitOps, RP_OP_ARG1, 
-	objc, objv, 0);
+    proc = Rp_GetOpFromObj(interp, nRlimitOps, rlimitOps, RP_OP_ARG1,
+        objc, objv, 0);
     if (proc == NULL) {
         return TCL_ERROR;
     }
@@ -128,12 +128,12 @@ RpRlimitGetOp(cdata, interp, objc, objv)
     int i, status;
     struct rlimit rvals;
     rlim_t *rvalptr;
- 
+
     if (nextarg < objc) {
         const char *string;
 
         string = Tcl_GetString(objv[nextarg]);
-	if (string[0] == '-') {
+        if (string[0] == '-') {
             if (strcmp(string,"-soft") == 0) {
                 hardlim = 0;
                 nextarg++;
@@ -143,7 +143,7 @@ RpRlimitGetOp(cdata, interp, objc, objv)
             } else {
                 Tcl_AppendResult(interp, "bad option \"", string,
                 "\": should be -soft or -hard", (char*)NULL);
-            	return TCL_ERROR;
+                return TCL_ERROR;
             }
         }
     }
@@ -152,11 +152,11 @@ RpRlimitGetOp(cdata, interp, objc, objv)
      * No args?  Then return limits for all options.
      */
     if (nextarg >= objc) {
-	Tcl_Obj *listObjPtr;
+        Tcl_Obj *listObjPtr;
 
-	listObjPtr = Tcl_NewListObj(0, NULL);
+        listObjPtr = Tcl_NewListObj(0, NULL);
         for (i=0; rlimitOptions[i].name != NULL; i++) {
-	    Tcl_Obj *objPtr;
+            Tcl_Obj *objPtr;
             status = getrlimit(rlimitOptions[i].resid, &rvals);
             if (status != 0) {
                 Tcl_ResetResult(interp);
@@ -169,16 +169,16 @@ RpRlimitGetOp(cdata, interp, objc, objv)
             } else {
                 rvalptr = &rvals.rlim_cur;
             }
-	    objPtr = Tcl_NewStringObj(rlimitOptions[i].name, -1);
-	    Tcl_ListObjAppendElement(interp, listObjPtr, objPtr);
+            objPtr = Tcl_NewStringObj(rlimitOptions[i].name, -1);
+            Tcl_ListObjAppendElement(interp, listObjPtr, objPtr);
             if (*rvalptr == RLIM_INFINITY) {
                 objPtr = Tcl_NewStringObj("unlimited", -1);
             } else {
                 objPtr = Tcl_NewLongObj((unsigned long)*rvalptr);
             }
-	    Tcl_ListObjAppendElement(interp, listObjPtr, objPtr);
+            Tcl_ListObjAppendElement(interp, listObjPtr, objPtr);
         }
-	Tcl_SetObjResult(interp, listObjPtr);
+        Tcl_SetObjResult(interp, listObjPtr);
         return TCL_OK;
     }
 
@@ -186,17 +186,17 @@ RpRlimitGetOp(cdata, interp, objc, objv)
      * Find the limit for the specified option.
      */
     for (i=0; rlimitOptions[i].name != NULL; i++) {
-	const char *string;
+        const char *string;
 
-	string = Tcl_GetString(objv[nextarg]);
+        string = Tcl_GetString(objv[nextarg]);
         if (strcmp(string, rlimitOptions[i].name) == 0) {
             break;
         }
     }
     if (rlimitOptions[i].name == NULL) {
-	const char *string;
+        const char *string;
 
-	string = Tcl_GetString(objv[nextarg]);
+        string = Tcl_GetString(objv[nextarg]);
         return RpRlimitOptionError(interp, string);
     }
 
@@ -214,7 +214,7 @@ RpRlimitGetOp(cdata, interp, objc, objv)
     }
 
     if (*rvalptr == RLIM_INFINITY) {
-	objPtr = Tcl_NewStringObj("unlimited", -1);
+        objPtr = Tcl_NewStringObj("unlimited", -1);
     } else {
         objPtr = Tcl_NewLongObj((unsigned long)*rvalptr);
     }
@@ -247,15 +247,15 @@ RpRlimitSetOp(cdata, interp, objc, objv)
     rlim_t newval;
 
     for (n=2; n < objc; n += 2) {
-	const char *name, *value;
+        const char *name, *value;
 
-	name = Tcl_GetString(objv[n]);
+        name = Tcl_GetString(objv[n]);
         if (n+1 >= objc) {
             Tcl_AppendResult(interp, "missing value for option \"",
                 name, "\"", (char*)NULL);
             return TCL_ERROR;
         }
-	value = Tcl_GetString(objv[n+1]);
+        value = Tcl_GetString(objv[n+1]);
         if (strcmp(value, "unlimited") == 0) {
             newval = RLIM_INFINITY;
         } else if (Tcl_GetIntFromObj(interp, objv[n+1], &lim) == TCL_OK) {
