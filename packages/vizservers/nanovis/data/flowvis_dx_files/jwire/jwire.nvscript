@@ -13009,10 +13009,12 @@ screen 640 480
 cutplane state 0 x
 cutplane state 0 y
 cutplane state 0 z
-camera angle 0 180 0
+camera angle 90 0 180
 camera pan -0.45 0
+
+
 
 flow vectorid 0
 flow particle visible on
 flow lic on
-flow capture 100 /tmp/flow_animation/file7.mpeg
+flow capture 1000 /tmp/file7.mpeg
