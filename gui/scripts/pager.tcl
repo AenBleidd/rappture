@@ -489,10 +489,8 @@ itcl::configbody Rappture::Pager::arrangement {
         pages {
             pack forget $itk_component(inside)
             pack $itk_component(controls) -side bottom -fill x -padx 8 -pady 8
-            if {[llength $_pages] > 2} {
-                pack $itk_component(breadcrumbarea) -side top -fill x
-                pack $itk_component(line) -side top -fill x
-            }
+            pack $itk_component(breadcrumbarea) -side top -fill x
+            pack $itk_component(line) -side top -fill x
             pack $itk_component(inside) -expand yes -fill both
             current [lindex $_pages 0]
         }
