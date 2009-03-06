@@ -1747,14 +1747,20 @@ FlowDataFollowsOp(ClientData cdata, Tcl_Interp *interp, int objc,
     //   appear at all.
     //
     if (volPtr != NULL) {
-        //volPtr->set_n_slice(256-n);
-        volPtr->set_n_slice(512-n);
+        volPtr->set_n_slice(256-n);
+        //volPtr->set_n_slice(512-n);
         volPtr->disable_cutplane(0);
         volPtr->disable_cutplane(1);
         volPtr->disable_cutplane(2);
 
         NanoVis::vol_renderer->add_volume(volPtr,
                 NanoVis::get_transfunc("default"));
+
+    Trace("Flow Data move\n");
+        float dx0 = -0.5;
+        float dy0 = -0.5*volPtr->height/volPtr->width;
+        float dz0 = -0.5*volPtr->depth/volPtr->width;
+        volPtr->move(Vector3(dx0, dy0, dz0));
     }
 
     return TCL_OK;

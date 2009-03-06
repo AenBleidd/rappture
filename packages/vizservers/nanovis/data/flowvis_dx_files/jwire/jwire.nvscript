@@ -13010,7 +13010,6 @@ cutplane state 0 x
 cutplane state 0 y
 cutplane state 0 z
 camera angle 90 0 180
-camera pan -0.45 0
 
 
 
