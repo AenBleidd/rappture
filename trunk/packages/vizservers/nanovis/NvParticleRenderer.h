@@ -92,6 +92,8 @@ public :
      */
     Vector3 scale;
 
+    Vector3 origin;
+
     bool _activate;
 public:
     int psys_width;	//the storage of particles is implemented as a 2D array.
@@ -99,7 +101,7 @@ public:
 
     NvParticleRenderer(int w, int h, CGcontext context);
     ~NvParticleRenderer();
-    void setVectorField(unsigned int texID, float scaleX, float scaleY, float scaleZ, float max);
+    void setVectorField(unsigned int texID, const Vector3& ori, float scaleX, float scaleY, float scaleZ, float max);
     void initialize(Particle* data);
     void advect();
     void update_vertex_buffer();

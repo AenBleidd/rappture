@@ -1996,7 +1996,9 @@ FlowVectorIdOp(ClientData cdata, Tcl_Interp *interp, int objc,
         return TCL_ERROR;
     }
     if (NanoVis::particleRenderer != NULL) {
-        NanoVis::particleRenderer->setVectorField(volPtr->id, 1.0f,
+        NanoVis::particleRenderer->setVectorField(volPtr->id, 
+            *(volPtr->get_location()),
+            1.0f,
             volPtr->height / (float)volPtr->width,
             volPtr->depth  / (float)volPtr->width,
             volPtr->wAxis.max());
