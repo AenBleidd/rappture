@@ -1847,6 +1847,15 @@ FlowCaptureOp(ClientData cdata, Tcl_Interp *interp, int objc,
         NanoVis::particleRenderer->deactivate();
     }
     NanoVis::initParticle();
+
+    // send the movie back to the client
+    // FIXME: find a way to get the data from the movie object as a char*
+    Rappture::Buffer data;
+    data.load(fileName);
+    char command[512];
+    sprintf(command,"nv>file -bytes %lu\n",data.size());
+    NanoVis::sendDataToClient(command,data.bytes(),data.size());
+
     return TCL_OK;
 }
 
@@ -1935,6 +1944,42 @@ FlowParticleOp(ClientData cdata, Tcl_Interp *interp, int objc,
 }
 
 static int
+FlowPlayOp(ClientData cdata, Tcl_Interp *interp, int objc,
+             Tcl_Obj *const *objv)
+{
+    if (NanoVis::licRenderer &&
+        !NanoVis::licRenderer->isActivated()) {
+        NanoVis::licRenderer->activate();
+    }
+    if (NanoVis::particleRenderer &&
+        !NanoVis::particleRenderer->isActivated()) {
+        NanoVis::particleRenderer->activate();
+    }
+
+    Trace("sending flow playback frame\n");
+
+    // Generate the latest frame and send it back to the client
+    if (NanoVis::licRenderer &&
+        NanoVis::licRenderer->isActivated()) {
+        NanoVis::licRenderer->convolve();
+    }
+    if (NanoVis::particleRenderer &&
+        NanoVis::particleRenderer->isActivated()) {
+        NanoVis::particleRenderer->advect();
+    }
+    NanoVis::offscreen_buffer_capture();  //enable offscreen render
+    NanoVis::display();
+
+    NanoVis::read_screen();
+    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
+
+    // NanoVis::bmp_write_to_file(frame_count, fileName);
+
+    Trace("FLOW end\n");
+    return TCL_OK;
+}
+
+static int
 FlowResetOp(ClientData cdata, Tcl_Interp *interp, int objc,
              Tcl_Obj *const *objv)
 {
@@ -1972,7 +2017,8 @@ static Rappture::CmdSpec flowOps[] = {
     {"capture",   1, FlowCaptureOp,       4, 4, "frames filename",},
     {"data",      1, FlowDataOp,          3, 0, "oper ?args?",},
     {"lic",       1, FlowLicOp,           3, 3, "on|off",},
-    {"particle",  1, FlowParticleOp,      3, 0, "oper ?args?",},
+    {"particle",  2, FlowParticleOp,      3, 0, "oper ?args?",},
+    {"play",      2, FlowPlayOp,          2, 2, "",},
     {"reset",     1, FlowResetOp,         2, 2, "",},
     {"vectorid",  1, FlowVectorIdOp,      3, 3, "index",},
 };
@@ -1982,11 +2028,12 @@ static int nFlowOps = NumCmdSpecs(flowOps);
  * ----------------------------------------------------------------------
  * CLIENT COMMAND:
  *   flow data follows <value>
- *   flow capture
+ *   flow capture frames filename
  *   flow lic on|off
  *   flow particle visible on|off
  *   flow particle slice <volumeId>
  *   flow particle slicepos <value>
+ *   flow play
  *   flow reset
  *   flow vectorid <volumeId>
  *

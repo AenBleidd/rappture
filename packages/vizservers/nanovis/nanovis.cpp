@@ -1244,6 +1244,46 @@ NanoVis::ppm_write(const char *prefix)
     stats.nBytes += (bytesPerRow * win_height);
 }
 
+void
+NanoVis::sendDataToClient(const char *command, const char *data, size_t dlen)
+{
+/*
+    char header[200];
+
+    // Generate the PPM binary file header
+    sprintf(header, "P6 %d %d %d\n", win_width, win_height, PPM_MAXVAL);
+
+    size_t header_length = strlen(header);
+    size_t data_length = win_width * win_height * 3;
+
+    char command[200];
+    sprintf(command, "%s %lu\n", prefix, 
+            (unsigned long)header_length + data_length);
+*/
+
+//    size_t wordsPerRow = (win_width * 24 + 31) / 32;
+//    size_t bytesPerRow = wordsPerRow * 4;
+//    size_t rowLength = win_width * 3;
+    size_t nRecs = 2;
+
+    struct iovec *iov;
+    iov = (struct iovec *)malloc(sizeof(struct iovec) * nRecs);
+
+    // Write the nanovisviewer command, then the image header and data.
+    // Command
+// FIXME: shouldn't have to cast this
+    iov[0].iov_base = (char *)command;
+    iov[0].iov_len = strlen(command);
+    // Data
+// FIXME: shouldn't have to cast this
+    iov[1].iov_base = (char *)data;
+    iov[1].iov_len = dlen;
+    writev(0, iov, nRecs);
+    free(iov);
+    // stats.nFrames++;
+    // stats.nBytes += (bytesPerRow * win_height);
+}
+
 #ifdef notdef
 //draw vectors 
 void draw_arrows()
