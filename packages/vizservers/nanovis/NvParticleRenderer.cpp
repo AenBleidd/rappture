@@ -27,7 +27,7 @@
 #define NV_32
 
 NvParticleRenderer::NvParticleRenderer(int w, int h, CGcontext context)
-    : scale(1, 1, 1), _activate(false)
+    : scale(1, 1, 1), _activate(false), origin(0, 0, 0)
 {
     psys_width = w;
     psys_height = h;
@@ -260,6 +260,7 @@ void NvParticleRenderer::display_vertices()
   
     glPushMatrix();
 
+    glTranslatef(origin.x, origin.y, origin.z);
     glScaled(scale.x, scale.y, scale.z);
 
     glEnableClientState(GL_VERTEX_ARRAY);
@@ -274,8 +275,9 @@ void NvParticleRenderer::display_vertices()
     //assert(glGetError()==0);
 }
 
-void NvParticleRenderer::setVectorField(unsigned int texID, float scaleX, float scaleY, float scaleZ, float max)
+void NvParticleRenderer::setVectorField(unsigned int texID, const Vector3& ori, float scaleX, float scaleY, float scaleZ, float max)
 {
+    origin = ori;
     scale.set(scaleX, scaleY, scaleZ);
     _advectionShader->setScale(scale);
     _advectionShader->setVelocityVolume(texID, max);
