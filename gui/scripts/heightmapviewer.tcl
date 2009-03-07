@@ -1,4 +1,3 @@
-
 # ----------------------------------------------------------------------
 #  COMPONENT: heightmapviewer - 3D volume rendering
 #
@@ -41,25 +40,25 @@ itcl::class Rappture::HeightmapViewer {
     itk_option define -plotbackground plotBackground Background ""
     itk_option define -plotoutline plotOutline PlotOutline ""
 
-    constructor { hostlist args } { 
-        Rappture::VisViewer::constructor $hostlist 
-    } { 
-        # defined below 
+    constructor { hostlist args } {
+        Rappture::VisViewer::constructor $hostlist
+    } {
+        # defined below
     }
-    destructor { 
-        # defined below 
+    destructor {
+        # defined below
     }
 
     public proc SetServerList { namelist } {
-	Rappture::VisViewer::SetServerList "nanovis" $namelist
+        Rappture::VisViewer::SetServerList "nanovis" $namelist
     }
     public method add {dataobj {settings ""}}
     public method get {args}
     public method delete {args}
     public method scale {args}
     public method download {option args}
-    public method parameters {title args} { 
-        # do nothing 
+    public method parameters {title args} {
+        # do nothing
     }
     protected method Connect {}
     protected method Disconnect {}
@@ -94,7 +93,7 @@ itcl::class Rappture::HeightmapViewer {
     private variable view_         ;# view params for 3D view
 
     private common settings_      ;# Array used for checkbuttons and radiobuttons
-                        
+
 }
 
 itk::usual HeightmapViewer {
@@ -132,8 +131,8 @@ itcl::body Rappture::HeightmapViewer::constructor {hostlist args} {
         phi     45
         psi     0
         zoom    1.0
-        dx	0
-        dy	0
+        dx      0
+        dy      0
     }
     set obj2id_(count) 0
 
@@ -202,12 +201,12 @@ itcl::body Rappture::HeightmapViewer::constructor {hostlist args} {
 
     Rappture::Balloon $itk_component(controls).panel -title "Settings"
     set inner [$itk_component(controls).panel component inner]
-    
+
     frame $inner.f
     pack $inner.f -side top -fill x
     grid columnconfigure $inner.f 1 -weight 1
     set fg [option get $itk_component(hull) font Font]
-    
+
     set ::Rappture::HeightmapViewer::settings_($this-grid) 1
     ::checkbutton $inner.f.grid \
         -text "Grid" \
@@ -232,7 +231,7 @@ itcl::body Rappture::HeightmapViewer::constructor {hostlist args} {
     set ::Rappture::HeightmapViewer::settings_($this-wireframe) "fill"
     ::checkbutton $inner.f.wireframe \
         -text "Wireframe" \
-	-onvalue "wireframe" -offvalue "fill" \
+        -onvalue "wireframe" -offvalue "fill" \
         -variable ::Rappture::HeightmapViewer::settings_($this-wireframe) \
         -command [itcl::code $this _fixSettings wireframe]
     grid $inner.f.wireframe -row 3 -column 0 -sticky w
@@ -288,16 +287,16 @@ itcl::body Rappture::HeightmapViewer::constructor {hostlist args} {
 
     # Bindings for zoom via keyboard
     bind $itk_component(3dview) <KeyPress-Prior> \
-	[itcl::code $this _zoom out]
+        [itcl::code $this _zoom out]
     bind $itk_component(3dview) <KeyPress-Next> \
-	[itcl::code $this _zoom in]
+        [itcl::code $this _zoom in]
 
     bind $itk_component(3dview) <Enter> "focus $itk_component(3dview)"
 
     if {[string equal "x11" [tk windowingsystem]]} {
-	# Bindings for zoom via mouse
-	bind $itk_component(3dview) <4> [itcl::code $this _zoom out]
-	bind $itk_component(3dview) <5> [itcl::code $this _zoom in]
+        # Bindings for zoom via mouse
+        bind $itk_component(3dview) <4> [itcl::code $this _zoom out]
+        bind $itk_component(3dview) <5> [itcl::code $this _zoom in]
     }
 
     set _image(download) [image create photo]
@@ -600,7 +599,7 @@ itcl::body Rappture::HeightmapViewer::_send_dataobjs {} {
 
             # tell the engine to expect some data
             set nbytes [string length $data]
-	    if { ![SendBytes "heightmap data follows $nbytes"] } {
+            if { ![SendBytes "heightmap data follows $nbytes"] } {
                 return
 
             }
@@ -786,8 +785,8 @@ itcl::body Rappture::HeightmapViewer::_zoom {option} {
                 phi     45
                 psi     0
                 zoom    1.0
-		dx 0
-		dy 0
+                dx      0
+                dy      0
             }
             set xyz [Euler2XYZ $view_(theta) $view_(phi) $view_(psi)]
             _send "camera angle $xyz"
@@ -800,7 +799,7 @@ itcl::body Rappture::HeightmapViewer::_zoom {option} {
 # ----------------------------------------------------------------------
 # USAGE: $this _pan click x y
 #        $this _pan drag x y
-#	 $this _pan release x y
+#        $this _pan release x y
 #
 # Called automatically when the user clicks on one of the zoom
 # controls for this widget.  Changes the zoom for the current view.
@@ -810,26 +809,26 @@ itcl::body Rappture::HeightmapViewer::_pan {option x y} {
     set w [winfo width $itk_component(3dview)]
     set h [winfo height $itk_component(3dview)]
     if { $option == "set" } {
-	set x [expr $x / double($w)]
-	set y [expr $y / double($h)]
-	set view_(dx) [expr $view_(dx) + $x]
-	set view_(dy) [expr $view_(dy) + $y]
+        set x [expr $x / double($w)]
+        set y [expr $y / double($h)]
+        set view_(dx) [expr $view_(dx) + $x]
+        set view_(dy) [expr $view_(dy) + $y]
         _send "camera pan $view_(dx) $view_(dy)"
-	return
+        return
     }
-    if { $option == "click" } { 
-	set click_(x) $x
-	set click_(y) $y
+    if { $option == "click" } {
+        set click_(x) $x
+        set click_(y) $y
         $itk_component(3dview) configure -cursor hand1
     }
     if { $option == "drag" || $option == "release" } {
-	set dx [expr ($click_(x) - $x)/double($w)]
-	set dy [expr ($click_(y) - $y)/double($h)]
-	set click_(x) $x
-	set click_(y) $y
-	set view_(dx) [expr $view_(dx) - $dx]
-	set view_(dy) [expr $view_(dy) - $dy]
-	_send "camera pan $view_(dx) $view_(dy)"
+        set dx [expr ($click_(x) - $x)/double($w)]
+        set dy [expr ($click_(y) - $y)/double($h)]
+        set click_(x) $x
+        set click_(y) $y
+        set view_(dx) [expr $view_(dx) - $dx]
+        set view_(dy) [expr $view_(dy) - $dy]
+        _send "camera pan $view_(dx) $view_(dy)"
     }
     if { $option == "release" } {
         $itk_component(3dview) configure -cursor ""
@@ -848,12 +847,12 @@ itcl::body Rappture::HeightmapViewer::_rotate {option x y} {
     switch -- $option {
         click {
             $itk_component(3dview) configure -cursor fleur
-	    array set click_ [subst {
-		x       $x
-		y       $y
-		theta   $view_(theta)
-		phi     $view_(phi)
-	    }]
+            array set click_ [subst {
+                x       $x
+                y       $y
+                theta   $view_(theta)
+                phi     $view_(phi)
+            }]
         }
         drag {
             if {[array size click_] == 0} {
@@ -944,7 +943,7 @@ itcl::body Rappture::HeightmapViewer::_fixSettings { what {value ""} } {
             set w [expr {[winfo width $itk_component(legend)]-20}]
             set h [expr {[winfo height $itk_component(legend)]-20-$lineht}]
             set imap ""
-            
+
             set dataobj [lindex [get] 0]
             if {"" != $dataobj} {
                 set comp [lindex [$dataobj components] 0]
@@ -1031,19 +1030,19 @@ itcl::body Rappture::HeightmapViewer::_getTransfuncData {dataobj comp} {
         for {set i 1} {$i <= $levels} {incr i} {
             # add spikes in the middle
             set xval [expr {double($i)/($levels+1)}]
-	    lappend wmap [expr {$xval-$delta-0.01}] 0.0
-	    lappend wmap [expr {$xval-$delta}] $opacity 
-	    lappend wmap [expr {$xval+$delta}] $opacity
-	    lappend wmap [expr {$xval+$delta+0.01}] 0.0
+            lappend wmap [expr {$xval-$delta-0.01}] 0.0
+            lappend wmap [expr {$xval-$delta}] $opacity 
+            lappend wmap [expr {$xval+$delta}] $opacity
+            lappend wmap [expr {$xval+$delta+0.01}] 0.0
         }
         lappend wmap 1.0 0.0
     } else {
         lappend wmap 0.0 0.0
         set delta 0.05
         foreach xval [split $levels ,] {
-            lappend wmap [expr {$xval-$delta}] 0.0  
-	    lappend $xval $opacity
-	    lappend [expr {$xval+$delta}] 0.0
+            lappend wmap [expr {$xval-$delta}] 0.0
+            lappend $xval $opacity
+            lappend [expr {$xval+$delta}] 0.0
         }
         lappend wmap 1.0 0.0
     }
