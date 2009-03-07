@@ -34,7 +34,7 @@ itcl::class ::Rappture::VisViewer {
     # server when idle timeout is reached.
     private variable idleTimeout_ 43200000; # 12 hours
     #private variable idleTimeout_ 5000;    # 5 seconds
-    #private variable idleTimeout_ 0;	    # No timeout
+    #private variable idleTimeout_ 0;       # No timeout
 
     protected variable _dispatcher ""   ;# dispatcher for !events
     protected variable _hosts ""    ;# list of hosts for server
@@ -132,9 +132,9 @@ itcl::body Rappture::VisViewer::constructor { hostlist args } {
     # RENDERING AREA
     #
     itk_component add drawer {
- 	panedwindow $itk_interior.drawer \
- 	    -orient horizontal -opaqueresize 1 -handlepad 0 \
- 	    -handlesize 1 -sashwidth 2     
+        panedwindow $itk_interior.drawer \
+            -orient horizontal -opaqueresize 1 -handlepad 0 \
+            -handlesize 1 -sashwidth 2
     }
     pack $itk_component(drawer) -expand yes -fill both
 
@@ -206,11 +206,11 @@ itcl::body Rappture::VisViewer::_ServerDown {} {
 #
 # Connect --
 #
-#    Connect to the visualization server (e.g. nanovis, pymolproxy).  
-#    Creates an event callback that is triggered when we are idle 
-#    (no I/O with the server) for some specified time. Sends the server 
-#    some estimate of the size of our job [soon to be deprecated].  
-#    If it's too busy, that server may forward us to another [this 
+#    Connect to the visualization server (e.g. nanovis, pymolproxy).
+#    Creates an event callback that is triggered when we are idle
+#    (no I/O with the server) for some specified time. Sends the server
+#    some estimate of the size of our job [soon to be deprecated].
+#    If it's too busy, that server may forward us to another [this
 #    was been turned off in nanoscale].
 #
 itcl::body Rappture::VisViewer::Connect { hostlist } {
@@ -259,9 +259,9 @@ itcl::body Rappture::VisViewer::Connect { hostlist } {
             # We're connected. Cancel any pending serverDown events and
             # release the busy window over the hull.
             $_dispatcher cancel !serverDown
-	    if { $idleTimeout_ > 0 } {
-		$_dispatcher event -after $idleTimeout_ !timeout
-	    }
+            if { $idleTimeout_ > 0 } {
+                $_dispatcher event -after $idleTimeout_ !timeout
+            }
             blt::busy release $itk_component(hull)
             fconfigure $sid_ -buffering line
             fileevent $sid_ readable [itcl::code $this _ReceiveHelper]
@@ -307,14 +307,14 @@ itcl::body Rappture::VisViewer::IsConnected {} {
 #
 itcl::body Rappture::VisViewer::_CheckConnection {} {
     if { [IsConnected] } {
-	if { [eof $sid_] } {
-	    error "unexpected eof on socket"
-	}
-	$_dispatcher cancel !timeout
-	if { $idleTimeout_ > 0 } {
-	    $_dispatcher event -after $idleTimeout_ !timeout
-	}
-	return 1
+        if { [eof $sid_] } {
+            error "unexpected eof on socket"
+        }
+        $_dispatcher cancel !timeout
+        if { $idleTimeout_ > 0 } {
+            $_dispatcher event -after $idleTimeout_ !timeout
+        }
+        return 1
     }
     # If we aren't connected, assume it's because the connection to the
     # visualization server broke. Try to open a connection and trigger a
@@ -325,12 +325,12 @@ itcl::body Rappture::VisViewer::_CheckConnection {} {
     Rappture::Tooltip::cue @$x,$y "Connecting..."
     set code [catch { Connect } ok]
     if { $code == 0 && $ok} {
-	$_dispatcher event -idle !rebuild
-	Rappture::Tooltip::cue hide 
-	return 1
+        $_dispatcher event -idle !rebuild
+        Rappture::Tooltip::cue hide
+        return 1
     } else {
-	Rappture::Tooltip::cue @$x,$y "Can't connect to visualization server.  This may be a network problem.  Wait a few moments and try resetting the view."
-	return 0
+        Rappture::Tooltip::cue @$x,$y "Can't connect to visualization server.  This may be a network problem.  Wait a few moments and try resetting the view."
+        return 0
     }
 }
 
@@ -355,7 +355,7 @@ itcl::body Rappture::VisViewer::Flush {} {
 #
 itcl::body Rappture::VisViewer::_SendHelper {} {
     if { ![_CheckConnection] } {
-	return 0
+        return 0
     }
     puts $sid_ $buffer_(out)
     flush $sid_ 
@@ -373,7 +373,7 @@ itcl::body Rappture::VisViewer::_SendHelper {} {
 #
 itcl::body Rappture::VisViewer::_SendHelper.old {} {
     if { ![_CheckConnection] } {
-	return 0
+        return 0
     }
     set bytesLeft [string length $buffer_(out)]
     if { $bytesLeft > 0} {
@@ -406,7 +406,7 @@ itcl::body Rappture::VisViewer::SendBytes { bytes } {
     SendEcho >>line $bytes
 
     if { ![_CheckConnection] } {
-	return 0
+        return 0
     }
     # Even though the data is sent in only 1 "puts", we need to verify that
     # the server is ready first.  Wait for the socket to become writable
@@ -428,7 +428,7 @@ itcl::body Rappture::VisViewer::SendBytes { bytes } {
 #
 itcl::body Rappture::VisViewer::ReceiveBytes { size } {
     if { ![_CheckConnection] } {
-	return 0
+        return 0
     }
     set bytes [read $sid_ $size]
     ReceiveEcho <<line "<read $size bytes"
@@ -456,35 +456,35 @@ itcl::body Rappture::VisViewer::ReceiveBytes { size } {
 #
 itcl::body Rappture::VisViewer::_ReceiveHelper {} {
     if { ![_CheckConnection] } {
-	return 0
+        return 0
     }
     set n [gets $sid_ line]
-    
+
     if { $n < 0 } {
-	Disconnect
-	return 0
+        Disconnect
+        return 0
     }
     set line [string trim $line]
     if { $line == "" } {
-	return
+        return
     }
     if { [string compare -length 3 $line "nv>"] == 0 } {
-	ReceiveEcho <<line $line
-	append buffer_(in) [string range $line 3 end]
-	append buffer_(in) "\n"
-	if {[info complete $buffer_(in)]} {
-	    set request $buffer_(in)
-	    set buffer_(in) ""
-	    $_parser eval $request
-	}
+        ReceiveEcho <<line $line
+        append buffer_(in) [string range $line 3 end]
+        append buffer_(in) "\n"
+        if {[info complete $buffer_(in)]} {
+            set request $buffer_(in)
+            set buffer_(in) ""
+            $_parser eval $request
+        }
     } elseif { [string compare -length 20 $line "NanoVis Server Error:"] == 0} {
-	# this shows errors coming back from the engine
-	ReceiveEcho <<error $line
-	puts stderr "Render Server Error: $line\n"
+        # this shows errors coming back from the engine
+        ReceiveEcho <<error $line
+        puts stderr "Render Server Error: $line\n"
     } else {
-	# this shows errors coming back from the engine
-	ReceiveEcho <<error $line
-	puts stderr "Garbled message: $line\n"
+        # this shows errors coming back from the engine
+        ReceiveEcho <<error $line
+        puts stderr "Garbled message: $line\n"
     }
 }
 
