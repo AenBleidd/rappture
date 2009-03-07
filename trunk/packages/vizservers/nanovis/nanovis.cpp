@@ -153,6 +153,9 @@ float color_table[256][4];
 // in Command.cpp
 extern Tcl_Interp *initTcl();
 
+// in dxReader.cpp
+extern void load_vector_stream(int index, std::istream& fin);
+
 float vert[NMESH*NMESH*3];              //particle positions in main memory
 float slice_vector[NMESH*NMESH*4];      //per slice vectors in main memory
 
@@ -398,11 +401,21 @@ LoadCgSourceProgram(CGcontext context, const char *fileName, CGprofile profile,
         fprintf(stderr, "can't find program \"%s\"\n", fileName);
         assert(path != NULL);
     }
+    printf("cg program compiling: %s\n", path);
+    fflush(stdout);
     CGprogram program;
     program = cgCreateProgramFromFile(context, CG_SOURCE, path, profile, 
         entryPoint, NULL);
-    delete [] path;
     cgGLLoadProgram(program);
+
+    CGerror LastError = cgGetError();
+    if (LastError)
+    {
+       printf("Error message: %s\n", cgGetLastListing(context));
+    }
+
+    delete [] path;
+
     return program;
 }
 
@@ -1863,7 +1876,8 @@ NanoVis::display()
            fprintf(stderr, "in display: volume_mode\n");
         }
         //3D rendering mode
-        glEnable(GL_TEXTURE_2D);
+	// TBD..
+        //glEnable(GL_TEXTURE_2D);
         glEnable(GL_DEPTH_TEST);
 
         //camera setting activated
@@ -1990,8 +2004,8 @@ NanoVis::update_rot(int delta_x, int delta_y)
     Vector3 angle;
 
     angle = cam->rotate();
-    angle.x += delta.x;
-    angle.y += delta.y;
+    angle.x += delta_x;
+    angle.y += delta_y;
 
     if (angle.x > 360.0) {
         angle.x -= 360.0;
@@ -2017,6 +2031,7 @@ NanoVis::update_trans(int delta_x, int delta_y, int delta_z)
 void 
 NanoVis::keyboard(unsigned char key, int x, int y)
 {
+/*
    bool log = false;
 
    switch (key) {
@@ -2025,11 +2040,11 @@ NanoVis::keyboard(unsigned char key, int x, int y)
        break;
    case '+':
        lic_slice_z+=0.05;
-       lic->set_offset(lic_slice_z);
+       licRenderer->set_offset(lic_slice_z);
        break;
    case '-':
        lic_slice_z-=0.05;
-       lic->set_offset(lic_slice_z);
+       licRenderer->set_offset(lic_slice_z);
        break;
    case ',':
        lic_slice_x+=0.05;
@@ -2082,6 +2097,7 @@ NanoVis::keyboard(unsigned char key, int x, int y)
    default:
        break;
    }
+*/
 #ifdef EVENTLOG
    if(log){
        float param[3];
@@ -2196,6 +2212,31 @@ get_time_interval()
 }
 #endif
 
+void 
+NanoVis::render()
+{
+      if (NanoVis::licRenderer && NanoVis::licRenderer->isActivated())
+      {
+      NanoVis::licRenderer->convolve();
+      }
+
+      if (NanoVis::particleRenderer && NanoVis::particleRenderer->isActivated())
+      {
+      NanoVis::particleRenderer->advect();
+      }
+
+      NanoVis::update();
+
+	display();
+	glutSwapBuffers();
+
+}
+
+void 
+NanoVis::resize(int x, int y)
+{
+	glViewport(0, 0, x, y);
+}
 
 void 
 NanoVis::xinetd_listen(void)
@@ -2360,16 +2401,18 @@ main(int argc, char** argv)
     glutInitWindowSize(NanoVis::win_width, NanoVis::win_height);
     glutInitWindowPosition(10, 10);
     NanoVis::render_window = glutCreateWindow("nanovis");
-    glutDisplayFunc(NanoVis::display);
     glutIdleFunc(NanoVis::idle);
-    glutReshapeFunc(NanoVis::resize_offscreen_buffer);
 
 #ifndef XINETD
     glutMouseFunc(NanoVis::mouse);
     glutMotionFunc(NanoVis::motion);
     glutKeyboardFunc(NanoVis::keyboard);
+    glutReshapeFunc(NanoVis::resize);
+    glutDisplayFunc(NanoVis::render);
+#else
+    glutDisplayFunc(NanoVis::display);
+    glutReshapeFunc(NanoVis::resize_offscreen_buffer);
 #endif
-
 
     while (1) {
         static struct option long_options[] = {
@@ -2449,6 +2492,7 @@ main(int argc, char** argv)
         // See if we can derive the path from the location of the program.
         // Assume program is in the form <path>/bin/nanovis.
 
+#ifdef XINETD
         path = argv[0];
         p = strrchr(path, '/');
         if (p != NULL) {
@@ -2463,6 +2507,17 @@ main(int argc, char** argv)
         newPath = new char[(strlen(path) + 15) * 2 + 1];
         sprintf(newPath, "%s/lib/shaders:%s/lib/resources", path, path);
         path = newPath;
+#else
+	char buff[256];
+	getcwd(buff, 255);
+        p = strrchr(buff, '/');
+        if (p != NULL) {
+            *p = '\0';
+	}
+        newPath = new char[(strlen(buff) + 15) * 2 + 1];
+        sprintf(newPath, "%s/lib/shaders:%s/lib/resources", buff, buff);
+        path = newPath;
+#endif
     }
     R2FilePath::getInstance()->setWorkingDirectory(argc, (const char**) argv);
 
@@ -2482,6 +2537,50 @@ main(int argc, char** argv)
     Tcl_DStringInit(&NanoVis::cmdbuffer);
     NanoVis::interp = initTcl();
     NanoVis::resize_offscreen_buffer(NanoVis::win_width, NanoVis::win_height);
+
+#ifndef XINETD
+/*
+    CGprofile newProfile;
+    newProfile = cgGetProfile("fp30");
+    if (newProfile == CG_PROFILE_UNKNOWN)
+	printf("unknown profile\n");
+    else printf("fp30 know profile\n");
+
+    int n = NanoVis::n_volumes;
+    std::ifstream fdata;
+    fdata.open("flow2d.dx", std::ios::in);
+    load_vector_stream(n, fdata);
+    Volume *volPtr = NanoVis::volume[n];
+
+    if (volPtr != NULL) {
+        //volPtr->set_n_slice(256-n);
+        volPtr->set_n_slice(512-n);
+        volPtr->disable_cutplane(0);
+        volPtr->disable_cutplane(1);
+        volPtr->disable_cutplane(2);
+
+        NanoVis::vol_renderer->add_volume(volPtr,
+                NanoVis::get_transfunc("default"));
+    }
+
+
+    if (NanoVis::particleRenderer != NULL) {
+        NanoVis::particleRenderer->setVectorField(volPtr->id, 1.0f,
+            volPtr->height / (float)volPtr->width,
+            volPtr->depth  / (float)volPtr->width,
+            volPtr->wAxis.max());
+        NanoVis::initParticle();
+    }
+    if (NanoVis::licRenderer != NULL) {
+        NanoVis::licRenderer->setVectorField(volPtr->id,
+            1.0f / volPtr->aspect_ratio_width,
+            1.0f / volPtr->aspect_ratio_height,
+            1.0f / volPtr->aspect_ratio_depth,
+            volPtr->wAxis.max());
+        NanoVis::licRenderer->set_offset(NanoVis::lic_slice_z);
+	}
+*/
+#endif
     glutMainLoop();
 
     DoExit(0);

@@ -43,6 +43,7 @@ private:
   int size; 		//the lic is a square of size, it can be stretched
   float* slice_vector;  //storage for the per slice vectors driving the follow
   Vector3 scale;	//scaling factor stretching the lic plane to fit the actual dimensions
+  Vector3 origin;
   float offset;		//[0,1] offset could be x, y, or z direction
 
   //some convolve variables. They can pretty much stay fixed
@@ -94,7 +95,7 @@ public:
     void deactivate();
     bool isActivated() const;
 
-    void setVectorField(unsigned int texID, float scaleX, float scaleY, float scaleZ, float max);
+    void setVectorField(unsigned int texID, const Vector3& ori, float scaleX, float scaleY, float scaleZ, float max);
 };
 
 inline void NvLIC::activate()

@@ -155,6 +155,11 @@ public:
     static void init_offscreen_buffer(void);
     static void initParticle();
     static void resize_offscreen_buffer(int w, int h);
+
+    // For development
+    static void resize(int w, int h);
+    static void render();
+
     static void ppm_write(const char *prefix);
     static void sendDataToClient(const char *command, const char *data,
         size_t dlen);
