@@ -47,6 +47,7 @@ FILES		= \
 		$(srcdir)/field2dresult.tcl \
 		$(srcdir)/field3dresult.tcl \
 		$(srcdir)/filexfer.tcl \
+		$(srcdir)/flowvisviewer.tcl \
 		$(srcdir)/gauge.tcl \
 		$(srcdir)/getopts.tcl \
 		$(srcdir)/grab.tcl \
@@ -101,7 +102,7 @@ FILES		= \
 		$(srcdir)/valueresult.tcl \
 		$(srcdir)/visviewer.tcl \
 		$(srcdir)/xylegend.tcl \
-		$(srcdir)/xyresult.tcl 
+		$(srcdir)/xyresult.tcl
 
 version 	= $(PACKAGE_VERSION)
 name 		= RapptureGUI$(version)

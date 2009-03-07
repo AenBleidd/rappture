@@ -146,7 +146,7 @@ public:
 
     static TransferFunction* get_transfunc(const char *name);
     static TransferFunction* DefineTransferFunction(const char *name, 
-	size_t n, float *data);
+        size_t n, float *data);
     static void SetVolumeRanges(void);
     static void SetHeightmapRanges(void);
     static void init(const char* path);
@@ -156,6 +156,8 @@ public:
     static void initParticle();
     static void resize_offscreen_buffer(int w, int h);
     static void ppm_write(const char *prefix);
+    static void sendDataToClient(const char *command, const char *data,
+        size_t dlen);
     static void bmp_write(const char *prefix);
     static void bmp_write_to_file(int frame_number, const char* directory_name);
     static void display(void);
@@ -163,9 +165,9 @@ public:
     static void update(void);
     static void display_offscreen_buffer();
     static int render_legend(TransferFunction *tf, double min, double max, 
-	int width, int height, const char* volArg);
+        int width, int height, const char* volArg);
     static Volume *load_volume(int index, int width, int height, int depth, 
-	int n, float* data, double vmin, double vmax, double nzero_min);
+        int n, float* data, double vmin, double vmax, double nzero_min);
     static void xinetd_listen(void);
     static int render_2d_contour(HeightMap* heightmap, int width, int height);
     static void pan(float dx, float dy);
@@ -181,11 +183,11 @@ public:
     static FILE *stdin, *logfile, *recfile;
 
     static void read_screen(void) {
-	glReadPixels(0, 0, win_width, win_height, GL_RGB, GL_UNSIGNED_BYTE, 
-		     screen_buffer);
+        glReadPixels(0, 0, win_width, win_height, GL_RGB, GL_UNSIGNED_BYTE, 
+                screen_buffer);
     }
     static void offscreen_buffer_capture(void) {
-	glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, final_fbo);
+        glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, final_fbo);
     }
 };
 
