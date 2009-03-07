@@ -24,6 +24,7 @@ SCRIPTS	= \
 		$(srcdir)/driver \
 		$(srcdir)/grabdata \
 		$(srcdir)/nanovis-test \
+		$(srcdir)/flowvis-test \
 		rappture \
 		rappture.env \
 		rappture-csh.env \
