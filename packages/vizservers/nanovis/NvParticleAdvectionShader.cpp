@@ -27,3 +27,17 @@ void NvParticleAdvectionShader::init()
     _scaleParam = cgGetNamedParameter(_cgFP, "scale");
 }
 
+void NvParticleAdvectionShader::bind(unsigned int texID)
+{
+    cgGLBindProgram(_cgFP);
+
+    cgGLSetParameter1f(_posTimestepParam, _timeStep);
+    cgGLSetParameter1f(_maxParam, _max);
+    cgGLSetParameter3f(_scaleParam, _scale.x, _scale.y, _scale.z);
+    cgGLSetTextureParameter(_velTexParam, _velocityVolumeID);
+    cgGLEnableTextureParameter(_velTexParam);
+    cgGLSetTextureParameter(_posTexParam, texID);
+    cgGLEnableTextureParameter(_posTexParam);
+
+    cgGLEnableProfile(CG_PROFILE_FP30);
+}

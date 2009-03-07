@@ -1761,6 +1761,9 @@ FlowDataFollowsOp(ClientData cdata, Tcl_Interp *interp, int objc,
         float dy0 = -0.5*volPtr->height/volPtr->width;
         float dz0 = -0.5*volPtr->depth/volPtr->width;
         volPtr->move(Vector3(dx0, dy0, dz0));
+
+	// 
+	volPtr->disable();
     }
 
     return TCL_OK;
@@ -1879,6 +1882,7 @@ FlowParticleVisibleOp(ClientData cdata, Tcl_Interp *interp, int objc,
     if (GetBooleanFromObj(interp, objv[3], &state) != TCL_OK) {
         return TCL_ERROR;
     }
+
     NanoVis::particle_on = state;
     return TCL_OK;
 }
@@ -2006,6 +2010,7 @@ FlowVectorIdOp(ClientData cdata, Tcl_Interp *interp, int objc,
     }
     if (NanoVis::licRenderer != NULL) {
         NanoVis::licRenderer->setVectorField(volPtr->id,
+            *(volPtr->get_location()),
             1.0f / volPtr->aspect_ratio_width,
             1.0f / volPtr->aspect_ratio_height,
             1.0f / volPtr->aspect_ratio_depth,

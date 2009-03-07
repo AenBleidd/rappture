@@ -46,6 +46,7 @@ void NvShader::resetPrograms()
 
 void NvShader::setErrorCallback(NvCgCallbackFunction callback)
 {
+	printf("NvShader callback\n");
     cgSetErrorCallback(callback);
 }
 

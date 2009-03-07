@@ -27,7 +27,8 @@
  * releases are built directly from the subversion repository.  So for now,
  * we'll rely on developers to set this in their respective sandboxes.
  */
-#define PROTOTYPE		0
+//#define PROTOTYPE		0
+#define PROTOTYPE		1
 
 /* 
  * The following define controls whether new load_volume_stream or

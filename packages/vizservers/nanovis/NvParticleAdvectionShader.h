@@ -34,21 +34,6 @@ inline void NvParticleAdvectionShader::setTimeStep(float timeStep)
     _timeStep = timeStep;
 }
 
-inline void NvParticleAdvectionShader::bind(unsigned int texID)
-{
-    cgGLBindProgram(_cgFP);
-
-    cgGLSetParameter1f(_posTimestepParam, _timeStep);
-    cgGLSetParameter1f(_maxParam, _max);
-    cgGLSetParameter3f(_scaleParam, _scale.x, _scale.y, _scale.z);
-    cgGLSetTextureParameter(_velTexParam, _velocityVolumeID);
-    cgGLEnableTextureParameter(_velTexParam);
-    cgGLSetTextureParameter(_posTexParam, texID);
-    cgGLEnableTextureParameter(_posTexParam);
-
-    cgGLEnableProfile(CG_PROFILE_FP30);
-}
-
 inline void NvParticleAdvectionShader::unbind()
 {
      cgGLDisableProfile(CG_PROFILE_FP30);
