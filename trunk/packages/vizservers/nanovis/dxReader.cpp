@@ -66,6 +66,7 @@ load_vector_stream(int index, std::istream& fin)
 
         if (*start != '#') {  // skip comment lines
             if (sscanf(start, "object %d class gridpositions counts %d %d %d", &dummy, &nx, &ny, &nz) == 4) {
+		printf("w:%d h:%d d:%d\n", nx, ny, nz);
                 // found grid size
             } else if (sscanf(start, "origin %lg %lg %lg", &x0, &y0, &z0) == 3) {
                 // found origin
@@ -79,6 +80,7 @@ load_vector_stream(int index, std::istream& fin)
                     dz = ddz;
                 }
             } else if (sscanf(start, "object %d class array type %s shape 3 rank 1 items %d data follows", &dummy, type, &npts) == 3) {
+		printf("point %d\n", npts);
                 if (npts != nx*ny*nz) {
                     std::cerr << "inconsistent data: expected " << nx*ny*nz << " points but found " << npts << " points" << std::endl;
                     return;
@@ -136,6 +138,8 @@ load_vector_stream(int index, std::istream& fin)
         dz = xfield.rangeMax(Rappture::zaxis) - xfield.rangeMin(Rappture::zaxis);
         double dmin = pow((dx*dy*dz)/(nsample*nsample*nsample), 0.333);
 
+	printf("dx:%lf dy:%lf dz:%lf dmin:%lf\n", dx, dy, dz, dmin);
+
         nx = (int)ceil(dx/dmin);
         ny = (int)ceil(dy/dmin);
         nz = (int)ceil(dz/dmin);
@@ -147,8 +151,8 @@ load_vector_stream(int index, std::istream& fin)
         nz = (int)pow(2.0, ceil(log10((double)nz)/log10(2.0)));
 #endif
 
-        float *data = new float[3*nx*ny*nz];
-        memset(data, 0, sizeof(float) * 3 * nx * ny * nz);
+        float *data = new float[4*nx*ny*nz];
+        memset(data, 0, sizeof(float) * 4 * nx * ny * nz);
 
         std::cout << "generating " << nx << "x" << ny << "x" << nz << " = " << nx*ny*nz << " points" << std::endl;
 
@@ -178,6 +182,7 @@ load_vector_stream(int index, std::istream& fin)
                     if ((vm != 0.0f) && (vm < nzero_min)) {
                         nzero_min = vm;
                     }
+                    data[ngen++] = vm;
                     data[ngen++] = vx;
                     data[ngen++] = vy;
                     data[ngen++] = vz;
@@ -188,11 +193,14 @@ load_vector_stream(int index, std::istream& fin)
         ngen = 0;
 
         // scale should be accounted.
-        for (ngen=0; ngen < npts; ngen++) {
-            data[ngen] = (data[ngen]/(2.0*vmax) + 0.5);
+        for (ngen=0; ngen < npts; ) {
+	    data[ngen] = data[ngen] / vmax; ++ngen;
+            data[ngen] = (data[ngen]/(2.0*vmax) + 0.5); ++ngen;
+            data[ngen] = (data[ngen]/(2.0*vmax) + 0.5); ++ngen;
+            data[ngen] = (data[ngen]/(2.0*vmax) + 0.5); ++ngen;
         }
         Volume *volPtr;
-        volPtr = NanoVis::load_volume(index, nx, ny, nz, 3, data, vmin, vmax,
+        volPtr = NanoVis::load_volume(index, nx, ny, nz, 4, data, vmin, vmax,
                     nzero_min);
 
         volPtr->xAxis.SetRange(x0, x0 + (nx * dx));
