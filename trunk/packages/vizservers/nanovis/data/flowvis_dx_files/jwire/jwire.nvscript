@@ -13009,7 +13009,7 @@ screen 640 480
 cutplane state 0 x
 cutplane state 0 y
 cutplane state 0 z
-camera angle 90 0 180
+camera angle 0 0 0
 
 
 
