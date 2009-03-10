@@ -9,14 +9,15 @@ struct Vector2 {
 void storeInOpenDX(const char* filename, Vector2* vector, int width, int height, int depth)
 {
 	FILE* file = fopen(filename, "wb");
-	
-#if 0
-        width = width >> 1;
-        height = height >> 1;
-#endif
+
+	int ori_width = width;
+	int ori_height = height;
+	if (ori_width > 512) width = 512;
+	if (ori_height > 512) height = 512;
+
 	int count = width * height;
 	int total_count = width * height * depth;
-	fprintf(file, "object 1 class gridposition counts %d %d %d\n", width, height, depth);
+	fprintf(file, "object 1 class gridpositions counts %d %d %d\n", width, height, depth);
 	fprintf(file, "origin 0 0 0\n");
 	fprintf(file, "delta 50 0 0\n");
 	fprintf(file, "delta 0 50 0\n");
@@ -25,33 +26,63 @@ void storeInOpenDX(const char* filename, Vector2* vector, int width, int height,
 	fprintf(file, "object 3 class array type double shape 3 rank 1 items %d data follows\n", total_count);
 	
 
-	for (int z = 0; z < depth; ++z)
+	if (ori_width <= 512 && ori_height <= 512)
 	{
-		for (int index = 0; index < count; ++index)
+		int dataindex = 0;
+		Vector2* ptr;
+		for (int z = 0; z < depth; ++z)
 		{
-			fprintf(file, "%f %f 0.0\n", vector[index].x, vector[index].y);
+			for (int y = 0; y < height; ++y)
+			{
+				for (int x = 0; x < width; ++x)
+				{
+					ptr = vector + (y * ori_width +  x);
+					fprintf(file, "%f %f 0.0\n", ptr->x, ptr->y);
+				}
+			}
 		}
 	}
+	else
+	{
+		int offsetx = 0, offsety = 0;
+		if (ori_width > 512) { width = 512; offsetx = (ori_width - width) / 2;}
+		if (ori_height > 512) { height = 512; offsety = (ori_height - height) / 2;}
+
+		int dataindex = 0;
+		Vector2* ptr;
+		for (int z = 0; z < depth; ++z)
+		{
+			for (int y = 0; y < height; ++y)
+			{
+				for (int x = 0; x < width; ++x)
+				{
+					ptr = vector + ((y + offsety) * ori_width +  x + offsetx);
+					fprintf(file, "%f %f 0.0\n", ptr->x, ptr->y);
+				}
+			}
+		}
+	}
+
 
 	fclose(file);
 }
 
 int main(int argc, char* argv[])
 {
-#if 1
-	if (argc < 7)
+#if 0
+	if (argc < 6)
 	{
-		printf("usage: mat2dx <Ix ascii filename> <Iy ascii filename> <width> <height> <depth> <outputfilename>\n");
-		return 0;
+		printf("usage: mat2dx <Ix ascii filename> <Iy ascii filename> <width> <height> <depth>\n");
 	}
 	FILE* xComp = fopen(argv[1], "rb");
 	FILE* yComp = fopen(argv[2], "rb");
-	int width, height, depth;
+	int width = 610, height = 218;
 	width = atoi(argv[3]);
 	height = atoi(argv[4]);
 	depth = atoi(argv[5]);
 #else
-	int width = 610, height = 218;
+	//int width =218, height = 610;(?)
+	int width =610, height = 218;
 	int depth = 50;
 	FILE* xComp = fopen("Ix_data.txt", "rb");
 	FILE* yComp = fopen("Iy_data.txt", "rb");
@@ -93,5 +124,5 @@ int main(int argc, char* argv[])
 	fclose(xComp);
 	fclose(yComp);
 
-	storeInOpenDX(argv[6], data, width, height, depth);
+	storeInOpenDX("flow2d.dx", data, width, height, depth);
 }
