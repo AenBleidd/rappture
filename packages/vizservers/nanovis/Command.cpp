@@ -104,6 +104,7 @@ extern void load_volume(int index, int width, int height, int depth,
             int n_component, float* data, double vmin, double vmax,
             double nzero_min);
 extern void load_vector_stream(int index, std::istream& fin);
+extern void load_vector_stream2(int index, std::istream& fin);
 
 // Tcl interpreter for incoming messages
 
@@ -1735,7 +1736,8 @@ FlowDataFollowsOp(ClientData cdata, Tcl_Interp *interp, int objc,
     int n = NanoVis::n_volumes;
     std::stringstream fdata;
     fdata.write(buf.bytes(),buf.size());
-    load_vector_stream(n, fdata);
+    //load_vector_stream(n, fdata);
+    load_vector_stream2(n, fdata);
     Volume *volPtr = NanoVis::volume[n];
 
     //
