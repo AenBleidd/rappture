@@ -1753,6 +1753,7 @@ FlowDataFollowsOp(ClientData cdata, Tcl_Interp *interp, int objc,
         //volPtr->set_n_slice(512-n);
         volPtr->disable_cutplane(0);
         volPtr->disable_cutplane(1);
+
         volPtr->disable_cutplane(2);
 
         NanoVis::vol_renderer->add_volume(volPtr,
@@ -1929,8 +1930,8 @@ FlowParticleSliceposOp(ClientData cdata, Tcl_Interp *interp, int objc,
 }
 
 static Rappture::CmdSpec flowParticleOps[] = {
-    {"slice",      1, FlowParticleSliceOp,    4, 4, "index",},
-    {"slicepos",   1, FlowParticleSliceposOp, 4, 4, "value",},
+    {"slice",      5, FlowParticleSliceOp,    4, 4, "index",},
+    {"slicepos",   6, FlowParticleSliceposOp, 4, 4, "value",},
     {"visible",    1, FlowParticleVisibleOp,  4, 4, "on|off",},
 };
 static int nFlowParticleOps = NumCmdSpecs(flowParticleOps);

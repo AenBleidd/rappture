@@ -14,13 +14,19 @@
 #ifndef RAPPTURE_AVTRANSLATE_H
 #define RAPPTURE_AVTRANSLATE_H
 
+#include "nvconf.h"
 #include "RpOutcome.h"
 
 #ifdef __cplusplus
     extern "C" {
 #endif // ifdef __cplusplus
 
-#include "ffmpeg/avformat.h"
+#ifdef HAVE_FFMPEG_AVFORMAT_H
+#include <ffmpeg/avformat.h>
+#endif
+#ifdef HAVE_LIBAVFORMAT_AVFORMAT_H
+#include <libavformat/avformat.h>
+#endif
 
 namespace Rappture {
 

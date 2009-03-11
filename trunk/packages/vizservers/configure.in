@@ -1,5 +1,5 @@
 AC_INIT(vizservers, 0.1, rappture@nanohub.org)
-AC_CONFIG_HEADER(nanoscale/config.h)
+AC_CONFIG_HEADER(nanoscale/config.h nanovis/nvconf.h)
 
 VERSION=0.0.1
 AC_SUBST(VERSION)
@@ -183,29 +183,7 @@ fi
 AC_SUBST(DX_DIR)
 AC_MSG_RESULT([${DX_DIR}])
 
-AC_MSG_CHECKING([for FFmpeg installation])
-FFMPEG_DIR=""
-for dir in \
- /apps/rappture \
- /usr
-do
-  if test -r "${dir}/include/ffmpeg/avcodec.h" ; then
-    FFMPEG_DIR="$dir"
-    break
-  fi
-done
-if test "x${FFMPEG_DIR}" = "x" ; then
-  AC_MSG_ERROR([can't find FFmpeg installation])
-fi
-
-if test "${FFMPEG_DIR}" = "/usr" ; then
-  FFMPEG_DIR=""
-#else
-#  LD_RPATH="$loader_run_path:${FFMPEG_DIR}/lib"
-fi
-
-AC_SUBST(FFMPEG_DIR)
-AC_MSG_RESULT([${FFMPEG_DIR}])
+AC_CHECK_HEADERS([ffmpeg/avcodec.h libavcodec/avcodec.h ffmpeg/avformat.h libavformat/avformat.h ffmpeg/avutil.h libavutil/avutil.h])
 
 AC_MSG_CHECKING([for nVidia Cg installation])
 CG_DIR=""
