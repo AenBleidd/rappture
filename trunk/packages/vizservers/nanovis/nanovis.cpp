@@ -128,6 +128,9 @@ bool NanoVis::vector_on = false;
 bool NanoVis::axis_on = true;
 bool NanoVis::config_pending = false;
 bool NanoVis::debug_flag = false;
+bool NanoVis::lic_slice_x_visible = false;
+bool NanoVis::lic_slice_y_visible = false;
+bool NanoVis::lic_slice_z_visible = false;
 
 Tcl_Interp *NanoVis::interp;
 Tcl_DString NanoVis::cmdbuffer;

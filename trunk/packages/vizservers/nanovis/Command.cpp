@@ -1877,37 +1877,43 @@ FlowLicOp(ClientData cdata, Tcl_Interp *interp, int objc,
     return TCL_OK;
 }
 
-static int
-FlowParticleVisibleOp(ClientData cdata, Tcl_Interp *interp, int objc,
-             Tcl_Obj *const *objv)
-{
-    bool state;
-    if (GetBooleanFromObj(interp, objv[3], &state) != TCL_OK) {
-        return TCL_ERROR;
-    }
-
-    NanoVis::particle_on = state;
-    return TCL_OK;
-}
 
 static int
-FlowParticleSliceOp(ClientData cdata, Tcl_Interp *interp, int objc,
+FlowSliceVisibleOp(ClientData cdata, Tcl_Interp *interp, int objc,
              Tcl_Obj *const *objv)
 {
     int axis;
     if (GetAxisFromObj(interp, objv[3], &axis) != TCL_OK) {
         return TCL_ERROR;
     }
-    NanoVis::lic_axis = axis;
+    int state;
+    if (Tcl_GetBooleanFromObj(interp, objv[4], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    switch (axis) {
+    case 0 :
+        NanoVis::lic_slice_x_visible = state;
+        break;
+    case 1 :
+        NanoVis::lic_slice_y_visible = state;
+        break;
+    case 2 :
+        NanoVis::lic_slice_z_visible = state;
+        break;
+    }
     return TCL_OK;
 }
 
 static int
-FlowParticleSliceposOp(ClientData cdata, Tcl_Interp *interp, int objc,
-             Tcl_Obj *const *objv)
+FlowSlicePositionOp(ClientData cdata, Tcl_Interp *interp, int objc,
+		    Tcl_Obj *const *objv)
 {
+    int axis;
+    if (GetAxisFromObj(interp, objv[3], &axis) != TCL_OK) {
+        return TCL_ERROR;
+    }
     float pos;
-    if (GetFloatFromObj(interp, objv[2], &pos) != TCL_OK) {
+    if (GetFloatFromObj(interp, objv[4], &pos) != TCL_OK) {
         return TCL_ERROR;
     }
     if (pos < 0.0f) {
@@ -1915,7 +1921,7 @@ FlowParticleSliceposOp(ClientData cdata, Tcl_Interp *interp, int objc,
     } else if (pos > 1.0f) {
         pos = 1.0f;
     }
-    switch (NanoVis::lic_axis) {
+    switch (axis) {
     case 0 :
         NanoVis::lic_slice_x = pos;
         break;
@@ -1929,9 +1935,40 @@ FlowParticleSliceposOp(ClientData cdata, Tcl_Interp *interp, int objc,
     return TCL_OK;
 }
 
+static Rappture::CmdSpec flowSliceOps[] = {
+    {"position",  1, FlowSlicePositionOp, 5, 5, "axis value",},
+    {"visible",   1, FlowSliceVisibleOp,  5, 5, "bool axis",},
+};
+static int nFlowSliceOps = NumCmdSpecs(flowSliceOps);
+
+static int
+FlowSliceOp(ClientData cdata, Tcl_Interp *interp, int objc,
+             Tcl_Obj *const *objv)
+{
+    Tcl_ObjCmdProc *proc;
+
+    proc = Rappture::GetOpFromObj(interp, nFlowSliceOps, flowSliceOps,
+	Rappture::CMDSPEC_ARG2, objc, objv, 0);
+    if (proc == NULL) {
+        return TCL_ERROR;
+    }
+    return (*proc) (cdata, interp, objc, objv);
+}
+
+static int
+FlowParticleVisibleOp(ClientData cdata, Tcl_Interp *interp, int objc,
+             Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[3], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+
+    NanoVis::particle_on = state;
+    return TCL_OK;
+}
+
 static Rappture::CmdSpec flowParticleOps[] = {
-    {"slice",      5, FlowParticleSliceOp,    4, 4, "index",},
-    {"slicepos",   6, FlowParticleSliceposOp, 4, 4, "value",},
     {"visible",    1, FlowParticleVisibleOp,  4, 4, "on|off",},
 };
 static int nFlowParticleOps = NumCmdSpecs(flowParticleOps);
@@ -2030,6 +2067,7 @@ static Rappture::CmdSpec flowOps[] = {
     {"particle",  2, FlowParticleOp,      3, 0, "oper ?args?",},
     {"play",      2, FlowPlayOp,          2, 2, "",},
     {"reset",     1, FlowResetOp,         2, 2, "",},
+    {"slice",     1, FlowSliceOp,         3, 0, "oper ?args?",},
     {"vectorid",  1, FlowVectorIdOp,      3, 3, "index",},
 };
 static int nFlowOps = NumCmdSpecs(flowOps);
