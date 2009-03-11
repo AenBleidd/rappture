@@ -128,6 +128,9 @@ public:
     static float lic_slice_x;
     static float lic_slice_y;
     static float lic_slice_z;
+    static bool lic_slice_x_visible;
+    static bool lic_slice_y_visible;
+    static bool lic_slice_z_visible;
     static int lic_axis;	/* 0:x, 1:y, 2:z */
 
     static bool axis_on;
