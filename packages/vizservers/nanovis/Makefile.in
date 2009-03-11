@@ -84,6 +84,7 @@ LIBS		= \
 		-Wl,-rpath,$(LD_RUN_PATH)
 
 INCLUDES	= \
+		-I. \
 		-I$(srcdir) \
 		$(TCL_INC_SPEC) \
 		$(RP_INC_SPEC) \
