@@ -1,3 +1,4 @@
+
 # ----------------------------------------------------------------------
 #  COMPONENT: heightmapviewer - 3D volume rendering
 #
@@ -60,13 +61,18 @@ itcl::class Rappture::HeightmapViewer {
     public method parameters {title args} {
         # do nothing
     }
+    public method drawer {what who}
+    public method camera {option args}
     protected method Connect {}
     protected method Disconnect {}
 
     protected method _send {string}
     protected method _send_dataobjs {}
     protected method ReceiveImage {option size}
-    private method ReceiveLegend {tf vmin vmax size}
+    private method _ReceiveLegend {tf vmin vmax size}
+    private method _BuildSettingsDrawer {}
+    private method _BuildCameraDrawer {}
+    private method _PanCamera {}
     protected method _receive_echo {channel {data ""}}
 
     protected method _rebuild {}
@@ -91,9 +97,8 @@ itcl::class Rappture::HeightmapViewer {
     private variable click_        ;# info used for _rotate operations
     private variable limits_       ;# autoscale min/max for all axes
     private variable view_         ;# view params for 3D view
-
     private common settings_      ;# Array used for checkbuttons and radiobuttons
-
+    private variable initialized_
 }
 
 itk::usual HeightmapViewer {
@@ -123,7 +128,7 @@ itcl::body Rappture::HeightmapViewer::constructor {hostlist args} {
     # Populate parser with commands handle incoming requests
     #
     $_parser alias image [itcl::code $this ReceiveImage]
-    $_parser alias legend [itcl::code $this ReceiveLegend]
+    $_parser alias legend [itcl::code $this _ReceiveLegend]
 
     # Initialize the view to some default parameters.
     array set view_ {
@@ -131,8 +136,8 @@ itcl::body Rappture::HeightmapViewer::constructor {hostlist args} {
         phi     45
         psi     0
         zoom    1.0
-        dx      0
-        dy      0
+        pan-x	0
+        pan-y	0
     }
     set obj2id_(count) 0
 
@@ -147,105 +152,92 @@ itcl::body Rappture::HeightmapViewer::constructor {hostlist args} {
     itk_component add reset {
         button $itk_component(zoom).reset \
             -borderwidth 1 -padx 1 -pady 1 \
-            -bitmap [Rappture::icon reset] \
+            -image [Rappture::icon reset-view] \
             -command [itcl::code $this _zoom reset]
     } {
         usual
         ignore -borderwidth
         rename -highlightbackground -controlbackground controlBackground Background
     }
-    pack $itk_component(reset) -side left -padx {4 1} -pady 4
+    pack $itk_component(reset) -side top -padx 2 -pady { 2 0 }
     Rappture::Tooltip::for $itk_component(reset) "Reset the view to the default zoom level"
 
     itk_component add zoomin {
         button $itk_component(zoom).zin \
             -borderwidth 1 -padx 1 -pady 1 \
-            -bitmap [Rappture::icon zoomin] \
+            -image [Rappture::icon zoom-in] \
             -command [itcl::code $this _zoom in]
     } {
         usual
         ignore -borderwidth
         rename -highlightbackground -controlbackground controlBackground Background
     }
-    pack $itk_component(zoomin) -side left -padx 1 -pady 4
+    pack $itk_component(zoomin) -side top -padx 2 -pady { 2 0 }
     Rappture::Tooltip::for $itk_component(zoomin) "Zoom in"
 
     itk_component add zoomout {
         button $itk_component(zoom).zout \
             -borderwidth 1 -padx 1 -pady 1 \
-            -bitmap [Rappture::icon zoomout] \
+            -image [Rappture::icon zoom-out] \
             -command [itcl::code $this _zoom out]
     } {
         usual
         ignore -borderwidth
         rename -highlightbackground -controlbackground controlBackground Background
     }
-    pack $itk_component(zoomout) -side left -padx {1 4} -pady 4
+    pack $itk_component(zoomout) -side top -padx 2 -pady { 2 0 }
     Rappture::Tooltip::for $itk_component(zoomout) "Zoom out"
 
-    #
-    # Settings panel...
-    #
-    itk_component add settings {
-        button $itk_component(controls).settings -text "Settings..." \
-            -borderwidth 1 -relief flat -overrelief raised \
-            -padx 2 -pady 1 \
-            -command [list $itk_component(controls).panel activate $itk_component(controls).settings left]
+    itk_component add settings_button {
+        label $itk_component(controls).settingsbutton \
+            -borderwidth 1 -padx 1 -pady 1 \
+            -relief "raised" -image [Rappture::icon wrench]
     } {
         usual
         ignore -borderwidth
-        rename -background -controlbackground controlBackground Background
-        rename -highlightbackground -controlbackground controlBackground Background
+        rename -highlightbackground -controlbackground controlBackground \
+	    Background
     }
-    pack $itk_component(settings) -side top -pady 8
+    pack $itk_component(settings_button) -padx 2 -pady { 0 2 } \
+	-ipadx 1 -ipady 1
+    Rappture::Tooltip::for $itk_component(settings_button) \
+	"Configure settings"
+    bind $itk_component(settings_button) <ButtonPress> \
+        [itcl::code $this drawer toggle settings]
+    pack $itk_component(settings_button) -side bottom \
+	-padx 2 -pady 2 -anchor e
 
-    Rappture::Balloon $itk_component(controls).panel -title "Settings"
-    set inner [$itk_component(controls).panel component inner]
+    itk_component add camera_button {
+        label $itk_component(controls).camerabutton \
+            -borderwidth 1 -padx 1 -pady 1 \
+            -relief "raised" -image [Rappture::icon camera]
+    } {
+        usual
+        ignore -borderwidth
+        rename -highlightbackground -controlbackground controlBackground \
+	    Background
+    }
+    Rappture::Tooltip::for $itk_component(camera_button) \
+	"Camera settings"
+    bind $itk_component(camera_button) <ButtonPress> \
+        [itcl::code $this drawer toggle camera]
+    pack $itk_component(camera_button) -side bottom \
+	-padx 2 -pady { 0 2 } -ipadx 1 -ipady 1
 
-    frame $inner.f
-    pack $inner.f -side top -fill x
-    grid columnconfigure $inner.f 1 -weight 1
-    set fg [option get $itk_component(hull) font Font]
-
-    set ::Rappture::HeightmapViewer::settings_($this-grid) 1
-    ::checkbutton $inner.f.grid \
-        -text "Grid" \
-        -variable ::Rappture::HeightmapViewer::settings_($this-grid) \
-        -command [itcl::code $this _fixSettings grid]
-    grid $inner.f.grid -row 0 -column 0 -sticky w
-
-    set ::Rappture::HeightmapViewer::settings_($this-axes) 0
-    ::checkbutton $inner.f.axes \
-        -text "Axes" \
-        -variable ::Rappture::HeightmapViewer::settings_($this-axes) \
-        -command [itcl::code $this _fixSettings axes]
-    grid $inner.f.axes -row 1 -column 0 -sticky w
-
-    set ::Rappture::HeightmapViewer::settings_($this-contourlines) 1
-    ::checkbutton $inner.f.contour \
-        -text "Contour Lines" \
-        -variable ::Rappture::HeightmapViewer::settings_($this-contourlines) \
-        -command [itcl::code $this _fixSettings contourlines]
-    grid $inner.f.contour -row 2 -column 0 -sticky w
-
-    set ::Rappture::HeightmapViewer::settings_($this-wireframe) "fill"
-    ::checkbutton $inner.f.wireframe \
-        -text "Wireframe" \
-        -onvalue "wireframe" -offvalue "fill" \
-        -variable ::Rappture::HeightmapViewer::settings_($this-wireframe) \
-        -command [itcl::code $this _fixSettings wireframe]
-    grid $inner.f.wireframe -row 3 -column 0 -sticky w
+    _BuildSettingsDrawer
+    _BuildCameraDrawer
 
     # Legend
     set _image(legend) [image create photo]
     itk_component add legend {
-        canvas $itk_component(area).legend -height 50 -highlightthickness 0
+        canvas $itk_component(area).legend -width 30 -highlightthickness 0
     } {
         usual
         ignore -highlightthickness
         rename -background -plotbackground plotBackground Background
     }
-    pack $itk_component(legend) -side bottom -fill x
+    pack $itk_component(legend) -side right -fill y
+    pack $itk_component(3dview) -side left -expand yes -fill both
     bind $itk_component(legend) <Configure> \
         [list $_dispatcher event -idle !legend]
 
@@ -345,7 +337,10 @@ itcl::body Rappture::HeightmapViewer::add {dataobj {settings ""}} {
         # can't handle -autocolors yet
         set params(-color) black
     }
-
+    set location [$dataobj hints camera]
+    if { $location != "" } {
+	array set view_ $location
+    }
     set pos [lsearch -exact $dataobj $dlist_]
     if {$pos < 0} {
         lappend dlist_ $dataobj
@@ -466,6 +461,7 @@ itcl::body Rappture::HeightmapViewer::scale {args} {
                         set limits_(${axis}max) $max
                     }
                 }
+		set limits_(${axis}range) [expr {$max - $min}]
             }
         }
     }
@@ -667,34 +663,40 @@ itcl::body Rappture::HeightmapViewer::ReceiveImage {option size} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: ReceiveLegend <tf> <vmin> <vmax> <size>
+# USAGE: _ReceiveLegend <tf> <vmin> <vmax> <size>
 #
 # Invoked automatically whenever the "legend" command comes in from
 # the rendering server.  Indicates that binary image data with the
 # specified <size> will follow.
 # ----------------------------------------------------------------------
-itcl::body Rappture::HeightmapViewer::ReceiveLegend {tf vmin vmax size} {
+itcl::body Rappture::HeightmapViewer::_ReceiveLegend {tf vmin vmax size} {
     if { [IsConnected] } {
         set bytes [ReceiveBytes $size]
-        $_image(legend) configure -data $bytes
         ReceiveEcho <<line "<read $size bytes for [image width $_image(legend)]x[image height $_image(legend)] legend>"
-
+	if 1 {
+	set src [image create photo -data $bytes]
+	blt::winop image rotate $src $_image(legend) 90
+	set dst $_image(legend)
+	} else {
+	$_image(legend) configure -data $bytes
+	}
         set c $itk_component(legend)
         set w [winfo width $c]
         set h [winfo height $c]
+	set lineht [expr [font metrics $itk_option(-font) -linespace] + 4]
         if {"" == [$c find withtag transfunc]} {
-            $c create image 10 10 -anchor nw \
+            $c create image 0 [expr $lineht] -anchor ne \
                  -image $_image(legend) -tags transfunc
-
-            $c create text 10 [expr {$h-8}] -anchor sw \
+            $c create text 10 [expr {$h-8}] -anchor se \
                  -fill $itk_option(-plotforeground) -tags vmin
-            $c create text [expr {$w-10}] [expr {$h-8}] -anchor se \
+            $c create text [expr {$w-10}] [expr {$h-8}] -anchor ne \
                  -fill $itk_option(-plotforeground) -tags vmax
         }
+	$c coords transfunc [expr $w - 5] [expr $lineht]
         $c itemconfigure vmin -text $vmin
-        $c coords vmin 10 [expr {$h-8}]
         $c itemconfigure vmax -text $vmax
-        $c coords vmax [expr {$w-10}] [expr {$h-8}]
+        $c coords vmax [expr $w - 5] 2
+        $c coords vmin [expr $w - 5] [expr $h - 2]
     }
 }
 
@@ -752,11 +754,19 @@ itcl::body Rappture::HeightmapViewer::_rebuild {} {
     # Reset the camera and other view parameters
     set xyz [Euler2XYZ $view_(theta) $view_(phi) $view_(psi)]
     _send "camera angle $xyz"
+    _PanCamera
     _send "camera zoom $view_(zoom)"
 
      if {"" == $itk_option(-plotoutline)} {
          _send "grid linecolor [Color2RGB $itk_option(-plotoutline)]"
      }
+    set settings_($this-theta) $view_(theta)
+    set settings_($this-phi) $view_(phi)
+    set settings_($this-psi) $view_(psi)
+    set settings_($this-pan-x) $view_(pan-x)
+    set settings_($this-pan-y) $view_(pan-y)
+    set settings_($this-zoom) $view_(zoom)
+
     _fixSettings wireframe
     _fixSettings grid
     _fixSettings axes
@@ -775,22 +785,37 @@ itcl::body Rappture::HeightmapViewer::_zoom {option} {
     switch -- $option {
         "in" {
             set view_(zoom) [expr {$view_(zoom)*1.25}]
+	    set settings_($this-zoom) $view_(zoom)
         }
         "out" {
             set view_(zoom) [expr {$view_(zoom)*0.8}]
+	    set settings_($this-zoom) $view_(zoom)
         }
         "reset" {
             array set view_ {
                 theta   45
                 phi     45
                 psi     0
-                zoom    1.0
-                dx      0
-                dy      0
+                zoom	1.0
+		pan-x	0
+		pan-y	0
             }
+	    set first [lindex [get] 0]
+	    if { $first != "" } {
+		set location [$first hints camera]
+		if { $location != "" } {
+		    array set view_ $location
+		}
+	    }
             set xyz [Euler2XYZ $view_(theta) $view_(phi) $view_(psi)]
             _send "camera angle $xyz"
-            _send "camera pan $view_(dx) $view_(dy)"
+            _PanCamera
+	    set settings_($this-theta) $view_(theta)
+	    set settings_($this-phi) $view_(phi)
+	    set settings_($this-psi) $view_(psi)
+	    set settings_($this-pan-x) $view_(pan-x)
+	    set settings_($this-pan-y) $view_(pan-y)
+	    set settings_($this-zoom) $view_(zoom)
         }
     }
     _send "camera zoom $view_(zoom)"
@@ -809,11 +834,13 @@ itcl::body Rappture::HeightmapViewer::_pan {option x y} {
     set w [winfo width $itk_component(3dview)]
     set h [winfo height $itk_component(3dview)]
     if { $option == "set" } {
-        set x [expr $x / double($w)]
-        set y [expr $y / double($h)]
-        set view_(dx) [expr $view_(dx) + $x]
-        set view_(dy) [expr $view_(dy) + $y]
-        _send "camera pan $view_(dx) $view_(dy)"
+	set x [expr ($x / double($w)) * $limits_(xrange)]
+	set y [expr ($y / double($h)) * $limits_(yrange)]
+	set view_(pan-x) [expr $view_(pan-x) + $x]
+	set view_(pan-y) [expr $view_(pan-y) + $y]
+	_PanCamera
+	set settings_($this-pan-x) $view_(pan-x)
+	set settings_($this-pan-y) $view_(pan-y)
         return
     }
     if { $option == "click" } {
@@ -822,17 +849,25 @@ itcl::body Rappture::HeightmapViewer::_pan {option x y} {
         $itk_component(3dview) configure -cursor hand1
     }
     if { $option == "drag" || $option == "release" } {
-        set dx [expr ($click_(x) - $x)/double($w)]
-        set dy [expr ($click_(y) - $y)/double($h)]
-        set click_(x) $x
-        set click_(y) $y
-        set view_(dx) [expr $view_(dx) - $dx]
-        set view_(dy) [expr $view_(dy) - $dy]
-        _send "camera pan $view_(dx) $view_(dy)"
+	set dx [expr (($click_(x) - $x)/double($w)) * $limits_(xrange)]
+	set dy [expr (($click_(y) - $y)/double($h)) * $limits_(yrange)]
+	set click_(x) $x
+	set click_(y) $y
+	set view_(pan-x) [expr $view_(pan-x) - $dx]
+	set view_(pan-y) [expr $view_(pan-y) - $dy]
+	_PanCamera
+	set settings_($this-pan-x) $view_(pan-x)
+	set settings_($this-pan-y) $view_(pan-y)
     }
     if { $option == "release" } {
         $itk_component(3dview) configure -cursor ""
     }
+}
+
+itcl::body Rappture::HeightmapViewer::_PanCamera {} {
+    set x [expr ($view_(pan-x)) / $limits_(xrange)]
+    set y [expr ($view_(pan-y)) / $limits_(yrange)]
+    _send "camera pan $x $y"
 }
 
 # ----------------------------------------------------------------------
@@ -899,6 +934,9 @@ itcl::body Rappture::HeightmapViewer::_rotate {option x y} {
                 set view_(phi)          $phi
                 set view_(psi)          $psi
                 set xyz [Euler2XYZ $view_(theta) $view_(phi) $view_(psi)]
+		set settings_($this-theta) $view_(theta)
+		set settings_($this-phi) $view_(phi)
+		set settings_($this-psi) $view_(psi)
                 _send "camera angle $xyz"
                 set click_(x) $x
                 set click_(y) $y
@@ -939,11 +977,15 @@ itcl::body Rappture::HeightmapViewer::_state {comp} {
 itcl::body Rappture::HeightmapViewer::_fixSettings { what {value ""} } {
     switch -- $what {
         "legend" {
-            set lineht [font metrics $itk_option(-font) -linespace]
-            set w [expr {[winfo width $itk_component(legend)]-20}]
-            set h [expr {[winfo height $itk_component(legend)]-20-$lineht}]
+	    if { $settings_($this-legend) } {
+		pack $itk_component(legend) -side right -fill y
+	    } else {
+		pack forget $itk_component(legend) 
+	    }
+            set lineht [expr [font metrics $itk_option(-font) -linespace] + 4]
+            set w [expr {[winfo height $itk_component(legend)] - 2*$lineht}]
+            set h [expr {[winfo width $itk_component(legend)] - 16}]
             set imap ""
-
             set dataobj [lindex [get] 0]
             if {"" != $dataobj} {
                 set comp [lindex [$dataobj components] 0]
@@ -1075,3 +1117,203 @@ itcl::configbody Rappture::HeightmapViewer::plotoutline {
         _send "grid linecolor [Color2RGB $itk_option(-plotoutline)]"
     }
 }
+
+
+
+#  camera -- 
+#
+itcl::body Rappture::HeightmapViewer::camera {option args} {
+    switch -- $option { 
+	"show" {
+	    puts [array get view_]
+	}
+	"set" {
+	    set who [lindex $args 0]
+	    set x $settings_($this-$who)
+	    set code [catch { string is double $x } result]
+	    if { $code != 0 || !$result } {
+		set settings_($this-$who) $view_($who)
+		return
+	    }
+	    switch -- $who {
+		"pan-x" - "pan-y" {
+		    set view_($who) $settings_($this-$who)
+		    _PanCamera
+		}
+		"phi" - "theta" - "psi" {
+		    set view_($who) $settings_($this-$who)
+		    set xyz [Euler2XYZ $view_(theta) $view_(phi) $view_(psi)]
+		    _send "camera angle $xyz"
+		}
+		"zoom" {
+		    set view_($who) $settings_($this-$who)
+		    _send "camera zoom $view_(zoom)"
+		}
+	    }
+	}
+    }
+}
+
+itcl::body Rappture::HeightmapViewer::_BuildSettingsDrawer {} {
+
+    itk_component add settings {
+	Rappture::Scroller $itk_component(drawer).scrl \
+	    -xscrollmode auto -yscrollmode auto \
+	    -width 200 -height 100
+    }
+
+    itk_component add settings_canvas {
+	canvas $itk_component(settings).canvas -highlightthickness 0
+    }
+    $itk_component(settings) contents $itk_component(settings_canvas)
+
+    itk_component add settings_frame {
+	frame $itk_component(settings_canvas).frame -bg white \
+	    -highlightthickness 0 
+    } 
+    $itk_component(settings_canvas) create window 0 0 \
+	-anchor nw -window $itk_component(settings_frame)
+    bind $itk_component(settings_frame) <Configure> \
+	[itcl::code $this drawer resize settings]
+
+    set fg [option get $itk_component(hull) font Font]
+
+    set inner $itk_component(settings_frame)
+
+    foreach { key value } {
+	grid		1
+	axes		0
+	contourlines	1
+	wireframe	fill
+	legend		1
+    } {
+	set settings_($this-$key) $value
+    }
+    set inner $itk_component(settings_frame)
+    label $inner.title -text "View Settings" -font "Arial 10 bold"
+    checkbutton $inner.grid \
+        -text "grid" \
+        -variable [itcl::scope settings_($this-grid)] \
+        -command [itcl::code $this _fixSettings grid] \
+	-font "Arial 9"
+    checkbutton $inner.axes \
+        -text "axes" \
+        -variable ::Rappture::HeightmapViewer::settings_($this-axes) \
+        -command [itcl::code $this _fixSettings axes] \
+	-font "Arial 9"
+    checkbutton $inner.contourlines \
+        -text "contour lines" \
+        -variable ::Rappture::HeightmapViewer::settings_($this-contourlines) \
+        -command [itcl::code $this _fixSettings contourlines]\
+	-font "Arial 9"
+    checkbutton $inner.wireframe \
+        -text "wireframe" \
+	-onvalue "wireframe" -offvalue "fill" \
+        -variable ::Rappture::HeightmapViewer::settings_($this-wireframe) \
+        -command [itcl::code $this _fixSettings wireframe]\
+	-font "Arial 9"
+    checkbutton $inner.legend \
+        -text "legend" \
+        -variable ::Rappture::HeightmapViewer::settings_($this-legend) \
+        -command [itcl::code $this _fixSettings legend]\
+	-font "Arial 9"
+
+    blt::table $inner \
+	0,0 $inner.title -anchor w -columnspan 2 \
+	1,1 $inner.grid -anchor w  \
+	2,1 $inner.axes -anchor w \
+	3,1 $inner.contourlines -anchor w \
+	4,1 $inner.wireframe -anchor w \
+	5,1 $inner.legend -anchor w 
+
+    blt::table configure $inner c0 -resize expand -width 2
+    blt::table configure $inner c2 -resize expand
+    blt::table configure $inner c1 -resize none
+
+}
+
+itcl::body Rappture::HeightmapViewer::_BuildCameraDrawer {} {
+
+    itk_component add camera {
+	Rappture::Scroller $itk_component(drawer).camerascrl \
+	    -xscrollmode auto -yscrollmode auto \
+	    -highlightthickness 0
+    }
+
+    itk_component add camera_canvas {
+	canvas $itk_component(camera).canvas -highlightthickness 0
+    } {
+	ignore -highlightthickness
+    }
+    $itk_component(camera) contents $itk_component(camera_canvas)
+
+    itk_component add camera_frame {
+	frame $itk_component(camera_canvas).frame \
+	    -highlightthickness 0 
+    } 
+    $itk_component(camera_canvas) create window 0 0 \
+	-anchor nw -window $itk_component(camera_frame)
+    bind $itk_component(camera_frame) <Configure> \
+	[itcl::code $this drawer resize camera]
+
+    set inner $itk_component(camera_frame)
+
+    label $inner.title -text "Camera Settings" -font "Arial 10 bold"
+
+    set labels { phi theta psi pan-x pan-y zoom }
+    blt::table $inner \
+	0,0 $inner.title -anchor w  -columnspan 4 
+    set row 1
+    foreach tag $labels {
+	label $inner.${tag}label -text $tag -font "Arial 9"
+	entry $inner.${tag} -font "Arial 9"  -bg white \
+	    -textvariable [itcl::scope settings_($this-$tag)]
+	bind $inner.${tag} <KeyPress-Return> \
+	    [itcl::code $this camera set ${tag}]
+	blt::table $inner \
+	    $row,1 $inner.${tag}label -anchor e \
+	    $row,2 $inner.${tag} -anchor w 
+	incr row
+    }
+    bind $inner.title <Shift-ButtonPress> \
+	[itcl::code $this camera show]
+    blt::table configure $inner c0 -resize expand -width 4
+    blt::table configure $inner c1 c2 -resize none
+    blt::table configure $inner c3 -resize expand
+
+}
+
+itcl::body Rappture::HeightmapViewer::drawer { what who } {
+    switch -- ${what} {
+	"activate" {
+	    $itk_component(drawer) add $itk_component($who) -sticky nsew
+	    after idle [list focus $itk_component($who)]
+	    if { ![info exists initialized_($who)] } {
+		set w [winfo width $itk_component(drawer)]
+		set x [expr $w - 120]
+		$itk_component(drawer) sash place 0 $x 0
+		set initialized_($who) 1
+	    }
+	    $itk_component(${who}_button) configure -relief sunken
+	}
+	"deactivate" {
+	    $itk_component(drawer) forget $itk_component($who)
+	    $itk_component(${who}_button) configure -relief raised
+	}
+	"toggle" {
+	    set slaves [$itk_component(drawer) panes]
+	    if { [lsearch $slaves $itk_component($who)] >= 0 } {
+		drawer deactivate $who
+	    } else {
+		drawer activate $who
+	    }
+	}
+	"resize" {
+	    set bbox [$itk_component(${who}_canvas) bbox all]
+	    set wid [winfo width $itk_component(${who}_frame)]
+	    $itk_component(${who}_canvas) configure -width $wid \
+		-scrollregion $bbox -yscrollincrement 0.1i
+	}
+    }
+}
+

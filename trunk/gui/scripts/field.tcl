@@ -462,6 +462,7 @@ itcl::body Rappture::Field::hints {{keyword ""}} {
         scale   about.scale
         units   units
         updir   updir
+	camera  camera.position
     } {
         set str [$_field get $path]
         if {"" != $str} {
