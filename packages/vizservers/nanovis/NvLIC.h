@@ -44,7 +44,8 @@ private:
   float* slice_vector;  //storage for the per slice vectors driving the follow
   Vector3 scale;	//scaling factor stretching the lic plane to fit the actual dimensions
   Vector3 origin;
-  float offset;		//[0,1] offset could be x, y, or z direction
+  Vector3 offset;		//[0,1] offset could be x, y, or z direction
+  int axis;
 
   //some convolve variables. They can pretty much stay fixed
   int iframe;
@@ -75,7 +76,7 @@ private:
 public:
   Vector3 normal; //the normal vector of the NvLIC plane, 
   		  //the inherited Vector3 location is its center
-  NvLIC(int _size, int _width, int _height, float _offset, CGcontext _context);
+  NvLIC(int _size, int _width, int _height, int axis, const Vector3& _offset, CGcontext _context);
   ~NvLIC();
 
     /**
@@ -90,6 +91,13 @@ public:
   void get_velocity(float x, float y, float* px, float* py);
   void get_slice();
   void set_offset(float v);
+    /** 
+     * @brief Specify the perdicular axis
+     * @brief 0 : x axis
+     * @brief 1 : y axis
+     * @brief 2 : z axis
+     */
+    void set_axis(int axis);
 
     void activate();
     void deactivate();

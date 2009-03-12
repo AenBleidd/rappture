@@ -24,7 +24,7 @@
 #include <Trace.h>
 #include "global.h"
 
-NvLIC::NvLIC(int _size, int _width, int _height, float _offset, 
+NvLIC::NvLIC(int _size, int _width, int _height, int _axis, const Vector3& _offset,
              CGcontext _context) : 
     Renderable(Vector3(0.0f,0.0f,0.0f)),
     disListID(0),
@@ -43,6 +43,7 @@ NvLIC::NvLIC(int _size, int _width, int _height, float _offset,
     vectorFieldID((NVISid) 0),
     _activate(false)
 {
+    axis = _axis;
     slice_vector = new float[size*size*4];
     memset(slice_vector, 0, sizeof(float) * size * size * 4);
 
@@ -249,10 +250,29 @@ NvLIC::get_slice()
 
     glBegin(GL_QUADS);
     {
-        glTexCoord3f(0., 0., offset); glVertex2f(0.,   0.);
-        glTexCoord3f(1., 0., offset); glVertex2f(size, 0.);
-        glTexCoord3f(1., 1., offset); glVertex2f(size, size);
-        glTexCoord3f(0., 1., offset); glVertex2f(0.,   size);
+	switch (axis)
+	{
+	case 0 :
+	    // TBD..
+            glTexCoord3f(offset.x, 0., 0.); glVertex2f(0.,   0.);
+            glTexCoord3f(offset.x, 1., 0.); glVertex2f(size, 0.);
+            glTexCoord3f(offset.x, 1., 1.); glVertex2f(size, size);
+            glTexCoord3f(offset.x, 0., 1.); glVertex2f(0.,   size);
+		break;
+	case 1 :
+	    // TBD..
+            glTexCoord3f(0., offset.y, 0.); glVertex2f(0.,   0.);
+            glTexCoord3f(1., offset.y, 0.); glVertex2f(size, 0.);
+            glTexCoord3f(1., offset.y, 1.); glVertex2f(size, size);
+            glTexCoord3f(0., offset.y, 1.); glVertex2f(0.,   size);
+		break;
+	case 2 :
+            glTexCoord3f(0., 0., offset.z); glVertex2f(0.,   0.);
+            glTexCoord3f(1., 0., offset.z); glVertex2f(size, 0.);
+            glTexCoord3f(1., 1., offset.z); glVertex2f(size, size);
+            glTexCoord3f(0., 1., offset.z); glVertex2f(0.,   size);
+	    break;	
+	}
     }
     glEnd();
     
@@ -397,11 +417,26 @@ NvLIC::display()
     glScalef(1.0f, 1.0f / scale.y / w, 1.0f / scale.z / w); 
     
     glBegin(GL_QUADS);
+    switch (axis)
     {
-        glTexCoord2f(0, 0); glVertex3f(0, 0, offset);
-        glTexCoord2f(1, 0); glVertex3f(1, 0, offset);
-        glTexCoord2f(1, 1); glVertex3f(1, 1, offset);
-        glTexCoord2f(0, 1); glVertex3f(0, 1, offset);
+    case 0:
+        glTexCoord2f(0, 0); glVertex3f(offset.x, 0, 0);
+        glTexCoord2f(1, 0); glVertex3f(offset.x, 1, 0);
+        glTexCoord2f(1, 1); glVertex3f(offset.x, 1, 1);
+        glTexCoord2f(0, 1); glVertex3f(offset.x, 0, 1);
+	break;
+    case 1:
+        glTexCoord2f(0, 0); glVertex3f(0, offset.y, 0);
+        glTexCoord2f(1, 0); glVertex3f(1, offset.y, 0);
+        glTexCoord2f(1, 1); glVertex3f(1, offset.y, 1);
+        glTexCoord2f(0, 1); glVertex3f(0, offset.y, 0);
+	break;
+    case 2:
+        glTexCoord2f(0, 0); glVertex3f(0, 0, offset.z);
+        glTexCoord2f(1, 0); glVertex3f(1, 0, offset.z);
+        glTexCoord2f(1, 1); glVertex3f(1, 1, offset.z);
+        glTexCoord2f(0, 1); glVertex3f(0, 1, offset.z);
+	break;
     }
     glEnd();
     
@@ -488,6 +523,18 @@ NvLIC::get_velocity(float x, float y, float *px, float *py)
 void 
 NvLIC::set_offset(float v)
 {
-    offset = v;
-    get_slice();
+	switch (axis)
+	{
+	case 0 : offset.x = v; break;
+	case 1 : offset.y = v; break;
+	case 2 : offset.z = v; break;
+	}
+
+	get_slice();
 }
+
+void NvLIC::set_axis(int axis)
+{
+    this->axis = axis;
+}
+
