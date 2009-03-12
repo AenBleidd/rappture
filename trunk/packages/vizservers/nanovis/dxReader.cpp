@@ -66,7 +66,7 @@ load_vector_stream2(int volindex, std::istream& fin)
 
         if (*start != '#') {  // skip comment lines
             if (sscanf(start, "object %d class gridpositions counts %d %d %d", &dummy, &nx, &ny, &nz) == 4) {
-		printf("w:%d h:%d d:%d\n", nx, ny, nz);
+                printf("w:%d h:%d d:%d\n", nx, ny, nz);
                 // found grid size
             } else if (sscanf(start, "origin %lg %lg %lg", &x0, &y0, &z0) == 3) {
                 // found origin
@@ -80,7 +80,7 @@ load_vector_stream2(int volindex, std::istream& fin)
                     dz = ddz;
                 }
             } else if (sscanf(start, "object %d class array type %s shape 3 rank 1 items %d data follows", &dummy, type, &npts) == 3) {
-		printf("point %d\n", npts);
+                printf("point %d\n", npts);
                 if (npts != nx*ny*nz) {
                     std::cerr << "inconsistent data: expected " << nx*ny*nz << " points but found " << npts << " points" << std::endl;
                     return;
@@ -100,10 +100,10 @@ load_vector_stream2(int volindex, std::istream& fin)
     float* srcdata = new float[nx * ny * nz * 3];
     if (!fin.eof()) {
         double vx, vy, vz, vm;
-	double max_x = -1e21, min_x = 1e21;
-	double max_y = -1e21, min_y = 1e21;
-	double max_z = -1e21, min_z = 1e21;
-	double max_mag = -1e21, min_mag = 1e21;
+        double max_x = -1e21, min_x = 1e21;
+        double max_y = -1e21, min_y = 1e21;
+        double max_z = -1e21, min_z = 1e21;
+        double max_mag = -1e21, min_mag = 1e21;
         int nread = 0;
         for (int ix=0; ix < nx; ix++) {
             for (int iy=0; iy < ny; iy++) {
@@ -114,26 +114,30 @@ load_vector_stream2(int volindex, std::istream& fin)
                     fin.getline(line,sizeof(line)-1);
                     if (sscanf(line, "%lg %lg %lg", &vx, &vy, &vz) == 3) {
                         int nindex = (iz*nx*ny + iy*nx + ix) * 3;
-			srcdata[nindex] = vx;
-			//if (srcdata[nindex] > max_x) max_x = srcdata[nindex];
-			//if (srcdata[nindex] < min_x) min_x = srcdata[nindex];
-			++nindex;
+                        srcdata[nindex] = vx;
+                        //if (srcdata[nindex] > max_x) max_x = srcdata[nindex];
+                        //if (srcdata[nindex] < min_x) min_x = srcdata[nindex];
+                        ++nindex;
 
-			srcdata[nindex] = vy;
-			//if (srcdata[nindex] > max_y) max_y = srcdata[nindex];
-			//if (srcdata[nindex] < min_y) min_y = srcdata[nindex];
-			++nindex;
+                        srcdata[nindex] = vy;
+                        //if (srcdata[nindex] > max_y) max_y = srcdata[nindex];
+                        //if (srcdata[nindex] < min_y) min_y = srcdata[nindex];
+                        ++nindex;
 
-			srcdata[nindex] = vz;
-			//if (srcdata[nindex] > max_z) max_z = srcdata[nindex];
-			//if (srcdata[nindex] < min_z) min_z = srcdata[nindex];
-                    
-			vm = sqrt(vx*vx + vy*vy + vz*vz);
-			if (vm > max_mag) max_mag = vm;
-			if (vm < min_mag) min_mag = vm;
-	
-			++nread;
-	            }
+                        srcdata[nindex] = vz;
+                        //if (srcdata[nindex] > max_z) max_z = srcdata[nindex];
+                        //if (srcdata[nindex] < min_z) min_z = srcdata[nindex];
+
+                        vm = sqrt(vx*vx + vy*vy + vz*vz);
+                        if (vm > max_mag) {
+                            max_mag = vm;
+                        }
+                        if (vm < min_mag) {
+                            min_mag = vm;
+                        }
+
+                        ++nread;
+                    }
                 }
             }
         }
@@ -152,7 +156,7 @@ load_vector_stream2(int volindex, std::istream& fin)
         // generate the uniformly sampled data that we need for a volume
         double nzero_min = 0.0;
         int ngen = 0;
-	int nindex = 0;
+        int nindex = 0;
         for (int iz=0; iz < nz; iz++) {
             for (int iy=0; iy < ny; iy++) {
                 for (int ix=0; ix < nx; ix++) {
@@ -160,11 +164,11 @@ load_vector_stream2(int volindex, std::istream& fin)
                     vx = srcdata[nindex++];
                     vy = srcdata[nindex++];
                     vz = srcdata[nindex++];
-			
+
                     double vm;
                     vm = sqrt(vx*vx + vy*vy + vz*vz);
 
-	    	    data[ngen] = vm / max_mag; ++ngen;
+                    data[ngen] = vm / max_mag; ++ngen;
                     data[ngen] = vx /(2.0*max_mag) + 0.5; ++ngen;
                     data[ngen] = vy /(2.0*max_mag) + 0.5; ++ngen;
                     data[ngen] = vz /(2.0*max_mag) + 0.5; ++ngen;

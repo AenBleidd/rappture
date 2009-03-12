@@ -370,7 +370,7 @@ itcl::body Rappture::FlowvisViewer::constructor {hostlist args} {
     grid $inner.scales.light -row 0 -column 1 -sticky ew
     label $inner.scales.brightl -text "Bright" -font $fg
     grid $inner.scales.brightl -row 0 -column 2 -sticky w
-    $inner.scales.light set 40
+    $inner.scales.light set 20
 
     label $inner.scales.fogl -text "Fog" -font $fg
     grid $inner.scales.fogl -row 1 -column 0 -sticky e
@@ -379,7 +379,7 @@ itcl::body Rappture::FlowvisViewer::constructor {hostlist args} {
     grid $inner.scales.transp -row 1 -column 1 -sticky ew
     label $inner.scales.plasticl -text "Plastic" -font $fg
     grid $inner.scales.plasticl -row 1 -column 2 -sticky w
-    $inner.scales.transp set 50
+    $inner.scales.transp set 20
 
     label $inner.scales.zerol -text "Clear" -font $fg
     grid $inner.scales.zerol -row 2 -column 0 -sticky e
@@ -1322,8 +1322,7 @@ itcl::body Rappture::FlowvisViewer::_flow {option args} {
                     $itk_component(play) configure -relief raised -state normal
                     set inner [$itk_component(controls).panel component inner]
                     set frames [$inner.scales.framecnt value]
-                    set fname "/tmp/flow[pid].mpeg"
-                    set cmds "flow capture $frames $fname"
+                    set cmds "flow capture $frames"
                     _send $cmds
                 }
                 stop {

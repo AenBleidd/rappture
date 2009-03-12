@@ -1736,7 +1736,7 @@ FlowDataFollowsOp(ClientData cdata, Tcl_Interp *interp, int objc,
     int n = NanoVis::n_volumes;
     std::stringstream fdata;
     fdata.write(buf.bytes(),buf.size());
-    //load_vector_stream(n, fdata);
+    // load_vector_stream(n, fdata);
     load_vector_stream2(n, fdata);
     Volume *volPtr = NanoVis::volume[n];
 
@@ -1750,10 +1750,9 @@ FlowDataFollowsOp(ClientData cdata, Tcl_Interp *interp, int objc,
     //
     if (volPtr != NULL) {
         volPtr->set_n_slice(256-n);
-        //volPtr->set_n_slice(512-n);
+        // volPtr->set_n_slice(512-n);
         volPtr->disable_cutplane(0);
         volPtr->disable_cutplane(1);
-
         volPtr->disable_cutplane(2);
 
         NanoVis::vol_renderer->add_volume(volPtr,
@@ -1765,8 +1764,6 @@ FlowDataFollowsOp(ClientData cdata, Tcl_Interp *interp, int objc,
         float dz0 = -0.5*volPtr->depth/volPtr->width;
         volPtr->move(Vector3(dx0, dy0, dz0));
 
-	// 
-	volPtr->disable();
     }
 
     return TCL_OK;
@@ -1807,7 +1804,9 @@ FlowCaptureOp(ClientData cdata, Tcl_Interp *interp, int objc,
         NanoVis::particleRenderer->activate();
     }
 
-    const char *fileName = Tcl_GetString(objv[3]);
+    char fileName[128];
+    sprintf(fileName,"/tmp/flow%d.mpeg",getpid());
+
 
     Trace("FLOW started\n");
 
@@ -1854,13 +1853,16 @@ FlowCaptureOp(ClientData cdata, Tcl_Interp *interp, int objc,
     }
     NanoVis::initParticle();
 
-    // send the movie back to the client
-    // FIXME: find a way to get the data from the movie object as a char*
+    // FIXME: find a way to get the data from the movie object as a void*
     Rappture::Buffer data;
     data.load(fileName);
     char command[512];
     sprintf(command,"nv>file -bytes %lu\n",data.size());
     NanoVis::sendDataToClient(command,data.bytes(),data.size());
+    if (remove(fileName) != 0) {
+        fprintf(stderr, "Error deleting flow movie file: %s\n", fileName);
+        fflush(stderr);
+    }
 
     return TCL_OK;
 }
@@ -1876,7 +1878,6 @@ FlowLicOp(ClientData cdata, Tcl_Interp *interp, int objc,
     NanoVis::lic_on = state;
     return TCL_OK;
 }
-
 
 static int
 FlowSliceVisibleOp(ClientData cdata, Tcl_Interp *interp, int objc,
@@ -1906,7 +1907,7 @@ FlowSliceVisibleOp(ClientData cdata, Tcl_Interp *interp, int objc,
 
 static int
 FlowSlicePositionOp(ClientData cdata, Tcl_Interp *interp, int objc,
-		    Tcl_Obj *const *objv)
+                    Tcl_Obj *const *objv)
 {
     int axis;
     if (GetAxisFromObj(interp, objv[3], &axis) != TCL_OK) {
@@ -1954,7 +1955,7 @@ FlowSliceOp(ClientData cdata, Tcl_Interp *interp, int objc,
     Tcl_ObjCmdProc *proc;
 
     proc = Rappture::GetOpFromObj(interp, nFlowSliceOps, flowSliceOps,
-	Rappture::CMDSPEC_ARG2, objc, objv, 0);
+        Rappture::CMDSPEC_ARG2, objc, objv, 0);
     if (proc == NULL) {
         return TCL_ERROR;
     }
@@ -2067,7 +2068,7 @@ FlowVectorIdOp(ClientData cdata, Tcl_Interp *interp, int objc,
 }
 
 static Rappture::CmdSpec flowOps[] = {
-    {"capture",   1, FlowCaptureOp,       4, 4, "frames filename",},
+    {"capture",   1, FlowCaptureOp,       3, 3, "frames",},
     {"data",      1, FlowDataOp,          3, 0, "oper ?args?",},
     {"lic",       1, FlowLicOp,           3, 3, "on|off",},
     {"particle",  2, FlowParticleOp,      3, 0, "oper ?args?",},
