@@ -417,23 +417,23 @@ itcl::body Rappture::MolvisViewer::_BuildSettingsDrawer {} {
     set fg [option get $itk_component(hull) font Font]
 
     set inner $itk_component(settings_frame)
-    label $inner.drawinglabel -text "Drawing Method:" -font "Arial 9 bold"
+    label $inner.drawinglabel -text "Drawing Method" -font "Arial 9 bold"
 
     label $inner.pict -image $_settings($this-modelimg)
-    radiobutton $inner.bstick -text "Balls and sticks" \
+    radiobutton $inner.bstick -text "balls and sticks" \
         -command [itcl::code $this representation ballnstick all] \
         -variable Rappture::MolvisViewer::_settings($this-model) \
         -value ballnstick -font "Arial 9" -pady 0 
-    radiobutton $inner.spheres -text "Spheres" \
+    radiobutton $inner.spheres -text "spheres" \
         -command [itcl::code $this representation spheres all] \
         -variable Rappture::MolvisViewer::_settings($this-model) \
         -value spheres -font "Arial 9" -pady 0
-    radiobutton $inner.lines -text "Lines" \
+    radiobutton $inner.lines -text "lines" \
         -command [itcl::code $this representation lines all] \
         -variable Rappture::MolvisViewer::_settings($this-model) \
         -value lines -font "Arial 9" -pady 0
 
-    label $inner.sizelabel -text "Atom Scale:" -font "Arial 9 bold"
+    label $inner.sizelabel -text "Atom Scale" -font "Arial 9 bold"
     scale $inner.atomscale \
         -from 0.1 -to 2.0 -resolution 0.05 \
         -showvalue true -orient horizontal \

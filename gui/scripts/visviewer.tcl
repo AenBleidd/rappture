@@ -1,7 +1,5 @@
-#!/usr/bin/wish
+
 # ----------------------------------------------------------------------
-
-
 #  VisViewer - 
 #
 #  This class is the base class for the various visualization viewers 
@@ -121,7 +119,7 @@ itcl::body Rappture::VisViewer::constructor { hostlist args } {
     pack propagate $itk_component(hull) no
 
     itk_component add controls {
-        frame $itk_interior.cntls
+        frame $itk_interior.cntls 
     } {
         usual
         rename -background -controlbackground controlBackground Background
@@ -132,24 +130,24 @@ itcl::body Rappture::VisViewer::constructor { hostlist args } {
     # RENDERING AREA
     #
     itk_component add drawer {
-        panedwindow $itk_interior.drawer \
-            -orient horizontal -opaqueresize 1 -handlepad 0 \
-            -handlesize 1 -sashwidth 2
+ 	panedwindow $itk_interior.drawer \
+ 	    -orient horizontal -opaqueresize 1 -handlepad 0 \
+ 	    -handlesize 1 -sashwidth 2
     }
     pack $itk_component(drawer) -expand yes -fill both
 
     itk_component add area {
-        frame $itk_interior.area
+        frame $itk_interior.area -highlightthickness 0 
     }
     $itk_component(drawer) add $itk_component(area) -sticky nsew
 
     set _image(plot) [image create photo]
     itk_component add 3dview {
         label $itk_component(area).vol -image $_image(plot) \
-            -highlightthickness 0 -width 1 -height 1
+            -highlightthickness 0 -width 1 -height 1 -borderwidth 0
     } {
         usual
-        ignore -highlightthickness
+        ignore -highlightthickness -borderwidth 
     }
     pack $itk_component(3dview) -expand yes -fill both
 
