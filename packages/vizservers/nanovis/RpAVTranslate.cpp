@@ -75,7 +75,9 @@ AVTranslate::AVTranslate(const AVTranslate& o)
 */
 
 AVTranslate::~AVTranslate()
-{}
+{
+    close();
+}
 
 
 Outcome

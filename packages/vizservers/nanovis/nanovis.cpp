@@ -282,7 +282,7 @@ WriteStats(const char *who, int code)
     }
     pid = getpid();
     Tcl_DStringInit(&ds);
-    
+
     sprintf(buf, "<session server=\"%s\" ", who);
     Tcl_DStringAppend(&ds, buf, -1);
 
@@ -464,7 +464,7 @@ NanoVis::pan(float dx, float dy)
     /* Move the camera and its target by equal amounts along the x and y
      * axes. */
     fprintf(stderr, "x=%f, y=%f\n", dx, dy);
-    
+
     cam->x(def_eye_x + dx);
     cam->y(def_eye_y + dy);
     fprintf(stderr, "set eye to %f %f\n", cam->x(), cam->y());
@@ -2308,7 +2308,6 @@ NanoVis::xinetd_listen(void)
     if (status != TCL_OK) {
         const char *string;
         int nBytes;
-        int count;
 
         string = Tcl_GetVar(interp, "errorInfo", TCL_GLOBAL_ONLY);
         nBytes = strlen(string);
@@ -2325,22 +2324,6 @@ NanoVis::xinetd_listen(void)
         }
         return;
     }
-
-    //
-    // This is now in "FlowCmd()":
-    //  Generate the latest frame and send it back to the client
-    //
-    /*
-      if (NanoVis::licRenderer && NanoVis::licRenderer->isActivated())
-      {
-      NanoVis::licRenderer->convolve();
-      }
-
-      if (NanoVis::particleRenderer && NanoVis::particleRenderer->isActivated())
-      {
-      NanoVis::particleRenderer->advect();
-      }
-    */
 
     NanoVis::update();
 
