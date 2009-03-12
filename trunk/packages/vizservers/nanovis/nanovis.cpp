@@ -203,10 +203,10 @@ static bool right_down = false;
 
 // Image based flow visualization slice location
 // FLOW
-float NanoVis::lic_slice_x = 1.0f;
-float NanoVis::lic_slice_y = 0.0f;
+float NanoVis::lic_slice_x = 0.5f;
+float NanoVis::lic_slice_y = 0.5f;
 float NanoVis::lic_slice_z = 0.5f;
-int NanoVis::lic_axis = 2;
+int NanoVis::lic_axis = 2; // z axis
 
 using namespace std;
 
@@ -807,7 +807,8 @@ void NanoVis::initParticle()
             {
                 //assign any location (x,y,z) in range [0,1]
                 // TEMP
-                data[4*index] = lic_slice_x;
+                //data[4*index] = lic_slice_x;
+                data[4*index] = 1.0;
                 data[4*index+1]= j/float(particleRenderer->psys_height);
                 data[4*index+2]= i/float(particleRenderer->psys_width);
                 data[4*index+3]= 30; //shorter life span, quicker iterations
@@ -888,7 +889,7 @@ void NanoVis::init(const char* path)
     particleRenderer = new NvParticleRenderer(NMESH, NMESH, g_context);
 
 #if PROTOTYPE
-    licRenderer = new NvLIC(NMESH, NPIX, NPIX, 0.5, g_context);
+    licRenderer = new NvLIC(NMESH, NPIX, NPIX, lic_axis, Vector3(lic_slice_x, lic_slice_y, lic_slice_z), g_context);
 #endif
 
     ImageLoaderFactory::getInstance()->addLoaderImpl("bmp", new BMPImageLoaderImpl());

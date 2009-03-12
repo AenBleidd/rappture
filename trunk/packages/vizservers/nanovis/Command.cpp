@@ -1924,12 +1924,18 @@ FlowSlicePositionOp(ClientData cdata, Tcl_Interp *interp, int objc,
     switch (axis) {
     case 0 :
         NanoVis::lic_slice_x = pos;
+        NanoVis::licRenderer->set_axis(0);
+        NanoVis::licRenderer->set_offset(NanoVis::lic_slice_x);
         break;
     case 1 :
         NanoVis::lic_slice_y = pos;
+        NanoVis::licRenderer->set_axis(1);
+        NanoVis::licRenderer->set_offset(NanoVis::lic_slice_y);
         break;
     case 2 :
         NanoVis::lic_slice_z = pos;
+        NanoVis::licRenderer->set_axis(2);
+        NanoVis::licRenderer->set_offset(NanoVis::lic_slice_z);
         break;
     }
     return TCL_OK;

@@ -3,10 +3,63 @@
 #include <stdlib.h>
 
 struct Vector2 {
-    float x, y;
+    double x, y;
 };
 
-void storeInOpenDX(const char* filename, Vector2* vector, int width, int height, int depth)
+void storeInOpenDX2(const char* filename, Vector2* vector, int width, int height, int depth = 1)
+{
+    FILE* file = fopen(filename, "wb");
+
+    int ori_width = width;
+    int ori_height = height;
+
+    int step = 4;
+    width = width / step;
+    height = height / step;
+
+    int total_count = width * height * depth;
+    fprintf(file, "object 1 class gridpositions counts %d %d %d\n", width, height, depth);
+    fprintf(file, "origin 0 0 0\n");
+    fprintf(file, "delta 50 0 0\n");
+    fprintf(file, "delta 0 50 0\n");
+    fprintf(file, "delta 0 0 50\n");
+    fprintf(file, "object 2 class gridconnections counts %d %d %d\n", width, height, depth);
+    fprintf(file, "object 3 class array type double shape 3 rank 1 items %d data follows\n", total_count);
+
+
+    Vector2* ptr;
+    for (int z = 0; z < depth; ++z) {
+        for (int y = 0; y < ori_height; y += step) {
+            for (int x = 0; x < ori_width; x += step) {
+		double vx = 0, vy = 0;
+		int count = 0;
+		for (int yi = 0; yi < step; ++yi)
+		{
+			for (int xi = 0; xi < step; ++xi)
+			{
+				if (((x + xi) < ori_width) && ((y+yi) < ori_height))
+				{
+                			ptr = vector + ((y + yi) * ori_width + (x+xi));
+					vx += ptr->x;
+					vy += ptr->y;
+					++count;
+				}
+			}
+		}
+                fprintf(file, "%lf %lf 0.0\n", ptr->x / count, ptr->y / count);
+            }
+        }
+    } 
+
+    fprintf(file, "attribute \"dep\" string \"positions\"\n");
+    fprintf(file, "object \"regular positions regular connections\" class field\n");
+    fprintf(file, "component \"positions\" value 1\n");
+    fprintf(file, "component \"connections\" value 2\n");
+    fprintf(file, "component \"data\" value 3\n");
+
+    fclose(file);
+}
+void storeInOpenDX(const char* filename, Vector2* vector, int width, int height, int depth = 1)
 {
     FILE* file = fopen(filename, "wb");
 
@@ -56,7 +109,7 @@ void storeInOpenDX(const char* filename, Vector2* vector, int width, int height,
             for (int y = 0; y < height; ++y) {
                 for (int x = 0; x < width; ++x) {
                     ptr = vector + ((y + offsety) * ori_width +  x + offsetx);
-                    fprintf(file, "%f %f 0.0\n", ptr->x, ptr->y);
+                    fprintf(file, "%lf %lf 0.0\n", ptr->x, ptr->y);
                 }
             }
         }
@@ -79,8 +132,8 @@ int main(int argc, char* argv[])
     // int height = 610;
     int height = 218;
 
-    int depth = 1;
-    // int depth = 50;
+    //int depth = 1;
+    int depth = 25;
 
     FILE* xComp = fopen("Ix_data.txt", "rb");
     FILE* yComp = fopen("Iy_data.txt", "rb");
@@ -98,7 +151,7 @@ int main(int argc, char* argv[])
             }
 
 
-            fscanf(xComp, "%s", buff);
+            fscanf(yComp, "%s", buff);
             if (strcmp(buff, "NaN") == 0) {
                 data[index].y = 0;
             } else {
@@ -113,5 +166,5 @@ int main(int argc, char* argv[])
     fclose(xComp);
     fclose(yComp);
 
-    storeInOpenDX("flow2d.dx", data, width, height, depth);
+    storeInOpenDX2("flow2d.dx", data, width, height, depth);
 }
