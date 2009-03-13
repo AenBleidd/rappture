@@ -429,7 +429,7 @@ NvLIC::display()
         glTexCoord2f(0, 0); glVertex3f(0, offset.y, 0);
         glTexCoord2f(1, 0); glVertex3f(1, offset.y, 0);
         glTexCoord2f(1, 1); glVertex3f(1, offset.y, 1);
-        glTexCoord2f(0, 1); glVertex3f(0, offset.y, 0);
+        glTexCoord2f(0, 1); glVertex3f(0, offset.y, 1);
 	break;
     case 2:
         glTexCoord2f(0, 0); glVertex3f(0, 0, offset.z);
