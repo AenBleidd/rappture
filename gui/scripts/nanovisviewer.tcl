@@ -238,7 +238,7 @@ itcl::body Rappture::NanovisViewer::constructor {hostlist args} {
     itk_component add xslice {
         label $itk_component(slicers).xslice \
             -borderwidth 1 -relief raised -padx 1 -pady 1 \
-            -bitmap [Rappture::icon x]
+            -image [Rappture::icon x-cutplane]
     } {
         usual
         ignore -borderwidth
@@ -274,7 +274,7 @@ itcl::body Rappture::NanovisViewer::constructor {hostlist args} {
     itk_component add yslice {
         label $itk_component(slicers).yslice \
             -borderwidth 1 -relief raised -padx 1 -pady 1 \
-            -bitmap [Rappture::icon y]
+            -image [Rappture::icon y-cutplane]
     } {
         usual
         ignore -borderwidth
@@ -310,7 +310,7 @@ itcl::body Rappture::NanovisViewer::constructor {hostlist args} {
     itk_component add zslice {
         label $itk_component(slicers).zslice \
             -borderwidth 1 -relief raised -padx 1 -pady 1 \
-            -bitmap [Rappture::icon z]
+            -image [Rappture::icon z-cutplane]
     } {
         usual
         ignore -borderwidth
