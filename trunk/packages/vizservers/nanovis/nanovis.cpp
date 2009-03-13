@@ -808,7 +808,7 @@ void NanoVis::initParticle()
                 //assign any location (x,y,z) in range [0,1]
                 // TEMP
                 //data[4*index] = lic_slice_x;
-                data[4*index] = 1.0;
+                data[4*index] = 0.95;
                 data[4*index+1]= j/float(particleRenderer->psys_height);
                 data[4*index+2]= i/float(particleRenderer->psys_width);
                 data[4*index+3]= 30; //shorter life span, quicker iterations
