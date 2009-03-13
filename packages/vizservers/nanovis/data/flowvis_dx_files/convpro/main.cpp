@@ -74,12 +74,12 @@ void storeInOpenDX(const char* filename, Vector2* vector, int width, int height,
     }
 
     int total_count = width * height * depth;
-    fprintf(file, "object 1 class gridpositions counts %d %d %d\n", width, height, depth);
-    fprintf(file, "origin 0 0 0\n");
+    fprintf(file, "object 1 class gridpositions counts %d %d %d\n", height, width, depth);
+    fprintf(file, "origin -0.5 -22 0\n");
     fprintf(file, "delta 50 0 0\n");
     fprintf(file, "delta 0 50 0\n");
     fprintf(file, "delta 0 0 50\n");
-    fprintf(file, "object 2 class gridconnections counts %d %d %d\n", width, height, depth);
+    fprintf(file, "object 2 class gridconnections counts %d %d %d\n", height, width, depth);
     fprintf(file, "object 3 class array type double shape 3 rank 1 items %d data follows\n", total_count);
 
 
@@ -88,7 +88,7 @@ void storeInOpenDX(const char* filename, Vector2* vector, int width, int height,
         for (int z = 0; z < depth; ++z) {
             for (int y = 0; y < height; ++y) {
                 for (int x = 0; x < width; ++x) {
-                    ptr = vector + (y * ori_width +  x);
+                    ptr = vector + ((y * ori_width) +  x);
                     fprintf(file, "%f %f 0.0\n", ptr->x, ptr->y);
                 }
             }
@@ -126,14 +126,20 @@ void storeInOpenDX(const char* filename, Vector2* vector, int width, int height,
 
 int main(int argc, char* argv[])
 {
+    // int width = 22;
+    // int width = 77;
     // int width = 218;
-    int width = 610;
+    // int width = 610;
+    int width = 109;
 
+    // int height = 61;
+    // int height = 28;
     // int height = 610;
-    int height = 218;
+    // int height = 218;
+    int height = 305;
 
-    //int depth = 1;
-    int depth = 25;
+    int depth = 1;
+    // int depth = 25;
 
     FILE* xComp = fopen("Ix_data.txt", "rb");
     FILE* yComp = fopen("Iy_data.txt", "rb");
@@ -166,5 +172,6 @@ int main(int argc, char* argv[])
     fclose(xComp);
     fclose(yComp);
 
-    storeInOpenDX2("flow2d.dx", data, width, height, depth);
+    // storeInOpenDX2("flow2d.dx", data, width, height, depth);
+    storeInOpenDX("flow2d.dx", data, width, height, depth);
 }
