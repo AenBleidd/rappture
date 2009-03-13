@@ -165,7 +165,7 @@ itcl::body Rappture::FlowvisViewer::constructor {hostlist args} {
     itk_component add reset {
         button $itk_component(zoom).reset \
             -borderwidth 1 -padx 1 -pady 1 \
-            -bitmap [Rappture::icon reset] \
+            -image [Rappture::icon reset-view] \
             -command [itcl::code $this _zoom reset]
     } {
         usual
@@ -178,7 +178,7 @@ itcl::body Rappture::FlowvisViewer::constructor {hostlist args} {
     itk_component add zoomin {
         button $itk_component(zoom).zin \
             -borderwidth 1 -padx 1 -pady 1 \
-            -bitmap [Rappture::icon zoomin] \
+            -image [Rappture::icon zoom-in] \
             -command [itcl::code $this _zoom in]
     } {
         usual
@@ -191,7 +191,7 @@ itcl::body Rappture::FlowvisViewer::constructor {hostlist args} {
     itk_component add zoomout {
         button $itk_component(zoom).zout \
             -borderwidth 1 -padx 1 -pady 1 \
-            -bitmap [Rappture::icon zoomout] \
+            -image [Rappture::icon zoom-out] \
             -command [itcl::code $this _zoom out]
     } {
         usual
@@ -218,7 +218,7 @@ itcl::body Rappture::FlowvisViewer::constructor {hostlist args} {
     itk_component add xslice {
         label $itk_component(slicers).xslice \
             -borderwidth 1 -relief raised -padx 1 -pady 1 \
-            -bitmap [Rappture::icon x]
+            -image [Rappture::icon x-cutplane]
     } {
         usual
         ignore -borderwidth
@@ -254,7 +254,7 @@ itcl::body Rappture::FlowvisViewer::constructor {hostlist args} {
     itk_component add yslice {
         label $itk_component(slicers).yslice \
             -borderwidth 1 -relief raised -padx 1 -pady 1 \
-            -bitmap [Rappture::icon y]
+            -image [Rappture::icon y-cutplane]
     } {
         usual
         ignore -borderwidth
@@ -290,7 +290,7 @@ itcl::body Rappture::FlowvisViewer::constructor {hostlist args} {
     itk_component add zslice {
         label $itk_component(slicers).zslice \
             -borderwidth 1 -relief raised -padx 1 -pady 1 \
-            -bitmap [Rappture::icon z]
+            -image [Rappture::icon z-cutplane]
     } {
         usual
         ignore -borderwidth
@@ -480,7 +480,7 @@ itcl::body Rappture::FlowvisViewer::constructor {hostlist args} {
     itk_component add record {
         label $itk_component(flowctrl).record \
             -borderwidth 1 -relief raised -padx 1 -pady 1 \
-            -bitmap [Rappture::icon record]
+            -image [Rappture::icon playback-record]
     } {
         usual
         ignore -borderwidth
@@ -498,7 +498,7 @@ itcl::body Rappture::FlowvisViewer::constructor {hostlist args} {
     itk_component add stop {
         label $itk_component(flowctrl).stop \
             -borderwidth 1 -relief sunken -state disable -padx 1 -pady 1 \
-            -bitmap [Rappture::icon stop]
+            -image [Rappture::icon playback-stop]
     } {
         usual
         ignore -borderwidth
@@ -516,7 +516,7 @@ itcl::body Rappture::FlowvisViewer::constructor {hostlist args} {
     itk_component add play {
         label $itk_component(flowctrl).play \
             -borderwidth 1 -relief raised -padx 1 -pady 1 \
-            -bitmap [Rappture::icon play]
+            -image [Rappture::icon playback-start]
     } {
         usual
         ignore -borderwidth
@@ -1338,7 +1338,7 @@ itcl::body Rappture::FlowvisViewer::_flow {option args} {
                     $itk_component(record) configure -relief raised -state normal
                     $itk_component(stop) configure -relief raised -state normal
                     $itk_component(play) configure \
-                        -bitmap [Rappture::icon pause] \
+                        -image [Rappture::icon playback-pause] \
                         -relief sunken -state normal
                     bind $itk_component(play) <ButtonPress> \
                         [itcl::code $this _pause]
@@ -1381,7 +1381,7 @@ itcl::body Rappture::FlowvisViewer::_pause {} {
 
     # toggle the button to "play" mode
     $itk_component(play) configure \
-        -bitmap [Rappture::icon play] \
+        -image [Rappture::icon playback-start] \
         -relief raised -state normal
     bind $itk_component(play) <ButtonPress> \
         [itcl::code $this _flow movie play toggle]
