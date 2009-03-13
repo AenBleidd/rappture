@@ -68,7 +68,7 @@ itcl::body Rappture::Dropdownlist::constructor {args} {
     $itk_component(scroller) contents $itk_component(list)
 
     # add bindings so the listbox can react to selections
-    bind RapptureDropdownlist-$this <ButtonRelease> [itcl::code $this _react]
+    bind RapptureDropdownlist-$this <ButtonRelease-1> [itcl::code $this _react]
     bind RapptureDropdownlist-$this <KeyPress-Return> [itcl::code $this _react]
     bind RapptureDropdownlist-$this <KeyPress-space> [itcl::code $this _react]
     bind RapptureDropdownlist-$this <KeyPress-Escape> [itcl::code $this unpost]
