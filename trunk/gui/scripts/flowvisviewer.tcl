@@ -1,3 +1,4 @@
+
 # ----------------------------------------------------------------------
 #  COMPONENT: flowvisviewer - 3D vector field rendering
 #
@@ -172,7 +173,7 @@ itcl::body Rappture::FlowvisViewer::constructor {hostlist args} {
         ignore -borderwidth
         rename -highlightbackground -controlbackground controlBackground Background
     }
-    pack $itk_component(reset) -side left -padx {4 1} -pady 4
+    pack $itk_component(reset) -side left -padx {4 1} -pady 2
     Rappture::Tooltip::for $itk_component(reset) "Reset the view to the default zoom level"
 
     itk_component add zoomin {
@@ -185,7 +186,7 @@ itcl::body Rappture::FlowvisViewer::constructor {hostlist args} {
         ignore -borderwidth
         rename -highlightbackground -controlbackground controlBackground Background
     }
-    pack $itk_component(zoomin) -side left -padx 1 -pady 4
+    pack $itk_component(zoomin) -side left -padx 1 -pady 2
     Rappture::Tooltip::for $itk_component(zoomin) "Zoom in"
 
     itk_component add zoomout {
@@ -198,7 +199,7 @@ itcl::body Rappture::FlowvisViewer::constructor {hostlist args} {
         ignore -borderwidth
         rename -highlightbackground -controlbackground controlBackground Background
     }
-    pack $itk_component(zoomout) -side left -padx {1 4} -pady 4
+    pack $itk_component(zoomout) -side left -padx {1 4} -pady 2
     Rappture::Tooltip::for $itk_component(zoomout) "Zoom out"
 
     #
@@ -210,7 +211,7 @@ itcl::body Rappture::FlowvisViewer::constructor {hostlist args} {
         usual
         rename -background -controlbackground controlBackground Background
     }
-    pack $itk_component(slicers) -side bottom -padx 4 -pady 4
+    pack $itk_component(slicers) -side bottom -padx 4 -pady 2
     grid rowconfigure $itk_component(slicers) 1 -weight 1
     #
     # X-value slicer...
@@ -337,7 +338,7 @@ itcl::body Rappture::FlowvisViewer::constructor {hostlist args} {
     Rappture::Tooltip::for $itk_component(volume) \
         "Toggle the volume cloud on/off"
     grid $itk_component(volume) -row 0 -column 0 -columnspan 3 \
-        -sticky ew -padx 1 -pady 3
+        -sticky ew -padx 1 -pady 2
 
     #
     # Settings panel...
@@ -353,7 +354,7 @@ itcl::body Rappture::FlowvisViewer::constructor {hostlist args} {
         rename -background -controlbackground controlBackground Background
         rename -highlightbackground -controlbackground controlBackground Background
     }
-    pack $itk_component(settings) -side top -pady 2
+    pack $itk_component(settings) -side top 
 
     Rappture::Balloon $itk_component(controls).panel -title "Settings"
     set inner [$itk_component(controls).panel component inner]
@@ -471,7 +472,7 @@ itcl::body Rappture::FlowvisViewer::constructor {hostlist args} {
         usual
         rename -background -controlbackground controlBackground Background
     }
-    pack $itk_component(flowctrl) -side top -padx 4 -pady 4
+    pack $itk_component(flowctrl) -side top -padx 4 -pady 0
     grid rowconfigure $itk_component(flowctrl) 1 -weight 1
 
     #
@@ -490,14 +491,14 @@ itcl::body Rappture::FlowvisViewer::constructor {hostlist args} {
         [itcl::code $this _flow movie record toggle]
     Rappture::Tooltip::for $itk_component(record) \
         "Record flow visualization"
-    grid $itk_component(record) -row 1 -column 0 -sticky ew -padx 1
+    grid $itk_component(record) -row 1 -column 0 -padx 1
 
     #
     # flow stop button...
     #
     itk_component add stop {
         label $itk_component(flowctrl).stop \
-            -borderwidth 1 -relief sunken -state disable -padx 1 -pady 1 \
+            -borderwidth 1 -relief sunken -padx 1 -pady 1 \
             -image [Rappture::icon playback-stop]
     } {
         usual
@@ -508,7 +509,7 @@ itcl::body Rappture::FlowvisViewer::constructor {hostlist args} {
         [itcl::code $this _flow movie stop toggle]
     Rappture::Tooltip::for $itk_component(stop) \
         "Stop flow visualization"
-    grid $itk_component(stop) -row 1 -column 1 -sticky ew -padx 1
+    grid $itk_component(stop) -row 1 -column 1 -padx 1
 
     #
     # flow play/pause button...
@@ -526,7 +527,7 @@ itcl::body Rappture::FlowvisViewer::constructor {hostlist args} {
         [itcl::code $this _flow movie play toggle]
     Rappture::Tooltip::for $itk_component(play) \
         "Play/Pause flow visualization"
-    grid $itk_component(play) -row 1 -column 2 -sticky ew -padx 1
+    grid $itk_component(play) -row 1 -column 2 -padx 1
 
     # Bindings for rotation via mouse
     bind $itk_component(3dview) <ButtonPress-1> \
@@ -950,7 +951,7 @@ itcl::body Rappture::FlowvisViewer::ReceiveFile {option size} {
         ReceiveEcho <<line "<read $size bytes for file>"
 
         # raise the record button back up.
-        $itk_component(record) configure -relief raised -state normal
+        $itk_component(record) configure -relief raised 
 
         # FIXME: manually download file???
         set mesg [Rappture::filexfer::download $bytes "flowmovie.mpeg"]
@@ -1317,32 +1318,38 @@ itcl::body Rappture::FlowvisViewer::_flow {option args} {
             set cmds ""
             switch -- $action {
                 record {
-                    $itk_component(record) configure -relief sunken -state disable
-                    $itk_component(stop) configure -relief raised -state normal
-                    $itk_component(play) configure -relief raised -state normal
-                    set inner [$itk_component(controls).panel component inner]
-                    set frames [$inner.scales.framecnt value]
-                    set cmds "flow capture $frames"
-                    _send $cmds
+		    if { [$itk_component(record) cget -relief] != "sunken" } {
+			$itk_component(record) configure -relief sunken 
+			$itk_component(stop) configure -relief raised 
+			$itk_component(play) configure -relief raised 
+			set inner \
+			    [$itk_component(controls).panel component inner]
+			set frames [$inner.scales.framecnt value]
+			set cmds "flow capture $frames"
+			_send $cmds
+		    }
                 }
                 stop {
-                    $itk_component(record) configure -relief raised -state normal
-                    $itk_component(stop) configure -relief sunken -state disable
-                    $itk_component(play) configure -relief raised -state normal
-                    _pause
-                    set cmds "flow reset"
-                    _send $cmds
-
+		    if { [$itk_component(stop) cget -relief] != "sunken" } {
+			$itk_component(record) configure -relief raised 
+			$itk_component(stop) configure -relief sunken 
+			$itk_component(play) configure -relief raised 
+			_pause
+			set cmds "flow reset"
+			_send $cmds
+		    }
                 }
                 play {
-                    $itk_component(record) configure -relief raised -state normal
-                    $itk_component(stop) configure -relief raised -state normal
-                    $itk_component(play) configure \
-                        -image [Rappture::icon playback-pause] \
-                        -relief sunken -state normal
-                    bind $itk_component(play) <ButtonPress> \
-                        [itcl::code $this _pause]
-                    _play
+		    if { [$itk_component(play) cget -relief] != "sunken" } {
+			$itk_component(record) configure -relief raised
+			$itk_component(stop) configure -relief raised 
+			$itk_component(play) configure \
+			    -image [Rappture::icon playback-pause] \
+			    -relief sunken 
+			bind $itk_component(play) <ButtonPress> \
+			    [itcl::code $this _pause]
+			_play
+		    }
                 }
                 default {
                     error "bad option \"$option\": should be one of record|stop|play"
@@ -1382,7 +1389,7 @@ itcl::body Rappture::FlowvisViewer::_pause {} {
     # toggle the button to "play" mode
     $itk_component(play) configure \
         -image [Rappture::icon playback-start] \
-        -relief raised -state normal
+        -relief raised 
     bind $itk_component(play) <ButtonPress> \
         [itcl::code $this _flow movie play toggle]
 

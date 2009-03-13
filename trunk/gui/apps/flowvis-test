@@ -282,7 +282,7 @@ radiobutton .images.cntls.legend -text "Legend" -variable images(which) \
 pack .images.cntls.legend -side top -anchor w
 set images(which) "3dview"
 
-canvas .images.viewer -background black -width 500 -height 500
+canvas .images.viewer -background black -width 500 -height 700
 pack .images.viewer -expand yes -fill both
 bind .images.viewer <Configure> images_refresh
 set widgets(viewer) .images.viewer
