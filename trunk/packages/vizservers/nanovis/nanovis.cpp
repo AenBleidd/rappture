@@ -827,6 +827,7 @@ void NanoVis::initParticle()
     }
 
     particleRenderer->initialize((Particle*)data);
+    licRenderer->make_patterns();
 
     delete[] data;
 }
