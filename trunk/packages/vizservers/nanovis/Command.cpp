@@ -96,15 +96,19 @@ extern int debug_flag;
 extern PlaneRenderer* plane_render;
 extern Texture2D* plane[10];
 
-extern Rappture::Outcome load_volume_stream(int index, std::iostream& fin);
-extern Rappture::Outcome load_volume_stream_odx(int index, const char *buf,
-                        int nBytes);
-extern Rappture::Outcome load_volume_stream2(int index, std::iostream& fin);
+bool load_volume_stream(Rappture::Outcome &status, int index, 
+			std::iostream& fin);
+bool load_volume_stream_odx(Rappture::Outcome &status, int index, 
+	const char *buf, int nBytes);
+extern bool load_volume_stream2(Rappture::Outcome &status, int index, 
+	std::iostream& fin);
 extern void load_volume(int index, int width, int height, int depth,
             int n_component, float* data, double vmin, double vmax,
             double nzero_min);
-extern void load_vector_stream(int index, std::istream& fin);
-extern void load_vector_stream2(int index, std::istream& fin);
+extern bool load_vector_stream(Rappture::Outcome &result, int index, 
+	std::istream& fin);
+extern bool load_vector_stream2(Rappture::Outcome &result, int index, 
+	std::istream& fin);
 
 // Tcl interpreter for incoming messages
 
@@ -678,7 +682,11 @@ GetDataStream(Tcl_Interp *interp, Rappture::Buffer &buf, int nBytes)
         nBytes -= nRead;
     }
     if (NanoVis::recfile != NULL) {
-        fwrite(buf.bytes(), sizeof(char), buf.size(), NanoVis::recfile);
+	ssize_t nWritten;
+
+        nWritten = fwrite(buf.bytes(), sizeof(char), buf.size(), 
+			  NanoVis::recfile);
+	assert(nWritten == (ssize_t)buf.size());
         fflush(NanoVis::recfile);
     }
     {
@@ -688,7 +696,7 @@ GetDataStream(Tcl_Interp *interp, Rappture::Buffer &buf, int nBytes)
         if (err) {
             printf("ERROR -- DECODING\n");
             fflush(stdout);
-            Tcl_AppendResult(interp, err.remark().c_str(), (char*)NULL);
+            Tcl_AppendResult(interp, err.remark(), (char*)NULL);
             return TCL_ERROR;
         }
     }
@@ -1295,9 +1303,8 @@ VolumeDataFollowsOp(ClientData cdata, Tcl_Interp *interp, int objc,
         fflush(stdout);
         std::stringstream fdata;
         fdata.write(buf.bytes(),buf.size());
-        err = load_volume_stream3(n, fdata);
-        if (err) {
-            Tcl_AppendResult(interp, err.remark().c_str(), (char*)NULL);
+	if (!load_volume_stream3(err, n, fdata)) {
+            Tcl_AppendResult(interp, err.remark(), (char*)NULL);
             return TCL_ERROR;
         }
 #endif  /*__TEST_CODE__*/
@@ -1306,9 +1313,8 @@ VolumeDataFollowsOp(ClientData cdata, Tcl_Interp *interp, int objc,
 
         printf("Loading DX using OpenDX library...\n");
         fflush(stdout);
-        err = load_volume_stream_odx(n, buf.bytes()+5, buf.size()-5);
-        if (err) {
-            Tcl_AppendResult(interp, err.remark().c_str(), (char*)NULL);
+        if (!load_volume_stream_odx(err, n, buf.bytes()+5, buf.size()-5)) {
+            Tcl_AppendResult(interp, err.remark(), (char*)NULL);
             return TCL_ERROR;
         }
     } else {
@@ -1319,13 +1325,14 @@ VolumeDataFollowsOp(ClientData cdata, Tcl_Interp *interp, int objc,
         std::stringstream fdata;
         fdata.write(buf.bytes(),buf.size());
 
+	bool result;
 #if ISO_TEST
-        err = load_volume_stream2(n, fdata);
+        result = load_volume_stream2(err, n, fdata);
 #else
-        err = load_volume_stream(n, fdata);
+        result = load_volume_stream(err, n, fdata);
 #endif
-        if (err) {
-            Tcl_AppendResult(interp, err.remark().c_str(), (char*)NULL);
+        if (!result) {
+            Tcl_AppendResult(interp, err.remark(), (char*)NULL);
             return TCL_ERROR;
         }
     }
@@ -1350,6 +1357,7 @@ VolumeDataFollowsOp(ClientData cdata, Tcl_Interp *interp, int objc,
     {
         Volume *volPtr;
         char info[1024];
+	ssize_t nWritten;
 
         if (Volume::update_pending) {
             NanoVis::SetVolumeRanges();
@@ -1359,7 +1367,8 @@ VolumeDataFollowsOp(ClientData cdata, Tcl_Interp *interp, int objc,
         sprintf(info, "nv>data id %d min %g max %g vmin %g vmax %g\n",
                 n, volPtr->wAxis.min(), volPtr->wAxis.max(),
                 Volume::valueMin, Volume::valueMax);
-        write(0, info, strlen(info));
+        nWritten  = write(0, info, strlen(info));
+	assert(nWritten == (ssize_t)strlen(info));
     }
     return TCL_OK;
 }
@@ -1722,6 +1731,8 @@ static int
 FlowDataFollowsOp(ClientData cdata, Tcl_Interp *interp, int objc,
                     Tcl_Obj *const *objv)
 {
+    Rappture::Outcome result;
+
     Trace("Flow Data Loading\n");
 
     int nbytes;
@@ -1736,8 +1747,12 @@ FlowDataFollowsOp(ClientData cdata, Tcl_Interp *interp, int objc,
     int n = NanoVis::n_volumes;
     std::stringstream fdata;
     fdata.write(buf.bytes(),buf.size());
-    // load_vector_stream(n, fdata);
-    load_vector_stream2(n, fdata);
+    // load_vector_stream(result, n, fdata);
+
+    if (!load_vector_stream2(result, n, fdata)) {
+	Tcl_AppendResult(interp, result.remark(), (char *)NULL);
+	return TCL_ERROR;
+    }
     Volume *volPtr = NanoVis::volume[n];
 
     //
@@ -1792,6 +1807,7 @@ static int
 FlowCaptureOp(ClientData cdata, Tcl_Interp *interp, int objc,
              Tcl_Obj *const *objv)
 {
+    Rappture::Outcome result;
     int total_frame_count;
 
     if (Tcl_GetIntFromObj(interp, objv[2], &total_frame_count) != TCL_OK) {
@@ -1805,19 +1821,19 @@ FlowCaptureOp(ClientData cdata, Tcl_Interp *interp, int objc,
     }
 
     char fileName[128];
-    sprintf(fileName,"/tmp/flow%d.mpeg",getpid());
+    sprintf(fileName,"/tmp/flow%d.mpeg", getpid());
 
 
     Trace("FLOW started\n");
 
-    Rappture::AVTranslate movie(NanoVis::win_width,NanoVis::win_height);
+    Rappture::AVTranslate movie(NanoVis::win_width, NanoVis::win_height);
 
     int pad = 0;
     if ((3*NanoVis::win_width) % 4 > 0) {
         pad = 4 - ((3*NanoVis::win_width) % 4);
     }
 
-    movie.init(fileName);
+    movie.init(result, fileName);
 
     for (int frame_count = 0; frame_count < total_frame_count; frame_count++) {
 
@@ -1838,11 +1854,11 @@ FlowCaptureOp(ClientData cdata, Tcl_Interp *interp, int objc,
 
         // this is done before bmp_write_to_file because bmp_write_to_file
         // turns rgb data to bgr
-        movie.append(NanoVis::screen_buffer,pad);
+        movie.append(result, NanoVis::screen_buffer,pad);
         // NanoVis::bmp_write_to_file(frame_count, fileName);
     }
 
-    movie.close();
+    movie.done(result);
     Trace("FLOW end\n");
 
     if (NanoVis::licRenderer) {
@@ -1857,8 +1873,8 @@ FlowCaptureOp(ClientData cdata, Tcl_Interp *interp, int objc,
     Rappture::Buffer data;
     data.load(fileName);
     char command[512];
-    sprintf(command,"nv>file -bytes %lu\n",data.size());
-    NanoVis::sendDataToClient(command,data.bytes(),data.size());
+    sprintf(command,"nv>file -bytes %lu\n", (unsigned long)data.size());
+    NanoVis::sendDataToClient(command,data.bytes(), data.size());
     if (remove(fileName) != 0) {
         fprintf(stderr, "Error deleting flow movie file: %s\n", fileName);
         fflush(stderr);
@@ -2817,7 +2833,7 @@ initTcl()
     // create a default transfer function
     if (Tcl_Eval(interp, def_transfunc) != TCL_OK) {
         fprintf(NanoVis::logfile, "WARNING: bad default transfer function\n");
-        fprintf(NanoVis::logfile, Tcl_GetStringResult(interp));
+        fprintf(NanoVis::logfile, "%s\n", Tcl_GetStringResult(interp));
     }
     return interp;
 }

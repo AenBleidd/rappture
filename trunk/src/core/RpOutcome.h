@@ -30,7 +30,7 @@ public:
     Outcome& operator=(const Outcome& status);
     virtual ~Outcome();
 
-    Outcome& AddError(const char* format, ...);
+    Outcome& addError(const char* format, ...);
     virtual Outcome& error(const char* errmsg, int status=1);
     virtual Outcome& clear();
 
@@ -38,9 +38,9 @@ public:
     virtual int operator!() const;
     virtual Outcome& operator&=(Outcome status);  // pass-by-value to avoid temp
 
-    virtual std::string remark() const;
+    virtual const char *remark() const;
     virtual Outcome& addContext(const char *rem);
-    virtual std::string context() const;
+    virtual const char *context() const;
 
 private:
     /// overall pass/fail status

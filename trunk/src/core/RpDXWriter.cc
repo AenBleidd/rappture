@@ -209,22 +209,17 @@ DXWriter::pos(double *p, size_t nmemb)
 }
 
 DXWriter&
-DXWriter::write(FILE *stream)
+DXWriter::write(FILE *f)
 {
-    SimpleCharBuffer *dxfile = NULL;
-
-    if (stream == NULL) {
-        fprintf(stderr,"stream is NULL, cannot write to NULL file inside DXWriter::write\n");
+    if (f == NULL) {
+        fprintf(stderr,"FILE is NULL, cannot write to NULL file inside DXWriter::write\n");
         return *this;
     }
-
-    dxfile = new SimpleCharBuffer();
-
+    SimpleCharBuffer dxfile;
     _writeDxToBuffer(dxfile);
-    fwrite((const void*)(dxfile->bytes()),1,dxfile->size(),stream);
-
-    delete dxfile;
-
+    ssize_t nWritten;
+    nWritten = fwrite(dxfile.bytes(), 1, dxfile.size(), f);
+    assert(nWritten == (ssize_t)dxfile.size());
     return *this;
 }
 
@@ -248,19 +243,14 @@ DXWriter::write(const char* fname)
 DXWriter&
 DXWriter::write(char *str)
 {
-    SimpleCharBuffer *dxfile = NULL;
-    int sz = 0;
-
-    dxfile = new SimpleCharBuffer();
+    SimpleCharBuffer dxfile;
+    int sz;
 
     _writeDxToBuffer(dxfile);
-    sz = dxfile->size();
+    sz = dxfile.size();
     str = new char[sz+1];
-    memcpy(str,dxfile->bytes(),sz);
+    memcpy(str, dxfile.bytes(), sz);
     str[sz] = '\0';
-
-    delete dxfile;
-
     return *this;
 }
 
@@ -272,7 +262,7 @@ DXWriter::write(char *str)
  */
 
 DXWriter&
-DXWriter::_writeDxToBuffer(SimpleCharBuffer *dxfile)
+DXWriter::_writeDxToBuffer(SimpleCharBuffer &dxfile)
 {
     char b[80];
     double f = 0.0;
@@ -280,40 +270,40 @@ DXWriter::_writeDxToBuffer(SimpleCharBuffer *dxfile)
     // expand our original buffer to 512 characters
     // because we know there are at least
     // 400 characters in even our smallest dx file.
-    dxfile->set(512);
+    dxfile.set(512);
 
-    dxfile->append("<ODX>object 1 class gridpositions counts",40);
+    dxfile.append("<ODX>object 1 class gridpositions counts",40);
     for (size_t i=0; i < _rank; i++) {
         sprintf(b, " %10lu", (unsigned long)_positions[i]);
-        dxfile->append(b,11);
+        dxfile.append(b,11);
     }
 
-    dxfile->append("\norigin");
+    dxfile.append("\norigin");
     for (size_t i=0; i < _rank; i++) {
         sprintf(b, " %10g",_origin[i]);
-        dxfile->append(b,11);
+        dxfile.append(b,11);
     }
 
     for (size_t row=0; row < _rank; row++) {
-        dxfile->append("\ndelta");
+        dxfile.append("\ndelta");
         for (size_t col=0; col < _rank; col++) {
             sprintf(b, " %10g",_delta[(_rank*row)+col]);
-            dxfile->append(b,11);
+            dxfile.append(b,11);
         }
     }
 
-    dxfile->append("\nobject 2 class gridconnections counts", 38);
+    dxfile.append("\nobject 2 class gridconnections counts", 38);
     for (size_t i=0; i < _rank; i++) {
         sprintf(b, " %10lu",(unsigned long)_positions[i]);
-        dxfile->append(b,11);
+        dxfile.append(b,11);
     }
 
-    dxfile->append("\nattribute \"element type\" string \"cubes\"\n",41);
-    dxfile->append("attribute \"ref\" string \"positions\"\n",35);
+    dxfile.append("\nattribute \"element type\" string \"cubes\"\n",41);
+    dxfile.append("attribute \"ref\" string \"positions\"\n",35);
 
     sprintf(b,"object 3 class array type float rank 0 items %lu data follows\n",
         (unsigned long)_dataBuf.nmemb());
-    dxfile->append(b);
+    dxfile.append(b);
 
     _dataBuf.seek(0,SEEK_SET);
     while (!_dataBuf.eof()) {
@@ -326,15 +316,15 @@ DXWriter::_writeDxToBuffer(SimpleCharBuffer *dxfile)
         // we do not know the length of the string
         // only that it has 10 sigdigs, so we cannot tell
         // append the size of the data
-        // dxfile->append(b,15);
-        dxfile->append(b);
+        // dxfile.append(b,15);
+        dxfile.append(b);
     }
 
-    dxfile->append("attribute \"dep\" string \"positions\"\n",35);
-    dxfile->append("object \"density\" class field\n",29);
-    dxfile->append("component \"positions\" value 1\n",30);
-    dxfile->append("component \"connections\" value 2\n",32);
-    dxfile->append("component \"data\" value 3\n",25);
+    dxfile.append("attribute \"dep\" string \"positions\"\n",35);
+    dxfile.append("object \"density\" class field\n",29);
+    dxfile.append("component \"positions\" value 1\n",30);
+    dxfile.append("component \"connections\" value 2\n",32);
+    dxfile.append("component \"data\" value 3\n",25);
 
     return *this;
 }

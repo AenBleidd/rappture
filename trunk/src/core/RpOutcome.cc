@@ -62,7 +62,7 @@ Outcome::error(const char* errmsg, int status)
 }
 
 Outcome&
-Outcome::AddError(const char* format, ...)
+Outcome::addError(const char* format, ...)
 {
     char stackSpace[1024];
     va_list lst;
@@ -137,13 +137,10 @@ Outcome::operator&=(Outcome oc)
 /**
  *  Query the error remark from an outcome.
  */
-std::string
+const char *
 Outcome::remark() const
 {
-    if (!_remarkPtr.isNull()) {
-        return _remarkPtr->data();
-    }
-    return "";
+    return (!_remarkPtr.isNull()) ? _remarkPtr->data() : "";
 }
 
 /**
@@ -163,11 +160,9 @@ Outcome::addContext(const char *rem)
 /**
  *  Query the context stack from an outcome.
  */
-std::string
+
+const char *
 Outcome::context() const
 {
-    if (!_contextPtr.isNull()) {
-        return _contextPtr->data();
-    }
-    return "";
+    return (!_contextPtr.isNull()) ? _contextPtr->data() : "";
 }
