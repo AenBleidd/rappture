@@ -12,22 +12,21 @@
 
 // rappture headers
 #include "RpEncode.h"
-
+#include "RpOutcome.h"
 /* Load a 3D volume from a dx-format file the new way
  */
-Rappture::Outcome
-load_volume_stream_odx(int index, const char *buf, int nBytes)
+bool
+load_volume_stream_odx(Rappture::Outcome &outcome, int index, const char *buf,
+		       int nBytes)
 {
-    Rappture::Outcome outcome;
-
     char dxfilename[128];
 
     if (nBytes == 0) {
-        return outcome.error("data not found in stream");
+	outcome.error("data not found in stream");
+        return false;
     }
 
     // write the dx file to disk, because DXImportDX takes a file name
-    // george suggested using a pipe here
 
     // You can do it like this.  Give 
     sprintf(dxfilename, "/tmp/dx%d.dx", getpid());
@@ -38,11 +37,10 @@ load_volume_stream_odx(int index, const char *buf, int nBytes)
     fwrite(buf, sizeof(char), nBytes, f);
     fclose(f);
 
-    Rappture::DX dxObj(dxfilename, &outcome);
+    Rappture::DX dxObj(outcome, dxfilename);
 
-    if (remove(dxfilename) != 0) {
-        fprintf(stderr, "Error deleting dx file: %s\n", dxfilename);
-        fflush(stderr);
+    if (unlink(dxfilename) != 0) {
+        outcome.addError("Error deleting dx file: %s\n", dxfilename);
     }
 
     int nx = dxObj.axisLen()[0];
@@ -88,8 +86,10 @@ load_volume_stream_odx(int index, const char *buf, int nBytes)
     fflush(stdout);
 
     Volume *volPtr;
-    volPtr = NanoVis::load_volume(index, nx, ny, nz, 4, data,
-                                  dxObj.dataMin(), dxObj.dataMax(), dxObj.nzero_min());
+    volPtr = NanoVis::load_volume(index, nx, ny, nz, 4, data, 
+				  dxObj.dataMin(), 
+				  dxObj.dataMax(), 
+				  dxObj.nzero_min());
     const float *origin = dxObj.origin();
     const float *max = dxObj.max();
 
@@ -108,6 +108,5 @@ load_volume_stream_odx(int index, const char *buf, int nBytes)
     float dy0 = -0.5*dy/dx;
     float dz0 = -0.5*dz/dx;
     NanoVis::volume[index]->move(Vector3(dx0, dy0, dz0));
-
-    return outcome;
+    return true;
 }

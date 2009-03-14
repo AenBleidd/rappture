@@ -46,8 +46,8 @@
 /*
  * Load a 3D vector field from a dx-format file
  */
-void
-load_vector_stream2(int volindex, std::istream& fin)
+bool
+load_vector_stream2(Rappture::Outcome &result, int volindex, std::istream& fin)
 {
     int dummy, nx, ny, nz, npts;
     double x0, y0, z0, dx, dy, dz, ddx, ddy, ddz;
@@ -58,8 +58,8 @@ load_vector_stream2(int volindex, std::istream& fin)
     while (!fin.eof()) {
         fin.getline(line, sizeof(line) - 1);
         if (fin.fail()) {
-            //return result.error("error in data stream");
-            return;
+            result.addError("error in data stream");
+            return false;
         }
         for (start=&line[0]; *start == ' ' || *start == '\t'; start++)
             ;  // skip leading blanks
@@ -82,14 +82,16 @@ load_vector_stream2(int volindex, std::istream& fin)
             } else if (sscanf(start, "object %d class array type %s shape 3 rank 1 items %d data follows", &dummy, type, &npts) == 3) {
                 printf("point %d\n", npts);
                 if (npts != nx*ny*nz) {
-                    std::cerr << "inconsistent data: expected " << nx*ny*nz << " points but found " << npts << " points" << std::endl;
-                    return;
+                    result.addError("inconsistent data: expected %d points"
+				    " but found %d points", nx*ny*nz, npts);
+                    return false;
                 }
                 break;
             } else if (sscanf(start, "object %d class array type %s rank 0 times %d data follows", &dummy, type, &npts) == 3) {
                 if (npts != nx*ny*nz) {
-                    std::cerr << "inconsistent data: expected " << nx*ny*nz << " points but found " << npts << " points" << std::endl;
-                    return;
+                    result.addError("inconsistent data: expected %d points"
+				    " but found %d points", nx*ny*nz, npts);
+                    return false;
                 }
                 break;
             }
@@ -100,9 +102,11 @@ load_vector_stream2(int volindex, std::istream& fin)
     float* srcdata = new float[nx * ny * nz * 3];
     if (!fin.eof()) {
         double vx, vy, vz, vm;
+#ifdef notdef
         double max_x = -1e21, min_x = 1e21;
         double max_y = -1e21, min_y = 1e21;
         double max_z = -1e21, min_z = 1e21;
+#endif
         double max_mag = -1e21, min_mag = 1e21;
         int nread = 0;
         for (int ix=0; ix < nx; ix++) {
@@ -144,8 +148,9 @@ load_vector_stream2(int volindex, std::istream& fin)
 
         // make sure that we read all of the expected points
         if (nread != nx*ny*nz) {
-            std::cerr << "inconsistent data: expected " << nx*ny*nz << " points but found " << nread << " points" << std::endl;
-            return;
+	    result.addError("inconsistent data: expected %d points"
+			    " but found %d points", nx*ny*nz, npts);
+	    return false;
         }
 
         float *data = new float[4*nx*ny*nz];
@@ -154,7 +159,9 @@ load_vector_stream2(int volindex, std::istream& fin)
         std::cout << "generating " << nx << "x" << ny << "x" << nz << " = " << nx*ny*nz << " points" << std::endl;
 
         // generate the uniformly sampled data that we need for a volume
+#ifdef notdef
         double nzero_min = 0.0;
+#endif
         int ngen = 0;
         int nindex = 0;
         for (int iz=0; iz < nz; iz++) {
@@ -177,8 +184,8 @@ load_vector_stream2(int volindex, std::istream& fin)
         }
 
         Volume *volPtr;
-        volPtr = NanoVis::load_volume(volindex, nx, ny, nz, 4, data, min_mag, max_mag,
-                    0);
+        volPtr = NanoVis::load_volume(volindex, nx, ny, nz, 4, data, 
+		min_mag, max_mag, 0);
 
         volPtr->xAxis.SetRange(x0, x0 + nx);
         volPtr->yAxis.SetRange(y0, y0 + ny);
@@ -189,9 +196,11 @@ load_vector_stream2(int volindex, std::istream& fin)
     } else {
         std::cerr << "WARNING: data not found in stream" << std::endl;
     }
+    return true;
 }
-void
-load_vector_stream(int index, std::istream& fin)
+
+bool
+load_vector_stream(Rappture::Outcome result, int index, std::istream& fin)
 {
     int dummy, nx, ny, nz, npts;
     double x0, y0, z0, dx, dy, dz, ddx, ddy, ddz;
@@ -202,8 +211,8 @@ load_vector_stream(int index, std::istream& fin)
     while (!fin.eof()) {
         fin.getline(line, sizeof(line) - 1);
         if (fin.fail()) {
-            //return result.error("error in data stream");
-            return;
+            result.addError("error in data stream");
+            return false;
         }
         for (start=&line[0]; *start == ' ' || *start == '\t'; start++)
             ;  // skip leading blanks
@@ -226,14 +235,16 @@ load_vector_stream(int index, std::istream& fin)
             } else if (sscanf(start, "object %d class array type %s shape 3 rank 1 items %d data follows", &dummy, type, &npts) == 3) {
 		printf("point %d\n", npts);
                 if (npts != nx*ny*nz) {
-                    std::cerr << "inconsistent data: expected " << nx*ny*nz << " points but found " << npts << " points" << std::endl;
-                    return;
+                    result.addError("inconsistent data: expected %d points"
+				    " but found %d points", nx*ny*nz, npts);
+                    return false;
                 }
                 break;
             } else if (sscanf(start, "object %d class array type %s rank 0 times %d data follows", &dummy, type, &npts) == 3) {
                 if (npts != nx*ny*nz) {
-                    std::cerr << "inconsistent data: expected " << nx*ny*nz << " points but found " << npts << " points" << std::endl;
-                    return;
+                    result.addError("inconsistent data: expected %d points"
+				    " but found %d points", nx*ny*nz, npts);
+                    return false;
                 }
                 break;
             }
@@ -271,8 +282,9 @@ load_vector_stream(int index, std::istream& fin)
 
         // make sure that we read all of the expected points
         if (nread != nx*ny*nz) {
-            std::cerr << "inconsistent data: expected " << nx*ny*nz << " points but found " << nread << " points" << std::endl;
-            return;
+	    result.addError("inconsistent data: expected %d points"
+			    " but found %d points", nx*ny*nz, npts);
+            return false;
         }
 
         // figure out a good mesh spacing
@@ -354,19 +366,18 @@ load_vector_stream(int index, std::istream& fin)
         volPtr->update_pending = true;
         delete [] data;
     } else {
-        std::cerr << "WARNING: data not found in stream" << std::endl;
+        result.addError("WARNING: data not found in stream");
+	return false;
     }
+    return true;
 }
-
 
 /* Load a 3D volume from a dx-format file
  */
-Rappture::Outcome
-load_volume_stream2(int index, std::iostream& fin)
+bool
+load_volume_stream2(Rappture::Outcome &result, int index, std::iostream& fin)
 {
     printf("load_volume_stream2\n");
-    Rappture::Outcome result;
-
     Rappture::MeshTri2D xymesh;
     int dummy, nx, ny, nz, nxy, npts;
     double x0, y0, z0, dx, dy, dz, ddx, ddy, ddz;
@@ -381,7 +392,8 @@ load_volume_stream2(int index, std::iostream& fin)
             ;  // skip leading blanks
 
         if (*start != '#') {  // skip comment lines
-            if (sscanf(start, "object %d class gridpositions counts %d %d %d", &dummy, &nx, &ny, &nz) == 4) {
+            if (sscanf(start, "object %d class gridpositions counts %d %d %d", 
+		       &dummy, &nx, &ny, &nz) == 4) {
                 // found grid size
                 isrect = 1;
             } else if (sscanf(start, "object %d class array type float rank 1 shape 3 items %d data follows", &dummy, &nxy) == 2) {
@@ -431,11 +443,10 @@ load_volume_stream2(int index, std::iostream& fin)
                     }
                     ftri.close();
                 } else {
-                    return result.error("triangularization failed");
+                    result.error("triangularization failed");
+		    return false;
                 }
-
-                sprintf(cmdstr, "rm -f %s %s", fpts, fcells);
-                system(cmdstr);
+		unlink(fpts), unlink(fcells);
             } else if (sscanf(start, "object %d class regulararray count %d", &dummy, &nz) == 2) {
                 // found z-grid
             } else if (sscanf(start, "origin %lg %lg %lg", &x0, &y0, &z0) == 3) {
@@ -456,25 +467,26 @@ load_volume_stream2(int index, std::iostream& fin)
             count++;
         }
         if (count > 1) {
-            return result.error(
-            "don't know how to handle multiple non-zero delta values");
+            result.addError("don't know how to handle multiple non-zero"
+			    " delta values");
+	    return false;
         }
             } else if (sscanf(start, "object %d class array type %s rank 0 items %d data follows", &dummy, type, &npts) == 3) {
                 if (isrect && (npts != nx*ny*nz)) {
-                    char mesg[256];
-                    sprintf(mesg,"inconsistent data: expected %d points but found %d points", nx*ny*nz, npts);
-                    return result.error(mesg);
+                    result.addError("inconsistent data: expected %d points "
+				    " but found %d points", nx*ny*nz, npts);
+                    return false;
                 } else if (!isrect && (npts != nxy*nz)) {
-                    char mesg[256];
-                    sprintf(mesg,"inconsistent data: expected %d points but found %d points", nxy*nz, npts);
-                    return result.error(mesg);
+                    result.addError("inconsistent data: expected %d points "
+				    " but found %d points", nxy*nz, npts);
+                    return false;
                 }
                 break;
             } else if (sscanf(start, "object %d class array type %s rank 0 times %d data follows", &dummy, type, &npts) == 3) {
                 if (npts != nx*ny*nz) {
-                    char mesg[256];
-                    sprintf(mesg,"inconsistent data: expected %d points but found %d points", nx*ny*nz, npts);
-                    return result.error(mesg);
+                    result.addError("inconsistent data: expected %d points "
+				    " but found %d points", nx*ny*nz, npts);
+                    return false;
                 }
                 break;
             }
@@ -526,10 +538,9 @@ load_volume_stream2(int index, std::iostream& fin)
 
             // make sure that we read all of the expected points
             if (nread != nx*ny*nz) {
-                char mesg[256];
-                sprintf(mesg,"inconsistent data: expected %d points but found %d points", nx*ny*nz, nread);
-                result.error(mesg);
-                return result;
+                result.addError("inconsistent data: expected %d points "
+				" but found %d points", nx*ny*nz, nread);
+                return false;
             }
 
             double dv = vmax - vmin;
@@ -577,10 +588,9 @@ load_volume_stream2(int index, std::iostream& fin)
             while (!fin.eof() && nread < npts) {
                 fin >> dval;
                 if (fin.fail()) {
-                    char mesg[256];
-                    sprintf(mesg,"after %d of %d points: can't read number", 
-                            nread, npts);
-                    return result.error(mesg);
+                    result.addError("after %d of %d points: can't read number", 
+				    nread, npts);
+                    return false;
                 } else {
                     int nid = nxy*iz + ixy;
                     field.define(nid, dval);
@@ -595,9 +605,9 @@ load_volume_stream2(int index, std::iostream& fin)
 
             // make sure that we read all of the expected points
             if (nread != nxy*nz) {
-                char mesg[256];
-                sprintf(mesg,"inconsistent data: expected %d points but found %d points", nxy*nz, nread);
-                return result.error(mesg);
+                result.addError("inconsistent data: expected %d points "
+				"but found %d points", nxy*nz, nread);
+                return false;
             }
 
             // figure out a good mesh spacing
@@ -713,7 +723,8 @@ load_volume_stream2(int index, std::iostream& fin)
             delete [] data;
         }
     } else {
-        return result.error("data not found in stream");
+        result.addError("data not found in stream");
+	return false;
     }
 
     //
@@ -723,8 +734,7 @@ load_volume_stream2(int index, std::iostream& fin)
     float dy0 = -0.5*dy/dx;
     float dz0 = -0.5*dz/dx;
     NanoVis::volume[index]->move(Vector3(dx0, dy0, dz0));
-
-    return result;
+    return true;
 }
 
 Rappture::Outcome
@@ -805,9 +815,8 @@ load_volume_stream(int index, std::iostream& fin)
                 } else {
                     return result.error("triangularization failed");
                 }
-
-                sprintf(cmdstr, "rm -f %s %s", fpts, fcells);
-                system(cmdstr);
+		unlink(fpts);
+		unlink(fcells);
             } else if (sscanf(start, "object %d class regulararray count %d", &dummy, &nz) == 2) {
                 // found z-grid
             } else if (sscanf(start, "origin %lg %lg %lg", &x0, &y0, &z0) == 3) {
@@ -819,20 +828,20 @@ load_volume_stream(int index, std::iostream& fin)
                 else if (ddz != 0.0) { dz = ddz; }
             } else if (sscanf(start, "object %d class array type %s rank 0 items %d data follows", &dummy, type, &npts) == 3) {
                 if (isrect && (npts != nx*ny*nz)) {
-                    char mesg[256];
-                    sprintf(mesg,"inconsistent data: expected %d points but found %d points", nx*ny*nz, npts);
-                    return result.error(mesg);
+                    result.addError("inconsistent data: expected %d points"
+				    " but found %d points", nx*ny*nz, npts);
+                    return false;
                 } else if (!isrect && (npts != nxy*nz)) {
-                    char mesg[256];
-                    sprintf(mesg,"inconsistent data: expected %d points but found %d points", nxy*nz, npts);
-                    return result.error(mesg);
+                    result.addError("inconsistent data: expected %d points"
+				    " but found %d points", nx*ny*nz, npts);
+                    return false;
                 }
                 break;
             } else if (sscanf(start, "object %d class array type %s rank 0 times %d data follows", &dummy, type, &npts) == 3) {
                 if (npts != nx*ny*nz) {
-                    char mesg[256];
-                    sprintf(mesg,"inconsistent data: expected %d points but found %d points", nx*ny*nz, npts);
-                    return result.error(mesg);
+                    result.addError("inconsistent data: expected %d points"
+				    " but found %d points", nx*ny*nz, npts);
+                    return false;
                 }
                 break;
             }
@@ -878,10 +887,9 @@ load_volume_stream(int index, std::iostream& fin)
 
             // make sure that we read all of the expected points
             if (nread != nx*ny*nz) {
-                char mesg[256];
-                sprintf(mesg,"inconsistent data: expected %d points but found %d points", nx*ny*nz, nread);
-                result.error(mesg);
-                return result;
+		result.addError("inconsistent data: expected %d points"
+				" but found %d points", nx*ny*nz, npts);
+		return false;
             }
 
             // figure out a good mesh spacing
@@ -1024,9 +1032,9 @@ load_volume_stream(int index, std::iostream& fin)
 
             // make sure that we read all of the expected points
             if (nread != nxy*nz) {
-                char mesg[256];
-                sprintf(mesg,"inconsistent data: expected %d points but found %d points", nxy*nz, nread);
-                return result.error(mesg);
+		result.addError("inconsistent data: expected %d points"
+				" but found %d points", nx*ny*nz, npts);
+		return false;
             }
 
             // figure out a good mesh spacing
@@ -1236,9 +1244,7 @@ load_volume_stream_insoo(int index, std::iostream& fin)
                 } else {
                     return result.error("triangularization failed");
                 }
-
-                sprintf(cmdstr, "rm -f %s %s", fpts, fcells);
-                system(cmdstr);
+		unlink(fpts), unlink(fcells);
             } else if (sscanf(start, "object %d class regulararray count %d", &dummy, &nz) == 2) {
                 // found z-grid
             } else if (sscanf(start, "origin %lg %lg %lg", &x0, &y0, &z0) == 3) {
@@ -1250,20 +1256,20 @@ load_volume_stream_insoo(int index, std::iostream& fin)
                 else if (ddz != 0.0) { dz = ddz; }
             } else if (sscanf(start, "object %d class array type %s rank 0 items %d data follows", &dummy, type, &npts) == 3) {
                 if (isrect && (npts != nx*ny*nz)) {
-                    char mesg[256];
-                    sprintf(mesg,"inconsistent data: expected %d points but found %d points", nx*ny*nz, npts);
-                    return result.error(mesg);
+                    result.addError("inconsistent data: expected %d points"
+				    " but found %d points", nx*ny*nz, npts);
+                    return false;
                 } else if (!isrect && (npts != nxy*nz)) {
-                    char mesg[256];
-                    sprintf(mesg,"inconsistent data: expected %d points but found %d points", nxy*nz, npts);
-                    return result.error(mesg);
+                    result.addError("inconsistent data: expected %d points"
+				    " but found %d points", nx*ny*nz, npts);
+                    return false;
                 }
                 break;
             } else if (sscanf(start, "object %d class array type %s rank 0 times %d data follows", &dummy, type, &npts) == 3) {
                 if (npts != nx*ny*nz) {
-                    char mesg[256];
-                    sprintf(mesg,"inconsistent data: expected %d points but found %d points", nx*ny*nz, npts);
-                    return result.error(mesg);
+                    result.addError("inconsistent data: expected %d points"
+				    " but found %d points", nx*ny*nz, npts);
+                    return false;
                 }
                 break;
             }
@@ -1309,10 +1315,9 @@ load_volume_stream_insoo(int index, std::iostream& fin)
 
             // make sure that we read all of the expected points
             if (nread != nx*ny*nz) {
-                char mesg[256];
-                sprintf(mesg,"inconsistent data: expected %d points but found %d points", nx*ny*nz, nread);
-                result.error(mesg);
-                return result;
+		result.addError("inconsistent data: expected %d points"
+				" but found %d points", nx*ny*nz, npts);
+		return false;
             }
 
             // figure out a good mesh spacing
@@ -1496,9 +1501,9 @@ load_volume_stream_insoo(int index, std::iostream& fin)
 
             // make sure that we read all of the expected points
             if (nread != nxy*nz) {
-                char mesg[256];
-                sprintf(mesg,"inconsistent data: expected %d points but found %d points", nxy*nz, nread);
-                return result.error(mesg);
+		result.addError("inconsistent data: expected %d points"
+				" but found %d points", nx*ny*nz, npts);
+		return false;
             }
 
             // figure out a good mesh spacing

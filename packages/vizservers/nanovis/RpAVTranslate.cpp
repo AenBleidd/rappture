@@ -1,3 +1,4 @@
+
 /*
  * ======================================================================
  *  Rappture::AVTranslate
@@ -25,16 +26,13 @@
 #define M_PI 3.14159265358979323846
 #endif
 
-#undef exit
-
-#ifdef __cplusplus
-    extern "C" {
-#endif // ifdef __cplusplus
-
 using namespace Rappture;
 
-AVTranslate::AVTranslate( size_t width,
-                          size_t height )
+extern int img_convert(AVPicture *dst, int dst_pix_fmt,
+                const AVPicture *src, int src_pix_fmt,
+                int src_width, int src_height);
+
+AVTranslate::AVTranslate(size_t width, size_t height )
   : _width (width),
     _height (height),
     _bit_rate(400000),
@@ -48,10 +46,8 @@ AVTranslate::AVTranslate( size_t width,
     _rgb_picture(NULL)
 {}
 
-AVTranslate::AVTranslate( size_t width,
-                          size_t height,
-                          size_t bit_rate,
-                          double frame_rate )
+AVTranslate::AVTranslate(size_t width, size_t height, size_t bit_rate,
+			 double frame_rate)
   : _width (width),
     _height (height),
     _bit_rate(bit_rate),
@@ -76,39 +72,41 @@ AVTranslate::AVTranslate(const AVTranslate& o)
 
 AVTranslate::~AVTranslate()
 {
-    close();
+#ifdef notdef
+    /* FIXME:: This can't be right.  Don't want to automatically write out
+     * trailer etc. on destruction of this object. */
+    done();
+#endif
 }
 
 
-Outcome
-AVTranslate::init (const char *filename)
+bool
+AVTranslate::init(Outcome &status, const char *filename)
 {
-    Outcome status;
-
     /* initialize libavcodec, and register all codecs and formats */
     av_register_all();
 
     /* auto detect the output format from the name. default is
        mpeg. */
     _fmt = guess_format(NULL, filename, NULL);
-    if (!_fmt) {
+    if (_fmt == NULL) {
         /*
         printf(  "Could not deduce output format from"
                  "file extension: using MPEG.\n");
         */
         _fmt = guess_format("mpeg", NULL, NULL);
     }
-    if (!_fmt) {
-        status.error("Could not find suitable output format");
+    if (_fmt == NULL) {
+        status.addError("Could not find suitable output format");
         status.addContext("Rappture::AVTranslate::init()");
-        return status;
+        return false;
     }
 
     /* allocate the output media context */
     _oc = av_alloc_format_context();
     if (!_oc) {
-        status.error("Memory error while allocating format context");
-        return status;
+        status.addError("Memory error while allocating format context");
+        return false;
     }
     _oc->oformat = _fmt;
     snprintf(_oc->filename, sizeof(_oc->filename), "%s", filename);
@@ -117,18 +115,18 @@ AVTranslate::init (const char *filename)
        and initialize the codecs */
     _video_st = NULL;
     if (_fmt->video_codec != CODEC_ID_NONE) {
-        if ( (status = __add_video_stream(_fmt->video_codec,&_video_st)) ) {
+        if ( (!addVideoStream(status, _fmt->video_codec,&_video_st)) ) {
             status.addContext("Rappture::AVTranslate::init()");
-            return status;
+            return false;
         }
     }
 
     /* set the output parameters (must be done even if no
        parameters). */
     if (av_set_parameters(_oc, NULL) < 0) {
-        status.error("Invalid output format parameters");
+        status.addError("Invalid output format parameters");
         status.addContext("Rappture::AVTranslate::init()");
-        return status;
+        return false;
     }
 
     dump_format(_oc, 0, filename, 1);
@@ -136,38 +134,34 @@ AVTranslate::init (const char *filename)
     /* now that all the parameters are set, we can open the
        video codec and allocate the necessary encode buffers */
     if (_video_st) {
-        if ( (status = __open_video()) ) {
+        if (!openVideo(status)) {
             status.addContext("Rappture::AVTranslate::init()");
-            return status;
+            return false;
         }
     }
 
     /* open the output file, if needed */
     if (!(_fmt->flags & AVFMT_NOFILE)) {
         if (url_fopen(&_oc->pb, filename, URL_WRONLY) < 0) {
-            status.AddError("Could not open '%s'",filename);
+            status.addError("Could not open '%s'", filename);
             status.addContext("Rappture::AVTranslate::init()");
-            return status;
+            return false;
         }
     }
 
     /* write the stream header, if any */
     av_write_header(_oc);
-
-    return status;
+    return true;
 }
 
-Outcome
-AVTranslate::append(
-    uint8_t *rgb_data,
-    size_t line_pad)
+bool
+AVTranslate::append(Outcome &status, uint8_t *rgb_data, size_t line_pad)
 {
-    Outcome status;
 
     if (rgb_data == NULL) {
-        status.error("rdb_data pointer is NULL");
+        status.addError("rdb_data pointer is NULL");
         status.addContext("Rappture::AVTranslate::append()");
-        return status;
+        return false;
     }
 
     uint8_t *pdatat = _rgb_picture->data[0];
@@ -191,21 +185,20 @@ AVTranslate::append(
                 (AVPicture *)_rgb_picture, PIX_FMT_RGB24,
                 _width, _height);
 
-    __write_video_frame();
+    writeVideoFrame(status);
 
-    return status;
+    return true;
 }
 
-Outcome
-AVTranslate::close ()
-{
-    Outcome status;
 
+bool
+AVTranslate::done(Outcome &status)
+{
     size_t i = 0;
 
     /* close each codec */
     if (_video_st) {
-        __close_video();
+        closeVideo(status);
     }
 
     /* write the trailer, if any */
@@ -228,32 +221,28 @@ AVTranslate::close ()
     /* free the stream */
     av_free(_oc);
     _oc = NULL;
-
-    return status;
+    return true;
 }
 
 
 /* add a video output stream */
-Outcome
-AVTranslate::__add_video_stream(
-    CodecID codec_id,
-    AVStream **st)
+bool
+AVTranslate::addVideoStream(Outcome &status, CodecID codec_id, AVStream **st)
 {
-    Outcome status;
     AVCodecContext *c;
     // AVStream *st;
 
     if (!st) {
-        status.error("AVStream **st is NULL");
+        status.addError("AVStream **st is NULL");
         status.addContext("Rappture::AVTranslate::add_video_stream()");
-        return status;
+        return false;
     }
 
     *st = av_new_stream(_oc, 0);
     if (!(*st)) {
-        status.error("Could not alloc stream");
+        status.addError("Could not alloc stream");
         status.addContext("Rappture::AVTranslate::add_video_stream()");
-        return status;
+        return false;
     }
 
     c = (*st)->codec;
@@ -290,48 +279,44 @@ AVTranslate::__add_video_stream(
         c->flags |= CODEC_FLAG_GLOBAL_HEADER;
     }
 
-    return status;
+    return true;
 }
 
-Outcome
-AVTranslate::__alloc_picture(
-    int pix_fmt,
-    AVFrame **p)
+bool
+AVTranslate::allocPicture(Outcome &status, int pix_fmt, AVFrame **p)
 {
-    Outcome status;
     // AVFrame *p = NULL;
     uint8_t *p_buf = NULL;
     int size = 0;
 
-    if (!p) {
-        status.error("AVFrame **p == NULL");
-        status.addContext("Rappture::AVTranslate::alloc_picture()");
-        return status;
+    if (p == NULL) {
+        status.addError("AVFrame **p == NULL");
+        status.addContext("Rappture::AVTranslate::allocPicture()");
+        return false;
     }
 
     *p = avcodec_alloc_frame();
-    if (!p) {
-        status.error("Memory error: Could not alloc frame");
-        status.addContext("Rappture::AVTranslate::alloc_picture()");
-        return status;
+    if (*p == NULL) {
+        status.addError("Memory error: Could not alloc frame");
+        status.addContext("Rappture::AVTranslate::allocPicture()");
+        return false;
     }
     size = avpicture_get_size(pix_fmt, _width, _height);
     p_buf = (uint8_t *) av_malloc(size);
     if (!p_buf) {
         av_free(*p);
         *p = NULL;
-        status.error("Memory error: Could not alloc picture buffer");
-        status.addContext("Rappture::AVTranslate::alloc_picture()");
-        return status;
+        status.addError("Memory error: Could not alloc picture buffer");
+        status.addContext("Rappture::AVTranslate::allocPicture()");
+        return false;
     }
     avpicture_fill((AVPicture *)(*p), p_buf, pix_fmt, _width, _height);
-    return status;
+    return true;
 }
 
-Outcome
-AVTranslate::__open_video()
+bool
+AVTranslate::openVideo(Outcome &status)
 {
-    Outcome status;
     AVCodec *codec;
     AVCodecContext *c;
 
@@ -340,16 +325,16 @@ AVTranslate::__open_video()
     /* find the video encoder */
     codec = avcodec_find_encoder(c->codec_id);
     if (!codec) {
-        status.error("codec not found");
+        status.addError("codec not found");
         status.addContext("Rappture::AVTranslate::open_video()");
-        return status;
+        return false;
     }
 
     /* open the codec */
     if (avcodec_open(c, codec) < 0) {
-        status.error("could not open codec");
+        status.addError("could not open codec");
         status.addContext("Rappture::AVTranslate::open_video()");
-        return status;
+        return false;
     }
 
     _video_outbuf = NULL;
@@ -364,39 +349,38 @@ AVTranslate::__open_video()
     }
 
     /* allocate the encoded raw picture */
-    if ( (status = __alloc_picture(c->pix_fmt,&_picture)) ) {
-        status.addContext("Rappture::AVTranslate::open_video()");
-        return status;
+    if (!allocPicture(status, c->pix_fmt,&_picture)) {
+        status.addContext("Rappture::AVTranslate::openVideo()");
+        return false;
     }
 
     /*
     if (!picture) {
-        status.error("Could not allocate picture");
-        status.addContext("Rappture::AVTranslate::open_video()");
-        return status;
+        status.addError("Could not allocate picture");
+        status.addContext("Rappture::AVTranslate::openVideo()");
+        return false;
     }
     */
 
-    if ( (status = __alloc_picture(PIX_FMT_RGB24,&_rgb_picture)) ) {
-        status.addContext("Rappture::AVTranslate::open_video()");
-        return status;
+    if (!allocPicture(status, PIX_FMT_RGB24,&_rgb_picture)) {
+        status.addContext("Rappture::AVTranslate::openVideo()");
+        return false;
     }
 
     /*
     if (!rgb_picture) {
-        status.error("Could not allocate temporary picture");
+        status.addError("Could not allocate temporary picture");
         status.addContext("Rappture::AVTranslate::open_video()");
-        return status;
+        return false;
     }
     */
 
-    return status;
+    return true;
 }
 
-Outcome
-AVTranslate::__write_video_frame()
+bool
+AVTranslate::writeVideoFrame(Outcome &status)
 {
-    Outcome status;
     int out_size, ret;
     AVCodecContext *c;
 
@@ -429,16 +413,16 @@ AVTranslate::__write_video_frame()
     }
 
     if (ret != 0) {
-        status.error("Error while writing video frame");
-        status.addContext("Rappture::AVTranslate::write_video_frame()");
+        status.addError("Error while writing video frame");
+        status.addContext("Rappture::AVTranslate::writeVideoframe()");
+	return false;
     }
-
-    return status;
+    return true;
 }
 
 
-void
-AVTranslate::__close_video()
+bool
+AVTranslate::closeVideo(Outcome &status)
 {
     avcodec_close(_video_st->codec);
 
@@ -456,15 +440,12 @@ AVTranslate::__close_video()
 
     av_free(_video_outbuf);
     _video_outbuf = NULL;
+    return true;
 }
 
 /*
-status.error("error while opening file");
+status.addError("error while opening file");
 status.addContext("Rappture::Buffer::dump()");
 return status;
 */
-
-#ifdef __cplusplus
-    }
-#endif // ifdef __cplusplus
 

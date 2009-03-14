@@ -25,7 +25,7 @@ namespace Rappture {
 class DX {
 public:
     DX();
-    DX(const char* filename, Rappture::Outcome *resultPtr);
+    DX(Rappture::Outcome &result, const char* filename);
     DX(const DX& rpdx);
     DX& operator=(const DX& rpdx);
     virtual ~DX();
@@ -36,22 +36,45 @@ public:
     virtual double valueMin() const;
     virtual double valueMax() const;
     */
-
-    virtual const float* origin() const;
-    virtual const float* delta() const;
-    virtual const float* max() const;
-
-    virtual const float* data() const;
-    virtual float dataMin() const;
-    virtual float dataMax() const;
-    virtual float nzero_min() const;
-
     virtual DX& interpolate(int* newAxisLen);
-    virtual int n() const;
-    virtual int rank() const;
-    virtual int shape() const;
-    virtual const float* positions() const;
-    virtual const int* axisLen() const;
+
+    int n(void) const {
+	return _n;
+    }
+    int rank(void) const {
+	return _rank;
+    }
+    int shape(void) const {
+	return _shape;
+    }
+    const float* delta(void) const {
+	// FIXME: Delta is always three numbers.
+	return _delta;
+    }
+    const float *max(void) const {
+	return _max;
+    }
+    const float *origin(void) const {
+	return _origin;
+    }
+    const float * positions(void) const {
+	return _positions;
+    }
+    const int *axisLen(void) const {
+	return _axisLen;
+    }
+    const float *data(void) const {
+	return _data;
+    }
+    float dataMin(void) const {
+	return _dataMin;
+    }
+    float dataMax(void) const {
+	return _dataMax;
+    }
+    float nzero_min(void) const {
+	return _nzero_min;
+    }
 
 protected:
 
@@ -60,7 +83,7 @@ private:
     float _dataMax;
     float _nzero_min;
     int _numAxis;       // same as _shape if _rank == 1
-    int* _axisLen;      // number of points on each axis
+    int *_axisLen;      // number of points on each axis
     float* _data;
 
     int _n;             // number of points in the position array

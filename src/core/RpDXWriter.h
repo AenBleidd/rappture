@@ -1,3 +1,4 @@
+
 /*
  * ----------------------------------------------------------------------
  *  Rappture::DXWriter
@@ -57,7 +58,7 @@ private:
     double* _delta;        // array holding deltas of the uniform mesh
     double* _origin;       // array holding coord of origin
 
-    DXWriter& _writeDxToBuffer(SimpleCharBuffer *dxfile);
+    DXWriter& _writeDxToBuffer(SimpleCharBuffer &dxfile);
 };
 
 } // namespace Rappture

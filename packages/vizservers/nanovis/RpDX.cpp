@@ -21,7 +21,7 @@
 
 using namespace Rappture;
 
-DX::DX(const char* filename, Outcome *resultPtr) :
+DX::DX(Outcome &result, const char* filename) :
     _dataMin(FLT_MAX),
     _dataMax(-FLT_MAX),
     _nzero_min(FLT_MAX),
@@ -46,7 +46,7 @@ DX::DX(const char* filename, Outcome *resultPtr) :
     Type type;
 
     if (filename == NULL) {
-        resultPtr->AddError("filename is NULL");
+        result.addError("filename is NULL");
         return;
     }
     // open the file with libdx
@@ -55,7 +55,7 @@ DX::DX(const char* filename, Outcome *resultPtr) :
     DXenable_locks(0);
     _dxobj = DXImportDX((char*)filename,NULL,NULL,NULL,NULL);
     if (_dxobj == NULL) {
-        resultPtr->AddError("can't import DX file \"%s\"", filename);
+        result.addError("can't import DX file \"%s\"", filename);
         return;
     }
 
@@ -66,14 +66,14 @@ DX::DX(const char* filename, Outcome *resultPtr) :
     //        Possibly use DXGetProductArray().
     dxpos = (Array) DXGetComponentValue((Field) _dxobj, (char *)"positions");
     if (dxpos == NULL) {
-        resultPtr->AddError("can't get component value of \"positions\"");
+        result.addError("can't get component value of \"positions\"");
         return;
     }
     DXGetArrayInfo(dxpos, &_n, &type, &category, &_rank, &_shape);
 
     fprintf(stdout, "_n = %d\n",_n);
     if (type != TYPE_FLOAT) {
-        resultPtr->AddError("\"positions\" is not type float (type=%d)\n", type);
+        result.addError("\"positions\" is not type float (type=%d)\n", type);
         return;
     }
     fprintf(stdout, "_rank = %d\n",_rank);
@@ -82,7 +82,7 @@ DX::DX(const char* filename, Outcome *resultPtr) :
     float* pos = NULL;
     pos = (float*) DXGetArrayData(dxpos);
     if (pos == NULL) {
-        resultPtr->AddError("DXGetArrayData failed to return positions array");
+        result.addError("DXGetArrayData failed to return positions array");
         return;
     }
 
@@ -90,14 +90,14 @@ DX::DX(const char* filename, Outcome *resultPtr) :
     dxgrid = (Array) DXGetComponentValue((Field) _dxobj, (char *)"connections");
     if (DXQueryGridConnections(dxgrid, &_numAxis, NULL) == NULL) {
         // raise error, data is not a regular grid and we cannot handle it
-        resultPtr->AddError("DX says our grid is not regular, we cannot handle this data");
+        result.addError("DX says our grid is not regular, we cannot handle this data");
         return;
     }
 
     _positions = new float[_n*_numAxis];
     if (_positions == NULL) {
         // malloc failed, raise error
-        resultPtr->AddError("malloc of _positions array failed");
+        result.addError("malloc of _positions array failed");
         return;
     }
     memcpy(_positions,pos,sizeof(float)*_n*_numAxis);
@@ -105,28 +105,28 @@ DX::DX(const char* filename, Outcome *resultPtr) :
     _axisLen = new int[_numAxis];
     if (_axisLen == NULL) {
         // malloc failed, raise error
-        resultPtr->AddError("malloc of _axisLen array failed");
+        result.addError("malloc of _axisLen array failed");
         return;
     }
     memset(_axisLen, 0, _numAxis);
 
     _delta = new float[_numAxis*_numAxis];
     if (_delta == NULL) {
-        resultPtr->AddError("malloc of _delta array failed");
+        result.addError("malloc of _delta array failed");
         return;
     }
     memset(_delta, 0, _numAxis*_numAxis);
 
     _origin = new float[_numAxis];
     if (_origin == NULL) {
-        resultPtr->AddError("malloc of _origin array failed");
+        result.addError("malloc of _origin array failed");
         return;
     }
     memset(_origin, 0, _numAxis);
 
     _max = new float[_numAxis];
     if (_max == NULL) {
-        resultPtr->AddError("malloc of _max array failed");
+        result.addError("malloc of _max array failed");
         return;
     }
     memset(_max, 0, _numAxis);
@@ -150,7 +150,7 @@ DX::DX(const char* filename, Outcome *resultPtr) :
     DXGetArrayInfo(dxdata, NULL, &type, NULL, NULL, NULL);
     _data = new float[_n];
     if (_data == NULL) {
-        resultPtr->AddError("malloc of _data array failed");
+        result.addError("malloc of _data array failed");
         return;
     }
 
@@ -171,7 +171,7 @@ DX::DX(const char* filename, Outcome *resultPtr) :
 	break;
 
     default:
-        resultPtr->AddError("don't know how to handle data of type %d\n", type);
+        result.addError("don't know how to handle data of type %d\n", type);
         return;
     }
 
@@ -352,74 +352,3 @@ DX::interpolate(int* newAxisLen)
     return *this;
 }
 
-int
-DX::n() const
-{
-    return _n;
-}
-
-int
-DX::rank() const
-{
-    return _rank;
-}
-
-int
-DX::shape() const
-{
-    return _shape;
-}
-
-const float*
-DX::delta() const
-{
-    return _delta;
-}
-
-const float*
-DX::max() const
-{
-    return _max;
-}
-
-const float*
-DX::origin() const
-{
-    return _origin;
-}
-
-const float*
-DX::positions() const
-{
-    return _positions;
-}
-
-const int*
-DX::axisLen() const
-{
-    return _axisLen;
-}
-
-const float*
-DX::data() const
-{
-    return _data;
-}
-
-float
-DX::dataMin() const
-{
-    return _dataMin;
-}
-
-float
-DX::dataMax() const
-{
-    return _dataMax;
-}
-
-float
-DX::nzero_min() const
-{
-    return _nzero_min;
-}

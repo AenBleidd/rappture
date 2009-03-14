@@ -228,7 +228,9 @@ int renderMode = RM_VOLUME;
 void
 debug(char *str)
 {
-    write(0, str, strlen(str));
+    ssize_t nWritten;
+
+    nWritten = write(0, str, strlen(str));
 }
 
 void
@@ -236,7 +238,7 @@ debug(char *str, double v1)
 {
     char buffer[512];
     sprintf(buffer, str, v1);
-    write(0, buffer, strlen(buffer));
+    debug(buffer);
 }
 
 void
@@ -244,7 +246,7 @@ debug(char *str, double v1, double v2)
 {
     char buffer[512];
     sprintf(buffer, str, v1, v2);
-    write(0, buffer, strlen(buffer));
+    debug(buffer);
 }
 
 void
@@ -252,7 +254,7 @@ debug(char *str, double v1, double v2, double v3)
 {
     char buffer[512];
     sprintf(buffer, str, v1, v2, v3);
-    write(0, buffer, strlen(buffer));
+    debug(buffer);
 }
 
 void removeAllData()
@@ -614,9 +616,12 @@ NanoVis::render_legend(TransferFunction *tf, double min, double max,
         fprintf(stderr, "ppm legend image not written (debug mode)\n");
     } else {
         char prefix[200];
+	ssize_t nWritten;
+
         sprintf(prefix, "nv>legend %s %g %g", volArg, min, max);
         ppm_write(prefix);
-        write(0, "\n", 1);
+        nWritten = write(0, "\n", 1);
+	assert(nWritten == 1);
     }
     plane_render->remove_plane(index);
     resize_offscreen_buffer(old_width, old_height);
@@ -1118,8 +1123,11 @@ NanoVis::bmp_write_to_file(int frame_number, const char *directory_name)
             Trace("cannot create file\n");
         }
     }
-    fwrite(header, SIZEOF_BMP_HEADER, 1, f);
-    fwrite(screen_buffer, (3*win_width+pad)*win_height, 1, f);
+    ssize_t nWritten;
+    nWritten = fwrite(header, SIZEOF_BMP_HEADER, 1, f);
+    assert(nWritten == SIZEOF_BMP_HEADER);
+    nWritten = fwrite(screen_buffer, (3*win_width+pad)*win_height, 1, f);
+    assert(nWritten == (3*win_width+pad)*win_height);
     fclose(f);
 }
 
@@ -1127,6 +1135,7 @@ void
 NanoVis::bmp_write(const char *prefix)
 {
     unsigned char header[SIZEOF_BMP_HEADER];
+    ssize_t nWritten;
     int pos = 0;
 
     // BE CAREFUL:  BMP files must have an even multiple of 4 bytes
@@ -1140,8 +1149,8 @@ NanoVis::bmp_write(const char *prefix)
 
     char string[200];
     sprintf(string, "%s %d\n", prefix, fsize);
-    write(0, string, strlen(string));
-
+    nWritten = write(0, string, strlen(string));
+    assert(nWritten == (ssize_t)strlen(string));
     header[pos++] = 'B';
     header[pos++] = 'M';
 
@@ -1193,8 +1202,10 @@ NanoVis::bmp_write(const char *prefix)
         scr += pad;  // skip over padding already in screen data
     }
 
-    write(0, header, SIZEOF_BMP_HEADER);
-    write(0, screen_buffer, (3*win_width+pad)*win_height);
+    nWritten = write(0, header, SIZEOF_BMP_HEADER);
+    assert(nWritten == SIZEOF_BMP_HEADER);
+    nWritten = write(0, screen_buffer, (3*win_width+pad)*win_height);
+    assert(nWritten == (3*win_width+pad)*win_height);
     stats.nFrames++;
     stats.nBytes += (3*win_width+pad)*win_height;
 }
@@ -1961,10 +1972,6 @@ NanoVis::display()
         perf->disable();
     }
 
-#ifdef XINETD
-    float cost  = perf->get_pixel_count();
-    write(3, &cost, sizeof(cost));
-#endif
     perf->reset();
     if (debug_flag) {
         fprintf(stderr, "leaving display\n");
