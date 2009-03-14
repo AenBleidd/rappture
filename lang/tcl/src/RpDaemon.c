@@ -66,8 +66,10 @@ RpDaemonCmd(cdata, interp, argc, argv)
     CONST84 char *argv[];     /* strings for command line args */
 {
     pid_t pid;
+    int result;
 
-    if ( (pid=fork()) < 0) {
+    pid = fork();
+    if (pid < 0) {
         Tcl_AppendResult(interp, "can't fork daemon", (char*)NULL);
         if (errno == EAGAIN) {
             Tcl_AppendResult(interp, ": resource limit",
@@ -84,8 +86,8 @@ RpDaemonCmd(cdata, interp, argc, argv)
 
     /* child continues... */
     setsid();    /* become session leader */
-    chdir("/");  /* root never goes away, so sit here */
-
+    result = chdir("/");  /* root never goes away, so sit here */
+    assert(result == 0);
     /* close at least this much, so pipes in exec'ing process get closed */
     Tcl_UnregisterChannel(interp, Tcl_GetStdChannel(TCL_STDIN));
     Tcl_UnregisterChannel(interp, Tcl_GetStdChannel(TCL_STDOUT));

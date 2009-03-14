@@ -1,3 +1,4 @@
+
 /*
  * Rappture Encode Python Interface
  *
@@ -27,7 +28,10 @@ RpEncode_isbinary(PyObject *self, PyObject *args, PyObject *keywds)
     int dlen = 0;
     PyObject* rv = NULL;
 
-    static char *kwlist[] = {"data", NULL};
+    static char *kwlist[] = {
+	(char *)"data", 
+	NULL
+    };
 
     if (PyTuple_Size(args) != 1) {
         PyErr_SetString(PyExc_TypeError,"isbinary() takes exactly 1 argument");
@@ -60,9 +64,12 @@ RpEncode_encode(PyObject *self, PyObject *args, PyObject *keywds)
     PyObject* rv = NULL;
     Rappture::Outcome err;
     Rappture::Buffer buf;
-    std::string outStr;
 
-    static char *kwlist[] = {"data", "flags", NULL};
+    static char *kwlist[] = {
+	(char *)"data", 
+	(char *)"flags", 
+	NULL
+    };
 
     if (PyTuple_Size(args) != 2) {
         PyErr_SetString(PyExc_TypeError,"encode() takes exactly 2 arguments");
@@ -78,7 +85,11 @@ RpEncode_encode(PyObject *self, PyObject *args, PyObject *keywds)
     buf = Rappture::Buffer(data,dlen);
     err &= Rappture::encoding::encode(buf,flags);
     if (int(err) != 0) {
-        outStr  = err.remark() + "\n" + err.context();
+	std::string outStr;
+
+        outStr = err.remark();
+	outStr += "\n";
+	outStr += err.context();
         PyErr_SetString(PyExc_RuntimeError,outStr.c_str());
         buf.clear();
         return NULL;
@@ -104,9 +115,12 @@ RpEncode_decode(PyObject *self, PyObject *args, PyObject *keywds)
     PyObject* rv = NULL;
     Rappture::Outcome err;
     Rappture::Buffer buf;
-    std::string outStr;
 
-    static char *kwlist[] = {"data", "flags", NULL};
+    static char *kwlist[] = {
+	(char *)"data", 
+	(char *)"flags", 
+	NULL
+    };
 
     if (PyTuple_Size(args) != 2) {
         PyErr_SetString(PyExc_TypeError,"decode() takes exactly 2 arguments");
@@ -122,7 +136,11 @@ RpEncode_decode(PyObject *self, PyObject *args, PyObject *keywds)
     buf = Rappture::Buffer(data,dlen);
     err &= Rappture::encoding::decode(buf,flags);
     if (int(err) != 0) {
-        outStr  = err.remark() + "\n" + err.context();
+	std::string outStr;
+
+        outStr = err.remark();
+	outStr += "\n";
+	outStr += err.context();
         PyErr_SetString(PyExc_RuntimeError,outStr.c_str());
         return NULL;
     }
@@ -162,9 +180,11 @@ initencoding(void)
     m = Py_InitModule3("encoding", RpEncode_Methods, module_doc);
 
     if (ErrorObject == NULL) {
-        ErrorObject = PyErr_NewException("Rappture.encoding.error", NULL, NULL);
-        if (ErrorObject == NULL)
+        ErrorObject = PyErr_NewException((char *)"Rappture.encoding.error", 
+		NULL, NULL);
+        if (ErrorObject == NULL) {
             return;
+	}
     }
     Py_INCREF(ErrorObject);
     PyModule_AddObject(m, "error", ErrorObject);

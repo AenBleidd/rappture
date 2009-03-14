@@ -1,3 +1,4 @@
+
 /*
  * ======================================================================
  *  AUTHOR:  Derrick S. Kearney, Purdue University
@@ -170,13 +171,18 @@ the data will be copied to (this object).\n\
 static PyObject*
 RpLibraryObject_copy(RpLibraryObject *self, PyObject *args, PyObject *keywds)
 {
-    char *topath = "";
-    char *frompath = "";
+    char *topath = (char *)"";
+    char *frompath = (char *)"";
     int argc = 0;
     int status = 0;
     PyObject *fromobj = (PyObject *) self;
 
-    static char *kwlist[] = {"topath","frompath","fromobj", NULL};
+    static char *kwlist[] = { 
+	(char *)"topath",
+	(char *)"frompath",
+	(char *)"fromobj", 
+	NULL
+    };
 
     if (self->lib == NULL) {
         PyErr_SetString(PyExc_RuntimeError,
@@ -248,14 +254,18 @@ for the default (an object representing the tail element).\n\
 static PyObject*
 RpLibraryObject_element(RpLibraryObject *self, PyObject *args, PyObject *keywds)
 {
-    char* path = "";
-    char* as = "object";
+    char* path = (char *)"";
+    char* as = (char *)"object";
     RpLibrary* retlib = NULL;
     PyObject* retVal = NULL;
     int argc = 0;
     int status = 0;
 
-    static char *kwlist[] = {"path", "as", NULL};
+    static char *kwlist[] = {
+	(char *)"path", 
+	(char *)"as", 
+	NULL
+    };
 
     if (self->lib == NULL) {
         PyErr_Format(PyExc_RuntimeError,
@@ -332,7 +342,7 @@ specified by the path.\n\
 static PyObject*
 RpLibraryObject_get(RpLibraryObject *self, PyObject *args, PyObject *keywds)
 {
-    char* path = "";
+    char* path = (char *)"";
 
     PyObject* decode = NULL;
     int decodeVal = 0;
@@ -344,7 +354,11 @@ RpLibraryObject_get(RpLibraryObject *self, PyObject *args, PyObject *keywds)
     int argc = 0;
     int status = 0;
 
-    static char *kwlist[] = {"path","decode", NULL};
+    static char *kwlist[] = {
+	(char *)"path",
+	(char *)"decode", 
+	NULL
+    };
 
     if (self->lib == NULL) {
         PyErr_SetString(PyExc_RuntimeError,
@@ -420,14 +434,18 @@ for the default (an object representing the tail element).\n\
 static PyObject*
 RpLibraryObject_parent(RpLibraryObject *self, PyObject *args, PyObject *keywds)
 {
-    char* path = "";
-    char* as = "object";
+    char* path = (char *)"";
+    char* as = (char *)"object";
     RpLibrary* retlib = NULL;
     PyObject* retVal = NULL;
     int argc = 0;
     int status = 0;
 
-    static char *kwlist[] = {"path", "as", NULL};
+    static char *kwlist[] = {
+	(char *)"path", 
+	(char *)"as", 
+	NULL
+    };
 
     status = getArgCount(args,keywds,&argc);
     if (status != 0) {
@@ -515,7 +533,7 @@ will be compressed.\n\
 static PyObject*
 RpLibraryObject_put(RpLibraryObject *self, PyObject *args, PyObject *keywds)
 {
-    char *path = "";
+    char *path = (char *)"";
 
     PyObject *value = NULL;
     PyObject *valueStrObj = NULL;
@@ -527,7 +545,7 @@ RpLibraryObject_put(RpLibraryObject *self, PyObject *args, PyObject *keywds)
     PyObject* append = NULL;
     int appendInt = 0;
 
-    char *type = "string";
+    char *type = (char *)"string";
 
     PyObject* compress = NULL;
     int compressInt = 0;
@@ -535,8 +553,15 @@ RpLibraryObject_put(RpLibraryObject *self, PyObject *args, PyObject *keywds)
     int argc = 0;
     int status = 0;
 
-    static char *kwlist[] = {"path","value","id","append",
-                                "type","compress", NULL};
+    static char *kwlist[] = {
+	(char *)"path",
+	(char *)"value",
+	(char *)"id",
+	(char *)"append",
+	(char *)"type",
+	(char *)"compress", 
+	NULL
+    };
 
     if (self->lib == NULL) {
         PyErr_Format(PyExc_RuntimeError,
@@ -678,7 +703,10 @@ RpLibraryObject_result(RpLibraryObject *self, PyObject *args, PyObject *keywds)
     int argc = 0;
     int status = 0;
 
-    static char *kwlist[] = {"status", NULL};
+    static char *kwlist[] = {
+	(char *)"status", 
+	NULL
+    };
 
     if (self->lib == NULL) {
         PyErr_Format(PyExc_RuntimeError,
@@ -1022,7 +1050,7 @@ initlibrary(void)
 
     /* Add some symbolic constants to the module */
     if (ErrorObject == NULL) {
-        ErrorObject = PyErr_NewException("RpLibrary.error", NULL, NULL);
+        ErrorObject = PyErr_NewException((char *)"RpLibrary.error", NULL, NULL);
         if (ErrorObject == NULL)
             return;
     }
