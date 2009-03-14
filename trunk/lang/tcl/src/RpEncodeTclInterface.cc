@@ -236,9 +236,7 @@ RpTclEncodingEncode (   ClientData cdata,
         Tcl_SetObjResult(interp, result);
     }
     else {
-        result = Tcl_GetObjResult(interp);
-        Tcl_AppendStringsToObj( result, err.remark().c_str(),
-                                "\n", err.context().c_str(), NULL   );
+        Tcl_AppendResult(interp, err.remark(), "\n", err.context(), NULL);
     }
     return TCL_OK;
 }
@@ -366,9 +364,7 @@ RpTclEncodingDecode (   ClientData cdata,
         Tcl_SetObjResult(interp, result);
     }
     else {
-        result = Tcl_GetObjResult(interp);
-        Tcl_AppendStringsToObj( result, err.remark().c_str(),
-                                "\n", err.context().c_str(), NULL   );
+        Tcl_AppendResult(interp, err.remark(), "\n", err.context(), NULL);
     }
     return TCL_OK;
 }

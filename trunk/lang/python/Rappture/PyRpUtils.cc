@@ -1,3 +1,4 @@
+
 /*
  * Rappture Utils Python Interface
  *
@@ -27,8 +28,11 @@ RpUtils_progress(PyObject *self, PyObject *args, PyObject *keywds)
     char* message = NULL;
     int result = -1;
 
-    static char *kwlist[] = {"percent", "message", NULL};
-
+    static char *kwlist[] = {
+	(char *)"percent", 
+	(char *)"message", 
+	NULL
+    };
     if (PyTuple_Size(args) != 2) {
         PyErr_SetString(PyExc_TypeError,"progress() takes exactly 2 arguments");
         return NULL;
@@ -75,7 +79,8 @@ initUtils(void)
     m = Py_InitModule3("Utils", RpUtils_Methods, module_doc);
 
     if (ErrorObject == NULL) {
-        ErrorObject = PyErr_NewException("Rappture.Utils.error", NULL, NULL);
+        ErrorObject = PyErr_NewException((char *)"Rappture.Utils.error", 
+		NULL, NULL);
         if (ErrorObject == NULL)
             return;
     }

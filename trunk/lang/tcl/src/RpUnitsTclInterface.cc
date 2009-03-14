@@ -206,7 +206,9 @@ RpTclUnitsConvert   (   ClientData cdata,
 
     // check the inValue to see if it has units
     // or if we should use those provided in -context option
-    strtod(inValue.c_str(),&endptr);
+
+    double value;
+    value = strtod(inValue.c_str(),&endptr);
     if (endptr == inValue.c_str()) {
         // there was no numeric value that could be pulled from inValue
         // return error
