@@ -14,6 +14,7 @@
  */
 #include <tcl.h>
 #include <stdlib.h>
+#include <stddef.h>
 #include <string.h>
 #include <sys/sysinfo.h>
 
@@ -33,9 +34,10 @@ static Tcl_Obj* RpSysinfoValue _ANSI_ARGS_((struct sysinfo *sinfo,
 #endif
 
 static struct rpSysinfoList {
-    char *name;  /* name of this system parameter */
-    int type;    /* parameter type (long, unsigned long, etc.) */
-    int offset;  /* offset into sysinfo struct */
+    const char *name;		/* Name of this system parameter */
+    int type;		        /* Parameter type (long, unsigned long,
+				 * etc.) */
+    int offset;			/* Offset into sysinfo struct */
 } RpSysinfoList [] = {
     {"freeram",   RP_SLOT_ULONG,  Offset(struct sysinfo, freeram)},
     {"freeswap",  RP_SLOT_ULONG,  Offset(struct sysinfo, freeswap)},
