@@ -15,6 +15,7 @@
  * ======================================================================
  */
 
+#include <assert.h>
 #include <fcntl.h>
 #include <fstream>
 #include <getopt.h>

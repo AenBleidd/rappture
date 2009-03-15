@@ -12,6 +12,7 @@
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  * ======================================================================
  */
+#include <assert.h>
 #include "RpMeshPrism3D.h"
 
 using namespace Rappture;

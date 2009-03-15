@@ -17,7 +17,7 @@
 #include <cstdlib>
 #include <cfloat>
 #include <RpDXWriter.h>
-
+#include <assert.h>
 using namespace Rappture;
 
 DXWriter::DXWriter() :

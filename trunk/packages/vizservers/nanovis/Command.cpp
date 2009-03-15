@@ -39,12 +39,9 @@
  *          limits of the axes.
  */
 
-#include <tcl.h>
+#include <assert.h>
 #include <stdlib.h>
-#include "Trace.h"
-#include "Command.h"
-#include "nanovis.h"
-#include "CmdProc.h"
+#include <tcl.h>
 
 #include <RpField1D.h>
 #include <RpFieldRect3D.h>
@@ -54,6 +51,10 @@
 #include <RpBuffer.h>
 #include <RpAVTranslate.h>
 
+#include "Trace.h"
+#include "Command.h"
+#include "nanovis.h"
+#include "CmdProc.h"
 #include "transfer-function/TransferFunctionMain.h"
 #include "transfer-function/ControlPoint.h"
 #include "transfer-function/TransferFunctionGLUTWindow.h"

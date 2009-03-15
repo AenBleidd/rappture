@@ -18,6 +18,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <assert.h>
 
 static int RpDaemonCmd _ANSI_ARGS_((ClientData cdata,
     Tcl_Interp *interp, int argc, CONST84 char *argv[]));

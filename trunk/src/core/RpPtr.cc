@@ -12,6 +12,7 @@
 
 #include <stdlib.h>
 #include <RpPtr.h>
+#include <assert.h>
 
 using namespace Rappture;
 

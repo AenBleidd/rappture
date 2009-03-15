@@ -13,15 +13,16 @@
  * ======================================================================
  */
 
+#include <assert.h>
+#include <time.h>
+#include <sys/time.h>
+#include "nanovis.h"
 #include <R2/R2string.h>
 #include <R2/R2FilePath.h>
 #include "VolumeRenderer.h"
 #include "VolumeInterpolator.h"
 #include "NvStdVertexShader.h"
-#include <time.h>
-#include <sys/time.h>
 #include "Trace.h"
-#include "nanovis.h"
 #include "Grid.h"
 
 #define NUMDIGITS	6
