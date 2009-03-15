@@ -59,6 +59,7 @@ NvParticleRenderer::NvParticleRenderer(int w, int h, CGcontext context)
 #endif
     glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, GL_TEXTURE_RECTANGLE_NV, psys_tex[0], 0);
 
+
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, psys_fbo[1]);
 
     glBindTexture(GL_TEXTURE_RECTANGLE_NV, psys_tex[1]);
@@ -70,8 +71,18 @@ NvParticleRenderer::NvParticleRenderer(int w, int h, CGcontext context)
     glTexImage2D(GL_TEXTURE_RECTANGLE_NV, 0, GL_RGBA, psys_width, psys_height, 0, GL_RGBA, GL_FLOAT, NULL);
 #endif
     glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, GL_TEXTURE_RECTANGLE_NV, psys_tex[1], 0);
-
+ 
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
+
+    glGenTextures(1, &initPosTex);
+    glBindTexture(GL_TEXTURE_RECTANGLE_NV, initPosTex);
+    glTexParameterf(GL_TEXTURE_RECTANGLE_NV, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameterf(GL_TEXTURE_RECTANGLE_NV, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+#ifdef NV_32
+    glTexImage2D(GL_TEXTURE_RECTANGLE_NV, 0, GL_FLOAT_RGBA32_NV, psys_width, psys_height, 0, GL_RGBA, GL_FLOAT, NULL);
+#else
+    glTexImage2D(GL_TEXTURE_RECTANGLE_NV, 0, GL_RGBA, psys_width, psys_height, 0, GL_RGBA, GL_FLOAT, NULL);
+#endif
 
     CHECK_FRAMEBUFFER_STATUS();
 
@@ -123,6 +134,15 @@ void NvParticleRenderer::initialize(Particle* p)
     flip = true;
     reborn = false;
 
+    glBindTexture(GL_TEXTURE_RECTANGLE_NV, initPosTex);
+    // I need to find out why GL_FLOAT_RGBA32_NV doesn't work
+#ifdef NV_32
+    glTexImage2D(GL_TEXTURE_RECTANGLE_NV, 0, GL_FLOAT_RGBA32_NV, psys_width, psys_height, 0, GL_RGBA, GL_FLOAT, (float*)p);
+#else
+    glTexImage2D(GL_TEXTURE_RECTANGLE_NV, 0, GL_RGBA, psys_width, psys_height, 0, GL_RGBA, GL_FLOAT, (float*)p);
+#endif
+    glBindTexture(GL_TEXTURE_RECTANGLE_NV, 0);
+
     //fprintf(stderr, "init particles\n");
 }
 
@@ -167,7 +187,7 @@ void NvParticleRenderer::advect()
             glMatrixMode(GL_MODELVIEW);
             glLoadIdentity();
 
-            _advectionShader->bind(psys_tex[0]);
+            _advectionShader->bind(psys_tex[0], initPosTex);
      
             //cgGLBindProgram(m_pos_fprog);
             //cgGLSetParameter1f(m_pos_timestep_param, 0.05);
@@ -199,7 +219,7 @@ void NvParticleRenderer::advect()
             glMatrixMode(GL_MODELVIEW);
             glLoadIdentity();
 
-            _advectionShader->bind(psys_tex[1]);
+            _advectionShader->bind(psys_tex[1], initPosTex);
 
             //cgGLBindProgram(m_pos_fprog);
             //cgGLSetParameter1f(m_pos_timestep_param, 0.05);

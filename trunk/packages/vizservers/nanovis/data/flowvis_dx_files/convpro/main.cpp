@@ -85,9 +85,9 @@ void storeInOpenDX(const char* filename, Vector2* vector, int width, int height,
 
     if (ori_width <= 512 && ori_height <= 512) {
         Vector2* ptr;
-        for (int z = 0; z < depth; ++z) {
             for (int y = 0; y < height; ++y) {
                 for (int x = 0; x < width; ++x) {
+        for (int z = 0; z < depth; ++z) {
                     ptr = vector + ((y * ori_width) +  x);
                     fprintf(file, "%f %f 0.0\n", ptr->x, ptr->y);
                 }
@@ -105,9 +105,9 @@ void storeInOpenDX(const char* filename, Vector2* vector, int width, int height,
         }
 
         Vector2* ptr;
-        for (int z = 0; z < depth; ++z) {
             for (int y = 0; y < height; ++y) {
                 for (int x = 0; x < width; ++x) {
+        	for (int z = 0; z < depth; ++z) {
                     ptr = vector + ((y + offsety) * ori_width +  x + offsetx);
                     fprintf(file, "%lf %lf 0.0\n", ptr->x, ptr->y);
                 }
@@ -138,8 +138,8 @@ int main(int argc, char* argv[])
     // int height = 218;
     int height = 305;
 
-    int depth = 1;
-    // int depth = 25;
+    //int depth = 2;
+    int depth = 25;
 
     FILE* xComp = fopen("Ix_data.txt", "rb");
     FILE* yComp = fopen("Iy_data.txt", "rb");
