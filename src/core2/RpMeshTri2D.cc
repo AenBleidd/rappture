@@ -13,9 +13,9 @@
  * ======================================================================
  */
 #include <math.h>
+#include <assert.h>
 #include <iostream>
 #include "RpMeshTri2D.h"
-
 using namespace Rappture;
 
 CellTri2D::CellTri2D()
