@@ -13013,7 +13013,8 @@ camera angle 0 0 0
 
 
 
+volume state off 0
 flow vectorid 0
 flow particle visible on
 flow lic on
-flow capture 1000
+flow capture 1000 
