@@ -54,6 +54,7 @@ public :
      */
     NVISid psys_tex[2];	
 
+    NVISid initPosTex;	
     Particle* data;
 
     /**

@@ -814,11 +814,12 @@ void NanoVis::initParticle()
                 //assign any location (x,y,z) in range [0,1]
                 // TEMP
                 //data[4*index] = lic_slice_x;
-                data[4*index] = 0.95;
+                if (j % 2) data[4*index] = 0.95;
+		else data[4*index] = 0.05;
                 data[4*index+1]= j/float(particleRenderer->psys_height);
                 data[4*index+2]= i/float(particleRenderer->psys_width);
-                data[4*index+3]= 30; //shorter life span, quicker iterations
-                //data[4*index+3]= 1.0f; //shorter life span, quicker iterations
+                //data[4*index+3]= 30; //shorter life span, quicker iterations
+                data[4*index+3]= rand() / ((float) RAND_MAX) * 0.5  + 0.5f; //shorter life span, quicker iterations
             }
 /*
             else
