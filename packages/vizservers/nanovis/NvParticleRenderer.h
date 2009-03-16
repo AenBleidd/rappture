@@ -28,6 +28,8 @@
 #include "RenderVertexArray.h"
 #include "Vector3.h"
 
+#include <vector>
+
 #include "NvParticleAdvectionShader.h"
 
 struct Particle {
@@ -41,6 +43,12 @@ struct Particle {
    x(_x), y(_y), z(_z), aux(_life){}
 };
 
+struct ParticleInitSlice {
+  int slice_id;
+  int slice_axis;
+  float slice_pos;
+  bool enabled;
+};
 
 class NvParticleRenderer : public Renderable {
 public :
@@ -88,6 +96,8 @@ public :
   */
     NvParticleAdvectionShader* _advectionShader;
 
+    std::vector<ParticleInitSlice> _initSliceArray;
+
     /**
      * @brief scale of flow data 
      */
@@ -96,6 +106,7 @@ public :
     Vector3 origin;
 
     bool _activate;
+
 public:
     int psys_width;	//the storage of particles is implemented as a 2D array.
     int psys_height;
@@ -113,6 +124,8 @@ public:
     void activate();
     void deactivate();
     bool isActivated() const;
+
+    void draw_bounding_box(float x0, float y0, float z0, float x1, float y1, float z1, float r, float g, float b, float line_width);
 };
 
 inline void NvParticleRenderer::activate()
