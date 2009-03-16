@@ -101,7 +101,6 @@ NvParticleRenderer::NvParticleRenderer(int w, int h, CGcontext context)
     */
 
     _advectionShader = new NvParticleAdvectionShader();
-
 }
 
 NvParticleRenderer::~NvParticleRenderer()
@@ -267,6 +266,63 @@ void NvParticleRenderer::render()
     display_vertices(); 
 }
 
+void NvParticleRenderer::draw_bounding_box(
+    float x0, float y0, float z0,
+    float x1, float y1, float z1,
+    float r, float g, float b, 
+    float line_width)
+{
+    glPushMatrix();
+    glEnable(GL_DEPTH_TEST);
+    glDisable(GL_TEXTURE_2D);
+    glEnable(GL_BLEND);
+
+    glColor4d(r, g, b, 1.0);
+    glLineWidth(line_width);
+    
+    glBegin(GL_LINE_LOOP);
+    {
+	glVertex3d(x0, y0, z0);
+	glVertex3d(x1, y0, z0);
+	glVertex3d(x1, y1, z0);
+	glVertex3d(x0, y1, z0);
+    }
+    glEnd();
+    
+    glBegin(GL_LINE_LOOP);
+    {
+	glVertex3d(x0, y0, z1);
+	glVertex3d(x1, y0, z1);
+	glVertex3d(x1, y1, z1);
+	glVertex3d(x0, y1, z1);
+    }
+    glEnd();
+    
+    
+    glBegin(GL_LINE_LOOP);
+    {
+	glVertex3d(x0, y0, z0);
+	glVertex3d(x0, y0, z1);
+	glVertex3d(x0, y1, z1);
+	glVertex3d(x0, y1, z0);
+    }
+    glEnd();
+    
+    glBegin(GL_LINE_LOOP);
+    {
+	glVertex3d(x1, y0, z0);
+	glVertex3d(x1, y0, z1);
+	glVertex3d(x1, y1, z1);
+	glVertex3d(x1, y1, z0);
+    }
+    glEnd();
+
+    glPopMatrix();
+    glDisable(GL_DEPTH_TEST);
+    glDisable(GL_BLEND);
+    glEnable(GL_TEXTURE_2D);
+}
+
 void NvParticleRenderer::display_vertices()
 {
     glDisable(GL_TEXTURE_2D);
@@ -275,14 +331,31 @@ void NvParticleRenderer::display_vertices()
 
     glEnable(GL_COLOR_MATERIAL);
 
-    glPointSize(1.2);
-    glColor4f(.2,.2,.8,1.);
-  
     glPushMatrix();
 
     glTranslatef(origin.x, origin.y, origin.z);
     glScaled(scale.x, scale.y, scale.z);
 
+// TBD...
+/*
+    draw_bounding_box(
+    	0, 0, 0, 
+    	1, 1, 1, 
+    	1, 1, 1, 2);
+
+    draw_bounding_box(
+    	0, 0.5f / 4.5f, 0.5f / 4.5,
+    	1, 4.0f / 4.5f, 4.0f / 4.5,
+    	1, 0, 0, 2);
+
+    draw_bounding_box(
+    	1/3.0f, 1.0f / 4.5f, 0.5f / 4.5,
+    	2/3.0f, 3.5f / 4.5f, 3.5f / 4.5,
+    	1, 1, 0, 2);
+*/
+
+    glPointSize(1.2);
+    glColor4f(.2,.2,.8,1.);
     glEnableClientState(GL_VERTEX_ARRAY);
     m_vertex_array->SetPointer(0);
     glDrawArrays(GL_POINTS, 0, psys_width*psys_height);
