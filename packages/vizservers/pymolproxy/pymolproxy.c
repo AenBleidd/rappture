@@ -8,7 +8,7 @@
  *      and the pymol server. The communication protocol from the molvisviewer
  *      widget is the Tcl language.  Commands are then relayed to the pymol
  *      server.  Responses from the pymol server are translated into Tcl
- *      commands * and send to the molvisviewer widget. For example, resulting
+ *      commands and send to the molvisviewer widget. For example, resulting
  *      image rendered offscreen is returned as BMP-formatted image data.
  *
  *  Copyright (c) 2004-2006  Purdue Research Foundation
@@ -105,13 +105,14 @@ static int debug = 0;
 static long _flags = 0;
 #endif
 
-typedef struct {
-    char *data;
+typedef struct Image {
+    struct Image *next;
     int   used;
     int   allocated;
     ssize_t nWritten;
     size_t bytesLeft;
-} DyBuffer;
+    char data[1];
+} Image;
 
 #define BUFFER_SIZE		4096
 
@@ -133,7 +134,6 @@ typedef struct {
     int serverError;
     int clientInput;
     int clientOutput;
-    DyBuffer image;
     Tcl_Interp *interp;
     int updatePending;
     int rotatePending;
@@ -152,6 +152,7 @@ typedef struct {
     ReadBuffer server;
     float xAngle, yAngle, zAngle;
     float atomScale;
+    Image *head, *current;
 } PymolProxy;
 
 static void PollForEvents(PymolProxy *proxyPtr);
@@ -509,64 +510,43 @@ ExecuteCommand(Tcl_Interp *interp, const char *cmd)
     return result;
 }
 
-INLINE static void
-dyBufferInit(DyBuffer *imgPtr)
+static Image *
+NewImage(PymolProxy *proxyPtr, size_t dataLength)
 {
-    imgPtr->data = NULL;
-    imgPtr->used = 0;
-    imgPtr->allocated = 0;
-    imgPtr->nWritten = 0;
-    imgPtr->bytesLeft = 0;
+    Image *imgPtr;
+
+    imgPtr = malloc(sizeof(Image) + dataLength);
+    if (imgPtr == NULL) {
+	fprintf(stderr, "can't allocate image of %d bytes", 
+		sizeof(Image) + dataLength);
+	abort();
+    }
+    imgPtr->bytesLeft = imgPtr->allocated = dataLength;
+    imgPtr->next = proxyPtr->head;
+    proxyPtr->head = imgPtr;
+    imgPtr->used = imgPtr->nWritten = 0;
+    return imgPtr;
 }
 
 INLINE static void
-dyBufferFree(DyBuffer *imgPtr)
+FreeImage(Image *imgPtr)
 {
     assert(imgPtr != NULL);
-    if (imgPtr->data != NULL) {
-	free(imgPtr->data);
-    }
-    dyBufferInit(imgPtr);
-}
-
-static void
-dyBufferSetLength(DyBuffer *buffer, int length)
-{
-    assert(buffer != NULL);
-    if (length == 0) {
-        dyBufferFree(buffer);
-    } else if (length > buffer->used) {
-        char *newdata;
-        
-        newdata = realloc(buffer->data, length);
-        if (newdata != NULL) {
-            buffer->data = newdata;
-            buffer->used = length;
-            buffer->allocated = length;
-        }
-    } else {
-        buffer->used = length;
-    }
-}
-
-static void
-dyBufferAppend(DyBuffer *buffer, const char *data, int length)
-{
-    int offset;
-
-    assert(buffer != NULL);
-    offset = buffer->used;
-    dyBufferSetLength(buffer, offset + length);
-    memcpy(buffer->data + offset, data, length);
+    free(imgPtr);
 }
 
 static void
 WriteImage(PymolProxy *proxyPtr, int fd)
 {
-    DyBuffer *imgPtr; 
+    Image *imgPtr, *img2Ptr, *nextPtr; 
     ssize_t bytesLeft;
 
-    imgPtr = &proxyPtr->image;
+    imgPtr =  (proxyPtr->current == NULL) ? proxyPtr->head : proxyPtr->current;
+    if (imgPtr == NULL) {
+	trace("Should not be here: no image available to write");
+	return;
+    }
+	
     trace("WriteImage: want to write %d bytes.", imgPtr->bytesLeft);
     for (bytesLeft = imgPtr->bytesLeft; bytesLeft > 0; /*empty*/) {
 	ssize_t nWritten;
@@ -588,7 +568,24 @@ WriteImage(PymolProxy *proxyPtr, int fd)
 	}
 	imgPtr->nWritten += nWritten;
     }
-    dyBufferFree(imgPtr);
+    /* Check if image is on the head.  */
+    if (proxyPtr->head == imgPtr) {
+	proxyPtr->head = NULL;
+    } else {
+	/* Otherwise find it in the list of images and disconnect it. */
+	for (img2Ptr = proxyPtr->head; img2Ptr != NULL; img2Ptr = nextPtr) {
+	    nextPtr = img2Ptr->next;
+	    if (nextPtr == imgPtr) {
+		img2Ptr->next = NULL;
+	    }
+	}
+    }
+    /* Remove add images from this image on down. */
+    for (/*empty*/; imgPtr != NULL; imgPtr = nextPtr) {
+	nextPtr = imgPtr->next;
+	FreeImage(imgPtr);
+    }
+    proxyPtr->current = NULL;
 }
 
 
@@ -617,173 +614,6 @@ ReadImage(PymolProxy *proxyPtr, int fd, size)
     return total;
 }
 #endif
-
-static int
-bwrite(int fd, char *buffer, int size)
-{
-    int result;
-    int total = 0;
-    int left = size;
-
-    trace("bwrite: want to write %d bytes.", size);
-    while(1) {
-        result = write(fd,buffer+total,left);
-
-        if (result <= 0)
-            break;
-
-        total += result;
-        left -= result;
-
-        if (total == size)
-            break;
-    }
-    trace("bwrite: wrote %d bytes.", total);
-    return total;
-}
-
-static int
-bread(int fd, char *buffer, int size)
-{
-    int result, total, left;
-
-    for( total = 0, left = size; left > 0; left -= result) {
-	result = read(fd, buffer+total, left);
-	
-	if (result > 0) {
-	    total += result;
-	    continue;
-	}
-        
-	if ((result < 0) && (errno != EAGAIN) && (errno != EINTR)) { 
-	    trace("Error reading fd(%d), %d/%s.", fd, errno, 
-		  strerror(errno));
-	    break;
-	}
-	
-	result = 0;
-    }
-    return total;
-}
-
-#ifdef notdef
-
-static int 
-bflush(int fd, char *buffer, int size, int bytes)
-{
-    int bsize;
-
-    while(bytes) {
-	if (bytes > size)
-	    bsize = size;
-	else
-	    bsize = bytes;
-	
-	bsize = bread(fd,buffer,bsize);
-        
-	bytes -= bsize;     
-    }
-}
-
-#undef timersub
-static void
-timersub(struct timeval *a, struct timeval *b, struct timeval *result)
-{
-    result->tv_sec = a->tv_sec - b->tv_sec;
-    result->tv_usec = a->tv_usec - b->tv_usec;
-
-    while(result->tv_usec < 0) {
-        result->tv_sec -= 1;
-        result->tv_usec += 1000000;
-    }
-}
-
-#endif
-
-static void
-timersub_ms(struct timeval *a, struct timeval *b, int *result)
-{
-    struct timeval tmp;
-
-    tmp.tv_sec = a->tv_sec - b->tv_sec;
-    tmp.tv_usec = a->tv_usec - b->tv_usec;
-
-    while(tmp.tv_usec < 0) {
-        tmp.tv_sec -= 1;
-        tmp.tv_usec += 1000000;
-    }
-
-    *result = (tmp.tv_sec * 1000) + (tmp.tv_usec / 1000);
-}
-
-#undef timeradd
-static void
-timeradd (struct timeval *a, struct timeval *b, struct timeval *result)
-{
-    result->tv_sec = a->tv_sec + b->tv_sec;
-    result->tv_usec = a->tv_usec + b->tv_usec;
-
-    while (result->tv_usec >= 1000000) {
-        result->tv_sec += 1;
-        result->tv_usec -= 1000000;
-    }
-}
-
-static void
-timerset_ms(struct timeval *result, int timeout)
-{
-    result->tv_sec = timeout / 1000;
-    result->tv_usec = (timeout % 1000) * 1000;
-}
-
-
-static int
-getline(int fd, char *buffer, int size, int timeout)
-{
-    int pos = 0, status, timeo;
-    struct timeval now, end, tmo;
-    struct pollfd ufd;
-
-    gettimeofday(&now,NULL);
-    timerset_ms(&tmo, timeout);
-    timeradd(&now,&tmo,&end);
-
-    ufd.fd = fd;
-    ufd.events = POLLIN;
-
-    size--;
-
-    while(pos < size) {
-        if (timeout > 0) {
-            gettimeofday(&now,NULL);
-            timersub_ms(&now,&end,&timeo);
-        } 
-        else
-            timeo = -1;
-
-        status = poll(&ufd, 1, timeo);
-
-        if (status > 0)
-            status = read(fd,&buffer[pos],1);
-
-        if ( (status < 0) && ( (errno == EINTR) || (errno == EAGAIN) ) )
-            continue; /* try again, if interrupted/blocking */
-
-        if (status <= 0) {
-	    trace("getline: status=%d, errno=%d", status, errno);
-            break;
-	}
-        if (buffer[pos] == '\n') {
-            pos++;
-            break;
-        }
-        pos++;
-    }
-
-    buffer[pos]=0;
-    return pos;
-}
-
 
 static int
 Pymol(PymolProxy *proxyPtr, char *format, ...)
@@ -951,7 +781,7 @@ BmpCmd(ClientData clientData, Tcl_Interp *interp, int argc, const char *argv[])
     char buffer[BUFSIZ];
     unsigned int nBytes=0;
     PymolProxy *proxyPtr = clientData;
-    DyBuffer *imgPtr; 
+    Image *imgPtr; 
     int nScanned;
     size_t length;
 #ifdef notdef
@@ -986,15 +816,12 @@ BmpCmd(ClientData clientData, Tcl_Interp *interp, int argc, const char *argv[])
 	    proxyPtr->frame, proxyPtr->rock_offset);
 
     length = strlen(buffer);
-    imgPtr = &proxyPtr->image;
-    dyBufferSetLength(imgPtr, nBytes + length);
+    imgPtr = NewImage(proxyPtr, nBytes + length);
     strcpy(imgPtr->data, buffer);
     if (GetBytes(&proxyPtr->server, imgPtr->data + length, nBytes)!=BUFFER_OK){
         trace("can't read %d bytes for \"image follows\" buffer", nBytes);
 	return  TCL_ERROR;
     }
-    imgPtr->bytesLeft = nBytes + length;
-    imgPtr->nWritten = 0;
     stats.nFrames++;
     stats.nBytes += nBytes;
     return proxyPtr->status;
@@ -1316,8 +1143,11 @@ static int
 PngCmd(ClientData clientData, Tcl_Interp *interp, int argc, const char *argv[])
 {
     char buffer[800];
-    unsigned int nBytes=0;
+    size_t nBytes=0;
     PymolProxy *proxyPtr = clientData;
+    size_t length;
+    Image *imgPtr;
+
 #ifdef notdef
     float samples = 10.0;
     ssize_t nWritten;
@@ -1343,28 +1173,22 @@ PngCmd(ClientData clientData, Tcl_Interp *interp, int argc, const char *argv[])
 #ifdef notdef
     nWritten = write(3, &samples, sizeof(samples));
 #endif
-    dyBufferSetLength(&proxyPtr->image, nBytes);
-
-    bread(proxyPtr->serverOutput, proxyPtr->image.data, proxyPtr->image.used);
-    proxyPtr->image.bytesLeft = proxyPtr->image.used;
-    proxyPtr->image.nWritten = 0;
-
-    Expect(proxyPtr, " ScenePNG", buffer,800);
-
-    if ((nBytes > 0) && (proxyPtr->image.used == nBytes)) {
-	ssize_t nWritten;
-
-        sprintf(buffer, "nv>image %d %d %d %d\n", 
-                nBytes, proxyPtr->cacheid, proxyPtr->frame, proxyPtr->rock_offset);
-        trace("to-molvis> %s", buffer);
-	/* Write the header */
-        nWritten = write(proxyPtr->clientInput, buffer, strlen(buffer));
-	/* and the data. */
-        bwrite(proxyPtr->clientInput, proxyPtr->image.data, nBytes);
-
-	stats.nFrames++;
-	stats.nBytes += nBytes;
+    if (nBytes == 0) {
     }
+    sprintf(buffer, "nv>image %d %d %d %d\n", nBytes, proxyPtr->cacheid, 
+	    proxyPtr->frame, proxyPtr->rock_offset);
+    length = strlen(buffer);
+    imgPtr = NewImage(proxyPtr, nBytes + length);
+    strcpy(imgPtr->data, buffer);
+    if (GetBytes(&proxyPtr->server, imgPtr->data + length, nBytes)!=BUFFER_OK){
+        trace("can't read %d bytes for \"image follows\" buffer", nBytes);
+	return  TCL_ERROR;
+    }
+#ifdef notdef
+    Expect(proxyPtr, " ScenePNG", buffer,800);
+#endif
+    stats.nFrames++;
+    stats.nBytes += nBytes;
     return proxyPtr->status;
 }
 
@@ -1372,12 +1196,9 @@ static int
 RawCmd(ClientData clientData, Tcl_Interp *interp, int argc, const char *argv[])
 {
     PymolProxy *proxyPtr = clientData;
-    DyBuffer buffer;
     int arg, defer = 0, push = 0;
     const char *cmd;
     clear_error(proxyPtr);
-
-    dyBufferInit(&buffer);
 
     cmd = NULL;
     for(arg = 1; arg < argc; arg++) {
@@ -1395,8 +1216,6 @@ RawCmd(ClientData clientData, Tcl_Interp *interp, int argc, const char *argv[])
     proxyPtr->invalidate_cache = TRUE;  /* Raw */
 
     Pymol(proxyPtr,"%s\n", cmd);
-    dyBufferFree(&buffer);
-
     return proxyPtr->status;
 }
 
@@ -1783,27 +1602,17 @@ ProxyInit(int c_in, int c_out, char *const *argv)
 
     signal(SIGPIPE, SIG_IGN); /* ignore SIGPIPE (e.g. nanoscale terminates)*/
 
+    memset(&proxy, 0, sizeof(PymolProxy));
     proxy.serverInput  = serverIn[1];
     proxy.serverOutput = serverOut[0];
     proxy.serverError = serverErr[0];
     proxy.clientInput  = c_in;
     proxy.clientOutput = c_out;
-    proxy.showLabels = FALSE;
-    proxy.updatePending = FALSE;
-    proxy.forceUpdate = FALSE;
-    proxy.rotatePending = FALSE;
-    proxy.scalePending = FALSE;
     proxy.can_update = TRUE;
-    proxy.sync = 0;
     proxy.frame = 1;
-    proxy.rock_offset = 0;
-    proxy.cacheid = 0;
-    proxy.invalidate_cache = FALSE;
     interp = Tcl_CreateInterp();
     Tcl_MakeSafe(interp);
     proxy.interp = interp;
-    proxy.xAngle = proxy.yAngle = proxy.zAngle = 0.0f;
-    dyBufferInit(&proxy.image);
 
     Tcl_CreateCommand(interp, "atomscale",   AtomscaleCmd,   &proxy, NULL);
     Tcl_CreateCommand(interp, "ballnstick",  BallNStickCmd,  &proxy, NULL);
@@ -1864,8 +1673,6 @@ ProxyInit(int c_in, int c_out, char *const *argv)
     
     trace("pymol server process ended (result=%d)", result);
     
-    dyBufferFree(&proxy.image);
-    
     Tcl_DeleteInterp(interp);
     if (WIFEXITED(result)) {
 	result = WEXITSTATUS(result);
@@ -1896,7 +1703,6 @@ main(int argc, char *argv[])
 static void
 PollForEvents(PymolProxy *proxyPtr)
 {
-    DyBuffer *imgPtr; 
     Tcl_DString clientCmds;
     struct pollfd pollResults[4];
     int flags;
@@ -1922,11 +1728,10 @@ PollForEvents(PymolProxy *proxyPtr)
     InitBuffer(&proxyPtr->server, proxyPtr->serverOutput);
 
     Tcl_DStringInit(&clientCmds);
-    imgPtr = &proxyPtr->image;
     for (;;) {
 	int timeout, nChannels;
 
-	nChannels =  (imgPtr->bytesLeft > 0) ? 4 : 3;
+	nChannels =  (proxyPtr->head != NULL) ? 4 : 3;
 
 #define PENDING_TIMEOUT		10  /* milliseconds. */
 	timeout = (proxyPtr->updatePending) ? PENDING_TIMEOUT : -1;
@@ -2027,7 +1832,7 @@ PollForEvents(PymolProxy *proxyPtr)
 	}
 
 	/* Write the current image buffer. */
-	if (imgPtr->nWritten == 0) {
+	if (proxyPtr->head == NULL) {
 	    /* We might want to refresh the image if we're not currently
 	     * transmitting an image back to the client. The image will be
 	     * refreshed after the image has been completely transmitted. */
@@ -2040,7 +1845,7 @@ PollForEvents(PymolProxy *proxyPtr)
 		continue;
 	    }
 	}
-	if ((imgPtr->bytesLeft > 0) && (pollResults[3].revents & POLLOUT)) { 
+	if ((proxyPtr->head != NULL) && (pollResults[3].revents & POLLOUT)) { 
 	    WriteImage(proxyPtr, pollResults[3].fd);
 	}
     }
