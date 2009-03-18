@@ -728,7 +728,7 @@ static void
 SetBondThickness(PymolProxy *proxyPtr)
 {
     if (proxyPtr->flags & BOND_THICKNESS_PENDING) {
-	Pymol(proxyPtr, "set stick_radius,%f,all\n", proxyPtr->atomScale);
+	Pymol(proxyPtr, "set stick_radius,%f,all\n", proxyPtr->bondThickness);
 	proxyPtr->flags &= ~BOND_THICKNESS_PENDING;
     }
 }
@@ -1292,6 +1292,69 @@ PngCmd(ClientData clientData, Tcl_Interp *interp, int argc, const char *argv[])
     Pymol(proxyPtr,"refresh\n");
 
     Pymol(proxyPtr,"png -\n");
+
+    Expect(proxyPtr, "image follows: ", buffer, 800);
+
+    sscanf(buffer, "image follows: %d\n", &nBytes);
+ 
+#ifdef notdef
+    nWritten = write(3, &samples, sizeof(samples));
+#endif
+    if (nBytes == 0) {
+    }
+    sprintf(buffer, "nv>image %d %d %d %d\n", nBytes, proxyPtr->cacheId, 
+	    proxyPtr->frame, proxyPtr->rockOffset);
+    length = strlen(buffer);
+    imgPtr = NewImage(proxyPtr, nBytes + length);
+    strcpy(imgPtr->data, buffer);
+    if (GetBytes(&proxyPtr->server, imgPtr->data + length, nBytes)!=BUFFER_OK){
+        trace("can't read %d bytes for \"image follows\" buffer", nBytes);
+	return  TCL_ERROR;
+    }
+#ifdef notdef
+    Expect(proxyPtr, " ScenePNG", buffer,800);
+#endif
+    stats.nFrames++;
+    stats.nBytes += nBytes;
+    return proxyPtr->status;
+}
+
+
+static int
+PrintCmd(ClientData clientData, Tcl_Interp *interp, int argc, 
+	 const char *argv[])
+{
+    char buffer[800];
+    int nBytes=0;
+    PymolProxy *proxyPtr = clientData;
+    size_t length;
+    Image *imgPtr;
+    int width, height;
+
+    clear_error(proxyPtr);
+
+    if (proxyPtr->flags & INVALIDATE_CACHE)
+        proxyPtr->cacheId++;
+
+    proxyPtr->flags &= ~(UPDATE_PENDING | FORCE_UPDATE | INVALIDATE_CACHE);
+
+    if (argc != 4) {
+	Tcl_AppendResult(interp, "wrong # arguments: should be \"", 
+			 argv[0], " token width height\"", (char *)NULL);
+	return TCL_ERROR;
+    }
+    token = argv[1];
+    if (Tcl_GetInt(interp, argv[2], &width) != TCL_OK) {
+	return TCL_ERROR;
+    }
+    if (Tcl_GetInt(interp, argv[3], &height) != TCL_OK) {
+	return TCL_ERROR;
+    }
+
+    /* Force pymol to update the current scene. */
+    Pymol(proxyPtr,"refresh\n");
+    Pymol(proxyPtr,"ray %d,%d\n", width, height);
+    Pymol(proxyPtr,"bmp -\n");
 
     Expect(proxyPtr, "image follows: ", buffer, 800);
 
