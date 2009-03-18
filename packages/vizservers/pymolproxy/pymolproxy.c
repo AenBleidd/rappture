@@ -106,12 +106,16 @@ static long _flags = 0;
 #endif
 
 typedef struct Image {
-    struct Image *next;
-    int   used;
-    int   allocated;
-    ssize_t nWritten;
-    size_t bytesLeft;
-    char data[1];
+    struct Image *next;		/* Next image in chain of images. The list is
+				 * ordered by the most recently received image
+				 * from the pymol server to the least. */
+    ssize_t nWritten;		/* Number of bytes of image data already
+				 * delivered.*/
+    size_t bytesLeft;		/* Number of bytes of image data left to
+				 * delivered to the client. */
+    char data[1];		/* Start of image data. We allocate the size
+				 * of the Image structure plus the size of the
+				 * image data. */
 } Image;
 
 #define BUFFER_SIZE		4096
@@ -128,31 +132,42 @@ typedef struct {
 #define BUFFER_CONTINUE		-2
 #define BUFFER_SHORT_READ	-3
 
+#define ATOM_SCALE_PENDING	(1<<0)
+#define BOND_THICKNESS_PENDING	(1<<1)
+#define ROTATE_PENDING		(1<<2)
+#define PAN_PENDING		(1<<3)
+#define ZOOM_PENDING		(1<<4)
+#define UPDATE_PENDING		(1<<5)
+#define FORCE_UPDATE		(1<<6)
+#define CAN_UPDATE		(1<<7)
+#define SHOW_LABELS		(1<<8)
+#define INVALIDATE_CACHE	(1<<9)
+
 typedef struct {
-    int serverInput;
-    int serverOutput;
-    int serverError;
-    int clientInput;
-    int clientOutput;
     Tcl_Interp *interp;
-    int updatePending;
-    int rotatePending;
-    int scalePending;
-    int forceUpdate;
-    int can_update;
-    int sync;
-    int showLabels;
+    unsigned int flags;		/* Various flags. */
+    Image *head;		/* List of images to be delivered to the
+				 * client.  The most recent images are in the
+				 * front of the list. */
+    Image *current;		/* The image currently being delivered to the
+				 * client.  We make sure we finish delivering
+				 * this image before selecting the most recent
+				 * image. */
+
+    int serverInput, serverOutput, serverError;	 /* Server file descriptors. */
+    int clientInput, clientOutput;  /* Client file descriptors. */
+    ReadBuffer client;		/* Read buffer for client input. */
+    ReadBuffer server;		/* Read buffer for server output. */
     int frame;
-    int rock_offset;
-    int cacheid;
-    int invalidate_cache;
+    int rockOffset;
+    int cacheId;
     int error;
     int status;
-    ReadBuffer client;
-    ReadBuffer server;
-    float xAngle, yAngle, zAngle;
-    float atomScale;
-    Image *head, *current;
+    float xAngle, yAngle, zAngle;  /* Euler angles of pending rotation.  */
+    float atomScale;		/* Atom scale of pending re-scale. */
+    float bondThickness;	/* Bond thickness of pending re-scale. */
+    float zoom;
+    float xPan, yPan;
 } PymolProxy;
 
 static void PollForEvents(PymolProxy *proxyPtr);
@@ -521,10 +536,10 @@ NewImage(PymolProxy *proxyPtr, size_t dataLength)
 		sizeof(Image) + dataLength);
 	abort();
     }
-    imgPtr->bytesLeft = imgPtr->allocated = dataLength;
+    imgPtr->bytesLeft = dataLength;
     imgPtr->next = proxyPtr->head;
     proxyPtr->head = imgPtr;
-    imgPtr->used = imgPtr->nWritten = 0;
+    imgPtr->nWritten = 0;
     return imgPtr;
 }
 
@@ -659,29 +674,56 @@ Pymol(PymolProxy *proxyPtr, char *format, ...)
 }
 
 static void
-DoRotate(PymolProxy *proxyPtr)
+SetZoom(PymolProxy *proxyPtr)
 {
-    if (proxyPtr->rotatePending) {
+    if (proxyPtr->flags & ZOOM_PENDING) {
+        Pymol(proxyPtr,"move z,%f\n", proxyPtr->zoom);
+	proxyPtr->flags &= ~ZOOM_PENDING;
+    }
+}
+
+static void
+SetPan(PymolProxy *proxyPtr)
+{
+    if (proxyPtr->flags & PAN_PENDING) {
+	Pymol(proxyPtr,"move x,%f; move y,%f\n", proxyPtr->xPan,proxyPtr->yPan);
+	proxyPtr->flags &= ~PAN_PENDING;
+    }
+}
+
+static void
+SetRotation(PymolProxy *proxyPtr)
+{
+    if (proxyPtr->flags & ROTATE_PENDING) {
 	/* Every pymol command line generates a new rendering. Execute all
 	 * three turns as a single command line. */
 	Pymol(proxyPtr,"turn x,%f; turn y,%f; turn z,%f\n", 
 	      proxyPtr->xAngle, proxyPtr->yAngle, proxyPtr->zAngle);
 	proxyPtr->xAngle = proxyPtr->yAngle = proxyPtr->zAngle = 0.0f;
-	proxyPtr->rotatePending = FALSE;
+	proxyPtr->flags &= ~ROTATE_PENDING;
     }
 }
 
 static void
-DoAtomScale(PymolProxy *proxyPtr)
+SetAtomScale(PymolProxy *proxyPtr)
 {
-    if (proxyPtr->scalePending) {
-	proxyPtr->scalePending = FALSE;
+    if (proxyPtr->flags & ATOM_SCALE_PENDING) {
 	Pymol(proxyPtr, "set sphere_scale,%f,all\n", proxyPtr->atomScale);
+	proxyPtr->flags &= ~ATOM_SCALE_PENDING;
+    }
+}
+
+static void
+SetBondThickness(PymolProxy *proxyPtr)
+{
+    if (proxyPtr->flags & BOND_THICKNESS_PENDING) {
+	Pymol(proxyPtr, "set stick_radius,%f,all\n", proxyPtr->atomScale);
+	proxyPtr->flags &= ~BOND_THICKNESS_PENDING;
     }
 }
 
 static int
-AtomscaleCmd(ClientData clientData, Tcl_Interp *interp, int argc, 
+AtomScaleCmd(ClientData clientData, Tcl_Interp *interp, int argc, 
 	   const char *argv[])
 {
     int defer = 0, push = 0, arg;
@@ -705,12 +747,16 @@ AtomscaleCmd(ClientData clientData, Tcl_Interp *interp, int argc,
 	    }
 	}
     }
-    proxyPtr->invalidate_cache = TRUE;  /* Spheres */
-    proxyPtr->updatePending = !defer || push;
-    proxyPtr->forceUpdate = push;
+    proxyPtr->flags |= INVALIDATE_CACHE;  /* Spheres */
+    if (!defer || push) {
+	proxyPtr->flags |= UPDATE_PENDING;
+    }
+    if (push) {
+	proxyPtr->flags |= FORCE_UPDATE;
+    }
 
     if (strcmp(model, "all") == 0) {
-	proxyPtr->scalePending = TRUE;
+	proxyPtr->flags |= ATOM_SCALE_PENDING;
 	proxyPtr->atomScale = scale;
     } else {
 	Pymol(proxyPtr, "set sphere_scale,%f,%s\n", scale, model);
@@ -746,10 +792,13 @@ BallNStickCmd(ClientData clientData, Tcl_Interp *interp, int argc,
             model = argv[arg];
     }
 
-    proxyPtr->invalidate_cache = TRUE;  /* Ball 'n Stick */
-    proxyPtr->updatePending = !defer || push;
-    proxyPtr->forceUpdate = push;
-
+    proxyPtr->flags |= INVALIDATE_CACHE; /* Ball 'n Stick */
+    if (!defer || push) {
+	proxyPtr->flags |= UPDATE_PENDING;
+    }
+    if (push) {
+	proxyPtr->flags |= FORCE_UPDATE;
+    }
     Pymol(proxyPtr, "hide everything,%s\n",model);
     Pymol(proxyPtr, "set stick_color,white,%s\n",model);
     if (ghost) {
@@ -768,7 +817,7 @@ BallNStickCmd(ClientData clientData, Tcl_Interp *interp, int argc,
     Pymol(proxyPtr, "show sticks,%s\n", model);
     Pymol(proxyPtr, "show spheres,%s\n", model);
 
-    if (proxyPtr->showLabels) {
+    if (proxyPtr->flags & SHOW_LABELS) {
         Pymol(proxyPtr, "show labels,%s\n", model);
     }
     return proxyPtr->status;
@@ -790,12 +839,10 @@ BmpCmd(ClientData clientData, Tcl_Interp *interp, int argc, const char *argv[])
 #endif
     clear_error(proxyPtr);
 
-    if (proxyPtr->invalidate_cache)
-        proxyPtr->cacheid++;
+    if (proxyPtr->flags & INVALIDATE_CACHE)
+        proxyPtr->cacheId++;
 
-    proxyPtr->updatePending = FALSE;
-    proxyPtr->forceUpdate = FALSE;
-    proxyPtr->invalidate_cache = FALSE;
+    proxyPtr->flags &= ~(UPDATE_PENDING|FORCE_UPDATE|INVALIDATE_CACHE);
 
    /* Force pymol to update the current scene. */
     Pymol(proxyPtr,"refresh\n");
@@ -812,8 +859,8 @@ BmpCmd(ClientData clientData, Tcl_Interp *interp, int argc, const char *argv[])
 #ifdef notdef
     nWritten = write(3,&samples,sizeof(samples));
 #endif
-    sprintf(buffer, "nv>image %d %d %d %d\n", nBytes, proxyPtr->cacheid, 
-	    proxyPtr->frame, proxyPtr->rock_offset);
+    sprintf(buffer, "nv>image %d %d %d %d\n", nBytes, proxyPtr->cacheId, 
+	    proxyPtr->frame, proxyPtr->rockOffset);
 
     length = strlen(buffer);
     imgPtr = NewImage(proxyPtr, nBytes + length);
@@ -824,6 +871,48 @@ BmpCmd(ClientData clientData, Tcl_Interp *interp, int argc, const char *argv[])
     }
     stats.nFrames++;
     stats.nBytes += nBytes;
+    return proxyPtr->status;
+}
+
+static int
+BondThicknessCmd(ClientData clientData, Tcl_Interp *interp, int argc, 
+		 const char *argv[])
+{
+    int defer = 0, push = 0, arg;
+    double scale;
+    const char *model = "all";
+    PymolProxy *proxyPtr = clientData;
+
+    clear_error(proxyPtr);
+    scale = 0.25f;
+    for(arg = 1; arg < argc; arg++) {
+        if ( strcmp(argv[arg],"-defer") == 0 ) {
+            defer = 1;
+	} else if (strcmp(argv[arg],"-push") == 0) {
+            push = 1;
+	} else if (strcmp(argv[arg],"-model") == 0) {
+            if (++arg < argc)
+                model = argv[arg];
+        } else {
+	    if (Tcl_GetDouble(interp, argv[arg], &scale) != TCL_OK) {
+		return TCL_ERROR;
+	    }
+	}
+    }
+    proxyPtr->flags |= INVALIDATE_CACHE;  /* Spheres */
+    if (!defer || push) {
+	proxyPtr->flags |= UPDATE_PENDING;
+    }
+    if (push) {
+	proxyPtr->flags |= FORCE_UPDATE;
+    }
+
+    if (strcmp(model, "all") == 0) {
+	proxyPtr->flags |= BOND_THICKNESS_PENDING;
+	proxyPtr->bondThickness = scale;
+    } else {
+	Pymol(proxyPtr, "set stick_radius,%f,%s\n", scale, model);
+    }
     return proxyPtr->status;
 }
 
@@ -848,9 +937,13 @@ DisableCmd(ClientData clientData, Tcl_Interp *interp, int argc,
         
     }
 
-    proxyPtr->updatePending = !defer || push;
-    proxyPtr->forceUpdate = push;
-    proxyPtr->invalidate_cache = TRUE;  /* Disable */
+    proxyPtr->flags |= INVALIDATE_CACHE;  /* Disable */
+    if (!defer || push) {
+	proxyPtr->flags |= UPDATE_PENDING;
+    }
+    if (push) {
+	proxyPtr->flags |= FORCE_UPDATE;
+    }
 
     Pymol( proxyPtr, "disable %s\n", model);
 
@@ -878,13 +971,14 @@ EnableCmd(ClientData clientData, Tcl_Interp *interp, int argc,
             model = argv[arg];
 
     }
-
-    proxyPtr->updatePending = !defer || push;
-    proxyPtr->forceUpdate = push;
-    proxyPtr->invalidate_cache = TRUE;  /* Enable */
-
+    proxyPtr->flags |= INVALIDATE_CACHE; /* Enable */
+    if (!defer || push) {
+	proxyPtr->flags |= UPDATE_PENDING;
+    }
+    if (push) {
+	proxyPtr->flags |= FORCE_UPDATE;
+    }
     Pymol( proxyPtr, "enable %s\n", model);
-
     return proxyPtr->status;
 }
 
@@ -907,8 +1001,12 @@ FrameCmd(ClientData clientData, Tcl_Interp *interp, int argc,
             frame = atoi(argv[arg]);
     }
                 
-    proxyPtr->updatePending = !defer || push;
-    proxyPtr->forceUpdate = push;
+    if (!defer || push) {
+	proxyPtr->flags |= UPDATE_PENDING;
+    }
+    if (push) {
+	proxyPtr->flags |= FORCE_UPDATE;
+    }
     proxyPtr->frame = frame;
 
     /* Does not invalidate cache? */
@@ -939,13 +1037,16 @@ LabelCmd(ClientData clientData, Tcl_Interp *interp, int argc,
         else if (strcmp(argv[arg],"off") == 0 )
             state = 0;
         else if (strcmp(argv[arg],"toggle") == 0 )
-            state =  !proxyPtr->showLabels;
+            state = ((proxyPtr->flags & SHOW_LABELS) == 0);
     }
 
-    proxyPtr->updatePending = !defer || push;
-    proxyPtr->forceUpdate = push;
-    proxyPtr->invalidate_cache = TRUE;  /* Label */
-
+    proxyPtr->flags |= INVALIDATE_CACHE;  /* Label */
+    if (!defer || push) {
+	proxyPtr->flags |= UPDATE_PENDING;
+    }
+    if (push) {
+	proxyPtr->flags |= FORCE_UPDATE;
+    }
     if (state) {
         Pymol(proxyPtr, "set label_color,white,all\n");
         Pymol(proxyPtr, "set label_size,14,all\n");
@@ -954,8 +1055,11 @@ LabelCmd(ClientData clientData, Tcl_Interp *interp, int argc,
     else
         Pymol(proxyPtr, "label all\n");
 
-    proxyPtr->showLabels = state;
-
+    if (state) {
+	proxyPtr->flags |= SHOW_LABELS;
+    } else {
+	proxyPtr->flags &= ~SHOW_LABELS;
+    }
     return proxyPtr->status;
 }
 
@@ -987,16 +1091,19 @@ LinesCmd(ClientData clientData, Tcl_Interp *interp, int argc,
             model = argv[arg];
     }
 
-    proxyPtr->invalidate_cache = TRUE;  /* Lines */
-    proxyPtr->updatePending = !defer || push;
-    proxyPtr->forceUpdate = push;
-
+    proxyPtr->flags |= INVALIDATE_CACHE; /* Lines */
+    if (!defer || push) {
+	proxyPtr->flags |= UPDATE_PENDING;
+    }
+    if (push) {
+	proxyPtr->flags |= FORCE_UPDATE;
+    }
     Pymol(proxyPtr, "hide everything,%s\n",model);
 
     lineWidth = (ghost) ? 0.25f : 1.0f;
     Pymol(proxyPtr, "set line_width,%g,%s\n", lineWidth, model);
     Pymol(proxyPtr, "show lines,%s\n", model);
-    if (proxyPtr->showLabels) {
+    if (proxyPtr->flags & SHOW_LABELS) {
         Pymol(proxyPtr, "show labels,%s\n", model);
     }
     return proxyPtr->status;
@@ -1032,8 +1139,12 @@ LoadPDBCmd(ClientData clientData, Tcl_Interp *interp, int argc,
 	}
     }
     
-    proxyPtr->updatePending = !defer || push;
-    proxyPtr->forceUpdate = push;
+    if (!defer || push) {
+	proxyPtr->flags |= UPDATE_PENDING;
+    }
+    if (push) {
+	proxyPtr->flags |= FORCE_UPDATE;
+    }
 
     /* Does not invalidate cache? */
 
@@ -1083,9 +1194,13 @@ OrthoscopicCmd(ClientData clientData, Tcl_Interp *interp, int argc,
 	    }
 	}
     }
-    proxyPtr->invalidate_cache = TRUE;  
-    proxyPtr->updatePending = !defer || push;
-    proxyPtr->forceUpdate = push;
+    proxyPtr->flags |= INVALIDATE_CACHE;  
+    if (!defer || push) {
+	proxyPtr->flags |= UPDATE_PENDING;
+    }
+    if (push) {
+	proxyPtr->flags |= FORCE_UPDATE;
+    }
     Pymol(proxyPtr, "set orthoscopic=%d\n", bool);
     return proxyPtr->status;
 }
@@ -1127,14 +1242,17 @@ PanCmd(ClientData clientData, Tcl_Interp *interp, int argc,
 	(Tcl_GetDouble(interp, argv[i+1], &y) != TCL_OK)) {
 	return TCL_ERROR;
     }
-    proxyPtr->updatePending = !defer || push;
-    proxyPtr->forceUpdate = push;
-    proxyPtr->invalidate_cache = TRUE;  /* Pan */
-
+    proxyPtr->flags |= INVALIDATE_CACHE; /* Pan */
+    if (!defer || push) {
+	proxyPtr->flags |= UPDATE_PENDING;
+    }
+    if (push) {
+	proxyPtr->flags |= FORCE_UPDATE;
+    }
     if ((x != 0.0f) || (y != 0.0f)) {
-	/* Every pymol command line generates a new rendering. Execute both
-	 * moves as a single command line. */
-	Pymol(proxyPtr,"move x,%f; move y,%f\n", x * 0.05, -y * 0.05);
+	proxyPtr->xPan = x * 0.05;
+	proxyPtr->yPan = -y * 0.05;
+	proxyPtr->flags |= PAN_PENDING;
     }
     return proxyPtr->status;
 }
@@ -1154,14 +1272,12 @@ PngCmd(ClientData clientData, Tcl_Interp *interp, int argc, const char *argv[])
 #endif
     clear_error(proxyPtr);
 
-    if (proxyPtr->invalidate_cache)
-        proxyPtr->cacheid++;
+    if (proxyPtr->flags & INVALIDATE_CACHE)
+        proxyPtr->cacheId++;
 
-    proxyPtr->updatePending = FALSE;
-    proxyPtr->forceUpdate = FALSE;
-    proxyPtr->invalidate_cache = FALSE;
+    proxyPtr->flags &= ~(UPDATE_PENDING | FORCE_UPDATE | INVALIDATE_CACHE);
 
-   /* Force pymol to update the current scene. */
+    /* Force pymol to update the current scene. */
     Pymol(proxyPtr,"refresh\n");
 
     Pymol(proxyPtr,"png -\n");
@@ -1175,8 +1291,8 @@ PngCmd(ClientData clientData, Tcl_Interp *interp, int argc, const char *argv[])
 #endif
     if (nBytes == 0) {
     }
-    sprintf(buffer, "nv>image %d %d %d %d\n", nBytes, proxyPtr->cacheid, 
-	    proxyPtr->frame, proxyPtr->rock_offset);
+    sprintf(buffer, "nv>image %d %d %d %d\n", nBytes, proxyPtr->cacheId, 
+	    proxyPtr->frame, proxyPtr->rockOffset);
     length = strlen(buffer);
     imgPtr = NewImage(proxyPtr, nBytes + length);
     strcpy(imgPtr->data, buffer);
@@ -1211,10 +1327,13 @@ RawCmd(ClientData clientData, Tcl_Interp *interp, int argc, const char *argv[])
         }
     }
 
-    proxyPtr->updatePending = !defer || push;
-    proxyPtr->forceUpdate = push;
-    proxyPtr->invalidate_cache = TRUE;  /* Raw */
-
+    proxyPtr->flags |= INVALIDATE_CACHE; /* Raw */
+    if (!defer || push) {
+	proxyPtr->flags |= UPDATE_PENDING;
+    }
+    if (push) {
+	proxyPtr->flags |= FORCE_UPDATE;
+    }
     Pymol(proxyPtr,"%s\n", cmd);
     return proxyPtr->status;
 }
@@ -1235,13 +1354,15 @@ ResetCmd(ClientData clientData, Tcl_Interp *interp, int argc,
             push = 1;
     }
                 
-    proxyPtr->updatePending = !defer || push;
-    proxyPtr->forceUpdate = push;
-    proxyPtr->invalidate_cache = TRUE;  /* Reset */
-        
+    proxyPtr->flags |= INVALIDATE_CACHE; /* Reset */
+    if (!defer || push) {
+	proxyPtr->flags |= UPDATE_PENDING;
+    }
+    if (push) {
+	proxyPtr->flags |= FORCE_UPDATE;
+    }
     Pymol(proxyPtr, "reset\n");
     Pymol(proxyPtr, "zoom complete=1\n");
-
     return proxyPtr->status;
 }
 
@@ -1266,13 +1387,14 @@ RockCmd(ClientData clientData, Tcl_Interp *interp, int argc,
                 
     /* Does not invalidate cache. */
 
-    proxyPtr->updatePending = !defer || push;
-    proxyPtr->forceUpdate = push;
-
-    Pymol(proxyPtr,"turn y, %f\n", y - proxyPtr->rock_offset);
-
-    proxyPtr->rock_offset = y;
-
+    if (!defer || push) {
+	proxyPtr->flags |= UPDATE_PENDING;
+    }
+    if (push) {
+	proxyPtr->flags |= FORCE_UPDATE;
+    }
+    Pymol(proxyPtr,"turn y, %f\n", y - proxyPtr->rockOffset);
+    proxyPtr->rockOffset = y;
     return proxyPtr->status;
 }
 
@@ -1327,15 +1449,18 @@ RotateCmd(ClientData clientData, Tcl_Interp *interp, int argc,
 	    varg++;
 	}
     } 
-    proxyPtr->updatePending = !defer || push;
-    proxyPtr->forceUpdate = push;
-    proxyPtr->invalidate_cache = TRUE;  /* Rotate */
-
+    proxyPtr->flags |= INVALIDATE_CACHE; /* Rotate */
+    if (!defer || push) {
+	proxyPtr->flags |= UPDATE_PENDING;
+    }
+    if (push) {
+	proxyPtr->flags |= FORCE_UPDATE;
+    }
     if ((xAngle != 0.0f) || (yAngle != 0.0f) || (zAngle != 0.0f)) {
 	proxyPtr->xAngle += xAngle;
 	proxyPtr->yAngle += yAngle;
 	proxyPtr->zAngle += zAngle;
-	proxyPtr->rotatePending = TRUE;
+	proxyPtr->flags |= ROTATE_PENDING;
     }
     return proxyPtr->status;
 }
@@ -1371,10 +1496,13 @@ SpheresCmd(ClientData clientData, Tcl_Interp *interp, int argc,
             model = argv[arg];
     }
 
-    proxyPtr->invalidate_cache = TRUE;  /* Spheres */
-    proxyPtr->updatePending = !defer || push;
-    proxyPtr->forceUpdate = push;
-
+    proxyPtr->flags |= INVALIDATE_CACHE; /* Spheres */
+    if (!defer || push) {
+	proxyPtr->flags |= UPDATE_PENDING;
+    }
+    if (push) {
+	proxyPtr->flags |= FORCE_UPDATE;
+    }
     Pymol(proxyPtr, "hide everything, %s\n", model);
 #ifdef notdef
     Pymol(proxyPtr, "set sphere_scale,%f,%s\n", scale, model);
@@ -1389,7 +1517,7 @@ SpheresCmd(ClientData clientData, Tcl_Interp *interp, int argc,
 
     Pymol(proxyPtr, "show spheres,%s\n", model);
 
-    if (proxyPtr->showLabels) {
+    if (proxyPtr->flags & SHOW_LABELS) {
         Pymol(proxyPtr, "show labels,%s\n", model);
     }
     return proxyPtr->status;
@@ -1420,11 +1548,13 @@ ScreenCmd(ClientData clientData, Tcl_Interp *interp, int argc,
             varg++;
         }
     }
-
-    proxyPtr->updatePending = !defer || push;
-    proxyPtr->forceUpdate = push;
-    proxyPtr->invalidate_cache = TRUE;  /* viewport */
-
+    proxyPtr->flags |= INVALIDATE_CACHE; /* viewport */
+    if (!defer || push) {
+	proxyPtr->flags |= UPDATE_PENDING;
+    }
+    if (push) {
+	proxyPtr->flags |= FORCE_UPDATE;
+    }
     Pymol(proxyPtr, "viewport %d,%d\n", width, height);
 
     //usleep(205000); // .2s delay for pymol to update its geometry *HACK ALERT*
@@ -1469,13 +1599,14 @@ VMouseCmd(ClientData clientData, Tcl_Interp *interp, int argc,
         }
     }
 
-    proxyPtr->updatePending = !defer || push;
-    proxyPtr->forceUpdate = push;
-    proxyPtr->invalidate_cache = TRUE;  /* vmouse */
-
-    Pymol(proxyPtr, "vmouse %d,%d,%d,%d,%d\n", arg1, arg2, arg3, 
-		    arg4, arg5);
-
+    proxyPtr->flags |= INVALIDATE_CACHE; /* vmouse */
+    if (!defer || push) {
+	proxyPtr->flags |= UPDATE_PENDING;
+    }
+    if (push) {
+	proxyPtr->flags |= FORCE_UPDATE;
+    }
+    Pymol(proxyPtr, "vmouse %d,%d,%d,%d,%d\n", arg1, arg2, arg3, arg4, arg5);
     return proxyPtr->status;
 }
 
@@ -1515,12 +1646,16 @@ ZoomCmd(ClientData clientData, Tcl_Interp *interp, int argc, const char *argv[])
 	    varg++;
 	}
     }
-    proxyPtr->updatePending = !defer || push;
-    proxyPtr->forceUpdate = push;
-    proxyPtr->invalidate_cache = TRUE; /* Zoom */
-
+    proxyPtr->flags |= INVALIDATE_CACHE; /* Zoom */
+    if (!defer || push) {
+	proxyPtr->flags |= UPDATE_PENDING;
+    }
+    if (push) {
+	proxyPtr->flags |= FORCE_UPDATE;
+    }
     if (factor != 0.0) {
-        Pymol(proxyPtr,"move z,%f\n", factor);
+	proxyPtr->zoom = factor;
+	proxyPtr->flags |= ZOOM_PENDING;
     }
     return proxyPtr->status;
 }
@@ -1608,33 +1743,34 @@ ProxyInit(int c_in, int c_out, char *const *argv)
     proxy.serverError = serverErr[0];
     proxy.clientInput  = c_in;
     proxy.clientOutput = c_out;
-    proxy.can_update = TRUE;
+    proxy.flags = CAN_UPDATE;
     proxy.frame = 1;
     interp = Tcl_CreateInterp();
     Tcl_MakeSafe(interp);
     proxy.interp = interp;
 
-    Tcl_CreateCommand(interp, "atomscale",   AtomscaleCmd,   &proxy, NULL);
-    Tcl_CreateCommand(interp, "ballnstick",  BallNStickCmd,  &proxy, NULL);
-    Tcl_CreateCommand(interp, "bmp",         BmpCmd,         &proxy, NULL);
-    Tcl_CreateCommand(interp, "disable",     DisableCmd,     &proxy, NULL);
-    Tcl_CreateCommand(interp, "enable",      EnableCmd,      &proxy, NULL);
-    Tcl_CreateCommand(interp, "frame",       FrameCmd,       &proxy, NULL);
-    Tcl_CreateCommand(interp, "label",       LabelCmd,       &proxy, NULL);
-    Tcl_CreateCommand(interp, "lines",       LinesCmd,       &proxy, NULL);
-    Tcl_CreateCommand(interp, "loadpdb",     LoadPDBCmd,     &proxy, NULL);
-    Tcl_CreateCommand(interp, "orthoscopic", OrthoscopicCmd, &proxy, NULL);
-    Tcl_CreateCommand(interp, "pan",         PanCmd,         &proxy, NULL);
-    Tcl_CreateCommand(interp, "png",         PngCmd,         &proxy, NULL);
-    Tcl_CreateCommand(interp, "raw",         RawCmd,         &proxy, NULL);
-    Tcl_CreateCommand(interp, "reset",       ResetCmd,       &proxy, NULL);
-    Tcl_CreateCommand(interp, "rock",        RockCmd,        &proxy, NULL);
-    Tcl_CreateCommand(interp, "rotate",      RotateCmd,      &proxy, NULL);
-    Tcl_CreateCommand(interp, "screen",      ScreenCmd,      &proxy, NULL);
-    Tcl_CreateCommand(interp, "spheres",     SpheresCmd,     &proxy, NULL);
-    Tcl_CreateCommand(interp, "viewport",    ScreenCmd,      &proxy, NULL);
-    Tcl_CreateCommand(interp, "vmouse",      VMouseCmd,      &proxy, NULL);
-    Tcl_CreateCommand(interp, "zoom",        ZoomCmd,        &proxy, NULL);
+    Tcl_CreateCommand(interp, "atomscale",     AtomScaleCmd,     &proxy, NULL);
+    Tcl_CreateCommand(interp, "ballnstick",    BallNStickCmd,    &proxy, NULL);
+    Tcl_CreateCommand(interp, "bmp",           BmpCmd,           &proxy, NULL);
+    Tcl_CreateCommand(interp, "bondthickness", BondThicknessCmd, &proxy, NULL);
+    Tcl_CreateCommand(interp, "disable",       DisableCmd,       &proxy, NULL);
+    Tcl_CreateCommand(interp, "enable",        EnableCmd,        &proxy, NULL);
+    Tcl_CreateCommand(interp, "frame",         FrameCmd,         &proxy, NULL);
+    Tcl_CreateCommand(interp, "label",         LabelCmd,         &proxy, NULL);
+    Tcl_CreateCommand(interp, "lines",	       LinesCmd,         &proxy, NULL);
+    Tcl_CreateCommand(interp, "loadpdb",       LoadPDBCmd,       &proxy, NULL);
+    Tcl_CreateCommand(interp, "orthoscopic",   OrthoscopicCmd,   &proxy, NULL);
+    Tcl_CreateCommand(interp, "pan",           PanCmd,           &proxy, NULL);
+    Tcl_CreateCommand(interp, "png",           PngCmd,           &proxy, NULL);
+    Tcl_CreateCommand(interp, "raw",           RawCmd,           &proxy, NULL);
+    Tcl_CreateCommand(interp, "reset",         ResetCmd,         &proxy, NULL);
+    Tcl_CreateCommand(interp, "rock",          RockCmd,          &proxy, NULL);
+    Tcl_CreateCommand(interp, "rotate",        RotateCmd,        &proxy, NULL);
+    Tcl_CreateCommand(interp, "screen",        ScreenCmd,        &proxy, NULL);
+    Tcl_CreateCommand(interp, "spheres",       SpheresCmd,       &proxy, NULL);
+    Tcl_CreateCommand(interp, "viewport",      ScreenCmd,        &proxy, NULL);
+    Tcl_CreateCommand(interp, "vmouse",        VMouseCmd,        &proxy, NULL);
+    Tcl_CreateCommand(interp, "zoom",          ZoomCmd,          &proxy, NULL);
 
 
     gettimeofday(&end, NULL);
@@ -1734,7 +1870,7 @@ PollForEvents(PymolProxy *proxyPtr)
 	nChannels =  (proxyPtr->head != NULL) ? 4 : 3;
 
 #define PENDING_TIMEOUT		10  /* milliseconds. */
-	timeout = (proxyPtr->updatePending) ? PENDING_TIMEOUT : -1;
+	timeout = (proxyPtr->flags & UPDATE_PENDING) ? PENDING_TIMEOUT : -1;
 	nChannels = poll(pollResults, nChannels, timeout);
 	if (nChannels < 0) {
 	    trace("POLL ERROR: %s", strerror(errno));
@@ -1824,11 +1960,21 @@ PollForEvents(PymolProxy *proxyPtr)
 	 * refresh the image until we're done.
 	 */
 
-	if (proxyPtr->rotatePending) {
-	    DoRotate(proxyPtr);
+	/* Handle all the pending setting changes now. */
+	if (proxyPtr->flags & ROTATE_PENDING) {
+	    SetRotation(proxyPtr);
 	}
-	if (proxyPtr->scalePending) {
-	    DoAtomScale(proxyPtr);
+	if (proxyPtr->flags & PAN_PENDING) {
+	    SetPan(proxyPtr);
+	}
+	if (proxyPtr->flags & ZOOM_PENDING) {
+	    SetZoom(proxyPtr);
+	}
+	if (proxyPtr->flags & ATOM_SCALE_PENDING) {
+	    SetAtomScale(proxyPtr);
+	}
+	if (proxyPtr->flags & BOND_THICKNESS_PENDING) {
+	    SetBondThickness(proxyPtr);
 	}
 
 	/* Write the current image buffer. */
@@ -1836,12 +1982,12 @@ PollForEvents(PymolProxy *proxyPtr)
 	    /* We might want to refresh the image if we're not currently
 	     * transmitting an image back to the client. The image will be
 	     * refreshed after the image has been completely transmitted. */
-	    if ((nChannels == 0) || (proxyPtr->forceUpdate)) {
-		if (proxyPtr->updatePending) {
+	    if ((nChannels == 0) || (proxyPtr->flags & FORCE_UPDATE)) {
+		if (proxyPtr->flags & UPDATE_PENDING) {
 		    Tcl_Eval(proxyPtr->interp, "bmp");
-		    proxyPtr->updatePending = FALSE;
+		    proxyPtr->flags &= ~UPDATE_PENDING;
 		}
-		proxyPtr->forceUpdate = FALSE;
+		proxyPtr->flags &= ~FORCE_UPDATE;
 		continue;
 	    }
 	}
