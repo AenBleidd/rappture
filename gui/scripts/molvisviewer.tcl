@@ -686,7 +686,7 @@ itcl::body Rappture::MolvisViewer::_rebuild {} {
         }
         if { ![info exists _dataobjs($model-$state)] } {
             set data1      ""
-            set serial    0
+            set serial    1
 
             foreach _atom [$dev children -type atom components.molecule] {
                 set symbol [$dev get components.molecule.$_atom.symbol]
