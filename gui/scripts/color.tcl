@@ -26,14 +26,14 @@ proc Rappture::color::brightness {color frac} {
 
     # if frac overflows the value, pass changes along to saturation
     if {$v < 0} {
-        set s [expr {$s+$v}]
-        if {$s < 0} { set s 0 }
-        set v 0
+	set s [expr {$s+$v}]
+	if {$s < 0} { set s 0 }
+	set v 0
     }
     if {$v > 1} {
-        set s [expr {$s-($v-1)}]
-        if {$s < 0} { set s 0 }
-        set v 1
+	set s [expr {$s-($v-1)}]
+	if {$s < 0} { set s 0 }
+	set v 1
     }
 
     return [Rappture::color::HSVtoRGB $h $s $v]
@@ -49,7 +49,7 @@ proc Rappture::color::brightness {color frac} {
 proc Rappture::color::brightness_min {color min} {
     foreach {h s v} [Rappture::color::RGBtoHSV $color] { break }
     if {$v < $min} {
-        set v $min
+	set v $min
     }
     return [Rappture::color::HSVtoRGB $h $s $v]
 }
@@ -64,7 +64,7 @@ proc Rappture::color::brightness_min {color min} {
 proc Rappture::color::brightness_max {color max} {
     foreach {h s v} [Rappture::color::RGBtoHSV $color] { break }
     if {$v > $max} {
-        set v $max
+	set v $max
     }
     return [Rappture::color::HSVtoRGB $h $s $v]
 }
@@ -81,10 +81,10 @@ proc Rappture::color::RGBtoHSV {color} {
     # division by zero.  Catch it to avoid problems.
     #
     if { [catch {winfo rgb . $color} status] != 0 } { 
-        set s 0
-        set v 0
-        set h 0
-        return [list $h $s $v]
+	set s 0
+	set v 0
+	set h 0
+	return [list $h $s $v]
     }
     foreach {r g b} $status {}
     set min [expr {($r < $g) ? $r : $g}]
@@ -97,33 +97,33 @@ proc Rappture::color::RGBtoHSV {color} {
     set delta [expr {$max-$min}]
 
     if { $delta == 0 } {
-        # delta=0 => gray color
-        set s 0
-        set v [expr {$r/65535.0}]
-        set h 0
-        return [list $h $s $v]
+	# delta=0 => gray color
+	set s 0
+	set v [expr {$r/65535.0}]
+	set h 0
+	return [list $h $s $v]
     }
   
     if {$max > 0} {
-        set s [expr {$delta/double($max)}]
+	set s [expr {$delta/double($max)}]
     } else {
-        # r=g=b=0  =>  s=0, v undefined
-        set s 0
-        set v 0
-        set h 0
-        return [list $h $s $v]
+	# r=g=b=0  =>  s=0, v undefined
+	set s 0
+	set v 0
+	set h 0
+	return [list $h $s $v]
     }
 
     if {$r == $max} {
-        set h [expr {($g - $b)/double($delta)}]
+	set h [expr {($g - $b)/double($delta)}]
     } elseif {$g == $max} {
-        set h [expr {2 + ($b - $r)/double($delta)}]
+	set h [expr {2 + ($b - $r)/double($delta)}]
     } else {
-        set h [expr {4 + ($r - $g)/double($delta)}]
+	set h [expr {4 + ($r - $g)/double($delta)}]
     }
     set h [expr {$h*1.04719756667}] ;# *60 degrees
     if {$h < 0} {
-        set h [expr {$h+6.2831854}]
+	set h [expr {$h+6.2831854}]
     }
     return [list $h $s $v]
 }
@@ -137,27 +137,27 @@ proc Rappture::color::RGBtoHSV {color} {
 # ----------------------------------------------------------------------
 proc Rappture::color::HSVtoRGB {h s v} {
     if {$s == 0} {
-        set v [expr round(255*$v)]
-        set r $v
-        set g $v
-        set b $v
+	set v [expr round(255*$v)]
+	set r $v
+	set g $v
+	set b $v
     } else {
-        if {$h >= 6.28318} {set h [expr $h-6.28318]}
-        set h [expr $h/1.0472]
-        set f [expr $h-floor($h)]
-        set p [expr round(255*$v*(1.0-$s))]
-        set q [expr round(255*$v*(1.0-$s*$f))]
-        set t [expr round(255*$v*(1.0-$s*(1.0-$f)))]
-        set v [expr round(255*$v)]
+	if {$h >= 6.28318} {set h [expr $h-6.28318]}
+	set h [expr $h/1.0472]
+	set f [expr $h-floor($h)]
+	set p [expr round(255*$v*(1.0-$s))]
+	set q [expr round(255*$v*(1.0-$s*$f))]
+	set t [expr round(255*$v*(1.0-$s*(1.0-$f)))]
+	set v [expr round(255*$v)]
 
-        switch [expr int($h)] {
-            0 {set r $v; set g $t; set b $p}
-            1 {set r $q; set g $v; set b $p}
-            2 {set r $p; set g $v; set b $t}
-            3 {set r $p; set g $q; set b $v}
-            4 {set r $t; set g $p; set b $v}
-            5 {set r $v; set g $p; set b $q}
-        }
+	switch [expr int($h)] {
+	    0 {set r $v; set g $t; set b $p}
+	    1 {set r $q; set g $v; set b $p}
+	    2 {set r $p; set g $v; set b $t}
+	    3 {set r $p; set g $q; set b $v}
+	    4 {set r $t; set g $p; set b $v}
+	    5 {set r $v; set g $p; set b $q}
+	}
     }
     return [format "#%.2x%.2x%.2x" $r $g $b]
 }

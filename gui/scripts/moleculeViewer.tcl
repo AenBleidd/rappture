@@ -57,7 +57,7 @@ itcl::class Rappture::MoleculeViewer {
     private variable _click      ;# info used for _move operations
     private variable _download "";# snapshot for download
 }
-                                                                                
+										
 itk::usual MoleculeViewer {
 }
 
@@ -74,7 +74,7 @@ itcl::body Rappture::MoleculeViewer::constructor {tool args} {
     $_dispatcher dispatch $this !render "$this-renWin Render; list"
     $_dispatcher register !fixsize
     $_dispatcher dispatch $this !fixsize \
-        "[itcl::code $this emblems fixPosition]; list"
+	"[itcl::code $this emblems fixPosition]; list"
 
     itk_option add hull.width hull.height
     pack propagate $itk_component(hull) no
@@ -102,78 +102,78 @@ itcl::body Rappture::MoleculeViewer::constructor {tool args} {
     set _view(psi) 0
 
     itk_component add controls {
-        frame $itk_interior.cntls
+	frame $itk_interior.cntls
     } {
-        usual
-        rename -background -controlbackground controlBackground Background
+	usual
+	rename -background -controlbackground controlBackground Background
     }
     pack $itk_component(controls) -side right -fill y
 
     itk_component add reset {
-        button $itk_component(controls).reset \
-            -borderwidth 1 -padx 1 -pady 1 \
-            -bitmap [Rappture::icon reset] \
-            -command [itcl::code $this _zoom reset]
+	button $itk_component(controls).reset \
+	    -borderwidth 1 -padx 1 -pady 1 \
+	    -bitmap [Rappture::icon reset] \
+	    -command [itcl::code $this _zoom reset]
     } {
-        usual
-        ignore -borderwidth
-        rename -highlightbackground -controlbackground controlBackground Background
+	usual
+	ignore -borderwidth
+	rename -highlightbackground -controlbackground controlBackground Background
     }
     pack $itk_component(reset) -padx 4 -pady 4
     Rappture::Tooltip::for $itk_component(reset) "Reset the view to the default zoom level"
 
     itk_component add zoomin {
-        button $itk_component(controls).zin \
-            -borderwidth 1 -padx 1 -pady 1 \
-            -bitmap [Rappture::icon zoomin] \
-            -command [itcl::code $this _zoom in]
+	button $itk_component(controls).zin \
+	    -borderwidth 1 -padx 1 -pady 1 \
+	    -bitmap [Rappture::icon zoomin] \
+	    -command [itcl::code $this _zoom in]
     } {
-        usual
-        ignore -borderwidth
-        rename -highlightbackground -controlbackground controlBackground Background
+	usual
+	ignore -borderwidth
+	rename -highlightbackground -controlbackground controlBackground Background
     }
     pack $itk_component(zoomin) -padx 4 -pady 4
     Rappture::Tooltip::for $itk_component(zoomin) "Zoom in"
 
     itk_component add zoomout {
-        button $itk_component(controls).zout \
-            -borderwidth 1 -padx 1 -pady 1 \
-            -bitmap [Rappture::icon zoomout] \
-            -command [itcl::code $this _zoom out]
+	button $itk_component(controls).zout \
+	    -borderwidth 1 -padx 1 -pady 1 \
+	    -bitmap [Rappture::icon zoomout] \
+	    -command [itcl::code $this _zoom out]
     } {
-        usual
-        ignore -borderwidth
-        rename -highlightbackground -controlbackground controlBackground Background
+	usual
+	ignore -borderwidth
+	rename -highlightbackground -controlbackground controlBackground Background
     }
     pack $itk_component(zoomout) -padx 4 -pady 4
     Rappture::Tooltip::for $itk_component(zoomout) "Zoom out"
 
     itk_component add labels {
-        label $itk_component(controls).labels \
-            -borderwidth 1 -padx 1 -pady 1 \
-            -bitmap [Rappture::icon atoms]
+	label $itk_component(controls).labels \
+	    -borderwidth 1 -padx 1 -pady 1 \
+	    -bitmap [Rappture::icon atoms]
     } {
-        usual
-        ignore -borderwidth
-        rename -highlightbackground -controlbackground controlBackground Background
+	usual
+	ignore -borderwidth
+	rename -highlightbackground -controlbackground controlBackground Background
     }
     pack $itk_component(labels) -padx 4 -pady 8 -ipadx 1 -ipady 1
     Rappture::Tooltip::for $itk_component(labels) "Show/hide the labels on atoms"
     bind $itk_component(labels) <ButtonPress> \
-        [itcl::code $this emblems toggle]
+	[itcl::code $this emblems toggle]
 
     #
     # RENDERING AREA
     #
     itk_component add area {
-        frame $itk_interior.area
+	frame $itk_interior.area
     }
     pack $itk_component(area) -expand yes -fill both
     bind $itk_component(area) <Configure> \
-        [list $_dispatcher event -idle !fixsize]
+	[list $_dispatcher event -idle !fixsize]
 
     itk_component add renderer {
-        vtkTkRenderWidget $itk_component(area).ren -rw $this-renWin
+	vtkTkRenderWidget $itk_component(area).ren -rw $this-renWin
     } {
     }
     pack $itk_component(renderer) -expand yes -fill both
@@ -183,11 +183,11 @@ itcl::body Rappture::MoleculeViewer::constructor {tool args} {
     # prevent interactions -- use our own
     blt::busy hold $itk_component(area) -cursor left_ptr
     bind $itk_component(area)_Busy <ButtonPress> \
-        [itcl::code $this _move click %x %y]
+	[itcl::code $this _move click %x %y]
     bind $itk_component(area)_Busy <B1-Motion> \
-        [itcl::code $this _move drag %x %y]
+	[itcl::code $this _move drag %x %y]
     bind $itk_component(area)_Busy <ButtonRelease> \
-        [itcl::code $this _move release %x %y]
+	[itcl::code $this _move release %x %y]
 
     emblems on
 
@@ -219,39 +219,39 @@ itcl::body Rappture::MoleculeViewer::destructor {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::MoleculeViewer::add {dataobj {settings ""}} {
     array set params {
-        -color auto
-        -brightness 0
-        -width 1
-        -raise 0
-        -linestyle solid
-        -description ""
-        -param ""
+	-color auto
+	-brightness 0
+	-width 1
+	-raise 0
+	-linestyle solid
+	-description ""
+	-param ""
     }
     foreach {opt val} $settings {
-        if {![info exists params($opt)]} {
-            error "bad settings \"$opt\": should be [join [lsort [array names params]] {, }]"
-        }
-        set params($opt) $val
+	if {![info exists params($opt)]} {
+	    error "bad settings \"$opt\": should be [join [lsort [array names params]] {, }]"
+	}
+	set params($opt) $val
     }
  
     set pos [lsearch -exact $dataobj $_dlist]
 
     if {$pos < 0} {
-        if {![Rappture::library isvalid $dataobj]} {
-            error "bad value \"$dataobj\": should be Rappture::library object"
-        }
+	if {![Rappture::library isvalid $dataobj]} {
+	    error "bad value \"$dataobj\": should be Rappture::library object"
+	}
     
-        set emblem [$dataobj get components.molecule.about.emblems]
-        if {$emblem == "" || ![string is boolean $emblem] || !$emblem} {
-            emblems off
-        } else {
-            emblems on
-        }
+	set emblem [$dataobj get components.molecule.about.emblems]
+	if {$emblem == "" || ![string is boolean $emblem] || !$emblem} {
+	    emblems off
+	} else {
+	    emblems on
+	}
 
-        lappend _dlist $dataobj
-        set _dobj2raise($dataobj) $params(-raise)
+	lappend _dlist $dataobj
+	set _dobj2raise($dataobj) $params(-raise)
 
-        $_dispatcher event -idle !redraw
+	$_dispatcher event -idle !redraw
     }
 }
 
@@ -265,13 +265,13 @@ itcl::body Rappture::MoleculeViewer::get {} {
     # put the dataobj list in order according to -raise options
     set dlist $_dlist
     foreach obj $dlist {
-        if {[info exists _dobj2raise($obj)] && $_dobj2raise($obj)} {
-            set i [lsearch -exact $dlist $obj]
-            if {$i >= 0} {
-                set dlist [lreplace $dlist $i $i]
-                lappend dlist $obj
-            }
-        }
+	if {[info exists _dobj2raise($obj)] && $_dobj2raise($obj)} {
+	    set i [lsearch -exact $dlist $obj]
+	    if {$i >= 0} {
+		set dlist [lreplace $dlist $i $i]
+		lappend dlist $obj
+	    }
+	}
     }
     return $dlist
 }
@@ -284,23 +284,23 @@ itcl::body Rappture::MoleculeViewer::get {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::MoleculeViewer::delete {args} {
     if {[llength $args] == 0} {
-        set args $_dlist
+	set args $_dlist
     }
 
     # delete all specified dataobjs
     set changed 0
     foreach dataobj $args {
-        set pos [lsearch -exact $_dlist $dataobj]
-        if {$pos >= 0} {
-            set _dlist [lreplace $_dlist $pos $pos]
-            catch {unset _dobj2raise($dataobj)}
-            set changed 1
-        }
+	set pos [lsearch -exact $_dlist $dataobj]
+	if {$pos >= 0} {
+	    set _dlist [lreplace $_dlist $pos $pos]
+	    catch {unset _dobj2raise($dataobj)}
+	    set changed 1
+	}
     }
 
     # if anything changed, then rebuild the plot
     if {$changed} {
-        $_dispatcher event -idle !redraw
+	$_dispatcher event -idle !redraw
     }
 }
 
@@ -316,34 +316,27 @@ itcl::body Rappture::MoleculeViewer::delete {args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::MoleculeViewer::download {option args} {
     switch $option {
-        coming {
-            if {[catch {blt::winop snap $itk_component(area) $_download}]} {
-                $_download configure -width 1 -height 1
-                $_download put #000000
-            }
-        }
-        controls {
-            # no controls for this download yet
-            return ""
-        }
-        now {
-            #
-            # Hack alert!  Need data in binary format,
-            # so we'll save to a file and read it back.
-            #
-            set tmpfile /tmp/image[pid].jpg
-            $_download write $tmpfile -format jpeg
-            set fid [open $tmpfile r]
-            fconfigure $fid -encoding binary -translation binary
-            set bytes [read $fid]
-            close $fid
-            file delete -force $tmpfile
-
-            return [list .jpg $bytes]
-        }
-        default {
-            error "bad option \"$option\": should be coming, controls, now"
-        }
+	coming {
+	    if {[catch {blt::winop snap $itk_component(area) $_download}]} {
+		$_download configure -width 1 -height 1
+		$_download put #000000
+	    }
+	}
+	controls {
+	    # no controls for this download yet
+	    return ""
+	}
+	now {
+	    # Get image data (as base64) and decode back to binary.  This is
+	    # better than writing to temporary files.  When we switch the BLT
+	    # picture image it won't be necessary to decode the image data.
+	    set bytes [$_download data -format "jpeg -quality 100"]
+	    set bytes [Rappture::encoding::decode -as b64 $bytes]
+	    return [list .jpg $bytes]
+	}
+	default {
+	    error "bad option \"$option\": should be coming, controls, now"
+	}
     }
 }
 
@@ -354,14 +347,14 @@ itcl::body Rappture::MoleculeViewer::download {option args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::MoleculeViewer::_clear {} {
     foreach a $_actors {
-        $this-ren RemoveActor $a
-        rename $a ""
+	$this-ren RemoveActor $a
+	rename $a ""
     }
     set _actors ""
     catch {unset _label2atom}
 
     foreach lim {xmin xmax ymin ymax zmin zmax} {
-        set _limits($lim) ""
+	set _limits($lim) ""
     }
 
     $this-ren ResetCamera
@@ -381,67 +374,67 @@ itcl::body Rappture::MoleculeViewer::_redraw {} {
 
     set dev [lindex [get] end]
     if {"" != $dev} {
-        set lib [Rappture::library standard]
+	set lib [Rappture::library standard]
 
-        set counter 0
-        foreach atom [$dev children -type atom components.molecule] {
-            set symbol [$dev get components.molecule.$atom.symbol]
-            set xyz [$dev get components.molecule.$atom.xyz]
-            regsub {,} $xyz {} xyz
+	set counter 0
+	foreach atom [$dev children -type atom components.molecule] {
+	    set symbol [$dev get components.molecule.$atom.symbol]
+	    set xyz [$dev get components.molecule.$atom.xyz]
+	    regsub {,} $xyz {} xyz
 
-            # update overall limits for molecules along all axes
-            foreach axis {x y z} val $xyz {
-                if {"" == $_limits(${axis}min)} {
-                    set _limits(${axis}min) $val
-                    set _limits(${axis}max) $val
-                } else {
-                    if {$val < $_limits(${axis}min)} {
-                        set _limits(${axis}min) $val
-                    }
-                    if {$val > $_limits(${axis}max)} {
-                        set _limits(${axis}max) $val
-                    }
-                }
-            }
+	    # update overall limits for molecules along all axes
+	    foreach axis {x y z} val $xyz {
+		if {"" == $_limits(${axis}min)} {
+		    set _limits(${axis}min) $val
+		    set _limits(${axis}max) $val
+		} else {
+		    if {$val < $_limits(${axis}min)} {
+			set _limits(${axis}min) $val
+		    }
+		    if {$val > $_limits(${axis}max)} {
+			set _limits(${axis}max) $val
+		    }
+		}
+	    }
 
-            # create an actor for each atom
-            set aname $this-actor[incr counter]
-            vtkActor $aname
-            $aname SetMapper $this-map
-            eval $aname SetPosition $xyz
-            $this-ren AddActor $aname
+	    # create an actor for each atom
+	    set aname $this-actor[incr counter]
+	    vtkActor $aname
+	    $aname SetMapper $this-map
+	    eval $aname SetPosition $xyz
+	    $this-ren AddActor $aname
 
-            set sfac 0.7
-            set scale [$lib get elements.($symbol).scale]
-            if {$scale != ""} {
-                $aname SetScale [expr {$sfac*$scale}]
-            }
-            set color [$lib get elements.($symbol).color]
-            if {$color != ""} {
-                eval [$aname GetProperty] SetColor [_color2rgb $color]
-            }
+	    set sfac 0.7
+	    set scale [$lib get elements.($symbol).scale]
+	    if {$scale != ""} {
+		$aname SetScale [expr {$sfac*$scale}]
+	    }
+	    set color [$lib get elements.($symbol).color]
+	    if {$color != ""} {
+		eval [$aname GetProperty] SetColor [_color2rgb $color]
+	    }
 
-            lappend _actors $aname
+	    lappend _actors $aname
 
-            # create a label for each atom
-            set lname $this-label$counter
-            vtkTextActor $lname
-            $lname SetInput "$counter $symbol"
-            $lname ScaledTextOff
+	    # create a label for each atom
+	    set lname $this-label$counter
+	    vtkTextActor $lname
+	    $lname SetInput "$counter $symbol"
+	    $lname ScaledTextOff
 
-            set tprop [$lname GetTextProperty]
-            $tprop SetJustificationToCentered
-            $tprop SetVerticalJustificationToCentered
-            $tprop ShadowOn
-            $tprop SetColor 1 1 1
+	    set tprop [$lname GetTextProperty]
+	    $tprop SetJustificationToCentered
+	    $tprop SetVerticalJustificationToCentered
+	    $tprop ShadowOn
+	    $tprop SetColor 1 1 1
 
-            set _label2atom($lname) $aname
-            lappend _actors $lname
-        }
-        if {[$itk_component(labels) cget -relief] == "sunken"} {
-            emblems on
-        }
-        _zoom reset
+	    set _label2atom($lname) $aname
+	    lappend _actors $lname
+	}
+	if {[$itk_component(labels) cget -relief] == "sunken"} {
+	    emblems on
+	}
+	_zoom reset
     }
     $this-ren ResetCamera
     $_dispatcher event -idle !render
@@ -459,17 +452,17 @@ itcl::body Rappture::MoleculeViewer::_redraw {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::MoleculeViewer::_zoom {option} {
     switch -- $option {
-        in {
-            [$this-ren GetActiveCamera] Zoom 1.25
-        }
-        out {
-            [$this-ren GetActiveCamera] Zoom 0.8
-        }
-        reset {
-            $this-ren ResetCamera
-            [$this-ren GetActiveCamera] SetViewAngle 30
-            _3dView 45 45 0
-        }
+	in {
+	    [$this-ren GetActiveCamera] Zoom 1.25
+	}
+	out {
+	    [$this-ren GetActiveCamera] Zoom 0.8
+	}
+	reset {
+	    $this-ren ResetCamera
+	    [$this-ren GetActiveCamera] SetViewAngle 30
+	    _3dView 45 45 0
+	}
     }
     $_dispatcher event -later !fixsize
     $_dispatcher event -idle !render
@@ -485,73 +478,73 @@ itcl::body Rappture::MoleculeViewer::_zoom {option} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::MoleculeViewer::_move {option x y} {
     switch -- $option {
-        click {
-            blt::busy configure $itk_component(area) -cursor fleur
-            set _click(x) $x
-            set _click(y) $y
-            set _click(theta) $_view(theta)
-            set _click(phi) $_view(phi)
-            set _click(psi) $_view(psi)
-        }
-        drag {
-            if {[array size _click] == 0} {
-                _move click $x $y
-            } else {
-                set w [winfo width $itk_component(renderer)]
-                set h [winfo height $itk_component(renderer)]
-                if {$w <= 0 || $h <= 0} {
-                    return
-                }
+	click {
+	    blt::busy configure $itk_component(area) -cursor fleur
+	    set _click(x) $x
+	    set _click(y) $y
+	    set _click(theta) $_view(theta)
+	    set _click(phi) $_view(phi)
+	    set _click(psi) $_view(psi)
+	}
+	drag {
+	    if {[array size _click] == 0} {
+		_move click $x $y
+	    } else {
+		set w [winfo width $itk_component(renderer)]
+		set h [winfo height $itk_component(renderer)]
+		if {$w <= 0 || $h <= 0} {
+		    return
+		}
 
-                if {[catch {
-                    # this fails sometimes for no apparent reason
-                    set dx [expr {double($x-$_click(x))/$w}]
-                    set dy [expr {double($y-$_click(y))/$h}]
-                }]} {
-                    return
-                }
+		if {[catch {
+		    # this fails sometimes for no apparent reason
+		    set dx [expr {double($x-$_click(x))/$w}]
+		    set dy [expr {double($y-$_click(y))/$h}]
+		}]} {
+		    return
+		}
 
-                #
-                # Rotate the camera in 3D
-                #
-                if {$_view(psi) > 90 || $_view(psi) < -90} {
-                    # when psi is flipped around, theta moves backwards
-                    set dy [expr {-$dy}]
-                }
-                set theta [expr {$_view(theta) - $dy*180}]
-                while {$theta < 0} { set theta [expr {$theta+180}] }
-                while {$theta > 180} { set theta [expr {$theta-180}] }
-                #if {$theta < 2} { set theta 2 }
-                #if {$theta > 178} { set theta 178 }
+		#
+		# Rotate the camera in 3D
+		#
+		if {$_view(psi) > 90 || $_view(psi) < -90} {
+		    # when psi is flipped around, theta moves backwards
+		    set dy [expr {-$dy}]
+		}
+		set theta [expr {$_view(theta) - $dy*180}]
+		while {$theta < 0} { set theta [expr {$theta+180}] }
+		while {$theta > 180} { set theta [expr {$theta-180}] }
+		#if {$theta < 2} { set theta 2 }
+		#if {$theta > 178} { set theta 178 }
 
-                if {$theta > 45 && $theta < 135} {
-                    set phi [expr {$_view(phi) - $dx*360}]
-                    while {$phi < 0} { set phi [expr {$phi+360}] }
-                    while {$phi > 360} { set phi [expr {$phi-360}] }
-                    set psi $_view(psi)
-                } else {
-                    set phi $_view(phi)
-                    set psi [expr {$_view(psi) - $dx*360}]
-                    while {$psi < -180} { set psi [expr {$psi+360}] }
-                    while {$psi > 180} { set psi [expr {$psi-360}] }
-                }
+		if {$theta > 45 && $theta < 135} {
+		    set phi [expr {$_view(phi) - $dx*360}]
+		    while {$phi < 0} { set phi [expr {$phi+360}] }
+		    while {$phi > 360} { set phi [expr {$phi-360}] }
+		    set psi $_view(psi)
+		} else {
+		    set phi $_view(phi)
+		    set psi [expr {$_view(psi) - $dx*360}]
+		    while {$psi < -180} { set psi [expr {$psi+360}] }
+		    while {$psi > 180} { set psi [expr {$psi-360}] }
+		}
 
-                _3dView $theta $phi $psi
-                emblems fixPosition
-                $_dispatcher event -idle !render
+		_3dView $theta $phi $psi
+		emblems fixPosition
+		$_dispatcher event -idle !render
 
-                set _click(x) $x
-                set _click(y) $y
-            }
-        }
-        release {
-            _move drag $x $y
-            blt::busy configure $itk_component(area) -cursor left_ptr
-            catch {unset _click}
-        }
-        default {
-            error "bad option \"$option\": should be click, drag, release"
-        }
+		set _click(x) $x
+		set _click(y) $y
+	    }
+	}
+	release {
+	    _move drag $x $y
+	    blt::busy configure $itk_component(area) -cursor left_ptr
+	    catch {unset _click}
+	}
+	default {
+	    error "bad option \"$option\": should be click, drag, release"
+	}
     }
 }
 
@@ -571,19 +564,19 @@ itcl::body Rappture::MoleculeViewer::_3dView {theta phi psi} {
 
     set blank 0
     foreach lim {xmin xmax ymin ymax zmin zmax} {
-        if {"" == $_limits($lim)} {
-            set blank 1
-            break
-        }
+	if {"" == $_limits($lim)} {
+	    set blank 1
+	    break
+	}
     }
     if {$blank} {
-        set xm 0
-        set ym 0
-        set zm 0
+	set xm 0
+	set ym 0
+	set zm 0
     } else {
-        set xm [expr {0.5*($_limits(xmax)+$_limits(xmin))}]
-        set ym [expr {0.5*($_limits(ymax)+$_limits(ymin))}]
-        set zm [expr {0.5*($_limits(zmax)+$_limits(zmin))}]
+	set xm [expr {0.5*($_limits(xmax)+$_limits(xmin))}]
+	set ym [expr {0.5*($_limits(ymax)+$_limits(ymin))}]
+	set zm [expr {0.5*($_limits(zmax)+$_limits(zmin))}]
     }
 
     set cam [$this-ren GetActiveCamera]
@@ -618,45 +611,45 @@ itcl::body Rappture::MoleculeViewer::_3dView {theta phi psi} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::MoleculeViewer::emblems {option} {
     switch -- $option {
-        on {
-            set state 1
-        }
-        off {
-            set state 0
-        }
-        toggle {
-            if {[$itk_component(labels) cget -relief] == "sunken"} {
-                set state 0
-            } else {
-                set state 1
-            }
-        }
-        fixPosition {
-            foreach lname [array names _label2atom] {
-                set aname $_label2atom($lname)
-                set xyz [$aname GetPosition]
-                eval $this-xyzconv SetValue $xyz
-                set xy [$this-xyzconv GetComputedViewportValue $this-ren]
-                eval $lname SetDisplayPosition $xy
-            }
-            return
-        }
-        default {
-            error "bad option \"$option\": should be on, off, toggle, fixPosition"
-        }
+	on {
+	    set state 1
+	}
+	off {
+	    set state 0
+	}
+	toggle {
+	    if {[$itk_component(labels) cget -relief] == "sunken"} {
+		set state 0
+	    } else {
+		set state 1
+	    }
+	}
+	fixPosition {
+	    foreach lname [array names _label2atom] {
+		set aname $_label2atom($lname)
+		set xyz [$aname GetPosition]
+		eval $this-xyzconv SetValue $xyz
+		set xy [$this-xyzconv GetComputedViewportValue $this-ren]
+		eval $lname SetDisplayPosition $xy
+	    }
+	    return
+	}
+	default {
+	    error "bad option \"$option\": should be on, off, toggle, fixPosition"
+	}
     }
 
     if {$state} {
-        $itk_component(labels) configure -relief sunken
-        foreach lname [array names _label2atom] {
-            catch {$this-ren AddActor2D $lname}
-        }
-        emblems fixPosition
+	$itk_component(labels) configure -relief sunken
+	foreach lname [array names _label2atom] {
+	    catch {$this-ren AddActor2D $lname}
+	}
+	emblems fixPosition
     } else {
-        $itk_component(labels) configure -relief raised
-        foreach lname [array names _label2atom] {
-            catch {$this-ren RemoveActor $lname}
-        }
+	$itk_component(labels) configure -relief raised
+	foreach lname [array names _label2atom] {
+	    catch {$this-ren RemoveActor $lname}
+	}
     }
     $_dispatcher event -idle !render
 }
@@ -688,19 +681,19 @@ itcl::configbody Rappture::MoleculeViewer::backdrop {
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::MoleculeViewer::device {
     if {"" != $itk_option(-device)
-          && ![Rappture::library isvalid $itk_option(-device)]} {
-        error "bad value \"$itk_option(-device)\": should be Rappture::library object"
+	  && ![Rappture::library isvalid $itk_option(-device)]} {
+	error "bad value \"$itk_option(-device)\": should be Rappture::library object"
     }
     delete
 
     if {"" != $itk_option(-device)} {
-        add $itk_option(-device)
-        set state [$itk_option(-device) get components.molecule.about.emblems]
-        if {$state == "" || ![string is boolean $state] || !$state} {
-            emblems off
-        } else {
-            emblems on
-        }
+	add $itk_option(-device)
+	set state [$itk_option(-device) get components.molecule.about.emblems]
+	if {$state == "" || ![string is boolean $state] || !$state} {
+	    emblems off
+	} else {
+	    emblems on
+	}
     }
     $_dispatcher event -idle !redraw
 }

@@ -58,16 +58,16 @@ itk::usual Loader {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Loader::constructor {owner path args} {
     if {[catch {$owner isa Rappture::ControlOwner} valid] != 0 || !$valid} {
-        error "bad object \"$owner\": should be Rappture::ControlOwner"
+	error "bad object \"$owner\": should be Rappture::ControlOwner"
     }
     set _owner $owner
     set _path $path
 
     itk_component add combo {
-        Rappture::Combobox $itk_interior.combo -editable no
+	Rappture::Combobox $itk_interior.combo -editable no
     } {
-        usual
-        keep -width
+	usual
+	keep -width
     }
     pack $itk_component(combo) -expand yes -fill both
     bind $itk_component(combo) <<Value>> [itcl::code $this _newValue]
@@ -76,9 +76,9 @@ itcl::body Rappture::Loader::constructor {owner path args} {
 
     # example files are stored here
     if {$itk_option(-tool) != ""} {
-        set fdir [$itk_option(-tool) installdir]
+	set fdir [$itk_option(-tool) installdir]
     } else {
-        set fdir "."
+	set fdir "."
     }
     set defval [$_owner xml get $path.default]
 
@@ -88,34 +88,34 @@ itcl::body Rappture::Loader::constructor {owner path args} {
     #
     set newfile ""
     foreach comp [$_owner xml children -type new $path] {
-        set name [$_owner xml get $path.$comp]
-        set fname [file join $fdir examples $name]
+	set name [$_owner xml get $path.$comp]
+	set fname [file join $fdir examples $name]
 
-        if {[file exists $fname]} {
-            set newfile $fname
+	if {[file exists $fname]} {
+	    set newfile $fname
 
-            if {[catch {set obj [Rappture::library $fname]} result]} {
-                puts stderr "WARNING: can't load example file \"$fname\""
-                puts stderr "  $result"
-            } else {
-                set label "New"
-                $itk_component(combo) choices insert end $obj $label
+	    if {[catch {set obj [Rappture::library $fname]} result]} {
+		puts stderr "WARNING: can't load example file \"$fname\""
+		puts stderr "  $result"
+	    } else {
+		set label "New"
+		$itk_component(combo) choices insert end $obj $label
 
-                # if this is new, add it to the label->file hash
-                if {![info exists entries($label)]} {
-                    set entries($label) $obj
-                    set _label2file($label) [file tail $fname]
-                }
+		# if this is new, add it to the label->file hash
+		if {![info exists entries($label)]} {
+		    set entries($label) $obj
+		    set _label2file($label) [file tail $fname]
+		}
 
-                # translate default file name => default label
-                if {[string equal $defval [file tail $fname]]} {
-                    $_owner xml put $path.default "New"
-                }
-            }
-            break
-        } else {
-            puts stderr "WARNING: missing example file \"$fname\""
-        }
+		# translate default file name => default label
+		if {[string equal $defval [file tail $fname]]} {
+		    $_owner xml put $path.default "New"
+		}
+	    }
+	    break
+	} else {
+	    puts stderr "WARNING: missing example file \"$fname\""
+	}
     }
 
     #
@@ -123,17 +123,17 @@ itcl::body Rappture::Loader::constructor {owner path args} {
     # entry next.
     #
     foreach comp [$_owner xml children -type upload $path] {
-        foreach tcomp [$_owner xml children -type to $path.$comp] {
-            set topath [$_owner xml get $path.$comp.$tcomp]
-            set label [$_owner xml get $topath.about.label]
-            set desc [$_owner xml get $topath.about.description]
-            lappend _uppath $topath $label $desc
-        }
-        break
+	foreach tcomp [$_owner xml children -type to $path.$comp] {
+	    set topath [$_owner xml get $path.$comp.$tcomp]
+	    set label [$_owner xml get $topath.about.label]
+	    set desc [$_owner xml get $topath.about.description]
+	    lappend _uppath $topath $label $desc
+	}
+	break
     }
     if {[llength $_uppath] > 0} {
-        $itk_component(combo) choices insert end \
-            @upload [Rappture::filexfer::label upload]
+	$itk_component(combo) choices insert end \
+	    @upload [Rappture::filexfer::label upload]
     }
 
     #
@@ -142,36 +142,36 @@ itcl::body Rappture::Loader::constructor {owner path args} {
     # one download element.
     #
     Rappture::Balloon $itk_component(hull).download \
-        -title "Choose what to [string tolower [Rappture::filexfer::label downloadWord]]:"
+	-title "Choose what to [string tolower [Rappture::filexfer::label downloadWord]]:"
     set inner [$itk_component(hull).download component inner]
 
     set i 0
     foreach comp [$_owner xml children -type download $path] {
-        foreach dcomp [$_owner xml children -type from $path.$comp] {
-            set frompath [$_owner xml get $path.$comp.$dcomp]
-            if {"" != $frompath} {
-                lappend _dnpaths $frompath
-                set _dnpath2state($this-$frompath) [expr {$i == 0}]
+	foreach dcomp [$_owner xml children -type from $path.$comp] {
+	    set frompath [$_owner xml get $path.$comp.$dcomp]
+	    if {"" != $frompath} {
+		lappend _dnpaths $frompath
+		set _dnpath2state($this-$frompath) [expr {$i == 0}]
 
-                set label [$_owner xml get $frompath.about.label]
-                checkbutton $inner.cb$i -text $label \
-                    -variable ::Rappture::Loader::_dnpath2state($this-$frompath)
-                pack $inner.cb$i -anchor w
-                incr i
-            }
-        }
+		set label [$_owner xml get $frompath.about.label]
+		checkbutton $inner.cb$i -text $label \
+		    -variable ::Rappture::Loader::_dnpath2state($this-$frompath)
+		pack $inner.cb$i -anchor w
+		incr i
+	    }
+	}
     }
     button $inner.go -text [Rappture::filexfer::label download] \
-        -command [itcl::code $this _downloadValues]
+	-command [itcl::code $this _downloadValues]
     pack $inner.go -side bottom -padx 50 -pady {4 2}
 
     if {[llength $_dnpaths] > 0} {
-        $itk_component(combo) choices insert end \
-            @download [Rappture::filexfer::label download]
+	$itk_component(combo) choices insert end \
+	    @download [Rappture::filexfer::label download]
     }
 
     if {[$itk_component(combo) choices size] > 0} {
-        $itk_component(combo) choices insert end "---" "---"
+	$itk_component(combo) choices insert end "---" "---"
     }
 
     #
@@ -180,51 +180,51 @@ itcl::body Rappture::Loader::constructor {owner path args} {
     #
     set flist ""
     foreach comp [$_owner xml children -type example $path] {
-        lappend flist [$_owner xml get $path.$comp]
+	lappend flist [$_owner xml get $path.$comp]
     }
 
     # if there are no examples, then look for *.xml
     if {[llength $flist] == 0} {
-        set flist *.xml
+	set flist *.xml
     }
 
     catch {unset entries}
     set _counter 0
     foreach ftail $flist {
-        set fpath [file join $fdir examples $ftail]
+	set fpath [file join $fdir examples $ftail]
 
-        foreach fname [glob -nocomplain $fpath] {
-            if {[string equal $fname $newfile]} {
-                continue
-            }
-            if {[file exists $fname]} {
-                if {[catch {set obj [Rappture::library $fname]} result]} {
-                    puts stderr "WARNING: can't load example file \"$fname\""
-                    puts stderr "  $result"
-                } else {
-                    set label [$obj get about.label]
-                    if {$label == ""} {
-                        set label "Example #[incr _counter]"
-                    }
+	foreach fname [glob -nocomplain $fpath] {
+	    if {[string equal $fname $newfile]} {
+		continue
+	    }
+	    if {[file exists $fname]} {
+		if {[catch {set obj [Rappture::library $fname]} result]} {
+		    puts stderr "WARNING: can't load example file \"$fname\""
+		    puts stderr "  $result"
+		} else {
+		    set label [$obj get about.label]
+		    if {$label == ""} {
+			set label "Example #[incr _counter]"
+		    }
 
-                    # if this is new, add it to the label->file hash
-                    if {![info exists entries($label)]} {
-                        set entries($label) $obj
-                        set _label2file($label) [file tail $fname]
-                    }
+		    # if this is new, add it to the label->file hash
+		    if {![info exists entries($label)]} {
+			set entries($label) $obj
+			set _label2file($label) [file tail $fname]
+		    }
 
-                    # translate default file name => default label
-                    if {[string equal $defval [file tail $fname]]} {
-                        $_owner xml put $path.default $label
-                    }
-                }
-            } else {
-                puts stderr "WARNING: missing example file \"$fname\""
-            }
-        }
+		    # translate default file name => default label
+		    if {[string equal $defval [file tail $fname]]} {
+			$_owner xml put $path.default $label
+		    }
+		}
+	    } else {
+		puts stderr "WARNING: missing example file \"$fname\""
+	    }
+	}
     }
     foreach label [lsort -dictionary [array names entries]] {
-        $itk_component(combo) choices insert end $entries($label) $label
+	$itk_component(combo) choices insert end $entries($label) $label
     }
 
     set _copyfrom [$_owner xml get $path.copy.from]
@@ -243,7 +243,7 @@ itcl::body Rappture::Loader::constructor {owner path args} {
 itcl::body Rappture::Loader::destructor {} {
     # be sure to clean up entries for this widget's download paths
     foreach path $_dnpaths {
-        catch {unset _dnpath2state($this-$path)}
+	catch {unset _dnpath2state($this-$path)}
     }
 }
 
@@ -260,21 +260,21 @@ itcl::body Rappture::Loader::value {args} {
     set onlycheck 0
     set i [lsearch -exact $args -check]
     if {$i >= 0} {
-        set onlycheck 1
-        set args [lreplace $args $i $i]
+	set onlycheck 1
+	set args [lreplace $args $i $i]
     }
 
     if {[llength $args] == 1} {
-        if {$onlycheck} {
-            # someday we may add validation...
-            return
-        }
-        set newval [lindex $args 0]
-        $itk_component(combo) value $newval
-        return $newval
+	if {$onlycheck} {
+	    # someday we may add validation...
+	    return
+	}
+	set newval [lindex $args 0]
+	$itk_component(combo) value $newval
+	return $newval
 
     } elseif {[llength $args] != 0} {
-        error "wrong # args: should be \"value ?-check? ?newval?\""
+	error "wrong # args: should be \"value ?-check? ?newval?\""
     }
 
     #
@@ -292,7 +292,7 @@ itcl::body Rappture::Loader::value {args} {
 itcl::body Rappture::Loader::label {} {
     set label [$_owner xml get $_path.about.label]
     if {"" == $label} {
-        set label "Example"
+	set label "Example"
     }
     return $label
 }
@@ -321,42 +321,42 @@ itcl::body Rappture::Loader::_newValue {} {
     set newval [$itk_component(combo) value]
     set obj [$itk_component(combo) translate $newval]
     if {$obj == "@upload"} {
-        set tool [Rappture::Tool::resources -appname]
-        Rappture::filexfer::upload \
-            $tool $_uppath [itcl::code $this _uploadValue]
+	set tool [Rappture::Tool::resources -appname]
+	Rappture::filexfer::upload \
+	    $tool $_uppath [itcl::code $this _uploadValue]
 
-        # put the combobox back to its last value
-        $itk_component(combo) component entry configure -state normal
-        $itk_component(combo) component entry delete 0 end
-        $itk_component(combo) component entry insert end $_lastlabel
-        $itk_component(combo) component entry configure -state disabled
+	# put the combobox back to its last value
+	$itk_component(combo) component entry configure -state normal
+	$itk_component(combo) component entry delete 0 end
+	$itk_component(combo) component entry insert end $_lastlabel
+	$itk_component(combo) component entry configure -state disabled
 
     } elseif {$obj == "@download"} {
-        if {[llength $_dnpaths] == 1} {
-            _downloadValues
-        } else {
-            $itk_component(hull).download activate $itk_component(combo) below
-        }
+	if {[llength $_dnpaths] == 1} {
+	    _downloadValues
+	} else {
+	    $itk_component(hull).download activate $itk_component(combo) below
+	}
 
-        # put the combobox back to its last value
-        $itk_component(combo) component entry configure -state normal
-        $itk_component(combo) component entry delete 0 end
-        $itk_component(combo) component entry insert end $_lastlabel
-        $itk_component(combo) component entry configure -state disabled
+	# put the combobox back to its last value
+	$itk_component(combo) component entry configure -state normal
+	$itk_component(combo) component entry delete 0 end
+	$itk_component(combo) component entry insert end $_lastlabel
+	$itk_component(combo) component entry configure -state disabled
 
     } elseif {$obj == "---"} {
-        # put the combobox back to its last value
-        $itk_component(combo) component entry configure -state normal
-        $itk_component(combo) component entry delete 0 end
-        $itk_component(combo) component entry insert end $_lastlabel
-        $itk_component(combo) component entry configure -state disabled
+	# put the combobox back to its last value
+	$itk_component(combo) component entry configure -state normal
+	$itk_component(combo) component entry delete 0 end
+	$itk_component(combo) component entry insert end $_lastlabel
+	$itk_component(combo) component entry configure -state disabled
     } elseif {$obj != "" && $itk_option(-tool) != ""} {
-        if {("" != $_copyfrom) && ("" != $_copyto)} {
-            $obj copy $_copyto from $_copyfrom
-        }
-        $_owner xml put $_path.file $_label2file($newval)
-        $itk_option(-tool) load $obj
-        set _lastlabel $newval
+	if {("" != $_copyfrom) && ("" != $_copyto)} {
+	    $obj copy $_copyto from $_copyfrom
+	}
+	$_owner xml put $_path.file $_label2file($newval)
+	$itk_option(-tool) load $obj
+	set _lastlabel $newval
     }
 
     event generate $itk_component(hull) <<Value>>
@@ -376,24 +376,24 @@ itcl::body Rappture::Loader::_tooltip {} {
     set newval [$itk_component(combo) value]
     set obj [$itk_component(combo) translate $newval]
     if {$obj != ""} {
-        if {$obj == "@upload"} {
-            append str "\n\nUse this option to upload data from your desktop."
-        } else {
-            set label [$obj get about.label]
-            if {[string length $label] > 0} {
-                append str "\n\n$label"
-            }
+	if {$obj == "@upload"} {
+	    append str "\n\nUse this option to upload data from your desktop."
+	} else {
+	    set label [$obj get about.label]
+	    if {[string length $label] > 0} {
+		append str "\n\n$label"
+	    }
 
-            set desc [$obj get about.description]
-            if {[string length $desc] > 0} {
-                if {[string length $label] > 0} {
-                    append str ":\n"
-                } else {
-                    append str "\n\n"
-                }
-                append str $desc
-            }
-        }
+	    set desc [$obj get about.description]
+	    if {[string length $desc] > 0} {
+		if {[string length $label] > 0} {
+		    append str ":\n"
+		} else {
+		    append str "\n\n"
+		}
+		append str $desc
+	    }
+	}
     }
     return [string trim $str]
 }
@@ -409,18 +409,18 @@ itcl::body Rappture::Loader::_uploadValue {args} {
     array set data $args
 
     if {[info exists data(error)]} {
-        Rappture::Tooltip::cue $itk_component(combo) $data(error)
+	Rappture::Tooltip::cue $itk_component(combo) $data(error)
     }
 
     if {[info exists data(path)] && [info exists data(data)]} {
-        Rappture::Tooltip::cue hide  ;# take down note about the popup window
-        $itk_option(-tool) valuefor $data(path) $data(data)
+	Rappture::Tooltip::cue hide  ;# take down note about the popup window
+	$itk_option(-tool) valuefor $data(path) $data(data)
 
-        $itk_component(combo) component entry configure -state normal
-        $itk_component(combo) component entry delete 0 end
-        $itk_component(combo) component entry insert end "Uploaded data"
-        $itk_component(combo) component entry configure -state disabled
-        set _lastlabel "Uploaded data"
+	$itk_component(combo) component entry configure -state normal
+	$itk_component(combo) component entry delete 0 end
+	$itk_component(combo) component entry insert end "Uploaded data"
+	$itk_component(combo) component entry configure -state disabled
+	set _lastlabel "Uploaded data"
     }
 }
 
@@ -437,15 +437,15 @@ itcl::body Rappture::Loader::_downloadValues {} {
 
     set mesg ""
     foreach path $_dnpaths {
-        if {$_dnpath2state($this-$path)} {
-            set info [$itk_option(-tool) valuefor $path]
-            set mesg [Rappture::filexfer::download $info input.txt]
-            if {"" != $mesg} { break }
-        }
+	if {$_dnpath2state($this-$path)} {
+	    set info [$itk_option(-tool) valuefor $path]
+	    set mesg [Rappture::filexfer::download $info input.txt]
+	    if {"" != $mesg} { break }
+	}
     }
 
     if {"" != $mesg} {
-        Rappture::Tooltip::cue $itk_component(combo) $mesg
+	Rappture::Tooltip::cue $itk_component(combo) $mesg
     }
 }
 
@@ -454,7 +454,7 @@ itcl::body Rappture::Loader::_downloadValues {} {
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::Loader::tool {
     if {[catch {$itk_option(-tool) isa Rappture::Tool} valid] || !$valid} {
-        error "object \"$itk_option(-tool)\" is not a Rappture Tool"
+	error "object \"$itk_option(-tool)\" is not a Rappture Tool"
     }
 }
 
@@ -464,7 +464,7 @@ itcl::configbody Rappture::Loader::tool {
 itcl::configbody Rappture::Loader::state {
     set valid {normal disabled}
     if {[lsearch -exact $valid $itk_option(-state)] < 0} {
-        error "bad value \"$itk_option(-state)\": should be [join $valid {, }]"
+	error "bad value \"$itk_option(-state)\": should be [join $valid {, }]"
     }
     $itk_component(combo) configure -state $itk_option(-state)
 }

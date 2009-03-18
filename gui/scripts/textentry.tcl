@@ -61,7 +61,7 @@ itcl::class Rappture::TextEntry {
     private variable _value ""      ;# value inside the widget
     private variable _size ""       ;# size hint from XML
 }
-                                                                                
+										
 itk::usual TextEntry {
 }
 
@@ -70,7 +70,7 @@ itk::usual TextEntry {
 # ----------------------------------------------------------------------
 itcl::body Rappture::TextEntry::constructor {owner path args} {
     if {[catch {$owner isa Rappture::ControlOwner} valid] != 0 || !$valid} {
-        error "bad object \"$owner\": should be Rappture::ControlOwner"
+	error "bad object \"$owner\": should be Rappture::ControlOwner"
     }
     set _owner $owner
     set _path $path
@@ -83,22 +83,22 @@ itcl::body Rappture::TextEntry::constructor {owner path args} {
 
     set hints [$_owner xml get $path.about.hints]
     if {[string length $hints] > 0} {
-        itk_component add hints {
-            ::label $itk_interior.hints -anchor w -text $hints
-        } {
-            usual
-            rename -foreground -hintforeground hintForeground Foreground
-            rename -font -hintfont hintFont Font
-        }
-        pack $itk_component(hints) -side bottom -fill x
+	itk_component add hints {
+	    ::label $itk_interior.hints -anchor w -text $hints
+	} {
+	    usual
+	    rename -foreground -hintforeground hintForeground Foreground
+	    rename -font -hintfont hintFont Font
+	}
+	pack $itk_component(hints) -side bottom -fill x
     }
 
     eval itk_initialize $args
 
     set str [$_owner xml get $path.default]
     if {"" != $str} {
-        _layout  ;# must fix layout or value won't take
-        value $str
+	_layout  ;# must fix layout or value won't take
+	value $str
     }
 }
 
@@ -115,37 +115,37 @@ itcl::body Rappture::TextEntry::value {args} {
     set onlycheck 0
     set i [lsearch -exact $args -check]
     if {$i >= 0} {
-        set onlycheck 1
-        set args [lreplace $args $i $i]
+	set onlycheck 1
+	set args [lreplace $args $i $i]
     }
 
     if {[llength $args] == 1} {
-        if {$onlycheck} {
-            # someday we may add validation...
-            return
-        }
-        set newval [lindex $args 0]
-        _setValue $newval
+	if {$onlycheck} {
+	    # someday we may add validation...
+	    return
+	}
+	set newval [lindex $args 0]
+	_setValue $newval
 
-        $_dispatcher event -idle !layout
-        event generate $itk_component(hull) <<Value>>
-        return $newval
+	$_dispatcher event -idle !layout
+	event generate $itk_component(hull) <<Value>>
+	return $newval
 
     } elseif {[llength $args] != 0} {
-        error "wrong # args: should be \"value ?-check? ?newval?\""
+	error "wrong # args: should be \"value ?-check? ?newval?\""
     }
 
     #
     # Query the value and return.
     #
     if {$_mode == "ascii"} {
-        if {$_layout == "entry"} {
-            return [$itk_component(entry) get]
-        } elseif {$_layout == "text"} {
-            return [$itk_component(text) get 1.0 end-1char]
-        }
+	if {$_layout == "entry"} {
+	    return [$itk_component(entry) get]
+	} elseif {$_layout == "text"} {
+	    return [$itk_component(text) get 1.0 end-1char]
+	}
     } else {
-        return $_value
+	return $_value
     }
     return ""
 }
@@ -159,7 +159,7 @@ itcl::body Rappture::TextEntry::value {args} {
 itcl::body Rappture::TextEntry::label {} {
     set label [$_owner xml get $_path.about.label]
     if {"" == $label} {
-        set label "String"
+	set label "String"
     }
     return $label
 }
@@ -187,155 +187,155 @@ itcl::body Rappture::TextEntry::tooltip {} {
 itcl::body Rappture::TextEntry::_layout {} {
     set size $_size
     if {$size == "" || $size == "auto"} {
-        #
-        # If the size is "auto", then look at the current value
-        # and count its lines/characters.
-        #
-        set val ""
-        if {$_layout == "entry"} {
-            set val [$itk_component(entry) get]
-        } elseif {$_layout == "text"} {
-            set val [$itk_component(text) get 1.0 end-1char]
-        }
+	#
+	# If the size is "auto", then look at the current value
+	# and count its lines/characters.
+	#
+	set val ""
+	if {$_layout == "entry"} {
+	    set val [$itk_component(entry) get]
+	} elseif {$_layout == "text"} {
+	    set val [$itk_component(text) get 1.0 end-1char]
+	}
 
-        set chars 0
-        set lines 0
-        foreach line [split $val \n] {
-            incr lines
-            if {[string length $line] > $chars} {
-                set chars [string length $line]
-            }
-        }
-        incr chars
+	set chars 0
+	set lines 0
+	foreach line [split $val \n] {
+	    incr lines
+	    if {[string length $line] > $chars} {
+		set chars [string length $line]
+	    }
+	}
+	incr chars
 
-        if {$lines > 1} {
-            set size "${chars}x${lines}"
-        } else {
-            set size $chars
-        }
+	if {$lines > 1} {
+	    set size "${chars}x${lines}"
+	} else {
+	    set size $chars
+	}
     }
 
     if {[regexp {^[0-9]+$} $size]} {
-        #
-        # If the size is WW, then flip to entry mode, with
-        # a requested size of WW characters.
-        #
-        if {$_layout != "entry"} {
-            set val ""
-            if {$_layout == "text"} {
-                set val [$itk_component(text) get 1.0 end-1char]
-                destroy $itk_component(text)
-                destroy $itk_component(scrollbars)
-            }
+	#
+	# If the size is WW, then flip to entry mode, with
+	# a requested size of WW characters.
+	#
+	if {$_layout != "entry"} {
+	    set val ""
+	    if {$_layout == "text"} {
+		set val [$itk_component(text) get 1.0 end-1char]
+		destroy $itk_component(text)
+		destroy $itk_component(scrollbars)
+	    }
 
-            itk_component add entry {
-                entry $itk_interior.entry
-            } {
-                usual
-                rename -background -textbackground textBackground Background
-                rename -foreground -textforeground textForeground Foreground
-            }
-            pack $itk_component(entry) -expand yes -fill both
-            $itk_component(entry) configure \
-                -background $itk_option(-textbackground) \
-                -foreground $itk_option(-textforeground)
+	    itk_component add entry {
+		entry $itk_interior.entry
+	    } {
+		usual
+		rename -background -textbackground textBackground Background
+		rename -foreground -textforeground textForeground Foreground
+	    }
+	    pack $itk_component(entry) -expand yes -fill both
+	    $itk_component(entry) configure \
+		-background $itk_option(-textbackground) \
+		-foreground $itk_option(-textforeground)
 
-            bind $itk_component(entry) <KeyPress> [itcl::code $this _newValue]
-            bind $itk_component(entry) <Control-KeyPress-a> \
-                "[list $itk_component(entry) selection range 0 end]; break"
+	    bind $itk_component(entry) <KeyPress> [itcl::code $this _newValue]
+	    bind $itk_component(entry) <Control-KeyPress-a> \
+		"[list $itk_component(entry) selection range 0 end]; break"
 
-            itk_component add emenu {
-                menu $itk_component(entry).menu -tearoff 0
-            }
-            $itk_component(emenu) add command -label "Cut" -accelerator "^X" \
-                -command [list event generate $itk_component(entry) <<Cut>>]
-            $itk_component(emenu) add command -label "Copy" -accelerator "^C" \
-                -command [list event generate $itk_component(entry) <<Copy>>]
-            $itk_component(emenu) add command -label "Paste" -accelerator "^V" \
-                -command [list event generate $itk_component(entry) <<Paste>>]
-            $itk_component(emenu) add command -label "Select All" -accelerator "^A" -command [list $itk_component(entry) selection range 0 end]
-            bind $itk_component(entry) <<PopupMenu>> \
-                [itcl::code $this _edit menu emenu %X %Y]
+	    itk_component add emenu {
+		menu $itk_component(entry).menu -tearoff 0
+	    }
+	    $itk_component(emenu) add command -label "Cut" -accelerator "^X" \
+		-command [list event generate $itk_component(entry) <<Cut>>]
+	    $itk_component(emenu) add command -label "Copy" -accelerator "^C" \
+		-command [list event generate $itk_component(entry) <<Copy>>]
+	    $itk_component(emenu) add command -label "Paste" -accelerator "^V" \
+		-command [list event generate $itk_component(entry) <<Paste>>]
+	    $itk_component(emenu) add command -label "Select All" -accelerator "^A" -command [list $itk_component(entry) selection range 0 end]
+	    bind $itk_component(entry) <<PopupMenu>> \
+		[itcl::code $this _edit menu emenu %X %Y]
 
-            set _layout "entry"
-            _setValue $val
-        }
-        $itk_component(entry) configure -width $size
+	    set _layout "entry"
+	    _setValue $val
+	}
+	$itk_component(entry) configure -width $size
 
     } elseif {[regexp {^([0-9]+)x([0-9]+)$} $size match w h]} {
-        #
-        # If the size is WWxHH, then flip to text mode, with
-        # a requested size of HH lines by WW characters.
-        #
-        if {$_layout != "text"} {
-            set val ""
-            if {$_layout == "entry"} {
-                set val [$itk_component(entry) get]
-                destroy $itk_component(entry)
-            }
+	#
+	# If the size is WWxHH, then flip to text mode, with
+	# a requested size of HH lines by WW characters.
+	#
+	if {$_layout != "text"} {
+	    set val ""
+	    if {$_layout == "entry"} {
+		set val [$itk_component(entry) get]
+		destroy $itk_component(entry)
+	    }
 
-            itk_component add scrollbars {
-                Rappture::Scroller $itk_interior.scrl \
-                     -xscrollmode auto -yscrollmode auto
-            }
-            pack $itk_component(scrollbars) -expand yes -fill both
+	    itk_component add scrollbars {
+		Rappture::Scroller $itk_interior.scrl \
+		     -xscrollmode auto -yscrollmode auto
+	    }
+	    pack $itk_component(scrollbars) -expand yes -fill both
 
-            itk_component add text {
-                text $itk_component(scrollbars).text \
-                    -width 1 -height 1 -wrap char
-            } {
-                usual
-                rename -background -textbackground textBackground Background
-                rename -foreground -textforeground textForeground Foreground
-                rename -font -codefont codeFont CodeFont
-            }
-            $itk_component(text) configure \
-                -background $itk_option(-textbackground) \
-                -foreground $itk_option(-textforeground) \
-                -font $itk_option(-codefont)
-            $itk_component(scrollbars) contents $itk_component(text)
+	    itk_component add text {
+		text $itk_component(scrollbars).text \
+		    -width 1 -height 1 -wrap char
+	    } {
+		usual
+		rename -background -textbackground textBackground Background
+		rename -foreground -textforeground textForeground Foreground
+		rename -font -codefont codeFont CodeFont
+	    }
+	    $itk_component(text) configure \
+		-background $itk_option(-textbackground) \
+		-foreground $itk_option(-textforeground) \
+		-font $itk_option(-codefont)
+	    $itk_component(scrollbars) contents $itk_component(text)
 
-            bind $itk_component(text) <KeyPress> [itcl::code $this _newValue]
-            bind $itk_component(text) <Control-KeyPress-a> \
-                "[list $itk_component(text) tag add sel 1.0 end]; break"
+	    bind $itk_component(text) <KeyPress> [itcl::code $this _newValue]
+	    bind $itk_component(text) <Control-KeyPress-a> \
+		"[list $itk_component(text) tag add sel 1.0 end]; break"
 
-            itk_component add tmenu {
-                menu $itk_component(text).menu -tearoff 0
-            }
-            $itk_component(tmenu) add command -label "Cut" -accelerator "^X" \
-                -command [list event generate $itk_component(text) <<Cut>>]
-            $itk_component(tmenu) add command -label "Copy" -accelerator "^C" \
-                -command [list event generate $itk_component(text) <<Copy>>]
-            $itk_component(tmenu) add command -label "Paste" -accelerator "^V" \
-                -command [list event generate $itk_component(text) <<Paste>>]
-            $itk_component(tmenu) add command -label "Select All" -accelerator "^A" -command [list $itk_component(text) tag add sel 1.0 end]
-            $itk_component(tmenu) add separator
+	    itk_component add tmenu {
+		menu $itk_component(text).menu -tearoff 0
+	    }
+	    $itk_component(tmenu) add command -label "Cut" -accelerator "^X" \
+		-command [list event generate $itk_component(text) <<Cut>>]
+	    $itk_component(tmenu) add command -label "Copy" -accelerator "^C" \
+		-command [list event generate $itk_component(text) <<Copy>>]
+	    $itk_component(tmenu) add command -label "Paste" -accelerator "^V" \
+		-command [list event generate $itk_component(text) <<Paste>>]
+	    $itk_component(tmenu) add command -label "Select All" -accelerator "^A" -command [list $itk_component(text) tag add sel 1.0 end]
+	    $itk_component(tmenu) add separator
 
-            $itk_component(tmenu) add command \
-                -label [Rappture::filexfer::label upload] \
-                -command [itcl::code $this _uploadValue -start]
-            $itk_component(tmenu) add command \
-                -label [Rappture::filexfer::label download] \
-                -command [itcl::code $this _downloadValue]
+	    $itk_component(tmenu) add command \
+		-label [Rappture::filexfer::label upload] \
+		-command [itcl::code $this _uploadValue -start]
+	    $itk_component(tmenu) add command \
+		-label [Rappture::filexfer::label download] \
+		-command [itcl::code $this _downloadValue]
 
-            bind $itk_component(text) <<PopupMenu>> \
-                [itcl::code $this _edit menu tmenu %X %Y]
+	    bind $itk_component(text) <<PopupMenu>> \
+		[itcl::code $this _edit menu tmenu %X %Y]
 
-            set _layout "text"
-            _setValue $val
-        }
-        $itk_component(text) configure -width $w -height $h
+	    set _layout "text"
+	    _setValue $val
+	}
+	$itk_component(text) configure -width $w -height $h
     }
 
     #
     # Fix the overall widget size according to -width / -height
     #
     if {$itk_option(-width) == 0 && $itk_option(-height) == 0} {
-        pack propagate $itk_component(hull) yes
+	pack propagate $itk_component(hull) yes
     } else {
-        pack propagate $itk_component(hull) no
-        component hull configure \
-            -width $itk_option(-width) -height $itk_option(-width)
+	pack propagate $itk_component(hull) no
+	component hull configure \
+	    -width $itk_option(-width) -height $itk_option(-width)
     }
 }
 
@@ -349,53 +349,53 @@ itcl::body Rappture::TextEntry::_layout {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::TextEntry::_setValue {newval} {
     if {[Rappture::encoding::is binary $newval]} {
-        # looks like a binary file
-        set _mode "binary"
-        set _value $newval
+	# looks like a binary file
+	set _mode "binary"
+	set _value $newval
 
-        if {$_layout == "entry" || [string match {*x[01]} $_size]} {
-            set newval [Rappture::utils::hexdump -lines 0 $_value]
-        } else {
-            set newval [Rappture::utils::hexdump -lines 1000 $_value]
-        }
+	if {$_layout == "entry" || [string match {*x[01]} $_size]} {
+	    set newval [Rappture::utils::hexdump -lines 0 $_value]
+	} else {
+	    set newval [Rappture::utils::hexdump -lines 1000 $_value]
+	}
     } else {
-        # ascii file -- map carriage returns to line feeds
-        set _mode "ascii"
-        set _value ""
-        regsub -all "\r\n" $newval "\n" newval
-        regsub -all "\r" $newval "\n" newval
+	# ascii file -- map carriage returns to line feeds
+	set _mode "ascii"
+	set _value ""
+	regsub -all "\r\n" $newval "\n" newval
+	regsub -all "\r" $newval "\n" newval
     }
 
     if {$_layout == "entry"} {
-        $itk_component(entry) configure -state normal
-        $itk_component(emenu) entryconfigure "Cut" -state normal
-        $itk_component(emenu) entryconfigure "Paste" -state normal
-        $itk_component(entry) delete 0 end
-        $itk_component(entry) insert 0 $newval
-        if {!$itk_option(-editable) || $_mode == "binary"} {
-            $itk_component(entry) configure -state disabled
-            $itk_component(emenu) entryconfigure "Cut" -state disabled
-            $itk_component(emenu) entryconfigure "Paste" -state disabled
-        }
+	$itk_component(entry) configure -state normal
+	$itk_component(emenu) entryconfigure "Cut" -state normal
+	$itk_component(emenu) entryconfigure "Paste" -state normal
+	$itk_component(entry) delete 0 end
+	$itk_component(entry) insert 0 $newval
+	if {!$itk_option(-editable) || $_mode == "binary"} {
+	    $itk_component(entry) configure -state disabled
+	    $itk_component(emenu) entryconfigure "Cut" -state disabled
+	    $itk_component(emenu) entryconfigure "Paste" -state disabled
+	}
     } elseif {$_layout == "text"} {
-        $itk_component(text) configure -state normal
-        $itk_component(tmenu) entryconfigure "Cut" -state normal
-        $itk_component(tmenu) entryconfigure "Paste" -state normal
-        $itk_component(text) delete 1.0 end
-        $itk_component(text) insert end $newval
-        if {!$itk_option(-editable) || $_mode == "binary"} {
-            set hull $itk_component(hull)
-            set dfg [option get $hull disabledForeground Foreground]
-            set dbg [option get $hull disabledBackground Background]
-            $itk_component(text) configure -state disabled \
-                -background $dbg -foreground $dfg
-            $itk_component(tmenu) entryconfigure "Cut" -state disabled
-            $itk_component(tmenu) entryconfigure "Paste" -state disabled
-        } else {
-            $itk_component(text) configure \
-                -background $itk_option(-textbackground) \
-                -foreground $itk_option(-textforeground)
-        }
+	$itk_component(text) configure -state normal
+	$itk_component(tmenu) entryconfigure "Cut" -state normal
+	$itk_component(tmenu) entryconfigure "Paste" -state normal
+	$itk_component(text) delete 1.0 end
+	$itk_component(text) insert end $newval
+	if {!$itk_option(-editable) || $_mode == "binary"} {
+	    set hull $itk_component(hull)
+	    set dfg [option get $hull disabledForeground Foreground]
+	    set dbg [option get $hull disabledBackground Background]
+	    $itk_component(text) configure -state disabled \
+		-background $dbg -foreground $dfg
+	    $itk_component(tmenu) entryconfigure "Cut" -state disabled
+	    $itk_component(tmenu) entryconfigure "Paste" -state disabled
+	} else {
+	    $itk_component(text) configure \
+		-background $itk_option(-textbackground) \
+		-foreground $itk_option(-textforeground)
+	}
     }
 }
 
@@ -416,21 +416,21 @@ itcl::body Rappture::TextEntry::_newValue {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::TextEntry::_edit {option args} {
     if {$itk_option(-state) == "disabled"} {
-        return  ;# disabled? then bail out here!
+	return  ;# disabled? then bail out here!
     }
     switch -- $option {
-        menu {
-            if {[llength $args] != 3} {
-                error "wrong # args: should be \"_edit $option which x y\""
-            }
-            set mname [lindex $args 0]
-            set x [lindex $args 1]
-            set y [lindex $args 2]
-            tk_popup $itk_component($mname) $x $y
-        }
-        default {
-            error "bad option \"$option\": should be menu"
-        }
+	menu {
+	    if {[llength $args] != 3} {
+		error "wrong # args: should be \"_edit $option which x y\""
+	    }
+	    set mname [lindex $args 0]
+	    set x [lindex $args 1]
+	    set y [lindex $args 2]
+	    tk_popup $itk_component($mname) $x $y
+	}
+	default {
+	    error "bad option \"$option\": should be menu"
+	}
     }
 }
 
@@ -443,20 +443,20 @@ itcl::body Rappture::TextEntry::_edit {option args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::TextEntry::_fixState {} {
     if {$itk_option(-editable) && $itk_option(-state) == "normal"} {
-        set state normal
+	set state normal
     } else {
-        set state disabled
+	set state disabled
     }
     if {$_layout == "entry"} {
-        $itk_component(entry) configure -state $state
-        $itk_component(emenu) entryconfigure "Cut" -state $state
-        $itk_component(emenu) entryconfigure "Copy" -state $state
-        $itk_component(emenu) entryconfigure "Paste" -state $state
+	$itk_component(entry) configure -state $state
+	$itk_component(emenu) entryconfigure "Cut" -state $state
+	$itk_component(emenu) entryconfigure "Copy" -state $state
+	$itk_component(emenu) entryconfigure "Paste" -state $state
     } elseif {$_layout == "text"} {
-        $itk_component(text) configure -state $state
-        $itk_component(tmenu) entryconfigure "Cut" -state $state
-        $itk_component(tmenu) entryconfigure "Copy" -state $state
-        $itk_component(tmenu) entryconfigure "Paste" -state $state
+	$itk_component(text) configure -state $state
+	$itk_component(tmenu) entryconfigure "Cut" -state $state
+	$itk_component(tmenu) entryconfigure "Copy" -state $state
+	$itk_component(tmenu) entryconfigure "Paste" -state $state
     }
 }
 
@@ -469,33 +469,33 @@ itcl::body Rappture::TextEntry::_fixState {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::TextEntry::_uploadValue {args} {
     switch -- $_layout {
-        entry   { set widget $itk_component(entry) }
-        text    { set widget $itk_component(text) }
-        default { set widget $itk_component(hull) }
+	entry   { set widget $itk_component(entry) }
+	text    { set widget $itk_component(text) }
+	default { set widget $itk_component(hull) }
     }
 
     set opt [lindex $args 0]
     switch -- $opt {
-        -start {
-            set tool [Rappture::Tool::resources -appname]
-            set cntls [list $_path [label] [tooltip]]
-            Rappture::filexfer::upload \
-                $tool $cntls [itcl::code $this _uploadValue -assign]
-        }
-        -assign {
-            array set data [lrange $args 1 end] ;# skip option
-            if {[info exists data(error)]} {
-                Rappture::Tooltip::cue $widget $data(error)
-            }
-            if {[info exists data(data)]} {
-                Rappture::Tooltip::cue hide  ;# take down note about the popup
-                _setValue $data(data)
-                _newValue
-            }
-        }
-        default {
-            error "bad option \"$opt\": should be -start or -assign"
-        }
+	-start {
+	    set tool [Rappture::Tool::resources -appname]
+	    set cntls [list $_path [label] [tooltip]]
+	    Rappture::filexfer::upload \
+		$tool $cntls [itcl::code $this _uploadValue -assign]
+	}
+	-assign {
+	    array set data [lrange $args 1 end] ;# skip option
+	    if {[info exists data(error)]} {
+		Rappture::Tooltip::cue $widget $data(error)
+	    }
+	    if {[info exists data(data)]} {
+		Rappture::Tooltip::cue hide  ;# take down note about the popup
+		_setValue $data(data)
+		_newValue
+	    }
+	}
+	default {
+	    error "bad option \"$opt\": should be -start or -assign"
+	}
     }
 }
 
@@ -509,12 +509,12 @@ itcl::body Rappture::TextEntry::_downloadValue {} {
     set mesg [Rappture::filexfer::download [value] input.txt]
 
     if {"" != $mesg} {
-        switch -- $_layout {
-            entry   { set widget $itk_component(entry) }
-            text    { set widget $itk_component(text) }
-            default { set widget $itk_component(hull) }
-        }
-        Rappture::Tooltip::cue $widget $mesg
+	switch -- $_layout {
+	    entry   { set widget $itk_component(entry) }
+	    text    { set widget $itk_component(text) }
+	    default { set widget $itk_component(hull) }
+	}
+	Rappture::Tooltip::cue $widget $mesg
     }
 }
 
@@ -523,7 +523,7 @@ itcl::body Rappture::TextEntry::_downloadValue {} {
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::TextEntry::editable {
     if {![string is boolean -strict $itk_option(-editable)]} {
-        error "bad value \"$itk_option(-editable)\": should be boolean"
+	error "bad value \"$itk_option(-editable)\": should be boolean"
     }
     _fixState
 }
@@ -534,15 +534,15 @@ itcl::configbody Rappture::TextEntry::editable {
 itcl::configbody Rappture::TextEntry::state {
     set valid {normal disabled}
     if {[lsearch -exact $valid $itk_option(-state)] < 0} {
-        error "bad value \"$itk_option(-state)\": should be [join $valid {, }]"
+	error "bad value \"$itk_option(-state)\": should be [join $valid {, }]"
     }
     if {$_layout == "text"} {
-        if {$itk_option(-state) == "disabled"} {
-            set fg [option get $itk_component(text) disabledForeground Foreground]
-        } else {
-            set fg $itk_option(-foreground)
-        }
-        $itk_component(text) configure -foreground $fg
+	if {$itk_option(-state) == "disabled"} {
+	    set fg [option get $itk_component(text) disabledForeground Foreground]
+	} else {
+	    set fg $itk_option(-foreground)
+	}
+	$itk_component(text) configure -foreground $fg
     }
     _fixState
 }

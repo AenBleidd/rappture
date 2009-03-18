@@ -48,38 +48,38 @@ itk::usual GroupEntry {
 # ----------------------------------------------------------------------
 itcl::body Rappture::GroupEntry::constructor {owner path args} {
     if {[catch {$owner isa Rappture::ControlOwner} valid] != 0 || !$valid} {
-        error "bad object \"$owner\": should be Rappture::ControlOwner"
+	error "bad object \"$owner\": should be Rappture::ControlOwner"
     }
     set _owner $owner
     set _path $path
 
     itk_component add heading {
-        ::label $itk_interior.heading -anchor w
+	::label $itk_interior.heading -anchor w
     } {
-        usual
-        rename -background -headingbackground headingBackground Background
-        rename -foreground -headingforeground headingForeground Foreground
+	usual
+	rename -background -headingbackground headingBackground Background
+	rename -foreground -headingforeground headingForeground Foreground
     }
 
     $itk_component(heading) configure \
-        -text [$_owner xml get $_path.about.label]
+	-text [$_owner xml get $_path.about.label]
     Rappture::Tooltip::for $itk_component(heading) \
-        [$_owner xml get $_path.about.description]
+	[$_owner xml get $_path.about.description]
 
     itk_component add outline {
-        frame $itk_interior.outline -borderwidth 1
+	frame $itk_interior.outline -borderwidth 1
     } {
-        usual
-        ignore -borderwidth
-        rename -background -headingbackground headingBackground Background
+	usual
+	ignore -borderwidth
+	rename -background -headingbackground headingBackground Background
     }
     pack $itk_component(outline) -expand yes -fill both
 
     itk_component add inner {
-        frame $itk_component(outline).inner -borderwidth 3
+	frame $itk_component(outline).inner -borderwidth 3
     } {
-        usual
-        ignore -borderwidth
+	usual
+	ignore -borderwidth
     }
     pack $itk_component(inner) -expand yes -fill both
 
@@ -128,20 +128,20 @@ itcl::body Rappture::GroupEntry::tooltip {} {
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::GroupEntry::heading {
     if {![string is boolean -strict $itk_option(-heading)]} {
-        error "bad value \"$itk_option(-heading)\": should be boolean"
+	error "bad value \"$itk_option(-heading)\": should be boolean"
     }
 
     set str [$itk_component(heading) cget -text]
     if {$itk_option(-heading) && "" != $str} {
-        eval pack forget [pack slaves $itk_component(hull)]
-        pack $itk_component(heading) -side top -fill x
-        pack $itk_component(outline) -expand yes -fill both
-        $itk_component(outline) configure -borderwidth 1
-        $itk_component(inner) configure -borderwidth 3
+	eval pack forget [pack slaves $itk_component(hull)]
+	pack $itk_component(heading) -side top -fill x
+	pack $itk_component(outline) -expand yes -fill both
+	$itk_component(outline) configure -borderwidth 1
+	$itk_component(inner) configure -borderwidth 3
     } else {
-        pack forget $itk_component(heading)
-        $itk_component(outline) configure -borderwidth 0
-        $itk_component(inner) configure -borderwidth 0
+	pack forget $itk_component(heading)
+	$itk_component(outline) configure -borderwidth 0
+	$itk_component(inner) configure -borderwidth 0
     }
 }
 
@@ -151,6 +151,6 @@ itcl::configbody Rappture::GroupEntry::heading {
 itcl::configbody Rappture::GroupEntry::state {
     set valid {normal disabled}
     if {[lsearch -exact $valid $itk_option(-state)] < 0} {
-        error "bad value \"$itk_option(-state)\": should be [join $valid {, }]"
+	error "bad value \"$itk_option(-state)\": should be [join $valid {, }]"
     }
 }

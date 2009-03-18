@@ -51,12 +51,12 @@ proc Rappture::bugreport::activate {err} {
     global env errorInfo
 
     if {"@SHOWDETAILS" == $err} {
-        pack forget .bugreport.xmit
-        pack forget .bugreport.ok
-        pack .bugreport.details -after .bugreport.banner \
-            -expand yes -fill both -padx 8 -pady 8
-        focus .bugreport.details.cntls.ok
-        return
+	pack forget .bugreport.xmit
+	pack forget .bugreport.ok
+	pack .bugreport.details -after .bugreport.banner \
+	    -expand yes -fill both -padx 8 -pady 8
+	focus .bugreport.details.cntls.ok
+	return
     }
 
     # always fill in details so we can submit trouble reports later
@@ -66,20 +66,20 @@ proc Rappture::bugreport::activate {err} {
     .bugreport.details.info.text configure -state disabled
 
     if {[shouldReport for oops]} {
-        pack forget .bugreport.details
-        pack forget .bugreport.expl
-        pack .bugreport.ok -side bottom -after .bugreport.banner -pady {0 8}
-        pack .bugreport.xmit -after .bugreport.ok -padx 8 -pady 8
-        focus .bugreport.ok
-        set dosubmit 1
+	pack forget .bugreport.details
+	pack forget .bugreport.expl
+	pack .bugreport.ok -side bottom -after .bugreport.banner -pady {0 8}
+	pack .bugreport.xmit -after .bugreport.ok -padx 8 -pady 8
+	focus .bugreport.ok
+	set dosubmit 1
     } else {
-        pack forget .bugreport.expl
-        pack forget .bugreport.xmit
-        pack forget .bugreport.ok
-        pack .bugreport.details -after .bugreport.banner \
-            -expand yes -fill both -padx 8 -pady 8
-        focus .bugreport.details.cntls.ok
-        set dosubmit 0
+	pack forget .bugreport.expl
+	pack forget .bugreport.xmit
+	pack forget .bugreport.ok
+	pack .bugreport.details -after .bugreport.banner \
+	    -expand yes -fill both -padx 8 -pady 8
+	focus .bugreport.details.cntls.ok
+	set dosubmit 0
     }
 
     set w [winfo reqwidth .bugreport]
@@ -95,7 +95,7 @@ proc Rappture::bugreport::activate {err} {
     update
 
     if {$dosubmit} {
-        submit
+	submit
     }
 }
 
@@ -140,28 +140,28 @@ proc Rappture::bugreport::submit {} {
 
     # handle the result
     if {$status != 0} {
-        # add error to the details field, so we can see it with magic clicks
-        .bugreport.details.info.text configure -state normal
-        .bugreport.details.info.text insert 1.0 "Ticket submission failed:\n$result\n-----\n"
-        .bugreport.details.info.text configure -state disabled
+	# add error to the details field, so we can see it with magic clicks
+	.bugreport.details.info.text configure -state normal
+	.bugreport.details.info.text insert 1.0 "Ticket submission failed:\n$result\n-----\n"
+	.bugreport.details.info.text configure -state disabled
 
-        .bugreport.expl insert end "This tool encountered an unexpected error.  We tried to submit a trouble report automatically, but that failed.  If you want to report this incident, you can file your own trouble report.  Look for the \"Help\" or \"Support\" links on the main navigation bar of the web site.\n\nIf you continue having trouble with this tool, please close it and launch another session."
+	.bugreport.expl insert end "This tool encountered an unexpected error.  We tried to submit a trouble report automatically, but that failed.  If you want to report this incident, you can file your own trouble report.  Look for the \"Help\" or \"Support\" links on the main navigation bar of the web site.\n\nIf you continue having trouble with this tool, please close it and launch another session."
     } elseif {[regexp {Ticket #([0-9]*) +\((.*?)\) +([0-9]+) +times} $result match ticket extra times]} {
-        .bugreport.expl insert end "This tool encountered an unexpected error.  The problem has been reported as " "" "Ticket #$ticket" bold " in our system." ""
-        if {[string is integer $times] && $times > 1} {
-            .bugreport.expl insert end "  This particular problem has been reported $times times."
-        }
-        .bugreport.expl insert end "\n\nIf you continue having trouble with this tool, please close it and launch another session."
+	.bugreport.expl insert end "This tool encountered an unexpected error.  The problem has been reported as " "" "Ticket #$ticket" bold " in our system." ""
+	if {[string is integer $times] && $times > 1} {
+	    .bugreport.expl insert end "  This particular problem has been reported $times times."
+	}
+	.bugreport.expl insert end "\n\nIf you continue having trouble with this tool, please close it and launch another session."
     } else {
-        .bugreport.expl insert end "This tool encountered an unexpected error, and the problem was reported.  Here is the response from the hub, which may contain information about your ticket:\n" "" $result bold "\n\nIf you continue having trouble with this tool, please close it and launch another session." ""
+	.bugreport.expl insert end "This tool encountered an unexpected error, and the problem was reported.  Here is the response from the hub, which may contain information about your ticket:\n" "" $result bold "\n\nIf you continue having trouble with this tool, please close it and launch another session." ""
     }
     for {set h 1} {$h < 50} {incr h} {
-        .bugreport.expl configure -height $h
-        .bugreport.expl see 1.0
-        update idletasks
-        if {"" != [.bugreport.expl bbox end-1char]} {
-            break
-        }
+	.bugreport.expl configure -height $h
+	.bugreport.expl see 1.0
+	update idletasks
+	if {"" != [.bugreport.expl bbox end-1char]} {
+	    break
+	}
     }
     .bugreport.expl configure -state disabled
 }
@@ -194,88 +194,88 @@ proc Rappture::bugreport::register {stackTrace} {
     http::register https 443 ::tls::socket
 
     if {![regexp {^([^\n]+)\n} $stackTrace match summary]} {
-        if {[string length $stackTrace] == 0} {
-            set summary "Unexpected error from Rappture"
-        } else {
-            set summary $stackTrace
-        }
+	if {[string length $stackTrace] == 0} {
+	    set summary "Unexpected error from Rappture"
+	} else {
+	    set summary $stackTrace
+	}
     }
     if {[string length $summary] > 200} {
-        set summary "[string range $summary 0 200]..."
+	set summary "[string range $summary 0 200]..."
     }
     if {[string match {Problem launching job*} $summary]} {
-        append summary " (in tool \"[Rappture::Tool::resources -appname]\")"
-        set category "Tools"
+	append summary " (in tool \"[Rappture::Tool::resources -appname]\")"
+	set category "Tools"
     } else {
-        set category "Rappture"
+	set category "Rappture"
     }
 
     # make sure that the stack trace isn't too long
     set toolong 20000
     if {[string length $stackTrace] > $toolong} {
-        #
-        # If this came from "Problem launching job", then it will have
-        # a "== RAPPTURE INPUT ==" part somewhere in the middle.  Try
-        # to show the first part, this middle part, and the very last
-        # part, cutting out whatever we have to in the middle.
-        #
-        if {[regexp -indices {\n== RAPPTURE INPUT ==\n} $stackTrace match]} {
-            foreach {smid0 smid1} $match break
-            set quarter [expr {$toolong/4}]
-            set s0 $quarter
-            set smid0 [expr {$smid0-$quarter}]
-            set smid1 [expr {$smid1+$quarter}]
-            set s1 [expr {[string length $stackTrace]-$quarter}]
+	#
+	# If this came from "Problem launching job", then it will have
+	# a "== RAPPTURE INPUT ==" part somewhere in the middle.  Try
+	# to show the first part, this middle part, and the very last
+	# part, cutting out whatever we have to in the middle.
+	#
+	if {[regexp -indices {\n== RAPPTURE INPUT ==\n} $stackTrace match]} {
+	    foreach {smid0 smid1} $match break
+	    set quarter [expr {$toolong/4}]
+	    set s0 $quarter
+	    set smid0 [expr {$smid0-$quarter}]
+	    set smid1 [expr {$smid1+$quarter}]
+	    set s1 [expr {[string length $stackTrace]-$quarter}]
 
-            if {$smid0 < $s0} {
-                # first part is short -- truncate last part
-                set stackTrace "[string range $stackTrace 0 $smid1]\n...\n[string range $stackTrace [expr {[string length $stackTrace]-($toolong-$smid1)}] end]"
-            } elseif {$smid1 > $s1} {
-                # last part is short -- truncate first part
-                set tailsize [expr {[string length $stackTrace]-$smid0}]
-                set stackTrace "[string range $stackTrace 0 [expr {$toolong-$tailsize}]]\n...\n[string range $stackTrace $smid0 end]"
-            } else {
-                # rappture input line is right about in the middle
-                set stackTrace "[string range $stackTrace 0 $s0]\n...\n[string range $stackTrace $smid0 $smid1]\n...\n[string range $stackTrace $s1 end]"
-            }
-        } else {
-            # no Rappture input -- just show first part and last part
-            set half [expr {$toolong/2}]
-            set stackTrace "[string range $stackTrace 0 $half]\n...\n[string range $stackTrace [expr {[string length $stackTrace]-$half}] end]"
-        }
+	    if {$smid0 < $s0} {
+		# first part is short -- truncate last part
+		set stackTrace "[string range $stackTrace 0 $smid1]\n...\n[string range $stackTrace [expr {[string length $stackTrace]-($toolong-$smid1)}] end]"
+	    } elseif {$smid1 > $s1} {
+		# last part is short -- truncate first part
+		set tailsize [expr {[string length $stackTrace]-$smid0}]
+		set stackTrace "[string range $stackTrace 0 [expr {$toolong-$tailsize}]]\n...\n[string range $stackTrace $smid0 end]"
+	    } else {
+		# rappture input line is right about in the middle
+		set stackTrace "[string range $stackTrace 0 $s0]\n...\n[string range $stackTrace $smid0 $smid1]\n...\n[string range $stackTrace $s1 end]"
+	    }
+	} else {
+	    # no Rappture input -- just show first part and last part
+	    set half [expr {$toolong/2}]
+	    set stackTrace "[string range $stackTrace 0 $half]\n...\n[string range $stackTrace [expr {[string length $stackTrace]-$half}] end]"
+	}
     }
 
     set query [http::formatQuery \
-        option com_support \
-        task create \
-        no_html 1 \
-        report $stackTrace \
-        login $tcl_platform(user) \
-        sesstoken [Rappture::Tool::resources -session] \
-        hostname [info hostname] \
-        category $category \
-        summary $summary \
-        referrer "tool \"[Rappture::Tool::resources -appname]\"" \
+	option com_support \
+	task create \
+	no_html 1 \
+	report $stackTrace \
+	login $tcl_platform(user) \
+	sesstoken [Rappture::Tool::resources -session] \
+	hostname [info hostname] \
+	category $category \
+	summary $summary \
+	referrer "tool \"[Rappture::Tool::resources -appname]\"" \
     ]
     
     set url [Rappture::Tool::resources -huburl]
     if {[string index $url end] == "/"} {
-        append url "index.php"
+	append url "index.php"
     } else {
-        append url "/index.php"
+	append url "/index.php"
     }
 
     set token [http::geturl $url -query $query -timeout 60000]
 
     if {[http::ncode $token] != 200} {
-        error [http::code $token]
+	error [http::code $token]
     }
     upvar #0 $token rval
     set info $rval(body)
     http::cleanup $token
 
     if {[regexp {Ticket #[0-9]* +\(.*?\) +[0-9]+ +times} $info match]} {
-        return $match
+	return $match
     }
     error "Report received, but ticket may not have been filed.  Here's the result...\n$info"
 }
@@ -295,39 +295,39 @@ proc Rappture::bugreport::shouldReport {option value} {
     global env
 
     switch -- $option {
-        jobfailures {
-            variable reportJobFailures
-            if {![string is boolean $value]} {
-                error "bad value \"$value\": should be boolean"
-            }
-            set reportJobFailures $value
-        }
-        for {
-            # is this a tool in production?
-            if {![info exists env(RAPPTURE_VERSION)]
-                  || $env(RAPPTURE_VERSION) != "current"} {
-                return 0
-            }
+	jobfailures {
+	    variable reportJobFailures
+	    if {![string is boolean $value]} {
+		error "bad value \"$value\": should be boolean"
+	    }
+	    set reportJobFailures $value
+	}
+	for {
+	    # is this a tool in production?
+	    if {![info exists env(RAPPTURE_VERSION)]
+		  || $env(RAPPTURE_VERSION) != "current"} {
+		return 0
+	    }
 
-            # is it being run within a workspace?
-            set appname [Rappture::Tool::resources -appname]
-            if {[string match {[Ww]orkspace*} $appname]} {
-                return 0
-            }
+	    # is it being run within a workspace?
+	    set appname [Rappture::Tool::resources -appname]
+	    if {[string match {[Ww]orkspace*} $appname]} {
+		return 0
+	    }
 
-            # if this is a problem launching a job and the tool
-            # expects this, then don't bother with automatic reports.
-            variable reportJobFailures
-            if {"jobs" == $value && !$reportJobFailures} {
-                return 0
-            }
+	    # if this is a problem launching a job and the tool
+	    # expects this, then don't bother with automatic reports.
+	    variable reportJobFailures
+	    if {"jobs" == $value && !$reportJobFailures} {
+		return 0
+	    }
 
-            # this is a real problem -- report it!
-            return 1
-        }
-        default {
-            error "bad option \"$option\": should be jobfailures or for"
-        }
+	    # this is a real problem -- report it!
+	    return 1
+	}
+	default {
+	    error "bad option \"$option\": should be jobfailures or for"
+	}
     }
 }
 

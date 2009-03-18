@@ -72,58 +72,58 @@ itcl::body Rappture::SequenceResult::constructor {args} {
     pack propagate $itk_component(hull) no
 
     itk_component add player {
-        frame $itk_interior.player
+	frame $itk_interior.player
     }
     pack $itk_component(player) -side bottom -fill x
     grid columnconfigure $itk_component(player) 1 -weight 1
 
     itk_component add play {
-        button $itk_component(player).play \
-            -bitmap [Rappture::icon play] \
-            -command [itcl::code $this play]
+	button $itk_component(player).play \
+	    -bitmap [Rappture::icon play] \
+	    -command [itcl::code $this play]
     }
     grid $itk_component(play) -row 0 -rowspan 2 -column 0 \
-        -ipadx 2 -padx {0 4} -pady 4 -sticky nsew
+	-ipadx 2 -padx {0 4} -pady 4 -sticky nsew
 
     itk_component add dial {
-        Rappture::Radiodial $itk_component(player).dial \
-            -length 10 -valuewidth 0 -valuepadding 0 -padding 6 \
-            -linecolor "" -activelinecolor "" \
-            -knobimage [Rappture::icon knob2] -knobposition center@middle
+	Rappture::Radiodial $itk_component(player).dial \
+	    -length 10 -valuewidth 0 -valuepadding 0 -padding 6 \
+	    -linecolor "" -activelinecolor "" \
+	    -knobimage [Rappture::icon knob2] -knobposition center@middle
     } {
-        usual
-        keep -dialprogresscolor
+	usual
+	keep -dialprogresscolor
     }
     grid $itk_component(dial) -row 1 -column 1 -sticky ew
     bind $itk_component(dial) <<Value>> [itcl::code $this _fixValue]
 
     itk_component add info {
-        frame $itk_component(player).info
+	frame $itk_component(player).info
     }
     grid $itk_component(info) -row 0 -column 1 -columnspan 2 -sticky ew
 
     itk_component add indexLabel {
-        label $itk_component(info).ilabel
+	label $itk_component(info).ilabel
     } {
-        usual
-        rename -font -boldfont boldFont Font
+	usual
+	rename -font -boldfont boldFont Font
     }
     pack $itk_component(indexLabel) -side left
 
     itk_component add indexValue {
-        label $itk_component(info).ivalue -padx 0
+	label $itk_component(info).ivalue -padx 0
     }
     pack $itk_component(indexValue) -side left
 
     # add an element.about.label stanza
     itk_component add eleLabel {
-        label $itk_component(info).elabel -padx 10
+	label $itk_component(info).elabel -padx 10
     }
     pack $itk_component(eleLabel) -side left
 
     itk_component add options {
-        button $itk_component(player).options -text "Options..." \
-            -padx 1 -pady 0 -relief flat -overrelief raised
+	button $itk_component(player).options -text "Options..." \
+	    -padx 1 -pady 0 -relief flat -overrelief raised
     }
     grid $itk_component(options) -row 1 -column 2 -sticky sw
 
@@ -134,16 +134,16 @@ itcl::body Rappture::SequenceResult::constructor {args} {
     set bfn [option get $itk_component(hull) boldFont Font]
 
     Rappture::Balloon $itk_component(hull).popup \
-        -title "Player Settings" -padx 4 -pady 4
+	-title "Player Settings" -padx 4 -pady 4
     set inner [$itk_component(hull).popup component inner]
 
     label $inner.loopl -text "Loop:" -font $bfn
     grid $inner.loopl -row 0 -column 0 -sticky e
     radiobutton $inner.loopOn -text "Play once and stop" -font $fn \
-        -variable ::Rappture::SequenceResult::_play(loop) -value 0
+	-variable ::Rappture::SequenceResult::_play(loop) -value 0
     grid $inner.loopOn -row 0 -column 1 -sticky w
     radiobutton $inner.loopOff -text "Play continuously" -font $fn \
-        -variable ::Rappture::SequenceResult::_play(loop) -value 1
+	-variable ::Rappture::SequenceResult::_play(loop) -value 1
     grid $inner.loopOff -row 1 -column 1 -sticky w
     grid rowconfigure $inner 2 -minsize 8
 
@@ -154,20 +154,20 @@ itcl::body Rappture::SequenceResult::constructor {args} {
     label $inner.speed.slowl -text "Slower" -font $fn
     pack $inner.speed.slowl -side left
     ::scale $inner.speed.value -from 100 -to 1 \
-        -showvalue 0 -orient horizontal \
-        -variable ::Rappture::SequenceResult::_play(speed)
+	-showvalue 0 -orient horizontal \
+	-variable ::Rappture::SequenceResult::_play(speed)
     pack $inner.speed.value -side left
     label $inner.speed.fastl -text "Faster" -font $fn
     pack $inner.speed.fastl -side left
 
     $itk_component(options) configure -command \
-        [list $itk_component(hull).popup activate $itk_component(options) above]
+	[list $itk_component(hull).popup activate $itk_component(options) above]
 
     #
     # Main viewer
     #
     itk_component add area {
-        frame $itk_interior.area
+	frame $itk_interior.area
     }
     pack $itk_component(area) -expand yes -fill both
 
@@ -192,23 +192,23 @@ itcl::body Rappture::SequenceResult::destructor {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::SequenceResult::add {dataobj {settings ""}} {
     array set params {
-        -color auto
-        -brightness 0
-        -width 1
-        -raise 0
-        -linestyle solid
-        -description ""
-        -param ""
+	-color auto
+	-brightness 0
+	-width 1
+	-raise 0
+	-linestyle solid
+	-description ""
+	-param ""
     }
     foreach {opt val} $settings {
-        if {![info exists params($opt)]} {
-            error "bad setting \"$opt\": should be [join [lsort [array names params]] {, }]"
-        }
-        set params($opt) $val
+	if {![info exists params($opt)]} {
+	    error "bad setting \"$opt\": should be [join [lsort [array names params]] {, }]"
+	}
+	set params($opt) $val
     }
 
     if {$params(-raise) && "" == $_topmost} {
-        set _topmost $dataobj
+	set _topmost $dataobj
     }
     lappend _dlist $dataobj
     $_dispatcher event -idle !rebuild
@@ -226,8 +226,8 @@ itcl::body Rappture::SequenceResult::get {} {
 
     set i [lsearch $_dlist $_topmost]
     if {$i >= 0} {
-        set dlist [lreplace $dlist $i $i]
-        set dlist [linsert $dlist 0 $_topmost]
+	set dlist [lreplace $dlist $i $i]
+	set dlist [linsert $dlist 0 $_topmost]
     }
     return $dlist
 }
@@ -240,26 +240,26 @@ itcl::body Rappture::SequenceResult::get {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::SequenceResult::delete {args} {
     if {[llength $args] == 0} {
-        set args $_dlist
+	set args $_dlist
     }
 
     # delete all specified curves
     set changed 0
     foreach dataobj $args {
-        set pos [lsearch -exact $_dlist $dataobj]
-        if {$pos >= 0} {
-            set _dlist [lreplace $_dlist $pos $pos]
-            set changed 1
+	set pos [lsearch -exact $_dlist $dataobj]
+	if {$pos >= 0} {
+	    set _dlist [lreplace $_dlist $pos $pos]
+	    set changed 1
 
-            if {$dataobj == $_topmost} {
-                set _topmost ""
-            }
-        }
+	    if {$dataobj == $_topmost} {
+		set _topmost ""
+	    }
+	}
     }
 
     # if anything changed, then rebuild the plot
     if {$changed} {
-        $_dispatcher event -idle !rebuild
+	$_dispatcher event -idle !rebuild
     }
 }
 
@@ -291,42 +291,42 @@ itcl::body Rappture::SequenceResult::download {option args} {
 	return "";	# No data, no viewer, no download.
     }
     switch $option {
-        coming {
+	coming {
 	    return [$itk_component(area).viewer download coming]
-        }
-        controls {
-            return [eval $itk_component(area).viewer download controls $args]
-        }
-        now {
-            if {0} {
-                # produce a movie of results
-                set rval ""
-                if {"" != $_topmost} {
-                    set max [$_topmost size]
-                    set all ""
-                    for {set i 0} {$i < $max} {incr i} {
-                        set dataobj [lindex [$_topmost value $i] 0]
-                        if {[catch {$dataobj tkimage} imh] == 0} {
-                            lappend all $imh
-                        }
-                    }
-                    if {[llength $all] > 0} {
-                        set delay [expr {int(ceil(pow($_play(speed)/10.0+2,2.0)*15))}]
-                        set rval [eval Rappture::icon::gif_animate $delay $all]
-                    }
-                }
-                if {[string length $rval] > 0} {
-                    return [list .gif $rval]
-                }
-                return ""
-            }
+	}
+	controls {
+	    return [eval $itk_component(area).viewer download controls $args]
+	}
+	now {
+	    if {0} {
+		# produce a movie of results
+		set rval ""
+		if {"" != $_topmost} {
+		    set max [$_topmost size]
+		    set all ""
+		    for {set i 0} {$i < $max} {incr i} {
+			set dataobj [lindex [$_topmost value $i] 0]
+			if {[catch {$dataobj tkimage} imh] == 0} {
+			    lappend all $imh
+			}
+		    }
+		    if {[llength $all] > 0} {
+			set delay [expr {int(ceil(pow($_play(speed)/10.0+2,2.0)*15))}]
+			set rval [eval Rappture::icon::gif_animate $delay $all]
+		    }
+		}
+		if {[string length $rval] > 0} {
+		    return [list .gif $rval]
+		}
+		return ""
+	    }
 
-            # otherwise, return download of single frame
-            return [$itk_component(area).viewer download now]
-        }
-        default {
-            error "bad option \"$option\": should be coming, controls, now"
-        }
+	    # otherwise, return download of single frame
+	    return [$itk_component(area).viewer download now]
+	}
+	default {
+	    error "bad option \"$option\": should be coming, controls, now"
+	}
     }
 }
 
@@ -345,13 +345,13 @@ itcl::body Rappture::SequenceResult::play {} {
 
     # at the end? then restart fresh
     if {$_pos >= [llength $_indices]-1} {
-        goto 0
+	goto 0
     }
 
     # toggle the button to "pause" mode
     $itk_component(play) configure \
-        -bitmap [Rappture::icon pause] \
-        -command [itcl::code $this pause]
+	-bitmap [Rappture::icon pause] \
+	-command [itcl::code $this pause]
 
     # schedule the first frame
     set delay [expr {int(ceil(pow($_play(speed)/10.0+2,2.0)*15))}]
@@ -366,14 +366,14 @@ itcl::body Rappture::SequenceResult::play {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::SequenceResult::pause {} {
     if {"" != $_afterId} {
-        catch {after cancel $_afterId}
-        set _afterId ""
+	catch {after cancel $_afterId}
+	set _afterId ""
     }
 
     # toggle the button to "play" mode
     $itk_component(play) configure \
-        -bitmap [Rappture::icon play] \
-        -command [itcl::code $this play]
+	-bitmap [Rappture::icon play] \
+	-command [itcl::code $this play]
 }
 
 # ----------------------------------------------------------------------
@@ -385,7 +385,7 @@ itcl::body Rappture::SequenceResult::pause {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::SequenceResult::goto {{newval ""}} {
     if {"" == $newval} {
-        return $_pos
+	return $_pos
     }
     set _pos $newval
     set val [$itk_component(dial) get -format label @$_pos]
@@ -401,7 +401,7 @@ itcl::body Rappture::SequenceResult::goto {{newval ""}} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::SequenceResult::_rebuild {args} {
     if {"" == $_topmost && [llength $_dlist] > 0} {
-        set _topmost [lindex $_dlist 0]
+	set _topmost [lindex $_dlist 0]
     }
 
     #
@@ -410,87 +410,87 @@ itcl::body Rappture::SequenceResult::_rebuild {args} {
     #
     set viewer $itk_component(area).viewer
     if {[winfo exists $viewer]} {
-        if {"" == $_topmost} {
-            pack forget $viewer
-            pack forget $itk_component(player)
-            return
-        } else {
-            pack $viewer -expand yes -fill both
-            pack $itk_component(player) -side bottom -fill x
-        }
+	if {"" == $_topmost} {
+	    pack forget $viewer
+	    pack forget $itk_component(player)
+	    return
+	} else {
+	    pack $viewer -expand yes -fill both
+	    pack $itk_component(player) -side bottom -fill x
+	}
     } else {
-        if {"" == $_topmost} {
-            return
-        }
+	if {"" == $_topmost} {
+	    return
+	}
 
-        set type ""
-        if {[$_topmost size] > 0} {
-            set dataobj [lindex [$_topmost value 0] 0]
-            set type [$dataobj info class]
-        }
-        switch -- $type {
-            ::Rappture::Curve {
-                Rappture::XyResult $viewer
-                pack $viewer -expand yes -fill both
-            }
-            ::Rappture::Image {
-                Rappture::ImageResult $viewer
-                pack $viewer -expand yes -fill both
-            }
-            ::Rappture::Field {
-                set dimensions ""
-                set dim ""
-                foreach dim [$dataobj components -dimensions] {
-                    # check to see if the dimensions are the same
-                    # for all elements of the field. i dont think
-                    # we can display fields of differing dimensions
-                    # within the same field object.
-                    if {"" != $dimensions} {
-                        if {$dimensions != $dim} {
-                            error "don't know how to view sequences of $type\
-                                with dimensions as follows:\
-                                [$dataobj components -dimensions]"
-                        }
-                    } else {
-                        set dimensions $dim
-                    }
-                }
-                switch -- $dimensions {
-                    2D {
+	set type ""
+	if {[$_topmost size] > 0} {
+	    set dataobj [lindex [$_topmost value 0] 0]
+	    set type [$dataobj info class]
+	}
+	switch -- $type {
+	    ::Rappture::Curve {
+		Rappture::XyResult $viewer
+		pack $viewer -expand yes -fill both
+	    }
+	    ::Rappture::Image {
+		Rappture::ImageResult $viewer
+		pack $viewer -expand yes -fill both
+	    }
+	    ::Rappture::Field {
+		set dimensions ""
+		set dim ""
+		foreach dim [$dataobj components -dimensions] {
+		    # check to see if the dimensions are the same
+		    # for all elements of the field. i dont think
+		    # we can display fields of differing dimensions
+		    # within the same field object.
+		    if {"" != $dimensions} {
+			if {$dimensions != $dim} {
+			    error "don't know how to view sequences of $type\
+				with dimensions as follows:\
+				[$dataobj components -dimensions]"
+			}
+		    } else {
+			set dimensions $dim
+		    }
+		}
+		switch -- $dimensions {
+		    2D {
 			if { [$dataobj isunirect2d] } {
 			    set mode "heightmap"
 			} else {
 			    set mode "auto"
 			}
 			Rappture::Field2DResult $viewer -mode $mode
-                    }
-                    3D {
-                        Rappture::Field3DResult $viewer
-                    }
-                    default {
-                        error "don't know how to view sequences of $type\
-                            with $dimensions dimensions"
-                    }
-                }
-                pack $viewer -expand yes -fill both
-            }
-            ::Rappture::LibraryObj {
-                switch -- [$dataobj element -as type] {
-                    structure {
-                        Rappture::DeviceResult $viewer
-                        pack $viewer -expand yes -fill both
-                    }
-                    default {
-                        error "don't know how to view sequences of [$dataobj element -as type]"
-                    }
-                }
-            }
-            default {
-                puts stderr "don't know how to view sequences of type \"$type\""
+		    }
+		    3D {
+			Rappture::Field3DResult $viewer
+		    }
+		    default {
+			error "don't know how to view sequences of $type\
+			    with $dimensions dimensions"
+		    }
+		}
+		pack $viewer -expand yes -fill both
+	    }
+	    ::Rappture::LibraryObj {
+		switch -- [$dataobj element -as type] {
+		    structure {
+			Rappture::DeviceResult $viewer
+			pack $viewer -expand yes -fill both
+		    }
+		    default {
+			error "don't know how to view sequences of [$dataobj element -as type]"
+		    }
+		}
+	    }
+	    default {
+		puts stderr "don't know how to view sequences of type \"$type\""
 		puts stderr "Is the sequence empty?"
 		return
-            }
-        }
+	    }
+	}
     }
 
     #
@@ -504,15 +504,15 @@ itcl::body Rappture::SequenceResult::_rebuild {args} {
     set max [$_topmost size]
     set all ""
     for {set i 0} {$i < $max} {incr i} {
-        eval lappend all [$_topmost value $i]
+	eval lappend all [$_topmost value $i]
     }
     eval $viewer scale $all
 
     set _indices ""
     for {set i 0} {$i < $max} {incr i} {
-        set index [$_topmost index $i]
-        eval $itk_component(dial) add $index
-        lappend _indices [lindex $index 0]
+	set index [$_topmost index $i]
+	eval $itk_component(dial) add $index
+	lappend _indices [lindex $index 0]
     }
     _fixValue
 }
@@ -529,13 +529,13 @@ itcl::body Rappture::SequenceResult::_playFrame {} {
     set last [expr {[llength $_indices]-1}]
 
     if {$_pos > $last} {
-        if {$_play(loop)} {
-            set _pos 0
-        } else {
-            set _pos $last
-            pause
-            return
-        }
+	if {$_play(loop)} {
+	    set _pos 0
+	} else {
+	    set _pos $last
+	    pause
+	    return
+	}
     }
     goto $_pos
 
@@ -552,14 +552,14 @@ itcl::body Rappture::SequenceResult::_playFrame {} {
 itcl::body Rappture::SequenceResult::_fixValue {} {
     set viewer $itk_component(area).viewer
     if {![winfo exists $viewer]} {
-        return
+	return
     }
 
     # if the indexLabel is empty, don't show indexValue
     if {"" != [$_topmost hints indexlabel]} {
-        set val [$itk_component(dial) get -format label current]
-        $itk_component(indexValue) configure -text "= $val"
-        set _pos [lsearch -glob $_indices $val*]
+	set val [$itk_component(dial) get -format label current]
+	$itk_component(indexValue) configure -text "= $val"
+	set _pos [lsearch -glob $_indices $val*]
     }
 
     # populate the label for this element
@@ -567,12 +567,12 @@ itcl::body Rappture::SequenceResult::_fixValue {} {
 
     $viewer delete
     if {"" != $_topmost} {
-        foreach dataobj [$_topmost value $_pos] {
-            set settings "-color autoreset -width 2"
-            if {[catch {$dataobj hints style} style] == 0} {
-                eval lappend settings $style
-            }
-            $viewer add $dataobj $settings
-        }
+	foreach dataobj [$_topmost value $_pos] {
+	    set settings "-color autoreset -width 2"
+	    if {[catch {$dataobj hints style} style] == 0} {
+		eval lappend settings $style
+	    }
+	    $viewer add $dataobj $settings
+	}
     }
 }

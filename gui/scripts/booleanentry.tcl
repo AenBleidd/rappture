@@ -42,13 +42,13 @@ itk::usual BooleanEntry {
 # ----------------------------------------------------------------------
 itcl::body Rappture::BooleanEntry::constructor {owner path args} {
     if {[catch {$owner isa Rappture::ControlOwner} valid] != 0 || !$valid} {
-        error "bad object \"$owner\": should be Rappture::ControlOwner"
+	error "bad object \"$owner\": should be Rappture::ControlOwner"
     }
     set _owner $owner
     set _path $path
 
     itk_component add -protected vframe {
-        frame $itk_interior.vframe
+	frame $itk_interior.vframe
     }
 
     # if the control has an icon, plug it in
@@ -64,8 +64,8 @@ itcl::body Rappture::BooleanEntry::constructor {owner path args} {
 	    ignore -highlightthickness -highlightbackground -highlightcolor
 	}
 	set c $itk_component(icon)
-        $c create image [expr {0.5*$w}] [expr {0.5*$h}] \
-            -anchor center -image $icon
+	$c create image [expr {0.5*$w}] [expr {0.5*$h}] \
+	    -anchor center -image $icon
 	pack $itk_component(icon) -fill x -side left
     }
     
@@ -92,9 +92,9 @@ itcl::body Rappture::BooleanEntry::constructor {owner path args} {
     #
     set str [$_owner xml get $path.default]
     if {"" != $str} {
-        $itk_component(switch) value $str
+	$itk_component(switch) value $str
     } else {
-        $itk_component(switch) value off
+	$itk_component(switch) value off
     }
 }
 
@@ -111,22 +111,22 @@ itcl::body Rappture::BooleanEntry::value {args} {
     set onlycheck 0
     set i [lsearch -exact $args -check]
     if {$i >= 0} {
-        set onlycheck 1
-        set args [lreplace $args $i $i]
+	set onlycheck 1
+	set args [lreplace $args $i $i]
     }
 
     if {[llength $args] == 1} {
-        if {$onlycheck} {
-            # someday we may add validation...
-            return
-        }
-        set newval [lindex $args 0]
-        $itk_component(switch) value $newval
-        event generate $itk_component(hull) <<Value>>
-        return $newval
+	if {$onlycheck} {
+	    # someday we may add validation...
+	    return
+	}
+	set newval [lindex $args 0]
+	$itk_component(switch) value $newval
+	event generate $itk_component(hull) <<Value>>
+	return $newval
 
     } elseif {[llength $args] != 0} {
-        error "wrong # args: should be \"value ?-check? ?newval?\""
+	error "wrong # args: should be \"value ?-check? ?newval?\""
     }
 
     #
@@ -144,7 +144,7 @@ itcl::body Rappture::BooleanEntry::value {args} {
 itcl::body Rappture::BooleanEntry::label {} {
     set label [$_owner xml get $_path.about.label]
     if {"" == $label} {
-        set label "Boolean"
+	set label "Boolean"
     }
     return $label
 }
@@ -179,7 +179,7 @@ itcl::body Rappture::BooleanEntry::_newValue {} {
 itcl::configbody Rappture::BooleanEntry::state {
     set valid {normal disabled}
     if {[lsearch -exact $valid $itk_option(-state)] < 0} {
-        error "bad value \"$itk_option(-state)\": should be [join $valid {, }]"
+	error "bad value \"$itk_option(-state)\": should be [join $valid {, }]"
     }
     $itk_component(switch) configure -state $itk_option(-state)
 }

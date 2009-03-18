@@ -49,23 +49,23 @@ itcl::class Rappture::ControlOwner {
 # ----------------------------------------------------------------------
 itcl::body Rappture::ControlOwner::constructor {owner} {
     if {"" != $owner} {
-        set parts [split $owner @]
-        set _owner [lindex $parts 0]
-        set _path [lindex $parts 1]
-        $_owner _slave add $this
+	set parts [split $owner @]
+	set _owner [lindex $parts 0]
+	set _path [lindex $parts 1]
+	$_owner _slave add $this
     }
 
     # we are adding this so notes can be used
     # in coordination with loaders inside the load function
     array set _type2curpath {
-        choice current
-        boolean current
-        image current
-        integer current
-        loader current
-        note contents
-        number current
-        string current
+	choice current
+	boolean current
+	image current
+	integer current
+	loader current
+	note contents
+	number current
+	string current
     }
 }
 
@@ -80,7 +80,7 @@ itcl::body Rappture::ControlOwner::constructor {owner} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::ControlOwner::xml {args} {
     if {"object" == $args} {
-        return $_xmlobj
+	return $_xmlobj
     }
     return [eval $_xmlobj $args]
 }
@@ -96,25 +96,25 @@ itcl::body Rappture::ControlOwner::xml {args} {
 itcl::body Rappture::ControlOwner::widgetfor {path args} {
     # if this is a query operation, then look for the path
     if {[llength $args] == 0} {
-        set owner [ownerfor $path]
-        if {$owner != $this && $owner != ""} {
-            return [$owner widgetfor $path]
-        }
-        if {[info exists _path2widget($path)]} {
-            return $_path2widget($path)
-        }
-        return ""
+	set owner [ownerfor $path]
+	if {$owner != $this && $owner != ""} {
+	    return [$owner widgetfor $path]
+	}
+	if {[info exists _path2widget($path)]} {
+	    return $_path2widget($path)
+	}
+	return ""
     }
 
     # otherwise, associate the path with the given widget
     set widget [lindex $args 0]
     if {"" != $widget} {
-        if {[info exists _path2widget($path)]} {
-            error "$path already associated with widget $_path2widget($path)"
-        }
-        set _path2widget($path) $widget
+	if {[info exists _path2widget($path)]} {
+	    error "$path already associated with widget $_path2widget($path)"
+	}
+	set _path2widget($path) $widget
     } else {
-        catch {unset _path2widget($path)}
+	catch {unset _path2widget($path)}
     }
 }
 
@@ -131,35 +131,35 @@ itcl::body Rappture::ControlOwner::valuefor {path args} {
 
     # if this is a query operation, then look for the path
     if {[llength $args] == 0} {
-        if {$owner != $this && $owner != ""} {
-            return [$owner valuefor $path]
-        }
-        if {[info exists _path2widget($path)]} {
-            return [$_path2widget($path) value]
-        }
-        # can't find the path? try removing the prefix for this owner
-        set plen [string length $_path]
-        if {[string equal -length $plen $_path $path]} {
-            set relpath [string range $path [expr {$plen+1}] end]
-            if {[info exists _path2widget($relpath)]} {
-                return [$_path2widget($relpath) value]
-            }
-        }
-        return ""
+	if {$owner != $this && $owner != ""} {
+	    return [$owner valuefor $path]
+	}
+	if {[info exists _path2widget($path)]} {
+	    return [$_path2widget($path) value]
+	}
+	# can't find the path? try removing the prefix for this owner
+	set plen [string length $_path]
+	if {[string equal -length $plen $_path $path]} {
+	    set relpath [string range $path [expr {$plen+1}] end]
+	    if {[info exists _path2widget($relpath)]} {
+		return [$_path2widget($relpath) value]
+	    }
+	}
+	return ""
     }
 
     # otherwise, set the value
     if {$owner != $this && $owner != ""} {
-        return [eval $owner valuefor $path $args]
+	return [eval $owner valuefor $path $args]
     }
     if {[llength $args] > 1} {
-        error "wrong # args: should be \"valuefor path ?newValue?\""
+	error "wrong # args: should be \"valuefor path ?newValue?\""
     }
 
     if {[info exists _path2widget($path)]} {
-        $_path2widget($path) value [lindex $args 0]
+	$_path2widget($path) value [lindex $args 0]
     } else {
-        error "bad path \"$path\": should be one of [join [lsort [array names _path2widget]] {, }]"
+	error "bad path \"$path\": should be one of [join [lsort [array names _path2widget]] {, }]"
     }
 }
 
@@ -174,35 +174,35 @@ itcl::body Rappture::ControlOwner::valuefor {path args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::ControlOwner::dependenciesfor {path args} {
     if {"" != $_owner} {
-        #
-        # Keep all dependencies at the highest level.
-        # That way, a structure can come and go, but the
-        # dependencies remain fixed in the topmost tool.
-        #
-        set plen [string length $_path]
-        if {"" != $_path && ![string equal -length $plen $_path $path]} {
-            set path $_path.$path
-        }
-        return [eval $_owner dependenciesfor $path $args]
+	#
+	# Keep all dependencies at the highest level.
+	# That way, a structure can come and go, but the
+	# dependencies remain fixed in the topmost tool.
+	#
+	set plen [string length $_path]
+	if {"" != $_path && ![string equal -length $plen $_path $path]} {
+	    set path $_path.$path
+	}
+	return [eval $_owner dependenciesfor $path $args]
     }
 
     # if this is a query operation, then look for the path
     if {[llength $args] == 0} {
-        if {[info exists _dependencies($path)]} {
-            return $_dependencies($path)
-        }
-        return ""
+	if {[info exists _dependencies($path)]} {
+	    return $_dependencies($path)
+	}
+	return ""
     }
 
     # add new dependencies
     if {![info exists _dependencies($path)]} {
-        set _dependencies($path) ""
+	set _dependencies($path) ""
     }
     foreach dpath $args {
-        set i [lsearch -exact $_dependencies($path) $dpath]
-        if {$i < 0} {
-            lappend _dependencies($path) $dpath
-        }
+	set i [lsearch -exact $_dependencies($path) $dpath]
+	if {$i < 0} {
+	    lappend _dependencies($path) $dpath
+	}
     }
 }
 
@@ -213,35 +213,35 @@ itcl::body Rappture::ControlOwner::dependenciesfor {path args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::ControlOwner::ownerfor {path {skip ""}} {
     if {[info exists _path2widget($path)]} {
-        return $this
+	return $this
     }
 
     # can't find the path? try removing the prefix for this owner
     set plen [string length $_path]
     if {[string equal -length $plen $_path $path]} {
-        set relpath [string range $path [expr {$plen+1}] end]
-        if {[info exists _path2widget($relpath)]} {
-            return $this
-        }
+	set relpath [string range $path [expr {$plen+1}] end]
+	if {[info exists _path2widget($relpath)]} {
+	    return $this
+	}
     }
 
     # couldn't find this path?  then check all subordinates
     foreach slave $_slaves {
-        if {$slave == $skip} {
-            continue  ;# skip this slave if it's already been searched
-        }
-        set rval [$slave ownerfor $path $this]
-        if {"" != $rval} {
-            return $rval
-        }
+	if {$slave == $skip} {
+	    continue  ;# skip this slave if it's already been searched
+	}
+	set rval [$slave ownerfor $path $this]
+	if {"" != $rval} {
+	    return $rval
+	}
     }
 
     # check the owner as a last resort
     if {"" != $_owner && $_owner != $skip} {
-        set rval [$_owner ownerfor $path $this]
-        if {"" != $rval} {
-            return $rval
-        }
+	set rval [$_owner ownerfor $path $this]
+	if {"" != $rval} {
+	    return $rval
+	}
     }
 
     return ""
@@ -255,50 +255,50 @@ itcl::body Rappture::ControlOwner::ownerfor {path {skip ""}} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::ControlOwner::load {newobj} {
     if {![Rappture::library isvalid $newobj]} {
-        error "\"$newobj\" is not a Rappture::library"
+	error "\"$newobj\" is not a Rappture::library"
     }
 
     foreach path [array names _path2widget] {
-        # the following elements do not accept "current" tags, skip them
-        set type [[tool] xml element -as type $path]
-        if {[lsearch {group separator control} $type] >= 0} {
-            continue
-        }
+	# the following elements do not accept "current" tags, skip them
+	set type [[tool] xml element -as type $path]
+	if {[lsearch {group separator control} $type] >= 0} {
+	    continue
+	}
 
-        set type [[tool] xml element -as type $path]
-        if {[info exists _type2curpath($type)]} {
-            set currentpath $path.$_type2curpath($type)
-        } else {
-            # default incase i forgot an input type in _type2curpath
-            set currentpath $path.current
-        }
+	set type [[tool] xml element -as type $path]
+	if {[info exists _type2curpath($type)]} {
+	    set currentpath $path.$_type2curpath($type)
+	} else {
+	    # default incase i forgot an input type in _type2curpath
+	    set currentpath $path.current
+	}
 
-        # copy new value to the XML tree
-        # also copy to the widget associated with the tree
-        #
-        # we only copy the values if they existed in newobj
-        # so we don't overwrite values that were set in previous loads.
-        # this is needed for when the users specify copy.from and copy.to
-        # in a loader. in this case, _path2widget holds a list of all
-        # widgets. if there are two loaders loading two different widgets,
-        # and each loader uses the copy from/to functionality,
-        # the second load could wipe out the values set in the first load
-        # because on the second load, the copied paths from the first load no
-        # longer exist in newobj and blanks are copied to the paths
-        # in [tool] xml set by the first loader. the solution is to check
-        # newobj and see if the path exists. if the path exists, then we copy
-        # it over to [tool] xml, otherwise we ignore it.
-        if {"" != [$newobj element -as type $currentpath]} {
-            [tool] xml copy $currentpath from $newobj $currentpath
-            set val [$newobj get $currentpath]
-            if {[string length $val] > 0
-                  || [llength [$newobj children $currentpath]] == 0} {
-                $_path2widget($path) value $val
-            } else {
-                set obj [$newobj element -as object $currentpath]
-                $_path2widget($path) value $obj
-            }
-        }
+	# copy new value to the XML tree
+	# also copy to the widget associated with the tree
+	#
+	# we only copy the values if they existed in newobj
+	# so we don't overwrite values that were set in previous loads.
+	# this is needed for when the users specify copy.from and copy.to
+	# in a loader. in this case, _path2widget holds a list of all
+	# widgets. if there are two loaders loading two different widgets,
+	# and each loader uses the copy from/to functionality,
+	# the second load could wipe out the values set in the first load
+	# because on the second load, the copied paths from the first load no
+	# longer exist in newobj and blanks are copied to the paths
+	# in [tool] xml set by the first loader. the solution is to check
+	# newobj and see if the path exists. if the path exists, then we copy
+	# it over to [tool] xml, otherwise we ignore it.
+	if {"" != [$newobj element -as type $currentpath]} {
+	    [tool] xml copy $currentpath from $newobj $currentpath
+	    set val [$newobj get $currentpath]
+	    if {[string length $val] > 0
+		  || [llength [$newobj children $currentpath]] == 0} {
+		$_path2widget($path) value $val
+	    } else {
+		set obj [$newobj element -as object $currentpath]
+		$_path2widget($path) value $obj
+	    }
+	}
     }
 }
 
@@ -311,34 +311,34 @@ itcl::body Rappture::ControlOwner::load {newobj} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::ControlOwner::changed {path} {
     if {"" != $_owner} {
-        set plen [string length $_path]
-        if {"" != $_path && ![string equal -length $plen $_path $path]} {
-            set path $_path.$path
-        }
-        $_owner changed $path
+	set plen [string length $_path]
+	if {"" != $_path && ![string equal -length $plen $_path $path]} {
+	    set path $_path.$path
+	}
+	$_owner changed $path
     } else {
-        # send out any callback notifications
-        foreach owner [array names _owner2paths] {
-            foreach pattern $_owner2paths($owner) {
-                if {[string match $pattern $path]} {
-                    uplevel #0 $_callbacks($owner/$pattern)
-                    break
-                }
-            }
-        }
+	# send out any callback notifications
+	foreach owner [array names _owner2paths] {
+	    foreach pattern $_owner2paths($owner) {
+		if {[string match $pattern $path]} {
+		    uplevel #0 $_callbacks($owner/$pattern)
+		    break
+		}
+	    }
+	}
 
-        # find the control panel for each dependency, and tell it
-        # to update its layout.
-        foreach cpath [dependenciesfor $path] {
-            set wv [widgetfor $cpath]
-            while {"" != $wv} {
-                set wv [winfo parent $wv]
-                if {[winfo class $wv] == "Controls"} {
-                    $wv refresh
-                    break
-                }
-            }
-        }
+	# find the control panel for each dependency, and tell it
+	# to update its layout.
+	foreach cpath [dependenciesfor $path] {
+	    set wv [widgetfor $cpath]
+	    while {"" != $wv} {
+		set wv [winfo parent $wv]
+		if {[winfo class $wv] == "Controls"} {
+		    $wv refresh
+		    break
+		}
+	    }
+	}
     }
 }
 
@@ -351,25 +351,25 @@ itcl::body Rappture::ControlOwner::changed {path} {
 itcl::body Rappture::ControlOwner::regularize {path} {
     set owner [ownerfor $path]
     if {$owner != $this && $owner != ""} {
-        return [$owner regularize $path]
+	return [$owner regularize $path]
     }
     set rpath ""
     if {"" != $_xmlobj} {
-        set rpath [$_xmlobj element -as path $path]
+	set rpath [$_xmlobj element -as path $path]
 
-        # can't find the path? try removing the prefix for this owner
-        if {"" == $rpath} {
-            set plen [string length $_path]
-            if {[string equal -length $plen $_path $path]} {
-                set relpath [string range $path [expr {$plen+2}] end]
-                set rpath [$_xmlobj element -as path $relpath]
-            }
-        }
+	# can't find the path? try removing the prefix for this owner
+	if {"" == $rpath} {
+	    set plen [string length $_path]
+	    if {[string equal -length $plen $_path $path]} {
+		set relpath [string range $path [expr {$plen+2}] end]
+		set rpath [$_xmlobj element -as path $relpath]
+	    }
+	}
 
-        if {"" != $rpath && "" != $_path} {
-            # return a full name for the path
-            set rpath "$_path.$rpath"
-        }
+	if {"" != $rpath && "" != $_path} {
+	    # return a full name for the path
+	    set rpath "$_path.$rpath"
+	}
     }
     return $rpath
 }
@@ -389,80 +389,80 @@ itcl::body Rappture::ControlOwner::regularize {path} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::ControlOwner::notify {option args} {
     switch -- $option {
-        add {
-            if {[llength $args] != 3} {
-                error "wrong # args: should be \"notify add owner path callback\""
-            }
-            set owner [lindex $args 0]
-            set path [lindex $args 1]
-            set cb [lindex $args 2]
+	add {
+	    if {[llength $args] != 3} {
+		error "wrong # args: should be \"notify add owner path callback\""
+	    }
+	    set owner [lindex $args 0]
+	    set path [lindex $args 1]
+	    set cb [lindex $args 2]
 
-            if {[info exists _owner2paths($owner)]} {
-                set plist $_owner2paths($owner)
-            } else {
-                set plist ""
-            }
+	    if {[info exists _owner2paths($owner)]} {
+		set plist $_owner2paths($owner)
+	    } else {
+		set plist ""
+	    }
 
-            set i [lsearch -exact $plist $path]
-            if {$i < 0} { lappend _owner2paths($owner) $path }
-            set _callbacks($owner/$path) $cb
-        }
-        info {
-            if {[llength $args] == 0} {
-                # no args? then return all owners
-                return [array names _owner2paths]
-            } else {
-                set owner [lindex $args 0]
-                if {[info exists _owner2paths($owner)]} {
-                    set plist $_owner2paths($owner)
-                } else {
-                    set plist ""
-                }
-                if {[llength $args] == 1} {
-                    # 1 arg? then return paths for this owner
-                    return $plist
-                } elseif {[llength $args] == 2} {
-                    # 2 args? then return callback for this path
-                    set path [lindex $args 1]
-                    if {[info exists _callbacks($owner/$path)]} {
-                        return $_callbacks($owner/$path)
-                    }
-                    return ""
-                } else {
-                    error "wrong # args: should be \"notify info ?owner? ?path?\""
-                }
-            }
-        }
-        remove {
-            if {[llength $args] < 1} {
-                error "wrong # args: should be \"notify remove owner ?path ...?\""
-            }
-            set owner [lindex $args 0]
+	    set i [lsearch -exact $plist $path]
+	    if {$i < 0} { lappend _owner2paths($owner) $path }
+	    set _callbacks($owner/$path) $cb
+	}
+	info {
+	    if {[llength $args] == 0} {
+		# no args? then return all owners
+		return [array names _owner2paths]
+	    } else {
+		set owner [lindex $args 0]
+		if {[info exists _owner2paths($owner)]} {
+		    set plist $_owner2paths($owner)
+		} else {
+		    set plist ""
+		}
+		if {[llength $args] == 1} {
+		    # 1 arg? then return paths for this owner
+		    return $plist
+		} elseif {[llength $args] == 2} {
+		    # 2 args? then return callback for this path
+		    set path [lindex $args 1]
+		    if {[info exists _callbacks($owner/$path)]} {
+			return $_callbacks($owner/$path)
+		    }
+		    return ""
+		} else {
+		    error "wrong # args: should be \"notify info ?owner? ?path?\""
+		}
+	    }
+	}
+	remove {
+	    if {[llength $args] < 1} {
+		error "wrong # args: should be \"notify remove owner ?path ...?\""
+	    }
+	    set owner [lindex $args 0]
 
-            if {[llength $args] == 1} {
-                # no args? then delete all paths for this owner
-                if {[info exists _owner2paths($owner)]} {
-                    set plist $_owner2paths($owner)
-                } else {
-                    set plist ""
-                }
-            } else {
-                set plist [lrange $args 1 end]
-            }
+	    if {[llength $args] == 1} {
+		# no args? then delete all paths for this owner
+		if {[info exists _owner2paths($owner)]} {
+		    set plist $_owner2paths($owner)
+		} else {
+		    set plist ""
+		}
+	    } else {
+		set plist [lrange $args 1 end]
+	    }
 
-            # forget about the callback for each path
-            foreach path $plist {
-                catch {unset _callbacks($owner/$path)}
+	    # forget about the callback for each path
+	    foreach path $plist {
+		catch {unset _callbacks($owner/$path)}
 
-                if {[info exists _owner2paths($owner)]} {
-                    set i [lsearch -exact $_owner2paths($owner) $path]
-                    if {$i >= 0} {
-                        set _owner2paths($owner) \
-                            [lreplace $_owner2paths($owner) $i $i]
-                    }
-                }
-            }
-        }
+		if {[info exists _owner2paths($owner)]} {
+		    set i [lsearch -exact $_owner2paths($owner) $path]
+		    if {$i >= 0} {
+			set _owner2paths($owner) \
+			    [lreplace $_owner2paths($owner) $i $i]
+		    }
+		}
+	    }
+	}
     }
 }
 
@@ -477,18 +477,18 @@ itcl::body Rappture::ControlOwner::notify {option args} {
 itcl::body Rappture::ControlOwner::sync {} {
     # sync all of the widgets under control of this owner
     if {"" != $_xmlobj} {
-        foreach path [lsort [array names _path2widget]] {
-            set type [$_xmlobj element -as type $path]
-            if {[lsearch {group separator control note} $type] >= 0} {
-                continue
-            }
-            $_xmlobj put $path.current [$_path2widget($path) value]
-        }
+	foreach path [lsort [array names _path2widget]] {
+	    set type [$_xmlobj element -as type $path]
+	    if {[lsearch {group separator control note} $type] >= 0} {
+		continue
+	    }
+	    $_xmlobj put $path.current [$_path2widget($path) value]
+	}
     }
 
     # sync all subordinate slaves as well
     foreach slave $_slaves {
-        $slave sync
+	$slave sync
     }
 }
 
@@ -501,7 +501,7 @@ itcl::body Rappture::ControlOwner::sync {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::ControlOwner::tool {} {
     if {"" != $_owner} {
-        return [$_owner tool]
+	return [$_owner tool]
     }
     return $this
 }
@@ -517,11 +517,11 @@ itcl::body Rappture::ControlOwner::tool {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::ControlOwner::_slave {option args} {
     switch -- $option {
-        add {
-            eval lappend _slaves $args
-        }
-        default {
-            error "bad option \"$option\": should be add"
-        }
+	add {
+	    eval lappend _slaves $args
+	}
+	default {
+	    error "bad option \"$option\": should be add"
+	}
     }
 }

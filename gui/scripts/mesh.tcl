@@ -61,9 +61,9 @@ itcl::class Rappture::Mesh {
 itcl::body Rappture::Mesh::fetch {xmlobj path} {
     set handle "$xmlobj|$path"
     if {[info exists _xp2obj($handle)]} {
-        set obj $_xp2obj($handle)
-        incr _obj2ref($obj)
-        return $obj
+	set obj $_xp2obj($handle)
+	incr _obj2ref($obj)
+	return $obj
     }
 
     set obj [Rappture::Mesh ::#auto $xmlobj $path]
@@ -82,18 +82,18 @@ itcl::body Rappture::Mesh::fetch {xmlobj path} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Mesh::release {obj} {
     if {[info exists _obj2ref($obj)]} {
-        incr _obj2ref($obj) -1
-        if {$_obj2ref($obj) <= 0} {
-            unset _obj2ref($obj)
-            foreach handle [array names _xp2obj] {
-                if {$_xp2obj($handle) == $obj} {
-                    unset _xp2obj($handle)
-                }
-            }
-            itcl::delete object $obj
-        }
+	incr _obj2ref($obj) -1
+	if {$_obj2ref($obj) <= 0} {
+	    unset _obj2ref($obj)
+	    foreach handle [array names _xp2obj] {
+		if {$_xp2obj($handle) == $obj} {
+		    unset _xp2obj($handle)
+		}
+	    }
+	    itcl::delete object $obj
+	}
     } else {
-        error "can't find reference count for $obj"
+	error "can't find reference count for $obj"
     }
 }
 
@@ -102,29 +102,29 @@ itcl::body Rappture::Mesh::release {obj} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Mesh::constructor {xmlobj path} {
     if {![Rappture::library isvalid $xmlobj]} {
-        error "bad value \"$xmlobj\": should be Rappture::library"
+	error "bad value \"$xmlobj\": should be Rappture::library"
     }
     set _xmlobj $xmlobj
     set _mesh [$xmlobj element -as object $path]
 
     set u [$_mesh get units]
     if {"" != $u} {
-        while {[llength $u] < 3} {
-            lappend u [lindex $u end]
-        }
-        set _units $u
+	while {[llength $u] < 3} {
+	    lappend u [lindex $u end]
+	}
+	set _units $u
     }
 
     foreach lim {xmin xmax ymin ymax zmin zmax} {
-        set _limits($lim) ""
+	set _limits($lim) ""
     }
 
     if {[$_mesh element vtk] != ""} {
-        _buildRectMesh $xmlobj $path
+	_buildRectMesh $xmlobj $path
     } elseif {[$_mesh element node] != "" && [$_mesh element element] != ""} {
-        _buildNodesElements $xmlobj $path
+	_buildNodesElements $xmlobj $path
     } else {
-        error "can't find mesh data in $path"
+	error "can't find mesh data in $path"
     }
 }
 
@@ -140,7 +140,7 @@ itcl::body Rappture::Mesh::destructor {} {
     catch {rename $this-dset ""}
 
     foreach type [array names _pts2elem] {
-        rename $_pts2elem($type) ""
+	rename $_pts2elem($type) ""
     }
 }
 
@@ -163,33 +163,33 @@ itcl::body Rappture::Mesh::points {} {
 itcl::body Rappture::Mesh::elements {} {
     # build a map for region number => region type
     foreach comp [$_mesh children -type region] {
-        set id [$_mesh element -as id $comp]
-        set regions($id) [$_mesh get $comp]
+	set id [$_mesh element -as id $comp]
+	set regions($id) [$_mesh get $comp]
     }
     set regions() "unknown"
 
     set rlist ""
     foreach comp [$_mesh children -type element] {
-        set rid [$_mesh get $comp.region]
+	set rid [$_mesh get $comp.region]
 
-        #
-        # HACK ALERT!
-        #
-        # Prophet puts out nodes in a funny "Z" shaped order,
-        # not in proper clockwise fashion.  Switch the last
-        # two nodes for now to make them correct.
-        #
-        set nlist [$_mesh get $comp.nodes]
-        set n2 [lindex $nlist 2]
-        set n3 [lindex $nlist 3]
-        set nlist [lreplace $nlist 2 3 $n3 $n2]
-        lappend nlist [lindex $nlist 0]
+	#
+	# HACK ALERT!
+	#
+	# Prophet puts out nodes in a funny "Z" shaped order,
+	# not in proper clockwise fashion.  Switch the last
+	# two nodes for now to make them correct.
+	#
+	set nlist [$_mesh get $comp.nodes]
+	set n2 [lindex $nlist 2]
+	set n3 [lindex $nlist 3]
+	set nlist [lreplace $nlist 2 3 $n3 $n2]
+	lappend nlist [lindex $nlist 0]
 
-        set plist ""
-        foreach nid $nlist {
-            eval lappend plist [$_mesh get node($nid)]
-        }
-        lappend rlist $plist $regions($rid)
+	set plist ""
+	foreach nid $nlist {
+	    eval lappend plist [$_mesh get node($nid)]
+	}
+	lappend rlist $plist $regions($rid)
     }
     return $rlist
 }
@@ -210,15 +210,15 @@ itcl::body Rappture::Mesh::mesh {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Mesh::size {{what -points}} {
     switch -- $what {
-        -points {
-            return [$_pdata GetNumberOfPoints]
-        }
-        -elements {
-            return [$_gdata GetNumberOfCells]
-        }
-        default {
-            error "bad option \"$what\": should be -points or -elements"
-        }
+	-points {
+	    return [$_pdata GetNumberOfPoints]
+	}
+	-elements {
+	    return [$_gdata GetNumberOfCells]
+	}
+	default {
+	    error "bad option \"$what\": should be -points or -elements"
+	}
     }
 }
 
@@ -231,9 +231,9 @@ itcl::body Rappture::Mesh::dimensions {} {
     # count the dimensions with real limits
     set dims 0
     foreach d {x y z} {
-        if {$_limits(${d}min) != $_limits(${d}max)} {
-            incr dims
-        }
+	if {$_limits(${d}min) != $_limits(${d}max)} {
+	    incr dims
+	}
     }
     return $dims
 }
@@ -245,7 +245,7 @@ itcl::body Rappture::Mesh::dimensions {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Mesh::limits {which} {
     if {![info exists _limits(${which}min)]} {
-        error "bad axis \"$which\": should be x, y, z"
+	error "bad axis \"$which\": should be x, y, z"
     }
     return [list $_limits(${which}min) $_limits(${which}max)]
 }
@@ -259,17 +259,17 @@ itcl::body Rappture::Mesh::limits {which} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Mesh::hints {{keyword ""}} {
     foreach key {label color units} {
-        set str [$_mesh get $key]
-        if {"" != $str} {
-            set hints($key) $str
-        }
+	set str [$_mesh get $key]
+	if {"" != $str} {
+	    set hints($key) $str
+	}
     }
 
     if {$keyword != ""} {
-        if {[info exists hints($keyword)]} {
-            return $hints($keyword)
-        }
-        return ""
+	if {[info exists hints($keyword)]} {
+	    return $hints($keyword)
+	}
+	return ""
     }
     return [array get hints]
 }
@@ -291,30 +291,30 @@ itcl::body Rappture::Mesh::_buildNodesElements {xmlobj path} {
     # Extract each node and add it to the points list.
     #
     foreach comp [$xmlobj children -type node $path] {
-        set xyz [$xmlobj get $path.$comp]
+	set xyz [$xmlobj get $path.$comp]
 
-        # make sure we have x,y,z
-        while {[llength $xyz] < 3} {
-            lappend xyz "0"
-        }
+	# make sure we have x,y,z
+	while {[llength $xyz] < 3} {
+	    lappend xyz "0"
+	}
 
-        # extract each point and add it to the points list
-        foreach {x y z} $xyz break
-        foreach dim {x y z} units $_units {
-            set v [Rappture::Units::convert [set $dim] \
-                -context $units -to $units -units off]
+	# extract each point and add it to the points list
+	foreach {x y z} $xyz break
+	foreach dim {x y z} units $_units {
+	    set v [Rappture::Units::convert [set $dim] \
+		-context $units -to $units -units off]
 
-            set $dim $v  ;# save back to real x/y/z variable
+	    set $dim $v  ;# save back to real x/y/z variable
 
-            if {"" == $_limits(${dim}min)} {
-                set _limits(${dim}min) $v
-                set _limits(${dim}max) $v
-            } else {
-                if {$v < $_limits(${dim}min)} { set _limits(${dim}min) $v }
-                if {$v > $_limits(${dim}max)} { set _limits(${dim}max) $v }
-            }
-        }
-        $this-points InsertNextPoint $x $y $z
+	    if {"" == $_limits(${dim}min)} {
+		set _limits(${dim}min) $v
+		set _limits(${dim}max) $v
+	    } else {
+		if {$v < $_limits(${dim}min)} { set _limits(${dim}min) $v }
+		if {$v > $_limits(${dim}max)} { set _limits(${dim}max) $v }
+	    }
+	}
+	$this-points InsertNextPoint $x $y $z
     }
     $this-grid SetPoints $this-points
 
@@ -322,15 +322,15 @@ itcl::body Rappture::Mesh::_buildNodesElements {xmlobj path} {
     # Extract each element and add it to the mesh.
     #
     foreach comp [$xmlobj children -type element $path] {
-        set nlist [$_mesh get $comp.nodes]
-        set elem [_getVtkElement [llength $nlist]]
+	set nlist [$_mesh get $comp.nodes]
+	set elem [_getVtkElement [llength $nlist]]
 
-        set i 0
-        foreach n $nlist {
-            [$elem GetPointIds] SetId $i $n
-            incr i
-        }
-        $this-grid InsertNextCell [$elem GetCellType] [$elem GetPointIds]
+	set i 0
+	foreach n $nlist {
+	    [$elem GetPointIds] SetId $i $n
+	    incr i
+	}
+	$this-grid InsertNextCell [$elem GetCellType] [$elem GetPointIds]
     }
 }
 
@@ -350,7 +350,7 @@ itcl::body Rappture::Mesh::_buildRectMesh {xmlobj path} {
 
     $_gdata Update
     foreach name {xmin xmax ymin ymax zmin zmax} val [$_gdata GetBounds] {
-        set _limits($name) $val
+	set _limits($name) $val
     }
 }
 
@@ -364,24 +364,24 @@ itcl::body Rappture::Mesh::_buildRectMesh {xmlobj path} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Mesh::_getVtkElement {npts} {
     if {![info exists _pts2elem($npts)]} {
-        switch -- $npts {
-            4 {
-                set _pts2elem($npts) $this-elem4
-                vtkTetra $_pts2elem($npts)
-            }
-            5 {
-                set _pts2elem($npts) $this-elem5
-                vtkPyramid $_pts2elem($npts)
-            }
-            6 {
-                set _pts2elem($npts) $this-elem6
-                vtkWedge $_pts2elem($npts)
-            }
-            8 {
-                set _pts2elem($npts) $this-elem8
-                vtkVoxel $_pts2elem($npts)
-            }
-        }
+	switch -- $npts {
+	    4 {
+		set _pts2elem($npts) $this-elem4
+		vtkTetra $_pts2elem($npts)
+	    }
+	    5 {
+		set _pts2elem($npts) $this-elem5
+		vtkPyramid $_pts2elem($npts)
+	    }
+	    6 {
+		set _pts2elem($npts) $this-elem6
+		vtkWedge $_pts2elem($npts)
+	    }
+	    8 {
+		set _pts2elem($npts) $this-elem8
+		vtkVoxel $_pts2elem($npts)
+	    }
+	}
     }
     return $_pts2elem($npts)
 }

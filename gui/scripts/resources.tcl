@@ -27,7 +27,7 @@ namespace eval Rappture::resources {
     #
     variable optionParser [interp create -safe]
     foreach cmd [$optionParser eval {info commands}] {
-        $optionParser hide $cmd
+	$optionParser hide $cmd
     }
     # this lets us ignore unrecognized commands in the file:
     $optionParser invokehidden proc unknown {args} {}
@@ -44,7 +44,7 @@ namespace eval Rappture::resources {
 proc Rappture::resources::register {args} {
     variable optionParser
     foreach {name proc} $args {
-        $optionParser alias $name $proc
+	$optionParser alias $name $proc
     }
 }
 
@@ -70,7 +70,7 @@ proc Rappture::resources::load {{callback tk_messageBox}} {
     #
     global auto_index
     foreach name [array names auto_index *_init_resources] {
-        eval $name
+	eval $name
     }
 
     #
@@ -79,22 +79,22 @@ proc Rappture::resources::load {{callback tk_messageBox}} {
     # from that file.
     #
     if {[info exists env(SESSIONDIR)]} {
-        set file $env(SESSIONDIR)/resources
-        if {![file exists $file]} {
-            return 0
-        }
+	set file $env(SESSIONDIR)/resources
+	if {![file exists $file]} {
+	    return 0
+	}
 
-        if {[catch {
-            set fid [open $file r]
-            set info [read $fid]
-            close $fid
-            $optionParser eval $info
-        } result]} {
-            if {"" != $callback} {
-                after 1 [list $callback -title Error -icon error -message "Error in resources file:\n$result"]
-            }
-            return 0
-        }
+	if {[catch {
+	    set fid [open $file r]
+	    set info [read $fid]
+	    close $fid
+	    $optionParser eval $info
+	} result]} {
+	    if {"" != $callback} {
+		after 1 [list $callback -title Error -icon error -message "Error in resources file:\n$result"]
+	    }
+	    return 0
+	}
     }
     return 1
 }

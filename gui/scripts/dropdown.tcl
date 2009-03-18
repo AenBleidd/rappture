@@ -36,7 +36,7 @@ itcl::class Rappture::Dropdown {
     public proc outside {w x y}
 
     bind RapptureDropdown <ButtonPress> \
-        {if {[Rappture::Dropdown::outside %W %X %Y]} {%W unpost}}
+	{if {[Rappture::Dropdown::outside %W %X %Y]} {%W unpost}}
 }
 
 itk::usual Dropdown {
@@ -74,10 +74,10 @@ itcl::body Rappture::Dropdown::post {where args} {
     update idletasks  ;# fix size info
 
     if {[string length $itk_option(-postcommand)] > 0} {
-        set cmd [list uplevel #0 $itk_option(-postcommand)]
-        if {[catch $cmd result]} {
-            bgerror $result
-        }
+	set cmd [list uplevel #0 $itk_option(-postcommand)]
+	if {[catch $cmd result]} {
+	    bgerror $result
+	}
     }
 
     set w [winfo width $itk_component(hull)]
@@ -86,40 +86,40 @@ itcl::body Rappture::Dropdown::post {where args} {
     set sh [winfo screenwidth $itk_component(hull)]
 
     if {[regexp {^@([0-9]+),([0-9]+)$} $where match x y]} {
-        set xpos $x
-        set ypos $y
+	set xpos $x
+	set ypos $y
     } elseif {[winfo exists $where]} {
-        set x0 [winfo rootx $where]
-        switch -- $args {
-            left { set xpos $x0 }
-            right { set xpos [expr {$x0 + [winfo width $where] - $sw}] }
-            default {
-                error "bad option \"$args\": should be left, right"
-            }
-        }
-        set ypos [expr {[winfo rooty $where]+[winfo height $where]}]
+	set x0 [winfo rootx $where]
+	switch -- $args {
+	    left { set xpos $x0 }
+	    right { set xpos [expr {$x0 + [winfo width $where] - $sw}] }
+	    default {
+		error "bad option \"$args\": should be left, right"
+	    }
+	}
+	set ypos [expr {[winfo rooty $where]+[winfo height $where]}]
     } else {
-        error "bad position \"$where\": should be widget name or @x,y"
+	error "bad position \"$where\": should be widget name or @x,y"
     }
 
     # make sure the dropdown doesn't go off screen
     if {$xpos > 0} {
-        # left-justified positions
-        if {$xpos + $w > $sw} {
-            set xpos [expr {$sw-$w}]
-            if {$xpos < 0} { set xpos 0 }
-        }
-        set xpos "+$xpos"
+	# left-justified positions
+	if {$xpos + $w > $sw} {
+	    set xpos [expr {$sw-$w}]
+	    if {$xpos < 0} { set xpos 0 }
+	}
+	set xpos "+$xpos"
     } else {
-        # right-justified positions
-        if {$xpos - $w < -$sw} {
-            set xpos [expr {-$sw+$w}]
-            if {$xpos > 0} { set xpos -1 }
-        }
+	# right-justified positions
+	if {$xpos - $w < -$sw} {
+	    set xpos [expr {-$sw+$w}]
+	    if {$xpos > 0} { set xpos -1 }
+	}
     }
     if {$ypos + $h > $sh} {
-        set ypos [expr {$sh-$h}]
-        if {$ypos < 0} { set ypos 0 }
+	set ypos [expr {$sh-$h}]
+	if {$ypos < 0} { set ypos 0 }
     }
 
     # post the dropdown on the screen
@@ -132,7 +132,7 @@ itcl::body Rappture::Dropdown::post {where args} {
     # grab the mouse pointer
     update
     while {[catch {grab set -global $itk_component(hull)}]} {
-        after 100
+	after 100
     }
 }
 
@@ -146,10 +146,10 @@ itcl::body Rappture::Dropdown::unpost {} {
     wm withdraw $itk_component(hull)
 
     if {[string length $itk_option(-unpostcommand)] > 0} {
-        set cmd [list uplevel #0 $itk_option(-unpostcommand)]
-        if {[catch $cmd result]} {
-            bgerror $result
-        }
+	set cmd [list uplevel #0 $itk_option(-unpostcommand)]
+	if {[catch $cmd result]} {
+	    bgerror $result
+	}
     }
 }
 
@@ -171,9 +171,9 @@ itcl::body Rappture::Dropdown::_adjust {{widget ""}} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Dropdown::outside {widget x y} {
     return [expr {$x < [winfo rootx $widget]
-             || $x > [winfo rootx $widget]+[winfo width $widget]
-             || $y < [winfo rooty $widget]
-             || $y > [winfo rooty $widget]+[winfo height $widget]}]
+	     || $x > [winfo rootx $widget]+[winfo width $widget]
+	     || $y < [winfo rooty $widget]
+	     || $y > [winfo rooty $widget]+[winfo height $widget]}]
 }
 
 # ----------------------------------------------------------------------

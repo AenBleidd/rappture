@@ -25,14 +25,14 @@ option add *MolvisViewer.font -*-helvetica-medium-r-normal-*-12-* widgetDefault
 # must use this name -- plugs into Rappture::resources::load
 proc MolvisViewer_init_resources {} {
     Rappture::resources::register \
-        molvis_server Rappture::MolvisViewer::SetServerList
+	molvis_server Rappture::MolvisViewer::SetServerList
 }
 
 set debug 0
 proc debug { args } {
     global debug
     if { $debug } {
-        puts stderr "[info level -1]: $args"
+	puts stderr "[info level -1]: $args"
     }
 }
 
@@ -42,15 +42,15 @@ itcl::class Rappture::MolvisViewer {
     itk_option define -device device Device ""
 
     constructor { hostlist args } {
-        Rappture::VisViewer::constructor $hostlist
+	Rappture::VisViewer::constructor $hostlist
     } {
-        # defined below
+	# defined below
     }
     destructor {
-        # defined below
+	# defined below
     }
     public proc SetServerList { namelist } {
-        Rappture::VisViewer::SetServerList "pymol" $namelist
+	Rappture::VisViewer::SetServerList "pymol" $namelist
     }
     public method Connect {}
     public method Disconnect {}
@@ -141,7 +141,7 @@ itcl::body Rappture::MolvisViewer::constructor {hostlist args} {
     $_dispatcher dispatch $this !mevent "[itcl::code $this _mevent]; list"
 
     array set _downloadPopup {
-        format jpg
+	format jpg
     }
 
     # Populate the slave interpreter with commands to handle responses from
@@ -157,76 +157,76 @@ itcl::body Rappture::MolvisViewer::constructor {hostlist args} {
     set _hostlist $hostlist
 
     array set view_ {
-        theta   45
-        phi     45
-        psi     0
-        vx 0
-        vy 0
-        vz 0
-        zoom 0
-        mx 0
-        my 0
-        mz 0
-        x  0
-        y  0
-        z  0
-        width 0
-        height 0
+	theta   45
+	phi     45
+	psi     0
+	vx 0
+	vy 0
+	vz 0
+	zoom 0
+	mx 0
+	my 0
+	mz 0
+	x  0
+	y  0
+	z  0
+	width 0
+	height 0
     }
 
     # Setup default settings for widget.
     array set _settings [subst {
-        $this-model     ballnstick
-        $this-modelimg  [Rappture::icon ballnstick]
-        $this-emblems   no
-        $this-rock      no
-        $this-ortho     no
-        $this-atomscale 0.25
-        $this-bondthickness 0.15
+	$this-model     ballnstick
+	$this-modelimg  [Rappture::icon ballnstick]
+	$this-emblems   no
+	$this-rock      no
+	$this-ortho     no
+	$this-atomscale 0.25
+	$this-bondthickness 0.15
     }]
 
     #
     # Set up the widgets in the main body
     #
     itk_component add reset {
-        button $itk_component(controls).reset \
-            -borderwidth 1 -padx 1 -pady 1 \
-            -image [Rappture::icon reset-view] \
-            -command [itcl::code $this ResetView]
+	button $itk_component(controls).reset \
+	    -borderwidth 1 -padx 1 -pady 1 \
+	    -image [Rappture::icon reset-view] \
+	    -command [itcl::code $this ResetView]
     } {
-        usual
-        ignore -borderwidth
-        rename -highlightbackground -controlbackground controlBackground \
-            Background
+	usual
+	ignore -borderwidth
+	rename -highlightbackground -controlbackground controlBackground \
+	    Background
     }
     pack $itk_component(reset) -padx 1 -pady 2
     Rappture::Tooltip::for $itk_component(reset) \
-        "Reset the view to the default zoom level"
+	"Reset the view to the default zoom level"
 
     itk_component add zoomin {
-        button $itk_component(controls).zin \
-            -borderwidth 1 -padx 1 -pady 1 \
-            -image [Rappture::icon zoom-in] \
-            -command [itcl::code $this _zoom in]
+	button $itk_component(controls).zin \
+	    -borderwidth 1 -padx 1 -pady 1 \
+	    -image [Rappture::icon zoom-in] \
+	    -command [itcl::code $this _zoom in]
     } {
-        usual
-        ignore -borderwidth
-        rename -highlightbackground -controlbackground \
-            controlBackground Background
+	usual
+	ignore -borderwidth
+	rename -highlightbackground -controlbackground \
+	    controlBackground Background
     }
     pack $itk_component(zoomin) -padx 2 -pady { 0 2 }
     Rappture::Tooltip::for $itk_component(zoomin) "Zoom in"
 
     itk_component add zoomout {
-        button $itk_component(controls).zout \
-            -borderwidth 1 -padx 1 -pady 1 \
-            -image [Rappture::icon zoom-out] \
-            -command [itcl::code $this _zoom out]
+	button $itk_component(controls).zout \
+	    -borderwidth 1 -padx 1 -pady 1 \
+	    -image [Rappture::icon zoom-out] \
+	    -command [itcl::code $this _zoom out]
     } {
-        usual
-        ignore -borderwidth
-        rename -highlightbackground -controlbackground controlBackground \
-            Background
+	usual
+	ignore -borderwidth
+	rename -highlightbackground -controlbackground controlBackground \
+	    Background
     }
     pack $itk_component(zoomout) -padx 2 -pady { 0 2 }
     Rappture::Tooltip::for $itk_component(zoomout) "Zoom out"
@@ -235,81 +235,81 @@ itcl::body Rappture::MolvisViewer::constructor {hostlist args} {
     # Shortcuts
     #
     itk_component add shortcuts {
-        frame $itk_component(controls).shortcuts
+	frame $itk_component(controls).shortcuts
     } {
-        usual
-        rename -background -controlbackground controlBackground Background
+	usual
+	rename -background -controlbackground controlBackground Background
     }
     pack $itk_component(shortcuts) -side top
 
     itk_component add labels {
-        label $itk_component(shortcuts).labels \
-            -borderwidth 1 -padx 1 -pady 1 \
-            -relief "raised" -image [Rappture::icon atom-label]
+	label $itk_component(shortcuts).labels \
+	    -borderwidth 1 -padx 1 -pady 1 \
+	    -relief "raised" -image [Rappture::icon atom-label]
     } {
-        usual
-        ignore -borderwidth
-        rename -highlightbackground -controlbackground controlBackground \
-            Background
+	usual
+	ignore -borderwidth
+	rename -highlightbackground -controlbackground controlBackground \
+	    Background
     }
     pack $itk_component(labels) -padx 2 -pady { 0 2} -ipadx 1 -ipady 1
     Rappture::Tooltip::for $itk_component(labels) \
-        "Show/hide the labels on atoms"
+	"Show/hide the labels on atoms"
     bind $itk_component(labels) <ButtonPress> \
-        [itcl::code $this emblems toggle]
+	[itcl::code $this emblems toggle]
 
     itk_component add rock {
-        label $itk_component(shortcuts).rock \
-            -borderwidth 1 -padx 1 -pady 1 \
-            -relief "raised" -image [Rappture::icon rock-view]
+	label $itk_component(shortcuts).rock \
+	    -borderwidth 1 -padx 1 -pady 1 \
+	    -relief "raised" -image [Rappture::icon rock-view]
     } {
-        usual
-        ignore -borderwidth
-        rename -highlightbackground -controlbackground controlBackground \
-            Background
+	usual
+	ignore -borderwidth
+	rename -highlightbackground -controlbackground controlBackground \
+	    Background
     }
     pack $itk_component(rock) -padx 2 -pady { 0 2 } -ipadx 1 -ipady 1
     Rappture::Tooltip::for $itk_component(rock) "Rock model back and forth"
 
     bind $itk_component(rock) <ButtonPress> \
-        [itcl::code $this rock toggle]
+	[itcl::code $this rock toggle]
 
 
     itk_component add ortho {
-        label $itk_component(shortcuts).ortho \
-            -borderwidth 1 -padx 1 -pady 1 \
-            -relief "raised" -image [Rappture::icon 3dpers]
+	label $itk_component(shortcuts).ortho \
+	    -borderwidth 1 -padx 1 -pady 1 \
+	    -relief "raised" -image [Rappture::icon 3dpers]
     } {
-        usual
-        ignore -borderwidth
-        rename -highlightbackground -controlbackground controlBackground \
-            Background
+	usual
+	ignore -borderwidth
+	rename -highlightbackground -controlbackground controlBackground \
+	    Background
     }
     pack $itk_component(ortho) -padx 2 -pady { 0 2 } -ipadx 1 -ipady 1
     Rappture::Tooltip::for $itk_component(ortho) \
-        "Change to orthoscopic projection"
+	"Change to orthoscopic projection"
 
     bind $itk_component(ortho) <ButtonPress> \
-        [itcl::code $this projection toggle]
+	[itcl::code $this projection toggle]
     $this projection perspective
 
     itk_component add settings_button {
-        label $itk_component(controls).settingsbutton \
-            -borderwidth 1 -padx 1 -pady 1 \
-            -relief "raised" -image [Rappture::icon wrench]
+	label $itk_component(controls).settingsbutton \
+	    -borderwidth 1 -padx 1 -pady 1 \
+	    -relief "raised" -image [Rappture::icon wrench]
     } {
-        usual
-        ignore -borderwidth
-        rename -highlightbackground -controlbackground controlBackground \
-            Background
+	usual
+	ignore -borderwidth
+	rename -highlightbackground -controlbackground controlBackground \
+	    Background
     }
     pack $itk_component(settings_button) -padx 2 -pady { 0 2 } -ipadx 1 -ipady 1
     Rappture::Tooltip::for $itk_component(settings_button) \
-        "Configure settings"
+	"Configure settings"
     bind $itk_component(settings_button) <ButtonPress> \
-        [itcl::code $this settings toggle]
+	[itcl::code $this settings toggle]
     pack $itk_component(settings_button) -side bottom \
-        -padx 2 -pady 2 -anchor e
+	-padx 2 -pady 2 -anchor e
 
     _BuildSettingsDrawer
 
@@ -321,55 +321,55 @@ itcl::body Rappture::MolvisViewer::constructor {hostlist args} {
 
     # set up bindings for rotation
     if 0 {
-        bind $itk_component(3dview) <ButtonPress-1> \
-            [itcl::code $this _rotate click %x %y]
-        bind $itk_component(3dview) <B1-Motion> \
-            [itcl::code $this _rotate drag %x %y]
-        bind $itk_component(3dview) <ButtonRelease-1> \
-            [itcl::code $this _rotate release %x %y]
+	bind $itk_component(3dview) <ButtonPress-1> \
+	    [itcl::code $this _rotate click %x %y]
+	bind $itk_component(3dview) <B1-Motion> \
+	    [itcl::code $this _rotate drag %x %y]
+	bind $itk_component(3dview) <ButtonRelease-1> \
+	    [itcl::code $this _rotate release %x %y]
     } else {
-        bind $itk_component(3dview) <ButtonPress-1> \
-            [itcl::code $this _vmouse click %b %s %x %y]
-        bind $itk_component(3dview) <B1-Motion> \
-            [itcl::code $this _vmouse drag 1 %s %x %y]
-        bind $itk_component(3dview) <ButtonRelease-1> \
-            [itcl::code $this _vmouse release %b %s %x %y]
+	bind $itk_component(3dview) <ButtonPress-1> \
+	    [itcl::code $this _vmouse click %b %s %x %y]
+	bind $itk_component(3dview) <B1-Motion> \
+	    [itcl::code $this _vmouse drag 1 %s %x %y]
+	bind $itk_component(3dview) <ButtonRelease-1> \
+	    [itcl::code $this _vmouse release %b %s %x %y]
     }
 
     bind $itk_component(3dview) <ButtonPress-2> \
-        [itcl::code $this _pan click %x %y]
+	[itcl::code $this _pan click %x %y]
     bind $itk_component(3dview) <B2-Motion> \
-        [itcl::code $this _pan drag %x %y]
+	[itcl::code $this _pan drag %x %y]
     bind $itk_component(3dview) <ButtonRelease-2> \
-        [itcl::code $this _pan release %x %y]
+	[itcl::code $this _pan release %x %y]
 
     bind $itk_component(3dview) <KeyPress-Left> \
-        [itcl::code $this _pan set -10 0]
+	[itcl::code $this _pan set -10 0]
     bind $itk_component(3dview) <KeyPress-Right> \
-        [itcl::code $this _pan set 10 0]
+	[itcl::code $this _pan set 10 0]
     bind $itk_component(3dview) <KeyPress-Up> \
-        [itcl::code $this _pan set 0 -10]
+	[itcl::code $this _pan set 0 -10]
     bind $itk_component(3dview) <KeyPress-Down> \
-        [itcl::code $this _pan set 0 10]
+	[itcl::code $this _pan set 0 10]
     bind $itk_component(3dview) <Shift-KeyPress-Left> \
-        [itcl::code $this _pan set -50 0]
+	[itcl::code $this _pan set -50 0]
     bind $itk_component(3dview) <Shift-KeyPress-Right> \
-        [itcl::code $this _pan set 50 0]
+	[itcl::code $this _pan set 50 0]
     bind $itk_component(3dview) <Shift-KeyPress-Up> \
-        [itcl::code $this _pan set 0 -50]
+	[itcl::code $this _pan set 0 -50]
     bind $itk_component(3dview) <Shift-KeyPress-Down> \
-        [itcl::code $this _pan set 0 50]
+	[itcl::code $this _pan set 0 50]
     bind $itk_component(3dview) <KeyPress-Prior> \
-        [itcl::code $this _zoom out 2]
+	[itcl::code $this _zoom out 2]
     bind $itk_component(3dview) <KeyPress-Next> \
-        [itcl::code $this _zoom in 2]
+	[itcl::code $this _zoom in 2]
 
     bind $itk_component(3dview) <Enter> "focus $itk_component(3dview)"
 
 
     if {[string equal "x11" [tk windowingsystem]]} {
-        bind $itk_component(3dview) <4> [itcl::code $this _zoom out 2]
-        bind $itk_component(3dview) <5> [itcl::code $this _zoom in 2]
+	bind $itk_component(3dview) <4> [itcl::code $this _zoom out 2]
+	bind $itk_component(3dview) <5> [itcl::code $this _zoom in 2]
     }
 
     # set up bindings to bridge mouse events to server
@@ -387,11 +387,11 @@ itcl::body Rappture::MolvisViewer::constructor {hostlist args} {
     #    [itcl::code $this _vmouse2 move 0 %s %x %y]
 
     bind $itk_component(3dview) <Configure> \
-        [itcl::code $this _configure %w %h]
+	[itcl::code $this _configure %w %h]
     bind $itk_component(3dview) <Unmap> \
-        [itcl::code $this _unmap]
+	[itcl::code $this _unmap]
     bind $itk_component(3dview) <Map> \
-        [itcl::code $this _map]
+	[itcl::code $this _map]
 
     eval itk_initialize $args
     Connect
@@ -400,23 +400,23 @@ itcl::body Rappture::MolvisViewer::constructor {hostlist args} {
 itcl::body Rappture::MolvisViewer::_BuildSettingsDrawer {} {
 
     itk_component add settings {
-        Rappture::Scroller $itk_component(drawer).scrl \
-            -xscrollmode auto -yscrollmode auto \
-            -width 200 -height 100
+	Rappture::Scroller $itk_component(drawer).scrl \
+	    -xscrollmode auto -yscrollmode auto \
+	    -width 200 -height 100
     }
 
     itk_component add settings_canvas {
-        canvas $itk_component(settings).canvas
+	canvas $itk_component(settings).canvas
     }
     $itk_component(settings) contents $itk_component(settings_canvas)
 
     itk_component add settings_frame {
-        frame $itk_component(settings_canvas).frame -bg white
+	frame $itk_component(settings_canvas).frame -bg white
     } 
     $itk_component(settings_canvas) create window 0 0 \
-        -anchor nw -window $itk_component(settings_frame)
+	-anchor nw -window $itk_component(settings_frame)
     bind $itk_component(settings_frame) <Configure> \
-        [itcl::code $this settings resize]
+	[itcl::code $this settings resize]
 
     set fg [option get $itk_component(hull) font Font]
 
@@ -425,55 +425,55 @@ itcl::body Rappture::MolvisViewer::_BuildSettingsDrawer {} {
 
     label $inner.pict -image $_settings($this-modelimg)
     radiobutton $inner.bstick -text "balls and sticks" \
-        -command [itcl::code $this representation ballnstick all] \
-        -variable Rappture::MolvisViewer::_settings($this-model) \
-        -value ballnstick -font "Arial 9" -pady 0 
+	-command [itcl::code $this representation ballnstick all] \
+	-variable Rappture::MolvisViewer::_settings($this-model) \
+	-value ballnstick -font "Arial 9" -pady 0 
     radiobutton $inner.spheres -text "spheres" \
-        -command [itcl::code $this representation spheres all] \
-        -variable Rappture::MolvisViewer::_settings($this-model) \
-        -value spheres -font "Arial 9" -pady 0
+	-command [itcl::code $this representation spheres all] \
+	-variable Rappture::MolvisViewer::_settings($this-model) \
+	-value spheres -font "Arial 9" -pady 0
     radiobutton $inner.lines -text "lines" \
-        -command [itcl::code $this representation lines all] \
-        -variable Rappture::MolvisViewer::_settings($this-model) \
-        -value lines -font "Arial 9" -pady 0
+	-command [itcl::code $this representation lines all] \
+	-variable Rappture::MolvisViewer::_settings($this-model) \
+	-value lines -font "Arial 9" -pady 0
 
     scale $inner.atomscale -width 10 -font "Arial 9 bold" \
-        -from 0.1 -to 2.0 -resolution 0.05 -label "Atom Scale" \
-        -showvalue true -orient horizontal \
-        -command [itcl::code $this atomscale] \
-        -variable Rappture::MolvisViewer::_settings($this-atomscale)
+	-from 0.1 -to 2.0 -resolution 0.05 -label "Atom Scale" \
+	-showvalue true -orient horizontal \
+	-command [itcl::code $this atomscale] \
+	-variable Rappture::MolvisViewer::_settings($this-atomscale)
     $inner.atomscale set $_settings($this-atomscale)
 
     scale $inner.bondthickness -width 10 -font "Arial 9 bold" \
-        -from 0.1 -to 1.0 -resolution 0.025 -label "Bond Thickness" \
-        -showvalue true -orient horizontal \
-        -command [itcl::code $this bondthickness] \
-        -variable Rappture::MolvisViewer::_settings($this-bondthickness)
+	-from 0.1 -to 1.0 -resolution 0.025 -label "Bond Thickness" \
+	-showvalue true -orient horizontal \
+	-command [itcl::code $this bondthickness] \
+	-variable Rappture::MolvisViewer::_settings($this-bondthickness)
     $inner.bondthickness set $_settings($this-bondthickness)
 
     checkbutton $inner.labels -text "Show labels on atoms" \
-        -command [itcl::code $this emblems update] \
-        -variable Rappture::MolvisViewer::_settings($this-emblems) \
-        -font "Arial 9 bold"
+	-command [itcl::code $this emblems update] \
+	-variable Rappture::MolvisViewer::_settings($this-emblems) \
+	-font "Arial 9 bold"
     checkbutton $inner.rock -text "Rock model back and forth" \
-        -command [itcl::code $this rock toggle] \
-        -variable Rappture::MolvisViewer::_settings($this-rock) \
-        -font "Arial 9 bold"
+	-command [itcl::code $this rock toggle] \
+	-variable Rappture::MolvisViewer::_settings($this-rock) \
+	-font "Arial 9 bold"
     checkbutton $inner.ortho -text "Orthoscopic projection" \
-        -command [itcl::code $this projection update] \
-        -variable Rappture::MolvisViewer::_settings($this-ortho) \
-         -font "Arial 9 bold"
+	-command [itcl::code $this projection update] \
+	-variable Rappture::MolvisViewer::_settings($this-ortho) \
+	 -font "Arial 9 bold"
     blt::table $inner \
-        0,0 $inner.drawinglabel -anchor w -columnspan 4 \
-        1,1 $inner.pict -anchor w -rowspan 3 \
-        1,2 $inner.spheres -anchor w -columnspan 2 \
-        2,2 $inner.lines -anchor w -columnspan 2 \
-        3,2 $inner.bstick -anchor w -columnspan 2 \
-        4,0 $inner.labels -anchor w -columnspan 4 \
-        5,0 $inner.rock -anchor w -columnspan 4 \
-        6,0 $inner.ortho -anchor w -columnspan 4 \
-        8,1 $inner.atomscale -anchor w -columnspan 2 \
-        10,1 $inner.bondthickness -anchor w -columnspan 2 
+	0,0 $inner.drawinglabel -anchor w -columnspan 4 \
+	1,1 $inner.pict -anchor w -rowspan 3 \
+	1,2 $inner.spheres -anchor w -columnspan 2 \
+	2,2 $inner.lines -anchor w -columnspan 2 \
+	3,2 $inner.bstick -anchor w -columnspan 2 \
+	4,0 $inner.labels -anchor w -columnspan 4 \
+	5,0 $inner.rock -anchor w -columnspan 4 \
+	6,0 $inner.ortho -anchor w -columnspan 4 \
+	8,1 $inner.atomscale -anchor w -columnspan 2 \
+	10,1 $inner.bondthickness -anchor w -columnspan 2 
 
     blt::table configure $inner c0 -resize expand -width 2
     blt::table configure $inner c1 c2 -resize none
@@ -503,71 +503,77 @@ itcl::body Rappture::MolvisViewer::destructor {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::MolvisViewer::download {option args} {
     switch $option {
-        coming {}
-        controls {
-            set popup .molvisviewerdownload
-            if {![winfo exists .molvisviewerdownload]} {
-                # if we haven't created the popup yet, do it now
-                Rappture::Balloon $popup -title "[Rappture::filexfer::label downloadWord] as..."
-                set inner [$popup component inner]
-                label $inner.summary -text "" -anchor w
-                pack $inner.summary -side top
-                radiobutton $inner.jpg -text "JPEG Image" \
-                    -variable Rappture::MolvisViewer::_downloadPopup(format) \
-                    -value jpg
-                pack $inner.jpg -anchor w
-                radiobutton $inner.jpg -text "PNG Image" \
-                    -variable Rappture::MolvisViewer::_downloadPopup(format) \
-                    -value png 
-                pack $inner.jpg -anchor w
-                radiobutton $inner.pdb -text "PDB File" \
-                    -variable Rappture::MolvisViewer::_downloadPopup(format) \
-                    -value pdb
-                pack $inner.pdb -anchor w
-                button $inner.go -text [Rappture::filexfer::label download] \
-                    -command [lindex $args 0]
-                pack $inner.go -pady 4
-            } else {
-                set inner [$popup component inner]
-            }
-            set num [llength [get]]
-            set num [expr {($num == 1) ? "1 result" : "$num results"}]
-            $inner.summary configure -text "[Rappture::filexfer::label downloadWord] $num in the following format:"
-            update idletasks ;# fix initial sizes
-            return $popup
-        }
-        now {
+	coming {}
+	controls {
+	    set popup .molvisviewerdownload
+	    if {![winfo exists .molvisviewerdownload]} {
+		# if we haven't created the popup yet, do it now
+		Rappture::Balloon $popup -title "[Rappture::filexfer::label downloadWord] as..."
+		set inner [$popup component inner]
+		label $inner.summary -text "" -anchor w
+		pack $inner.summary -side top
+		radiobutton $inner.jpg -text "JPEG Image (draft quality)" \
+		    -variable Rappture::MolvisViewer::_downloadPopup(format) \
+		    -value jpg
+		pack $inner.jpg -anchor w
 
-            set popup .molvisviewerdownload
-            if {[winfo exists .molvisviewerdownload]} {
-                $popup deactivate
-            }
-            switch -- $_downloadPopup(format) {
+		radiobutton $inner.png -text "PNG Image (high quality)" \
+		    -variable Rappture::MolvisViewer::_downloadPopup(format) \
+		    -value png
+		pack $inner.png -anchor w
+
+		radiobutton $inner.pdb -text "PDB File" \
+		    -variable Rappture::MolvisViewer::_downloadPopup(format) \
+		    -value pdb
+		pack $inner.pdb -anchor w
+		button $inner.go -text [Rappture::filexfer::label download] \
+		    -command [lindex $args 0]
+		pack $inner.go -pady 4
+	    } else {
+		set inner [$popup component inner]
+	    }
+	    set num [llength [get]]
+	    set num [expr {($num == 1) ? "1 result" : "$num results"}]
+	    $inner.summary configure -text "[Rappture::filexfer::label downloadWord] $num in the following format:"
+	    update idletasks ;# fix initial sizes
+	    return $popup
+	}
+	now {
+
+	    set popup .molvisviewerdownload
+	    if {[winfo exists .molvisviewerdownload]} {
+		$popup deactivate
+	    }
+	    switch -- $_downloadPopup(format) {
 		jpg {
-		    set data [$_image(plot) data -format jpeg]
-		    set encoded [Rappture::encoding::decode -as b64 $data]
-		    return [list .jpg $encoded]
+		    # Get image data (as base64) and decode back to binary.
+		    # This is better than writing to temporary files.  When we
+		    # switch the BLT picture image it won't be necessary to
+		    # decode the image data.
+		    set bytes [$_image(plot) data -format "jpeg -quality 100"]
+		    set bytes [Rappture::encoding::decode -as b64 $bytes]
+		    return [list .jpg $bytes]
 		}
 		png {
 		    set token "print[incr nextToken_]"
 		    _send "print $token 2400 2400"
 		    # Setup popup with cancel button and timeout.
 		    blt::busy hold $popup
-		    tkwait Rappture::MolvisViewer::hardcopy_($this-$token)
+		    tkwait variable \
+			Rappture::MolvisViewer::hardcopy_($this-$token)
 		    # Pass the image as-is. Don't convert it.
-		    set data $hardcopy_($this-$token) 
-		    set encoded [Rappture::encoding::decode -as b64 $data]
+		    set bytes $hardcopy_($this-$token) 
 		    blt::busy release $popup
-		    return [list .png $encoded]
+		    return [list .png $bytes]
 		}
 		pdb {
 		    return [list .pdb $_pdbdata]
 		}
-            }
-        }
-        default {
-            error "bad option \"$option\": should be coming, controls, now"
-        }
+	    }
+	}
+	default {
+	    error "bad option \"$option\": should be coming, controls, now"
+	}
     }
 }
 
@@ -588,18 +594,18 @@ itcl::body Rappture::MolvisViewer::isconnected {} {
 #
 itcl::body Rappture::MolvisViewer::Connect {} {
     if { [isconnected] } {
-        return 1
+	return 1
     }
     set hosts [GetServerList "pymol"]
     if { "" == $hosts } {
-        return 0
+	return 0
     }
     set result [VisViewer::Connect $hosts]
     if { $result } {
-        set _rocker(server) 0
-        set _cacheid 0
-        _send "raw -defer {set auto_color,0}"
-        _send "raw -defer {set auto_show_lines,0}"
+	set _rocker(server) 0
+	set _cacheid 0
+	_send "raw -defer {set auto_color,0}"
+	_send "raw -defer {set auto_show_lines,0}"
     }
     return $result
 }
@@ -629,15 +635,15 @@ itcl::body Rappture::MolvisViewer::Disconnect {} {
 itcl::body Rappture::MolvisViewer::_send { args } {
     debug "_send $args"
     if { $_state(server) != $_state(client) } {
-        if { ![SendBytes "frame -defer $_state(client)"] } {
-            set _state(server) $_state(client)
-        }
+	if { ![SendBytes "frame -defer $_state(client)"] } {
+	    set _state(server) $_state(client)
+	}
     }
 
     if { $_rocker(server) != $_rocker(client) } {
-        if { ![SendBytes "rock -defer $_rocker(client)"] } {
-            set _rocker(server) $_rocker(client)
-        }
+	if { ![SendBytes "rock -defer $_rocker(client)"] } {
+	    set _rocker(server) $_rocker(client)
+	}
     }
     eval SendBytes $args
 }
@@ -656,13 +662,14 @@ itcl::body Rappture::MolvisViewer::_ReceiveImage { size cacheid frame rock } {
     incr count
     debug "$count: cacheid=$cacheid frame=$frame\n"
     if { $cacheid != $_cacheid } {
-        array unset _imagecache 
-        set _cacheid $cacheid
+	array unset _imagecache 
+	set _cacheid $cacheid
     }
     #debug "reading $size bytes from proxy\n"
     set data [ReceiveBytes $size]
     #debug "success: reading $size bytes from proxy\n"
     if { $cacheid == "print" } {
+	puts stderr "got hardcopy token"
 	# $frame is the token that we sent to the proxy.
 	set hardcopy_($this-$frame) $data
     } else {
@@ -683,8 +690,8 @@ itcl::body Rappture::MolvisViewer::_ReceiveImage { size cacheid frame rock } {
 # ----------------------------------------------------------------------
 itcl::body Rappture::MolvisViewer::_rebuild {} {
     if { $_inrebuild } {
-        # don't allow overlapping rebuild calls
-        return
+	# don't allow overlapping rebuild calls
+	return
     }
     debug "in rebuild"
     #set _inrebuild 1
@@ -696,143 +703,143 @@ itcl::body Rappture::MolvisViewer::_rebuild {} {
     #update idletasks
     set dlist [get]
     foreach dev $dlist {
-        set model [$dev get components.molecule.model]
-        set state [$dev get components.molecule.state]
+	set model [$dev get components.molecule.model]
+	set state [$dev get components.molecule.state]
 
-        if {"" == $model } {
-            set model "molecule"
-            scan $dev "::libraryObj%d" suffix
-            set model $model$suffix
-        }
+	if {"" == $model } {
+	    set model "molecule"
+	    scan $dev "::libraryObj%d" suffix
+	    set model $model$suffix
+	}
 
-        if {"" == $state} { set state $_state(server) }
+	if {"" == $state} { set state $_state(server) }
 
-        if { ![info exists _mlist($model)] } { # new, turn on
-            set _mlist($model) 2
-        } elseif { $_mlist($model) == 1 } { # on, leave on
-            set _mlist($model) 3 
-        } elseif { $_mlist($model) == 0 } { # off, turn on
-            set _mlist($model) 2
-        }
-        if { ![info exists _dataobjs($model-$state)] } {
-            set data1      ""
-            set serial    1
+	if { ![info exists _mlist($model)] } { # new, turn on
+	    set _mlist($model) 2
+	} elseif { $_mlist($model) == 1 } { # on, leave on
+	    set _mlist($model) 3 
+	} elseif { $_mlist($model) == 0 } { # off, turn on
+	    set _mlist($model) 2
+	}
+	if { ![info exists _dataobjs($model-$state)] } {
+	    set data1      ""
+	    set serial    1
 
-            foreach _atom [$dev children -type atom components.molecule] {
-                set symbol [$dev get components.molecule.$_atom.symbol]
-                set xyz [$dev get components.molecule.$_atom.xyz]
-                regsub {,} $xyz {} xyz
-                scan $xyz "%f %f %f" x y z
-                set recname  "ATOM  "
-                set altLoc   ""
-                set resName  ""
-                set chainID  ""
-                set Seqno    ""
-                set occupancy  1
-                set tempFactor 0
-                set recID      ""
-                set segID      ""
-                set element    ""
-                set charge     ""
-                set atom $symbol
-                set line [format "%6s%5d %4s%1s%3s %1s%5s   %8.3f%8.3f%8.3f%6.2f%6.2f%8s\n" $recname $serial $atom $altLoc $resName $chainID $Seqno $x $y $z $occupancy $tempFactor $recID]
-                append data1 $line
-                incr serial
-            }
-            set data2 [$dev get components.molecule.pdb]
-            if {"" != $data1} {
-                set _pdbdata $data1
-                _send "loadpdb -defer \"$data1\" $model $state"
-                set _dataobjs($model-$state)  1
-            }
-            # note that pdb files always overwrite xyz files
-            if {"" != $data2} {
-                set _pdbdata $data2
-                _send "loadpdb -defer \"$data2\" $model $state"
-                set _dataobjs($model-$state)  1
-            }
-        }
-        if { ![info exists _model($model-transparency)] } {
-            set _model($model-transparency) "undefined"
-        }
-        if { ![info exists _model($model-representation)] } {
-            set _model($model-representation) "undefined"
-            set _model($model-newrepresentation) $_mrepresentation
-        }
-        if { $_model($model-transparency) != $_dobj2transparency($dev) } {
-            set _model($model-newtransparency) $_dobj2transparency($dev)
-        }
+	    foreach _atom [$dev children -type atom components.molecule] {
+		set symbol [$dev get components.molecule.$_atom.symbol]
+		set xyz [$dev get components.molecule.$_atom.xyz]
+		regsub {,} $xyz {} xyz
+		scan $xyz "%f %f %f" x y z
+		set recname  "ATOM  "
+		set altLoc   ""
+		set resName  ""
+		set chainID  ""
+		set Seqno    ""
+		set occupancy  1
+		set tempFactor 0
+		set recID      ""
+		set segID      ""
+		set element    ""
+		set charge     ""
+		set atom $symbol
+		set line [format "%6s%5d %4s%1s%3s %1s%5s   %8.3f%8.3f%8.3f%6.2f%6.2f%8s\n" $recname $serial $atom $altLoc $resName $chainID $Seqno $x $y $z $occupancy $tempFactor $recID]
+		append data1 $line
+		incr serial
+	    }
+	    set data2 [$dev get components.molecule.pdb]
+	    if {"" != $data1} {
+		set _pdbdata $data1
+		_send "loadpdb -defer \"$data1\" $model $state"
+		set _dataobjs($model-$state)  1
+	    }
+	    # note that pdb files always overwrite xyz files
+	    if {"" != $data2} {
+		set _pdbdata $data2
+		_send "loadpdb -defer \"$data2\" $model $state"
+		set _dataobjs($model-$state)  1
+	    }
+	}
+	if { ![info exists _model($model-transparency)] } {
+	    set _model($model-transparency) "undefined"
+	}
+	if { ![info exists _model($model-representation)] } {
+	    set _model($model-representation) "undefined"
+	    set _model($model-newrepresentation) $_mrepresentation
+	}
+	if { $_model($model-transparency) != $_dobj2transparency($dev) } {
+	    set _model($model-newtransparency) $_dobj2transparency($dev)
+	}
     }
 
     # enable/disable models as required (0=off->off, 1=on->off, 2=off->on,
     # 3=on->on)
 
     foreach obj [array names _mlist] {
-        if { $_mlist($obj) == 1 } {
-            _send "disable -defer $obj"
-            set _mlist($obj) 0
-            set changed 1
-        } elseif { $_mlist($obj) == 2 } {
-            set _mlist($obj) 1
-            _send "enable -defer $obj"
-            if { $_labels } {
-                _send "label -defer on"
-            } else {
-                _send "label -defer off"
-            }
-            set changed 1
-        } elseif { $_mlist($obj) == 3 } {
-            set _mlist($obj) 1
-        }
+	if { $_mlist($obj) == 1 } {
+	    _send "disable -defer $obj"
+	    set _mlist($obj) 0
+	    set changed 1
+	} elseif { $_mlist($obj) == 2 } {
+	    set _mlist($obj) 1
+	    _send "enable -defer $obj"
+	    if { $_labels } {
+		_send "label -defer on"
+	    } else {
+		_send "label -defer off"
+	    }
+	    set changed 1
+	} elseif { $_mlist($obj) == 3 } {
+	    set _mlist($obj) 1
+	}
 
-        if { $_mlist($obj) == 1 } {
-            if {  [info exists _model($obj-newtransparency)] || 
-                  [info exists _model($obj-newrepresentation)] } {
-                if { ![info exists _model($obj-newrepresentation)] } {
-                    set _model($obj-newrepresentation) $_model($obj-representation)
-                }
-                if { ![info exists _model($obj-newtransparency)] } {
-                    set _model($obj-newtransparency) $_model($obj-transparency)
-                }
-                set rep $_model($obj-newrepresentation)
-                set transp $_model($obj-newtransparency)
-                _send "$_model($obj-newrepresentation) -defer -model $obj -$_model($obj-newtransparency)"
-                set changed 1
-                set _model($obj-transparency) $_model($obj-newtransparency)
-                set _model($obj-representation) $_model($obj-newrepresentation)
-                catch {
-                    unset _model($obj-newtransparency)
-                    unset _model($obj-newrepresentation)
-                }
-            }
-        }
+	if { $_mlist($obj) == 1 } {
+	    if {  [info exists _model($obj-newtransparency)] || 
+		  [info exists _model($obj-newrepresentation)] } {
+		if { ![info exists _model($obj-newrepresentation)] } {
+		    set _model($obj-newrepresentation) $_model($obj-representation)
+		}
+		if { ![info exists _model($obj-newtransparency)] } {
+		    set _model($obj-newtransparency) $_model($obj-transparency)
+		}
+		set rep $_model($obj-newrepresentation)
+		set transp $_model($obj-newtransparency)
+		_send "$_model($obj-newrepresentation) -defer -model $obj -$_model($obj-newtransparency)"
+		set changed 1
+		set _model($obj-transparency) $_model($obj-newtransparency)
+		set _model($obj-representation) $_model($obj-newrepresentation)
+		catch {
+		    unset _model($obj-newtransparency)
+		    unset _model($obj-newrepresentation)
+		}
+	    }
+	}
 
     }
 
     if { $changed } {
-        array unset _imagecache
+	array unset _imagecache
     }
     if { $dlist == "" } {
-        set _state(server) 1
-        set _state(client) 1
-        _send "frame 1"
+	set _state(server) 1
+	set _state(client) 1
+	_send "frame 1"
     } elseif { ![info exists _imagecache($state,$_rocker(client))] } {
-        set _state(server) $state
-        set _state(client) $state
-        _send "frame $state"
+	set _state(server) $state
+	set _state(client) $state
+	_send "frame $state"
     } else {
-        set _state(client) $state
-        _update
+	set _state(client) $state
+	_update
     }
     # Reset viewing parameters
     set w  [winfo width $itk_component(3dview)] 
     set h  [winfo height $itk_component(3dview)] 
     _send [subst { 
-        reset
-        screen $w $h
-        rotate $view_(mx) $view_(my) $view_(mz)
-        pan $view_(x) $view_(y)
-        zoom $view_(zoom)
+	reset
+	screen $w $h
+	rotate $view_(mx) $view_(my) $view_(mz)
+	pan $view_(x) $view_(y)
+	zoom $view_(zoom)
     }]
     debug "rebuild: rotate $view_(mx) $view_(my) $view_(mz)"
 
@@ -861,10 +868,10 @@ itcl::body Rappture::MolvisViewer::_unmap { } {
 
 itcl::body Rappture::MolvisViewer::_map { } {
     if { [isconnected] } {
-        # resume rocking loop if it was on
-        rock unpause
-        # rebuild image if modified, or redisplay cached image if not
-        $_dispatcher event -idle !rebuild
+	# resume rocking loop if it was on
+	rock unpause
+	# rebuild image if modified, or redisplay cached image if not
+	$_dispatcher event -idle !rebuild
     }
 }
 
@@ -886,30 +893,30 @@ itcl::body Rappture::MolvisViewer::_configure { w h } {
 # ----------------------------------------------------------------------
 itcl::body Rappture::MolvisViewer::_pan {option x y} {
     if { $option == "set" } {
-        set dx $x
-        set dy $y
-        set view_(x) [expr $view_(x) + $dx]
-        set view_(y) [expr $view_(y) + $dy]
-        _send "pan $dx $dy"
-        return
+	set dx $x
+	set dy $y
+	set view_(x) [expr $view_(x) + $dx]
+	set view_(y) [expr $view_(y) + $dy]
+	_send "pan $dx $dy"
+	return
     }
     if { ![info exists _mevent(x)] } {
-        set option "click"
+	set option "click"
     }
     if { $option == "click" } { 
-        $itk_component(3dview) configure -cursor hand1
+	$itk_component(3dview) configure -cursor hand1
     }
     if { $option == "drag" || $option == "release" } {
-        set dx [expr $x - $_mevent(x)]
-        set dy [expr $y - $_mevent(y)]
-        set view_(x) [expr $view_(x) + $dx]
-        set view_(y) [expr $view_(y) + $dy]
-        _send "pan $dx $dy"
+	set dx [expr $x - $_mevent(x)]
+	set dy [expr $y - $_mevent(y)]
+	set view_(x) [expr $view_(x) + $dx]
+	set view_(y) [expr $view_(y) + $dy]
+	_send "pan $dx $dy"
     }
     set _mevent(x) $x
     set _mevent(y) $y
     if { $option == "release" } {
-        $itk_component(3dview) configure -cursor ""
+	$itk_component(3dview) configure -cursor ""
     }
 }
 
@@ -923,29 +930,29 @@ itcl::body Rappture::MolvisViewer::_pan {option x y} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::MolvisViewer::_zoom {option {factor 10}} {
     switch -- $option {
-        "in" {
-            set view_(zoom) [expr $view_(zoom) + $factor]
-            _send "zoom $factor"
-        }
-        "out" {
-            set view_(zoom) [expr $view_(zoom) - $factor]
-            _send "zoom -$factor"
-        }
-        "reset" {
-            set view_(zoom) 0
-            _send "reset"
-        }
+	"in" {
+	    set view_(zoom) [expr $view_(zoom) + $factor]
+	    _send "zoom $factor"
+	}
+	"out" {
+	    set view_(zoom) [expr $view_(zoom) - $factor]
+	    _send "zoom -$factor"
+	}
+	"reset" {
+	    set view_(zoom) 0
+	    _send "reset"
+	}
     }
 }
 
 itcl::body Rappture::MolvisViewer::_update { args } {
     set tag "$_state(client),$_rocker(client)"
     if { $_image(id) != "$tag" } {
-        if { [info exists _imagecache($tag)] } {
-            #puts stderr "DISPLAYING CACHED IMAGE"
-            $_image(plot) configure -data $_imagecache($tag)
-            set _image(id) "$tag"
-        }
+	if { [info exists _imagecache($tag)] } {
+	    #puts stderr "DISPLAYING CACHED IMAGE"
+	    $_image(plot) configure -data $_imagecache($tag)
+	    set _image(id) "$tag"
+	}
     }
 }
 
@@ -960,40 +967,40 @@ itcl::body Rappture::MolvisViewer::_update { args } {
 itcl::body Rappture::MolvisViewer::rock { option } {
     # cancel any pending rocks
     if { [info exists _rocker(afterid)] } {
-        after cancel $_rocker(afterid)
-        unset _rocker(afterid)
+	after cancel $_rocker(afterid)
+	unset _rocker(afterid)
     }
 
     if { $option == "toggle" } {
-        if { $_rocker(on) } {
-            set option "off"
-        } else {
-            set option "on"
-        }
+	if { $_rocker(on) } {
+	    set option "off"
+	} else {
+	    set option "on"
+	}
     }
     if { $option == "on" || ($option == "toggle" && !$_rocker(on)) } {
-        set _rocker(on) 1
-        set _settings($this-rock) 1
-        $itk_component(rock) configure -relief sunken
+	set _rocker(on) 1
+	set _settings($this-rock) 1
+	$itk_component(rock) configure -relief sunken
     } elseif { $option == "off" || ($option == "toggle" && $_rocker(on)) } {
-        set _rocker(on) 0
-        set _settings($this-rock) 0
-        $itk_component(rock) configure -relief raised
+	set _rocker(on) 0
+	set _settings($this-rock) 0
+	$itk_component(rock) configure -relief raised
     } elseif { $option == "step"} {
-        if { $_rocker(client) >= 10 } {
-            set _rocker(dir) -1
-        } elseif { $_rocker(client) <= -10 } {
-            set _rocker(dir) 1
-        }
-        set _rocker(client) [expr {$_rocker(client) + $_rocker(dir)}]
-        if { ![info exists _imagecache($_state(server),$_rocker(client))] } {
-            set _rocker(server) $_rocker(client)
-            _send "rock $_rocker(client)"
-        }
-        _update
+	if { $_rocker(client) >= 10 } {
+	    set _rocker(dir) -1
+	} elseif { $_rocker(client) <= -10 } {
+	    set _rocker(dir) 1
+	}
+	set _rocker(client) [expr {$_rocker(client) + $_rocker(dir)}]
+	if { ![info exists _imagecache($_state(server),$_rocker(client))] } {
+	    set _rocker(server) $_rocker(client)
+	    _send "rock $_rocker(client)"
+	}
+	_update
     }
     if { $_rocker(on) && $option != "pause" } {
-         set _rocker(afterid) [after 200 [itcl::code $this rock step]]
+	 set _rocker(afterid) [after 200 [itcl::code $this rock step]]
     }
 }
 
@@ -1014,12 +1021,12 @@ itcl::body Rappture::MolvisViewer::_vmouse2 {option b m x y} {
     if { $option == "move"    } { set vState 3 }
 
     if { $vState == 2 || $vState == 3} {
-        set diff 0
+	set diff 0
 
-        catch { set diff [expr $now - $_mevent(time)] }
-        if {$diff < 75} { # 75ms between motion updates
-            return
-        }
+	catch { set diff [expr $now - $_mevent(time)] }
+	if {$diff < 75} { # 75ms between motion updates
+	    return
+	}
     }
     _send "vmouse $vButton $vModifier $vState $x $y"
     set _mevent(time) $now
@@ -1029,65 +1036,65 @@ itcl::body Rappture::MolvisViewer::_vmouse {option b m x y} {
     set now  [clock clicks -milliseconds]
     # cancel any pending delayed dragging events
     if { [info exists _mevent(afterid)] } {
-        after cancel $_mevent(afterid)
-        unset _mevent(afterid)
+	after cancel $_mevent(afterid)
+	unset _mevent(afterid)
     }
 
     if { ![info exists _mevent(x)] } {
-        set option "click"
+	set option "click"
     }
     if { $option == "click" } {
-        $itk_component(3dview) configure -cursor fleur
+	$itk_component(3dview) configure -cursor fleur
     }
     if { $option == "drag" || $option == "release" } {
-        set diff 0
-         catch { set diff [expr $now - $_mevent(time) ] }
-         if {$diff < 25 && $option == "drag" } { # 75ms between motion updates
-             set _mevent(afterid) [after [expr 25 - $diff] [itcl::code $this _vmouse drag $b $m $x $y]]
-             return
-         }
-        set w [winfo width $itk_component(3dview)]
-        set h [winfo height $itk_component(3dview)]
-        if {$w <= 0 || $h <= 0} {
-            return
-        }
-        set x1 [expr double($w) / 3]
-        set x2 [expr $x1 * 2]
-        set y1 [expr double($h) / 3]
-        set y2 [expr $y1 * 2]
-        set dx [expr $x - $_mevent(x)]
-        set dy [expr $y - $_mevent(y)]
-        set mx 0
-        set my 0
-        set mz 0
+	set diff 0
+	 catch { set diff [expr $now - $_mevent(time) ] }
+	 if {$diff < 25 && $option == "drag" } { # 75ms between motion updates
+	     set _mevent(afterid) [after [expr 25 - $diff] [itcl::code $this _vmouse drag $b $m $x $y]]
+	     return
+	 }
+	set w [winfo width $itk_component(3dview)]
+	set h [winfo height $itk_component(3dview)]
+	if {$w <= 0 || $h <= 0} {
+	    return
+	}
+	set x1 [expr double($w) / 3]
+	set x2 [expr $x1 * 2]
+	set y1 [expr double($h) / 3]
+	set y2 [expr $y1 * 2]
+	set dx [expr $x - $_mevent(x)]
+	set dy [expr $y - $_mevent(y)]
+	set mx 0
+	set my 0
+	set mz 0
 
-        if { $_mevent(x) < $x1 } {
-            set mz $dy
-        } elseif { $_mevent(x) < $x2 } {
-            set mx $dy
-        } else {
-            set mz [expr -$dy]
-        }
+	if { $_mevent(x) < $x1 } {
+	    set mz $dy
+	} elseif { $_mevent(x) < $x2 } {
+	    set mx $dy
+	} else {
+	    set mz [expr -$dy]
+	}
 
-        if { $_mevent(y) < $y1 } {
-            set mz [expr -$dx]
-        } elseif { $_mevent(y) < $y2 } {
-            set my $dx
-        } else {
-            set mz $dx
-        }
-        # Accumlate movements
-        set view_(mx) [expr {$view_(mx) + $mx}]
-        set view_(my) [expr {$view_(my) + $my}]
-        set view_(mz) [expr {$view_(mz) + $mz}]
-        _send "rotate $mx $my $mz"
-        debug "_vmmouse: rotate $view_(mx) $view_(my) $view_(mz)"
+	if { $_mevent(y) < $y1 } {
+	    set mz [expr -$dx]
+	} elseif { $_mevent(y) < $y2 } {
+	    set my $dx
+	} else {
+	    set mz $dx
+	}
+	# Accumlate movements
+	set view_(mx) [expr {$view_(mx) + $mx}]
+	set view_(my) [expr {$view_(my) + $my}]
+	set view_(mz) [expr {$view_(mz) + $mz}]
+	_send "rotate $mx $my $mz"
+	debug "_vmmouse: rotate $view_(mx) $view_(my) $view_(mz)"
     }
     set _mevent(x) $x
     set _mevent(y) $y
     set _mevent(time) $now
     if { $option == "release" } {
-        $itk_component(3dview) configure -cursor ""
+	$itk_component(3dview) configure -cursor ""
     }
 }
 
@@ -1104,26 +1111,26 @@ itcl::body Rappture::MolvisViewer::_rotate {option x y} {
     update idletasks
     # cancel any pending delayed dragging events
     if { [info exists _mevent(afterid)] } {
-        after cancel $_mevent(afterid)
-        unset _mevent(afterid)
+	after cancel $_mevent(afterid)
+	unset _mevent(afterid)
     }
     switch -- $option {
-        click {
-            $itk_component(3dview) configure -cursor fleur
-            set click_(x) $x
-            set click_(y) $y
-            set click_(theta) $view_(theta)
-            set click_(phi) $view_(phi)
-        }
-        drag {
-            if {[array size click_] == 0} {
-                _rotate click $x $y
-            } else {
-                set w [winfo width $itk_component(3dview)]
-                set h [winfo height $itk_component(3dview)]
-                if {$w <= 0 || $h <= 0} {
-                    return
-                }
+	click {
+	    $itk_component(3dview) configure -cursor fleur
+	    set click_(x) $x
+	    set click_(y) $y
+	    set click_(theta) $view_(theta)
+	    set click_(phi) $view_(phi)
+	}
+	drag {
+	    if {[array size click_] == 0} {
+		_rotate click $x $y
+	    } else {
+		set w [winfo width $itk_component(3dview)]
+		set h [winfo height $itk_component(3dview)]
+		if {$w <= 0 || $h <= 0} {
+		    return
+		}
 #         set diff 0
 #          catch { set diff [expr $now - $_mevent(time) ] }
 #          if {$diff < 175 && $option == "drag" } { # 75ms between motion updates
@@ -1131,65 +1138,65 @@ itcl::body Rappture::MolvisViewer::_rotate {option x y} {
 #              return
 #          }
 
-                if {[catch {
-                    # this fails sometimes for no apparent reason
-                    set dx [expr {double($x-$click_(x))/$w}]
-                    set dy [expr {double($y-$click_(y))/$h}]
-                }]} {
-                    return
-                }
+		if {[catch {
+		    # this fails sometimes for no apparent reason
+		    set dx [expr {double($x-$click_(x))/$w}]
+		    set dy [expr {double($y-$click_(y))/$h}]
+		}]} {
+		    return
+		}
 
-                #
-                # Rotate the camera in 3D
-                #
-                if {$view_(psi) > 90 || $view_(psi) < -90} {
-                    # when psi is flipped around, theta moves backwards
-                    set dy [expr {-$dy}]
-                }
-                set theta [expr {$view_(theta) - $dy*180}]
-                while {$theta < 0} { set theta [expr {$theta+180}] }
-                while {$theta > 180} { set theta [expr {$theta-180}] }
+		#
+		# Rotate the camera in 3D
+		#
+		if {$view_(psi) > 90 || $view_(psi) < -90} {
+		    # when psi is flipped around, theta moves backwards
+		    set dy [expr {-$dy}]
+		}
+		set theta [expr {$view_(theta) - $dy*180}]
+		while {$theta < 0} { set theta [expr {$theta+180}] }
+		while {$theta > 180} { set theta [expr {$theta-180}] }
 
-                if {abs($theta) >= 30 && abs($theta) <= 160} {
-                    set phi [expr {$view_(phi) - $dx*360}]
-                    while {$phi < 0} { set phi [expr {$phi+360}] }
-                    while {$phi > 360} { set phi [expr {$phi-360}] }
-                    set psi $view_(psi)
-                } else {
-                    set phi $view_(phi)
-                    set psi [expr {$view_(psi) - $dx*360}]
-                    while {$psi < -180} { set psi [expr {$psi+360}] }
-                    while {$psi > 180} { set psi [expr {$psi-360}] }
-                }
-                array set view_ [subst {
-                    theta $theta
-                    phi $phi
-                    psi $psi
-                }]
-                foreach { vx vy vz } [Euler2XYZ $theta $phi $psi] break
-                set a [expr $vx - $view_(vx)]
-                set a [expr -$a]
-                set b [expr $vy - $view_(vy)]
-                set c [expr $vz - $view_(vz)]
-                array set view_ [subst {
-                    vx $vx
-                    vy $vy
-                    vz $vz
-                }]
-                _send "rotate $a $b $c"
-                debug "_rotate $x $y: rotate $view_(vx) $view_(vy) $view_(vz)"
-                set click_(x) $x
-                set click_(y) $y
-            }
-        }
-        release {
-            _rotate drag $x $y
-            $itk_component(3dview) configure -cursor ""
-            catch {unset click_}
-        }
-        default {
-            error "bad option \"$option\": should be click, drag, release"
-        }
+		if {abs($theta) >= 30 && abs($theta) <= 160} {
+		    set phi [expr {$view_(phi) - $dx*360}]
+		    while {$phi < 0} { set phi [expr {$phi+360}] }
+		    while {$phi > 360} { set phi [expr {$phi-360}] }
+		    set psi $view_(psi)
+		} else {
+		    set phi $view_(phi)
+		    set psi [expr {$view_(psi) - $dx*360}]
+		    while {$psi < -180} { set psi [expr {$psi+360}] }
+		    while {$psi > 180} { set psi [expr {$psi-360}] }
+		}
+		array set view_ [subst {
+		    theta $theta
+		    phi $phi
+		    psi $psi
+		}]
+		foreach { vx vy vz } [Euler2XYZ $theta $phi $psi] break
+		set a [expr $vx - $view_(vx)]
+		set a [expr -$a]
+		set b [expr $vy - $view_(vy)]
+		set c [expr $vz - $view_(vz)]
+		array set view_ [subst {
+		    vx $vx
+		    vy $vy
+		    vz $vz
+		}]
+		_send "rotate $a $b $c"
+		debug "_rotate $x $y: rotate $view_(vx) $view_(vy) $view_(vz)"
+		set click_(x) $x
+		set click_(y) $y
+	    }
+	}
+	release {
+	    _rotate drag $x $y
+	    $itk_component(3dview) configure -cursor ""
+	    catch {unset click_}
+	}
+	default {
+	    error "bad option \"$option\": should be click, drag, release"
+	}
     }
     set _mevent(time) $now
 }
@@ -1204,7 +1211,7 @@ itcl::body Rappture::MolvisViewer::_rotate {option x y} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::MolvisViewer::representation {option {model "all"} } {
     if { $option == $_mrepresentation } {
-        return 
+	return 
     }
     set _settings($this-modelimg) [Rappture::icon $option]
     #@set inner [$itk_component(controls).panel component inner]
@@ -1217,23 +1224,23 @@ itcl::body Rappture::MolvisViewer::representation {option {model "all"} } {
     set _mrepresentation $option
 
     if { $model == "all" } {
-        set models [array names _mlist]
+	set models [array names _mlist]
     } else {
-        set models $model
+	set models $model
     }
 
     foreach obj $models {
-        if { [info exists _model($obj-representation)] } {
-            if { $_model($obj-representation) != $option } {
-                set _model($obj-newrepresentation) $option
-            } else {
-                catch { unset _model($obj-newrepresentation) }
-            }
-        }
+	if { [info exists _model($obj-representation)] } {
+	    if { $_model($obj-representation) != $option } {
+		set _model($obj-newrepresentation) $option
+	    } else {
+		catch { unset _model($obj-newrepresentation) }
+	    }
+	}
     }
     if { [isconnected] } {
-        _send "$option -model $model"
-        #$_dispatcher event -idle !rebuild
+	_send "$option -model $model"
+	#$_dispatcher event -idle !rebuild
     }
 }
 
@@ -1246,40 +1253,40 @@ itcl::body Rappture::MolvisViewer::representation {option {model "all"} } {
 # ----------------------------------------------------------------------
 itcl::body Rappture::MolvisViewer::emblems {option} {
     switch -- $option {
-        on {
-            set emblem 1
-        }
-        off {
-            set emblem 0
-        }
-        toggle {
-            if {$_settings($this-emblems)} {
-                set emblem 0
-            } else {
-                set emblem 1
-            }
-        }
-        update {
-            set emblem $_settings($this-emblems)
-        }
-        default {
-            error "bad option \"$option\": should be on, off, toggle, or update"
-        }
+	on {
+	    set emblem 1
+	}
+	off {
+	    set emblem 0
+	}
+	toggle {
+	    if {$_settings($this-emblems)} {
+		set emblem 0
+	    } else {
+		set emblem 1
+	    }
+	}
+	update {
+	    set emblem $_settings($this-emblems)
+	}
+	default {
+	    error "bad option \"$option\": should be on, off, toggle, or update"
+	}
     }
     set _labels $emblem
     if {$emblem == $_settings($this-emblems) && $option != "update"} {
-        # nothing to do
-        return
+	# nothing to do
+	return
     }
 
     if {$emblem} {
-        $itk_component(labels) configure -relief sunken
-        set _settings($this-emblems) 1
-        _send "label on"
+	$itk_component(labels) configure -relief sunken
+	set _settings($this-emblems) 1
+	_send "label on"
     } else {
-        $itk_component(labels) configure -relief raised
-        set _settings($this-emblems) 0
-        _send "label off"
+	$itk_component(labels) configure -relief raised
+	set _settings($this-emblems) 0
+	_send "label off"
     }
 }
 
@@ -1292,38 +1299,38 @@ itcl::body Rappture::MolvisViewer::emblems {option} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::MolvisViewer::projection {option} {
     switch -- $option {
-        "orthoscopic" {
-            set ortho 1
-        }
-        "perspective" {
-            set ortho 0
-        }
-        "toggle" {
-            set ortho [expr {$_settings($this-ortho) == 0}]
-        }
-        "update" {
-            set ortho $_settings($this-ortho)
-        }
-        default {
-            error "bad option \"$option\": should be on, off, toggle, or update"
-        }
+	"orthoscopic" {
+	    set ortho 1
+	}
+	"perspective" {
+	    set ortho 0
+	}
+	"toggle" {
+	    set ortho [expr {$_settings($this-ortho) == 0}]
+	}
+	"update" {
+	    set ortho $_settings($this-ortho)
+	}
+	default {
+	    error "bad option \"$option\": should be on, off, toggle, or update"
+	}
     }
     if { $ortho == $_settings($this-ortho) && $option != "update"} {
-        # nothing to do
-        return
+	# nothing to do
+	return
     }
     if { $ortho } {
-        $itk_component(ortho) configure -image [Rappture::icon 3dorth]
-        Rappture::Tooltip::for $itk_component(ortho) \
-            "Change to perspective projection"
-        set _settings($this-ortho) 1
-        _send "orthoscopic on"
+	$itk_component(ortho) configure -image [Rappture::icon 3dorth]
+	Rappture::Tooltip::for $itk_component(ortho) \
+	    "Change to perspective projection"
+	set _settings($this-ortho) 1
+	_send "orthoscopic on"
     } else {
-        $itk_component(ortho) configure -image [Rappture::icon 3dpers]
-        Rappture::Tooltip::for $itk_component(ortho) \
-            "Change to orthoscopic projection"
-        set _settings($this-ortho) 0
-        _send "orthoscopic off"
+	$itk_component(ortho) configure -image [Rappture::icon 3dpers]
+	Rappture::Tooltip::for $itk_component(ortho) \
+	    "Change to orthoscopic projection"
+	set _settings($this-ortho) 0
+	_send "orthoscopic off"
     }
 }
 
@@ -1337,18 +1344,18 @@ itcl::body Rappture::MolvisViewer::projection {option} {
 
 itcl::body Rappture::MolvisViewer::atomscale { option {model "all"} } {
     if { $option == "update" } {
-        set scale $_settings($this-atomscale)
+	set scale $_settings($this-atomscale)
     } elseif { [string is double $option] } {
-        set scale $option
-        if { ($scale < 0.1) || ($scale > 2.0) } {
-            error "bad atom size \"$scale\""
-        }
+	set scale $option
+	if { ($scale < 0.1) || ($scale > 2.0) } {
+	    error "bad atom size \"$scale\""
+	}
     } else {
-        error "bad option \"$option\""
+	error "bad option \"$option\""
     }
     set _settings($this-atomscale) $scale
     if { [isconnected] } {
-        _send "atomscale -model $model $scale"
+	_send "atomscale -model $model $scale"
     }
 }
 
@@ -1362,18 +1369,18 @@ itcl::body Rappture::MolvisViewer::atomscale { option {model "all"} } {
 
 itcl::body Rappture::MolvisViewer::bondthickness { option {model "all"} } {
     if { $option == "update" } {
-        set scale $_settings($this-bondthickness)
+	set scale $_settings($this-bondthickness)
     } elseif { [string is double $option] } {
-        set scale $option
-        if { ($scale < 0.1) || ($scale > 2.0) } {
-            error "bad bind thickness \"$scale\""
-        }
+	set scale $option
+	if { ($scale < 0.1) || ($scale > 2.0) } {
+	    error "bad bind thickness \"$scale\""
+	}
     } else {
-        error "bad option \"$option\""
+	error "bad option \"$option\""
     }
     set _settings($this-bondthickness) $scale
     if { [isconnected] } {
-        _send "bondthickness -model $model $scale"
+	_send "bondthickness -model $model $scale"
     }
 }
 
@@ -1387,50 +1394,50 @@ itcl::body Rappture::MolvisViewer::bondthickness { option {model "all"} } {
 # ----------------------------------------------------------------------
 itcl::body Rappture::MolvisViewer::add { dataobj {options ""}} {
     array set params {
-        -color          auto
-        -brightness     0
-        -width          1
-        -raise          0
-        -linestyle      solid
-        -description    ""
-        -param          ""
+	-color          auto
+	-brightness     0
+	-width          1
+	-raise          0
+	-linestyle      solid
+	-description    ""
+	-param          ""
     }
 
     foreach {opt val} $options {
-        if {![info exists params($opt)]} {
-            error "bad settings \"$opt\": should be [join [lsort [array names params]] {, }]"
-        }
-        set params($opt) $val
+	if {![info exists params($opt)]} {
+	    error "bad settings \"$opt\": should be [join [lsort [array names params]] {, }]"
+	}
+	set params($opt) $val
     }
 
     set pos [lsearch -exact $dataobj $_dlist]
 
     if {$pos < 0} {
-        if {![Rappture::library isvalid $dataobj]} {
-            error "bad value \"$dataobj\": should be Rappture::library object"
-        }
+	if {![Rappture::library isvalid $dataobj]} {
+	    error "bad value \"$dataobj\": should be Rappture::library object"
+	}
 
-        if { $_labels == "default" } {
-            set emblem [$dataobj get components.molecule.about.emblems]
+	if { $_labels == "default" } {
+	    set emblem [$dataobj get components.molecule.about.emblems]
 
-            if {$emblem == "" || ![string is boolean $emblem] || !$emblem} {
-                emblems off
-            } else {
-                emblems on
-            }
-        }
+	    if {$emblem == "" || ![string is boolean $emblem] || !$emblem} {
+		emblems off
+	    } else {
+		emblems on
+	    }
+	}
 
-        lappend _dlist $dataobj
-        if { $params(-brightness) >= 0.5 } {
-            set _dobj2transparency($dataobj) "ghost"
-        } else {
-            set _dobj2transparency($dataobj) "normal"
-        }
-        set _dobj2raise($dataobj) $params(-raise)
+	lappend _dlist $dataobj
+	if { $params(-brightness) >= 0.5 } {
+	    set _dobj2transparency($dataobj) "ghost"
+	} else {
+	    set _dobj2transparency($dataobj) "normal"
+	}
+	set _dobj2raise($dataobj) $params(-raise)
 
-        if { [isconnected] } {
-            $_dispatcher event -idle !rebuild
-        }
+	if { [isconnected] } {
+	    $_dispatcher event -idle !rebuild
+	}
     }
 }
 
@@ -1439,18 +1446,18 @@ itcl::body Rappture::MolvisViewer::add { dataobj {options ""}} {
 #
 itcl::body Rappture::MolvisViewer::ResetView {} {
     array set view_ {
-        theta   45
-        phi     45
-        psi     0
-        mx      0
-        my      0
-        mz      0
-        x       0
-        y       0
-        z       0
-        zoom    0
-        width   0
-        height  0
+	theta   45
+	phi     45
+	psi     0
+	mx      0
+	my      0
+	mz      0
+	x       0
+	y       0
+	z       0
+	zoom    0
+	width   0
+	height  0
     }
     _send "reset"
     _send "rotate $view_(mx) $view_(my) $view_(mz)"
@@ -1469,13 +1476,13 @@ itcl::body Rappture::MolvisViewer::get {} {
     # put the dataobj list in order according to -raise options
     set dlist $_dlist
     foreach obj $dlist {
-        if {[info exists _dobj2raise($obj)] && $_dobj2raise($obj)} {
-            set i [lsearch -exact $dlist $obj]
-            if {$i >= 0} {
-                set dlist [lreplace $dlist $i $i]
-                lappend dlist $obj
-            }
-        }
+	if {[info exists _dobj2raise($obj)] && $_dobj2raise($obj)} {
+	    set i [lsearch -exact $dlist $obj]
+	    if {$i >= 0} {
+		set dlist [lreplace $dlist $i $i]
+		lappend dlist $obj
+	    }
+	}
     }
     return $dlist
 }
@@ -1488,29 +1495,29 @@ itcl::body Rappture::MolvisViewer::get {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::MolvisViewer::delete {args} {
     if {[llength $args] == 0} {
-        set args $_dlist
+	set args $_dlist
     }
 
     # delete all specified dataobjs
     set changed 0
     foreach dataobj $args {
-        set pos [lsearch -exact $_dlist $dataobj]
-        if {$pos >= 0} {
-            set _dlist [lreplace $_dlist $pos $pos]
-            catch {unset _dobj2transparency($dataobj)}
-            catch {unset _dobj2color($dataobj)}
-            catch {unset _dobj2width($dataobj)}
-            catch {unset _dobj2dashes($dataobj)}
-            catch {unset _dobj2raise($dataobj)}
-            set changed 1
-        }
+	set pos [lsearch -exact $_dlist $dataobj]
+	if {$pos >= 0} {
+	    set _dlist [lreplace $_dlist $pos $pos]
+	    catch {unset _dobj2transparency($dataobj)}
+	    catch {unset _dobj2color($dataobj)}
+	    catch {unset _dobj2width($dataobj)}
+	    catch {unset _dobj2dashes($dataobj)}
+	    catch {unset _dobj2raise($dataobj)}
+	    set changed 1
+	}
     }
 
     # if anything changed, then rebuild the plot
     if {$changed} {
-        if { [isconnected] } {
-            $_dispatcher event -idle !rebuild
-        }
+	if { [isconnected] } {
+	    $_dispatcher event -idle !rebuild
+	}
     }
 }
 
@@ -1520,51 +1527,51 @@ itcl::body Rappture::MolvisViewer::delete {args} {
 itcl::configbody Rappture::MolvisViewer::device {
     if {$itk_option(-device) != "" } {
 
-        if {![Rappture::library isvalid $itk_option(-device)]} {
-            error "bad value \"$itk_option(-device)\": should be Rappture::library object"
-        }
-        $this delete
-        $this add $itk_option(-device)
+	if {![Rappture::library isvalid $itk_option(-device)]} {
+	    error "bad value \"$itk_option(-device)\": should be Rappture::library object"
+	}
+	$this delete
+	$this add $itk_option(-device)
     } else {
-        $this delete
+	$this delete
     }
 
     if { [isconnected] } {
-        $_dispatcher event -idle !rebuild
+	$_dispatcher event -idle !rebuild
     }
 }
 
 
 itcl::body Rappture::MolvisViewer::settings { what args } {
     switch -- ${what} {
-        "activate" {
-            $itk_component(drawer) add $itk_component(settings) -sticky nsew
-            after idle [list focus $itk_component(settings)]
-            if { !$initialized_ } {
-                set w [winfo width $itk_component(drawer)]
-                set x [expr $w - 100]
-                $itk_component(drawer) sash place 0 $x 0
-                set initialized_ 1
-            }
-            $itk_component(settings_button) configure -relief sunken
-        }
-        "deactivate" {
-            $itk_component(drawer) forget $itk_component(settings)
-            $itk_component(settings_button) configure -relief raised
-        }
-        "toggle" {
-            set slaves [$itk_component(drawer) panes]
-            if { [lsearch $slaves $itk_component(settings)] >= 0 } {
-                settings deactivate
-            } else {
-                settings activate
-            }
-        }
-        "resize" {
-            set bbox [$itk_component(settings_canvas) bbox all]
-            set wid [winfo width $itk_component(settings_frame)]
-            $itk_component(settings_canvas) configure -width $wid \
-                -scrollregion $bbox -yscrollincrement 0.1i
-        }
+	"activate" {
+	    $itk_component(drawer) add $itk_component(settings) -sticky nsew
+	    after idle [list focus $itk_component(settings)]
+	    if { !$initialized_ } {
+		set w [winfo width $itk_component(drawer)]
+		set x [expr $w - 100]
+		$itk_component(drawer) sash place 0 $x 0
+		set initialized_ 1
+	    }
+	    $itk_component(settings_button) configure -relief sunken
+	}
+	"deactivate" {
+	    $itk_component(drawer) forget $itk_component(settings)
+	    $itk_component(settings_button) configure -relief raised
+	}
+	"toggle" {
+	    set slaves [$itk_component(drawer) panes]
+	    if { [lsearch $slaves $itk_component(settings)] >= 0 } {
+		settings deactivate
+	    } else {
+		settings activate
+	    }
+	}
+	"resize" {
+	    set bbox [$itk_component(settings_canvas) bbox all]
+	    set wid [winfo width $itk_component(settings_frame)]
+	    $itk_component(settings_canvas) configure -width $wid \
+		-scrollregion $bbox -yscrollincrement 0.1i
+	}
     }
 }

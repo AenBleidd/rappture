@@ -59,26 +59,26 @@ itcl::body Rappture::Postern::constructor {args} {
 
     # this sequence gets things started...
     bind $itk_component(hull) \
-        <Button-1><Button-1><Button-3><Button-3> \
-        [itcl::code $this activate on]
+	<Button-1><Button-1><Button-3><Button-3> \
+	[itcl::code $this activate on]
 
     #
     # Get the magic word from the environment.
     #
     if {[info exists env(RAPPTURE_POSTERN)]} {
-        set event ""
-        foreach letter [split $env(RAPPTURE_POSTERN) ""] {
-            append event "<Key-$letter>"
-        }
-        bind $itk_component(hull) $event [itcl::code $this open]
+	set event ""
+	foreach letter [split $env(RAPPTURE_POSTERN) ""] {
+	    append event "<Key-$letter>"
+	}
+	bind $itk_component(hull) $event [itcl::code $this open]
     }
 
     #
     # Build the debug dialog.
     #
     Rappture::Balloon $itk_component(hull).popup \
-        -title "Secret Command Console" \
-        -deactivatecommand [itcl::code $this activate off]
+	-title "Secret Command Console" \
+	-deactivatecommand [itcl::code $this activate off]
     set inner [$itk_component(hull).popup component inner]
 
     Rappture::Scroller $inner.area
@@ -87,31 +87,31 @@ itcl::body Rappture::Postern::constructor {args} {
     $inner.area contents $inner.area.text
 
     $inner.area.text tag configure error -foreground red \
-        -font [option get $inner.area.text errorFont Font]
+	-font [option get $inner.area.text errorFont Font]
     $inner.area.text tag configure stderr -foreground red \
-        -font [option get $inner.area.text errorFont Font]
+	-font [option get $inner.area.text errorFont Font]
     $inner.area.text tag configure stdout -foreground blue \
-        -font [option get $inner.area.text errorFont Font]
+	-font [option get $inner.area.text errorFont Font]
 
     bind $inner.area.text <KeyPress> \
-        [itcl::code $this command key]
+	[itcl::code $this command key]
     bind $inner.area.text <KeyPress-BackSpace> \
-        [itcl::code $this command backspace]
+	[itcl::code $this command backspace]
     bind $inner.area.text <Control-KeyPress-h> \
-        [itcl::code $this command backspace]
+	[itcl::code $this command backspace]
 
     bind $inner.area.text <KeyPress-Return> \
-        [itcl::code $this command execute]
+	[itcl::code $this command execute]
 
     bind $inner.area.text <KeyPress-Up> \
-        "[itcl::code $this command previous]; break"
+	"[itcl::code $this command previous]; break"
     bind $inner.area.text <Control-KeyPress-p> \
-        "[itcl::code $this command previous]; break"
+	"[itcl::code $this command previous]; break"
 
     bind $inner.area.text <KeyPress-Down> \
-        "[itcl::code $this command next]; break"
+	"[itcl::code $this command next]; break"
     bind $inner.area.text <Control-KeyPress-n> \
-        "[itcl::code $this command next]; break"
+	"[itcl::code $this command next]; break"
 
     command prompt
 
@@ -127,8 +127,8 @@ itcl::body Rappture::Postern::constructor {args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Postern::destructor {} {
     if {"" != $_afterid} {
-        after cancel $_afterid
-        set _afterid ""
+	after cancel $_afterid
+	set _afterid ""
     }
 }
 
@@ -142,31 +142,31 @@ itcl::body Rappture::Postern::destructor {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Postern::activate {args} {
     if {[llength $args] == 0} {
-        return $_active
+	return $_active
     }
 
     if {"" != $_afterid} {
-        after cancel $_afterid
-        set _afterid ""
+	after cancel $_afterid
+	set _afterid ""
     }
 
     if {$args} {
-        component hull configure -background $itk_option(-activecolor)
-        set _focus [focus]
-        focus $itk_component(hull)
-        set _active 1
-        set _afterid [after 3000 [itcl::code $this activate off]]
+	component hull configure -background $itk_option(-activecolor)
+	set _focus [focus]
+	focus $itk_component(hull)
+	set _active 1
+	set _afterid [after 3000 [itcl::code $this activate off]]
     } else {
-        focus $_focus
-        set _focus ""
-        component hull configure -background $itk_option(-background)
+	focus $_focus
+	set _focus ""
+	component hull configure -background $itk_option(-background)
 
-        if {[info commands _tcl_puts] != ""} {
-            # set puts back to normal
-            rename ::puts ""
-            rename ::_tcl_puts ::puts
-        }
-        set _active 0
+	if {[info commands _tcl_puts] != ""} {
+	    # set puts back to normal
+	    rename ::puts ""
+	    rename ::_tcl_puts ::puts
+	}
+	set _active 0
     }
 }
 
@@ -178,21 +178,21 @@ itcl::body Rappture::Postern::activate {args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Postern::open {} {
     if {$_active} {
-        if {"" != $_afterid} {
-            # don't deactivate until we close
-            after cancel $_afterid
-            set _afterid ""
-        }
+	if {"" != $_afterid} {
+	    # don't deactivate until we close
+	    after cancel $_afterid
+	    set _afterid ""
+	}
 
-        $itk_component(hull).popup activate \
-            $itk_component(hull) $itk_option(-popup)
+	$itk_component(hull).popup activate \
+	    $itk_component(hull) $itk_option(-popup)
 
-        set text [$itk_component(hull).popup component inner].area.text
-        focus $text
+	set text [$itk_component(hull).popup component inner].area.text
+	focus $text
 
-        # make puts send output to this display
-        rename ::puts ::_tcl_puts
-        proc ::puts {args} [format {%s _fake_puts $args} $this]
+	# make puts send output to this display
+	rename ::puts ::_tcl_puts
+	proc ::puts {args} [format {%s _fake_puts $args} $this]
     }
 }
 
@@ -213,81 +213,81 @@ itcl::body Rappture::Postern::command {option} {
     set text [$itk_component(hull).popup component inner].area.text
 
     switch -- $option {
-        prompt {
-            if {[lindex [split [$text index end-1char] .] 1] != 0} {
-                $text insert end "\n"
-            }
-            $text insert end "% "
-            $text mark set command end-1char
-            $text mark gravity command left
-            $text mark set insert end
-            $text see insert
-        }
-        key {
-            if {[$text compare insert < command]} {
-                $text mark set insert end
-                $text see insert
-            }
-        }
-        backspace {
-            if {[catch {$text index sel.first}] == 0} {
-                if {[$text compare sel.first < command]
-                      || [$text compare sel.last < command]} {
-                    $text tag remove sel 1.0 end
-                }
-            }
-            if {[$text compare insert < command]} {
-                $text mark set insert end
-                $text see insert
-            }
-            if {[$text compare insert == command]} {
-                return -code break  ;# don't erase past start of command
-            }
-        }
-        execute {
-            set cmd [string trim [$text get command end]]
-            if {"" == $cmd} {
-                command prompt
-            } else {
-                lappend _history $cmd
-                if {[llength $_history] > 100} {
-                    set _history [lrange $_history end-100 end]
-                }
-                set _hpos [llength $_history]
+	prompt {
+	    if {[lindex [split [$text index end-1char] .] 1] != 0} {
+		$text insert end "\n"
+	    }
+	    $text insert end "% "
+	    $text mark set command end-1char
+	    $text mark gravity command left
+	    $text mark set insert end
+	    $text see insert
+	}
+	key {
+	    if {[$text compare insert < command]} {
+		$text mark set insert end
+		$text see insert
+	    }
+	}
+	backspace {
+	    if {[catch {$text index sel.first}] == 0} {
+		if {[$text compare sel.first < command]
+		      || [$text compare sel.last < command]} {
+		    $text tag remove sel 1.0 end
+		}
+	    }
+	    if {[$text compare insert < command]} {
+		$text mark set insert end
+		$text see insert
+	    }
+	    if {[$text compare insert == command]} {
+		return -code break  ;# don't erase past start of command
+	    }
+	}
+	execute {
+	    set cmd [string trim [$text get command end]]
+	    if {"" == $cmd} {
+		command prompt
+	    } else {
+		lappend _history $cmd
+		if {[llength $_history] > 100} {
+		    set _history [lrange $_history end-100 end]
+		}
+		set _hpos [llength $_history]
 
-                $text insert end "\n"
-                if {[catch {uplevel #0 $cmd} result]} {
-                    $text insert end $result error
-                } else {
-                    $text insert end $result
-                }
-                command prompt
-            }
-            return -code break
-        }
-        next {
-            if {$_hpos < [llength $_history]} {
-                incr _hpos
-                set cmd [lindex $_history $_hpos]
-                $text delete command end
-                $text insert command $cmd
-                $text mark set insert end
-                $text see insert
-            }
-        }
-        previous {
-            if {$_hpos > 0} {
-                incr _hpos -1
-                set cmd [lindex $_history $_hpos]
-                $text delete command end
-                $text insert command $cmd
-                $text mark set insert end
-                $text see insert
-            }
-        }
-        default {
-            error "bad option \"$option\""
-        }
+		$text insert end "\n"
+		if {[catch {uplevel #0 $cmd} result]} {
+		    $text insert end $result error
+		} else {
+		    $text insert end $result
+		}
+		command prompt
+	    }
+	    return -code break
+	}
+	next {
+	    if {$_hpos < [llength $_history]} {
+		incr _hpos
+		set cmd [lindex $_history $_hpos]
+		$text delete command end
+		$text insert command $cmd
+		$text mark set insert end
+		$text see insert
+	    }
+	}
+	previous {
+	    if {$_hpos > 0} {
+		incr _hpos -1
+		set cmd [lindex $_history $_hpos]
+		$text delete command end
+		$text insert command $cmd
+		$text mark set insert end
+		$text see insert
+	    }
+	}
+	default {
+	    error "bad option \"$option\""
+	}
     }
 }
 
@@ -299,30 +299,30 @@ itcl::body Rappture::Postern::command {option} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Postern::_fake_puts {arglist} {
     Rappture::getopts arglist params {
-        flag group -nonewline
+	flag group -nonewline
     }
     switch -- [llength $arglist] {
-        1 {
-            set channel stdout
-            set string [lindex $arglist 0]
-        }
-        2 {
-            set channel [lindex $arglist 0]
-            set string [lindex $arglist 1]
-        }
-        default {
-            error "wrong # args: should be \"puts ?-nonewline? ?channel? string\""
-        }
+	1 {
+	    set channel stdout
+	    set string [lindex $arglist 0]
+	}
+	2 {
+	    set channel [lindex $arglist 0]
+	    set string [lindex $arglist 1]
+	}
+	default {
+	    error "wrong # args: should be \"puts ?-nonewline? ?channel? string\""
+	}
     }
 
     set text [$itk_component(hull).popup component inner].area.text
     if {$channel == "stdout" || $channel == "stderr"} {
-        $text insert end $string $channel
-        if {!$params(-nonewline)} {
-            $text insert end "\n"
-        }
+	$text insert end $string $channel
+	if {!$params(-nonewline)} {
+	    $text insert end "\n"
+	}
     } else {
-        eval _tcl_puts $arglist
+	eval _tcl_puts $arglist
     }
 }
 
@@ -331,6 +331,6 @@ itcl::body Rappture::Postern::_fake_puts {arglist} {
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::Postern::size {
     component hull configure \
-        -width $itk_option(-size) \
-        -height $itk_option(-size)
+	-width $itk_option(-size) \
+	-height $itk_option(-size)
 }

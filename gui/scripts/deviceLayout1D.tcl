@@ -52,19 +52,19 @@ itcl::class Rappture::DeviceLayout1D {
     private variable _device ""     ;# LibraryObj for device representation
     private variable _slabs ""      ;# list of node names for slabs in device
     private variable _z0 ""         ;# list parallel to _slabs with z0
-                                    ;#   coord for lhs of each slab
+				    ;#   coord for lhs of each slab
     private variable _z1 ""         ;# list parallel to _slabs with z1
-                                    ;#   coord for rhs of each slab
+				    ;#   coord for rhs of each slab
     private variable _maters ""     ;# list parallel to _slabs with material
-                                    ;#   for each slab
+				    ;#   for each slab
     private variable _colors ""     ;# list parallel to _slabs with color
-                                    ;#   for each slab
+				    ;#   for each slab
 
     private variable _controls      ;# maps control path => status on/off
 
     private variable _icons         ;# maps icon data => image handle
 }
-                                                                                
+										
 itk::usual DeviceLayout1D {
     keep -background -cursor
     keep -device -deviceoutline -devicesize
@@ -85,15 +85,15 @@ itcl::body Rappture::DeviceLayout1D::constructor {args} {
     pack propagate $itk_component(hull) no
 
     itk_component add area {
-        canvas $itk_interior.area -borderwidth 0 -highlightthickness 0
+	canvas $itk_interior.area -borderwidth 0 -highlightthickness 0
     } {
-        usual
-        ignore -borderwidth -relief
-        ignore -highlightthickness -highlightbackground -highlightcolor
+	usual
+	ignore -borderwidth -relief
+	ignore -highlightthickness -highlightbackground -highlightcolor
     }
     pack $itk_component(area) -expand yes -fill both
     bind $itk_component(area) <Configure> \
-        [list $_dispatcher event -idle !redraw]
+	[list $_dispatcher event -idle !redraw]
 
     eval itk_initialize $args
 
@@ -110,8 +110,8 @@ itcl::body Rappture::DeviceLayout1D::constructor {args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::DeviceLayout1D::limits {} {
     if {[$_dispatcher ispending !layout]} {
-        $_dispatcher cancel !layout
-        _layout
+	$_dispatcher cancel !layout
+	_layout
     }
     set zmin [lindex $_z0 0]
     set zmax [lindex $_z1 end]
@@ -127,10 +127,10 @@ itcl::body Rappture::DeviceLayout1D::limits {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::DeviceLayout1D::extents {what} {
     switch -- $what {
-        bar3D { return $_sizes(bar45) }
-        default {
-            error "bad option \"$what\": should be bar3D"
-        }
+	bar3D { return $_sizes(bar45) }
+	default {
+	    error "bad option \"$what\": should be bar3D"
+	}
     }
 }
 
@@ -143,17 +143,17 @@ itcl::body Rappture::DeviceLayout1D::extents {what} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::DeviceLayout1D::controls {option args} {
     switch -- $option {
-        add {
-            if {[llength $args] != 1} {
-                error "wrong # args: should be \"controls add path\""
-            }
-            set path [lindex $args 0]
-            set _controls($path) 1
-            $_dispatcher event -idle !layout
-        }
-        remove {
-            error "not yet implemented"
-        }
+	add {
+	    if {[llength $args] != 1} {
+		error "wrong # args: should be \"controls add path\""
+	    }
+	    set path [lindex $args 0]
+	    set _controls($path) 1
+	    $_dispatcher event -idle !layout
+	}
+	remove {
+	    error "not yet implemented"
+	}
     }
 }
 
@@ -179,56 +179,56 @@ itcl::body Rappture::DeviceLayout1D::_layout {} {
 
     # add the maximum size of any embedded icons:
     if {$_device != ""} {
-        foreach nn [$_device children components] {
-            set icon [$_device get components.$nn.about.icon]
-            if {"" != $icon} {
-                if {[info exists _icons($icon)]} {
-                    set imh $_icons($icon)
-                } else {
-                    set imh [image create photo -data $icon]
-                    set _icons($icon) $imh
-                }
+	foreach nn [$_device children components] {
+	    set icon [$_device get components.$nn.about.icon]
+	    if {"" != $icon} {
+		if {[info exists _icons($icon)]} {
+		    set imh $_icons($icon)
+		} else {
+		    set imh [image create photo -data $icon]
+		    set _icons($icon) $imh
+		}
 
-                set w [image width $_icons($icon)]
-                if {$w > $wmax} {
-                    set wmax $w
-                }
+		set w [image width $_icons($icon)]
+		if {$w > $wmax} {
+		    set wmax $w
+		}
 
-                set h [image height $_icons($icon)]
-                if {$h > $hmax} {
-                    set hmax $h
-                }
-            }
-        }
+		set h [image height $_icons($icon)]
+		if {$h > $hmax} {
+		    set hmax $h
+		}
+	    }
+	}
     }
     set _sizes(bararea) $hmax
 
     set fnt $itk_option(-font)
     # see if any of the slabs has a material
     foreach m $_maters {
-        if {"" != $m} {
-            set extra [expr {1.5*[font metrics $fnt -linespace]}] 
-            set hmax [expr {$hmax+$extra}]
-            break
-        }
+	if {"" != $m} {
+	    set extra [expr {1.5*[font metrics $fnt -linespace]}] 
+	    set hmax [expr {$hmax+$extra}]
+	    break
+	}
     }
 
     # see if any of the slabs has a label
     if {$_device != ""} {
-        foreach nn [$_device children components] {
-            if {"" != [$_device get components.$nn.about.label]} {
-                set extra [expr {1.2*[font metrics $fnt -linespace]}] 
-                set hmax [expr {$hmax+$extra}]
-                break
-            }
-        }
+	foreach nn [$_device children components] {
+	    if {"" != [$_device get components.$nn.about.label]} {
+		set extra [expr {1.2*[font metrics $fnt -linespace]}] 
+		set hmax [expr {$hmax+$extra}]
+		break
+	    }
+	}
     }
 
     set oldw [component hull cget -width]
     set oldh [component hull cget -height]
     if {$wmax != $oldw || $hmax != $oldh} {
-        component hull configure -width $wmax -height $hmax
-        $_dispatcher event -idle !redraw
+	component hull configure -width $wmax -height $hmax
+	$_dispatcher event -idle !redraw
     }
     set _sizes(header) [expr {$hmax - $_sizes(bararea)}]
 
@@ -240,63 +240,63 @@ itcl::body Rappture::DeviceLayout1D::_layout {} {
     set colors ""
 
     if {$_device != ""} {
-        # get the default system of units
-        set units [set defunits [$_device get units]]
-        if {$units == "arbitrary" || $units == ""} {
-            set defunits "m"
-            set units "um"
-        }
+	# get the default system of units
+	set units [set defunits [$_device get units]]
+	if {$units == "arbitrary" || $units == ""} {
+	    set defunits "m"
+	    set units "um"
+	}
 
-        foreach nn [$_device children components] {
-            switch -glob -- $nn {
-                box* {
-                    # get x-coord for each corner
-                    set c0 [$_device get components.$nn.corner0]
-                    regsub -all , $c0 { } c0
-                    set c0 [lindex $c0 0]
-                    set c0 [Rappture::Units::convert $c0 \
-                        -context $defunits -to $units -units off]
+	foreach nn [$_device children components] {
+	    switch -glob -- $nn {
+		box* {
+		    # get x-coord for each corner
+		    set c0 [$_device get components.$nn.corner0]
+		    regsub -all , $c0 { } c0
+		    set c0 [lindex $c0 0]
+		    set c0 [Rappture::Units::convert $c0 \
+			-context $defunits -to $units -units off]
 
-                    set c1 [$_device get components.$nn.corner1]
-                    regsub -all , $c1 { } c1
-                    set c1 [lindex $c1 0]
-                    set c1 [Rappture::Units::convert $c1 \
-                        -context $defunits -to $units -units off]
+		    set c1 [$_device get components.$nn.corner1]
+		    regsub -all , $c1 { } c1
+		    set c1 [lindex $c1 0]
+		    set c1 [Rappture::Units::convert $c1 \
+			-context $defunits -to $units -units off]
 
-                    lappend slabs components.$nn
-                    lappend z0 $c0
-                    lappend z1 $c1
+		    lappend slabs components.$nn
+		    lappend z0 $c0
+		    lappend z1 $c1
 
-                    set m [$_device get components.$nn.material]
-                    lappend maters $m
+		    set m [$_device get components.$nn.material]
+		    lappend maters $m
 
-                    if {"" != $m} {
-                        set c [_mater2color $m]
-                    } else {
-                        set c [$_device get components.$nn.about.color]
-                    }
-                    if {"" == $c} { set c gray }
-                    lappend colors $c
-                }
-                default {
-                    # element not recognized -- skip it
-                }
-            }
-        }
+		    if {"" != $m} {
+			set c [_mater2color $m]
+		    } else {
+			set c [$_device get components.$nn.about.color]
+		    }
+		    if {"" == $c} { set c gray }
+		    lappend colors $c
+		}
+		default {
+		    # element not recognized -- skip it
+		}
+	    }
+	}
     }
 
     # something change? then store new layout and redraw
     if {![string equal $z0 $_z0]
-          || ![string equal $z1 $_z1]
-          || ![string equal $maters $_maters]
-          || ![string equal $colors $_colors]} {
-        set _slabs $slabs
-        set _z0 $z0
-        set _z1 $z1
-        set _maters $maters
-        set _colors $colors
+	  || ![string equal $z1 $_z1]
+	  || ![string equal $maters $_maters]
+	  || ![string equal $colors $_colors]} {
+	set _slabs $slabs
+	set _z0 $z0
+	set _z1 $z1
+	set _maters $maters
+	set _colors $colors
 
-        $_dispatcher event -idle !redraw
+	$_dispatcher event -idle !redraw
     }
 }
 
@@ -322,25 +322,25 @@ itcl::body Rappture::DeviceLayout1D::_redraw {} {
     set xx1 $x1
 
     for {set i 0} {$i < [llength $_slabs]} {incr i} {
-        set name [lindex $_slabs $i]
-        set z0 [lindex $_z0 $i]
-        set z1 [lindex $_z1 $i]
-        set xx0 [expr {double($z0)/$zmax * ($x1-$x0) + $x0}]
-        set xx1 [expr {double($z1)/$zmax * ($x1-$x0) + $x0}]
+	set name [lindex $_slabs $i]
+	set z0 [lindex $_z0 $i]
+	set z1 [lindex $_z1 $i]
+	set xx0 [expr {double($z0)/$zmax * ($x1-$x0) + $x0}]
+	set xx1 [expr {double($z1)/$zmax * ($x1-$x0) + $x0}]
 
-        set icon [$_device get $name.about.icon]
-        if {"" != $icon} {
-            if {[info exists _icons($icon)]} {
-                set imh $_icons($icon)
-            } else {
-                set imh [image create photo -data $icon]
-                set _icons($icon) $imh
-            }
-            _drawIcon $i $xx0 $xx1 $imh
-        } else {
-            _drawLayer $i $xx0 $xx1
-        }
-        _drawAnnotation $i $xx0 $xx1
+	set icon [$_device get $name.about.icon]
+	if {"" != $icon} {
+	    if {[info exists _icons($icon)]} {
+		set imh $_icons($icon)
+	    } else {
+		set imh [image create photo -data $icon]
+		set _icons($icon) $imh
+	    }
+	    _drawIcon $i $xx0 $xx1 $imh
+	} else {
+	    _drawLayer $i $xx0 $xx1
+	}
+	_drawAnnotation $i $xx0 $xx1
     }
 }
 
@@ -367,27 +367,27 @@ itcl::body Rappture::DeviceLayout1D::_drawLayer {index x0 x1} {
     set lcolor $itk_option(-deviceoutline)
 
     if {$index < [llength $_slabs]} {
-        set fcolor [lindex $_colors $index]
+	set fcolor [lindex $_colors $index]
 
-        #
-        # Draw one segment of the bar in the canvas:
-        #
-        #      ___________________  ____ y1
-        #     /                  /| ____ y0p
-        #    /__________________/ / ____ y1p
-        #    |__________________|/: ____ y0
-        #    : :                : :
-        #   x0 x0p             x1 x1p
-        #
-        $c create polygon \
-            $x0 $y0  $x1 $y0  $x1p $y0p  $x1p $y1  $x0p $y1  $x0 $y1p  $x0 $y0 \
-            -outline $lcolor -fill $fcolor
-        $c create line $x0 $y1p  $x1 $y1p -fill $lcolor
+	#
+	# Draw one segment of the bar in the canvas:
+	#
+	#      ___________________  ____ y1
+	#     /                  /| ____ y0p
+	#    /__________________/ / ____ y1p
+	#    |__________________|/: ____ y0
+	#    : :                : :
+	#   x0 x0p             x1 x1p
+	#
+	$c create polygon \
+	    $x0 $y0  $x1 $y0  $x1p $y0p  $x1p $y1  $x0p $y1  $x0 $y1p  $x0 $y0 \
+	    -outline $lcolor -fill $fcolor
+	$c create line $x0 $y1p  $x1 $y1p -fill $lcolor
 
-        #
-        # Draw the outline around the end cap
-        #
-        $c create line $x1 $y0  $x1 $y1p  $x1p $y1 -fill $lcolor
+	#
+	# Draw the outline around the end cap
+	#
+	$c create line $x1 $y0  $x1 $y1p  $x1p $y1 -fill $lcolor
     }
 }
 
@@ -444,25 +444,25 @@ itcl::body Rappture::DeviceLayout1D::_drawAnnotation {index x0 x1} {
     set elem [lindex $_slabs $index]
     set mater [lindex $_maters $index]
     if {"" != $mater} {
-        set x $x1p
-        $c create rectangle [expr {$x-10}] [expr {$y-14}] \
-            [expr {$x-0}] [expr {$y-4}] \
-            -outline black -fill [_mater2color $mater]
-        set x [expr {$x-12}]
-        $c create text $x [expr {$y-7}] -anchor e \
-            -text $mater
-        set y [expr {$y-1.5*$lh}]
+	set x $x1p
+	$c create rectangle [expr {$x-10}] [expr {$y-14}] \
+	    [expr {$x-0}] [expr {$y-4}] \
+	    -outline black -fill [_mater2color $mater]
+	set x [expr {$x-12}]
+	$c create text $x [expr {$y-7}] -anchor e \
+	    -text $mater
+	set y [expr {$y-1.5*$lh}]
     }
 
     #
     # If there's a <label> for this layer, then draw it.
     #
     if {"" != $_device} {
-        set label [$_device get $elem.about.label]
-        if {"" != $label} {
-            $c create text [expr {0.5*($x0p+$x1p)}] $y -anchor s \
-                -text $label
-        }
+	set label [$_device get $elem.about.label]
+	if {"" != $label} {
+	    $c create text [expr {0.5*($x0p+$x1p)}] $y -anchor s \
+		-text $label
+	}
     }
 }
 
@@ -476,7 +476,7 @@ itcl::body Rappture::DeviceLayout1D::_mater2color {mater} {
     set lib [Rappture::library standard]
     set color [$lib get materials.($mater).color]
     if {$color != ""} {
-        return $color
+	return $color
     }
     return gray
 }
@@ -500,9 +500,9 @@ itcl::configbody Rappture::DeviceLayout1D::font {
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::DeviceLayout1D::device {
     if {$itk_option(-device) != ""} {
-        if {![Rappture::library isvalid $itk_option(-device)]} {
-            error "bad value \"$itk_option(-device)\": should be Rappture::Library"
-        }
+	if {![Rappture::library isvalid $itk_option(-device)]} {
+	    error "bad value \"$itk_option(-device)\": should be Rappture::Library"
+	}
     }
     set _device $itk_option(-device)
     $_dispatcher event -idle !layout
@@ -515,9 +515,9 @@ itcl::configbody Rappture::DeviceLayout1D::device {
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::DeviceLayout1D::width {
     if {[catch {
-          winfo pixels $itk_component(hull) $itk_option(-width)
+	  winfo pixels $itk_component(hull) $itk_option(-width)
       } pixels]} {
-        error "bad screen distance \"$itk_option(-width)\""
+	error "bad screen distance \"$itk_option(-width)\""
     }
     $_dispatcher event -idle !layout
 }
@@ -529,9 +529,9 @@ itcl::configbody Rappture::DeviceLayout1D::width {
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::DeviceLayout1D::devicesize {
     if {[catch {
-          winfo pixels $itk_component(hull) $itk_option(-devicesize)
+	  winfo pixels $itk_component(hull) $itk_option(-devicesize)
       } pixels]} {
-        error "bad screen distance \"$itk_option(-devicesize)\""
+	error "bad screen distance \"$itk_option(-devicesize)\""
     }
     set _sizes(bar) $pixels
     set _sizes(bar45) [expr {0.5*sqrt(2)*$pixels}]
@@ -560,9 +560,9 @@ itcl::configbody Rappture::DeviceLayout1D::deviceoutline {
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::DeviceLayout1D::leftmargin {
     if {[catch {
-          winfo pixels $itk_component(hull) $itk_option(-leftmargin)
+	  winfo pixels $itk_component(hull) $itk_option(-leftmargin)
       } pixels]} {
-        error "bad screen distance \"$itk_option(-leftmargin)\""
+	error "bad screen distance \"$itk_option(-leftmargin)\""
     }
     set _sizes(lm) $pixels
     $_dispatcher event -idle !layout
@@ -578,9 +578,9 @@ itcl::configbody Rappture::DeviceLayout1D::leftmargin {
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::DeviceLayout1D::rightmargin {
     if {[catch {
-          winfo pixels $itk_component(hull) $itk_option(-rightmargin)
+	  winfo pixels $itk_component(hull) $itk_option(-rightmargin)
       } pixels]} {
-        error "bad screen distance \"$itk_option(-rightmargin)\""
+	error "bad screen distance \"$itk_option(-rightmargin)\""
     }
     set _sizes(rm) [expr {($pixels > 0) ? $pixels : $_sizes(bar45)}]
     $_dispatcher event -idle !layout

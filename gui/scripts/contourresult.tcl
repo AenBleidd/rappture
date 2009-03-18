@@ -92,60 +92,60 @@ itcl::body Rappture::ContourResult::constructor {args} {
     set _view(phi) 0
 
     foreach val {xmin xmax ymin ymax zmin zmax vmin vmax} {
-        set _limits($val) ""
+	set _limits($val) ""
     }
 
     itk_component add controls {
-        frame $itk_interior.cntls
+	frame $itk_interior.cntls
     } {
-        usual
-        rename -background -controlbackground controlBackground Background
+	usual
+	rename -background -controlbackground controlBackground Background
     }
     pack $itk_component(controls) -side right -fill y
 
     itk_component add zoom {
-        frame $itk_component(controls).zoom
+	frame $itk_component(controls).zoom
     } {
-        usual
-        rename -background -controlbackground controlBackground Background
+	usual
+	rename -background -controlbackground controlBackground Background
     }
     pack $itk_component(zoom) -side top
 
     itk_component add reset {
-        button $itk_component(zoom).reset \
-            -borderwidth 1 -padx 1 -pady 1 \
-            -bitmap [Rappture::icon reset] \
-            -command [itcl::code $this _zoom reset]
+	button $itk_component(zoom).reset \
+	    -borderwidth 1 -padx 1 -pady 1 \
+	    -bitmap [Rappture::icon reset] \
+	    -command [itcl::code $this _zoom reset]
     } {
-        usual
-        ignore -borderwidth
-        rename -highlightbackground -controlbackground controlBackground Background
+	usual
+	ignore -borderwidth
+	rename -highlightbackground -controlbackground controlBackground Background
     }
     pack $itk_component(reset) -padx 4 -pady 4
     Rappture::Tooltip::for $itk_component(reset) "Reset the view to the default zoom level"
 
     itk_component add zoomin {
-        button $itk_component(zoom).zin \
-            -borderwidth 1 -padx 1 -pady 1 \
-            -bitmap [Rappture::icon zoomin] \
-            -command [itcl::code $this _zoom in]
+	button $itk_component(zoom).zin \
+	    -borderwidth 1 -padx 1 -pady 1 \
+	    -bitmap [Rappture::icon zoomin] \
+	    -command [itcl::code $this _zoom in]
     } {
-        usual
-        ignore -borderwidth
-        rename -highlightbackground -controlbackground controlBackground Background
+	usual
+	ignore -borderwidth
+	rename -highlightbackground -controlbackground controlBackground Background
     }
     pack $itk_component(zoomin) -padx 4 -pady 4
     Rappture::Tooltip::for $itk_component(zoomin) "Zoom in"
 
     itk_component add zoomout {
-        button $itk_component(zoom).zout \
-            -borderwidth 1 -padx 1 -pady 1 \
-            -bitmap [Rappture::icon zoomout] \
-            -command [itcl::code $this _zoom out]
+	button $itk_component(zoom).zout \
+	    -borderwidth 1 -padx 1 -pady 1 \
+	    -bitmap [Rappture::icon zoomout] \
+	    -command [itcl::code $this _zoom out]
     } {
-        usual
-        ignore -borderwidth
-        rename -highlightbackground -controlbackground controlBackground Background
+	usual
+	ignore -borderwidth
+	rename -highlightbackground -controlbackground controlBackground Background
     }
     pack $itk_component(zoomout) -padx 4 -pady 4
     Rappture::Tooltip::for $itk_component(zoomout) "Zoom out"
@@ -154,10 +154,10 @@ itcl::body Rappture::ContourResult::constructor {args} {
     # Create slicer controls...
     #
     itk_component add slicers {
-        frame $itk_component(controls).slicers
+	frame $itk_component(controls).slicers
     } {
-        usual
-        rename -background -controlbackground controlBackground Background
+	usual
+	rename -background -controlbackground controlBackground Background
     }
     pack $itk_component(slicers) -side bottom -padx 4 -pady 4
     grid rowconfigure $itk_component(slicers) 1 -weight 1
@@ -166,109 +166,109 @@ itcl::body Rappture::ContourResult::constructor {args} {
     # X-value slicer...
     #
     itk_component add xslice {
-        label $itk_component(slicers).xslice \
-            -borderwidth 1 -relief raised -padx 1 -pady 1 \
-            -bitmap [Rappture::icon x]
+	label $itk_component(slicers).xslice \
+	    -borderwidth 1 -relief raised -padx 1 -pady 1 \
+	    -bitmap [Rappture::icon x]
     } {
-        usual
-        ignore -borderwidth
-        rename -highlightbackground -controlbackground controlBackground Background
+	usual
+	ignore -borderwidth
+	rename -highlightbackground -controlbackground controlBackground Background
     }
     bind $itk_component(xslice) <ButtonPress> \
-        [itcl::code $this _slice axis x toggle]
+	[itcl::code $this _slice axis x toggle]
     Rappture::Tooltip::for $itk_component(xslice) \
-        "Toggle the X cut plane on/off"
+	"Toggle the X cut plane on/off"
     grid $itk_component(xslice) -row 0 -column 0 -sticky ew -padx 1
 
     itk_component add xslicer {
-        ::scale $itk_component(slicers).xval -from 100 -to 0 \
-            -width 10 -orient vertical -showvalue off -state disabled \
-            -borderwidth 1 -highlightthickness 0 \
-            -command [itcl::code $this _slice move x]
+	::scale $itk_component(slicers).xval -from 100 -to 0 \
+	    -width 10 -orient vertical -showvalue off -state disabled \
+	    -borderwidth 1 -highlightthickness 0 \
+	    -command [itcl::code $this _slice move x]
     } {
-        usual
-        ignore -borderwidth
-        ignore -highlightthickness
-        rename -highlightbackground -controlbackground controlBackground Background
-        rename -troughcolor -controldarkbackground controlDarkBackground Background
+	usual
+	ignore -borderwidth
+	ignore -highlightthickness
+	rename -highlightbackground -controlbackground controlBackground Background
+	rename -troughcolor -controldarkbackground controlDarkBackground Background
     }
     grid $itk_component(xslicer) -row 1 -column 0 -padx 1
     Rappture::Tooltip::for $itk_component(xslicer) \
-        "@[itcl::code $this _slicertip x]"
+	"@[itcl::code $this _slicertip x]"
 
     #
     # Y-value slicer...
     #
     itk_component add yslice {
-        label $itk_component(slicers).yslice \
-            -borderwidth 1 -relief raised -padx 1 -pady 1 \
-            -bitmap [Rappture::icon y]
+	label $itk_component(slicers).yslice \
+	    -borderwidth 1 -relief raised -padx 1 -pady 1 \
+	    -bitmap [Rappture::icon y]
     } {
-        usual
-        ignore -borderwidth
-        rename -highlightbackground -controlbackground controlBackground Background
+	usual
+	ignore -borderwidth
+	rename -highlightbackground -controlbackground controlBackground Background
     }
     bind $itk_component(yslice) <ButtonPress> \
-        [itcl::code $this _slice axis y toggle]
+	[itcl::code $this _slice axis y toggle]
     Rappture::Tooltip::for $itk_component(yslice) \
-        "Toggle the Y cut plane on/off"
+	"Toggle the Y cut plane on/off"
     grid $itk_component(yslice) -row 0 -column 1 -sticky ew -padx 1
 
     itk_component add yslicer {
-        ::scale $itk_component(slicers).yval -from 100 -to 0 \
-            -width 10 -orient vertical -showvalue off -state disabled \
-            -borderwidth 1 -highlightthickness 0 \
-            -command [itcl::code $this _slice move y]
+	::scale $itk_component(slicers).yval -from 100 -to 0 \
+	    -width 10 -orient vertical -showvalue off -state disabled \
+	    -borderwidth 1 -highlightthickness 0 \
+	    -command [itcl::code $this _slice move y]
     } {
-        usual
-        ignore -borderwidth
-        ignore -highlightthickness
-        rename -highlightbackground -controlbackground controlBackground Background
-        rename -troughcolor -controldarkbackground controlDarkBackground Background
+	usual
+	ignore -borderwidth
+	ignore -highlightthickness
+	rename -highlightbackground -controlbackground controlBackground Background
+	rename -troughcolor -controldarkbackground controlDarkBackground Background
     }
     grid $itk_component(yslicer) -row 1 -column 1 -padx 1
     Rappture::Tooltip::for $itk_component(yslicer) \
-        "@[itcl::code $this _slicertip y]"
+	"@[itcl::code $this _slicertip y]"
 
     #
     # Z-value slicer...
     #
     itk_component add zslice {
-        label $itk_component(slicers).zslice \
-            -borderwidth 1 -relief raised -padx 1 -pady 1 \
-            -bitmap [Rappture::icon z]
+	label $itk_component(slicers).zslice \
+	    -borderwidth 1 -relief raised -padx 1 -pady 1 \
+	    -bitmap [Rappture::icon z]
     } {
-        usual
-        ignore -borderwidth
-        rename -highlightbackground -controlbackground controlBackground Background
+	usual
+	ignore -borderwidth
+	rename -highlightbackground -controlbackground controlBackground Background
     }
     grid $itk_component(zslice) -row 0 -column 2 -sticky ew -padx 1
     bind $itk_component(zslice) <ButtonPress> \
-        [itcl::code $this _slice axis z toggle]
+	[itcl::code $this _slice axis z toggle]
     Rappture::Tooltip::for $itk_component(zslice) \
-        "Toggle the Z cut plane on/off"
+	"Toggle the Z cut plane on/off"
 
     itk_component add zslicer {
-        ::scale $itk_component(slicers).zval -from 100 -to 0 \
-            -width 10 -orient vertical -showvalue off -state disabled \
-            -borderwidth 1 -highlightthickness 0 \
-            -command [itcl::code $this _slice move z]
+	::scale $itk_component(slicers).zval -from 100 -to 0 \
+	    -width 10 -orient vertical -showvalue off -state disabled \
+	    -borderwidth 1 -highlightthickness 0 \
+	    -command [itcl::code $this _slice move z]
     } {
-        usual
-        ignore -borderwidth
-        ignore -highlightthickness
-        rename -highlightbackground -controlbackground controlBackground Background
-        rename -troughcolor -controldarkbackground controlDarkBackground Background
+	usual
+	ignore -borderwidth
+	ignore -highlightthickness
+	rename -highlightbackground -controlbackground controlBackground Background
+	rename -troughcolor -controldarkbackground controlDarkBackground Background
     }
     grid $itk_component(zslicer) -row 1 -column 2 -padx 1
     Rappture::Tooltip::for $itk_component(zslicer) \
-        "@[itcl::code $this _slicertip z]"
+	"@[itcl::code $this _slicertip z]"
 
     #
     # RENDERING AREA
     #
     itk_component add area {
-        frame $itk_interior.area
+	frame $itk_interior.area
     }
     pack $itk_component(area) -expand yes -fill both
 
@@ -281,8 +281,8 @@ itcl::body Rappture::ContourResult::constructor {args} {
     $this-iren SetRenderWindow $this-renWin
 
     itk_component add plot {
-        vtkTkRenderWidget $itk_component(area).plot -rw $this-renWin \
-            -width 1 -height 1
+	vtkTkRenderWidget $itk_component(area).plot -rw $this-renWin \
+	    -width 1 -height 1
     } {
     }
     pack $itk_component(plot) -expand yes -fill both
@@ -295,8 +295,8 @@ itcl::body Rappture::ContourResult::constructor {args} {
     $this-iren2 SetRenderWindow $this-renWin2
 
     itk_component add legend {
-        vtkTkRenderWidget $itk_component(area).legend -rw $this-renWin2 \
-            -width 1 -height 40
+	vtkTkRenderWidget $itk_component(area).legend -rw $this-renWin2 \
+	    -width 1 -height 40
     } {
     }
     pack $itk_component(legend) -side bottom -fill x
@@ -336,34 +336,34 @@ itcl::body Rappture::ContourResult::destructor {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::ContourResult::add {dataobj {settings ""}} {
     array set params {
-        -color auto
-        -width 1
-        -linestyle solid
-        -brightness 0
-        -raise 0
-        -description ""
-        -param ""
+	-color auto
+	-width 1
+	-linestyle solid
+	-brightness 0
+	-raise 0
+	-description ""
+	-param ""
     }
     foreach {opt val} $settings {
-        if {![info exists params($opt)]} {
-            error "bad setting \"$opt\": should be [join [lsort [array names params]] {, }]"
-        }
-        set params($opt) $val
+	if {![info exists params($opt)]} {
+	    error "bad setting \"$opt\": should be [join [lsort [array names params]] {, }]"
+	}
+	set params($opt) $val
     }
     if {$params(-color) == "auto" || $params(-color) == "autoreset"} {
-        # can't handle -autocolors yet
-        set params(-color) black
+	# can't handle -autocolors yet
+	set params(-color) black
     }
 
     set pos [lsearch -exact $dataobj $_dlist]
     if {$pos < 0} {
-        lappend _dlist $dataobj
-        set _obj2color($dataobj) $params(-color)
-        set _obj2width($dataobj) $params(-width)
-        set _obj2raise($dataobj) $params(-raise)
+	lappend _dlist $dataobj
+	set _obj2color($dataobj) $params(-color)
+	set _obj2width($dataobj) $params(-width)
+	set _obj2raise($dataobj) $params(-raise)
 
-        after cancel [itcl::code $this _rebuild]
-        after idle [itcl::code $this _rebuild]
+	after cancel [itcl::code $this _rebuild]
+	after idle [itcl::code $this _rebuild]
     }
 }
 
@@ -377,13 +377,13 @@ itcl::body Rappture::ContourResult::get {} {
     # put the dataobj list in order according to -raise options
     set dlist $_dlist
     foreach obj $dlist {
-        if {[info exists _obj2raise($obj)] && $_obj2raise($obj)} {
-            set i [lsearch -exact $dlist $obj]
-            if {$i >= 0} {
-                set dlist [lreplace $dlist $i $i]
-                lappend dlist $obj
-            }
-        }
+	if {[info exists _obj2raise($obj)] && $_obj2raise($obj)} {
+	    set i [lsearch -exact $dlist $obj]
+	    if {$i >= 0} {
+		set dlist [lreplace $dlist $i $i]
+		lappend dlist $obj
+	    }
+	}
     }
     return $dlist
 }
@@ -396,26 +396,26 @@ itcl::body Rappture::ContourResult::get {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::ContourResult::delete {args} {
     if {[llength $args] == 0} {
-        set args $_dlist
+	set args $_dlist
     }
 
     # delete all specified dataobjs
     set changed 0
     foreach dataobj $args {
-        set pos [lsearch -exact $_dlist $dataobj]
-        if {$pos >= 0} {
-            set _dlist [lreplace $_dlist $pos $pos]
-            catch {unset _obj2color($dataobj)}
-            catch {unset _obj2width($dataobj)}
-            catch {unset _obj2raise($dataobj)}
-            set changed 1
-        }
+	set pos [lsearch -exact $_dlist $dataobj]
+	if {$pos >= 0} {
+	    set _dlist [lreplace $_dlist $pos $pos]
+	    catch {unset _obj2color($dataobj)}
+	    catch {unset _obj2width($dataobj)}
+	    catch {unset _obj2raise($dataobj)}
+	    set changed 1
+	}
     }
 
     # if anything changed, then rebuild the plot
     if {$changed} {
-        after cancel [itcl::code $this _rebuild]
-        after idle [itcl::code $this _rebuild]
+	after cancel [itcl::code $this _rebuild]
+	after idle [itcl::code $this _rebuild]
     }
 }
 
@@ -430,25 +430,25 @@ itcl::body Rappture::ContourResult::delete {args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::ContourResult::scale {args} {
     foreach val {xmin xmax ymin ymax zmin zmax vmin vmax} {
-        set _limits($val) ""
+	set _limits($val) ""
     }
     foreach obj $args {
-        foreach axis {x y z v} {
-            foreach {min max} [$obj limits $axis] break
-            if {"" != $min && "" != $max} {
-                if {"" == $_limits(${axis}min)} {
-                    set _limits(${axis}min) $min
-                    set _limits(${axis}max) $max
-                } else {
-                    if {$min < $_limits(${axis}min)} {
-                        set _limits(${axis}min) $min
-                    }
-                    if {$max > $_limits(${axis}max)} {
-                        set _limits(${axis}max) $max
-                    }
-                }
-            }
-        }
+	foreach axis {x y z v} {
+	    foreach {min max} [$obj limits $axis] break
+	    if {"" != $min && "" != $max} {
+		if {"" == $_limits(${axis}min)} {
+		    set _limits(${axis}min) $min
+		    set _limits(${axis}max) $max
+		} else {
+		    if {$min < $_limits(${axis}min)} {
+			set _limits(${axis}min) $min
+		    }
+		    if {$max > $_limits(${axis}max)} {
+			set _limits(${axis}max) $max
+		    }
+		}
+	    }
+	}
     }
     _fixLimits
 }
@@ -465,24 +465,27 @@ itcl::body Rappture::ContourResult::scale {args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::ContourResult::download {option args} {
     switch $option {
-        coming {
-            if {[catch {blt::winop snap $itk_component(area) $_download}]} {
-                $_download configure -width 1 -height 1
-                $_download put #000000
-            }
-        }
-        controls {
-            # no controls for this download yet
-            return ""
-        }
-        now {
-            set data [$_download data -format jpeg]
-            set bytes [Rappture::encoding::decode -as b64 $data]
-            return [list .jpg $bytes]
-        }
-        default {
-            error "bad option \"$option\": should be coming, controls, now"
-        }
+	coming {
+	    if {[catch {blt::winop snap $itk_component(area) $_download}]} {
+		$_download configure -width 1 -height 1
+		$_download put #000000
+	    }
+	}
+	controls {
+	    # no controls for this download yet
+	    return ""
+	}
+	now {
+	    # Get image data (as base64) and decode back to binary.  This is
+	    # better than writing to temporary files.  When we switch the BLT
+	    # picture image it won't be necessary to decode the image data.
+	    set bytes [$_download data -format "jpeg -quality 100"]
+	    set bytes [Rappture::encoding::decode -as b64 $bytes]
+	    return [list .jpg $bytes]
+	}
+	default {
+	    error "bad option \"$option\": should be coming, controls, now"
+	}
     }
 }
 
@@ -501,9 +504,9 @@ itcl::body Rappture::ContourResult::_rebuild {} {
     set dlist [get]
     set dataobj [lindex $dlist end]
     if {$dataobj != ""} {
-        set _dims [lindex [lsort [$dataobj components -dimensions]] end]
+	set _dims [lindex [lsort [$dataobj components -dimensions]] end]
     } else {
-        set _dims "0D"
+	set _dims "0D"
     }
 
     #
@@ -511,17 +514,17 @@ itcl::body Rappture::ContourResult::_rebuild {} {
     #
     # use vmin/vmax if possible, otherwise get from data
     if {$_limits(vmin) == "" || $_limits(vmax) == ""} {
-        set v0 0
-        set v1 1
-        if {[info exists _obj2vtk($dataobj)]} {
-            set pd [lindex $_obj2vtk($dataobj) 0]
-            if {"" != $pd} {
-                foreach {v0 v1} [$pd GetScalarRange] break
-            }
-        }
+	set v0 0
+	set v1 1
+	if {[info exists _obj2vtk($dataobj)]} {
+	    set pd [lindex $_obj2vtk($dataobj) 0]
+	    if {"" != $pd} {
+		foreach {v0 v1} [$pd GetScalarRange] break
+	    }
+	}
     } else {
-        set v0 $_limits(vmin)
-        set v1 $_limits(vmax)
+	set v0 $_limits(vmin)
+	set v1 $_limits(vmax)
     }
 
     set lu $this-lookup$id
@@ -533,30 +536,30 @@ itcl::body Rappture::ContourResult::_rebuild {} {
     lappend _obj2vtk($dataobj) $lu
 
     if {$_dims == "3D"} {
-        #
-        # 3D LIGHTS (on both sides of all three axes)
-        #
-        set x0 $_limits(xmin)
-        set x1 $_limits(xmax)
-        set xm [expr {0.5*($x0+$x1)}]
-        set y0 $_limits(ymin)
-        set y1 $_limits(ymax)
-        set ym [expr {0.5*($y0+$y1)}]
-        set z0 $_limits(zmin)
-        set z1 $_limits(zmax)
-        set zm [expr {0.5*($z0+$z1)}]
-        set xr [expr {$x1-$x0}]
-        set yr [expr {$y1-$y0}]
-        set zr [expr {$z1-$z0}]
+	#
+	# 3D LIGHTS (on both sides of all three axes)
+	#
+	set x0 $_limits(xmin)
+	set x1 $_limits(xmax)
+	set xm [expr {0.5*($x0+$x1)}]
+	set y0 $_limits(ymin)
+	set y1 $_limits(ymax)
+	set ym [expr {0.5*($y0+$y1)}]
+	set z0 $_limits(zmin)
+	set z1 $_limits(zmax)
+	set zm [expr {0.5*($z0+$z1)}]
+	set xr [expr {$x1-$x0}]
+	set yr [expr {$y1-$y0}]
+	set zr [expr {$z1-$z0}]
 
-        set lt $this-light$id
-        vtkLight $lt
-        $lt SetColor 1 1 1
-        $lt SetAttenuationValues 0 0 0
-        $lt SetFocalPoint $xm $ym $zm
-        $lt SetLightTypeToHeadlight
-        $this-ren AddLight $lt
-        lappend _lights($this-ren) $lt
+	set lt $this-light$id
+	vtkLight $lt
+	$lt SetColor 1 1 1
+	$lt SetAttenuationValues 0 0 0
+	$lt SetFocalPoint $xm $ym $zm
+	$lt SetLightTypeToHeadlight
+	$this-ren AddLight $lt
+	lappend _lights($this-ren) $lt
 
     } else {
     }
@@ -564,349 +567,349 @@ itcl::body Rappture::ContourResult::_rebuild {} {
     # scan through all data objects and build the contours
     set firstobj 1
     foreach dataobj [get] {
-        foreach comp [$dataobj components] {
-            #
-            # Add color contours.
-            #
-            if {$firstobj} {
-                if {$_dims == "3D"} {
-                    pack $itk_component(slicers) -side bottom -padx 4 -pady 4
-                    pack $itk_component(reset) -side left
-                    pack $itk_component(zoomin) -side left
-                    pack $itk_component(zoomout) -side left
+	foreach comp [$dataobj components] {
+	    #
+	    # Add color contours.
+	    #
+	    if {$firstobj} {
+		if {$_dims == "3D"} {
+		    pack $itk_component(slicers) -side bottom -padx 4 -pady 4
+		    pack $itk_component(reset) -side left
+		    pack $itk_component(zoomin) -side left
+		    pack $itk_component(zoomout) -side left
 
-                    #
-                    # 3D DATA SET
-                    #
-                    set mesh [$dataobj mesh $comp]
-                    if {"" == $mesh} {
-                        set x [expr {[winfo rootx $itk_component(area)]+10}]
-                        set y [expr {[winfo rooty $itk_component(area)]+10}]
-                        Rappture::Tooltip::cue @$x,$y "This data requires the visualization server, and that appears to be down.  Please try your simulation again later."
-                        return
-                    }
-                    switch -- [$mesh GetClassName] {
-                      vtkPoints {
-                        # handle cloud of 3D points
-                        set pd $this-polydata$id
-                        vtkPolyData $pd
-                        $pd SetPoints $mesh
-                        [$pd GetPointData] SetScalars [$dataobj values $comp]
+		    #
+		    # 3D DATA SET
+		    #
+		    set mesh [$dataobj mesh $comp]
+		    if {"" == $mesh} {
+			set x [expr {[winfo rootx $itk_component(area)]+10}]
+			set y [expr {[winfo rooty $itk_component(area)]+10}]
+			Rappture::Tooltip::cue @$x,$y "This data requires the visualization server, and that appears to be down.  Please try your simulation again later."
+			return
+		    }
+		    switch -- [$mesh GetClassName] {
+		      vtkPoints {
+			# handle cloud of 3D points
+			set pd $this-polydata$id
+			vtkPolyData $pd
+			$pd SetPoints $mesh
+			[$pd GetPointData] SetScalars [$dataobj values $comp]
 
-                        set tr $this-triangles$id
-                        vtkDelaunay3D $tr
-                        $tr SetInput $pd
-                        $tr SetTolerance 0.0000000000001
-                        set source [$tr GetOutput]
+			set tr $this-triangles$id
+			vtkDelaunay3D $tr
+			$tr SetInput $pd
+			$tr SetTolerance 0.0000000000001
+			set source [$tr GetOutput]
 
-                        set mp $this-mapper$id
-                        vtkPolyDataMapper $mp
+			set mp $this-mapper$id
+			vtkPolyDataMapper $mp
 
-                        lappend _obj2vtk($dataobj) $pd $tr $mp
-                      }
-                      vtkUnstructuredGrid {
-                        # handle 3D grid with connectivity
-                        set gr $this-grdata$id
-                        vtkUnstructuredGrid $gr
-                        $gr ShallowCopy $mesh
-                        [$gr GetPointData] SetScalars [$dataobj values $comp]
-                        set source $gr
+			lappend _obj2vtk($dataobj) $pd $tr $mp
+		      }
+		      vtkUnstructuredGrid {
+			# handle 3D grid with connectivity
+			set gr $this-grdata$id
+			vtkUnstructuredGrid $gr
+			$gr ShallowCopy $mesh
+			[$gr GetPointData] SetScalars [$dataobj values $comp]
+			set source $gr
 
-                        lappend _obj2vtk($dataobj) $gr
-                      }
-                      vtkRectilinearGrid {
-                        # handle 3D grid with connectivity
-                        set gr $this-grdata$id
-                        vtkRectilinearGrid $gr
-                        $gr ShallowCopy $mesh
-                        [$gr GetPointData] SetScalars [$dataobj values $comp]
-                        set source $gr
+			lappend _obj2vtk($dataobj) $gr
+		      }
+		      vtkRectilinearGrid {
+			# handle 3D grid with connectivity
+			set gr $this-grdata$id
+			vtkRectilinearGrid $gr
+			$gr ShallowCopy $mesh
+			[$gr GetPointData] SetScalars [$dataobj values $comp]
+			set source $gr
 
-                        lappend _obj2vtk($dataobj) $gr
-                      }
-                      default {
-                        error "don't know how to handle [$mesh GetClassName] data"
-                      }
-                    }
+			lappend _obj2vtk($dataobj) $gr
+		      }
+		      default {
+			error "don't know how to handle [$mesh GetClassName] data"
+		      }
+		    }
 
-                    #
-                    # 3D ISOSURFACES
-                    #
-                    set iso $this-iso$id
-                    vtkContourFilter $iso
-                      $iso SetInput $source
+		    #
+		    # 3D ISOSURFACES
+		    #
+		    set iso $this-iso$id
+		    vtkContourFilter $iso
+		      $iso SetInput $source
 
-                    set mp $this-isomap$id
-                    vtkPolyDataMapper $mp
-                      $mp SetInput [$iso GetOutput]
+		    set mp $this-isomap$id
+		    vtkPolyDataMapper $mp
+		      $mp SetInput [$iso GetOutput]
 
-                    set ac $this-isoactor$id
-                    vtkActor $ac
-                      $ac SetMapper $mp
-                      [$ac GetProperty] SetOpacity 0.3
-                      [$ac GetProperty] SetDiffuse 0.5
-                      [$ac GetProperty] SetAmbient 0.7
-                      [$ac GetProperty] SetSpecular 10.0
-                      [$ac GetProperty] SetSpecularPower 200.0
-                    $this-ren AddActor $ac
+		    set ac $this-isoactor$id
+		    vtkActor $ac
+		      $ac SetMapper $mp
+		      [$ac GetProperty] SetOpacity 0.3
+		      [$ac GetProperty] SetDiffuse 0.5
+		      [$ac GetProperty] SetAmbient 0.7
+		      [$ac GetProperty] SetSpecular 10.0
+		      [$ac GetProperty] SetSpecularPower 200.0
+		    $this-ren AddActor $ac
 
-                    lappend _obj2vtk($dataobj) $iso $mp $ac
-                    lappend _actors($this-ren) $ac
+		    lappend _obj2vtk($dataobj) $iso $mp $ac
+		    lappend _actors($this-ren) $ac
 
-                    catch {unset style}
-                    array set style [lindex [$dataobj components -style $comp] 0]
-                    if {[info exists style(-color)]} {
-                        $mp ScalarVisibilityOff  ;# take color from actor
-                        eval [$ac GetProperty] SetColor [_color2rgb $style(-color)]
-                    }
+		    catch {unset style}
+		    array set style [lindex [$dataobj components -style $comp] 0]
+		    if {[info exists style(-color)]} {
+			$mp ScalarVisibilityOff  ;# take color from actor
+			eval [$ac GetProperty] SetColor [_color2rgb $style(-color)]
+		    }
 
-                    if {[info exists style(-opacity)]} {
-                        [$ac GetProperty] SetOpacity $style(-opacity)
-                    }
+		    if {[info exists style(-opacity)]} {
+			[$ac GetProperty] SetOpacity $style(-opacity)
+		    }
 
-                    set levels 5
-                    if {[info exists style(-levels)]} {
-                        set levels $style(-levels)
-                    }
-                    if {$levels == 1} {
-                        $iso SetValue 0 [expr {0.5*($v1-$v0)+$v0}]
-                    } else {
-                        $iso GenerateValues [expr {$levels+2}] $v0 $v1
-                    }
+		    set levels 5
+		    if {[info exists style(-levels)]} {
+			set levels $style(-levels)
+		    }
+		    if {$levels == 1} {
+			$iso SetValue 0 [expr {0.5*($v1-$v0)+$v0}]
+		    } else {
+			$iso GenerateValues [expr {$levels+2}] $v0 $v1
+		    }
 
-                    #
-                    # 3D CUT PLANES
-                    #
-                    if {$id == 0} {
-                        foreach axis {x y z} norm {{1 0 0} {0 1 0} {0 0 1}} {
-                            set pl $this-${axis}cutplane$id
-                            vtkPlane $pl
-                            eval $pl SetNormal $norm
-                            set _slicer(${axis}plane) $pl
+		    #
+		    # 3D CUT PLANES
+		    #
+		    if {$id == 0} {
+			foreach axis {x y z} norm {{1 0 0} {0 1 0} {0 0 1}} {
+			    set pl $this-${axis}cutplane$id
+			    vtkPlane $pl
+			    eval $pl SetNormal $norm
+			    set _slicer(${axis}plane) $pl
 
-                            set ct $this-${axis}cutter$id
-                            vtkCutter $ct
-                            $ct SetInput $source
-                            $ct SetCutFunction $pl
+			    set ct $this-${axis}cutter$id
+			    vtkCutter $ct
+			    $ct SetInput $source
+			    $ct SetCutFunction $pl
 
-                            set mp $this-${axis}cutmapper$id
-                            vtkPolyDataMapper $mp
-                            $mp SetInput [$ct GetOutput]
-                            $mp SetScalarRange $v0 $v1
-                            $mp SetLookupTable $lu
+			    set mp $this-${axis}cutmapper$id
+			    vtkPolyDataMapper $mp
+			    $mp SetInput [$ct GetOutput]
+			    $mp SetScalarRange $v0 $v1
+			    $mp SetLookupTable $lu
 
-                            lappend _obj2vtk($dataobj) $pl $ct $mp
+			    lappend _obj2vtk($dataobj) $pl $ct $mp
 
-                            set ac $this-${axis}actor$id
-                            vtkActor $ac
-                            $ac VisibilityOff
-                            $ac SetMapper $mp
-                            $ac SetPosition 0 0 0
-                            [$ac GetProperty] SetColor 0 0 0
-                            set _slicer(${axis}slice) $ac
+			    set ac $this-${axis}actor$id
+			    vtkActor $ac
+			    $ac VisibilityOff
+			    $ac SetMapper $mp
+			    $ac SetPosition 0 0 0
+			    [$ac GetProperty] SetColor 0 0 0
+			    set _slicer(${axis}slice) $ac
 
-                            $this-ren AddActor $ac
-                            lappend _actors($this-ren) $ac
-                            lappend _obj2vtk($dataobj) $ac
-                        }
+			    $this-ren AddActor $ac
+			    lappend _actors($this-ren) $ac
+			    lappend _obj2vtk($dataobj) $ac
+			}
 
-                        #
-                        # CUT PLANE READOUT
-                        #
-                        set tx $this-text$id
-                        vtkTextMapper $tx
-                        set tp [$tx GetTextProperty]
-                        eval $tp SetColor [_color2rgb $itk_option(-plotforeground)]
-                        $tp SetVerticalJustificationToTop
-                        set _slicer(readout) $tx
+			#
+			# CUT PLANE READOUT
+			#
+			set tx $this-text$id
+			vtkTextMapper $tx
+			set tp [$tx GetTextProperty]
+			eval $tp SetColor [_color2rgb $itk_option(-plotforeground)]
+			$tp SetVerticalJustificationToTop
+			set _slicer(readout) $tx
 
-                        set txa $this-texta$id
-                        vtkActor2D $txa
-                        $txa SetMapper $tx
-                        [$txa GetPositionCoordinate] \
-                            SetCoordinateSystemToNormalizedDisplay
-                        [$txa GetPositionCoordinate] SetValue 0.02 0.98
+			set txa $this-texta$id
+			vtkActor2D $txa
+			$txa SetMapper $tx
+			[$txa GetPositionCoordinate] \
+			    SetCoordinateSystemToNormalizedDisplay
+			[$txa GetPositionCoordinate] SetValue 0.02 0.98
 
-                        $this-ren AddActor $txa
-                        lappend _actors($this-ren) $txa
+			$this-ren AddActor $txa
+			lappend _actors($this-ren) $txa
 
-                        lappend _obj2vtk($dataobj) $tx $txa
+			lappend _obj2vtk($dataobj) $tx $txa
 
-                        # turn off all slicers by default
-                        foreach axis {x y z} {
-                            $itk_component(${axis}slicer) configure -state normal
-                            $itk_component(${axis}slicer) set 50
-                            _slice move $axis 50
-                            _slice axis $axis off
-                        }
-                    }
+			# turn off all slicers by default
+			foreach axis {x y z} {
+			    $itk_component(${axis}slicer) configure -state normal
+			    $itk_component(${axis}slicer) set 50
+			    _slice move $axis 50
+			    _slice axis $axis off
+			}
+		    }
 
-                } else {
-                    pack forget $itk_component(slicers)
-                    pack $itk_component(reset) -side top
-                    pack $itk_component(zoomin) -side top
-                    pack $itk_component(zoomout) -side top
+		} else {
+		    pack forget $itk_component(slicers)
+		    pack $itk_component(reset) -side top
+		    pack $itk_component(zoomin) -side top
+		    pack $itk_component(zoomout) -side top
 
-                    set pd $this-polydata$id
-                    vtkPolyData $pd
-                    $pd SetPoints [$dataobj mesh $comp]
-                    [$pd GetPointData] SetScalars [$dataobj values $comp]
+		    set pd $this-polydata$id
+		    vtkPolyData $pd
+		    $pd SetPoints [$dataobj mesh $comp]
+		    [$pd GetPointData] SetScalars [$dataobj values $comp]
 
-                    set tr $this-triangles$id
-                    vtkDelaunay2D $tr
-                    $tr SetInput $pd
-                    $tr SetTolerance 0.0000000000001
-                    set source [$tr GetOutput]
+		    set tr $this-triangles$id
+		    vtkDelaunay2D $tr
+		    $tr SetInput $pd
+		    $tr SetTolerance 0.0000000000001
+		    set source [$tr GetOutput]
 
-                    set mp $this-mapper$id
-                    vtkPolyDataMapper $mp
-                    $mp SetInput $source
-                    $mp SetScalarRange $v0 $v1
-                    $mp SetLookupTable $lu
+		    set mp $this-mapper$id
+		    vtkPolyDataMapper $mp
+		    $mp SetInput $source
+		    $mp SetScalarRange $v0 $v1
+		    $mp SetLookupTable $lu
 
-                    set ac $this-actor$id
-                    vtkActor $ac
-                    $ac SetMapper $mp
-                    $ac SetPosition 0 0 0
-                    [$ac GetProperty] SetColor 0 0 0
-                    $this-ren AddActor $ac
-                    lappend _actors($this-ren) $ac
+		    set ac $this-actor$id
+		    vtkActor $ac
+		    $ac SetMapper $mp
+		    $ac SetPosition 0 0 0
+		    [$ac GetProperty] SetColor 0 0 0
+		    $this-ren AddActor $ac
+		    lappend _actors($this-ren) $ac
 
-                    lappend _obj2vtk($dataobj) $pd $tr $mp $ac
-                }
-            } else {
-                #
-                # Add color lines
-                #
-                set cf $this-clfilter$id
-                vtkContourFilter $cf
-                $cf SetInput $source
-                $cf GenerateValues 20 $v0 $v1
+		    lappend _obj2vtk($dataobj) $pd $tr $mp $ac
+		}
+	    } else {
+		#
+		# Add color lines
+		#
+		set cf $this-clfilter$id
+		vtkContourFilter $cf
+		$cf SetInput $source
+		$cf GenerateValues 20 $v0 $v1
 
-                set mp $this-clmapper$id
-                vtkPolyDataMapper $mp
-                $mp SetInput [$cf GetOutput]
-                $mp SetScalarRange $v0 $v1
-                $mp SetLookupTable $lu
+		set mp $this-clmapper$id
+		vtkPolyDataMapper $mp
+		$mp SetInput [$cf GetOutput]
+		$mp SetScalarRange $v0 $v1
+		$mp SetLookupTable $lu
 
-                set ac $this-clactor$id
-                vtkActor $ac
-                $ac SetMapper $mp
-                [$ac GetProperty] SetColor 1 1 1
-                $ac SetPosition 0 0 0
-                $this-ren AddActor $ac
-                lappend _actors($this-ren) $ac
+		set ac $this-clactor$id
+		vtkActor $ac
+		$ac SetMapper $mp
+		[$ac GetProperty] SetColor 1 1 1
+		$ac SetPosition 0 0 0
+		$this-ren AddActor $ac
+		lappend _actors($this-ren) $ac
 
-                lappend _obj2vtk($dataobj) $cf $mp $ac
-            }
+		lappend _obj2vtk($dataobj) $cf $mp $ac
+	    }
 
-            #
-            # Add an outline around the data
-            #
-            if {$id == 0} {
-                set olf $this-olfilter$id
-                vtkOutlineFilter $olf
-                $olf SetInput $source
+	    #
+	    # Add an outline around the data
+	    #
+	    if {$id == 0} {
+		set olf $this-olfilter$id
+		vtkOutlineFilter $olf
+		$olf SetInput $source
 
-                set olm $this-olmapper$id
-                vtkPolyDataMapper $olm
-                $olm SetInput [$olf GetOutput]
+		set olm $this-olmapper$id
+		vtkPolyDataMapper $olm
+		$olm SetInput [$olf GetOutput]
 
-                set ola $this-olactor$id
-                vtkActor $ola
-                $ola SetMapper $olm
-                eval [$ola GetProperty] SetColor [_color2rgb $itk_option(-plotforeground)]
-                $this-ren AddActor $ola
-                lappend _actors($this-ren) $ola
+		set ola $this-olactor$id
+		vtkActor $ola
+		$ola SetMapper $olm
+		eval [$ola GetProperty] SetColor [_color2rgb $itk_option(-plotforeground)]
+		$this-ren AddActor $ola
+		lappend _actors($this-ren) $ola
 
-                lappend _obj2vtk($dataobj) $olf $olm $ola
+		lappend _obj2vtk($dataobj) $olf $olm $ola
 
-                if {$_dims == "3D"} {
-                    # pick a good scale factor for text
-                    if {$xr < $yr} {
-                        set tscale [expr {0.1*$xr}]
-                    } else {
-                        set tscale [expr {0.1*$yr}]
-                    }
+		if {$_dims == "3D"} {
+		    # pick a good scale factor for text
+		    if {$xr < $yr} {
+			set tscale [expr {0.1*$xr}]
+		    } else {
+			set tscale [expr {0.1*$yr}]
+		    }
 
-                    foreach {i axis px py pz rx ry rz} {
-                        0  x   $xm   0   0   90   0   0
-                        1  y     0 $ym   0   90 -90   0
-                        2  z   $x1   0 $zm   90   0 -45
-                    } {
-                        set length "[expr {[set ${axis}1]-[set ${axis}0]}]"
+		    foreach {i axis px py pz rx ry rz} {
+			0  x   $xm   0   0   90   0   0
+			1  y     0 $ym   0   90 -90   0
+			2  z   $x1   0 $zm   90   0 -45
+		    } {
+			set length "[expr {[set ${axis}1]-[set ${axis}0]}]"
 
-                        set vtx $this-${axis}label$id
-                        vtkVectorText $vtx
-                        $vtx SetText "$axis"
+			set vtx $this-${axis}label$id
+			vtkVectorText $vtx
+			$vtx SetText "$axis"
 
-                        set vmp $this-${axis}lmap$id
-                        vtkPolyDataMapper $vmp
-                        $vmp SetInput [$vtx GetOutput]
+			set vmp $this-${axis}lmap$id
+			vtkPolyDataMapper $vmp
+			$vmp SetInput [$vtx GetOutput]
 
-                        set vac $this-${axis}lact$id
-                        vtkActor $vac
-                        $vac SetMapper $vmp
-                        $vac SetPosition [expr $px] [expr $py] [expr $pz]
-                        $vac SetOrientation $rx $ry $rz
-                        $vac SetScale $tscale
-                        $this-ren AddActor $vac
+			set vac $this-${axis}lact$id
+			vtkActor $vac
+			$vac SetMapper $vmp
+			$vac SetPosition [expr $px] [expr $py] [expr $pz]
+			$vac SetOrientation $rx $ry $rz
+			$vac SetScale $tscale
+			$this-ren AddActor $vac
 
-                        lappend _obj2vtk($dataobj) $vtx $vmp $vac
-                        lappend _actors($this-ren) $vac
+			lappend _obj2vtk($dataobj) $vtx $vmp $vac
+			lappend _actors($this-ren) $vac
 
-                        $vmp Update
-                        foreach {xx0 xx1 yy0 yy1 zz0 zz1} [$vac GetBounds] break
-                        switch -- $axis {
-                          x {
-                            set dx [expr {-0.5*($xx1-$xx0)}]
-                            set dy 0
-                            set dz [expr {1.3*($zz0-$zz1)}]
-                          }
-                          y {
-                            set dx 0
-                            set dy [expr {0.5*($yy1-$yy0)}]
-                            set dz [expr {$zz0-$zz1}]
-                          }
-                          z {
-                            set dx [expr {0.2*$tscale}]
-                            set dy $dx
-                            set dz [expr {-0.5*($zz1-$zz0)}]
-                          }
-                        }
-                        $vac AddPosition $dx $dy $dz
-                    }
-                }
-            }
+			$vmp Update
+			foreach {xx0 xx1 yy0 yy1 zz0 zz1} [$vac GetBounds] break
+			switch -- $axis {
+			  x {
+			    set dx [expr {-0.5*($xx1-$xx0)}]
+			    set dy 0
+			    set dz [expr {1.3*($zz0-$zz1)}]
+			  }
+			  y {
+			    set dx 0
+			    set dy [expr {0.5*($yy1-$yy0)}]
+			    set dz [expr {$zz0-$zz1}]
+			  }
+			  z {
+			    set dx [expr {0.2*$tscale}]
+			    set dy $dx
+			    set dz [expr {-0.5*($zz1-$zz0)}]
+			  }
+			}
+			$vac AddPosition $dx $dy $dz
+		    }
+		}
+	    }
 
-            #
-            # Add a legend with the scale.
-            #
-            if {$id == 0} {
-                set lg $this-legend$id
-                vtkScalarBarActor $lg
-                $lg SetLookupTable $lu
-                [$lg GetPositionCoordinate] SetCoordinateSystemToNormalizedViewport
-                [$lg GetPositionCoordinate] SetValue 0.1 0.1
-                $lg SetOrientationToHorizontal
-                $lg SetWidth 0.8
-                $lg SetHeight 1.0
+	    #
+	    # Add a legend with the scale.
+	    #
+	    if {$id == 0} {
+		set lg $this-legend$id
+		vtkScalarBarActor $lg
+		$lg SetLookupTable $lu
+		[$lg GetPositionCoordinate] SetCoordinateSystemToNormalizedViewport
+		[$lg GetPositionCoordinate] SetValue 0.1 0.1
+		$lg SetOrientationToHorizontal
+		$lg SetWidth 0.8
+		$lg SetHeight 1.0
 
-                set tp [$lg GetLabelTextProperty]
-                eval $tp SetColor [_color2rgb $itk_option(-plotforeground)]
-                $tp BoldOff
-                $tp ItalicOff
-                $tp ShadowOff
-                #eval $tp SetShadowColor [_color2rgb gray]
+		set tp [$lg GetLabelTextProperty]
+		eval $tp SetColor [_color2rgb $itk_option(-plotforeground)]
+		$tp BoldOff
+		$tp ItalicOff
+		$tp ShadowOff
+		#eval $tp SetShadowColor [_color2rgb gray]
 
-                $this-ren2 AddActor2D $lg
-                lappend _actors($this-ren2) $lg
-                lappend _obj2vtk($dataobj) $lg
-            }
+		$this-ren2 AddActor2D $lg
+		lappend _actors($this-ren2) $lg
+		lappend _obj2vtk($dataobj) $lg
+	    }
 
-            incr id
-        }
-        set firstobj 0
+	    incr id
+	}
+	set firstobj 0
     }
     _fixLimits
     _zoom reset
@@ -918,18 +921,18 @@ itcl::body Rappture::ContourResult::_rebuild {} {
     #   enough.  I hate Vtk sometimes...
     #
     for {set i 0} {$i < 20} {incr i} {
-        $this-ren ResetCamera
-        [$this-ren GetActiveCamera] Zoom 1.5
+	$this-ren ResetCamera
+	[$this-ren GetActiveCamera] Zoom 1.5
     }
 
     # prevent interactions -- use our own
     blt::busy hold $itk_component(area) -cursor left_ptr
     bind $itk_component(area)_Busy <ButtonPress> \
-        [itcl::code $this _move click %x %y]
+	[itcl::code $this _move click %x %y]
     bind $itk_component(area)_Busy <B1-Motion> \
-        [itcl::code $this _move drag %x %y]
+	[itcl::code $this _move drag %x %y]
     bind $itk_component(area)_Busy <ButtonRelease> \
-        [itcl::code $this _move release %x %y]
+	[itcl::code $this _move release %x %y]
 }
 
 # ----------------------------------------------------------------------
@@ -941,23 +944,23 @@ itcl::body Rappture::ContourResult::_rebuild {} {
 itcl::body Rappture::ContourResult::_clear {} {
     # clear out any old constructs
     foreach ren [array names _actors] {
-        foreach actor $_actors($ren) {
-            $ren RemoveActor $actor
-        }
-        set _actors($ren) ""
+	foreach actor $_actors($ren) {
+	    $ren RemoveActor $actor
+	}
+	set _actors($ren) ""
     }
     foreach ren [array names _lights] {
-        foreach light $_lights($ren) {
-            $ren RemoveLight $light
-            rename $light ""
-        }
-        set _lights($ren) ""
+	foreach light $_lights($ren) {
+	    $ren RemoveLight $light
+	    rename $light ""
+	}
+	set _lights($ren) ""
     }
     foreach dataobj [array names _obj2vtk] {
-        foreach cmd $_obj2vtk($dataobj) {
-            rename $cmd ""
-        }
-        set _obj2vtk($dataobj) ""
+	foreach cmd $_obj2vtk($dataobj) {
+	    rename $cmd ""
+	}
+	set _obj2vtk($dataobj) ""
     }
     set _slicer(xplane) ""
     set _slicer(yplane) ""
@@ -978,26 +981,26 @@ itcl::body Rappture::ContourResult::_clear {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::ContourResult::_zoom {option} {
     switch -- $option {
-        in {
-            [$this-ren GetActiveCamera] Zoom 1.25
-            $this-renWin Render
-        }
-        out {
-            [$this-ren GetActiveCamera] Zoom 0.8
-            $this-renWin Render
-        }
-        reset {
-            if {$_dims == "3D"} {
-                [$this-ren GetActiveCamera] SetViewAngle 30
-                $this-ren ResetCamera
-                _3dView 45 45
-            } else {
-                $this-ren ResetCamera
-                [$this-ren GetActiveCamera] Zoom 1.5
-            }
-            $this-renWin Render
-            $this-renWin2 Render
-        }
+	in {
+	    [$this-ren GetActiveCamera] Zoom 1.25
+	    $this-renWin Render
+	}
+	out {
+	    [$this-ren GetActiveCamera] Zoom 0.8
+	    $this-renWin Render
+	}
+	reset {
+	    if {$_dims == "3D"} {
+		[$this-ren GetActiveCamera] SetViewAngle 30
+		$this-ren ResetCamera
+		_3dView 45 45
+	    } else {
+		$this-ren ResetCamera
+		[$this-ren GetActiveCamera] Zoom 1.5
+	    }
+	    $this-renWin Render
+	    $this-renWin2 Render
+	}
     }
 }
 
@@ -1011,57 +1014,57 @@ itcl::body Rappture::ContourResult::_zoom {option} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::ContourResult::_move {option x y} {
     switch -- $option {
-        click {
-            blt::busy configure $itk_component(area) -cursor fleur
-            set _click(x) $x
-            set _click(y) $y
-            set _click(theta) $_view(theta)
-            set _click(phi) $_view(phi)
-        }
-        drag {
-            if {[array size _click] == 0} {
-                _move click $x $y
-            } else {
-                set w [winfo width $itk_component(plot)]
-                set h [winfo height $itk_component(plot)]
-                set scalex [expr {$_limits(xmax)-$_limits(xmin)}]
-                set scaley [expr {$_limits(ymax)-$_limits(ymin)}]
-                set dx [expr {double($x-$_click(x))/$w*$scalex}]
-                set dy [expr {double($y-$_click(y))/$h*$scaley}]
+	click {
+	    blt::busy configure $itk_component(area) -cursor fleur
+	    set _click(x) $x
+	    set _click(y) $y
+	    set _click(theta) $_view(theta)
+	    set _click(phi) $_view(phi)
+	}
+	drag {
+	    if {[array size _click] == 0} {
+		_move click $x $y
+	    } else {
+		set w [winfo width $itk_component(plot)]
+		set h [winfo height $itk_component(plot)]
+		set scalex [expr {$_limits(xmax)-$_limits(xmin)}]
+		set scaley [expr {$_limits(ymax)-$_limits(ymin)}]
+		set dx [expr {double($x-$_click(x))/$w*$scalex}]
+		set dy [expr {double($y-$_click(y))/$h*$scaley}]
 
-                if {$_dims == "2D"} {
-                    #
-                    # Shift the contour plot in 2D
-                    #
-                    foreach actor $_actors($this-ren) {
-                        foreach {ax ay az} [$actor GetPosition] break
-                        $actor SetPosition [expr {$ax+$dx}] [expr {$ay-$dy}] 0
-                    }
-                    $this-renWin Render
-                } elseif {$_dims == "3D"} {
-                    #
-                    # Rotate the camera in 3D
-                    #
-                    set theta [expr {$_view(theta) - $dy*180}]
-                    if {$theta < 2} { set theta 2 }
-                    if {$theta > 178} { set theta 178 }
-                    set phi [expr {$_view(phi) - $dx*360}]
+		if {$_dims == "2D"} {
+		    #
+		    # Shift the contour plot in 2D
+		    #
+		    foreach actor $_actors($this-ren) {
+			foreach {ax ay az} [$actor GetPosition] break
+			$actor SetPosition [expr {$ax+$dx}] [expr {$ay-$dy}] 0
+		    }
+		    $this-renWin Render
+		} elseif {$_dims == "3D"} {
+		    #
+		    # Rotate the camera in 3D
+		    #
+		    set theta [expr {$_view(theta) - $dy*180}]
+		    if {$theta < 2} { set theta 2 }
+		    if {$theta > 178} { set theta 178 }
+		    set phi [expr {$_view(phi) - $dx*360}]
 
-                    _3dView $theta $phi
-                    $this-renWin Render
-                }
-                set _click(x) $x
-                set _click(y) $y
-            }
-        }
-        release {
-            _move drag $x $y
-            blt::busy configure $itk_component(area) -cursor left_ptr
-            catch {unset _click}
-        }
-        default {
-            error "bad option \"$option\": should be click, drag, release"
-        }
+		    _3dView $theta $phi
+		    $this-renWin Render
+		}
+		set _click(x) $x
+		set _click(y) $y
+	    }
+	}
+	release {
+	    _move drag $x $y
+	    blt::busy configure $itk_component(area) -cursor left_ptr
+	    catch {unset _click}
+	}
+	default {
+	    error "bad option \"$option\": should be click, drag, release"
+	}
     }
 }
 
@@ -1076,74 +1079,74 @@ itcl::body Rappture::ContourResult::_move {option x y} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::ContourResult::_slice {option args} {
     if {$_slicer(xplane) == ""} {
-        # no slicer? then bail out!
-        return
+	# no slicer? then bail out!
+	return
     }
     switch -- $option {
-        axis {
-            if {[llength $args] < 1 || [llength $args] > 2} {
-                error "wrong # args: should be \"_slice axis x|y|z ?on|off|toggle?\""
-            }
-            set axis [lindex $args 0]
-            set op [lindex $args 1]
-            if {$op == ""} { set op "on" }
+	axis {
+	    if {[llength $args] < 1 || [llength $args] > 2} {
+		error "wrong # args: should be \"_slice axis x|y|z ?on|off|toggle?\""
+	    }
+	    set axis [lindex $args 0]
+	    set op [lindex $args 1]
+	    if {$op == ""} { set op "on" }
 
-            if {[$itk_component(${axis}slice) cget -relief] == "raised"} {
-                set current "off"
-            } else {
-                set current "on"
-            }
+	    if {[$itk_component(${axis}slice) cget -relief] == "raised"} {
+		set current "off"
+	    } else {
+		set current "on"
+	    }
 
-            if {$op == "toggle"} {
-                if {$current == "on"} { set op "off" } else { set op "on" }
-            }
+	    if {$op == "toggle"} {
+		if {$current == "on"} { set op "off" } else { set op "on" }
+	    }
 
-            if {$op} {
-                $itk_component(${axis}slicer) configure -state normal
-                $_slicer(${axis}slice) VisibilityOn
-                $itk_component(${axis}slice) configure -relief sunken
-            } else {
-                $itk_component(${axis}slicer) configure -state disabled
-                $_slicer(${axis}slice) VisibilityOff
-                $itk_component(${axis}slice) configure -relief raised
-            }
-            $this-renWin Render
-        }
-        move {
-            if {[llength $args] != 2} {
-                error "wrong # args: should be \"_slice move x|y|z newval\""
-            }
-            set axis [lindex $args 0]
-            set newval [lindex $args 1]
+	    if {$op} {
+		$itk_component(${axis}slicer) configure -state normal
+		$_slicer(${axis}slice) VisibilityOn
+		$itk_component(${axis}slice) configure -relief sunken
+	    } else {
+		$itk_component(${axis}slicer) configure -state disabled
+		$_slicer(${axis}slice) VisibilityOff
+		$itk_component(${axis}slice) configure -relief raised
+	    }
+	    $this-renWin Render
+	}
+	move {
+	    if {[llength $args] != 2} {
+		error "wrong # args: should be \"_slice move x|y|z newval\""
+	    }
+	    set axis [lindex $args 0]
+	    set newval [lindex $args 1]
 
-            set xm [expr {0.5*($_limits(xmax)+$_limits(xmin))}]
-            set ym [expr {0.5*($_limits(ymax)+$_limits(ymin))}]
-            set zm [expr {0.5*($_limits(zmax)+$_limits(zmin))}]
+	    set xm [expr {0.5*($_limits(xmax)+$_limits(xmin))}]
+	    set ym [expr {0.5*($_limits(ymax)+$_limits(ymin))}]
+	    set zm [expr {0.5*($_limits(zmax)+$_limits(zmin))}]
 
-            set newval [expr {0.01*($newval-50)
-                *($_limits(${axis}max)-$_limits(${axis}min))
-                  + 0.5*($_limits(${axis}max)+$_limits(${axis}min))}]
+	    set newval [expr {0.01*($newval-50)
+		*($_limits(${axis}max)-$_limits(${axis}min))
+		  + 0.5*($_limits(${axis}max)+$_limits(${axis}min))}]
 
-            # show the current value in the readout
-            if {$_slicer(readout) != ""} {
-                $_slicer(readout) SetInput "$axis = $newval"
-            }
+	    # show the current value in the readout
+	    if {$_slicer(readout) != ""} {
+		$_slicer(readout) SetInput "$axis = $newval"
+	    }
 
-            # keep a little inside the volume, or the slice will disappear!
-            if {$newval == $_limits(${axis}min)} {
-                set range [expr {$_limits(${axis}max)-$_limits(${axis}min)}]
-                set newval [expr {$newval + 1e-6*$range}]
-            }
+	    # keep a little inside the volume, or the slice will disappear!
+	    if {$newval == $_limits(${axis}min)} {
+		set range [expr {$_limits(${axis}max)-$_limits(${axis}min)}]
+		set newval [expr {$newval + 1e-6*$range}]
+	    }
 
-            # xfer new value to the proper dimension and move the cut plane
-            set ${axis}m $newval
-            $_slicer(${axis}plane) SetOrigin $xm $ym $zm
+	    # xfer new value to the proper dimension and move the cut plane
+	    set ${axis}m $newval
+	    $_slicer(${axis}plane) SetOrigin $xm $ym $zm
 
-            $this-renWin Render
-        }
-        default {
-            error "bad option \"$option\": should be axis or move"
-        }
+	    $this-renWin Render
+	}
+	default {
+	    error "bad option \"$option\": should be axis or move"
+	}
     }
 }
 
@@ -1203,8 +1206,8 @@ itcl::body Rappture::ContourResult::_fixLimits {} {
 itcl::body Rappture::ContourResult::_slicertip {axis} {
     set val [$itk_component(${axis}slicer) get]
     set val [expr {0.01*($val-50)
-        *($_limits(${axis}max)-$_limits(${axis}min))
-          + 0.5*($_limits(${axis}max)+$_limits(${axis}min))}]
+	*($_limits(${axis}max)-$_limits(${axis}min))
+	  + 0.5*($_limits(${axis}max)+$_limits(${axis}min))}]
     return "Move the [string toupper $axis] cut plane.\nCurrently:  $axis = $val"
 }
 

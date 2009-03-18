@@ -57,7 +57,7 @@ itcl::class Rappture::Editor {
     protected method _resize {}
     protected variable _loc   ;# array of editor location parameters
 }
-                                                                                
+										
 itk::usual Editor {
     keep -cursor -font
 }
@@ -73,40 +73,40 @@ itcl::body Rappture::Editor::constructor {args} {
     component hull configure -borderwidth 1
 
     itk_component add editor {
-        entry $itk_interior.editor -highlightthickness 0
+	entry $itk_interior.editor -highlightthickness 0
     } {
-        usual
-        keep -relief
-        ignore -highlightthickness
-        ignore -highlightcolor
-        ignore -highlightbackground
+	usual
+	keep -relief
+	ignore -highlightthickness
+	ignore -highlightcolor
+	ignore -highlightbackground
     }
     pack $itk_component(editor) -expand yes -fill both
 
     bind $itk_component(editor) <KeyPress> \
-        [itcl::code $this _resize]
+	[itcl::code $this _resize]
     bind $itk_component(editor) <KeyPress-Return> \
-        [itcl::code $this deactivate]
+	[itcl::code $this deactivate]
     bind $itk_component(editor) <KeyPress-Escape> \
-        [itcl::code $this deactivate -abort]
+	[itcl::code $this deactivate -abort]
     bind $itk_component(editor) <ButtonPress> \
-        [itcl::code $this _click %X %Y]
+	[itcl::code $this _click %X %Y]
 
     itk_component add emenu {
-        menu $itk_component(editor).menu -tearoff 0
+	menu $itk_component(editor).menu -tearoff 0
     } {
-        usual
-        ignore -tearoff
-        ignore -background -foreground
+	usual
+	ignore -tearoff
+	ignore -background -foreground
     }
     $itk_component(emenu) add command -label "Cut" -accelerator "^X" \
-        -command [list event generate $itk_component(editor) <<Cut>>]
+	-command [list event generate $itk_component(editor) <<Cut>>]
     $itk_component(emenu) add command -label "Copy" -accelerator "^C" \
-        -command [list event generate $itk_component(editor) <<Copy>>]
+	-command [list event generate $itk_component(editor) <<Copy>>]
     $itk_component(emenu) add command -label "Paste" -accelerator "^V" \
-        -command [list event generate $itk_component(editor) <<Paste>>]
+	-command [list event generate $itk_component(editor) <<Paste>>]
     bind $itk_component(editor) <<PopupMenu>> {
-        tk_popup %W.menu %X %Y
+	tk_popup %W.menu %X %Y
     }
 
     eval itk_initialize $args
@@ -123,16 +123,16 @@ itcl::body Rappture::Editor::constructor {args} {
 itcl::body Rappture::Editor::activate {} {
     set e $itk_component(editor)
     if {[winfo ismapped $e]} {
-        return  ;# already mapped -- nothing to do
+	return  ;# already mapped -- nothing to do
     }
 
     set info ""
     if {[string length $itk_option(-activatecommand)] > 0} {
-        set status [catch {uplevel #0 $itk_option(-activatecommand)} info]
-        if {$status != 0} {
-            bgerror $info
-            return
-        }
+	set status [catch {uplevel #0 $itk_option(-activatecommand)} info]
+	if {$status != 0} {
+	    bgerror $info
+	    return
+	}
     }
 
     #
@@ -144,7 +144,7 @@ itcl::body Rappture::Editor::activate {} {
     #
     array set vals $info
     if {![info exists vals(x)] || ![info exists vals(y)]} {
-        return
+	return
     }
     set _loc(x) $vals(x)
     set _loc(y) $vals(y)
@@ -153,7 +153,7 @@ itcl::body Rappture::Editor::activate {} {
 
     $itk_component(editor) delete 0 end
     if {[info exists vals(text)]} {
-        $itk_component(editor) insert end $vals(text)
+	$itk_component(editor) insert end $vals(text)
     }
     $itk_component(editor) select from 0
     $itk_component(editor) select to end
@@ -166,7 +166,7 @@ itcl::body Rappture::Editor::activate {} {
     # try to grab the pointer, and keep trying...
     update
     while {[catch {grab set -global $itk_component(editor)}]} {
-        after 100
+	after 100
     }
 }
 
@@ -187,9 +187,9 @@ itcl::body Rappture::Editor::deactivate {args} {
     ::Rappture::Tooltip::cue hide
 
     if {$args == "-abort"} {
-        grab release $itk_component(editor)
-        wm withdraw $itk_component(hull)
-        return
+	grab release $itk_component(editor)
+	wm withdraw $itk_component(hull)
+	return
     }
 
     set str [$itk_component(editor) get]
@@ -199,19 +199,19 @@ itcl::body Rappture::Editor::deactivate {args} {
     # now to check the new value.
     #
     if {[string length $itk_option(-validatecommand)] > 0} {
-        set cmd "uplevel #0 [list $itk_option(-validatecommand) [list $str]]"
-        if {[catch $cmd result]} {
-            bgerror $result
-            set result 1
-        }
-        if {$result == 0} {
-            bell
-            $itk_component(editor) select from 0
-            $itk_component(editor) select to end
-            $itk_component(editor) icursor end
-            focus $itk_component(editor)
-            return
-        }
+	set cmd "uplevel #0 [list $itk_option(-validatecommand) [list $str]]"
+	if {[catch $cmd result]} {
+	    bgerror $result
+	    set result 1
+	}
+	if {$result == 0} {
+	    bell
+	    $itk_component(editor) select from 0
+	    $itk_component(editor) select to end
+	    $itk_component(editor) icursor end
+	    focus $itk_component(editor)
+	    return
+	}
     }
 
     grab release $itk_component(editor)
@@ -222,11 +222,11 @@ itcl::body Rappture::Editor::deactivate {args} {
     # now to apply the new value.
     #
     if {[string length $itk_option(-applycommand)] > 0} {
-        set cmd "uplevel #0 [list $itk_option(-applycommand) [list $str]]"
-        if {[catch $cmd result]} {
-            bgerror $result
-            return
-        }
+	set cmd "uplevel #0 [list $itk_option(-applycommand) [list $str]]"
+	if {[catch $cmd result]} {
+	    bgerror $result
+	    return
+	}
     }
 }
 
@@ -254,11 +254,11 @@ itcl::body Rappture::Editor::value {newval} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Editor::_click {x y} {
     if {[winfo containing $x $y] != $itk_component(editor)} {
-        deactivate
+	deactivate
     } else {
-        # make sure the editor has keyboard focus!
-        # it loses focus sometimes during cut/copy/paste operations
-        focus -force $itk_component(editor)
+	# make sure the editor has keyboard focus!
+	# it loses focus sometimes during cut/copy/paste operations
+	focus -force $itk_component(editor)
     }
 }
 
@@ -277,13 +277,13 @@ itcl::body Rappture::Editor::_resize {} {
     set w [expr {[font measure $fnt $str]+20}]
     set w [expr {($w < $_loc(w)) ? $_loc(w) : $w}]
     if {$w+$_loc(x) >= [winfo screenwidth $e]} {
-        set w [expr {[winfo screenwidth $e]-$_loc(x)}]
+	set w [expr {[winfo screenwidth $e]-$_loc(x)}]
     }
 
     set h [expr {[font metrics $fnt -linespace]+4}]
     set h [expr {($h < $_loc(h)) ? $_loc(h) : $h}]
     if {$h+$_loc(y) >= [winfo screenheight $e]} {
-        set h [expr {[winfo screenheight $e]-$_loc(y)}]
+	set h [expr {[winfo screenheight $e]-$_loc(y)}]
     }					
     # Temporary fix to prevent Opps. Don't deal with negative dimensions.
     if { $w <= 0 || $h <= 0 } {

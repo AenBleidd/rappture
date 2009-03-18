@@ -37,7 +37,7 @@ itcl::class Rappture::ValueResult {
     private variable _dobj2raise  ;# maps data object => raise flag 0/1
     private variable _dobj2desc   ;# maps data object => description
 }
-                                                                                
+										
 itk::usual ValueResult {
     keep -background -foreground -cursor -font
 }
@@ -51,13 +51,13 @@ itcl::body Rappture::ValueResult::constructor {args} {
     $_dispatcher dispatch $this !rebuild "[itcl::code $this _rebuild]; list"
 
     itk_component add scroller {
-        Rappture::Scroller $itk_interior.scroller \
-            -xscrollmode auto -yscrollmode auto
+	Rappture::Scroller $itk_interior.scroller \
+	    -xscrollmode auto -yscrollmode auto
     }
     pack $itk_component(scroller) -expand yes -fill both
 
     itk_component add html {
-        Rappture::HTMLviewer $itk_component(scroller).html
+	Rappture::HTMLviewer $itk_component(scroller).html
     }
     $itk_component(scroller) contents $itk_component(html)
 
@@ -74,41 +74,41 @@ itcl::body Rappture::ValueResult::constructor {args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::ValueResult::add {dataobj {settings ""}} {
     array set params {
-        -color ""
-        -brightness 0
-        -width ""
-        -linestyle ""
-        -raise 0
-        -description ""
-        -param ""
+	-color ""
+	-brightness 0
+	-width ""
+	-linestyle ""
+	-raise 0
+	-description ""
+	-param ""
     }
     foreach {opt val} $settings {
-        if {![info exists params($opt)]} {
-            error "bad setting \"$opt\": should be [join [lsort [array names params]] {, }]"
-        }
-        set params($opt) $val
+	if {![info exists params($opt)]} {
+	    error "bad setting \"$opt\": should be [join [lsort [array names params]] {, }]"
+	}
+	set params($opt) $val
     }
     if {$params(-color) == "auto" || $params(-color) == "autoreset"} {
-        # can't handle -autocolors yet
-        set params(-color) black
+	# can't handle -autocolors yet
+	set params(-color) black
     }
 
     if {"" != $dataobj} {
-        # find the value and assign it with the proper coloring
-        if {"" != $params(-color) && "" != $params(-brightness)
-              && $params(-brightness) != 0} {
-            set params(-color) [Rappture::color::brightness \
-                $params(-color) $params(-brightness)]
-        }
+	# find the value and assign it with the proper coloring
+	if {"" != $params(-color) && "" != $params(-brightness)
+	      && $params(-brightness) != 0} {
+	    set params(-color) [Rappture::color::brightness \
+		$params(-color) $params(-brightness)]
+	}
 
-        set pos [lsearch -exact $dataobj $_dlist]
-        if {$pos < 0} {
-            lappend _dlist $dataobj
-            set _dobj2color($dataobj) $params(-color)
-            set _dobj2raise($dataobj) $params(-raise)
-            set _dobj2desc($dataobj) $params(-description)
-            $_dispatcher event -idle !rebuild
-        }
+	set pos [lsearch -exact $dataobj $_dlist]
+	if {$pos < 0} {
+	    lappend _dlist $dataobj
+	    set _dobj2color($dataobj) $params(-color)
+	    set _dobj2raise($dataobj) $params(-raise)
+	    set _dobj2desc($dataobj) $params(-description)
+	    $_dispatcher event -idle !rebuild
+	}
     }
 }
 
@@ -122,13 +122,13 @@ itcl::body Rappture::ValueResult::get {} {
     # put the dataobj list in order according to -raise options
     set dlist $_dlist
     foreach obj $dlist {
-        if {[info exists _dobj2raise($obj)] && $_dobj2raise($obj)} {
-            set i [lsearch -exact $dlist $obj]
-            if {$i >= 0} {
-                set dlist [lreplace $dlist $i $i]
-                lappend dlist $obj
-            }
-        }
+	if {[info exists _dobj2raise($obj)] && $_dobj2raise($obj)} {
+	    set i [lsearch -exact $dlist $obj]
+	    if {$i >= 0} {
+		set dlist [lreplace $dlist $i $i]
+		lappend dlist $obj
+	    }
+	}
     }
     return $dlist
 }
@@ -141,25 +141,25 @@ itcl::body Rappture::ValueResult::get {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::ValueResult::delete {args} {
     if {[llength $args] == 0} {
-        set args $_dlist
+	set args $_dlist
     }
 
     # delete all specified objects
     set changed 0
     foreach obj $args {
-        set pos [lsearch -exact $_dlist $obj]
-        if {$pos >= 0} {
-            set _dlist [lreplace $_dlist $pos $pos]
-            catch {unset _dobj2color($obj)}
-            catch {unset _dobj2raise($obj)}
-            catch {unset _dobj2desc($obj)}
-            set changed 1
-        }
+	set pos [lsearch -exact $_dlist $obj]
+	if {$pos >= 0} {
+	    set _dlist [lreplace $_dlist $pos $pos]
+	    catch {unset _dobj2color($obj)}
+	    catch {unset _dobj2raise($obj)}
+	    catch {unset _dobj2desc($obj)}
+	    set changed 1
+	}
     }
 
     # if anything changed, then rebuild the plot
     if {$changed} {
-        $_dispatcher event -idle !rebuild
+	$_dispatcher event -idle !rebuild
     }
 }
 
@@ -188,35 +188,35 @@ itcl::body Rappture::ValueResult::scale {args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::ValueResult::download {option args} {
     switch $option {
-        coming {
-            # nothing to do
-        }
-        controls {
-            # no controls for this download yet
-            return ""
-        }
-        now {
-            if {[llength $_dlist] == 1} {
-                set lstr [$_dlist get about.label]
-                set mesg "$lstr [$_dlist get current]"
-            } else {
-                set mesg ""
-                foreach obj $_dlist {
-                    set lstr [$obj get about.label]
-                    append mesg "$lstr [$obj get current]\n"
-                    if {[string length $_dobj2desc($obj)] > 0} {
-                        foreach line [split $_dobj2desc($obj) \n] {
-                            append mesg " * $line\n"
-                        }
-                        append mesg "\n"
-                    }
-                }
-            }
-            return [list .txt $mesg]
-        }
-        default {
-            error "bad option \"$option\": should be coming, controls, now"
-        }
+	coming {
+	    # nothing to do
+	}
+	controls {
+	    # no controls for this download yet
+	    return ""
+	}
+	now {
+	    if {[llength $_dlist] == 1} {
+		set lstr [$_dlist get about.label]
+		set mesg "$lstr [$_dlist get current]"
+	    } else {
+		set mesg ""
+		foreach obj $_dlist {
+		    set lstr [$obj get about.label]
+		    append mesg "$lstr [$obj get current]\n"
+		    if {[string length $_dobj2desc($obj)] > 0} {
+			foreach line [split $_dobj2desc($obj) \n] {
+			    append mesg " * $line\n"
+			}
+			append mesg "\n"
+		    }
+		}
+	    }
+	    return [list .txt $mesg]
+	}
+	default {
+	    error "bad option \"$option\": should be coming, controls, now"
+	}
     }
 }
 
@@ -232,38 +232,38 @@ itcl::body Rappture::ValueResult::_rebuild {} {
 
     set obj [lindex $_dlist 0]
     if {"" != $obj} {
-        set label [$obj get about.label]
-        if {"" != $label && [string index $label end] != ":"} {
-            append label ":"
-        }
-        append html "<h3>$label</h3>\n"
+	set label [$obj get about.label]
+	if {"" != $label && [string index $label end] != ":"} {
+	    append label ":"
+	}
+	append html "<h3>$label</h3>\n"
     }
 
     foreach obj $_dlist {
-        if {$_dobj2raise($obj)} {
-            set bold0 "<b>"
-            set bold1 "</b>"
-            set bg "background:#ffffcc; border:1px solid #cccccc;"
-        } else {
-            set bold0 ""
-            set bold1 ""
-            set bg ""
-        }
-        if {$_dobj2color($obj) != ""} {
-            set color0 "<font style=\"color: $_dobj2color($obj)\">"
-            set color1 "</font>"
-        } else {
-            set color0 ""
-            set color1 ""
-        }
+	if {$_dobj2raise($obj)} {
+	    set bold0 "<b>"
+	    set bold1 "</b>"
+	    set bg "background:#ffffcc; border:1px solid #cccccc;"
+	} else {
+	    set bold0 ""
+	    set bold1 ""
+	    set bg ""
+	}
+	if {$_dobj2color($obj) != ""} {
+	    set color0 "<font style=\"color: $_dobj2color($obj)\">"
+	    set color1 "</font>"
+	} else {
+	    set color0 ""
+	    set color1 ""
+	}
 
-        append html "<div style=\"margin:8px; padding:4px; $bg\">${bold0}${color0}[$obj get current]${color1}${bold1}"
-        if {$_dobj2raise($obj) && [string length $_dobj2desc($obj)] > 0} {
-            foreach line [split $_dobj2desc($obj) \n] {
-                append html "<li style=\"margin-left:12px;\">$line</li>\n"
-            }
-        }
-        append html "</div>"
+	append html "<div style=\"margin:8px; padding:4px; $bg\">${bold0}${color0}[$obj get current]${color1}${bold1}"
+	if {$_dobj2raise($obj) && [string length $_dobj2desc($obj)] > 0} {
+	    foreach line [split $_dobj2desc($obj) \n] {
+		append html "<li style=\"margin-left:12px;\">$line</li>\n"
+	    }
+	}
+	append html "</div>"
     }
     append html "</body></html>"
     $itk_component(html) load $html

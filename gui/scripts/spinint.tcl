@@ -57,43 +57,43 @@ itk::usual Spinint {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Spinint::constructor {args} {
     itk_component add entry {
-        entry $itk_interior.entry
+	entry $itk_interior.entry
     } {
-        usual
-        keep -width
-        rename -background -textbackground textBackground Background
-        rename -foreground -textforeground textForeground Foreground
-        rename -highlightbackground -background background Background
+	usual
+	keep -width
+	rename -background -textbackground textBackground Background
+	rename -foreground -textforeground textForeground Foreground
+	rename -highlightbackground -background background Background
     }
     pack $itk_component(entry) -side left -expand yes -fill x
 
     bind $itk_component(entry) <KeyPress> \
-        [itcl::code $this _validate %A]
+	[itcl::code $this _validate %A]
     bind $itk_component(entry) <KeyPress-Return> \
-        "$this value \[$itk_component(entry) get\]"
+	"$this value \[$itk_component(entry) get\]"
 
     itk_component add controls {
-        frame $itk_interior.cntls
+	frame $itk_interior.cntls
     }
     pack $itk_component(controls) -side right
 
     itk_component add up {
-        button $itk_component(controls).spinup -bitmap Spinint-up \
-            -borderwidth 1 -relief raised -highlightthickness 0 \
-            -command [itcl::code $this bump up]
+	button $itk_component(controls).spinup -bitmap Spinint-up \
+	    -borderwidth 1 -relief raised -highlightthickness 0 \
+	    -command [itcl::code $this bump up]
     } {
-        usual
-        ignore -borderwidth -highlightthickness
+	usual
+	ignore -borderwidth -highlightthickness
     }
     pack $itk_component(up) -side top -expand yes -fill both
 
     itk_component add down {
-        button $itk_component(controls).spindn -bitmap Spinint-down \
-            -borderwidth 1 -relief raised -highlightthickness 0 \
-            -command [itcl::code $this bump down]
+	button $itk_component(controls).spindn -bitmap Spinint-down \
+	    -borderwidth 1 -relief raised -highlightthickness 0 \
+	    -command [itcl::code $this bump down]
     } {
-        usual
-        ignore -borderwidth -highlightthickness
+	usual
+	ignore -borderwidth -highlightthickness
     }
     pack $itk_component(down) -side bottom -expand yes -fill both
 
@@ -110,22 +110,22 @@ itcl::body Rappture::Spinint::constructor {args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Spinint::value {args} {
     if {[llength $args] == 1} {
-        set newval [lindex $args 0]
+	set newval [lindex $args 0]
 
-        if {"" != $newval} {
-            if {"" != $itk_option(-min) && $newval < $itk_option(-min)} {
-                set newval $itk_option(-min)
-            }
-            if {"" != $itk_option(-max) && $newval > $itk_option(-max)} {
-                set newval $itk_option(-max)
-            }
-        }
+	if {"" != $newval} {
+	    if {"" != $itk_option(-min) && $newval < $itk_option(-min)} {
+		set newval $itk_option(-min)
+	    }
+	    if {"" != $itk_option(-max) && $newval > $itk_option(-max)} {
+		set newval $itk_option(-max)
+	    }
+	}
 
-        $itk_component(entry) delete 0 end
-        $itk_component(entry) insert 0 $newval
-        after 10 [list catch [list event generate $itk_component(hull) <<Value>>]]
+	$itk_component(entry) delete 0 end
+	$itk_component(entry) insert 0 $newval
+	after 10 [list catch [list event generate $itk_component(hull) <<Value>>]]
     } elseif {[llength $args] != 0} {
-        error "wrong # args: should be \"value ?newval?\""
+	error "wrong # args: should be \"value ?newval?\""
     }
     return [$itk_component(entry) get]
 }
@@ -139,16 +139,16 @@ itcl::body Rappture::Spinint::value {args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Spinint::bump {{delta up}} {
     if {"up" == $delta} {
-        set delta $itk_option(-delta)
+	set delta $itk_option(-delta)
     } elseif {"down" == $delta} {
-        set delta [expr {-$itk_option(-delta)}]
+	set delta [expr {-$itk_option(-delta)}]
     } elseif {![string is integer $delta]} {
-        error "bad delta \"$delta\": should be up, down, or integer"
+	error "bad delta \"$delta\": should be up, down, or integer"
     }
 
     set val [$itk_component(entry) get]
     if {$val == ""} {
-        set val 0
+	set val 0
     }
     value [expr {$val+$delta}]
 }
@@ -162,9 +162,9 @@ itcl::body Rappture::Spinint::bump {{delta up}} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Spinint::_validate {char} {
     if {[string match "\[ -~\]" $char]} {
-        if {![string match "\[0-9\]" $char]} {
-            bell
-            return -code break
-        }
+	if {![string match "\[0-9\]" $char]} {
+	    bell
+	    return -code break
+	}
     }
 }

@@ -44,7 +44,7 @@ itcl::class Rappture::Service {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Service::constructor {owner path args} {
     if {[catch {$owner isa Rappture::ControlOwner} valid] != 0 || !$valid} {
-        error "bad object \"$owner\": should be Rappture::ControlOwner"
+	error "bad object \"$owner\": should be Rappture::ControlOwner"
     }
     set _owner $owner
     set _path $path
@@ -54,91 +54,91 @@ itcl::body Rappture::Service::constructor {owner path args} {
     #
     set intf [$_owner xml get $path.interface]
     if {"" == $intf} {
-        puts "can't find <interface> description for tool at $path"
+	puts "can't find <interface> description for tool at $path"
     } else {
-        set installdir [[$_owner tool] installdir]
-        regsub -all @tool $intf $installdir intf
+	set installdir [[$_owner tool] installdir]
+	regsub -all @tool $intf $installdir intf
 
-        set xmlobj [Rappture::library $intf]
-        set installdir [file dirname $intf]
-        set _tool [Rappture::Tool ::#auto $xmlobj $installdir]
-        set _control [$_tool xml get tool.control]
+	set xmlobj [Rappture::library $intf]
+	set installdir [file dirname $intf]
+	set _tool [Rappture::Tool ::#auto $xmlobj $installdir]
+	set _control [$_tool xml get tool.control]
 
-        #
-        # Scan through the <tool> and establish all of the
-        # relationships:
-        #
-        #   <show> ... Add to list of "input" for this service.
-        #              Caller will add controls to the interface.
-        #
-        #   <link> ... Link this value to another input/output
-        #              that exists in the containing tool.
-        #
-        #   <set> .... Hard-code the value for this input/output.
-        #
-        foreach dir {input output} {
-            set _show($dir) ""
-            foreach cname [$_owner xml children $path.$dir] {
-                set ppath $path.$dir.$cname
+	#
+	# Scan through the <tool> and establish all of the
+	# relationships:
+	#
+	#   <show> ... Add to list of "input" for this service.
+	#              Caller will add controls to the interface.
+	#
+	#   <link> ... Link this value to another input/output
+	#              that exists in the containing tool.
+	#
+	#   <set> .... Hard-code the value for this input/output.
+	#
+	foreach dir {input output} {
+	    set _show($dir) ""
+	    foreach cname [$_owner xml children $path.$dir] {
+		set ppath $path.$dir.$cname
 
-                set spath [$_owner xml get $ppath.path]
-                if {"" == $spath} {
-                    error "missing <path> at $ppath"
-                }
+		set spath [$_owner xml get $ppath.path]
+		if {"" == $spath} {
+		    error "missing <path> at $ppath"
+		}
 
-                set type [$_owner xml element -as type $ppath]
-                switch -- $type {
-                  show {
+		set type [$_owner xml element -as type $ppath]
+		switch -- $type {
+		  show {
 puts "show: $spath"
-                    set tpath [$_owner xml get $ppath.to]
-                    if {"" == $tpath && $dir == "input"} {
-                        error "missing <to> at $ppath"
-                    }
-                    set obj [$_tool xml element -as object $spath]
+		    set tpath [$_owner xml get $ppath.to]
+		    if {"" == $tpath && $dir == "input"} {
+			error "missing <to> at $ppath"
+		    }
+		    set obj [$_tool xml element -as object $spath]
 puts " => $obj"
-                    lappend _show($dir) $obj
-                    set _obj2path($obj) $spath
+		    lappend _show($dir) $obj
+		    set _obj2path($obj) $spath
 
-                    if {$dir == "input"} {
+		    if {$dir == "input"} {
 puts "link: $tpath => $spath"
-                        $_owner notify add $this $tpath \
-                            [itcl::code $this _link $tpath $spath]
-                    }
-                  }
-                  link {
-                    set tpath [$_owner xml get $ppath.to]
-                    if {"" == $tpath} {
-                        error "missing <to> at $ppath"
-                    }
-                    if {"" == [$_owner xml element $tpath]} {
-                        error "bad <to> path \"$tpath\" at $ppath"
-                    }
-                    if {$dir == "input"} {
+			$_owner notify add $this $tpath \
+			    [itcl::code $this _link $tpath $spath]
+		    }
+		  }
+		  link {
+		    set tpath [$_owner xml get $ppath.to]
+		    if {"" == $tpath} {
+			error "missing <to> at $ppath"
+		    }
+		    if {"" == [$_owner xml element $tpath]} {
+			error "bad <to> path \"$tpath\" at $ppath"
+		    }
+		    if {$dir == "input"} {
 puts "link: $tpath => $spath"
-                        $_owner notify add $this $tpath \
-                            [itcl::code $this _link $tpath $spath]
-                    } else {
+			$_owner notify add $this $tpath \
+			    [itcl::code $this _link $tpath $spath]
+		    } else {
 puts "path2path: $spath => $tpath"
-                        set _path2path($spath) $tpath
-                    }
-                  }
-                  set {
-                    if {"" == [$_owner xml element $ppath.value]} {
-                        error "missing <value> at $ppath"
-                    }
+			set _path2path($spath) $tpath
+		    }
+		  }
+		  set {
+		    if {"" == [$_owner xml element $ppath.value]} {
+			error "missing <value> at $ppath"
+		    }
 puts "set: $spath from $ppath.value"
-                    $_tool xml copy $spath from \
-                        [$_owner xml object] $ppath.value
-                  }
-                }
-            }
-        }
+		    $_tool xml copy $spath from \
+			[$_owner xml object] $ppath.value
+		  }
+		}
+	    }
+	}
 
-        if {$_control != "auto"} {
-            set _show(control) [$_tool xml element -as object tool.control]
-        } else {
-            set _show(control) ""
-        }
+	if {$_control != "auto"} {
+	    set _show(control) [$_tool xml element -as object tool.control]
+	} else {
+	    set _show(control) ""
+	}
     }
 
     eval configure $args
@@ -149,9 +149,9 @@ puts "set: $spath from $ppath.value"
 # ----------------------------------------------------------------------
 itcl::body Rappture::Service::destructor {} {
     foreach dir [array names _show] {
-        foreach obj $_show($dir) {
-            itcl::delete object $obj
-        }
+	foreach obj $_show($dir) {
+	    itcl::delete object $obj
+	}
     }
 }
 
@@ -193,27 +193,27 @@ itcl::body Rappture::Service::input {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Service::output {args} {
     if {[llength $args] == 0} {
-        return $_show(output)
+	return $_show(output)
     }
     set option [lindex $args 0]
     switch -- $option {
-        for {
-            if {[llength $args] != 3} {
-                error "wrong # args: should be \"output for object widget\""
-            }
-            set obj [lindex $args 1]
-            set win [lindex $args 2]
-            if {[info exists _obj2path($obj)]} {
-                set path $_obj2path($obj)
+	for {
+	    if {[llength $args] != 3} {
+		error "wrong # args: should be \"output for object widget\""
+	    }
+	    set obj [lindex $args 1]
+	    set win [lindex $args 2]
+	    if {[info exists _obj2path($obj)]} {
+		set path $_obj2path($obj)
 puts "OUTPUT $path => $win"
-                set _path2widget($path) $win
-            } else {
-                puts "error: don't recognize output object $obj"
-            }
-        }
-        default {
-            error "bad option \"$option\": should be for"
-        }
+		set _path2widget($path) $win
+	    } else {
+		puts "error: don't recognize output object $obj"
+	    }
+	}
+	default {
+	    error "bad option \"$option\": should be for"
+	}
     }
 }
 
@@ -234,39 +234,39 @@ puts "running..."
     foreach {status result} [$_tool run] break
 
     if {$status == 0 && $result != "ABORT"} {
-        if {[regexp {=RAPPTURE-RUN=>([^\n]+)} $result match file]} {
-            set xmlobj [Rappture::library $file]
-            #
-            # Scan through all outputs and copy them to the final output
-            # for the tool.  If they have widgets associated with them,
-            # set the value for the widget.
-            #
+	if {[regexp {=RAPPTURE-RUN=>([^\n]+)} $result match file]} {
+	    set xmlobj [Rappture::library $file]
+	    #
+	    # Scan through all outputs and copy them to the final output
+	    # for the tool.  If they have widgets associated with them,
+	    # set the value for the widget.
+	    #
 puts "showing output..."
-            foreach cname [$xmlobj children output] {
-                set path output.$cname
+	    foreach cname [$xmlobj children output] {
+		set path output.$cname
 puts " for $path"
-                $_owner xml copy $path from $xmlobj $path
+		$_owner xml copy $path from $xmlobj $path
 
-                if {[info exists _path2widget($path)]} {
-                    set obj [$xmlobj element -as object $path]
+		if {[info exists _path2widget($path)]} {
+		    set obj [$xmlobj element -as object $path]
 puts " sending $obj to $_path2widget($path)"
-                    $_path2widget($path) value $obj
-                }
-                if {[info exists _path2path($path)]} {
+		    $_path2widget($path) value $obj
+		}
+		if {[info exists _path2path($path)]} {
 puts " sending $path to $_path2path($path)"
-                    $_owner xml copy $_path2path($path) from $xmlobj $path
-                    set w [$_owner widgetfor $_path2path($path)]
-                    if {$w != ""} {
-                        set obj [$_owner xml element -as object $_path2path($path)]
-                        $w value $obj
-                    }
-                }
-            }
-            set _result $xmlobj
-        } else {
-            set status 1
-            set result "Can't find result file in output:\n\n$result"
-        }
+		    $_owner xml copy $_path2path($path) from $xmlobj $path
+		    set w [$_owner widgetfor $_path2path($path)]
+		    if {$w != ""} {
+			set obj [$_owner xml element -as object $_path2path($path)]
+			$w value $obj
+		    }
+		}
+	    }
+	    set _result $xmlobj
+	} else {
+	    set status 1
+	    set result "Can't find result file in output:\n\n$result"
+	}
     }
 }
 
@@ -287,15 +287,15 @@ itcl::body Rappture::Service::abort {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Service::clear {} {
     if {"" != $_result} {
-        foreach cname [$_result children output] {
-            set path output.$cname
+	foreach cname [$_result children output] {
+	    set path output.$cname
 
-            if {[info exists _path2widget($path)]} {
-                $_path2widget($path) value ""
-            }
-        }
-        itcl::delete object $_result
-        set _result ""
+	    if {[info exists _path2widget($path)]} {
+		$_path2widget($path) value ""
+	    }
+	}
+	itcl::delete object $_result
+	set _result ""
     }
 }
 
@@ -311,7 +311,7 @@ puts "link update: $from => $to"
     $_tool xml copy $to from [$_owner xml object] $from
 
     if {$_control == "auto" && [regexp -nocase {^input\.} $to]} {
-        after cancel [itcl::code $this run]
-        after idle [itcl::code $this run]
+	after cancel [itcl::code $this run]
+	after idle [itcl::code $this run]
     }
 }

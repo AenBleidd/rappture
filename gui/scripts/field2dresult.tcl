@@ -51,23 +51,23 @@ itk::usual Field2DResult {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Field2DResult::constructor {args} {
     array set flags {
-        -mode auto
+	-mode auto
     }
     array set flags $args
     if { $flags(-mode) == "heightmap" } {
-        set servers [Rappture::VisViewer::GetServerList "nanovis"]
-        if { $servers == "" } {
-            error "No nanovis servers available"
-        }
-        itk_component add renderer {
-            Rappture::HeightmapViewer $itk_interior.ren $servers
-        }
-        pack $itk_component(renderer) -expand yes -fill both
+	set servers [Rappture::VisViewer::GetServerList "nanovis"]
+	if { $servers == "" } {
+	    error "No nanovis servers available"
+	}
+	itk_component add renderer {
+	    Rappture::HeightmapViewer $itk_interior.ren $servers
+	}
+	pack $itk_component(renderer) -expand yes -fill both
     } else {
-        itk_component add renderer {
-            Rappture::ContourResult $itk_interior.ren
-        }
-        pack $itk_component(renderer) -expand yes -fill both
+	itk_component add renderer {
+	    Rappture::ContourResult $itk_interior.ren
+	}
+	pack $itk_component(renderer) -expand yes -fill both
     }
     eval itk_initialize $args
 }
