@@ -179,12 +179,13 @@ AVTranslate::append(Outcome &status, uint8_t *rgb_data, size_t line_pad)
         rgbcurr += line_pad;
     }
 
+#ifdef notdef
     // use img_convert instead of sws_scale because img_convert
     // is lgpl nad sws_scale is gpl
     img_convert((AVPicture *)_picture, PIX_FMT_YUV420P,
                 (AVPicture *)_rgb_picture, PIX_FMT_RGB24,
                 _width, _height);
-
+#endif
     writeVideoFrame(status);
 
     return true;
