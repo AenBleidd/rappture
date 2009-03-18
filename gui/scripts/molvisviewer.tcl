@@ -67,6 +67,7 @@ itcl::class Rappture::MolvisViewer {
     public method rock {option}
     public method representation {option {model "all"} }
     public method atomscale {option {model "all"} }
+    public method bondthickness {option {model "all"} }
     public method ResetView {} 
     public method settings {option args}
 
@@ -114,6 +115,8 @@ itcl::class Rappture::MolvisViewer {
 
     common _downloadPopup           ;# download options from popup
     private variable _pdbdata       ;# pdb data from run file sent to pymol
+    private common hardcopy_
+    private variable nextToken_ 0
 }
 
 itk::usual MolvisViewer {
@@ -434,17 +437,15 @@ itcl::body Rappture::MolvisViewer::_BuildSettingsDrawer {} {
         -variable Rappture::MolvisViewer::_settings($this-model) \
         -value lines -font "Arial 9" -pady 0
 
-    label $inner.sizelabel -text "Atom Scale" -font "Arial 9 bold"
-    scale $inner.atomscale \
-        -from 0.1 -to 2.0 -resolution 0.05 \
+    scale $inner.atomscale -width 10 -font "Arial 9 bold" \
+        -from 0.1 -to 2.0 -resolution 0.05 -label "Atom Scale" \
         -showvalue true -orient horizontal \
         -command [itcl::code $this atomscale] \
         -variable Rappture::MolvisViewer::_settings($this-atomscale)
     $inner.atomscale set $_settings($this-atomscale)
 
-    label $inner.bondthicknesslabel -text "Bond Thickness" -font "Arial 9 bold"
-    scale $inner.bondthickness \
-        -from 0.1 -to 1.0 -resolution 0.25 \
+    scale $inner.bondthickness -width 10 -font "Arial 9 bold" \
+        -from 0.1 -to 1.0 -resolution 0.025 -label "Bond Thickness" \
         -showvalue true -orient horizontal \
         -command [itcl::code $this bondthickness] \
         -variable Rappture::MolvisViewer::_settings($this-bondthickness)
@@ -468,13 +469,11 @@ itcl::body Rappture::MolvisViewer::_BuildSettingsDrawer {} {
         1,2 $inner.spheres -anchor w -columnspan 2 \
         2,2 $inner.lines -anchor w -columnspan 2 \
         3,2 $inner.bstick -anchor w -columnspan 2 \
-        4,0 $inner.sizelabel -columnspan 4 -anchor w \
-        5,1 $inner.atomscale -anchor w -columnspan 3 \
-        6,0 $inner.bondthicknesslabel -columnspan 4 -anchor w \
-        7,1 $inner.bondthickness -anchor w -columnspan 3 \
-        8,0 $inner.labels -anchor w -columnspan 4 \
-        9,0 $inner.rock -anchor w -columnspan 4 \
-        10,0 $inner.ortho -anchor w -columnspan 4
+        4,0 $inner.labels -anchor w -columnspan 4 \
+        5,0 $inner.rock -anchor w -columnspan 4 \
+        6,0 $inner.ortho -anchor w -columnspan 4 \
+        8,1 $inner.atomscale -anchor w -columnspan 2 \
+        10,1 $inner.bondthickness -anchor w -columnspan 2 
 
     blt::table configure $inner c0 -resize expand -width 2
     blt::table configure $inner c1 c2 -resize none
@@ -517,6 +516,10 @@ itcl::body Rappture::MolvisViewer::download {option args} {
                     -variable Rappture::MolvisViewer::_downloadPopup(format) \
                     -value jpg
                 pack $inner.jpg -anchor w
+                radiobutton $inner.jpg -text "PNG Image" \
+                    -variable Rappture::MolvisViewer::_downloadPopup(format) \
+                    -value png 
+                pack $inner.jpg -anchor w
                 radiobutton $inner.pdb -text "PDB File" \
                     -variable Rappture::MolvisViewer::_downloadPopup(format) \
                     -value pdb
@@ -540,15 +543,26 @@ itcl::body Rappture::MolvisViewer::download {option args} {
                 $popup deactivate
             }
             switch -- $_downloadPopup(format) {
-              jpg {
-                return [ \
-                  list .jpg [ \
-                    Rappture::encoding::decode -as b64 [ \
-                      $_image(plot) data -format jpeg]]]
-              }
-              pdb {
-                return [list .pdb $_pdbdata]
-              }
+		jpg {
+		    set data [$_image(plot) data -format jpeg]
+		    set encoded [Rappture::encoding::decode -as b64 $data]
+		    return [list .jpg $encoded]
+		}
+		png {
+		    set token "print[incr nextToken_]"
+		    _send "print $token 2400 2400"
+		    # Setup popup with cancel button and timeout.
+		    blt::busy hold $popup
+		    tkwait Rappture::MolvisViewer::hardcopy_($this-$token)
+		    # Pass the image as-is. Don't convert it.
+		    set data $hardcopy_($this-$token) 
+		    set encoded [Rappture::encoding::decode -as b64 $data]
+		    blt::busy release $popup
+		    return [list .png $encoded]
+		}
+		pdb {
+		    return [list .pdb $_pdbdata]
+		}
             }
         }
         default {
@@ -645,13 +659,18 @@ itcl::body Rappture::MolvisViewer::_ReceiveImage { size cacheid frame rock } {
         array unset _imagecache 
         set _cacheid $cacheid
     }
-#    debug "reading $size bytes from proxy\n"
-    set _imagecache($tag) [ReceiveBytes $size]
-#    debug "success: reading $size bytes from proxy\n"
-
-    #debug "CACHED: $tag,$cacheid"
-    $_image(plot) configure -data $_imagecache($tag)
-    set _image(id) $tag
+    #debug "reading $size bytes from proxy\n"
+    set data [ReceiveBytes $size]
+    #debug "success: reading $size bytes from proxy\n"
+    if { $cacheid == "print" } {
+	# $frame is the token that we sent to the proxy.
+	set hardcopy_($this-$frame) $data
+    } else {
+	set _imagecache($tag) $data
+	#debug "CACHED: $tag,$cacheid"
+	$_image(plot) configure -data $data
+	set _image(id) $tag
+    }
 }
 
 
@@ -1347,7 +1366,7 @@ itcl::body Rappture::MolvisViewer::bondthickness { option {model "all"} } {
     } elseif { [string is double $option] } {
         set scale $option
         if { ($scale < 0.1) || ($scale > 2.0) } {
-            error "bad atom size \"$scale\""
+            error "bad bind thickness \"$scale\""
         }
     } else {
         error "bad option \"$option\""
