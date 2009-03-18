@@ -327,9 +327,10 @@ itcl::body Rappture::MoleculeViewer::download {option args} {
 	    return ""
 	}
 	now {
-	    # Get image data (as base64) and decode back to binary.  This is
-	    # better than writing to temporary files.  When we switch the BLT
-	    # picture image it won't be necessary to decode the image data.
+	    # Get the image data (as base64) and decode it back to binary.
+	    # This is better than writing to temporary files.  When we switch
+	    # to the BLT picture image it won't be necessary to decode the
+	    # image data.
 	    set bytes [$_download data -format "jpeg -quality 100"]
 	    set bytes [Rappture::encoding::decode -as b64 $bytes]
 	    return [list .jpg $bytes]
