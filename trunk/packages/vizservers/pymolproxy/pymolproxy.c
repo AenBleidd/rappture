@@ -132,16 +132,17 @@ typedef struct {
 #define BUFFER_CONTINUE		-2
 #define BUFFER_SHORT_READ	-3
 
-#define ATOM_SCALE_PENDING	(1<<0)
-#define BOND_THICKNESS_PENDING	(1<<1)
-#define ROTATE_PENDING		(1<<2)
-#define PAN_PENDING		(1<<3)
-#define ZOOM_PENDING		(1<<4)
-#define UPDATE_PENDING		(1<<5)
-#define FORCE_UPDATE		(1<<6)
-#define CAN_UPDATE		(1<<7)
-#define SHOW_LABELS		(1<<8)
-#define INVALIDATE_CACHE	(1<<9)
+#define FORCE_UPDATE		(1<<0)
+#define CAN_UPDATE		(1<<1)
+#define SHOW_LABELS		(1<<2)
+#define INVALIDATE_CACHE	(1<<3)
+#define ATOM_SCALE_PENDING	(1<<4)
+#define BOND_THICKNESS_PENDING	(1<<5)
+#define ROTATE_PENDING		(1<<6)
+#define PAN_PENDING		(1<<7)
+#define ZOOM_PENDING		(1<<8)
+#define UPDATE_PENDING		(1<<9)
+#define VIEWPORT_PENDING	(1<<10)
 
 typedef struct {
     Tcl_Interp *interp;
@@ -163,6 +164,7 @@ typedef struct {
     int cacheId;
     int error;
     int status;
+    int width, height;		/* Size of viewport. */
     float xAngle, yAngle, zAngle;  /* Euler angles of pending rotation.  */
     float atomScale;		/* Atom scale of pending re-scale. */
     float bondThickness;	/* Bond thickness of pending re-scale. */
@@ -532,8 +534,8 @@ NewImage(PymolProxy *proxyPtr, size_t dataLength)
 
     imgPtr = malloc(sizeof(Image) + dataLength);
     if (imgPtr == NULL) {
-	fprintf(stderr, "can't allocate image of %d bytes", 
-		sizeof(Image) + dataLength);
+	fprintf(stderr, "can't allocate image of %lu bytes", 
+		(unsigned long)(sizeof(Image) + dataLength));
 	abort();
     }
     imgPtr->bytesLeft = dataLength;
@@ -670,6 +672,15 @@ Pymol(PymolProxy *proxyPtr, char *format, ...)
 	    return proxyPtr->status;
 	}
 	return  proxyPtr->status;
+    }
+}
+
+static void
+SetViewport(PymolProxy *proxyPtr)
+{
+    if (proxyPtr->flags & VIEWPORT_PENDING) {
+	Pymol(proxyPtr, "viewport %d,%d\n", proxyPtr->width, proxyPtr->height);
+	proxyPtr->flags &= ~VIEWPORT_PENDING;
     }
 }
 
@@ -1261,7 +1272,7 @@ static int
 PngCmd(ClientData clientData, Tcl_Interp *interp, int argc, const char *argv[])
 {
     char buffer[800];
-    size_t nBytes=0;
+    int nBytes=0;
     PymolProxy *proxyPtr = clientData;
     size_t length;
     Image *imgPtr;
@@ -1555,7 +1566,9 @@ ScreenCmd(ClientData clientData, Tcl_Interp *interp, int argc,
     if (push) {
 	proxyPtr->flags |= FORCE_UPDATE;
     }
-    Pymol(proxyPtr, "viewport %d,%d\n", width, height);
+    proxyPtr->width = width;
+    proxyPtr->height = height;
+    proxyPtr->flags |= VIEWPORT_PENDING;
 
     //usleep(205000); // .2s delay for pymol to update its geometry *HACK ALERT*
         
@@ -1961,6 +1974,9 @@ PollForEvents(PymolProxy *proxyPtr)
 	 */
 
 	/* Handle all the pending setting changes now. */
+	if (proxyPtr->flags & VIEWPORT_PENDING) {
+	    SetViewport(proxyPtr);
+	}
 	if (proxyPtr->flags & ROTATE_PENDING) {
 	    SetRotation(proxyPtr);
 	}
