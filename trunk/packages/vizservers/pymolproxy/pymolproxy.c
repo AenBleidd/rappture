@@ -1330,6 +1330,7 @@ PrintCmd(ClientData clientData, Tcl_Interp *interp, int argc,
     size_t length;
     Image *imgPtr;
     int width, height;
+    const char *token;
 
     clear_error(proxyPtr);
 
@@ -1354,7 +1355,7 @@ PrintCmd(ClientData clientData, Tcl_Interp *interp, int argc,
     /* Force pymol to update the current scene. */
     Pymol(proxyPtr,"refresh\n");
     Pymol(proxyPtr,"ray %d,%d\n", width, height);
-    Pymol(proxyPtr,"bmp -\n");
+    Pymol(proxyPtr,"png -\n");
 
     Expect(proxyPtr, "image follows: ", buffer, 800);
 
@@ -1365,8 +1366,8 @@ PrintCmd(ClientData clientData, Tcl_Interp *interp, int argc,
 #endif
     if (nBytes == 0) {
     }
-    sprintf(buffer, "nv>image %d %d %d %d\n", nBytes, proxyPtr->cacheId, 
-	    proxyPtr->frame, proxyPtr->rockOffset);
+    sprintf(buffer, "nv>image %d print \"%s\" %d\n", nBytes, token, 
+	    proxyPtr->rockOffset);
     length = strlen(buffer);
     imgPtr = NewImage(proxyPtr, nBytes + length);
     strcpy(imgPtr->data, buffer);
