@@ -179,6 +179,7 @@ itcl::body Rappture::MolvisViewer::constructor {hostlist args} {
         $this-rock      no
         $this-ortho     no
         $this-atomscale 0.25
+        $this-bondthickness 0.15
     }]
 
     #
@@ -441,6 +442,14 @@ itcl::body Rappture::MolvisViewer::_BuildSettingsDrawer {} {
         -variable Rappture::MolvisViewer::_settings($this-atomscale)
     $inner.atomscale set $_settings($this-atomscale)
 
+    label $inner.bondthicknesslabel -text "Bond Thickness" -font "Arial 9 bold"
+    scale $inner.bondthickness \
+        -from 0.1 -to 1.0 -resolution 0.25 \
+        -showvalue true -orient horizontal \
+        -command [itcl::code $this bondthickness] \
+        -variable Rappture::MolvisViewer::_settings($this-bondthickness)
+    $inner.bondthickness set $_settings($this-bondthickness)
+
     checkbutton $inner.labels -text "Show labels on atoms" \
         -command [itcl::code $this emblems update] \
         -variable Rappture::MolvisViewer::_settings($this-emblems) \
@@ -461,6 +470,8 @@ itcl::body Rappture::MolvisViewer::_BuildSettingsDrawer {} {
         3,2 $inner.bstick -anchor w -columnspan 2 \
         4,0 $inner.sizelabel -columnspan 4 -anchor w \
         5,1 $inner.atomscale -anchor w -columnspan 3 \
+        6,0 $inner.bondthicknesslabel -columnspan 4 -anchor w \
+        7,1 $inner.bondthickness -anchor w -columnspan 3 \
         8,0 $inner.labels -anchor w -columnspan 4 \
         9,0 $inner.rock -anchor w -columnspan 4 \
         10,0 $inner.ortho -anchor w -columnspan 4
@@ -808,6 +819,7 @@ itcl::body Rappture::MolvisViewer::_rebuild {} {
 
     $this projection update
     $this atomscale update
+    $this bondthickness update
     $this emblems update
 
     set _inrebuild 0
@@ -1318,6 +1330,31 @@ itcl::body Rappture::MolvisViewer::atomscale { option {model "all"} } {
     set _settings($this-atomscale) $scale
     if { [isconnected] } {
         _send "atomscale -model $model $scale"
+    }
+}
+
+# ----------------------------------------------------------------------
+# USAGE: bondthickness scale ?model?
+#        bondthickness update
+#
+# Used internally to change the molecular representation used to render
+# our scene.
+# ----------------------------------------------------------------------
+
+itcl::body Rappture::MolvisViewer::bondthickness { option {model "all"} } {
+    if { $option == "update" } {
+        set scale $_settings($this-bondthickness)
+    } elseif { [string is double $option] } {
+        set scale $option
+        if { ($scale < 0.1) || ($scale > 2.0) } {
+            error "bad atom size \"$scale\""
+        }
+    } else {
+        error "bad option \"$option\""
+    }
+    set _settings($this-bondthickness) $scale
+    if { [isconnected] } {
+        _send "bondthickness -model $model $scale"
     }
 }
 
