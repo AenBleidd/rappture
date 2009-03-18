@@ -46,91 +46,91 @@ proc Rappture::getopts {listVar returnVar spec} {
     # Pick apart the info in the <spec> and set up flags/params
     #
     foreach line [split $spec \n] {
-        if {[llength $line] == 0} {
-            continue  ;# ignore blank lines
-        }
+	if {[llength $line] == 0} {
+	    continue  ;# ignore blank lines
+	}
 
-        set type [lindex $line 0]
-        switch -- $type {
-            value {
-                if {[llength $line] < 3} {
-                    error "bad value spec \"$line\": should be \"value -flag default\""
-                }
-                set name [lindex $line 1]
-                set flags($name) $type
-                set params($name) [lindex $line 2]
-                lappend opts $name
-            }
-            flag {
-                if {[llength $line] < 3 || [llength $line] > 4} {
-                    error "bad value spec \"$line\": should be \"flag group -flag ?default?\""
-                }
-                set group [lindex $line 1]
-                set name [lindex $line 2]
-                set flags($name) [list $type $group]
-                if {[llength $line] > 3} {
-                    set params($group) $name
-                    set params($name) 1
-                } else {
-                    if {![info exists params($group)]} {
-                        set params($group) ""
-                    }
-                    set params($name) 0
-                }
-                lappend opts $name
-            }
+	set type [lindex $line 0]
+	switch -- $type {
+	    value {
+		if {[llength $line] < 3} {
+		    error "bad value spec \"$line\": should be \"value -flag default\""
+		}
+		set name [lindex $line 1]
+		set flags($name) $type
+		set params($name) [lindex $line 2]
+		lappend opts $name
+	    }
+	    flag {
+		if {[llength $line] < 3 || [llength $line] > 4} {
+		    error "bad value spec \"$line\": should be \"flag group -flag ?default?\""
+		}
+		set group [lindex $line 1]
+		set name [lindex $line 2]
+		set flags($name) [list $type $group]
+		if {[llength $line] > 3} {
+		    set params($group) $name
+		    set params($name) 1
+		} else {
+		    if {![info exists params($group)]} {
+			set params($group) ""
+		    }
+		    set params($name) 0
+		}
+		lappend opts $name
+	    }
 	    list {
-                if {[llength $line] < 3} {
-                    error "bad value spec \"$line\": should be \"list -flag default\""
-                }
-                set name [lindex $line 1]
-                set flags($name) $type
-                set params($name) [lindex $line 2]
-                lappend opts $name
-            }
-            default {
-                error "bad arg type \"$type\": should be flag or value"
-            }
-        }
+		if {[llength $line] < 3} {
+		    error "bad value spec \"$line\": should be \"list -flag default\""
+		}
+		set name [lindex $line 1]
+		set flags($name) $type
+		set params($name) [lindex $line 2]
+		lappend opts $name
+	    }
+	    default {
+		error "bad arg type \"$type\": should be flag or value"
+	    }
+	}
     }
 
     #
     # Now, walk through the values in $args and extract parameters.
     #
     while {[llength $args] > 0} {
-        set first [lindex $args 0]
-        if {[string index $first 0] != "-"} {
-            break
-        }
-        if {"--" == $first} {
-            set args [lrange $args 1 end]
-            break
-        }
-        if {![info exists params($first)]} {
-            error "bad option \"$first\": should be [join [lsort $opts] {, }]"
-        }
-        switch -- [lindex $flags($first) 0] {
-            value {
-                if {[llength $args] < 2} {
-                    error "missing value for option $first"
-                }
-                set params($first) [lindex $args 1]
-                set args [lrange $args 2 end]
-            }
-            flag {
-                set group [lindex $flags($first) 1]
-                set params($group) $first
-                set params($first) 1
-                set args [lrange $args 1 end]
-            }
-	    list {
-                if {[llength $args] < 2} {
-                    error "missing value for option $first"
-                }
-                set params($first) [lrange $args 1 end]
-                set args ""
+	set first [lindex $args 0]
+	if {[string index $first 0] != "-"} {
+	    break
+	}
+	if {"--" == $first} {
+	    set args [lrange $args 1 end]
+	    break
+	}
+	if {![info exists params($first)]} {
+	    error "bad option \"$first\": should be [join [lsort $opts] {, }]"
+	}
+	switch -- [lindex $flags($first) 0] {
+	    value {
+		if {[llength $args] < 2} {
+		    error "missing value for option $first"
+		}
+		set params($first) [lindex $args 1]
+		set args [lrange $args 2 end]
 	    }
-        }
+	    flag {
+		set group [lindex $flags($first) 1]
+		set params($group) $first
+		set params($first) 1
+		set args [lrange $args 1 end]
+	    }
+	    list {
+		if {[llength $args] < 2} {
+		    error "missing value for option $first"
+		}
+		set params($first) [lrange $args 1 end]
+		set args ""
+	    }
+	}
     }
     return ""
 }

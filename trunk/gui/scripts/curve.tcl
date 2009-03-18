@@ -49,7 +49,7 @@ itcl::class Rappture::Curve {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Curve::constructor {xmlobj path} {
     if {![Rappture::library isvalid $xmlobj]} {
-        error "bad value \"$xmlobj\": should be LibraryObj"
+	error "bad value \"$xmlobj\": should be LibraryObj"
     }
     set _xmlobj $xmlobj
     set _curve [$xmlobj element -as object $path]
@@ -66,7 +66,7 @@ itcl::body Rappture::Curve::destructor {} {
     # don't destroy the _xmlobj! we don't own it!
 
     foreach name [array names _comp2xy] {
-        eval blt::vector destroy $_comp2xy($name)
+	eval blt::vector destroy $_comp2xy($name)
     }
 }
 
@@ -80,9 +80,9 @@ itcl::body Rappture::Curve::destructor {} {
 itcl::body Rappture::Curve::components {{pattern *}} {
     set rlist ""
     foreach name [array names _comp2xy] {
-        if {[string match $pattern $name]} {
-            lappend rlist $name
-        }
+	if {[string match $pattern $name]} {
+	    lappend rlist $name
+	}
     }
     return $rlist
 }
@@ -96,7 +96,7 @@ itcl::body Rappture::Curve::components {{pattern *}} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Curve::mesh {{what -overall}} {
     if {[info exists _comp2xy($what)]} {
-        return [lindex $_comp2xy($what) 0]  ;# return xv
+	return [lindex $_comp2xy($what) 0]  ;# return xv
     }
     error "bad option \"$what\": should be [join [lsort [array names _comp2xy]] {, }]"
 }
@@ -110,7 +110,7 @@ itcl::body Rappture::Curve::mesh {{what -overall}} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Curve::values {{what -overall}} {
     if {[info exists _comp2xy($what)]} {
-        return [lindex $_comp2xy($what) 1]  ;# return yv
+	return [lindex $_comp2xy($what) 1]  ;# return yv
     }
     error "bad option \"$what\": should be [join [lsort [array names _comp2xy]] {, }]"
 }
@@ -124,61 +124,61 @@ itcl::body Rappture::Curve::limits {which} {
     set min ""
     set max ""
     switch -- $which {
-        x - xlin { set pos 0; set log 0; set axis xaxis }
-        xlog { set pos 0; set log 1; set axis xaxis }
-        y - ylin - v - vlin { set pos 1; set log 0; set axis yaxis }
-        ylog - vlog { set pos 1; set log 1; set axis yaxis }
-        default {
-            error "bad option \"$which\": should be x, xlin, xlog, y, ylin, ylog, v, vlin, vlog"
-        }
+	x - xlin { set pos 0; set log 0; set axis xaxis }
+	xlog { set pos 0; set log 1; set axis xaxis }
+	y - ylin - v - vlin { set pos 1; set log 0; set axis yaxis }
+	ylog - vlog { set pos 1; set log 1; set axis yaxis }
+	default {
+	    error "bad option \"$which\": should be x, xlin, xlog, y, ylin, ylog, v, vlin, vlog"
+	}
     }
 
     blt::vector create tmp zero
     foreach comp [array names _comp2xy] {
-        set vname [lindex $_comp2xy($comp) $pos]
-        $vname variable vec
+	set vname [lindex $_comp2xy($comp) $pos]
+	$vname variable vec
 
-        if {$log} {
-            # on a log scale, use abs value and ignore 0's
-            $vname dup tmp
-            $vname dup zero
-            zero expr {tmp == 0}            ;# find the 0's
-            tmp expr {abs(tmp)}             ;# get the abs value
-            tmp expr {tmp + zero*max(tmp)}  ;# replace 0's with abs max
-            set vmin [blt::vector expr min(tmp)]
-            set vmax [blt::vector expr max(tmp)]
-        } else {
-            set vmin $vec(min)
-            set vmax $vec(max)
-        }
+	if {$log} {
+	    # on a log scale, use abs value and ignore 0's
+	    $vname dup tmp
+	    $vname dup zero
+	    zero expr {tmp == 0}            ;# find the 0's
+	    tmp expr {abs(tmp)}             ;# get the abs value
+	    tmp expr {tmp + zero*max(tmp)}  ;# replace 0's with abs max
+	    set vmin [blt::vector expr min(tmp)]
+	    set vmax [blt::vector expr max(tmp)]
+	} else {
+	    set vmin $vec(min)
+	    set vmax $vec(max)
+	}
 
-        if {"" == $min} {
-            set min $vmin
-        } elseif {$vmin < $min} {
-            set min $vmin
-        }
-        if {"" == $max} {
-            set max $vmax
-        } elseif {$vmax > $max} {
-            set max $vmax
-        }
+	if {"" == $min} {
+	    set min $vmin
+	} elseif {$vmin < $min} {
+	    set min $vmin
+	}
+	if {"" == $max} {
+	    set max $vmax
+	} elseif {$vmax > $max} {
+	    set max $vmax
+	}
     }
     blt::vector destroy tmp zero
 
     set val [$_curve get $axis.min]
     if {"" != $val && "" != $min} {
-        if {$val > $min} {
-            # tool specified this min -- don't go any lower
-            set min $val
-        }
+	if {$val > $min} {
+	    # tool specified this min -- don't go any lower
+	    set min $val
+	}
     }
 
     set val [$_curve get $axis.max]
     if {"" != $val && "" != $max} {
-        if {$val < $max} {
-            # tool specified this max -- don't go any higher
-            set max $val
-        }
+	if {$val < $max} {
+	    # tool specified this max -- don't go any higher
+	    set max $val
+	}
     }
 
     return [list $min $max]
@@ -193,51 +193,51 @@ itcl::body Rappture::Curve::limits {which} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Curve::hints {{keyword ""}} {
     if {![info exists _hints]} {
-        foreach {key path} {
-            group   about.group
-            label   about.label
-            color   about.color
-            style   about.style
-            type    about.type
-            xlabel  xaxis.label
-            xdesc   xaxis.description
-            xunits  xaxis.units
-            xscale  xaxis.scale
-            xmin    xaxis.min
-            xmax    xaxis.max
-            ylabel  yaxis.label
-            ydesc   yaxis.description
-            yunits  yaxis.units
-            yscale  yaxis.scale
-            ymin    yaxis.min
-            ymax    yaxis.max
-        } {
-            set str [$_curve get $path]
-            if {"" != $str} {
-                set _hints($key) $str
-            }
-        }
+	foreach {key path} {
+	    group   about.group
+	    label   about.label
+	    color   about.color
+	    style   about.style
+	    type    about.type
+	    xlabel  xaxis.label
+	    xdesc   xaxis.description
+	    xunits  xaxis.units
+	    xscale  xaxis.scale
+	    xmin    xaxis.min
+	    xmax    xaxis.max
+	    ylabel  yaxis.label
+	    ydesc   yaxis.description
+	    yunits  yaxis.units
+	    yscale  yaxis.scale
+	    ymin    yaxis.min
+	    ymax    yaxis.max
+	} {
+	    set str [$_curve get $path]
+	    if {"" != $str} {
+		set _hints($key) $str
+	    }
+	}
 
-        if {[info exists _hints(xlabel)] && "" != $_hints(xlabel)
-              && [info exists _hints(xunits)] && "" != $_hints(xunits)} {
-            set _hints(xlabel) "$_hints(xlabel) ($_hints(xunits))"
-        }
-        if {[info exists _hints(ylabel)] && "" != $_hints(ylabel)
-              && [info exists _hints(yunits)] && "" != $_hints(yunits)} {
-            set _hints(ylabel) "$_hints(ylabel) ($_hints(yunits))"
-        }
+	if {[info exists _hints(xlabel)] && "" != $_hints(xlabel)
+	      && [info exists _hints(xunits)] && "" != $_hints(xunits)} {
+	    set _hints(xlabel) "$_hints(xlabel) ($_hints(xunits))"
+	}
+	if {[info exists _hints(ylabel)] && "" != $_hints(ylabel)
+	      && [info exists _hints(yunits)] && "" != $_hints(yunits)} {
+	    set _hints(ylabel) "$_hints(ylabel) ($_hints(yunits))"
+	}
 
-        if {[info exists _hints(group)] && [info exists _hints(label)]} {
-            # pop-up help for each curve
-            set _hints(tooltip) $_hints(label)
-        }
+	if {[info exists _hints(group)] && [info exists _hints(label)]} {
+	    # pop-up help for each curve
+	    set _hints(tooltip) $_hints(label)
+	}
     }
 
     if {$keyword != ""} {
-        if {[info exists _hints($keyword)]} {
-            return $_hints($keyword)
-        }
-        return ""
+	if {[info exists _hints($keyword)]} {
+	    return $_hints($keyword)
+	}
+	return ""
     }
     return [array get _hints]
 }
@@ -253,7 +253,7 @@ itcl::body Rappture::Curve::hints {{keyword ""}} {
 itcl::body Rappture::Curve::_build {} {
     # discard any existing data
     foreach name [array names _comp2xy] {
-        eval blt::vector destroy $_comp2xy($name)
+	eval blt::vector destroy $_comp2xy($name)
     }
     catch {unset _comp2xy}
 
@@ -262,23 +262,23 @@ itcl::body Rappture::Curve::_build {} {
     # vectors for each part.
     #
     foreach cname [$_curve children -type component] {
-        set xv ""
-        set yv ""
+	set xv ""
+	set yv ""
 
-        set xydata [$_curve get $cname.xy]
-        if {"" != $xydata} {
-            set xv [blt::vector create \#auto]
-            set yv [blt::vector create \#auto]
+	set xydata [$_curve get $cname.xy]
+	if {"" != $xydata} {
+	    set xv [blt::vector create \#auto]
+	    set yv [blt::vector create \#auto]
 	    set tmp [blt::vector create \#auto]
 	    $tmp set $xydata
 	    $tmp split $xv $yv
 	    blt::vector destroy $tmp
-        }
+	}
 
-        if {$xv != "" && $yv != ""} {
-            set _comp2xy($cname) [list $xv $yv]
-            incr _counter
-        }
+	if {$xv != "" && $yv != ""} {
+	    set _comp2xy($cname) [list $xv $yv]
+	    incr _counter
+	}
     }
     # Creates lists of x and y marker data.
     set _xmarkers {}

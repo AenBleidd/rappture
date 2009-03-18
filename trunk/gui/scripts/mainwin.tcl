@@ -37,33 +37,33 @@ bind Text <Control-KeyPress-v> {}
 #
 bind Entry <<Paste>> {
     catch {
-        # always replace existing selection
-        catch { %W delete sel.first sel.last }
+	# always replace existing selection
+	catch { %W delete sel.first sel.last }
 
-        %W insert insert [::tk::GetSelection %W CLIPBOARD]
-        tk::EntrySeeInsert %W
+	%W insert insert [::tk::GetSelection %W CLIPBOARD]
+	tk::EntrySeeInsert %W
     }
 }
 proc ::tk_textPaste w {
     global tcl_platform
     if {![catch {::tk::GetSelection $w CLIPBOARD} sel]} {
-        if {[catch {$w cget -autoseparators} oldSeparator]} {
-            # in case we're using an older version of Tk
-            set oldSeparator 0
-        }
-        if { $oldSeparator } {
-            $w configure -autoseparators 0
-            $w edit separator
-        }
+	if {[catch {$w cget -autoseparators} oldSeparator]} {
+	    # in case we're using an older version of Tk
+	    set oldSeparator 0
+	}
+	if { $oldSeparator } {
+	    $w configure -autoseparators 0
+	    $w edit separator
+	}
 
-        # always replace existing selection
-        catch { $w delete sel.first sel.last }
-        $w insert insert $sel
+	# always replace existing selection
+	catch { $w delete sel.first sel.last }
+	$w insert insert $sel
 
-        if { $oldSeparator } {
-            $w edit separator
-            $w configure -autoseparators 1
-        }
+	if { $oldSeparator } {
+	    $w edit separator
+	    $w configure -autoseparators 1
+	}
     }
 }
 
@@ -87,7 +87,7 @@ itcl::class Rappture::MainWin {
     private variable _bgscript ""  ;# script of background drawing cmds
     private variable _bgparser ""  ;# parser for bgscript
 }
-                                                                                
+										
 itk::usual MainWin {
     keep -background -cursor foreground -font
 }
@@ -97,35 +97,35 @@ itk::usual MainWin {
 # ----------------------------------------------------------------------
 itcl::body Rappture::MainWin::constructor {args} {
     itk_component add area {
-        canvas $itk_interior.area
+	canvas $itk_interior.area
     } {
-        usual
-        rename -background -bgcolor bgColor Background
+	usual
+	rename -background -bgcolor bgColor Background
     }
     pack $itk_component(area) -expand yes -fill both
     bind $itk_component(area) <Configure> [itcl::code $this _redraw]
 
     itk_component add app {
-        frame $itk_component(area).app
+	frame $itk_component(area).app
     } {
-        usual
-        keep -borderwidth -relief
+	usual
+	keep -borderwidth -relief
     }
     bind $itk_component(app) <Configure> "
-        after cancel [itcl::code $this _redraw]
-        after idle [itcl::code $this _redraw]
+	after cancel [itcl::code $this _redraw]
+	after idle [itcl::code $this _redraw]
     "
 
     itk_component add menu {
-        menu $itk_interior.menu
+	menu $itk_interior.menu
     }
     itk_component add filemenu {
-        menu $itk_component(menu).file
+	menu $itk_component(menu).file
     }
     $itk_component(menu) add cascade -label "File" -underline 0 \
-        -menu $itk_component(filemenu)
+	-menu $itk_component(filemenu)
     $itk_component(filemenu) add command -label "Exit" -underline 1 \
-        -command {destroy .}
+	-command {destroy .}
 
     #
     # Create a parser for the -bgscript option that can
@@ -183,68 +183,68 @@ itcl::body Rappture::MainWin::constructor {args} {
 itcl::body Rappture::MainWin::syncCutBuffer {option args} {
     set mainwin $itk_component(hull)
     switch -- $option {
-        ifneeded {
-            #
-            # See if the incoming cut buffer has changed.
-            # If so, then sync the new input to the primary selection.
-            #
-            set s [blt::cutbuffer get]
-            if {"" != $s && ![string equal $s $_sync(cutbuffer)]} {
-                #
-                # Convert any \r's in the cutbuffer to \n's.
-                #
-                if {[string first "\r" $s] >= 0} {
-                    regsub -all "\r\n" $s "\n" s
-                    regsub -all "\r" $s "\n" s
-                    blt::cutbuffer set $s
-                }
+	ifneeded {
+	    #
+	    # See if the incoming cut buffer has changed.
+	    # If so, then sync the new input to the primary selection.
+	    #
+	    set s [blt::cutbuffer get]
+	    if {"" != $s && ![string equal $s $_sync(cutbuffer)]} {
+		#
+		# Convert any \r's in the cutbuffer to \n's.
+		#
+		if {[string first "\r" $s] >= 0} {
+		    regsub -all "\r\n" $s "\n" s
+		    regsub -all "\r" $s "\n" s
+		    blt::cutbuffer set $s
+		}
 
-                set _sync(cutbuffer) $s
+		set _sync(cutbuffer) $s
 
-                if {![string equal $s $_sync(selection)]
-                      && [selection own -selection PRIMARY] != $mainwin} {
-                    set _sync(selection) $s
+		if {![string equal $s $_sync(selection)]
+		      && [selection own -selection PRIMARY] != $mainwin} {
+		    set _sync(selection) $s
 
-                    clipboard clear
-                    clipboard append -- $s
-                    selection handle -selection PRIMARY $mainwin \
-                        [itcl::code $this syncCutBuffer transfer]
-                    selection own -selection PRIMARY -command \
-                        [itcl::code $this syncCutBuffer lostselection] \
-                        $mainwin
-                }
-            }
+		    clipboard clear
+		    clipboard append -- $s
+		    selection handle -selection PRIMARY $mainwin \
+			[itcl::code $this syncCutBuffer transfer]
+		    selection own -selection PRIMARY -command \
+			[itcl::code $this syncCutBuffer lostselection] \
+			$mainwin
+		}
+	    }
 
-            #
-            # See if the selection has changed.  If so, then sync
-            # the new input to the cut buffer, so it's available
-            # outside the VNC client.
-            #
-            if {[catch {selection get -selection PRIMARY} s]} {
-                set s ""
-            }
-            if {"" != $s && ![string equal $s $_sync(selection)]} {
-                set _sync(selection) $s
-                blt::cutbuffer set $s
-            }
+	    #
+	    # See if the selection has changed.  If so, then sync
+	    # the new input to the cut buffer, so it's available
+	    # outside the VNC client.
+	    #
+	    if {[catch {selection get -selection PRIMARY} s]} {
+		set s ""
+	    }
+	    if {"" != $s && ![string equal $s $_sync(selection)]} {
+		set _sync(selection) $s
+		blt::cutbuffer set $s
+	    }
 
-            # do this again soon
-            after 1000 [itcl::code $this syncCutBuffer ifneeded]
-        }
-        transfer {
-            if {[llength $args] != 2} {
-                error "wrong # args: should be \"syncCutBuffer transfer offset max\""
-            }
-            set offset [lindex $args 0]
-            set maxchars [lindex $args 1]
-            return [string range $_currseln $offset [expr {$offset+$maxchars-1}]]
-        }
-        lostselection {
-            # nothing to do
-        }
-        default {
-            error "bad option \"$option\": should be ifneeded, transfer, or lostselection"
-        }
+	    # do this again soon
+	    after 1000 [itcl::code $this syncCutBuffer ifneeded]
+	}
+	transfer {
+	    if {[llength $args] != 2} {
+		error "wrong # args: should be \"syncCutBuffer transfer offset max\""
+	    }
+	    set offset [lindex $args 0]
+	    set maxchars [lindex $args 1]
+	    return [string range $_currseln $offset [expr {$offset+$maxchars-1}]]
+	}
+	lostselection {
+	    # nothing to do
+	}
+	default {
+	    error "bad option \"$option\": should be ifneeded, transfer, or lostselection"
+	}
     }
 }
 
@@ -273,79 +273,79 @@ itcl::body Rappture::MainWin::draw {option args} {
 itcl::body Rappture::MainWin::_redraw {} {
     $itk_component(area) delete all
     if {$itk_option(-mode) == "web"} {
-        if {[catch {$_bgparser eval $itk_option(-bgscript)} result]} {
-            bgerror "$result\n    (while redrawing application background)"
-        }
+	if {[catch {$_bgparser eval $itk_option(-bgscript)} result]} {
+	    bgerror "$result\n    (while redrawing application background)"
+	}
 
-        set bd 0  ;# optional border
-        set sw [winfo width $itk_component(area)]
-        set sh [winfo height $itk_component(area)]
+	set bd 0  ;# optional border
+	set sw [winfo width $itk_component(area)]
+	set sh [winfo height $itk_component(area)]
 
-        set clip 0
-        set w [winfo reqwidth $itk_component(app)]
-        set h [winfo reqheight $itk_component(app)]
-        if {$w > $sw-2*$bd} {
-            set $w [expr {$sw-2*$bd}]
-            set clip 1
-        }
+	set clip 0
+	set w [winfo reqwidth $itk_component(app)]
+	set h [winfo reqheight $itk_component(app)]
+	if {$w > $sw-2*$bd} {
+	    set $w [expr {$sw-2*$bd}]
+	    set clip 1
+	}
 
-        set anchor $itk_option(-anchor)
-        switch -- $itk_option(-anchor) {
-            n {
-                set x [expr {$sw/2}]
-                set y $bd
-            }
-            s {
-                set x [expr {$sw/2}]
-                set y [expr {$sh-$bd}]
-            }
-            center {
-                set x [expr {$sw/2}]
-                set y [expr {$sh/2}]
-            }
-            w {
-                set x $bd
-                set y [expr {$sh/2}]
-            }
-            e {
-                set x [expr {$sw-$bd}]
-                set y [expr {$sh/2}]
-            }
-            nw {
-                set x $bd
-                set y $bd
-            }
-            ne {
-                set x [expr {$sw-$bd}]
-                set y $bd
-            }
-            sw {
-                set x $bd
-                set y [expr {$sh-$bd}]
-            }
-            se {
-                set x [expr {$sw-$bd}]
-                set y [expr {$sh-$bd}]
-            }
-            fill {
-                set anchor nw
-                set x $bd
-                set y $bd
-                set w [expr {$sw-2*$bd}]
-                set h [expr {$sh-2*$bd}]
-                set clip 1
-            }
-        }
+	set anchor $itk_option(-anchor)
+	switch -- $itk_option(-anchor) {
+	    n {
+		set x [expr {$sw/2}]
+		set y $bd
+	    }
+	    s {
+		set x [expr {$sw/2}]
+		set y [expr {$sh-$bd}]
+	    }
+	    center {
+		set x [expr {$sw/2}]
+		set y [expr {$sh/2}]
+	    }
+	    w {
+		set x $bd
+		set y [expr {$sh/2}]
+	    }
+	    e {
+		set x [expr {$sw-$bd}]
+		set y [expr {$sh/2}]
+	    }
+	    nw {
+		set x $bd
+		set y $bd
+	    }
+	    ne {
+		set x [expr {$sw-$bd}]
+		set y $bd
+	    }
+	    sw {
+		set x $bd
+		set y [expr {$sh-$bd}]
+	    }
+	    se {
+		set x [expr {$sw-$bd}]
+		set y [expr {$sh-$bd}]
+	    }
+	    fill {
+		set anchor nw
+		set x $bd
+		set y $bd
+		set w [expr {$sw-2*$bd}]
+		set h [expr {$sh-2*$bd}]
+		set clip 1
+	    }
+	}
 
-        # if the app is too big, use w/h. otherwise, 0,0 for default size
-        if {!$clip} {
-            set w 0
-            set h 0
-        }
+	# if the app is too big, use w/h. otherwise, 0,0 for default size
+	if {!$clip} {
+	    set w 0
+	    set h 0
+	}
 
-        $itk_component(area) create window $x $y \
-            -anchor $anchor -window $itk_component(app) \
-            -width $w -height $h
+	$itk_component(area) create window $x $y \
+	    -anchor $anchor -window $itk_component(app) \
+	    -width $w -height $h
     }
 }
 
@@ -354,22 +354,22 @@ itcl::body Rappture::MainWin::_redraw {} {
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::MainWin::mode {
     switch -- $itk_option(-mode) {
-        desktop {
-            component hull configure -menu $itk_component(hull).menu
-            pack $itk_component(app) -expand yes -fill both
-            wm geometry $itk_component(hull) ""
-        }
-        web {
-            component hull configure -menu ""
-            pack forget $itk_component(app)
-            set wx [winfo screenwidth $itk_component(hull)]
-            set wy [winfo screenheight $itk_component(hull)]
-            wm geometry $itk_component(hull) ${wx}x${wy}+0+0
-            _redraw
-        }
-        default {
-            error "bad value \"$itk_option(-mode)\": should be desktop or web"
-        }
+	desktop {
+	    component hull configure -menu $itk_component(hull).menu
+	    pack $itk_component(app) -expand yes -fill both
+	    wm geometry $itk_component(hull) ""
+	}
+	web {
+	    component hull configure -menu ""
+	    pack forget $itk_component(app)
+	    set wx [winfo screenwidth $itk_component(hull)]
+	    set wy [winfo screenheight $itk_component(hull)]
+	    wm geometry $itk_component(hull) ${wx}x${wy}+0+0
+	    _redraw
+	}
+	default {
+	    error "bad value \"$itk_option(-mode)\": should be desktop or web"
+	}
     }
 }
 
@@ -385,7 +385,7 @@ itcl::configbody Rappture::MainWin::bgscript {
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::MainWin::anchor {
     if {[lsearch {n s e w ne nw se sw center fill} $itk_option(-anchor)] < 0} {
-        error "bad anchor \"$itk_option(-anchor)\""
+	error "bad anchor \"$itk_option(-anchor)\""
     }
     _redraw
 }

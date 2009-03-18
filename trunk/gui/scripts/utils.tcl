@@ -22,64 +22,64 @@ namespace eval Rappture::utils { # forward declaration }
 # ----------------------------------------------------------------------
 proc Rappture::utils::hexdump {args} {
     Rappture::getopts args params {
-        value -lines unlimited
+	value -lines unlimited
     }
     if {[llength $args] != 1} {
-        error "wrong # args: should be \"hexdump ?-lines num? data\""
+	error "wrong # args: should be \"hexdump ?-lines num? data\""
     }
     set newval [lindex $args 0]
     set args ""
 
     set size [string length $newval]
     foreach {factor units} {
-        1073741824 GB
-        1048576 MB
-        1024 kB
-        1 bytes
+	1073741824 GB
+	1048576 MB
+	1024 kB
+	1 bytes
     } {
-        if {$size/$factor > 0} {
-            if {$factor > 1} {
-                set size [format "%.2f" [expr {double($size)/$factor}]]
-            }
-            break
-        }
+	if {$size/$factor > 0} {
+	    if {$factor > 1} {
+		set size [format "%.2f" [expr {double($size)/$factor}]]
+	    }
+	    break
+	}
     }
 
     set rval "<binary> $size $units"
 
     if {$params(-lines) != "unlimited" && $params(-lines) <= 0} {
-        return $rval
+	return $rval
     }
 
     append rval "\n\n"
     set len [string length $newval]
     for {set i 0} {$i < $len} {incr i 8} {
-        append rval [format "%#06x: " $i]
-        set ascii ""
-        for {set j 0} {$j < 8} {incr j} {
-            if {$i+$j < $len} {
-                set char [string index $newval [expr {$i+$j}]]
-                binary scan $char c ichar
-                set hexchar [format "%02x" [expr {0xff & $ichar}]]
-            } else {
-                set char " "
-                set hexchar "  "
-            }
-            append rval "$hexchar "
-            if {[regexp {[\000-\037\177-\377]} $char]} {
-                append ascii "."
-            } else {
-                append ascii $char
-            }
-        }
-        append rval " | $ascii\n"
+	append rval [format "%#06x: " $i]
+	set ascii ""
+	for {set j 0} {$j < 8} {incr j} {
+	    if {$i+$j < $len} {
+		set char [string index $newval [expr {$i+$j}]]
+		binary scan $char c ichar
+		set hexchar [format "%02x" [expr {0xff & $ichar}]]
+	    } else {
+		set char " "
+		set hexchar "  "
+	    }
+	    append rval "$hexchar "
+	    if {[regexp {[\000-\037\177-\377]} $char]} {
+		append ascii "."
+	    } else {
+		append ascii $char
+	    }
+	}
+	append rval " | $ascii\n"
 
-        if {"unlimited" != $params(-lines) && $i/8+1 >= $params(-lines)} {
-            if {$i < $len-1} {
-                append rval "more..."
-            }
-            break
-        }
+	if {"unlimited" != $params(-lines) && $i/8+1 >= $params(-lines)} {
+	    if {$i < $len-1} {
+		append rval "more..."
+	    }
+	    break
+	}
     }
     return $rval
 }

@@ -51,9 +51,9 @@ itcl::class Rappture::Cloud {
 itcl::body Rappture::Cloud::fetch {xmlobj path} {
     set handle "$xmlobj|$path"
     if {[info exists _xp2obj($handle)]} {
-        set obj $_xp2obj($handle)
-        incr _obj2ref($obj)
-        return $obj
+	set obj $_xp2obj($handle)
+	incr _obj2ref($obj)
+	return $obj
     }
 
     set obj [Rappture::Cloud ::#auto $xmlobj $path]
@@ -72,18 +72,18 @@ itcl::body Rappture::Cloud::fetch {xmlobj path} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Cloud::release {obj} {
     if {[info exists _obj2ref($obj)]} {
-        incr _obj2ref($obj) -1
-        if {$_obj2ref($obj) <= 0} {
-            unset _obj2ref($obj)
-            foreach handle [array names _xp2obj] {
-                if {$_xp2obj($handle) == $obj} {
-                    unset _xp2obj($handle)
-                }
-            }
-            itcl::delete object $obj
-        }
+	incr _obj2ref($obj) -1
+	if {$_obj2ref($obj) <= 0} {
+	    unset _obj2ref($obj)
+	    foreach handle [array names _xp2obj] {
+		if {$_xp2obj($handle) == $obj} {
+		    unset _xp2obj($handle)
+		}
+	    }
+	    itcl::delete object $obj
+	}
     } else {
-        error "can't find reference count for $obj"
+	error "can't find reference count for $obj"
     }
 }
 
@@ -92,53 +92,53 @@ itcl::body Rappture::Cloud::release {obj} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Cloud::constructor {xmlobj path} {
     if {![Rappture::library isvalid $xmlobj]} {
-        error "bad value \"$xmlobj\": should be Rappture::library"
+	error "bad value \"$xmlobj\": should be Rappture::library"
     }
     set _xmlobj $xmlobj
     set _cloud [$xmlobj element -as object $path]
 
     set u [$_cloud get units]
     if {"" != $u} {
-        while {[llength $u] < 3} {
-            lappend u [lindex $u end]
-        }
-        set _units $u
+	while {[llength $u] < 3} {
+	    lappend u [lindex $u end]
+	}
+	set _units $u
     }
 
     # create the vtk object containing points
     vtkPoints $this-points
 
     foreach lim {xmin xmax ymin ymax zmin zmax} {
-        set _limits($lim) ""
+	set _limits($lim) ""
     }
 
     foreach line [split [$xmlobj get $path.points] \n] {
-        if {"" == [string trim $line]} {
-            continue
-        }
+	if {"" == [string trim $line]} {
+	    continue
+	}
 
-        # make sure we have x,y,z
-        while {[llength $line] < 3} {
-            lappend line "0"
-        }
+	# make sure we have x,y,z
+	while {[llength $line] < 3} {
+	    lappend line "0"
+	}
 
-        # extract each point and add it to the points list
-        foreach {x y z} $line break
-        foreach dim {x y z} units $_units {
-            set v [Rappture::Units::convert [set $dim] \
-                -context $units -to $units -units off]
+	# extract each point and add it to the points list
+	foreach {x y z} $line break
+	foreach dim {x y z} units $_units {
+	    set v [Rappture::Units::convert [set $dim] \
+		-context $units -to $units -units off]
 
-            set $dim $v  ;# save back to real x/y/z variable
+	    set $dim $v  ;# save back to real x/y/z variable
 
-            if {"" == $_limits(${dim}min)} {
-                set _limits(${dim}min) $v
-                set _limits(${dim}max) $v
-            } else {
-                if {$v < $_limits(${dim}min)} { set _limits(${dim}min) $v }
-                if {$v > $_limits(${dim}max)} { set _limits(${dim}max) $v }
-            }
-        }
-        $this-points InsertNextPoint $x $y $z
+	    if {"" == $_limits(${dim}min)} {
+		set _limits(${dim}min) $v
+		set _limits(${dim}max) $v
+	    } else {
+		if {$v < $_limits(${dim}min)} { set _limits(${dim}min) $v }
+		if {$v > $_limits(${dim}max)} { set _limits(${dim}max) $v }
+	    }
+	}
+	$this-points InsertNextPoint $x $y $z
     }
 }
 
@@ -187,9 +187,9 @@ itcl::body Rappture::Cloud::dimensions {} {
     # count the dimensions with real limits
     set dims 0
     foreach d {x y z} {
-        if {$_limits(${d}min) != $_limits(${d}max)} {
-            incr dims
-        }
+	if {$_limits(${d}min) != $_limits(${d}max)} {
+	    incr dims
+	}
     }
     return $dims
 }
@@ -201,7 +201,7 @@ itcl::body Rappture::Cloud::dimensions {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Cloud::limits {which} {
     if {![info exists _limits(${which}min)]} {
-        error "bad axis \"$which\": should be x, y, z"
+	error "bad axis \"$which\": should be x, y, z"
     }
     return [list $_limits(${which}min) $_limits(${which}max)]
 }
@@ -215,17 +215,17 @@ itcl::body Rappture::Cloud::limits {which} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Cloud::hints {{keyword ""}} {
     foreach key {label color units} {
-        set str [$_cloud get $key]
-        if {"" != $str} {
-            set hints($key) $str
-        }
+	set str [$_cloud get $key]
+	if {"" != $str} {
+	    set hints($key) $str
+	}
     }
 
     if {$keyword != ""} {
-        if {[info exists hints($keyword)]} {
-            return $hints($keyword)
-        }
-        return ""
+	if {[info exists hints($keyword)]} {
+	    return $hints($keyword)
+	}
+	return ""
     }
     return [array get hints]
 }

@@ -46,7 +46,7 @@ itk::usual ImageEntry {
 # ----------------------------------------------------------------------
 itcl::body Rappture::ImageEntry::constructor {owner path args} {
     if {[catch {$owner isa Rappture::ControlOwner} valid] != 0 || !$valid} {
-        error "bad object \"$owner\": should be Rappture::ControlOwner"
+	error "bad object \"$owner\": should be Rappture::ControlOwner"
     }
     set _owner $owner
     set _path $path
@@ -56,17 +56,17 @@ itcl::body Rappture::ImageEntry::constructor {owner path args} {
     # hints in the XML.
     #
     itk_component add image {
-        ::label $itk_interior.image -borderwidth 0
+	::label $itk_interior.image -borderwidth 0
     }
     pack $itk_component(image) -expand yes -fill both
     bind $itk_component(image) <Configure> [itcl::code $this _redraw]
 
     set str [$_owner xml get $path.current]
     if {[string length $str] == 0} {
-        set str [$_owner xml get $path.default]
+	set str [$_owner xml get $path.default]
     }
     if {[string length $str] > 0} {
-        value $str
+	value $str
     }
 
     eval itk_initialize $args
@@ -93,31 +93,31 @@ itcl::body Rappture::ImageEntry::value {args} {
     set onlycheck 0
     set i [lsearch -exact $args -check]
     if {$i >= 0} {
-        set onlycheck 1
-        set args [lreplace $args $i $i]
+	set onlycheck 1
+	set args [lreplace $args $i $i]
     }
 
     if {[llength $args] == 1} {
-        if {$onlycheck} {
-            # someday we may add validation...
-            return
-        }
-        set newval [lindex $args 0]
-        if {[string length $newval] > 0} {
-            set imh [image create photo -data $newval]
-        } else {
-            set imh ""
-        }
+	if {$onlycheck} {
+	    # someday we may add validation...
+	    return
+	}
+	set newval [lindex $args 0]
+	if {[string length $newval] > 0} {
+	    set imh [image create photo -data $newval]
+	} else {
+	    set imh ""
+	}
 
-        if {$_imh != ""} {
-            image delete $_imh
-        }
-        set _imh $imh
-        _redraw
-        return $newval
+	if {$_imh != ""} {
+	    image delete $_imh
+	}
+	set _imh $imh
+	_redraw
+	return $newval
 
     } elseif {[llength $args] != 0} {
-        error "wrong # args: should be \"value ?-check? ?newval?\""
+	error "wrong # args: should be \"value ?-check? ?newval?\""
     }
 
     #
@@ -163,8 +163,8 @@ itcl::body Rappture::ImageEntry::tooltip {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::ImageEntry::_redraw {} {
     if {"" == $_imh} {
-        $itk_component(image) configure -image ""
-        return
+	$itk_component(image) configure -image ""
+	return
     }
 
     set iw [image width $_imh]
@@ -173,49 +173,49 @@ itcl::body Rappture::ImageEntry::_redraw {} {
 
     set str [string trim [$_owner xml get $_path.resize]]
     if {"" == $str} {
-        set str "none"
+	set str "none"
     }
     switch -glob -- $str {
-        auto {
-            if {$_resize == ""} {
-                set _resize [image create photo]
-            }
-            set w [winfo width $itk_component(image)]
-            set h [winfo height $itk_component(image)]
-            if {$w/double($iw) < $h/double($ih)} {
-                set h [expr {round($w/double($iw)*$ih)}]
-            } else {
-                set w [expr {round($h/double($ih)*$iw)}]
-            }
-            $_resize configure -width $w -height $h
-            blt::winop resample $_imh $_resize
-            $itk_component(image) configure -image $_resize
-        }
-        width=* - height=* {
-            if {$_resize == ""} {
-                set _resize [image create photo]
-            }
-            if {[regexp {^width=([0-9]+)$} $str match size]} {
-                set w $size
-                set h [expr {round($w*$ih/double($iw))}]
-                $_resize configure -width $w -height $h
-                blt::winop resample $_imh $_resize
-                $itk_component(image) configure -image $_resize \
-                    -width $w -height $h
-            } elseif {[regexp {^height=([0-9]+)$} $str match size]} {
-                set h $size
-                set w [expr {round($h*$iw/double($ih))}]
-                $_resize configure -width $w -height $h
-                blt::winop resample $_imh $_resize
-                $itk_component(image) configure -image $_resize \
-                    -width $w -height $h
-            } else {
-                $itk_component(image) configure -image $_imh
-            }
-        }
-        default {
-            $itk_component(image) configure -image $_imh
-        }
+	auto {
+	    if {$_resize == ""} {
+		set _resize [image create photo]
+	    }
+	    set w [winfo width $itk_component(image)]
+	    set h [winfo height $itk_component(image)]
+	    if {$w/double($iw) < $h/double($ih)} {
+		set h [expr {round($w/double($iw)*$ih)}]
+	    } else {
+		set w [expr {round($h/double($ih)*$iw)}]
+	    }
+	    $_resize configure -width $w -height $h
+	    blt::winop resample $_imh $_resize
+	    $itk_component(image) configure -image $_resize
+	}
+	width=* - height=* {
+	    if {$_resize == ""} {
+		set _resize [image create photo]
+	    }
+	    if {[regexp {^width=([0-9]+)$} $str match size]} {
+		set w $size
+		set h [expr {round($w*$ih/double($iw))}]
+		$_resize configure -width $w -height $h
+		blt::winop resample $_imh $_resize
+		$itk_component(image) configure -image $_resize \
+		    -width $w -height $h
+	    } elseif {[regexp {^height=([0-9]+)$} $str match size]} {
+		set h $size
+		set w [expr {round($h*$iw/double($ih))}]
+		$_resize configure -width $w -height $h
+		blt::winop resample $_imh $_resize
+		$itk_component(image) configure -image $_resize \
+		    -width $w -height $h
+	    } else {
+		$itk_component(image) configure -image $_imh
+	    }
+	}
+	default {
+	    $itk_component(image) configure -image $_imh
+	}
     }
 }
 
@@ -225,7 +225,7 @@ itcl::body Rappture::ImageEntry::_redraw {} {
 itcl::configbody Rappture::ImageEntry::state {
     set valid {normal disabled}
     if {[lsearch -exact $valid $itk_option(-state)] < 0} {
-        error "bad value \"$itk_option(-state)\": should be [join $valid {, }]"
+	error "bad value \"$itk_option(-state)\": should be [join $valid {, }]"
     }
     $itk_component(image) configure -state $itk_option(-state)
 }

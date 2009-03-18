@@ -86,7 +86,7 @@ itcl::class ::Rappture::XyLegend {
     private method Add { elem label {flags ""}} 
     private method SelectAll {}
 }
-                                                                                
+										
 itk::usual XyLegend {
     keep -background -foreground -cursor 
 }
@@ -115,7 +115,7 @@ itcl::body Rappture::XyLegend::constructor { graph args } {
     }
     set tree_ [blt::tree create]
     itk_component add legend {
-        blt::treeview $itk_component(scrollbars).legend -linewidth 0 \
+	blt::treeview $itk_component(scrollbars).legend -linewidth 0 \
 	    -bg white -selectmode multiple \
 	    -highlightthickness 0 \
 	    -tree $tree_ \
@@ -133,7 +133,7 @@ itcl::body Rappture::XyLegend::constructor { graph args } {
     $itk_component(legend) column configure "show" -style "check" -pad {0 0} \
 	-edit yes
     itk_component add controls {
-        frame $itk_component(hull).controls -width 100 -relief sunken -bd 2
+	frame $itk_component(hull).controls -width 100 -relief sunken -bd 2
     }
     set controls $itk_component(controls)
     grid $itk_component(controls) -column 0 -row 1 -sticky nsew
@@ -196,10 +196,10 @@ itcl::body Rappture::XyLegend::constructor { graph args } {
 	[itcl::code $this Check]
 
     itk_component add editor {
-        Rappture::Editor $itk_interior.editor \
-            -activatecommand [itcl::code $this Editor activate] \
-            -validatecommand [itcl::code $this Editor validate] \
-            -applycommand [itcl::code $this Editor apply]
+	Rappture::Editor $itk_interior.editor \
+	    -activatecommand [itcl::code $this Editor activate] \
+	    -validatecommand [itcl::code $this Editor validate] \
+	    -applycommand [itcl::code $this Editor apply]
     }
     set lastColorIndex_ [llength $autocolors_]
     Check
@@ -581,10 +581,10 @@ itcl::body Rappture::XyLegend::Rename {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::XyLegend::Editor {option args} {
     switch -- $option {
-        popup {
+	popup {
 	    $itk_component(editor) activate
-        }
-        activate {
+	}
+	activate {
 	    set rename_ [$itk_component(legend) curselection]
 	    if { $rename_ == "" } {
 		return;
@@ -596,27 +596,27 @@ itcl::body Rappture::XyLegend::Editor {option args} {
 	    set info(y) [expr $r + [winfo rooty $itk_component(legend)]] 
 	    set info(w) $w
 	    set info(h) $h
-            return [array get info]
-        }
-        validate {
-            if {[llength $args] != 1} {
-                error "wrong # args: should be \"editor validate value\""
-            }
-        }
-        apply {
-            if {[llength $args] != 1} {
-                error "wrong # args: should be \"editor apply value\""
-            }
+	    return [array get info]
+	}
+	validate {
+	    if {[llength $args] != 1} {
+		error "wrong # args: should be \"editor validate value\""
+	    }
+	}
+	apply {
+	    if {[llength $args] != 1} {
+		error "wrong # args: should be \"editor apply value\""
+	    }
 	    set label [lindex $args 0]
 	    $itk_component(legend) entry configure $rename_ -label $label
 	    set elem [$tree_ label $rename_]
 	    $graph_ element configure $elem -label $label
-        }
-        menu {
-            eval tk_popup $itk_component(emenu) $args
-        }
-        default {
-            error "bad option \"$option\": should be popup, activate, validate, apply, and menu"
-        }
+	}
+	menu {
+	    eval tk_popup $itk_component(emenu) $args
+	}
+	default {
+	    error "bad option \"$option\": should be popup, activate, validate, apply, and menu"
+	}
     }
 }

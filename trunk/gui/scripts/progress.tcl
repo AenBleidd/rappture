@@ -45,17 +45,17 @@ itk::usual Progress {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Progress::constructor {args} {
     itk_component add bar {
-        canvas $itk_interior.bar -highlightthickness 0
+	canvas $itk_interior.bar -highlightthickness 0
     } {
-        usual
-        keep -borderwidth -relief
-        ignore -highlightthickness -highlightbackground -highlightcolor
+	usual
+	keep -borderwidth -relief
+	ignore -highlightthickness -highlightbackground -highlightcolor
     }
     pack $itk_component(bar) -expand yes -fill both
     bind $itk_component(bar) <Configure> [itcl::code $this _redraw]
 
     itk_component add message {
-        label $itk_interior.mesg -anchor w
+	label $itk_interior.mesg -anchor w
     }
 
     eval itk_initialize $args
@@ -75,36 +75,36 @@ itcl::body Rappture::Progress::constructor {args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Progress::settings {args} {
     if {[llength $args] == 0} {
-        return [list -percent $_percent -message $_message]
+	return [list -percent $_percent -message $_message]
     }
 
     Rappture::getopts args params {
-        value -percent ""
-        value -message "__ignore__"
+	value -percent ""
+	value -message "__ignore__"
     }
 
     set changed 0
     if {$params(-percent) != ""} {
-        if {![string is double $params(-percent)]} {
-            error "bad value \"$params(-percent)\": should be 0-100"
-        }
-        if {$params(-percent) < 0} {
-            set params(-percent) 0
-        }
-        if {$params(-percent) > 100} {
-            set params(-percent) 100
-        }
-        set _percent $params(-percent)
-        set changed 1
+	if {![string is double $params(-percent)]} {
+	    error "bad value \"$params(-percent)\": should be 0-100"
+	}
+	if {$params(-percent) < 0} {
+	    set params(-percent) 0
+	}
+	if {$params(-percent) > 100} {
+	    set params(-percent) 100
+	}
+	set _percent $params(-percent)
+	set changed 1
     }
     if {$params(-message) != "__ignore__"} {
-        set _message $params(-message)
-        set changed 1
+	set _message $params(-message)
+	set changed 1
     }
 
     if {$changed} {
-        _redraw
-        update idletasks
+	_redraw
+	update idletasks
     }
 }
 
@@ -118,19 +118,19 @@ itcl::body Rappture::Progress::_redraw {} {
     set h [winfo height $itk_component(bar)]
 
     if {[string length $_message] > 0} {
-        $itk_component(message) configure -text $_message
-        pack $itk_component(message) -anchor w
+	$itk_component(message) configure -text $_message
+	pack $itk_component(message) -anchor w
     } else {
-        pack forget $itk_component(message)
+	pack forget $itk_component(message)
     }
 
     if {[$itk_component(bar) find all] == ""} {
-        $itk_component(bar) create rectangle 0 0 1 1 \
-            -outline "" -fill $itk_option(-barbackground) -tags barbg
-        $itk_component(bar) create rectangle 0 0 1 1 \
-            -outline "" -fill $itk_option(-barcolor) -tags bar
-        $itk_component(bar) create text 0 0 \
-            -anchor center -text "" -font $itk_option(-font) -tags number
+	$itk_component(bar) create rectangle 0 0 1 1 \
+	    -outline "" -fill $itk_option(-barbackground) -tags barbg
+	$itk_component(bar) create rectangle 0 0 1 1 \
+	    -outline "" -fill $itk_option(-barcolor) -tags bar
+	$itk_component(bar) create text 0 0 \
+	    -anchor center -text "" -font $itk_option(-font) -tags number
     }
 
     set msg [format "%3.0f%%" $_percent]

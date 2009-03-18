@@ -24,7 +24,7 @@ itcl::class Rappture::Switch {
     private method _toggle {args}
     private variable _value 0  ;# value for this widget
 }
-                                                                                
+										
 itk::usual Switch {
     keep -cursor -background
 }
@@ -35,12 +35,12 @@ itk::usual Switch {
 itcl::body Rappture::Switch::constructor {args} {
 
     itk_component add button {
-        button $itk_interior.value \
+	button $itk_interior.value \
 	    -compound left \
 	    -overrelief flat -relief flat -padx 3 -pady 0 -bd 0 \
 	    -command [itcl::code $this _toggle]
     } {
-        #rename -background -textbackground textBackground Background
+	#rename -background -textbackground textBackground Background
     }
     pack $itk_component(button) -side left -expand yes -fill both
     eval itk_initialize $args 
@@ -59,23 +59,23 @@ itcl::body Rappture::Switch::value {args} {
     set onlycheck 0
     set i [lsearch -exact $args -check]
     if {$i >= 0} {
-        set onlycheck 1
-        set args [lreplace $args $i $i]
+	set onlycheck 1
+	set args [lreplace $args $i $i]
     }
     if {[llength $args] == 1} {
-        set newval [lindex $args 0]
-        if {![string is boolean -strict $newval]} {
-            error "Should be a boolean value"
-        }
-        set newval [expr {($newval) ? 1 : 0}]
-        if {$onlycheck} {
-            return
-        }
-        set _value $newval
-        event generate $itk_component(hull) <<Value>>
+	set newval [lindex $args 0]
+	if {![string is boolean -strict $newval]} {
+	    error "Should be a boolean value"
+	}
+	set newval [expr {($newval) ? 1 : 0}]
+	if {$onlycheck} {
+	    return
+	}
+	set _value $newval
+	event generate $itk_component(hull) <<Value>>
 	updateText
     } elseif {[llength $args] != 0} {
-        error "wrong # args: should be \"value ?-check? ?newval?\""
+	error "wrong # args: should be \"value ?-check? ?newval?\""
     }
     return [expr {($_value) ? "yes" : "no"}]
 }
@@ -121,7 +121,7 @@ itcl::configbody Rappture::Switch::oncolor {
 itcl::configbody Rappture::Switch::state {
     set valid {normal disabled}
     if {[lsearch -exact $valid $itk_option(-state)] < 0} {
-        error "bad value \"$itk_option(-state)\": should be [join $valid {, }]"
+	error "bad value \"$itk_option(-state)\": should be [join $valid {, }]"
     }
     $itk_component(button) configure -state $itk_option(-state)
 }

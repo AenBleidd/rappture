@@ -74,18 +74,18 @@ itcl::body Rappture::HTMLviewer::constructor {args} {
     $_dispatcher dispatch $this !fixHeight [itcl::code $this _fixHeight]
 
     itk_component add html {
-        html $itk_interior.html -imagecmd [itcl::code $this _getImage]
+	html $itk_interior.html -imagecmd [itcl::code $this _getImage]
     } {
-        # no real options to work with for this widget
+	# no real options to work with for this widget
     }
     pack $itk_component(html) -expand yes -fill both
 
     bind $itk_component(html) <Motion> \
-        [itcl::code $this _mouse over %x %y]
+	[itcl::code $this _mouse over %x %y]
     bind $itk_component(html) <ButtonPress-1> \
-        [itcl::code $this _mouse over %x %y]
+	[itcl::code $this _mouse over %x %y]
     bind $itk_component(html) <ButtonRelease-1> \
-        [itcl::code $this _mouse release %x %y]
+	[itcl::code $this _mouse release %x %y]
 
     # measure the default font height
     $itk_component(html) reset
@@ -107,10 +107,10 @@ itcl::body Rappture::HTMLviewer::constructor {args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::HTMLviewer::load {htmlText args} {
     Rappture::getopts args params {
-        value -in ""
+	value -in ""
     }
     if {[llength $args] > 0} {
-        error "wrong # args: should be \"load text ?-in name?\""
+	error "wrong # args: should be \"load text ?-in name?\""
     }
 
     $itk_component(html) reset
@@ -120,11 +120,11 @@ itcl::body Rappture::HTMLviewer::load {htmlText args} {
     $itk_component(html) parse $htmlText
 
     if {"" != $params(-in) && [file exists $params(-in)]} {
-        if {[file isdirectory $params(-in)]} {
-            lappend _dirlist $params(-in)
-        } else {
-            lappend _dirlist [file dirname $params(-in)]
-        }
+	if {[file isdirectory $params(-in)]} {
+	    lappend _dirlist $params(-in)
+	} else {
+	    lappend _dirlist [file dirname $params(-in)]
+	}
     }
     $_dispatcher event -now !config
 }
@@ -137,20 +137,20 @@ itcl::body Rappture::HTMLviewer::load {htmlText args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::HTMLviewer::add {htmlText args} {
     Rappture::getopts args params {
-        value -in ""
+	value -in ""
     }
     if {[llength $args] > 0} {
-        error "wrong # args: should be \"add text ?-in name?\""
+	error "wrong # args: should be \"add text ?-in name?\""
     }
 
     $itk_component(html) parse $htmlText
 
     if {"" != $params(-in) && [file exists $params(-in)]} {
-        if {[file isdirectory $params(-in)]} {
-            lappend _dirlist $params(-in)
-        } else {
-            lappend _dirlist [file dirname $params(-in)]
-        }
+	if {[file isdirectory $params(-in)]} {
+	    lappend _dirlist $params(-in)
+	} else {
+	    lappend _dirlist [file dirname $params(-in)]
+	}
     }
     $_dispatcher event -now !config
 }
@@ -167,38 +167,38 @@ itcl::body Rappture::HTMLviewer::add {htmlText args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::HTMLviewer::followLink {url} {
     if {[regexp -nocase {^https?://} $url]} {
-        foreach prog {clientaction /apps/xvnc/bin/clientaction ""} {
-            if {"" != [auto_execok $prog]} {
-                break
-            }
-        }
-        if {"" != $prog} {
-            exec $prog url $url &
-        } else {
-            bell
-        }
-        return
+	foreach prog {clientaction /apps/xvnc/bin/clientaction ""} {
+	    if {"" != [auto_execok $prog]} {
+		break
+	    }
+	}
+	if {"" != $prog} {
+	    exec $prog url $url &
+	} else {
+	    bell
+	}
+	return
     }
 
     # must be a file -- use exportfile
     set url [string trimleft $url /]
     set path ""
     foreach dir $_dirlist {
-        if {[file readable [file join $dir $url]]} {
-            set path [file join $dir $url]
-            break
-        }
+	if {[file readable [file join $dir $url]]} {
+	    set path [file join $dir $url]
+	    break
+	}
     }
 
     foreach prog {exportfile /apps/bin/exportfile ""} {
-        if {"" != [auto_execok $prog]} {
-            break
-        }
+	if {"" != [auto_execok $prog]} {
+	    break
+	}
     }
     if {"" != $path && "" != $prog} {
-        exec $prog --format html $path &
+	exec $prog --format html $path &
     } else {
-        bell
+	bell
     }
 }
 
@@ -214,46 +214,46 @@ itcl::body Rappture::HTMLviewer::followLink {url} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::HTMLviewer::_mouse {option x y} {
     switch -- $option {
-        over {
-            # get a list of nodes with tags we care about
-            set nlist ""
-            foreach node [$itk_component(html) node $x $y] {
-                while {"" != $node} {
-                    if {[$node tag] == "a"} {
-                        lappend nlist $node
-                        break
-                    }
-                    set node [$node parent]
-                }
-            }
+	over {
+	    # get a list of nodes with tags we care about
+	    set nlist ""
+	    foreach node [$itk_component(html) node $x $y] {
+		while {"" != $node} {
+		    if {[$node tag] == "a"} {
+			lappend nlist $node
+			break
+		    }
+		    set node [$node parent]
+		}
+	    }
 
-            # over something new? then tag it with "hover"
-            if {$nlist != $_hover} {
-                foreach node $_hover {
-                    catch {$node dynamic clear hover}
-                }
-                set _hover $nlist
-                foreach node $_hover {
-                    catch {$node dynamic set hover}
-                }
-            }
-        }
-        release {
-            set prev $_hover
-            _mouse over $x $y
+	    # over something new? then tag it with "hover"
+	    if {$nlist != $_hover} {
+		foreach node $_hover {
+		    catch {$node dynamic clear hover}
+		}
+		set _hover $nlist
+		foreach node $_hover {
+		    catch {$node dynamic set hover}
+		}
+	    }
+	}
+	release {
+	    set prev $_hover
+	    _mouse over $x $y
 
-            # mouse release on same node as mouse click? then follow link
-            if {$prev == $_hover} {
-                foreach node $_hover {
-                    if {[$node tag] == "a"} {
-                        followLink [$node attr -default {} href]
-                    }
-                }
-            }
-        }
-        default {
-            error "bad option \"$option\": should be over or release"
-        }
+	    # mouse release on same node as mouse click? then follow link
+	    if {$prev == $_hover} {
+		foreach node $_hover {
+		    if {[$node tag] == "a"} {
+			followLink [$node attr -default {} href]
+		    }
+		}
+	    }
+	}
+	default {
+	    error "bad option \"$option\": should be over or release"
+	}
     }
 }
 
@@ -267,17 +267,17 @@ itcl::body Rappture::HTMLviewer::_mouse {option x y} {
 itcl::body Rappture::HTMLviewer::_config {args} {
     component html style -id "author" "
       body {
-        background: $itk_option(-background);
-        color: $itk_option(-foreground);
-        font: 10px helvetica,arial;
+	background: $itk_option(-background);
+	color: $itk_option(-foreground);
+	font: 10px helvetica,arial;
       }
       a {
-        color: $itk_option(-linknormalcolor);
-        text-decoration: underline;
+	color: $itk_option(-linknormalcolor);
+	text-decoration: underline;
       }
       a:hover {
-        color: $itk_option(-linkactivecolor);
-        background: $itk_option(-linkactivebackground);
+	color: $itk_option(-linkactivecolor);
+	background: $itk_option(-linkactivebackground);
       }
     "
 }
@@ -292,21 +292,21 @@ itcl::body Rappture::HTMLviewer::_config {args} {
 itcl::body Rappture::HTMLviewer::_fixHeight {args} {
     set ht [winfo pixels $itk_component(html) $itk_option(-height)]
     if {$ht <= 0} {
-        # figure out a good size automatically
-        set realht [winfo pixels $itk_component(html) 1i]
-        set node [$itk_component(html) node]
-        if {"" != $node} {
-            set bbox [$itk_component(html) bbox $node]
-            set realht [expr {[lindex $bbox 3]-[lindex $bbox 1]}]
-        }
-        if {$itk_option(-maxlines) > 0} {
-            set ht [expr {$itk_option(-maxlines)*$_linesize}]
-            if {$realht < $ht} {
-                set ht $realht
-            }
-        } else {
-            set ht $realht
-        }
+	# figure out a good size automatically
+	set realht [winfo pixels $itk_component(html) 1i]
+	set node [$itk_component(html) node]
+	if {"" != $node} {
+	    set bbox [$itk_component(html) bbox $node]
+	    set realht [expr {[lindex $bbox 3]-[lindex $bbox 1]}]
+	}
+	if {$itk_option(-maxlines) > 0} {
+	    set ht [expr {$itk_option(-maxlines)*$_linesize}]
+	    if {$realht < $ht} {
+		set ht $realht
+	    }
+	} else {
+	    set ht $realht
+	}
     }
     $itk_component(html) configure -height $ht
 }
@@ -322,23 +322,23 @@ itcl::body Rappture::HTMLviewer::_fixHeight {args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::HTMLviewer::_getImage {fileName} {
     if {[info exists _file2icon($fileName)]} {
-  	set imh $_file2icon($fileName)
-        return [list $imh [itcl::code $this _freeImage]]
+	set imh $_file2icon($fileName)
+	return [list $imh [itcl::code $this _freeImage]]
     }
 
     set searchlist $fileName
     if {[file pathtype $fileName] != "absolute"} {
-        foreach dir $_dirlist {
-            lappend searchlist [file join $dir $fileName]
-        }
+	foreach dir $_dirlist {
+	    lappend searchlist [file join $dir $fileName]
+	}
     }
 
     foreach name $searchlist {
-        if {[catch {image create photo -file $name} imh] == 0} {
-            set _file2icon($fileName) $imh
+	if {[catch {image create photo -file $name} imh] == 0} {
+	    set _file2icon($fileName) $imh
 	    set _icon2file($imh) $fileName
-            return [list $imh [itcl::code $this _freeImage]]
-        }
+	    return [list $imh [itcl::code $this _freeImage]]
+	}
     }
     return [Rappture::icon exclaim]
 }
@@ -348,7 +348,7 @@ itcl::body Rappture::HTMLviewer::_freeImage { imh } {
 	image delete $imh
 	set fileName $_icon2file($imh)
 	unset _icon2file($imh)
-    	unset _file2icon($fileName)
+	unset _file2icon($fileName)
     }
 }
 

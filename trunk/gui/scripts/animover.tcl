@@ -30,7 +30,7 @@ itcl::class Rappture::Animover {
     itk_option define -running running Running "disabled"
 
     constructor {args} { # defined below }
-                                                                                
+										
     protected method _redraw {}
     protected variable _x0 0   ;# min value for middle image
     protected variable _x1 0   ;# max value for middle image
@@ -45,11 +45,11 @@ itcl::class Rappture::Animover {
     set dir [file dirname [info script]]
     private common images
     set images(bgl) [image create photo -file \
-        [file join $dir images bgl.gif]]
+	[file join $dir images bgl.gif]]
     set images(bgr) [image create photo -file \
-        [file join $dir images bgr.gif]]
+	[file join $dir images bgr.gif]]
 }
-                                                                                
+										
 itk::usual Animover {
 }
 
@@ -58,11 +58,11 @@ itk::usual Animover {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Animover::constructor {args} {
     itk_component add area {
-        canvas $itk_interior.area \
-            -height [expr {[image height $images(bgl)]+4}]
+	canvas $itk_interior.area \
+	    -height [expr {[image height $images(bgl)]+4}]
     } {
-        usual
-        keep -width
+	usual
+	keep -width
     }
     pack $itk_component(area) -expand yes -fill both
     bind $itk_component(area) <Configure> [itcl::code $this _redraw]
@@ -94,36 +94,36 @@ itcl::body Rappture::Animover::_redraw {} {
 
     set midw 0
     if {$itk_option(-middleimage) != ""} {
-        set midw [expr {[image width $itk_option(-middleimage)]/2}]
+	set midw [expr {[image width $itk_option(-middleimage)]/2}]
     }
 
     if {$itk_option(-leftimage) != ""} {
-        $c create image 4 $hmid -anchor w \
-            -image $itk_option(-leftimage)
-        set _x0 [expr {4+[image width $itk_option(-leftimage)]+$midw}]
+	$c create image 4 $hmid -anchor w \
+	    -image $itk_option(-leftimage)
+	set _x0 [expr {4+[image width $itk_option(-leftimage)]+$midw}]
     } else {
-        set _x0 [expr {4+$midw}]
+	set _x0 [expr {4+$midw}]
     }
     if {$_x0 < 0} { set _x0 0 }
 
     if {$itk_option(-rightimage) != ""} {
-        $c create image [expr {$w-4}] $hmid -anchor e \
-            -image $itk_option(-rightimage)
-        set _x1 [expr {$w-4-[image width $itk_option(-rightimage)]-$midw}]
+	$c create image [expr {$w-4}] $hmid -anchor e \
+	    -image $itk_option(-rightimage)
+	set _x1 [expr {$w-4-[image width $itk_option(-rightimage)]-$midw}]
     } else {
-        set _x1 [expr {$w-4-$midw}]
+	set _x1 [expr {$w-4-$midw}]
     }
 
     if {$_x >= 0} {
-        if {$_x < $_x0} {
-            set _x $_x0
-        } elseif {$_x > $_x1} {
-            set _x $_x1
-        }
-        if {$itk_option(-middleimage) != ""} {
-            $c create image $_x $hmid -anchor c \
-                -image $itk_option(-middleimage) -tags middle
-        }
+	if {$_x < $_x0} {
+	    set _x $_x0
+	} elseif {$_x > $_x1} {
+	    set _x $_x1
+	}
+	if {$itk_option(-middleimage) != ""} {
+	    $c create image $_x $hmid -anchor c \
+		-image $itk_option(-middleimage) -tags middle
+	}
     }
 }
 
@@ -137,37 +137,37 @@ itcl::body Rappture::Animover::_redraw {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Animover::_animate {} {
     if {$_x >= 0 && $_x0 < $_x1} {
-        if {$_x+$_dx <= $_x0} {
-            if {$itk_option(-direction) == "left"} {
-                set _x $_x1
-            } elseif {$itk_option(-direction) == "both"} {
-                set _dx [expr {-$_dx}]
-                set _x [expr {$_x+$_dx}]
-            }
-        } elseif {$_x+$_dx >= $_x1} {
-            if {$itk_option(-direction) == "right"} {
-                set _x $_x0
-            } elseif {$itk_option(-direction) == "both"} {
-                set _dx [expr {-$_dx}]
-                set _x [expr {$_x+$_dx}]
-            }
-        } else {
-            set _x [expr {$_x+$_dx}]
-        }
+	if {$_x+$_dx <= $_x0} {
+	    if {$itk_option(-direction) == "left"} {
+		set _x $_x1
+	    } elseif {$itk_option(-direction) == "both"} {
+		set _dx [expr {-$_dx}]
+		set _x [expr {$_x+$_dx}]
+	    }
+	} elseif {$_x+$_dx >= $_x1} {
+	    if {$itk_option(-direction) == "right"} {
+		set _x $_x0
+	    } elseif {$itk_option(-direction) == "both"} {
+		set _dx [expr {-$_dx}]
+		set _x [expr {$_x+$_dx}]
+	    }
+	} else {
+	    set _x [expr {$_x+$_dx}]
+	}
 
-        set c $itk_component(area)
-        set h [winfo height $c]
-        set hmid [expr {$h/2}]
+	set c $itk_component(area)
+	set h [winfo height $c]
+	set hmid [expr {$h/2}]
 
-        if {[$c find withtag middle] == ""} {
-            $c create image $_x $hmid -anchor c \
-                -image $itk_option(-middleimage) -tags middle
-        } else {
-            $c coords middle $_x $hmid
-        }
+	if {[$c find withtag middle] == ""} {
+	    $c create image $_x $hmid -anchor c \
+		-image $itk_option(-middleimage) -tags middle
+	} else {
+	    $c coords middle $_x $hmid
+	}
     }
     if {$_x >= 0} {
-        after $itk_option(-delay) [itcl::code $this _animate]
+	after $itk_option(-delay) [itcl::code $this _animate]
     }
 }
 
@@ -177,22 +177,22 @@ itcl::body Rappture::Animover::_animate {} {
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::Animover::running {
     switch -- $itk_option(-running) {
-        normal {
-            if {$_x < 0} {
-                set _x $_x0
-                after idle [itcl::code $this _animate]
-            }
-        }
-        disabled {
-            if {$_x > 0} {
-                set _x -1
-                after cancel [itcl::code $this _animate]
-                $itk_component(area) delete middle
-            }
-        }
-        default {
-            error "bad value \"$itk_option(-running)\": should be normal or disabled"
-        }
+	normal {
+	    if {$_x < 0} {
+		set _x $_x0
+		after idle [itcl::code $this _animate]
+	    }
+	}
+	disabled {
+	    if {$_x > 0} {
+		set _x -1
+		after cancel [itcl::code $this _animate]
+		$itk_component(area) delete middle
+	    }
+	}
+	default {
+	    error "bad value \"$itk_option(-running)\": should be normal or disabled"
+	}
     }
 }
 
@@ -202,12 +202,12 @@ itcl::configbody Rappture::Animover::running {
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::Animover::direction {
     switch -- $itk_option(-direction) {
-        left  { set _dx [expr {-1*$itk_option(-delta)}] }
-        right { set _dx $itk_option(-delta) }
-        both  { set _dx $itk_option(-delta) }
-        default {
-            error "bad value \"$itk_option(-direction)\": should be left, right, or both"
-        }
+	left  { set _dx [expr {-1*$itk_option(-delta)}] }
+	right { set _dx $itk_option(-delta) }
+	both  { set _dx $itk_option(-delta) }
+	default {
+	    error "bad value \"$itk_option(-direction)\": should be left, right, or both"
+	}
     }
 }
 
@@ -217,6 +217,6 @@ itcl::configbody Rappture::Animover::direction {
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::Animover::delta {
     if {$itk_option(-delta) < 1} {
-        error "bad value \"$itk_option(-delta)\": should be int >= 1"
+	error "bad value \"$itk_option(-delta)\": should be int >= 1"
     }
 }

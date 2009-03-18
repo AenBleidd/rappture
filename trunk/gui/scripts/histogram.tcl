@@ -51,7 +51,7 @@ itcl::class Rappture::Histogram {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Histogram::constructor {xmlobj path} {
     if {![Rappture::library isvalid $xmlobj]} {
-        error "bad value \"$xmlobj\": should be LibraryObj"
+	error "bad value \"$xmlobj\": should be LibraryObj"
     }
     set _xmlobj $xmlobj
     set _hist [$xmlobj element -as object $path]
@@ -131,29 +131,29 @@ itcl::body Rappture::Histogram::limits {which} {
     set min ""
     set max ""
     switch -- $which {
-        x - xlin { 
+	x - xlin { 
 	    set vname $_locations; 
 	    set log 0; 
 	    set axis xaxis 
 	}
-        xlog { 
+	xlog { 
 	    set vname $_locations; 
 	    set log 1; 
 	    set axis xaxis 
 	}
-        y - ylin { 
+	y - ylin { 
 	    set vname $_heights; 
 	    set log 0; 
 	    set axis yaxis 
 	}
-        ylog { 
+	ylog { 
 	    set vname $_heights; 
 	    set log 1; 
 	    set axis yaxis 
 	}
-        default {
-            error "bad option \"$which\": should be x, xlin, xlog, y, ylin, ylog"
-        }
+	default {
+	    error "bad option \"$which\": should be x, xlin, xlog, y, ylin, ylog"
+	}
     }
     $vname dup tmp
     $vname dup zero
@@ -183,18 +183,18 @@ itcl::body Rappture::Histogram::limits {which} {
 
     set val [$_hist get $axis.min]
     if {"" != $val && "" != $min} {
-        if {$val > $min} {
-            # tool specified this min -- don't go any lower
-            set min $val
-        }
+	if {$val > $min} {
+	    # tool specified this min -- don't go any lower
+	    set min $val
+	}
     }
 
     set val [$_hist get $axis.max]
     if {"" != $val && "" != $max} {
-        if {$val < $max} {
-            # tool specified this max -- don't go any higher
-            set max $val
-        }
+	if {$val < $max} {
+	    # tool specified this max -- don't go any higher
+	    set max $val
+	}
     }
 
     return [list $min $max]
@@ -209,51 +209,51 @@ itcl::body Rappture::Histogram::limits {which} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Histogram::hints {{keyword ""}} {
     if {![info exists _hints]} {
-        foreach {key path} {
-            group   about.group
-            label   about.label
-            color   about.color
-            style   about.style
-            type    about.type
-            xlabel  xaxis.label
-            xdesc   xaxis.description
-            xunits  xaxis.units
-            xscale  xaxis.scale
-            xmin    xaxis.min
-            xmax    xaxis.max
-            ylabel  yaxis.label
-            ydesc   yaxis.description
-            yunits  yaxis.units
-            yscale  yaxis.scale
-            ymin    yaxis.min
-            ymax    yaxis.max
-        } {
-            set str [$_hist get $path]
-            if {"" != $str} {
-                set _hints($key) $str
-            }
-        }
+	foreach {key path} {
+	    group   about.group
+	    label   about.label
+	    color   about.color
+	    style   about.style
+	    type    about.type
+	    xlabel  xaxis.label
+	    xdesc   xaxis.description
+	    xunits  xaxis.units
+	    xscale  xaxis.scale
+	    xmin    xaxis.min
+	    xmax    xaxis.max
+	    ylabel  yaxis.label
+	    ydesc   yaxis.description
+	    yunits  yaxis.units
+	    yscale  yaxis.scale
+	    ymin    yaxis.min
+	    ymax    yaxis.max
+	} {
+	    set str [$_hist get $path]
+	    if {"" != $str} {
+		set _hints($key) $str
+	    }
+	}
 
-        if {[info exists _hints(xlabel)] && "" != $_hints(xlabel)
-              && [info exists _hints(xunits)] && "" != $_hints(xunits)} {
-            set _hints(xlabel) "$_hints(xlabel) ($_hints(xunits))"
-        }
-        if {[info exists _hints(ylabel)] && "" != $_hints(ylabel)
-              && [info exists _hints(yunits)] && "" != $_hints(yunits)} {
-            set _hints(ylabel) "$_hints(ylabel) ($_hints(yunits))"
-        }
+	if {[info exists _hints(xlabel)] && "" != $_hints(xlabel)
+	      && [info exists _hints(xunits)] && "" != $_hints(xunits)} {
+	    set _hints(xlabel) "$_hints(xlabel) ($_hints(xunits))"
+	}
+	if {[info exists _hints(ylabel)] && "" != $_hints(ylabel)
+	      && [info exists _hints(yunits)] && "" != $_hints(yunits)} {
+	    set _hints(ylabel) "$_hints(ylabel) ($_hints(yunits))"
+	}
 
-        if {[info exists _hints(group)] && [info exists _hints(label)]} {
-            # pop-up help for each histogram
-            set _hints(tooltip) $_hints(label)
-        }
+	if {[info exists _hints(group)] && [info exists _hints(label)]} {
+	    # pop-up help for each histogram
+	    set _hints(tooltip) $_hints(label)
+	}
     }
 
     if {$keyword != ""} {
-        if {[info exists _hints($keyword)]} {
-            return $_hints($keyword)
-        }
-        return ""
+	if {[info exists _hints($keyword)]} {
+	    return $_hints($keyword)
+	}
+	return ""
     }
     return [array get _hints]
 }
@@ -269,15 +269,15 @@ itcl::body Rappture::Histogram::hints {{keyword ""}} {
 itcl::body Rappture::Histogram::_build {} {
     # discard any existing data
     if { $_locations != "" } {
-        blt::vector destroy $_locations
+	blt::vector destroy $_locations
 	set _locations ""
     }
     if { $_widths != "" } {
-        blt::vector destroy $_widths
+	blt::vector destroy $_widths
 	set _widths ""
     }
     if { $_heights != "" } {
-        blt::vector destroy $_heights
+	blt::vector destroy $_heights
 	set _heights ""
     }
 

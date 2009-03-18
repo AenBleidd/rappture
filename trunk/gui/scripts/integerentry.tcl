@@ -42,7 +42,7 @@ itk::usual IntegerEntry {
 # ----------------------------------------------------------------------
 itcl::body Rappture::IntegerEntry::constructor {owner path args} {
     if {[catch {$owner isa Rappture::ControlOwner} valid] != 0 || !$valid} {
-        error "bad object \"$owner\": should be Rappture::ControlOwner"
+	error "bad object \"$owner\": should be Rappture::ControlOwner"
     }
     set _owner $owner
     set _path $path
@@ -52,7 +52,7 @@ itcl::body Rappture::IntegerEntry::constructor {owner path args} {
     # hints in the XML.
     #
     itk_component add spinner {
-        Rappture::Gauge $itk_interior.spinner -type integer
+	Rappture::Gauge $itk_interior.spinner -type integer
     }
     pack $itk_component(spinner) -expand yes -fill both
     bind $itk_component(spinner) <<Value>> [itcl::code $this _newValue]
@@ -60,30 +60,30 @@ itcl::body Rappture::IntegerEntry::constructor {owner path args} {
     # if there are min/max values, plug them in.
     set min [$_owner xml get $path.min]
     if {"" != $min} {
-        $itk_component(spinner) configure -minvalue $min
+	$itk_component(spinner) configure -minvalue $min
     }
 
     set max [$_owner xml get $path.max]
     if {"" != $max} {
-        $itk_component(spinner) configure -maxvalue $max
+	$itk_component(spinner) configure -maxvalue $max
     }
 
     # if there is a color, use it for the min/max spectrum
     set color [$_owner xml get $path.about.color]
     if {$color != "" && $min != "" && $max != ""} {
-        # For compatibility. If only one color use white for min
-        if {[llength $color] == 1} {
-            set color [list $min white $max $color]
-        }
-        $itk_component(spinner) configure \
-            -spectrum [Rappture::Spectrum ::#auto $color]
+	# For compatibility. If only one color use white for min
+	if {[llength $color] == 1} {
+	    set color [list $min white $max $color]
+	}
+	$itk_component(spinner) configure \
+	    -spectrum [Rappture::Spectrum ::#auto $color]
     }
 
     # if the control has an icon, plug it in
     set str [$_owner xml get $path.about.icon]
     if {$str != ""} {
-        $itk_component(spinner) configure -image \
-            [image create photo -data $str]
+	$itk_component(spinner) configure -image \
+	    [image create photo -data $str]
     }
 
     eval itk_initialize $args
@@ -108,21 +108,21 @@ itcl::body Rappture::IntegerEntry::value {args} {
     set onlycheck 0
     set i [lsearch -exact $args -check]
     if {$i >= 0} {
-        set onlycheck 1
-        set args [lreplace $args $i $i]
+	set onlycheck 1
+	set args [lreplace $args $i $i]
     }
 
     if {[llength $args] == 1} {
-        if {$onlycheck} {
-            # someday we may add validation...
-            return
-        }
-        set newval [lindex $args 0]
-        $itk_component(spinner) value $newval
-        return $newval
+	if {$onlycheck} {
+	    # someday we may add validation...
+	    return
+	}
+	set newval [lindex $args 0]
+	$itk_component(spinner) value $newval
+	return $newval
 
     } elseif {[llength $args] != 0} {
-        error "wrong # args: should be \"value ?-check? ?newval?\""
+	error "wrong # args: should be \"value ?-check? ?newval?\""
     }
 
     #
@@ -140,7 +140,7 @@ itcl::body Rappture::IntegerEntry::value {args} {
 itcl::body Rappture::IntegerEntry::label {} {
     set label [$_owner xml get $_path.about.label]
     if {"" == $label} {
-        set label "Integer"
+	set label "Integer"
     }
     return $label
 }
@@ -160,15 +160,15 @@ itcl::body Rappture::IntegerEntry::tooltip {} {
     set max [$_owner xml get $_path.max]
 
     if {$min != "" || $max != ""} {
-        append str "\n\nEnter an integer"
+	append str "\n\nEnter an integer"
 
-        if {$min != "" && $max != ""} {
-            append str " between $min and $max"
-        } elseif {$min != ""} {
-            append str " greater than $min"
-        } elseif {$max != ""} {
-            append str " less than $max"
-        }
+	if {$min != "" && $max != ""} {
+	    append str " between $min and $max"
+	} elseif {$min != ""} {
+	    append str " greater than $min"
+	} elseif {$max != ""} {
+	    append str " less than $max"
+	}
     }
     return [string trim $str]
 }
@@ -189,7 +189,7 @@ itcl::body Rappture::IntegerEntry::_newValue {} {
 itcl::configbody Rappture::IntegerEntry::state {
     set valid {normal disabled}
     if {[lsearch -exact $valid $itk_option(-state)] < 0} {
-        error "bad value \"$itk_option(-state)\": should be [join $valid {, }]"
+	error "bad value \"$itk_option(-state)\": should be [join $valid {, }]"
     }
     $itk_component(spinner) configure -state $itk_option(-state)
 }

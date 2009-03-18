@@ -47,13 +47,13 @@ itcl::class Rappture::Combobox {
     protected method _fixState {}
 
     blt::bitmap define ComboboxArrow {
-        #define arrow_width 8
-        #define arrow_height 4
-        static unsigned char arrow_bits[] = {
-           0xfe, 0x7c, 0x38, 0x10};
+	#define arrow_width 8
+	#define arrow_height 4
+	static unsigned char arrow_bits[] = {
+	   0xfe, 0x7c, 0x38, 0x10};
     }
 }
-                                                                                
+										
 itk::usual Combobox {
     keep -cursor -font
     keep -foreground -background
@@ -68,45 +68,45 @@ itcl::body Rappture::Combobox::constructor {args} {
     itk_option add hull.borderwidth hull.relief
 
     itk_component add button {
-        button $itk_interior.btn -bitmap ComboboxArrow -padx 0 \
-            -borderwidth 1 -relief raised -highlightthickness 0
+	button $itk_interior.btn -bitmap ComboboxArrow -padx 0 \
+	    -borderwidth 1 -relief raised -highlightthickness 0
     } {
-        usual
-        ignore -highlightthickness -highlightbackground -highlightcolor
-        ignore -borderwidth -relief
+	usual
+	ignore -highlightthickness -highlightbackground -highlightcolor
+	ignore -borderwidth -relief
     }
     pack $itk_component(button) -side right -fill y
 
     itk_component add entry {
-        entry $itk_interior.entry -borderwidth 0 -relief flat
+	entry $itk_interior.entry -borderwidth 0 -relief flat
     } {
-        usual
-        keep -width
-        rename -highlightbackground -textbackground textBackground Background
-        rename -background -textbackground textBackground Background
-        rename -foreground -textforeground textForeground Foreground
-        rename -disabledbackground -textbackground textBackground Background
-        rename -disabledforeground -textforeground textForeground Foreground
-        ignore -borderwidth -relief
+	usual
+	keep -width
+	rename -highlightbackground -textbackground textBackground Background
+	rename -background -textbackground textBackground Background
+	rename -foreground -textforeground textForeground Foreground
+	rename -disabledbackground -textbackground textBackground Background
+	rename -disabledforeground -textforeground textForeground Foreground
+	ignore -borderwidth -relief
     }
     pack $itk_component(entry) -side left -expand yes -fill both
 
     bind $itk_component(entry) <KeyPress-Return> \
-        [itcl::code $this _entry apply]
+	[itcl::code $this _entry apply]
     bind $itk_component(entry) <ButtonPress> \
-        [itcl::code $this _entry click]
+	[itcl::code $this _entry click]
 
     itk_component add ddlist {
-        Rappture::Dropdownlist $itk_component(button).ddlist \
-            -postcommand [itcl::code $this _dropdown post] \
-            -unpostcommand [itcl::code $this _dropdown unpost] \
+	Rappture::Dropdownlist $itk_component(button).ddlist \
+	    -postcommand [itcl::code $this _dropdown post] \
+	    -unpostcommand [itcl::code $this _dropdown unpost] \
     }
 
     bind $itk_component(ddlist) <<DropdownlistSelect>> \
-        [itcl::code $this _dropdown select]
+	[itcl::code $this _dropdown select]
 
     $itk_component(button) configure -command \
-        [list $itk_component(ddlist) post $itk_component(hull) left]
+	[list $itk_component(ddlist) post $itk_component(hull) left]
 
     eval itk_initialize $args
 }
@@ -121,18 +121,18 @@ itcl::body Rappture::Combobox::constructor {args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Combobox::value {args} {
     if {[llength $args] == 1} {
-        set newval [lindex $args 0]
+	set newval [lindex $args 0]
 
-        $itk_component(entry) configure -state normal
-        $itk_component(entry) delete 0 end
-        $itk_component(entry) insert 0 $newval
-        if {!$itk_option(-editable)} {
-            $itk_component(entry) configure -state disabled
-        }
+	$itk_component(entry) configure -state normal
+	$itk_component(entry) delete 0 end
+	$itk_component(entry) insert 0 $newval
+	if {!$itk_option(-editable)} {
+	    $itk_component(entry) configure -state disabled
+	}
 
-        after 10 [list catch [list event generate $itk_component(hull) <<Value>>]]
+	after 10 [list catch [list event generate $itk_component(hull) <<Value>>]]
     } elseif {[llength $args] != 0} {
-        error "wrong # args: should be \"value ?newval?\""
+	error "wrong # args: should be \"value ?newval?\""
     }
     return [$itk_component(entry) get]
 }
@@ -147,9 +147,9 @@ itcl::body Rappture::Combobox::value {args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Combobox::translate {value} {
     foreach {val label} [choices get -both] {
-        if {$label == $value} {
-            return $val
-        }
+	if {$label == $value} {
+	    return $val
+	}
     }
     return ""
 }
@@ -182,23 +182,23 @@ itcl::body Rappture::Combobox::choices {option args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Combobox::_entry {option} {
     switch -- $option {
-        apply {
-            if {$itk_option(-editable) && $itk_option(-state) == "normal"} {
-                event generate $itk_component(hull) <<Value>>
-            }
-        }
-        click {
-            if {!$itk_option(-editable) && $itk_option(-state) == "normal"} {
-                $itk_component(button) configure -relief sunken
-                update idletasks; after 100
-                $itk_component(button) configure -relief raised
+	apply {
+	    if {$itk_option(-editable) && $itk_option(-state) == "normal"} {
+		event generate $itk_component(hull) <<Value>>
+	    }
+	}
+	click {
+	    if {!$itk_option(-editable) && $itk_option(-state) == "normal"} {
+		$itk_component(button) configure -relief sunken
+		update idletasks; after 100
+		$itk_component(button) configure -relief raised
 
-                $itk_component(ddlist) post $itk_component(hull) left
-            }
-        }
-        default {
-            error "bad option \"$option\": should be apply, click"
-        }
+		$itk_component(ddlist) post $itk_component(hull) left
+	    }
+	}
+	default {
+	    error "bad option \"$option\": should be apply, click"
+	}
     }
 }
 
@@ -215,28 +215,28 @@ itcl::body Rappture::Combobox::_entry {option} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Combobox::_dropdown {option} {
     switch -- $option {
-        post {
-            set value [$itk_component(entry) get]
-            set i [$itk_component(ddlist) index -label $value]
-            if {$i >= 0} {
-                $itk_component(ddlist) select clear 0 end
-                $itk_component(ddlist) select set $i
-            }
-        }
-        unpost {
-            if {$itk_option(-editable)} {
-                focus $itk_component(entry)
-            }
-        }
-        select {
-            set val [$itk_component(ddlist) current -label]
-            if {"" != $val} {
-                value $val
-            }
-        }
-        default {
-            error "bad option \"$option\": should be post, unpost, select"
-        }
+	post {
+	    set value [$itk_component(entry) get]
+	    set i [$itk_component(ddlist) index -label $value]
+	    if {$i >= 0} {
+		$itk_component(ddlist) select clear 0 end
+		$itk_component(ddlist) select set $i
+	    }
+	}
+	unpost {
+	    if {$itk_option(-editable)} {
+		focus $itk_component(entry)
+	    }
+	}
+	select {
+	    set val [$itk_component(ddlist) current -label]
+	    if {"" != $val} {
+		value $val
+	    }
+	}
+	default {
+	    error "bad option \"$option\": should be post, unpost, select"
+	}
     }
 }
 
@@ -248,36 +248,36 @@ itcl::body Rappture::Combobox::_dropdown {option} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Combobox::_fixState {} {
     if {$itk_option(-state) == "normal"} {
-        $itk_component(button) configure -state normal
-        $itk_component(entry) configure \
-            -background $itk_option(-textbackground) \
-            -foreground $itk_option(-textforeground) \
-            -disabledbackground $itk_option(-textbackground) \
-            -disabledforeground $itk_option(-textforeground)
+	$itk_component(button) configure -state normal
+	$itk_component(entry) configure \
+	    -background $itk_option(-textbackground) \
+	    -foreground $itk_option(-textforeground) \
+	    -disabledbackground $itk_option(-textbackground) \
+	    -disabledforeground $itk_option(-textforeground)
     } else {
-        $itk_component(button) configure -state disabled
-        $itk_component(entry) configure \
-            -background $itk_option(-disabledbackground) \
-            -foreground $itk_option(-disabledforeground) \
-            -disabledbackground $itk_option(-disabledbackground) \
-            -disabledforeground $itk_option(-disabledforeground)
+	$itk_component(button) configure -state disabled
+	$itk_component(entry) configure \
+	    -background $itk_option(-disabledbackground) \
+	    -foreground $itk_option(-disabledforeground) \
+	    -disabledbackground $itk_option(-disabledbackground) \
+	    -disabledforeground $itk_option(-disabledforeground)
     }
 
     if {$itk_option(-editable)} {
-        if {$itk_option(-state) == "normal"} {
-            $itk_component(entry) configure -state normal
-        } else {
-            $itk_component(entry) configure -state disabled
-        }
+	if {$itk_option(-state) == "normal"} {
+	    $itk_component(entry) configure -state normal
+	} else {
+	    $itk_component(entry) configure -state disabled
+	}
     } else {
-        $itk_component(entry) configure -state disabled
+	$itk_component(entry) configure -state disabled
     }
 
     if {!$itk_option(-editable) || $itk_option(-state) != "normal"} {
-        # can't keep focus here -- move it along to the next widget
-        if {[focus] == $itk_component(entry)} {
-            focus [tk_focusNext [focus]]
-        }
+	# can't keep focus here -- move it along to the next widget
+	if {[focus] == $itk_component(entry)} {
+	    focus [tk_focusNext [focus]]
+	}
     }
 }
 
@@ -286,7 +286,7 @@ itcl::body Rappture::Combobox::_fixState {} {
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::Combobox::editable {
     if {![string is boolean -strict $itk_option(-editable)]} {
-        error "bad value \"$itk_option(-editable)\": should be boolean"
+	error "bad value \"$itk_option(-editable)\": should be boolean"
     }
     _fixState
 }
@@ -297,7 +297,7 @@ itcl::configbody Rappture::Combobox::editable {
 itcl::configbody Rappture::Combobox::state {
     set valid {normal disabled}
     if {[lsearch -exact $valid $itk_option(-state)] < 0} {
-        error "bad value \"$itk_option(-state)\": should be [join $valid {, }]"
+	error "bad value \"$itk_option(-state)\": should be [join $valid {, }]"
     }
     _fixState
 }

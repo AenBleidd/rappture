@@ -41,7 +41,7 @@ itcl::class Rappture::UniRect2d {
 # ----------------------------------------------------------------------
 itcl::body Rappture::UniRect2d::constructor {xmlobj field cname} {
     if {![Rappture::library isvalid $xmlobj]} {
-        error "bad value \"$xmlobj\": should be Rappture::library"
+	error "bad value \"$xmlobj\": should be Rappture::library"
     }
     set path [$field get $cname.mesh]
 
@@ -178,51 +178,51 @@ itcl::body Rappture::UniRect2d::limits {which} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::UniRect2d::hints {{keyword ""}} {
     if {![info exists _hints]} {
-        foreach {key path} {
-            group   about.group
-            label   about.label
-            color   about.color
-            style   about.style
-            type    about.type
-            xlabel  xaxis.label
-            xdesc   xaxis.description
-            xunits  xaxis.units
-            xscale  xaxis.scale
-            xmin    xaxis.min
-            xmax    xaxis.max
-            ylabel  yaxis.label
-            ydesc   yaxis.description
-            yunits  yaxis.units
-            yscale  yaxis.scale
-            ymin    yaxis.min
-            ymax    yaxis.max
-        } {
-            set str [$_curve get $path]
-            if {"" != $str} {
-                set _hints($key) $str
-            }
-        }
+	foreach {key path} {
+	    group   about.group
+	    label   about.label
+	    color   about.color
+	    style   about.style
+	    type    about.type
+	    xlabel  xaxis.label
+	    xdesc   xaxis.description
+	    xunits  xaxis.units
+	    xscale  xaxis.scale
+	    xmin    xaxis.min
+	    xmax    xaxis.max
+	    ylabel  yaxis.label
+	    ydesc   yaxis.description
+	    yunits  yaxis.units
+	    yscale  yaxis.scale
+	    ymin    yaxis.min
+	    ymax    yaxis.max
+	} {
+	    set str [$_curve get $path]
+	    if {"" != $str} {
+		set _hints($key) $str
+	    }
+	}
 
-        if {[info exists _hints(xlabel)] && "" != $_hints(xlabel)
-              && [info exists _hints(xunits)] && "" != $_hints(xunits)} {
-            set _hints(xlabel) "$_hints(xlabel) ($_hints(xunits))"
-        }
-        if {[info exists _hints(ylabel)] && "" != $_hints(ylabel)
-              && [info exists _hints(yunits)] && "" != $_hints(yunits)} {
-            set _hints(ylabel) "$_hints(ylabel) ($_hints(yunits))"
-        }
+	if {[info exists _hints(xlabel)] && "" != $_hints(xlabel)
+	      && [info exists _hints(xunits)] && "" != $_hints(xunits)} {
+	    set _hints(xlabel) "$_hints(xlabel) ($_hints(xunits))"
+	}
+	if {[info exists _hints(ylabel)] && "" != $_hints(ylabel)
+	      && [info exists _hints(yunits)] && "" != $_hints(yunits)} {
+	    set _hints(ylabel) "$_hints(ylabel) ($_hints(yunits))"
+	}
 
-        if {[info exists _hints(group)] && [info exists _hints(label)]} {
-            # pop-up help for each curve
-            set _hints(tooltip) $_hints(label)
-        }
+	if {[info exists _hints(group)] && [info exists _hints(label)]} {
+	    # pop-up help for each curve
+	    set _hints(tooltip) $_hints(label)
+	}
     }
 
     if {$keyword != ""} {
-        if {[info exists _hints($keyword)]} {
-            return $_hints($keyword)
-        }
-        return ""
+	if {[info exists _hints($keyword)]} {
+	    return $_hints($keyword)
+	}
+	return ""
     }
     return [array get _hints]
 }

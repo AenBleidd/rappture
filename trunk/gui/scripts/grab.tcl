@@ -40,58 +40,58 @@ rename grab _tk_grab
 proc grab {args} {
     set op [lindex $args 0]
     if {[winfo exists $op]} {
-        set op "set"
+	set op "set"
     } elseif {$op == "-global" && [winfo exists [lindex $args end]]} {
-        set op "set"
+	set op "set"
     }
 
     if {$op == "set"} {
-        #
-        # Handle GRAB SET specially.
-        # Add the new grab window to the grab stack.
-        #
-        set state $::Rappture::grab::state
-        set window [lindex $args end]
-        if {[lsearch -exact $args -global] >= 0} {
-            set state "-global"
-        }
+	#
+	# Handle GRAB SET specially.
+	# Add the new grab window to the grab stack.
+	#
+	set state $::Rappture::grab::state
+	set window [lindex $args end]
+	if {[lsearch -exact $args -global] >= 0} {
+	    set state "-global"
+	}
 
-        if {"" != $state} {
-            # if it's a global grab, store the -global flag away for later
-            set window [linsert $window 0 $state]
+	if {"" != $state} {
+	    # if it's a global grab, store the -global flag away for later
+	    set window [linsert $window 0 $state]
 
-            # all grabs from now on are global
-            set ::Rappture::grab::state "-global"
-        }
+	    # all grabs from now on are global
+	    set ::Rappture::grab::state "-global"
+	}
 
-        # add the current configuration to the grab stack
-        set ::Rappture::grab::stack \
-            [linsert $::Rappture::grab::stack 0 $window]
+	# add the current configuration to the grab stack
+	set ::Rappture::grab::stack \
+	    [linsert $::Rappture::grab::stack 0 $window]
 
-        return [eval _grabset $window]
+	return [eval _grabset $window]
 
     } elseif {$op == "release"} {
-        #
-        # Handle GRAB RELEASE specially.
-        # Release the current grab and grab the next window on the stack.
-        # Note that the current grab is on the top of the stack.  The
-        # next one down is the one we want to revert to.
-        #
-        set window [lindex $::Rappture::grab::stack 1]
-        set ::Rappture::grab::stack [lrange $::Rappture::grab::stack 1 end]
+	#
+	# Handle GRAB RELEASE specially.
+	# Release the current grab and grab the next window on the stack.
+	# Note that the current grab is on the top of the stack.  The
+	# next one down is the one we want to revert to.
+	#
+	set window [lindex $::Rappture::grab::stack 1]
+	set ::Rappture::grab::stack [lrange $::Rappture::grab::stack 1 end]
 
-        # release the current grab
-        eval _tk_grab $args
+	# release the current grab
+	eval _tk_grab $args
 
-        # and set the next one
-        if {"" != $window} {
-            if {[lindex $window 0] != "-global"} {
-                # no more global grabs -- resume local grabs
-                set ::Rappture::grab::state ""
-            }
-            eval _grabset $window
-        }
-        return ""
+	# and set the next one
+	if {"" != $window} {
+	    if {[lindex $window 0] != "-global"} {
+		# no more global grabs -- resume local grabs
+		set ::Rappture::grab::state ""
+	    }
+	    eval _grabset $window
+	}
+	return ""
     }
 
     # perform any other grab operation as usual...
@@ -101,11 +101,11 @@ proc grab {args} {
 proc _grabset {args} {
     # give it 3 tries, if necessary
     for {set i 0} {$i < 3} {incr i} {
-        set status [catch {eval _tk_grab set $args} result]
-        if {$status == 0} {
-            return $result
-        }
-        after 100; update
+	set status [catch {eval _tk_grab set $args} result]
+	if {$status == 0} {
+	    return $result
+	}
+	after 100; update
     }
     # oh well, we tried...
     return ""
@@ -120,12 +120,12 @@ proc _grabset {args} {
 proc Rappture::grab::reset {} {
     set w [_tk_grab current]
     if {"" != $w} {
-        _tk_grab release $w
+	_tk_grab release $w
     }
     set Rappture::grab::stack ""
     set Rappture::grab::state ""
 
     foreach win [blt::busy windows] {
-        blt::busy release $win
+	blt::busy release $win
     }
 }

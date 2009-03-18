@@ -39,7 +39,7 @@ itcl::class Rappture::TextResult {
     private variable _dataobj ""  ;# data object currently being displayed
     private variable _raised      ;# maps all data objects => -raise param
 }
-                                                                                
+										
 itk::usual TextResult {
     keep -background -foreground -cursor -font
 }
@@ -55,79 +55,79 @@ itcl::body Rappture::TextResult::constructor {args} {
     # CONTROL BAR with find/select functions
     #
     itk_component add controls {
-        frame $itk_interior.cntls
+	frame $itk_interior.cntls
     }
     pack $itk_component(controls) -side bottom -fill x -pady {4 0}
 
     itk_component add selectall {
-        button $itk_component(controls).selall -text "Select All" \
-            -command [itcl::code $this select all]
+	button $itk_component(controls).selall -text "Select All" \
+	    -command [itcl::code $this select all]
     }
     pack $itk_component(selectall) -side right -fill y
 
     itk_component add findl {
-        label $itk_component(controls).findl -text "Find:"
+	label $itk_component(controls).findl -text "Find:"
     }
     pack $itk_component(findl) -side left
 
     itk_component add find {
-        entry $itk_component(controls).find -width 20
+	entry $itk_component(controls).find -width 20
     }
     pack $itk_component(find) -side left
 
     itk_component add finddown {
-        button $itk_component(controls).finddown \
-            -image [Rappture::icon finddn] \
-            -relief flat -overrelief raised \
-            -command [itcl::code $this find down]
+	button $itk_component(controls).finddown \
+	    -image [Rappture::icon finddn] \
+	    -relief flat -overrelief raised \
+	    -command [itcl::code $this find down]
     } {
-        usual
-        ignore -relief
+	usual
+	ignore -relief
     }
     pack $itk_component(finddown) -side left
 
     itk_component add findup {
-        button $itk_component(controls).findup \
-            -image [Rappture::icon findup] \
-            -relief flat -overrelief raised \
-            -command [itcl::code $this find up]
+	button $itk_component(controls).findup \
+	    -image [Rappture::icon findup] \
+	    -relief flat -overrelief raised \
+	    -command [itcl::code $this find up]
     } {
-        usual
-        ignore -relief
+	usual
+	ignore -relief
     }
     pack $itk_component(findup) -side left
 
     itk_component add findstatus {
-        label $itk_component(controls).finds -width 10 -anchor w
+	label $itk_component(controls).finds -width 10 -anchor w
     }
     pack $itk_component(findstatus) -side left -expand yes -fill x
 
     # shortcut for Return in search field
     bind $itk_component(find) <KeyPress-Return> "
-        $itk_component(finddown) configure -relief sunken
-        update idletasks
-        after 200
-        $itk_component(finddown) configure -relief flat
-        $itk_component(finddown) invoke
+	$itk_component(finddown) configure -relief sunken
+	update idletasks
+	after 200
+	$itk_component(finddown) configure -relief flat
+	$itk_component(finddown) invoke
     "
     bind $itk_component(find) <KeyPress> \
-        [itcl::code $this find reset]
+	[itcl::code $this find reset]
 
     #
     # TEXT AREA
     #
     itk_component add scroller {
-        Rappture::Scroller $itk_interior.scroller \
-            -xscrollmode auto -yscrollmode auto
+	Rappture::Scroller $itk_interior.scroller \
+	    -xscrollmode auto -yscrollmode auto
     }
     pack $itk_component(scroller) -expand yes -fill both
 
     itk_component add text {
-        text $itk_component(scroller).text -width 1 -height 1 -wrap none
+	text $itk_component(scroller).text -width 1 -height 1 -wrap none
     } {
-        usual
-        rename -background -textbackground textBackground Background
-        rename -font -textfont textFont Font
+	usual
+	rename -background -textbackground textBackground Background
+	rename -font -textfont textFont Font
     }
     $itk_component(scroller) contents $itk_component(text)
     $itk_component(text) configure -state disabled
@@ -147,80 +147,80 @@ itcl::body Rappture::TextResult::constructor {args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::TextResult::add {dataobj {settings ""}} {
     array set params {
-        -color ""
-        -brightness ""
-        -width ""
-        -linestyle ""
-        -raise 0
-        -description ""
-        -param ""
+	-color ""
+	-brightness ""
+	-width ""
+	-linestyle ""
+	-raise 0
+	-description ""
+	-param ""
     }
     foreach {opt val} $settings {
-        if {![info exists params($opt)]} {
-            error "bad setting \"$opt\": should be [join [lsort [array names params]] {, }]"
-        }
-        set params($opt) $val
+	if {![info exists params($opt)]} {
+	    error "bad setting \"$opt\": should be [join [lsort [array names params]] {, }]"
+	}
+	set params($opt) $val
     }
 
     set replace 0
     if {"" != $dataobj} {
-        set _raised($dataobj) $params(-raise)
-        if {"" == $_dataobj} {
-            set replace 1
-        } elseif {$_raised($_dataobj) == 0 && $params(-raise)} {
-            set replace 1
-        }
+	set _raised($dataobj) $params(-raise)
+	if {"" == $_dataobj} {
+	    set replace 1
+	} elseif {$_raised($_dataobj) == 0 && $params(-raise)} {
+	    set replace 1
+	}
     }
 
     if {$replace} {
-        $itk_component(text) configure -state normal
-        $itk_component(text) delete 1.0 end
+	$itk_component(text) configure -state normal
+	$itk_component(text) delete 1.0 end
 
-        if {[$dataobj element -as type] == "log"} {
-            # log output -- remove special =RAPPTURE-???=> messages
-            set message [$dataobj get]
-            while {[regexp -indices \
-                       {=RAPPTURE-([a-zA-Z]+)=>([^\n]*)(\n|$)} $message \
-                        match type mesg]} {
+	if {[$dataobj element -as type] == "log"} {
+	    # log output -- remove special =RAPPTURE-???=> messages
+	    set message [$dataobj get]
+	    while {[regexp -indices \
+		       {=RAPPTURE-([a-zA-Z]+)=>([^\n]*)(\n|$)} $message \
+			match type mesg]} {
 
-                foreach {i0 i1} $match break
-                set first [string range $message 0 [expr {$i0-1}]]
-                if {[string length $first] > 0} {
-                    $itk_component(text) insert end $first
-                }
+		foreach {i0 i1} $match break
+		set first [string range $message 0 [expr {$i0-1}]]
+		if {[string length $first] > 0} {
+		    $itk_component(text) insert end $first
+		}
 
-                foreach {t0 t1} $type break
-                set type [string range $message $t0 $t1]
-                foreach {m0 m1} $mesg break
-                set mesg [string range $message $m0 $m1]
-                if {[string length $mesg] > 0
-                       && $type != "RUN" && $type != "PROGRESS"} {
-                    $itk_component(text) insert end $mesg $type
-                    $itk_component(text) insert end \n $type
-                }
-                set message [string range $message [expr {$i1+1}] end]
-            }
+		foreach {t0 t1} $type break
+		set type [string range $message $t0 $t1]
+		foreach {m0 m1} $mesg break
+		set mesg [string range $message $m0 $m1]
+		if {[string length $mesg] > 0
+		       && $type != "RUN" && $type != "PROGRESS"} {
+		    $itk_component(text) insert end $mesg $type
+		    $itk_component(text) insert end \n $type
+		}
+		set message [string range $message [expr {$i1+1}] end]
+	    }
 
-            if {[string length $message] > 0} {
-                $itk_component(text) insert end $message
-                if {[$itk_component(text) get end-2char] != "\n"} {
-                    $itk_component(text) insert end "\n"
-                }
-            }
-        } elseif {[$dataobj element -as type] == "string"} {
-            # add string values
-            set data [$dataobj get current]
-            if {[Rappture::encoding::is binary $data]} {
-                set data [Rappture::utils::hexdump -lines 1000 $data]
-            }
-            $itk_component(text) insert end $data
-        } else {
-            # any other string output -- add it directly
-            $itk_component(text) insert end [$dataobj get]
-        }
-        $itk_component(text) configure -state disabled
+	    if {[string length $message] > 0} {
+		$itk_component(text) insert end $message
+		if {[$itk_component(text) get end-2char] != "\n"} {
+		    $itk_component(text) insert end "\n"
+		}
+	    }
+	} elseif {[$dataobj element -as type] == "string"} {
+	    # add string values
+	    set data [$dataobj get current]
+	    if {[Rappture::encoding::is binary $data]} {
+		set data [Rappture::utils::hexdump -lines 1000 $data]
+	    }
+	    $itk_component(text) insert end $data
+	} else {
+	    # any other string output -- add it directly
+	    $itk_component(text) insert end [$dataobj get]
+	}
+	$itk_component(text) configure -state disabled
 
-        set _dataobj $dataobj
+	set _dataobj $dataobj
     }
 }
 
@@ -242,23 +242,23 @@ itcl::body Rappture::TextResult::get {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::TextResult::delete {args} {
     if {[llength $args] == 0} {
-        # delete everything
-        catch {unset _raised}
-        set _dataobj ""
-        $itk_component(text) configure -state normal
-        $itk_component(text) delete 1.0 end
-        $itk_component(text) configure -state disabled
+	# delete everything
+	catch {unset _raised}
+	set _dataobj ""
+	$itk_component(text) configure -state normal
+	$itk_component(text) delete 1.0 end
+	$itk_component(text) configure -state disabled
     } else {
-        # delete these specific objects
-        foreach obj $args {
-            catch {unset _raised($obj)}
-            if {$obj == $_dataobj} {
-                set _dataobj ""
-                $itk_component(text) configure -state normal
-                $itk_component(text) delete 1.0 end
-                $itk_component(text) configure -state disabled
-            }
-        }
+	# delete these specific objects
+	foreach obj $args {
+	    catch {unset _raised($obj)}
+	    if {$obj == $_dataobj} {
+		set _dataobj ""
+		$itk_component(text) configure -state normal
+		$itk_component(text) delete 1.0 end
+		$itk_component(text) configure -state disabled
+	    }
+	}
     }
 }
 
@@ -287,38 +287,38 @@ itcl::body Rappture::TextResult::scale {args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::TextResult::download {option args} {
     switch $option {
-        coming {
-            # nothing to do
-        }
-        controls {
-            # no controls for this download yet
-            return ""
-        }
-        now {
-            if {"" == $_dataobj} {
-                return ""
-            }
-            if {[$_dataobj element -as type] == "log"} {
-                set val [$itk_component(text) get 1.0 end]
-            } elseif {[$_dataobj element -as type] == "string"} {
-                set val [$_dataobj get current]
-            } else {
-                set val [$_dataobj get]
-            }
+	coming {
+	    # nothing to do
+	}
+	controls {
+	    # no controls for this download yet
+	    return ""
+	}
+	now {
+	    if {"" == $_dataobj} {
+		return ""
+	    }
+	    if {[$_dataobj element -as type] == "log"} {
+		set val [$itk_component(text) get 1.0 end]
+	    } elseif {[$_dataobj element -as type] == "string"} {
+		set val [$_dataobj get current]
+	    } else {
+		set val [$_dataobj get]
+	    }
 
-            set ext [$_dataobj get filetype]
-            if {"" == $ext} {
-                if {[Rappture::encoding::is binary $val]} {
-                    set ext ".dat"
-                } else {
-                    set ext ".txt"
-                }
-            }
-            return [list $ext $val]
-        }
-        default {
-            error "bad option \"$option\": should be coming, controls, now"
-        }
+	    set ext [$_dataobj get filetype]
+	    if {"" == $ext} {
+		if {[Rappture::encoding::is binary $val]} {
+		    set ext ".dat"
+		} else {
+		    set ext ".txt"
+		}
+	    }
+	    return [list $ext $val]
+	}
+	default {
+	    error "bad option \"$option\": should be coming, controls, now"
+	}
     }
 }
 
@@ -329,12 +329,12 @@ itcl::body Rappture::TextResult::download {option args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::TextResult::select {option args} {
     switch -- $option {
-        all {
-            $itk_component(text) tag add sel 1.0 end
-        }
-        default {
-            error "bad option \"$option\": should be all"
-        }
+	all {
+	    $itk_component(text) tag add sel 1.0 end
+	}
+	default {
+	    error "bad option \"$option\": should be all"
+	}
     }
 }
 
@@ -351,12 +351,12 @@ itcl::body Rappture::TextResult::select {option args} {
 itcl::body Rappture::TextResult::find {option} {
     # handle the reset case...
     $itk_component(find) configure \
-        -background $itk_option(-background) \
-        -foreground $itk_option(-foreground)
+	-background $itk_option(-background) \
+	-foreground $itk_option(-foreground)
     $itk_component(findstatus) configure -text ""
 
     if {$option == "reset"} {
-        return
+	return
     }
 
     # handle the up/down cases...
@@ -364,44 +364,44 @@ itcl::body Rappture::TextResult::find {option} {
     set pattern [string trim [$itk_component(find) get]]
 
     if {"" == $pattern} {
-        $itk_component(find) configure -background red -foreground white
-        $itk_component(findstatus) configure -text "<< Enter a search string"
-        return
+	$itk_component(find) configure -background red -foreground white
+	$itk_component(findstatus) configure -text "<< Enter a search string"
+	return
     }
 
     # find the starting point for the search
     set seln [$t tag nextrange sel 1.0]
     if {$seln == ""} {
-        set t0 1.0
-        set t1 end
+	set t0 1.0
+	set t1 end
     } else {
-        foreach {t0 t1} $seln break
+	foreach {t0 t1} $seln break
     }
     $t tag remove sel 1.0 end
 
     # search up or down
     switch -- $option {
-        up {
-            set start [$t index $t0-1char]
-            set next [$t search -backwards -nocase -- $pattern $start]
-        }
-        down {
-            set start [$t index $t1+1char]
-            set next [$t search -forwards -nocase -- $pattern $start]
-        }
+	up {
+	    set start [$t index $t0-1char]
+	    set next [$t search -backwards -nocase -- $pattern $start]
+	}
+	down {
+	    set start [$t index $t1+1char]
+	    set next [$t search -forwards -nocase -- $pattern $start]
+	}
     }
 
     if {"" != $next} {
-        set len [string length $pattern]
-        $t tag add sel $next $next+${len}chars
-        $t see $next
-        set lnum [lindex [split $next .] 0]
-        set lines [lindex [split [$t index end] .] 0]
-        set percent [expr {round(100.0*$lnum/$lines)}]
-        set status "line $lnum   --$percent%--"
+	set len [string length $pattern]
+	$t tag add sel $next $next+${len}chars
+	$t see $next
+	set lnum [lindex [split $next .] 0]
+	set lines [lindex [split [$t index end] .] 0]
+	set percent [expr {round(100.0*$lnum/$lines)}]
+	set status "line $lnum   --$percent%--"
     } else {
-        set status "Not found"
-        $itk_component(find) configure -background red -foreground white
+	set status "Not found"
+	$itk_component(find) configure -background red -foreground white
     }
     $itk_component(findstatus) configure -text $status
 }
