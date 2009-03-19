@@ -84,6 +84,9 @@ itcl::class Rappture::MolvisViewer {
     protected method _vmouse  {option b m x y}
     private method _ReceiveImage { size cacheid frame rock }
     private method _BuildSettingsDrawer {}
+    private method GetPngImage { widget width height }
+    private method WaitIcon { option widget }
+    private variable icon_ 0
     private variable _inrebuild 0
 
     private variable _mevent       ;# info used for mouse event operations
@@ -139,6 +142,8 @@ itcl::body Rappture::MolvisViewer::constructor {hostlist args} {
     # Mouse Event
     $_dispatcher register !mevent
     $_dispatcher dispatch $this !mevent "[itcl::code $this _mevent]; list"
+    $_dispatcher register !pngtimeout
+    $_dispatcher register !waiticon
 
     array set _downloadPopup {
 	format jpg
@@ -508,19 +513,25 @@ itcl::body Rappture::MolvisViewer::download {option args} {
 	    set popup .molvisviewerdownload
 	    if {![winfo exists .molvisviewerdownload]} {
 		# if we haven't created the popup yet, do it now
-		Rappture::Balloon $popup -title "[Rappture::filexfer::label downloadWord] as..."
+		Rappture::Balloon $popup \
+		    -title "[Rappture::filexfer::label downloadWord] as..."
 		set inner [$popup component inner]
 		label $inner.summary -text "" -anchor w
 		pack $inner.summary -side top
-		radiobutton $inner.jpg -text "JPEG Image (draft quality)" \
+		radiobutton $inner.draft -text "Image (draft quality)" \
 		    -variable Rappture::MolvisViewer::_downloadPopup(format) \
-		    -value jpg
-		pack $inner.jpg -anchor w
+		    -value image_draft
+		pack $inner.draft -anchor w
 
-		radiobutton $inner.png -text "PNG Image (high quality)" \
+		radiobutton $inner.medium -text "Image (medium quality)" \
 		    -variable Rappture::MolvisViewer::_downloadPopup(format) \
-		    -value png
-		pack $inner.png -anchor w
+		    -value image_medium
+		pack $inner.medium -anchor w
+
+		radiobutton $inner.high -text "Image (high quality)" \
+		    -variable Rappture::MolvisViewer::_downloadPopup(format) \
+		    -value image_high
+		pack $inner.high -anchor w
 
 		radiobutton $inner.pdb -text "PDB File" \
 		    -variable Rappture::MolvisViewer::_downloadPopup(format) \
@@ -545,7 +556,7 @@ itcl::body Rappture::MolvisViewer::download {option args} {
 		$popup deactivate
 	    }
 	    switch -- $_downloadPopup(format) {
-		jpg {
+		image_draft {
 		    # Get the image data (as base64) and decode it back to
 		    # binary.  This is better than writing to temporary
 		    # files.  When we switch to the BLT picture image it
@@ -554,17 +565,11 @@ itcl::body Rappture::MolvisViewer::download {option args} {
 		    set bytes [Rappture::encoding::decode -as b64 $bytes]
 		    return [list .jpg $bytes]
 		}
-		png {
-		    set token "print[incr nextToken_]"
-		    _send "print $token 2400 2400"
-		    # Setup popup with cancel button and timeout.
-		    blt::busy hold $popup
-		    tkwait variable \
-			Rappture::MolvisViewer::hardcopy_($this-$token)
-		    # Pass the image as-is. Don't convert it.
-		    set bytes $hardcopy_($this-$token) 
-		    blt::busy release $popup
-		    return [list .png $bytes]
+		image_medium {
+		    return [$this GetPngImage [lindex $args 0] 2400 2400]
+		}
+		image_high {
+		    return [$this GetPngImage [lindex $args 0] 1200 1200]
 		}
 		pdb {
 		    return [list .pdb $_pdbdata]
@@ -1574,4 +1579,77 @@ itcl::body Rappture::MolvisViewer::settings { what args } {
 		-scrollregion $bbox -yscrollincrement 0.1i
 	}
     }
+}
+
+itcl::body Rappture::MolvisViewer::WaitIcon  { option widget } {
+    switch -- $option {
+	"start" {
+	    $_dispatcher dispatch $this !waiticon \
+		"[itcl::code $this WaitIcon "next" $widget] ; list"
+	    set icon_ 0
+	    $widget configure -image [Rappture::icon bigroller${icon_}]
+	    $_dispatcher event -after 100 !waiticon
+	}
+	"next" {
+	    incr icon_
+	    if { $icon_ >= 8 } {
+		set icon_ 0
+	    }
+	    $widget configure -image [Rappture::icon bigroller${icon_}]
+	    $_dispatcher event -after 100 !waiticon
+	}
+	"stop" {
+	    $_dispatcher cancel !waiticon
+	}
+    }
+}
+	    
+itcl::body Rappture::MolvisViewer::GetPngImage  { widget width height } {
+    set token "print[incr nextToken_]"
+    set var ::Rappture::MolvisViewer::hardcopy_($this-$token)
+    set $var ""
+
+    # Setup an automatic timeout procedure.
+    $_dispatcher dispatch $this !pngtimeout "set $var {} ; list"
+
+    set popup [Rappture::Balloon .print -title "Generating file..."]
+    set inner [$popup component inner]
+    label $inner.title -text "Generating Hardcopy" -font "Arial 10 bold"
+    label $inner.please -text "This may take a minute." -font "Arial 10"
+    label $inner.icon -image [Rappture::icon bigroller0]
+    button $inner.cancel -text "Cancel" -font "Arial 10 bold" \
+	-command [list set $var ""]
+    $_dispatcher event -after 60000 !pngtimeout
+    WaitIcon start $inner.icon
+    bind $inner.cancel <KeyPress-Return> [list $inner.cancel invoke]
+    
+    blt::table $inner \
+	0,0 $inner.title -columnspan 2 \
+	1,0 $inner.please -anchor w \
+	1,1 $inner.icon -anchor e  \
+	2,0 $inner.cancel -columnspan 2 
+    blt::table configure $inner r0 -pady 4 
+    blt::table configure $inner r2 -pady 4 
+    grab set -local $inner
+    focus $inner.cancel
+
+    _send "print $token $width $height"
+
+    $popup activate $widget below
+    update
+    # We wait here for either 
+    #  1) the png to be delivered or 
+    #  2) timeout or  
+    #  3) user cancels the operation.
+    tkwait variable $var
+    $_dispatcher cancel !pngtimeout
+    WaitIcon stop $inner.icon
+    grab release $inner
+    $popup deactivate
+    destroy $popup
+    update
+    if { $hardcopy_($this-$token) != "" } {
+	return [list .png $hardcopy_($this-$token)]
+    }
+    return ""
 }

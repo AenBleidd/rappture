@@ -737,7 +737,7 @@ itcl::body Rappture::Analyzer::download {option args} {
 	    if {$page != ""} {
 		set ext ""
 		set f [$itk_component(resultpages) page $page]
-		foreach {ext data} [$f.rviewer download now] break
+		foreach {ext data} [$f.rviewer download now $widget] break
 		if {"" == $ext} {
 		    if {"" != $widget} {
 			Rappture::Tooltip::cue $widget \
