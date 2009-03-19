@@ -146,7 +146,7 @@ itcl::body Rappture::MolvisViewer::constructor {hostlist args} {
     $_dispatcher register !waiticon
 
     array set _downloadPopup {
-	format jpg
+	format image_draft
     }
 
     # Populate the slave interpreter with commands to handle responses from
@@ -518,17 +518,21 @@ itcl::body Rappture::MolvisViewer::download {option args} {
 		set inner [$popup component inner]
 		label $inner.summary -text "" -anchor w
 		pack $inner.summary -side top
-		radiobutton $inner.draft -text "Image (draft quality)" \
+		set img $_image(plot)
+		set res "[image width $img]x[image height $img]"
+		radiobutton $inner.draft -text "Image (draft $res)" \
 		    -variable Rappture::MolvisViewer::_downloadPopup(format) \
 		    -value image_draft
 		pack $inner.draft -anchor w
 
-		radiobutton $inner.medium -text "Image (medium quality)" \
+		set res "1200x1200"
+		radiobutton $inner.medium -text "Image (standard $res)" \
 		    -variable Rappture::MolvisViewer::_downloadPopup(format) \
 		    -value image_medium
 		pack $inner.medium -anchor w
 
-		radiobutton $inner.high -text "Image (high quality)" \
+		set res "2400x2400"
+		radiobutton $inner.high -text "Image (high quality $res)" \
 		    -variable Rappture::MolvisViewer::_downloadPopup(format) \
 		    -value image_high
 		pack $inner.high -anchor w
