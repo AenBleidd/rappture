@@ -146,7 +146,7 @@ itcl::body Rappture::MolvisViewer::constructor {hostlist args} {
     $_dispatcher register !waiticon
 
     array set _downloadPopup {
-	format image_draft
+	format draft
     }
 
     # Populate the slave interpreter with commands to handle responses from
@@ -522,19 +522,19 @@ itcl::body Rappture::MolvisViewer::download {option args} {
 		set res "[image width $img]x[image height $img]"
 		radiobutton $inner.draft -text "Image (draft $res)" \
 		    -variable Rappture::MolvisViewer::_downloadPopup(format) \
-		    -value image_draft
+		    -value draft
 		pack $inner.draft -anchor w
 
 		set res "1200x1200"
 		radiobutton $inner.medium -text "Image (standard $res)" \
 		    -variable Rappture::MolvisViewer::_downloadPopup(format) \
-		    -value image_medium
+		    -value $res
 		pack $inner.medium -anchor w
 
 		set res "2400x2400"
 		radiobutton $inner.high -text "Image (high quality $res)" \
 		    -variable Rappture::MolvisViewer::_downloadPopup(format) \
-		    -value image_high
+		    -value $res
 		pack $inner.high -anchor w
 
 		radiobutton $inner.pdb -text "PDB File" \
@@ -560,7 +560,7 @@ itcl::body Rappture::MolvisViewer::download {option args} {
 		$popup deactivate
 	    }
 	    switch -- $_downloadPopup(format) {
-		image_draft {
+		draft {
 		    # Get the image data (as base64) and decode it back to
 		    # binary.  This is better than writing to temporary
 		    # files.  When we switch to the BLT picture image it
@@ -569,10 +569,10 @@ itcl::body Rappture::MolvisViewer::download {option args} {
 		    set bytes [Rappture::encoding::decode -as b64 $bytes]
 		    return [list .jpg $bytes]
 		}
-		image_medium {
+		"2400x2400" {
 		    return [$this GetPngImage [lindex $args 0] 2400 2400]
 		}
-		image_high {
+		"1200x1200" {
 		    return [$this GetPngImage [lindex $args 0] 1200 1200]
 		}
 		pdb {
