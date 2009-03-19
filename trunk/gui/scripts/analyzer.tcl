@@ -737,27 +737,20 @@ itcl::body Rappture::Analyzer::download {option args} {
 	    if {$page != ""} {
 		set ext ""
 		set f [$itk_component(resultpages) page $page]
-		set code [catch { $f.rviewer download now $widget } result]
-		if { $code == 0 }  {
-		    foreach {ext data} $result break
-		    if {"" == $ext} {
-			if {"" != $widget} {
-			    Rappture::Tooltip::cue $widget \
-				"Can't download this result."
-			}
-			return
-		    }
-		    regsub -all {[\ -\/\:-\@\{-\~]} $title {} title
-		    set file "$title$ext"
-		} else { 
-		    if { $code != 3 } {
-			if {"" != $widget} {
-			    Rappture::Tooltip::cue $widget \
-				"Error downloading this result: $result"
-			}
+		set result [$f.rviewer download now $widget]
+		if { $result == "" } {
+		    return;		# User cancelled the download.
+		}
+		foreach {ext data} $result break
+		if {"" == $ext} {
+		    if {"" != $widget} {
+			Rappture::Tooltip::cue $widget \
+			    "Can't download this result."
 		    }
 		    return
 		}
+		regsub -all {[\ -\/\:-\@\{-\~]} $title {} title
+		set file "$title$ext"
 	    } else {
 		# this shouldn't happen
 		set file error.html
