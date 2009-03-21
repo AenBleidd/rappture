@@ -1471,7 +1471,7 @@ itcl::body Rappture::FlowvisViewer::Flow {option args} {
 #
 # ----------------------------------------------------------------------
 itcl::body Rappture::FlowvisViewer::Play {} {
-    SendCmd "flow play"
+    SendCmd "flow next"
     set delay [expr {int(ceil(pow($settings_(speed)/10.0+2,2.0)*15))}]
     $_dispatcher event -after $delay !play
 }
@@ -1997,7 +1997,7 @@ itcl::body Rappture::FlowvisViewer::flow {option} {
 	}
 	"next" {
 	    # This operation should not be called by public routines.
-	    SendCmd "flow play"
+	    SendCmd "flow next"
 	    set delay [expr {int(ceil(pow($settings_(speed)/10.0+2,2.0)*15))}]
 	    $_dispatcher event -after $delay !play
 	} 
