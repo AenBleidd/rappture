@@ -52,21 +52,10 @@ R2_INC_SPEC     = -I$(srcdir)/$(R2_DIR)/include
 R2_LIB          = $(R2_DIR)/src/R2.a
 R2_LIB_SPEC     = $(R2_LIB)
 
-GLUI_DIR          = ./glui
-GLUI_INC_SPEC     = -I$(srcdir)/$(GLUI_DIR)
-GLUI_LIB          = $(GLUI_DIR)/libglui.a
-GLUI_LIB_SPEC     = $(GLUI_LIB)
-
-
 EXTRA_LIBS      = -lm -lpthread
 RP_DIR          =  @RP_DIR@
 RP_INC_SPEC     = -I$(RP_DIR)/include -I$(RP_DIR)/include/rappture2
 RP_LIB_SPEC     = -L$(RP_DIR)/lib -lrappture2 -lrappture -lexpat -lz
-
-TF_DIR          = ./transfer-function
-TF_INC_SPEC     = -I$(TF_DIR)
-TF_LIB          = $(TF_DIR)/transfer-function.a
-TF_LIB_SPEC     = $(TF_LIB)
 
 TCL_LIB_SPEC    = @TCL_LIB_SPEC@
 TCL_INC_SPEC    = @TCL_INC_SPEC@
@@ -78,7 +67,6 @@ LIBS		= \
 		$(DX_LIB_SPEC) \
 		$(IMG_LIB_SPEC) \
 		$(R2_LIB_SPEC) \
-		$(TF_LIB_SPEC) \
 		$(MAT_LIB_SPEC) \
 		$(TCL_LIB_SPEC) \
 		$(CG_LIB_SPEC) \
@@ -193,14 +181,9 @@ all: glui newmat11 R2 imgloaders transfer-function nanovis
 
 install: install-nanovis install-resources install-shaders
 
-glui:			$(GLUI_LIB)
 newmat11:		$(MAT_LIB)
 R2:			$(R2_LIB)
 imgloaders:		$(IMG_LIB)
-transfer-function:	$(TF_LIB)
-
-$(GLUI_LIB):
-	$(MAKE) -C $(GLUI_DIR) all
 
 $(MAT_LIB):
 	$(MAKE) -C $(MAT_DIR) all
@@ -211,10 +194,7 @@ $(R2_LIB):
 $(IMG_LIB): 
 	$(MAKE) -C $(IMG_DIR) all
 
-$(TF_LIB): 
-	$(MAKE) -C $(TF_DIR) all
-
-nanovis: $(MAT_LIB) $(R2_LIB) $(IMG_LIB) $(TF_LIB) $(OBJS)
+nanovis: $(MAT_LIB) $(R2_LIB) $(IMG_LIB) $(OBJS)
 	$(CC) $(CC_SWITCHES) -o $@ $^ $(LIBS)
 
 .cpp.o:
@@ -259,7 +239,6 @@ clean:
 	$(MAKE) -C $(MAT_DIR) clean
 	$(MAKE) -C $(R2_DIR)/src clean
 	$(MAKE) -C $(IMG_DIR) clean
-	$(MAKE) -C $(TF_DIR) clean
 	$(RM) nanovis client $(OBJS)
 
 distclean: clean
