@@ -72,10 +72,9 @@ itcl::class Rappture::NanovisViewer {
     protected method _SendDataObjs {}
     protected method _SendTransferFunctions {}
 
-    protected method _ReceiveImage {option size}
+    protected method _ReceiveImage { args }
     protected method _ReceiveLegend { ivol vmin vmax size }
     protected method _ReceiveData { args }
-    protected method _ReceivePrint { option size }
 
     protected method _rebuild {}
     protected method _currentVolumeIds {{what -all}}
@@ -123,6 +122,7 @@ itcl::class Rappture::NanovisViewer {
     # function to use when changing markers,
     # opacity, or thickness.
     #common _downloadPopup          ;# download options from popup
+    private common _hardcopy
 }
 
 itk::usual NanovisViewer {
@@ -238,7 +238,7 @@ itcl::body Rappture::NanovisViewer::constructor {hostlist args} {
     itk_component add xslice {
 	label $itk_component(slicers).xslice \
 	    -borderwidth 1 -relief raised -padx 1 -pady 1 \
-	    -image [Rappture::icon x-cutplane]
+	    -image [Rappture::icon x-cutplane-off]
     } {
 	usual
 	ignore -borderwidth
@@ -274,7 +274,7 @@ itcl::body Rappture::NanovisViewer::constructor {hostlist args} {
     itk_component add yslice {
 	label $itk_component(slicers).yslice \
 	    -borderwidth 1 -relief raised -padx 1 -pady 1 \
-	    -image [Rappture::icon y-cutplane]
+	    -image [Rappture::icon y-cutplane-off]
     } {
 	usual
 	ignore -borderwidth
@@ -310,7 +310,7 @@ itcl::body Rappture::NanovisViewer::constructor {hostlist args} {
     itk_component add zslice {
 	label $itk_component(slicers).zslice \
 	    -borderwidth 1 -relief raised -padx 1 -pady 1 \
-	    -image [Rappture::icon z-cutplane]
+	    -image [Rappture::icon z-cutplane-off]
     } {
 	usual
 	ignore -borderwidth
@@ -894,20 +894,32 @@ itcl::body Rappture::NanovisViewer::_SendTransferFunctions {} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: _ReceiveImage -bytes <size>
+# USAGE: _ReceiveImage -bytes <size> -type <type> -token <token>
 #
 # Invoked automatically whenever the "image" command comes in from
 # the rendering server.  Indicates that binary image data with the
 # specified <size> will follow.
 # ----------------------------------------------------------------------
 set counter 0
-itcl::body Rappture::NanovisViewer::_ReceiveImage {option size} {
-    if { [isconnected] } {
-	global counter
-	incr counter
-	set bytes [ReceiveBytes $size]
+itcl::body Rappture::NanovisViewer::_ReceiveImage { args } {
+    if { ![isconnected] } {
+	return
+    }
+    global counter
+    incr counter
+    array set info {
+	-token "???"
+	-bytes 0
+	-type image
+    }
+    array set info $args
+    set bytes [ReceiveBytes $info(-bytes)]
+    ReceiveEcho <<line "<read $info(-bytes) bytes for [image width $_image(plot)]x[image height $_image(plot)] image>"
+    if { $info(-type) == "image" } {
 	$_image(plot) configure -data $bytes
-	ReceiveEcho <<line "<read $size bytes for [image width $_image(plot)]x[image height $_image(plot)] image>"
+    } elseif { $info(type) == "print" } {
+	set tag $this-print-$info(-token)
+	set _hardcopy($tag) $bytes
     }
 }
 
@@ -1004,25 +1016,6 @@ itcl::body Rappture::NanovisViewer::_ReceiveData { args } {
     unset _receiveids($ivol)
     if { [array size _receiveids] == 0 } {
 	UpdateTransferFunctions
-    }
-}
-
-# ----------------------------------------------------------------------
-# USAGE: _ReceivePrint -bytes <size>
-#
-# Invoked automatically whenever the "image" command comes in from
-# the rendering server.  Indicates that binary image data with the
-# specified <size> will follow.
-# ----------------------------------------------------------------------
-itcl::body Rappture::NanovisViewer::_ReceivePrint {option size} {
-    if { [isconnected] } {
-	set bytes [ReceiveBytes $size]
-	set f [open /tmp/junk "w"]
-	puts $f $bytes
-	close $f
-	$_image(download) configure -data $bytes
-	update
-	puts stderr "<read $size bytes for [image width $_image(download)]x[image height $_image(download)] image>"
     }
 }
 
@@ -1325,13 +1318,17 @@ itcl::body Rappture::NanovisViewer::_slice {option args} {
 		if {$current == "on"} { set op "off" } else { set op "on" }
 	    }
 	    if {$op} {
+		$itk_component(${axis}slice) configure \
+		    -image [Rappture::icon ${axis}-cutplane-on] \
+		    -relief sunken
 		$itk_component(${axis}slicer) configure -state normal
 		_send "cutplane state 1 $axis [_currentVolumeIds -cutplanes]"
-		$itk_component(${axis}slice) configure -relief sunken
 	    } else {
+		$itk_component(${axis}slice) configure \
+		    -image [Rappture::icon ${axis}-cutplane-off] \
+		    -relief raised
 		$itk_component(${axis}slicer) configure -state disabled
 		_send "cutplane state 0 $axis [_currentVolumeIds -cutplanes]"
-		$itk_component(${axis}slice) configure -relief raised
 	    }
 	}
 	move {

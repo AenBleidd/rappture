@@ -68,7 +68,7 @@ itcl::class Rappture::HeightmapViewer {
 
     protected method _send {string}
     protected method _send_dataobjs {}
-    protected method ReceiveImage {option size}
+    protected method ReceiveImage { args }
     private method _ReceiveLegend {tf vmin vmax size}
     private method _BuildSettingsDrawer {}
     private method _BuildCameraDrawer {}
@@ -99,6 +99,7 @@ itcl::class Rappture::HeightmapViewer {
     private variable view_         ;# view params for 3D view
     private common settings_      ;# Array used for checkbuttons and radiobuttons
     private variable initialized_
+    private common hardcopy_
 }
 
 itk::usual HeightmapViewer {
@@ -359,7 +360,7 @@ itcl::body Rappture::HeightmapViewer::add {dataobj {settings ""}} {
 # order from bottom to top of this result.  The optional "-image"
 # flag can also request the internal images being shown.
 # ----------------------------------------------------------------------
-itcl::body Rappture::HeightmapViewer::get {args} {
+itcl::body Rappture::HeightmapViewer::get { args } {
     if {[llength $args] == 0} {
 	set args "-objects"
     }
@@ -409,7 +410,7 @@ itcl::body Rappture::HeightmapViewer::get {args} {
 # Clients use this to delete a dataobj from the plot.  If no dataobjs
 # are specified, then all dataobjs are deleted.
 # ----------------------------------------------------------------------
-itcl::body Rappture::HeightmapViewer::delete {args} {
+itcl::body Rappture::HeightmapViewer::delete { args } {
     if {[llength $args] == 0} {
 	set args $dlist_
     }
@@ -442,7 +443,7 @@ itcl::body Rappture::HeightmapViewer::delete {args} {
 # Because of this, the limits are appropriate for all objects as
 # the user scans through data in the ResultSet viewer.
 # ----------------------------------------------------------------------
-itcl::body Rappture::HeightmapViewer::scale {args} {
+itcl::body Rappture::HeightmapViewer::scale { args } {
     foreach val {xmin xmax ymin ymax zmin zmax vmin vmax} {
 	set limits_($val) ""
     }
@@ -648,11 +649,22 @@ itcl::body Rappture::HeightmapViewer::_send_dataobjs {} {
 # the rendering server.  Indicates that binary image data with the
 # specified <size> will follow.
 # ----------------------------------------------------------------------
-itcl::body Rappture::HeightmapViewer::ReceiveImage {option size} {
-    if {[IsConnected]} {
-	set bytes [ReceiveBytes $size]
+itcl::body Rappture::HeightmapViewer::ReceiveImage { args } {
+    if {![IsConnected]} {
+	return
+    }
+    array set info {
+	-type image
+    }
+    array set info $args
+    set bytes [ReceiveBytes $info(-bytes)]
+    ReceiveEcho <<line "<read $info(-bytes) bytes"
+    if { $info(-type) == "image" } {
 	$_image(plot) configure -data $bytes
-	ReceiveEcho <<line "<read $size bytes for [image width $_image(plot)]x[image height $_image(plot)] image>"
+	ReceiveEcho <<line "<read for [image width $_image(plot)]x[image height $_image(plot)] image>"
+    } elseif { $info(type) == "print" } {
+	set tag $this-print-$info(-token)
+	set hardcopy_($tag) $bytes
     }
 }
 

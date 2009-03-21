@@ -1646,12 +1646,15 @@ itcl::body Rappture::MolvisViewer::GetPngImage  { widget width height } {
     #  2) timeout or  
     #  3) user cancels the operation.
     tkwait variable $var
+
+    # Clean up.
     $_dispatcher cancel !pngtimeout
     WaitIcon stop $inner.icon
     grab release $inner
     $popup deactivate
     destroy $popup
     update
+
     if { $hardcopy_($this-$token) != "" } {
 	return [list .png $hardcopy_($this-$token)]
     }
