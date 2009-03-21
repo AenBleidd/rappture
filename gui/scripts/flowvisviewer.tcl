@@ -1,4 +1,5 @@
 
+
 # ----------------------------------------------------------------------
 #  COMPONENT: flowvisviewer - 3D flow rendering
 #
@@ -2465,8 +2466,6 @@ itcl::body Rappture::FlowvisViewer::BuildCameraDrawer {} {
     blt::table configure $inner c3 -resize expand
 
 }
-
-
 
 #  camera -- 
 itcl::body Rappture::FlowvisViewer::camera {option args} {
