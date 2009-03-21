@@ -22,17 +22,19 @@ void NvParticleAdvectionShader::init()
     _cgFP = LoadCgSourceProgram(g_context, "update_pos.cg", CG_PROFILE_FP30, 
 	"main");
     _posTimestepParam  = cgGetNamedParameter(_cgFP, "timestep");
-    _maxParam  = cgGetNamedParameter(_cgFP, "max");
-    _velTexParam = cgGetNamedParameter(_cgFP, "vel_tex");
-    _posTexParam = cgGetNamedParameter(_cgFP, "pos_tex");
-    //_tfTexParam = cgGetNamedParameter(_cgFP, "tf_tex");
-    _initPosTexParam = cgGetNamedParameter(_cgFP, "init_pos_tex");
-    _scaleParam = cgGetNamedParameter(_cgFP, "scale");
-    _modeParam = cgGetNamedParameter(_cgFP, "mode");
+    _maxParam          = cgGetNamedParameter(_cgFP, "max");
+    _velTexParam       = cgGetNamedParameter(_cgFP, "vel_tex");
+    _posTexParam       = cgGetNamedParameter(_cgFP, "pos_tex");
+    //_tfTexParam      = cgGetNamedParameter(_cgFP, "tf_tex");
+    _initPosTexParam   = cgGetNamedParameter(_cgFP, "init_pos_tex");
+    _scaleParam        = cgGetNamedParameter(_cgFP, "scale");
+    _modeParam         = cgGetNamedParameter(_cgFP, "mode");
 }
 
 //void NvParticleAdvectionShader::bind(unsigned int texID, unsigned int tfTexID, unsigned int initPosTexID)
-void NvParticleAdvectionShader::bind(unsigned int texID, unsigned int initPosTexID)
+
+void 
+NvParticleAdvectionShader::bind(unsigned int texID, unsigned int initPosTexID)
 {
     cgGLBindProgram(_cgFP);
 
