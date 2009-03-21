@@ -36,11 +36,7 @@ TFLIB		= transfer-function.a
 
 OBJS		= \
 		ColorGradient.o \
-		ColorGradientGLUTWindow.o \
-		ColorPaletteWindow.o \
-		ControlPoint.o \
-		MainWindow.o \
-		TransferFunctionGLUTWindow.o
+		MainWindow.o 
 
 all: $(TFLIB)
 
