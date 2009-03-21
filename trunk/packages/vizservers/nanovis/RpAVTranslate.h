@@ -34,35 +34,56 @@ class AVTranslate {
 public:
     AVTranslate(size_t width, size_t height);
 
-    AVTranslate(size_t width, size_t height, size_t bit_rate, 
-		double frame_rate);
+    AVTranslate(size_t width, size_t height, size_t bitRate, float frameRate);
 
     virtual ~AVTranslate();
 
     bool init(Outcome &status, const char *filename );
-    bool append(Outcome &status, uint8_t *rgb_data, size_t line_pad);
+    bool append(Outcome &status, uint8_t *rgbData, size_t linePad);
     bool done(Outcome &status);
 
 private:
-    bool addVideoStream(Outcome &status, CodecID codec_id, AVStream **stream);
-    bool allocPicture(Outcome &status, int pix_fmt, AVFrame **pic );
+    bool addVideoStream(Outcome &status, CodecID codecId, AVStream **stream);
+    bool allocPicture(Outcome &status, int pixFmt, AVFrame **pic );
     bool openVideo(Outcome &status);
     bool writeVideoFrame(Outcome &status);
     bool closeVideo(Outcome &status);
 
     size_t _width;
     size_t _height;
-    size_t _bit_rate;
-    double _stream_frame_rate; // frames/seconds
-    size_t _video_outbuf_size;
-    uint8_t *_video_outbuf;
+    size_t _bitRate;
+    float _frameRate;		// frames/seconds
+    size_t _videoOutbufSize;
+    uint8_t *_videoOutbuf;
 
-
-    AVOutputFormat *_fmt;
-    AVFormatContext *_oc;
-    AVStream *_video_st;
-    AVFrame *_picture;
-    AVFrame *_rgb_picture;
+    size_t width(void) {
+	return _width;
+    }
+    void width(size_t width) {
+	_width = width;
+    }
+    size_t height(void) {
+	return _width;
+    }
+    void height(size_t width) {
+	_width = width;
+    }
+    size_t bitRate(void) {
+	return _bitRate;
+    }
+    void bitRate(size_t bitRate) {
+	_bitRate = bitRate;
+    }
+    float frameRate(void) {
+	return _frameRate;
+    }
+    void frameRate(size_t frameRate) {
+	_frameRate = frameRate;
+    }
+    AVOutputFormat *_fmtPtr;
+    AVFormatContext *_ocPtr;
+    AVStream *_avStreamPtr;
+    AVFrame *_pictPtr, *_rgbPictPtr;
 
 };
 

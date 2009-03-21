@@ -185,6 +185,11 @@ AC_MSG_RESULT([${DX_DIR}])
 
 AC_CHECK_HEADERS([ffmpeg/avcodec.h libavcodec/avcodec.h ffmpeg/avformat.h libavformat/avformat.h ffmpeg/avutil.h libavutil/avutil.h])
 
+oldLIBS=$LIBS
+LIBS=-lavcodec
+AC_CHECK_FUNCS(img_convert)
+LIBS=$oldLIBS
+
 AC_MSG_CHECKING([for nVidia Cg installation])
 CG_DIR=""
 for dir in \

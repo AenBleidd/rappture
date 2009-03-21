@@ -1839,6 +1839,7 @@ ProxyInit(int c_in, int c_out, char *const *argv)
     Tcl_CreateCommand(interp, "orthoscopic",   OrthoscopicCmd,   &proxy, NULL);
     Tcl_CreateCommand(interp, "pan",           PanCmd,           &proxy, NULL);
     Tcl_CreateCommand(interp, "png",           PngCmd,           &proxy, NULL);
+    Tcl_CreateCommand(interp, "print",         PrintCmd,         &proxy, NULL);
     Tcl_CreateCommand(interp, "raw",           RawCmd,           &proxy, NULL);
     Tcl_CreateCommand(interp, "reset",         ResetCmd,         &proxy, NULL);
     Tcl_CreateCommand(interp, "rock",          RockCmd,          &proxy, NULL);
