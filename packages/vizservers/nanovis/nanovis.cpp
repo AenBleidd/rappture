@@ -48,6 +48,7 @@
 #include "RpFieldPrism3D.h"
 #include "RpEncode.h"
 
+#ifdef notdef
 //transfer function headers
 #include "transfer-function/TransferFunctionMain.h"
 #include "transfer-function/ControlPoint.h"
@@ -55,6 +56,7 @@
 #include "transfer-function/ColorGradientGLUTWindow.h"
 #include "transfer-function/ColorPaletteWindow.h"
 #include "transfer-function/MainWindow.h"
+#endif
 #include "ZincBlendeVolume.h"
 #include "NvLoadFile.h"
 #include "NvColorTableRenderer.h"
