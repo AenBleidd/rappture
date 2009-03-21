@@ -35,7 +35,7 @@ CG_LIB_SPEC     = -L$(CG_DIR)/lib -lCg -lCgGL
 DX_DIR          = @DX_DIR@
 DX_INC_SPEC     = -I$(DX_DIR)/include
 DX_LIB_SPEC     = -L$(DX_DIR)/lib_linux -lDXcallm
-FF_LIB_SPEC     = -lavformat -lavcodec
+FF_LIB_SPEC     = -lavformat -lavcodec -lavutil
 # might also need -lavutil
 GL_INC_SPEC     = -I/usr/include/GL
 GL_LIB_SPEC     = -lGL -lglut -lglui -lGLEW
@@ -70,7 +70,6 @@ LD_RUN_PATH     = @LD_RPATH@
 LIBS		= \
 		$(RP_LIB_SPEC) \
 		$(DX_LIB_SPEC) \
-		$(FF_LIB_SPEC) \
 		$(IMG_LIB_SPEC) \
 		$(R2_LIB_SPEC) \
 		$(TF_LIB_SPEC) \
@@ -78,6 +77,7 @@ LIBS		= \
 		$(TCL_LIB_SPEC) \
 		$(CG_LIB_SPEC) \
 		$(GL_LIB_SPEC) \
+		$(FF_LIB_SPEC) \
 		$(EXTRA_LIBS) \
 		-Wl,-rpath,$(LD_RUN_PATH)
 

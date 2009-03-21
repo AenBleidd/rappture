@@ -814,7 +814,7 @@ SnapshotCmd(ClientData cdata, Tcl_Interp *interp, int objc,
 #ifdef notdef
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0); 
 #endif
-    NanoVis::ppm_write("nv>print -bytes");
+    NanoVis::ppm_write("nv>image -bytes %d -type print");
     NanoVis::resize_offscreen_buffer(w, h);
     return TCL_OK;
 }
@@ -1805,15 +1805,36 @@ FlowDataOp(ClientData cdata, Tcl_Interp *interp, int objc,
 }
 
 static int
-FlowCaptureOp(ClientData cdata, Tcl_Interp *interp, int objc,
-             Tcl_Obj *const *objv)
+FlowVideoOp(ClientData cdata, Tcl_Interp *interp, int objc, 
+	    Tcl_Obj *const *objv)
 {
-    Rappture::Outcome result;
-    int total_frame_count;
+    int width, height;		// Resolution of video.
+    int numFrames;		// Total number of frames.
+    float frameRate;		// Frame rate of the video.
+    float bitRate;		// Bit rate of the vide.
 
-    if (Tcl_GetIntFromObj(interp, objv[2], &total_frame_count) != TCL_OK) {
+    if ((Tcl_GetIntFromObj(interp, objv[2], &width) != TCL_OK) ||
+	(Tcl_GetIntFromObj(interp, objv[3], &height) != TCL_OK) ||
+	(Tcl_GetIntFromObj(interp, objv[4], &numFrames) != TCL_OK) ||
+	(GetFloatFromObj(interp, objv[5], &frameRate) != TCL_OK) ||
+	(GetFloatFromObj(interp, objv[6], &bitRate) != TCL_OK)) {
         return TCL_ERROR;
     }
+    if ((width<0) || (width>SHRT_MAX) || (height<0) || (height>SHRT_MAX)) {
+	Tcl_AppendResult(interp, "bad dimensions for video", (char *)NULL);
+	return TCL_ERROR;
+    }
+    if ((frameRate < 0.0f) || (frameRate > 30.0f)) {
+	Tcl_AppendResult(interp, "bad frame rate \"", Tcl_GetString(objv[5]),
+			 "\"", (char *)NULL);
+	return TCL_ERROR;
+    }
+    if ((bitRate < 0.0f) || (frameRate > 30.0f)) {
+	Tcl_AppendResult(interp, "bad bit rate \"", Tcl_GetString(objv[6]),
+			 "\"", (char *)NULL);
+	return TCL_ERROR;
+    }
+	
     if (NanoVis::licRenderer) {
         NanoVis::licRenderer->activate();
     }
@@ -1821,13 +1842,23 @@ FlowCaptureOp(ClientData cdata, Tcl_Interp *interp, int objc,
         NanoVis::particleRenderer->activate();
     }
 
+    // Save the old dimensions of the offscreen buffer.
+    int oldWidth, oldHeight;
+    oldWidth = NanoVis::win_width;
+    oldHeight = NanoVis::win_height;
+
+    if ((width != oldWidth) || (height != oldHeight)) {
+	// Resize to the requested size.
+	NanoVis::resize_offscreen_buffer(width, height);
+    }
+
     char fileName[128];
     sprintf(fileName,"/tmp/flow%d.mpeg", getpid());
 
-
     Trace("FLOW started\n");
 
-    Rappture::AVTranslate movie(NanoVis::win_width, NanoVis::win_height);
+    Rappture::Outcome result;
+    Rappture::AVTranslate movie(width, height, frameRate, bitRate);
 
     int pad = 0;
     if ((3*NanoVis::win_width) % 4 > 0) {
@@ -1836,8 +1867,7 @@ FlowCaptureOp(ClientData cdata, Tcl_Interp *interp, int objc,
 
     movie.init(result, fileName);
 
-    for (int frame_count = 0; frame_count < total_frame_count; frame_count++) {
-
+    for (int i = 0; i < numFrames; i++) {
         // Generate the latest frame and send it back to the client
         if (NanoVis::licRenderer &&
             NanoVis::licRenderer->isActivated()) {
@@ -1853,9 +1883,9 @@ FlowCaptureOp(ClientData cdata, Tcl_Interp *interp, int objc,
         NanoVis::read_screen();
         glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
 
-        // this is done before bmp_write_to_file because bmp_write_to_file
+        // This is done before bmp_write_to_file because bmp_write_to_file
         // turns rgb data to bgr
-        movie.append(result, NanoVis::screen_buffer,pad);
+        movie.append(result, NanoVis::screen_buffer, pad);
         // NanoVis::bmp_write_to_file(frame_count, fileName);
     }
 
@@ -1873,14 +1903,18 @@ FlowCaptureOp(ClientData cdata, Tcl_Interp *interp, int objc,
     // FIXME: find a way to get the data from the movie object as a void*
     Rappture::Buffer data;
     data.load(fileName);
-    char command[512];
-    sprintf(command,"nv>file -bytes %lu\n", (unsigned long)data.size());
-    NanoVis::sendDataToClient(command,data.bytes(), data.size());
-    if (remove(fileName) != 0) {
-        fprintf(stderr, "Error deleting flow movie file: %s\n", fileName);
-        fflush(stderr);
-    }
 
+    // Build the command string for the client.
+    char command[200];
+    sprintf(command,"nv>image -bytes %lu -type movie\n", 
+	    (unsigned long)data.size());
+
+    NanoVis::sendDataToClient(command, data.bytes(), data.size());
+    if (unlink(fileName) != 0) {
+        Tcl_AppendResult(interp, "can't unlink temporary movie file \"",
+		fileName, "\": ", Tcl_PosixError(interp), (char *)NULL);
+	return TCL_ERROR;
+    }
     return TCL_OK;
 }
 
@@ -1961,7 +1995,7 @@ FlowSlicePositionOp(ClientData cdata, Tcl_Interp *interp, int objc,
 
 static Rappture::CmdSpec flowSliceOps[] = {
     {"position",  1, FlowSlicePositionOp, 5, 5, "axis value",},
-    {"visible",   1, FlowSliceVisibleOp,  5, 5, "bool axis",},
+    {"visible",   1, FlowSliceVisibleOp,  5, 5, "axis bool",},
 };
 static int nFlowSliceOps = NumCmdSpecs(flowSliceOps);
 
@@ -1980,7 +2014,7 @@ FlowSliceOp(ClientData cdata, Tcl_Interp *interp, int objc,
 }
 
 static int
-FlowParticleVisibleOp(ClientData cdata, Tcl_Interp *interp, int objc,
+FlowParticlesVisibleOp(ClientData cdata, Tcl_Interp *interp, int objc,
              Tcl_Obj *const *objv)
 {
     bool state;
@@ -1992,18 +2026,18 @@ FlowParticleVisibleOp(ClientData cdata, Tcl_Interp *interp, int objc,
     return TCL_OK;
 }
 
-static Rappture::CmdSpec flowParticleOps[] = {
-    {"visible",    1, FlowParticleVisibleOp,  4, 4, "on|off",},
+static Rappture::CmdSpec flowParticlesOps[] = {
+    {"visible",    1, FlowParticlesVisibleOp,  4, 4, "on|off",},
 };
-static int nFlowParticleOps = NumCmdSpecs(flowParticleOps);
+static int nFlowParticlesOps = NumCmdSpecs(flowParticlesOps);
 
 static int
-FlowParticleOp(ClientData cdata, Tcl_Interp *interp, int objc,
+FlowParticlesOp(ClientData cdata, Tcl_Interp *interp, int objc,
              Tcl_Obj *const *objv)
 {
     Tcl_ObjCmdProc *proc;
 
-    proc = Rappture::GetOpFromObj(interp, nFlowParticleOps, flowParticleOps,
+    proc = Rappture::GetOpFromObj(interp, nFlowParticlesOps, flowParticlesOps,
                                   Rappture::CMDSPEC_ARG2, objc, objv, 0);
     if (proc == NULL) {
         return TCL_ERROR;
@@ -2012,37 +2046,30 @@ FlowParticleOp(ClientData cdata, Tcl_Interp *interp, int objc,
 }
 
 static int
-FlowPlayOp(ClientData cdata, Tcl_Interp *interp, int objc,
+FlowNextOp(ClientData cdata, Tcl_Interp *interp, int objc,
              Tcl_Obj *const *objv)
 {
-    if (NanoVis::licRenderer &&
-        !NanoVis::licRenderer->isActivated()) {
+    if (!NanoVis::licRenderer->isActivated()) {
         NanoVis::licRenderer->activate();
     }
-    if (NanoVis::particleRenderer &&
-        !NanoVis::particleRenderer->isActivated()) {
+    if (!NanoVis::particleRenderer->isActivated()) {
         NanoVis::particleRenderer->activate();
     }
 
     Trace("sending flow playback frame\n");
 
     // Generate the latest frame and send it back to the client
-    if (NanoVis::licRenderer &&
-        NanoVis::licRenderer->isActivated()) {
+    if (NanoVis::licRenderer->isActivated()) {
         NanoVis::licRenderer->convolve();
     }
-    if (NanoVis::particleRenderer &&
-        NanoVis::particleRenderer->isActivated()) {
-        NanoVis::particleRenderer->advect();
-    }
+    NanoVis::particleRenderer->advect();
     NanoVis::offscreen_buffer_capture();  //enable offscreen render
     NanoVis::display();
-
     NanoVis::read_screen();
+
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
 
     // NanoVis::bmp_write_to_file(frame_count, fileName);
-
     Trace("FLOW end\n");
     return TCL_OK;
 }
@@ -2085,14 +2112,15 @@ FlowVectorIdOp(ClientData cdata, Tcl_Interp *interp, int objc,
 }
 
 static Rappture::CmdSpec flowOps[] = {
-    {"capture",   1, FlowCaptureOp,       3, 3, "frames",},
     {"data",      1, FlowDataOp,          3, 0, "oper ?args?",},
     {"lic",       1, FlowLicOp,           3, 3, "on|off",},
-    {"particle",  2, FlowParticleOp,      3, 0, "oper ?args?",},
-    {"play",      2, FlowPlayOp,          2, 2, "",},
+    {"particles", 2, FlowParticlesOp,     3, 0, "oper ?args?",},
+    {"next",      2, FlowNextOp,          2, 2, "",},
     {"reset",     1, FlowResetOp,         2, 2, "",},
     {"slice",     1, FlowSliceOp,         3, 0, "oper ?args?",},
-    {"vectorid",  1, FlowVectorIdOp,      3, 3, "index",},
+    {"vectorid",  2, FlowVectorIdOp,      3, 3, "index",},
+    {"video",     2, FlowVideoOp,         7, 7, 
+	"width height numFrames frameRate bitRate ",},
 };
 static int nFlowOps = NumCmdSpecs(flowOps);
 
@@ -2102,10 +2130,10 @@ static int nFlowOps = NumCmdSpecs(flowOps);
  *   flow data follows <value>
  *   flow capture frames filename
  *   flow lic on|off
- *   flow particle visible on|off
- *   flow particle slice <volumeId>
- *   flow particle slicepos <value>
- *   flow play
+ *   flow particles visible on|off
+ *   flow slice visible axis on|off
+ *   flow slice position axis value
+ *   flow next
  *   flow reset
  *   flow vectorid <volumeId>
  *
