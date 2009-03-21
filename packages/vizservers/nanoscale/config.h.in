@@ -6,6 +6,9 @@
 /* Define to 1 if you have the <arpa/inet.h> header file. */
 #undef HAVE_ARPA_INET_H
 
+/* Define to 1 if you have the `avformat_alloc_context' function. */
+#undef HAVE_AVFORMAT_ALLOC_CONTEXT
+
 /* Define to 1 if you have the <ffmpeg/avcodec.h> header file. */
 #undef HAVE_FFMPEG_AVCODEC_H
 

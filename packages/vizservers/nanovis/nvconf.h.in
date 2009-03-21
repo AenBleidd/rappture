@@ -1,10 +1,13 @@
-/* nanovis/autoconf.h.in.  Generated from configure.in by autoheader.  */
+/* nanovis/nvconf.h.in.  Generated from configure.in by autoheader.  */
 
 /* Define if building universal (internal helper macro) */
 #undef AC_APPLE_UNIVERSAL_BUILD
 
 /* Define to 1 if you have the <arpa/inet.h> header file. */
 #undef HAVE_ARPA_INET_H
+
+/* Define to 1 if you have the `avformat_alloc_context' function. */
+#undef HAVE_AVFORMAT_ALLOC_CONTEXT
 
 /* Define to 1 if you have the <ffmpeg/avcodec.h> header file. */
 #undef HAVE_FFMPEG_AVCODEC_H
@@ -14,6 +17,9 @@
 
 /* Define to 1 if you have the <ffmpeg/avutil.h> header file. */
 #undef HAVE_FFMPEG_AVUTIL_H
+
+/* Define to 1 if you have the `img_convert' function. */
+#undef HAVE_IMG_CONVERT
 
 /* Define to 1 if you have the <inttypes.h> header file. */
 #undef HAVE_INTTYPES_H

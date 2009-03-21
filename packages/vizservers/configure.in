@@ -1,5 +1,5 @@
 AC_INIT(vizservers, 0.1, rappture@nanohub.org)
-AC_CONFIG_HEADER(nanoscale/config.h nanovis/nvconf.h)
+AC_CONFIG_HEADER(nanovis/nvconf.h nanoscale/config.h)
 
 VERSION=0.0.1
 AC_SUBST(VERSION)
@@ -188,6 +188,8 @@ AC_CHECK_HEADERS([ffmpeg/avcodec.h libavcodec/avcodec.h ffmpeg/avformat.h libavf
 oldLIBS=$LIBS
 LIBS=-lavcodec
 AC_CHECK_FUNCS(img_convert)
+LIBS=-lavformat
+AC_CHECK_FUNCS(avformat_alloc_context)
 LIBS=$oldLIBS
 
 AC_MSG_CHECKING([for nVidia Cg installation])

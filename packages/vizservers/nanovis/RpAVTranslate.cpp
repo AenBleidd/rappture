@@ -111,12 +111,13 @@ AVTranslate::init(Outcome &status, const char *filename)
         return false;
     }
 
-#ifdef notdef
+#ifdef HAVE_AVFORMAT_ALLOC_CONTEXT
     /* allocate the output media context */
-    _ocPtr = av_alloc_format_context();
-#else 
     _ocPtr = avformat_alloc_context();
+#else 
+    _ocPtr = av_alloc_format_context();
 #endif
+
     if (!_ocPtr) {
         status.addError("Memory error while allocating format context");
         return false;
