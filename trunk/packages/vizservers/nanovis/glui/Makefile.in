@@ -1,0 +1,106 @@
+
+SHELL = /bin/sh
+
+#.SUFFIX:
+#SUFFIX: .c .o .cpp
+
+.PHONY: all install clean distclean
+
+bindir          = @bindir@
+datadir         = @datadir@
+datarootdir     = @datarootdir@
+exec_prefix     = @exec_prefix@
+includedir      = @includedir@
+libdir          = @libdir@
+mandir          = @mandir@
+prefix          = @prefix@
+srcdir          = @srcdir@
+
+RP_DIR          =  @RP_DIR@
+RP_INC_SPEC     = -I$(RP_DIR)/include -I$(RP_DIR)/include/rappture2
+RP_LIB_SPEC     = -L$(RP_DIR)/lib -lrappture2 -lrappture -lexpat -lz
+GL_INC_SPEC     = -I/usr/include/GL
+GL_LIB_SPEC     = -lGL -lglut -lGLEW
+
+VPATH           = $(srcdir)
+
+INSTALL         = @INSTALL@
+MKDIR_P         = @MKDIR_P@
+
+INSTALL_PROGRAM = ${INSTALL} -m 555
+INSTALL_DATA    = ${INSTALL} -m 444
+INSTALL_SCRIPT  = ${INSTALL} -m 444
+RM		= rm -f
+AR		= ar rc
+RANLIB		= @RANLIB@
+RM              = rm -f
+
+CC              = @CC@
+CFLAGS          = @CFLAGS@
+EXTRA_CFLAGS    = -Wall
+DEFINES         = @DEFINES@
+INCLUDES	= \
+		-I. \
+		$(GL_INC_SPEC) \
+		$(RP_INC_SPEC) 
+
+CC_SWITCHES     = $(CFLAGS) $(EXTRA_CFLAGS) $(INCLUDES)
+
+OBJS		= \
+		algebra3.o \
+		arcball.o \
+		glui.o \
+		glui_add_controls.o \
+		glui_bitmap_img_data.o \
+		glui_bitmaps.o \
+		glui_button.o \
+		glui_checkbox.o \
+		glui_column.o \
+		glui_control.o \
+		glui_edittext.o \
+		glui_hslider.o \
+		glui_hslider.save.o \
+		glui_listbox.o \
+		glui_mouse_iaction.o \
+		glui_node.o \
+		glui_panel.o \
+		glui_radio.o \
+		glui_rollout.o \
+		glui_rotation.o \
+		glui_separator.o \
+		glui_spinner.o \
+		glui_statictext.o \
+		glui_translation.o \
+		quaternion.o 
+
+HEADERS		= \
+		glui.h 
+
+all: libglui.a
+
+libglui.a: $(OBJS)
+	$(RM) $@
+	$(AR) $@ $(OBJS) 
+	$(RANLIB) $@
+
+.cpp.o:
+	$(CC) $(CC_SWITCHES) -o $@ -c $<
+
+install-headers:
+	$(MKDIR_P) $(incdir)/GL
+	@for i in $(headers) ; do \
+	    echo "installing $$i..." ; \
+	    $(INSTALL_DATA) -m 0444 $$i $(incdir)/GL ; \
+	done
+
+install-library: libglui.a
+	$(RM) $(libdir)/libglui.a
+	$(INSTALL) -m 0444 libglui.a $(libdir)
+
+install: install-library install-headers 
+
+clean:
+	$(RM) libglui.a $(OBJS)
+
+distclean: clean
+	$(RM) Makefile *~
