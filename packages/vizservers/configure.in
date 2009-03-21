@@ -233,6 +233,7 @@ dnl AC_MSG_RESULT($TK)
 AC_OUTPUT(  Makefile \
             nanoscale/Makefile \
             nanovis/Makefile \
+	    nanovis/glui/Makefile \
             nanovis/newmat11/Makefile \
             nanovis/R2/src/Makefile \
             nanovis/imgLoaders/Makefile \

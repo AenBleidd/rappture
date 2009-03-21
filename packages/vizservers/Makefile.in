@@ -17,11 +17,11 @@ SHELL		= @SHELL@
 RM		= rm -f
 VPATH		= $(srcdir)
 
-SUBDIRS         = nanoscale nanovis pymolproxy
+SUBDIRS         = nanoscale nanovis pymolproxy 
 FILES		= \
 		start_viz.sh
 
-.PHONY: nanoscale nanovis pymolproxy
+.PHONY: nanoscale nanovis pymolproxy 
 
 all:
 	for i in $(SUBDIRS) ; do \

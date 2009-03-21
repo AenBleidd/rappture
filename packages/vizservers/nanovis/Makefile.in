@@ -38,7 +38,7 @@ DX_LIB_SPEC     = -L$(DX_DIR)/lib_linux -lDXcallm
 FF_LIB_SPEC     = -lavformat -lavcodec -lavutil
 # might also need -lavutil
 GL_INC_SPEC     = -I/usr/include/GL
-GL_LIB_SPEC     = -lGL -lglut -lglui -lGLEW
+GL_LIB_SPEC     = -lGL -lglut -lGLEW
 IMG_DIR         = ./imgLoaders
 IMG_INC_SPEC    = -I$(srcdir)/$(IMG_DIR)
 IMG_LIB         = $(IMG_DIR)/ImageLoaders.a
@@ -51,6 +51,12 @@ R2_DIR          = ./R2
 R2_INC_SPEC     = -I$(srcdir)/$(R2_DIR)/include
 R2_LIB          = $(R2_DIR)/src/R2.a
 R2_LIB_SPEC     = $(R2_LIB)
+
+GLUI_DIR          = ./glui
+GLUI_INC_SPEC     = -I$(srcdir)/$(GLUI_DIR)
+GLUI_LIB          = $(GLUI_DIR)/libglui.a
+GLUI_LIB_SPEC     = $(GLUI_LIB)
+
 
 EXTRA_LIBS      = -lm -lpthread
 RP_DIR          =  @RP_DIR@
@@ -77,6 +83,7 @@ LIBS		= \
 		$(TCL_LIB_SPEC) \
 		$(CG_LIB_SPEC) \
 		$(GL_LIB_SPEC) \
+		$(GLUI_LIB_SPEC) \
 		$(FF_LIB_SPEC) \
 		$(EXTRA_LIBS) \
 		-Wl,-rpath,$(LD_RUN_PATH)
@@ -84,13 +91,14 @@ LIBS		= \
 INCLUDES	= \
 		-I. \
 		-I$(srcdir) \
-		$(TCL_INC_SPEC) \
-		$(RP_INC_SPEC) \
-		$(CG_INC_SPEC) \
-		$(GL_INC_SPEC) \
 		$(R2_INC_SPEC) \
 		$(IMG_INC_SPEC) \
-		$(MAT_INC_SPEC)
+		$(MAT_INC_SPEC) \
+		$(GLUI_INC_SPEC) \
+		$(TCL_INC_SPEC) \
+		$(CG_INC_SPEC) \
+		$(GL_INC_SPEC) \
+		$(RP_INC_SPEC) \
 
 CC              = @CC@
 CFLAGS          = @CFLAGS@
@@ -179,14 +187,20 @@ shaders		= \
 		$(srcdir)/shaders/volqd_volume.cg \
 		$(srcdir)/shaders/zincblende_volume.cg
 
-all: mat_lib r2_lib img_lib tf_lib nanovis
+.PHONY: glui newmat11 R2 imgloaders transfer-function nanovis
+
+all: glui newmat11 R2 imgloaders transfer-function nanovis
 
 install: install-nanovis install-resources install-shaders
 
-mat_lib: $(MAT_LIB)
-r2_lib:  $(R2_LIB)
-img_lib: $(IMG_LIB)
-tf_lib:  $(TF_LIB)
+glui:			$(GLUI_LIB)
+newmat11:		$(MAT_LIB)
+R2:			$(R2_LIB)
+imgloaders:		$(IMG_LIB)
+transfer-function:	$(TF_LIB)
+
+$(GLUI_LIB):
+	$(MAKE) -C $(GLUI_DIR) all
 
 $(MAT_LIB):
 	$(MAKE) -C $(MAT_DIR) all
@@ -241,6 +255,7 @@ install-nanovis: nanovis
 	$(INSTALL) -m 0555 nanovis $(bindir)
 
 clean:
+	$(MAKE) -C $(GLUI_DIR) clean
 	$(MAKE) -C $(MAT_DIR) clean
 	$(MAKE) -C $(R2_DIR)/src clean
 	$(MAKE) -C $(IMG_DIR) clean
