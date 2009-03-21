@@ -149,6 +149,7 @@ Outcome::remark() const
 Outcome&
 Outcome::addContext(const char *rem)
 {
+    // FIXME: There should be a stack of contexts
     if (_contextPtr.isNull()) {
         _contextPtr = new std::string();
     }
@@ -156,6 +157,49 @@ Outcome::addContext(const char *rem)
     _contextPtr->append("\n");
     return *this;
 }
+
+#ifdef soon
+/**
+ *  Push context information on to the context stack for an outcome.
+ */
+void
+Outcome::pushContext(const char* format, ...)
+{
+    char stackSpace[1024];
+    va_list lst;
+    size_t n;
+    char *bufPtr;
+
+    va_start(lst, format);
+    bufPtr = stackSpace;
+    n = vsnprintf(bufPtr, 1024, format, lst);
+    if (n >= 1024) {
+	bufPtr = (char *)malloc(n);
+	vsnprintf(bufPtr, n, format, lst);
+    }
+    _contexts.push_front(bufPtr);
+}
+
+/**
+ *  Pop the last context from the stack.
+ */
+void
+Outcome::popContext(void)
+{
+    _contexts.pop_front();
+}
+
+void
+Outcome::printContext(void)
+{
+    list<const char *>::interator iter;
+    
+    for (iter = _contexts.begin(); iter != _contexts.end(); iter++) {
+	fprintf(stderr, "Called from %s\n", *iter);
+    }
+}
+
+#endif /*soon*/
 
 /**
  *  Query the context stack from an outcome.
