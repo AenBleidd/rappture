@@ -55,14 +55,6 @@
 #include "Command.h"
 #include "nanovis.h"
 #include "CmdProc.h"
-#ifdef notdef
-#include "transfer-function/TransferFunctionMain.h"
-#include "transfer-function/ControlPoint.h"
-#include "transfer-function/TransferFunctionGLUTWindow.h"
-#include "transfer-function/ColorGradientGLUTWindow.h"
-#include "transfer-function/ColorPaletteWindow.h"
-#include "transfer-function/MainWindow.h"
-#endif
 #include "Nv.h"
 #include "PointSetRenderer.h"
 #include "PointSet.h"
