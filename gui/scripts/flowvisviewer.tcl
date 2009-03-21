@@ -2057,22 +2057,6 @@ itcl::body Rappture::FlowvisViewer::flow {option} {
     }
 }
 
-#
-# record --
-#
-# Called when the user clicks on the record, stop or play buttons
-# for flow visualization.
-#
-#	$this record on
-#	$this record off
-#	$this record toggle
-#
-#
-itcl::body Rappture::FlowvisViewer::record {option} {
-
-}
-
-
 itcl::body Rappture::FlowvisViewer::drawer { what who } {
     if { [info exists drawer_(current)] && $who != $drawer_(current) } {
 	drawer deactivate $drawer_(current)
