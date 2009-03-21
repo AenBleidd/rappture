@@ -97,7 +97,6 @@ itcl::class Rappture::FlowvisViewer {
     protected method Play {}
     protected method Pause {}
     public method flow {option}
-    public method record {option}
 
     protected method State {comp}
     protected method FixSettings {what {value ""}}
@@ -113,6 +112,8 @@ itcl::class Rappture::FlowvisViewer {
     private method BuildSettingsDrawer {}
     private method BuildCameraDrawer {}
     private method PanCamera {}
+    private method GetMovie { widget width height }
+    private method WaitIcon { option widget }
 
     private variable outbuf_       ;# buffer for outgoing commands
 
@@ -175,7 +176,7 @@ itcl::body Rappture::FlowvisViewer::constructor { hostlist args } {
     set outbuf_ ""
     set flow_(state) "stopped"
     array set downloadPopup_ {
-        format jpg
+        format draft
     }
     array set play_ {
     }
@@ -665,16 +666,65 @@ itcl::body Rappture::FlowvisViewer::download {option args} {
             }
         }
         controls {
-            # no controls for this download yet
-            return ""
-        }
+	    set popup .flowvisviewerdownload
+	    if {![winfo exists .flowvisviewerdownload]} {
+		# if we haven't created the popup yet, do it now
+		Rappture::Balloon $popup \
+		    -title "[Rappture::filexfer::label downloadWord] as..."
+		set inner [$popup component inner]
+		label $inner.summary -text "" -anchor w
+		pack $inner.summary -side top
+		set img $_image(plot)
+		set res "[image width $img]x[image height $img]"
+		radiobutton $inner.draft -text "Image (draft $res)" \
+		    -variable Rappture::MolvisViewer::_downloadPopup(format) \
+		    -value draft
+		pack $inner.draft -anchor w
+
+		set res "640x480"
+		radiobutton $inner.medium -text "Movie (standard $res)" \
+		    -variable Rappture::MolvisViewer::_downloadPopup(format) \
+		    -value $res
+		pack $inner.medium -anchor w
+
+		set res "1024x768"
+		radiobutton $inner.high -text "Movie (high quality $res)" \
+		    -variable Rappture::MolvisViewer::_downloadPopup(format) \
+		    -value $res
+		pack $inner.high -anchor w
+
+	    } else {
+		set inner [$popup component inner]
+	    }
+	    set num [llength [get]]
+	    set num [expr {($num == 1) ? "1 result" : "$num results"}]
+	    $inner.summary configure -text "[Rappture::filexfer::label downloadWord] $num in the following format:"
+	    update idletasks ;# fix initial sizes
+	    return $popup
+	}
         now {
-            # Doing an image base64 encode/decode has to be better than
-            # writing the image to a file and reading it back in.
-            set data [$_image(plot) data -format jpeg]
-            set data [Rappture::encoding::decode -as b64 $data]
-            return [list .jpg $data]
-        }
+	    set popup .molvisviewerdownload
+	    if {[winfo exists .molvisviewerdownload]} {
+		$popup deactivate
+	    }
+	    switch -- $_downloadPopup(format) {
+		draft {
+		    # Get the image data (as base64) and decode it back to
+		    # binary.  This is better than writing to temporary
+		    # files.  When we switch to the BLT picture image it
+		    # won't be necessary to decode the image data.
+		    set bytes [$_image(plot) data -format "jpeg -quality 100"]
+		    set data [Rappture::encoding::decode -as b64 $data]
+		    return [list .jpg $data]
+		}
+		"640x480" {
+		    return [$this GetMovie [lindex $args 0] 640 480]
+		}
+		"1024x768" {
+		    return [$this GetMovie [lindex $args 0] 1024 768]
+		}
+	    }
+	}
         default {
             error "bad option \"$option\": should be coming, controls, now"
         }
@@ -2019,68 +2069,7 @@ itcl::body Rappture::FlowvisViewer::flow {option} {
 #
 #
 itcl::body Rappture::FlowvisViewer::record {option} {
-    switch -- $option {
-        movie {
-            if {[llength $args] < 1 || [llength $args] > 2} {
-                error "wrong # args: should be \"Flow movie record|stop|play ?on|off|toggle?\""
-            }
-            set action [lindex $args 0]
-            set op [lindex $args 1]
-            if {$op == ""} { set op "on" }
 
-            set current [State $action]
-            if {$op == "toggle"} {
-                if {$current == "on"} {
-                    set op "off"
-                } else {
-                    set op "on"
-                }
-            }
-            set cmds ""
-            switch -- $action {
-                record {
-		    if { [$itk_component(rewind) cget -relief] != "sunken" } {
-			$itk_component(rewind) configure -relief sunken 
-			$itk_component(stop) configure -relief raised 
-			$itk_component(play) configure -relief raised 
-			set inner $itk_component(settingsFrame)
-			set frames [$inner.framecnt value]
-			set cmds "flow capture $frames"
-			_send $cmds
-		    }
-                }
-                stop {
-		    if { [$itk_component(stop) cget -relief] != "sunken" } {
-			$itk_component(rewind) configure -relief raised 
-			$itk_component(stop) configure -relief sunken 
-			$itk_component(play) configure -relief raised 
-			_pause
-			set cmds "flow reset"
-			_send $cmds
-		    }
-                }
-                play {
-		    if { [$itk_component(play) cget -relief] != "sunken" } {
-			$itk_component(rewind) configure -relief raised
-			$itk_component(stop) configure -relief raised 
-			$itk_component(play) configure \
-			    -image [Rappture::icon playback-pause] \
-			    -relief sunken 
-			bind $itk_component(play) <ButtonPress> \
-			    [itcl::code $this _pause]
-			Play
-		    }
-                }
-                default {
-                    error "bad option \"$option\": should be one of record|stop|play"
-                }
-
-            }
-        }
-        default {
-            error "bad option \"$option\": should be movie"
-        }
-    }
 }
 
 
@@ -2526,4 +2515,80 @@ itcl::body Rappture::FlowvisViewer::camera {option args} {
 	    }
 	}
     }
+}
+
+itcl::body Rappture::FlowvisViewer::WaitIcon  { option widget } {
+    switch -- $option {
+	"start" {
+	    $_dispatcher dispatch $this !waiticon \
+		"[itcl::code $this WaitIcon "next" $widget] ; list"
+	    set icon_ 0
+	    $widget configure -image [Rappture::icon bigroller${icon_}]
+	    $_dispatcher event -after 100 !waiticon
+	}
+	"next" {
+	    incr icon_
+	    if { $icon_ >= 8 } {
+		set icon_ 0
+	    }
+	    $widget configure -image [Rappture::icon bigroller${icon_}]
+	    $_dispatcher event -after 100 !waiticon
+	}
+	"stop" {
+	    $_dispatcher cancel !waiticon
+	}
+    }
+}
+
+itcl::body Rappture::FlowvisViewer::GetMovie { widget width height } {
+    set token "movie[incr nextToken_]"
+    set var ::Rappture::MolvisViewer::hardcopy_($this-$token)
+    set $var ""
+
+    # Setup an automatic timeout procedure.
+    $_dispatcher dispatch $this !movietimeout "set $var {} ; list"
+
+    set popup [Rappture::Balloon .movie -title "Generating video..."]
+    set inner [$popup component inner]
+    label $inner.title -text "Generating Hardcopy" -font "Arial 10 bold"
+    label $inner.please -text "This may take a few minutes." -font "Arial 10"
+    label $inner.icon -image [Rappture::icon bigroller0]
+    button $inner.cancel -text "Cancel" -font "Arial 10 bold" \
+	-command [list set $var ""]
+    $_dispatcher event -after 60000 !movietimeout
+    WaitIcon start $inner.icon
+    bind $inner.cancel <KeyPress-Return> [list $inner.cancel invoke]
+    
+    blt::table $inner \
+	0,0 $inner.title -columnspan 2 \
+	1,0 $inner.please -anchor w \
+	1,1 $inner.icon -anchor e  \
+	2,0 $inner.cancel -columnspan 2 
+    blt::table configure $inner r0 -pady 4 
+    blt::table configure $inner r2 -pady 4 
+    grab set -local $inner
+    focus $inner.cancel
+
+    SendCmd "flow video $width $height $settings_(numframes) 2.0 1000"
+    
+    $popup activate $widget below
+    update
+    # We wait here for either 
+    #  1) the png to be delivered or 
+    #  2) timeout or  
+    #  3) user cancels the operation.
+    tkwait variable $var
+
+    # Clean up.
+    $_dispatcher cancel !pngtimeout
+    WaitIcon stop $inner.icon
+    grab release $inner
+    $popup deactivate
+    destroy $popup
+    update
+
+    if { $hardcopy_($this-$token) != "" } {
+	return [list .png $hardcopy_($this-$token)]
+    }
+    return ""
 }
