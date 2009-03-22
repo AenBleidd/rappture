@@ -10487,7 +10487,7 @@ $as_echo "${CG_DIR}" >&6; }
 
 
 
-ac_config_files="$ac_config_files Makefile nanoscale/Makefile nanovis/Makefile nanovis/glui/Makefile nanovis/newmat11/Makefile nanovis/R2/src/Makefile nanovis/imgLoaders/Makefile nanovis/transfer-function/Makefile pymolproxy/Makefile start_viz.sh"
+ac_config_files="$ac_config_files Makefile nanoscale/Makefile nanovis/Makefile nanovis/newmat11/Makefile nanovis/R2/src/Makefile nanovis/imgLoaders/Makefile nanovis/transfer-function/Makefile pymolproxy/Makefile start_viz.sh"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -11090,7 +11090,6 @@ do
     "Makefile") CONFIG_FILES="$CONFIG_FILES Makefile" ;;
     "nanoscale/Makefile") CONFIG_FILES="$CONFIG_FILES nanoscale/Makefile" ;;
     "nanovis/Makefile") CONFIG_FILES="$CONFIG_FILES nanovis/Makefile" ;;
-    "nanovis/glui/Makefile") CONFIG_FILES="$CONFIG_FILES nanovis/glui/Makefile" ;;
     "nanovis/newmat11/Makefile") CONFIG_FILES="$CONFIG_FILES nanovis/newmat11/Makefile" ;;
     "nanovis/R2/src/Makefile") CONFIG_FILES="$CONFIG_FILES nanovis/R2/src/Makefile" ;;
     "nanovis/imgLoaders/Makefile") CONFIG_FILES="$CONFIG_FILES nanovis/imgLoaders/Makefile" ;;
