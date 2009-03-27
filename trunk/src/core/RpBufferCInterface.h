@@ -1,3 +1,4 @@
+
 /*
  * ----------------------------------------------------------------------
  *  INTERFACE: C Rappture Buffer Header
@@ -32,10 +33,10 @@ typedef struct {
     int (*seek)(int, int);
     int (*tell)();
     // void (*rewind);
-    Outcome (*load)(const char*);
-    Outcome (*dump)(const char*);
-    Outcome (*encode)(unsigned int, unsigned int);
-    Outcome (*decode)(unsigned int, unsigned int);
+    bool (*load)(Outcome &result, const char*);
+    bool (*dump)(Outcome &result, const char*);
+    bool (*encode)(Outcome &result, bool, bool);
+    bool (*decode)(Outcome &result, bool, bool);
     */
 }RapptureBuffer;
 
@@ -50,12 +51,10 @@ int RapptureBufferSeek(RapptureBuffer* buf, int offset, int whence);
 int RapptureBufferTell(RapptureBuffer* buf);
 RapptureOutcome RapptureBufferLoad(RapptureBuffer* buf, const char* filename);
 RapptureOutcome RapptureBufferDump(RapptureBuffer* buf, const char* filename);
-RapptureOutcome RapptureBufferEncode(   RapptureBuffer* buf,
-                                        unsigned int compress,
-                                        unsigned int base64 );
-RapptureOutcome RapptureBufferDecode(   RapptureBuffer* buf,
-                                        unsigned int decompress,
-                                        unsigned int base64 );
+RapptureOutcome RapptureBufferEncode(RapptureBuffer* buf, int compress,
+	int base64 );
+RapptureOutcome RapptureBufferDecode(RapptureBuffer* buf, 
+	int decompress, int base64 );
 
 #ifdef __cplusplus
 }

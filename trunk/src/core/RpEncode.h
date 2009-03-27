@@ -14,28 +14,21 @@
 #ifndef RAPPTURE_ENCODE_H
 #define RAPPTURE_ENCODE_H
 
-#include <RpBuffer.h>
 #include <RpOutcome.h>
+#include <RpBuffer.h>
 
-#define RPENC_Z      1
-#define RPENC_B64    2
-#define RPENC_HDR    4
-
-#ifdef __cplusplus
-extern "C" {
 namespace Rappture {
-    namespace encoding {
-#endif // ifdef __cplusplus
+namespace encoding {
+
+#define RPENC_Z      (1<<0)
+#define RPENC_B64    (1<<1)
+#define RPENC_HDR    (1<<2)
 
 int isbinary(const char* buf, int size);
 size_t isencoded(const char* buf, int size);
-Rappture::Outcome encode (Rappture::Buffer& buf, size_t flags);
-Rappture::Outcome decode (Rappture::Buffer& buf, size_t flags);
+bool encode(Rappture::Outcome &err, Rappture::Buffer& buf, size_t flags);
+bool decode(Rappture::Outcome &err, Rappture::Buffer& buf, size_t flags);
 
-#ifdef __cplusplus
-    } // namespace encoding
-} // namespace Rappture
-} // extern C
-#endif // ifdef __cplusplus
-
+}
+}
 #endif // RAPPTURE_ENCODE_H

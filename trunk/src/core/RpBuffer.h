@@ -47,10 +47,10 @@ public:
     Buffer& operator+=(const Buffer& b);
     virtual ~Buffer();
 
-    Outcome load(const char* filePath);
-    Outcome dump(const char* filePath);
-    Outcome encode(unsigned int compress=1, unsigned int base64=1);
-    Outcome decode(unsigned int decompress=1, unsigned int base64=1);
+    bool load(Outcome &result, const char* filePath);
+    bool dump(Outcome &result, const char* filePath);
+    bool encode(Outcome &result, bool compress=true, bool base64=true);
+    bool decode(Outcome &result, bool decompress=true, bool base64=true);
 
 protected:
 
@@ -64,19 +64,15 @@ protected:
     int _windowBits;
 
     enum { CHUNK = 4096 };
-
-    void do_compress(   Outcome& status,
-                        SimpleCharBuffer& bin,
+    
+    bool do_compress(Outcome& status, SimpleCharBuffer& bin,
+		     SimpleCharBuffer& bout  );
+    bool do_decompress( Outcome& status, SimpleCharBuffer& bin,
                         SimpleCharBuffer& bout  );
-    void do_decompress( Outcome& status,
-                        SimpleCharBuffer& bin,
-                        SimpleCharBuffer& bout  );
-    void do_base64_enc( Outcome& status,
-                        const SimpleCharBuffer& bin,
-                        SimpleCharBuffer& bout  );
-    void do_base64_dec( Outcome& status,
-                        const SimpleCharBuffer& bin,
-                        SimpleCharBuffer& bout  );
+    bool do_base64_enc(Outcome& status, const SimpleCharBuffer& bin,
+		       SimpleCharBuffer& bout  );
+    bool do_base64_dec(Outcome& status, const SimpleCharBuffer& bin,
+		       SimpleCharBuffer& bout  );
 };
 
 } // namespace Rappture

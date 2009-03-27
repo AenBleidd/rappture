@@ -18,9 +18,7 @@ using namespace Rappture;
  *  Create a negative outcome, with the given error message.
  */
 Outcome::Outcome(const char *errmsg) : 
-    _status(0),
-    _remarkPtr(NULL),
-    _contextPtr(NULL)
+    _status(0)
 {
     if (errmsg) {
         error(errmsg);
@@ -30,8 +28,8 @@ Outcome::Outcome(const char *errmsg) :
 /// Copy constructor
 Outcome::Outcome(const Outcome& oc) : 
     _status(oc._status),
-    _remarkPtr(oc._remarkPtr),
-    _contextPtr(oc._contextPtr)
+    _remark(oc._remark),
+    _context(oc._context)
 {
 }
 
@@ -40,8 +38,8 @@ Outcome&
 Outcome::operator=(const Outcome& oc)
 {
     _status = oc._status;
-    _remarkPtr = oc._remarkPtr;
-    _contextPtr = oc._contextPtr;
+    _remark = oc._remark;
+    _context = oc._context;
     return *this;
 }
 
@@ -56,8 +54,7 @@ Outcome&
 Outcome::error(const char* errmsg, int status)
 {
     _status = status;
-    _remarkPtr = Ptr<std::string>(new std::string(errmsg));
-    _contextPtr.clear();
+    _remark = errmsg;
     return *this;
 }
 
@@ -76,13 +73,14 @@ Outcome::addError(const char* format, ...)
 	bufPtr = (char *)malloc(n);
 	vsnprintf(bufPtr, n, format, lst);
     }
-    if (_remarkPtr.isNull()) {
-	_remarkPtr = Ptr<std::string>(new std::string(bufPtr));
+    if (_remark == "") {
+	_remark = _context;
+	_remark.append(":\n");
+	_remark.append(bufPtr);
     } else {
-        _remarkPtr->append("\n");
-	_remarkPtr->append(bufPtr);
+        _remark.append("\n");
+	_remark.append(bufPtr);
     }
-    _contextPtr.clear();
     _status = 1;		/* Set to error */
     if (bufPtr != stackSpace) {
 	free(bufPtr);
@@ -97,8 +95,8 @@ Outcome&
 Outcome::clear()
 {
     _status = 0;
-    _remarkPtr.clear();
-    _contextPtr.clear();
+    _remark.clear();
+    _context.clear();
     return *this;
 }
 
@@ -127,10 +125,8 @@ Outcome&
 Outcome::operator&=(Outcome oc)
 {
     _status &= oc._status;
-    if (!oc._contextPtr.isNull()) {
-        _remarkPtr = oc._remarkPtr;
-        _contextPtr = oc._contextPtr;
-    }
+    _remark = oc._remark;
+    _context = oc._context;
     return *this;
 }
 
@@ -140,7 +136,7 @@ Outcome::operator&=(Outcome oc)
 const char *
 Outcome::remark() const
 {
-    return (!_remarkPtr.isNull()) ? _remarkPtr->data() : "";
+    return _remark.c_str();
 }
 
 /**
@@ -150,11 +146,8 @@ Outcome&
 Outcome::addContext(const char *rem)
 {
     // FIXME: There should be a stack of contexts
-    if (_contextPtr.isNull()) {
-        _contextPtr = new std::string();
-    }
-    _contextPtr->append(rem);
-    _contextPtr->append("\n");
+    _context = rem;
+    _context.append("\n");
     return *this;
 }
 
@@ -208,5 +201,5 @@ Outcome::printContext(void)
 const char *
 Outcome::context() const
 {
-    return (!_contextPtr.isNull()) ? _contextPtr->data() : "";
+    return _context.c_str();
 }

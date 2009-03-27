@@ -14,12 +14,6 @@
 #include "RpEncode.h"
 #include <cstring>
 
-#ifdef __cplusplus
-extern "C" {
-#endif // ifdef __cplusplus
-
-using namespace Rappture::encoding;
-
 /**********************************************************************/
 // FUNCTION: Rappture::encoding::isbinary()
 /// isbinary checks to see if given string is binary.
@@ -31,7 +25,7 @@ using namespace Rappture::encoding;
  */
 
 int
-isbinary(const char* buf, int size)
+Rappture::encoding::isbinary(const char* buf, int size)
 {
     if (buf == NULL) {
         return 0;
@@ -69,7 +63,7 @@ isbinary(const char* buf, int size)
  */
 
 size_t
-isencoded(const char* buf, int size)
+Rappture::encoding::isencoded(const char* buf, int size)
 {
     size_t flags = 0;
     size_t len = 0;
@@ -116,7 +110,6 @@ isencoded(const char* buf, int size)
             flags = 0;
         }
     }
-
     return flags;
 }
 
@@ -130,51 +123,42 @@ isencoded(const char* buf, int size)
  * Rappture::encoding::encode(buf,flags)
  */
 
-Rappture::Outcome
-encode (Rappture::Buffer& buf, size_t flags)
+bool
+Rappture::encoding::encode(Rappture::Outcome &err, Rappture::Buffer& buf, 
+	size_t flags)
 {
-
-    int compress              = 0;
-    int base64                = 0;
-    int addHeader             = 0;
-    Rappture::Outcome err;
     Rappture::Buffer outData;
 
-    if ((flags & RPENC_Z) == RPENC_Z ) {
-        compress = 1;
-    }
-    if ((flags & RPENC_B64) == RPENC_B64 ) {
-        base64 = 1;
-    }
-    if ((flags & RPENC_HDR) == RPENC_HDR ) {
-        addHeader = 1;
-    }
+    bool compress, base64, addHeader;
+    compress  = (flags & RPENC_Z);
+    base64    = (flags & RPENC_B64);
+    addHeader = (flags & RPENC_HDR);
 
-    outData.append(buf.bytes(),buf.size());
-    err = outData.encode(compress,base64);
-    if (!err) {
+    if (outData.append(buf.bytes(), buf.size()) != (int)buf.size()) {
+	err.addError("can't append %d bytes", buf.size());
+	return false;
+    }
+    if (outData.encode(err, compress, base64)) {
         buf.clear();
-        if (addHeader == 1) {
-            if ((compress == 1) && (base64 == 0)) {
-                buf.append("@@RP-ENC:z\n",11);
-            }
-            else if ((compress == 0) && (base64 == 1)) {
-                buf.append("@@RP-ENC:b64\n",13);
-            }
-            else if ((compress == 1) && (base64 == 1)) {
-                buf.append("@@RP-ENC:zb64\n",14);
-            }
-            else {
+        if (addHeader) {
+            if ((compress) && (!base64)) {
+                buf.append("@@RP-ENC:z\n", 11);
+            } else if ((!compress) && (base64)) {
+                buf.append("@@RP-ENC:b64\n", 13);
+            } else if ((compress) && (base64)) {
+                buf.append("@@RP-ENC:zb64\n", 14);
+            } else {
                 // do nothing
             }
-        }
-        else {
+        } else {
             // do nothing
         }
-        buf.append(outData.bytes(),outData.size());
+        if (buf.append(outData.bytes(),outData.size()) != (int)outData.size()) {
+	    err.addError("can't append %d bytes", outData.size());
+	    return false;
+	}
     }
-
-    return err;
+    return true;
 }
 
 /**********************************************************************/
@@ -189,60 +173,50 @@ encode (Rappture::Buffer& buf, size_t flags)
  * Rappture::encoding::decode (buf,flags)
  */
 
-Rappture::Outcome
-decode (Rappture::Buffer& buf, size_t flags)
+bool
+Rappture::encoding::decode(Rappture::Outcome &err, Rappture::Buffer& buf, 
+			   size_t flags)
 {
-
-    int decompress            = 0;
-    int base64                = 0;
-    int checkHDR              = 0;
-    Rappture::Outcome err;
     Rappture::Buffer outData;
 
-    if ((flags & RPENC_Z) == RPENC_Z ) {
-        decompress = 1;
-    }
-    if ((flags & RPENC_B64) == RPENC_B64 ) {
-        base64 = 1;
-    }
-    if ((flags & RPENC_HDR) == RPENC_HDR ) {
-        checkHDR = 1;
-    }
+    bool decompress, base64, checkHDR;
+    decompress = (flags & RPENC_Z);
+    base64     = (flags & RPENC_B64);
+    checkHDR   = (flags & RPENC_HDR);
 
-    if ((buf.size() > 11) && (strncmp(buf.bytes(),"@@RP-ENC:z\n",11) == 0)) {
-        outData.append(buf.bytes()+11,buf.size()-11);
-        if ( (checkHDR == 1) || ( (decompress == 0) && (base64 == 0) ) ) {
-            decompress = 1;
-            base64 = 0;
+    off_t offset;
+    if ((buf.size() > 11) && (strncmp(buf.bytes(),"@@RP-ENC:z\n", 11) == 0)) {
+	offset = 11;
+        if ((checkHDR) || ((!decompress) && (!base64))) {
+            decompress = true;
+            base64 = false;
         }
-    }
-    else if ((buf.size() > 13) && (strncmp(buf.bytes(),"@@RP-ENC:b64\n",13) == 0)) {
-        outData.append(buf.bytes()+13,buf.size()-13);
-        if ( (checkHDR == 1) || ( (decompress == 0) && (base64 == 0) ) ) {
-            decompress = 0;
-            base64 = 1;
+    } else if ((buf.size() > 13) && 
+	       (strncmp(buf.bytes(),"@@RP-ENC:b64\n",13) == 0)) {
+	offset = 13;
+        if ((checkHDR) || ((!decompress) && (!base64) )) {
+            decompress = false;
+            base64 = true;
         }
-    }
-    else if ((buf.size() > 14) && (strncmp(buf.bytes(),"@@RP-ENC:zb64\n",14) == 0)) {
-        outData.append(buf.bytes()+14,buf.size()-14);
-        if ( (checkHDR == 1) || ( (decompress == 0) && (base64 == 0) ) ) {
-            decompress = 1;
-            base64 = 1;
+    } else if ((buf.size() > 14) && 
+	       (strncmp(buf.bytes(), "@@RP-ENC:zb64\n",14) == 0)) {
+	offset = 14;
+        if ((checkHDR) || ((!decompress) && (!base64))) {
+            decompress = true;
+            base64 = true;
         }
+    } else {
+	offset = 0;
     }
-    else {
-        // no special recognized tags
-        outData.append(buf.bytes(),buf.size());
+    int nBytes = buf.size() - offset;
+    if (outData.append(buf.bytes() + offset, nBytes) != nBytes) {
+	err.addError("can't append %d bytes to buffer", nBytes);
+	return false;
     }
-
-    err = outData.decode(decompress,base64);
-    if (!err) {
-        buf.move(outData);
+    if (!outData.decode(err, decompress, base64)) {
+	return false;
     }
-
-    return err;
+    buf.move(outData);
+    return true;
 }
 
-#ifdef __cplusplus
-}
-#endif // ifdef __cplusplus

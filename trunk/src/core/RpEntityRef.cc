@@ -38,10 +38,7 @@
 using namespace Rappture;
 
 const char*
-EntityRef::decode (
-    const char* value,
-    unsigned int len
-)
+EntityRef::decode (const char* value, unsigned int len)
 {
     unsigned int pos = 0;
 
