@@ -190,7 +190,7 @@ RapptureBufferLoad( RapptureBuffer* buf, const char* filename)
         return status;
     }
 
-    s = ((Rappture::Buffer*)buf->_buf)->load(filename);
+    ((Rappture::Buffer*)buf->_buf)->load(s, filename);
     RpOutcomeToCOutcome(&s,&status);
     return status;
 }
@@ -201,31 +201,52 @@ RapptureBufferDump(RapptureBuffer* buf, const char* filename)
     Rappture::Outcome s;
     RapptureOutcome status;
 
+    s.addContext("while in RapptureBufferLoad()");
     RapptureOutcomeInit(&status);
 
     if (buf == NULL) {
         s.error("invalid parameter: buf == NULL");
-        s.addContext("while in RapptureBufferLoad()");
         RpOutcomeToCOutcome(&s,&status);
         return status;
     }
 
     if (buf->_buf == NULL) {
         s.error("uninitialized parameter: buf, did you call RapptureBufferInit()?");
-        s.addContext("while in RapptureBufferLoad()");
         RpOutcomeToCOutcome(&s,&status);
         return status;
     }
 
-    s = ((Rappture::Buffer*)buf->_buf)->dump(filename);
+    ((Rappture::Buffer*)buf->_buf)->dump(s, filename);
     RpOutcomeToCOutcome(&s,&status);
     return status;
 }
 
 RapptureOutcome
-RapptureBufferEncode(   RapptureBuffer* buf,
-                        unsigned int compress,
-                        unsigned int base64 )
+RapptureBufferEncode(RapptureBuffer* buf, int compress, int base64)
+{
+    Rappture::Outcome s;
+    RapptureOutcome status;
+
+    RapptureOutcomeInit(&status);
+    s.addContext("while in RapptureBufferLoad()");
+    if (buf == NULL) {
+        s.error("invalid parameter: buf == NULL");
+        RpOutcomeToCOutcome(&s,&status);
+        return status;
+    }
+
+    if (buf->_buf == NULL) {
+        s.error("uninitialized parameter: buf, did you call RapptureBufferInit()?");
+        RpOutcomeToCOutcome(&s, &status);
+        return status;
+    }
+    ((Rappture::Buffer*)buf->_buf)->encode(s, compress, base64); 
+    RpOutcomeToCOutcome(&s,&status);
+    return status;
+}
+
+RapptureOutcome
+RapptureBufferDecode(RapptureBuffer* buf, int decompress, int base64 )
 {
     Rappture::Outcome s;
     RapptureOutcome status;
@@ -240,42 +261,13 @@ RapptureBufferEncode(   RapptureBuffer* buf,
     }
 
     if (buf->_buf == NULL) {
-        s.addContext("while in RapptureBufferLoad()");
-        s.error("uninitialized parameter: buf, did you call RapptureBufferInit()?");
-        RpOutcomeToCOutcome(&s,&status);
-        return status;
-    }
-
-    s = ((Rappture::Buffer*)buf->_buf)->encode(compress,base64);
-    RpOutcomeToCOutcome(&s,&status);
-    return status;
-}
-
-RapptureOutcome
-RapptureBufferDecode(   RapptureBuffer* buf,
-                        unsigned int decompress,
-                        unsigned int base64 )
-{
-    Rappture::Outcome s;
-    RapptureOutcome status;
-
-    RapptureOutcomeInit(&status);
-
-    if (buf == NULL) {
-        s.error("invalid parameter: buf == NULL");
-        s.addContext("while in RapptureBufferLoad()");
-        RpOutcomeToCOutcome(&s,&status);
-        return status;
-    }
-
-    if (buf->_buf == NULL) {
         s.error("uninitialized parameter: buf, did you call RapptureBufferInit()?");
         s.addContext("while in RapptureBufferLoad()");
         RpOutcomeToCOutcome(&s,&status);
         return status;
     }
 
-    s = ((Rappture::Buffer*)buf->_buf)->decode(decompress,base64);
+    ((Rappture::Buffer*)buf->_buf)->decode(s, decompress, base64);
     RpOutcomeToCOutcome(&s,&status);
     return status;
 }

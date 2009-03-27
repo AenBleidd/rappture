@@ -206,7 +206,7 @@ int testCompress()
     Rappture::Buffer buffer1;
     Rappture::Outcome status1;
     buffer1.append("abcdefghijklmnopqrstuvwxyz",26);
-    status1 = buffer1.encode(true,false);
+    buffer1.encode(status1, true, false);
     bytesRead = buffer1.size();
 
     // std::cout << status1.remark() << std::endl << status1.context() << std::endl;
@@ -225,7 +225,7 @@ int testCompress()
     Rappture::Buffer buffer2;
     Rappture::Outcome status2;
     buffer2.append("abcdefghijklmnopqrstuvwxyz",26);
-    status2 = buffer2.encode(false,true);
+    buffer2.encode(status2, false, true);
     bytesRead = buffer2.size();
 
     // std::cout << status2.remark() << std::endl << status2.context() << std::endl;
@@ -244,7 +244,7 @@ int testCompress()
     Rappture::Buffer buffer3;
     Rappture::Outcome status3;
     buffer3.append("abcdefghijklmnopqrstuvwxyz",26);
-    status2 = buffer3.encode(true,true);
+    buffer3.encode(status3, true, true);
     bytesRead = buffer3.size();
 
     // std::cout << status3.remark() << std::endl << status3.context() << std::endl;
@@ -273,8 +273,8 @@ int testDeCompress()
     Rappture::Buffer buffer1;
     Rappture::Outcome status1;
     buffer1.append("abcdefghijklmnopqrstuvwxyz",26);
-    status1 = buffer1.encode(true,false);
-    status1 = buffer1.decode(true,false);
+    buffer1.encode(status1, true, false);
+    buffer1.decode(status1, true, false);
     bytesRead = buffer1.size();
 
     // std::cout << status1.remark() << std::endl << status1.context() << std::endl;
@@ -293,8 +293,8 @@ int testDeCompress()
     Rappture::Buffer buffer2;
     Rappture::Outcome status2;
     buffer2.append("abcdefghijklmnopqrstuvwxyz",26);
-    status2 = buffer2.encode(false,true);
-    status2 = buffer2.decode(false,true);
+    buffer2.encode(status2, false, true);
+    buffer2.decode(status2, false, true);
     bytesRead = buffer2.size();
 
     // std::cout << status2.remark() << std::endl << status2.context() << std::endl;
@@ -313,8 +313,8 @@ int testDeCompress()
     Rappture::Buffer buffer3;
     Rappture::Outcome status3;
     buffer3.append("abcdefghijklmnopqrstuvwxyz",26);
-    status3 = buffer3.encode(true,true);
-    status3 = buffer3.decode(true,true);
+    buffer3.encode(status3, true, true);
+    buffer3.decode(status3, true, true);
     bytesRead = buffer3.size();
 
     // std::cout << status3.remark() << std::endl << status3.context() << std::endl;
@@ -337,13 +337,13 @@ int testDump()
     int passed = 0;
     int tests = 0;
 
-
     /* =========================================================== */
     tests++;
     char* filePath = "buffer1.txt";
     Rappture::Buffer buffer1;
     buffer1.append("abcdefghijklmnopqrstuvwxyz",26);
-    buffer1.dump(filePath);
+    Rappture::Outcome status1;
+    buffer1.dump(status1, filePath);
 
     std::ifstream inFile;
     std::ifstream::pos_type size = 0;
@@ -390,15 +390,15 @@ int testLoad()
     int passed = 0;
     int tests = 0;
 
-
     /* =========================================================== */
     tests++;
     char* filePath = "buffer1.txt";
     Rappture::Buffer buffer1;
     Rappture::Buffer buffer1out;
+    Rappture::Outcome status1;
     buffer1.append("abcdefghijklmnopqrstuvwxyz",26);
-    buffer1.dump(filePath);
-    buffer1out.load(filePath);
+    buffer1.dump(status1, filePath);
+    buffer1out.load(status1, filePath);
     int size = buffer1out.size();
     const char* b1bytes = buffer1.bytes();
     const char* b1obytes = buffer1out.bytes();
@@ -428,14 +428,14 @@ int testLoad()
 
     Rappture::Buffer buffer2;
     Rappture::Buffer buffer2out;
+    Rappture::Outcome status2;
+    buffer2.load(status2, filePath1);
+    buffer2.encode(status2);
+    buffer2.dump(status2, filePath2);
 
-    buffer2.load(filePath1);
-    buffer2.encode();
-    buffer2.dump(filePath2);
-
-    buffer2out.load(filePath2);
-    buffer2out.decode();
-    buffer2out.dump(filePath3);
+    buffer2out.load(status2, filePath2);
+    buffer2out.decode(status2);
+    buffer2out.dump(status2, filePath3);
 
     buffer2.clear();
     buffer2out.clear();
@@ -482,19 +482,19 @@ int testFile()
     int passed = 0;
     int tests = 0;
 
-
     /* =========================================================== */
     tests++;
     const char* inFile = "out.dx";
     const char* outFile = "out.dx.gz";
     Rappture::Buffer buffer1;
-    buffer1.load(inFile);
+    Rappture::Outcome status1;
+    buffer1.load(status1, inFile);
 
     // compress, dont encode
-    buffer1.encode(true,false);
+    buffer1.encode(status1, true, false);
     std::remove(outFile);
-    buffer1.dump(outFile);
-    buffer1.decode(true,false);
+    buffer1.dump(status1, outFile);
+    buffer1.decode(status1, true, false);
 
     /*
     if (size1before != 26) {

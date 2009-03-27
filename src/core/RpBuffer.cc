@@ -11,19 +11,19 @@
  * ======================================================================
  */
 
-#include "RpBuffer.h"
-
-#include "zlib.h"
+#include <assert.h>
+#include <errno.h>
+#include <stdio.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <fstream>
+#include <zlib.h>
 #include "b64/encode.h"
 #include "b64/decode.h"
-#include <fstream>
-#include <assert.h>
+#include "RpBuffer.h"
 
-#ifdef __cplusplus
-    extern "C" {
-#endif // ifdef __cplusplus
-
-using namespace Rappture;
+namespace Rappture {
 
 /**
  * Construct an empty Buffer.
@@ -109,152 +109,162 @@ Buffer::~Buffer()
 {}
 
 
-Outcome
-Buffer::load (const char* filePath)
+bool
+Buffer::load (Outcome &status, const char* filePath)
 {
-    Outcome status;
-    std::ifstream::pos_type size = 0;
-    std::ifstream inFile;
-    char* memblock = NULL;
+    status.addContext("Rappture::Buffer::load()");
 
-
-    inFile.open(filePath, std::ios::in | std::ios::ate | std::ios::binary);
-    if (!inFile.is_open()) {
-        status.error("error while opening file");
-        status.addContext("Rappture::Buffer::load()");
-        return status;
+    FILE *f;
+    f = fopen(filePath, "rb");
+    if (f == NULL) {
+        status.addError("can't open \"%s\": %s", filePath, strerror(errno));
+	return false;
     }
-
-    size = inFile.tellg();
+    struct stat stat;
+    if (fstat(fileno(f), &stat) < 0) {
+        status.addError("can't stat \"%s\": %s", filePath, strerror(errno));
+	return false;
+    }	
+    off_t size;
+    size = stat.st_size;
+    char* memblock;
     memblock = new char [size];
     if (memblock == NULL) {
-        status.error("error while allocating memory");
-        status.addContext("Rappture::Buffer::load()");
-        inFile.close();
-        return status;
+        status.addError("can't allocate %d bytes for file \"%s\": %s",
+			size, filePath, strerror(errno));
+        fclose(f);
+        return false;
     }
 
-    inFile.seekg(0,std::ios::beg);
-    inFile.read(memblock,size);
+    // FIXME: better yet, create an "extend" method in the buffer and returns
+    //	     the address of the char buffer so I can read the data directly
+    //	     into the buffer.  This eliminates memory new/copy/delete ops.
 
-    // save data in buffer object.
-    append(memblock,size);
+    size_t nRead;
+    nRead = fread(memblock, sizeof(char), size, f);
+    fclose(f);			// Close the file.
 
-    // close files, free memory
-    inFile.close();
+    if (nRead != (size_t)size) {
+        status.addError("can't read %d bytes from \"%s\": %s", size, filePath, 
+			strerror(errno));
+        return false;
+    }	
+
+    int nBytes;
+    nBytes = append(memblock, size);
     delete [] memblock;
-    memblock = NULL;
 
-    // exit nicely
-    return status;
+    if (nBytes != size) {
+        status.addError("can't append %d bytes from \"%s\" to buffer: %s", 
+		size, filePath, strerror(errno));
+        return false;
+    }	
+    return true;
 }
 
 
-Outcome
-Buffer::dump (const char* filePath)
+bool
+Buffer::dump (Outcome &status, const char* filePath)
 {
-    Outcome status;
-    std::ofstream outFile;
+    status.addContext("Rappture::Buffer::dump()");
 
-    outFile.open(filePath, std::ios::out|std::ios::trunc|std::ios::binary);
-    if (!outFile.is_open()) {
-        status.error("error while opening file");
-        status.addContext("Rappture::Buffer::dump()");
-        return status;
+    FILE *f;
+    f = fopen(filePath, "wb");
+    if (f != NULL) {
+        status.addError("can't open \"%s\": %s\n", filePath, strerror(errno));
+	return false;
     }
-
-    outFile.write(bytes(),size());
-    outFile.close();
-
-    // exit nicely
-    return status;
+    ssize_t nWritten;
+    nWritten = fwrite(bytes(), size(), sizeof(char), f);
+    fclose(f);			// Close the file.
+    
+    if (nWritten != (ssize_t)size()) {
+        status.addError("can't write %d bytes to \"%s\": %s\n", size(), 
+			filePath, strerror(errno));
+	return false;
+    }
+    return true;
 }
 
 
-Outcome
-Buffer::encode (unsigned int compress, unsigned int base64)
+bool
+Buffer::encode (Outcome &err, bool compress, bool base64)
 {
-    Outcome err;
     SimpleCharBuffer bin;
     SimpleCharBuffer bout;
-
-    if ((base64 == 0) && (compress == 0)) {
-        return err;
-    }
 
     err.addContext("Rappture::Buffer::encode()");
+    if ((!base64) && (!compress)) {
+	err.addError("invalid parameters: both base64 and compress are false");
+        return false;
+    }
+
     rewind();
 
-    if (compress != 0) {
-        do_compress(err,*this,bout);
-        if (err) {
-            return err;
+    if (compress) {
+        if (!do_compress(err, *this, bout)) {
+            return false;
         }
     }
 
-    if (base64 != 0) {
-        if (compress != 0) {
+    if (base64) {
+        if (compress) {
             bin.move(bout);
-            do_base64_enc(err,bin,bout);
+            if (!do_base64_enc(err, bin, bout)) {
+		return false;
+	    }
         }
         else {
-            do_base64_enc(err,*this,bout);
+            if (!do_base64_enc(err, *this, bout)) {
+		return false;
+	    }
         }
     }
-
-    if (!err) {
-        // write the encoded data to the internal buffer
-        move(bout);
-    }
-
-    return err;
+    // write the encoded data to the internal buffer
+    move(bout);
+    return true;
 }
 
 
-Outcome
-Buffer::decode (unsigned int decompress, unsigned int base64)
+bool
+Buffer::decode (Outcome &err, bool decompress, bool base64)
 {
-    Outcome err;
     SimpleCharBuffer bin;
     SimpleCharBuffer bout;
 
-    if ((base64 == 0) && (decompress == 0)) {
-        return err;
+    err.addContext("Rappture::Buffer::decode()");
+    if ((!base64) && (!decompress)) {
+	err.addError("invalid parameters: both base64 and compress are false");
+        return false;
     }
 
-    err.addContext("Rappture::Buffer::decode()");
     rewind();
 
-    if (base64 != 0) {
-        do_base64_dec(err,*this,bout);
-        if (err) {
-            return err;
+    if (base64) {
+        if (!do_base64_dec(err,*this, bout)) {
+            return false;
         }
     }
-
-    if (decompress != 0) {
+    if (decompress) {
         if (base64) {
             bin.move(bout);
-            do_decompress(err,bin,bout);
-        }
-        else {
-            do_decompress(err,*this,bout);
+            if (!do_decompress(err, bin, bout)) {
+		return false;
+	    }
+        } else {
+            if (!do_decompress(err, *this, bout)) {
+		return false;
+	    }
         }
     }
-
-    if (!err) {
-        // write the decoded data to the internal buffer
-        move(bout);
-    }
-
-    return err;
+    move(bout);
+    return true;
 }
 
 
-void
-Buffer::do_compress(    Outcome& status,
-                        SimpleCharBuffer& bin,
-                        SimpleCharBuffer& bout  )
+bool
+Buffer::do_compress(Outcome& status, SimpleCharBuffer& bin, 
+		    SimpleCharBuffer& bout)
 {
     int ret=0, flush=0;
     unsigned have=0;
@@ -270,14 +280,15 @@ Buffer::do_compress(    Outcome& status,
     strm.zfree = Z_NULL;
     strm.opaque = Z_NULL;
 
+    status.addContext("Rappture::Buffer::do_compress()");
+
     ret = deflateInit2( &strm, _level, Z_DEFLATED,
                         _windowBits+_compressionType,
                         8, Z_DEFAULT_STRATEGY);
 
     if (ret != Z_OK) {
-        status.error("error while initializing zlib stream object");
-        status.addContext("Rappture::Buffer::do_compress()");
-        return;
+        status.addError("error while initializing zlib stream object");
+        return false;
     }
 
     /* compress until end of file */
@@ -286,9 +297,8 @@ Buffer::do_compress(    Outcome& status,
         if (bin.bad() == true) {
             (void)deflateEnd(&strm);
             // return Z_ERRNO;
-            status.error("error while compressing");
-            status.addContext("Rappture::Buffer::do_compress()");
-            return;
+            status.addError("error while compressing");
+            return false;
         }
         flush = bin.eof() ? Z_FINISH : Z_NO_FLUSH;
         strm.next_in = (Bytef*) in;
@@ -306,9 +316,8 @@ Buffer::do_compress(    Outcome& status,
                 (void)deflateEnd(&strm);
                 bout.clear();
                 // return Z_ERRNO;
-                status.error("error writing compressed data to temp buffer");
-                status.addContext("Rappture::Buffer::do_compress()");
-                return;
+                status.addError("error writing compressed data to temp buffer");
+                return false;
             }
 
         } while (strm.avail_out == 0);
@@ -322,13 +331,12 @@ Buffer::do_compress(    Outcome& status,
     /* clean up and return */
     (void)deflateEnd(&strm);
     // return Z_OK;
-    return;
+    return true;
 }
 
-void
-Buffer::do_decompress(  Outcome& status,
-                        SimpleCharBuffer& bin,
-                        SimpleCharBuffer& bout  )
+bool
+Buffer::do_decompress(Outcome& status, SimpleCharBuffer& bin,
+		      SimpleCharBuffer& bout)
 {
     int ret;
     unsigned have;
@@ -339,6 +347,8 @@ Buffer::do_decompress(  Outcome& status,
 
     int bytesWritten = 0;
 
+    status.addContext("Rappture::Buffer::do_decompress()");
+
     /* allocate inflate state */
     strm.zalloc = Z_NULL;
     strm.zfree = Z_NULL;
@@ -347,10 +357,8 @@ Buffer::do_decompress(  Outcome& status,
     strm.next_in = Z_NULL;
     ret = inflateInit2(&strm,_windowBits+_compressionType);
     if (ret != Z_OK) {
-        status.error("error while initializing zlib stream object");
-        status.addContext("Rappture::Buffer::do_decompress()");
-        // return status;
-        return;
+        status.addError("error while initializing zlib stream object");
+        return false;
     }
 
     /* decompress until deflate stream ends or end of file */
@@ -359,10 +367,8 @@ Buffer::do_decompress(  Outcome& status,
         if (bin.bad() == true) {
             (void)inflateEnd(&strm);
             // return Z_ERRNO;
-            status.error("error while compressing");
-            status.addContext("Rappture::Buffer::do_decompress()");
-            // return status;
-            return;
+            status.addError("error while compressing");
+            return false;
         }
         if (strm.avail_in == 0)
             break;
@@ -380,9 +386,8 @@ Buffer::do_decompress(  Outcome& status,
             case Z_MEM_ERROR:
                 (void)inflateEnd(&strm);
                 bout.clear();
-                status.error("memory error while inflating data");
-                status.addContext("Rappture::Buffer::do_decompress()");
-                return;
+                status.addError("memory error while inflating data");
+                return false;
             }
             have = CHUNK - strm.avail_out;
             bytesWritten = bout.append(out, have);
@@ -390,9 +395,8 @@ Buffer::do_decompress(  Outcome& status,
                 (void)inflateEnd(&strm);
                 bout.clear();
                 // return Z_ERRNO;
-                status.error("error writing compressed data to temp buffer");
-                status.addContext("Rappture::Buffer::do_decompress()");
-                return;
+                status.addError("error writing compressed data to temp buffer");
+                return false;
             }
         } while (strm.avail_out == 0);
 
@@ -402,14 +406,13 @@ Buffer::do_decompress(  Outcome& status,
     /* clean up and return */
     (void)inflateEnd(&strm);
     // return ret == Z_STREAM_END ? Z_OK : Z_DATA_ERROR;
-    return;
+    return true;
 }
 
 
-void
-Buffer::do_base64_enc(  Outcome& status,
-                        const SimpleCharBuffer& bin,
-                        SimpleCharBuffer& bout )
+bool
+Buffer::do_base64_enc(Outcome& status, const SimpleCharBuffer& bin,
+		      SimpleCharBuffer& bout )
 {
     int tBufSize = 0;
     unsigned int tBufAvl = 2*bin.size();
@@ -423,14 +426,13 @@ Buffer::do_base64_enc(  Outcome& status,
     bout = SimpleCharBuffer(tBuf,tBufSize);
     delete [] tBuf;
 
-    return;
+    return true;
 }
 
 
-void
-Buffer::do_base64_dec(  Outcome& status,
-                        const SimpleCharBuffer& bin,
-                        SimpleCharBuffer& bout )
+bool
+Buffer::do_base64_dec(Outcome& status, const SimpleCharBuffer& bin,
+		      SimpleCharBuffer& bout )
 {
     int tBufSize = 0;
     unsigned int tBufAvl = bin.size();
@@ -443,10 +445,11 @@ Buffer::do_base64_dec(  Outcome& status,
     bout = SimpleCharBuffer(tBuf,tBufSize);
     delete [] tBuf;
 
-    return;
+    return true;
 }
 
-#ifdef __cplusplus
-    }
-#endif // ifdef __cplusplus
+
+}
+
+
 

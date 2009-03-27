@@ -47,10 +47,10 @@ private:
     int _status;
 
     /// error message
-    Ptr<std::string>_remarkPtr;
+    std::string _remark;
 
     /// stack trace
-    Ptr<std::string>_contextPtr;
+    std::string _context;
 };
 
 } // namespace Rappture

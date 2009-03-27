@@ -1519,6 +1519,7 @@ RpLibrary::getString (std::string path, int translateFlag) const
     std::string retStr = "";
     Rappture::Buffer inData;
 
+    status.addContext("RpLibrary::getString");
     if (!this->root) {
         // library doesn't exist, do nothing;
         return retStr;
@@ -1532,11 +1533,9 @@ RpLibrary::getString (std::string path, int translateFlag) const
     }
 
     retCStr = scew_element_contents(retNode);
-
     if (!retCStr) {
         return retStr;
     }
-
     inData = Rappture::Buffer(retCStr);
 
     if (Rappture::encoding::isencoded(inData.bytes(),inData.size()) != 0) {
@@ -1544,18 +1543,20 @@ RpLibrary::getString (std::string path, int translateFlag) const
         // coming from an rplib, this means it was at least base64 encoded
         // there is no reason to do entity translation
         // because base64 character set does not include xml entity chars
-        status &= Rappture::encoding::decode(inData,0);
-        status.addContext("RpLibrary::getSting");
+        if (!Rappture::encoding::decode(status, inData, 0)) {
+	    return retStr;
+	}
         retStr = std::string(inData.bytes(),inData.size());
     } else {
         // check translateFlag to see if we need to translate entity refs
         if (translateFlag == RPLIB_TRANSLATE) {
-            translatedContents = ERTranslator.decode(inData.bytes(),inData.size());
+            translatedContents = ERTranslator.decode(inData.bytes(),
+						     inData.size());
             if (translatedContents == NULL) {
                 // translation failed
                 if (!status) {
                     status.error("Error while translating entity references");
-                    status.addContext("RpLibrary::getSting");
+		    return retStr;
                 }
             } else {
                 // subtract 1 from size because ERTranslator adds extra NULL
@@ -1564,9 +1565,7 @@ RpLibrary::getString (std::string path, int translateFlag) const
             }
         }
     }
-
     inData.clear();
-
     return retStr;
 }
 
@@ -1737,11 +1736,8 @@ RpLibrary::getData (std::string path) const
  */
 
 RpLibrary&
-RpLibrary::put (    std::string path,
-                    std::string value,
-                    std::string id,
-                    unsigned int append,
-                    unsigned int translateFlag)
+RpLibrary::put (std::string path, std::string value, std::string id,
+		unsigned int append, unsigned int translateFlag)
 {
     Rappture::EntityRef ERTranslator;
     scew_element* retNode = NULL;
@@ -1749,26 +1745,26 @@ RpLibrary::put (    std::string path,
     const char* contents = NULL;
     const char* translatedContents = NULL;
 
+    status.addContext("RpLibrary::put() - putString");
+
     if (!this->root) {
         // library doesn't exist, do nothing;
         status.error("invalid library object");
-        status.addContext("RpLibrary::put() - putString");
         return *this;
     }
 
     // check for binary data
-    if (Rappture::encoding::isbinary(value.c_str(),value.length()) != 0) {
-        putData(path,value.c_str(),value.length(),append);
-        status.addContext("RpLibrary::put() - putString");
+    // FIXME: I've already appended a NUL-byte of this assuming that
+    //	      it's a ASCII string. This test must come before.
+    if (Rappture::encoding::isbinary(value.c_str(), value.length()) != 0) {
+        putData(path, value.c_str(), value.length(), append);
         return *this;
     }
 
-    retNode = _find(path,CREATE_PATH);
-
+    retNode = _find(path, CREATE_PATH);
     if (retNode == NULL) {
         // node not found, set error
         status.error("Error while searching for node: node not found");
-        status.addContext("RpLibrary::put() - putString");
         return *this;
     }
 
@@ -1778,6 +1774,7 @@ RpLibrary::put (    std::string path,
             // entity referene translation failed
             if (!status) {
                 status.error("Error while translating entity references");
+		return *this;
             }
         }
         else {
@@ -1785,7 +1782,6 @@ RpLibrary::put (    std::string path,
             translatedContents = NULL;
         }
     }
-
     if (append == RPLIB_APPEND) {
         contents = scew_element_contents(retNode);
         if (contents != NULL) {
@@ -1793,10 +1789,7 @@ RpLibrary::put (    std::string path,
             value = tmpVal + value;
         }
     }
-
     scew_element_set_contents(retNode,value.c_str());
-
-    status.addContext("RpLibrary::put() - putString");
     return *this;
 }
 
@@ -1807,10 +1800,8 @@ RpLibrary::put (    std::string path,
  */
 
 RpLibrary&
-RpLibrary::put (    std::string path,
-                    double value,
-                    std::string id,
-                    unsigned int append )
+RpLibrary::put (std::string path, double value, std::string id, 
+		unsigned int append)
 {
     std::stringstream valStr;
 
@@ -1962,43 +1953,37 @@ RpLibrary::putData (std::string path,
     unsigned int bytesWritten = 0;
     size_t flags = 0;
 
+    status.addContext("RpLibrary::putData()");
     if (!this->root) {
         // library doesn't exist, do nothing;
         return *this;
     }
-
     retNode = _find(path,CREATE_PATH);
 
-    if (retNode) {
-
-        if (append == RPLIB_APPEND) {
-            if ( (contents = scew_element_contents(retNode)) ) {
-                inData.append(contents);
-                // base64 decode and un-gzip the data
-                status &= Rappture::encoding::decode(inData,0);
-                if (int(status) != 0) {
-                    status.addContext("RpLibrary::putData()");
-                    return *this;
-                }
-            }
-        }
-
-        inData.append(bytes,nbytes);
-        // gzip and base64 encode the data
-        flags = RPENC_Z|RPENC_B64|RPENC_HDR;
-        status &= Rappture::encoding::encode(inData,flags);
-
-        bytesWritten = (unsigned int) inData.size();
-        scew_element_set_contents_binary(retNode,inData.bytes(),&bytesWritten);
+    if (retNode == NULL) {
+	status.addError("can't create node from path \"%s\"", path.c_str());
+	return *this;
     }
-    else {
-        // node not found, set error
-        if (!status) {
-            status.error("Error while searching for node: node not found");
-        }
+    if (append == RPLIB_APPEND) {
+	if ( (contents = scew_element_contents(retNode)) ) {
+	    inData.append(contents);
+	    // base64 decode and un-gzip the data
+	    if (!Rappture::encoding::decode(status, inData, 0)) {
+		return *this;
+	    }
+	}
     }
-
-    status.addContext("RpLibrary::putData()");
+    if (inData.append(bytes, nbytes) != nbytes) {
+	status.addError("can't append %d bytes", nbytes);
+	return *this;
+    }	
+    // gzip and base64 encode the data
+    flags = RPENC_Z|RPENC_B64|RPENC_HDR;
+    if (!Rappture::encoding::encode(status, inData,flags)) {
+	return *this;
+    }
+    bytesWritten = (unsigned int) inData.size();
+    scew_element_set_contents_binary(retNode,inData.bytes(),&bytesWritten);
     return *this;
 }
 
@@ -2012,10 +1997,8 @@ RpLibrary::putData (std::string path,
  */
 
 RpLibrary&
-RpLibrary::putFile (std::string path,
-                    std::string fileName,
-                    unsigned int compress,
-                    unsigned int append  )
+RpLibrary::putFile(std::string path, std::string fileName, 
+		   unsigned int compress, unsigned int append)
 {
     Rappture::Buffer buf;
     Rappture::Buffer fileBuf;
@@ -2026,13 +2009,16 @@ RpLibrary::putFile (std::string path,
         return *this;
     }
 
-    fileBuf.load(fileName.c_str());
-    if (compress == RPLIB_COMPRESS) {
-        putData(path,fileBuf.bytes(),fileBuf.size(),append);
+    if (!fileBuf.load(err, fileName.c_str())) {
+	fprintf(stderr, "error loading file: %s\n", err.remark());
+	return *this;
     }
-    else {
-        fileBuf.append("\0",1);
-        put(path,fileBuf.bytes(),"",append,RPLIB_TRANSLATE);
+    if (compress == RPLIB_COMPRESS) {
+        putData(path, fileBuf.bytes(), fileBuf.size(), append);
+    } else {
+	/* Always append a NUL-byte to the end of ASCII strings. */
+        fileBuf.append("\0", 1);
+        put(path, fileBuf.bytes(), "", append, RPLIB_TRANSLATE);
     }
     status.addContext("RpLibrary::putFile()");
     return *this;
