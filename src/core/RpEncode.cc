@@ -37,6 +37,9 @@ Rappture::encoding::isbinary(const char* buf, int size)
 
     for (int index = 0; index < size; index++) {
         int c = *buf++;
+	// FIXME: use ctype's isascii and isprint
+	//        TAB (011), LF(012), CR(015) is ascii. 
+	//        what about BS(010), VT(013), FF(014)?
         if (((c >= '\000') && (c <= '\010')) ||
             ((c >= '\013') && (c <= '\014')) ||
             ((c >= '\016') && (c <= '\037')) ||
