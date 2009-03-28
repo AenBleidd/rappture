@@ -518,7 +518,7 @@ initUnits(void)
 
     /* Add some symbolic constants to the module */
     if (ErrorObject == NULL) {
-        ErrorObject = PyErr_NewException("RpUnits.error", NULL, NULL);
+        ErrorObject = PyErr_NewException((char *)"RpUnits.error", NULL, NULL);
         if (ErrorObject == NULL)
             return;
     }
