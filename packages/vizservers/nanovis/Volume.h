@@ -53,6 +53,8 @@ public:
 				// large an object is in relation to other
 				// objects. This size is provided by the
 				// render engine.
+    Vector3 _physical_min;
+    Vector3 _physical_max;
 
     AxisRange xAxis, yAxis, zAxis, wAxis;
     static bool update_pending;
@@ -155,6 +157,10 @@ public:
     void set_label(int axis, const char* txt); // change the label displayed
 					       // on an axis
     std::string label[3];	// the labels along each axis 0:x , 1:y, 2:z
+
+    void setPhysicalBBox(const Vector3& min, const Vector3& max);
+    Vector3& getPhysicalBBoxMin();
+    Vector3& getPhysicalBBoxMax();
 };
 
 inline void Volume::enable() { 
@@ -339,6 +345,35 @@ inline void
 Volume::set_isosurface(int iso) 
 {
     iso_surface = iso;
+}
+
+inline void 
+Volume::setPhysicalBBox(const Vector3& min, const Vector3& max)
+{
+	_physical_min = min;
+	_physical_max = max;
+
+/*
+	aspect_ratio_width = size * 1;
+	aspect_ratio_height = size * (max.y - min.y) / (max.x - min.x);
+    	aspect_ratio_depth = size* (max.z - min.z) / (max.x - min.x);
+
+        location.x = -0.5;
+        location.y = -0.5* aspect_ratio_height;
+        location.z = -0.5* aspect_ratio_depth;
+*/
+}
+
+inline Vector3& 
+Volume::getPhysicalBBoxMin()
+{
+    return _physical_min;
+}
+
+inline Vector3& 
+Volume::getPhysicalBBoxMax()
+{
+    return _physical_max;
 }
 
 #endif

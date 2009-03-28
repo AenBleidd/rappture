@@ -33,6 +33,7 @@ class NvFlowVisRenderer {
 
 	bool _activated;
 
+	//NvLIC* licRenderer[3];
 public:
 	NvFlowVisRenderer(int w, int h, CGcontext context);
 	~NvFlowVisRenderer();

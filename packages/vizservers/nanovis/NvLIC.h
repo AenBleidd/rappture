@@ -104,6 +104,8 @@ public:
     bool isActivated() const;
 
     void setVectorField(unsigned int texID, const Vector3& ori, float scaleX, float scaleY, float scaleZ, float max);
+
+   void reset();
 };
 
 inline void NvLIC::activate()

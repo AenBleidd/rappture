@@ -55,6 +55,10 @@ load_vector_stream2(Rappture::Outcome &result, int volindex, std::istream& fin)
 
     dx = dy = dz = 0.0;         // Suppress compiler warning.
     x0 = y0 = z0 = 0.0;		// May not have an origin line.
+
+    Vector3 physicalMin;
+    Vector3 physicalMax;
+
     while (!fin.eof()) {
         fin.getline(line, sizeof(line) - 1);
         if (fin.fail()) {
@@ -97,6 +101,9 @@ load_vector_stream2(Rappture::Outcome &result, int volindex, std::istream& fin)
             }
         }
     }
+
+    physicalMin.set(x0, y0, z0);
+    physicalMax.set(x0 + dx * nx, y0 + dy * ny, z0 + dz * nz);
 
     // read data points
     float* srcdata = new float[nx * ny * nz * 3];
@@ -192,6 +199,7 @@ load_vector_stream2(Rappture::Outcome &result, int volindex, std::istream& fin)
         volPtr->zAxis.SetRange(z0, z0 + nz);
         volPtr->wAxis.SetRange(min_mag, max_mag);
         volPtr->update_pending = true;
+	volPtr->setPhysicalBBox(physicalMin, physicalMax);
         delete [] data;
     } else {
         std::cerr << "WARNING: data not found in stream" << std::endl;

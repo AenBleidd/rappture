@@ -53,6 +53,7 @@
 #include "NvColorTableRenderer.h"
 #include "NvEventLog.h"
 #include "NvZincBlendeReconstructor.h"
+#include "NvFlowVisRenderer.h"
 #include "HeightMap.h"
 #include "Grid.h"
 #include "VolumeInterpolator.h"
@@ -70,6 +71,8 @@
 #define SIZEOF_BMP_HEADER   54
 
 extern void NvInitCG(); // in Shader.cpp
+extern bool load_vector_stream2(Rappture::Outcome &result, int index, 
+	std::istream& fin);
 
 // Indicates "up" axis:  x=1, y=2, z=3, -x=-1, -y=-2, -z=-3
 enum AxisDirections { 
@@ -107,7 +110,13 @@ vector<PointSet*> NanoVis::pointSet;
 PlaneRenderer* NanoVis::plane_render = 0;
 Texture2D* NanoVis::plane[10];
 NvColorTableRenderer* NanoVis::color_table_renderer = 0;
-NvParticleRenderer* NanoVis::particleRenderer = 0;
+
+#ifndef NEW_FLOW_ENGINE
+NvParticleRenderer* NanoVis::flowVisRenderer = 0;
+#else
+NvFlowVisRenderer* NanoVis::flowVisRenderer = 0;
+#endif
+
 graphics::RenderContext* NanoVis::renderContext = 0;
 NvLIC* NanoVis::licRenderer = 0;
 R2Fonts* NanoVis::fonts;
@@ -754,45 +763,8 @@ make_test_2D_data()
 
 void NanoVis::initParticle()
 {
-    //random placement on a slice
-    size_t n = particleRenderer->psys_width * particleRenderer->psys_height * 4;
-    float* data = new float[n];
-    memset(data, 0, sizeof(float)* n);
-
-    int index;
-    //bool particle;
-    for (int i=0; i<particleRenderer->psys_width; i++) {
-        for (int j=0; j<particleRenderer->psys_height; j++) {
-            index = i + particleRenderer->psys_height*j;
-            //particle = rand() % 256 > 150; 
-            //if(particle) 
-            {
-                //assign any location (x,y,z) in range [0,1]
-                // TEMP
-                //data[4*index] = lic_slice_x;
-                if (j % 2) data[4*index] = 0.95;
-		else data[4*index] = 0.05;
-                data[4*index+1]= j/float(particleRenderer->psys_height);
-                data[4*index+2]= i/float(particleRenderer->psys_width);
-                //data[4*index+3]= 30; //shorter life span, quicker iterations
-                data[4*index+3]= rand() / ((float) RAND_MAX) * 0.5  + 0.5f; //shorter life span, quicker iterations
-            }
-	    /*
-	      else
-	      {
-	      data[4*index] = 0;
-	      data[4*index+1]= 0;
-	      data[4*index+2]= 0;
-	      data[4*index+3]= 0;
-	      }
-	    */
-        }
-    }
-
-    particleRenderer->initialize((Particle*)data);
+    flowVisRenderer->initialize();
     licRenderer->make_patterns();
-
-    delete[] data;
 }
 
 void CgErrorCallback(void)
@@ -850,7 +822,12 @@ void NanoVis::init(const char* path)
     
     color_table_renderer = new NvColorTableRenderer();
     color_table_renderer->setFonts(fonts);
-    particleRenderer = new NvParticleRenderer(NMESH, NMESH, g_context);
+#ifndef NEW_FLOW_ENGINE
+    flowVisRenderer = new NvParticleRenderer(NMESH, NMESH, g_context);
+#else
+    flowVisRenderer = new NvFlowVisRenderer(NMESH, NMESH, g_context);
+#endif
+
 
 #if PROTOTYPE
     licRenderer = new NvLIC(NMESH, NPIX, NPIX, lic_axis, Vector3(lic_slice_x, lic_slice_y, lic_slice_z), g_context);
@@ -1727,9 +1704,11 @@ NanoVis::display()
         if ((licRenderer != NULL) && (licRenderer->isActivated())) {
             licRenderer->render();
         }
-        if ((particleRenderer != NULL) && (particleRenderer->isActivated())) {
-            particleRenderer->render();
-        }
+
+        if ((flowVisRenderer != NULL) && (flowVisRenderer->isActivated())) {
+            flowVisRenderer->render();
+	}
+
         //soft_display_verts();
         //perf->enable();
         //perf->disable();
@@ -1824,6 +1803,68 @@ NanoVis::update_trans(int delta_x, int delta_y, int delta_z)
     cam->z(cam->z() + delta_z * 0.03);
 }
 
+#ifdef NEW_FLOW_ENGINE
+void addVectorField(const char* filename, const char* vf_name, const char* plane_name1, const char* plane_name2, const Vector4& color1, const Vector4& color2)
+{
+    		Rappture::Outcome result;
+    		std::ifstream fdata;
+		fdata.open(filename, std::ios::in);
+
+    		int n = NanoVis::n_volumes;
+    		//fdata.write(buf.bytes(),buf.size());
+    		if (load_vector_stream2(result, n, fdata)) {
+    			Volume *volPtr = NanoVis::volume[n];
+    			if (volPtr != NULL) {
+        			volPtr->set_n_slice(256-n);
+        			// volPtr->set_n_slice(512-n);
+        			volPtr->disable_cutplane(0);
+        			volPtr->disable_cutplane(1);
+        			volPtr->disable_cutplane(2);
+
+        			NanoVis::vol_renderer->add_volume(volPtr,
+					NanoVis::get_transfunc("default"));
+					float dx0 = -0.5;
+					float dy0 = -0.5*volPtr->height/volPtr->width;
+					float dz0 = -0.5*volPtr->depth/volPtr->width;
+					volPtr->move(Vector3(dx0, dy0, dz0));
+					//volPtr->enable_data();
+					volPtr->disable_data();
+				NanoVis::flowVisRenderer->addVectorField(vf_name, volPtr, 
+						*(volPtr->get_location()),
+            					1.0f,
+						volPtr->height / (float)volPtr->width,
+						volPtr->depth  / (float)volPtr->width,
+						1.0f);
+				NanoVis::flowVisRenderer->activateVectorField(vf_name);
+
+				//////////////////////////////////
+				// ADD Particle Injection Plane1
+				NanoVis::flowVisRenderer->addPlane(vf_name, plane_name1);
+				NanoVis::flowVisRenderer->setPlaneAxis(vf_name, plane_name1, 0);
+				NanoVis::flowVisRenderer->setPlanePos(vf_name, plane_name1, 0.9);
+				NanoVis::flowVisRenderer->setParticleColor(vf_name, plane_name1, color1);
+				// ADD Particle Injection Plane2
+				NanoVis::flowVisRenderer->addPlane(vf_name, plane_name2);
+				NanoVis::flowVisRenderer->setPlaneAxis(vf_name, plane_name2, 0);
+				NanoVis::flowVisRenderer->setPlanePos(vf_name, plane_name2, 0.2);
+				NanoVis::flowVisRenderer->setParticleColor(vf_name, plane_name2, color2);
+				NanoVis::flowVisRenderer->initialize(vf_name);
+
+				NanoVis::flowVisRenderer->activatePlane(vf_name, plane_name1);
+				NanoVis::flowVisRenderer->activatePlane(vf_name, plane_name2);
+        
+			NanoVis::licRenderer->setVectorField(volPtr->id,
+				*(volPtr->get_location()),
+				1.0f / volPtr->aspect_ratio_width,
+				1.0f / volPtr->aspect_ratio_height,
+				1.0f / volPtr->aspect_ratio_depth,
+				volPtr->wAxis.max());
+    		}
+	}
+	//NanoVis::initParticle();
+}
+#endif
+
 void 
 NanoVis::keyboard(unsigned char key, int x, int y)
 {
@@ -1837,6 +1878,108 @@ NanoVis::keyboard(unsigned char key, int x, int y)
 	tmp->write(event_log);
 	delete tmp;
     }
+#endif
+
+#ifdef NEW_FLOW_ENGINE
+    switch (key)
+    {
+	case 'a' :
+		{
+			printf("flowvis active\n");
+			NanoVis::flowVisRenderer->activate();
+			NanoVis::licRenderer->activate();
+		}
+		break;
+	case 'd' :
+		{
+			printf("flowvis deactived\n");
+			NanoVis::flowVisRenderer->deactivate();
+			NanoVis::licRenderer->deactivate();
+		}
+		break;
+	case '1' :
+		{
+			addVectorField("/home/iwoo/projects/nanovis/rappture/packages/vizservers/nanovis/data/flowvis_dx_files/jwire/J-wire-vec.dx",
+					"vf_name2", "plane_name1", "plane_name2", Vector4(0, 0, 1, 1), Vector4(0, 1, 1, 1));
+			printf("add vector field\n");
+		}
+		break;
+	case '2' :
+		{
+			printf("add vector field\n");
+			addVectorField("/home/iwoo/projects/nanovis/rappture/packages/vizservers/nanovis/data/flowvis_dx_files/3DWireLeakage/SiO2/SiO2.dx",
+					"vf_name1", "plane_name1", "plane_name2", Vector4(1, 0, 0, 1), Vector4(1, 1, 0, 1));
+		}
+		break;
+	case '3':
+		{
+			printf("activate\n");
+			NanoVis::flowVisRenderer->activatePlane("vf_name1", "plane_name2"); 
+		}
+		break;
+	case '4' :
+		{
+			printf("deactivate\n");
+			NanoVis::flowVisRenderer->deactivatePlane("vf_name1", "plane_name2"); 
+		}
+		break;
+	case '5' :
+		{
+			printf("vector field deleted (vf_name2)\n");
+			NanoVis::flowVisRenderer->removeVectorField("vf_name2");
+		}
+		break;
+	case '6' :
+		{
+			printf("add device shape\n");
+			NvDeviceShape shape;
+			shape.min.set(0, 0, 0);
+			shape.max.set(30, 3, 3);
+			shape.color.set(1, 0, 0, 1);
+			NanoVis::flowVisRenderer->addDeviceShape("vf_name1", "device1", shape);
+			shape.min.set(0, -1, -1);
+			shape.max.set(30, 4, 4);
+			shape.color.set(0, 1, 0, 1);
+			NanoVis::flowVisRenderer->addDeviceShape("vf_name1", "device2", shape);
+			shape.min.set(10, -1.5, -1);
+			shape.max.set(20, 4.5, 4.5);
+			shape.color.set(0, 0, 1, 1);
+			NanoVis::flowVisRenderer->addDeviceShape("vf_name1", "device3", shape);
+			NanoVis::flowVisRenderer->activateDeviceShape("vf_name1");
+		}
+		break;
+	case '7' :
+		{
+			printf("hide shape \n");
+			NanoVis::flowVisRenderer->deactivateDeviceShape("vf_name1");
+		}
+		break;
+	case '8' :
+		{
+			printf("show shape\n");
+			NanoVis::flowVisRenderer->activateDeviceShape("vf_name1");
+		}
+		break;
+	case '9' :
+		{
+			printf("show a shape \n");
+			NanoVis::flowVisRenderer->activateDeviceShape("vf_name1", "device3");
+		}
+		break;
+	case '0' :
+		{
+			printf("delete a shape \n");
+			NanoVis::flowVisRenderer->deactivateDeviceShape("vf_name1", "device3");
+		}
+		break;
+	case 'r' :
+		{
+			NanoVis::flowVisRenderer->reset();
+			NanoVis::licRenderer->reset();
+			printf("reset \n");
+		}
+		break;
+	}
 #endif
 }
 
@@ -1888,14 +2031,15 @@ NanoVis::motion(int x, int y)
 void 
 NanoVis::render()
 {
+
     if ((NanoVis::licRenderer != NULL) && 
 	(NanoVis::licRenderer->isActivated())) {
 	NanoVis::licRenderer->convolve();
     }
 
-    if ((NanoVis::particleRenderer != NULL) && 
-	(NanoVis::particleRenderer->isActivated())) {
-	NanoVis::particleRenderer->advect();
+    if ((NanoVis::flowVisRenderer != NULL) && 
+	(NanoVis::flowVisRenderer->isActivated())) {
+	NanoVis::flowVisRenderer->advect();
     }
 
     NanoVis::update();

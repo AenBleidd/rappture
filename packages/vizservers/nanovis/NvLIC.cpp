@@ -43,6 +43,7 @@ NvLIC::NvLIC(int _size, int _width, int _height, int _axis, const Vector3& _offs
     vectorFieldID((NVISid) 0),
     _activate(false)
 {
+
     axis = _axis;
     slice_vector = new float[size*size*4];
     memset(slice_vector, 0, sizeof(float) * size * size * 4);
@@ -301,6 +302,8 @@ NvLIC::get_slice()
 void 
 NvLIC::convolve()
 {
+    if (vectorFieldID == 0) return;
+
     int   i, j; 
     float x1, x2, y, px, py;
     
@@ -403,6 +406,8 @@ void NvLIC::render(){ display(); }
 void 
 NvLIC::display()
 {
+    if (vectorFieldID == 0) return;
+
     glBindTexture(GL_TEXTURE_2D, color_tex);
     glEnable(GL_TEXTURE_2D);
     
@@ -490,6 +495,8 @@ NvLIC::setVectorField(unsigned int texID, const Vector3& ori, float scaleX, floa
     origin = ori;
     scale = Vector3(scaleX, scaleY, scaleZ);
     this->max = max;
+
+    make_patterns();
   
     get_slice();
 }
@@ -538,3 +545,7 @@ void NvLIC::set_axis(int axis)
     this->axis = axis;
 }
 
+void NvLIC::reset()
+{
+    make_patterns();
+}

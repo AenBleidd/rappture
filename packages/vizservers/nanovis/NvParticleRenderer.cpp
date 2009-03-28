@@ -22,6 +22,7 @@
 #include <R2/R2FilePath.h>
 #include "NvParticleRenderer.h"
 #include <Trace.h>
+#include <stdlib.h>
 
 
 #define NV_32
@@ -37,9 +38,15 @@ NvParticleRenderer::NvParticleRenderer(int w, int h, CGcontext context) :
     psys_frame = 0;
     reborn = true;
     flip = true;
+
+    _color.set(0.2, 0.2, 1.0, 1.0);
     max_life = 500;
 
+    _slice_axis = 0;
+    _slice_pos = 0.0;
+
     data = (Particle*) malloc(w*h*sizeof(Particle));
+    memset(data, 0, sizeof(Particle) * w * h);
 
     m_vertex_array = new RenderVertexArray(psys_width*psys_height, 3, GL_FLOAT);
 
@@ -126,19 +133,74 @@ NvParticleRenderer::~NvParticleRenderer()
     free(data);
 }
 
-void NvParticleRenderer::initialize(Particle* p)
+void NvParticleRenderer::initializeDataArray()
 {
+    size_t n = psys_width * psys_height * 4;
+    memset(data, 0, sizeof(float)* n);
+
+    int index;
+    bool particle;
+    float* p = (float*) data;
+    for (int i=0; i<psys_width; i++) {
+        for (int j=0; j<psys_height; j++) {
+            index = i + psys_height*j;
+            particle = (rand() % 256) > 150; 
+            if(particle) 
+            {
+                //assign any location (x,y,z) in range [0,1]
+		switch (_slice_axis)
+		{
+		case 0 :
+                	p[4*index] = _slice_pos;
+                	p[4*index+1]= j/float(psys_height);
+                	p[4*index+2]= i/float(psys_width);
+			break;
+		case 1 :
+                	p[4*index]= j/float(psys_height);
+                	p[4*index+1] = _slice_pos;
+                	p[4*index+2]= i/float(psys_width);
+			break;
+		case 2 :
+                	p[4*index]= j/float(psys_height);
+                	p[4*index+1]= i/float(psys_width);
+                	p[4*index+2] = _slice_pos;
+			break;
+		default :
+	    		p[4*index] = 0;
+	    		p[4*index+1]= 0;
+	    		p[4*index+2]= 0;
+	    		p[4*index+3]= 0;
+		}
+		
+		//shorter life span, quicker iterations
+               	p[4*index+3]= rand() / ((float) RAND_MAX) * 0.5  + 0.5f; 
+            }
+	    else
+	    {
+	    	p[4*index] = 0;
+	    	p[4*index+1]= 0;
+	    	p[4*index+2]= 0;
+	    	p[4*index+3]= 0;
+	    }
+        }
+    }
+}
+
+void NvParticleRenderer::initialize()
+{
+    initializeDataArray();
+
     //also store the data on main memory for next initialization
-    memcpy(data, p, psys_width*psys_height*sizeof(Particle));
+    //memcpy(data, p, psys_width*psys_height*sizeof(Particle));
 
     glBindTexture(GL_TEXTURE_RECTANGLE_NV, psys_tex[0]);
     // I need to find out why GL_FLOAT_RGBA32_NV doesn't work
 #ifdef NV_32
     glTexImage2D(GL_TEXTURE_RECTANGLE_NV, 0, GL_FLOAT_RGBA32_NV, 
-		 psys_width, psys_height, 0, GL_RGBA, GL_FLOAT, (float*)p);
+		 psys_width, psys_height, 0, GL_RGBA, GL_FLOAT, (float*)data);
 #else
     glTexImage2D(GL_TEXTURE_RECTANGLE_NV, 0, GL_RGBA, psys_width, 
-		 psys_height, 0, GL_RGBA, GL_FLOAT, (float*)p);
+		 psys_height, 0, GL_RGBA, GL_FLOAT, (float*)data);
 #endif
     glBindTexture(GL_TEXTURE_RECTANGLE_NV, 0);
   
@@ -149,7 +211,7 @@ void NvParticleRenderer::initialize(Particle* p)
     // I need to find out why GL_FLOAT_RGBA32_NV doesn't work
 #ifdef NV_32
     glTexImage2D(GL_TEXTURE_RECTANGLE_NV, 0, GL_FLOAT_RGBA32_NV, 
-		 psys_width, psys_height, 0, GL_RGBA, GL_FLOAT, (float*)p);
+		 psys_width, psys_height, 0, GL_RGBA, GL_FLOAT, (float*)data);
 #else
     glTexImage2D(GL_TEXTURE_RECTANGLE_NV, 0, GL_RGBA, psys_width, psys_height, 
 		 0, GL_RGBA, GL_FLOAT, (float*)p);
@@ -259,7 +321,7 @@ NvParticleRenderer::advect()
     psys_frame++;
     if(psys_frame==max_life) {
 	psys_frame=0;
-	reborn = true;
+//	reborn = true;
     }
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
 }
@@ -368,7 +430,8 @@ NvParticleRenderer::display_vertices()
 */
 
     glPointSize(1.2);
-    glColor4f(.2,.2,.8,1.);
+    //glColor4f(.2,.2,.8,1.);
+    glColor4f(_color.x, _color.y, _color.z, _color.w);
     glEnableClientState(GL_VERTEX_ARRAY);
     m_vertex_array->SetPointer(0);
     glDrawArrays(GL_POINTS, 0, psys_width*psys_height);
@@ -391,3 +454,17 @@ NvParticleRenderer::setVectorField(unsigned int texID, const Vector3& ori,
     _advectionShader->setScale(scale);
     _advectionShader->setVelocityVolume(texID, max);
 }
+
+void NvParticleRenderer::setAxis(int axis)
+{
+	_slice_axis = axis;
+    	initializeDataArray();
+}
+
+void NvParticleRenderer::setPos(float pos)
+{
+	_slice_pos = pos;
+    	initializeDataArray();
+}
+
+

@@ -32,6 +32,15 @@ NvFlowVisRenderer::NvFlowVisRenderer(int w, int h, CGcontext context) :
 {
 	_psys_width = w;
 	_psys_height = h;
+
+/*
+    	licRenderer[0] = new NvLIC(NMESH, NPIX, NPIX, 0, 
+				Vector3(0, 0, 0), g_context);
+    	licRenderer[1] = new NvLIC(NMESH, NPIX, NPIX, 1, 
+				Vector3(0, 0, 0), g_context);
+    	licRenderer[2] = new NvLIC(NMESH, NPIX, NPIX, 2, 
+				Vector3(0, 0, 0), g_context);
+*/
 }
 
 NvFlowVisRenderer::~NvFlowVisRenderer()
@@ -41,6 +50,13 @@ NvFlowVisRenderer::~NvFlowVisRenderer()
 	{
 		delete (*iter).second;
 	}
+
+/*
+	for (int i = 0; i < 3; ++i)
+	{
+		delete licRenderer[i];
+	}
+*/
 }
 
 void 
@@ -50,6 +66,16 @@ NvFlowVisRenderer::initialize()
 	for (iter = _vectorFieldMap.begin(); iter != _vectorFieldMap.end(); ++iter)
 	{
 		(*iter).second->initialize();
+	}
+}
+
+void 
+NvFlowVisRenderer::reset()
+{
+	std::map<std::string, NvVectorField*>::iterator iter;
+	for (iter = _vectorFieldMap.begin(); iter != _vectorFieldMap.end(); ++iter)
+	{
+		(*iter).second->reset();
 	}
 }
 

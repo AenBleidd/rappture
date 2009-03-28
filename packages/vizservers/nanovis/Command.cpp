@@ -1767,7 +1767,6 @@ FlowDataFollowsOp(ClientData cdata, Tcl_Interp *interp, int objc,
         NanoVis::vol_renderer->add_volume(volPtr,
                 NanoVis::get_transfunc("default"));
 
-    Trace("Flow Data move\n");
         float dx0 = -0.5;
         float dy0 = -0.5*volPtr->height/volPtr->width;
         float dz0 = -0.5*volPtr->depth/volPtr->width;
@@ -1796,6 +1795,12 @@ FlowDataOp(ClientData cdata, Tcl_Interp *interp, int objc,
     }
     return (*proc) (cdata, interp, objc, objv);
 }
+
+// INSOO
+// I got an compile error
+#ifndef SHRT_MAX
+#define SHRT_MAX 4096
+#endif
 
 static int
 FlowVideoOp(ClientData cdata, Tcl_Interp *interp, int objc, 
@@ -1831,8 +1836,8 @@ FlowVideoOp(ClientData cdata, Tcl_Interp *interp, int objc,
     if (NanoVis::licRenderer) {
         NanoVis::licRenderer->activate();
     }
-    if (NanoVis::particleRenderer) {
-        NanoVis::particleRenderer->activate();
+    if (NanoVis::flowVisRenderer) {
+        NanoVis::flowVisRenderer->activate();
     }
 
     // Save the old dimensions of the offscreen buffer.
@@ -1866,9 +1871,9 @@ FlowVideoOp(ClientData cdata, Tcl_Interp *interp, int objc,
             NanoVis::licRenderer->isActivated()) {
             NanoVis::licRenderer->convolve();
         }
-        if (NanoVis::particleRenderer &&
-            NanoVis::particleRenderer->isActivated()) {
-            NanoVis::particleRenderer->advect();
+        if (NanoVis::flowVisRenderer &&
+            NanoVis::flowVisRenderer->isActivated()) {
+            NanoVis::flowVisRenderer->advect();
         }
         NanoVis::offscreen_buffer_capture();  //enable offscreen render
         NanoVis::display();
@@ -1888,8 +1893,8 @@ FlowVideoOp(ClientData cdata, Tcl_Interp *interp, int objc,
     if (NanoVis::licRenderer) {
         NanoVis::licRenderer->deactivate();
     }
-    if (NanoVis::particleRenderer) {
-        NanoVis::particleRenderer->deactivate();
+    if (NanoVis::flowVisRenderer) {
+        NanoVis::flowVisRenderer->deactivate();
     }
     NanoVis::initParticle();
 
@@ -2045,8 +2050,8 @@ FlowNextOp(ClientData cdata, Tcl_Interp *interp, int objc,
     if (!NanoVis::licRenderer->isActivated()) {
         NanoVis::licRenderer->activate();
     }
-    if (!NanoVis::particleRenderer->isActivated()) {
-        NanoVis::particleRenderer->activate();
+    if (!NanoVis::flowVisRenderer->isActivated()) {
+        NanoVis::flowVisRenderer->activate();
     }
 
     Trace("sending flow playback frame\n");
@@ -2055,7 +2060,7 @@ FlowNextOp(ClientData cdata, Tcl_Interp *interp, int objc,
     if (NanoVis::licRenderer->isActivated()) {
         NanoVis::licRenderer->convolve();
     }
-    NanoVis::particleRenderer->advect();
+    NanoVis::flowVisRenderer->advect();
     NanoVis::offscreen_buffer_capture();  //enable offscreen render
     NanoVis::display();
     NanoVis::read_screen();
@@ -2083,16 +2088,30 @@ FlowVectorIdOp(ClientData cdata, Tcl_Interp *interp, int objc,
     if (GetVolumeFromObj(interp, objv[2], &volPtr) != TCL_OK) {
         return TCL_ERROR;
     }
-    if (NanoVis::particleRenderer != NULL) {
-        NanoVis::particleRenderer->setVectorField(volPtr->id, 
+    if (NanoVis::flowVisRenderer != NULL) {
+	// INSOO
+#ifndef NEW_FLOW_ENGINE
+        NanoVis::flowVisRenderer->setVectorField(volPtr->id, 
             *(volPtr->get_location()),
             1.0f,
             volPtr->height / (float)volPtr->width,
             volPtr->depth  / (float)volPtr->width,
             volPtr->wAxis.max());
+#else
+
+        NanoVis::flowVisRenderer->addVectorField("vname", volPtr, 
+            *(volPtr->get_location()),
+            1.0f,
+            volPtr->height / (float)volPtr->width,
+            volPtr->depth  / (float)volPtr->width,
+            volPtr->wAxis.max());
+#endif
         NanoVis::initParticle();
+
     }
     if (NanoVis::licRenderer != NULL) {
+	// INSOO
+	// TBD..
         NanoVis::licRenderer->setVectorField(volPtr->id,
             *(volPtr->get_location()),
             1.0f / volPtr->aspect_ratio_width,

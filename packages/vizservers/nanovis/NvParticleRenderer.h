@@ -43,13 +43,6 @@ struct Particle {
    x(_x), y(_y), z(_z), aux(_life){}
 };
 
-struct ParticleInitSlice {
-  int slice_id;
-  int slice_axis;
-  float slice_pos;
-  bool enabled;
-};
-
 class NvParticleRenderer : public Renderable {
 public :
     /**
@@ -96,8 +89,6 @@ public :
   */
     NvParticleAdvectionShader* _advectionShader;
 
-    std::vector<ParticleInitSlice> _initSliceArray;
-
     /**
      * @brief scale of flow data 
      */
@@ -107,6 +98,11 @@ public :
 
     bool _activate;
 
+    float _slice_pos;
+    int _slice_axis;
+    Vector4 _color;
+
+
 public:
     int psys_width;	//the storage of particles is implemented as a 2D array.
     int psys_height;
@@ -114,7 +110,7 @@ public:
     NvParticleRenderer(int w, int h, CGcontext context);
     ~NvParticleRenderer();
     void setVectorField(unsigned int texID, const Vector3& ori, float scaleX, float scaleY, float scaleZ, float max);
-    void initialize(Particle* data);
+    void initialize();
     void advect();
     void update_vertex_buffer();
     void display_vertices();
@@ -125,7 +121,12 @@ public:
     void deactivate();
     bool isActivated() const;
 
+    void setAxis(int axis);
+    void setColor(const Vector4& color);
+    void setPos(float pos);
+
     void draw_bounding_box(float x0, float y0, float z0, float x1, float y1, float z1, float r, float g, float b, float line_width);
+    void initializeDataArray();
 };
 
 inline void NvParticleRenderer::activate()
@@ -143,4 +144,8 @@ inline bool NvParticleRenderer::isActivated() const
     return _activate;
 }
 
+inline void NvParticleRenderer::setColor(const Vector4& color)
+{
+	_color = color;
+}
 #endif
