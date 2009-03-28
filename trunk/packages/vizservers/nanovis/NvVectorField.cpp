@@ -51,6 +51,15 @@ void NvVectorField::initialize()
 	std::map<std::string, NvParticleRenderer*>::iterator iter;
 	for (iter = _particleRendererMap.begin(); iter != _particleRendererMap.end(); iter++)
 	{
+		if ((*iter).second) (*iter).second->initialize();
+	}
+}
+
+void NvVectorField::reset()
+{
+	std::map<std::string, NvParticleRenderer*>::iterator iter;
+	for (iter = _particleRendererMap.begin(); iter != _particleRendererMap.end(); iter++)
+	{
 		if ((*iter).second) (*iter).second->reset();
 	}
 }
@@ -98,7 +107,7 @@ void NvVectorField::addPlane(const std::string& name)
 	renderer->setVectorField(_vectorFieldID, _origin, _scaleX, _scaleY, _scaleZ, _max);
 	if (renderer)
 	{
-		renderer->reset();
+		renderer->initialize();
 	}
 }
 
@@ -190,7 +199,7 @@ NvVectorField::drawDeviceShape()
 	{
 		NvDeviceShape& shape = (*iterShape).second;
 
-		if (shape.visible) continue;
+		if (!shape.visible) continue;
 		
 		
     		glColor4d(shape.color.x, shape.color.y, shape.color.z, shape.color.w);

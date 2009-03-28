@@ -30,6 +30,8 @@
 //#define PROTOTYPE		0
 #define PROTOTYPE		1
 
+//#define NEW_FLOW_ENGINE
+
 /* 
  * The following define controls whether new load_volume_stream or
  * load_volume_stream2 are used to load DX data.  The difference is that

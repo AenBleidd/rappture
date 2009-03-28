@@ -400,8 +400,8 @@ FlowVectorIdOp(ClientData clientData, Tcl_Interp *interp, int objc,
     if (GetVolumeFromObj(interp, objv[2], &volPtr) != TCL_OK) {
         return TCL_ERROR;
     }
-    if (NanoVis::particleRenderer != NULL) {
-        NanoVis::particleRenderer->setVectorField(volPtr->id, 
+    if (NanoVis::flowVisRenderer != NULL) {
+        NanoVis::flowVisRenderer->setVectorField(volPtr->id, 
             *(volPtr->get_location()),
             1.0f,
             volPtr->height / (float)volPtr->width,
@@ -772,8 +772,8 @@ FlowNextOp(ClientData clientData, Tcl_Interp *interp, int objc,
     if (!NanoVis::licRenderer->isActivated()) {
         NanoVis::licRenderer->activate();
     }
-    if (!NanoVis::particleRenderer->isActivated()) {
-        NanoVis::particleRenderer->activate();
+    if (!NanoVis::flowVisRenderer->isActivated()) {
+        NanoVis::flowVisRenderer->activate();
     }
 
     Trace("sending flow playback frame\n");
@@ -782,7 +782,7 @@ FlowNextOp(ClientData clientData, Tcl_Interp *interp, int objc,
     if (NanoVis::licRenderer->isActivated()) {
         NanoVis::licRenderer->convolve();
     }
-    NanoVis::particleRenderer->advect();
+    NanoVis::flowVisRenderer->advect();
     NanoVis::offscreen_buffer_capture();  //enable offscreen render
     NanoVis::display();
     NanoVis::read_screen();
@@ -836,8 +836,8 @@ FlowVideoOp(ClientData clientData, Tcl_Interp *interp, int objc,
     if (NanoVis::licRenderer) {
         NanoVis::licRenderer->activate();
     }
-    if (NanoVis::particleRenderer) {
-        NanoVis::particleRenderer->activate();
+    if (NanoVis::flowVisRenderer) {
+        NanoVis::flowVisRenderer->activate();
     }
 
     // Save the old dimensions of the offscreen buffer.
@@ -871,9 +871,9 @@ FlowVideoOp(ClientData clientData, Tcl_Interp *interp, int objc,
             NanoVis::licRenderer->isActivated()) {
             NanoVis::licRenderer->convolve();
         }
-        if (NanoVis::particleRenderer &&
-            NanoVis::particleRenderer->isActivated()) {
-            NanoVis::particleRenderer->advect();
+        if (NanoVis::flowVisRenderer &&
+            NanoVis::flowVisRenderer->isActivated()) {
+            NanoVis::flowVisRenderer->advect();
         }
         NanoVis::offscreen_buffer_capture();  //enable offscreen render
         NanoVis::display();
@@ -893,8 +893,8 @@ FlowVideoOp(ClientData clientData, Tcl_Interp *interp, int objc,
     if (NanoVis::licRenderer) {
         NanoVis::licRenderer->deactivate();
     }
-    if (NanoVis::particleRenderer) {
-        NanoVis::particleRenderer->deactivate();
+    if (NanoVis::flowVisRenderer) {
+        NanoVis::flowVisRenderer->deactivate();
     }
     NanoVis::initParticle();
 

@@ -22,7 +22,8 @@ bool Volume::update_pending = false;
 double Volume::valueMin = 0.0;
 double Volume::valueMax = 1.0;
 
-Volume::Volume(float x, float y, float z,
+Volume::Volume(
+		float x, float y, float z,
 		int w, int h, int d, float s, 
 		int n, float* data, double v0, double v1, double nz_min):
     width(w),
@@ -44,8 +45,6 @@ Volume::Volume(float x, float y, float z,
     volume_type(CUBIC),		//by default, is a cubic volume
     iso_surface(0)
 {
-    Trace("Volume constructor\n");
-
     tex = new Texture3D(w, h, d, NVIS_FLOAT, NVIS_LINEAR_INTERP, n);
     int fcount = width * height * depth * n_components;
     _data = new float[fcount];
@@ -64,9 +63,10 @@ Volume::Volume(float x, float y, float z,
     
     wAxis.SetRange(v0, v1);
 
-    aspect_ratio_width = s*tex->aspect_ratio_width;
-    aspect_ratio_height = s*tex->aspect_ratio_height;
-    aspect_ratio_depth = s*tex->aspect_ratio_depth;
+	// VOLUME
+    	aspect_ratio_width = s*tex->aspect_ratio_width;
+    	aspect_ratio_height = s*tex->aspect_ratio_height;
+    	aspect_ratio_depth = s*tex->aspect_ratio_depth;
     
     location = Vector3(x,y,z);
     

@@ -51,6 +51,7 @@
 #include "Mat4x4.h"
 #include "Volume.h"
 #include "NvParticleRenderer.h"
+#include "NvFlowVisRenderer.h"
 #include "PerfQuery.h"
 #include "Event.h"
 #include "VolumeRenderer.h"
@@ -70,6 +71,8 @@
 #define DM  ((float) (1.0/(NMESH-1.0)))	//distance in world coords between mesh lines
 #define NPIX  512	//display size
 #define SCALE 3.0	//scale for background pattern. small value -> fine texture
+
+class NvVectorField;
 
 struct Vector2 {
     float x, y;
@@ -105,7 +108,11 @@ class NanoVis {
 public:
     static VolumeRenderer* vol_renderer;
     static PointSetRenderer* pointset_renderer;
-    static NvParticleRenderer* particleRenderer;
+#ifndef NEW_FLOW_ENGINE
+    static NvParticleRenderer* flowVisRenderer;
+#else
+    static NvFlowVisRenderer* flowVisRenderer;
+#endif
     static NvLIC* licRenderer;
     static vector<PointSet*> pointSet;
     static PlaneRenderer* plane_render;
@@ -119,6 +126,7 @@ public:
     static vector<HeightMap*> heightMap;
     static unsigned char* screen_buffer;
     static vector<Volume*> volume;
+    static vector<NvVectorField*> flow;
     static Grid* grid;
     static R2Fonts* fonts;
     static int n_volumes;

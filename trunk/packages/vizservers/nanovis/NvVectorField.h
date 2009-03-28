@@ -15,7 +15,7 @@ public :
 	bool visible;
 public :
 	NvDeviceShape()
-	: visible(false)
+	: visible(true)
 	{
 	}
 };
@@ -61,6 +61,7 @@ public :
 	void deactivateDeviceShape(const std::string& name);
 
 	void initialize();
+	void reset();
 
 	void addPlane(const std::string& name);
 	void removePlane(const std::string& name);
