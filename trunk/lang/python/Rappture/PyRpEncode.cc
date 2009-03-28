@@ -63,7 +63,6 @@ RpEncode_encode(PyObject *self, PyObject *args, PyObject *keywds)
     int flags = 0;
     PyObject* rv = NULL;
     Rappture::Outcome err;
-    Rappture::Buffer buf;
 
     static char *kwlist[] = {
 	(char *)"data", 
@@ -82,21 +81,18 @@ RpEncode_encode(PyObject *self, PyObject *args, PyObject *keywds)
         return NULL;
     }
 
-    buf = Rappture::Buffer(data,dlen);
-    err &= Rappture::encoding::encode(buf,flags);
-    if (int(err) != 0) {
+    Rappture::Buffer buf(data, dlen);
+    if (!Rappture::encoding::encode(err, buf, flags)) {
 	std::string outStr;
 
         outStr = err.remark();
 	outStr += "\n";
 	outStr += err.context();
-        PyErr_SetString(PyExc_RuntimeError,outStr.c_str());
+        PyErr_SetString(PyExc_RuntimeError, outStr.c_str());
         buf.clear();
         return NULL;
     }
-
     rv = PyString_FromStringAndSize(buf.bytes(),buf.size());
-
     return rv;
 }
 
@@ -114,7 +110,6 @@ RpEncode_decode(PyObject *self, PyObject *args, PyObject *keywds)
     int flags = 0;
     PyObject* rv = NULL;
     Rappture::Outcome err;
-    Rappture::Buffer buf;
 
     static char *kwlist[] = {
 	(char *)"data", 
@@ -133,9 +128,8 @@ RpEncode_decode(PyObject *self, PyObject *args, PyObject *keywds)
         return NULL;
     }
 
-    buf = Rappture::Buffer(data,dlen);
-    err &= Rappture::encoding::decode(buf,flags);
-    if (int(err) != 0) {
+    Rappture::Buffer buf(data, dlen);
+    if (!Rappture::encoding::decode(err, buf, flags)) {
 	std::string outStr;
 
         outStr = err.remark();
@@ -144,9 +138,7 @@ RpEncode_decode(PyObject *self, PyObject *args, PyObject *keywds)
         PyErr_SetString(PyExc_RuntimeError,outStr.c_str());
         return NULL;
     }
-
     rv = PyString_FromStringAndSize(buf.bytes(),buf.size());
-
     return rv;
 }
 
