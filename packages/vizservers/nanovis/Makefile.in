@@ -118,6 +118,8 @@ OBJS		= \
 		NvLoadFile.o \
 		NvParticleAdvectionShader.o \
 		NvParticleRenderer.o \
+		NvFlowVisRenderer.o \
+		NvVectorField.o \
 		NvRegularVolumeShader.o \
 		NvShader.o \
 		NvStdVertexShader.o \
@@ -250,6 +252,8 @@ HeightMap.o: HeightMap.cpp HeightMap.h
 Grid.o: Grid.cpp Grid.h
 NvLoadFile.o: NvLoadFile.cpp NvLoadFile.h
 NvParticleAdvectionShader.o: NvParticleAdvectionShader.cpp NvParticleAdvectionShader.h
+NvFlowVisRenderer.o: NvFlowVisRenderer.cpp NvFlowVisRenderer.h
+NvVectorField.o: NvVectorField.cpp NvVectorField.h
 NvParticleRenderer.o: NvParticleRenderer.cpp NvParticleRenderer.h
 NvColorTableShader.o: NvColorTableShader.cpp NvColorTableShader.h
 NvLIC.o: NvLIC.cpp NvLIC.h
