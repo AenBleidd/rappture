@@ -37,18 +37,16 @@ all: 	core core2 objects
 
 RAPPTURE_LIB = core/librappture.a
 
-core: $(RAPPTURE_LIB)
-
-$(RAPPTURE_LIB):
+core: 
 	$(MAKE) -C core all
 
-core2: $(RAPPTURE_LIB)
+core2: core
 	$(MAKE) -C core2 all
 
-objects: $(RAPPTURE_LIB)
+objects: core
 	$(MAKE) -C objects all
 
-install: $(RAPPTURE_LIB)
+install: core
 	$(MAKE) -C core install
 	$(MAKE) -C core2 install
 	$(MAKE) -C objects install
