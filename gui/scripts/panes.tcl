@@ -48,6 +48,7 @@ itcl::class Rappture::Panes {
     private variable _visibility ""  ;# list of visibilities for panes
     private variable _counter 0      ;# counter for auto-generated names
     private variable _frac 0.0       ;# list of fractions
+    public variable orientation	"vertical"
 }
 
 itk::usual Panes {
@@ -117,8 +118,11 @@ itcl::body Rappture::Panes::insert {pos args} {
 	rename -relief -sashrelief sashRelief SashRelief
 	ignore -borderwidth
     }
-    pack $itk_component(${sash}ridge) -fill x
-
+    if { $orientation == "vertical" } {
+	pack $itk_component(${sash}ridge) -fill x 
+    } else {
+	pack $itk_component(${sash}ridge) -fill y -side left
+    }
     foreach comp [list $sash ${sash}ridge] {
 	bind $itk_component($comp) <ButtonPress-1> \
 	    [itcl::code $this _grab $pname %X %Y]
@@ -264,9 +268,15 @@ itcl::body Rappture::Panes::_grab {pname X Y} {
 # Invoked automatically as the user drags a sash, to resize the panes.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Panes::_drag {pname X Y} {
-    set realY [expr {$Y-[winfo rooty $itk_component(hull)]}]
-    set Ymax  [winfo height $itk_component(hull)]
-    set frac [expr double($realY)/$Ymax]
+    if { $orientation == "vertical" } {
+	set realY [expr {$Y-[winfo rooty $itk_component(hull)]}]
+	set Ymax  [winfo height $itk_component(hull)]
+	set frac [expr double($realY)/$Ymax]
+    } else {
+	set realX [expr {$X-[winfo rootx $itk_component(hull)]}]
+	set Xmax  [winfo width $itk_component(hull)]
+	set frac [expr double($realX)/$Xmax]
+    }
     if {$frac < 0.05} {
 	set frac 0.05
     }
@@ -302,53 +312,103 @@ itcl::body Rappture::Panes::_drop {pname X Y} {
 # is added or a sash is moved.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Panes::_fixLayout {args} {
-    set h [winfo height $itk_component(hull)]
+    if { $orientation == "vertical" } {
+	set h [winfo height $itk_component(hull)]
 
-    set plist ""
-    set flist ""
-    foreach p $_panes f $_frac v $_visibility {
-	set sash ${p}sash
-	if {$v} {
-	    # this pane is visible -- make room for it
-	    lappend plist $p
-	    lappend flist $f
-	    if {[info exists itk_component($sash)]} {
-		set h [expr {$h - [winfo height $itk_component($sash)]}]
+	set plist ""
+	set flist ""
+	foreach p $_panes f $_frac v $_visibility {
+	    set sash ${p}sash
+	    if {$v} {
+		# this pane is visible -- make room for it
+		lappend plist $p
+		lappend flist $f
+		if {[info exists itk_component($sash)]} {
+		    set h [expr {$h - [winfo height $itk_component($sash)]}]
+		}
+	    } else {
+		# this pane is not visible -- remove sash
+		if {[info exists itk_component($sash)]} {
+		    place forget $itk_component($sash)
+		}
+		place forget $itk_component($p)
 	    }
-	} else {
-	    # this pane is not visible -- remove sash
+	}
+	
+	# normalize the fractions so they add up to 1
+	set total 0
+	foreach f $flist { set total [expr {$total+$f}] }
+	set newflist ""
+	foreach f $flist {
+	    lappend newflist [expr {double($f)/$total}]
+	}
+	set flist $newflist
+	
+	# lay out the various panes
+	set y 0
+	foreach p $plist f $flist {
+	    set sash ${p}sash
 	    if {[info exists itk_component($sash)]} {
-		place forget $itk_component($sash)
+		set sh [winfo reqheight $itk_component($sash)]
+		place $itk_component($sash) -y $y -relx 0.5 -anchor n \
+		    -relwidth 1.0 -height $sh
+		set y [expr {$y + $sh}]
 	    }
-	    place forget $itk_component($p)
+	    
+	    set ph [expr {$h*$f}]
+	    place $itk_component($p) -y $y -relx 0.5 -anchor n \
+		-relwidth 1.0 -height $ph
+	    set y [expr {$y + $ph}]
 	}
-    }
+    } else {
+	set w [winfo width $itk_component(hull)]
 
-    # normalize the fractions so they add up to 1
-    set total 0
-    foreach f $flist { set total [expr {$total+$f}] }
-    set newflist ""
-    foreach f $flist {
-	lappend newflist [expr {double($f)/$total}]
-    }
-    set flist $newflist
-
-    # lay out the various panes
-    set y 0
-    foreach p $plist f $flist {
-	set sash ${p}sash
-	if {[info exists itk_component($sash)]} {
-	    set sh [winfo reqheight $itk_component($sash)]
-	    place $itk_component($sash) -y $y -relx 0.5 -anchor n \
-		-relwidth 1.0 -height $sh
-	    set y [expr {$y + $sh}]
+	set plist ""
+	set flist ""
+	foreach p $_panes f $_frac v $_visibility {
+	    set sash ${p}sash
+	    if {$v} {
+		# this pane is visible -- make room for it
+		lappend plist $p
+		lappend flist $f
+		if {[info exists itk_component($sash)]} {
+		    set w [expr {$w - [winfo width $itk_component($sash)]}]
+		}
+	    } else {
+		# this pane is not visible -- remove sash
+		if {[info exists itk_component($sash)]} {
+		    place forget $itk_component($sash)
+		}
+		place forget $itk_component($p)
+	    }
 	}
-
-	set ph [expr {$h*$f}]
-	place $itk_component($p) -y $y -relx 0.5 -anchor n \
-	    -relwidth 1.0 -height $ph
-	set y [expr {$y + $ph}]
-    }
+	
+	# normalize the fractions so they add up to 1
+	set total 0
+	foreach f $flist { set total [expr {$total+$f}] }
+	set newflist ""
+	foreach f $flist {
+	    lappend newflist [expr {double($f)/$total}]
+	}
+	set flist $newflist
+	
+	# lay out the various panes
+	set x 0
+	foreach p $plist f $flist {
+	    set sash ${p}sash
+	    if {[info exists itk_component($sash)]} {
+		set sw [winfo reqwidth $itk_component($sash)]
+		place $itk_component($sash) -x $x -rely 0.5 -anchor w \
+		    -relheight 1.0 -width $sw
+		set x [expr {$x + $sw}]
+	    }
+	    
+	    set pw [expr {$w*$f}]
+	    place $itk_component($p) -x $x -rely 0.5 -anchor w \
+		-relheight 1.0 -width $pw
+	    set x [expr {$x + $pw}]
+	}
+    }	
 }
 
 # ----------------------------------------------------------------------
@@ -358,19 +418,38 @@ itcl::body Rappture::Panes::_fixLayout {args} {
 # sash appears or the controlling configuration options change.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Panes::_fixSashes {args} {
-    set ht [winfo pixels $itk_component(hull) $itk_option(-sashwidth)]
-    set bd [expr {$ht/2}]
-    foreach pane $_panes {
-	set sash "${pane}sashridge"
-	if {[info exists itk_component($sash)]} {
-	    $itk_component($sash) configure -height $ht -borderwidth $bd
-	    if {$itk_option(-sashrelief) == "solid"} {
-		$itk_component($sash) configure -background black
-	    } else {
-		$itk_component($sash) configure \
-		    -background $itk_option(-background)
+    if { $orientation == "vertical" } {
+	set ht [winfo pixels $itk_component(hull) $itk_option(-sashwidth)]
+	set bd [expr {$ht/2}]
+	foreach pane $_panes {
+	    set sash "${pane}sashridge"
+	    if {[info exists itk_component($sash)]} {
+		$itk_component($sash) configure -height $ht -borderwidth $bd
+		if {$itk_option(-sashrelief) == "solid"} {
+		    $itk_component($sash) configure -background black
+		} else {
+		    $itk_component($sash) configure \
+			-background $itk_option(-background)
+		}
+		pack $itk_component($sash) -pady $itk_option(-sashpadding)
 	    }
-	    pack $itk_component($sash) -pady $itk_option(-sashpadding)
+	}
+    } else {
+	set w [winfo pixels $itk_component(hull) $itk_option(-sashwidth)]
+	set bd [expr {$w/2}]
+	foreach pane $_panes {
+	    set sash "${pane}sashridge"
+	    if {[info exists itk_component($sash)]} {
+		$itk_component($sash) configure -width $w -borderwidth $bd
+		if {$itk_option(-sashrelief) == "solid"} {
+		    $itk_component($sash) configure -background black
+		} else {
+		    $itk_component($sash) configure \
+			-background $itk_option(-background)
+		}
+		pack $itk_component($sash) -padx $itk_option(-sashpadding) \
+		    -side left
+	    }
 	}
     }
 }

@@ -237,7 +237,8 @@ itcl::body Rappture::Page::_buildGroup {frame xmlobj path} {
 		_buildGroup $w $xmlobj $path.$cname
 	    } else {
 		if {[catch {$frame.cntls insert end $path.$cname} c]} {
-		    error $c "$c\n    (while building control for $path.$cname)"
+		    global errorInfo
+		    error $c "$c\n$errorInfo\n    (while building control for $path.$cname)"
 		}
 	    }
 	}

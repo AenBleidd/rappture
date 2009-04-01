@@ -253,6 +253,10 @@ itcl::body Rappture::ResultViewer::_plotAdd {dataobj {settings ""}} {
 		    if {![info exists _mode2widget($mode)]} {
 			set mesh [$dataobj mesh]
 			set fmt [expr {("" != $mesh) ? "vtk" : "nanovis"}]
+			set extents [$dataobj extents]
+			if { $extents == 3 } {
+			    set fmt "flowvis"
+			}
 			set w $itk_interior.field3D
 			Rappture::Field3DResult $w -mode $fmt
 			set _mode2widget($mode) $w

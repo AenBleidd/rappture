@@ -1,3 +1,4 @@
+
 # ----------------------------------------------------------------------
 #  COMPONENT: molvisviewer - view a molecule in 3D
 #
@@ -69,7 +70,7 @@ itcl::class Rappture::MolvisViewer {
     public method atomscale {option {model "all"} }
     public method bondthickness {option {model "all"} }
     public method ResetView {} 
-    public method settings {option args}
+    public method tab {what who}
 
     protected method _send {args}
     protected method _update { args }
@@ -83,7 +84,7 @@ itcl::class Rappture::MolvisViewer {
     protected method _vmouse2 {option b m x y}
     protected method _vmouse  {option b m x y}
     private method _ReceiveImage { size cacheid frame rock }
-    private method _BuildSettingsDrawer {}
+    private method _BuildViewTab {}
     private method GetPngImage { widget width height }
     private method WaitIcon { option widget }
     private variable icon_ 0
@@ -114,12 +115,13 @@ itcl::class Rappture::MolvisViewer {
     private variable delta2_ 2
 
     private common _settings  ;# array of settings for all known widgets
-    private variable initialized_ "no";
+    private variable initialized_
 
     common _downloadPopup           ;# download options from popup
     private variable _pdbdata       ;# pdb data from run file sent to pymol
     private common hardcopy_
     private variable nextToken_ 0
+    private variable headings_
 }
 
 itk::usual MolvisViewer {
@@ -298,8 +300,8 @@ itcl::body Rappture::MolvisViewer::constructor {hostlist args} {
 	[itcl::code $this projection toggle]
     $this projection perspective
 
-    itk_component add settings_button {
-	label $itk_component(controls).settingsbutton \
+    itk_component add configure_button {
+	label $itk_component(controls).configbutton \
 	    -borderwidth 1 -padx 1 -pady 1 \
 	    -relief "raised" -image [Rappture::icon wrench]
     } {
@@ -308,15 +310,15 @@ itcl::body Rappture::MolvisViewer::constructor {hostlist args} {
 	rename -highlightbackground -controlbackground controlBackground \
 	    Background
     }
-    pack $itk_component(settings_button) -padx 2 -pady { 0 2 } -ipadx 1 -ipady 1
-    Rappture::Tooltip::for $itk_component(settings_button) \
-	"Configure settings"
-    bind $itk_component(settings_button) <ButtonPress> \
-	[itcl::code $this settings toggle]
-    pack $itk_component(settings_button) -side bottom \
-	-padx 2 -pady 2 -anchor e
 
-    _BuildSettingsDrawer
+    _BuildViewTab
+
+    # Hack around the Tk panewindow.  The problem is that the requested 
+    # size of the 3d view isn't set until an image is retrieved from
+    # the server.  So the panewindow uses the tiny size.
+    set w [expr [winfo reqwidth $itk_component(hull)] - 80]
+    blt::table $itk_component(plotarea) \
+	0,0 $itk_component(3dview) -fill both -reqwidth $w 
 
     #
     # RENDERING AREA
@@ -398,34 +400,36 @@ itcl::body Rappture::MolvisViewer::constructor {hostlist args} {
     bind $itk_component(3dview) <Map> \
 	[itcl::code $this _map]
 
+    $itk_component(scroller) contents $itk_component(view_canvas)
+    $itk_component(title) configure -text "$headings_(view)"
+
     eval itk_initialize $args
     Connect
 }
 
-itcl::body Rappture::MolvisViewer::_BuildSettingsDrawer {} {
+itcl::body Rappture::MolvisViewer::_BuildViewTab {} {
 
-    itk_component add settings {
-	Rappture::Scroller $itk_component(drawer).scrl \
-	    -xscrollmode auto -yscrollmode auto \
-	    -width 200 -height 100
+    itk_component add view_canvas {
+	canvas $itk_component(scroller).viewcanvas -highlightthickness 0
+    } {
+	ignore -highlightthickness
     }
+    $itk_component(sidebar) insert end "view" \
+	-image [Rappture::icon wrench] -text ""  -padx 0 -pady 0 \
+	-command [itcl::code $this tab select "view"]
+    set headings_(view) "View Settings"
 
-    itk_component add settings_canvas {
-	canvas $itk_component(settings).canvas
-    }
-    $itk_component(settings) contents $itk_component(settings_canvas)
-
-    itk_component add settings_frame {
-	frame $itk_component(settings_canvas).frame -bg white
+    itk_component add view_frame {
+	frame $itk_component(view_canvas).frame -bg white
     } 
-    $itk_component(settings_canvas) create window 0 0 \
-	-anchor nw -window $itk_component(settings_frame)
-    bind $itk_component(settings_frame) <Configure> \
-	[itcl::code $this settings resize]
+    $itk_component(view_canvas) create window 0 0 \
+	-anchor nw -window $itk_component(view_frame)
+    bind $itk_component(view_frame) <Configure> \
+	[itcl::code $this tab resize view]
 
     set fg [option get $itk_component(hull) font Font]
 
-    set inner $itk_component(settings_frame)
+    set inner $itk_component(view_frame)
     label $inner.drawinglabel -text "Drawing Method" -font "Arial 9 bold"
 
     label $inner.pict -image $_settings($this-modelimg)
@@ -1551,39 +1555,6 @@ itcl::configbody Rappture::MolvisViewer::device {
 }
 
 
-itcl::body Rappture::MolvisViewer::settings { what args } {
-    switch -- ${what} {
-	"activate" {
-	    $itk_component(drawer) add $itk_component(settings) -sticky nsew
-	    after idle [list focus $itk_component(settings)]
-	    if { !$initialized_ } {
-		set w [winfo width $itk_component(drawer)]
-		set x [expr $w - 100]
-		$itk_component(drawer) sash place 0 $x 0
-		set initialized_ 1
-	    }
-	    $itk_component(settings_button) configure -relief sunken
-	}
-	"deactivate" {
-	    $itk_component(drawer) forget $itk_component(settings)
-	    $itk_component(settings_button) configure -relief raised
-	}
-	"toggle" {
-	    set slaves [$itk_component(drawer) panes]
-	    if { [lsearch $slaves $itk_component(settings)] >= 0 } {
-		settings deactivate
-	    } else {
-		settings activate
-	    }
-	}
-	"resize" {
-	    set bbox [$itk_component(settings_canvas) bbox all]
-	    set wid [winfo width $itk_component(settings_frame)]
-	    $itk_component(settings_canvas) configure -width $wid \
-		-scrollregion $bbox -yscrollincrement 0.1i
-	}
-    }
-}
 
 itcl::body Rappture::MolvisViewer::WaitIcon  { option widget } {
     switch -- $option {
@@ -1659,4 +1630,24 @@ itcl::body Rappture::MolvisViewer::GetPngImage  { widget width height } {
 	return [list .png $hardcopy_($this-$token)]
     }
     return ""
+}
+
+itcl::body Rappture::MolvisViewer::tab { what who } {
+    switch -- ${what} {
+	"select" {
+	    $itk_component(scroller) contents $itk_component(${who}_canvas)
+	    after idle [list focus $itk_component(${who}_canvas)]
+	    $itk_component(title) configure -text "$headings_($who)"
+	    drawer open
+	}
+	"deselect" {
+	    drawer close 
+	}
+	"resize" {
+	    set bbox [$itk_component(${who}_canvas) bbox all]
+	    set wid [winfo width $itk_component(${who}_frame)]
+	    $itk_component(${who}_canvas) configure -width $wid \
+		-scrollregion $bbox -yscrollincrement 0.1i
+	}
+    }
 }

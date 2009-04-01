@@ -28,6 +28,8 @@ itcl::class Rappture::Field {
     public method controls {option args}
     public method hints {{key ""}}
     public method isunirect2d {}
+    public method isunirect3d {}
+    public method extents {{what -overall}}
 
     protected method _build {}
     protected method _getValue {expr}
@@ -46,7 +48,7 @@ itcl::class Rappture::Field {
     private variable _comp2unirect2d ;# maps component name => unirect2d obj
     private variable _comp2style ;# maps component name => style settings
     private variable _comp2cntls ;# maps component name => x,y control points
-
+    private variable _comp2extents 
     private common _counter 0    ;# counter for unique vector names
 }
 
@@ -113,6 +115,9 @@ itcl::body Rappture::Field::destructor {} {
     foreach name [array names _comp2unirect2d] {
 	itcl::delete object $_comp2unirect2d($name)
     }
+    foreach name [array names _comp2unirect3d] {
+	itcl::delete object $_comp2unirect3d($name)
+    }
 }
 
 # ----------------------------------------------------------------------
@@ -177,7 +182,10 @@ itcl::body Rappture::Field::mesh {{what -overall}} {
 	return ""  ;# no mesh -- it's embedded in the value data
     }
     if {[info exists _comp2unirect2d($what)]} {
-	return ""  ;# no mesh -- it's embedded in the value data
+	return [$mobj mesh]
+    }
+    if {[info exists _comp2unirect3d($what)]} {
+	return [$mobj mesh]
     }
     error "bad option \"$what\": should be [join [lsort [array names _comp2dims]] {, }]"
 }
@@ -203,8 +211,10 @@ itcl::body Rappture::Field::values {{what -overall}} {
 	return $_comp2dx($what)  ;# return gzipped, base64-encoded DX data
     }
     if {[info exists _comp2unirect2d($what)]} {
-	set mobj $_comp2unirect2d($what)
-	return [$mobj values]
+	return [$_comp2unirect2d($what) values]
+    }
+    if {[info exists _comp2unirect3d($what)]} {
+	return [$_comp2unirect3d($what) values]
     }
     error "bad option \"$what\": should be [join [lsort [array names _comp2dims]] {, }]"
 }
@@ -517,7 +527,8 @@ itcl::body Rappture::Field::_build {} {
     catch {unset _comp2dims}
     catch {unset _comp2style}
     array unset _comp2unirect2d
-
+    array unset _comp2unirect3d
+    array unset _comp2extents
     #
     # Scan through the components of the field and create
     # vectors for each part.
@@ -539,6 +550,13 @@ itcl::body Rappture::Field::_build {} {
 	    set type "dx"
 	}
 	set _comp2style($cname) ""
+	
+	# Save the extents of the component
+	set extents [$_field element $cname.extents]
+	if { $extents == "" } {
+	    set extents 1 
+	}
+	set _comp2extents($cname) $extents
 
 	if {$type == "1D"} {
 	    #
@@ -601,7 +619,13 @@ itcl::body Rappture::Field::_build {} {
 		if { $element == "unirect2d" } {
 		    set _comp2dims($cname) "2D"
 		    set _comp2unirect2d($cname) \
-			[Rappture::UniRect2d \#auto $_xmlobj $_field $cname]
+			[Rappture::Unirect2d \#auto $_xmlobj $_field $cname]
+		    set _comp2style($cname) [$_field get $cname.style]
+		    incr _counter
+		} elseif { $element == "unirect3d" } {
+		    set _comp2dims($cname) "3D"
+		    set _comp2unirect3d($cname) \
+			[Rappture::Unirect3d \#auto $_xmlobj $_field $cname]
 		    set _comp2style($cname) [$_field get $cname.style]
 		    incr _counter
 		} elseif { $element == "cloud" || $element == "mesh" } {
@@ -693,7 +717,6 @@ itcl::body Rappture::Field::_build {} {
 	    set _comp2dx($cname) [$_field get -decode no $cname.dx]
 	    set _comp2style($cname) [$_field get $cname.style]
 	    incr _counter
-
 	} elseif {$type == "opendx"} {
 	    #
 	    # HACK ALERT!  Extract gzipped, base64-encoded OpenDX
@@ -756,13 +779,43 @@ itcl::body Rappture::Field::_getValue {expr} {
     return [list $expr $pcomp]
 }
 
-# ----------------------------------------------------------------------
-# USAGE: mesh ?<name>?
 #
-# Returns a list {xvec yvec} for the specified field component <name>.
-# If the name is not specified, then it returns the vectors for the
-# overall field (sum of all components).
-# ----------------------------------------------------------------------
+# isunirect2d  --
+#
+# Returns if the field is a unirect2d object.  
+#
 itcl::body Rappture::Field::isunirect2d { } {
     return [expr [array size _comp2unirect2d] > 0]
+}
+
+#
+# isunirect3d  --
+#
+# Returns if the field is a unirect3d object.  
+#
+itcl::body Rappture::Field::isunirect3d { } {
+    return [expr [array size _comp2unirect3d] > 0]
+}
+
+#
+# extents --
+#
+# Returns if the field is a unirect2d object.  
+#
+itcl::body Rappture::Field::extents {{what -overall}} {
+    if {$what == "-overall" } {
+	set max 0
+	foreach cname [$_field children -type component] {
+	    set extents [info exists _comp2extents($cname)]
+	    if { $max < $extents } {
+		set max $extents
+	    }
+	}
+	return $max
+    } 
+    if { $what == "component0"} {
+	set what [lindex [components -name] 0]
+	return $_comp2extents($what)
+    }
+    return $_comp2extents($what)
 }
