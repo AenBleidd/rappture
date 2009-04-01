@@ -1,3 +1,4 @@
+
 # ----------------------------------------------------------------------
 #  COMPONENT: nanovisviewer - 3D volume rendering
 #
@@ -238,7 +239,7 @@ itcl::body Rappture::NanovisViewer::constructor {hostlist args} {
     itk_component add xslice {
 	label $itk_component(slicers).xslice \
 	    -borderwidth 1 -relief raised -padx 1 -pady 1 \
-	    -image [Rappture::icon x-cutplane-off]
+	    -image [Rappture::icon x-cutplane]
     } {
 	usual
 	ignore -borderwidth
@@ -274,7 +275,7 @@ itcl::body Rappture::NanovisViewer::constructor {hostlist args} {
     itk_component add yslice {
 	label $itk_component(slicers).yslice \
 	    -borderwidth 1 -relief raised -padx 1 -pady 1 \
-	    -image [Rappture::icon y-cutplane-off]
+	    -image [Rappture::icon y-cutplane]
     } {
 	usual
 	ignore -borderwidth
@@ -310,7 +311,7 @@ itcl::body Rappture::NanovisViewer::constructor {hostlist args} {
     itk_component add zslice {
 	label $itk_component(slicers).zslice \
 	    -borderwidth 1 -relief raised -padx 1 -pady 1 \
-	    -image [Rappture::icon z-cutplane-off]
+	    -image [Rappture::icon z-cutplane]
     } {
 	usual
 	ignore -borderwidth
@@ -1319,13 +1320,11 @@ itcl::body Rappture::NanovisViewer::_slice {option args} {
 	    }
 	    if {$op} {
 		$itk_component(${axis}slice) configure \
-		    -image [Rappture::icon ${axis}-cutplane-on] \
 		    -relief sunken
 		$itk_component(${axis}slicer) configure -state normal
 		_send "cutplane state 1 $axis [_currentVolumeIds -cutplanes]"
 	    } else {
 		$itk_component(${axis}slice) configure \
-		    -image [Rappture::icon ${axis}-cutplane-off] \
 		    -relief raised
 		$itk_component(${axis}slicer) configure -state disabled
 		_send "cutplane state 0 $axis [_currentVolumeIds -cutplanes]"

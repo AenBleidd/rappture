@@ -56,9 +56,18 @@ itcl::body Rappture::Field3DResult::constructor {args} {
 
     set servers [Rappture::VisViewer::GetServerList "nanovis"]
     if {"" != $servers && $flags(-mode) != "vtk"} {
-	itk_component add renderer {
-	    Rappture::NanovisViewer $itk_interior.ren $servers
-	}
+	switch -- $flags(-mode) {
+	    "nanovis" {
+		itk_component add renderer {
+		    Rappture::NanovisViewer $itk_interior.ren $servers
+		}
+	    }
+	    "flowvis" {
+		itk_component add renderer {
+		    Rappture::FlowvisViewer $itk_interior.ren $servers
+		}
+	    }
+	}		
 	pack $itk_component(renderer) -expand yes -fill both
 
 	# can't connect to rendering farm?  then fall back to older viewer
