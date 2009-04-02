@@ -71,7 +71,6 @@ LIBS		= \
 		$(TCL_LIB_SPEC) \
 		$(CG_LIB_SPEC) \
 		$(GL_LIB_SPEC) \
-		$(GLUI_LIB_SPEC) \
 		$(FF_LIB_SPEC) \
 		$(EXTRA_LIBS) \
 		-Wl,-rpath,$(LD_RUN_PATH)
@@ -82,7 +81,6 @@ INCLUDES	= \
 		$(R2_INC_SPEC) \
 		$(IMG_INC_SPEC) \
 		$(MAT_INC_SPEC) \
-		$(GLUI_INC_SPEC) \
 		$(TCL_INC_SPEC) \
 		$(CG_INC_SPEC) \
 		$(GL_INC_SPEC) \
@@ -104,9 +102,13 @@ OBJS		= \
 		ContourLineFilter.o \
 		ConvexPolygon.o \
 		Event.o \
+		Switch.o \
+ 		FlowCmds.o \
 		GradientFilter.o \
 		Grid.o \
 		HeightMap.o \
+		LoadVector.o \
+		Unirect.o \
 		Mat4x4.o \
 		Nv.o \
 		NvCamera.o \
@@ -177,9 +179,9 @@ shaders		= \
 		$(srcdir)/shaders/volqd_volume.cg \
 		$(srcdir)/shaders/zincblende_volume.cg
 
-.PHONY: glui newmat11 R2 imgloaders transfer-function nanovis
+.PHONY: newmat11 R2 imgloaders transfer-function nanovis
 
-all: glui newmat11 R2 imgloaders transfer-function nanovis
+all: newmat11 R2 imgloaders transfer-function nanovis
 
 install: install-nanovis install-resources install-shaders
 
@@ -237,7 +239,6 @@ install-nanovis: nanovis
 	$(INSTALL) -m 0555 nanovis $(bindir)
 
 clean:
-	$(MAKE) -C $(GLUI_DIR) clean
 	$(MAKE) -C $(MAT_DIR) clean
 	$(MAKE) -C $(R2_DIR)/src clean
 	$(MAKE) -C $(IMG_DIR) clean

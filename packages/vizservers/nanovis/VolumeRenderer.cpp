@@ -889,9 +889,10 @@ void VolumeRenderer::disable_volume(int index){
 }
 
 
-void VolumeRenderer::init_font(const char* filename) {
-
-    FILE *file;
+bool 
+VolumeRenderer::init_font(const char* filename) 
+{
+    FILE *f;
     unsigned short int bfType;
     int bfOffBits;
     short int biPlanes;
@@ -900,82 +901,93 @@ void VolumeRenderer::init_font(const char* filename) {
     int width, height;
     int i;
     unsigned char temp;
-
-
+    unsigned char* data;
     /* make sure the file is there and open it read-only (binary) */
-    if ((file = fopen(filename, "rb")) == NULL) {
+    f = fopen(filename, "rb");
+    if (f == NULL) {
 	fprintf(stderr, "can't open font file \"%s\"\n", filename);
-	abort();
+	return false;
     }
     
-    if(!fread(&bfType, sizeof(short int), 1, file)) {
-	fprintf(stderr, "can't read 2 bytes from font file \"%s\"\n", filename);
-	abort();
+    if (fread(&bfType, sizeof(short int), 1, f) != 1) {
+	fprintf(stderr, "can't read %d bytes from font file \"%s\"\n", 
+		sizeof(short int), filename);
+	goto error;
     }
     
     /* check if file is a bitmap */
     if (bfType != 19778) {
-	assert(false);
-	//printf("Not a Bitmap-File!\n");
+	fprintf(stderr, "not a bmp file.\n");
+	goto error;
     }
     
     /* get the file size */
     /* skip file size and reserved fields of bitmap file header */
-    fseek(file, 8, SEEK_CUR);
+    fseek(f, 8, SEEK_CUR);
     
     /* get the position of the actual bitmap data */
-    if (!fread(&bfOffBits, sizeof(int), 1, file)) {
-	assert(false);
-	//printf("Error reading file!\n");
+    if (fread(&bfOffBits, sizeof(int), 1, f) != 1) {
+	fprintf(stderr, "error reading file.\n");
+	goto error;
     }
     //printf("Data at Offset: %ld\n", bfOffBits);
     
     /* skip size of bitmap info header */
-    fseek(file, 4, SEEK_CUR);
+    fseek(f, 4, SEEK_CUR);
     
     /* get the width of the bitmap */
-    fread(&width, sizeof(int), 1, file);
+    if (fread(&width, sizeof(int), 1, f) != 1) {
+	fprintf(stderr, "error reading file.\n");
+	goto error;
+    }
     //printf("Width of Bitmap: %d\n", texture->width);
     
     /* get the height of the bitmap */
-    fread(&height, sizeof(int), 1, file);
+    if (fread(&height, sizeof(int), 1, f) != 1) {
+	fprintf(stderr, "error reading file.\n");
+	goto error;
+    }
     //printf("Height of Bitmap: %d\n", texture->height);
     
     /* get the number of planes (must be set to 1) */
-    fread(&biPlanes, sizeof(short int), 1, file);
-    if (biPlanes != 1)
-    {
-      assert(false);
-      //printf("Error: number of Planes not 1!\n");
+    if (fread(&biPlanes, sizeof(short int), 1, f) != 1) {
+	fprintf(stderr, "error reading file.\n");
+	goto error;
+    }
+    if (biPlanes != 1) {
+	fprintf(stderr, "Error: number of Planes not 1!\n");
+	goto error;
     }
     
     /* get the number of bits per pixel */
-    if (!fread(&biBitCount, sizeof(short int), 1, file)) {
-	assert(false);
-	//printf("Error reading file!\n");
-	//return 0;
+    if (fread(&biBitCount, sizeof(short int), 1, f) != 1) {
+ 	fprintf(stderr, "error reading file.\n");
+	goto error;
     }
     
     //printf("Bits per Pixel: %d\n", biBitCount);
     if (biBitCount != 24) {
-	assert(false);
-	//printf("Bits per Pixel not 24\n");
-	//return 0;
+	fprintf(stderr, "Bits per Pixel not 24\n");
+	goto error;
     }
 
 
     /* calculate the size of the image in bytes */
     biSizeImage = width * height * 3 * sizeof(unsigned char);
-    unsigned char* data = (unsigned char*) malloc(biSizeImage);
-
+    data = (unsigned char*) malloc(biSizeImage);
+    if (data == NULL) {
+	fprintf(stderr, "Can't allocate memory for image\n");
+	goto error;
+    }
 
     /* seek to the actual data */
-    fseek(file, bfOffBits, SEEK_SET);
-    if (!fread(data, biSizeImage, 1, file)) {
-	assert(false);
-	//printf("Error loading file!\n");
+    fseek(f, bfOffBits, SEEK_SET);
+    if (fread(data, biSizeImage, 1, f) != 1) {
+	fprintf(stderr, "Error loading file!\n");
+	goto error;
     }
-    
+    fclose(f);
+
     /* swap red and blue (bgr -> rgb) */
     for (i = 0; i < biSizeImage; i += 3) {
        temp = data[i];
@@ -984,28 +996,30 @@ void VolumeRenderer::init_font(const char* filename) {
     }
 
     //insert alpha channel
-    unsigned char* data_with_alpha = (unsigned char*) malloc(width*height*4*sizeof(unsigned char));
+    unsigned char* data_with_alpha;
+    data_with_alpha = (unsigned char*)
+	malloc(width*height*4*sizeof(unsigned char));
     for(int i=0; i<height; i++){
-      for(int j=0; j<width; j++){
-	unsigned char r, g, b, a;
-	r = data[3*(i*width+j)];
-	g = data[3*(i*width+j)+1];
-	b = data[3*(i*width+j)+2];
-
-	if(r==0 && g==0 && b==0)
-	  a = 0;
-	else
-	  a = 255;
-
-	data_with_alpha[4*(i*width+j)] = r;
-	data_with_alpha[4*(i*width+j) + 1] = g;
-	data_with_alpha[4*(i*width+j) + 2] = b;
-	data_with_alpha[4*(i*width+j) + 3] = a;
-
-      }
+	for(int j=0; j<width; j++){
+	    unsigned char r, g, b, a;
+	    r = data[3*(i*width+j)];
+	    g = data[3*(i*width+j)+1];
+	    b = data[3*(i*width+j)+2];
+	    
+	    if(r==0 && g==0 && b==0)
+		a = 0;
+	    else
+		a = 255;
+	    
+	    data_with_alpha[4*(i*width+j)] = r;
+	    data_with_alpha[4*(i*width+j) + 1] = g;
+	    data_with_alpha[4*(i*width+j) + 2] = b;
+	    data_with_alpha[4*(i*width+j) + 3] = a;
+	    
+	}
     }
     free(data);
-
+    
     //create opengl texture 
     glGenTextures(1, &font_texture);
     glBindTexture(GL_TEXTURE_2D, font_texture);
@@ -1018,12 +1032,18 @@ void VolumeRenderer::init_font(const char* filename) {
     free(data_with_alpha);
 
     build_font();
-    assert(glGetError()==0);
+    return (glGetError()==0);
+
+ error:
+    fclose(f);
+    return false;
 }
 
 
 
-void VolumeRenderer::draw_label(Volume* vol){
+void 
+VolumeRenderer::draw_label(Volume* vol)
+{
 
   //glEnable(GL_TEXTURE_2D);
   glDisable(GL_TEXTURE_2D);
