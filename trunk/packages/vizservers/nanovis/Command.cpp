@@ -67,8 +67,9 @@
 #include "HeightMap.h"
 #include "Grid.h"
 #include "NvCamera.h"
-#include <RenderContext.h>
-#include <NvLIC.h>
+#include "RenderContext.h"
+#include "NvLIC.h"
+#include "Unirect.h"
 
 #define ISO_TEST                1
 #define PLANE_CMD               0
@@ -102,7 +103,9 @@ extern void load_volume(int index, int width, int height, int depth,
 extern bool load_vector_stream(Rappture::Outcome &result, int index, 
 	std::istream& fin);
 extern bool load_vector_stream2(Rappture::Outcome &result, int index, 
-	std::istream& fin);
+	size_t length, char *bytes);
+extern bool MakeVectorFieldFromUnirect3d(Rappture::Outcome &result, 
+	Rappture::Unirect3d &data);
 
 // Tcl interpreter for incoming messages
 
@@ -146,11 +149,11 @@ static Tcl_ObjCmdProc PlaneCmd;
 static Tcl_ObjCmdProc ScreenCmd;
 static Tcl_ObjCmdProc SnapshotCmd;
 static Tcl_ObjCmdProc TransfuncCmd;
-static Tcl_ObjCmdProc UniRect2dCmd;
+static Tcl_ObjCmdProc Unirect2dCmd;
 static Tcl_ObjCmdProc UpCmd;
 static Tcl_ObjCmdProc VolumeCmd;
 
-static bool
+bool
 GetBooleanFromObj(Tcl_Interp *interp, Tcl_Obj *objPtr, bool *boolPtr)
 {
     int value;
@@ -162,7 +165,7 @@ GetBooleanFromObj(Tcl_Interp *interp, Tcl_Obj *objPtr, bool *boolPtr)
     return TCL_OK;
 }
 
-static int
+int
 GetFloatFromObj(Tcl_Interp *interp, Tcl_Obj *objPtr, float *valuePtr)
 {
     double value;
@@ -577,7 +580,7 @@ GetAxis(Tcl_Interp *interp, const char *string, int *indexPtr)
  * and an error message in the interpreter.
  * ----------------------------------------------------------------------
  */
-static int
+int
 GetAxisFromObj(Tcl_Interp *interp, Tcl_Obj *objPtr, int *indexPtr)
 {
     return GetAxis(interp, Tcl_GetString(objPtr), indexPtr);
@@ -649,7 +652,7 @@ GetColor(Tcl_Interp *interp, int objc, Tcl_Obj *const *objv, float *rgbPtr)
  *
  * -----------------------------------------------------------------------
  */
-static int
+int
 GetDataStream(Tcl_Interp *interp, Rappture::Buffer &buf, int nBytes)
 {
     char buffer[8096];
@@ -685,9 +688,10 @@ GetDataStream(Tcl_Interp *interp, Rappture::Buffer &buf, int nBytes)
     }
     {
         Rappture::Outcome err;
+	unsigned int flags;
 
-        err = Rappture::encoding::decode(buf, RPENC_Z|RPENC_B64|RPENC_HDR);
-        if (err) {
+	flags = RPENC_Z|RPENC_B64|RPENC_HDR;
+        if (!Rappture::encoding::decode(err, buf, flags)) {
             printf("ERROR -- DECODING\n");
             fflush(stdout);
             Tcl_AppendResult(interp, err.remark(), (char*)NULL);
@@ -1733,22 +1737,46 @@ FlowDataFollowsOp(ClientData cdata, Tcl_Interp *interp, int objc,
     if (Tcl_GetIntFromObj(interp, objv[3], &nbytes) != TCL_OK) {
         return TCL_ERROR;
     }
+    int extents;
+    if (Tcl_GetIntFromObj(interp, objv[4], &extents) != TCL_OK) {
+        return TCL_ERROR;
+    }
 
     Rappture::Buffer buf;
     if (GetDataStream(interp, buf, nbytes) != TCL_OK) {
         return TCL_ERROR;
     }
     int n = NanoVis::n_volumes;
-    std::stringstream fdata;
-    fdata.write(buf.bytes(),buf.size());
-    // load_vector_stream(result, n, fdata);
+    if (strncmp(buf.bytes(), "<DX>", 4) == 0) {
+	if (!load_vector_stream2(result, n, buf.size(), (char *)buf.bytes())) {
+	    Tcl_AppendResult(interp, result.remark(), (char *)NULL);
+	    return TCL_ERROR;
+	}
+    } else if (strncmp(buf.bytes(), "<unirect3d>", 4) == 0) {
+	Rappture::Unirect3d data;
+	Tcl_CmdInfo cmdInfo;
 
-    if (!load_vector_stream2(result, n, fdata)) {
-	Tcl_AppendResult(interp, result.remark(), (char *)NULL);
-	return TCL_ERROR;
+	/* Set the clientdata field of the unirect3d command to contain
+	 * the local data structure. */
+	if (!Tcl_GetCommandInfo(interp, "unirect3d", &cmdInfo)) {
+	    return TCL_ERROR;
+	}
+	data.extents(extents);
+	cmdInfo.objClientData = (ClientData)&data;	
+	Tcl_SetCommandInfo(interp, "unirect3d", &cmdInfo);
+	if (Tcl_Eval(interp, (const char *)buf.bytes()) != TCL_OK) {
+	    return TCL_ERROR;
+	}
+	if (!data.isInitialized()) {
+	    return TCL_ERROR;
+	}
+	if (!MakeVectorFieldFromUnirect3d(result, data)) {
+	    Tcl_AppendResult(interp, result.remark(), (char *)NULL);
+	    return TCL_ERROR;
+	}
     }
-    Volume *volPtr = NanoVis::volume[n];
 
+    Volume *volPtr = NanoVis::volume[NanoVis::n_volumes];
     //
     // BE CAREFUL:  Set the number of slices to something
     //   slightly different for each volume.  If we have
@@ -1757,23 +1785,19 @@ FlowDataFollowsOp(ClientData cdata, Tcl_Interp *interp, int objc,
     //   volume will overwrite the first, so the first won't
     //   appear at all.
     //
-    if (volPtr != NULL) {
-        volPtr->set_n_slice(256-n);
-        // volPtr->set_n_slice(512-n);
-        volPtr->disable_cutplane(0);
-        volPtr->disable_cutplane(1);
-        volPtr->disable_cutplane(2);
-
-        NanoVis::vol_renderer->add_volume(volPtr,
-                NanoVis::get_transfunc("default"));
-
-        float dx0 = -0.5;
-        float dy0 = -0.5*volPtr->height/volPtr->width;
-        float dz0 = -0.5*volPtr->depth/volPtr->width;
-        volPtr->move(Vector3(dx0, dy0, dz0));
-
-    }
-
+    volPtr->set_n_slice(256-n);
+    // volPtr->set_n_slice(512-n);
+    volPtr->disable_cutplane(0);
+    volPtr->disable_cutplane(1);
+    volPtr->disable_cutplane(2);
+    
+    NanoVis::vol_renderer->add_volume(volPtr, 
+	NanoVis::get_transfunc("default"));
+    
+    float dx0 = -0.5;
+    float dy0 = -0.5*volPtr->height/volPtr->width;
+    float dz0 = -0.5*volPtr->depth/volPtr->width;
+    volPtr->move(Vector3(dx0, dy0, dz0));
     return TCL_OK;
 }
 
@@ -1900,7 +1924,11 @@ FlowVideoOp(ClientData cdata, Tcl_Interp *interp, int objc,
 
     // FIXME: find a way to get the data from the movie object as a void*
     Rappture::Buffer data;
-    data.load(fileName);
+    if (!data.load(result, fileName)) {
+        Tcl_AppendResult(interp, "can't load data from temporary movie file \"",
+		fileName, "\": ", result.remark(), (char *)NULL);
+	return TCL_ERROR;
+    }
 
     // Build the command string for the client.
     char command[200];
@@ -2001,7 +2029,7 @@ static int
 FlowSliceOp(ClientData cdata, Tcl_Interp *interp, int objc,
              Tcl_Obj *const *objv)
 {
-    Tcl_ObjCmdProc *proc;
+                                                                                                                                                                                        Tcl_ObjCmdProc *proc;
 
     proc = Rappture::GetOpFromObj(interp, nFlowSliceOps, flowSliceOps,
         Rappture::CMDSPEC_ARG2, objc, objv, 0);
@@ -2181,14 +2209,43 @@ HeightMapDataFollowsOp(ClientData cdata, Tcl_Interp *interp, int objc,
         return TCL_ERROR;
     }
     buf.append("\0", 1);
-    int result;
-    result = Tcl_Eval(interp, buf.bytes());
-    if (result != TCL_OK) {
+
+    Rappture::Unirect2d grid;
+    Tcl_CmdInfo cmdInfo;
+
+    /* Set the clientdata field of the unirect2d command to contain the local
+     * grid structure. This is how we communicate through the Tcl command
+     * interface. */
+    if (!Tcl_GetCommandInfo(interp, "unirect2d", &cmdInfo)) {
+	return TCL_ERROR;
+    }
+    cmdInfo.objClientData = (ClientData)&grid;	
+    Tcl_SetCommandInfo(interp, "unirect2d", &cmdInfo);
+    if (Tcl_Eval(interp, (const char *)buf.bytes()) != TCL_OK) {
         fprintf(NanoVis::logfile, "error in command: %s\n",
                 Tcl_GetStringResult(interp));
         fflush(NanoVis::logfile);
+	return TCL_ERROR;
     }
-    return result;
+    if (!grid.isInitialized()) {
+	return TCL_ERROR;
+    }
+
+    HeightMap* hmPtr;
+    hmPtr = new HeightMap();
+
+    // Must set units before the heights.
+    hmPtr->xAxis.units(grid.xUnits());
+    hmPtr->yAxis.units(grid.yUnits());
+    hmPtr->zAxis.units(grid.vUnits());
+    hmPtr->wAxis.units(grid.yUnits());
+    hmPtr->setHeight(grid.xMin(), grid.yMin(), grid.xMax(), grid.yMax(), 
+		     grid.xNum(), grid.yNum(), grid.acceptValues());
+    hmPtr->setColorMap(NanoVis::get_transfunc("default"));
+    hmPtr->setVisible(true);
+    hmPtr->setLineContourVisible(true);
+    NanoVis::heightMap.push_back(hmPtr);
+    return TCL_OK;
 }
 
 static int
@@ -2728,116 +2785,34 @@ PlaneCmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const *objv)
  * (heightmap, volume, etc). Our C command always creates a heightmap.
  */
 static int
-UniRect2dCmd(ClientData clientData, Tcl_Interp *interp, int objc,
+Unirect2dCmd(ClientData clientData, Tcl_Interp *interp, int objc,
              Tcl_Obj *const *objv)
 {
-    int xNum, yNum, zNum;
-    float xMin, yMin, xMax, yMax;
-    float *zValues;
-    const char *xUnits, *yUnits, *zUnits;
+    Rappture::Unirect2d *dataPtr = (Rappture::Unirect2d *)clientData;
 
-    if ((objc & 0x01) == 0) {
-        Tcl_AppendResult(interp, Tcl_GetString(objv[0]), ": ",
-                "wrong number of arguments: should be key-value pairs",
-                (char *)NULL);
-        return TCL_ERROR;
-    }
-    zValues = NULL;
-    xNum = yNum = zNum = 0;
-    xMin = yMin = xMax = yMax = 0.0f;
-    xUnits = yUnits = zUnits = NULL;
-    int i;
-    for (i = 1; i < objc; i += 2) {
-        const char *string;
-        char c;
-
-        string = Tcl_GetString(objv[i]);
-        c = string[0];
-        if ((c == 'x') && (strcmp(string, "xmin") == 0)) {
-            if (GetFloatFromObj(interp, objv[i+1], &xMin) != TCL_OK) {
-                return TCL_ERROR;
-            }
-        } else if ((c == 'x') && (strcmp(string, "xmax") == 0)) {
-            if (GetFloatFromObj(interp, objv[i+1], &xMax) != TCL_OK) {
-                return TCL_ERROR;
-            }
-        } else if ((c == 'x') && (strcmp(string, "xnum") == 0)) {
-            if (Tcl_GetIntFromObj(interp, objv[i+1], &xNum) != TCL_OK) {
-                return TCL_ERROR;
-            }
-            if (xNum <= 0) {
-                Tcl_AppendResult(interp, "bad xnum value: must be > 0",
-                     (char *)NULL);
-                return TCL_ERROR;
-            }
-        } else if ((c == 'x') && (strcmp(string, "xunits") == 0)) {
-            xUnits = Tcl_GetString(objv[i+1]);
-        } else if ((c == 'y') && (strcmp(string, "ymin") == 0)) {
-            if (GetFloatFromObj(interp, objv[i+1], &yMin) != TCL_OK) {
-                return TCL_ERROR;
-            }
-        } else if ((c == 'y') && (strcmp(string, "ymax") == 0)) {
-            if (GetFloatFromObj(interp, objv[i+1], &yMax) != TCL_OK) {
-                return TCL_ERROR;
-            }
-        } else if ((c == 'y') && (strcmp(string, "ynum") == 0)) {
-            if (Tcl_GetIntFromObj(interp, objv[i+1], &yNum) != TCL_OK) {
-                return TCL_ERROR;
-            }
-            if (yNum <= 0) {
-                Tcl_AppendResult(interp, "bad ynum value: must be > 0",
-                                 (char *)NULL);
-                return TCL_ERROR;
-            }
-        } else if ((c == 'y') && (strcmp(string, "yunits") == 0)) {
-            yUnits = Tcl_GetString(objv[i+1]);
-        } else if ((c == 'z') && (strcmp(string, "zvalues") == 0)) {
-            Tcl_Obj **zObj;
-
-            if (Tcl_ListObjGetElements(interp, objv[i+1], &zNum, &zObj)!= TCL_OK) {
-                return TCL_ERROR;
-            }
-            int j;
-            zValues = new float[zNum];
-            for (j = 0; j < zNum; j++) {
-                if (GetFloatFromObj(interp, zObj[j], zValues + j) != TCL_OK) {
-                    return TCL_ERROR;
-                }
-            }
-        } else if ((c == 'z') && (strcmp(string, "zunits") == 0)) {
-            zUnits = Tcl_GetString(objv[i+1]);
-        } else {
-            Tcl_AppendResult(interp, "unknown key \"", string,
-                "\": should be xmin, xmax, xnum, xunits, ymin, ymax, ynum, yunits, zvalues, or zunits",
-                (char *)NULL);
-            return TCL_ERROR;
-        }
-    }
-    if (zValues == NULL) {
-        Tcl_AppendResult(interp, "missing \"zvalues\" key", (char *)NULL);
-        return TCL_ERROR;
-    }
-    if (zNum != (xNum * yNum)) {
-        Tcl_AppendResult(interp, "wrong number of z values must be xnum*ynum",
-                (char *)NULL);
-        return TCL_ERROR;
-    }
-    HeightMap* hmPtr;
-    hmPtr = new HeightMap();
-
-    // Must set units before the heights.
-    hmPtr->xAxis.units(xUnits);
-    hmPtr->yAxis.units(yUnits);
-    hmPtr->zAxis.units(zUnits);
-    hmPtr->wAxis.units(yUnits);
-    hmPtr->setHeight(xMin, yMin, xMax, yMax, xNum, yNum, zValues);
-    hmPtr->setColorMap(NanoVis::get_transfunc("default"));
-    hmPtr->setVisible(true);
-    hmPtr->setLineContourVisible(true);
-    NanoVis::heightMap.push_back(hmPtr);
-    return TCL_OK;
+    return dataPtr->LoadData(interp, objc, objv);
 }
 
+/*
+ * This command should be Tcl procedure instead of a C command.  The reason
+ * for this that 1) we are using a safe interpreter so we would need a master
+ * interpreter to load the Tcl environment properly (including our "unirect2d"
+ * procedure). And 2) the way nanovis is currently deployed doesn't make it
+ * easy to add new directories for procedures, since it's loaded into /tmp.
+ *
+ * Ideally, the "unirect2d" proc would do a rundimentary parsing of the data
+ * to verify the structure and then pass it to the appropiate Tcl command
+ * (heightmap, volume, etc). Our C command always creates a heightmap.
+ */
+
+static int
+Unirect3dCmd(ClientData clientData, Tcl_Interp *interp, int objc, 
+	     Tcl_Obj *const *objv)
+{
+    Rappture::Unirect3d *dataPtr = (Rappture::Unirect3d *)clientData;
+
+    return dataPtr->LoadData(interp, objc, objv);
+}
 
 Tcl_Interp *
 initTcl()
@@ -2864,7 +2839,8 @@ initTcl()
     Tcl_CreateObjCommand(interp, "screen",      ScreenCmd,      NULL, NULL);
     Tcl_CreateObjCommand(interp, "snapshot",    SnapshotCmd,    NULL, NULL);
     Tcl_CreateObjCommand(interp, "transfunc",   TransfuncCmd,   NULL, NULL);
-    Tcl_CreateObjCommand(interp, "unirect2d",   UniRect2dCmd,   NULL, NULL);
+    Tcl_CreateObjCommand(interp, "unirect2d",   Unirect2dCmd,   NULL, NULL);
+    Tcl_CreateObjCommand(interp, "unirect3d",   Unirect3dCmd,   NULL, NULL);
     Tcl_CreateObjCommand(interp, "up",          UpCmd,          NULL, NULL);
     Tcl_CreateObjCommand(interp, "volume",      VolumeCmd,      NULL, NULL);
 #if __TEST_CODE__

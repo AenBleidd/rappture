@@ -97,7 +97,7 @@ struct FlowCmd {
 
 extern int GetDataStream(Tcl_Interp *interp, Rappture::Buffer &buf, int nBytes);
 extern bool load_vector_stream2(Rappture::Outcome &result, int index, 
-	int nBytes, char *bytes);
+	size_t nBytes, char *bytes);
 
 extern bool MakeVectorFieldFromUnirect3d(Rappture::Outcome &result, 
 	Rappture::Unirect3d &data);
@@ -144,7 +144,11 @@ FlowDataFileOp(ClientData clientData, Tcl_Interp *interp, int objc,
         return TCL_ERROR;
     }
     Rappture::Buffer buf;
-    buf.load(fileName);
+    if (!buf.load(result, fileName)) {
+	Tcl_AppendResult(interp, "can't load data from \"", fileName, "\": ",
+			 result.remark(), (char *)NULL);
+	return TCL_ERROR;
+    }
 
     int n = NanoVis::n_volumes;
     if (strncmp(buf.bytes(), "<DX>", 4) == 0) {
@@ -900,8 +904,11 @@ FlowVideoOp(ClientData clientData, Tcl_Interp *interp, int objc,
 
     // FIXME: find a way to get the data from the movie object as a void*
     Rappture::Buffer data;
-    data.load(fileName);
-
+    if (!data.load(result, fileName)) {
+        Tcl_AppendResult(interp, "can't load data from temporary movie file \"",
+		fileName, "\": ", result.remark(), (char *)NULL);
+	return TCL_ERROR;
+    }
     // Build the command string for the client.
     char command[200];
     sprintf(command,"nv>image -bytes %lu -type movie -token token\n", 

@@ -93,7 +93,7 @@ private:
 			   float r, float g, float b, float line_width);
 
     void get_near_far_z(Mat4x4 mv, double &zNear, double &zFar);
-    void init_font(const char* filename);
+    bool init_font(const char* filename);
     void glPrint(char* string, int set); //there are two sets of font in the
 					 //texture. 0, 1
     void draw_label(Volume* vol); //draw label using bitmap texture

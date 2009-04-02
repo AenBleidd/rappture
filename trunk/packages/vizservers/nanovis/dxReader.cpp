@@ -43,167 +43,196 @@
 
 #define  _LOCAL_ZINC_TEST_ 0
 
+static INLINE char *
+skipspaces(char *string) 
+{
+    while (isspace(*string)) {
+	string++;
+    }
+    return string;
+}
+
+static INLINE char *
+getline(char **stringPtr, char *endPtr) 
+{
+    char *line, *p;
+
+    line = skipspaces(*stringPtr);
+    for (p = line; p < endPtr; p++) {
+	if (*p == '\n') {
+	    *p++ = '\0';
+	    *stringPtr = p;
+	    return line;
+	}
+    }
+    *stringPtr = p;
+    return line;
+}
+
 /*
  * Load a 3D vector field from a dx-format file
  */
 bool
-load_vector_stream2(Rappture::Outcome &result, int volindex, std::istream& fin)
+load_vector_stream2(Rappture::Outcome &result, int ivol, size_t length,
+		    char *string)
 {
-    int dummy, nx, ny, nz, npts;
+    int nx, ny, nz, npts;
     double x0, y0, z0, dx, dy, dz, ddx, ddy, ddz;
-    char line[128], type[128], *start;
+    char *p, *endPtr;
 
     dx = dy = dz = 0.0;         // Suppress compiler warning.
     x0 = y0 = z0 = 0.0;		// May not have an origin line.
+    for (p = string, endPtr = p + length; p < endPtr; /*empty*/) {
+	char *line;
 
+	line = getline(&p, endPtr);
+        if (line == endPtr) {
+	    break;
+	}
+        if ((line[0] == '#') || (line == '\0')) {
+	    continue;		// Skip blank or comment lines.
+	}
+	if (sscanf(line, "object %*d class gridpositions counts %d %d %d", 
+		   &nx, &ny, &nz) == 4) {
+	    printf("w:%d h:%d d:%d\n", nx, ny, nz);
+	    // found grid size
+	} else if (sscanf(line, "origin %lg %lg %lg", &x0, &y0, &z0) == 3) {
+	    // found origin
+	} else if (sscanf(line, "delta %lg %lg %lg", &ddx, &ddy, &ddz) == 3) {
+	    // found one of the delta lines
+	    if (ddx != 0.0) {
+		dx = ddx;
+	    } else if (ddy != 0.0) {
+		dy = ddy;
+	    } else if (ddz != 0.0) {
+		dz = ddz;
+	    }
+	} else if (sscanf(line, "object %*d class array type %*s shape 3"
+		" rank 1 items %d data follows", &npts) == 3) {
+	    printf("point %d\n", npts);
+	    if (npts != nx*ny*nz) {
+		result.addError("inconsistent data: expected %d points"
+				" but found %d points", nx*ny*nz, npts);
+		return false;
+	    }
+	    break;
+	} else if (sscanf(line, "object %*d class array type %*s rank 0"
+		" times %d data follows", &npts) == 3) {
+	    if (npts != nx*ny*nz) {
+		result.addError("inconsistent data: expected %d points"
+				" but found %d points", nx*ny*nz, npts);
+		return false;
+	    }
+	    break;
+	}
+    }
     Vector3 physicalMin;
     Vector3 physicalMax;
-
-    while (!fin.eof()) {
-        fin.getline(line, sizeof(line) - 1);
-        if (fin.fail()) {
-            result.addError("error in data stream");
-            return false;
-        }
-        for (start=&line[0]; *start == ' ' || *start == '\t'; start++)
-            ;  // skip leading blanks
-
-        if (*start != '#') {  // skip comment lines
-            if (sscanf(start, "object %d class gridpositions counts %d %d %d", &dummy, &nx, &ny, &nz) == 4) {
-                printf("w:%d h:%d d:%d\n", nx, ny, nz);
-                // found grid size
-            } else if (sscanf(start, "origin %lg %lg %lg", &x0, &y0, &z0) == 3) {
-                // found origin
-            } else if (sscanf(start, "delta %lg %lg %lg", &ddx, &ddy, &ddz) == 3) {
-                // found one of the delta lines
-                if (ddx != 0.0) {
-                    dx = ddx;
-                } else if (ddy != 0.0) {
-                    dy = ddy;
-                } else if (ddz != 0.0) {
-                    dz = ddz;
-                }
-            } else if (sscanf(start, "object %d class array type %s shape 3 rank 1 items %d data follows", &dummy, type, &npts) == 3) {
-                printf("point %d\n", npts);
-                if (npts != nx*ny*nz) {
-                    result.addError("inconsistent data: expected %d points"
-				    " but found %d points", nx*ny*nz, npts);
-                    return false;
-                }
-                break;
-            } else if (sscanf(start, "object %d class array type %s rank 0 times %d data follows", &dummy, type, &npts) == 3) {
-                if (npts != nx*ny*nz) {
-                    result.addError("inconsistent data: expected %d points"
-				    " but found %d points", nx*ny*nz, npts);
-                    return false;
-                }
-                break;
-            }
-        }
-    }
 
     physicalMin.set(x0, y0, z0);
     physicalMax.set(x0 + dx * nx, y0 + dy * ny, z0 + dz * nz);
 
     // read data points
     float* srcdata = new float[nx * ny * nz * 3];
-    if (!fin.eof()) {
-        double vx, vy, vz, vm;
-#ifdef notdef
-        double max_x = -1e21, min_x = 1e21;
-        double max_y = -1e21, min_y = 1e21;
-        double max_z = -1e21, min_z = 1e21;
-#endif
-        double max_mag = -1e21, min_mag = 1e21;
-        int nread = 0;
-        for (int ix=0; ix < nx; ix++) {
-            for (int iy=0; iy < ny; iy++) {
-                for (int iz=0; iz < nz; iz++) {
-                    if (fin.eof() || nread > npts) {
-                        break;
-                    }
-                    fin.getline(line,sizeof(line)-1);
-                    if (sscanf(line, "%lg %lg %lg", &vx, &vy, &vz) == 3) {
-                        int nindex = (iz*nx*ny + iy*nx + ix) * 3;
-                        srcdata[nindex] = vx;
-                        //if (srcdata[nindex] > max_x) max_x = srcdata[nindex];
-                        //if (srcdata[nindex] < min_x) min_x = srcdata[nindex];
-                        ++nindex;
-
-                        srcdata[nindex] = vy;
-                        //if (srcdata[nindex] > max_y) max_y = srcdata[nindex];
-                        //if (srcdata[nindex] < min_y) min_y = srcdata[nindex];
-                        ++nindex;
-
-                        srcdata[nindex] = vz;
-                        //if (srcdata[nindex] > max_z) max_z = srcdata[nindex];
-                        //if (srcdata[nindex] < min_z) min_z = srcdata[nindex];
-
-                        vm = sqrt(vx*vx + vy*vy + vz*vz);
-                        if (vm > max_mag) {
-                            max_mag = vm;
-                        }
-                        if (vm < min_mag) {
-                            min_mag = vm;
-                        }
-
-                        ++nread;
-                    }
-                }
-            }
-        }
-
-        // make sure that we read all of the expected points
-        if (nread != nx*ny*nz) {
-	    result.addError("inconsistent data: expected %d points"
-			    " but found %d points", nx*ny*nz, npts);
-	    return false;
-        }
-
-        float *data = new float[4*nx*ny*nz];
-        memset(data, 0, sizeof(float) * 4 * nx * ny * nz);
-
-        std::cout << "generating " << nx << "x" << ny << "x" << nz << " = " << nx*ny*nz << " points" << std::endl;
-
-        // generate the uniformly sampled data that we need for a volume
-#ifdef notdef
-        double nzero_min = 0.0;
-#endif
-        int ngen = 0;
-        int nindex = 0;
-        for (int iz=0; iz < nz; iz++) {
-            for (int iy=0; iy < ny; iy++) {
-                for (int ix=0; ix < nx; ix++) {
-
-                    vx = srcdata[nindex++];
-                    vy = srcdata[nindex++];
-                    vz = srcdata[nindex++];
-
-                    double vm;
-                    vm = sqrt(vx*vx + vy*vy + vz*vz);
-
-                    data[ngen] = vm / max_mag; ++ngen;
-                    data[ngen] = vx /(2.0*max_mag) + 0.5; ++ngen;
-                    data[ngen] = vy /(2.0*max_mag) + 0.5; ++ngen;
-                    data[ngen] = vz /(2.0*max_mag) + 0.5; ++ngen;
-                }
-            }
-        }
-
-        Volume *volPtr;
-        volPtr = NanoVis::load_volume(volindex, nx, ny, nz, 4, data, 
-		min_mag, max_mag, 0);
-
-        volPtr->xAxis.SetRange(x0, x0 + nx);
-        volPtr->yAxis.SetRange(y0, y0 + ny);
-        volPtr->zAxis.SetRange(z0, z0 + nz);
-        volPtr->wAxis.SetRange(min_mag, max_mag);
-        volPtr->update_pending = true;
-	volPtr->setPhysicalBBox(physicalMin, physicalMax);
-        delete [] data;
-    } else {
+    if (p >= endPtr) {
         std::cerr << "WARNING: data not found in stream" << std::endl;
+	return true;
     }
+#ifdef notdef
+    double max_x = -1e21, min_x = 1e21;
+    double max_y = -1e21, min_y = 1e21;
+    double max_z = -1e21, min_z = 1e21;
+#endif
+    double max_mag = -1e21, min_mag = 1e21;
+    int nread = 0;
+    for (int ix=0; ix < nx; ix++) {
+	for (int iy=0; iy < ny; iy++) {
+	    for (int iz=0; iz < nz; iz++) {
+		char *line;
+		double vx, vy, vz, vm;
+
+		if ((p == endPtr) || nread > npts) {
+		    break;
+		}
+		line = getline(&p, endPtr);
+		if ((line == '#') || (line == '\0')) {
+		    continue;	// Skip blank or comment lines.
+		}
+		if (sscanf(line, "%lg %lg %lg", &vx, &vy, &vz) == 3) {
+		    int nindex = (iz*nx*ny + iy*nx + ix) * 3;
+		    srcdata[nindex] = vx;
+		    //if (srcdata[nindex] > max_x) max_x = srcdata[nindex];
+		    //if (srcdata[nindex] < min_x) min_x = srcdata[nindex];
+		    ++nindex;
+		    
+		    srcdata[nindex] = vy;
+		    //if (srcdata[nindex] > max_y) max_y = srcdata[nindex];
+		    //if (srcdata[nindex] < min_y) min_y = srcdata[nindex];
+		    ++nindex;
+		    
+		    srcdata[nindex] = vz;
+		    //if (srcdata[nindex] > max_z) max_z = srcdata[nindex];
+		    //if (srcdata[nindex] < min_z) min_z = srcdata[nindex];
+		    
+		    vm = sqrt(vx*vx + vy*vy + vz*vz);
+		    if (vm > max_mag) {
+			max_mag = vm;
+		    }
+		    if (vm < min_mag) {
+			min_mag = vm;
+		    }
+		    ++nread;
+		}
+	    }
+	}
+    }
+    
+    // make sure that we read all of the expected points
+    if (nread != nx*ny*nz) {
+	result.addError("inconsistent data: expected %d points"
+			" but found %d points", nx*ny*nz, npts);
+	return false;
+    }
+    
+    float *data = new float[4*nx*ny*nz];
+    memset(data, 0, sizeof(float) * 4 * nx * ny * nz);
+    fprintf(stderr, "generating %dx%dx%d = %d points\n", nx, ny, nz, nx*ny*nz);
+
+    // generate the uniformly sampled data that we need for a volume
+    float *destPtr = data;
+    float *srcPtr = srcdata;
+    for (int iz=0; iz < nz; iz++) {
+	for (int iy=0; iy < ny; iy++) {
+	    for (int ix=0; ix < nx; ix++) {
+		double vx, vy, vz, vm;
+
+		vx = srcPtr[0];
+		vy = srcPtr[1];
+		vz = srcPtr[2];
+		
+		vm = sqrt(vx*vx + vy*vy + vz*vz);
+		
+		destPtr[0] = vm / max_mag; 
+		destPtr[1] = vx /(2.0*max_mag) + 0.5; 
+		destPtr[2] = vy /(2.0*max_mag) + 0.5; 
+		destPtr[3] = vz /(2.0*max_mag) + 0.5; 
+		srcPtr += 3;
+		destPtr += 4;
+	    }
+	}
+    }
+    
+    Volume *volPtr;
+    volPtr = NanoVis::load_volume(ivol, nx, ny, nz, 4, data, min_mag, max_mag, 
+	0);
+    
+    volPtr->xAxis.SetRange(x0, x0 + nx);
+    volPtr->yAxis.SetRange(y0, y0 + ny);
+    volPtr->zAxis.SetRange(z0, z0 + nz);
+    volPtr->wAxis.SetRange(min_mag, max_mag);
+    volPtr->update_pending = true;
+    volPtr->setPhysicalBBox(physicalMin, physicalMax);
+    delete [] data;
     return true;
 }
 

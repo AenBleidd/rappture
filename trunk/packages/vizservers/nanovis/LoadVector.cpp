@@ -239,6 +239,7 @@ MakeVectorFieldFromUnirect3d(Rappture::Outcome &result,
 }
 
 
+#ifdef notdef
 /*
  * Load a 3D vector field from a dx-format file
  */
@@ -362,3 +363,4 @@ load_vector_stream2(Rappture::Outcome &result, int ivol, size_t length,
     return status;
 }
 
+#endif
