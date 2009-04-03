@@ -126,17 +126,19 @@ itcl::body Rappture::VisViewer::constructor { hostlist args } {
     set f [$itk_component(main) component frame]
 
     itk_component add plotarea {
-	frame $f.plotarea -highlightthickness 0 
+	frame $f.plotarea -highlightthickness 0 -background black
+    } {
+	ignore -background
     }
+    pack $itk_component(plotarea) -fill both -expand yes
     set _image(plot) [image create photo]
     itk_component add 3dview {
 	label $itk_component(plotarea).vol -image $_image(plot) \
-	    -highlightthickness 0 -borderwidth 0 
+	    -highlightthickness 0 -borderwidth 0
     } {
 	usual
-	ignore -highlightthickness -borderwidth 
+	ignore -highlightthickness -borderwidth  -background
     }
-
     eval itk_initialize $args
 }
 
