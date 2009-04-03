@@ -23,8 +23,6 @@ option add *FlowvisViewer.width 4i widgetDefault
 option add *FlowvisViewer*cursor crosshair widgetDefault
 option add *FlowvisViewer.height 4i widgetDefault
 option add *FlowvisViewer.foreground black widgetDefault
-option add *FlowvisViewer.controlBackground gray widgetDefault
-option add *FlowvisViewer.controlDarkBackground #999999 widgetDefault
 option add *FlowvisViewer.plotBackground black widgetDefault
 option add *FlowvisViewer.plotForeground white widgetDefault
 #FIXME: why is plot outline gray? not white?
@@ -72,7 +70,6 @@ itcl::class Rappture::FlowvisViewer {
     public method OverIsoMarker { m x }
 
     public method camera {option args}
-    public method tab {what who}
 
     protected method Connect {}
     protected method Disconnect {}
@@ -144,7 +141,6 @@ itcl::class Rappture::FlowvisViewer {
     common downloadPopup_          ;# download options from popup
 
     private common hardcopy_
-    private variable headings_
 }
 
 itk::usual FlowvisViewer {
@@ -210,68 +206,38 @@ itcl::body Rappture::FlowvisViewer::constructor { hostlist args } {
     set settings_($this-zoom)  $view_(zoom)
     set settings_($this-speed) 10
 
+    set f [$itk_component(main) component controls]
     itk_component add reset {
-        button $itk_component(controls).reset \
-            -borderwidth 1 -padx 1 -pady 1 \
+        button $f.reset -borderwidth 1 -padx 1 -pady 1 \
             -image [Rappture::icon reset-view] \
             -command [itcl::code $this Zoom reset]
-    } {
-        usual
-        ignore -borderwidth
-        rename -highlightbackground -controlbackground controlBackground Background
     }
     pack $itk_component(reset) -side top -padx 2 -pady 2
     Rappture::Tooltip::for $itk_component(reset) "Reset the view to the default zoom level"
 
     itk_component add zoomin {
-        button $itk_component(controls).zin \
-            -borderwidth 1 -padx 1 -pady 1 \
+        button $f.zin -borderwidth 1 -padx 1 -pady 1 \
             -image [Rappture::icon zoom-in] \
             -command [itcl::code $this Zoom in]
-    } {
-        usual
-        ignore -borderwidth
-        rename -highlightbackground -controlbackground controlBackground Background
     }
     pack $itk_component(zoomin) -side top -padx 2 -pady 2
     Rappture::Tooltip::for $itk_component(zoomin) "Zoom in"
 
     itk_component add zoomout {
-        button $itk_component(controls).zout \
-            -borderwidth 1 -padx 1 -pady 1 \
+        button $f.zout -borderwidth 1 -padx 1 -pady 1 \
             -image [Rappture::icon zoom-out] \
             -command [itcl::code $this Zoom out]
-    } {
-        usual
-        ignore -borderwidth
-        rename -highlightbackground -controlbackground controlBackground Background
     }
     pack $itk_component(zoomout) -side top -padx 2 -pady 2
     Rappture::Tooltip::for $itk_component(zoomout) "Zoom out"
-
-    itk_component add configure_button {
-	label $itk_component(controls).configbutton \
-	    -borderwidth 1 -padx 1 -pady 1 \
-	    -relief "raised" -image [Rappture::icon wrench]
-    } {
-	usual
-	ignore -borderwidth
-	rename -highlightbackground -controlbackground controlBackground \
-	    Background
-    }
 
     #
     # Volume toggle...
     #
     itk_component add volume {
-        label $itk_component(controls).volume \
-            -borderwidth 1 -relief sunken -padx 1 -pady 1 \
+        label $f.volume -borderwidth 1 -relief sunken -padx 1 -pady 1 \
             -text "Volume" \
 	    -image [Rappture::icon playback-record]
-    } {
-        usual
-        ignore -borderwidth
-        rename -highlightbackground -controlbackground controlBackground Background
     }
     bind $itk_component(volume) <ButtonPress> \
         [itcl::code $this Slice volume toggle]
@@ -437,9 +403,6 @@ itcl::body Rappture::FlowvisViewer::constructor { hostlist args } {
     }
 
     set _image(download) [image create photo]
-
-    $itk_component(scroller) contents $itk_component(view_canvas)
-    $itk_component(title) configure -text "$headings_(view)"
 
     eval itk_initialize $args
 
@@ -2046,31 +2009,14 @@ itcl::body Rappture::FlowvisViewer::BuildViewTab {} {
     } {
 	set settings_($this-$key) $value
     }
-    itk_component add view_canvas {
-        canvas $itk_component(scroller).viewcanvas -highlightthickness 0
-    } {
-	ignore -highlightthickness
-    }
-    $itk_component(sidebar) insert end "view" \
-	-image [Rappture::icon wrench] -text ""  -padx 0 -pady 0 \
-	-command [itcl::code $this tab select "view"]
-    set headings_(view) "View Settings"
-
-    itk_component add view_frame {
-	frame $itk_component(view_canvas).frame \
-	    -highlightthickness 0 
-    } {
-	ignore -highlightthickness
-    }
-    $itk_component(view_canvas) create window 0 0 \
-	-anchor nw -window $itk_component(view_frame)
-    bind $itk_component(view_frame) <Configure> \
-	[itcl::code $this tab resize "view"]
-
-    set inner $itk_component(view_frame)
 
     set fg [option get $itk_component(hull) font Font]
     #set bfg [option get $itk_component(hull) boldFont Font]
+
+    set inner [$itk_component(main) insert end \
+        -title "View Settings" \
+        -icon [Rappture::icon wrench]]
+    $inner configure -borderwidth 4
 
     set ::Rappture::FlowvisViewer::settings_($this-isosurface) 0
     checkbutton $inner.isosurface \
@@ -2130,6 +2076,10 @@ itcl::body Rappture::FlowvisViewer::BuildViewTab {} {
 	5,0 $inner.particles  -columnspan 2 -anchor w \
 	6,0 $inner.lic  -columnspan 1 -anchor w \
 
+    for {set n 0} {$n <= 6} {incr n} {
+        blt::table configure $inner r$n -resize none
+    }
+    blt::table configure $inner r$n -resize expand
 }
 
 itcl::body Rappture::FlowvisViewer::BuildVolumeTab {} {
@@ -2141,28 +2091,11 @@ itcl::body Rappture::FlowvisViewer::BuildVolumeTab {} {
     } {
 	set settings_($this-$key) $value
     }
-    itk_component add volume_canvas {
-        canvas $itk_component(scroller).volumecanvas -highlightthickness 0
-    } {
-	ignore -highlightthickness
-    }
-    $itk_component(sidebar) insert end "volume" \
-	-image [Rappture::icon playback-record] -text ""  -padx 0 -pady 0 \
-	-command [itcl::code $this tab select "volume"]
-    set headings_(volume) "Volume Settings"
 
-    itk_component add volume_frame {
-	frame $itk_component(volume_canvas).frame \
-	    -highlightthickness 0 
-    } {
-	ignore -highlightthickness
-    }
-    $itk_component(volume_canvas) create window 0 0 \
-	-anchor nw -window $itk_component(volume_frame)
-    bind $itk_component(volume_frame) <Configure> \
-	[itcl::code $this tab resize "volume"]
-
-    set inner $itk_component(volume_frame)
+    set inner [$itk_component(main) insert end \
+        -title "Volume Settings" \
+        -icon [Rappture::icon playback-record]]
+    $inner configure -borderwidth 4
 
     set fg [option get $itk_component(hull) font Font]
     #set bfg [option get $itk_component(hull) boldFont Font]
@@ -2196,56 +2129,40 @@ itcl::body Rappture::FlowvisViewer::BuildVolumeTab {} {
     label $inner.thick -text "Thick" -font $fg
 
     blt::table $inner \
-	0,0 $inner.dim  -anchor e \
-	0,1 $inner.light -columnspan 2 \
-	0,3 $inner.bright -anchor w \
-	1,0 $inner.fog -anchor e \
-	1,1 $inner.transp -columnspan 2 \
-	1,3 $inner.plastic -anchor w \
-	2,0 $inner.clear -anchor e \
-	2,1 $inner.opacity -columnspan 2 \
-	2,3 $inner.opaque -anchor w \
-	3,0 $inner.thin -anchor e \
-	3,1 $inner.thickness -columnspan 2 \
-	3,3 $inner.thick -anchor w \
+	0,0 $inner.dim  -anchor e -pady 2 \
+	0,1 $inner.light -columnspan 2 -pady 2 \
+	0,3 $inner.bright -anchor w -pady 2 \
+	1,0 $inner.fog -anchor e -pady 2 \
+	1,1 $inner.transp -columnspan 2 -pady 2 \
+	1,3 $inner.plastic -anchor w -pady 2 \
+	2,0 $inner.clear -anchor e -pady 2 \
+	2,1 $inner.opacity -columnspan 2 -pady 2 \
+	2,3 $inner.opaque -anchor w -pady 2 \
+	3,0 $inner.thin -anchor e -pady 2 \
+	3,1 $inner.thickness -columnspan 2 -pady 2 \
+	3,3 $inner.thick -anchor w -pady 2
+
+    for {set n 0} {$n <= 3} {incr n} {
+        blt::table configure $inner r$n -resize none
+    }
+    blt::table configure $inner r$n -resize expand
 }
 
 itcl::body Rappture::FlowvisViewer::BuildCutplanesTab {} {
-
-    itk_component add cutplanes_canvas {
-        canvas $itk_component(scroller).cutplanescanvas -highlightthickness 0
-    } {
-	ignore -highlightthickness
-    }
-    $itk_component(sidebar) insert end "cutplanes" \
-	-image [Rappture::icon cutbutton] -text ""  -padx 0 -pady 0 \
-	-command [itcl::code $this tab select "cutplanes"]
-    set headings_(cutplanes) "Cutplane Settings"
-
-    itk_component add cutplanes_frame {
-	frame $itk_component(cutplanes_canvas).frame \
-	    -highlightthickness 0 
-    }  {
-	ignore -highlightthickness
-    }
-    $itk_component(cutplanes_canvas) create window 0 0 \
-	-anchor nw -window $itk_component(cutplanes_frame)
-    bind $itk_component(cutplanes_frame) <Configure> \
-	[itcl::code $this tab resize cutplanes]
-
-    set inner $itk_component(cutplanes_frame)
+    set inner [$itk_component(main) insert end \
+        -title "Cutplane Settings" \
+        -icon [Rappture::icon cutbutton]]
+    $inner configure -borderwidth 4
 
     # X-value slicer...
     itk_component add xCutButton {
-        label $itk_component(cutplanes_frame).xbutton \
+        label $inner.xbutton \
             -borderwidth 1 -relief raised -padx 1 -pady 1 \
             -image [Rappture::icon x-cutplane] \
 	    -highlightthickness 0 
     } {
         usual
         ignore -borderwidth -highlightthickness
-        rename -highlightbackground -controlbackground \
-	    controlBackground Background
     }
     bind $itk_component(xCutButton) <ButtonPress> \
         [itcl::code $this Slice axis x toggle]
@@ -2253,18 +2170,13 @@ itcl::body Rappture::FlowvisViewer::BuildCutplanesTab {} {
         "Toggle the X cut plane on/off"
 
     itk_component add xCutScale {
-        ::scale $itk_component(cutplanes_frame).xval -from 100 -to 0 \
+        ::scale $inner.xval -from 100 -to 0 \
             -width 10 -orient vertical -showvalue off \
             -borderwidth 1 -highlightthickness 0 -state disabled \
             -command [itcl::code $this Slice move x]
     } {
         usual
-        ignore -borderwidth
-        ignore -highlightthickness
-        rename -highlightbackground -controlbackground \
-	    controlBackground Background
-        rename -troughcolor -controldarkbackground \
-	    controlDarkBackground Background
+        ignore -borderwidth -highlightthickness
     }
     $itk_component(xCutScale) set 50
     Rappture::Tooltip::for $itk_component(xCutScale) \
@@ -2272,15 +2184,13 @@ itcl::body Rappture::FlowvisViewer::BuildCutplanesTab {} {
 
     # Y-value slicer...
     itk_component add yCutButton {
-        label $itk_component(cutplanes_frame).ybutton \
+        label $inner.ybutton \
             -borderwidth 1 -relief raised -padx 1 -pady 1 \
             -image [Rappture::icon y-cutplane] \
 	    -highlightthickness 0 
     } {
         usual
         ignore -borderwidth -highlightthickness        
-	rename -highlightbackground -controlbackground \
-	    controlBackground Background
     }
     bind $itk_component(yCutButton) <ButtonPress> \
         [itcl::code $this Slice axis y toggle]
@@ -2288,16 +2198,13 @@ itcl::body Rappture::FlowvisViewer::BuildCutplanesTab {} {
         "Toggle the Y cut plane on/off"
 
     itk_component add yCutScale {
-        ::scale $itk_component(cutplanes_frame).yval -from 100 -to 0 \
+        ::scale $inner.yval -from 100 -to 0 \
             -width 10 -orient vertical -showvalue off \
             -borderwidth 1 -highlightthickness 0 -state disabled \
             -command [itcl::code $this Slice move y]
     } {
         usual
-        ignore -borderwidth
-        ignore -highlightthickness
-        rename -highlightbackground -controlbackground controlBackground Background
-        rename -troughcolor -controldarkbackground controlDarkBackground Background
+        ignore -borderwidth -highlightthickness
     }
     Rappture::Tooltip::for $itk_component(yCutScale) \
         "@[itcl::code $this SlicerTip y]"
@@ -2305,14 +2212,13 @@ itcl::body Rappture::FlowvisViewer::BuildCutplanesTab {} {
 
     # Z-value slicer...
     itk_component add zCutButton {
-        label $itk_component(cutplanes_frame).zbutton \
+        label $inner.zbutton \
             -borderwidth 1 -relief raised -padx 1 -pady 1 \
             -image [Rappture::icon z-cutplane] \
 	    -highlightthickness 0 
     } {
         usual
         ignore -borderwidth -highlightthickness        
-        rename -highlightbackground -controlbackground controlBackground Background
     }
     bind $itk_component(zCutButton) <ButtonPress> \
         [itcl::code $this Slice axis z toggle]
@@ -2320,16 +2226,13 @@ itcl::body Rappture::FlowvisViewer::BuildCutplanesTab {} {
         "Toggle the Z cut plane on/off"
 
     itk_component add zCutScale {
-        ::scale $itk_component(cutplanes_frame).zval -from 100 -to 0 \
+        ::scale $inner.zval -from 100 -to 0 \
             -width 10 -orient vertical -showvalue off \
             -borderwidth 1 -highlightthickness 0 -state disabled \
             -command [itcl::code $this Slice move z]
     } {
         usual
-        ignore -borderwidth
-        ignore -highlightthickness
-        rename -highlightbackground -controlbackground controlBackground Background
-        rename -troughcolor -controldarkbackground controlDarkBackground Background
+        ignore -borderwidth -highlightthickness
     }
     $itk_component(zCutScale) set 50
     #$itk_component(zCutScale) configure -state disabled
@@ -2343,30 +2246,18 @@ itcl::body Rappture::FlowvisViewer::BuildCutplanesTab {} {
 	0,0 $itk_component(xCutScale) \
 	0,1 $itk_component(yCutScale) \
 	0,2 $itk_component(zCutScale) \
+
+    for {set n 0} {$n <= 1} {incr n} {
+        blt::table configure $inner r$n -resize none
+    }
+    blt::table configure $inner r$n -resize expand
 }
 
 itcl::body Rappture::FlowvisViewer::BuildCameraTab {} {
-
-    itk_component add camera_canvas {
-	canvas $itk_component(scroller).cameracanvas -highlightthickness 0
-    } {
-	ignore -highlightthickness
-    }
-    $itk_component(sidebar) insert end "camera" \
-	-image [Rappture::icon camera] -text ""  -padx 0 -pady 0 \
-	-command [itcl::code $this tab select "camera"]
-    set headings_(camera) "Camera Settings"
-
-    itk_component add camera_frame {
-	frame $itk_component(camera_canvas).frame \
-	    -highlightthickness 0 
-    } 
-    $itk_component(camera_canvas) create window 0 0 \
-	-anchor nw -window $itk_component(camera_frame)
-    bind $itk_component(camera_frame) <Configure> \
-	[itcl::code $this tab resize "camera"]
-
-    set inner $itk_component(camera_frame)
+    set inner [$itk_component(main) insert end \
+        -title "Camera Settings" \
+        -icon [Rappture::icon camera]]
+    $inner configure -borderwidth 4
 
     set labels { phi theta psi pan-x pan-y zoom }
     set row 0
@@ -2377,13 +2268,14 @@ itcl::body Rappture::FlowvisViewer::BuildCameraTab {} {
 	bind $inner.${tag} <KeyPress-Return> \
 	    [itcl::code $this camera set ${tag}]
 	blt::table $inner \
-	    $row,0 $inner.${tag}label -anchor e \
-	    $row,1 $inner.${tag} -anchor w 
+	    $row,0 $inner.${tag}label -anchor e -pady 2 \
+	    $row,1 $inner.${tag} -anchor w -pady 2
+        blt::table configure $inner r$row -resize none
 	incr row
     }
     blt::table configure $inner c0 c1 -resize none
     blt::table configure $inner c2 -resize expand
-
+    blt::table configure $inner r$row -resize expand
 }
 
 #  camera -- 
@@ -2494,24 +2386,3 @@ itcl::body Rappture::FlowvisViewer::GetMovie { widget width height } {
     }
     return ""
 }
-
-itcl::body Rappture::FlowvisViewer::tab { what who } {
-    switch -- ${what} {
-	"select" {
-	    $itk_component(scroller) contents $itk_component(${who}_canvas)
-	    after idle [list focus $itk_component(${who}_canvas)]
-	    $itk_component(title) configure -text "$headings_($who)"
-	    drawer open
-	}
-	"deselect" {
-	    drawer close 
-	}
-	"resize" {
-	    set bbox [$itk_component(${who}_canvas) bbox all]
-	    set wid [winfo width $itk_component(${who}_frame)]
-	    $itk_component(${who}_canvas) configure -width $wid \
-		-scrollregion $bbox -yscrollincrement 0.1i
-	}
-    }
-}
-

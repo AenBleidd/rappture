@@ -19,8 +19,6 @@ package require Img
 option add *MolvisViewer.width 4i widgetDefault
 option add *MolvisViewer.height 4i widgetDefault
 option add *MolvisViewer.foreground black widgetDefault
-option add *MolvisViewer.controlBackground gray widgetDefault
-option add *MolvisViewer.controlDarkBackground #999999 widgetDefault
 option add *MolvisViewer.font -*-helvetica-medium-r-normal-*-12-* widgetDefault
 
 # must use this name -- plugs into Rappture::resources::load
@@ -70,7 +68,6 @@ itcl::class Rappture::MolvisViewer {
     public method atomscale {option {model "all"} }
     public method bondthickness {option {model "all"} }
     public method ResetView {} 
-    public method tab {what who}
 
     protected method _send {args}
     protected method _update { args }
@@ -121,7 +118,6 @@ itcl::class Rappture::MolvisViewer {
     private variable _pdbdata       ;# pdb data from run file sent to pymol
     private common hardcopy_
     private variable nextToken_ 0
-    private variable headings_
 }
 
 itk::usual MolvisViewer {
@@ -195,69 +191,35 @@ itcl::body Rappture::MolvisViewer::constructor {hostlist args} {
     #
     # Set up the widgets in the main body
     #
+    set f [$itk_component(main) component controls]
     itk_component add reset {
-	button $itk_component(controls).reset \
-	    -borderwidth 1 -padx 1 -pady 1 \
+	button $f.reset -borderwidth 1 -padx 1 -pady 1 \
 	    -image [Rappture::icon reset-view] \
 	    -command [itcl::code $this ResetView]
-    } {
-	usual
-	ignore -borderwidth
-	rename -highlightbackground -controlbackground controlBackground \
-	    Background
     }
     pack $itk_component(reset) -padx 1 -pady 2
     Rappture::Tooltip::for $itk_component(reset) \
 	"Reset the view to the default zoom level"
 
     itk_component add zoomin {
-	button $itk_component(controls).zin \
-	    -borderwidth 1 -padx 1 -pady 1 \
+	button $f.zin -borderwidth 1 -padx 1 -pady 1 \
 	    -image [Rappture::icon zoom-in] \
 	    -command [itcl::code $this _zoom in]
-    } {
-	usual
-	ignore -borderwidth
-	rename -highlightbackground -controlbackground \
-	    controlBackground Background
     }
     pack $itk_component(zoomin) -padx 2 -pady { 0 2 }
     Rappture::Tooltip::for $itk_component(zoomin) "Zoom in"
 
     itk_component add zoomout {
-	button $itk_component(controls).zout \
-	    -borderwidth 1 -padx 1 -pady 1 \
+	button $f.zout -borderwidth 1 -padx 1 -pady 1 \
 	    -image [Rappture::icon zoom-out] \
 	    -command [itcl::code $this _zoom out]
-    } {
-	usual
-	ignore -borderwidth
-	rename -highlightbackground -controlbackground controlBackground \
-	    Background
     }
     pack $itk_component(zoomout) -padx 2 -pady { 0 2 }
     Rappture::Tooltip::for $itk_component(zoomout) "Zoom out"
 
-    #
-    # Shortcuts
-    #
-    itk_component add shortcuts {
-	frame $itk_component(controls).shortcuts
-    } {
-	usual
-	rename -background -controlbackground controlBackground Background
-    }
-    pack $itk_component(shortcuts) -side top
-
     itk_component add labels {
-	label $itk_component(shortcuts).labels \
-	    -borderwidth 1 -padx 1 -pady 1 \
+	label $f.labels -borderwidth 1 -padx 1 -pady 1 \
 	    -relief "raised" -image [Rappture::icon atom-label]
-    } {
-	usual
-	ignore -borderwidth
-	rename -highlightbackground -controlbackground controlBackground \
-	    Background
     }
     pack $itk_component(labels) -padx 2 -pady { 0 2} -ipadx 1 -ipady 1
     Rappture::Tooltip::for $itk_component(labels) \
@@ -266,14 +228,8 @@ itcl::body Rappture::MolvisViewer::constructor {hostlist args} {
 	[itcl::code $this emblems toggle]
 
     itk_component add rock {
-	label $itk_component(shortcuts).rock \
-	    -borderwidth 1 -padx 1 -pady 1 \
+	label $f.rock -borderwidth 1 -padx 1 -pady 1 \
 	    -relief "raised" -image [Rappture::icon rock-view]
-    } {
-	usual
-	ignore -borderwidth
-	rename -highlightbackground -controlbackground controlBackground \
-	    Background
     }
     pack $itk_component(rock) -padx 2 -pady { 0 2 } -ipadx 1 -ipady 1
     Rappture::Tooltip::for $itk_component(rock) "Rock model back and forth"
@@ -283,14 +239,8 @@ itcl::body Rappture::MolvisViewer::constructor {hostlist args} {
 
 
     itk_component add ortho {
-	label $itk_component(shortcuts).ortho \
-	    -borderwidth 1 -padx 1 -pady 1 \
+	label $f.ortho -borderwidth 1 -padx 1 -pady 1 \
 	    -relief "raised" -image [Rappture::icon 3dpers]
-    } {
-	usual
-	ignore -borderwidth
-	rename -highlightbackground -controlbackground controlBackground \
-	    Background
     }
     pack $itk_component(ortho) -padx 2 -pady { 0 2 } -ipadx 1 -ipady 1
     Rappture::Tooltip::for $itk_component(ortho) \
@@ -299,17 +249,6 @@ itcl::body Rappture::MolvisViewer::constructor {hostlist args} {
     bind $itk_component(ortho) <ButtonPress> \
 	[itcl::code $this projection toggle]
     $this projection perspective
-
-    itk_component add configure_button {
-	label $itk_component(controls).configbutton \
-	    -borderwidth 1 -padx 1 -pady 1 \
-	    -relief "raised" -image [Rappture::icon wrench]
-    } {
-	usual
-	ignore -borderwidth
-	rename -highlightbackground -controlbackground controlBackground \
-	    Background
-    }
 
     _BuildViewTab
 
@@ -400,36 +339,18 @@ itcl::body Rappture::MolvisViewer::constructor {hostlist args} {
     bind $itk_component(3dview) <Map> \
 	[itcl::code $this _map]
 
-    $itk_component(scroller) contents $itk_component(view_canvas)
-    $itk_component(title) configure -text "$headings_(view)"
-
     eval itk_initialize $args
     Connect
 }
 
 itcl::body Rappture::MolvisViewer::_BuildViewTab {} {
-
-    itk_component add view_canvas {
-	canvas $itk_component(scroller).viewcanvas -highlightthickness 0
-    } {
-	ignore -highlightthickness
-    }
-    $itk_component(sidebar) insert end "view" \
-	-image [Rappture::icon wrench] -text ""  -padx 0 -pady 0 \
-	-command [itcl::code $this tab select "view"]
-    set headings_(view) "View Settings"
-
-    itk_component add view_frame {
-	frame $itk_component(view_canvas).frame -bg white
-    } 
-    $itk_component(view_canvas) create window 0 0 \
-	-anchor nw -window $itk_component(view_frame)
-    bind $itk_component(view_frame) <Configure> \
-	[itcl::code $this tab resize view]
-
     set fg [option get $itk_component(hull) font Font]
 
-    set inner $itk_component(view_frame)
+    set inner [$itk_component(main) insert end \
+        -title "View Settings" \
+        -icon [Rappture::icon wrench]]
+    $inner configure -borderwidth 4
+
     label $inner.drawinglabel -text "Drawing Method" -font "Arial 9 bold"
 
     label $inner.pict -image $_settings($this-modelimg)
@@ -472,21 +393,27 @@ itcl::body Rappture::MolvisViewer::_BuildViewTab {} {
 	-command [itcl::code $this projection update] \
 	-variable Rappture::MolvisViewer::_settings($this-ortho) \
 	 -font "Arial 9 bold"
+
+    label $inner.spacer
     blt::table $inner \
 	0,0 $inner.drawinglabel -anchor w -columnspan 4 \
 	1,1 $inner.pict -anchor w -rowspan 3 \
 	1,2 $inner.spheres -anchor w -columnspan 2 \
 	2,2 $inner.lines -anchor w -columnspan 2 \
 	3,2 $inner.bstick -anchor w -columnspan 2 \
-	4,0 $inner.labels -anchor w -columnspan 4 \
-	5,0 $inner.rock -anchor w -columnspan 4 \
-	6,0 $inner.ortho -anchor w -columnspan 4 \
-	8,1 $inner.atomscale -anchor w -columnspan 2 \
-	10,1 $inner.bondthickness -anchor w -columnspan 2 
+	4,0 $inner.labels -anchor w -columnspan 4 -pady {6 0} \
+	5,0 $inner.rock -anchor w -columnspan 4 -pady {6 0} \
+	6,0 $inner.ortho -anchor w -columnspan 4 -pady {6 0} \
+	8,1 $inner.atomscale -fill x -columnspan 4 -pady {6 0} \
+	10,1 $inner.bondthickness -fill x -columnspan 4 -pady {6 0}
 
     blt::table configure $inner c0 -resize expand -width 2
     blt::table configure $inner c1 c2 -resize none
     blt::table configure $inner c3 -resize expand
+    for {set n 0} {$n <= 10} {incr n} {
+        blt::table configure $inner r$n -resize none
+    }
+    blt::table configure $inner r$n -resize expand
 }
 
 
@@ -1227,8 +1154,7 @@ itcl::body Rappture::MolvisViewer::representation {option {model "all"} } {
 	return 
     }
     set _settings($this-modelimg) [Rappture::icon $option]
-    #@set inner [$itk_component(controls).panel component inner]
-    set inner $itk_component(settings_frame)
+    set inner [$itk_component(main) panel "View Settings"]
     $inner.pict configure -image $_settings($this-modelimg)
 
     # Save the current option to set all radiobuttons -- just in case.
@@ -1630,24 +1556,4 @@ itcl::body Rappture::MolvisViewer::GetPngImage  { widget width height } {
 	return [list .png $hardcopy_($this-$token)]
     }
     return ""
-}
-
-itcl::body Rappture::MolvisViewer::tab { what who } {
-    switch -- ${what} {
-	"select" {
-	    $itk_component(scroller) contents $itk_component(${who}_canvas)
-	    after idle [list focus $itk_component(${who}_canvas)]
-	    $itk_component(title) configure -text "$headings_($who)"
-	    drawer open
-	}
-	"deselect" {
-	    drawer close 
-	}
-	"resize" {
-	    set bbox [$itk_component(${who}_canvas) bbox all]
-	    set wid [winfo width $itk_component(${who}_frame)]
-	    $itk_component(${who}_canvas) configure -width $wid \
-		-scrollregion $bbox -yscrollincrement 0.1i
-	}
-    }
 }

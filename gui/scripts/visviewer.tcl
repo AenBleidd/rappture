@@ -64,7 +64,6 @@ itcl::class ::Rappture::VisViewer {
     protected method Flush {}
     protected method Color2RGB { color }
     protected method Euler2XYZ { theta phi psi }
-    protected method drawer {what}
 
     private proc _CheckNameList { namelist }  {
 	set pattern {^[a-zA-Z0-9\.]+:[0-9]+(,[a-zA-Z0-9\.]+:[0-9]+)*$}
@@ -89,9 +88,6 @@ itcl::class ::Rappture::VisViewer {
 
 itk::usual Panedwindow {
     keep -background -cursor
-}
-itk::usual Tabset {
-    keep -background
 }
 
 # ----------------------------------------------------------------------
@@ -123,17 +119,15 @@ itcl::body Rappture::VisViewer::constructor { hostlist args } {
     option add hull.width hull.height
     pack propagate $itk_component(hull) no
 
-    itk_component add panes {
-	panedwindow $itk_interior.panes \
-	    -orient horizontal -opaqueresize 1 -handlepad 0 \
-	    -handlesize 1 -sashwidth 2 
+    itk_component add main {
+	Rappture::SidebarFrame $itk_interior.main
     }
-    pack $itk_component(panes) -expand yes -fill both
+    pack $itk_component(main) -expand yes -fill both
+    set f [$itk_component(main) component frame]
 
     itk_component add plotarea {
-	frame $itk_component(panes).plotarea -highlightthickness 0 
+	frame $f.plotarea -highlightthickness 0 
     }
-    $itk_component(panes) add $itk_component(plotarea) -sticky nsew 
     set _image(plot) [image create photo]
     itk_component add 3dview {
 	label $itk_component(plotarea).vol -image $_image(plot) \
@@ -142,92 +136,8 @@ itcl::body Rappture::VisViewer::constructor { hostlist args } {
 	usual
 	ignore -highlightthickness -borderwidth 
     }
-    itk_component add drawer {
-	frame $itk_component(panes).cntls 
-    } {
-	usual
-	rename -background -controlbackground controlBackground Background
-    }
-    itk_component add controls {
-	frame $itk_component(drawer).cntls  
-    } {
-	usual
-	rename -background -controlbackground controlBackground Background
-	ignore -highlightthickness -borderwidth  
-    }
-
-    itk_component add titlebar {
-	frame $itk_component(drawer).titlebar -background \#6666cc
-    } {
-	usual
-	ignore -highlightthickness -borderwidth  -background 
-    }
-
-    itk_component add title {
-	label $itk_component(titlebar).title -text "This is the title bar" \
-	    -background \#6666cc -font "Arial 8" -foreground white  
-    } {
-	usual
-	ignore -background -font -foreground
-    }
-    itk_component add flipswitch {
-	button $itk_component(titlebar).flip \
-	    -borderwidth 1 -highlightthickness 0 \
-	    -relief "flat" -image [Rappture::icon sbar-open] \
-	    -command [itcl::code $this drawer toggle] \
-	    -background \#6666cc -foreground white -overrelief raised \
-	    -activebackground \#6666cc -activeforeground white
-	
-    } {
-	ignore -borderwidth
-	rename -highlightbackground -controlbackground controlBackground \
-	    Background
-    }
-    Rappture::Tooltip::for $itk_component(flipswitch) \
-	"Configure settings"
-
-    blt::table $itk_component(titlebar) \
-	0,0 $itk_component(flipswitch) -ipady 2 -ipadx 5 -anchor w \
-	0,1 $itk_component(title) -anchor w
-    blt::table configure $itk_component(titlebar) c0 -width 30
-
-    itk_component add sidebar {
-	blt::tabset $itk_component(drawer).sidebar \
-	    -highlightthickness 0 -tearoff 0 -side left \
-	    -bd 0 -gap 0 -tabborderwidth 1 \
-	    -outerpad 0 
-    } {
-	usual
-	ignore -highlightthickness -borderwidth 
-	rename -highlightbackground -controlbackground controlBackground \
-	    Background
-	rename -background -controlbackground controlBackground \
-	    Background
-    }
-    itk_component add scroller {
-	Rappture::Scroller $itk_component(drawer).scroller \
-	    -xscrollmode auto -yscrollmode auto \
-	    -highlightthickness 0
-    } 
-    blt::table $itk_component(drawer) \
-	0,0 $itk_component(titlebar) -fill x -anchor w -columnspan 2 \
-	1,0 $itk_component(controls) -fill y -anchor n -pady 3 \
-	1,1 $itk_component(scroller) -rowspan 2 -fill both \
-	2,0 $itk_component(sidebar)  -fill y -anchor s 
-
-    $itk_component(panes) add $itk_component(drawer) -sticky nsew 
-    blt::table configure $itk_component(drawer) r0 c1 r1 c0 -resize none 
-    blt::table configure $itk_component(drawer) c2 -resize expand
-    blt::table configure $itk_component(drawer) r2 -resize expand
 
     eval itk_initialize $args
-
-    # Two things wrong with the tk:panedwindow.  
-    # 1. can't disable the sash.  Maybe I can hide it.
-    # 2. can't set/force the width of a pane.
-
-    $itk_component(panes) paneconfigure $itk_component(drawer) \
-	-minsize 30
 }
 
 #
@@ -619,47 +529,5 @@ itcl::body Rappture::VisViewer::ReceiveEcho {channel {data ""}} {
     #puts stderr "<<line $data"
     if {[string length $itk_option(-receivecommand)] > 0} {
 	uplevel #0 $itk_option(-receivecommand) [list $channel $data]
-    }
-}
-
-itcl::body Rappture::VisViewer::drawer { what } {
-    switch -- ${what} {
-	"open" {
-	    after idle [list focus $itk_component(drawer)]
-	    set win [$itk_component(scroller) contents]
-	    set w1 [winfo reqwidth $win]
-	    set w2 [winfo reqwidth $itk_component(title)]
-	    set w [expr max($w1,$w2) + 30]
-	    set x [expr [winfo width $itk_component(panes)] - $w]
-	    $itk_component(panes) sash place 0 $x 0
-	    $itk_component(panes) paneconfigure $itk_component(drawer) \
-		-width $w 
-	    #sash place 0 $x 0
-	    $itk_component(flipswitch) configure \
-		-image [Rappture::icon sbar-closed] 
-	    set isOpen_ 1
-	}
-	"close" {
-	    $itk_component(flipswitch) configure \
-		-image [Rappture::icon sbar-open] 
-	    set w [winfo width $itk_component(panes)]
-	    if { $w <= 1 } {
-		set w [winfo reqwidth $itk_component(panes)]
-	    }
-	    set x [lindex [$itk_component(panes) sash coord 0] 0]
-	    set initialized_(drawer) $x
-	    $itk_component(panes) paneconfigure $itk_component(drawer) \
-		-minsize 30 
-	    set x [expr $w - 30]
-	    $itk_component(panes) sash place 0 $x 0
-	    set isOpen_ 0
-	}
-	"toggle" {
-	    if { $isOpen_ } {
-		drawer close
-	    } else {
-		drawer open
-	    }
-	}
     }
 }

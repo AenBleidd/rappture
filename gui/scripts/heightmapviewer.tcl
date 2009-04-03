@@ -20,8 +20,6 @@ package require Img
 option add *HeightmapViewer.width 4i widgetDefault
 option add *HeightmapViewer.height 4i widgetDefault
 option add *HeightmapViewer.foreground black widgetDefault
-option add *HeightmapViewer.controlBackground gray widgetDefault
-option add *HeightmapViewer.controlDarkBackground #999999 widgetDefault
 option add *HeightmapViewer.plotBackground black widgetDefault
 option add *HeightmapViewer.plotForeground white widgetDefault
 option add *HeightmapViewer.plotOutline white widgetDefault
@@ -61,7 +59,6 @@ itcl::class Rappture::HeightmapViewer {
     public method parameters {title args} {
 	# do nothing
     }
-    public method tab {what who}
     public method camera {option args}
     protected method Connect {}
     protected method Disconnect {}
@@ -99,7 +96,6 @@ itcl::class Rappture::HeightmapViewer {
     private variable view_         ;# view params for 3D view
     private common settings_      ;# Array used for checkbuttons and radiobuttons
     private common hardcopy_
-    private variable headings_
 }
 
 itk::usual HeightmapViewer {
@@ -142,49 +138,32 @@ itcl::body Rappture::HeightmapViewer::constructor {hostlist args} {
     }
     set obj2id_(count) 0
 
+    set f [$itk_component(main) component controls]
     itk_component add zoom {
-	frame $itk_component(controls).zoom
-    } {
-	usual
-	rename -background -controlbackground controlBackground Background
+	frame $f.zoom
     }
     pack $itk_component(zoom) -side top
 
     itk_component add reset {
-	button $itk_component(zoom).reset \
-	    -borderwidth 1 -padx 1 -pady 1 \
+	button $f.reset -borderwidth 1 -padx 1 -pady 1 \
 	    -image [Rappture::icon reset-view] \
 	    -command [itcl::code $this _zoom reset]
-    } {
-	usual
-	ignore -borderwidth
-	rename -highlightbackground -controlbackground controlBackground Background
     }
     pack $itk_component(reset) -side top -padx 1 -pady { 4 0 }
     Rappture::Tooltip::for $itk_component(reset) "Reset the view to the default zoom level"
 
     itk_component add zoomin {
-	button $itk_component(zoom).zin \
-	    -borderwidth 1 -padx 1 -pady 1 \
+	button $f.zin -borderwidth 1 -padx 1 -pady 1 \
 	    -image [Rappture::icon zoom-in] \
 	    -command [itcl::code $this _zoom in]
-    } {
-	usual
-	ignore -borderwidth
-	rename -highlightbackground -controlbackground controlBackground Background
     }
     pack $itk_component(zoomin) -side top -padx 1 -pady { 4 0 }
     Rappture::Tooltip::for $itk_component(zoomin) "Zoom in"
 
     itk_component add zoomout {
-	button $itk_component(zoom).zout \
-	    -borderwidth 1 -padx 1 -pady 1 \
+	button $f.zout -borderwidth 1 -padx 1 -pady 1 \
 	    -image [Rappture::icon zoom-out] \
 	    -command [itcl::code $this _zoom out]
-    } {
-	usual
-	ignore -borderwidth
-	rename -highlightbackground -controlbackground controlBackground Background
     }
     pack $itk_component(zoomout) -side top -padx 1 -pady { 4 }
     Rappture::Tooltip::for $itk_component(zoomout) "Zoom out"
@@ -259,8 +238,6 @@ itcl::body Rappture::HeightmapViewer::constructor {hostlist args} {
 	bind $itk_component(3dview) <5> [itcl::code $this _zoom in]
     }
 
-    $itk_component(scroller) contents $itk_component(view_canvas)
-    $itk_component(title) configure -text "$headings_(view)"
     set _image(download) [image create photo]
     eval itk_initialize $args
     Connect 
@@ -1128,33 +1105,12 @@ itcl::body Rappture::HeightmapViewer::camera {option args} {
 }
 
 itcl::body Rappture::HeightmapViewer::_BuildViewTab {} {
-
-    itk_component add view_canvas {
-	canvas $itk_component(scroller).viewcanvas -highlightthickness 0
-    } {
-	ignore -highlightthickness
-    }
-    $itk_component(sidebar) insert end "view" \
-	-image [Rappture::icon wrench] -text "" -padx 0 -pady 0 \
-	-ipadx 0 -ipady 0 \
-	-command [itcl::code $this tab select "view"]
-
-    set headings_(view) "View Settings"
-
-    itk_component add view_frame {
-	frame $itk_component(view_canvas).frame \
-	    -highlightthickness 0 
-    } {
-	ignore -background
-    }
-    $itk_component(view_canvas) create window 0 0 \
-	-anchor nw -window $itk_component(view_frame)
-    bind $itk_component(view_frame) <Configure> \
-	[itcl::code $this tab resize view]
-
     set fg [option get $itk_component(hull) font Font]
 
-    set inner $itk_component(view_frame)
+    set inner [$itk_component(main) insert end \
+        -title "View Settings" \
+        -icon [Rappture::icon wrench]]
+    $inner configure -borderwidth 4
 
     foreach { key value } {
 	grid		1
@@ -1165,7 +1121,7 @@ itcl::body Rappture::HeightmapViewer::_BuildViewTab {} {
     } {
 	set settings_($this-$key) $value
     }
-    set inner $itk_component(view_frame)
+
     checkbutton $inner.grid \
 	-text "grid" \
 	-variable [itcl::scope settings_($this-grid)] \
@@ -1202,71 +1158,35 @@ itcl::body Rappture::HeightmapViewer::_BuildViewTab {} {
 
     blt::table configure $inner c2 -resize expand
     blt::table configure $inner c1 -resize none
-
+    for {set n 0} {$n <= 5} {incr n} {
+        blt::table configure $inner r$n -resize none
+    }
+    blt::table configure $inner r$n -resize expand
 }
 
 itcl::body Rappture::HeightmapViewer::_BuildCameraTab {} {
+    set fg [option get $itk_component(hull) font Font]
 
-    itk_component add camera_canvas {
-	canvas $itk_component(scroller).cameracanvas -highlightthickness 0
-    } {
-	ignore -highlightthickness
-    }
-    $itk_component(sidebar) insert end "camera" \
-	-image [Rappture::icon camera] -text ""  -padx 0 -pady 0 \
-	-ipadx 0 -ipady 0 \
-	-command [itcl::code $this tab select "camera"]
-    set headings_(camera) "Camera Settings"
-
-    itk_component add camera_frame {
-	frame $itk_component(camera_canvas).frame \
-	    -highlightthickness 0
-    } {
-	usual
-	ignore -background
-    }
-    $itk_component(camera_canvas) create window 0 0 \
-	-anchor nw -window $itk_component(camera_frame)
-    bind $itk_component(camera_frame) <Configure> \
-	[itcl::code $this tab resize camera]
-
-    set inner $itk_component(camera_frame)
+    set inner [$itk_component(main) insert end \
+        -title "Camera Settings" \
+        -icon [Rappture::icon camera]]
+    $inner configure -borderwidth 4
 
     set labels { phi theta psi pan-x pan-y zoom }
     set row 1
     foreach tag $labels {
 	label $inner.${tag}label -text $tag -font "Arial 9"
-	entry $inner.${tag} -font "Arial 9"  -bg white \
+	entry $inner.${tag} -font "Arial 9" -bg white -width 10 \
 	    -textvariable [itcl::scope settings_($this-$tag)]
 	bind $inner.${tag} <KeyPress-Return> \
 	    [itcl::code $this camera set ${tag}]
 	blt::table $inner \
 	    $row,1 $inner.${tag}label -anchor e \
 	    $row,2 $inner.${tag} -anchor w 
+        blt::table configure $inner r$row -resize none
 	incr row
     }
     blt::table configure $inner c1 c2 -resize none
     blt::table configure $inner c3 -resize expand
-
+    blt::table configure $inner r$row -resize expand
 }
-
-itcl::body Rappture::HeightmapViewer::tab { what who } {
-    switch -- ${what} {
-	"select" {
-	    $itk_component(scroller) contents $itk_component(${who}_canvas)
-	    after idle [list focus $itk_component(${who}_canvas)]
-	    $itk_component(title) configure -text "$headings_($who)"
-	    drawer open
-	}
-	"deselect" {
-	    drawer close 
-	}
-	"resize" {
-	    set bbox [$itk_component(${who}_canvas) bbox all]
-	    set wid [winfo width $itk_component(${who}_frame)]
-	    $itk_component(${who}_canvas) configure -width $wid \
-		-scrollregion $bbox -yscrollincrement 0.1i
-	}
-    }
-}
-
