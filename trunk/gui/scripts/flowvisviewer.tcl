@@ -77,7 +77,7 @@ itcl::class Rappture::FlowvisViewer {
     protected method SendCmd {string}
     protected method _send {string}
     protected method SendDataObjs {}
-    protected method SendTransferFunctions {}
+    protected method SendTransferFuncs {}
 
     protected method ReceiveImage { args }
     protected method ReceiveLegend { ivol vmin vmax size }
@@ -97,12 +97,15 @@ itcl::class Rappture::FlowvisViewer {
     public method flow {option}
 
     protected method State {comp}
+    protected method DoResize {}
     protected method FixSettings {what {value ""}}
     protected method FixLegend {}
+    private method EventuallyResize { w h } 
+    private method EventuallyResizeLegend { } 
 
     # The following methods are only used by this class.
-    private method NameTransferFunction { ivol }
-    private method ComputeTransferFunction { tf }
+    private method NameTransferFunc { ivol }
+    private method ComputeTransferFunc { tf }
     private method AddIsoMarker { x y }
     private method ParseMarkersOption { tf ivol markers }
     private method ParseLevelsOption { tf ivol levels }
@@ -163,10 +166,14 @@ itcl::body Rappture::FlowvisViewer::constructor { hostlist args } {
     # Send transfer functions event
     $_dispatcher register !send_transfunc
     $_dispatcher dispatch $this !send_transfunc \
-        "[itcl::code $this SendTransferFunctions]; list"
+        "[itcl::code $this SendTransferFuncs]; list"
     # Rebuild event
     $_dispatcher register !rebuild
     $_dispatcher dispatch $this !rebuild "[itcl::code $this Rebuild]; list"
+
+    # Draw resize event
+    $_dispatcher register !resize
+    $_dispatcher dispatch $this !resize "[itcl::code $this DoResize]; list"
 
     $_dispatcher register !play
     $_dispatcher dispatch $this !play "[itcl::code $this flow next]; list"
@@ -765,7 +772,7 @@ itcl::body Rappture::FlowvisViewer::SendDataObjs {} {
 
             set id2obj_($ivol) [list $dataobj $comp]
             set obj2id_($dataobj-$comp) $ivol
-            NameTransferFunction $ivol
+            NameTransferFunc $ivol
             set receiveIds_($ivol) 1
         }
     }
@@ -815,9 +822,9 @@ itcl::body Rappture::FlowvisViewer::SendDataObjs {} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: SendTransferFunctions
+# USAGE: SendTransferFuncs
 # ----------------------------------------------------------------------
-itcl::body Rappture::FlowvisViewer::SendTransferFunctions {} {
+itcl::body Rappture::FlowvisViewer::SendTransferFuncs {} {
     if { $activeTf_ == "" } {
         return
     }
@@ -838,7 +845,7 @@ itcl::body Rappture::FlowvisViewer::SendTransferFunctions {} {
 
     if { ![info exists $obj2styles_($first)] } {
         foreach tf $obj2styles_($first) {
-            ComputeTransferFunction $tf
+            ComputeTransferFunc $tf
         }
         FixLegend
     }
@@ -921,7 +928,7 @@ itcl::body Rappture::FlowvisViewer::ReceiveLegend { tf vmin vmax size } {
 
     if { [info exists isomarkers_($tf)] } {
         foreach m $isomarkers_($tf) {
-            $m show
+            $m visible on
         }
     }
 }
@@ -980,7 +987,7 @@ itcl::body Rappture::FlowvisViewer::Rebuild {} {
 
     foreach tf [array names isomarkers_] {
         foreach m $isomarkers_($tf) {
-            $m hide
+            $m visible off
         }
     }
 
@@ -1054,7 +1061,7 @@ itcl::body Rappture::FlowvisViewer::Rebuild {} {
 
         foreach comp [$first components] {
             foreach ivol $obj2id_($first-$comp) {
-            NameTransferFunction $ivol
+            NameTransferFunc $ivol
             }
         }
     }
@@ -1603,7 +1610,7 @@ itcl::body Rappture::FlowvisViewer::FixLegend {} {
 }
 
 #
-# NameTransferFunction --
+# NameTransferFunc --
 #
 #       Creates a transfer function name based on the <style> settings in the
 #       library run.xml file. This placeholder will be used later to create
@@ -1617,7 +1624,7 @@ itcl::body Rappture::FlowvisViewer::FixLegend {} {
 #              color, levels, marker, opacity.  I think we're stuck doing it
 #              now.
 #
-itcl::body Rappture::FlowvisViewer::NameTransferFunction { ivol } {
+itcl::body Rappture::FlowvisViewer::NameTransferFunc { ivol } {
     array set style {
         -color rainbow
         -levels 6
@@ -1633,7 +1640,7 @@ itcl::body Rappture::FlowvisViewer::NameTransferFunction { ivol } {
 }
 
 #
-# ComputeTransferFunction --
+# ComputeTransferFunc --
 #
 #   Computes and sends the transfer function to the render server.  It's
 #   assumed that the volume data limits are known and that the global
@@ -1641,7 +1648,7 @@ itcl::body Rappture::FlowvisViewer::NameTransferFunction { ivol } {
 #   needed to compute the relative value (location) of the marker, and
 #   the alpha map of the transfer function.
 #
-itcl::body Rappture::FlowvisViewer::ComputeTransferFunction { tf } {
+itcl::body Rappture::FlowvisViewer::ComputeTransferFunc { tf } {
     array set style {
         -color rainbow
         -levels 6
@@ -1701,7 +1708,7 @@ itcl::body Rappture::FlowvisViewer::ComputeTransferFunction { tf } {
 
     set isovalues {}
     foreach m $isomarkers_($tf) {
-        lappend isovalues [$m getRelativeValue]
+        lappend isovalues [$m relval]
     }
     # Sort the isovalues
     set isovalues [lsort -real $isovalues]
@@ -1807,13 +1814,13 @@ itcl::body Rappture::FlowvisViewer::ParseLevelsOption { tf ivol levels } {
         for {set i 1} { $i <= $levels } {incr i} {
             set x [expr {double($i)/($levels+1)}]
             set m [IsoMarker \#auto $c $this $tf]
-            $m setRelativeValue $x
+            $m relval $x
             lappend isomarkers_($tf) $m 
         }
     } else {
         foreach x $levels {
             set m [IsoMarker \#auto $c $this $tf]
-            $m setRelativeValue $x
+            $m relval $x
             lappend isomarkers_($tf) $m 
         }
     }
@@ -1840,19 +1847,19 @@ itcl::body Rappture::FlowvisViewer::ParseMarkersOption { tf ivol markers } {
             # ${n}% : Set relative value. 
             set value [expr {$value * 0.01}]
             set m [IsoMarker \#auto $c $this $tf]
-            $m setRelativeValue $value
+            $m relval $value
             lappend isomarkers_($tf) $m
         } else {
             # ${n} : Set absolute value.
             set m [IsoMarker \#auto $c $this $tf]
-            $m setAbsoluteValue $value
+            $m absval $value
             lappend isomarkers_($tf) $m
         }
     }
 }
 
 # ----------------------------------------------------------------------
-# USAGE: UndateTransferFunctions 
+# USAGE: UndateTransferFuncs 
 # ----------------------------------------------------------------------
 itcl::body Rappture::FlowvisViewer::updatetransferfuncs {} {
     $_dispatcher event -idle !send_transfunc
@@ -1866,23 +1873,23 @@ itcl::body Rappture::FlowvisViewer::AddIsoMarker { x y } {
     set c $itk_component(legend)
     set m [IsoMarker \#auto $c $this $tf]
     set w [winfo width $c]
-    $m setRelativeValue [expr {double($x-10)/($w-20)}]
+    $m relval [expr {double($x-10)/($w-20)}]
     lappend isomarkers_($tf) $m
-    updatetransferfuncts
+    updatetransferfuncs
     return 1
 }
 
 itcl::body Rappture::FlowvisViewer::rmdupmarker { marker x } {
-    set tf [$marker getTransferFunction]
+    set tf [$marker transferfunc]
     set bool 0
     if { [info exists isomarkers_($tf)] } {
         set list {}
         set marker [namespace tail $marker]
         foreach m $isomarkers_($tf) {
-            set sx [$m getScreenPosition]
+            set sx [$m screenpos]
             if { $m != $marker } {
                 if { $x >= ($sx-3) && $x <= ($sx+3) } {
-                    $marker setRelativeValue [$m getRelativeValue]
+                    $marker relval [$m relval]
                     itcl::delete object $m
                     bell
                     set bool 1
@@ -1898,11 +1905,11 @@ itcl::body Rappture::FlowvisViewer::rmdupmarker { marker x } {
 }
 
 itcl::body Rappture::FlowvisViewer::overmarker { marker x } {
-    set tf [$marker getTransferFunction]
+    set tf [$marker transferfunc]
     if { [info exists isomarkers_($tf)] } {
         set marker [namespace tail $marker]
         foreach m $isomarkers_($tf) {
-            set sx [$m getScreenPosition]
+            set sx [$m screenpos]
             if { $m != $marker } {
                 set bool [expr { $x >= ($sx-3) && $x <= ($sx+3) }]
                 $m activate $bool
@@ -2391,4 +2398,20 @@ itcl::body Rappture::FlowvisViewer::GetMovie { widget width height } {
 	return [list .png $hardcopy_($this-$token)]
     }
     return ""
+}
+
+itcl::body Rappture::FlowvisViewer::DoResize {} {
+    SendCmd "screen $width_ $height_"
+}
+
+itcl::body Rappture::FlowvisViewer::EventuallyResize { w h } {
+    if { $width_ != $w || $height_ != $h } {
+	set width_ $w
+	set height_ $h
+	$_dispatcher event -idle !resize
+    }
+}
+
+itcl::body Rappture::FlowvisViewer::EventuallyResizeLegend {} {
+    $_dispatcher event -idle !legend
 }
