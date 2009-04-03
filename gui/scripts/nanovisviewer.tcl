@@ -88,6 +88,7 @@ itcl::class Rappture::NanovisViewer {
     protected method SlicerTip {axis}
 
     protected method State {comp}
+    protected method DoResize {}
     protected method FixLegend {}
     protected method FixSettings {what {value ""}}
 
@@ -97,6 +98,8 @@ itcl::class Rappture::NanovisViewer {
     private method AddIsoMarker { x y }
     private method ParseMarkersOption { tf ivol markers }
     private method ParseLevelsOption { tf ivol levels }
+    private method EventuallyResize { w h } 
+    private method EventuallyResizeLegend { } 
 
     private method BuildCutplanesTab {}
     private method BuildViewTab {}
@@ -130,6 +133,8 @@ itcl::class Rappture::NanovisViewer {
     # opacity, or thickness.
     #common _downloadPopup          ;# download options from popup
     private common hardcopy_
+    private variable width_ 0
+    private variable height_ 0
 }
 
 itk::usual NanovisViewer {
@@ -156,6 +161,10 @@ itcl::body Rappture::NanovisViewer::constructor {hostlist args} {
     # Rebuild event
     $_dispatcher register !rebuild
     $_dispatcher dispatch $this !rebuild "[itcl::code $this Rebuild]; list"
+
+    # Draw legend event
+    $_dispatcher register !resize
+    $_dispatcher dispatch $this !resize "[itcl::code $this DoResize]; list"
 
     set outbuf_ ""
 
@@ -242,6 +251,9 @@ itcl::body Rappture::NanovisViewer::constructor {hostlist args} {
 	ignore -highlightthickness
 	rename -background -plotbackground plotBackground Background
     }
+    bind $itk_component(legend) <Configure> \
+	[itcl::code $this EventuallyResizeLegend]
+
     # Hack around the Tk panewindow.  The problem is that the requested 
     # size of the 3d view isn't set until an image is retrieved from
     # the server.  So the panewindow uses the tiny size.
@@ -260,7 +272,7 @@ itcl::body Rappture::NanovisViewer::constructor {hostlist args} {
     bind $itk_component(3dview) <ButtonRelease-1> \
 	[itcl::code $this Rotate release %x %y]
     bind $itk_component(3dview) <Configure> \
-	[itcl::code $this SendCmd "screen %w %h"]
+	[itcl::code $this EventuallyResize %w %h]
 
     # Bindings for panning via mouse
     bind $itk_component(3dview) <ButtonPress-2> \
@@ -531,7 +543,7 @@ itcl::body Rappture::NanovisViewer::Connect {} {
     if { $result } {
 	set w [winfo width $itk_component(3dview)]
 	set h [winfo height $itk_component(3dview)]
-	SendCmd "screen $w $h"
+	EventuallyResize $w $h
     }
     return $result
 }
@@ -680,7 +692,7 @@ itcl::body Rappture::NanovisViewer::SendTransferFuncs {} {
 	foreach tf $obj2styles_($first) {
 	    ComputeTransferFunc $tf
 	}
-	FixLegend
+	$_dispatcher event -idle !legend
     }
 }
 
@@ -846,7 +858,7 @@ itcl::body Rappture::NanovisViewer::Rebuild {} {
     }
     set w [winfo width $itk_component(3dview)]
     set h [winfo height $itk_component(3dview)]
-    SendCmd "screen $w $h"
+    EventuallyResize $w $h
 
     #
     # Reset the camera and other view parameters
@@ -1227,7 +1239,7 @@ itcl::body Rappture::NanovisViewer::FixSettings {what {value ""}} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::NanovisViewer::FixLegend {} {
     set lineht [font metrics $itk_option(-font) -linespace]
-    set w [expr {[image width $_image(plot)]-20}]
+    set w [expr {$width_-20}]
     set h [expr {[winfo height $itk_component(legend)]-20-$lineht}]
     if {$w > 0 && $h > 0 && "" != $activeTf_} {
 	SendCmd "legend $activeTf_ $w $h"
@@ -1950,4 +1962,21 @@ itcl::body Rappture::NanovisViewer::SlicerTip {axis} {
 #        *($limits_(${axis}max)-$limits_(${axis}min))
 #          + 0.5*($limits_(${axis}max)+$limits_(${axis}min))}]
     return "Move the [string toupper $axis] cut plane.\nCurrently:  $axis = $val%"
+}
+
+
+itcl::body Rappture::NanovisViewer::DoResize {} {
+    SendCmd "screen $width_ $height_"
+}
+
+itcl::body Rappture::NanovisViewer::EventuallyResize { w h } {
+    if { $width_ != $w || $height_ != $h } {
+	set width_ $w
+	set height_ $h
+	$_dispatcher event -idle !resize
+    }
+}
+
+itcl::body Rappture::NanovisViewer::EventuallyResizeLegend {} {
+    $_dispatcher event -idle !legend
 }
