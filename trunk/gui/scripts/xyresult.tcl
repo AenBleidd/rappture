@@ -84,7 +84,6 @@ itcl::class Rappture::XyResult {
     public method scale {args}
     public method parameters {title args} { # do nothing }
     public method download {option args}
-    public method legend {option args}
 
     protected method _rebuild {}
     protected method _resetLimits {}
@@ -141,40 +140,32 @@ itcl::body Rappture::XyResult::constructor {args} {
     option add hull.width hull.height
     pack propagate $itk_component(hull) no
 
-    itk_component add controls {
-	frame $itk_interior.cntls
-    } {
-	usual
-	rename -background -controlbackground controlBackground Background
+    itk_component add main {
+        Rappture::SidebarFrame $itk_interior.main
     }
-    pack $itk_component(controls) -side right -fill y
+    pack $itk_component(main) -expand yes -fill both
+    set f [$itk_component(main) component controls]
 
     itk_component add reset {
-	button $itk_component(controls).reset \
-	    -borderwidth 1 -padx 1 -pady 1 \
+	button $f.reset -borderwidth 1 -padx 1 -pady 1 \
 	    -image [Rappture::icon reset-view] \
 	    -command [itcl::code $this _zoom reset]
     } {
 	usual
 	ignore -borderwidth
-	rename -highlightbackground -controlbackground controlBackground Background
     }
     pack $itk_component(reset) -padx 4 -pady 2 -anchor e
     Rappture::Tooltip::for $itk_component(reset) "Reset the view to the default zoom level"
-    itk_component add drawer {
-	panedwindow $itk_interior.drawer \
-	    -orient horizontal -opaqueresize 1 -handlepad 0 \
-	    -handlesize 1 -sashwidth 2
-    }
-    pack $itk_component(drawer) -expand yes -fill both
+
+    set f [$itk_component(main) component frame]
     itk_component add plot {
-	blt::graph $itk_component(drawer).plot \
+	blt::graph $f.plot \
 	    -highlightthickness 0 -plotpadx 0 -plotpady 0 \
 	    -rightmargin 10
     } {
 	keep -background -foreground -cursor -font
     }
-    $itk_component(drawer) add $itk_component(plot) -sticky nsew
+    pack $itk_component(plot) -expand yes -fill both
 
     $itk_component(plot) pen configure activeLine \
 	-symbol square -pixels 3 -linewidth 2 \
@@ -243,31 +234,24 @@ itcl::body Rappture::XyResult::constructor {args} {
     _axis scale y linear
 
     $itk_component(plot) legend configure -hide yes
+
     #
     # Add legend for editing hidden/elements:
     #
-    itk_component add legendbutton {
-	button $itk_component(controls).legendbutton \
-	    -borderwidth 1 -padx 2 -pady 0 -highlightthickness 0 \
-	    -image [Rappture::icon wrench] \
-	    -command [itcl::code $this legend toggle]
-    } {
-	usual
-	ignore -borderwidth -font
-	rename -highlightbackground -controlbackground controlBackground Background
-    }
-    pack $itk_component(legendbutton) \
-	-side bottom -padx 4 -pady { 0 2 } -anchor e 
-    
+    set inner [$itk_component(main) insert end \
+        -title "Legend" \
+        -icon [Rappture::icon wrench]]
+    $inner configure -borderwidth 4
+
     itk_component add legend {
-	Rappture::XyLegend $itk_component(drawer).legend $itk_component(plot)
+	Rappture::XyLegend $inner.legend $itk_component(plot)
     }
+    pack $itk_component(legend) -expand yes -fill both
+
     after idle [subst {
 	update idletasks
 	$itk_component(legend) reset 
     }]
-    Rappture::Tooltip::for $itk_component(legendbutton) \
-	"Display legend"
 
     # quick-and-dirty zoom functionality, for now...
     Blt_ZoomStack $itk_component(plot)
@@ -1582,30 +1566,3 @@ itcl::body Rappture::XyResult::_leaveMarker { g name } {
 	unset _markers($name)
     }
 }
-
-itcl::body Rappture::XyResult::legend { what args } {
-    switch -- ${what} {
-	"activate" {
-	    $itk_component(drawer) add $itk_component(legend) -sticky nsew
-	    after idle [list focus $itk_component(legend)]
-	    if { !$initialized_ } {
-		set w [winfo width $itk_component(drawer)]
-		set x [expr $w - 100]
-		$itk_component(drawer) sash place 0 $x 0
-		set initialized_ 1
-	    }
-	}
-	"deactivate" {
-	    $itk_component(drawer) forget $itk_component(legend)
-	}
-	"toggle" {
-	    set slaves [$itk_component(drawer) panes]
-	    if { [lsearch $slaves $itk_component(legend)] >= 0 } {
-		legend deactivate
-	    } else {
-		legend activate
-	    }
-	}
-    }
-}
-

@@ -112,6 +112,9 @@ itcl::body Rappture::Scroller::destructor {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Scroller::contents {{widget "!@#query"}} {
     if {$widget == "!@#query"} {
+        if {$_contents == $_frame} {
+	    return $_frame.f
+        }
 	return $_contents
     }
 
@@ -267,7 +270,11 @@ itcl::body Rappture::Scroller::_fixframe {which} {
 	    $_dispatcher event -idle !fixsize
 	}
 	outer {
-	    $_frame itemconfigure frame -width [winfo width $_frame]
+	    if {[winfo width $_frame] > [winfo reqwidth $_frame.f]} {
+	        $_frame itemconfigure frame -width [winfo width $_frame]
+	    } else {
+		$_frame itemconfigure frame -width 0
+	    }
 	    if {[winfo height $_frame] > [winfo reqheight $_frame.f]} {
 		$_frame itemconfigure frame -height [winfo height $_frame]
 	    } else {
