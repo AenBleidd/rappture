@@ -57,7 +57,7 @@ itcl::body Rappture::Field3DResult::constructor {args} {
     set servers [Rappture::VisViewer::GetServerList "nanovis"]
     if {"" != $servers && $flags(-mode) != "vtk"} {
 	switch -- $flags(-mode) {
-	    "nanovis" {
+	    "auto" - "nanovis" {
 		itk_component add renderer {
 		    Rappture::NanovisViewer $itk_interior.ren $servers
 		}
@@ -66,6 +66,9 @@ itcl::body Rappture::Field3DResult::constructor {args} {
 		itk_component add renderer {
 		    Rappture::FlowvisViewer $itk_interior.ren $servers
 		}
+	    }
+	    default {
+		puts stderr "unknown render mode \"$flags(-mode)\""
 	    }
 	}		
 	pack $itk_component(renderer) -expand yes -fill both

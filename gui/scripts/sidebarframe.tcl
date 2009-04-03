@@ -143,14 +143,15 @@ itcl::body Rappture::SidebarFrame::constructor {args} {
         rename -background -titlebarbackground titlebarBackground Background
         rename -activebackground -titlebarbackground titlebarBackground Background
     }
-    pack $itk_component(popbutton) -side left -padx 1 -pady {0 2}
+    pack $itk_component(popbutton) -side left -padx 6 -pady 2
     Rappture::Tooltip::for $itk_component(popbutton) \
         "Open/close the sidebar"
 
     itk_component add title {
-        label $itk_component(titlebar).title -anchor w
+        label $itk_component(titlebar).title -anchor w -font "Arial 10"
     } {
         usual
+	ignore -font
         rename -foreground -titlebarforeground titlebarForeground Foreground
         rename -background -titlebarbackground titlebarBackground Background
     }

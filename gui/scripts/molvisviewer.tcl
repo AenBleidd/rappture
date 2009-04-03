@@ -252,9 +252,10 @@ itcl::body Rappture::MolvisViewer::constructor {hostlist args} {
 
     _BuildViewTab
 
-    # Hack around the Tk panewindow.  The problem is that the requested 
-    # size of the 3d view isn't set until an image is retrieved from
-    # the server.  So the panewindow uses the tiny size.
+    # HACK ALERT. Initially force a requested width of the sidebar. The
+    # problem is that the requested size of the 3dview isn't set until an
+    # image is retrieved from the server.  But we determine the size of the
+    # image from the size of the 3dview.
     set w [expr [winfo reqwidth $itk_component(hull)] - 80]
     blt::table $itk_component(plotarea) \
 	0,0 $itk_component(3dview) -fill both -reqwidth $w 

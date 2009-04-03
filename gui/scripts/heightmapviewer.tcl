@@ -80,7 +80,7 @@ itcl::class Rappture::HeightmapViewer {
     protected method _state {comp}
     protected method _fixSettings {what {value ""}}
     protected method _getTransfuncData {dataobj comp}
-
+    private method Resize { w h } 
 
     private variable outbuf_       ;# buffer for outgoing commands
 
@@ -196,7 +196,7 @@ itcl::body Rappture::HeightmapViewer::constructor {hostlist args} {
     bind $itk_component(3dview) <ButtonRelease-1> \
 	[itcl::code $this _rotate release %x %y]
     bind $itk_component(3dview) <Configure> \
-	[itcl::code $this _send "screen %w %h"]
+	[itcl::code $this Resize %w %h]
 
     # Bindings for panning via mouse
     bind $itk_component(3dview) <ButtonPress-2> \
@@ -699,7 +699,7 @@ itcl::body Rappture::HeightmapViewer::_rebuild {} {
     # Reset the screen size.  
     set w [winfo width $itk_component(3dview)]
     set h [winfo height $itk_component(3dview)]
-    _send "screen $w $h"
+    Resize $w $h
 
     # Reset the camera and other view parameters
     set xyz [Euler2XYZ $view_(theta) $view_(phi) $view_(psi)]
@@ -1189,4 +1189,9 @@ itcl::body Rappture::HeightmapViewer::_BuildCameraTab {} {
     blt::table configure $inner c1 c2 -resize none
     blt::table configure $inner c3 -resize expand
     blt::table configure $inner r$row -resize expand
+}
+
+itcl::body Rappture::HeightmapViewer::Resize { w h } {
+    #puts stderr "w=$w h=$h" 
+    _send "screen $w $h"
 }

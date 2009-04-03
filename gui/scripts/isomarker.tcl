@@ -53,25 +53,10 @@ itcl::class Rappture::NanovisViewer::IsoMarker {
     destructor { 
 	$canvas_ delete $this
     }
-    public method GetTransferFunction {} {
+    public method transferfunc {} {
 	return $tf_
     }
-    public method GetAbsoluteValue {} {
-	return $value_
-    }
-    public method GetRelativeValue {} {
-	array set limits [$nvobj_ GetLimits $tf_] 
-	if { $limits(max) == $limits(min) } {
-	    if { $limits(max) == 0.0 } {
-		set limits(min) 0.0
-		set limits(max) 1.0
-	    } else {
-		set limits(max) [expr $limits(min) + 1.0]
-	    }
-	}
-	return [expr {($value_-$limits(min))/($limits(max) - $limits(min))}]
-    }
-    public method Activate { bool } {
+    public method activate { bool } {
 	if  { $bool || $active_press_ || $active_motion_ } {
 	    $canvas_ itemconfigure $label_ -state normal
 	    $canvas_ itemconfigure $tick_ -image $activeIcon_
@@ -80,16 +65,17 @@ itcl::class Rappture::NanovisViewer::IsoMarker {
 	    $canvas_ itemconfigure $tick_ -image $normalIcon_
 	}
     }
-    public method Show {} {
-	SetAbsoluteValue $value_
-	$canvas_ itemconfigure $tick_ -state normal
-	$canvas_ raise $tick_
+    public method visible { bool } {
+	if { $bool } {
+	    absval $value_
+	    $canvas_ itemconfigure $tick_ -state normal
+	    $canvas_ raise $tick_
+	} else {
+	    $canvas_ itemconfigure $tick_ -state hidden
+	}
     }
-    public method Hide {} {
-	$canvas_ itemconfigure $tick_ -state hidden
-    }
-    public method GetScreenPosition { } { 
-	set x [GetRelativeValue]
+    public method screenpos { } { 
+	set x [relval]
 	if { $x < 0.0 } {
 	    set x 0.0
 	} elseif { $x > 1.0 } {
@@ -101,54 +87,69 @@ itcl::class Rappture::NanovisViewer::IsoMarker {
 	set x [expr {round($x*($high - $low) + $low)}]
 	return $x
     }
-    public method SetAbsoluteValue { x } {
-	set value_ $x
-	set y 31
-	$canvas_ itemconfigure $label_ -text [format %.2g $value_]
-	set x [GetScreenPosition]
-	$canvas_ coords $tick_ $x [expr {$y+3}]
-	$canvas_ coords $label_ $x [expr {$y+5}]
+    public method absval { {x "-get"} } {
+	if { $x != "-get" } {
+	    set value_ $x
+	    set y 31
+	    $canvas_ itemconfigure $label_ -text [format %.2g $value_]
+	    set x [screenpos]
+	    $canvas_ coords $tick_ $x [expr {$y+3}]
+	    $canvas_ coords $label_ $x [expr {$y+5}]
+	}
+	return $value_
     }
-    public method SetRelativeValue { x } {
-	array set limits [$nvobj_ GetLimits $tf_] 
+    public method relval  { {x "-get"} } {
+	if { $x == "-get" } {
+	    array set limits [$nvobj_ limits $tf_] 
+	    if { $limits(max) == $limits(min) } {
+		if { $limits(max) == 0.0 } {
+		    set limits(min) 0.0
+		    set limits(max) 1.0
+		} else {
+		    set limits(max) [expr $limits(min) + 1.0]
+		}
+	    }
+	    return [expr {($value_-$limits(min))/($limits(max) - $limits(min))}]
+	} 
+	array set limits [$nvobj_ limits $tf_] 
 	if { $limits(max) == $limits(min) } {
 	    set limits(min) 0.0
 	    set limits(max) 1.0
 	}
 	set r [expr $limits(max) - $limits(min)]
-	SetAbsoluteValue [expr {($x * $r) + $limits(min)}]
+	absval [expr {($x * $r) + $limits(min)}]
     }
-    public method HandleEvent { option args } {
+    private method HandleEvent { option args } {
 	switch -- $option {
 	    enter {
 		set active_motion_ 1
-		Activate yes
+		activate yes
 		$canvas_ raise $tick_
 	    }
 	    leave {
 		set active_motion_ 0
-		Activate no
+		activate no
 	    }
 	    start {
 		$canvas_ raise $tick_ 
 		set active_press_ 1
-		Activate yes
+		activate yes
 		$canvas_ itemconfigure limits -state hidden
 	    }
 	    update {
 		set w [winfo width $canvas_]
 		set x [lindex $args 0]
-		SetRelativeValue [expr {double($x-10)/($w-20)}]
-		$nvobj_ OverIsoMarker $this $x
-		$nvobj_ UpdateTransferFunctions
+		relval [expr {double($x-10)/($w-20)}]
+		$nvobj_ overmarker $this $x
+		$nvobj_ updatetransferfuncs
 	    }
 	    end {
 		set x [lindex $args 0]
-		if { ![$nvobj_ RemoveDuplicateIsoMarker $this $x]} {
+		if { ![$nvobj_ rmdupmarker $this $x]} {
 		    eval HandleEvent update $args
 		}
 		set active_press_ 0
-		Activate no
+		activate no
 		$canvas_ itemconfigure limits -state normal
 	    }
 	    default {

@@ -64,10 +64,10 @@ itcl::class Rappture::FlowvisViewer {
     }
     public method isconnected {}
 
-    public method GetLimits { tf }
-    public method UpdateTransferFunctions {}
-    public method RemoveDuplicateIsoMarker { m x }
-    public method OverIsoMarker { m x }
+    public method limits { tf }
+    public method updatetransferfuncs {}
+    public method rmdupmarker { m x }
+    public method overmarker { m x }
 
     public method camera {option args}
 
@@ -912,7 +912,7 @@ itcl::body Rappture::FlowvisViewer::ReceiveLegend { tf vmin vmax size } {
     # Display the markers used by the active transfer function.
     #set tf $activeTf_
 
-    array set limits [GetLimits $tf]
+    array set limits [limits $tf]
     $c itemconfigure vmin -text [format %.2g $limits(min)]
     $c coords vmin $lx $ly
 
@@ -921,7 +921,7 @@ itcl::body Rappture::FlowvisViewer::ReceiveLegend { tf vmin vmax size } {
 
     if { [info exists isomarkers_($tf)] } {
         foreach m $isomarkers_($tf) {
-            $m Show
+            $m show
         }
     }
 }
@@ -962,7 +962,7 @@ itcl::body Rappture::FlowvisViewer::ReceiveData { args } {
 
     unset receiveIds_($ivol)
     if { [array size receiveIds_] == 0 } {
-        UpdateTransferFunctions
+        updatetransferfuncs
     }
 }
 
@@ -980,7 +980,7 @@ itcl::body Rappture::FlowvisViewer::Rebuild {} {
 
     foreach tf [array names isomarkers_] {
         foreach m $isomarkers_($tf) {
-            $m Hide
+            $m hide
         }
     }
 
@@ -1308,14 +1308,16 @@ itcl::body Rappture::FlowvisViewer::Slice {option args} {
             }
             if {$op} {
                 $itk_component(${axis}CutButton) configure \
-		    -relief sunken
+		    -relief sunken -image [Rappture::icon ${axis}-cutplane-on]
                 SendCmd "cutplane state 1 $axis [CurrentVolumeIds -cutplanes]"
-		$itk_component(${axis}CutScale) configure -state normal
+		$itk_component(${axis}CutScale) configure -state normal \
+		    -troughcolor grey65
             } else {
                 $itk_component(${axis}CutButton) configure \
-		    -relief raised
+		    -relief raised -image [Rappture::icon ${axis}-cutplane-off]
                 SendCmd "cutplane state 0 $axis [CurrentVolumeIds -cutplanes]"
-		$itk_component(${axis}CutScale) configure -state disabled
+		$itk_component(${axis}CutScale) configure -state disabled \
+		    -troughcolor grey82
             }
         }
         move {
@@ -1526,7 +1528,7 @@ itcl::body Rappture::FlowvisViewer::FixSettings {what {value ""}} {
                 set sval [expr { 0.01 * double($val) }]
                 set tf $activeTf_
                 set settings_($this-$tf-opacity) $sval
-                UpdateTransferFunctions
+                updatetransferfuncs
             }
         }
 
@@ -1537,7 +1539,7 @@ itcl::body Rappture::FlowvisViewer::FixSettings {what {value ""}} {
                 set sval [expr {0.0001*double($val)}]
                 set tf $activeTf_
                 set settings_($this-$tf-thickness) $sval
-                UpdateTransferFunctions
+                updatetransferfuncs
             }
         }
         "outline" {
@@ -1567,7 +1569,6 @@ itcl::body Rappture::FlowvisViewer::FixSettings {what {value ""}} {
 	    } else {
 		blt::table forget $itk_component(legend)
 	    }
-	    FixLegend
 	}
         "volume" {
 	    Slice volume $settings_($this-volume)
@@ -1700,7 +1701,7 @@ itcl::body Rappture::FlowvisViewer::ComputeTransferFunction { tf } {
 
     set isovalues {}
     foreach m $isomarkers_($tf) {
-        lappend isovalues [$m GetRelativeValue]
+        lappend isovalues [$m getRelativeValue]
     }
     # Sort the isovalues
     set isovalues [lsort -real $isovalues]
@@ -1806,13 +1807,13 @@ itcl::body Rappture::FlowvisViewer::ParseLevelsOption { tf ivol levels } {
         for {set i 1} { $i <= $levels } {incr i} {
             set x [expr {double($i)/($levels+1)}]
             set m [IsoMarker \#auto $c $this $tf]
-            $m SetRelativeValue $x
+            $m setRelativeValue $x
             lappend isomarkers_($tf) $m 
         }
     } else {
         foreach x $levels {
             set m [IsoMarker \#auto $c $this $tf]
-            $m SetRelativeValue $x
+            $m setRelativeValue $x
             lappend isomarkers_($tf) $m 
         }
     }
@@ -1839,12 +1840,12 @@ itcl::body Rappture::FlowvisViewer::ParseMarkersOption { tf ivol markers } {
             # ${n}% : Set relative value. 
             set value [expr {$value * 0.01}]
             set m [IsoMarker \#auto $c $this $tf]
-            $m SetRelativeValue $value
+            $m setRelativeValue $value
             lappend isomarkers_($tf) $m
         } else {
             # ${n} : Set absolute value.
             set m [IsoMarker \#auto $c $this $tf]
-            $m SetAbsoluteValue $value
+            $m setAbsoluteValue $value
             lappend isomarkers_($tf) $m
         }
     }
@@ -1853,7 +1854,7 @@ itcl::body Rappture::FlowvisViewer::ParseMarkersOption { tf ivol markers } {
 # ----------------------------------------------------------------------
 # USAGE: UndateTransferFunctions 
 # ----------------------------------------------------------------------
-itcl::body Rappture::FlowvisViewer::UpdateTransferFunctions {} {
+itcl::body Rappture::FlowvisViewer::updatetransferfuncs {} {
     $_dispatcher event -idle !send_transfunc
 }
 
@@ -1865,23 +1866,23 @@ itcl::body Rappture::FlowvisViewer::AddIsoMarker { x y } {
     set c $itk_component(legend)
     set m [IsoMarker \#auto $c $this $tf]
     set w [winfo width $c]
-    $m SetRelativeValue [expr {double($x-10)/($w-20)}]
+    $m setRelativeValue [expr {double($x-10)/($w-20)}]
     lappend isomarkers_($tf) $m
-    UpdateTransferFunctions
+    updatetransferfuncts
     return 1
 }
 
-itcl::body Rappture::FlowvisViewer::RemoveDuplicateIsoMarker { marker x } {
-    set tf [$marker GetTransferFunction]
+itcl::body Rappture::FlowvisViewer::rmdupmarker { marker x } {
+    set tf [$marker getTransferFunction]
     set bool 0
     if { [info exists isomarkers_($tf)] } {
         set list {}
         set marker [namespace tail $marker]
         foreach m $isomarkers_($tf) {
-            set sx [$m GetScreenPosition]
+            set sx [$m getScreenPosition]
             if { $m != $marker } {
                 if { $x >= ($sx-3) && $x <= ($sx+3) } {
-                    $marker SetRelativeValue [$m GetRelativeValue]
+                    $marker setRelativeValue [$m getRelativeValue]
                     itcl::delete object $m
                     bell
                     set bool 1
@@ -1891,27 +1892,27 @@ itcl::body Rappture::FlowvisViewer::RemoveDuplicateIsoMarker { marker x } {
             lappend list $m
         }
         set isomarkers_($tf) $list
-        UpdateTransferFunctions
+        updatetransferfuncs
     }
     return $bool
 }
 
-itcl::body Rappture::FlowvisViewer::OverIsoMarker { marker x } {
-    set tf [$marker GetTransferFunction]
+itcl::body Rappture::FlowvisViewer::overmarker { marker x } {
+    set tf [$marker getTransferFunction]
     if { [info exists isomarkers_($tf)] } {
         set marker [namespace tail $marker]
         foreach m $isomarkers_($tf) {
-            set sx [$m GetScreenPosition]
+            set sx [$m getScreenPosition]
             if { $m != $marker } {
                 set bool [expr { $x >= ($sx-3) && $x <= ($sx+3) }]
-                $m Activate $bool
+                $m activate $bool
             }
         }
     }
     return ""
 }
 
-itcl::body Rappture::FlowvisViewer::GetLimits { tf } {
+itcl::body Rappture::FlowvisViewer::limits { tf } {
     set limits_(min) ""
     set limits_(max) ""
     foreach ivol $style2ids_($tf) {
@@ -2158,11 +2159,11 @@ itcl::body Rappture::FlowvisViewer::BuildCutplanesTab {} {
     itk_component add xCutButton {
         label $inner.xbutton \
             -borderwidth 1 -relief raised -padx 1 -pady 1 \
-            -image [Rappture::icon x-cutplane] \
+	    -image [Rappture::icon x-cutplane-off] \
 	    -highlightthickness 0 
     } {
         usual
-        ignore -borderwidth -highlightthickness
+        ignore -borderwidth -highlightthickness -font
     }
     bind $itk_component(xCutButton) <ButtonPress> \
         [itcl::code $this Slice axis x toggle]
@@ -2172,13 +2173,15 @@ itcl::body Rappture::FlowvisViewer::BuildCutplanesTab {} {
     itk_component add xCutScale {
         ::scale $inner.xval -from 100 -to 0 \
             -width 10 -orient vertical -showvalue off \
-            -borderwidth 1 -highlightthickness 0 -state disabled \
+            -borderwidth 1 -highlightthickness 0 \
             -command [itcl::code $this Slice move x]
     } {
         usual
         ignore -borderwidth -highlightthickness
     }
+    # Set the default cutplane value before disabling the scale.
     $itk_component(xCutScale) set 50
+    $itk_component(xCutScale) configure -state disabled
     Rappture::Tooltip::for $itk_component(xCutScale) \
         "@[itcl::code $this SlicerTip x]"
 
@@ -2186,11 +2189,11 @@ itcl::body Rappture::FlowvisViewer::BuildCutplanesTab {} {
     itk_component add yCutButton {
         label $inner.ybutton \
             -borderwidth 1 -relief raised -padx 1 -pady 1 \
-            -image [Rappture::icon y-cutplane] \
+	    -image [Rappture::icon y-cutplane-off] \
 	    -highlightthickness 0 
     } {
         usual
-        ignore -borderwidth -highlightthickness        
+        ignore -borderwidth -highlightthickness -font
     }
     bind $itk_component(yCutButton) <ButtonPress> \
         [itcl::code $this Slice axis y toggle]
@@ -2200,7 +2203,7 @@ itcl::body Rappture::FlowvisViewer::BuildCutplanesTab {} {
     itk_component add yCutScale {
         ::scale $inner.yval -from 100 -to 0 \
             -width 10 -orient vertical -showvalue off \
-            -borderwidth 1 -highlightthickness 0 -state disabled \
+            -borderwidth 1 -highlightthickness 0 \
             -command [itcl::code $this Slice move y]
     } {
         usual
@@ -2208,17 +2211,19 @@ itcl::body Rappture::FlowvisViewer::BuildCutplanesTab {} {
     }
     Rappture::Tooltip::for $itk_component(yCutScale) \
         "@[itcl::code $this SlicerTip y]"
+    # Set the default cutplane value before disabling the scale.
     $itk_component(yCutScale) set 50
+    $itk_component(yCutScale) configure -state disabled
 
     # Z-value slicer...
     itk_component add zCutButton {
         label $inner.zbutton \
             -borderwidth 1 -relief raised -padx 1 -pady 1 \
-            -image [Rappture::icon z-cutplane] \
+	    -image [Rappture::icon z-cutplane-off] \
 	    -highlightthickness 0 
     } {
         usual
-        ignore -borderwidth -highlightthickness        
+        ignore -borderwidth -highlightthickness -font
     }
     bind $itk_component(zCutButton) <ButtonPress> \
         [itcl::code $this Slice axis z toggle]
@@ -2228,29 +2233,30 @@ itcl::body Rappture::FlowvisViewer::BuildCutplanesTab {} {
     itk_component add zCutScale {
         ::scale $inner.zval -from 100 -to 0 \
             -width 10 -orient vertical -showvalue off \
-            -borderwidth 1 -highlightthickness 0 -state disabled \
+            -borderwidth 1 -highlightthickness 0 \
             -command [itcl::code $this Slice move z]
     } {
         usual
         ignore -borderwidth -highlightthickness
     }
     $itk_component(zCutScale) set 50
+    $itk_component(zCutScale) configure -state disabled
     #$itk_component(zCutScale) configure -state disabled
     Rappture::Tooltip::for $itk_component(zCutScale) \
         "@[itcl::code $this SlicerTip z]"
 
     blt::table $inner \
-	1,0 $itk_component(xCutButton) \
-	1,1 $itk_component(yCutButton) \
-	1,2 $itk_component(zCutButton) \
-	0,0 $itk_component(xCutScale) \
-	0,1 $itk_component(yCutScale) \
-	0,2 $itk_component(zCutScale) \
+	1,1 $itk_component(xCutButton) \
+	1,2 $itk_component(yCutButton) \
+	1,3 $itk_component(zCutButton) \
+	0,1 $itk_component(xCutScale) \
+	0,2 $itk_component(yCutScale) \
+	0,3 $itk_component(zCutScale) \
 
-    for {set n 0} {$n <= 1} {incr n} {
-        blt::table configure $inner r$n -resize none
-    }
-    blt::table configure $inner r$n -resize expand
+    blt::table configure $inner r0 r1 c* -resize none
+    blt::table configure $inner r2 c4 -resize expand
+    blt::table configure $inner c0 -width 2
+    blt::table configure $inner c1 c2 c3 -padx 2
 }
 
 itcl::body Rappture::FlowvisViewer::BuildCameraTab {} {
