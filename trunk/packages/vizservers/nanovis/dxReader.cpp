@@ -155,7 +155,7 @@ load_vector_stream2(Rappture::Outcome &result, int ivol, size_t length,
 		    break;
 		}
 		line = getline(&p, endPtr);
-		if ((line == '#') || (line == '\0')) {
+		if ((line[0] == '#') || (line[0] == '\0')) {
 		    continue;	// Skip blank or comment lines.
 		}
 		if (sscanf(line, "%lg %lg %lg", &vx, &vy, &vz) == 3) {

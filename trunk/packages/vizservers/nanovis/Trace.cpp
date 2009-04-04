@@ -14,7 +14,7 @@ Trace(const char* format, ...)
     va_start(lst, format);
     vsnprintf(buff, 1023, format, lst);
     buff[1023] = '\0';
-    printf(buff);
+    fprintf(stdout, "%s\n", buff);
     fflush(stdout);
 }
 

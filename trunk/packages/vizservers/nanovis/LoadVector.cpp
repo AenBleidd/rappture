@@ -9,6 +9,7 @@
 #include "RpFieldPrism3D.h"
 #include "Nv.h"
 #include "nanovis.h"
+#include "FlowCmd.h"
 
 static INLINE char *
 skipspaces(char *string) 
@@ -35,12 +36,13 @@ getline(char **stringPtr, char *endPtr)
     *stringPtr = p;
     return line;
 }
+
 bool
-MakeVectorField(Rappture::Outcome &result, 
-		float xMin, float xMax, size_t xNum, 
-		float yMin, float yMax, size_t yNum, 
-		float zMin, float zMax, size_t zNum, 
-		size_t nValues, float *values)
+SetVectorFieldData(Rappture::Outcome &context, 
+		   float xMin, float xMax, size_t xNum, 
+		   float yMin, float yMax, size_t yNum, 
+		   float zMin, float zMax, size_t zNum, 
+		   size_t nValues, float *values, Unirect3d *dataPtr)
 {
 #ifdef notdef
     double max_x = -1e21, min_x = 1e21;
@@ -94,26 +96,27 @@ MakeVectorField(Rappture::Outcome &result,
 	    }
 	}
     }
-    
-    Volume *volPtr;
-    int ivol = NanoVis::n_volumes;
-    volPtr = NanoVis::load_volume(ivol, xNum, yNum, zNum, 4, data, 
-	min_mag, max_mag, 0);
-    volPtr->xAxis.SetRange(xMin, xMax);
-    volPtr->yAxis.SetRange(yMin, yMax);
-    volPtr->zAxis.SetRange(zMin, zMax);
-    volPtr->wAxis.SetRange(min_mag, max_mag);
-    volPtr->update_pending = true;
-    delete [] data;
+    dataPtr->xMin(xMin);
+    dataPtr->xMax(xMax);
+    dataPtr->xNum(xNum);
+    dataPtr->yMin(yMin);
+    dataPtr->yMax(yMax);
+    dataPtr->yNum(yNum);
+    dataPtr->yMin(zMin);
+    dataPtr->yMax(zMax);
+    dataPtr->yNum(zNum);
+    dataPtr->values(data);
+    dataPtr->minMag = min_mag;
+    dataPtr->maxMag = max_mag;
     return true;
 }
 
 bool
-MakeResampledVectorField(Rappture::Outcome &result, 
-			 float xMin, float xMax, size_t xNum, 
-			 float yMin, float yMax, size_t yNum, 
-			 float zMin, float zMax, size_t zNum, 
-			 size_t nValues, float *values)
+SetResampledVectorFieldData(Rappture::Outcome &context, 
+			    float xMin, float xMax, size_t xNum, 
+			    float yMin, float yMax, size_t yNum, 
+			    float zMin, float zMax, size_t zNum, 
+			    size_t nValues, float *values, FlowCmd *flowPtr)
 {
     Rappture::Mesh1D xgrid(xMin, xMax, xNum);
     Rappture::Mesh1D ygrid(yMin, yMax, yNum);
@@ -214,29 +217,32 @@ MakeResampledVectorField(Rappture::Outcome &result,
 	}
     }
     
-    Volume *volPtr;
-    int ivol = NanoVis::n_volumes;
-    volPtr = NanoVis::load_volume(ivol, xNum, yNum, zNum, 4, data, 
-	min_mag, max_mag, nzero_min);
-    volPtr->xAxis.SetRange(xMin, xMax);
-    volPtr->yAxis.SetRange(yMin, yMax);
-    volPtr->zAxis.SetRange(zMin, zMax);
-    volPtr->wAxis.SetRange(min_mag, max_mag);
-    volPtr->update_pending = true;
-    delete [] data;
+    flowPtr->xMin = xMin;
+    flowPtr->xMax = xMax;
+    flowPtr->xNum = xNum;
+    flowPtr->yMin = yMin;
+    flowPtr->yMax = yMax;
+    flowPtr->yNum = yNum;
+    flowPtr->yMin = zMin;
+    flowPtr->yMax = zMax;
+    flowPtr->yNum = zNum;
+    flowPtr->values = data;
+    flowPtr->minMag = min_mag;
+    flowPtr->maxMag = max_mag;
     return true;
 }
 
 bool
-MakeVectorFieldFromUnirect3d(Rappture::Outcome &result, 
-			     Rappture::Unirect3d &grid)
+SetVectorFieldDataFromUnirect3d(Rappture::Outcome &context, 
+				Rappture::Unirect3d &grid, FlowCmd *flowPtr)
 {
-    return MakeVectorField(result, 
-	grid.xMin(), grid.xMax(), grid.xNum(), 
-	grid.yMin(), grid.yMax(), grid.yNum(), 
-	grid.zMin(), grid.zMax(), grid.zNum(), 
-	grid.nValues(), grid.values());
-}
+    flowPtr->dataPtr = gridPtr;
+    return SetVectorFieldData(context, 
+			      grid.xMin(), grid.xMax(), grid.xNum(), 
+			      grid.yMin(), grid.yMax(), grid.yNum(), 
+			      grid.zMin(), grid.zMax(), grid.zNum(), 
+			      grid.nValues(), grid.values(), flowPtr);
+ }
 
 
 #ifdef notdef
@@ -244,9 +250,10 @@ MakeVectorFieldFromUnirect3d(Rappture::Outcome &result,
  * Load a 3D vector field from a dx-format file
  */
 bool
-load_vector_stream2(Rappture::Outcome &result, int ivol, size_t length,
-		    char *string)
+load_vector_stream2(Rappture::Outcome &context, size_t length, char *string, 
+		    Unirect3d *dataPtr)
 {
+    Unirect3d data;
     int nx, ny, nz, npts;
     double x0, y0, z0, dx, dy, dz, ddx, ddy, ddz;
     char *p, *endPtr;
@@ -282,7 +289,7 @@ load_vector_stream2(Rappture::Outcome &result, int ivol, size_t length,
 		" rank 1 items %d data follows", &npts) == 3) {
 	    printf("point %d\n", npts);
 	    if (npts != nx*ny*nz) {
-		result.addError("inconsistent data: expected %d points"
+		context.addError("inconsistent data: expected %d points"
 				" but found %d points", nx*ny*nz, npts);
 		return false;
 	    }
@@ -290,7 +297,7 @@ load_vector_stream2(Rappture::Outcome &result, int ivol, size_t length,
 	} else if (sscanf(line, "object %*d class array type %*s rank 0"
 		" times %d data follows", &npts) == 3) {
 	    if (npts != nx*ny*nz) {
-		result.addError("inconsistent data: expected %d points"
+		context.addError("inconsistent data: expected %d points"
 				" but found %d points", nx*ny*nz, npts);
 		return false;
 	    }
@@ -352,13 +359,13 @@ load_vector_stream2(Rappture::Outcome &result, int ivol, size_t length,
     
     // make sure that we read all of the expected points
     if (nRead != nx*ny*nz) {
-	result.addError("inconsistent data: expected %d points"
+	context.addError("inconsistent data: expected %d points"
 			" but found %d points", nx*ny*nz, npts);
 	return false;
     }
     bool status;
-    status = MakeVectorField(result, x0, x0 + nx, nx, y0, y0 + ny, ny, 
-	z0, z0 + ny, ny, nRead, srcData);
+    status = SetVectorFieldData(context, x0, x0 + nx, nx, y0, y0 + ny, 
+	ny, z0, z0 + ny, ny, nRead, srcData, flowPtr);
     delete [] srcData;
     return status;
 }

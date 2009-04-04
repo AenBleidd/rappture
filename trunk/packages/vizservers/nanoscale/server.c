@@ -74,6 +74,7 @@ struct child_info child_array[100];
 	    (void) (&_x == &_y);		\
 	    _x > _y ? _x : _y; })
 
+#ifdef notdef
 static int 
 find_best_host(void)
 {
@@ -102,6 +103,7 @@ find_best_host(void)
     //printf("I choose %d\n", index);
     return index;
 }
+#endif
 
 static void 
 broadcast_load(void)
@@ -571,7 +573,9 @@ main(int argc, char *argv[])
 	      
 		// accept the connection.
 		msg = 0;
-		write(i, &msg, 4);
+		if (write(i, &msg, 4) != 4) {
+		    fprintf(stderr, "short write for hostname\n");
+		}
 	      
 		int pair[2];
 		status = pipe(pair);

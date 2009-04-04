@@ -103,12 +103,10 @@ OBJS		= \
 		ConvexPolygon.o \
 		Event.o \
 		Switch.o \
- 		FlowCmds.o \
+		Unirect.o \
 		GradientFilter.o \
 		Grid.o \
 		HeightMap.o \
-		LoadVector.o \
-		Unirect.o \
 		Mat4x4.o \
 		Nv.o \
 		NvCamera.o \

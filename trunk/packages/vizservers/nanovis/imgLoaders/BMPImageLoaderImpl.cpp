@@ -28,7 +28,10 @@ Image* BMPImageLoaderImpl::load(const char* fileName)
     }
 
     char header[54];
-    fread(&header, 54, 1, f);
+    if (fread(&header, 54, 1, f) != 1) {
+	printf("can't read header of BMP file\n");
+	return 0;
+    };
 
     if (header[0] != 'B' ||  header[1] != 'M') {
 	printf("File is not BMP format\n");
@@ -65,7 +68,9 @@ Image* BMPImageLoaderImpl::load(const char* fileName)
     case 24:
 	fseek(f,offset,SEEK_SET);
 	if (_targetImageFormat == Image::IMG_RGB) {
-	    fread(bytes,width*height*3,1,f); //24bit is easy
+	    if (fread(bytes,width*height*3,1,f) != 1) {
+		fprintf(stderr, "can't read image data\n");
+	    }
 	    for(x=0;x<width*height*3;x+=3)  { //except the format is BGR, grr
 		unsigned char temp = bytes[x];
 		bytes[x] = bytes[x+2];
@@ -73,7 +78,9 @@ Image* BMPImageLoaderImpl::load(const char* fileName)
 	    }
 	} else if (_targetImageFormat == Image::IMG_RGBA) {
 	    char* buff = (char*) malloc(width * height * sizeof(unsigned char) * 3);
-	    fread(buff,width*height*3,1,f);                 //24bit is easy
+	    if (fread(buff,width*height*3,1,f) != 1) {
+		fprintf(stderr, "can't read BMP image data\n");
+	    }
 	    for(x=0, y = 0;x<width*height*3;x+=3, y+=4)     {       //except the format is BGR, grr
 		bytes[y] = buff[x+2];
 		bytes[y+2] = buff[x];
@@ -83,12 +90,16 @@ Image* BMPImageLoaderImpl::load(const char* fileName)
 	}
 	break;
     case 8:
-	fread(cols,256 * 4,1,f); //read colortable
+	if (fread(cols,256 * 4,1,f) != 1) {
+	    fprintf(stderr, "can't read colortable from BMP file\n");
+	}
 	fseek(f,offset,SEEK_SET);  
 	for(y=0;y<height;++y) {	//(Notice 4bytes/col for some reason)
 	    for(x=0;x<width;++x) {
 		unsigned char byte;                 
-		fread(&byte,1,1,f);                                                 //just read byte                                        
+		if (fread(&byte,1,1,f) != 1) {
+		    fprintf(stderr, "error reading BMP file\n");
+		}
 		for(int c=0; c< 3; ++c) {
 		    //bytes[(y*width+x)*3+c] = cols[byte*4+2-c];        //and look up in the table 
 		    bytes[(y*width+x)*_targetImageFormat + c] = cols[byte*4+2-c];       //and look up in the table 

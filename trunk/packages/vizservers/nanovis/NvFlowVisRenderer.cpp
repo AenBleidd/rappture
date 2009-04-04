@@ -115,27 +115,20 @@ NvFlowVisRenderer::render()
 void 
 NvFlowVisRenderer::addVectorField(const std::string& vfName, Volume* volPtr, const Vector3& ori, float scaleX, float scaleY, float scaleZ, float max)
 {
-	std::map<std::string, NvVectorField*>::iterator iter = _vectorFieldMap.find(vfName);
-	if (iter != _vectorFieldMap.end()) 
-	{
-		if ((*iter).second) 
-		{
-			((*iter).second)->setVectorField(volPtr, ori, scaleX, scaleY, scaleZ, max);
-		}
-		else
-		{
-			NvVectorField* vf = new NvVectorField();
-			_vectorFieldMap[vfName] = vf;
-			vf->setVectorField(volPtr, ori, scaleX, scaleY, scaleZ, max);
-		}
+    std::map<std::string, NvVectorField*>::iterator iter = _vectorFieldMap.find(vfName);
+    if (iter != _vectorFieldMap.end()) {
+	if ((*iter).second) {
+	    ((*iter).second)->setVectorField(volPtr, ori, scaleX, scaleY, scaleZ, max);
+	} else {
+	    NvVectorField* vf = new NvVectorField();
+	    _vectorFieldMap[vfName] = vf;
+	    vf->setVectorField(volPtr, ori, scaleX, scaleY, scaleZ, max);
 	}
-	else
-	{
-		NvVectorField* vf = new NvVectorField();
-		_vectorFieldMap[vfName] = vf;
-		vf->setVectorField(volPtr, ori, scaleX, scaleY, scaleZ, max);
-		
-	}
+    } else {
+	NvVectorField* vf = new NvVectorField();
+	_vectorFieldMap[vfName] = vf;
+	vf->setVectorField(volPtr, ori, scaleX, scaleY, scaleZ, max);
+    }
 }
 
 void 
