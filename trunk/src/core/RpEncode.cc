@@ -1,3 +1,4 @@
+
 /*
  * ----------------------------------------------------------------------
  *  Rappture::encoding
@@ -128,11 +129,16 @@ Rappture::encoding::encode(Rappture::Outcome &err, Rappture::Buffer& buf,
     base64    = (flags & RPENC_B64);
     addHeader = (flags & RPENC_HDR);
 
+    size_t size;
+    size = buf.size();
+    if (size <= 0) {
+	return true;		// Nothing to encode.
+    }
     if ((!compress) && (!base64)) {
 	return true;		// Nothing to do.
     }
-    if (outData.append(buf.bytes(), buf.size()) != (int)buf.size()) {
-	err.addError("can't append %d bytes", buf.size());
+    if (outData.append(buf.bytes(), buf.size()) != (int)size) {
+	err.addError("can't append %lu bytes", size);
 	return false;
     }
     if (outData.encode(err, compress, base64)) {
@@ -183,9 +189,12 @@ Rappture::encoding::decode(Rappture::Outcome &err, Rappture::Buffer& buf,
 
     off_t offset;
     const char *bytes;
-    int size;
 
+    size_t size;
     size = buf.size();
+    if (size <= 0) {
+	return true;		// Nothing to decode.
+    }
     bytes = buf.bytes();
     if (strncmp(bytes, "@@RP-ENC:z\n", 11) == 0) {
 	bytes += 11;
@@ -194,14 +203,14 @@ Rappture::encoding::decode(Rappture::Outcome &err, Rappture::Buffer& buf,
             decompress = true;
             base64     = false;
         }
-    } else if (strncmp(bytes, "@@RP-ENC:b64\n",13) == 0) {
+    } else if (strncmp(bytes, "@@RP-ENC:b64\n", 13) == 0) {
 	bytes += 13;
 	size -= 13;
         if ((checkHeader) || ((!decompress) && (!base64) )) {
             decompress = false;
             base64     = true;
         }
-    } else if (strncmp(bytes, "@@RP-ENC:zb64\n",14) == 0) {
+    } else if (strncmp(bytes, "@@RP-ENC:zb64\n", 14) == 0) {
 	bytes += 14;
 	size -= 14;
         if ((checkHeader) || ((!decompress) && (!base64))) {
