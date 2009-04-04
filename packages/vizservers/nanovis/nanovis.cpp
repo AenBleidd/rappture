@@ -1804,64 +1804,66 @@ NanoVis::update_trans(int delta_x, int delta_y, int delta_z)
 }
 
 #ifdef NEW_FLOW_ENGINE
-void addVectorField(const char* filename, const char* vf_name, const char* plane_name1, const char* plane_name2, const Vector4& color1, const Vector4& color2)
+void addVectorField(const char* filename, const char* vf_name, 
+		    const char* plane_name1, const char* plane_name2, 
+		    const Vector4& color1, const Vector4& color2)
 {
-    		Rappture::Outcome result;
-    		std::ifstream fdata;
-		fdata.open(filename, std::ios::in);
-
-    		int n = NanoVis::n_volumes;
-    		//fdata.write(buf.bytes(),buf.size());
-    		if (load_vector_stream2(result, n, fdata)) {
-    			Volume *volPtr = NanoVis::volume[n];
-    			if (volPtr != NULL) {
-        			volPtr->set_n_slice(256-n);
-        			// volPtr->set_n_slice(512-n);
-        			volPtr->disable_cutplane(0);
-        			volPtr->disable_cutplane(1);
-        			volPtr->disable_cutplane(2);
-
-        			NanoVis::vol_renderer->add_volume(volPtr,
-					NanoVis::get_transfunc("default"));
-					float dx0 = -0.5;
-					float dy0 = -0.5*volPtr->height/volPtr->width;
-					float dz0 = -0.5*volPtr->depth/volPtr->width;
-					volPtr->move(Vector3(dx0, dy0, dz0));
-					//volPtr->enable_data();
-					volPtr->disable_data();
-				NanoVis::flowVisRenderer->addVectorField(vf_name, volPtr, 
-						*(volPtr->get_location()),
-            					1.0f,
-						volPtr->height / (float)volPtr->width,
-						volPtr->depth  / (float)volPtr->width,
-						1.0f);
-				NanoVis::flowVisRenderer->activateVectorField(vf_name);
-
-				//////////////////////////////////
-				// ADD Particle Injection Plane1
-				NanoVis::flowVisRenderer->addPlane(vf_name, plane_name1);
-				NanoVis::flowVisRenderer->setPlaneAxis(vf_name, plane_name1, 0);
-				NanoVis::flowVisRenderer->setPlanePos(vf_name, plane_name1, 0.9);
-				NanoVis::flowVisRenderer->setParticleColor(vf_name, plane_name1, color1);
-				// ADD Particle Injection Plane2
-				NanoVis::flowVisRenderer->addPlane(vf_name, plane_name2);
-				NanoVis::flowVisRenderer->setPlaneAxis(vf_name, plane_name2, 0);
-				NanoVis::flowVisRenderer->setPlanePos(vf_name, plane_name2, 0.2);
-				NanoVis::flowVisRenderer->setParticleColor(vf_name, plane_name2, color2);
-				NanoVis::flowVisRenderer->initialize(vf_name);
-
-				NanoVis::flowVisRenderer->activatePlane(vf_name, plane_name1);
-				NanoVis::flowVisRenderer->activatePlane(vf_name, plane_name2);
-        
-			NanoVis::licRenderer->setVectorField(volPtr->id,
+    Rappture::Outcome result;
+    std::ifstream fdata;
+    fdata.open(filename, std::ios::in);
+    
+    int n = NanoVis::n_volumes;
+    //fdata.write(buf.bytes(),buf.size());
+    if (load_vector_stream2(result, n, fdata)) {
+	Volume *volPtr = NanoVis::volume[n];
+	if (volPtr != NULL) {
+	    volPtr->set_n_slice(256-n);
+	    // volPtr->set_n_slice(512-n);
+	    volPtr->disable_cutplane(0);
+	    volPtr->disable_cutplane(1);
+	    volPtr->disable_cutplane(2);
+	    
+	    NanoVis::vol_renderer->add_volume(volPtr,
+					      NanoVis::get_transfunc("default"));
+	    float dx0 = -0.5;
+	    float dy0 = -0.5*volPtr->height/volPtr->width;
+	    float dz0 = -0.5*volPtr->depth/volPtr->width;
+	    volPtr->move(Vector3(dx0, dy0, dz0));
+	    //volPtr->enable_data();
+	    volPtr->disable_data();
+	    NanoVis::flowVisRenderer->addVectorField(vf_name, volPtr, 
+		*(volPtr->get_location()),
+		1.0f,
+		volPtr->height / (float)volPtr->width,
+		volPtr->depth  / (float)volPtr->width,
+		1.0f);
+	    NanoVis::flowVisRenderer->activateVectorField(vf_name);
+	    
+	    //////////////////////////////////
+	    // ADD Particle Injection Plane1
+	    NanoVis::flowVisRenderer->addPlane(vf_name, plane_name1);
+	    NanoVis::flowVisRenderer->setPlaneAxis(vf_name, plane_name1, 0);
+	    NanoVis::flowVisRenderer->setPlanePos(vf_name, plane_name1, 0.9);
+	    NanoVis::flowVisRenderer->setParticleColor(vf_name, plane_name1, color1);
+	    // ADD Particle Injection Plane2
+	    NanoVis::flowVisRenderer->addPlane(vf_name, plane_name2);
+	    NanoVis::flowVisRenderer->setPlaneAxis(vf_name, plane_name2, 0);
+	    NanoVis::flowVisRenderer->setPlanePos(vf_name, plane_name2, 0.2);
+	    NanoVis::flowVisRenderer->setParticleColor(vf_name, plane_name2, color2);
+	    NanoVis::flowVisRenderer->initialize(vf_name);
+	    
+	    NanoVis::flowVisRenderer->activatePlane(vf_name, plane_name1);
+	    NanoVis::flowVisRenderer->activatePlane(vf_name, plane_name2);
+	    
+	    NanoVis::licRenderer->setVectorField(volPtr->id,
 				*(volPtr->get_location()),
 				1.0f / volPtr->aspect_ratio_width,
 				1.0f / volPtr->aspect_ratio_height,
 				1.0f / volPtr->aspect_ratio_depth,
 				volPtr->wAxis.max());
-    		}
 	}
-	//NanoVis::initParticle();
+    }
+    //NanoVis::initParticle();
 }
 #endif
 

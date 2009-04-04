@@ -34,8 +34,15 @@ load_volume_stream_odx(Rappture::Outcome &outcome, int index, const char *buf,
     FILE *f;
 
     f = fopen(dxfilename, "w");
-    fwrite(buf, sizeof(char), nBytes, f);
+
+    ssize_t nWritten;
+    nWritten = fwrite(buf, sizeof(char), nBytes, f);
     fclose(f);
+    if (nWritten != nBytes) {
+        outcome.addError("Can't read %d bytes from file \"%s\"\n", 
+			 nBytes, dxfilename);
+	return false;
+    }
 
     Rappture::DX dxObj(outcome, dxfilename);
 

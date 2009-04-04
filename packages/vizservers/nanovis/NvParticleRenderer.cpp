@@ -29,8 +29,8 @@
 
 NvParticleRenderer::NvParticleRenderer(int w, int h, CGcontext context) : 
     scale(1, 1, 1), 
-    _activate(false), 
-    origin(0, 0, 0)
+    origin(0, 0, 0),
+    _activate(false) 
 {
     psys_width = w;
     psys_height = h;

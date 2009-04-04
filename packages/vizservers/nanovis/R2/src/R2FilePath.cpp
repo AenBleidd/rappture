@@ -16,18 +16,18 @@ char seps[]   = ":";
 
 R2FilePath::R2FilePath()
 {
-    char buff[255];
+    char buff[BUFSIZ+2];
 #ifdef WIN32
     _getcwd(buff, 255);
 #else
-    getcwd(buff, 100);
+    if (getcwd(buff, BUFSIZ) == NULL) {
+	fprintf(stderr, "can't get current working directory\n");
+    }
 #endif
-    int length = strlen(buff);
+    size_t length = strlen(buff);
     buff[length] = '/';
     buff[length + 1] = '\0';
-
     _curDirectory = buff;
-
 }
 
 bool 

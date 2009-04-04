@@ -1752,7 +1752,9 @@ FlowDataFollowsOp(ClientData cdata, Tcl_Interp *interp, int objc,
 	    Tcl_AppendResult(interp, result.remark(), (char *)NULL);
 	    return TCL_ERROR;
 	}
+#ifdef notdef
     } else if (strncmp(buf.bytes(), "<unirect3d>", 4) == 0) {
+
 	Rappture::Unirect3d data;
 	Tcl_CmdInfo cmdInfo;
 
@@ -1774,6 +1776,7 @@ FlowDataFollowsOp(ClientData cdata, Tcl_Interp *interp, int objc,
 	    Tcl_AppendResult(interp, result.remark(), (char *)NULL);
 	    return TCL_ERROR;
 	}
+#endif
     }
 
     Volume *volPtr = NanoVis::volume[NanoVis::n_volumes];
