@@ -114,7 +114,7 @@ Rappture::Unirect3d::LoadData(Tcl_Interp *interp, int objc,
 		}
 	    }
         } else if ((c == 'u') && (strcmp(string, "units") == 0)) {
-            _vUnits = strdup(Tcl_GetString(objv[i+1]));
+            vUnits_ = strdup(Tcl_GetString(objv[i+1]));
         } else if ((c == 'o') && (strcmp(string, "order") == 0)) {
 	    Tcl_Obj **axes;
 	    int n;
@@ -179,31 +179,31 @@ Rappture::Unirect3d::LoadData(Tcl_Interp *interp, int objc,
 	values = data;
     }
 
-    _values = values;
-    _nValues = nValues;
-    _extents = extents;
+    values_ = values;
+    nValues_ = nValues;
+    extents_ = extents;
     if (units[3] != NULL) {
-	_vUnits = strdup(units[3]);
+	vUnits_ = strdup(units[3]);
     }
-    _xMin = min[axis3];
-    _xMax = max[axis3];
-    _xNum = num[axis3];
+    xMin_ = min[axis3];
+    xMax_ = max[axis3];
+    xNum_ = num[axis3];
     if (units[axis3] != NULL) {
-	_xUnits = strdup(units[axis3]);
+	xUnits_ = strdup(units[axis3]);
     }
-    _yMin = min[axis2];
-    _yMax = max[axis2];
-    _yNum = num[axis2];
+    yMin_ = min[axis2];
+    yMax_ = max[axis2];
+    yNum_ = num[axis2];
     if (units[axis2] != NULL) {
-	_yUnits = strdup(units[axis2]);
+	yUnits_ = strdup(units[axis2]);
     }
-    _zMin = min[axis1];
-    _zMax = max[axis1];
-    _zNum = num[axis1];
+    zMin_ = min[axis1];
+    zMax_ = max[axis1];
+    zNum_ = num[axis1];
     if (units[axis1] != NULL) {
-	_zUnits = strdup(units[axis1]);
+	zUnits_ = strdup(units[axis1]);
     }
-    _initialized = true;
+    initialized_ = true;
     return TCL_OK;
 }
 
@@ -224,23 +224,23 @@ Rappture::Unirect2d::LoadData(Tcl_Interp *interp, int objc,
     axis[0] = 1; 			/* X-axis */
     axis[1] = 0;			/* Y-axis */
 
-    _extents = 1;
-    _xNum = _yNum = _nValues = 0;
-    _xMin = _yMin = _xMax = _yMax = 0.0f;
-    if (_xUnits != NULL) {
-	free(_xUnits);
+    extents_ = 1;
+    xNum_ = yNum_ = nValues_ = 0;
+    xMin_ = yMin_ = xMax_ = yMax_ = 0.0f;
+    if (xUnits_ != NULL) {
+	free(xUnits_);
     }
-    if (_yUnits != NULL) {
-	free(_yUnits);
+    if (yUnits_ != NULL) {
+	free(yUnits_);
     }
-    if (_vUnits != NULL) {
-	free(_vUnits);
+    if (vUnits_ != NULL) {
+	free(vUnits_);
     }
-    _xUnits = _yUnits = _vUnits = NULL;
-    if (_values != NULL) {
-	delete [] _values;
+    xUnits_ = yUnits_ = vUnits_ = NULL;
+    if (values_ != NULL) {
+	delete [] values_;
     }
-    _values = NULL;
+    values_ = NULL;
 
     int i;
     for (i = 1; i < objc; i += 2) {
@@ -250,11 +250,11 @@ Rappture::Unirect2d::LoadData(Tcl_Interp *interp, int objc,
         string = Tcl_GetString(objv[i]);
         c = string[0];
         if ((c == 'x') && (strcmp(string, "xmin") == 0)) {
-            if (GetFloatFromObj(interp, objv[i+1], &_xMin) != TCL_OK) {
+            if (GetFloatFromObj(interp, objv[i+1], &xMin_) != TCL_OK) {
                 return TCL_ERROR;
             }
         } else if ((c == 'x') && (strcmp(string, "xmax") == 0)) {
-            if (GetFloatFromObj(interp, objv[i+1], &_xMax) != TCL_OK) {
+            if (GetFloatFromObj(interp, objv[i+1], &xMax_) != TCL_OK) {
                 return TCL_ERROR;
             }
         } else if ((c == 'x') && (strcmp(string, "xnum") == 0)) {
@@ -267,15 +267,15 @@ Rappture::Unirect2d::LoadData(Tcl_Interp *interp, int objc,
                      (char *)NULL);
                 return TCL_ERROR;
             }
-	    _xNum = n;
+	    xNum_ = n;
         } else if ((c == 'x') && (strcmp(string, "xunits") == 0)) {
-            _xUnits = strdup(Tcl_GetString(objv[i+1]));
+            xUnits_ = strdup(Tcl_GetString(objv[i+1]));
         } else if ((c == 'y') && (strcmp(string, "ymin") == 0)) {
-            if (GetFloatFromObj(interp, objv[i+1], &_yMin) != TCL_OK) {
+            if (GetFloatFromObj(interp, objv[i+1], &yMin_) != TCL_OK) {
                 return TCL_ERROR;
             }
         } else if ((c == 'y') && (strcmp(string, "ymax") == 0)) {
-            if (GetFloatFromObj(interp, objv[i+1], &_yMax) != TCL_OK) {
+            if (GetFloatFromObj(interp, objv[i+1], &yMax_) != TCL_OK) {
                 return TCL_ERROR;
             }
         } else if ((c == 'y') && (strcmp(string, "ynum") == 0)) {
@@ -288,9 +288,9 @@ Rappture::Unirect2d::LoadData(Tcl_Interp *interp, int objc,
                                  (char *)NULL);
                 return TCL_ERROR;
             }
-	    _yNum = n;
+	    yNum_ = n;
         } else if ((c == 'y') && (strcmp(string, "yunits") == 0)) {
-            _yUnits = strdup(Tcl_GetString(objv[i+1]));
+            yUnits_ = strdup(Tcl_GetString(objv[i+1]));
         } else if ((c == 'v') && (strcmp(string, "values") == 0)) {
             Tcl_Obj **vobj;
 	    int n;
@@ -303,16 +303,16 @@ Rappture::Unirect2d::LoadData(Tcl_Interp *interp, int objc,
                                  (char *)NULL);
                 return TCL_ERROR;
 	    }
-	    _nValues = n;
-            _values = new float[_nValues];
+	    nValues_ = n;
+            values_ = new float[nValues_];
             size_t j;
-            for (j = 0; j < _nValues; j++) {
-                if (GetFloatFromObj(interp, vobj[j], _values + j)!=TCL_OK) {
+            for (j = 0; j < nValues_; j++) {
+                if (GetFloatFromObj(interp, vobj[j], values_ + j)!=TCL_OK) {
                     return TCL_ERROR;
 		}
 	    }
         } else if ((c == 'u') && (strcmp(string, "units") == 0)) {
-            _vUnits = strdup(Tcl_GetString(objv[i+1]));
+            vUnits_ = strdup(Tcl_GetString(objv[i+1]));
         } else if ((c == 'e') && (strcmp(string, "extents") == 0)) {
 	    int n;
 
@@ -324,7 +324,7 @@ Rappture::Unirect2d::LoadData(Tcl_Interp *interp, int objc,
                                  (char *)NULL);
                 return TCL_ERROR;
             }
-	    _extents = n;
+	    extents_ = n;
         } else if ((c == 'a') && (strcmp(string, "axisorder") == 0)) {
 	    Tcl_Obj **order;
 	    int n;
@@ -349,11 +349,11 @@ Rappture::Unirect2d::LoadData(Tcl_Interp *interp, int objc,
             return TCL_ERROR;
         }
     }
-    if (_values == NULL) {
+    if (values_ == NULL) {
         Tcl_AppendResult(interp, "missing \"values\" key", (char *)NULL);
         return TCL_ERROR;
     }
-    if (_nValues != (_xNum * _yNum * _extents)) {
+    if (nValues_ != (xNum_ * yNum_ * extents_)) {
         Tcl_AppendResult(interp, 
 		"wrong number of values: must be xnum*ynum*extents", 
 			 (char *)NULL);
@@ -361,7 +361,7 @@ Rappture::Unirect2d::LoadData(Tcl_Interp *interp, int objc,
     }
     
     fprintf(stderr, "generating %dx%dx%d = %d points\n", 
-	    _xNum, _yNum, _extents, _xNum * _yNum * _extents);
+	    xNum_, yNum_, extents_, xNum_ * yNum_ * extents_);
 
 #ifndef notdef
     if ((axis[0] != 1) || (axis[1] != 0)) {
@@ -370,25 +370,25 @@ Rappture::Unirect2d::LoadData(Tcl_Interp *interp, int objc,
 	size_t y;
 	float *data, *dp;
 
-	dp = data = new float[_nValues];
-	for (y = 0; y < _yNum; y++) {
+	dp = data = new float[nValues_];
+	for (y = 0; y < yNum_; y++) {
 	    size_t x;
 
-	    for (x = 0; x < _xNum; x++) {
+	    for (x = 0; x < xNum_; x++) {
 		size_t i, v;
 		    
 		/* Compute the index from the data's described ordering. */
-		i = (y + (_yNum * x)) * _extents;
-		for(v = 0; v < _extents; v++) {
-		    dp[v] = _values[i+v];
+		i = (y + (yNum_ * x)) * extents_;
+		for(v = 0; v < extents_; v++) {
+		    dp[v] = values_[i+v];
 		}
-		dp += _extents;
+		dp += extents_;
 	    }
 	}
-	delete [] _values;
-	_values = data;
+	delete [] values_;
+	values_ = data;
     }
 #endif
-    _initialized = true;
+    initialized_ = true;
     return TCL_OK;
 }

@@ -36,6 +36,7 @@
 #include "RpField1D.h"
 #include "RpFieldRect3D.h"
 #include "RpFieldPrism3D.h"
+#include <Unirect.h>
 
 //transfer function headers
 #include "ZincBlendeVolume.h"
@@ -69,16 +70,13 @@ getline(char **stringPtr, char *endPtr)
     return line;
 }
 
-/*
- * Load a 3D vector field from a dx-format file
- */
-bool
-load_vector_stream2(Rappture::Outcome &result, int ivol, size_t length,
-		    char *string)
+Rappture::Unirect3d *
+ReadDxVectorFieldData(Rappture::Outcome &result, size_t length, char *string) 
 {
     int nx, ny, nz, npts;
     double x0, y0, z0, dx, dy, dz, ddx, ddy, ddz;
     char *p, *endPtr;
+
 
     dx = dy = dz = 0.0;         // Suppress compiler warning.
     x0 = y0 = z0 = 0.0;		// May not have an origin line.
@@ -113,7 +111,7 @@ load_vector_stream2(Rappture::Outcome &result, int ivol, size_t length,
 	    if (npts != nx*ny*nz) {
 		result.addError("inconsistent data: expected %d points"
 				" but found %d points", nx*ny*nz, npts);
-		return false;
+		return NULL;
 	    }
 	    break;
 	} else if (sscanf(line, "object %*d class array type %*s rank 0"
@@ -121,97 +119,107 @@ load_vector_stream2(Rappture::Outcome &result, int ivol, size_t length,
 	    if (npts != nx*ny*nz) {
 		result.addError("inconsistent data: expected %d points"
 				" but found %d points", nx*ny*nz, npts);
-		return false;
+		return NULL;
 	    }
 	    break;
 	}
     }
-    Vector3 physicalMin;
-    Vector3 physicalMax;
-
-    physicalMin.set(x0, y0, z0);
-    physicalMax.set(x0 + dx * nx, y0 + dy * ny, z0 + dz * nz);
-
-    // read data points
-    float* srcdata = new float[nx * ny * nz * 3];
-    if (p >= endPtr) {
-        std::cerr << "WARNING: data not found in stream" << std::endl;
-	return true;
+    if (npts != nx*ny*nz) {
+	result.addError("inconsistent data: expected %d points"
+			" but found %d points", nx*ny*nz, npts);
+	return NULL;
     }
-#ifdef notdef
-    double max_x = -1e21, min_x = 1e21;
-    double max_y = -1e21, min_y = 1e21;
-    double max_z = -1e21, min_z = 1e21;
-#endif
-    double max_mag = -1e21, min_mag = 1e21;
-    int nread = 0;
+    float *values = new float[npts];
+    int nValues = 0;
     for (int ix=0; ix < nx; ix++) {
 	for (int iy=0; iy < ny; iy++) {
 	    for (int iz=0; iz < nz; iz++) {
 		char *line;
-		double vx, vy, vz, vm;
-
-		if ((p == endPtr) || nread > npts) {
+		if ((p == endPtr) || (nValues > npts)) {
 		    break;
 		}
 		line = getline(&p, endPtr);
 		if ((line[0] == '#') || (line[0] == '\0')) {
 		    continue;	// Skip blank or comment lines.
 		}
+		double vx, vy, vz;
 		if (sscanf(line, "%lg %lg %lg", &vx, &vy, &vz) == 3) {
 		    int nindex = (iz*nx*ny + iy*nx + ix) * 3;
-		    srcdata[nindex] = vx;
-		    //if (srcdata[nindex] > max_x) max_x = srcdata[nindex];
-		    //if (srcdata[nindex] < min_x) min_x = srcdata[nindex];
-		    ++nindex;
-		    
-		    srcdata[nindex] = vy;
-		    //if (srcdata[nindex] > max_y) max_y = srcdata[nindex];
-		    //if (srcdata[nindex] < min_y) min_y = srcdata[nindex];
-		    ++nindex;
-		    
-		    srcdata[nindex] = vz;
-		    //if (srcdata[nindex] > max_z) max_z = srcdata[nindex];
-		    //if (srcdata[nindex] < min_z) min_z = srcdata[nindex];
-		    
-		    vm = sqrt(vx*vx + vy*vy + vz*vz);
-		    if (vm > max_mag) {
-			max_mag = vm;
-		    }
-		    if (vm < min_mag) {
-			min_mag = vm;
-		    }
-		    ++nread;
+		    values[nindex] = vx;
+		    values[nindex+1] = vy;
+		    values[nindex+2] = vz;
+		    nValues++;
 		}
 	    }
 	}
     }
-    
     // make sure that we read all of the expected points
-    if (nread != nx*ny*nz) {
+    if (nValues != npts) {
 	result.addError("inconsistent data: expected %d points"
-			" but found %d points", nx*ny*nz, npts);
+			" but found %d points", npts, nValues);
+	delete values;
+	return NULL;
+    }
+    return new Rappture::Unirect3d(x0, x0 + dx * nx, nx, y0, y0 + dy * ny, ny,
+				   z0, z0 + dz * nz, nz, nValues, values);
+}
+
+
+/*
+ * Load a 3D vector field from a dx-format file
+ */
+bool
+load_vector_stream2(Rappture::Outcome &result, int ivol, size_t length,
+		    char *string)
+{
+    Rappture::Unirect3d *dataPtr;
+    dataPtr = ReadDxVectorFieldData(result, length, string);
+    if (dataPtr == NULL) {
 	return false;
     }
-    
-    float *data = new float[4*nx*ny*nz];
-    memset(data, 0, sizeof(float) * 4 * nx * ny * nz);
-    fprintf(stderr, "generating %dx%dx%d = %d points\n", nx, ny, nz, nx*ny*nz);
+    Vector3 physicalMin;
+    Vector3 physicalMax;
 
-    // generate the uniformly sampled data that we need for a volume
-    float *destPtr = data;
-    float *srcPtr = srcdata;
-    for (int iz=0; iz < nz; iz++) {
-	for (int iy=0; iy < ny; iy++) {
-	    for (int ix=0; ix < nx; ix++) {
+    physicalMin.set(dataPtr->xMin(), dataPtr->yMin(), dataPtr->zMin());
+    physicalMax.set(dataPtr->xMax(), dataPtr->yMax(), dataPtr->zMax());
+
+    double max_mag = -DBL_MAX, min_mag = DBL_MAX;
+    float *values = dataPtr->values();
+    for (size_t ix=0; ix < dataPtr->xNum(); ix++) {
+	for (size_t iy=0; iy < dataPtr->yNum(); iy++) {
+	    for (size_t iz=0; iz < dataPtr->zNum(); iz++) {
 		double vx, vy, vz, vm;
-
-		vx = srcPtr[0];
-		vy = srcPtr[1];
-		vz = srcPtr[2];
-		
+		vx = values[0];
+		vy = values[1];
+		vz = values[2];
 		vm = sqrt(vx*vx + vy*vy + vz*vz);
-		
+		if (vm > max_mag) {
+		    max_mag = vm;
+		}
+		if (vm < min_mag) {
+		    min_mag = vm;
+		}
+		values += 3;
+	    }
+	}
+    }
+    
+    float *data = new float[4*dataPtr->nValues()];
+    memset(data, 0, sizeof(float) * 4 * dataPtr->nValues());
+    fprintf(stderr, "generating %dx%dx%d = %d points\n", 
+	    dataPtr->xNum(), dataPtr->yNum(), dataPtr->zNum(), 
+	    dataPtr->nValues());
+
+    float *destPtr = data;
+    float *srcPtr = dataPtr->values();
+    for (size_t iz=0; iz < dataPtr->zNum(); iz++) {
+	for (size_t iy=0; iy < dataPtr->yNum(); iy++) {
+	    for (size_t ix=0; ix < dataPtr->xNum(); ix++) {
+		double vx, vy, vz, vm;
+		vx = values[0];
+		vy = values[1];
+		vz = values[2];
+		vm = sqrt(vx*vx + vy*vy + vz*vz);
 		destPtr[0] = vm / max_mag; 
 		destPtr[1] = vx /(2.0*max_mag) + 0.5; 
 		destPtr[2] = vy /(2.0*max_mag) + 0.5; 
@@ -223,189 +231,135 @@ load_vector_stream2(Rappture::Outcome &result, int ivol, size_t length,
     }
     
     Volume *volPtr;
-    volPtr = NanoVis::load_volume(ivol, nx, ny, nz, 4, data, min_mag, max_mag, 
-	0);
-    
-    volPtr->xAxis.SetRange(x0, x0 + nx);
-    volPtr->yAxis.SetRange(y0, y0 + ny);
-    volPtr->zAxis.SetRange(z0, z0 + nz);
+    volPtr = NanoVis::load_volume(ivol, dataPtr->xNum(), dataPtr->yNum(), 
+		dataPtr->zNum(), 4, data, min_mag, max_mag, 0);
+    volPtr->xAxis.SetRange(dataPtr->xMin(), dataPtr->xMax());
+    volPtr->yAxis.SetRange(dataPtr->yMin(), dataPtr->yMax());
+    volPtr->zAxis.SetRange(dataPtr->zMin(), dataPtr->zMax());
     volPtr->wAxis.SetRange(min_mag, max_mag);
     volPtr->update_pending = true;
     volPtr->setPhysicalBBox(physicalMin, physicalMax);
-    delete [] data;
+    delete dataPtr;
+    delete data;
     return true;
 }
 
 bool
-load_vector_stream(Rappture::Outcome result, int index, std::istream& fin)
+load_vector_stream(Rappture::Outcome result, int index, size_t length,
+		    char *string)
 {
-    int dummy, nx, ny, nz, npts;
-    double x0, y0, z0, dx, dy, dz, ddx, ddy, ddz;
-    char line[128], type[128], *start;
-
-    dx = dy = dz = 0.0;         // Suppress compiler warning.
-    x0 = y0 = z0 = 0.0;		// May not have an origin line.
-    while (!fin.eof()) {
-        fin.getline(line, sizeof(line) - 1);
-        if (fin.fail()) {
-            result.addError("error in data stream");
-            return false;
-        }
-        for (start=&line[0]; *start == ' ' || *start == '\t'; start++)
-            ;  // skip leading blanks
-
-        if (*start != '#') {  // skip comment lines
-            if (sscanf(start, "object %d class gridpositions counts %d %d %d", &dummy, &nx, &ny, &nz) == 4) {
-		printf("w:%d h:%d d:%d\n", nx, ny, nz);
-                // found grid size
-            } else if (sscanf(start, "origin %lg %lg %lg", &x0, &y0, &z0) == 3) {
-                // found origin
-            } else if (sscanf(start, "delta %lg %lg %lg", &ddx, &ddy, &ddz) == 3) {
-                // found one of the delta lines
-                if (ddx != 0.0) {
-                    dx = ddx;
-                } else if (ddy != 0.0) {
-                    dy = ddy;
-                } else if (ddz != 0.0) {
-                    dz = ddz;
-                }
-            } else if (sscanf(start, "object %d class array type %s shape 3 rank 1 items %d data follows", &dummy, type, &npts) == 3) {
-		printf("point %d\n", npts);
-                if (npts != nx*ny*nz) {
-                    result.addError("inconsistent data: expected %d points"
-				    " but found %d points", nx*ny*nz, npts);
-                    return false;
-                }
-                break;
-            } else if (sscanf(start, "object %d class array type %s rank 0 times %d data follows", &dummy, type, &npts) == 3) {
-                if (npts != nx*ny*nz) {
-                    result.addError("inconsistent data: expected %d points"
-				    " but found %d points", nx*ny*nz, npts);
-                    return false;
-                }
-                break;
-            }
-        }
-    }
-
-    // read data points
-    if (!fin.eof()) {
-        Rappture::Mesh1D xgrid(x0, x0+nx*dx, nx);
-        Rappture::Mesh1D ygrid(y0, y0+ny*dy, ny);
-        Rappture::Mesh1D zgrid(z0, z0+nz*dz, nz);
-        Rappture::FieldRect3D xfield(xgrid, ygrid, zgrid);
-        Rappture::FieldRect3D yfield(xgrid, ygrid, zgrid);
-        Rappture::FieldRect3D zfield(xgrid, ygrid, zgrid);
-
-        double vx, vy, vz;
-        int nread = 0;
-        for (int ix=0; ix < nx; ix++) {
-            for (int iy=0; iy < ny; iy++) {
-                for (int iz=0; iz < nz; iz++) {
-                    if (fin.eof() || nread > npts) {
-                        break;
-                    }
-                    fin.getline(line,sizeof(line)-1);
-                    if (sscanf(line, "%lg %lg %lg", &vx, &vy, &vz) == 3) {
-                        int nindex = iz*nx*ny + iy*nx + ix;
-                        xfield.define(nindex, vx);
-                        yfield.define(nindex, vy);
-                        zfield.define(nindex, vz);
-                        nread++;
-                    }
-                }
-            }
-        }
-
-        // make sure that we read all of the expected points
-        if (nread != nx*ny*nz) {
-	    result.addError("inconsistent data: expected %d points"
-			    " but found %d points", nx*ny*nz, npts);
-            return false;
-        }
-
-        // figure out a good mesh spacing
-        int nsample = 30;
-        dx = xfield.rangeMax(Rappture::xaxis) - xfield.rangeMin(Rappture::xaxis);
-        dy = xfield.rangeMax(Rappture::yaxis) - xfield.rangeMin(Rappture::yaxis);
-        dz = xfield.rangeMax(Rappture::zaxis) - xfield.rangeMin(Rappture::zaxis);
-        double dmin = pow((dx*dy*dz)/(nsample*nsample*nsample), 0.333);
-
-	printf("dx:%lf dy:%lf dz:%lf dmin:%lf\n", dx, dy, dz, dmin);
-
-        nx = (int)ceil(dx/dmin);
-        ny = (int)ceil(dy/dmin);
-        nz = (int)ceil(dz/dmin);
-
-#ifndef NV40
-        // must be an even power of 2 for older cards
-        nx = (int)pow(2.0, ceil(log10((double)nx)/log10(2.0)));
-        ny = (int)pow(2.0, ceil(log10((double)ny)/log10(2.0)));
-        nz = (int)pow(2.0, ceil(log10((double)nz)/log10(2.0)));
-#endif
-
-        float *data = new float[4*nx*ny*nz];
-        memset(data, 0, sizeof(float) * 4 * nx * ny * nz);
-
-        std::cout << "generating " << nx << "x" << ny << "x" << nz << " = " << nx*ny*nz << " points" << std::endl;
-
-        // generate the uniformly sampled data that we need for a volume
-        double vmin = 1e21;
-        double vmax = -1e21;
-        double nzero_min = 0.0;
-        int ngen = 0;
-        for (int iz=0; iz < nz; iz++) {
-            double zval = z0 + iz*dmin;
-            for (int iy=0; iy < ny; iy++) {
-                double yval = y0 + iy*dmin;
-                for (int ix=0; ix < nx; ix++) {
-                    double xval = x0 + ix*dmin;
-
-                    vx = xfield.value(xval,yval,zval);
-                    vy = yfield.value(xval,yval,zval);
-                    vz = zfield.value(xval,yval,zval);
-
-                    double vm;
-                    vm = sqrt(vx*vx + vy*vy + vz*vz);
-                    if (vm < vmin) {
-                        vmin = vm;
-                    } else if (vm > vmax) {
-                        vmax = vm;
-                    }
-                    if ((vm != 0.0f) && (vm < nzero_min)) {
-                        nzero_min = vm;
-                    }
-                    data[ngen++] = vm;
-                    data[ngen++] = vx;
-                    data[ngen++] = vy;
-                    data[ngen++] = vz;
-                }
-            }
-        }
-
-        ngen = 0;
-
-        // scale should be accounted.
-        for (ngen=0; ngen < npts; ) {
-	    data[ngen] = data[ngen] / vmax; ++ngen;
-            data[ngen] = (data[ngen]/(2.0*vmax) + 0.5); ++ngen;
-            data[ngen] = (data[ngen]/(2.0*vmax) + 0.5); ++ngen;
-            data[ngen] = (data[ngen]/(2.0*vmax) + 0.5); ++ngen;
-        }
-        Volume *volPtr;
-        volPtr = NanoVis::load_volume(index, nx, ny, nz, 4, data, vmin, vmax,
-                    nzero_min);
-
-        volPtr->xAxis.SetRange(x0, x0 + (nx * dx));
-        volPtr->yAxis.SetRange(y0, y0 + (ny * dy));
-        volPtr->zAxis.SetRange(z0, z0 + (nz * dz));
-        volPtr->wAxis.SetRange(vmin, vmax);
-        volPtr->update_pending = true;
-        delete [] data;
-    } else {
-        result.addError("WARNING: data not found in stream");
+    Rappture::Unirect3d *dataPtr;
+    dataPtr = ReadDxVectorFieldData(result, length, string);
+    if (dataPtr == NULL) {
 	return false;
     }
+    Vector3 physicalMin;
+    Vector3 physicalMax;
+
+    physicalMin.set(dataPtr->xMin(), dataPtr->yMin(), dataPtr->zMin());
+    physicalMax.set(dataPtr->xMax(), dataPtr->yMax(), dataPtr->zMax());
+
+    Rappture::Mesh1D xgrid(dataPtr->xMin(), dataPtr->yMin(), dataPtr->xNum());
+    Rappture::Mesh1D ygrid(dataPtr->yMin(), dataPtr->yMax(), dataPtr->yNum());
+    Rappture::Mesh1D zgrid(dataPtr->zMin(), dataPtr->zMax(), dataPtr->zNum());
+    Rappture::FieldRect3D xfield(xgrid, ygrid, zgrid);
+    Rappture::FieldRect3D yfield(xgrid, ygrid, zgrid);
+    Rappture::FieldRect3D zfield(xgrid, ygrid, zgrid);
+    
+    float *values = dataPtr->values();
+    size_t npts = 0;
+    for (size_t ix=0; ix < dataPtr->xNum(); ix++) {
+	for (size_t iy=0; iy < dataPtr->yNum(); iy++) {
+	    for (size_t iz=0; iz < dataPtr->zNum(); iz++) {
+		xfield.define(npts, values[0]);
+		yfield.define(npts, values[1]);
+		zfield.define(npts, values[2]);
+		npts++;
+		values += 3;
+	    }
+	}
+    }
+
+    double dx, dy, dz;
+    // figure out a good mesh spacing
+    int nsample = 30;
+    dx = xfield.rangeMax(Rappture::xaxis) - xfield.rangeMin(Rappture::xaxis);
+    dy = xfield.rangeMax(Rappture::yaxis) - xfield.rangeMin(Rappture::yaxis);
+    dz = xfield.rangeMax(Rappture::zaxis) - xfield.rangeMin(Rappture::zaxis);
+    double dmin = pow((dx*dy*dz)/(nsample*nsample*nsample), 0.333);
+
+    printf("dx:%lf dy:%lf dz:%lf dmin:%lf\n", dx, dy, dz, dmin);
+
+    size_t nx, ny, nz;
+    nx = (int)ceil(dx/dmin);
+    ny = (int)ceil(dy/dmin);
+    nz = (int)ceil(dz/dmin);
+    
+#ifndef NV40
+    // must be an even power of 2 for older cards
+    nx = (int)pow(2.0, ceil(log10((double)nx)/log10(2.0)));
+    ny = (int)pow(2.0, ceil(log10((double)ny)/log10(2.0)));
+    nz = (int)pow(2.0, ceil(log10((double)nz)/log10(2.0)));
+#endif
+    
+    float *data = new float[4*nx*ny*nz];
+    memset(data, 0, sizeof(float) * 4 * nx * ny * nz);
+    
+    std::cout << "generating " << nx << "x" << ny << "x" << nz << " = " << nx*ny*nz << " points" << std::endl;
+    
+    // generate the uniformly sampled data that we need for a volume
+    double vmin = 1e21;
+    double vmax = -1e21;
+    double nzero_min = 0.0;
+    size_t ngen = 0;
+    for (size_t iz=0; iz < nz; iz++) {
+	double zval = dataPtr->zMin() + iz*dmin;
+	for (size_t iy=0; iy < ny; iy++) {
+	    double yval = dataPtr->yMin() + iy*dmin;
+	    for (size_t ix=0; ix < nx; ix++) {
+		double xval = dataPtr->xMin() + ix*dmin;
+		double vx, vy, vz;
+
+		vx = xfield.value(xval,yval,zval);
+		vy = yfield.value(xval,yval,zval);
+		vz = zfield.value(xval,yval,zval);
+		
+		double vm;
+		vm = sqrt(vx*vx + vy*vy + vz*vz);
+		if (vm < vmin) {
+		    vmin = vm;
+		} else if (vm > vmax) {
+		    vmax = vm;
+		}
+		if ((vm != 0.0f) && (vm < nzero_min)) {
+		    nzero_min = vm;
+		}
+		data[ngen++] = vm;
+		data[ngen++] = vx;
+		data[ngen++] = vy;
+		data[ngen++] = vz;
+	    }
+	}
+    }
+    
+    ngen = 0;
+    // scale should be accounted.
+    for (ngen=0; ngen < npts; /*empty*/) {
+	data[ngen] = data[ngen] / vmax; ++ngen;
+	data[ngen] = (data[ngen]/(2.0*vmax) + 0.5); ++ngen;
+	data[ngen] = (data[ngen]/(2.0*vmax) + 0.5); ++ngen;
+	data[ngen] = (data[ngen]/(2.0*vmax) + 0.5); ++ngen;
+    }
+    Volume *volPtr;
+    volPtr = NanoVis::load_volume(index, nx, ny, nz, 4, data, vmin, vmax,
+				  nzero_min);
+    
+    volPtr->xAxis.SetRange(dataPtr->xMin(), dataPtr->xMin() + (nx * dx));
+    volPtr->yAxis.SetRange(dataPtr->yMin(), dataPtr->yMin() + (ny * dy));
+    volPtr->zAxis.SetRange(dataPtr->zMin(), dataPtr->zMin() + (nz * dz));
+    volPtr->wAxis.SetRange(vmin, vmax);
+    volPtr->update_pending = true;
+    delete [] data;
     return true;
 }
 
@@ -774,11 +728,10 @@ load_volume_stream2(Rappture::Outcome &result, int index, std::iostream& fin)
     return true;
 }
 
-Rappture::Outcome
-load_volume_stream(int index, std::iostream& fin)
+bool
+load_volume_stream(Rappture::Outcome &result, int index, std::iostream& fin)
 {
     printf("load_volume_stream\n");
-    Rappture::Outcome result;
 
     Rappture::MeshTri2D xymesh;
     int dummy, nx, ny, nz, nxy, npts;
@@ -792,7 +745,8 @@ load_volume_stream(int index, std::iostream& fin)
     while (!fin.eof()) {
         fin.getline(line, sizeof(line) - 1);
         if (fin.fail()) {
-            return result.error("error in data stream");
+            result.error("error in data stream");
+	    return false;
         }
         for (start=line; *start == ' ' || *start == '\t'; start++)
             ;  // skip leading blanks
@@ -850,7 +804,8 @@ load_volume_stream(int index, std::iostream& fin)
                     }
                     ftri.close();
                 } else {
-                    return result.error("triangularization failed");
+                    result.error("triangularization failed");
+		    return false;
                 }
 		unlink(fpts);
 		unlink(fcells);
@@ -901,7 +856,8 @@ load_volume_stream(int index, std::iostream& fin)
             while (!fin.eof() && nread < npts) {
                 fin.getline(line,sizeof(line)-1);
                 if (fin.fail()) {
-                    return result.error("error reading data points");
+                    result.addError("error reading data points");
+		    return false;
                 }
                 int n = sscanf(line, "%lg %lg %lg %lg %lg %lg", &dval[0], &dval[1], &dval[2], &dval[3], &dval[4], &dval[5]);
 
@@ -1051,10 +1007,9 @@ load_volume_stream(int index, std::iostream& fin)
             while (!fin.eof() && nread < npts) {
                 fin >> dval;
                 if (fin.fail()) {
-                    char mesg[256];
-                    sprintf(mesg,"after %d of %d points: can't read number", 
+                    result.addError("after %d of %d points: can't read number", 
                             nread, npts);
-                    return result.error(mesg);
+		    return false;
                 } else {
                     int nid = nxy*iz + ixy;
                     field.define(nid, dval);
@@ -1190,7 +1145,8 @@ load_volume_stream(int index, std::iostream& fin)
             delete [] data;
         }
     } else {
-        return result.error("data not found in stream");
+        result.error("data not found in stream");
+	return false;
     }
 
     //
@@ -1200,15 +1156,16 @@ load_volume_stream(int index, std::iostream& fin)
     float dy0 = -0.5*dy/dx;
     float dz0 = -0.5*dz/dx;
     NanoVis::volume[index]->move(Vector3(dx0, dy0, dz0));
-    return result;
+    return true;
 }
 
-Rappture::Outcome
-load_volume_stream_insoo(int index, std::iostream& fin)
+
+bool
+load_volume_stream_insoo(Rappture::Outcome &result, int index, 
+			 std::iostream& fin)
 {
     printf("load_volume_stream\n");
-    Rappture::Outcome result;
-
+ 
     Rappture::MeshTri2D xymesh;
     int dummy, nx, ny, nz, nxy, npts;
     double x0, y0, z0, dx, dy, dz, ddx, ddy, ddz;
@@ -1221,7 +1178,8 @@ load_volume_stream_insoo(int index, std::iostream& fin)
     while (!fin.eof()) {
         fin.getline(line, sizeof(line) - 1);
         if (fin.fail()) {
-            return result.error("error in data stream");
+	    result.error("error in data stream");
+            return false;
         }
         for (start=line; *start == ' ' || *start == '\t'; start++)
             ;  // skip leading blanks
@@ -1279,7 +1237,8 @@ load_volume_stream_insoo(int index, std::iostream& fin)
                     }
                     ftri.close();
                 } else {
-                    return result.error("triangularization failed");
+		    result.error("triangularization failed");
+		    return false;
                 }
 		unlink(fpts), unlink(fcells);
             } else if (sscanf(start, "object %d class regulararray count %d", &dummy, &nz) == 2) {
@@ -1329,7 +1288,8 @@ load_volume_stream_insoo(int index, std::iostream& fin)
             while (!fin.eof() && nread < npts) {
                 fin.getline(line,sizeof(line)-1);
                 if (fin.fail()) {
-                    return result.error("error reading data points");
+		    result.error("error reading data points");
+                    return false;
                 }
                 int n = sscanf(line, "%lg %lg %lg %lg %lg %lg", &dval[0], &dval[1], &dval[2], &dval[3], &dval[4], &dval[5]);
 
@@ -1523,7 +1483,8 @@ load_volume_stream_insoo(int index, std::iostream& fin)
                     char mesg[256];
                     sprintf(mesg,"after %d of %d points: can't read number", 
                             nread, npts);
-                    return result.error(mesg);
+		    result.error(mesg);
+                    return false;
                 } else {
                     int nid = nxy*iz + ixy;
                     field.define(nid, dval);
@@ -1659,7 +1620,8 @@ load_volume_stream_insoo(int index, std::iostream& fin)
             delete [] data;
         }
     } else {
-        return result.error("data not found in stream");
+	result.error("data not found in stream");
+        return false;
     }
 
     //
@@ -1669,5 +1631,5 @@ load_volume_stream_insoo(int index, std::iostream& fin)
     float dy0 = -0.5*dy/dx;
     float dz0 = -0.5*dz/dx;
     NanoVis::volume[index]->move(Vector3(dx0, dy0, dz0));
-    return result;
+    return true;
 }

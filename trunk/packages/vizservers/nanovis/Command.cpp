@@ -91,22 +91,23 @@ extern int debug_flag;
 extern PlaneRenderer* plane_render;
 extern Texture2D* plane[10];
 
-bool load_volume_stream(Rappture::Outcome &status, int index, 
+extern bool load_volume_stream(Rappture::Outcome &status, int index, 
 			std::iostream& fin);
-bool load_volume_stream_odx(Rappture::Outcome &status, int index, 
+extern bool load_volume_stream_odx(Rappture::Outcome &status, int index, 
 	const char *buf, int nBytes);
 extern bool load_volume_stream2(Rappture::Outcome &status, int index, 
 	std::iostream& fin);
-extern void load_volume(int index, int width, int height, int depth,
-            int n_component, float* data, double vmin, double vmax,
-            double nzero_min);
+
 extern bool load_vector_stream(Rappture::Outcome &result, int index, 
-	std::istream& fin);
+	size_t length, char *bytes);
 extern bool load_vector_stream2(Rappture::Outcome &result, int index, 
 	size_t length, char *bytes);
 extern bool MakeVectorFieldFromUnirect3d(Rappture::Outcome &result, 
 	Rappture::Unirect3d &data);
 
+extern void load_volume(int index, int width, int height, int depth,
+            int n_component, float* data, double vmin, double vmax,
+            double nzero_min);
 // Tcl interpreter for incoming messages
 
 // default transfer function
@@ -690,6 +691,9 @@ GetDataStream(Tcl_Interp *interp, Rappture::Buffer &buf, int nBytes)
         Rappture::Outcome err;
 	unsigned int flags;
 
+	if (buf.size() <= 0) {
+	    fprintf(stderr, "encoded DX buffer is empty\n");
+	}
 	flags = RPENC_Z|RPENC_B64|RPENC_HDR;
         if (!Rappture::encoding::decode(err, buf, flags)) {
             printf("ERROR -- DECODING\n");
@@ -697,6 +701,9 @@ GetDataStream(Tcl_Interp *interp, Rappture::Buffer &buf, int nBytes)
             Tcl_AppendResult(interp, err.remark(), (char*)NULL);
             return TCL_ERROR;
         }
+	if (buf.size() <= 0) {
+	    fprintf(stderr, "decoded DX buffer is empty\n");
+	}
     }
     return TCL_OK;
 }
