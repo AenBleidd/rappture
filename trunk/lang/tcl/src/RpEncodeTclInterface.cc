@@ -13,8 +13,10 @@
  */
 #include <tcl.h>
 #include "RpEncode.h"
-
-extern "C" Tcl_AppInitProc RpEncoding_Init;
+extern "C" {
+#include "Switch.h"
+extern Tcl_AppInitProc RpEncoding_Init;
+}
 
 static Tcl_ObjCmdProc RpTclEncodingIs;
 static Tcl_ObjCmdProc RpTclEncodingEncode;
@@ -112,103 +114,114 @@ RpTclEncodingIs (ClientData cdata, Tcl_Interp *interp,
  * ::Rappture::encoding::encode ?-as z|b64|zb64? ?-no-header? <string>
  */
 
+/*
+ *---------------------------------------------------------------------------
+ *
+ * AsSwitch --
+ *
+ *	Convert a string represent a node number into its integer
+ *	value.
+ *
+ * Results:
+ *	The return value is a standard Tcl result.
+ *
+ *---------------------------------------------------------------------------
+ */
+/*ARGSUSED*/
+static int
+AsSwitch(
+    ClientData clientData,	/* Not used. */
+    Tcl_Interp *interp,		/* Interpreter to send results back to */
+    const char *switchName,	/* Not used. */
+    Tcl_Obj *objPtr,		/* String representation */
+    char *record,		/* Structure record */
+    int offset,			/* Offset to field in structure */
+    int flags)			/* Not used. */
+{
+    int *flagsPtr = (int *)(record + offset);
+    char c;
+    char *string;
+
+    string = Tcl_GetString(objPtr);
+    c = string[0];
+    if ((c == 'b') && (strcmp(string, "b64") == 0)) {
+	*flagsPtr = RPENC_B64;
+    } else if ((c == 'z') && (strcmp(string, "zb64") == 0)) {
+	*flagsPtr = RPENC_Z  | RPENC_B64;
+    } else if ((c == 'z') && (strcmp(string, "z") == 0)) {
+	*flagsPtr = RPENC_Z;
+    } else {
+	Tcl_AppendResult(interp, "bad order \"", string, 
+		 "\": should be breadthfirst, inorder, preorder, or postorder",
+		 (char *)NULL);
+	return TCL_ERROR;
+    }
+    return TCL_OK;
+}
+
+static SwitchParseProc AsSwitch;
+static SwitchCustom asSwitch = {
+    AsSwitch, NULL, 0,
+};
+
+typedef struct {
+    unsigned int flags;
+    unsigned int noheader;
+} EncodeSwitches;
+
+static SwitchSpec encodeSwitches[] = 
+{
+    {SWITCH_CUSTOM, "-as", "z|b64|zb64",
+	offsetof(EncodeSwitches, flags), 0, 0, &asSwitch},
+    {SWITCH_VALUE, "-no-header", "", 
+	offsetof(EncodeSwitches, noheader), 0, true},
+    {SWITCH_END}
+};
+
 static int
 RpTclEncodingEncode (ClientData cdata, Tcl_Interp *interp, int objc,
 		     Tcl_Obj *const *objv)
 {
-    const char* encodeType    = NULL; // name of the units provided by user
-    const char* cmdName       = NULL;
-    Rappture::Outcome err;
-
-    int nextarg               = 0; // start parsing using the '2'th argument
-
-    bool addHeader;
-    int flags;
-    addHeader = true;
-
-    Tcl_Obj *result           = NULL;
-
-    Tcl_ResetResult(interp);
-
-    cmdName = Tcl_GetString(objv[nextarg++]);
-
-    // parse through command line options
     if (objc < 1) {
-        Tcl_AppendResult(interp,
-                "wrong # args: should be \"", cmdName,
-                " ?-as z|b64|zb64? ?-no-header? ?--? <string>\"", (char*)NULL);
+        Tcl_AppendResult(interp, "wrong # args: should be \"", 
+		Tcl_GetString(objv[0]), 
+		" ?-as z|b64|zb64? ?-no-header? ?--? string\"", (char*)NULL);
         return TCL_ERROR;
     }
-    flags = 0;
-    while ((objc - nextarg) > 0) {
-	const char *option;
-
-        option = Tcl_GetString(objv[nextarg]);
-        if (*option == '-') {
-            if (strcmp(option,"-as") == 0) {
-                nextarg++;
-		encodeType = NULL;
-                if (nextarg < objc) {
-                    encodeType = Tcl_GetString(objv[nextarg]);
-                    nextarg++;
-                }
-                if (strcmp(encodeType, "z") == 0) {
-                    flags = RPENC_Z;
-                } else if (strcmp(encodeType, "b64") == 0) {
-                    flags = RPENC_B64;
-                } else if (strcmp(encodeType, "zb64") == 0) {
-                    flags = RPENC_B64 | RPENC_Z;
-                } else {
-                    // user did not specify recognized wishes for this option,
-                    Tcl_AppendResult(interp, "bad value \"",(char*)NULL);
-                    if (encodeType != NULL) {
-                        Tcl_AppendResult(interp, encodeType,(char*)NULL);
-                    }
-                    Tcl_AppendResult(interp,
-                            "\": should be one of z, b64, zb64",
-                            (char*)NULL);
-                    return TCL_ERROR;
-                }
-            } else if (strcmp(option,"-no-header") == 0) {
-                nextarg++;
-                addHeader = false;
-            } else if (strcmp(option,"--") == 0) {
-                nextarg++;
-                break;
-            } else {
-                Tcl_AppendResult(interp,
-                    "bad option \"", option,
-                    "\": should be -as, -no-header, --", (char*)NULL);
-                return TCL_ERROR;
-            }
-        } else {
-            break;
-        }
+    EncodeSwitches switches;
+    switches.flags = 0;
+    switches.noheader = 0;
+    int n;
+    n = Rp_ParseSwitches(interp, encodeSwitches, objc - 1, objv + 1, &switches,
+			 SWITCH_OBJV_PARTIAL);
+    if (n < 0) {
+	return TCL_ERROR;
     }
-
-    if ((objc - nextarg) != 1) {
-        Tcl_AppendResult(interp,
-                "wrong # args: should be \"", cmdName,
-                " ?-as z|b64|zb64? ?-no-header? ?--? <string>\"", (char*)NULL);
+    int last;
+    last = n + 1;
+    if ((objc - last) != 1) {
+        Tcl_AppendResult(interp, "wrong # args: should be \"", 
+		Tcl_GetString(objv[0]), 
+		" ?-as z|b64|zb64? ?-no-header? ?--? string\"", (char*)NULL);
         return TCL_ERROR;
     }
-
     int nBytes;
     const char* string;
-    string = (const char*)Tcl_GetByteArrayFromObj(objv[nextarg++], &nBytes);
+    string = (const char*)Tcl_GetByteArrayFromObj(objv[last], &nBytes);
     if (nBytes <= 0) {
 	return TCL_OK;		// Nothing to encode.
     }
     Rappture::Buffer buf(string, nBytes);
-    if (addHeader) {
-        flags |= RPENC_HDR;
+    if (!switches.noheader) {
+        switches.flags |= RPENC_HDR;
     }
-    if (!Rappture::encoding::encode(err, buf, flags)) {
-        Tcl_AppendResult(interp, err.remark(), "\n", err.context(), NULL);
+    Rappture::Outcome status;
+    if (!Rappture::encoding::encode(status, buf, switches.flags)) {
+        Tcl_AppendResult(interp, status.remark(), "\n", status.context(), NULL);
 	return TCL_ERROR;
     }
-    result = Tcl_NewByteArrayObj((const unsigned char*)buf.bytes(), buf.size());
-    Tcl_SetObjResult(interp, result);
+    Tcl_SetByteArrayObj(Tcl_GetObjResult(interp), 
+		(const unsigned char*)buf.bytes(), buf.size());
     return TCL_OK;
 }
 
@@ -224,92 +237,57 @@ RpTclEncodingEncode (ClientData cdata, Tcl_Interp *interp, int objc,
  * ::Rappture::encoding::decode ?-as z|b64|zb64? <string>
  */
 
-static int
-RpTclEncodingDecode (   ClientData cdata,
-                        Tcl_Interp *interp,
-                        int objc,
-                        Tcl_Obj *const objv[]  )
+typedef struct {
+    unsigned int flags;
+} DecodeSwitches;
+
+static SwitchSpec decodeSwitches[] = 
 {
+    {SWITCH_CUSTOM, "-as", "z|b64|zb64",
+	offsetof(DecodeSwitches, flags), 0, 0, &asSwitch},
+    {SWITCH_END}
+};
 
-    const char* encodeType    = NULL; // name of the units provided by user
-    const char* cmdName       = NULL;
-    Rappture::Outcome err;
-
-    int nextarg               = 0; // start parsing using the '2'th argument
-    int flags;
-
-    cmdName = Tcl_GetString(objv[nextarg++]);
-
-    // parse through command line options
+static int
+RpTclEncodingDecode(ClientData clientData, Tcl_Interp *interp, int objc,
+		    Tcl_Obj *const *objv)
+{
     if (objc < 1) {
-        Tcl_AppendResult(interp,
-                "wrong # args: should be \"", cmdName,
+        Tcl_AppendResult(interp, "wrong # args: should be \"", 
+		Tcl_GetString(objv[0]),
                 " ?-as z|b64|zb64? ?--? <string>\"", (char*)NULL);
         return TCL_ERROR;
     }
 
-    flags = 0;
-    while ((objc - nextarg) > 0) {
-	const char *option;
-
-        option = Tcl_GetString(objv[nextarg]);
-        if (*option == '-') {
-            if (strcmp(option,"-as") == 0) {
-                nextarg++;
-		encodeType = NULL;
-                if (nextarg < objc) {
-                    encodeType = Tcl_GetString(objv[nextarg]);
-                    nextarg++;
-                }
-                if (strcmp(encodeType,"z") == 0) {
-                    flags = RPENC_Z;
-                } else if (strcmp(encodeType, "b64") == 0) {
-                    flags = RPENC_B64;
-                } else if (strcmp(encodeType,"zb64") == 0) {
-                    flags = RPENC_Z | RPENC_B64;
-                } else {
-                    // user did not specify recognized wishes for this option,
-                    Tcl_AppendResult(interp, "bad value \"",(char*)NULL);
-                    if (encodeType != NULL) {
-                        Tcl_AppendResult(interp, encodeType,(char*)NULL);
-                    }
-                    Tcl_AppendResult(interp,
-                            "\": should be one of z, b64, zb64",
-                            (char*)NULL);
-                    return TCL_ERROR;
-                }
-            } else if (strcmp(option,"--") == 0) {
-                nextarg++;
-                break;
-            } else {
-                Tcl_AppendResult(interp,
-                    "bad option \"", option,
-                    "\": should be -as, --", (char*)NULL);
-                return TCL_ERROR;
-            }
-        } else {
-            break;
-        }
-    }
-
-    if ((objc - nextarg) != 1) {
-        Tcl_AppendResult(interp,
-                "wrong # args: should be \"", cmdName,
-                " ?-as z|b64|zb64? ?--? <string>\"", (char*)NULL);
-        return TCL_ERROR;
-    }
-
-    int nBytes;
-    const char* string;
-    string = (const char*)Tcl_GetByteArrayFromObj(objv[nextarg++], &nBytes);
-
-    Rappture::Buffer buf(string, nBytes); 
-    if (!Rappture::encoding::decode(err, buf, flags)) {
-        Tcl_AppendResult(interp, err.remark(), "\n", err.context(), NULL);
+    DecodeSwitches switches;
+    switches.flags = 0;
+    int n;
+    n = Rp_ParseSwitches(interp, decodeSwitches, objc - 1, objv + 1, &switches,
+			 SWITCH_OBJV_PARTIAL);
+    if (n < 0) {
 	return TCL_ERROR;
     }
-    Tcl_Obj *objPtr;
-    objPtr = Tcl_NewByteArrayObj((const unsigned char*)buf.bytes(), buf.size());
-    Tcl_SetObjResult(interp, objPtr);
+    int last;
+    last = n + 1;
+    if ((objc - last) != 1) {
+        Tcl_AppendResult(interp, "wrong # args: should be \"", 
+		Tcl_GetString(objv[0]), 
+		" ?-as z|b64|zb64? ?--? string\"", (char*)NULL);
+        return TCL_ERROR;
+    }
+    int nBytes;
+    const char* string;
+    string = (const char*)Tcl_GetByteArrayFromObj(objv[last], &nBytes);
+    if (nBytes <= 0) {
+	return TCL_OK;		// Nothing to decode.
+    }
+    Rappture::Buffer buf(string, nBytes); 
+    Rappture::Outcome status;
+    if (!Rappture::encoding::decode(status, buf, switches.flags)) {
+        Tcl_AppendResult(interp, status.remark(), "\n", status.context(), NULL);
+	return TCL_ERROR;
+    }
+    Tcl_SetByteArrayObj(Tcl_GetObjResult(interp), 
+		(const unsigned char*)buf.bytes(), buf.size());
     return TCL_OK;
 }
