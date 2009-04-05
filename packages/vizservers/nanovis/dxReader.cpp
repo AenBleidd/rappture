@@ -484,240 +484,239 @@ load_volume_stream2(Rappture::Outcome &result, int index, std::iostream& fin)
         }
     } while (!fin.eof());
 
+    fprintf(stderr, "found nx=%d ny=%d, nz=%d, x0=%f, y0=%f, z0=%f\n",
+	    nx, ny, nz, x0, y0, z0);
     // read data points
-    if (!fin.eof()) {
-        if (isrect) {
-            double dval[6];
-            int nread = 0;
-            int ix = 0;
-            int iy = 0;
-            int iz = 0;
-            float* data = new float[nx *  ny *  nz * 4];
-            memset(data, 0, nx*ny*nz*4);
-            double vmin = 1e21;
-            double nzero_min = 1e21;
-            double vmax = -1e21;
-
-
-            while (!fin.eof() && nread < npts) {
-                fin.getline(line,sizeof(line)-1);
-                int n = sscanf(line, "%lg %lg %lg %lg %lg %lg", &dval[0], &dval[1], &dval[2], &dval[3], &dval[4], &dval[5]);
-
-                for (int p=0; p < n; p++) {
-                    int nindex = (iz*nx*ny + iy*nx + ix) * 4;
-                    data[nindex] = dval[p];
-
-                    if (dval[p] < vmin) {
-                        vmin = dval[p];
-                    } else if (dval[p] > vmax) {
-                        vmax = dval[p];
-                    }
-                    if (dval[p] != 0.0f && dval[p] < nzero_min) {
-                        nzero_min = dval[p];
-                    }
-
-                    nread++;
-                    if (++iz >= nz) {
-                        iz = 0;
-                        if (++iy >= ny) {
-                            iy = 0;
-                            ++ix;
-                        }
-                    }
-                }
-            }
-
-            // make sure that we read all of the expected points
-            if (nread != nx*ny*nz) {
-                result.addError("inconsistent data: expected %d points "
-				" but found %d points", nx*ny*nz, nread);
-                return false;
-            }
-
-            double dv = vmax - vmin;
-            int count = nx*ny*nz;
-            int ngen = 0;
-            double v;
-            if (dv == 0.0) {
-                dv = 1.0;
-            }
-
-            for (int i = 0; i < count; ++i) {
-                v = data[ngen];
-                // scale all values [0-1], -1 => out of bounds
-                //
-                // INSOO
-                v = (isnan(v)) ? -1.0 : (v - vmin)/dv;
-                data[ngen] = v;
-                ngen += 4;
-            }
-
-            computeSimpleGradient(data, nx, ny, nz);
-
-            dx = nx;
-            dy = ny;
-            dz = nz;
-
-            Volume *volPtr;
-            volPtr = NanoVis::load_volume(index, nx, ny, nz, 4, data,
-                      vmin, vmax, nzero_min);
-            volPtr->xAxis.SetRange(x0, x0 + (nx * dx));
-            volPtr->yAxis.SetRange(y0, y0 + (ny * dy));
-            volPtr->zAxis.SetRange(z0, z0 + (nz * dz)); 
-            volPtr->wAxis.SetRange(vmin, vmax);
-	    volPtr->update_pending = true;
-            delete [] data;
-
-        } else {
-            Rappture::Mesh1D zgrid(z0, z0+nz*dz, nz);
-            Rappture::FieldPrism3D field(xymesh, zgrid);
-
-            double dval;
-            int nread = 0;
-            int ixy = 0;
-            int iz = 0;
-            while (!fin.eof() && nread < npts) {
-                fin >> dval;
-                if (fin.fail()) {
-                    result.addError("after %d of %d points: can't read number", 
-				    nread, npts);
-                    return false;
-                } else {
-                    int nid = nxy*iz + ixy;
-                    field.define(nid, dval);
-
-                    nread++;
-                    if (++iz >= nz) {
-                        iz = 0;
-                        ixy++;
-                    }
-                }
-            }
-
-            // make sure that we read all of the expected points
-            if (nread != nxy*nz) {
-                result.addError("inconsistent data: expected %d points "
-				"but found %d points", nxy*nz, nread);
-                return false;
-            }
-
-            // figure out a good mesh spacing
-            int nsample = 30;
-            x0 = field.rangeMin(Rappture::xaxis);
-            dx = field.rangeMax(Rappture::xaxis) - field.rangeMin(Rappture::xaxis);
-            y0 = field.rangeMin(Rappture::yaxis);
-            dy = field.rangeMax(Rappture::yaxis) - field.rangeMin(Rappture::yaxis);
-            z0 = field.rangeMin(Rappture::zaxis);
-            dz = field.rangeMax(Rappture::zaxis) - field.rangeMin(Rappture::zaxis);
-            double dmin = pow((dx*dy*dz)/(nsample*nsample*nsample), 0.333);
-
-            nx = (int)ceil(dx/dmin);
-            ny = (int)ceil(dy/dmin);
-            nz = (int)ceil(dz/dmin);
-#ifndef NV40
-            // must be an even power of 2 for older cards
-            nx = (int)pow(2.0, ceil(log10((double)nx)/log10(2.0)));
-            ny = (int)pow(2.0, ceil(log10((double)ny)/log10(2.0)));
-            nz = (int)pow(2.0, ceil(log10((double)nz)/log10(2.0)));
-#endif
-            float *data = new float[4*nx*ny*nz];
-
-            double vmin = field.valueMin();
-            double dv = field.valueMax() - field.valueMin();
-            if (dv == 0.0) {
-                dv = 1.0; 
-            }
-            // generate the uniformly sampled data that we need for a volume
-            int ngen = 0;
-            double nzero_min = 0.0;
-            for (iz=0; iz < nz; iz++) {
-                double zval = z0 + iz*dmin;
-                for (int iy=0; iy < ny; iy++) {
-                    double yval = y0 + iy*dmin;
-                    for (int ix=0; ix < nx; ix++) {
-                        double xval = x0 + ix*dmin;
-                        double v = field.value(xval,yval,zval);
-
-                        if (v != 0.0f && v < nzero_min)
-                            {
-                                nzero_min = v;
-                            }
-                        // scale all values [0-1], -1 => out of bounds
-                        v = (isnan(v)) ? -1.0 : (v - vmin)/dv;
-                        data[ngen] = v;
-
-                        ngen += 4;
-                    }
-                }
-            }
-
-            // FIXME: This next section of code should be replaced by a
-            // call to the computeSimpleGradient() function. There is a slight
-            // difference in the code below and the aforementioned function
-            // in that the commented out lines in the else statements are
-            // different.
-            //
-            // Compute the gradient of this data.  BE CAREFUL: center
-            // calculation on each node to avoid skew in either direction.
-            ngen = 0;
-            for (int iz=0; iz < nz; iz++) {
-                for (int iy=0; iy < ny; iy++) {
-                    for (int ix=0; ix < nx; ix++) {
-                        // gradient in x-direction
-                        //double valm1 = (ix == 0) ? 0.0 : data[ngen-4];
-                        //double valp1 = (ix == nx-1) ? 0.0 : data[ngen+4];
-                        double valm1 = (ix == 0) ? 0.0 : data[ngen-4];
-                        double valp1 = (ix == nx-1) ? 0.0 : data[ngen+4];
-                        if (valm1 < 0 || valp1 < 0) {
-                            data[ngen+1] = 0.0;
-                        } else {
-                            data[ngen+1] = valp1-valm1; // assume dx=1
-                            //data[ngen+1] = ((valp1-valm1) + 1.0) * 0.5; // assume dz=1
-                        }
-
-                        // gradient in y-direction
-                        valm1 = (iy == 0) ? 0.0 : data[ngen-4*nx];
-                        valp1 = (iy == ny-1) ? 0.0 : data[ngen+4*nx];
-                        if (valm1 < 0 || valp1 < 0) {
-                            data[ngen+2] = 0.0;
-                        } else {
-                            data[ngen+2] = valp1-valm1; // assume dy=1
-                            //data[ngen+2] = ((valp1-valm1) + 1.0) * 0.5; // assume dz=1
-                        }
-
-                        // gradient in z-direction
-                        valm1 = (iz == 0) ? 0.0 : data[ngen-4*nx*ny];
-                        valp1 = (iz == nz-1) ? 0.0 : data[ngen+4*nx*ny];
-                        if (valm1 < 0 || valp1 < 0) {
-                            data[ngen+3] = 0.0;
-                        } else {
-                            data[ngen+3] = valp1-valm1; // assume dz=1
-                            //data[ngen+3] = ((valp1-valm1) + 1.0) * 0.5; // assume dz=1
-                        }
-
-                        ngen += 4;
-                    }
-                }
-            }
-
-            Volume *volPtr;
-            volPtr = NanoVis::load_volume(index, nx, ny, nz, 4, data,
-                        field.valueMin(), field.valueMax(), nzero_min);
-            volPtr->xAxis.SetRange(field.rangeMin(Rappture::xaxis),
-                   field.rangeMax(Rappture::xaxis));
-            volPtr->yAxis.SetRange(field.rangeMin(Rappture::yaxis),
-                   field.rangeMax(Rappture::yaxis));
-            volPtr->zAxis.SetRange(field.rangeMin(Rappture::zaxis),
-                   field.rangeMax(Rappture::zaxis));
-            volPtr->wAxis.SetRange(field.valueMin(), field.valueMax());
-            volPtr->update_pending = true;
-            delete [] data;
-        }
-    } else {
-        result.addError("data not found in stream");
+    if (fin.eof()) {
+        result.addError("EOF found: expecting %d points", npts);
 	return false;
     }
-
+    if (isrect) {
+	double dval[6];
+	int nread = 0;
+	int ix = 0;
+	int iy = 0;
+	int iz = 0;
+	float* data = new float[nx *  ny *  nz * 4];
+	memset(data, 0, nx*ny*nz*4);
+	double vmin = 1e21;
+	double nzero_min = 1e21;
+	double vmax = -1e21;
+	
+	
+	while (!fin.eof() && nread < npts) {
+	    fin.getline(line,sizeof(line)-1);
+	    int n = sscanf(line, "%lg %lg %lg %lg %lg %lg", &dval[0], &dval[1], &dval[2], &dval[3], &dval[4], &dval[5]);
+	    
+	    for (int p=0; p < n; p++) {
+		int nindex = (iz*nx*ny + iy*nx + ix) * 4;
+		data[nindex] = dval[p];
+		
+		if (dval[p] < vmin) {
+		    vmin = dval[p];
+		} else if (dval[p] > vmax) {
+		    vmax = dval[p];
+		}
+		if (dval[p] != 0.0f && dval[p] < nzero_min) {
+		    nzero_min = dval[p];
+		}
+		
+		nread++;
+		if (++iz >= nz) {
+		    iz = 0;
+		    if (++iy >= ny) {
+			iy = 0;
+			++ix;
+		    }
+		}
+	    }
+	}
+	
+	// make sure that we read all of the expected points
+	if (nread != nx*ny*nz) {
+	    result.addError("inconsistent data: expected %d points "
+			    " but found %d points", nx*ny*nz, nread);
+	    return false;
+	}
+	
+	double dv = vmax - vmin;
+	int count = nx*ny*nz;
+	int ngen = 0;
+	double v;
+	if (dv == 0.0) {
+	    dv = 1.0;
+	}
+	
+	for (int i = 0; i < count; ++i) {
+	    v = data[ngen];
+	    // scale all values [0-1], -1 => out of bounds
+	    //
+	    // INSOO
+	    v = (isnan(v)) ? -1.0 : (v - vmin)/dv;
+	    data[ngen] = v;
+	    ngen += 4;
+	}
+	
+	computeSimpleGradient(data, nx, ny, nz);
+	
+	dx = nx;
+	dy = ny;
+	dz = nz;
+	
+	Volume *volPtr;
+	volPtr = NanoVis::load_volume(index, nx, ny, nz, 4, data,
+				      vmin, vmax, nzero_min);
+	volPtr->xAxis.SetRange(x0, x0 + (nx * dx));
+	volPtr->yAxis.SetRange(y0, y0 + (ny * dy));
+	volPtr->zAxis.SetRange(z0, z0 + (nz * dz)); 
+	volPtr->wAxis.SetRange(vmin, vmax);
+	volPtr->update_pending = true;
+	delete [] data;
+	
+    } else {
+	Rappture::Mesh1D zgrid(z0, z0+nz*dz, nz);
+	Rappture::FieldPrism3D field(xymesh, zgrid);
+	
+	double dval;
+	int nread = 0;
+	int ixy = 0;
+	int iz = 0;
+	while (!fin.eof() && nread < npts) {
+	    fin >> dval;
+	    if (fin.fail()) {
+		result.addError("after %d of %d points: can't read number", 
+				nread, npts);
+		return false;
+	    } else {
+		int nid = nxy*iz + ixy;
+		field.define(nid, dval);
+		
+		nread++;
+		if (++iz >= nz) {
+		    iz = 0;
+		    ixy++;
+		}
+	    }
+	}
+	
+	// make sure that we read all of the expected points
+	if (nread != nxy*nz) {
+	    result.addError("inconsistent data: expected %d points "
+			    "but found %d points", nxy*nz, nread);
+	    return false;
+	}
+	
+	// figure out a good mesh spacing
+	int nsample = 30;
+	x0 = field.rangeMin(Rappture::xaxis);
+	dx = field.rangeMax(Rappture::xaxis) - field.rangeMin(Rappture::xaxis);
+	y0 = field.rangeMin(Rappture::yaxis);
+	dy = field.rangeMax(Rappture::yaxis) - field.rangeMin(Rappture::yaxis);
+	z0 = field.rangeMin(Rappture::zaxis);
+	dz = field.rangeMax(Rappture::zaxis) - field.rangeMin(Rappture::zaxis);
+	double dmin = pow((dx*dy*dz)/(nsample*nsample*nsample), 0.333);
+	
+	nx = (int)ceil(dx/dmin);
+	ny = (int)ceil(dy/dmin);
+	nz = (int)ceil(dz/dmin);
+#ifndef NV40
+	// must be an even power of 2 for older cards
+	nx = (int)pow(2.0, ceil(log10((double)nx)/log10(2.0)));
+	ny = (int)pow(2.0, ceil(log10((double)ny)/log10(2.0)));
+	nz = (int)pow(2.0, ceil(log10((double)nz)/log10(2.0)));
+#endif
+	float *data = new float[4*nx*ny*nz];
+	
+	double vmin = field.valueMin();
+	double dv = field.valueMax() - field.valueMin();
+	if (dv == 0.0) {
+	    dv = 1.0; 
+	}
+	// generate the uniformly sampled data that we need for a volume
+	int ngen = 0;
+	double nzero_min = 0.0;
+	for (iz=0; iz < nz; iz++) {
+	    double zval = z0 + iz*dmin;
+	    for (int iy=0; iy < ny; iy++) {
+		double yval = y0 + iy*dmin;
+		for (int ix=0; ix < nx; ix++) {
+		    double xval = x0 + ix*dmin;
+		    double v = field.value(xval,yval,zval);
+		    
+		    if (v != 0.0f && v < nzero_min) {
+			nzero_min = v;
+		    }
+		    // scale all values [0-1], -1 => out of bounds
+		    v = (isnan(v)) ? -1.0 : (v - vmin)/dv;
+		    data[ngen] = v;
+		    
+		    ngen += 4;
+		}
+	    }
+	}
+	
+	// FIXME: This next section of code should be replaced by a
+	// call to the computeSimpleGradient() function. There is a slight
+	// difference in the code below and the aforementioned function
+	// in that the commented out lines in the else statements are
+	// different.
+	//
+	// Compute the gradient of this data.  BE CAREFUL: center
+	// calculation on each node to avoid skew in either direction.
+	ngen = 0;
+	for (int iz=0; iz < nz; iz++) {
+	    for (int iy=0; iy < ny; iy++) {
+		for (int ix=0; ix < nx; ix++) {
+		    // gradient in x-direction
+		    //double valm1 = (ix == 0) ? 0.0 : data[ngen-4];
+		    //double valp1 = (ix == nx-1) ? 0.0 : data[ngen+4];
+		    double valm1 = (ix == 0) ? 0.0 : data[ngen-4];
+		    double valp1 = (ix == nx-1) ? 0.0 : data[ngen+4];
+		    if (valm1 < 0 || valp1 < 0) {
+			data[ngen+1] = 0.0;
+		    } else {
+			data[ngen+1] = valp1-valm1; // assume dx=1
+			//data[ngen+1] = ((valp1-valm1) + 1.0) * 0.5; // assume dz=1
+		    }
+		    
+		    // gradient in y-direction
+		    valm1 = (iy == 0) ? 0.0 : data[ngen-4*nx];
+		    valp1 = (iy == ny-1) ? 0.0 : data[ngen+4*nx];
+		    if (valm1 < 0 || valp1 < 0) {
+			data[ngen+2] = 0.0;
+		    } else {
+			data[ngen+2] = valp1-valm1; // assume dy=1
+			//data[ngen+2] = ((valp1-valm1) + 1.0) * 0.5; // assume dz=1
+		    }
+		    
+		    // gradient in z-direction
+		    valm1 = (iz == 0) ? 0.0 : data[ngen-4*nx*ny];
+		    valp1 = (iz == nz-1) ? 0.0 : data[ngen+4*nx*ny];
+		    if (valm1 < 0 || valp1 < 0) {
+			data[ngen+3] = 0.0;
+		    } else {
+			data[ngen+3] = valp1-valm1; // assume dz=1
+			//data[ngen+3] = ((valp1-valm1) + 1.0) * 0.5; // assume dz=1
+		    }
+		    
+		    ngen += 4;
+		}
+	    }
+	}
+	
+	Volume *volPtr;
+	volPtr = NanoVis::load_volume(index, nx, ny, nz, 4, data,
+				      field.valueMin(), field.valueMax(), nzero_min);
+	volPtr->xAxis.SetRange(field.rangeMin(Rappture::xaxis),
+			       field.rangeMax(Rappture::xaxis));
+	volPtr->yAxis.SetRange(field.rangeMin(Rappture::yaxis),
+			       field.rangeMax(Rappture::yaxis));
+	volPtr->zAxis.SetRange(field.rangeMin(Rappture::zaxis),
+			       field.rangeMax(Rappture::zaxis));
+	volPtr->wAxis.SetRange(field.valueMin(), field.valueMax());
+	volPtr->update_pending = true;
+	delete [] data;
+    }
     //
     // Center this new volume on the origin.
     //
@@ -744,6 +743,7 @@ load_volume_stream(Rappture::Outcome &result, int index, std::iostream& fin)
     x0 = y0 = z0 = 0.0;		// May not have an origin line.
     while (!fin.eof()) {
         fin.getline(line, sizeof(line) - 1);
+	fprintf(stderr, "line is %s\n", line);
         if (fin.fail()) {
             result.error("error in data stream");
 	    return false;
@@ -839,314 +839,313 @@ load_volume_stream(Rappture::Outcome &result, int index, std::iostream& fin)
             }
         }
     }
-
+    fprintf(stderr, "found nx=%d ny=%d, nz=%d, x0=%f, y0=%f, z0=%f\n",
+	    nx, ny, nz, x0, y0, z0);
     // read data points
-    if (!fin.eof()) {
-        if (isrect) {
-            Rappture::Mesh1D xgrid(x0, x0+nx*dx, nx);
-            Rappture::Mesh1D ygrid(y0, y0+ny*dy, ny);
-            Rappture::Mesh1D zgrid(z0, z0+nz*dz, nz);
-            Rappture::FieldRect3D field(xgrid, ygrid, zgrid);
-
-            double dval[6];
-            int nread = 0;
-            int ix = 0;
-            int iy = 0;
-            int iz = 0;
-            while (!fin.eof() && nread < npts) {
-                fin.getline(line,sizeof(line)-1);
-                if (fin.fail()) {
-                    result.addError("error reading data points");
-		    return false;
-                }
-                int n = sscanf(line, "%lg %lg %lg %lg %lg %lg", &dval[0], &dval[1], &dval[2], &dval[3], &dval[4], &dval[5]);
-
-                for (int p=0; p < n; p++) {
-                    int nindex = iz*nx*ny + iy*nx + ix;
-                    field.define(nindex, dval[p]);
-                    fprintf(stderr,"nindex = %i\tdval[%i] = %lg\n", nindex, p,
-                        dval[p]);
-                    fflush(stderr);
-                    nread++;
-                    if (++iz >= nz) {
-                        iz = 0;
-                        if (++iy >= ny) {
-                            iy = 0;
-                            ++ix;
-                        }
-                    }
-                }
-            }
-
-            // make sure that we read all of the expected points
-            if (nread != nx*ny*nz) {
-		result.addError("inconsistent data: expected %d points"
-				" but found %d points", nx*ny*nz, npts);
-		return false;
-            }
-
-            // figure out a good mesh spacing
-            int nsample = 30;
-            dx = field.rangeMax(Rappture::xaxis) - field.rangeMin(Rappture::xaxis);
-            dy = field.rangeMax(Rappture::yaxis) - field.rangeMin(Rappture::yaxis);
-            dz = field.rangeMax(Rappture::zaxis) - field.rangeMin(Rappture::zaxis);
-            double dmin = pow((dx*dy*dz)/(nsample*nsample*nsample), 0.333);
-
-            nx = (int)ceil(dx/dmin);
-            ny = (int)ceil(dy/dmin);
-            nz = (int)ceil(dz/dmin);
-
-#ifndef NV40
-            // must be an even power of 2 for older cards
-            nx = (int)pow(2.0, ceil(log10((double)nx)/log10(2.0)));
-            ny = (int)pow(2.0, ceil(log10((double)ny)/log10(2.0)));
-            nz = (int)pow(2.0, ceil(log10((double)nz)/log10(2.0)));
-#endif
-
-//#define _SOBEL
-#ifdef _SOBEL_
-            const int step = 1;
-            float *cdata = new float[nx*ny*nz * step];
-            int ngen = 0;
-            double nzero_min = 0.0;
-            for (int iz=0; iz < nz; iz++) {
-                double zval = z0 + iz*dmin;
-                for (int iy=0; iy < ny; iy++) {
-                    double yval = y0 + iy*dmin;
-                    for (int ix=0; ix < nx; ix++) {
-                        double xval = x0 + ix*dmin;
-                        double v = field.value(xval,yval,zval);
-
-                        if (v != 0.0f && v < nzero_min) {
-                            nzero_min = v;
-                        }
-
-                        // scale all values [0-1], -1 => out of bounds
-                        v = (isnan(v)) ? -1.0 : v;
-
-                        cdata[ngen] = v;
-                        ngen += step;
-                    }
-                }
-            }
-
-            float* data = computeGradient(cdata, nx, ny, nz, field.valueMin(),
-                                          field.valueMax());
-#else
-            double vmin = field.valueMin();
-            double vmax = field.valueMax();
-            double nzero_min = 0;
-            float *data = new float[nx*ny*nz * 4];
-            double dv = vmax - vmin;
-            int ngen = 0;
-            if (dv == 0.0)  dv = 1.0; 
-
-            for (int iz=0; iz < nz; iz++) {
-                double zval = z0 + iz*dmin;
-                for (int iy=0; iy < ny; iy++) {
-                    double yval = y0 + iy*dmin;
-                    for (int ix=0; ix < nx; ix++) {
-                        double xval = x0 + ix*dmin;
-                        double v = field.value(xval,yval,zval);
-
-                        // scale all values [0-1], -1 => out of bounds
-                        v = (isnan(v)) ? -1.0 : (v - vmin)/dv;
-
-                        data[ngen] = v;
-                        ngen += 4;
-                    }
-                }
-            }
-
-            computeSimpleGradient(data, nx, ny, nz);
-#endif
-
-            for (int i=0; i<nx*ny*nz; i++) {
-                fprintf(stderr,"enddata[%i] = %lg\n",i,data[i]);
-                fflush(stderr);
-            }
-
-            fprintf(stdout,"End Data Stats index = %i\n",index);
-            fprintf(stdout,"nx = %i ny = %i nz = %i\n",nx,ny,nz);
-            fprintf(stdout,"dx = %lg dy = %lg dz = %lg\n",dx,dy,dz);
-            fprintf(stdout,"dataMin = %lg\tdataMax = %lg\tnzero_min = %lg\n", field.valueMin(),field.valueMax(),nzero_min);
-            fflush(stdout);
-
-            Volume *volPtr;
-            volPtr = NanoVis::load_volume(index, nx, ny, nz, 4, data,
-            field.valueMin(), field.valueMax(), nzero_min);
-            volPtr->xAxis.SetRange(field.rangeMin(Rappture::xaxis),
-                   field.rangeMax(Rappture::xaxis));
-            volPtr->yAxis.SetRange(field.rangeMin(Rappture::yaxis),
-                   field.rangeMax(Rappture::yaxis));
-            volPtr->zAxis.SetRange(field.rangeMin(Rappture::zaxis),
-                   field.rangeMax(Rappture::zaxis));
-            volPtr->wAxis.SetRange(field.valueMin(), field.valueMax());
-            volPtr->update_pending = true;
-            // TBD..
-            // POINTSET
-            /*
-              PointSet* pset = new PointSet();
-              pset->initialize(volume[index], (float*) data);
-              pset->setVisible(true);
-              NanoVis::pointSet.push_back(pset);
-              updateColor(pset);
-              NanoVis::volume[index]->pointsetIndex = NanoVis::pointSet.size() - 1;
-            */
-
-            delete [] data;
-
-        } else {
-            Rappture::Mesh1D zgrid(z0, z0+nz*dz, nz);
-            Rappture::FieldPrism3D field(xymesh, zgrid);
-
-            double dval;
-            int nread = 0;
-            int ixy = 0;
-            int iz = 0;
-            while (!fin.eof() && nread < npts) {
-                fin >> dval;
-                if (fin.fail()) {
-                    result.addError("after %d of %d points: can't read number", 
-                            nread, npts);
-		    return false;
-                } else {
-                    int nid = nxy*iz + ixy;
-                    field.define(nid, dval);
-
-                    nread++;
-                    if (++iz >= nz) {
-                        iz = 0;
-                        ixy++;
-                    }
-                }
-            }
-
-            // make sure that we read all of the expected points
-            if (nread != nxy*nz) {
-		result.addError("inconsistent data: expected %d points"
-				" but found %d points", nx*ny*nz, npts);
-		return false;
-            }
-
-            // figure out a good mesh spacing
-            int nsample = 30;
-            x0 = field.rangeMin(Rappture::xaxis);
-            dx = field.rangeMax(Rappture::xaxis) - field.rangeMin(Rappture::xaxis);
-            y0 = field.rangeMin(Rappture::yaxis);
-            dy = field.rangeMax(Rappture::yaxis) - field.rangeMin(Rappture::yaxis);
-            z0 = field.rangeMin(Rappture::zaxis);
-            dz = field.rangeMax(Rappture::zaxis) - field.rangeMin(Rappture::zaxis);
-            double dmin = pow((dx*dy*dz)/(nsample*nsample*nsample), 0.333);
-
-            nx = (int)ceil(dx/dmin);
-            ny = (int)ceil(dy/dmin);
-            nz = (int)ceil(dz/dmin);
-#ifndef NV40
-            // must be an even power of 2 for older cards
-            nx = (int)pow(2.0, ceil(log10((double)nx)/log10(2.0)));
-            ny = (int)pow(2.0, ceil(log10((double)ny)/log10(2.0)));
-            nz = (int)pow(2.0, ceil(log10((double)nz)/log10(2.0)));
-#endif
-            float *data = new float[4*nx*ny*nz];
-
-            double vmin = field.valueMin();
-            double dv = field.valueMax() - field.valueMin();
-            if (dv == 0.0) { dv = 1.0; }
-
-            // generate the uniformly sampled data that we need for a volume
-            int ngen = 0;
-            double nzero_min = 0.0;
-            for (iz=0; iz < nz; iz++) {
-                double zval = z0 + iz*dmin;
-                for (int iy=0; iy < ny; iy++) {
-                    double yval = y0 + iy*dmin;
-                    for (int ix=0; ix < nx; ix++) {
-                        double xval = x0 + ix*dmin;
-                        double v = field.value(xval,yval,zval);
-
-                        if (v != 0.0f && v < nzero_min)
-                            {
-                                nzero_min = v;
-                            }
-                        // scale all values [0-1], -1 => out of bounds
-                        v = (isnan(v)) ? -1.0 : (v - vmin)/dv;
-                        data[ngen] = v;
-
-                        ngen += 4;
-                    }
-                }
-            }
-
-            // Compute the gradient of this data.  BE CAREFUL: center
-            // calculation on each node to avoid skew in either direction.
-            ngen = 0;
-            for (int iz=0; iz < nz; iz++) {
-                for (int iy=0; iy < ny; iy++) {
-                    for (int ix=0; ix < nx; ix++) {
-                        // gradient in x-direction
-                        double valm1 = (ix == 0) ? 0.0 : data[ngen-1];
-                        double valp1 = (ix == nx-1) ? 0.0 : data[ngen+1];
-                        if (valm1 < 0 || valp1 < 0) {
-                            data[ngen+1] = 0.0;
-                        } else {
-                            data[ngen+1] = valp1-valm1; // assume dx=1
-                            //data[ngen+1] = ((valp1-valm1) + 1) *  0.5; // assume dx=1 (ISO)
-                        }
-
-                        // gradient in y-direction
-                        valm1 = (iy == 0) ? 0.0 : data[ngen-4*nx];
-                        valp1 = (iy == ny-1) ? 0.0 : data[ngen+4*nx];
-                        if (valm1 < 0 || valp1 < 0) {
-                            data[ngen+2] = 0.0;
-                        } else {
-                            data[ngen+2] = valp1-valm1; // assume dy=1
-                            //data[ngen+2] = ((valp1-valm1) + 1) *  0.5; // assume dy=1 (ISO)
-                        }
-
-                        // gradient in z-direction
-                        valm1 = (iz == 0) ? 0.0 : data[ngen-4*nx*ny];
-                        valp1 = (iz == nz-1) ? 0.0 : data[ngen+4*nx*ny];
-                        if (valm1 < 0 || valp1 < 0) {
-                            data[ngen+3] = 0.0;
-                        } else {
-                            data[ngen+3] = valp1-valm1; // assume dz=1
-                            //data[ngen+3] = ((valp1-valm1) + 1) *  0.5; // assume dz=1 (ISO)
-                        }
-
-                        ngen += 4;
-                    }
-                }
-            }
-
-            Volume *volPtr;
-            volPtr = NanoVis::load_volume(index, nx, ny, nz, 4, data,
-            field.valueMin(), field.valueMax(), nzero_min);
-            volPtr->xAxis.SetRange(field.rangeMin(Rappture::xaxis),
-                   field.rangeMax(Rappture::xaxis));
-            volPtr->yAxis.SetRange(field.rangeMin(Rappture::yaxis),
-                   field.rangeMax(Rappture::yaxis));
-            volPtr->zAxis.SetRange(field.rangeMin(Rappture::zaxis),
-                   field.rangeMax(Rappture::zaxis));
-            volPtr->wAxis.SetRange(field.valueMin(), field.valueMax());
-            volPtr->update_pending = true;
-            // TBD..
-            // POINTSET
-            /*
-              PointSet* pset = new PointSet();
-              pset->initialize(volume[index], (float*) data);
-              pset->setVisible(true);
-              NanoVis::pointSet.push_back(pset);
-              updateColor(pset);
-              NanoVis::volume[index]->pointsetIndex = NanoVis::pointSet.size() - 1;
-            */
-
-
-            delete [] data;
-        }
-    } else {
+    if (fin.eof()) {
         result.error("data not found in stream");
 	return false;
+    }
+    if (isrect) {
+	Rappture::Mesh1D xgrid(x0, x0+nx*dx, nx);
+	Rappture::Mesh1D ygrid(y0, y0+ny*dy, ny);
+	Rappture::Mesh1D zgrid(z0, z0+nz*dz, nz);
+	Rappture::FieldRect3D field(xgrid, ygrid, zgrid);
+
+	double dval[6];
+	int nread = 0;
+	int ix = 0;
+	int iy = 0;
+	int iz = 0;
+	while (!fin.eof() && nread < npts) {
+	    fin.getline(line,sizeof(line)-1);
+	    if (fin.fail()) {
+		result.addError("error reading data points");
+		return false;
+	    }
+	    int n = sscanf(line, "%lg %lg %lg %lg %lg %lg", &dval[0], &dval[1], &dval[2], &dval[3], &dval[4], &dval[5]);
+	    
+	    for (int p=0; p < n; p++) {
+		int nindex = iz*nx*ny + iy*nx + ix;
+		field.define(nindex, dval[p]);
+		fprintf(stderr,"nindex = %i\tdval[%i] = %lg\n", nindex, p,
+                        dval[p]);
+		fflush(stderr);
+		nread++;
+		if (++iz >= nz) {
+		    iz = 0;
+		    if (++iy >= ny) {
+			iy = 0;
+			++ix;
+		    }
+		}
+	    }
+	}
+	
+	// make sure that we read all of the expected points
+	if (nread != nx*ny*nz) {
+	    result.addError("inconsistent data: expected %d points"
+			    " but found %d points", nx*ny*nz, npts);
+	    return false;
+	}
+	
+	// figure out a good mesh spacing
+	int nsample = 30;
+	dx = field.rangeMax(Rappture::xaxis) - field.rangeMin(Rappture::xaxis);
+	dy = field.rangeMax(Rappture::yaxis) - field.rangeMin(Rappture::yaxis);
+	dz = field.rangeMax(Rappture::zaxis) - field.rangeMin(Rappture::zaxis);
+	double dmin = pow((dx*dy*dz)/(nsample*nsample*nsample), 0.333);
+	
+	nx = (int)ceil(dx/dmin);
+	ny = (int)ceil(dy/dmin);
+	nz = (int)ceil(dz/dmin);
+	
+#ifndef NV40
+	// must be an even power of 2 for older cards
+	nx = (int)pow(2.0, ceil(log10((double)nx)/log10(2.0)));
+	ny = (int)pow(2.0, ceil(log10((double)ny)/log10(2.0)));
+	nz = (int)pow(2.0, ceil(log10((double)nz)/log10(2.0)));
+#endif
+	
+	//#define _SOBEL
+#ifdef _SOBEL_
+	const int step = 1;
+	float *cdata = new float[nx*ny*nz * step];
+	int ngen = 0;
+	double nzero_min = 0.0;
+	for (int iz=0; iz < nz; iz++) {
+	    double zval = z0 + iz*dmin;
+	    for (int iy=0; iy < ny; iy++) {
+		double yval = y0 + iy*dmin;
+		for (int ix=0; ix < nx; ix++) {
+		    double xval = x0 + ix*dmin;
+		    double v = field.value(xval,yval,zval);
+		    
+		    if (v != 0.0f && v < nzero_min) {
+			nzero_min = v;
+		    }
+		    
+		    // scale all values [0-1], -1 => out of bounds
+		    v = (isnan(v)) ? -1.0 : v;
+		    
+		    cdata[ngen] = v;
+		    ngen += step;
+		}
+	    }
+	}
+	
+	float* data = computeGradient(cdata, nx, ny, nz, field.valueMin(),
+				      field.valueMax());
+#else
+	double vmin = field.valueMin();
+	double vmax = field.valueMax();
+	double nzero_min = 0;
+	float *data = new float[nx*ny*nz * 4];
+	double dv = vmax - vmin;
+	int ngen = 0;
+	if (dv == 0.0)  dv = 1.0; 
+	
+	for (int iz=0; iz < nz; iz++) {
+	    double zval = z0 + iz*dmin;
+	    for (int iy=0; iy < ny; iy++) {
+		double yval = y0 + iy*dmin;
+		for (int ix=0; ix < nx; ix++) {
+		    double xval = x0 + ix*dmin;
+		    double v = field.value(xval,yval,zval);
+		    
+		    // scale all values [0-1], -1 => out of bounds
+		    v = (isnan(v)) ? -1.0 : (v - vmin)/dv;
+		    
+		    data[ngen] = v;
+		    ngen += 4;
+		}
+	    }
+	}
+	
+	computeSimpleGradient(data, nx, ny, nz);
+#endif
+	
+	for (int i=0; i<nx*ny*nz; i++) {
+	    fprintf(stderr,"enddata[%i] = %lg\n",i,data[i]);
+	    fflush(stderr);
+	}
+	
+	fprintf(stdout,"End Data Stats index = %i\n",index);
+	fprintf(stdout,"nx = %i ny = %i nz = %i\n",nx,ny,nz);
+	fprintf(stdout,"dx = %lg dy = %lg dz = %lg\n",dx,dy,dz);
+	fprintf(stdout,"dataMin = %lg\tdataMax = %lg\tnzero_min = %lg\n", field.valueMin(),field.valueMax(),nzero_min);
+	fflush(stdout);
+	
+	Volume *volPtr;
+	volPtr = NanoVis::load_volume(index, nx, ny, nz, 4, data,
+				      field.valueMin(), field.valueMax(), nzero_min);
+	volPtr->xAxis.SetRange(field.rangeMin(Rappture::xaxis),
+			       field.rangeMax(Rappture::xaxis));
+	volPtr->yAxis.SetRange(field.rangeMin(Rappture::yaxis),
+			       field.rangeMax(Rappture::yaxis));
+	volPtr->zAxis.SetRange(field.rangeMin(Rappture::zaxis),
+			       field.rangeMax(Rappture::zaxis));
+	volPtr->wAxis.SetRange(field.valueMin(), field.valueMax());
+	volPtr->update_pending = true;
+	// TBD..
+	// POINTSET
+	/*
+	  PointSet* pset = new PointSet();
+	  pset->initialize(volume[index], (float*) data);
+	  pset->setVisible(true);
+	  NanoVis::pointSet.push_back(pset);
+	  updateColor(pset);
+	  NanoVis::volume[index]->pointsetIndex = NanoVis::pointSet.size() - 1;
+	*/
+	
+	delete [] data;
+	
+    } else {
+	Rappture::Mesh1D zgrid(z0, z0+nz*dz, nz);
+	Rappture::FieldPrism3D field(xymesh, zgrid);
+	
+	double dval;
+	int nread = 0;
+	int ixy = 0;
+	int iz = 0;
+	while (!fin.eof() && nread < npts) {
+	    fin >> dval;
+	    if (fin.fail()) {
+		result.addError("after %d of %d points: can't read number", 
+				nread, npts);
+		return false;
+	    } else {
+		int nid = nxy*iz + ixy;
+		field.define(nid, dval);
+		
+		nread++;
+		if (++iz >= nz) {
+		    iz = 0;
+		    ixy++;
+		}
+	    }
+	}
+	
+	// make sure that we read all of the expected points
+	if (nread != nxy*nz) {
+	    result.addError("inconsistent data: expected %d points"
+			    " but found %d points", nx*ny*nz, npts);
+	    return false;
+	}
+	
+	// figure out a good mesh spacing
+	int nsample = 30;
+	x0 = field.rangeMin(Rappture::xaxis);
+	dx = field.rangeMax(Rappture::xaxis) - field.rangeMin(Rappture::xaxis);
+	y0 = field.rangeMin(Rappture::yaxis);
+	dy = field.rangeMax(Rappture::yaxis) - field.rangeMin(Rappture::yaxis);
+	z0 = field.rangeMin(Rappture::zaxis);
+	dz = field.rangeMax(Rappture::zaxis) - field.rangeMin(Rappture::zaxis);
+	double dmin = pow((dx*dy*dz)/(nsample*nsample*nsample), 0.333);
+	
+	nx = (int)ceil(dx/dmin);
+	ny = (int)ceil(dy/dmin);
+	nz = (int)ceil(dz/dmin);
+#ifndef NV40
+	// must be an even power of 2 for older cards
+	nx = (int)pow(2.0, ceil(log10((double)nx)/log10(2.0)));
+	ny = (int)pow(2.0, ceil(log10((double)ny)/log10(2.0)));
+	nz = (int)pow(2.0, ceil(log10((double)nz)/log10(2.0)));
+#endif
+	float *data = new float[4*nx*ny*nz];
+	
+	double vmin = field.valueMin();
+	double dv = field.valueMax() - field.valueMin();
+	if (dv == 0.0) { dv = 1.0; }
+	
+	// generate the uniformly sampled data that we need for a volume
+	int ngen = 0;
+	double nzero_min = 0.0;
+	for (iz=0; iz < nz; iz++) {
+	    double zval = z0 + iz*dmin;
+	    for (int iy=0; iy < ny; iy++) {
+		double yval = y0 + iy*dmin;
+		for (int ix=0; ix < nx; ix++) {
+		    double xval = x0 + ix*dmin;
+		    double v = field.value(xval,yval,zval);
+		    
+		    if (v != 0.0f && v < nzero_min) {
+			nzero_min = v;
+		    }
+		    // scale all values [0-1], -1 => out of bounds
+		    v = (isnan(v)) ? -1.0 : (v - vmin)/dv;
+		    data[ngen] = v;
+		    
+		    ngen += 4;
+		}
+	    }
+	}
+	
+	// Compute the gradient of this data.  BE CAREFUL: center
+	// calculation on each node to avoid skew in either direction.
+	ngen = 0;
+	for (int iz=0; iz < nz; iz++) {
+	    for (int iy=0; iy < ny; iy++) {
+		for (int ix=0; ix < nx; ix++) {
+		    // gradient in x-direction
+		    double valm1 = (ix == 0) ? 0.0 : data[ngen-1];
+		    double valp1 = (ix == nx-1) ? 0.0 : data[ngen+1];
+		    if (valm1 < 0 || valp1 < 0) {
+			data[ngen+1] = 0.0;
+		    } else {
+			data[ngen+1] = valp1-valm1; // assume dx=1
+			//data[ngen+1] = ((valp1-valm1) + 1) *  0.5; // assume dx=1 (ISO)
+		    }
+		    
+		    // gradient in y-direction
+		    valm1 = (iy == 0) ? 0.0 : data[ngen-4*nx];
+		    valp1 = (iy == ny-1) ? 0.0 : data[ngen+4*nx];
+		    if (valm1 < 0 || valp1 < 0) {
+			data[ngen+2] = 0.0;
+		    } else {
+			data[ngen+2] = valp1-valm1; // assume dy=1
+			//data[ngen+2] = ((valp1-valm1) + 1) *  0.5; // assume dy=1 (ISO)
+		    }
+		    
+		    // gradient in z-direction
+		    valm1 = (iz == 0) ? 0.0 : data[ngen-4*nx*ny];
+		    valp1 = (iz == nz-1) ? 0.0 : data[ngen+4*nx*ny];
+		    if (valm1 < 0 || valp1 < 0) {
+			data[ngen+3] = 0.0;
+		    } else {
+			data[ngen+3] = valp1-valm1; // assume dz=1
+			//data[ngen+3] = ((valp1-valm1) + 1) *  0.5; // assume dz=1 (ISO)
+		    }
+		    
+		    ngen += 4;
+		}
+	    }
+	}
+	
+	Volume *volPtr;
+	volPtr = NanoVis::load_volume(index, nx, ny, nz, 4, data,
+				      field.valueMin(), field.valueMax(), nzero_min);
+	volPtr->xAxis.SetRange(field.rangeMin(Rappture::xaxis),
+			       field.rangeMax(Rappture::xaxis));
+	volPtr->yAxis.SetRange(field.rangeMin(Rappture::yaxis),
+			       field.rangeMax(Rappture::yaxis));
+	volPtr->zAxis.SetRange(field.rangeMin(Rappture::zaxis),
+			       field.rangeMax(Rappture::zaxis));
+	volPtr->wAxis.SetRange(field.valueMin(), field.valueMax());
+	volPtr->update_pending = true;
+	// TBD..
+	// POINTSET
+	/*
+	  PointSet* pset = new PointSet();
+	  pset->initialize(volume[index], (float*) data);
+	  pset->setVisible(true);
+	  NanoVis::pointSet.push_back(pset);
+	  updateColor(pset);
+	  NanoVis::volume[index]->pointsetIndex = NanoVis::pointSet.size() - 1;
+	*/
+	
+	
+	delete [] data;
     }
 
     //
@@ -1177,8 +1176,9 @@ load_volume_stream_insoo(Rappture::Outcome &result, int index,
     x0 = y0 = z0 = 0.0;		// May not have an origin line.
     while (!fin.eof()) {
         fin.getline(line, sizeof(line) - 1);
+	fprintf(stderr, "line is %s\n", line);
         if (fin.fail()) {
-	    result.error("error in data stream");
+	    result.addError("line \"%s\"error in data stream");
             return false;
         }
         for (start=line; *start == ' ' || *start == '\t'; start++)
@@ -1272,167 +1272,172 @@ load_volume_stream_insoo(Rappture::Outcome &result, int index,
         }
     }
 
+    fprintf(stderr, "found nx=%d ny=%d, nz=%d, x0=%f, y0=%f, z0=%f\n",
+	    nx, ny, nz, x0, y0, z0);
     // read data points
-    if (!fin.eof()) {
-        if (isrect) {
-            Rappture::Mesh1D xgrid(x0, x0+nx*dx, nx);
-            Rappture::Mesh1D ygrid(y0, y0+ny*dy, ny);
-            Rappture::Mesh1D zgrid(z0, z0+nz*dz, nz);
-            Rappture::FieldRect3D field(xgrid, ygrid, zgrid);
+    if (fin.eof()) {
+	result.error("data not found in stream");
+        return false;
+    }
 
-            double dval[6];
-            int nread = 0;
-            int ix = 0;
-            int iy = 0;
-            int iz = 0;
-            while (!fin.eof() && nread < npts) {
-                fin.getline(line,sizeof(line)-1);
-                if (fin.fail()) {
-		    result.error("error reading data points");
-                    return false;
-                }
-                int n = sscanf(line, "%lg %lg %lg %lg %lg %lg", &dval[0], &dval[1], &dval[2], &dval[3], &dval[4], &dval[5]);
-
-                for (int p=0; p < n; p++) {
-                    int nindex = iz*nx*ny + iy*nx + ix;
-                    field.define(nindex, dval[p]);
-                    fprintf(stderr,"nindex = %i\tdval[%i] = %lg\n", nindex, p,
-                        dval[p]);
-                    fflush(stderr);
-                    nread++;
-                    if (++iz >= nz) {
-                        iz = 0;
-                        if (++iy >= ny) {
-                            iy = 0;
-                            ++ix;
-                        }
-                    }
-                }
-            }
-
-            // make sure that we read all of the expected points
-            if (nread != nx*ny*nz) {
-		result.addError("inconsistent data: expected %d points"
-				" but found %d points", nx*ny*nz, npts);
+    if (isrect) {
+	Rappture::Mesh1D xgrid(x0, x0+nx*dx, nx);
+	Rappture::Mesh1D ygrid(y0, y0+ny*dy, ny);
+	Rappture::Mesh1D zgrid(z0, z0+nz*dz, nz);
+	Rappture::FieldRect3D field(xgrid, ygrid, zgrid);
+	
+	double dval[6];
+	int nread = 0;
+	int ix = 0;
+	int iy = 0;
+	int iz = 0;
+	while (!fin.eof() && nread < npts) {
+	    fin.getline(line,sizeof(line)-1);
+	    if (fin.fail()) {
+		result.error("error reading data points");
 		return false;
-            }
-
-            // figure out a good mesh spacing
-            int nsample = 30;
-            dx = field.rangeMax(Rappture::xaxis) - field.rangeMin(Rappture::xaxis);
-            dy = field.rangeMax(Rappture::yaxis) - field.rangeMin(Rappture::yaxis);
-            dz = field.rangeMax(Rappture::zaxis) - field.rangeMin(Rappture::zaxis);
-            double dmin = pow((dx*dy*dz)/(nsample*nsample*nsample), 0.333);
-
-            nx = (int)ceil(dx/dmin);
-            ny = (int)ceil(dy/dmin);
-            nz = (int)ceil(dz/dmin);
-
+	    }
+	    int n = sscanf(line, "%lg %lg %lg %lg %lg %lg", &dval[0], &dval[1], &dval[2], &dval[3], &dval[4], &dval[5]);
+	    
+	    for (int p=0; p < n; p++) {
+		int nindex = iz*nx*ny + iy*nx + ix;
+		field.define(nindex, dval[p]);
+		fprintf(stderr,"nindex = %i\tdval[%i] = %lg\n", nindex, p,
+                        dval[p]);
+		fflush(stderr);
+		nread++;
+		if (++iz >= nz) {
+		    iz = 0;
+		    if (++iy >= ny) {
+			iy = 0;
+			++ix;
+		    }
+		}
+	    }
+	}
+	
+	// make sure that we read all of the expected points
+	if (nread != nx*ny*nz) {
+	    result.addError("inconsistent data: expected %d points"
+			    " but found %d points", nx*ny*nz, npts);
+	    return false;
+	}
+	
+	// figure out a good mesh spacing
+	int nsample = 30;
+	dx = field.rangeMax(Rappture::xaxis) - field.rangeMin(Rappture::xaxis);
+	dy = field.rangeMax(Rappture::yaxis) - field.rangeMin(Rappture::yaxis);
+	dz = field.rangeMax(Rappture::zaxis) - field.rangeMin(Rappture::zaxis);
+	double dmin = pow((dx*dy*dz)/(nsample*nsample*nsample), 0.333);
+	
+	nx = (int)ceil(dx/dmin);
+	ny = (int)ceil(dy/dmin);
+	nz = (int)ceil(dz/dmin);
+	
 #ifndef NV40
-            // must be an even power of 2 for older cards
-            nx = (int)pow(2.0, ceil(log10((double)nx)/log10(2.0)));
-            ny = (int)pow(2.0, ceil(log10((double)ny)/log10(2.0)));
-            nz = (int)pow(2.0, ceil(log10((double)nz)/log10(2.0)));
+	// must be an even power of 2 for older cards
+	nx = (int)pow(2.0, ceil(log10((double)nx)/log10(2.0)));
+	ny = (int)pow(2.0, ceil(log10((double)ny)/log10(2.0)));
+	nz = (int)pow(2.0, ceil(log10((double)nz)/log10(2.0)));
 #endif
-
-            float *data = new float[4*nx*ny*nz];
-
-            double vmin = field.valueMin();
-            double dv = field.valueMax() - field.valueMin();
-            if (dv == 0.0) { dv = 1.0; }
-
-            int ngen = 0;
-            double nzero_min = 0.0;
-            for (iz=0; iz < nz; iz++) {
-                double zval = z0 + iz*dmin;
-                for (int iy=0; iy < ny; iy++) {
-                    double yval = y0 + iy*dmin;
-                    for (int ix=0; ix < nx; ix++) {
-                        double xval = x0 + ix*dmin;
-                        double v = field.value(xval,yval,zval);
-
-                        if (v != 0.0f && v < nzero_min)
-                            {
-                                nzero_min = v;
-                            }
-                        // scale all values [0-1], -1 => out of bounds
-                        v = (isnan(v)) ? -1.0 : (v - vmin)/dv;
-                        data[ngen] = v;
-
-                        ngen += 4;
-                    }
+	
+	float *data = new float[4*nx*ny*nz];
+	
+	double vmin = field.valueMin();
+	double dv = field.valueMax() - field.valueMin();
+	if (dv == 0.0) { dv = 1.0; }
+	
+	int ngen = 0;
+	double nzero_min = 0.0;
+	for (iz=0; iz < nz; iz++) {
+	    double zval = z0 + iz*dmin;
+	    for (int iy=0; iy < ny; iy++) {
+		double yval = y0 + iy*dmin;
+		for (int ix=0; ix < nx; ix++) {
+		    double xval = x0 + ix*dmin;
+		    double v = field.value(xval,yval,zval);
+		    
+		    if (v != 0.0f && v < nzero_min) {
+			nzero_min = v;
+		    }
+		    // scale all values [0-1], -1 => out of bounds
+		    v = (isnan(v)) ? -1.0 : (v - vmin)/dv;
+		    data[ngen] = v;
+		    
+		    ngen += 4;
+		}
+	    }
+	}
+	
+	// Compute the gradient of this data.  BE CAREFUL: center
+	// calculation on each node to avoid skew in either direction.
+	ngen = 0;
+	for (int iz=0; iz < nz; iz++) {
+	    for (int iy=0; iy < ny; iy++) {
+		for (int ix=0; ix < nx; ix++) {
+		    // gradient in x-direction
+		    double valm1 = (ix == 0) ? 0.0 : data[ngen-1];
+		    double valp1 = (ix == nx-1) ? 0.0 : data[ngen+1];
+		    if (valm1 < 0 || valp1 < 0) {
+			data[ngen+1] = 0.0;
+		    } else {
+			data[ngen+1] = valp1-valm1; // assume dx=1
+			//data[ngen+1] = ((valp1-valm1) + 1) *  0.5; // assume dx=1 (ISO)
+		    }
+		    
+		    // gradient in y-direction
+		    valm1 = (iy == 0) ? 0.0 : data[ngen-4*nx];
+		    valp1 = (iy == ny-1) ? 0.0 : data[ngen+4*nx];
+		    if (valm1 < 0 || valp1 < 0) {
+			data[ngen+2] = 0.0;
+		    } else {
+			data[ngen+2] = valp1-valm1; // assume dy=1
+			//data[ngen+2] = ((valp1-valm1) + 1) *  0.5; // assume dy=1 (ISO)
+		    }
+		    
+		    // gradient in z-direction
+		    valm1 = (iz == 0) ? 0.0 : data[ngen-4*nx*ny];
+		    valp1 = (iz == nz-1) ? 0.0 : data[ngen+4*nx*ny];
+		    if (valm1 < 0 || valp1 < 0) {
+			data[ngen+3] = 0.0;
+		    } else {
+			data[ngen+3] = valp1-valm1; // assume dz=1
+			//data[ngen+3] = ((valp1-valm1) + 1) *  0.5; // assume dz=1 (ISO)
+		    }
+		    
+		    ngen += 4;
+		}
+	    }
+	}
+	
+	/*
+	  float *cdata = new float[nx*ny*nz];
+	  int ngen = 0;
+	  double nzero_min = 0.0;
+	  for (int iz=0; iz < nz; iz++) {
+	  double zval = z0 + iz*dmin;
+	  for (int iy=0; iy < ny; iy++) {
+	  double yval = y0 + iy*dmin;
+	  for (int ix=0; ix < nx; ix++) {
+	  double xval = x0 + ix*dmin;
+	  double v = field.value(xval,yval,zval);
+	  
+	  if (v != 0.0f && v < nzero_min) {
+	  nzero_min = v;
+	  }
+	  
+	  // scale all values [0-1], -1 => out of bounds
+	  v = (isnan(v)) ? -1.0 : v;
+	  
+	  cdata[ngen] = v;
+	  ++ngen;
+	  }
                 }
             }
-
-            // Compute the gradient of this data.  BE CAREFUL: center
-            // calculation on each node to avoid skew in either direction.
-            ngen = 0;
-            for (int iz=0; iz < nz; iz++) {
-                for (int iy=0; iy < ny; iy++) {
-                    for (int ix=0; ix < nx; ix++) {
-                        // gradient in x-direction
-                        double valm1 = (ix == 0) ? 0.0 : data[ngen-1];
-                        double valp1 = (ix == nx-1) ? 0.0 : data[ngen+1];
-                        if (valm1 < 0 || valp1 < 0) {
-                            data[ngen+1] = 0.0;
-                        } else {
-                            data[ngen+1] = valp1-valm1; // assume dx=1
-                            //data[ngen+1] = ((valp1-valm1) + 1) *  0.5; // assume dx=1 (ISO)
-                        }
-
-                        // gradient in y-direction
-                        valm1 = (iy == 0) ? 0.0 : data[ngen-4*nx];
-                        valp1 = (iy == ny-1) ? 0.0 : data[ngen+4*nx];
-                        if (valm1 < 0 || valp1 < 0) {
-                            data[ngen+2] = 0.0;
-                        } else {
-                            data[ngen+2] = valp1-valm1; // assume dy=1
-                            //data[ngen+2] = ((valp1-valm1) + 1) *  0.5; // assume dy=1 (ISO)
-                        }
-
-                        // gradient in z-direction
-                        valm1 = (iz == 0) ? 0.0 : data[ngen-4*nx*ny];
-                        valp1 = (iz == nz-1) ? 0.0 : data[ngen+4*nx*ny];
-                        if (valm1 < 0 || valp1 < 0) {
-                            data[ngen+3] = 0.0;
-                        } else {
-                            data[ngen+3] = valp1-valm1; // assume dz=1
-                            //data[ngen+3] = ((valp1-valm1) + 1) *  0.5; // assume dz=1 (ISO)
-                        }
-
-                        ngen += 4;
-                    }
-                }
-            }
-
-/*
-            float *cdata = new float[nx*ny*nz];
-            int ngen = 0;
-            double nzero_min = 0.0;
-            for (int iz=0; iz < nz; iz++) {
-                double zval = z0 + iz*dmin;
-                for (int iy=0; iy < ny; iy++) {
-                    double yval = y0 + iy*dmin;
-                    for (int ix=0; ix < nx; ix++) {
-                        double xval = x0 + ix*dmin;
-                        double v = field.value(xval,yval,zval);
-
-                        if (v != 0.0f && v < nzero_min) {
-                            nzero_min = v;
-                        }
-
-                        // scale all values [0-1], -1 => out of bounds
-                        v = (isnan(v)) ? -1.0 : v;
-
-                        cdata[ngen] = v;
-                        ++ngen;
-                    }
-                }
-            }
-
+	    
             float* data = computeGradient(cdata, nx, ny, nz, field.valueMin(),
                                           field.valueMax());
-
+					  
             for (int i=0; i<nx*ny*nz; i++) {
                 fprintf(stderr,"enddata[%i] = %lg\n",i,data[i]);
                 fflush(stderr);
@@ -1445,183 +1450,178 @@ load_volume_stream_insoo(Rappture::Outcome &result, int index,
             fflush(stdout);
             */
 
-            Volume *volPtr;
-            volPtr = NanoVis::load_volume(index, nx, ny, nz, 4, data,
-            field.valueMin(), field.valueMax(), nzero_min);
-            volPtr->xAxis.SetRange(field.rangeMin(Rappture::xaxis),
-                   field.rangeMax(Rappture::xaxis));
-            volPtr->yAxis.SetRange(field.rangeMin(Rappture::yaxis),
-                   field.rangeMax(Rappture::yaxis));
-            volPtr->zAxis.SetRange(field.rangeMin(Rappture::zaxis),
-                   field.rangeMax(Rappture::zaxis));
-            volPtr->wAxis.SetRange(field.valueMin(), field.valueMax());
-            volPtr->update_pending = true;
-            // TBD..
-            // POINTSET
-            /*
-              PointSet* pset = new PointSet();
-              pset->initialize(volume[index], (float*) data);
-              pset->setVisible(true);
-              NanoVis::pointSet.push_back(pset);
-              updateColor(pset);
-              NanoVis::volume[index]->pointsetIndex = NanoVis::pointSet.size() - 1;
-            */
-
-            delete [] data;
-
-        } else {
-            Rappture::Mesh1D zgrid(z0, z0+nz*dz, nz);
-            Rappture::FieldPrism3D field(xymesh, zgrid);
-
-            double dval;
-            int nread = 0;
-            int ixy = 0;
-            int iz = 0;
-            while (!fin.eof() && nread < npts) {
-                fin >> dval;
-                if (fin.fail()) {
-                    char mesg[256];
-                    sprintf(mesg,"after %d of %d points: can't read number", 
-                            nread, npts);
-		    result.error(mesg);
-                    return false;
-                } else {
-                    int nid = nxy*iz + ixy;
-                    field.define(nid, dval);
-
-                    nread++;
-                    if (++iz >= nz) {
-                        iz = 0;
-                        ixy++;
-                    }
-                }
-            }
-
-            // make sure that we read all of the expected points
-            if (nread != nxy*nz) {
-		result.addError("inconsistent data: expected %d points"
-				" but found %d points", nx*ny*nz, npts);
-		return false;
-            }
-
-            // figure out a good mesh spacing
-            int nsample = 30;
-            x0 = field.rangeMin(Rappture::xaxis);
-            dx = field.rangeMax(Rappture::xaxis) - field.rangeMin(Rappture::xaxis);
-            y0 = field.rangeMin(Rappture::yaxis);
-            dy = field.rangeMax(Rappture::yaxis) - field.rangeMin(Rappture::yaxis);
-            z0 = field.rangeMin(Rappture::zaxis);
-            dz = field.rangeMax(Rappture::zaxis) - field.rangeMin(Rappture::zaxis);
-            double dmin = pow((dx*dy*dz)/(nsample*nsample*nsample), 0.333);
-
-            nx = (int)ceil(dx/dmin);
-            ny = (int)ceil(dy/dmin);
-            nz = (int)ceil(dz/dmin);
-#ifndef NV40
-            // must be an even power of 2 for older cards
-            nx = (int)pow(2.0, ceil(log10((double)nx)/log10(2.0)));
-            ny = (int)pow(2.0, ceil(log10((double)ny)/log10(2.0)));
-            nz = (int)pow(2.0, ceil(log10((double)nz)/log10(2.0)));
-#endif
-            float *data = new float[4*nx*ny*nz];
-
-            double vmin = field.valueMin();
-            double dv = field.valueMax() - field.valueMin();
-            if (dv == 0.0) { dv = 1.0; }
-
-            // generate the uniformly sampled data that we need for a volume
-            int ngen = 0;
-            double nzero_min = 0.0;
-            for (iz=0; iz < nz; iz++) {
-                double zval = z0 + iz*dmin;
-                for (int iy=0; iy < ny; iy++) {
-                    double yval = y0 + iy*dmin;
-                    for (int ix=0; ix < nx; ix++) {
-                        double xval = x0 + ix*dmin;
-                        double v = field.value(xval,yval,zval);
-
-                        if (v != 0.0f && v < nzero_min)
-                            {
-                                nzero_min = v;
-                            }
-                        // scale all values [0-1], -1 => out of bounds
-                        v = (isnan(v)) ? -1.0 : (v - vmin)/dv;
-                        data[ngen] = v;
-
-                        ngen += 4;
-                    }
-                }
-            }
-
-            // Compute the gradient of this data.  BE CAREFUL: center
-            // calculation on each node to avoid skew in either direction.
-            ngen = 0;
-            for (int iz=0; iz < nz; iz++) {
-                for (int iy=0; iy < ny; iy++) {
-                    for (int ix=0; ix < nx; ix++) {
-                        // gradient in x-direction
-                        double valm1 = (ix == 0) ? 0.0 : data[ngen-1];
-                        double valp1 = (ix == nx-1) ? 0.0 : data[ngen+1];
-                        if (valm1 < 0 || valp1 < 0) {
-                            data[ngen+1] = 0.0;
-                        } else {
-                            data[ngen+1] = valp1-valm1; // assume dx=1
-                            //data[ngen+1] = ((valp1-valm1) + 1) *  0.5; // assume dx=1 (ISO)
-                        }
-
-                        // gradient in y-direction
-                        valm1 = (iy == 0) ? 0.0 : data[ngen-4*nx];
-                        valp1 = (iy == ny-1) ? 0.0 : data[ngen+4*nx];
-                        if (valm1 < 0 || valp1 < 0) {
-                            data[ngen+2] = 0.0;
-                        } else {
-                            data[ngen+2] = valp1-valm1; // assume dy=1
-                            //data[ngen+2] = ((valp1-valm1) + 1) *  0.5; // assume dy=1 (ISO)
-                        }
-
-                        // gradient in z-direction
-                        valm1 = (iz == 0) ? 0.0 : data[ngen-4*nx*ny];
-                        valp1 = (iz == nz-1) ? 0.0 : data[ngen+4*nx*ny];
-                        if (valm1 < 0 || valp1 < 0) {
-                            data[ngen+3] = 0.0;
-                        } else {
-                            data[ngen+3] = valp1-valm1; // assume dz=1
-                            //data[ngen+3] = ((valp1-valm1) + 1) *  0.5; // assume dz=1 (ISO)
-                        }
-
-                        ngen += 4;
-                    }
-                }
-            }
-
-            Volume *volPtr;
-            volPtr = NanoVis::load_volume(index, nx, ny, nz, 4, data,
-            field.valueMin(), field.valueMax(), nzero_min);
-            volPtr->xAxis.SetRange(field.rangeMin(Rappture::xaxis),
-                   field.rangeMax(Rappture::xaxis));
-            volPtr->yAxis.SetRange(field.rangeMin(Rappture::yaxis),
-                   field.rangeMax(Rappture::yaxis));
-            volPtr->zAxis.SetRange(field.rangeMin(Rappture::zaxis),
-                   field.rangeMax(Rappture::zaxis));
-            volPtr->wAxis.SetRange(field.valueMin(), field.valueMax());
-            volPtr->update_pending = true;
-            // TBD..
-            // POINTSET
-            /*
-              PointSet* pset = new PointSet();
-              pset->initialize(volume[index], (float*) data);
-              pset->setVisible(true);
-              NanoVis::pointSet.push_back(pset);
-              updateColor(pset);
-              NanoVis::volume[index]->pointsetIndex = NanoVis::pointSet.size() - 1;
-            */
-
-
-            delete [] data;
-        }
+	Volume *volPtr;
+	volPtr = NanoVis::load_volume(index, nx, ny, nz, 4, data,
+				      field.valueMin(), field.valueMax(), nzero_min);
+	volPtr->xAxis.SetRange(field.rangeMin(Rappture::xaxis),
+			       field.rangeMax(Rappture::xaxis));
+	volPtr->yAxis.SetRange(field.rangeMin(Rappture::yaxis),
+			       field.rangeMax(Rappture::yaxis));
+	volPtr->zAxis.SetRange(field.rangeMin(Rappture::zaxis),
+			       field.rangeMax(Rappture::zaxis));
+	volPtr->wAxis.SetRange(field.valueMin(), field.valueMax());
+	volPtr->update_pending = true;
+	// TBD..
+	// POINTSET
+	/*
+	  PointSet* pset = new PointSet();
+	  pset->initialize(volume[index], (float*) data);
+	  pset->setVisible(true);
+	  NanoVis::pointSet.push_back(pset);
+	  updateColor(pset);
+	  NanoVis::volume[index]->pointsetIndex = NanoVis::pointSet.size() - 1;
+	*/
+	
+	delete [] data;
+	
     } else {
-	result.error("data not found in stream");
-        return false;
+	Rappture::Mesh1D zgrid(z0, z0+nz*dz, nz);
+	Rappture::FieldPrism3D field(xymesh, zgrid);
+	
+	double dval;
+	int nread = 0;
+	int ixy = 0;
+	int iz = 0;
+	while (!fin.eof() && nread < npts) {
+	    fin >> dval;
+	    if (fin.fail()) {
+		char mesg[256];
+		sprintf(mesg,"after %d of %d points: can't read number", 
+			nread, npts);
+		result.error(mesg);
+		return false;
+	    } else {
+		int nid = nxy*iz + ixy;
+		field.define(nid, dval);
+		
+		nread++;
+		if (++iz >= nz) {
+		    iz = 0;
+		    ixy++;
+		}
+	    }
+	}
+	
+	// make sure that we read all of the expected points
+	if (nread != nxy*nz) {
+	    result.addError("inconsistent data: expected %d points"
+			    " but found %d points", nx*ny*nz, npts);
+	    return false;
+	}
+	
+	// figure out a good mesh spacing
+	int nsample = 30;
+	x0 = field.rangeMin(Rappture::xaxis);
+	dx = field.rangeMax(Rappture::xaxis) - field.rangeMin(Rappture::xaxis);
+	y0 = field.rangeMin(Rappture::yaxis);
+	dy = field.rangeMax(Rappture::yaxis) - field.rangeMin(Rappture::yaxis);
+	z0 = field.rangeMin(Rappture::zaxis);
+	dz = field.rangeMax(Rappture::zaxis) - field.rangeMin(Rappture::zaxis);
+	double dmin = pow((dx*dy*dz)/(nsample*nsample*nsample), 0.333);
+	
+	nx = (int)ceil(dx/dmin);
+	ny = (int)ceil(dy/dmin);
+	nz = (int)ceil(dz/dmin);
+#ifndef NV40
+	// must be an even power of 2 for older cards
+	nx = (int)pow(2.0, ceil(log10((double)nx)/log10(2.0)));
+	ny = (int)pow(2.0, ceil(log10((double)ny)/log10(2.0)));
+	nz = (int)pow(2.0, ceil(log10((double)nz)/log10(2.0)));
+#endif
+	float *data = new float[4*nx*ny*nz];
+	
+	double vmin = field.valueMin();
+	double dv = field.valueMax() - field.valueMin();
+	if (dv == 0.0) { dv = 1.0; }
+	
+	// generate the uniformly sampled data that we need for a volume
+	int ngen = 0;
+	double nzero_min = 0.0;
+	for (iz=0; iz < nz; iz++) {
+	    double zval = z0 + iz*dmin;
+	    for (int iy=0; iy < ny; iy++) {
+		double yval = y0 + iy*dmin;
+		for (int ix=0; ix < nx; ix++) {
+		    double xval = x0 + ix*dmin;
+		    double v = field.value(xval,yval,zval);
+		    
+		    if (v != 0.0f && v < nzero_min) {
+			nzero_min = v;
+		    }
+		    // scale all values [0-1], -1 => out of bounds
+		    v = (isnan(v)) ? -1.0 : (v - vmin)/dv;
+		    data[ngen] = v;
+		    
+		    ngen += 4;
+		}
+	    }
+	}
+	
+	// Compute the gradient of this data.  BE CAREFUL: center
+	// calculation on each node to avoid skew in either direction.
+	ngen = 0;
+	for (int iz=0; iz < nz; iz++) {
+	    for (int iy=0; iy < ny; iy++) {
+		for (int ix=0; ix < nx; ix++) {
+		    // gradient in x-direction
+		    double valm1 = (ix == 0) ? 0.0 : data[ngen-1];
+		    double valp1 = (ix == nx-1) ? 0.0 : data[ngen+1];
+		    if (valm1 < 0 || valp1 < 0) {
+			data[ngen+1] = 0.0;
+		    } else {
+			data[ngen+1] = valp1-valm1; // assume dx=1
+			//data[ngen+1] = ((valp1-valm1) + 1) *  0.5; // assume dx=1 (ISO)
+		    }
+		    
+		    // gradient in y-direction
+		    valm1 = (iy == 0) ? 0.0 : data[ngen-4*nx];
+		    valp1 = (iy == ny-1) ? 0.0 : data[ngen+4*nx];
+		    if (valm1 < 0 || valp1 < 0) {
+			data[ngen+2] = 0.0;
+		    } else {
+			data[ngen+2] = valp1-valm1; // assume dy=1
+			//data[ngen+2] = ((valp1-valm1) + 1) *  0.5; // assume dy=1 (ISO)
+		    }
+		    
+		    // gradient in z-direction
+		    valm1 = (iz == 0) ? 0.0 : data[ngen-4*nx*ny];
+		    valp1 = (iz == nz-1) ? 0.0 : data[ngen+4*nx*ny];
+		    if (valm1 < 0 || valp1 < 0) {
+			data[ngen+3] = 0.0;
+		    } else {
+			data[ngen+3] = valp1-valm1; // assume dz=1
+			//data[ngen+3] = ((valp1-valm1) + 1) *  0.5; // assume dz=1 (ISO)
+		    }
+		    
+		    ngen += 4;
+		}
+	    }
+	}
+	
+	Volume *volPtr;
+	volPtr = NanoVis::load_volume(index, nx, ny, nz, 4, data,
+				      field.valueMin(), field.valueMax(), nzero_min);
+	volPtr->xAxis.SetRange(field.rangeMin(Rappture::xaxis),
+			       field.rangeMax(Rappture::xaxis));
+	volPtr->yAxis.SetRange(field.rangeMin(Rappture::yaxis),
+			       field.rangeMax(Rappture::yaxis));
+	volPtr->zAxis.SetRange(field.rangeMin(Rappture::zaxis),
+			       field.rangeMax(Rappture::zaxis));
+	volPtr->wAxis.SetRange(field.valueMin(), field.valueMax());
+	volPtr->update_pending = true;
+	// TBD..
+	// POINTSET
+	/*
+	  PointSet* pset = new PointSet();
+	  pset->initialize(volume[index], (float*) data);
+	  pset->setVisible(true);
+	  NanoVis::pointSet.push_back(pset);
+	  updateColor(pset);
+	  NanoVis::volume[index]->pointsetIndex = NanoVis::pointSet.size() - 1;
+	*/
+	
+	
+	delete [] data;
     }
 
     //

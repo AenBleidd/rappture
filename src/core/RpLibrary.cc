@@ -1538,7 +1538,7 @@ RpLibrary::getString (std::string path, int translateFlag) const
     }
     inData = Rappture::Buffer(retCStr);
 
-    if (Rappture::encoding::isencoded(inData.bytes(),inData.size()) != 0) {
+    if (Rappture::encoding::headerFlags(inData.bytes(),inData.size()) != 0) {
         // data is encoded,
         // coming from an rplib, this means it was at least base64 encoded
         // there is no reason to do entity translation
@@ -1756,7 +1756,7 @@ RpLibrary::put (std::string path, std::string value, std::string id,
     // check for binary data
     // FIXME: I've already appended a NUL-byte of this assuming that
     //	      it's a ASCII string. This test must come before.
-    if (Rappture::encoding::isbinary(value.c_str(), value.length()) != 0) {
+    if (Rappture::encoding::isbinary(value.c_str(), value.length())) {
         putData(path, value.c_str(), value.length(), append);
         return *this;
     }

@@ -71,7 +71,6 @@
 #include "NvLIC.h"
 #include "Unirect.h"
 
-#define ISO_TEST                1
 #define PLANE_CMD               0
 #define __TEST_CODE__           0
 // FOR testing new functions
@@ -687,23 +686,14 @@ GetDataStream(Tcl_Interp *interp, Rappture::Buffer &buf, int nBytes)
 	assert(nWritten == (ssize_t)buf.size());
         fflush(NanoVis::recfile);
     }
-    {
-        Rappture::Outcome err;
-	unsigned int flags;
-
-	if (buf.size() <= 0) {
-	    fprintf(stderr, "encoded DX buffer is empty\n");
-	}
-	flags = RPENC_Z|RPENC_B64|RPENC_HDR;
-        if (!Rappture::encoding::decode(err, buf, flags)) {
-            printf("ERROR -- DECODING\n");
-            fflush(stdout);
-            Tcl_AppendResult(interp, err.remark(), (char*)NULL);
-            return TCL_ERROR;
-        }
-	if (buf.size() <= 0) {
-	    fprintf(stderr, "decoded DX buffer is empty\n");
-	}
+    Rappture::Outcome err;
+    unsigned int flags;
+    flags = RPENC_Z|RPENC_B64|RPENC_HDR;
+    if (!Rappture::encoding::decode(err, buf, flags)) {
+	printf("ERROR -- DECODING\n");
+	fflush(stdout);
+	Tcl_AppendResult(interp, err.remark(), (char*)NULL);
+	return TCL_ERROR;
     }
     return TCL_OK;
 }
@@ -1323,21 +1313,25 @@ VolumeDataFollowsOp(ClientData cdata, Tcl_Interp *interp, int objc,
             return TCL_ERROR;
         }
     } else {
-        Rappture::Outcome err;
 
         printf("OpenDX loading...\n");
         fflush(stdout);
         std::stringstream fdata;
         fdata.write(buf.bytes(),buf.size());
+	if (buf.size() <= 0) {
+	    fprintf(stderr, "data buffer is empty\n");
+	    abort();
+	}
 
 	bool result;
+        Rappture::Outcome context;
 #if ISO_TEST
-        result = load_volume_stream2(err, n, fdata);
+        result = load_volume_stream2(context, n, fdata);
 #else
-        result = load_volume_stream(err, n, fdata);
+        result = load_volume_stream(context, n, fdata);
 #endif
         if (!result) {
-            Tcl_AppendResult(interp, err.remark(), (char*)NULL);
+            Tcl_AppendResult(interp, context.remark(), (char*)NULL);
             return TCL_ERROR;
         }
     }

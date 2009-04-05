@@ -21,8 +21,8 @@ load_volume_stream_odx(Rappture::Outcome &context, int index, const char *buf,
 {
     char dxfilename[128];
 
-    if (nBytes == 0) {
-	context.error("data not found in stream");
+    if (nBytes <= 0) {
+	context.error("empty data buffer\n");
         return false;
     }
 

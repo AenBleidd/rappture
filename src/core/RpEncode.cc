@@ -25,7 +25,7 @@
  *
  */
 
-int
+bool
 Rappture::encoding::isbinary(const char* buf, int size)
 {
     if (buf == NULL) {
@@ -36,15 +36,33 @@ Rappture::encoding::isbinary(const char* buf, int size)
     }
     const char *cp, *endPtr;
     for (cp = buf, endPtr = buf + size; cp < endPtr; cp++) {
-	if ((!isascii(*cp)) || (!isprint(*cp))) {
-	    return (cp - buf) + 1;
+	if ((!isascii(*cp)) && (!isprint(*cp))) {
+	    return true;
 	}
     }
-    return 0;
+    return false;
+}
+
+bool
+Rappture::encoding::isbase64(const char* buf, int size)
+{
+    if (buf == NULL) {
+        return 0;
+    }
+    if (size < 0) {
+        size = strlen(buf);
+    }
+    const char *cp, *endPtr;
+    for (cp = buf, endPtr = buf + size; cp < endPtr; cp++) {
+	if (((*cp < 'A') || (*cp > '/')) && (!isspace(*cp)) && (*cp != '=')) {
+	    return false;
+	}
+    }
+    return true;
 }
 
 /**********************************************************************/
-// FUNCTION: Rappture::encoding::isencoded()
+// FUNCTION: Rappture::encoding::flags()
 /// checks header of given string to determine if it was encoded by rappture.
 /**
  * Checks to see if the string buf was encoded by rappture
@@ -53,12 +71,12 @@ Rappture::encoding::isbinary(const char* buf, int size)
  * where X is one of z, b64, zb64
  * This function will not work for strings that do not have the header.
  * Full function call:
- * Rappture::encoding::isencoded(buf,size);
+ * Rappture::encoding::headerFlags(buf,size);
  *
  */
 
-size_t
-Rappture::encoding::isencoded(const char* buf, int size)
+unsigned int
+Rappture::encoding::headerFlags(const char* buf, int size)
 {
     size_t flags = 0;
     size_t len = 0;
@@ -78,9 +96,7 @@ Rappture::encoding::isencoded(const char* buf, int size)
     // rappture encoded strings start with the '@' character
     // rappture encoded strings start with the string "@@RP-ENC:X\n"
     // where X is one of z, b64, zb64
-    if (    (len >= 11)
-        &&  ('@' == *buf)
-        &&  (strncmp("@@RP-ENC:",buf,9) == 0) ) {
+    if ((len >= 11) &&  ('@' == *buf) &&  (strncmp("@@RP-ENC:",buf,9) == 0) ) {
 
         size_t idx = 9;
 
@@ -120,41 +136,40 @@ Rappture::encoding::isencoded(const char* buf, int size)
 
 bool
 Rappture::encoding::encode(Rappture::Outcome &err, Rappture::Buffer& buf, 
-	size_t flags)
+			   unsigned int flags)
 {
     Rappture::Buffer outData;
 
-    bool compress, base64, addHeader;
-    compress  = (flags & RPENC_Z);
-    base64    = (flags & RPENC_B64);
-    addHeader = (flags & RPENC_HDR);
-
     size_t size;
     size = buf.size();
-    if (size <= 0) {
+    if (buf.size() <= 0) {
 	return true;		// Nothing to encode.
     }
-    if ((!compress) && (!base64)) {
+    if ((flags & (RPENC_Z | RPENC_B64)) == 0) {
 	return true;		// Nothing to do.
     }
     if (outData.append(buf.bytes(), buf.size()) != (int)size) {
 	err.addError("can't append %lu bytes", size);
 	return false;
     }
-    if (outData.encode(err, compress, base64)) {
-	buf.clear();
-	if (addHeader) {
-	    if ((compress) && (!base64)) {
-		buf.append("@@RP-ENC:z\n", 11);
-	    } else if ((!compress) && (base64)) {
-		buf.append("@@RP-ENC:b64\n", 13);
-	    } else if ((compress) && (base64)) {
-		buf.append("@@RP-ENC:zb64\n", 14);
-	    } else {
-		// do nothing
-	    }
-	} else {
-	    // do nothing
+    if (!outData.encode(err, flags)) {
+	return false;
+    }
+    buf.clear();
+    if (flags & RPENC_HDR) {
+	flags &= (RPENC_Z | RPENC_B64);
+	switch (flags) {
+	case RPENC_Z:
+	    buf.append("@@RP-ENC:z\n", 11);
+	    break;
+	case RPENC_B64:
+	    buf.append("@@RP-ENC:b64\n", 13);
+	    break;
+	case (RPENC_B64 | RPENC_Z):
+	    buf.append("@@RP-ENC:zb64\n", 14);
+	    break;
+	default:
+	    break;
 	}
     }
     if (buf.append(outData.bytes(),outData.size()) != (int)outData.size()) {
@@ -174,20 +189,16 @@ Rappture::encoding::encode(Rappture::Outcome &err, Rappture::Buffer& buf,
  *
  * Full function call:
  * Rappture::encoding::decode (buf,flags)
+ *
+ * The check header flag is confusing here.
  */
 
 bool
 Rappture::encoding::decode(Rappture::Outcome &err, Rappture::Buffer& buf, 
-			   size_t flags)
+		unsigned int flags)
 {
     Rappture::Buffer outData;
 
-    bool decompress, base64, checkHeader;
-    decompress  = (flags & RPENC_Z);
-    base64      = (flags & RPENC_B64);
-    checkHeader = (flags & RPENC_HDR);
-
-    off_t offset;
     const char *bytes;
 
     size_t size;
@@ -199,35 +210,24 @@ Rappture::encoding::decode(Rappture::Outcome &err, Rappture::Buffer& buf,
     if (strncmp(bytes, "@@RP-ENC:z\n", 11) == 0) {
 	bytes += 11;
 	size -= 11;
-        if ((checkHeader) || ((!decompress) && (!base64))) {
-            decompress = true;
-            base64     = false;
-        }
+	flags &= ~RPENC_B64;
+	flags |= RPENC_Z;
     } else if (strncmp(bytes, "@@RP-ENC:b64\n", 13) == 0) {
 	bytes += 13;
 	size -= 13;
-        if ((checkHeader) || ((!decompress) && (!base64) )) {
-            decompress = false;
-            base64     = true;
-        }
+	flags &= ~RPENC_Z;
+	flags |= RPENC_B64;
     } else if (strncmp(bytes, "@@RP-ENC:zb64\n", 14) == 0) {
 	bytes += 14;
 	size -= 14;
-        if ((checkHeader) || ((!decompress) && (!base64))) {
-            decompress = true;
-            base64     = true;
-        }
-    } else {
-	offset = 0;
-    }
-    if (outData.append(bytes, size) != size) {
+	flags |= (RPENC_B64 | RPENC_Z);
+    } 
+    if (outData.append(bytes, size) != (int)size) {
 	err.addError("can't append %d bytes to buffer", size);
 	return false;
     }
-    if ((decompress) || (base64)) {
-	if (!outData.decode(err, decompress, base64)) {
-	    return false;
-	}
+    if (!outData.decode(err, flags)) {
+	return false;
     }
     buf.move(outData);
     return true;

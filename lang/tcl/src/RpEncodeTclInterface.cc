@@ -86,7 +86,7 @@ RpTclEncodingIs (ClientData cdata, Tcl_Interp *interp,
     } else if (('e' == *type) && (strcmp(type,"encoded") == 0)) {
 	bool isEncoded;
 
-        isEncoded = (Rappture::encoding::isencoded(buf, bufLen) != 0);
+        isEncoded = (Rappture::encoding::headerFlags(buf, bufLen) != 0);
 	string = (isEncoded) ? "yes" : "no" ;
     } else {
 	Tcl_AppendResult(interp, "bad option \"", type, 
@@ -120,12 +120,11 @@ RpTclEncodingEncode (ClientData cdata, Tcl_Interp *interp, int objc,
     const char* cmdName       = NULL;
     Rappture::Outcome err;
 
-    int typeLen               = 0;
     int nextarg               = 0; // start parsing using the '2'th argument
 
-    bool compress, base64, addHeader;
-
-    compress = base64 = addHeader = true;
+    bool addHeader;
+    int flags;
+    addHeader = true;
 
     Tcl_Obj *result           = NULL;
 
@@ -140,31 +139,25 @@ RpTclEncodingEncode (ClientData cdata, Tcl_Interp *interp, int objc,
                 " ?-as z|b64|zb64? ?-no-header? ?--? <string>\"", (char*)NULL);
         return TCL_ERROR;
     }
-
+    flags = 0;
     while ((objc - nextarg) > 0) {
 	const char *option;
-	int optionLen;
 
-        option = Tcl_GetStringFromObj(objv[nextarg], &optionLen);
+        option = Tcl_GetString(objv[nextarg]);
         if (*option == '-') {
-            if (strncmp(option,"-as", optionLen) == 0 ) {
+            if (strcmp(option,"-as") == 0) {
                 nextarg++;
-                typeLen = 0;
+		encodeType = NULL;
                 if (nextarg < objc) {
-                    encodeType = Tcl_GetStringFromObj(objv[nextarg],&typeLen);
+                    encodeType = Tcl_GetString(objv[nextarg]);
                     nextarg++;
                 }
-                if ((typeLen == 1) && (strncmp(encodeType,"z",typeLen) == 0) ) {
-                    compress = true;
-                    base64 = false;
-                } else if ((typeLen == 3) && 
-			 (strncmp(encodeType,"b64",typeLen) == 0) ) {
-                    compress = false;
-                    base64 = true;
-                } else if ((typeLen == 4) &&
-			 (strncmp(encodeType,"zb64",typeLen) == 0) ) {
-                    compress = true;
-                    base64 = true;
+                if (strcmp(encodeType, "z") == 0) {
+                    flags = RPENC_Z;
+                } else if (strcmp(encodeType, "b64") == 0) {
+                    flags = RPENC_B64;
+                } else if (strcmp(encodeType, "zb64") == 0) {
+                    flags = RPENC_B64 | RPENC_Z;
                 } else {
                     // user did not specify recognized wishes for this option,
                     Tcl_AppendResult(interp, "bad value \"",(char*)NULL);
@@ -176,10 +169,10 @@ RpTclEncodingEncode (ClientData cdata, Tcl_Interp *interp, int objc,
                             (char*)NULL);
                     return TCL_ERROR;
                 }
-            } else if ( strncmp(option,"-no-header", optionLen) == 0 ) {
+            } else if (strcmp(option,"-no-header") == 0) {
                 nextarg++;
                 addHeader = false;
-            } else if ( strcmp(option,"--") == 0 ) {
+            } else if (strcmp(option,"--") == 0) {
                 nextarg++;
                 break;
             } else {
@@ -207,13 +200,6 @@ RpTclEncodingEncode (ClientData cdata, Tcl_Interp *interp, int objc,
 	return TCL_OK;		// Nothing to encode.
     }
     Rappture::Buffer buf(string, nBytes);
-    unsigned int flags = 0;
-    if (compress) {
-        flags |= RPENC_Z;
-    }
-    if (base64) {
-        flags |= RPENC_B64;
-    }
     if (addHeader) {
         flags |= RPENC_HDR;
     }
@@ -249,11 +235,8 @@ RpTclEncodingDecode (   ClientData cdata,
     const char* cmdName       = NULL;
     Rappture::Outcome err;
 
-    int typeLen               = 0;
     int nextarg               = 0; // start parsing using the '2'th argument
-
-    bool decompress, base64;
-    decompress = base64 = false;
+    int flags;
 
     cmdName = Tcl_GetString(objv[nextarg++]);
 
@@ -265,35 +248,26 @@ RpTclEncodingDecode (   ClientData cdata,
         return TCL_ERROR;
     }
 
+    flags = 0;
     while ((objc - nextarg) > 0) {
 	const char *option;
-	int optionLen;
 
-        option = Tcl_GetStringFromObj(objv[nextarg], &optionLen);
+        option = Tcl_GetString(objv[nextarg]);
         if (*option == '-') {
-            if ( strncmp(option,"-as",optionLen) == 0 ) {
+            if (strcmp(option,"-as") == 0) {
                 nextarg++;
-                typeLen = 0;
+		encodeType = NULL;
                 if (nextarg < objc) {
-                    encodeType = Tcl_GetStringFromObj(objv[nextarg],&typeLen);
+                    encodeType = Tcl_GetString(objv[nextarg]);
                     nextarg++;
                 }
-                if (        (typeLen == 1) &&
-                            (strncmp(encodeType,"z",typeLen) == 0) ) {
-                    decompress = true;
-                    base64 = false;
-                }
-                else if (   (typeLen == 3) &&
-                            (strncmp(encodeType,"b64",typeLen) == 0) ) {
-                    decompress = false;
-                    base64 = true;
-                }
-                else if (   (typeLen == 4) &&
-                            (strncmp(encodeType,"zb64",typeLen) == 0) ) {
-                    decompress = true;
-                    base64 = true;
-                }
-                else {
+                if (strcmp(encodeType,"z") == 0) {
+                    flags = RPENC_Z;
+                } else if (strcmp(encodeType, "b64") == 0) {
+                    flags = RPENC_B64;
+                } else if (strcmp(encodeType,"zb64") == 0) {
+                    flags = RPENC_Z | RPENC_B64;
+                } else {
                     // user did not specify recognized wishes for this option,
                     Tcl_AppendResult(interp, "bad value \"",(char*)NULL);
                     if (encodeType != NULL) {
@@ -304,7 +278,7 @@ RpTclEncodingDecode (   ClientData cdata,
                             (char*)NULL);
                     return TCL_ERROR;
                 }
-            } else if ( strcmp(option,"--") == 0 ) {
+            } else if (strcmp(option,"--") == 0) {
                 nextarg++;
                 break;
             } else {
@@ -325,19 +299,12 @@ RpTclEncodingDecode (   ClientData cdata,
         return TCL_ERROR;
     }
 
-    int optionLen;
-    const char* option;
-    option = (const char*) Tcl_GetByteArrayFromObj(objv[nextarg++], &optionLen);
+    int nBytes;
+    const char* string;
+    string = (const char*)Tcl_GetByteArrayFromObj(objv[nextarg++], &nBytes);
 
-    unsigned int flags = 0;
-    if (decompress) {
-        flags |= RPENC_Z;
-    }
-    if (base64) {
-        flags |= RPENC_B64;
-    }
-    Rappture::Buffer buf(option, optionLen); 
-    if (!Rappture::encoding::decode(err, buf,flags)) {
+    Rappture::Buffer buf(string, nBytes); 
+    if (!Rappture::encoding::decode(err, buf, flags)) {
         Tcl_AppendResult(interp, err.remark(), "\n", err.context(), NULL);
 	return TCL_ERROR;
     }
