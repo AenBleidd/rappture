@@ -24,10 +24,11 @@ namespace encoding {
 #define RPENC_B64    (1<<1)
 #define RPENC_HDR    (1<<2)
 
-int isbinary(const char* buf, int size);
-size_t isencoded(const char* buf, int size);
-bool encode(Rappture::Outcome &err, Rappture::Buffer& buf, size_t flags);
-bool decode(Rappture::Outcome &err, Rappture::Buffer& buf, size_t flags);
+bool isbinary(const char* buf, int size);
+bool isbase64(const char* buf, int size);
+unsigned int headerFlags(const char* buf, int size);
+bool encode(Rappture::Outcome &err, Rappture::Buffer& buf, unsigned int flags);
+bool decode(Rappture::Outcome &err, Rappture::Buffer& buf, unsigned int flags);
 
 }
 }

@@ -17,6 +17,12 @@
 #include <RpOutcome.h>
 #include <RpSimpleBuffer.h>
 
+enum RP_ENCODING_FLAGS {
+    RPENC_Z=(1<<0),
+    RPENC_B64=(1<<1),
+    RPENC_HDR=(1<<2)
+};
+
 
 #ifdef __cplusplus
     extern "C" {
@@ -49,8 +55,8 @@ public:
 
     bool load(Outcome &result, const char* filePath);
     bool dump(Outcome &result, const char* filePath);
-    bool encode(Outcome &result, bool compress=true, bool base64=true);
-    bool decode(Outcome &result, bool decompress=true, bool base64=true);
+    bool encode(Outcome &result, unsigned int flags = RPENC_Z | RPENC_B64);
+    bool decode(Outcome &result, unsigned int flags = RPENC_Z | RPENC_B64);
 
 protected:
 

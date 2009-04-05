@@ -273,8 +273,8 @@ int testDeCompress()
     Rappture::Buffer buffer1;
     Rappture::Outcome status1;
     buffer1.append("abcdefghijklmnopqrstuvwxyz",26);
-    buffer1.encode(status1, true, false);
-    buffer1.decode(status1, true, false);
+    buffer1.encode(status1, RPENC_Z);
+    buffer1.decode(status1, RPENC_Z);
     bytesRead = buffer1.size();
 
     // std::cout << status1.remark() << std::endl << status1.context() << std::endl;
@@ -293,8 +293,8 @@ int testDeCompress()
     Rappture::Buffer buffer2;
     Rappture::Outcome status2;
     buffer2.append("abcdefghijklmnopqrstuvwxyz",26);
-    buffer2.encode(status2, false, true);
-    buffer2.decode(status2, false, true);
+    buffer2.encode(status2, RPENC_B64);
+    buffer2.decode(status2, RPENC_B64);
     bytesRead = buffer2.size();
 
     // std::cout << status2.remark() << std::endl << status2.context() << std::endl;
@@ -313,8 +313,8 @@ int testDeCompress()
     Rappture::Buffer buffer3;
     Rappture::Outcome status3;
     buffer3.append("abcdefghijklmnopqrstuvwxyz",26);
-    buffer3.encode(status3, true, true);
-    buffer3.decode(status3, true, true);
+    buffer3.encode(status3, RPENC_B64 | RPENC_Z);
+    buffer3.decode(status3, RPENC_B64 | RPENC_Z);
     bytesRead = buffer3.size();
 
     // std::cout << status3.remark() << std::endl << status3.context() << std::endl;
@@ -491,10 +491,10 @@ int testFile()
     buffer1.load(status1, inFile);
 
     // compress, dont encode
-    buffer1.encode(status1, true, false);
+    buffer1.encode(status1, RPENC_Z);
     std::remove(outFile);
     buffer1.dump(status1, outFile);
-    buffer1.decode(status1, true, false);
+    buffer1.decode(status1, RPENC_Z);
 
     /*
     if (size1before != 26) {

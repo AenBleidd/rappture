@@ -240,7 +240,15 @@ RapptureBufferEncode(RapptureBuffer* buf, int compress, int base64)
         RpOutcomeToCOutcome(&s, &status);
         return status;
     }
-    ((Rappture::Buffer*)buf->_buf)->encode(s, compress, base64); 
+    unsigned int flags;
+    flags = RPENC_HDR;
+    if (compress) {
+	flags |= RPENC_Z;
+    }
+    if (base64) {
+	flags |= RPENC_B64;
+    }
+    ((Rappture::Buffer*)buf->_buf)->encode(s, flags); 
     RpOutcomeToCOutcome(&s,&status);
     return status;
 }
@@ -266,8 +274,15 @@ RapptureBufferDecode(RapptureBuffer* buf, int decompress, int base64 )
         RpOutcomeToCOutcome(&s,&status);
         return status;
     }
-
-    ((Rappture::Buffer*)buf->_buf)->decode(s, decompress, base64);
+    unsigned int flags;
+    flags = 0;
+    if (decompress) {
+	flags |= RPENC_Z;
+    }
+    if (base64) {
+	flags |= RPENC_B64;
+    }
+    ((Rappture::Buffer*)buf->_buf)->decode(s, flags);
     RpOutcomeToCOutcome(&s,&status);
     return status;
 }

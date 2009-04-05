@@ -22,6 +22,7 @@
 #include "b64/encode.h"
 #include "b64/decode.h"
 #include "RpBuffer.h"
+#include "RpEncode.h"
 
 namespace Rappture {
 
@@ -188,76 +189,101 @@ Buffer::dump (Outcome &status, const char* filePath)
 
 
 bool
-Buffer::encode (Outcome &err, bool compress, bool base64)
+Buffer::encode (Outcome &status, unsigned int flags)
 {
-    SimpleCharBuffer bin;
     SimpleCharBuffer bout;
-
-    err.addContext("Rappture::Buffer::encode()");
-    if ((!base64) && (!compress)) {
-	err.addError("invalid parameters: both base64 and compress are false");
-        return false;
-    }
 
     rewind();
 
-    if (compress) {
-        if (!do_compress(err, *this, bout)) {
+    flags &= (RPENC_Z | RPENC_B64);
+
+    switch (flags) {
+    case 0:
+	break;
+
+    case RPENC_Z:		// Compress only
+	if (!do_compress(status, *this, bout)) {
+	    return false;
+	}
+	move(bout);
+	break;
+
+    case RPENC_B64:		// Encode only
+        if (!do_base64_enc(status, *this, bout)) {
             return false;
         }
-    }
+	move(bout);
+	break;
 
-    if (base64) {
-        if (compress) {
-            bin.move(bout);
-            if (!do_base64_enc(err, bin, bout)) {
-		return false;
-	    }
+    case (RPENC_B64 | RPENC_Z):
+	
+	// It's always compress then encode
+	if (!do_compress(status, *this, bout)) {
+	    return false;
+	}
+        if (!do_base64_enc(status, bout, *this)) {
+            return false;
         }
-        else {
-            if (!do_base64_enc(err, *this, bout)) {
-		return false;
-	    }
-        }
+	break;
     }
-    // write the encoded data to the internal buffer
-    move(bout);
     return true;
 }
 
 
 bool
-Buffer::decode (Outcome &err, bool decompress, bool base64)
+Buffer::decode (Outcome &status, unsigned int flags)
 {
-    SimpleCharBuffer bin;
     SimpleCharBuffer bout;
-
-    err.addContext("Rappture::Buffer::decode()");
-    if ((!base64) && (!decompress)) {
-	err.addError("invalid parameters: both base64 and compress are false");
-        return false;
-    }
 
     rewind();
 
-    if (base64) {
-        if (!do_base64_dec(err,*this, bout)) {
+    flags &= (RPENC_Z | RPENC_B64);
+
+    switch (flags) {
+    case 0:
+	if (encoding::isbase64(bytes(), size())) {
+	    flags |= RPENC_B64;
+	    if (!do_base64_dec(status, *this, bout)) {
+		return false;
+	    }
+	    move(bout);
+	}
+	bout.clear();
+	if (encoding::isbinary(bytes(), size())) {
+	    flags |= RPENC_B64;
+	    if (!do_decompress(status, *this, bout)) {
+		return false;
+	    }
+	    move(bout);
+	}
+        break;
+
+    case RPENC_Z:		// Decompress only
+	if (!do_decompress(status, *this, bout)) {
+	    return false;
+	}
+	move(bout);
+	break;
+
+    case RPENC_B64:		// Decode only
+        if (!do_base64_dec(status, *this, bout)) {
             return false;
         }
-    }
-    if (decompress) {
-        if (base64) {
-            bin.move(bout);
-            if (!do_decompress(err, bin, bout)) {
-		return false;
-	    }
-        } else {
-            if (!do_decompress(err, *this, bout)) {
-		return false;
-	    }
+	move(bout);
+	break;
+
+    case (RPENC_B64 | RPENC_Z):
+	
+	// It's always decode then decompress
+        if (!do_base64_dec(status, *this, bout)) {
+            return false;
         }
+	clear();
+	if (!do_decompress(status, bout, *this)) {
+	    return false;
+	}
+	break;
     }
-    move(bout);
     return true;
 }
 

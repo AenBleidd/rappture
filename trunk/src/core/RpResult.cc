@@ -35,12 +35,13 @@ rpResult(RpLibrary* lib)
     // write out the result file
     fp = fopen(outputFile, "w");
     if(!fp) {
-        fprintf(stderr,"can't save results (err=%d)\n", errno);
+        fprintf(stderr,"can't save results: %s\n", strerror(errno));
         return;
     }
     int fsize = fwrite(xtext.c_str(), xtext.length(), sizeof(char), fp);
     if (fsize != (int)xtext.length()) {
-        fprintf(stderr, "short write: can't save results (err=%d)\n", errno);
+        fprintf(stderr, "short write: can't save results: %s\n", 
+		strerror(errno));
         fclose(fp);
         return;
     }
