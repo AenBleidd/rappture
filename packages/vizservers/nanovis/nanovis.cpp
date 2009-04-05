@@ -72,7 +72,7 @@
 
 extern void NvInitCG(); // in Shader.cpp
 extern bool load_vector_stream2(Rappture::Outcome &result, int index, 
-	std::istream& fin);
+	size_t length, char *string);
 
 // Indicates "up" axis:  x=1, y=2, z=3, -x=-1, -y=-2, -z=-3
 enum AxisDirections { 
@@ -153,9 +153,6 @@ bool volume_mode = true;
 
 // in Command.cpp
 extern Tcl_Interp *initTcl();
-
-// in dxReader.cpp
-extern void load_vector_stream(int index, std::istream& fin);
 
 float vert[NMESH*NMESH*3];              //particle positions in main memory
 float slice_vector[NMESH*NMESH*4];      //per slice vectors in main memory
@@ -1809,12 +1806,11 @@ void addVectorField(const char* filename, const char* vf_name,
 		    const Vector4& color1, const Vector4& color2)
 {
     Rappture::Outcome result;
-    std::ifstream fdata;
-    fdata.open(filename, std::ios::in);
-    
+    Rappture::Buffer buf;
+
+    buf.load(filename);
     int n = NanoVis::n_volumes;
-    //fdata.write(buf.bytes(),buf.size());
-    if (load_vector_stream2(result, n, fdata)) {
+    if (load_vector_stream2(result, n, buf.size(), buf.bytes())) {
 	Volume *volPtr = NanoVis::volume[n];
 	if (volPtr != NULL) {
 	    volPtr->set_n_slice(256-n);

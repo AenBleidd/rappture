@@ -16,13 +16,13 @@
 /* Load a 3D volume from a dx-format file the new way
  */
 bool
-load_volume_stream_odx(Rappture::Outcome &outcome, int index, const char *buf,
+load_volume_stream_odx(Rappture::Outcome &context, int index, const char *buf,
 		       int nBytes)
 {
     char dxfilename[128];
 
     if (nBytes == 0) {
-	outcome.error("data not found in stream");
+	context.error("data not found in stream");
         return false;
     }
 
@@ -39,15 +39,16 @@ load_volume_stream_odx(Rappture::Outcome &outcome, int index, const char *buf,
     nWritten = fwrite(buf, sizeof(char), nBytes, f);
     fclose(f);
     if (nWritten != nBytes) {
-        outcome.addError("Can't read %d bytes from file \"%s\"\n", 
+        context.addError("Can't read %d bytes from file \"%s\"\n", 
 			 nBytes, dxfilename);
 	return false;
     }
 
-    Rappture::DX dxObj(outcome, dxfilename);
+    Rappture::DX dxObj(context, dxfilename);
 
     if (unlink(dxfilename) != 0) {
-        outcome.addError("Error deleting dx file: %s\n", dxfilename);
+        context.addError("Error deleting dx file: %s\n", dxfilename);
+	return false;
     }
 
     int nx = dxObj.axisLen()[0];

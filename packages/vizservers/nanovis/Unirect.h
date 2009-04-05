@@ -6,199 +6,217 @@
 namespace Rappture {
 
 class Unirect3d {
-    size_t _xNum, _yNum, _zNum;
-    size_t _nValues;
-    int _extents;
+    size_t xNum_, yNum_, zNum_;
+    size_t nValues_;
+    int extents_;
 
-    float _xMin, _xMax;
-    float _yMin, _yMax;
-    float _zMin, _zMax;
-    float _vMin, _vMax;
+    float xMin_, xMax_;
+    float yMin_, yMax_;
+    float zMin_, zMax_;
+    float vMin_, vMax_;
 
-    char *_xUnits;
-    char *_yUnits;
-    char *_zUnits;
-    char *_vUnits;
+    char *xUnits_;
+    char *yUnits_;
+    char *zUnits_;
+    char *vUnits_;
 
-    float *_values;
-    bool _initialized;
+    float *values_;
+    bool initialized_;
 
 public:
+    Unirect3d(float xMin, float xMax, size_t xNum, 
+	      float yMin, float yMax, size_t yNum, 
+	      float zMin, float zMax, size_t zNum, 
+	      size_t nValues, float *values) {
+	xMax_ = xMax;
+	xMin_ = xMin;
+	xNum_ = xNum;
+	yMax_ = yMax;
+	yMin_ = yMin;
+	yNum_ = yNum;
+	zMax_ = zMax;
+	zMin_ = zMin;
+	zNum_ = zNum;
+	nValues_ = nValues;
+	values_ = values;
+	initialized_ = true;
+    }
+
     Unirect3d(void) {
-	_values = NULL;
-	_initialized = false;
-	_xNum = _yNum = _zNum = 0;
-	_nValues = 0;
-	_xUnits = _yUnits = _zUnits = _vUnits = NULL;
+	values_ = NULL;
+	initialized_ = false;
+	xNum_ = yNum_ = zNum_ = 0;
+	nValues_ = 0;
+	xUnits_ = yUnits_ = zUnits_ = vUnits_ = NULL;
     }
     ~Unirect3d(void) {
-	if (_values != NULL) {
-	    delete [] _values;
+	if (values_ != NULL) {
+	    delete [] values_;
 	}
-	if (_xUnits != NULL) {
-	    free(_xUnits);
+	if (xUnits_ != NULL) {
+	    free(xUnits_);
 	}
-	if (_yUnits != NULL) {
-	    free(_yUnits);
+	if (yUnits_ != NULL) {
+	    free(yUnits_);
 	}
-	if (_zUnits != NULL) {
-	    free(_zUnits);
+	if (zUnits_ != NULL) {
+	    free(zUnits_);
 	}
-	if (_vUnits != NULL) {
-	    free(_vUnits);
+	if (vUnits_ != NULL) {
+	    free(vUnits_);
 	}
     }
     size_t xNum(void) {
-	return _xNum;
+	return xNum_;
     }
     size_t yNum(void) {
-	return _yNum;
+	return yNum_;
     }
     size_t zNum(void) {
-	return _zNum;
+	return zNum_;
     }
     float xMin(void) {
-	return _xMin;
+	return xMin_;
     }
     float yMin(void) {
-	return _yMin;
+	return yMin_;
     }
     float zMin(void) {
-	return _zMin;
+	return zMin_;
     }
     float xMax(void) {
-	return _xMax;
+	return xMax_;
     }
     float yMax(void) {
-	return _yMax;
+	return yMax_;
     }
     float zMax(void) {
-	return _zMax;
+	return zMax_;
     }
     const char *xUnits(void) {
-	return _xUnits;
+	return xUnits_;
     }
     const char *yUnits(void) {
-	return _yUnits;
+	return yUnits_;
     }
     const char *zUnits(void) {
-	return _zUnits;
+	return zUnits_;
     }
     const char *vUnits(void) {
-	return _vUnits;
+	return vUnits_;
     }
     float *values(void) {
-	return _values;
+	return values_;
     }
     float *SaveValues(void) {
 	float *values;
-	values = _values;
-	_values = NULL;
-	_nValues = 0;
+	values = values_;
+	values_ = NULL;
+	nValues_ = 0;
 	return values;
     }
     size_t nValues(void) {
-	return _nValues;
+	return nValues_;
     }
     size_t extents(void) {
-	return _extents;
+	return extents_;
     }
     void extents(size_t extents) {
-	_extents = extents;
+	extents_ = extents;
     }
     int LoadData(Tcl_Interp *interp, int objc, Tcl_Obj *const *objv);
     bool isInitialized(void) {
-	return _initialized;
+	return initialized_;
     }
 };
 
 class Unirect2d {
-    size_t _xNum, _yNum;
-    size_t _nValues;
-    size_t _extents;
+    size_t xNum_, yNum_;
+    size_t nValues_;
+    size_t extents_;
 
-    float _xMin, _xMax;
-    float _yMin, _yMax;
-    float _vMin, _vMax;
+    float xMin_, xMax_;
+    float yMin_, yMax_;
+    float vMin_, vMax_;
 
-    char *_xUnits;
-    char *_yUnits;
-    char *_vUnits;
+    char *xUnits_;
+    char *yUnits_;
+    char *vUnits_;
 
-    float *_values;
-    bool _initialized;
+    float *values_;
+    bool initialized_;
 
 public:
     Unirect2d(void) {
-	_values = NULL;
-	_initialized = false;
-	_xNum = _yNum = 0;
-	_nValues = 0;
-	_xUnits = _yUnits = _vUnits = NULL;
+	values_ = NULL;
+	initialized_ = false;
+	xNum_ = yNum_ = 0;
+	nValues_ = 0;
+	xUnits_ = yUnits_ = vUnits_ = NULL;
     }
     ~Unirect2d(void) {
-	if (_values != NULL) {
-	    delete [] _values;
+	if (values_ != NULL) {
+	    delete [] values_;
 	}
-	if (_xUnits != NULL) {
-	    free(_xUnits);
+	if (xUnits_ != NULL) {
+	    free(xUnits_);
 	}
-	if (_yUnits != NULL) {
-	    free(_yUnits);
+	if (yUnits_ != NULL) {
+	    free(yUnits_);
 	}
-	if (_vUnits != NULL) {
-	    free(_vUnits);
+	if (vUnits_ != NULL) {
+	    free(vUnits_);
 	}
     }
     size_t xNum(void) {
-	return _xNum;
+	return xNum_;
     }
     size_t yNum(void) {
-	return _yNum;
+	return yNum_;
     }
     float xMin(void) {
-	return _xMin;
+	return xMin_;
     }
     float yMin(void) {
-	return _yMin;
+	return yMin_;
     }
     float xMax(void) {
-	return _xMax;
+	return xMax_;
     }
     float yMax(void) {
-	return _yMax;
+	return yMax_;
     }
     const char *xUnits(void) {
-	return _xUnits;
+	return xUnits_;
     }
     const char *yUnits(void) {
-	return _yUnits;
+	return yUnits_;
     }
     const char *vUnits(void) {
-	return _vUnits;
+	return vUnits_;
     }
     float *values(void) {
-	return _values;
+	return values_;
     }
     float *acceptValues(void) {
 	float *values;
-	values = _values;
-	_values = NULL;
-	_nValues = 0;
+	values = values_;
+	values_ = NULL;
+	nValues_ = 0;
 	return values;
     }
     size_t nValues(void) {
-	return _nValues;
+	return nValues_;
     }
     size_t extents(void) {
-	return _extents;
+	return extents_;
     }
     void extents(size_t extents) {
-	_extents = extents;
+	extents_ = extents;
     }
     int LoadData(Tcl_Interp *interp, int objc, Tcl_Obj *const *objv);
     bool isInitialized(void) {
-	return _initialized;
+	return initialized_;
     }
 };
 
