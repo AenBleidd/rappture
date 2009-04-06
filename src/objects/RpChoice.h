@@ -1,135 +1,58 @@
 /*
  * ======================================================================
- *  Copyright (c) 2004-2005  Purdue Research Foundation
+ *  AUTHOR:  Derrick Kearney, Purdue University
+ *  Copyright (c) 2005-2009  Purdue Research Foundation
  *
  *  See the file "license.terms" for information on usage and
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  * ======================================================================
  */
-#include <iostream>
-#include <string>
-#include <sstream>
-#include <stdlib.h>
 #include <errno.h>
-#include <vector>
+#include "RpVariable.h"
+#include "RpChain.h"
 
+#ifndef RAPPTURE_CHOICE_H
+#define RAPPTURE_CHOICE_H
 
-// #include "RpLibrary.h"
+namespace Rappture {
 
-#ifndef _RpVARIABLE_H
-    #include "RpVariable.h"
-#endif
-
-#ifndef _RpOPTION_H
-    #include "RpOption.h"
-#endif
-
-#ifndef _RpCHOICE_H 
-#define _RpCHOICE_H
-
-class RpChoice : public RpVariable
+class Choice : public Variable
 {
     public:
-        
-        // users member fxns
 
-        virtual RpChoice& setDefaultValue   (std::string newDefaultVal);
-        virtual RpChoice& setCurrentValue   (std::string newCurrentVal);
-        virtual RpChoice& setOption         (std::string newOption);
-        virtual RpChoice& deleteOption      (std::string newOption);
+        Choice  (   const char *path,
+                    const char *val );
 
-        // changed from "Value" to "Val" because base class makes 
-        // these functions virtual and derived class has a different
-        // return type. compiler doesnt like this. need to find another
-        // way around this
-        //
-        // if we keep the null_val=NULL will that give us undefined behavior?
-        //
-        virtual std::string getDefaultValue (void* null_val=NULL) const;
-        virtual std::string getCurrentValue (void* null_val=NULL) const;
-        virtual std::string getFirstOption  ();
-        virtual std::string getNextOption   ();
-        virtual unsigned int getOptListSize () const;
+        Choice  (   const char *path,
+                    const char *val,
+                    const char *label,
+                    const char *desc);
 
-        
-        // place the information from this object into the xml library 'lib'
-        // virtual RpChoice& put(RpLibrary lib);
-        // RpChoice& put() const;
+        Choice  (   const Choice& o );
+        virtual ~Choice ();
 
-        RpChoice (
-                    std::string path, 
-                    std::string defaultVal,
-                    std::string optionList
-                )
-            :   RpVariable  (path, new std::string (defaultVal) )
-        {
-            // optionList is a comma separated list of options
+        Accessor<const char *> def;
+        Accessor<const char *> cur;
 
-            optionsIter = options.begin();
-            std::string::size_type pos = optionList.find (',',0);
-            std::string::size_type lastPos = 0;
-            std::string tmpStr;
-            
+        Choice& addOption ( const char *label,
+                            const char *desc,
+                            const char *val );
 
-            while (pos != std::string::npos) {
-                tmpStr = optionList.substr(lastPos, pos-lastPos);
-                setOption(tmpStr);
-                lastPos = pos + 1;
-                pos = optionList.find (",",lastPos);
-            }
+        Choice& delOption ( const char *label);
 
-            tmpStr = optionList.substr(lastPos);
-            setOption(tmpStr);
-
-        }
-
-        RpChoice (
-                    std::string path, 
-                    std::string defaultVal,
-                    std::string label,
-                    std::string desc,
-                    std::string optionList
-                )
-            :   RpVariable  (path, new std::string (defaultVal), label, desc)
-        { 
-            // optionList is a comma separated list of options
-
-            optionsIter = options.begin();
-            std::string::size_type pos = optionList.find (',',0);
-            std::string::size_type lastPos = 0;
-            std::string tmpStr;
-            
-
-            while (pos != std::string::npos) {
-                tmpStr = optionList.substr(lastPos, pos-lastPos);
-                setOption(tmpStr);
-                lastPos = pos + 1;
-                pos = optionList.find (",",lastPos);
-            }
-
-            tmpStr = optionList.substr(lastPos);
-            setOption(tmpStr);
-
-        }
-        
-        // copy constructor
-        RpChoice ( const RpChoice& myRpChoice )
-            :   RpVariable      (myRpChoice),
-                options         (myRpChoice.options)
-        {
-        }
-
-        // default destructor
-        virtual ~RpChoice ()
-        {
-            // clean up dynamic memory
-
-        }
     private:
 
-        std::vector<RpOption> options;
-        std::vector<RpOption>::iterator optionsIter;
+        // hash or linked list of preset values
+        Rp_Chain *_options;
+
+        struct option{
+            Accessor<const char *> label;
+            Accessor<const char *> desc;
+            Accessor<const char *> val;
+        };
 };
+
+} // namespace Rappture
 
 /*--------------------------------------------------------------------------*/
 /*--------------------------------------------------------------------------*/

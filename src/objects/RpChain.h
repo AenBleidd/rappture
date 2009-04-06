@@ -24,6 +24,10 @@
 #ifndef _RP_CHAIN_H
 #define _RP_CHAIN_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct Rp_ChainLinkStruct Rp_ChainLink;
 
 /*
@@ -81,5 +85,9 @@ extern void Rp_ChainSort _ANSI_ARGS_((Rp_Chain * chainPtr,
     (Rp_ChainLinkBefore((c), (l), (Rp_ChainLink *)NULL))
 #define Rp_ChainPrependLink(c, l) \
     (Rp_ChainLinkAfter((c), (l), (Rp_ChainLink *)NULL))
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _RP_CHAIN_H */

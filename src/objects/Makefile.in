@@ -1,21 +1,22 @@
 
 bindir          = @bindir@
-datadir		= @datadir@
-datarootdir	= @datarootdir@
+datadir         = @datadir@
+datarootdir     = @datarootdir@
 exec_prefix     = @exec_prefix@
 includedir      = @includedir@
 libdir          = @libdir@
 mandir          = @mandir@
 prefix          = @prefix@
-srcdir		= @srcdir@
-incdir		= $(prefix)/include
+srcdir          = @srcdir@
+incdir          = $(prefix)/include
 
-INSTALL		= @INSTALL@
+INSTALL         = @INSTALL@
 
 CXX             = @CXX@
 CC              = $(CXX)
 CCC             = @CC@
 CFLAGS_DEBUG    = @CFLAGS_DEBUG@
+CFLAGS_WARNING  = -Wall
 CFLAGS_OPTIMIZE = @CFLAGS_OPTIMIZE@
 STLIB_LD        = @STLIB_LD@
 SHLIB_LD        = @SHLIB_LD@
@@ -25,66 +26,65 @@ SHLIB_SUFFIX    = @SHLIB_SUFFIX@
 CFLAGS_DEFAULT  = @CFLAGS_DEFAULT@
 LIB_SEARCH_DIRS = @LIB_SEARCH_DIRS@
 CFLAGS          = @CFLAGS@
-RM		= rm -f
-CC_SWITCHES	= $(CFLAGS) $(INCLUDES) $(DEFINES)
+RM              = rm -f
+CC_SWITCHES = $(CFLAGS) $(INCLUDES) $(DEFINES) $(CFLAGS_DEBUG)
 
-INCLUDES	= \
+INCLUDES    = \
 		-I. \
 		-I../core \
 		-I$(srcdir) \
 		-I$(srcdir)/../core \
 		-I$(includedir)
-LIBS		= -L../core -lrappture
+LIBS        = -L../core -lrappture
 
-RANLIB 		= @RANLIB@
-AR 		= ar
-VPATH		= $(srcdir)
+RANLIB      = @RANLIB@
+AR          = ar
+VPATH       = $(srcdir)
 
 # tell make where to find the expat & libscew headers
 INCL_RP_DEPS    = -I$(includedir)
 
 # define our compiling environment
-#
-DEBUG           = -g -Wall
-DEBUG_PLUS      = -g -DDEBUG
 LN              = ln -s
 
 HEADERS = \
+		RpAccessor.h \
+		RpArray1D.h \
+		RpBoolean.h \
 		RpChain.h \
+		RpChainHelper.h \
+		RpChoice.h \
+		RpCurve.h \
 		RpInt.h \
 		RpHash.h \
 		RpHashHelper.h \
 		RpNumber.h \
+		RpPlot.h \
 		RpPool.h \
+		RpString.h \
 		RpVariable.h
 
-#		RpBoolean.h \
-		RpAbout.h \
-		RpNumber.h \
-		RpOption.h \
-		RpString.h \
-		RpChoice.h \
-		RpVariable.h
 
 OBJS = \
+		RpArray1D.o \
+		RpBoolean.o \
 		RpChain.o \
+		RpChoice.o \
+		RpCurve.o \
+		RpChainHelper.o \
 		RpHash.o \
 		RpHashHelper.o \
 		RpNumber.o \
+		RpPlot.o \
 		RpPool.o \
-		RpVariable.o
-
-#		RpAbout.o \
-		RpBoolean.o \
-		RpChoice.o \
-		RpNumber.o \
-		RpOption.o \
 		RpString.o \
+		RpUtils2.o \
 		RpVariable.o
 
-name 		= RpObjects
-lib		= lib$(name).a
-shared_lib	= lib$(name)$(SHLIB_SUFFIX)
+
+name        = RpObjects
+lib         = lib$(name).a
+shared_lib  = lib$(name)$(SHLIB_SUFFIX)
 
 all: build_lib
 
@@ -107,12 +107,12 @@ install: $(lib) $(shared_lib)
 	  $(INSTALL) -m 444  $(srcdir)/$$i $(incdir) ; \
 	done
 
-.cc.o: 
-	$(CXX) $(CC_SWITCHES) -c $? 
+.cc.o:
+	$(CXX) $(CC_SWITCHES) -c $?
 .c.o: 
-	$(CCC) $(CC_SWITCHES) -c $? 
+	$(CCC) $(CC_SWITCHES) -c $?
 
-clean: 
+clean:
 	$(RM) $(OBJS) $(lib) $(shared_lib)
 
 distclean: clean

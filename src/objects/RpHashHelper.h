@@ -4,6 +4,11 @@
 #include "RpInt.h"
 #include "RpHash.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
 int Rp_HashPrint        ( Rp_HashTable *h);
 
 int Rp_HashAddNode      ( Rp_HashTable *h, const char *key, const void *n);
@@ -34,5 +39,9 @@ void *Rp_HashRemoveNode ( Rp_HashTable *h, const char *key);
 
 int charCpyFxn(void **to, void *from);
 int charCmpFxn( void *to, void *from);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // _RP_HASH_HELPER_H

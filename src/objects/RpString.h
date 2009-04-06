@@ -1,115 +1,51 @@
 /*
  * ======================================================================
- *  AUTHOR: Derrick S. Kearney, Purdue University
- *  Copyright (c) 2004-2005  Purdue Research Foundation
+ *  AUTHOR:  Derrick Kearney, Purdue University
+ *  Copyright (c) 2005-2009  Purdue Research Foundation
  *
  *  See the file "license.terms" for information on usage and
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  * ======================================================================
  */
-#include <iostream>
-#include <string>
-#include <sstream>
-#include <stdlib.h>
 #include <errno.h>
+#include "RpVariable.h"
 
+#ifndef RAPPTURE_STRING_H
+#define RAPPTURE_STRING_H
 
-// #include "RpLibrary.h"
+namespace Rappture {
 
-#ifndef _RpVARIABLE_H
-    #include "RpVariable.h"
-#endif
-
-#ifndef _RpSTRING_H 
-#define _RpSTRING_H
-
-class RpString : public RpVariable
+class String : public Variable
 {
-    public:
-        
-        // users member fxns
+public:
 
-        virtual RpString& setDefaultValue   (std::string newDefaultVal);
-        virtual RpString& setCurrentValue   (std::string newCurrentVal);
-        virtual RpString& setSize           (std::string newSize);
-        virtual RpString& setHeight         (int newHeight);
-        virtual RpString& setWidth          (int newWidth);
+    String  ( const char *path,
+              const char *val);
 
-        // base class makes 
-        // these functions virtual and derived class has a different
-        // return type. compiler doesnt like this. need to find another
-        // way around this
-        //
-        // if we keep the null_val=NULL will that give us undefined behavior?
-        //
-        std::string getDefaultValue         (void* null_val=NULL) const;
-        std::string getCurrentValue         (void* null_val=NULL) const;
-        std::string getSize                 () const;
-        int         getHeight               () const;
-        int         getWidth                () const;
+    String  ( const char *path,
+              const char *val,
+              const char *label,
+              const char *desc,
+              const char *hints,
+              size_t width,
+              size_t height);
 
-        // place the information from this object into the xml library 'lib'
-        // virtual RpString& put(RpLibrary lib);
-        // RpString& put() const;
+    String  ( const String& o );
+    virtual ~String ();
 
-        RpString (
-                    std::string path, 
-                    std::string defaultVal
-                )
-            :   RpVariable  (path, new std::string (defaultVal) ),
-                width       (0),
-                height      (0)
-        {}
+    Accessor<const char *> hints;
+    Accessor<const char *> def;
+    Accessor<const char *> cur;
+    Accessor<size_t> width;
+    Accessor<size_t> height;
 
-        RpString (
-                    std::string path, 
-                    std::string defaultVal,
-                    std::string sizeWxH
-                )
-            :   RpVariable  (path, new std::string (defaultVal) ),
-                width       (0),
-                height      (0)
-        {
-            setSize(sizeWxH);
-        }
-
-        RpString (
-                    std::string path, 
-                    std::string defaultVal,
-                    std::string sizeWxH,
-                    std::string label,
-                    std::string desc
-                )
-            :   RpVariable  (path, new std::string (defaultVal), label, desc),
-                width       (0),
-                height      (0)
-        {
-            setSize(sizeWxH);
-        }
-
-        // copy constructor
-        RpString ( const RpString& myRpString )
-            :   RpVariable(myRpString),
-                width       (myRpString.width),
-                height      (myRpString.height)
-        {}
-
-        // default destructor
-        virtual ~RpString ()
-        {
-            // clean up dynamic memory
-        }
-
-    private:
-        int width;
-        int height;
-        std::string hints;
-
-
+private:
 
 };
 
+} // namespace Rappture
+
 /*--------------------------------------------------------------------------*/
 /*--------------------------------------------------------------------------*/
 
-#endif
+#endif // RAPPTURE_STRING_H

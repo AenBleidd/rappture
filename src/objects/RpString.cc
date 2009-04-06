@@ -4,7 +4,7 @@
  *
  * ======================================================================
  *  AUTHOR:  Derrick Kearney, Purdue University
- *  Copyright (c) 2004-2005  Purdue Research Foundation
+ *  Copyright (c) 2005-2009  Purdue Research Foundation
  *
  *  See the file "license.terms" for information on usage and
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -13,163 +13,60 @@
 
 #include "RpString.h"
 
-/**********************************************************************/
-// METHOD: setDefaultValue()
-/// set the default value of this object.
-/**
- */
+using namespace Rappture;
 
-RpString& 
-RpString::setDefaultValue(std::string newDefaultVal)
+String::String (
+            const char *path,
+            const char *val
+        )
+    :   Variable    ()
 {
-    std::string* def = NULL;
-    
-    def = (std::string*) RpVariable::getDefaultValue(); 
-
-    if (!def) {
-        RpVariable::setDefaultValue(new std::string (newDefaultVal));
-    }
-    else {
-        *def = newDefaultVal;
-    }
-
-    return *this;
+    this->path(path);
+    this->label("");
+    this->desc("");
+    this->hints("");
+    this->def(val);
+    this->cur(val);
+    this->width(0);
+    this->height(0);
 }
 
-/**********************************************************************/
-// METHOD: setCurrentValue()
-/// set the current value of this object
-/**
- */
-
-RpString& 
-RpString::setCurrentValue(std::string newCurrentVal)
+String::String (
+            const char *path,
+            const char *val,
+            const char *label,
+            const char *desc,
+            const char *hints,
+            size_t width,
+            size_t height
+        )
+    :   Variable    ()
 {
-    std::string* cur = (std::string*) RpVariable::getCurrentValue();
-    std::string* def = (std::string*) RpVariable::getDefaultValue();
-
-    if (cur == def) {
-        RpVariable::setCurrentValue(new std::string (newCurrentVal));
-    }
-    else {
-        *cur = newCurrentVal;
-    }
-
-    return *this;
+    this->path(path);
+    this->label(label);
+    this->desc(desc);
+    this->hints(hints);
+    this->def(val);
+    this->cur(val);
+    this->width(width);
+    this->height(height);
 }
 
-/**********************************************************************/
-// METHOD: setSize()
-/// set the size (width and height) of this object.
-/**
- */
-
-RpString& 
-RpString::setSize(std::string sizeWxH)
+// copy constructor
+String::String ( const String& o )
+    :   Variable(o)
 {
-    unsigned int xloc = sizeWxH.find("x");
-
-    if (xloc == std::string::npos) {
-        // sizeWxH is of incorrect format
-        // raise error!
-
-    }
-    else {           
-        this->width = atoi(sizeWxH.substr(0,xloc).c_str());
-        this->height = atoi(sizeWxH.substr(xloc).c_str());
-    }
-
-    return *this;
+    this->hints(o.hints());
+    this->def(o.def());
+    this->cur(o.cur());
+    this->width(o.width());
+    this->height(o.height());
 }
 
-/**********************************************************************/
-// METHOD: setWidth()
-/// set the width of this object
-/**
- */
-
-RpString& 
-RpString::setWidth(int newWidth)
+// default destructor
+String::~String ()
 {
-    this->width = newWidth;
-    return *this;
-}
-
-/**********************************************************************/
-// METHOD: setHeight()
-/// set the height of this object.
-/**
- */
-
-RpString& 
-RpString::setHeight(int newHeight)
-{
-    this->height = newHeight;
-    return *this;
-}
-
-
-/**********************************************************************/
-// METHOD: getDefaultValue()
-/// report the default value of this object.
-/**
- */
-
-std::string
-RpString::getDefaultValue(void* null_val) const
-{
-    return *((std::string*) RpVariable::getDefaultValue()); 
-}
-
-/**********************************************************************/
-// METHOD: getCurrentValue()
-/// report the current value of this object.
-/**
- */
-
-std::string
-RpString::getCurrentValue(void* null_val) const
-{
-    return *((std::string*) RpVariable::getCurrentValue()); 
-}
-
-/**********************************************************************/
-// METHOD: getSize()
-/// report the size of this object  in the form  Height x Width
-/**
- */
-
-std::string
-RpString::getSize() const
-{
-    std::stringstream tmpStr;
-
-    tmpStr << getWidth() << "x" << getHeight();
-    return (tmpStr.str()); 
-}
-
-/**********************************************************************/
-// METHOD: getHeight()
-/// report the Height of this object.
-/**
- */
-
-int
-RpString::getHeight() const
-{
-    return height; 
-}
-
-/**********************************************************************/
-// METHOD: getWidth()
-/// report the Width of this object.
-/**
- */
-
-int
-RpString::getWidth() const
-{
-    return width; 
+    // clean up dynamic memory
 }
 
 // -------------------------------------------------------------------- //

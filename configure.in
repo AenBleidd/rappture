@@ -542,8 +542,13 @@ AC_CONFIG_FILES([
     examples/demo.bash
     examples/graph/Makefile
     examples/objects/Makefile
+    examples/objects/axis/Makefile
+    examples/objects/curve/Makefile
     examples/objects/dxWriter/Makefile
     examples/objects/floatBuffer/Makefile
+    examples/objects/number/Makefile
+    examples/objects/plot/Makefile
+    examples/objects/string/Makefile
     examples/zoo/Makefile
     examples/zoo/binary/Makefile
     examples/zoo/boolean/Makefile
