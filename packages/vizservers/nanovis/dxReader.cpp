@@ -91,7 +91,7 @@ ReadDxVectorFieldData(Rappture::Outcome &result, size_t length, char *string)
 	    continue;		// Skip blank or comment lines.
 	}
 	if (sscanf(line, "object %*d class gridpositions counts %d %d %d", 
-		   &nx, &ny, &nz) == 4) {
+		   &nx, &ny, &nz) == 3) {
 	    printf("w:%d h:%d d:%d\n", nx, ny, nz);
 	    // found grid size
 	} else if (sscanf(line, "origin %lg %lg %lg", &x0, &y0, &z0) == 3) {
@@ -106,7 +106,7 @@ ReadDxVectorFieldData(Rappture::Outcome &result, size_t length, char *string)
 		dz = ddz;
 	    }
 	} else if (sscanf(line, "object %*d class array type %*s shape 3"
-		" rank 1 items %d data follows", &npts) == 3) {
+		" rank 1 items %d data follows", &npts) == 1) {
 	    printf("point %d\n", npts);
 	    if (npts != nx*ny*nz) {
 		result.addError("inconsistent data: expected %d points"
@@ -115,7 +115,7 @@ ReadDxVectorFieldData(Rappture::Outcome &result, size_t length, char *string)
 	    }
 	    break;
 	} else if (sscanf(line, "object %*d class array type %*s rank 0"
-		" times %d data follows", &npts) == 3) {
+		" times %d data follows", &npts) == 1) {
 	    if (npts != nx*ny*nz) {
 		result.addError("inconsistent data: expected %d points"
 				" but found %d points", nx*ny*nz, npts);

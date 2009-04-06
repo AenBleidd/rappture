@@ -26,7 +26,7 @@
  */
 
 bool
-Rappture::encoding::isbinary(const char* buf, int size)
+Rappture::encoding::isBinary(const char* buf, int size)
 {
     if (buf == NULL) {
         return 0;
@@ -44,7 +44,7 @@ Rappture::encoding::isbinary(const char* buf, int size)
 }
 
 bool
-Rappture::encoding::isbase64(const char* buf, int size)
+Rappture::encoding::isBase64(const char* buf, int size)
 {
     if (buf == NULL) {
         return 0;
@@ -62,7 +62,7 @@ Rappture::encoding::isbase64(const char* buf, int size)
 }
 
 /**********************************************************************/
-// FUNCTION: Rappture::encoding::flags()
+// FUNCTION: Rappture::encoding::headerFlags()
 /// checks header of given string to determine if it was encoded by rappture.
 /**
  * Checks to see if the string buf was encoded by rappture
@@ -146,7 +146,8 @@ Rappture::encoding::encode(Rappture::Outcome &err, Rappture::Buffer& buf,
 	return true;		// Nothing to encode.
     }
     if ((flags & (RPENC_Z | RPENC_B64)) == 0) {
-	return true;		// Nothing to do.
+	// By default compress and encode the string.
+	flags |= RPENC_Z | RPENC_B64;
     }
     if (outData.append(buf.bytes(), buf.size()) != (int)size) {
 	err.addError("can't append %lu bytes", size);
@@ -156,9 +157,8 @@ Rappture::encoding::encode(Rappture::Outcome &err, Rappture::Buffer& buf,
 	return false;
     }
     buf.clear();
-    if (flags & RPENC_HDR) {
-	flags &= (RPENC_Z | RPENC_B64);
-	switch (flags) {
+    if ((flags & RPENC_RAW) == 0) {
+	switch (flags & (RPENC_Z | RPENC_B64)) {
 	case RPENC_Z:
 	    buf.append("@@RP-ENC:z\n", 11);
 	    break;
@@ -207,21 +207,26 @@ Rappture::encoding::decode(Rappture::Outcome &err, Rappture::Buffer& buf,
 	return true;		// Nothing to decode.
     }
     bytes = buf.bytes();
-    if (strncmp(bytes, "@@RP-ENC:z\n", 11) == 0) {
-	bytes += 11;
-	size -= 11;
-	flags &= ~RPENC_B64;
-	flags |= RPENC_Z;
-    } else if (strncmp(bytes, "@@RP-ENC:b64\n", 13) == 0) {
-	bytes += 13;
-	size -= 13;
-	flags &= ~RPENC_Z;
-	flags |= RPENC_B64;
-    } else if (strncmp(bytes, "@@RP-ENC:zb64\n", 14) == 0) {
-	bytes += 14;
-	size -= 14;
-	flags |= (RPENC_B64 | RPENC_Z);
-    } 
+    if ((flags & RPENC_RAW) == 0) {
+	if (strncmp(bytes, "@@RP-ENC:z\n", 11) == 0) {
+	    bytes += 11;
+	    size -= 11;
+	    flags &= ~RPENC_B64;
+	    flags |= RPENC_Z;
+	} else if (strncmp(bytes, "@@RP-ENC:b64\n", 13) == 0) {
+	    bytes += 13;
+	    size -= 13;
+	    flags &= ~RPENC_Z;
+	    flags |= RPENC_B64;
+	} else if (strncmp(bytes, "@@RP-ENC:zb64\n", 14) == 0) {
+	    bytes += 14;
+	    size -= 14;
+	    flags |= (RPENC_B64 | RPENC_Z);
+	} 
+    }
+    if ((flags & (RPENC_B64 | RPENC_Z)) == 0) {
+	return true;		/* No decode or decompress flags present. */
+    }
     if (outData.append(bytes, size) != (int)size) {
 	err.addError("can't append %d bytes to buffer", size);
 	return false;

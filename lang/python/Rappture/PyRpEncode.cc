@@ -44,8 +44,7 @@ RpEncode_isbinary(PyObject *self, PyObject *args, PyObject *keywds)
         return NULL;
     }
 
-    rv = PyFloat_FromDouble(Rappture::encoding::isbinary(data,dlen));
-
+    rv = PyFloat_FromDouble(Rappture::encoding::isBinary(data,dlen));
     return rv;
 }
 

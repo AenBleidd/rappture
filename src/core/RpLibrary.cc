@@ -1756,7 +1756,7 @@ RpLibrary::put (std::string path, std::string value, std::string id,
     // check for binary data
     // FIXME: I've already appended a NUL-byte of this assuming that
     //	      it's a ASCII string. This test must come before.
-    if (Rappture::encoding::isbinary(value.c_str(), value.length())) {
+    if (Rappture::encoding::isBinary(value.c_str(), value.length())) {
         putData(path, value.c_str(), value.length(), append);
         return *this;
     }

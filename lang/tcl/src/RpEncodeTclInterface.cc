@@ -18,9 +18,9 @@ extern "C" {
 extern Tcl_AppInitProc RpEncoding_Init;
 }
 
-static Tcl_ObjCmdProc RpTclEncodingIs;
-static Tcl_ObjCmdProc RpTclEncodingEncode;
-static Tcl_ObjCmdProc RpTclEncodingDecode;
+static Tcl_ObjCmdProc IsCmd;
+static Tcl_ObjCmdProc EncodeCmd;
+static Tcl_ObjCmdProc DecodeCmd;
 
 /**********************************************************************/
 // FUNCTION: RpEncoding_Init()
@@ -36,21 +36,19 @@ static Tcl_ObjCmdProc RpTclEncodingDecode;
 int
 RpEncoding_Init(Tcl_Interp *interp)
 {
-
     Tcl_CreateObjCommand(interp, "::Rappture::encoding::is",
-        RpTclEncodingIs, (ClientData)NULL, (Tcl_CmdDeleteProc*)NULL);
+        IsCmd, (ClientData)NULL, (Tcl_CmdDeleteProc*)NULL);
 
     Tcl_CreateObjCommand(interp, "::Rappture::encoding::encode",
-        RpTclEncodingEncode, (ClientData)NULL, (Tcl_CmdDeleteProc*)NULL);
+        EncodeCmd, (ClientData)NULL, (Tcl_CmdDeleteProc*)NULL);
 
     Tcl_CreateObjCommand(interp, "::Rappture::encoding::decode",
-        RpTclEncodingDecode, (ClientData)NULL, (Tcl_CmdDeleteProc*)NULL);
-
+        DecodeCmd, (ClientData)NULL, (Tcl_CmdDeleteProc*)NULL);
     return TCL_OK;
 }
 
 /**********************************************************************/
-// FUNCTION: RpTclEncodingIs()
+// FUNCTION: IsCmd()
 /// Rappture::encoding::is checks to see if given string is binary.
 /**
  * Checks to see <string> is binary
@@ -60,8 +58,7 @@ RpEncoding_Init(Tcl_Interp *interp)
  */
 
 static int
-RpTclEncodingIs (ClientData cdata, Tcl_Interp *interp,
-    int objc, Tcl_Obj *const objv[])
+IsCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *const *objv)
 {
     Tcl_ResetResult(interp);
 
@@ -78,13 +75,10 @@ RpTclEncodingIs (ClientData cdata, Tcl_Interp *interp,
     int bufLen;
     const char *buf;
     const char *string;
-    buf = (const char*) Tcl_GetByteArrayFromObj(objv[2], &bufLen);
+    buf = (const char *)Tcl_GetByteArrayFromObj(objv[2], &bufLen);
     const char *type = Tcl_GetString(objv[1]);
-    if (('b' == *type) && (strcmp(type,"binary") == 0)) {
-	bool isBinary;
-
-        isBinary = (Rappture::encoding::isbinary(buf,bufLen) != 0);
-	string = (isBinary) ? "yes" : "no" ;
+    if (('b' == *type) && (strcmp(type, "binary") == 0)) {
+        string = (Rappture::encoding::isBinary(buf, bufLen)) ? "yes" : "no";
     } else if (('e' == *type) && (strcmp(type,"encoded") == 0)) {
 	bool isEncoded;
 
@@ -100,7 +94,7 @@ RpTclEncodingIs (ClientData cdata, Tcl_Interp *interp,
 }
 
 /**********************************************************************/
-// FUNCTION: RpTclEncodingEncode()
+// FUNCTION: EncodeCmd --
 /// Rappture::encoding::encode function in Tcl, encodes provided string
 /**
  * Encode a string by compressing it with zlib and then base64 encoding it.
@@ -166,31 +160,29 @@ static SwitchCustom asSwitch = {
 
 typedef struct {
     unsigned int flags;
-    unsigned int noheader;
 } EncodeSwitches;
 
 static SwitchSpec encodeSwitches[] = 
 {
     {SWITCH_CUSTOM, "-as", "z|b64|zb64",
 	offsetof(EncodeSwitches, flags), 0, 0, &asSwitch},
-    {SWITCH_VALUE, "-no-header", "", 
-	offsetof(EncodeSwitches, noheader), 0, true},
+    {SWITCH_BITMASK, "-noheader", "", 
+	offsetof(EncodeSwitches, flags), 0, RPENC_RAW},
     {SWITCH_END}
 };
 
 static int
-RpTclEncodingEncode (ClientData cdata, Tcl_Interp *interp, int objc,
-		     Tcl_Obj *const *objv)
+EncodeCmd(ClientData clientData, Tcl_Interp *interp, int objc, 
+	  Tcl_Obj *const *objv)
 {
     if (objc < 1) {
         Tcl_AppendResult(interp, "wrong # args: should be \"", 
 		Tcl_GetString(objv[0]), 
-		" ?-as z|b64|zb64? ?-no-header? ?--? string\"", (char*)NULL);
+		" ?-as z|b64|zb64? ?-noheader? ?--? string\"", (char*)NULL);
         return TCL_ERROR;
     }
     EncodeSwitches switches;
     switches.flags = 0;
-    switches.noheader = 0;
     int n;
     n = Rp_ParseSwitches(interp, encodeSwitches, objc - 1, objv + 1, &switches,
 			 SWITCH_OBJV_PARTIAL);
@@ -202,7 +194,7 @@ RpTclEncodingEncode (ClientData cdata, Tcl_Interp *interp, int objc,
     if ((objc - last) != 1) {
         Tcl_AppendResult(interp, "wrong # args: should be \"", 
 		Tcl_GetString(objv[0]), 
-		" ?-as z|b64|zb64? ?-no-header? ?--? string\"", (char*)NULL);
+		" ?-as z|b64|zb64? ?-noheader? ?--? string\"", (char*)NULL);
         return TCL_ERROR;
     }
     int nBytes;
@@ -212,9 +204,6 @@ RpTclEncodingEncode (ClientData cdata, Tcl_Interp *interp, int objc,
 	return TCL_OK;		// Nothing to encode.
     }
     Rappture::Buffer buf(string, nBytes);
-    if (!switches.noheader) {
-        switches.flags |= RPENC_HDR;
-    }
     Rappture::Outcome status;
     if (!Rappture::encoding::encode(status, buf, switches.flags)) {
         Tcl_AppendResult(interp, status.remark(), "\n", status.context(), NULL);
@@ -226,7 +215,7 @@ RpTclEncodingEncode (ClientData cdata, Tcl_Interp *interp, int objc,
 }
 
 /**********************************************************************/
-// FUNCTION: RpTclEncodingDecode()
+// FUNCTION: DecodeCmd()
 /// Rappture::encoding::decode function in Tcl, decodes provided string
 /**
  * Decode a string by uncompressing it with zlib and base64 decoding it.
@@ -235,6 +224,10 @@ RpTclEncodingEncode (ClientData cdata, Tcl_Interp *interp, int objc,
  *
  * Full function call:
  * ::Rappture::encoding::decode ?-as z|b64|zb64? <string>
+ *
+ *	I'd rather the interface be
+ *	
+ *		decode -b64 -z string 
  */
 
 typedef struct {
@@ -245,12 +238,14 @@ static SwitchSpec decodeSwitches[] =
 {
     {SWITCH_CUSTOM, "-as", "z|b64|zb64",
 	offsetof(DecodeSwitches, flags), 0, 0, &asSwitch},
+    {SWITCH_BITMASK, "-raw", "", 
+	offsetof(DecodeSwitches, flags), 0, RPENC_RAW},
     {SWITCH_END}
 };
 
 static int
-RpTclEncodingDecode(ClientData clientData, Tcl_Interp *interp, int objc,
-		    Tcl_Obj *const *objv)
+DecodeCmd(ClientData clientData, Tcl_Interp *interp, int objc, 
+	  Tcl_Obj *const *objv)
 {
     if (objc < 1) {
         Tcl_AppendResult(interp, "wrong # args: should be \"", 

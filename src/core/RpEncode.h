@@ -1,3 +1,4 @@
+
 /*
  * ======================================================================
  *  Rappture::encoding
@@ -11,8 +12,8 @@
  * ======================================================================
  */
 
-#ifndef RAPPTURE_ENCODE_H
-#define RAPPTURE_ENCODE_H
+#ifndef RP_ENCODE_H
+#define RP_ENCODE_H
 
 #include <RpOutcome.h>
 #include <RpBuffer.h>
@@ -20,16 +21,22 @@
 namespace Rappture {
 namespace encoding {
 
-#define RPENC_Z      (1<<0)
-#define RPENC_B64    (1<<1)
-#define RPENC_HDR    (1<<2)
+enum RapptureEncodingFlags {
+    RPENC_Z  =(1<<0),		/* Compress/Decompress the string. */
+    RPENC_B64=(1<<1),		/* Base64 encode/decode the string. */ 
+    RPENC_HDR=(1<<2),		/* Placebo. Header is by default added. */
+    RPENC_RAW=(1<<3)		/* Treat the string as raw input. 
+				 * Decode: ignore the header.
+				 * Encode: don't add a header.
+				 */
+};
 
-bool isbinary(const char* buf, int size);
-bool isbase64(const char* buf, int size);
+bool isBinary(const char* buf, int size);
+bool isBase64(const char* buf, int size);
 unsigned int headerFlags(const char* buf, int size);
 bool encode(Rappture::Outcome &err, Rappture::Buffer& buf, unsigned int flags);
 bool decode(Rappture::Outcome &err, Rappture::Buffer& buf, unsigned int flags);
 
 }
 }
-#endif // RAPPTURE_ENCODE_H
+#endif /*RP_ENCODE_H*/

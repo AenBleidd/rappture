@@ -169,7 +169,7 @@ RapptureBufferTell(RapptureBuffer* buf)
 }
 
 RapptureOutcome
-RapptureBufferLoad( RapptureBuffer* buf, const char* filename)
+RapptureBufferLoad(RapptureBuffer* buf, const char* filename)
 {
     Rappture::Outcome s;
     RapptureOutcome status;
