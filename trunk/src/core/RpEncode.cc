@@ -135,7 +135,7 @@ Rappture::encoding::headerFlags(const char* buf, int size)
  */
 
 bool
-Rappture::encoding::encode(Rappture::Outcome &err, Rappture::Buffer& buf, 
+Rappture::encoding::encode(Rappture::Outcome &status, Rappture::Buffer& buf, 
 			   unsigned int flags)
 {
     Rappture::Buffer outData;
@@ -150,10 +150,10 @@ Rappture::encoding::encode(Rappture::Outcome &err, Rappture::Buffer& buf,
 	flags |= RPENC_Z | RPENC_B64;
     }
     if (outData.append(buf.bytes(), buf.size()) != (int)size) {
-	err.addError("can't append %lu bytes", size);
+	status.addError("can't append %lu bytes", size);
 	return false;
     }
-    if (!outData.encode(err, flags)) {
+    if (!outData.encode(status, flags)) {
 	return false;
     }
     buf.clear();
@@ -173,7 +173,7 @@ Rappture::encoding::encode(Rappture::Outcome &err, Rappture::Buffer& buf,
 	}
     }
     if (buf.append(outData.bytes(),outData.size()) != (int)outData.size()) {
-	err.addError("can't append %d bytes", outData.size());
+	status.addError("can't append %d bytes", outData.size());
 	return false;
     }
     return true;
@@ -188,14 +188,14 @@ Rappture::encoding::encode(Rappture::Outcome &err, Rappture::Buffer& buf,
  * Rappture::encoding::isbinary is used to qualify binary data.
  *
  * Full function call:
- * Rappture::encoding::decode (buf,flags)
+ * Rappture::encoding::decode(context, buf,flags)
  *
  * The check header flag is confusing here.
  */
 
 bool
-Rappture::encoding::decode(Rappture::Outcome &err, Rappture::Buffer& buf, 
-		unsigned int flags)
+Rappture::encoding::decode(Rappture::Outcome &status, Rappture::Buffer& buf, 
+			   unsigned int flags)
 {
     Rappture::Buffer outData;
 
@@ -203,22 +203,22 @@ Rappture::encoding::decode(Rappture::Outcome &err, Rappture::Buffer& buf,
 
     size_t size;
     size = buf.size();
-    if (size <= 0) {
+    if (size == 0) {
 	return true;		// Nothing to decode.
     }
     bytes = buf.bytes();
     if ((flags & RPENC_RAW) == 0) {
-	if (strncmp(bytes, "@@RP-ENC:z\n", 11) == 0) {
+	if ((size > 11) && (strncmp(bytes, "@@RP-ENC:z\n", 11) == 0)) {
 	    bytes += 11;
 	    size -= 11;
 	    flags &= ~RPENC_B64;
 	    flags |= RPENC_Z;
-	} else if (strncmp(bytes, "@@RP-ENC:b64\n", 13) == 0) {
+	} else if ((size > 13) && (strncmp(bytes, "@@RP-ENC:b64\n", 13) == 0)){
 	    bytes += 13;
 	    size -= 13;
 	    flags &= ~RPENC_Z;
 	    flags |= RPENC_B64;
-	} else if (strncmp(bytes, "@@RP-ENC:zb64\n", 14) == 0) {
+	} else if ((size > 14) && (strncmp(bytes, "@@RP-ENC:zb64\n", 14) == 0)){
 	    bytes += 14;
 	    size -= 14;
 	    flags |= (RPENC_B64 | RPENC_Z);
@@ -228,10 +228,10 @@ Rappture::encoding::decode(Rappture::Outcome &err, Rappture::Buffer& buf,
 	return true;		/* No decode or decompress flags present. */
     }
     if (outData.append(bytes, size) != (int)size) {
-	err.addError("can't append %d bytes to buffer", size);
+	status.addError("can't append %d bytes to buffer", size);
 	return false;
     }
-    if (!outData.decode(err, flags)) {
+    if (!outData.decode(status, flags)) {
 	return false;
     }
     buf.move(outData);
