@@ -189,15 +189,13 @@ Buffer::dump (Outcome &status, const char* filePath)
 
 
 bool
-Buffer::encode (Outcome &status, unsigned int flags)
+Buffer::encode(Outcome &status, unsigned int flags)
 {
     SimpleCharBuffer bout;
 
     rewind();
 
-    flags &= (RPENC_Z | RPENC_B64);
-
-    switch (flags) {
+    switch (flags & (RPENC_Z | RPENC_B64)) {
     case 0:
 	break;
 
@@ -231,26 +229,22 @@ Buffer::encode (Outcome &status, unsigned int flags)
 
 
 bool
-Buffer::decode (Outcome &status, unsigned int flags)
+Buffer::decode(Outcome &status, unsigned int flags)
 {
     SimpleCharBuffer bout;
 
     rewind();
 
-    flags &= (RPENC_Z | RPENC_B64);
-
-    switch (flags) {
+    switch (flags & (RPENC_Z | RPENC_B64)) {
     case 0:
-	if (encoding::isbase64(bytes(), size())) {
-	    flags |= RPENC_B64;
+	if (encoding::isBase64(bytes(), size())) {
 	    if (!do_base64_dec(status, *this, bout)) {
 		return false;
 	    }
 	    move(bout);
 	}
 	bout.clear();
-	if (encoding::isbinary(bytes(), size())) {
-	    flags |= RPENC_B64;
+	if (encoding::isBinary(bytes(), size())) {
 	    if (!do_decompress(status, *this, bout)) {
 		return false;
 	    }

@@ -17,10 +17,11 @@
 #include <RpOutcome.h>
 #include <RpSimpleBuffer.h>
 
-enum RP_ENCODING_FLAGS {
+enum RapptureEncodingFlags {
     RPENC_Z=(1<<0),
     RPENC_B64=(1<<1),
-    RPENC_HDR=(1<<2)
+    RPENC_HDR=(1<<2),
+    RPENC_RAW=(1<<3)
 };
 
 

@@ -34,13 +34,11 @@
 #  include <stddef.h>
 #endif /* HAVE_STDDEF_H */
 
-#ifndef Offset
 #ifdef offsetof
-#define Offset(type, field) ((int) offsetof(type, field))
+#define SwitchOffset(type, field) ((int) offsetof(type, field))
 #else
-#define Offset(type, field) ((int) ((char *) &((type *) 0)->field))
+#define SwitchOffset(type, field) ((int) ((char *) &((type *) 0)->field))
 #endif
-#endif /* Offset */
 
 namespace Rappture {
 
