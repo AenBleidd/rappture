@@ -1,9 +1,10 @@
 /*
- *  RpChoice - Rappture 2.0 About XML object
+ * ----------------------------------------------------------------------
+ *  Rappture 2.0 Choice Object Source
  *
  * ======================================================================
  *  AUTHOR:  Derrick Kearney, Purdue University
- *  Copyright (c) 2004-2005  Purdue Research Foundation
+ *  Copyright (c) 2005-2009  Purdue Research Foundation
  *
  *  See the file "license.terms" for information on usage and
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -12,165 +13,133 @@
 
 #include "RpChoice.h"
 
+using namespace Rappture;
+
+Choice::Choice (
+            const char *path,
+            const char *val
+        )
+    :   Variable    (),
+        _options    (NULL)
+{
+    this->path(path);
+    this->label("");
+    this->desc("");
+    this->def(val);
+    this->cur(val);
+}
+
+Choice::Choice (
+            const char *path,
+            const char *val,
+            const char *label,
+            const char *desc
+        )
+    :   Variable    (),
+        _options    (NULL)
+{
+    this->path(path);
+    this->label(label);
+    this->desc(desc);
+    this->def(val);
+    this->cur(val);
+}
+
+// copy constructor
+Choice::Choice ( const Choice& o )
+    :   Variable(o)
+{
+    this->def(o.def());
+    this->cur(o.cur());
+
+    // need to copy _options
+}
+
+// default destructor
+Choice::~Choice ()
+{
+    // clean up dynamic memory
+    // unallocate the _options?
+
+}
+
 /**********************************************************************/
-// METHOD: setDefaultValue()
-/// Set the default value of a RpChoice object.
+// METHOD: addOption()
+/// Add an option value to the object
 /**
+ * Add an option value to the object. Currently all
+ * labels must be unique.
  */
 
-RpChoice& 
-RpChoice::setDefaultValue(std::string newDefaultVal)
+Choice&
+Choice::addOption(
+    const char *label,
+    const char *desc,
+    const char *val)
 {
-    std::string* def = NULL;
+    option *p = NULL;
 
-    def = (std::string*) RpVariable::getDefaultValue(); 
+    p = new option;
+    if (!p) {
+        // raise error and exit
+    }
 
-    if (!def) {
-        RpVariable::setDefaultValue(new std::string (newDefaultVal));
+    p->label(label);
+    p->desc(desc);
+    p->val(val);
+
+    if (_options == NULL) {
+        _options = Rp_ChainCreate();
+        if (_options == NULL) {
+            // raise error and exit
+        }
     }
-    else {
-        *def = newDefaultVal;
-    }
+
+    Rp_ChainAppend(_options,p);
 
     return *this;
 }
 
 /**********************************************************************/
-// METHOD: setCurrentValue()
-/// Set the current value of a RpChoice object.
+// METHOD: delOption()
+/// Delete an option value from the object
 /**
+ * Delete an option value from the object.
  */
 
-RpChoice& 
-RpChoice::setCurrentValue(std::string newCurrentVal)
+Choice&
+Choice::delOption(const char *label)
 {
-    std::string* cur = (std::string*) RpVariable::getCurrentValue();
-    std::string* def = (std::string*) RpVariable::getDefaultValue();
-
-    if (cur == def) {
-        RpVariable::setCurrentValue(new std::string (newCurrentVal));
-    }
-    else {
-        *cur = newCurrentVal;
+    if (label == NULL) {
+        return *this;
     }
 
-    return *this;
-}
+    if (_options == NULL) {
+        return *this;
+    }
 
+    option *p = NULL;
+    const char *plabel = NULL;
+    Rp_ChainLink *l = NULL;
 
-/**********************************************************************/
-// METHOD: setOption()
-/// Set an option for this object.
-/**
- */
-
-RpChoice&
-RpChoice::setOption(std::string newOption)
-{
-    options.push_back(RpOption(newOption));
-    return *this;
-}
-
-/**********************************************************************/
-// METHOD: deleteOption()
-/// Delete the provided option from this object.
-/**
- */
-
-RpChoice& 
-RpChoice::deleteOption(std::string optionName)
-{
-    int lvc = 0;
-    int vsize = options.size();
-    // std::vector<RpOption>::iterator tempIterator;
-    /*
-    for (lvc=0,tempIterator=options.begin();lvc<vsize;lvc++,tempIterator++) {
-        if (option[lvc] == option) {
-            option.erase(tempIterator);
+    // traverse the list looking for the matching option
+    l = Rp_ChainFirstLink(_options);
+    while (l != NULL) {
+        p = (option *) Rp_ChainGetValue(l);
+        plabel = p->label();
+        if ((*label == *plabel) && (strcmp(plabel,label) == 0)) {
+            // we found matching entry, remove it
+            if (p) {
+                delete p;
+                Rp_ChainDeleteLink(_options,l);
+            }
             break;
         }
     }
-    */
-    for (lvc = 0;lvc < vsize; lvc++) {
-        if (options[lvc].getLabel() == optionName) {
-            options.erase(options.begin()+lvc);
-            break;
-        }
-    } 
+
+
     return *this;
-}
-
-/**********************************************************************/
-// METHOD: getDefaultValue()
-/// Report the default value of this object.
-/**
- */
-
-std::string
-RpChoice::getDefaultValue(void* null_val) const
-{
-    return *((std::string*) RpVariable::getDefaultValue()); 
-}
-
-/**********************************************************************/
-// METHOD: getCurrentValue()
-/// Report the current value of the object.
-/**
- */
-
-std::string
-RpChoice::getCurrentValue(void* null_val) const
-{
-    return *((std::string*) RpVariable::getCurrentValue()); 
-}
-
-
-/************************************************************************
- *                                                                      
- * report the options of the object 
- *                                                                      
- ************************************************************************/
-
-/**********************************************************************/
-// METHOD: setLabel()
-/// Set the label of this object.
-/**
- */
-
-std::string
-RpChoice::getFirstOption()
-{
-    optionsIter = options.begin();
-    return ((*optionsIter).getLabel()); 
-}
-
-/**********************************************************************/
-// METHOD: getNextOption()
-/// Report the next options of the object.
-/**
- * If you get to the end of the options list, "" is returned.
- */
-
-std::string
-RpChoice::getNextOption()
-{
-    optionsIter++;
-    if (optionsIter == options.end()) {
-        return std::string("");
-    }
-    return ((*optionsIter).getLabel()); 
-}
-
-/**********************************************************************/
-// METHOD: getOptListSize()
-/// Report the number of options (items) in this object.
-/**
- */
-
-unsigned int
-RpChoice::getOptListSize() const
-{
-    return options.size();
 }
 
 // -------------------------------------------------------------------- //
+

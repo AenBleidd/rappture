@@ -1,31 +1,36 @@
 
 bindir          = @bindir@
-datadir		= @datadir@
-datarootdir	= @datarootdir@
+datadir         = @datadir@
+datarootdir     = @datarootdir@
 exec_prefix     = @exec_prefix@
 includedir      = @includedir@
 libdir          = @libdir@
 mandir          = @mandir@
-srcdir		= @srcdir@
+srcdir          = @srcdir@
 prefix          = @prefix@
 
-INSTALL		= @INSTALL@
-INSTALL_DATA	= @INSTALL_DATA@
-VPATH		= $(srcdir)
-RM		= rm -f
+INSTALL         = @INSTALL@
+INSTALL_DATA    = @INSTALL_DATA@
+VPATH           = $(srcdir)
+RM              = rm -f
 
-examples	= \
+examples   = \
+		axis \
+		curve \
 		dxWriter \
-		floatBuffer 
+		floatBuffer \
+		number \
+		plot \
+		string
 
-destdir		= $(prefix)/examples/objects
+destdir    = $(prefix)/examples/objects
 
-all: 
+all:
 	for i in $(examples) ; do \
 	  $(MAKE) -C $$i all || exit 1; \
 	done
 
-install: 
+install:
 	for i in $(examples) ; do \
 	  $(MAKE) -C $$i install || exit 1; \
 	done
@@ -35,7 +40,7 @@ clean:
 	  $(MAKE) -C $$i clean; \
 	done
 
-distclean: 
+distclean:
 	for i in $(examples) ; do \
 	  $(MAKE) -C $$i distclean; \
 	done

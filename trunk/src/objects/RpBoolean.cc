@@ -1,87 +1,59 @@
 /*
  * ----------------------------------------------------------------------
- *  RpBoolean - Rappture 2.0 About XML object
+ *  Rappture 2.0 Boolean Object Source
  *
  * ======================================================================
  *  AUTHOR:  Derrick Kearney, Purdue University
- *  Copyright (c) 2004-2005  Purdue Research Foundation
+ *  Copyright (c) 2005-2009  Purdue Research Foundation
  *
  *  See the file "license.terms" for information on usage and
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  * ======================================================================
  */
 
- #include "RpBoolean.h"
+#include "RpBoolean.h"
+#include "RpUnits.h"
 
-/**********************************************************************/
-// METHOD: setDefaultValue()
-/// Set the default value of this object
-/**
- */
+using namespace Rappture;
 
-RpBoolean& 
-RpBoolean::setDefaultValue(std::string newDefaultVal)
+Boolean::Boolean (
+            const char *path,
+            int val
+        )
+    :   Variable    ()
 {
-    std::string* def = NULL;
-    
-    def = (std::string*) RpVariable::getDefaultValue(); 
-
-    if (!def) {
-        RpVariable::setDefaultValue(new std::string (newDefaultVal));
-    }
-    else {
-        *def = newDefaultVal;
-    }
-
-    return *this;
+    this->path(path);
+    this->def(val);
+    this->cur(val);
 }
 
-/**********************************************************************/
-// METHOD: setCurrentValue()
-/// Set the current value of this object.
-/**
- */
-
-RpBoolean& 
-RpBoolean::setCurrentValue(std::string newCurrentVal)
+Boolean::Boolean (
+            const char *path,
+            int val,
+            const char *label,
+            const char *desc
+        )
+    :   Variable    ()
 {
-    std::string* cur = (std::string*) RpVariable::getCurrentValue();
-    std::string* def = (std::string*) RpVariable::getDefaultValue();
-
-    if (cur == def) {
-        RpVariable::setCurrentValue(new std::string (newCurrentVal));
-    }
-    else {
-        *cur = newCurrentVal;
-    }
-
-    return *this;
+    this->path(path);
+    this->label(label);
+    this->desc(desc);
+    this->def(val);
+    this->cur(val);
 }
 
-
-/**********************************************************************/
-// METHOD: getDefaultValue()
-/// Report the default value of this object.
-/**
- */
-
-std::string
-RpBoolean::getDefaultValue(void* null_val) const
+// copy constructor
+Boolean::Boolean ( const Boolean& o )
+    :   Variable(o)
 {
-    return *((std::string*) RpVariable::getDefaultValue()); 
+    this->def(o.def());
+    this->cur(o.cur());
+
 }
 
-/**********************************************************************/
-// METHOD: getCurrentValue()
-/// Report the current value of this object.
-/**
- */
-
-std::string
-RpBoolean::getCurrentValue(void* null_val) const
+// default destructor
+Boolean::~Boolean ()
 {
-    return *((std::string*) RpVariable::getCurrentValue()); 
 }
 
 // -------------------------------------------------------------------- //
-

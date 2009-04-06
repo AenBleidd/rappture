@@ -8,51 +8,66 @@
  * ======================================================================
  */
 #include <errno.h>
+#include "RpVariable.h"
+#include "RpChain.h"
 
-#ifndef _RpVARIABLE_H
-    #include "RpVariable.h"
-#endif
+#ifndef RAPPTURE_NUMBER_H
+#define RAPPTURE_NUMBER_H
 
-#ifndef _RpNUMBER_H
-#define _RpNUMBER_H
+namespace Rappture {
 
-class RpNumber : public RpVariable
+class Number : public Variable
 {
     public:
 
-        RpNumber (  const char *path,
-                    const char *unit,
+        Number  (  const char *path,
+                    const char *units,
                     double val);
 
-        RpNumber (  const char *path,
-                    const char *unit,
+        Number  (  const char *path,
+                    const char *units,
                     double val,
                     double min,
                     double max,
                     const char *label,
                     const char *desc);
 
-        RpNumber ( const RpNumber& o );
-        virtual ~RpNumber ();
+        Number  ( const Number& o );
+        virtual ~Number ();
 
-        virtual const double defaultValue    (double val);
-        virtual const double currentValue    (double val);
-        virtual const double min             (double val);
-        virtual const double max             (double val);
-        virtual const char *units            (const char *val);
+        Accessor<double> def;
+        Accessor<double> cur;
+        Accessor<double> min;
+        Accessor<double> max;
+        Accessor<const char *> units;
+
         // need to add a way to tell user conversion failed
-        virtual double convert               (const char *to);
+        virtual double convert (const char *to);
+
+        Number& addPreset(  const char *label,
+                            const char *desc,
+                            double val,
+                            const char *units   );
+
+        Number& delPreset(const char *label);
 
     private:
 
-        double _default;
-        double _current;
-        double _min;
-        double _max;
-
         // flag tells if user specified min and max values
         int _minmaxSet;
+
+        // hash or linked list of preset values
+        Rp_Chain *_presets;
+
+        struct preset{
+            Accessor<const char *> label;
+            Accessor<const char *> desc;
+            Accessor<double> val;
+            Accessor<const char *> units;
+        };
 };
+
+} // namespace Rappture
 
 /*--------------------------------------------------------------------------*/
 /*--------------------------------------------------------------------------*/

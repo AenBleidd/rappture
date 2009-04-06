@@ -4,6 +4,11 @@
 #include <ctype.h>
 #include "RpHashHelper.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
 int
 Rp_HashPrint(
     Rp_HashTable *h)
@@ -252,4 +257,8 @@ int charCmpFxn(
 {
     return strcmp(to,from);
 }
+
+#ifdef __cplusplus
+}
+#endif
 

@@ -11,67 +11,65 @@
  * ======================================================================
  */
 
-#include <cstring>
-#include <stdlib.h>
 #include "RpNumber.h"
+#include "RpUnits.h"
 
-#ifndef _RpUNITS_H
-    #include "RpUnits.h"
-#endif
+using namespace Rappture;
 
-RpNumber::RpNumber (
+Number::Number (
             const char *path,
-            const char *unit,
+            const char *units,
             double val
         )
-    :   RpVariable  (),
-        _default    (val),
-        _current    (val),
-        _min        (0.0),
-        _max        (0.0),
-        _minmaxSet  (0.0)
+    :   Variable    (),
+        _minmaxSet  (0),
+        _presets    (NULL)
 {
     const RpUnits *u = NULL;
 
-    property("path",(const void *)path);
+    this->path(path);
+    this->label("");
+    this->desc("");
+    this->def(val);
+    this->cur(val);
+    this->min(0.0);
+    this->max(0.0);
 
-    u = RpUnits::find(std::string(unit));
+    u = RpUnits::find(std::string(units));
     if (!u) {
-        u = RpUnits::define(unit,NULL);
+        u = RpUnits::define(units,NULL);
     }
-    property("units",(const void *)unit);
-
-    property("default",(const void *)&_default);
-    property("current",(const void *)&_current);
-    property("min",(const void *)&_min);
-    property("max",(const void *)&_max);
+    this->units(units);
 }
 
-RpNumber::RpNumber (
+Number::Number (
             const char *path,
-            const char *unit,
+            const char *units,
             double val,
             double min,
             double max,
             const char *label,
             const char *desc
         )
-    :   RpVariable  (),
-        _default    (val),
-        _current    (val),
-        _min         (min),
-        _max         (max),
-        _minmaxSet   (0)
+    :   Variable    (),
+        _minmaxSet  (0),
+        _presets    (NULL)
 {
     const RpUnits *u = NULL;
 
-    property("path",(const void *)path);
+    this->path(path);
+    this->label(label);
+    this->desc(desc);
+    this->def(val);
+    this->cur(val);
+    this->min(min);
+    this->max(max);
 
-    u = RpUnits::find(std::string(unit));
+    u = RpUnits::find(std::string(units));
     if (! u) {
-        u = RpUnits::define(unit,NULL);
+        u = RpUnits::define(units,NULL);
     }
-    property("units",(const void *)unit);
+    this->units(units);
 
     if ((min == 0) && (max == 0)) {
         _minmaxSet = 0;
@@ -79,51 +77,35 @@ RpNumber::RpNumber (
     else {
 
         if (min > val) {
-            _min = val;
+            this->min(val);
         }
 
         if (max < val) {
-            _max = val;
+            this->max(val);
         }
     }
-
-    property("default",(const void *)&_default);
-    property("current",(const void *)&_current);
-    property("min",(const void *)&_min);
-    property("max",(const void *)&_max);
 }
 
 // copy constructor
-RpNumber::RpNumber ( const RpNumber& o )
-    :   RpVariable(o),
-        _default    (o._default),
-        _current    (o._current),
-        _min        (o._min),
-        _max        (o._max),
+Number::Number ( const Number& o )
+    :   Variable(o),
         _minmaxSet  (o._minmaxSet)
-{}
+{
+    this->def(o.def());
+    this->cur(o.cur());
+    this->min(o.min());
+    this->max(o.max());
+    this->units(o.units());
+
+    // need to copy _presets
+}
 
 // default destructor
-RpNumber::~RpNumber ()
+Number::~Number ()
 {
     // clean up dynamic memory
 
 }
-
-/**********************************************************************/
-// METHOD: units()
-/// get / set the units of this number
-/**
- * get / set the units property of this object
- */
-
-const char *
-RpNumber::units(
-    const char *val)
-{
-    return (const char *) property("units",val);
-}
-
 
 /**********************************************************************/
 // METHOD: convert()
@@ -133,11 +115,11 @@ RpNumber::units(
  */
 
 double
-RpNumber::convert(const char *to) {
+Number::convert(const char *to) {
 
     const RpUnits* toUnit = NULL;
     const RpUnits* fromUnit = NULL;
-    double convertedVal = _current;
+    double convertedVal = cur();
     int err = 0;
 
     // make sure all units functions accept char*'s
@@ -145,32 +127,112 @@ RpNumber::convert(const char *to) {
     if (!toUnit) {
         // should raise error!
         // conversion not defined because unit does not exist
-        return _current;
+        return convertedVal;
     }
 
-    fromUnit = RpUnits::find(std::string(units(NULL)));
+    fromUnit = RpUnits::find(std::string(units()));
     if (!fromUnit) {
         // should raise error!
         // conversion not defined because unit does not exist
-        return _current;
+        return convertedVal;
     }
 
     // perform the conversion
-    convertedVal = fromUnit->convert(toUnit,_default, &err);
+    convertedVal = fromUnit->convert(toUnit,def(), &err);
     if (!err) {
-        _default = convertedVal;
+        def(convertedVal);
     }
 
-    convertedVal = fromUnit->convert(toUnit,_current, &err);
+    convertedVal = fromUnit->convert(toUnit,cur(), &err);
     if (!err) {
-        _current = convertedVal;
+        cur(convertedVal);
     }
 
     if (err) {
-        convertedVal = _current;
+        convertedVal = cur();
     }
 
     return convertedVal;
+}
+
+/**********************************************************************/
+// METHOD: addPreset()
+/// Add a preset / suggessted value to the object
+/**
+ * Add a preset value to the object. Currently all
+ * labels must be unique.
+ */
+
+Number&
+Number::addPreset(
+    const char *label,
+    const char *desc,
+    double val,
+    const char *units)
+{
+    preset *p = NULL;
+
+    p = new preset;
+    if (!p) {
+        // raise error and exit
+    }
+
+    p->label(label);
+    p->desc(desc);
+    p->val(val);
+    p->units(units);
+
+    if (_presets == NULL) {
+        _presets = Rp_ChainCreate();
+        if (_presets == NULL) {
+            // raise error and exit
+        }
+    }
+
+    Rp_ChainAppend(_presets,p);
+
+    return *this;
+}
+
+/**********************************************************************/
+// METHOD: delPreset()
+/// Delete a preset / suggessted value from the object
+/**
+ * Delete a preset value from the object.
+ */
+
+Number&
+Number::delPreset(const char *label)
+{
+    if (label == NULL) {
+        return *this;
+    }
+
+    if (_presets == NULL) {
+        return *this;
+    }
+
+    preset *p = NULL;
+    const char *plabel = NULL;
+    Rp_ChainLink *l = NULL;
+
+    // traverse the list looking for the matching preset
+    l = Rp_ChainFirstLink(_presets);
+    while (l != NULL) {
+        p = (preset *) Rp_ChainGetValue(l);
+        plabel = p->label();
+        if ((*label == *plabel) && (strcmp(plabel,label) == 0)) {
+            // we found matching entry, remove it
+            if (p) {
+                delete p;
+                Rp_ChainDeleteLink(_presets,l);
+            }
+            break;
+        }
+    }
+
+
+    return *this;
 }
 
 // -------------------------------------------------------------------- //

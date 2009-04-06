@@ -13,74 +13,51 @@
  * ======================================================================
  */
 
-#include <cstring>
-#include <stdlib.h>
 #include "RpVariable.h"
 #include "RpHashHelper.h"
 
-RpVariable::RpVariable()
+using namespace Rappture;
+
+Variable::Variable()
 {
     __init();
 }
 
-RpVariable::RpVariable(const RpVariable& o)
-    :
-        _path (o._path)
+Variable::Variable (
+    const char *path,
+    const char *label,
+    const char *desc,
+    const char *hints,
+    const char *color   )
 {
+    this->path(path);
+    this->label(label);
+    this->desc(desc);
+    this->hints(hints);
+    this->color(color);
+}
+
+Variable::Variable(const Variable& o)
+{
+    path(o.path());
+    label(o.label());
+    desc(o.desc());
+    hints(o.hints());
+    color(o.color());
+    icon(o.icon());
+
     if (o._h != NULL) {
         Rp_HashCopy(_h,o._h,charCpyFxn);
     }
 }
 
-RpVariable::~RpVariable()
+Variable::~Variable()
 {
-    __close();
-}
-
-const char *
-RpVariable::label(
-    const char *val)
-{
-    return (const char *) property("label",val);
-}
-
-const char *
-RpVariable::desc(
-    const char *val)
-{
-    return (const char *) property("desc",val);
-}
-
-const char *
-RpVariable::hints(
-    const char *val)
-{
-    return (const char *) property("hints",val);
-}
-
-const char *
-RpVariable::color(
-    const char *val)
-{
-    return (const char *) property("color",val);
-}
-
-const char *
-RpVariable::icon(
-    const char *val)
-{
-    return (const char *) property("icon",val);
-}
-
-const char *
-RpVariable::path(
-    const char *val)
-{
-    return (const char *) property("path",val);
+    __clear();
 }
 
 const void *
-RpVariable::property(
+Variable::property(
     const char *key,
     const void *val)
 {
@@ -89,14 +66,13 @@ RpVariable::property(
         // hash table does not exist, create it
         _h = (Rp_HashTable*) malloc(sizeof(Rp_HashTable));
         Rp_InitHashTable(_h,RP_STRING_KEYS);
-        return NULL;
     }
 
     if (val == NULL) {
         // get the value
         r = Rp_HashSearchNode(_h,key);
     } else {
-        //set the value
+        // set the value
         Rp_HashRemoveNode(_h,key);
         Rp_HashAddNode(_h,key,val);
         r = val;
@@ -105,19 +81,69 @@ RpVariable::property(
     return r;
 }
 
-void
-RpVariable::__init()
+const char *
+Variable::propstr(
+    const char *key,
+    const char *val)
 {
-    _path = NULL;
-    _h = NULL;
+    const char *r = NULL;
+    char *str = NULL;
+    if (_h == NULL) {
+        // hash table does not exist, create it
+        _h = (Rp_HashTable*) malloc(sizeof(Rp_HashTable));
+        Rp_InitHashTable(_h,RP_STRING_KEYS);
+    }
+
+    if (val == NULL) {
+        // get the value
+        r = (const char *) Rp_HashSearchNode(_h,key);
+    } else {
+        // set the value
+        //FIXME: users responsibility to free value with propremove()
+        size_t l = strlen(val);
+        str = new char[l+1];
+        strcpy(str,val);
+
+        // FIXME: possible memory leak here
+        // we dont free the removed item,
+        // it is user's responsibility to use propremove() to free it
+        // we don't know whether to use delete or delete[].
+        Rp_HashRemoveNode(_h,key);
+        Rp_HashAddNode(_h,key,str);
+        r = val;
+    }
+
+    return r;
+}
+
+void *
+Variable::propremove(
+    const char *key)
+{
+    if ((key == NULL) || (_h == NULL)) {
+        // key or hash table does not exist
+        return NULL;
+    }
+
+    return Rp_HashRemoveNode(_h,key);
 }
 
 void
-RpVariable::__close()
+Variable::__init()
 {
-    if (_path != NULL) {
-        free((void *)_path);
-    }
+    _h = NULL;
+    label("");
+    desc("");
+    hints("");
+    color("");
+    // icon(NULL);
+    path("");
+}
+
+void
+Variable::__clear()
+{
+    // who frees the Accessors?
 
     if (_h != NULL) {
         Rp_DeleteHashTable(_h);
