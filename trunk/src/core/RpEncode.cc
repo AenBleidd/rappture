@@ -140,8 +140,6 @@ Rappture::encoding::encode(Rappture::Outcome &status, Rappture::Buffer& buf,
 {
     Rappture::Buffer outData;
 
-    size_t size;
-    size = buf.size();
     if (buf.size() <= 0) {
 	return true;		// Nothing to encode.
     }
@@ -149,8 +147,8 @@ Rappture::encoding::encode(Rappture::Outcome &status, Rappture::Buffer& buf,
 	// By default compress and encode the string.
 	flags |= RPENC_Z | RPENC_B64;
     }
-    if (outData.append(buf.bytes(), buf.size()) != (int)size) {
-	status.addError("can't append %lu bytes", size);
+    if (outData.append(buf.bytes(), buf.size()) != (int)buf.size()) {
+	status.addError("can't append %lu bytes", buf.size());
 	return false;
     }
     if (!outData.encode(status, flags)) {
@@ -237,4 +235,3 @@ Rappture::encoding::decode(Rappture::Outcome &status, Rappture::Buffer& buf,
     buf.move(outData);
     return true;
 }
-
