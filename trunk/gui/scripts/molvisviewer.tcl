@@ -784,10 +784,11 @@ itcl::body Rappture::MolvisViewer::_rebuild {} {
     }]
     debug "rebuild: rotate $view_(mx) $view_(my) $view_(mz)"
 
-    $this projection update
-    $this atomscale update
-    $this bondthickness update
-    $this emblems update
+    projection update
+    atomscale update
+    bondthickness update
+    emblems update
+    representation update
 
     set _inrebuild 0
     $itk_component(3dview) configure -cursor ""
@@ -1154,6 +1155,9 @@ itcl::body Rappture::MolvisViewer::representation {option {model "all"} } {
     if { $option == $_mrepresentation } {
 	return 
     }
+    if { $option == "update" } {
+	set option $_settings($this-model)
+    }
     set _settings($this-modelimg) [Rappture::icon $option]
     set inner [$itk_component(main) panel "View Settings"]
     $inner.pict configure -image $_settings($this-modelimg)
@@ -1278,7 +1282,7 @@ itcl::body Rappture::MolvisViewer::projection {option} {
 # USAGE: atomscale scale ?model?
 #        atomscale update
 #
-# Used internally to change the molecular representation used to render
+# Used internally to change the molecular atom scale used to render
 # our scene.
 # ----------------------------------------------------------------------
 
@@ -1303,7 +1307,7 @@ itcl::body Rappture::MolvisViewer::atomscale { option {model "all"} } {
 # USAGE: bondthickness scale ?model?
 #        bondthickness update
 #
-# Used internally to change the molecular representation used to render
+# Used internally to change the molecular bond thickness used to render
 # our scene.
 # ----------------------------------------------------------------------
 
