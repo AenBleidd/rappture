@@ -1,3 +1,4 @@
+
 /*
  * ----------------------------------------------------------------------
  *  Rappture::library
@@ -22,22 +23,22 @@ extern "C" Tcl_AppInitProc RpLibrary_Init;
 
 #include "RpOp.h"
 
-static Tcl_ObjCmdProc RpLibraryCmd;
-static Tcl_ObjCmdProc RpLibCallCmd;
-static Tcl_ObjCmdProc RpTclLibChild;
-static Tcl_ObjCmdProc RpTclLibCopy;
-static Tcl_ObjCmdProc RpTclLibDiff;
-static Tcl_ObjCmdProc RpTclLibElem;
-static Tcl_ObjCmdProc RpTclLibGet;
-static Tcl_ObjCmdProc RpTclLibInfo;
-static Tcl_ObjCmdProc RpTclLibIsa;
-static Tcl_ObjCmdProc RpTclLibParent;
-static Tcl_ObjCmdProc RpTclLibPut;
-static Tcl_ObjCmdProc RpTclLibRemove;
-static Tcl_ObjCmdProc RpTclLibResult;
-static Tcl_ObjCmdProc RpTclLibValue;
-static Tcl_ObjCmdProc RpTclLibXml;
-static Tcl_ObjCmdProc RpTclResult;
+static Tcl_ObjCmdProc LibraryCmd;
+static Tcl_ObjCmdProc LibCallCmd;
+static Tcl_ObjCmdProc ChildOp;
+static Tcl_ObjCmdProc CopyOp;
+static Tcl_ObjCmdProc DiffOp;
+static Tcl_ObjCmdProc ElemOp;
+static Tcl_ObjCmdProc GetOp;
+static Tcl_ObjCmdProc InfoOp;
+static Tcl_ObjCmdProc IsaOp;
+static Tcl_ObjCmdProc ParentOp;
+static Tcl_ObjCmdProc PutOp;
+static Tcl_ObjCmdProc RemoveOp;
+static Tcl_ObjCmdProc ResultOp;
+static Tcl_ObjCmdProc ValueOp;
+static Tcl_ObjCmdProc XmlOp;
+static Tcl_ObjCmdProc ResultCmd;
 
 static std::string rpLib2command _ANSI_ARGS_((Tcl_Interp *interp,
     RpLibrary* newRpLibObj));
@@ -48,21 +49,20 @@ static int rpGetLibraryFromObj _ANSI_ARGS_((Tcl_Interp *interp,
 typedef std::string (RpLibrary::*rpMbrFxnPtr) _ANSI_ARGS_(());
 
 static Rp_OpSpec rpLibOps[] = {
-    {"children", 2, (void *)RpTclLibChild, 2, 7,
+    {"children", 2, (void *)ChildOp, 2, 7,
        	"?-as <fval>? ?-type <name>? ?<path>?",},
-    {"copy",     2, (void *)RpTclLibCopy, 5, 6,
+    {"copy",     2, (void *)CopyOp, 5, 6,
         "<path> from ?<xmlobj>? <path>",},
-    {"diff",     1, (void *)RpTclLibDiff, 3, 3, "<xmlobj>",},
-    {"element",  1, (void *)RpTclLibElem, 2, 5, "?-as <fval>? ?<path>?",},
-    {"get",      1, (void *)RpTclLibGet, 2, 3, "?<path>?",},
-    {"info",     1, (void *)RpTclLibInfo, 3, 3, "<objType>",},
-    {"isa",      1, (void *)RpTclLibIsa, 3, 3, "<objType>",},
-    {"parent",   2, (void *)RpTclLibParent, 2, 5, "?-as <fval>? ?<path>?",},
-    {"put",      2, (void *)RpTclLibPut, 2, 8,
+    {"diff",     1, (void *)DiffOp, 3, 3, "<xmlobj>",},
+    {"element",  1, (void *)ElemOp, 2, 5, "?-as <fval>? ?<path>?",},
+    {"get",      1, (void *)GetOp, 2, 3, "?<path>?",},
+    {"info",     1, (void *)InfoOp, 3, 3, "<objType>",},
+    {"isa",      1, (void *)IsaOp, 3, 3, "<objType>",},
+    {"parent",   2, (void *)ParentOp, 2, 5, "?-as <fval>? ?<path>?",},
+    {"put",      2, (void *)PutOp, 2, 8,
         "?-append yes? ?-id num? ?<path>? <string>",},
-    {"remove",   3, (void *)RpTclLibRemove, 2, 3, "?<path>?",},
-//    {"result", 3, (void *)RpTclLibResult, 2, 2, "",},
-    {"xml",      1, (void *)RpTclLibXml, 2, 2, "",},
+    {"remove",   3, (void *)RemoveOp, 2, 3, "?<path>?",},
+    {"xml",      1, (void *)XmlOp, 2, 2, "",},
 };
 
 static int nRpLibOps = sizeof(rpLibOps) / sizeof(Rp_OpSpec);
@@ -85,7 +85,7 @@ rpLib2command (Tcl_Interp *interp, RpLibrary* newRpLibObj)
     libName << "::libraryObj" << libCount++;
 
     Tcl_CreateObjCommand(interp, libName.str().c_str(),
-        RpLibCallCmd, (ClientData)newRpLibObj, (Tcl_CmdDeleteProc*)NULL);
+        LibCallCmd, (ClientData)newRpLibObj, (Tcl_CmdDeleteProc*)NULL);
 
     return libName.str();
 }
@@ -101,10 +101,10 @@ rpLib2command (Tcl_Interp *interp, RpLibrary* newRpLibObj)
  * ------------------------------------------------------------------------
  */
 static int
-rpGetLibraryFromObj(Tcl_Interp *interp, Tcl_Obj* obj, RpLibrary **rval)
+rpGetLibraryFromObj(Tcl_Interp *interp, Tcl_Obj* objPtr, RpLibrary **rval)
 {
     Tcl_CmdInfo info;
-    char *cmdname = Tcl_GetString(obj);
+    char *cmdname = Tcl_GetString(objPtr);
     if (Tcl_GetCommandInfo(interp, cmdname, &info)) {
         if (info.objProc == RpLibCallCmd) {
             *rval = (RpLibrary*)(info.objClientData);
@@ -112,8 +112,7 @@ rpGetLibraryFromObj(Tcl_Interp *interp, Tcl_Obj* obj, RpLibrary **rval)
         }
     }
     Tcl_AppendResult(interp, "bad value \"", cmdname,
-        "\": should be a Rappture library object",
-        (char*)NULL);
+        "\": should be a Rappture library object", (char*)NULL);
     return TCL_ERROR;
 }
 
@@ -130,14 +129,14 @@ RpLibrary_Init(Tcl_Interp *interp)
 {
 
     Tcl_CreateObjCommand(interp, "::Rappture::library",
-        RpLibraryCmd, (ClientData)NULL, (Tcl_CmdDeleteProc*)NULL);
+        LibraryCmd, (ClientData)NULL, (Tcl_CmdDeleteProc*)NULL);
 
     Tcl_CreateObjCommand(interp, "::Rappture::result",
-        RpTclResult, (ClientData)NULL, (Tcl_CmdDeleteProc*)NULL);
+        ResultCmd, (ClientData)NULL, (Tcl_CmdDeleteProc*)NULL);
 
     /*
     Tcl_CreateObjCommand(interp, "::Rappture::LibraryObj::value",
-        RpTclLibValue, (ClientData)NULL, (Tcl_CmdDeleteProc*)NULL);
+        LibValueOp, (ClientData)NULL, (Tcl_CmdDeleteProc*)NULL);
     */
 
     return TCL_OK;
@@ -149,8 +148,8 @@ RpLibrary_Init(Tcl_Interp *interp)
  * USAGE: library isvalid <object>
  */
 static int
-RpLibraryCmd (ClientData cData, Tcl_Interp *interp,
-    int objc, Tcl_Obj* const *objv)
+LibraryCmd(ClientData clientData, Tcl_Interp *interp, int objc, 
+	   Tcl_Obj* const *objv)
 {
     const char *flag = Tcl_GetString(objv[1]);
     if (objc > 2 && strcmp(flag,"isvalid") == 0) {
@@ -191,8 +190,8 @@ RpLibraryCmd (ClientData cData, Tcl_Interp *interp,
 
 
 static int
-RpLibCallCmd (ClientData cData, Tcl_Interp *interp,
-    int objc, Tcl_Obj *const *objv)
+LibCallCmd(ClientData clientData, Tcl_Interp *interp, int objc, 
+	   Tcl_Obj *const *objv)
 {
     Tcl_ObjCmdProc *proc;
 
@@ -202,11 +201,11 @@ RpLibCallCmd (ClientData cData, Tcl_Interp *interp,
     if (proc == NULL) {
         return TCL_ERROR;
     }
-    return (*proc)(cData, interp, objc, objv);
+    return (*proc)(clientData, interp, objc, objv);
 }
 
 /**********************************************************************/
-// FUNCTION: RpTclLibChild()
+// FUNCTION: ChildOp()
 /// children function in Tcl, retrieves a list of children for a given path
 /**
  * Returns a list of children of the node located at <path>
@@ -229,8 +228,8 @@ RpLibCallCmd (ClientData cData, Tcl_Interp *interp,
  *        parent node and all its children will be returned.
  */
 static int
-RpTclLibChild (ClientData cdata, Tcl_Interp *interp,
-    int objc, Tcl_Obj *const *objv)
+ChildOp (ClientData clientData, Tcl_Interp *interp, int objc, 
+	 Tcl_Obj *const *objv)
 {
     std::string path   = "";    // path of where to place data inside xml tree
     std::string type   = "";    // type of nodes to be returned
@@ -319,7 +318,7 @@ RpTclLibChild (ClientData cdata, Tcl_Interp *interp,
     }
 
     // call the rappture library children function
-    while ( (node = ((RpLibrary*) cdata)->children(path,node,type)) ) {
+    while ( (node = ((RpLibrary*) clientData)->children(path,node,type)) ) {
         if (node) {
             if (asProc) {
                 // evaluate the "-as" flag on the returned node
@@ -338,8 +337,8 @@ RpTclLibChild (ClientData cdata, Tcl_Interp *interp,
 }
 
 static int
-RpTclLibCopy (ClientData cdata, Tcl_Interp *interp,
-    int objc, Tcl_Obj *const *objv)
+CopyOp (ClientData clientData, Tcl_Interp *interp, int objc, 
+	Tcl_Obj *const *objv)
 {
     std::string fromPath = "";    // path of where to copy data from
     std::string toPath   = "";    // path of where to copy data to
@@ -381,13 +380,13 @@ RpTclLibCopy (ClientData cdata, Tcl_Interp *interp,
     if (from != "from") {
         Tcl_ResetResult(interp);
         Tcl_AppendResult(interp,
-            "bad syntax: should be \"copy path from ?xmlobj? path\"",
+R            "bad syntax: should be \"copy path from ?xmlobj? path\"",
             (char*)NULL);
         return TCL_ERROR;
     }
 
     // call the rappture library copy function
-    RpLibrary *libPtr	= (RpLibrary *)cdata;
+    RpLibrary *libPtr	= (RpLibrary *)clientData;
     libPtr->copy(toPath, fromObj, fromPath);
 
     // clear any previous result in the interpreter
@@ -396,7 +395,7 @@ RpTclLibCopy (ClientData cdata, Tcl_Interp *interp,
 }
 
 /**********************************************************************/
-// FUNCTION: RpTclLibDiff()
+// FUNCTION: DiffOp()
 /// diff function in Tcl, used to find the difference between two xml objects
 /**
  * Returns a list of differences between two xml objects.
@@ -405,22 +404,23 @@ RpTclLibCopy (ClientData cdata, Tcl_Interp *interp,
  */
 
 static int
-RpTclLibDiff (ClientData cdata, Tcl_Interp *interp,
-    int objc, Tcl_Obj *const *objv)
+DiffOp (ClientData clientData, Tcl_Interp *interp, int objc, 
+	Tcl_Obj *const *objv)
 {
-    RpLibrary* otherLib = NULL;
+    RpLibrary* otherLibPtr = NULL;
+
+    // parse input arguments
+    if (rpGetLibraryFromObj(interp, objv[2], &otherLibPtr) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    RpLibrary *libPtr	= (RpLibrary *)clientData;
 
     std::list<std::string> diffList; // list to store the return value 
                                      // from diff command
-    std::list<std::string>::iterator diffListIter;
-
-    // parse input arguments
-    if (rpGetLibraryFromObj(interp, objv[2], &otherLib) != TCL_OK) {
-        return TCL_ERROR;
-    }
-
     // perform the diff command
-    diffList = ((RpLibrary*) (cdata))->diff(otherLib,"input");
+    diffList = libPtr->diff(otherLibPtr,"input");
+
+    std::list<std::string>::iterator diffListIter;
     diffListIter = diffList.begin();
 
     Tcl_ResetResult(interp);
@@ -437,7 +437,7 @@ RpTclLibDiff (ClientData cdata, Tcl_Interp *interp,
 }
 
 /**********************************************************************/
-// FUNCTION: RpTclLibElem()
+// FUNCTION: ElemOp()
 /// element function in Tcl, used to retrieve a xml objects
 /**
  * Returns a xml object.
@@ -445,8 +445,8 @@ RpTclLibDiff (ClientData cdata, Tcl_Interp *interp,
  * element ?-as <fval>? ?<path>?
  */
 static int
-RpTclLibElem (ClientData cdata, Tcl_Interp *interp,
-    int objc, Tcl_Obj *const *objv)
+ElemOp (ClientData clientData, Tcl_Interp *interp, int objc, 
+	Tcl_Obj *const *objv)
 {
     std::string path   = "";    // path of where to place data inside xml tree
     std::string retStr = "";    // path of where to place data inside xml tree
@@ -521,7 +521,7 @@ RpTclLibElem (ClientData cdata, Tcl_Interp *interp,
     }
 
     // call the rappture library element function
-    node = ((RpLibrary*) cdata)->element(path);
+    node = ((RpLibrary*) clientData)->element(path);
     if (node) {
         // clear any previous result in the interpreter
         Tcl_ResetResult(interp);
@@ -541,7 +541,7 @@ RpTclLibElem (ClientData cdata, Tcl_Interp *interp,
 }
 
 /**********************************************************************/
-// FUNCTION: RpTclLibGet()
+// FUNCTION: GetOp()
 /// get function in Tcl, used to retrieve the value of a xml object
 /**
  * Returns the value of a xml object.
@@ -549,8 +549,8 @@ RpTclLibElem (ClientData cdata, Tcl_Interp *interp,
  * get ?<path>?
  */
 static int
-RpTclLibGet (ClientData cdata, Tcl_Interp *interp,
-    int objc, Tcl_Obj *const *objv)
+GetOp (ClientData clientData, Tcl_Interp *interp, int objc, 
+       Tcl_Obj *const *objv)
 {
 
     std::string retStr = ""; // return value of rappture get fxn
@@ -568,7 +568,7 @@ RpTclLibGet (ClientData cdata, Tcl_Interp *interp,
     }
 
     // call the Rappture Library Get Function
-    retStr = ((RpLibrary*) cdata)->getString(path);
+    retStr = ((RpLibrary*) clientData)->getString(path);
 
     // clear any previous result in the interpreter
     // store the new result in the interpreter
@@ -579,7 +579,7 @@ RpTclLibGet (ClientData cdata, Tcl_Interp *interp,
 }
 
 /**********************************************************************/
-// FUNCTION: RpTclLibInfo()
+// FUNCTION: InfoOp()
 /// info function in Tcl, return specific information about this object's type
 /**
  * Query the object about its data type.
@@ -597,8 +597,8 @@ RpTclLibGet (ClientData cdata, Tcl_Interp *interp,
  */
 
 static int
-RpTclLibInfo (ClientData cdata, Tcl_Interp *interp,
-    int objc, Tcl_Obj *const *objv)
+InfoOp (ClientData clientData, Tcl_Interp *interp, int objc, 
+	Tcl_Obj *const *objv)
 {
 
     std::string infoType = ""; // string value of type of info being requested
@@ -633,7 +633,7 @@ RpTclLibInfo (ClientData cdata, Tcl_Interp *interp,
 }
 
 /**********************************************************************/
-// FUNCTION: RpTclLibIsa()
+// FUNCTION: IsaOp()
 /// isa function in Tcl, check this objects type against a provided <objType>
 /**
  * Query the object about its data type.
@@ -652,8 +652,8 @@ RpTclLibInfo (ClientData cdata, Tcl_Interp *interp,
  */
 
 static int
-RpTclLibIsa (ClientData cdata, Tcl_Interp *interp,
-    int objc, Tcl_Obj *const *objv)
+IsaOp (ClientData clientData, Tcl_Interp *interp, int objc, 
+       Tcl_Obj *const *objv)
 {
 
     std::string compVal = ""; // string value of object being compared to
@@ -686,10 +686,9 @@ RpTclLibIsa (ClientData cdata, Tcl_Interp *interp,
 }
 
 static int
-RpTclLibParent (ClientData cdata, Tcl_Interp *interp,
-    int objc, Tcl_Obj *const *objv)
+ParentOp (ClientData clientData, Tcl_Interp *interp, int objc, 
+	  Tcl_Obj *const *objv)
 {
-
     std::string path   = "";    // path of where to place data inside xml tree
     std::string retStr = "";    // path of where to place data inside xml tree
     int nextarg        = 2;     // start parsing using the '2'th argument
@@ -763,7 +762,7 @@ RpTclLibParent (ClientData cdata, Tcl_Interp *interp,
     }
 
     // call the rappture library parent function
-    node = ((RpLibrary*) cdata)->parent(path);
+    node = ((RpLibrary*) clientData)->parent(path);
     if (node) {
         // clear any previous result in the interpreter
         Tcl_ResetResult(interp);
@@ -783,7 +782,7 @@ RpTclLibParent (ClientData cdata, Tcl_Interp *interp,
 }
 
 /**********************************************************************/
-// FUNCTION: RpTclLibPut()
+// FUNCTION: PutOp()
 /// put function in Tcl, put a value into a xml node at location <path>
 /**
  * Put a value into a xml node at location <path>
@@ -796,8 +795,8 @@ RpTclLibParent (ClientData cdata, Tcl_Interp *interp,
  * On failure, an error message is returned
  */
 static int
-RpTclLibPut (ClientData cdata, Tcl_Interp *interp,
-    int objc, Tcl_Obj *const *objv)
+PutOp (ClientData clientData, Tcl_Interp *interp, int objc, 
+       Tcl_Obj *const *objv)
 {
     std::string id     = "";    // id tag for the given path
     std::string path   = "";    // path of where to place data inside xml tree
@@ -852,7 +851,7 @@ RpTclLibPut (ClientData cdata, Tcl_Interp *interp,
     }
 
     // call the rappture library put function
-    ((RpLibrary*) cdata)->put(path, addStr, id, append);
+    ((RpLibrary*) clientData)->put(path, addStr, id, append);
 
     // return nothing for this operation
     Tcl_ResetResult(interp);
@@ -860,7 +859,7 @@ RpTclLibPut (ClientData cdata, Tcl_Interp *interp,
 }
 
 /**********************************************************************/
-// FUNCTION: RpTclLibRemove()
+// FUNCTION: RemoveOp()
 /// remove function in Tcl, used to remove a xml node at location <path>
 /**
  * Removes the xml node at location <path>, if it exists. Does nothing
@@ -874,8 +873,8 @@ RpTclLibPut (ClientData cdata, Tcl_Interp *interp,
  * On failure, an error message is returned
  */
 static int
-RpTclLibRemove (ClientData cdata, Tcl_Interp *interp,
-    int objc, Tcl_Obj *const *objv)
+RemoveOp (ClientData clientData, Tcl_Interp *interp, int objc, 
+	  Tcl_Obj *const *objv)
 {
     std::string path = std::string("");  // path of where to remove data from
 
@@ -884,7 +883,7 @@ RpTclLibRemove (ClientData cdata, Tcl_Interp *interp,
     }
 
     // call the rappture library remove function
-    ((RpLibrary*) cdata)->remove(path);
+    ((RpLibrary*) clientData)->remove(path);
 
     // clear any previous result in the interpreter
     Tcl_ResetResult(interp);
@@ -892,11 +891,11 @@ RpTclLibRemove (ClientData cdata, Tcl_Interp *interp,
 }
 
 static int
-RpTclLibResult (ClientData cdata, Tcl_Interp *interp,
-    int objc, Tcl_Obj *const *objv)
+ResultOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+	 Tcl_Obj *const *objv)
 {
     // call the rappture library result function
-    ((RpLibrary*) cdata)->result();
+    ((RpLibrary*) clientData)->result();
 
     // clear any previous result in the interpreter
     Tcl_ResetResult(interp);
@@ -904,7 +903,7 @@ RpTclLibResult (ClientData cdata, Tcl_Interp *interp,
 }
 
 /**********************************************************************/
-// FUNCTION: RpTclLibValue()
+// FUNCTION: ValueOp()
 /// Rappture::LibraryObj::value function in Tcl, used to normalize a number.
 /**
  * Normalizes values located at <path> in <xmlobj>.
@@ -918,8 +917,8 @@ RpTclLibResult (ClientData cdata, Tcl_Interp *interp,
  *   - second element is the normalization of the value at location <path>
  */
 static int
-RpTclLibValue (ClientData cdata, Tcl_Interp *interp,
-    int objc, Tcl_Obj *const *objv)
+ValueOp (ClientData clientData, Tcl_Interp *interp, int objc, 
+	 Tcl_Obj *const *objv)
 {
     std::list<std::string> valList;  // list to store the return value 
                                      // from diff command
@@ -955,7 +954,7 @@ RpTclLibValue (ClientData cdata, Tcl_Interp *interp,
 }
 
 /**********************************************************************/
-// FUNCTION: RpTclLibXml()
+// FUNCTION: XmlOp()
 /// xml function in Tcl, returns the xml data that this object represents
 /**
  * Prints the xml text for this object.
@@ -968,8 +967,7 @@ RpTclLibValue (ClientData cdata, Tcl_Interp *interp,
  */
 
 static int
-RpTclLibXml (ClientData cdata, Tcl_Interp *interp,
-    int objc, Tcl_Obj *const *objv)
+XmlOp(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *const *objv)
 {
 
     std::string retStr = ""; // return value of rappture get fxn
@@ -981,7 +979,7 @@ RpTclLibXml (ClientData cdata, Tcl_Interp *interp,
     }
 
     // call the Rappture Library xml Function
-    retStr = ((RpLibrary*) cdata)->xml();
+    retStr = ((RpLibrary*) clientData)->xml();
 
     // clear any previous result in the interpreter
     // store the new result in the interpreter
@@ -992,7 +990,7 @@ RpTclLibXml (ClientData cdata, Tcl_Interp *interp,
 }
 
 /**********************************************************************/
-// FUNCTION: RpTclResult()
+// FUNCTION: ResultCmd()
 /// Rappture::result function in Tcl, prints xml to file and signals gui.
 /**
  * Prints xml text representing provided object to a runXXXX.xml file
@@ -1008,8 +1006,8 @@ RpTclLibXml (ClientData cdata, Tcl_Interp *interp,
  * None
  */
 static int
-RpTclResult (ClientData cdata, Tcl_Interp *interp,
-    int objc, Tcl_Obj *const *objv)
+ResultCmd(ClientData clientData, Tcl_Interp *interp, int objc, 
+	  Tcl_Obj *const *objv)
 {
     // parse through command line options
     if (objc != 2) {
