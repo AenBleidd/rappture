@@ -56,7 +56,6 @@ HEADERS = \
 		RpChoice.h \
 		RpCurve.h \
 		RpInt.h \
-		RpHash.h \
 		RpHashHelper.h \
 		RpNumber.h \
 		RpPlot.h \
@@ -64,6 +63,8 @@ HEADERS = \
 		RpString.h \
 		RpVariable.h
 
+LOCAL_HEADERS = \
+		RpHash.h
 
 OBJS = \
 		RpArray1D.o \
@@ -105,6 +106,9 @@ install: $(lib) $(shared_lib)
 	$(INSTALL) -m 555 $(shared_lib) $(libdir)
 	for i in $(HEADERS) ; do \
 	  $(INSTALL) -m 444  $(srcdir)/$$i $(incdir) ; \
+	done
+	for i in $(LOCAL_HEADERS) ; do \
+	  $(INSTALL) -m 444  $$i $(incdir) ; \
 	done
 
 .cc.o:
