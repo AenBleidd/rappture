@@ -1703,22 +1703,20 @@ itcl::body Rappture::NanovisViewer::BuildVolumeTab {} {
 
     blt::table $inner \
 	0,0 $inner.dim  -anchor e -pady 2 \
-	0,1 $inner.light -columnspan 2 -pady 2 \
+	0,1 $inner.light -columnspan 2 -pady 2 -fill x \
 	0,3 $inner.bright -anchor w -pady 2 \
 	1,0 $inner.fog -anchor e -pady 2 \
-	1,1 $inner.transp -columnspan 2 -pady 2 \
+	1,1 $inner.transp -columnspan 2 -pady 2 -fill x \
 	1,3 $inner.plastic -anchor w -pady 2 \
 	2,0 $inner.clear -anchor e -pady 2 \
-	2,1 $inner.opacity -columnspan 2 -pady 2 \
+	2,1 $inner.opacity -columnspan 2 -pady 2 -fill x\
 	2,3 $inner.opaque -anchor w -pady 2 \
 	3,0 $inner.thin -anchor e -pady 2 \
-	3,1 $inner.thickness -columnspan 2 -pady 2 \
+	3,1 $inner.thickness -columnspan 2 -pady 2 -fill x\
 	3,3 $inner.thick -anchor w -pady 2
 
-    for {set n 0} {$n <= 3} {incr n} {
-        blt::table configure $inner r$n -resize none
-    }
-    blt::table configure $inner r$n -resize expand
+    blt::table configure $inner c0 c1 c3 r* -resize none
+    blt::table configure $inner r4 -resize expand
 }
 
 itcl::body Rappture::NanovisViewer::BuildCutplanesTab {} {
