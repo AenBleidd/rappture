@@ -194,8 +194,12 @@ itcl::body Rappture::MolvisViewer::constructor {hostlist args} {
     set f [$itk_component(main) component controls]
     itk_component add reset {
 	button $f.reset -borderwidth 1 -padx 1 -pady 1 \
+            -highlightthickness 0 \
 	    -image [Rappture::icon reset-view] \
 	    -command [itcl::code $this ResetView]
+    } {
+        usual
+        ignore -highlightthickness
     }
     pack $itk_component(reset) -padx 1 -pady 2
     Rappture::Tooltip::for $itk_component(reset) \
@@ -203,25 +207,33 @@ itcl::body Rappture::MolvisViewer::constructor {hostlist args} {
 
     itk_component add zoomin {
 	button $f.zin -borderwidth 1 -padx 1 -pady 1 \
+            -highlightthickness 0 \
 	    -image [Rappture::icon zoom-in] \
 	    -command [itcl::code $this _zoom in]
+    } {
+        usual
+        ignore -highlightthickness
     }
-    pack $itk_component(zoomin) -padx 2 -pady { 0 2 }
+    pack $itk_component(zoomin) -padx 2 -pady 2
     Rappture::Tooltip::for $itk_component(zoomin) "Zoom in"
 
     itk_component add zoomout {
 	button $f.zout -borderwidth 1 -padx 1 -pady 1 \
+            -highlightthickness 0 \
 	    -image [Rappture::icon zoom-out] \
 	    -command [itcl::code $this _zoom out]
+    } {
+        usual
+        ignore -highlightthickness
     }
-    pack $itk_component(zoomout) -padx 2 -pady { 0 2 }
+    pack $itk_component(zoomout) -padx 2 -pady 2
     Rappture::Tooltip::for $itk_component(zoomout) "Zoom out"
 
     itk_component add labels {
 	label $f.labels -borderwidth 1 -padx 1 -pady 1 \
 	    -relief "raised" -image [Rappture::icon atom-label]
     }
-    pack $itk_component(labels) -padx 2 -pady { 0 2} -ipadx 1 -ipady 1
+    pack $itk_component(labels) -padx 2 -pady {6 2} -ipadx 1 -ipady 1
     Rappture::Tooltip::for $itk_component(labels) \
 	"Show/hide the labels on atoms"
     bind $itk_component(labels) <ButtonPress> \
@@ -231,7 +243,7 @@ itcl::body Rappture::MolvisViewer::constructor {hostlist args} {
 	label $f.rock -borderwidth 1 -padx 1 -pady 1 \
 	    -relief "raised" -image [Rappture::icon rock-view]
     }
-    pack $itk_component(rock) -padx 2 -pady { 0 2 } -ipadx 1 -ipady 1
+    pack $itk_component(rock) -padx 2 -pady 2 -ipadx 1 -ipady 1
     Rappture::Tooltip::for $itk_component(rock) "Rock model back and forth"
 
     bind $itk_component(rock) <ButtonPress> \
@@ -242,7 +254,7 @@ itcl::body Rappture::MolvisViewer::constructor {hostlist args} {
 	label $f.ortho -borderwidth 1 -padx 1 -pady 1 \
 	    -relief "raised" -image [Rappture::icon 3dpers]
     }
-    pack $itk_component(ortho) -padx 2 -pady { 0 2 } -ipadx 1 -ipady 1
+    pack $itk_component(ortho) -padx 2 -pady 2 -ipadx 1 -ipady 1
     Rappture::Tooltip::for $itk_component(ortho) \
 	"Change to orthoscopic projection"
 

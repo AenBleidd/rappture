@@ -44,6 +44,7 @@ itcl::class Rappture::SidebarFrame {
     public method select {which}
     public method pop {what}
 
+    protected method _toggleTab {which}
     protected method _sash {op x}
     protected method _fixLayout {args}
 
@@ -184,7 +185,7 @@ itcl::body Rappture::SidebarFrame::constructor {args} {
         usual
         rename -background -controlbackground controlBackground Background
     }
-    pack $itk_component(controls) -side top -pady {0 20}
+    pack $itk_component(controls) -side top -pady {8 20}
 
     #
     # Tabs used to select sidebar panels
@@ -234,7 +235,18 @@ itcl::body Rappture::SidebarFrame::insert {pos args} {
 
     $itk_component(tabs) insert end $pname \
         -image $panel(-icon) -text "" -padx 0 -pady 0 \
-        -command [itcl::code $this select $pname]
+        -command [itcl::code $this _toggleTab $pname]
+
+    Rappture::Tooltip::text $itk_component(tabs)-$pname \
+        "Open/close sidebar for $panel(-title)"
+    $itk_component(tabs) bind $pname <Enter> \
+        [list ::Rappture::Tooltip::tooltip pending %W-$pname @%X,%Y]
+    $itk_component(tabs) bind $pname <Leave> \
+        [list ::Rappture::Tooltip::tooltip cancel]
+    $itk_component(tabs) bind $pname <ButtonPress> \
+        [list ::Rappture::Tooltip::tooltip cancel]
+    $itk_component(tabs) bind $pname <KeyPress> \
+        [list ::Rappture::Tooltip::tooltip cancel]
 
     set _panels($pname-title) $panel(-title)
     lappend _panels(all) $pname
@@ -313,12 +325,12 @@ itcl::body Rappture::SidebarFrame::select {which} {
 
     if {$_state == "closed"} {
         pop open
-    } else {
-        set minw [winfo reqwidth $itk_component(controlbar)]
-        if {$_width < $minw+50} {
-            set _width [expr {$minw+50}]
-            $_dispatcher event -idle !layout
-        }
+    }
+
+    set minw [winfo reqwidth $itk_component(controlbar)]
+    if {$_width != "auto" && $_width < $minw+50} {
+        set _width [expr {$minw+50}]
+        $_dispatcher event -idle !layout
     }
     set n [$itk_component(tabs) index -name $pname]
     $itk_component(tabs) select $n
@@ -384,6 +396,25 @@ itcl::body Rappture::SidebarFrame::pop {how} {
 }
 
 # ----------------------------------------------------------------------
+# USAGE: _toggleTab <which>
+#
+# Invoked automatically when the user clicks on a tab for the sidebar.
+# If the sidebar is closed, it is automatically opened and the tab is
+# selected.  If the sidebar is opened, then it's closed.
+# ----------------------------------------------------------------------
+itcl::body Rappture::SidebarFrame::_toggleTab {which} {
+    if {$_state == "closed"} {
+        pop open
+        select $which
+    } elseif {[$itk_component(tabs) index -name $_selected]
+          == [$itk_component(tabs) index -name $which]} {
+        pop close
+    } else {
+        select $which
+    }
+}
+
+# ----------------------------------------------------------------------
 # USAGE: _sash <op> <X>
 #
 # Invoked automatically when the user clicks/drags on a sash, to resize
@@ -417,6 +448,11 @@ itcl::body Rappture::SidebarFrame::_sash {op X} {
             _fixLayout
         }
         release {
+            set minw [winfo reqwidth $itk_component(controlbar)]
+            if {$_width-$minw < 40} {
+                set _width "auto"
+                pop close
+            }
         }
         default {
             error "bad option \"$op\": should be enter, leave, grab, drag, release"
@@ -453,14 +489,14 @@ itcl::body Rappture::SidebarFrame::_fixLayout {args} {
                 }
             }
             set sbarw [expr {$sbarw + $ctrlw + $sashw}]
-
-            # don't let the sidebar take up too much of the window area
-            if {$sbarw > 0.75*$w} {
-                set sbarw [expr {int(0.75*$w)}]
-            }
         } else {
             set sbarw $_width
         }
+    }
+
+    # don't let the sidebar take up too much of the window area
+    if {$sbarw > 0.75*$w} {
+        set sbarw [expr {int(0.75*$w)}]
     }
 
     set x1 [expr {$w - $sbarw - $sashw}]

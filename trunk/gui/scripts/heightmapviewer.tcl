@@ -146,24 +146,36 @@ itcl::body Rappture::HeightmapViewer::constructor {hostlist args} {
 
     itk_component add reset {
 	button $f.reset -borderwidth 1 -padx 1 -pady 1 \
+            -highlightthickness 0 \
 	    -image [Rappture::icon reset-view] \
 	    -command [itcl::code $this _zoom reset]
+    } {
+        usual
+        ignore -highlightthickness
     }
     pack $itk_component(reset) -side top -padx 1 -pady { 4 0 }
     Rappture::Tooltip::for $itk_component(reset) "Reset the view to the default zoom level"
 
     itk_component add zoomin {
 	button $f.zin -borderwidth 1 -padx 1 -pady 1 \
+            -highlightthickness 0 \
 	    -image [Rappture::icon zoom-in] \
 	    -command [itcl::code $this _zoom in]
+    } {
+        usual
+        ignore -highlightthickness
     }
     pack $itk_component(zoomin) -side top -padx 1 -pady { 4 0 }
     Rappture::Tooltip::for $itk_component(zoomin) "Zoom in"
 
     itk_component add zoomout {
 	button $f.zout -borderwidth 1 -padx 1 -pady 1 \
+            -highlightthickness 0 \
 	    -image [Rappture::icon zoom-out] \
 	    -command [itcl::code $this _zoom out]
+    } {
+        usual
+        ignore -highlightthickness
     }
     pack $itk_component(zoomout) -side top -padx 1 -pady { 4 }
     Rappture::Tooltip::for $itk_component(zoomout) "Zoom out"
