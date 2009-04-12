@@ -200,24 +200,36 @@ itcl::body Rappture::NanovisViewer::constructor {hostlist args} {
     set f [$itk_component(main) component controls]
     itk_component add reset {
         button $f.reset -borderwidth 1 -padx 1 -pady 1 \
+            -highlightthickness 0 \
             -image [Rappture::icon reset-view] \
             -command [itcl::code $this Zoom reset]
+    } {
+        usual
+        ignore -highlightthickness
     }
     pack $itk_component(reset) -side top -padx 2 -pady 2
     Rappture::Tooltip::for $itk_component(reset) "Reset the view to the default zoom level"
 
     itk_component add zoomin {
         button $f.zin -borderwidth 1 -padx 1 -pady 1 \
+            -highlightthickness 0 \
             -image [Rappture::icon zoom-in] \
             -command [itcl::code $this Zoom in]
+    } {
+        usual
+        ignore -highlightthickness
     }
     pack $itk_component(zoomin) -side top -padx 2 -pady 2
     Rappture::Tooltip::for $itk_component(zoomin) "Zoom in"
 
     itk_component add zoomout {
         button $f.zout -borderwidth 1 -padx 1 -pady 1 \
+            -highlightthickness 0 \
             -image [Rappture::icon zoom-out] \
             -command [itcl::code $this Zoom out]
+    } {
+        usual
+        ignore -highlightthickness
     }
     pack $itk_component(zoomout) -side top -padx 2 -pady 2
     Rappture::Tooltip::for $itk_component(zoomout) "Zoom out"
@@ -226,15 +238,14 @@ itcl::body Rappture::NanovisViewer::constructor {hostlist args} {
     # Volume toggle...
     #
     itk_component add volume {
-        label $f.volume -borderwidth 1 -relief sunken -padx 1 -pady 1 \
-            -text "Volume" \
-	    -image [Rappture::icon playback-record]
+        label $f.volume -borderwidth 1 -relief sunken \
+	    -image [Rappture::icon volume-on]
     }
     bind $itk_component(volume) <ButtonPress> \
         [itcl::code $this Slice volume toggle]
     Rappture::Tooltip::for $itk_component(volume) \
         "Toggle the volume cloud on/off"
-    pack $itk_component(volume) -padx 2 -pady 2
+    pack $itk_component(volume) -ipadx 1 -ipady 1 -padx 2 -pady 2
 
     BuildViewTab
     BuildVolumeTab
@@ -1667,11 +1678,16 @@ itcl::body Rappture::NanovisViewer::BuildVolumeTab {} {
 
     set inner [$itk_component(main) insert end \
         -title "Volume Settings" \
-        -icon [Rappture::icon playback-record]]
+        -icon [Rappture::icon volume-on]]
     $inner configure -borderwidth 4
 
     set fg [option get $itk_component(hull) font Font]
     #set bfg [option get $itk_component(hull) boldFont Font]
+
+    checkbutton $inner.vol -text "Show volume" -font $fg \
+        -variable [itcl::scope settings_($this-volume)] \
+        -command [itcl::code $this FixSettings volume]
+    label $inner.shading -text "Shading:" -font $fg
 
     label $inner.dim -text "Dim" -font $fg
     ::scale $inner.light -from 0 -to 100 -orient horizontal \
@@ -1702,21 +1718,23 @@ itcl::body Rappture::NanovisViewer::BuildVolumeTab {} {
     label $inner.thick -text "Thick" -font $fg
 
     blt::table $inner \
-	0,0 $inner.dim  -anchor e -pady 2 \
-	0,1 $inner.light -columnspan 2 -pady 2 -fill x \
-	0,3 $inner.bright -anchor w -pady 2 \
-	1,0 $inner.fog -anchor e -pady 2 \
-	1,1 $inner.transp -columnspan 2 -pady 2 -fill x \
-	1,3 $inner.plastic -anchor w -pady 2 \
-	2,0 $inner.clear -anchor e -pady 2 \
-	2,1 $inner.opacity -columnspan 2 -pady 2 -fill x\
-	2,3 $inner.opaque -anchor w -pady 2 \
-	3,0 $inner.thin -anchor e -pady 2 \
-	3,1 $inner.thickness -columnspan 2 -pady 2 -fill x\
-	3,3 $inner.thick -anchor w -pady 2
+	0,0 $inner.vol -columnspan 4 -anchor w -pady 2 \
+	1,0 $inner.shading -columnspan 4 -anchor w -pady {10 2} \
+	2,0 $inner.dim -anchor e -pady 2 \
+	2,1 $inner.light -columnspan 2 -pady 2 -fill x \
+	2,3 $inner.bright -anchor w -pady 2 \
+	3,0 $inner.fog -anchor e -pady 2 \
+	3,1 $inner.transp -columnspan 2 -pady 2 -fill x \
+	3,3 $inner.plastic -anchor w -pady 2 \
+	4,0 $inner.clear -anchor e -pady 2 \
+	4,1 $inner.opacity -columnspan 2 -pady 2 -fill x\
+	4,3 $inner.opaque -anchor w -pady 2 \
+	5,0 $inner.thin -anchor e -pady 2 \
+	5,1 $inner.thickness -columnspan 2 -pady 2 -fill x\
+	5,3 $inner.thick -anchor w -pady 2
 
     blt::table configure $inner c0 c1 c3 r* -resize none
-    blt::table configure $inner r4 -resize expand
+    blt::table configure $inner r6 -resize expand
 }
 
 itcl::body Rappture::NanovisViewer::BuildCutplanesTab {} {
@@ -1934,11 +1952,13 @@ itcl::body Rappture::NanovisViewer::Slice {option args} {
 	    
             if {$op} {
                 SendCmd "volume data state on [CurrentVolumeIds]"
-                $itk_component(volume) configure -relief sunken
+                $itk_component(volume) configure -relief sunken \
+                    -image [Rappture::icon volume-on]
 		set settings_($this-volume) 1
             } else {
                 SendCmd "volume data state off [CurrentVolumeIds]"
-                $itk_component(volume) configure -relief raised
+                $itk_component(volume) configure -relief raised \
+                    -image [Rappture::icon volume-off]
 		set settings_($this-volume) 0
             }
         }

@@ -148,11 +148,12 @@ itcl::body Rappture::XyResult::constructor {args} {
 
     itk_component add reset {
 	button $f.reset -borderwidth 1 -padx 1 -pady 1 \
+            -highlightthickness 0 \
 	    -image [Rappture::icon reset-view] \
 	    -command [itcl::code $this _zoom reset]
     } {
 	usual
-	ignore -borderwidth
+	ignore -borderwidth -highlightthickness
     }
     pack $itk_component(reset) -padx 4 -pady 2 -anchor e
     Rappture::Tooltip::for $itk_component(reset) "Reset the view to the default zoom level"
