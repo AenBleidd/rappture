@@ -497,6 +497,10 @@ itcl::body Rappture::XyResult::download {option args} {
 		    -variable Rappture::XyResult::_downloadPopup(format) \
 		    -value pdf
 		pack $inner.pdf -anchor w
+		radiobutton $inner.jpg -text "Image (draft)" \
+		    -variable Rappture::XyResult::_downloadPopup(format) \
+		    -value jpg
+		pack $inner.jpg -anchor w
 		button $inner.go -text [Rappture::filexfer::label download] \
 		    -command [lindex $args 0]
 		pack $inner.go -pady 4
@@ -515,65 +519,82 @@ itcl::body Rappture::XyResult::download {option args} {
 		$popup deactivate
 	    }
 	    switch -- $_downloadPopup(format) {
-	      csv {
-		# reverse the objects so the selected data appears on top
-		set dlist ""
-		foreach dataobj [get] {
-		    set dlist [linsert $dlist 0 $dataobj]
-		}
-
-		# generate the comma-separated value data for these objects
-		set csvdata ""
-		foreach dataobj $dlist {
-		    append csvdata "[string repeat - 60]\n"
-		    append csvdata " [$dataobj hints label]\n"
-		    if {[info exists _curve2desc($dataobj)]
-			  && [llength [split $_curve2desc($dataobj) \n]] > 1} {
-			set indent "for:"
-			foreach line [split $_curve2desc($dataobj) \n] {
-			    append csvdata " $indent $line\n"
-			    set indent "    "
-			}
+		csv {
+		    # reverse the objects so the selected data appears on top
+		    set dlist ""
+		    foreach dataobj [get] {
+			set dlist [linsert $dlist 0 $dataobj]
 		    }
-		    append csvdata "[string repeat - 60]\n"
 
-		    append csvdata "[$dataobj hints xlabel], [$dataobj hints ylabel]\n"
-		    set first 1
-		    foreach comp [$dataobj components] {
-			if {!$first} {
-			    # blank line between components
-			    append csvdata "\n"
+		    # generate the comma-separated value data for these objects
+		    set csvdata ""
+		    foreach dataobj $dlist {
+			append csvdata "[string repeat - 60]\n"
+			append csvdata " [$dataobj hints label]\n"
+			if {[info exists _curve2desc($dataobj)]
+			    && [llength [split $_curve2desc($dataobj) \n]] > 1} {
+			    set indent "for:"
+			    foreach line [split $_curve2desc($dataobj) \n] {
+				append csvdata " $indent $line\n"
+				set indent "    "
+			    }
 			}
-			set xv [$dataobj mesh $comp]
-			set yv [$dataobj values $comp]
-			foreach x [$xv range 0 end] y [$yv range 0 end] {
-			    append csvdata [format "%20.15g, %20.15g\n" $x $y]
+			append csvdata "[string repeat - 60]\n"
+
+			append csvdata "[$dataobj hints xlabel], [$dataobj hints ylabel]\n"
+			set first 1
+			foreach comp [$dataobj components] {
+			    if {!$first} {
+				# blank line between components
+				append csvdata "\n"
+			    }
+			    set xv [$dataobj mesh $comp]
+			    set yv [$dataobj values $comp]
+			    foreach x [$xv range 0 end] y [$yv range 0 end] {
+				append csvdata [format "%20.15g, %20.15g\n" $x $y]
+			    }
+			    set first 0
 			}
-			set first 0
+			append csvdata "\n"
 		    }
-		    append csvdata "\n"
+		    return [list .txt $csvdata]
 		}
-		return [list .txt $csvdata]
-	      }
-	      pdf {
-		set psdata [$itk_component(plot) postscript output -decorations no -maxpect 1]
+		pdf {
+		    set psdata [$itk_component(plot) postscript output \
+				    -decorations no -maxpect 1]
 
-		set cmds {
-		    set fout "xy[pid].pdf"
-		    exec ps2pdf - $fout << $psdata
-
-		    set fid [open $fout r]
-		    fconfigure $fid -translation binary -encoding binary
-		    set pdfdata [read $fid]
-		    close $fid
-
-		    file delete -force $fout
+		    set cmds {
+			set fout "xy[pid].pdf"
+			exec ps2pdf - $fout << $psdata
+			
+			set fid [open $fout r]
+			fconfigure $fid -translation binary -encoding binary
+			set pdfdata [read $fid]
+			close $fid
+			
+			file delete -force $fout
+		    }
+		    if {[catch $cmds result] == 0} {
+			return [list .pdf $pdfdata]
+		    }
+		    return [list .ps $psdata]
 		}
-		if {[catch $cmds result] == 0} {
-		    return [list .pdf $pdfdata]
+		jpg {
+		    set img [image create photo]
+		    $itk_component(plot) snap $img
+		    set bytes [$img data -format "jpeg -quality 100"]
+		    set bytes [Rappture::encoding::decode -as b64 $bytes]
+		    image delete $img
+		    return [list .jpg $bytes]
 		}
-		return [list .ps $psdata]
-	      }
+		png {
+		    set img [image create photo]
+		    $itk_component(plot) snap $img
+		    set bytes [$img data -format "png"]
+		    set bytes [Rappture::encoding::decode -as b64 $bytes]
+		    image delete $img
+		    return [list .png $bytes]
+		}
 	    }
 	}
 	default {
