@@ -102,7 +102,6 @@ OBJS		= \
 		ContourLineFilter.o \
 		ConvexPolygon.o \
 		Event.o \
-		Switch.o \
 		Unirect.o \
 		GradientFilter.o \
 		Grid.o \
