@@ -242,7 +242,7 @@ itcl::body Rappture::Radiodial::current {args} {
 	    }
 	}
 	if {!$found} {
-	    error "bad value \"$newval\""
+	    error "bad value \"$newval\": possible matches are \"[join $_values ,]\""
 	}
 	_setCurrent $newval
 
@@ -271,7 +271,7 @@ itcl::body Rappture::Radiodial::color {value} {
 	}
     }
     if {!$found} {
-	error "bad value \"$value\""
+	error "bad value \"$value\": possible matches are \"[join $_values ,]\""
     }
 
     if {"" != $_spectrum} {
@@ -623,7 +623,7 @@ itcl::body Rappture::Radiodial::_fixValue {args} {
 	}
     }
     if {!$found && "" != $newval} {
-	error "bad value \"$newval\""
+	error "bad value \"$newval\": possible matches are \"[join $_values ,]\""
     }
     set _current $newval  ;# set current directly, so we don't trigger again
 
