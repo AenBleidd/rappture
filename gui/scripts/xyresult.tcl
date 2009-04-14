@@ -742,7 +742,7 @@ itcl::body Rappture::XyResult::_rebuild {} {
 	}
     }
 
-    foreach xydata [get] {
+    foreach xydata $_clist {
 	set xmin -Inf
 	set ymin -Inf
 	set xmax Inf
@@ -982,7 +982,7 @@ itcl::body Rappture::XyResult::_hilite {state x y} {
 	# - multiple axes? dim other axes
 	# - pop up tooltip about data
 	#
-	if {$_hilite(elem) != "" && $_hilite(elem) != $elem} {
+	if { [$g element exists $_hilite(elem)] && $_hilite(elem) != $elem } {
 	    $g element deactivate $_hilite(elem)
 	    $g crosshairs configure -hide yes
 	    Rappture::Tooltip::tooltip cancel
@@ -1061,25 +1061,24 @@ itcl::body Rappture::XyResult::_hilite {state x y} {
 	# - put all axes back to normal color
 	# - take down tooltip
 	#
-	if {"" != $_hilite(elem)} {
+	if { [$g element exists $_hilite(elem)] } {
 	    $g element deactivate $_hilite(elem)
-
-	    set allx [$g x2axis use]
-	    if {[llength $allx] > 0} {
-		lappend allx x  ;# fix main x-axis too
-		foreach axis $allx {
-		    $g axis configure $axis -color $itk_option(-foreground) \
-			-titlecolor $itk_option(-foreground)
-		}
+	}
+	set allx [$g x2axis use]
+	if {[llength $allx] > 0} {
+	    lappend allx x  ;# fix main x-axis too
+	    foreach axis $allx {
+		$g axis configure $axis -color $itk_option(-foreground) \
+		    -titlecolor $itk_option(-foreground)
 	    }
-
-	    set ally [$g y2axis use]
-	    if {[llength $ally] > 0} {
-		lappend ally y  ;# fix main y-axis too
-		foreach axis $ally {
-		    $g axis configure $axis -color $itk_option(-foreground) \
-			-titlecolor $itk_option(-foreground)
-		}
+	}
+	
+	set ally [$g y2axis use]
+	if {[llength $ally] > 0} {
+	    lappend ally y  ;# fix main y-axis too
+	    foreach axis $ally {
+		$g axis configure $axis -color $itk_option(-foreground) \
+		    -titlecolor $itk_option(-foreground)
 	    }
 	}
 
@@ -1090,7 +1089,7 @@ itcl::body Rappture::XyResult::_hilite {state x y} {
 	    Rappture::Tooltip::tooltip cancel
 	}
 
-	# there is no currently highlighted element
+	# There is no currently highlighted element
 	set _hilite(elem) ""
     }
 }

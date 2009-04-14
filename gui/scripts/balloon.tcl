@@ -211,8 +211,15 @@ itcl::body Rappture::Balloon::activate {where placement} {
     if {[info exists _masks($placement)]} {
 	shape set $s -bound photo $_masks($placement)
     }
-
-    wm geometry $p ${pw}x${ph}+$px+$py
+    if { $pw < 1 || $ph < 1 }  {
+	# I really don't know why this is happenning.  I believe this occurs
+	# when in a work space (i.e the main window is smaller than the root
+	# window). So for now, better to place the ballon window somewhere
+	# than to fail with a bad geometry.
+	wm geometry $p +$px+$py
+    } else {
+	wm geometry $p ${pw}x${ph}+$px+$py
+    }
     wm deiconify $p
     raise $p
 
