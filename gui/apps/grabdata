@@ -40,7 +40,7 @@ def help(argv=sys.argv):
       Examples:
         %(prog)s run1234.xml
         %(prog)s -t dx run1234.xml
-        %(prog)s -t pbs run1234.xml
+        %(prog)s -t pdb run1234.xml
 """ % {'prog':os.path.basename(argv[0])}
 
 def main(argv=None):
