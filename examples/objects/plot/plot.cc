@@ -38,6 +38,7 @@ int main()
 
     // number of curves in this plot
     size_t curveCnt = p1->count();
+    std::printf("curveCnt = %zu\n",curveCnt);
 
     // retrieve curve from curve name
     // may want to add curve to another plot
@@ -52,7 +53,7 @@ int main()
     xlen = c->data(Rappture::Plot::xaxis,&ax);
     ylen = c->data(Rappture::Plot::yaxis,&ay);
 
-    std::printf("xlen = %u\nylen = %u\n",xlen,ylen);
+    std::printf("xlen = %zu\nylen = %zu\n",xlen,ylen);
     std::printf("fmt = %s\n",c->propstr(Rappture::Plot::format,NULL));
 
     if (   (ax != NULL)

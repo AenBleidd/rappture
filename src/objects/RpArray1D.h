@@ -29,7 +29,7 @@ public:
              const char *units,
              const char *scale);
     Array1D (const Array1D &o);
-    ~Array1D();
+    virtual ~Array1D();
 
     Accessor<const char *> path;
     Accessor<const char *> label;
@@ -67,7 +67,7 @@ public:
                      const char *units,
                      const char *scale);
     Array1DUniform  (const Array1DUniform &o);
-    ~Array1DUniform ();
+    virtual ~Array1DUniform ();
 
     Accessor<const char *> path;
     Accessor<const char *> label;

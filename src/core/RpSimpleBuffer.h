@@ -411,8 +411,7 @@ SimpleBuffer<T>::set(size_t nmemb)
     }
 
     if (buf == NULL) {
-        fprintf(stderr,"Can't allocate %lu bytes of memory\n", 
-            (long unsigned int)nbytes);
+        fprintf(stderr,"Can't allocate %zu bytes of memory\n",nbytes);
         _fileState = false;
         return 0;
     }
@@ -429,11 +428,10 @@ SimpleBuffer<char>::show()
     size_t curMemb = 0;
 
     while (curMemb != _nMembStored) {
-        fprintf(stdout,"_buf[%lu] = :%c:\n", (long unsigned int)curMemb,
-		_buf[curMemb]);
+        fprintf(stdout,"_buf[%zu] = :%c:\n", curMemb, _buf[curMemb]);
         curMemb += 1;
     }
-    fprintf(stdout,"_nMembAvl = :%lu:\n", (long unsigned int)_nMembAvl);
+    fprintf(stdout,"_nMembAvl = :%zu:\n", _nMembAvl);
 
     return *this;
 }
@@ -446,11 +444,11 @@ SimpleBuffer<T>::show()
     size_t curMemb = 0;
 
     while (curMemb != _nMembStored) {
-        fprintf(stdout,"_buf[%lu] = :%#x:\n", (long unsigned int)curMemb,
-		(unsigned long)_buf[curMemb]);
+        fprintf(stdout,"_buf[%zu] = :%#x:\n", curMemb,
+            (long unsigned)_buf[curMemb]);
         curMemb += 1;
     }
-    fprintf(stdout,"_nMembAvl = :%lu:\n", (long unsigned int)_nMembAvl);
+    fprintf(stdout,"_nMembAvl = :%zu:\n", _nMembAvl);
 
     return *this;
 }
