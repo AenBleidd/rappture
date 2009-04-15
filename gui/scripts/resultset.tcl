@@ -65,6 +65,7 @@ itcl::class Rappture::ResultSet {
     protected method _drawValue {column widget wmax}
     protected method _toggleAll {{column "current"}}
     protected method _getValues {column {which ""}}
+    protected method _getRawValues {column {which ""}}
     protected method _getTooltip {role column}
     protected method _getParamDesc {which {index "current"}}
 
@@ -651,7 +652,7 @@ itcl::body Rappture::ResultSet::_control {option args} {
 	    set col [lindex $args 1]
 
 	    $dial clear
-	    foreach {label val} [_getValues $col all] {
+	    foreach {label val} [_getRawValues $col all] {
 		$dial add $label $val
 	    }
 	}
@@ -1494,6 +1495,60 @@ itcl::body Rappture::ResultSet::_getValues {col {which ""}} {
 	}
     }
 
+    switch -- $which {
+	current {
+	    set curr $_cntlInfo($this-$col-value)
+	    if {[info exists label2val($curr)]} {
+		return [list $curr $label2val($curr)]
+	    }
+	    return ""
+	}
+	all {
+	    return [array get label2val]
+	}
+	default {
+	    if {[string is integer $which]} {
+		if {$col == "xmlobj"} {
+		    set val "#[expr {$which+1}]"
+		} else {
+		    set val [lindex [$_results get -format $col $which] 0]
+		}
+		if {[info exists label2val($val)]} {
+		    return [list $val $label2val($val)]
+		}
+		return ""
+	    }
+	    error "bad option \"$which\": should be all, current, or an integer index"
+	}
+    }
+}
+
+# ----------------------------------------------------------------------
+# USAGE: _getRawValues <column> ?<which>?
+#
+# Called automatically whenever the user hovers a control within
+# this widget.  Returns the tooltip associated with the control.
+# ----------------------------------------------------------------------
+itcl::body Rappture::ResultSet::_getRawValues {col {which ""}} {
+    if {$col == "xmlobj"} {
+	# load the Simulation # control
+	set nruns [$_results size]
+	for {set n 0} {$n < $nruns} {incr n} {
+	    set v "#[expr {$n+1}]"
+	    set label2val($v) $n
+	}
+    } else {
+	set vlist ""
+	foreach rec [$_results get -format [list xmlobj $col]] {
+	    lappend vlist [lindex $rec 1]
+	}
+	# Don't have normalized. Sort and create nums
+	set n 0
+	foreach v [lsort $vlist] {
+	    incr n
+	    set label2val($v) $n
+	}
+    }
     switch -- $which {
 	current {
 	    set curr $_cntlInfo($this-$col-value)

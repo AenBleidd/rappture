@@ -91,12 +91,9 @@ Rappture::grab::init
 #
 Rappture::getopts argv params {
     value -tool tool.xml
-    value -load ""
+    list  -load ""
     value -nosim 0
 }
-
-# rewrite out params(-load) variable with a properly split list of files
-array set params [list -load [split $params(-load) ","]]
 
 set loadobjs {}
 foreach runfile $params(-load) {
