@@ -188,13 +188,16 @@ itcl::body Rappture::SidebarFrame::constructor {args} {
     pack $itk_component(controls) -side top -pady {8 20}
 
     #
-    # Tabs used to select sidebar panels
+    # Tabs used to select sidebar panels.  
+    #
+    # Note:  Bugs in BLT 2.4 tabset/VNC server crashes the server 
+    #	     when -outerpad is set to 0.
     #
     itk_component add tabs {
         blt::tabset $itk_component(controlbar).tabs \
             -highlightthickness 0 -tearoff 0 -side left \
             -bd 0 -gap 0 -tabborderwidth 1 \
-            -outerpad 0
+            -outerpad 1
     } {
         keep -background -cursor
         ignore -highlightthickness -borderwidth
