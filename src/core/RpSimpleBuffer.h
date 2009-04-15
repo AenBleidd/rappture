@@ -444,7 +444,7 @@ SimpleBuffer<T>::show()
     size_t curMemb = 0;
 
     while (curMemb != _nMembStored) {
-        fprintf(stdout,"_buf[%zu] = :%#x:\n", curMemb,
+        fprintf(stdout,"_buf[%zu] = :%#lx:\n", curMemb,
             (long unsigned)_buf[curMemb]);
         curMemb += 1;
     }
