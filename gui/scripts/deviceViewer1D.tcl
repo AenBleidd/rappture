@@ -499,7 +499,7 @@ itcl::body Rappture::DeviceViewer1D::_changeTabs {} {
     }
 
     # turn on auto limits
-    $graph axis configure y -min "" -max ""
+    $graph axis configure y -min "" -max "" 
 
     set flist ""
     if {[info exists _tab2fields($name)]} {
