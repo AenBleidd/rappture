@@ -497,9 +497,10 @@ itcl::body Rappture::DeviceViewer1D::_changeTabs {} {
     } else {
 	$graph axis configure x -hide no -title "Position"
     }
+    $graph axis configure x -checklimits no
 
     # turn on auto limits
-    $graph axis configure y -min "" -max "" 
+    $graph axis configure y -min "" -max "" -checklimits no
 
     set flist ""
     if {[info exists _tab2fields($name)]} {

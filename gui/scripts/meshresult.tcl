@@ -317,8 +317,9 @@ itcl::body Rappture::MeshResult::_rebuild {} {
 
     # first clear out the widget
     eval $g marker delete [$g marker names]
-    $g axis configure x -min "" -max "" -loose yes -descending yes 
-    $g axis configure y -min "" -max "" -loose yes 
+    $g axis configure x -min "" -max "" -loose yes -checklimits no \
+	-descending yes 
+    $g axis configure y -min "" -max "" -loose yes -checklimits no
 
     # extract axis information from the first dataobj
     set dlist [get]

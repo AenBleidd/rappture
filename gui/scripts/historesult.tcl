@@ -566,7 +566,8 @@ itcl::body Rappture::HistogramResult::_rebuild {} {
 			    catch {$g axis create $axis}
 			}
 		    }
-		    $g axis configure $axis -title $label -hide no 
+		    $g axis configure $axis -title $label -hide no \
+			-checklimits no
 		    set _label2axis($ax-$label) $axis
 
 		    # if this axis has a description, add it as a tooltip

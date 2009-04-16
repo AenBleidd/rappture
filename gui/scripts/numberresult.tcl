@@ -607,7 +607,7 @@ itcl::body Rappture::NumberResult::_rebuild {} {
     # first clear out the widget
     eval $g element delete [$g element names]
     foreach axis [$g axis names] {
-	$g axis configure $axis -hide yes 
+	$g axis configure $axis -hide yes -checklimits no
     }
     catch {unset _label2axis}
 
@@ -632,7 +632,8 @@ itcl::body Rappture::NumberResult::_rebuild {} {
 			    catch {$g axis create $axis}
 			}
 		    }
-		    $g axis configure $axis -title $label -hide no 
+		    $g axis configure $axis -title $label -hide no \
+			-checklimits no
 		    set _label2axis($ax-$label) $axis
 
 		    # if this axis has a description, add it as a tooltip
