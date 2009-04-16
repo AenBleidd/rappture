@@ -67,11 +67,12 @@ itcl::class Rappture::Radiodial {
     protected method _click {x y}
     protected method _navigate {offset}
     protected method _limits {}
+    protected method _findLabel {str}
     protected method _fixSize {}
     protected method _fixValue {args}
 
     private variable _values ""       ;# list of all values on the dial
-    private variable _val2label       ;# maps value => label
+    private variable _val2label       ;# maps value => string label(s)
     private variable _current ""      ;# current value (where pointer is)
     private variable _variable ""     ;# variable associated with -variable
 
@@ -127,9 +128,16 @@ itcl::body Rappture::Radiodial::add {label {value ""}} {
     if {"" == $value} {
 	set value [llength $_values]
     }
-    lappend _values $value
-    set _values [lsort -real $_values]
-    set _val2label($value) $label
+
+    # Add this value if we've never see it before
+    if {[lsearch -real $_values $value] < 0} {
+        lappend _values $value
+        set _values [lsort -real $_values]
+    }
+
+    # Keep all equivalent strings for this value.
+    # That way, we can later select either "1e18" or "1.0e+18"
+    lappend _val2label($value) $label
 
     if {"" == $_current} {
 	_setCurrent $value
@@ -198,7 +206,7 @@ itcl::body Rappture::Radiodial::get {args} {
 	switch -- $params(-format) {
 	    label {
 		set v [lindex $_values $i]
-		$op rlist $_val2label($v)
+		$op rlist [lindex $_val2label($v) 0]
 	    }
 	    value {
 		$op rlist [lindex $_values $i]
@@ -213,7 +221,8 @@ itcl::body Rappture::Radiodial::get {args} {
 		set v [lindex $_values $i]
 		foreach {min max} [_limits] break
 		set frac [expr {double($v-$min)/($max-$min)}]
-		$op rlist [list $_val2label($v) $v $frac]
+                set l [lindex $_val2label($v) 0]
+		$op rlist [list $l $v $frac]
 	    }
 	    default {
 		error "bad value \"$v\": should be label, value, position, all"
@@ -233,17 +242,7 @@ itcl::body Rappture::Radiodial::current {args} {
 	return $_current
     } elseif {[llength $args] == 1} {
 	set newval [lindex $args 0]
-	set found 0
-	foreach v $_values {
-	    if {[string equal $_val2label($v) $newval]} {
-		set newval $v
-		set found 1
-		break
-	    }
-	}
-	if {!$found} {
-	    error "bad value \"$newval\": possible matches are \"[join $_values ,]\""
-	}
+        _findLabel $newval  ;# make sure this label is recognized
 	_setCurrent $newval
 
 	after cancel [itcl::code $this _redraw]
@@ -262,17 +261,7 @@ itcl::body Rappture::Radiodial::current {args} {
 # along the dial.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Radiodial::color {value} {
-    set found 0
-    foreach v $_values {
-	if {[string equal $_val2label($v) $value]} {
-	    set value $v
-	    set found 1
-	    break
-	}
-    }
-    if {!$found} {
-	error "bad value \"$value\": possible matches are \"[join $_values ,]\""
-    }
+    _findLabel $value  ;# make sure this label is recognized
 
     if {"" != $_spectrum} {
 	foreach {min max} [_limits] break
@@ -299,7 +288,7 @@ itcl::body Rappture::Radiodial::_setCurrent {value} {
     if {"" != $_variable} {
 	upvar #0 $_variable var
 	if {[info exists _val2label($value)]} {
-	    set var $_val2label($value)
+	    set var [lindex $_val2label($value) 0]
 	} else {
 	    set var $value
 	}
@@ -421,7 +410,7 @@ itcl::body Rappture::Radiodial::_redraw {} {
     # if the -valuewidth is > 0, then make room for the value
     set vw $itk_option(-valuewidth)
     if {$vw > 0 && "" != $_current} {
-	set str $_val2label($_current)
+	set str [lindex $_val2label($_current) 0]
 	if {[string length $str] >= $vw} {
 	    set str "[string range $str 0 [expr {$vw-3}]]..."
 	}
@@ -435,7 +424,7 @@ itcl::body Rappture::Radiodial::_redraw {} {
 	set x0 [expr {$x0 + 10}]
 
 	# set up a tooltip so you can mouse over truncated values
-	Rappture::Tooltip::text $c $_val2label($_current)
+	Rappture::Tooltip::text $c [lindex $_val2label($_current) 0]
 	$c bind $id <Enter> \
 	    [list ::Rappture::Tooltip::tooltip pending %W +$x0,$y1]
 	$c bind $id <Leave> \
@@ -549,6 +538,28 @@ itcl::body Rappture::Radiodial::_limits {} {
 }
 
 # ----------------------------------------------------------------------
+# USAGE: _findLabel <string>
+#
+# Used internally to search for the given <string> label among the
+# known values.  Returns an index into the _values list, or throws
+# an error if the string is not recognized.  Given the null string,
+# it returns -1, indicating that the value is not in _values, but
+# it is valid.
+# ----------------------------------------------------------------------
+itcl::body Rappture::Radiodial::_findLabel {str} {
+    if {"" == $str} {
+        return -1
+    }
+    for {set nv 0} {$nv < [llength $_values]} {incr nv} {
+        set v [lindex $_values $nv]
+        if {[lsearch -exact $_val2label($v) $str] >= 0} {
+            return $nv
+        }
+    }
+    error "bad value \"$str\": should be something matching the raw values \"[join $_values ,]\""
+}
+
+# ----------------------------------------------------------------------
 # USAGE: _fixSize
 #
 # Used internally to compute the overall size of the widget based
@@ -614,17 +625,8 @@ itcl::body Rappture::Radiodial::_fixValue {args} {
     upvar #0 $itk_option(-variable) var
 
     set newval $var
-    set found 0
-    foreach v $_values {
-	if {[string equal $_val2label($v) $newval]} {
-	    set newval $v
-	    set found 1
-	    break
-	}
-    }
-    if {!$found && "" != $newval} {
-	error "bad value \"$newval\": possible matches are \"[join $_values ,]\""
-    }
+    set n [_findLabel $newval]
+    set newval [expr {($n >= 0) ? [lindex $_values $n] : ""}]
     set _current $newval  ;# set current directly, so we don't trigger again
 
     after cancel [itcl::code $this _redraw]
