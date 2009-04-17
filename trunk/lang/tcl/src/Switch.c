@@ -31,7 +31,7 @@
 #include <stdarg.h>
 #include <string.h>
 #include <unistd.h>
-#include <malloc.h>
+#include <stdlib.h>
 #include <tcl.h>
 #include "Switch.h"
 
