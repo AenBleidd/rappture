@@ -12,44 +12,14 @@
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  * ======================================================================
  */
+#include "config.h"
 #include <tcl.h>
 #include <stdlib.h>
 #include <stddef.h>
 #include <string.h>
-#include <sys/sysinfo.h>
 
 static Tcl_CmdProc RpSysinfoCmd;
-static Tcl_Obj* RpSysinfoValue _ANSI_ARGS_((struct sysinfo *sinfo,
-    int idx));
 
-#define RP_SLOT_LONG   1
-#define RP_SLOT_ULONG  2
-#define RP_SLOT_USHORT 3
-#define RP_SLOT_LOAD   4
-
-#ifdef offsetof
-#define Offset(type, field) ((int) offsetof(type, field))
-#else
-#define Offset(type, field) ((int) ((char *) &((type *) 0)->field))
-#endif
-
-static struct rpSysinfoList {
-    const char *name;		/* Name of this system parameter */
-    int type;		        /* Parameter type (long, unsigned long,
-				 * etc.) */
-    int offset;			/* Offset into sysinfo struct */
-} RpSysinfoList [] = {
-    {"freeram",   RP_SLOT_ULONG,  Offset(struct sysinfo, freeram)},
-    {"freeswap",  RP_SLOT_ULONG,  Offset(struct sysinfo, freeswap)},
-    {"load1",     RP_SLOT_LOAD,   Offset(struct sysinfo, loads[0])},
-    {"load5",     RP_SLOT_LOAD,   Offset(struct sysinfo, loads[1])},
-    {"load15",    RP_SLOT_LOAD,   Offset(struct sysinfo, loads[2])},
-    {"procs",     RP_SLOT_USHORT, Offset(struct sysinfo, procs)},
-    {"totalram",  RP_SLOT_ULONG,  Offset(struct sysinfo, totalram)},
-    {"totalswap", RP_SLOT_ULONG,  Offset(struct sysinfo, totalswap)},
-    {"uptime",    RP_SLOT_LONG,   Offset(struct sysinfo, uptime)},
-    {NULL, 0, 0}
-};
 
 /*
  * ------------------------------------------------------------------------
@@ -69,6 +39,58 @@ RpSysinfo_Init(interp)
 
     return TCL_OK;
 }
+
+#ifndef HAVE_SYSINFO
+
+static int
+RpSysinfoCmd(cdata, interp, argc, argv)
+    ClientData cdata;         /* not used */
+    Tcl_Interp *interp;       /* interpreter handling this request */
+    int argc;                 /* number of command line args */
+    CONST84 char *argv[];     /* strings for command line args */
+{
+    Tcl_SetResult(interp, "command not implemented: no sysinfo", TCL_STATIC);
+    return TCL_ERROR;
+}
+
+#else
+
+#ifdef HAVE_SYS_SYSINFO_H
+#include <sys/sysinfo.h>
+#endif	/* HAVE_SYS_SYSINFO_H */
+
+#define RP_SLOT_LONG   1
+#define RP_SLOT_ULONG  2
+#define RP_SLOT_USHORT 3
+#define RP_SLOT_LOAD   4
+
+struct rpSysinfoList {
+    const char *name;		/* Name of this system parameter */
+    int type;		        /* Parameter type (long, unsigned long,
+				 * etc.) */
+    int offset;			/* Offset into sysinfo struct */
+};
+
+#ifdef offsetof
+#define Offset(type, field) ((int) offsetof(type, field))
+#else
+#define Offset(type, field) ((int) ((char *) &((type *) 0)->field))
+#endif
+
+static struct rpSysinfoList RpSysinfoList [] = {
+    {"freeram",   RP_SLOT_ULONG,  Offset(struct sysinfo, freeram)},
+    {"freeswap",  RP_SLOT_ULONG,  Offset(struct sysinfo, freeswap)},
+    {"load1",     RP_SLOT_LOAD,   Offset(struct sysinfo, loads[0])},
+    {"load5",     RP_SLOT_LOAD,   Offset(struct sysinfo, loads[1])},
+    {"load15",    RP_SLOT_LOAD,   Offset(struct sysinfo, loads[2])},
+    {"procs",     RP_SLOT_USHORT, Offset(struct sysinfo, procs)},
+    {"totalram",  RP_SLOT_ULONG,  Offset(struct sysinfo, totalram)},
+    {"totalswap", RP_SLOT_ULONG,  Offset(struct sysinfo, totalswap)},
+    {"uptime",    RP_SLOT_LONG,   Offset(struct sysinfo, uptime)},
+    {NULL, 0, 0}
+};
+
+static Tcl_Obj* RpSysinfoValue(struct sysinfo *sinfo, int idx);
 
 /*
  * ------------------------------------------------------------------------
@@ -186,3 +208,5 @@ RpSysinfoValue(sinfo, idx)
     }
     return NULL;
 }
+
+#endif /*HAVE_SYSINFO*/
