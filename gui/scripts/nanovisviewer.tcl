@@ -530,7 +530,7 @@ itcl::body Rappture::NanovisViewer::download {option args} {
 	    # image data.
 	    set bytes [$_image(plot) data -format "jpeg -quality 100"]
 	    set bytes [Rappture::encoding::decode -as b64 $bytes]
-	    return [list .jpg $data]
+	    return [list .jpg $bytes]
 	}
 	default {
 	    error "bad option \"$option\": should be coming, controls, now"
