@@ -30,6 +30,7 @@ CC_SWITCHES	= $(CFLAGS) $(CFLAGS_DEBUG) $(INCLUDES) $(DEFINES)
 CXX_SWITCHES	= $(CFLAGS) $(CFLAGS_DEBUG) $(INCLUDES) $(DEFINES)
 
 INCLUDES	= -I$(srcdir) \
+		  -I../../../src/core \
 		  -I$(srcdir)/../../../src/core \
 		  -I$(includedir)
 version 	= @PACKAGE_VERSION@
