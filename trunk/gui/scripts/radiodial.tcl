@@ -242,8 +242,9 @@ itcl::body Rappture::Radiodial::current {args} {
 	return $_current
     } elseif {[llength $args] == 1} {
 	set newval [lindex $args 0]
-        _findLabel $newval  ;# make sure this label is recognized
-	_setCurrent $newval
+        set n [_findLabel $newval]
+        set rawval [expr {($n >= 0) ? [lindex $_values $n] : ""}]
+	_setCurrent $rawval
 
 	after cancel [itcl::code $this _redraw]
 	after idle [itcl::code $this _redraw]
@@ -626,8 +627,8 @@ itcl::body Rappture::Radiodial::_fixValue {args} {
 
     set newval $var
     set n [_findLabel $newval]
-    set newval [expr {($n >= 0) ? [lindex $_values $n] : ""}]
-    set _current $newval  ;# set current directly, so we don't trigger again
+    set rawval [expr {($n >= 0) ? [lindex $_values $n] : ""}]
+    set _current $rawval  ;# set current directly, so we don't trigger again
 
     after cancel [itcl::code $this _redraw]
     after idle [itcl::code $this _redraw]
