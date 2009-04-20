@@ -107,7 +107,6 @@ itcl::class Rappture::NanovisViewer {
     private method BuildCameraTab {}
     private method PanCamera {}
 
-
     private variable outbuf_       ;# buffer for outgoing commands
 
     private variable dlist_ ""     ;# list of data objects

@@ -85,7 +85,6 @@ itcl::class Rappture::MolvisViewer {
     private method GetPngImage { widget width height }
     private method WaitIcon { option widget }
     private variable icon_ 0
-    private variable _inrebuild 0
 
     private variable _mevent       ;# info used for mouse event operations
     private variable _rocker       ;# info used for rock operations
@@ -260,7 +259,6 @@ itcl::body Rappture::MolvisViewer::constructor {hostlist args} {
 
     bind $itk_component(ortho) <ButtonPress> \
 	[itcl::code $this projection toggle]
-    $this projection perspective
 
     _BuildViewTab
 
@@ -622,7 +620,6 @@ itcl::body Rappture::MolvisViewer::_ReceiveImage { size cacheid frame rock } {
     set data [ReceiveBytes $size]
     #debug "success: reading $size bytes from proxy\n"
     if { $cacheid == "print" } {
-	puts stderr "got hardcopy token"
 	# $frame is the token that we sent to the proxy.
 	set hardcopy_($this-$frame) $data
     } else {
@@ -642,12 +639,7 @@ itcl::body Rappture::MolvisViewer::_ReceiveImage { size cacheid frame rock } {
 # widget to display new data.
 # ----------------------------------------------------------------------
 itcl::body Rappture::MolvisViewer::_rebuild {} {
-    if { $_inrebuild } {
-	# don't allow overlapping rebuild calls
-	return
-    }
     debug "in rebuild"
-    #set _inrebuild 1
     set changed 0
 
     $itk_component(3dview) configure -cursor watch
@@ -802,7 +794,6 @@ itcl::body Rappture::MolvisViewer::_rebuild {} {
     emblems update
     representation update
 
-    set _inrebuild 0
     $itk_component(3dview) configure -cursor ""
     debug "exiting rebuild"
 }
@@ -903,7 +894,6 @@ itcl::body Rappture::MolvisViewer::_update { args } {
     set tag "$_state(client),$_rocker(client)"
     if { $_image(id) != "$tag" } {
 	if { [info exists _imagecache($tag)] } {
-	    #puts stderr "DISPLAYING CACHED IMAGE"
 	    $_image(plot) configure -data $_imagecache($tag)
 	    set _image(id) "$tag"
 	}
@@ -1062,7 +1052,7 @@ itcl::body Rappture::MolvisViewer::_vmouse {option b m x y} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::MolvisViewer::_rotate {option x y} {
     set now  [clock clicks -milliseconds]
-    update idletasks
+    #update idletasks
     # cancel any pending delayed dragging events
     if { [info exists _mevent(afterid)] } {
 	after cancel $_mevent(afterid)
