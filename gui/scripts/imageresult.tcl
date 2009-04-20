@@ -312,7 +312,7 @@ itcl::body Rappture::ImageResult::download {option args} {
 	    # This is better than writing to temporary files.  When we switch
 	    # to the BLT picture image it won't be necessary to decode the
 	    # image data.
-	    set bytes [$top data $tmpfile -format "jpeg -quality 100"]
+	    set bytes [$top data -format "jpeg -quality 100"]
 	    set bytes [Rappture::encoding::decode -as b64 $bytes]
 	    return [list .jpg $bytes]
 	}
