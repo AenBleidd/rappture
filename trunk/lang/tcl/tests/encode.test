@@ -46,7 +46,7 @@ test is-1.1.3 {Rappture::encoding::is, 1 subcommand w/ string} {
 
 test is-1.2.0 {Rappture::encoding::is, 1 invalid subcommand} {
     list [catch {Rappture::encoding::is binaryy "hi"} msg] $msg
-} {1 {bad option "binaryy": should be one of binary, encoded}}
+} {1 {bad option "binaryy": should be binary or encoded}}
 
 test is-1.2.1 {Rappture::encoding::is, too many arguments} {
     list [catch {Rappture::encoding::is binary binary "hi"} msg] $msg
@@ -117,7 +117,7 @@ test is-1.3.10 {Rappture::encoding::is, encoded with an embedded null} {
 
 test encode-2.0.0 {Rappture::encoding::encode, 0 arguments} {
     list [catch {Rappture::encoding::encode} msg] $msg
-} {1 {wrong # args: should be "Rappture::encoding::encode ?-as z|b64|zb64? ?-no-header? ?--? <string>"}}
+} {1 {wrong # args: should be "Rappture::encoding::encode ?-as z|b64|zb64? ?-noheader? ?--? string"}}
 
 test encode-2.1.0 {Rappture::encoding::encode, ascii string argument} {
     list [catch {Rappture::encoding::encode "hi"} msg] $msg
@@ -133,17 +133,17 @@ test encode-2.1.1 {Rappture::encoding::encode, binary string argument}  {
 H4sIAAAAAAAAA5Pv5mAAA+bTJ1gY1mhNvsEE5AAAFVLsvBYAAAA=
 }}
 
-test encode-2.2.0 {Rappture::encoding::encode, -as flag blank value} {
+test encode-2.2.0 {Rappture::encoding::encode, -as flag no value} {
     list [catch {Rappture::encoding::encode -as} msg] $msg
-} {1 {bad value "": should be one of z, b64, zb64}}
+} {1 {value for "-as" missing}}
 
 test encode-2.2.1 {Rappture::encoding::encode, -as flag bad value } {
     list [catch {Rappture::encoding::encode -as zz} msg] $msg
-} {1 {bad value "zz": should be one of z, b64, zb64}}
+} {1 {bad value "zz": should be b64, zb64, or z}}
 
 test encode-2.2.2 {Rappture::encoding::encode, -as flag correct value z} {
     list [catch {Rappture::encoding::encode -as z} msg] $msg
-} {1 {wrong # args: should be "Rappture::encoding::encode ?-as z|b64|zb64? ?-no-header? ?--? <string>"}}
+} {1 {wrong # args: should be "Rappture::encoding::encode ?-as z|b64|zb64? ?-noheader? ?--? string"}}
 
 test encode-2.2.3 {Rappture::encoding::encode, -as z w/ string} {
     list [catch {Rappture::encoding::encode -as z "hi"} msg] $msg
@@ -157,7 +157,10 @@ aGk=
 
 test encode-2.2.5 {Rappture::encoding::encode with --} {
     list [catch {Rappture::encoding::encode -hi} msg] $msg
-} {1 {bad option "-hi": should be -as, -no-header, --}}
+} {1 {unknown switch "-hi"
+following switches are available:
+   -as z|b64|zb64
+   -noheader }}
 
 test encode-2.2.6 {Rappture::encoding::encode with --} {
     list [catch {Rappture::encoding::encode -- -hi} msg] $msg
@@ -173,7 +176,7 @@ H4sIAAAAAAAAA9PNyAQA8jSeVgMAAAA=
 
 test decode-3.0.0 {Rappture::encoding::decode, 0 arguments} {
     list [catch {Rappture::encoding::decode} msg] $msg
-} {1 {wrong # args: should be "Rappture::encoding::decode ?-as z|b64|zb64? ?--? <string>"}}
+} {1 {wrong # args: should be "Rappture::encoding::decode ?-as z|b64|zb64? ?--? string"}}
 
 test decode-3.1.0 {Rappture::encoding::decode, 1 arg, b64 encoded} {
     set h "aGk="
@@ -187,21 +190,34 @@ test decode-3.1.1 {Rappture::encoding::decode, 1 arg, zb64 encoded} {
 
 test decode-3.1.2 {Rappture::encoding::decode, 2 args} {
     list [catch {Rappture::encoding::decode "hi" "bye"} msg] $msg
-} {1 {wrong # args: should be "Rappture::encoding::decode ?-as z|b64|zb64? ?--? <string>"}}
+} {1 {wrong # args: should be "Rappture::encoding::decode ?-as z|b64|zb64? ?--? string"}}
 
 test decode-3.2.0 {Rappture::encoding::decode, -as flag, no value} {
     list [catch {Rappture::encoding::decode -as} msg] $msg
-} {1 {bad value "": should be one of z, b64, zb64}}
+} {1 {value for "-as" missing}}
 
 test decode-3.2.1 {Rappture::encoding::decode, -as flag, bad value} {
     list [catch {Rappture::encoding::decode -as zz} msg] $msg
-} {1 {bad value "zz": should be one of z, b64, zb64}}
+} {1 {bad value "zz": should be b64, zb64, or z}}
+
+# This test is wrong.  The -as z flag should either 1) be ignored and return
+# "hi" (using the header) or 2) override the header and return an error when
+# attempting to decompress the bogus string (see 3.2.2b)
 
 test decode-3.2.2 {Rappture::encoding::decode, -as flag, zb64 w/ string} {
     set h "@@RP-ENC:zb64\nH4sIAAAAAAAAA8vIBACsKpPYAgAAAA=="
     list [catch {Rappture::encoding::decode -as z $h} msg] $msg
 } {0 {@@RP-ENC:zb64
 H4sIAAAAAAAAA8vIBACsKpPYAgAAAA==}}
+
+test decode-3.2.2b {Rappture::encoding::decode, -as -noheader, zb64 w/ string} {
+    set h "@@RP-ENC:zb64\nH4sIAAAAAAAAA8vIBACsKpPYAgAAAA=="
+    list [catch {Rappture::encoding::decode -as z -noheader $h} msg] $msg
+} {1 {Rappture::Buffer::do_decompress()
+:
+memory error while inflating data
+Rappture::Buffer::do_decompress()
+}}
 
 test decode-3.2.3 {Rappture::encoding::decode, -as flag, b64 w/ string} {
     set h "@@RP-ENC:b64\naGk="
@@ -215,7 +231,11 @@ test decode-3.2.4 {encode/decode reverse each other} {
 
 test encode-3.2.5 {Rappture::encoding::decode with --} {
     list [catch {Rappture::encoding::decode -hi} msg] $msg
-} {1 {bad option "-hi": should be -as, --}}
+} {1 {unknown switch "-hi"
+following switches are available:
+   -as z|b64|zb64
+   -noheader }}
+
 
 test encode-3.2.6 {Rappture::encoding::decode with --} {
     list [catch {Rappture::encoding::decode -- -hi} msg] $msg
