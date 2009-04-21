@@ -206,21 +206,38 @@ Rappture::encoding::decode(Rappture::Outcome &status, Rappture::Buffer& buf,
     }
     bytes = buf.bytes();
     if ((flags & RPENC_RAW) == 0) {
+	unsigned int headerFlags = 0;
 	if ((size > 11) && (strncmp(bytes, "@@RP-ENC:z\n", 11) == 0)) {
 	    bytes += 11;
 	    size -= 11;
-	    flags &= ~RPENC_B64;
-	    flags |= RPENC_Z;
+	    headerFlags |= RPENC_Z;
 	} else if ((size > 13) && (strncmp(bytes, "@@RP-ENC:b64\n", 13) == 0)){
 	    bytes += 13;
 	    size -= 13;
-	    flags &= ~RPENC_Z;
-	    flags |= RPENC_B64;
+	    headerFlags |= RPENC_B64;
 	} else if ((size > 14) && (strncmp(bytes, "@@RP-ENC:zb64\n", 14) == 0)){
 	    bytes += 14;
 	    size -= 14;
-	    flags |= (RPENC_B64 | RPENC_Z);
+	    headerFlags |= (RPENC_B64 | RPENC_Z);
 	} 
+ 	if (headerFlags != 0) {
+	    unsigned int reqFlags;
+
+	    reqFlags = flags & (RPENC_B64 | RPENC_Z);
+	    /* 
+	     * If there's a header and the programmer also requested decoding
+	     * flags, verify that the two are the same.  We don't want to
+	     * penalize the programmer for over-specifying.  But we need to
+	     * catch cases when they don't match.  If you really want to
+	     * override the header, you should also specify the RPENC_RAW flag
+	     * (-noheader).
+	     */
+	    if ((reqFlags != 0) && (reqFlags != headerFlags)) {
+		status.addError("decode flags don't match the header");
+		return false;
+	    }
+	    flags |= headerFlags;
+	}
     }
     if ((flags & (RPENC_B64 | RPENC_Z)) == 0) {
 	return true;		/* No decode or decompress flags present. */
