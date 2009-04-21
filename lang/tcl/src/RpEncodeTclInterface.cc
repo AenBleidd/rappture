@@ -145,9 +145,8 @@ AsSwitch(
     } else if ((c == 'z') && (strcmp(string, "z") == 0)) {
 	*flagsPtr = RPENC_Z;
     } else {
-	Tcl_AppendResult(interp, "bad order \"", string, 
-		 "\": should be breadthfirst, inorder, preorder, or postorder",
-		 (char *)NULL);
+	Tcl_AppendResult(interp, "bad value \"", string, 
+		 "\": should be b64, zb64, or z", (char *)NULL);
 	return TCL_ERROR;
     }
     return TCL_OK;
@@ -238,7 +237,7 @@ static SwitchSpec decodeSwitches[] =
 {
     {SWITCH_CUSTOM, "-as", "z|b64|zb64",
 	offsetof(DecodeSwitches, flags), 0, 0, &asSwitch},
-    {SWITCH_BITMASK, "-raw", "", 
+    {SWITCH_BITMASK, "-noheader", "", 
 	offsetof(DecodeSwitches, flags), 0, RPENC_RAW},
     {SWITCH_END}
 };
