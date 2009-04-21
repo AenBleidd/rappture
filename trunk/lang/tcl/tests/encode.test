@@ -207,9 +207,10 @@ test decode-3.2.1 {Rappture::encoding::decode, -as flag, bad value} {
 test decode-3.2.2 {Rappture::encoding::decode, -as flag, zb64 w/ string} {
     set h "@@RP-ENC:zb64\nH4sIAAAAAAAAA8vIBACsKpPYAgAAAA=="
     list [catch {Rappture::encoding::decode -as z $h} msg] $msg
-} {0 {@@RP-ENC:zb64
-H4sIAAAAAAAAA8vIBACsKpPYAgAAAA==}}
-
+} {1 {:
+decode flags don't match the header
+}}
+	
 test decode-3.2.2b {Rappture::encoding::decode, -as -noheader, zb64 w/ string} {
     set h "@@RP-ENC:zb64\nH4sIAAAAAAAAA8vIBACsKpPYAgAAAA=="
     list [catch {Rappture::encoding::decode -as z -noheader $h} msg] $msg
