@@ -36,7 +36,7 @@ Rappture::encoding::isBinary(const char* buf, int size)
     }
     const char *cp, *endPtr;
     for (cp = buf, endPtr = buf + size; cp < endPtr; cp++) {
-	if ((!isascii(*cp)) && (!isprint(*cp))) {
+	if (!isprint(*cp)) {
 	    return true;
 	}
     }
