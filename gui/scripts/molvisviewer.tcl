@@ -274,8 +274,9 @@ itcl::body Rappture::MolvisViewer::constructor {hostlist args} {
     # So the idea is to set a ridiculously big requested width to the label
     # (that's why we're using the blt::table to manage the geometry).  It has
     # to be big, because we don't know how big the user may want to stretch
-    # the window.  This at least forces the sidebarframe give the 3dview the
-    # maximum size available, which is perfect an initially closed sidebar.
+    # the window.  This at least forces the sidebarframe to give the 3dview
+    # the maximum size available, which is perfect an initially closed
+    # sidebar.
 
     blt::table $itk_component(plotarea) \
 	0,0 $itk_component(3dview) -fill both -reqwidth 10000
