@@ -27,7 +27,7 @@ proc MolvisViewer_init_resources {} {
 	molvis_server Rappture::MolvisViewer::SetServerList
 }
 
-set debug 0
+set debug 1
 proc debug { args } {
     global debug
     if { $debug } {
@@ -262,14 +262,23 @@ itcl::body Rappture::MolvisViewer::constructor {hostlist args} {
 
     _BuildViewTab
 
-    # HACK ALERT. Initially force a requested width of the sidebar. The
-    # problem is that the requested size of the 3dview isn't set until an
-    # image is retrieved from the server.  But we determine the size of the
-    # image from the size of the 3dview.
-    set w [expr [winfo reqwidth $itk_component(hull)] - 80]
-    blt::table $itk_component(plotarea) \
-	0,0 $itk_component(3dview) -fill both -reqwidth $w 
+    # HACK ALERT. Initially force a requested width of the 3dview label. 
 
+    # It's a chicken-and-the-egg problem.  The size of the 3dview label is set
+    # from the size of the image retrieved from the server.  But the size of
+    # the image is specified by the viewport which is the size of the label.
+    # The fly-in-the-ointment is that it takes a non-trival amount of time to
+    # get the first image back from the server.  In the meantime the idletasks
+    # have already kicked in.  We end up with a 1x1 viewport and image.
+
+    # So the idea is to set a ridiculously big requested width to the label
+    # (that's why we're using the blt::table to manage the geometry).  It has
+    # to be big, because we don't know how big the user may want to stretch
+    # the window.  This at least forces the sidebarframe give the 3dview the
+    # maximum size available, which is perfect an initially closed sidebar.
+
+    blt::table $itk_component(plotarea) \
+	0,0 $itk_component(3dview) -fill both -reqwidth 10000
     #
     # RENDERING AREA
     #
