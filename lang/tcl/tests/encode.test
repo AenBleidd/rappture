@@ -52,9 +52,75 @@ test is-1.2.1 {Rappture::encoding::is, too many arguments} {
     list [catch {Rappture::encoding::is binary binary "hi"} msg] $msg
 } {1 {wrong # args: should be "Rappture::encoding::is binary|encoded <string>"}}
 
-test is-1.2.2 {Rappture::encoding::is, with an embedded null} {
+test is-1.2.2.0 {Rappture::encoding::is, with an embedded null} {
     list [catch {Rappture::encoding::is binary "x\000x"} msg] $msg
 } {0 yes}
+
+test is-1.2.2.1 {Rappture::encoding::is, with an embedded start of heading} {
+    list [catch {Rappture::encoding::is binary "x\001x"} msg] $msg
+} {0 yes}
+
+test is-1.2.2.2 {Rappture::encoding::is, with an embedded start of text} {
+    list [catch {Rappture::encoding::is binary "x\002x"} msg] $msg
+} {0 yes}
+
+test is-1.2.2.3 {Rappture::encoding::is, with an embedded end of text} {
+    list [catch {Rappture::encoding::is binary "x\003x"} msg] $msg
+} {0 yes}
+
+test is-1.2.2.4 {Rappture::encoding::is, with an embedded end of transmission} {
+    list [catch {Rappture::encoding::is binary "x\004x"} msg] $msg
+} {0 yes}
+
+test is-1.2.2.5 {Rappture::encoding::is, with an embedded enquiry} {
+    list [catch {Rappture::encoding::is binary "x\005x"} msg] $msg
+} {0 yes}
+
+test is-1.2.2.6 {Rappture::encoding::is, with an embedded acknowledge} {
+    list [catch {Rappture::encoding::is binary "x\006x"} msg] $msg
+} {0 yes}
+
+test is-1.2.2.7 {Rappture::encoding::is, with an embedded bell} {
+    list [catch {Rappture::encoding::is binary "x\007x"} msg] $msg
+} {0 yes}
+
+test is-1.2.2.8 {Rappture::encoding::is, with an embedded backspace} {
+    list [catch {Rappture::encoding::is binary "x\010x"} msg] $msg
+} {0 yes}
+
+test is-1.2.2.9 {Rappture::encoding::is, with an embedded horizontal tab} {
+    list [catch {Rappture::encoding::is binary "x\011x"} msg] $msg
+} {0 no}
+
+test is-1.2.2.10 {Rappture::encoding::is, with an embedded newlines} {
+    list [catch {Rappture::encoding::is binary "x\012x"} msg] $msg
+} {0 no}
+
+test is-1.2.2.11 {Rappture::encoding::is, with an embedded vertical tab} {
+    list [catch {Rappture::encoding::is binary "x\013x"} msg] $msg
+} {0 yes}
+
+test is-1.2.2.12 {Rappture::encoding::is, with an embedded form feed} {
+    # this is encountered in spice, maybe abinit?
+    list [catch {Rappture::encoding::is binary "x\014x"} msg] $msg
+} {0 yes}
+
+test is-1.2.2.13 {Rappture::encoding::is, with an embedded carriage return} {
+    list [catch {Rappture::encoding::is binary "x\015x"} msg] $msg
+} {0 no}
+
+test is-1.2.2.14 {Rappture::encoding::is, with an embedded shift out} {
+    list [catch {Rappture::encoding::is binary "x\016x"} msg] $msg
+} {0 yes}
+
+test is-1.2.2.15 {Rappture::encoding::is, with an embedded space} {
+    list [catch {Rappture::encoding::is binary "x\040x"} msg] $msg
+} {0 no}
+
+#test is-1.2.2.16 {Rappture::encoding::is, with an embedded 8bit ascii char } {
+#    list [catch {Rappture::encoding::is binary "x\200x"} msg] $msg
+#} {0 yes}
+
 
 test is-1.3.1 {Rappture::encoding::is, encoded subcommand w/ false string} {
     list [catch {Rappture::encoding::is encoded "hi"} msg] $msg

@@ -36,9 +36,13 @@ Rappture::encoding::isBinary(const char* buf, int size)
     }
     const char *cp, *endPtr;
     for (cp = buf, endPtr = buf + size; cp < endPtr; cp++) {
-	if (!isprint(*cp)) {
-	    return true;
-	}
+        if (((*cp >= '\000') && (*cp <= '\010')) ||
+            ((*cp >= '\013') && (*cp <= '\014')) ||
+            ((*cp >= '\016') && (*cp <= '\037')) ||
+            ((*cp >= '\177') && (*cp <= '\377')) ) {
+            // data is binary
+            return true;
+        }
     }
     return false;
 }
@@ -54,9 +58,9 @@ Rappture::encoding::isBase64(const char* buf, int size)
     }
     const char *cp, *endPtr;
     for (cp = buf, endPtr = buf + size; cp < endPtr; cp++) {
-	if (((*cp < 'A') || (*cp > '/')) && (!isspace(*cp)) && (*cp != '=')) {
-	    return false;
-	}
+        if (((*cp < 'A') || (*cp > '/')) && (!isspace(*cp)) && (*cp != '=')) {
+            return false;
+        }
     }
     return true;
 }
@@ -135,44 +139,44 @@ Rappture::encoding::headerFlags(const char* buf, int size)
  */
 
 bool
-Rappture::encoding::encode(Rappture::Outcome &status, Rappture::Buffer& buf, 
-			   unsigned int flags)
+Rappture::encoding::encode(Rappture::Outcome &status, Rappture::Buffer& buf,
+                           unsigned int flags)
 {
     Rappture::Buffer outData;
 
     if (buf.size() <= 0) {
-	return true;		// Nothing to encode.
+        return true;                // Nothing to encode.
     }
     if ((flags & (RPENC_Z | RPENC_B64)) == 0) {
-	// By default compress and encode the string.
-	flags |= RPENC_Z | RPENC_B64;
+        // By default compress and encode the string.
+        flags |= RPENC_Z | RPENC_B64;
     }
     if (outData.append(buf.bytes(), buf.size()) != (int)buf.size()) {
-	status.addError("can't append %lu bytes", buf.size());
-	return false;
+        status.addError("can't append %lu bytes", buf.size());
+        return false;
     }
     if (!outData.encode(status, flags)) {
-	return false;
+        return false;
     }
     buf.clear();
     if ((flags & RPENC_RAW) == 0) {
-	switch (flags & (RPENC_Z | RPENC_B64)) {
-	case RPENC_Z:
-	    buf.append("@@RP-ENC:z\n", 11);
-	    break;
-	case RPENC_B64:
-	    buf.append("@@RP-ENC:b64\n", 13);
-	    break;
-	case (RPENC_B64 | RPENC_Z):
-	    buf.append("@@RP-ENC:zb64\n", 14);
-	    break;
-	default:
-	    break;
-	}
+        switch (flags & (RPENC_Z | RPENC_B64)) {
+        case RPENC_Z:
+            buf.append("@@RP-ENC:z\n", 11);
+            break;
+        case RPENC_B64:
+            buf.append("@@RP-ENC:b64\n", 13);
+            break;
+        case (RPENC_B64 | RPENC_Z):
+            buf.append("@@RP-ENC:zb64\n", 14);
+            break;
+        default:
+            break;
+        }
     }
     if (buf.append(outData.bytes(),outData.size()) != (int)outData.size()) {
-	status.addError("can't append %d bytes", outData.size());
-	return false;
+        status.addError("can't append %d bytes", outData.size());
+        return false;
     }
     return true;
 }
@@ -192,8 +196,8 @@ Rappture::encoding::encode(Rappture::Outcome &status, Rappture::Buffer& buf,
  */
 
 bool
-Rappture::encoding::decode(Rappture::Outcome &status, Rappture::Buffer& buf, 
-			   unsigned int flags)
+Rappture::encoding::decode(Rappture::Outcome &status, Rappture::Buffer& buf,
+                           unsigned int flags)
 {
     Rappture::Buffer outData;
 
@@ -202,53 +206,54 @@ Rappture::encoding::decode(Rappture::Outcome &status, Rappture::Buffer& buf,
     size_t size;
     size = buf.size();
     if (size == 0) {
-	return true;		// Nothing to decode.
+        return true;                // Nothing to decode.
     }
     bytes = buf.bytes();
     if ((flags & RPENC_RAW) == 0) {
-	unsigned int headerFlags = 0;
-	if ((size > 11) && (strncmp(bytes, "@@RP-ENC:z\n", 11) == 0)) {
-	    bytes += 11;
-	    size -= 11;
-	    headerFlags |= RPENC_Z;
-	} else if ((size > 13) && (strncmp(bytes, "@@RP-ENC:b64\n", 13) == 0)){
-	    bytes += 13;
-	    size -= 13;
-	    headerFlags |= RPENC_B64;
-	} else if ((size > 14) && (strncmp(bytes, "@@RP-ENC:zb64\n", 14) == 0)){
-	    bytes += 14;
-	    size -= 14;
-	    headerFlags |= (RPENC_B64 | RPENC_Z);
-	} 
- 	if (headerFlags != 0) {
-	    unsigned int reqFlags;
+        unsigned int headerFlags = 0;
+        if ((size > 11) && (strncmp(bytes, "@@RP-ENC:z\n", 11) == 0)) {
+            bytes += 11;
+            size -= 11;
+            headerFlags |= RPENC_Z;
+        } else if ((size > 13) && (strncmp(bytes, "@@RP-ENC:b64\n", 13) == 0)){
+            bytes += 13;
+            size -= 13;
+            headerFlags |= RPENC_B64;
+        } else if ((size > 14) && (strncmp(bytes, "@@RP-ENC:zb64\n", 14) == 0)){
+            bytes += 14;
+            size -= 14;
+            headerFlags |= (RPENC_B64 | RPENC_Z);
+        } 
+         if (headerFlags != 0) {
+            unsigned int reqFlags;
 
-	    reqFlags = flags & (RPENC_B64 | RPENC_Z);
-	    /* 
-	     * If there's a header and the programmer also requested decoding
-	     * flags, verify that the two are the same.  We don't want to
-	     * penalize the programmer for over-specifying.  But we need to
-	     * catch cases when they don't match.  If you really want to
-	     * override the header, you should also specify the RPENC_RAW flag
-	     * (-noheader).
-	     */
-	    if ((reqFlags != 0) && (reqFlags != headerFlags)) {
-		status.addError("decode flags don't match the header");
-		return false;
-	    }
-	    flags |= headerFlags;
-	}
+            reqFlags = flags & (RPENC_B64 | RPENC_Z);
+            /* 
+             * If there's a header and the programmer also requested decoding
+             * flags, verify that the two are the same.  We don't want to
+             * penalize the programmer for over-specifying.  But we need to
+             * catch cases when they don't match.  If you really want to
+             * override the header, you should also specify the RPENC_RAW flag
+             * (-noheader).
+             */
+            if ((reqFlags != 0) && (reqFlags != headerFlags)) {
+                status.addError("decode flags don't match the header");
+                return false;
+            }
+            flags |= headerFlags;
+        }
     }
     if ((flags & (RPENC_B64 | RPENC_Z)) == 0) {
-	return true;		/* No decode or decompress flags present. */
+        return true;                /* No decode or decompress flags present. */
     }
     if (outData.append(bytes, size) != (int)size) {
-	status.addError("can't append %d bytes to buffer", size);
-	return false;
+        status.addError("can't append %d bytes to buffer", size);
+        return false;
     }
     if (!outData.decode(status, flags)) {
-	return false;
+        return false;
     }
     buf.move(outData);
     return true;
 }
+
