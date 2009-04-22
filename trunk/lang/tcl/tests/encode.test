@@ -308,6 +308,53 @@ test encode-3.2.6 {Rappture::encoding::decode with --} {
     list [catch {Rappture::encoding::decode -- -hi} msg] $msg
 } {0 -hi}
 
+test encode-4.0 {is binary (isxml) test with invalid XML characters} {
+    list [catch {Rappture::encoding::is binary "formfeed \f"} msg] $msg
+} {0 yes}
+test encode-4.1 {is binary (isxml) test with invalid XML characters} {
+    list [catch {Rappture::encoding::is binary "backspace \b"} msg] $msg
+} {0 yes}
+test encode-4.2 {is binary (isxml) test with invalid XML characters} {
+    list [catch {Rappture::encoding::is binary "vertical tab \v"} msg] $msg
+} {0 yes}
+test encode-4.3 {is binary (isxml) test with invalid XML characters} {
+    list [catch {Rappture::encoding::is binary "high-order bit \x80"} msg] $msg
+} {0 yes}
+test encode-4.4 {is binary (isxml) test with invalid XML characters} {
+    list [catch {Rappture::encoding::is binary "high-order bit \xFF"} msg] $msg
+} {0 yes}
+test encode-4.5 {is binary (isxml) test with invalid XML characters} {
+    list [catch {Rappture::encoding::is binary "NUL \0"} msg] $msg
+} {0 yes}
+test encode-4.6 {is binary (isxml) test with invalid XML characters} {
+    list [catch {Rappture::encoding::is binary "BEL \a"} msg] $msg
+} {0 yes}
+test encode-4.7 {is binary (isxml) test with valid XML characters} {
+    list [catch {Rappture::encoding::is binary "tab/cr/nl \t\r\n "} msg] $msg
+} {0 no}
+test encode-4.8 {is binary (isxml) test with valid XML characters} {
+    list [catch {
+	set string "\t\r\n"
+	for { set i 0x20 } { $i <= 0x7F } { incr i } {
+	    append string [format %c $i]
+	}
+	Rappture::encoding::is binary $string
+    } msg] $msg
+} {0 no}
+
+test encode-4.8 {is binary (isxml) test with all characters} {
+    list [catch {
+	set result {}
+	for { set i 0 } { $i <= 0xFF } { incr i } {
+	    set string [format %c $i]
+	    if { ![Rappture::encoding::is binary $string] } {
+		lappend result $i
+	    }
+	}
+	set result
+    } msg] $msg
+} {0 {9 10 13 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56 57 58 59 60 61 62 63 64 65 66 67 68 69 70 71 72 73 74 75 76 77 78 79 80 81 82 83 84 85 86 87 88 89 90 91 92 93 94 95 96 97 98 99 100 101 102 103 104 105 106 107 108 109 110 111 112 113 114 115 116 117 118 119 120 121 122 123 124 125 126 127}}
+
 
 ::tcltest::cleanupTests
 return

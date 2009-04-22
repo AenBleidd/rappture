@@ -15,9 +15,11 @@
 #include "RpEncode.h"
 #include <cstring>
 
+
 /**********************************************************************/
 // FUNCTION: Rappture::encoding::isbinary()
 /// isbinary checks to see if given string is binary.
+
 /**
  * Checks to see if any of size characters in *buf are binary
  * Full function call:
@@ -25,24 +27,59 @@
  *
  */
 
+/* 
+ * Valid XML (ASCII encoded) characters 0-127:
+ * 
+ *	0x9 (\t) 0xA (\n) 0xD (\r) and
+ *	0x20 (space) through 0x7F (del)
+ *
+ * This isn't for UTF-8, only ASCII.  We don't allow high-order bit
+ * characters for ASCII editors.
+ */
+static unsigned char _xmlchars[256] = {
+    /*     -  0  1  2  3  4  5  6  7  8  9  A  B  C  D  E  F */
+    /*00*/    0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 0, 0,
+    /*10*/    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    /*20*/    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    /*30*/    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    /*40*/    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    /*50*/    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    /*60*/    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    /*70*/    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    /*80*/    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    /*90*/    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    /*A0*/    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    /*B0*/    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    /*C0*/    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    /*E0*/    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    /*F0*/    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+};
+
+/* 
+ * This routine is misnamed "isBinary". By definition, all strings are binary,
+ * even the ones with just letters or digits.  It's really a test if the
+ * string can be used by XML verbatim and if it can be read by the usual ASCII
+ * editors (the reason high-order bit characters are disallowed).  [Note we
+ * aren't checking if entity replacements are necessary.]
+ *
+ * The "is*" routines should be moved somewhere else since they really don't
+ * have anything to do with encoding/decoding.
+ */
 bool
 Rappture::encoding::isBinary(const char* buf, int size)
 {
     if (buf == NULL) {
-        return 0;
+        return false;			/* Really should let this segfault. */
     }
     if (size < 0) {
         size = strlen(buf);
     }
-    const char *cp, *endPtr;
-    for (cp = buf, endPtr = buf + size; cp < endPtr; cp++) {
-        if (((*cp >= '\000') && (*cp <= '\010')) ||
-            ((*cp >= '\013') && (*cp <= '\014')) ||
-            ((*cp >= '\016') && (*cp <= '\037')) ||
-            ((*cp >= '\177') && (*cp <= '\377')) ) {
-            // data is binary
-            return true;
-        }
+    const unsigned char *cp, *endPtr;
+    for (cp = (const unsigned char *)buf, endPtr = cp + size; cp < endPtr; 
+	 cp++) {
+	if (!_xmlchars[*cp]) {
+	    return true;		
+	}
     }
     return false;
 }
@@ -51,7 +88,7 @@ bool
 Rappture::encoding::isBase64(const char* buf, int size)
 {
     if (buf == NULL) {
-        return 0;
+        return false;			/* Really should let this segfault. */
     }
     if (size < 0) {
         size = strlen(buf);
