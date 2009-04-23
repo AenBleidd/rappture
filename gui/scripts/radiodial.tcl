@@ -243,7 +243,14 @@ itcl::body Rappture::Radiodial::current {args} {
     } elseif {[llength $args] == 1} {
 	set newval [lindex $args 0]
         set n [_findLabel $newval]
-        set rawval [expr {($n >= 0) ? [lindex $_values $n] : ""}]
+
+	# Don't use expr (?:) because it evaluates the resulting string.
+	# For example, it changes -0.020 to -0.02. 
+	if { $n >= 0 } {
+	    set rawval [lindex $_values $n]
+	} else {
+	    set rawval ""
+	}
 	_setCurrent $rawval
 
 	after cancel [itcl::code $this _redraw]
