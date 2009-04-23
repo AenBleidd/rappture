@@ -1583,7 +1583,9 @@ itcl::body Rappture::NanovisViewer::limits { tf } {
     set limits_(max) ""
     foreach ivol $style2ids_($tf) {
 	if { ![info exists limits_($ivol-min)] } {
-	    error "can't find $ivol limits"
+	    # I assume this is after a clear.
+	    # error "can't find $ivol limits"	    
+	    continue
 	}
 	if { $limits_(min) == "" || $limits_(min) > $limits_($ivol-min) } {
 	    set limits_(min) $limits_($ivol-min)
