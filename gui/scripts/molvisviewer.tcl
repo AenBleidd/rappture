@@ -27,7 +27,7 @@ proc MolvisViewer_init_resources {} {
 	molvis_server Rappture::MolvisViewer::SetServerList
 }
 
-set debug 1
+set debug 0
 proc debug { args } {
     global debug
     if { $debug } {
@@ -1530,24 +1530,29 @@ itcl::body Rappture::MolvisViewer::GetPngImage  { widget width height } {
     # Setup an automatic timeout procedure.
     $_dispatcher dispatch $this !pngtimeout "set $var {} ; list"
 
-    set popup [Rappture::Balloon .print -title "Generating file..."]
-    set inner [$popup component inner]
-    label $inner.title -text "Generating Hardcopy" -font "Arial 10 bold"
-    label $inner.please -text "This may take a minute." -font "Arial 10"
-    label $inner.icon -image [Rappture::icon bigroller0]
-    button $inner.cancel -text "Cancel" -font "Arial 10 bold" \
-	-command [list set $var ""]
+    set popup .molvisviewerprint
+    if {![winfo exists $popup]} {
+	Rappture::Balloon $popup -title "Generating file..."
+	set inner [$popup component inner]
+	label $inner.title -text "Generating hardcopy." -font "Arial 10 bold"
+	label $inner.please -text "This may take a minute." -font "Arial 10"
+	label $inner.icon -image [Rappture::icon bigroller0]
+	button $inner.cancel -text "Cancel" -font "Arial 10 bold" \
+	    -command [list set $var ""]
+	blt::table $inner \
+	    0,0 $inner.title -columnspan 2 \
+	    1,0 $inner.please -anchor w \
+	    1,1 $inner.icon -anchor e  \
+	    2,0 $inner.cancel -columnspan 2 
+	blt::table configure $inner r0 -pady 4 
+	blt::table configure $inner r2 -pady 4 
+	bind $inner.cancel <KeyPress-Return> [list $inner.cancel invoke]
+    } else {
+	set inner [$popup component inner]
+    }
+
     $_dispatcher event -after 60000 !pngtimeout
     WaitIcon start $inner.icon
-    bind $inner.cancel <KeyPress-Return> [list $inner.cancel invoke]
-    
-    blt::table $inner \
-	0,0 $inner.title -columnspan 2 \
-	1,0 $inner.please -anchor w \
-	1,1 $inner.icon -anchor e  \
-	2,0 $inner.cancel -columnspan 2 
-    blt::table configure $inner r0 -pady 4 
-    blt::table configure $inner r2 -pady 4 
     grab set -local $inner
     focus $inner.cancel
 
@@ -1566,7 +1571,6 @@ itcl::body Rappture::MolvisViewer::GetPngImage  { widget width height } {
     WaitIcon stop $inner.icon
     grab release $inner
     $popup deactivate
-    destroy $popup
     update
 
     if { $hardcopy_($this-$token) != "" } {
