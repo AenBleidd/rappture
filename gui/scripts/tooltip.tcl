@@ -290,7 +290,7 @@ itcl::body Rappture::Tooltip::tooltip {option args} {
 	    set loc [lindex $args 1]
 
 	    if {![info exists catalog($widget)]} {
-		error "can't find tooltip for $widget"
+		return;			# No tooltip for widget.
 	    }
 	    if {$pending != ""} {
 		after cancel $pending
@@ -299,7 +299,7 @@ itcl::body Rappture::Tooltip::tooltip {option args} {
 	}
 	show {
 	    if {[llength $args] < 1 || [llength $args] > 2} {
-		error "wrong # args: should be \"tooltip pending widget ?@x,y?\""
+		error "wrong # args: should be \"tooltip show tag loc\""
 	    }
 	    set tag [lindex $args 0]
 	    set loc [lindex $args 1]
