@@ -156,7 +156,8 @@ itcl::body Rappture::XyResult::constructor {args} {
 	ignore -borderwidth -highlightthickness
     }
     pack $itk_component(reset) -padx 4 -pady 2 -anchor e
-    Rappture::Tooltip::for $itk_component(reset) "Reset the view to the default zoom level"
+    Rappture::Tooltip::for $itk_component(reset) \
+	"Reset the view to the default zoom level"
 
     set f [$itk_component(main) component frame]
     itk_component add plot {
