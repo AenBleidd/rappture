@@ -65,6 +65,7 @@ itcl::class Rappture::NanovisViewer {
     public method updatetransferfuncs {}
     public method rmdupmarker { m x }
     public method overmarker { m x }
+    public method camera {option args}
 
     protected method Connect {}
     protected method Disconnect {}
@@ -1999,3 +2000,38 @@ itcl::body Rappture::NanovisViewer::EventuallyResize { w h } {
 itcl::body Rappture::NanovisViewer::EventuallyResizeLegend {} {
     $_dispatcher event -idle !legend
 }
+
+#  camera -- 
+#
+itcl::body Rappture::NanovisViewer::camera {option args} {
+    switch -- $option { 
+	"show" {
+	    puts [array get view_]
+	}
+	"set" {
+	    set who [lindex $args 0]
+	    set x $settings_($this-$who)
+	    set code [catch { string is double $x } result]
+	    if { $code != 0 || !$result } {
+		set settings_($this-$who) $view_($who)
+		return
+	    }
+	    switch -- $who {
+		"pan-x" - "pan-y" {
+		    set view_($who) $settings_($this-$who)
+		    PanCamera
+		}
+		"phi" - "theta" - "psi" {
+		    set view_($who) $settings_($this-$who)
+		    set xyz [Euler2XYZ $view_(theta) $view_(phi) $view_(psi)]
+		    SendCmd "camera angle $xyz"
+		}
+		"zoom" {
+		    set view_($who) $settings_($this-$who)
+		    SendCmd "camera zoom $view_(zoom)"
+		}
+	    }
+	}
+    }
+}
+
