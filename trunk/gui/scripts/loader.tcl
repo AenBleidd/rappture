@@ -125,6 +125,11 @@ itcl::body Rappture::Loader::constructor {owner path args} {
     foreach comp [$_owner xml children -type upload $path] {
 	foreach tcomp [$_owner xml children -type to $path.$comp] {
 	    set topath [$_owner xml get $path.$comp.$tcomp]
+	    if { [$_owner xml element -as id $topath] == "" } {
+		puts stderr \
+		    "unknown <upload> path \"$topath\": please fix tool.xml"
+		continue
+	    }
 	    set label [$_owner xml get $topath.about.label]
 	    set desc [$_owner xml get $topath.about.description]
 	    lappend _uppath $topath $label $desc
