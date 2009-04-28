@@ -23,7 +23,7 @@ PYTHON 		= @PYTHON@
 PYTHON_FLAGS 	= --library-dirs=$(libdir):../../src/core \
                --include-dirs=$(srcdir)/../../src/core:$(includedir) 
 PYTHON_VERSION  = @PYTHON_VERSION@
-pythonlib	= $$RAPPTURE_INSTALL_DIR/lib/python$(PYTHON_VERSION)/site-packages
+pythonlib	= $$destdir/lib/python$(PYTHON_VERSION)/site-packages
 envfile		= python.env
 
 ARCHFLAGS	=
