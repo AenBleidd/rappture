@@ -2388,6 +2388,9 @@ RpUnits::addPresets (const std::string group) {
     else if (group.compare(RP_TYPE_FORCE) == 0) {
         retVal = RpUnitsPreset::addPresetForce();
     }
+    else if (group.compare(RP_TYPE_MAGNETIC) == 0) {
+        retVal = RpUnitsPreset::addPresetMagnetic();
+    }
     else if (group.compare(RP_TYPE_MISC) == 0) {
         retVal = RpUnitsPreset::addPresetMisc();
     }
@@ -2420,6 +2423,7 @@ RpUnitsPreset::addPresetAll () {
     result += addPresetPressure();
     result += addPresetConcentration();
     result += addPresetForce();
+    result += addPresetMagnetic();
     result += addPresetMisc();
 
     return 0;
@@ -2879,6 +2883,44 @@ RpUnitsPreset::addPresetForce () {
 }
 
 /**********************************************************************/
+// METHOD: addPresetMagnetic()
+/// Add concentration related units to the dictionary
+/**
+ *
+ * http://en.wikipedia.org/wiki/Tesla_(unit)
+ * http://en.wikipedia.org/wiki/Gauss_(unit)
+ * http://en.wikipedia.org/wiki/Maxwell_(unit)
+ * http://en.wikipedia.org/wiki/Weber_(unit)
+ *
+ * Defines the following units:
+ *   tesla    (T)
+ *   gauss    (G)
+ *   maxwell  (Mx)
+ *   weber    (Wb)
+ *
+ * Return codes: 0 success, anything else is error
+ */
+
+int
+RpUnitsPreset::addPresetMagnetic () {
+
+    RpUnits* tesla = NULL;
+    RpUnits* gauss = NULL;
+    RpUnits* maxwell = NULL;
+    RpUnits* weber = NULL;
+
+    tesla = RpUnits::define("T",  NULL, RP_TYPE_MAGNETIC, RPUNITS_METRIC);
+    gauss = RpUnits::define("G",  NULL, RP_TYPE_MAGNETIC);
+    maxwell = RpUnits::define("Mx",  NULL, RP_TYPE_MAGNETIC);
+    weber = RpUnits::define("Wb", NULL, RP_TYPE_MAGNETIC, RPUNITS_METRIC);
+
+    RpUnits::define(tesla,gauss,tesla2gauss,gauss2tesla);
+    RpUnits::define(maxwell,weber,maxwell2weber,weber2maxwell);
+
+    return 0;
+}
+
+/**********************************************************************/
 // METHOD: addPresetMisc()
 /// Add Misc related units to the dictionary
 /**
@@ -2946,8 +2988,11 @@ RpUnitsTypes::getTypeHint (std::string type) {
     else if (type.compare(RP_TYPE_CONC) == 0) {
         return &RpUnitsTypes::hintTypeConc;
     }
-    else if (type.compare(RP_TYPE_CONC) == 0) {
+    else if (type.compare(RP_TYPE_FORCE) == 0) {
         return &RpUnitsTypes::hintTypeForce;
+    }
+    else if (type.compare(RP_TYPE_MAGNETIC) == 0) {
+        return &RpUnitsTypes::hintTypeMagnetic;
     }
     else if (type.compare(RP_TYPE_MISC) == 0) {
         return &RpUnitsTypes::hintTypeMisc;
@@ -3107,6 +3152,18 @@ RpUnitsTypes::hintTypeForce   (   RpUnits* unitObj    ) {
     bool retVal = false;
 
     if ( (unitObj->getType()).compare(RP_TYPE_FORCE) == 0 ) {
+        retVal = true;
+    }
+
+    return retVal;
+}
+
+bool
+RpUnitsTypes::hintTypeMagnetic   (   RpUnits* unitObj    ) {
+
+    bool retVal = false;
+
+    if ( (unitObj->getType()).compare(RP_TYPE_MAGNETIC) == 0 ) {
         retVal = true;
     }
 

@@ -883,6 +883,34 @@ test convert_units-5.4.10.5 {Rappture::Units::convert, Cm2/vS->M2/KVUS} {
 } {0 2e-07m2/kVus}
 
 #--------------------------------------------------------------------
+# Magnetic Field Conversions
+#--------------------------------------------------------------------
+
+test convert_units-5.4.11.0 {Rappture::Units::convert, T->G} {
+    list [catch {Rappture::Units::convert 5T -to G} msg] $msg
+} {0 50000G}
+
+test convert_units-5.4.11.1 {Rappture::Units::convert, G->T} {
+    list [catch {Rappture::Units::convert 5G -to T} msg] $msg
+} {0 0.0005T}
+
+test convert_units-5.4.11.2 {Rappture::Units::convert, G->mT} {
+    list [catch {Rappture::Units::convert 50G -to mT} msg] $msg
+} {0 5mT}
+
+test convert_units-5.4.11.3 {Rappture::Units::convert, Mx->Wb} {
+    list [catch {Rappture::Units::convert 5Mx -to Wb} msg] $msg
+} {0 5e-08Wb}
+
+test convert_units-5.4.11.4 {Rappture::Units::convert, Wb->Mx} {
+    list [catch {Rappture::Units::convert 5e-8Wb -to Mx} msg] $msg
+} {0 5Mx}
+
+test convert_units-5.4.11.5 {Rappture::Units::convert, wB->mX} {
+    list [catch {Rappture::Units::convert 5e-8wB -to mX} msg] $msg
+} {0 5Mx}
+
+#--------------------------------------------------------------------
 # Rappture::Units::Search::for <units>
 #--------------------------------------------------------------------
 

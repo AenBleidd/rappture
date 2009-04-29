@@ -422,17 +422,17 @@ RpUnits_convert(PyObject *self, PyObject *args, PyObject *keywds)
     PyObject* tmpPyStr = NULL;
 
     static char *kwlist[] = {
-	(char *)"fromVal", 
-	(char *)"to", 
-	(char *)"units", 
-	NULL
+        (char *)"fromVal",
+        (char *)"to",
+        (char *)"units",
+        NULL
     };
 
     if (PyTuple_Size(args) > 0) {
         // PyArg_ParseTuple(args, "ss|s", &fromVal, &to, &units);
         if (!PyArg_ParseTupleAndKeywords(args, keywds, "ss|s", 
                     kwlist, &fromVal, &to, &units)) {
-            return NULL; 
+            return NULL;
         }
     }
     else {
