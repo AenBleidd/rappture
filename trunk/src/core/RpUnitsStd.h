@@ -145,6 +145,13 @@ double atm2psi (double atm);
 double pH2pOH (double pH);
 double pOH2pH (double pOH);
 
+
+
+double tesla2gauss (double tesla);
+double gauss2tesla (double gauss);
+double maxwell2weber (double maxwell);
+double weber2maxwell (double weber);
+
 #ifdef __cplusplus
 }
 #endif

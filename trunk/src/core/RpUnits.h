@@ -45,6 +45,7 @@ enum RP_UNITS_CONSTS {
 #define RP_TYPE_PRESSURE    "pressure"
 #define RP_TYPE_CONC        "concentration"
 #define RP_TYPE_FORCE       "force"
+#define RP_TYPE_MAGNETIC    "magnetic"
 #define RP_TYPE_MISC        "misc"
 
 
@@ -83,6 +84,7 @@ class RpUnitsPreset {
         static int  addPresetPressure();
         static int  addPresetConcentration();
         static int  addPresetForce();
+        static int  addPresetMagnetic();
         static int  addPresetMisc();
 };
 
@@ -105,6 +107,7 @@ class RpUnitsTypes {
         static bool hintTypePressure  ( RpUnits* unitObj );
         static bool hintTypeConc      ( RpUnits* unitObj );
         static bool hintTypeForce     ( RpUnits* unitObj );
+        static bool hintTypeMagnetic  ( RpUnits* unitObj );
         static bool hintTypeMisc      ( RpUnits* unitObj );
 
     private:
@@ -514,6 +517,7 @@ class RpUnits
         //  RP_TYPE_PRESSURE  "pressure"      load units related to pressure
         //  RP_TYPE_CONC      "concentration" load units related to concentration
         //  RP_TYPE_FORCE     "force"         load units related to force
+        //  RP_TYPE_MAGNETIC  "magnetic"      load units related to magnetics
         //  RP_TYPE_MISC      "misc"          load units related to everything else
         //  (no other groups have been created)
 

@@ -566,3 +566,31 @@ double pOH2pH (double pOH)
     return (14.00 - pOH);
 }
 
+/****************************************
+ * MAGNETIC CONVERSIONS
+ * http://en.wikipedia.org/wiki/Tesla_(unit)
+ * http://en.wikipedia.org/wiki/Gauss_(unit)
+ * http://en.wikipedia.org/wiki/Maxwell_(unit)
+ * http://en.wikipedia.org/wiki/Weber_(unit)
+ ****************************************/
+
+double tesla2gauss (double tesla)
+{
+    return (tesla*1e4);
+}
+
+double gauss2tesla (double gauss)
+{
+    return (gauss*1e-4);
+}
+
+double maxwell2weber (double maxwell)
+{
+    return (maxwell*1e-8);
+}
+
+double weber2maxwell (double weber)
+{
+    return (weber*1e8);
+}
+
