@@ -51,27 +51,28 @@
  *	  before the last one is transmitted.
  */
 
-#include <stdio.h>
-#include <time.h>
 #include <assert.h>
-#include <unistd.h>
+#include <ctype.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <getopt.h>
+#include <net/if.h>
+#include <netinet/in.h>
+#include <poll.h>
+#include <signal.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <signal.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/wait.h>
+#include <sys/ioctl.h>
 #include <sys/select.h>
-#include <poll.h>
+#include <sys/socket.h>
+#include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/times.h>
-#include <fcntl.h>
-#include <netinet/in.h>
-#include <getopt.h>
-#include <errno.h>
-#include <sys/ioctl.h>
-#include <net/if.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <time.h>
+#include <unistd.h>
 #include <tcl.h>
 
 #undef INLINE
@@ -353,7 +354,7 @@ Expect(PymolProxy *proxyPtr, char *match, char *out, int maxSize)
     if (proxyPtr->status != TCL_OK) {
         return proxyPtr->status;
     }
-    trace("Entering Expect(match=%s, maxSize=%d)\n", match, maxSize);
+    trace("Entering Expect(want=%s, maxSize=%d)\n", match, maxSize);
     c = match[0];
     length = strlen(match);
     for (;;) {
@@ -369,7 +370,7 @@ Expect(PymolProxy *proxyPtr, char *match, char *out, int maxSize)
 		}
 		memcpy(out, line, nBytes);
 		clear_error(proxyPtr);
-		trace("Leaving Expect: match is (%.*s)\n", nBytes, out);
+		trace("Leaving Expect: got (%.*s)\n", nBytes, out);
 		return BUFFER_OK;
 	    }
 	    continue;
@@ -635,44 +636,48 @@ ReadImage(PymolProxy *proxyPtr, int fd, size)
 static int
 Pymol(PymolProxy *proxyPtr, char *format, ...)
 {
+    va_list ap;
+    char buffer[BUFSIZ];
+    char expect[BUFSIZ];
+    int result;
+    ssize_t nWritten;
+    size_t length;
+    char *p;
 
     if (proxyPtr->error) {
         return TCL_ERROR;
     }
-    {
-	va_list ap;
-	char cmd[BUFSIZ];
-	ssize_t nWritten;
-	size_t length;
+    
+    va_start(ap, format);
+    vsnprintf(buffer, BUFSIZ-1, format, ap);
+    va_end(ap);
+    
+    trace("to-pymol>(%s)", buffer);
+    
+    /* Write the command out to the server. */
+    length = strlen(buffer);
+    nWritten = write(proxyPtr->serverInput, buffer, length);
+    if (nWritten != length) {
+	trace("short write to pymol (wrote=%d, should have been %d)",
+	      nWritten, length);
+    }
 
-	va_start(ap, format);
-	vsnprintf(cmd, BUFSIZ-1, format, ap);
-	va_end(ap);
-	
-	trace("to-pymol>(%s)", cmd);
-	
-	/* Write the command out to the server. */
-	length = strlen(cmd);
-	nWritten = write(proxyPtr->serverInput, cmd, length);
-	if (nWritten != length) {
-	    trace("short write to pymol (wrote=%d, should have been %d)",
-		  nWritten, length);
+    for (p = buffer; *p != '\0'; p++) {
+	if (isspace(*p)) {
+	    *p = '\0';
+	    break;
 	}
     }
-    {
-	char out[BUFSIZ];
-	int result;
-
-	/* Now wait for the "PyMOL>" prompt. */
-	result = Expect(proxyPtr, "PyMOL>", out, BUFSIZ);
-	if (result == BUFFER_ERROR) {
-	    trace("timeout reading data (buffer=%s)", out);
-	    proxyPtr->error = 1;
-	    proxyPtr->status = TCL_ERROR;
-	    return proxyPtr->status;
-	}
-	return  proxyPtr->status;
+    sprintf(expect, "PyMOL>%s", buffer);
+    /* Now wait for the "PyMOL>" prompt. */
+    result = Expect(proxyPtr, expect, buffer, BUFSIZ);
+    if (result == BUFFER_ERROR) {
+	trace("timeout reading data (buffer=%s)", buffer);
+	proxyPtr->error = 1;
+	proxyPtr->status = TCL_ERROR;
+	return proxyPtr->status;
     }
+    return  proxyPtr->status;
 }
 
 static void
@@ -842,12 +847,7 @@ BmpCmd(ClientData clientData, Tcl_Interp *interp, int argc, const char *argv[])
     unsigned int nBytes=0;
     PymolProxy *proxyPtr = clientData;
     Image *imgPtr; 
-    int nScanned;
     size_t length;
-#ifdef notdef
-    float samples = 10.0;
-    ssize_t nWritten;
-#endif
     clear_error(proxyPtr);
 
     if (proxyPtr->flags & INVALIDATE_CACHE)
@@ -858,18 +858,14 @@ BmpCmd(ClientData clientData, Tcl_Interp *interp, int argc, const char *argv[])
    /* Force pymol to update the current scene. */
     Pymol(proxyPtr,"refresh\n");
     Pymol(proxyPtr,"bmp -\n");
-    if (Expect(proxyPtr, "image follows: ", buffer, BUFSIZ) != BUFFER_OK) {
+    if (Expect(proxyPtr, "bmp image follows: ", buffer, BUFSIZ) != BUFFER_OK) {
         trace("can't find image follows line (%s)", buffer);
     }
-    nScanned = sscanf(buffer, "image follows: %d\n", &nBytes);
-    if (nScanned != 1) {
-        trace("can't scan image follows buffer (%s)", buffer);
+    if (sscanf(buffer, "bmp image follows: %d\n", &nBytes) != 1) {
+	Tcl_AppendResult(interp, "can't get # bytes from \"", buffer, "\"",
+			 (char *)NULL);
 	return TCL_ERROR;
-
-    }
-#ifdef notdef
-    nWritten = write(3,&samples,sizeof(samples));
-#endif
+    } 
     sprintf(buffer, "nv>image %d %d %d %d\n", nBytes, proxyPtr->cacheId, 
 	    proxyPtr->frame, proxyPtr->rockOffset);
 
@@ -1277,10 +1273,6 @@ PngCmd(ClientData clientData, Tcl_Interp *interp, int argc, const char *argv[])
     size_t length;
     Image *imgPtr;
 
-#ifdef notdef
-    float samples = 10.0;
-    ssize_t nWritten;
-#endif
     clear_error(proxyPtr);
 
     if (proxyPtr->flags & INVALIDATE_CACHE)
@@ -1293,15 +1285,13 @@ PngCmd(ClientData clientData, Tcl_Interp *interp, int argc, const char *argv[])
 
     Pymol(proxyPtr,"png -\n");
 
-    Expect(proxyPtr, "image follows: ", buffer, 800);
+    Expect(proxyPtr, "png image follows: ", buffer, 800);
 
-    sscanf(buffer, "image follows: %d\n", &nBytes);
- 
-#ifdef notdef
-    nWritten = write(3, &samples, sizeof(samples));
-#endif
-    if (nBytes == 0) {
-    }
+    if (sscanf(buffer, "png image follows: %d\n", &nBytes) != 1) {
+	Tcl_AppendResult(interp, "can't get # bytes from \"", buffer, "\"",
+			 (char *)NULL);
+	return TCL_ERROR;
+    } 
     sprintf(buffer, "nv>image %d %d %d %d\n", nBytes, proxyPtr->cacheId, 
 	    proxyPtr->frame, proxyPtr->rockOffset);
     length = strlen(buffer);
@@ -1311,9 +1301,8 @@ PngCmd(ClientData clientData, Tcl_Interp *interp, int argc, const char *argv[])
         trace("can't read %d bytes for \"image follows\" buffer", nBytes);
 	return  TCL_ERROR;
     }
-#ifdef notdef
-    Expect(proxyPtr, " ScenePNG", buffer,800);
-#endif
+    Expect(proxyPtr, " ScenePNG", buffer, 800);
+
     stats.nFrames++;
     stats.nBytes += nBytes;
     return proxyPtr->status;
@@ -1351,20 +1340,14 @@ PrintCmd(ClientData clientData, Tcl_Interp *interp, int argc,
     if (Tcl_GetInt(interp, argv[3], &height) != TCL_OK) {
 	return TCL_ERROR;
     }
-
     /* Force pymol to update the current scene. */
-    Pymol(proxyPtr,"refresh\n");
-    Pymol(proxyPtr,"ray %d,%d\n", width, height);
-    Pymol(proxyPtr,"png -\n");
+    Pymol(proxyPtr,"refresh ; ray %d,%d ; png -, dpi=300\n", width, height);
+    Expect(proxyPtr, "png image follows: ", buffer, 800);
 
-    Expect(proxyPtr, "image follows: ", buffer, 800);
-
-    sscanf(buffer, "image follows: %d\n", &nBytes);
- 
-#ifdef notdef
-    nWritten = write(3, &samples, sizeof(samples));
-#endif
-    if (nBytes == 0) {
+    if (sscanf(buffer, "png image follows: %d\n", &nBytes) != 1) {
+	Tcl_AppendResult(interp, "can't get # bytes from \"", buffer, "\"",
+			 (char *)NULL);
+	return TCL_ERROR;
     }
     sprintf(buffer, "nv>image %d print \"%s\" %d\n", nBytes, token, 
 	    proxyPtr->rockOffset);
@@ -1375,9 +1358,8 @@ PrintCmd(ClientData clientData, Tcl_Interp *interp, int argc,
         trace("can't read %d bytes for \"image follows\" buffer", nBytes);
 	return  TCL_ERROR;
     }
-#ifdef notdef
-    Expect(proxyPtr, " ScenePNG", buffer,800);
-#endif
+    Expect(proxyPtr, " ScenePNG", buffer, 800);
+
     stats.nFrames++;
     stats.nBytes += nBytes;
     return proxyPtr->status;
