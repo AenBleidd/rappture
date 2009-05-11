@@ -44,6 +44,9 @@ public:
 	void reset();
 	void render();
 
+	void addVectorField(Volume* volPtr, const Vector3& ori, float scaleX, 
+		float scaleY, float scaleZ, float max);
+
 	void addVectorField(const std::string& vfName, Volume* volPtr, const Vector3& ori, float scaleX, float scaleY, float scaleZ, float max);
 	void removeVectorField(const std::string& vfName);
 

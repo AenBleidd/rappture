@@ -34,12 +34,6 @@
 #  include <stddef.h>
 #endif /* HAVE_STDDEF_H */
 
-#ifdef offsetof
-#define SwitchOffset(type, field) ((int) offsetof(type, field))
-#else
-#define SwitchOffset(type, field) ((int) ((char *) &((type *) 0)->field))
-#endif
-
 namespace Rappture {
 
 typedef int (SwitchParseProc)(ClientData clientData, Tcl_Interp *interp, 

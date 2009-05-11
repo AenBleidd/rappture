@@ -88,6 +88,37 @@ int VolumeRenderer::add_volume(Volume* _vol, TransferFunction* _tf){
   return ret;
 }
 
+/*
+ * FIXME:  This is a good example of the wrong data structures being used.
+ *	   The volumes should be in a list not a vector.  Each list
+ *	   element should contain pointers to both the volume and the
+ *	   transfer function.  The shouldn't be parallel vectors.  
+ * 
+ *	   And there shouldn't be one vector for "all" volumes and another
+ *	   for those being rendered, unless you work to keep them in sync.  
+ *	   Use one master list instead.
+ */
+void
+VolumeRenderer::remove_volume(size_t volIndex)
+{
+    vector<Volume *>::iterator vIter;
+    vector<TransferFunction *>::iterator tfIter;
+
+    assert(volIndex < volume.size());
+    assert(volIndex < tf.size());
+
+    vIter = volume.begin();
+    tfIter = tf.begin();
+    size_t i;
+    for (i = 0; i < volIndex; i++) {
+	tfIter++;
+	vIter++;
+    }
+    volume.erase(vIter);
+    tf.erase(tfIter);
+    n_volumes--;
+}
+
 void
 VolumeRenderer::shade_volume(Volume* _vol, TransferFunction* _tf)
 {
@@ -176,6 +207,9 @@ VolumeRenderer::render_all()
     int* actual_slices = new int[num_volumes]; 
 
     for(int vol_index = 0; vol_index< num_volumes; vol_index++) {
+	cur_vol = NULL;
+	cur_tf = NULL;
+#ifdef notdef
         if (vol_index != n_volumes) {
             cur_vol = volume[vol_index];
             cur_tf = tf[vol_index];
@@ -183,12 +217,17 @@ VolumeRenderer::render_all()
             cur_vol = ani_vol;
             cur_tf = ani_tf;
         }
-    
+#else
+	cur_vol = volume[vol_index];
+	cur_tf = tf[vol_index];
+#endif
+
         polys[vol_index] = NULL;
         actual_slices[vol_index] = 0;
 
-        if(!cur_vol->is_enabled())
+        if(!cur_vol->is_enabled()) {
             continue; //skip this volume
+	}
 
         int n_slices = cur_vol->get_n_slice();
         if (cur_vol->get_isosurface()) {

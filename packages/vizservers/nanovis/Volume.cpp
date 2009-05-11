@@ -48,7 +48,7 @@ Volume::Volume(
     tex = new Texture3D(w, h, d, NVIS_FLOAT, NVIS_LINEAR_INTERP, n);
     int fcount = width * height * depth * n_components;
     _data = new float[fcount];
-    if (data) {
+    if (data != NULL) {
         Trace("data is copied\n");
         memcpy(_data, data, fcount * sizeof(float));
         tex->initialize(_data);

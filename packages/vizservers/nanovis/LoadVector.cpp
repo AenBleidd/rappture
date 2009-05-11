@@ -11,39 +11,13 @@
 #include "nanovis.h"
 #include "FlowCmd.h"
 
-static INLINE char *
-skipspaces(char *string) 
-{
-    while (isspace(*string)) {
-	string++;
-    }
-    return string;
-}
-
-static INLINE char *
-getline(char **stringPtr, char *endPtr) 
-{
-    char *line, *p;
-
-    line = skipspaces(*stringPtr);
-    for (p = line; p < endPtr; p++) {
-	if (*p == '\n') {
-	    *p++ = '\0';
-	    *stringPtr = p;
-	    return line;
-	}
-    }
-    *stringPtr = p;
-    return line;
-}
+    
 
 bool
-SetVectorFieldData(Rappture::Outcome &context, 
-		   float xMin, float xMax, size_t xNum, 
-		   float yMin, float yMax, size_t yNum, 
-		   float zMin, float zMax, size_t zNum, 
-		   size_t nValues, float *values, Unirect3d *dataPtr)
+ScaleVectorFieldData(Rappture::Outcome &context, Rappture::Unirect3d *dataPtr)
 {
+    float *values = dataPtr->values();
+    float *nValues = dataPtr->nValues();
 #ifdef notdef
     double max_x = -1e21, min_x = 1e21;
     double max_y = -1e21, min_y = 1e21;
@@ -73,7 +47,6 @@ SetVectorFieldData(Rappture::Outcome &context,
     fprintf(stderr, "generating %dx%dx%d = %d points\n", 
 	    xNum, yNum, zNum, xNum * yNum * zNum);
     
-    // Generate the uniformly sampled rectangle that we need for a volume
     float *destPtr = data;
     float *srcPtr = values;
     for (size_t i = 0; i < zNum; i++) {
@@ -96,11 +69,7 @@ SetVectorFieldData(Rappture::Outcome &context,
 	    }
 	}
     }
-    dataPtr->xMin(xMin);
-    dataPtr->xMax(xMax);
-    dataPtr->xNum(xNum);
-    dataPtr->yMin(yMin);
-    dataPtr->yMax(yMax);
+    dataPtr->SetValues(xMin, xMax, xNum, yMin, yMax(yMax);
     dataPtr->yNum(yNum);
     dataPtr->yMin(zMin);
     dataPtr->yMax(zMax);
@@ -112,15 +81,12 @@ SetVectorFieldData(Rappture::Outcome &context,
 }
 
 bool
-SetResampledVectorFieldData(Rappture::Outcome &context, 
-			    float xMin, float xMax, size_t xNum, 
-			    float yMin, float yMax, size_t yNum, 
-			    float zMin, float zMax, size_t zNum, 
-			    size_t nValues, float *values, FlowCmd *flowPtr)
+ScaleResampledVectorFieldData(Rappture::Outcome &context, 
+			      Rappture::Unirect3d *dataPtr)
 {
-    Rappture::Mesh1D xgrid(xMin, xMax, xNum);
-    Rappture::Mesh1D ygrid(yMin, yMax, yNum);
-    Rappture::Mesh1D zgrid(zMin, zMax, zNum);
+    Rappture::Mesh1D xgrid(dataPtr->xMin(), dataPtr->xMax(), dataPtr->xNum());
+    Rappture::Mesh1D ygrid(dataPtr->yMin(), dataPtr->yMax(), dataPtr->yNum());
+    Rappture::Mesh1D zgrid(dataPtr->zMin(), dataPtr->zMax(), dataPtr->zNum());
     Rappture::FieldRect3D xfield(xgrid, ygrid, zgrid);
     Rappture::FieldRect3D yfield(xgrid, ygrid, zgrid);
     Rappture::FieldRect3D zfield(xgrid, ygrid, zgrid);
@@ -134,12 +100,12 @@ SetResampledVectorFieldData(Rappture::Outcome &context,
     double max_mag, min_mag, nzero_min;
     max_mag = -1e21, nzero_min = min_mag = 1e21;
     size_t i, j;
-    for (i = j = 0; i < nValues; i += 3, j++) {
+    for (i = j = 0; i < dataPtr->nValues(); i += 3, j++) {
 	double vx, vy, vz, vm;
 
-	vx = values[i];
-	vy = values[i+1];
-	vz = values[i+2];
+	vx = dataPtr->values[i];
+	vy = dataPtr->values[i+1];
+	vz = dataPtr->values[i+2];
 	
 	xfield.define(j, vx);
 	yfield.define(j, vy);
@@ -216,7 +182,7 @@ SetResampledVectorFieldData(Rappture::Outcome &context,
 	    }
 	}
     }
-    
+    dataPtr->zMin()
     flowPtr->xMin = xMin;
     flowPtr->xMax = xMax;
     flowPtr->xNum = xNum;
@@ -245,7 +211,6 @@ SetVectorFieldDataFromUnirect3d(Rappture::Outcome &context,
  }
 
 
-#ifdef notdef
 /*
  * Load a 3D vector field from a dx-format file
  */
@@ -370,4 +335,3 @@ load_vector_stream2(Rappture::Outcome &context, size_t length, char *string,
     return status;
 }
 
-#endif

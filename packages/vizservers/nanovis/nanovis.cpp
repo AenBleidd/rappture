@@ -68,6 +68,10 @@
 #include <R2/R2FilePath.h>
 #include <R2/R2Fonts.h>
 
+#include "Unirect.h"
+#include "Switch.h"
+#include "FlowCmd.h"
+
 #define SIZEOF_BMP_HEADER   54
 
 extern void NvInitCG(); // in Shader.cpp
@@ -125,15 +129,9 @@ FILE *NanoVis::stdin = NULL;
 FILE *NanoVis::logfile = NULL;
 FILE *NanoVis::recfile = NULL;
 
-bool NanoVis::lic_on = false;
-bool NanoVis::particle_on = false;
-bool NanoVis::vector_on = false;
 bool NanoVis::axis_on = true;
 bool NanoVis::config_pending = false;
 bool NanoVis::debug_flag = false;
-bool NanoVis::lic_slice_x_visible = false;
-bool NanoVis::lic_slice_y_visible = false;
-bool NanoVis::lic_slice_z_visible = false;
 
 Tcl_Interp *NanoVis::interp;
 Tcl_DString NanoVis::cmdbuffer;
@@ -426,17 +424,20 @@ ExecuteCommand(Tcl_Interp *interp, Tcl_DString *dsPtr)
     double start, finish;
     int result;
 
+#ifdef notdef
     if (NanoVis::debug_flag) {
         fprintf(stderr, "in ExecuteCommand(%s)\n", Tcl_DStringValue(dsPtr));
     }
-
+#endif
     gettimeofday(&tv, NULL);
     start = CVT2SECS(tv);
 
+#ifdef notdef
     if (NanoVis::logfile != NULL) {
         fprintf(NanoVis::logfile, "%s", Tcl_DStringValue(dsPtr));
         fflush(NanoVis::logfile);
     }
+#endif
     if (NanoVis::recfile != NULL) {
         fprintf(NanoVis::recfile, "%s", Tcl_DStringValue(dsPtr));
         fflush(NanoVis::recfile);
@@ -449,9 +450,11 @@ ExecuteCommand(Tcl_Interp *interp, Tcl_DString *dsPtr)
 
     stats.cmdTime += finish - start;
     stats.nCommands++;
+#ifdef notdef
     if (NanoVis::debug_flag) {
         fprintf(stderr, "leaving ExecuteCommand status=%d\n", result);
     }
+#endif
     return result;
 }
 
@@ -505,6 +508,7 @@ NanoVis::load_volume(int index, int width, int height, int depth,
     }
     volume[index] = new Volume(0.f, 0.f, 0.f, width, height, depth, 1.,
 			       n_component, data, vmin, vmax, nzero_min);
+    fprintf(stderr, "VOLINDEX=%d, n_volumes=%d\n", index, n_volumes);
     return volume[index];
 }
 
@@ -664,8 +668,8 @@ NanoVis::resize_offscreen_buffer(int w, int h)
 	fprintf(stderr, "screen_buffer size: %d %d\n", w, h);
     }
     
-    if (screen_buffer) {
-        delete[] screen_buffer;
+    if (screen_buffer != NULL) {
+        delete [] screen_buffer;
         screen_buffer = NULL;
     }
     
@@ -826,15 +830,17 @@ void NanoVis::init(const char* path)
 #endif
 
 
-#if PROTOTYPE
-    licRenderer = new NvLIC(NMESH, NPIX, NPIX, lic_axis, Vector3(lic_slice_x, lic_slice_y, lic_slice_z), g_context);
-#endif
+    licRenderer = new NvLIC(NMESH, NPIX, NPIX, lic_axis, 
+			    Vector3(lic_slice_x, lic_slice_y, lic_slice_z), 
+			    g_context);
 
     ImageLoaderFactory::getInstance()->addLoaderImpl("bmp", new BMPImageLoaderImpl());
     grid = new Grid();
     grid->setFont(fonts);
 
+#ifdef notdef
     pointset_renderer = new PointSetRenderer();
+#endif
 }
 
 /*----------------------------------------------------*/
@@ -1040,7 +1046,7 @@ NanoVis::bmp_write_to_file(int frame_number, const char *directory_name)
         else
             sprintf(filename, "/tmp/flow_animation/image%03d.bmp", frame_number);
 
-        printf("Writing %s\n", filename);
+        fprintf(stderr, "Writing %s\n", filename);
         f = fopen(filename, "wb");
         if (f == 0) {
             Trace("cannot create file\n");
@@ -1051,11 +1057,12 @@ NanoVis::bmp_write_to_file(int frame_number, const char *directory_name)
             Trace("cannot create file\n");
         }
     }
-    ssize_t nWritten;
-    nWritten = fwrite(header, SIZEOF_BMP_HEADER, 1, f);
-    assert(nWritten == SIZEOF_BMP_HEADER);
-    nWritten = fwrite(screen_buffer, (3*win_width+pad)*win_height, 1, f);
-    assert(nWritten == (3*win_width+pad)*win_height);
+    if (fwrite(header, SIZEOF_BMP_HEADER, 1, f) != 1) {
+	Trace("can't write header: short write\n");
+    }
+    if (fwrite(screen_buffer, (3*win_width+pad)*win_height, 1, f) != 1) {
+	Trace("can't write data: short write\n");
+    }
     fclose(f);
 }
 
@@ -1632,6 +1639,10 @@ NanoVis::display()
     if (debug_flag) {
         fprintf(stderr, "in display\n");
     }
+
+    if (FlowCmd::flags & FlowCmd::MAP_PENDING) {
+	FlowCmd::MapFlows();
+    }
     //assert(glGetError()==0);
     if (HeightMap::update_pending) {
         SetHeightmapRanges();
@@ -1700,10 +1711,15 @@ NanoVis::display()
         }
         if ((licRenderer != NULL) && (licRenderer->isActivated())) {
             licRenderer->render();
+	    /*FlowCmd::SetupFlows();*/
         }
-
+#ifdef notdef
         if ((flowVisRenderer != NULL) && (flowVisRenderer->isActivated())) {
             flowVisRenderer->render();
+	}
+#endif
+	if (FlowCmd::flags & FlowCmd::REDRAW_PENDING) {
+	    FlowCmd::RenderFlows();
 	}
 
         //soft_display_verts();
@@ -1731,11 +1747,11 @@ NanoVis::display()
         plane_render->render();
         perf->disable();
     }
-
     perf->reset();
     if (debug_flag) {
         fprintf(stderr, "leaving display\n");
     }
+
 
 }
 
@@ -1922,8 +1938,8 @@ NanoVis::keyboard(unsigned char key, int x, int y)
 		}
 		break;
 	case '5' :
-		{
-			printf("vector field deleted (vf_name2)\n");
+86		{
+a			printf("vector field deleted (vf_name2)\n");
 			NanoVis::flowVisRenderer->removeVectorField("vf_name2");
 		}
 		break;
@@ -2062,11 +2078,10 @@ NanoVis::xinetd_listen(void)
 
     int status = TCL_OK;
 
-    //
     //  Read and execute as many commands as we can from stdin...
-    //
+
     bool isComplete = false;
-    while (status == TCL_OK) {
+    while ((!feof(NanoVis::stdin)) && (status == TCL_OK)) {
         //
         //  Read the next command from the buffer.  First time through we
         //  block here and wait if necessary until a command comes in.
@@ -2087,7 +2102,7 @@ NanoVis::xinetd_listen(void)
                 if (errno == EWOULDBLOCK) {
                     break;
                 }
-                DoExit(0);
+		DoExit(100);
             }
             ch = (char)c;
             Tcl_DStringAppend(&cmdbuffer, &ch, 1);
@@ -2102,7 +2117,6 @@ NanoVis::xinetd_listen(void)
         if (Tcl_DStringLength(&cmdbuffer) == 0) {
             break;
         }
-
         if (isComplete) {
             // back to original flags during command evaluation...
             fcntl(0, F_SETFL, flags & ~O_NONBLOCK);
@@ -2166,7 +2180,7 @@ NanoVis::xinetd_listen(void)
     }
 #endif
     if (feof(NanoVis::stdin)) {
-        DoExit(0);
+        DoExit(90);
     }
     if (debug_flag) {
         fprintf(stderr, "leaving xinetd_listen\n");
@@ -2335,7 +2349,7 @@ main(int argc, char** argv)
     NanoVis::resize_offscreen_buffer(NanoVis::win_width, NanoVis::win_height);
 
     glutMainLoop();
-    DoExit(0);
+    DoExit(80);
 }
 
 int

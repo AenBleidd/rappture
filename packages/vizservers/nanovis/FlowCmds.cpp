@@ -41,8 +41,13 @@
 
 #include <assert.h>
 #include <stdlib.h>
-#include <tcl.h>
+#include <stddef.h>
+/*#include <tcl.h>*/
+#include "Vector4.h"
 #include "Switch.h"
+#include "Unirect.h"
+#include "FlowCmd.h"
+
 #include <RpField1D.h>
 #include <RpFieldRect3D.h>
 #include <RpFieldPrism3D.h>
@@ -69,32 +74,91 @@
 #include "NvCamera.h"
 #include "RenderContext.h"
 #include "NvLIC.h"
-#include "Unirect.h"
-#include "FlowCmd.h"
 
 static Tcl_HashTable flowTable;
 
-static int
-GetFlowFromObj(Tcl_Interp *interp, Tcl_Obj *objPtr, FlowCmd **flowPtrPtr)
+extern bool load_vector_stream2(Rappture::Outcome &result, int index, 
+	size_t length, Rappture::Unirect3d *dataPtr);
+
+/*
+    physicalMin.set(dataPtr->xMin(), dataPtr->yMin(), dataPtr->zMin());
+    physicalMax.set(dataPtr->xMax(), dataPtr->yMax(), dataPtr->zMax());
+*/
+static float *
+MakeFlowVector(Rappture::Unirect3d *dataPtr, double minMag, double maxMag)
 {
-    Tcl_HashEntry *hPtr;
-    hPtr = Tcl_FindHashEntry(&flowTable, Tcl_GetString(objPtr));
-    if (hPtr == NULL) {
-	if (interp != NULL) {
-	    Tcl_AppendResult(interp, "can't find a flow \"", 
-			     Tcl_GetString(objPtr), "\"", (char *)NULL);
-	}
-	return TCL_ERROR;
+    float *data = new float[4* dataPtr->nValues()];
+    if (data == NULL) {
+	return NULLL;
     }
-    *flowPtrPtr = (FlowCmd *)Tcl_GetHashValue(hPtr);
-    return TCL_OK;
+    memset(data, 0, sizeof(float) * 4 * dataPtr->nValues());
+    float *destPtr = data;
+    float *srcPtr = dataPtr->values();
+    for (size_t iz=0; iz < dataPtr->zNum(); iz++) {
+	for (size_t iy=0; iy < dataPtr->yNum(); iy++) {
+	    for (size_t ix=0; ix < dataPtr->xNum(); ix++) {
+		double vx, vy, vz, vm;
+		vx = values[0];
+		vy = values[1];
+		vz = values[2];
+		vm = sqrt(vx*vx + vy*vy + vz*vz);
+		destPtr[0] = vm / maxMag; 
+		destPtr[1] = vx /(2.0*maxMag) + 0.5; 
+		destPtr[2] = vy /(2.0*maxMag) + 0.5; 
+		destPtr[3] = vz /(2.0*maxMag) + 0.5; 
+		srcPtr += 3;
+		destPtr += 4;
+	    }
+	}
+    }
+    return data;
 }
+
+static Volume *
+MakeFlowVolume(Rappture::Unirect3d *dataPtr, double minMag, double maxMag, 
+	       float *data)
+{
+    Volume *volPtr;
+
+    ivol = NanoVis::n_volumes;
+    volPtr = NanoVis::load_volume(ivol, dataPtr->xNum(), dataPtr->yNum(), 
+	dataPtr->zNum(), 4, data, minMag, maxMag, 0);
+    volPtr->xAxis.SetRange(dataPtr->xMin(), dataPtr->xMax());
+    volPtr->yAxis.SetRange(dataPtr->yMin(), dataPtr->yMax());
+    volPtr->zAxis.SetRange(dataPtr->zMin(), dataPtr->zMax());
+    volPtr->wAxis.SetRange(minMag, maxMag);
+    volPtr->update_pending = true;
+    volPtr->setPhysicalBBox(physicalMin, physicalMax);
+    //
+    // BE CAREFUL:  Set the number of slices to something
+    //   slightly different for each volume.  If we have
+    //   identical volumes at exactly the same position
+    //   with exactly the same number of slices, the second
+    //   volume will overwrite the first, so the first won't
+    //   appear at all.
+    //
+    volPtr->set_n_slice(256-n);
+    // volPtr->set_n_slice(512-n);
+    volPtr->disable_cutplane(0);
+    volPtr->disable_cutplane(1);
+    volPtr->disable_cutplane(2);
+    
+    NanoVis::vol_renderer->add_volume(volPtr, 
+	NanoVis::get_transfunc("default"));
+    
+    float dx0 = -0.5;
+    float dy0 = -0.5*volPtr->height/volPtr->width;
+    float dz0 = -0.5*volPtr->depth/volPtr->width;
+    volPtr->move(Vector3(dx0, dy0, dz0));
+    return volPtr;
+}
+
 
 static int
 FlowDataFileOp(ClientData clientData, Tcl_Interp *interp, int objc,
 	       Tcl_Obj *const *objv)
 {
-    Rappture::Outcome context;
+    Rappture::Outcome result;
 
     const char *fileName;
     fileName = Tcl_GetString(objv[3]);
@@ -105,23 +169,26 @@ FlowDataFileOp(ClientData clientData, Tcl_Interp *interp, int objc,
         return TCL_ERROR;
     }
     Rappture::Buffer buf;
-    if (!buf.load(context, fileName)) {
+    if (!buf.load(result, fileName)) {
 	Tcl_AppendResult(interp, "can't load data from \"", fileName, "\": ",
-			 context.remark(), (char *)NULL);
+			 result.remark(), (char *)NULL);
 	return TCL_ERROR;
     }
 
     FlowCmd *flowPtr = (FlowCmd *)clientData;
     if (strncmp(buf.bytes(), "<DX>", 4) == 0) {
-	Rappture::Unirect3d data;
-	if (!load_vector_stream2(context, buf.size(), (char *)buf.bytes(), 
-				 data)) {
-	    Tcl_AppendResult(interp, context.remark(), (char *)NULL);
+	Rappture::Unirect3d *dataPtr;
+
+	dataPtr = new Rappture::Unirect3d();
+	if (!dataPtr->ReadVectorDataFromDx(result, buf.size(), 
+		(char *)buf.bytes())) {
+	    Tcl_AppendResult(interp, result.remark(), (char *)NULL);
+	    delete dataPtr;
 	    return TCL_ERROR;
 	}
-	flowPtr->dataPtr = &data;
+	flowPtr->dataPtr = dataPtr;
     } else if (strncmp(buf.bytes(), "<unirect3d>", 4) == 0) {
-	Rappture::Unirect3d data;
+	Rappture::Unirect3d *dataPtr;
 	Tcl_CmdInfo cmdInfo;
 
 	/* Set the clientdata field of the unirect3d command to contain
@@ -129,16 +196,19 @@ FlowDataFileOp(ClientData clientData, Tcl_Interp *interp, int objc,
 	if (!Tcl_GetCommandInfo(interp, "unirect3d", &cmdInfo)) {
 	    return TCL_ERROR;
 	}
-	data.extents(extents);
-	cmdInfo.objClientData = (ClientData)&data;	
+	dataPtr = new Rappture::Unirect3d();
+	dataPtr->extents(extents);
+	cmdInfo.objClientData = (ClientData)dataPtr;	
 	Tcl_SetCommandInfo(interp, "unirect3d", &cmdInfo);
 	if (Tcl_Eval(interp, (const char *)buf.bytes()) != TCL_OK) {
+	    delete dataPtr;
 	    return TCL_ERROR;
 	}
-	if (!data.isInitialized()) {
+	if (!dataPtr->isInitialized()) {
+	    delete dataPtr;
 	    return TCL_ERROR;
 	}
-	flowPtr->dataPtr = &data;
+	flowPtr->dataPtr = dataPtr;
     }
 
 #ifdef notdef
@@ -173,7 +243,7 @@ static int
 FlowDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
                     Tcl_Obj *const *objv)
 {
-    Rappture::Outcome context;
+    Rappture::Outcome result;
 
     Trace("Flow Data Loading\n");
 
@@ -191,38 +261,40 @@ FlowDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     FlowCmd *flowPtr = (FlowCmd *)clientData;
     if (strncmp(buf.bytes(), "<DX>", 4) == 0) {
-	if (!load_vector_stream2(context, buf.size(), (char *)buf.bytes(), 
-		flowPtr)) {
-	    Tcl_AppendResult(interp, context.remark(), (char *)NULL);
+	Rappture::Unirect3d *dataPtr;
+
+	dataPtr = new Rappture::Unirect3d();
+	if (!dataPtr->ReadVectorDataFromDx(result, buf.size(), 
+		(char *)buf.bytes())) {
+	    Tcl_AppendResult(interp, result.remark(), (char *)NULL);
+	    delete dataPtr;
 	    return TCL_ERROR;
 	}
+	flowPtr->dataPtr = dataPtr;
     } else if (strncmp(buf.bytes(), "<unirect3d>", 4) == 0) {
-	Rappture::Unirect3d data;
+	Rappture::Unirect3d *dataPtr;
 	Tcl_CmdInfo cmdInfo;
 
 	/* Set the clientdata field of the unirect3d command to contain
 	 * the local data structure. */
+	dataPtr = new Rappture::Unirect3d();
 	if (!Tcl_GetCommandInfo(interp, "unirect3d", &cmdInfo)) {
 	    return TCL_ERROR;
 	}
-	data.extents(extents);
-	cmdInfo.objClientData = (ClientData)&data;	
+	dataPtr->extents(extents);
+	cmdInfo.objClientData = (ClientData)dataPtr;	
 	Tcl_SetCommandInfo(interp, "unirect3d", &cmdInfo);
 	if (Tcl_Eval(interp, (const char *)buf.bytes()) != TCL_OK) {
+	    delete dataPtr;
 	    return TCL_ERROR;
 	}
-	if (!data.isInitialized()) {
+	if (!dataPtr->isInitialized()) {
+	    delete dataPtr;
 	    return TCL_ERROR;
 	}
-	if (!SetVectorFieldDataFromUnirect3d(context, data, flowPtr)) {
-	    Tcl_AppendResult(interp, context.remark(), (char *)NULL);
-	    return TCL_ERROR;
-	}
+	flowPtr->dataPtr = dataPtr;
     }
-    if (flowPtr->volPtr != NULL) {
-	delete flowPtr->volPtr;
-    }
-    #ifdef notdef
+#ifdef notdef
     // FIXME: Move this to flow pending routine.
 
     flowPtr->volPtr = NanoVis::volume[NanoVis::n_volumes];
@@ -248,7 +320,7 @@ FlowDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
     float dy0 = -0.5*flowPtr->volPtr->height/flowPtr->volPtr->width;
     float dz0 = -0.5*flowPtr->volPtr->depth/flowPtr->volPtr->width;
     flowPtr->volPtr->move(Vector3(dx0, dy0, dz0));
-    #endif
+#endif
     return TCL_OK;
 }
 
@@ -272,7 +344,11 @@ FlowDataOp(ClientData clientData, Tcl_Interp *interp, int objc,
     return (*proc) (clientData, interp, objc, objv);
 }
 
-
+/*
+ *	Can configure axis of stream plane, the position on the axis, and if
+ *	the stream plane is visible.
+ *
+ */
 static Rappture::SwitchSpec streamSwitches[] = 
 {
     {Rappture::SWITCH_BOOLEAN, "-hide", "boolean",
@@ -283,7 +359,7 @@ static Rappture::SwitchSpec streamSwitches[] =
 };
 
 static int
-FlowStreamConfigureOp(ClientData clientData, Tcl_Interp *interp, int objc,
+FlowSliceConfigureOp(ClientData clientData, Tcl_Interp *interp, int objc,
 		     Tcl_Obj *const *objv)
 {
     int axis;
@@ -294,10 +370,12 @@ FlowStreamConfigureOp(ClientData clientData, Tcl_Interp *interp, int objc,
     Stream *streamPtr;
     streamPtr = flowPtr->streams + axis;
 
-    if (Rappture::ParseSwitches(interp, streamSwitches, objc - 3, objv + 3, 
+    if (flowPtr->ParseRappture::ParseSwitches(interp, streamSwitches, objc - 3, objv + 3, 
 	streamPtr, SWITCH_DEFAULTS) < 0) {
 	return TCL_ERROR;
     }
+    // Save the values in the stream
+    streamPtr->axis;
     NanoVis::lic_slice_x = streamPtr->position;
     NanoVis::licRenderer->set_axis(axis);
     NanoVis::licRenderer->set_offset(streamPtr->position);
@@ -323,39 +401,6 @@ FlowStreamOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     return (*proc) (clientData, interp, objc, objv);
 }
-
-static int
-FlowParticlesVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc,
-             Tcl_Obj *const *objv)
-{
-    bool state;
-    if (GetBooleanFromObj(interp, objv[3], &state) != TCL_OK) {
-        return TCL_ERROR;
-    }
-
-    NanoVis::particle_on = state;
-    return TCL_OK;
-}
-
-static Rappture::CmdSpec flowParticlesOps[] = {
-    {"visible",    1, FlowParticlesVisibleOp,  4, 4, "on|off",},
-};
-static int nFlowParticlesOps = NumCmdSpecs(flowParticlesOps);
-
-static int
-FlowParticlesOp(ClientData clientData, Tcl_Interp *interp, int objc,
-             Tcl_Obj *const *objv)
-{
-    Tcl_ObjCmdProc *proc;
-
-    proc = Rappture::GetOpFromObj(interp, nFlowParticlesOps, flowParticlesOps,
-                                  Rappture::CMDSPEC_ARG2, objc, objv, 0);
-    if (proc == NULL) {
-        return TCL_ERROR;
-    }
-    return (*proc) (clientData, interp, objc, objv);
-}
-
 
 static int
 FlowVectorIdOp(ClientData clientData, Tcl_Interp *interp, int objc,
@@ -386,28 +431,81 @@ FlowVectorIdOp(ClientData clientData, Tcl_Interp *interp, int objc,
     return TCL_OK;
 }
 
-static Rappture::SwitchSpec flowSwitches[] = 
+static Rappture::SwitchSpec streamSwitches[] = 
 {
-    {Rappture::SWITCH_BOOLEAN, "-lic", "boolean",
-	offsetof(FlowCmd, lic), 0},
     {Rappture::SWITCH_BOOLEAN, "-hide", "boolean",
-	offsetof(FlowCmd, hidden), 0},
+	offsetof(Stream, hidden), 0},
+    {Rappture::SWITCH_FLOAT, "-position", "number",
+	offsetof(Stream, position), 0},
     {Rappture::SWITCH_END}
 };
+
+static Rappture::SwitchParseProc AxisSwitchProc;
+
+static Rappture:;SwitchCustom axisSwitch = {
+    AxisSwitchProc, NULL, 0,
+};
+
+/*
+ *---------------------------------------------------------------------------
+ *
+ * AxisSwitch --
+ *
+ *	Convert a Tcl_Obj representing the label of a child node into its
+ *	integer node id.
+ *
+ * Results:
+ *	The return value is a standard Tcl result.
+ *
+ *---------------------------------------------------------------------------
+ */
+/*ARGSUSED*/
+static int
+AxisSwitch(
+    ClientData clientData,	/* Flag indicating if the node is considered
+				 * before or after the insertion position. */
+    Tcl_Interp *interp,		/* Interpreter to send results back to */
+    const char *switchName,	/* Not used. */
+    Tcl_Obj *objPtr,		/* String representation */
+    char *record,		/* Structure record */
+    int offset,			/* Not used. */
+    int flags)			/* Not used. */
+{
+    const char *string = Tcl_GetString(objPtr);
+    if (string[1] == '\0') {
+	FlowCmd::SliceAxis *axisPtr = (FlowCmd::SliceAxis *)(record + offset);
+        char c;
+        c = tolower((unsigned char)string[0]);
+        if (c == 'x') {
+            *axisPtr = FlowCmd::SliceAxis::AXIS_X;
+            return TCL_OK;
+        } else if (c == 'y') {
+            *axisPtr = FlowCmd::SliceAxis::AXIS_Y;
+            return TCL_OK;
+        } else if (c == 'z') {
+            *axisPtr = FlowCmd::SliceAxis::AXIS_Z;
+            return TCL_OK;
+        }
+        /*FALLTHRU*/
+    }
+    Tcl_AppendResult(interp, "bad axis \"", string,
+                     "\": should be x, y, or z", (char*)NULL);
+    return TCL_ERROR;
+}
 
 static int
 FlowConfigureOp(ClientData clientData, Tcl_Interp *interp, int objc,
 		Tcl_Obj *const *objv)
 {
-    int axis;
-    if (GetAxisFromObj(interp, objv[3], &axis) != TCL_OK) {
-        return TCL_ERROR;
-    }
     FlowCmd *flowPtr = (FlowCmd *)clientData;
-    if (Rappture::ParseSwitches(interp, flowSwitches, objc - 3, objv + 3, 
-	flowPtr, SWITCH_DEFAULTS) < 0) {
+
+    if (flowPtr->ParseSwitches(interp, objc - 3, objv + 3) != TCL_OK) {
 	return TCL_ERROR;
     }
+    flowPtr->SetAxis();
+    flowPtr->SetSlicePosition();
+    flowPtr->SliceVisible();
+    flowPtr->Visible();
     return TCL_OK;
 }
 
@@ -420,9 +518,134 @@ static Rappture::SwitchSpec initStreamSwitches[] =
     {Rappture::SWITCH_END}
 };
 
+
 static int
-FlowInjectorAddOp(ClientData clientData, Tcl_Interp *interp, int objc,
-		Tcl_Obj *const *objv)
+FlowParticlesAddOp(ClientData clientData, Tcl_Interp *interp, int objc,
+		   Tcl_Obj *const *objv)
+{
+    FlowCmd *flowPtr = (FlowCmd *)clientData;
+
+    if (flowPtr->CreatePlane(interp, objv[3])) {
+	return TCL_ERROR;
+    }
+    Particles *particlesPtr;
+    if (flowPtr->GetPlane(interp, objv[3], &particlesPtr) != TCL_OK) {
+	return TCL_ERROR;
+    }
+    if (particlesPtr->ParseSwitches(interp, objc - 4, objv + 4) != TCL_OK) {
+	flowPtr->DestroyPlane(particlesPtr);
+	return TCL_ERROR;
+    }
+    particlesPtr->SetPosition();
+    particlesPtr->SetColor();
+    particlesPtr->SetAxis();
+    particlesPtr->Visible();
+    return TCL_OK;
+}
+
+static int
+FlowParticlesConfigureOp(ClientData clientData, Tcl_Interp *interp, int objc,
+			 Tcl_Obj *const *objv)
+{
+    FlowCmd *flowPtr = (FlowCmd *)clientData;
+
+    Particles *particlesPtr;
+    if (flowPtr->GetPlane(interp, objv[3], &particlesPtr) != TCL_OK) {
+	return TCL_ERROR;
+    }
+    if (particlesPtr->ParseSwitches(interp, objc - 4, objv + 4) != TCL_OK) {
+	return TCL_ERROR;
+    }
+    particlesPtr->SetPosition();
+    particlesPtr->SetColor();
+    particlesPtr->SetAxis();
+    particlesPtr->Visible();
+    return TCL_OK;
+}
+
+static int
+FlowParticlesDeleteOp(ClientData clientData, Tcl_Interp *interp, int objc,
+		      Tcl_Obj *const *objv)
+{
+    FlowCmd *flowPtr = (FlowCmd *)clientData;
+    int i;
+    for (i = 3; i < objc; i++) {
+	Particles *particlesPtr;
+
+	if (flowPtr->GetPlane(interp, objv[i], &particlesPtr)!=TCL_OK) {
+	    return TCL_ERROR;
+	}
+	flowPtr->DestroyPlane(particlesPtr);
+    }
+    return TCL_OK;
+}
+
+static int
+FlowParticlesNamesOp(ClientData clientData, Tcl_Interp *interp, int objc,
+		     Tcl_Obj *const *objv)
+{
+    FlowCmd *flowPtr = (FlowCmd *)clientData;
+    Tcl_Obj *listObjPtr;
+    listObjPtr = Tcl_NewListObj(0, (Tcl_Obj **) NULL);
+    ParticlesIterator iter;
+    Particles *particlesPtr;
+    for (particlesPtr = flowPtr->FirstPlane(&iter); particlesPtr != NULL; 
+	 particlesPtr = flowPtr->NextPlane(&iter)) {
+
+	objPtr = Tcl_NewStringObj(particlesPtr->Name(), -1);
+	Tcl_ListObjAppendElement(interp, listObjPtr, objPtr);
+    }
+    Tcl_SetObjResult(interp, listObjPtr);
+    return TCL_OK;
+}
+
+/*
+ *---------------------------------------------------------------------------
+ *
+ * FlowParticlesObjCmd --
+ *
+ * 	This procedure is invoked to process commands on behalf of the flow
+ * 	object.
+ *
+ * Results:
+ *	A standard Tcl result.
+ *
+ * Side effects:
+ *	See the user documentation.
+ *
+ * $flow particles oper $name 
+ *---------------------------------------------------------------------------
+ */
+static Rappture::CmdSpec flowParticlesOps[] = {
+    {"add",        1, FlowParticlesAddOp,        3, 0, "name ?switches?",},
+    {"configure",  1, FlowParticlesConfigureOp,  3, 0, "name ?switches?",},
+    {"delete",	   1, FlowParticlesDeleteOp,     3, 0, "?name...?"},
+    {"names",      1, FlowParticlesNamesOp,      3, 4, "?pattern?"},
+};
+
+static int nFlowInjectorOps = NumCmdSpecs(flowInjectorOps);
+
+static int
+FlowInjectorOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+	       Tcl_Obj *const *objv)
+{
+    Tcl_ObjCmdProc *proc;
+    proc = Rappture::GetOpFromObj(interp, nFlowInjectorOps, flowInjectorOps, 
+	Rappture::CMDSPEC_ARG1, objc, objv, 0);
+    if (proc == NULL) {
+	return TCL_ERROR;
+    }
+    FlowCmd *flowPtr = (FlowCmd *)clientData;
+    Tcl_Preserve(flowPtr);
+    int result;
+    result = (*proc) (clientData, interp, objc, objv);
+    Tcl_Release(flowPtr);
+    return result;
+}
+
+static int
+FlowShapeAddOp(ClientData clientData, Tcl_Interp *interp, int objc,
+	       Tcl_Obj *const *objv)
 {
     FlowCmd *flowPtr = (FlowCmd *)clientData;
 
@@ -455,7 +678,7 @@ FlowInjectorAddOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
-FlowInjectorDeleteOp(ClientData clientData, Tcl_Interp *interp, int objc,
+FlowShapeDeleteOp(ClientData clientData, Tcl_Interp *interp, int objc,
 		   Tcl_Obj *const *objv)
 {
     FlowCmd *flowPtr = (FlowCmd *)clientData;
@@ -475,13 +698,14 @@ FlowInjectorDeleteOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
-FlowInjectorNamesOp(ClientData clientData, Tcl_Interp *interp, int objc,
+FlowShapeNamesOp(ClientData clientData, Tcl_Interp *interp, int objc,
              Tcl_Obj *const *objv)
 {
     FlowCmd *flowPtr = (FlowCmd *)clientData;
     Tcl_HashEntry *hPtr;
     Tcl_HashSearch iter;
     Tcl_Obj *listObjPtr;
+
     listObjPtr = Tcl_NewListObj(0, (Tcl_Obj **) NULL);
     for (hPtr = Tcl_FirstHashEntry(&flowPtr->injectTable, &iter);
 	 hPtr != NULL; hPtr = Tcl_NextHashEntry(&iter)) {
@@ -497,7 +721,7 @@ FlowInjectorNamesOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
-FlowInjectorConfigureOp(ClientData clientData, Tcl_Interp *interp, int objc,
+FlowShapeConfigureOp(ClientData clientData, Tcl_Interp *interp, int objc,
 			Tcl_Obj *const *objv)
 {
     FlowCmd *flowPtr = (FlowCmd *)clientData;
@@ -518,50 +742,6 @@ FlowInjectorConfigureOp(ClientData clientData, Tcl_Interp *interp, int objc,
     return TCL_OK;
 }
 
-
-/*
- *---------------------------------------------------------------------------
- *
- * FlowInjectorObjCmd --
- *
- * 	This procedure is invoked to process commands on behalf of the flow
- * 	object.
- *
- * Results:
- *	A standard Tcl result.
- *
- * Side effects:
- *	See the user documentation.
- *
- *---------------------------------------------------------------------------
- */
-static Rappture::CmdSpec flowInjectorOps[] = {
-    {"add",        1, FlowInjectorAddOp,        3, 0, "name ?switches?",},
-    {"configure",  1, FlowInjectorConfigureOp,  3, 5, "name ?switches?",},
-    {"delete",	   1, FlowInjectorDeleteOp,     3, 0, "?name...?"},
-    {"names",      1, FlowInjectorNamesOp,      3, 4, "?pattern?"},
-};
-
-static int nFlowInjectorOps = NumCmdSpecs(flowInjectorOps);
-
-static int
-FlowInjectorOp(ClientData clientData, Tcl_Interp *interp, int objc, 
-	       Tcl_Obj *const *objv)
-{
-    Tcl_ObjCmdProc *proc;
-    proc = Rappture::GetOpFromObj(interp, nFlowInjectorOps, flowInjectorOps, 
-	Rappture::CMDSPEC_ARG1, objc, objv, 0);
-    if (proc == NULL) {
-	return TCL_ERROR;
-    }
-    FlowCmd *flowPtr = (FlowCmd *)clientData;
-    Tcl_Preserve(flowPtr);
-    int result;
-    result = (*proc) (clientData, interp, objc, objv);
-    Tcl_Release(flowPtr);
-    return result;
-}
-
 /*
  *---------------------------------------------------------------------------
  *
@@ -579,10 +759,10 @@ FlowInjectorOp(ClientData clientData, Tcl_Interp *interp, int objc,
  *---------------------------------------------------------------------------
  */
 static Rappture::CmdSpec flowShapeOps[] = {
-    {"add",        1, FlowInjectorAddOp,        3, 0, "name ?switches?",},
-    {"configure",  1, FlowInjectorConfigureOp,  3, 5, "name ?switches?",},
-    {"delete",	   1, FlowInjectorDeleteOp,     3, 0, "?name...?"},
-    {"names",      1, FlowInjectorNamesOp,      3, 4, "?pattern?"},
+    {"add",        1, FlowShapeAddOp,        3, 0, "name ?switches?",},
+    {"configure",  1, FlowShapeConfigureOp,  3, 5, "name ?switches?",},
+    {"delete",	   1, FlowShapeDeleteOp,     3, 0, "?name...?"},
+    {"names",      1, FlowShapeNamesOp,      3, 4, "?pattern?"},
 };
 
 static int nFlowShapeOps = NumCmdSpecs(flowShapeOps);
@@ -624,10 +804,8 @@ FlowShapeOp(ClientData clientData, Tcl_Interp *interp, int objc,
 static Rappture::CmdSpec flowInstOps[] = {
     {"configure",   1, FlowConfigureOp,  3, 5, "?switches?",},
     {"data",	    1, FlowDataOp,       4, 0, "oper ?args?"},
-    {"injector",    1, FlowInjectorOp,   3, 0, "oper ?args?",},
     {"particles",   1, FlowParticlesOp,  3, 0, "oper ?args?",},
     {"shape",       2, FlowShapeOp,      3, 0, "oper ?args?",},
-    {"stream",      2, FlowStreamOp,     4, 0, "oper axis ?args?",},
 };
 static int nFlowInstOps = NumCmdSpecs(flowInstOps);
 
@@ -666,10 +844,6 @@ static void
 FlowInstDeleteProc(ClientData clientData)
 {
     FlowCmd *flowPtr = (FlowCmd *)clientData;
-
-    if (flowPtr->hashPtr != NULL) {
-	Tcl_DeleteHashEntry(flowPtr->hashPtr);
-    }
     delete flowPtr;
 }
 
@@ -685,37 +859,7 @@ static int
 FlowAddOp(ClientData clientData, Tcl_Interp *interp, int objc,
 	  Tcl_Obj *const *objv)
 {
-    const char *name;
-    name = Tcl_GetString(objv[2]);
-
-    Tcl_HashEntry *hPtr;
-    int isNew;
-    hPtr = Tcl_CreateHashEntry(&flowTable, name, &isNew);
-    if (!isNew) {
-	Tcl_AppendResult(interp, "flow \"", name, "\" already exists.",
-			 (char *)NULL);
-	return TCL_ERROR;
-    }
-    Tcl_CmdInfo cmdInfo;
-    if (Tcl_GetCommandInfo(interp, name, &cmdInfo)) {
-	Tcl_AppendResult(interp, "an another command \"", name, 
-			 "\" already exists.", (char *)NULL);
-	return TCL_ERROR;
-    }	
-    FlowCmd *flowPtr;
-    flowPtr = new FlowCmd;
-    if (flowPtr == NULL) {
-	Tcl_AppendResult(interp, "can't allocate a flow object \"", name, 
-			 "\"", (char *)NULL);
-	return TCL_ERROR;
-    }
-    flowPtr->hashPtr = hPtr;
-    flowPtr->name = Tcl_GetHashKey(&flowTable, hPtr);
-    flowPtr->cmdToken = Tcl_CreateObjCommand(interp, (char *)name, 
-	(Tcl_ObjCmdProc *)FlowInstObjCmd, flowPtr, FlowInstDeleteProc);
-    Tcl_SetHashValue(hPtr, flowPtr);
-    flowPtr->volPtr = NULL;
-    return TCL_OK;
+    return FlowCmd::NewFlow(interp, Tcl_GetString(objv[2]));
 }
 
 /*
@@ -735,13 +879,9 @@ FlowDeleteOp(ClientData clientData, Tcl_Interp *interp, int objc,
     for (i = 2; i < objc; i++) {
 	FlowCmd *flowPtr;
 
-	if (GetFlowFromObj(interp, objv[i], &flowPtr) != TCL_OK) {
+	if (FlowCmd::GetFlowFromObj(interp, objv[i], &flowPtr) != TCL_OK) {
 	    return TCL_ERROR;
 	}
-	Tcl_DeleteCommandFromToken(interp, flowPtr->cmdToken);
-#ifdef notdef
-	NanoVis::flowVisRenderer->removeVectorField(flowPtr);
-#endif
 	delete flowPtr;
     }
     return TCL_OK;
@@ -889,10 +1029,8 @@ FlowNextOp(ClientData clientData, Tcl_Interp *interp, int objc,
     Trace("sending flow playback frame\n");
 
     // Generate the latest frame and send it back to the client
-    if (NanoVis::licRenderer->isActivated()) {
-        NanoVis::licRenderer->convolve();
-    }
-    NanoVis::flowVisRenderer->advect();
+    NanoVis::licRenderer->convolve();
+    FlowCmd::AdvectFlows();
     NanoVis::offscreen_buffer_capture();  //enable offscreen render
     NanoVis::display();
     NanoVis::read_screen();
@@ -942,13 +1080,16 @@ FlowVideoOp(ClientData clientData, Tcl_Interp *interp, int objc,
 			 "\"", (char *)NULL);
 	return TCL_ERROR;
     }
-
-    if (NanoVis::licRenderer) {
-        NanoVis::licRenderer->activate();
+    if (NanoVis::licRenderer == NULL) {
+	Tcl_AppendResult(interp, "no lic renderer.", (char *)NULL);
+	return TCL_ERROR;
     }
-    if (NanoVis::flowVisRenderer) {
-        NanoVis::flowVisRenderer->activate();
+    if (NanoVis::flowVisRenderer == NULL) {
+	Tcl_AppendResult(interp, "no flow renderer.", (char *)NULL);
+	return TCL_ERROR;
     }
+    NanoVis::licRenderer->activate();
+    NanoVis::flowVisRenderer->activate();
 
     // Save the old dimensions of the offscreen buffer.
     int oldWidth, oldHeight;
@@ -965,7 +1106,7 @@ FlowVideoOp(ClientData clientData, Tcl_Interp *interp, int objc,
 
     Trace("FLOW started\n");
 
-    Rappture::Outcome context;
+    Rappture::Outcome result;
     Rappture::AVTranslate movie(width, height, frameRate, bitRate);
 
     int pad = 0;
@@ -973,18 +1114,12 @@ FlowVideoOp(ClientData clientData, Tcl_Interp *interp, int objc,
         pad = 4 - ((3*NanoVis::win_width) % 4);
     }
 
-    movie.init(context, fileName);
+    movie.init(result, fileName);
 
     for (int i = 0; i < numFrames; i++) {
         // Generate the latest frame and send it back to the client
-        if (NanoVis::licRenderer &&
-            NanoVis::licRenderer->isActivated()) {
-            NanoVis::licRenderer->convolve();
-        }
-        if (NanoVis::flowVisRenderer &&
-            NanoVis::flowVisRenderer->isActivated()) {
-            NanoVis::flowVisRenderer->advect();
-        }
+	NanoVis::licRenderer->convolve();
+	FlowCmd::AdvectFlows();
         NanoVis::offscreen_buffer_capture();  //enable offscreen render
         NanoVis::display();
 
@@ -993,11 +1128,11 @@ FlowVideoOp(ClientData clientData, Tcl_Interp *interp, int objc,
 
         // This is done before bmp_write_to_file because bmp_write_to_file
         // turns rgb data to bgr
-        movie.append(context, NanoVis::screen_buffer, pad);
+        movie.append(result, NanoVis::screen_buffer, pad);
         // NanoVis::bmp_write_to_file(frame_count, fileName);
     }
 
-    movie.done(context);
+    movie.done(result);
     Trace("FLOW end\n");
 
     if (NanoVis::licRenderer) {
@@ -1010,9 +1145,9 @@ FlowVideoOp(ClientData clientData, Tcl_Interp *interp, int objc,
 
     // FIXME: find a way to get the data from the movie object as a void*
     Rappture::Buffer data;
-    if (!data.load(context, fileName)) {
+    if (!data.load(result, fileName)) {
         Tcl_AppendResult(interp, "can't load data from temporary movie file \"",
-		fileName, "\": ", context.remark(), (char *)NULL);
+		fileName, "\": ", result.remark(), (char *)NULL);
 	return TCL_ERROR;
     }
     // Build the command string for the client.
@@ -1087,112 +1222,3 @@ FlowCmdInitProc(Tcl_Interp *interp)
     return TCL_OK;
 }
 
-#ifdef notdef
-void
-MapFlowVectors(Tcl_Interp *interp)
-{
-    double xMin, xMax, yMin, yMax, zMin, zMax, wMin, wMax;
-
-    if (debug_flag) {
-        fprintf(stderr, "in SetHeightmapRanges\n");
-    }
-    xMin = yMin = zMin = wMin = DBL_MAX;
-    xMax = yMax = zMax = wMax = -DBL_MAX;
-    Tcl_HashEntry *hPtr;
-    Tcl_HashSearch iter;
-    for (hPtr = Tcl_FirstHashEntry(&flowTable, &iter); hPtr != NULL; 
-	hPtr = Tcl_NextHashEntry(&iter)) {
-	FlowCmd *flowPtr;
-	flowPtr = (FlowCmd *)Tcl_GetHashValue(hPtr);
-
-	flowPtr->
-
-    for (unsigned int i = 0; i < heightMap.size(); i++) {
-        HeightMap *hmPtr;
-
-        hmPtr = heightMap[i];
-        if (hmPtr == NULL) {
-            continue;
-        }
-        if (xMin > hmPtr->xAxis.min()) {
-            xMin = hmPtr->xAxis.min();
-        }
-        if (xMax < hmPtr->xAxis.max()) {
-            xMax = hmPtr->xAxis.max();
-        }
-        if (yMin > hmPtr->yAxis.min()) {
-            yMin = hmPtr->yAxis.min();
-        }
-        if (yMax < hmPtr->yAxis.max()) {
-            yMax = hmPtr->yAxis.max();
-        }
-        if (zMin > hmPtr->zAxis.min()) {
-            zMin = hmPtr->zAxis.min();
-        }
-        if (zMax < hmPtr->zAxis.max()) {
-            zMax = hmPtr->zAxis.max();
-        }
-        if (wMin > hmPtr->wAxis.min()) {
-            wMin = hmPtr->wAxis.min();
-        }
-        if (wMax < hmPtr->wAxis.max()) {
-            wMax = hmPtr->wAxis.max();
-        }
-    }
-    if ((xMin < DBL_MAX) && (xMax > -DBL_MAX)) {
-        grid->xAxis.SetScale(xMin, xMax);
-    }
-    if ((yMin < DBL_MAX) && (yMax > -DBL_MAX)) {
-        grid->yAxis.SetScale(yMin, yMax);
-    }
-    if ((zMin < DBL_MAX) && (zMax > -DBL_MAX)) {
-        grid->zAxis.SetScale(zMin, zMax);
-    }
-    if ((wMin < DBL_MAX) && (wMax > -DBL_MAX)) {
-        HeightMap::valueMin = grid->yAxis.min();
-        HeightMap::valueMax = grid->yAxis.max();
-    }
-    for (unsigned int i = 0; i < heightMap.size(); i++) {
-        HeightMap *hmPtr;
-
-        hmPtr = heightMap[i];
-        if (hmPtr == NULL) {
-            continue;
-        }
-        hmPtr->MapToGrid(grid);
-    }
-    HeightMap::update_pending = false;
-    if (debug_flag) {
-        fprintf(stderr, "leaving SetHeightmapRanges\n");
-    }
-}
-
-    Tcl_Obj *listObjPtr;
-    listObjPtr = Tcl_NewListObj(0, (Tcl_Obj **) NULL);
-
-    Tcl_HashEntry *hPtr;
-    Tcl_HashSearch iter;
-    for (hPtr = Tcl_FirstHashEntry(&flowTable, &iter); hPtr != NULL; 
-	hPtr = Tcl_NextHashEntry(&iter)) {
-	FlowCmd *flowPtr;
-	flowPtr = (FlowCmd *)Tcl_GetHashValue(hPtr);
-	if (flowPtr->fieldPtr != NULL) {
-	    delete flowPtr->fieldPtr; // Remove the vector field.
-	    flowPtr->fieldPtr = NULL;
-	}
-    }
-
-
-            Volume *volPtr;
-            volPtr = NanoVis::load_volume(index, nx, ny, nz, 4, data,
-                        field.valueMin(), field.valueMax(), nzero_min);
-            volPtr->xAxis.SetRange(field.rangeMin(Rappture::xaxis),
-                   field.rangeMax(Rappture::xaxis));
-            volPtr->yAxis.SetRange(field.rangeMin(Rappture::yaxis),
-                   field.rangeMax(Rappture::yaxis));
-            volPtr->zAxis.SetRange(field.rangeMin(Rappture::zaxis),
-                   field.rangeMax(Rappture::zaxis));
-            volPtr->wAxis.SetRange(field.valueMin(), field.valueMax());
-            volPtr->update_pending = true;
-            delete [] data;
-#endif

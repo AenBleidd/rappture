@@ -307,11 +307,14 @@ NvLIC::convolve()
     int   i, j; 
     float x1, x2, y, px, py;
     
+    glPushMatrix();
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, fbo);
     
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity(); 
     glPushAttrib(GL_VIEWPORT_BIT | GL_ENABLE_BIT);
+
+    /*glPushMatrix();*/
     glViewport(0, 0, (GLsizei) NPIX, (GLsizei) NPIX);
     //glTranslatef(-1.0, -1.0, 0.0); 
     //glScalef(2.0, 2.0, 1.0);
@@ -396,7 +399,7 @@ NvLIC::convolve()
     glPopAttrib();
     glPopMatrix();
     glMatrixMode(GL_PROJECTION);
-    glPopMatrix();
+    /*glPopMatrix();*/
     glMatrixMode(GL_MODELVIEW);
 }
 
@@ -487,8 +490,8 @@ NvLIC::display()
 
 
 void 
-NvLIC::setVectorField(unsigned int texID, const Vector3& ori, float scaleX, float scaleY, 
-                      float scaleZ, float max)
+NvLIC::setVectorField(unsigned int texID, const Vector3& ori, 
+		      float scaleX, float scaleY, float scaleZ, float max)
 {
     Trace("NvLIC: vector field is assigned [%d]\n", texID);
     vectorFieldID = texID;
@@ -530,14 +533,12 @@ NvLIC::get_velocity(float x, float y, float *px, float *py)
 void 
 NvLIC::set_offset(float v)
 {
-	switch (axis)
-	{
-	case 0 : offset.x = v; break;
-	case 1 : offset.y = v; break;
-	case 2 : offset.z = v; break;
-	}
-
-	get_slice();
+    switch (axis) {
+    case 0 : offset.x = v; break;
+    case 1 : offset.y = v; break;
+    case 2 : offset.z = v; break;
+    }
+    get_slice();
 }
 
 void NvLIC::set_axis(int axis)

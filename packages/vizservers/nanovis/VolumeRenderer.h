@@ -105,6 +105,7 @@ public:
     ~VolumeRenderer();
 
     int add_volume(Volume* _vol, TransferFunction* _tf); 
+    void remove_volume(size_t volIndex); 
     // add a volume and its transfer function
     // we require a transfer function when a 
     // volume is added.
