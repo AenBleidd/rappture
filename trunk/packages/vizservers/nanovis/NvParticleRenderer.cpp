@@ -24,7 +24,6 @@
 #include <Trace.h>
 #include <stdlib.h>
 
-
 #define NV_32
 
 NvParticleRenderer::NvParticleRenderer(int w, int h, CGcontext context) : 
@@ -50,7 +49,7 @@ NvParticleRenderer::NvParticleRenderer(int w, int h, CGcontext context) :
 
     m_vertex_array = new RenderVertexArray(psys_width*psys_height, 3, GL_FLOAT);
 
-    assert(glGetError()==0);
+    assert(CheckGL(AT));
 
     glGenFramebuffersEXT(2, psys_fbo);
     glGenTextures(2, psys_tex);
@@ -130,6 +129,8 @@ NvParticleRenderer::~NvParticleRenderer()
 
     glDeleteFramebuffersEXT(2, psys_fbo);
 
+    delete m_vertex_array;
+    delete _advectionShader;
     free(data);
 }
 
@@ -243,7 +244,7 @@ NvParticleRenderer::advect()
 {
     if (reborn) 
         reset();
-
+    
     glDisable(GL_BLEND);
     glDisable(GL_DEPTH_TEST);
    

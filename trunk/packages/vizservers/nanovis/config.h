@@ -30,7 +30,7 @@
 //#define PROTOTYPE		0
 #define PROTOTYPE		1
 
-//#define NEW_FLOW_ENGINE
+#define NEW_FLOW_ENGINE		1
 
 /* 
  * The following define controls whether new load_volume_stream or

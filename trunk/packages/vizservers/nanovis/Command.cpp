@@ -140,7 +140,7 @@ static const char def_transfunc[] =
 static Tcl_ObjCmdProc AxisCmd;
 static Tcl_ObjCmdProc CameraCmd;
 static Tcl_ObjCmdProc CutplaneCmd;
-static Tcl_ObjCmdProc FlowCmd;
+extern Tcl_AppInitProc FlowCmdInitProc;
 static Tcl_ObjCmdProc GridCmd;
 static Tcl_ObjCmdProc LegendCmd;
 #if PLANE_CMD
@@ -1724,6 +1724,7 @@ VolumeCmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const *objv)
 
 // ========================= VOLUME END ==================================
 
+#ifdef notdef
 // ============================= FLOW ==================================
 
 static int
@@ -1956,7 +1957,7 @@ FlowLicOp(ClientData cdata, Tcl_Interp *interp, int objc,
     if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
         return TCL_ERROR;
     }
-    NanoVis::lic_on = state;
+    /* NanoVis::lic_on = state; */
     return TCL_OK;
 }
 
@@ -1972,6 +1973,7 @@ FlowSliceVisibleOp(ClientData cdata, Tcl_Interp *interp, int objc,
     if (Tcl_GetBooleanFromObj(interp, objv[4], &state) != TCL_OK) {
         return TCL_ERROR;
     }
+#ifdef notdef
     switch (axis) {
     case 0 :
         NanoVis::lic_slice_x_visible = state;
@@ -1983,6 +1985,7 @@ FlowSliceVisibleOp(ClientData cdata, Tcl_Interp *interp, int objc,
         NanoVis::lic_slice_z_visible = state;
         break;
     }
+#endif
     return TCL_OK;
 }
 
@@ -2052,7 +2055,7 @@ FlowParticlesVisibleOp(ClientData cdata, Tcl_Interp *interp, int objc,
         return TCL_ERROR;
     }
 
-    NanoVis::particle_on = state;
+    /* NanoVis::particle_on = state; */
     return TCL_OK;
 }
 
@@ -2198,6 +2201,7 @@ FlowCmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const *objv)
 }
 
 // ============================ FLOW END ==================================
+#endif
 
 static int
 HeightMapDataFollowsOp(ClientData cdata, Tcl_Interp *interp, int objc,
@@ -2831,12 +2835,15 @@ initTcl()
      */
     Tcl_Interp *interp;
     interp = Tcl_CreateInterp();
+    /*
     Tcl_MakeSafe(interp);
-
+    */
     Tcl_CreateObjCommand(interp, "axis",        AxisCmd,        NULL, NULL);
     Tcl_CreateObjCommand(interp, "camera",      CameraCmd,      NULL, NULL);
     Tcl_CreateObjCommand(interp, "cutplane",    CutplaneCmd,    NULL, NULL);
-    Tcl_CreateObjCommand(interp, "flow",        FlowCmd,        NULL, NULL);
+    if (FlowCmdInitProc(interp) != TCL_OK) {
+	return NULL;
+    }
     Tcl_CreateObjCommand(interp, "grid",        GridCmd,        NULL, NULL);
     Tcl_CreateObjCommand(interp, "heightmap",   HeightMapCmd,   NULL, NULL);
     Tcl_CreateObjCommand(interp, "legend",      LegendCmd,      NULL, NULL);

@@ -161,10 +161,11 @@ ReadDxVectorFieldData(Rappture::Outcome &result, size_t length, char *string)
 	return NULL;
     }
     return new Rappture::Unirect3d(x0, x0 + dx * nx, nx, y0, y0 + dy * ny, ny,
-				   z0, z0 + dz * nz, nz, nValues, values);
+				   z0, z0 + dz * nz, nz, nValues, values, 3);
 }
 
 
+#ifdef notdef
 /*
  * Load a 3D vector field from a dx-format file
  */
@@ -362,6 +363,7 @@ load_vector_stream(Rappture::Outcome result, int index, size_t length,
     delete [] data;
     return true;
 }
+#endif
 
 /* Load a 3D volume from a dx-format file
  */
@@ -743,7 +745,6 @@ load_volume_stream(Rappture::Outcome &result, int index, std::iostream& fin)
     x0 = y0 = z0 = 0.0;		// May not have an origin line.
     while (!fin.eof()) {
         fin.getline(line, sizeof(line) - 1);
-	fprintf(stderr, "line is %s\n", line);
         if (fin.fail()) {
             result.error("error in data stream");
 	    return false;
@@ -839,8 +840,6 @@ load_volume_stream(Rappture::Outcome &result, int index, std::iostream& fin)
             }
         }
     }
-    fprintf(stderr, "found nx=%d ny=%d, nz=%d, x0=%f, y0=%f, z0=%f\n",
-	    nx, ny, nz, x0, y0, z0);
     // read data points
     if (fin.eof()) {
         result.error("data not found in stream");
@@ -868,8 +867,6 @@ load_volume_stream(Rappture::Outcome &result, int index, std::iostream& fin)
 	    for (int p=0; p < n; p++) {
 		int nindex = iz*nx*ny + iy*nx + ix;
 		field.define(nindex, dval[p]);
-		fprintf(stderr,"nindex = %i\tdval[%i] = %lg\n", nindex, p,
-                        dval[p]);
 		fflush(stderr);
 		nread++;
 		if (++iz >= nz) {
@@ -1176,7 +1173,6 @@ load_volume_stream_insoo(Rappture::Outcome &result, int index,
     x0 = y0 = z0 = 0.0;		// May not have an origin line.
     while (!fin.eof()) {
         fin.getline(line, sizeof(line) - 1);
-	fprintf(stderr, "line is %s\n", line);
         if (fin.fail()) {
 	    result.addError("line \"%s\"error in data stream");
             return false;
@@ -1272,8 +1268,6 @@ load_volume_stream_insoo(Rappture::Outcome &result, int index,
         }
     }
 
-    fprintf(stderr, "found nx=%d ny=%d, nz=%d, x0=%f, y0=%f, z0=%f\n",
-	    nx, ny, nz, x0, y0, z0);
     // read data points
     if (fin.eof()) {
 	result.error("data not found in stream");

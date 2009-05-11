@@ -1,10 +1,39 @@
 
+#include <float.h>
 #include <tcl.h>
 #include <Unirect.h>
+#include "RpField1D.h"
+#include "RpFieldRect3D.h"
 
 extern int GetFloatFromObj(Tcl_Interp *interp, Tcl_Obj *objPtr, 
 	float *valuePtr);
 extern int GetAxisFromObj(Tcl_Interp *interp, Tcl_Obj *objPtr, int *indexPtr);
+
+static INLINE char *
+skipspaces(char *string) 
+{
+    while (isspace(*string)) {
+	string++;
+    }
+    return string;
+}
+
+static INLINE char *
+getline(char **stringPtr, char *endPtr) 
+{
+    char *line, *p;
+
+    line = skipspaces(*stringPtr);
+    for (p = line; p < endPtr; p++) {
+	if (*p == '\n') {
+	    *p++ = '\0';
+	    *stringPtr = p;
+	    return line;
+	}
+    }
+    *stringPtr = p;
+    return line;
+}
 
 int 
 Rappture::Unirect3d::LoadData(Tcl_Interp *interp, int objc, 
@@ -29,7 +58,6 @@ Rappture::Unirect3d::LoadData(Tcl_Interp *interp, int objc,
     axis2 = 1; 			/* Y-axis */
     axis3 = 0;			/* X-axis */
 
-    int extents = 1;
     values = NULL;
     num[0] = num[1] = num[2] = nValues = 0;
     min[0] = min[1] = min[2] = max[0] = max[1] = max[2] = 0.0f;
@@ -114,7 +142,7 @@ Rappture::Unirect3d::LoadData(Tcl_Interp *interp, int objc,
 		}
 	    }
         } else if ((c == 'u') && (strcmp(string, "units") == 0)) {
-            vUnits_ = strdup(Tcl_GetString(objv[i+1]));
+            _vUnits = strdup(Tcl_GetString(objv[i+1]));
         } else if ((c == 'o') && (strcmp(string, "order") == 0)) {
 	    Tcl_Obj **axes;
 	    int n;
@@ -141,16 +169,13 @@ Rappture::Unirect3d::LoadData(Tcl_Interp *interp, int objc,
         Tcl_AppendResult(interp, "missing \"values\" key", (char *)NULL);
         return TCL_ERROR;
     }
-    if (nValues != (num[0] * num[1] * num[2] * extents)) {
+    if ((size_t)nValues != (num[0] * num[1] * num[2] * _nComponents)) {
         Tcl_AppendResult(interp, 
 		"wrong number of values: must be xnum*ynum*znum*extents", 
 			 (char *)NULL);
         return TCL_ERROR;
     }
     
-    fprintf(stderr, "generating %dx%dx%dx%d = %d points\n", 
-	    num[0], num[1], num[2], extents, num[0]*num[1]*num[2]*extents);
-
     if ((axis1 != 2) || (axis2 != 1) || (axis3 != 0)) {
 	// Reorder the data into x, y, z where x varies fastest and so on.
 	int z;
@@ -164,14 +189,14 @@ Rappture::Unirect3d::LoadData(Tcl_Interp *interp, int objc,
 		int x;
 
 		for (x = 0; x < num[2]; x++) {
-		    int i, v;
+		    int i;
 		    
 		    /* Compute the index from the data's described ordering. */
 		    i = ((z*num[axis2]*num[axis3]) + (y*num[axis3]) + x) * 3;
-		    for(v = 0; v < extents; v++) {
+		    for(size_t v = 0; v < _nComponents; v++) {
 			dp[v] = values[i+v];
 		    }
-		    dp += extents;
+		    dp += _nComponents;
 		}
 	    }
 	}
@@ -179,31 +204,30 @@ Rappture::Unirect3d::LoadData(Tcl_Interp *interp, int objc,
 	values = data;
     }
 
-    values_ = values;
-    nValues_ = nValues;
-    extents_ = extents;
+    _values = values;
+    _nValues = nValues;
     if (units[3] != NULL) {
-	vUnits_ = strdup(units[3]);
+	_vUnits = strdup(units[3]);
     }
-    xMin_ = min[axis3];
-    xMax_ = max[axis3];
-    xNum_ = num[axis3];
+    _xMin = min[axis3];
+    _xMax = max[axis3];
+    _xNum = num[axis3];
     if (units[axis3] != NULL) {
-	xUnits_ = strdup(units[axis3]);
+	_xUnits = strdup(units[axis3]);
     }
-    yMin_ = min[axis2];
-    yMax_ = max[axis2];
-    yNum_ = num[axis2];
+    _yMin = min[axis2];
+    _yMax = max[axis2];
+    _yNum = num[axis2];
     if (units[axis2] != NULL) {
-	yUnits_ = strdup(units[axis2]);
+	_yUnits = strdup(units[axis2]);
     }
-    zMin_ = min[axis1];
-    zMax_ = max[axis1];
-    zNum_ = num[axis1];
+    _zMin = min[axis1];
+    _zMax = max[axis1];
+    _zNum = num[axis1];
     if (units[axis1] != NULL) {
-	zUnits_ = strdup(units[axis1]);
+	_zUnits = strdup(units[axis1]);
     }
-    initialized_ = true;
+    _initialized = true;
     return TCL_OK;
 }
 
@@ -224,23 +248,22 @@ Rappture::Unirect2d::LoadData(Tcl_Interp *interp, int objc,
     axis[0] = 1; 			/* X-axis */
     axis[1] = 0;			/* Y-axis */
 
-    extents_ = 1;
-    xNum_ = yNum_ = nValues_ = 0;
-    xMin_ = yMin_ = xMax_ = yMax_ = 0.0f;
-    if (xUnits_ != NULL) {
-	free(xUnits_);
+    _xNum = _yNum = _nValues = 0;
+    _xMin = _yMin = _xMax = _yMax = 0.0f;
+    if (_xUnits != NULL) {
+	free(_xUnits);
     }
-    if (yUnits_ != NULL) {
-	free(yUnits_);
+    if (_yUnits != NULL) {
+	free(_yUnits);
     }
-    if (vUnits_ != NULL) {
-	free(vUnits_);
+    if (_vUnits != NULL) {
+	free(_vUnits);
     }
-    xUnits_ = yUnits_ = vUnits_ = NULL;
-    if (values_ != NULL) {
-	delete [] values_;
+    _xUnits = _yUnits = _vUnits = NULL;
+    if (_values != NULL) {
+	delete [] _values;
     }
-    values_ = NULL;
+    _values = NULL;
 
     int i;
     for (i = 1; i < objc; i += 2) {
@@ -250,11 +273,11 @@ Rappture::Unirect2d::LoadData(Tcl_Interp *interp, int objc,
         string = Tcl_GetString(objv[i]);
         c = string[0];
         if ((c == 'x') && (strcmp(string, "xmin") == 0)) {
-            if (GetFloatFromObj(interp, objv[i+1], &xMin_) != TCL_OK) {
+            if (GetFloatFromObj(interp, objv[i+1], &_xMin) != TCL_OK) {
                 return TCL_ERROR;
             }
         } else if ((c == 'x') && (strcmp(string, "xmax") == 0)) {
-            if (GetFloatFromObj(interp, objv[i+1], &xMax_) != TCL_OK) {
+            if (GetFloatFromObj(interp, objv[i+1], &_xMax) != TCL_OK) {
                 return TCL_ERROR;
             }
         } else if ((c == 'x') && (strcmp(string, "xnum") == 0)) {
@@ -267,15 +290,15 @@ Rappture::Unirect2d::LoadData(Tcl_Interp *interp, int objc,
                      (char *)NULL);
                 return TCL_ERROR;
             }
-	    xNum_ = n;
+	    _xNum = n;
         } else if ((c == 'x') && (strcmp(string, "xunits") == 0)) {
-            xUnits_ = strdup(Tcl_GetString(objv[i+1]));
+            _xUnits = strdup(Tcl_GetString(objv[i+1]));
         } else if ((c == 'y') && (strcmp(string, "ymin") == 0)) {
-            if (GetFloatFromObj(interp, objv[i+1], &yMin_) != TCL_OK) {
+            if (GetFloatFromObj(interp, objv[i+1], &_yMin) != TCL_OK) {
                 return TCL_ERROR;
             }
         } else if ((c == 'y') && (strcmp(string, "ymax") == 0)) {
-            if (GetFloatFromObj(interp, objv[i+1], &yMax_) != TCL_OK) {
+            if (GetFloatFromObj(interp, objv[i+1], &_yMax) != TCL_OK) {
                 return TCL_ERROR;
             }
         } else if ((c == 'y') && (strcmp(string, "ynum") == 0)) {
@@ -288,9 +311,9 @@ Rappture::Unirect2d::LoadData(Tcl_Interp *interp, int objc,
                                  (char *)NULL);
                 return TCL_ERROR;
             }
-	    yNum_ = n;
+	    _yNum = n;
         } else if ((c == 'y') && (strcmp(string, "yunits") == 0)) {
-            yUnits_ = strdup(Tcl_GetString(objv[i+1]));
+            _yUnits = strdup(Tcl_GetString(objv[i+1]));
         } else if ((c == 'v') && (strcmp(string, "values") == 0)) {
             Tcl_Obj **vobj;
 	    int n;
@@ -303,16 +326,16 @@ Rappture::Unirect2d::LoadData(Tcl_Interp *interp, int objc,
                                  (char *)NULL);
                 return TCL_ERROR;
 	    }
-	    nValues_ = n;
-            values_ = new float[nValues_];
+	    _nValues = n;
+            _values = new float[_nValues];
             size_t j;
-            for (j = 0; j < nValues_; j++) {
-                if (GetFloatFromObj(interp, vobj[j], values_ + j)!=TCL_OK) {
+            for (j = 0; j < _nValues; j++) {
+                if (GetFloatFromObj(interp, vobj[j], _values + j)!=TCL_OK) {
                     return TCL_ERROR;
 		}
 	    }
         } else if ((c == 'u') && (strcmp(string, "units") == 0)) {
-            vUnits_ = strdup(Tcl_GetString(objv[i+1]));
+            _vUnits = strdup(Tcl_GetString(objv[i+1]));
         } else if ((c == 'e') && (strcmp(string, "extents") == 0)) {
 	    int n;
 
@@ -324,7 +347,7 @@ Rappture::Unirect2d::LoadData(Tcl_Interp *interp, int objc,
                                  (char *)NULL);
                 return TCL_ERROR;
             }
-	    extents_ = n;
+	    _nComponents = n;
         } else if ((c == 'a') && (strcmp(string, "axisorder") == 0)) {
 	    Tcl_Obj **order;
 	    int n;
@@ -349,20 +372,17 @@ Rappture::Unirect2d::LoadData(Tcl_Interp *interp, int objc,
             return TCL_ERROR;
         }
     }
-    if (values_ == NULL) {
+    if (_values == NULL) {
         Tcl_AppendResult(interp, "missing \"values\" key", (char *)NULL);
         return TCL_ERROR;
     }
-    if (nValues_ != (xNum_ * yNum_ * extents_)) {
+    if (_nValues != (_xNum * _yNum * _nComponents)) {
         Tcl_AppendResult(interp, 
 		"wrong number of values: must be xnum*ynum*extents", 
 			 (char *)NULL);
         return TCL_ERROR;
     }
     
-    fprintf(stderr, "generating %dx%dx%d = %d points\n", 
-	    xNum_, yNum_, extents_, xNum_ * yNum_ * extents_);
-
 #ifndef notdef
     if ((axis[0] != 1) || (axis[1] != 0)) {
 	fprintf(stderr, "reordering data\n");
@@ -370,25 +390,233 @@ Rappture::Unirect2d::LoadData(Tcl_Interp *interp, int objc,
 	size_t y;
 	float *data, *dp;
 
-	dp = data = new float[nValues_];
-	for (y = 0; y < yNum_; y++) {
+	dp = data = new float[_nValues];
+	for (y = 0; y < _yNum; y++) {
 	    size_t x;
 
-	    for (x = 0; x < xNum_; x++) {
+	    for (x = 0; x < _xNum; x++) {
 		size_t i, v;
 		    
 		/* Compute the index from the data's described ordering. */
-		i = (y + (yNum_ * x)) * extents_;
-		for(v = 0; v < extents_; v++) {
-		    dp[v] = values_[i+v];
+		i = (y + (_yNum * x)) * _nComponents;
+		for(v = 0; v < _nComponents; v++) {
+		    dp[v] = _values[i+v];
 		}
-		dp += extents_;
+		dp += _nComponents;
 	    }
 	}
-	delete [] values_;
-	values_ = data;
+	delete [] _values;
+	_values = data;
     }
 #endif
-    initialized_ = true;
+    _initialized = true;
     return TCL_OK;
 }
+
+
+bool
+Rappture::Unirect3d::ReadVectorDataFromDx(Rappture::Outcome &result, 
+	size_t length, char *string) 
+{
+    size_t nx, ny, nz, npts;
+    double x0, y0, z0, dx, dy, dz, ddx, ddy, ddz;
+    char *p, *endPtr;
+
+    dx = dy = dz = 0.0;         // Suppress compiler warning.
+    x0 = y0 = z0 = 0.0;		// May not have an origin line.
+    for (p = string, endPtr = p + length; p < endPtr; /*empty*/) {
+	char *line;
+
+	line = getline(&p, endPtr);
+        if (line == endPtr) {
+	    break;
+	}
+        if ((line[0] == '#') || (line == '\0')) {
+	    continue;		// Skip blank or comment lines.
+	}
+	if (sscanf(line, "object %*d class gridpositions counts %d %d %d", 
+		   &nx, &ny, &nz) == 3) {
+	    if ((nx < 0) || (ny < 0) || (nz < 0)) {
+		result.addError("invalid grid size: x=%d, y=%d, z=%d", 
+			nx, ny, nz);
+		return false;
+	    }
+	} else if (sscanf(line, "origin %lg %lg %lg", &x0, &y0, &z0) == 3) {
+	    // found origin
+	} else if (sscanf(line, "delta %lg %lg %lg", &ddx, &ddy, &ddz) == 3) {
+	    // found one of the delta lines
+	    if (ddx != 0.0) {
+		dx = ddx;
+	    } else if (ddy != 0.0) {
+		dy = ddy;
+	    } else if (ddz != 0.0) {
+		dz = ddz;
+	    }
+	} else if (sscanf(line, "object %*d class array type %*s shape 3"
+		" rank 1 items %d data follows", &npts) == 1) {
+	    printf("#points=%d\n", npts);
+	    if (npts != nx*ny*nz) {
+		result.addError("inconsistent data: expected %d points"
+				" but found %d points", nx*ny*nz, npts);
+		return false;
+	    }
+	    break;
+	} else if (sscanf(line, "object %*d class array type %*s rank 0"
+		" times %d data follows", &npts) == 1) {
+	    if (npts != nx*ny*nz) {
+		result.addError("inconsistent data: expected %d points"
+				" but found %d points", nx*ny*nz, npts);
+		return false;
+	    }
+	    break;
+	}
+    }
+    if (npts != nx*ny*nz) {
+	result.addError("inconsistent data: expected %d points"
+			" but found %d points", nx*ny*nz, npts);
+	return false;
+    }
+
+    _initialized = false;
+    _xValueMin = _yValueMin = _zValueMin = FLT_MAX;
+    _xValueMax = _yValueMax = _zValueMax = -FLT_MAX;
+    _xMin = x0, _yMin = y0, _zMin = z0;
+    _xNum = nx, _yNum = ny, _zNum = nz;
+    _xMax = _xMin + dx * _xNum;
+    _yMax = _yMin + dy * _yNum;
+    _zMax = _zMin + dz * _zNum;
+    if (_values != NULL) {
+	delete [] _values;
+    }
+    _values = new float[npts * _nComponents];
+    _nValues = 0;
+    for (size_t ix = 0; ix < _xNum; ix++) {
+	for (size_t iy = 0; iy < _yNum; iy++) {
+	    for (size_t iz = 0; iz < _zNum; iz++) {
+		char *line;
+		if ((p == endPtr) || (_nValues > (size_t)npts)) {
+		    break;
+		}
+		line = getline(&p, endPtr);
+		if ((line[0] == '#') || (line[0] == '\0')) {
+		    continue;	// Skip blank or comment lines.
+		}
+		double vx, vy, vz;
+		if (sscanf(line, "%lg %lg %lg", &vx, &vy, &vz) == 3) {
+		    int nindex = (iz*nx*ny + iy*nx + ix) * 3;
+		    if (vx < _xValueMin) {
+			_xValueMin = vx;
+		    } else if (vx > _xValueMax) {
+			_xValueMax = vx;
+		    }
+		    if (vy < _yValueMin) {
+			_yValueMin = vy;
+		    } else if (vy > _yValueMax) {
+			_yValueMax = vy;
+		    }
+		    if (vz < _zValueMin) {
+			_zValueMin = vz;
+		    } else if (vz > _zValueMax) {
+			_zValueMax = vz;
+		    }
+		    if (nindex >= (npts*3)) {
+			fprintf(stderr, "nindex=%d, npts=%d, z=%d, y=%d, x=%d\n",
+				nindex, npts, iz, iy, ix);
+		    }
+		    _values[nindex] = vx;
+		    _values[nindex+1] = vy;
+		    _values[nindex+2] = vz;
+		    _nValues++;
+		}
+	    }
+	}
+    }
+    // make sure that we read all of the expected points
+    if (_nValues != npts) {
+	result.addError("inconsistent data: expected %d points"
+			" but found %d points", npts, _nValues);
+	delete []  _values;
+	_values = NULL;
+	return false;
+    }
+    _nValues *= _nComponents;
+    _initialized = true;
+    return true;
+}
+
+
+bool
+Rappture::Unirect3d::Resample(Rappture::Outcome &result, int nSamples)
+{
+    Rappture::Mesh1D xgrid(_xMin, _xMax, _xNum);
+    Rappture::Mesh1D ygrid(_yMin, _yMax, _yNum);
+    Rappture::Mesh1D zgrid(_zMin, _zMax, _zNum);
+    Rappture::FieldRect3D xfield(xgrid, ygrid, zgrid);
+    Rappture::FieldRect3D yfield(xgrid, ygrid, zgrid);
+    Rappture::FieldRect3D zfield(xgrid, ygrid, zgrid);
+
+    size_t i, j;
+    for (i = 0, j = 0; i < _nValues; i += _nComponents, j++) {
+	double vx, vy, vz;
+
+	vx = _values[i];
+	vy = _values[i+1];
+	vz = _values[i+2];
+	
+	xfield.define(j, vx);
+	yfield.define(j, vy);
+	zfield.define(j, vz);
+    }
+    // Figure out a good mesh spacing
+    double dx, dy, dz;
+    dx = xfield.rangeMax(Rappture::xaxis) - xfield.rangeMin(Rappture::xaxis);
+    dy = xfield.rangeMax(Rappture::yaxis) - xfield.rangeMin(Rappture::yaxis);
+    dz = xfield.rangeMax(Rappture::zaxis) - xfield.rangeMin(Rappture::zaxis);
+
+    double dmin;
+    dmin = pow((dx*dy*dz)/(nSamples*nSamples*nSamples), 0.333);
+    
+    printf("dx:%lf dy:%lf dz:%lf dmin:%lf\n", dx, dy, dz, dmin);
+
+    /* Recompute new number of points for each axis. */
+    _xNum = (size_t)ceil(dx/dmin);
+    _yNum = (size_t)ceil(dy/dmin);
+    _zNum = (size_t)ceil(dz/dmin);
+    
+#ifndef NV40
+    // must be an even power of 2 for older cards
+    _xNum = (int)pow(2.0, ceil(log10((double)_xNum)/log10(2.0)));
+    _yNum = (int)pow(2.0, ceil(log10((double)_yNum)/log10(2.0)));
+    _zNum = (int)pow(2.0, ceil(log10((double)_zNum)/log10(2.0)));
+#endif
+
+    size_t n = _nComponents * _xNum * _yNum * _zNum;
+    float *data = new float[n];
+    memset(data, 0, sizeof(float) * n);
+    
+    // Generate the uniformly sampled rectangle that we need for a volume
+    float *destPtr = data;
+    for (size_t i = 0; i < _zNum; i++) {
+	double z;
+
+	z = _zMin + (i * dmin);
+	for (size_t j = 0; j < _yNum; j++) {
+	    double y;
+		
+	    y = _yMin + (j * dmin);
+	    for (size_t k = 0; k < _xNum; k++) {
+		double x;
+
+		x = _xMin + (k * dmin);
+		destPtr[0] = xfield.value(x, y, z);
+		destPtr[1] = yfield.value(x, y, z);
+		destPtr[2] = zfield.value(x, y, z);
+	    }
+	}
+    }
+    delete [] _values;
+    _values = data;
+    _nValues = _xNum * _yNum * _zNum * _nComponents;
+    return true;
+}
+
