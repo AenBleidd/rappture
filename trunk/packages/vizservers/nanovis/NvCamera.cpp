@@ -35,7 +35,7 @@ NvCamera::NvCamera(int startx, int starty, int w, int h,
 
 
 void 
-NvCamera::activate()
+NvCamera::initialize()
 {
     //fprintf(stderr, "camera: %d, %d\n", width, height);
     glViewport(startX_, startY_, width_, height_);

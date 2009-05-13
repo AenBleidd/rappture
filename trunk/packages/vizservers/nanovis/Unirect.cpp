@@ -519,10 +519,6 @@ Rappture::Unirect3d::ReadVectorDataFromDx(Rappture::Outcome &result,
 		    } else if (vz > _zValueMax) {
 			_zValueMax = vz;
 		    }
-		    if (nindex >= (npts*3)) {
-			fprintf(stderr, "nindex=%d, npts=%d, z=%d, y=%d, x=%d\n",
-				nindex, npts, iz, iy, ix);
-		    }
 		    _values[nindex] = vx;
 		    _values[nindex+1] = vy;
 		    _values[nindex+2] = vz;

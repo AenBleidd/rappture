@@ -113,16 +113,16 @@ PointSetRenderer* NanoVis::pointset_renderer = 0;
 vector<PointSet*> NanoVis::pointSet;
 PlaneRenderer* NanoVis::plane_render = 0;
 Texture2D* NanoVis::plane[10];
-NvColorTableRenderer* NanoVis::color_table_renderer = 0;
+NvColorTableRenderer* NanoVis::color_table_renderer = NULL;
 
 #ifndef NEW_FLOW_ENGINE
-NvParticleRenderer* NanoVis::flowVisRenderer = 0;
+NvParticleRenderer* NanoVis::flowVisRenderer = NULL;
 #else
-NvFlowVisRenderer* NanoVis::flowVisRenderer = 0;
+NvFlowVisRenderer* NanoVis::flowVisRenderer = NULL;
 #endif
 
-graphics::RenderContext* NanoVis::renderContext = 0;
-NvLIC* NanoVis::licRenderer = 0;
+graphics::RenderContext* NanoVis::renderContext = NULL;
+NvLIC* NanoVis::licRenderer = NULL;
 R2Fonts* NanoVis::fonts;
 
 FILE *NanoVis::stdin = NULL;
@@ -145,6 +145,22 @@ int NanoVis::win_width = NPIX;        /* Width of the render window */
 int NanoVis::win_height = NPIX;       /* Height of the render window */
 
 unsigned char* NanoVis::screen_buffer = NULL;
+
+unsigned int NanoVis::flags = 0;
+Tcl_HashTable NanoVis::flowTable;
+float NanoVis::magMin;
+float NanoVis::magMax;
+float NanoVis::xMin;
+float NanoVis::xMax;
+float NanoVis::yMin;
+float NanoVis::yMax;
+float NanoVis::zMin;
+float NanoVis::zMax;
+float NanoVis::wMin;
+float NanoVis::wMax;
+float NanoVis::xOrigin;
+float NanoVis::yOrigin;
+float NanoVis::zOrigin;
 
 /* FIXME: This variable is always true. */
 bool volume_mode = true; 
@@ -255,6 +271,18 @@ void removeAllData()
     //
 }
 
+
+void 
+NanoVis::EventuallyRedraw(unsigned int flag)
+{
+    if (flag) {
+	flags |= flag;
+    }
+    if ((flags & REDRAW_PENDING) == 0) {
+	glutPostRedisplay();
+	flags |= REDRAW_PENDING;
+    }
+}
 
 #if KEEPSTATS
 
@@ -424,7 +452,7 @@ ExecuteCommand(Tcl_Interp *interp, Tcl_DString *dsPtr)
     double start, finish;
     int result;
 
-#ifdef notdef
+#ifndef notdef
     if (NanoVis::debug_flag) {
         fprintf(stderr, "in ExecuteCommand(%s)\n", Tcl_DStringValue(dsPtr));
     }
@@ -432,7 +460,8 @@ ExecuteCommand(Tcl_Interp *interp, Tcl_DString *dsPtr)
     gettimeofday(&tv, NULL);
     start = CVT2SECS(tv);
 
-#ifdef notdef
+    Trace("in ExecuteCommand(%s)\n", Tcl_DStringValue(dsPtr));
+#ifndef notdef
     if (NanoVis::logfile != NULL) {
         fprintf(NanoVis::logfile, "%s", Tcl_DStringValue(dsPtr));
         fflush(NanoVis::logfile);
@@ -450,7 +479,7 @@ ExecuteCommand(Tcl_Interp *interp, Tcl_DString *dsPtr)
 
     stats.cmdTime += finish - start;
     stats.nCommands++;
-#ifdef notdef
+#ifndef notdef
     if (NanoVis::debug_flag) {
         fprintf(stderr, "leaving ExecuteCommand status=%d\n", result);
     }
@@ -650,6 +679,7 @@ NanoVis::init_offscreen_buffer()
 void 
 NanoVis::resize_offscreen_buffer(int w, int h)
 {
+    Trace("in resize_offscreen_buffer(%d, %d)\n", w, h);
     if ((w == win_width) && (h == win_height)) {
         return;
     }
@@ -664,9 +694,7 @@ NanoVis::resize_offscreen_buffer(int w, int h)
         fonts->resize(w, h);
     }
     //fprintf(stderr, "screen_buffer size: %d\n", sizeof(screen_buffer));
-    if (debug_flag) {
-	fprintf(stderr, "screen_buffer size: %d %d\n", w, h);
-    }
+    Trace("screen_buffer size: %d %d\n", w, h);
     
     if (screen_buffer != NULL) {
         delete [] screen_buffer;
@@ -1639,9 +1667,12 @@ NanoVis::display()
     if (debug_flag) {
         fprintf(stderr, "in display\n");
     }
-
-    if (FlowCmd::flags & FlowCmd::MAP_PENDING) {
-	FlowCmd::MapFlows();
+    if (flags & MAP_FLOWS) {
+	xMin = yMin = zMin = wMin = magMin = FLT_MAX;
+	xMax = yMax = zMax = wMax = magMax = -FLT_MAX;
+    }
+    if (flags & MAP_FLOWS) {
+	MapFlows();
     }
     //assert(glGetError()==0);
     if (HeightMap::update_pending) {
@@ -1666,7 +1697,7 @@ NanoVis::display()
         glEnable(GL_DEPTH_TEST);
 
         //camera setting activated
-        cam->activate();
+        cam->initialize();
 
         //set up the orientation of items in the scene.
         glPushMatrix();
@@ -1709,17 +1740,16 @@ NanoVis::display()
         if (grid->isVisible()) {
             grid->render();
         }
-        if ((licRenderer != NULL) && (licRenderer->isActivated())) {
+        if ((licRenderer != NULL) && (licRenderer->active())) {
             licRenderer->render();
-	    /*FlowCmd::SetupFlows();*/
         }
 #ifdef notdef
-        if ((flowVisRenderer != NULL) && (flowVisRenderer->isActivated())) {
+        if ((flowVisRenderer != NULL) && (flowVisRenderer->active())) {
             flowVisRenderer->render();
 	}
 #endif
-	if (FlowCmd::flags & FlowCmd::REDRAW_PENDING) {
-	    FlowCmd::RenderFlows();
+	if (flowTable.numEntries > 0) {
+	    RenderFlows();
 	}
 
         //soft_display_verts();
@@ -1900,15 +1930,15 @@ NanoVis::keyboard(unsigned char key, int x, int y)
 	case 'a' :
 		{
 			printf("flowvis active\n");
-			NanoVis::flowVisRenderer->activate();
-			NanoVis::licRenderer->activate();
+			NanoVis::flowVisRenderer->active(true);
+			NanoVis::licRenderer->active(true);
 		}
 		break;
 	case 'd' :
 		{
 			printf("flowvis deactived\n");
-			NanoVis::flowVisRenderer->deactivate();
-			NanoVis::licRenderer->deactivate();
+			NanoVis::flowVisRenderer->active(false);
+			NanoVis::licRenderer->active(false);
 		}
 		break;
 	case '1' :
@@ -2047,12 +2077,12 @@ NanoVis::render()
 {
 
     if ((NanoVis::licRenderer != NULL) && 
-	(NanoVis::licRenderer->isActivated())) {
+	(NanoVis::licRenderer->active())) {
 	NanoVis::licRenderer->convolve();
     }
 
     if ((NanoVis::flowVisRenderer != NULL) && 
-	(NanoVis::flowVisRenderer->isActivated())) {
+	(NanoVis::flowVisRenderer->active())) {
 	NanoVis::flowVisRenderer->advect();
     }
 
@@ -2133,6 +2163,7 @@ NanoVis::xinetd_listen(void)
         int nBytes;
 
         string = Tcl_GetVar(interp, "errorInfo", TCL_GLOBAL_ONLY);
+	Trace("errorInfo=(%s)\n", string);
         nBytes = strlen(string);
         struct iovec iov[3];
         iov[0].iov_base = (char *)"NanoVis Server Error: ";
@@ -2176,7 +2207,7 @@ NanoVis::xinetd_listen(void)
         fprintf(stderr, "ppm image not written (debug mode)\n");
         bmp_write_to_file(1, "/tmp");
     } else {
-        NanoVis::ppm_write("nv>image -type image -bytes");
+        NanoVis::ppm_write("\nnv>image -type image -bytes");
     }
 #endif
     if (feof(NanoVis::stdin)) {
@@ -2405,7 +2436,7 @@ NanoVis::render_2d_contour(HeightMap* heightmap, int width, int height)
         SetHeightmapRanges();
     }
 
-    //cam->activate();
+    //cam->initialize();
 
     heightmap->render_topview(renderContext, width, height);
 

@@ -99,8 +99,6 @@ Lic::Lic(int _size, int _width, int _height, float _offset,
 
   get_slice();
   make_patterns();
-
-  fprintf(stderr, "initialize lic ...\n");
 }
 
 Lic::~Lic(){

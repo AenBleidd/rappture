@@ -76,15 +76,14 @@ void VolumeRenderer::init_shaders(){
 }
 
 
-int VolumeRenderer::add_volume(Volume* _vol, TransferFunction* _tf){
-
-  int ret = n_volumes;
-
+int 
+VolumeRenderer::add_volume(Volume* _vol, TransferFunction* _tf)
+{
   volume.push_back(_vol);
   tf.push_back(_tf);
 
+  int ret = n_volumes;
   n_volumes++;
-
   return ret;
 }
 

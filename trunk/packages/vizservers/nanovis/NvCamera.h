@@ -93,7 +93,7 @@ public:
 	width_ = w, height_ = h;
 	startX_ = sx, startY_ = sy;
     }
-    void activate(void); //make the camera setting active, this has to be
+    void initialize(void); //make the camera setting active, this has to be
 			 //called before drawing things.
 };
 

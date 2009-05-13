@@ -101,6 +101,8 @@ struct RegGrid2{
 };
 
 class NvLIC;
+class FlowCmd;
+class FlowIterator;
 
 class NanoVis {
     //frame buffer for final rendering
@@ -199,6 +201,32 @@ public:
     static void offscreen_buffer_capture(void) {
         glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, final_fbo);
     }
+
+    static unsigned int flags;
+    static Tcl_HashTable flowTable;
+    static float magMin, magMax;
+    static float xMin, xMax, yMin, yMax, zMin, zMax, wMin, wMax;
+    static float xOrigin, yOrigin, zOrigin;
+
+    static FlowCmd *FirstFlow(FlowIterator *iterPtr);
+    static FlowCmd *NextFlow(FlowIterator *iterPtr);
+    static void InitFlows(void);
+    static int GetFlow(Tcl_Interp *interp, Tcl_Obj *objPtr, 
+		       FlowCmd **flowPtrPtr);
+    static int CreateFlow(Tcl_Interp *interp, Tcl_Obj *objPtr);
+    static void DeleteFlows(Tcl_Interp *interp);
+    static bool MapFlows(void);
+    static void RenderFlows(void);
+    static void ResetFlows(void);
+    static bool UpdateFlows(void);
+    static void AdvectFlows(void);
+    enum NanoVisFlags { 
+	REDRAW_PENDING=(1<<0), 
+	MAP_FLOWS=(1<<1),
+	MAP_VOLUMES=(1<<2),
+	MAP_HEIGHTMAPS=(1<<3),
+    };
+    static void EventuallyRedraw(unsigned int flag = 0);
 };
 
 

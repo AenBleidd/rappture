@@ -16,10 +16,12 @@
 #ifndef __CONFIG_H__
 #define __CONFIG_H__
 
-#define NV40 	  //Uncomment if using 6 series card. By default we assume older card the 5xxx series
-#define XINETD  //enable render server
-//#define EVENTLOG  //enable event logging
-//#define DO_RLE  //do run length compression
+#define NV40				/* Uncomment if using 6 series
+					 * card. By default we assume older
+					 * card the 5xxx series */
+#define XINETD				/* Enable render server. */
+//#define EVENTLOG			/* Enable event logging. */
+//#define DO_RLE			/* Do run length compression. */
 
 /* 
  * The following define controls whether new prototype features are to be
