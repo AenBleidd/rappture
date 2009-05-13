@@ -2775,7 +2775,7 @@ RpUnitsPreset::addPresetMass () {
 
     RpUnits* gram  = NULL;
 
-    gram  = RpUnits::define("g", NULL, RP_TYPE_MASS, RPUNITS_METRIC);
+    gram  = RpUnits::define("g", NULL, RP_TYPE_MASS, RPUNITS_METRIC,!RPUNITS_CASE_INSENSITIVE);
 
     return 0;
 }
@@ -2910,7 +2910,7 @@ RpUnitsPreset::addPresetMagnetic () {
     RpUnits* weber = NULL;
 
     tesla = RpUnits::define("T",  NULL, RP_TYPE_MAGNETIC, RPUNITS_METRIC);
-    gauss = RpUnits::define("G",  NULL, RP_TYPE_MAGNETIC);
+    gauss = RpUnits::define("G",  NULL, RP_TYPE_MAGNETIC, !RPUNITS_CASE_INSENSITIVE);
     maxwell = RpUnits::define("Mx",  NULL, RP_TYPE_MAGNETIC);
     weber = RpUnits::define("Wb", NULL, RP_TYPE_MAGNETIC, RPUNITS_METRIC);
 
