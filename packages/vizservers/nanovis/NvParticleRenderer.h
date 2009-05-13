@@ -102,7 +102,6 @@ public :
     int _slice_axis;
     Vector4 _color;
 
-
 public:
     int psys_width;	//the storage of particles is implemented as a 2D array.
     int psys_height;
@@ -117,35 +116,21 @@ public:
     void reset();
     void render();
 
-    void activate();
-    void deactivate();
-    bool isActivated() const;
-
+    bool active(void) {
+	return _activate;
+    }
+    void active(bool state) {
+	_activate = state;
+    }
+    void setColor(const Vector4& color) {
+	_color = color;
+    }
     void setAxis(int axis);
-    void setColor(const Vector4& color);
     void setPos(float pos);
-
-    void draw_bounding_box(float x0, float y0, float z0, float x1, float y1, float z1, float r, float g, float b, float line_width);
+    void draw_bounding_box(float x0, float y0, float z0, 
+			   float x1, float y1, float z1, 
+			   float r, float g, float b, float line_width);
     void initializeDataArray();
 };
 
-inline void NvParticleRenderer::activate()
-{
-    _activate = true;
-}
-
-inline void NvParticleRenderer::deactivate()
-{
-    _activate = false;
-}
-
-inline bool NvParticleRenderer::isActivated() const
-{
-    return _activate;
-}
-
-inline void NvParticleRenderer::setColor(const Vector4& color)
-{
-	_color = color;
-}
 #endif

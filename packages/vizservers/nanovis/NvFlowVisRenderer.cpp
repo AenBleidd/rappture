@@ -30,64 +30,64 @@
 NvFlowVisRenderer::NvFlowVisRenderer(int w, int h, CGcontext context) : 
     _activated(true)
 {
-	_psys_width = w;
-	_psys_height = h;
+    _psys_width = w;
+    _psys_height = h;
 
-/*
-    	licRenderer[0] = new NvLIC(NMESH, NPIX, NPIX, 0, 
-				Vector3(0, 0, 0), g_context);
-    	licRenderer[1] = new NvLIC(NMESH, NPIX, NPIX, 1, 
-				Vector3(0, 0, 0), g_context);
-    	licRenderer[2] = new NvLIC(NMESH, NPIX, NPIX, 2, 
-				Vector3(0, 0, 0), g_context);
-*/
+    /*
+      licRenderer[0] = new NvLIC(NMESH, NPIX, NPIX, 0, 
+      Vector3(0, 0, 0), g_context);
+      licRenderer[1] = new NvLIC(NMESH, NPIX, NPIX, 1, 
+      Vector3(0, 0, 0), g_context);
+      licRenderer[2] = new NvLIC(NMESH, NPIX, NPIX, 2, 
+      Vector3(0, 0, 0), g_context);
+    */
 }
 
 NvFlowVisRenderer::~NvFlowVisRenderer()
 {
-	std::map<std::string, NvVectorField*>::iterator iter;
-	for (iter = _vectorFieldMap.begin(); iter != _vectorFieldMap.end(); ++iter)
+    std::map<std::string, NvVectorField*>::iterator iter;
+    for (iter = _vectorFieldMap.begin(); iter != _vectorFieldMap.end(); ++iter)
 	{
-		delete (*iter).second;
+	    delete (*iter).second;
 	}
 
-/*
-	for (int i = 0; i < 3; ++i)
-	{
-		delete licRenderer[i];
-	}
-*/
+    /*
+      for (int i = 0; i < 3; ++i)
+      {
+      delete licRenderer[i];
+      }
+    */
 }
 
 void 
 NvFlowVisRenderer::initialize()
 {
-	std::map<std::string, NvVectorField*>::iterator iter;
-	for (iter = _vectorFieldMap.begin(); iter != _vectorFieldMap.end(); ++iter)
+    std::map<std::string, NvVectorField*>::iterator iter;
+    for (iter = _vectorFieldMap.begin(); iter != _vectorFieldMap.end(); ++iter)
 	{
-		(*iter).second->initialize();
+	    (*iter).second->initialize();
 	}
 }
 
 void 
 NvFlowVisRenderer::reset()
 {
-	std::map<std::string, NvVectorField*>::iterator iter;
-	for (iter = _vectorFieldMap.begin(); iter != _vectorFieldMap.end(); ++iter)
+    std::map<std::string, NvVectorField*>::iterator iter;
+    for (iter = _vectorFieldMap.begin(); iter != _vectorFieldMap.end(); ++iter)
 	{
-		(*iter).second->reset();
+	    (*iter).second->reset();
 	}
 }
 
 void 
 NvFlowVisRenderer::initialize(const std::string& vfName)
 {
-	std::map<std::string, NvVectorField*>::iterator iter = _vectorFieldMap.find(vfName);
-	if (iter != _vectorFieldMap.end()) 
+    std::map<std::string, NvVectorField*>::iterator iter = _vectorFieldMap.find(vfName);
+    if (iter != _vectorFieldMap.end()) 
 	{
-		if ((*iter).second) 
+	    if ((*iter).second) 
 		{
-			(*iter).second->initialize();
+		    (*iter).second->initialize();
 		}
 	}
 }
@@ -95,20 +95,20 @@ NvFlowVisRenderer::initialize(const std::string& vfName)
 void 
 NvFlowVisRenderer::advect()
 {
-	std::map<std::string, NvVectorField*>::iterator iter;
-	for (iter = _vectorFieldMap.begin(); iter != _vectorFieldMap.end(); ++iter)
+    std::map<std::string, NvVectorField*>::iterator iter;
+    for (iter = _vectorFieldMap.begin(); iter != _vectorFieldMap.end(); ++iter)
 	{
-		if((*iter).second && (*iter).second->isActivated()) (*iter).second->advect();
+	    if((*iter).second && (*iter).second->active()) (*iter).second->advect();
 	}
 }
 
 void 
 NvFlowVisRenderer::render()
 { 
-	std::map<std::string, NvVectorField*>::iterator iter;
-	for (iter = _vectorFieldMap.begin(); iter != _vectorFieldMap.end(); ++iter)
+    std::map<std::string, NvVectorField*>::iterator iter;
+    for (iter = _vectorFieldMap.begin(); iter != _vectorFieldMap.end(); ++iter)
 	{
-		if((*iter).second && (*iter).second->isActivated()) (*iter).second->render();
+	    if((*iter).second && (*iter).second->active()) (*iter).second->render();
 	}
 }
 
@@ -134,152 +134,143 @@ NvFlowVisRenderer::addVectorField(const std::string& vfName, Volume* volPtr, con
 void 
 NvFlowVisRenderer::activateVectorField(const std::string& vfName)
 {
-	std::map<std::string, NvVectorField*>::iterator iter = _vectorFieldMap.find(vfName);
-	if (iter != _vectorFieldMap.end()) 
-		if ((*iter).second) (*iter).second->activate();
+    std::map<std::string, NvVectorField*>::iterator iter = _vectorFieldMap.find(vfName);
+    if (iter != _vectorFieldMap.end()) 
+	if ((*iter).second) (*iter).second->active(true);
 }
 
 void 
 NvFlowVisRenderer::deactivateVectorField(const std::string& vfName)
 {
-	std::map<std::string, NvVectorField*>::iterator iter = _vectorFieldMap.find(vfName);
-	if (iter != _vectorFieldMap.end()) 
-		if ((*iter).second) (*iter).second->deactivate();
+    std::map<std::string, NvVectorField*>::iterator iter = _vectorFieldMap.find(vfName);
+    if (iter != _vectorFieldMap.end()) 
+	if ((*iter).second) (*iter).second->active(false);
 }
 
 void 
 NvFlowVisRenderer::activatePlane(const std::string& vfName, const std::string& name)
 {
-	std::map<std::string, NvVectorField*>::iterator iter = _vectorFieldMap.find(vfName);
-	if (iter != _vectorFieldMap.end()) 
+    std::map<std::string, NvVectorField*>::iterator iter = _vectorFieldMap.find(vfName);
+    if (iter != _vectorFieldMap.end()) 
 	{
-		if ((*iter).second) (*iter).second->activatePlane(name);
+	    if ((*iter).second) (*iter).second->activatePlane(name);
 	}
 }
 
 void 
 NvFlowVisRenderer::deactivatePlane(const std::string& vfName, const std::string& name)
 {
-	std::map<std::string, NvVectorField*>::iterator iter;
+    std::map<std::string, NvVectorField*>::iterator iter;
 
-	iter = _vectorFieldMap.find(vfName);
-	if (iter != _vectorFieldMap.end()) 
+    iter = _vectorFieldMap.find(vfName);
+    if (iter != _vectorFieldMap.end()) 
 	{
-		if ((*iter).second) (*iter).second->deactivatePlane(name);
+	    if ((*iter).second) (*iter).second->deactivatePlane(name);
 	}
 }
 
 void
 NvFlowVisRenderer::setPlaneAxis(const std::string& vfName, const std::string& planeName, int axis)
 {
-	std::map<std::string, NvVectorField*>::iterator iter = _vectorFieldMap.find(vfName);
-	if (iter != _vectorFieldMap.end()) 
-		if((*iter).second) (*iter).second->setPlaneAxis(planeName, axis);
+    std::map<std::string, NvVectorField*>::iterator iter = _vectorFieldMap.find(vfName);
+    if (iter != _vectorFieldMap.end()) 
+	if((*iter).second) (*iter).second->setPlaneAxis(planeName, axis);
 }
 
 void
 NvFlowVisRenderer::setPlanePos(const std::string& vfName, const std::string& name, float pos)
 {
-	std::map<std::string, NvVectorField*>::iterator iter = _vectorFieldMap.find(vfName);
-	if (iter != _vectorFieldMap.end()) 
-		if((*iter).second) (*iter).second->setPlanePos(name, pos);
+    std::map<std::string, NvVectorField*>::iterator iter = _vectorFieldMap.find(vfName);
+    if (iter != _vectorFieldMap.end()) 
+	if((*iter).second) (*iter).second->setPlanePos(name, pos);
 }
 
 void
 NvFlowVisRenderer::setParticleColor(const std::string& vfName, const std::string& name, const Vector4& color)
 {
-	std::map<std::string, NvVectorField*>::iterator iter = _vectorFieldMap.find(vfName);
-	if (iter != _vectorFieldMap.end()) 
-		if((*iter).second) (*iter).second->setParticleColor(name, color);
+    std::map<std::string, NvVectorField*>::iterator iter = _vectorFieldMap.find(vfName);
+    if (iter != _vectorFieldMap.end()) 
+	if((*iter).second) (*iter).second->setParticleColor(name, color);
 }
 
 void 
 NvFlowVisRenderer::removeVectorField(const std::string& vfName)
 {
-	std::map<std::string, NvVectorField*>::iterator iter = _vectorFieldMap.find(vfName);
-	if (iter != _vectorFieldMap.end()) 
-	{
-		delete (*iter).second;
-		_vectorFieldMap.erase(iter);
-	}
+    std::map<std::string, NvVectorField*>::iterator iter = _vectorFieldMap.find(vfName);
+    if (iter != _vectorFieldMap.end()) {
+	delete (*iter).second;
+	_vectorFieldMap.erase(iter);
+    }
 }
 
 void 
 NvFlowVisRenderer::addPlane(const std::string& vfName, const std::string& name)
 {
-	std::map<std::string, NvVectorField*>::iterator iter = _vectorFieldMap.find(vfName);
-	if (iter != _vectorFieldMap.end()) 
-	{
-		if ((*iter).second) (*iter).second->addPlane(name);
-	}
+    std::map<std::string, NvVectorField*>::iterator iter = _vectorFieldMap.find(vfName);
+    if (iter != _vectorFieldMap.end()) {
+	if ((*iter).second) (*iter).second->addPlane(name);
+    }
 }
 
 void 
 NvFlowVisRenderer::removePlane(const std::string& vfName, const std::string& name)
 {
-	std::map<std::string, NvVectorField*>::iterator iter = _vectorFieldMap.find(vfName);
-	if (iter != _vectorFieldMap.end()) 
-	{
-		if ((*iter).second) (*iter).second->removePlane(name);
-	}
+    std::map<std::string, NvVectorField*>::iterator iter = _vectorFieldMap.find(vfName);
+    if (iter != _vectorFieldMap.end()) {
+	if ((*iter).second) (*iter).second->removePlane(name);
+    }
 }
 
 void 
 NvFlowVisRenderer::activateDeviceShape(const std::string& vfName, const std::string& name)
 {
-	std::map<std::string, NvVectorField*>::iterator iter = _vectorFieldMap.find(vfName);
-	if (iter != _vectorFieldMap.end()) 
-	{
-		if ((*iter).second) (*iter).second->activateDeviceShape(name);
-	}
+    std::map<std::string, NvVectorField*>::iterator iter = _vectorFieldMap.find(vfName);
+    if (iter != _vectorFieldMap.end()) {
+	if ((*iter).second) (*iter).second->activateDeviceShape(name);
+    }
 }
 
 void 
 NvFlowVisRenderer::deactivateDeviceShape(const std::string& vfName, const std::string& name)
 {
-	std::map<std::string, NvVectorField*>::iterator iter = _vectorFieldMap.find(vfName);
-	if (iter != _vectorFieldMap.end()) 
-	{
-		if ((*iter).second) (*iter).second->deactivateDeviceShape(name);
-	}
+    std::map<std::string, NvVectorField*>::iterator iter = _vectorFieldMap.find(vfName);
+    if (iter != _vectorFieldMap.end()) {
+	if ((*iter).second) (*iter).second->deactivateDeviceShape(name);
+    }
 }
 
 void 
 NvFlowVisRenderer::activateDeviceShape(const std::string& vfName)
 {
-	std::map<std::string, NvVectorField*>::iterator iter = _vectorFieldMap.find(vfName);
-	if (iter != _vectorFieldMap.end()) 
-	{
-		if ((*iter).second) (*iter).second->activateDeviceShape();
-	}
+    std::map<std::string, NvVectorField*>::iterator iter = _vectorFieldMap.find(vfName);
+    if (iter != _vectorFieldMap.end()) {
+	if ((*iter).second) (*iter).second->activateDeviceShape();
+    }
 }
 
 void 
 NvFlowVisRenderer::deactivateDeviceShape(const std::string& vfName)
 {
-	std::map<std::string, NvVectorField*>::iterator iter = _vectorFieldMap.find(vfName);
-	if (iter != _vectorFieldMap.end()) 
-	{
-		if ((*iter).second) (*iter).second->deactivateDeviceShape();
-	}
+    std::map<std::string, NvVectorField*>::iterator iter = _vectorFieldMap.find(vfName);
+    if (iter != _vectorFieldMap.end()) {
+	if ((*iter).second) (*iter).second->deactivateDeviceShape();
+    }
 }
 
 void 
 NvFlowVisRenderer::addDeviceShape(const std::string& vfName, const std::string& name, const NvDeviceShape& shape)
 {
-	std::map<std::string, NvVectorField*>::iterator iter = _vectorFieldMap.find(vfName);
-	if (iter != _vectorFieldMap.end()) 
-	{
-		if ((*iter).second) (*iter).second->addDeviceShape(name, shape);
-	}
+    std::map<std::string, NvVectorField*>::iterator iter = _vectorFieldMap.find(vfName);
+    if (iter != _vectorFieldMap.end()) {
+	if ((*iter).second) (*iter).second->addDeviceShape(name, shape);
+    }
 }
 
 void 
 NvFlowVisRenderer::removeDeviceShape(const std::string& vfName, const std::string& name)
 {
-	std::map<std::string, NvVectorField*>::iterator iter = _vectorFieldMap.find(vfName);
-	if (iter != _vectorFieldMap.end()) 
-	{
-		if ((*iter).second) (*iter).second->removeDeviceShape(name);
-	}
+    std::map<std::string, NvVectorField*>::iterator iter = _vectorFieldMap.find(vfName);
+    if (iter != _vectorFieldMap.end()) {
+	if ((*iter).second) (*iter).second->removeDeviceShape(name);
+    }
 }

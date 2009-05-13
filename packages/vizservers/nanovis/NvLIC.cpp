@@ -24,8 +24,8 @@
 #include <Trace.h>
 #include "global.h"
 
-NvLIC::NvLIC(int _size, int _width, int _height, int _axis, const Vector3& _offset,
-             CGcontext _context) : 
+NvLIC::NvLIC(int _size, int _width, int _height, int _axis, 
+	     const Vector3& _offset, CGcontext _context) : 
     Renderable(Vector3(0.0f,0.0f,0.0f)),
     disListID(0),
     width(_width),
@@ -53,14 +53,10 @@ NvLIC::NvLIC(int _size, int _width, int _height, int _axis, const Vector3& _offs
     //initialize the pattern texture
     glGenTextures(1, &pattern_tex);
     glBindTexture(GL_TEXTURE_2D, pattern_tex);
-    glTexParameteri(GL_TEXTURE_2D,
-                  GL_TEXTURE_WRAP_S, GL_REPEAT); 
-    glTexParameteri(GL_TEXTURE_2D,
-                  GL_TEXTURE_WRAP_T, GL_REPEAT); 
-    glTexParameteri(GL_TEXTURE_2D,
-                  GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D,
-                  GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT); 
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT); 
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
 
     //initialize frame buffer objects
@@ -75,13 +71,13 @@ NvLIC::NvLIC(int _size, int _width, int _height, int _axis, const Vector3& _offs
     glTexParameterf(GL_TEXTURE_RECTANGLE_NV, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
     // ADD INSOO
-    glTexParameteri(GL_TEXTURE_RECTANGLE_NV,
-                  GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE); 
-    glTexParameteri(GL_TEXTURE_RECTANGLE_NV,
-                  GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE); 
+    glTexParameteri(GL_TEXTURE_RECTANGLE_NV, GL_TEXTURE_WRAP_S, 
+		    GL_CLAMP_TO_EDGE); 
+    glTexParameteri(GL_TEXTURE_RECTANGLE_NV, GL_TEXTURE_WRAP_T, 
+		    GL_CLAMP_TO_EDGE); 
 
-    glTexImage2D(GL_TEXTURE_RECTANGLE_NV, 0, 
-        GL_FLOAT_RGBA32_NV, size, size, 0, GL_RGBA, GL_FLOAT, NULL);
+    glTexImage2D(GL_TEXTURE_RECTANGLE_NV, 0, GL_FLOAT_RGBA32_NV, size, size, 
+		0, GL_RGBA, GL_FLOAT, NULL);
 
     glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, 
                   GL_TEXTURE_RECTANGLE_NV, slice_vector_tex, 0);
@@ -211,7 +207,6 @@ void NvLIC::make_magnitudes()
             mag[i][j][3] = a;
         }
     }
-
     glGenTextures(1, &mag_tex);
     glBindTexture(GL_TEXTURE_2D, mag_tex);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT); 
@@ -251,8 +246,7 @@ NvLIC::get_slice()
 
     glBegin(GL_QUADS);
     {
-	switch (axis)
-	{
+	switch (axis) {
 	case 0 :
 	    // TBD..
             glTexCoord3f(offset.x, 0., 0.); glVertex2f(0.,   0.);
@@ -302,7 +296,9 @@ NvLIC::get_slice()
 void 
 NvLIC::convolve()
 {
-    if (vectorFieldID == 0) return;
+    if (vectorFieldID == 0) {
+	return;
+    }
 
     int   i, j; 
     float x1, x2, y, px, py;
@@ -409,7 +405,9 @@ void NvLIC::render(){ display(); }
 void 
 NvLIC::display()
 {
-    if (vectorFieldID == 0) return;
+    if (vectorFieldID == 0) {
+	return;
+    }
 
     glBindTexture(GL_TEXTURE_2D, color_tex);
     glEnable(GL_TEXTURE_2D);

@@ -688,7 +688,7 @@ GetDataStream(Tcl_Interp *interp, Rappture::Buffer &buf, int nBytes)
     }
     Rappture::Outcome err;
     unsigned int flags;
-    flags = RPENC_Z|RPENC_B64|RPENC_HDR;
+    flags = RPENC_HDR;
     if (!Rappture::encoding::decode(err, buf, flags)) {
 	printf("ERROR -- DECODING\n");
 	fflush(stdout);
@@ -700,7 +700,7 @@ GetDataStream(Tcl_Interp *interp, Rappture::Buffer &buf, int nBytes)
 
 
 static int
-CameraAimOp(ClientData cdata, Tcl_Interp *interp, int objc, 
+CameraAimOp(ClientData clientData, Tcl_Interp *interp, int objc, 
             Tcl_Obj *const *objv)
 {
     float x, y, z;
@@ -716,7 +716,7 @@ CameraAimOp(ClientData cdata, Tcl_Interp *interp, int objc,
 }
 
 static int
-CameraAngleOp(ClientData cdata, Tcl_Interp *interp, int objc, 
+CameraAngleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
               Tcl_Obj *const *objv)
 {
     float theta, phi, psi;
@@ -731,7 +731,7 @@ CameraAngleOp(ClientData cdata, Tcl_Interp *interp, int objc,
 
 
 static int
-CameraPanOp(ClientData cdata, Tcl_Interp *interp, int objc, 
+CameraPanOp(ClientData clientData, Tcl_Interp *interp, int objc, 
              Tcl_Obj *const *objv)
 {
     float x, y;
@@ -744,7 +744,7 @@ CameraPanOp(ClientData cdata, Tcl_Interp *interp, int objc,
 }
 
 static int
-CameraZoomOp(ClientData cdata, Tcl_Interp *interp, int objc, 
+CameraZoomOp(ClientData clientData, Tcl_Interp *interp, int objc, 
              Tcl_Obj *const *objv)
 {
     float zoom;
@@ -777,7 +777,8 @@ static int nCameraOps = NumCmdSpecs(cameraOps);
  * ----------------------------------------------------------------------
  */
 static int
-CameraCmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const *objv)
+CameraCmd(ClientData clientData, Tcl_Interp *interp, int objc, 
+	  Tcl_Obj *const *objv)
 {
     Tcl_ObjCmdProc *proc;
 
@@ -786,13 +787,13 @@ CameraCmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const *objv)
     if (proc == NULL) {
         return TCL_ERROR;
     }
-    return (*proc) (cdata, interp, objc, objv);
+    return (*proc) (clientData, interp, objc, objv);
 }
 
 /*ARGSUSED*/
 static int
-SnapshotCmd(ClientData cdata, Tcl_Interp *interp, int objc,
-              Tcl_Obj *const *objv)
+SnapshotCmd(ClientData clientData, Tcl_Interp *interp, int objc,
+	    Tcl_Obj *const *objv)
 {
     int w, h;
 
@@ -814,7 +815,7 @@ SnapshotCmd(ClientData cdata, Tcl_Interp *interp, int objc,
 }
 
 static int
-CutplanePositionOp(ClientData cdata, Tcl_Interp *interp, int objc,
+CutplanePositionOp(ClientData clientData, Tcl_Interp *interp, int objc,
                    Tcl_Obj *const *objv)
 {
     float relval;
@@ -846,7 +847,7 @@ CutplanePositionOp(ClientData cdata, Tcl_Interp *interp, int objc,
 }
 
 static int
-CutplaneStateOp(ClientData cdata, Tcl_Interp *interp, int objc,
+CutplaneStateOp(ClientData clientData, Tcl_Interp *interp, int objc,
                 Tcl_Obj *const *objv)
 {
     bool state;
@@ -899,7 +900,7 @@ static int nCutplaneOps = NumCmdSpecs(cutplaneOps);
  * ----------------------------------------------------------------------
  */
 static int
-CutplaneCmd(ClientData cdata, Tcl_Interp *interp, int objc,
+CutplaneCmd(ClientData clientData, Tcl_Interp *interp, int objc,
             Tcl_Obj *const *objv)
 {
     Tcl_ObjCmdProc *proc;
@@ -909,7 +910,7 @@ CutplaneCmd(ClientData cdata, Tcl_Interp *interp, int objc,
     if (proc == NULL) {
         return TCL_ERROR;
     }
-    return (*proc) (cdata, interp, objc, objv);
+    return (*proc) (clientData, interp, objc, objv);
 }
 
 /*
@@ -924,7 +925,8 @@ CutplaneCmd(ClientData cdata, Tcl_Interp *interp, int objc,
  * ----------------------------------------------------------------------
  */
 static int
-LegendCmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const *objv)
+LegendCmd(ClientData clientData, Tcl_Interp *interp, int objc, 
+	  Tcl_Obj *const *objv)
 {
     if (objc != 4) {
         Tcl_AppendResult(interp, "wrong # args: should be \"",
@@ -965,7 +967,8 @@ LegendCmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const *objv)
  * ----------------------------------------------------------------------
  */
 static int
-ScreenCmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const *objv)
+ScreenCmd(ClientData clientData, Tcl_Interp *interp, int objc, 
+	  Tcl_Obj *const *objv)
 {
     if (objc != 3) {
         Tcl_AppendResult(interp, "wrong # args: should be \"",
@@ -993,7 +996,7 @@ ScreenCmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const *objv)
  * ----------------------------------------------------------------------
  */
 static int
-TransfuncCmd(ClientData cdata, Tcl_Interp *interp, int objc,
+TransfuncCmd(ClientData clientData, Tcl_Interp *interp, int objc,
              Tcl_Obj *const *objv)
 {
     if (objc < 2) {
@@ -1101,7 +1104,7 @@ TransfuncCmd(ClientData cdata, Tcl_Interp *interp, int objc,
  * ----------------------------------------------------------------------
  */
 static int
-UpCmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const *objv)
+UpCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *const *objv)
 {
     if (objc != 2) {
         Tcl_AppendResult(interp, "wrong # args: should be \"",
@@ -1120,7 +1123,7 @@ UpCmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const *objv)
 
 
 static int
-VolumeAnimationCaptureOp(ClientData cdata, Tcl_Interp *interp, int objc,
+VolumeAnimationCaptureOp(ClientData clientData, Tcl_Interp *interp, int objc,
                          Tcl_Obj *const *objv)
 {
     int total;
@@ -1154,7 +1157,7 @@ VolumeAnimationCaptureOp(ClientData cdata, Tcl_Interp *interp, int objc,
 }
 
 static int
-VolumeAnimationClearOp(ClientData cdata, Tcl_Interp *interp, int objc,
+VolumeAnimationClearOp(ClientData clientData, Tcl_Interp *interp, int objc,
                        Tcl_Obj *const *objv)
 {
     NanoVis::vol_renderer->clearAnimatedVolumeInfo();
@@ -1162,7 +1165,7 @@ VolumeAnimationClearOp(ClientData cdata, Tcl_Interp *interp, int objc,
 }
 
 static int
-VolumeAnimationStartOp(ClientData cdata, Tcl_Interp *interp, int objc,
+VolumeAnimationStartOp(ClientData clientData, Tcl_Interp *interp, int objc,
                        Tcl_Obj *const *objv)
 {
     NanoVis::vol_renderer->startVolumeAnimation();
@@ -1170,7 +1173,7 @@ VolumeAnimationStartOp(ClientData cdata, Tcl_Interp *interp, int objc,
 }
 
 static int
-VolumeAnimationStopOp(ClientData cdata, Tcl_Interp *interp, int objc,
+VolumeAnimationStopOp(ClientData clientData, Tcl_Interp *interp, int objc,
                       Tcl_Obj *const *objv)
 {
     NanoVis::vol_renderer->stopVolumeAnimation();
@@ -1178,7 +1181,7 @@ VolumeAnimationStopOp(ClientData cdata, Tcl_Interp *interp, int objc,
 }
 
 static int
-VolumeAnimationVolumesOp(ClientData cdata, Tcl_Interp *interp, int objc,
+VolumeAnimationVolumesOp(ClientData clientData, Tcl_Interp *interp, int objc,
                          Tcl_Obj *const *objv)
 {
     vector<unsigned int> ivol;
@@ -1205,22 +1208,22 @@ static Rappture::CmdSpec volumeAnimationOps[] = {
 static int nVolumeAnimationOps = NumCmdSpecs(volumeAnimationOps);
 
 static int
-VolumeAnimationOp(ClientData cdata, Tcl_Interp *interp, int objc,
+VolumeAnimationOp(ClientData clientData, Tcl_Interp *interp, int objc,
                   Tcl_Obj *const *objv)
 {
     Tcl_ObjCmdProc *proc;
 
-    proc = Rappture::GetOpFromObj(interp, nVolumeAnimationOps, volumeAnimationOps,
-                                  Rappture::CMDSPEC_ARG2, objc, objv, 0);
+    proc = Rappture::GetOpFromObj(interp, nVolumeAnimationOps, 
+		volumeAnimationOps, Rappture::CMDSPEC_ARG2, objc, objv, 0);
     if (proc == NULL) {
         return TCL_ERROR;
     }
-    return (*proc) (cdata, interp, objc, objv);
+    return (*proc) (clientData, interp, objc, objv);
 }
 
 
 static int
-VolumeDataFollowsOp(ClientData cdata, Tcl_Interp *interp, int objc,
+VolumeDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
                     Tcl_Obj *const *objv)
 {
     printf("Data Loading\n");
@@ -1373,7 +1376,7 @@ VolumeDataFollowsOp(ClientData cdata, Tcl_Interp *interp, int objc,
 }
 
 static int
-VolumeDataStateOp(ClientData cdata, Tcl_Interp *interp, int objc,
+VolumeDataStateOp(ClientData clientData, Tcl_Interp *interp, int objc,
                   Tcl_Obj *const *objv)
 {
     bool state;
@@ -1405,7 +1408,7 @@ static Rappture::CmdSpec volumeDataOps[] = {
 static int nVolumeDataOps = NumCmdSpecs(volumeDataOps);
 
 static int
-VolumeDataOp(ClientData cdata, Tcl_Interp *interp, int objc,
+VolumeDataOp(ClientData clientData, Tcl_Interp *interp, int objc,
              Tcl_Obj *const *objv)
 {
     Tcl_ObjCmdProc *proc;
@@ -1415,11 +1418,11 @@ VolumeDataOp(ClientData cdata, Tcl_Interp *interp, int objc,
     if (proc == NULL) {
         return TCL_ERROR;
     }
-    return (*proc) (cdata, interp, objc, objv);
+    return (*proc) (clientData, interp, objc, objv);
 }
 
 static int
-VolumeOutlineColorOp(ClientData cdata, Tcl_Interp *interp, int objc,
+VolumeOutlineColorOp(ClientData clientData, Tcl_Interp *interp, int objc,
                      Tcl_Obj *const *objv)
 {
     float rgb[3];
@@ -1438,7 +1441,7 @@ VolumeOutlineColorOp(ClientData cdata, Tcl_Interp *interp, int objc,
 }
 
 static int
-VolumeOutlineStateOp(ClientData cdata, Tcl_Interp *interp, int objc,
+VolumeOutlineStateOp(ClientData clientData, Tcl_Interp *interp, int objc,
                      Tcl_Obj *const *objv)
 {
     bool state;
@@ -1472,7 +1475,7 @@ static Rappture::CmdSpec volumeOutlineOps[] = {
 static int nVolumeOutlineOps = NumCmdSpecs(volumeOutlineOps);
 
 static int
-VolumeOutlineOp(ClientData cdata, Tcl_Interp *interp, int objc,
+VolumeOutlineOp(ClientData clientData, Tcl_Interp *interp, int objc,
                 Tcl_Obj *const *objv)
 {
     Tcl_ObjCmdProc *proc;
@@ -1482,11 +1485,11 @@ VolumeOutlineOp(ClientData cdata, Tcl_Interp *interp, int objc,
     if (proc == NULL) {
         return TCL_ERROR;
     }
-    return (*proc) (cdata, interp, objc, objv);
+    return (*proc) (clientData, interp, objc, objv);
 }
 
 static int
-VolumeShadingDiffuseOp(ClientData cdata, Tcl_Interp *interp, int objc,
+VolumeShadingDiffuseOp(ClientData clientData, Tcl_Interp *interp, int objc,
                        Tcl_Obj *const *objv)
 {
     float diffuse;
@@ -1506,7 +1509,7 @@ VolumeShadingDiffuseOp(ClientData cdata, Tcl_Interp *interp, int objc,
 }
 
 static int
-VolumeShadingIsosurfaceOp(ClientData cdata, Tcl_Interp *interp, int objc,
+VolumeShadingIsosurfaceOp(ClientData clientData, Tcl_Interp *interp, int objc,
                           Tcl_Obj *const *objv)
 {
     bool iso_surface;
@@ -1525,7 +1528,7 @@ VolumeShadingIsosurfaceOp(ClientData cdata, Tcl_Interp *interp, int objc,
 }
 
 static int
-VolumeShadingOpacityOp(ClientData cdata, Tcl_Interp *interp, int objc,
+VolumeShadingOpacityOp(ClientData clientData, Tcl_Interp *interp, int objc,
                        Tcl_Obj *const *objv)
 {
 
@@ -1546,7 +1549,7 @@ VolumeShadingOpacityOp(ClientData cdata, Tcl_Interp *interp, int objc,
 }
 
 static int
-VolumeShadingSpecularOp(ClientData cdata, Tcl_Interp *interp, int objc,
+VolumeShadingSpecularOp(ClientData clientData, Tcl_Interp *interp, int objc,
                         Tcl_Obj *const *objv)
 {
     float specular;
@@ -1565,7 +1568,7 @@ VolumeShadingSpecularOp(ClientData cdata, Tcl_Interp *interp, int objc,
 }
 
 static int
-VolumeShadingTransFuncOp(ClientData cdata, Tcl_Interp *interp, int objc,
+VolumeShadingTransFuncOp(ClientData clientData, Tcl_Interp *interp, int objc,
                          Tcl_Obj *const *objv)
 {
     TransferFunction *tf;
@@ -1604,7 +1607,7 @@ static Rappture::CmdSpec volumeShadingOps[] = {
 static int nVolumeShadingOps = NumCmdSpecs(volumeShadingOps);
 
 static int
-VolumeShadingOp(ClientData cdata, Tcl_Interp *interp, int objc,
+VolumeShadingOp(ClientData clientData, Tcl_Interp *interp, int objc,
                 Tcl_Obj *const *objv)
 {
     Tcl_ObjCmdProc *proc;
@@ -1614,11 +1617,11 @@ VolumeShadingOp(ClientData cdata, Tcl_Interp *interp, int objc,
     if (proc == NULL) {
         return TCL_ERROR;
     }
-    return (*proc) (cdata, interp, objc, objv);
+    return (*proc) (clientData, interp, objc, objv);
 }
 
 static int
-VolumeAxisOp(ClientData cdata, Tcl_Interp *interp, int objc,
+VolumeAxisOp(ClientData clientData, Tcl_Interp *interp, int objc,
              Tcl_Obj *const *objv)
 {
     const char *string = Tcl_GetString(objv[2]);
@@ -1648,7 +1651,7 @@ VolumeAxisOp(ClientData cdata, Tcl_Interp *interp, int objc,
 }
 
 static int
-VolumeStateOp(ClientData cdata, Tcl_Interp *interp, int objc,
+VolumeStateOp(ClientData clientData, Tcl_Interp *interp, int objc,
               Tcl_Obj *const *objv)
 {
     bool state;
@@ -1674,7 +1677,7 @@ VolumeStateOp(ClientData cdata, Tcl_Interp *interp, int objc,
 }
 
 static int
-VolumeTestOp(ClientData cdata, Tcl_Interp *interp, int objc,
+VolumeTestOp(ClientData clientData, Tcl_Interp *interp, int objc,
              Tcl_Obj *const *objv)
 {
     NanoVis::volume[1]->disable_data();
@@ -1710,7 +1713,8 @@ static int nVolumeOps = NumCmdSpecs(volumeOps);
  * ----------------------------------------------------------------------
  */
 static int
-VolumeCmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const *objv)
+VolumeCmd(ClientData clientData, Tcl_Interp *interp, int objc, 
+	  Tcl_Obj *const *objv)
 {
     Tcl_ObjCmdProc *proc;
 
@@ -1719,7 +1723,7 @@ VolumeCmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const *objv)
     if (proc == NULL) {
         return TCL_ERROR;
     }
-    return (*proc) (cdata, interp, objc, objv);
+    return (*proc) (clientData, interp, objc, objv);
 }
 
 // ========================= VOLUME END ==================================
@@ -1728,7 +1732,7 @@ VolumeCmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const *objv)
 // ============================= FLOW ==================================
 
 static int
-FlowDataFollowsOp(ClientData cdata, Tcl_Interp *interp, int objc,
+FlowDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
                     Tcl_Obj *const *objv)
 {
     Rappture::Outcome result;
@@ -1812,7 +1816,7 @@ static Rappture::CmdSpec flowDataOps[] = {
 static int nFlowDataOps = NumCmdSpecs(flowDataOps);
 
 static int
-FlowDataOp(ClientData cdata, Tcl_Interp *interp, int objc,
+FlowDataOp(ClientData clientData, Tcl_Interp *interp, int objc,
              Tcl_Obj *const *objv)
 {
     Tcl_ObjCmdProc *proc;
@@ -1822,7 +1826,7 @@ FlowDataOp(ClientData cdata, Tcl_Interp *interp, int objc,
     if (proc == NULL) {
         return TCL_ERROR;
     }
-    return (*proc) (cdata, interp, objc, objv);
+    return (*proc) (clientData, interp, objc, objv);
 }
 
 // INSOO
@@ -1832,7 +1836,7 @@ FlowDataOp(ClientData cdata, Tcl_Interp *interp, int objc,
 #endif
 
 static int
-FlowVideoOp(ClientData cdata, Tcl_Interp *interp, int objc, 
+FlowVideoOp(ClientData clientData, Tcl_Interp *interp, int objc, 
 	    Tcl_Obj *const *objv)
 {
     int width, height;		// Resolution of video.
@@ -1950,7 +1954,7 @@ FlowVideoOp(ClientData cdata, Tcl_Interp *interp, int objc,
 }
 
 static int
-FlowLicOp(ClientData cdata, Tcl_Interp *interp, int objc,
+FlowLicOp(ClientData clientData, Tcl_Interp *interp, int objc,
              Tcl_Obj *const *objv)
 {
     bool state;
@@ -1962,7 +1966,7 @@ FlowLicOp(ClientData cdata, Tcl_Interp *interp, int objc,
 }
 
 static int
-FlowSliceVisibleOp(ClientData cdata, Tcl_Interp *interp, int objc,
+FlowSliceVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc,
              Tcl_Obj *const *objv)
 {
     int axis;
@@ -1990,7 +1994,7 @@ FlowSliceVisibleOp(ClientData cdata, Tcl_Interp *interp, int objc,
 }
 
 static int
-FlowSlicePositionOp(ClientData cdata, Tcl_Interp *interp, int objc,
+FlowSlicePositionOp(ClientData clientData, Tcl_Interp *interp, int objc,
                     Tcl_Obj *const *objv)
 {
     int axis;
@@ -2033,22 +2037,22 @@ static Rappture::CmdSpec flowSliceOps[] = {
 static int nFlowSliceOps = NumCmdSpecs(flowSliceOps);
 
 static int
-FlowSliceOp(ClientData cdata, Tcl_Interp *interp, int objc,
+FlowSliceOp(ClientData clientData, Tcl_Interp *interp, int objc,
              Tcl_Obj *const *objv)
 {
-                                                                                                                                                                                        Tcl_ObjCmdProc *proc;
+    Tcl_ObjCmdProc *proc;
 
     proc = Rappture::GetOpFromObj(interp, nFlowSliceOps, flowSliceOps,
         Rappture::CMDSPEC_ARG2, objc, objv, 0);
     if (proc == NULL) {
         return TCL_ERROR;
     }
-    return (*proc) (cdata, interp, objc, objv);
+    return (*proc) (clientData, interp, objc, objv);
 }
 
 static int
-FlowParticlesVisibleOp(ClientData cdata, Tcl_Interp *interp, int objc,
-             Tcl_Obj *const *objv)
+FlowParticlesVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc,
+		       Tcl_Obj *const *objv)
 {
     bool state;
     if (GetBooleanFromObj(interp, objv[3], &state) != TCL_OK) {
@@ -2065,8 +2069,8 @@ static Rappture::CmdSpec flowParticlesOps[] = {
 static int nFlowParticlesOps = NumCmdSpecs(flowParticlesOps);
 
 static int
-FlowParticlesOp(ClientData cdata, Tcl_Interp *interp, int objc,
-             Tcl_Obj *const *objv)
+FlowParticlesOp(ClientData clientData, Tcl_Interp *interp, int objc,
+		Tcl_Obj *const *objv)
 {
     Tcl_ObjCmdProc *proc;
 
@@ -2075,12 +2079,12 @@ FlowParticlesOp(ClientData cdata, Tcl_Interp *interp, int objc,
     if (proc == NULL) {
         return TCL_ERROR;
     }
-    return (*proc) (cdata, interp, objc, objv);
+    return (*proc) (clientData, interp, objc, objv);
 }
 
 static int
-FlowNextOp(ClientData cdata, Tcl_Interp *interp, int objc,
-             Tcl_Obj *const *objv)
+FlowNextOp(ClientData clientData, Tcl_Interp *interp, int objc,
+	   Tcl_Obj *const *objv)
 {
     if (!NanoVis::licRenderer->isActivated()) {
         NanoVis::licRenderer->activate();
@@ -2108,16 +2112,16 @@ FlowNextOp(ClientData cdata, Tcl_Interp *interp, int objc,
 }
 
 static int
-FlowResetOp(ClientData cdata, Tcl_Interp *interp, int objc,
-             Tcl_Obj *const *objv)
+FlowResetOp(ClientData clientData, Tcl_Interp *interp, int objc,
+	    Tcl_Obj *const *objv)
 {
     NanoVis::initParticle();
     return TCL_OK;
 }
 
 static int
-FlowVectorIdOp(ClientData cdata, Tcl_Interp *interp, int objc,
-             Tcl_Obj *const *objv)
+FlowVectorIdOp(ClientData clientData, Tcl_Interp *interp, int objc,
+	       Tcl_Obj *const *objv)
 {
     Volume *volPtr;
     if (GetVolumeFromObj(interp, objv[2], &volPtr) != TCL_OK) {
@@ -2188,7 +2192,8 @@ static int nFlowOps = NumCmdSpecs(flowOps);
  * ----------------------------------------------------------------------
  */
 static int
-FlowCmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const *objv)
+FlowCmd(ClientData clientData, Tcl_Interp *interp, int objc, 
+	Tcl_Obj *const *objv)
 {
     Tcl_ObjCmdProc *proc;
 
@@ -2197,14 +2202,14 @@ FlowCmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const *objv)
     if (proc == NULL) {
         return TCL_ERROR;
     }
-    return (*proc) (cdata, interp, objc, objv);
+    return (*proc) (clientData, interp, objc, objv);
 }
 
 // ============================ FLOW END ==================================
 #endif
 
 static int
-HeightMapDataFollowsOp(ClientData cdata, Tcl_Interp *interp, int objc,
+HeightMapDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
                        Tcl_Obj *const *objv)
 {
     Rappture::Buffer buf;
@@ -2257,7 +2262,7 @@ HeightMapDataFollowsOp(ClientData cdata, Tcl_Interp *interp, int objc,
 }
 
 static int
-HeightMapDataVisibleOp(ClientData cdata, Tcl_Interp *interp, int objc,
+HeightMapDataVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc,
                        Tcl_Obj *const *objv)
 {
     bool visible;
@@ -2282,7 +2287,7 @@ static Rappture::CmdSpec heightMapDataOps[] = {
 static int nHeightMapDataOps = NumCmdSpecs(heightMapDataOps);
 
 static int
-HeightMapDataOp(ClientData cdata, Tcl_Interp *interp, int objc,
+HeightMapDataOp(ClientData clientData, Tcl_Interp *interp, int objc,
                 Tcl_Obj *const *objv)
 {
     Tcl_ObjCmdProc *proc;
@@ -2292,12 +2297,12 @@ HeightMapDataOp(ClientData cdata, Tcl_Interp *interp, int objc,
     if (proc == NULL) {
         return TCL_ERROR;
     }
-    return (*proc) (cdata, interp, objc, objv);
+    return (*proc) (clientData, interp, objc, objv);
 }
 
 
 static int
-HeightMapLineContourColorOp(ClientData cdata, Tcl_Interp *interp, int objc,
+HeightMapLineContourColorOp(ClientData clientData, Tcl_Interp *interp, int objc,
                             Tcl_Obj *const *objv)
 {
     float rgb[3];
@@ -2316,8 +2321,8 @@ HeightMapLineContourColorOp(ClientData cdata, Tcl_Interp *interp, int objc,
 }
 
 static int
-HeightMapLineContourVisibleOp(ClientData cdata, Tcl_Interp *interp, int objc,
-                              Tcl_Obj *const *objv)
+HeightMapLineContourVisibleOp(ClientData clientData, Tcl_Interp *interp, 
+			      int objc, Tcl_Obj *const *objv)
 {
     bool visible;
     if (GetBooleanFromObj(interp, objv[3], &visible) != TCL_OK) {
@@ -2341,7 +2346,7 @@ static Rappture::CmdSpec heightMapLineContourOps[] = {
 static int nHeightMapLineContourOps = NumCmdSpecs(heightMapLineContourOps);
 
 static int 
-HeightMapLineContourOp(ClientData cdata, Tcl_Interp *interp, int objc,
+HeightMapLineContourOp(ClientData clientData, Tcl_Interp *interp, int objc,
                        Tcl_Obj *const *objv)
 {
     Tcl_ObjCmdProc *proc;
@@ -2351,11 +2356,11 @@ HeightMapLineContourOp(ClientData cdata, Tcl_Interp *interp, int objc,
     if (proc == NULL) {
         return TCL_ERROR;
     }
-    return (*proc) (cdata, interp, objc, objv);
+    return (*proc) (clientData, interp, objc, objv);
 }
 
 static int
-HeightMapCullOp(ClientData cdata, Tcl_Interp *interp, int objc,
+HeightMapCullOp(ClientData clientData, Tcl_Interp *interp, int objc,
                 Tcl_Obj *const *objv)
 {
     graphics::RenderContext::CullMode mode;
@@ -2367,13 +2372,13 @@ HeightMapCullOp(ClientData cdata, Tcl_Interp *interp, int objc,
 }
 
 static int
-HeightMapCreateOp(ClientData cdata, Tcl_Interp *interp, int objc,
+HeightMapCreateOp(ClientData clientData, Tcl_Interp *interp, int objc,
                   Tcl_Obj *const *objv)
 {
     HeightMap *hmPtr;
 
     /* heightmap create xmin ymin xmax ymax xnum ynum values */
-    hmPtr = CreateHeightMap(cdata, interp, objc - 2, objv + 2);
+    hmPtr = CreateHeightMap(clientData, interp, objc - 2, objv + 2);
     if (hmPtr == NULL) {
         return TCL_ERROR;
     }
@@ -2383,7 +2388,7 @@ HeightMapCreateOp(ClientData cdata, Tcl_Interp *interp, int objc,
 }
 
 static int
-HeightMapLegendOp(ClientData cdata, Tcl_Interp *interp, int objc,
+HeightMapLegendOp(ClientData clientData, Tcl_Interp *interp, int objc,
                   Tcl_Obj *const *objv)
 {
     HeightMap *hmPtr;
@@ -2411,7 +2416,7 @@ HeightMapLegendOp(ClientData cdata, Tcl_Interp *interp, int objc,
 }
 
 static int
-HeightMapPolygonOp(ClientData cdata, Tcl_Interp *interp, int objc,
+HeightMapPolygonOp(ClientData clientData, Tcl_Interp *interp, int objc,
                    Tcl_Obj *const *objv)
 {
     graphics::RenderContext::PolygonMode mode;
@@ -2423,7 +2428,7 @@ HeightMapPolygonOp(ClientData cdata, Tcl_Interp *interp, int objc,
 }
 
 static int
-HeightMapShadingOp(ClientData cdata, Tcl_Interp *interp, int objc,
+HeightMapShadingOp(ClientData clientData, Tcl_Interp *interp, int objc,
                  Tcl_Obj *const *objv)
 {
     graphics::RenderContext::ShadingModel model;
@@ -2454,7 +2459,7 @@ HeightMapTopView(ClientData data, Tcl_Interp *interp, int objc,
 }
 
 static int
-HeightMapTestOp(ClientData cdata, Tcl_Interp *interp, int objc,
+HeightMapTestOp(ClientData clientData, Tcl_Interp *interp, int objc,
                 Tcl_Obj *const *objv)
 {
     srand((unsigned)time(NULL));
@@ -2494,7 +2499,7 @@ HeightMapTestOp(ClientData cdata, Tcl_Interp *interp, int objc,
 }
 
 static int
-HeightMapTransFuncOp(ClientData cdata, Tcl_Interp *interp, int objc,
+HeightMapTransFuncOp(ClientData clientData, Tcl_Interp *interp, int objc,
                      Tcl_Obj *const *objv)
 {
     const char *name;
@@ -2536,7 +2541,8 @@ static Rappture::CmdSpec heightMapOps[] = {
 static int nHeightMapOps = NumCmdSpecs(heightMapOps);
 
 static int
-HeightMapCmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const *objv)
+HeightMapCmd(ClientData clientData, Tcl_Interp *interp, int objc, 
+	     Tcl_Obj *const *objv)
 {
     Tcl_ObjCmdProc *proc;
 
@@ -2545,11 +2551,11 @@ HeightMapCmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const *obj
     if (proc == NULL) {
         return TCL_ERROR;
     }
-    return (*proc) (cdata, interp, objc, objv);
+    return (*proc) (clientData, interp, objc, objv);
 }
 
 static int
-GridAxisColorOp(ClientData cdata, Tcl_Interp *interp, int objc,
+GridAxisColorOp(ClientData clientData, Tcl_Interp *interp, int objc,
                 Tcl_Obj *const *objv)
 {
     float r, g, b, a;
@@ -2569,7 +2575,7 @@ GridAxisColorOp(ClientData cdata, Tcl_Interp *interp, int objc,
 }
 
 static int
-GridAxisNameOp(ClientData cdata, Tcl_Interp *interp, int objc, 
+GridAxisNameOp(ClientData clientData, Tcl_Interp *interp, int objc, 
                Tcl_Obj *const *objv)
 {
     int axis;
@@ -2592,7 +2598,7 @@ GridAxisNameOp(ClientData cdata, Tcl_Interp *interp, int objc,
 }
 
 static int
-GridLineColorOp(ClientData cdata, Tcl_Interp *interp, int objc,
+GridLineColorOp(ClientData clientData, Tcl_Interp *interp, int objc,
                 Tcl_Obj *const *objv)
 {
     float r, g, b, a;
@@ -2612,7 +2618,8 @@ GridLineColorOp(ClientData cdata, Tcl_Interp *interp, int objc,
 }
 
 static int
-GridVisibleOp(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const *objv)
+GridVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+	      Tcl_Obj *const *objv)
 {
     bool visible;
     if (GetBooleanFromObj(interp, objv[2], &visible) != TCL_OK) {
@@ -2631,7 +2638,8 @@ static Rappture::CmdSpec gridOps[] = {
 static int nGridOps = NumCmdSpecs(gridOps);
 
 static int
-GridCmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const *objv)
+GridCmd(ClientData clientData, Tcl_Interp *interp, int objc, 
+	Tcl_Obj *const *objv)
 {
     Tcl_ObjCmdProc *proc;
 
@@ -2640,11 +2648,12 @@ GridCmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const *objv)
     if (proc == NULL) {
         return TCL_ERROR;
     }
-    return (*proc) (cdata, interp, objc, objv);
+    return (*proc) (clientData, interp, objc, objv);
 }
 
 static int
-AxisCmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const *objv)
+AxisCmd(ClientData clientData, Tcl_Interp *interp, int objc, 
+	Tcl_Obj *const *objv)
 {
     if (objc < 2) {
         Tcl_AppendResult(interp, "wrong # args: should be \"",
@@ -2670,7 +2679,8 @@ AxisCmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const *objv)
 
 #if PLANE_CMD
 static int 
-PlaneNewOp(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const *objv)
+PlaneNewOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+	   Tcl_Obj *const *objv)
 {
     fprintf(stderr, "load plane for 2D visualization command\n");
     int index, w, h;
@@ -2709,7 +2719,7 @@ PlaneNewOp(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const *objv)
 
 
 static int
-PlaneLinkOp(ClientData cdata, Tcl_Interp *interp, int objc,
+PlaneLinkOp(ClientData clientData, Tcl_Interp *interp, int objc,
             Tcl_Obj *const *objv)
 {
     fprintf(stderr, "link the plane to the 2D renderer command\n");
@@ -2734,7 +2744,7 @@ PlaneLinkOp(ClientData cdata, Tcl_Interp *interp, int objc,
 //Enable a 2D plane for render
 //The plane_index is the index mantained in the 2D plane renderer
 static int
-PlaneEnableOp(ClientData cdata, Tcl_Interp *interp, int objc,
+PlaneEnableOp(ClientData clientData, Tcl_Interp *interp, int objc,
               Tcl_Obj *const *objv)
 {
     fprintf(stderr,"enable a plane so the 2D renderer can render it command\n");
@@ -2767,7 +2777,8 @@ static Rappture::CmdSpec planeOps[] = {
 static int nPlaneOps = NumCmdSpecs(planeOps);
 
 static int
-PlaneCmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const *objv)
+PlaneCmd(ClientData clientData, Tcl_Interp *interp, int objc, 
+	 Tcl_Obj *const *objv)
 {
     Tcl_ObjCmdProc *proc;
 
@@ -2776,7 +2787,7 @@ PlaneCmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const *objv)
     if (proc == NULL) {
         return TCL_ERROR;
     }
-    return (*proc) (cdata, interp, objc, objv);
+    return (*proc) (clientData, interp, objc, objv);
 }
 
 #endif  /*PLANE_CMD*/

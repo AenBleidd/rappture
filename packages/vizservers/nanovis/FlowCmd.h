@@ -68,7 +68,7 @@ public:
 	return TCL_OK;
     }
     void Advect(void) {
-	assert(_rendererPtr->isActivated());
+	assert(_rendererPtr->active());
 	_rendererPtr->advect();
     }
     void Render(void);
@@ -193,23 +193,12 @@ class FlowCmd {
 
     void Configure(void);
 
-    /* Overall ranges over all flow vectors. */
-    static float _xMin, _xMax, _yMin, _yMax, _zMin, _zMax, _wMin, _wMax;
-    static float _magMin, _magMax;
-    static float _xOrigin, _yOrigin, _zOrigin;
-
     static Rappture::SwitchSpec _switches[];
     FlowValues _sv;
 
-    /* Class-generic data */
-    static Tcl_HashTable _flowTable;
-    static int _initialized;
-
     void RenderBoxes(void);
 public:
-    static unsigned int flags;
     enum SliceAxis { AXIS_X, AXIS_Y, AXIS_Z };
-    enum FlowCmdFlags { REDRAW_PENDING=(1<<0), MAP_PENDING=(1<<1) };
     FlowCmd(Tcl_Interp *interp, const char *name, Tcl_HashEntry *hPtr);
     ~FlowCmd(void);
 
@@ -228,19 +217,6 @@ public:
     int GetBox(Tcl_Interp *interp, Tcl_Obj *objPtr, FlowBox **boxPtrPtr);
     FlowBox *FirstBox(FlowBoxIterator *iterPtr);
     FlowBox *NextBox(FlowBoxIterator *iterPtr);
-
-    static FlowCmd *FirstFlow(FlowIterator *iterPtr);
-    static FlowCmd *NextFlow(FlowIterator *iterPtr);
-    static void Init(void);
-    static int GetFlow(Tcl_Interp *interp, Tcl_Obj *objPtr, 
-		       FlowCmd **flowPtrPtr);
-    static int CreateFlow(Tcl_Interp *interp, Tcl_Obj *objPtr);
-    static void DeleteFlows(Tcl_Interp *interp);
-    static bool MapFlows(void);
-    static void RenderFlows(void);
-    static void ResetFlows(void);
-    static bool UpdateFlows(void);
-    static void AdvectFlows(void);
 
     float *GetScaledVector(void);
     Volume *MakeVolume(float *data);
@@ -278,15 +254,15 @@ public:
 	/* Must set axis before offset or position goes to wrong axis. */
 	NanoVis::licRenderer->set_axis(_sv.slicePos.axis);
 	NanoVis::licRenderer->set_offset(_sv.slicePos.value);
-        NanoVis::licRenderer->activate();
+        NanoVis::licRenderer->active(true);
     }
     void DeactivateSlice(void) {
-        NanoVis::licRenderer->deactivate();
+        NanoVis::licRenderer->active(false);
     }
     SliceAxis GetAxis(void) {
 	return (SliceAxis)_sv.slicePos.axis;
     }
-    float GetPosition(void);
+    float GetRelativePosition(void);
     void SetAxis(void) {
 	NanoVis::licRenderer->set_axis(_sv.slicePos.axis);
     }
@@ -300,6 +276,13 @@ public:
     }
     void SetCurrentPosition(void) {
 	NanoVis::licRenderer->set_offset(_sv.slicePos.value);
+    }
+    void SetActive(bool state) {
+	_sv.sliceVisible = state;
+	NanoVis::licRenderer->active(state);
+    }
+    void SetActive(void) {
+	NanoVis::licRenderer->active(_sv.sliceVisible);
     }
     void GetMagRange(double &min_mag, double &max_mag);
 
@@ -320,37 +303,10 @@ public:
 	}
 	return TCL_OK;
     }
-    static void EventuallyRedraw(unsigned int flag = 0) {
-	if (flag) {
-	    flags |= flag;
-	}
-	if ((flags & FlowCmd::REDRAW_PENDING) == 0) {
-	    glutPostRedisplay();
-	    flags |= FlowCmd::REDRAW_PENDING;
-	}
-    }
-    static float GetPosition(FlowPosition *posPtr);
+    static float GetRelativePosition(FlowPosition *posPtr);
 };
 
 extern int GetDataStream(Tcl_Interp *interp, Rappture::Buffer &buf, int nBytes);
-#ifdef notdef
-extern bool SetVectorFieldData(Rappture::Outcome &context, 
-	float xMin, float xMax, size_t xNum, 
-	float yMin, float yMax, size_t yNum, 
-	float zMin, float zMax, size_t zNum, 
-	size_t nValues, float *values, 
-	FlowCmd *flowPtr);
-
-extern bool SetResampledVectorFieldData(Rappture::Outcome &context, 
-	float xMin, float xMax, size_t xNum, 
-	float yMin, float yMax, size_t yNum, 
-	float zMin, float zMax, size_t zNum, 
-	size_t nValues, float *values, 
-	FlowCmd *flowPtr);
-
-extern bool SetVectorFieldDataFromUnirect3d(Rappture::Outcome &context, 
-	Rappture::Unirect3d &data, FlowCmd *flowPtr);
-#endif
 
 extern int GetBooleanFromObj(Tcl_Interp *interp, Tcl_Obj *objPtr, 
 	bool *boolPtr);
