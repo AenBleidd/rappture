@@ -104,8 +104,6 @@ OBJS		= \
 		Event.o \
 		Unirect.o \
 		FlowCmd.o \
-		FlowCmds.o \
-		LoadVector.o \
 		Switch.o \
 		GradientFilter.o \
 		Grid.o \
