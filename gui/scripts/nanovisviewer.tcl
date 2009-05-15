@@ -53,88 +53,84 @@ itcl::class Rappture::NanovisViewer {
 	Rappture::VisViewer::SetServerList "nanovis" $namelist
     }
     public method add {dataobj {settings ""}}
-    public method get {args}
-    public method delete {args}
-    public method scale {args}
-    public method download {option args}
-    public method parameters {title args} {
-	# do nothing
-    }
-    public method limits { tf }
-    public method isconnected {}
-    public method updatetransferfuncs {}
-    public method rmdupmarker { m x }
-    public method overmarker { m x }
     public method camera {option args}
+    public method delete {args}
+    public method download {option args}
+    public method get {args}
+    public method isconnected {}
+    public method limits { tf }
+    public method overmarker { m x }
+    public method parameters {title args} { 
+	# do nothing 
+    }
+    public method rmdupmarker { m x }
+    public method scale {args}
+    public method updatetransferfuncs {}
 
     protected method Connect {}
-    protected method Disconnect {}
-
-    protected method SendCmd {string}
-    protected method SendDataObjs {}
-    protected method SendTransferFuncs {}
-
-    protected method ReceiveImage { args }
-    protected method ReceiveLegend { ivol vmin vmax size }
-    protected method ReceiveData { args }
-
-    protected method Rebuild {}
     protected method CurrentVolumeIds {{what -all}}
-    protected method Zoom {option}
-    protected method Pan {option x y}
-    protected method Rotate {option x y}
-    protected method Probe {option args}
-    protected method Marker {index option args}
-    protected method Slice {option args}
-    protected method SlicerTip {axis}
-
-    protected method State {comp}
+    protected method Disconnect {}
     protected method DoResize {}
     protected method FixLegend {}
     protected method FixSettings {what {value ""}}
+    protected method Pan {option x y}
+    protected method Rebuild {}
+    protected method ReceiveData { args }
+    protected method ReceiveImage { args }
+    protected method ReceiveLegend { tf vmin vmax size }
+    protected method Rotate {option x y}
+    protected method SendCmd {string}
+    protected method SendDataObjs {}
+    protected method SendTransferFuncs {}
+    protected method Slice {option args}
+    protected method SlicerTip {axis}
+    protected method Zoom {option}
 
     # The following methods are only used by this class.
-    private method NameTransferFunc { ivol }
-    private method ComputeTransferFunc { tf }
     private method AddIsoMarker { x y }
-    private method ParseMarkersOption { tf ivol markers }
-    private method ParseLevelsOption { tf ivol levels }
-    private method EventuallyResize { w h } 
-    private method EventuallyResizeLegend { } 
-
+    private method BuildCameraTab {}
     private method BuildCutplanesTab {}
     private method BuildViewTab {}
     private method BuildVolumeTab {}
-    private method BuildCameraTab {}
+    private method ComputeTransferFunc { tf }
+    private method EventuallyResize { w h } 
+    private method EventuallyResizeLegend { } 
+    private method NameTransferFunc { dataobj comp }
     private method PanCamera {}
+    private method ParseLevelsOption { tf levels }
+    private method ParseMarkersOption { tf markers }
 
-    private variable outbuf_       ;# buffer for outgoing commands
+    private variable _outbuf       ;# buffer for outgoing commands
 
-    private variable dlist_ ""     ;# list of data objects
-    private variable allDataObjs_
-    private variable id2style_     ;# maps id => style settings
-    private variable obj2ovride_   ;# maps dataobj => style override
-    private variable obj2id_       ;# maps dataobj => volume ID in server
-    private variable id2obj_       ;# maps dataobj => volume ID in server
-    private variable sendobjs_ ""  ;# list of data objs to send to server
-    private variable receiveIds_   ;# list of data objs to send to server
-    private variable obj2styles_   ;# maps id => style settings
-    private variable style2ids_    ;# maps id => style settings
+    private variable _dlist ""     ;# list of data objects
+    private variable _allDataObjs
+    private variable _obj2ovride   ;# maps dataobj => style override
+    private variable _obj2id       ;# maps dataobj-component to volume ID 
+				    # in the server
+    private variable _id2obj       ;# maps dataobj => volume ID in server
+    private variable _sendobjs ""  ;# list of data objs to send to server
+    private variable _receiveIds   ;# list of data objs to send to server
+    private variable _obj2style    ;# maps dataobj-component to transfunc
+    private variable _style2objs   ;# maps tf back to list of 
+				    # dataobj-components using the tf.
 
-    private variable click_        ;# info used for _rotate operations
-    private variable limits_       ;# autoscale min/max for all axes
-    private variable view_         ;# view params for 3D view
-    private variable isomarkers_    ;# array of isosurface level values 0..1
-    private common   settings_
-    private variable activeTf_ ""  ;# The currently active transfer function.
+    private variable _click        ;# info used for rotate operations
+    private variable _limits       ;# autoscale min/max for all axes
+    private variable _view         ;# view params for 3D view
+    private variable _isomarkers    ;# array of isosurface level values 0..1
+    private common   _settings
+    private variable _activeTf ""  ;# The currently active transfer function.
+    private variable _first ""     ;# This is the topmost volume.
+    private variable _buffering 0
+
     # This 
     # indicates which isomarkers and transfer
     # function to use when changing markers,
     # opacity, or thickness.
-    #common _downloadPopup          ;# download options from popup
-    private common hardcopy_
-    private variable width_ 0
-    private variable height_ 0
+    common _downloadPopup          ;# download options from popup
+    private common _hardcopy
+    private variable _width 0
+    private variable _height 0
 }
 
 itk::usual NanovisViewer {
@@ -150,23 +146,26 @@ itcl::body Rappture::NanovisViewer::constructor {hostlist args} {
     # Draw legend event
     $_dispatcher register !legend
     $_dispatcher dispatch $this !legend "[itcl::code $this FixLegend]; list"
+
     # Send dataobjs event
     $_dispatcher register !send_dataobjs
     $_dispatcher dispatch $this !send_dataobjs \
 	"[itcl::code $this SendDataObjs]; list"
+
     # Send transfer functions event
     $_dispatcher register !send_transfunc
     $_dispatcher dispatch $this !send_transfunc \
 	"[itcl::code $this SendTransferFuncs]; list"
+
     # Rebuild event
     $_dispatcher register !rebuild
     $_dispatcher dispatch $this !rebuild "[itcl::code $this Rebuild]; list"
 
-    # Draw legend event
+    # Resize event
     $_dispatcher register !resize
     $_dispatcher dispatch $this !resize "[itcl::code $this DoResize]; list"
 
-    set outbuf_ ""
+    set _outbuf ""
 
     #
     # Populate parser with commands handle incoming requests
@@ -174,10 +173,9 @@ itcl::body Rappture::NanovisViewer::constructor {hostlist args} {
     $_parser alias image [itcl::code $this ReceiveImage]
     $_parser alias legend [itcl::code $this ReceiveLegend]
     $_parser alias data [itcl::code $this ReceiveData]
-    #$_parser alias print [itcl::code $this ReceivePrint]
 
     # Initialize the view to some default parameters.
-    array set view_ {
+    array set _view {
 	theta   45
 	phi     45
 	psi     0
@@ -185,17 +183,26 @@ itcl::body Rappture::NanovisViewer::constructor {hostlist args} {
 	pan-x	0
 	pan-y	0
     }
-    set obj2id_(count) 0
-    set id2obj_(count) 0
-    set limits_(vmin) 0.0
-    set limits_(vmax) 1.0
+    set _obj2id(count) 0
+    set _id2obj(count) 0
+    set _limits(vmin) 0.0
+    set _limits(vmax) 1.0
 
-    set settings_($this-theta) $view_(theta)
-    set settings_($this-phi)   $view_(phi)
-    set settings_($this-psi)   $view_(psi)
-    set settings_($this-pan-x) $view_(pan-x)
-    set settings_($this-pan-y) $view_(pan-y)
-    set settings_($this-zoom)  $view_(zoom)
+    array set _settings [subst {
+	$this-pan-x		$_view(pan-x)
+	$this-pan-y		$_view(pan-y)
+	$this-phi		$_view(phi)
+	$this-psi		$_view(psi)
+	$this-theta		$_view(theta)
+	$this-volume		1
+	$this-xcutplane		0
+	$this-xcutposition	0
+	$this-ycutplane		0
+	$this-ycutposition	0
+	$this-zcutplane		0
+	$this-zcutposition	0
+	$this-zoom		$_view(zoom)
+    }]
 
     set f [$itk_component(main) component controls]
     itk_component add reset {
@@ -234,18 +241,17 @@ itcl::body Rappture::NanovisViewer::constructor {hostlist args} {
     pack $itk_component(zoomout) -side top -padx 2 -pady 2
     Rappture::Tooltip::for $itk_component(zoomout) "Zoom out"
 
-    #
-    # Volume toggle...
-    #
     itk_component add volume {
-        label $f.volume -borderwidth 1 -relief sunken \
-	    -image [Rappture::icon volume-on]
+        Rappture::PushButton $f.volume \
+	    -onimage [Rappture::icon volume-on] \
+	    -offimage [Rappture::icon volume-off] \
+	    -command [itcl::code $this FixSettings volume] \
+	    -variable [itcl::scope _settings($this-volume)]
     }
-    bind $itk_component(volume) <ButtonPress> \
-        [itcl::code $this Slice volume toggle]
+    $itk_component(volume) select
     Rappture::Tooltip::for $itk_component(volume) \
         "Toggle the volume cloud on/off"
-    pack $itk_component(volume) -ipadx 1 -ipady 1 -padx 2 -pady 2
+    pack $itk_component(volume) -padx 2 -pady 2
 
     BuildViewTab
     BuildVolumeTab
@@ -268,10 +274,10 @@ itcl::body Rappture::NanovisViewer::constructor {hostlist args} {
     # Hack around the Tk panewindow.  The problem is that the requested 
     # size of the 3d view isn't set until an image is retrieved from
     # the server.  So the panewindow uses the tiny size.
-    set w [expr [winfo reqwidth $itk_component(hull)] - 80]
+    set w 10000
     pack forget $itk_component(3dview)
     blt::table $itk_component(plotarea) \
-	0,0 $itk_component(3dview) -fill both \
+	0,0 $itk_component(3dview) -fill both -reqwidth $w \
 	1,0 $itk_component(legend) -fill x 
     blt::table configure $itk_component(plotarea) r1 -resize none
 
@@ -336,14 +342,14 @@ itcl::body Rappture::NanovisViewer::constructor {hostlist args} {
 # DESTRUCTOR
 # ----------------------------------------------------------------------
 itcl::body Rappture::NanovisViewer::destructor {} {
-    set sendobjs_ ""  ;# stop any send in progress
+    set _sendobjs ""  ;# stop any send in progress
     $_dispatcher cancel !rebuild
     $_dispatcher cancel !send_dataobjs
     $_dispatcher cancel !send_transfunc
     image delete $_image(plot)
     image delete $_image(legend)
     image delete $_image(download)
-    array unset settings_ $this-*
+    array unset _settings $this-*
 }
 
 # ----------------------------------------------------------------------
@@ -374,13 +380,13 @@ itcl::body Rappture::NanovisViewer::add {dataobj {settings ""}} {
 	set params(-color) black
     }
 
-    set pos [lsearch -exact $dataobj $dlist_]
+    set pos [lsearch -exact $dataobj $_dlist]
     if {$pos < 0} {
-	lappend dlist_ $dataobj
-	set allDataObjs_($dataobj) 1
-	set obj2ovride_($dataobj-color) $params(-color)
-	set obj2ovride_($dataobj-width) $params(-width)
-	set obj2ovride_($dataobj-raise) $params(-raise)
+	lappend _dlist $dataobj
+	set _allDataObjs($dataobj) 1
+	set _obj2ovride($dataobj-color) $params(-color)
+	set _obj2ovride($dataobj-width) $params(-width)
+	set _obj2ovride($dataobj-raise) $params(-raise)
 	$_dispatcher event -idle !rebuild
     }
 }
@@ -402,9 +408,9 @@ itcl::body Rappture::NanovisViewer::get {args} {
     switch -- $op {
       -objects {
 	# put the dataobj list in order according to -raise options
-	set dlist $dlist_
+	set dlist $_dlist
 	foreach obj $dlist {
-	    if {[info exists obj2ovride_($obj-raise)] && $obj2ovride_($obj-raise)} {
+	    if {[info exists _obj2ovride($obj-raise)] && $_obj2ovride($obj-raise)} {
 		set i [lsearch -exact $dlist $obj]
 		if {$i >= 0} {
 		    set dlist [lreplace $dlist $i $i]
@@ -446,22 +452,41 @@ itcl::body Rappture::NanovisViewer::get {args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::NanovisViewer::delete {args} {
     if {[llength $args] == 0} {
-	set args $dlist_
+	set args $_dlist
     }
     # Delete all specified dataobjs
     set changed 0
     foreach dataobj $args {
-	set pos [lsearch -exact $dlist_ $dataobj]
+	set pos [lsearch -exact $_dlist $dataobj]
 	if { $pos >= 0 } {
-	    set dlist_ [lreplace $dlist_ $pos $pos]
-	    foreach key [array names obj2ovride_ $dataobj-*] {
-		unset obj2ovride_($key)
+	    foreach comp [$dataobj components] {
+		if { [info exists obj2id($dataobj-$comp)] } {
+		    set ivol $_obj2id($dataobj-$comp)
+		    array unset _limits $ivol-*
+		}
 	    }
+	    set _dlist [lreplace $_dlist $pos $pos]
+	    array unset _obj2ovride $dataobj-*
+	    array unset _obj2id $dataobj-*
+	    array unset _obj2style $dataobj-*
 	    set changed 1
 	}
     }
     # If anything changed, then rebuild the plot
     if {$changed} {
+	# Repair the reverse lookup 
+	foreach tf [array names _style2objs] {
+	    set list {}
+	    foreach {dataobj comp} $_style2objs($tf) break
+	    if { [info exists _obj2id($dataobj-$comp)] } {
+		lappend list $dataobj $comp
+	    }
+	    if { $list == "" } {
+		array unset _style2objs $tf
+	    } else {
+		set _style2objs($tf) $list
+	    }
+	}
 	$_dispatcher event -idle !rebuild
     }
 }
@@ -477,7 +502,7 @@ itcl::body Rappture::NanovisViewer::delete {args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::NanovisViewer::scale {args} {
     foreach val {xmin xmax ymin ymax zmin zmax vmin vmax} {
-	set limits_($val) ""
+	set _limits($val) ""
     }
     foreach obj $args {
 	foreach axis {x y z v} {
@@ -485,15 +510,15 @@ itcl::body Rappture::NanovisViewer::scale {args} {
 	    foreach { min max } [$obj limits $axis] break
 
 	    if {"" != $min && "" != $max} {
-		if {"" == $limits_(${axis}min)} {
-		    set limits_(${axis}min) $min
-		    set limits_(${axis}max) $max
+		if {"" == $_limits(${axis}min)} {
+		    set _limits(${axis}min) $min
+		    set _limits(${axis}max) $max
 		} else {
-		    if {$min < $limits_(${axis}min)} {
-			set limits_(${axis}min) $min
+		    if {$min < $_limits(${axis}min)} {
+			set _limits(${axis}min) $min
 		    }
-		    if {$max > $limits_(${axis}max)} {
-			set limits_(${axis}max) $max
+		    if {$max > $_limits(${axis}max)} {
+			set _limits(${axis}max) $max
 		    }
 		}
 	    }
@@ -514,7 +539,9 @@ itcl::body Rappture::NanovisViewer::scale {args} {
 itcl::body Rappture::NanovisViewer::download {option args} {
     switch $option {
 	coming {
-	    if {[catch {blt::winop snap $itk_component(plotarea) $_image(download)}]} {
+	    if {[catch {
+		blt::winop snap $itk_component(plotarea) $_image(download)
+	    }]} {
 		$_image(download) configure -width 1 -height 1
 		$_image(download) put #000000
 	    }
@@ -578,12 +605,12 @@ itcl::body Rappture::NanovisViewer::Disconnect {} {
     VisViewer::Disconnect
 
     # disconnected -- no more data sitting on server
-    set outbuf_ ""
-    catch {unset obj2id_}
-    array unset id2obj_
-    set obj2id_(count) 0
-    set id2obj_(count) 0
-    set sendobjs_ ""
+    set _outbuf ""
+    catch {unset _obj2id}
+    array unset _id2obj
+    set _obj2id(count) 0
+    set _id2obj(count) 0
+    set _sendobjs ""
 }
 
 #
@@ -594,13 +621,13 @@ itcl::body Rappture::NanovisViewer::Disconnect {} {
 #       sent later.
 #
 itcl::body Rappture::NanovisViewer::SendCmd {string} {
-    if {[llength $sendobjs_] > 0} {
-	append outbuf_ $string "\n"
+    if { $_buffering } {
+	append _outbuf $string "\n"
     } else {
 	foreach line [split $string \n] {
 	    SendEcho >>line $line
 	}
-	SendBytes $string
+	SendBytes "$string\n"
     }
 }
 
@@ -613,56 +640,60 @@ itcl::body Rappture::NanovisViewer::SendCmd {string} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::NanovisViewer::SendDataObjs {} {
     blt::busy hold $itk_component(hull); update idletasks
-    foreach dataobj $sendobjs_ {
+
+    foreach dataobj $_sendobjs {
 	foreach comp [$dataobj components] {
-	    # send the data as one huge base64-encoded mess -- yuck!
+	    # Send the data as one huge base64-encoded mess -- yuck!
 	    set data [$dataobj values $comp]
 	    set nbytes [string length $data]
-	    if { ![SendBytes "volume data follows $nbytes"] } {
+	    if { ![SendBytes "volume data follows $nbytes $dataobj-$comp\n"] } {
 		return
 	    }
 	    if { ![SendBytes $data] } {
 		return
 	    }
-	    set ivol $obj2id_(count)
-	    incr obj2id_(count)
-
-	    set id2obj_($ivol) [list $dataobj $comp]
-	    set obj2id_($dataobj-$comp) $ivol
-	    NameTransferFunc $ivol
-	    set receiveIds_($ivol) 1
+	    set ivol $_obj2id(count)
+	    incr _obj2id(count)
+	    NameTransferFunc $dataobj $comp
+	    set _receiveIds($ivol) 1
 	}
     }
-    set sendobjs_ ""
+    set _sendobjs ""
     blt::busy release $itk_component(hull)
 
+    # Turn on buffering of commands to the server.  We don't want to
+    # be preempted by a server disconnect/reconnect (which automatically
+    # generates a new call to Rebuild).   
+    set _buffering 1
+
     # activate the proper volume
-    set first [lindex [get] 0]
-    if {"" != $first} {
-	set axis [$first hints updir]
+    set _first [lindex [get] 0]
+    if {"" != $_first} {
+	set axis [$_first hints updir]
 	if {"" != $axis} {
 	    SendCmd "up $axis"
 	}
 	# The active transfer function is by default the first component of
 	# the first data object.  This assumes that the data is always
 	# successfully transferred.
-	set comp [lindex [$first components] 0]
-	set activeTf_ $id2style_($obj2id_($first-$comp))
+	set comp [lindex [$_first components] 0]
+        set _activeTf [lindex $_obj2style($_first-$comp) 0]
     }
-    foreach key [array names obj2id_ *-*] {
-	set state [string match $first-* $key]
-	set ivol $obj2id_($key)
-	SendCmd "volume state $state $ivol"
+    SendCmd "volume state 0"
+    set vols {}
+    foreach key [array names _obj2id $_first-*] {
+	lappend vols $_obj2id($key)
     }
-
+    if { $vols != ""  && $_settings($this-volume) } {
+	SendCmd "volume state 1 $vols"
+    }
     # sync the state of slicers
     set vols [CurrentVolumeIds -cutplanes]
     foreach axis {x y z} {
-	SendCmd "cutplane state [State ${axis}CutButton] $axis $vols"
-	set pos [expr {0.01*[$itk_component(${axis}CutScale) get]}]
+	SendCmd "cutplane state $_settings($this-${axis}cutplane) $axis $vols"
+	set pos [expr {0.01*$_settings($this-${axis}cutposition)}]
 	SendCmd "cutplane position $pos $axis $vols"
     }
-    SendCmd "volume data state [State volume] $vols"
 
     if 0 {
     # Add this when we fix grid for volumes
@@ -673,37 +704,52 @@ itcl::body Rappture::NanovisViewer::SendDataObjs {} {
     SendCmd "grid axisname y Y eV"
     SendCmd "grid axisname z Z eV"
     }
-    # if there are any commands in the buffer, send them now that we're done
-    SendBytes $outbuf_
-    set outbuf_ ""
+
+    # Actually write the commands to the server socket.  If it fails, we don't
+    # care.  We're finished here.
+    SendBytes $_outbuf;			
+    set _buffering 0;			# Turn off buffering.
+    set _outbuf "";			# Clear the buffer.		
 }
 
 # ----------------------------------------------------------------------
 # USAGE: SendTransferFuncs
 # ----------------------------------------------------------------------
 itcl::body Rappture::NanovisViewer::SendTransferFuncs {} {
-    if { $activeTf_ == "" } {
+    if { $_activeTf == "" } {
 	return
     }
-    set tf $activeTf_
-    set first [lindex [get] 0] 
+    set tf $_activeTf
+    if { $_first == "" } {
+	return
+    }
 
     # Insure that the global opacity and thickness settings (in the slider
     # settings widgets) are used for the active transfer-function.  Update the
-    # values in the settings_ varible.
-    set value $settings_($this-opacity)
+    # values in the _settings varible.
+    set value $_settings($this-opacity)
     set opacity [expr { double($value) * 0.01 }]
-    set settings_($this-$tf-opacity) $opacity
-    set value $settings_($this-thickness)
+    set _settings($this-$tf-opacity) $opacity
+    set value $_settings($this-thickness)
     # Scale values between 0.00001 and 0.01000
     set thickness [expr {double($value) * 0.0001}]
-    set settings_($this-$tf-thickness) $thickness
+    set _settings($this-$tf-thickness) $thickness
 
-    if { ![info exists $obj2styles_($first)] } {
-	foreach tf $obj2styles_($first) {
+    foreach key [array names _obj2style $_first-*] {
+	if { [info exists _obj2style($key)] } {
+	    foreach tf $_obj2style($key) {
+		ComputeTransferFunc $tf
+	    }
+	}
+    }
+    FixLegend
+    if 0 {
+    if { $first != "" && ![info exists _obj2style($_first)] } {
+	foreach tf $_obj2style($_first) {
 	    ComputeTransferFunc $tf
 	}
 	$_dispatcher event -idle !legend
+    }
     }
 }
 
@@ -714,13 +760,10 @@ itcl::body Rappture::NanovisViewer::SendTransferFuncs {} {
 # the rendering server.  Indicates that binary image data with the
 # specified <size> will follow.
 # ----------------------------------------------------------------------
-set counter 0
 itcl::body Rappture::NanovisViewer::ReceiveImage { args } {
     if { ![isconnected] } {
 	return
     }
-    global counter
-    incr counter
     array set info {
 	-token "???"
 	-bytes 0
@@ -728,12 +771,13 @@ itcl::body Rappture::NanovisViewer::ReceiveImage { args } {
     }
     array set info $args
     set bytes [ReceiveBytes $info(-bytes)]
-    ReceiveEcho <<line "<read $info(-bytes) bytes for [image width $_image(plot)]x[image height $_image(plot)] image>"
+    ReceiveEcho <<line "<read $info(-bytes) bytes"
     if { $info(-type) == "image" } {
+	ReceiveEcho "for [image width $_image(plot)]x[image height $_image(plot)] image>"	
 	$_image(plot) configure -data $bytes
     } elseif { $info(type) == "print" } {
 	set tag $this-print-$info(-token)
-	set hardcopy_($tag) $bytes
+	set _hardcopy($tag) $bytes
     }
 }
 
@@ -761,7 +805,7 @@ itcl::body Rappture::NanovisViewer::ReceiveLegend { tf vmin vmax size } {
     set c $itk_component(legend)
     set w [winfo width $c]
     set h [winfo height $c]
-    #foreach { dataobj comp } $id2obj_($ivol) break
+    #foreach { dataobj comp } $_id2obj($ivol) break
     set lx 10
     set ly [expr {$h - 1}]
     if {"" == [$c find withtag transfunc]} {
@@ -776,7 +820,7 @@ itcl::body Rappture::NanovisViewer::ReceiveLegend { tf vmin vmax size } {
 	    [itcl::code $this AddIsoMarker %x %y]
     }
     # Display the markers used by the active transfer function.
-    #set tf $activeTf_
+    #set tf $_activeTf
 
     array set limits [limits $tf]
     $c itemconfigure vmin -text [format %.2g $limits(min)]
@@ -785,8 +829,8 @@ itcl::body Rappture::NanovisViewer::ReceiveLegend { tf vmin vmax size } {
     $c itemconfigure vmax -text [format %.2g $limits(max)]
     $c coords vmax [expr {$w-$lx}] $ly
 
-    if { [info exists isomarkers_($tf)] } {
-	foreach m $isomarkers_($tf) {
+    if { [info exists _isomarkers($tf)] } {
+	foreach m $_isomarkers($tf) {
 	    $m visible yes
 	}
     }
@@ -801,7 +845,7 @@ itcl::body Rappture::NanovisViewer::ReceiveLegend { tf vmin vmax size } {
 #       volume sent to the render server.  Since the client (nanovisviewer)
 #       doesn't parse 3D data formats, we rely on the server (nanovis) to
 #       tell us what the limits are.  Once we've received the limits to all
-#       the data we've sent (tracked by receiveIds_) we can then determine
+#       the data we've sent (tracked by _receiveIds) we can then determine
 #       what the transfer functions are for these volumes.
 #
 #
@@ -821,14 +865,25 @@ itcl::body Rappture::NanovisViewer::ReceiveData { args } {
     array set info $args
 
     set ivol $info(id);         # Id of volume created by server.
+    set tag $info(tag)
+    set parts [split $tag -]
 
-    set limits_($ivol-min) $info(min);  # Minimum value of the volume.
-    set limits_($ivol-max) $info(max);  # Maximum value of the volume.
-    set limits_(vmin)      $info(vmin); # Overall minimum value.
-    set limits_(vmax)      $info(vmax); # Overall maximum value.
+    #
+    # Volumes don't exist until we're told about them.
+    #
+    set _id2obj($ivol) $parts
+    set dataobj [lindex $parts 0]
+    set _obj2id($tag) $ivol
+    if { $_settings($this-volume) && $dataobj == $_first } {
+	SendCmd "volume state 1 $ivol"
+    }
+    set _limits($ivol-min) $info(min);  # Minimum value of the volume.
+    set _limits($ivol-max) $info(max);  # Maximum value of the volume.
+    set _limits(vmin)      $info(vmin); # Overall minimum value.
+    set _limits(vmax)      $info(vmax); # Overall maximum value.
 
-    unset receiveIds_($ivol)
-    if { [array size receiveIds_] == 0 } {
+    unset _receiveIds($ivol)
+    if { [array size _receiveIds] == 0 } {
 	updatetransferfuncs
     }
 }
@@ -841,29 +896,35 @@ itcl::body Rappture::NanovisViewer::ReceiveData { args } {
 # widget to display new data.
 # ----------------------------------------------------------------------
 itcl::body Rappture::NanovisViewer::Rebuild {} {
+
     # Hide all the isomarkers. Can't remove them. Have to remember the
     # settings since the user may have created/deleted/moved markers.
 
-    foreach tf [array names isomarkers_] {
-	foreach m $isomarkers_($tf) {
+    foreach tf [array names _isomarkers] {
+	foreach m $_isomarkers($tf) {
 	    $m visible no
 	}
     }
 
     # in the midst of sending data? then bail out
-    if {[llength $sendobjs_] > 0} {
+    if {[llength $_sendobjs] > 0} {
 	return
     }
 
+    # Turn on buffering of commands to the server.  We don't want to
+    # be preempted by a server disconnect/reconnect (which automatically
+    # generates a new call to Rebuild).   
+    set _buffering 1
+
     # Find any new data that needs to be sent to the server.  Queue this up on
-    # the sendobjs_ list, and send it out a little at a time.  Do this first,
+    # the _sendobjs list, and send it out a little at a time.  Do this first,
     # before we rebuild the rest.
     foreach dataobj [get] {
 	set comp [lindex [$dataobj components] 0]
-	if {![info exists obj2id_($dataobj-$comp)]} {
-	    set i [lsearch -exact $sendobjs_ $dataobj]
+	if {![info exists _obj2id($dataobj-$comp)]} {
+	    set i [lsearch -exact $_sendobjs $dataobj]
 	    if {$i < 0} {
-		lappend sendobjs_ $dataobj
+		lappend _sendobjs $dataobj
 	    }
 	}
     }
@@ -874,16 +935,17 @@ itcl::body Rappture::NanovisViewer::Rebuild {} {
     #
     # Reset the camera and other view parameters
     #
-    set xyz [Euler2XYZ $view_(theta) $view_(phi) $view_(psi)]
+    set xyz [Euler2XYZ $_view(theta) $_view(phi) $_view(psi)]
     SendCmd "camera angle $xyz"
-    SendCmd "camera zoom $view_(zoom)"
+    PanCamera
+    SendCmd "camera zoom $_view(zoom)"
 
-    set settings_($this-theta) $view_(theta)
-    set settings_($this-phi)   $view_(phi)
-    set settings_($this-psi)   $view_(psi)
-    set settings_($this-pan-x) $view_(pan-x)
-    set settings_($this-pan-y) $view_(pan-y)
-    set settings_($this-zoom)  $view_(zoom)
+    set _settings($this-theta) $_view(theta)
+    set _settings($this-phi)   $_view(phi)
+    set _settings($this-psi)   $_view(psi)
+    set _settings($this-pan-x) $_view(pan-x)
+    set _settings($this-pan-y) $_view(pan-y)
+    set _settings($this-zoom)  $_view(zoom)
 
     FixSettings light
     FixSettings transp
@@ -892,47 +954,51 @@ itcl::body Rappture::NanovisViewer::Rebuild {} {
     FixSettings axes
     FixSettings outline
 
-    if {[llength $sendobjs_] > 0} {
+    if {[llength $_sendobjs] > 0} {
 	# send off new data objects
 	$_dispatcher event -idle !send_dataobjs
 	return
     }
 
     # nothing to send -- activate the proper ivol
-    set first [lindex [get] 0]
-    if {"" != $first} {
-	set axis [$first hints updir]
+    set _first [lindex [get] 0]
+    if {"" != $_first} {
+	set axis [$_first hints updir]
 	if {"" != $axis} {
 	    SendCmd "up $axis"
 	}
-	foreach key [array names obj2id_ *-*] {
-	    set state [string match $first-* $key]
-	    SendCmd "volume state $state $obj2id_($key)"
+	foreach key [array names _obj2id *-*] {
+	    set state [string match $_first-* $key]
+	    SendCmd "volume state $state $_obj2id($key)"
 	}
 	#
-	# The obj2id_ and id2style_ arrays may or may not have the right
+	# The _obj2id and _id2style arrays may or may not have the right
 	# information.  It's possible for the server to know about volumes
 	# that the client has assumed it's deleted.  We could add checks.
 	# But this problem needs to be fixed not bandaided.
-	set comp [lindex [$first components] 0]
-	set ivol $obj2id_($first-$comp)
+	set comp [lindex [$_first components] 0]
+	set ivol $_obj2id($_first-$comp)
 
-	foreach comp [$first components] {
-	    foreach ivol $obj2id_($first-$comp) {
-		NameTransferFunc $ivol
-	    }
+	foreach comp [$_first components] {
+	    NameTransferFunc $_first $comp
 	}
     }
 
     # sync the state of slicers
     set vols [CurrentVolumeIds -cutplanes]
     foreach axis {x y z} {
-	SendCmd "cutplane state [State ${axis}CutButton] $axis $vols"
-	set pos [expr {0.01*[$itk_component(${axis}CutScale) get]}]
+	SendCmd "cutplane state $_settings($this-${axis}cutplane) $axis $vols"
+	set pos [expr {0.01*$_settings($this-${axis}cutposition)}]
 	SendCmd "cutplane position $pos $axis $vols"
     }
-    SendCmd "volume data state [State volume] $vols"
+    SendCmd "volume data state $_settings($this-volume) $vols"
     $_dispatcher event -idle !legend
+
+    # Actually write the commands to the server socket.  If it fails, we don't
+    # care.  We're finished here.
+    SendBytes $_outbuf;			
+    set _buffering 0;			# Turn off buffering.
+    set _outbuf "";			# Clear the buffer.		
 }
 
 # ----------------------------------------------------------------------
@@ -944,10 +1010,11 @@ itcl::body Rappture::NanovisViewer::Rebuild {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::NanovisViewer::CurrentVolumeIds {{what -all}} {
     set rlist ""
-
-    set first [lindex [get] 0]
-    foreach key [array names obj2id_ *-*] {
-	if {[string match $first-* $key]} {
+    if { $_first == "" } {
+	return
+    }
+    foreach key [array names _obj2id *-*] {
+	if {[string match $_first-* $key]} {
 	    array set style {
 		-cutplanes 1
 	    }
@@ -955,7 +1022,7 @@ itcl::body Rappture::NanovisViewer::CurrentVolumeIds {{what -all}} {
 	    array set style [lindex [$dataobj components -style $comp] 0]
 
 	    if {$what != "-cutplanes" || $style(-cutplanes)} {
-		lappend rlist $obj2id_($key)
+		lappend rlist $_obj2id($key)
 	    }
 	}
     }
@@ -973,15 +1040,15 @@ itcl::body Rappture::NanovisViewer::CurrentVolumeIds {{what -all}} {
 itcl::body Rappture::NanovisViewer::Zoom {option} {
     switch -- $option {
 	"in" {
-	    set view_(zoom) [expr {$view_(zoom)*1.25}]
-	    set settings_($this-zoom) $view_(zoom)
+	    set _view(zoom) [expr {$_view(zoom)*1.25}]
+	    set _settings($this-zoom) $_view(zoom)
 	}
 	"out" {
-	    set view_(zoom) [expr {$view_(zoom)*0.8}]
-	    set settings_($this-zoom) $view_(zoom)
+	    set _view(zoom) [expr {$_view(zoom)*0.8}]
+	    set _settings($this-zoom) $_view(zoom)
 	}
         "reset" {
-	    array set view_ {
+	    array set _view {
 		theta   45
 		phi     45
 		psi     0
@@ -989,32 +1056,31 @@ itcl::body Rappture::NanovisViewer::Zoom {option} {
 		pan-x	0
 		pan-y	0
 	    }
-	    set first [lindex [get] 0]
-	    if { $first != "" } {
-		set location [$first hints camera]
+	    if { $_first != "" } {
+		set location [$_first hints camera]
 		if { $location != "" } {
-		    array set view_ $location
+		    array set _view $location
 		}
 	    }
-            set xyz [Euler2XYZ $view_(theta) $view_(phi) $view_(psi)]
+            set xyz [Euler2XYZ $_view(theta) $_view(phi) $_view(psi)]
             SendCmd "camera angle $xyz"
 	    PanCamera
-	    set settings_($this-theta) $view_(theta)
-	    set settings_($this-phi)   $view_(phi)
-	    set settings_($this-psi)   $view_(psi)
-	    set settings_($this-pan-x) $view_(pan-x)
-	    set settings_($this-pan-y) $view_(pan-y)
-	    set settings_($this-zoom)  $view_(zoom)
+	    set _settings($this-theta) $_view(theta)
+	    set _settings($this-phi)   $_view(phi)
+	    set _settings($this-psi)   $_view(psi)
+	    set _settings($this-pan-x) $_view(pan-x)
+	    set _settings($this-pan-y) $_view(pan-y)
+	    set _settings($this-zoom)  $_view(zoom)
         }
     }
-    SendCmd "camera zoom $view_(zoom)"
+    SendCmd "camera zoom $_view(zoom)"
 }
 
 itcl::body Rappture::NanovisViewer::PanCamera {} {
-    #set x [expr ($view_(pan-x)) / $limits_(xrange)]
-    #set y [expr ($view_(pan-y)) / $limits_(yrange)]
-    set x $view_(pan-x)
-    set y $view_(pan-y)
+    #set x [expr ($_view(pan-x)) / $_limits(xrange)]
+    #set y [expr ($_view(pan-y)) / $_limits(yrange)]
+    set x $_view(pan-x)
+    set y $_view(pan-y)
     SendCmd "camera pan $x $y"
 }
 
@@ -1031,13 +1097,13 @@ itcl::body Rappture::NanovisViewer::Rotate {option x y} {
     switch -- $option {
         click {
             $itk_component(3dview) configure -cursor fleur
-            set click_(x) $x
-            set click_(y) $y
-            set click_(theta) $view_(theta)
-            set click_(phi) $view_(phi)
+            set _click(x) $x
+            set _click(y) $y
+            set _click(theta) $_view(theta)
+            set _click(phi) $_view(phi)
         }
         drag {
-            if {[array size click_] == 0} {
+            if {[array size _click] == 0} {
                 Rotate click $x $y
             } else {
                 set w [winfo width $itk_component(3dview)]
@@ -1048,8 +1114,8 @@ itcl::body Rappture::NanovisViewer::Rotate {option x y} {
 
                 if {[catch {
                     # this fails sometimes for no apparent reason
-                    set dx [expr {double($x-$click_(x))/$w}]
-                    set dy [expr {double($y-$click_(y))/$h}]
+                    set dx [expr {double($x-$_click(x))/$w}]
+                    set dy [expr {double($y-$_click(y))/$h}]
                 }]} {
                     return
                 }
@@ -1057,42 +1123,42 @@ itcl::body Rappture::NanovisViewer::Rotate {option x y} {
                 #
                 # Rotate the camera in 3D
                 #
-                if {$view_(psi) > 90 || $view_(psi) < -90} {
+                if {$_view(psi) > 90 || $_view(psi) < -90} {
                     # when psi is flipped around, theta moves backwards
                     set dy [expr {-$dy}]
                 }
-                set theta [expr {$view_(theta) - $dy*180}]
+                set theta [expr {$_view(theta) - $dy*180}]
                 while {$theta < 0} { set theta [expr {$theta+180}] }
                 while {$theta > 180} { set theta [expr {$theta-180}] }
 
                 if {abs($theta) >= 30 && abs($theta) <= 160} {
-                    set phi [expr {$view_(phi) - $dx*360}]
+                    set phi [expr {$_view(phi) - $dx*360}]
                     while {$phi < 0} { set phi [expr {$phi+360}] }
                     while {$phi > 360} { set phi [expr {$phi-360}] }
-                    set psi $view_(psi)
+                    set psi $_view(psi)
                 } else {
-                    set phi $view_(phi)
-                    set psi [expr {$view_(psi) - $dx*360}]
+                    set phi $_view(phi)
+                    set psi [expr {$_view(psi) - $dx*360}]
                     while {$psi < -180} { set psi [expr {$psi+360}] }
                     while {$psi > 180} { set psi [expr {$psi-360}] }
                 }
 
-		set view_(theta)        $theta
-		set view_(phi)          $phi
-		set view_(psi)          $psi
+		set _view(theta)        $theta
+		set _view(phi)          $phi
+		set _view(psi)          $psi
                 set xyz [Euler2XYZ $theta $phi $psi]
-		set settings_($this-theta) $view_(theta)
-		set settings_($this-phi)   $view_(phi)
-		set settings_($this-psi)   $view_(psi)
+		set _settings($this-theta) $_view(theta)
+		set _settings($this-phi)   $_view(phi)
+		set _settings($this-psi)   $_view(psi)
                 SendCmd "camera angle $xyz"
-                set click_(x) $x
-                set click_(y) $y
+                set _click(x) $x
+                set _click(y) $y
             }
         }
         release {
             Rotate drag $x $y
             $itk_component(3dview) configure -cursor ""
-            catch {unset click_}
+            catch {unset _click}
         }
         default {
             error "bad option \"$option\": should be click, drag, release"
@@ -1115,46 +1181,32 @@ itcl::body Rappture::NanovisViewer::Pan {option x y} {
     if { $option == "set" } {
         set x [expr $x / double($w)]
         set y [expr $y / double($h)]
-        set view_(pan-x) [expr $view_(pan-x) + $x]
-        set view_(pan-y) [expr $view_(pan-y) + $y]
+        set _view(pan-x) [expr $_view(pan-x) + $x]
+        set _view(pan-y) [expr $_view(pan-y) + $y]
         PanCamera
-	set settings_($this-pan-x) $view_(pan-x)
-	set settings_($this-pan-y) $view_(pan-y)
+	set _settings($this-pan-x) $_view(pan-x)
+	set _settings($this-pan-y) $_view(pan-y)
         return
     }
     if { $option == "click" } {
-        set click_(x) $x
-        set click_(y) $y
+        set _click(x) $x
+        set _click(y) $y
         $itk_component(3dview) configure -cursor hand1
     }
     if { $option == "drag" || $option == "release" } {
-        set dx [expr ($click_(x) - $x)/double($w)]
-        set dy [expr ($click_(y) - $y)/double($h)]
-        set click_(x) $x
-        set click_(y) $y
-        set view_(pan-x) [expr $view_(pan-x) - $dx]
-        set view_(pan-y) [expr $view_(pan-y) - $dy]
+        set dx [expr ($_click(x) - $x)/double($w)]
+        set dy [expr ($_click(y) - $y)/double($h)]
+        set _click(x) $x
+        set _click(y) $y
+        set _view(pan-x) [expr $_view(pan-x) - $dx]
+        set _view(pan-y) [expr $_view(pan-y) - $dy]
         PanCamera
-	set settings_($this-pan-x) $view_(pan-x)
-	set settings_($this-pan-y) $view_(pan-y)
+	set _settings($this-pan-x) $_view(pan-x)
+	set _settings($this-pan-y) $_view(pan-y)
     }
     if { $option == "release" } {
         $itk_component(3dview) configure -cursor ""
     }
-}
-
-# ----------------------------------------------------------------------
-# USAGE: State <component>
-#
-# Used internally to determine the state of a toggle button.
-# The <component> is the itk component name of the button.
-# Returns on/off for the state of the button.
-# ----------------------------------------------------------------------
-itcl::body Rappture::NanovisViewer::State { comp } {
-    if {[$itk_component(${comp}) cget -relief] == "sunken"} {
-	return "on"
-    }
-    return "off"
 }
 
 # ----------------------------------------------------------------------
@@ -1168,7 +1220,7 @@ itcl::body Rappture::NanovisViewer::FixSettings {what {value ""}} {
     switch -- $what {
         light {
             if {[isconnected]} {
-                set val $settings_($this-light)
+                set val $_settings($this-light)
                 set sval [expr {0.1*$val}]
                 SendCmd "volume shading diffuse $sval"
                 set sval [expr {sqrt($val+1.0)}]
@@ -1177,53 +1229,53 @@ itcl::body Rappture::NanovisViewer::FixSettings {what {value ""}} {
         }
         transp {
             if {[isconnected]} {
-                set val $settings_($this-transp)
+                set val $_settings($this-transp)
                 set sval [expr {0.2*$val+1}]
                 SendCmd "volume shading opacity $sval"
             }
         }
         opacity {
-            if {[isconnected] && $activeTf_ != "" } {
-                set val $settings_($this-opacity)
+            if {[isconnected] && $_activeTf != "" } {
+                set val $_settings($this-opacity)
                 set sval [expr { 0.01 * double($val) }]
-                set tf $activeTf_
-                set settings_($this-$tf-opacity) $sval
+                set tf $_activeTf
+                set _settings($this-$tf-opacity) $sval
                 updatetransferfuncs
             }
         }
 
         thickness {
-            if {[isconnected] && $activeTf_ != "" } {
-                set val $settings_($this-thickness)
+            if {[isconnected] && $_activeTf != "" } {
+                set val $_settings($this-thickness)
                 # Scale values between 0.00001 and 0.01000
                 set sval [expr {0.0001*double($val)}]
-                set tf $activeTf_
-                set settings_($this-$tf-thickness) $sval
+                set tf $_activeTf
+                set _settings($this-$tf-thickness) $sval
                 updatetransferfuncs
             }
         }
         "outline" {
             if {[isconnected]} {
-                SendCmd "volume outline state $settings_($this-outline)"
+                SendCmd "volume outline state $_settings($this-outline)"
             }
         }
         "isosurface" {
             if {[isconnected]} {
-                SendCmd "volume shading isosurface $settings_($this-isosurface)"
+                SendCmd "volume shading isosurface $_settings($this-isosurface)"
             }
         }
         "grid" {
             if { [isconnected] } {
-                SendCmd "grid visible $settings_($this-grid)"
+                SendCmd "grid visible $_settings($this-grid)"
             }
         }
         "axes" {
             if { [isconnected] } {
-                SendCmd "axis visible $settings_($this-axes)"
+                SendCmd "axis visible $_settings($this-axes)"
             }
         }
 	"legend" {
-	    if { $settings_($this-legend) } {
+	    if { $_settings($this-legend) } {
 		blt::table $itk_component(plotarea) \
 		    0,0 $itk_component(3dview) -fill both \
 		    1,0 $itk_component(legend) -fill x 
@@ -1233,7 +1285,25 @@ itcl::body Rappture::NanovisViewer::FixSettings {what {value ""}} {
 	    }
 	}
         "volume" {
-	    Slice volume $settings_($this-volume)
+            if { [isconnected] } {
+		set vols [CurrentVolumeIds -cutplanes] 
+                SendCmd "volume data state $_settings($this-volume) $vols"
+	    }
+        }
+        "xcutplane" - "ycutplane" - "zcutplane" {
+	    set axis [string range $what 0 1]
+	    set bool $_settings($this-$what)
+            if { [isconnected] } {
+		set vols [CurrentVolumeIds -cutplanes] 
+		SendCmd "cutplane state $bool $axis $vols"
+	    }
+	    if { $bool } {
+		$itk_component(${axis}CutScale) configure -state normal \
+		    -troughcolor white
+            } else {
+		$itk_component(${axis}CutScale) configure -state disabled \
+		    -troughcolor grey82
+            }
         }
         default {
             error "don't know how to fix $what"
@@ -1250,10 +1320,10 @@ itcl::body Rappture::NanovisViewer::FixSettings {what {value ""}} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::NanovisViewer::FixLegend {} {
     set lineht [font metrics $itk_option(-font) -linespace]
-    set w [expr {$width_-20}]
+    set w [expr {$_width-20}]
     set h [expr {[winfo height $itk_component(legend)]-20-$lineht}]
-    if {$w > 0 && $h > 0 && "" != $activeTf_} {
-	SendCmd "legend $activeTf_ $w $h"
+    if {$w > 0 && $h > 0 && "" != $_activeTf} {
+	SendCmd "legend $_activeTf $w $h"
     } else {
 	# Can't do this as this will remove the items associated with the
 	# isomarkers.
@@ -1277,19 +1347,17 @@ itcl::body Rappture::NanovisViewer::FixLegend {} {
 #              color, levels, marker, opacity.  I think we're stuck doing it
 #              now.
 #
-itcl::body Rappture::NanovisViewer::NameTransferFunc { ivol } {
+itcl::body Rappture::NanovisViewer::NameTransferFunc { dataobj comp } {
     array set style {
 	-color rainbow
 	-levels 6
 	-opacity 1.0
     }
-    foreach {dataobj comp} $id2obj_($ivol) break
     array set style [lindex [$dataobj components -style $comp] 0]
     set tf "$style(-color):$style(-levels):$style(-opacity)"
-
-    set id2style_($ivol) $tf
-    lappend obj2styles_($dataobj) $tf
-    lappend style2ids_($tf) $ivol
+    lappend _obj2style($dataobj-$comp) $tf
+    lappend _style2objs($tf) $dataobj $comp
+    return $tf
 }
 
 #
@@ -1308,14 +1376,9 @@ itcl::body Rappture::NanovisViewer::ComputeTransferFunc { tf } {
 	-opacity 1.0
     }
     set dataobj ""; set comp ""
-    foreach ivol $style2ids_($tf) {
-	if { [info exists id2obj_($ivol)] } {
-	    foreach {dataobj comp} $id2obj_($ivol) break
-	    break
-	}
-    }
+    foreach {dataobj comp} $_style2objs($tf) break
     if { $dataobj == "" } {
-	return 0
+        return 0
     }
     array set style [lindex [$dataobj components -style $comp] 0]
 
@@ -1333,12 +1396,12 @@ itcl::body Rappture::NanovisViewer::ComputeTransferFunc { tf } {
     #        color, levels, marker, opacity.  I think the cow's out of the
     #        barn on this one.
 
-    if { ![info exists isomarkers_($tf)] } {
+    if { ![info exists _isomarkers($tf)] } {
 	# Have to defer creation of isomarkers until we have data limits
 	if { [info exists style(-markers)] } {
-	    ParseMarkersOption $tf $ivol $style(-markers)
+	    ParseMarkersOption $tf $style(-markers)
 	} else {
-	    ParseLevelsOption $tf $ivol $style(-levels)
+	    ParseLevelsOption $tf $style(-levels)
 	}
     }
     if {$style(-color) == "rainbow"} {
@@ -1354,22 +1417,22 @@ itcl::body Rappture::NanovisViewer::ComputeTransferFunc { tf } {
     append cmap "1.0 [Color2RGB $color]"
 
     set tag $this-$tf
-    if { ![info exists settings_($tag-opacity)] } {
-	set settings_($tag-opacity) $style(-opacity)
+    if { ![info exists _settings($tag-opacity)] } {
+	set _settings($tag-opacity) $style(-opacity)
     }
-    set max $settings_($tag-opacity)
+    set max $_settings($tag-opacity)
 
     set isovalues {}
-    foreach m $isomarkers_($tf) {
+    foreach m $_isomarkers($tf) {
 	lappend isovalues [$m relval]
     }
     # Sort the isovalues
     set isovalues [lsort -real $isovalues]
 
-    if { ![info exists settings_($tag-thickness)]} {
-	set settings_($tag-thickness) 0.05
+    if { ![info exists _settings($tag-thickness)]} {
+	set _settings($tag-thickness) 0.05
     }
-    set delta $settings_($tag-thickness)
+    set delta $_settings($tag-thickness)
 
     set first [lindex $isovalues 0]
     set last [lindex $isovalues end]
@@ -1412,7 +1475,9 @@ itcl::body Rappture::NanovisViewer::ComputeTransferFunc { tf } {
 	lappend wmap 1.0 0.0
     }
     SendBytes "transfunc define $tf { $cmap } { $wmap }\n"
-    return [SendBytes "volume shading transfunc $tf $style2ids_($tf)\n"]
+    if { [info exists _obj2id($dataobj-$comp)] } {
+	return [SendBytes "volume shading transfunc $tf $_obj2id($dataobj-$comp)\n"]
+    }
 }
 
 # ----------------------------------------------------------------------
@@ -1460,21 +1525,21 @@ itcl::configbody Rappture::NanovisViewer::plotoutline {
 # of evenly distributed markers based on the current data range. Each
 # marker is a relative value from 0.0 to 1.0.
 #
-itcl::body Rappture::NanovisViewer::ParseLevelsOption { tf ivol levels } {
+itcl::body Rappture::NanovisViewer::ParseLevelsOption { tf levels } {
     set c $itk_component(legend)
     regsub -all "," $levels " " levels
     if {[string is int $levels]} {
 	for {set i 1} { $i <= $levels } {incr i} {
 	    set x [expr {double($i)/($levels+1)}]
-	    set m [IsoMarker \#auto $c $this $tf]
+	    set m [Rappture::IsoMarker \#auto $c $this $tf]
 	    $m relval $x
-	    lappend isomarkers_($tf) $m 
+	    lappend _isomarkers($tf) $m 
 	}
     } else {
 	foreach x $levels {
-	    set m [IsoMarker \#auto $c $this $tf]
+	    set m [Rappture::IsoMarker \#auto $c $this $tf]
 	    $m relval $x
-	    lappend isomarkers_($tf) $m 
+	    lappend _isomarkers($tf) $m 
 	}
     }
 }
@@ -1491,7 +1556,7 @@ itcl::body Rappture::NanovisViewer::ParseLevelsOption { tf ivol levels } {
 #       edge of the legends, but it range it represents will
 #       not be seen.
 #
-itcl::body Rappture::NanovisViewer::ParseMarkersOption { tf ivol markers } {
+itcl::body Rappture::NanovisViewer::ParseMarkersOption { tf markers } {
     set c $itk_component(legend)
     regsub -all "," $markers " " markers
     foreach marker $markers {
@@ -1499,42 +1564,35 @@ itcl::body Rappture::NanovisViewer::ParseMarkersOption { tf ivol markers } {
 	if { $n == 2 && $suffix == "%" } {
 	    # ${n}% : Set relative value. 
 	    set value [expr {$value * 0.01}]
-	    set m [IsoMarker \#auto $c $this $tf]
+	    set m [Rappture::IsoMarker \#auto $c $this $tf]
 	    $m relval $value
-	    lappend isomarkers_($tf) $m
+	    lappend _isomarkers($tf) $m
 	} else {
 	    # ${n} : Set absolute value.
-	    set m [IsoMarker \#auto $c $this $tf]
+	    set m [Rappture::IsoMarker \#auto $c $this $tf]
 	    $m absval $value
-	    lappend isomarkers_($tf) $m
+	    lappend _isomarkers($tf) $m
 	}
     }
 }
 
 # ----------------------------------------------------------------------
-# USAGE: Marker start <x> <y>
-# USAGE: Marker update <x> <y>
-# USAGE: Marker end <x> <y>
-#
-# Used internally to handle the various marker operations performed
-# when the user clicks and drags on the legend area.  The marker changes the
-# transfer function to highlight the area being selected in the
-# legend.
+# USAGE: UndateTransferFuncs 
 # ----------------------------------------------------------------------
 itcl::body Rappture::NanovisViewer::updatetransferfuncs {} {
     $_dispatcher event -idle !send_transfunc
 }
 
 itcl::body Rappture::NanovisViewer::AddIsoMarker { x y } {
-    if { $activeTf_ == "" } {
+    if { $_activeTf == "" } {
 	error "active transfer function isn't set"
     }
-    set tf $activeTf_ 
+    set tf $_activeTf 
     set c $itk_component(legend)
-    set m [IsoMarker \#auto $c $this $tf]
+    set m [Rappture::IsoMarker \#auto $c $this $tf]
     set w [winfo width $c]
     $m relval [expr {double($x-10)/($w-20)}]
-    lappend isomarkers_($tf) $m
+    lappend _isomarkers($tf) $m
     updatetransferfuncs
     return 1
 }
@@ -1542,10 +1600,10 @@ itcl::body Rappture::NanovisViewer::AddIsoMarker { x y } {
 itcl::body Rappture::NanovisViewer::rmdupmarker { marker x } {
     set tf [$marker transferfunc]
     set bool 0
-    if { [info exists isomarkers_($tf)] } {
+    if { [info exists _isomarkers($tf)] } {
 	set list {}
 	set marker [namespace tail $marker]
-	foreach m $isomarkers_($tf) {
+	foreach m $_isomarkers($tf) {
 	    set sx [$m screenpos]
 	    if { $m != $marker } {
 		if { $x >= ($sx-3) && $x <= ($sx+3) } {
@@ -1558,7 +1616,7 @@ itcl::body Rappture::NanovisViewer::rmdupmarker { marker x } {
 	    }
 	    lappend list $m
 	}
-	set isomarkers_($tf) $list
+	set _isomarkers($tf) $list
 	updatetransferfuncs
     }
     return $bool
@@ -1566,9 +1624,9 @@ itcl::body Rappture::NanovisViewer::rmdupmarker { marker x } {
 
 itcl::body Rappture::NanovisViewer::overmarker { marker x } {
     set tf [$marker transferfunc]
-    if { [info exists isomarkers_($tf)] } {
+    if { [info exists _isomarkers($tf)] } {
 	set marker [namespace tail $marker]
-	foreach m $isomarkers_($tf) {
+	foreach m $_isomarkers($tf) {
 	    set sx [$m screenpos]
 	    if { $m != $marker } {
 		set bool [expr { $x >= ($sx-3) && $x <= ($sx+3) }]
@@ -1580,22 +1638,34 @@ itcl::body Rappture::NanovisViewer::overmarker { marker x } {
 }
 
 itcl::body Rappture::NanovisViewer::limits { tf } {
-    set limits_(min) ""
-    set limits_(max) ""
-    foreach ivol $style2ids_($tf) {
-	if { ![info exists limits_($ivol-min)] } {
-	    # I assume this is after a clear.
-	    # error "can't find $ivol limits"	    
+    set _limits(min) 0.0
+    set _limits(max) 1.0
+    if { ![info exists _style2objs($tf)] } {
+	return [array get _limits]
+    }
+    set min ""; set max ""
+    foreach {dataobj comp} $_style2objs($tf) {
+	if { ![info exists _obj2id($dataobj-$comp)] } {
 	    continue
 	}
-	if { $limits_(min) == "" || $limits_(min) > $limits_($ivol-min) } {
-	    set limits_(min) $limits_($ivol-min)
+	set ivol $_obj2id($dataobj-$comp)
+	if { ![info exists _limits($ivol-min)] } {
+	    continue
 	}
-	if { $limits_(max) == "" || $limits_(max) < $limits_($ivol-max) } {
-	    set limits_(max) $limits_($ivol-max)
+	if { $min == "" || $min > $_limits($ivol-min) } {
+	    set min $_limits($ivol-min)
+	}
+	if { $max == "" || $max < $_limits($ivol-max) } {
+	    set max $_limits($ivol-max)
 	}
     }
-    return [array get limits_]
+    if { $min != "" } {
+	set _limits(min) $min
+    } 
+    if { $max != "" } {
+	set _limits(max) $max
+    }
+    return [array get _limits]
 }
 
 
@@ -1609,7 +1679,7 @@ itcl::body Rappture::NanovisViewer::BuildViewTab {} {
 	particles	1
 	lic		1
     } {
-	set settings_($this-$key) $value
+	set _settings($this-$key) $value
     }
 
     set fg [option get $itk_component(hull) font Font]
@@ -1620,40 +1690,40 @@ itcl::body Rappture::NanovisViewer::BuildViewTab {} {
         -icon [Rappture::icon wrench]]
     $inner configure -borderwidth 4
 
-    set ::Rappture::NanovisViewer::settings_($this-isosurface) 0
+    set ::Rappture::NanovisViewer::_settings($this-isosurface) 0
     checkbutton $inner.isosurface \
         -text "Isosurface shading" \
-        -variable [itcl::scope settings_($this-isosurface)] \
+        -variable [itcl::scope _settings($this-isosurface)] \
         -command [itcl::code $this FixSettings isosurface] \
 	-font "Arial 9"
 
     checkbutton $inner.axes \
         -text "Axes" \
-        -variable [itcl::scope settings_($this-axes)] \
+        -variable [itcl::scope _settings($this-axes)] \
         -command [itcl::code $this FixSettings axes] \
 	-font "Arial 9"
 
     checkbutton $inner.grid \
         -text "Grid" \
-        -variable [itcl::scope settings_($this-grid)] \
+        -variable [itcl::scope _settings($this-grid)] \
         -command [itcl::code $this FixSettings grid] \
 	-font "Arial 9"
 
     checkbutton $inner.outline \
         -text "Outline" \
-        -variable [itcl::scope settings_($this-outline)] \
+        -variable [itcl::scope _settings($this-outline)] \
         -command [itcl::code $this FixSettings outline] \
 	-font "Arial 9"
 
     checkbutton $inner.legend \
         -text "Legend" \
-        -variable [itcl::scope settings_($this-legend)] \
+        -variable [itcl::scope _settings($this-legend)] \
         -command [itcl::code $this FixSettings legend] \
 	-font "Arial 9"
 
     checkbutton $inner.volume \
         -text "Volume" \
-        -variable [itcl::scope settings_($this-volume)] \
+        -variable [itcl::scope _settings($this-volume)] \
         -command [itcl::code $this FixSettings volume] \
 	-font "Arial 9"
 
@@ -1675,7 +1745,7 @@ itcl::body Rappture::NanovisViewer::BuildVolumeTab {} {
 	opacity		100
 	thickness	350
     } {
-	set settings_($this-$key) $value
+	set _settings($this-$key) $value
     }
 
     set inner [$itk_component(main) insert end \
@@ -1687,34 +1757,34 @@ itcl::body Rappture::NanovisViewer::BuildVolumeTab {} {
     #set bfg [option get $itk_component(hull) boldFont Font]
 
     checkbutton $inner.vol -text "Show volume" -font $fg \
-        -variable [itcl::scope settings_($this-volume)] \
+        -variable [itcl::scope _settings($this-volume)] \
         -command [itcl::code $this FixSettings volume]
     label $inner.shading -text "Shading:" -font $fg
 
     label $inner.dim -text "Dim" -font $fg
     ::scale $inner.light -from 0 -to 100 -orient horizontal \
-        -variable [itcl::scope settings_($this-light)] \
+        -variable [itcl::scope _settings($this-light)] \
 	-width 10 \
         -showvalue off -command [itcl::code $this FixSettings light]
     label $inner.bright -text "Bright" -font $fg
 
     label $inner.fog -text "Fog" -font $fg
     ::scale $inner.transp -from 0 -to 100 -orient horizontal \
-        -variable [itcl::scope settings_($this-transp)] \
+        -variable [itcl::scope _settings($this-transp)] \
 	-width 10 \
         -showvalue off -command [itcl::code $this FixSettings transp]
     label $inner.plastic -text "Plastic" -font $fg
 
     label $inner.clear -text "Clear" -font $fg
     ::scale $inner.opacity -from 0 -to 100 -orient horizontal \
-        -variable [itcl::scope settings_($this-opacity)] \
+        -variable [itcl::scope _settings($this-opacity)] \
 	-width 10 \
         -showvalue off -command [itcl::code $this FixSettings opacity]
     label $inner.opaque -text "Opaque" -font $fg
 
     label $inner.thin -text "Thin" -font $fg
     ::scale $inner.thickness -from 0 -to 1000 -orient horizontal \
-        -variable [itcl::scope settings_($this-thickness)] \
+        -variable [itcl::scope _settings($this-thickness)] \
 	-width 10 \
         -showvalue off -command [itcl::code $this FixSettings thickness]
     label $inner.thick -text "Thick" -font $fg
@@ -1747,16 +1817,12 @@ itcl::body Rappture::NanovisViewer::BuildCutplanesTab {} {
 
     # X-value slicer...
     itk_component add xCutButton {
-        label $inner.xbutton \
-            -borderwidth 1 -relief raised -padx 1 -pady 1 \
-	    -image [Rappture::icon x-cutplane-off] \
-	    -highlightthickness 0 
-    } {
-        usual
-        ignore -borderwidth -highlightthickness -font
+        Rappture::PushButton $inner.xbutton \
+	    -onimage [Rappture::icon x-cutplane-on] \
+	    -offimage [Rappture::icon x-cutplane-off] \
+	    -command [itcl::code $this FixSettings xcutplane] \
+	    -variable [itcl::scope _settings($this-xcutplane)]
     }
-    bind $itk_component(xCutButton) <ButtonPress> \
-        [itcl::code $this Slice axis x toggle]
     Rappture::Tooltip::for $itk_component(xCutButton) \
         "Toggle the X cut plane on/off"
 
@@ -1764,7 +1830,8 @@ itcl::body Rappture::NanovisViewer::BuildCutplanesTab {} {
         ::scale $inner.xval -from 100 -to 0 \
             -width 10 -orient vertical -showvalue off \
             -borderwidth 1 -highlightthickness 0 \
-            -command [itcl::code $this Slice move x]
+            -command [itcl::code $this Slice move x] \
+	    -variable [itcl::scope _settings($this-xcutposition)]
     } {
         usual
         ignore -borderwidth -highlightthickness
@@ -1777,16 +1844,12 @@ itcl::body Rappture::NanovisViewer::BuildCutplanesTab {} {
 
     # Y-value slicer...
     itk_component add yCutButton {
-        label $inner.ybutton \
-            -borderwidth 1 -relief raised -padx 1 -pady 1 \
-	    -image [Rappture::icon y-cutplane-off] \
-	    -highlightthickness 0 
-    } {
-        usual
-        ignore -borderwidth -highlightthickness -font
+        Rappture::PushButton $inner.ybutton \
+	    -onimage [Rappture::icon y-cutplane-on] \
+	    -offimage [Rappture::icon y-cutplane-off] \
+	    -command [itcl::code $this FixSettings ycutplane] \
+	    -variable [itcl::scope _settings($this-ycutplane)]
     }
-    bind $itk_component(yCutButton) <ButtonPress> \
-        [itcl::code $this Slice axis y toggle]
     Rappture::Tooltip::for $itk_component(yCutButton) \
         "Toggle the Y cut plane on/off"
 
@@ -1794,7 +1857,8 @@ itcl::body Rappture::NanovisViewer::BuildCutplanesTab {} {
         ::scale $inner.yval -from 100 -to 0 \
             -width 10 -orient vertical -showvalue off \
             -borderwidth 1 -highlightthickness 0 \
-            -command [itcl::code $this Slice move y]
+            -command [itcl::code $this Slice move y] \
+	    -variable [itcl::scope _settings($this-ycutposition)]
     } {
         usual
         ignore -borderwidth -highlightthickness
@@ -1807,16 +1871,12 @@ itcl::body Rappture::NanovisViewer::BuildCutplanesTab {} {
 
     # Z-value slicer...
     itk_component add zCutButton {
-        label $inner.zbutton \
-            -borderwidth 1 -relief raised -padx 1 -pady 1 \
-	    -image [Rappture::icon z-cutplane-off] \
-	    -highlightthickness 0 
-    } {
-        usual
-        ignore -borderwidth -highlightthickness -font
+        Rappture::PushButton $inner.zbutton \
+	    -onimage [Rappture::icon z-cutplane-on] \
+	    -offimage [Rappture::icon z-cutplane-off] \
+	    -command [itcl::code $this FixSettings zcutplane] \
+	    -variable [itcl::scope _settings($this-zcutplane)]
     }
-    bind $itk_component(zCutButton) <ButtonPress> \
-        [itcl::code $this Slice axis z toggle]
     Rappture::Tooltip::for $itk_component(zCutButton) \
         "Toggle the Z cut plane on/off"
 
@@ -1824,7 +1884,8 @@ itcl::body Rappture::NanovisViewer::BuildCutplanesTab {} {
         ::scale $inner.zval -from 100 -to 0 \
             -width 10 -orient vertical -showvalue off \
             -borderwidth 1 -highlightthickness 0 \
-            -command [itcl::code $this Slice move z]
+            -command [itcl::code $this Slice move z] \
+	    -variable [itcl::scope _settings($this-zcutposition)]
     } {
         usual
         ignore -borderwidth -highlightthickness
@@ -1860,7 +1921,7 @@ itcl::body Rappture::NanovisViewer::BuildCameraTab {} {
     foreach tag $labels {
 	label $inner.${tag}label -text $tag -font "Arial 9"
 	entry $inner.${tag} -font "Arial 9"  -bg white \
-	    -textvariable [itcl::scope settings_($this-$tag)]
+	    -textvariable [itcl::scope _settings($this-$tag)]
 	bind $inner.${tag} <KeyPress-Return> \
 	    [itcl::code $this camera set ${tag}]
 	blt::table $inner \
@@ -1876,9 +1937,7 @@ itcl::body Rappture::NanovisViewer::BuildCameraTab {} {
 
 
 # ----------------------------------------------------------------------
-# USAGE: Slice axis x|y|z ?on|off|toggle?
 # USAGE: Slice move x|y|z <newval>
-# USAGE: Slice volume ?on|off|toggle?
 #
 # Called automatically when the user drags the slider to move the
 # cut plane that slices 3D data.  Gets the current value from the
@@ -1887,37 +1946,6 @@ itcl::body Rappture::NanovisViewer::BuildCameraTab {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::NanovisViewer::Slice {option args} {
     switch -- $option {
-        axis {
-            if {[llength $args] < 1 || [llength $args] > 2} {
-                error "wrong # args: should be \"Slice axis x|y|z ?on|off|toggle?\""
-            }
-            set axis [lindex $args 0]
-            set op [lindex $args 1]
-            if {$op == ""} { 
-		set op "on" 
-	    }
-            set current [State ${axis}CutButton]
-            if {$op == "toggle"} {
-                if {$current == "on"} { 
-		    set op "off" 
-		} else { 
-		    set op "on" 
-		}
-            }
-            if {$op} {
-                $itk_component(${axis}CutButton) configure \
-		    -relief sunken -image [Rappture::icon ${axis}-cutplane-on]
-                SendCmd "cutplane state 1 $axis [CurrentVolumeIds -cutplanes]"
-		$itk_component(${axis}CutScale) configure -state normal \
-		    -troughcolor grey65
-            } else {
-                $itk_component(${axis}CutButton) configure \
-		    -relief raised -image [Rappture::icon ${axis}-cutplane-off]
-                SendCmd "cutplane state 0 $axis [CurrentVolumeIds -cutplanes]"
-		$itk_component(${axis}CutScale) configure -state disabled \
-		    -troughcolor grey82
-            }
-        }
         move {
             if {[llength $args] != 2} {
                 error "wrong # args: should be \"Slice move x|y|z newval\""
@@ -1926,43 +1954,8 @@ itcl::body Rappture::NanovisViewer::Slice {option args} {
             set newval [lindex $args 1]
 
             set newpos [expr {0.01*$newval}]
-#            set newval [expr {0.01*($newval-50)
-#                *($limits_(${axis}max)-$limits_(${axis}min))
-#                  + 0.5*($limits_(${axis}max)+$limits_(${axis}min))}]
-
-            # show the current value in the readout
-            #puts "readout: $axis = $newval"
-
             set ids [CurrentVolumeIds -cutplanes]
             SendCmd "cutplane position $newpos $axis $ids"
-        }
-        volume {
-            if {[llength $args] > 1} {
-                error "wrong # args: should be \"Slice volume ?on|off|toggle?\""
-            }
-            set op [lindex $args 0]
-            if {$op == ""} { set op "on" }
-
-            set current $settings_($this-volume)
-            if {$op == "toggle"} {
-                if {$current} { 
-		    set op "off" 
-		} else { 
-		    set op "on" 
-		}
-            }
-	    
-            if {$op} {
-                SendCmd "volume data state on [CurrentVolumeIds]"
-                $itk_component(volume) configure -relief sunken \
-                    -image [Rappture::icon volume-on]
-		set settings_($this-volume) 1
-            } else {
-                SendCmd "volume data state off [CurrentVolumeIds]"
-                $itk_component(volume) configure -relief raised \
-                    -image [Rappture::icon volume-off]
-		set settings_($this-volume) 0
-            }
         }
         default {
             error "bad option \"$option\": should be axis, move, or volume"
@@ -1979,20 +1972,20 @@ itcl::body Rappture::NanovisViewer::Slice {option args} {
 itcl::body Rappture::NanovisViewer::SlicerTip {axis} {
     set val [$itk_component(${axis}CutScale) get]
 #    set val [expr {0.01*($val-50)
-#        *($limits_(${axis}max)-$limits_(${axis}min))
-#          + 0.5*($limits_(${axis}max)+$limits_(${axis}min))}]
+#        *($_limits(${axis}max)-$_limits(${axis}min))
+#          + 0.5*($_limits(${axis}max)+$_limits(${axis}min))}]
     return "Move the [string toupper $axis] cut plane.\nCurrently:  $axis = $val%"
 }
 
 
 itcl::body Rappture::NanovisViewer::DoResize {} {
-    SendCmd "screen $width_ $height_"
+    SendCmd "screen $_width $_height"
 }
 
 itcl::body Rappture::NanovisViewer::EventuallyResize { w h } {
-    if { $width_ != $w || $height_ != $h } {
-	set width_ $w
-	set height_ $h
+    if { $_width != $w || $_height != $h } {
+	set _width $w
+	set _height $h
 	$_dispatcher event -idle !resize
     }
 }
@@ -2001,37 +1994,37 @@ itcl::body Rappture::NanovisViewer::EventuallyResizeLegend {} {
     $_dispatcher event -idle !legend
 }
 
+
 #  camera -- 
 #
 itcl::body Rappture::NanovisViewer::camera {option args} {
     switch -- $option { 
 	"show" {
-	    puts [array get view_]
+	    puts [array get _view]
 	}
 	"set" {
 	    set who [lindex $args 0]
-	    set x $settings_($this-$who)
+	    set x $_settings($this-$who)
 	    set code [catch { string is double $x } result]
 	    if { $code != 0 || !$result } {
-		set settings_($this-$who) $view_($who)
+		set _settings($this-$who) $_view($who)
 		return
 	    }
 	    switch -- $who {
 		"pan-x" - "pan-y" {
-		    set view_($who) $settings_($this-$who)
+		    set _view($who) $_settings($this-$who)
 		    PanCamera
 		}
 		"phi" - "theta" - "psi" {
-		    set view_($who) $settings_($this-$who)
-		    set xyz [Euler2XYZ $view_(theta) $view_(phi) $view_(psi)]
+		    set _view($who) $_settings($this-$who)
+		    set xyz [Euler2XYZ $_view(theta) $_view(phi) $_view(psi)]
 		    SendCmd "camera angle $xyz"
 		}
 		"zoom" {
-		    set view_($who) $settings_($this-$who)
-		    SendCmd "camera zoom $view_(zoom)"
+		    set _view($who) $_settings($this-$who)
+		    SendCmd "camera zoom $_view(zoom)"
 		}
 	    }
 	}
     }
 }
-
