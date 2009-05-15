@@ -688,7 +688,7 @@ GetDataStream(Tcl_Interp *interp, Rappture::Buffer &buf, int nBytes)
     }
     Rappture::Outcome err;
     unsigned int flags;
-    flags = RPENC_HDR;
+    flags = RPENC_Z|RPENC_B64|RPENC_HDR; 
     if (!Rappture::encoding::decode(err, buf, flags)) {
 	printf("ERROR -- DECODING\n");
 	fflush(stdout);
@@ -1233,7 +1233,8 @@ VolumeDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
     if (Tcl_GetIntFromObj(interp, objv[3], &nbytes) != TCL_OK) {
         return TCL_ERROR;
     }
-
+    const char *tag;
+    tag = Tcl_GetString(objv[4]);
     Rappture::Buffer buf;
     if (GetDataStream(interp, buf, nbytes) != TCL_OK) {
         return TCL_ERROR;
@@ -1316,7 +1317,30 @@ VolumeDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
             return TCL_ERROR;
         }
     } else {
+#ifdef notdef
+	Rappture::Unirect3d *dataPtr;
 
+	dataPtr = new Rappture::Unirect3d(1);
+	if (!dataPtr->ImportDx(result, 1, buf.size(), (char *)buf.bytes())) {
+	    Tcl_AppendResult(interp, result.remark(), (char *)NULL);
+	    delete dataPtr;
+	    return TCL_ERROR;
+	}
+#if !ISO_TEST
+        dataPtr->Resample(context, 30);
+#endif
+	Volume *volPtr;
+	volPtr = NanoVis::load_volume(index, nx, ny, nz, 4, data, vmin, vmax,
+				  nzero_min);
+    
+    volPtr->xAxis.SetRange(dataPtr->xMin(), dataPtr->xMin() + (nx * dx));
+    volPtr->yAxis.SetRange(dataPtr->yMin(), dataPtr->yMin() + (ny * dy));
+    volPtr->zAxis.SetRange(dataPtr->zMin(), dataPtr->zMin() + (nz * dz));
+    volPtr->wAxis.SetRange(vmin, vmax);
+    volPtr->update_pending = true;
+
+	flowPtr->SetData(dataPtr);
+#endif
         printf("OpenDX loading...\n");
         fflush(stdout);
         std::stringstream fdata;
@@ -1366,8 +1390,8 @@ VolumeDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
         }
         volPtr = NanoVis::volume[n];
         // FIXME: strlen(info) is the return value of sprintf
-        sprintf(info, "nv>data id %d min %g max %g vmin %g vmax %g\n",
-                n, volPtr->wAxis.min(), volPtr->wAxis.max(),
+        sprintf(info, "nv>data tag %s id %d min %g max %g vmin %g vmax %g\n",
+                tag, n, volPtr->wAxis.min(), volPtr->wAxis.max(),
                 Volume::valueMin, Volume::valueMax);
         nWritten  = write(0, info, strlen(info));
 	assert(nWritten == (ssize_t)strlen(info));
@@ -1402,7 +1426,7 @@ VolumeDataStateOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static Rappture::CmdSpec volumeDataOps[] = {
-    {"follows",   1, VolumeDataFollowsOp, 4, 4, "size",},
+    {"follows",   1, VolumeDataFollowsOp, 5, 5, "size tag",},
     {"state",     1, VolumeDataStateOp,   4, 0, "bool ?indices?",},
 };
 static int nVolumeDataOps = NumCmdSpecs(volumeDataOps);

@@ -13,6 +13,8 @@ class Unirect3d {
     float _xValueMin, _xValueMax;
     float _yValueMin, _yValueMax;
     float _zValueMin, _zValueMax;
+    double _magMin, _magMax;		/* Range of magnitudes of vector
+					 * data. */
     char *_xUnits;
     char *_yUnits;
     char *_zUnits;
@@ -20,6 +22,7 @@ class Unirect3d {
 
     float *_values;
     bool _initialized;
+    void GetVectorRange(void);
 
 public:
     Unirect3d(float xMin, float xMax, size_t xNum, 
@@ -38,6 +41,8 @@ public:
 	_nValues = 0;
 	_xUnits = _yUnits = _zUnits = _vUnits = NULL;
 	_nComponents = nComponents;
+	_magMin = DBL_MAX;
+	_magMax = -DBL_MAX;
     }
     ~Unirect3d(void) {
 	if (_values != NULL) {
@@ -69,6 +74,8 @@ public:
 	_zMax = zMax;
 	_zMin = zMin;
 	_zNum = zNum;
+	_magMin = DBL_MAX;
+	_magMax = -DBL_MAX;
 	_nValues = nValues;
 	_values = values;
 	_initialized = true;
@@ -137,6 +144,18 @@ public:
     const float *values(void) {
 	return _values;
     }
+    double magMin(void) {
+	if (_magMin == DBL_MAX) {
+	    GetVectorRange();
+	}
+	return _magMin;
+    }
+    double magMax(void) {
+	if (_magMax == -DBL_MAX) {
+	    GetVectorRange();
+	}
+	return _magMax;
+    }
     const float *SaveValues(void) {
 	float *values;
 	values = _values;
@@ -149,8 +168,8 @@ public:
     }
     int LoadData(Tcl_Interp *interp, int objc, Tcl_Obj *const *objv);
 
-    bool ReadVectorDataFromDx(Rappture::Outcome &result, size_t length, 
-	char *string);
+    bool ImportDx(Rappture::Outcome &result, int nComponents, 
+		  size_t length, char *string);
     bool Resample(Rappture::Outcome &context, int nSamples = 30);
     bool isInitialized(void) {
 	return _initialized;

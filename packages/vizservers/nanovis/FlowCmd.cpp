@@ -337,38 +337,6 @@ FlowCmd::Render(void)
     RenderBoxes();
 }
 
-
-#ifdef notdef
-int
-NanoVis::InitVectorField(Tcl_Interp *interp) 
-{
-    if (flowVisRenderer == NULL) {
-	Tcl_AppendResult(interp, "flowvis renderer is NULL", (char *)NULL);
-	return TCL_ERROR;
-    }
-    if (licRenderer == NULL) {
-	Tcl_AppendResult(interp, "LIC renderer is NULL", (char *)NULL);
-	return TCL_ERROR;
-    }
-    _fieldPtr->setVectorField(_volPtr->id, *(_volPtr->get_location()),
-	1.0f, _volPtr->height / (float)_volPtr->width,
-	_volPtr->depth  / (float)_volPtr->width,
-	_volPtr->wAxis.max());
-
-    licRenderer->make_patterns();
-    licRenderer->setVectorField(
-	_volPtr->id,			/* Texture ID */
-	*(_volPtr->get_location()),	/* Origin */
-	1.0f / volPtr->aspect_ratio_width, /* X-axis scale. */
-	1.0f / volPtr->aspect_ratio_height, /* Y-axis scale. */
-	1.0f / volPtr->aspect_ratio_depth, /* Z-axis scale. */ 
-	volPtr->wAxis.max());		/* Maximum ???? */
-
-    licRenderer->set_offset(lic_slice_z);
-    return TCL_OK;
-}
-#endif
-
 int
 FlowCmd::CreateParticles(Tcl_Interp *interp, Tcl_Obj *objPtr)
 {
@@ -498,29 +466,6 @@ FlowCmd::NextBox(FlowBoxIterator *iterPtr)
 	return NULL;
     }
     return (FlowBox *)Tcl_GetHashValue(iterPtr->hashPtr);
-}
-
-void
-FlowCmd::GetMagRange(double &min_mag, double &max_mag)
-{
-    const float *values = _dataPtr->values();
-    size_t nValues = _dataPtr->nValues();
-    max_mag = -1e21, min_mag = 1e21;
-    for (size_t i = 0; i < nValues; i += 3) {
-	double vx, vy, vz, vm;
-
-	vx = values[i];
-	vy = values[i+1];
-	vz = values[i+2];
-		    
-	vm = sqrt(vx*vx + vy*vy + vz*vz);
-	if (vm > max_mag) {
-	    max_mag = vm;
-	}
-	if (vm < min_mag) {
-	    min_mag = vm;
-	}
-    }
 }
 
 
@@ -711,18 +656,18 @@ FlowDataFileOp(ClientData clientData, Tcl_Interp *interp, int objc,
 	       Tcl_Obj *const *objv)
 {
     Rappture::Outcome result;
-
+    
     const char *fileName;
     fileName = Tcl_GetString(objv[3]);
     Trace("Flow loading data from file %s\n", fileName);
 
-    int extents;
-    if (Tcl_GetIntFromObj(interp, objv[4], &extents) != TCL_OK) {
+    int nComponents;
+    if (Tcl_GetIntFromObj(interp, objv[4], &nComponents) != TCL_OK) {
         return TCL_ERROR;
     }
-    if ((extents < 1) || (extents > 4)) {
-	Tcl_AppendResult(interp, "bad extents value \"", Tcl_GetString(objv[4]),
-			 "\"", (char *)NULL);
+    if ((nComponents < 1) || (nComponents > 4)) {
+	Tcl_AppendResult(interp, "bad # of components \"", 
+			 Tcl_GetString(objv[4]), "\"", (char *)NULL);
 	return TCL_ERROR;
     }
     Rappture::Buffer buf;
@@ -736,8 +681,8 @@ FlowDataFileOp(ClientData clientData, Tcl_Interp *interp, int objc,
     if (strncmp(buf.bytes(), "<DX>", 4) == 0) {
 	Rappture::Unirect3d *dataPtr;
 
-	dataPtr = new Rappture::Unirect3d(extents);
-	if (!dataPtr->ReadVectorDataFromDx(result, buf.size(), 
+	dataPtr = new Rappture::Unirect3d(nComponents);
+	if (!dataPtr->ImportDx(result, nComponents, buf.size(), 
 		(char *)buf.bytes())) {
 	    Tcl_AppendResult(interp, result.remark(), (char *)NULL);
 	    delete dataPtr;
@@ -753,7 +698,7 @@ FlowDataFileOp(ClientData clientData, Tcl_Interp *interp, int objc,
 	if (!Tcl_GetCommandInfo(interp, "unirect3d", &cmdInfo)) {
 	    return TCL_ERROR;
 	}
-	dataPtr = new Rappture::Unirect3d(extents);
+	dataPtr = new Rappture::Unirect3d(nComponents);
 	cmdInfo.objClientData = (ClientData)dataPtr;	
 	Tcl_SetCommandInfo(interp, "unirect3d", &cmdInfo);
 	if (Tcl_Eval(interp, (const char *)buf.bytes()) != TCL_OK) {
@@ -768,9 +713,9 @@ FlowDataFileOp(ClientData clientData, Tcl_Interp *interp, int objc,
     } else {
 	Rappture::Unirect3d *dataPtr;
 
-	dataPtr = new Rappture::Unirect3d(extents);
-	if (!dataPtr->ReadVectorDataFromDx(result, buf.size(), 
-					   (char *)buf.bytes())) {
+	dataPtr = new Rappture::Unirect3d(nComponents);
+	if (!dataPtr->ImportDx(result, nComponents, buf.size(), 
+		(char *)buf.bytes())) {
 	    Tcl_AppendResult(interp, result.remark(), (char *)NULL);
 	    delete dataPtr;
 	    return TCL_ERROR;
@@ -782,7 +727,7 @@ FlowDataFileOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 /*
- * $flow data follows nbytes extents
+ * $flow data follows nbytes nComponents
  */
 static int
 FlowDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
@@ -803,19 +748,19 @@ FlowDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
 	Trace("Bad nbytes %d\n", nBytes);
 	return TCL_ERROR;
     }
-    int extents;
-    if (Tcl_GetIntFromObj(interp, objv[4], &extents) != TCL_OK) {
-	Trace("Bad extents \"%s\"\n", Tcl_GetString(objv[4]));
+    int nComponents;
+    if (Tcl_GetIntFromObj(interp, objv[4], &nComponents) != TCL_OK) {
+	Trace("Bad # of components \"%s\"\n", Tcl_GetString(objv[4]));
         return TCL_ERROR;
     }
-    if (extents <= 0) {
-	Tcl_AppendResult(interp, "bad extents request \"", 
+    if (nComponents <= 0) {
+	Tcl_AppendResult(interp, "bad # of components request \"", 
 		Tcl_GetString(objv[4]), "\" for \"data follows\"", (char *)NULL);
-	Trace("Bad extents %d\n", extents);
+	Trace("Bad # of components %d\n", nComponents);
 	return TCL_ERROR;
     }
     Rappture::Buffer buf;
-    Trace("Flow Data Loading %d %d\n", nBytes, extents);
+    Trace("Flow Data Loading %d %d\n", nBytes, nComponents);
     if (GetDataStream(interp, buf, nBytes) != TCL_OK) {
         return TCL_ERROR;
     }
@@ -823,8 +768,8 @@ FlowDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
     if ((buf.size() > 4) && (strncmp(buf.bytes(), "<DX>", 4) == 0)) {
 	Rappture::Unirect3d *dataPtr;
 
-	dataPtr = new Rappture::Unirect3d(extents);
-	if (!dataPtr->ReadVectorDataFromDx(result, buf.size(), 
+	dataPtr = new Rappture::Unirect3d(nComponents);
+	if (!dataPtr->ImportDx(result, nComponents, buf.size(), 
 		(char *)buf.bytes())) {
 	    Tcl_AppendResult(interp, result.remark(), (char *)NULL);
 	    delete dataPtr;
@@ -838,7 +783,7 @@ FlowDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
 
 	/* Set the clientdata field of the unirect3d command to contain
 	 * the local data structure. */
-	dataPtr = new Rappture::Unirect3d(extents);
+	dataPtr = new Rappture::Unirect3d(nComponents);
 	if (!Tcl_GetCommandInfo(interp, "unirect3d", &cmdInfo)) {
 	    return TCL_ERROR;
 	}
@@ -858,9 +803,9 @@ FlowDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
 			 (char *)NULL);
 	Rappture::Unirect3d *dataPtr;
 
-	dataPtr = new Rappture::Unirect3d(extents);
-	if (!dataPtr->ReadVectorDataFromDx(result, buf.size(), 
-					   (char *)buf.bytes())) {
+	dataPtr = new Rappture::Unirect3d(nComponents);
+	if (!dataPtr->ImportDx(result, nComponents, buf.size(), 
+			       (char *)buf.bytes())) {
 	    Tcl_AppendResult(interp, result.remark(), (char *)NULL);
 	    delete dataPtr;
 	    return TCL_ERROR;
@@ -872,8 +817,9 @@ FlowDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
 	ssize_t nWritten;
 	size_t length;
 
-        length = sprintf(info, "nv>data id 0 name %s min 0 max 1 vmin 0 vmax 1\n",
-                flowPtr->name());
+        length = sprintf(info, "nv>data tag %s id 0 min %g max %g vmin %g vmax %g\n",
+			 flowPtr->name(), NanoVis::magMin,
+			 NanoVis::magMax, NanoVis::xMin, NanoVis::xMax);
         nWritten  = write(0, info, length);
 	assert(nWritten == (ssize_t)strlen(info));
     }
@@ -882,8 +828,8 @@ FlowDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static Rappture::CmdSpec flowDataOps[] = {
-    {"file",    2, FlowDataFileOp,    5, 5, "fileName extents",},
-    {"follows", 2, FlowDataFollowsOp, 5, 5, "size extents",},
+    {"file",    2, FlowDataFileOp,    5, 5, "fileName nComponents",},
+    {"follows", 2, FlowDataFollowsOp, 5, 5, "size nComponents",},
 };
 static int nFlowDataOps = NumCmdSpecs(flowDataOps);
 
@@ -1033,36 +979,37 @@ NanoVis::MapFlows(void)
     FlowIterator iter;
     for (flowPtr = FirstFlow(&iter); flowPtr != NULL; 
 	 flowPtr = NextFlow(&iter)) {
-	double minMag, maxMag;
+	double min, max;
 	if (!flowPtr->isDataLoaded()) {
 	    continue;
 	}
-	flowPtr->GetMagRange(minMag, maxMag);
-	if (minMag < NanoVis::magMin) {
-	    NanoVis::magMin = minMag;
-	} 
-	if (maxMag > NanoVis::magMax) {
-	    NanoVis::magMax = maxMag;
-	}
 	Rappture::Unirect3d *dataPtr;
 	dataPtr = flowPtr->GetData();
-	if (dataPtr->xMin() < NanoVis::xMin) {
-	    NanoVis::xMin = dataPtr->xMin();
+	min = dataPtr->magMin();
+	max = dataPtr->magMax();
+	if (min < magMin) {
+	    magMin = min;
+	} 
+	if (max > magMax) {
+	    magMax = max;
 	}
-	if (dataPtr->yMin() < NanoVis::yMin) {
-	    NanoVis::yMin = dataPtr->yMin();
+	if (dataPtr->xMin() < xMin) {
+	    xMin = dataPtr->xMin();
 	}
-	if (dataPtr->zMin() < NanoVis::zMin) {
-	    NanoVis::zMin = dataPtr->zMin();
+	if (dataPtr->yMin() < yMin) {
+	    yMin = dataPtr->yMin();
 	}
-	if (dataPtr->xMax() > NanoVis::xMax) {
-	    NanoVis::xMax = dataPtr->xMax();
+	if (dataPtr->zMin() < zMin) {
+	    zMin = dataPtr->zMin();
 	}
-	if (dataPtr->yMax() > NanoVis::yMax) {
-	    NanoVis::yMax = dataPtr->yMax();
+	if (dataPtr->xMax() > xMax) {
+	    xMax = dataPtr->xMax();
 	}
-	if (dataPtr->zMax() > NanoVis::zMax) {
-	    NanoVis::zMax = dataPtr->zMax();
+	if (dataPtr->yMax() > yMax) {
+	    yMax = dataPtr->yMax();
+	}
+	if (dataPtr->zMax() > zMax) {
+	    zMax = dataPtr->zMax();
 	}
     }
 
@@ -1083,19 +1030,15 @@ NanoVis::MapFlows(void)
 	if (!flowPtr->ScaleVectorField()) {
 	    return false;
 	}
-	NanoVis::licRenderer->set_offset(flowPtr->GetRelativePosition());
+	licRenderer->set_offset(flowPtr->GetRelativePosition());
     }
+    AdvectFlows();
     return true;
 }
 
 void
 NanoVis::RenderFlows(void)
 {
-#ifdef notdef
-    if (!licRenderer->active()) {
-	licRenderer->active(true);
-    }
-#endif
     FlowCmd *flowPtr;
     FlowIterator iter;
     for (flowPtr = FirstFlow(&iter); flowPtr != NULL; 
@@ -1110,11 +1053,6 @@ NanoVis::RenderFlows(void)
 void
 NanoVis::ResetFlows(void)
 {
-#ifdef notdef
-    if (!licRenderer->active()) {
-	licRenderer->active(true);
-    }
-#endif
     FlowCmd *flowPtr;
     FlowIterator iter;
     for (flowPtr = FirstFlow(&iter); flowPtr != NULL; 
@@ -1128,11 +1066,6 @@ NanoVis::ResetFlows(void)
 void
 NanoVis::AdvectFlows(void)
 {
-#ifdef notdef
-    if (!licRenderer->active()) {
-	licRenderer->active(true);
-    }
-#endif
     FlowCmd *flowPtr;
     FlowIterator iter;
     for (flowPtr = FirstFlow(&iter); flowPtr != NULL; 
@@ -1820,11 +1753,6 @@ FlowNextOp(ClientData clientData, Tcl_Interp *interp, int objc,
              Tcl_Obj *const *objv)
 {
     assert(NanoVis::licRenderer != NULL);
-#ifdef notdef
-    if (!NanoVis::licRenderer->active()) {
-        NanoVis::licRenderer->active(true);
-    }
-#endif
     if (NanoVis::flags & NanoVis::MAP_FLOWS) {
 	NanoVis::MapFlows();
     }
@@ -1881,9 +1809,6 @@ FlowVideoOp(ClientData clientData, Tcl_Interp *interp, int objc,
 	Tcl_AppendResult(interp, "no flow renderer.", (char *)NULL);
 	return TCL_ERROR;
     }
-#ifdef notdef
-    NanoVis::licRenderer->active(true);
-#endif
     // Save the old dimensions of the offscreen buffer.
     int oldWidth, oldHeight;
     oldWidth = NanoVis::win_width;
