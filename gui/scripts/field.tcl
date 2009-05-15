@@ -30,7 +30,7 @@ itcl::class Rappture::Field {
     public method isunirect2d {}
     public method isunirect3d {}
     public method extents {{what -overall}}
-
+    public method flowhints { cname }
     protected method _build {}
     protected method _getValue {expr}
 
@@ -49,6 +49,7 @@ itcl::class Rappture::Field {
     private variable _comp2style ;# maps component name => style settings
     private variable _comp2cntls ;# maps component name => x,y control points
     private variable _comp2extents 
+    private variable _comp2flowhints 
     private common _counter 0    ;# counter for unique vector names
 }
 
@@ -118,6 +119,9 @@ itcl::body Rappture::Field::destructor {} {
     foreach name [array names _comp2unirect3d] {
 	itcl::delete object $_comp2unirect3d($name)
     }
+    foreach name [array names _comp2flowhints] {
+	itcl::delete object $_comp2flowhints($name)
+    }
 }
 
 # ----------------------------------------------------------------------
@@ -132,6 +136,9 @@ itcl::body Rappture::Field::components {args} {
 	flag what -name default
 	flag what -dimensions
 	flag what -style
+	flag what -particles
+	flag what -flow
+	flag what -box
     }
 
     set pattern *
@@ -552,8 +559,9 @@ itcl::body Rappture::Field::_build {} {
 	set _comp2style($cname) ""
 	
 	# Save the extents of the component
-	set extents [$_field element $cname.extents]
-	if { $extents == "" } {
+	if { [$_field element $cname.extents] != "" } {
+	    set extents [$_field get $cname.extents]
+	} else {
 	    set extents 1 
 	}
 	set _comp2extents($cname) $extents
@@ -621,12 +629,20 @@ itcl::body Rappture::Field::_build {} {
 		    set _comp2unirect2d($cname) \
 			[Rappture::Unirect2d \#auto $_xmlobj $_field $cname]
 		    set _comp2style($cname) [$_field get $cname.style]
+		    if {[$_field element $cname.flow] != ""} {
+			set _comp2flowhints($cname) \
+			    [Rappture::FlowHints ::\#auto $_field $cname $_units]
+		    }
 		    incr _counter
 		} elseif { $element == "unirect3d" } {
 		    set _comp2dims($cname) "3D"
 		    set _comp2unirect3d($cname) \
 			[Rappture::Unirect3d \#auto $_xmlobj $_field $cname]
 		    set _comp2style($cname) [$_field get $cname.style]
+		    if {[$_field element $cname.flow] != ""} {
+			set _comp2flowhints($cname) \
+			    [Rappture::FlowHints ::\#auto $_field $cname $_units]
+		    }
 		    incr _counter
 		} elseif { $element == "cloud" || $element == "mesh" } {
 		    switch -- $element {
@@ -714,8 +730,12 @@ itcl::body Rappture::Field::_build {} {
 	    # off to the NanoVis visualizer.
 	    #
 	    set _comp2dims($cname) "3D"
-	    set _comp2dx($cname) [$_field get -decode no $cname.dx]
+	    set _comp2dx($cname)  [$_field get -decode no $cname.dx]
 	    set _comp2style($cname) [$_field get $cname.style]
+	    if {[$_field element $cname.flow] != ""} {
+		set _comp2flowhints($cname) \
+		    [Rappture::FlowHints ::\#auto $_field $cname $_units]
+	    }
 	    incr _counter
 	} elseif {$type == "opendx"} {
 	    #
@@ -731,6 +751,10 @@ itcl::body Rappture::Field::_build {} {
 	    set data [Rappture::encoding::encode -as zb64 $data]
 	    set _comp2dx($cname) $data
 	    set _comp2style($cname) [$_field get $cname.style]
+	    if {[$_field element $cname.flow] != ""} {
+		set _comp2flowhints($cname) \
+		    [Rapture::FlowHints ::\#auto $_field $cname $_units]
+	    }
 	    incr _counter
 	}
     }
@@ -798,6 +822,18 @@ itcl::body Rappture::Field::isunirect3d { } {
 }
 
 #
+# flowhints  --
+#
+# Returns the hints associated with a flow vector field.  
+#
+itcl::body Rappture::Field::flowhints { cname } {
+    if { [info exists _comp2flowhints($cname)] } {
+	return $_comp2flowhints($cname)
+    }
+    return ""
+}
+
+#
 # extents --
 #
 # Returns if the field is a unirect2d object.  
@@ -806,9 +842,10 @@ itcl::body Rappture::Field::extents {{what -overall}} {
     if {$what == "-overall" } {
 	set max 0
 	foreach cname [$_field children -type component] {
-	    set extents [info exists _comp2extents($cname)]
-	    if { $max < $extents } {
-		set max $extents
+	    if { [info exists _comp2extents($cname)] } {
+		if { $max < $_comp2extents($cname) } {
+		    set max $_comp2extents($cname)
+		}
 	    }
 	}
 	return $max
