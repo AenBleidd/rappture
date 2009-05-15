@@ -16,7 +16,7 @@ package require Itk
 package require BLT
 package require Img
 
-itcl::class Rappture::NanovisViewer::IsoMarker {
+itcl::class Rappture::IsoMarker {
     private variable value_	"";	# Absolute value of marker.
     private variable label_	""
     private variable tick_	""
