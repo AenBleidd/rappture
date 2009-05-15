@@ -1673,6 +1673,9 @@ NanoVis::display()
     }
     if (flags & MAP_FLOWS) {
 	MapFlows();
+        grid->xAxis.SetScale(xMin, xMax);
+        grid->yAxis.SetScale(yMin, yMax);
+        grid->zAxis.SetScale(zMin, zMax);
     }
     //assert(glGetError()==0);
     if (HeightMap::update_pending) {
@@ -2076,13 +2079,17 @@ void
 NanoVis::render()
 {
 
-    if ((NanoVis::licRenderer != NULL) && 
-	(NanoVis::licRenderer->active())) {
+#ifdef notdef
+    if ((NanoVis::licRenderer != NULL) && (NanoVis::licRenderer->active())) {
 	NanoVis::licRenderer->convolve();
     }
+#else
+    if (NanoVis::licRenderer != NULL) {
+	NanoVis::licRenderer->convolve();
+    }
+#endif
 
-    if ((NanoVis::flowVisRenderer != NULL) && 
-	(NanoVis::flowVisRenderer->active())) {
+    if ((NanoVis::flowVisRenderer != NULL) && (NanoVis::flowVisRenderer->active())) {
 	NanoVis::flowVisRenderer->advect();
     }
 

@@ -15,7 +15,7 @@ struct FlowPoint {
 
 struct FlowParticlesValues {
     int isHidden;			/* Indicates if particle injection
-					 * plance is active or not. */
+					 * plane is active or not. */
     FlowPosition position;		/* Position on axis of particle
 					 * plane */
     FlowColor color;			/* Color of particles */
@@ -284,8 +284,6 @@ public:
     void SetActive(void) {
 	NanoVis::licRenderer->active(_sv.sliceVisible);
     }
-    void GetMagRange(double &min_mag, double &max_mag);
-
     void SetVectorField(NvVectorField *fieldPtr) {
 	DeleteVectorField();
 	_fieldPtr = fieldPtr;

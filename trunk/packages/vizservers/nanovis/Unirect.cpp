@@ -415,7 +415,7 @@ Rappture::Unirect2d::LoadData(Tcl_Interp *interp, int objc,
 
 
 bool
-Rappture::Unirect3d::ReadVectorDataFromDx(Rappture::Outcome &result, 
+Rappture::Unirect3d::ImportDx(Rappture::Outcome &result, int nComponents,
 	size_t length, char *string) 
 {
     size_t nx, ny, nz, npts;
@@ -485,6 +485,8 @@ Rappture::Unirect3d::ReadVectorDataFromDx(Rappture::Outcome &result,
     _xMax = _xMin + dx * _xNum;
     _yMax = _yMin + dy * _yNum;
     _zMax = _zMin + dz * _zNum;
+    _nComponents = nComponents;
+
     if (_values != NULL) {
 	delete [] _values;
     }
@@ -616,3 +618,26 @@ Rappture::Unirect3d::Resample(Rappture::Outcome &result, int nSamples)
     return true;
 }
 
+
+void
+Rappture::Unirect3d::GetVectorRange(void)
+{
+    assert(_nComponents == 3);
+    _magMax = -DBL_MAX, _magMin = DBL_MAX;
+    size_t i;
+    for (i = 0; i < _nValues; i += _nComponents) {
+	double vx, vy, vz, vm;
+
+	vx = _values[i];
+	vy = _values[i+1];
+	vz = _values[i+2];
+		    
+	vm = sqrt(vx*vx + vy*vy + vz*vz);
+	if (vm > _magMax) {
+	    _magMax = vm;
+	}
+	if (vm < _magMin) {
+	    _magMin = vm;
+	}
+    }
+}
