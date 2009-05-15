@@ -376,7 +376,7 @@ itcl::body Rappture::Analyzer::simulate {args} {
 	    return
 	}
 	set args ""
-    }
+    } 
 
     # simulation is needed -- go to simulation page
     $itk_component(notebook) current simulate
