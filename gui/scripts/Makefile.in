@@ -47,6 +47,7 @@ FILES		= \
 		$(srcdir)/field2dresult.tcl \
 		$(srcdir)/field3dresult.tcl \
 		$(srcdir)/filexfer.tcl \
+		$(srcdir)/flowhints.tcl \
 		$(srcdir)/flowvisviewer.tcl \
 		$(srcdir)/gauge.tcl \
 		$(srcdir)/getopts.tcl \
@@ -78,6 +79,7 @@ FILES		= \
 		$(srcdir)/panes.tcl \
 		$(srcdir)/postern.tcl \
 		$(srcdir)/progress.tcl \
+		$(srcdir)/pushbutton.tcl \
 		$(srcdir)/radiodial.tcl \
 		$(srcdir)/resources.tcl \
 		$(srcdir)/resultset.tcl \
