@@ -19,21 +19,21 @@ itcl::class ::Rappture::VisViewer {
     itk_option define -sendcommand sendCommand SendCommand ""
     itk_option define -receivecommand receiveCommand ReceiveCommand ""
 
-    private common servers_         ;# array of visualization server lists
-    set servers_(nanovis) "localhost:2000"
-    set servers_(pymol)   "localhost:2020"
+    private common _servers         ;# array of visualization server lists
+    set _servers(nanovis) "localhost:2000"
+    set _servers(pymol)   "localhost:2020"
 
-    private variable sid_ ""        ;# socket connection to server
-    private common done_            ;# Used to indicate status of send.
-    private variable buffer_        ;# buffer for incoming/outgoing commands
-    private variable initialized_
-    private variable isOpen_ 0
+    private variable _sid ""        ;# socket connection to server
+    private common _done            ;# Used to indicate status of send.
+    private variable _buffer        ;# buffer for incoming/outgoing commands
+    private variable _initialized 
+    private variable _isOpen 0
     # Number of milliseconds to wait before idle timeout.
     # If greater than 0, automatically disconnect from the visualization
     # server when idle timeout is reached.
-    private variable idleTimeout_ 43200000; # 12 hours
-    #private variable idleTimeout_ 5000;    # 5 seconds
-    #private variable idleTimeout_ 0;       # No timeout
+    private variable _idleTimeout 43200000; # 12 hours
+    #private variable _idleTimeout 5000;    # 5 seconds
+    #private variable _idleTimeout 0;       # No timeout
 
     protected variable _dispatcher ""   ;# dispatcher for !events
     protected variable _hosts ""    ;# list of hosts for server
@@ -47,12 +47,12 @@ itcl::class ::Rappture::VisViewer {
 	# defined below
     }
     # Used internally only.
-    private method _Shuffle { hostlist }
-    private method _ReceiveHelper {}
-    private method _ServerDown {}
-    private method _SendHelper {}
-    private method _SendHelper.old {}
-    private method _CheckConnection {}
+    private method Shuffle { hostlist }
+    private method ReceiveHelper {}
+    private method ServerDown {}
+    private method SendHelper {}
+    private method SendHelper.old {}
+    private method CheckConnection {}
 
     protected method SendEcho { channel {data ""} }
     protected method ReceiveEcho { channel {data ""} }
@@ -65,18 +65,18 @@ itcl::class ::Rappture::VisViewer {
     protected method Color2RGB { color }
     protected method Euler2XYZ { theta phi psi }
 
-    private proc _CheckNameList { namelist }  {
+    private proc CheckNameList { namelist }  {
 	set pattern {^[a-zA-Z0-9\.]+:[0-9]+(,[a-zA-Z0-9\.]+:[0-9]+)*$}
 	if { ![regexp $pattern $namelist match] } {
 	    error "bad visualization server address \"$namelist\": should be host:port,host:port,..."
 	}
     }
     public proc GetServerList { tag } {
-	return $servers_($tag)
+	return $_servers($tag)
     }
     public proc SetServerList { tag namelist } {
-	_CheckNameList $namelist
-	set servers_($tag) $namelist
+	CheckNameList $namelist
+	set _servers($tag) $namelist
     }
     public proc SetPymolServerList { namelist } {
 	SetServerList "pymol" $namelist
@@ -97,14 +97,14 @@ itcl::body Rappture::VisViewer::constructor { hostlist args } {
 
     Rappture::dispatcher _dispatcher
     $_dispatcher register !serverDown
-    $_dispatcher dispatch $this !serverDown "[itcl::code $this _ServerDown]; list"
+    $_dispatcher dispatch $this !serverDown "[itcl::code $this ServerDown]; list"
     $_dispatcher register !timeout
     $_dispatcher dispatch $this !timeout "[itcl::code $this Disconnect]; list"
 
-    _CheckNameList $hostlist
+    CheckNameList $hostlist
     set _hostlist $hostlist
-    set buffer_(in) ""
-    set buffer_(out) ""
+    set _buffer(in) ""
+    set _buffer(out) ""
     #
     # Create a parser to handle incoming requests
     #
@@ -148,17 +148,17 @@ itcl::body Rappture::VisViewer::constructor { hostlist args } {
 itcl::body Rappture::VisViewer::destructor {} {
     $_dispatcher cancel !timeout
     interp delete $_parser
-    array unset done_ $this
+    array unset _done $this
 }
 
 #
-# _Shuffle --
+# Shuffle --
 #
 #   Shuffle the list of server hosts.
 #
-itcl::body Rappture::VisViewer::_Shuffle { hostlist } {
+itcl::body Rappture::VisViewer::Shuffle { hostlist } {
     set hosts [split $hostlist ,]
-    set random_hosts {}
+    set randomHosts {}
     set ticks [clock clicks]
     expr {srand($ticks)}
     for { set i [llength $hosts] } { $i > 0 } { incr i -1 } {
@@ -166,20 +166,20 @@ itcl::body Rappture::VisViewer::_Shuffle { hostlist } {
 	if { $index == $i } {
 	    set index [expr $i - 1]
 	}
-	lappend random_hosts [lindex $hosts $index]
+	lappend randomHosts [lindex $hosts $index]
 	set hosts [lreplace $hosts $index $index]
     }
-    return $random_hosts
+    return $randomHosts
 }
 
 #
-# _ServerDown --
+# ServerDown --
 #
 #    Used internally to let the user know when the connection to the
 #    visualization server has been lost.  Puts up a tip encouraging the
 #    user to press any control to reconnect.
 #
-itcl::body Rappture::VisViewer::_ServerDown {} {
+itcl::body Rappture::VisViewer::ServerDown {} {
     if { [info exists itk_component(plotarea)] } {
 	set x [expr {[winfo rootx $itk_component(plotarea)]+10}]
 	set y [expr {[winfo rooty $itk_component(plotarea)]+10}]
@@ -204,7 +204,7 @@ itcl::body Rappture::VisViewer::Connect { hostlist } {
     update
 
     # Shuffle the list of servers so as to pick random 
-    set servers [_Shuffle $hostlist]
+    set servers [Shuffle $hostlist]
 
     set memorySize 10000
     # Get the first server
@@ -213,7 +213,7 @@ itcl::body Rappture::VisViewer::Connect { hostlist } {
 
     while {1} {
 	SendEcho <<line "connecting to $hostname:$port..."
-	if { [catch {socket $hostname $port} sid_] != 0 } {
+	if { [catch {socket $hostname $port} _sid] != 0 } {
 	    if {[llength $servers] == 0} {
 		blt::busy release $itk_component(hull)
 		return 0
@@ -223,14 +223,14 @@ itcl::body Rappture::VisViewer::Connect { hostlist } {
 	    set servers [lrange $servers 1 end]
 	    continue
 	}
-	fconfigure $sid_ -translation binary -encoding binary
+	fconfigure $_sid -translation binary -encoding binary
 
 	# Send memory requirement to the load balancer
-	puts -nonewline $sid_ [binary format I $memorySize]
-	flush $sid_
+	puts -nonewline $_sid [binary format I $memorySize]
+	flush $_sid
 
 	# Read back a reconnection order
-	set data [read $sid_ 4]
+	set data [read $_sid 4]
 	if {[binary scan $data cccc b1 b2 b3 b4] != 4} {
 	    blt::busy release $itk_component(hull)
 	    error "couldn't read redirection request"
@@ -245,12 +245,12 @@ itcl::body Rappture::VisViewer::Connect { hostlist } {
 	    # We're connected. Cancel any pending serverDown events and
 	    # release the busy window over the hull.
 	    $_dispatcher cancel !serverDown
-	    if { $idleTimeout_ > 0 } {
-		$_dispatcher event -after $idleTimeout_ !timeout
+	    if { $_idleTimeout > 0 } {
+		$_dispatcher event -after $_idleTimeout !timeout
 	    }
 	    blt::busy release $itk_component(hull)
-	    fconfigure $sid_ -buffering line
-	    fileevent $sid_ readable [itcl::code $this _ReceiveHelper]
+	    fconfigure $_sid -buffering line
+	    fileevent $_sid readable [itcl::code $this ReceiveHelper]
 	    return 1
 	}
 	set hostname $addr
@@ -269,9 +269,9 @@ itcl::body Rappture::VisViewer::Connect { hostlist } {
 #
 itcl::body Rappture::VisViewer::Disconnect {} {
     $_dispatcher cancel !timeout
-    catch {close $sid_} 
-    set sid_ ""
-    set buffer_(in) ""
+    catch {close $_sid} 
+    set _sid ""
+    set _buffer(in) ""
 }
 
 #
@@ -280,7 +280,7 @@ itcl::body Rappture::VisViewer::Disconnect {} {
 #    Indicates if we are currently connected to a server.
 #
 itcl::body Rappture::VisViewer::IsConnected {} {
-    return [expr {"" != $sid_}]
+    return [expr {"" != $_sid}]
 }
 
 #
@@ -291,14 +291,14 @@ itcl::body Rappture::VisViewer::IsConnected {} {
 #   then reset the timeout event.  Otherwise try to reconnect to the 
 #   visualization server.
 #
-itcl::body Rappture::VisViewer::_CheckConnection {} {
+itcl::body Rappture::VisViewer::CheckConnection {} {
     if { [IsConnected] } {
-	if { [eof $sid_] } {
+	if { [eof $_sid] } {
 	    error "unexpected eof on socket"
 	}
 	$_dispatcher cancel !timeout
-	if { $idleTimeout_ > 0 } {
-	    $_dispatcher event -after $idleTimeout_ !timeout
+	if { $_idleTimeout > 0 } {
+	    $_dispatcher event -after $_idleTimeout !timeout
 	}
 	return 1
     }
@@ -313,7 +313,7 @@ itcl::body Rappture::VisViewer::_CheckConnection {} {
     if { $code == 0 && $ok} {
 	$_dispatcher event -idle !rebuild
 	Rappture::Tooltip::cue hide
-	return 1
+	return 0;			# Fail even though we've reconnected.
     } else {
 	Rappture::Tooltip::cue @$x,$y "Can't connect to visualization server.  This may be a network problem.  Wait a few moments and try resetting the view."
 	return 0
@@ -326,60 +326,60 @@ itcl::body Rappture::VisViewer::_CheckConnection {} {
 #    Flushes the socket.
 #
 itcl::body Rappture::VisViewer::Flush {} {
-    if { [_CheckConnection] } {
-	flush $sid_
+    if { [CheckConnection] } {
+	flush $_sid
     }
 }
 
 
 #
-# _SendHelper --
+# SendHelper --
 #
 #   Helper routine called from a file event to send data when the
 #   connection is writable (i.e. not blocked).  Sets a magic
-#   variable done_($this) when we're done.
+#   variable _done($this) when we're done.
 #
-itcl::body Rappture::VisViewer::_SendHelper {} {
-    if { ![_CheckConnection] } {
+itcl::body Rappture::VisViewer::SendHelper {} {
+    if { ![CheckConnection] } {
 	return 0
     }
-    puts $sid_ $buffer_(out)
-    flush $sid_ 
-    set done_($this) 1;     # Success
+    puts -nonewline $_sid $_buffer(out)
+    flush $_sid 
+    set _done($this) 1;     # Success
 }
 
 #
-# _SendHelper.old --
+# SendHelper.old --
 #
 #   Helper routine called from a file event to send data when the
 #   connection is writable (i.e. not blocked).  Sends data in chunks 
-#   of 8k (or less).  Sets magic variable done_($this) to indicate
+#   of 8k (or less).  Sets magic variable _done($this) to indicate
 #   that we're either finished (success) or could not send bytes to
 #   the server (failure).
 #
-itcl::body Rappture::VisViewer::_SendHelper.old {} {
-    if { ![_CheckConnection] } {
+itcl::body Rappture::VisViewer::SendHelper.old {} {
+    if { ![CheckConnection] } {
 	return 0
     }
-    set bytesLeft [string length $buffer_(out)]
+    set bytesLeft [string length $_buffer(out)]
     if { $bytesLeft > 0} {
-	set chunk [string range $buffer_(out) 0 8095]
-	set buffer_(out)  [string range $buffer_(out) 8096 end]
+	set chunk [string range $_buffer(out) 0 8095]
+	set _buffer(out)  [string range $_buffer(out) 8096 end]
 	incr bytesLeft -8096
 	set code [catch {
 	    if { $bytesLeft > 0 } {
-		puts -nonewline $sid_ $chunk
+		puts -nonewline $_sid $chunk
 	    } else {
-		puts $sid_ $chunk
+		puts $_sid $chunk
 	    }
 	} err]
 	if { $code != 0 } {
-	    puts stderr "error sending data to $sid_: $err"
+	    puts stderr "error sending data to $_sid: $err"
 	    Disconnect
-	    set done_($this) 0;     # Failure
+	    set _done($this) 0;     # Failure
 	}
     } else {
-	set done_($this) 1;     # Success
+	set _done($this) 1;     # Success
     }
 }
 
@@ -391,20 +391,27 @@ itcl::body Rappture::VisViewer::_SendHelper.old {} {
 itcl::body Rappture::VisViewer::SendBytes { bytes } {
     SendEcho >>line $bytes
 
-    if { ![_CheckConnection] } {
+    if { ![CheckConnection] } {
 	return 0
     }
     # Even though the data is sent in only 1 "puts", we need to verify that
     # the server is ready first.  Wait for the socket to become writable
     # before sending anything.
-    set done_($this) 1
-    set buffer_(out) $bytes
-    fileevent $sid_ writable [itcl::code $this _SendHelper]
-    tkwait variable ::Rappture::VisViewer::done_($this)
-    fileevent $sid_ writable ""
-    flush $sid_
-    set buffer_(out) ""
-    return $done_($this)
+    set _done($this) 1
+    set _buffer(out) $bytes
+    fileevent $_sid writable [itcl::code $this SendHelper]
+    tkwait variable ::Rappture::VisViewer::_done($this)
+    set _buffer(out) ""
+    if { [IsConnected] } {
+	# The connection may have closed while we were writing to the server.
+	# This can happen if what we sent the server caused it to barf.
+	fileevent $_sid writable ""
+	flush $_sid
+    }
+    if { ![CheckConnection] } {
+	return 0
+    }
+    return $_done($this)
 }
 
 #
@@ -413,16 +420,16 @@ itcl::body Rappture::VisViewer::SendBytes { bytes } {
 #    Read some number of bytes from the visualization server. 
 #
 itcl::body Rappture::VisViewer::ReceiveBytes { size } {
-    if { ![_CheckConnection] } {
+    if { ![CheckConnection] } {
 	return 0
     }
-    set bytes [read $sid_ $size]
+    set bytes [read $_sid $size]
     ReceiveEcho <<line "<read $size bytes"
     return $bytes
 }
 
 #
-# _ReceiveHelper --
+# ReceiveHelper --
 #
 #   Helper routine called from a file event when the connection is 
 #   readable (i.e. a command response has been sent by the rendering 
@@ -440,11 +447,11 @@ itcl::body Rappture::VisViewer::ReceiveBytes { size } {
 #         This is because the render server can send anything
 #         as an error message (restricted again to one line).
 #
-itcl::body Rappture::VisViewer::_ReceiveHelper {} {
-    if { ![_CheckConnection] } {
+itcl::body Rappture::VisViewer::ReceiveHelper {} {
+    if { ![CheckConnection] } {
 	return 0
     }
-    set n [gets $sid_ line]
+    set n [gets $_sid line]
 
     if { $n < 0 } {
 	Disconnect
@@ -456,12 +463,15 @@ itcl::body Rappture::VisViewer::_ReceiveHelper {} {
     }
     if { [string compare -length 3 $line "nv>"] == 0 } {
 	ReceiveEcho <<line $line
-	append buffer_(in) [string range $line 3 end]
-	append buffer_(in) "\n"
-	if {[info complete $buffer_(in)]} {
-	    set request $buffer_(in)
-	    set buffer_(in) ""
-	    $_parser eval $request
+	append _buffer(in) [string range $line 3 end]
+	append _buffer(in) "\n"
+	if {[info complete $_buffer(in)]} {
+	    set request $_buffer(in)
+	    set _buffer(in) ""
+	    if { [catch {$_parser eval $request} err]  != 0 } {
+		global errorInfo
+		puts stderr "err=$err errorInfo=$errorInfo"
+	    }
 	}
     } elseif { [string compare -length 20 $line "NanoVis Server Error:"] == 0} {
 	# this shows errors coming back from the engine
