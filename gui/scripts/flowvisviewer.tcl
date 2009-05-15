@@ -1615,7 +1615,7 @@ itcl::body Rappture::FlowvisViewer::FixSettings {what {value ""}} {
 	    }
         }
         "xcutplane" - "ycutplane" - "zcutplane" {
-	    set axis [string range $what 0 1]
+	    set axis [string range $what 0 0]
 	    set bool $_settings($this-$what)
             if { [isconnected] } {
 		set vols [CurrentVolumeIds -cutplanes] 
@@ -2270,9 +2270,13 @@ itcl::body Rappture::FlowvisViewer::BuildCameraTab {} {
 }
 
 itcl::body Rappture::FlowvisViewer::GetFlowInfo { w } {
+    set flowobj ""
     foreach key [array names _obj2flow] {
 	set flowobj $_obj2flow($key)
 	break
+    }
+    if { $flowobj == "" } {
+	return
     }
     if { [winfo exists $w.frame] } {
 	destroy $w.frame

@@ -1291,7 +1291,7 @@ itcl::body Rappture::NanovisViewer::FixSettings {what {value ""}} {
 	    }
         }
         "xcutplane" - "ycutplane" - "zcutplane" {
-	    set axis [string range $what 0 1]
+	    set axis [string range $what 0 0]
 	    set bool $_settings($this-$what)
             if { [isconnected] } {
 		set vols [CurrentVolumeIds -cutplanes] 
