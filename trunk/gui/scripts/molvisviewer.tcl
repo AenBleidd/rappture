@@ -69,33 +69,33 @@ itcl::class Rappture::MolvisViewer {
     public method bondthickness {option {model "all"} }
     public method ResetView {} 
 
-    protected method _send {args}
-    protected method _update { args }
-    protected method _rebuild { }
-    protected method _zoom {option {factor 10}}
-    protected method _pan {option x y}
-    protected method _rotate {option x y}
-    protected method _configure {w h}
-    protected method _unmap {}
-    protected method _map {}
-    protected method _vmouse2 {option b m x y}
-    protected method _vmouse  {option b m x y}
-    private method _ReceiveImage { size cacheid frame rock }
-    private method _BuildViewTab {}
+    protected method SendCmd {args}
+    protected method Update { args }
+    protected method Rebuild { }
+    protected method Zoom {option {factor 10}}
+    protected method Pan {option x y}
+    protected method Rotate {option x y}
+    protected method Configure {w h}
+    protected method Unmap {}
+    protected method Map {}
+    protected method Vmouse2 {option b m x y}
+    protected method Vmouse  {option b m x y}
+    private method ReceiveImage { size cacheid frame rock }
+    private method BuildViewTab {}
     private method GetPngImage { widget width height }
     private method WaitIcon { option widget }
-    private variable icon_ 0
+    private variable _icon 0
 
-    private variable _mevent       ;# info used for mouse event operations
-    private variable _rocker       ;# info used for rock operations
-    private variable _dlist ""    ;# list of dataobj objects
-    private variable _dataobjs     ;# data objects on server
-    private variable _dobj2transparency  ;# maps dataobj => transparency
-    private variable _dobj2raise  ;# maps dataobj => raise flag 0/1
+    private variable _mevent;		# info used for mouse event operations
+    private variable _rocker;		# info used for rock operations
+    private variable _dlist "";		# list of dataobj objects
+    private variable _dataobjs;		# data objects on server
+    private variable _dobj2transparency;# maps dataobj => transparency
+    private variable _dobj2raise;	# maps dataobj => raise flag 0/1
     private variable _dobj2ghost
 
-    private variable view_
-    private variable click_
+    private variable _view
+    private variable _click
 
     private variable _model
     private variable _mlist
@@ -107,16 +107,19 @@ itcl::class Rappture::MolvisViewer {
     private variable _cacheid ""
     private variable _cacheimage ""
 
-    private variable delta1_ 10
-    private variable delta2_ 2
+    private variable _delta1 10
+    private variable _delta2 2
 
-    private common _settings  ;# array of settings for all known widgets
-    private variable initialized_
+    private common _settings  ;		# Array of settings for all known 
+					# widgets
+    private variable _initialized
 
-    common _downloadPopup           ;# download options from popup
-    private variable _pdbdata       ;# pdb data from run file sent to pymol
-    private common hardcopy_
-    private variable nextToken_ 0
+    private common _downloadPopup;	# Download options from popup
+    private variable _pdbdata;		# PDB data from run file sent to pymol
+    private common _hardcopy
+    private variable _nextToken 0
+    private variable _outbuf "";
+    private variable _buffering 0;
 }
 
 itk::usual MolvisViewer {
@@ -132,7 +135,7 @@ itcl::body Rappture::MolvisViewer::constructor {hostlist args} {
 
     # Rebuild
     $_dispatcher register !rebuild
-    $_dispatcher dispatch $this !rebuild "[itcl::code $this _rebuild]; list"
+    $_dispatcher dispatch $this !rebuild "[itcl::code $this Rebuild]; list"
     # Rocker
     $_dispatcher register !rocker
     $_dispatcher dispatch $this !rocker "[itcl::code $this rock step]; list"
@@ -148,7 +151,7 @@ itcl::body Rappture::MolvisViewer::constructor {hostlist args} {
 
     # Populate the slave interpreter with commands to handle responses from
     # the visualization server.
-    $_parser alias image [itcl::code $this _ReceiveImage]
+    $_parser alias image [itcl::code $this ReceiveImage]
 
     set _rocker(dir) 1
     set _rocker(client) 0
@@ -158,7 +161,7 @@ itcl::body Rappture::MolvisViewer::constructor {hostlist args} {
     set _state(client) 1
     set _hostlist $hostlist
 
-    array set view_ {
+    array set _view {
 	theta   45
 	phi     45
 	psi     0
@@ -208,7 +211,7 @@ itcl::body Rappture::MolvisViewer::constructor {hostlist args} {
 	button $f.zin -borderwidth 1 -padx 1 -pady 1 \
             -highlightthickness 0 \
 	    -image [Rappture::icon zoom-in] \
-	    -command [itcl::code $this _zoom in]
+	    -command [itcl::code $this Zoom in]
     } {
         usual
         ignore -highlightthickness
@@ -220,7 +223,7 @@ itcl::body Rappture::MolvisViewer::constructor {hostlist args} {
 	button $f.zout -borderwidth 1 -padx 1 -pady 1 \
             -highlightthickness 0 \
 	    -image [Rappture::icon zoom-out] \
-	    -command [itcl::code $this _zoom out]
+	    -command [itcl::code $this Zoom out]
     } {
         usual
         ignore -highlightthickness
@@ -260,7 +263,7 @@ itcl::body Rappture::MolvisViewer::constructor {hostlist args} {
     bind $itk_component(ortho) <ButtonPress> \
 	[itcl::code $this projection toggle]
 
-    _BuildViewTab
+    BuildViewTab
 
     # HACK ALERT. Initially force a requested width of the 3dview label. 
 
@@ -289,82 +292,82 @@ itcl::body Rappture::MolvisViewer::constructor {hostlist args} {
     # set up bindings for rotation
     if 0 {
 	bind $itk_component(3dview) <ButtonPress-1> \
-	    [itcl::code $this _rotate click %x %y]
+	    [itcl::code $this Rotate click %x %y]
 	bind $itk_component(3dview) <B1-Motion> \
-	    [itcl::code $this _rotate drag %x %y]
+	    [itcl::code $this Rotate drag %x %y]
 	bind $itk_component(3dview) <ButtonRelease-1> \
-	    [itcl::code $this _rotate release %x %y]
+	    [itcl::code $this Rotate release %x %y]
     } else {
 	bind $itk_component(3dview) <ButtonPress-1> \
-	    [itcl::code $this _vmouse click %b %s %x %y]
+	    [itcl::code $this Vmouse click %b %s %x %y]
 	bind $itk_component(3dview) <B1-Motion> \
-	    [itcl::code $this _vmouse drag 1 %s %x %y]
+	    [itcl::code $this Vmouse drag 1 %s %x %y]
 	bind $itk_component(3dview) <ButtonRelease-1> \
-	    [itcl::code $this _vmouse release %b %s %x %y]
+	    [itcl::code $this Vmouse release %b %s %x %y]
     }
 
     bind $itk_component(3dview) <ButtonPress-2> \
-	[itcl::code $this _pan click %x %y]
+	[itcl::code $this Pan click %x %y]
     bind $itk_component(3dview) <B2-Motion> \
-	[itcl::code $this _pan drag %x %y]
+	[itcl::code $this Pan drag %x %y]
     bind $itk_component(3dview) <ButtonRelease-2> \
-	[itcl::code $this _pan release %x %y]
+	[itcl::code $this Pan release %x %y]
 
     bind $itk_component(3dview) <KeyPress-Left> \
-	[itcl::code $this _pan set -10 0]
+	[itcl::code $this Pan set -10 0]
     bind $itk_component(3dview) <KeyPress-Right> \
-	[itcl::code $this _pan set 10 0]
+	[itcl::code $this Pan set 10 0]
     bind $itk_component(3dview) <KeyPress-Up> \
-	[itcl::code $this _pan set 0 -10]
+	[itcl::code $this Pan set 0 -10]
     bind $itk_component(3dview) <KeyPress-Down> \
-	[itcl::code $this _pan set 0 10]
+	[itcl::code $this Pan set 0 10]
     bind $itk_component(3dview) <Shift-KeyPress-Left> \
-	[itcl::code $this _pan set -50 0]
+	[itcl::code $this Pan set -50 0]
     bind $itk_component(3dview) <Shift-KeyPress-Right> \
-	[itcl::code $this _pan set 50 0]
+	[itcl::code $this Pan set 50 0]
     bind $itk_component(3dview) <Shift-KeyPress-Up> \
-	[itcl::code $this _pan set 0 -50]
+	[itcl::code $this Pan set 0 -50]
     bind $itk_component(3dview) <Shift-KeyPress-Down> \
-	[itcl::code $this _pan set 0 50]
+	[itcl::code $this Pan set 0 50]
     bind $itk_component(3dview) <KeyPress-Prior> \
-	[itcl::code $this _zoom out 2]
+	[itcl::code $this Zoom out 2]
     bind $itk_component(3dview) <KeyPress-Next> \
-	[itcl::code $this _zoom in 2]
+	[itcl::code $this Zoom in 2]
 
     bind $itk_component(3dview) <Enter> "focus $itk_component(3dview)"
 
 
     if {[string equal "x11" [tk windowingsystem]]} {
-	bind $itk_component(3dview) <4> [itcl::code $this _zoom out 2]
-	bind $itk_component(3dview) <5> [itcl::code $this _zoom in 2]
+	bind $itk_component(3dview) <4> [itcl::code $this Zoom out 2]
+	bind $itk_component(3dview) <5> [itcl::code $this Zoom in 2]
     }
 
     # set up bindings to bridge mouse events to server
     #bind $itk_component(3dview) <ButtonPress> \
-    #   [itcl::code $this _vmouse2 click %b %s %x %y]
+    #   [itcl::code $this Vmouse2 click %b %s %x %y]
     #bind $itk_component(3dview) <ButtonRelease> \
-    #    [itcl::code $this _vmouse2 release %b %s %x %y]
+    #    [itcl::code $this Vmouse2 release %b %s %x %y]
     #bind $itk_component(3dview) <B1-Motion> \
-    #    [itcl::code $this _vmouse2 drag 1 %s %x %y]
+    #    [itcl::code $this Vmouse2 drag 1 %s %x %y]
     #bind $itk_component(3dview) <B2-Motion> \
-    #    [itcl::code $this _vmouse2 drag 2 %s %x %y]
+    #    [itcl::code $this Vmouse2 drag 2 %s %x %y]
     #bind $itk_component(3dview) <B3-Motion> \
-    #    [itcl::code $this _vmouse2 drag 3 %s %x %y]
+    #    [itcl::code $this Vmouse2 drag 3 %s %x %y]
     #bind $itk_component(3dview) <Motion> \
-    #    [itcl::code $this _vmouse2 move 0 %s %x %y]
+    #    [itcl::code $this Vmouse2 move 0 %s %x %y]
 
     bind $itk_component(3dview) <Configure> \
-	[itcl::code $this _configure %w %h]
+	[itcl::code $this Configure %w %h]
     bind $itk_component(3dview) <Unmap> \
-	[itcl::code $this _unmap]
+	[itcl::code $this Unmap]
     bind $itk_component(3dview) <Map> \
-	[itcl::code $this _map]
+	[itcl::code $this Map]
 
     eval itk_initialize $args
     Connect
 }
 
-itcl::body Rappture::MolvisViewer::_BuildViewTab {} {
+itcl::body Rappture::MolvisViewer::BuildViewTab {} {
     set fg [option get $itk_component(hull) font Font]
 
     set inner [$itk_component(main) insert end \
@@ -501,8 +504,9 @@ itcl::body Rappture::MolvisViewer::download {option args} {
 	    }
 	    set num [llength [get]]
 	    set num [expr {($num == 1) ? "1 result" : "$num results"}]
-	    $inner.summary configure -text "[Rappture::filexfer::label downloadWord] $num in the following format:"
-	    update idletasks ;# fix initial sizes
+	    set word [Rappture::filexfer::label downloadWord]
+	    $inner.summary configure -text "$word $num in the following format:"
+	    update idletasks ;		# Fix initial sizes
 	    return $popup
 	}
 	now {
@@ -565,8 +569,8 @@ itcl::body Rappture::MolvisViewer::Connect {} {
     if { $result } {
 	set _rocker(server) 0
 	set _cacheid 0
-	_send "raw -defer {set auto_color,0}"
-	_send "raw -defer {set auto_show_lines,0}"
+	SendCmd "raw -defer {set auto_color,0}"
+	SendCmd "raw -defer {set auto_show_lines,0}"
     }
     return $result
 }
@@ -593,31 +597,44 @@ itcl::body Rappture::MolvisViewer::Disconnect {} {
     set _outbuf ""
 }
 
-itcl::body Rappture::MolvisViewer::_send { args } {
-    debug "_send $args"
-    if { $_state(server) != $_state(client) } {
-	if { ![SendBytes "frame -defer $_state(client)"] } {
+itcl::body Rappture::MolvisViewer::SendCmd { args } {
+    debug "SendCmd $args"
+
+    if { $_buffering } {
+	# Just buffer the commands. Don't send them yet.
+	if { $_state(server) != $_state(client) } {
+	    append _outbuf "frame -defer $_state(client)\n"
 	    set _state(server) $_state(client)
 	}
-    }
-
-    if { $_rocker(server) != $_rocker(client) } {
-	if { ![SendBytes "rock -defer $_rocker(client)"] } {
+	if { $_rocker(server) != $_rocker(client) } {
+	    append _outbuf "rock -defer $_rocker(client)\n"
 	    set _rocker(server) $_rocker(client)
 	}
+	append _outbuf "$args\n"
+    } else {
+	if { $_state(server) != $_state(client) } {
+	    if { ![SendBytes "frame -defer $_state(client)\n"] } {
+		set _state(server) $_state(client)
+	    }
+	}
+	if { $_rocker(server) != $_rocker(client) } {
+	    if { ![SendBytes "rock -defer $_rocker(client)\n"] } {
+		set _rocker(server) $_rocker(client)
+	    }
+	}
+	eval SendBytes "$args\n"
     }
-    eval SendBytes $args
 }
 
 #
-# _ReceiveImage -bytes <size>
+# ReceiveImage -bytes <size>
 #
 #     Invoked automatically whenever the "image" command comes in from
 #     the rendering server.  Indicates that binary image data with the
 #     specified <size> will follow.
 #
 set count 0
-itcl::body Rappture::MolvisViewer::_ReceiveImage { size cacheid frame rock } {
+itcl::body Rappture::MolvisViewer::ReceiveImage { size cacheid frame rock } {
     set tag "$frame,$rock"
     global count
     incr count
@@ -631,7 +648,7 @@ itcl::body Rappture::MolvisViewer::_ReceiveImage { size cacheid frame rock } {
     #debug "success: reading $size bytes from proxy\n"
     if { $cacheid == "print" } {
 	# $frame is the token that we sent to the proxy.
-	set hardcopy_($this-$frame) $data
+	set _hardcopy($this-$frame) $data
     } else {
 	set _imagecache($tag) $data
 	#debug "CACHED: $tag,$cacheid"
@@ -642,20 +659,26 @@ itcl::body Rappture::MolvisViewer::_ReceiveImage { size cacheid frame rock } {
 
 
 # ----------------------------------------------------------------------
-# USAGE: _rebuild
+# USAGE: Rebuild
 #
 # Called automatically whenever something changes that affects the
 # data in the widget.  Clears any existing data and rebuilds the
 # widget to display new data.
 # ----------------------------------------------------------------------
-itcl::body Rappture::MolvisViewer::_rebuild {} {
+itcl::body Rappture::MolvisViewer::Rebuild {} {
     debug "in rebuild"
     set changed 0
 
     $itk_component(3dview) configure -cursor watch
-
     # refresh GUI (primarily to make pending cursor changes visible)
-    #update idletasks
+    update idletasks
+    update
+
+    # Turn on buffering of commands to the server.  We don't want to
+    # be preempted by a server disconnect/reconnect (which automatically
+    # generates a new call to Rebuild).   
+    set _buffering 1
+
     set dlist [get]
     foreach dev $dlist {
 	set model [$dev get components.molecule.model]
@@ -704,13 +727,13 @@ itcl::body Rappture::MolvisViewer::_rebuild {} {
 	    set data2 [$dev get components.molecule.pdb]
 	    if {"" != $data1} {
 		set _pdbdata $data1
-		_send "loadpdb -defer \"$data1\" $model $state"
+		SendCmd "loadpdb -defer \"$data1\" $model $state"
 		set _dataobjs($model-$state)  1
 	    }
 	    # note that pdb files always overwrite xyz files
 	    if {"" != $data2} {
 		set _pdbdata $data2
-		_send "loadpdb -defer \"$data2\" $model $state"
+		SendCmd "loadpdb -defer \"$data2\" $model $state"
 		set _dataobjs($model-$state)  1
 	    }
 	}
@@ -731,16 +754,16 @@ itcl::body Rappture::MolvisViewer::_rebuild {} {
 
     foreach obj [array names _mlist] {
 	if { $_mlist($obj) == 1 } {
-	    _send "disable -defer $obj"
+	    SendCmd "disable -defer $obj"
 	    set _mlist($obj) 0
 	    set changed 1
 	} elseif { $_mlist($obj) == 2 } {
 	    set _mlist($obj) 1
-	    _send "enable -defer $obj"
+	    SendCmd "enable -defer $obj"
 	    if { $_labels } {
-		_send "label -defer on"
+		SendCmd "label -defer on"
 	    } else {
-		_send "label -defer off"
+		SendCmd "label -defer off"
 	    }
 	    set changed 1
 	} elseif { $_mlist($obj) == 3 } {
@@ -758,7 +781,7 @@ itcl::body Rappture::MolvisViewer::_rebuild {} {
 		}
 		set rep $_model($obj-newrepresentation)
 		set transp $_model($obj-newtransparency)
-		_send "$_model($obj-newrepresentation) -defer -model $obj -$_model($obj-newtransparency)"
+		SendCmd "$_model($obj-newrepresentation) -defer -model $obj -$_model($obj-newtransparency)"
 		set changed 1
 		set _model($obj-transparency) $_model($obj-newtransparency)
 		set _model($obj-representation) $_model($obj-newrepresentation)
@@ -777,26 +800,26 @@ itcl::body Rappture::MolvisViewer::_rebuild {} {
     if { $dlist == "" } {
 	set _state(server) 1
 	set _state(client) 1
-	_send "frame 1"
+	SendCmd "frame 1"
     } elseif { ![info exists _imagecache($state,$_rocker(client))] } {
 	set _state(server) $state
 	set _state(client) $state
-	_send "frame $state"
+	SendCmd "frame $state"
     } else {
 	set _state(client) $state
-	_update
+	Update
     }
     # Reset viewing parameters
     set w  [winfo width $itk_component(3dview)] 
     set h  [winfo height $itk_component(3dview)] 
-    _send [subst { 
+    SendCmd [subst { 
 	reset
 	screen $w $h
-	rotate $view_(mx) $view_(my) $view_(mz)
-	pan $view_(x) $view_(y)
-	zoom $view_(zoom)
+	rotate $_view(mx) $_view(my) $_view(mz)
+	pan $_view(x) $_view(y)
+	zoom $_view(zoom)
     }]
-    debug "rebuild: rotate $view_(mx) $view_(my) $view_(mz)"
+    debug "rebuild: rotate $_view(mx) $_view(my) $_view(mz)"
 
     projection update
     atomscale update
@@ -805,11 +828,18 @@ itcl::body Rappture::MolvisViewer::_rebuild {} {
     representation update
 
     $itk_component(3dview) configure -cursor ""
+
+    # Actually write the commands to the server socket.  If it fails, we don't
+    # care.  We're finished here.
+    SendBytes $_outbuf;			
+    set _buffering 0;			# Turn off buffering.
+    set _outbuf "";			# Clear the buffer.		
+
     debug "exiting rebuild"
 }
 
-itcl::body Rappture::MolvisViewer::_unmap { } {
-    #pause rocking loop while unmapped (saves CPU time)
+itcl::body Rappture::MolvisViewer::Unmap { } {
+    # Pause rocking loop while unmapped (saves CPU time)
     rock pause
 
     # Blank image, mark current image dirty
@@ -821,38 +851,38 @@ itcl::body Rappture::MolvisViewer::_unmap { } {
     set _image(id) ""
 }
 
-itcl::body Rappture::MolvisViewer::_map { } {
+itcl::body Rappture::MolvisViewer::Map { } {
     if { [isconnected] } {
-	# resume rocking loop if it was on
+	# Resume rocking loop if it was on
 	rock unpause
-	# rebuild image if modified, or redisplay cached image if not
+	# Rebuild image if modified, or redisplay cached image if not
 	$_dispatcher event -idle !rebuild
     }
 }
 
-itcl::body Rappture::MolvisViewer::_configure { w h } {
-    debug "in _configure $w $h"
+itcl::body Rappture::MolvisViewer::Configure { w h } {
+    debug "in Configure $w $h"
     $_image(plot) configure -width $w -height $h
-    # immediately invalidate cache, defer update until mapped
+    # Immediately invalidate cache, defer update until mapped
     array unset _imagecache 
-    _send "screen $w $h"
+    SendCmd "screen $w $h"
 }
 
 # ----------------------------------------------------------------------
-# USAGE: $this _pan click x y
-#        $this _pan drag x y
-#        $this _pan release x y
+# USAGE: $this Pan click x y
+#        $this Pan drag x y
+#        $this Pan release x y
 #
 # Called automatically when the user clicks on one of the zoom
 # controls for this widget.  Changes the zoom for the current view.
 # ----------------------------------------------------------------------
-itcl::body Rappture::MolvisViewer::_pan {option x y} {
+itcl::body Rappture::MolvisViewer::Pan {option x y} {
     if { $option == "set" } {
 	set dx $x
 	set dy $y
-	set view_(x) [expr $view_(x) + $dx]
-	set view_(y) [expr $view_(y) + $dy]
-	_send "pan $dx $dy"
+	set _view(x) [expr $_view(x) + $dx]
+	set _view(y) [expr $_view(y) + $dy]
+	SendCmd "pan $dx $dy"
 	return
     }
     if { ![info exists _mevent(x)] } {
@@ -864,9 +894,9 @@ itcl::body Rappture::MolvisViewer::_pan {option x y} {
     if { $option == "drag" || $option == "release" } {
 	set dx [expr $x - $_mevent(x)]
 	set dy [expr $y - $_mevent(y)]
-	set view_(x) [expr $view_(x) + $dx]
-	set view_(y) [expr $view_(y) + $dy]
-	_send "pan $dx $dy"
+	set _view(x) [expr $_view(x) + $dx]
+	set _view(y) [expr $_view(y) + $dy]
+	SendCmd "pan $dx $dy"
     }
     set _mevent(x) $x
     set _mevent(y) $y
@@ -876,31 +906,31 @@ itcl::body Rappture::MolvisViewer::_pan {option x y} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: _zoom in
-# USAGE: _zoom out
-# USAGE: _zoom reset
+# USAGE: Zoom in
+# USAGE: Zoom out
+# USAGE: Zoom reset
 #
 # Called automatically when the user clicks on one of the zoom
 # controls for this widget.  Changes the zoom for the current view.
 # ----------------------------------------------------------------------
-itcl::body Rappture::MolvisViewer::_zoom {option {factor 10}} {
+itcl::body Rappture::MolvisViewer::Zoom {option {factor 10}} {
     switch -- $option {
 	"in" {
-	    set view_(zoom) [expr $view_(zoom) + $factor]
-	    _send "zoom $factor"
+	    set _view(zoom) [expr $_view(zoom) + $factor]
+	    SendCmd "zoom $factor"
 	}
 	"out" {
-	    set view_(zoom) [expr $view_(zoom) - $factor]
-	    _send "zoom -$factor"
+	    set _view(zoom) [expr $_view(zoom) - $factor]
+	    SendCmd "zoom -$factor"
 	}
 	"reset" {
-	    set view_(zoom) 0
-	    _send "reset"
+	    set _view(zoom) 0
+	    SendCmd "reset"
 	}
     }
 }
 
-itcl::body Rappture::MolvisViewer::_update { args } {
+itcl::body Rappture::MolvisViewer::Update { args } {
     set tag "$_state(client),$_rocker(client)"
     if { $_image(id) != "$tag" } {
 	if { [info exists _imagecache($tag)] } {
@@ -949,9 +979,9 @@ itcl::body Rappture::MolvisViewer::rock { option } {
 	set _rocker(client) [expr {$_rocker(client) + $_rocker(dir)}]
 	if { ![info exists _imagecache($_state(server),$_rocker(client))] } {
 	    set _rocker(server) $_rocker(client)
-	    _send "rock $_rocker(client)"
+	    SendCmd "rock $_rocker(client)"
 	}
-	_update
+	Update
     }
     if { $_rocker(on) && $option != "pause" } {
 	 set _rocker(afterid) [after 200 [itcl::code $this rock step]]
@@ -959,7 +989,7 @@ itcl::body Rappture::MolvisViewer::rock { option } {
 }
 
 
-itcl::body Rappture::MolvisViewer::_vmouse2 {option b m x y} {
+itcl::body Rappture::MolvisViewer::Vmouse2 {option b m x y} {
     set now [clock clicks -milliseconds]
     set vButton [expr $b - 1]
     set vModifier 0
@@ -982,11 +1012,11 @@ itcl::body Rappture::MolvisViewer::_vmouse2 {option b m x y} {
 	    return
 	}
     }
-    _send "vmouse $vButton $vModifier $vState $x $y"
+    SendCmd "vmouse $vButton $vModifier $vState $x $y"
     set _mevent(time) $now
 }
 
-itcl::body Rappture::MolvisViewer::_vmouse {option b m x y} {
+itcl::body Rappture::MolvisViewer::Vmouse {option b m x y} {
     set now  [clock clicks -milliseconds]
     # cancel any pending delayed dragging events
     if { [info exists _mevent(afterid)] } {
@@ -1004,7 +1034,7 @@ itcl::body Rappture::MolvisViewer::_vmouse {option b m x y} {
 	set diff 0
 	 catch { set diff [expr $now - $_mevent(time) ] }
 	 if {$diff < 25 && $option == "drag" } { # 75ms between motion updates
-	     set _mevent(afterid) [after [expr 25 - $diff] [itcl::code $this _vmouse drag $b $m $x $y]]
+	     set _mevent(afterid) [after [expr 25 - $diff] [itcl::code $this Vmouse drag $b $m $x $y]]
 	     return
 	 }
 	set w [winfo width $itk_component(3dview)]
@@ -1038,11 +1068,11 @@ itcl::body Rappture::MolvisViewer::_vmouse {option b m x y} {
 	    set mz $dx
 	}
 	# Accumlate movements
-	set view_(mx) [expr {$view_(mx) + $mx}]
-	set view_(my) [expr {$view_(my) + $my}]
-	set view_(mz) [expr {$view_(mz) + $mz}]
-	_send "rotate $mx $my $mz"
-	debug "_vmmouse: rotate $view_(mx) $view_(my) $view_(mz)"
+	set _view(mx) [expr {$_view(mx) + $mx}]
+	set _view(my) [expr {$_view(my) + $my}]
+	set _view(mz) [expr {$_view(mz) + $mz}]
+	SendCmd "rotate $mx $my $mz"
+	debug "_vmmouse: rotate $_view(mx) $_view(my) $_view(mz)"
     }
     set _mevent(x) $x
     set _mevent(y) $y
@@ -1053,14 +1083,14 @@ itcl::body Rappture::MolvisViewer::_vmouse {option b m x y} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: _rotate click <x> <y>
-# USAGE: _rotate drag <x> <y>
-# USAGE: _rotate release <x> <y>
+# USAGE: Rotate click <x> <y>
+# USAGE: Rotate drag <x> <y>
+# USAGE: Rotate release <x> <y>
 #
 # Called automatically when the user clicks/drags/releases in the
 # plot area.  Moves the plot according to the user's actions.
 # ----------------------------------------------------------------------
-itcl::body Rappture::MolvisViewer::_rotate {option x y} {
+itcl::body Rappture::MolvisViewer::Rotate {option x y} {
     set now  [clock clicks -milliseconds]
     #update idletasks
     # cancel any pending delayed dragging events
@@ -1071,14 +1101,14 @@ itcl::body Rappture::MolvisViewer::_rotate {option x y} {
     switch -- $option {
 	click {
 	    $itk_component(3dview) configure -cursor fleur
-	    set click_(x) $x
-	    set click_(y) $y
-	    set click_(theta) $view_(theta)
-	    set click_(phi) $view_(phi)
+	    set _click(x) $x
+	    set _click(y) $y
+	    set _click(theta) $_view(theta)
+	    set _click(phi) $_view(phi)
 	}
 	drag {
-	    if {[array size click_] == 0} {
-		_rotate click $x $y
+	    if {[array size _click] == 0} {
+		Rotate click $x $y
 	    } else {
 		set w [winfo width $itk_component(3dview)]
 		set h [winfo height $itk_component(3dview)]
@@ -1088,14 +1118,14 @@ itcl::body Rappture::MolvisViewer::_rotate {option x y} {
 #         set diff 0
 #          catch { set diff [expr $now - $_mevent(time) ] }
 #          if {$diff < 175 && $option == "drag" } { # 75ms between motion updates
-#              set _mevent(afterid) [after [expr 175 - $diff] [itcl::code $this _rotate drag $x $y]]
+#              set _mevent(afterid) [after [expr 175 - $diff] [itcl::code $this Rotate drag $x $y]]
 #              return
 #          }
 
 		if {[catch {
 		    # this fails sometimes for no apparent reason
-		    set dx [expr {double($x-$click_(x))/$w}]
-		    set dy [expr {double($y-$click_(y))/$h}]
+		    set dx [expr {double($x-$_click(x))/$w}]
+		    set dy [expr {double($y-$_click(y))/$h}]
 		}]} {
 		    return
 		}
@@ -1103,50 +1133,50 @@ itcl::body Rappture::MolvisViewer::_rotate {option x y} {
 		#
 		# Rotate the camera in 3D
 		#
-		if {$view_(psi) > 90 || $view_(psi) < -90} {
+		if {$_view(psi) > 90 || $_view(psi) < -90} {
 		    # when psi is flipped around, theta moves backwards
 		    set dy [expr {-$dy}]
 		}
-		set theta [expr {$view_(theta) - $dy*180}]
+		set theta [expr {$_view(theta) - $dy*180}]
 		while {$theta < 0} { set theta [expr {$theta+180}] }
 		while {$theta > 180} { set theta [expr {$theta-180}] }
 
 		if {abs($theta) >= 30 && abs($theta) <= 160} {
-		    set phi [expr {$view_(phi) - $dx*360}]
+		    set phi [expr {$_view(phi) - $dx*360}]
 		    while {$phi < 0} { set phi [expr {$phi+360}] }
 		    while {$phi > 360} { set phi [expr {$phi-360}] }
-		    set psi $view_(psi)
+		    set psi $_view(psi)
 		} else {
-		    set phi $view_(phi)
-		    set psi [expr {$view_(psi) - $dx*360}]
+		    set phi $_view(phi)
+		    set psi [expr {$_view(psi) - $dx*360}]
 		    while {$psi < -180} { set psi [expr {$psi+360}] }
 		    while {$psi > 180} { set psi [expr {$psi-360}] }
 		}
-		array set view_ [subst {
+		array set _view [subst {
 		    theta $theta
 		    phi $phi
 		    psi $psi
 		}]
 		foreach { vx vy vz } [Euler2XYZ $theta $phi $psi] break
-		set a [expr $vx - $view_(vx)]
+		set a [expr $vx - $_view(vx)]
 		set a [expr -$a]
-		set b [expr $vy - $view_(vy)]
-		set c [expr $vz - $view_(vz)]
-		array set view_ [subst {
+		set b [expr $vy - $_view(vy)]
+		set c [expr $vz - $_view(vz)]
+		array set _view [subst {
 		    vx $vx
 		    vy $vy
 		    vz $vz
 		}]
-		_send "rotate $a $b $c"
-		debug "_rotate $x $y: rotate $view_(vx) $view_(vy) $view_(vz)"
-		set click_(x) $x
-		set click_(y) $y
+		SendCmd "rotate $a $b $c"
+		debug "Rotate $x $y: rotate $_view(vx) $_view(vy) $_view(vz)"
+		set _click(x) $x
+		set _click(y) $y
 	    }
 	}
 	release {
-	    _rotate drag $x $y
+	    Rotate drag $x $y
 	    $itk_component(3dview) configure -cursor ""
-	    catch {unset click_}
+	    catch {unset _click}
 	}
 	default {
 	    error "bad option \"$option\": should be click, drag, release"
@@ -1195,7 +1225,7 @@ itcl::body Rappture::MolvisViewer::representation {option {model "all"} } {
 	}
     }
     if { [isconnected] } {
-	_send "$option -model $model"
+	SendCmd "$option -model $model"
 	#$_dispatcher event -idle !rebuild
     }
 }
@@ -1238,11 +1268,11 @@ itcl::body Rappture::MolvisViewer::emblems {option} {
     if {$emblem} {
 	$itk_component(labels) configure -relief sunken
 	set _settings($this-emblems) 1
-	_send "label on"
+	SendCmd "label on"
     } else {
 	$itk_component(labels) configure -relief raised
 	set _settings($this-emblems) 0
-	_send "label off"
+	SendCmd "label off"
     }
 }
 
@@ -1280,13 +1310,13 @@ itcl::body Rappture::MolvisViewer::projection {option} {
 	Rappture::Tooltip::for $itk_component(ortho) \
 	    "Change to perspective projection"
 	set _settings($this-ortho) 1
-	_send "orthoscopic on"
+	SendCmd "orthoscopic on"
     } else {
 	$itk_component(ortho) configure -image [Rappture::icon 3dpers]
 	Rappture::Tooltip::for $itk_component(ortho) \
 	    "Change to orthoscopic projection"
 	set _settings($this-ortho) 0
-	_send "orthoscopic off"
+	SendCmd "orthoscopic off"
     }
 }
 
@@ -1311,7 +1341,7 @@ itcl::body Rappture::MolvisViewer::atomscale { option {model "all"} } {
     }
     set _settings($this-atomscale) $scale
     if { [isconnected] } {
-	_send "atomscale -model $model $scale"
+	SendCmd "atomscale -model $model $scale"
     }
 }
 
@@ -1336,7 +1366,7 @@ itcl::body Rappture::MolvisViewer::bondthickness { option {model "all"} } {
     }
     set _settings($this-bondthickness) $scale
     if { [isconnected] } {
-	_send "bondthickness -model $model $scale"
+	SendCmd "bondthickness -model $model $scale"
     }
 }
 
@@ -1401,7 +1431,7 @@ itcl::body Rappture::MolvisViewer::add { dataobj {options ""}} {
 # ResetView
 #
 itcl::body Rappture::MolvisViewer::ResetView {} {
-    array set view_ {
+    array set _view {
 	theta   45
 	phi     45
 	psi     0
@@ -1415,11 +1445,11 @@ itcl::body Rappture::MolvisViewer::ResetView {} {
 	width   0
 	height  0
     }
-    _send "reset"
-    _send "rotate $view_(mx) $view_(my) $view_(mz)"
-    debug "ResetView: rotate $view_(mx) $view_(my) $view_(mz)"
-    _send "pan $view_(x) $view_(y)"
-    _send "zoom $view_(zoom)"
+    SendCmd "reset"
+    SendCmd "rotate $_view(mx) $_view(my) $_view(mz)"
+    debug "ResetView: rotate $_view(mx) $_view(my) $_view(mz)"
+    SendCmd "pan $_view(x) $_view(y)"
+    SendCmd "zoom $_view(zoom)"
 }
 
 # ----------------------------------------------------------------------
@@ -1504,16 +1534,16 @@ itcl::body Rappture::MolvisViewer::WaitIcon  { option widget } {
 	"start" {
 	    $_dispatcher dispatch $this !waiticon \
 		"[itcl::code $this WaitIcon "next" $widget] ; list"
-	    set icon_ 0
-	    $widget configure -image [Rappture::icon bigroller${icon_}]
+	    set _icon 0
+	    $widget configure -image [Rappture::icon bigroller${_icon}]
 	    $_dispatcher event -after 100 !waiticon
 	}
 	"next" {
-	    incr icon_
-	    if { $icon_ >= 8 } {
-		set icon_ 0
+	    incr _icon
+	    if { $_icon >= 8 } {
+		set _icon 0
 	    }
-	    $widget configure -image [Rappture::icon bigroller${icon_}]
+	    $widget configure -image [Rappture::icon bigroller${_icon}]
 	    $_dispatcher event -after 100 !waiticon
 	}
 	"stop" {
@@ -1523,8 +1553,8 @@ itcl::body Rappture::MolvisViewer::WaitIcon  { option widget } {
 }
 	    
 itcl::body Rappture::MolvisViewer::GetPngImage  { widget width height } {
-    set token "print[incr nextToken_]"
-    set var ::Rappture::MolvisViewer::hardcopy_($this-$token)
+    set token "print[incr _nextToken]"
+    set var ::Rappture::MolvisViewer::_hardcopy($this-$token)
     set $var ""
 
     # Setup an automatic timeout procedure.
@@ -1556,7 +1586,7 @@ itcl::body Rappture::MolvisViewer::GetPngImage  { widget width height } {
     grab set -local $inner
     focus $inner.cancel
 
-    _send "print $token $width $height"
+    SendCmd "print $token $width $height"
 
     $popup activate $widget below
     update
@@ -1573,8 +1603,8 @@ itcl::body Rappture::MolvisViewer::GetPngImage  { widget width height } {
     $popup deactivate
     update
 
-    if { $hardcopy_($this-$token) != "" } {
-	return [list .png $hardcopy_($this-$token)]
+    if { $_hardcopy($this-$token) != "" } {
+	return [list .png $_hardcopy($this-$token)]
     }
     return ""
 }
