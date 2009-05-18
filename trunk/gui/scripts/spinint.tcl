@@ -41,7 +41,6 @@ itcl::class Rappture::Spinint {
 
     public method value {args}
     public method bump {{delta up}}
-
     protected method _validate {char}
 }
 

@@ -313,11 +313,11 @@ itcl::body Rappture::VisViewer::CheckConnection {} {
     if { $code == 0 && $ok} {
 	$_dispatcher event -idle !rebuild
 	Rappture::Tooltip::cue hide
-	return 0;			# Fail even though we've reconnected.
     } else {
 	Rappture::Tooltip::cue @$x,$y "Can't connect to visualization server.  This may be a network problem.  Wait a few moments and try resetting the view."
 	return 0
     }
+    return 1
 }
 
 #
@@ -408,8 +408,11 @@ itcl::body Rappture::VisViewer::SendBytes { bytes } {
 	fileevent $_sid writable ""
 	flush $_sid
     }
+    if 0 {
     if { ![CheckConnection] } {
+	puts stderr "connection is now down"
 	return 0
+    }
     }
     return $_done($this)
 }

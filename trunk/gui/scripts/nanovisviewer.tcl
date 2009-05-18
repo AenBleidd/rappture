@@ -131,6 +131,8 @@ itcl::class Rappture::NanovisViewer {
     private common _hardcopy
     private variable _width 0
     private variable _height 0
+    private variable _resizePending 0
+    private variable _resizeLegendPending 0
 }
 
 itk::usual NanovisViewer {
@@ -346,6 +348,7 @@ itcl::body Rappture::NanovisViewer::destructor {} {
     $_dispatcher cancel !rebuild
     $_dispatcher cancel !send_dataobjs
     $_dispatcher cancel !send_transfunc
+    $_dispatcher cancel !resize
     image delete $_image(plot)
     image delete $_image(legend)
     image delete $_image(download)
@@ -379,7 +382,6 @@ itcl::body Rappture::NanovisViewer::add {dataobj {settings ""}} {
 	# can't handle -autocolors yet
 	set params(-color) black
     }
-
     set pos [lsearch -exact $dataobj $_dlist]
     if {$pos < 0} {
 	lappend _dlist $dataobj
@@ -673,6 +675,10 @@ itcl::body Rappture::NanovisViewer::SendDataObjs {} {
 	if {"" != $axis} {
 	    SendCmd "up $axis"
 	}
+	set location [$_first hints camera]
+	if { $location != "" } {
+	    array set _view $location
+	}
 	# The active transfer function is by default the first component of
 	# the first data object.  This assumes that the data is always
 	# successfully transferred.
@@ -761,9 +767,6 @@ itcl::body Rappture::NanovisViewer::SendTransferFuncs {} {
 # specified <size> will follow.
 # ----------------------------------------------------------------------
 itcl::body Rappture::NanovisViewer::ReceiveImage { args } {
-    if { ![isconnected] } {
-	return
-    }
     array set info {
 	-token "???"
 	-bytes 0
@@ -905,7 +908,6 @@ itcl::body Rappture::NanovisViewer::Rebuild {} {
 	    $m visible no
 	}
     }
-
     # in the midst of sending data? then bail out
     if {[llength $_sendobjs] > 0} {
 	return
@@ -915,6 +917,18 @@ itcl::body Rappture::NanovisViewer::Rebuild {} {
     # be preempted by a server disconnect/reconnect (which automatically
     # generates a new call to Rebuild).   
     set _buffering 1
+
+    set w [winfo width $itk_component(3dview)]
+    set h [winfo height $itk_component(3dview)]
+    EventuallyResize $w $h
+
+    #
+    # Reset the camera and other view parameters
+    #
+    set xyz [Euler2XYZ $_view(theta) $_view(phi) $_view(psi)]
+    SendCmd "camera angle $xyz"
+    PanCamera
+    SendCmd "camera zoom $_view(zoom)"
 
     # Find any new data that needs to be sent to the server.  Queue this up on
     # the _sendobjs list, and send it out a little at a time.  Do this first,
@@ -928,17 +942,11 @@ itcl::body Rappture::NanovisViewer::Rebuild {} {
 	    }
 	}
     }
-    set w [winfo width $itk_component(3dview)]
-    set h [winfo height $itk_component(3dview)]
-    EventuallyResize $w $h
-
-    #
-    # Reset the camera and other view parameters
-    #
-    set xyz [Euler2XYZ $_view(theta) $_view(phi) $_view(psi)]
-    SendCmd "camera angle $xyz"
-    PanCamera
-    SendCmd "camera zoom $_view(zoom)"
+    if {[llength $_sendobjs] > 0} {
+	# send off new data objects
+	$_dispatcher event -idle !send_dataobjs
+	return
+    }
 
     set _settings($this-theta) $_view(theta)
     set _settings($this-phi)   $_view(phi)
@@ -954,12 +962,6 @@ itcl::body Rappture::NanovisViewer::Rebuild {} {
     FixSettings axes
     FixSettings outline
 
-    if {[llength $_sendobjs] > 0} {
-	# send off new data objects
-	$_dispatcher event -idle !send_dataobjs
-	return
-    }
-
     # nothing to send -- activate the proper ivol
     set _first [lindex [get] 0]
     if {"" != $_first} {
@@ -967,9 +969,9 @@ itcl::body Rappture::NanovisViewer::Rebuild {} {
 	if {"" != $axis} {
 	    SendCmd "up $axis"
 	}
-	foreach key [array names _obj2id *-*] {
-	    set state [string match $_first-* $key]
-	    SendCmd "volume state $state $_obj2id($key)"
+	SendCmd "volume state 0"
+	foreach key [array names _obj2id $_first-*] {
+	    SendCmd "volume state 1 $_obj2id($key)"
 	}
 	#
 	# The _obj2id and _id2style arrays may or may not have the right
@@ -1319,6 +1321,7 @@ itcl::body Rappture::NanovisViewer::FixSettings {what {value ""}} {
 # for the current field.
 # ----------------------------------------------------------------------
 itcl::body Rappture::NanovisViewer::FixLegend {} {
+    set _resizeLegendPending 0
     set lineht [font metrics $itk_option(-font) -linespace]
     set w [expr {$_width-20}]
     set h [expr {[winfo height $itk_component(legend)]-20-$lineht}]
@@ -1980,18 +1983,23 @@ itcl::body Rappture::NanovisViewer::SlicerTip {axis} {
 
 itcl::body Rappture::NanovisViewer::DoResize {} {
     SendCmd "screen $_width $_height"
+    set _resizePending 0
 }
 
 itcl::body Rappture::NanovisViewer::EventuallyResize { w h } {
-    if { $_width != $w || $_height != $h } {
-	set _width $w
-	set _height $h
+    set _width $w
+    set _height $h
+    if { !$_resizePending } {
 	$_dispatcher event -idle !resize
+	set _resizePending 1
     }
 }
 
 itcl::body Rappture::NanovisViewer::EventuallyResizeLegend {} {
-    $_dispatcher event -idle !legend
+    if { !$_resizeLegendPending } {
+	$_dispatcher event -idle !legend
+	set _resizeLegendPending 1
+    }
 }
 
 

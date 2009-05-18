@@ -295,10 +295,6 @@ itcl::body Rappture::HeightmapViewer::add {dataobj {settings ""}} {
 	# can't handle -autocolors yet
 	set params(-color) black
     }
-    set location [$dataobj hints camera]
-    if { $location != "" } {
-	array set _view $location
-    }
     set pos [lsearch -exact $dataobj $_dlist]
     if {$pos < 0} {
 	lappend _dlist $dataobj
@@ -582,6 +578,10 @@ itcl::body Rappture::HeightmapViewer::SendDataObjs {} {
 	set axis [$first hints updir]
 	if {"" != $axis} {
 	    SendCmd "up $axis"
+	}
+	set location [$first hints camera]
+	if { $location != "" } {
+	    array set _view $location
 	}
     }
 
