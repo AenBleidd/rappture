@@ -263,6 +263,15 @@ test flow.51 {myFlow data file data/flowvis_dx_files/jwire/J-wire-vec.dx 3} {
     list [catch {myFlow data file data/flowvis_dx_files/jwire/J-wire-vec.dx 3} msg] $msg
 } {0 {}}
 
+test flow.51 {myFlow data file data/flowvis_dx_files/jwire/J-wire-vec.dx 3} {
+    list [catch {myFlow data file data/flowvis_dx_files/jwire/J-wire-vec.dx 3} msg] $msg
+} {0 {}}
+
+test flow.51 {myFlow data file data/flowvis_dx_files/flow2d_half.unirect2d 3} {
+    list [catch {myFlow data file data/flowvis_dx_files/flow2d_half.unirect2d 3} msg] $msg
+} {0 {}}
+
+
 test flow.52 {myFlow (no args)} {
     list [catch {myFlow} msg] $msg
 } {1 {wrong # args: should be one of...

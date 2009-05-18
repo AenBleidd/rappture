@@ -5,6 +5,8 @@
 
 namespace Rappture {
 
+class Unirect2d;
+
 class Unirect3d {
     size_t _xNum, _yNum, _zNum;
     size_t _nValues;
@@ -170,6 +172,7 @@ public:
 
     bool ImportDx(Rappture::Outcome &result, int nComponents, 
 		  size_t length, char *string);
+    bool Convert(Unirect2d *dataPtr);
     bool Resample(Rappture::Outcome &context, int nSamples = 30);
     bool isInitialized(void) {
 	return _initialized;
@@ -245,6 +248,21 @@ public:
     }
     float *values(void) {
 	return _values;
+    }
+    float xValueMin(void) {
+	return _xValueMin;
+    }
+    float yValueMin(void) {
+	return _yValueMin;
+    }
+    float xValueMax(void) {
+	return _xValueMax;
+    }
+    float yValueMax(void) {
+	return _yValueMax;
+    }
+    size_t nComponents(void) {
+	return _nComponents;
     }
     float *acceptValues(void) {
 	float *values;
