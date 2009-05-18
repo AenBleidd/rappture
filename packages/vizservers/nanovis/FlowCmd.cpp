@@ -607,6 +607,7 @@ FlowCmd::MakeVolume(float *data)
 {
     if (_volIndex < 0) {
 	_volIndex = NanoVis::n_volumes;
+	Trace("VolumeIndex is %d\n", _volIndex);
     }
     Volume *volPtr;
     volPtr = NanoVis::load_volume(_volIndex, _dataPtr->xNum(), 
@@ -678,7 +679,9 @@ FlowDataFileOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
 
     FlowCmd *flowPtr = (FlowCmd *)clientData;
-    if (strncmp(buf.bytes(), "<DX>", 4) == 0) {
+    size_t length = buf.size();
+    char *bytes = (char *)buf.bytes();
+    if ((length > 4) && (strncmp(bytes, "<DX>", 4) == 0)) {
 	Rappture::Unirect3d *dataPtr;
 
 	dataPtr = new Rappture::Unirect3d(nComponents);
@@ -689,19 +692,19 @@ FlowDataFileOp(ClientData clientData, Tcl_Interp *interp, int objc,
 	    return TCL_ERROR;
 	}
 	flowPtr->SetData(dataPtr);
-    } else if (strncmp(buf.bytes(), "<unirect3d>", 4) == 0) {
+    } else if ((length > 11) && (strncmp(bytes, "<unirect3d>", 11) == 0)) {
 	Rappture::Unirect3d *dataPtr;
 	Tcl_CmdInfo cmdInfo;
 
 	/* Set the clientdata field of the unirect3d command to contain
 	 * the local data structure. */
+	dataPtr = new Rappture::Unirect3d(nComponents);
 	if (!Tcl_GetCommandInfo(interp, "unirect3d", &cmdInfo)) {
 	    return TCL_ERROR;
 	}
-	dataPtr = new Rappture::Unirect3d(nComponents);
 	cmdInfo.objClientData = (ClientData)dataPtr;	
 	Tcl_SetCommandInfo(interp, "unirect3d", &cmdInfo);
-	if (Tcl_Eval(interp, (const char *)buf.bytes()) != TCL_OK) {
+	if (Tcl_Eval(interp, (const char *)buf.bytes()+11) != TCL_OK) {
 	    delete dataPtr;
 	    return TCL_ERROR;
 	}
@@ -710,9 +713,34 @@ FlowDataFileOp(ClientData clientData, Tcl_Interp *interp, int objc,
 	    return TCL_ERROR;
 	}
 	flowPtr->SetData(dataPtr);
+    } else if ((length > 11) && (strncmp(bytes, "<unirect2d>", 11) == 0)) {
+	Rappture::Unirect2d *dataPtr;
+	Tcl_CmdInfo cmdInfo;
+
+	/* Set the clientdata field of the unirect3d command to contain
+	 * the local data structure. */
+	dataPtr = new Rappture::Unirect2d();
+	if (!Tcl_GetCommandInfo(interp, "unirect2d", &cmdInfo)) {
+	    return TCL_ERROR;
+	}
+	cmdInfo.objClientData = (ClientData)dataPtr;	
+	Tcl_SetCommandInfo(interp, "unirect2d", &cmdInfo);
+	if (Tcl_Eval(interp, (const char *)buf.bytes()+11) != TCL_OK) {
+	    delete dataPtr;
+	    return TCL_ERROR;
+	}
+	if (!dataPtr->isInitialized()) {
+	    delete dataPtr;
+	    return TCL_ERROR;
+	}
+	Rappture::Unirect3d *d3Ptr = new Rappture::Unirect3d(nComponents);
+	d3Ptr->Convert(dataPtr);
+	flowPtr->SetData(d3Ptr);
+	delete dataPtr;
     } else {
 	Rappture::Unirect3d *dataPtr;
 
+	fprintf(stderr, "header is %.14s\n", buf.bytes());
 	dataPtr = new Rappture::Unirect3d(nComponents);
 	if (!dataPtr->ImportDx(result, nComponents, buf.size(), 
 		(char *)buf.bytes())) {
@@ -765,19 +793,19 @@ FlowDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
         return TCL_ERROR;
     }
     FlowCmd *flowPtr = (FlowCmd *)clientData;
-    if ((buf.size() > 4) && (strncmp(buf.bytes(), "<DX>", 4) == 0)) {
+    size_t length = buf.size();
+    char *bytes = (char *)buf.bytes();
+    if ((length > 4) && (strncmp(bytes, "<DX>", 4) == 0)) {
 	Rappture::Unirect3d *dataPtr;
 
 	dataPtr = new Rappture::Unirect3d(nComponents);
-	if (!dataPtr->ImportDx(result, nComponents, buf.size(), 
-		(char *)buf.bytes())) {
+	if (!dataPtr->ImportDx(result, nComponents, length - 4, bytes + 4)) {
 	    Tcl_AppendResult(interp, result.remark(), (char *)NULL);
 	    delete dataPtr;
 	    return TCL_ERROR;
 	}
 	flowPtr->SetData(dataPtr);
-    } else if ((buf.size() > 4) && 
-	       (strncmp(buf.bytes(), "<unirect3d>", 4) == 0)) {
+    } else if ((length > 11) && (strncmp(bytes, "<unirect3d>", 11) == 0)) {
 	Rappture::Unirect3d *dataPtr;
 	Tcl_CmdInfo cmdInfo;
 
@@ -789,7 +817,7 @@ FlowDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
 	}
 	cmdInfo.objClientData = (ClientData)dataPtr;	
 	Tcl_SetCommandInfo(interp, "unirect3d", &cmdInfo);
-	if (Tcl_Eval(interp, (const char *)buf.bytes()) != TCL_OK) {
+	if (Tcl_Eval(interp, bytes+11) != TCL_OK) {
 	    delete dataPtr;
 	    return TCL_ERROR;
 	}
@@ -798,14 +826,35 @@ FlowDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
 	    return TCL_ERROR;
 	}
 	flowPtr->SetData(dataPtr);
+    } else if ((length > 11) && (strncmp(bytes, "<unirect2d>", 11) == 0)) {
+	Rappture::Unirect2d *dataPtr;
+	Tcl_CmdInfo cmdInfo;
+
+	/* Set the clientdata field of the unirect3d command to contain
+	 * the local data structure. */
+	dataPtr = new Rappture::Unirect2d();
+	if (!Tcl_GetCommandInfo(interp, "unirect2d", &cmdInfo)) {
+	    return TCL_ERROR;
+	}
+	cmdInfo.objClientData = (ClientData)dataPtr;	
+	Tcl_SetCommandInfo(interp, "unirect2d", &cmdInfo);
+	if (Tcl_Eval(interp, bytes+11) != TCL_OK) {
+	    delete dataPtr;
+	    return TCL_ERROR;
+	}
+	if (!dataPtr->isInitialized()) {
+	    delete dataPtr;
+	    return TCL_ERROR;
+	}
+	Rappture::Unirect3d *d3Ptr = new Rappture::Unirect3d(nComponents);
+	d3Ptr->Convert(dataPtr);
+	flowPtr->SetData(d3Ptr);
+	delete dataPtr;
     } else {
-	Tcl_AppendResult(interp, "unknown data header \"", /*buf.bytes(), "\"",*/
-			 (char *)NULL);
 	Rappture::Unirect3d *dataPtr;
 
 	dataPtr = new Rappture::Unirect3d(nComponents);
-	if (!dataPtr->ImportDx(result, nComponents, buf.size(), 
-			       (char *)buf.bytes())) {
+	if (!dataPtr->ImportDx(result, nComponents, length, bytes)) {
 	    Tcl_AppendResult(interp, result.remark(), (char *)NULL);
 	    delete dataPtr;
 	    return TCL_ERROR;
