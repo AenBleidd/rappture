@@ -18,7 +18,7 @@ package require Itk
 package require BLT
 package require Img
 
-option add *FlowvisViewer.width 4i widgetDefault
+option add *FlowvisViewer.width 5i widgetDefault
 option add *FlowvisViewer*cursor crosshair widgetDefault
 option add *FlowvisViewer.height 4i widgetDefault
 option add *FlowvisViewer.foreground black widgetDefault
@@ -74,7 +74,7 @@ itcl::class Rappture::FlowvisViewer {
     protected method CurrentVolumeIds {{what -all}}
     protected method Disconnect {}
     protected method DoResize {}
-    protected method FixLegend {}
+    protected method ResizeLegend {}
     protected method FixSettings {what {value ""}}
     protected method Pan {option x y}
     protected method Rebuild {}
@@ -127,7 +127,7 @@ itcl::class Rappture::FlowvisViewer {
 				    # in the server
     private variable _id2obj       ;# maps dataobj => volume ID in server
     private variable _sendobjs ""  ;# list of data objs to send to server
-    private variable _receiveIds   ;# list of data objs to send to server
+    private variable _recvObjs  ;# list of data objs to send to server
     private variable _obj2style    ;# maps dataobj-component to transfunc
     private variable _style2objs   ;# maps tf back to list of 
 				    # dataobj-components using the tf.
@@ -151,6 +151,8 @@ itcl::class Rappture::FlowvisViewer {
     private common _hardcopy
     private variable _width 0
     private variable _height 0
+    private variable _resizePending 0
+    private variable _resizeLegendPending 0
 }
 
 itk::usual FlowvisViewer {
@@ -165,7 +167,7 @@ itcl::body Rappture::FlowvisViewer::constructor { hostlist args } {
 
     # Draw legend event
     $_dispatcher register !legend
-    $_dispatcher dispatch $this !legend "[itcl::code $this FixLegend]; list"
+    $_dispatcher dispatch $this !legend "[itcl::code $this ResizeLegend]; list"
 
     # Send dataobjs event
     $_dispatcher register !send_dataobjs
@@ -188,7 +190,6 @@ itcl::body Rappture::FlowvisViewer::constructor { hostlist args } {
     $_dispatcher register !play
     $_dispatcher dispatch $this !play "[itcl::code $this flow next]; list"
     
-    set _flow(frame) 0
     set _flow(state) 0
 
     set _outbuf ""
@@ -225,6 +226,8 @@ itcl::body Rappture::FlowvisViewer::constructor { hostlist args } {
 	$this-play		0
 	$this-psi		$_view(psi)
 	$this-speed		500
+	$this-step		0
+	$this-nsteps		100
 	$this-theta		$_view(theta)
 	$this-volume		1
 	$this-xcutplane		0
@@ -290,8 +293,11 @@ itcl::body Rappture::FlowvisViewer::constructor { hostlist args } {
     BuildCutplanesTab
     BuildCameraTab
 
-    # Legend
 
+    bind $itk_component(3dview) <Configure> \
+	[itcl::code $this EventuallyResize %w %h]
+
+    # Legend
     set _image(legend) [image create photo]
     itk_component add legend {
         canvas $itk_component(plotarea).legend -height 50 -highlightthickness 0
@@ -314,8 +320,8 @@ itcl::body Rappture::FlowvisViewer::constructor { hostlist args } {
     blt::table configure $itk_component(plotarea) r1 -resize none    
     # Create flow controls...
 
-    itk_component add flowcontrol {
-        frame $itk_interior.flowcontrol 
+    itk_component add flowcontrols {
+        frame $itk_interior.flowcontrols 
     } {
 	usual
         rename -background -controlbackground controlBackground Background
@@ -323,42 +329,42 @@ itcl::body Rappture::FlowvisViewer::constructor { hostlist args } {
     pack forget $itk_component(main)
     blt::table $itk_interior \
 	0,0 $itk_component(main) -fill both  \
-	1,0 $itk_component(flowcontrol) -fill x
+	1,0 $itk_component(flowcontrols) -fill x
     blt::table configure $itk_interior r1 -resize none
 
-    # flow record button...
+    # Rewind
     itk_component add rewind {
-        button $itk_component(flowcontrol).reset \
+        button $itk_component(flowcontrols).reset \
             -borderwidth 1 -padx 1 -pady 1 \
             -image [Rappture::icon flow-rewind] \
 	    -command [itcl::code $this flow reset]
     } {
         usual
         ignore -borderwidth
-        rename -highlightbackground -controlbackground controlBackground Background
+        rename -highlightbackground -controlbackground controlBackground \
+	    Background
     }
     Rappture::Tooltip::for $itk_component(rewind) \
         "Rewind flow"
 
-    # flow stop button...
+    # Stop
     itk_component add stop {
-        button $itk_component(flowcontrol).stop \
+        button $itk_component(flowcontrols).stop \
             -borderwidth 1 -padx 1 -pady 1 \
             -image [Rappture::icon flow-stop] \
 	    -command [itcl::code $this flow stop]
     } {
         usual
         ignore -borderwidth
-        rename -highlightbackground -controlbackground controlBackground Background
+        rename -highlightbackground -controlbackground controlBackground \
+	    Background
     }
     Rappture::Tooltip::for $itk_component(stop) \
         "Stop flow"
 
-    #
-    # flow play/pause button...
-    #
+    # Play
     itk_component add play {
-        Rappture::PushButton $itk_component(flowcontrol).play \
+        Rappture::PushButton $itk_component(flowcontrols).play \
 	    -onimage [Rappture::icon flow-pause] \
 	    -offimage [Rappture::icon flow-play] \
 	    -variable [itcl::scope _settings($this-play)] \
@@ -368,8 +374,9 @@ itcl::body Rappture::FlowvisViewer::constructor { hostlist args } {
     Rappture::Tooltip::for $itk_component(play) \
         "Play/Pause flow"
 
+    # Loop
     itk_component add loop {
-        Rappture::PushButton $itk_component(flowcontrol).loop \
+        Rappture::PushButton $itk_component(flowcontrols).loop \
 	    -onimage [Rappture::icon loop] \
 	    -offimage [Rappture::icon loop] \
 	    -variable [itcl::scope _settings($this-loop)]
@@ -377,20 +384,33 @@ itcl::body Rappture::FlowvisViewer::constructor { hostlist args } {
     Rappture::Tooltip::for $itk_component(loop) \
         "Play continuously"
 
-    # how do we know when to make something an itk component?
+    # Frame
+    itk_component add frame {
+	::scale $itk_component(flowcontrols).frame -from 1 -to 100 \
+	    -showvalue 0 -orient horizontal -width 14 \
+	    -state disabled \
+	    -variable [itcl::scope _settings($this-step)]  \
+	    -highlightthickness 0
+    } {
+	usual 
+	ignore -highlightthickness 
+        rename -background -controlbackground controlBackground Background
+    }
+    $itk_component(frame) set 1
 
-    itk_component add numframes {
-	Rappture::Spinint $itk_component(flowcontrol).numframes \
-	    -min 0 -max 10000 
+    # Number of steps
+    itk_component add nsteps {
+	Rappture::Spinint $itk_component(flowcontrols).nsteps \
+	    -min 0 -max 10000 -width 4
     } {
         usual
 	ignore -highlightthickness 
         rename -background -controlbackground controlBackground Background
     }
-    $itk_component(numframes) value 100
+    $itk_component(nsteps) value 100
 
-    itk_component add numframeslabel {
-	label $itk_component(flowcontrol).framel -text "# Steps:" -font $fg \
+    itk_component add nstepslabel {
+	label $itk_component(flowcontrols).framel -text "# Steps:" -font $fg \
 	    -highlightthickness 0
     } {
         usual
@@ -399,7 +419,7 @@ itcl::body Rappture::FlowvisViewer::constructor { hostlist args } {
     }
 
     itk_component add speedlabel {
-	label $itk_component(flowcontrol).speedl -text "Speed:" -font $fg \
+	label $itk_component(flowcontrols).speedl -text "Speed:" -font $fg \
 	    -highlightthickness 0
     } {
         usual
@@ -407,30 +427,33 @@ itcl::body Rappture::FlowvisViewer::constructor { hostlist args } {
         rename -background -controlbackground controlBackground Background
     }
 
+    # Speed
     itk_component add speed {
-	::scale $itk_component(flowcontrol).speed -from 500 -to 50 \
-	    -showvalue 0 -orient horizontal -width 14 -length 150 \
-	    -variable [itcl::scope _settings(speed)]  \
-	    -highlightthickness 0
+	Rappture::Spinint $itk_component(flowcontrols).speed \
+	    -min 1 -max 10 -width 2
     } {
-	usual 
+        usual
 	ignore -highlightthickness 
         rename -background -controlbackground controlBackground Background
     }
-    $itk_component(speed) set 500
+    $itk_component(speed) value 1
+    bind $itk_component(speed) <<Value>> [itcl::code $this flow speed]
 
-    blt::table $itk_component(flowcontrol) \
+
+    blt::table $itk_component(flowcontrols) \
 	0,0 $itk_component(rewind) -padx {3 0} \
 	0,1 $itk_component(stop) -padx {2 0} \
 	0,2 $itk_component(play) -padx {2 0} \
 	0,3 $itk_component(loop) -padx {2 0} \
+	0,4 $itk_component(frame) -fill x -padx {2 0 } \
 	0,5 $itk_component(speedlabel) -padx {2 0} \
-	0,6 $itk_component(speed) -fill x \
-        0,7 $itk_component(numframeslabel) -padx {2 0} \
-	0,8 $itk_component(numframes) -fill x -padx { 0 3}
-    blt::table configure $itk_component(flowcontrol) c* -resize none
-    blt::table configure $itk_component(flowcontrol) c4 c6 -resize both
-    blt::table configure $itk_component(flowcontrol) r0 -pady 1
+	0,6 $itk_component(speed) -padx {2 0} \
+        0,7 $itk_component(nstepslabel) -padx {2 0} \
+	0,8 $itk_component(nsteps) -padx { 2 3} 
+
+    blt::table configure $itk_component(flowcontrols) c* -resize none
+    blt::table configure $itk_component(flowcontrols) c4 -resize both
+    blt::table configure $itk_component(flowcontrols) r0 -pady 1
     # Bindings for rotation via mouse
     bind $itk_component(3dview) <ButtonPress-1> \
         [itcl::code $this Rotate click %x %y]
@@ -438,6 +461,7 @@ itcl::body Rappture::FlowvisViewer::constructor { hostlist args } {
         [itcl::code $this Rotate drag %x %y]
     bind $itk_component(3dview) <ButtonRelease-1> \
         [itcl::code $this Rotate release %x %y]
+
     bind $itk_component(3dview) <Configure> \
 	[itcl::code $this EventuallyResize %w %h]
 
@@ -608,6 +632,7 @@ itcl::body Rappture::FlowvisViewer::get {args} {
 #
 # ----------------------------------------------------------------------
 itcl::body Rappture::FlowvisViewer::delete {args} {
+     flow stop
     if {[llength $args] == 0} {
         set args $_dlist
     }
@@ -879,7 +904,7 @@ itcl::body Rappture::FlowvisViewer::SendDataObjs {} {
             incr _obj2id(count)
 
             NameTransferFunc $dataobj $comp
-            set _receiveIds($ivol) 1
+            set _recvObjs($dataobj-$comp) 1
         }
     }
     set _sendobjs ""
@@ -897,6 +922,23 @@ itcl::body Rappture::FlowvisViewer::SendDataObjs {} {
         if {"" != $axis} {
             SendCmd "up $axis"
         }
+
+	if 0 {
+	set location [$_first hints camera]
+	if { $location != "" } {
+	    array set _view $location
+	}
+	set _settings($this-theta) $_view(theta)
+	set _settings($this-phi)   $_view(phi)
+	set _settings($this-psi)   $_view(psi)
+	set _settings($this-pan-x) $_view(pan-x)
+	set _settings($this-pan-y) $_view(pan-y)
+	set _settings($this-zoom)  $_view(zoom)
+	set xyz [Euler2XYZ $_view(theta) $_view(phi) $_view(psi)]
+	SendCmd "camera angle $xyz"
+	PanCamera
+	SendCmd "camera zoom $_view(zoom)"
+	}
         # The active transfer function is by default the first component of
         # the first data object.  This assumes that the data is always
         # successfully transferred.
@@ -942,10 +984,12 @@ itcl::body Rappture::FlowvisViewer::SendDataObjs {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::FlowvisViewer::SendTransferFuncs {} {
     if { $_activeTf == "" } {
+	puts stderr "no active tf"
 	return
     }
     set tf $_activeTf
     if { $_first == "" } {
+	puts stderr "no first"
 	return
     }
 
@@ -967,7 +1011,7 @@ itcl::body Rappture::FlowvisViewer::SendTransferFuncs {} {
 	    }
 	}
     }
-    FixLegend
+    ResizeLegend
 }
 
 # ----------------------------------------------------------------------
@@ -978,9 +1022,6 @@ itcl::body Rappture::FlowvisViewer::SendTransferFuncs {} {
 # specified <size> will follow.
 # ----------------------------------------------------------------------
 itcl::body Rappture::FlowvisViewer::ReceiveImage { args } {
-    if {![isconnected]} {
-	return
-    }
     array set info {
 	-token "???"
 	-bytes 0
@@ -990,7 +1031,6 @@ itcl::body Rappture::FlowvisViewer::ReceiveImage { args } {
     set bytes [ReceiveBytes $info(-bytes)]
     ReceiveEcho <<line "<read $info(-bytes) bytes"
     if { $info(-type) == "image" } {
-	ReceiveEcho "for [image width $_image(plot)]x[image height $_image(plot)] image>"	
 	$_image(plot) configure -data $bytes
     } elseif { $info(type) == "print" } {
 	set tag $this-print-$info(-token)
@@ -1065,7 +1105,7 @@ itcl::body Rappture::FlowvisViewer::ReceiveLegend { tf vmin vmax size } {
 #	volume sent to the render server.  Since the client (flowvisviewer)
 #	doesn't parse 3D data formats, we rely on the server (flowvis) to
 #	tell us what the limits are.  Once we've received the limits to all
-#	the data we've sent (tracked by _receiveIds) we can then determine
+#	the data we've sent (tracked by _recvObjs) we can then determine
 #	what the transfer functions are for these # volumes.
 #
 #       Note: There is a considerable tradeoff in having the server report
@@ -1102,8 +1142,8 @@ itcl::body Rappture::FlowvisViewer::ReceiveData { args } {
     set _limits(vmin)      $info(vmin); # Overall minimum value.
     set _limits(vmax)      $info(vmax); # Overall maximum value.
 
-    unset _receiveIds($ivol)
-    if { [array size _receiveIds] == 0 } {
+    unset _recvObjs($tag)
+    if { [array size _recvObjs] == 0 } {
         updatetransferfuncs
     }
 }
@@ -1116,7 +1156,7 @@ itcl::body Rappture::FlowvisViewer::ReceiveData { args } {
 # display new data.  
 #
 itcl::body Rappture::FlowvisViewer::Rebuild {} {
-    puts stderr "in Rebuild"
+    #puts stderr "in Rebuild"
     # Hide all the isomarkers. Can't remove them. Have to remember the
     # settings since the user may have created/deleted/moved markers.
 
@@ -1128,6 +1168,7 @@ itcl::body Rappture::FlowvisViewer::Rebuild {} {
 
     # in the midst of sending data? then bail out
     if {[llength $_sendobjs] > 0} {
+        $_dispatcher event -idle !rebuild
         return
     }
 
@@ -1135,6 +1176,10 @@ itcl::body Rappture::FlowvisViewer::Rebuild {} {
     # be preempted by a server disconnect/reconnect (which automatically
     # generates a new call to Rebuild).   
     set _buffering 1
+
+    set w [winfo width $itk_component(3dview)]
+    set h [winfo height $itk_component(3dview)]
+    EventuallyResize $w $h
 
     # Find any new data that needs to be sent to the server.  Queue this up on
     # the _sendobjs list, and send it out a little at a time.  Do this first,
@@ -1147,18 +1192,28 @@ itcl::body Rappture::FlowvisViewer::Rebuild {} {
             }
         }
     }
-    set w [winfo width $itk_component(3dview)]
-    set h [winfo height $itk_component(3dview)]
-    EventuallyResize $w $h
 
     #
     # Reset the camera and other view parameters
     #
-    set xyz [Euler2XYZ $_view(theta) $_view(phi) $_view(psi)]
-    SendCmd "camera angle $xyz"
-    PanCamera
-    SendCmd "camera zoom $_view(zoom)"
-
+    FixSettings light
+    FixSettings transp
+    FixSettings isosurface
+    FixSettings grid
+    FixSettings axes
+    FixSettings outline
+    # nothing to send -- activate the proper ivol
+    set _first [lindex [get] 0]
+    if {"" != $_first} {
+        set axis [$_first hints updir]
+        if {"" != $axis} {
+            SendCmd "up $axis"
+        }
+	set location [$_first hints camera]
+	if { $location != "" } {
+	    array set _view $location
+	}
+    }
     set _settings($this-theta) $_view(theta)
     set _settings($this-phi)   $_view(phi)
     set _settings($this-psi)   $_view(psi)
@@ -1166,16 +1221,15 @@ itcl::body Rappture::FlowvisViewer::Rebuild {} {
     set _settings($this-pan-y) $_view(pan-y)
     set _settings($this-zoom)  $_view(zoom)
 
-    FixSettings light
-    FixSettings transp
-    FixSettings isosurface
-    FixSettings grid
-    FixSettings axes
-    FixSettings outline
+    set xyz [Euler2XYZ $_view(theta) $_view(phi) $_view(psi)]
+    SendCmd "camera angle $xyz"
+    PanCamera
+    SendCmd "camera zoom $_view(zoom)"
 
     if {[llength $_sendobjs] > 0} {
         # send off new data objects
         $_dispatcher event -idle !send_dataobjs
+	puts stderr "more sendobjs "
         return
     }
 
@@ -1186,6 +1240,10 @@ itcl::body Rappture::FlowvisViewer::Rebuild {} {
         if {"" != $axis} {
             SendCmd "up $axis"
         }
+	set location [$_first hints camera]
+	if { $location != "" } {
+	    array set _view $location
+	}
 	if { 0 && $_settings($this-volume) }  {
             SendCmd "volume state 0"
 	    foreach key [array names _obj2id $_first-*] {
@@ -1223,7 +1281,7 @@ itcl::body Rappture::FlowvisViewer::Rebuild {} {
     SendBytes $_outbuf;			
     set _buffering 0;			# Turn off buffering.
     set _outbuf "";			# Clear the buffer.		
-    puts stderr "exit Rebuild"
+    #puts stderr "exit Rebuild"
 }
 
 # ----------------------------------------------------------------------
@@ -1467,7 +1525,7 @@ itcl::body Rappture::FlowvisViewer::Flow {option args} {
 			$itk_component(play) configure -relief raised 
 			set inner $itk_component(settingsFrame)
 			set frames [$inner.framecnt value]
-			set _settings(numframes) $frames
+			set _settings(nsteps) $frames
 			set cmds "flow capture $frames"
 			SendCmd $cmds
 		    }
@@ -1636,13 +1694,14 @@ itcl::body Rappture::FlowvisViewer::FixSettings {what {value ""}} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: FixLegend
+# USAGE: ResizeLegend
 #
 # Used internally to update the legend area whenever it changes size
 # or when the field changes.  Asks the server to send a new legend
 # for the current field.
 # ----------------------------------------------------------------------
-itcl::body Rappture::FlowvisViewer::FixLegend {} {
+itcl::body Rappture::FlowvisViewer::ResizeLegend {} {
+    set _resizeLegendPending 0
     set lineht [font metrics $itk_option(-font) -linespace]
     set w [expr {$_width-20}]
     set h [expr {[winfo height $itk_component(legend)]-20-$lineht}]
@@ -1680,8 +1739,6 @@ itcl::body Rappture::FlowvisViewer::NameTransferFunc { dataobj comp } {
     array set style [lindex [$dataobj components -style $comp] 0]
     set tf "$style(-color):$style(-levels):$style(-opacity)"
     lappend _obj2style($dataobj-$comp) $tf
-    puts stderr "creating tf=$tf $dataobj-$comp"
-    parray _obj2style
     lappend _style2objs($tf) $dataobj $comp
     return $tf
 }
@@ -2310,7 +2367,7 @@ itcl::body Rappture::FlowvisViewer::GetFlowInfo { w } {
 	if { ![info exists _settings($this-particles-$name)] } {
 	    set _settings($this-particles-$name) $info(hide)
 	}
-	checkbutton $inner.part$row -text $name \
+	checkbutton $inner.part$row -text $info(label) \
 	    -variable [itcl::scope _settings($this-particles-$name)] \
 	    -onvalue 0 -offvalue 1 \
 	    -command [itcl::code $this particles $key $name] \
@@ -2333,7 +2390,7 @@ itcl::body Rappture::FlowvisViewer::GetFlowInfo { w } {
 	if { ![info exists _settings($this-box-$name)] } {
 	    set _settings($this-box-$name) $info(hide)
 	}
-	checkbutton $inner.box$row -text $info(name) \
+	checkbutton $inner.box$row -text $info(label) \
 	    -variable [itcl::scope _settings($this-box-$name)] \
 	    -onvalue 0 -offvalue 1 \
 	    -command [itcl::code $this box $key $name] \
@@ -2352,12 +2409,12 @@ itcl::body Rappture::FlowvisViewer::GetFlowInfo { w } {
 
 itcl::body Rappture::FlowvisViewer::particles { tag name } {
     set bool $_settings($this-particles-$name)
-    SendCmd "$tag particles configure $name -hide $bool"
+    SendCmd "$tag particles configure {$name} -hide $bool"
 }
 
 itcl::body Rappture::FlowvisViewer::box { tag name } {
     set bool $_settings($this-box-$name)
-    SendCmd "$tag box configure $name -hide $bool"
+    SendCmd "$tag box configure {$name} -hide $bool"
 }
 
 itcl::body Rappture::FlowvisViewer::streams { tag name } {
@@ -2411,18 +2468,23 @@ itcl::body Rappture::FlowvisViewer::SlicerTip {axis} {
 
 itcl::body Rappture::FlowvisViewer::DoResize {} {
     SendCmd "screen $_width $_height"
+    set _resizePending 0
 }
 
 itcl::body Rappture::FlowvisViewer::EventuallyResize { w h } {
-    if { $_width != $w || $_height != $h } {
-	set _width $w
-	set _height $h
+    set _width $w
+    set _height $h
+    if { !$_resizePending } {
 	$_dispatcher event -idle !resize
+	set _resizePending 1
     }
 }
 
 itcl::body Rappture::FlowvisViewer::EventuallyResizeLegend {} {
-    $_dispatcher event -idle !legend
+    if { !$_resizeLegendPending } {
+	$_dispatcher event -idle !legend
+	set _resizeLegendPending 1
+    }
 }
 
 #  camera -- 
@@ -2482,7 +2544,6 @@ itcl::body Rappture::FlowvisViewer::FlowCmd { dataobj comp nbytes extents } {
 	append cmd "$tag particles add $info(name) -position $info(position) "
 	append cmd "-axis $info(axis) -color {$color}\n"
     }
-    puts stderr "boxes=[$flowobj boxes]"
     foreach box [$flowobj boxes] {
 	array unset info
 	set info(corner1) ""
@@ -2514,8 +2575,18 @@ itcl::body Rappture::FlowvisViewer::FlowCmd { dataobj comp nbytes extents } {
 #	$this flow pause
 #	$this flow next
 #
-itcl::body Rappture::FlowvisViewer::flow {option} {
+itcl::body Rappture::FlowvisViewer::flow { args } {
+    set option [lindex $args 0]
     switch -- $option {
+	"speed" {
+	    set speed [$itk_component(speed) value]
+	    set _settings($this-speed) [expr int(round(500.0/$speed))]
+	}
+	"nsteps" {
+	    set n [$itk_component(nsteps) value]
+	    $itk_component(frame) configure -max $n
+	    set settings($this-nsteps) $n
+	}
 	"off" {
 	    set _flow(state) 0
 	    $_dispatcher cancel !play
@@ -2541,9 +2612,9 @@ itcl::body Rappture::FlowvisViewer::flow {option} {
 	    if { !$_flow(state) } {
 		flow on
 		# If we're at the end of the flow, reset the flow.
-		set count [$itk_component(numframes) value]
-		if { $_flow(frame) >= $count } {
-		    set _flow(frame) 1
+		set n $_settings($this-step)
+		if { $n >= $_settings($this-nsteps) } {
+		    set _settings($this-step) 1
 		    SendCmd "flow reset"
 		} 
 		flow next
@@ -2557,16 +2628,27 @@ itcl::body Rappture::FlowvisViewer::flow {option} {
 	    }
 	}
 	"reset" {
-	    set _flow(frame) 0
+	    set _settings($this-step) 0
 	    SendCmd "flow reset"
 	    if { !$_flow(state) } {
 		SendCmd "flow next"
 	    }
 	}
 	"next" {
-	    set count [$itk_component(numframes) value]
-	    incr _flow(frame)
-	    if { $_flow(frame) >= $count } {
+	    set w $itk_component(3dview) 
+	    while { $w != "" }  {
+		if { ![winfo ismapped $w] } {
+		    flow stop
+		    puts stderr "$w isn't mapped"
+		    return
+		}
+		set w [winfo parent $w]
+		if { [winfo toplevel $w] == $w } {
+		    break
+		}
+	    }
+	    set n [incr _settings($this-step)]
+	    if { $n >= $_settings($this-nsteps) } {
 	        if { !$_settings($this-loop) } {
 		    flow off
 		    return
@@ -2575,9 +2657,7 @@ itcl::body Rappture::FlowvisViewer::flow {option} {
 	    } else {
 		SendCmd "flow next"
 	    }
-	    set delay [expr {int(ceil(pow($_settings(speed)/10.0+2,2.0)*15))}]
-	    set delay2 [expr round(log($_settings(speed)+0.00001)*100.0)]
-	    $_dispatcher event -after $_settings(speed) !play
+	    $_dispatcher event -after $_settings($this-speed) !play
 	} 
 	default {
 	    error "bad option \"$option\": should be play, stop, toggle, or reset."
@@ -2637,7 +2717,7 @@ itcl::body Rappture::FlowvisViewer::GetMovie { widget width height } {
     grab set -local $inner
     focus $inner.cancel
 
-    SendCmd "flow video $width $height $_settings(numframes) 2.0 1000"
+    SendCmd "flow video $width $height $_settings($this-nsteps) 2.0 1000"
     
     $popup activate $widget below
     update

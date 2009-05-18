@@ -33,16 +33,15 @@ itcl::class Rappture::FlowHints {
     public method boxes {}     { return $_boxes }
 
     private method ConvertUnits { value }
-    private method GetAxis { path varName }
-    private method GetPosition { path varName }
-    private method GetCorner { path varName }
-    private method GetBoolean { path varName }
+    private method GetAxis { obj path varName }
+    private method GetPosition { obj path varName }
+    private method GetCorner { obj path varName }
+    private method GetBoolean { obj path varName }
 
-    private variable _boxes;		# List of boxes for the flow.
-    private variable _particles;	# List of particle injection planes.
+    private variable _boxes "";		# List of boxes for the flow.
+    private variable _particles "";	# List of particle injection planes.
     private variable _hints;		# Array of settings for the flow.
-    private variable _flowobj
-    private variable _units
+    private variable _units ""
 }
 
 # ----------------------------------------------------------------------
@@ -61,16 +60,17 @@ itcl::body Rappture::FlowHints::constructor {field cname units} {
 	"outline"	"on"
     }
     set _units $units
-    set _flowobj [$field element -as object $cname.flow]
+    set f [$field element -as object $cname.flow]
     set _hints(name) [$field element -as id $cname.flow]
-    foreach child [$_flowobj children] {
-	set value [$_flowobj get $child]
+    foreach child [$f children] {
+	set value [$f get $child]
 	switch -glob -- $child {
-	    "outline"  { GetBoolean $child _hints(outline) }
-	    "volume"   { GetBoolean $child _hints(volume) }
-	    "streams"  { GetBoolean $child _hints(streams) }
-	    "axis"     { GetAxis  $child _hints(axis) }
-	    "position" { GetPosition $child _hints(position) }
+	    "label"    { set _hints(label) [$f get $child] }
+	    "outline"  { GetBoolean $f $child _hints(outline) }
+	    "volume"   { GetBoolean $f $child _hints(volume) }
+	    "streams"  { GetBoolean $f $child _hints(streams) }
+	    "axis"     { GetAxis $f  $child _hints(axis) }
+	    "position" { GetPosition $f $child _hints(position) }
 	    "particles*" {
 		array unset data
 		array set data {
@@ -78,59 +78,81 @@ itcl::body Rappture::FlowHints::constructor {field cname units} {
 		    "hide"	"no"
 		    "position"	"0.0%"
 		    "color"	"blue"
+		    "label"     ""
 		}
-		set data(name) [$_flowobj element -as id $child]
-		set data(color) [$_flowobj get $child.color]
-		GetAxis $child.axis data(axis)
-		GetPosition $child.position data(position)
+		set p [$f element -as object $child]
+		set data(name) [$f element -as id $child]
+		foreach child [$p children] {
+		    set value [$p get $child]
+		    switch -exact -- $child {
+			"label" { set data(label) $value }
+			"color" { set data(color) $value }
+			"hide"  { GetBoolean $p hide data(hide) }
+			"axis"  { GetAxis $p axis data(axis) }
+			"position" { GetPosition $p position data(position)}
+		    }
+		}
+		if { $data(label) == "" } {
+		    set data(label) $data(name)
+		}
+		itcl::delete object $p
 		lappend _particles [array get data]
 	    }
 	    "box*" {
 		array unset data
 		array set data {
-		    "axis"	"x"
 		    "hide"	"no"
 		    "color"	"green"
+		    "label"	""
 		}
-		set boxobj [$_flowobj element -as object $child]
+		set b [$f element -as object $child]
+		set name [$f element -as id $child]
 		set count 0
-		set data(name) [$_flowobj element -as id $child]
-		set data(color) [$_flowobj get $child.color]
-		foreach corner [$boxobj children -type corner] {
-		    incr count
-		    GetCorner $child.$corner data(corner$count)
+		set data(name) $name
+		set data(color) [$f get $child.color]
+		foreach child [$b children] {
+		    set value [$b get $child]
+		    switch -glob -- $child {
+			"label" { set data(label) $value }
+			"color" { set data(color) $value }
+			"hide"  { GetBoolean $b hide data(hide) }
+			"corner*" { 
+			    incr count
+			    GetCorner $b $child data(corner$count)
+			}
+		    }
 		}
-		itcl::delete object $boxobj
+		if { $data(label) == "" } {
+		    set data(label) $data(name)
+		}
+		itcl::delete object $b
 		lappend _boxes [array get data]
 	    }
 	}
     }
-    itcl::delete  object $_flowobj
+    itcl::delete  object $f
 }
 
 itcl::body Rappture::FlowHints::ConvertUnits { value } {
     set cmd Rappture::Units::convert
     set n  [scan $value "%g%s" number suffix] 
     if { $n == 2 } {
-	puts stderr "number=$number suffix=$suffix"
 	if { $suffix == "%" } {
 	    return $value
 	} else {
-	    puts stderr "$cmd $number -context $suffix -to $_units -units off"
 	    return [$cmd $number -context $suffix -to $_units -units off]
 	}
     } elseif { [scan $value "%g" number]  == 1 } {
 	if { $_units == "" } {
 	    return $number
 	}
-	puts stderr "$cmd $number -context $_units -to $_units -units off"
 	return [$cmd $number -context $_units -to $_units -units off]
     }
     return ""
 }
 
-itcl::body Rappture::FlowHints::GetPosition { path varName } {
-    set value [$_flowobj get $path]
+itcl::body Rappture::FlowHints::GetPosition { obj path varName } {
+    set value [$obj get $path]
     set pos [ConvertUnits $value]
     if { $pos == "" } {
 	puts stderr "can't convert units \"$value\" of \"$path\""
@@ -139,8 +161,8 @@ itcl::body Rappture::FlowHints::GetPosition { path varName } {
     set position $pos
 }
 
-itcl::body Rappture::FlowHints::GetAxis { path varName } {
-    set value [$_flowobj get $path]
+itcl::body Rappture::FlowHints::GetAxis { obj path varName } {
+    set value [$obj get $path]
     set value [string tolower $value]
     switch -- $value {
 	"x" - "y" - "z" {
@@ -152,8 +174,8 @@ itcl::body Rappture::FlowHints::GetAxis { path varName } {
     puts stderr "invalid axis \"$value\" in \"$path\""
 }
 
-itcl::body Rappture::FlowHints::GetCorner { path varName } {
-    set value [$_flowobj get $path]
+itcl::body Rappture::FlowHints::GetCorner { obj path varName } {
+    set value [$obj get $path]
     set coords ""
     if { [llength $value] != 3 } {
 	puts stderr "wrong number of coordinates \"$value\" in \"$path\""
@@ -171,8 +193,8 @@ itcl::body Rappture::FlowHints::GetCorner { path varName } {
     set corner $coords
 }
 
-itcl::body Rappture::FlowHints::GetBoolean { path varName } {
-    set value [$_flowobj get $path]
+itcl::body Rappture::FlowHints::GetBoolean { obj path varName } {
+    set value [$obj get $path]
     if { [string is boolean $value] } {
 	upvar $varName bool
 	set bool $value
