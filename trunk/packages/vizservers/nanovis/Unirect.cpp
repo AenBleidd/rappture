@@ -143,7 +143,19 @@ Rappture::Unirect3d::LoadData(Tcl_Interp *interp, int objc,
 	    }
         } else if ((c == 'u') && (strcmp(string, "units") == 0)) {
             _vUnits = strdup(Tcl_GetString(objv[i+1]));
-        } else if ((c == 'o') && (strcmp(string, "order") == 0)) {
+        } else if ((c == 'c') && (strcmp(string, "components") == 0)) {
+	    int n;
+
+	    if (Tcl_GetIntFromObj(interp, objv[i+1], &n) != TCL_OK) {
+                return TCL_ERROR;
+            }
+	    if (n <= 0) {
+                Tcl_AppendResult(interp, "bad extents value: must be > 0",
+                                 (char *)NULL);
+                return TCL_ERROR;
+            }
+	    _nComponents = n;
+        } else if ((c == 'a') && (strcmp(string, "axisorder") == 0)) {
 	    Tcl_Obj **axes;
 	    int n;
 
@@ -336,7 +348,7 @@ Rappture::Unirect2d::LoadData(Tcl_Interp *interp, int objc,
 	    }
         } else if ((c == 'u') && (strcmp(string, "units") == 0)) {
             _vUnits = strdup(Tcl_GetString(objv[i+1]));
-        } else if ((c == 'e') && (strcmp(string, "extents") == 0)) {
+        } else if ((c == 'c') && (strcmp(string, "components") == 0)) {
 	    int n;
 
 	    if (Tcl_GetIntFromObj(interp, objv[i+1], &n) != TCL_OK) {
@@ -378,8 +390,10 @@ Rappture::Unirect2d::LoadData(Tcl_Interp *interp, int objc,
     }
     if (_nValues != (_xNum * _yNum * _nComponents)) {
         Tcl_AppendResult(interp, 
-		"wrong number of values: must be xnum*ynum*extents", 
+		"wrong number of values: must be xnum*ynum*components", 
 			 (char *)NULL);
+	fprintf(stderr, "x=%d y=%d c=%d, nv=%d\n", 
+		_xNum, _yNum, _nComponents, _nValues);
         return TCL_ERROR;
     }
     
@@ -640,4 +654,55 @@ Rappture::Unirect3d::GetVectorRange(void)
 	    _magMin = vm;
 	}
     }
+}
+
+bool 
+Rappture::Unirect3d::Convert(Rappture::Unirect2d *dataPtr)
+{
+    _initialized = false;
+
+    _xValueMin = dataPtr->xValueMin();
+    _yValueMin = dataPtr->yValueMin();
+    _zValueMin = 0.0;
+    _xMin = dataPtr->xMin();
+    _yMin = dataPtr->yMin();
+    _zMin = 0.0;
+    _xMax = dataPtr->xMax();
+    _yMax = dataPtr->yMax();
+    _zMax = 0.0;
+    _xNum = dataPtr->xNum();
+    _yNum = dataPtr->yNum();
+    _zNum = 1;
+    switch (dataPtr->nComponents()) {
+    case 1:
+    case 3:
+	if (_values != NULL) {
+	    delete [] _values;
+	}
+	_values = new float[dataPtr->nValues()];
+	memcpy(_values, dataPtr->values(), dataPtr->nValues());
+	_nValues = dataPtr->nValues();
+	_nComponents = dataPtr->nComponents();
+	break;
+    case 2:
+	float *values;
+	_nValues = 3 * _xNum * _yNum * _zNum;
+	if (_values != NULL) {
+	    delete [] _values;
+	}
+	_values = new float[_nValues];
+	if (_values == NULL) {
+	    return false;
+	}
+	values = dataPtr->values();
+	size_t i, j;
+	for(j = i = 0; i < dataPtr->nValues(); i += 2, j+= 3) {
+	    _values[j] = values[i];
+	    _values[j+1] = values[i+1];
+	    _values[j+2] = 0.0f;
+	}	    
+	_nComponents = 3;
+	break;
+    }
+    return true;
 }
