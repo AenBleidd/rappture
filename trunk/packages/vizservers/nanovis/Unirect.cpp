@@ -553,6 +553,15 @@ Rappture::Unirect3d::ImportDx(Rappture::Outcome &result, int nComponents,
     }
     _nValues *= _nComponents;
     _initialized = true;
+    fprintf(stderr, "xMin %g xMax %g xNum %d\n", _xMin, _xMax, _xNum);
+    fprintf(stderr, "yMin %g yMay %g yNum %d\n", _yMin, _yMax, _yNum);
+    fprintf(stderr, "zMin %g zMaz %g zNum %d\n", _zMin, _zMax, _zNum);
+    fprintf(stderr, "nValues %d components %d values {\n", 
+	    _nValues, _nComponents);
+    for (size_t i = 0; i < _nValues; i+= 3) {
+	fprintf(stderr, "%g %g %g\n", _values[i], _values[i+1], _values[i+2]);
+    }
+    fprintf(stderr, "}\n");
     return true;
 }
 
