@@ -54,10 +54,11 @@ itcl::body Rappture::FlowHints::constructor {field cname units} {
     }
     array set _hints {
 	"axis"		"x"
-	"volume"	"on"
-	"streams"	"on"
-	"position"	"0.0%"
+	"description"   ""
 	"outline"	"on"
+	"position"	"0.0%"
+	"streams"	"on"
+	"volume"	"on"
     }
     set _units $units
     set f [$field element -as object $cname.flow]
@@ -65,31 +66,34 @@ itcl::body Rappture::FlowHints::constructor {field cname units} {
     foreach child [$f children] {
 	set value [$f get $child]
 	switch -glob -- $child {
-	    "label"    { set _hints(label) [$f get $child] }
-	    "outline"  { GetBoolean $f $child _hints(outline) }
-	    "volume"   { GetBoolean $f $child _hints(volume) }
-	    "streams"  { GetBoolean $f $child _hints(streams) }
-	    "axis"     { GetAxis $f  $child _hints(axis) }
-	    "position" { GetPosition $f $child _hints(position) }
+	    "label"       { set _hints(label) $value }
+	    "description" { set _hints(description) $value }
+	    "outline"     { GetBoolean $f $child _hints(outline) }
+	    "volume"      { GetBoolean $f $child _hints(volume) }
+	    "streams"     { GetBoolean $f $child _hints(streams) }
+	    "axis"        { GetAxis $f  $child _hints(axis) }
+	    "position"    { GetPosition $f $child _hints(position) }
 	    "particles*" {
 		array unset data
 		array set data {
-		    "axis"	"x"
-		    "hide"	"no"
-		    "position"	"0.0%"
-		    "color"	"blue"
-		    "label"     ""
+		    "axis"	    "x"
+		    "color"	    "blue"
+		    "description"   ""
+		    "hide"	    "no"
+		    "label"         ""
+		    "position"	    "0.0%"
 		}
 		set p [$f element -as object $child]
 		set data(name) [$f element -as id $child]
 		foreach child [$p children] {
 		    set value [$p get $child]
 		    switch -exact -- $child {
-			"label" { set data(label) $value }
-			"color" { set data(color) $value }
-			"hide"  { GetBoolean $p hide data(hide) }
-			"axis"  { GetAxis $p axis data(axis) }
-			"position" { GetPosition $p position data(position)}
+			"axis"        { GetAxis $p axis data(axis) }
+			"color"       { set data(color) $value }
+			"description" { set data(description) $value }
+			"hide"        { GetBoolean $p hide data(hide) }
+			"label"       { set data(label) $value }
+			"position"    { GetPosition $p position data(position)}
 		    }
 		}
 		if { $data(label) == "" } {
@@ -101,9 +105,10 @@ itcl::body Rappture::FlowHints::constructor {field cname units} {
 	    "box*" {
 		array unset data
 		array set data {
-		    "hide"	"no"
-		    "color"	"green"
-		    "label"	""
+		    "color"	    "green"
+		    "description"   ""
+		    "hide"	    "no"
+		    "label"	    ""
 		}
 		set b [$f element -as object $child]
 		set name [$f element -as id $child]
@@ -113,9 +118,10 @@ itcl::body Rappture::FlowHints::constructor {field cname units} {
 		foreach child [$b children] {
 		    set value [$b get $child]
 		    switch -glob -- $child {
-			"label" { set data(label) $value }
-			"color" { set data(color) $value }
-			"hide"  { GetBoolean $b hide data(hide) }
+			"color"       { set data(color) $value }
+			"description" { set data(description) $value }
+			"hide"        { GetBoolean $b hide data(hide) }
+			"label"       { set data(label) $value }
 			"corner*" { 
 			    incr count
 			    GetCorner $b $child data(corner$count)
