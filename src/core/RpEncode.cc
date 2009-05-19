@@ -102,6 +102,15 @@ Rappture::encoding::isBase64(const char* buf, int size)
     return true;
 }
 
+bool
+Rappture::encoding::isGzipped(const char* buf, int size)
+{
+    if (buf == NULL) {
+        return false;			/* Really should let this segfault. */
+    }
+    return ((buf[0] == 0x1f)  && (buf[1] == 0x8b));
+}
+
 /**********************************************************************/
 // FUNCTION: Rappture::encoding::headerFlags()
 /// checks header of given string to determine if it was encoded by rappture.
@@ -260,6 +269,9 @@ Rappture::encoding::decode(Rappture::Outcome &status, Rappture::Buffer& buf,
             bytes += 14;
             size -= 14;
             headerFlags |= (RPENC_B64 | RPENC_Z);
+        } else if ((size > 13) && (strncmp(bytes, "@@RP-ENC:raw\n", 14) == 0)){
+	    bytes += 13;
+	    size -= 13;
         } 
          if (headerFlags != 0) {
             unsigned int reqFlags;
@@ -280,15 +292,14 @@ Rappture::encoding::decode(Rappture::Outcome &status, Rappture::Buffer& buf,
             flags |= headerFlags;
         }
     }
-    if ((flags & (RPENC_B64 | RPENC_Z)) == 0) {
-        return true;                /* No decode or decompress flags present. */
-    }
     if (outData.append(bytes, size) != (int)size) {
         status.addError("can't append %d bytes to buffer", size);
         return false;
     }
-    if (!outData.decode(status, flags)) {
-        return false;
+    if (flags & (RPENC_B64 | RPENC_Z)) {
+	if (!outData.decode(status, flags)) {
+	    return false;
+	}
     }
     buf.move(outData);
     return true;
