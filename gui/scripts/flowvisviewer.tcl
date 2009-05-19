@@ -225,9 +225,9 @@ itcl::body Rappture::FlowvisViewer::constructor { hostlist args } {
 	$this-phi		$_view(phi)
 	$this-play		0
 	$this-psi		$_view(psi)
-	$this-speed		500
 	$this-step		0
-	$this-nsteps		100
+	$this-speed		500
+	$this-duration		1:00
 	$this-theta		$_view(theta)
 	$this-volume		1
 	$this-xcutplane		0
@@ -389,7 +389,7 @@ itcl::body Rappture::FlowvisViewer::constructor { hostlist args } {
 	::scale $itk_component(flowcontrols).frame -from 1 -to 100 \
 	    -showvalue 0 -orient horizontal -width 14 \
 	    -state disabled \
-	    -variable [itcl::scope _settings($this-step)]  \
+	    -variable [itcl::scope _settings($this-currenttime)]  \
 	    -highlightthickness 0
     } {
 	usual 
@@ -398,19 +398,33 @@ itcl::body Rappture::FlowvisViewer::constructor { hostlist args } {
     }
     $itk_component(frame) set 1
 
-    # Number of steps
-    itk_component add nsteps {
-	Rappture::Spinint $itk_component(flowcontrols).nsteps \
-	    -min 0 -max 10000 -width 4
+    itk_component add dial {
+        Rappture::Radiodial $itk_component(flowcontrols).dial \
+            -length 10 -valuewidth 0 -valuepadding 0 -padding 6 \
+            -linecolor "" -activelinecolor "" \
+            -knobimage [Rappture::icon knob2] -knobposition center@middle
     } {
         usual
-	ignore -highlightthickness 
+        keep -dialprogresscolor
         rename -background -controlbackground controlBackground Background
     }
-    $itk_component(nsteps) value 100
+    grid $itk_component(dial) -row 1 -column 1 -sticky ew
+    bind $itk_component(dial) <<Value>> [itcl::code $this _fixValue]
 
-    itk_component add nstepslabel {
-	label $itk_component(flowcontrols).framel -text "# Steps:" -font $fg \
+    # Duration
+    itk_component add duration {
+	entry $itk_component(flowcontrols).duration \
+	    -textvariable [itcl::scope _settings($this-duration)] \
+	    -bg white -width 6
+    } {
+        usual
+	ignore -highlightthickness -background
+    }
+    bind $itk_component(duration) <Return> [itcl::code $this flow duration]
+
+    itk_component add durationlabel {
+	label $itk_component(flowcontrols).durationl \
+	    -text "Duration:" -font $fg \
 	    -highlightthickness 0
     } {
         usual
@@ -445,11 +459,11 @@ itcl::body Rappture::FlowvisViewer::constructor { hostlist args } {
 	0,1 $itk_component(stop) -padx {2 0} \
 	0,2 $itk_component(play) -padx {2 0} \
 	0,3 $itk_component(loop) -padx {2 0} \
-	0,4 $itk_component(frame) -fill x -padx {2 0 } \
+	0,4 $itk_component(dial) -fill x -padx {2 0 } \
 	0,5 $itk_component(speedlabel) -padx {2 0} \
 	0,6 $itk_component(speed) -padx {2 0} \
-        0,7 $itk_component(nstepslabel) -padx {2 0} \
-	0,8 $itk_component(nsteps) -padx { 2 3} 
+        0,7 $itk_component(durationlabel) -padx {2 0} \
+	0,8 $itk_component(duration) -padx { 2 3} 
 
     blt::table configure $itk_component(flowcontrols) c* -resize none
     blt::table configure $itk_component(flowcontrols) c4 -resize both
@@ -2346,6 +2360,7 @@ itcl::body Rappture::FlowvisViewer::GetFlowInfo { w } {
 	-variable [itcl::scope _settings($this-streams)] \
 	-command  [itcl::code $this streams $key $hints(name)]  \
 	-font "Arial 9"
+    Rappture::Tooltip::for $inner.showstreams $hints(description)
     label $inner.particles -text "Particles" 	-font "Arial 9 bold"
     label $inner.boxes -text "Boxes" 	-font "Arial 9 bold"
 
@@ -2371,7 +2386,9 @@ itcl::body Rappture::FlowvisViewer::GetFlowInfo { w } {
 	    -variable [itcl::scope _settings($this-particles-$name)] \
 	    -onvalue 0 -offvalue 1 \
 	    -command [itcl::code $this particles $key $name] \
-	    -font "Arial 9 italic"
+	    -font "Arial 9"
+	puts stderr description=$info(description)
+	Rappture::Tooltip::for $inner.part$row $info(description)
 	blt::table $inner $row,0 $inner.part$row -anchor w 
 	if { !$_settings($this-particles-$name) } {
 	    $inner.part$row select
@@ -2394,7 +2411,8 @@ itcl::body Rappture::FlowvisViewer::GetFlowInfo { w } {
 	    -variable [itcl::scope _settings($this-box-$name)] \
 	    -onvalue 0 -offvalue 1 \
 	    -command [itcl::code $this box $key $name] \
-	    -font "Arial 9 italic"
+	    -font "Arial 9"
+	Rappture::Tooltip::for $inner.box$row $info(description)
 	blt::table $inner $row,0 $inner.box$row -anchor w
 	if { !$_settings($this-box-$name) } {
 	    $inner.box$row select
@@ -2523,8 +2541,9 @@ itcl::body Rappture::FlowvisViewer::camera {option args} {
 itcl::body Rappture::FlowvisViewer::FlowCmd { dataobj comp nbytes extents } {
     set tag "$dataobj-$comp"
     if { ![info exists _obj2flow($tag)] } {
-	puts stderr "no obj $tag"
-	return
+	append cmd "flow add $tag\n"
+	append cmd "$tag data follows $nbytes $extents\n"
+	return $cmd
     }
     set flowobj $_obj2flow($tag)
     if { $flowobj == "" } {
@@ -2580,12 +2599,29 @@ itcl::body Rappture::FlowvisViewer::flow { args } {
     switch -- $option {
 	"speed" {
 	    set speed [$itk_component(speed) value]
-	    set _settings($this-speed) [expr int(round(500.0/$speed))]
+	    set _flow(delay) [expr int(round(500.0/$speed))]
 	}
-	"nsteps" {
-	    set n [$itk_component(nsteps) value]
-	    $itk_component(frame) configure -max $n
-	    set settings($this-nsteps) $n
+	"duration" {
+	    set value $_settings($this-duration)
+	    set pattern1 {^ *([0-9]+):([0-5][0-9]) *$} 
+	    set pattern2 {^ *:([0-5][0-9]) *$}
+	    if { [string is int $value] } {
+		set _flow(duration) [expr $value * 1000]
+	    } elseif { [regexp $pattern1 $value match mins secs] } {
+		set _flow(duration) [expr (($mins * 60) + $secs) * 1000]
+	    } elseif { [regexp $pattern2 $value match secs] } {
+		set _flow(duration) [expr $secs * 1000]
+	    } else {
+		bell
+		return
+	    }
+	    if { $_flow(duration) > 600000 } {
+		set _flow(duration) 600000
+	    }
+	    set min [expr $_flow(duration) / 60000]
+	    set sec [expr ($_flow(duration) - ($min*60000)) / 1000]
+	    set _settings($this-duration) [format %02d:%02d $min $sec]
+	    $itk_component(frame) configure -to $_flow(duration)
 	}
 	"off" {
 	    set _flow(state) 0
@@ -2593,7 +2629,10 @@ itcl::body Rappture::FlowvisViewer::flow { args } {
 	    $itk_component(play) deselect
 	}
 	"on" {
+	    flow speed
+	    flow duration
 	    set _flow(state) 1
+	    set _flow(time) 0
 	    $itk_component(play) select
 	}
 	"stop" {
@@ -2612,8 +2651,8 @@ itcl::body Rappture::FlowvisViewer::flow { args } {
 	    if { !$_flow(state) } {
 		flow on
 		# If we're at the end of the flow, reset the flow.
-		set n $_settings($this-step)
-		if { $n >= $_settings($this-nsteps) } {
+		incr _flow(time) $_flow(delay)
+		if { $_flow(time) >= $_flow(duration) } {
 		    set _settings($this-step) 1
 		    SendCmd "flow reset"
 		} 
@@ -2628,7 +2667,8 @@ itcl::body Rappture::FlowvisViewer::flow { args } {
 	    }
 	}
 	"reset" {
-	    set _settings($this-step) 0
+	    set _flow(time) 0
+	    set _settings($this-currenttime) 0
 	    SendCmd "flow reset"
 	    if { !$_flow(state) } {
 		SendCmd "flow next"
@@ -2647,8 +2687,8 @@ itcl::body Rappture::FlowvisViewer::flow { args } {
 		    break
 		}
 	    }
-	    set n [incr _settings($this-step)]
-	    if { $n >= $_settings($this-nsteps) } {
+	    incr _flow(time) $_flow(delay)
+	    if { $_flow(time) >= $_flow(duration) } {
 	        if { !$_settings($this-loop) } {
 		    flow off
 		    return
@@ -2657,7 +2697,8 @@ itcl::body Rappture::FlowvisViewer::flow { args } {
 	    } else {
 		SendCmd "flow next"
 	    }
-	    $_dispatcher event -after $_settings($this-speed) !play
+	    set _settings($this-currenttime) $_flow(time)
+	    $_dispatcher event -after $_flow(delay) !play
 	} 
 	default {
 	    error "bad option \"$option\": should be play, stop, toggle, or reset."
@@ -2716,8 +2757,14 @@ itcl::body Rappture::FlowvisViewer::GetMovie { widget width height } {
     blt::table configure $inner r2 -pady 4 
     grab set -local $inner
     focus $inner.cancel
+    
+    flow duration
+    flow speed
+    set nframes [expr $_flow(duration) / $_flow(delay)]
+    set framerate [expr 1000.0 / $_flow(delay)]
+    set bitrate 2000
 
-    SendCmd "flow video $width $height $_settings($this-nsteps) 2.0 1000"
+    SendCmd "flow video $width $height $nframes $framerate $bitrate"
     
     $popup activate $widget below
     update
