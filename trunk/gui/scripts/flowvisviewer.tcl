@@ -377,8 +377,8 @@ itcl::body Rappture::FlowvisViewer::constructor { hostlist args } {
     # Loop
     itk_component add loop {
         Rappture::PushButton $itk_component(flowcontrols).loop \
-	    -onimage [Rappture::icon loop] \
-	    -offimage [Rappture::icon loop] \
+	    -onimage [Rappture::icon flow-loop] \
+	    -offimage [Rappture::icon flow-loop] \
 	    -variable [itcl::scope _settings($this-loop)]
     }
     Rappture::Tooltip::for $itk_component(loop) \
