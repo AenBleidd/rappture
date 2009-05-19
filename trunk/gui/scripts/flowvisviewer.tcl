@@ -901,6 +901,7 @@ itcl::body Rappture::FlowvisViewer::SendDataObjs {} {
 		set cmd "volume data follows $nbytes $dataobj-$comp\n"
 	    } else {
 		set cmd [FlowCmd $dataobj $comp $nbytes $extents]
+		puts stderr "flow command is ($cmd)"
 		if { $cmd == "" } {
 		    puts stderr "no command"
 		    continue
