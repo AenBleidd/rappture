@@ -119,7 +119,7 @@ FlowParticles::Render(void)
 {
     Trace("rendering particles %s\n", _name);
     Trace("rendering particles %s axis=%d\n", _name, _sv.position.axis);
-    Trace("rendering particles %s position=%g\n", _name, sv.position.value);
+    Trace("rendering particles %s position=%g\n", _name, _sv.position.value);
     Trace("rendering particles %s position=%g\n", _name, 
 	  FlowCmd::GetRelativePosition(&_sv.position));
 
