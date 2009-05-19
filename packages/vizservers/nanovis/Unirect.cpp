@@ -54,9 +54,9 @@ Rappture::Unirect3d::LoadData(Tcl_Interp *interp, int objc,
 
     /* Default order is  z, y, x. */
     int axis1, axis2, axis3;
-    axis1 = 2; 			/* Z-axis */
+    axis1 = 0; 			/* X-axis */
     axis2 = 1; 			/* Y-axis */
-    axis3 = 0;			/* X-axis */
+    axis3 = 2;			/* Z-axis */
 
     values = NULL;
     num[0] = num[1] = num[2] = nValues = 0;
@@ -185,10 +185,11 @@ Rappture::Unirect3d::LoadData(Tcl_Interp *interp, int objc,
         Tcl_AppendResult(interp, 
 		"wrong number of values: must be xnum*ynum*znum*extents", 
 			 (char *)NULL);
-        return TCL_ERROR;
+       return TCL_ERROR;
     }
     
-    if ((axis1 != 2) || (axis2 != 1) || (axis3 != 0)) {
+#ifdef notdef
+    if ((axis1 != 0) || (axis2 != 1) || (axis3 != 2)) {
 	// Reorder the data into x, y, z where x varies fastest and so on.
 	int z;
 	float *data, *dp;
@@ -215,7 +216,7 @@ Rappture::Unirect3d::LoadData(Tcl_Interp *interp, int objc,
 	delete [] values;
 	values = data;
     }
-
+#endif
     _values = values;
     _nValues = nValues;
     if (units[3] != NULL) {
@@ -240,6 +241,19 @@ Rappture::Unirect3d::LoadData(Tcl_Interp *interp, int objc,
 	_zUnits = strdup(units[axis1]);
     }
     _initialized = true;
+    { 
+	FILE *f;
+	f = fopen("/tmp/unirect3d.txt", "w");
+	fprintf(f, "unirect3d xmin %g xmax %g xnum %d ", _xMin, _xMax, _xNum);
+	fprintf(f, "ymin %g ymax %g ynum %d ", _yMin, _yMax, _yNum);
+	fprintf(f, "zmin %g zmax %g znum %d ", _zMin, _zMax, _zNum);
+	fprintf(f, "components %d values {\n",  _nComponents);
+	for (size_t i = 0; i < _nValues; i+= 3) {
+	    fprintf(f, "%g %g %g\n", _values[i], _values[i+1], _values[i+2]);
+	}
+	fprintf(f, "}\n");
+	fclose(f);
+    }
     return TCL_OK;
 }
 
@@ -553,15 +567,21 @@ Rappture::Unirect3d::ImportDx(Rappture::Outcome &result, int nComponents,
     }
     _nValues *= _nComponents;
     _initialized = true;
-    fprintf(stderr, "xMin %g xMax %g xNum %d\n", _xMin, _xMax, _xNum);
-    fprintf(stderr, "yMin %g yMay %g yNum %d\n", _yMin, _yMax, _yNum);
-    fprintf(stderr, "zMin %g zMaz %g zNum %d\n", _zMin, _zMax, _zNum);
-    fprintf(stderr, "nValues %d components %d values {\n", 
-	    _nValues, _nComponents);
-    for (size_t i = 0; i < _nValues; i+= 3) {
-	fprintf(stderr, "%g %g %g\n", _values[i], _values[i+1], _values[i+2]);
+#ifdef notdef
+    { 
+	FILE *f;
+	f = fopen("/tmp/dx.txt", "w");
+	fprintf(f, "unirect3d xmin %g xmax %g xnum %d ", _xMin, _xMax, _xNum);
+	fprintf(f, "ymin %g ymax %g ynum %d ", _yMin, _yMax, _yNum);
+	fprintf(f, "zmin %g zmax %g znum %d ", _zMin, _zMax, _zNum);
+	fprintf(f, "components %d values {\n",  _nComponents);
+	for (size_t i = 0; i < _nValues; i+= 3) {
+	    fprintf(f, "%g %g %g\n", _values[i], _values[i+1], _values[i+2]);
+	}
+	fprintf(f, "}\n");
+	fclose(f);
     }
-    fprintf(stderr, "}\n");
+#endif
     return true;
 }
 
