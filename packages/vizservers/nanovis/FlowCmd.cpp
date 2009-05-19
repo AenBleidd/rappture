@@ -1325,7 +1325,7 @@ PositionSwitchProc(
     if (p == NULL) {
 	float value;
 
-<	if (GetFloatFromObj(interp, objPtr, &value) != TCL_OK) {
+	if (GetFloatFromObj(interp, objPtr, &value) != TCL_OK) {
 	    return TCL_ERROR;
 	}
 	posPtr->value = value;
