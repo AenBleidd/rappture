@@ -71,27 +71,27 @@ Rappture::SwitchSpec FlowCmd::_switches[] = {
 
 Rappture::SwitchSpec FlowParticles::_switches[] = {
     {Rappture::SWITCH_CUSTOM, "-axis", "string",
-     offsetof(FlowParticlesValues, position.axis), 0, 0, &axisSwitch},
+        offsetof(FlowParticlesValues, position.axis), 0, 0, &axisSwitch},
     {Rappture::SWITCH_CUSTOM, "-color", "{r g b a}",
-     offsetof(FlowParticlesValues, color), 0, 0,  &colorSwitch},
+        offsetof(FlowParticlesValues, color), 0, 0,  &colorSwitch},
     {Rappture::SWITCH_BOOLEAN, "-hide", "boolean",
-     offsetof(FlowParticlesValues, isHidden), 0},
+        offsetof(FlowParticlesValues, isHidden), 0},
     {Rappture::SWITCH_CUSTOM, "-position", "number",
-	offsetof(FlowValues, slicePos), 0, 0, &positionSwitch},
+	offsetof(FlowParticlesValues, position), 0, 0, &positionSwitch},
     {Rappture::SWITCH_END}
 };
 
 Rappture::SwitchSpec FlowBox::_switches[] = {
     {Rappture::SWITCH_CUSTOM, "-color", "{r g b a}",
-     offsetof(FlowBoxValues, color), 0, 0,  &colorSwitch},
+        offsetof(FlowBoxValues, color), 0, 0,  &colorSwitch},
     {Rappture::SWITCH_CUSTOM, "-corner1", "{x y z}",
-     offsetof(FlowBoxValues, corner1), 0, 0, &pointSwitch},
+        offsetof(FlowBoxValues, corner1), 0, 0, &pointSwitch},
     {Rappture::SWITCH_CUSTOM, "-corner2", "{x y z}",
-     offsetof(FlowBoxValues, corner2), 0, 0, &pointSwitch},
+        offsetof(FlowBoxValues, corner2), 0, 0, &pointSwitch},
     {Rappture::SWITCH_BOOLEAN, "-hide", "boolean",
-     offsetof(FlowBoxValues, isHidden), 0},
+        offsetof(FlowBoxValues, isHidden), 0},
     {Rappture::SWITCH_FLOAT, "-linewidth", "number",
-     offsetof(FlowBoxValues, lineWidth), 0},
+        offsetof(FlowBoxValues, lineWidth), 0},
     {Rappture::SWITCH_END}
 };
 
@@ -117,12 +117,6 @@ FlowParticles::FlowParticles(const char *name, Tcl_HashEntry *hPtr)
 void
 FlowParticles::Render(void) 
 {
-    Trace("rendering particles %s\n", _name);
-    Trace("rendering particles %s axis=%d\n", _name, _sv.position.axis);
-    Trace("rendering particles %s position=%g\n", _name, _sv.position.value);
-    Trace("rendering particles %s position=%g\n", _name, 
-	  FlowCmd::GetRelativePosition(&_sv.position));
-
     _rendererPtr->setPos(FlowCmd::GetRelativePosition(&_sv.position));
     _rendererPtr->setAxis(_sv.position.axis);
     assert(_rendererPtr->active());
@@ -690,8 +684,7 @@ FlowDataFileOp(ClientData clientData, Tcl_Interp *interp, int objc,
 	Rappture::Unirect3d *dataPtr;
 
 	dataPtr = new Rappture::Unirect3d(nComponents);
-	if (!dataPtr->ImportDx(result, nComponents, buf.size(), 
-		(char *)buf.bytes())) {
+	if (!dataPtr->ImportDx(result, nComponents, length-4, bytes+4)) {
 	    Tcl_AppendResult(interp, result.remark(), (char *)NULL);
 	    delete dataPtr;
 	    return TCL_ERROR;
@@ -709,7 +702,7 @@ FlowDataFileOp(ClientData clientData, Tcl_Interp *interp, int objc,
 	}
 	cmdInfo.objClientData = (ClientData)dataPtr;	
 	Tcl_SetCommandInfo(interp, "unirect3d", &cmdInfo);
-	if (Tcl_Eval(interp, (const char *)buf.bytes()+11) != TCL_OK) {
+	if (Tcl_Eval(interp, (const char *)bytes+11) != TCL_OK) {
 	    delete dataPtr;
 	    return TCL_ERROR;
 	}
@@ -730,7 +723,7 @@ FlowDataFileOp(ClientData clientData, Tcl_Interp *interp, int objc,
 	}
 	cmdInfo.objClientData = (ClientData)dataPtr;	
 	Tcl_SetCommandInfo(interp, "unirect2d", &cmdInfo);
-	if (Tcl_Eval(interp, (const char *)buf.bytes()+11) != TCL_OK) {
+	if (Tcl_Eval(interp, (const char *)bytes+11) != TCL_OK) {
 	    delete dataPtr;
 	    return TCL_ERROR;
 	}
@@ -745,10 +738,9 @@ FlowDataFileOp(ClientData clientData, Tcl_Interp *interp, int objc,
     } else {
 	Rappture::Unirect3d *dataPtr;
 
-	fprintf(stderr, "header is %.14s\n", buf.bytes());
+	fprintf(stderr, "header is %.14s\n", bytes);
 	dataPtr = new Rappture::Unirect3d(nComponents);
-	if (!dataPtr->ImportDx(result, nComponents, buf.size(), 
-		(char *)buf.bytes())) {
+	if (!dataPtr->ImportDx(result, nComponents, length,  bytes)) {
 	    Tcl_AppendResult(interp, result.remark(), (char *)NULL);
 	    delete dataPtr;
 	    return TCL_ERROR;

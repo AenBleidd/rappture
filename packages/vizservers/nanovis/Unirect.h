@@ -170,10 +170,10 @@ public:
     }
     int LoadData(Tcl_Interp *interp, int objc, Tcl_Obj *const *objv);
 
-    bool ImportDx(Rappture::Outcome &result, int nComponents, 
+    bool ImportDx(Rappture::Outcome &result, size_t nComponents, 
 		  size_t length, char *string);
     bool Convert(Unirect2d *dataPtr);
-    bool Resample(Rappture::Outcome &context, int nSamples = 30);
+    bool Resample(Rappture::Outcome &context, size_t nSamples = 30);
     bool isInitialized(void) {
 	return _initialized;
     }
