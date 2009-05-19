@@ -901,7 +901,6 @@ itcl::body Rappture::FlowvisViewer::SendDataObjs {} {
 		set cmd "volume data follows $nbytes $dataobj-$comp\n"
 	    } else {
 		set cmd [FlowCmd $dataobj $comp $nbytes $extents]
-		puts stderr "flow command is ($cmd)"
 		if { $cmd == "" } {
 		    puts stderr "no command"
 		    continue
@@ -2388,7 +2387,6 @@ itcl::body Rappture::FlowvisViewer::GetFlowInfo { w } {
 	    -onvalue 0 -offvalue 1 \
 	    -command [itcl::code $this particles $key $name] \
 	    -font "Arial 9"
-	puts stderr description=$info(description)
 	Rappture::Tooltip::for $inner.part$row $info(description)
 	blt::table $inner $row,0 $inner.part$row -anchor w 
 	if { !$_settings($this-particles-$name) } {
