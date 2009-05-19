@@ -33,6 +33,7 @@ enum RapptureEncodingFlags {
 
 bool isBinary(const char* buf, int size);
 bool isBase64(const char* buf, int size);
+bool isGzipped(const char* buf, int size);
 unsigned int headerFlags(const char* buf, int size);
 bool encode(Rappture::Outcome &err, Rappture::Buffer& buf, unsigned int flags);
 bool decode(Rappture::Outcome &err, Rappture::Buffer& buf, unsigned int flags);
