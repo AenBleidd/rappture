@@ -118,6 +118,11 @@ void
 FlowParticles::Render(void) 
 {
     Trace("rendering particles %s\n", _name);
+    Trace("rendering particles %s axis=%d\n", _name, _sv.position.axis);
+    Trace("rendering particles %s position=%d\n", _name, sv.position.value);
+    Trace("rendering particles %s position=%d\n", _name, 
+	  FlowCmd::GetRelativePosition(&_sv.position));
+
     _rendererPtr->setPos(FlowCmd::GetRelativePosition(&_sv.position));
     _rendererPtr->setAxis(_sv.position.axis);
     assert(_rendererPtr->active());
@@ -1320,7 +1325,7 @@ PositionSwitchProc(
     if (p == NULL) {
 	float value;
 
-	if (GetFloatFromObj(interp, objPtr, &value) != TCL_OK) {
+<	if (GetFloatFromObj(interp, objPtr, &value) != TCL_OK) {
 	    return TCL_ERROR;
 	}
 	posPtr->value = value;
