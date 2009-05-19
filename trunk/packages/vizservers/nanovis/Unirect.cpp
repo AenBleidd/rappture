@@ -241,6 +241,7 @@ Rappture::Unirect3d::LoadData(Tcl_Interp *interp, int objc,
 	_zUnits = strdup(units[axis1]);
     }
     _initialized = true;
+#ifdef notdef
     { 
 	FILE *f;
 	f = fopen("/tmp/unirect3d.txt", "w");
@@ -254,6 +255,7 @@ Rappture::Unirect3d::LoadData(Tcl_Interp *interp, int objc,
 	fprintf(f, "}\n");
 	fclose(f);
     }
+#endif
     return TCL_OK;
 }
 
@@ -406,8 +408,6 @@ Rappture::Unirect2d::LoadData(Tcl_Interp *interp, int objc,
         Tcl_AppendResult(interp, 
 		"wrong number of values: must be xnum*ynum*components", 
 			 (char *)NULL);
-	fprintf(stderr, "x=%d y=%d c=%d, nv=%d\n", 
-		_xNum, _yNum, _nComponents, _nValues);
         return TCL_ERROR;
     }
     
@@ -443,10 +443,10 @@ Rappture::Unirect2d::LoadData(Tcl_Interp *interp, int objc,
 
 
 bool
-Rappture::Unirect3d::ImportDx(Rappture::Outcome &result, int nComponents,
-	size_t length, char *string) 
+Rappture::Unirect3d::ImportDx(Rappture::Outcome &result, size_t nComponents,
+			      size_t length, char *string) 
 {
-    size_t nx, ny, nz, npts;
+    int nx, ny, nz, npts;
     double x0, y0, z0, dx, dy, dz, ddx, ddy, ddz;
     char *p, *endPtr;
 
@@ -482,6 +482,10 @@ Rappture::Unirect3d::ImportDx(Rappture::Outcome &result, int nComponents,
 	    }
 	} else if (sscanf(line, "object %*d class array type %*s shape 3"
 		" rank 1 items %d data follows", &npts) == 1) {
+	    if (npts < 0) {
+		result.addError("bad # points %d", npts);
+		return false;
+            }	
 	    printf("#points=%d\n", npts);
 	    if (npts != nx*ny*nz) {
 		result.addError("inconsistent data: expected %d points"
@@ -558,7 +562,7 @@ Rappture::Unirect3d::ImportDx(Rappture::Outcome &result, int nComponents,
 	}
     }
     // make sure that we read all of the expected points
-    if (_nValues != npts) {
+    if (_nValues != (size_t)npts) {
 	result.addError("inconsistent data: expected %d points"
 			" but found %d points", npts, _nValues);
 	delete []  _values;
@@ -587,7 +591,7 @@ Rappture::Unirect3d::ImportDx(Rappture::Outcome &result, int nComponents,
 
 
 bool
-Rappture::Unirect3d::Resample(Rappture::Outcome &result, int nSamples)
+Rappture::Unirect3d::Resample(Rappture::Outcome &result, size_t nSamples)
 {
     Rappture::Mesh1D xgrid(_xMin, _xMax, _xNum);
     Rappture::Mesh1D ygrid(_yMin, _yMax, _yNum);

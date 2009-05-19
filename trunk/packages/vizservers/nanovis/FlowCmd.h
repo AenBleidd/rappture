@@ -14,11 +14,11 @@ struct FlowPoint {
 };
 
 struct FlowParticlesValues {
-    int isHidden;			/* Indicates if particle injection
-					 * plane is active or not. */
     FlowPosition position;		/* Position on axis of particle
 					 * plane */
     FlowColor color;			/* Color of particles */
+    int isHidden;			/* Indicates if particle injection
+					 * plane is active or not. */
 };
 
 struct FlowParticlesIterator {
@@ -95,14 +95,14 @@ struct FlowBoxIterator {
 };
 
 struct FlowBoxValues {
-    int isHidden;			/* Indicates if particle injection
-					 * plance is active or not. */
     float position;			/* Position on axis of particle
 					 * plane */
     FlowPoint corner1, corner2;		/* Coordinates of the box. */
     
     FlowColor color;			/* Color of particles */
     float lineWidth;
+    int isHidden;			/* Indicates if particle injection
+					 * plance is active or not. */
 };
 
 class FlowBox {
