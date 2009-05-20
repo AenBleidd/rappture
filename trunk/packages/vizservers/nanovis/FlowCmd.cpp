@@ -708,7 +708,13 @@ FlowDataFileOp(ClientData clientData, Tcl_Interp *interp, int objc,
 	}
 	cmdInfo.objClientData = (ClientData)dataPtr;	
 	Tcl_SetCommandInfo(interp, "unirect3d", &cmdInfo);
-	if (Tcl_Eval(interp, (const char *)bytes) != TCL_OK) {
+	Tcl_Obj *objPtr;
+	objPtr = Tcl_NewStringObj(buf.bytes(), buf.size());
+	int result;
+	Tcl_IncrRefCount(objPtr);
+	result = Tcl_GlobalEvalObj(interp, objPtr);
+	Tcl_DecrRefCount(objPtr);
+	if (result != TCL_OK) {
 	    delete dataPtr;
 	    return TCL_ERROR;
 	}
@@ -729,7 +735,13 @@ FlowDataFileOp(ClientData clientData, Tcl_Interp *interp, int objc,
 	}
 	cmdInfo.objClientData = (ClientData)dataPtr;	
 	Tcl_SetCommandInfo(interp, "unirect2d", &cmdInfo);
-	if (Tcl_Eval(interp, (const char *)bytes) != TCL_OK) {
+	Tcl_Obj *objPtr;
+	objPtr = Tcl_NewStringObj(buf.bytes(), buf.size());
+	int result;
+	Tcl_IncrRefCount(objPtr);
+	result = Tcl_EvalObjEx(interp, objPtr, TCL_EVAL_GLOBAL|TCL_EVAL_DIRECT);
+	Tcl_DecrRefCount(objPtr);
+	if (result != TCL_OK) {
 	    delete dataPtr;
 	    return TCL_ERROR;
 	}
@@ -820,7 +832,13 @@ FlowDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
 	}
 	cmdInfo.objClientData = (ClientData)dataPtr;	
 	Tcl_SetCommandInfo(interp, "unirect3d", &cmdInfo);
-	if (Tcl_Eval(interp, bytes) != TCL_OK) {
+	Tcl_Obj *objPtr;
+	objPtr = Tcl_NewStringObj(buf.bytes(), buf.size());
+	int result;
+	Tcl_IncrRefCount(objPtr);
+	result = Tcl_EvalObjEx(interp, objPtr, TCL_EVAL_GLOBAL|TCL_EVAL_DIRECT);
+	Tcl_DecrRefCount(objPtr);
+	if (result != TCL_OK) {
 	    delete dataPtr;
 	    return TCL_ERROR;
 	}
@@ -841,7 +859,13 @@ FlowDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
 	}
 	cmdInfo.objClientData = (ClientData)dataPtr;	
 	Tcl_SetCommandInfo(interp, "unirect2d", &cmdInfo);
-	if (Tcl_Eval(interp, bytes) != TCL_OK) {
+	Tcl_Obj *objPtr;
+	objPtr = Tcl_NewStringObj(buf.bytes(), buf.size());
+	int result;
+	Tcl_IncrRefCount(objPtr);
+	result = Tcl_EvalObjEx(interp, objPtr, TCL_EVAL_GLOBAL|TCL_EVAL_DIRECT);
+	Tcl_DecrRefCount(objPtr);
+	if (result != TCL_OK) {
 	    delete dataPtr;
 	    return TCL_ERROR;
 	}
