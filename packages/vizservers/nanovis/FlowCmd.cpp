@@ -117,6 +117,12 @@ FlowParticles::FlowParticles(const char *name, Tcl_HashEntry *hPtr)
 void
 FlowParticles::Render(void) 
 {
+    Trace("rendering particles %s\n", _name);
+    Trace("rendering particles %s axis=%d\n", _name, _sv.position.axis);
+    Trace("rendering particles %s position=%g\n", _name, _sv.position.value);
+    Trace("rendering particles %s position=%g\n", _name, 
+	  FlowCmd::GetRelativePosition(&_sv.position));
+
     _rendererPtr->setPos(FlowCmd::GetRelativePosition(&_sv.position));
     _rendererPtr->setAxis(_sv.position.axis);
     assert(_rendererPtr->active());
@@ -690,7 +696,7 @@ FlowDataFileOp(ClientData clientData, Tcl_Interp *interp, int objc,
 	    return TCL_ERROR;
 	}
 	flowPtr->SetData(dataPtr);
-    } else if ((length > 11) && (strncmp(bytes, "<unirect3d>", 11) == 0)) {
+    } else if ((length > 10) && (strncmp(bytes, "unirect3d ", 10) == 0)) {
 	Rappture::Unirect3d *dataPtr;
 	Tcl_CmdInfo cmdInfo;
 
@@ -702,7 +708,7 @@ FlowDataFileOp(ClientData clientData, Tcl_Interp *interp, int objc,
 	}
 	cmdInfo.objClientData = (ClientData)dataPtr;	
 	Tcl_SetCommandInfo(interp, "unirect3d", &cmdInfo);
-	if (Tcl_Eval(interp, (const char *)bytes+11) != TCL_OK) {
+	if (Tcl_Eval(interp, (const char *)bytes) != TCL_OK) {
 	    delete dataPtr;
 	    return TCL_ERROR;
 	}
@@ -711,7 +717,7 @@ FlowDataFileOp(ClientData clientData, Tcl_Interp *interp, int objc,
 	    return TCL_ERROR;
 	}
 	flowPtr->SetData(dataPtr);
-    } else if ((length > 11) && (strncmp(bytes, "<unirect2d>", 11) == 0)) {
+    } else if ((length > 10) && (strncmp(bytes, "unirect2d ", 10) == 0)) {
 	Rappture::Unirect2d *dataPtr;
 	Tcl_CmdInfo cmdInfo;
 
@@ -723,7 +729,7 @@ FlowDataFileOp(ClientData clientData, Tcl_Interp *interp, int objc,
 	}
 	cmdInfo.objClientData = (ClientData)dataPtr;	
 	Tcl_SetCommandInfo(interp, "unirect2d", &cmdInfo);
-	if (Tcl_Eval(interp, (const char *)bytes+11) != TCL_OK) {
+	if (Tcl_Eval(interp, (const char *)bytes) != TCL_OK) {
 	    delete dataPtr;
 	    return TCL_ERROR;
 	}
@@ -738,9 +744,9 @@ FlowDataFileOp(ClientData clientData, Tcl_Interp *interp, int objc,
     } else {
 	Rappture::Unirect3d *dataPtr;
 
-	fprintf(stderr, "header is %.14s\n", bytes);
+	fprintf(stderr, "header is %.14s\n", buf.bytes());
 	dataPtr = new Rappture::Unirect3d(nComponents);
-	if (!dataPtr->ImportDx(result, nComponents, length,  bytes)) {
+	if (!dataPtr->ImportDx(result, nComponents, length, bytes)) {
 	    Tcl_AppendResult(interp, result.remark(), (char *)NULL);
 	    delete dataPtr;
 	    return TCL_ERROR;
@@ -802,7 +808,7 @@ FlowDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
 	    return TCL_ERROR;
 	}
 	flowPtr->SetData(dataPtr);
-    } else if ((length > 11) && (strncmp(bytes, "<unirect3d>", 11) == 0)) {
+    } else if ((length > 10) && (strncmp(bytes, "unirect3d ", 10) == 0)) {
 	Rappture::Unirect3d *dataPtr;
 	Tcl_CmdInfo cmdInfo;
 
@@ -814,7 +820,7 @@ FlowDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
 	}
 	cmdInfo.objClientData = (ClientData)dataPtr;	
 	Tcl_SetCommandInfo(interp, "unirect3d", &cmdInfo);
-	if (Tcl_Eval(interp, bytes+11) != TCL_OK) {
+	if (Tcl_Eval(interp, bytes) != TCL_OK) {
 	    delete dataPtr;
 	    return TCL_ERROR;
 	}
@@ -823,7 +829,7 @@ FlowDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
 	    return TCL_ERROR;
 	}
 	flowPtr->SetData(dataPtr);
-    } else if ((length > 11) && (strncmp(bytes, "<unirect2d>", 11) == 0)) {
+    } else if ((length > 10) && (strncmp(bytes, "unirect2d ", 10) == 0)) {
 	Rappture::Unirect2d *dataPtr;
 	Tcl_CmdInfo cmdInfo;
 
@@ -835,7 +841,7 @@ FlowDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
 	}
 	cmdInfo.objClientData = (ClientData)dataPtr;	
 	Tcl_SetCommandInfo(interp, "unirect2d", &cmdInfo);
-	if (Tcl_Eval(interp, bytes+11) != TCL_OK) {
+	if (Tcl_Eval(interp, bytes) != TCL_OK) {
 	    delete dataPtr;
 	    return TCL_ERROR;
 	}
@@ -850,6 +856,7 @@ FlowDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
     } else {
 	Rappture::Unirect3d *dataPtr;
 
+	fprintf(stderr, "header is %.14s\n", buf.bytes());
 	dataPtr = new Rappture::Unirect3d(nComponents);
 	if (!dataPtr->ImportDx(result, nComponents, length, bytes)) {
 	    Tcl_AppendResult(interp, result.remark(), (char *)NULL);
