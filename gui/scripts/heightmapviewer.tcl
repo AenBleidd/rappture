@@ -62,6 +62,7 @@ itcl::class Rappture::HeightmapViewer {
     public method camera {option args}
     protected method Connect {}
     protected method Disconnect {}
+    public method isconnected {}
 
     protected method SendCmd {string}
     protected method SendDataObjs {}
@@ -460,6 +461,15 @@ itcl::body Rappture::HeightmapViewer::download {option args} {
     }
 }
 
+#
+# isconnected --
+#
+#       Indicates if we are currently connected to the visualization server.
+#
+itcl::body Rappture::HeightmapViewer::isconnected {} {
+    return [VisViewer::IsConnected]
+}
+
 # ----------------------------------------------------------------------
 # USAGE: Connect ?<host:port>,<host:port>...?
 #
@@ -502,7 +512,7 @@ itcl::body Rappture::HeightmapViewer::Disconnect {} {
 #       sending data objects to the server, buffer the commands to be 
 #       sent later.
 #
-itcl::body Rappture::NanovisViewer::SendCmd {string} {
+itcl::body Rappture::HeightmapViewer::SendCmd {string} {
     if { $_buffering } {
 	append _outbuf $string "\n"
     } else {
@@ -1218,6 +1228,5 @@ itcl::body Rappture::HeightmapViewer::BuildCameraTab {} {
 }
 
 itcl::body Rappture::HeightmapViewer::Resize { w h } {
-    #puts stderr "w=$w h=$h" 
     SendCmd "screen $w $h"
 }

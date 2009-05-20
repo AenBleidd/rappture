@@ -243,6 +243,10 @@ itcl::body Rappture::ResultViewer::_plotAdd {dataobj {settings ""}} {
 			} else {
 			    set resultMode "vtk"
 			}
+			set extents [$dataobj extents]
+			if { $extents > 1 } {
+			    set resultMode "flowvis"
+			}
 			set w $itk_interior.contour
 			Rappture::Field2DResult $w -mode $resultMode
 			set _mode2widget($mode) $w
@@ -254,7 +258,7 @@ itcl::body Rappture::ResultViewer::_plotAdd {dataobj {settings ""}} {
 			set mesh [$dataobj mesh]
 			set fmt [expr {("" != $mesh) ? "vtk" : "nanovis"}]
 			set extents [$dataobj extents]
-			if { $extents == 3 } {
+			if { $extents > 1 } {
 			    set fmt "flowvis"
 			}
 			set w $itk_interior.field3D
