@@ -893,7 +893,7 @@ itcl::body Rappture::FlowvisViewer::SendDataObjs {} {
     foreach dataobj $_sendobjs {
         foreach comp [$dataobj components] {
             # Send the data as one huge base64-encoded mess -- yuck!
-            set data [$dataobj values $comp]
+            set data [$dataobj blob $comp]
             set nbytes [string length $data]
 	    set extents [$dataobj extents $comp]
 	    # I have a field. Is a vector field or a volume field?

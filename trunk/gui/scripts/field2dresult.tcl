@@ -54,16 +54,31 @@ itcl::body Rappture::Field2DResult::constructor {args} {
 	-mode auto
     }
     array set flags $args
-    if { $flags(-mode) == "heightmap" } {
-	set servers [Rappture::VisViewer::GetServerList "nanovis"]
-	if { $servers == "" } {
-	    error "No nanovis servers available"
-	}
-	itk_component add renderer {
-	    Rappture::HeightmapViewer $itk_interior.ren $servers
-	}
+    set servers [Rappture::VisViewer::GetServerList "nanovis"]
+    if {"" != $servers && $flags(-mode) != "vtk"} {
+	switch -- $flags(-mode) {
+	    "auto" - "heightmap" {
+		itk_component add renderer {
+		    Rappture::HeightmapViewer $itk_interior.ren $servers
+		}
+	    }
+	    "flowvis" {
+		itk_component add renderer {
+		    Rappture::FlowvisViewer $itk_interior.ren $servers
+		}
+	    }
+	    default {
+		puts stderr "unknown render mode \"$flags(-mode)\""
+	    }
+	}		
 	pack $itk_component(renderer) -expand yes -fill both
-    } else {
+	# can't connect to rendering farm?  then fall back to older viewer
+	if {![$itk_component(renderer) isconnected]} {
+	    destroy $itk_component(renderer)
+	}
+    } 
+
+    if {![info exists itk_component(renderer)]} {
 	itk_component add renderer {
 	    Rappture::ContourResult $itk_interior.ren
 	}

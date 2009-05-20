@@ -26,13 +26,21 @@ itcl::class Rappture::Unirect2d {
     public method mesh {}
     public method values {}
     public method hints {{keyword ""}} 
+    public method components {} {
+	return $_components;
+    }
+    private method GetString { obj path varName }
+    private method GetValue { obj path varName }
+    private method GetSize { obj path varName }
 
-    private variable _xmax 0
-    private variable _xmin 0
-    private variable _xnum 0
-    private variable _ymax 0
-    private variable _ymin 0
-    private variable _ynum 0
+    private variable _axisOrder	 "x y"
+    private variable _xMax 0
+    private variable _xMin 0
+    private variable _xNum 0
+    private variable _yMax 0
+    private variable _yMin 0
+    private variable _yNum 0
+    private variable _components 1 
     private variable _values "";	# BLT vector containing the z-values 
     private variable _hints
 }
@@ -46,13 +54,14 @@ itcl::body Rappture::Unirect2d::constructor {xmlobj field cname} {
     }
     set path [$field get $cname.mesh]
 
-    set mobj [$xmlobj element -as object $path]
-    set _xmin [$mobj get "xaxis.min"]
-    set _xmax [$mobj get "xaxis.max"]
-    set _xnum [$mobj get "xaxis.numpoints"]
-    set _ymin [$mobj get "yaxis.min"]
-    set _ymax [$mobj get "yaxis.max"]
-    set _ynum [$mobj get "yaxis.numpoints"]
+    set m [$xmlobj element -as object $path]
+    GetSize $m "components" _components
+    GetValue $m "xaxis.min" _xMin
+    GetValue $m "xaxis.max" _xMax
+    GetSize $m "xaxis.numpoints" _xNum
+    GetValue $m "yaxis.min" _yMin
+    GetValue $m "yaxis.max" _yMax
+    GetSize $m "yaxis.numpoints" _yNum
     
     foreach {key path} {
 	group   about.group
@@ -73,18 +82,18 @@ itcl::body Rappture::Unirect2d::constructor {xmlobj field cname} {
 	ymin    yaxis.min
 	ymax    yaxis.max
     } {
-	set str [$mobj get $path]
+	set str [$m get $path]
 	if {"" != $str} {
 	    set _hints($key) $str
 	}
     }
-    foreach {key} { extents axisorder } {
+    foreach {key} { components axisorder } {
 	set str [$field get $cname.$key]
 	if {"" != $str} {
 	    set _hints($key) $str
 	}
     }
-    itcl::delete object $mobj
+    itcl::delete object $m
     
     set _values [blt::vector create \#auto]
     set values [$field get "$cname.values"]
@@ -111,10 +120,11 @@ itcl::body Rappture::Unirect2d::destructor {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Unirect2d::blob {} {
     set data "unirect2d"
-    lappend data "xmin" $_xmin "xmax" $_xmax "xnum" $_xnum
-    lappend data "ymin" $_ymin "ymax" $_ymax "ynum" $_ynum
-    lappend data "xmin" $_xmin "ymin" $_ymin "xmax" $_xmax "ymax" $_ymax
-    foreach key { axisorder extents xunits yunits units } {
+    lappend data "xmin" $_xMin "xmax" $_xMax "xnum" $_xNum
+    lappend data "ymin" $_yMin "ymax" $_yMax "ynum" $_yNum
+    lappend data "xmin" $_xMin "ymin" $_yMin "xmax" $_xMax "ymax" $_yMax
+    lappend data "components" $_components 
+    foreach key { axisorder xunits yunits units } {
 	set hint [hints $key]
 	if { $hint != "" } {
 	    lappend data $key $hint
@@ -123,7 +133,7 @@ itcl::body Rappture::Unirect2d::blob {} {
     if { [$_values length] > 0 } {
 	lappend data "values" [$_values range 0 end]
     }
-    return [Rappture::encoding::encode -as zb64 $data]
+    return [Rappture::encoding::encode -as zb64 "$data"]
 }
 
 # ----------------------------------------------------------------------
@@ -133,12 +143,12 @@ itcl::body Rappture::Unirect2d::blob {} {
 #	on the nanovis server.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Unirect2d::mesh {} {
-    set dx [expr {($_xmax - $_xmin) / double($_xnum)}]
-    set dy [expr {($_ymax - $_ymin) / double($_ynum)}]
-    for { set i 0 } { $i < $_xnum } { incr i } {
-	set x [expr {$_xmin + (double($i) * $dx)}]
-	for { set j 0 } { $j < $_ynum } { incr j } {
-	    set y [expr {$_ymin + (double($i) * $dy)}]
+    set dx [expr {($_xMax - $_xMin) / double($_xNum)}]
+    set dy [expr {($_yMax - $_yMin) / double($_yNum)}]
+    for { set i 0 } { $i < $_xNum } { incr i } {
+	set x [expr {$_xMin + (double($i) * $dx)}]
+	for { set j 0 } { $j < $_yNum } { incr j } {
+	    set y [expr {$_yMin + (double($i) * $dy)}]
 	    lappend data $x $y
 	}
     }
@@ -169,13 +179,13 @@ itcl::body Rappture::Unirect2d::limits {which} {
 
     switch -- $which {
 	x - xlin - xlog {
-	    set min $_xmin
-	    set max $_xmax
+	    set min $_xMin
+	    set max $_xMax
 	    set axis "xaxis"
 	}
 	y - ylin - ylog {
-	    set min $_ymin
-	    set max $_ymax
+	    set min $_yMin
+	    set max $_yMax
 	    set axis "yaxis"
 	}
 	v - vlin - vlog - z - zlin - zlog {
@@ -239,4 +249,34 @@ itcl::body Rappture::Unirect2d::hints { {keyword ""} } {
 	return ""
     }
     return [array get _hints]
+}
+
+
+itcl::body Rappture::Unirect2d::GetSize { obj path varName } {
+    set string [$obj get $path]
+    if { [scan $string "%d" value] != 1 || $value < 0 } {
+	puts stderr "can't get size \"$string\" of \"$path\""
+	return
+    }
+    upvar $varName size
+    set size $value
+}
+
+itcl::body Rappture::Unirect2d::GetValue { obj path varName } {
+    set string [$obj get $path]
+    if { [scan $string "%g" value] != 1 } {
+	return
+    }
+    upvar $varName number
+    set number $value
+}
+
+itcl::body Rappture::Unirect2d::GetString { obj path varName } {
+    set string [$obj get $path]
+    if { $string == "" } {
+	puts stderr "can't get string \"$string\" of \"$path\""
+	return
+    }
+    upvar $varName str
+    set str $string
 }

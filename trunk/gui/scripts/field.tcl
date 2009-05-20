@@ -46,6 +46,7 @@ itcl::class Rappture::Field {
     private variable _comp2vtk   ;# maps component name => vtkFloatArray
     private variable _comp2dx    ;# maps component name => OpenDX data
     private variable _comp2unirect2d ;# maps component name => unirect2d obj
+    private variable _comp2unirect3d ;# maps component name => unirect3d obj
     private variable _comp2style ;# maps component name => style settings
     private variable _comp2cntls ;# maps component name => x,y control points
     private variable _comp2extents 
@@ -189,9 +190,11 @@ itcl::body Rappture::Field::mesh {{what -overall}} {
 	return ""  ;# no mesh -- it's embedded in the value data
     }
     if {[info exists _comp2unirect2d($what)]} {
+	set mobj [lindex $_comp2unirect2d($what) 0]
 	return [$mobj mesh]
     }
     if {[info exists _comp2unirect3d($what)]} {
+	set mobj [lindex $_comp2unirect3d($what) 0]
 	return [$mobj mesh]
     }
     error "bad option \"$what\": should be [join [lsort [array names _comp2dims]] {, }]"
@@ -221,7 +224,7 @@ itcl::body Rappture::Field::values {{what -overall}} {
 	return [$_comp2unirect2d($what) values]
     }
     if {[info exists _comp2unirect3d($what)]} {
-	return [$_comp2unirect3d($what) values]
+	return [$_comp2unirect3d($what) blob]
     }
     error "bad option \"$what\": should be [join [lsort [array names _comp2dims]] {, }]"
 }
@@ -246,6 +249,10 @@ itcl::body Rappture::Field::blob {{what -overall}} {
     }
     if {[info exists _comp2unirect2d($what)]} {
 	set mobj $_comp2unirect2d($what)
+	return [$mobj blob]
+    }
+    if {[info exists _comp2unirect3d($what)]} {
+	set mobj $_comp2unirect3d($what)
 	return [$mobj blob]
     }
     error "bad option \"$what\": should be [join [lsort [array names _comp2dims]] {, }]"
@@ -306,6 +313,10 @@ itcl::body Rappture::Field::limits {which} {
 	    2D - 3D {
 		if {[info exists _comp2unirect2d($comp)]} {
 		    set limits [$_comp2unirect2d($comp) limits $which]
+		    foreach {vmin vmax} $limits break
+		    set axis vaxis
+		} elseif {[info exists _comp2unirect3d($comp)]} {
+		    set limits [$_comp2unirect3d($comp) limits $which]
 		    foreach {vmin vmax} $limits break
 		    set axis vaxis
 		} elseif {[info exists _comp2vtk($comp)]} {
@@ -528,6 +539,9 @@ itcl::body Rappture::Field::_build {} {
     foreach name [array names _comp2unirect2d] {
 	eval itcl::delete object $_comp2unirect2d($name)
     }
+    foreach name [array names _comp2unirect3d] {
+	eval itcl::delete object $_comp2unirect3d($name)
+    }
     catch {unset _comp2xy}
     catch {unset _comp2vtk}
     catch {unset _comp2dx}
@@ -624,6 +638,7 @@ itcl::body Rappture::Field::_build {} {
 	    set path [$_field get $cname.mesh]
 	    if {[$_xmlobj element $path] != ""} {
 		set element [$_xmlobj element -as type $path]
+		puts stderr "element is $element"
 		if { $element == "unirect2d" } {
 		    set _comp2dims($cname) "2D"
 		    set _comp2unirect2d($cname) \
@@ -842,17 +857,30 @@ itcl::body Rappture::Field::extents {{what -overall}} {
     if {$what == "-overall" } {
 	set max 0
 	foreach cname [$_field children -type component] {
-	    if { [info exists _comp2extents($cname)] } {
-		if { $max < $_comp2extents($cname) } {
-		    set max $_comp2extents($cname)
-		}
+	    if { [info exists _comp2unirect3d($cname)] } {
+		set value [$_comp2unirect3d($cname) components]
+	    } elseif { [info exists _comp2unirect2d($cname)] } {
+		set value [$_comp2unirect2d($cname) components]
+	    } elseif { [info exists _comp2extents($cname)] } {
+		set value $_comp2extents($cname)
+	    } else {
+		continue
+	    }
+	    if { $max < $value } {
+		set max $value
 	    }
 	}
 	return $max
     } 
     if { $what == "component0"} {
 	set what [lindex [components -name] 0]
-	return $_comp2extents($what)
+	if { [info exists _comp2unirect3d($what)] } {
+	    return [$_comp2unirect3d($what) components]
+	} elseif { [info exists _comp2unirect2d($what)] } {
+	    return [$_comp2unirect2d($what) components]
+	} elseif { [info exists _comp2extents($what)] } {
+	    return $_comp2extents($what)
+	}
     }
     return $_comp2extents($what)
 }
