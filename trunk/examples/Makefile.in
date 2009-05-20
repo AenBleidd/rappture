@@ -23,6 +23,7 @@ SUBDIRS		= \
 		app-fermi \
 		c-example \
 		canvas \
+		flow \
 		graph \
 		objects \
 		zoo 
