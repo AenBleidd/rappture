@@ -4,6 +4,7 @@
 #include <Unirect.h>
 #include "RpField1D.h"
 #include "RpFieldRect3D.h"
+#include "Trace.h"
 
 extern int GetFloatFromObj(Tcl_Interp *interp, Tcl_Obj *objPtr, 
 	float *valuePtr);
@@ -47,7 +48,7 @@ Rappture::Unirect3d::LoadData(Tcl_Interp *interp, int objc,
 
     if ((objc & 0x01) == 0) {
         Tcl_AppendResult(interp, Tcl_GetString(objv[0]), ": ",
-                "wrong number of arguments: should be key-value pairs",
+                "wrong # of arguments: should be key-value pairs",
                 (char *)NULL);
         return TCL_ERROR;
     }
@@ -182,8 +183,10 @@ Rappture::Unirect3d::LoadData(Tcl_Interp *interp, int objc,
         return TCL_ERROR;
     }
     if ((size_t)nValues != (num[0] * num[1] * num[2] * _nComponents)) {
+	Trace("num[0]=%d num[1]=%d num[2]=%d ncomponents=%d nValues=%d\n",
+	      num[0], num[1], num[2], _nComponents, nValues);
         Tcl_AppendResult(interp, 
-		"wrong number of values: must be xnum*ynum*znum*extents", 
+		"wrong # of values: must be xnum*ynum*znum*extents", 
 			 (char *)NULL);
        return TCL_ERROR;
     }
