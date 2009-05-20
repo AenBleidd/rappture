@@ -544,6 +544,10 @@ AC_CONFIG_FILES([
     examples/c-example/Makefile
     examples/canvas/Makefile
     examples/demo.bash
+    examples/flow/Makefile
+    examples/flow/demo1/Makefile
+    examples/flow/demo2/Makefile
+    examples/flow/demo3/Makefile
     examples/graph/Makefile
     examples/objects/Makefile
     examples/objects/axis/Makefile
