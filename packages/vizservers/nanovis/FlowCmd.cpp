@@ -159,12 +159,6 @@ void
 FlowBox::Render(Volume *volPtr)
 {
     Trace("rendering boxes %s\n", _name);
-    if ((_sv.corner1.x == _sv.corner2.x) ||
-	(_sv.corner1.y == _sv.corner2.y) ||
-	(_sv.corner1.z == _sv.corner2.z)) {
-	return;				
-    }
-    Trace("rendering boxes %s\n", _name);
     glColor4d(_sv.color.r, _sv.color.g, _sv.color.b, _sv.color.a);
 
     glPushMatrix();
