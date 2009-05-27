@@ -178,9 +178,11 @@ FlowBox::Render(Volume *volPtr)
     glTranslatef(originPtr->x, originPtr->y, originPtr->z);
 
     double sx, sy, sz;
-    sx = 1.0;
+    sz = sy = sx = 1.0;
     sy = volPtr->height / (double)volPtr->width;
-    sz = volPtr->depth  / (double)volPtr->width;
+    if (volPtr->depth > 0.0) {
+	sz = volPtr->depth  / (double)volPtr->width;
+    }
     glScaled(sx, sy, sz);
 
     Vector3 min, max;
@@ -189,13 +191,20 @@ FlowBox::Render(Volume *volPtr)
     max = volPtr->getPhysicalBBoxMax();
 
     float x0, y0, z0, x1, y1, z1;
-    x0 = (_sv.corner1.x - min.x) / (max.x - min.x);
-    y0 = (_sv.corner1.y - min.y) / (max.y - min.y);
-    z0 = (_sv.corner1.z - min.z) / (max.z - min.z);
-    x1 = (_sv.corner2.x - min.x) / (max.x - min.x);
-    y1 = (_sv.corner2.y - min.y) / (max.y - min.y);
-    z1 = (_sv.corner2.z - min.z) / (max.z - min.z);
-    
+    x0 = y0 = z0 = 0.0f;
+    x1 = y1 = z1 = 1.0f;
+    if (max.y  > min.y) {
+	y0 = (_sv.corner1.y - min.y) / (max.y - min.y);
+	y1 = (_sv.corner2.y - min.y) / (max.y - min.y);
+    }
+    if (max.z > min.z) {
+	z0 = (_sv.corner1.z - min.z) / (max.z - min.z);
+	z1 = (_sv.corner2.z - min.z) / (max.z - min.z);
+    }
+    if (max.x > min.x) {
+	x0 = (_sv.corner1.x - min.x) / (max.x - min.x);
+	x1 = (_sv.corner2.x - min.x) / (max.x - min.x);
+    }
     Trace("rendering box %g,%g %g,%g %g,%g\n", x0, x1, y0, y1, z0, z1);
 
     glLineWidth(_sv.lineWidth);
@@ -1801,6 +1810,43 @@ FlowExistsOp(ClientData clientData, Tcl_Interp *interp, int objc,
 /*
  *---------------------------------------------------------------------------
  *
+ * FlowGotoOp --
+ *
+ *	flow goto number
+ *
+ *---------------------------------------------------------------------------
+ */
+static int
+FlowGotoOp(ClientData clientData, Tcl_Interp *interp, int objc,
+             Tcl_Obj *const *objv)
+{
+    int nSteps;
+    if (Tcl_GetIntFromObj(interp, objv[2], &nSteps) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if ((nSteps < 0) || (nSteps > SHRT_MAX)) {
+	Tcl_AppendResult(interp, "flow goto: bad # of steps \"",
+			 Tcl_GetString(objv[2]), "\"", (char *)NULL);
+	return TCL_ERROR;
+    }
+    NanoVis::ResetFlows();
+    assert(NanoVis::licRenderer != NULL);
+    NanoVis::licRenderer->reset();
+    if (NanoVis::flags & NanoVis::MAP_FLOWS) {
+	NanoVis::MapFlows();
+    }
+    int i;
+    for (i = 0; i < nSteps; i++) {
+	NanoVis::licRenderer->convolve();
+	NanoVis::AdvectFlows();
+    }
+    NanoVis::EventuallyRedraw();
+    return TCL_OK;
+}
+
+/*
+ *---------------------------------------------------------------------------
+ *
  * FlowNamesOp --
  *
  *---------------------------------------------------------------------------
@@ -1970,6 +2016,7 @@ static Rappture::CmdSpec flowCmdOps[] = {
     {"add",      1, FlowAddOp,     3, 0, "name ?option value...?",},
     {"delete",   1, FlowDeleteOp,  2, 0, "name...",},
     {"exists",   1, FlowExistsOp,  3, 3, "name",},
+    {"goto",     1, FlowGotoOp,    3, 3, "nSteps",},
     {"names",    1, FlowNamesOp,   2, 3, "?pattern?",},
     {"next",     2, FlowNextOp,    2, 2, "",},
     {"reset",    1, FlowResetOp,   2, 2, "",},
