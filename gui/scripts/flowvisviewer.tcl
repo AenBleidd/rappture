@@ -417,6 +417,9 @@ itcl::body Rappture::FlowvisViewer::constructor { hostlist args } {
 	ignore -highlightthickness -background
     }
     bind $itk_component(duration) <Return> [itcl::code $this flow duration]
+    Rappture::Tooltip::for $itk_component(duration) \
+        "Set duration of flow (format is min:sec)"
+
 
     itk_component add durationlabel {
 	label $itk_component(flowcontrols).durationl \
@@ -446,6 +449,9 @@ itcl::body Rappture::FlowvisViewer::constructor { hostlist args } {
 	ignore -highlightthickness 
         rename -background -controlbackground controlBackground Background
     }
+    Rappture::Tooltip::for $itk_component(speed) \
+        "Change speed of flow"
+
     $itk_component(speed) value 1
     bind $itk_component(speed) <<Value>> [itcl::code $this flow speed]
 
@@ -457,9 +463,9 @@ itcl::body Rappture::FlowvisViewer::constructor { hostlist args } {
 	0,3 $itk_component(loop) -padx {2 0} \
 	0,4 $itk_component(dial) -fill x -padx {2 0 } \
 	0,5 $itk_component(duration) -padx { 0 0} \
-	0,6 $itk_component(speedlabel) -padx {2 0} \
 	0,7 $itk_component(speed) -padx {2 3} 
 
+#	0,6 $itk_component(speedlabel) -padx {2 0} 
     blt::table configure $itk_component(flowcontrols) c* -resize none
     blt::table configure $itk_component(flowcontrols) c4 -resize both
     blt::table configure $itk_component(flowcontrols) r0 -pady 1
@@ -980,6 +986,7 @@ itcl::body Rappture::FlowvisViewer::SendDataObjs {} {
     SendCmd "grid axisname y Y eV"
     SendCmd "grid axisname z Z eV"
     }
+    SendCmd "flow reset"
 
     # Actually write the commands to the server socket.  If it fails, we don't
     # care.  We're finished here.
@@ -2688,7 +2695,6 @@ itcl::body Rappture::FlowvisViewer::flow { args } {
 	"next" {
 	    if { ![IsMapped $itk_component(3dview)] } {
 		flow stop
-		puts stderr "$w isn't mapped"
 		return
 	    }
 	    set _settings($this-currenttime) \
@@ -2793,17 +2799,23 @@ itcl::body Rappture::FlowvisViewer::GetMovie { widget width height } {
 }
 
 itcl::body Rappture::FlowvisViewer::str2millisecs { value } {
-    set pattern1 {^ *([0-9]+):([0-5][0-9]) *$} 
-    set pattern2 {^ *:([0-5][0-9]) *$}
-    if { [string is int $value] } {
-	return [expr $value * 1000.0]
-    } elseif { [regexp $pattern1 $value match mins secs] } {
-	return [expr (($mins * 60) + $secs) * 1000.0]
-    } elseif { [regexp $pattern2 $value match secs] } {
-	return [expr $secs * 1000.0]
+    set parts [split $value :]
+    set secs 0
+    set mins 0
+    if { [llength $parts] == 1 } {
+	scan [lindex $parts 0] "%d" secs
     } else {
-	return -1
+	scan [lindex $parts 1] "%d" secs
+	scan [lindex $parts 0] "%d" mins
     }
+    set ms [expr {(($mins * 60) + $secs) * 1000.0}]
+    if { $ms > 600000.0 } {
+	set ms 600000.0
+    }
+    if { $ms == 0.0 } {
+	set ms 60000.0
+    }
+    return $ms
 }
 
 itcl::body Rappture::FlowvisViewer::millisecs2str { value } {
