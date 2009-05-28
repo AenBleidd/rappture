@@ -104,6 +104,7 @@ itcl::class Rappture::FlowvisViewer {
     private method BuildVolumeTab {}
     private method ComputeTransferFunc { tf }
     private method EventuallyResize { w h } 
+    private method EventuallyGoto { nSteps } 
     private method EventuallyResizeLegend { } 
     private method FlowCmd { dataobj comp nbytes extents }
     private method GetMovie { widget width height }
@@ -112,7 +113,9 @@ itcl::class Rappture::FlowvisViewer {
     private method ParseLevelsOption { tf levels }
     private method ParseMarkersOption { tf markers }
     private method WaitIcon { option widget }
-
+    private method str2millisecs { value } 
+    private method millisecs2str { value } 
+    private method IsMapped { widget } 
     private method GetFlowInfo { widget }
     private method particles { tag name } 
     private method box { tag name } 
@@ -153,6 +156,7 @@ itcl::class Rappture::FlowvisViewer {
     private variable _height 0
     private variable _resizePending 0
     private variable _resizeLegendPending 0
+    private variable _gotoPending 0
 }
 
 itk::usual FlowvisViewer {
@@ -190,6 +194,10 @@ itcl::body Rappture::FlowvisViewer::constructor { hostlist args } {
     $_dispatcher register !play
     $_dispatcher dispatch $this !play "[itcl::code $this flow next]; list"
     
+    # Draw legend event
+    $_dispatcher register !goto
+    $_dispatcher dispatch $this !goto "[itcl::code $this flow goto2]; list"
+
     set _flow(state) 0
 
     set _outbuf ""
@@ -219,6 +227,7 @@ itcl::body Rappture::FlowvisViewer::constructor { hostlist args } {
     set _limits(vmax) 1.0
 
     array set _settings [subst {
+	$this-currenttime	0
 	$this-loop		0
 	$this-pan-x		$_view(pan-x)
 	$this-pan-y		$_view(pan-y)
@@ -384,33 +393,20 @@ itcl::body Rappture::FlowvisViewer::constructor { hostlist args } {
     Rappture::Tooltip::for $itk_component(loop) \
         "Play continuously"
 
-    # Frame
-    itk_component add frame {
-	::scale $itk_component(flowcontrols).frame -from 1 -to 100 \
-	    -showvalue 0 -orient horizontal -width 14 \
-	    -state disabled \
-	    -variable [itcl::scope _settings($this-currenttime)]  \
-	    -highlightthickness 0
-    } {
-	usual 
-	ignore -highlightthickness 
-        rename -background -controlbackground controlBackground Background
-    }
-    $itk_component(frame) set 1
-
     itk_component add dial {
-        Rappture::Radiodial $itk_component(flowcontrols).dial \
+        Rappture::Flowdial $itk_component(flowcontrols).dial \
             -length 10 -valuewidth 0 -valuepadding 0 -padding 6 \
             -linecolor "" -activelinecolor "" \
+	    -min 0.0 -max 1.0 \
+	    -variable [itcl::scope _settings($this-currenttime)] \
             -knobimage [Rappture::icon knob2] -knobposition center@middle
     } {
         usual
-        keep -dialprogresscolor
+        ignore -dialprogresscolor
         rename -background -controlbackground controlBackground Background
     }
-    grid $itk_component(dial) -row 1 -column 1 -sticky ew
-    bind $itk_component(dial) <<Value>> [itcl::code $this _fixValue]
-
+    $itk_component(dial) current 0.0
+    bind $itk_component(dial) <<Value>> [itcl::code $this flow goto]
     # Duration
     itk_component add duration {
 	entry $itk_component(flowcontrols).duration \
@@ -460,10 +456,9 @@ itcl::body Rappture::FlowvisViewer::constructor { hostlist args } {
 	0,2 $itk_component(play) -padx {2 0} \
 	0,3 $itk_component(loop) -padx {2 0} \
 	0,4 $itk_component(dial) -fill x -padx {2 0 } \
-	0,5 $itk_component(speedlabel) -padx {2 0} \
-	0,6 $itk_component(speed) -padx {2 0} \
-        0,7 $itk_component(durationlabel) -padx {2 0} \
-	0,8 $itk_component(duration) -padx { 2 3} 
+	0,5 $itk_component(duration) -padx { 0 0} \
+	0,6 $itk_component(speedlabel) -padx {2 0} \
+	0,7 $itk_component(speed) -padx {2 3} 
 
     blt::table configure $itk_component(flowcontrols) c* -resize none
     blt::table configure $itk_component(flowcontrols) c4 -resize both
@@ -2492,7 +2487,7 @@ itcl::body Rappture::FlowvisViewer::EventuallyResize { w h } {
     set _width $w
     set _height $h
     if { !$_resizePending } {
-	$_dispatcher event -idle !resize
+	$_dispatcher event -after 200 !resize
 	set _resizePending 1
     }
 }
@@ -2501,6 +2496,14 @@ itcl::body Rappture::FlowvisViewer::EventuallyResizeLegend {} {
     if { !$_resizeLegendPending } {
 	$_dispatcher event -idle !legend
 	set _resizeLegendPending 1
+    }
+}
+
+itcl::body Rappture::FlowvisViewer::EventuallyGoto { nSteps } {
+    set _flow(goto) $nSteps
+    if { !$_gotoPending } {
+	$_dispatcher event -after 1000 !goto
+	set _gotoPending 1
     }
 }
 
@@ -2596,31 +2599,40 @@ itcl::body Rappture::FlowvisViewer::FlowCmd { dataobj comp nbytes extents } {
 itcl::body Rappture::FlowvisViewer::flow { args } {
     set option [lindex $args 0]
     switch -- $option {
+	"goto2" {
+	    puts stderr "actually sending \"flow goto $_flow(goto)\""
+	    SendCmd "flow goto $_flow(goto)"
+	    set _gotoPending 0
+	}
+	"goto" {
+	    puts stderr "flow goto to $_settings($this-currenttime)"
+	    # Figure out how many steps to the current time based upon
+	    # the speed and duration.
+	    set current $_settings($this-currenttime)
+	    set speed [$itk_component(speed) value]
+	    set time [str2millisecs $_settings($this-duration)]
+	    $itk_component(dial) configure -max $time
+	    set delay [expr int(round(500.0/$speed))]
+	    puts stderr "duration=$time delay=$delay current=$current"
+	    set timePerStep [expr {double($time) / $delay}]
+	    puts stderr "timePerStep=$timePerStep"
+	    set nSteps [expr {int(ceil($current/$timePerStep))}]
+	    puts stderr "nSteps=$nSteps"
+	    EventuallyGoto $nSteps
+	}
 	"speed" {
 	    set speed [$itk_component(speed) value]
 	    set _flow(delay) [expr int(round(500.0/$speed))]
 	}
 	"duration" {
-	    set value $_settings($this-duration)
-	    set pattern1 {^ *([0-9]+):([0-5][0-9]) *$} 
-	    set pattern2 {^ *:([0-5][0-9]) *$}
-	    if { [string is int $value] } {
-		set _flow(duration) [expr $value * 1000]
-	    } elseif { [regexp $pattern1 $value match mins secs] } {
-		set _flow(duration) [expr (($mins * 60) + $secs) * 1000]
-	    } elseif { [regexp $pattern2 $value match secs] } {
-		set _flow(duration) [expr $secs * 1000]
-	    } else {
+	    set max [str2millisecs $_settings($this-duration)]
+	    if { $max < 0 } {
 		bell
 		return
 	    }
-	    if { $_flow(duration) > 600000 } {
-		set _flow(duration) 600000
-	    }
-	    set min [expr $_flow(duration) / 60000]
-	    set sec [expr ($_flow(duration) - ($min*60000)) / 1000]
-	    set _settings($this-duration) [format %02d:%02d $min $sec]
-	    $itk_component(frame) configure -to $_flow(duration)
+	    set _flow(duration) $max
+	    set _settings($this-duration) [millisecs2str $max]
+	    $itk_component(dial) configure -max $max
 	}
 	"off" {
 	    set _flow(state) 0
@@ -2631,7 +2643,7 @@ itcl::body Rappture::FlowvisViewer::flow { args } {
 	    flow speed
 	    flow duration
 	    set _flow(state) 1
-	    set _flow(time) 0
+	    set _settings($this-currenttime) 0
 	    $itk_component(play) select
 	}
 	"stop" {
@@ -2650,8 +2662,9 @@ itcl::body Rappture::FlowvisViewer::flow { args } {
 	    if { !$_flow(state) } {
 		flow on
 		# If we're at the end of the flow, reset the flow.
-		incr _flow(time) $_flow(delay)
-		if { $_flow(time) >= $_flow(duration) } {
+		set _settings($this-currenttime) \
+		    [expr {$_settings($this-currenttime) + $_flow(delay)}]
+		if { $_settings($this-currenttime) >= $_flow(duration) } {
 		    set _settings($this-step) 1
 		    SendCmd "flow reset"
 		} 
@@ -2666,7 +2679,6 @@ itcl::body Rappture::FlowvisViewer::flow { args } {
 	    }
 	}
 	"reset" {
-	    set _flow(time) 0
 	    set _settings($this-currenttime) 0
 	    SendCmd "flow reset"
 	    if { !$_flow(state) } {
@@ -2674,20 +2686,14 @@ itcl::body Rappture::FlowvisViewer::flow { args } {
 	    }
 	}
 	"next" {
-	    set w $itk_component(3dview) 
-	    while { $w != "" }  {
-		if { ![winfo ismapped $w] } {
-		    flow stop
-		    puts stderr "$w isn't mapped"
-		    return
-		}
-		set w [winfo parent $w]
-		if { [winfo toplevel $w] == $w } {
-		    break
-		}
+	    if { ![IsMapped $itk_component(3dview)] } {
+		flow stop
+		puts stderr "$w isn't mapped"
+		return
 	    }
-	    incr _flow(time) $_flow(delay)
-	    if { $_flow(time) >= $_flow(duration) } {
+	    set _settings($this-currenttime) \
+		[expr {$_settings($this-currenttime) + $_flow(delay)}]
+	    if { $_settings($this-currenttime) >= $_flow(duration) } {
 	        if { !$_settings($this-loop) } {
 		    flow off
 		    return
@@ -2696,7 +2702,6 @@ itcl::body Rappture::FlowvisViewer::flow { args } {
 	    } else {
 		SendCmd "flow next"
 	    }
-	    set _settings($this-currenttime) $_flow(time)
 	    $_dispatcher event -after $_flow(delay) !play
 	} 
 	default {
@@ -2787,3 +2792,36 @@ itcl::body Rappture::FlowvisViewer::GetMovie { widget width height } {
     return ""
 }
 
+itcl::body Rappture::FlowvisViewer::str2millisecs { value } {
+    set pattern1 {^ *([0-9]+):([0-5][0-9]) *$} 
+    set pattern2 {^ *:([0-5][0-9]) *$}
+    if { [string is int $value] } {
+	return [expr $value * 1000.0]
+    } elseif { [regexp $pattern1 $value match mins secs] } {
+	return [expr (($mins * 60) + $secs) * 1000.0]
+    } elseif { [regexp $pattern2 $value match secs] } {
+	return [expr $secs * 1000.0]
+    } else {
+	return -1
+    }
+}
+
+itcl::body Rappture::FlowvisViewer::millisecs2str { value } {
+    set min [expr floor($value / 60000.0)]
+    set sec [expr ($value - ($min*60000.0)) / 1000.0]
+    puts stderr "min=$min sec=$sec"
+    return [format %02d:%02d [expr round($min)] [expr round($sec)]]
+}
+
+itcl::body Rappture::FlowvisViewer::IsMapped { w } {
+    while { $w != "" }  {
+	if { ![winfo ismapped $w] } {
+	    return 0
+	}
+	set w [winfo parent $w]
+	if { [winfo toplevel $w] == $w } {
+	    break
+	}
+    }
+    return 1
+}
