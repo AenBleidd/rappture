@@ -47,6 +47,7 @@ FILES		= \
 		$(srcdir)/field2dresult.tcl \
 		$(srcdir)/field3dresult.tcl \
 		$(srcdir)/filexfer.tcl \
+		$(srcdir)/flowdial.tcl \
 		$(srcdir)/flowhints.tcl \
 		$(srcdir)/flowvisviewer.tcl \
 		$(srcdir)/gauge.tcl \
