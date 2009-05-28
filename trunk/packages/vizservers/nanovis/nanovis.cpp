@@ -1928,105 +1928,191 @@ NanoVis::keyboard(unsigned char key, int x, int y)
 #endif
 
 #ifdef NEW_FLOW_ENGINE
-    switch (key)
-    {
-	case 'a' :
-		{
-			printf("flowvis active\n");
-			NanoVis::flowVisRenderer->active(true);
-			NanoVis::licRenderer->active(true);
-		}
-		break;
-	case 'd' :
-		{
-			printf("flowvis deactived\n");
-			NanoVis::flowVisRenderer->active(false);
-			NanoVis::licRenderer->active(false);
-		}
-		break;
-	case '1' :
-		{
-			addVectorField("/home/iwoo/projects/nanovis/rappture/packages/vizservers/nanovis/data/flowvis_dx_files/jwire/J-wire-vec.dx",
-					"vf_name2", "plane_name1", "plane_name2", Vector4(0, 0, 1, 1), Vector4(0, 1, 1, 1));
-			printf("add vector field\n");
-		}
-		break;
-	case '2' :
-		{
-			printf("add vector field\n");
-			addVectorField("/home/iwoo/projects/nanovis/rappture/packages/vizservers/nanovis/data/flowvis_dx_files/3DWireLeakage/SiO2/SiO2.dx",
-					"vf_name1", "plane_name1", "plane_name2", Vector4(1, 0, 0, 1), Vector4(1, 1, 0, 1));
-		}
-		break;
-	case '3':
-		{
-			printf("activate\n");
-			NanoVis::flowVisRenderer->activatePlane("vf_name1", "plane_name2"); 
-		}
-		break;
-	case '4' :
-		{
-			printf("deactivate\n");
-			NanoVis::flowVisRenderer->deactivatePlane("vf_name1", "plane_name2"); 
-		}
-		break;
-	case '5' :
-86		{
-a			printf("vector field deleted (vf_name2)\n");
-			NanoVis::flowVisRenderer->removeVectorField("vf_name2");
-		}
-		break;
-	case '6' :
-		{
-			printf("add device shape\n");
-			NvDeviceShape shape;
-			shape.min.set(0, 0, 0);
-			shape.max.set(30, 3, 3);
-			shape.color.set(1, 0, 0, 1);
-			NanoVis::flowVisRenderer->addDeviceShape("vf_name1", "device1", shape);
-			shape.min.set(0, -1, -1);
-			shape.max.set(30, 4, 4);
-			shape.color.set(0, 1, 0, 1);
-			NanoVis::flowVisRenderer->addDeviceShape("vf_name1", "device2", shape);
-			shape.min.set(10, -1.5, -1);
-			shape.max.set(20, 4.5, 4.5);
-			shape.color.set(0, 0, 1, 1);
-			NanoVis::flowVisRenderer->addDeviceShape("vf_name1", "device3", shape);
-			NanoVis::flowVisRenderer->activateDeviceShape("vf_name1");
-		}
-		break;
-	case '7' :
-		{
-			printf("hide shape \n");
-			NanoVis::flowVisRenderer->deactivateDeviceShape("vf_name1");
-		}
-		break;
-	case '8' :
-		{
-			printf("show shape\n");
-			NanoVis::flowVisRenderer->activateDeviceShape("vf_name1");
-		}
-		break;
-	case '9' :
-		{
-			printf("show a shape \n");
-			NanoVis::flowVisRenderer->activateDeviceShape("vf_name1", "device3");
-		}
-		break;
-	case '0' :
-		{
-			printf("delete a shape \n");
-			NanoVis::flowVisRenderer->deactivateDeviceShape("vf_name1", "device3");
-		}
-		break;
-	case 'r' :
-		{
-			NanoVis::flowVisRenderer->reset();
-			NanoVis::licRenderer->reset();
-			printf("reset \n");
-		}
-		break;
+    switch (key) {
+    case 'a' :
+	{
+	    printf("flowvis active\n");
+	    char cmd[] = {
+		"foreach flow [flow names] {\n"
+		"    $flow configure -hide no -slice yes\n"
+		"}\n"
+	    };
+	    Tcl_Eval(interp, cmd);
+#ifdef notdef
+	    NanoVis::flowVisRenderer->active(true);
+	    NanoVis::licRenderer->active(true);
+#endif
 	}
+	break;
+    case 'd' :
+	{
+	    printf("flowvis deactived\n");
+	    char cmd[] = {
+		"foreach flow [flow names] {\n"
+		"    $flow configure -hide yes -slice no\n"
+		"}\n"
+	    };
+#ifdef notdef
+	    NanoVis::flowVisRenderer->active(false);
+	    NanoVis::licRenderer->active(false);
+#endif
+	}
+	break;
+    case '1' :
+	{
+	    printf("add vector field\n");
+	    char cmd[] = {
+		"flow create flow1\n"
+		"flow1 data file /home/iwoo/projects/nanovis/rappture/packages/vizservers/nanovis/data/flowvis_dx_files/jwire/J-wire-vec.dx 3\n"
+		"flow1 particles add plane1 -color { 0 0 1 1 }\n"
+		"flow1 particles add plane2 -color { 0 1 1 1 }\n"
+	    };
+	    Tcl_Eval(interp, cmd);
+#ifdef notdef
+	    addVectorField("/home/iwoo/projects/nanovis/rappture/packages/vizservers/nanovis/data/flowvis_dx_files/jwire/J-wire-vec.dx",
+			   "vf_name2", "plane_name1", "plane_name2", Vector4(0, 0, 1, 1), Vector4(0, 1, 1, 1));
+#endif
+	}
+	break;
+    case '2' :
+	{
+	    char cmd[] = {
+		"flow create flow2\n"
+		"flow2 data file /home/iwoo/projects/nanovis/rappture/packages/vizservers/nanovis/data/flowvis_dx_files/3DWireLeakage/SiO2/SiO2.dx 3\n"
+		"flow2 particles add plane1 -color { 1 0 0 1 }\n"
+		"flow2 particles add plane2 -color { 1 1 0 1 }\n"
+	    };
+	    Tcl_Eval(interp, cmd);
+	    printf("add vector field\n");
+	    addVectorField("/home/iwoo/projects/nanovis/rappture/packages/vizservers/nanovis/data/flowvis_dx_files/3DWireLeakage/SiO2/SiO2.dx",
+			   "vf_name1", "plane_name1", "plane_name2", Vector4(1, 0, 0, 1), Vector4(1, 1, 0, 1));
+	}
+	break;
+    case '3':
+	{
+	    printf("activate\n");
+	    char cmd[] = {
+		"flow1 particles add plane2 -hide no\n"
+	    };
+	    Tcl_Eval(interp, cmd);
+#ifdef notdef
+	    NanoVis::flowVisRenderer->activatePlane("vf_name1", "plane_name2"); 
+#endif
+	}
+	break;
+    case '4' :
+	{
+	    printf("deactivate\n");
+	    char cmd[] = {
+		"flow1 particles add plane2 -hide yes\n"
+	    };
+	    Tcl_Eval(interp, cmd);
+#ifdef notdef
+	    NanoVis::flowVisRenderer->deactivatePlane("vf_name1", "plane_name2"); 
+#endif
+	}
+	break;
+    case '5' :
+	{
+	    printf("vector field deleted (vf_name2)\n");
+	    char cmd[] = {
+		"flow delete flow2\n"
+	    };
+	    Tcl_Eval(interp, cmd);
+#ifdef notdef
+	    NanoVis::flowVisRenderer->removeVectorField("vf_name2");
+#endif
+	}
+	break;
+    case '6' :
+	{
+	    printf("add device shape\n");
+	    char cmd[] = {
+		"flow1 box add box1 -corner1 {0 0 0} -corner2 {30 3 3} -color { 1 0 0 1 }\n"
+		"flow1 box add box2 -corner1 {0 -1 -1} -corner2 {30 4 4} -color { 0 1 0 1 }\n"
+		"flow1 box add box3 -corner1 {10 -1.5 -1} -corner2 {20 4.5 4.5} -color { 0 0 1 1 }\n"
+	    };
+	    Tcl_Eval(interp, cmd);
+#ifdef notdef
+	    NvDeviceShape shape;
+	    shape.min.set(0, 0, 0);
+	    shape.max.set(30, 3, 3);
+	    shape.color.set(1, 0, 0, 1);
+	    NanoVis::flowVisRenderer->addDeviceShape("vf_name1", "device1", shape);
+	    shape.min.set(0, -1, -1);
+	    shape.max.set(30, 4, 4);
+	    shape.color.set(0, 1, 0, 1);
+	    NanoVis::flowVisRenderer->addDeviceShape("vf_name1", "device2", shape);
+	    shape.min.set(10, -1.5, -1);
+	    shape.max.set(20, 4.5, 4.5);
+	    shape.color.set(0, 0, 1, 1);
+	    NanoVis::flowVisRenderer->addDeviceShape("vf_name1", "device3", shape);
+	    NanoVis::flowVisRenderer->activateDeviceShape("vf_name1");
+#endif
+	}
+	break;
+    case '7' :
+	{
+	    printf("hide shape \n");
+	    char cmd[] = {
+		"flow1 box configure box1 -hide yes\n"
+	    };
+	    Tcl_Eval(interp, cmd);
+#ifdef notdef
+	    NanoVis::flowVisRenderer->deactivateDeviceShape("vf_name1");
+#endif
+	}
+	break;
+    case '8' :
+	{
+	    printf("show shape\n");
+	    char cmd[] = {
+		"flow1 box configure box1 -hide no\n"
+	    };
+	    Tcl_Eval(interp, cmd);
+#ifdef notdef
+	    NanoVis::flowVisRenderer->activateDeviceShape("vf_name1");
+#endif
+	}
+	break;
+    case '9' :
+	{
+	    printf("show a shape \n");
+	    char cmd[] = {
+		"flow1 box configure box3 -hide no\n"
+	    };
+	    Tcl_Eval(interp, cmd);
+#ifdef notdef
+	    NanoVis::flowVisRenderer->activateDeviceShape("vf_name1", "device3");
+#endif
+	}
+	break;
+    case '0' :
+	{
+	    printf("delete a shape \n");
+	    char cmd[] = {
+		"flow1 box delete box3\n"
+	    };
+	    Tcl_Eval(interp, cmd);
+#ifdef notdef
+	    NanoVis::flowVisRenderer->deactivateDeviceShape("vf_name1", "device3");
+#endif
+	}
+	break;
+    case 'r' :
+	{
+	    printf("reset \n");
+	    char cmd[] = {
+		"flow reset\n"
+	    };
+	    Tcl_Eval(interp, cmd);
+#ifdef notdef
+	    NanoVis::flowVisRenderer->reset();
+	    NanoVis::licRenderer->reset();
+#endif
+	}
+	break;
+    }
 #endif
 }
 
@@ -2089,10 +2175,11 @@ NanoVis::render()
     }
 #endif
 
+#ifdef notdef
     if ((NanoVis::flowVisRenderer != NULL) && (NanoVis::flowVisRenderer->active())) {
 	NanoVis::flowVisRenderer->advect();
     }
-
+#endif
     NanoVis::update();
     display();
     glutSwapBuffers();
