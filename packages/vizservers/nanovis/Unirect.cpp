@@ -36,6 +36,44 @@ getline(char **stringPtr, char *endPtr)
     return line;
 }
 
+int
+Rappture::Unirect2d::ParseBuffer(Tcl_Interp *interp, Rappture::Buffer &buf)
+{
+    Tcl_Obj *objPtr;
+    objPtr = Tcl_NewStringObj(buf.bytes(), buf.size());
+    Tcl_Obj **objv;
+    int objc;
+    if (Tcl_ListObjGetElements(interp, objPtr, &objc, &objv) != TCL_OK) {
+	return NULL;
+    }
+    int result;
+    result = LoadData(interp, objc, objv);
+    Tcl_DecrRefCount(objPtr);
+    if ((result != TCL_OK) || (!isInitialized())) {
+	return TCL_ERROR;
+    }
+    return TCL_OK;
+}
+
+int
+Rappture::Unirect3d::ParseBuffer(Tcl_Interp *interp, Rappture::Buffer &buf)
+{
+    Tcl_Obj *objPtr;
+    objPtr = Tcl_NewStringObj(buf.bytes(), buf.size());
+    Tcl_Obj **objv;
+    int objc;
+    if (Tcl_ListObjGetElements(interp, objPtr, &objc, &objv) != TCL_OK) {
+	return NULL;
+    }
+    int result;
+    result = LoadData(interp, objc, objv);
+    Tcl_DecrRefCount(objPtr);
+    if ((result != TCL_OK) || (!isInitialized())) {
+	return TCL_ERROR;
+    }
+    return TCL_OK;
+}
+
 int 
 Rappture::Unirect3d::LoadData(Tcl_Interp *interp, int objc, 
 			      Tcl_Obj *const *objv)

@@ -169,6 +169,7 @@ public:
 	return _nValues;
     }
     int LoadData(Tcl_Interp *interp, int objc, Tcl_Obj *const *objv);
+    int ParseBuffer(Tcl_Interp *interp, Rappture::Buffer &buf);
 
     bool ImportDx(Rappture::Outcome &result, size_t nComponents, 
 		  size_t length, char *string);
@@ -275,6 +276,7 @@ public:
 	return _nValues;
     }
     int LoadData(Tcl_Interp *interp, int objc, Tcl_Obj *const *objv);
+    int ParseBuffer(Tcl_Interp *interp, Rappture::Buffer &buf);
     bool isInitialized(void) {
 	return _initialized;
     }
