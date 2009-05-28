@@ -1349,7 +1349,7 @@ FlowConfigureOp(ClientData clientData, Tcl_Interp *interp, int objc,
     if (flowPtr->ParseSwitches(interp, objc - 2, objv + 2) != TCL_OK) {
 	return TCL_ERROR;
     }
-    NanoVis::EventuallyRedraw();
+    NanoVis::EventuallyRedraw(NanoVis::MAP_FLOWS);
     return TCL_OK;
 }
 
@@ -1390,7 +1390,7 @@ FlowParticlesConfigureOp(ClientData clientData, Tcl_Interp *interp, int objc,
 	return TCL_ERROR;
     }
     particlesPtr->Configure();
-    NanoVis::EventuallyRedraw();
+    NanoVis::EventuallyRedraw(NanoVis::MAP_FLOWS);
     return TCL_OK;
 }
 
