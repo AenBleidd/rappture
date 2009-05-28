@@ -38,15 +38,7 @@ class FlowParticles {
 public:
 
     FlowParticles(const char *name, Tcl_HashEntry *hPtr);
-    ~FlowParticles(void) {
-	Rappture::FreeSwitches(_switches, &_sv, 0);
-	if (_rendererPtr != NULL) {
-	    delete _rendererPtr;
-	}
-	if (_hashPtr != NULL) {
-	    Tcl_DeleteHashEntry(_hashPtr);
-	}
-    }
+    ~FlowParticles(void);
     void SetColor(FlowColor &color) {
 	_sv.color = color;
 	_rendererPtr->setColor(Vector4(color.r, color.g, color.b, color.a));

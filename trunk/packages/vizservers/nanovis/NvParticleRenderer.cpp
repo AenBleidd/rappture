@@ -146,38 +146,34 @@ void NvParticleRenderer::initializeDataArray()
         for (int j=0; j<psys_height; j++) {
             index = i + psys_height*j;
             particle = (rand() % 256) > 150; 
-            if(particle) 
-            {
+            if(particle) {
                 //assign any location (x,y,z) in range [0,1]
-		switch (_slice_axis)
-		{
+		switch (_slice_axis) {
 		case 0 :
-                	p[4*index] = _slice_pos;
-                	p[4*index+1]= j/float(psys_height);
-                	p[4*index+2]= i/float(psys_width);
-			break;
+		    p[4*index] = _slice_pos;
+		    p[4*index+1]= j/float(psys_height);
+		    p[4*index+2]= i/float(psys_width);
+		    break;
 		case 1 :
-                	p[4*index]= j/float(psys_height);
-                	p[4*index+1] = _slice_pos;
-                	p[4*index+2]= i/float(psys_width);
-			break;
+		    p[4*index]= j/float(psys_height);
+		    p[4*index+1] = _slice_pos;
+		    p[4*index+2]= i/float(psys_width);
+		    break;
 		case 2 :
-                	p[4*index]= j/float(psys_height);
-                	p[4*index+1]= i/float(psys_width);
-                	p[4*index+2] = _slice_pos;
-			break;
+		    p[4*index]= j/float(psys_height);
+		    p[4*index+1]= i/float(psys_width);
+		    p[4*index+2] = _slice_pos;
+		    break;
 		default :
-	    		p[4*index] = 0;
-	    		p[4*index+1]= 0;
-	    		p[4*index+2]= 0;
-	    		p[4*index+3]= 0;
+		    p[4*index] = 0;
+		    p[4*index+1]= 0;
+		    p[4*index+2]= 0;
+		    p[4*index+3]= 0;
 		}
 		
 		//shorter life span, quicker iterations
                	p[4*index+3]= rand() / ((float) RAND_MAX) * 0.5  + 0.5f; 
-            }
-	    else
-	    {
+            } else {
 	    	p[4*index] = 0;
 	    	p[4*index+1]= 0;
 	    	p[4*index+2]= 0;
