@@ -111,7 +111,7 @@ public :
 	   double nonzero_min);
 
 protected :
-    ~Volume();
+    virtual ~Volume();
 	
 public :
     void visible(bool value) { 

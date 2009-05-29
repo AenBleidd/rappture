@@ -32,7 +32,7 @@ public:
 		float* dataVolumeA, float* dataVolumeB,
 		double vmin, double vmax, double non_zeromin, const Vector3& cellSize);
 
-	~ZincBlendeVolume();
+	virtual ~ZincBlendeVolume();
 };
 
 #endif
