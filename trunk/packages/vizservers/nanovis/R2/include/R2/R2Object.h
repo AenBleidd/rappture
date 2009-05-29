@@ -32,10 +32,7 @@ inline R2int32 R2Object::ref()
 
 inline void R2Object::unref()
 {
-    if (_referenceCount > 1)
-    {
         --_referenceCount;
-    }
 
     if (_referenceCount <= 0) delete this;
 }
