@@ -36,7 +36,8 @@ inline void R2Object::unref()
     {
         --_referenceCount;
     }
-    delete this;
+
+    if (_referenceCount <= 0) delete this;
 }
 
 

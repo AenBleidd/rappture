@@ -108,6 +108,8 @@ class NanoVis {
     //frame buffer for final rendering
     static NVISid final_fbo, final_color_tex, final_depth_rb;
 public:
+    typedef std::map<int, Volume*> VolumeMap;
+public:
     static VolumeRenderer* vol_renderer;
     static PointSetRenderer* pointset_renderer;
 #ifndef NEW_FLOW_ENGINE
@@ -127,7 +129,7 @@ public:
     static graphics::RenderContext* renderContext;
     static vector<HeightMap*> heightMap;
     static unsigned char* screen_buffer;
-    static vector<Volume*> volume;
+    static VolumeMap volumeMap;
     static vector<NvVectorField*> flow;
     static Grid* grid;
     static R2Fonts* fonts;
@@ -151,6 +153,8 @@ public:
     static Tcl_Interp *interp;
     static Tcl_DString cmdbuffer;
 
+    static int _last_data_id;
+public :
     static TransferFunction* get_transfunc(const char *name);
     static TransferFunction* DefineTransferFunction(const char *name, 
         size_t n, float *data);
@@ -178,7 +182,7 @@ public:
     static void display_offscreen_buffer();
     static int render_legend(TransferFunction *tf, double min, double max, 
         int width, int height, const char* volArg);
-    static Volume *load_volume(int index, int width, int height, int depth, 
+    static Volume *load_volume(int volDataID, int width, int height, int depth, 
         int n, float* data, double vmin, double vmax, double nzero_min);
     static void xinetd_listen(void);
     static int render_2d_contour(HeightMap* heightmap, int width, int height);
@@ -227,6 +231,8 @@ public:
 	MAP_HEIGHTMAPS=(1<<3),
     };
     static void EventuallyRedraw(unsigned int flag = 0);
+    static void remove_volume(int volUserID);
+    static int generate_data_identifier();
 };
 
 

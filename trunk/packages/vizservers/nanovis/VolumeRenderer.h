@@ -38,14 +38,31 @@
 #include "NvStdVertexShader.h"
 #include "VolumeInterpolator.h"
 
+class VolumeData {
+        friend class VolumeRenderer;
+        friend class NanoVis;
+private :
+        Volume* volume;
+        TransferFunction* tf;
+public :
+        VolumeData() : volume(0), tf(0) {}
+        VolumeData(Volume* vol, TransferFunction* t) : volume(vol), tf(t) 
+	{
+                if (volume) volume->ref();
+                if (tf) tf->ref();
+	}
+        ~VolumeData()
+        {
+                if (volume) volume->unref();
+                if (tf) tf->unref();
+        }
+};
+
 class VolumeRenderer {
     friend class NanoVis;
 private:
-    std::vector <Volume*> volume;	    //!<- array of volumes
-    std::vector <TransferFunction*> tf;    //!<- array of corresponding transfer functions 
+    std::vector<VolumeData*> volumes;    //!<- array of volumes
     VolumeInterpolator* _volumeInterpolator;
-
-    int n_volumes;
 
     bool slice_mode;	//!<- enable cut planes
     bool volume_mode;	//!<- enable full volume rendering
@@ -104,15 +121,16 @@ public:
     VolumeRenderer();
     ~VolumeRenderer();
 
-    int add_volume(Volume* _vol, TransferFunction* _tf); 
-    void remove_volume(size_t volIndex); 
+    void add_volume(Volume* _vol, TransferFunction* _tf); 
+    void remove_all_volumes();
+    void remove_volume(size_t volDataID); 
     // add a volume and its transfer function
     // we require a transfer function when a 
     // volume is added.
     void shade_volume(Volume* _vol, TransferFunction* _tf); 
     TransferFunction* get_volume_shading(Volume* _vol); 
 
-    void render(int volume_index);
+    void render(int volumeID);
     void render_all();	//render all enabled volumes;
     void render_all_points(void); //render all enabled volumes;
     void specular(float val);
@@ -121,8 +139,8 @@ public:
     void set_volume_mode(bool val);
     void switch_slice_mode(); //switch_cutplane_mode
     void switch_volume_mode();
-    void enable_volume(int index); //enable a volume
-    void disable_volume(int index); //disable a volume
+    void enable_volume(int volumeDataID); //enable a volume
+    void disable_volume(int volumeDataID); //disable a volume
 
     void clearAnimatedVolumeInfo(void) {
 	_volumeInterpolator->clearAll();

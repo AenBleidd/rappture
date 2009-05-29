@@ -16,7 +16,7 @@
 /* Load a 3D volume from a dx-format file the new way
  */
 bool
-load_volume_stream_odx(Rappture::Outcome &context, int index, const char *buf,
+load_volume_stream_odx(Rappture::Outcome &context, int userID, const char *buf,
 		       int nBytes)
 {
     char dxfilename[128];
@@ -87,14 +87,14 @@ load_volume_stream_odx(Rappture::Outcome &context, int index, const char *buf,
 
     computeSimpleGradient(data, nx, ny, nz);
 
-    fprintf(stdout,"End Data Stats index = %i\n",index);
+    fprintf(stdout,"End Data Stats userID = %i\n",userID);
     fprintf(stdout,"nx = %i ny = %i nz = %i\n",nx,ny,nz);
     fprintf(stdout,"dx = %lg dy = %lg dz = %lg\n",dx,dy,dz);
     fprintf(stdout,"dataMin = %lg\tdataMax = %lg\tnzero_min = %lg\n", dxObj.dataMin(),dxObj.dataMax(),dxObj.nzero_min());
     fflush(stdout);
 
     Volume *volPtr;
-    volPtr = NanoVis::load_volume(index, nx, ny, nz, 4, data, 
+    volPtr = NanoVis::load_volume(userID, nx, ny, nz, 4, data, 
 				  dxObj.dataMin(), 
 				  dxObj.dataMax(), 
 				  dxObj.nzero_min());
@@ -115,6 +115,6 @@ load_volume_stream_odx(Rappture::Outcome &context, int index, const char *buf,
     float dx0 = -0.5;
     float dy0 = -0.5*dy/dx;
     float dz0 = -0.5*dz/dx;
-    NanoVis::volume[index]->move(Vector3(dx0, dy0, dz0));
+    volPtr->move(Vector3(dx0, dy0, dz0));
     return true;
 }

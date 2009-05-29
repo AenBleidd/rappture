@@ -19,19 +19,21 @@
 
 
 #include "Texture1D.h"
+#include <R2/R2Object.h>
 
 
-class TransferFunction{
+class TransferFunction : public R2Object {
     int _size;			//the resolution of the color map, how many
 				//(RGBA) quadraples
     float* _data;
     Texture1D* _tex;		//the texture storing the colors 
     
+protected :
+    ~TransferFunction();
 public:
     GLuint id;			//OpenGL's texture identifier
 
     TransferFunction(int size, float *data);
-    ~TransferFunction();
     void update(float *data);
     void update(int size, float *data);
     Texture1D* getTexture(void) {
@@ -40,6 +42,11 @@ public:
     float* getData(void) { 
 	return _data; 
     }
+    int getSize() const;
 };
 
+inline int TransferFunction::getSize() const
+{
+    return _size;
+}
 #endif

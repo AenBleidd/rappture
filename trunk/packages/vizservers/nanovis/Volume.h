@@ -24,6 +24,7 @@
 #include "Texture3D.h"
 #include "Vector3.h"
 #include "AxisRange.h"
+#include "R2/R2Object.h"
 
 struct CutPlane{
     int orient;			// orientation - 1: xy slice, 2: yz slice, 3:
@@ -38,8 +39,10 @@ struct CutPlane{
 
 enum {CUBIC, VOLQD, ZINCBLENDE};
 
-class Volume {
+class Volume : public R2Object {
 public:
+    int 			_volumeDataID;
+
     int width;			// The resolution of the data (how many points
 				// in each direction.
     int height;			// It is different from the size of the volume
@@ -102,13 +105,15 @@ public:
 
     int iso_surface;
 
+public :
     Volume(float x, float y, float z, int width, int height, int depth, 
 	   float size, int n_component, float* data, double vmin, double vmax, 
 	   double nonzero_min);
 
-  
+protected :
     ~Volume();
 	
+public :
     void visible(bool value) { 
 	enabled = value; 
     }
@@ -182,6 +187,9 @@ public:
     void setPhysicalBBox(const Vector3& min, const Vector3& max);
     Vector3& getPhysicalBBoxMin();
     Vector3& getPhysicalBBoxMax();
+
+    void setDataID(int id);
+    int getDataID() const;
 };
 
 inline Vector3* Volume::get_location() { 
@@ -311,6 +319,18 @@ inline Vector3&
 Volume::getPhysicalBBoxMax()
 {
     return _physical_max;
+}
+
+inline void 
+Volume::setDataID(int id)
+{
+	_volumeDataID = id;
+}
+
+inline int 
+Volume::getDataID() const
+{
+	return _volumeDataID;
 }
 
 #endif

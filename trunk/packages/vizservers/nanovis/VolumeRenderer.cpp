@@ -28,12 +28,10 @@
 #define NUMDIGITS	6
 
 VolumeRenderer::VolumeRenderer():
-  n_volumes(0),
   slice_mode(false),
   volume_mode(true)
 {
-    volume.clear();
-    tf.clear(); 
+    volumes.clear();
 
     init_shaders();
 
@@ -49,6 +47,8 @@ VolumeRenderer::VolumeRenderer():
 
 VolumeRenderer::~VolumeRenderer()
 {
+    remove_all_volumes();
+
     delete _zincBlendeShader;
     delete _regularVolumeShader;
     delete _stdVertexShader;
@@ -75,16 +75,23 @@ void VolumeRenderer::init_shaders(){
   _zincBlendeShader = new NvZincBlendeVolumeShader();
 }
 
-
-int 
-VolumeRenderer::add_volume(Volume* _vol, TransferFunction* _tf)
+void 
+VolumeRenderer::remove_all_volumes()
 {
-  volume.push_back(_vol);
-  tf.push_back(_tf);
+    vector<VolumeData*>::iterator iter;
+    for (iter = volumes.begin(); iter != volumes.end(); ++iter)
+    {
+        delete (*iter);
+    }
+    volumes.clear();
+}
 
-  int ret = n_volumes;
-  n_volumes++;
-  return ret;
+void 
+VolumeRenderer::add_volume(Volume* vol, TransferFunction* tf)
+{
+    VolumeData * volData = new VolumeData(vol, tf); 
+    volumes.push_back(volData);
+    printf("volume[%d] added\n", volData->volume->getDataID());
 }
 
 /*
@@ -98,46 +105,52 @@ VolumeRenderer::add_volume(Volume* _vol, TransferFunction* _tf)
  *	   Use one master list instead.
  */
 void
-VolumeRenderer::remove_volume(size_t volIndex)
+VolumeRenderer::remove_volume(size_t volDataID)
 {
-    vector<Volume *>::iterator vIter;
-    vector<TransferFunction *>::iterator tfIter;
-
-    assert(volIndex < volume.size());
-    assert(volIndex < tf.size());
-
-    vIter = volume.begin();
-    tfIter = tf.begin();
-    size_t i;
-    for (i = 0; i < volIndex; i++) {
-	tfIter++;
-	vIter++;
+    std::vector<VolumeData*>::iterator iter;
+    for (iter = volumes.begin(); iter != volumes.end(); ++iter)
+    {
+        if ((*iter)->volume->getDataID() == volDataID)
+        {
+        	delete (*iter);
+        	volumes.erase(iter);
+                break;
+        }
     }
-    volume.erase(vIter);
-    tf.erase(tfIter);
-    n_volumes--;
 }
 
 void
 VolumeRenderer::shade_volume(Volume* _vol, TransferFunction* _tf)
 {
-    for (unsigned int i=0; i < volume.size(); i++) {
-	if (volume[i] == _vol) {
-	    tf[i] = _tf;
-	}
+    if (_vol == 0) printf("shade volume : null vol parameter\n");
+    for (unsigned int i=0; i < volumes.size(); i++) {
+        if (volumes[i]->volume == _vol) {
+	    if (_tf != volumes[i]->tf)
+            {
+                _tf->ref();
+
+                if (volumes[i]->tf)
+                    volumes[i]->tf->unref();
+
+                volumes[i]->tf = _tf;
+		printf("transfer function changed [volid %d]\n", volumes[i]->volume->getDataID());
+	    }
+        }
     }
 }
+
 
 TransferFunction*
 VolumeRenderer::get_volume_shading(Volume* _vol)
 {
-    for (unsigned int i=0; i < volume.size(); i++) {
-        if (volume[i] == _vol) {
-            return tf[i];
+    for (unsigned int i=0; i < volumes.size(); i++) {
+        if (volumes[i]->volume == _vol) {
+            return volumes[i]->tf;
         }
     }
     return NULL;
 }
+
 
 struct SortElement {
     float z;
@@ -192,11 +205,11 @@ VolumeRenderer::render_all()
     TransferFunction* cur_tf = 0;
     TransferFunction* ani_tf = 0;
     int total_rendered_slices = 0;
-    int num_volumes = n_volumes;
+    int num_volumes = volumes.size();
 
     if (_volumeInterpolator->is_started()) {
         ++num_volumes;
-        ani_tf = tf[_volumeInterpolator->getReferenceVolumeID()];
+        ani_tf = volumes[_volumeInterpolator->getReferenceVolumeID()]->tf;
         ani_vol = _volumeInterpolator->getVolume();
     }
 
@@ -205,26 +218,31 @@ VolumeRenderer::render_all()
     //number of actual slices for each volume
     int* actual_slices = new int[num_volumes]; 
 
-    for(int vol_index = 0; vol_index< num_volumes; vol_index++) {
+
+    Volume* vol;
+    int vol_index = 0;
+    std::vector<VolumeData*>::iterator iter;
+    for (iter = volumes.begin(); iter != volumes.end(); ++iter, ++vol_index) {
 	cur_vol = NULL;
 	cur_tf = NULL;
 #ifdef notdef
         if (vol_index != n_volumes) {
-            cur_vol = volume[vol_index];
-            cur_tf = tf[vol_index];
+            cur_vol = (*iter)->volume;
+            cur_tf = (*iter)->tf;
         } else {
             cur_vol = ani_vol;
             cur_tf = ani_tf;
         }
 #else
-	cur_vol = volume[vol_index];
-	cur_tf = tf[vol_index];
+	cur_vol = (*iter)->volume;
+	cur_tf = (*iter)->tf;
 #endif
 
         polys[vol_index] = NULL;
         actual_slices[vol_index] = 0;
 
         if(!cur_vol->visible()) {
+            //printf("volume [%d] skipped\n", cur_vol->getDataID());
             continue; //skip this volume
 	}
 
@@ -473,13 +491,18 @@ VolumeRenderer::render_all()
         int slice_index = slices[i].slice_id;
         ConvexPolygon* cur = polys[volume_index][slice_index];
 	
+#ifdef notdef
         if (volume_index == n_volumes) {
 	    cur_vol = ani_vol;
 	    cur_tf = ani_tf;
 	} else {
-            cur_vol = volume[volume_index];
-            cur_tf = tf[volume_index];
+            cur_vol = volumes[volume_index]->volume;
+            cur_tf = volumes[volume_index]->tf;
         }
+#else
+        cur_vol = volumes[volume_index]->volume;
+        cur_tf = volumes[volume_index]->tf;
+#endif
 	
 	
         glPushMatrix();
@@ -515,14 +538,29 @@ VolumeRenderer::render_all()
     free(slices);
 }
 
-void VolumeRenderer::render(int volume_index)
+void VolumeRenderer::render(int volDataID)
 {
-  int n_slices = volume[volume_index]->get_n_slice();
+    Volume* vol = 0;
+    TransferFunction* tf = 0;
+    std::vector<VolumeData*>::iterator iter;
+    for (iter = volumes.begin(); iter != volumes.end(); ++iter)
+    {
+        if ((*iter)->volume && ((*iter)->volume->getDataID() == volDataID))
+        {
+            vol = (*iter)->volume;
+            tf = (*iter)->tf;
+	    break;
+ 	}
+    }
+
+    if (vol == 0) return;
+
+  int n_slices = vol->get_n_slice();
 
   //volume start location
-  Vector4 shift_4d(volume[volume_index]->location.x, 
-		   volume[volume_index]->location.y, 
-		   volume[volume_index]->location.z, 0);
+  Vector4 shift_4d(vol->location.x, 
+		   vol->location.y, 
+		   vol->location.z, 0);
 
   double x0 = 0;
   double y0 = 0;
@@ -544,9 +582,9 @@ void VolumeRenderer::render(int volume_index)
   
   glPushMatrix();
 
-  glScalef(volume[volume_index]->aspect_ratio_width, 
-	  volume[volume_index]->aspect_ratio_height, 
-	  volume[volume_index]->aspect_ratio_depth);
+  glScalef(vol->aspect_ratio_width, 
+	  vol->aspect_ratio_height, 
+	  vol->aspect_ratio_depth);
 
   glEnable(GL_DEPTH_TEST);
 
@@ -561,9 +599,9 @@ void VolumeRenderer::render(int volume_index)
   //get modelview matrix with translation
   glPushMatrix();
   glTranslatef(shift_4d.x, shift_4d.y, shift_4d.z);
-  glScalef(volume[volume_index]->aspect_ratio_width, 
-	  volume[volume_index]->aspect_ratio_height, 
-	  volume[volume_index]->aspect_ratio_depth);
+  glScalef(vol->aspect_ratio_width, 
+	  vol->aspect_ratio_height, 
+	  vol->aspect_ratio_depth);
   GLfloat mv_trans[16];
   glGetFloatv(GL_MODELVIEW_MATRIX, mv_trans);
 
@@ -571,7 +609,7 @@ void VolumeRenderer::render(int volume_index)
   model_view_trans_inverse = model_view_trans.inverse();
 
   //draw volume bounding box
-  if (volume[volume_index]->outline()) {
+  if (vol->outline()) {
       draw_bounding_box(x0, y0, z0, x0+1, y0+1, z0+1, 0.8, 0.1, 0.1, 1.5);
   }
   glPopMatrix();
@@ -604,9 +642,9 @@ void VolumeRenderer::render(int volume_index)
     glEnable(GL_DEPTH_TEST);
 
   //render the cut planes
-  for(int i=0; i<volume[volume_index]->get_cutplane_count(); i++){
-    float offset = volume[volume_index]->get_cutplane(i)->offset;
-    int axis = volume[volume_index]->get_cutplane(i)->orient;
+  for(int i=0; i<vol->get_cutplane_count(); i++){
+    float offset = vol->get_cutplane(i)->offset;
+    int axis = vol->get_cutplane(i)->orient;
 
     if (axis==1) {
       vert1 = Vector4(-10, -10, offset, 1);
@@ -650,9 +688,9 @@ void VolumeRenderer::render(int volume_index)
     poly->transform(model_view_trans);
 
     glPushMatrix();
-    glScalef(volume[volume_index]->aspect_ratio_width, volume[volume_index]->aspect_ratio_height, volume[volume_index]->aspect_ratio_depth);
+    glScalef(vol->aspect_ratio_width, vol->aspect_ratio_height, vol->aspect_ratio_depth);
 
-    activate_volume_shader(volume[volume_index], tf[volume_index], true);
+    activate_volume_shader(vol, tf, true);
     glPopMatrix();
 
     glBegin(GL_POLYGON);
@@ -698,7 +736,7 @@ void VolumeRenderer::render(int volume_index)
     poly->transform(model_view_trans);
 
     glPushMatrix();
-    glScalef(volume[volume_index]->aspect_ratio_width, volume[volume_index]->aspect_ratio_height, volume[volume_index]->aspect_ratio_depth);
+    glScalef(vol->aspect_ratio_width, vol->aspect_ratio_height, vol->aspect_ratio_depth);
     
    /* 
     //draw slice lines only
@@ -712,7 +750,7 @@ void VolumeRenderer::render(int volume_index)
     glEnd();
     */
     
-    activate_volume_shader(volume[volume_index], tf[volume_index], true);
+    activate_volume_shader(vol, tf, true);
     glPopMatrix();
 
     glBegin(GL_POLYGON);
@@ -918,12 +956,32 @@ void VolumeRenderer::set_volume_mode(bool val) { volume_mode = val; }
 void VolumeRenderer::switch_slice_mode() { slice_mode = (!slice_mode); }
 void VolumeRenderer::switch_volume_mode() { volume_mode = (!volume_mode); }
 
-void VolumeRenderer::enable_volume(int index){
-  volume[index]->visible(true);
+void VolumeRenderer::enable_volume(int volDataID)
+{
+   printf("enable volume [%d]\n", volDataID);
+   std::vector<VolumeData*>::iterator iter;
+   for (iter = volumes.begin(); iter != volumes.end(); ++iter)
+   {
+       if ((*iter)->volume && ((*iter)->volume->getDataID() == volDataID))
+       {
+          (*iter)->volume->visible(true);
+          printf("volume [%d] is visible\n", volDataID);
+       }
+   }
 }
 
-void VolumeRenderer::disable_volume(int index){
-  volume[index]->visible(false);
+void VolumeRenderer::disable_volume(int volDataID)
+{
+   printf("disable volume [%d]\n", volDataID);
+   std::vector<VolumeData*>::iterator iter;
+   for (iter = volumes.begin(); iter != volumes.end(); ++iter)
+   {
+       if ((*iter)->volume && ((*iter)->volume->getDataID() == volDataID))
+       {
+          (*iter)->volume->visible(false);
+          printf("volume [%d] is visible\n", volDataID);
+       }
+   }
 }
 
 

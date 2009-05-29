@@ -271,7 +271,7 @@ FlowCmd::FlowCmd(Tcl_Interp *interp, const char *name, Tcl_HashEntry *hPtr)
     _name = name;
     _interp = interp;
     _hashPtr = hPtr;
-    _volIndex = -1;			/* Indicates that no volume slot has
+    _volDataID = -1;			/* Indicates that no volume slot has
 					 * been allocated for this vector. */
     _sv.sliceVisible = 1;
     _sv.tfPtr = NanoVis::get_transfunc("default");
@@ -295,10 +295,10 @@ FlowCmd::~FlowCmd(void)
 	delete _dataPtr;
     }
      if (_volPtr != NULL) {
-	delete _volPtr;
+	_volPtr->unref();
 	_volPtr = NULL;
-	NanoVis::volume[_volIndex] = NULL;
-	NanoVis::vol_renderer->remove_volume(_volIndex);
+	NanoVis::remove_volume(_volDataID);
+	NanoVis::vol_renderer->remove_volume(_volDataID);
     }
 
     FlowBox *boxPtr;
@@ -499,10 +499,10 @@ void
 FlowCmd::InitVectorField(void)
 {
     if (_volPtr != NULL) {
-	delete _volPtr;
+	_volPtr->unref();
 	_volPtr = NULL;
-	NanoVis::volume[_volIndex] = NULL;
-	NanoVis::vol_renderer->remove_volume(_volIndex);
+	NanoVis::remove_volume(_volDataID);
+	NanoVis::vol_renderer->remove_volume(_volDataID);
     }
     // Remove the associated vector field.
     if (_fieldPtr != NULL) {
@@ -527,10 +527,10 @@ bool
 FlowCmd::ScaleVectorField()
 {
     if (_volPtr != NULL) {
-	delete _volPtr;
+	_volPtr->unref();
 	_volPtr = NULL;
-	NanoVis::volume[_volIndex] = NULL;
-	NanoVis::vol_renderer->remove_volume(_volIndex);
+	NanoVis::remove_volume(_volDataID);
+	NanoVis::vol_renderer->remove_volume(_volDataID);
     }
     float *vdata;
     vdata = GetScaledVector();
@@ -631,12 +631,12 @@ FlowCmd::GetScaledVector(void)
 Volume *
 FlowCmd::MakeVolume(float *data)
 {
-    if (_volIndex < 0) {
-	_volIndex = NanoVis::n_volumes;
-	Trace("VolumeIndex is %d\n", _volIndex);
+    if (_volDataID < 0) {
+	_volDataID = NanoVis::generate_data_identifier();
+	Trace("VolumeDataID is %d\n", _volDataID);
     }
     Volume *volPtr;
-    volPtr = NanoVis::load_volume(_volIndex, _dataPtr->xNum(), 
+    volPtr = NanoVis::load_volume(_volDataID, _dataPtr->xNum(), 
 	_dataPtr->yNum(), _dataPtr->zNum(), 4, data, 
 	NanoVis::magMin, NanoVis::magMax, 0);
     volPtr->xAxis.SetRange(_dataPtr->xMin(), _dataPtr->xMax());
@@ -649,8 +649,10 @@ FlowCmd::MakeVolume(float *data)
     Vector3 physicalMax(NanoVis::xMax, NanoVis::yMax, NanoVis::zMax);
     volPtr->setPhysicalBBox(physicalMin, physicalMax);
 
-    volPtr->set_n_slice(256 - _volIndex);
+    //volPtr->set_n_slice(256 - _volIndex);
     // volPtr->set_n_slice(512- _volIndex);
+    // TBD..
+    volPtr->set_n_slice(256);
     volPtr->disable_cutplane(0);
     volPtr->disable_cutplane(1);
     volPtr->disable_cutplane(2);

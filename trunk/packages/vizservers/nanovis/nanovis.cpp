@@ -105,8 +105,8 @@ static Stats stats;
 Grid *NanoVis::grid = NULL;
 int NanoVis::updir = Y_POS;
 NvCamera* NanoVis::cam = NULL;
-int NanoVis::n_volumes = 0;
-vector<Volume*> NanoVis::volume;
+NanoVis::VolumeMap NanoVis::volumeMap;
+int  NanoVis::_last_data_id = 0;
 vector<HeightMap*> NanoVis::heightMap;
 VolumeRenderer* NanoVis::vol_renderer = 0;
 PointSetRenderer* NanoVis::pointset_renderer = 0;
@@ -513,32 +513,41 @@ NanoVis::pan(float dx, float dy)
  *		width, height and depth: number of points in each dimension
  */
 Volume *
-NanoVis::load_volume(int index, int width, int height, int depth,
+NanoVis::load_volume(int volDataID, int width, int height, int depth,
                      int n_component, float* data, double vmin,
                      double vmax, double nzero_min)
 {
-    while (n_volumes <= index) {
-        volume.push_back(NULL);
-        n_volumes++;
-    }
+    NanoVis::VolumeMap::iterator iter  = volumeMap.find(volDataID);
+    if (iter != volumeMap.end())
+    {
+        Volume* vol = iter->second;
+        if (vol != NULL) 
+        {
+            iter->second = NULL;
 
-    Volume* vol = volume[index];
-    if (vol != NULL) {
-        volume[index] = NULL;
-
-        if (vol->pointsetIndex != -1) {
-            if (((unsigned  int) vol->pointsetIndex) < pointSet.size() &&
-		pointSet[vol->pointsetIndex] != NULL) {
-                delete pointSet[vol->pointsetIndex];
-                pointSet[vol->pointsetIndex] = 0;
+            if (vol->pointsetIndex != -1) 
+            {
+		// TBD
+		/*
+                if (((unsigned  int) vol->pointsetIndex) < pointSet.size() &&
+		    pointSet[vol->pointsetIndex] != NULL) {
+                    delete pointSet[vol->pointsetIndex];
+                    pointSet[vol->pointsetIndex] = 0;
+                }
+		*/
             }
         }
-        delete vol;
+        vol->unref();
     }
-    volume[index] = new Volume(0.f, 0.f, 0.f, width, height, depth, 1.,
+
+    Volume* newVol = new Volume(0.f, 0.f, 0.f, width, height, depth, 1.,
 			       n_component, data, vmin, vmax, nzero_min);
-    fprintf(stderr, "VOLINDEX=%d, n_volumes=%d\n", index, n_volumes);
-    return volume[index];
+    newVol->setDataID(volDataID);
+    volumeMap[volDataID] = newVol;
+    
+    
+    fprintf(stderr, "VOLID=%d, # of volumes=%d\n", volDataID, volumeMap.size());
+    return newVol;
 }
 
 // Gets a colormap 1D texture by name.
@@ -1537,10 +1546,11 @@ NanoVis::SetVolumeRanges()
     }
     xMin = yMin = zMin = wMin = DBL_MAX;
     xMax = yMax = zMax = wMax = -DBL_MAX;
-    for (unsigned int i = 0; i < volume.size(); i++) {
-        Volume *volPtr;
+    NanoVis::VolumeMap::iterator iter;
+    for (iter = volumeMap.begin(); iter != volumeMap.end(); ++iter)
+    {
+        Volume *volPtr = iter->second;
 
-        volPtr = volume[i];
         if (volPtr == NULL) {
             continue;
         }
@@ -2544,4 +2554,20 @@ NanoVis::render_2d_contour(HeightMap* heightmap, int width, int height)
     resize_offscreen_buffer(old_width, old_height);
 
     return TCL_OK;
+}
+
+int NanoVis::generate_data_identifier()
+{
+    return _last_data_id++;
+}
+
+void NanoVis::remove_volume(int volDataID)
+{
+
+    NanoVis::VolumeMap::iterator iter  = volumeMap.find(volDataID);
+    if (iter != volumeMap.end())
+    {
+        (*iter).second->unref();
+        volumeMap.erase(iter);
+    }
 }
