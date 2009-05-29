@@ -50,7 +50,8 @@ TransferFunction::update(float* data)
 void 
 TransferFunction::update(int size, float *data)
 {
-    assert((size*4) == _size);
+    // TBD..
+    //assert((size*4) == _size);
     update(data);
 }
 

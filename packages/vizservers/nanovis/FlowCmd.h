@@ -168,7 +168,7 @@ class FlowCmd {
     Volume *_volPtr;			/* The volume associated with the
 					 * flow.  This isn't the same thing as
 					 * a normal volume displayed. */
-    int _volIndex; 			/* The index of slot in the volume
+    int _volDataID; 			/* The index of slot in the volume
 					 * vector. -1 indicates that a slot
 					 * hasn't been previously allocated.
 					 * This is to reuse the same slot so

@@ -119,7 +119,7 @@ VolumeInterpolator::clearAll()
 {
     _volumes.clear();
 
-    if (_volume) delete _volume;
+    if (_volume) _volume->unref();
 }
 
 void 

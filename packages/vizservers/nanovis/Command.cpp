@@ -362,7 +362,7 @@ GetHeightMapFromObj(Tcl_Interp *interp, Tcl_Obj *objPtr, HeightMap **hmPtrPtr)
 
 /*
  * ----------------------------------------------------------------------
- * FUNCTION: GetVolumeIndex
+ * FUNCTION: GetVolumeDataID
  *
  * Used internally to decode a series of volume index values and
  * store then in the specified vector.  If there are no volume index
@@ -374,10 +374,10 @@ GetHeightMapFromObj(Tcl_Interp *interp, Tcl_Obj *objPtr, HeightMap **hmPtrPtr)
  * ----------------------------------------------------------------------
  */
 static int
-GetVolumeIndex(Tcl_Interp *interp, Tcl_Obj *objPtr, unsigned int *indexPtr)
+GetVolumeDataID(Tcl_Interp *interp, Tcl_Obj *objPtr, unsigned int *dataIDPtr)
 {
-    int index;
-    if (Tcl_GetIntFromObj(interp, objPtr, &index) != TCL_OK) {
+    int volDataID;
+    if (Tcl_GetIntFromObj(interp, objPtr, &volDataID) != TCL_OK) {
         return TCL_ERROR;
     }
     if (index < 0) {
@@ -385,12 +385,23 @@ GetVolumeIndex(Tcl_Interp *interp, Tcl_Obj *objPtr, unsigned int *indexPtr)
                          Tcl_GetString(objPtr), "\"", (char*)NULL);
         return TCL_ERROR;
     }
+	/*
     if (index >= (int)NanoVis::volume.size()) {
         Tcl_AppendResult(interp, "index \"", Tcl_GetString(objPtr),
                          "\" is out of range", (char*)NULL);
         return TCL_ERROR;
     }
-    *indexPtr = (unsigned int)index;
+	*/
+
+    NanoVis::VolumeMap::iterator iter = NanoVis::volumeMap.find(volDataID);
+    if (iter == NanoVis::volumeMap.end())
+    {
+        Tcl_AppendResult(interp, "dataID \"", Tcl_GetString(objPtr),
+                     "\" is out found", (char*)NULL);
+        return TCL_ERROR;
+    }
+
+    *dataIDPtr = (unsigned int)volDataID;
     return TCL_OK;
 }
 
@@ -410,24 +421,25 @@ GetVolumeIndex(Tcl_Interp *interp, Tcl_Obj *objPtr, unsigned int *indexPtr)
 static int
 GetVolumeFromObj(Tcl_Interp *interp, Tcl_Obj *objPtr, Volume **volPtrPtr)
 {
-    unsigned int index;
-    if (GetVolumeIndex(interp, objPtr, &index) != TCL_OK) {
+    unsigned int volDataID;
+    if (GetVolumeDataID(interp, objPtr, &volDataID) != TCL_OK) {
         return TCL_ERROR;
     }
     Volume *vol;
-    vol = NanoVis::volume[index];
+    vol = NanoVis::volumeMap[volDataID];
     if (vol == NULL) {
-        Tcl_AppendResult(interp, "no volume defined for index \"",
+        Tcl_AppendResult(interp, "no volume defined for volDataID \"",
                          Tcl_GetString(objPtr), "\"", (char*)NULL);
         return TCL_ERROR;
     }
     *volPtrPtr = vol;
+    //printf("volume [%d] found\n", vol->getDataID());
     return TCL_OK;
 }
 
 /*
  * ----------------------------------------------------------------------
- * FUNCTION: GetVolumeIndices()
+ * FUNCTION: GetVolumeDataIDs()
  *
  * Used internally to decode a series of volume index values and
  * store then in the specified vector.  If there are no volume index
@@ -439,24 +451,28 @@ GetVolumeFromObj(Tcl_Interp *interp, Tcl_Obj *objPtr, Volume **volPtrPtr)
  * ----------------------------------------------------------------------
  */
 static int
-GetVolumeIndices(Tcl_Interp *interp, int objc, Tcl_Obj *const *objv,
+GetVolumeDataIDs(Tcl_Interp *interp, int objc, Tcl_Obj *const *objv,
                  vector<unsigned int>* vectorPtr)
 {
     if (objc == 0) {
-        for (unsigned int n = 0; n < NanoVis::volume.size(); n++) {
-            if (NanoVis::volume[n] != NULL) {
-                vectorPtr->push_back(n);
-            }
+        NanoVis::VolumeMap::iterator iter;
+        for (iter = NanoVis::volumeMap.begin(); iter != NanoVis::volumeMap.end(); ++iter) {
+                if ((*iter).second != NULL) {
+                        vectorPtr->push_back((*iter).first);
+                }
         }
     } else {
+        NanoVis::VolumeMap::iterator iter;
         for (int n = 0; n < objc; n++) {
-            unsigned int index;
+            unsigned int volDataID;
 
-            if (GetVolumeIndex(interp, objv[n], &index) != TCL_OK) {
+            if (GetVolumeDataID(interp, objv[n], &volDataID) != TCL_OK) {
                 return TCL_ERROR;
             }
-            if (NanoVis::volume[index] != NULL) {
-                vectorPtr->push_back(index);
+
+            iter = NanoVis::volumeMap.find(volDataID);
+            if ((iter != NanoVis::volumeMap.end()) && ((*iter).second != 0)) {
+                vectorPtr->push_back(volDataID);
             }
         }
     }
@@ -481,9 +497,10 @@ GetVolumes(Tcl_Interp *interp, int objc, Tcl_Obj *const *objv,
            vector<Volume *>* vectorPtr)
 {
     if (objc == 0) {
-        for (unsigned int n = 0; n < NanoVis::volume.size(); n++) {
-            if (NanoVis::volume[n] != NULL) {
-                vectorPtr->push_back(NanoVis::volume[n]);
+       NanoVis::VolumeMap::iterator iter;
+        for (iter = NanoVis::volumeMap.begin(); iter != NanoVis::volumeMap.end(); ++iter) {
+            if ((*iter).second != NULL) {
+                vectorPtr->push_back((*iter).second);
             }
         }
     } else {
@@ -1184,14 +1201,14 @@ VolumeAnimationVolumesOp(ClientData clientData, Tcl_Interp *interp, int objc,
                          Tcl_Obj *const *objv)
 {
     vector<unsigned int> ivol;
-    if (GetVolumeIndices(interp, objc - 3, objv + 3, &ivol) != TCL_OK) {
+    if (GetVolumeDataIDs(interp, objc - 3, objv + 3, &ivol) != TCL_OK) {
         return TCL_ERROR;
     }
-    Trace("parsing volume index\n");
+    Trace("parsing volume data identifier\n");
     vector<unsigned int>::iterator iter;
     for (iter = ivol.begin(); iter != ivol.end(); iter++) {
-        Trace("index: %d\n", *iter);
-        NanoVis::vol_renderer->addAnimatedVolume(NanoVis::volume[*iter], *iter);
+        Trace("volDataID: %d\n", *iter);
+        NanoVis::vol_renderer->addAnimatedVolume(NanoVis::volumeMap[*iter], *iter);
     }
     return TCL_OK;
 }
@@ -1238,7 +1255,6 @@ VolumeDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
     if (GetDataStream(interp, buf, nbytes) != TCL_OK) {
         return TCL_ERROR;
     }
-    int n = NanoVis::n_volumes;
     char header[6];
     memcpy(header, buf.bytes(), sizeof(char) * 5);
     header[5] = '\0';
@@ -1259,9 +1275,10 @@ VolumeDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
 #endif  /*_LOCAL_ZINC_TEST_*/
     printf("Checking header[%s]\n", header);
     fflush(stdout);
-    if (strcmp(header, "<HDR>") == 0) {
-        Volume* vol = NULL;
 
+    Volume *volPtr = 0;
+    int volDataID = -1;
+    if (strcmp(header, "<HDR>") == 0) {
         printf("ZincBlende stream is in\n");
         fflush(stdout);
         //std::stringstream fdata(std::ios_base::out|std::ios_base::in|std::ios_base::binary);
@@ -1269,32 +1286,36 @@ VolumeDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
         //vol = NvZincBlendeReconstructor::getInstance()->loadFromStream(fdata);
 
 #if _LOCAL_ZINC_TEST_
-        vol = NvZincBlendeReconstructor::getInstance()->loadFromMemory(b);
+        volPtr = NvZincBlendeReconstructor::getInstance()->loadFromMemory(b);
 #else
-        vol = NvZincBlendeReconstructor::getInstance()->loadFromMemory((void*) buf.bytes());
+        volPtr = NvZincBlendeReconstructor::getInstance()->loadFromMemory((void*) buf.bytes());
 #endif  /*_LOCAL_ZINC_TEST_*/
-        if (vol == NULL) {
+        if (volPtr == NULL) {
             Tcl_AppendResult(interp, "can't get volume instance", (char *)NULL);
             return TCL_OK;
         }
         printf("finish loading\n");
         fflush(stdout);
-        while (NanoVis::n_volumes <= n) {
-            NanoVis::volume.push_back((Volume*) NULL);
-            NanoVis::n_volumes++;
-        }
 
-        if (NanoVis::volume[n] != NULL) {
-            delete NanoVis::volume[n];
-            NanoVis::volume[n] = NULL;
+	// INSOO
+	// TBD..
+	volDataID = NanoVis::generate_data_identifier();
+	NanoVis::VolumeMap::iterator iter;
+	iter = NanoVis::volumeMap.find(volDataID);
+	if (iter != NanoVis::volumeMap.end())
+	{
+            if (iter->second != NULL) {
+                iter->second->unref();
+                iter->second = 0;
+            }
         }
 
         float dx0 = -0.5;
-        float dy0 = -0.5*vol->height/vol->width;
-        float dz0 = -0.5*vol->depth/vol->width;
-        vol->move(Vector3(dx0, dy0, dz0));
+        float dy0 = -0.5*volPtr->height/volPtr->width;
+        float dz0 = -0.5*volPtr->depth/volPtr->width;
+        volPtr->move(Vector3(dx0, dy0, dz0));
 
-        NanoVis::volume[n] = vol;
+        NanoVis::volumeMap[volDataID] = volPtr;
 #if __TEST_CODE__
     } else if (strcmp(header, "<FET>") == 0) {
         printf("FET loading...\n");
@@ -1307,6 +1328,7 @@ VolumeDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
         }
 #endif  /*__TEST_CODE__*/
     } else if (strcmp(header, "<ODX>") == 0) {
+	/*
         Rappture::Outcome err;
 
         printf("Loading DX using OpenDX library...\n");
@@ -1315,7 +1337,10 @@ VolumeDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
             Tcl_AppendResult(interp, err.remark(), (char*)NULL);
             return TCL_ERROR;
         }
+	*/
     } else {
+	volDataID = NanoVis::generate_data_identifier();
+	printf("test\n");
 #ifdef notdef
 	Rappture::Unirect3d *dataPtr;
 
@@ -1328,8 +1353,7 @@ VolumeDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
 #if !ISO_TEST
         dataPtr->Resample(context, 30);
 #endif
-	Volume *volPtr;
-	volPtr = NanoVis::load_volume(index, nx, ny, nz, 4, data, vmin, vmax,
+	volPtr = NanoVis::load_volume(volDataID, nx, ny, nz, 4, data, vmin, vmax,
 				  nzero_min);
     
     volPtr->xAxis.SetRange(dataPtr->xMin(), dataPtr->xMin() + (nx * dx));
@@ -1352,14 +1376,15 @@ VolumeDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
 	bool result;
         Rappture::Outcome context;
 #if ISO_TEST
-        result = load_volume_stream2(context, n, fdata);
+        result = load_volume_stream2(context, volDataID, fdata);
 #else
-        result = load_volume_stream(context, n, fdata);
+        result = load_volume_stream(context, volDataID, fdata);
 #endif
         if (!result) {
             Tcl_AppendResult(interp, context.remark(), (char*)NULL);
             return TCL_ERROR;
         }
+	volPtr = NanoVis::volumeMap[volDataID];
     }
 
     //
@@ -1368,29 +1393,27 @@ VolumeDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
     // position with exactly the same number of slices, the second volume will
     // overwrite the first, so the first won't appear at all.
     //
-    if (NanoVis::volume[n] != NULL) {
-        //NanoVis::volume[n]->set_n_slice(512-n);
-        NanoVis::volume[n]->set_n_slice(256-n);
-        NanoVis::volume[n]->disable_cutplane(0);
-        NanoVis::volume[n]->disable_cutplane(1);
-        NanoVis::volume[n]->disable_cutplane(2);
+    if (volPtr != NULL) {
+        //volPtr->set_n_slice(512-n);
+        //volPtr->set_n_slice(256-n);
+        volPtr->set_n_slice(256);
+        volPtr->disable_cutplane(0);
+        volPtr->disable_cutplane(1);
+        volPtr->disable_cutplane(2);
 
-        NanoVis::vol_renderer->add_volume(NanoVis::volume[n],
+        NanoVis::vol_renderer->add_volume(volPtr,
                                           NanoVis::get_transfunc("default"));
-    }
 
-    {
-        Volume *volPtr;
         char info[1024];
 	ssize_t nWritten;
 
         if (Volume::update_pending) {
             NanoVis::SetVolumeRanges();
         }
-        volPtr = NanoVis::volume[n];
+
         // FIXME: strlen(info) is the return value of sprintf
         sprintf(info, "nv>data tag %s id %d min %g max %g vmin %g vmax %g\n",
-                tag, n, volPtr->wAxis.min(), volPtr->wAxis.max(),
+                tag, volDataID, volPtr->wAxis.min(), volPtr->wAxis.max(),
                 Volume::valueMin, Volume::valueMax);
         nWritten  = write(0, info, strlen(info));
 	assert(nWritten == (ssize_t)strlen(info));
@@ -1682,8 +1705,12 @@ static int
 VolumeTestOp(ClientData clientData, Tcl_Interp *interp, int objc,
              Tcl_Obj *const *objv)
 {
-    NanoVis::volume[1]->data(false);
-    NanoVis::volume[1]->visible(false);
+    NanoVis::VolumeMap::iterator iter = NanoVis::volumeMap.find(1);
+    if (iter != NanoVis::volumeMap.end())
+    {
+        NanoVis::volumeMap[1]->data(false);
+        NanoVis::volumeMap[1]->visible(false);
+    }
     return TCL_OK;
 }
 
@@ -2412,8 +2439,9 @@ HeightMapLegendOp(ClientData clientData, Tcl_Interp *interp, int objc,
     if (HeightMap::update_pending) {
         NanoVis::SetHeightmapRanges();
     }
+
     NanoVis::render_legend(tf, HeightMap::valueMin, HeightMap::valueMax, w, h,
-        "label");
+       "label");
     return TCL_OK;
 }
 

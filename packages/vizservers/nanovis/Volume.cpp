@@ -45,6 +45,8 @@ Volume::Volume(
     volume_type(CUBIC),		//by default, is a cubic volume
     iso_surface(0)
 {
+    _volumeDataID = -1;
+
     tex = new Texture3D(w, h, d, NVIS_FLOAT, NVIS_LINEAR_INTERP, n);
     int fcount = width * height * depth * n_components;
     _data = new float[fcount];

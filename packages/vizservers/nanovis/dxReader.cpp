@@ -47,7 +47,7 @@
 /* Load a 3D volume from a dx-format file
  */
 bool
-load_volume_stream2(Rappture::Outcome &result, int index, std::iostream& fin)
+load_volume_stream2(Rappture::Outcome &result, int volDataID, std::iostream& fin)
 {
     printf("load_volume_stream2\n");
     Rappture::MeshTri2D xymesh;
@@ -173,6 +173,7 @@ load_volume_stream2(Rappture::Outcome &result, int index, std::iostream& fin)
         result.addError("EOF found: expecting %d points", npts);
 	return false;
     }
+    Volume *volPtr = 0;
     if (isrect) {
 	double dval[6];
 	int nread = 0;
@@ -245,8 +246,7 @@ load_volume_stream2(Rappture::Outcome &result, int index, std::iostream& fin)
 	dy = ny;
 	dz = nz;
 	
-	Volume *volPtr;
-	volPtr = NanoVis::load_volume(index, nx, ny, nz, 4, data,
+	volPtr = NanoVis::load_volume(volDataID, nx, ny, nz, 4, data,
 				      vmin, vmax, nzero_min);
 	volPtr->xAxis.SetRange(x0, x0 + (nx * dx));
 	volPtr->yAxis.SetRange(y0, y0 + (ny * dy));
@@ -386,8 +386,7 @@ load_volume_stream2(Rappture::Outcome &result, int index, std::iostream& fin)
 	    }
 	}
 	
-	Volume *volPtr;
-	volPtr = NanoVis::load_volume(index, nx, ny, nz, 4, data,
+	volPtr = NanoVis::load_volume(volDataID, nx, ny, nz, 4, data,
 				      field.valueMin(), field.valueMax(), nzero_min);
 	volPtr->xAxis.SetRange(field.rangeMin(Rappture::xaxis),
 			       field.rangeMax(Rappture::xaxis));
@@ -405,12 +404,13 @@ load_volume_stream2(Rappture::Outcome &result, int index, std::iostream& fin)
     float dx0 = -0.5;
     float dy0 = -0.5*dy/dx;
     float dz0 = -0.5*dz/dx;
-    NanoVis::volume[index]->move(Vector3(dx0, dy0, dz0));
+    if (volPtr) volPtr->move(Vector3(dx0, dy0, dz0));
+     printf("volume moved\n");
     return true;
 }
 
 bool
-load_volume_stream(Rappture::Outcome &result, int index, std::iostream& fin)
+load_volume_stream(Rappture::Outcome &result, int volDataID, std::iostream& fin)
 {
     printf("load_volume_stream\n");
 
@@ -526,6 +526,7 @@ load_volume_stream(Rappture::Outcome &result, int index, std::iostream& fin)
         result.error("data not found in stream");
 	return false;
     }
+    Volume *volPtr = 0;
     if (isrect) {
 	Rappture::Mesh1D xgrid(x0, x0+nx*dx, nx);
 	Rappture::Mesh1D ygrid(y0, y0+ny*dy, ny);
@@ -649,14 +650,13 @@ load_volume_stream(Rappture::Outcome &result, int index, std::iostream& fin)
 	    fflush(stderr);
 	}
 #endif	
-	fprintf(stdout,"End Data Stats index = %i\n",index);
+	fprintf(stdout,"End Data Stats DataID = %i\n",volDataID);
 	fprintf(stdout,"nx = %i ny = %i nz = %i\n",nx,ny,nz);
 	fprintf(stdout,"dx = %lg dy = %lg dz = %lg\n",dx,dy,dz);
 	fprintf(stdout,"dataMin = %lg\tdataMax = %lg\tnzero_min = %lg\n", field.valueMin(),field.valueMax(),nzero_min);
 	fflush(stdout);
 	
-	Volume *volPtr;
-	volPtr = NanoVis::load_volume(index, nx, ny, nz, 4, data,
+	volPtr = NanoVis::load_volume(volDataID, nx, ny, nz, 4, data,
 				      field.valueMin(), field.valueMax(), nzero_min);
 	volPtr->xAxis.SetRange(field.rangeMin(Rappture::xaxis),
 			       field.rangeMax(Rappture::xaxis));
@@ -801,8 +801,7 @@ load_volume_stream(Rappture::Outcome &result, int index, std::iostream& fin)
 	    }
 	}
 	
-	Volume *volPtr;
-	volPtr = NanoVis::load_volume(index, nx, ny, nz, 4, data,
+	volPtr = NanoVis::load_volume(volDataID, nx, ny, nz, 4, data,
 				      field.valueMin(), field.valueMax(), nzero_min);
 	volPtr->xAxis.SetRange(field.rangeMin(Rappture::xaxis),
 			       field.rangeMax(Rappture::xaxis));
@@ -833,13 +832,13 @@ load_volume_stream(Rappture::Outcome &result, int index, std::iostream& fin)
     float dx0 = -0.5;
     float dy0 = -0.5*dy/dx;
     float dz0 = -0.5*dz/dx;
-    NanoVis::volume[index]->move(Vector3(dx0, dy0, dz0));
+    if (volPtr) volPtr->move(Vector3(dx0, dy0, dz0));
     return true;
 }
 
 
 bool
-load_volume_stream_insoo(Rappture::Outcome &result, int index, 
+load_volume_stream_insoo(Rappture::Outcome &result, int volDataID, 
 			 std::iostream& fin)
 {
     printf("load_volume_stream\n");
@@ -957,6 +956,7 @@ load_volume_stream_insoo(Rappture::Outcome &result, int index,
         return false;
     }
 
+    Volume* volPtr = 0;
     if (isrect) {
 	Rappture::Mesh1D xgrid(x0, x0+nx*dx, nx);
 	Rappture::Mesh1D ygrid(y0, y0+ny*dy, ny);
@@ -1120,15 +1120,14 @@ load_volume_stream_insoo(Rappture::Outcome &result, int index,
                 fflush(stderr);
             }
 
-            fprintf(stdout,"End Data Stats index = %i\n",index);
+            fprintf(stdout,"End Data Stats volDataID = %i\n",volDataID);
             fprintf(stdout,"nx = %i ny = %i nz = %i\n",nx,ny,nz);
             fprintf(stdout,"dx = %lg dy = %lg dz = %lg\n",dx,dy,dz);
             fprintf(stdout,"dataMin = %lg\tdataMax = %lg\tnzero_min = %lg\n", field.valueMin(),field.valueMax(),nzero_min);
             fflush(stdout);
             */
 
-	Volume *volPtr;
-	volPtr = NanoVis::load_volume(index, nx, ny, nz, 4, data,
+	volPtr = NanoVis::load_volume(volDataID, nx, ny, nz, 4, data,
 				      field.valueMin(), field.valueMax(), nzero_min);
 	volPtr->xAxis.SetRange(field.rangeMin(Rappture::xaxis),
 			       field.rangeMax(Rappture::xaxis));
@@ -1275,8 +1274,7 @@ load_volume_stream_insoo(Rappture::Outcome &result, int index,
 	    }
 	}
 	
-	Volume *volPtr;
-	volPtr = NanoVis::load_volume(index, nx, ny, nz, 4, data,
+	volPtr = NanoVis::load_volume(volDataID, nx, ny, nz, 4, data,
 				      field.valueMin(), field.valueMax(), nzero_min);
 	volPtr->xAxis.SetRange(field.rangeMin(Rappture::xaxis),
 			       field.rangeMax(Rappture::xaxis));
@@ -1307,6 +1305,6 @@ load_volume_stream_insoo(Rappture::Outcome &result, int index,
     float dx0 = -0.5;
     float dy0 = -0.5*dy/dx;
     float dz0 = -0.5*dz/dx;
-    NanoVis::volume[index]->move(Vector3(dx0, dy0, dz0));
+    if (volPtr) volPtr->move(Vector3(dx0, dy0, dz0));
     return true;
 }
