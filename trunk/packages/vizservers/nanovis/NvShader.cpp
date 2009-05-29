@@ -17,6 +17,8 @@ NvShader::NvShader()
 
 NvShader::~NvShader()
 {
+    cgDestroyProgram(_cgVP);
+    cgDestroyProgram(_cgFP);
 }
 
 void NvShader::loadVertexProgram(const char* fileName, const char* entryPoint)
