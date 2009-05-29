@@ -58,6 +58,7 @@ load_volume_stream2(Rappture::Outcome &result, int index, std::iostream& fin)
     int isrect = 1;
     dx = dy = dz = 0.0;         // Suppress compiler warning.
     x0 = y0 = z0 = 0.0;		// May not have an origin line.
+    nx = ny = nz = npts = nxy = 0;
     do {
         fin.getline(line,sizeof(line)-1);
         for (start=&line[0]; *start == ' ' || *start == '\t'; start++)
@@ -422,6 +423,7 @@ load_volume_stream(Rappture::Outcome &result, int index, std::iostream& fin)
 
     dx = dy = dz = 0.0;         // Suppress compiler warning.
     x0 = y0 = z0 = 0.0;		// May not have an origin line.
+    nx = ny = nz = npts = nxy = 0;
     while (!fin.eof()) {
         fin.getline(line, sizeof(line) - 1);
         if (fin.fail()) {
@@ -851,6 +853,7 @@ load_volume_stream_insoo(Rappture::Outcome &result, int index,
 
     dx = dy = dz = 0.0;         // Suppress compiler warning.
     x0 = y0 = z0 = 0.0;		// May not have an origin line.
+    nx = ny = nz = npts = nxy = 0;
     while (!fin.eof()) {
         fin.getline(line, sizeof(line) - 1);
         if (fin.fail()) {

@@ -66,6 +66,12 @@ Rappture::SwitchSpec FlowCmd::_switches[] = {
 	offsetof(FlowValues, showVolume), 0},
     {Rappture::SWITCH_BOOLEAN, "-outline", "boolean",
 	offsetof(FlowValues, showOutline), 0},
+    {Rappture::SWITCH_FLOAT, "-diffuse", "value",
+	offsetof(FlowValues, diffuse), 0},
+    {Rappture::SWITCH_FLOAT, "-opacity", "value",
+	offsetof(FlowValues, opacity), 0},
+    {Rappture::SWITCH_FLOAT, "-specular", "value",
+	offsetof(FlowValues, specular), 0},
     {Rappture::SWITCH_END}
 };
 
@@ -268,6 +274,7 @@ FlowCmd::FlowCmd(Tcl_Interp *interp, const char *name, Tcl_HashEntry *hPtr)
     _volIndex = -1;			/* Indicates that no volume slot has
 					 * been allocated for this vector. */
     _sv.sliceVisible = 1;
+    _sv.tfPtr = NanoVis::get_transfunc("default");
     _volPtr = NULL;
     _cmdToken = Tcl_CreateObjCommand(interp, (char *)_name, 
 	(Tcl_ObjCmdProc *)FlowInstObjCmd, this, FlowInstDeleteProc);
@@ -648,26 +655,18 @@ FlowCmd::MakeVolume(float *data)
     volPtr->disable_cutplane(1);
     volPtr->disable_cutplane(2);
 
-    TransferFunction *tfPtr;
-    tfPtr = _sv.tfPtr;
-    if (tfPtr == NULL) {
-	tfPtr = NanoVis::get_transfunc("default");
-    }
-    NanoVis::vol_renderer->add_volume(volPtr, tfPtr);
-    if (_sv.showVolume) {
-	volPtr->enable_data();
-    } else {
-	volPtr->disable_data();
-    }
-    if (_sv.showOutline) {
-	volPtr->enable_outline();
-    } else {
-	volPtr->disable_outline();
-    }
+    NanoVis::vol_renderer->add_volume(volPtr, _sv.tfPtr);
+    volPtr->data(_sv.showVolume);
+    volPtr->outline(_sv.showOutline);
+    volPtr->opacity_scale(_sv.opacity);
+    volPtr->specular(_sv.specular);
+    volPtr->diffuse(_sv.diffuse);
+
     float dx0 = -0.5;
     float dy0 = -0.5*volPtr->height/volPtr->width;
     float dz0 = -0.5*volPtr->depth/volPtr->width;
     volPtr->move(Vector3(dx0, dy0, dz0));
+    Volume::update_pending = true;
     return volPtr;
 }
 
@@ -1595,6 +1594,45 @@ FlowBoxOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 /*
+ * ----------------------------------------------------------------------
+ * CLIENT COMMAND:
+ *   $flow legend <width> <height>
+ *
+ * Clients use this to generate a legend image for the specified
+ * transfer function.  The legend image is a color gradient from 0
+ * to one, drawn in the given transfer function.  The resulting image
+ * is returned in the size <width> x <height>.
+ * ----------------------------------------------------------------------
+ */
+static int
+FlowLegendOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+	  Tcl_Obj *const *objv)
+{
+    FlowCmd *flowPtr = (FlowCmd *)clientData;
+    
+    const char *string = Tcl_GetString(objv[1]);
+    TransferFunction *tf;
+    tf = flowPtr->GetTransferFunction();
+    if (tf == NULL) {
+        Tcl_AppendResult(interp, "unknown transfer function \"", string, "\"",
+                             (char*)NULL);
+        return TCL_ERROR;
+    }
+    const char *label;
+    label = Tcl_GetString(objv[0]);
+    int w, h;
+    if ((Tcl_GetIntFromObj(interp, objv[2], &w) != TCL_OK) ||
+        (Tcl_GetIntFromObj(interp, objv[3], &h) != TCL_OK)) {
+        return TCL_ERROR;
+    }
+    if (NanoVis::MAP_FLOWS) {
+        NanoVis::MapFlows();
+    }
+    NanoVis::render_legend(tf, NanoVis::magMin, NanoVis::magMax, w, h, label);
+    return TCL_OK;
+}
+
+/*
  *---------------------------------------------------------------------------
  *
  * FlowInstObjCmd --
@@ -1614,6 +1652,7 @@ static Rappture::CmdSpec flowInstOps[] = {
     {"box",         1, FlowBoxOp,        2, 0, "oper ?args?"},
     {"configure",   1, FlowConfigureOp,  2, 0, "?switches?"},
     {"data",	    1, FlowDataOp,       2, 0, "oper ?args?"},
+    {"legend",      1, FlowLegendOp,     4, 4, "w h"},
     {"particles",   1, FlowParticlesOp,  2, 0, "oper ?args?"}
 };
 static int nFlowInstOps = NumCmdSpecs(flowInstOps);
@@ -1933,6 +1972,7 @@ FlowVideoOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     return TCL_OK;
 }
+
 
 /*
  *---------------------------------------------------------------------------

@@ -38,15 +38,15 @@ inline void NvRegularVolumeShader::bind(unsigned int tfID, Volume* volume, int s
     if(!sliceMode)
         cgGLSetParameter4f(m_render_param_one_volume_param,
             volume->get_n_slice(),
-            volume->get_opacity_scale(),
-            volume->get_diffuse(),
-            volume->get_specular());
+            volume->opacity_scale(),
+            volume->diffuse(),
+            volume->specular());
     else
         cgGLSetParameter4f(m_render_param_one_volume_param,
             0.,
-            volume->get_opacity_scale(),
-            volume->get_diffuse(),
-            volume->get_specular());
+            volume->opacity_scale(),
+            volume->diffuse(),
+            volume->specular());
 
     cgGLSetParameter4f(m_option_one_volume_param,
     	0.0f,

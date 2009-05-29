@@ -36,9 +36,9 @@ Volume::Volume(
     enabled(true),
     //n_slice(256),		// default value
     n_slice(512),		// default value
-    specular(6.),		// default value
-    diffuse(3.),		// default value
-    opacity_scale(10.),		// default value
+    _specular(6.),		// default value
+    _diffuse(3.),		// default value
+    _opacity_scale(10.),	// default value
     data_enabled(true),		// default value
     outline_enabled(true),	// default value
     outline_color(1.,1.,1.),	// default value

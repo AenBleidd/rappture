@@ -163,7 +163,7 @@ void VolumeRenderer::render_all_points()
     
     for(int i=0; i<n_volumes; i++){
 	int volume_index = i;
-	if(!volume[i]->is_enabled())
+	if(!volume[i]->visible())
 	    continue; //skip this volume
 	
 	Vector3* location = volume[volume_index]->get_location();
@@ -172,7 +172,7 @@ void VolumeRenderer::render_all_points()
 	glPushMatrix();
 	glTranslatef(shift_4d.x, shift_4d.y, shift_4d.z);
 	
-	if (volume[volume_index]->outline_is_enabled()) {
+	if (volume[volume_index]->outline()) {
 	    float olcolor[3];
 	    volume[volume_index]->get_outline_color(olcolor);
 	    draw_bounding_box(x0, y0, z0, x0+1, y0+1, z0+1,
@@ -224,7 +224,7 @@ VolumeRenderer::render_all()
         polys[vol_index] = NULL;
         actual_slices[vol_index] = 0;
 
-        if(!cur_vol->is_enabled()) {
+        if(!cur_vol->visible()) {
             continue; //skip this volume
 	}
 
@@ -286,7 +286,7 @@ VolumeRenderer::render_all()
 	
 	//draw volume bounding box with translation (the correct location in
 	//space)
-        if (cur_vol->outline_is_enabled()) {
+        if (cur_vol->outline()) {
             float olcolor[3];
             cur_vol->get_outline_color(olcolor);
             draw_bounding_box(x0, y0, z0, x0+1, y0+1, z0+1,
@@ -298,7 +298,7 @@ VolumeRenderer::render_all()
         //draw labels
         glPushMatrix();
         glTranslatef(shift_4d.x, shift_4d.y, shift_4d.z);
-        if(cur_vol->outline_is_enabled()) {
+        if(cur_vol->outline()) {
 	    //draw_label(i);
         }
         glPopMatrix();
@@ -313,7 +313,7 @@ VolumeRenderer::render_all()
         float z_step = fabs(zNear-zFar)/n_slices;		
         int n_actual_slices;
 	
-        if (cur_vol->data_is_enabled()) {
+        if (cur_vol->data()) {
             n_actual_slices = (int)(fabs(zNear-zFar)/z_step + 1);
             polys[vol_index] = new ConvexPolygon*[n_actual_slices];
         } else {
@@ -571,7 +571,7 @@ void VolumeRenderer::render(int volume_index)
   model_view_trans_inverse = model_view_trans.inverse();
 
   //draw volume bounding box
-  if (volume[volume_index]->outline_is_enabled()) {
+  if (volume[volume_index]->outline()) {
       draw_bounding_box(x0, y0, z0, x0+1, y0+1, z0+1, 0.8, 0.1, 0.1, 1.5);
   }
   glPopMatrix();
@@ -919,11 +919,11 @@ void VolumeRenderer::switch_slice_mode() { slice_mode = (!slice_mode); }
 void VolumeRenderer::switch_volume_mode() { volume_mode = (!volume_mode); }
 
 void VolumeRenderer::enable_volume(int index){
-  volume[index]->enable();
+  volume[index]->visible(true);
 }
 
 void VolumeRenderer::disable_volume(int index){
-  volume[index]->disable();
+  volume[index]->visible(false);
 }
 
 

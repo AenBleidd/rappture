@@ -34,15 +34,15 @@ inline void NvZincBlendeVolumeShader::bind(unsigned int tfID, Volume* volume, in
     if(!sliceMode)
         cgGLSetParameter4f(_renderParam,
             vol->get_n_slice(),
-            vol->get_opacity_scale(),
-            vol->get_diffuse(), 
-            vol->get_specular());
+            vol->opacity_scale(),
+            vol->diffuse(), 
+            vol->specular());
     else
         cgGLSetParameter4f(_renderParam,
             0.,
-            vol->get_opacity_scale(),
-            vol->get_diffuse(),
-            vol->get_specular());
+            vol->opacity_scale(),
+            vol->diffuse(),
+            vol->specular());
 
     cgGLSetParameter4f(_option_one_volume_param,
     	0.0f,
