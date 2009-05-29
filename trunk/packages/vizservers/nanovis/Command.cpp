@@ -952,8 +952,7 @@ LegendCmd(ClientData clientData, Tcl_Interp *interp, int objc,
     if (Volume::update_pending) {
         NanoVis::SetVolumeRanges();
     }
-    NanoVis::render_legend(tf, NanoVis::grid->yAxis.min(),
-                           NanoVis::grid->yAxis.max(), w, h, label);
+    NanoVis::render_legend(tf, Volume::valueMin, Volume::valueMax, w, h, label);
     return TCL_OK;
 }
 
@@ -1411,16 +1410,9 @@ VolumeDataStateOp(ClientData clientData, Tcl_Interp *interp, int objc,
     if (GetVolumes(interp, objc - 4, objv + 4, &ivol) != TCL_OK) {
         return TCL_ERROR;
     }
-    if (state) {
-        vector<Volume *>::iterator iter;
-        for (iter = ivol.begin(); iter != ivol.end(); iter++) {
-            (*iter)->enable_data();
-        }
-    } else {
-        vector<Volume *>::iterator iter;
-        for (iter = ivol.begin(); iter != ivol.end(); iter++) {
-            (*iter)->disable_data();
-        }
+    vector<Volume *>::iterator iter;
+    for (iter = ivol.begin(); iter != ivol.end(); iter++) {
+	(*iter)->data(state);
     }
     return TCL_OK;
 }
@@ -1476,16 +1468,9 @@ VolumeOutlineStateOp(ClientData clientData, Tcl_Interp *interp, int objc,
     if (GetVolumes(interp, objc - 4, objv + 4, &ivol) != TCL_OK) {
         return TCL_ERROR;
     }
-    if (state) {
-        vector<Volume *>::iterator iter;
-        for (iter = ivol.begin(); iter != ivol.end(); iter++) {
-            (*iter)->enable_outline();
-        }
-    } else {
-        vector<Volume *>::iterator iter;
-        for (iter = ivol.begin(); iter != ivol.end(); iter++) {
-            (*iter)->disable_outline();
-        }
+    vector<Volume *>::iterator iter;
+    for (iter = ivol.begin(); iter != ivol.end(); iter++) {
+	(*iter)->outline(state);
     }
     return TCL_OK;
 }
@@ -1527,7 +1512,7 @@ VolumeShadingDiffuseOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     vector<Volume *>::iterator iter;
     for (iter = ivol.begin(); iter != ivol.end(); iter++) {
-        (*iter)->set_diffuse(diffuse);
+        (*iter)->diffuse(diffuse);
     }
     return TCL_OK;
 }
@@ -1567,7 +1552,7 @@ VolumeShadingOpacityOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     vector<Volume *>::iterator iter;
     for (iter = ivol.begin(); iter != ivol.end(); iter++) {
-        (*iter)->set_opacity_scale(opacity);
+        (*iter)->opacity_scale(opacity);
     }
     return TCL_OK;
 }
@@ -1586,7 +1571,7 @@ VolumeShadingSpecularOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     vector<Volume *>::iterator iter;
     for (iter = ivol.begin(); iter != ivol.end(); iter++) {
-        (*iter)->set_specular(specular);
+        (*iter)->specular(specular);
     }
     return TCL_OK;
 }
@@ -1686,16 +1671,9 @@ VolumeStateOp(ClientData clientData, Tcl_Interp *interp, int objc,
     if (GetVolumes(interp, objc - 3, objv + 3, &ivol) != TCL_OK) {
         return TCL_ERROR;
     }
-    if (state) {
-        vector<Volume *>::iterator iter;
-        for (iter = ivol.begin(); iter != ivol.end(); iter++) {
-            (*iter)->enable();
-        }
-    } else {
-        vector<Volume *>::iterator iter;
-        for (iter = ivol.begin(); iter != ivol.end(); iter++) {
-            (*iter)->disable();
-        }
+    vector<Volume *>::iterator iter;
+    for (iter = ivol.begin(); iter != ivol.end(); iter++) {
+	(*iter)->visible(state);
     }
     return TCL_OK;
 }
@@ -1704,8 +1682,8 @@ static int
 VolumeTestOp(ClientData clientData, Tcl_Interp *interp, int objc,
              Tcl_Obj *const *objv)
 {
-    NanoVis::volume[1]->disable_data();
-    NanoVis::volume[1]->disable();
+    NanoVis::volume[1]->data(false);
+    NanoVis::volume[1]->visible(false);
     return TCL_OK;
 }
 

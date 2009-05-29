@@ -624,6 +624,7 @@ NanoVis::render_legend(TransferFunction *tf, double min, double max,
     if (debug_flag) {
     	fprintf(stderr, "leaving render_legend\n");
     }
+    delete plane[0];
     return TCL_OK;
 }
 
@@ -1543,7 +1544,7 @@ NanoVis::SetVolumeRanges()
         if (volPtr == NULL) {
             continue;
         }
-        if (!volPtr->enabled) {
+        if (!volPtr->visible()) {
             continue;
         }
         if (xMin > volPtr->xAxis.min()) {
@@ -1869,13 +1870,13 @@ void addVectorField(const char* filename, const char* vf_name,
 	    volPtr->disable_cutplane(2);
 	    
 	    NanoVis::vol_renderer->add_volume(volPtr,
-					      NanoVis::get_transfunc("default"));
+		NanoVis::get_transfunc("default"));
 	    float dx0 = -0.5;
 	    float dy0 = -0.5*volPtr->height/volPtr->width;
 	    float dz0 = -0.5*volPtr->depth/volPtr->width;
 	    volPtr->move(Vector3(dx0, dy0, dz0));
-	    //volPtr->enable_data();
-	    volPtr->disable_data();
+	    //volPtr->data(true);
+	    volPtr->data(false);
 	    NanoVis::flowVisRenderer->addVectorField(vf_name, volPtr, 
 		*(volPtr->get_location()),
 		1.0f,

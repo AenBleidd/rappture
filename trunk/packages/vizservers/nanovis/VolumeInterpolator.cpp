@@ -153,11 +153,11 @@ VolumeInterpolator::addVolume(Volume* volume, unsigned int volumeId)
         _volume->disable_cutplane(0);
         _volume->disable_cutplane(1);
         _volume->disable_cutplane(2);
-        _volume->enable();
-        _volume->enable_data();
-        _volume->set_specular(volume->get_specular());
-        _volume->set_diffuse(volume->get_diffuse());
-        _volume->set_opacity_scale(volume->get_opacity_scale());
+        _volume->visible(true);
+        _volume->data(true);
+        _volume->specular(volume->specular());
+        _volume->diffuse(volume->diffuse());
+        _volume->opacity_scale(volume->opacity_scale());
         _volume->set_isosurface(0);
         
         Trace("VOL : location %f %f %f\n\tid : %d\n", _volume->location.x, 

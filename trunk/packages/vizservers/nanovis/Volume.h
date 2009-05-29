@@ -79,9 +79,9 @@ public:
     int n_slice;		// Number of slices when rendered. The greater
 				// the better quality, lower speed.
 
-    float specular;		// specular lighting parameter
-    float diffuse;		// diffuse lighting parameter
-    float opacity_scale;	// The scale multiplied to the opacity assigned
+    float _specular;		// specular lighting parameter
+    float _diffuse;		// diffuse lighting parameter
+    float _opacity_scale;	// The scale multiplied to the opacity assigned
 				// by the transfer function.  Rule of thumb:
 				// higher opacity_scale the object is to appear
 				// like plastic
@@ -109,11 +109,16 @@ public:
   
     ~Volume();
 	
-    void enable();		// VolumeRenderer will render an enabled
-				// volume and its cutplanes
-    void disable();
-    void move(Vector3 _loc);
-    bool is_enabled();
+    void visible(bool value) { 
+	enabled = value; 
+    }
+    bool visible(void) { 
+	return enabled; 
+    }
+    void move(Vector3 _loc) { 
+	location = _loc; 
+    }
+
     Vector3* get_location();
     
     void set_isosurface(int iso);
@@ -137,20 +142,36 @@ public:
     bool cutplane_is_enabled(int index); //check if a cutplane is enabled
 
     //methods related to shading. These parameters are per volume 
-    float get_specular();
-    float get_diffuse();
-    float get_opacity_scale();
-    void set_specular(float s);
-    void set_diffuse(float d);
-    void set_opacity_scale(float s);
-    
-    void enable_data();
-    void disable_data();
-    bool data_is_enabled();
-    
-    void enable_outline();
-    void disable_outline();
-    bool outline_is_enabled();
+    float specular(void) {
+	return _specular;
+    }
+    void specular(float value) {
+	_specular = value;
+    }
+    float diffuse(void) {
+	return _diffuse;
+    }
+    void diffuse(float value) {
+	_diffuse = value;
+    }
+    float opacity_scale(void) {
+	return _opacity_scale;
+    }
+    void opacity_scale(float value) {
+	_opacity_scale = value;
+    }
+    void data(bool value) {
+	data_enabled = value;
+    }
+    bool data(void) {
+	return data_enabled;
+    }
+    void outline(bool value) {
+	outline_enabled = value; 
+    }
+    bool outline(void) {
+	return outline_enabled;
+    }
     void set_outline_color(float* rgb);
     void get_outline_color(float* rgb);
     
@@ -163,18 +184,6 @@ public:
     Vector3& getPhysicalBBoxMax();
 };
 
-inline void Volume::enable() { 
-    enabled = true; 
-}
-inline void Volume::disable() { 
-    enabled = false; 
-}
-inline void Volume::move(Vector3 _loc) { 
-    location = _loc; 
-}
-inline bool Volume::is_enabled() { 
-    return enabled; 
-}
 inline Vector3* Volume::get_location() { 
     return &location; 
 }
@@ -243,78 +252,6 @@ Volume::set_size(float s)
     aspect_ratio_width = s*tex->aspect_ratio_width;
     aspect_ratio_height = s*tex->aspect_ratio_height;
     aspect_ratio_depth = s*tex->aspect_ratio_depth;
-}
-
-inline float 
-Volume::get_specular() 
-{ 
-    return specular; 
-}
-
-inline float 
-Volume::get_diffuse() 
-{ 
-    return diffuse; 
-}
-
-inline float 
-Volume::get_opacity_scale() 
-{ 
-    return opacity_scale; 
-}
-
-inline void 
-Volume::set_specular(float s) 
-{ 
-    specular = s; 
-}
-
-inline void 
-Volume::set_diffuse(float d) 
-{ 
-    diffuse = d; 
-}
-
-inline void 
-Volume::set_opacity_scale(float s) 
-{ 
-    opacity_scale = s; 
-}
-
-inline void 
-Volume::enable_data() 
-{ 
-    data_enabled = true; 
-}
-
-inline void 
-Volume::disable_data() 
-{ 
-    data_enabled = false; 
-}
-
-inline bool 
-Volume::data_is_enabled() 
-{ 
-    return data_enabled; 
-}
-
-inline void 
-Volume::enable_outline() 
-{ 
-    outline_enabled = true; 
-}
-
-inline void 
-Volume::disable_outline() 
-{ 
-    outline_enabled = false; 
-}
-
-inline bool 
-Volume::outline_is_enabled() 
-{ 
-    return outline_enabled; 
 }
 
 inline void 

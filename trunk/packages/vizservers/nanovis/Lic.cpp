@@ -116,31 +116,31 @@ Lic::~Lic(){
 
 void Lic::make_patterns() 
 { 
-   int lut[256];
-   int phase[NPN][NPN];
-   GLubyte pat[NPN][NPN][4];
-   int i, j, k, t;
+    int lut[256];
+    int phase[NPN][NPN];
+    GLubyte pat[NPN][NPN][4];
+    int i, j, k, t;
     
-   for (i = 0; i < 256; i++) lut[i] = i < 127 ? 0 : 255;
-   for (i = 0; i < NPN; i++)
-   for (j = 0; j < NPN; j++) phase[i][j] = rand() % 256; 
-
-   for (k = 0; k < Npat; k++) {
-     t = k*256/Npat;
-     for (i = 0; i < NPN; i++) 
-     for (j = 0; j < NPN; j++) {
-       pat[i][j][0] =
-       pat[i][j][1] =
-       pat[i][j][2] = lut[(t + phase[i][j]) % 255];
-       pat[i][j][3] = alpha;
-     }
-
-     glNewList(k + 1, GL_COMPILE);
-     glBindTexture(GL_TEXTURE_2D, pattern_tex);
-     glTexImage2D(GL_TEXTURE_2D, 0, 4, NPN, NPN, 0, 
+    for (i = 0; i < 256; i++) lut[i] = i < 127 ? 0 : 255;
+    for (i = 0; i < NPN; i++)
+	for (j = 0; j < NPN; j++) phase[i][j] = rand() % 256; 
+    
+    for (k = 0; k < Npat; k++) {
+	t = k*256/Npat;
+	for (i = 0; i < NPN; i++) 
+	    for (j = 0; j < NPN; j++) {
+		pat[i][j][0] =
+		    pat[i][j][1] =
+		    pat[i][j][2] = lut[(t + phase[i][j]) % 255];
+		pat[i][j][3] = alpha;
+	    }
+	
+	glNewList(k + 1, GL_COMPILE);
+	glBindTexture(GL_TEXTURE_2D, pattern_tex);
+	glTexImage2D(GL_TEXTURE_2D, 0, 4, NPN, NPN, 0, 
 		     GL_RGBA, GL_UNSIGNED_BYTE, pat);
-     glEndList();
-   }
+	glEndList();
+    }
 }
 
 

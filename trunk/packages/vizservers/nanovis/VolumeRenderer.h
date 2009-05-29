@@ -115,8 +115,8 @@ public:
     void render(int volume_index);
     void render_all();	//render all enabled volumes;
     void render_all_points(void); //render all enabled volumes;
-    void set_specular(float val);
-    void set_diffuse(float val);
+    void specular(float val);
+    void diffuse(float val);
     void set_slice_mode(bool val); //control independently.
     void set_volume_mode(bool val);
     void switch_slice_mode(); //switch_cutplane_mode

@@ -18,8 +18,10 @@
 
 Renderable::Renderable(){}
 Renderable::Renderable(Vector3 loc):
-  location(loc),
-  enabled(true){ }
+    location(loc),
+    enabled(true)
+{ 
+}
 
 Renderable::~Renderable(){}
   

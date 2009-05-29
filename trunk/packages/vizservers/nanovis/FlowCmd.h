@@ -139,6 +139,10 @@ struct FlowValues {
     int showVolume;
     int showOutline;
     int isHidden;
+    /* The following are settings for the volume.*/
+    float diffuse;
+    float specular;
+    float opacity;
 };
 
 struct FlowIterator {
@@ -253,6 +257,9 @@ public:
     }
     SliceAxis GetAxis(void) {
 	return (SliceAxis)_sv.slicePos.axis;
+    }
+    TransferFunction *GetTransferFunction(void) {
+	return _sv.tfPtr;
     }
     float GetRelativePosition(void);
     void SetAxis(void) {
