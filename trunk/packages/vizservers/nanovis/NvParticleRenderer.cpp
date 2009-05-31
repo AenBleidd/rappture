@@ -28,6 +28,21 @@
 
 NvParticleAdvectionShader* NvParticleRenderer::_advectionShader = NULL;
 
+class NvParticleAdvectionShaderInstance {
+public :
+	NvParticleAdvectionShaderInstance()
+	{
+	}
+	~NvParticleAdvectionShaderInstance()
+	{
+		if (NvParticleRenderer::_advectionShader)
+		{
+			delete NvParticleRenderer::_advectionShader;
+		}
+	}
+};
+NvParticleAdvectionShaderInstance shaderInstance;
+
 NvParticleRenderer::NvParticleRenderer(int w, int h, CGcontext context) : 
     scale(1, 1, 1), 
     origin(0, 0, 0),
@@ -135,9 +150,6 @@ NvParticleRenderer::~NvParticleRenderer()
     glDeleteFramebuffersEXT(2, psys_fbo);
 
     delete m_vertex_array;
-#ifdef notdef
-    delete _advectionShader;
-#endif
     delete [] data;
 }
 
