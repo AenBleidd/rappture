@@ -196,7 +196,9 @@ void Lic::get_slice(){
   glMatrixMode(GL_MODELVIEW);
   glLoadIdentity();
 
+  Trace("get_slice: binding lic vec prog");
   cgGLBindProgram(m_render_vel_fprog);
+  Trace("get_slice: done binding lic vec prog");
   cgGLEnableTextureParameter(m_vel_tex_param_render_vel);
   cgGLSetParameter4f(m_plane_normal_param_render_vel, 1., 1., 0., 0);
 

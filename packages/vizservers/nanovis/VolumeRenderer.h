@@ -38,34 +38,13 @@
 #include "NvStdVertexShader.h"
 #include "VolumeInterpolator.h"
 
-class VolumeData {
-        friend class VolumeRenderer;
-        friend class NanoVis;
-private :
-        Volume* volume;
-        TransferFunction* tf;
-public :
-        VolumeData() : volume(0), tf(0) {}
-        VolumeData(Volume* vol, TransferFunction* t) : volume(vol), tf(t) 
-	{
-                if (volume) volume->ref();
-                if (tf) tf->ref();
-	}
-        ~VolumeData()
-        {
-                if (volume) volume->unref();
-                if (tf) tf->unref();
-        }
-};
-
 class VolumeRenderer {
     friend class NanoVis;
 private:
-    std::vector<VolumeData*> volumes;    //!<- array of volumes
     VolumeInterpolator* _volumeInterpolator;
 
-    bool slice_mode;	//!<- enable cut planes
-    bool volume_mode;	//!<- enable full volume rendering
+    bool slice_mode;			//!<- enable cut planes
+    bool volume_mode;			//!<- enable full volume rendering
 
     /** 
      * shader parameters for rendering a single cubic volume
@@ -101,8 +80,7 @@ private:
     GLuint font_texture;	//the id of the font texture
 
     void init_shaders();
-    void activate_volume_shader(Volume* vol, TransferFunction* tf, 
-				bool slice_mode);
+    void activate_volume_shader(Volume* vol, bool slice_mode);
     void deactivate_volume_shader();
     //draw bounding box
     void draw_bounding_box(float x0, float y0, float z0,
@@ -122,14 +100,6 @@ public:
     ~VolumeRenderer();
 
     void add_volume(Volume* _vol, TransferFunction* _tf); 
-    void remove_all_volumes();
-    void remove_volume(size_t volDataID); 
-    // add a volume and its transfer function
-    // we require a transfer function when a 
-    // volume is added.
-    void shade_volume(Volume* _vol, TransferFunction* _tf); 
-    TransferFunction* get_volume_shading(Volume* _vol); 
-
     void render(int volumeID);
     void render_all();	//render all enabled volumes;
     void render_all_points(void); //render all enabled volumes;
@@ -139,14 +109,12 @@ public:
     void set_volume_mode(bool val);
     void switch_slice_mode(); //switch_cutplane_mode
     void switch_volume_mode();
-    void enable_volume(int volumeDataID); //enable a volume
-    void disable_volume(int volumeDataID); //disable a volume
 
     void clearAnimatedVolumeInfo(void) {
 	_volumeInterpolator->clearAll();
     }
-    void addAnimatedVolume(Volume* volume, unsigned int volumeId) {
-	_volumeInterpolator->addVolume(volume, volumeId);
+    void addAnimatedVolume(Volume* volume) {
+	_volumeInterpolator->addVolume(volume);
     }
     void startVolumeAnimation(void) {
 	_volumeInterpolator->start();

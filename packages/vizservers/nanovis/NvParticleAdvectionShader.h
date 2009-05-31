@@ -5,6 +5,7 @@
 #include "NvShader.h"
 
 class NvParticleAdvectionShader : public NvShader {
+
     CGparameter _posTimestepParam;
     CGparameter _velTexParam;
     //CGparameter _tfTexParam;

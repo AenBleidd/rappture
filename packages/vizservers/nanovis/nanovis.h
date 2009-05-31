@@ -108,7 +108,6 @@ class NanoVis {
     //frame buffer for final rendering
     static NVISid final_fbo, final_color_tex, final_depth_rb;
 public:
-    typedef std::map<int, Volume*> VolumeMap;
 public:
     static VolumeRenderer* vol_renderer;
     static PointSetRenderer* pointset_renderer;
@@ -129,7 +128,7 @@ public:
     static graphics::RenderContext* renderContext;
     static vector<HeightMap*> heightMap;
     static unsigned char* screen_buffer;
-    static VolumeMap volumeMap;
+    static vector<Volume *> volumes;
     static vector<NvVectorField*> flow;
     static Grid* grid;
     static R2Fonts* fonts;
@@ -231,7 +230,7 @@ public :
 	MAP_HEIGHTMAPS=(1<<3),
     };
     static void EventuallyRedraw(unsigned int flag = 0);
-    static void remove_volume(int volUserID);
+    static void remove_volume(size_t index);
     static int generate_data_identifier();
 };
 

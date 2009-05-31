@@ -16,6 +16,7 @@
 
 #include "global.h"
 #include "PlaneRenderer.h"
+#include "Trace.h"
 
 PlaneRenderer::PlaneRenderer(CGcontext _context, int _width, int _height):
     active_plane(-1),
@@ -118,7 +119,9 @@ PlaneRenderer::activate_shader(int index)
 
     cgGLSetParameter4f(m_render_param, 0., 0., 0., 0.);
 
+    Trace("activate_shader: binding ");
     cgGLBindProgram(m_fprog);
+    Trace("activate_shader: done binding");
     cgGLEnableProfile(CG_PROFILE_FP30);
 }
 

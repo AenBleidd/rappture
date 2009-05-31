@@ -72,7 +72,7 @@ public:
     }
     void SetVectorField(Volume *volPtr) {
 	_rendererPtr->setVectorField(volPtr->id, 
-            *(volPtr->get_location()),
+	    volPtr->location(),
             1.0f,
             volPtr->height / (float)volPtr->width,
             volPtr->depth  / (float)volPtr->width,
@@ -168,7 +168,7 @@ class FlowCmd {
     Volume *_volPtr;			/* The volume associated with the
 					 * flow.  This isn't the same thing as
 					 * a normal volume displayed. */
-    int _volDataID; 			/* The index of slot in the volume
+    int _volId; 			/* The index of slot in the volume
 					 * vector. -1 indicates that a slot
 					 * hasn't been previously allocated.
 					 * This is to reuse the same slot so
@@ -183,7 +183,7 @@ class FlowCmd {
 					 * where the particles are injected
 					 * into the flow. */
 
-    Tcl_HashTable _boxTable;		/* A table of boxes.  The many be
+    Tcl_HashTable _boxTable;		/* A table of boxes.  There maybe
 					 * zero or more boxes associated
 					 * with each field. */
 

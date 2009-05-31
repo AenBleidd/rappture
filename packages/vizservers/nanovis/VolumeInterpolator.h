@@ -20,7 +20,7 @@ class VolumeInterpolator {
 
 public :
     VolumeInterpolator();
-    void addVolume(Volume* vol, unsigned int volumeId);
+    void addVolume(Volume* vol);
     void clearAll();
     
     void start();

@@ -16,6 +16,7 @@
  */
 
 #include <assert.h>
+#include <errno.h>
 #include <fcntl.h>
 #include <fstream>
 #include <getopt.h>
@@ -105,13 +106,12 @@ static Stats stats;
 Grid *NanoVis::grid = NULL;
 int NanoVis::updir = Y_POS;
 NvCamera* NanoVis::cam = NULL;
-NanoVis::VolumeMap NanoVis::volumeMap;
-int  NanoVis::_last_data_id = 0;
+vector<Volume *>  NanoVis::volumes;
 vector<HeightMap*> NanoVis::heightMap;
-VolumeRenderer* NanoVis::vol_renderer = 0;
-PointSetRenderer* NanoVis::pointset_renderer = 0;
+VolumeRenderer* NanoVis::vol_renderer = NULL;
+PointSetRenderer* NanoVis::pointset_renderer = NULL;
 vector<PointSet*> NanoVis::pointSet;
-PlaneRenderer* NanoVis::plane_render = 0;
+PlaneRenderer* NanoVis::plane_render = NULL;
 Texture2D* NanoVis::plane[10];
 NvColorTableRenderer* NanoVis::color_table_renderer = NULL;
 
@@ -425,23 +425,21 @@ LoadCgSourceProgram(CGcontext context, const char *fileName, CGprofile profile,
     const char *path = R2FilePath::getInstance()->getPath(fileName);
     if (path == NULL) {
         fprintf(stderr, "can't find program \"%s\"\n", fileName);
-        assert(path != NULL);
+        Trace("can't find program \"%s\"\n", fileName);
     }
-    printf("cg program compiling: %s\n", path);
+    Trace("cg program compiling: %s\n", path);
     fflush(stdout);
     CGprogram program;
     program = cgCreateProgramFromFile(context, CG_SOURCE, path, profile, 
 				      entryPoint, NULL);
     cgGLLoadProgram(program);
-
     CGerror LastError = cgGetError();
-    if (LastError)
-	{
-	    printf("Error message: %s\n", cgGetLastListing(context));
-	}
-
+    if (LastError) {
+	printf("Error message: %s\n", cgGetLastListing(context));
+	Trace("Error message: %s\n", cgGetLastListing(context));
+    }
+    Trace("successfully compiled program: %s\n", path);
     delete [] path;
-
     return program;
 }
 
@@ -513,41 +511,32 @@ NanoVis::pan(float dx, float dy)
  *		width, height and depth: number of points in each dimension
  */
 Volume *
-NanoVis::load_volume(int volDataID, int width, int height, int depth,
+NanoVis::load_volume(int dataID, int width, int height, int depth,
                      int n_component, float* data, double vmin,
                      double vmax, double nzero_min)
 {
-    NanoVis::VolumeMap::iterator iter  = volumeMap.find(volDataID);
-    if (iter != volumeMap.end())
-    {
-        Volume* vol = iter->second;
-        if (vol != NULL) 
-        {
-            iter->second = NULL;
+    // Check if we're attempting to load the volume into an already
+    // occupied slot.
 
-            if (vol->pointsetIndex != -1) 
-            {
-		// TBD
-		/*
-                if (((unsigned  int) vol->pointsetIndex) < pointSet.size() &&
-		    pointSet[vol->pointsetIndex] != NULL) {
-                    delete pointSet[vol->pointsetIndex];
-                    pointSet[vol->pointsetIndex] = 0;
-                }
-		*/
-            }
-        }
-        vol->unref();
+	
+    Volume* volPtr = new Volume(0.f, 0.f, 0.f, width, height, depth, 1.,
+				n_component, data, vmin, vmax, nzero_min);
+    if (dataID < 0) {
+	dataID = volumes.size();
+	volumes.push_back(volPtr);
+    } else {
+	int i;
+	// Create new slots it needed.
+	for (i = volumes.size(); i <= dataID; i++) {
+	    volumes.push_back(NULL);
+	}
+	assert (volumes[dataID] == NULL);
+	volumes[dataID] = volPtr;
     }
-
-    Volume* newVol = new Volume(0.f, 0.f, 0.f, width, height, depth, 1.,
-			       n_component, data, vmin, vmax, nzero_min);
-    newVol->setDataID(volDataID);
-    volumeMap[volDataID] = newVol;
-    
-    
-    fprintf(stderr, "VOLID=%d, # of volumes=%d\n", volDataID, volumeMap.size());
-    return newVol;
+    volPtr->dataID(dataID);
+    fprintf(stderr, "VOLID=%d, # of volume slots=%d\n", dataID, 
+	    volumes.size());
+    return volPtr;
 }
 
 // Gets a colormap 1D texture by name.
@@ -1240,7 +1229,9 @@ NanoVis::ppm_write(const char *prefix)
         iov[y].iov_len = rowLength;
         srcRowPtr += bytesPerRow;
     }
-    writev(0, iov, nRecs);
+    if (writev(0, iov, nRecs) < 0) {
+	fprintf(stderr, "write failed: %s\n", strerror(errno));
+    }
     free(iov);
     stats.nFrames++;
     stats.nBytes += (bytesPerRow * win_height);
@@ -1280,7 +1271,9 @@ NanoVis::sendDataToClient(const char *command, const char *data, size_t dlen)
     // FIXME: shouldn't have to cast this
     iov[1].iov_base = (char *)data;
     iov[1].iov_len = dlen;
-    writev(0, iov, nRecs);
+    if (writev(0, iov, nRecs) < 0) {
+	fprintf(stderr, "write failed: %s\n", strerror(errno));
+    }
     free(iov);
     // stats.nFrames++;
     // stats.nBytes += (bytesPerRow * win_height);
@@ -1546,16 +1539,13 @@ NanoVis::SetVolumeRanges()
     }
     xMin = yMin = zMin = wMin = DBL_MAX;
     xMax = yMax = zMax = wMax = -DBL_MAX;
-    NanoVis::VolumeMap::iterator iter;
-    for (iter = volumeMap.begin(); iter != volumeMap.end(); ++iter)
-    {
-        Volume *volPtr = iter->second;
+    vector<Volume *>::iterator iter;
+    for (iter = volumes.begin(); iter != volumes.end(); ++iter) {
+        Volume *volPtr;
 
+	volPtr = (*iter);
         if (volPtr == NULL) {
-            continue;
-        }
-        if (!volPtr->visible()) {
-            continue;
+            continue;			// Empty slot.
         }
         if (xMin > volPtr->xAxis.min()) {
             xMin = volPtr->xAxis.min();
@@ -1878,9 +1868,8 @@ void addVectorField(const char* filename, const char* vf_name,
 	    volPtr->disable_cutplane(0);
 	    volPtr->disable_cutplane(1);
 	    volPtr->disable_cutplane(2);
-	    
-	    NanoVis::vol_renderer->add_volume(volPtr,
-		NanoVis::get_transfunc("default"));
+	    volPtr->transferFunction(NanoVis::get_transfunc("default"));
+
 	    float dx0 = -0.5;
 	    float dy0 = -0.5*volPtr->height/volPtr->width;
 	    float dz0 = -0.5*volPtr->depth/volPtr->width;
@@ -2277,7 +2266,9 @@ NanoVis::xinetd_listen(void)
         iov[1].iov_len = nBytes;
         iov[2].iov_len = 1;
         iov[2].iov_base = (char *)'\n';
-        writev(0, iov, 3);
+        if (writev(0, iov, 3) < 0) {
+	    fprintf(stderr, "write failed: %s\n", strerror(errno));
+	}
         if (debug_flag) {
             fprintf(stderr, "leaving xinetd_listen\n");
         }
@@ -2556,18 +2547,16 @@ NanoVis::render_2d_contour(HeightMap* heightmap, int width, int height)
     return TCL_OK;
 }
 
-int NanoVis::generate_data_identifier()
+void 
+NanoVis::remove_volume(size_t index)
 {
-    return _last_data_id++;
-}
-
-void NanoVis::remove_volume(int volDataID)
-{
-
-    NanoVis::VolumeMap::iterator iter  = volumeMap.find(volDataID);
-    if (iter != volumeMap.end())
-    {
-        (*iter).second->unref();
-        volumeMap.erase(iter);
+    fprintf(stderr, "index=%d #volumes=%d\n", index, volumes.size());
+    assert(index < volumes.size());
+    Volume* volPtr;
+    volPtr = volumes[index];
+    if (volPtr == NULL)  {
+	return;				// Empty slot 
     }
+    delete volPtr;			// Delete the volume and mark the 
+    volumes[index] = NULL;		// slot as empty.
 }

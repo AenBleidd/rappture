@@ -491,8 +491,9 @@ Rappture::Unirect3d::ImportDx(Rappture::Outcome &result, size_t nComponents,
     double x0, y0, z0, dx, dy, dz, ddx, ddy, ddz;
     char *p, *endPtr;
 
-    dx = dy = dz = 0.0;         // Suppress compiler warning.
-    x0 = y0 = z0 = 0.0;		// May not have an origin line.
+    dx = dy = dz = 0.0;			// Suppress compiler warning.
+    x0 = y0 = z0 = 0.0;			// May not have an origin line.
+    nx = ny = nz = npts = 0;		// Suppress compiler warning.
     for (p = string, endPtr = p + length; p < endPtr; /*empty*/) {
 	char *line;
 

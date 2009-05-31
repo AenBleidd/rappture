@@ -133,13 +133,15 @@ LinearOpSearch(
  */
 Tcl_ObjCmdProc *
 Rappture::GetOpFromObj(
-    Tcl_Interp *interp,     /* Interpreter to report errors to */
-    int nSpecs,         /* Number of specifications in array */
-    CmdSpec *specs,     /* Op specification array */
-    int operPos,        /* Position of operation in argument list. */
-    int objc,           /* Number of arguments in the argument vector.
-                 * This includes any prefixed arguments */
-    Tcl_Obj *CONST *objv,   /* Argument vector */
+    Tcl_Interp *interp,			/* Interpreter to report errors to */
+    int nSpecs,				/* Number of specifications in array */
+    CmdSpec *specs,			/* Op specification array */
+    int operPos,			/* Position of operation in argument
+					 * list. */
+    int objc,				/* Number of arguments in the argument
+					 * vector.  This includes any prefixed
+					 * arguments */ 
+    Tcl_Obj *CONST *objv,		/* Argument vector */
     int flags)
 {
     CmdSpec *specPtr;

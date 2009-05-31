@@ -235,7 +235,9 @@ NvLIC::get_slice()
 
     glEnable(GL_TEXTURE_3D);
     glBindTexture(GL_TEXTURE_3D, vectorFieldID);
+    Trace("NV_LIC get_slice:binding lic vec prog");
     cgGLBindProgram(m_render_vel_fprog);
+    Trace("NV_LIC get_slice: done binding lic vec prog");
 
     cgGLSetTextureParameter(m_vel_tex_param_render_vel, vectorFieldID);
     cgGLEnableTextureParameter(m_vel_tex_param_render_vel);

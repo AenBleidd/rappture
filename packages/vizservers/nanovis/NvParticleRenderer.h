@@ -87,7 +87,7 @@ public :
   CGparameter m_vel_tex_param, m_pos_tex_param, m_scale_param;
   CGparameter m_pos_timestep_param, m_pos_spherePos_param;
   */
-    NvParticleAdvectionShader* _advectionShader;
+    static NvParticleAdvectionShader* _advectionShader;
 
     /**
      * @brief scale of flow data 
