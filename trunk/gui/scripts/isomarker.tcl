@@ -101,23 +101,24 @@ itcl::class Rappture::IsoMarker {
     public method relval  { {x "-get"} } {
 	if { $x == "-get" } {
 	    array set limits [$nvobj_ limits $tf_] 
-	    if { $limits(max) == $limits(min) } {
-		if { $limits(max) == 0.0 } {
-		    set limits(min) 0.0
-		    set limits(max) 1.0
+	    if { $limits(vmax) == $limits(vmin) } {
+		if { $limits(vmax) == 0.0 } {
+		    set limits(vmin) 0.0
+		    set limits(vmax) 1.0
 		} else {
-		    set limits(max) [expr $limits(min) + 1.0]
+		    set limits(vmax) [expr $limits(vmin) + 1.0]
 		}
 	    }
-	    return [expr {($value_-$limits(min))/($limits(max) - $limits(min))}]
+	    return [expr {($value_-$limits(vmin))/
+			  ($limits(vmax) - $limits(vmin))}]
 	} 
 	array set limits [$nvobj_ limits $tf_] 
-	if { $limits(max) == $limits(min) } {
+	if { $limits(vmax) == $limits(vmin) } {
 	    set limits(min) 0.0
 	    set limits(max) 1.0
 	}
-	set r [expr $limits(max) - $limits(min)]
-	absval [expr {($x * $r) + $limits(min)}]
+	set r [expr $limits(vmax) - $limits(vmin)]
+	absval [expr {($x * $r) + $limits(vmin)}]
     }
     private method HandleEvent { option args } {
 	switch -- $option {

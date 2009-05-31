@@ -126,9 +126,8 @@ itcl::class Rappture::FlowvisViewer {
     private variable _dlist ""     ;# list of data objects
     private variable _allDataObjs
     private variable _obj2ovride   ;# maps dataobj => style override
-    private variable _obj2id       ;# maps dataobj-component to volume ID 
+    private variable _serverObjs   ;# maps dataobj-component to volume ID 
 				    # in the server
-    private variable _id2obj       ;# maps dataobj => volume ID in server
     private variable _sendobjs ""  ;# list of data objs to send to server
     private variable _recvObjs  ;# list of data objs to send to server
     private variable _obj2style    ;# maps dataobj-component to transfunc
@@ -221,8 +220,6 @@ itcl::body Rappture::FlowvisViewer::constructor { hostlist args } {
 	pan-x	0
 	pan-y	0
     }
-    set _obj2id(count) 0
-    set _id2obj(count) 0
     set _limits(vmin) 0.0
     set _limits(vmax) 1.0
 
@@ -658,15 +655,12 @@ itcl::body Rappture::FlowvisViewer::delete {args} {
         set pos [lsearch -exact $_dlist $dataobj]
         if { $pos >= 0 } {
 	    foreach comp [$dataobj components] {
-		if { [info exists obj2id($dataobj-$comp)] } {
-		    set ivol $_obj2id($dataobj-$comp)
-		    array unset _limits $ivol-*
-		}
+		array unset _limits $dataobj-$comp-*
 	    }
 	    set _dlist [lreplace $_dlist $pos $pos]
 	    array unset _obj2ovride $dataobj-*
 	    array unset _obj2flow $dataobj-*
-	    array unset _obj2id $dataobj-*
+	    array unset _serverObjs $dataobj-*
 	    array unset _obj2style $dataobj-*
             set changed 1
         }
@@ -677,7 +671,7 @@ itcl::body Rappture::FlowvisViewer::delete {args} {
 	foreach tf [array names _style2objs] {
 	    set list {}
 	    foreach {dataobj comp} $_style2objs($tf) break
-	    if { [info exists _obj2id($dataobj-$comp)] } {
+	    if { [info exists _serverObjs($dataobj-$comp)] } {
 		lappend list $dataobj $comp
 	    }
 	    if { $list == "" } {
@@ -855,10 +849,7 @@ itcl::body Rappture::FlowvisViewer::Disconnect {} {
 
     # disconnected -- no more data sitting on server
     set _outbuf ""
-    catch {unset _obj2id}
-    array unset _id2obj
-    set _obj2id(count) 0
-    set _id2obj(count) 0
+    array unset _serverObjs
     set _sendobjs ""
 }
 
@@ -907,7 +898,7 @@ itcl::body Rappture::FlowvisViewer::SendDataObjs {} {
 		    continue
 		}
 	    }
-	    if { ![SendBytes $cmd] } {
+	    f { ![SendBytes $cmd] } {
 		    puts stderr "can't send"
 		return
 	    }
@@ -915,9 +906,6 @@ itcl::body Rappture::FlowvisViewer::SendDataObjs {} {
 		    puts stderr "can't send"
                 return
             }
-            set ivol $_obj2id(count)
-            incr _obj2id(count)
-
             NameTransferFunc $dataobj $comp
             set _recvObjs($dataobj-$comp) 1
         }
@@ -961,31 +949,6 @@ itcl::body Rappture::FlowvisViewer::SendDataObjs {} {
         set _activeTf [lindex $_obj2style($_first-$comp) 0]
     }
 
-    if 0 {
-    SendCmd "volume state 0"
-    set vols {}
-    foreach key [array names _obj2id $_first-*] {
-	lappend vols $_obj2id($key)
-    }
-    if { $vols != ""  && $_settings($this-volume) } {
-	SendCmd "volume state 1 $vols"
-    }
-    # sync the state of slicers
-    set vols [CurrentVolumeIds -cutplanes]
-    foreach axis {x y z} {
-	SendCmd "cutplane state $_settings($this-${axis}cutplane) $axis $vols"
-	set pos [expr {0.01*$_settings($this-${axis}cutposition)}]
-	SendCmd "cutplane position $pos $axis $vols"
-    }
-
-    # Add this when we fix grid for volumes
-    SendCmd "volume axis label x \"\""
-    SendCmd "volume axis label y \"\""
-    SendCmd "volume axis label z \"\""
-    SendCmd "grid axisname x X eV"
-    SendCmd "grid axisname y Y eV"
-    SendCmd "grid axisname z Z eV"
-    }
     SendCmd "flow reset"
 
     # Actually write the commands to the server socket.  If it fails, we don't
@@ -1027,7 +990,7 @@ itcl::body Rappture::FlowvisViewer::SendTransferFuncs {} {
 	    }
 	}
     }
-    ResizeLegend
+    EventuallyResizeLegend
 }
 
 # ----------------------------------------------------------------------
@@ -1070,10 +1033,11 @@ itcl::body Rappture::FlowvisViewer::ReceiveImage { args } {
 #       I don't know all the different paths used to draw the plot. There's 
 #       "Rebuild", "add", etc.
 #
-itcl::body Rappture::FlowvisViewer::ReceiveLegend { tf vmin vmax size } {
+itcl::body Rappture::FlowvisViewer::ReceiveLegend { tag vmin vmax size } {
     if { ![isconnected] } {
         return
     }
+    puts stderr "receive legend $tag $vmin $vmax $size"
     set bytes [ReceiveBytes $size]
     $_image(legend) configure -data $bytes
     ReceiveEcho <<line "<read $size bytes for [image width $_image(legend)]x[image height $_image(legend)] legend>"
@@ -1081,7 +1045,6 @@ itcl::body Rappture::FlowvisViewer::ReceiveLegend { tf vmin vmax size } {
     set c $itk_component(legend)
     set w [winfo width $c]
     set h [winfo height $c]
-    #foreach { dataobj comp } $_id2obj($ivol) break
     set lx 10
     set ly [expr {$h - 1}]
     if {"" == [$c find withtag transfunc]} {
@@ -1096,13 +1059,12 @@ itcl::body Rappture::FlowvisViewer::ReceiveLegend { tf vmin vmax size } {
             [itcl::code $this AddIsoMarker %x %y]
     }
     # Display the markers used by the active transfer function.
-    #set tf $_activeTf
-
+    set tf $_obj2style($tag)
     array set limits [limits $tf]
-    $c itemconfigure vmin -text [format %.2g $limits(min)]
+    $c itemconfigure vmin -text [format %.2g $limits(vmin)]
     $c coords vmin $lx $ly
 
-    $c itemconfigure vmax -text [format %.2g $limits(max)]
+    $c itemconfigure vmax -text [format %.2g $limits(vmax)]
     $c coords vmax [expr {$w-$lx}] $ly
 
     if { [info exists _isomarkers($tf)] } {
@@ -1137,27 +1099,13 @@ itcl::body Rappture::FlowvisViewer::ReceiveData { args } {
         return
     }
     # Arguments from server are name value pairs. Stuff them in an array.
-    array set info $args
-
-    set ivol $info(id);         # Id of volume created by server.
-    set tag $info(tag)
+    array set values $args
+    set tag $values(tag)
     set parts [split $tag -]
-
-    #
-    # Volumes don't exist until we're told about them.
-    #
-    set _id2obj($ivol) $parts
     set dataobj [lindex $parts 0]
-    set _obj2id($tag) $ivol
-    # It's a lie. There's no volume yet. 
-    if { $_settings($this-volume) && $dataobj == $_first } {
-	SendCmd "volume state 1"
-    }
-    set _limits($ivol-min) $info(min);  # Minimum value of the volume.
-    set _limits($ivol-max) $info(max);  # Maximum value of the volume.
-    set _limits(vmin)      $info(vmin); # Overall minimum value.
-    set _limits(vmax)      $info(vmax); # Overall maximum value.
-
+    set _serverObjs($tag) 0
+    set _limits($tag-min)  $values(min);  # Minimum value of the volume.
+    set _limits($tag-max)  $values(max);  # Maximum value of the volume.
     unset _recvObjs($tag)
     if { [array size _recvObjs] == 0 } {
         updatetransferfuncs
@@ -1182,12 +1130,13 @@ itcl::body Rappture::FlowvisViewer::Rebuild {} {
         }
     }
 
+    if 0 {
     # in the midst of sending data? then bail out
     if {[llength $_sendobjs] > 0} {
         $_dispatcher event -idle !rebuild
         return
     }
-
+    }
     # Turn on buffering of commands to the server.  We don't want to
     # be preempted by a server disconnect/reconnect (which automatically
     # generates a new call to Rebuild).   
@@ -1197,30 +1146,43 @@ itcl::body Rappture::FlowvisViewer::Rebuild {} {
     set h [winfo height $itk_component(3dview)]
     EventuallyResize $w $h
 
-    # Find any new data that needs to be sent to the server.  Queue this up on
-    # the _sendobjs list, and send it out a little at a time.  Do this first,
-    # before we rebuild the rest.
     foreach dataobj [get] {
-        set comp [lindex [$dataobj components] 0]
-        if {![info exists _obj2id($dataobj-$comp)]} {
-            if { [lsearch -exact $_sendobjs $dataobj] < 0 } {
-                lappend _sendobjs $dataobj
-            }
+        foreach comp [$dataobj components] {
+            # Send the data as one huge base64-encoded mess -- yuck!
+            set data [$dataobj blob $comp]
+            set nbytes [string length $data]
+	    set extents [$dataobj extents $comp]
+	    # I have a field. Is a vector field or a volume field?
+	    if { $extents == 1 } {
+		set cmd "volume data follows $nbytes $dataobj-$comp\n"
+	    } else {
+		set cmd [FlowCmd $dataobj $comp $nbytes $extents]
+		if { $cmd == "" } {
+		    puts stderr "no command"
+		    continue
+		}
+	    }
+	    append _outbuf $cmd
+            append _outbuf $data
+            NameTransferFunc $dataobj $comp
+            set _recvObjs($dataobj-$comp) 1
         }
     }
+    set _sendobjs ""
 
     #
     # Reset the camera and other view parameters
     #
-    FixSettings light
-    FixSettings transp
     FixSettings isosurface
     FixSettings grid
     FixSettings axes
-    FixSettings outline
     # nothing to send -- activate the proper ivol
     set _first [lindex [get] 0]
     if {"" != $_first} {
+	FixSettings light
+	FixSettings transp
+	FixSettings outline
+
         set axis [$_first hints updir]
         if {"" != $axis} {
             SendCmd "up $axis"
@@ -1242,6 +1204,12 @@ itcl::body Rappture::FlowvisViewer::Rebuild {} {
     PanCamera
     SendCmd "camera zoom $_view(zoom)"
 
+    foreach dataobj [get] {
+        foreach comp [$dataobj components] {
+	    NameTransferFunc $dataobj $comp
+        }
+    }
+
     if {[llength $_sendobjs] > 0} {
         # send off new data objects
         $_dispatcher event -idle !send_dataobjs
@@ -1260,27 +1228,10 @@ itcl::body Rappture::FlowvisViewer::Rebuild {} {
 	if { $location != "" } {
 	    array set _view $location
 	}
-	if { 0 && $_settings($this-volume) }  {
-            SendCmd "volume state 0"
-	    foreach key [array names _obj2id $_first-*] {
-		lappend vols $_obj2id($key)
-	    }
-	    SendCmd "volume state 1 $vols"
-	}
-        #
-        # The _obj2id and _id2style arrays may or may not have the right
-        # information.  It's possible for the server to know about volumes
-        # that the client has assumed it's deleted.  We could add checks.
-        # But this problem needs to be fixed not bandaided.
         set comp [lindex [$_first components] 0]
-        set ivol $_obj2id($_first-$comp)
+        set _activeTf [lindex $_obj2style($_first-$comp) 0]
+    }
 
-    }
-    foreach dataobj [get] {
-        foreach comp [$_first components] {
-	    NameTransferFunc $dataobj $comp
-        }
-    }
 
     # sync the state of slicers
     set vols [CurrentVolumeIds -cutplanes]
@@ -1290,11 +1241,13 @@ itcl::body Rappture::FlowvisViewer::Rebuild {} {
 	SendCmd "cutplane position $pos $axis $vols"
     }
     SendCmd "volume data state $_settings($this-volume)"
-    $_dispatcher event -idle !legend
+    EventuallyResizeLegend
 
     # Actually write the commands to the server socket.  If it fails, we don't
     # care.  We're finished here.
+    blt::busy hold $itk_component(hull); update idletasks
     SendBytes $_outbuf;			
+    blt::busy release $itk_component(hull)
     set _buffering 0;			# Turn off buffering.
     set _outbuf "";			# Clear the buffer.		
     #puts stderr "exit Rebuild"
@@ -1308,20 +1261,19 @@ itcl::body Rappture::FlowvisViewer::Rebuild {} {
 # of IDs if the current data object has multiple components.
 # ----------------------------------------------------------------------
 itcl::body Rappture::FlowvisViewer::CurrentVolumeIds {{what -all}} {
-    set rlist ""
+    return ""
     if { $_first == "" } {
 	return
     }
-    foreach key [array names _obj2id *-*] {
+    foreach key [array names _serverObjs *-*] {
         if {[string match $_first-* $key]} {
             array set style {
                 -cutplanes 1
             }
             foreach {dataobj comp} [split $key -] break
             array set style [lindex [$dataobj components -style $comp] 0]
-
             if {$what != "-cutplanes" || $style(-cutplanes)} {
-                lappend rlist $_obj2id($key)
+                lappend rlist $_serverObjs($key)
             }
         }
     }
@@ -1618,26 +1570,26 @@ itcl::body Rappture::FlowvisViewer::FixSettings {what {value ""}} {
     switch -- $what {
         light {
             if {[isconnected]} {
-                set val $_settings($this-light)
-                set sval [expr {0.1*$val}]
-                SendCmd "volume shading diffuse $sval"
-                set sval [expr {sqrt($val+1.0)}]
-                SendCmd "volume shading specular $sval"
+		set comp [lindex [$_first components] 0]
+		set tag $_first-$comp
+                set diffuse [expr {0.1*$_settings($this-light)}]
+                set specular [expr {sqrt($_settings($this-light)+1.0)}]
+                SendCmd "$tag configure -diffuse $diffuse -specular $specular"
             }
         }
         transp {
             if {[isconnected]} {
-                set val $_settings($this-transp)
-                set sval [expr {0.2*$val+1}]
-                SendCmd "volume shading opacity $sval"
+		set comp [lindex [$_first components] 0]
+		set tag $_first-$comp
+                set opacity [expr {0.2*$_settings($this-transp)+1}]
+                SendCmd "$tag configure -opacity $opacity"
             }
         }
         opacity {
             if {[isconnected] && $_activeTf != "" } {
-                set val $_settings($this-opacity)
-                set sval [expr { 0.01 * double($val) }]
+                set opacity [expr { 0.01 * double($_settings($this-opacity)) }]
                 set tf $_activeTf
-                set _settings($this-$tf-opacity) $sval
+                set _settings($this-$tf-opacity) $opacity
                 updatetransferfuncs
             }
         }
@@ -1654,7 +1606,9 @@ itcl::body Rappture::FlowvisViewer::FixSettings {what {value ""}} {
         }
         "outline" {
             if {[isconnected]} {
-                SendCmd "volume outline state $_settings($this-outline)"
+		set comp [lindex [$_first components] 0]
+		set tag $_first-$comp
+                SendCmd "$tag configure -outline $_settings($this-outline)"
             }
         }
         "isosurface" {
@@ -1684,8 +1638,9 @@ itcl::body Rappture::FlowvisViewer::FixSettings {what {value ""}} {
 	}
         "volume" {
             if { [isconnected] } {
-		set vols [CurrentVolumeIds -cutplanes] 
-                SendCmd "volume data state $_settings($this-volume) $vols"
+		set comp [lindex [$_first components] 0]
+		set tag $_first-$comp
+                SendCmd "$tag configure -volume $_settings($this-volume)"
 	    }
         }
         "xcutplane" - "ycutplane" - "zcutplane" {
@@ -1717,12 +1672,21 @@ itcl::body Rappture::FlowvisViewer::FixSettings {what {value ""}} {
 # for the current field.
 # ----------------------------------------------------------------------
 itcl::body Rappture::FlowvisViewer::ResizeLegend {} {
+    puts stderr "ResizeLegend"
     set _resizeLegendPending 0
     set lineht [font metrics $itk_option(-font) -linespace]
     set w [expr {$_width-20}]
     set h [expr {[winfo height $itk_component(legend)]-20-$lineht}]
+
+    if { $_first == "" } {
+	return
+    }
+    set comp [lindex [$_first components] 0]
+    set tag $_first-$comp
+    #set _activeTf [lindex $_obj2style($tag) 0]
     if {$w > 0 && $h > 0 && "" != $_activeTf} {
-        SendCmd "legend $_activeTf $w $h"
+        #SendCmd "legend $_activeTf $w $h"
+	SendCmd "$tag legend $w $h"
     } else {
     # Can't do this as this will remove the items associated with the
     # isomarkers.
@@ -1754,7 +1718,7 @@ itcl::body Rappture::FlowvisViewer::NameTransferFunc { dataobj comp } {
     }
     array set style [lindex [$dataobj components -style $comp] 0]
     set tf "$style(-color):$style(-levels):$style(-opacity)"
-    lappend _obj2style($dataobj-$comp) $tf
+    set _obj2style($dataobj-$comp) $tf
     lappend _style2objs($tf) $dataobj $comp
     return $tf
 }
@@ -1806,15 +1770,20 @@ itcl::body Rappture::FlowvisViewer::ComputeTransferFunc { tf } {
     if {$style(-color) == "rainbow"} {
         set style(-color) "white:yellow:green:cyan:blue:magenta"
     }
-    set clist [split $style(-color) :]
-    set cmap "0.0 [Color2RGB white] "
-    for {set i 0} {$i < [llength $clist]} {incr i} {
-        set x [expr {double($i+1)/([llength $clist]+1)}]
-        set color [lindex $clist $i]
-        append cmap "$x [Color2RGB $color] "
+    if { [info exists style(-nonuniformcolors)] } {
+	foreach { value color } $style(-nonuniformcolors) {
+	    append cmap "$value [Color2RGB $color] "
+	}
+    } else {
+	set clist [split $style(-color) :]
+	set cmap "0.0 [Color2RGB white] "
+	for {set i 0} {$i < [llength $clist]} {incr i} {
+	    set x [expr {double($i+1)/([llength $clist]+1)}]
+	    set color [lindex $clist $i]
+	    append cmap "$x [Color2RGB $color] "
+	}
+	append cmap "1.0 [Color2RGB $color]"
     }
-    append cmap "1.0 [Color2RGB $color]"
-
     set tag $this-$tf
     if { ![info exists _settings($tag-opacity)] } {
         set _settings($tag-opacity) $style(-opacity)
@@ -1873,8 +1842,8 @@ itcl::body Rappture::FlowvisViewer::ComputeTransferFunc { tf } {
     if { $last == "" || $last != 1.0 } {
         lappend wmap 1.0 0.0
     }
-    SendBytes "transfunc define $tf { $cmap } { $wmap }\n"
-    return [SendBytes "$dataobj-$comp configure -transferfunction $tf\n"]
+    SendCmd "transfunc define $tf { $cmap } { $wmap }\n"
+    return [SendCmd "$dataobj-$comp configure -transferfunction $tf\n"]
 }
 
 # ----------------------------------------------------------------------
@@ -1977,7 +1946,7 @@ itcl::body Rappture::FlowvisViewer::ParseMarkersOption { tf markers } {
 # USAGE: UndateTransferFuncs 
 # ----------------------------------------------------------------------
 itcl::body Rappture::FlowvisViewer::updatetransferfuncs {} {
-    $_dispatcher event -idle !send_transfunc
+    $_dispatcher event -after 100 !send_transfunc
 }
 
 itcl::body Rappture::FlowvisViewer::AddIsoMarker { x y } {
@@ -2035,32 +2004,35 @@ itcl::body Rappture::FlowvisViewer::overmarker { marker x } {
 }
 
 itcl::body Rappture::FlowvisViewer::limits { tf } {
-    set _limits(min) 0.0
-    set _limits(max) 1.0
+    set _limits(vmin) 0.0
+    set _limits(vmax) 1.0
     if { ![info exists _style2objs($tf)] } {
+	puts stderr "no style2objs for $tf tf=($tf)"
 	return [array get _limits]
     }
     set min ""; set max ""
     foreach {dataobj comp} $_style2objs($tf) {
-	if { ![info exists _obj2id($dataobj-$comp)] } {
+	set tag $dataobj-$comp
+	if { ![info exists _serverObjs($tag)] } {
+	    puts stderr "$tag not in serverObjs?"
 	    continue
 	}
-	set ivol $_obj2id($dataobj-$comp)
-	if { ![info exists _limits($ivol-min)] } {
+	if { ![info exists _limits($tag-min)] } {
+	    puts stderr "$tag no min?"
 	    continue
 	}
-	if { $min == "" || $min > $_limits($ivol-min) } {
-	    set min $_limits($ivol-min)
+	if { $min == "" || $min > $_limits($tag-min) } {
+	    set min $_limits($tag-min)
 	}
-	if { $max == "" || $max < $_limits($ivol-max) } {
-	    set max $_limits($ivol-max)
+	if { $max == "" || $max < $_limits($tag-max) } {
+	    set max $_limits($tag-max)
 	}
     }
     if { $min != "" } {
-	set _limits(min) $min
+	set _limits(vmin) $min
     } 
     if { $max != "" } {
-	set _limits(max) $max
+	set _limits(vmax) $max
     }
     return [array get _limits]
 }
@@ -2501,7 +2473,8 @@ itcl::body Rappture::FlowvisViewer::EventuallyResize { w h } {
 
 itcl::body Rappture::FlowvisViewer::EventuallyResizeLegend {} {
     if { !$_resizeLegendPending } {
-	$_dispatcher event -idle !legend
+	puts stderr "in EventuallyResizeLegend"
+	$_dispatcher event -after 100 !legend
 	set _resizeLegendPending 1
     }
 }
