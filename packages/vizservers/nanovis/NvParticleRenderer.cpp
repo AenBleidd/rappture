@@ -46,7 +46,7 @@ NvParticleRenderer::NvParticleRenderer(int w, int h, CGcontext context) :
     _slice_axis = 0;
     _slice_pos = 0.0;
 
-    data = (Particle*) malloc(w*h*sizeof(Particle));
+    data = new Particle[w*h];
     memset(data, 0, sizeof(Particle) * w * h);
 
     m_vertex_array = new RenderVertexArray(psys_width*psys_height, 3, GL_FLOAT);
@@ -124,6 +124,8 @@ NvParticleRenderer::NvParticleRenderer(int w, int h, CGcontext context) :
 
 NvParticleRenderer::~NvParticleRenderer()
 {
+    glDeleteTextures(1, &initPosTex);
+
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, psys_fbo[0]);
     glDeleteTextures(1, psys_tex);
 
@@ -136,7 +138,7 @@ NvParticleRenderer::~NvParticleRenderer()
 #ifdef notdef
     delete _advectionShader;
 #endif
-    free(data);
+    delete [] data;
 }
 
 void NvParticleRenderer::initializeDataArray()
