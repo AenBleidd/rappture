@@ -7,7 +7,7 @@ class R2Object {
     /**
      * @brief reference count
      */
-    R2int32 _referenceCount;
+    R2int32 _refCount;
 
 public :
     R2Object();
@@ -22,19 +22,20 @@ public :
 
 inline R2int32 R2Object::getRef()
 {
-    return _referenceCount;
+    return _refCount;
 }
 
 inline R2int32 R2Object::ref()
 {
-    return ++_referenceCount;
+    return ++_refCount;
 }
 
 inline void R2Object::unref()
 {
-        --_referenceCount;
-
-    if (_referenceCount <= 0) delete this;
+    _refCount--;
+    if (_refCount <= 0) {
+	delete this;
+    }
 }
 
 

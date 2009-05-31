@@ -115,6 +115,6 @@ load_volume_stream_odx(Rappture::Outcome &context, int userID, const char *buf,
     float dx0 = -0.5;
     float dy0 = -0.5*dy/dx;
     float dz0 = -0.5*dz/dx;
-    volPtr->move(Vector3(dx0, dy0, dz0));
+    volPtr->location(Vector3(dx0, dy0, dz0));
     return true;
 }

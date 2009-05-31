@@ -26,6 +26,8 @@
 
 #define NV_32
 
+NvParticleAdvectionShader* NvParticleRenderer::_advectionShader = NULL;
+
 NvParticleRenderer::NvParticleRenderer(int w, int h, CGcontext context) : 
     scale(1, 1, 1), 
     origin(0, 0, 0),
@@ -115,8 +117,9 @@ NvParticleRenderer::NvParticleRenderer(int w, int h, CGcontext context) :
       cgGLSetTextureParameter(m_vel_tex_param, volume);
       cgGLSetParameter3f(m_scale_param, scale_x, scale_y, scale_z);
     */
-
-    _advectionShader = new NvParticleAdvectionShader();
+    if (_advectionShader == NULL) {
+	_advectionShader = new NvParticleAdvectionShader();
+    }
 }
 
 NvParticleRenderer::~NvParticleRenderer()
@@ -130,7 +133,9 @@ NvParticleRenderer::~NvParticleRenderer()
     glDeleteFramebuffersEXT(2, psys_fbo);
 
     delete m_vertex_array;
+#ifdef notdef
     delete _advectionShader;
+#endif
     free(data);
 }
 

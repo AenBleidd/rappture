@@ -24,7 +24,8 @@ public :
 
 };
 
-inline void NvRegularVolumeShader::bind(unsigned int tfID, Volume* volume, int sliceMode)
+inline void 
+NvRegularVolumeShader::bind(unsigned int tfID, Volume* volume, int sliceMode)
 {
     //regular cubic volume
     cgGLSetStateMatrixParameter(m_mvi_one_volume_param, CG_GL_MODELVIEW_MATRIX, CG_GL_MATRIX_INVERSE);
@@ -37,7 +38,7 @@ inline void NvRegularVolumeShader::bind(unsigned int tfID, Volume* volume, int s
 
     if(!sliceMode)
         cgGLSetParameter4f(m_render_param_one_volume_param,
-            volume->get_n_slice(),
+            volume->n_slices(),
             volume->opacity_scale(),
             volume->diffuse(),
             volume->specular());
@@ -50,7 +51,7 @@ inline void NvRegularVolumeShader::bind(unsigned int tfID, Volume* volume, int s
 
     cgGLSetParameter4f(m_option_one_volume_param,
     	0.0f,
-	volume->get_isosurface(),
+	volume->isosurface(),
 	0.0f,
 	0.0f);
 

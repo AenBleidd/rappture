@@ -36,7 +36,9 @@ void NvParticleAdvectionShader::init()
 void 
 NvParticleAdvectionShader::bind(unsigned int texID, unsigned int initPosTexID)
 {
+    Trace("NvParticleAdvectionShader: binding ");
     cgGLBindProgram(_cgFP);
+    Trace("NvParticleAdvectionShader: done binding");
 
     cgGLSetParameter1f(_posTimestepParam, _timeStep);
     cgGLSetParameter1f(_maxParam, _max);

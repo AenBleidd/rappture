@@ -185,8 +185,8 @@ FlowBox::Render(Volume *volPtr)
     glEnable(GL_BLEND);
     
     glPushMatrix();
-    Vector3 *originPtr = volPtr->get_location();
-    glTranslatef(originPtr->x, originPtr->y, originPtr->z);
+    Vector3 origin = volPtr->location();
+    glTranslatef(origin.x, origin.y, origin.z);
 
     double sx, sy, sz;
     sz = sy = sx = 1.0;
@@ -271,11 +271,10 @@ FlowCmd::FlowCmd(Tcl_Interp *interp, const char *name, Tcl_HashEntry *hPtr)
     _name = name;
     _interp = interp;
     _hashPtr = hPtr;
-    _volDataID = -1;			/* Indicates that no volume slot has
-					 * been allocated for this vector. */
     _sv.sliceVisible = 1;
     _sv.tfPtr = NanoVis::get_transfunc("default");
     _volPtr = NULL;
+    _volId = -1;
     _cmdToken = Tcl_CreateObjCommand(interp, (char *)_name, 
 	(Tcl_ObjCmdProc *)FlowInstObjCmd, this, FlowInstDeleteProc);
     Tcl_InitHashTable(&_particlesTable, TCL_STRING_KEYS);
@@ -295,10 +294,10 @@ FlowCmd::~FlowCmd(void)
 	delete _dataPtr;
     }
      if (_volPtr != NULL) {
-	_volPtr->unref();
-	_volPtr = NULL;
-	NanoVis::remove_volume(_volDataID);
-	NanoVis::vol_renderer->remove_volume(_volDataID);
+	 assert((size_t)_volId == _volPtr->dataID());
+	 fprintf(stderr, "from ~FlowCmd volId=%d\n", _volId);
+	 NanoVis::remove_volume(_volId);
+	 _volPtr = NULL;
     }
 
     FlowBox *boxPtr;
@@ -496,23 +495,6 @@ FlowCmd::NextBox(FlowBoxIterator *iterPtr)
 
 
 void
-FlowCmd::InitVectorField(void)
-{
-    if (_volPtr != NULL) {
-	_volPtr->unref();
-	_volPtr = NULL;
-	NanoVis::remove_volume(_volDataID);
-	NanoVis::vol_renderer->remove_volume(_volDataID);
-    }
-    // Remove the associated vector field.
-    if (_fieldPtr != NULL) {
-	delete _fieldPtr;
-	_fieldPtr = NULL;
-    }
-    
-}
-
-void
 FlowCmd::InitializeParticles(void)
 {
     FlowParticles *particlesPtr;
@@ -527,10 +509,10 @@ bool
 FlowCmd::ScaleVectorField()
 {
     if (_volPtr != NULL) {
-	_volPtr->unref();
+	assert((size_t)_volId == _volPtr->dataID());
+	fprintf(stderr, "from ScaleVectorField volId=%d\n", _volId);
+	NanoVis::remove_volume(_volId);
 	_volPtr = NULL;
-	NanoVis::remove_volume(_volDataID);
-	NanoVis::vol_renderer->remove_volume(_volDataID);
     }
     float *vdata;
     vdata = GetScaledVector();
@@ -545,6 +527,10 @@ FlowCmd::ScaleVectorField()
     }
     _volPtr = volPtr;
 
+    // Remove the associated vector field.
+    if (_fieldPtr != NULL) {
+	delete _fieldPtr;
+    }
     _fieldPtr = new NvVectorField();
     if (_fieldPtr == NULL) {
 	return false;
@@ -555,18 +541,17 @@ FlowCmd::ScaleVectorField()
     height = NanoVis::yMax - NanoVis::yMin;
     depth  = NanoVis::zMax - NanoVis::zMin;
 
-    Vector3 *locationPtr = _volPtr->get_location();
+    Vector3 loc = _volPtr->location();
     /*This is wrong. Need to compute origin. */
-    NanoVis::xOrigin = locationPtr->x;
-    NanoVis::yOrigin = locationPtr->y;
-    NanoVis::zOrigin = locationPtr->z;
+    NanoVis::xOrigin = loc.x;
+    NanoVis::yOrigin = loc.y;
+    NanoVis::zOrigin = loc.z;
 
-    _fieldPtr->setVectorField(_volPtr, *locationPtr, 
+    _fieldPtr->setVectorField(_volPtr, loc, 
 	1.0f, height / width, depth  / width, NanoVis::magMax);
 
     if (NanoVis::licRenderer != NULL) {
-        NanoVis::licRenderer->setVectorField(_volPtr->id, 
-		*locationPtr,
+        NanoVis::licRenderer->setVectorField(_volPtr->id, loc,
 		1.0f / _volPtr->aspect_ratio_width,
 		1.0f / _volPtr->aspect_ratio_height,
 		1.0f / _volPtr->aspect_ratio_depth,
@@ -631,20 +616,18 @@ FlowCmd::GetScaledVector(void)
 Volume *
 FlowCmd::MakeVolume(float *data)
 {
-    if (_volDataID < 0) {
-	_volDataID = NanoVis::generate_data_identifier();
-	Trace("VolumeDataID is %d\n", _volDataID);
-    }
     Volume *volPtr;
-    volPtr = NanoVis::load_volume(_volDataID, _dataPtr->xNum(), 
-	_dataPtr->yNum(), _dataPtr->zNum(), 4, data, 
-	NanoVis::magMin, NanoVis::magMax, 0);
+    /* Reuse the volume index. The first time it's -1, which means to generate
+     * a new volume slot. */
+    volPtr = NanoVis::load_volume(_volId, _dataPtr->xNum(), _dataPtr->yNum(), 
+	_dataPtr->zNum(), 4, data, NanoVis::magMin, NanoVis::magMax, 0);
+    /* Save the volume index.  This only matters the first time through. */
+    _volId = volPtr->dataID();
     volPtr->xAxis.SetRange(_dataPtr->xMin(), _dataPtr->xMax());
     volPtr->yAxis.SetRange(_dataPtr->yMin(), _dataPtr->yMax());
     volPtr->zAxis.SetRange(_dataPtr->zMin(), _dataPtr->zMax());
     volPtr->wAxis.SetRange(NanoVis::magMin, NanoVis::magMax);
 
-    /*volPtr->update_pending = false;*/
     Vector3 physicalMin(NanoVis::xMin, NanoVis::yMin, NanoVis::zMin);
     Vector3 physicalMax(NanoVis::xMax, NanoVis::yMax, NanoVis::zMax);
     volPtr->setPhysicalBBox(physicalMin, physicalMax);
@@ -652,22 +635,24 @@ FlowCmd::MakeVolume(float *data)
     //volPtr->set_n_slice(256 - _volIndex);
     // volPtr->set_n_slice(512- _volIndex);
     // TBD..
-    volPtr->set_n_slice(256);
+    volPtr->n_slices(256);
     volPtr->disable_cutplane(0);
     volPtr->disable_cutplane(1);
     volPtr->disable_cutplane(2);
 
-    NanoVis::vol_renderer->add_volume(volPtr, _sv.tfPtr);
-    volPtr->data(_sv.showVolume);
+    // Automatically set the volume with the previously configured values.
+    volPtr->transferFunction(_sv.tfPtr);
+    volPtr->data_enabled(_sv.showVolume);
     volPtr->outline(_sv.showOutline);
     volPtr->opacity_scale(_sv.opacity);
     volPtr->specular(_sv.specular);
     volPtr->diffuse(_sv.diffuse);
-
+    Trace("volume is now %d %d\n", _sv.showVolume, volPtr->visible());
+    volPtr->visible(_sv.showVolume);
     float dx0 = -0.5;
     float dy0 = -0.5*volPtr->height/volPtr->width;
     float dz0 = -0.5*volPtr->depth/volPtr->width;
-    volPtr->move(Vector3(dx0, dy0, dz0));
+    volPtr->location(Vector3(dx0, dy0, dz0));
     Volume::update_pending = true;
     return volPtr;
 }
@@ -784,12 +769,13 @@ FlowDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
     if (GetDataStream(interp, buf, nBytes) != TCL_OK) {
         return TCL_ERROR;
     }
+    Rappture::Unirect3d *dataPtr;
+    dataPtr = new Rappture::Unirect3d(nComponents);
+
     FlowCmd *flowPtr = (FlowCmd *)clientData;
     size_t length = buf.size();
     char *bytes = (char *)buf.bytes();
     if ((length > 4) && (strncmp(bytes, "<DX>", 4) == 0)) {
-	Rappture::Unirect3d *dataPtr;
-	dataPtr = new Rappture::Unirect3d(nComponents);
 	if (!dataPtr->ImportDx(result, nComponents, length - 4, bytes + 4)) {
 	    Tcl_AppendResult(interp, result.remark(), (char *)NULL);
 	    delete dataPtr;
@@ -797,8 +783,6 @@ FlowDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
 	}
 	flowPtr->SetData(dataPtr);
     } else if ((length > 10) && (strncmp(bytes, "unirect3d ", 10) == 0)) {
-	Rappture::Unirect3d *dataPtr;
-	dataPtr = new Rappture::Unirect3d(nComponents);
 	if (dataPtr->ParseBuffer(interp, buf) != TCL_OK) {
 	    delete dataPtr;
 	    return TCL_ERROR;
@@ -811,14 +795,11 @@ FlowDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
 	    delete u2dPtr;
 	    return TCL_ERROR;
 	}
-	Rappture::Unirect3d *dataPtr;
-	dataPtr = new Rappture::Unirect3d(nComponents);
 	dataPtr->Convert(u2dPtr);
 	flowPtr->SetData(dataPtr);
 	delete u2dPtr;
     } else {
 	fprintf(stderr, "header is %.14s\n", buf.bytes());
-	Rappture::Unirect3d *dataPtr;
 	dataPtr = new Rappture::Unirect3d(nComponents);
 	if (!dataPtr->ImportDx(result, nComponents, length, bytes)) {
 	    Tcl_AppendResult(interp, result.remark(), (char *)NULL);
@@ -832,9 +813,8 @@ FlowDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
 	ssize_t nWritten;
 	size_t length;
 
-        length = sprintf(info, "nv>data tag %s id 0 min %g max %g vmin %g vmax %g\n",
-			 flowPtr->name(), NanoVis::magMin,
-			 NanoVis::magMax, NanoVis::xMin, NanoVis::xMax);
+        length = sprintf(info, "nv>data tag %s min %g max %g\n",
+		flowPtr->name(), dataPtr->magMin(), dataPtr->magMax());
         nWritten  = write(0, info, length);
 	assert(nWritten == (ssize_t)strlen(info));
     }
@@ -1029,21 +1009,20 @@ NanoVis::MapFlows(void)
 
     /* 
      * Step 2.  Generate the vector field from each data set. 
-     *		Delete the currently generated fields. 
      */
     for (flowPtr = FirstFlow(&iter); flowPtr != NULL; 
 	 flowPtr = NextFlow(&iter)) {
 	if (!flowPtr->isDataLoaded()) {
-	    continue;
+	    continue;			// Flow exists, but no data has
+					// been loaded yet.
 	}
-	flowPtr->InitVectorField();
-	if (!flowPtr->visible()) {
-	    continue;
+	if (flowPtr->visible()) {
+	    flowPtr->InitializeParticles();
 	}
-	flowPtr->InitializeParticles();
 	if (!flowPtr->ScaleVectorField()) {
 	    return false;
 	}
+	// FIXME: This doesn't work when there is more than one flow.
 	licRenderer->set_offset(flowPtr->GetRelativePosition());
     }
     AdvectFlows();

@@ -404,8 +404,10 @@ load_volume_stream2(Rappture::Outcome &result, int volDataID, std::iostream& fin
     float dx0 = -0.5;
     float dy0 = -0.5*dy/dx;
     float dz0 = -0.5*dz/dx;
-    if (volPtr) volPtr->move(Vector3(dx0, dy0, dz0));
-     printf("volume moved\n");
+    if (volPtr) {
+	volPtr->location(Vector3(dx0, dy0, dz0));
+	printf("volume moved\n");
+    }
     return true;
 }
 
@@ -832,7 +834,9 @@ load_volume_stream(Rappture::Outcome &result, int volDataID, std::iostream& fin)
     float dx0 = -0.5;
     float dy0 = -0.5*dy/dx;
     float dz0 = -0.5*dz/dx;
-    if (volPtr) volPtr->move(Vector3(dx0, dy0, dz0));
+    if (volPtr) {
+	volPtr->location(Vector3(dx0, dy0, dz0));
+    }
     return true;
 }
 
@@ -1305,6 +1309,8 @@ load_volume_stream_insoo(Rappture::Outcome &result, int volDataID,
     float dx0 = -0.5;
     float dy0 = -0.5*dy/dx;
     float dz0 = -0.5*dz/dx;
-    if (volPtr) volPtr->move(Vector3(dx0, dy0, dz0));
+    if (volPtr) {
+	volPtr->location(Vector3(dx0, dy0, dz0));
+    }
     return true;
 }
