@@ -31,13 +31,16 @@ set elements {
     output.field.component.style  "-color blue:red -levels 6 -opacity 1"
     output.field.component.flow.box(one).label "Region 1"
     output.field.component.flow.box(one).color cyan
+    output.field.component.flow.box(one).hide yes 
     output.field.component.flow.box(one).corner(1) "0 -100 -100" 
     output.field.component.flow.box(one).corner(2) "3000 400 400"
     output.field.component.flow.box(two).label "Region 2"
+    output.field.component.flow.box(two).hide yes 
     output.field.component.flow.box(two).color violet 
     output.field.component.flow.box(two).corner(1) "1000 -150 -100" 
     output.field.component.flow.box(two).corner(2) "3000 3000 3000"
     output.field.component.flow.box(three).label "Region 3"
+    output.field.component.flow.box(three).hide yes 
     output.field.component.flow.box(three).color magenta 
     output.field.component.flow.box(three).corner(1) "1000 -150 -100" 
     output.field.component.flow.box(three).corner(2) "2000 450 450"

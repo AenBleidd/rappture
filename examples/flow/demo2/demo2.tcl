@@ -19,7 +19,12 @@ set elements {
     output.field.component.flow.particles(right).axis x 
     output.field.component.flow.particles(right).color pink
     output.field.component.flow.particles(right).position 90%
-    output.field.component.style  "-color rainbow -levels 6 -opacity 1"
+    output.field.component.flow.box(one).label "Region 1"
+    output.field.component.flow.box(one).color magenta
+    output.field.component.flow.box(one).corner(1) "50 -10 0"
+    output.field.component.flow.box(one).corner(2) "70 20 0"
+    
+    output.field.component.style  "-nonuniformcolors {0.0 steelblue4 0.000001 blue 0.01 green  0.1 grey 1.0 white} -markers {1% 2% 3% 5% 8% 10% 20% 50% 80%} -opacity 1"
     output.field.camera.position {
 	theta 90 phi 0 psi 0 pan-x 0 pan-y 0 zoom 1.0
     }
