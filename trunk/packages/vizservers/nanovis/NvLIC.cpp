@@ -124,6 +124,9 @@ NvLIC::NvLIC(int _size, int _width, int _height, int _axis,
 
 NvLIC::~NvLIC()
 {
+    glDeleteTextures(1, &pattern_tex);
+    glDeleteTextures(1, &mag_tex);
+
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, vel_fbo);
     glDeleteTextures(1, &slice_vector_tex);
 
@@ -134,8 +137,16 @@ NvLIC::~NvLIC()
     glDeleteFramebuffersEXT(2, buffers);
 
     glDeleteLists(disListID, Npat);
+    
+/*
+    TBD..
+    cgDestroyParameter(m_vel_tex_param_render_vel);
+    cgDestroyParameter(m_plane_normal_param_render_vel);
+    cgDestroyParameter(m_max_param);
+    cgDestroyProgram(m_render_vel_fprog);
+*/
 
-    delete slice_vector;
+    delete [] slice_vector;
 }
 
 void 
