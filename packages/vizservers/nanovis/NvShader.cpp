@@ -17,8 +17,7 @@ NvShader::NvShader()
 
 NvShader::~NvShader()
 {
-    cgDestroyProgram(_cgVP);
-    cgDestroyProgram(_cgFP);
+    resetPrograms();
 }
 
 void NvShader::loadVertexProgram(const char* fileName, const char* entryPoint)
@@ -35,12 +34,12 @@ void NvShader::loadFragmentProgram(const char* fileName, const char* entryPoint)
 
 void NvShader::resetPrograms()
 {
-    if (_cgVP != 0)
+    if (_cgVP > 0)
     {
         cgDestroyProgram(_cgVP);
     }
 
-    if (_cgFP != 0)
+    if (_cgFP > 0)
     {
         cgDestroyProgram(_cgFP);
     }

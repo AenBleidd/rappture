@@ -143,8 +143,8 @@ NvLIC::~NvLIC()
     cgDestroyParameter(m_vel_tex_param_render_vel);
     cgDestroyParameter(m_plane_normal_param_render_vel);
     cgDestroyParameter(m_max_param);
-    cgDestroyProgram(m_render_vel_fprog);
 */
+    cgDestroyProgram(m_render_vel_fprog);
 
     delete [] slice_vector;
 }
