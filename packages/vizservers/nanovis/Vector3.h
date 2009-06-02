@@ -54,7 +54,7 @@ public:
     Vector3 operator -(Vector3 &op2) {
 	return Vector3(x - op2.x, y - op2.y, z - op2.z);
     }
-    float operator *(Vector3 &op2){
+    float operator *(const Vector3 &op2){
 	return x*op2.x + y*op2.y + z*op2.z;
     }
     float dot(const Vector3& vec) const {
@@ -118,7 +118,24 @@ public:
     float length(void) const {
 	return sqrt(x*x + y*y + z*z);
     }
+
+    Vector3 scale(const Vector3& scale)
+    {
+        Vector3 v;
+        v.x = x * scale.x;
+        v.y = y * scale.y;
+        v.z = z * scale.z;
+        return v;
+    }
+
+    friend Vector3 operator+(const Vector3& value1, const Vector3& value2);
+
+
 };
 
+inline Vector3 operator+(const Vector3& value1, const Vector3& value2)
+{
+	return Vector3(value1.x + value2.x, value1.y + value2.y, value1.z + value2.z);
+}
 
 #endif

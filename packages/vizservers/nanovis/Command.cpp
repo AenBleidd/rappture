@@ -2032,16 +2032,22 @@ FlowSlicePositionOp(ClientData clientData, Tcl_Interp *interp, int objc,
         NanoVis::lic_slice_x = pos;
         NanoVis::licRenderer->set_axis(0);
         NanoVis::licRenderer->set_offset(NanoVis::lic_slice_x);
+        NanoVis::velocityArrowsSlice->axis(0);
+        NanoVis::velocityArrowsSlice->slicePos(NanoVis::lic_slice_x);
         break;
     case 1 :
         NanoVis::lic_slice_y = pos;
         NanoVis::licRenderer->set_axis(1);
         NanoVis::licRenderer->set_offset(NanoVis::lic_slice_y);
+        NanoVis::velocityArrowsSlice->axis(1);
+        NanoVis::velocityArrowsSlice->slicePos(NanoVis::lic_slice_y);
         break;
     case 2 :
         NanoVis::lic_slice_z = pos;
         NanoVis::licRenderer->set_axis(2);
         NanoVis::licRenderer->set_offset(NanoVis::lic_slice_z);
+        NanoVis::velocityArrowsSlice->axis(2);
+        NanoVis::velocityArrowsSlice->slicePos(NanoVis::lic_slice_z);
         break;
     }
     return TCL_OK;
@@ -2175,6 +2181,18 @@ FlowVectorIdOp(ClientData clientData, Tcl_Interp *interp, int objc,
             1.0f / volPtr->aspect_ratio_depth,
             volPtr->wAxis.max());
         NanoVis::licRenderer->set_offset(NanoVis::lic_slice_z);
+    }
+
+    if (NanoVis::velocityArrowsSlice)
+    {
+        NanoVis::velocityArrowsSlice->vectorField(volPtr->id,
+            //*(volPtr->get_location()),
+            1.0f / volPtr->aspect_ratio_width,
+            1.0f / volPtr->aspect_ratio_height,
+            1.0f / volPtr->aspect_ratio_depth
+            //,volPtr->wAxis.max()
+            );
+        NanoVis::velocityArrowsSlice->slicePos(NanoVis::lic_slice_z);
     }
     return TCL_OK;
 }

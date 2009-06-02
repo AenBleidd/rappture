@@ -61,6 +61,7 @@
 #include "PointSet.h"
 #include "HeightMap.h"
 #include "Grid.h"
+#include "VelocityArrowsSlice.h"
 
 #include "config.h"
 
@@ -116,6 +117,7 @@ public:
 #else
     static NvFlowVisRenderer* flowVisRenderer;
 #endif
+    static VelocityArrowsSlice* velocityArrowsSlice;
     static NvLIC* licRenderer;
     static vector<PointSet*> pointSet;
     static PlaneRenderer* plane_render;
