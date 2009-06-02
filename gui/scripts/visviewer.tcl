@@ -526,7 +526,7 @@ itcl::body Rappture::VisViewer::Euler2XYZ {theta phi psi} {
 #     nothing.
 #
 itcl::body Rappture::VisViewer::SendEcho {channel {data ""}} {
-    #puts stderr ">>$data"
+    #puts stderr ">>($data)"
     if {[string length $itk_option(-sendcommand)] > 0} {
 	uplevel #0 $itk_option(-sendcommand) [list $channel $data]
     }
