@@ -342,7 +342,6 @@ void VelocityArrowsSlice::computeSamplingTicks()
 
 void VelocityArrowsSlice::slicePos(float pos) 
 {
-    // TBD..
-    //_slicePos = pos;
+    _slicePos = pos;
     _dirty = true;
 }
