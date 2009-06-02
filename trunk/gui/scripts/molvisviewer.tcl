@@ -69,7 +69,7 @@ itcl::class Rappture::MolvisViewer {
     public method bondthickness {option {model "all"} }
     public method ResetView {} 
 
-    protected method SendCmd {args}
+    protected method SendCmd { string }
     protected method Update { args }
     protected method Rebuild { }
     protected method Zoom {option {factor 10}}
@@ -597,8 +597,8 @@ itcl::body Rappture::MolvisViewer::Disconnect {} {
     set _outbuf ""
 }
 
-itcl::body Rappture::MolvisViewer::SendCmd { args } {
-    debug "SendCmd $args"
+itcl::body Rappture::MolvisViewer::SendCmd { cmd } {
+    debug "in SendCmd ($cmd)\n"
 
     if { $_buffering } {
 	# Just buffer the commands. Don't send them yet.
@@ -610,7 +610,7 @@ itcl::body Rappture::MolvisViewer::SendCmd { args } {
 	    append _outbuf "rock -defer $_rocker(client)\n"
 	    set _rocker(server) $_rocker(client)
 	}
-	append _outbuf "$args\n"
+	append _outbuf "$cmd\n"
     } else {
 	if { $_state(server) != $_state(client) } {
 	    if { ![SendBytes "frame -defer $_state(client)\n"] } {
@@ -622,7 +622,7 @@ itcl::body Rappture::MolvisViewer::SendCmd { args } {
 		set _rocker(server) $_rocker(client)
 	    }
 	}
-	eval SendBytes "$args\n"
+	SendBytes "$cmd\n"
     }
 }
 
@@ -1479,7 +1479,7 @@ itcl::body Rappture::MolvisViewer::get {} {
 # Clients use this to delete a dataobj from the plot. If no dataobjs
 # are specified, then all dataobjs are deleted.
 # ----------------------------------------------------------------------
-itcl::body Rappture::MolvisViewer::delete {args} {
+itcl::body Rappture::MolvisViewer::delete { args } {
     if {[llength $args] == 0} {
 	set args $_dlist
     }

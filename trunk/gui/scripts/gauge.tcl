@@ -233,16 +233,15 @@ itcl::body Rappture::Gauge::value {args} {
 
 	switch -- $itk_option(-type) {
 	    integer {
-		if {[string length $nv] <= 0 
-		      || ![string is integer $nv] } {
-		    error "Should be an integer value"
+		if { [scan $nv "%g" value] != 1 || int($nv) != $value } {
+		    error "bad value \"$nv\": should be an integer value"
 		}
 	    }
 	    real {
 		if {[string length $nv] <= 0
 		      || ![string is double $nv]
 		      || [regexp -nocase {^(inf|nan)$} $nv]} {
-		    error "Should be a real number"
+		    error "bad value \"$nv\": should be a real number"
 		}
 	    }
 	}
