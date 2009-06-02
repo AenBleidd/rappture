@@ -35,6 +35,18 @@ VelocityArrowsSlice::VelocityArrowsSlice()
 	createRenderTarget();
 	_pointCount = 0;
 	_vectorFieldGraphicsID = 0;
+
+        _arrowColor.set(1, 1, 0);
+}
+
+VelocityArrowsSlice::~VelocityArrowsSlice()
+{
+    cgDestroyProgram(_queryVelocityFP);
+    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, _fbo);
+    glDeleteTextures(1, _tex);
+    glDeleteFramebuffersEXT(1, _fbo);
+
+    delete [] _velocities;
 }
 
 void VelocityArrowsSlice::createRenderTarget()
@@ -156,7 +168,7 @@ void VelocityArrowsSlice::render()
 	glTranslatef(-0.5f, -0.5f, -0.5f);
 	glDisable(GL_TEXTURE_2D);
 	glLineWidth(2.0);
-	glColor3f(0, 0, 1);
+	glColor3f(_arrowColor.x, _arrowColor.y, _arrowColor.z);
 	glBegin(GL_LINES);
 	Vector3 pos;
 	Vector3 pos2;
