@@ -35,6 +35,7 @@ class VelocityArrowsSlice {
 	int _pointCount;
 
 	Vector3 _maxVelocityScale;
+	Vector3 _arrowColor;
 
 	bool _enabled;	
 	bool _dirty;
@@ -58,6 +59,7 @@ public :
 	bool enabled() const;
 	void tickCountForMinSizeAxis(int tickCount);
 	int tickCountForMinSizeAxis() const;
+        void arrowColor(const Vector3& color);
 };
 
 inline int VelocityArrowsSlice::axis() const
@@ -80,3 +82,9 @@ inline int VelocityArrowsSlice::tickCountForMinSizeAxis() const
 {
 	return _tickCountForMinSizeAxis;
 }
+
+inline void VelocityArrowsSlice::arrowColor(const Vector3& color)
+{
+    _arrowColor = color;
+}
+
