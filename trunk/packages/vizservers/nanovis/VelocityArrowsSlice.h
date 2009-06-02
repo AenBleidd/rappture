@@ -47,6 +47,7 @@ private :
 	void computeSamplingTicks();
 public :
 	VelocityArrowsSlice();
+        ~VelocityArrowsSlice();
 
 	void vectorField(unsigned int vfGraphicsID, float xScale, float yScale, float zScale);
 	void axis(int axis);
