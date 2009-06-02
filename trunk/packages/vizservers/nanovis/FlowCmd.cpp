@@ -560,6 +560,16 @@ FlowCmd::ScaleVectorField()
 	SetAxis();
 	SetActive();
     }
+
+    if (NanoVis::velocityArrowsSlice != NULL) {
+        NanoVis::velocityArrowsSlice->vectorField(volPtr->id,
+            //*(volPtr->get_location()),
+            1.0f,
+            volPtr->aspect_ratio_height / volPtr->aspect_ratio_width,
+            volPtr->aspect_ratio_depth / volPtr->aspect_ratio_width
+            //,volPtr->wAxis.max()
+            );
+    }
     FlowParticles *particlesPtr;
     FlowParticlesIterator partIter;
     for (particlesPtr = FirstParticles(&partIter); particlesPtr != NULL;
@@ -1024,6 +1034,8 @@ NanoVis::MapFlows(void)
 	}
 	// FIXME: This doesn't work when there is more than one flow.
 	licRenderer->set_offset(flowPtr->GetRelativePosition());
+        NanoVis::velocityArrowsSlice->slicePos(flowPtr->GetRelativePosition());
+        
     }
     AdvectFlows();
     return true;

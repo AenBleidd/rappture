@@ -147,6 +147,7 @@ OBJS		= \
 		Trace.o \
 		TransferFunction.o \
 		Util.o \
+                VelocityArrowSlice.o \
 		Volume.o \
 		VolumeInterpolator.o \
 		VolumeRenderer.o \
@@ -170,6 +171,7 @@ shaders		= \
 		$(srcdir)/shaders/one_volume.cg \
 		$(srcdir)/shaders/passthru.cg \
 		$(srcdir)/shaders/pointsvp.cg \
+		$(srcdir)/shaders/queryvelocity.cg \
 		$(srcdir)/shaders/render_vel.cg \
 		$(srcdir)/shaders/update_pos.cg \
 		$(srcdir)/shaders/update_pos_vel.cg \
@@ -291,6 +293,7 @@ PointSet.o: PointSet.cpp PointSet.h
 RenderContext.o: RenderContext.cpp RenderContext.h
 VolumeInterpolator.o: VolumeInterpolator.cpp VolumeInterpolator.h
 GradientFilter.o: GradientFilter.cpp GradientFilter.h
+VelocityArrowSlice.o: VelocityArrowSlice.cpp VelocityArrowSlice.h
 
 Util.o: Util.cpp Util.h
 Command.o: Command.cpp Command.h
