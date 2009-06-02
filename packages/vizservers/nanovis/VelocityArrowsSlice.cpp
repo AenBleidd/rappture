@@ -43,8 +43,8 @@ VelocityArrowsSlice::~VelocityArrowsSlice()
 {
     cgDestroyProgram(_queryVelocityFP);
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, _fbo);
-    glDeleteTextures(1, _tex);
-    glDeleteFramebuffersEXT(1, _fbo);
+    glDeleteTextures(1, &_tex);
+    glDeleteFramebuffersEXT(1, &_fbo);
 
     delete [] _velocities;
 }
