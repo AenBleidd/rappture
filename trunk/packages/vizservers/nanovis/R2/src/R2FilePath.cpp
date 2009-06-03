@@ -82,7 +82,8 @@ R2FilePath::getPath(const char* fileName)
 	char *path;
 
 	path = new char[strlen((char *)(*iter)) + 1 + nameLength + 1];
-	sprintf(path, "%s/%s", (char *)(*iter), fileName);
+	//sprintf(path, "%s/%s", (char *)(*iter), fileName);
+	sprintf(path, "%s%s", (char *)(*iter), fileName);
 	if (access(path, R_OK) == 0) {
 	    return path;
 	}

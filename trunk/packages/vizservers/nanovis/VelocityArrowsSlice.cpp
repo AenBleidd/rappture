@@ -4,25 +4,45 @@
 #endif
 #include <GL/gl.h>
 #include "VelocityArrowsSlice.h"
+#ifdef WIN32
+#include <GL/glaux.h>
+#else
+//#include <opencv/cv.h>
+//#include <opencv/highgui.h>
+#endif
+
+#ifdef USE_NANOVIS_LIB
 #include "global.h"
 #include "Nv.h"
+#include "R2/R2FilePath.h"
+#endif 
+
+#define USE_VERTEX_BUFFER
 
 VelocityArrowsSlice::VelocityArrowsSlice()
 {
+    printf("test\n");
+    _enabled = true;
 	_context = cgCreateContext();
 	_vectorFieldGraphicsID = 0;
 	_vfXscale = _vfYscale = _vfZscale = 0;
 	_slicePos = 0.5f;
-        _enabled =true;
-
+	_vertexBufferGraphicsID = 0;
 	axis(2);
-
+	//_renderMode = GLYPHES;
+	_renderMode = LINES;
 	
 	_tickCountForMinSizeAxis = 10;
 
-	_queryVelocityFP = LoadCgSourceProgram(_context, "queryvelocity.cg", 
-	        CG_PROFILE_FP30, "main");
-	_ipVectorFieldParam = cgGetNamedParameter(_queryVelocityFP, "vfield");
+	_queryVelocityFP = 
+#ifdef USE_NANOVIS_LIB
+            LoadCgSourceProgram(_context, "queryvelocity.cg", CG_PROFILE_FP30, "main");
+#else
+	    cgCreateProgramFromFile(_context, CG_SOURCE, "queryvelocity.cg",
+							CG_PROFILE_FP30, "main", NULL);
+	    cgGLLoadProgram(_queryVelocityFP);
+#endif
+	_qvVectorFieldParam = cgGetNamedParameter(_queryVelocityFP, "vfield");
 
 	_dirty = true;
 	_dirtySamplingPosition = true;
@@ -32,11 +52,93 @@ VelocityArrowsSlice::VelocityArrowsSlice()
 	_renderTargetWidth = 128;
 	_renderTargetHeight = 128;
 	_velocities = new Vector3[_renderTargetWidth * _renderTargetHeight];
+
+	::glGenBuffers(1, &_vertexBufferGraphicsID);
+	glBindBufferARB(GL_ARRAY_BUFFER_ARB, _vertexBufferGraphicsID);
+	glBufferDataARB(GL_ARRAY_BUFFER, _renderTargetWidth * _renderTargetHeight * 3 * sizeof(float), 
+		0, GL_DYNAMIC_DRAW_ARB);
+	glBindBufferARB(GL_ARRAY_BUFFER, 0);
 	createRenderTarget();
 	_pointCount = 0;
-	_vectorFieldGraphicsID = 0;
 
-        _arrowColor.set(1, 1, 0);
+/*
+	_particleVP = 
+#ifdef USE_NANOVIS_LIB
+                LoadCgSourceProgram(_context, "velocityslicevp.cg", CG_PROFILE_VP40, "vpmain");
+#else
+		cgCreateProgramFromFile(_context, CG_SOURCE, "velocityslicevp.cg",
+							CG_PROFILE_VP40, "vpmain", NULL);
+	        cgGLLoadProgram(_particleVP);
+#endif
+	_mvpParticleParam = cgGetNamedParameter(_particleVP, "mvp");
+	_mvParticleParam = cgGetNamedParameter(_particleVP, "modelview");
+	_mvTanHalfFOVParam = cgGetNamedParameter(_particleVP, "tanHalfFOV");
+
+	// TBD..
+	//_particleFP = 
+#ifdef USE_NANOVIS_LIB
+//                LoadCgSourceProgram(_context, "velocityslicefp.cg", CG_PROFILE_FP40, "fpmain");
+#else
+		cgCreateProgramFromFile(_context, CG_SOURCE, "velocityslicefp.cg",
+							CG_PROFILE_FP40, "fpmain", NULL);
+	        cgGLLoadProgram(_particleFP);
+#endif
+	_vectorParticleParam = cgGetNamedParameter(_particleVP, "vfield");
+*/
+
+#ifdef USE_NANOVIS_LIB
+
+#ifdef WIN32
+	AUX_RGBImageRec *pTextureImage = auxDIBImageLoad("arrows.bmp");
+	_arrowsTex->setPixels(CF_RGB, DT_UBYTE, pTextureImage->sizeX, pTextureImage->sizeY, (void*) pTextureImage->data);
+
+        _arrowsTex = new Texture2D(pTextureImage->sizeX, pTextureImage->sizeY, GL_FLOAT, GL_LINEAR, 3, (void*) pTextureImage->data);
+
+	//delete pTextureImage;
+#else
+    /*
+        printf("test1\n");
+        const char *path = R2FilePath::getInstance()->getPath("arrows_flip2.png");
+        if (path) printf("test2 %s\n", path);
+        else printf("tt\n");
+	IplImage* pTextureImage = cvLoadImage(path);
+        printf("test3\n");
+        if (pTextureImage)
+        {
+            printf("file(%s) has been loaded\n", path);
+            _arrowsTex = new Texture2D(pTextureImage->width, pTextureImage->height, GL_FLOAT, GL_LINEAR, 3, (float*) pTextureImage->imageData);
+            printf("file(%s) has been loaded\n", path);
+	    //cvReleaseImage(&pTextureImage);
+        }
+        else
+        {
+            printf("not found\n");
+        }
+        if (path) delete [] path;
+*/
+
+#endif
+
+#else
+	_arrowsTex = new Texture2D();
+	_arrowsTex->setWrapS(TW_MIRROR);
+	_arrowsTex->setWrapT(TW_MIRROR);
+#ifdef WIN32
+	AUX_RGBImageRec *pTextureImage = auxDIBImageLoad("arrows.bmp");
+	_arrowsTex->setPixels(CF_RGB, DT_UBYTE, pTextureImage->sizeX, pTextureImage->sizeY, (void*) pTextureImage->data);
+
+	//delete pTextureImage;
+#else
+	IplImage* pTextureImage = cvLoadImage("arrows_flip2.png");
+	_arrowsTex->setPixels(CF_RGB, DT_UBYTE, pTextureImage->width, pTextureImage->height, (void*) pTextureImage->imageData);
+
+	//cvReleaseImage(&pTextureImage);
+#endif
+
+#endif
+    _arrowColor.set(1, 1, 0);
+
+    printf("test1\n");
 }
 
 VelocityArrowsSlice::~VelocityArrowsSlice()
@@ -46,7 +148,16 @@ VelocityArrowsSlice::~VelocityArrowsSlice()
     glDeleteTextures(1, &_tex);
     glDeleteFramebuffersEXT(1, &_fbo);
 
-    delete [] _velocities;
+#ifdef USE_NANOVIS_LIB
+	delete _arrowsTex;
+#else
+	_arrowsTex->unref();
+#endif
+	cgDestroyProgram(_particleFP);
+	cgDestroyProgram(_particleVP);
+
+        glDeleteBuffers(1, &_vertexBufferGraphicsID);
+	delete [] _velocities;
 }
 
 void VelocityArrowsSlice::createRenderTarget()
@@ -102,7 +213,7 @@ void VelocityArrowsSlice::axis(int axis)
 	}
 	_dirtySamplingPosition = true;
 	_dirtyRenderTarget = true;
-        _dirty = true;
+    //_dirty = true;
 }
 
 
@@ -114,8 +225,8 @@ void VelocityArrowsSlice::queryVelocity()
 	glDisable(GL_DEPTH_TEST);
 	cgGLBindProgram(_queryVelocityFP);
 	cgGLEnableProfile(CG_PROFILE_FP30);
-	cgGLSetTextureParameter(_ipVectorFieldParam, _vectorFieldGraphicsID);
-	cgGLEnableTextureParameter(_ipVectorFieldParam);
+	cgGLSetTextureParameter(_qvVectorFieldParam, _vectorFieldGraphicsID);
+	cgGLEnableTextureParameter(_qvVectorFieldParam);
 
 	glPushAttrib(GL_VIEWPORT_BIT);
 	glViewport(0, 0, _renderTargetWidth, _renderTargetHeight);
@@ -128,7 +239,7 @@ void VelocityArrowsSlice::queryVelocity()
 	glLoadIdentity();
 	glBegin(GL_POINTS);
 
-	for (int index = 0; index < _samplingPositions.size(); ++index)
+	for (unsigned int index = 0; index < _samplingPositions.size(); ++index)
 	{
 		glMultiTexCoord3f(0, _samplingPositions[index].x,_samplingPositions[index].y,_samplingPositions[index].z);
 		glVertex2f(index % _renderTargetWidth,
@@ -138,7 +249,7 @@ void VelocityArrowsSlice::queryVelocity()
 	glEnd();
 
 	glDisable(GL_TEXTURE_RECTANGLE_NV);
-	cgGLDisableTextureParameter(_ipVectorFieldParam);
+	cgGLDisableTextureParameter(_qvVectorFieldParam);
 	cgGLDisableProfile(CG_PROFILE_FP30);
 
 	glReadPixels(0, 0, _renderTargetWidth, _renderTargetHeight, GL_RGB, GL_FLOAT, _velocities);
@@ -154,7 +265,9 @@ void VelocityArrowsSlice::queryVelocity()
 
 void VelocityArrowsSlice::render()
 {
-	if (!_enabled || _vectorFieldGraphicsID == 0) return;	
+	//if (!_enabled || (_vectorFieldGraphicsID == 0)) return;	
+	if (!_enabled) return;
+
 	if (_dirty)
 	{
 		computeSamplingTicks();
@@ -164,59 +277,142 @@ void VelocityArrowsSlice::render()
 
 
 	glPushMatrix();
+	
 	glScalef(_vfXscale,_vfYscale, _vfZscale);
 	glTranslatef(-0.5f, -0.5f, -0.5f);
-	glDisable(GL_TEXTURE_2D);
-	glLineWidth(2.0);
-	glColor3f(_arrowColor.x, _arrowColor.y, _arrowColor.z);
-	glBegin(GL_LINES);
-	Vector3 pos;
-	Vector3 pos2;
-	Vector3 vel(1, 0, 0);
-	Vector3 v, v2;
-	if (_axis == 2)
+	if (_renderMode == LINES)
 	{
-		int index = 0;
-		for (int y = 1; y <= _tickCountY; ++y)
-			for (int x = 1; x <= _tickCountX; ++x, ++index)
-			{
-				pos = this->_samplingPositions[index];
-				pos2 = this->_velocities[index].scale(_projectionVector).scale(_maxVelocityScale) + pos;
-				glVertex3f(pos.x, pos.y, pos.z);
-				glVertex3f(pos2.x, pos2.y, pos2.z);
 
-			}
+		glDisable(GL_TEXTURE_2D);
+		glLineWidth(2.0);
+		glColor3f(_arrowColor.x, _arrowColor.y, _arrowColor.z);
+		glBegin(GL_LINES);
+		Vector3 pos;
+		Vector3 pos2;
+		Vector3 vel(1, 0, 0);
+		Vector3 v, v2;
+		if (_axis == 2)
+		{
+			int index = 0;
+			for (int y = 1; y <= _tickCountY; ++y)
+				for (int x = 1; x <= _tickCountX; ++x, ++index)
+				{
+					pos = this->_samplingPositions[index];
+					pos2 = this->_velocities[index].scale(_projectionVector).scale(_maxVelocityScale) + pos;
+					glVertex3f(pos.x, pos.y, pos.z);
+					glVertex3f(pos2.x, pos2.y, pos2.z);
+					/*v = pos - pos2;
+					
+					
+					v2.x = 1;
+					v2.y = 1;
+					v2.z = (-(x1-x2)-(y1-y2))/(z1-z2)
+					adj = v.length() / (4 * sqrt((x3^2)+(y3^2)+(z3^2)));
+					x3 *= adj
+					y3 *= adj
+					z3 *= adj
+					*/
+
+				}
+		}
+		else if (_axis == 1)
+		{
+			int index = 0;
+			for (int z = 1; z <= _tickCountZ; ++z)
+				for (int x = 1; x <= _tickCountX; ++x, ++index)
+				{
+					pos = _samplingPositions[index];
+					pos2 = this->_velocities[index].scale(_projectionVector).scale(_maxVelocityScale) + pos;
+
+					glVertex3f(pos.x, pos.y, pos.z);
+					glVertex3f(pos2.x, pos2.y, pos2.z);
+				}
+		}
+		else if (_axis == 0)
+		{
+			int index = 0;
+			for (int z = 1; z <= _tickCountZ; ++z)
+				for (int y = 1; y <= _tickCountY; ++y, ++index)
+				{
+					pos = _samplingPositions[index];
+					pos2 = this->_velocities[index].scale(_projectionVector).scale(_maxVelocityScale) + pos;
+
+					glVertex3f(pos.x, pos.y, pos.z);
+					glVertex3f(pos2.x, pos2.y, pos2.z);
+				}
+		}
+		
+		glEnd();
+		glLineWidth(1.0);
 	}
-	else if (_axis == 1)
+	else 
 	{
-		int index = 0;
-		for (int z = 1; z <= _tickCountZ; ++z)
-			for (int x = 1; x <= _tickCountX; ++x, ++index)
-			{
-				pos = _samplingPositions[index];
-				pos2 = _velocities[index].scale(_projectionVector).scale(_maxVelocityScale) + pos;
+		glColor3f(_arrowColor.x, _arrowColor.y, _arrowColor.z);
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+		glEnable(GL_POINT_SPRITE_NV);
+		glPointSize(20);				
+		glEnable(GL_VERTEX_PROGRAM_POINT_SIZE_NV);
 
-				glVertex3f(pos.x, pos.y, pos.z);
-				glVertex3f(pos2.x, pos2.y, pos2.z);
-			}
-	}
-	else if (_axis == 0)
-	{
-		int index = 0;
-		for (int z = 1; z <= _tickCountZ; ++z)
-			for (int y = 1; y <= _tickCountY; ++y, ++index)
-			{
-				pos = _samplingPositions[index];
-				pos2 = _velocities[index].scale(_projectionVector).scale(_maxVelocityScale) + pos;
+#ifdef USE_NANOVIS_LIB
+                _arrowsTex->activate(); 
+#else
+		_arrowsTex->bind(0);
+		glEnable(GL_TEXTURE_2D);
+#endif
+		glPointParameterfARB( GL_POINT_FADE_THRESHOLD_SIZE_ARB, 0.0f );
 
-				glVertex3f(pos.x, pos.y, pos.z);
-				glVertex3f(pos2.x, pos2.y, pos2.z);
-			}
+		glPointParameterfARB( GL_POINT_SIZE_MIN_ARB, 1.0f);
+		glPointParameterfARB( GL_POINT_SIZE_MAX_ARB, 100.0f);
+		glTexEnvf( GL_POINT_SPRITE_ARB, GL_COORD_REPLACE_ARB, GL_TRUE );
+
+		cgGLBindProgram(_particleVP);
+		cgGLBindProgram(_particleFP);
+		cgGLEnableProfile(CG_PROFILE_VP40);
+		cgGLEnableProfile(CG_PROFILE_FP40);
+
+		cgGLSetTextureParameter(_vectorParticleParam, _vectorFieldGraphicsID);
+		cgGLEnableTextureParameter(_vectorParticleParam);
+
+
+		//cgSetParameter1f(_mvTanHalfFOVParam, -tan(_fov * 0.5) * _screenHeight * 0.5);
+		
+		cgGLSetStateMatrixParameter(_mvpParticleParam,
+						CG_GL_MODELVIEW_PROJECTION_MATRIX,
+						CG_GL_MATRIX_IDENTITY);
+		cgGLSetStateMatrixParameter(_mvParticleParam,
+						CG_GL_MODELVIEW_MATRIX,
+						CG_GL_MATRIX_IDENTITY);
+
+		glEnableClientState(GL_VERTEX_ARRAY);
+		glBindBufferARB(GL_ARRAY_BUFFER_ARB, _vertexBufferGraphicsID);
+		glVertexPointer(3, GL_FLOAT, 0, 0);
+		//glEnableClientState(GL_COLOR_ARRAY);
+
+		// TBD..
+		glDrawArrays(GL_POINTS, 0, _pointCount);
+		glPointSize(1);
+		glDrawArrays(GL_POINTS, 0, _pointCount);
+
+		glDisableClientState(GL_VERTEX_ARRAY);
+		
+		cgGLDisableProfile(CG_PROFILE_VP40);
+		cgGLDisableProfile(CG_PROFILE_FP40);
+
+		glDepthMask(GL_TRUE);
+		
+		glDisable(GL_POINT_SPRITE_NV);
+		glDisable(GL_VERTEX_PROGRAM_POINT_SIZE_NV);
+
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		glDisable(GL_BLEND);
+#ifdef USE_NANOVIS_LIB
+                _arrowsTex->deactivate(); 
+#else
+                _arrowsTex->unbind();
+#endif
 	}
-	
-	glEnd();
 	glPopMatrix();
-	glLineWidth(1.0);
 }
 
 void VelocityArrowsSlice::enabled(bool e)
@@ -227,16 +423,19 @@ void VelocityArrowsSlice::enabled(bool e)
 void VelocityArrowsSlice::vectorField(unsigned int vfGraphicsID, 
 				float xScale, float yScale, float zScale)
 {
-	_vectorFieldGraphicsID = vfGraphicsID;
-	_vfXscale = xScale;
-	_vfYscale = yScale;
-	_vfZscale = zScale;
+    _vectorFieldGraphicsID = vfGraphicsID;
+    _vfXscale = xScale;
+    _vfYscale = yScale;
+    _vfZscale = zScale;
+
+    //_dirty = true;
 }
 
 void VelocityArrowsSlice::tickCountForMinSizeAxis(int tickCount)
 {
 	_tickCountForMinSizeAxis = tickCount;
 	
+    //_dirty = true;
 }
 
 
@@ -315,45 +514,97 @@ void VelocityArrowsSlice::computeSamplingTicks()
 		_pointCount = pointCount;
 	}
 
-
-	Vector3 pos;
-	if (_axis == 2)
+	if (_renderMode == LINES)
 	{
-		for (int y = 1; y <= _tickCountY; ++y)
-			for (int x = 1; x <= _tickCountX; ++x)
-			{
-				pos.x = (1.0f / (_tickCountX + 1)) * x;
-				pos.y = (1.0f / (_tickCountY + 1)) * y;
-				pos.z = _slicePos;
-				_samplingPositions.push_back(pos);
-			}
-	}
-	else if (_axis == 1)
-	{
-		for (int z = 1; z <= _tickCountZ; ++z)
-			for (int x = 1; x <= _tickCountX; ++x)
-			{
-				pos.x = (1.0f / (_tickCountX + 1)) * x;
-				pos.y = _slicePos;
-				pos.z = (1.0f / (_tickCountZ + 1)) * z;
-				_samplingPositions.push_back(pos);
-			}
-	}
-	else if (_axis == 0)
-	{
-		for (int z = 1; z <= _tickCountZ; ++z)
+		Vector3 pos;
+		if (_axis == 2)
+		{
 			for (int y = 1; y <= _tickCountY; ++y)
-			{
-				pos.x = _slicePos;
-				pos.y = (1.0f / (_tickCountY + 1)) * y;
-				pos.z = (1.0f / (_tickCountZ + 1)) * z;
-				_samplingPositions.push_back(pos);
+				for (int x = 1; x <= _tickCountX; ++x)
+				{
+					pos.x = (1.0f / (_tickCountX + 1)) * x;
+					pos.y = (1.0f / (_tickCountY + 1)) * y;
+					pos.z = _slicePos;
+					_samplingPositions.push_back(pos);
+	
+				}
+		}
+		else if (_axis == 1)
+		{
+			for (int z = 1; z <= _tickCountZ; ++z)
+				for (int x = 1; x <= _tickCountX; ++x)
+				{
+					pos.x = (1.0f / (_tickCountX + 1)) * x;
+					pos.y = _slicePos;
+					pos.z = (1.0f / (_tickCountZ + 1)) * z;
+					_samplingPositions.push_back(pos);
+				}
+		}
+		else if (_axis == 0)
+		{
+			for (int z = 1; z <= _tickCountZ; ++z)
+				for (int y = 1; y <= _tickCountY; ++y)
+				{
+					pos.x = _slicePos;
+					pos.y = (1.0f / (_tickCountY + 1)) * y;
+					pos.z = (1.0f / (_tickCountZ + 1)) * z;
+					_samplingPositions.push_back(pos);
+				}
+		}
+	}
+	else
+	{
+		glBindBufferARB(GL_ARRAY_BUFFER_ARB, _vertexBufferGraphicsID);
+		Vector3* pinfo = (Vector3*) glMapBufferARB(GL_ARRAY_BUFFER, GL_WRITE_ONLY_ARB);
+
+		Vector3 pos;
+		if (_axis == 2)
+		{
+			for (int y = 1; y <= _tickCountY; ++y)
+				for (int x = 1; x <= _tickCountX; ++x)
+				{
+					pos.x = (1.0f / (_tickCountX + 1)) * x;
+					pos.y = (1.0f / (_tickCountY + 1)) * y;
+					pos.z = _slicePos;
+
+					*pinfo = pos;
+					++pinfo;
 			}
+		}
+		else if (_axis == 1)
+		{
+			for (int z = 1; z <= _tickCountZ; ++z)
+				for (int x = 1; x <= _tickCountX; ++x)
+				{
+					pos.x = (1.0f / (_tickCountX + 1)) * x;
+					pos.y = _slicePos;
+					pos.z = (1.0f / (_tickCountZ + 1)) * z;
+	
+					*pinfo = pos;
+					++pinfo;
+				}
+		}
+		else if (_axis == 0)
+		{
+			for (int z = 1; z <= _tickCountZ; ++z)
+				for (int y = 1; y <= _tickCountY; ++y)
+				{
+					pos.x = _slicePos;
+					pos.y = (1.0f / (_tickCountY + 1)) * y;
+					pos.z = (1.0f / (_tickCountZ + 1)) * z;
+					
+					*pinfo = pos;
+					++pinfo;
+				}
+		}
+
+		glUnmapBufferARB(GL_ARRAY_BUFFER_ARB);
 	}
 }
 
-void VelocityArrowsSlice::slicePos(float pos) 
+void VelocityArrowsSlice::slicePos(float pos)
 {
     _slicePos = pos;
     _dirty = true;
 }
+
