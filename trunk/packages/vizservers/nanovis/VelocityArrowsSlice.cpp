@@ -21,8 +21,7 @@
 
 VelocityArrowsSlice::VelocityArrowsSlice()
 {
-    printf("test\n");
-    _enabled = true;
+    _enabled = false;
 	_context = cgCreateContext();
 	_vectorFieldGraphicsID = 0;
 	_vfXscale = _vfYscale = _vfZscale = 0;
