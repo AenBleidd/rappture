@@ -147,7 +147,7 @@ OBJS		= \
 		Trace.o \
 		TransferFunction.o \
 		Util.o \
-                VelocityArrowSlice.o \
+                VelocityArrowsSlice.o \
 		Volume.o \
 		VolumeInterpolator.o \
 		VolumeRenderer.o \
@@ -159,6 +159,7 @@ OBJS		= \
 
 resources	= \
 		$(srcdir)/resources/Font.bmp \
+                $(srcdir)/resource/arrows_flip2.png \
 		$(srcdir)/resources/particle2.bmp \
 		$(srcdir)/resources/verdana.fnt \
 		$(srcdir)/resources/verdana_bold.fnt
@@ -169,6 +170,7 @@ shaders		= \
 		$(srcdir)/shaders/heightcolor.cg \
 		$(srcdir)/shaders/one_plane.cg \
 		$(srcdir)/shaders/one_volume.cg \
+                $(srcdir)/shaders/particle_common.cg \
 		$(srcdir)/shaders/passthru.cg \
 		$(srcdir)/shaders/pointsvp.cg \
 		$(srcdir)/shaders/queryvelocity.cg \
@@ -178,6 +180,8 @@ shaders		= \
 		$(srcdir)/shaders/update_vel.cg \
 		$(srcdir)/shaders/vertex_std.cg \
 		$(srcdir)/shaders/volqd_volume.cg \
+                $(srcdir)/shaders/velocityslicevp.cg \
+                $(srcdir)/shaders/velocityslicefp.cg \
 		$(srcdir)/shaders/zincblende_volume.cg
 
 .PHONY: newmat11 R2 imgloaders transfer-function nanovis
@@ -293,7 +297,7 @@ PointSet.o: PointSet.cpp PointSet.h
 RenderContext.o: RenderContext.cpp RenderContext.h
 VolumeInterpolator.o: VolumeInterpolator.cpp VolumeInterpolator.h
 GradientFilter.o: GradientFilter.cpp GradientFilter.h
-VelocityArrowSlice.o: VelocityArrowSlice.cpp VelocityArrowSlice.h
+VelocityArrowsSlice.o: VelocityArrowsSlice.cpp VelocityArrowsSlice.h
 
 Util.o: Util.cpp Util.h
 Command.o: Command.cpp Command.h

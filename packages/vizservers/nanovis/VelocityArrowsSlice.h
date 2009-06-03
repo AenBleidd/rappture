@@ -3,10 +3,71 @@
 #include <Cg/cg.h>
 #include <Cg/cgGL.h>
 #include <vector>
+
+#define USE_NANOVIS_LIB
+
+#ifdef USE_NANOVIS_LIB
+#include "Texture2D.h"
 #include "Vector3.h"
+#else
+#include <vr3d/vrTexture2D.h>
+
+typedef vrTexture2D Texture2D;
+
+class Vector3 {
+public :
+	float x, y, z;
+	Vector3() : x(0.0f), y(0.0f), z(0.0f) {}
+	Vector3(float x1, float y1, float z1) : x(x1), y(y1), z(z1) {}
+	Vector3 operator*(float scale)
+        {
+		Vector3 vec;
+		vec.x = x * scale;
+		vec.y = y * scale;
+		vec.z = z * scale;
+                return vec;
+        }
+    Vector3 scale(const Vector3& scale)
+    {
+        Vector3 vec;
+        vec.x = x * scale.x;
+        vec.y = y * scale.y;
+        vec.z = z * scale.z;
+            return vec;
+    }
+
+	Vector3 operator*(const Vector3& scale)
+	{
+		Vector3 vec;
+		vec.x = x * scale.x;
+		vec.y = y * scale.y;
+		vec.z = z * scale.z;
+		return vec;
+
+	}
+	friend Vector3 operator+(const Vector3& value1, const Vector3& value2);
+
+    void set(float x1, float y1, float z1)
+    {
+        x = x1; y = y1; z = z1;
+    }
+};
+
+inline Vector3 operator+(const Vector3& value1, const Vector3& value2)
+{
+	return Vector3(value1.x + value2.x, value1.y + value2.y, value1.z + value2.z);
+}
+
+#endif
+
 
 class VelocityArrowsSlice {
-
+public :
+	enum RenderMode {
+		LINES,
+		GLYPHES,
+	};
+private :
 	unsigned int _vectorFieldGraphicsID;
 	float _vfXscale;
 	float _vfYscale;
@@ -19,7 +80,7 @@ class VelocityArrowsSlice {
 	
 	CGcontext _context;
 	CGprogram _queryVelocityFP;
-	CGparameter _ipVectorFieldParam;
+	CGparameter _qvVectorFieldParam;
 
 	int _renderTargetWidth;
 	int _renderTargetHeight;
@@ -35,19 +96,33 @@ class VelocityArrowsSlice {
 	int _pointCount;
 
 	Vector3 _maxVelocityScale;
-	Vector3 _arrowColor;
+        Vector3 _arrowColor;
 
 	bool _enabled;	
 	bool _dirty;
 	bool _dirtySamplingPosition;
 	bool _dirtyRenderTarget;
+
+	unsigned int _vertexBufferGraphicsID;
+
+	CGprogram _particleVP;
+	CGparameter _mvpParticleParam;
+	CGparameter _mvParticleParam;
+	CGparameter _mvTanHalfFOVParam;
+	CGparameter _mvCurrentTimeParam;
 	
+	CGprogram _particleFP;
+	CGparameter _vectorParticleParam;
+
+	Texture2D* _arrowsTex;
+
+	RenderMode _renderMode;
 private :
 	void createRenderTarget();
 	void computeSamplingTicks();
 public :
 	VelocityArrowsSlice();
-        ~VelocityArrowsSlice();
+	~VelocityArrowsSlice();
 
 	void vectorField(unsigned int vfGraphicsID, float xScale, float yScale, float zScale);
 	void axis(int axis);
@@ -59,8 +134,10 @@ public :
 	void enabled(bool e);
 	bool enabled() const;
 	void tickCountForMinSizeAxis(int tickCount);
-	int tickCountForMinSizeAxis() const;
-        void arrowColor(const Vector3& color);
+    int tickCountForMinSizeAxis() const;
+    void arrowColor(const Vector3& color);
+	void renderMode(RenderMode mode);
+	RenderMode renderMode() const;
 };
 
 inline int VelocityArrowsSlice::axis() const
@@ -89,3 +166,13 @@ inline void VelocityArrowsSlice::arrowColor(const Vector3& color)
     _arrowColor = color;
 }
 
+inline void VelocityArrowsSlice::renderMode(VelocityArrowsSlice::RenderMode mode)
+{
+	_renderMode = mode;
+	_dirty = true;
+}
+
+inline VelocityArrowsSlice::RenderMode VelocityArrowsSlice::renderMode() const
+{
+	return _renderMode;
+}
