@@ -49,6 +49,7 @@ FILES		= \
 		$(srcdir)/filexfer.tcl \
 		$(srcdir)/flowdial.tcl \
 		$(srcdir)/flowhints.tcl \
+		$(srcdir)/flowspeed.tcl \
 		$(srcdir)/flowvisviewer.tcl \
 		$(srcdir)/gauge.tcl \
 		$(srcdir)/getopts.tcl \

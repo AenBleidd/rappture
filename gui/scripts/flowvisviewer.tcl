@@ -57,6 +57,7 @@ itcl::class Rappture::FlowvisViewer {
     public method add {dataobj {settings ""}}
     public method camera {option args}
     public method delete {args}
+    public method disconnect {}
     public method download {option args}
     public method flow {option}
     public method get {args}
@@ -68,12 +69,13 @@ itcl::class Rappture::FlowvisViewer {
     }
     public method rmdupmarker { m x }
     public method scale {args}
+    public method sendto { cmd }
     public method updatetransferfuncs {}
 
     protected method Connect {}
     protected method CurrentVolumeIds {{what -all}}
     protected method Disconnect {}
-    protected method DoResize {}
+    protected method Resize {}
     protected method ResizeLegend {}
     protected method FixSettings {what {value ""}}
     protected method Pan {option x y}
@@ -120,6 +122,7 @@ itcl::class Rappture::FlowvisViewer {
     private method particles { tag name } 
     private method box { tag name } 
     private method streams { tag name } 
+    private method arrows { tag name } 
 
     private variable _outbuf       ;# buffer for outgoing commands
 
@@ -188,7 +191,7 @@ itcl::body Rappture::FlowvisViewer::constructor { hostlist args } {
 
     # Resize event.
     $_dispatcher register !resize
-    $_dispatcher dispatch $this !resize "[itcl::code $this DoResize]; list"
+    $_dispatcher dispatch $this !resize "[itcl::code $this Resize]; list"
 
     $_dispatcher register !play
     $_dispatcher dispatch $this !play "[itcl::code $this flow next]; list"
@@ -224,16 +227,18 @@ itcl::body Rappture::FlowvisViewer::constructor { hostlist args } {
     set _limits(vmax) 1.0
 
     array set _settings [subst {
+	$this-arrows		0
 	$this-currenttime	0
+	$this-duration		1:00
 	$this-loop		0
 	$this-pan-x		$_view(pan-x)
 	$this-pan-y		$_view(pan-y)
 	$this-phi		$_view(phi)
 	$this-play		0
 	$this-psi		$_view(psi)
-	$this-step		0
 	$this-speed		500
-	$this-duration		1:00
+	$this-step		0
+	$this-streams		0
 	$this-theta		$_view(theta)
 	$this-volume		1
 	$this-xcutplane		0
@@ -298,7 +303,6 @@ itcl::body Rappture::FlowvisViewer::constructor { hostlist args } {
     BuildVolumeTab
     BuildCutplanesTab
     BuildCameraTab
-
 
     bind $itk_component(3dview) <Configure> \
 	[itcl::code $this EventuallyResize %w %h]
@@ -408,7 +412,7 @@ itcl::body Rappture::FlowvisViewer::constructor { hostlist args } {
     itk_component add duration {
 	entry $itk_component(flowcontrols).duration \
 	    -textvariable [itcl::scope _settings($this-duration)] \
-	    -bg white -width 6
+	    -bg white -width 6 -font "arial 9"
     } {
         usual
 	ignore -highlightthickness -background
@@ -439,8 +443,8 @@ itcl::body Rappture::FlowvisViewer::constructor { hostlist args } {
 
     # Speed
     itk_component add speed {
-	Rappture::Spinint $itk_component(flowcontrols).speed \
-	    -min 1 -max 10 -width 2
+	Rappture::Flowspeed $itk_component(flowcontrols).speed \
+	    -min 1 -max 10 -width 3 -font "arial 9"
     } {
         usual
 	ignore -highlightthickness 
@@ -839,6 +843,20 @@ itcl::body Rappture::FlowvisViewer::isconnected {} {
 }
 
 #
+# disconnect --
+#
+itcl::body Rappture::FlowvisViewer::disconnect {} {
+    Disconnect
+}
+
+#
+# sendto --
+#
+itcl::body Rappture::FlowvisViewer::sendto { bytes } {
+    SendBytes "$bytes\n"
+}
+
+#
 # Disconnect --
 #
 #       Clients use this method to disconnect from the current rendering
@@ -1011,6 +1029,7 @@ itcl::body Rappture::FlowvisViewer::ReceiveImage { args } {
     ReceiveEcho <<line "<read $info(-bytes) bytes"
     if { $info(-type) == "image" } {
 	$_image(plot) configure -data $bytes
+	#puts stderr "image received [image width $_image(plot)] by [image height $_image(plot)]"
     } elseif { $info(type) == "print" } {
 	set tag $this-print-$info(-token)
 	set _hardcopy($tag) $bytes
@@ -1037,7 +1056,7 @@ itcl::body Rappture::FlowvisViewer::ReceiveLegend { tag vmin vmax size } {
     if { ![isconnected] } {
         return
     }
-    puts stderr "receive legend $tag $vmin $vmax $size"
+    #puts stderr "receive legend $tag $vmin $vmax $size"
     set bytes [ReceiveBytes $size]
     $_image(legend) configure -data $bytes
     ReceiveEcho <<line "<read $size bytes for [image width $_image(legend)]x[image height $_image(legend)] legend>"
@@ -1569,7 +1588,7 @@ itcl::body Rappture::FlowvisViewer::Pause {} {
 itcl::body Rappture::FlowvisViewer::FixSettings {what {value ""}} {
     switch -- $what {
         light {
-            if {[isconnected]} {
+            if { $_first != "" } {
 		set comp [lindex [$_first components] 0]
 		set tag $_first-$comp
                 set diffuse [expr {0.1*$_settings($this-light)}]
@@ -1578,7 +1597,7 @@ itcl::body Rappture::FlowvisViewer::FixSettings {what {value ""}} {
             }
         }
         transp {
-            if {[isconnected]} {
+            if { $_first != "" } {
 		set comp [lindex [$_first components] 0]
 		set tag $_first-$comp
                 set opacity [expr {0.2*$_settings($this-transp)+1}]
@@ -1586,7 +1605,7 @@ itcl::body Rappture::FlowvisViewer::FixSettings {what {value ""}} {
             }
         }
         opacity {
-            if {[isconnected] && $_activeTf != "" } {
+            if { $_first != "" && && $_activeTf != "" } {
                 set opacity [expr { 0.01 * double($_settings($this-opacity)) }]
                 set tf $_activeTf
                 set _settings($this-$tf-opacity) $opacity
@@ -1595,7 +1614,7 @@ itcl::body Rappture::FlowvisViewer::FixSettings {what {value ""}} {
         }
 
         thickness {
-            if {[isconnected] && $_activeTf != "" } {
+            if { $_first != "" && && $_activeTf != "" } {
                 set val $_settings($this-thickness)
                 # Scale values between 0.00001 and 0.01000
                 set sval [expr {0.0001*double($val)}]
@@ -1605,16 +1624,16 @@ itcl::body Rappture::FlowvisViewer::FixSettings {what {value ""}} {
             }
         }
         "outline" {
-            if {[isconnected]} {
+            if { $_first != "" } {
 		set comp [lindex [$_first components] 0]
 		set tag $_first-$comp
                 SendCmd "$tag configure -outline $_settings($this-outline)"
             }
         }
         "isosurface" {
-            if {[isconnected]} {
-                SendCmd "volume shading isosurface $_settings($this-isosurface)"
-            }
+            if { [isconnected] } {
+		SendCmd "volume shading isosurface $_settings($this-isosurface)"
+	    }
         }
         "grid" {
             if { [isconnected] } {
@@ -1637,7 +1656,7 @@ itcl::body Rappture::FlowvisViewer::FixSettings {what {value ""}} {
 	    }
 	}
         "volume" {
-            if { [isconnected] } {
+            if { $_first != "" } {
 		set comp [lindex [$_first components] 0]
 		set tag $_first-$comp
                 SendCmd "$tag configure -volume $_settings($this-volume)"
@@ -1672,11 +1691,11 @@ itcl::body Rappture::FlowvisViewer::FixSettings {what {value ""}} {
 # for the current field.
 # ----------------------------------------------------------------------
 itcl::body Rappture::FlowvisViewer::ResizeLegend {} {
-    puts stderr "ResizeLegend"
     set _resizeLegendPending 0
     set lineht [font metrics $itk_option(-font) -linespace]
     set w [expr {$_width-20}]
     set h [expr {[winfo height $itk_component(legend)]-20-$lineht}]
+    #puts stderr "ResizeLegend $w $h"
 
     if { $_first == "" } {
 	return
@@ -2142,6 +2161,14 @@ itcl::body Rappture::FlowvisViewer::BuildVolumeTab {} {
     set fg [option get $itk_component(hull) font Font]
     #set bfg [option get $itk_component(hull) boldFont Font]
 
+    checkbutton $inner.vol -text "Show volume" -font $fg \
+        -text "Volume" \
+        -variable [itcl::scope _settings($this-volume)] \
+        -command [itcl::code $this FixSettings volume] \
+	-font "Arial 9"
+
+    label $inner.shading -text "Shading:" -font $fg
+
     label $inner.dim -text "Dim" -font $fg
     ::scale $inner.light -from 0 -to 100 -orient horizontal \
         -variable [itcl::scope _settings($this-light)] \
@@ -2171,6 +2198,22 @@ itcl::body Rappture::FlowvisViewer::BuildVolumeTab {} {
     label $inner.thick -text "Thick" -font $fg
 
     blt::table $inner \
+	0,0 $inner.vol -columnspan 4 -anchor w -pady 2 \
+	1,0 $inner.shading -columnspan 4 -anchor w -pady {10 2} \
+	2,0 $inner.dim -anchor e -pady 2 \
+	2,1 $inner.light -columnspan 2 -pady 2 -fill x \
+	2,3 $inner.bright -anchor w -pady 2 \
+	3,0 $inner.fog -anchor e -pady 2 \
+	3,1 $inner.transp -columnspan 2 -pady 2 -fill x \
+	3,3 $inner.plastic -anchor w -pady 2 \
+	4,0 $inner.clear -anchor e -pady 2 \
+	4,1 $inner.opacity -columnspan 2 -pady 2 -fill x\
+	4,3 $inner.opaque -anchor w -pady 2 \
+	5,0 $inner.thin -anchor e -pady 2 \
+	5,1 $inner.thickness -columnspan 2 -pady 2 -fill x\
+	5,3 $inner.thick -anchor w -pady 2
+
+    if 0 {
 	0,0 $inner.dim  -anchor e -pady 2 \
 	0,1 $inner.light -columnspan 2 -pady 2 \
 	0,3 $inner.bright -anchor w -pady 2 \
@@ -2183,7 +2226,7 @@ itcl::body Rappture::FlowvisViewer::BuildVolumeTab {} {
 	3,0 $inner.thin -anchor e -pady 2 \
 	3,1 $inner.thickness -columnspan 2 -pady 2 \
 	3,3 $inner.thick -anchor w -pady 2
-
+    }
     blt::table configure $inner c0 c1 c3 r* -resize none
     blt::table configure $inner r6 -resize expand
 }
@@ -2335,15 +2378,22 @@ itcl::body Rappture::FlowvisViewer::GetFlowInfo { w } {
 	-command  [itcl::code $this streams $key $hints(name)]  \
 	-font "Arial 9"
     Rappture::Tooltip::for $inner.showstreams $hints(description)
+
+    checkbutton $inner.showarrows -text "Arrows" \
+	-variable [itcl::scope _settings($this-arrows)] \
+	-command  [itcl::code $this arrows $key $hints(name)]  \
+	-font "Arial 9"
+
     label $inner.particles -text "Particles" 	-font "Arial 9 bold"
     label $inner.boxes -text "Boxes" 	-font "Arial 9 bold"
 
     blt::table $inner \
-	1,0 $inner.showstreams  -anchor w 
-    blt::table configure $inner c0 -resize none
-    blt::table configure $inner c1 -resize expand
+	1,0 $inner.showstreams  -anchor w \
+	2,0 $inner.showarrows  -anchor w 
+    blt::table configure $inner c0 c1 -resize none
+    blt::table configure $inner c2 -resize expand
 
-    set row 2
+    set row 3
     set particles [$flowobj particles]
     if { [llength $particles] > 0 } {
 	blt::table $inner $row,0 $inner.particles  -anchor w
@@ -2413,6 +2463,11 @@ itcl::body Rappture::FlowvisViewer::streams { tag name } {
     SendCmd "$tag configure -slice $bool"
 }
 
+itcl::body Rappture::FlowvisViewer::arrows { tag name } {
+    set bool $_settings($this-arrows)
+    SendCmd "$tag configure -arrows no"
+}
+
 # ----------------------------------------------------------------------
 # USAGE: Slice move x|y|z <newval>
 #
@@ -2457,7 +2512,8 @@ itcl::body Rappture::FlowvisViewer::SlicerTip {axis} {
 }
 
 
-itcl::body Rappture::FlowvisViewer::DoResize {} {
+itcl::body Rappture::FlowvisViewer::Resize {} {
+    #puts stderr "Resize $_width $_height"
     SendCmd "screen $_width $_height"
     set _resizePending 0
 }
@@ -2472,8 +2528,8 @@ itcl::body Rappture::FlowvisViewer::EventuallyResize { w h } {
 }
 
 itcl::body Rappture::FlowvisViewer::EventuallyResizeLegend {} {
+    #puts stderr "in EventuallyResizeLegend"
     if { !$_resizeLegendPending } {
-	puts stderr "in EventuallyResizeLegend"
 	$_dispatcher event -after 100 !legend
 	set _resizeLegendPending 1
     }
@@ -2537,7 +2593,7 @@ itcl::body Rappture::FlowvisViewer::FlowCmd { dataobj comp nbytes extents } {
     array set info  [$flowobj hints]
     append cmd "flow add $tag -position $info(position) -axis $info(axis) "
     append cmd "-volume $info(volume) -outline $info(outline) "
-    append cmd "-slice $info(streams)\n"
+    append cmd "-slice $info(streams) -arrows $info(arrows)\n"
     foreach part [$flowobj particles] {
 	array unset info
 	array set info $part
@@ -2794,7 +2850,7 @@ itcl::body Rappture::FlowvisViewer::str2millisecs { value } {
 itcl::body Rappture::FlowvisViewer::millisecs2str { value } {
     set min [expr floor($value / 60000.0)]
     set sec [expr ($value - ($min*60000.0)) / 1000.0]
-    puts stderr "min=$min sec=$sec"
+    #puts stderr "min=$min sec=$sec"
     return [format %02d:%02d [expr round($min)] [expr round($sec)]]
 }
 

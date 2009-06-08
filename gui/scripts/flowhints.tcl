@@ -58,6 +58,7 @@ itcl::body Rappture::FlowHints::constructor {field cname units} {
 	"outline"	"on"
 	"position"	"0.0%"
 	"streams"	"on"
+	"arrows"	"off"
 	"volume"	"on"
     }
     set _units $units
@@ -71,6 +72,7 @@ itcl::body Rappture::FlowHints::constructor {field cname units} {
 	    "outline"     { GetBoolean $f $child _hints(outline) }
 	    "volume"      { GetBoolean $f $child _hints(volume) }
 	    "streams"     { GetBoolean $f $child _hints(streams) }
+	    "arrows"      { GetBoolean $f $child _hints(arrows) }
 	    "axis"        { GetAxis $f  $child _hints(axis) }
 	    "position"    { GetPosition $f $child _hints(position) }
 	    "particles*" {

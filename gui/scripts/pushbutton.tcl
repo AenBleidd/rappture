@@ -1,3 +1,4 @@
+
 # ----------------------------------------------------------------------
 #  COMPONENT: PushButton - widget for entering a choice of strings
 #
@@ -26,9 +27,11 @@ itcl::class Rappture::PushButton {
     public method select {}
     public method toggle {}
 
+    protected method _fixValue {args}
+
     private variable _state 0
     public variable command "";		# Command to be invoked 
-    public variable variable "";	# Variable to be set. 
+    private variable _variable "";	# Variable to be set. 
     public variable onimage "";		# Image displayed when selected 
     public variable offimage "";	# Image displayed when deselected. 
     public variable onvalue "1";	# Value set when selected.
@@ -73,18 +76,58 @@ itcl::body Rappture::PushButton::toggle {} {
     }
 }
 
+# ----------------------------------------------------------------------
+# USAGE: _fixValue ?<name1> <name2> <op>?
+#
+# Invoked automatically whenever the -variable associated with this
+# widget is modified.  Copies the value to the current settings for
+# the widget.
+# ----------------------------------------------------------------------
+itcl::body Rappture::PushButton::_fixValue {args} {
+    if {"" == $itk_option(-variable)} {
+	return
+    }
+    upvar #0 $itk_option(-variable) var
+    if { $var == $onvalue } {
+	set _state 1
+	$itk_component(button) configure -relief sunken \
+	    -image $onimage -bg white
+    } elseif { $var == $offvalue } {
+	set _state 0
+	$itk_component(button) configure -relief raise \
+	    -image $offimage -bg grey85
+    }
+}
+
+
 itcl::body Rappture::PushButton::select {} {
-    set _state 1
-    $itk_component(button) configure -relief sunken \
-	-image $onimage -bg white
-    upvar #0 $variable state
+    upvar #0 $_variable state
     set state $onvalue
 }
 
 itcl::body Rappture::PushButton::deselect {} {
-    set _state 0
-    $itk_component(button) configure -relief raise \
-	-image $offimage -bg grey85
-    upvar #0 $variable state
+    upvar #0 $_variable state
     set state $offvalue
+}
+
+
+# ----------------------------------------------------------------------
+# CONFIGURE: -variable
+# ----------------------------------------------------------------------
+itcl::configbody Rappture::PushButton::variable {
+    if {"" != $_variable} {
+	upvar #0 $_variable var
+	trace remove variable var write [itcl::code $this _fixValue]
+    }
+    set _variable $itk_option(-variable)
+
+    if {"" != $_variable} {
+	upvar #0 $_variable var
+	trace add variable var write [itcl::code $this _fixValue]
+
+	# sync to the current value of this variable
+	if {[info exists var]} {
+	    _fixValue
+	}
+    }
 }

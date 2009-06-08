@@ -14,24 +14,24 @@
 package require Itk
 package require BLT
 
-option add *Spinint.width 5 widgetDefault
-option add *Spinint.textBackground white widgetDefault
+option add *Flowspeed.width 5 widgetDefault
+option add *Flowspeed.textBackground white widgetDefault
 
-blt::bitmap define Spinint-up {
+blt::bitmap define Flowspeed-up {
 #define up_width 8
 #define up_height 4
 static unsigned char up_bits[] = {
    0x10, 0x38, 0x7c, 0xfe};
 }
 
-blt::bitmap define Spinint-down {
+blt::bitmap define Flowspeed-down {
 #define arrow_width 8
 #define arrow_height 4
 static unsigned char arrow_bits[] = {
    0xfe, 0x7c, 0x38, 0x10};
 }
 
-itcl::class Rappture::Spinint {
+itcl::class Rappture::Flowspeed {
     inherit itk::Widget
 
     itk_option define -min min Min ""
@@ -43,9 +43,10 @@ itcl::class Rappture::Spinint {
     public method value {args}
     public method bump {{delta up}}
     protected method _validate {char}
+    protected variable _value ""
 }
 
-itk::usual Spinint {
+itk::usual Flowspeed {
     keep -cursor -font
     keep -foreground -background
     keep -textforeground -textbackground
@@ -55,12 +56,13 @@ itk::usual Spinint {
 # ----------------------------------------------------------------------
 # CONSTRUCTOR
 # ----------------------------------------------------------------------
-itcl::body Rappture::Spinint::constructor {args} {
+itcl::body Rappture::Flowspeed::constructor {args} {
     itk_component add entry {
-	entry $itk_interior.entry
+	entry $itk_interior.entry -font "arial 9"
     } {
 	usual
 	keep -width
+	ignore -font
 	rename -background -textbackground textBackground Background
 	rename -foreground -textforeground textForeground Foreground
 	rename -highlightbackground -background background Background
@@ -78,7 +80,7 @@ itcl::body Rappture::Spinint::constructor {args} {
     pack $itk_component(controls) -side right
 
     itk_component add up {
-	button $itk_component(controls).spinup -bitmap Spinint-up \
+	button $itk_component(controls).spinup -bitmap Flowspeed-up \
 	    -borderwidth 1 -relief raised -highlightthickness 0 \
 	    -command [itcl::code $this bump up]
     } {
@@ -88,7 +90,7 @@ itcl::body Rappture::Spinint::constructor {args} {
     pack $itk_component(up) -side top -expand yes -fill both
 
     itk_component add down {
-	button $itk_component(controls).spindn -bitmap Spinint-down \
+	button $itk_component(controls).spindn -bitmap Flowspeed-down \
 	    -borderwidth 1 -relief raised -highlightthickness 0 \
 	    -command [itcl::code $this bump down]
     } {
@@ -108,10 +110,15 @@ itcl::body Rappture::Spinint::constructor {args} {
 # <newval> is specified, it sets the value of the widget and
 # sends a <<Value>> event.
 # ----------------------------------------------------------------------
-itcl::body Rappture::Spinint::value {args} {
+itcl::body Rappture::Flowspeed::value {args} {
     if {[llength $args] == 1} {
-	set newval [lindex $args 0]
-
+	set string [lindex $args 0]
+	if { [regexp {^ *([0-9]+)x *$} $string match newval] } {
+	} elseif { [regexp {^ *([0-9]+) *$} $string match newval] } {
+	} else {
+	    bell
+	    return
+	}
 	if {"" != $newval} {
 	    if {"" != $itk_option(-min) && $newval < $itk_option(-min)} {
 		set newval $itk_option(-min)
@@ -120,14 +127,15 @@ itcl::body Rappture::Spinint::value {args} {
 		set newval $itk_option(-max)
 	    }
 	}
-
+	set _value $newval
 	$itk_component(entry) delete 0 end
-	$itk_component(entry) insert 0 $newval
-	after 10 [list catch [list event generate $itk_component(hull) <<Value>>]]
+	$itk_component(entry) insert 0 ${newval}x
+	after 10 \
+	    [list catch [list event generate $itk_component(hull) <<Value>>]]
     } elseif {[llength $args] != 0} {
 	error "wrong # args: should be \"value ?newval?\""
     }
-    return [$itk_component(entry) get]
+    return $_value
 }
 
 # ----------------------------------------------------------------------
@@ -137,7 +145,7 @@ itcl::body Rappture::Spinint::value {args} {
 # can also use it directly to bump values up/down.  The optional
 # <delta> can be an integer value or the keyword "up" or "down".
 # ----------------------------------------------------------------------
-itcl::body Rappture::Spinint::bump {{delta up}} {
+itcl::body Rappture::Flowspeed::bump {{delta up}} {
     if {"up" == $delta} {
 	set delta $itk_option(-delta)
     } elseif {"down" == $delta} {
@@ -150,7 +158,7 @@ itcl::body Rappture::Spinint::bump {{delta up}} {
     if {$val == ""} {
 	set val 0
     }
-    value [expr {$val+$delta}]
+    value [expr {$_value+$delta}]
 }
 
 # ----------------------------------------------------------------------
@@ -160,7 +168,7 @@ itcl::body Rappture::Spinint::bump {{delta up}} {
 # If the <char> is not a digit, then this procedure beeps and
 # prevents the character from being inserted.
 # ----------------------------------------------------------------------
-itcl::body Rappture::Spinint::_validate {char} {
+itcl::body Rappture::Flowspeed::_validate {char} {
     if {[string match "\[ -~\]" $char]} {
 	if {![string match "\[0-9\]" $char]} {
 	    bell
