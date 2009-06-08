@@ -76,8 +76,6 @@
 #define SIZEOF_BMP_HEADER   54
 
 extern void NvInitCG(); // in Shader.cpp
-extern bool load_vector_stream2(Rappture::Outcome &result, int index, 
-	size_t length, char *string);
 
 // Indicates "up" axis:  x=1, y=2, z=3, -x=-1, -y=-2, -z=-3
 enum AxisDirections { 
@@ -106,7 +104,7 @@ static Stats stats;
 Grid *NanoVis::grid = NULL;
 int NanoVis::updir = Y_POS;
 NvCamera* NanoVis::cam = NULL;
-vector<Volume *>  NanoVis::volumes;
+Tcl_HashTable NanoVis::volumeTable;
 vector<HeightMap*> NanoVis::heightMap;
 VolumeRenderer* NanoVis::vol_renderer = NULL;
 PointSetRenderer* NanoVis::pointset_renderer = NULL;
@@ -173,7 +171,7 @@ float vert[NMESH*NMESH*3];              //particle positions in main memory
 float slice_vector[NMESH*NMESH*4];      //per slice vectors in main memory
 
 // maps transfunc name to TransferFunction object
-static Tcl_HashTable tftable;
+Tcl_HashTable NanoVis::tfTable;
 
 // pointers to 2D planes, currently handle up 10
 
@@ -512,31 +510,25 @@ NanoVis::pan(float dx, float dy)
  *		width, height and depth: number of points in each dimension
  */
 Volume *
-NanoVis::load_volume(int dataID, int width, int height, int depth,
-                     int n_component, float* data, double vmin,
-                     double vmax, double nzero_min)
+NanoVis::load_volume(const char *name, int width, int height, int depth, 
+		     int n_component, float* data, double vmin, double vmax, 
+		     double nzero_min)
 {
-    // Check if we're attempting to load the volume into an already
-    // occupied slot.
-
-	
-    Volume* volPtr = new Volume(0.f, 0.f, 0.f, width, height, depth, 1.,
-				n_component, data, vmin, vmax, nzero_min);
-    if (dataID < 0) {
-	dataID = volumes.size();
-	volumes.push_back(volPtr);
-    } else {
-	int i;
-	// Create new slots it needed.
-	for (i = volumes.size(); i <= dataID; i++) {
-	    volumes.push_back(NULL);
-	}
-	assert (volumes[dataID] == NULL);
-	volumes[dataID] = volPtr;
+    Tcl_HashEntry *hPtr;
+    hPtr = Tcl_FindHashEntry(&NanoVis::volumeTable, name);
+    if (hPtr != NULL) {
+	Volume *volPtr; 
+	Trace("volume \"%s\" already exists", name);
+	volPtr = (Volume *)Tcl_GetHashValue(hPtr);
+	remove_volume(volPtr);
     }
-    volPtr->dataID(dataID);
-    fprintf(stderr, "VOLID=%d, # of volume slots=%d\n", dataID, 
-	    volumes.size());
+    int isNew;
+    hPtr = Tcl_CreateHashEntry(&NanoVis::volumeTable, name, &isNew);
+    Volume* volPtr;
+    volPtr = new Volume(0.f, 0.f, 0.f, width, height, depth, 1., n_component,
+		data, vmin, vmax, nzero_min);
+    Tcl_SetHashValue(hPtr, volPtr);
+    volPtr->name(Tcl_GetHashKey(&NanoVis::volumeTable, hPtr));
     return volPtr;
 }
 
@@ -546,7 +538,7 @@ NanoVis::get_transfunc(const char *name)
 {
     Tcl_HashEntry *hPtr;
 
-    hPtr = Tcl_FindHashEntry(&tftable, name);
+    hPtr = Tcl_FindHashEntry(&tfTable, name);
     if (hPtr == NULL) {
         return NULL;
     }
@@ -559,21 +551,22 @@ NanoVis::DefineTransferFunction(const char *name, size_t n, float *data)
 {
     int isNew;
     Tcl_HashEntry *hPtr;
-    TransferFunction *tf;
+    TransferFunction *tfPtr;
 
-    hPtr = Tcl_CreateHashEntry(&tftable, name, &isNew);
+    hPtr = Tcl_CreateHashEntry(&tfTable, name, &isNew);
     if (isNew) {
-        tf = new TransferFunction(n, data);
-        Tcl_SetHashValue(hPtr, (ClientData)tf);
+        tfPtr = new TransferFunction(n, data);
+	tfPtr->name(Tcl_GetHashKey(&tfTable, hPtr));
+        Tcl_SetHashValue(hPtr, tfPtr);
     } else {
         /* 
          * You can't delete the transfer function because many 
          * objects may be holding its pointer.  We must update it.
          */
-        tf = (TransferFunction *)Tcl_GetHashValue(hPtr);
-        tf->update(n, data);
+        tfPtr = (TransferFunction *)Tcl_GetHashValue(hPtr);
+        tfPtr->update(n, data);
     }
-    return tf;
+    return tfPtr;
 }
 
 int
@@ -915,7 +908,7 @@ NanoVis::initGL(void)
     glLightfv(GL_LIGHT1, GL_SPECULAR, white_light);
 
     // init table of transfer functions
-    Tcl_InitHashTable(&tftable, TCL_STRING_KEYS);
+    Tcl_InitHashTable(&tfTable, TCL_STRING_KEYS);
 
     //check if performance query is supported
     if(check_query_support()){
@@ -1541,14 +1534,13 @@ NanoVis::SetVolumeRanges()
     }
     xMin = yMin = zMin = wMin = DBL_MAX;
     xMax = yMax = zMax = wMax = -DBL_MAX;
-    vector<Volume *>::iterator iter;
-    for (iter = volumes.begin(); iter != volumes.end(); ++iter) {
+    Tcl_HashEntry *hPtr;
+    Tcl_HashSearch iter;
+    for (hPtr = Tcl_FirstHashEntry(&volumeTable, &iter); hPtr != NULL;
+	 hPtr = Tcl_NextHashEntry(&iter)) {
         Volume *volPtr;
 
-	volPtr = (*iter);
-        if (volPtr == NULL) {
-            continue;			// Empty slot.
-        }
+	volPtr = (Volume *)Tcl_GetHashValue(hPtr);
         if (xMin > volPtr->xAxis.min()) {
             xMin = volPtr->xAxis.min();
         }
@@ -2554,17 +2546,14 @@ NanoVis::render_2d_contour(HeightMap* heightmap, int width, int height)
 }
 
 void 
-NanoVis::remove_volume(size_t index)
+NanoVis::remove_volume(Volume *volPtr)
 {
-    fprintf(stderr, "index=%d #volumes=%d\n", index, volumes.size());
-    assert(index < volumes.size());
-    Volume* volPtr;
-    volPtr = volumes[index];
-    if (volPtr == NULL)  {
-	return;				// Empty slot 
+    Tcl_HashEntry *hPtr;
+    hPtr = Tcl_FindHashEntry(&volumeTable, volPtr->name());
+    if (hPtr != NULL) {
+	Tcl_DeleteHashEntry(hPtr);
     }
-    delete volPtr;			// Delete the volume and mark the 
-    volumes[index] = NULL;		// slot as empty.
+    delete volPtr;			
 }
 
 /*

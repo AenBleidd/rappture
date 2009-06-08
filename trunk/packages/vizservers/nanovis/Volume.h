@@ -1,3 +1,4 @@
+
 /*
  * ----------------------------------------------------------------------
  * Volume.h: 3d volume class
@@ -53,7 +54,7 @@ protected:
 					// Rule of thumb: higher opacity_scale
 					// the object is to appear like
 					// plastic
-    int _volumeDataID;
+    const char *_name;
     Vector3 _physical_min;
     Vector3 _physical_max;
     float* _data;
@@ -221,11 +222,11 @@ public :
     Vector3& getPhysicalBBoxMin();
     Vector3& getPhysicalBBoxMax();
 
-    void dataID(size_t index) {
-	_volumeDataID = index;
+    const char *name(void) {
+	return _name;
     }
-    size_t dataID(void) const {
-	return _volumeDataID;
+    void name(const char *name) {
+	_name = name;
     }
 };
 

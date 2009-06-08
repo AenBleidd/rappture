@@ -143,7 +143,9 @@ VolumeInterpolator::addVolume(Volume* refPtr)
                              refPtr->wAxis.min(), 
                              refPtr->wAxis.max(), 
 			     refPtr->nonzero_min());
+	/*
         _referenceOfVolume = refPtr->dataID();
+	*/
         _volume->n_slices(256-1);
         _volume->disable_cutplane(0);
         _volume->disable_cutplane(1);
@@ -154,11 +156,11 @@ VolumeInterpolator::addVolume(Volume* refPtr)
         _volume->diffuse(refPtr->diffuse());
         _volume->opacity_scale(refPtr->opacity_scale());
         _volume->isosurface(0);
-        Trace("VOL : location %f %f %f\n\tid : %d\n", loc.x, loc.y, loc.z, 
-		refPtr->dataID());
+        Trace("VOL : location %f %f %f\n\tid : %s\n", loc.x, loc.y, loc.z, 
+		refPtr->name());
     }
     _volumes.push_back(_volume);
-    Trace("a Volume[%d] is added to VolumeInterpolator\n", refPtr->dataID());
+    Trace("a Volume[%s] is added to VolumeInterpolator\n", refPtr->name());
 }
 
 Volume* VolumeInterpolator::getVolume()

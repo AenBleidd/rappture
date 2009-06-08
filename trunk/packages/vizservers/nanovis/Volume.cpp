@@ -30,6 +30,7 @@ Volume::Volume(
     _specular(6.),		// default value
     _diffuse(3.),		// default value
     _opacity_scale(10.),	// default value
+    _name(NULL),
     _n_components(n),
     _nonzero_min(nz_min),
     _pointsetIndex(-1),
@@ -46,8 +47,6 @@ Volume::Volume(
     depth(d),
     size(s)
 {
-    _volumeDataID = -1;
-
     _tex = new Texture3D(w, h, d, NVIS_FLOAT, NVIS_LINEAR_INTERP, n);
     int fcount = width * height * depth * _n_components;
     _data = new float[fcount];

@@ -27,9 +27,8 @@ TransferFunction::TransferFunction(int size, float *data)
     _size = size * 4;
     _data = new float[_size];
     memcpy(_data, data, sizeof(float) * _size);
-
     _tex->initialize_float_rgba(_data);
-    id = _tex->id;
+    _id = _tex->id;
 }
 
 

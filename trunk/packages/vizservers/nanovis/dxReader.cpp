@@ -46,10 +46,11 @@
 
 /* Load a 3D volume from a dx-format file
  */
-bool
-load_volume_stream2(Rappture::Outcome &result, int volDataID, std::iostream& fin)
+Volume *
+load_volume_stream2(Rappture::Outcome &result, const char *tag, 
+		    std::iostream& fin)
 {
-    printf("load_volume_stream2\n");
+    printf("load_volume_stream2 %s\n", tag);
     Rappture::MeshTri2D xymesh;
     int dummy, nx, ny, nz, nxy, npts;
     double x0, y0, z0, dx, dy, dz, ddx, ddy, ddz;
@@ -117,7 +118,7 @@ load_volume_stream2(Rappture::Outcome &result, int volDataID, std::iostream& fin
                     ftri.close();
                 } else {
                     result.error("triangularization failed");
-		    return false;
+		    return NULL;
                 }
 		unlink(fpts), unlink(fcells);
             } else if (sscanf(start, "object %d class regulararray count %d", &dummy, &nz) == 2) {
@@ -142,24 +143,24 @@ load_volume_stream2(Rappture::Outcome &result, int volDataID, std::iostream& fin
         if (count > 1) {
             result.addError("don't know how to handle multiple non-zero"
 			    " delta values");
-	    return false;
+	    return NULL;
         }
             } else if (sscanf(start, "object %d class array type %s rank 0 items %d data follows", &dummy, type, &npts) == 3) {
                 if (isrect && (npts != nx*ny*nz)) {
                     result.addError("inconsistent data: expected %d points "
 				    " but found %d points", nx*ny*nz, npts);
-                    return false;
+                    return NULL;
                 } else if (!isrect && (npts != nxy*nz)) {
                     result.addError("inconsistent data: expected %d points "
 				    " but found %d points", nxy*nz, npts);
-                    return false;
+                    return NULL;
                 }
                 break;
             } else if (sscanf(start, "object %d class array type %s rank 0 times %d data follows", &dummy, type, &npts) == 3) {
                 if (npts != nx*ny*nz) {
                     result.addError("inconsistent data: expected %d points "
 				    " but found %d points", nx*ny*nz, npts);
-                    return false;
+                    return NULL;
                 }
                 break;
             }
@@ -171,9 +172,9 @@ load_volume_stream2(Rappture::Outcome &result, int volDataID, std::iostream& fin
     // read data points
     if (fin.eof()) {
         result.addError("EOF found: expecting %d points", npts);
-	return false;
+	return NULL;
     }
-    Volume *volPtr = 0;
+    Volume *volPtr = NULL;
     if (isrect) {
 	double dval[6];
 	int nread = 0;
@@ -219,7 +220,7 @@ load_volume_stream2(Rappture::Outcome &result, int volDataID, std::iostream& fin
 	if (nread != nx*ny*nz) {
 	    result.addError("inconsistent data: expected %d points "
 			    " but found %d points", nx*ny*nz, nread);
-	    return false;
+	    return NULL;
 	}
 	
 	double dv = vmax - vmin;
@@ -246,7 +247,7 @@ load_volume_stream2(Rappture::Outcome &result, int volDataID, std::iostream& fin
 	dy = ny;
 	dz = nz;
 	
-	volPtr = NanoVis::load_volume(volDataID, nx, ny, nz, 4, data,
+	volPtr = NanoVis::load_volume(tag, nx, ny, nz, 4, data,
 				      vmin, vmax, nzero_min);
 	volPtr->xAxis.SetRange(x0, x0 + (nx * dx));
 	volPtr->yAxis.SetRange(y0, y0 + (ny * dy));
@@ -268,7 +269,7 @@ load_volume_stream2(Rappture::Outcome &result, int volDataID, std::iostream& fin
 	    if (fin.fail()) {
 		result.addError("after %d of %d points: can't read number", 
 				nread, npts);
-		return false;
+		return NULL;
 	    } else {
 		int nid = nxy*iz + ixy;
 		field.define(nid, dval);
@@ -285,7 +286,7 @@ load_volume_stream2(Rappture::Outcome &result, int volDataID, std::iostream& fin
 	if (nread != nxy*nz) {
 	    result.addError("inconsistent data: expected %d points "
 			    "but found %d points", nxy*nz, nread);
-	    return false;
+	    return NULL;
 	}
 	
 	// figure out a good mesh spacing
@@ -386,8 +387,8 @@ load_volume_stream2(Rappture::Outcome &result, int volDataID, std::iostream& fin
 	    }
 	}
 	
-	volPtr = NanoVis::load_volume(volDataID, nx, ny, nz, 4, data,
-				      field.valueMin(), field.valueMax(), nzero_min);
+	volPtr = NanoVis::load_volume(tag, nx, ny, nz, 4, data, 
+		field.valueMin(), field.valueMax(), nzero_min);
 	volPtr->xAxis.SetRange(field.rangeMin(Rappture::xaxis),
 			       field.rangeMax(Rappture::xaxis));
 	volPtr->yAxis.SetRange(field.rangeMin(Rappture::yaxis),
@@ -408,11 +409,12 @@ load_volume_stream2(Rappture::Outcome &result, int volDataID, std::iostream& fin
 	volPtr->location(Vector3(dx0, dy0, dz0));
 	printf("volume moved\n");
     }
-    return true;
+    return volPtr;
 }
 
-bool
-load_volume_stream(Rappture::Outcome &result, int volDataID, std::iostream& fin)
+Volume *
+load_volume_stream(Rappture::Outcome &result, const char *tag, 
+		   std::iostream& fin)
 {
     printf("load_volume_stream\n");
 
@@ -430,7 +432,7 @@ load_volume_stream(Rappture::Outcome &result, int volDataID, std::iostream& fin)
         fin.getline(line, sizeof(line) - 1);
         if (fin.fail()) {
             result.error("error in data stream");
-	    return false;
+	    return NULL;
         }
         for (start=line; *start == ' ' || *start == '\t'; start++)
             ;  // skip leading blanks
@@ -489,7 +491,7 @@ load_volume_stream(Rappture::Outcome &result, int volDataID, std::iostream& fin)
                     ftri.close();
                 } else {
                     result.error("triangularization failed");
-		    return false;
+		    return NULL;
                 }
 		unlink(fpts);
 		unlink(fcells);
@@ -506,18 +508,18 @@ load_volume_stream(Rappture::Outcome &result, int volDataID, std::iostream& fin)
                 if (isrect && (npts != nx*ny*nz)) {
                     result.addError("inconsistent data: expected %d points"
 				    " but found %d points", nx*ny*nz, npts);
-                    return false;
+                    return NULL;
                 } else if (!isrect && (npts != nxy*nz)) {
                     result.addError("inconsistent data: expected %d points"
 				    " but found %d points", nx*ny*nz, npts);
-                    return false;
+                    return NULL;
                 }
                 break;
             } else if (sscanf(start, "object %d class array type %s rank 0 times %d data follows", &dummy, type, &npts) == 3) {
                 if (npts != nx*ny*nz) {
                     result.addError("inconsistent data: expected %d points"
 				    " but found %d points", nx*ny*nz, npts);
-                    return false;
+                    return NULL;
                 }
                 break;
             }
@@ -526,7 +528,7 @@ load_volume_stream(Rappture::Outcome &result, int volDataID, std::iostream& fin)
     // read data points
     if (fin.eof()) {
         result.error("data not found in stream");
-	return false;
+	return NULL;
     }
     Volume *volPtr = 0;
     if (isrect) {
@@ -544,7 +546,7 @@ load_volume_stream(Rappture::Outcome &result, int volDataID, std::iostream& fin)
 	    fin.getline(line,sizeof(line)-1);
 	    if (fin.fail()) {
 		result.addError("error reading data points");
-		return false;
+		return NULL;
 	    }
 	    int n = sscanf(line, "%lg %lg %lg %lg %lg %lg", &dval[0], &dval[1], &dval[2], &dval[3], &dval[4], &dval[5]);
 	    
@@ -567,7 +569,7 @@ load_volume_stream(Rappture::Outcome &result, int volDataID, std::iostream& fin)
 	if (nread != nx*ny*nz) {
 	    result.addError("inconsistent data: expected %d points"
 			    " but found %d points", nx*ny*nz, npts);
-	    return false;
+	    return NULL;
 	}
 	
 	// figure out a good mesh spacing
@@ -652,14 +654,13 @@ load_volume_stream(Rappture::Outcome &result, int volDataID, std::iostream& fin)
 	    fflush(stderr);
 	}
 #endif	
-	fprintf(stdout,"End Data Stats DataID = %i\n",volDataID);
 	fprintf(stdout,"nx = %i ny = %i nz = %i\n",nx,ny,nz);
 	fprintf(stdout,"dx = %lg dy = %lg dz = %lg\n",dx,dy,dz);
 	fprintf(stdout,"dataMin = %lg\tdataMax = %lg\tnzero_min = %lg\n", field.valueMin(),field.valueMax(),nzero_min);
 	fflush(stdout);
 	
-	volPtr = NanoVis::load_volume(volDataID, nx, ny, nz, 4, data,
-				      field.valueMin(), field.valueMax(), nzero_min);
+	volPtr = NanoVis::load_volume(tag, nx, ny, nz, 4, data,
+		field.valueMin(), field.valueMax(), nzero_min);
 	volPtr->xAxis.SetRange(field.rangeMin(Rappture::xaxis),
 			       field.rangeMax(Rappture::xaxis));
 	volPtr->yAxis.SetRange(field.rangeMin(Rappture::yaxis),
@@ -694,7 +695,7 @@ load_volume_stream(Rappture::Outcome &result, int volDataID, std::iostream& fin)
 	    if (fin.fail()) {
 		result.addError("after %d of %d points: can't read number", 
 				nread, npts);
-		return false;
+		return NULL;
 	    } else {
 		int nid = nxy*iz + ixy;
 		field.define(nid, dval);
@@ -711,7 +712,7 @@ load_volume_stream(Rappture::Outcome &result, int volDataID, std::iostream& fin)
 	if (nread != nxy*nz) {
 	    result.addError("inconsistent data: expected %d points"
 			    " but found %d points", nx*ny*nz, npts);
-	    return false;
+	    return NULL;
 	}
 	
 	// figure out a good mesh spacing
@@ -803,8 +804,8 @@ load_volume_stream(Rappture::Outcome &result, int volDataID, std::iostream& fin)
 	    }
 	}
 	
-	volPtr = NanoVis::load_volume(volDataID, nx, ny, nz, 4, data,
-				      field.valueMin(), field.valueMax(), nzero_min);
+	volPtr = NanoVis::load_volume(tag, nx, ny, nz, 4, data,
+		field.valueMin(), field.valueMax(), nzero_min);
 	volPtr->xAxis.SetRange(field.rangeMin(Rappture::xaxis),
 			       field.rangeMax(Rappture::xaxis));
 	volPtr->yAxis.SetRange(field.rangeMin(Rappture::yaxis),
@@ -837,12 +838,12 @@ load_volume_stream(Rappture::Outcome &result, int volDataID, std::iostream& fin)
     if (volPtr) {
 	volPtr->location(Vector3(dx0, dy0, dz0));
     }
-    return true;
+    return volPtr;
 }
 
 
-bool
-load_volume_stream_insoo(Rappture::Outcome &result, int volDataID, 
+Volume *
+load_volume_stream_insoo(Rappture::Outcome &result, const char *tag, 
 			 std::iostream& fin)
 {
     printf("load_volume_stream\n");
@@ -861,7 +862,7 @@ load_volume_stream_insoo(Rappture::Outcome &result, int volDataID,
         fin.getline(line, sizeof(line) - 1);
         if (fin.fail()) {
 	    result.addError("line \"%s\"error in data stream");
-            return false;
+            return NULL;
         }
         for (start=line; *start == ' ' || *start == '\t'; start++)
             ;  // skip leading blanks
@@ -920,7 +921,7 @@ load_volume_stream_insoo(Rappture::Outcome &result, int volDataID,
                     ftri.close();
                 } else {
 		    result.error("triangularization failed");
-		    return false;
+		    return NULL;
                 }
 		unlink(fpts), unlink(fcells);
             } else if (sscanf(start, "object %d class regulararray count %d", &dummy, &nz) == 2) {
@@ -936,18 +937,18 @@ load_volume_stream_insoo(Rappture::Outcome &result, int volDataID,
                 if (isrect && (npts != nx*ny*nz)) {
                     result.addError("inconsistent data: expected %d points"
 				    " but found %d points", nx*ny*nz, npts);
-                    return false;
+                    return NULL;
                 } else if (!isrect && (npts != nxy*nz)) {
                     result.addError("inconsistent data: expected %d points"
 				    " but found %d points", nx*ny*nz, npts);
-                    return false;
+                    return NULL;
                 }
                 break;
             } else if (sscanf(start, "object %d class array type %s rank 0 times %d data follows", &dummy, type, &npts) == 3) {
                 if (npts != nx*ny*nz) {
                     result.addError("inconsistent data: expected %d points"
 				    " but found %d points", nx*ny*nz, npts);
-                    return false;
+                    return NULL;
                 }
                 break;
             }
@@ -957,7 +958,7 @@ load_volume_stream_insoo(Rappture::Outcome &result, int volDataID,
     // read data points
     if (fin.eof()) {
 	result.error("data not found in stream");
-        return false;
+        return NULL;
     }
 
     Volume* volPtr = 0;
@@ -976,7 +977,7 @@ load_volume_stream_insoo(Rappture::Outcome &result, int volDataID,
 	    fin.getline(line,sizeof(line)-1);
 	    if (fin.fail()) {
 		result.error("error reading data points");
-		return false;
+		return NULL;
 	    }
 	    int n = sscanf(line, "%lg %lg %lg %lg %lg %lg", &dval[0], &dval[1], &dval[2], &dval[3], &dval[4], &dval[5]);
 	    
@@ -1001,7 +1002,7 @@ load_volume_stream_insoo(Rappture::Outcome &result, int volDataID,
 	if (nread != nx*ny*nz) {
 	    result.addError("inconsistent data: expected %d points"
 			    " but found %d points", nx*ny*nz, npts);
-	    return false;
+	    return NULL;
 	}
 	
 	// figure out a good mesh spacing
@@ -1131,8 +1132,8 @@ load_volume_stream_insoo(Rappture::Outcome &result, int volDataID,
             fflush(stdout);
             */
 
-	volPtr = NanoVis::load_volume(volDataID, nx, ny, nz, 4, data,
-				      field.valueMin(), field.valueMax(), nzero_min);
+	volPtr = NanoVis::load_volume(tag, nx, ny, nz, 4, data,
+		field.valueMin(), field.valueMax(), nzero_min);
 	volPtr->xAxis.SetRange(field.rangeMin(Rappture::xaxis),
 			       field.rangeMax(Rappture::xaxis));
 	volPtr->yAxis.SetRange(field.rangeMin(Rappture::yaxis),
@@ -1169,7 +1170,7 @@ load_volume_stream_insoo(Rappture::Outcome &result, int volDataID,
 		sprintf(mesg,"after %d of %d points: can't read number", 
 			nread, npts);
 		result.error(mesg);
-		return false;
+		return NULL;
 	    } else {
 		int nid = nxy*iz + ixy;
 		field.define(nid, dval);
@@ -1186,7 +1187,7 @@ load_volume_stream_insoo(Rappture::Outcome &result, int volDataID,
 	if (nread != nxy*nz) {
 	    result.addError("inconsistent data: expected %d points"
 			    " but found %d points", nx*ny*nz, npts);
-	    return false;
+	    return NULL;
 	}
 	
 	// figure out a good mesh spacing
@@ -1278,8 +1279,8 @@ load_volume_stream_insoo(Rappture::Outcome &result, int volDataID,
 	    }
 	}
 	
-	volPtr = NanoVis::load_volume(volDataID, nx, ny, nz, 4, data,
-				      field.valueMin(), field.valueMax(), nzero_min);
+	volPtr = NanoVis::load_volume(tag, nx, ny, nz, 4, data,
+		field.valueMin(), field.valueMax(), nzero_min);
 	volPtr->xAxis.SetRange(field.rangeMin(Rappture::xaxis),
 			       field.rangeMax(Rappture::xaxis));
 	volPtr->yAxis.SetRange(field.rangeMin(Rappture::yaxis),
@@ -1312,5 +1313,5 @@ load_volume_stream_insoo(Rappture::Outcome &result, int volDataID,
     if (volPtr) {
 	volPtr->location(Vector3(dx0, dy0, dz0));
     }
-    return true;
+    return volPtr;
 }

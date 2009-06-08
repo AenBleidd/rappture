@@ -49,12 +49,12 @@ PlaneRenderer::init_shaders()
 
 
 int 
-PlaneRenderer::add_plane(Texture2D* _p, TransferFunction* _tf)
+PlaneRenderer::add_plane(Texture2D* _p, TransferFunction* tfPtr)
 {
     int ret = n_planes;
 
     plane.push_back(_p);
-    tf.push_back(_tf);
+    tf.push_back(tfPtr);
 
     if(ret==0)
         active_plane = ret;
@@ -94,7 +94,7 @@ PlaneRenderer::render()
     //glColor3f(1.,1.,1.);         //MUST HAVE THIS LINE!!!
 
     //if no active plane
-    if(active_plane == -1)
+    if (active_plane == -1)
         return;
 
     activate_shader(active_plane);
@@ -111,9 +111,8 @@ PlaneRenderer::render()
 void 
 PlaneRenderer::activate_shader(int index)
 {
-
     cgGLSetTextureParameter(m_data_param, plane[index]->id);
-    cgGLSetTextureParameter(m_tf_param, tf[index]->id);
+    cgGLSetTextureParameter(m_tf_param, tf[index]->id());
     cgGLEnableTextureParameter(m_data_param);
     cgGLEnableTextureParameter(m_tf_param);
 

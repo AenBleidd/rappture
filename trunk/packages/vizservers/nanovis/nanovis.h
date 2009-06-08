@@ -42,6 +42,7 @@
 #include "define.h"
 #include "global.h"
 #include "socket/Socket.h"
+#include "rappture.h"
 #include "NvCamera.h"
 #include "ConvexPolygon.h"
 #include "Texture3D.h"
@@ -130,11 +131,10 @@ public:
     static graphics::RenderContext* renderContext;
     static vector<HeightMap*> heightMap;
     static unsigned char* screen_buffer;
-    static vector<Volume *> volumes;
+    static Tcl_HashTable volumeTable;
     static vector<NvVectorField*> flow;
     static Grid* grid;
     static R2Fonts* fonts;
-    static int n_volumes;
     static int updir;
     static NvCamera *cam;
 
@@ -154,7 +154,6 @@ public:
     static Tcl_Interp *interp;
     static Tcl_DString cmdbuffer;
 
-    static int _last_data_id;
 public :
     static TransferFunction* get_transfunc(const char *name);
     static TransferFunction* DefineTransferFunction(const char *name, 
@@ -183,8 +182,9 @@ public :
     static void display_offscreen_buffer();
     static int render_legend(TransferFunction *tf, double min, double max, 
         int width, int height, const char* volArg);
-    static Volume *load_volume(int volDataID, int width, int height, int depth, 
-        int n, float* data, double vmin, double vmax, double nzero_min);
+    static Volume *load_volume(const char *tag, int width, int height, 
+		int depth, int n, float* data, double vmin, double vmax, 
+		double nzero_min);
     static void xinetd_listen(void);
     static int render_2d_contour(HeightMap* heightmap, int width, int height);
     static void pan(float dx, float dy);
@@ -232,9 +232,21 @@ public :
 	MAP_HEIGHTMAPS=(1<<3),
     };
     static void EventuallyRedraw(unsigned int flag = 0);
-    static void remove_volume(size_t index);
-    static int generate_data_identifier();
+    static void remove_volume(Volume *volPtr);
+    static Tcl_HashTable tfTable;
 };
+
+extern Volume *load_volume_stream(Rappture::Outcome &status, const char *tag, 
+			std::iostream& fin);
+extern Volume *load_volume_stream_odx(Rappture::Outcome &status, 
+	const char *tag, const char *buf, int nBytes);
+extern Volume *load_volume_stream2(Rappture::Outcome &status, const char *tag, 
+	std::iostream& fin);
+
+extern Volume *load_vector_stream(Rappture::Outcome &result, const char *tag, 
+	size_t length, char *bytes);
+extern Volume *load_vector_stream2(Rappture::Outcome &result, const char *tag, 
+	size_t length, char *bytes);
 
 
 #endif	/* __NANOVIS_H__ */
