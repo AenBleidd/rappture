@@ -638,7 +638,6 @@ itcl::body Rappture::Field::_build {} {
 	    set path [$_field get $cname.mesh]
 	    if {[$_xmlobj element $path] != ""} {
 		set element [$_xmlobj element -as type $path]
-		puts stderr "element is $element"
 		if { $element == "unirect2d" } {
 		    set _comp2dims($cname) "2D"
 		    set _comp2unirect2d($cname) \
