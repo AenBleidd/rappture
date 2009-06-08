@@ -108,7 +108,7 @@ proc send_file {} {
           }] == 0} {
         set obj [visData #auto $info]
         $widgets(flowvis) add $obj
-	puts stderr "name of flow is $obj-one"
+	puts stderr "name of flow is $obj-component"
     }
 }
 
@@ -152,7 +152,7 @@ proc send_command {} {
     } else {
         set cmd $last_command
     }
-    namespace eval Rappture::FlowvisViewer [list $widgets(flowvis) SendCmd $cmd]
+    $widgets(flowvis) sendto $cmd
     $widgets(command) delete 0 end
 }
 
