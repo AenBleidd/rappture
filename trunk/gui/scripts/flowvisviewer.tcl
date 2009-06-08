@@ -1605,7 +1605,7 @@ itcl::body Rappture::FlowvisViewer::FixSettings {what {value ""}} {
             }
         }
         opacity {
-            if { $_first != "" && && $_activeTf != "" } {
+            if { $_first != "" && $_activeTf != "" } {
                 set opacity [expr { 0.01 * double($_settings($this-opacity)) }]
                 set tf $_activeTf
                 set _settings($this-$tf-opacity) $opacity
@@ -1614,7 +1614,7 @@ itcl::body Rappture::FlowvisViewer::FixSettings {what {value ""}} {
         }
 
         thickness {
-            if { $_first != "" && && $_activeTf != "" } {
+            if { $_first != "" && $_activeTf != "" } {
                 set val $_settings($this-thickness)
                 # Scale values between 0.00001 and 0.01000
                 set sval [expr {0.0001*double($val)}]
