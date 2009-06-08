@@ -99,15 +99,12 @@ public:
     VolumeRenderer();
     ~VolumeRenderer();
 
-    void add_volume(Volume* _vol, TransferFunction* _tf); 
-    void render(int volumeID);
-    void render_all();	//render all enabled volumes;
-    void render_all_points(void); //render all enabled volumes;
+    void render_all();			//render all enabled volumes;
     void specular(float val);
     void diffuse(float val);
-    void set_slice_mode(bool val); //control independently.
+    void set_slice_mode(bool val);	//control independently.
     void set_volume_mode(bool val);
-    void switch_slice_mode(); //switch_cutplane_mode
+    void switch_slice_mode();		//switch_cutplane_mode
     void switch_volume_mode();
 
     void clearAnimatedVolumeInfo(void) {

@@ -15,15 +15,15 @@
 #include "RpOutcome.h"
 /* Load a 3D volume from a dx-format file the new way
  */
-bool
-load_volume_stream_odx(Rappture::Outcome &context, int userID, const char *buf,
-		       int nBytes)
+Volume *
+load_volume_stream_odx(Rappture::Outcome &context, const char *tag, 
+			const char *buf, int nBytes)
 {
     char dxfilename[128];
 
     if (nBytes <= 0) {
 	context.error("empty data buffer\n");
-        return false;
+        return NULL;
     }
 
     // write the dx file to disk, because DXImportDX takes a file name
@@ -41,14 +41,14 @@ load_volume_stream_odx(Rappture::Outcome &context, int userID, const char *buf,
     if (nWritten != nBytes) {
         context.addError("Can't read %d bytes from file \"%s\"\n", 
 			 nBytes, dxfilename);
-	return false;
+	return NULL;
     }
 
     Rappture::DX dxObj(context, dxfilename);
 
     if (unlink(dxfilename) != 0) {
         context.addError("Error deleting dx file: %s\n", dxfilename);
-	return false;
+	return NULL;
     }
 
     int nx = dxObj.axisLen()[0];
@@ -87,14 +87,13 @@ load_volume_stream_odx(Rappture::Outcome &context, int userID, const char *buf,
 
     computeSimpleGradient(data, nx, ny, nz);
 
-    fprintf(stdout,"End Data Stats userID = %i\n",userID);
     fprintf(stdout,"nx = %i ny = %i nz = %i\n",nx,ny,nz);
     fprintf(stdout,"dx = %lg dy = %lg dz = %lg\n",dx,dy,dz);
     fprintf(stdout,"dataMin = %lg\tdataMax = %lg\tnzero_min = %lg\n", dxObj.dataMin(),dxObj.dataMax(),dxObj.nzero_min());
     fflush(stdout);
 
     Volume *volPtr;
-    volPtr = NanoVis::load_volume(userID, nx, ny, nz, 4, data, 
+    volPtr = NanoVis::load_volume(tag, nx, ny, nz, 4, data, 
 				  dxObj.dataMin(), 
 				  dxObj.dataMax(), 
 				  dxObj.nzero_min());
@@ -116,5 +115,5 @@ load_volume_stream_odx(Rappture::Outcome &context, int userID, const char *buf,
     float dy0 = -0.5*dy/dx;
     float dz0 = -0.5*dz/dx;
     volPtr->location(Vector3(dx0, dy0, dz0));
-    return true;
+    return volPtr;
 }

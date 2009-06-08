@@ -52,26 +52,28 @@ static Rappture::SwitchCustom transferFunctionSwitch = {
 };
 
 Rappture::SwitchSpec FlowCmd::_switches[] = {
-    {Rappture::SWITCH_BOOLEAN, "-slice", "boolean",
-	offsetof(FlowValues, sliceVisible), 0},
+    {Rappture::SWITCH_BOOLEAN, "-arrows", "boolean",
+	offsetof(FlowValues, showArrows), 0},
     {Rappture::SWITCH_CUSTOM, "-axis", "axis",
 	offsetof(FlowValues, slicePos.axis), 0, 0, &axisSwitch},
+    {Rappture::SWITCH_FLOAT, "-diffuse", "value",
+	offsetof(FlowValues, diffuse), 0},
     {Rappture::SWITCH_BOOLEAN, "-hide", "boolean",
 	offsetof(FlowValues, isHidden), 0},
+    {Rappture::SWITCH_FLOAT, "-opacity", "value",
+	offsetof(FlowValues, opacity), 0},
+    {Rappture::SWITCH_BOOLEAN, "-outline", "boolean",
+	offsetof(FlowValues, showOutline), 0},
     {Rappture::SWITCH_CUSTOM, "-position", "number",
 	offsetof(FlowValues, slicePos), 0, 0, &positionSwitch},
+    {Rappture::SWITCH_BOOLEAN, "-slice", "boolean",
+	offsetof(FlowValues, sliceVisible), 0},
+    {Rappture::SWITCH_FLOAT, "-specular", "value",
+	offsetof(FlowValues, specular), 0},
     {Rappture::SWITCH_CUSTOM, "-transferfunction", "name",
         offsetof(FlowValues, tfPtr), 0, 0, &transferFunctionSwitch},
     {Rappture::SWITCH_BOOLEAN, "-volume", "boolean",
 	offsetof(FlowValues, showVolume), 0},
-    {Rappture::SWITCH_BOOLEAN, "-outline", "boolean",
-	offsetof(FlowValues, showOutline), 0},
-    {Rappture::SWITCH_FLOAT, "-diffuse", "value",
-	offsetof(FlowValues, diffuse), 0},
-    {Rappture::SWITCH_FLOAT, "-opacity", "value",
-	offsetof(FlowValues, opacity), 0},
-    {Rappture::SWITCH_FLOAT, "-specular", "value",
-	offsetof(FlowValues, specular), 0},
     {Rappture::SWITCH_END}
 };
 
@@ -294,9 +296,7 @@ FlowCmd::~FlowCmd(void)
 	delete _dataPtr;
     }
      if (_volPtr != NULL) {
-	 assert((size_t)_volId == _volPtr->dataID());
-	 fprintf(stderr, "from ~FlowCmd volId=%d\n", _volId);
-	 NanoVis::remove_volume(_volId);
+	 NanoVis::remove_volume(_volPtr);
 	 _volPtr = NULL;
     }
 
@@ -509,9 +509,8 @@ bool
 FlowCmd::ScaleVectorField()
 {
     if (_volPtr != NULL) {
-	assert((size_t)_volId == _volPtr->dataID());
-	fprintf(stderr, "from ScaleVectorField volId=%d\n", _volId);
-	NanoVis::remove_volume(_volId);
+	fprintf(stderr, "from ScaleVectorField volId=%s\n", _volPtr->name());
+	NanoVis::remove_volume(_volPtr);
 	_volPtr = NULL;
     }
     float *vdata;
@@ -562,13 +561,17 @@ FlowCmd::ScaleVectorField()
     }
 
     if (NanoVis::velocityArrowsSlice != NULL) {
-        NanoVis::velocityArrowsSlice->vectorField(volPtr->id,
+        NanoVis::velocityArrowsSlice->vectorField(_volPtr->id,
             //*(volPtr->get_location()),
             1.0f,
-            volPtr->aspect_ratio_height / volPtr->aspect_ratio_width,
-            volPtr->aspect_ratio_depth / volPtr->aspect_ratio_width
+	    _volPtr->aspect_ratio_height / _volPtr->aspect_ratio_width,
+	    _volPtr->aspect_ratio_depth / _volPtr->aspect_ratio_width
             //,volPtr->wAxis.max()
             );
+	Trace("Arrows enabled set to %d\n", _sv.showArrows);
+	NanoVis::velocityArrowsSlice->axis(_sv.slicePos.axis);
+	NanoVis::velocityArrowsSlice->slicePos(_sv.slicePos.value);
+	NanoVis::velocityArrowsSlice->enabled(_sv.showArrows);
     }
     FlowParticles *particlesPtr;
     FlowParticlesIterator partIter;
@@ -627,12 +630,8 @@ Volume *
 FlowCmd::MakeVolume(float *data)
 {
     Volume *volPtr;
-    /* Reuse the volume index. The first time it's -1, which means to generate
-     * a new volume slot. */
-    volPtr = NanoVis::load_volume(_volId, _dataPtr->xNum(), _dataPtr->yNum(), 
+    volPtr = NanoVis::load_volume(_name, _dataPtr->xNum(), _dataPtr->yNum(), 
 	_dataPtr->zNum(), 4, data, NanoVis::magMin, NanoVis::magMax, 0);
-    /* Save the volume index.  This only matters the first time through. */
-    _volId = volPtr->dataID();
     volPtr->xAxis.SetRange(_dataPtr->xMin(), _dataPtr->xMax());
     volPtr->yAxis.SetRange(_dataPtr->yMin(), _dataPtr->yMax());
     volPtr->zAxis.SetRange(_dataPtr->zMin(), _dataPtr->zMax());
@@ -645,7 +644,7 @@ FlowCmd::MakeVolume(float *data)
     //volPtr->set_n_slice(256 - _volIndex);
     // volPtr->set_n_slice(512- _volIndex);
     // TBD..
-    volPtr->n_slices(256);
+    //volPtr->n_slices(256-n);
     volPtr->disable_cutplane(0);
     volPtr->disable_cutplane(1);
     volPtr->disable_cutplane(2);

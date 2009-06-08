@@ -131,13 +131,17 @@ public :
 	float slicePos() const;
 	void queryVelocity();
 	void render();
-	void enabled(bool e);
-	bool enabled() const;
-	void tickCountForMinSizeAxis(int tickCount);
+    void enabled(bool enabled) {
+	_enabled = enabled;
+    }
+    bool enabled(void) const {
+	return _enabled;
+    }
+    void tickCountForMinSizeAxis(int tickCount);
     int tickCountForMinSizeAxis() const;
     void arrowColor(const Vector3& color);
-	void renderMode(RenderMode mode);
-	RenderMode renderMode() const;
+    void renderMode(RenderMode mode);
+    RenderMode renderMode() const;
 };
 
 inline int VelocityArrowsSlice::axis() const
@@ -150,11 +154,6 @@ inline float VelocityArrowsSlice::slicePos() const
 	return _slicePos;
 }
 
-
-inline bool VelocityArrowsSlice::enabled() const
-{
-	return _enabled;
-}
 
 inline int VelocityArrowsSlice::tickCountForMinSizeAxis() const
 {

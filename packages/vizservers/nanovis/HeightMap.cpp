@@ -29,7 +29,7 @@ HeightMap::HeightMap() :
     _vertexCount(0), 
     _contour(0), 
     _topContour(0), 
-    _colorMap(0), 
+    _tfPtr(0), 
     _indexBuffer(0), 
     _indexCount(0), 
     _contourColor(1.0f, 0.0f, 0.0f), 
@@ -42,7 +42,7 @@ HeightMap::HeightMap() :
 {
     _shader = new NvShader();
     _shader->loadFragmentProgram("heightcolor.cg", "main");
-    _tf = _shader->getNamedParameterFromFP("tf");
+    _tfParam = _shader->getNamedParameterFromFP("tf");
 }
 
 HeightMap::~HeightMap()
@@ -54,7 +54,7 @@ HeightMap::~HeightMap()
     }
 
     // TMP
-    //if (_colorMap) delete _colorMap;
+    //if (_tfPtr) delete _tfPtr;
 }
 
 void HeightMap::render(graphics::RenderContext* renderContext)
@@ -92,7 +92,7 @@ void HeightMap::render(graphics::RenderContext* renderContext)
         glDisableClientState(GL_INDEX_ARRAY);
         glDisableClientState(GL_NORMAL_ARRAY);
         
-        if (_colorMap) {
+        if (_tfPtr) {
             // PUT vertex program here
             //
             //
@@ -100,11 +100,11 @@ void HeightMap::render(graphics::RenderContext* renderContext)
             cgGLBindProgram(_shader->getFP());
             cgGLEnableProfile(CG_PROFILE_FP30);
             
-            cgGLSetTextureParameter(_tf, _colorMap->id);
-            cgGLEnableTextureParameter(_tf);
+            cgGLSetTextureParameter(_tfParam, _tfPtr->id());
+            cgGLEnableTextureParameter(_tfParam);
             
             glEnable(GL_TEXTURE_1D);
-            _colorMap->getTexture()->activate();
+            _tfPtr->getTexture()->activate();
             
             glEnableClientState(GL_TEXTURE_COORD_ARRAY);
         }
@@ -127,8 +127,8 @@ void HeightMap::render(graphics::RenderContext* renderContext)
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         
         glDisableClientState(GL_VERTEX_ARRAY);
-        if (_colorMap) {
-            _colorMap->getTexture()->deactivate();
+        if (_tfPtr != NULL) {
+            _tfPtr->getTexture()->deactivate();
             glDisableClientState(GL_TEXTURE_COORD_ARRAY);
             
             cgGLDisableProfile(CG_PROFILE_FP30);
@@ -387,7 +387,7 @@ HeightMap::setHeight(float xMin, float yMin, float xMax, float yMax,
     
     
     ContourLineFilter lineFilter;
-    //lineFilter.setColorMap(_colorMap);
+    //lineFilter.transferFunction(_tfPtr);
     _contour = lineFilter.create(0.0f, 1.0f, 10, heightMap, xNum, yNum);
     
 #if TOPCONTOUR
@@ -438,13 +438,6 @@ HeightMap::createHeightVertices(float xMin, float yMin, float xMax,
         }
     }
     return vertices;
-}
-
-void HeightMap::setColorMap(TransferFunction* colorMap)
-{
-    //if (colorMap) colorMap->addRef();
-    //if (_colorMap) _colorMap->unrefDelete();
-    _colorMap = colorMap;
 }
 
 // Maps the data coordinates of the surface into the grid's axes.
@@ -500,7 +493,7 @@ HeightMap::MapToGrid(Grid *gridPtr)
     delete [] texcoord;
 
     ContourLineFilter lineFilter;
-    //lineFilter.setColorMap(_colorMap);
+    //lineFilter.transferFunction(_tfPtr);
     _contour = lineFilter.create(0.0f, 1.0f, 10, vertices, xNum_, yNum_);
     
 #if TOPCONTOUR
@@ -567,15 +560,15 @@ void HeightMap::render_topview(graphics::RenderContext* renderContext, int rende
         glDisableClientState(GL_INDEX_ARRAY);
         glDisableClientState(GL_NORMAL_ARRAY);
         
-        if (_colorMap) {
+        if (_tfPtr != NULL) {
             cgGLBindProgram(_shader->getFP());
             cgGLEnableProfile(CG_PROFILE_FP30);
             
-            cgGLSetTextureParameter(_tf, _colorMap->id);
-            cgGLEnableTextureParameter(_tf);
+            cgGLSetTextureParameter(_tfParam, _tfPtr->id());
+            cgGLEnableTextureParameter(_tfParam);
             
             glEnable(GL_TEXTURE_1D);
-            _colorMap->getTexture()->activate();
+            _tfPtr->getTexture()->activate();
             
             glEnableClientState(GL_TEXTURE_COORD_ARRAY);
         }
@@ -601,8 +594,8 @@ void HeightMap::render_topview(graphics::RenderContext* renderContext, int rende
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         
         glDisableClientState(GL_VERTEX_ARRAY);
-        if (_colorMap) {
-            _colorMap->getTexture()->deactivate();
+        if (_tfPtr != NULL) {
+            _tfPtr->getTexture()->deactivate();
             glDisableClientState(GL_TEXTURE_COORD_ARRAY);
             
             cgGLDisableProfile(CG_PROFILE_FP30);

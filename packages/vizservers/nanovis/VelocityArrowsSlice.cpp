@@ -264,163 +264,149 @@ void VelocityArrowsSlice::queryVelocity()
 
 void VelocityArrowsSlice::render()
 {
-	//if (!_enabled || (_vectorFieldGraphicsID == 0)) return;	
-	if (!_enabled) return;
-
-	if (_dirty)
-	{
-		computeSamplingTicks();
-		queryVelocity();
-		_dirty = false;
-	}
-
-
-	glPushMatrix();
+    //if (!_enabled || (_vectorFieldGraphicsID == 0)) return;	
+    if (!_enabled) return;
+    
+    if (_dirty) {
+	computeSamplingTicks();
+	queryVelocity();
+	_dirty = false;
+    }
+    
+    
+    glPushMatrix();
+    
+    glScalef(_vfXscale,_vfYscale, _vfZscale);
+    glTranslatef(-0.5f, -0.5f, -0.5f);
+    if (_renderMode == LINES) {
 	
-	glScalef(_vfXscale,_vfYscale, _vfZscale);
-	glTranslatef(-0.5f, -0.5f, -0.5f);
-	if (_renderMode == LINES)
-	{
-
-		glDisable(GL_TEXTURE_2D);
-		glLineWidth(2.0);
-		glColor3f(_arrowColor.x, _arrowColor.y, _arrowColor.z);
-		glBegin(GL_LINES);
-		Vector3 pos;
-		Vector3 pos2;
-		Vector3 vel(1, 0, 0);
-		Vector3 v, v2;
-		if (_axis == 2)
-		{
-			int index = 0;
-			for (int y = 1; y <= _tickCountY; ++y)
-				for (int x = 1; x <= _tickCountX; ++x, ++index)
-				{
-					pos = this->_samplingPositions[index];
-					pos2 = this->_velocities[index].scale(_projectionVector).scale(_maxVelocityScale) + pos;
-					glVertex3f(pos.x, pos.y, pos.z);
-					glVertex3f(pos2.x, pos2.y, pos2.z);
-					/*v = pos - pos2;
-					
-					
-					v2.x = 1;
-					v2.y = 1;
-					v2.z = (-(x1-x2)-(y1-y2))/(z1-z2)
-					adj = v.length() / (4 * sqrt((x3^2)+(y3^2)+(z3^2)));
-					x3 *= adj
-					y3 *= adj
-					z3 *= adj
-					*/
-
-				}
+	glDisable(GL_TEXTURE_2D);
+	glLineWidth(2.0);
+	glColor3f(_arrowColor.x, _arrowColor.y, _arrowColor.z);
+	glBegin(GL_LINES);
+	Vector3 pos;
+	Vector3 pos2;
+	Vector3 vel(1, 0, 0);
+	Vector3 v, v2;
+	if (_axis == 2) {
+	    int index = 0;
+	    for (int y = 1; y <= _tickCountY; ++y) {
+		for (int x = 1; x <= _tickCountX; ++x, ++index) {
+		    pos = this->_samplingPositions[index];
+		    pos2 = this->_velocities[index].scale(_projectionVector).scale(_maxVelocityScale) + pos;
+		    glVertex3f(pos.x, pos.y, pos.z);
+		    glVertex3f(pos2.x, pos2.y, pos2.z);
+		    /*v = pos - pos2;
+		      
+		    
+		    v2.x = 1;
+		    v2.y = 1;
+		    v2.z = (-(x1-x2)-(y1-y2))/(z1-z2)
+		    adj = v.length() / (4 * sqrt((x3^2)+(y3^2)+(z3^2)));
+		    x3 *= adj
+		    y3 *= adj
+		    z3 *= adj
+		    */
+		    
 		}
-		else if (_axis == 1)
-		{
-			int index = 0;
-			for (int z = 1; z <= _tickCountZ; ++z)
-				for (int x = 1; x <= _tickCountX; ++x, ++index)
-				{
-					pos = _samplingPositions[index];
-					pos2 = this->_velocities[index].scale(_projectionVector).scale(_maxVelocityScale) + pos;
-
-					glVertex3f(pos.x, pos.y, pos.z);
-					glVertex3f(pos2.x, pos2.y, pos2.z);
-				}
+	    }
+	} else if (_axis == 1) {
+	    int index = 0;
+	    for (int z = 1; z <= _tickCountZ; ++z)
+		for (int x = 1; x <= _tickCountX; ++x, ++index) {
+		    pos = _samplingPositions[index];
+		    pos2 = this->_velocities[index].scale(_projectionVector).scale(_maxVelocityScale) + pos;
+		    
+		    glVertex3f(pos.x, pos.y, pos.z);
+		    glVertex3f(pos2.x, pos2.y, pos2.z);
 		}
-		else if (_axis == 0)
-		{
-			int index = 0;
-			for (int z = 1; z <= _tickCountZ; ++z)
-				for (int y = 1; y <= _tickCountY; ++y, ++index)
-				{
-					pos = _samplingPositions[index];
-					pos2 = this->_velocities[index].scale(_projectionVector).scale(_maxVelocityScale) + pos;
-
-					glVertex3f(pos.x, pos.y, pos.z);
-					glVertex3f(pos2.x, pos2.y, pos2.z);
-				}
+	} else if (_axis == 0) {
+	    int index = 0;
+	    for (int z = 1; z <= _tickCountZ; ++z)
+		for (int y = 1; y <= _tickCountY; ++y, ++index) {
+		    pos = _samplingPositions[index];
+		    pos2 = this->_velocities[index].scale(_projectionVector).scale(_maxVelocityScale) + pos;
+		    
+		    glVertex3f(pos.x, pos.y, pos.z);
+		    glVertex3f(pos2.x, pos2.y, pos2.z);
 		}
-		
-		glEnd();
-		glLineWidth(1.0);
 	}
-	else 
-	{
-		glColor3f(_arrowColor.x, _arrowColor.y, _arrowColor.z);
-		glEnable(GL_BLEND);
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE);
-		glEnable(GL_POINT_SPRITE_NV);
-		glPointSize(20);				
-		glEnable(GL_VERTEX_PROGRAM_POINT_SIZE_NV);
-
+	
+	glEnd();
+	glLineWidth(1.0);
+    } else {
+	glColor3f(_arrowColor.x, _arrowColor.y, _arrowColor.z);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+	glEnable(GL_POINT_SPRITE_NV);
+	glPointSize(20);				
+	glEnable(GL_VERTEX_PROGRAM_POINT_SIZE_NV);
+	
 #ifdef USE_NANOVIS_LIB
-                _arrowsTex->activate(); 
+	_arrowsTex->activate(); 
 #else
-		_arrowsTex->bind(0);
-		glEnable(GL_TEXTURE_2D);
+	_arrowsTex->bind(0);
+	glEnable(GL_TEXTURE_2D);
 #endif
-		glPointParameterfARB( GL_POINT_FADE_THRESHOLD_SIZE_ARB, 0.0f );
-
-		glPointParameterfARB( GL_POINT_SIZE_MIN_ARB, 1.0f);
-		glPointParameterfARB( GL_POINT_SIZE_MAX_ARB, 100.0f);
-		glTexEnvf( GL_POINT_SPRITE_ARB, GL_COORD_REPLACE_ARB, GL_TRUE );
-
-		cgGLBindProgram(_particleVP);
-		cgGLBindProgram(_particleFP);
-		cgGLEnableProfile(CG_PROFILE_VP40);
-		cgGLEnableProfile(CG_PROFILE_FP40);
-
-		cgGLSetTextureParameter(_vectorParticleParam, _vectorFieldGraphicsID);
-		cgGLEnableTextureParameter(_vectorParticleParam);
-
-
-		//cgSetParameter1f(_mvTanHalfFOVParam, -tan(_fov * 0.5) * _screenHeight * 0.5);
-		
-		cgGLSetStateMatrixParameter(_mvpParticleParam,
-						CG_GL_MODELVIEW_PROJECTION_MATRIX,
-						CG_GL_MATRIX_IDENTITY);
-		cgGLSetStateMatrixParameter(_mvParticleParam,
-						CG_GL_MODELVIEW_MATRIX,
-						CG_GL_MATRIX_IDENTITY);
-
-		glEnableClientState(GL_VERTEX_ARRAY);
-		glBindBufferARB(GL_ARRAY_BUFFER_ARB, _vertexBufferGraphicsID);
-		glVertexPointer(3, GL_FLOAT, 0, 0);
-		//glEnableClientState(GL_COLOR_ARRAY);
-
-		// TBD..
-		glDrawArrays(GL_POINTS, 0, _pointCount);
-		glPointSize(1);
-		glDrawArrays(GL_POINTS, 0, _pointCount);
-
-		glDisableClientState(GL_VERTEX_ARRAY);
-		
-		cgGLDisableProfile(CG_PROFILE_VP40);
-		cgGLDisableProfile(CG_PROFILE_FP40);
-
-		glDepthMask(GL_TRUE);
-		
-		glDisable(GL_POINT_SPRITE_NV);
-		glDisable(GL_VERTEX_PROGRAM_POINT_SIZE_NV);
-
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-		glDisable(GL_BLEND);
+	glPointParameterfARB( GL_POINT_FADE_THRESHOLD_SIZE_ARB, 0.0f );
+	
+	glPointParameterfARB( GL_POINT_SIZE_MIN_ARB, 1.0f);
+	glPointParameterfARB( GL_POINT_SIZE_MAX_ARB, 100.0f);
+	glTexEnvf( GL_POINT_SPRITE_ARB, GL_COORD_REPLACE_ARB, GL_TRUE );
+	
+	cgGLBindProgram(_particleVP);
+	cgGLBindProgram(_particleFP);
+	cgGLEnableProfile(CG_PROFILE_VP40);
+	cgGLEnableProfile(CG_PROFILE_FP40);
+	
+	cgGLSetTextureParameter(_vectorParticleParam, _vectorFieldGraphicsID);
+	cgGLEnableTextureParameter(_vectorParticleParam);
+	
+	
+	//cgSetParameter1f(_mvTanHalfFOVParam, -tan(_fov * 0.5) * _screenHeight * 0.5);
+	
+	cgGLSetStateMatrixParameter(_mvpParticleParam,
+				    CG_GL_MODELVIEW_PROJECTION_MATRIX,
+				    CG_GL_MATRIX_IDENTITY);
+	cgGLSetStateMatrixParameter(_mvParticleParam,
+				    CG_GL_MODELVIEW_MATRIX,
+				    CG_GL_MATRIX_IDENTITY);
+	
+	glEnableClientState(GL_VERTEX_ARRAY);
+	glBindBufferARB(GL_ARRAY_BUFFER_ARB, _vertexBufferGraphicsID);
+	glVertexPointer(3, GL_FLOAT, 0, 0);
+	//glEnableClientState(GL_COLOR_ARRAY);
+	
+	// TBD..
+	glDrawArrays(GL_POINTS, 0, _pointCount);
+	glPointSize(1);
+	glDrawArrays(GL_POINTS, 0, _pointCount);
+	
+	glDisableClientState(GL_VERTEX_ARRAY);
+	
+	cgGLDisableProfile(CG_PROFILE_VP40);
+	cgGLDisableProfile(CG_PROFILE_FP40);
+	
+	glDepthMask(GL_TRUE);
+	
+	glDisable(GL_POINT_SPRITE_NV);
+	glDisable(GL_VERTEX_PROGRAM_POINT_SIZE_NV);
+	
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	glDisable(GL_BLEND);
 #ifdef USE_NANOVIS_LIB
-                _arrowsTex->deactivate(); 
+	_arrowsTex->deactivate(); 
 #else
-                _arrowsTex->unbind();
+	_arrowsTex->unbind();
 #endif
-	}
-	glPopMatrix();
+    }
+    glPopMatrix();
 }
 
-void VelocityArrowsSlice::enabled(bool e)
-{
-	_enabled = e;
-}
 
-void VelocityArrowsSlice::vectorField(unsigned int vfGraphicsID, 
-				float xScale, float yScale, float zScale)
+void 
+VelocityArrowsSlice::vectorField(unsigned int vfGraphicsID, 
+				 float xScale, float yScale, float zScale)
 {
     _vectorFieldGraphicsID = vfGraphicsID;
     _vfXscale = xScale;

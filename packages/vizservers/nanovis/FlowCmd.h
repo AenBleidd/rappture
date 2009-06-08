@@ -135,6 +135,7 @@ public:
 struct FlowValues {
     TransferFunction *tfPtr;
     FlowPosition slicePos;
+    int showArrows;
     int sliceVisible;
     int showVolume;
     int showOutline;

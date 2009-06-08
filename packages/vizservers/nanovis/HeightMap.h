@@ -25,10 +25,10 @@ class HeightMap {
     unsigned int _vertexBufferObjectID;
     unsigned int _textureBufferObjectID;
     int _vertexCount;
-    CGparameter _tf;
+    CGparameter _tfParam;
     R2Geometry* _contour;
     R2Geometry* _topContour;
-    TransferFunction* _colorMap;
+    TransferFunction* _tfPtr;
     NvShader* _shader;
     int *_indexBuffer;
     int _indexCount;
@@ -89,13 +89,14 @@ public :
     /**
      *@brief Define a color map for color shading of heightmap
      */
-    void setColorMap(TransferFunction* colorMap);
-
+    void transferFunction(TransferFunction* tfPtr) {
+	_tfPtr = tfPtr;
+    }
     /**
      *@brief Get the color map defined for shading of this heightmap
      */
-    TransferFunction *getColorMap(void) {
-	return _colorMap;
+    TransferFunction *transferFunction(void) {
+	return _tfPtr;
     }
     /**
      *@brief Set the visibility of the height map
