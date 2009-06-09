@@ -540,8 +540,6 @@ itcl::body Rappture::HeightmapViewer::SendDataObjs {} {
     }
     foreach dataobj $_sendobjs {
 	foreach comp [$dataobj components] {
-	    set data [$dataobj blob $comp]
-
 	    foreach { vmin vmax }  [$dataobj limits v] break
 	    if { $_limits(vmin) == "" || $vmin < $_limits(vmin) } {
 		set _limits(vmin) $vmin
@@ -549,8 +547,8 @@ itcl::body Rappture::HeightmapViewer::SendDataObjs {} {
 	    if { $_limits(vmax) == "" || $vmax > $_limits(vmax) } {
 		set _limits(vmax) $vmax
 	    }
-
 	    # tell the engine to expect some data
+	    set data [$dataobj blob $comp]
 	    set nbytes [string length $data]
 	    if { ![SendBytes "heightmap data follows $nbytes\n"] } {
 		return

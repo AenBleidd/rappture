@@ -903,9 +903,13 @@ itcl::body Rappture::FlowvisViewer::SendDataObjs {} {
     foreach dataobj $_sendobjs {
         foreach comp [$dataobj components] {
             # Send the data as one huge base64-encoded mess -- yuck!
-            set data [$dataobj blob $comp]
-            set nbytes [string length $data]
+	    set time [time {
+		set data [$dataobj blob $comp]
+		set nbytes [string length $data]
+	    }]
+	    puts stderr rebuild=$time
 	    set extents [$dataobj extents $comp]
+
 	    # I have a field. Is a vector field or a volume field?
 	    if { $extents == 1 } {
 		set cmd "volume data follows $nbytes $dataobj-$comp\n"
@@ -1168,8 +1172,9 @@ itcl::body Rappture::FlowvisViewer::Rebuild {} {
     foreach dataobj [get] {
         foreach comp [$dataobj components] {
             # Send the data as one huge base64-encoded mess -- yuck!
-            set data [$dataobj blob $comp]
-            set nbytes [string length $data]
+	    set blob [time { set data [$dataobj blob $comp] }]
+	    puts stderr blob=$blob
+	    set nbytes [string length $data]
 	    set extents [$dataobj extents $comp]
 	    # I have a field. Is a vector field or a volume field?
 	    if { $extents == 1 } {
@@ -1195,13 +1200,15 @@ itcl::body Rappture::FlowvisViewer::Rebuild {} {
     FixSettings isosurface
     FixSettings grid
     FixSettings axes
-    # nothing to send -- activate the proper ivol
+    FixSettings volume
+    FixSettings outline
+    FixSettings light
+    FixSettings transp
+    # nothing to send -- activate the proper volume
     set _first [lindex [get] 0]
     if {"" != $_first} {
 	FixSettings light
 	FixSettings transp
-	FixSettings outline
-
         set axis [$_first hints updir]
         if {"" != $axis} {
             SendCmd "up $axis"
@@ -1265,7 +1272,7 @@ itcl::body Rappture::FlowvisViewer::Rebuild {} {
     # Actually write the commands to the server socket.  If it fails, we don't
     # care.  We're finished here.
     blt::busy hold $itk_component(hull); update idletasks
-    SendBytes $_outbuf;			
+    SendBytes $_outbuf
     blt::busy release $itk_component(hull)
     set _buffering 0;			# Turn off buffering.
     set _outbuf "";			# Clear the buffer.		
@@ -1736,6 +1743,9 @@ itcl::body Rappture::FlowvisViewer::NameTransferFunc { dataobj comp } {
         -opacity 1.0
     }
     array set style [lindex [$dataobj components -style $comp] 0]
+    set _settings($this-light) $style(-light)
+    set _settings($this-transp) $style(-transp)
+    set _settings($this-opacity) [expr $style(-opacity) * 100]
     set tf "$style(-color):$style(-levels):$style(-opacity)"
     set _obj2style($dataobj-$comp) $tf
     lappend _style2objs($tf) $dataobj $comp
@@ -1756,6 +1766,8 @@ itcl::body Rappture::FlowvisViewer::ComputeTransferFunc { tf } {
         -color rainbow
         -levels 6
         -opacity 1.0
+	-light 40
+	-transp 50
     }
     set dataobj ""; set comp ""
     foreach {dataobj comp} $_style2objs($tf) break
@@ -1808,7 +1820,7 @@ itcl::body Rappture::FlowvisViewer::ComputeTransferFunc { tf } {
         set _settings($tag-opacity) $style(-opacity)
     }
     set max $_settings($tag-opacity)
-
+    
     set isovalues {}
     foreach m $_isomarkers($tf) {
         lappend isovalues [$m relval]
@@ -2591,6 +2603,11 @@ itcl::body Rappture::FlowvisViewer::FlowCmd { dataobj comp nbytes extents } {
     set cmd {}
     append cmd "if {\[flow exists $tag\]} {flow delete $tag}\n"
     array set info  [$flowobj hints]
+    set _settings($this-volume) $info(volume)
+    set _settings($this-outline) $info(outline)
+    set _settings($this-arrows) $info(arrows)
+    set _settings($this-duration) $info(duration)
+    $itk_component(speed) value $info(speed)
     append cmd "flow add $tag -position $info(position) -axis $info(axis) "
     append cmd "-volume $info(volume) -outline $info(outline) "
     append cmd "-slice $info(streams) -arrows $info(arrows)\n"
@@ -2611,7 +2628,7 @@ itcl::body Rappture::FlowvisViewer::FlowCmd { dataobj comp nbytes extents } {
 	}
 	set color [Color2RGB $info(color)]
 	append cmd "$tag box add $info(name) -color {$color} "
-	append cmd "-hide $info(hide) "
+	append cmd "-hide $info(hide) -linewidth $info(linewidth) "
 	append cmd "-corner1 {$info(corner1)} -corner2 {$info(corner2)}\n"
     }    
     append cmd "$tag data follows $nbytes $extents\n"

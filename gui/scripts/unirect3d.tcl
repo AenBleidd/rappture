@@ -102,7 +102,8 @@ itcl::body Rappture::Unirect3d::blob {} {
     if { [$_values length] > 0 } {
 	lappend data "values" [$_values range 0 end]
     }
-    return [Rappture::encoding::encode -as zb64 "$data"]
+    return "@@RP-ENC:raw\n$data"
+    #return [Rappture::encoding::encode -as b64 "$data"]
 }
 
 # ----------------------------------------------------------------------

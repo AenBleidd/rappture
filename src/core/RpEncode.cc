@@ -260,16 +260,16 @@ Rappture::encoding::decode(Rappture::Outcome &status, Rappture::Buffer& buf,
         if ((size > 11) && (strncmp(bytes, "@@RP-ENC:z\n", 11) == 0)) {
             bytes += 11;
             size -= 11;
-            headerFlags |= RPENC_Z;
+            headerFlags = RPENC_Z;
         } else if ((size > 13) && (strncmp(bytes, "@@RP-ENC:b64\n", 13) == 0)){
             bytes += 13;
             size -= 13;
-            headerFlags |= RPENC_B64;
+            headerFlags = RPENC_B64;
         } else if ((size > 14) && (strncmp(bytes, "@@RP-ENC:zb64\n", 14) == 0)){
             bytes += 14;
             size -= 14;
-            headerFlags |= (RPENC_B64 | RPENC_Z);
-        } else if ((size > 13) && (strncmp(bytes, "@@RP-ENC:raw\n", 14) == 0)){
+            headerFlags = (RPENC_B64 | RPENC_Z);
+        } else if ((size > 13) && (strncmp(bytes, "@@RP-ENC:raw\n", 13) == 0)){
 	    bytes += 13;
 	    size -= 13;
         } 
