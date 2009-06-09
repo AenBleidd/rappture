@@ -108,7 +108,6 @@ VolumeRenderer::render_all()
 	 hPtr = Tcl_NextHashEntry(&iter)) {
 	Volume* volPtr;
 	volPtr = (Volume *)Tcl_GetHashValue(hPtr);
-	Trace("volume %s addr=%x\n", volPtr->name(), volPtr);
         if(!volPtr->visible()) {
             continue;			// Skip this volume
 	}
@@ -548,12 +547,8 @@ VolumeRenderer::activate_volume_shader(Volume* volPtr, bool slice_mode)
     _stdVertexShader->bind();
     TransferFunction *tfPtr  = volPtr->transferFunction();
     if (volPtr->volume_type() == Volume::CUBIC) {
-	Trace("regular volume shader: volume=%s tf=%s slice_mode=%d\n",
-	      volPtr->name(), tfPtr->name(), slice_mode);
 	_regularVolumeShader->bind(tfPtr->id(), volPtr, slice_mode);
     } else if (volPtr->volume_type() == Volume::ZINCBLENDE) {
-	Trace("zincblende volume shader: volume=%s tf=%s slice_mode=%d\n",
-	      volPtr->name(), tfPtr->name(), slice_mode);
 	_zincBlendeShader->bind(tfPtr->id(), volPtr, slice_mode);
     }
 }

@@ -608,7 +608,11 @@ GetDataStream(Tcl_Interp *interp, Rappture::Buffer &buf, int nBytes)
     }
     Rappture::Outcome err;
     unsigned int flags;
-    flags = RPENC_Z|RPENC_B64|RPENC_HDR; 
+    flags = RPENC_Z|RPENC_B64; 
+    Trace("Checking header[%.13s]\n", buf.bytes());
+    if (strncmp (buf.bytes(), "@@RP-ENC:", 9) == 0) {
+	flags = RPENC_HDR;
+    }
     if (!Rappture::encoding::decode(err, buf, flags)) {
 	printf("ERROR -- DECODING\n");
 	fflush(stdout);
