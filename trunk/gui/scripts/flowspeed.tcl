@@ -58,11 +58,10 @@ itk::usual Flowspeed {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Flowspeed::constructor {args} {
     itk_component add entry {
-	entry $itk_interior.entry -font "arial 9"
+	entry $itk_interior.entry
     } {
 	usual
 	keep -width
-	ignore -font
 	rename -background -textbackground textBackground Background
 	rename -foreground -textforeground textForeground Foreground
 	rename -highlightbackground -background background Background

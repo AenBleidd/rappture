@@ -248,12 +248,10 @@ itcl::body Rappture::Field::blob {{what -overall}} {
 	return $_comp2dx($what)  ;# return gzipped, base64-encoded DX data
     }
     if {[info exists _comp2unirect2d($what)]} {
-	set mobj $_comp2unirect2d($what)
-	return [$mobj blob]
+	return [$_comp2unirect2d($what) blob]
     }
     if {[info exists _comp2unirect3d($what)]} {
-	set mobj $_comp2unirect3d($what)
-	return [$mobj blob]
+	return [$_comp2unirect3d($what) blob]
     }
     error "bad option \"$what\": should be [join [lsort [array names _comp2dims]] {, }]"
 }

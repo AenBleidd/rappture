@@ -60,6 +60,8 @@ itcl::body Rappture::FlowHints::constructor {field cname units} {
 	"streams"	"on"
 	"arrows"	"off"
 	"volume"	"on"
+	"duration"	"1:00"
+	"speed"		"1x"
     }
     set _units $units
     set f [$field element -as object $cname.flow]
@@ -74,6 +76,8 @@ itcl::body Rappture::FlowHints::constructor {field cname units} {
 	    "streams"     { GetBoolean $f $child _hints(streams) }
 	    "arrows"      { GetBoolean $f $child _hints(arrows) }
 	    "axis"        { GetAxis $f  $child _hints(axis) }
+	    "speed"       { set _hints(speed) $value }
+	    "duration"    { set _hints(duration) $value }
 	    "position"    { GetPosition $f $child _hints(position) }
 	    "particles*" {
 		array unset data
@@ -111,6 +115,7 @@ itcl::body Rappture::FlowHints::constructor {field cname units} {
 		    "description"   ""
 		    "hide"	    "no"
 		    "label"	    ""
+		    "linewidth"	    "2"
 		}
 		set b [$f element -as object $child]
 		set name [$f element -as id $child]
@@ -123,6 +128,7 @@ itcl::body Rappture::FlowHints::constructor {field cname units} {
 			"color"       { set data(color) $value }
 			"description" { set data(description) $value }
 			"hide"        { GetBoolean $b hide data(hide) }
+			"linewidth"   { set data(linewidth) $value }
 			"label"       { set data(label) $value }
 			"corner*" { 
 			    incr count
