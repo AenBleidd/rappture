@@ -231,7 +231,7 @@ itcl::body Rappture::DispatchObj::event {args} {
 itcl::body Rappture::DispatchObj::cancel {args} {
     foreach event $args {
 	if {![info exists _event2clients($event)]} {
-	    error "bad event \"$str\": should be [join [lsort [array names _event2clients]] {, }]"
+	    error "bad event \"$event\": should be [join [lsort [array names _event2clients]] {, }]"
 	}
 	after cancel [itcl::code $this _send $event all @extra]
     }
