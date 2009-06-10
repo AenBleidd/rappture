@@ -34,9 +34,10 @@ itcl::class Rappture::FlowHints {
 
     private method ConvertUnits { value }
     private method GetAxis { obj path varName }
-    private method GetPosition { obj path varName }
-    private method GetCorner { obj path varName }
     private method GetBoolean { obj path varName }
+    private method GetCorner { obj path varName }
+    private method GetPosition { obj path varName }
+    private method GetSize { obj path varName }
 
     private variable _boxes "";		# List of boxes for the flow.
     private variable _particles "";	# List of particle injection planes.
@@ -88,6 +89,7 @@ itcl::body Rappture::FlowHints::constructor {field cname units} {
 		    "hide"	    "no"
 		    "label"         ""
 		    "position"	    "0.0%"
+		    "size"	    "1.2"
 		}
 		set p [$f element -as object $child]
 		set data(name) [$f element -as id $child]
@@ -100,6 +102,7 @@ itcl::body Rappture::FlowHints::constructor {field cname units} {
 			"hide"        { GetBoolean $p hide data(hide) }
 			"label"       { set data(label) $value }
 			"position"    { GetPosition $p position data(position)}
+			"size"        { GetSize $p size data(size)}
 		    }
 		}
 		if { $data(label) == "" } {
@@ -128,7 +131,7 @@ itcl::body Rappture::FlowHints::constructor {field cname units} {
 			"color"       { set data(color) $value }
 			"description" { set data(description) $value }
 			"hide"        { GetBoolean $b hide data(hide) }
-			"linewidth"   { set data(linewidth) $value }
+			"linewidth"   { GetSize $b linewidth data(linewidth) }
 			"label"       { set data(label) $value }
 			"corner*" { 
 			    incr count
@@ -217,3 +220,12 @@ itcl::body Rappture::FlowHints::GetBoolean { obj path varName } {
     puts stderr "invalid boolean \"$value\" in \"$path\""
 }
 
+itcl::body Rappture::FlowHints::GetSize { obj path varName } {
+    set string [$obj get $path]
+    if { [scan $string "%d" value] != 1 || $value < 0 } {
+	puts stderr "can't get size \"$string\" of \"$path\""
+	return
+    }
+    upvar $varName size
+    set size $value
+}
