@@ -1945,8 +1945,6 @@ FlowVideoOp(ClientData clientData, Tcl_Interp *interp, int objc,
         NanoVis::licRenderer->active(false);
     }
 #endif
-    NanoVis::licRenderer->make_patterns();
-
     // FIXME: find a way to get the data from the movie object as a void*
     Rappture::Buffer data;
     if (!data.load(context, fileName)) {
@@ -1954,12 +1952,18 @@ FlowVideoOp(ClientData clientData, Tcl_Interp *interp, int objc,
 		fileName, "\": ", context.remark(), (char *)NULL);
 	return TCL_ERROR;
     }
+
     // Build the command string for the client.
     char command[200];
     sprintf(command,"nv>image -bytes %lu -type movie -token \"%s\"\n", 
 	    (unsigned long)data.size(), Tcl_GetString(objv[7]));
-
     NanoVis::sendDataToClient(command, data.bytes(), data.size());
+
+    if ((width != oldWidth) || (height != oldHeight)) {
+	// Restore to the old size.
+	NanoVis::resize_offscreen_buffer(old_width, old_height);
+    }
+    NanoVis::licRenderer->make_patterns();
     if (unlink(fileName) != 0) {
         Tcl_AppendResult(interp, "can't unlink temporary movie file \"",
 		fileName, "\": ", Tcl_PosixError(interp), (char *)NULL);
