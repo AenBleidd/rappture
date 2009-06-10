@@ -1758,6 +1758,8 @@ itcl::body Rappture::FlowvisViewer::NameTransferFunc { dataobj comp } {
         -color rainbow
         -levels 6
         -opacity 1.0
+	-light 40
+	-transp 50
     }
     array set style [lindex [$dataobj components -style $comp] 0]
     set _settings($this-light) $style(-light)
