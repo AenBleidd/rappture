@@ -110,6 +110,7 @@ itcl::class Rappture::FlowvisViewer {
     private method EventuallyResizeLegend { } 
     private method FlowCmd { dataobj comp nbytes extents }
     private method GetMovie { widget width height }
+    private method GetPngImage { widget width height }
     private method NameTransferFunc { dataobj comp }
     private method PanCamera {}
     private method ParseLevelsOption { tf levels }
@@ -146,12 +147,14 @@ itcl::class Rappture::FlowvisViewer {
     private variable _activeTf ""  ;# The currently active transfer function.
     private variable _first ""     ;# This is the topmost volume.
     private variable _buffering 0
+    private variable _nextToken 0
+    private variable _icon 0
     private variable _flow
     # This 
     # indicates which isomarkers and transfer
     # function to use when changing markers,
     # opacity, or thickness.
-    common _downloadPopup          ;# download options from popup
+    private common _downloadPopup          ;# download options from popup
 
     private common _hardcopy
     private variable _width 0
@@ -199,6 +202,9 @@ itcl::body Rappture::FlowvisViewer::constructor { hostlist args } {
     # Draw legend event
     $_dispatcher register !goto
     $_dispatcher dispatch $this !goto "[itcl::code $this flow goto2]; list"
+
+    $_dispatcher register !movietimeout
+    $_dispatcher register !waiticon
 
     set _flow(state) 0
 
@@ -734,6 +740,7 @@ itcl::body Rappture::FlowvisViewer::scale {args} {
 # "string" is the data itself.
 # ----------------------------------------------------------------------
 itcl::body Rappture::FlowvisViewer::download {option args} {
+    set popup .flowvisviewerdownload
     switch $option {
         coming {
             if {[catch {
@@ -744,8 +751,7 @@ itcl::body Rappture::FlowvisViewer::download {option args} {
             }
         }
         controls {
-	    set popup .flowvisviewerdownload
-	    if {![winfo exists .flowvisviewerdownload]} {
+	    if {![winfo exists $popup]} {
 		# if we haven't created the popup yet, do it now
 		Rappture::Balloon $popup \
 		    -title "[Rappture::filexfer::label downloadWord] as..."
@@ -755,19 +761,19 @@ itcl::body Rappture::FlowvisViewer::download {option args} {
 		set img $_image(plot)
 		set res "[image width $img]x[image height $img]"
 		radiobutton $inner.draft -text "Image (draft $res)" \
-		    -variable Rappture::MolvisViewer::_downloadPopup(format) \
+		    -variable Rappture::FlowvisViewer::_downloadPopup(format) \
 		    -value draft
 		pack $inner.draft -anchor w
 
 		set res "640x480"
 		radiobutton $inner.medium -text "Movie (standard $res)" \
-		    -variable Rappture::MolvisViewer::_downloadPopup(format) \
+		    -variable Rappture::FlowvisViewer::_downloadPopup(format) \
 		    -value $res
 		pack $inner.medium -anchor w
 
 		set res "1024x768"
 		radiobutton $inner.high -text "Movie (high quality $res)" \
-		    -variable Rappture::MolvisViewer::_downloadPopup(format) \
+		    -variable Rappture::FlowvisViewer::_downloadPopup(format) \
 		    -value $res
 		pack $inner.high -anchor w
 		button $inner.go -text [Rappture::filexfer::label download] \
@@ -779,13 +785,13 @@ itcl::body Rappture::FlowvisViewer::download {option args} {
 	    }
 	    set num [llength [get]]
 	    set num [expr {($num == 1) ? "1 result" : "$num results"}]
-	    $inner.summary configure -text "[Rappture::filexfer::label downloadWord] $num in the following format:"
+	    set word [Rappture::filexfer::label downloadWord]
+	    $inner.summary configure -text "$word $num in the following format:"
 	    update idletasks ;# fix initial sizes
 	    return $popup
 	}
         now {
-	    set popup .molvisviewerdownload
-	    if {[winfo exists .molvisviewerdownload]} {
+	    if { [winfo exists $popup] } {
 		$popup deactivate
 	    }
 	    switch -- $_downloadPopup(format) {
@@ -795,14 +801,17 @@ itcl::body Rappture::FlowvisViewer::download {option args} {
 		    # files.  When we switch to the BLT picture image it
 		    # won't be necessary to decode the image data.
 		    set bytes [$_image(plot) data -format "jpeg -quality 100"]
-		    set data [Rappture::encoding::decode -as b64 $data]
-		    return [list .jpg $data]
+		    set bytes [Rappture::encoding::decode -as b64 $bytes]
+		    return [list .jpg $bytes]
 		}
 		"640x480" {
 		    return [$this GetMovie [lindex $args 0] 640 480]
 		}
 		"1024x768" {
 		    return [$this GetMovie [lindex $args 0] 1024 768]
+		}
+		default {
+		    error "bad download format $_downloadPopup(format)"
 		}
 	    }
 	}
@@ -1031,15 +1040,23 @@ itcl::body Rappture::FlowvisViewer::ReceiveImage { args } {
     array set info $args
     set bytes [ReceiveBytes $info(-bytes)]
     ReceiveEcho <<line "<read $info(-bytes) bytes"
-    if { $info(-type) == "image" } {
-	$_image(plot) configure -data $bytes
-	#puts stderr "image received [image width $_image(plot)] by [image height $_image(plot)]"
-    } elseif { $info(type) == "print" } {
-	set tag $this-print-$info(-token)
-	set _hardcopy($tag) $bytes
-    } elseif { $info(type) == "movie" } {
-	set tag $this-movie-$info(-token)
-	set _hardcopy($tag) $bytes
+    switch -- $info(-type)  {
+	"image" {
+	    $_image(plot) configure -data $bytes
+	    #puts stderr "image received [image width $_image(plot)] by [image height $_image(plot)]"
+	} 
+	"print" {
+	    set tag $this-$info(-token)
+	    set _hardcopy($tag) $bytes
+	} 
+	"movie" {
+	    puts stderr "read [string length $bytes] bytes type=$info(-type) token=$info(-token)"
+	    set tag $this-$info(-token)
+	    set _hardcopy($tag) $bytes
+	}
+	default {
+	    puts stderr "unknown download type $info(-type)"
+	}
     }
 }
 
@@ -2785,15 +2802,15 @@ itcl::body Rappture::FlowvisViewer::WaitIcon  { option widget } {
     }
 }
 
-itcl::body Rappture::MolvisViewer::GetPngImage  { widget width height } {
+itcl::body Rappture::FlowvisViewer::GetPngImage  { widget width height } {
     set token "print[incr _nextToken]"
-    set var ::Rappture::MolvisViewer::_hardcopy($this-$token)
+    set var ::Rappture::FlowvisViewer::_hardcopy($this-$token)
     set $var ""
 
     # Setup an automatic timeout procedure.
     $_dispatcher dispatch $this !pngtimeout "set $var {} ; list"
 
-    set popup .molvisviewerprint
+    set popup .flowvisviewerprint
     if {![winfo exists $popup]} {
 	Rappture::Balloon $popup -title "Generating file..."
 	set inner [$popup component inner]
@@ -2844,7 +2861,7 @@ itcl::body Rappture::MolvisViewer::GetPngImage  { widget width height } {
 
 itcl::body Rappture::FlowvisViewer::GetMovie { widget width height } {
     set token "movie[incr _nextToken]"
-    set var ::Rappture::MolvisViewer::_hardcopy($this-$token)
+    set var ::Rappture::FlowvisViewer::_hardcopy($this-$token)
     set $var ""
 
     # Setup an automatic timeout procedure.
@@ -2869,17 +2886,19 @@ itcl::body Rappture::FlowvisViewer::GetMovie { widget width height } {
     } else {
 	set inner [$popup component inner]
     }
-    $_dispatcher event -after 60000 !movietimeout
+    $_dispatcher event -after 300000 !movietimeout
     WaitIcon start $inner.icon
     grab set -local $inner
     focus $inner.cancel
     
     flow duration
     flow speed
-    set nframes [expr $_flow(duration) / $_flow(delay)]
+    set nframes [expr round($_flow(duration) / $_flow(delay))]
     set framerate [expr 1000.0 / $_flow(delay)]
-    set bitrate 2000
+    set framerate 25.0
+    set bitrate 400000
 
+    set start [clock seconds]
     SendCmd "flow video $width $height $nframes $framerate $bitrate $token"
     
     $popup activate $widget below
@@ -2890,8 +2909,9 @@ itcl::body Rappture::FlowvisViewer::GetMovie { widget width height } {
     #  3) user cancels the operation.
     tkwait variable $var
 
+    puts stderr "I'm back in [expr [clock seconds] - $start] seconds."
     # Clean up.
-    $_dispatcher cancel !pngtimeout
+    $_dispatcher cancel !movietimeout
     WaitIcon stop $inner.icon
     grab release $inner
     $popup deactivate

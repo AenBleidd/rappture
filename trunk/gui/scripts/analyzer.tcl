@@ -709,8 +709,8 @@ itcl::body Rappture::Analyzer::download {option args} {
 	    if {$page != ""} {
 		set ext ""
 		set f [$itk_component(resultpages) page $page]
-		set popup [$f.rviewer download controls \
-		    [itcl::code $this download now $widget]]
+		set arg [itcl::code $this download now $widget]
+		set popup [$f.rviewer download controls $arg]
 
 		if {"" != $popup} {
 		    $popup activate $widget below
@@ -954,7 +954,7 @@ itcl::body Rappture::Analyzer::_simState {state args} {
 		foreach {path val} $settings {
 		    set str [$_tool xml get $path.about.label]
 		    if {"" == $str} {
-			set str [$_tool xml element -as id $path]
+1			set str [$_tool xml element -as id $path]
 		    }
 		    append details "$str = $val\n"
 		}

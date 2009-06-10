@@ -150,5 +150,5 @@ itcl::body Rappture::Field3DResult::scale {args} {
 # "string" is the data itself.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Field3DResult::download {option args} {
-    $itk_component(renderer) download $option
+    $itk_component(renderer) download $option $args
 }
