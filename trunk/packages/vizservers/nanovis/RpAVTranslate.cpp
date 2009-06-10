@@ -175,16 +175,17 @@ AVTranslate::append(Outcome &status, uint8_t *rgbData, size_t linePad)
     /* Copy the data into the picture without the padding and reversing the
      * rows. Note that the origin of the GL image is the lower-left while for
      * the movie it's upper-left. */
-    size_t bytesPerRow = _width + linePad;
-    uint8_t *srcRowPtr = rgbData + ((_height - 1) * bytesPerRow);
+    size_t bytesPerRow = _width * 3;
+    size_t bytesPerLine = bytesPerRow + linePad;
+    uint8_t *srcRowPtr = rgbData + ((_height - 1) * bytesPerLine);
     uint8_t *destPtr = _rgbPictPtr->data[0];
     for (size_t y = 0; y < _height; y++) {
 	uint8_t *sp, *send;
 	
-        for (sp = srcRowPtr, send = sp + _width; sp < send; sp++, destPtr++) {
+        for (sp = srcRowPtr, send = sp + bytesPerRow; sp < send; sp++, destPtr++) {
             *destPtr = *sp;
         }
-        srcRowPtr -= bytesPerRow;
+        srcRowPtr -= bytesPerLine;
     }
 
 #ifdef HAVE_IMG_CONVERT
