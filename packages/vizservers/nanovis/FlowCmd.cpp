@@ -1896,30 +1896,33 @@ FlowVideoOp(ClientData clientData, Tcl_Interp *interp, int objc,
 	return TCL_ERROR;
     }
     // Save the old dimensions of the offscreen buffer.
-    int oldWidth, oldHeight;
+    size_t oldWidth, oldHeight;
     oldWidth = NanoVis::win_width;
     oldHeight = NanoVis::win_height;
 
-    if ((width != oldWidth) || (height != oldHeight)) {
-	// Resize to the requested size.
-	NanoVis::resize_offscreen_buffer(width, height);
-    }
-
-    char fileName[128];
+    char fileName[200];
     sprintf(fileName,"/tmp/flow%d.mp4", getpid());
 
     Trace("FLOW started\n");
 
     Rappture::Outcome context;
-    Rappture::AVTranslate movie(width, height, bitRate, frameRate);
 
+    Rappture::AVTranslate movie(width, height, bitRate, frameRate);
+    if (!movie.init(context, fileName)) {
+        Tcl_AppendResult(interp, "can't initialized movie \"", fileName, 
+			 "\": ", context.remark(), (char *)NULL);
+	return TCL_ERROR;
+    }
+    if ((width != oldWidth) || (height != oldHeight)) {
+	// Resize to the requested size.
+	NanoVis::resize_offscreen_buffer(width, height);
+    }
+    // Now compute the line padding for the offscreen buffer.
     int pad = 0;
     if ((3*NanoVis::win_width) % 4 > 0) {
         pad = 4 - ((3*NanoVis::win_width) % 4);
     }
-
-    movie.init(context, fileName);
-
+    NanoVis::ResetFlows();
     for (int i = 0; i < numFrames; i++) {
         // Generate the latest frame and send it back to the client
 	NanoVis::licRenderer->convolve();
@@ -1963,6 +1966,7 @@ FlowVideoOp(ClientData clientData, Tcl_Interp *interp, int objc,
 	// Restore to the old size.
 	NanoVis::resize_offscreen_buffer(oldWidth, oldHeight);
     }
+    NanoVis::ResetFlows();
     NanoVis::licRenderer->make_patterns();
     if (unlink(fileName) != 0) {
         Tcl_AppendResult(interp, "can't unlink temporary movie file \"",
