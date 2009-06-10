@@ -1911,7 +1911,7 @@ FlowVideoOp(ClientData clientData, Tcl_Interp *interp, int objc,
     Trace("FLOW started\n");
 
     Rappture::Outcome context;
-    Rappture::AVTranslate movie(width, height, frameRate, bitRate);
+    Rappture::AVTranslate movie(width, height, bitRate, frameRate);
 
     int pad = 0;
     if ((3*NanoVis::win_width) % 4 > 0) {
