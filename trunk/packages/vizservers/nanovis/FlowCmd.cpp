@@ -86,6 +86,8 @@ Rappture::SwitchSpec FlowParticles::_switches[] = {
         offsetof(FlowParticlesValues, isHidden), 0},
     {Rappture::SWITCH_CUSTOM, "-position", "number",
 	offsetof(FlowParticlesValues, position), 0, 0, &positionSwitch},
+    {Rappture::SWITCH_FLOAT, "-size", "float",
+        offsetof(FlowParticlesValues, particleSize), 0},
     {Rappture::SWITCH_END}
 };
 
@@ -154,6 +156,7 @@ FlowParticles::Configure(void)
     _rendererPtr->setPos(FlowCmd::GetRelativePosition(&_sv.position));
     _rendererPtr->setColor(Vector4(_sv.color.r, _sv.color.g, _sv.color.b, 
 		_sv.color.a));
+    _rendererPtr->particleSize(_sv.particleSize);
     _rendererPtr->setAxis(_sv.position.axis);
     _rendererPtr->active(!_sv.isHidden);
 }
@@ -1907,7 +1910,7 @@ FlowVideoOp(ClientData clientData, Tcl_Interp *interp, int objc,
 
     Trace("FLOW started\n");
 
-    Rappture::Outcome result;
+    Rappture::Outcome context;
     Rappture::AVTranslate movie(width, height, frameRate, bitRate);
 
     int pad = 0;
@@ -1915,7 +1918,7 @@ FlowVideoOp(ClientData clientData, Tcl_Interp *interp, int objc,
         pad = 4 - ((3*NanoVis::win_width) % 4);
     }
 
-    movie.init(result, fileName);
+    movie.init(context, fileName);
 
     for (int i = 0; i < numFrames; i++) {
         // Generate the latest frame and send it back to the client
@@ -1930,11 +1933,11 @@ FlowVideoOp(ClientData clientData, Tcl_Interp *interp, int objc,
 
         // This is done before bmp_write_to_file because bmp_write_to_file
         // turns rgb data to bgr
-        movie.append(result, NanoVis::screen_buffer, pad);
+        movie.append(context, NanoVis::screen_buffer, pad);
         // NanoVis::bmp_write_to_file(frame_count, fileName);
     }
 
-    movie.done(result);
+    movie.done(context);
     Trace("FLOW end\n");
 
 #ifdef notdef
@@ -1946,15 +1949,15 @@ FlowVideoOp(ClientData clientData, Tcl_Interp *interp, int objc,
 
     // FIXME: find a way to get the data from the movie object as a void*
     Rappture::Buffer data;
-    if (!data.load(result, fileName)) {
+    if (!data.load(context, fileName)) {
         Tcl_AppendResult(interp, "can't load data from temporary movie file \"",
-		fileName, "\": ", result.remark(), (char *)NULL);
+		fileName, "\": ", context.remark(), (char *)NULL);
 	return TCL_ERROR;
     }
     // Build the command string for the client.
     char command[200];
-    sprintf(command,"nv>image -bytes %lu -type movie -token token\n", 
-	    (unsigned long)data.size());
+    sprintf(command,"nv>image -bytes %lu -type movie -token \"%s\"\n", 
+	    (unsigned long)data.size(), Tcl_GetString(objv[7]));
 
     NanoVis::sendDataToClient(command, data.bytes(), data.size());
     if (unlink(fileName) != 0) {
@@ -1981,8 +1984,8 @@ static Rappture::CmdSpec flowCmdOps[] = {
     {"names",    1, FlowNamesOp,   2, 3, "?pattern?",},
     {"next",     2, FlowNextOp,    2, 2, "",},
     {"reset",    1, FlowResetOp,   2, 2, "",},
-    {"video",    1, FlowVideoOp,   7, 7, 	
-	"width height numFrames frameRate bitRate ",},
+    {"video",    1, FlowVideoOp,   8, 8, 	
+	"width height numFrames frameRate bitRate token",},
 };
 static int nFlowCmdOps = NumCmdSpecs(flowCmdOps);
 
