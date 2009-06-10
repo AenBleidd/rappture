@@ -19,6 +19,7 @@ struct FlowParticlesValues {
     FlowColor color;			/* Color of particles */
     int isHidden;			/* Indicates if particle injection
 					 * plane is active or not. */
+    float particleSize;			/* Size of the particles. */
 };
 
 struct FlowParticlesIterator {
@@ -39,10 +40,6 @@ public:
 
     FlowParticles(const char *name, Tcl_HashEntry *hPtr);
     ~FlowParticles(void);
-    void SetColor(FlowColor &color) {
-	_sv.color = color;
-	_rendererPtr->setColor(Vector4(color.r, color.g, color.b, color.a));
-    }
     const char *name(void) {
 	return _name;
     }

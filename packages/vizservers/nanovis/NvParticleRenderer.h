@@ -33,14 +33,14 @@
 #include "NvParticleAdvectionShader.h"
 
 struct Particle {
-  float x;
-  float y;
-  float z;
-  float aux;
+    float x;
+    float y;
+    float z;
+    float aux;
 
-  Particle(){};
-  Particle(float _x, float _y, float _z, float _life) :
-   x(_x), y(_y), z(_z), aux(_life){}
+    Particle(){};
+    Particle(float _x, float _y, float _z, float _life) :
+	x(_x), y(_y), z(_z), aux(_life){}
 };
 
 class NvParticleRenderer : public Renderable {
@@ -75,18 +75,20 @@ public :
 
     float max_life;
 
+    float _particleSize;		// Size of the particle: default is 1.2
+
     /**
      * @brief vertex array for display particles
      */
     RenderVertexArray* m_vertex_array;	
 
-  //Nvidia CG shaders and their parameters
-  /*
-  CGcontext m_g_context;
-  CGprogram m_pos_fprog;
-  CGparameter m_vel_tex_param, m_pos_tex_param, m_scale_param;
-  CGparameter m_pos_timestep_param, m_pos_spherePos_param;
-  */
+    //Nvidia CG shaders and their parameters
+    /*
+      CGcontext m_g_context;
+      CGprogram m_pos_fprog;
+      CGparameter m_vel_tex_param, m_pos_tex_param, m_scale_param;
+      CGparameter m_pos_timestep_param, m_pos_spherePos_param;
+    */
     static NvParticleAdvectionShader* _advectionShader;
 
     /**
@@ -131,6 +133,12 @@ public:
 			   float x1, float y1, float z1, 
 			   float r, float g, float b, float line_width);
     void initializeDataArray();
+    void particleSize(float size) {
+	_particleSize = size;
+    }
+    float particleSize(void) {
+	return _particleSize;
+    }
 };
 
 #endif

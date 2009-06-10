@@ -44,9 +44,10 @@ public :
 NvParticleAdvectionShaderInstance shaderInstance;
 
 NvParticleRenderer::NvParticleRenderer(int w, int h, CGcontext context) : 
+    _particleSize(1.2),
     scale(1, 1, 1), 
     origin(0, 0, 0),
-    _activate(false) 
+    _activate(false)
 {
     psys_width = w;
     psys_height = h;
@@ -445,7 +446,7 @@ NvParticleRenderer::display_vertices()
     	1, 1, 0, 2);
 */
 
-    glPointSize(1.2);
+    glPointSize(_particleSize);
     //glColor4f(.2,.2,.8,1.);
     glColor4f(_color.x, _color.y, _color.z, _color.w);
     glEnableClientState(GL_VERTEX_ARRAY);
