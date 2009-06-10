@@ -1961,7 +1961,7 @@ FlowVideoOp(ClientData clientData, Tcl_Interp *interp, int objc,
 
     if ((width != oldWidth) || (height != oldHeight)) {
 	// Restore to the old size.
-	NanoVis::resize_offscreen_buffer(old_width, old_height);
+	NanoVis::resize_offscreen_buffer(oldWidth, oldHeight);
     }
     NanoVis::licRenderer->make_patterns();
     if (unlink(fileName) != 0) {
