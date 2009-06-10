@@ -172,18 +172,19 @@ AVTranslate::append(Outcome &status, uint8_t *rgbData, size_t linePad)
         status.addError("rdbData pointer is NULL");
         return false;
     }
-
+    /* Copy the data into the picture without the padding and reversing the
+     * rows. Note that the origin of the GL image is the lower-left while for
+     * the movie it's upper-left. */
+    size_t bytesPerRow = _width + linePad;
+    uint8_t *srcRowPtr = rgbData + ((_height - 1) * bytesPerRow);
     uint8_t *destPtr = _rgbPictPtr->data[0];
-    uint8_t *srcPtr = rgbData;
     for (size_t y = 0; y < _height; y++) {
-        for (size_t x = 0; x < _width; x++) {
-            destPtr[0] = srcPtr[0];
-            destPtr[1] = srcPtr[1];
-            destPtr[2] = srcPtr[2];
-            srcPtr += 3;
-            destPtr +=3;
+	uint8_t *sp, *send;
+	
+        for (sp = srcRowPtr, send = sp + _width; sp < send; sp++, destPtr++) {
+            *destPtr = *sp;
         }
-        srcPtr += linePad;
+        srcRowPtr -= bytesPerRow;
     }
 
 #ifdef HAVE_IMG_CONVERT
