@@ -1906,7 +1906,7 @@ FlowVideoOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
 
     char fileName[128];
-    sprintf(fileName,"/tmp/flow%d.mpeg", getpid());
+    sprintf(fileName,"/tmp/flow%d.mp4", getpid());
 
     Trace("FLOW started\n");
 
