@@ -2616,7 +2616,7 @@ itcl::body Rappture::FlowvisViewer::FlowCmd { dataobj comp nbytes extents } {
 	array set info $part
 	set color [Color2RGB $info(color)]
 	append cmd "$tag particles add $info(name) -position $info(position) "
-	append cmd "-axis $info(axis) -color {$color}\n"
+	append cmd "-axis $info(axis) -color {$color} -size $info(size)\n"
     }
     foreach box [$flowobj boxes] {
 	array unset info
@@ -2785,6 +2785,63 @@ itcl::body Rappture::FlowvisViewer::WaitIcon  { option widget } {
     }
 }
 
+itcl::body Rappture::MolvisViewer::GetPngImage  { widget width height } {
+    set token "print[incr _nextToken]"
+    set var ::Rappture::MolvisViewer::_hardcopy($this-$token)
+    set $var ""
+
+    # Setup an automatic timeout procedure.
+    $_dispatcher dispatch $this !pngtimeout "set $var {} ; list"
+
+    set popup .molvisviewerprint
+    if {![winfo exists $popup]} {
+	Rappture::Balloon $popup -title "Generating file..."
+	set inner [$popup component inner]
+	label $inner.title -text "Generating hardcopy." -font "Arial 10 bold"
+	label $inner.please -text "This may take a minute." -font "Arial 10"
+	label $inner.icon -image [Rappture::icon bigroller0]
+	button $inner.cancel -text "Cancel" -font "Arial 10 bold" \
+	    -command [list set $var ""]
+	blt::table $inner \
+	    0,0 $inner.title -columnspan 2 \
+	    1,0 $inner.please -anchor w \
+	    1,1 $inner.icon -anchor e  \
+	    2,0 $inner.cancel -columnspan 2 
+	blt::table configure $inner r0 -pady 4 
+	blt::table configure $inner r2 -pady 4 
+	bind $inner.cancel <KeyPress-Return> [list $inner.cancel invoke]
+    } else {
+	set inner [$popup component inner]
+    }
+
+    $_dispatcher event -after 60000 !pngtimeout
+    WaitIcon start $inner.icon
+    grab set -local $inner
+    focus $inner.cancel
+
+    SendCmd "print $token $width $height"
+
+    $popup activate $widget below
+    update
+    # We wait here for either 
+    #  1) the png to be delivered or 
+    #  2) timeout or  
+    #  3) user cancels the operation.
+    tkwait variable $var
+
+    # Clean up.
+    $_dispatcher cancel !pngtimeout
+    WaitIcon stop $inner.icon
+    grab release $inner
+    $popup deactivate
+    update
+
+    if { $_hardcopy($this-$token) != "" } {
+	return [list .png $_hardcopy($this-$token)]
+    }
+    return ""
+}
+
 itcl::body Rappture::FlowvisViewer::GetMovie { widget width height } {
     set token "movie[incr _nextToken]"
     set var ::Rappture::MolvisViewer::_hardcopy($this-$token)
@@ -2792,25 +2849,28 @@ itcl::body Rappture::FlowvisViewer::GetMovie { widget width height } {
 
     # Setup an automatic timeout procedure.
     $_dispatcher dispatch $this !movietimeout "set $var {} ; list"
-
-    set popup [Rappture::Balloon .movie -title "Generating video..."]
-    set inner [$popup component inner]
-    label $inner.title -text "Generating Hardcopy" -font "Arial 10 bold"
-    label $inner.please -text "This may take a few minutes." -font "Arial 10"
-    label $inner.icon -image [Rappture::icon bigroller0]
-    button $inner.cancel -text "Cancel" -font "Arial 10 bold" \
-	-command [list set $var ""]
+    set popup .flowvisviewermovie
+    if {![winfo exists $popup]} {
+	Rappture::Balloon $popup -title "Generating video..."
+	set inner [$popup component inner]
+	label $inner.title -text "Generating Hardcopy" -font "Arial 10 bold"
+	label $inner.please -text "This may take a few minutes." -font "Arial 10"
+	label $inner.icon -image [Rappture::icon bigroller0]
+	button $inner.cancel -text "Cancel" -font "Arial 10 bold" \
+	    -command [list set $var ""]
+	blt::table $inner \
+	    0,0 $inner.title -columnspan 2 \
+	    1,0 $inner.please -anchor w \
+	    1,1 $inner.icon -anchor e  \
+	    2,0 $inner.cancel -columnspan 2 
+	blt::table configure $inner r0 -pady 4 
+	blt::table configure $inner r2 -pady 4 
+	bind $inner.cancel <KeyPress-Return> [list $inner.cancel invoke]
+    } else {
+	set inner [$popup component inner]
+    }
     $_dispatcher event -after 60000 !movietimeout
     WaitIcon start $inner.icon
-    bind $inner.cancel <KeyPress-Return> [list $inner.cancel invoke]
-    
-    blt::table $inner \
-	0,0 $inner.title -columnspan 2 \
-	1,0 $inner.please -anchor w \
-	1,1 $inner.icon -anchor e  \
-	2,0 $inner.cancel -columnspan 2 
-    blt::table configure $inner r0 -pady 4 
-    blt::table configure $inner r2 -pady 4 
     grab set -local $inner
     focus $inner.cancel
     
@@ -2820,7 +2880,7 @@ itcl::body Rappture::FlowvisViewer::GetMovie { widget width height } {
     set framerate [expr 1000.0 / $_flow(delay)]
     set bitrate 2000
 
-    SendCmd "flow video $width $height $nframes $framerate $bitrate"
+    SendCmd "flow video $width $height $nframes $framerate $bitrate $token"
     
     $popup activate $widget below
     update
@@ -2839,7 +2899,7 @@ itcl::body Rappture::FlowvisViewer::GetMovie { widget width height } {
     update
 
     if { $_hardcopy($this-$token) != "" } {
-	return [list .png $_hardcopy($this-$token)]
+	return [list .mpg $_hardcopy($this-$token)]
     }
     return ""
 }
