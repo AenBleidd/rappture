@@ -93,11 +93,12 @@ bool
 AVTranslate::init(Outcome &status, const char *filename)
 {
     status.addContext("Rappture::AVTranslate::init()");
-    /* initialize libavcodec, and register all codecs and formats */
+    /* Initialize libavcodec, and register all codecs and formats */
+    avcodec_init();
+    avcodec_register_all();
     av_register_all();
 
-    /* auto detect the output format from the name. default is
-       mpeg. */
+    /* Auto detect the output format from the name. default is mpeg. */
     _fmtPtr = guess_format(NULL, filename, NULL);
     if (_fmtPtr == NULL) {
         /*
@@ -112,12 +113,11 @@ AVTranslate::init(Outcome &status, const char *filename)
     }
 
 #ifdef HAVE_AVFORMAT_ALLOC_CONTEXT
-    /* allocate the output media context */
+    /* Allocate the output media context. */
     _ocPtr = avformat_alloc_context();
 #else 
     _ocPtr = av_alloc_format_context();
 #endif
-
     if (!_ocPtr) {
         status.addError("Memory error while allocating format context");
         return false;
@@ -125,17 +125,16 @@ AVTranslate::init(Outcome &status, const char *filename)
     _ocPtr->oformat = _fmtPtr;
     snprintf(_ocPtr->filename, sizeof(_ocPtr->filename), "%s", filename);
 
-    /* add the video stream using the default format codecs
-       and initialize the codecs */
+    /* Add the video stream using the default format codecs and initialize the
+       codecs. */
     _avStreamPtr = NULL;
     if (_fmtPtr->video_codec != CODEC_ID_NONE) {
-        if ( (!addVideoStream(status, _fmtPtr->video_codec,&_avStreamPtr)) ) {
+        if ( (!addVideoStream(status, _fmtPtr->video_codec, &_avStreamPtr)) ) {
             return false;
         }
     }
 
-    /* set the output parameters (must be done even if no
-       parameters). */
+    /* Set the output parameters (must be done even if no parameters). */
     if (av_set_parameters(_ocPtr, NULL) < 0) {
         status.addError("Invalid output format parameters");
         return false;
@@ -143,15 +142,15 @@ AVTranslate::init(Outcome &status, const char *filename)
 
     dump_format(_ocPtr, 0, filename, 1);
 
-    /* now that all the parameters are set, we can open the
-       video codec and allocate the necessary encode buffers */
+    /* Now that all the parameters are set, we can open the video codec and
+       allocate the necessary encode buffers */
     if (_avStreamPtr) {
         if (!openVideo(status)) {
             return false;
         }
     }
 
-    /* open the output file, if needed */
+    /* Open the output file, if needed. */
     if (!(_fmtPtr->flags & AVFMT_NOFILE)) {
         if (url_fopen(&_ocPtr->pb, filename, URL_WRONLY) < 0) {
             status.addError("Could not open '%s'", filename);
@@ -189,8 +188,8 @@ AVTranslate::append(Outcome &status, uint8_t *rgbData, size_t linePad)
     }
 
 #ifdef HAVE_IMG_CONVERT
-    // use img_convert instead of sws_scale because img_convert
-    // is lgpl nad sws_scale is gpl
+    // Use img_convert instead of sws_scale because img_convert is LGPL and
+    // sws_scale is GPL
     img_convert((AVPicture *)_pictPtr, PIX_FMT_YUV420P,
                 (AVPicture *)_rgbPictPtr, PIX_FMT_RGB24,
                 _width, _height);
@@ -206,15 +205,15 @@ AVTranslate::done(Outcome &status)
 {
     size_t i = 0;
 
-    /* close each codec */
+    /* Close each codec */
     if (_avStreamPtr) {
         closeVideo(status);
     }
 
-    /* write the trailer, if any */
+    /* Write the trailer, if any */
     av_write_trailer(_ocPtr);
 
-    /* free the streams */
+    /* Free the streams */
     for(i = 0; i < _ocPtr->nb_streams; i++) {
         av_freep(&_ocPtr->streams[i]->codec);
         // _ocPtr->streams[i]->codec = NULL;
@@ -228,14 +227,14 @@ AVTranslate::done(Outcome &status)
         url_fclose(_ocPtr->pb);
     }
 
-    /* free the stream */
+    /* Free the stream */
     av_free(_ocPtr);
     _ocPtr = NULL;
     return true;
 }
 
 
-/* add a video output stream */
+/* Add a video output stream */
 bool
 AVTranslate::addVideoStream(Outcome &status, CodecID codec_id, 
 			    AVStream **streamPtrPtr)
@@ -258,7 +257,7 @@ AVTranslate::addVideoStream(Outcome &status, CodecID codec_id,
     codecPtr->codec_id = codec_id;
     codecPtr->codec_type = CODEC_TYPE_VIDEO;
 
-    /* put sample parameters */
+    /* Put sample parameters */
     codecPtr->bit_rate = _bitRate;
     /* resolution must be a multiple of two */
     codecPtr->width = _width;
@@ -269,8 +268,8 @@ AVTranslate::addVideoStream(Outcome &status, CodecID codec_id,
        identically 1. */
     codecPtr->time_base.den = _frameRate;
     codecPtr->time_base.num = 1;
-    codecPtr->gop_size = 12;	/* emit one intra frame every twelve frames at
-				 * most */
+    codecPtr->gop_size = 12;		/* Emit one intra frame every twelve
+					 * frames at most */
     codecPtr->pix_fmt = PIX_FMT_YUV420P;
     if (codecPtr->codec_id == CODEC_ID_MPEG2VIDEO) {
         /* just for testing, we also add B frames */
@@ -278,11 +277,11 @@ AVTranslate::addVideoStream(Outcome &status, CodecID codec_id,
     }
     if (codecPtr->codec_id == CODEC_ID_MPEG1VIDEO) {
         /* Needed to avoid using macroblocks in which some coeffs overflow.
-           This does not happen with normal video, it just happens here as
-           the motion of the chroma plane does not match the luma plane. */
+           This does not happen with normal video, it just happens here as the
+           motion of the chroma plane does not match the luma plane. */
         codecPtr->mb_decision=2;
     }
-    // some formats want stream headers to be separate
+    /* some formats want stream headers to be separate */
     if((strcmp(_ocPtr->oformat->name, "mp4") == 0) || 
        (strcmp(_ocPtr->oformat->name, "mov") == 0) ||
        (strcmp(_ocPtr->oformat->name, "3gp") == 0)) {
@@ -334,14 +333,14 @@ AVTranslate::openVideo(Outcome &status)
 
     /* find the video encoder */
     codec = avcodec_find_encoder(c->codec_id);
-    if (!codec) {
-        status.addError("codec not found");
+    if (codec == NULL) {
+        status.addError("can't find codec %d\n", c->codec->id);
         return false;
     }
 
     /* open the codec */
     if (avcodec_open(c, codec) < 0) {
-        status.addError("could not open codec");
+        status.addError("can't open codec %d", c->codec->id);
         return false;
     }
 

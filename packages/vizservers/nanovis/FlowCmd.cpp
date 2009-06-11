@@ -180,7 +180,7 @@ FlowBox::FlowBox(const char *name, Tcl_HashEntry *hPtr)
 void 
 FlowBox::Render(Volume *volPtr)
 {
-    Trace("rendering boxes %s\n", _name);
+    Trace("Rendering box %s\n", _name);
     glColor4d(_sv.color.r, _sv.color.g, _sv.color.b, _sv.color.a);
 
     glPushMatrix();
@@ -205,6 +205,13 @@ FlowBox::Render(Volume *volPtr)
 
     min = volPtr->getPhysicalBBoxMin();
     max = volPtr->getPhysicalBBoxMax();
+
+    Trace("box is %g,%g %g,%g %g,%g\n", 
+	  _sv.corner1.x, _sv.corner2.x,
+	  _sv.corner1.y, _sv.corner2.y,
+	  _sv.corner1.z, _sv.corner2.z);
+    Trace("world is %g,%g %g,%g %g,%g\n", 
+	  min.x, max.x, min.y, max.y, min.z, max.z);
 
     float x0, y0, z0, x1, y1, z1;
     x0 = y0 = z0 = 0.0f;
@@ -591,6 +598,7 @@ FlowCmd::RenderBoxes(void)
     FlowBoxIterator iter;
     FlowBox *boxPtr;
     for (boxPtr = FirstBox(&iter); boxPtr != NULL; boxPtr = NextBox(&iter)) {
+	Trace("found box %s\n", boxPtr->name());
 	if (boxPtr->visible()) {
 	    boxPtr->Render(_volPtr);
 	}
@@ -981,6 +989,8 @@ NanoVis::MapFlows(void)
      * Step 1.  Get the overall min and max magnitudes of all the 
      *		flow vectors.
      */
+    magMin = DBL_MAX, magMax = -DBL_MAX;
+
     FlowCmd *flowPtr;
     FlowIterator iter;
     for (flowPtr = FirstFlow(&iter); flowPtr != NULL; 
@@ -1018,7 +1028,6 @@ NanoVis::MapFlows(void)
 	    zMax = dataPtr->zMax();
 	}
     }
-
     /* 
      * Step 2.  Generate the vector field from each data set. 
      */
@@ -1896,12 +1905,12 @@ FlowVideoOp(ClientData clientData, Tcl_Interp *interp, int objc,
 	return TCL_ERROR;
     }
     // Save the old dimensions of the offscreen buffer.
-    size_t oldWidth, oldHeight;
+    int oldWidth, oldHeight;
     oldWidth = NanoVis::win_width;
     oldHeight = NanoVis::win_height;
 
     char fileName[200];
-    sprintf(fileName,"/tmp/flow%d.mp4", getpid());
+    sprintf(fileName,"/tmp/flow%d.mpeg", getpid());
 
     Trace("FLOW started\n");
 
