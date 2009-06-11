@@ -147,8 +147,8 @@ unsigned char* NanoVis::screen_buffer = NULL;
 
 unsigned int NanoVis::flags = 0;
 Tcl_HashTable NanoVis::flowTable;
-float NanoVis::magMin;
-float NanoVis::magMax;
+double NanoVis::magMin;
+double NanoVis::magMax;
 float NanoVis::xMin;
 float NanoVis::xMax;
 float NanoVis::yMin;

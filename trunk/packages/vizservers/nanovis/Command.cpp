@@ -607,17 +607,20 @@ GetDataStream(Tcl_Interp *interp, Rappture::Buffer &buf, int nBytes)
         fflush(NanoVis::recfile);
     }
     Rappture::Outcome err;
-    unsigned int flags;
-    flags = RPENC_Z|RPENC_B64; 
     Trace("Checking header[%.13s]\n", buf.bytes());
     if (strncmp (buf.bytes(), "@@RP-ENC:", 9) == 0) {
-	flags = RPENC_HDR;
-    }
-    if (!Rappture::encoding::decode(err, buf, flags)) {
-	printf("ERROR -- DECODING\n");
-	fflush(stdout);
-	Tcl_AppendResult(interp, err.remark(), (char*)NULL);
-	return TCL_ERROR;
+	/* There's a header on the buffer, use it to decode the data. */
+	if (!Rappture::encoding::decode(err, buf, RPENC_HDR)) {
+	    Tcl_AppendResult(interp, err.remark(), (char*)NULL);
+	    return TCL_ERROR;
+	}
+    } else if (Rappture::encoding::isBase64(buf.bytes(), buf.size())) {
+	/* No header, but it's base64 encoded.  It's likely that it's both
+	 * base64 encoded and compressed. */
+	if (!Rappture::encoding::decode(err, buf, RPENC_B64)) {
+	    Tcl_AppendResult(interp, err.remark(), (char*)NULL);
+	    return TCL_ERROR;
+	}
     }
     return TCL_OK;
 }
