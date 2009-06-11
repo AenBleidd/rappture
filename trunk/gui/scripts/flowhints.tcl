@@ -214,7 +214,7 @@ itcl::body Rappture::FlowHints::GetBoolean { obj path varName } {
     set value [$obj get $path]
     if { [string is boolean $value] } {
 	upvar $varName bool
-	set bool $value
+	set bool [expr $value ? 1 : 0]
 	return
     }
     puts stderr "invalid boolean \"$value\" in \"$path\""

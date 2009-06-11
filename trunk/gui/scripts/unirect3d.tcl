@@ -93,6 +93,7 @@ itcl::body Rappture::Unirect3d::destructor {} {
 #	on the nanovis server.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Unirect3d::blob {} {
+    set time [time {
     lappend data "unirect3d"
     lappend data "xmin" $_xMin "xmax" $_xMax "xnum" $_xNum
     lappend data "ymin" $_yMin "ymax" $_yMax "ynum" $_yNum
@@ -102,7 +103,9 @@ itcl::body Rappture::Unirect3d::blob {} {
     if { [$_values length] > 0 } {
 	lappend data "values" [$_values range 0 end]
     }
-    return "@@RP-ENC:raw\n$data"
+    }] 
+    puts stderr blob7=$time
+    return $data
     #return [Rappture::encoding::encode -as b64 "$data"]
 }
 
