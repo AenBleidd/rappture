@@ -1170,13 +1170,7 @@ itcl::body Rappture::FlowvisViewer::Rebuild {} {
         }
     }
 
-    if 0 {
-    # in the midst of sending data? then bail out
-    if {[llength $_sendobjs] > 0} {
-        $_dispatcher event -idle !rebuild
-        return
-    }
-    }
+    set _first ""
     # Turn on buffering of commands to the server.  We don't want to
     # be preempted by a server disconnect/reconnect (which automatically
     # generates a new call to Rebuild).   
@@ -1209,11 +1203,10 @@ itcl::body Rappture::FlowvisViewer::Rebuild {} {
             set _recvObjs($dataobj-$comp) 1
         }
     }
-    set _sendobjs ""
 
-    #
+    set _first [lindex [get] 0]
+
     # Reset the camera and other view parameters
-    #
     FixSettings isosurface
     FixSettings grid
     FixSettings axes
@@ -1221,8 +1214,8 @@ itcl::body Rappture::FlowvisViewer::Rebuild {} {
     FixSettings outline
     FixSettings light
     FixSettings transp
+    
     # nothing to send -- activate the proper volume
-    set _first [lindex [get] 0]
     if {"" != $_first} {
 	FixSettings light
 	FixSettings transp
@@ -1251,13 +1244,6 @@ itcl::body Rappture::FlowvisViewer::Rebuild {} {
         foreach comp [$dataobj components] {
 	    NameTransferFunc $dataobj $comp
         }
-    }
-
-    if {[llength $_sendobjs] > 0} {
-        # send off new data objects
-        $_dispatcher event -idle !send_dataobjs
-	puts stderr "more sendobjs "
-        return
     }
 
     # nothing to send -- activate the proper ivol
@@ -2949,7 +2935,6 @@ itcl::body Rappture::FlowvisViewer::str2millisecs { value } {
 itcl::body Rappture::FlowvisViewer::millisecs2str { value } {
     set min [expr floor($value / 60000.0)]
     set sec [expr ($value - ($min*60000.0)) / 1000.0]
-    #puts stderr "min=$min sec=$sec"
     return [format %02d:%02d [expr round($min)] [expr round($sec)]]
 }
 
