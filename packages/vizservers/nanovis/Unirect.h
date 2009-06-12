@@ -2,6 +2,7 @@
 #ifndef _UNIRECT_H
 #define _UNIRECT_H
 #include <rappture.h>
+#include "Trace.h"
 
 namespace Rappture {
 
@@ -30,21 +31,36 @@ public:
     Unirect3d(float xMin, float xMax, size_t xNum, 
 	      float yMin, float yMax, size_t yNum, 
 	      float zMin, float zMax, size_t zNum, 
-	      size_t nValues, float *values, size_t nComponents) 
+	      size_t nValues, float *values, size_t nComponents) :
+	_xNum(xNum), _yNum(yNum), _zNum(zNum), 
+	_nValues(nValues), 
+	_nComponents(nComponents),
+	_xMin(xMin),         _xMax(xMax), 
+	_yMin(yMin),         _yMax(yMax), 
+	_zMin(zMin),         _zMax(zMax),
+	_xValueMin(FLT_MAX), _xValueMax(-FLT_MAX),
+	_yValueMin(FLT_MAX), _yValueMax(-FLT_MAX),
+	_zValueMin(FLT_MAX), _zValueMax(-FLT_MAX),
+	_magMin(DBL_MAX),    _magMax(-DBL_MAX),
+	_xUnits(NULL), _yUnits(NULL), _zUnits(NULL), _vUnits(NULL),
+	_values(NULL),
+	_initialized(false)
     {
-	SetValues(xMin, xMax, xNum, yMin, yMax, yNum, zMin, zMax, zNum, 
-		  nValues, values, nComponents);
+	_initialized = true;
     }
 
-    Unirect3d(size_t nComponents = 1) {
-	_values = NULL;
-	_initialized = false;
-	_xNum = _yNum = _zNum = 0;
-	_nValues = 0;
-	_xUnits = _yUnits = _zUnits = _vUnits = NULL;
+    Unirect3d(size_t nComponents = 1) :
+	_nValues(0), 
+	_nComponents(nComponents),
+	_xValueMin(FLT_MAX), _xValueMax(-FLT_MAX),
+	_yValueMin(FLT_MAX), _yValueMax(-FLT_MAX),
+	_zValueMin(FLT_MAX), _zValueMax(-FLT_MAX),
+	_magMin(DBL_MAX),    _magMax(-DBL_MAX),
+	_xUnits(NULL), _yUnits(NULL), _zUnits(NULL), _vUnits(NULL),
+	_values(NULL),
+	_initialized(false)
+    {
 	_nComponents = nComponents;
-	_magMin = DBL_MAX;
-	_magMax = -DBL_MAX;
     }
     ~Unirect3d(void) {
 	if (_values != NULL) {
@@ -62,26 +78,6 @@ public:
 	if (_vUnits != NULL) {
 	    free(_vUnits);
 	}
-    }
-    void SetValues(float xMin, float xMax, size_t xNum, 
-		   float yMin, float yMax, size_t yNum, 
-		   float zMin, float zMax, size_t zNum, 
-		   size_t nValues, float *values, size_t nComponents) {
-	_xMax = xMax;
-	_xMin = xMin;
-	_xNum = xNum;
-	_yMax = yMax;
-	_yMin = yMin;
-	_yNum = yNum;
-	_zMax = zMax;
-	_zMin = zMin;
-	_zNum = zNum;
-	_magMin = DBL_MAX;
-	_magMax = -DBL_MAX;
-	_nValues = nValues;
-	_values = values;
-	_initialized = true;
-	_nComponents = nComponents;
     }
     size_t xNum(void) {
 	return _xNum;
@@ -150,12 +146,14 @@ public:
 	if (_magMin == DBL_MAX) {
 	    GetVectorRange();
 	}
+	Trace("magMin=%g %g\n", _magMin, DBL_MAX);
 	return _magMin;
     }
     double magMax(void) {
 	if (_magMax == -DBL_MAX) {
 	    GetVectorRange();
 	}
+	Trace("magMax=%g %g\n", _magMax, -DBL_MAX);
 	return _magMax;
     }
     const float *SaveValues(void) {

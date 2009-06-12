@@ -47,7 +47,7 @@ Volume::Volume(
     depth(d),
     size(s)
 {
-    _tex = new Texture3D(w, h, d, NVIS_FLOAT, NVIS_LINEAR_INTERP, n);
+    _tex = new Texture3D(w, h, d, GL_FLOAT, GL_LINEAR, n);
     int fcount = width * height * depth * _n_components;
     _data = new float[fcount];
     if (data != NULL) {

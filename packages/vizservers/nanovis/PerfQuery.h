@@ -43,7 +43,7 @@ class PerfQuery
 {
 
 public:
-    NVISid id;
+    GLuint id;
     int pixel;
     
     PerfQuery();

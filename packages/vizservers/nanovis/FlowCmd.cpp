@@ -283,10 +283,10 @@ FlowCmd::FlowCmd(Tcl_Interp *interp, const char *name, Tcl_HashEntry *hPtr)
     _name = name;
     _interp = interp;
     _hashPtr = hPtr;
+    _dataPtr = NULL;
     _sv.sliceVisible = 1;
     _sv.tfPtr = NanoVis::get_transfunc("default");
     _volPtr = NULL;
-    _volId = -1;
     _cmdToken = Tcl_CreateObjCommand(interp, (char *)_name, 
 	(Tcl_ObjCmdProc *)FlowInstObjCmd, this, FlowInstDeleteProc);
     Tcl_InitHashTable(&_particlesTable, TCL_STRING_KEYS);
@@ -641,8 +641,10 @@ Volume *
 FlowCmd::MakeVolume(float *data)
 {
     Volume *volPtr;
+
     volPtr = NanoVis::load_volume(_name, _dataPtr->xNum(), _dataPtr->yNum(), 
-	_dataPtr->zNum(), 4, data, NanoVis::magMin, NanoVis::magMax, 0);
+				  _dataPtr->zNum(), 4, data, 
+				  NanoVis::magMin, NanoVis::magMax, 0);
     volPtr->xAxis.SetRange(_dataPtr->xMin(), _dataPtr->xMax());
     volPtr->yAxis.SetRange(_dataPtr->yMin(), _dataPtr->yMax());
     volPtr->zAxis.SetRange(_dataPtr->zMin(), _dataPtr->zMax());
@@ -650,17 +652,22 @@ FlowCmd::MakeVolume(float *data)
 
     Vector3 physicalMin(NanoVis::xMin, NanoVis::yMin, NanoVis::zMin);
     Vector3 physicalMax(NanoVis::xMax, NanoVis::yMax, NanoVis::zMax);
+    Trace("min=%g %g %g max=%g %g %g mag=%g %g\n", 
+	    NanoVis::xMin, NanoVis::yMin, NanoVis::zMin,
+	    NanoVis::xMax, NanoVis::yMax, NanoVis::zMax,
+	    NanoVis::magMin, NanoVis::magMax);
     volPtr->setPhysicalBBox(physicalMin, physicalMax);
-
     //volPtr->set_n_slice(256 - _volIndex);
     // volPtr->set_n_slice(512- _volIndex);
-    // TBD..
     //volPtr->n_slices(256-n);
+    // TBD..
+    /* Don't set the slice number until we're are about to render the
+       volume. */
     volPtr->disable_cutplane(0);
     volPtr->disable_cutplane(1);
     volPtr->disable_cutplane(2);
 
-    // Automatically set the volume with the previously configured values.
+    /* Initialize the volume with the previously configured values. */
     volPtr->transferFunction(_sv.tfPtr);
     volPtr->data_enabled(_sv.showVolume);
     volPtr->outline(_sv.showOutline);
@@ -704,26 +711,22 @@ FlowDataFileOp(ClientData clientData, Tcl_Interp *interp, int objc,
 	return TCL_ERROR;
     }
 
+    Rappture::Unirect3d *dataPtr;
+    dataPtr = new Rappture::Unirect3d(nComponents);
     FlowCmd *flowPtr = (FlowCmd *)clientData;
     size_t length = buf.size();
     char *bytes = (char *)buf.bytes();
     if ((length > 4) && (strncmp(bytes, "<DX>", 4) == 0)) {
-	Rappture::Unirect3d *dataPtr;
-	dataPtr = new Rappture::Unirect3d(nComponents);
 	if (!dataPtr->ImportDx(result, nComponents, length-4, bytes+4)) {
 	    Tcl_AppendResult(interp, result.remark(), (char *)NULL);
 	    delete dataPtr;
 	    return TCL_ERROR;
 	}
-	flowPtr->SetData(dataPtr);
     } else if ((length > 10) && (strncmp(bytes, "unirect3d ", 10) == 0)) {
-	Rappture::Unirect3d *dataPtr;
-	dataPtr = new Rappture::Unirect3d(nComponents);
 	if (dataPtr->ParseBuffer(interp, buf) != TCL_OK) {
 	    delete dataPtr;
 	    return TCL_ERROR;
 	}
-	flowPtr->SetData(dataPtr);
     } else if ((length > 10) && (strncmp(bytes, "unirect2d ", 10) == 0)) {
 	Rappture::Unirect2d *u2dPtr;
 	u2dPtr = new Rappture::Unirect2d(nComponents);
@@ -731,22 +734,23 @@ FlowDataFileOp(ClientData clientData, Tcl_Interp *interp, int objc,
 	    delete u2dPtr;
 	    return TCL_ERROR;
 	}
-	Rappture::Unirect3d *dataPtr;
-	dataPtr = new Rappture::Unirect3d(nComponents);
 	dataPtr->Convert(u2dPtr);
-	flowPtr->SetData(dataPtr);
 	delete u2dPtr;
     } else {
 	fprintf(stderr, "header is %.14s\n", buf.bytes());
-	Rappture::Unirect3d *dataPtr;
-	dataPtr = new Rappture::Unirect3d(nComponents);
 	if (!dataPtr->ImportDx(result, nComponents, length, bytes)) {
 	    Tcl_AppendResult(interp, result.remark(), (char *)NULL);
 	    delete dataPtr;
 	    return TCL_ERROR;
 	}
-	flowPtr->SetData(dataPtr);
     }
+    if (dataPtr->nValues() == 0) {
+	delete dataPtr;
+	Tcl_AppendResult(interp, "no data found in \"", fileName, "\"",
+			 (char *)NULL);
+	return TCL_ERROR;
+    }
+    flowPtr->data(dataPtr);
     NanoVis::EventuallyRedraw(NanoVis::MAP_FLOWS);
     return TCL_OK;
 }
@@ -801,13 +805,11 @@ FlowDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
 	    delete dataPtr;
 	    return TCL_ERROR;
 	}
-	flowPtr->SetData(dataPtr);
     } else if ((length > 10) && (strncmp(bytes, "unirect3d ", 10) == 0)) {
 	if (dataPtr->ParseBuffer(interp, buf) != TCL_OK) {
 	    delete dataPtr;
 	    return TCL_ERROR;
 	}
-	flowPtr->SetData(dataPtr);
     } else if ((length > 10) && (strncmp(bytes, "unirect2d ", 10) == 0)) {
 	Rappture::Unirect2d *u2dPtr;
 	u2dPtr = new Rappture::Unirect2d(nComponents);
@@ -816,18 +818,21 @@ FlowDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
 	    return TCL_ERROR;
 	}
 	dataPtr->Convert(u2dPtr);
-	flowPtr->SetData(dataPtr);
 	delete u2dPtr;
     } else {
 	fprintf(stderr, "header is %.14s\n", buf.bytes());
-	dataPtr = new Rappture::Unirect3d(nComponents);
 	if (!dataPtr->ImportDx(result, nComponents, length, bytes)) {
 	    Tcl_AppendResult(interp, result.remark(), (char *)NULL);
 	    delete dataPtr;
 	    return TCL_ERROR;
 	}
-	flowPtr->SetData(dataPtr);
     }
+    if (dataPtr->nValues() == 0) {
+	delete dataPtr;
+	Tcl_AppendResult(interp, "no data found in stream", (char *)NULL);
+	return TCL_ERROR;
+    }
+    flowPtr->data(dataPtr);
     {
         char info[1024];
 	ssize_t nWritten;
@@ -983,7 +988,7 @@ bool
 NanoVis::MapFlows(void)
 {
     flags &= ~MAP_FLOWS;
-
+    Trace("MapFlows\n");
 
     /* 
      * Step 1.  Get the overall min and max magnitudes of all the 
@@ -1000,7 +1005,7 @@ NanoVis::MapFlows(void)
 	    continue;
 	}
 	Rappture::Unirect3d *dataPtr;
-	dataPtr = flowPtr->GetData();
+	dataPtr = flowPtr->data();
 	min = dataPtr->magMin();
 	max = dataPtr->magMax();
 	if (min < magMin) {
@@ -1028,6 +1033,8 @@ NanoVis::MapFlows(void)
 	    zMax = dataPtr->zMax();
 	}
     }
+    Trace("MapFlows magMin=%g magMax=%g\n", NanoVis::magMin, NanoVis::magMax);
+
     /* 
      * Step 2.  Generate the vector field from each data set. 
      */
@@ -1629,7 +1636,7 @@ FlowLegendOp(ClientData clientData, Tcl_Interp *interp, int objc,
         (Tcl_GetIntFromObj(interp, objv[3], &h) != TCL_OK)) {
         return TCL_ERROR;
     }
-    if (NanoVis::MAP_FLOWS) {
+    if (NanoVis::flags & NanoVis::MAP_FLOWS) {
         NanoVis::MapFlows();
     }
     NanoVis::render_legend(tf, NanoVis::magMin, NanoVis::magMax, w, h, label);
@@ -1952,11 +1959,6 @@ FlowVideoOp(ClientData clientData, Tcl_Interp *interp, int objc,
     movie.done(context);
     Trace("FLOW end\n");
 
-#ifdef notdef
-    if (NanoVis::licRenderer) {
-        NanoVis::licRenderer->active(false);
-    }
-#endif
     // FIXME: find a way to get the data from the movie object as a void*
     Rappture::Buffer data;
     if (!data.load(context, fileName)) {

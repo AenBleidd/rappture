@@ -20,23 +20,23 @@
 #include <assert.h>
 #include "ScreenSnapper.h"
 
-ScreenSnapper::ScreenSnapper(int w, int h, NVISdatatype type, 
+ScreenSnapper::ScreenSnapper(int w, int h, GLuint type, 
 			     int channel_per_pixel)
 {
     width = w;
     height = h;
 
     //only allow two types
-    assert(type == NVIS_FLOAT || type == NVIS_UNSIGNED_BYTE); 
+    assert(type == GL_FLOAT || type == GL_UNSIGNED_BYTE); 
     data_type = type;
   
     //only allow RGB or RGBA
     assert(channel_per_pixel == 3 || channel_per_pixel == 4); 
     n_channels_per_pixel = channel_per_pixel;
 
-    if(type == NVIS_FLOAT)
+    if(type == GL_FLOAT)
         data = new float[w*h*channel_per_pixel];
-    else if(type == NVIS_UNSIGNED_BYTE)
+    else if(type == GL_UNSIGNED_BYTE)
         data = new unsigned char[w*h*channel_per_pixel];
   
     assert(data!=0);
@@ -45,9 +45,9 @@ ScreenSnapper::ScreenSnapper(int w, int h, NVISdatatype type,
 
 ScreenSnapper::~ScreenSnapper()
 {
-    if(data_type == NVIS_FLOAT)
+    if(data_type == GL_FLOAT)
         delete[] (float*)data;
-    else if(data_type == NVIS_UNSIGNED_BYTE)
+    else if(data_type == GL_UNSIGNED_BYTE)
         delete[] (unsigned char*)data;
 }
 
@@ -56,11 +56,11 @@ ScreenSnapper::reset(char c)
 {
     unsigned int elemSize;
     switch (data_type) {
-    case NVIS_FLOAT:
+    case GL_FLOAT:
         elemSize = sizeof(float);
 	break;
 
-    case NVIS_UNSIGNED_BYTE:
+    case GL_UNSIGNED_BYTE:
         elemSize = sizeof(unsigned char);
 	break;
 
@@ -76,13 +76,13 @@ ScreenSnapper::reset(char c)
 void 
 ScreenSnapper::capture()
 {
-    if(data_type == NVIS_FLOAT){
+    if(data_type == GL_FLOAT){
         if(n_channels_per_pixel==3)
             glReadPixels(0, 0, width, height, GL_RGB, GL_FLOAT, data);
         else if(n_channels_per_pixel==4)
             glReadPixels(0, 0, width, height, GL_RGBA, GL_FLOAT, data);
     }
-    else if(data_type == NVIS_UNSIGNED_BYTE){
+    else if(data_type == GL_UNSIGNED_BYTE){
         if(n_channels_per_pixel==3)
             glReadPixels(0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, data);
         else if(n_channels_per_pixel==4)
@@ -95,7 +95,7 @@ void
 ScreenSnapper::print()
 {
     for(int i=0; i<width*height; i++){
-        if(data_type == NVIS_FLOAT){
+        if(data_type == GL_FLOAT){
             if(n_channels_per_pixel==3)
                 fprintf(stderr, "(%f %f %f) ", 
                         ((float*)data)[3*i], 
@@ -108,7 +108,7 @@ ScreenSnapper::print()
                         ((float*)data)[4*i+2],
                         ((float*)data)[4*i+3]);
         }
-        else if(data_type == NVIS_UNSIGNED_BYTE){
+        else if(data_type == GL_UNSIGNED_BYTE){
             if(n_channels_per_pixel==3)
                 fprintf(stderr, "(%d %d %d) ", 
                         ((unsigned char*)data)[3*i], 

@@ -67,13 +67,12 @@ private:
     CGprogram m_render_vel_fprog;
     CGparameter m_max_param;
     
-    NVISid color_tex, pattern_tex, mag_tex;
-    NVISid fbo, vel_fbo, slice_vector_tex;  // For projecting 3d vector to 2d
+    GLuint color_tex, pattern_tex, mag_tex;
+    GLuint fbo, vel_fbo, slice_vector_tex;  // For projecting 3d vector to 2d
 					    // vector on a plane.
-    NVISid vectorFieldID;
+    GLuint vectorFieldID;
 
     Volume* vector_field; 
-
     /**
      * flag for rendering
      */

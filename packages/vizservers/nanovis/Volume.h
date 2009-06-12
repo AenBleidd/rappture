@@ -93,7 +93,7 @@ public:
     float aspect_ratio_height;
     float aspect_ratio_depth;
 
-    NVISid id;			//OpenGL textue identifier (==tex->id)
+    GLuint id;			//OpenGL textue identifier (==tex->id)
 
     int width;			// The resolution of the data (how many points
 				// in each direction.

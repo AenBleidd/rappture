@@ -48,16 +48,15 @@ public :
     /**
      * @brief frame buffer objects: two are defined, flip them as input output every step
      */
-    NVISid psys_fbo[2]; 	
+    GLuint psys_fbo[2]; 	
 
     /**
      * @brief color textures attached to frame buffer objects
      */
-    NVISid psys_tex[2];	
-
-    NVISid initPosTex;	
+    GLuint psys_tex[2];	
+    GLuint initPosTex;	
     Particle* data;
-
+    
     /**
      *@brief Count the frame number of particle system iteration
      */

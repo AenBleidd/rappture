@@ -27,14 +27,14 @@ class ScreenSnapper
 {
 public:
 	int width, height;	//size of the screen
-	NVISdatatype data_type;	//data type: NVIS_FLOAT or NVIS_UNSIGNED_BYTE
+	GLuint data_type;	//data type: GL_FLOAT or GL_UNSIGNED_BYTE
 	int n_channels_per_pixel; //RGB(3) or RGBA(4)
 	
 	void* data;  //storage array for the captured image. This array is "flat".
 		//It stores pixels in the order from lower-left corner to upper-right corner.
 		//[rgb][rgb][rgb]... or [rgba][rgba][rgba]...
 
-	ScreenSnapper(int width, int height, NVISdatatype type, int channel_per_pixel);
+	ScreenSnapper(int width, int height, GLuint type, int channel_per_pixel);
 	~ScreenSnapper();
 
 	void reset(char c);	//set every byte in the data array to c

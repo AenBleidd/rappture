@@ -108,7 +108,7 @@ class FlowIterator;
 
 class NanoVis {
     //frame buffer for final rendering
-    static NVISid final_fbo, final_color_tex, final_depth_rb;
+    static GLuint final_fbo, final_color_tex, final_depth_rb;
 public:
 public:
     static VolumeRenderer* vol_renderer;
