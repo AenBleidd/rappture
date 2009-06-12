@@ -72,6 +72,8 @@ itcl::body Rappture::Flowspeed::constructor {args} {
 	[itcl::code $this _validate %A]
     bind $itk_component(entry) <KeyPress-Return> \
 	"$this value \[$itk_component(entry) get\]"
+    bind $itk_component(entry) <KeyPress-Tab> \
+	"$this value \[$itk_component(entry) get\]"
 
     itk_component add controls {
 	frame $itk_interior.cntls

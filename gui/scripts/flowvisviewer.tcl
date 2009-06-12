@@ -424,6 +424,7 @@ itcl::body Rappture::FlowvisViewer::constructor { hostlist args } {
 	ignore -highlightthickness -background
     }
     bind $itk_component(duration) <Return> [itcl::code $this flow duration]
+    bind $itk_component(duration) <Tab> [itcl::code $this flow duration]
     Rappture::Tooltip::for $itk_component(duration) \
         "Set duration of flow (format is min:sec)"
 
@@ -2884,7 +2885,7 @@ itcl::body Rappture::FlowvisViewer::GetMovie { widget width height } {
     set nframes [expr round($_flow(duration) / $_flow(delay))]
     set framerate [expr 1000.0 / $_flow(delay)]
     set framerate 25.0
-    set bitrate 400000
+    set bitrate 6000000
 
     set start [clock seconds]
     SendCmd "flow video $width $height $nframes $framerate $bitrate $token"

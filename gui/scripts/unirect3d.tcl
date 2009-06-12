@@ -29,9 +29,6 @@ itcl::class Rappture::Unirect3d {
     public method order {} {
 	return _axisOrder;
     }
-    public method components {} {
-	return _components;
-    }
     private method GetString { obj path varName }
     private method GetValue { obj path varName }
     private method GetSize { obj path varName }
@@ -46,7 +43,6 @@ itcl::class Rappture::Unirect3d {
     private variable _zMax	 0
     private variable _zMin	 0
     private variable _zNum	 0
-    private variable _components 1
     private variable _values	 ""; # BLT vector containing the z-values 
     private variable _hints
 }
@@ -70,7 +66,6 @@ itcl::body Rappture::Unirect3d::constructor {xmlobj field cname} {
     GetSize $m "xaxis.numpoints" _xNum
     GetSize $m "yaxis.numpoints" _yNum
     GetSize $m "zaxis.numpoints" _zNum
-    GetSize $m "components" _components
     itcl::delete object $m
 
     set _values [blt::vector create #auto]
@@ -99,7 +94,6 @@ itcl::body Rappture::Unirect3d::blob {} {
     lappend data "ymin" $_yMin "ymax" $_yMax "ynum" $_yNum
     lappend data "zmin" $_zMin "zmax" $_zMax "znum" $_zNum
     lappend data "axisorder" $_axisOrder
-    lappend data "components" $_components
     if { [$_values length] > 0 } {
 	lappend data "values" [$_values range 0 end]
     }
