@@ -854,15 +854,11 @@ itcl::body Rappture::Field::extents {{what -overall}} {
     if {$what == "-overall" } {
 	set max 0
 	foreach cname [$_field children -type component] {
-	    if { [info exists _comp2unirect3d($cname)] } {
-		set value [$_comp2unirect3d($cname) components]
-	    } elseif { [info exists _comp2unirect2d($cname)] } {
-		set value [$_comp2unirect2d($cname) components]
-	    } elseif { [info exists _comp2extents($cname)] } {
-		set value $_comp2extents($cname)
-	    } else {
+	    if { ![info exists _comp2unirect3d($cname)] &&
+		 ![info exists _comp2extents($cname)] } {
 		continue
 	    }
+	    set value $_comp2extents($cname)
 	    if { $max < $value } {
 		set max $value
 	    }
@@ -871,13 +867,6 @@ itcl::body Rappture::Field::extents {{what -overall}} {
     } 
     if { $what == "component0"} {
 	set what [lindex [components -name] 0]
-	if { [info exists _comp2unirect3d($what)] } {
-	    return [$_comp2unirect3d($what) components]
-	} elseif { [info exists _comp2unirect2d($what)] } {
-	    return [$_comp2unirect2d($what) components]
-	} elseif { [info exists _comp2extents($what)] } {
-	    return $_comp2extents($what)
-	}
     }
     return $_comp2extents($what)
 }
