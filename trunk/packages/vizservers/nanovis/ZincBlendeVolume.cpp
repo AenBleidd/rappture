@@ -33,7 +33,7 @@ ZincBlendeVolume::ZincBlendeVolume(float x, float y, float z,
 
     //now add another tex as zincblende_tex[1]
     Texture3D* secondTex = 0; 
-    secondTex = new Texture3D(w, h, d, NVIS_FLOAT, NVIS_LINEAR_INTERP, n);
+    secondTex = new Texture3D(w, h, d, GL_FLOAT, GL_LINEAR, n);
     assert(secondTex);
     secondTex->initialize(dataVolumeB);
     

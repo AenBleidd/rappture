@@ -118,9 +118,7 @@ PlaneRenderer::activate_shader(int index)
 
     cgGLSetParameter4f(m_render_param, 0., 0., 0., 0.);
 
-    Trace("activate_shader: binding ");
     cgGLBindProgram(m_fprog);
-    Trace("activate_shader: done binding");
     cgGLEnableProfile(CG_PROFILE_FP30);
 }
 

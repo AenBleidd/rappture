@@ -22,7 +22,7 @@
 #include "Lic.h"
 
 Lic::Lic(int _size, int _width, int _height, float _offset,
-		CGcontext _context, NVISid _vector_field,
+		CGcontext _context, GLuint _vector_field,
 		float scalex, float scaley, float scalez):
         Renderable(Vector3(0.,0.,0.)),
 	size(_size),
@@ -108,7 +108,7 @@ Lic::~Lic(){
   glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, fbo);
   glDeleteTextures(1, &color_tex);
 
-  NVISid buffers[2] = {vel_fbo, fbo};
+  GLuint buffers[2] = {vel_fbo, fbo};
   glDeleteFramebuffersEXT(2, buffers);
 
   delete slice_vector;
@@ -196,9 +196,7 @@ void Lic::get_slice(){
   glMatrixMode(GL_MODELVIEW);
   glLoadIdentity();
 
-  Trace("get_slice: binding lic vec prog");
   cgGLBindProgram(m_render_vel_fprog);
-  Trace("get_slice: done binding lic vec prog");
   cgGLEnableTextureParameter(m_vel_tex_param_render_vel);
   cgGLSetParameter4f(m_plane_normal_param_render_vel, 1., 1., 0., 0);
 

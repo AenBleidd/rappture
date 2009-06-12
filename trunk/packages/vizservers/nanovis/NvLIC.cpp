@@ -40,7 +40,7 @@ NvLIC::NvLIC(int _size, int _width, int _height, int _axis,
     dmax(SCALE/NPIX),
     max(1.0f),
     m_g_context(_context),
-    vectorFieldID((NVISid) 0),
+    vectorFieldID(0),
     _activate(false)
 {
 
@@ -133,7 +133,7 @@ NvLIC::~NvLIC()
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, fbo);
     glDeleteTextures(1, &color_tex);
 
-    NVISid buffers[2] = {vel_fbo, fbo};
+    GLuint buffers[2] = {vel_fbo, fbo};
     glDeleteFramebuffersEXT(2, buffers);
 
     glDeleteLists(disListID, Npat);
@@ -153,7 +153,9 @@ void
 NvLIC::make_patterns() 
 { 
     Trace("begin make_patterns\n");
-    
+    if (disListID > 0) {
+	glDeleteLists(disListID, Npat);
+    }
     disListID = glGenLists(Npat);
     
     Trace("DisplayList : %d\n", disListID);
@@ -246,9 +248,7 @@ NvLIC::get_slice()
 
     glEnable(GL_TEXTURE_3D);
     glBindTexture(GL_TEXTURE_3D, vectorFieldID);
-    Trace("NV_LIC get_slice:binding lic vec prog");
     cgGLBindProgram(m_render_vel_fprog);
-    Trace("NV_LIC get_slice: done binding lic vec prog");
 
     cgGLSetTextureParameter(m_vel_tex_param_render_vel, vectorFieldID);
     cgGLEnableTextureParameter(m_vel_tex_param_render_vel);

@@ -57,8 +57,8 @@ private:
   CGparameter m_vel_tex_param_render_vel, m_plane_normal_param_render_vel;
   CGprogram m_render_vel_fprog;
 
-  NVISid color_tex, pattern_tex, mag_tex;
-  NVISid fbo, vel_fbo, slice_vector_tex;  //for projecting 3d vector to 2d vector on a plane
+  GLuint color_tex, pattern_tex, mag_tex;
+  GLuint fbo, vel_fbo, slice_vector_tex;  //for projecting 3d vector to 2d vector on a plane
 
   Volume* vector_field; 
 
@@ -66,7 +66,7 @@ public:
   Vector3 normal; //the normal vector of the Lic plane, 
   		  //the inherited Vector3 location is its center
   Lic(int _size, int _width, int _height, float _offset,
-	  CGcontext _context, NVISid _vector_field,
+	  CGcontext _context, GLuint _vector_field,
 	  float scalex, float scaley, float scalez);
   ~Lic();
 

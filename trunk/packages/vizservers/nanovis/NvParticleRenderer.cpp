@@ -30,16 +30,13 @@ NvParticleAdvectionShader* NvParticleRenderer::_advectionShader = NULL;
 
 class NvParticleAdvectionShaderInstance {
 public :
-	NvParticleAdvectionShaderInstance()
-	{
+    NvParticleAdvectionShaderInstance() {
+    }
+    ~NvParticleAdvectionShaderInstance() {
+	if (NvParticleRenderer::_advectionShader) {
+	    delete NvParticleRenderer::_advectionShader;
 	}
-	~NvParticleAdvectionShaderInstance()
-	{
-		if (NvParticleRenderer::_advectionShader)
-		{
-			delete NvParticleRenderer::_advectionShader;
-		}
-	}
+    }
 };
 NvParticleAdvectionShaderInstance shaderInstance;
 
@@ -241,7 +238,6 @@ void NvParticleRenderer::initialize()
 void NvParticleRenderer::reset()
 {
     glBindTexture(GL_TEXTURE_RECTANGLE_NV, psys_tex[0]);
-
 #ifdef NV_32
     glTexImage2D(GL_TEXTURE_RECTANGLE_NV, 0, GL_FLOAT_RGBA32_NV, 
 		 psys_width, psys_height, 0, GL_RGBA, GL_FLOAT, (float*)data);

@@ -166,12 +166,6 @@ class FlowCmd {
     Volume *_volPtr;			/* The volume associated with the
 					 * flow.  This isn't the same thing as
 					 * a normal volume displayed. */
-    int _volId; 			/* The index of slot in the volume
-					 * vector. -1 indicates that a slot
-					 * hasn't been previously allocated.
-					 * This is to reuse the same slot so
-					 * the volume vector doesn't grow when
-					 * we reallocate vectors. */
 
     NvVectorField *_fieldPtr;		/* Vector field generated from the 
 					 * above volume. */
@@ -235,10 +229,10 @@ public:
     bool isDataLoaded(void) {
 	return (_dataPtr != NULL);
     }
-    Rappture::Unirect3d *GetData(void) {
+    Rappture::Unirect3d *data(void) {
 	return _dataPtr;
     }
-    void SetData(Rappture::Unirect3d *dataPtr) {
+    void data(Rappture::Unirect3d *dataPtr) {
 	if (_dataPtr != NULL) {
 	    delete _dataPtr;
 	}

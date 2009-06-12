@@ -136,9 +136,9 @@ Tcl_Interp *NanoVis::interp;
 Tcl_DString NanoVis::cmdbuffer;
 
 //frame buffer for final rendering
-NVISid NanoVis::final_color_tex = 0;
-NVISid NanoVis::final_depth_rb = 0;
-NVISid NanoVis::final_fbo = 0;
+GLuint NanoVis::final_color_tex = 0;
+GLuint NanoVis::final_depth_rb = 0;
+GLuint NanoVis::final_fbo = 0;
 int NanoVis::render_window = 0;       /* GLUT handle for the render window */
 int NanoVis::win_width = NPIX;        /* Width of the render window */
 int NanoVis::win_height = NPIX;       /* Height of the render window */
@@ -147,16 +147,16 @@ unsigned char* NanoVis::screen_buffer = NULL;
 
 unsigned int NanoVis::flags = 0;
 Tcl_HashTable NanoVis::flowTable;
-double NanoVis::magMin;
-double NanoVis::magMax;
-float NanoVis::xMin;
-float NanoVis::xMax;
-float NanoVis::yMin;
-float NanoVis::yMax;
-float NanoVis::zMin;
-float NanoVis::zMax;
-float NanoVis::wMin;
-float NanoVis::wMax;
+double NanoVis::magMin = DBL_MAX;
+double NanoVis::magMax = -DBL_MAX;
+float NanoVis::xMin = FLT_MAX;
+float NanoVis::xMax = -FLT_MAX;
+float NanoVis::yMin = FLT_MAX;
+float NanoVis::yMax = -FLT_MAX;
+float NanoVis::zMin = FLT_MAX;
+float NanoVis::zMax = -FLT_MAX;
+float NanoVis::wMin = FLT_MAX;
+float NanoVis::wMax = -FLT_MAX;
 float NanoVis::xOrigin;
 float NanoVis::yOrigin;
 float NanoVis::zOrigin;
@@ -1532,8 +1532,8 @@ NanoVis::SetVolumeRanges()
     if (debug_flag) {
         fprintf(stderr, "in SetVolumeRanges\n");
     }
-    xMin = yMin = zMin = wMin = DBL_MAX;
-    xMax = yMax = zMax = wMax = -DBL_MAX;
+    xMin = yMin = zMin = wMin = FLT_MAX;
+    xMax = yMax = zMax = wMax = -FLT_MAX;
     Tcl_HashEntry *hPtr;
     Tcl_HashSearch iter;
     for (hPtr = Tcl_FirstHashEntry(&volumeTable, &iter); hPtr != NULL;
@@ -1593,8 +1593,8 @@ NanoVis::SetHeightmapRanges()
     if (debug_flag) {
         fprintf(stderr, "in SetHeightmapRanges\n");
     }
-    xMin = yMin = zMin = wMin = DBL_MAX;
-    xMax = yMax = zMax = wMax = -DBL_MAX;
+    xMin = yMin = zMin = wMin = FLT_MAX;
+    xMax = yMax = zMax = wMax = -FLT_MAX;
     for (unsigned int i = 0; i < heightMap.size(); i++) {
         HeightMap *hmPtr;
 
@@ -1662,10 +1662,12 @@ NanoVis::display()
     if (debug_flag) {
         fprintf(stderr, "in display\n");
     }
+#ifdef notdef
     if (flags & MAP_FLOWS) {
-	xMin = yMin = zMin = wMin = magMin = FLT_MAX;
-	xMax = yMax = zMax = wMax = magMax = -FLT_MAX;
+	xMin = yMin = zMin = wMin = FLT_MAX, magMin = DBL_MAX;
+	xMax = yMax = zMax = wMax = -FLT_MAX, magMax = -DBL_MAX;
     }
+#endif
     if (flags & MAP_FLOWS) {
 	MapFlows();
         grid->xAxis.SetScale(xMin, xMax);

@@ -84,7 +84,7 @@ Rappture::Unirect3d::LoadData(Tcl_Interp *interp, int objc,
     const char *units[4], *order;
 
 
-    if ((objc & 0x01) == 0) {
+    if ((objc-1) & 0x01) {
         Tcl_AppendResult(interp, Tcl_GetString(objv[0]), ": ",
                 "wrong # of arguments: should be key-value pairs",
                 (char *)NULL);
@@ -712,6 +712,7 @@ void
 Rappture::Unirect3d::GetVectorRange(void)
 {
     assert(_nComponents == 3);
+    Trace("GetVectorRange\n");
     _magMax = -DBL_MAX, _magMin = DBL_MAX;
     size_t i;
     for (i = 0; i < _nValues; i += _nComponents) {
