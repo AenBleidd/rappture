@@ -21,7 +21,7 @@ public :
 };
 
 class NvVectorField {
-    unsigned int _vectorFieldID;
+    GLuint _vectorFieldId;
     Volume* _volPtr;
     std::map<std::string, NvParticleRenderer*> _particleRendererMap;
     

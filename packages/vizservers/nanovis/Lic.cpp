@@ -22,7 +22,7 @@
 #include "Lic.h"
 
 Lic::Lic(int _size, int _width, int _height, float _offset,
-		CGcontext _context, GLuint _vector_field,
+		CGcontext _context, GLuint _vectorField,
 		float scalex, float scaley, float scalez):
         Renderable(Vector3(0.,0.,0.)),
 	size(_size),
@@ -95,7 +95,7 @@ Lic::Lic(int _size, int _width, int _height, float _offset,
 	"vel_tex");
   m_plane_normal_param_render_vel = cgGetNamedParameter(m_render_vel_fprog, 
 	"plane_normal");
-  cgGLSetTextureParameter(m_vel_tex_param_render_vel, _vector_field);
+  cgGLSetTextureParameter(m_vel_tex_param_render_vel, _vectorField);
 
   get_slice();
   make_patterns();

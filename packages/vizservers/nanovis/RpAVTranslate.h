@@ -32,6 +32,7 @@ namespace Rappture {
 
 class AVTranslate {
 public:
+    enum VideoFormats { MPEG1, MPEG4, THEORA, QUICKTIME };
     AVTranslate(size_t width, size_t height);
 
     AVTranslate(size_t width, size_t height, size_t bitRate, float frameRate);

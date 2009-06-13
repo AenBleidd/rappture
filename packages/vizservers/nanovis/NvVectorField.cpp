@@ -3,7 +3,7 @@
 #include "nanovis.h"
 
 NvVectorField::NvVectorField() :
-    _vectorFieldID(0), 
+    _vectorFieldId(0), 
     _activated(true), 
     _scaleX(1), 
     _scaleY(1), 
@@ -35,7 +35,7 @@ NvVectorField::setVectorField(Volume* volPtr, const Vector3& ori,
     _scaleY = scaleY;
     _scaleZ = scaleZ;
     _max = max;
-    _vectorFieldID = volPtr->id;
+    _vectorFieldId = volPtr->id;
     _physicalMin = volPtr->getPhysicalBBoxMin();
     printf("_pysicalMin %f %f %f\n", _physicalMin.x, _physicalMin.y, _physicalMin.z);
     _physicalSize = volPtr->getPhysicalBBoxMax() - _physicalMin;
@@ -106,7 +106,7 @@ void NvVectorField::addPlane(const std::string& name)
 	_particleRendererMap[name] = renderer;
     }
 	
-    renderer->setVectorField(_vectorFieldID, _origin, _scaleX, _scaleY, _scaleZ, _max);
+    renderer->setVectorField(_vectorFieldId, _origin, _scaleX, _scaleY, _scaleZ, _max);
     if (renderer) {
 	renderer->initialize();
     }

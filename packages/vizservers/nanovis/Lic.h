@@ -60,13 +60,13 @@ private:
   GLuint color_tex, pattern_tex, mag_tex;
   GLuint fbo, vel_fbo, slice_vector_tex;  //for projecting 3d vector to 2d vector on a plane
 
-  Volume* vector_field; 
+  Volume* _vectorField; 
 
 public:
   Vector3 normal; //the normal vector of the Lic plane, 
   		  //the inherited Vector3 location is its center
   Lic(int _size, int _width, int _height, float _offset,
-	  CGcontext _context, GLuint _vector_field,
+	  CGcontext _context, GLuint _vectorField,
 	  float scalex, float scaley, float scalez);
   ~Lic();
 

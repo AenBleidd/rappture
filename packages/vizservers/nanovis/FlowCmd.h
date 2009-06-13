@@ -186,6 +186,7 @@ class FlowCmd {
 
     void RenderBoxes(void);
 public:
+    static Rappture::SwitchSpec videoSwitches[];
     enum SliceAxis { AXIS_X, AXIS_Y, AXIS_Z };
     FlowCmd(Tcl_Interp *interp, const char *name, Tcl_HashEntry *hPtr);
     ~FlowCmd(void);
