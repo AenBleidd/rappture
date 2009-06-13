@@ -26,9 +26,6 @@ itcl::class Rappture::Unirect2d {
     public method mesh {}
     public method values {}
     public method hints {{keyword ""}} 
-    public method components {} {
-	return $_components;
-    }
     private method GetString { obj path varName }
     private method GetValue { obj path varName }
     private method GetSize { obj path varName }
@@ -40,7 +37,6 @@ itcl::class Rappture::Unirect2d {
     private variable _yMax 0
     private variable _yMin 0
     private variable _yNum 0
-    private variable _components 1 
     private variable _values "";	# BLT vector containing the z-values 
     private variable _hints
 }
@@ -55,7 +51,6 @@ itcl::body Rappture::Unirect2d::constructor {xmlobj field cname} {
     set path [$field get $cname.mesh]
 
     set m [$xmlobj element -as object $path]
-    GetSize $m "components" _components
     GetValue $m "xaxis.min" _xMin
     GetValue $m "xaxis.max" _xMax
     GetSize $m "xaxis.numpoints" _xNum
@@ -87,7 +82,7 @@ itcl::body Rappture::Unirect2d::constructor {xmlobj field cname} {
 	    set _hints($key) $str
 	}
     }
-    foreach {key} { components axisorder } {
+    foreach {key} { axisorder } {
 	set str [$field get $cname.$key]
 	if {"" != $str} {
 	    set _hints($key) $str
@@ -123,7 +118,6 @@ itcl::body Rappture::Unirect2d::blob {} {
     lappend data "xmin" $_xMin "xmax" $_xMax "xnum" $_xNum
     lappend data "ymin" $_yMin "ymax" $_yMax "ynum" $_yNum
     lappend data "xmin" $_xMin "ymin" $_yMin "xmax" $_xMax "ymax" $_yMax
-    lappend data "components" $_components 
     foreach key { axisorder xunits yunits units } {
 	set hint [hints $key]
 	if { $hint != "" } {
