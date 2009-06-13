@@ -56,7 +56,6 @@ itcl::body Rappture::Unirect3d::constructor {xmlobj field cname} {
     }
     set path [$field get $cname.mesh]
     set m [$xmlobj element -as object $path]
-    puts stderr [$m children]
     GetValue $m "xaxis.max" _xMax
     GetValue $m "xaxis.min" _xMin
     GetValue $m "yaxis.max" _yMax
@@ -88,7 +87,6 @@ itcl::body Rappture::Unirect3d::destructor {} {
 #	on the nanovis server.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Unirect3d::blob {} {
-    set time [time {
     lappend data "unirect3d"
     lappend data "xmin" $_xMin "xmax" $_xMax "xnum" $_xNum
     lappend data "ymin" $_yMin "ymax" $_yMax "ynum" $_yNum
@@ -97,10 +95,7 @@ itcl::body Rappture::Unirect3d::blob {} {
     if { [$_values length] > 0 } {
 	lappend data "values" [$_values range 0 end]
     }
-    }] 
-    puts stderr blob7=$time
     return $data
-    #return [Rappture::encoding::encode -as b64 "$data"]
 }
 
 # ----------------------------------------------------------------------
