@@ -1971,7 +1971,7 @@ FlowVideoOp(ClientData clientData, Tcl_Interp *interp, int objc,
     values.nFrames = 100;
     values.format = Rappture::AVTranslate::MPEG1;
     if (Rappture::ParseSwitches(interp, FlowCmd::videoSwitches, 
-	objc - 2, objv + 2, &values, SWITCH_DEFAULTS) < 0) {
+	objc - 3, objv + 3, &values, SWITCH_DEFAULTS) < 0) {
 	return TCL_ERROR;
     }
     if ((values.width < 0) || (values.width > SHRT_MAX) || 
@@ -2083,8 +2083,7 @@ static Rappture::CmdSpec flowCmdOps[] = {
     {"names",    1, FlowNamesOp,   2, 3, "?pattern?",},
     {"next",     2, FlowNextOp,    2, 2, "",},
     {"reset",    1, FlowResetOp,   2, 2, "",},
-    {"video",    1, FlowVideoOp,   8, 8, 	
-	"width height numFrames frameRate bitRate token",},
+    {"video",    1, FlowVideoOp,   3, 0, "token ?switches...?",},
 };
 static int nFlowCmdOps = NumCmdSpecs(flowCmdOps);
 
