@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <stddef.h>
 #include <limits.h>
+#include <poll.h>
 #include <tcl.h>
 #include "Switch.h"
 #include <RpField1D.h>
@@ -1350,6 +1351,50 @@ TransferFunctionSwitchProc(
     return TCL_OK;
 }
 
+/*
+ *---------------------------------------------------------------------------
+ *
+ * VideoFormatSwitchProc --
+ *
+ *	Convert a Tcl_Obj representing the video format into its
+ *	integer id.
+ *
+ * Results:
+ *	The return value is a standard Tcl result.
+ *
+ *---------------------------------------------------------------------------
+ */
+/*ARGSUSED*/
+static int
+VideoFormatSwitchProc(
+    ClientData clientData,	/* Not used. */
+    Tcl_Interp *interp,		/* Interpreter to send results back to */
+    const char *switchName,	/* Not used. */
+    Tcl_Obj *objPtr,		/* String representation */
+    char *record,		/* Structure record */
+    int offset,			/* Not used. */
+    int flags)			/* Not used. */
+{
+    Rappture::AVTranslate::VideoFormats *formatPtr = 
+	(Rappture::AVTranslate::VideoFormats *)(record + offset);
+    const char *string;
+    char c; 
+
+    string = Tcl_GetString(objPtr);
+    c = string[0];
+    if ((c == 'm') && (strcmp(string, "mpeg") == 0)) {
+	*formatPtr =  Rappture::AVTranslate::MPEG1;
+    } else if ((c == 't') && (strcmp(string, "theora") == 0)) {
+	*formatPtr = Rappture::AVTranslate::THEORA;
+    } else if ((c == 'm') && (strcmp(string, "mov") == 0)) {
+	*formatPtr = Rappture::AVTranslate::QUICKTIME;
+    } else {
+	Tcl_AppendResult(interp, "bad video format \"", string,
+                     "\": should be mpeg, theora, or mov", (char*)NULL);
+    }
+    return TCL_ERROR;
+}
+
 static int
 FlowConfigureOp(ClientData clientData, Tcl_Interp *interp, int objc,
 		Tcl_Obj *const *objv)
@@ -1873,42 +1918,77 @@ FlowResetOp(ClientData clientData, Tcl_Interp *interp, int objc,
     return TCL_OK;
 }
 
+struct FlowVideoValues {
+    float frameRate;			/* Frame rate */
+    int bitRate;			/* Video bitrate */
+    int width, height;			/* Dimensions of video frame. */
+    int nFrames;
+    Rappture::AVTranslate::VideoFormats format;
+};
+
+static Rappture::SwitchParseProc VideoFormatSwitchProc;
+static Rappture::SwitchCustom videoFormatSwitch = {
+    VideoFormatSwitchProc, NULL, 0,
+};
+
+Rappture::SwitchSpec FlowCmd::videoSwitches[] = {
+    {Rappture::SWITCH_FLOAT, "-bitrate", "value",
+	offsetof(FlowVideoValues, bitRate), 0},
+    {Rappture::SWITCH_CUSTOM, "-format", "string",
+        offsetof(FlowVideoValues, format), 0, 0, &videoFormatSwitch},
+    {Rappture::SWITCH_FLOAT, "-framerate", "value",
+	offsetof(FlowVideoValues, frameRate), 0},
+    {Rappture::SWITCH_INT, "-height", "integer",
+	offsetof(FlowVideoValues, height), 0},
+    {Rappture::SWITCH_INT, "-numframes", "count",
+	offsetof(FlowVideoValues, nFrames), 0},
+    {Rappture::SWITCH_INT, "-width", "integer",
+	offsetof(FlowVideoValues, width), 0},
+    {Rappture::SWITCH_END}
+};
+
 static int
 FlowVideoOp(ClientData clientData, Tcl_Interp *interp, int objc, 
 	    Tcl_Obj *const *objv)
 {
-    int width, height;		// Resolution of video.
-    int numFrames;		// Total number of frames.
-    float frameRate;		// Frame rate of the video.
-    float bitRate;		// Bit rate of the vide.
+    struct pollfd pollResults;
+    int timeout;
 
-    if ((Tcl_GetIntFromObj(interp, objv[2], &width) != TCL_OK) ||
-	(Tcl_GetIntFromObj(interp, objv[3], &height) != TCL_OK) ||
-	(Tcl_GetIntFromObj(interp, objv[4], &numFrames) != TCL_OK) ||
-	(GetFloatFromObj(interp, objv[5], &frameRate) != TCL_OK) ||
-	(GetFloatFromObj(interp, objv[6], &bitRate) != TCL_OK)) {
-        return TCL_ERROR;
+    pollResults.fd = fileno(NanoVis::stdin);
+    pollResults.events = POLLIN;
+
+#define PENDING_TIMEOUT		10  /* milliseconds. */
+    timeout = PENDING_TIMEOUT;
+
+    FlowVideoValues values;
+    const char *token;
+
+    token = Tcl_GetString(objv[2]);
+    values.frameRate = 25.0f;		// Default frame rate 25 fps
+    values.bitRate = 6.0e+6f;		// Default video bit rate.
+    values.width = NanoVis::win_width;
+    values.height = NanoVis::win_height;
+    values.nFrames = 100;
+    values.format = Rappture::AVTranslate::MPEG1;
+    if (Rappture::ParseSwitches(interp, FlowCmd::videoSwitches, 
+	objc - 2, objv + 2, &values, SWITCH_DEFAULTS) < 0) {
+	return TCL_ERROR;
     }
-    if ((width<0) || (width>SHRT_MAX) || (height<0) || (height>SHRT_MAX)) {
+    if ((values.width < 0) || (values.width > SHRT_MAX) || 
+	(values.height < 0) || (values.height > SHRT_MAX)) {
 	Tcl_AppendResult(interp, "bad dimensions for video", (char *)NULL);
 	return TCL_ERROR;
     }
-    if ((frameRate < 0.0f) || (frameRate > 30.0f)) {
-	Tcl_AppendResult(interp, "bad frame rate \"", Tcl_GetString(objv[5]),
-			 "\"", (char *)NULL);
+    if ((values.frameRate < 0.0f) || (values.frameRate > 30.0f)) {
+	Tcl_AppendResult(interp, "bad frame rate.", (char *)NULL);
 	return TCL_ERROR;
     }
-    if ((bitRate < 0.0f) || (frameRate > 30.0f)) {
-	Tcl_AppendResult(interp, "bad bit rate \"", Tcl_GetString(objv[6]),
-			 "\"", (char *)NULL);
+    if (values.bitRate < 0.0f) {
+	Tcl_AppendResult(interp, "bad bit rate.", (char *)NULL);
 	return TCL_ERROR;
     }
     if (NanoVis::licRenderer == NULL) {
 	Tcl_AppendResult(interp, "no lic renderer.", (char *)NULL);
-	return TCL_ERROR;
-    }
-    if (NanoVis::flowVisRenderer == NULL) {
-	Tcl_AppendResult(interp, "no flow renderer.", (char *)NULL);
 	return TCL_ERROR;
     }
     // Save the old dimensions of the offscreen buffer.
@@ -1916,72 +1996,72 @@ FlowVideoOp(ClientData clientData, Tcl_Interp *interp, int objc,
     oldWidth = NanoVis::win_width;
     oldHeight = NanoVis::win_height;
 
-    char fileName[200];
-    sprintf(fileName,"/tmp/flow%d.mpeg", getpid());
-
     Trace("FLOW started\n");
 
     Rappture::Outcome context;
 
-    Rappture::AVTranslate movie(width, height, bitRate, frameRate);
-    if (!movie.init(context, fileName)) {
-        Tcl_AppendResult(interp, "can't initialized movie \"", fileName, 
-			 "\": ", context.remark(), (char *)NULL);
+    Rappture::AVTranslate movie(values.width, values.height, values.bitRate, 
+	values.frameRate);
+    char tmpFileName[200];
+    sprintf(tmpFileName,"/tmp/flow%d.mpeg", getpid());
+    if (!movie.init(context, tmpFileName)) {
+        Tcl_AppendResult(interp, "can't initialized movie \"", tmpFileName, 
+		"\": ", context.remark(), (char *)NULL);
 	return TCL_ERROR;
     }
-    if ((width != oldWidth) || (height != oldHeight)) {
+    if ((values.width != oldWidth) || (values.height != oldHeight)) {
 	// Resize to the requested size.
-	NanoVis::resize_offscreen_buffer(width, height);
+	NanoVis::resize_offscreen_buffer(values.width, values.height);
     }
     // Now compute the line padding for the offscreen buffer.
     int pad = 0;
-    if ((3*NanoVis::win_width) % 4 > 0) {
-        pad = 4 - ((3*NanoVis::win_width) % 4);
+    if (( 3 * values.width) % 4 > 0) {
+        pad = 4 - ((3* values.width) % 4);
     }
     NanoVis::ResetFlows();
-    for (int i = 0; i < numFrames; i++) {
-        // Generate the latest frame and send it back to the client
+    bool canceled = false;
+    for (int i = 0; i < values.nFrames; i++) {
+	if (poll(&pollResults, 1, 0 /* No Timeout */) > 0) {
+	    /* If there's another command on stdin, that means the client is
+	     * trying to cancel this operation. */
+	    canceled = true;
+	    break;
+	}
 	NanoVis::licRenderer->convolve();
 	NanoVis::AdvectFlows();
 	NanoVis::RenderFlows();
         NanoVis::offscreen_buffer_capture();  //enable offscreen render
         NanoVis::display();
-
         NanoVis::read_screen();
         glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
-
-        // This is done before bmp_write_to_file because bmp_write_to_file
-        // turns rgb data to bgr
         movie.append(context, NanoVis::screen_buffer, pad);
-        // NanoVis::bmp_write_to_file(frame_count, fileName);
     }
-
     movie.done(context);
     Trace("FLOW end\n");
+    if (!canceled) {
+	Rappture::Buffer data;
+	// FIXME: find a way to get the data from the movie object as a void*
+	if (!data.load(context, tmpFileName)) {
+	    Tcl_AppendResult(interp, "can't load data from temporary file \"",
+		tmpFileName, "\": ", context.remark(), (char *)NULL);
+	    return TCL_ERROR;
+	}
 
-    // FIXME: find a way to get the data from the movie object as a void*
-    Rappture::Buffer data;
-    if (!data.load(context, fileName)) {
-        Tcl_AppendResult(interp, "can't load data from temporary movie file \"",
-		fileName, "\": ", context.remark(), (char *)NULL);
-	return TCL_ERROR;
+	// Build the command string for the client.
+	char command[200];
+	sprintf(command,"nv>image -bytes %lu -type movie -token \"%s\"\n", 
+		(unsigned long)data.size(), Tcl_GetString(objv[7]));
+	NanoVis::sendDataToClient(command, data.bytes(), data.size());
     }
-
-    // Build the command string for the client.
-    char command[200];
-    sprintf(command,"nv>image -bytes %lu -type movie -token \"%s\"\n", 
-	    (unsigned long)data.size(), Tcl_GetString(objv[7]));
-    NanoVis::sendDataToClient(command, data.bytes(), data.size());
-
-    if ((width != oldWidth) || (height != oldHeight)) {
+    if ((values.width != oldWidth) || (values.height != oldHeight)) {
 	// Restore to the old size.
 	NanoVis::resize_offscreen_buffer(oldWidth, oldHeight);
     }
     NanoVis::ResetFlows();
     NanoVis::licRenderer->make_patterns();
-    if (unlink(fileName) != 0) {
+    if (unlink(tmpFileName) != 0) {
         Tcl_AppendResult(interp, "can't unlink temporary movie file \"",
-		fileName, "\": ", Tcl_PosixError(interp), (char *)NULL);
+		tmpFileName, "\": ", Tcl_PosixError(interp), (char *)NULL);
 	return TCL_ERROR;
     }
     return TCL_OK;

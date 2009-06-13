@@ -40,7 +40,7 @@ NvLIC::NvLIC(int _size, int _width, int _height, int _axis,
     dmax(SCALE/NPIX),
     max(1.0f),
     m_g_context(_context),
-    vectorFieldID(0),
+    _vectorFieldId(0),
     _activate(false)
 {
 
@@ -247,10 +247,10 @@ NvLIC::get_slice()
     glLoadIdentity();
 
     glEnable(GL_TEXTURE_3D);
-    glBindTexture(GL_TEXTURE_3D, vectorFieldID);
+    glBindTexture(GL_TEXTURE_3D, _vectorFieldId);
     cgGLBindProgram(m_render_vel_fprog);
 
-    cgGLSetTextureParameter(m_vel_tex_param_render_vel, vectorFieldID);
+    cgGLSetTextureParameter(m_vel_tex_param_render_vel, _vectorFieldId);
     cgGLEnableTextureParameter(m_vel_tex_param_render_vel);
     cgGLSetParameter4f(m_plane_normal_param_render_vel, 1., 1., 0., 0);
     cgGLSetParameter1f(m_max_param, max);
@@ -309,7 +309,7 @@ NvLIC::get_slice()
 void 
 NvLIC::convolve()
 {
-    if (vectorFieldID == 0) {
+    if (_vectorFieldId == 0) {
 	return;
     }
 
@@ -418,7 +418,7 @@ void NvLIC::render(){ display(); }
 void 
 NvLIC::display()
 {
-    if (vectorFieldID == 0) {
+    if (_vectorFieldId == 0) {
 	return;
     }
 
@@ -505,7 +505,7 @@ NvLIC::setVectorField(unsigned int texID, const Vector3& ori,
 		      float scaleX, float scaleY, float scaleZ, float max)
 {
     Trace("NvLIC: vector field is assigned [%d]\n", texID);
-    vectorFieldID = texID;
+    _vectorFieldId = texID;
     origin = ori;
     scale = Vector3(scaleX, scaleY, scaleZ);
     this->max = max;

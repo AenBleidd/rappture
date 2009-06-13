@@ -37,7 +37,7 @@
 class NvLIC : public Renderable { 
 
 private:
-    unsigned int disListID;
+    GLuint disListID;
 
     int width, height;
     int size;				// The lic is a square of size, it can
@@ -70,9 +70,9 @@ private:
     GLuint color_tex, pattern_tex, mag_tex;
     GLuint fbo, vel_fbo, slice_vector_tex;  // For projecting 3d vector to 2d
 					    // vector on a plane.
-    GLuint vectorFieldID;
+    GLuint _vectorFieldId;
 
-    Volume* vector_field; 
+    Volume* _vectorField; 
     /**
      * flag for rendering
      */
@@ -81,7 +81,8 @@ private:
 public:
     Vector3 normal; //the normal vector of the NvLIC plane, 
     //the inherited Vector3 location is its center
-    NvLIC(int _size, int _width, int _height, int axis, const Vector3& _offset, CGcontext _context);
+    NvLIC(int _size, int _width, int _height, int axis, 
+	  const Vector3& _offset, CGcontext _context);
     ~NvLIC();
 
     /**
