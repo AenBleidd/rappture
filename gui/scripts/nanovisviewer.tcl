@@ -55,11 +55,13 @@ itcl::class Rappture::NanovisViewer {
     public method add {dataobj {settings ""}}
     public method camera {option args}
     public method delete {args}
+    public method disconnect {}
     public method download {option args}
     public method get {args}
     public method isconnected {}
     public method limits { tf }
     public method overmarker { m x }
+    public method sendto { string }
     public method parameters {title args} { 
 	# do nothing 
     }
@@ -68,7 +70,7 @@ itcl::class Rappture::NanovisViewer {
     public method updatetransferfuncs {}
 
     protected method Connect {}
-    protected method CurrentVolumeIds {{what -all}}
+    protected method CurrentVolumes {{what -all}}
     protected method Disconnect {}
     protected method DoResize {}
     protected method FixLegend {}
@@ -105,11 +107,10 @@ itcl::class Rappture::NanovisViewer {
     private variable _dlist ""     ;# list of data objects
     private variable _allDataObjs
     private variable _obj2ovride   ;# maps dataobj => style override
-    private variable _obj2id       ;# maps dataobj-component to volume ID 
-				    # in the server
-    private variable _id2obj       ;# maps dataobj => volume ID in server
+    private variable _serverObjs   ;# contains all the dataobj-component 
+				   ;# to volumes in the server
     private variable _sendobjs ""  ;# list of data objs to send to server
-    private variable _receiveIds   ;# list of data objs to send to server
+    private variable _recvdObjs   ;# list of data objs to send to server
     private variable _obj2style    ;# maps dataobj-component to transfunc
     private variable _style2objs   ;# maps tf back to list of 
 				    # dataobj-components using the tf.
@@ -185,8 +186,6 @@ itcl::body Rappture::NanovisViewer::constructor {hostlist args} {
 	pan-x	0
 	pan-y	0
     }
-    set _obj2id(count) 0
-    set _id2obj(count) 0
     set _limits(vmin) 0.0
     set _limits(vmax) 1.0
 
@@ -462,14 +461,14 @@ itcl::body Rappture::NanovisViewer::delete {args} {
 	set pos [lsearch -exact $_dlist $dataobj]
 	if { $pos >= 0 } {
 	    foreach comp [$dataobj components] {
-		if { [info exists obj2id($dataobj-$comp)] } {
-		    set ivol $_obj2id($dataobj-$comp)
-		    array unset _limits $ivol-*
+		set tag $dataobj-$comp
+		if { [info exists obj2id($tag)] } {
+		    array unset _limits $tag-*
 		}
 	    }
 	    set _dlist [lreplace $_dlist $pos $pos]
 	    array unset _obj2ovride $dataobj-*
-	    array unset _obj2id $dataobj-*
+	    array unset _serverObjs $dataobj-*
 	    array unset _obj2style $dataobj-*
 	    set changed 1
 	}
@@ -480,7 +479,7 @@ itcl::body Rappture::NanovisViewer::delete {args} {
 	foreach tf [array names _style2objs] {
 	    set list {}
 	    foreach {dataobj comp} $_style2objs($tf) break
-	    if { [info exists _obj2id($dataobj-$comp)] } {
+	    if { [info exists _serverObjs($dataobj-$comp)] } {
 		lappend list $dataobj $comp
 	    }
 	    if { $list == "" } {
@@ -598,6 +597,13 @@ itcl::body Rappture::NanovisViewer::isconnected {} {
 }
 
 #
+# disconnect --
+#
+itcl::body Rappture::NanovisViewer::disconnect {} {
+    Disconnect
+}
+
+#
 # Disconnect --
 #
 #       Clients use this method to disconnect from the current rendering
@@ -608,11 +614,15 @@ itcl::body Rappture::NanovisViewer::Disconnect {} {
 
     # disconnected -- no more data sitting on server
     set _outbuf ""
-    catch {unset _obj2id}
-    array unset _id2obj
-    set _obj2id(count) 0
-    set _id2obj(count) 0
+    catch {unset _serverObjs}
     set _sendobjs ""
+}
+
+#
+# sendto --
+#
+itcl::body Rappture::NanovisViewer::sendto { bytes } {
+    SendBytes "$bytes\n"
 }
 
 #
@@ -654,10 +664,8 @@ itcl::body Rappture::NanovisViewer::SendDataObjs {} {
 	    if { ![SendBytes $data] } {
 		return
 	    }
-	    set ivol $_obj2id(count)
-	    incr _obj2id(count)
 	    NameTransferFunc $dataobj $comp
-	    set _receiveIds($ivol) 1
+	    set _recvdObjs($dataobj-$comp) 1
 	}
     }
     set _sendobjs ""
@@ -686,15 +694,12 @@ itcl::body Rappture::NanovisViewer::SendDataObjs {} {
         set _activeTf [lindex $_obj2style($_first-$comp) 0]
     }
     SendCmd "volume state 0"
-    set vols {}
-    foreach key [array names _obj2id $_first-*] {
-	lappend vols $_obj2id($key)
-    }
+    set vols [array names _serverObjs $_first-*] 
     if { $vols != ""  && $_settings($this-volume) } {
 	SendCmd "volume state 1 $vols"
     }
     # sync the state of slicers
-    set vols [CurrentVolumeIds -cutplanes]
+    set vols [CurrentVolumes -cutplanes]
     foreach axis {x y z} {
 	SendCmd "cutplane state $_settings($this-${axis}cutplane) $axis $vols"
 	set pos [expr {0.01*$_settings($this-${axis}cutposition)}]
@@ -808,7 +813,6 @@ itcl::body Rappture::NanovisViewer::ReceiveLegend { tf vmin vmax size } {
     set c $itk_component(legend)
     set w [winfo width $c]
     set h [winfo height $c]
-    #foreach { dataobj comp } $_id2obj($ivol) break
     set lx 10
     set ly [expr {$h - 1}]
     if {"" == [$c find withtag transfunc]} {
@@ -848,7 +852,7 @@ itcl::body Rappture::NanovisViewer::ReceiveLegend { tf vmin vmax size } {
 #       volume sent to the render server.  Since the client (nanovisviewer)
 #       doesn't parse 3D data formats, we rely on the server (nanovis) to
 #       tell us what the limits are.  Once we've received the limits to all
-#       the data we've sent (tracked by _receiveIds) we can then determine
+#       the data we've sent (tracked by _recvdObjs) we can then determine
 #       what the transfer functions are for these volumes.
 #
 #
@@ -867,25 +871,23 @@ itcl::body Rappture::NanovisViewer::ReceiveData { args } {
     # Arguments from server are name value pairs. Stuff them in an array.
     array set info $args
 
-    set ivol $info(id);         # Id of volume created by server.
     set tag $info(tag)
     set parts [split $tag -]
 
     #
     # Volumes don't exist until we're told about them.
     #
-    set _id2obj($ivol) $parts
     set dataobj [lindex $parts 0]
-    set _obj2id($tag) $ivol
+    set _serverObjs($tag) $tag
     if { $_settings($this-volume) && $dataobj == $_first } {
-	SendCmd "volume state 1 $ivol"
+	SendCmd "volume state 1 $tag"
     }
-    set _limits($ivol-min) $info(min);  # Minimum value of the volume.
-    set _limits($ivol-max) $info(max);  # Maximum value of the volume.
+    set _limits($tag-min) $info(min);  # Minimum value of the volume.
+    set _limits($tag-max) $info(max);  # Maximum value of the volume.
     set _limits(vmin)      $info(vmin); # Overall minimum value.
     set _limits(vmax)      $info(vmax); # Overall maximum value.
 
-    unset _receiveIds($ivol)
+    unset _recvdObjs($tag)
     if { [array size _receiveIds] == 0 } {
 	updatetransferfuncs
     }
@@ -935,7 +937,7 @@ itcl::body Rappture::NanovisViewer::Rebuild {} {
     # before we rebuild the rest.
     foreach dataobj [get] {
 	set comp [lindex [$dataobj components] 0]
-	if {![info exists _obj2id($dataobj-$comp)]} {
+	if {![info exists _serverObjs($dataobj-$comp)]} {
 	    set i [lsearch -exact $_sendobjs $dataobj]
 	    if {$i < 0} {
 		lappend _sendobjs $dataobj
@@ -970,24 +972,17 @@ itcl::body Rappture::NanovisViewer::Rebuild {} {
 	    SendCmd "up $axis"
 	}
 	SendCmd "volume state 0"
-	foreach key [array names _obj2id $_first-*] {
-	    SendCmd "volume state 1 $_obj2id($key)"
+	set vols [array names _serverObjs $_first-*] 
+	if { $vols != "" } {
+	    SendCmd "volume state 1 $vols"
 	}
-	#
-	# The _obj2id and _id2style arrays may or may not have the right
-	# information.  It's possible for the server to know about volumes
-	# that the client has assumed it's deleted.  We could add checks.
-	# But this problem needs to be fixed not bandaided.
-	set comp [lindex [$_first components] 0]
-	set ivol $_obj2id($_first-$comp)
-
 	foreach comp [$_first components] {
 	    NameTransferFunc $_first $comp
 	}
     }
 
     # sync the state of slicers
-    set vols [CurrentVolumeIds -cutplanes]
+    set vols [CurrentVolumes -cutplanes]
     foreach axis {x y z} {
 	SendCmd "cutplane state $_settings($this-${axis}cutplane) $axis $vols"
 	set pos [expr {0.01*$_settings($this-${axis}cutposition)}]
@@ -1004,28 +999,25 @@ itcl::body Rappture::NanovisViewer::Rebuild {} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: CurrentVolumeIds ?-cutplanes?
+# USAGE: CurrentVolumes ?-cutplanes?
 #
 # Returns a list of volume server IDs for the current volume being
 # displayed.  This is normally a single ID, but it might be a list
 # of IDs if the current data object has multiple components.
 # ----------------------------------------------------------------------
-itcl::body Rappture::NanovisViewer::CurrentVolumeIds {{what -all}} {
+itcl::body Rappture::NanovisViewer::CurrentVolumes {{what -all}} {
     set rlist ""
     if { $_first == "" } {
 	return
     }
-    foreach key [array names _obj2id *-*] {
-	if {[string match $_first-* $key]} {
-	    array set style {
-		-cutplanes 1
-	    }
-	    foreach {dataobj comp} [split $key -] break
-	    array set style [lindex [$dataobj components -style $comp] 0]
-
-	    if {$what != "-cutplanes" || $style(-cutplanes)} {
-		lappend rlist $_obj2id($key)
-	    }
+    foreach key [array names _serverObjs $_first-*] {
+	array set style {
+	    -cutplanes 1
+	}
+	foreach {dataobj comp} [split $key -] break
+	array set style [lindex [$dataobj components -style $comp] 0]
+	if {$what != "-cutplanes" || $style(-cutplanes)} {
+	    lappend rlist $key
 	}
     }
     return $rlist
@@ -1288,7 +1280,7 @@ itcl::body Rappture::NanovisViewer::FixSettings {what {value ""}} {
 	}
         "volume" {
             if { [isconnected] } {
-		set vols [CurrentVolumeIds -cutplanes] 
+		set vols [CurrentVolumes -cutplanes] 
                 SendCmd "volume data state $_settings($this-volume) $vols"
 	    }
         }
@@ -1296,7 +1288,7 @@ itcl::body Rappture::NanovisViewer::FixSettings {what {value ""}} {
 	    set axis [string range $what 0 0]
 	    set bool $_settings($this-$what)
             if { [isconnected] } {
-		set vols [CurrentVolumeIds -cutplanes] 
+		set vols [CurrentVolumes -cutplanes] 
 		SendCmd "cutplane state $bool $axis $vols"
 	    }
 	    if { $bool } {
@@ -1478,8 +1470,8 @@ itcl::body Rappture::NanovisViewer::ComputeTransferFunc { tf } {
 	lappend wmap 1.0 0.0
     }
     SendBytes "transfunc define $tf { $cmap } { $wmap }\n"
-    if { [info exists _obj2id($dataobj-$comp)] } {
-	return [SendBytes "volume shading transfunc $tf $_obj2id($dataobj-$comp)\n"]
+    if { [info exists _serverObjs($dataobj-$comp)] } {
+	return [SendBytes "volume shading transfunc $tf $dataobj-$comp\n"]
     }
 }
 
@@ -1648,18 +1640,18 @@ itcl::body Rappture::NanovisViewer::limits { tf } {
     }
     set min ""; set max ""
     foreach {dataobj comp} $_style2objs($tf) {
-	if { ![info exists _obj2id($dataobj-$comp)] } {
+	set tag $dataobj-$comp
+	if { ![info exists _serverObjs($tag)] } {
 	    continue
 	}
-	set ivol $_obj2id($dataobj-$comp)
-	if { ![info exists _limits($ivol-min)] } {
+	if { ![info exists _limits($tag-min)] } {
 	    continue
 	}
-	if { $min == "" || $min > $_limits($ivol-min) } {
-	    set min $_limits($ivol-min)
+	if { $min == "" || $min > $_limits($tag-min) } {
+	    set min $_limits($tag-min)
 	}
-	if { $max == "" || $max < $_limits($ivol-max) } {
-	    set max $_limits($ivol-max)
+	if { $max == "" || $max < $_limits($tag-max) } {
+	    set max $_limits($tag-max)
 	}
     }
     if { $min != "" } {
@@ -1957,8 +1949,8 @@ itcl::body Rappture::NanovisViewer::Slice {option args} {
             set newval [lindex $args 1]
 
             set newpos [expr {0.01*$newval}]
-            set ids [CurrentVolumeIds -cutplanes]
-            SendCmd "cutplane position $newpos $axis $ids"
+            set vols [CurrentVolumes -cutplanes]
+            SendCmd "cutplane position $newpos $axis $vols"
         }
         default {
             error "bad option \"$option\": should be axis, move, or volume"

@@ -2614,15 +2614,23 @@ itcl::body Rappture::FlowvisViewer::FlowCmd { dataobj comp nbytes extents } {
     set _settings($this-arrows) $info(arrows)
     set _settings($this-duration) $info(duration)
     $itk_component(speed) value $info(speed)
-    append cmd "flow add $tag -position $info(position) -axis $info(axis) "
-    append cmd "-volume $info(volume) -outline $info(outline) "
-    append cmd "-slice $info(streams) -arrows $info(arrows)\n"
+    append cmd "flow add $tag"
+    append cmd " -position $info(position)"
+    append cmd " -axis $info(axis)"
+    append cmd " -volume $info(volume)"
+    append cmd " -outline $info(outline)"
+    append cmd " -slice $info(streams)"
+    append cmd " -arrows $info(arrows)\n"
     foreach part [$flowobj particles] {
 	array unset info
 	array set info $part
 	set color [Color2RGB $info(color)]
-	append cmd "$tag particles add $info(name) -position $info(position) "
-	append cmd "-axis $info(axis) -color {$color} -size $info(size)\n"
+	append cmd "$tag particles add $info(name)"
+	append cmd " -position $info(position)"
+	append cmd " -hide $info(hide)"
+	append cmd " -axis $info(axis)"
+	append cmd " -color {$color}"
+	append cmd " -size $info(size)\n"
     }
     foreach box [$flowobj boxes] {
 	array unset info
@@ -2633,9 +2641,12 @@ itcl::body Rappture::FlowvisViewer::FlowCmd { dataobj comp nbytes extents } {
 	    continue
 	}
 	set color [Color2RGB $info(color)]
-	append cmd "$tag box add $info(name) -color {$color} "
-	append cmd "-hide $info(hide) -linewidth $info(linewidth) "
-	append cmd "-corner1 {$info(corner1)} -corner2 {$info(corner2)}\n"
+	append cmd "$tag box add $info(name)"
+        append cmd " -color {$color}"
+	append cmd " -hide $info(hide)"
+        append cmd " -linewidth $info(linewidth) "
+	append cmd " -corner1 {$info(corner1)} "
+  	append cmd " -corner2 {$info(corner2)}\n"
     }    
     append cmd "$tag data follows $nbytes $extents\n"
     return $cmd
@@ -2848,7 +2859,7 @@ itcl::body Rappture::FlowvisViewer::GetPngImage  { widget width height } {
     return ""
 }
 
-itcl::body Rappture::FlowvisViewer::GetMovie { widget width height } {
+itcl::body Rappture::FlowvisViewer::GetMovie { widget w h } {
     set token "movie[incr _nextToken]"
     set var ::Rappture::FlowvisViewer::_hardcopy($this-$token)
     set $var ""
@@ -2857,10 +2868,12 @@ itcl::body Rappture::FlowvisViewer::GetMovie { widget width height } {
     $_dispatcher dispatch $this !movietimeout "set $var {} ; list"
     set popup .flowvisviewermovie
     if {![winfo exists $popup]} {
-	Rappture::Balloon $popup -title "Generating video..."
+	Rappture::Balloon $popup -title "Generating movie..."
 	set inner [$popup component inner]
-	label $inner.title -text "Generating Hardcopy" -font "Arial 10 bold"
-	label $inner.please -text "This may take a few minutes." -font "Arial 10"
+	label $inner.title -text "Generating movie for download" \
+		-font "Arial 10 bold"
+	label $inner.please -text "This may take a few minutes." \
+		-font "Arial 10"
 	label $inner.icon -image [Rappture::icon bigroller0]
 	button $inner.cancel -text "Cancel" -font "Arial 10 bold" \
 	    -command [list set $var ""]
@@ -2875,7 +2888,8 @@ itcl::body Rappture::FlowvisViewer::GetMovie { widget width height } {
     } else {
 	set inner [$popup component inner]
     }
-    $_dispatcher event -after 300000 !movietimeout
+    # Timeout is set to 10 minutes.
+    $_dispatcher event -after 600000 !movietimeout
     WaitIcon start $inner.icon
     grab set -local $inner
     focus $inner.cancel
@@ -2884,21 +2898,24 @@ itcl::body Rappture::FlowvisViewer::GetMovie { widget width height } {
     flow speed
     set nframes [expr round($_flow(duration) / $_flow(delay))]
     set framerate [expr 1000.0 / $_flow(delay)]
+
+    # These are specific to MPEG1 video generation
     set framerate 25.0
-    set bitrate 6000000
+    set bitrate 6.0e+6
 
     set start [clock seconds]
-    SendCmd "flow video $width $height $nframes $framerate $bitrate $token"
+    SendCmd "flow video $token -width $w -height $h -numframes $nframes "
     
     $popup activate $widget below
     update
-    # We wait here for either 
-    #  1) the png to be delivered or 
-    #  2) timeout or  
-    #  3) user cancels the operation.
+    # We wait here until
+    #  1. the movie is delivered or 
+    #  2. we've timed out or  
+    #  3. the user has canceled the operation.b
     tkwait variable $var
 
-    puts stderr "I'm back in [expr [clock seconds] - $start] seconds."
+    puts stderr "Video generated in [expr [clock seconds] - $start] seconds."
+
     # Clean up.
     $_dispatcher cancel !movietimeout
     WaitIcon stop $inner.icon
@@ -2907,6 +2924,9 @@ itcl::body Rappture::FlowvisViewer::GetMovie { widget width height } {
     destroy $popup
     update
 
+    # This will both cancel the movie generation (if it hasn't already
+    # completed) and reset the flow. 
+    SendCmd "flow reset"
     if { $_hardcopy($this-$token) != "" } {
 	return [list .mpg $_hardcopy($this-$token)]
     }
