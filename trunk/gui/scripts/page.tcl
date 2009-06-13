@@ -213,6 +213,8 @@ itcl::body Rappture::Page::_buildGroup {frame xmlobj path} {
 		}
 		$service output for $obj $w
 	    }
+	} elseif {$type == "current"} {
+	    # Don't do anything.
 	} else {
 	    # create a control panel, if necessary
 	    if {![winfo exists $frame.cntls]} {
