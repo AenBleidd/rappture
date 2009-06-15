@@ -2033,7 +2033,7 @@ FlowVideoOp(ClientData clientData, Tcl_Interp *interp, int objc,
 	    NanoVis::licRenderer->convolve();
 	}
 	NanoVis::AdvectFlows();
-        glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, final_fbo);
+        glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, NanoVis::final_fbo);
         NanoVis::display();
         NanoVis::read_screen();
         glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
