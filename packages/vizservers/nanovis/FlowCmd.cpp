@@ -2022,8 +2022,8 @@ FlowVideoOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     NanoVis::ResetFlows();
     bool canceled = false;
-    for (int i = 0; i < values.nFrames; i++) {
-	if (poll(&pollResults, 1, 0) > 0) {
+    for (int i = 1; i <= values.nFrames; i++) {
+	if (((i & 0xF) == 0) && (poll(&pollResults, 1, 0) > 0)) {
 	    /* If there's another command on stdin, that means the client is
 	     * trying to cancel this operation. */
 	    canceled = true;
