@@ -2033,8 +2033,7 @@ FlowVideoOp(ClientData clientData, Tcl_Interp *interp, int objc,
 	    NanoVis::licRenderer->convolve();
 	}
 	NanoVis::AdvectFlows();
-	NanoVis::RenderFlows();
-        NanoVis::offscreen_buffer_capture();  //enable offscreen render
+        glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, final_fbo);
         NanoVis::display();
         NanoVis::read_screen();
         glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
@@ -2044,21 +2043,21 @@ FlowVideoOp(ClientData clientData, Tcl_Interp *interp, int objc,
     Trace("FLOW end\n");
     if (!canceled) {
 	Rappture::Buffer data;
-	// FIXME: find a way to get the data from the movie object as a void*
+
+	/* FIXME: find a way to get the data from the movie object as a
+	 * void* */
 	if (!data.load(context, tmpFileName)) {
 	    Tcl_AppendResult(interp, "can't load data from temporary file \"",
 		tmpFileName, "\": ", context.remark(), (char *)NULL);
 	    return TCL_ERROR;
 	}
 
-	// Build the command string for the client.
 	char command[200];
 	sprintf(command,"nv>image -bytes %lu -type movie -token \"%s\"\n", 
 		(unsigned long)data.size(), token);
 	NanoVis::sendDataToClient(command, data.bytes(), data.size());
     }
     if ((values.width != oldWidth) || (values.height != oldHeight)) {
-	// Restore to the old size.
 	NanoVis::resize_offscreen_buffer(oldWidth, oldHeight);
     }
     NanoVis::ResetFlows();
