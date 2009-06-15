@@ -5,17 +5,21 @@
 #include <GL/glew.h>
 #include <GL/glut.h>
 
+static bool trace = false;
+
 void 
 Trace(const char* format, ...)
 {
     char buff[1024];
     va_list lst;
     
-    va_start(lst, format);
-    vsnprintf(buff, 1023, format, lst);
-    buff[1023] = '\0';
-    fprintf(stdout, "%s\n", buff);
-    fflush(stdout);
+    if (trace) {
+	va_start(lst, format);
+	vsnprintf(buff, 1023, format, lst);
+	buff[1023] = '\0';
+	fprintf(stdout, "%s\n", buff);
+	fflush(stdout);
+    }
 }
 
 bool

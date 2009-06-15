@@ -1079,6 +1079,10 @@ NanoVis::ResetFlows(void)
 {
     FlowCmd *flowPtr;
     FlowIterator iter;
+
+    if (licRenderer->active()) {
+	NanoVis::licRenderer->reset();
+    }
     for (flowPtr = FirstFlow(&iter); flowPtr != NULL; 
 	 flowPtr = NextFlow(&iter)) {
 	if ((flowPtr->isDataLoaded()) && (flowPtr->visible())) {
@@ -1852,16 +1856,15 @@ FlowGotoOp(ClientData clientData, Tcl_Interp *interp, int objc,
 	return TCL_ERROR;
     }
     NanoVis::ResetFlows();
-    assert(NanoVis::licRenderer != NULL);
-    NanoVis::licRenderer->reset();
     if (NanoVis::flags & NanoVis::MAP_FLOWS) {
 	NanoVis::MapFlows();
     }
     int i;
     NanoVis::AdvectFlows();
     for (i = 0; i < nSteps; i++) {
-	Trace("advect step=%d\n", i);
-	NanoVis::licRenderer->convolve();
+	if (NanoVis::licRenderer->active()) {
+	    NanoVis::licRenderer->convolve();
+	}
 	NanoVis::AdvectFlows();
     }
     NanoVis::EventuallyRedraw();
@@ -1914,7 +1917,6 @@ FlowResetOp(ClientData clientData, Tcl_Interp *interp, int objc,
              Tcl_Obj *const *objv)
 {
     NanoVis::ResetFlows();
-    NanoVis::licRenderer->reset();
     return TCL_OK;
 }
 
@@ -2027,7 +2029,9 @@ FlowVideoOp(ClientData clientData, Tcl_Interp *interp, int objc,
 	    canceled = true;
 	    break;
 	}
-	NanoVis::licRenderer->convolve();
+	if (NanoVis::licRenderer->active()) {
+	    NanoVis::licRenderer->convolve();
+	}
 	NanoVis::AdvectFlows();
 	NanoVis::RenderFlows();
         NanoVis::offscreen_buffer_capture();  //enable offscreen render
@@ -2058,7 +2062,6 @@ FlowVideoOp(ClientData clientData, Tcl_Interp *interp, int objc,
 	NanoVis::resize_offscreen_buffer(oldWidth, oldHeight);
     }
     NanoVis::ResetFlows();
-    NanoVis::licRenderer->make_patterns();
     if (unlink(tmpFileName) != 0) {
         Tcl_AppendResult(interp, "can't unlink temporary movie file \"",
 		tmpFileName, "\": ", Tcl_PosixError(interp), (char *)NULL);
