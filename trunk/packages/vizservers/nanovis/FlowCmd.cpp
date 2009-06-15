@@ -2050,7 +2050,7 @@ FlowVideoOp(ClientData clientData, Tcl_Interp *interp, int objc,
 	// Build the command string for the client.
 	char command[200];
 	sprintf(command,"nv>image -bytes %lu -type movie -token \"%s\"\n", 
-		(unsigned long)data.size(), Tcl_GetString(objv[7]));
+		(unsigned long)data.size(), token);
 	NanoVis::sendDataToClient(command, data.bytes(), data.size());
     }
     if ((values.width != oldWidth) || (values.height != oldHeight)) {
