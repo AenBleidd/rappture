@@ -18,7 +18,7 @@ package require BLT
 namespace eval Rappture { # forward declaration }
 
 itcl::class Rappture::Unirect3d {
-    constructor {xmlobj field cname} { # defined below }
+    constructor {xmlobj field cname {extents 1}} { # defined below }
     destructor { # defined below }
 
     public method limits {axis}
@@ -36,21 +36,22 @@ itcl::class Rappture::Unirect3d {
     private variable _axisOrder	 "x y z"
     private variable _xMax	 0
     private variable _xMin	 0
-    private variable _xNum	 0
+    private variable _xNum	 0;	# Number of points along x-axis.
     private variable _yMax	 0
     private variable _yMin	 0
-    private variable _yNum	 0
+    private variable _yNum	 0;	# Number of points along y-axis.
     private variable _zMax	 0
     private variable _zMin	 0
-    private variable _zNum	 0
-    private variable _values	 ""; # BLT vector containing the z-values 
+    private variable _zNum	 0;	# Number of points along z-axis.
+    private variable _compNum	 1;	# Number of components in values.
+    private variable _values	 "";	# BLT vector containing the z-values 
     private variable _hints
 }
 
 # ----------------------------------------------------------------------
 # Constructor
 # ----------------------------------------------------------------------
-itcl::body Rappture::Unirect3d::constructor {xmlobj field cname} {
+itcl::body Rappture::Unirect3d::constructor {xmlobj field cname {extents 1}} {
     if {![Rappture::library isvalid $xmlobj]} {
 	error "bad value \"$xmlobj\": should be Rappture::library"
     }
@@ -65,10 +66,15 @@ itcl::body Rappture::Unirect3d::constructor {xmlobj field cname} {
     GetSize $m "xaxis.numpoints" _xNum
     GetSize $m "yaxis.numpoints" _yNum
     GetSize $m "zaxis.numpoints" _zNum
+    set _compNum $extents
     itcl::delete object $m
 
     set _values [blt::vector create #auto]
     $_values set [$field get "$cname.values"]
+    set n [expr $_xNum * $_yNum * $_zNum * $_compNum]
+    if { [$_values length] != $n } {
+	error "wrong \# of values in \"$cname.values\": expected $n values"
+    }
 }
 
 # ----------------------------------------------------------------------

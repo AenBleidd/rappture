@@ -18,7 +18,7 @@ package require BLT
 namespace eval Rappture { # forward declaration }
 
 itcl::class Rappture::Unirect2d {
-    constructor {xmlobj field cname} { # defined below }
+    constructor {xmlobj field cname {extents 1}} { # defined below }
     destructor { # defined below }
 
     public method limits {axis}
@@ -30,21 +30,22 @@ itcl::class Rappture::Unirect2d {
     private method GetValue { obj path varName }
     private method GetSize { obj path varName }
 
-    private variable _axisOrder	 "x y"
-    private variable _xMax 0
-    private variable _xMin 0
-    private variable _xNum 0
-    private variable _yMax 0
-    private variable _yMin 0
-    private variable _yNum 0
-    private variable _values "";	# BLT vector containing the z-values 
+    private variable _axisOrder	"x y"
+    private variable _xMax	0
+    private variable _xMin	0
+    private variable _xNum	0
+    private variable _yMax	0
+    private variable _yMin	0
+    private variable _yNum	0
+    private variable _compNum	1
+    private variable _values	"";	# BLT vector containing the z-values 
     private variable _hints
 }
 
 # ----------------------------------------------------------------------
 # Constructor
 # ----------------------------------------------------------------------
-itcl::body Rappture::Unirect2d::constructor {xmlobj field cname} {
+itcl::body Rappture::Unirect2d::constructor {xmlobj field cname {extents 1}} {
     if {![Rappture::library isvalid $xmlobj]} {
 	error "bad value \"$xmlobj\": should be Rappture::library"
     }
@@ -57,7 +58,7 @@ itcl::body Rappture::Unirect2d::constructor {xmlobj field cname} {
     GetValue $m "yaxis.min" _yMin
     GetValue $m "yaxis.max" _yMax
     GetSize $m "yaxis.numpoints" _yNum
-    
+    set _compNum $extents
     foreach {key path} {
 	group   about.group
 	label   about.label
@@ -96,6 +97,10 @@ itcl::body Rappture::Unirect2d::constructor {xmlobj field cname} {
 	set values [$field get "$cname.zvalues"]
     }
     $_values set $values
+    set n [expr $_xNum * $_yNum * $_compNum]
+    if { [$_values length] != $n } {
+	error "wrong \# of values in \"$cname.values\": expected $n values"
+    }
 }
 
 # ----------------------------------------------------------------------

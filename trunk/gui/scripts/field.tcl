@@ -639,7 +639,8 @@ itcl::body Rappture::Field::_build {} {
 		if { $element == "unirect2d" } {
 		    set _comp2dims($cname) "2D"
 		    set _comp2unirect2d($cname) \
-			[Rappture::Unirect2d \#auto $_xmlobj $_field $cname]
+			[Rappture::Unirect2d \#auto $_xmlobj $_field $cname \
+			     $extents]
 		    set _comp2style($cname) [$_field get $cname.style]
 		    if {[$_field element $cname.flow] != ""} {
 			set _comp2flowhints($cname) \
@@ -649,7 +650,8 @@ itcl::body Rappture::Field::_build {} {
 		} elseif { $element == "unirect3d" } {
 		    set _comp2dims($cname) "3D"
 		    set _comp2unirect3d($cname) \
-			[Rappture::Unirect3d \#auto $_xmlobj $_field $cname]
+			[Rappture::Unirect3d \#auto $_xmlobj $_field $cname \
+			    $extents]
 		    set _comp2style($cname) [$_field get $cname.style]
 		    if {[$_field element $cname.flow] != ""} {
 			set _comp2flowhints($cname) \
