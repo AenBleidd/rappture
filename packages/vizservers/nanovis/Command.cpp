@@ -617,7 +617,7 @@ GetDataStream(Tcl_Interp *interp, Rappture::Buffer &buf, int nBytes)
     } else if (Rappture::encoding::isBase64(buf.bytes(), buf.size())) {
 	/* No header, but it's base64 encoded.  It's likely that it's both
 	 * base64 encoded and compressed. */
-	if (!Rappture::encoding::decode(err, buf, RPENC_B64)) {
+	if (!Rappture::encoding::decode(err, buf, RPENC_B64 | RPENC_Z)) {
 	    Tcl_AppendResult(interp, err.remark(), (char*)NULL);
 	    return TCL_ERROR;
 	}
@@ -1167,9 +1167,11 @@ VolumeDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
     if (GetDataStream(interp, buf, nbytes) != TCL_OK) {
         return TCL_ERROR;
     }
-    char header[6];
-    memcpy(header, buf.bytes(), sizeof(char) * 5);
-    header[5] = '\0';
+    const char *bytes;
+    size_t nBytes;
+
+    bytes = buf.bytes();
+    nBytes = buf.size();
 
 #if _LOCAL_ZINC_TEST_
     //FILE* fp = fopen("/home/nanohub/vrinside/nv/data/HOON/QDWL_100_100_50_strain_8000i.nd_zatom_12_1", "rb");
@@ -1181,16 +1183,16 @@ VolumeDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
         fflush(stdout);
         return TCL_ERROR;
     }
-    unsigned char* b = (unsigned char*)malloc(buf.size());
-    fread(b, buf.size(), 1, fp);
+    unsigned char* b = (unsigned char*)malloc(nBytes);
+    fread(b, nBytes, 1, fp);
     fclose(fp);
 #endif  /*_LOCAL_ZINC_TEST_*/
-    printf("Checking header[%s]\n", header);
-    fflush(stdout);
+    Trace("Checking header[%.20s]\n", bytes);
 
     Volume *volPtr;
     volPtr = NULL;			// Supress compiler warning.
-    if (strncmp(header, "<HDR>", 5) == 0) {
+    
+    if ((nBytes > 5) && (strncmp(bytes, "<HDR>", 5) == 0)) {
         printf("ZincBlende stream is in\n");
         fflush(stdout);
          //std::stringstream fdata(std::ios_base::out|std::ios_base::in|std::ios_base::binary);
@@ -1227,18 +1229,18 @@ VolumeDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
 	Tcl_SetHashValue(hPtr, volPtr);
 	volPtr->name(Tcl_GetHashKey(&NanoVis::volumeTable, hPtr));
 #if __TEST_CODE__
-    } else if (strncmp(header, "<FET>", 5) == 0) {
+    } else if ((nBytes > 5) && (strncmp(bytes, "<FET>", 5) == 0)) {
         printf("FET loading...\n");
         fflush(stdout);
         std::stringstream fdata;
-        fdata.write(buf.bytes(),buf.size());
+        fdata.write(nBytes + 5, bytes - 5);
 	volPtr = load_volume_stream3(err, tag, fdata);
 	if (volPtr == NULL) {
             Tcl_AppendResult(interp, err.remark(), (char*)NULL);
             return TCL_ERROR;
         }
 #endif  /*__TEST_CODE__*/
-    } else if (strncmp(header, "<ODX>", 5) == 0) {
+    } else if ((nBytes > 5) && (strncmp(bytes, "<ODX>", 5) == 0)) {
 	/*
         Rappture::Outcome err;
 
@@ -1254,8 +1256,8 @@ VolumeDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
         printf("OpenDX loading...\n");
         fflush(stdout);
         std::stringstream fdata;
-        fdata.write(buf.bytes(), buf.size());
-	if (buf.size() <= 0) {
+        fdata.write(bytes, nBytes);
+	if (nBytes <= 0) {
 	    fprintf(stderr, "data buffer is empty\n");
 	    abort();
 	}

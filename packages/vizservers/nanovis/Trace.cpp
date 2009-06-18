@@ -5,7 +5,7 @@
 #include <GL/glew.h>
 #include <GL/glut.h>
 
-static bool trace = false;
+static bool trace = true;
 
 void 
 Trace(const char* format, ...)
