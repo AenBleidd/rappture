@@ -745,6 +745,9 @@ itcl::body Rappture::Field::_build {} {
 	    #
 	    set _comp2dims($cname) "3D"
 	    set _comp2dx($cname)  [$_field get -decode no $cname.dx]
+	    set f [open $cname.dx "w"]
+	    puts $f [Rappture::encoding::decode -as zb64 $_comp2dx($cname)]
+	    close $f
 	    set _comp2style($cname) [$_field get $cname.style]
 	    if {[$_field element $cname.flow] != ""} {
 		set _comp2flowhints($cname) \

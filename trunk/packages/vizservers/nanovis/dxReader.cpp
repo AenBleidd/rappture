@@ -170,7 +170,7 @@ load_volume_stream2(Rappture::Outcome &result, const char *tag,
     fprintf(stderr, "found nx=%d ny=%d, nz=%d, x0=%f, y0=%f, z0=%f\n",
 	    nx, ny, nz, x0, y0, z0);
     // read data points
-    if (fin.eof()) {
+    if (fin.eof() && (npts > 0)) {
         result.addError("EOF found: expecting %d points", npts);
 	return NULL;
     }
