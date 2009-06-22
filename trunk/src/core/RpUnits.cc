@@ -2394,6 +2394,9 @@ RpUnits::addPresets (const std::string group) {
     else if (group.compare(RP_TYPE_MISC) == 0) {
         retVal = RpUnitsPreset::addPresetMisc();
     }
+    else if (group.compare(RP_TYPE_POWER) == 0) {
+        retVal = RpUnitsPreset::addPresetPower();
+    }
 
     return retVal;
 }
@@ -2425,6 +2428,7 @@ RpUnitsPreset::addPresetAll () {
     result += addPresetForce();
     result += addPresetMagnetic();
     result += addPresetMisc();
+    result += addPresetPower();
 
     return 0;
 }
@@ -2939,6 +2943,8 @@ RpUnitsPreset::addPresetMisc () {
     RpUnits* becquerel = NULL;
     RpUnits* amu       = NULL;
     RpUnits* bel       = NULL;
+    RpUnits* amp       = NULL;
+    RpUnits* ohm       = NULL;
 
     volt      = RpUnits::define("V",  NULL, RP_TYPE_EPOT, RPUNITS_METRIC);
     mole      = RpUnits::define("mol",NULL, "quantity", RPUNITS_METRIC);
@@ -2946,8 +2952,31 @@ RpUnitsPreset::addPresetMisc () {
     becquerel = RpUnits::define("Bq", NULL, "radioactivity", RPUNITS_METRIC);
     amu       = RpUnits::define("amu", NULL, "mass_unit", !RPUNITS_METRIC);
     bel       = RpUnits::define("B", NULL, "audio_transmission", RPUNITS_METRIC);
+    amp       = RpUnits::define("amp", NULL, "electric_current", RPUNITS_METRIC);
+    ohm       = RpUnits::define("ohm", NULL, "electric_resistance", RPUNITS_METRIC);
 
     // RpUnits* percent   = RpUnits::define("%",  NULL, RP_TYPE_MISC);
+
+    return 0;
+}
+
+/**********************************************************************/
+// METHOD: addPresetPower()
+/// Add power related units to the dictionary
+/**
+ * Defines the following units:
+ *   watt  (W)
+ *
+ * Return codes: 0 success, anything else is error
+ */
+
+int
+RpUnitsPreset::addPresetPower () {
+
+    RpUnits* watt      = NULL;
+
+    // watts are derived units = J/s = kg*m2/s3 = Newton*m/s and Amps*Volt
+    watt      = RpUnits::define("W",  NULL, RP_TYPE_POWER, RPUNITS_METRIC);
 
     return 0;
 }
@@ -2996,6 +3025,9 @@ RpUnitsTypes::getTypeHint (std::string type) {
     }
     else if (type.compare(RP_TYPE_MISC) == 0) {
         return &RpUnitsTypes::hintTypeMisc;
+    }
+    else if (type.compare(RP_TYPE_POWER) == 0) {
+        return &RpUnitsTypes::hintTypePower;
     }
     else {
         return NULL;
@@ -3176,6 +3208,18 @@ RpUnitsTypes::hintTypeMisc   (   RpUnits* unitObj    ) {
     bool retVal = false;
 
     if ( (unitObj->getType()).compare(RP_TYPE_MISC) == 0 ) {
+        retVal = true;
+    }
+
+    return retVal;
+}
+
+bool
+RpUnitsTypes::hintTypePower   (   RpUnits* unitObj    ) {
+
+    bool retVal = false;
+
+    if ( (unitObj->getType()).compare(RP_TYPE_POWER) == 0 ) {
         retVal = true;
     }
 

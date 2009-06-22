@@ -66,6 +66,7 @@
 #include <fstream>
 #include <cstring>
 #include <cstdlib>
+#include <cstdarg>
 
 namespace Rappture {
 
@@ -87,10 +88,12 @@ public:
 
     SimpleBuffer<T>& clear();
     int append(const T* bytes, int nmemb=-1);
+    int appendf(const char *format, ...);
+    int remove(int nmemb);
     size_t read(const T* bytes, size_t nmemb);
     int seek(long offset, int whence);
     int tell() const;
-    size_t set(size_t nbytes);
+    size_t set(size_t nmemb);
     SimpleBuffer<T>& rewind();
     SimpleBuffer<T>& show();
 
@@ -345,12 +348,17 @@ SimpleBuffer<T>::append(const T* bytes, int nmemb)
         return 0;
     }
 
+    // FIXME: i think this needs to be division,
+    // need to create test case with array of ints
+    // i'm not sure we can even guess the number
+    // bytes in *bytes.
+
     if (nmemb == -1) {
         // user signaled null terminated string
         // or that we should make an educated guess
         // at the length of the object.
         nbytes = __guesslen(bytes);
-        nmemb = nbytes*sizeof(T);
+        nmemb = nbytes/sizeof(T);
     }
 
     if (nmemb <= 0) {
@@ -396,6 +404,152 @@ SimpleBuffer<T>::append(const T* bytes, int nmemb)
     return nmemb;
 }
 
+/**
+ * Append formatted bytes to the end of this buffer
+ * @param pointer to bytes to be added
+ * @param number of bytes to be added
+ * @return number of bytes appended.
+ */
+template<class T>
+int
+SimpleBuffer<T>::appendf(const char *format, ...)
+{
+    size_t newMembCnt = 0;
+    size_t nbytes = 0;
+    int nmemb = 0;
+
+    char* dest = NULL;
+    size_t size = 0;
+    size_t bytesAdded = 0;
+    va_list arg;
+
+    // User specified NULL format
+    if (format == NULL) {
+        return 0;
+    }
+
+    // FIXME: i think this needs to be division,
+    // need to create test case with array of ints
+    // i'm not sure we can even guess the number
+    // bytes in *bytes.
+
+
+    // add one for terminating null character
+    nbytes = strlen(format) + 1;
+
+    if (nbytes <= 0) {
+        // no data written, invalid option
+        return nbytes;
+    }
+
+    // FIXME: we need ceil of nbytes/sizeof(T), instead we add 1 for safety
+
+    nmemb = nbytes/sizeof(T);
+    if (nmemb == 0) {
+        nmemb++;
+    }
+
+    newMembCnt = (size_t)(_nMembStored + nmemb);
+
+    if (newMembCnt > _nMembAvl) {
+
+        // buffer sizes less than min_size are set to min_size
+        if (newMembCnt < (size_t) _minMembCnt) {
+            newMembCnt = (size_t) _minMembCnt;
+        }
+
+        /*
+         * Allocate a larger buffer for the string if the current one isn't
+         * large enough. Allocate extra space in the new buffer so that there
+         * will be room to grow before we have to allocate again.
+         */
+        size_t membAvl;
+        membAvl = (_nMembAvl > 0) ? _nMembAvl : _minMembCnt;
+        while (newMembCnt > membAvl) {
+            membAvl += membAvl;
+        }
+
+        /*
+         * reallocate to a larger buffer
+         */
+        if (set(membAvl) != membAvl) {
+            return 0;
+        }
+    }
+
+    dest = (char*) (_buf + _nMembStored);
+    size = (_nMembAvl-_nMembStored)*sizeof(T);
+
+    va_start(arg,format);
+    bytesAdded = vsnprintf(dest,size,format,arg);
+    va_end(arg);
+
+    // bytesAdded contains the number of bytes that would have
+    // been placed in the buffer if the call was successful.
+    // this value does not include the trailing null character.
+    // so we add one to account for it.
+
+    bytesAdded++;
+    nmemb = bytesAdded/sizeof(T);
+
+    if (bytesAdded > size) {
+        // we did not fit everything in the original buffer
+        // resize and try again.
+
+        // FIXME: round the new size up to the nearest multiple of 256?
+        set(_nMembStored+nmemb);
+
+        // reset dest because it may have moved during reallocation
+        dest = (char*) (_buf + _nMembStored);
+        size = bytesAdded;
+
+        va_start(arg,format);
+        bytesAdded = vsnprintf(dest,size,format,arg);
+        va_end(arg);
+
+        if (bytesAdded > size) {
+            // crystals grow, people grow, data doesn't grow...
+            // issue error
+            fprintf(stderr,"error in appendf while appending data");
+        }
+    }
+
+    _nMembStored += nmemb;
+
+    // remove the null character added by vsnprintf()
+    // we do this because if we are appending strings,
+    // the embedded null acts as a terminating null char.
+    // this is a generic buffer so if user wants a
+    // terminating null, they should append it.
+    remove(1);
+
+    return nmemb;
+}
+
+/**
+ * Remove bytes from the end of this buffer
+ * @param number of bytes to be removed
+ * @return number of bytes removed.
+ */
+template<class T>
+int
+SimpleBuffer<T>::remove(int nmemb)
+{
+    if ((_nMembStored - nmemb) < 0){
+        _nMembStored = 0;
+        _pos = 0;
+    } else {
+        _nMembStored -= nmemb;
+        if (_pos >= _nMembStored) {
+            // move _pos back to the new end of the buffer.
+            _pos = _nMembStored-1;
+        }
+    }
+
+
+    return nmemb;
+}
+
 
 template<class T>
 size_t
@@ -411,7 +565,8 @@ SimpleBuffer<T>::set(size_t nmemb)
     }
 
     if (buf == NULL) {
-        fprintf(stderr,"Can't allocate %zu bytes of memory\n",nbytes);
+        fprintf(stderr,"Can't allocate %lu bytes of memory\n", 
+            (long unsigned int)nbytes);
         _fileState = false;
         return 0;
     }
@@ -428,10 +583,11 @@ SimpleBuffer<char>::show()
     size_t curMemb = 0;
 
     while (curMemb != _nMembStored) {
-        fprintf(stdout,"_buf[%zu] = :%c:\n", curMemb, _buf[curMemb]);
+        fprintf(stdout,"_buf[%lu] = :%c:\n", (long unsigned int)curMemb,
+                _buf[curMemb]);
         curMemb += 1;
     }
-    fprintf(stdout,"_nMembAvl = :%zu:\n", _nMembAvl);
+    fprintf(stdout,"_nMembAvl = :%lu:\n", (long unsigned int)_nMembAvl);
 
     return *this;
 }
@@ -444,11 +600,11 @@ SimpleBuffer<T>::show()
     size_t curMemb = 0;
 
     while (curMemb != _nMembStored) {
-        fprintf(stdout,"_buf[%zu] = :%#lx:\n", curMemb,
-            (long unsigned)_buf[curMemb]);
+        fprintf(stdout,"_buf[%lu] = :%#x:\n", (long unsigned int)curMemb,
+                (unsigned long)_buf[curMemb]);
         curMemb += 1;
     }
-    fprintf(stdout,"_nMembAvl = :%zu:\n", _nMembAvl);
+    fprintf(stdout,"_nMembAvl = :%lu:\n", (long unsigned int)_nMembAvl);
 
     return *this;
 }

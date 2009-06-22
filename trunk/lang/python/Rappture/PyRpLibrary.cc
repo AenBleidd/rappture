@@ -27,16 +27,16 @@ typedef int Py_ssize_t;
 #endif
 
 static PyObject *ErrorObject;
-RpLibrary* RpLibraryObject_AsLibrary(PyObject *lib);
-static PyObject* RpLibraryObject_FromLibrary(RpLibrary *lib);
-int boolAsInt(const char* inVal, int* outVal);
-int boolIntFromPyObject ( PyObject* inPyObj, const char* defaultVal,
-                            const char* argName, int* boolVal);
-int getArgCount ( PyObject* args, PyObject* keywds, int* argc);
+RpLibrary * RpLibraryObject_AsLibrary(PyObject *lib);
+static PyObject * RpLibraryObject_FromLibrary(RpLibrary *lib);
+int boolAsInt(const char *inVal, int *outVal);
+int boolIntFromPyObject ( PyObject *inPyObj, const char *defaultVal,
+                            const char *argName, int *boolVal);
+int getArgCount ( PyObject *args, PyObject *keywds, int *argc);
 
 typedef struct {
     PyObject_HEAD
-    RpLibrary* lib;
+    RpLibrary *lib;
 } RpLibraryObject;
 
 /*
@@ -86,7 +86,7 @@ RpLibraryObject_IsValid(PyObject *o)
     return retval;
 }
 
-static PyObject*
+static PyObject *
 RpLibraryObject_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 {
     RpLibraryObject *self = NULL;
@@ -148,7 +148,7 @@ RpLibraryObject_dealloc(RpLibraryObject *self)
         if (self->lib){
             delete(self->lib);
         }
-        self->ob_type->tp_free((PyObject*) self);
+        self->ob_type->tp_free((PyObject *) self);
     }
 }
 
@@ -168,7 +168,7 @@ the data will be copied to (this object).\n\
 \n\
 ");
 
-static PyObject*
+static PyObject *
 RpLibraryObject_copy(RpLibraryObject *self, PyObject *args, PyObject *keywds)
 {
     char *topath = (char *)"";
@@ -177,11 +177,11 @@ RpLibraryObject_copy(RpLibraryObject *self, PyObject *args, PyObject *keywds)
     int status = 0;
     PyObject *fromobj = (PyObject *) self;
 
-    static char *kwlist[] = { 
-	(char *)"topath",
-	(char *)"frompath",
-	(char *)"fromobj", 
-	NULL
+    static char *kwlist[] = {
+        (char *)"topath",
+        (char *)"frompath",
+        (char *)"fromobj",
+        NULL
     };
 
     if (self->lib == NULL) {
@@ -251,7 +251,7 @@ to \"type\" (for the type of the tail element), to \"component\" \n\
 for the default (an object representing the tail element).\n\
 ");
 
-static PyObject*
+static PyObject *
 RpLibraryObject_element(RpLibraryObject *self, PyObject *args, PyObject *keywds)
 {
     char* path = (char *)"";
@@ -262,9 +262,9 @@ RpLibraryObject_element(RpLibraryObject *self, PyObject *args, PyObject *keywds)
     int status = 0;
 
     static char *kwlist[] = {
-	(char *)"path", 
-	(char *)"as", 
-	NULL
+        (char *)"path",
+        (char *)"as",
+        NULL
     };
 
     if (self->lib == NULL) {
@@ -339,7 +339,7 @@ root node.  Otherwise, it returns the value for the element\n\
 specified by the path.\n\
 ");
 
-static PyObject*
+static PyObject *
 RpLibraryObject_get(RpLibraryObject *self, PyObject *args, PyObject *keywds)
 {
     char* path = (char *)"";
@@ -355,9 +355,9 @@ RpLibraryObject_get(RpLibraryObject *self, PyObject *args, PyObject *keywds)
     int status = 0;
 
     static char *kwlist[] = {
-	(char *)"path",
-	(char *)"decode", 
-	NULL
+        (char *)"path",
+        (char *)"decode",
+        NULL
     };
 
     if (self->lib == NULL) {
@@ -431,7 +431,7 @@ to \"type\" (for the type of the tail element), to \"component\" \n\
 for the default (an object representing the tail element).\n\
 ");
 
-static PyObject*
+static PyObject *
 RpLibraryObject_parent(RpLibraryObject *self, PyObject *args, PyObject *keywds)
 {
     char* path = (char *)"";
@@ -442,9 +442,9 @@ RpLibraryObject_parent(RpLibraryObject *self, PyObject *args, PyObject *keywds)
     int status = 0;
 
     static char *kwlist[] = {
-	(char *)"path", 
-	(char *)"as", 
-	NULL
+        (char *)"path",
+        (char *)"as",
+        NULL
     };
 
     status = getArgCount(args,keywds,&argc);
@@ -530,7 +530,7 @@ flag will be evaluated upon the data at path and the result\n\
 will be compressed.\n\
 ");
 
-static PyObject*
+static PyObject *
 RpLibraryObject_put(RpLibraryObject *self, PyObject *args, PyObject *keywds)
 {
     char *path = (char *)"";
@@ -554,13 +554,13 @@ RpLibraryObject_put(RpLibraryObject *self, PyObject *args, PyObject *keywds)
     int status = 0;
 
     static char *kwlist[] = {
-	(char *)"path",
-	(char *)"value",
-	(char *)"id",
-	(char *)"append",
-	(char *)"type",
-	(char *)"compress", 
-	NULL
+        (char *)"path",
+        (char *)"value",
+        (char *)"id",
+        (char *)"append",
+        (char *)"type",
+        (char *)"compress",
+        NULL
     };
 
     if (self->lib == NULL) {
@@ -826,10 +826,10 @@ static PyTypeObject RpLibraryObjectType = {
 /*
  * used to create a RpLibrary object from a PyObject
  */
-RpLibrary*
+RpLibrary *
 RpLibraryObject_AsLibrary(PyObject *lib)
 {
-    RpLibrary* retval = NULL;
+    RpLibrary *retval = NULL;
 
     if (lib != NULL) {
         if (RpLibraryObject_IsValid(lib)) {
@@ -842,7 +842,7 @@ RpLibraryObject_AsLibrary(PyObject *lib)
 /*
  * used to create a PyObject from a RpLibrary object
  */
-PyObject*
+PyObject *
 RpLibraryObject_FromLibrary(RpLibrary *lib)
 {
     RpLibraryObject *self = NULL;
@@ -882,7 +882,7 @@ RpLibraryObject_FromLibrary(RpLibrary *lib)
  */
 
 int
-boolAsInt(const char* inVal, int* outVal)
+boolAsInt(const char *inVal, int *outVal)
 {
     int len = 0;
     int lcv = 0;
@@ -935,15 +935,15 @@ boolAsInt(const char* inVal, int* outVal)
 
 int
 boolIntFromPyObject (
-    PyObject* inPyObj,
-    const char* defaultVal,
-    const char* argName,
-    int* boolVal
+    PyObject *inPyObj,
+    const char *defaultVal,
+    const char *argName,
+    int *boolVal
     )
 {
     int status = -1;
-    PyObject* inStrObj = NULL;
-    char* inStr = NULL;
+    PyObject *inStrObj = NULL;
+    char *inStr = NULL;
 
     if (    (defaultVal == NULL) ||
             (argName == NULL) ||
@@ -982,9 +982,9 @@ boolIntFromPyObject (
 }
 
 int getArgCount (
-    PyObject* args,
-    PyObject* keywds,
-    int* argc
+    PyObject *args,
+    PyObject *keywds,
+    int *argc
     )
 {
     int status = 1;

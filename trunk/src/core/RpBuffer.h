@@ -71,19 +71,19 @@ protected:
     int _windowBits;
 
     enum { CHUNK = 4096 };
-    
+
     bool do_compress(Outcome& status, SimpleCharBuffer& bin,
-		     SimpleCharBuffer& bout  );
+                     SimpleCharBuffer& bout  );
     bool do_decompress( Outcome& status, SimpleCharBuffer& bin,
                         SimpleCharBuffer& bout  );
     bool do_base64_enc(Outcome& status, const SimpleCharBuffer& bin,
-		       SimpleCharBuffer& bout  );
+                       SimpleCharBuffer& bout  );
     bool do_base64_dec(Outcome& status, const SimpleCharBuffer& bin,
-		       SimpleCharBuffer& bout  );
+                       SimpleCharBuffer& bout  );
 };
 
 } // namespace Rappture
- 
+
 #ifdef __cplusplus
     }
 #endif // ifdef __cplusplus

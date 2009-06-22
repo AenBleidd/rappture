@@ -119,37 +119,37 @@ Buffer::load (Outcome &status, const char* filePath)
     f = fopen(filePath, "rb");
     if (f == NULL) {
         status.addError("can't open \"%s\": %s", filePath, strerror(errno));
-	return false;
+        return false;
     }
     struct stat stat;
     if (fstat(fileno(f), &stat) < 0) {
         status.addError("can't stat \"%s\": %s", filePath, strerror(errno));
-	return false;
-    }	
+        return false;
+    }
     off_t size;
     size = stat.st_size;
     char* memblock;
     memblock = new char [size];
     if (memblock == NULL) {
         status.addError("can't allocate %d bytes for file \"%s\": %s",
-			size, filePath, strerror(errno));
+                        size, filePath, strerror(errno));
         fclose(f);
         return false;
     }
 
     // FIXME: better yet, create an "extend" method in the buffer and returns
-    //	     the address of the char buffer so I can read the data directly
-    //	     into the buffer.  This eliminates memory new/copy/delete ops.
+    //             the address of the char buffer so I can read the data directly
+    //             into the buffer.  This eliminates memory new/copy/delete ops.
 
     size_t nRead;
     nRead = fread(memblock, sizeof(char), size, f);
-    fclose(f);			// Close the file.
+    fclose(f);                        // Close the file.
 
     if (nRead != (size_t)size) {
         status.addError("can't read %d bytes from \"%s\": %s", size, filePath, 
-			strerror(errno));
+                        strerror(errno));
         return false;
-    }	
+    }
 
     int nBytes;
     nBytes = append(memblock, size);
@@ -157,9 +157,9 @@ Buffer::load (Outcome &status, const char* filePath)
 
     if (nBytes != size) {
         status.addError("can't append %d bytes from \"%s\" to buffer: %s", 
-		size, filePath, strerror(errno));
+                size, filePath, strerror(errno));
         return false;
-    }	
+    }
     return true;
 }
 
@@ -173,16 +173,16 @@ Buffer::dump (Outcome &status, const char* filePath)
     f = fopen(filePath, "wb");
     if (f != NULL) {
         status.addError("can't open \"%s\": %s\n", filePath, strerror(errno));
-	return false;
+        return false;
     }
     ssize_t nWritten;
     nWritten = fwrite(bytes(), size(), sizeof(char), f);
-    fclose(f);			// Close the file.
-    
+    fclose(f);                        // Close the file.
+
     if (nWritten != (ssize_t)size()) {
         status.addError("can't write %d bytes to \"%s\": %s\n", size(), 
-			filePath, strerror(errno));
-	return false;
+                        filePath, strerror(errno));
+        return false;
     }
     return true;
 }
@@ -197,32 +197,32 @@ Buffer::encode(Outcome &status, unsigned int flags)
 
     switch (flags & (RPENC_Z | RPENC_B64)) {
     case 0:
-	break;
+        break;
 
-    case RPENC_Z:		// Compress only
-	if (!do_compress(status, *this, bout)) {
-	    return false;
-	}
-	move(bout);
-	break;
+    case RPENC_Z:                // Compress only
+        if (!do_compress(status, *this, bout)) {
+            return false;
+        }
+        move(bout);
+        break;
 
-    case RPENC_B64:		// Encode only
+    case RPENC_B64:                // Encode only
         if (!do_base64_enc(status, *this, bout)) {
             return false;
         }
-	move(bout);
-	break;
+        move(bout);
+        break;
 
     case (RPENC_B64 | RPENC_Z):
-	
-	// It's always compress then encode
-	if (!do_compress(status, *this, bout)) {
-	    return false;
-	}
+
+        // It's always compress then encode
+        if (!do_compress(status, *this, bout)) {
+            return false;
+        }
         if (!do_base64_enc(status, bout, *this)) {
             return false;
         }
-	break;
+        break;
     }
     return true;
 }
@@ -237,46 +237,46 @@ Buffer::decode(Outcome &status, unsigned int flags)
 
     switch (flags & (RPENC_Z | RPENC_B64)) {
     case 0:
-	if (encoding::isBase64(bytes(), size())) {
-	    if (!do_base64_dec(status, *this, bout)) {
-		return false;
-	    }
-	    move(bout);
-	}
-	bout.clear();
-	if (encoding::isBinary(bytes(), size())) {
-	    if (!do_decompress(status, *this, bout)) {
-		return false;
-	    }
-	    move(bout);
-	}
+        if (encoding::isBase64(bytes(), size())) {
+            if (!do_base64_dec(status, *this, bout)) {
+                return false;
+            }
+            move(bout);
+        }
+        bout.clear();
+        if (encoding::isBinary(bytes(), size())) {
+            if (!do_decompress(status, *this, bout)) {
+                return false;
+            }
+            move(bout);
+        }
         break;
 
-    case RPENC_Z:		// Decompress only
-	if (!do_decompress(status, *this, bout)) {
-	    return false;
-	}
-	move(bout);
-	break;
+    case RPENC_Z:                // Decompress only
+        if (!do_decompress(status, *this, bout)) {
+            return false;
+        }
+        move(bout);
+        break;
 
-    case RPENC_B64:		// Decode only
+    case RPENC_B64:                // Decode only
         if (!do_base64_dec(status, *this, bout)) {
             return false;
         }
-	move(bout);
-	break;
+        move(bout);
+        break;
 
     case (RPENC_B64 | RPENC_Z):
-	
-	// It's always decode then decompress
+
+        // It's always decode then decompress
         if (!do_base64_dec(status, *this, bout)) {
             return false;
         }
-	clear();
-	if (!do_decompress(status, bout, *this)) {
-	    return false;
-	}
-	break;
+        clear();
+        if (!do_decompress(status, bout, *this)) {
+            return false;
+        }
+        break;
     }
     return true;
 }
@@ -284,7 +284,7 @@ Buffer::decode(Outcome &status, unsigned int flags)
 
 bool
 Buffer::do_compress(Outcome& status, SimpleCharBuffer& bin, 
-		    SimpleCharBuffer& bout)
+                    SimpleCharBuffer& bout)
 {
     int ret=0, flush=0;
     unsigned have=0;
@@ -356,7 +356,7 @@ Buffer::do_compress(Outcome& status, SimpleCharBuffer& bin,
 
 bool
 Buffer::do_decompress(Outcome& status, SimpleCharBuffer& bin,
-		      SimpleCharBuffer& bout)
+                      SimpleCharBuffer& bout)
 {
     int ret;
     unsigned have;
@@ -432,7 +432,7 @@ Buffer::do_decompress(Outcome& status, SimpleCharBuffer& bin,
 
 bool
 Buffer::do_base64_enc(Outcome& status, const SimpleCharBuffer& bin,
-		      SimpleCharBuffer& bout )
+                      SimpleCharBuffer& bout )
 {
     int tBufSize = 0;
     unsigned int tBufAvl = 2*bin.size();
@@ -452,7 +452,7 @@ Buffer::do_base64_enc(Outcome& status, const SimpleCharBuffer& bin,
 
 bool
 Buffer::do_base64_dec(Outcome& status, const SimpleCharBuffer& bin,
-		      SimpleCharBuffer& bout )
+                      SimpleCharBuffer& bout )
 {
     int tBufSize = 0;
     unsigned int tBufAvl = bin.size();
