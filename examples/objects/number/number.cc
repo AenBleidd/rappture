@@ -12,6 +12,7 @@ printNumber(Rappture::Number *n)
     std::cout << "min: " << n->min() << std::endl;
     std::cout << "max: " << n->max() << std::endl;
     std::cout << "units: " << n->units() << std::endl;
+    std::cout << "xml: " << n->xml() << std::endl;
     return 0;
 }
 

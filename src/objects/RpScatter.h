@@ -7,38 +7,40 @@
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  * ======================================================================
  */
+#include <errno.h>
+#include "RpCurve.h"
 
-#include "RpObject.h"
-
-#ifndef RAPPTURE_BOOLEAN_H
-#define RAPPTURE_BOOLEAN_H
+#ifndef RAPPTURE_SCATTER_H
+#define RAPPTURE_SCATTER_H
 
 namespace Rappture {
 
-class Boolean : public Object
+class Scatter : public Curve
 {
     public:
 
-        Boolean  (  const char *path,
-                    int val);
+        Scatter();
 
-        Boolean  (  const char *path,
-                    int val,
-                    const char *label,
-                    const char *desc);
+        Scatter(const char *path);
 
-        Boolean  ( const Boolean& o );
-        virtual ~Boolean ();
+        Scatter(const char *path,
+                const char *label,
+                const char *desc,
+                const char *group);
 
-        Accessor<int> def;
-        Accessor<int> cur;
+        Scatter(const Scatter& o);
+
+        virtual ~Scatter();
 
         const char *xml();
         const int is() const;
+
+    protected:
 };
+
 
 } // namespace Rappture
 
 /*--------------------------------------------------------------------------*/
 
-#endif
+#endif // RAPPTURE_SCATTER_H

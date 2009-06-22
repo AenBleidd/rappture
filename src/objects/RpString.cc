@@ -19,7 +19,7 @@ String::String (
             const char *path,
             const char *val
         )
-    :   Variable    ()
+    :   Object    ()
 {
     this->path(path);
     this->label("");
@@ -40,7 +40,7 @@ String::String (
             size_t width,
             size_t height
         )
-    :   Variable    ()
+    :   Object    ()
 {
     this->path(path);
     this->label(label);
@@ -54,7 +54,7 @@ String::String (
 
 // copy constructor
 String::String ( const String& o )
-    :   Variable(o)
+    :   Object(o)
 {
     this->hints(o.hints());
     this->def(o.def());
@@ -67,6 +67,49 @@ String::String ( const String& o )
 String::~String ()
 {
     // clean up dynamic memory
+}
+
+/**********************************************************************/
+// METHOD: xml()
+/// view this object's xml
+/**
+ * View this object as an xml element returned as text.
+ */
+
+const char *
+String::xml()
+{
+    Path p(path());
+    _tmpBuf.clear();
+
+    _tmpBuf.appendf(
+"<string id='%s'>\n\
+    <about>\n\
+        <label>%s</label>\n\
+        <description>%s</description>\n\
+        <hints>%s</hints>\n\
+    </about>\n\
+    <size>%ix%i</size>\n\
+    <default>%s</default>\n\
+    <current>%s</current>\n\
+</string>\n",
+       p.id(),label(),desc(),hints(),width(),height(),def(),cur());
+
+    return _tmpBuf.bytes();
+}
+
+/**********************************************************************/
+// METHOD: is()
+/// what kind of object is this
+/**
+ * return hex value telling what kind of object this is.
+ */
+
+const int
+String::is() const
+{
+    // return "stri" in hex
+    return 0x73747269;
 }
 
 // -------------------------------------------------------------------- //

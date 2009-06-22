@@ -32,18 +32,19 @@ CXX_SWITCHES    = $(CXXFLAGS) $(INCLUDES) $(DEFINES)
 CC_SWITCHES     = $(CFLAGS) $(INCLUDES) $(DEFINES)
 
 FILES   = \
-		$(srcdir)/axis.cc \
+		$(srcdir)/xmlparser.cc \
+		$(srcdir)/tool.xml \
 		Makefile
 
-destdir = $(prefix)/examples/objects/axis
+destdir = $(prefix)/examples/objects/xmlparser
 
 
 PROGS   = \
-		axis
+		xmlparser
 
 all: $(PROGS)
 
-axis: $(srcdir)/axis.cc
+xmlparser: $(srcdir)/xmlparser.cc
 	$(CXX) $(CXX_SWITCHES) -o $@ $< $(LIBS)
 
 install:

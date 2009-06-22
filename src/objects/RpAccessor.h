@@ -75,8 +75,7 @@ Accessor<const char *>::operator() (const char *val)
     if (tmp == NULL) {
         // raise error and exit
     }
-    strncpy(tmp,val,len);
-    tmp[len] = '\0';
+    strncpy(tmp,val,len+1);
 
     if (_val) {
         delete[] _val;

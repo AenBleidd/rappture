@@ -8,7 +8,7 @@
  * ======================================================================
  */
 #include <errno.h>
-#include "RpVariable.h"
+#include "RpObject.h"
 #include "RpChain.h"
 
 #ifndef RAPPTURE_CHOICE_H
@@ -16,7 +16,7 @@
 
 namespace Rappture {
 
-class Choice : public Variable
+class Choice : public Object
 {
     public:
 
@@ -40,16 +40,19 @@ class Choice : public Variable
 
         Choice& delOption ( const char *label);
 
+        const char *xml();
+        const int is() const;
+
     private:
 
         // hash or linked list of preset values
         Rp_Chain *_options;
 
-        struct option{
+        typedef struct {
             Accessor<const char *> label;
             Accessor<const char *> desc;
             Accessor<const char *> val;
-        };
+        } option;
 };
 
 } // namespace Rappture

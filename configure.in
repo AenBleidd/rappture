@@ -551,12 +551,18 @@ AC_CONFIG_FILES([
     examples/graph/Makefile
     examples/objects/Makefile
     examples/objects/axis/Makefile
+    examples/objects/contour/Makefile
     examples/objects/curve/Makefile
     examples/objects/dxWriter/Makefile
     examples/objects/floatBuffer/Makefile
+    examples/objects/histogram/Makefile
     examples/objects/number/Makefile
+    examples/objects/path/Makefile
     examples/objects/plot/Makefile
+    examples/objects/scatter/Makefile
     examples/objects/string/Makefile
+    examples/objects/tree/Makefile
+    examples/objects/xmlparser/Makefile
     examples/zoo/Makefile
     examples/zoo/binary/Makefile
     examples/zoo/boolean/Makefile

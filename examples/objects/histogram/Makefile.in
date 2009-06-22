@@ -32,18 +32,18 @@ CXX_SWITCHES    = $(CXXFLAGS) $(INCLUDES) $(DEFINES)
 CC_SWITCHES     = $(CFLAGS) $(INCLUDES) $(DEFINES)
 
 FILES   = \
-		$(srcdir)/axis.cc \
+		$(srcdir)/histogram.cc \
 		Makefile
 
-destdir = $(prefix)/examples/objects/axis
+destdir = $(prefix)/examples/objects/histogram
 
 
 PROGS   = \
-		axis
+		histogram
 
 all: $(PROGS)
 
-axis: $(srcdir)/axis.cc
+histogram: $(srcdir)/histogram.cc
 	$(CXX) $(CXX_SWITCHES) -o $@ $< $(LIBS)
 
 install:

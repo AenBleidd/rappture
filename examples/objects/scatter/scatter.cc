@@ -1,10 +1,10 @@
 #include <iostream>
-#include "RpPlot.h"
+#include "RpScatter.h"
 
 int main()
 {
     // plot object
-    Rappture::Plot *p1 = NULL;
+    Rappture::Scatter *p1 = NULL;
 
     // data arrays
     double x[] = {1,2,3,4,5,6,7,8,9,10};
@@ -17,7 +17,7 @@ int main()
     // line format: green line, dotted line style, circle marker
     const char *fmt = "g:o";
 
-    p1 = new Rappture::Plot();
+    p1 = new Rappture::Scatter();
 
     // add 3 curves to the plot, with format and curve name
     // x vs y, x vs z, x vs x

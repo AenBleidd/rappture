@@ -1,6 +1,22 @@
 #include <iostream>
 #include "RpCurve.h"
 
+int test(
+    const char *testname,
+    const char *desc,
+    const char *expected,
+    const char *received)
+{
+    if (strcmp(expected,received) != 0) {
+        printf("Error: %s\n", testname);
+        printf("\t%s\n", desc);
+        printf("\texpected \"%s\"\n",expected);
+        printf("\treceived \"%s\"\n",received);
+        return 1;
+    }
+    return 0;
+}
+
 int
 printCurve(Rappture::Curve *n)
 {
@@ -17,7 +33,22 @@ printCurve(Rappture::Curve *n)
         std::cout << "a[" << i << "] = " << a->label() << std::endl;
     }
 
+    std::cout << "xml: " << n->xml() << std::endl;
     return 0;
+}
+
+int curve_0_0 ()
+{
+    const char *desc = "test basic constructor";
+    const char *testname = "curve_0_0";
+
+    const char *expected = "output.curve(myid)";
+    const char *received = NULL;
+
+    Rappture::Curve c(expected);
+    received = c.path();
+
+    return test(testname,desc,expected,received);
 }
 
 int main()
@@ -30,9 +61,9 @@ int main()
     n = new Rappture::Curve("output.curve(temperature)","mylabel",
                             "mydesc","mygroup");
 
-    n->axis("xlabel","xdesc","xunits","xscale",x,10);
-    n->axis("ylabel","ydesc","yunits","yscale",y,10);
-    n->axis("zlabel","zdesc","zunits","zscale",z,10);
+    n->axis("xaxis","xlabel","xdesc","xunits","xscale",x,10);
+    n->axis("yaxis","ylabel","ydesc","yunits","yscale",y,10);
+    n->axis("zaxis","zlabel","zdesc","zunits","zscale",z,10);
     printCurve(n);
     n->delAxis("zlabel");
     n->delAxis("xzylabel");

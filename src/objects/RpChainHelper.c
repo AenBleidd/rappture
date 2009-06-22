@@ -109,8 +109,8 @@ Rp_ChainCharCpyFxn (
     size_t len = 0;
 
     len = strlen((char*)from);
-    *to = (void*) malloc(len*sizeof(char));
-    strcpy((char*)(*to),(char*)from);
+    *to = (void*) malloc(len*sizeof(char)+1);
+    strncpy((char*)(*to),(char*)from,len+1);
     return 0;
 }
 

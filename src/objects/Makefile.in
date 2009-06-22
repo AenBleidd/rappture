@@ -50,6 +50,8 @@ LN              = ln -s
 HEADERS = \
 		RpAccessor.h \
 		RpArray1D.h \
+		RpArray1DUniform.h \
+		RpAxisMarker.h \
 		RpBoolean.h \
 		RpChain.h \
 		RpChainHelper.h \
@@ -57,17 +59,23 @@ HEADERS = \
 		RpCurve.h \
 		RpInt.h \
 		RpHashHelper.h \
+		RpHistogram.h \
 		RpNumber.h \
+		RpPath.h \
 		RpPlot.h \
 		RpPool.h \
+		RpScatter.h \
 		RpString.h \
-		RpVariable.h
+		RpTree.h \
+		RpObject.h
 
 LOCAL_HEADERS = \
 		RpHash.h
 
 OBJS = \
 		RpArray1D.o \
+		RpArray1DUniform.o \
+		RpAxisMarker.o \
 		RpBoolean.o \
 		RpChain.o \
 		RpChoice.o \
@@ -75,12 +83,16 @@ OBJS = \
 		RpChainHelper.o \
 		RpHash.o \
 		RpHashHelper.o \
+		RpHistogram.o \
 		RpNumber.o \
+		RpPath.o \
 		RpPlot.o \
 		RpPool.o \
+		RpScatter.o \
 		RpString.o \
+		RpTree.o \
 		RpUtils2.o \
-		RpVariable.o
+		RpObject.o
 
 
 name        = RpObjects

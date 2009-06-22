@@ -8,7 +8,7 @@
  * ======================================================================
  */
 #include <errno.h>
-#include "RpVariable.h"
+#include "RpObject.h"
 #include "RpChainHelper.h"
 #include "RpCurve.h"
 
@@ -17,7 +17,7 @@
 
 namespace Rappture {
 
-class Plot : public Variable
+class Plot : public Object
 {
     public:
 
@@ -32,21 +32,30 @@ class Plot : public Variable
                     const char *fmt,
                     const char *name);
 
+        Plot& add (Curve *c, const char *name);
+
         // count the number of curves in the object
         size_t count() const;
 
         // retrieve a curve from the object
         Curve *curve (const char* name) const;
+        Curve *getNthCurve(size_t n) const;
 
-        static const char format[];
-        static const char id[];
-        static const char xaxis[];
-        static const char yaxis[];
+        const char *xml();
+        const int is() const;
 
     private:
 
         // hash or linked list of preset values
         Rp_Chain *_curveList;
+
+        static const char format[];
+        static const char id[];
+        static const char xaxis[];
+        static const char yaxis[];
+        static const char creator[];
+
+        // static const char *creator[];
 
         Rp_ChainLink *__searchCurveList(const char *name) const;
         static int __curveCopyFxn(void **to, void *from);

@@ -14,14 +14,18 @@ INSTALL_DATA    = @INSTALL_DATA@
 VPATH           = $(srcdir)
 RM              = rm -f
 
-examples   = \
+examples = \
 		axis \
 		curve \
 		dxWriter \
 		floatBuffer \
+		histogram \
 		number \
+		path \
 		plot \
-		string
+		string \
+		tree \
+		xmlparser
 
 destdir    = $(prefix)/examples/objects
 

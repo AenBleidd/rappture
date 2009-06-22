@@ -16,70 +16,44 @@
 
 using namespace Rappture;
 
-const char Array1D::type[]        = "RAPPTURE_AXIS_TYPE_IRREGULAR";
-const char Array1DUniform::type[] = "RAPPTURE_AXIS_TYPE_UNIFORM";
+const char Array1D::type[] = "RAPPTURE_AXIS_TYPE_IRREGULAR";
 
-Array1D::Array1D (const char *path)
-    : _val(SimpleDoubleBuffer()),
+Array1D::Array1D()
+    : Object(),
       _min(std::numeric_limits<double>::max()),
       _max(std::numeric_limits<double>::min())
 {
-    this->path(path);
-    this->label("");
-    this->desc("");
-    this->units("");
-    this->scale("linear");
+    name("");
+    label("");
+    desc("");
+    units("");
+    scale("linear");
 }
 
-Array1D::Array1D (
-            const char *path,
-            double *val,
-            size_t size
-        )
-    : _val(SimpleDoubleBuffer()),
+Array1D::Array1D(const double *val, size_t size)
+    : Object(),
       _min(std::numeric_limits<double>::max()),
       _max(std::numeric_limits<double>::min())
 {
-    this->path(path);
-    this->label("");
-    this->desc("");
-    this->units("");
-    this->scale("linear");
-    append(val,size);
-}
-
-Array1D::Array1D (
-            const char *path,
-            double *val,
-            size_t size,
-            const char *label,
-            const char *desc,
-            const char *units,
-            const char *scale
-        )
-    : _val(SimpleDoubleBuffer()),
-      _min(std::numeric_limits<double>::max()),
-      _max(std::numeric_limits<double>::min())
-{
-    this->path(path);
-    this->label(label);
-    this->desc(desc);
-    this->units(units);
-    this->scale(scale);
+    name("");
+    label("");
+    desc("");
+    units("");
+    scale("linear");
     append(val,size);
 }
 
 // copy constructor
-Array1D::Array1D ( const Array1D& o )
+Array1D::Array1D(const Array1D& o)
     : _val(o._val),
       _min(o._min),
       _max(o._max)
 {
-    this->path(o.path());
-    this->label(o.label());
-    this->desc(o.desc());
-    this->units(o.units());
-    this->scale(o.scale());
+    name(o.name());
+    label(o.label());
+    desc(o.desc());
+    units(o.units());
+    scale(o.scale());
 }
 
 // default destructor
@@ -96,9 +70,7 @@ Array1D::~Array1D ()
  */
 
 Array1D&
-Array1D::append(
-    double *val,
-    size_t nmemb)
+Array1D::append(const double *val, size_t nmemb)
 {
     double nmin = _min;
     double nmax = _max;
@@ -121,6 +93,20 @@ Array1D::append(
 }
 
 /**********************************************************************/
+// METHOD: clear()
+/// clear data values from the object
+/**
+ * Clear data values from the object
+ */
+
+Array1D&
+Array1D::clear()
+{
+    _val.clear();
+    return *this;
+}
+
+/**********************************************************************/
 // METHOD: read()
 /// Read values from the axis object into a memory location
 /**
@@ -128,9 +114,7 @@ Array1D::append(
  */
 
 size_t
-Array1D::read(
-    double *val,
-    size_t nmemb)
+Array1D::read(double *val, size_t nmemb)
 {
     return _val.read(val,nmemb);
 }
@@ -185,6 +169,33 @@ const double *
 Array1D::data() const
 {
     return _val.bytes();
+}
+
+/**********************************************************************/
+// METHOD: xml()
+/// Return the xml text representation of this object
+/**
+ * Return the xml text representation of this object
+ */
+
+const char *
+Array1D::xml()
+{
+    return "";
+}
+
+/**********************************************************************/
+// METHOD: xml()
+/// Return the xml text representation of this object
+/**
+ * Return the xml text representation of this object
+ */
+
+const int
+Array1D::is() const
+{
+    // return "ar1d" in hex
+    return 0x61723164;
 }
 
 // -------------------------------------------------------------------- //

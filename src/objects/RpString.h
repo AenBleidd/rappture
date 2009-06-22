@@ -8,14 +8,14 @@
  * ======================================================================
  */
 #include <errno.h>
-#include "RpVariable.h"
+#include "RpObject.h"
 
 #ifndef RAPPTURE_STRING_H
 #define RAPPTURE_STRING_H
 
 namespace Rappture {
 
-class String : public Variable
+class String : public Object
 {
 public:
 
@@ -33,11 +33,13 @@ public:
     String  ( const String& o );
     virtual ~String ();
 
-    Accessor<const char *> hints;
     Accessor<const char *> def;
     Accessor<const char *> cur;
     Accessor<size_t> width;
     Accessor<size_t> height;
+
+    const char *xml();
+    const int is() const;
 
 private:
 

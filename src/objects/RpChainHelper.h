@@ -21,6 +21,10 @@ int Rp_ChainCopy            ( Rp_Chain *c1,
                               Rp_Chain *c2,
                               int (*cpyFxn)(void **to,void *from));
 
+int Rp_ChainCharCpyFxn (void **to, void *from);
+int Rp_ChainCharCmpFxn (void *to, void *from);
+
+
 #ifdef __cplusplus
 }
 #endif
