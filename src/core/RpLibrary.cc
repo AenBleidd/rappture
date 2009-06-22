@@ -1176,7 +1176,7 @@ RpLibrary::parent (std::string path) const
         retNode = scew_element_parent(ele);
         if (retNode) {
             // allocate a new rappture library object for the node
-            retLib = new RpLibrary( retNode,this->tree ); 
+            retLib = new RpLibrary( retNode,this->tree );
         }
     }
     else {
@@ -1544,19 +1544,19 @@ RpLibrary::getString (std::string path, int translateFlag) const
         // there is no reason to do entity translation
         // because base64 character set does not include xml entity chars
         if (!Rappture::encoding::decode(status, inData, 0)) {
-	    return retStr;
-	}
+            return retStr;
+        }
         retStr = std::string(inData.bytes(),inData.size());
     } else {
         // check translateFlag to see if we need to translate entity refs
         if (translateFlag == RPLIB_TRANSLATE) {
             translatedContents = ERTranslator.decode(inData.bytes(),
-						     inData.size());
+                                                     inData.size());
             if (translatedContents == NULL) {
                 // translation failed
                 if (!status) {
                     status.error("Error while translating entity references");
-		    return retStr;
+                    return retStr;
                 }
             } else {
                 // subtract 1 from size because ERTranslator adds extra NULL
@@ -1737,7 +1737,7 @@ RpLibrary::getData (std::string path) const
 
 RpLibrary&
 RpLibrary::put (std::string path, std::string value, std::string id,
-		unsigned int append, unsigned int translateFlag)
+                unsigned int append, unsigned int translateFlag)
 {
     Rappture::EntityRef ERTranslator;
     scew_element* retNode = NULL;
@@ -1755,7 +1755,7 @@ RpLibrary::put (std::string path, std::string value, std::string id,
 
     // check for binary data
     // FIXME: I've already appended a NUL-byte of this assuming that
-    //	      it's a ASCII string. This test must come before.
+    //        it's a ASCII string. This test must come before.
     if (Rappture::encoding::isBinary(value.c_str(), value.length())) {
         putData(path, value.c_str(), value.length(), append);
         return *this;
@@ -1774,7 +1774,7 @@ RpLibrary::put (std::string path, std::string value, std::string id,
             // entity referene translation failed
             if (!status) {
                 status.error("Error while translating entity references");
-		return *this;
+                return *this;
             }
         }
         else {
@@ -1800,8 +1800,8 @@ RpLibrary::put (std::string path, std::string value, std::string id,
  */
 
 RpLibrary&
-RpLibrary::put (std::string path, double value, std::string id, 
-		unsigned int append)
+RpLibrary::put (std::string path, double value, std::string id,
+                unsigned int append)
 {
     std::stringstream valStr;
 
@@ -1961,26 +1961,26 @@ RpLibrary::putData (std::string path,
     retNode = _find(path,CREATE_PATH);
 
     if (retNode == NULL) {
-	status.addError("can't create node from path \"%s\"", path.c_str());
-	return *this;
+        status.addError("can't create node from path \"%s\"", path.c_str());
+        return *this;
     }
     if (append == RPLIB_APPEND) {
-	if ( (contents = scew_element_contents(retNode)) ) {
-	    inData.append(contents);
-	    // base64 decode and un-gzip the data
-	    if (!Rappture::encoding::decode(status, inData, 0)) {
-		return *this;
-	    }
-	}
+        if ( (contents = scew_element_contents(retNode)) ) {
+            inData.append(contents);
+            // base64 decode and un-gzip the data
+            if (!Rappture::encoding::decode(status, inData, 0)) {
+                return *this;
+            }
+        }
     }
     if (inData.append(bytes, nbytes) != nbytes) {
-	status.addError("can't append %d bytes", nbytes);
-	return *this;
-    }	
+        status.addError("can't append %d bytes", nbytes);
+        return *this;
+    }
     // gzip and base64 encode the data
     flags = RPENC_Z|RPENC_B64|RPENC_HDR;
     if (!Rappture::encoding::encode(status, inData,flags)) {
-	return *this;
+        return *this;
     }
     bytesWritten = (unsigned int) inData.size();
     scew_element_set_contents_binary(retNode,inData.bytes(),&bytesWritten);
@@ -1992,13 +1992,13 @@ RpLibrary::putData (std::string path,
 // METHOD: putFile()
 /// Put data from a file into the xml.
 /**
- *  Append flag adds additional nodes, it does not merge same 
+ *  Append flag adds additional nodes, it does not merge same
  *  named nodes together
  */
 
 RpLibrary&
-RpLibrary::putFile(std::string path, std::string fileName, 
-		   unsigned int compress, unsigned int append)
+RpLibrary::putFile(std::string path, std::string fileName,
+                   unsigned int compress, unsigned int append)
 {
     Rappture::Buffer buf;
     Rappture::Buffer fileBuf;
@@ -2010,13 +2010,13 @@ RpLibrary::putFile(std::string path, std::string fileName,
     }
 
     if (!fileBuf.load(err, fileName.c_str())) {
-	fprintf(stderr, "error loading file: %s\n", err.remark());
-	return *this;
+        fprintf(stderr, "error loading file: %s\n", err.remark());
+        return *this;
     }
     if (compress == RPLIB_COMPRESS) {
         putData(path, fileBuf.bytes(), fileBuf.size(), append);
     } else {
-	/* Always append a NUL-byte to the end of ASCII strings. */
+        /* Always append a NUL-byte to the end of ASCII strings. */
         fileBuf.append("\0", 1);
         put(path, fileBuf.bytes(), "", append, RPLIB_TRANSLATE);
     }

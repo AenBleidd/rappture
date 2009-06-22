@@ -42,7 +42,7 @@ itk::usual NumberEntry {
 # ----------------------------------------------------------------------
 itcl::body Rappture::NumberEntry::constructor {owner path args} {
     if {[catch {$owner isa Rappture::ControlOwner} valid] != 0 || !$valid} {
-	error "bad object \"$owner\": should be Rappture::ControlOwner"
+        error "bad object \"$owner\": should be Rappture::ControlOwner"
     }
     set _owner $owner
     set _path $path
@@ -52,18 +52,18 @@ itcl::body Rappture::NumberEntry::constructor {owner path args} {
     #
     set presets ""
     foreach pre [$_owner xml children -type preset $path] {
-	lappend presets \
-	    [$_owner xml get $path.$pre.value] \
-	    [$_owner xml get $path.$pre.label]
+        lappend presets \
+            [$_owner xml get $path.$pre.value] \
+            [$_owner xml get $path.$pre.label]
     }
 
     set class Rappture::Gauge
     set units [$_owner xml get $path.units]
     if {$units != ""} {
-	set desc [Rappture::Units::description $units]
-	if {[string match temperature* $desc]} {
-	    set class Rappture::TemperatureGauge
-	}
+        set desc [Rappture::Units::description $units]
+        if {[string match temperature* $desc]} {
+            set class Rappture::TemperatureGauge
+        }
     }
 
     #
@@ -71,7 +71,7 @@ itcl::body Rappture::NumberEntry::constructor {owner path args} {
     # hints in the XML.
     #
     itk_component add gauge {
-	$class $itk_interior.gauge -units $units -presets $presets
+        $class $itk_interior.gauge -units $units -presets $presets
     }
     pack $itk_component(gauge) -expand yes -fill both
     bind $itk_component(gauge) <<Value>> [itcl::code $this _newValue]
@@ -83,29 +83,29 @@ itcl::body Rappture::NumberEntry::constructor {owner path args} {
     if {"" != $max} { $itk_component(gauge) configure -maxvalue $max }
 
     if {$class == "Rappture::Gauge" && "" != $min && "" != $max} {
-	set color [$_owner xml get $path.about.color]
-	if {$color == ""} {
-	    # deprecated.  Color should be in "about"
-	    set color [$_owner xml get $path.color]
-	}
-	if {$color != ""}  {
-	    if {$units != ""} {
-		set min [Rappture::Units::convert $min -to $units -units off]
-		set max [Rappture::Units::convert $max -to $units -units off]
-	    }
-	    # For compatibility. If only one color use white for min
-	    if {[llength $color] == 1} {
-		set color [list $min white $max $color]
-	    }
-	    $itk_component(gauge) configure \
-		-spectrum [Rappture::Spectrum ::#auto $color -units $units]
-	}
+        set color [$_owner xml get $path.about.color]
+        if {$color == ""} {
+            # deprecated.  Color should be in "about"
+            set color [$_owner xml get $path.color]
+        }
+        if {$color != ""}  {
+            if {$units != ""} {
+                set min [Rappture::Units::convert $min -to $units -units off]
+                set max [Rappture::Units::convert $max -to $units -units off]
+            }
+            # For compatibility. If only one color use white for min
+            if {[llength $color] == 1} {
+                set color [list $min white $max $color]
+            }
+            $itk_component(gauge) configure \
+                -spectrum [Rappture::Spectrum ::#auto $color -units $units]
+        }
     }
 
     # if the control has an icon, plug it in
     set str [$_owner xml get $path.about.icon]
     if {$str != ""} {
-	$itk_component(gauge) configure -image [image create photo -data $str]
+        $itk_component(gauge) configure -image [image create photo -data $str]
     }
 
     eval itk_initialize $args
@@ -130,21 +130,21 @@ itcl::body Rappture::NumberEntry::value {args} {
     set onlycheck 0
     set i [lsearch -exact $args -check]
     if {$i >= 0} {
-	set onlycheck 1
-	set args [lreplace $args $i $i]
+        set onlycheck 1
+        set args [lreplace $args $i $i]
     }
 
     if {[llength $args] == 1} {
-	if {$onlycheck} {
-	    # someday we may add validation...
-	    return
-	}
-	set newval [lindex $args 0]
-	$itk_component(gauge) value $newval
-	return $newval
+        if {$onlycheck} {
+            # someday we may add validation...
+            return
+        }
+        set newval [lindex $args 0]
+        $itk_component(gauge) value $newval
+        return $newval
 
     } elseif {[llength $args] != 0} {
-	error "wrong # args: should be \"value ?-check? ?newval?\""
+        error "wrong # args: should be \"value ?-check? ?newval?\""
     }
 
     #
@@ -162,7 +162,7 @@ itcl::body Rappture::NumberEntry::value {args} {
 itcl::body Rappture::NumberEntry::label {} {
     set label [$_owner xml get $_path.about.label]
     if {"" == $label} {
-	set label "Number"
+        set label "Number"
     }
     return $label
 }
@@ -183,20 +183,20 @@ itcl::body Rappture::NumberEntry::tooltip {} {
     set max [$_owner xml get $_path.max]
 
     if {$units != "" || $min != "" || $max != ""} {
-	append str "\n\nEnter a number"
+        append str "\n\nEnter a number"
 
-	if {$min != "" && $max != ""} {
-	    append str " between $min and $max"
-	} elseif {$min != ""} {
-	    append str " greater than $min"
-	} elseif {$max != ""} {
-	    append str " less than $max"
-	}
+        if {$min != "" && $max != ""} {
+            append str " between $min and $max"
+        } elseif {$min != ""} {
+            append str " greater than $min"
+        } elseif {$max != ""} {
+            append str " less than $max"
+        }
 
-	if {$units != ""} {
-	    set desc [Rappture::Units::description $units]
-	    append str " with units of $desc"
-	}
+        if {$units != ""} {
+            set desc [Rappture::Units::description $units]
+            append str " with units of $desc"
+        }
     }
     return [string trim $str]
 }
@@ -217,7 +217,7 @@ itcl::body Rappture::NumberEntry::_newValue {} {
 itcl::configbody Rappture::NumberEntry::state {
     set valid {normal disabled}
     if {[lsearch -exact $valid $itk_option(-state)] < 0} {
-	error "bad value \"$itk_option(-state)\": should be [join $valid {, }]"
+        error "bad value \"$itk_option(-state)\": should be [join $valid {, }]"
     }
     $itk_component(gauge) configure -state $itk_option(-state)
 }

@@ -47,6 +47,7 @@ enum RP_UNITS_CONSTS {
 #define RP_TYPE_FORCE       "force"
 #define RP_TYPE_MAGNETIC    "magnetic"
 #define RP_TYPE_MISC        "misc"
+#define RP_TYPE_POWER       "power"
 
 
 #ifdef __cplusplus
@@ -86,6 +87,7 @@ class RpUnitsPreset {
         static int  addPresetForce();
         static int  addPresetMagnetic();
         static int  addPresetMisc();
+        static int  addPresetPower();
 };
 
 class RpUnitsTypes {
@@ -109,6 +111,7 @@ class RpUnitsTypes {
         static bool hintTypeForce     ( RpUnits* unitObj );
         static bool hintTypeMagnetic  ( RpUnits* unitObj );
         static bool hintTypeMisc      ( RpUnits* unitObj );
+        static bool hintTypePower     ( RpUnits* unitObj );
 
     private:
 
@@ -519,6 +522,7 @@ class RpUnits
         //  RP_TYPE_FORCE     "force"         load units related to force
         //  RP_TYPE_MAGNETIC  "magnetic"      load units related to magnetics
         //  RP_TYPE_MISC      "misc"          load units related to everything else
+        //  RP_TYPE_POWER     "power"         load units related to power
         //  (no other groups have been created)
 
         static int addPresets (const std::string group);
