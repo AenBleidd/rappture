@@ -32,18 +32,18 @@ CXX_SWITCHES    = $(CXXFLAGS) $(INCLUDES) $(DEFINES)
 CC_SWITCHES     = $(CFLAGS) $(INCLUDES) $(DEFINES)
 
 FILES   = \
-		$(srcdir)/axis.cc \
+		$(srcdir)/contour.cc \
 		Makefile
 
-destdir = $(prefix)/examples/objects/axis
+destdir = $(prefix)/examples/objects/contour
 
 
 PROGS   = \
-		axis
+		contour
 
 all: $(PROGS)
 
-axis: $(srcdir)/axis.cc
+contour: $(srcdir)/contour.cc
 	$(CXX) $(CXX_SWITCHES) -o $@ $< $(LIBS)
 
 install:

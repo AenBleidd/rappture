@@ -32,19 +32,19 @@ CXX_SWITCHES    = $(CXXFLAGS) $(INCLUDES) $(DEFINES)
 CC_SWITCHES     = $(CFLAGS) $(INCLUDES) $(DEFINES)
 
 FILES   = \
-		$(srcdir)/axis.cc \
+		$(srcdir)/tree.c \
 		Makefile
 
-destdir = $(prefix)/examples/objects/axis
+destdir = $(prefix)/examples/objects/tree
 
 
 PROGS   = \
-		axis
+		tree
 
 all: $(PROGS)
 
-axis: $(srcdir)/axis.cc
-	$(CXX) $(CXX_SWITCHES) -o $@ $< $(LIBS)
+tree: $(srcdir)/tree.c
+	$(CC) $(CC_SWITCHES) -o $@ $< $(LIBS)
 
 install:
 	$(MKDIR_P) $(destdir)

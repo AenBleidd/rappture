@@ -32,18 +32,18 @@ CXX_SWITCHES    = $(CXXFLAGS) $(INCLUDES) $(DEFINES)
 CC_SWITCHES     = $(CFLAGS) $(INCLUDES) $(DEFINES)
 
 FILES   = \
-		$(srcdir)/axis.cc \
+		$(srcdir)/scatter.cc \
 		Makefile
 
-destdir = $(prefix)/examples/objects/axis
+destdir = $(prefix)/examples/objects/scatter
 
 
 PROGS   = \
-		axis
+		scatter
 
 all: $(PROGS)
 
-axis: $(srcdir)/axis.cc
+scatter: $(srcdir)/scatter.cc
 	$(CXX) $(CXX_SWITCHES) -o $@ $< $(LIBS)
 
 install:

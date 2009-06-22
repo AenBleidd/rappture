@@ -13,17 +13,32 @@
 
 #include "RpNumber.h"
 #include "RpUnits.h"
+#include "RpSimpleBuffer.h"
 
 using namespace Rappture;
 
-Number::Number (
-            const char *path,
-            const char *units,
-            double val
-        )
-    :   Variable    (),
-        _minmaxSet  (0),
-        _presets    (NULL)
+Number::Number()
+   : Object (),
+     _minSet (0),
+     _maxSet (0),
+     _presets (NULL)
+{
+    this->path("");
+    this->label("");
+    this->desc("");
+    this->def(0.0);
+    this->cur(0.0);
+    this->min(0.0);
+    this->max(0.0);
+    // need to set this to the None unit
+    // this->units(units);
+}
+
+Number::Number(const char *path, const char *units, double val)
+   : Object (),
+     _minSet (0),
+     _maxSet (0),
+     _presets (NULL)
 {
     const RpUnits *u = NULL;
 
@@ -42,18 +57,13 @@ Number::Number (
     this->units(units);
 }
 
-Number::Number (
-            const char *path,
-            const char *units,
-            double val,
-            double min,
-            double max,
-            const char *label,
-            const char *desc
-        )
-    :   Variable    (),
-        _minmaxSet  (0),
-        _presets    (NULL)
+Number::Number(const char *path, const char *units, double val,
+               double min, double max, const char *label,
+               const char *desc)
+    : Object (),
+      _minSet (0),
+      _maxSet (0),
+      _presets (NULL)
 {
     const RpUnits *u = NULL;
 
@@ -72,14 +82,17 @@ Number::Number (
     this->units(units);
 
     if ((min == 0) && (max == 0)) {
-        _minmaxSet = 0;
+        _minSet = 0;
+        _maxSet = 0;
     }
     else {
 
+        _minSet = 1;
         if (min > val) {
             this->min(val);
         }
 
+        _maxSet = 1;
         if (max < val) {
             this->max(val);
         }
@@ -88,8 +101,9 @@ Number::Number (
 
 // copy constructor
 Number::Number ( const Number& o )
-    :   Variable(o),
-        _minmaxSet  (o._minmaxSet)
+    : Object (o),
+      _minSet (o._minSet),
+      _maxSet (o._maxSet)
 {
     this->def(o.def());
     this->cur(o.cur());
@@ -104,7 +118,18 @@ Number::Number ( const Number& o )
 Number::~Number ()
 {
     // clean up dynamic memory
+}
 
+const char *
+Number::units(void) const
+{
+    return propstr("units");
+}
+
+void
+Number::units(const char *p)
+{
+    propstr("units",p);
 }
 
 /**********************************************************************/
@@ -114,9 +139,9 @@ Number::~Number ()
  * Store the result as the currentValue.
  */
 
-double
-Number::convert(const char *to) {
-
+int
+Number::convert(const char *to)
+{
     const RpUnits* toUnit = NULL;
     const RpUnits* fromUnit = NULL;
     double convertedVal = cur();
@@ -148,11 +173,21 @@ Number::convert(const char *to) {
         cur(convertedVal);
     }
 
-    if (err) {
-        convertedVal = cur();
-    }
+    return err;
+}
 
-    return convertedVal;
+/**********************************************************************/
+// METHOD: value()
+/// Get the value of this object converted to specified units
+/**
+ * does not change the value of the object
+ * error code is returned
+ */
+
+int
+Number::value(const char *to, double *value) const
+{
+    return 1;
 }
 
 /**********************************************************************/
@@ -164,11 +199,8 @@ Number::convert(const char *to) {
  */
 
 Number&
-Number::addPreset(
-    const char *label,
-    const char *desc,
-    double val,
-    const char *units)
+Number::addPreset(const char *label, const char *desc, double val,
+                  const char *units)
 {
     preset *p = NULL;
 
@@ -234,6 +266,59 @@ Number::delPreset(const char *label)
 
     return *this;
 }
+
+/**********************************************************************/
+// METHOD: xml()
+/// view this object's xml
+/**
+ * View this object as an xml element returned as text.
+ */
+
+const char *
+Number::xml()
+{
+    Path p(path());
+    _tmpBuf.clear();
+
+    _tmpBuf.appendf(
+"<number id='%s'>\n\
+    <about>\n\
+        <label>%s</label>\n\
+        <description>%s</description>\n\
+    </about>\n\
+    <units>%s</units>\n",
+       p.id(),label(),desc(),units());
+
+    if (_minSet) {
+        _tmpBuf.appendf("    <min>%g%s</min>\n", min(),units());
+    }
+    if (_maxSet) {
+        _tmpBuf.appendf("    <max>%g%s</max>\n", max(),units());
+    }
+
+    _tmpBuf.appendf(
+"    <default>%g%s</default>\n\
+    <current>%g%s</current>\n\
+</number>",
+       def(),units(),cur(),units());
+
+    return _tmpBuf.bytes();
+}
+
+/**********************************************************************/
+// METHOD: is()
+/// what kind of object is this
+/**
+ * return hex value telling what kind of object this is.
+ */
+
+const int
+Number::is() const
+{
+    // return "numb" in hex
+    return 0x6E756D62;
+}
+
 
 // -------------------------------------------------------------------- //
 

@@ -13,31 +13,25 @@
 
 #include "RpAccessor.h"
 #include "RpSimpleBuffer.h"
+#include "RpObject.h"
 
 namespace Rappture {
 
-class Array1D
+class Array1D : public Object
 {
 public:
-    Array1D (const char *path);
-    Array1D (const char *path, double *val, size_t size);
-    Array1D (const char *path,
-             double *val,
-             size_t size,
-             const char *label,
-             const char *desc,
-             const char *units,
-             const char *scale);
+
+    Array1D();
+    Array1D (const double *val, size_t size);
     Array1D (const Array1D &o);
     virtual ~Array1D();
 
-    Accessor<const char *> path;
-    Accessor<const char *> label;
-    Accessor<const char *> desc;
+    Accessor<const char *> name;
     Accessor<const char *> units;
     Accessor<const char *> scale;
 
-    virtual Array1D& append(double *val, size_t nmemb);
+    virtual Array1D& append(const double *val, size_t nmemb);
+    virtual Array1D& clear();
     virtual size_t read(double *val, size_t nmemb);
     virtual size_t nmemb() const;
     virtual double min() const;
@@ -46,47 +40,16 @@ public:
 
     static const char type[];
 
-private:
+    const char *xml(void);
+    const int is(void) const;
+
+protected:
 
     SimpleDoubleBuffer _val;
     double _min;
     double _max;
 };
 
-class Array1DUniform
-{
-public:
-    Array1DUniform  (const char *path);
-    Array1DUniform  (const char *path, double begin, double end, size_t step);
-    Array1DUniform  (const char *path,
-                     double begin,
-                     double end,
-                     size_t step,
-                     const char *label,
-                     const char *desc,
-                     const char *units,
-                     const char *scale);
-    Array1DUniform  (const Array1DUniform &o);
-    virtual ~Array1DUniform ();
-
-    Accessor<const char *> path;
-    Accessor<const char *> label;
-    Accessor<const char *> desc;
-    Accessor<const char *> units;
-    Accessor<const char *> scale;
-    Accessor<double> begin;
-    Accessor<double> end;
-    Accessor<size_t> step;
-
-    size_t read(double *val, size_t nmemb);
-    const double *data() const;
-    virtual size_t nmemb() const;
-    static const char type[];
-
-private:
-    SimpleDoubleBuffer _val;
-
-};
 } // namespace Rappture
 
 #endif // RAPPTURE_ARRAY1D_H

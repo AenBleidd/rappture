@@ -8,7 +8,7 @@
  * ======================================================================
  */
 #include <errno.h>
-#include "RpVariable.h"
+#include "RpObject.h"
 #include "RpChain.h"
 #include "RpArray1D.h"
 
@@ -17,57 +17,53 @@
 
 namespace Rappture {
 
-class Curve : public Variable
+class Curve : public Object
 {
     public:
 
-        Curve  (const char *path);
+        Curve();
 
-        Curve  (const char *path,
-                const char *label,
-                const char *desc,
-                const char *group);
+        Curve(const char *path);
 
-        Curve  (const Curve& o);
+        Curve(const char *path, const char *label, const char *desc,
+              const char *group);
 
-        virtual ~Curve  ();
+        Curve(const Curve& o);
 
-        Curve& axis (const char *label,
-                     const char *desc,
-                     const char *units,
-                     const char *scale,
-                     double *val,
-                     size_t size);
+        virtual ~Curve();
 
-        Curve& delAxis (const char *label);
+        Array1D *axis(const char *name, const char *label, const char *desc,
+                      const char *units, const char *scale, const double *val,
+                      size_t size);
 
-        size_t data (const char *label,
-                     const double **arr) const;
+        Curve& delAxis(const char *name);
 
-        Array1D *getAxis    ( const char *label) const;
-        Array1D *getNthAxis ( size_t n) const;
+        size_t data(const char *label, const double **arr) const;
 
-        /*
-        Array1D *firstAxis ();
-        Array1D *lastAxis  ();
-        Array1D *nextAxis  (   const char *prevLabel);
-        Array1D *prevAxis  (   const char *prevLabel);
-        */
+        Array1D *getAxis(const char *name) const;
+        Array1D *getNthAxis(size_t n) const;
 
+        // should be a list of groups to add this curve to?
         Accessor <const char *> group;
         size_t dims() const;
 
+        const char *xml();
+        const int is() const;
+
+        static const char x[];
+        static const char y[];
+
     private:
 
-        // hash or linked list of preset values
+        // hash or linked list of axis
         Rp_Chain *_axisList;
 
-        Rp_ChainLink *__searchAxisList(const char * label) const;
+        Rp_ChainLink *__searchAxisList(const char * name) const;
 };
+
 
 } // namespace Rappture
 
-/*--------------------------------------------------------------------------*/
 /*--------------------------------------------------------------------------*/
 
 #endif // RAPPTURE_CURVE_H

@@ -19,7 +19,7 @@ Choice::Choice (
             const char *path,
             const char *val
         )
-    :   Variable    (),
+    :   Object    (),
         _options    (NULL)
 {
     this->path(path);
@@ -35,7 +35,7 @@ Choice::Choice (
             const char *label,
             const char *desc
         )
-    :   Variable    (),
+    :   Object    (),
         _options    (NULL)
 {
     this->path(path);
@@ -47,7 +47,7 @@ Choice::Choice (
 
 // copy constructor
 Choice::Choice ( const Choice& o )
-    :   Variable(o)
+    :   Object(o)
 {
     this->def(o.def());
     this->cur(o.cur());
@@ -139,6 +139,66 @@ Choice::delOption(const char *label)
 
 
     return *this;
+}
+
+/**********************************************************************/
+// METHOD: xml()
+/// view this object's xml
+/**
+ * View this object as an xml element returned as text.
+ */
+
+const char *
+Choice::xml()
+{
+    Path p(path());
+    _tmpBuf.clear();
+
+    _tmpBuf.appendf(
+"<choice id='%s'>\n\
+    <about>\n\
+        <label>%s</label>\n\
+        <description>%s</description>\n\
+    </about>\n",
+       p.id(),label(),desc());
+
+    Rp_ChainLink *l = NULL;
+    l = Rp_ChainFirstLink(_options);
+    while (l != NULL) {
+        option *op = (option *)Rp_ChainGetValue(l);
+        _tmpBuf.appendf(
+"    <option>\n\
+        <about>\n\
+            <label>%s</label>\n\
+            <description>%s</description>\n\
+        </about>\n\
+        <value>%s</value>\n\
+    </option>\n",
+           op->label(),op->desc(),op->val());
+        l = Rp_ChainNextLink(l);
+    }
+
+    _tmpBuf.appendf(
+"    <default>%s</default>\n\
+    <current>%s</current>\n\
+</choice>",
+       def(),cur());
+
+    return _tmpBuf.bytes();
+}
+
+/**********************************************************************/
+// METHOD: is()
+/// what kind of object is this
+/**
+ * return hex value telling what kind of object this is.
+ */
+
+const int
+Choice::is() const
+{
+    // return "choi" in hex
+    return 0x63686F69;
 }
 
 // -------------------------------------------------------------------- //

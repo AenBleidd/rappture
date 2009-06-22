@@ -15,9 +15,27 @@
 
 using namespace Rappture;
 
+/*
+const char Curve::format[]  = "RAPPTURE::CURVE::FORMAT";
+const char Curve::id[]      = "RAPPTURE::CURVE::ID";
+const char Curve::creator[] = "RAPPTURE::CURVE::CREATOR";
+*/
+const char Curve::x[]   = "xaxis";
+const char Curve::y[]   = "yaxis";
+
+Curve::Curve ()
+    : Object (),
+      _axisList (NULL)
+{
+    this->path("");
+    this->label("");
+    this->desc("");
+    this->group("");
+}
+
 Curve::Curve (const char *path)
-    :   Variable    (),
-        _axisList    (NULL)
+    : Object (),
+      _axisList (NULL)
 {
     this->path(path);
     this->label("");
@@ -25,14 +43,10 @@ Curve::Curve (const char *path)
     this->group("");
 }
 
-Curve::Curve (
-            const char *path,
-            const char *label,
-            const char *desc,
-            const char *group
-        )
-    :   Variable    (),
-        _axisList    (NULL)
+Curve::Curve (const char *path, const char *label, const char *desc,
+              const char *group)
+    : Object (),
+      _axisList (NULL)
 {
     this->path(path);
     this->label(label);
@@ -42,7 +56,7 @@ Curve::Curve (
 
 // copy constructor
 Curve::Curve ( const Curve& o )
-    :   Variable(o)
+    :   Object(o)
 {
     this->path(o.path());
     this->label(o.label());
@@ -68,46 +82,42 @@ Curve::~Curve ()
  * Axis label must be unique.
  */
 
-Curve&
+Array1D *
 Curve::axis(
+    const char *name,
     const char *label,
     const char *desc,
     const char *units,
     const char *scale,
-    double *val,
+    const double *val,
     size_t size)
 {
     Array1D *a = NULL;
-    SimpleCharBuffer apath(path());
 
-    apath.append(".");
-    apath.append(label);
-
-    a = new Array1D(apath.bytes(),val,size,label,desc,units,scale);
-    if (!a) {
+    a = new Array1D(val,size);
+    if (a == NULL) {
         // raise error and exit
+        return NULL;
     }
+    a->name(name);
+    a->label(label);
+    a->desc(desc);
+    a->units(units);
+    a->scale(scale);
 
     if (_axisList == NULL) {
         _axisList = Rp_ChainCreate();
         if (_axisList == NULL) {
             // raise error and exit
+            delete a;
+            return NULL;
         }
     }
 
     Rp_ChainAppend(_axisList,a);
 
-    return *this;
+    return a;
 }
-
-/*
-Curve&
-Curve::addAxis(
-    const char *path)
-{
-    return *this;
-}
-*/
 
 /**********************************************************************/
 // METHOD: delAxis()
@@ -117,19 +127,17 @@ Curve::addAxis(
  */
 
 Curve&
-Curve::delAxis(const char *label)
+Curve::delAxis(const char *name)
 {
     Array1D *a = NULL;
     Rp_ChainLink *l = NULL;
-    l = __searchAxisList(label);
+    l = __searchAxisList(name);
 
-    if (l == NULL) {
-        return *this;
+    if (l != NULL) {
+        a = (Array1D *) Rp_ChainGetValue(l);
+        delete a;
+        Rp_ChainDeleteLink(_axisList,l);
     }
-
-    a = (Array1D *) Rp_ChainGetValue(l);
-    delete a;
-    Rp_ChainDeleteLink(_axisList,l);
 
     return *this;
 }
@@ -152,7 +160,7 @@ Curve::data(
     }
 
     size_t ret = 0;
-    Rappture::Array1D *a = getAxis(label);
+    Array1D *a = getAxis(label);
     if (a != NULL) {
         *arr = a->data();
         ret = a->nmemb();
@@ -168,10 +176,10 @@ Curve::data(
  */
 
 Array1D *
-Curve::getAxis(const char *label) const
+Curve::getAxis(const char *name) const
 {
     Rp_ChainLink *l = NULL;
-    l = __searchAxisList(label);
+    l = __searchAxisList(name);
 
     if (l == NULL) {
         return NULL;
@@ -181,9 +189,9 @@ Curve::getAxis(const char *label) const
 }
 
 Rp_ChainLink *
-Curve::__searchAxisList(const char *label) const
+Curve::__searchAxisList(const char *name) const
 {
-    if (label == NULL) {
+    if (name == NULL) {
         return NULL;
     }
 
@@ -192,22 +200,21 @@ Curve::__searchAxisList(const char *label) const
     }
 
     Rp_ChainLink *l = NULL;
-    Rp_ChainLink *retval = NULL;
+    Path p;
 
     // traverse the list looking for the match
     l = Rp_ChainFirstLink(_axisList);
     while (l != NULL) {
         Array1D *a = (Array1D *) Rp_ChainGetValue(l);
-        const char *alabel = a->label();
-        if ((*label == *alabel) && (strcmp(alabel,label) == 0)) {
+        const char *aname = a->name();
+        if ((*name == *aname) && (strcmp(name,aname) == 0)) {
             // we found matching entry, return it
-            retval = l;
             break;
         }
         l = Rp_ChainNextLink(l);
     }
 
-    return retval;
+    return l;
 }
 
 /**********************************************************************/
@@ -242,6 +249,76 @@ Curve::dims() const
 {
     return (size_t) Rp_ChainGetLength(_axisList);
 }
+
+/**********************************************************************/
+// METHOD: xml()
+/// Return the xml of the object
+/**
+ * Return the xml of the object
+ */
+
+const char *
+Curve::xml()
+{
+    Path p(path());
+
+    Array1D *tmpAxis = NULL;
+    size_t nmemb = 0;
+
+    const double *dataArr[dims()];
+
+    _tmpBuf.clear();
+
+    _tmpBuf.appendf(
+"<curve id=\"%s\">\n\
+    <about>\n\
+        <group>%s</group>\n\
+        <label>%s</label>\n\
+        <description>%s</description>\n\
+    </about>\n", p.id(),group(),label(),desc());
+
+    for (size_t dim=0; dim < dims(); dim++) {
+        tmpAxis = getNthAxis(dim);
+        nmemb = tmpAxis->nmemb();
+        dataArr[dim] = tmpAxis->data();
+        _tmpBuf.appendf(
+"    <%s>\n\
+        <label>%s</label>\n\
+        <description>%s</description>\n\
+        <units>%s</units>\n\
+        <scale>%s</scale>\n\
+    </%s>\n",
+        tmpAxis->name(), tmpAxis->label(), tmpAxis->desc(),
+        tmpAxis->units(), tmpAxis->scale(), tmpAxis->name());
+    }
+
+    _tmpBuf.append("    <component>\n        <xy>\n");
+    for (size_t idx=0; idx < nmemb; idx++) {
+        for(size_t dim=0; dim < dims(); dim++) {
+            _tmpBuf.appendf("%10g",dataArr[dim][idx]);
+        }
+        _tmpBuf.append("\n",1);
+    }
+    _tmpBuf.append("        </xy>\n    </component>\n</curve>");
+    _tmpBuf.append("\0",1);
+
+    return _tmpBuf.bytes();
+}
+
+/**********************************************************************/
+// METHOD: is()
+/// what kind of object is this
+/**
+ * return hex value telling what kind of object this is.
+ */
+
+const int
+Curve::is() const
+{
+    // return "curv" in hex
+    return 0x63757276;
+}
+
 
 // -------------------------------------------------------------------- //
 

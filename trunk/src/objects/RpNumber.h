@@ -8,7 +8,7 @@
  * ======================================================================
  */
 #include <errno.h>
-#include "RpVariable.h"
+#include "RpObject.h"
 #include "RpChain.h"
 
 #ifndef RAPPTURE_NUMBER_H
@@ -16,45 +16,51 @@
 
 namespace Rappture {
 
-class Number : public Variable
+class Number : public Object
 {
     public:
 
-        Number  (  const char *path,
-                    const char *units,
-                    double val);
+        Number();
+        Number(const char *path, const char *units, double val);
 
-        Number  (  const char *path,
-                    const char *units,
-                    double val,
-                    double min,
-                    double max,
-                    const char *label,
-                    const char *desc);
+        Number(const char *path, const char *units, double val,
+               double min, double max, const char *label,
+               const char *desc);
 
-        Number  ( const Number& o );
+        Number( const Number& o );
         virtual ~Number ();
 
         Accessor<double> def;
         Accessor<double> cur;
         Accessor<double> min;
         Accessor<double> max;
-        Accessor<const char *> units;
 
-        // need to add a way to tell user conversion failed
-        virtual double convert (const char *to);
+        const char *units(void) const;
+        void units(const char *p);
 
-        Number& addPreset(  const char *label,
-                            const char *desc,
-                            double val,
-                            const char *units   );
+        // convert the value stored in this object to specified units
+        // does not return the converted value
+        // error code is returned
+        int convert(const char *to);
+
+        // get the value of this object converted to specified units
+        // does not change the value of the object
+        // error code is returned
+        int value(const char *units, double *value) const;
+
+        Number& addPreset(const char *label, const char *desc,
+                          double val, const char *units);
 
         Number& delPreset(const char *label);
+
+        const char* xml();
+        const int is() const;
 
     private:
 
         // flag tells if user specified min and max values
-        int _minmaxSet;
+        int _minSet;
+        int _maxSet;
 
         // hash or linked list of preset values
         Rp_Chain *_presets;
@@ -62,9 +68,10 @@ class Number : public Variable
         struct preset{
             Accessor<const char *> label;
             Accessor<const char *> desc;
-            Accessor<double> val;
             Accessor<const char *> units;
+            Accessor<double> val;
         };
+
 };
 
 } // namespace Rappture

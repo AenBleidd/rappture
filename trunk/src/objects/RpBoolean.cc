@@ -20,7 +20,7 @@ Boolean::Boolean (
             const char *path,
             int val
         )
-    :   Variable    ()
+    :   Object    ()
 {
     this->path(path);
     this->def(val);
@@ -33,7 +33,7 @@ Boolean::Boolean (
             const char *label,
             const char *desc
         )
-    :   Variable    ()
+    :   Object    ()
 {
     this->path(path);
     this->label(label);
@@ -44,7 +44,7 @@ Boolean::Boolean (
 
 // copy constructor
 Boolean::Boolean ( const Boolean& o )
-    :   Variable(o)
+    :   Object(o)
 {
     this->def(o.def());
     this->cur(o.cur());
@@ -54,6 +54,49 @@ Boolean::Boolean ( const Boolean& o )
 // default destructor
 Boolean::~Boolean ()
 {
+}
+
+/**********************************************************************/
+// METHOD: xml()
+/// view this object's xml
+/**
+ * View this object as an xml element returned as text.
+ */
+
+const char *
+Boolean::xml()
+{
+    Path p(path());
+    _tmpBuf.clear();
+
+    // FIXME: boolean should print yes/no
+
+    _tmpBuf.appendf(
+"<boolean id=\"%s\">\n\
+    <about>\n\
+        <label>%s</label>\n\
+        <description>%s</description>\n\
+    </about>\n\
+    <default>%i</default>\n\
+    <current>%i</current>\n\
+</boolean>",
+       p.id(),label(),desc(),def(),cur());
+
+    return _tmpBuf.bytes();
+}
+
+/**********************************************************************/
+// METHOD: is()
+/// what kind of object is this
+/**
+ * return hex value telling what kind of object this is.
+ */
+
+const int
+Boolean::is() const
+{
+    // return "bool" in hex
+    return 0x626F6F6C;
 }
 
 // -------------------------------------------------------------------- //
