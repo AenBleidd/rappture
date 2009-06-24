@@ -305,7 +305,6 @@ int
 Rappture::Unirect2d::LoadData(Tcl_Interp *interp, int objc, 
 			      Tcl_Obj *const *objv)
 {
-
     if ((objc & 0x01) == 0) {
         Tcl_AppendResult(interp, Tcl_GetString(objv[0]), ": ",
                 "wrong number of arguments: should be key-value pairs",
@@ -452,10 +451,9 @@ Rappture::Unirect2d::LoadData(Tcl_Interp *interp, int objc,
         return TCL_ERROR;
     }
     
-#ifndef notdef
     if ((axis[0] != 1) || (axis[1] != 0)) {
 	fprintf(stderr, "reordering data\n");
-	// Reorder the data into x, y where x varies fastest and so on.
+	/* Reorder the data into x, y where x varies fastest and so on. */
 	size_t y;
 	float *data, *dp;
 
@@ -477,7 +475,6 @@ Rappture::Unirect2d::LoadData(Tcl_Interp *interp, int objc,
 	delete [] _values;
 	_values = data;
     }
-#endif
     _initialized = true;
     return TCL_OK;
 }
@@ -489,20 +486,20 @@ Rappture::Unirect3d::ImportDx(Rappture::Outcome &result, size_t nComponents,
 {
     int nx, ny, nz, npts;
     double x0, y0, z0, dx, dy, dz, ddx, ddy, ddz;
-    char *p, *endPtr;
+    char *p, *pend;
 
-    dx = dy = dz = 0.0;			// Suppress compiler warning.
-    x0 = y0 = z0 = 0.0;			// May not have an origin line.
-    nx = ny = nz = npts = 0;		// Suppress compiler warning.
-    for (p = string, endPtr = p + length; p < endPtr; /*empty*/) {
+    dx = dy = dz = 0.0;			/* Suppress compiler warning. */
+    x0 = y0 = z0 = 0.0;			/* May not have an origin line. */
+    nx = ny = nz = npts = 0;		/* Suppress compiler warning. */
+    for (p = string, pend = p + length; p < pend; /*empty*/) {
 	char *line;
 
-	line = getline(&p, endPtr);
-        if (line == endPtr) {
-	    break;
+	line = getline(&p, pend);
+        if (line == pend) {
+	    break;			/* EOF */
 	}
         if ((line[0] == '#') || (line == '\0')) {
-	    continue;		// Skip blank or comment lines.
+	    continue;			/* Skip blank or comment lines. */
 	}
 	if (sscanf(line, "object %*d class gridpositions counts %d %d %d", 
 		   &nx, &ny, &nz) == 3) {
@@ -512,9 +509,9 @@ Rappture::Unirect3d::ImportDx(Rappture::Outcome &result, size_t nComponents,
 		return false;
 	    }
 	} else if (sscanf(line, "origin %lg %lg %lg", &x0, &y0, &z0) == 3) {
-	    // found origin
+	    /* Found origin. */
 	} else if (sscanf(line, "delta %lg %lg %lg", &ddx, &ddy, &ddz) == 3) {
-	    // found one of the delta lines
+	    /* Found one of the delta lines. */
 	    if (ddx != 0.0) {
 		dx = ddx;
 	    } else if (ddy != 0.0) {
@@ -570,12 +567,12 @@ Rappture::Unirect3d::ImportDx(Rappture::Outcome &result, size_t nComponents,
 	for (size_t iy = 0; iy < _yNum; iy++) {
 	    for (size_t iz = 0; iz < _zNum; iz++) {
 		char *line;
-		if ((p == endPtr) || (_nValues > (size_t)npts)) {
+		if ((p == pend) || (_nValues > (size_t)npts)) {
 		    break;
 		}
-		line = getline(&p, endPtr);
+		line = getline(&p, pend);
 		if ((line[0] == '#') || (line[0] == '\0')) {
-		    continue;	// Skip blank or comment lines.
+		    continue;		/* Skip blank or comment lines. */
 		}
 		double vx, vy, vz;
 		if (sscanf(line, "%lg %lg %lg", &vx, &vy, &vz) == 3) {
@@ -603,7 +600,7 @@ Rappture::Unirect3d::ImportDx(Rappture::Outcome &result, size_t nComponents,
 	    }
 	}
     }
-    // make sure that we read all of the expected points
+    /* Make sure that we read all of the expected points. */
     if (_nValues != (size_t)npts) {
 	result.addError("inconsistent data: expected %d points"
 			" but found %d points", npts, _nValues);

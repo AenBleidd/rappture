@@ -2128,3 +2128,123 @@ FlowCmdInitProc(Tcl_Interp *interp)
     return TCL_OK;
 }
 
+
+#ifdef notdef
+
+// Read the header of a vtk data file. Returns 0 if error.
+bool 
+VtkReadHeader()
+{
+    char *p, *endPtr;
+
+  line = getline(&p, endPtr);
+  if (line == endPtr) {
+      vtkErrorMacro(<<"Premature EOF reading first line! " << " for file: " 
+		    << (this->FileName?this->FileName:"(Null FileName)"));
+      return false;
+  }
+  if (sscanf(line, "# vtk DataFile Version %s", version) != 1) {
+      vtkErrorMacro(<< "Unrecognized file type: "<< line << " for file: " 
+		    << (this->FileName?this->FileName:"(Null FileName)"));
+      return false;
+  }    
+  // Read title
+  line = getline(&p, endPtr);
+  if (line == endPtr) {
+      vtkErrorMacro(<<"Premature EOF reading title! " << " for file: " 
+		    << (this->FileName?this->FileName:"(Null FileName)"));
+      return false;
+  }
+  if (_title != NULL) {
+      delete [] _title;
+  }
+  _title = new char[strlen(line) + 1];
+  strcpy(_title, line);
+
+  // Read type
+  line = getline(&p, endPtr);
+  if (line == endPtr) {
+      vtkErrorMacro(<<"Premature EOF reading file type!" << " for file: " 
+		    << (this->FileName?this->FileName:"(Null FileName)"));
+      return false;
+  }
+  word = GetWord(line, &endPtr);
+  if (strncasecmp(word, "ascii", 5) == 0) {
+      _fileType = VTK_ASCII;
+  } else if (strcasecmp(word, "binary", 6) == 0) {
+      _fileType = VTK_BINARY;
+  } else {
+      vtkErrorMacro(<< "Unrecognized file type: "<< line << " for file: " 
+		    << (this->FileName?this->FileName:"(Null FileName)"));
+      _fileType = 0;
+      return false;
+
+  }
+  // Read dataset type
+  line = getline(&p, endPtr);
+  if (line == endPtr) {
+      vtkErrorMacro(<<"Premature EOF reading file type!" << " for file: " 
+		    << (this->FileName?this->FileName:"(Null FileName)"));
+      return false;
+  }
+  word = GetWord(line, &endPtr);
+  if (strncasecmp(word, "dataset", 7) == 0) {
+      // Read dataset type
+      line = getline(&p, endPtr);
+      if (line == endPtr) {
+	  // EOF
+      }
+      type = GetWord(line, &endPtr);
+      if (strncasecmp(word, "structured_grid", 15) == 0) {
+	  vtkErrorMacro(<< "Cannot read dataset type: " << line);
+	  return 1;
+      }
+    // Read keyword and dimensions
+    //
+    while (!done)
+      {
+      if (!this->ReadString(line))
+        {
+        break;
+        }
+
+      // Have to read field data because it may be binary.
+      if (! strncmp(this->LowerCase(line), "field", 5))
+        {
+        vtkFieldData* fd = this->ReadFieldData();
+        fd->Delete(); 
+        }
+
+      if ( ! strncmp(this->LowerCase(line),"dimensions",10) )
+        {
+        int ext[6];
+        if (!(this->Read(ext+1) && 
+              this->Read(ext+3) && 
+              this->Read(ext+5)))
+          {
+          vtkErrorMacro(<<"Error reading dimensions!");
+          this->CloseVTKFile ();
+          return 1;
+          }
+        // read dimensions, change to extent;
+        ext[0] = ext[2] = ext[4] = 0;
+        --ext[1];
+        --ext[3];
+        --ext[5];
+        outInfo->Set(vtkStreamingDemandDrivenPipeline::WHOLE_EXTENT(),
+                     ext, 6);
+        // That is all we wanted !!!!!!!!!!!!!!!
+        this->CloseVTKFile();
+        return 1;
+        }
+      }
+    }
+
+
+
+  float progress=this->GetProgress();
+  this->UpdateProgress(progress + 0.5*(1.0 - progress));
+  
+  return 1;
+}
+#endif
