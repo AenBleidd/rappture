@@ -61,12 +61,13 @@ itcl::class Rappture::MolvisViewer {
     public method delete {args}
     public method parameters {title args} { # do nothing }
 
-    public method emblems {option}
+    public method labels {option {model "all"}}
     public method projection {option}
     public method rock {option}
     public method representation {option {model "all"} }
-    public method atomscale {option {model "all"} }
-    public method bondthickness {option {model "all"} }
+    public method atomscale {option {models "all"} }
+    public method bondthickness {option {models "all"} }
+    public method opacity {option {models "all"} }
     public method ResetView {} 
 
     protected method SendCmd { string }
@@ -92,7 +93,10 @@ itcl::class Rappture::MolvisViewer {
     private variable _dataobjs;		# data objects on server
     private variable _dobj2transparency;# maps dataobj => transparency
     private variable _dobj2raise;	# maps dataobj => raise flag 0/1
-    private variable _dobj2ghost
+
+    private variable _active;		# array of active models.
+    private variable _obj2models;	# array containing list of models 
+					# for each data object.
 
     private variable _view
     private variable _click
@@ -165,31 +169,33 @@ itcl::body Rappture::MolvisViewer::constructor {hostlist args} {
 	theta   45
 	phi     45
 	psi     0
-	vx 0
-	vy 0
-	vz 0
-	zoom 0
-	mx 0
-	my 0
-	mz 0
-	x  0
-	y  0
-	z  0
-	width 0
-	height 0
+	vx	0
+	vy	0
+	vz	0
+	zoom	0
+	mx	0
+	my	0
+	mz	0
+	x	0
+	y	0
+	z	0
+	width	0
+	height  0
     }
 
     # Setup default settings for widget.
     array set _settings [subst {
 	$this-model     ballnstick
 	$this-modelimg  [Rappture::icon ballnstick]
-	$this-emblems   no
+	$this-showlabels-initialized no
+	$this-showlabels no
 	$this-rock      no
 	$this-ortho     no
 	$this-atomscale 0.25
-	$this-bondthickness 0.15
+	$this-bondthickness 0.14
+	$this-opacity   1.0
     }]
-
+    
     #
     # Set up the widgets in the main body
     #
@@ -232,33 +238,34 @@ itcl::body Rappture::MolvisViewer::constructor {hostlist args} {
     Rappture::Tooltip::for $itk_component(zoomout) "Zoom out"
 
     itk_component add labels {
-	label $f.labels -borderwidth 1 -padx 1 -pady 1 \
-	    -relief "raised" -image [Rappture::icon atom-label]
+        Rappture::PushButton $f.labels \
+	    -onimage [Rappture::icon molvis-labels-view] \
+	    -offimage [Rappture::icon molvis-labels-view] \
+	    -command [itcl::code $this labels update] \
+	    -variable [itcl::scope _settings($this-showlabels)]
     }
-    pack $itk_component(labels) -padx 2 -pady {6 2} -ipadx 1 -ipady 1
+    $itk_component(labels) deselect
     Rappture::Tooltip::for $itk_component(labels) \
 	"Show/hide the labels on atoms"
-    bind $itk_component(labels) <ButtonPress> \
-	[itcl::code $this emblems toggle]
+    pack $itk_component(labels) -padx 2 -pady {6 2} 
 
     itk_component add rock {
-	label $f.rock -borderwidth 1 -padx 1 -pady 1 \
-	    -relief "raised" -image [Rappture::icon rock-view]
+        Rappture::PushButton $f.rock \
+	    -onimage [Rappture::icon molvis-rock-view] \
+	    -offimage [Rappture::icon molvis-rock-view] \
+	    -command [itcl::code $this rock toggle] \
+	    -variable [itcl::scope _settings($this-rock)]
     }
-    pack $itk_component(rock) -padx 2 -pady 2 -ipadx 1 -ipady 1
+    pack $itk_component(rock) -padx 2 -pady 2 
     Rappture::Tooltip::for $itk_component(rock) "Rock model back and forth"
-
-    bind $itk_component(rock) <ButtonPress> \
-	[itcl::code $this rock toggle]
-
 
     itk_component add ortho {
 	label $f.ortho -borderwidth 1 -padx 1 -pady 1 \
-	    -relief "raised" -image [Rappture::icon 3dpers]
+	    -relief "raised" -image [Rappture::icon molvis-3dpers]
     }
     pack $itk_component(ortho) -padx 2 -pady 2 -ipadx 1 -ipady 1
     Rappture::Tooltip::for $itk_component(ortho) \
-	"Change to orthoscopic projection"
+	"Use orthoscopic projection"
 
     bind $itk_component(ortho) <ButtonPress> \
 	[itcl::code $this projection toggle]
@@ -274,11 +281,11 @@ itcl::body Rappture::MolvisViewer::constructor {hostlist args} {
     # get the first image back from the server.  In the meantime the idletasks
     # have already kicked in.  We end up with a 1x1 viewport and image.
 
-    # So the idea is to set a ridiculously big requested width to the label
+    # So the idea is to force a ridiculously big requested width on the label
     # (that's why we're using the blt::table to manage the geometry).  It has
     # to be big, because we don't know how big the user may want to stretch
     # the window.  This at least forces the sidebarframe to give the 3dview
-    # the maximum size available, which is perfect an initially closed
+    # the maximum size available, which is perfect for an initially closed
     # sidebar.
 
     blt::table $itk_component(plotarea) \
@@ -406,8 +413,8 @@ itcl::body Rappture::MolvisViewer::BuildViewTab {} {
     $inner.bondthickness set $_settings($this-bondthickness)
 
     checkbutton $inner.labels -text "Show labels on atoms" \
-	-command [itcl::code $this emblems update] \
-	-variable Rappture::MolvisViewer::_settings($this-emblems) \
+	-command [itcl::code $this labels update] \
+	-variable [itcl::scope _settings($this-showlabels)] \
 	-font "Arial 9 bold"
     checkbutton $inner.rock -text "Rock model back and forth" \
 	-command [itcl::code $this rock toggle] \
@@ -675,37 +682,37 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
     update
 
     # Turn on buffering of commands to the server.  We don't want to
-    # be preempted by a server disconnect/reconnect (which automatically
+    # be preempted by a server disconnect/reconnect (that automatically
     # generates a new call to Rebuild).   
     set _buffering 1
 
     set dlist [get]
-    foreach dev $dlist {
-	set model [$dev get components.molecule.model]
-	set state [$dev get components.molecule.state]
-
+    foreach dataobj $dlist {
+	set model [$dataobj get components.molecule.model]
 	if {"" == $model } {
 	    set model "molecule"
-	    scan $dev "::libraryObj%d" suffix
+	    scan $dataobj "::libraryObj%d" suffix
 	    set model $model$suffix
 	}
-
-	if {"" == $state} { set state $_state(server) }
-
-	if { ![info exists _mlist($model)] } { # new, turn on
+	lappend _obj2models($dataobj) $model 
+	set state [$dataobj get components.molecule.state]
+	if {"" == $state} { 
+	    set state $_state(server) 
+	}
+	if { ![info exists _mlist($model)] } {  # new, turn on
 	    set _mlist($model) 2
-	} elseif { $_mlist($model) == 1 } { # on, leave on
+	} elseif { $_mlist($model) == 1 } {	# on, leave on
 	    set _mlist($model) 3 
-	} elseif { $_mlist($model) == 0 } { # off, turn on
+	} elseif { $_mlist($model) == 0 } {	# off, turn on
 	    set _mlist($model) 2
 	}
 	if { ![info exists _dataobjs($model-$state)] } {
 	    set data1      ""
 	    set serial    1
 
-	    foreach _atom [$dev children -type atom components.molecule] {
-		set symbol [$dev get components.molecule.$_atom.symbol]
-		set xyz [$dev get components.molecule.$_atom.xyz]
+	    foreach _atom [$dataobj children -type atom components.molecule] {
+		set symbol [$dataobj get components.molecule.$_atom.symbol]
+		set xyz [$dataobj get components.molecule.$_atom.xyz]
 		regsub {,} $xyz {} xyz
 		scan $xyz "%f %f %f" x y z
 		set recname  "ATOM  "
@@ -724,13 +731,13 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
 		append data1 $line
 		incr serial
 	    }
-	    set data2 [$dev get components.molecule.pdb]
 	    if {"" != $data1} {
 		set _pdbdata $data1
 		SendCmd "loadpdb -defer \"$data1\" $model $state"
 		set _dataobjs($model-$state)  1
 	    }
 	    # note that pdb files always overwrite xyz files
+	    set data2 [$dataobj get components.molecule.pdb]
 	    if {"" != $data2} {
 		set _pdbdata $data2
 		SendCmd "loadpdb -defer \"$data2\" $model $state"
@@ -738,56 +745,68 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
 	    }
 	}
 	if { ![info exists _model($model-transparency)] } {
-	    set _model($model-transparency) "undefined"
+	    set _model($model-transparency) ""
 	}
 	if { ![info exists _model($model-representation)] } {
-	    set _model($model-representation) "undefined"
+	    set _model($model-representation) ""
 	    set _model($model-newrepresentation) $_mrepresentation
 	}
-	if { $_model($model-transparency) != $_dobj2transparency($dev) } {
-	    set _model($model-newtransparency) $_dobj2transparency($dev)
+	if { $_model($model-transparency) != $_dobj2transparency($dataobj) } {
+	    set _model($model-newtransparency) $_dobj2transparency($dataobj)
+	}
+	if { $_dobj2transparency($dataobj) == "ghost"} {
+	    array unset _active $model
+	} else {
+	    set _active($model) $dataobj
 	}
     }
 
     # enable/disable models as required (0=off->off, 1=on->off, 2=off->on,
     # 3=on->on)
 
-    foreach obj [array names _mlist] {
-	if { $_mlist($obj) == 1 } {
-	    SendCmd "disable -defer $obj"
-	    set _mlist($obj) 0
+    foreach model [array names _mlist] {
+	if { $_mlist($model) == 1 } {
+	    SendCmd "disable -defer $model"
+	    set _mlist($model) 0
 	    set changed 1
-	} elseif { $_mlist($obj) == 2 } {
-	    set _mlist($obj) 1
-	    SendCmd "enable -defer $obj"
+	} elseif { $_mlist($model) == 2 } {
+	    set _mlist($model) 1
+	    SendCmd "enable -defer $model"
+	    if 0 {
 	    if { $_labels } {
 		SendCmd "label -defer on"
 	    } else {
 		SendCmd "label -defer off"
 	    }
+	    }
 	    set changed 1
-	} elseif { $_mlist($obj) == 3 } {
-	    set _mlist($obj) 1
+	} elseif { $_mlist($model) == 3 } {
+	    set _mlist($model) 1
 	}
 
-	if { $_mlist($obj) == 1 } {
-	    if {  [info exists _model($obj-newtransparency)] || 
-		  [info exists _model($obj-newrepresentation)] } {
-		if { ![info exists _model($obj-newrepresentation)] } {
-		    set _model($obj-newrepresentation) $_model($obj-representation)
+	if { $_mlist($model) == 1 } {
+	    if {  [info exists _model($model-newtransparency)] || 
+		  [info exists _model($model-newrepresentation)] } {
+		if { ![info exists _model($model-newrepresentation)] } {
+		    set _model($model-newrepresentation) $_model($model-representation)
 		}
-		if { ![info exists _model($obj-newtransparency)] } {
-		    set _model($obj-newtransparency) $_model($obj-transparency)
+		if { ![info exists _model($model-newtransparency)] } {
+		    set _model($model-newtransparency) $_model($model-transparency)
 		}
-		set rep $_model($obj-newrepresentation)
-		set transp $_model($obj-newtransparency)
-		SendCmd "$_model($obj-newrepresentation) -defer -model $obj -$_model($obj-newtransparency)"
+		set rep $_model($model-newrepresentation)
+		set transp $_model($model-newtransparency)
+		SendCmd "$_model($model-newrepresentation) -defer -model $model"
+		if { $_model($model-newtransparency) == "ghost" } {
+		    SendCmd "deactivate -defer -model $model"
+		} else {
+		    SendCmd "activate -defer -model $model"
+		}
 		set changed 1
-		set _model($obj-transparency) $_model($obj-newtransparency)
-		set _model($obj-representation) $_model($obj-newrepresentation)
+		set _model($model-transparency) $_model($model-newtransparency)
+		set _model($model-representation) $_model($model-newrepresentation)
 		catch {
-		    unset _model($obj-newtransparency)
-		    unset _model($obj-newrepresentation)
+		    unset _model($model-newtransparency)
+		    unset _model($model-newrepresentation)
 		}
 	    }
 	}
@@ -821,11 +840,12 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
     }]
     debug "rebuild: rotate $_view(mx) $_view(my) $_view(mz)"
 
-    projection update
-    atomscale update
+    projection update 
+    atomscale update 
     bondthickness update
-    emblems update
-    representation update
+    labels update 
+    representation update 
+    opacity update 
 
     $itk_component(3dview) configure -cursor ""
 
@@ -954,23 +974,8 @@ itcl::body Rappture::MolvisViewer::rock { option } {
 	after cancel $_rocker(afterid)
 	unset _rocker(afterid)
     }
-
-    if { $option == "toggle" } {
-	if { $_rocker(on) } {
-	    set option "off"
-	} else {
-	    set option "on"
-	}
-    }
-    if { $option == "on" || ($option == "toggle" && !$_rocker(on)) } {
-	set _rocker(on) 1
-	set _settings($this-rock) 1
-	$itk_component(rock) configure -relief sunken
-    } elseif { $option == "off" || ($option == "toggle" && $_rocker(on)) } {
-	set _rocker(on) 0
-	set _settings($this-rock) 0
-	$itk_component(rock) configure -relief raised
-    } elseif { $option == "step"} {
+    set _rocker(on) $_settings($this-rock) 
+    if { $option == "step"} {
 	if { $_rocker(client) >= 10 } {
 	    set _rocker(dir) -1
 	} elseif { $_rocker(client) <= -10 } {
@@ -1215,12 +1220,12 @@ itcl::body Rappture::MolvisViewer::representation {option {model "all"} } {
 	set models $model
     }
 
-    foreach obj $models {
-	if { [info exists _model($obj-representation)] } {
-	    if { $_model($obj-representation) != $option } {
-		set _model($obj-newrepresentation) $option
+    foreach model $models {
+	if { [info exists _model($model-representation)] } {
+	    if { $_model($model-representation) != $option } {
+		set _model($model-newrepresentation) $option
 	    } else {
-		catch { unset _model($obj-newrepresentation) }
+		catch { unset _model($model-newrepresentation) }
 	    }
 	}
     }
@@ -1230,51 +1235,6 @@ itcl::body Rappture::MolvisViewer::representation {option {model "all"} } {
     }
 }
 
-# ----------------------------------------------------------------------
-# USAGE: emblems on|off|toggle
-# USAGE: emblems update
-#
-# Used internally to turn labels associated with atoms on/off, and to
-# update the positions of the labels so they sit on top of each atom.
-# ----------------------------------------------------------------------
-itcl::body Rappture::MolvisViewer::emblems {option} {
-    switch -- $option {
-	on {
-	    set emblem 1
-	}
-	off {
-	    set emblem 0
-	}
-	toggle {
-	    if {$_settings($this-emblems)} {
-		set emblem 0
-	    } else {
-		set emblem 1
-	    }
-	}
-	update {
-	    set emblem $_settings($this-emblems)
-	}
-	default {
-	    error "bad option \"$option\": should be on, off, toggle, or update"
-	}
-    }
-    set _labels $emblem
-    if {$emblem == $_settings($this-emblems) && $option != "update"} {
-	# nothing to do
-	return
-    }
-
-    if {$emblem} {
-	$itk_component(labels) configure -relief sunken
-	set _settings($this-emblems) 1
-	SendCmd "label on"
-    } else {
-	$itk_component(labels) configure -relief raised
-	set _settings($this-emblems) 0
-	SendCmd "label off"
-    }
-}
 
 # ----------------------------------------------------------------------
 # USAGE: projection on|off|toggle
@@ -1306,69 +1266,20 @@ itcl::body Rappture::MolvisViewer::projection {option} {
 	return
     }
     if { $ortho } {
-	$itk_component(ortho) configure -image [Rappture::icon 3dorth]
+	$itk_component(ortho) configure -image [Rappture::icon molvis-3dorth]
 	Rappture::Tooltip::for $itk_component(ortho) \
-	    "Change to perspective projection"
+	    "Use perspective projection"
 	set _settings($this-ortho) 1
 	SendCmd "orthoscopic on"
     } else {
-	$itk_component(ortho) configure -image [Rappture::icon 3dpers]
+	$itk_component(ortho) configure -image [Rappture::icon molvis-3dpers]
 	Rappture::Tooltip::for $itk_component(ortho) \
-	    "Change to orthoscopic projection"
+	    "Use orthoscopic projection"
 	set _settings($this-ortho) 0
 	SendCmd "orthoscopic off"
     }
 }
 
-# ----------------------------------------------------------------------
-# USAGE: atomscale scale ?model?
-#        atomscale update
-#
-# Used internally to change the molecular atom scale used to render
-# our scene.
-# ----------------------------------------------------------------------
-
-itcl::body Rappture::MolvisViewer::atomscale { option {model "all"} } {
-    if { $option == "update" } {
-	set scale $_settings($this-atomscale)
-    } elseif { [string is double $option] } {
-	set scale $option
-	if { ($scale < 0.1) || ($scale > 2.0) } {
-	    error "bad atom size \"$scale\""
-	}
-    } else {
-	error "bad option \"$option\""
-    }
-    set _settings($this-atomscale) $scale
-    if { [isconnected] } {
-	SendCmd "atomscale -model $model $scale"
-    }
-}
-
-# ----------------------------------------------------------------------
-# USAGE: bondthickness scale ?model?
-#        bondthickness update
-#
-# Used internally to change the molecular bond thickness used to render
-# our scene.
-# ----------------------------------------------------------------------
-
-itcl::body Rappture::MolvisViewer::bondthickness { option {model "all"} } {
-    if { $option == "update" } {
-	set scale $_settings($this-bondthickness)
-    } elseif { [string is double $option] } {
-	set scale $option
-	if { ($scale < 0.1) || ($scale > 2.0) } {
-	    error "bad bind thickness \"$scale\""
-	}
-    } else {
-	error "bad option \"$option\""
-    }
-    set _settings($this-bondthickness) $scale
-    if { [isconnected] } {
-	SendCmd "bondthickness -model $model $scale"
-    }
-}
 
 # ----------------------------------------------------------------------
 # USAGE: add <dataobj> ?<settings>?
@@ -1403,14 +1314,11 @@ itcl::body Rappture::MolvisViewer::add { dataobj {options ""}} {
 	    error "bad value \"$dataobj\": should be Rappture::library object"
 	}
 
-	if { $_labels == "default" } {
-	    set emblem [$dataobj get components.molecule.about.emblems]
-
-	    if {$emblem == "" || ![string is boolean $emblem] || !$emblem} {
-		emblems off
-	    } else {
-		emblems on
-	    }
+	if { !$_settings($this-showlabels-initialized) } {
+	    set showlabels [$dataobj get components.molecule.about.emblems]
+	    if { $showlabels != "" && [string is boolean $showlabels] } {
+		set _settings($this-showlabels) $showlabels
+	    } 
 	}
 
 	lappend _dlist $dataobj
@@ -1490,11 +1398,15 @@ itcl::body Rappture::MolvisViewer::delete { args } {
 	set pos [lsearch -exact $_dlist $dataobj]
 	if {$pos >= 0} {
 	    set _dlist [lreplace $_dlist $pos $pos]
-	    catch {unset _dobj2transparency($dataobj)}
-	    catch {unset _dobj2color($dataobj)}
-	    catch {unset _dobj2width($dataobj)}
-	    catch {unset _dobj2dashes($dataobj)}
-	    catch {unset _dobj2raise($dataobj)}
+	    foreach model $_obj2models($dataobj) {
+		array unset _active $model
+	    }
+	    array unset _obj2models $dataobj
+	    array unset _dobj2transparency $dataobj
+	    array unset _dobj2color $dataobj
+	    array unset _dobj2width $dataobj
+	    array unset _dobj2dashes $dataobj
+	    array unset _dobj2raise $dataobj
 	    set changed 1
 	}
     }
@@ -1607,4 +1519,143 @@ itcl::body Rappture::MolvisViewer::GetPngImage  { widget width height } {
 	return [list .png $_hardcopy($this-$token)]
     }
     return ""
+}
+
+# ----------------------------------------------------------------------
+# USAGE: atomscale radius ?model?
+#        atomscale update ?model?
+#
+# Used internally to change the molecular atom scale used to render
+# our scene.  
+#
+# Note: Only sets the specified radius for active models.  If the model 
+#       is inactive, then it overridden with the value "0.1".
+# ----------------------------------------------------------------------
+
+itcl::body Rappture::MolvisViewer::atomscale { option {models "all"} } {
+    if { $option == "update" } {
+	set radius $_settings($this-atomscale)
+    } elseif { [string is double $option] } {
+	set radius $option
+	if { ($radius < 0.1) || ($radius > 2.0) } {
+	    error "bad atom size \"$radius\""
+	}
+    } else {
+	error "bad option \"$option\""
+    }
+    set _settings($this-atomscale) $radius
+    if { $models == "all" } {
+	set models [array names _mlist] 
+    }
+    set overrideradius [expr $radius * 0.8]
+    foreach model $models {
+	if { [info exists _active($model)] } {
+	    SendCmd "atomscale -model $model $radius"
+	} else {
+	    SendCmd "atomscale -model $model $overrideradius"
+	}
+    }
+}
+
+# ----------------------------------------------------------------------
+# USAGE: bondthickness thickness ?models?
+#	 bondthickness update ?models?
+#
+# Used internally to change the molecular bond thickness used to render
+# our scene.
+#
+# Note: Only sets the specified thickness for active models.  If the model 
+#       is inactive, then it overridden with the value "0.25".
+# ----------------------------------------------------------------------
+
+itcl::body Rappture::MolvisViewer::bondthickness { option {models "all"} } {
+    if { $option == "update" } {
+	set thickness $_settings($this-bondthickness)
+    } elseif { [string is double $option] } {
+	set thickness $option
+	if { ($thickness < 0.1) || ($thickness > 2.0) } {
+	    error "bad bind thickness \"$thickness\""
+	}
+    } else {
+	error "bad option \"$option\""
+    }
+    set _settings($this-bondthickness) $thickness
+    if { $models == "all" } {
+	set models [array names _mlist] 
+    }
+    set overridethickness [expr $thickness * 0.8]
+    foreach model $models {
+	if { [info exists _active($model)] } {
+	    SendCmd "bondthickness -model $model $thickness"
+	} else {
+	    SendCmd "bondthickness -model $model $overridethickness"
+	}
+    }
+}
+
+# ----------------------------------------------------------------------
+# USAGE: opacity value ?models?
+#	 opacity update ?models?
+#
+# Used internally to change the molecular bond thickness used to render
+# our scene.
+#
+# Note: Only sets the specified thickness for active models.  If the model 
+#       is inactive, then it overridden with the value "0.75".
+# ----------------------------------------------------------------------
+
+itcl::body Rappture::MolvisViewer::opacity { option {models "all"} } {
+    if { $option == "update" } {
+	set opacity $_settings($this-opacity)
+    } elseif { [string is double $option] } {
+	set opacity $option
+	if { ($opacity < 0.0) || ($opacity > 1.0) } {
+	    error "bad opacity \"$opacity\""
+	}
+    } else {
+	error "bad option \"$option\""
+    }
+    set _settings($this-opacity) $opacity
+    if { $models == "all" } {
+	set models [array names _mlist] 
+    }
+    set overridetransparency 0.60
+    set transparency [expr 1.0 - $opacity]
+    foreach model $models {
+	if { [info exists _active($model)] } {
+	    SendCmd "transparency -model $model $transparency"
+	} else {
+	    SendCmd "transparency -model $model $overridetransparency"
+	}
+    }
+}
+
+# ----------------------------------------------------------------------
+# USAGE: labels on|off|toggle
+# USAGE: labels update
+#
+# Used internally to turn labels associated with atoms on/off, and to
+# update the positions of the labels so they sit on top of each atom.
+# ----------------------------------------------------------------------
+itcl::body Rappture::MolvisViewer::labels {option {models "all"}} {
+    set showlabels $_settings($this-showlabels)
+    if { $option == "update" } {
+	set showlabels $_settings($this-showlabels)
+    } elseif { [string is boolean $option] } {
+	set showlabels $option
+    } else {
+	error "bad option \"$option\""
+    }
+    set _settings($this-showlabels) $showlabels
+    if { $models == "all" } {
+	set models [array names _mlist] 
+    }
+    set overrideshowlabels "off"
+    foreach model $models {
+	if { [info exists _active($model)] } {
+	    SendCmd "label -model $model $showlabels"
+	} else {
+	    SendCmd "label -model $model $overrideshowlabels"
+	}
+    }
 }

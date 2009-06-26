@@ -23,8 +23,7 @@ option add *HeightmapViewer.foreground black widgetDefault
 option add *HeightmapViewer.plotBackground black widgetDefault
 option add *HeightmapViewer.plotForeground white widgetDefault
 option add *HeightmapViewer.plotOutline white widgetDefault
-option add *HeightmapViewer.font \
-    -*-helvetica-medium-r-normal-*-12-* widgetDefault
+option add *HeightmapViewer.font -*-helvetica-medium-r-normal-*-12-* widgetDefault
 
 # must use this name -- plugs into Rappture::resources::load
 proc HeightmapViewer_init_resources {} {
@@ -659,11 +658,13 @@ itcl::body Rappture::HeightmapViewer::ReceiveLegend {tf vmin vmax size} {
 	set lineht [expr [font metrics $itk_option(-font) -linespace] + 4]
 	if {"" == [$c find withtag transfunc]} {
 	    $c create image 0 [expr $lineht] -anchor ne \
-		 -image $_image(legend) -tags transfunc
+		 -image $_image(legend) -tags transfunc 
 	    $c create text 10 [expr {$h-8}] -anchor se \
-		 -fill $itk_option(-plotforeground) -tags vmin
+		-fill $itk_option(-plotforeground) -tags vmin \
+		-font "Arial 8 bold"
 	    $c create text [expr {$w-10}] [expr {$h-8}] -anchor ne \
-		 -fill $itk_option(-plotforeground) -tags vmax
+		 -fill $itk_option(-plotforeground) -tags vmax \
+		-font "Arial 8 bold"
 	}
 	$c coords transfunc [expr $w - 5] [expr $lineht]
 	$c itemconfigure vmin -text $vmin
@@ -1036,17 +1037,20 @@ itcl::body Rappture::HeightmapViewer::GetTransfuncData {dataobj comp} {
     if {$style(-color) == "rainbow"} {
 	set style(-color) "white:yellow:green:cyan:blue:magenta"
     }
-    set clist [split $style(-color) :]
-    set color white
-    set cmap "0.0 [Color2RGB $color] "
-    set range [expr $_limits(vmax) - $_limits(vmin)]
-    for {set i 0} {$i < [llength $clist]} {incr i} {
-	set xval [expr {double($i+1)/([llength $clist]+1)}]
-	set color [lindex $clist $i]
-	append cmap "$xval [Color2RGB $color] "
+    if { [info exists style(-nonuniformcolors)] } {
+	foreach { value color } $style(-nonuniformcolors) {
+	    append cmap "$value [Color2RGB $color] "
+	}
+    } else {
+	set clist [split $style(-color) :]
+	set cmap "0.0 [Color2RGB white] "
+	for {set i 0} {$i < [llength $clist]} {incr i} {
+	    set x [expr {double($i+1)/([llength $clist]+1)}]
+	    set color [lindex $clist $i]
+	    append cmap "$x [Color2RGB $color] "
+	}
+	append cmap "1.0 [Color2RGB $color]"
     }
-    append cmap "1.0 [Color2RGB $color] "
-
     set opacity $style(-opacity)
     set levels $style(-levels)
     set wmap {}

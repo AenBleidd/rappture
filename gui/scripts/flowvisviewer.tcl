@@ -2258,8 +2258,8 @@ itcl::body Rappture::FlowvisViewer::BuildCutplanesTab {} {
     # X-value slicer...
     itk_component add xCutButton {
         Rappture::PushButton $inner.xbutton \
-	    -onimage [Rappture::icon x-cutplane-on] \
-	    -offimage [Rappture::icon x-cutplane-off] \
+	    -onimage [Rappture::icon x-cutplane] \
+	    -offimage [Rappture::icon x-cutplane] \
 	    -command [itcl::code $this FixSettings xcutplane] \
 	    -variable [itcl::scope _settings($this-xcutplane)]
     }
@@ -2285,8 +2285,8 @@ itcl::body Rappture::FlowvisViewer::BuildCutplanesTab {} {
     # Y-value slicer...
     itk_component add yCutButton {
         Rappture::PushButton $inner.ybutton \
-	    -onimage [Rappture::icon y-cutplane-on] \
-	    -offimage [Rappture::icon y-cutplane-off] \
+	    -onimage [Rappture::icon y-cutplane] \
+	    -offimage [Rappture::icon y-cutplane] \
 	    -command [itcl::code $this FixSettings ycutplane] \
 	    -variable [itcl::scope _settings($this-ycutplane)]
     }
@@ -2312,8 +2312,8 @@ itcl::body Rappture::FlowvisViewer::BuildCutplanesTab {} {
     # Z-value slicer...
     itk_component add zCutButton {
         Rappture::PushButton $inner.zbutton \
-	    -onimage [Rappture::icon z-cutplane-on] \
-	    -offimage [Rappture::icon z-cutplane-off] \
+	    -onimage [Rappture::icon z-cutplane] \
+	    -offimage [Rappture::icon z-cutplane] \
 	    -command [itcl::code $this FixSettings zcutplane] \
 	    -variable [itcl::scope _settings($this-zcutplane)]
     }
@@ -2971,3 +2971,4 @@ itcl::body Rappture::FlowvisViewer::IsMapped { w } {
     }
     return 1
 }
+

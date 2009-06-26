@@ -13,11 +13,16 @@
 # ======================================================================
 package require Itk
 
+option add *PushButton.width 16 widgetDefault
+option add *PushButton.height 16 widgetDefault
+
 itcl::class Rappture::PushButton {
     inherit itk::Widget
 
     itk_option define -variable variable Variable "normal"
     itk_option define -command command Command "normal"
+    itk_option define -width width Width "normal"
+    itk_option define -height height Height "normal"
 
     constructor {args} { # defined below }
     destructor { # defined below }
@@ -99,7 +104,6 @@ itcl::body Rappture::PushButton::_fixValue {args} {
     }
 }
 
-
 itcl::body Rappture::PushButton::select {} {
     upvar #0 $_variable state
     set state $onvalue
@@ -130,4 +134,19 @@ itcl::configbody Rappture::PushButton::variable {
 	    _fixValue
 	}
     }
+}
+
+# ----------------------------------------------------------------------
+# CONFIGURE: -width
+# ----------------------------------------------------------------------
+itcl::configbody Rappture::PushButton::width {
+    $itk_component(button) configure -width $itk_option(-width)
+}
+
+# ----------------------------------------------------------------------
+# CONFIGURE: -height
+# ----------------------------------------------------------------------
+itcl::configbody Rappture::PushButton::height {
+    set _height $itk_option(-height)
+    $itk_component(button) configure -height $itk_option(-height)
 }

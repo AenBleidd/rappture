@@ -59,7 +59,7 @@ itcl::body Rappture::Field2DResult::constructor {args} {
 	switch -- $flags(-mode) {
 	    "auto" - "heightmap" {
 		itk_component add renderer {
-		    Rappture::HeightmapViewer $itk_interior.ren $servers
+		    Rappture::HeightmapViewer $itk_interior.ren $servers 
 		}
 	    }
 	    "flowvis" {
