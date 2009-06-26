@@ -101,7 +101,7 @@ typedef struct {
 static Stats stats;
 
 static FILE *flog;
-static int debug = 0;
+static int debug = 1;
 #ifdef notdef
 static long _flags = 0;
 #endif
@@ -262,7 +262,9 @@ GetLine(ReadBuffer *readPtr, int *nBytesPtr)
     status = BUFFER_OK;
     for (;;) {
 	/* Look for the next newline (the next full line). */
+#ifdef notdef
 	trace("in GetLine: mark=%d fill=%d\n", readPtr->mark, readPtr->fill);
+#endif
 	for (i = readPtr->mark; i < readPtr->fill; i++) {
 	    if (readPtr->bytes[i] == '\n') {
 		char *p;
@@ -354,7 +356,9 @@ Expect(PymolProxy *proxyPtr, char *match, char *out, int maxSize)
     if (proxyPtr->status != TCL_OK) {
         return proxyPtr->status;
     }
+#ifdef notdef
     trace("Entering Expect(want=%s, maxSize=%d)\n", match, maxSize);
+#endif
     c = match[0];
     length = strlen(match);
     for (;;) {
@@ -363,14 +367,18 @@ Expect(PymolProxy *proxyPtr, char *match, char *out, int maxSize)
 
 	line = GetLine(&proxyPtr->server, &nBytes);
 	if (line != NULL) {
+#ifdef notdef
 	    trace("pymol says:%.*s", nBytes, out);
+#endif
 	    if ((c == line[0]) && (strncmp(line, match, length) == 0)) {
 		if (maxSize < nBytes) {
 		    nBytes = maxSize;
 		}
 		memcpy(out, line, nBytes);
 		clear_error(proxyPtr);
+#ifdef notdef
 		trace("Leaving Expect: got (%.*s)\n", nBytes, out);
+#endif
 		return BUFFER_OK;
 	    }
 	    continue;
@@ -517,8 +525,8 @@ ExecuteCommand(Tcl_Interp *interp, const char *cmd)
     gettimeofday(&tv, NULL);
     start = CVT2SECS(tv);
 
+    trace("command from client is (%s)", cmd);
     result = Tcl_Eval(interp, cmd);
-    trace("Executed (%s)", cmd);
 
     gettimeofday(&tv, NULL);
     finish = CVT2SECS(tv);
@@ -565,13 +573,18 @@ WriteImage(PymolProxy *proxyPtr, int fd)
 	return;
     }
 	
+#ifdef notdef
     trace("WriteImage: want to write %d bytes.", imgPtr->bytesLeft);
+#endif
     for (bytesLeft = imgPtr->bytesLeft; bytesLeft > 0; /*empty*/) {
 	ssize_t nWritten;
-
+#ifdef notdef
 	trace("WriteImage: try to write %d bytes.", bytesLeft);
+#endif
         nWritten = write(fd, imgPtr->data + imgPtr->nWritten, bytesLeft);
+#ifdef notdef
 	trace("WriteImage: wrote %d bytes.", nWritten);
+#endif
         if (nWritten < 0) {
 	    trace("Error writing fd(%d), %d/%s.", fd, errno, 
 		  strerror(errno));
@@ -634,7 +647,7 @@ ReadImage(PymolProxy *proxyPtr, int fd, size)
 #endif
 
 static int
-Pymol(PymolProxy *proxyPtr, char *format, ...)
+Pymol(PymolProxy *proxyPtr, const char *format, ...)
 {
     va_list ap;
     char buffer[BUFSIZ];
@@ -702,7 +715,7 @@ static void
 SetPan(PymolProxy *proxyPtr)
 {
     if (proxyPtr->flags & PAN_PENDING) {
-	Pymol(proxyPtr,"move x,%f; move y,%f\n", proxyPtr->xPan,proxyPtr->yPan);
+	Pymol(proxyPtr,"move x,%f\nmove y,%f\n", proxyPtr->xPan,proxyPtr->yPan);
 	proxyPtr->flags &= ~PAN_PENDING;
     }
 }
@@ -713,7 +726,7 @@ SetRotation(PymolProxy *proxyPtr)
     if (proxyPtr->flags & ROTATE_PENDING) {
 	/* Every pymol command line generates a new rendering. Execute all
 	 * three turns as a single command line. */
-	Pymol(proxyPtr,"turn x,%f; turn y,%f; turn z,%f\n", 
+	Pymol(proxyPtr,"turn x,%f\nturn y,%f\nturn z,%f\n", 
 	      proxyPtr->xAngle, proxyPtr->yAngle, proxyPtr->zAngle);
 	proxyPtr->xAngle = proxyPtr->yAngle = proxyPtr->zAngle = 0.0f;
 	proxyPtr->flags &= ~ROTATE_PENDING;
@@ -742,23 +755,24 @@ static int
 AtomScaleCmd(ClientData clientData, Tcl_Interp *interp, int argc, 
 	   const char *argv[])
 {
-    int defer = 0, push = 0, arg;
+    int defer = 0, push = 0, i;
     double scale;
     const char *model = "all";
     PymolProxy *proxyPtr = clientData;
 
     clear_error(proxyPtr);
     scale = 0.25f;
-    for(arg = 1; arg < argc; arg++) {
-        if ( strcmp(argv[arg],"-defer") == 0 ) {
+    for(i = 1; i < argc; i++) {
+        if ( strcmp(argv[i],"-defer") == 0 ) {
             defer = 1;
-	} else if (strcmp(argv[arg],"-push") == 0) {
+	} else if (strcmp(argv[i],"-push") == 0) {
             push = 1;
-	} else if (strcmp(argv[arg],"-model") == 0) {
-            if (++arg < argc)
-                model = argv[arg];
+	} else if (strcmp(argv[i],"-model") == 0) {
+            if (++i < argc) {
+                model = argv[i];
+	    }
         } else {
-	    if (Tcl_GetDouble(interp, argv[arg], &scale) != TCL_OK) {
+	    if (Tcl_GetDouble(interp, argv[i], &scale) != TCL_OK) {
 		return TCL_ERROR;
 	    }
 	}
@@ -784,30 +798,26 @@ static int
 BallNStickCmd(ClientData clientData, Tcl_Interp *interp, int argc, 
 	      const char *argv[])
 {
-    float radius, transparency;
-    int ghost = 0, defer = 0, push = 0, arg;
-    const char *model = "all";
     PymolProxy *proxyPtr = clientData;
+    const char *model;
+    int defer, push, i;
 
     clear_error(proxyPtr);
-
-    for(arg = 1; arg < argc; arg++) {
-        if ( strcmp(argv[arg],"-defer") == 0 )
-            defer = 1;
-        else if (strcmp(argv[arg],"-push") == 0)
-            push = 1;
-        else if (strcmp(argv[arg],"-ghost") == 0)
-            ghost = 1;
-        else if (strcmp(argv[arg],"-normal") == 0)
-            ghost = 0;
-        else if (strcmp(argv[arg],"-model") == 0) {
-            if (++arg < argc)
-                model = argv[arg];
-        }
-        else
-            model = argv[arg];
+    defer = push = FALSE;
+    model = "all";
+    for (i = 1; i < argc; i++) {
+        if (strcmp(argv[i],"-defer") == 0 ) {
+            defer = TRUE;
+	} else if (strcmp(argv[i],"-push") == 0) {
+            push = TRUE;
+	} else if (strcmp(argv[i],"-model") == 0) {
+            if (++i < argc) {
+                model = argv[i];
+	    }
+        } else {
+            model = argv[i];
+	}
     }
-
     proxyPtr->flags |= INVALIDATE_CACHE; /* Ball 'n Stick */
     if (!defer || push) {
 	proxyPtr->flags |= UPDATE_PENDING;
@@ -815,23 +825,9 @@ BallNStickCmd(ClientData clientData, Tcl_Interp *interp, int argc,
     if (push) {
 	proxyPtr->flags |= FORCE_UPDATE;
     }
-    Pymol(proxyPtr, "hide everything,%s\n",model);
-    Pymol(proxyPtr, "set stick_color,white,%s\n",model);
-    if (ghost) {
-	radius = 0.1f;
-	transparency = 0.75f;
-    } else {
-	radius = 0.14f;
-	transparency = 0.0f;
-    }
-    Pymol(proxyPtr, "set stick_radius,%g,%s\n", radius, model);
-#ifdef notdef
-    Pymol(proxyPtr, "set sphere_scale=0.25,%s\n", model);
-#endif
-    Pymol(proxyPtr, "set sphere_transparency,%g,%s\n", transparency, model);
-    Pymol(proxyPtr, "set stick_transparency,%g,%s\n", transparency, model);
-    Pymol(proxyPtr, "show sticks,%s\n", model);
-    Pymol(proxyPtr, "show spheres,%s\n", model);
+    Pymol(proxyPtr, "hide everything,%s\nset stick_color,white,%s\n", model,
+	  model);
+    Pymol(proxyPtr, "show sticks,%s\nshow spheres,%s\n", model, model);
 
     if (proxyPtr->flags & SHOW_LABELS) {
         Pymol(proxyPtr, "show labels,%s\n", model);
@@ -885,23 +881,23 @@ static int
 BondThicknessCmd(ClientData clientData, Tcl_Interp *interp, int argc, 
 		 const char *argv[])
 {
-    int defer = 0, push = 0, arg;
+    int defer = 0, push = 0, i;
     double scale;
     const char *model = "all";
     PymolProxy *proxyPtr = clientData;
 
     clear_error(proxyPtr);
     scale = 0.25f;
-    for(arg = 1; arg < argc; arg++) {
-        if ( strcmp(argv[arg],"-defer") == 0 ) {
+    for(i = 1; i < argc; i++) {
+        if ( strcmp(argv[i],"-defer") == 0 ) {
             defer = 1;
-	} else if (strcmp(argv[arg],"-push") == 0) {
+	} else if (strcmp(argv[i],"-push") == 0) {
             push = 1;
-	} else if (strcmp(argv[arg],"-model") == 0) {
-            if (++arg < argc)
-                model = argv[arg];
+	} else if (strcmp(argv[i],"-model") == 0) {
+            if (++i < argc)
+                model = argv[i];
         } else {
-	    if (Tcl_GetDouble(interp, argv[arg], &scale) != TCL_OK) {
+	    if (Tcl_GetDouble(interp, argv[i], &scale) != TCL_OK) {
 		return TCL_ERROR;
 	    }
 	}
@@ -929,18 +925,18 @@ DisableCmd(ClientData clientData, Tcl_Interp *interp, int argc,
 {
     PymolProxy *proxyPtr = clientData;
     const char *model = "all";
-    int arg, defer = 0, push = 0;
+    int i, defer = 0, push = 0;
 
     clear_error(proxyPtr);
 
-    for(arg = 1; arg < argc; arg++) {
+    for(i = 1; i < argc; i++) {
 
-        if (strcmp(argv[arg], "-defer") == 0 )
+        if (strcmp(argv[i], "-defer") == 0 )
             defer = 1;
-        else if (strcmp(argv[arg], "-push") == 0 )
+        else if (strcmp(argv[i], "-push") == 0 )
             push = 1;
         else
-            model = argv[arg];
+            model = argv[i];
         
     }
 
@@ -964,18 +960,18 @@ EnableCmd(ClientData clientData, Tcl_Interp *interp, int argc,
 {
     PymolProxy *proxyPtr = clientData;
     const char *model = "all";
-    int arg, defer = 0, push = 0;
+    int i, defer = 0, push = 0;
 
     clear_error(proxyPtr);
 
-    for(arg = 1; arg < argc; arg++) {
+    for(i = 1; i < argc; i++) {
                 
-        if (strcmp(argv[arg],"-defer") == 0)
+        if (strcmp(argv[i],"-defer") == 0)
             defer = 1;
-        else if (strcmp(argv[arg], "-push") == 0 )
+        else if (strcmp(argv[i], "-push") == 0 )
             push = 1;
         else
-            model = argv[arg];
+            model = argv[i];
 
     }
     proxyPtr->flags |= INVALIDATE_CACHE; /* Enable */
@@ -995,17 +991,17 @@ FrameCmd(ClientData clientData, Tcl_Interp *interp, int argc,
 {
     PymolProxy *proxyPtr = clientData;
     int frame = 0;
-    int arg, push = 0, defer = 0;
+    int i, push = 0, defer = 0;
 
     clear_error(proxyPtr);
 
-    for(arg = 1; arg < argc; arg++) {
-        if ( strcmp(argv[arg],"-defer") == 0 )
+    for(i = 1; i < argc; i++) {
+        if ( strcmp(argv[i],"-defer") == 0 )
             defer = 1;
-        else if (strcmp(argv[arg],"-push") == 0 )
+        else if (strcmp(argv[i],"-push") == 0 )
             push = 1;
         else
-            frame = atoi(argv[arg]);
+            frame = atoi(argv[i]);
     }
                 
     if (!defer || push) {
@@ -1029,24 +1025,31 @@ LabelCmd(ClientData clientData, Tcl_Interp *interp, int argc,
 	 const char *argv[])
 {
     PymolProxy *proxyPtr = clientData;
-    int state = 1;
-    int arg, push = 0, defer = 0;
+    int i, push, defer, state, size;
+    const char *model;
 
     clear_error(proxyPtr);
-
-    for(arg = 1; arg < argc; arg++) {
-        if ( strcmp(argv[arg],"-defer") == 0 )
-            defer = 1;
-        else if (strcmp(argv[arg],"-push") == 0 )
-            push = 1;
-        else if (strcmp(argv[arg],"on") == 0 )
-            state = 1;
-        else if (strcmp(argv[arg],"off") == 0 )
-            state = 0;
-        else if (strcmp(argv[arg],"toggle") == 0 )
-            state = ((proxyPtr->flags & SHOW_LABELS) == 0);
+    model = "all";
+    size = 14;
+    state = TRUE;
+    push = defer = FALSE;
+    for(i = 1; i < argc; i++) {
+        if (strcmp(argv[i],"-defer") == 0) {
+            defer = TRUE;
+	} else if (strcmp(argv[i],"-push") == 0) {
+            push = TRUE;
+	} else if (strcmp(argv[i],"-model") == 0) {
+            if (++i < argc) {
+                model = argv[i];
+	    }
+	} else if (strcmp(argv[i],"-size") == 0) {
+            if (++i < argc) {
+                size = atoi(argv[i]);
+	    }
+	} else if (Tcl_GetBoolean(interp, argv[i], &state) != TCL_OK) {
+	    return TCL_ERROR;
+	}
     }
-
     proxyPtr->flags |= INVALIDATE_CACHE;  /* Label */
     if (!defer || push) {
 	proxyPtr->flags |= UPDATE_PENDING;
@@ -1054,14 +1057,13 @@ LabelCmd(ClientData clientData, Tcl_Interp *interp, int argc,
     if (push) {
 	proxyPtr->flags |= FORCE_UPDATE;
     }
+    Pymol(proxyPtr, "set label_color,white,%s\nset label_size,%d,%s\n", 
+	  model, size, model);
     if (state) {
-        Pymol(proxyPtr, "set label_color,white,all\n");
-        Pymol(proxyPtr, "set label_size,14,all\n");
-        Pymol(proxyPtr, "label all,\"%%s%%s\" %% (ID,name)\n");
+        Pymol(proxyPtr, "label %s,\"%%s%%s\" %% (ID,name)\n", model);
+    } else {
+        Pymol(proxyPtr, "label %s\n", model);
     }
-    else
-        Pymol(proxyPtr, "label all\n");
-
     if (state) {
 	proxyPtr->flags |= SHOW_LABELS;
     } else {
@@ -1074,30 +1076,26 @@ static int
 LinesCmd(ClientData clientData, Tcl_Interp *interp, int argc, 
 	 const char *argv[])
 {
-    int ghost = 0, defer = 0, push = 0, arg;
-    const char *model = "all";
     PymolProxy *proxyPtr = clientData;
-    float lineWidth;
+    const char *model;
+    int defer, push, i;
 
     clear_error(proxyPtr);
-
-    for(arg = 1; arg < argc; arg++) {
-        if ( strcmp(argv[arg],"-defer") == 0 )
-            defer = 1;
-        else if (strcmp(argv[arg],"-push") == 0)
-            push = 1;
-        else if (strcmp(argv[arg],"-ghost") == 0)
-            ghost = 1;
-        else if (strcmp(argv[arg],"-normal") == 0)
-            ghost = 0;
-        else if (strcmp(argv[arg],"-model") == 0) {
-            if (++arg < argc)
-                model = argv[arg];
-        }
-        else
-            model = argv[arg];
+    defer = push = FALSE;
+    model = "all";
+    for(i = 1; i < argc; i++) {
+        if ( strcmp(argv[i],"-defer") == 0 ) {
+            defer = TRUE;
+	} else if (strcmp(argv[i],"-push") == 0) {
+            push = TRUE;
+	} else if (strcmp(argv[i],"-model") == 0) {
+            if (++i < argc) {
+                model = argv[i];
+	    }
+        } else {
+            model = argv[i];
+	}
     }
-
     proxyPtr->flags |= INVALIDATE_CACHE; /* Lines */
     if (!defer || push) {
 	proxyPtr->flags |= UPDATE_PENDING;
@@ -1105,14 +1103,7 @@ LinesCmd(ClientData clientData, Tcl_Interp *interp, int argc,
     if (push) {
 	proxyPtr->flags |= FORCE_UPDATE;
     }
-    Pymol(proxyPtr, "hide everything,%s\n",model);
-
-    lineWidth = (ghost) ? 0.25f : 1.0f;
-    Pymol(proxyPtr, "set line_width,%g,%s\n", lineWidth, model);
-    Pymol(proxyPtr, "show lines,%s\n", model);
-    if (proxyPtr->flags & SHOW_LABELS) {
-        Pymol(proxyPtr, "show labels,%s\n", model);
-    }
+    Pymol(proxyPtr, "hide everything,%s\nshow lines,%s\n", model, model);
     return proxyPtr->status;
 }
 
@@ -1123,25 +1114,25 @@ LoadPDBCmd(ClientData clientData, Tcl_Interp *interp, int argc,
     const char *pdbdata, *name;
     PymolProxy *proxyPtr = clientData;
     int state = 1;
-    int arg, defer = 0, push = 0, varg = 1;
+    int i, defer = 0, push = 0, varg = 1;
     
     if (proxyPtr == NULL)
 	return TCL_ERROR;
     clear_error(proxyPtr);
     pdbdata = name = NULL;	/* Suppress compiler warning. */
-    for(arg = 1; arg < argc; arg++) {
-	if ( strcmp(argv[arg],"-defer") == 0 )
+    for(i = 1; i < argc; i++) {
+	if ( strcmp(argv[i],"-defer") == 0 )
 	    defer = 1;
-	else if (strcmp(argv[arg],"-push") == 0)
+	else if (strcmp(argv[i],"-push") == 0)
 	    push = 1;
         else if (varg == 1) {
-	    pdbdata = argv[arg];
+	    pdbdata = argv[i];
 	    varg++;
 	} else if (varg == 2) {
-	    name = argv[arg];
+	    name = argv[i];
 	    varg++;
 	} else if (varg == 3) {
-	    state = atoi( argv[arg] );
+	    state = atoi( argv[i] );
 	    varg++;
 	}
     }
@@ -1341,7 +1332,7 @@ PrintCmd(ClientData clientData, Tcl_Interp *interp, int argc,
 	return TCL_ERROR;
     }
     /* Force pymol to update the current scene. */
-    Pymol(proxyPtr,"refresh ; ray %d,%d ; png -, dpi=300\n", width, height);
+    Pymol(proxyPtr,"refresh\nray %d,%d\npng -, dpi=300\n", width, height);
     Expect(proxyPtr, "png image follows: ", buffer, 800);
 
     if (sscanf(buffer, "png image follows: %d\n", &nBytes) != 1) {
@@ -1418,8 +1409,7 @@ ResetCmd(ClientData clientData, Tcl_Interp *interp, int argc,
     if (push) {
 	proxyPtr->flags |= FORCE_UPDATE;
     }
-    Pymol(proxyPtr, "reset\n");
-    Pymol(proxyPtr, "zoom complete=1\n");
+    Pymol(proxyPtr, "reset\nzoom complete=1\n");
     return proxyPtr->status;
 }
 
@@ -1526,33 +1516,26 @@ static int
 SpheresCmd(ClientData clientData, Tcl_Interp *interp, int argc, 
 	   const char *argv[])
 {
-    int defer = 0, ghost = 0, push = 0, arg;
-    float scale;
-    const char *model = "all";
     PymolProxy *proxyPtr = clientData;
+    const char *model;
+    int defer, push, i;
 
     clear_error(proxyPtr);
-    scale = 0.41f;
-    for(arg = 1; arg < argc; arg++) {
-        if ( strcmp(argv[arg],"-defer") == 0 ) {
-            defer = 1;
-	} else if (strcmp(argv[arg],"-push") == 0) {
-            push = 1;
-	} else if (strcmp(argv[arg],"-ghost") == 0) {
-            ghost = 1;
-	} else if (strcmp(argv[arg],"-normal") == 0) {
-            ghost = 0;
-	} else if (strcmp(argv[arg],"-model") == 0) {
-            if (++arg < argc)
-                model = argv[arg];
-        } else if (strcmp(argv[arg],"-scale") == 0) {
-            if (++arg < argc)
-                scale = atof(argv[arg]);
-        }
-        else
-            model = argv[arg];
+    defer = push = FALSE;
+    model = "all";
+    for(i = 1; i < argc; i++) {
+        if ( strcmp(argv[i],"-defer") == 0 ) {
+            defer = TRUE;
+	} else if (strcmp(argv[i],"-push") == 0) {
+            push = TRUE;
+	} else if (strcmp(argv[i],"-model") == 0) {
+            if (++i < argc) {
+                model = argv[i];
+	    }
+        } else {
+            model = argv[i];
+	}
     }
-
     proxyPtr->flags |= INVALIDATE_CACHE; /* Spheres */
     if (!defer || push) {
 	proxyPtr->flags |= UPDATE_PENDING;
@@ -1560,23 +1543,9 @@ SpheresCmd(ClientData clientData, Tcl_Interp *interp, int argc,
     if (push) {
 	proxyPtr->flags |= FORCE_UPDATE;
     }
-    Pymol(proxyPtr, "hide everything, %s\n", model);
-#ifdef notdef
-    Pymol(proxyPtr, "set sphere_scale,%f,%s\n", scale, model);
-#endif
-    //Pymol(proxyPtr, "set sphere_quality,2,%s\n", model);
-    Pymol(proxyPtr, "set ambient,.2,%s\n", model);
-
-    if (ghost)
-        Pymol(proxyPtr, "set sphere_transparency,.75,%s\n", model);
-    else
-        Pymol(proxyPtr, "set sphere_transparency,0,%s\n", model);
-
-    Pymol(proxyPtr, "show spheres,%s\n", model);
-
-    if (proxyPtr->flags & SHOW_LABELS) {
-        Pymol(proxyPtr, "show labels,%s\n", model);
-    }
+    Pymol(proxyPtr, "set sphere_quality,2,%s\nhide everything,%s\n", 
+	  model, model);
+    Pymol(proxyPtr, "set ambient,.2,%s\nshow spheres,%s\n", model, model);
     return proxyPtr->status;
 }
 
@@ -1586,22 +1555,22 @@ ScreenCmd(ClientData clientData, Tcl_Interp *interp, int argc,
 {
     PymolProxy *proxyPtr = clientData;
     int width = 640, height = 480;
-    int defer = 0, push = 0, arg, varg = 1;
+    int defer = 0, push = 0, i, varg = 1;
 
     clear_error(proxyPtr);
 
-    for(arg = 1; arg < argc; arg++) {
-        if ( strcmp(argv[arg],"-defer") == 0 ) 
+    for(i = 1; i < argc; i++) {
+        if ( strcmp(argv[i],"-defer") == 0 ) 
             defer = 1;
-        else if ( strcmp(argv[arg], "-push") == 0 )
+        else if ( strcmp(argv[i], "-push") == 0 )
             push = 1;
         else if (varg == 1) {
-            width = atoi(argv[arg]);
+            width = atoi(argv[i]);
             height = width;
             varg++;
         }
         else if (varg == 2) {
-            height = atoi(argv[arg]);
+            height = atoi(argv[i]);
             varg++;
         }
     }
@@ -1621,39 +1590,79 @@ ScreenCmd(ClientData clientData, Tcl_Interp *interp, int argc,
     return proxyPtr->status;
 }
 
+
+static int
+TransparencyCmd(ClientData clientData, Tcl_Interp *interp, int argc, 
+		const char *argv[])
+{
+    PymolProxy *proxyPtr = clientData;
+    const char *model, *cmd;
+    float transparency;
+    int defer, push;
+    int i;
+
+    clear_error(proxyPtr);
+    model = "all";
+    defer = push = FALSE;
+    transparency = 0.0f;
+    for(i = 1; i < argc; i++) {
+        if ( strcmp(argv[i],"-defer") == 0 ) {
+            defer = 1;
+	} else if (strcmp(argv[i],"-push") == 0) {
+            push = 1;
+	} else if (strcmp(argv[i],"-model") == 0) {
+            if (++i < argc) {
+                model = argv[i];
+	    }
+	} else {
+	    transparency = atof(argv[i]);
+	}
+    }
+    proxyPtr->flags |= INVALIDATE_CACHE; 
+    if (!defer || push) {
+	proxyPtr->flags |= UPDATE_PENDING;
+    }
+    if (push) {
+	proxyPtr->flags |= FORCE_UPDATE;
+    } 
+    cmd = "set sphere_transparency,%g,%s\nset stick_transparency,%g,%s\n";
+    Pymol(proxyPtr, cmd, transparency, model, transparency, model);
+    return proxyPtr->status;
+}
+
 static int
 VMouseCmd(ClientData clientData, Tcl_Interp *interp, int argc, 
 	  const char *argv[])
 {
     PymolProxy *proxyPtr = clientData;
-    int arg, defer = 0, push = 0, varg = 1;
+    int i, defer = 0, push = 0, varg = 1;
     int arg1 = 0, arg2 = 0, arg3 = 0, arg4 = 0, arg5 = 0;
 
     clear_error(proxyPtr);
 
-    for(arg = 1; arg < argc; arg++) {
-        if (strcmp(argv[arg], "-defer") == 0)
+    for(i = 1; i < argc; i++) {
+        if (strcmp(argv[i], "-defer") == 0)
             defer = 1;
-        else if (strcmp(argv[arg], "-push") == 0)
+        else if (strcmp(argv[i], "-push") == 0)
             push = 1;
         else if (varg == 1) {
-            arg1 = atoi(argv[arg]);
+            arg1 = atoi(argv[i]);
             varg++;
         }
         else if (varg == 2) {
-            arg2 = atoi(argv[arg]);
+            arg2 = atoi(argv[i]);
             varg++;
         }
         else if (varg == 3) {
-            arg3 = atoi(argv[arg]);
+            arg3 = atoi(argv[i]);
             varg++;
         }
         else if (varg == 4) {
-            arg4 = atoi(argv[arg]);
+            arg4 = atoi(argv[i]);
             varg++;
         }
         else if (varg == 5) {
-            arg5 = atoi(argv[arg]);
+            arg5 = atoi(argv[i]);
             varg++;
         }
     }
@@ -1687,18 +1696,18 @@ ZoomCmd(ClientData clientData, Tcl_Interp *interp, int argc, const char *argv[])
 {
     double factor = 0.0;
     PymolProxy *proxyPtr = clientData;
-    int defer = 0, push = 0, arg, varg = 1;
+    int defer = 0, push = 0, i, varg = 1;
 
     clear_error(proxyPtr);
 
-    for(arg = 1; arg < argc; arg++) {
-	if (strcmp(argv[arg],"-defer") == 0)
+    for(i = 1; i < argc; i++) {
+	if (strcmp(argv[i],"-defer") == 0)
 	    defer = 1;
-	else if (strcmp(argv[arg],"-push") == 0)
+	else if (strcmp(argv[i],"-push") == 0)
 	    push = 1;
 	else if (varg == 1) {
 	    double value;
-	    if (Tcl_GetDouble(interp, argv[arg], &value) != TCL_OK) {
+	    if (Tcl_GetDouble(interp, argv[i], &value) != TCL_OK) {
 		return TCL_ERROR;
 	    }
 	    factor = (float)value;
@@ -1828,6 +1837,7 @@ ProxyInit(int c_in, int c_out, char *const *argv)
     Tcl_CreateCommand(interp, "rotate",        RotateCmd,        &proxy, NULL);
     Tcl_CreateCommand(interp, "screen",        ScreenCmd,        &proxy, NULL);
     Tcl_CreateCommand(interp, "spheres",       SpheresCmd,       &proxy, NULL);
+    Tcl_CreateCommand(interp, "transparency",  TransparencyCmd,  &proxy, NULL);
     Tcl_CreateCommand(interp, "viewport",      ScreenCmd,        &proxy, NULL);
     Tcl_CreateCommand(interp, "vmouse",        VMouseCmd,        &proxy, NULL);
     Tcl_CreateCommand(interp, "zoom",          ZoomCmd,          &proxy, NULL);
