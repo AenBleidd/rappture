@@ -135,7 +135,6 @@ typedef struct {
 
 #define FORCE_UPDATE		(1<<0)
 #define CAN_UPDATE		(1<<1)
-#define SHOW_LABELS		(1<<2)
 #define INVALIDATE_CACHE	(1<<3)
 #define ATOM_SCALE_PENDING	(1<<4)
 #define BOND_THICKNESS_PENDING	(1<<5)
@@ -825,13 +824,8 @@ BallNStickCmd(ClientData clientData, Tcl_Interp *interp, int argc,
     if (push) {
 	proxyPtr->flags |= FORCE_UPDATE;
     }
-    Pymol(proxyPtr, "hide everything,%s\nset stick_color,white,%s\n", model,
-	  model);
+    Pymol(proxyPtr, "set stick_color,white,%s\n", model);
     Pymol(proxyPtr, "show sticks,%s\nshow spheres,%s\n", model, model);
-
-    if (proxyPtr->flags & SHOW_LABELS) {
-        Pymol(proxyPtr, "show labels,%s\n", model);
-    }
     return proxyPtr->status;
 }
 
@@ -959,20 +953,20 @@ EnableCmd(ClientData clientData, Tcl_Interp *interp, int argc,
 	  const char *argv[])
 {
     PymolProxy *proxyPtr = clientData;
-    const char *model = "all";
-    int i, defer = 0, push = 0;
+    const char *model;
+    int i, defer, push;
 
     clear_error(proxyPtr);
-
+    push = defer = FALSE;
+    model = "all";
     for(i = 1; i < argc; i++) {
-                
-        if (strcmp(argv[i],"-defer") == 0)
-            defer = 1;
-        else if (strcmp(argv[i], "-push") == 0 )
-            push = 1;
-        else
+        if (strcmp(argv[i],"-defer") == 0) {
+            defer = TRUE;
+	} else if (strcmp(argv[i], "-push") == 0) {
+            push = TRUE;
+	} else {
             model = argv[i];
-
+	}
     }
     proxyPtr->flags |= INVALIDATE_CACHE; /* Enable */
     if (!defer || push) {
@@ -990,20 +984,20 @@ FrameCmd(ClientData clientData, Tcl_Interp *interp, int argc,
 	 const char *argv[])
 {
     PymolProxy *proxyPtr = clientData;
-    int frame = 0;
-    int i, push = 0, defer = 0;
+    int i, push, defer, frame;
 
     clear_error(proxyPtr);
-
-    for(i = 1; i < argc; i++) {
-        if ( strcmp(argv[i],"-defer") == 0 )
-            defer = 1;
-        else if (strcmp(argv[i],"-push") == 0 )
-            push = 1;
-        else
+    frame = 0;
+    push = defer = TRUE;
+    for(i = 1; i < argc; i++) { 
+        if (strcmp(argv[i],"-defer") == 0) {
+            defer = TRUE;
+	} else if (strcmp(argv[i],"-push") == 0) {
+            push = TRUE;
+	} else {
             frame = atoi(argv[i]);
+	}
     }
-                
     if (!defer || push) {
 	proxyPtr->flags |= UPDATE_PENDING;
     }
@@ -1015,7 +1009,6 @@ FrameCmd(ClientData clientData, Tcl_Interp *interp, int argc,
     /* Does not invalidate cache? */
 
     Pymol(proxyPtr,"frame %d\n", frame);
-        
     return proxyPtr->status;
 }
 
@@ -1064,11 +1057,6 @@ LabelCmd(ClientData clientData, Tcl_Interp *interp, int argc,
     } else {
         Pymol(proxyPtr, "label %s\n", model);
     }
-    if (state) {
-	proxyPtr->flags |= SHOW_LABELS;
-    } else {
-	proxyPtr->flags &= ~SHOW_LABELS;
-    }
     return proxyPtr->status;
 }
 
@@ -1103,7 +1091,7 @@ LinesCmd(ClientData clientData, Tcl_Interp *interp, int argc,
     if (push) {
 	proxyPtr->flags |= FORCE_UPDATE;
     }
-    Pymol(proxyPtr, "hide everything,%s\nshow lines,%s\n", model, model);
+    Pymol(proxyPtr, "hide spheres,%s\nshow lines,%s\n", model, model);
     return proxyPtr->status;
 }
 
@@ -1543,7 +1531,7 @@ SpheresCmd(ClientData clientData, Tcl_Interp *interp, int argc,
     if (push) {
 	proxyPtr->flags |= FORCE_UPDATE;
     }
-    Pymol(proxyPtr, "set sphere_quality,2,%s\nhide everything,%s\n", 
+    Pymol(proxyPtr, "set sphere_quality,2,%s\nhide lines,%s\n", 
 	  model, model);
     Pymol(proxyPtr, "set ambient,.2,%s\nshow spheres,%s\n", model, model);
     return proxyPtr->status;
