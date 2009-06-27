@@ -1400,6 +1400,7 @@ itcl::body Rappture::MolvisViewer::delete { args } {
 	    set _dlist [lreplace $_dlist $pos $pos]
 	    foreach model $_obj2models($dataobj) {
 		array unset _active $model
+		array unset _dataobjs $model-*
 	    }
 	    array unset _obj2models $dataobj
 	    array unset _dobj2transparency $dataobj
