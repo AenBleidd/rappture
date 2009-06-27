@@ -101,6 +101,8 @@ itcl::class Rappture::NanovisViewer {
     private method PanCamera {}
     private method ParseLevelsOption { tf levels }
     private method ParseMarkersOption { tf markers }
+    private method volume { tag name }
+    private method GetVolumeInfo { w }
 
     private variable _outbuf       ;# buffer for outgoing commands
 
@@ -1729,6 +1731,8 @@ itcl::body Rappture::NanovisViewer::BuildViewTab {} {
 	3,0 $inner.volume  -columnspan 2 -anchor w \
 	4,0 $inner.legend  -columnspan 2 -anchor w 
 
+    bind $inner <Map> [itcl::code $this GetFlowInfo $inner]
+
     blt::table configure $inner r* -resize none
     blt::table configure $inner r5 -resize expand
 }
@@ -2028,3 +2032,63 @@ itcl::body Rappture::NanovisViewer::camera {option args} {
 	}
     }
 }
+
+itcl::body Rappture::NanovisViewer::GetVolumeInfo { w } {
+    set flowobj ""
+    foreach key [array names _obj2flow] {
+	set flowobj $_obj2flow($key)
+	break
+    }
+    if { $flowobj == "" } {
+	return
+    }
+    if { [winfo exists $w.frame] } {
+	destroy $w.frame
+    }
+    set inner [frame $w.frame]
+    blt::table $w \
+	5,0 $inner -fill both -columnspan 2 -anchor nw
+    array set hints [$dataobj hints]
+
+    label $inner.volumes -text "Volumes" -font "Arial 9 bold"
+    blt::table $inner \
+	1,0 $inner.volumes  -anchor w \
+    blt::table configure $inner c0 c1 -resize none
+    blt::table configure $inner c2 -resize expand
+
+    set row 3
+    set volumes [get]
+    if { [llength $volumes] > 0 } {
+	blt::table $inner $row,0 $inner.volumes  -anchor w
+	incr row
+    }
+    foreach vol $volumes {
+	array unset info
+	array set info $vol
+	set name $info(name)
+	if { ![info exists _settings($this-volume-$name)] } {
+	    set _settings($this-volume-$name) $info(hide)
+	}
+	checkbutton $inner.vol$row -text $info(label) \
+	    -variable [itcl::scope _settings($this-volume-$name)] \
+	    -onvalue 0 -offvalue 1 \
+	    -command [itcl::code $this volume $key $name] \
+	    -font "Arial 9"
+	Rappture::Tooltip::for $inner.vol$row $info(description)
+	blt::table $inner $row,0 $inner.vol$row -anchor w 
+	if { !$_settings($this-volume-$name) } {
+	    $inner.vol$row select
+	} 
+	incr row
+    }
+    blt::table configure $inner r* -resize none
+    blt::table configure $inner r$row -resize expand
+    blt::table configure $inner c3 -resize expand
+    event generate [winfo parent [winfo parent $w]] <Configure> 
+}
+
+itcl::body Rappture::NanovisViewer::volume { tag name } {
+    set bool $_settings($this-volume-$name)
+    SendCmd "volume statue $bool $name"
+}
+
