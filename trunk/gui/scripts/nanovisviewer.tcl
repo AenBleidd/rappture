@@ -1731,8 +1731,9 @@ itcl::body Rappture::NanovisViewer::BuildViewTab {} {
 	3,0 $inner.volume  -columnspan 2 -anchor w \
 	4,0 $inner.legend  -columnspan 2 -anchor w 
 
-    bind $inner <Map> [itcl::code $this GetFlowInfo $inner]
-
+    if 0 {
+    bind $inner <Map> [itcl::code $this GetVolumeInfo $inner]
+    }
     blt::table configure $inner r* -resize none
     blt::table configure $inner r5 -resize expand
 }
