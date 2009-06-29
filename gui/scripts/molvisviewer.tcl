@@ -441,10 +441,8 @@ itcl::body Rappture::MolvisViewer::BuildViewTab {} {
     blt::table configure $inner c0 -resize expand -width 2
     blt::table configure $inner c1 c2 -resize none
     blt::table configure $inner c3 -resize expand
-    for {set n 0} {$n <= 10} {incr n} {
-        blt::table configure $inner r$n -resize none
-    }
-    blt::table configure $inner r$n -resize expand
+    blt::table configure $inner r* -resize none
+    blt::table configure $inner r11 -resize expand
 }
 
 

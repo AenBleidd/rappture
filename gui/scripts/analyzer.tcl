@@ -557,6 +557,7 @@ itcl::body Rappture::Analyzer::load {xmlobj} {
     }
 
     # if there are any valid results, add them to the resultset
+    update
     if {$haveresults} {
 	set index [$itk_component(resultset) add $xmlobj]
 
