@@ -19,6 +19,15 @@
  */
 
 /*
+ * Notes:   The proxy should not maintain any state information from the
+ *	    client, other that what it needs for event (rotate, pan, zoom,
+ *	    atom scale, bond thickness, etc.) compression.  This is because 
+ *	    the connection is periodically broken (timeout, error, etc.).
+ *	    It's the responsibility of the client (molvisviewer) to restore 
+ *	    the settings of the previous view.  The proxy is just a relay
+ *	    between the client and the pymol server.
+ */
+/*
  *   +--------------+        +------------+         +--------+
  *   |              | output |            |  input  |        | 
  *   |              |------->|            |-------->|        |
@@ -40,15 +49,6 @@
  * deadlock with the client.  The client may be busy sending the next command
  * when we want to write the resulting image from the last command.
  *
- * FIXME: Need to fix the reads from the pymol server.  We want to check for
- * an expected string within the pymol server output.  Right now it's doing
- * single character reads to stop when we hit a newline.  We should create a
- * read buffer that lets us do block reads.  This problem only really affects
- * the echoing back of commands (waiting for the pymol command prompt).  Most
- * command lines are small.  Still it's a good area for improvement.
- *
- * FIXME: Might be a problem if another image is received from the server
- *	  before the last one is transmitted.
  */
 
 #include <assert.h>
@@ -845,9 +845,9 @@ BmpCmd(ClientData clientData, Tcl_Interp *interp, int argc, const char *argv[])
 
     proxyPtr->flags &= ~(UPDATE_PENDING|FORCE_UPDATE|INVALIDATE_CACHE);
 
-   /* Force pymol to update the current scene. */
-    Pymol(proxyPtr,"refresh\n");
-    Pymol(proxyPtr,"bmp -\n");
+    /* Force pymol to update the current scene. */
+    Pymol(proxyPtr, "refresh\n");
+    Pymol(proxyPtr, "bmp -\n");
     if (Expect(proxyPtr, "bmp image follows: ", buffer, BUFSIZ) != BUFFER_OK) {
         trace("can't find image follows line (%s)", buffer);
     }
@@ -1091,7 +1091,7 @@ LinesCmd(ClientData clientData, Tcl_Interp *interp, int argc,
     if (push) {
 	proxyPtr->flags |= FORCE_UPDATE;
     }
-    Pymol(proxyPtr, "hide spheres,%s\nshow lines,%s\n", model, model);
+    Pymol(proxyPtr, "hide spheres,%s\nshow sticks,%s\n", model, model);
     return proxyPtr->status;
 }
 
@@ -1153,7 +1153,7 @@ LoadPDBCmd(ClientData clientData, Tcl_Interp *interp, int argc,
 	    perror("pymolproxy");
 	}
 	fclose(f);
-	Pymol(proxyPtr, "load %s, %s, %d\n", fileName, name, state);
+	Pymol(proxyPtr, "load %s,%s,%d\n", fileName, name, state);
 	Pymol(proxyPtr, "zoom complete=1\n");
     }
     return proxyPtr->status;
@@ -1260,9 +1260,8 @@ PngCmd(ClientData clientData, Tcl_Interp *interp, int argc, const char *argv[])
     proxyPtr->flags &= ~(UPDATE_PENDING | FORCE_UPDATE | INVALIDATE_CACHE);
 
     /* Force pymol to update the current scene. */
-    Pymol(proxyPtr,"refresh\n");
-
-    Pymol(proxyPtr,"png -\n");
+    Pymol(proxyPtr, "refresh\n");
+    Pymol(proxyPtr, "png -\n");
 
     Expect(proxyPtr, "png image follows: ", buffer, 800);
 
@@ -1320,7 +1319,8 @@ PrintCmd(ClientData clientData, Tcl_Interp *interp, int argc,
 	return TCL_ERROR;
     }
     /* Force pymol to update the current scene. */
-    Pymol(proxyPtr,"refresh\nray %d,%d\npng -, dpi=300\n", width, height);
+    Pymol(proxyPtr, "refresh\n");
+    Pymol(proxyPtr, "ray %d,%d\npng -,dpi=300\n", width, height);
     Expect(proxyPtr, "png image follows: ", buffer, 800);
 
     if (sscanf(buffer, "png image follows: %d\n", &nBytes) != 1) {
@@ -1531,8 +1531,7 @@ SpheresCmd(ClientData clientData, Tcl_Interp *interp, int argc,
     if (push) {
 	proxyPtr->flags |= FORCE_UPDATE;
     }
-    Pymol(proxyPtr, "set sphere_quality,2,%s\nhide lines,%s\n", 
-	  model, model);
+    Pymol(proxyPtr, "set sphere_quality,2,%s\nhide sticks,%s\n", model, model);
     Pymol(proxyPtr, "set ambient,.2,%s\nshow spheres,%s\n", model, model);
     return proxyPtr->status;
 }
@@ -1542,11 +1541,12 @@ ScreenCmd(ClientData clientData, Tcl_Interp *interp, int argc,
 	  const char *argv[])
 {
     PymolProxy *proxyPtr = clientData;
-    int width = 640, height = 480;
-    int defer = 0, push = 0, i, varg = 1;
+    int width = -1, height = -1;
+    int defer, push, i, varg;
 
     clear_error(proxyPtr);
-
+    defer = push = FALSE;
+    varg = 1;
     for(i = 1; i < argc; i++) {
         if ( strcmp(argv[i],"-defer") == 0 ) 
             defer = 1;
@@ -1561,6 +1561,9 @@ ScreenCmd(ClientData clientData, Tcl_Interp *interp, int argc,
             height = atoi(argv[i]);
             varg++;
         }
+    }
+    if ((width < 0) || (height < 0)) {
+	return TCL_ERROR;
     }
     proxyPtr->flags |= INVALIDATE_CACHE; /* viewport */
     if (!defer || push) {
