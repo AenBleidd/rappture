@@ -65,6 +65,7 @@ itcl::body Rappture::ResultViewer::constructor {args} {
 # DESTRUCTOR
 # ----------------------------------------------------------------------
 itcl::body Rappture::ResultViewer::destructor {} {
+    puts stderr "destructor called for $this"
     foreach slot $_dataslots {
 	foreach obj $slot {
 	    itcl::delete object $obj
@@ -101,6 +102,7 @@ itcl::body Rappture::ResultViewer::add {index xmlobj path} {
 # Clears one or all results in this result viewer.
 # ----------------------------------------------------------------------
 itcl::body Rappture::ResultViewer::clear {{index ""}} {
+    puts stderr "ResultViewer::clear"
     if {"" != $index} {
 	# clear one result
 	if {$index >= 0 && $index < [llength $_dataslots]} {
@@ -150,6 +152,7 @@ itcl::body Rappture::ResultViewer::value {xmlobj} {
 # to the plot; otherwise, default settings are used.
 # ----------------------------------------------------------------------
 itcl::body Rappture::ResultViewer::plot {option args} {
+    puts stderr "ResultViewer::plot $option $args"
     switch -- $option {
 	add {
 	    set params ""
@@ -237,6 +240,7 @@ itcl::body Rappture::ResultViewer::_plotAdd {dataobj {settings ""}} {
 		}
 		2D {
 		    set mode "contour"
+		    puts stderr "mode=$mode exists=[info exists _mode2widget($mode)]"
 		    if {![info exists _mode2widget($mode)]} {
 			if { [$dataobj isunirect2d] } {
 			    set resultMode "heightmap" 
@@ -248,9 +252,12 @@ itcl::body Rappture::ResultViewer::_plotAdd {dataobj {settings ""}} {
 			    set resultMode "flowvis"
 			}
 			set w $itk_interior.contour
-			Rappture::Field2DResult $w -mode $resultMode
+			if { ![winfo exists $w] } {
+			    Rappture::Field2DResult $w -mode $resultMode
+			}
 			set _mode2widget($mode) $w
 		    }
+		    puts stderr "mode=$mode w=$_mode2widget($mode)"
 		}
 		3D {
 		    set mode "field3D"

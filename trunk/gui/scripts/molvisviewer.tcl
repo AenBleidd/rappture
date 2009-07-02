@@ -574,8 +574,12 @@ itcl::body Rappture::MolvisViewer::Connect {} {
     if { $result } {
 	set _rocker(server) 0
 	set _cacheid 0
-	SendCmd "raw -defer {set auto_color,0}"
-	SendCmd "raw -defer {set auto_show_lines,0}"
+	if 0 {
+	    # Can't and shouldn't call this from the connect routine.
+	    SendCmd "raw -defer {set auto_color,0}"
+	    SendCmd "raw -defer {set auto_show_lines,0}"
+	}
+	$_dispatcher event -idle !rebuild
     }
     return $result
 }
@@ -675,9 +679,6 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
     set changed 0
 
     $itk_component(3dview) configure -cursor watch
-    # refresh GUI (primarily to make pending cursor changes visible)
-    update idletasks
-    update
 
     # Turn on buffering of commands to the server.  We don't want to
     # be preempted by a server disconnect/reconnect (that automatically
@@ -770,13 +771,6 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
 	} elseif { $_mlist($model) == 2 } {
 	    set _mlist($model) 1
 	    SendCmd "enable -defer $model"
-	    if 0 {
-	    if { $_labels } {
-		SendCmd "label -defer on"
-	    } else {
-		SendCmd "label -defer off"
-	    }
-	    }
 	    set changed 1
 	} elseif { $_mlist($model) == 3 } {
 	    set _mlist($model) 1
@@ -1500,7 +1494,6 @@ itcl::body Rappture::MolvisViewer::GetPngImage  { widget width height } {
     SendCmd "print $token $width $height"
 
     $popup activate $widget below
-    update
     # We wait here for either 
     #  1) the png to be delivered or 
     #  2) timeout or  

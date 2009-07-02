@@ -53,6 +53,7 @@ itcl::body Rappture::Field2DResult::constructor {args} {
     array set flags {
 	-mode auto
     }
+    puts stderr "Field2dResult constructor $this"
     array set flags $args
     set servers [Rappture::VisViewer::GetServerList "nanovis"]
     if {"" != $servers && $flags(-mode) != "vtk"} {
@@ -71,10 +72,11 @@ itcl::body Rappture::Field2DResult::constructor {args} {
 		puts stderr "unknown render mode \"$flags(-mode)\""
 	    }
 	}		
+	puts stderr "$this created $itk_component(renderer)"
 	pack $itk_component(renderer) -expand yes -fill both
 	# can't connect to rendering farm?  then fall back to older viewer
 	if {![$itk_component(renderer) isconnected]} {
-	    destroy $itk_component(renderer)
+	    #destroy $itk_component(renderer)
 	}
     } 
 
@@ -91,6 +93,7 @@ itcl::body Rappture::Field2DResult::constructor {args} {
 # DESTRUCTOR
 # ----------------------------------------------------------------------
 itcl::body Rappture::Field2DResult::destructor {} {
+    puts stderr "Field2dResult destructor $this"
 }
 
 # ----------------------------------------------------------------------
@@ -101,6 +104,7 @@ itcl::body Rappture::Field2DResult::destructor {} {
 # -color, -brightness, -width, -linestyle, and -raise.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Field2DResult::add {dataobj {settings ""}} {
+    puts stderr "Field2dResult $this add $dataobj"
     eval $itk_component(renderer) add $dataobj [list $settings]
 }
 
@@ -121,6 +125,7 @@ itcl::body Rappture::Field2DResult::get {} {
 # are specified, then all dataobjs are deleted.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Field2DResult::delete {args} {
+    puts stderr "Field2dResult $this delete $args"
     eval $itk_component(renderer) delete $args
 }
 

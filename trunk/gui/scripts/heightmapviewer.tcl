@@ -303,6 +303,7 @@ itcl::body Rappture::HeightmapViewer::add {dataobj {settings ""}} {
 	set _obj2ovride($dataobj-raise) $params(-raise)
 	$_dispatcher event -idle !rebuild
     }
+    scale $dataobj
 }
 
 # ----------------------------------------------------------------------
@@ -539,12 +540,14 @@ itcl::body Rappture::HeightmapViewer::SendDataObjs {} {
     }
     foreach dataobj $_sendobjs {
 	foreach comp [$dataobj components] {
+	    if 0 {
 	    foreach { vmin vmax }  [$dataobj limits v] break
 	    if { $_limits(vmin) == "" || $vmin < $_limits(vmin) } {
 		set _limits(vmin) $vmin
 	    }
 	    if { $_limits(vmax) == "" || $vmax > $_limits(vmax) } {
 		set _limits(vmax) $vmax
+	    }
 	    }
 	    # tell the engine to expect some data
 	    set data [$dataobj blob $comp]
