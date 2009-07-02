@@ -172,7 +172,6 @@ itcl::body Rappture::DeviceEditor::_redraw {} {
     }
     switch -- [_type $_xmlobj] {
 	molecule {
-update
 	    if { ![winfo exists $itk_component(hull).mol] } {
 		catch {
 		    destroy $itk_component(hull).dev

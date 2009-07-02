@@ -223,12 +223,19 @@ itcl::body Rappture::DispatchObj::event {args} {
 
 # ----------------------------------------------------------------------
 # USAGE: cancel ?!event ...?
+#	 cancel all
 #
 # Used to cancel any event notifications pending for the specified
 # list of events.  Notifications may be pending if a particular
 # event was raised with the -idle or -after flags.
 # ----------------------------------------------------------------------
 itcl::body Rappture::DispatchObj::cancel {args} {
+    if { $args == "all" } {
+	foreach event [array names _event2clients] {
+	    after cancel [itcl::code $this _send $event all @extra]
+	}
+	return
+    }
     foreach event $args {
 	if {![info exists _event2clients($event)]} {
 	    error "bad event \"$event\": should be [join [lsort [array names _event2clients]] {, }]"

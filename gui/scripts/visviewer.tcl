@@ -201,7 +201,8 @@ itcl::body Rappture::VisViewer::ServerDown {} {
 #
 itcl::body Rappture::VisViewer::Connect { hostlist } {
     blt::busy hold $itk_component(hull) -cursor watch
-    update
+    # Can't call update because of all the pending stuff going on
+    #update
 
     # Shuffle the list of servers so as to pick random 
     set servers [Shuffle $hostlist]
