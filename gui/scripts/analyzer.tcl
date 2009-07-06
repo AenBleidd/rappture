@@ -395,7 +395,6 @@ itcl::body Rappture::Analyzer::simulate {args} {
     if {$itk_option(-holdwindow) != ""} {
 	blt::busy hold $itk_option(-holdwindow)
 	raise $itk_component(hull)
-	update
     }
 
     # execute the job
@@ -880,7 +879,7 @@ itcl::body Rappture::Analyzer::_fixResult {} {
     } elseif {$page != ""} {
 	set _lastlabel $name
 	set win [winfo toplevel $itk_component(hull)]
-	blt::busy hold $win; update idletasks
+	blt::busy hold $win
 	$itk_component(resultpages) current $page
 
 	set f [$itk_component(resultpages) page $page]

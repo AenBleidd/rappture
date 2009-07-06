@@ -678,8 +678,6 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
     debug "in rebuild"
     set changed 0
 
-    $itk_component(3dview) configure -cursor watch
-
     # Turn on buffering of commands to the server.  We don't want to
     # be preempted by a server disconnect/reconnect (that automatically
     # generates a new call to Rebuild).   
@@ -839,11 +837,11 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
     representation update 
     opacity update 
 
-    $itk_component(3dview) configure -cursor ""
-
     # Actually write the commands to the server socket.  If it fails, we don't
     # care.  We're finished here.
+    blt::busy hold $itk_component(hull)
     SendBytes $_outbuf;			
+    blt::busy release $itk_component(hull)
     set _buffering 0;			# Turn off buffering.
     set _outbuf "";			# Clear the buffer.		
 

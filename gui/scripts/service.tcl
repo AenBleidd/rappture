@@ -307,9 +307,7 @@ itcl::body Rappture::Service::clear {} {
 # automatic and <toPath> is an input, this also invokes the service.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Service::_link {from to} {
-puts "link update: $from => $to"
     $_tool xml copy $to from [$_owner xml object] $from
-
     if {$_control == "auto" && [regexp -nocase {^input\.} $to]} {
 	after cancel [itcl::code $this run]
 	after idle [itcl::code $this run]

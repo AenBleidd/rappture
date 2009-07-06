@@ -909,15 +909,12 @@ itcl::body Rappture::FlowvisViewer::SendCmd { string } {
 itcl::body Rappture::FlowvisViewer::SendDataObjs {} {
     puts stderr "in SendDataObjs"
 
-    blt::busy hold $itk_component(hull); update idletasks
+    blt::busy hold $itk_component(hull)
     foreach dataobj $_sendobjs {
         foreach comp [$dataobj components] {
             # Send the data as one huge base64-encoded mess -- yuck!
-	    set time [time {
-		set data [$dataobj blob $comp]
-		set nbytes [string length $data]
-	    }]
-	    puts stderr rebuild=$time
+	    set data [$dataobj blob $comp]
+	    set nbytes [string length $data]
 	    set extents [$dataobj extents $comp]
 
 	    # I have a field. Is a vector field or a volume field?
@@ -931,11 +928,11 @@ itcl::body Rappture::FlowvisViewer::SendDataObjs {} {
 		}
 	    }
 	    f { ![SendBytes $cmd] } {
-		    puts stderr "can't send"
+		puts stderr "can't send"
 		return
 	    }
             if { ![SendBytes $data] } {
-		    puts stderr "can't send"
+		puts stderr "can't send"
                 return
             }
             NameTransferFunc $dataobj $comp
@@ -1161,7 +1158,7 @@ itcl::body Rappture::FlowvisViewer::ReceiveData { args } {
 # display new data.  
 #
 itcl::body Rappture::FlowvisViewer::Rebuild {} {
-    #puts stderr "in Rebuild"
+
     # Hide all the isomarkers. Can't remove them. Have to remember the
     # settings since the user may have created/deleted/moved markers.
 
@@ -1184,8 +1181,7 @@ itcl::body Rappture::FlowvisViewer::Rebuild {} {
     foreach dataobj [get] {
         foreach comp [$dataobj components] {
             # Send the data as one huge base64-encoded mess -- yuck!
-	    set blob [time { set data [$dataobj blob $comp] }]
-	    puts stderr blob=$blob
+	    set data [$dataobj blob $comp]
 	    set nbytes [string length $data]
 	    set extents [$dataobj extents $comp]
 	    # I have a field. Is a vector field or a volume field?
@@ -1275,12 +1271,11 @@ itcl::body Rappture::FlowvisViewer::Rebuild {} {
 
     # Actually write the commands to the server socket.  If it fails, we don't
     # care.  We're finished here.
-    blt::busy hold $itk_component(hull); update idletasks
+    blt::busy hold $itk_component(hull)
     SendBytes $_outbuf
     blt::busy release $itk_component(hull)
     set _buffering 0;			# Turn off buffering.
     set _outbuf "";			# Clear the buffer.		
-    #puts stderr "exit Rebuild"
 }
 
 # ----------------------------------------------------------------------
@@ -1706,7 +1701,6 @@ itcl::body Rappture::FlowvisViewer::ResizeLegend {} {
     set lineht [font metrics $itk_option(-font) -linespace]
     set w [expr {$_width-20}]
     set h [expr {[winfo height $itk_component(legend)]-20-$lineht}]
-    #puts stderr "ResizeLegend $w $h"
 
     if { $_first == "" } {
 	return
@@ -2531,7 +2525,6 @@ itcl::body Rappture::FlowvisViewer::SlicerTip {axis} {
 
 
 itcl::body Rappture::FlowvisViewer::Resize {} {
-    #puts stderr "Resize $_width $_height"
     SendCmd "screen $_width $_height"
     set _resizePending 0
 }
@@ -2546,7 +2539,6 @@ itcl::body Rappture::FlowvisViewer::EventuallyResize { w h } {
 }
 
 itcl::body Rappture::FlowvisViewer::EventuallyResizeLegend {} {
-    #puts stderr "in EventuallyResizeLegend"
     if { !$_resizeLegendPending } {
 	$_dispatcher event -after 100 !legend
 	set _resizeLegendPending 1
@@ -2683,11 +2675,8 @@ itcl::body Rappture::FlowvisViewer::flow { args } {
 	    set time [str2millisecs $_settings($this-duration)]
 	    $itk_component(dial) configure -max $time
 	    set delay [expr int(round(500.0/$speed))]
-	    puts stderr "duration=$time delay=$delay current=$current"
 	    set timePerStep [expr {double($time) / $delay}]
-	    puts stderr "timePerStep=$timePerStep"
 	    set nSteps [expr {int(ceil($current/$timePerStep))}]
-	    puts stderr "nSteps=$nSteps"
 	    EventuallyGoto $nSteps
 	}
 	"speed" {

@@ -313,7 +313,7 @@ itcl::body Rappture::MeshResult::download {option args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::MeshResult::_rebuild {} {
     set g $itk_component(plot)
-    blt::busy hold [winfo toplevel $g]; update
+    blt::busy hold [winfo toplevel $g]
 
     # first clear out the widget
     eval $g marker delete [$g marker names]

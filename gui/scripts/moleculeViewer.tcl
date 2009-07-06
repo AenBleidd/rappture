@@ -369,7 +369,7 @@ itcl::body Rappture::MoleculeViewer::_clear {} {
 # widget change.  Destroys all actors and rebuilds them from scratch.
 # ----------------------------------------------------------------------
 itcl::body Rappture::MoleculeViewer::_redraw {} {
-    blt::busy hold $itk_component(hull); update
+    blt::busy hold $itk_component(hull)
 
     _clear
 
