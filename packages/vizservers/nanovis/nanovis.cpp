@@ -105,7 +105,7 @@ Grid *NanoVis::grid = NULL;
 int NanoVis::updir = Y_POS;
 NvCamera* NanoVis::cam = NULL;
 Tcl_HashTable NanoVis::volumeTable;
-vector<HeightMap*> NanoVis::heightMap;
+Tcl_HashTable NanoVis::heightmapTable;
 VolumeRenderer* NanoVis::vol_renderer = NULL;
 PointSetRenderer* NanoVis::pointset_renderer = NULL;
 vector<PointSet*> NanoVis::pointSet;
@@ -1595,13 +1595,12 @@ NanoVis::SetHeightmapRanges()
     }
     xMin = yMin = zMin = wMin = FLT_MAX;
     xMax = yMax = zMax = wMax = -FLT_MAX;
-    for (unsigned int i = 0; i < heightMap.size(); i++) {
+    Tcl_HashEntry *hPtr;
+    Tcl_HashSearch iter;
+    for (hPtr = Tcl_FirstHashEntry(&heightmapTable, &iter); hPtr != NULL;
+	 hPtr = Tcl_NextHashEntry(&iter)) {
         HeightMap *hmPtr;
-
-        hmPtr = heightMap[i];
-        if (hmPtr == NULL) {
-            continue;
-        }
+	hmPtr = (HeightMap *)Tcl_GetHashValue(hPtr);
         if (xMin > hmPtr->xAxis.min()) {
             xMin = hmPtr->xAxis.min();
         }
@@ -1640,13 +1639,10 @@ NanoVis::SetHeightmapRanges()
         HeightMap::valueMin = grid->yAxis.min();
         HeightMap::valueMax = grid->yAxis.max();
     }
-    for (unsigned int i = 0; i < heightMap.size(); i++) {
+    for (hPtr = Tcl_FirstHashEntry(&heightmapTable, &iter); hPtr != NULL;
+	 hPtr = Tcl_NextHashEntry(&iter)) {
         HeightMap *hmPtr;
-
-        hmPtr = heightMap[i];
-        if (hmPtr == NULL) {
-            continue;
-        }
+	hmPtr = (HeightMap *)Tcl_GetHashValue(hPtr);
         hmPtr->MapToGrid(grid);
     }
     HeightMap::update_pending = false;
@@ -1769,9 +1765,14 @@ NanoVis::display()
         if (debug_flag) {
 	    fprintf(stderr, "in display: render heightmap\n");
         }
-        for (unsigned int i = 0; i < heightMap.size(); ++i) {
-            if (heightMap[i]->isVisible()) {
-                heightMap[i]->render(renderContext);
+	Tcl_HashEntry *hPtr;
+	Tcl_HashSearch iter;
+	for (hPtr = Tcl_FirstHashEntry(&heightmapTable, &iter); hPtr != NULL;
+	     hPtr = Tcl_NextHashEntry(&iter)) {
+	    HeightMap *hmPtr;
+	    hmPtr = (HeightMap *)Tcl_GetHashValue(hPtr);
+            if (hmPtr->isVisible()) {
+                hmPtr->render(renderContext);
             }
         }
         glPopMatrix();

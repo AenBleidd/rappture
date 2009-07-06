@@ -293,34 +293,6 @@ CreateHeightMap(ClientData clientData, Tcl_Interp *interp, int objc,
 /*
  * ----------------------------------------------------------------------
  *
- * GetHeightMapIndex --
- *
- * ----------------------------------------------------------------------
- */
-static int
-GetHeightMapIndex(Tcl_Interp *interp, Tcl_Obj *objPtr, unsigned int *indexPtr)
-{
-    int index;
-    if (Tcl_GetIntFromObj(interp, objPtr, &index) != TCL_OK) {
-        return TCL_ERROR;
-    }
-    if (index < 0) {
-        Tcl_AppendResult(interp, "can't have negative index \"",
-                         Tcl_GetString(objPtr), "\"", (char*)NULL);
-        return TCL_ERROR;
-    }
-    if (index >= (int)NanoVis::heightMap.size()) {
-        Tcl_AppendResult(interp, "index \"", Tcl_GetString(objPtr),
-                         "\" is out of range", (char*)NULL);
-        return TCL_ERROR;
-    }
-    *indexPtr = (unsigned int)index;
-    return TCL_OK;
-}
-
-/*
- * ----------------------------------------------------------------------
- *
  * GetHeightMapFromObj --
  *
  * ----------------------------------------------------------------------
@@ -328,20 +300,19 @@ GetHeightMapIndex(Tcl_Interp *interp, Tcl_Obj *objPtr, unsigned int *indexPtr)
 static int
 GetHeightMapFromObj(Tcl_Interp *interp, Tcl_Obj *objPtr, HeightMap **hmPtrPtr)
 {
-    unsigned int index;
-    if (GetHeightMapIndex(interp, objPtr, &index) != TCL_OK) {
+    const char *string;
+    string = Tcl_GetString(objPtr);
+
+    Tcl_HashEntry *hPtr;
+    hPtr = Tcl_FindHashEntry(&NanoVis::heightmapTable, string);
+    if (hPtr == NULL) {
+	if (interp != NULL) {
+	    Tcl_AppendResult(interp, "can't find a heightmap named \"",
+                         string, "\"", (char*)NULL);
+	}
         return TCL_ERROR;
     }
-    HeightMap *hmPtr;
-    hmPtr = NanoVis::heightMap[index];
-    if (hmPtr == NULL) {
-	if (interp != NULL) {
-	    Tcl_AppendResult(interp, "no heightmap defined for index \"",
-			     Tcl_GetString(objPtr), "\"", (char*)NULL);
-	}
-	return TCL_ERROR;
-    }
-    *hmPtrPtr = hmPtr;
+    *hmPtrPtr = (HeightMap *)Tcl_GetHashValue(hPtr);
     return TCL_OK;
 }
 
@@ -369,7 +340,7 @@ GetVolumeFromObj(Tcl_Interp *interp, Tcl_Obj *objPtr, Volume **volPtrPtr)
     hPtr = Tcl_FindHashEntry(&NanoVis::volumeTable, string);
     if (hPtr == NULL) {
 	if (interp != NULL) {
-	    Tcl_AppendResult(interp, "can't find a volume name \"",
+	    Tcl_AppendResult(interp, "can't find a volume named \"",
                          string, "\"", (char*)NULL);
 	}
         return TCL_ERROR;
@@ -437,11 +408,15 @@ GetHeightMaps(Tcl_Interp *interp, int objc, Tcl_Obj *const *objv,
            vector<HeightMap *>* vectorPtr)
 {
     if (objc == 0) {
-        for (unsigned int n = 0; n < NanoVis::heightMap.size(); n++) {
-            if (NanoVis::heightMap[n] != NULL) {
-                vectorPtr->push_back(NanoVis::heightMap[n]);
-            }
-        }
+	// No arguments. Get all heightmaps. 
+	Tcl_HashSearch iter;
+	Tcl_HashEntry *hPtr;
+        for (hPtr = Tcl_FirstHashEntry(&NanoVis::heightmapTable, &iter); 
+	     hPtr != NULL; hPtr = Tcl_NextHashEntry(&iter)) {
+	    HeightMap *hmPtr;
+	    hmPtr = (HeightMap *)Tcl_GetHashValue(hPtr);
+	    vectorPtr->push_back(hmPtr);
+	}
     } else {
         for (int n = 0; n < objc; n++) {
             HeightMap *hmPtr;
@@ -1731,52 +1706,48 @@ static int
 HeightMapDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
                        Tcl_Obj *const *objv)
 {
-    Rappture::Buffer buf;
     int nBytes;
-
     if (Tcl_GetIntFromObj(interp, objv[3], &nBytes) != TCL_OK) {
         return TCL_ERROR;
     }
+    const char *tag;
+    tag = Tcl_GetString(objv[4]);
+    int isNew;
+    Tcl_HashEntry *hPtr;
+
+    Rappture::Buffer buf;
     if (GetDataStream(interp, buf, nBytes) != TCL_OK) {
         return TCL_ERROR;
     }
-    buf.append("\0", 1);
-
-    Rappture::Unirect2d grid;
-    Tcl_CmdInfo cmdInfo;
-
-    /* Set the clientdata field of the unirect2d command to contain the local
-     * grid structure. This is how we communicate through the Tcl command
-     * interface. */
-    if (!Tcl_GetCommandInfo(interp, "unirect2d", &cmdInfo)) {
+    Rappture::Unirect2d data(1);
+    if (data.ParseBuffer(interp, buf) != TCL_OK) {
 	return TCL_ERROR;
     }
-    cmdInfo.objClientData = (ClientData)&grid;	
-    Tcl_SetCommandInfo(interp, "unirect2d", &cmdInfo);
-    if (Tcl_Eval(interp, (const char *)buf.bytes()) != TCL_OK) {
-        fprintf(NanoVis::logfile, "error in command: %s\n",
-                Tcl_GetStringResult(interp));
-        fflush(NanoVis::logfile);
+    if (data.nValues() == 0) {
+	Tcl_AppendResult(interp, "no data found in stream", (char *)NULL);
 	return TCL_ERROR;
     }
-    if (!grid.isInitialized()) {
+    if (!data.isInitialized()) {
 	return TCL_ERROR;
     }
-
     HeightMap* hmPtr;
-    hmPtr = new HeightMap();
-
+    hPtr = Tcl_CreateHashEntry(&NanoVis::heightmapTable, tag, &isNew);
+    if (isNew) {
+	hmPtr = new HeightMap();
+	Tcl_SetHashValue(hPtr, hmPtr);
+    } else {
+	hmPtr = (HeightMap *)Tcl_GetHashValue(hPtr);
+    }
     // Must set units before the heights.
-    hmPtr->xAxis.units(grid.xUnits());
-    hmPtr->yAxis.units(grid.yUnits());
-    hmPtr->zAxis.units(grid.vUnits());
-    hmPtr->wAxis.units(grid.yUnits());
-    hmPtr->setHeight(grid.xMin(), grid.yMin(), grid.xMax(), grid.yMax(), 
-		     grid.xNum(), grid.yNum(), grid.acceptValues());
+    hmPtr->xAxis.units(data.xUnits());
+    hmPtr->yAxis.units(data.yUnits());
+    hmPtr->zAxis.units(data.vUnits());
+    hmPtr->wAxis.units(data.yUnits());
+    hmPtr->setHeight(data.xMin(), data.yMin(), data.xMax(), data.yMax(), 
+		     data.xNum(), data.yNum(), data.acceptValues());
     hmPtr->transferFunction(NanoVis::get_transfunc("default"));
     hmPtr->setVisible(true);
     hmPtr->setLineContourVisible(true);
-    NanoVis::heightMap.push_back(hmPtr);
     return TCL_OK;
 }
 
@@ -1800,8 +1771,8 @@ HeightMapDataVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static Rappture::CmdSpec heightMapDataOps[] = {
-    {"follows",      1, HeightMapDataFollowsOp, 4, 4, "length",},
-    {"visible",      1, HeightMapDataVisibleOp, 4, 0, "bool ?indices?",},
+    {"follows",  1, HeightMapDataFollowsOp, 5, 5, "size tag",},
+    {"visible",  1, HeightMapDataVisibleOp, 4, 0, "bool ?indices?",},
 };
 static int nHeightMapDataOps = NumCmdSpecs(heightMapDataOps);
 
@@ -1894,15 +1865,24 @@ static int
 HeightMapCreateOp(ClientData clientData, Tcl_Interp *interp, int objc,
                   Tcl_Obj *const *objv)
 {
+    const char *tag;
+    tag = Tcl_GetString(objv[2]);
+    Tcl_HashEntry *hPtr;
+    int isNew;
+    hPtr = Tcl_CreateHashEntry(&NanoVis::heightmapTable, tag, &isNew);
+    if (!isNew) {
+	Tcl_AppendResult(interp, "heightmap \"", tag, "\" already exists.",
+			 (char *)NULL);
+	return TCL_ERROR;
+    }
     HeightMap *hmPtr;
-
     /* heightmap create xmin ymin xmax ymax xnum ynum values */
-    hmPtr = CreateHeightMap(clientData, interp, objc - 2, objv + 2);
+    hmPtr = CreateHeightMap(clientData, interp, objc - 3, objv + 3);
     if (hmPtr == NULL) {
         return TCL_ERROR;
     }
-    NanoVis::heightMap.push_back(hmPtr);
-    Tcl_SetIntObj(Tcl_GetObjResult(interp), NanoVis::heightMap.size() - 1);;
+    Tcl_SetHashValue(hPtr, hmPtr);
+    Tcl_SetStringObj(Tcl_GetObjResult(interp), tag, -1);;
     return TCL_OK;
 }
 
@@ -1914,11 +1894,13 @@ HeightMapLegendOp(ClientData clientData, Tcl_Interp *interp, int objc,
     if (GetHeightMapFromObj(interp, objv[2], &hmPtr) != TCL_OK) {
         return TCL_ERROR;
     }
+    const char *tag;
+    tag = Tcl_GetString(objv[2]);
     TransferFunction *tfPtr;
     tfPtr = hmPtr->transferFunction();
     if (tfPtr == NULL) {
-        Tcl_AppendResult(interp, "no transfer function defined for heightmap \"",
-                         Tcl_GetString(objv[2]), "\"", (char*)NULL);
+        Tcl_AppendResult(interp, "no transfer function defined for heightmap"
+			 " \"", tag, "\"", (char*)NULL);
         return TCL_ERROR;
     }
     int w, h;
@@ -1929,9 +1911,8 @@ HeightMapLegendOp(ClientData clientData, Tcl_Interp *interp, int objc,
     if (HeightMap::update_pending) {
         NanoVis::SetHeightmapRanges();
     }
-
     NanoVis::render_legend(tfPtr, HeightMap::valueMin, HeightMap::valueMax, 
-		w, h, "label");
+		w, h, tag);
     return TCL_OK;
 }
 
@@ -2008,8 +1989,15 @@ HeightMapTestOp(ClientData clientData, Tcl_Interp *interp, int objc,
     hmPtr->setVisible(true);
     hmPtr->setLineContourVisible(true);
     NanoVis::grid->setVisible(true);
-    NanoVis::heightMap.push_back(hmPtr);
-
+    Tcl_HashEntry *hPtr;
+    int isNew;
+    hPtr = Tcl_CreateHashEntry(&NanoVis::heightmapTable, "test", &isNew);
+    if (!isNew) {
+	Tcl_AppendResult(interp, "heightmap \"test\" already exists.",
+			 (char *)NULL);
+	return TCL_ERROR;
+    }
+    Tcl_SetHashValue(hPtr, hmPtr);
     int image_width = 512;
     int image_height = 512;
 
@@ -2043,8 +2031,8 @@ HeightMapTransFuncOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static Rappture::CmdSpec heightMapOps[] = {
-    {"create",       2, HeightMapCreateOp,      9, 9,
-     "xmin ymin xmax ymax xnum ynum values",},
+    {"create",       2, HeightMapCreateOp,      10, 10,
+     "tag xmin ymin xmax ymax xnum ynum values",},
     {"cull",         2, HeightMapCullOp,        3, 3, "mode",},
     {"data",         1, HeightMapDataOp,        3, 0, "oper ?args?",},
     {"legend",       2, HeightMapLegendOp,      5, 5, "index width height",},
@@ -2389,6 +2377,7 @@ initTcl()
     Tcl_CreateObjCommand(interp, "test", TestCmd, NULL, NULL);
 #endif
     Tcl_InitHashTable(&NanoVis::volumeTable, TCL_STRING_KEYS);
+    Tcl_InitHashTable(&NanoVis::heightmapTable, TCL_STRING_KEYS);
     // create a default transfer function
     if (Tcl_Eval(interp, def_transfunc) != TCL_OK) {
         fprintf(NanoVis::logfile, "WARNING: bad default transfer function\n");

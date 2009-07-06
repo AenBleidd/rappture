@@ -133,6 +133,7 @@ public:
     static vector<HeightMap*> heightMap;
     static unsigned char* screen_buffer;
     static Tcl_HashTable volumeTable;
+    static Tcl_HashTable heightmapTable;
     static vector<NvVectorField*> flow;
     static Grid* grid;
     static R2Fonts* fonts;
