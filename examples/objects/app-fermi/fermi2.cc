@@ -22,16 +22,14 @@ int main(int argc, char * argv[]) {
 
     Rappture::Library *lib = NULL;
 
-    double T          = 0.0;
-    double Ef         = 0.0;
-    double E          = 0.0;
-    double dE         = 0.0;
-    double kT         = 0.0;
-    double Emin       = 0.0;
-    double Emax       = 0.0;
-    double f          = 0.0;
-
-    int err           = 0;
+    Rappture::Number *T  = NULL;
+    Rappture::Number *Ef = NULL;
+    double E            = 0.0;
+    double dE           = 0.0;
+    double kT           = 0.0;
+    double Emin         = 0.0;
+    double Emax         = 0.0;
+    double f            = 0.0;
 
     // create a rappture library from the file filePath
     lib = new Rappture::Library(argv[1]);
@@ -42,37 +40,19 @@ int main(int argc, char * argv[]) {
         return(1);
     }
 
+    T = new Rappture::Number(lib,"temperature");
+    Ef = new Rappture::Number(lib,"Ef");
 
-    /* Alternative ways to access data
+    if (lib.error() != 0) {
+        // there were errors while retrieving input data values
+        // dump the tracepack
+        fprintf(stderr, lib.traceback());
+        exit(lib.error());
+    }
 
-    //////////////////////////////
-    lib.get("input.number(temperature)").value("K",&T)
-    lib.get("input.number(Ef)").value("eV",&Ef);
-    //////////////////////////////
-
-    //////////////////////////////
-    Rappture::Number *rpT = NULL;
-    Rappture::Number *rpEf = NULL;
-    rpT = (Rappture::Number *) lib.get("input.number(temperature)");
-    rpEf = (Rappture::Number *) lib.get("input.number(Ef)");
-
-    T = rpT->value("K");
-    Ef = rpEf->value("Ef");
-    //////////////////////////////
-
-    //////////////////////////////
-    T = lib.value("input.number(temperature)","units=K")
-    Ef = lib.value("input.number(Ef)","units=eV");
-    //////////////////////////////
-    */
-
-    int err = 0;
-    err = lib.value("input.number(temperature)", &T, "units=K")
-    err = lib.value("input.number(Ef)", &Ef, "units=eV");
-
-    kT = 8.61734e-5 * T;
-    Emin = Ef - 10*kT;
-    Emax = Ef + 10*kT;
+    kT = 8.61734e-5 * T->value("K");
+    Emin = Ef->value("eV") - 10*kT;
+    Emax = Ef->value("eV") + 10*kT;
 
     dE = 0.005*(Emax-Emin);
 
