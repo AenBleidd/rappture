@@ -1,8 +1,8 @@
 
 # ----------------------------------------------------------------------
-#  COMPONENT: heightmapviewer - 3D volume rendering
+#  COMPONENT: heightmapviewer - 3D surface rendering
 #
-#  This widget performs volume rendering on 3D scalar/vector datasets.
+#  This widget performs surface rendering on 3D scalar/vector datasets.
 #  It connects to the Nanovis server running on a rendering farm,
 #  transmits data, and displays the results.
 # ======================================================================
@@ -64,7 +64,6 @@ itcl::class Rappture::HeightmapViewer {
     public method isconnected {}
 
     protected method SendCmd {string}
-    protected method SendDataObjs {}
     protected method ReceiveImage { args }
     private method ReceiveLegend {tf vmin vmax size}
     private method BuildViewTab {}
@@ -79,24 +78,28 @@ itcl::class Rappture::HeightmapViewer {
     protected method State {comp}
     protected method FixSettings {what {value ""}}
     protected method GetTransfuncData {dataobj comp}
-    private method Resize { w h } 
+    protected method Resize {}
+    private method EventuallyResize { w h } 
 
     private variable _outbuf       ;# buffer for outgoing commands
 
     private variable _dlist ""     ;# list of data objects
     private variable _obj2style    ;# maps dataobj => style settings
     private variable _obj2ovride   ;# maps dataobj => style override
-    private variable _obj2id       ;# maps dataobj => heightmap ID in server
-    private variable _id2obj       ;# maps heightmap ID => dataobj in server
-    private variable _sendobjs ""  ;# list of data objs to send to server
-    private variable _receiveIds   ;# list of data responses from the server
     private variable _click        ;# info used for Rotate operations
     private variable _limits       ;# autoscale min/max for all axes
     private variable _view         ;# view params for 3D view
     private common _settings       ;# Array of used for global variables
 				    # for checkbuttons and radiobuttons.
+    private variable _serverObjs   ;# contains all the dataobj-component 
+				   ;# to heightmaps in the server
+    private variable _first ""
+    private variable _width 0
+    private variable _height 0
     private common _hardcopy
     private variable _buffering 0
+    private variable _resizePending 0
+    private variable _resizeLegendPending 0
 }
 
 itk::usual HeightmapViewer {
@@ -112,13 +115,14 @@ itcl::body Rappture::HeightmapViewer::constructor {hostlist args} {
     $_dispatcher register !legend
     $_dispatcher dispatch $this !legend \
 	"[itcl::code $this FixSettings legend]; list"
-    # Send dataobjs event
-    $_dispatcher register !send_dataobjs
-    $_dispatcher dispatch $this !send_dataobjs \
-	"[itcl::code $this SendDataObjs]; list"
+
     # Rebuild event
     $_dispatcher register !rebuild
     $_dispatcher dispatch $this !rebuild "[itcl::code $this Rebuild]; list"
+
+    # Resize event.
+    $_dispatcher register !resize
+    $_dispatcher dispatch $this !resize "[itcl::code $this Resize]; list"
 
     set _outbuf ""
 
@@ -137,7 +141,22 @@ itcl::body Rappture::HeightmapViewer::constructor {hostlist args} {
 	pan-x	0
 	pan-y	0
     }
-    set _obj2id(count) 0
+
+    array set _settings [subst {
+	$this-pan-x		$_view(pan-x)
+	$this-pan-y		$_view(pan-y)
+	$this-phi		$_view(phi)
+	$this-psi		$_view(psi)
+	$this-theta		$_view(theta)
+	$this-surface		1
+	$this-xcutplane		0
+	$this-xcutposition	0
+	$this-ycutplane		0
+	$this-ycutposition	0
+	$this-zcutplane		0
+	$this-zcutposition	0
+	$this-zoom		$_view(zoom)
+    }]
 
     set f [$itk_component(main) component controls]
     itk_component add zoom {
@@ -181,6 +200,18 @@ itcl::body Rappture::HeightmapViewer::constructor {hostlist args} {
     pack $itk_component(zoomout) -side top -padx 1 -pady { 4 }
     Rappture::Tooltip::for $itk_component(zoomout) "Zoom out"
 
+    itk_component add surface {
+        Rappture::PushButton $f.surface \
+	    -onimage [Rappture::icon volume-on] \
+	    -offimage [Rappture::icon volume-off] \
+	    -command [itcl::code $this FixSettings surface] \
+	    -variable [itcl::scope _settings($this-surface)]
+    }
+    $itk_component(surface) select
+    Rappture::Tooltip::for $itk_component(surface) \
+        "Toggle surfaces on/off"
+    pack $itk_component(surface) -padx 2 -pady 2
+
     BuildViewTab
     BuildCameraTab
 
@@ -209,7 +240,7 @@ itcl::body Rappture::HeightmapViewer::constructor {hostlist args} {
     bind $itk_component(3dview) <ButtonRelease-1> \
 	[itcl::code $this Rotate release %x %y]
     bind $itk_component(3dview) <Configure> \
-	[itcl::code $this Resize %w %h]
+	[itcl::code $this EventuallyResize %w %h]
 
     # Bindings for panning via mouse
     bind $itk_component(3dview) <ButtonPress-2> \
@@ -260,9 +291,7 @@ itcl::body Rappture::HeightmapViewer::constructor {hostlist args} {
 # DESTRUCTOR
 # ----------------------------------------------------------------------
 itcl::body Rappture::HeightmapViewer::destructor {} {
-    set _sendobjs ""  ;# stop any send in progress
     $_dispatcher cancel !rebuild
-    $_dispatcher cancel !send_dataobjs
     image delete $_image(plot)
     image delete $_image(legend)
     image delete $_image(download)
@@ -378,6 +407,7 @@ itcl::body Rappture::HeightmapViewer::delete { args } {
 	    foreach key [array names _obj2ovride $dataobj-*] {
 		unset _obj2ovride($key)
 	    }
+	    array unset _serverObjs $dataobj-*
 	    set changed 1
 	}
     }
@@ -483,6 +513,7 @@ itcl::body Rappture::HeightmapViewer::Connect {} {
     if { "" == $_hosts } {
 	return 0
     }
+    catch {unset _serverObjs}
     set result [VisViewer::Connect $_hosts]
     return $result
 }
@@ -498,11 +529,6 @@ itcl::body Rappture::HeightmapViewer::Disconnect {} {
 
     set _outbuf ""
     # disconnected -- no more data sitting on server
-    catch {unset _obj2id}
-    array unset _id2obj
-    set _obj2id(count) 0
-    set _id2obj(cound) 0
-    set _sendobjs ""
 }
 
 #
@@ -521,94 +547,6 @@ itcl::body Rappture::HeightmapViewer::SendCmd {string} {
 	}
 	SendBytes "$string\n"
     }
-}
-
-# ----------------------------------------------------------------------
-# USAGE: SendDataObjs
-#
-# Used internally to send a series of volume objects off to the
-# server.  Sends each object, a little at a time, with updates in
-# between so the interface doesn't lock up.
-# ----------------------------------------------------------------------
-itcl::body Rappture::HeightmapViewer::SendDataObjs {} {
-    blt::busy hold $itk_component(hull); update idletasks
-
-    # Reset the overall limits 
-    if { $_sendobjs != "" } {
-	set _limits(vmin) ""
-	set _limits(vmax) ""
-    }
-    foreach dataobj $_sendobjs {
-	foreach comp [$dataobj components] {
-	    if 0 {
-	    foreach { vmin vmax }  [$dataobj limits v] break
-	    if { $_limits(vmin) == "" || $vmin < $_limits(vmin) } {
-		set _limits(vmin) $vmin
-	    }
-	    if { $_limits(vmax) == "" || $vmax > $_limits(vmax) } {
-		set _limits(vmax) $vmax
-	    }
-	    }
-	    # tell the engine to expect some data
-	    set data [$dataobj blob $comp]
-	    set nbytes [string length $data]
-	    if { ![SendBytes "heightmap data follows $nbytes\n"] } {
-		return
-
-	    }
-	    if { ![SendBytes $data] } {
-		return
-	    }
-	    set id $_obj2id(count)
-	    incr _obj2id(count)
-	    set _id2obj($id) [list $dataobj $comp]
-	    set _obj2id($dataobj-$comp) $id
-	    set _receiveIds($id) 1
-
-	    #
-	    # Determine the transfer function needed for this volume
-	    # and make sure that it's defined on the server.
-	    #
-	    foreach {sname cmap wmap} [GetTransfuncData $dataobj $comp] break
-	    SendCmd [list "transfunc" "define" $sname $cmap $wmap]
-	    set _obj2style($dataobj-$comp) $sname
-	}
-    }
-    set _sendobjs ""
-    blt::busy release $itk_component(hull)
-
-    # Turn on buffering of commands to the server.  We don't want to
-    # be preempted by a server disconnect/reconnect (which automatically
-    # generates a new call to Rebuild).   
-    set _buffering 1
-
-    # activate the proper volume
-    set first [lindex [get] 0]
-    if {"" != $first} {
-	set axis [$first hints updir]
-	if {"" != $axis} {
-	    SendCmd "up $axis"
-	}
-	set location [$first hints camera]
-	if { $location != "" } {
-	    array set _view $location
-	}
-    }
-
-    foreach key [array names _obj2id *-*] {
-	set state [string match $first-* $key]
-	SendCmd "heightmap data visible $state $_obj2id($key)"
-	if {[info exists _obj2style($key)]} {
-	    SendCmd "heightmap transfunc $_obj2style($key) $_obj2id($key)"
-	}
-    }
-
-    # Actually write the commands to the server socket.  If it fails, we don't
-    # care.  We're finished here.
-    SendBytes $_outbuf;			
-    set _buffering 0;			# Turn off buffering.
-    set _outbuf "";			# Clear the buffer.		
-    $_dispatcher event -idle !legend
 }
 
 # ----------------------------------------------------------------------
@@ -644,7 +582,7 @@ itcl::body Rappture::HeightmapViewer::ReceiveImage { args } {
 # the rendering server.  Indicates that binary image data with the
 # specified <size> will follow.
 # ----------------------------------------------------------------------
-itcl::body Rappture::HeightmapViewer::ReceiveLegend {tf vmin vmax size} {
+itcl::body Rappture::HeightmapViewer::ReceiveLegend {obj vmin vmax size} {
     if { [IsConnected] } {
 	set bytes [ReceiveBytes $size]
 	ReceiveEcho <<line "<read $size bytes for [image width $_image(legend)]x[image height $_image(legend)] legend>"
@@ -685,69 +623,87 @@ itcl::body Rappture::HeightmapViewer::ReceiveLegend {tf vmin vmax size} {
 # widget to display new data.
 # ----------------------------------------------------------------------
 itcl::body Rappture::HeightmapViewer::Rebuild {} {
-    # in the midst of sending data? then bail out
-    if {[llength $_sendobjs] > 0} {
-	return
-    }
+
     # Turn on buffering of commands to the server.  We don't want to
     # be preempted by a server disconnect/reconnect (which automatically
     # generates a new call to Rebuild).   
     set _buffering 1
 
-    # Find any new data that needs to be sent to the server.  Queue this up on
-    # the _sendobjs list, and send it out a little at a time.  Do this first,
-    # before we rebuild the rest.
-    foreach dataobj [get] {
-	set comp [lindex [$dataobj components] 0]
-	if {![info exists _obj2id($dataobj-$comp)]} {
-	    set i [lsearch -exact $_sendobjs $dataobj]
-	    if {$i < 0} {
-		lappend _sendobjs $dataobj
-	    }
-	}
-    }
-    if {[llength $_sendobjs] > 0} {
-	# Send off new data objects
-	$_dispatcher event -idle !send_dataobjs
-    } else {
-	# Nothing to send -- activate the proper volume
-	set first [lindex [get] 0]
-	if {"" != $first} {
-	    set axis [$first hints updir]
-	    if {"" != $axis} {
-		SendCmd "up $axis"
-	    }
-	}
-	foreach key [array names _obj2id *-*] {
-	    set state [string match $first-* $key]
-	    SendCmd "heightmap data visible $state $_obj2id($key)"
-	    if {[info exists _obj2style($key)]} {
-		SendCmd "heightmap transfunc $_obj2style($key) $_obj2id($key)"
-	    }
-	}
-	$_dispatcher event -idle !legend
-    }
+    # Reset the overall limits 
+    set _limits(vmin) ""
+    set _limits(vmax) ""
 
-    # Reset the screen size.  
+    set _first ""
+    # Turn on buffering of commands to the server.  We don't want to
+    # be preempted by a server disconnect/reconnect (which automatically
+    # generates a new call to Rebuild).   
+    set _buffering 1
+
     set w [winfo width $itk_component(3dview)]
     set h [winfo height $itk_component(3dview)]
-    Resize $w $h
+    EventuallyResize $w $h
 
+    foreach dataobj [get] {
+	foreach comp [$dataobj components] {
+	    # Tell the engine to expect some data
+	    set data [$dataobj blob $comp]
+	    set nbytes [string length $data]
+	    append _outbuf "heightmap data follows $nbytes $dataobj-$comp\n"
+	    append _outbuf $data
+
+	    set tag $dataobj-$comp
+	    set _serverObjs($tag) $tag
+
+	    #
+	    # Determine the transfer function needed for this surface
+	    # and make sure that it's defined on the server.
+	    #
+	    foreach {sname cmap wmap} [GetTransfuncData $dataobj $comp] break
+	    SendCmd [list "transfunc" "define" $sname $cmap $wmap]
+	    set _obj2style($tag) $sname
+	}
+    }
+
+    # Nothing to send -- activate the proper surface
+    set _first [lindex [get] 0]
+    if {"" != $_first} {
+	set axis [$_first hints updir]
+	if {"" != $axis} {
+	    SendCmd "up $axis"
+	}
+	# This is where the initial camera position is set.
+	set location [$_first hints camera]
+	if { $location != "" } {
+	    array set _view $location
+	}
+    }
+    SendCmd "heightmap data visible 0"
+    set heightmaps [array names _serverObjs $_first-*] 
+    if { $heightmaps != ""  && $_settings($this-surface) } {
+	SendCmd "heightmap data visible 1 $heightmaps"
+    }
+    foreach key $heightmaps {
+	if {[info exists _obj2style($key)]} {
+	    SendCmd "heightmap transfunc $_obj2style($key) $key"
+	}
+    }
+    $_dispatcher event -idle !legend
+
+    if {"" == $itk_option(-plotoutline)} {
+	SendCmd "grid linecolor [Color2RGB $itk_option(-plotoutline)]"
+    }
     # Reset the camera and other view parameters
+    set _settings($this-theta) $_view(theta)
+    set _settings($this-phi)   $_view(phi)
+    set _settings($this-psi)   $_view(psi)
+    set _settings($this-pan-x) $_view(pan-x)
+    set _settings($this-pan-y) $_view(pan-y)
+    set _settings($this-zoom)  $_view(zoom)
+
     set xyz [Euler2XYZ $_view(theta) $_view(phi) $_view(psi)]
     SendCmd "camera angle $xyz"
     PanCamera
     SendCmd "camera zoom $_view(zoom)"
-
-     if {"" == $itk_option(-plotoutline)} {
-	 SendCmd "grid linecolor [Color2RGB $itk_option(-plotoutline)]"
-     }
-    set _settings($this-theta) $_view(theta)
-    set _settings($this-phi) $_view(phi)
-    set _settings($this-psi) $_view(psi)
-    set _settings($this-pan-x) $_view(pan-x)
-    set _settings($this-pan-y) $_view(pan-y)
-    set _settings($this-zoom) $_view(zoom)
 
     FixSettings wireframe
     FixSettings grid
@@ -756,7 +712,9 @@ itcl::body Rappture::HeightmapViewer::Rebuild {} {
 
     # Actually write the commands to the server socket.  If it fails, we don't
     # care.  We're finished here.
+    blt::busy hold $itk_component(hull)
     SendBytes $_outbuf;			
+    blt::busy release $itk_component(hull)
     set _buffering 0;			# Turn off buffering.
     set _outbuf "";			# Clear the buffer.		
 }
@@ -788,9 +746,8 @@ itcl::body Rappture::HeightmapViewer::Zoom {option} {
 		pan-x	0
 		pan-y	0
 	    }
-	    set first [lindex [get] 0]
-	    if { $first != "" } {
-		set location [$first hints camera]
+	    if { $_first != "" } {
+		set location [$_first hints camera]
 		if { $location != "" } {
 		    array set _view $location
 		}
@@ -973,20 +930,22 @@ itcl::body Rappture::HeightmapViewer::FixSettings { what {value ""} } {
 	    set lineht [expr [font metrics $itk_option(-font) -linespace] + 4]
 	    set w [expr {[winfo height $itk_component(legend)] - 2*$lineht}]
 	    set h [expr {[winfo width $itk_component(legend)] - 16}]
-	    set imap ""
-	    set dataobj [lindex [get] 0]
-	    if {"" != $dataobj} {
-		set comp [lindex [$dataobj components] 0]
-		if {[info exists _obj2id($dataobj-$comp)]} {
-		    set imap $_obj2id($dataobj-$comp)
-		}
+	    set tag ""
+	    if {"" != $_first} {
+		set comp [lindex [$_first components] 0]
+		set tag $_first-$comp
 	    }
-	    if {$w > 0 && $h > 0 && "" != $imap} {
-		SendCmd "heightmap legend $imap $w $h"
+	    if {$w > 0 && $h > 0 && "" != $tag} {
+		SendCmd "heightmap legend $tag $w $h"
 	    } else {
 		$itk_component(legend) delete all
 	    }
 	}
+        "surface" {
+            if { [isconnected] } {
+                SendCmd "heightmap data visible $_settings($this-surface)"
+	    }
+        }
 	"grid" {
 	    if { [IsConnected] } {
 		SendCmd "grid visible $_settings($this-grid)"
@@ -1004,13 +963,12 @@ itcl::body Rappture::HeightmapViewer::FixSettings { what {value ""} } {
 	}
 	"contourlines" {
 	    if {[IsConnected]} {
-		set dataobj [lindex [get] 0]
-		if {"" != $dataobj} {
-		    set comp [lindex [$dataobj components] 0]
-		    if {[info exists _obj2id($dataobj-$comp)]} {
-			set i $_obj2id($dataobj-$comp)
+		if {"" != $_first} {
+		    set comp [lindex [$_first components] 0]
+		    if { $comp != "" } {
+			set tag $_first-$comp
 			set bool $_settings($this-contourlines)
-			SendCmd "heightmap linecontour visible $bool $i"
+			SendCmd "heightmap linecontour visible $bool $tag"
 		    }
 		}
 	    }
@@ -1163,6 +1121,11 @@ itcl::body Rappture::HeightmapViewer::BuildViewTab {} {
 	set _settings($this-$key) $value
     }
 
+    checkbutton $inner.surface \
+        -text "surface" \
+        -variable [itcl::scope _settings($this-surface)] \
+        -command [itcl::code $this FixSettings surface] \
+	-font "Arial 9"
     checkbutton $inner.grid \
 	-text "grid" \
 	-variable [itcl::scope _settings($this-grid)] \
@@ -1191,6 +1154,7 @@ itcl::body Rappture::HeightmapViewer::BuildViewTab {} {
 	-font "Arial 9"
 
     blt::table $inner \
+	0,1 $inner.surface -anchor w  \
 	1,1 $inner.grid -anchor w  \
 	2,1 $inner.axes -anchor w \
 	3,1 $inner.contourlines -anchor w \
@@ -1199,10 +1163,8 @@ itcl::body Rappture::HeightmapViewer::BuildViewTab {} {
 
     blt::table configure $inner c2 -resize expand
     blt::table configure $inner c1 -resize none
-    for {set n 0} {$n <= 5} {incr n} {
-        blt::table configure $inner r$n -resize none
-    }
-    blt::table configure $inner r$n -resize expand
+    blt::table configure $inner r* -resize none
+    blt::table configure $inner r6 -resize expand
 }
 
 itcl::body Rappture::HeightmapViewer::BuildCameraTab {} {
@@ -1232,6 +1194,16 @@ itcl::body Rappture::HeightmapViewer::BuildCameraTab {} {
     blt::table configure $inner r$row -resize expand
 }
 
-itcl::body Rappture::HeightmapViewer::Resize { w h } {
-    SendCmd "screen $w $h"
+itcl::body Rappture::HeightmapViewer::Resize {} {
+    SendCmd "screen $_width $_height"
+    set _resizePending 0
+}
+
+itcl::body Rappture::HeightmapViewer::EventuallyResize { w h } {
+    set _width $w
+    set _height $h
+    if { !$_resizePending } {
+	$_dispatcher event -after 200 !resize
+	set _resizePending 1
+    }
 }
