@@ -1,6 +1,6 @@
 
 # ----------------------------------------------------------------------
-#  COMPONENT: heightmapviewer - 3D surface rendering
+#  Component: heightmapviewer - 3D surface rendering
 #
 #  This widget performs surface rendering on 3D scalar/vector datasets.
 #  It connects to the Nanovis server running on a rendering farm,
@@ -69,7 +69,7 @@ itcl::class Rappture::HeightmapViewer {
     private method BuildViewTab {}
     private method BuildCameraTab {}
     private method PanCamera {}
-
+    protected method CurrentSurfaces {{what -all}}
     protected method Rebuild {}
     protected method Zoom {option}
     protected method Pan {option x y}
@@ -93,6 +93,7 @@ itcl::class Rappture::HeightmapViewer {
 				    # for checkbuttons and radiobuttons.
     private variable _serverObjs   ;# contains all the dataobj-component 
 				   ;# to heightmaps in the server
+    private variable _location ""
     private variable _first ""
     private variable _width 0
     private variable _height 0
@@ -141,7 +142,9 @@ itcl::body Rappture::HeightmapViewer::constructor {hostlist args} {
 	pan-x	0
 	pan-y	0
     }
-
+    foreach val {xmin xmax ymin ymax zmin zmax vmin vmax} {
+	set _limits($val) ""
+    }
     array set _settings [subst {
 	$this-pan-x		$_view(pan-x)
 	$this-pan-y		$_view(pan-y)
@@ -158,6 +161,15 @@ itcl::body Rappture::HeightmapViewer::constructor {hostlist args} {
 	$this-zoom		$_view(zoom)
     }]
 
+    itk_component add 3dview {
+	canvas $itk_component(plotarea).vol \
+	    -highlightthickness 0 -borderwidth 0 
+    } {
+	usual
+	ignore -highlightthickness -borderwidth  -background
+    }
+    $_image(plot) configure -data ""
+    $itk_component(3dview) create image 0 0 -anchor nw -image $_image(plot) 
     set f [$itk_component(main) component controls]
     itk_component add zoom {
 	frame $f.zoom
@@ -174,7 +186,8 @@ itcl::body Rappture::HeightmapViewer::constructor {hostlist args} {
         ignore -highlightthickness
     }
     pack $itk_component(reset) -side top -padx 1 -pady { 4 0 }
-    Rappture::Tooltip::for $itk_component(reset) "Reset the view to the default zoom level"
+    Rappture::Tooltip::for $itk_component(reset) \
+	"Reset the view to the default zoom level"
 
     itk_component add zoomin {
 	button $f.zin -borderwidth 1 -padx 1 -pady 1 \
@@ -215,22 +228,10 @@ itcl::body Rappture::HeightmapViewer::constructor {hostlist args} {
     BuildViewTab
     BuildCameraTab
 
-    # Legend
-    set _image(legend) [image create photo]
-    itk_component add legend {
-	canvas $itk_component(plotarea).legend -width 30 -highlightthickness 0
-    } {
-	usual
-	ignore -highlightthickness
-	rename -background -plotbackground plotBackground Background
-    }
     set w [expr [winfo reqwidth $itk_component(hull)] - 80]
     pack forget $itk_component(3dview)
     pack $itk_component(3dview) -side left -fill both -expand yes
-    pack $itk_component(legend) -side left -fill y
 
-    bind $itk_component(legend) <Configure> \
-	[list $_dispatcher event -idle !legend]
 
     # Bindings for rotation via mouse
     bind $itk_component(3dview) <ButtonPress-1> \
@@ -330,6 +331,7 @@ itcl::body Rappture::HeightmapViewer::add {dataobj {settings ""}} {
 	set _obj2ovride($dataobj-color) $params(-color)
 	set _obj2ovride($dataobj-width) $params(-width)
 	set _obj2ovride($dataobj-raise) $params(-raise)
+	set _obj2ovride($dataobj-brightness) $params(-brightness)
 	$_dispatcher event -idle !rebuild
     }
     scale $dataobj
@@ -428,8 +430,10 @@ itcl::body Rappture::HeightmapViewer::delete { args } {
 # the user scans through data in the ResultSet viewer.
 # ----------------------------------------------------------------------
 itcl::body Rappture::HeightmapViewer::scale { args } {
+    if 0 {
     foreach val {xmin xmax ymin ymax zmin zmax vmin vmax} {
 	set _limits($val) ""
+    }
     }
     foreach obj $args {
 	foreach axis {x y z v} {
@@ -585,33 +589,37 @@ itcl::body Rappture::HeightmapViewer::ReceiveImage { args } {
 itcl::body Rappture::HeightmapViewer::ReceiveLegend {obj vmin vmax size} {
     if { [IsConnected] } {
 	set bytes [ReceiveBytes $size]
+	if { ![info exists _image(legend)] } {
+	    set _image(legend) [image create photo]
+	}
 	ReceiveEcho <<line "<read $size bytes for [image width $_image(legend)]x[image height $_image(legend)] legend>"
-	if 1 {
 	set src [image create photo -data $bytes]
 	blt::winop image rotate $src $_image(legend) 90
 	set dst $_image(legend)
-	} else {
-	$_image(legend) configure -data $bytes
-	}
-	set c $itk_component(legend)
+
+	set c $itk_component(3dview)
 	set w [winfo width $c]
 	set h [winfo height $c]
-	set lineht [expr [font metrics $itk_option(-font) -linespace] + 4]
-	if {"" == [$c find withtag transfunc]} {
-	    $c create image 0 [expr $lineht] -anchor ne \
-		 -image $_image(legend) -tags transfunc 
-	    $c create text 10 [expr {$h-8}] -anchor se \
-		-fill $itk_option(-plotforeground) -tags vmin \
-		-font "Arial 8 bold"
-	    $c create text [expr {$w-10}] [expr {$h-8}] -anchor ne \
-		 -fill $itk_option(-plotforeground) -tags vmax \
-		-font "Arial 8 bold"
+	set lineht [font metrics $itk_option(-font) -linespace]
+
+	if { $_settings($this-legend) } {
+	    if { [$c find withtag "legend"] == "" } {
+		$c create image [expr {$w-2}] [expr {$lineht+2}] -anchor ne \
+		    -image $_image(legend) -tags "transfunc legend"
+		$c create text [expr {$w-2}] 2 -anchor ne \
+		    -fill $itk_option(-plotforeground) -tags "vmax legend" \
+		    -font "Arial 8 bold"
+		$c create text [expr {$w-2}] [expr {$h-2}] -anchor se \
+		    -fill $itk_option(-plotforeground) -tags "vmin legend" \
+		    -font "Arial 8 bold"
+	    }
+	    # Reset the item coordinates according the current size of the plot.
+	    $c coords transfunc [expr {$w-2}] [expr {$lineht+2}]
+	    $c itemconfigure vmin -text $vmin
+	    $c itemconfigure vmax -text $vmax
+	    $c coords vmin [expr {$w-2}] [expr {$h-2}]
+	    $c coords vmax [expr {$w-2}] 2
 	}
-	$c coords transfunc [expr $w - 5] [expr $lineht]
-	$c itemconfigure vmin -text $vmin
-	$c itemconfigure vmax -text $vmax
-	$c coords vmax [expr $w - 5] 2
-	$c coords vmin [expr $w - 5] [expr $h - 2]
     }
 }
 
@@ -646,21 +654,21 @@ itcl::body Rappture::HeightmapViewer::Rebuild {} {
     foreach dataobj [get] {
 	foreach comp [$dataobj components] {
 	    # Tell the engine to expect some data
-	    set data [$dataobj blob $comp]
-	    set nbytes [string length $data]
-	    append _outbuf "heightmap data follows $nbytes $dataobj-$comp\n"
-	    append _outbuf $data
-
 	    set tag $dataobj-$comp
-	    set _serverObjs($tag) $tag
-
-	    #
-	    # Determine the transfer function needed for this surface
-	    # and make sure that it's defined on the server.
-	    #
-	    foreach {sname cmap wmap} [GetTransfuncData $dataobj $comp] break
-	    SendCmd [list "transfunc" "define" $sname $cmap $wmap]
-	    set _obj2style($tag) $sname
+	    if { ![info exists _serverObjs($tag)] } {
+		set data [$dataobj blob $comp]
+		set nbytes [string length $data]
+		append _outbuf "heightmap data follows $nbytes $dataobj-$comp\n"
+		append _outbuf $data
+		
+		set _serverObjs($tag) $tag
+		
+		# Determine the transfer function needed for this surface
+		# and make sure that it's defined on the server.
+		foreach {sname cmap wmap} [GetTransfuncData $dataobj $comp] break
+		SendCmd [list "transfunc" "define" $sname $cmap $wmap]
+		set _obj2style($tag) $sname
+	    }
 	}
     }
 
@@ -673,14 +681,22 @@ itcl::body Rappture::HeightmapViewer::Rebuild {} {
 	}
 	# This is where the initial camera position is set.
 	set location [$_first hints camera]
-	if { $location != "" } {
+	if { $_location == "" && $location != "" } {
 	    array set _view $location
+	    set _location $location
 	}
     }
     SendCmd "heightmap data visible 0"
-    set heightmaps [array names _serverObjs $_first-*] 
+    set heightmaps [CurrentSurfaces] 
     if { $heightmaps != ""  && $_settings($this-surface) } {
 	SendCmd "heightmap data visible 1 $heightmaps"
+    }
+    set heightmaps [CurrentSurfaces -raise] 
+    if { $heightmaps != "" } {
+	SendCmd "heightmap opacity 0.25"
+	SendCmd "heightmap opacity 0.95 $heightmaps"
+    } else {
+	SendCmd "heightmap opacity 0.85"
     }
     foreach key $heightmaps {
 	if {[info exists _obj2style($key)]} {
@@ -922,14 +938,14 @@ itcl::body Rappture::HeightmapViewer::State {comp} {
 itcl::body Rappture::HeightmapViewer::FixSettings { what {value ""} } {
     switch -- $what {
 	"legend" {
-	    if { $_settings($this-legend) } {
-		pack $itk_component(legend) -side left -fill y
-	    } else {
-		pack forget $itk_component(legend)
+	    if { !$_settings($this-legend) } {
+		$itk_component(3dview) delete "legend"
 	    }
-	    set lineht [expr [font metrics $itk_option(-font) -linespace] + 4]
-	    set w [expr {[winfo height $itk_component(legend)] - 2*$lineht}]
-	    set h [expr {[winfo width $itk_component(legend)] - 16}]
+	    set lineht [font metrics $itk_option(-font) -linespace]
+	    set w [winfo height $itk_component(3dview)]
+	    set h [winfo width $itk_component(3dview)]
+	    set w [expr {$w - 2*$lineht - 4}]
+	    set h 12
 	    set tag ""
 	    if {"" != $_first} {
 		set comp [lindex [$_first components] 0]
@@ -938,7 +954,7 @@ itcl::body Rappture::HeightmapViewer::FixSettings { what {value ""} } {
 	    if {$w > 0 && $h > 0 && "" != $tag} {
 		SendCmd "heightmap legend $tag $w $h"
 	    } else {
-		$itk_component(legend) delete all
+		#$itk_component(legend) delete all
 	    }
 	}
         "surface" {
@@ -1197,6 +1213,7 @@ itcl::body Rappture::HeightmapViewer::BuildCameraTab {} {
 itcl::body Rappture::HeightmapViewer::Resize {} {
     SendCmd "screen $_width $_height"
     set _resizePending 0
+    $_dispatcher event -idle !legend
 }
 
 itcl::body Rappture::HeightmapViewer::EventuallyResize { w h } {
@@ -1206,4 +1223,32 @@ itcl::body Rappture::HeightmapViewer::EventuallyResize { w h } {
 	$_dispatcher event -after 200 !resize
 	set _resizePending 1
     }
+}
+
+# ----------------------------------------------------------------------
+# USAGE: CurrentVolumes ?-cutplanes?
+#
+# Returns a list of volume server IDs for the current volume being
+# displayed.  This is normally a single ID, but it might be a list
+# of IDs if the current data object has multiple components.
+# ----------------------------------------------------------------------
+itcl::body Rappture::HeightmapViewer::CurrentSurfaces {{what -all}} {
+    set list {}
+    if { $what == "-all" } {
+	foreach key [array names _serverObjs] {
+	    foreach {dataobj comp} [split $key -] break
+	    if { [info exists _obj2ovride($dataobj-raise)] } {
+		lappend list $dataobj-$comp
+	    }
+	}
+    } else {
+	foreach key [array names _serverObjs] {
+	    foreach {dataobj comp} [split $key -] break
+	    if { [info exists _obj2ovride($dataobj$what)] && 
+		 $_obj2ovride($dataobj$what) } {
+		lappend list $dataobj-$comp
+	    }
+	}
+    }
+    return $list
 }

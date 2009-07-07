@@ -196,9 +196,14 @@ itcl::body Rappture::MolvisViewer::constructor {hostlist args} {
 	$this-opacity   1.0
     }]
     
-    #
-    # Set up the widgets in the main body
-    #
+    itk_component add 3dview {
+	label $itk_component(plotarea).vol -image $_image(plot) \
+	    -highlightthickness 0 -borderwidth 0
+    } {
+	usual
+	ignore -highlightthickness -borderwidth  -background
+    }
+
     set f [$itk_component(main) component controls]
     itk_component add reset {
 	button $f.reset -borderwidth 1 -padx 1 -pady 1 \

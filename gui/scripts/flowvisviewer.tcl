@@ -256,6 +256,13 @@ itcl::body Rappture::FlowvisViewer::constructor { hostlist args } {
 	$this-zoom		$_view(zoom)
     }]
 
+    itk_component add 3dview {
+	label $itk_component(plotarea).vol -image $_image(plot) \
+	    -highlightthickness 0 -borderwidth 0
+    } {
+	usual
+	ignore -highlightthickness -borderwidth  -background
+    }
     set f [$itk_component(main) component controls]
     itk_component add reset {
         button $f.reset -borderwidth 1 -padx 1 -pady 1 \
