@@ -762,8 +762,6 @@ itcl::body Rappture::Field::_build {} {
 	    #
 	    set _comp2dims($cname) "3D"
 	    set data [$_field get -decode yes $cname.opendx]
-	    set data [Rappture::encoding::decode -as zb64 $data]
-
 	    set data "<ODX>$data"
 	    set data [Rappture::encoding::encode -as zb64 $data]
 	    set _comp2dx($cname) $data
