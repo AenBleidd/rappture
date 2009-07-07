@@ -30,6 +30,7 @@ HeightMap::HeightMap() :
     _contour(0), 
     _topContour(0), 
     _tfPtr(0), 
+    _opacity(0.5f),
     _indexBuffer(0), 
     _indexCount(0), 
     _contourColor(1.0f, 0.0f, 0.0f), 
@@ -42,7 +43,8 @@ HeightMap::HeightMap() :
 {
     _shader = new NvShader();
     _shader->loadFragmentProgram("heightcolor.cg", "main");
-    _tfParam = _shader->getNamedParameterFromFP("tf");
+    _tfParam      = _shader->getNamedParameterFromFP("tf");
+    _opacityParam = _shader->getNamedParameterFromFP("opacity");
 }
 
 HeightMap::~HeightMap()
@@ -102,6 +104,7 @@ void HeightMap::render(graphics::RenderContext* renderContext)
             
             cgGLSetTextureParameter(_tfParam, _tfPtr->id());
             cgGLEnableTextureParameter(_tfParam);
+            cgGLSetParameter1f(_opacityParam, _opacity);
             
             glEnable(GL_TEXTURE_1D);
             _tfPtr->getTexture()->activate();
@@ -142,7 +145,8 @@ void HeightMap::render(graphics::RenderContext* renderContext)
         if (_contourVisible) {
             glDisable(GL_BLEND);
             glDisable(GL_TEXTURE_2D);
-            glColor4f(_contourColor.x, _contourColor.y, _contourColor.z, 1.0f);
+            glColor4f(_contourColor.x, _contourColor.y, _contourColor.z, 
+		_opacity /*1.0f*/);
             glDepthRange (0.0, 0.999);
             _contour->render();
             glDepthRange (0.0, 1.0);
@@ -152,7 +156,8 @@ void HeightMap::render(graphics::RenderContext* renderContext)
         if (_topContourVisible) {
             glDisable(GL_BLEND);
             glDisable(GL_TEXTURE_2D);
-            glColor4f(_contourColor.x, _contourColor.y, _contourColor.z, 1.0f);
+            glColor4f(_contourColor.x, _contourColor.y, _contourColor.z, 
+		_opacity /*1.0f*/);
             //glDepthRange (0.0, 0.999);
             _topContour->render();
             //glDepthRange (0.0, 1.0);

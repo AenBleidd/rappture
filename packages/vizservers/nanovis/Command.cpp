@@ -2030,6 +2030,26 @@ HeightMapTransFuncOp(ClientData clientData, Tcl_Interp *interp, int objc,
     return TCL_OK;
 }
 
+
+static int
+HeightMapOpacityOp(ClientData clientData, Tcl_Interp *interp, int objc,
+                   Tcl_Obj *const *objv)
+{
+    float opacity;
+    if (GetFloatFromObj(interp, objv[2], &opacity) != TCL_OK) {
+	return TCL_ERROR;
+    }
+    vector<HeightMap *> heightmaps;
+    if (GetHeightMaps(interp, objc - 3, objv + 3, &heightmaps) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    vector<HeightMap *>::iterator iter;
+    for (iter = heightmaps.begin(); iter != heightmaps.end(); iter++) {
+        (*iter)->opacity(opacity);
+    }
+    return TCL_OK;
+}
+
 static Rappture::CmdSpec heightMapOps[] = {
     {"create",       2, HeightMapCreateOp,      10, 10,
      "tag xmin ymin xmax ymax xnum ynum values",},
@@ -2037,10 +2057,11 @@ static Rappture::CmdSpec heightMapOps[] = {
     {"data",         1, HeightMapDataOp,        3, 0, "oper ?args?",},
     {"legend",       2, HeightMapLegendOp,      5, 5, "index width height",},
     {"linecontour",  2, HeightMapLineContourOp, 2, 0, "oper ?args?",},
+    {"opacity",      1, HeightMapOpacityOp,     3, 0, "value ?heightmap...? ",},
     {"polygon",      1, HeightMapPolygonOp,     3, 3, "mode",},
     {"shading",      1, HeightMapShadingOp,     3, 3, "model",},
     {"test",         2, HeightMapTestOp,        2, 2, "",},
-    {"transfunc",    2, HeightMapTransFuncOp,   3, 0, "name ?indices?",},
+    {"transfunc",    2, HeightMapTransFuncOp,   3, 0, "name ?heightmap...?",},
 
     // HELP ME
     // GOERGE

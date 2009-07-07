@@ -26,9 +26,11 @@ class HeightMap {
     unsigned int _textureBufferObjectID;
     int _vertexCount;
     CGparameter _tfParam;
+    CGparameter _opacityParam;
     R2Geometry* _contour;
     R2Geometry* _topContour;
     TransferFunction* _tfPtr;
+    float _opacity;
     NvShader* _shader;
     int *_indexBuffer;
     int _indexCount;
@@ -40,7 +42,6 @@ class HeightMap {
     
     Vector3 _scale;
     Vector3 _centerPoint;
-
     int xNum_, yNum_;		// Number of elements x and y axes in grid.
     float *heights_;		// Array of original (unscaled) heights
 				// (y-values)
@@ -122,6 +123,12 @@ public :
 	    _topContourVisible = visible;
     }
 
+    void opacity(float opacity) {
+	_opacity = opacity;
+    }
+    float opacity(void) {
+	return _opacity;
+    }
     /**
      *@brief Defind the color of the line contour
      */
