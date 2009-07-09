@@ -51,40 +51,42 @@ itcl::class Rappture::MolvisViewer {
     public proc SetServerList { namelist } {
 	Rappture::VisViewer::SetServerList "pymol" $namelist
     }
+    private method BuildViewTab {}
+    private method DoResize {} 
+    private method EventuallyResize { w h } 
+    private method GetPngImage { widget width height }
+    private method ReceiveImage { size cacheid frame rock }
+    private method WaitIcon { option widget }
+
+    protected method Map {}
+    protected method Pan {option x y}
+    protected method Rebuild { }
+    protected method Rotate {option x y}
+    protected method SendCmd { string }
+    protected method Unmap {}
+    protected method Update { args }
+    protected method Vmouse  {option b m x y}
+    protected method Vmouse2 {option b m x y}
+    protected method Zoom {option {factor 10}}
+
     public method Connect {}
     public method Disconnect {}
-    public method isconnected {}
-    public method download {option args}
-
+    public method ResetView {} 
     public method add {dataobj {options ""}}
-    public method get {}
-    public method delete {args}
-    public method parameters {title args} { # do nothing }
-
-    public method labels {option {model "all"}}
-    public method projection {option}
-    public method rock {option}
-    public method representation {option {model "all"} }
     public method atomscale {option {models "all"} }
     public method bondthickness {option {models "all"} }
+    public method delete {args}
+    public method download {option args}
+    public method get {}
+    public method isconnected {}
+    public method labels {option {model "all"}}
     public method opacity {option {models "all"} }
-    public method ResetView {} 
-
-    protected method SendCmd { string }
-    protected method Update { args }
-    protected method Rebuild { }
-    protected method Zoom {option {factor 10}}
-    protected method Pan {option x y}
-    protected method Rotate {option x y}
-    protected method Configure {w h}
-    protected method Unmap {}
-    protected method Map {}
-    protected method Vmouse2 {option b m x y}
-    protected method Vmouse  {option b m x y}
-    private method ReceiveImage { size cacheid frame rock }
-    private method BuildViewTab {}
-    private method GetPngImage { widget width height }
-    private method WaitIcon { option widget }
+    public method parameters {title args} { 
+	# do nothing 
+    }
+    public method projection {option}
+    public method representation {option {model "all"} }
+    public method rock {option}
     private variable _icon 0
 
     private variable _mevent;		# info used for mouse event operations
@@ -124,6 +126,9 @@ itcl::class Rappture::MolvisViewer {
     private variable _nextToken 0
     private variable _outbuf "";
     private variable _buffering 0;
+    private variable _resizePending 0;
+    private variable _width
+    private variable _height
 }
 
 itk::usual MolvisViewer {
@@ -140,6 +145,11 @@ itcl::body Rappture::MolvisViewer::constructor {hostlist args} {
     # Rebuild
     $_dispatcher register !rebuild
     $_dispatcher dispatch $this !rebuild "[itcl::code $this Rebuild]; list"
+
+    # Resize event
+    $_dispatcher register !resize
+    $_dispatcher dispatch $this !resize "[itcl::code $this DoResize]; list"
+
     # Rocker
     $_dispatcher register !rocker
     $_dispatcher dispatch $this !rocker "[itcl::code $this rock step]; list"
@@ -369,7 +379,7 @@ itcl::body Rappture::MolvisViewer::constructor {hostlist args} {
     #    [itcl::code $this Vmouse2 move 0 %s %x %y]
 
     bind $itk_component(3dview) <Configure> \
-	[itcl::code $this Configure %w %h]
+	[itcl::code $this EventuallyResize %w %h]
     bind $itk_component(3dview) <Unmap> \
 	[itcl::code $this Unmap]
     bind $itk_component(3dview) <Map> \
@@ -577,13 +587,6 @@ itcl::body Rappture::MolvisViewer::Connect {} {
     }
     set result [VisViewer::Connect $hosts]
     if { $result } {
-	set _rocker(server) 0
-	set _cacheid 0
-	if 0 {
-	    # Can't and shouldn't call this from the connect routine.
-	    SendCmd "raw -defer {set auto_color,0}"
-	    SendCmd "raw -defer {set auto_show_lines,0}"
-	}
 	$_dispatcher event -idle !rebuild
     }
     return $result
@@ -686,7 +689,13 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
     # Turn on buffering of commands to the server.  We don't want to
     # be preempted by a server disconnect/reconnect (that automatically
     # generates a new call to Rebuild).   
+    #blt::bltdebug 100
     set _buffering 1
+
+    set _rocker(server) 0
+    set _cacheid 0
+    SendCmd "raw -defer {set auto_color,0}"
+    SendCmd "raw -defer {set auto_show_lines,0}"
 
     set dlist [get]
     foreach dataobj $dlist {
@@ -842,12 +851,12 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
     representation update 
     opacity update 
 
+    set _buffering 0;			# Turn off buffering.
     # Actually write the commands to the server socket.  If it fails, we don't
     # care.  We're finished here.
     blt::busy hold $itk_component(hull)
     SendBytes $_outbuf;			
     blt::busy release $itk_component(hull)
-    set _buffering 0;			# Turn off buffering.
     set _outbuf "";			# Clear the buffer.		
 
     debug "exiting rebuild"
@@ -875,12 +884,21 @@ itcl::body Rappture::MolvisViewer::Map { } {
     }
 }
 
-itcl::body Rappture::MolvisViewer::Configure { w h } {
-    debug "in Configure $w $h"
-    $_image(plot) configure -width $w -height $h
+itcl::body Rappture::MolvisViewer::DoResize { } {
+    SendCmd "screen $_width $_height"
+    $_image(plot) configure -width $_width -height $_height
     # Immediately invalidate cache, defer update until mapped
     array unset _imagecache 
-    SendCmd "screen $w $h"
+    set _resizePending 0
+}
+    
+itcl::body Rappture::MolvisViewer::EventuallyResize { w h } {
+    set _width $w
+    set _height $h
+    if { !$_resizePending } {
+	$_dispatcher event -idle !resize
+	set _resizePending 1
+    }
 }
 
 # ----------------------------------------------------------------------
@@ -1469,7 +1487,7 @@ itcl::body Rappture::MolvisViewer::GetPngImage  { widget width height } {
     $_dispatcher dispatch $this !pngtimeout "set $var {} ; list"
 
     set popup .molvisviewerprint
-    if {![winfo exists $popup]} {
+    if { ![winfo exists $popup] } {
 	Rappture::Balloon $popup -title "Generating file..."
 	set inner [$popup component inner]
 	label $inner.title -text "Generating hardcopy." -font "Arial 10 bold"

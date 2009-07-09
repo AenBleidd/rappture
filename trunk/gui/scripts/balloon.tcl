@@ -214,7 +214,7 @@ itcl::body Rappture::Balloon::activate {where placement} {
     if { $pw < 1 || $ph < 1 }  {
 	# I really don't know why this is happenning.  I believe this occurs
 	# when in a work space (i.e the main window is smaller than the root
-	# window). So for now, better to place the ballon window somewhere
+	# window). So for now, better to place the balloon window somewhere
 	# than to fail with a bad geometry.
 	wm geometry $p +$px+$py
     } else {

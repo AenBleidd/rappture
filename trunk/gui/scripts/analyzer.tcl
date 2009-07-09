@@ -710,7 +710,6 @@ itcl::body Rappture::Analyzer::download {option args} {
 		set f [$itk_component(resultpages) page $page]
 		set arg [itcl::code $this download now $widget]
 		set popup [$f.rviewer download controls $arg]
-
 		if {"" != $popup} {
 		    $popup activate $widget below
 		} else {
