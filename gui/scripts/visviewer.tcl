@@ -384,7 +384,6 @@ itcl::body Rappture::VisViewer::SendHelper.old {} {
 #
 itcl::body Rappture::VisViewer::SendBytes { bytes } {
     SendEcho >>line $bytes
-
     if { ![CheckConnection] } {
 	return 0
     }
