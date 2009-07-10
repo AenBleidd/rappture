@@ -15,7 +15,21 @@
 package require Itk
 package require BLT
 package require Img
-
+					
+#
+# FIXME:
+#	Need to Add DX readers this client to examine the data before 
+#	it's sent to the server.  This will eliminate 90% of the insanity in
+#	computing the limits of all the volumes.  I can rip out all the 
+#	"receive data" "send transfer function" event crap.
+#
+#       This means we can compute the transfer function (relative values) and
+#	draw the legend min/max values without waiting for the information to
+#	come from the server.  This will also prevent the flashing that occurs
+#	when a new volume is drawn (using the default transfer function) and
+#	then when the correct transfer function has been sent and linked to
+#	the volume.  
+#
 option add *NanovisViewer.width 4i widgetDefault
 option add *NanovisViewer*cursor crosshair widgetDefault
 option add *NanovisViewer.height 4i widgetDefault
@@ -109,12 +123,13 @@ itcl::class Rappture::NanovisViewer {
     private variable _dlist ""     ;# list of data objects
     private variable _allDataObjs
     private variable _obj2ovride   ;# maps dataobj => style override
-    private variable _serverObjs   ;# contains all the dataobj-component 
+    private variable _serverVols   ;# contains all the dataobj-component 
 				   ;# to volumes in the server
-    private variable _sendobjs ""  ;# list of data objs to send to server
-    private variable _recvdObjs   ;# list of data objs to send to server
-    private variable _obj2style    ;# maps dataobj-component to transfunc
-    private variable _style2objs   ;# maps tf back to list of 
+    private variable _serverTfs    ;# contains all the transfer functions 
+				   ;# in the server.
+    private variable _recvdVols    ;# list of data objs to send to server
+    private variable _vol2style    ;# maps dataobj-component to transfunc
+    private variable _style2vols   ;# maps tf back to list of 
 				    # dataobj-components using the tf.
 
     private variable _click        ;# info used for rotate operations
@@ -122,7 +137,10 @@ itcl::class Rappture::NanovisViewer {
     private variable _view         ;# view params for 3D view
     private variable _isomarkers    ;# array of isosurface level values 0..1
     private common   _settings
-    private variable _activeTf ""  ;# The currently active transfer function.
+    # Array of transfer functions in server.  If 0 the transfer has been
+    # defined but not loaded.  If 1 the transfer function has been named
+    # and loaded.
+    private variable _activeTfs
     private variable _first ""     ;# This is the topmost volume.
     private variable _buffering 0
 
@@ -151,11 +169,6 @@ itcl::body Rappture::NanovisViewer::constructor {hostlist args} {
     # Draw legend event
     $_dispatcher register !legend
     $_dispatcher dispatch $this !legend "[itcl::code $this FixLegend]; list"
-
-    # Send dataobjs event
-    $_dispatcher register !send_dataobjs
-    $_dispatcher dispatch $this !send_dataobjs \
-	"[itcl::code $this SendDataObjs]; list"
 
     # Send transfer functions event
     $_dispatcher register !send_transfunc
@@ -353,9 +366,7 @@ itcl::body Rappture::NanovisViewer::constructor {hostlist args} {
 # DESTRUCTOR
 # ----------------------------------------------------------------------
 itcl::body Rappture::NanovisViewer::destructor {} {
-    set _sendobjs ""  ;# stop any send in progress
     $_dispatcher cancel !rebuild
-    $_dispatcher cancel !send_dataobjs
     $_dispatcher cancel !send_transfunc
     $_dispatcher cancel !resize
     image delete $_image(plot)
@@ -470,34 +481,15 @@ itcl::body Rappture::NanovisViewer::delete {args} {
     foreach dataobj $args {
 	set pos [lsearch -exact $_dlist $dataobj]
 	if { $pos >= 0 } {
-	    foreach comp [$dataobj components] {
-		set tag $dataobj-$comp
-		if { [info exists obj2id($tag)] } {
-		    array unset _limits $tag-*
-		}
-	    }
 	    set _dlist [lreplace $_dlist $pos $pos]
+	    array unset _limits $dataobj*
 	    array unset _obj2ovride $dataobj-*
-	    array unset _serverObjs $dataobj-*
-	    array unset _obj2style $dataobj-*
+	    array unset _vol2style $dataobj-*
 	    set changed 1
 	}
     }
     # If anything changed, then rebuild the plot
     if {$changed} {
-	# Repair the reverse lookup 
-	foreach tf [array names _style2objs] {
-	    set list {}
-	    foreach {dataobj comp} $_style2objs($tf) break
-	    if { [info exists _serverObjs($dataobj-$comp)] } {
-		lappend list $dataobj $comp
-	    }
-	    if { $list == "" } {
-		array unset _style2objs $tf
-	    } else {
-		set _style2objs($tf) $list
-	    }
-	}
 	$_dispatcher event -idle !rebuild
     }
 }
@@ -624,8 +616,7 @@ itcl::body Rappture::NanovisViewer::Disconnect {} {
 
     # disconnected -- no more data sitting on server
     set _outbuf ""
-    catch {unset _serverObjs}
-    set _sendobjs ""
+    array unset _serverVols
 }
 
 #
@@ -662,6 +653,7 @@ itcl::body Rappture::NanovisViewer::SendCmd {string} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::NanovisViewer::SendDataObjs {} {
     blt::busy hold $itk_component(hull)
+    blt::busy release $itk_component(hull)
 
     foreach dataobj $_sendobjs {
 	foreach comp [$dataobj components] {
@@ -675,11 +667,9 @@ itcl::body Rappture::NanovisViewer::SendDataObjs {} {
 		return
 	    }
 	    NameTransferFunc $dataobj $comp
-	    set _recvdObjs($dataobj-$comp) 1
+	    set _recvdVols($dataobj-$comp) 1
 	}
     }
-    set _sendobjs ""
-    blt::busy release $itk_component(hull)
 
     # Turn on buffering of commands to the server.  We don't want to
     # be preempted by a server disconnect/reconnect (which automatically
@@ -697,14 +687,9 @@ itcl::body Rappture::NanovisViewer::SendDataObjs {} {
 	if { $location != "" } {
 	    array set _view $location
 	}
-	# The active transfer function is by default the first component of
-	# the first data object.  This assumes that the data is always
-	# successfully transferred.
-	set comp [lindex [$_first components] 0]
-        set _activeTf [lindex $_obj2style($_first-$comp) 0]
     }
     SendCmd "volume state 0"
-    set vols [array names _serverObjs $_first-*] 
+    set vols [array names _serverVols $_first-*] 
     if { $vols != ""  && $_settings($this-volume) } {
 	SendCmd "volume state 1 $vols"
     }
@@ -737,41 +722,31 @@ itcl::body Rappture::NanovisViewer::SendDataObjs {} {
 # USAGE: SendTransferFuncs
 # ----------------------------------------------------------------------
 itcl::body Rappture::NanovisViewer::SendTransferFuncs {} {
-    if { $_activeTf == "" } {
-	return
-    }
-    set tf $_activeTf
     if { $_first == "" } {
+	puts stderr "first not set"
 	return
     }
-
     # Insure that the global opacity and thickness settings (in the slider
-    # settings widgets) are used for the active transfer-function.  Update the
-    # values in the _settings varible.
-    set value $_settings($this-opacity)
-    set opacity [expr { double($value) * 0.01 }]
-    set _settings($this-$tf-opacity) $opacity
-    set value $_settings($this-thickness)
+    # settings widgets) are used for the active transfer-function.  Update
+    # the values in the _settings varible.
+    set opacity [expr { double($_settings($this-opacity)) * 0.01 }]
     # Scale values between 0.00001 and 0.01000
-    set thickness [expr {double($value) * 0.0001}]
-    set _settings($this-$tf-thickness) $thickness
+    set thickness [expr {double($_settings($this-thickness)) * 0.0001}]
 
-    foreach key [array names _obj2style $_first-*] {
-	if { [info exists _obj2style($key)] } {
-	    foreach tf $_obj2style($key) {
-		ComputeTransferFunc $tf
-	    }
+    foreach vol [CurrentVolumes] {
+	set tf $_vol2style($vol)
+	if { ![info exists _activeTfs($tf)] || !$_activeTfs($tf) } {
+	    # Only update the transfer function as necessary
+	    set _settings($this-$tf-opacity) $opacity
+	    set _settings($this-$tf-thickness) $thickness
+	    ComputeTransferFunc $tf
+	    set _activeTfs($tf) 1
+	}
+	if { [info exists _serverVols($vol)] && $_serverVols($vol) } {
+	    SendCmd "volume shading transfunc $tf $vol"
 	}
     }
     FixLegend
-    if 0 {
-    if { $first != "" && ![info exists _obj2style($_first)] } {
-	foreach tf $_obj2style($_first) {
-	    ComputeTransferFunc $tf
-	}
-	$_dispatcher event -idle !legend
-    }
-    }
 }
 
 # ----------------------------------------------------------------------
@@ -837,7 +812,6 @@ itcl::body Rappture::NanovisViewer::ReceiveLegend { tf vmin vmax size } {
 	    [itcl::code $this AddIsoMarker %x %y]
     }
     # Display the markers used by the active transfer function.
-    #set tf $_activeTf
 
     array set limits [limits $tf]
     $c itemconfigure vmin -text [format %.2g $limits(min)]
@@ -862,7 +836,7 @@ itcl::body Rappture::NanovisViewer::ReceiveLegend { tf vmin vmax size } {
 #       volume sent to the render server.  Since the client (nanovisviewer)
 #       doesn't parse 3D data formats, we rely on the server (nanovis) to
 #       tell us what the limits are.  Once we've received the limits to all
-#       the data we've sent (tracked by _recvdObjs) we can then determine
+#       the data we've sent (tracked by _recvdVols) we can then determine
 #       what the transfer functions are for these volumes.
 #
 #
@@ -888,7 +862,7 @@ itcl::body Rappture::NanovisViewer::ReceiveData { args } {
     # Volumes don't exist until we're told about them.
     #
     set dataobj [lindex $parts 0]
-    set _serverObjs($tag) $tag
+    set _serverVols($tag) 1
     if { $_settings($this-volume) && $dataobj == $_first } {
 	SendCmd "volume state 1 $tag"
     }
@@ -897,8 +871,11 @@ itcl::body Rappture::NanovisViewer::ReceiveData { args } {
     set _limits(vmin)      $info(vmin); # Overall minimum value.
     set _limits(vmax)      $info(vmax); # Overall maximum value.
 
-    unset _recvdObjs($tag)
-    if { [array size _receiveIds] == 0 } {
+    unset _recvdVols($tag)
+    if { [array size _recvdVols] == 0 } {
+	# The active transfer function is by default the first component of
+	# the first data object.  This assumes that the data is always
+	# successfully transferred.
 	updatetransferfuncs
     }
 }
@@ -912,6 +889,11 @@ itcl::body Rappture::NanovisViewer::ReceiveData { args } {
 # ----------------------------------------------------------------------
 itcl::body Rappture::NanovisViewer::Rebuild {} {
 
+    # Turn on buffering of commands to the server.  We don't want to
+    # be preempted by a server disconnect/reconnect (which automatically
+    # generates a new call to Rebuild).   
+    set _buffering 1
+
     # Hide all the isomarkers. Can't remove them. Have to remember the
     # settings since the user may have created/deleted/moved markers.
 
@@ -920,45 +902,29 @@ itcl::body Rappture::NanovisViewer::Rebuild {} {
 	    $m visible no
 	}
     }
-    # in the midst of sending data? then bail out
-    if {[llength $_sendobjs] > 0} {
-	return
-    }
-
-    # Turn on buffering of commands to the server.  We don't want to
-    # be preempted by a server disconnect/reconnect (which automatically
-    # generates a new call to Rebuild).   
-    set _buffering 1
 
     set w [winfo width $itk_component(3dview)]
     set h [winfo height $itk_component(3dview)]
     EventuallyResize $w $h
 
+    foreach dataobj [get] {
+	foreach comp [$dataobj components] {
+	    set vol $dataobj-$comp
+	    if { ![info exists _serverVols($vol)] } {
+		# Send the data as one huge base64-encoded mess -- yuck!
+		set data [$dataobj values $comp]
+		set nbytes [string length $data]
+		append _outbuf "volume data follows $nbytes $vol\n"
+		append _outbuf $data
+		set _recvdVols($vol) 1
+		set _serverVols($vol) 0
+	    }
+	    NameTransferFunc $dataobj $comp
+	}
+    }
     #
     # Reset the camera and other view parameters
     #
-    set xyz [Euler2XYZ $_view(theta) $_view(phi) $_view(psi)]
-    SendCmd "camera angle $xyz"
-    PanCamera
-    SendCmd "camera zoom $_view(zoom)"
-
-    # Find any new data that needs to be sent to the server.  Queue this up on
-    # the _sendobjs list, and send it out a little at a time.  Do this first,
-    # before we rebuild the rest.
-    foreach dataobj [get] {
-	set comp [lindex [$dataobj components] 0]
-	if {![info exists _serverObjs($dataobj-$comp)]} {
-	    set i [lsearch -exact $_sendobjs $dataobj]
-	    if {$i < 0} {
-		lappend _sendobjs $dataobj
-	    }
-	}
-    }
-    if {[llength $_sendobjs] > 0} {
-	# send off new data objects
-	$_dispatcher event -idle !send_dataobjs
-	return
-    }
 
     set _settings($this-theta) $_view(theta)
     set _settings($this-phi)   $_view(phi)
@@ -967,6 +933,10 @@ itcl::body Rappture::NanovisViewer::Rebuild {} {
     set _settings($this-pan-y) $_view(pan-y)
     set _settings($this-zoom)  $_view(zoom)
 
+    set xyz [Euler2XYZ $_view(theta) $_view(phi) $_view(psi)]
+    SendCmd "camera angle $xyz"
+    PanCamera
+    SendCmd "camera zoom $_view(zoom)"
     FixSettings light
     FixSettings transp
     FixSettings isosurface
@@ -975,23 +945,23 @@ itcl::body Rappture::NanovisViewer::Rebuild {} {
     FixSettings outline
 
     # nothing to send -- activate the proper ivol
+    SendCmd "volume state 0"
     set _first [lindex [get] 0]
     if {"" != $_first} {
 	set axis [$_first hints updir]
-	if {"" != $axis} {
+	if { "" != $axis } {
 	    SendCmd "up $axis"
 	}
-	SendCmd "volume state 0"
-	set vols [array names _serverObjs $_first-*] 
+	set location [$_first hints camera]
+	if { $location != "" } {
+	    array set _view $location
+	}
+	set vols [array names _serverVols $_first-*] 
 	if { $vols != "" } {
 	    SendCmd "volume state 1 $vols"
 	}
-	foreach comp [$_first components] {
-	    NameTransferFunc $_first $comp
-	}
     }
-
-    # sync the state of slicers
+    # Sync the state of slicers
     set vols [CurrentVolumes -cutplanes]
     foreach axis {x y z} {
 	SendCmd "cutplane state $_settings($this-${axis}cutplane) $axis $vols"
@@ -999,12 +969,12 @@ itcl::body Rappture::NanovisViewer::Rebuild {} {
 	SendCmd "cutplane position $pos $axis $vols"
     }
     SendCmd "volume data state $_settings($this-volume) $vols"
-    $_dispatcher event -idle !legend
-
+    set _buffering 0;			# Turn off buffering.
     # Actually write the commands to the server socket.  If it fails, we don't
     # care.  We're finished here.
+    blt::busy hold $itk_component(hull)
     SendBytes $_outbuf;			
-    set _buffering 0;			# Turn off buffering.
+    blt::busy release $itk_component(hull)
     set _outbuf "";			# Clear the buffer.		
 }
 
@@ -1020,14 +990,16 @@ itcl::body Rappture::NanovisViewer::CurrentVolumes {{what -all}} {
     if { $_first == "" } {
 	return
     }
-    foreach key [array names _serverObjs $_first-*] {
-	array set style {
-	    -cutplanes 1
-	}
-	foreach {dataobj comp} [split $key -] break
-	array set style [lindex [$dataobj components -style $comp] 0]
-	if {$what != "-cutplanes" || $style(-cutplanes)} {
-	    lappend rlist $key
+    foreach comp [$_first components] {
+	set vol $_first-$comp
+	if { [info exists _serverVols($vol)] && $_serverVols($vol) } {
+	    array set style {
+		-cutplanes 1
+	    }
+	    array set style [lindex [$_first components -style $comp] 0]
+	    if {$what != "-cutplanes" || $style(-cutplanes)} {
+		lappend rlist $vol
+	    }
 	}
     }
     return $rlist
@@ -1239,22 +1211,26 @@ itcl::body Rappture::NanovisViewer::FixSettings {what {value ""}} {
             }
         }
         opacity {
-            if {[isconnected] && $_activeTf != "" } {
+            if {[isconnected] && [array size _activeTfs] > 0 } {
                 set val $_settings($this-opacity)
                 set sval [expr { 0.01 * double($val) }]
-                set tf $_activeTf
-                set _settings($this-$tf-opacity) $sval
+		foreach tf [array names _activeTfs] {
+		    set _settings($this-$tf-opacity) $sval
+		    set _activeTfs($tf) 0
+		}
                 updatetransferfuncs
             }
         }
 
         thickness {
-            if {[isconnected] && $_activeTf != "" } {
+            if {[isconnected] && [array names _activeTfs] > 0 } {
                 set val $_settings($this-thickness)
                 # Scale values between 0.00001 and 0.01000
                 set sval [expr {0.0001*double($val)}]
-                set tf $_activeTf
-                set _settings($this-$tf-thickness) $sval
+		foreach tf [array names _activeTfs] {
+		    set _settings($this-$tf-thickness) $sval
+		    set _activeTfs($tf) 0
+		}
                 updatetransferfuncs
             }
         }
@@ -1327,8 +1303,11 @@ itcl::body Rappture::NanovisViewer::FixLegend {} {
     set lineht [font metrics $itk_option(-font) -linespace]
     set w [expr {$_width-20}]
     set h [expr {[winfo height $itk_component(legend)]-20-$lineht}]
-    if {$w > 0 && $h > 0 && "" != $_activeTf} {
-	SendCmd "legend $_activeTf $w $h"
+    if {$w > 0 && $h > 0 && [array names _activeTfs] > 0 && $_first != "" } {
+	set vol [lindex [CurrentVolumes] 0]
+	if { [info exists _vol2style($vol)] } {
+	    SendCmd "legend $_vol2style($vol) $w $h"
+	}
     } else {
 	# Can't do this as this will remove the items associated with the
 	# isomarkers.
@@ -1360,8 +1339,8 @@ itcl::body Rappture::NanovisViewer::NameTransferFunc { dataobj comp } {
     }
     array set style [lindex [$dataobj components -style $comp] 0]
     set tf "$style(-color):$style(-levels):$style(-opacity)"
-    lappend _obj2style($dataobj-$comp) $tf
-    lappend _style2objs($tf) $dataobj $comp
+    set _vol2style($dataobj-$comp) $tf
+    lappend _style2vols($tf) $dataobj-$comp
     return $tf
 }
 
@@ -1380,11 +1359,7 @@ itcl::body Rappture::NanovisViewer::ComputeTransferFunc { tf } {
 	-levels 6
 	-opacity 1.0
     }
-    set dataobj ""; set comp ""
-    foreach {dataobj comp} $_style2objs($tf) break
-    if { $dataobj == "" } {
-        return 0
-    }
+    foreach {dataobj comp} [split $_style2vols($tf) -] break
     array set style [lindex [$dataobj components -style $comp] 0]
 
 
@@ -1479,10 +1454,7 @@ itcl::body Rappture::NanovisViewer::ComputeTransferFunc { tf } {
     if { $last == "" || $last != 1.0 } {
 	lappend wmap 1.0 0.0
     }
-    SendBytes "transfunc define $tf { $cmap } { $wmap }\n"
-    if { [info exists _serverObjs($dataobj-$comp)] } {
-	return [SendBytes "volume shading transfunc $tf $dataobj-$comp\n"]
-    }
+    SendCmd "transfunc define $tf { $cmap } { $wmap }"
 }
 
 # ----------------------------------------------------------------------
@@ -1589,10 +1561,11 @@ itcl::body Rappture::NanovisViewer::updatetransferfuncs {} {
 }
 
 itcl::body Rappture::NanovisViewer::AddIsoMarker { x y } {
-    if { $_activeTf == "" } {
+    if { $_first == "" } {
 	error "active transfer function isn't set"
     }
-    set tf $_activeTf 
+    set vol [lindex [CurrentVolumes] 0]
+    set tf $_vol2style($vol)
     set c $itk_component(legend)
     set m [Rappture::IsoMarker \#auto $c $this $tf]
     set w [winfo width $c]
@@ -1645,23 +1618,22 @@ itcl::body Rappture::NanovisViewer::overmarker { marker x } {
 itcl::body Rappture::NanovisViewer::limits { tf } {
     set _limits(min) 0.0
     set _limits(max) 1.0
-    if { ![info exists _style2objs($tf)] } {
+    if { ![info exists _style2vols($tf)] } {
 	return [array get _limits]
     }
     set min ""; set max ""
-    foreach {dataobj comp} $_style2objs($tf) {
-	set tag $dataobj-$comp
-	if { ![info exists _serverObjs($tag)] } {
+    foreach vol $_style2vols($tf) {
+	if { ![info exists _serverVols($vol)] } {
 	    continue
 	}
-	if { ![info exists _limits($tag-min)] } {
+	if { ![info exists _limits($vol-min)] } {
 	    continue
 	}
-	if { $min == "" || $min > $_limits($tag-min) } {
-	    set min $_limits($tag-min)
+	if { $min == "" || $min > $_limits($vol-min) } {
+	    set min $_limits($vol-min)
 	}
-	if { $max == "" || $max < $_limits($tag-max) } {
-	    set max $_limits($tag-max)
+	if { $max == "" || $max < $_limits($vol-max) } {
+	    set max $_limits($vol-max)
 	}
     }
     if { $min != "" } {

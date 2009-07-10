@@ -17,11 +17,17 @@
 package require Itcl
 package require BLT
 
-namespace eval Rappture { # forward declaration }
+namespace eval Rappture { 
+    # forward declaration 
+}
 
 itcl::class Rappture::Curve {
-    constructor {xmlobj path} { # defined below }
-    destructor { # defined below }
+    constructor {xmlobj path} { 
+	# defined below 
+    }
+    destructor { 
+	# defined below 
+    }
 
     public method components {{pattern *}}
     public method mesh {{what -overall}}
@@ -194,30 +200,32 @@ itcl::body Rappture::Curve::limits {which} {
 itcl::body Rappture::Curve::hints {{keyword ""}} {
     if {![info exists _hints]} {
         foreach {key path} {
+            color   about.color
             group   about.group
             label   about.label
-            color   about.color
             style   about.style
             type    about.type
-            xlabel  xaxis.label
             xdesc   xaxis.description
-            xunits  xaxis.units
-            xscale  xaxis.scale
-            xmin    xaxis.min
+            xlabel  xaxis.label
             xmax    xaxis.max
-            ylabel  yaxis.label
+            xmin    xaxis.min
+            xscale  xaxis.scale
+            xticks  xaxis.ticklabels
+            xunits  xaxis.units
             ydesc   yaxis.description
-            yunits  yaxis.units
-            yscale  yaxis.scale
-            ymin    yaxis.min
+            ylabel  yaxis.label
             ymax    yaxis.max
+            ymin    yaxis.min
+            yscale  yaxis.scale
+            yticks  yaxis.ticklabels
+            yunits  yaxis.units
+	    bars    xaxis.bars
         } {
             set str [$_curve get $path]
             if {"" != $str} {
                 set _hints($key) $str
             }
         }
-
         if {[info exists _hints(xlabel)] && "" != $_hints(xlabel)
               && [info exists _hints(xunits)] && "" != $_hints(xunits)} {
             set _hints(xlabel) "$_hints(xlabel) ($_hints(xunits))"
@@ -266,15 +274,23 @@ itcl::body Rappture::Curve::_build {} {
         set yv ""
 
         set xydata [$_curve get $cname.xy]
-        if {"" != $xydata} {
+        if { "" != $xydata} {
             set xv [blt::vector create \#auto]
             set yv [blt::vector create \#auto]
             set tmp [blt::vector create \#auto]
             $tmp set $xydata
             $tmp split $xv $yv
             blt::vector destroy $tmp
-        }
-
+        } else { 
+            set xv [blt::vector create \#auto]
+            set yv [blt::vector create \#auto]
+	    $xv set [$_curve get $cname.xvector]
+	    $yv set [$_curve get $cname.yvector]
+	    if { [$xv length] != [$yv length] } {
+		blt::vector destroy $xv $yv
+		set xv ""; set yv ""
+	    }
+	}
         if {$xv != "" && $yv != ""} {
             set _comp2xy($cname) [list $xv $yv]
             incr _counter
