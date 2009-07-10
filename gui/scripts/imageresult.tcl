@@ -127,7 +127,7 @@ itcl::body Rappture::ImageResult::constructor {args} {
     set _image(final) [image create photo]
 
     itk_component add image {
-	label $main.image -image $_image(final)
+	label $main.image -image $_image(final) -anchor c 
     } {
 	keep -background -foreground -cursor -font
     }

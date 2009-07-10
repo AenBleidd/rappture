@@ -217,11 +217,20 @@ itcl::body Rappture::ResultViewer::_plotAdd {dataobj {settings ""}} {
 	    }
 	}
 	::Rappture::Curve {
+	    set bars [$dataobj hints bars]
 	    set mode "xy"
-	    if {![info exists _mode2widget($mode)]} {
-		set w $itk_interior.xy
-		Rappture::XyResult $w
-		set _mode2widget($mode) $w
+	    if { $bars != "" && $bars } {
+		if {![info exists _mode2widget($mode)]} {
+		    set w $itk_interior.xy
+		    Rappture::BarResult $w
+		    set _mode2widget($mode) $w
+		}
+	    } else {
+		if {![info exists _mode2widget($mode)]} {
+		    set w $itk_interior.xy
+		    Rappture::XyResult $w
+		    set _mode2widget($mode) $w
+		}
 	    }
 	}
 	::Rappture::Field {
