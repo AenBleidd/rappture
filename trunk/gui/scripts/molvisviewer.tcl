@@ -73,13 +73,15 @@ itcl::class Rappture::MolvisViewer {
     public method Disconnect {}
     public method ResetView {} 
     public method add {dataobj {options ""}}
-    public method atomscale {option {models "all"} }
-    public method bondthickness {option {models "all"} }
+    public method spherescale {option {models "all"} }
+    public method stickradius {option {models "all"} }
     public method delete {args}
     public method download {option args}
     public method get {}
     public method isconnected {}
     public method labels {option {model "all"}}
+    public method cartoon {option {model "all"}}
+    public method cartoontrace {option {model "all"}}
     public method opacity {option {models "all"} }
     public method parameters {title args} { 
 	# do nothing 
@@ -195,15 +197,17 @@ itcl::body Rappture::MolvisViewer::constructor {hostlist args} {
 
     # Setup default settings for widget.
     array set _settings [subst {
+	$this-spherescale 0.25
+	$this-stickradius 0.14
+	$this-cartoon   no
+	$this-cartoontrace no
 	$this-model     ballnstick
 	$this-modelimg  [Rappture::icon ballnstick]
-	$this-showlabels-initialized no
-	$this-showlabels no
-	$this-rock      no
-	$this-ortho     no
-	$this-atomscale 0.25
-	$this-bondthickness 0.14
 	$this-opacity   1.0
+	$this-ortho     no
+	$this-rock      no
+	$this-showlabels no
+	$this-showlabels-initialized no
     }]
     
     itk_component add 3dview {
@@ -397,67 +401,113 @@ itcl::body Rappture::MolvisViewer::BuildViewTab {} {
         -icon [Rappture::icon wrench]]
     $inner configure -borderwidth 4
 
-    label $inner.drawinglabel -text "Drawing Method" -font "Arial 9 bold"
+    label $inner.drawinglabel -text "Molecule Reprsentation" \
+	-font "Arial 9 bold"
 
     label $inner.pict -image $_settings($this-modelimg)
+
     radiobutton $inner.bstick -text "balls and sticks" \
 	-command [itcl::code $this representation ballnstick all] \
 	-variable Rappture::MolvisViewer::_settings($this-model) \
 	-value ballnstick -font "Arial 9" -pady 0 
+    Rappture::Tooltip::for $inner.bstick \
+	"Display atoms (balls) and connections (sticks) "
+
     radiobutton $inner.spheres -text "spheres" \
 	-command [itcl::code $this representation spheres all] \
 	-variable Rappture::MolvisViewer::_settings($this-model) \
 	-value spheres -font "Arial 9" -pady 0
+    Rappture::Tooltip::for $inner.spheres \
+	"Display atoms as spheres. Do not display bonds."
+
+    radiobutton $inner.sticks -text "sticks" \
+	-command [itcl::code $this representation sticks all] \
+	-variable Rappture::MolvisViewer::_settings($this-model) \
+	-value sticks -font "Arial 9" -pady 0
+    Rappture::Tooltip::for $inner.sticks \
+	"Display bonds as sticks. Do not display atoms."
+
     radiobutton $inner.lines -text "lines" \
 	-command [itcl::code $this representation lines all] \
 	-variable Rappture::MolvisViewer::_settings($this-model) \
 	-value lines -font "Arial 9" -pady 0
+    Rappture::Tooltip::for $inner.lines \
+	"Display bonds as lines. Do not display atoms."
 
-    scale $inner.atomscale -width 10 -font "Arial 9 bold" \
-	-from 0.1 -to 2.0 -resolution 0.05 -label "Atom Scale" \
+    scale $inner.spherescale -width 10 -font "Arial 9 bold" \
+	-from 0.1 -to 2.0 -resolution 0.05 -label "Sphere Scale" \
 	-showvalue true -orient horizontal \
-	-command [itcl::code $this atomscale] \
-	-variable Rappture::MolvisViewer::_settings($this-atomscale)
-    $inner.atomscale set $_settings($this-atomscale)
+	-command [itcl::code $this spherescale] \
+	-variable Rappture::MolvisViewer::_settings($this-spherescale)
+    $inner.spherescale set $_settings($this-spherescale)
+    Rappture::Tooltip::for $inner.spherescale \
+ 	"Adjust scale of atoms (spheres or balls). 1.0 is the full VDW radius."
 
-    scale $inner.bondthickness -width 10 -font "Arial 9 bold" \
-	-from 0.1 -to 1.0 -resolution 0.025 -label "Bond Thickness" \
+    scale $inner.stickradius -width 10 -font "Arial 9 bold" \
+	-from 0.1 -to 1.0 -resolution 0.025 -label "Stick Radius" \
 	-showvalue true -orient horizontal \
-	-command [itcl::code $this bondthickness] \
-	-variable Rappture::MolvisViewer::_settings($this-bondthickness)
-    $inner.bondthickness set $_settings($this-bondthickness)
+	-command [itcl::code $this stickradius] \
+	-variable Rappture::MolvisViewer::_settings($this-stickradius)
+    Rappture::Tooltip::for $inner.stickradius \
+	"Adjust scale of bonds (sticks)."
+    $inner.stickradius set $_settings($this-stickradius)
 
     checkbutton $inner.labels -text "Show labels on atoms" \
 	-command [itcl::code $this labels update] \
 	-variable [itcl::scope _settings($this-showlabels)] \
 	-font "Arial 9 bold"
+    Rappture::Tooltip::for $inner.labels \
+	"Display atom symbol and serial number."
+
     checkbutton $inner.rock -text "Rock model back and forth" \
 	-command [itcl::code $this rock toggle] \
 	-variable Rappture::MolvisViewer::_settings($this-rock) \
 	-font "Arial 9 bold"
+    Rappture::Tooltip::for $inner.rock \
+	"Rotate the object back and forth around the y-axis."
+
     checkbutton $inner.ortho -text "Orthoscopic projection" \
 	-command [itcl::code $this projection update] \
 	-variable Rappture::MolvisViewer::_settings($this-ortho) \
 	 -font "Arial 9 bold"
+    Rappture::Tooltip::for $inner.ortho \
+	"Toggle between orthoscopic/perspective projection modes."
+
+    checkbutton $inner.cartoon -text "Cartoon" \
+	-command [itcl::code $this cartoon update] \
+	-variable [itcl::scope _settings($this-cartoon)] \
+	-font "Arial 9 bold"
+    Rappture::Tooltip::for $inner.cartoon \
+	"Set cartoon representation of bonds (sticks)."
+
+    checkbutton $inner.cartoontrace -text "Cartoon Trace" \
+	-command [itcl::code $this cartoontrace update] \
+	-variable [itcl::scope _settings($this-cartoontrace)] \
+	-font "Arial 9 bold"
+    Rappture::Tooltip::for $inner.cartoontrace \
+	"Set cartoon representation of bonds (sticks)."
 
     label $inner.spacer
     blt::table $inner \
 	0,0 $inner.drawinglabel -anchor w -columnspan 4 \
-	1,1 $inner.pict -anchor w -rowspan 3 \
-	1,2 $inner.spheres -anchor w -columnspan 2 \
-	2,2 $inner.lines -anchor w -columnspan 2 \
-	3,2 $inner.bstick -anchor w -columnspan 2 \
-	4,0 $inner.labels -anchor w -columnspan 4 -pady {6 0} \
-	5,0 $inner.rock -anchor w -columnspan 4 -pady {6 0} \
-	6,0 $inner.ortho -anchor w -columnspan 4 -pady {6 0} \
-	8,1 $inner.atomscale -fill x -columnspan 4 -pady {6 0} \
-	10,1 $inner.bondthickness -fill x -columnspan 4 -pady {6 0}
+	1,1 $inner.pict -anchor w -rowspan 4 \
+	1,2 $inner.bstick -anchor w -columnspan 2 \
+	2,2 $inner.spheres -anchor w -columnspan 2 \
+	3,2 $inner.sticks -anchor w -columnspan 2 \
+	4,2 $inner.lines -anchor w -columnspan 2 \
+	5,0 $inner.labels -anchor w -columnspan 4 -pady {6 0} \
+	6,0 $inner.rock -anchor w -columnspan 4 -pady {6 0} \
+	7,0 $inner.ortho -anchor w -columnspan 4 -pady {6 0} \
+	8,1 $inner.spherescale -fill x -columnspan 4 -pady {6 0} \
+	10,1 $inner.stickradius -fill x -columnspan 4 -pady {6 0} \
+	12,0 $inner.cartoon -anchor w -columnspan 4 -pady {6 0} \
+	13,0 $inner.cartoontrace -anchor w -columnspan 4 -pady {6 0} \
 
     blt::table configure $inner c0 -resize expand -width 2
     blt::table configure $inner c1 c2 -resize none
     blt::table configure $inner c3 -resize expand
     blt::table configure $inner r* -resize none
-    blt::table configure $inner r11 -resize expand
+    blt::table configure $inner r14 -resize expand
 }
 
 
@@ -799,7 +849,7 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
 		}
 		set rep $_model($model-newrepresentation)
 		set transp $_model($model-newtransparency)
-		SendCmd "$_model($model-newrepresentation) -defer -model $model"
+		SendCmd "representation -defer -model $model $rep"
 		if { $_model($model-newtransparency) == "ghost" } {
 		    SendCmd "deactivate -defer -model $model"
 		} else {
@@ -845,9 +895,11 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
     debug "rebuild: rotate $_view(mx) $_view(my) $_view(mz)"
 
     projection update 
-    atomscale update 
-    bondthickness update
+    spherescale update 
+    stickradius update
     labels update 
+    cartoon update 
+    cartoontrace update 
     representation update 
     opacity update 
 
@@ -1204,9 +1256,7 @@ itcl::body Rappture::MolvisViewer::Rotate {option x y} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: representation spheres
-# USAGE: representation ballnstick
-# USAGE: representation lines
+# USAGE: representation spheres|ballnstick|lines|sticks
 #
 # Used internally to change the molecular representation used to render
 # our scene.
@@ -1218,7 +1268,11 @@ itcl::body Rappture::MolvisViewer::representation {option {model "all"} } {
     if { $option == "update" } {
 	set option $_settings($this-model)
     }
-    set _settings($this-modelimg) [Rappture::icon $option]
+    if { $option == "sticks" } {
+	set _settings($this-modelimg) [Rappture::icon lines]
+    }  else {
+	set _settings($this-modelimg) [Rappture::icon $option]
+    }
     set inner [$itk_component(main) panel "View Settings"]
     $inner.pict configure -image $_settings($this-modelimg)
 
@@ -1243,7 +1297,7 @@ itcl::body Rappture::MolvisViewer::representation {option {model "all"} } {
 	}
     }
     if { [isconnected] } {
-	SendCmd "$option -model $model"
+	SendCmd "representation -model $model $option"
 	#$_dispatcher event -idle !rebuild
     }
 }
@@ -1535,8 +1589,8 @@ itcl::body Rappture::MolvisViewer::GetPngImage  { widget width height } {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: atomscale radius ?model?
-#        atomscale update ?model?
+# USAGE: spherescale radius ?model?
+#        spherescale update ?model?
 #
 # Used internally to change the molecular atom scale used to render
 # our scene.  
@@ -1545,9 +1599,9 @@ itcl::body Rappture::MolvisViewer::GetPngImage  { widget width height } {
 #       is inactive, then it overridden with the value "0.1".
 # ----------------------------------------------------------------------
 
-itcl::body Rappture::MolvisViewer::atomscale { option {models "all"} } {
+itcl::body Rappture::MolvisViewer::spherescale { option {models "all"} } {
     if { $option == "update" } {
-	set radius $_settings($this-atomscale)
+	set radius $_settings($this-spherescale)
     } elseif { [string is double $option] } {
 	set radius $option
 	if { ($radius < 0.1) || ($radius > 2.0) } {
@@ -1556,52 +1610,52 @@ itcl::body Rappture::MolvisViewer::atomscale { option {models "all"} } {
     } else {
 	error "bad option \"$option\""
     }
-    set _settings($this-atomscale) $radius
+    set _settings($this-spherescale) $radius
     if { $models == "all" } {
 	set models [array names _mlist] 
     }
     set overrideradius [expr $radius * 0.8]
     foreach model $models {
 	if { [info exists _active($model)] } {
-	    SendCmd "atomscale -model $model $radius"
+	    SendCmd "spherescale -model $model $radius"
 	} else {
-	    SendCmd "atomscale -model $model $overrideradius"
+	    SendCmd "spherescale -model $model $overrideradius"
 	}
     }
 }
 
 # ----------------------------------------------------------------------
-# USAGE: bondthickness thickness ?models?
-#	 bondthickness update ?models?
+# USAGE: stickradius radius ?models?
+#	 stickradius update ?models?
 #
-# Used internally to change the molecular bond thickness used to render
+# Used internally to change the stick radius used to render
 # our scene.
 #
-# Note: Only sets the specified thickness for active models.  If the model 
+# Note: Only sets the specified radius for active models.  If the model 
 #       is inactive, then it overridden with the value "0.25".
 # ----------------------------------------------------------------------
 
-itcl::body Rappture::MolvisViewer::bondthickness { option {models "all"} } {
+itcl::body Rappture::MolvisViewer::stickradius { option {models "all"} } {
     if { $option == "update" } {
-	set thickness $_settings($this-bondthickness)
+	set radius $_settings($this-stickradius)
     } elseif { [string is double $option] } {
-	set thickness $option
-	if { ($thickness < 0.1) || ($thickness > 2.0) } {
-	    error "bad bind thickness \"$thickness\""
+	set radius $option
+	if { ($radius < 0.1) || ($radius > 2.0) } {
+	    error "bad stick radius \"$radius\""
 	}
     } else {
 	error "bad option \"$option\""
     }
-    set _settings($this-bondthickness) $thickness
+    set _settings($this-stickradius) $radius
     if { $models == "all" } {
 	set models [array names _mlist] 
     }
-    set overridethickness [expr $thickness * 0.8]
+    set overrideradius [expr $radius * 0.8]
     foreach model $models {
 	if { [info exists _active($model)] } {
-	    SendCmd "bondthickness -model $model $thickness"
+	    SendCmd "stickradius -model $model $radius"
 	} else {
-	    SendCmd "bondthickness -model $model $overridethickness"
+	    SendCmd "stickradius -model $model $overrideradius"
 	}
     }
 }
@@ -1610,10 +1664,10 @@ itcl::body Rappture::MolvisViewer::bondthickness { option {models "all"} } {
 # USAGE: opacity value ?models?
 #	 opacity update ?models?
 #
-# Used internally to change the molecular bond thickness used to render
+# Used internally to change the opacity (transparency) used to render
 # our scene.
 #
-# Note: Only sets the specified thickness for active models.  If the model 
+# Note: Only sets the specified transparency for active models.  If the model 
 #       is inactive, then it overridden with the value "0.75".
 # ----------------------------------------------------------------------
 
@@ -1669,6 +1723,66 @@ itcl::body Rappture::MolvisViewer::labels {option {models "all"}} {
 	    SendCmd "label -model $model $showlabels"
 	} else {
 	    SendCmd "label -model $model $overrideshowlabels"
+	}
+    }
+}
+
+# ----------------------------------------------------------------------
+# USAGE: cartoon on|off|toggle
+# USAGE: cartoon update
+#
+# Used internally to turn labels associated with atoms on/off, and to
+# update the positions of the labels so they sit on top of each atom.
+# ----------------------------------------------------------------------
+itcl::body Rappture::MolvisViewer::cartoon {option {models "all"}} {
+    set cartoon $_settings($this-cartoon)
+    if { $option == "update" } {
+	set cartoon $_settings($this-cartoon)
+    } elseif { [string is boolean $option] } {
+	set cartoon $option
+    } else {
+	error "bad option \"$option\""
+    }
+    set _settings($this-cartoon) $cartoon
+    if { $models == "all" } {
+	set models [array names _mlist] 
+    }
+    set overridecartoon "off"
+    foreach model $models {
+	if { [info exists _active($model)] } {
+	    SendCmd "cartoon -model $model $cartoon"
+	} else {
+	    SendCmd "cartoon -model $model $overridecartoon"
+	}
+    }
+}
+
+# ----------------------------------------------------------------------
+# USAGE: cartoontrace on|off|toggle
+# USAGE: cartoontrace update
+#
+# Used internally to turn labels associated with atoms on/off, and to
+# update the positions of the labels so they sit on top of each atom.
+# ----------------------------------------------------------------------
+itcl::body Rappture::MolvisViewer::cartoontrace {option {models "all"}} {
+    set trace $_settings($this-cartoontrace)
+    if { $option == "update" } {
+	set trace $_settings($this-cartoontrace)
+    } elseif { [string is boolean $option] } {
+	set trace $option
+    } else {
+	error "bad option \"$option\""
+    }
+    set _settings($this-cartoontrace) $trace
+    if { $models == "all" } {
+	set models [array names _mlist] 
+    }
+    set overridetrace "off"
+    foreach model $models {
+	if { [info exists _active($model)] } {
+	    SendCmd "cartoontrace -model $model $trace"
+	} else {
+	    SendCmd "cartoontrace -model $model $overridetrace"
 	}
     }
 }

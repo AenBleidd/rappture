@@ -1,3 +1,4 @@
+
 # ----------------------------------------------------------------------
 #  COMPONENT: barresult - X/Y plot in a ResultSet
 #
@@ -82,7 +83,9 @@ itcl::class Rappture::BarResult {
     public method get {}
     public method delete {args}
     public method scale {args}
-    public method parameters {title args} { # do nothing }
+    public method parameters {title args} { 
+	# do nothing 
+    }
     public method download {option args}
 
     protected method _rebuild {}
@@ -95,6 +98,7 @@ itcl::class Rappture::BarResult {
     protected method _getTextMarkerOptions { style } 
     protected method _enterMarker { g name x y text }
     protected method _leaveMarker { g name }
+    private method _formatTickLabel { w value } 
 
     private variable _dispatcher "" ;# dispatcher for !events
     private variable _clist ""     ;# list of curve objects
@@ -115,6 +119,7 @@ itcl::class Rappture::BarResult {
     private variable _markers
     private variable cur_ ""
     private variable initialized_ 0
+    private variable _tickLabels
 }
                                                                                 
 itk::usual BarResult {
@@ -163,27 +168,22 @@ itcl::body Rappture::BarResult::constructor {args} {
     itk_component add plot {
         blt::barchart $f.plot \
             -highlightthickness 0 -plotpadx 0 -plotpady 0 \
-            -rightmargin 10
+            -barmode aligned -rightmargin 1
     } {
         keep -background -foreground -cursor -font
     }
     pack $itk_component(plot) -expand yes -fill both
 
-    $itk_component(plot) pen configure activeLine \
-        -symbol square -pixels 3 -linewidth 2 \
-        -outline black -fill red -color black
+    $itk_component(plot) pen configure activeBar \
+        -borderwidth 2 -foreground black -background red
 
-    #
     # Add bindings so you can mouse over points to see values:
-    #
     bind $itk_component(plot) <Motion> \
         [itcl::code $this _hilite at %x %y]
     bind $itk_component(plot) <Leave> \
         [itcl::code $this _hilite off %x %y]
 
-    #
     # Add support for editing axes:
-    #
     Rappture::Balloon $itk_component(hull).axes -title "Axis Options"
     set inner [$itk_component(hull).axes component inner]
 
@@ -280,7 +280,7 @@ itcl::body Rappture::BarResult::add {curve {settings ""}} {
         -color auto
         -brightness 0
         -width 1
-        -type "line"
+        -type "bar"
         -raise 0
         -linestyle solid
         -description ""
@@ -291,11 +291,6 @@ itcl::body Rappture::BarResult::add {curve {settings ""}} {
             error "bad setting \"$opt\": should be [join [lsort [array names params]] {, }]"
         }
         set params($opt) $val
-    }
-
-    # if type is set to "scatter", then override the width
-    if {"scatter" == $params(-type)} {
-        set params(-width) 0
     }
 
     # if the color is "auto", then select a color from -autocolors
@@ -617,12 +612,12 @@ itcl::body Rappture::BarResult::_rebuild {} {
     # first clear out the widget
     eval $g element delete [$g element names]
     foreach axis [$g axis names] {
-        $g axis configure $axis -hide yes -checklimits no
+        $g axis configure $axis -hide yes -checklimits no -loose yes
     }
     # Presumably you want at least an X-axis and Y-axis displayed.
     $g xaxis configure -hide no
     $g yaxis configure -hide no
-    catch {unset _label2axis}
+    array unset _label2axis
 
     #
     # Scan through all objects and create a list of all axes.
@@ -736,12 +731,17 @@ itcl::body Rappture::BarResult::_rebuild {} {
 
             set elem "elem[incr count]"
             set _elem2curve($elem) $xydata
-
-            $g element create $elem -x $xv -y $yv \
-                -symbol $sym -pixels $pixels -linewidth $lwidth -label $label \
-                -color $color -dashes $dashes \
-                -mapx $mapx -mapy $mapy
-        }
+	    set labels [$xydata hints xticks]
+	    if { $labels != "" } {
+		$g axis configure $mapx \
+		    -command [itcl::code $this _formatTickLabel] \
+		    -minorticks 0 
+		set _tickLabels $labels
+	    }
+	    $g element create $elem -x $xv -y $yv \
+		-borderwidth $lwidth -label $label \
+		-background $color -foreground $color -mapx $mapx -mapy $mapy
+	}
     }
 
     foreach xydata $_clist {
@@ -804,6 +804,10 @@ itcl::body Rappture::BarResult::_rebuild {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::BarResult::_resetLimits {} {
     set g $itk_component(plot)
+    foreach axis [$g axis names] {
+	$g axis configure $axis -min "" -max ""
+    }
+    return
 
     #
     # HACK ALERT!
@@ -989,6 +993,14 @@ itcl::body Rappture::BarResult::_hilite {state x y} {
             $g crosshairs configure -hide yes
             Rappture::Tooltip::tooltip cancel
         }
+	set bg [$g element cget $elem -background]
+	set fg [$g element cget $elem -background]
+        foreach {h s v} [Rappture::color::RGBtoHSV $fg] break
+	if { $v > 0.2 } {
+	    set v [expr $v - 0.2]
+	}
+	set fg [Rappture::color::HSVtoRGB $h $s $v]
+	$g pen configure activeBar -background $bg -foreground $fg
         $g element activate $elem
         set _hilite(elem) $elem
 
@@ -1474,10 +1486,10 @@ itcl::body Rappture::BarResult::_axis {option args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::BarResult::_getLineMarkerOptions {style} {
     array set lineOptions {
-        "-color"  "-outline"
+        "-color"  "-color"
         "-dashes" "-dashes"
-        "-linecolor" "-outline"
-        "-linewidth" "-linewidth"
+        "-linecolor" "-foreground"
+        "-linewidth" "-borderwidth"
     }
     set options {}
     foreach {name value} $style {
@@ -1588,4 +1600,18 @@ itcl::body Rappture::BarResult::_leaveMarker { g name } {
         $g marker delete $id
         unset _markers($name)
     }
+}
+
+itcl::body Rappture::BarResult::_formatTickLabel { w value } {
+    # Determine the element name from the value
+
+    set index [expr round($value)]
+    if { $index != $value } {
+	return $value 
+    }
+    return [lindex  $_tickLabels [expr $index - 1]]
+    if { $label == "" } {
+	return $value
+    }
+    return $label
 }

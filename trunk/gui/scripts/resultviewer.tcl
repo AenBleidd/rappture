@@ -217,9 +217,9 @@ itcl::body Rappture::ResultViewer::_plotAdd {dataobj {settings ""}} {
 	    }
 	}
 	::Rappture::Curve {
-	    set bars [$dataobj hints bars]
+	    set type [$dataobj hints type]
 	    set mode "xy"
-	    if { $bars != "" && $bars } {
+	    if { $type == "bars" } {
 		if {![info exists _mode2widget($mode)]} {
 		    set w $itk_interior.xy
 		    Rappture::BarResult $w

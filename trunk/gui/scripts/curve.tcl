@@ -219,7 +219,6 @@ itcl::body Rappture::Curve::hints {{keyword ""}} {
             yscale  yaxis.scale
             yticks  yaxis.ticklabels
             yunits  yaxis.units
-	    bars    xaxis.bars
         } {
             set str [$_curve get $path]
             if {"" != $str} {
