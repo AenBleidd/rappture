@@ -137,7 +137,7 @@ typedef struct {
 #define CAN_UPDATE		(1<<1)
 #define INVALIDATE_CACHE	(1<<3)
 #define ATOM_SCALE_PENDING	(1<<4)
-#define BOND_THICKNESS_PENDING	(1<<5)
+#define STICK_RADIUS_PENDING	(1<<5)
 #define ROTATE_PENDING		(1<<6)
 #define PAN_PENDING		(1<<7)
 #define ZOOM_PENDING		(1<<8)
@@ -156,18 +156,20 @@ typedef struct {
 				 * image. */
 
     int serverInput, serverOutput, serverError;	 /* Server file descriptors. */
-    int clientInput, clientOutput;  /* Client file descriptors. */
-    ReadBuffer client;		/* Read buffer for client input. */
-    ReadBuffer server;		/* Read buffer for server output. */
+    int clientInput, clientOutput;	/* Client file descriptors. */
+    ReadBuffer client;			/* Read buffer for client input. */
+    ReadBuffer server;			/* Read buffer for server output. */
     int frame;
     int rockOffset;
     int cacheId;
     int error;
     int status;
-    int width, height;		/* Size of viewport. */
-    float xAngle, yAngle, zAngle;  /* Euler angles of pending rotation.  */
-    float atomScale;		/* Atom scale of pending re-scale. */
-    float bondThickness;	/* Bond thickness of pending re-scale. */
+    int width, height;			/* Size of viewport. */
+    float xAngle, yAngle, zAngle;	/* Euler angles of pending
+					 * rotation.  */
+    float sphereScale;			/* Atom scale of pending re-scale. */
+    float stickRadius;			/* Bond thickness of pending
+					 * re-scale. */
     float zoom;
     float xPan, yPan;
 } PymolProxy;
@@ -733,102 +735,22 @@ SetRotation(PymolProxy *proxyPtr)
 }
 
 static void
-SetAtomScale(PymolProxy *proxyPtr)
+SetSphereScale(PymolProxy *proxyPtr)
 {
     if (proxyPtr->flags & ATOM_SCALE_PENDING) {
-	Pymol(proxyPtr, "set sphere_scale,%f,all\n", proxyPtr->atomScale);
+	Pymol(proxyPtr, "set sphere_scale,%f,all\n", proxyPtr->sphereScale);
 	proxyPtr->flags &= ~ATOM_SCALE_PENDING;
     }
 }
 
 static void
-SetBondThickness(PymolProxy *proxyPtr)
+SetStickRadius(PymolProxy *proxyPtr)
 {
-    if (proxyPtr->flags & BOND_THICKNESS_PENDING) {
-	Pymol(proxyPtr, "set stick_radius,%f,all\n", proxyPtr->bondThickness);
-	proxyPtr->flags &= ~BOND_THICKNESS_PENDING;
+    if (proxyPtr->flags & STICK_RADIUS_PENDING) {
+	Pymol(proxyPtr, "set stick_radius,%f,all\n", proxyPtr->stickRadius);
+	proxyPtr->flags &= ~STICK_RADIUS_PENDING;
     }
 }
-
-static int
-AtomScaleCmd(ClientData clientData, Tcl_Interp *interp, int argc, 
-	   const char *argv[])
-{
-    int defer = 0, push = 0, i;
-    double scale;
-    const char *model = "all";
-    PymolProxy *proxyPtr = clientData;
-
-    clear_error(proxyPtr);
-    scale = 0.25f;
-    for(i = 1; i < argc; i++) {
-        if ( strcmp(argv[i],"-defer") == 0 ) {
-            defer = 1;
-	} else if (strcmp(argv[i],"-push") == 0) {
-            push = 1;
-	} else if (strcmp(argv[i],"-model") == 0) {
-            if (++i < argc) {
-                model = argv[i];
-	    }
-        } else {
-	    if (Tcl_GetDouble(interp, argv[i], &scale) != TCL_OK) {
-		return TCL_ERROR;
-	    }
-	}
-    }
-    proxyPtr->flags |= INVALIDATE_CACHE;  /* Spheres */
-    if (!defer || push) {
-	proxyPtr->flags |= UPDATE_PENDING;
-    }
-    if (push) {
-	proxyPtr->flags |= FORCE_UPDATE;
-    }
-
-    if (strcmp(model, "all") == 0) {
-	proxyPtr->flags |= ATOM_SCALE_PENDING;
-	proxyPtr->atomScale = scale;
-    } else {
-	Pymol(proxyPtr, "set sphere_scale,%f,%s\n", scale, model);
-    }
-    return proxyPtr->status;
-}
-
-static int
-BallNStickCmd(ClientData clientData, Tcl_Interp *interp, int argc, 
-	      const char *argv[])
-{
-    PymolProxy *proxyPtr = clientData;
-    const char *model;
-    int defer, push, i;
-
-    clear_error(proxyPtr);
-    defer = push = FALSE;
-    model = "all";
-    for (i = 1; i < argc; i++) {
-        if (strcmp(argv[i],"-defer") == 0 ) {
-            defer = TRUE;
-	} else if (strcmp(argv[i],"-push") == 0) {
-            push = TRUE;
-	} else if (strcmp(argv[i],"-model") == 0) {
-            if (++i < argc) {
-                model = argv[i];
-	    }
-        } else {
-            model = argv[i];
-	}
-    }
-    proxyPtr->flags |= INVALIDATE_CACHE; /* Ball 'n Stick */
-    if (!defer || push) {
-	proxyPtr->flags |= UPDATE_PENDING;
-    }
-    if (push) {
-	proxyPtr->flags |= FORCE_UPDATE;
-    }
-    Pymol(proxyPtr, "set stick_color,white,%s\n", model);
-    Pymol(proxyPtr, "show sticks,%s\nshow spheres,%s\n", model, model);
-    return proxyPtr->status;
-}
-
 
 static int
 BmpCmd(ClientData clientData, Tcl_Interp *interp, int argc, const char *argv[])
@@ -872,44 +794,82 @@ BmpCmd(ClientData clientData, Tcl_Interp *interp, int argc, const char *argv[])
 }
 
 static int
-BondThicknessCmd(ClientData clientData, Tcl_Interp *interp, int argc, 
-		 const char *argv[])
+CartoonCmd(ClientData clientData, Tcl_Interp *interp, int argc, 
+	   const char *argv[])
 {
-    int defer = 0, push = 0, i;
-    double scale;
-    const char *model = "all";
+    int bool, defer, push, i;
     PymolProxy *proxyPtr = clientData;
+    const char *model;
 
     clear_error(proxyPtr);
-    scale = 0.25f;
+    defer = push = FALSE;
+    model = "all";
+    bool = FALSE;
     for(i = 1; i < argc; i++) {
-        if ( strcmp(argv[i],"-defer") == 0 ) {
-            defer = 1;
+        if (strcmp(argv[i],"-defer") == 0) {
+            defer = TRUE;
 	} else if (strcmp(argv[i],"-push") == 0) {
-            push = 1;
+            push = TRUE;
 	} else if (strcmp(argv[i],"-model") == 0) {
-            if (++i < argc)
+            if (++i < argc) {
                 model = argv[i];
-        } else {
-	    if (Tcl_GetDouble(interp, argv[i], &scale) != TCL_OK) {
+	    }
+	} else { 
+	    if (Tcl_GetBoolean(interp, argv[i], &bool) != TCL_OK) {
 		return TCL_ERROR;
 	    }
 	}
     }
-    proxyPtr->flags |= INVALIDATE_CACHE;  /* Spheres */
+    proxyPtr->flags |= INVALIDATE_CACHE;  
     if (!defer || push) {
 	proxyPtr->flags |= UPDATE_PENDING;
     }
     if (push) {
 	proxyPtr->flags |= FORCE_UPDATE;
     }
-
-    if (strcmp(model, "all") == 0) {
-	proxyPtr->flags |= BOND_THICKNESS_PENDING;
-	proxyPtr->bondThickness = scale;
+    if (bool) {
+	Pymol(proxyPtr, "show cartoon,%s\n", model);
     } else {
-	Pymol(proxyPtr, "set stick_radius,%f,%s\n", scale, model);
+	Pymol(proxyPtr, "hide cartoon,%s\n", model);
     }
+    return proxyPtr->status;
+}
+
+static int
+CartoonTraceCmd(ClientData clientData, Tcl_Interp *interp, int argc, 
+		const char *argv[])
+{
+    int bool, defer, push, i;
+    PymolProxy *proxyPtr = clientData;
+    const char *model;
+
+    clear_error(proxyPtr);
+    defer = push = FALSE;
+    bool = FALSE;
+    model = "all";
+    for(i = 1; i < argc; i++) {
+        if (strcmp(argv[i],"-defer") == 0) {
+            defer = TRUE;
+	} else if (strcmp(argv[i],"-push") == 0) {
+            push = TRUE;
+	} else if (strcmp(argv[i],"-model") == 0) {
+            if (++i < argc) {
+                model = argv[i];
+	    }
+	} else { 
+	    if (Tcl_GetBoolean(interp, argv[i], &bool) != TCL_OK) {
+		return TCL_ERROR;
+	    }
+	}
+    }
+    proxyPtr->flags |= INVALIDATE_CACHE;  
+    if (!defer || push) {
+	proxyPtr->flags |= UPDATE_PENDING;
+    }
+    if (push) {
+	proxyPtr->flags |= FORCE_UPDATE;
+    }
+    Pymol(proxyPtr, "set cartoon_trace,%d\n", bool);
     return proxyPtr->status;
 }
 
@@ -1057,41 +1017,6 @@ LabelCmd(ClientData clientData, Tcl_Interp *interp, int argc,
     } else {
         Pymol(proxyPtr, "label %s\n", model);
     }
-    return proxyPtr->status;
-}
-
-static int
-LinesCmd(ClientData clientData, Tcl_Interp *interp, int argc, 
-	 const char *argv[])
-{
-    PymolProxy *proxyPtr = clientData;
-    const char *model;
-    int defer, push, i;
-
-    clear_error(proxyPtr);
-    defer = push = FALSE;
-    model = "all";
-    for(i = 1; i < argc; i++) {
-        if ( strcmp(argv[i],"-defer") == 0 ) {
-            defer = TRUE;
-	} else if (strcmp(argv[i],"-push") == 0) {
-            push = TRUE;
-	} else if (strcmp(argv[i],"-model") == 0) {
-            if (++i < argc) {
-                model = argv[i];
-	    }
-        } else {
-            model = argv[i];
-	}
-    }
-    proxyPtr->flags |= INVALIDATE_CACHE; /* Lines */
-    if (!defer || push) {
-	proxyPtr->flags |= UPDATE_PENDING;
-    }
-    if (push) {
-	proxyPtr->flags |= FORCE_UPDATE;
-    }
-    Pymol(proxyPtr, "hide spheres,%s\nshow sticks,%s\n", model, model);
     return proxyPtr->status;
 }
 
@@ -1433,6 +1358,68 @@ RockCmd(ClientData clientData, Tcl_Interp *interp, int argc,
     return proxyPtr->status;
 }
 
+static int
+RepresentationCmd(ClientData clientData, Tcl_Interp *interp, int argc, 
+		  const char *argv[])
+{
+    PymolProxy *proxyPtr = clientData;
+    const char *model;
+    const char *rep;
+    int defer, push, i;
+
+    clear_error(proxyPtr);
+    defer = push = FALSE;
+    model = "all";
+    rep = NULL;
+    for (i = 1; i < argc; i++) {
+        if (strcmp(argv[i],"-defer") == 0 ) {
+            defer = TRUE;
+	} else if (strcmp(argv[i],"-push") == 0) {
+            push = TRUE;
+	} else if (strcmp(argv[i],"-model") == 0) {
+            if (++i < argc) {
+                model = argv[i];
+	    }
+        } else {
+            rep = argv[i];
+	}
+    }
+    if (rep == NULL) {
+	Tcl_AppendResult(interp, "missing representation argument",
+			 (char *)NULL);
+	return TCL_ERROR;
+    }
+
+    proxyPtr->flags |= INVALIDATE_CACHE; 
+    if (!defer || push) {
+	proxyPtr->flags |= UPDATE_PENDING;
+    }
+    if (push) {
+	proxyPtr->flags |= FORCE_UPDATE;
+    }
+    if (strcmp(rep, "ballnstick") == 0) { 
+	/* Ball 'n Stick */
+	Pymol(proxyPtr, "set stick_color,white,%s\n", model);
+	Pymol(proxyPtr, "show sticks,%s\nshow spheres,%s\n", model, model);
+    } else if (strcmp(rep, "spheres") == 0) { 
+	/* spheres */    
+	Pymol(proxyPtr, "hide sticks,%s\nhide lines,%s\nshow spheres,%s\n", 
+	      model, model, model);
+	Pymol(proxyPtr, "set sphere_quality,2,%s\nset ambient,.2,%s\n", 
+	      model, model);
+    } else if (strcmp(rep, "sticks") == 0) { 
+	/* sticks */    
+	Pymol(proxyPtr, "set stick_color,white,%s\n", model);
+	Pymol(proxyPtr, "hide spheres,%s\nhide lines,%s\nshow sticks,%s\n", 
+	      model, model, model);
+    } else if (strcmp(rep, "lines") == 0) { 
+	/* lines */    
+	Pymol(proxyPtr, "hide spheres,%s\nhide sticks,%s\nshow lines,%s\n", 
+	      model, model, model);
+    }
+    return proxyPtr->status;
+}
+
 /* 
  * RotateCmd --
  *
@@ -1501,42 +1488,6 @@ RotateCmd(ClientData clientData, Tcl_Interp *interp, int argc,
 }
 
 static int
-SpheresCmd(ClientData clientData, Tcl_Interp *interp, int argc, 
-	   const char *argv[])
-{
-    PymolProxy *proxyPtr = clientData;
-    const char *model;
-    int defer, push, i;
-
-    clear_error(proxyPtr);
-    defer = push = FALSE;
-    model = "all";
-    for(i = 1; i < argc; i++) {
-        if ( strcmp(argv[i],"-defer") == 0 ) {
-            defer = TRUE;
-	} else if (strcmp(argv[i],"-push") == 0) {
-            push = TRUE;
-	} else if (strcmp(argv[i],"-model") == 0) {
-            if (++i < argc) {
-                model = argv[i];
-	    }
-        } else {
-            model = argv[i];
-	}
-    }
-    proxyPtr->flags |= INVALIDATE_CACHE; /* Spheres */
-    if (!defer || push) {
-	proxyPtr->flags |= UPDATE_PENDING;
-    }
-    if (push) {
-	proxyPtr->flags |= FORCE_UPDATE;
-    }
-    Pymol(proxyPtr, "set sphere_quality,2,%s\nhide sticks,%s\n", model, model);
-    Pymol(proxyPtr, "set ambient,.2,%s\nshow spheres,%s\n", model, model);
-    return proxyPtr->status;
-}
-
-static int
 ScreenCmd(ClientData clientData, Tcl_Interp *interp, int argc, 
 	  const char *argv[])
 {
@@ -1581,6 +1532,90 @@ ScreenCmd(ClientData clientData, Tcl_Interp *interp, int argc,
     return proxyPtr->status;
 }
 
+static int
+SphereScaleCmd(ClientData clientData, Tcl_Interp *interp, int argc, 
+	   const char *argv[])
+{
+    int defer = 0, push = 0, i;
+    double scale;
+    const char *model = "all";
+    PymolProxy *proxyPtr = clientData;
+
+    clear_error(proxyPtr);
+    scale = 0.25f;
+    for(i = 1; i < argc; i++) {
+        if ( strcmp(argv[i],"-defer") == 0 ) {
+            defer = 1;
+	} else if (strcmp(argv[i],"-push") == 0) {
+            push = 1;
+	} else if (strcmp(argv[i],"-model") == 0) {
+            if (++i < argc) {
+                model = argv[i];
+	    }
+        } else {
+	    if (Tcl_GetDouble(interp, argv[i], &scale) != TCL_OK) {
+		return TCL_ERROR;
+	    }
+	}
+    }
+    proxyPtr->flags |= INVALIDATE_CACHE;  /* SphereScale */
+    if (!defer || push) {
+	proxyPtr->flags |= UPDATE_PENDING;
+    }
+    if (push) {
+	proxyPtr->flags |= FORCE_UPDATE;
+    }
+
+    if (strcmp(model, "all") == 0) {
+	proxyPtr->flags |= ATOM_SCALE_PENDING;
+	proxyPtr->sphereScale = scale;
+    } else {
+	Pymol(proxyPtr, "set sphere_scale,%f,%s\n", scale, model);
+    }
+    return proxyPtr->status;
+}
+
+static int
+StickRadiusCmd(ClientData clientData, Tcl_Interp *interp, int argc, 
+		 const char *argv[])
+{
+    int defer = 0, push = 0, i;
+    double scale;
+    const char *model = "all";
+    PymolProxy *proxyPtr = clientData;
+
+    clear_error(proxyPtr);
+    scale = 0.25f;
+    for(i = 1; i < argc; i++) {
+        if ( strcmp(argv[i],"-defer") == 0 ) {
+            defer = 1;
+	} else if (strcmp(argv[i],"-push") == 0) {
+            push = 1;
+	} else if (strcmp(argv[i],"-model") == 0) {
+            if (++i < argc)
+                model = argv[i];
+        } else {
+	    if (Tcl_GetDouble(interp, argv[i], &scale) != TCL_OK) {
+		return TCL_ERROR;
+	    }
+	}
+    }
+    proxyPtr->flags |= INVALIDATE_CACHE;  /* Spheres */
+    if (!defer || push) {
+	proxyPtr->flags |= UPDATE_PENDING;
+    }
+    if (push) {
+	proxyPtr->flags |= FORCE_UPDATE;
+    }
+
+    if (strcmp(model, "all") == 0) {
+	proxyPtr->flags |= STICK_RADIUS_PENDING;
+	proxyPtr->stickRadius = scale;
+    } else {
+	Pymol(proxyPtr, "set stick_radius,%f,%s\n", scale, model);
+    }
+    return proxyPtr->status;
+}
 
 static int
 TransparencyCmd(ClientData clientData, Tcl_Interp *interp, int argc, 
@@ -1808,26 +1843,26 @@ ProxyInit(int c_in, int c_out, char *const *argv)
     Tcl_MakeSafe(interp);
     proxy.interp = interp;
 
-    Tcl_CreateCommand(interp, "atomscale",     AtomScaleCmd,     &proxy, NULL);
-    Tcl_CreateCommand(interp, "ballnstick",    BallNStickCmd,    &proxy, NULL);
     Tcl_CreateCommand(interp, "bmp",           BmpCmd,           &proxy, NULL);
-    Tcl_CreateCommand(interp, "bondthickness", BondThicknessCmd, &proxy, NULL);
+    Tcl_CreateCommand(interp, "cartoon",       CartoonCmd,       &proxy, NULL);
+    Tcl_CreateCommand(interp, "cartoontrace",  CartoonTraceCmd,  &proxy, NULL);
     Tcl_CreateCommand(interp, "disable",       DisableCmd,       &proxy, NULL);
     Tcl_CreateCommand(interp, "enable",        EnableCmd,        &proxy, NULL);
     Tcl_CreateCommand(interp, "frame",         FrameCmd,         &proxy, NULL);
     Tcl_CreateCommand(interp, "label",         LabelCmd,         &proxy, NULL);
-    Tcl_CreateCommand(interp, "lines",	       LinesCmd,         &proxy, NULL);
     Tcl_CreateCommand(interp, "loadpdb",       LoadPDBCmd,       &proxy, NULL);
     Tcl_CreateCommand(interp, "orthoscopic",   OrthoscopicCmd,   &proxy, NULL);
     Tcl_CreateCommand(interp, "pan",           PanCmd,           &proxy, NULL);
     Tcl_CreateCommand(interp, "png",           PngCmd,           &proxy, NULL);
     Tcl_CreateCommand(interp, "print",         PrintCmd,         &proxy, NULL);
     Tcl_CreateCommand(interp, "raw",           RawCmd,           &proxy, NULL);
+    Tcl_CreateCommand(interp, "representation",RepresentationCmd,&proxy, NULL);
     Tcl_CreateCommand(interp, "reset",         ResetCmd,         &proxy, NULL);
     Tcl_CreateCommand(interp, "rock",          RockCmd,          &proxy, NULL);
     Tcl_CreateCommand(interp, "rotate",        RotateCmd,        &proxy, NULL);
     Tcl_CreateCommand(interp, "screen",        ScreenCmd,        &proxy, NULL);
-    Tcl_CreateCommand(interp, "spheres",       SpheresCmd,       &proxy, NULL);
+    Tcl_CreateCommand(interp, "spherescale",   SphereScaleCmd,   &proxy, NULL);
+    Tcl_CreateCommand(interp, "stickradius",   StickRadiusCmd,   &proxy, NULL);
     Tcl_CreateCommand(interp, "transparency",  TransparencyCmd,  &proxy, NULL);
     Tcl_CreateCommand(interp, "viewport",      ScreenCmd,        &proxy, NULL);
     Tcl_CreateCommand(interp, "vmouse",        VMouseCmd,        &proxy, NULL);
@@ -2035,10 +2070,10 @@ PollForEvents(PymolProxy *proxyPtr)
 	    SetZoom(proxyPtr);
 	}
 	if (proxyPtr->flags & ATOM_SCALE_PENDING) {
-	    SetAtomScale(proxyPtr);
+	    SetSphereScale(proxyPtr);
 	}
-	if (proxyPtr->flags & BOND_THICKNESS_PENDING) {
-	    SetBondThickness(proxyPtr);
+	if (proxyPtr->flags & STICK_RADIUS_PENDING) {
+	    SetStickRadius(proxyPtr);
 	}
 
 	/* Write the current image buffer. */
