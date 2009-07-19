@@ -343,41 +343,75 @@ itcl::body Rappture::ImageResult::_rebuild {args} {
     }
     if {$_scale(current) == "?" || $_scale(default)} {
 	set _scale(current) $_scale(max)
-	set _scale(x) 0
-	set _scale(y) 0
+	set _scale(x) 0.5
+	set _scale(y) 0.5
     }
 
     set w [winfo width $itk_component(image)]
     set h [winfo height $itk_component(image)]
-    $_image(final) configure -width $w -height $h
     set bg [$itk_component(image) cget -background]
-    set rgb [winfo rgb . $bg]
-    set bg [format "#%03x%03x%03x" [lindex $rgb 0] [lindex $rgb 1] [lindex $rgb 2]]
-    $_image(final) put $bg -to 0 0 $w $h
 
     set imh [_top image]
     if {$imh != ""} {
+        set iw [image width $imh]
+        set ih [image height $imh]
+
 	if {$_scale(current) <= 1.0} {
-	    set wz [expr {round($_scale(current)*$w)}]
-	    set hz [expr {round($_scale(current)*$h)}]
+            #
+            # Scale the image up by creating a "zoom" image which
+            # is smaller than the current image.  Sample a small
+            # part of the original image by copying into the "zoom"
+            # image, then scale that part up to the full "view" area.
+            #
+            set wz [expr {round($w*$_scale(current))}]
+            set hz [expr {round($h*$_scale(current))}]
+            if {$wz > $iw} {
+                set wz $iw
+            }
+            if {$hz > $ih} {
+                set hz $ih
+            }
+
+            set sx [expr {round($_scale(x)*$_max(w)-0.5*$wz)}]
+            if {$sx+$wz > $iw} {
+                set sx [expr {$iw-$wz}]
+            }
+            if {$sx < 0} {
+                set sx 0
+            }
+
+            set sy [expr {round($_scale(y)*$_max(h)-0.5*$hz)}]
+            if {$sy+$hz > $ih} {
+                set sy [expr {$ih-$hz}]
+            }
+            if {$sy < 0} {
+                set sy 0
+            }
+
 	    if {$wz > 1 && $hz > 1} {
 		$_image(zoom) configure -width $wz -height $hz
-		$_image(zoom) put $bg -to 0 0 $wz $hz
-		set sx [expr {round($_scale(x)*$_scale(current))}]
-		set sy [expr {round($_scale(y)*$_scale(current))}]
+                set wf [expr {round(double($wz)/$_scale(current))}]
+                set hf [expr {round(double($hz)/$_scale(current))}]
+                $_image(final) configure -width $wf -height $hf
 		$_image(zoom) copy $imh -from $sx $sy
 		blt::winop resample $_image(zoom) $_image(final) sinc
 	    }
 	} else {
-	    set iw [image width $imh]
-	    set ih [image height $imh]
+            #
+            # Scale the image down by creating a "zoom" image which
+            # is smaller than the current image.  Resize the original
+            # image to the smaller size, then copy into the current
+            # view.
+            #
 	    set wz [expr {round(double($iw)/$_scale(current))}]
 	    set hz [expr {round(double($ih)/$_scale(current))}]
 	    if {$wz > 1 && $hz > 1} {
 		$_image(zoom) configure -width $wz -height $hz
-		$_image(zoom) put $bg -to 0 0 $wz $hz
+                $_image(zoom) put $bg -to 0 0 $wz $hz
 		blt::winop resample $imh $_image(zoom) sinc
-		$_image(final) copy $_image(zoom) -from $_scale(x) $_scale(y)
+
+                $_image(final) configure -width $wz -height $hz
+		$_image(final) copy $_image(zoom) -from 0 0
 	    }
 	}
     }
@@ -446,20 +480,30 @@ itcl::body Rappture::ImageResult::_zoom {option args} {
 		    return 0
 		}
 
-		set wfac [expr {$_max(w)/double($w)}]
-		set hfac [expr {$_max(h)/double($h)}]
-		set _scale(max) [expr {($wfac > $hfac) ? $wfac : $hfac}]
+                if {$w < $h} {
+                    if {$_max(w)/double($_max(h)) > $w/double($h)} {
+                        set _scale(max) [expr {$_max(w)/double($w)}]
+                    } else {
+                        set _scale(max) [expr {$_max(h)/double($h)}]
+                    }
+                } else {
+                    if {$_max(w)/double($_max(h)) < $w/double($h)} {
+                        set _scale(max) [expr {$_max(h)/double($h)}]
+                    } else {
+                        set _scale(max) [expr {$_max(w)/double($w)}]
+                    }
+                }
 	    }
 	    return 1
 	}
 	reset {
 	    set _scale(current) $_scale(max)
 	    set _scale(default) 1
-	    set _scale(x) 0
-	    set _scale(y) 0
+	    set _scale(x) 0.5
+	    set _scale(y) 0.5
 	}
 	in {
-	    set _scale(current) [expr {$_scale(current)*0.5}]
+	    set _scale(current) [expr {$_scale(current)*0.8}]
 	    set _scale(default) 0
 	}
 	out {
@@ -468,18 +512,22 @@ itcl::body Rappture::ImageResult::_zoom {option args} {
 	    if {$_max(w)/$_scale(current) > $w
 		  || $_max(h)/$_scale(current) > $h} {
 		# must be room left to zoom -- zoom out, but not beyond max
-		set _scale(current) [expr {$_scale(current)*2.0}]
-		if {$_scale(current) < $_scale(max)} {
+		set _scale(current) [expr {$_scale(current)*1.25}]
+		if {$_scale(current) > $_scale(max)} {
 		    set _scale(current) $_scale(max)
 		}
 	    } else {
 		# no room left to zoom -- zoom out max
-		if {$_scale(max) < 1} {
-		    set _scale(current) 1
-		} else {
-		    set _scale(current) $_scale(max)
-		}
+                set _scale(current) $_scale(max)
 	    }
+
+            # fix the center of view, in case it is now out of bounds
+            if {$_scale(current) > 1.0} {
+                set _scale(x) 0.5
+                set _scale(y) 0.5
+            }
+
+            # keep this zoom setting now that we've zoomed out
 	    set _scale(default) 0
 	}
     }
@@ -513,19 +561,25 @@ itcl::body Rappture::ImageResult::_move {option args} {
 		set wx [expr {round($_max(w)/$_scale(current))}]
 		set hy [expr {round($_max(h)/$_scale(current))}]
 		if {$wx > $w || $hy > $h} {
-		    set x [expr {$_scale(x0)-$x+$_scale(xclick)}]
-		    if {$x > $wx-$w} {set x [expr {$wx-$w}]}
-		    if {$x < 0} {set x 0}
-
-		    set y [expr {$_scale(y0)-$y+$_scale(yclick)}]
-		    if {$y > $hy-$h} {set y [expr {$hy-$h}]}
-		    if {$y < 0} {set y 0}
-
+		    set x [expr {$_scale(x0)-($x-$_scale(xclick))/double($wx)}]
+		    set y [expr {$_scale(y0)-($y-$_scale(yclick))/double($hy)}]
+                    if {$x*$_max(w) < 0.5*$w*$_scale(current)} {
+                        set x [expr {0.5*$w*$_scale(current)/$_max(w)}]
+                    }
+                    if {$x*$_max(w) > $_max(w) - 0.5*$w*$_scale(current)} {
+                        set x [expr {1 - 0.5*$w*$_scale(current)/$_max(w)}]
+                    }
+                    if {$y*$_max(h) < 0.5*$h*$_scale(current)} {
+                        set y [expr {0.5*$h*$_scale(current)/$_max(h)}]
+                    }
+                    if {$y*$_max(h) > $_max(h) - 0.5*$h*$_scale(current)} {
+                        set y [expr {1 - 0.5*$h*$_scale(current)/$_max(h)}]
+                    }
 		    set _scale(x) $x
 		    set _scale(y) $y
 		} else {
-		    set _scale(x) 0
-		    set _scale(y) 0
+		    set _scale(x) 0.5
+		    set _scale(y) 0.5
 		}
 		$_dispatcher event -idle !rebuild
 	    }
