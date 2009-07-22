@@ -1010,7 +1010,9 @@ LabelCmd(ClientData clientData, Tcl_Interp *interp, int argc,
     if (push) {
 	proxyPtr->flags |= FORCE_UPDATE;
     }
-    Pymol(proxyPtr, "set label_color,white,%s\nset label_size,%d,%s\n", 
+    Pymol(proxyPtr, 
+	  "set label_color,white,%s\n"
+	  "set label_size,%d,%s\n", 
 	  model, size, model);
     if (state) {
         Pymol(proxyPtr, "label %s,\"%%s%%s\" %% (ID,name)\n", model);
@@ -1245,7 +1247,10 @@ PrintCmd(ClientData clientData, Tcl_Interp *interp, int argc,
     }
     /* Force pymol to update the current scene. */
     Pymol(proxyPtr, "refresh\n");
-    Pymol(proxyPtr, "ray %d,%d\npng -,dpi=300\n", width, height);
+    Pymol(proxyPtr, 
+	  "ray %d,%d\n"
+	  "png -,dpi=300\n", 
+	  width, height);
     Expect(proxyPtr, "png image follows: ", buffer, 800);
 
     if (sscanf(buffer, "png image follows: %d\n", &nBytes) != 1) {
@@ -1322,7 +1327,9 @@ ResetCmd(ClientData clientData, Tcl_Interp *interp, int argc,
     if (push) {
 	proxyPtr->flags |= FORCE_UPDATE;
     }
-    Pymol(proxyPtr, "reset\nzoom complete=1\n");
+    Pymol(proxyPtr, 
+	  "reset\n"
+	  "zoom complete=1\n");
     return proxyPtr->status;
 }
 
@@ -1400,21 +1407,43 @@ RepresentationCmd(ClientData clientData, Tcl_Interp *interp, int argc,
     if (strcmp(rep, "ballnstick") == 0) { 
 	/* Ball 'n Stick */
 	Pymol(proxyPtr, "set stick_color,white,%s\n", model);
-	Pymol(proxyPtr, "show sticks,%s\nshow spheres,%s\n", model, model);
+	Pymol(proxyPtr, 
+	      "hide lines,%s\n"
+	      "show sticks,%s\n"
+	      "show spheres,%s\n", 
+	      model, model, model);
     } else if (strcmp(rep, "spheres") == 0) { 
 	/* spheres */    
-	Pymol(proxyPtr, "hide sticks,%s\nhide lines,%s\nshow spheres,%s\n", 
+	Pymol(proxyPtr, 
+	      "hide sticks,%s\n"
+	      "hide lines,%s\n"
+	      "show spheres,%s\n", 
 	      model, model, model);
-	Pymol(proxyPtr, "set sphere_quality,2,%s\nset ambient,.2,%s\n", 
+	Pymol(proxyPtr, 
+	      "set sphere_quality,2,%s\n"
+	      "set ambient,.2,%s\n", 
 	      model, model);
+    } else if (strcmp(rep, "none") == 0) { 
+	/* nothing */    
+	Pymol(proxyPtr, 
+	      "hide spheres,%s\n"
+	      "hide lines,%s\n"
+	      "hide sticks,%s\n", 
+	      model, model, model);
     } else if (strcmp(rep, "sticks") == 0) { 
 	/* sticks */    
 	Pymol(proxyPtr, "set stick_color,white,%s\n", model);
-	Pymol(proxyPtr, "hide spheres,%s\nhide lines,%s\nshow sticks,%s\n", 
+	Pymol(proxyPtr, 
+	      "hide spheres,%s\n"
+	      "hide lines,%s\n"
+	      "show sticks,%s\n", 
 	      model, model, model);
     } else if (strcmp(rep, "lines") == 0) { 
 	/* lines */    
-	Pymol(proxyPtr, "hide spheres,%s\nhide sticks,%s\nshow lines,%s\n", 
+	Pymol(proxyPtr, 
+	      "hide spheres,%s\n"
+	      "hide sticks,%s\n"
+	      "show lines,%s\n", 
 	      model, model, model);
     }
     return proxyPtr->status;
@@ -1622,7 +1651,7 @@ TransparencyCmd(ClientData clientData, Tcl_Interp *interp, int argc,
 		const char *argv[])
 {
     PymolProxy *proxyPtr = clientData;
-    const char *model, *cmd;
+    const char *model;
     float transparency;
     int defer, push;
     int i;
@@ -1651,8 +1680,12 @@ TransparencyCmd(ClientData clientData, Tcl_Interp *interp, int argc,
     if (push) {
 	proxyPtr->flags |= FORCE_UPDATE;
     } 
-    cmd = "set sphere_transparency,%g,%s\nset stick_transparency,%g,%s\n";
-    Pymol(proxyPtr, cmd, transparency, model, transparency, model);
+    Pymol(proxyPtr, 
+	  "set sphere_transparency,%g,%s\n"
+	  "set stick_transparency,%g,%s\n"
+	  "set cartoon_transparency,%g,%s\n",
+	  transparency, model, transparency, model, 
+	  transparency, model);
     return proxyPtr->status;
 }
 
