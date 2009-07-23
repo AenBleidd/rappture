@@ -101,7 +101,7 @@ typedef struct {
 static Stats stats;
 
 static FILE *flog;
-static int debug = 1;
+static int debug = 0;
 #ifdef notdef
 static long _flags = 0;
 #endif
@@ -869,7 +869,7 @@ CartoonTraceCmd(ClientData clientData, Tcl_Interp *interp, int argc,
     if (push) {
 	proxyPtr->flags |= FORCE_UPDATE;
     }
-    Pymol(proxyPtr, "set cartoon_trace,%d\n", bool);
+    Pymol(proxyPtr, "set cartoon_trace,%d,%s\n", bool, model);
     return proxyPtr->status;
 }
 
