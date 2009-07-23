@@ -894,14 +894,16 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
     }]
     debug "rebuild: rotate $_view(mx) $_view(my) $_view(mz)"
 
-    projection update 
+    # foreach all models 
     spherescale update 
     stickradius update
     labels update 
+    opacity update 
     cartoon update 
     cartoontrace update 
+
+    projection update 
     representation update 
-    opacity update 
 
     set _buffering 0;			# Turn off buffering.
     # Actually write the commands to the server socket.  If it fails, we don't
@@ -1616,11 +1618,10 @@ itcl::body Rappture::MolvisViewer::spherescale { option {models "all"} } {
 	set models [array names _mlist] 
     }
     set overrideradius [expr $radius * 0.8]
+    SendCmd "spherescale -model all $overrideradius"
     foreach model $models {
 	if { [info exists _active($model)] } {
 	    SendCmd "spherescale -model $model $radius"
-	} else {
-	    SendCmd "spherescale -model $model $overrideradius"
 	}
     }
 }
@@ -1652,11 +1653,10 @@ itcl::body Rappture::MolvisViewer::stickradius { option {models "all"} } {
 	set models [array names _mlist] 
     }
     set overrideradius [expr $radius * 0.8]
+    SendCmd "stickradius -model all $overrideradius"
     foreach model $models {
 	if { [info exists _active($model)] } {
 	    SendCmd "stickradius -model $model $radius"
-	} else {
-	    SendCmd "stickradius -model $model $overrideradius"
 	}
     }
 }
@@ -1689,11 +1689,10 @@ itcl::body Rappture::MolvisViewer::opacity { option {models "all"} } {
     }
     set overridetransparency 0.60
     set transparency [expr 1.0 - $opacity]
+    SendCmd "transparency -model all $overridetransparency"
     foreach model $models {
 	if { [info exists _active($model)] } {
 	    SendCmd "transparency -model $model $transparency"
-	} else {
-	    SendCmd "transparency -model $model $overridetransparency"
 	}
     }
 }
@@ -1718,12 +1717,12 @@ itcl::body Rappture::MolvisViewer::labels {option {models "all"}} {
     if { $models == "all" } {
 	set models [array names _mlist] 
     }
-    set overrideshowlabels "off"
-    foreach model $models {
-	if { [info exists _active($model)] } {
-	    SendCmd "label -model $model $showlabels"
-	} else {
-	    SendCmd "label -model $model $overrideshowlabels"
+    SendCmd "label -model all off"
+    if { $showlabels } {
+	foreach model $models {
+	    if { [info exists _active($model)] } {
+		SendCmd "label -model $model $showlabels"
+	    }
 	}
     }
 }
@@ -1748,12 +1747,12 @@ itcl::body Rappture::MolvisViewer::cartoon {option {models "all"}} {
     if { $models == "all" } {
 	set models [array names _mlist] 
     }
-    set overridecartoon "off"
-    foreach model $models {
-	if { [info exists _active($model)] } {
-	    SendCmd "cartoon -model $model $cartoon"
-	} else {
-	    SendCmd "cartoon -model $model $overridecartoon"
+    SendCmd "cartoon -model all off"
+    if { $cartoon } {
+	foreach model $models {
+	    if { [info exists _active($model)] } {
+		SendCmd "cartoon -model $model $cartoon"
+	    }
 	}
     }
 }
@@ -1778,12 +1777,12 @@ itcl::body Rappture::MolvisViewer::cartoontrace {option {models "all"}} {
     if { $models == "all" } {
 	set models [array names _mlist] 
     }
-    set overridetrace "off"
-    foreach model $models {
-	if { [info exists _active($model)] } {
-	    SendCmd "cartoontrace -model $model $trace"
-	} else {
-	    SendCmd "cartoontrace -model $model $overridetrace"
+    SendCmd "cartoontrace -model all off"
+    if { $trace } {
+	foreach model $models {
+	    if { [info exists _active($model)] } {
+		SendCmd "cartoontrace -model $model $trace"
+	    }
 	}
     }
 }
