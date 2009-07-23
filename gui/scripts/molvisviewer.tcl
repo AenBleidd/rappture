@@ -1465,9 +1465,10 @@ itcl::body Rappture::MolvisViewer::delete { args } {
 	set pos [lsearch -exact $_dlist $dataobj]
 	if {$pos >= 0} {
 	    set _dlist [lreplace $_dlist $pos $pos]
-	    foreach model $_obj2models($dataobj) {
-		array unset _active $model
-		array unset _dataobjs $model-*
+	    if { [info exists _obj2models($dataobj)] } {
+		foreach model $_obj2models($dataobj) {
+		    array unset _active $model
+		}
 	    }
 	    array unset _obj2models $dataobj
 	    array unset _dobj2transparency $dataobj
