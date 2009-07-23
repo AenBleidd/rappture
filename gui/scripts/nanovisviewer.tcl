@@ -96,7 +96,6 @@ itcl::class Rappture::NanovisViewer {
     protected method ReceiveLegend { tf vmin vmax size }
     protected method Rotate {option x y}
     protected method SendCmd {string}
-    protected method SendDataObjs {}
     protected method SendTransferFuncs {}
     protected method Slice {option args}
     protected method SlicerTip {axis}
@@ -644,79 +643,6 @@ itcl::body Rappture::NanovisViewer::SendCmd {string} {
     }
 }
 
-# ----------------------------------------------------------------------
-# USAGE: SendDataObjs
-#
-# Used internally to send a series of volume objects off to the
-# server.  Sends each object, a little at a time, with updates in
-# between so the interface doesn't lock up.
-# ----------------------------------------------------------------------
-itcl::body Rappture::NanovisViewer::SendDataObjs {} {
-    blt::busy hold $itk_component(hull)
-    blt::busy release $itk_component(hull)
-
-    foreach dataobj $_sendobjs {
-	foreach comp [$dataobj components] {
-	    # Send the data as one huge base64-encoded mess -- yuck!
-	    set data [$dataobj values $comp]
-	    set nbytes [string length $data]
-	    if { ![SendBytes "volume data follows $nbytes $dataobj-$comp\n"] } {
-		return
-	    }
-	    if { ![SendBytes $data] } {
-		return
-	    }
-	    NameTransferFunc $dataobj $comp
-	    set _recvdVols($dataobj-$comp) 1
-	}
-    }
-
-    # Turn on buffering of commands to the server.  We don't want to
-    # be preempted by a server disconnect/reconnect (which automatically
-    # generates a new call to Rebuild).   
-    set _buffering 1
-
-    # activate the proper volume
-    set _first [lindex [get] 0]
-    if {"" != $_first} {
-	set axis [$_first hints updir]
-	if {"" != $axis} {
-	    SendCmd "up $axis"
-	}
-	set location [$_first hints camera]
-	if { $location != "" } {
-	    array set _view $location
-	}
-    }
-    SendCmd "volume state 0"
-    set vols [array names _serverVols $_first-*] 
-    if { $vols != ""  && $_settings($this-volume) } {
-	SendCmd "volume state 1 $vols"
-    }
-    # sync the state of slicers
-    set vols [CurrentVolumes -cutplanes]
-    foreach axis {x y z} {
-	SendCmd "cutplane state $_settings($this-${axis}cutplane) $axis $vols"
-	set pos [expr {0.01*$_settings($this-${axis}cutposition)}]
-	SendCmd "cutplane position $pos $axis $vols"
-    }
-
-    if 0 {
-    # Add this when we fix grid for volumes
-    SendCmd "volume axis label x \"\""
-    SendCmd "volume axis label y \"\""
-    SendCmd "volume axis label z \"\""
-    SendCmd "grid axisname x X eV"
-    SendCmd "grid axisname y Y eV"
-    SendCmd "grid axisname z Z eV"
-    }
-
-    # Actually write the commands to the server socket.  If it fails, we don't
-    # care.  We're finished here.
-    SendBytes $_outbuf;			
-    set _buffering 0;			# Turn off buffering.
-    set _outbuf "";			# Clear the buffer.		
-}
 
 # ----------------------------------------------------------------------
 # USAGE: SendTransferFuncs
@@ -961,6 +887,13 @@ itcl::body Rappture::NanovisViewer::Rebuild {} {
 	    SendCmd "volume state 1 $vols"
 	}
     }
+    # If the first volume already exists on the server, then make sure we
+    # display the proper transfer function in the legend.
+    set comp [lindex [$_first components] 0]
+    if { [info exists _serverVols($_first-$comp)] } {
+	updatetransferfuncs
+    }
+
     # Sync the state of slicers
     set vols [CurrentVolumes -cutplanes]
     foreach axis {x y z} {
