@@ -660,6 +660,11 @@ itcl::body Rappture::NanovisViewer::SendTransferFuncs {} {
     set thickness [expr {double($_settings($this-thickness)) * 0.0001}]
 
     foreach vol [CurrentVolumes] {
+	if { ![info exists _serverVols($vol)] || !$_serverVols($vol) } {
+	    # The volume hasn't reached the server yet.  How did we get 
+	    # here?
+	    continue
+	}
 	set tf $_vol2style($vol)
 	if { ![info exists _activeTfs($tf)] || !$_activeTfs($tf) } {
 	    # Only update the transfer function as necessary
@@ -668,9 +673,7 @@ itcl::body Rappture::NanovisViewer::SendTransferFuncs {} {
 	    ComputeTransferFunc $tf
 	    set _activeTfs($tf) 1
 	}
-	if { [info exists _serverVols($vol)] && $_serverVols($vol) } {
-	    SendCmd "volume shading transfunc $tf $vol"
-	}
+	SendCmd "volume shading transfunc $tf $vol"
     }
     FixLegend
 }
