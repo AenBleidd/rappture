@@ -42,6 +42,8 @@ struct _scew_element
 {
     XML_Char* name;
     XML_Char* contents;
+    size_t used;			/* # bytes used for contents. */
+    size_t allocated;			/* # bytes allocated for contents */
     attribute_list* attributes;
 
     unsigned int n_children;

@@ -1,4 +1,14 @@
 /*
+ * ======================================================================
+ *  AUTHOR:  Derrick Kearney, Purdue University
+ *  Copyright (c) 2004-2006  Purdue Research Foundation
+ *
+ *  See the file "license.terms" for information on usage and
+ *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+ *
+ *  Also see below text for additional information on usage and redistribution
+ *
+ * ======================================================================
  * ----------------------------------------------------------------------
  *  Rappture Library Entity Reference Translation Header
  *
@@ -12,147 +22,124 @@
  *        &amp;          "&"
  *        &lt;           "<"
  *        &gt;           ">"
- *        &nbsp;         " "
+ *	  &quot		 "\""
+ *	  &apos		 "'"
  *
- *
- * ======================================================================
- *  AUTHOR:  Derrick Kearney, Purdue University
- *  Copyright (c) 2004-2006  Purdue Research Foundation
- *
- *  See the file "license.terms" for information on usage and
- *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
- *
- *  Also see below text for additional information on usage and redistribution
- *
- * ======================================================================
  */
 
 #include "RpEntityRef.h"
 #include <cctype>
 #include <cstring>
 
-#ifdef __cplusplus
-    extern "C" {
-#endif // ifdef __cplusplus
-
 using namespace Rappture;
 
-const char*
-EntityRef::decode (const char* value, unsigned int len)
-{
-    unsigned int pos = 0;
+typedef struct {
+    const char *replacement;		/* Replacement string. */
+    size_t length;			/* Length of replacement string,
+					 * including the ampersand. */
+    const char *entity;			/* Single character entity. */
+} PredefEntityRef;
 
-    if (value == NULL) {
-        // empty string, noting to do
+static PredefEntityRef predef[] = {
+    { "&quot",  5,  "\"" },
+    { "&amp",   4,  "&"  },
+    { "&lt",    3,  "<"  },
+    { "&gt",    3,  ">"  },
+    { "&apos",  5,  "'"  }
+};
+static int nPredefs = sizeof(predef) / sizeof (PredefEntityRef);
+
+/*
+ * EntityRef::decode --
+ *
+ *	Convert XML character data into the original text.  The trick
+ *	here determine the runs of characters that do not require 
+ *	replacements and to append the substring in one shot.  
+ */
+const char*
+EntityRef::decode (const char* string, unsigned int len)
+{
+    if (string == NULL) {
+        // Don't do anything with NULL strings.
         return NULL;
     }
-
     _bout.clear();
     if (len == 0) {
-        len = strlen(value);
+        len = strlen(string);
     }
-
-    while (pos < len) {
-        if (value[pos] == '&') {
-            pos++;
-            if ((pos < len)) {
-                if (value[pos] && isalpha(value[pos])) {
-                    if (        (value[pos] == 'q')
-                            &&  (strncmp("quot;",value+pos,5) == 0) ) {
-                        _bout.append("\"");
-                        pos += 5;
-                    }
-                    else if (   (value[pos] == 'a')
-                            &&  (strncmp("amp;",value+pos,4) == 0) ) {
-                        _bout.append("&");
-                        pos += 4;
-                    }
-                    else if (   (value[pos] == 'l')
-                            &&  (strncmp("lt;",value+pos,3) == 0) ) {
-                        _bout.append("<");
-                        pos += 3;
-                    }
-                    else if (   (value[pos] == 'g')
-                            &&  (strncmp("gt;",value+pos,3) == 0) ) {
-                        _bout.append(">");
-                        pos += 3;
-                    }
-                    else {
-                        // unrecognized
-                        _bout.append(value+pos,1);
-                        pos++;
-                    }
-                }
-                else {
-                    _bout.append(value+pos,1);
-                    pos++;
-                }
-            }
-            else {
-                // last character was really an ampersand
-                // add it to the buffer
-                pos--;
-                _bout.append(value+pos,1);
-                pos++;
-            }
-        }
-        else
-        {
-            // non entity ref character
-            _bout.append(value+pos,1);
-            pos++;
-        }
+    const char *p, *start, *pend;
+    start = string;			/* Mark the start of a run of
+					 * characters that contain no
+					 * replacements. */
+    for (p = string, pend = p + len; p < pend; /*empty*/) {
+	if (*p == '&') {
+	    PredefEntityRef *ep, *epend;
+	    for (ep = predef, epend = ep + nPredefs; ep < epend; ep++) {
+		size_t length;
+		length = pend - p;	/* Get the # bytes left. */
+		if ((length >= ep->length) && (ep->replacement[1] == *(p+1)) && 
+		    (strncmp(ep->replacement, p, ep->length) == 0)) {
+		    /* Found entity replacement. Append any preceding
+		     * characters into the buffer before the entity itself. */
+		    if (p > start) {
+			_bout.append(start, p - start);
+			start = p + ep->length;
+		    }
+		    _bout.append(ep->entity, 1);
+		    p += ep->length;
+		    goto next;
+		} 
+	    }
+	}
+	p++;
+    next:
+	;
     }
-
-    _bout.append("\0",1);
+    if (p > start) {
+	/* Append any left over characters into the buffer. */
+	_bout.append(start, p - start);
+    }
+    _bout.append("\0", 1);
     return _bout.bytes();
 }
 
 const char*
-EntityRef::encode (
-    const char* value,
-    unsigned int len
-)
+EntityRef::encode (const char* string, unsigned int len)
 {
     unsigned int pos = 0;
 
-
-    if (value == NULL) {
-        // empty string, noting to do
+    if (string == NULL) {
+        // Don't do anything with NULL strings.
         return NULL;
     }
-
     _bout.clear();
     if (len == 0) {
-        len = strlen(value);
+        len = strlen(string);
     }
-
-    while (pos < len) {
-        if (*(value+pos) == '"') {
-            _bout.append("&quot;");
-        }
-        else if (*(value+pos) == '&') {
-            _bout.append("&amp;");
-        }
-        else if (*(value+pos) == '<') {
-            _bout.append("&lt;");
-        }
-        else if (*(value+pos) == '>') {
-            _bout.append("&gt;");
-        }
-        /*
-        else if (*(value+pos) == '\n') {
-            _bout.append("&#xA;");
-        }
-        */
-        else
-        {
-            _bout.append(value+pos,1);
-        }
-        pos++;
+    const char *p, *start, *pend;
+    start = string;			/* Mark the start of a run of
+					 * characters that contain no
+					 * replacements. */
+    for (p = string, pend = p + len; p < pend; p++) {
+	PredefEntityRef *ep, *epend;
+	for (ep = predef, epend = ep + nPredefs; ep < epend; ep++) {
+	    if (ep->entity[0] == *p) {
+		/* Found entity requiring replacement. Append any preceding
+		 * characters into the buffer before the entity itself. */
+		if (p > start) {
+		    _bout.append(start, p - start);
+		    start = p + 1;
+		}
+		_bout.append(ep->replacement, ep->length);
+		break;
+	    }
+	}
     }
-
-    _bout.append("\0",1);
+    if (p > start) {
+	/* Append any left over characters into the buffer. */
+	_bout.append(start, p - start);
+    }
+    _bout.append("\0", 1);
     return _bout.bytes();
 }
 
@@ -162,6 +149,3 @@ EntityRef::size () {
 }
 
 
-#ifdef __cplusplus
-    } // extern c
-#endif // ifdef __cplusplus

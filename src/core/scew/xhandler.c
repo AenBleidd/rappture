@@ -148,34 +148,58 @@ end_handler(void* data, XML_Char const* elem)
 void
 char_handler(void* data, XML_Char const* s, int len)
 {
-    int total = 0;
-    int total_old = 0;
-    scew_element* current = NULL;
+    size_t need;
+    scew_element* elemPtr;
     scew_parser* parser = (scew_parser*) data;
 
-    if (parser == NULL)
-    {
+    if (parser == NULL) {
         return;
     }
 
-    current = parser->current;
-
-    if (current == NULL)
-    {
+    elemPtr = parser->current;
+    if (elemPtr == NULL) {
         return;
     }
-
-    if (current->contents != NULL)
-    {
-        total_old = scew_strlen(current->contents);
+    if (len == 0) {
+	return;
     }
-    total = (total_old + len + 1) * sizeof(XML_Char);
-    current->contents = (XML_Char*) realloc(current->contents, total);
+    need = elemPtr->used + len;	
+#ifdef notdef
+    fprintf(stderr, "char handler %x allocated=%d used=%d, len=%d need=%d\n", 
+	    elemPtr->contents, elemPtr->allocated, elemPtr->used, len, need);
+#endif
+    if (need > elemPtr->allocated) {
+	XML_Char *bytes;
+	size_t size;
 
-    if (total_old == 0)
-    {
-        current->contents[0] = '\0';
+	if (elemPtr->allocated == 0) {
+	    size = len;			/* Start with given size. */
+	} else {
+	    size = elemPtr->allocated;
+	    while (size < need) {
+		size += size;		/* Double the current size. */
+	    }
+	}
+#ifdef notdef
+	fprintf(stderr, "trying to allocate %d bytes for character data\n",
+		    size);
+#endif
+	/* Always allocate an extra byte for the NUL, but don't include it in
+	 * the allocated or used totals. */
+	if (elemPtr->contents == NULL) {
+	    bytes = malloc(size + 1);
+	} else {
+	    bytes = realloc(elemPtr->contents, size + 1);
+	}
+	if (bytes == NULL) {
+	    fprintf(stderr, "can't allocated %d bytes for character data\n",
+		    size);
+	    return;
+	}
+	elemPtr->contents = bytes;
+	elemPtr->allocated = size;
     }
-
-    scew_strncat(current->contents, s, len);
+    strncpy(elemPtr->contents + elemPtr->used, s, len);
+    elemPtr->used += len;
+    elemPtr->contents[elemPtr->used] = '\0';
 }
