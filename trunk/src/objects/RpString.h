@@ -38,7 +38,7 @@ public:
     Accessor<size_t> width;
     Accessor<size_t> height;
 
-    const char *xml();
+    const char *xml(size_t indent, size_t tabstop);
     const int is() const;
 
 private:

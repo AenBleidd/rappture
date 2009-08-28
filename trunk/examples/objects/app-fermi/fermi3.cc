@@ -20,10 +20,10 @@
 
 int main(int argc, char * argv[]) {
 
-    Rappture::Library *lib = NULL;
+    Rappture::Library lib;
 
-    Rappture::Number *T  = NULL;
-    Rappture::Number *Ef = NULL;
+    Rappture::Number T;
+    Rappture::Number Ef;
     double dE           = 0.0;
     double kT           = 0.0;
     double Emin         = 0.0;
@@ -33,16 +33,16 @@ int main(int argc, char * argv[]) {
     double f[nPts];
 
     // create a rappture library from the file filePath
-    lib = new Rappture::Library(argv[1]);
+    lib = Rappture::Library(argv[1]);
 
-    if (lib == NULL) {
+    if (lib.error() != 0) {
         // cannot open file or out of memory
-        fprintf(stderr,"FAILED creating Rappture Library\n");
-        return(1);
+        fprintf(stderr, lib.traceback());
+        exit(lib.error());
     }
 
-    T = new Rappture::Number(lib,"temperature");
-    Ef = new Rappture::Number(lib,"Ef");
+    Rappture::connect(lib,"temperature",&T);
+    Rappture::connect(lib,"Ef",&Ef);
 
     if (lib.error() != 0) {
         // there were errors while retrieving input data values
@@ -74,19 +74,13 @@ int main(int argc, char * argv[]) {
     // plot is registered with lib upon object creation
     // p1->add(nPts,xArr,yArr,format,curveLabel,curveDesc);
 
-    Rappture::Plot *p1 = new Rappture::Plot(lib);
-    p1->add(nPts,fArr,EArr,"",curveLabel,curveDesc);
+    Rappture::Plot p1(lib);
+    p1.add(nPts,fArr,EArr,"",curveLabel,curveDesc);
     p1.propstr("xlabel","Fermi-Dirac Factor");
     p1.propstr("ylabel","Energy");
     p1.propstr("yunits","eV");
 
     lib.result();
-
-    // clean up memory
-    delete lib;
-    delete T;
-    delete Ef;
-    delete p1;
 
     return 0;
 }

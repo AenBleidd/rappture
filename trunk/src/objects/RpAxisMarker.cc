@@ -138,16 +138,20 @@ AxisMarker::at (void) const
  */
 
 const char *
-AxisMarker::xml()
+AxisMarker::xml(size_t indent, size_t tabstop)
 {
+    size_t l1width = indent + tabstop;
+    const char *sp = "";
+
     _tmpBuf.clear();
 
     _tmpBuf.appendf(
-"        <marker>\n\
-            <at>%g</at>\n\
-            <label>%s</label>\n\
-            <style>%s</style>\n\
-        <marker>\n",_at,label(),_style);
+"%6$*4$s<marker>\n\
+%6$*5$s<at>%1$g</at>\n\
+%6$*5$s<label>%2$s</label>\n\
+%6$*5$s<style>%3$s</style>\n\
+%6$*4$s<marker>\n",
+        _at,label(),_style,indent,l1width,sp);
 
     _tmpBuf.append("\0",1);
 

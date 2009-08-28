@@ -22,6 +22,7 @@
 
 #include "RpChainHelper.h"
 #include <cstring>
+#include <cstdlib>
 
 using namespace Rappture;
 
@@ -59,6 +60,7 @@ Path::Path(const Path& b)
 
     _ifs = b._ifs;
 
+    //FIXME: i think this is broken
     Rp_ChainCopy (_pathList, b._pathList, Rp_ChainCharCpyFxn);
 }
 
@@ -104,6 +106,7 @@ Path::__pathInit()
 {
     _ifs = '.';
     _pathList = Rp_ChainCreate();
+    _currLink = Rp_ChainFirstLink(_pathList);
     return;
 }
 
@@ -133,7 +136,8 @@ Path::__createComponent(
     int start,
     int end,
     int idOpenParen,
-    int idCloseParen)
+    int idCloseParen,
+    size_t degree)
 {
     componentStruct *c = new componentStruct();
     int typeLen = -1;
@@ -142,6 +146,7 @@ Path::__createComponent(
 
     c->type = NULL;
     c->id = NULL;
+    c->degree = degree;
 
     if (idOpenParen < idCloseParen) {
         // user specified an id
@@ -170,7 +175,7 @@ Path::__createComponent(
         the id pointer is set to NULL. in the above example paths
         the type and id of the third component are both blank.
         for the above example paths, the id field of the first
-        components, the index component, is NULL.
+        components, the input component, is NULL.
         i don't think there is a way to get a NULL type right now.
     */
 
@@ -214,6 +219,8 @@ Path::__parse(const char *p)
     int idOpenParen = -1;
     int idCloseParen = -1;
     componentStruct *c = NULL;
+    size_t degree = 1;
+    char *newEnd = NULL;
 
     Rp_Chain *compList = Rp_ChainCreate();
 
@@ -226,8 +233,22 @@ Path::__parse(const char *p)
             idOpenParen = end;
         } else if (p[end] == ')') {
             idCloseParen = end;
+        } else if ( (idOpenParen <= idCloseParen) &&
+                    (end != 0) &&
+                    (p[end] >= '0') &&
+                    (p[end] <= '9') ) {
+            degree = (size_t) strtod(p+end, &newEnd);
+            if (degree == 0) {
+                // interpret degree of 0 same as degree of 1
+                degree = 1;
+            }
+            // check if we consumed the _ifs
+            if (*(newEnd-1) == _ifs) {
+                newEnd -= 2;
+            }
+            end += newEnd - (p + end);
         } else if (p[end] == _ifs) {
-            c = __createComponent(p,start,end,idOpenParen,idCloseParen);
+            c = __createComponent(p,start,end,idOpenParen,idCloseParen,degree);
             if (c != NULL) {
                 Rp_ChainAppend(compList,c);
             }
@@ -239,7 +260,7 @@ Path::__parse(const char *p)
         end++;
     }
 
-    c = __createComponent(p,start,end,idOpenParen,idCloseParen);
+    c = __createComponent(p,start,end,idOpenParen,idCloseParen,degree);
     if (c != NULL) {
         Rp_ChainAppend(compList,c);
     }
@@ -334,12 +355,56 @@ Path::del ()
     return *this;
 }
 
+bool
+Path::eof ()
+{
+    return (_currLink == NULL);
+}
+
+Path&
+Path::first ()
+{
+    _currLink = Rp_ChainFirstLink(_pathList);
+    return *this;
+}
+
+Path&
+Path::prev ()
+{
+    if (_currLink) {
+        _currLink = Rp_ChainPrevLink(_currLink);
+    }
+    return *this;
+}
+
+Path&
+Path::next ()
+{
+    if (_currLink) {
+        _currLink = Rp_ChainNextLink(_currLink);
+    }
+    return *this;
+}
+
+Path&
+Path::last ()
+{
+    _currLink = Rp_ChainLastLink(_pathList);
+    return *this;
+}
+
+size_t
+Path::count ()
+{
+    return Rp_ChainGetLength(_pathList);
+}
+
 const char *
 Path::component(void)
 {
     Rp_ChainLink *l = NULL;
-    size_t len = 0;
 
+    /*
     tmpBuf.clear();
 
     if (_pathList == NULL) {
@@ -347,7 +412,7 @@ Path::component(void)
         return tmpBuf.bytes();
     }
 
-    l = Rp_ChainLastLink(_pathList);
+    l = _currLink;
 
     if (l == NULL) {
         tmpBuf.append("\0",1);
@@ -362,21 +427,55 @@ Path::component(void)
     }
 
     if (c->type != NULL) {
-        len = strlen(c->type);
-        if (len > 0) {
-            tmpBuf.append(c->type,len);
-        }
+        tmpBuf.appendf("%s",c->type);
+    }
+
+    if (c->degree != 1) {
+        tmpBuf.appendf("%zu",c->degree);
     }
 
     if (c->id != NULL) {
-        tmpBuf.append("(",1);
-        len = strlen(c->id);
-        if (len > 0) {
-            tmpBuf.append(c->id,len);
-        }
-        tmpBuf.append(")",1);
+        tmpBuf.appendf("(%s)",c->id);
     }
 
+    // incase none of the above if statements are hit.
+    tmpBuf.append("\0",1);
+
+    return tmpBuf.bytes();
+    */
+
+
+    if (_pathList == NULL) {
+        return NULL;
+    }
+
+    l = _currLink;
+
+    if (l == NULL) {
+        return NULL;
+    }
+
+    componentStruct *c = (componentStruct *) Rp_ChainGetValue(l);
+
+    if (c == NULL) {
+        return NULL;
+    }
+
+    tmpBuf.clear();
+
+    if (c->type != NULL) {
+        tmpBuf.appendf("%s",c->type);
+    }
+
+    if (c->degree != 1) {
+        tmpBuf.appendf("%zu",c->degree);
+    }
+
+    if (c->id != NULL) {
+        tmpBuf.appendf("(%s)",c->id);
+    }
+
+    // incase none of the above if statements are hit.
     tmpBuf.append("\0",1);
 
     return tmpBuf.bytes();
@@ -425,17 +524,19 @@ Path::component(const char *p)
     }
     Rp_ChainDestroy(addList);
 
-    // remove the last component from the current path
-    l = Rp_ChainLastLink(_pathList);
+    // swap the current component from the current path
+    // with the component from the provided path.
+    l = _currLink;
 
     if (l != NULL) {
         componentStruct *last = (componentStruct *) Rp_ChainGetValue(l);
         delete last;
-        Rp_ChainDeleteLink(_pathList,l);
+        Rp_ChainSetValue(l,aLcomp);
+    } else {
+        // add a new component as a link
+        // point _currLink to the new component
+        _currLink = Rp_ChainAppend(_pathList,aLcomp);
     }
-
-    // append the new component onto the current path
-    Rp_ChainAppend(_pathList,aLcomp);
 
     __updateBuffer();
 
@@ -447,6 +548,7 @@ Path::id()
 {
     Rp_ChainLink *l = NULL;
 
+    /*
     tmpBuf.clear();
 
     if (_pathList == NULL) {
@@ -454,7 +556,7 @@ Path::id()
         return tmpBuf.bytes();
     }
 
-    l = Rp_ChainLastLink(_pathList);
+    l = _currLink;
 
     if (l == NULL) {
         tmpBuf.append("\0",1);
@@ -475,6 +577,25 @@ Path::id()
     tmpBuf.append("\0",1);
 
     return tmpBuf.bytes();
+    */
+
+    if (_pathList == NULL) {
+        return NULL;
+    }
+
+    l = _currLink;
+
+    if (l == NULL) {
+        return NULL;
+    }
+
+    componentStruct *c = (componentStruct *) Rp_ChainGetValue(l);
+
+    if (c == NULL) {
+        return NULL;
+    }
+
+    return c->id;
 }
 
 void
@@ -489,8 +610,8 @@ Path::id(const char *p)
     size_t len = strlen(p);
     componentStruct *last = NULL;
 
-    // update the last component from the current path
-    l = Rp_ChainLastLink(_pathList);
+    // update the current component from the current path
+    l = _currLink;
 
     if (l != NULL) {
         last = (componentStruct *) Rp_ChainGetValue(l);
@@ -498,7 +619,7 @@ Path::id(const char *p)
     } else {
         // append the new component onto the current path
         last = new componentStruct;
-        Rp_ChainAppend(_pathList,last);
+        _currLink = Rp_ChainAppend(_pathList,last);
         tmp = new char[1];
         *tmp = '\0';
         last->type = tmp;
@@ -519,6 +640,7 @@ Path::type()
 {
     Rp_ChainLink *l = NULL;
 
+    /*
     tmpBuf.clear();
 
     if (_pathList == NULL) {
@@ -526,7 +648,7 @@ Path::type()
         return tmpBuf.bytes();
     }
 
-    l = Rp_ChainLastLink(_pathList);
+    l = _currLink;
 
     if (l == NULL) {
         tmpBuf.append("\0",1);
@@ -547,6 +669,25 @@ Path::type()
     tmpBuf.append("\0",1);
 
     return tmpBuf.bytes();
+    */
+
+    if (_pathList == NULL) {
+        return NULL;
+    }
+
+    l = _currLink;
+
+    if (l == NULL) {
+        return NULL;
+    }
+
+    componentStruct *c = (componentStruct *) Rp_ChainGetValue(l);
+
+    if (c == NULL) {
+        return NULL;
+    }
+
+    return c->type;
 }
 
 void
@@ -562,7 +703,7 @@ Path::type(const char *p)
     componentStruct *last = NULL;
 
     // update the last component from the current path
-    l = Rp_ChainLastLink(_pathList);
+    l = _currLink;
 
     if (l != NULL) {
         last = (componentStruct *) Rp_ChainGetValue(l);
@@ -570,7 +711,7 @@ Path::type(const char *p)
     } else {
         // append the new component onto the current path
         last = new componentStruct;
-        Rp_ChainAppend(_pathList,last);
+        _currLink = Rp_ChainAppend(_pathList,last);
         last->id = NULL;
     }
 
@@ -592,7 +733,7 @@ Path::parent()
 
     tmpBuf.clear();
 
-    last = Rp_ChainLastLink(_pathList);
+    last = _currLink;
     l = Rp_ChainFirstLink(_pathList);
     while (l != last) {
 
@@ -684,6 +825,55 @@ Path::parent(const char *p)
     return;
 }
 
+size_t
+Path::degree()
+{
+    Rp_ChainLink *l = NULL;
+
+    l = _currLink;
+
+    if (l == NULL) {
+        return 0;
+    }
+
+    componentStruct *c = (componentStruct *) Rp_ChainGetValue(l);
+
+    if (c == NULL) {
+        return 0;
+    }
+
+    return c->degree;
+}
+
+void
+Path::degree(size_t d)
+{
+    if (d == 0) {
+        d = 1;
+    }
+
+    Rp_ChainLink *l = NULL;
+    componentStruct *last = NULL;
+
+    // update the current component from the current path
+    l = _currLink;
+
+    if (l != NULL) {
+        last = (componentStruct *) Rp_ChainGetValue(l);
+    } else {
+        // append the new component onto the current path
+        last = new componentStruct;
+        _currLink = Rp_ChainAppend(_pathList,last);
+    }
+
+    // adjust the degree field
+    last->degree = d;
+
+    __updateBuffer();
+
+    return;
+}
+
 const char *
 Path::path(void)
 {
@@ -695,6 +885,7 @@ Path::path(const char *p)
 {
     if (p != NULL) {
         _pathList = __parse(p);
+        _currLink = Rp_ChainLastLink(_pathList);
         __updateBuffer();
     }
     return;

@@ -7,7 +7,9 @@ int test(
     const char *expected,
     const char *received)
 {
-    if (strcmp(expected,received) != 0) {
+    if ((!expected && received) ||
+        (expected && !received) ||
+        (expected && received && strcmp(expected,received) != 0)) {
         printf("Error: %s\n", testname);
         printf("\t%s\n", desc);
         printf("\texpected \"%s\"\n",expected);
@@ -113,7 +115,7 @@ int path_2_0 ()
     const char *testname = "path_2_0";
 
     const char *path = "input.group(tabs).number(mynum).current";
-    const char *expected = "";
+    const char *expected = NULL;
     const char *received = NULL;
 
     Rappture::Path p(path);
@@ -772,6 +774,13 @@ int path_8_4 ()
 // FIXME: add test for type get/set functions
 // FIXME: add test for parent get/set functions
 // FIXME: add test for path get/set functions
+// FIXME: add test for changing the curr location
+//        using first,last,next,prev and checking
+//        comp, type, parent,id fxns
+// FIXME: add test for numbered paths
+//        input.number2
+//        input.number2(eee)
+//        input.number(eee)2
 
 int main()
 {

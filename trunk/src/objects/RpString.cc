@@ -77,23 +77,28 @@ String::~String ()
  */
 
 const char *
-String::xml()
+String::xml(size_t indent, size_t tabstop)
 {
+    size_t l1width = indent + tabstop;
+    size_t l2width = indent + (2*tabstop);
+    const char *sp = "";
+
     Path p(path());
     _tmpBuf.clear();
 
     _tmpBuf.appendf(
-"<string id='%s'>\n\
-    <about>\n\
-        <label>%s</label>\n\
-        <description>%s</description>\n\
-        <hints>%s</hints>\n\
-    </about>\n\
-    <size>%ix%i</size>\n\
-    <default>%s</default>\n\
-    <current>%s</current>\n\
-</string>\n",
-       p.id(),label(),desc(),hints(),width(),height(),def(),cur());
+"%12$*9$s<string id='%1$s'>\n\
+%12$*10$s<about>\n\
+%12$*11$s<label>%2$s</label>\n\
+%12$*11$s<description>%3$s</description>\n\
+%12$*11$s<hints>%4$s</hints>\n\
+%12$*10$s</about>\n\
+%12$*10$s<size>%5$ix%6$i</size>\n\
+%12$*10$s<default>%7$s</default>\n\
+%12$*10$s<current>%8$s</current>\n\
+%12$*9$s</string>\n",
+       p.id(),label(),desc(),hints(),width(),height(),def(),cur(),
+       indent, l1width, l2width, sp);
 
     return _tmpBuf.bytes();
 }

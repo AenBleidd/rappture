@@ -257,7 +257,7 @@ Plot::__curveCopyFxn(void **to, void *from)
  */
 
 const char *
-Plot::xml()
+Plot::xml(size_t indent, size_t tabstop)
 {
 
     Rp_ChainLink *l = NULL;
@@ -301,7 +301,7 @@ Plot::xml()
             }
         }
 
-        _tmpBuf.append(c->xml());
+        _tmpBuf.append(c->xml(indent,tabstop));
         _tmpBuf.append("\n",1);
         l = Rp_ChainNextLink(l);
     }

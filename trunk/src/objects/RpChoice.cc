@@ -149,40 +149,45 @@ Choice::delOption(const char *label)
  */
 
 const char *
-Choice::xml()
+Choice::xml(size_t indent, size_t tabstop)
 {
+    size_t l1width = indent + tabstop;
+    size_t l2width = indent + (2*tabstop);
+    size_t l3width = indent + (3*tabstop);
+    const char *sp = "";
+
     Path p(path());
     _tmpBuf.clear();
 
     _tmpBuf.appendf(
-"<choice id='%s'>\n\
-    <about>\n\
-        <label>%s</label>\n\
-        <description>%s</description>\n\
-    </about>\n",
-       p.id(),label(),desc());
+"%7$*4$s<choice id='%1$s'>\n\
+%7$*5$s<about>\n\
+%7$*6$s<label>%2$s</label>\n\
+%7$*6$s<description>%3$s</description>\n\
+%7$*5$s</about>\n",
+       p.id(),label(),desc(),indent,l1width,l2width,sp);
 
     Rp_ChainLink *l = NULL;
     l = Rp_ChainFirstLink(_options);
     while (l != NULL) {
         option *op = (option *)Rp_ChainGetValue(l);
         _tmpBuf.appendf(
-"    <option>\n\
-        <about>\n\
-            <label>%s</label>\n\
-            <description>%s</description>\n\
-        </about>\n\
-        <value>%s</value>\n\
-    </option>\n",
-           op->label(),op->desc(),op->val());
+"%7$*4$s<option>\n\
+%7$*5$s<about>\n\
+%7$*6$s<label>%1$s</label>\n\
+%7$*6$s<description>%2$s</description>\n\
+%7$*5$s</about>\n\
+%7$*5$s<value>%3$s</value>\n\
+%7$*4$s</option>\n",
+           op->label(),op->desc(),op->val(),l1width,l2width,l3width,sp);
         l = Rp_ChainNextLink(l);
     }
 
     _tmpBuf.appendf(
-"    <default>%s</default>\n\
-    <current>%s</current>\n\
-</choice>",
-       def(),cur());
+"%5$*4$s<default>%1$s</default>\n\
+%5$*4$s<current>%2$s</current>\n\
+%5$*3$s</choice>",
+       def(),cur(),indent,l1width,sp);
 
     return _tmpBuf.bytes();
 }

@@ -22,6 +22,7 @@ Scatter::Scatter ()
     this->label("");
     this->desc("");
     this->group("");
+    propstr("type","scatter");
 }
 
 Scatter::Scatter (const char *path)
@@ -31,6 +32,7 @@ Scatter::Scatter (const char *path)
     this->label("");
     this->desc("");
     this->group("");
+    propstr("type","scatter");
 }
 
 Scatter::Scatter (const char *path, const char *label, const char *desc,
@@ -41,6 +43,7 @@ Scatter::Scatter (const char *path, const char *label, const char *desc,
     this->label(label);
     this->desc(desc);
     this->group(group);
+    propstr("type","scatter");
 }
 
 // copy constructor
@@ -70,8 +73,9 @@ Scatter::~Scatter ()
  * Return the xml of the object
  */
 
+/*
 const char *
-Scatter::xml()
+Scatter::xml(size_t indent, size_t tabstop)
 {
 // FIXME: the xml function should just read an array
 // of path/value or path/function pairs, get the value by executing
@@ -121,6 +125,7 @@ Scatter::xml()
 
     return _tmpBuf.bytes();
 }
+*/
 
 /**********************************************************************/
 // METHOD: is()

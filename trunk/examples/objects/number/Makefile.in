@@ -33,6 +33,7 @@ CC_SWITCHES     = $(CFLAGS) $(INCLUDES) $(DEFINES)
 
 FILES   = \
 		$(srcdir)/number.cc \
+		$(srcdir)/number_1_0_in.xml \
 		Makefile
 
 destdir = $(prefix)/examples/objects/number

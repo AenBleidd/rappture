@@ -40,7 +40,10 @@ int main()
     size_t curveCnt = p1->count();
     std::printf("curveCnt = %zu\n",curveCnt);
 
-    std::printf("xml: %s\n",p1->xml());
+    size_t indent = 0;
+    size_t tabstop = 4;
+
+    std::printf("xml: %s\n",p1->xml(indent,tabstop));
 
 /*
     // retrieve curve from curve name

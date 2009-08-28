@@ -14,6 +14,9 @@
 #include "RpNumber.h"
 #include "RpUnits.h"
 #include "RpSimpleBuffer.h"
+#include "RpUnitsCInterface.h"
+#include "RpParserXML.h"
+#include "RpPath.h"
 
 using namespace Rappture;
 
@@ -23,6 +26,8 @@ Number::Number()
      _maxSet (0),
      _presets (NULL)
 {
+    // FIXME: empty names should be autoname'd
+    this->name("");
     this->path("");
     this->label("");
     this->desc("");
@@ -30,11 +35,11 @@ Number::Number()
     this->cur(0.0);
     this->min(0.0);
     this->max(0.0);
-    // need to set this to the None unit
+    // FIXME: empty units should be set to the None unit
     // this->units(units);
 }
 
-Number::Number(const char *path, const char *units, double val)
+Number::Number(const char *name, const char *units, double val)
    : Object (),
      _minSet (0),
      _maxSet (0),
@@ -42,7 +47,8 @@ Number::Number(const char *path, const char *units, double val)
 {
     const RpUnits *u = NULL;
 
-    this->path(path);
+    this->name(name);
+    this->path("");
     this->label("");
     this->desc("");
     this->def(val);
@@ -57,7 +63,7 @@ Number::Number(const char *path, const char *units, double val)
     this->units(units);
 }
 
-Number::Number(const char *path, const char *units, double val,
+Number::Number(const char *name, const char *units, double val,
                double min, double max, const char *label,
                const char *desc)
     : Object (),
@@ -67,7 +73,8 @@ Number::Number(const char *path, const char *units, double val,
 {
     const RpUnits *u = NULL;
 
-    this->path(path);
+    this->name(name);
+    this->path("");
     this->label(label);
     this->desc(desc);
     this->def(val);
@@ -111,7 +118,7 @@ Number::Number ( const Number& o )
     this->max(o.max());
     this->units(o.units());
 
-    // need to copy _presets
+    // FIXME: need to copy _presets
 }
 
 // default destructor
@@ -226,6 +233,32 @@ Number::addPreset(const char *label, const char *desc, double val,
     return *this;
 }
 
+Number&
+Number::addPreset(const char *label, const char *desc, const char *val)
+{
+    double valval = 0.0;
+    const char *valunits = "";
+    char *endptr = NULL;
+    int result = 0;
+
+    std::string vstr = RpUnits::convert(val,"",RPUNITS_UNITS_OFF,&result);
+    if (result) {
+        // probably shouldnt trust this result
+        fprintf(stderr,"error in RpUnits::convert in addPreset\n");
+    }
+    size_t len = vstr.length();
+    valunits = val+len;
+
+    valval = strtod(val,&endptr);
+    if ( (endptr == val) || (endptr != valunits) ) {
+        // error? strtod was not able to find the same
+        // units location as RpUnits::convert
+        fprintf(stderr,"error while parsing units in addPreset\n");
+    }
+
+    return addPreset(label,desc,valval,valunits);
+}
+
 /**********************************************************************/
 // METHOD: delPreset()
 /// Delete a preset / suggessted value from the object
@@ -275,35 +308,122 @@ Number::delPreset(const char *label)
  */
 
 const char *
-Number::xml()
+Number::xml(size_t indent, size_t tabstop)
 {
+    size_t l1width = indent + (1*tabstop);
+    size_t l2width = indent + (2*tabstop);
+    const char *sp = "";
+
     Path p(path());
     _tmpBuf.clear();
 
     _tmpBuf.appendf(
-"<number id='%s'>\n\
-    <about>\n\
-        <label>%s</label>\n\
-        <description>%s</description>\n\
-    </about>\n\
-    <units>%s</units>\n",
-       p.id(),label(),desc(),units());
+"%8$*5$s<number id='%1$s'>\n\
+%8$*6$s<about>\n\
+%8$*7$s<label>%2$s</label>\n\
+%8$*7$s<description>%3$s</description>\n\
+%8$*6$s</about>\n\
+%8$*6$s<units>%4$s</units>\n",
+       p.id(),label(),desc(),units(),indent,l1width,l2width,sp);
 
     if (_minSet) {
-        _tmpBuf.appendf("    <min>%g%s</min>\n", min(),units());
+        _tmpBuf.appendf("%4$*3$s<min>%1$g%2$s</min>\n", min(),units(),l1width,sp);
     }
     if (_maxSet) {
-        _tmpBuf.appendf("    <max>%g%s</max>\n", max(),units());
+        _tmpBuf.appendf("%4$*3$s<max>%1$g%2$s</max>\n", max(),units(),l1width,sp);
     }
 
     _tmpBuf.appendf(
-"    <default>%g%s</default>\n\
-    <current>%g%s</current>\n\
-</number>",
-       def(),units(),cur(),units());
+"%6$*5$s<default>%1$g%3$s</default>\n\
+%6$*5$s<current>%2$g%3$s</current>\n\
+%6$*4$s</number>",
+       def(),cur(),units(),indent,l1width,sp);
 
     return _tmpBuf.bytes();
 }
+
+/**********************************************************************/
+// METHOD: xml(const char *xmltext)
+/// configure the object based on Rappture1.1 xmltext
+/**
+ * Configure the object based on the provided xml
+ */
+
+void
+Number::xml(const char *xmltext)
+{
+    Rp_ParserXml *p = NULL;
+
+    p = Rp_ParserXmlCreate();
+
+    Rp_ParserXmlParse(p, xmltext);
+
+    Rp_TreeNode node = Rp_ParserXmlElement(p,NULL);
+    name(Rp_ParserXmlNodeId(p,node));
+    label(Rp_ParserXmlGet(p,"about.label"));
+    desc(Rp_ParserXmlGet(p,"about.description"));
+    units(Rp_ParserXmlGet(p,"units"));
+    minFromStr(Rp_ParserXmlGet(p,"min"));
+    maxFromStr(Rp_ParserXmlGet(p,"max"));
+    defFromStr(Rp_ParserXmlGet(p,"default"));
+    curFromStr(Rp_ParserXmlGet(p,"current"));
+
+    // collect info about the preset values
+    Rp_Chain *childChain = Rp_ChainCreate();
+    Rp_ParserXmlChildren(p,NULL,"preset",childChain);
+    Rp_ChainLink *l = Rp_ChainFirstLink(childChain);
+    while (l != NULL) {
+        Rp_TreeNode presetNode = (Rp_TreeNode) Rp_ChainGetValue(l);
+        Rp_ParserXmlBaseNode(p,presetNode);
+
+        const char *presetlabel = Rp_ParserXmlGet(p,"label");
+        const char *presetdesc = Rp_ParserXmlGet(p,"description");
+        const char *presetvalue = Rp_ParserXmlGet(p,"value");
+        addPreset(presetlabel,presetdesc,presetvalue);
+
+
+        l = Rp_ChainNextLink(l);
+    }
+
+    Rp_ChainDestroy(childChain);
+
+    // return the base node to the tree root
+    Rp_ParserXmlBaseNode(p,NULL);
+}
+
+/**********************************************************************/
+// METHOD: tree()
+/// return the object as a tree
+/**
+ * Represent the object as a tree.
+ * An Rp_TreeNode is returned.
+ */
+
+/*
+Rp_TreeNode
+tree()
+{
+    return NULL;
+}
+*/
+
+/**********************************************************************/
+// METHOD: tree(Rp_TreeNode root)
+/// construct a number object from the provided tree
+/**
+ * construct a number object from the provided tree
+ */
+
+/*
+void
+tree(
+    Rp_TreeNode root)
+{
+    if (root == NULL) {
+        // FIXME: setup error
+    }
+}
+*/
 
 /**********************************************************************/
 // METHOD: is()
@@ -318,6 +438,100 @@ Number::is() const
     // return "numb" in hex
     return 0x6E756D62;
 }
+
+
+/**********************************************************************/
+// METHOD: minFromStr()
+/// xml helper function to receive min value as a string
+/**
+ * convert string to value and units and store as min
+ */
+
+void
+Number::minFromStr(
+    const char *val)
+{
+    double numericVal = 0;
+    int err = 0;
+
+    numericVal = rpConvertDbl(val,units(),&err);
+
+    if (!err) {
+        min(numericVal);
+    } else {
+        // FIXME: add error code
+    }
+}
+
+/**********************************************************************/
+// METHOD: maxFromStr()
+/// xml helper function to receive max value as a string
+/**
+ * convert string to value and units and store as max
+ */
+
+void
+Number::maxFromStr(
+    const char *val)
+{
+    double numericVal = 0;
+    int err = 0;
+
+    numericVal = rpConvertDbl(val,units(),&err);
+
+    if (!err) {
+        max(numericVal);
+    } else {
+        // FIXME: add error code
+    }
+}
+
+/**********************************************************************/
+// METHOD: defFromStr()
+/// xml helper function to receive default value as a string
+/**
+ * convert string to value and units and store as default
+ */
+
+void
+Number::defFromStr(
+    const char *val)
+{
+    double numericVal = 0;
+    int err = 0;
+
+    numericVal = rpConvertDbl(val,units(),&err);
+
+    if (!err) {
+        def(numericVal);
+    } else {
+        // FIXME: add error code
+    }
+}
+
+/**********************************************************************/
+// METHOD: currFromStr()
+/// xml helper function to receive current value as a string
+/**
+ * convert string to value and units and store as current
+ */
+
+void
+Number::curFromStr(
+    const char *val)
+{
+    double numericVal = 0;
+    int err = 0;
+
+    numericVal = rpConvertDbl(val,units(),&err);
+
+    if (!err) {
+        cur(numericVal);
+    } else {
+        // FIXME: add error code
+    }
+}
+
 
 
 // -------------------------------------------------------------------- //

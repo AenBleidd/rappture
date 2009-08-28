@@ -47,6 +47,9 @@ INCL_RP_DEPS    = -I$(includedir)
 # define our compiling environment
 LN              = ln -s
 
+#		RpDXReader.h \
+#		RpDXWriter.h \
+
 HEADERS = \
 		RpAccessor.h \
 		RpArray1D.h \
@@ -61,6 +64,7 @@ HEADERS = \
 		RpHashHelper.h \
 		RpHistogram.h \
 		RpNumber.h \
+		RpParserXML.h \
 		RpPath.h \
 		RpPlot.h \
 		RpPool.h \
@@ -71,6 +75,9 @@ HEADERS = \
 
 LOCAL_HEADERS = \
 		RpHash.h
+
+#		RpDXReader.o \
+#		RpDXWriter.o \
 
 OBJS = \
 		RpArray1D.o \
@@ -85,6 +92,7 @@ OBJS = \
 		RpHashHelper.o \
 		RpHistogram.o \
 		RpNumber.o \
+		RpParserXML.o \
 		RpPath.o \
 		RpPlot.o \
 		RpPool.o \

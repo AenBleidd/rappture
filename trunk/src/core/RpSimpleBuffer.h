@@ -80,6 +80,7 @@ public:
     SimpleBuffer<T>& operator=(const SimpleBuffer<T>& b);
     SimpleBuffer     operator+(const SimpleBuffer& b) const;
     SimpleBuffer<T>& operator+=(const SimpleBuffer<T>& b);
+    T operator[](size_t offset);
     virtual ~SimpleBuffer();
 
     const T* bytes() const;
@@ -236,6 +237,18 @@ SimpleBuffer<T>::operator+=(const SimpleBuffer<T>& b)
 {
     append(b.bytes(),b.nmemb());
     return *this;
+}
+
+
+/**
+ * Operator []
+ * @param index into the buffer
+ */
+template<class T>
+T
+SimpleBuffer<T>::operator[](size_t idx)
+{
+    return (_buf+idx);
 }
 
 

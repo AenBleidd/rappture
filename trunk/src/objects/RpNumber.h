@@ -21,9 +21,9 @@ class Number : public Object
     public:
 
         Number();
-        Number(const char *path, const char *units, double val);
+        Number(const char *name, const char *units, double val);
 
-        Number(const char *path, const char *units, double val,
+        Number(const char *name, const char *units, double val,
                double min, double max, const char *label,
                const char *desc);
 
@@ -51,10 +51,25 @@ class Number : public Object
         Number& addPreset(const char *label, const char *desc,
                           double val, const char *units);
 
+        Number& addPreset(const char *label, const char *desc,
+                          const char *val);
+
         Number& delPreset(const char *label);
 
-        const char* xml();
+        const char* xml(size_t indent, size_t tabstop);
+        void xml(const char *xmltext);
+
+        /*
+        Rp_TreeNode tree();
+        void tree(Rp_TreeNode root);
+        */
+
         const int is() const;
+
+        void minFromStr(const char *val);
+        void maxFromStr(const char *val);
+        void defFromStr(const char *val);
+        void curFromStr(const char *val);
 
     private:
 

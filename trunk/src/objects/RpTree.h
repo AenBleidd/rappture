@@ -191,7 +191,8 @@ struct Rp_TreeNodeStruct {
                              * are stored as a list. */
 
     unsigned int nChildren; /* # of children for this node. */
-    unsigned int inode;     /* Serial number of the node. */
+    // unsigned int inode;     /* Serial number of the node. */
+    size_t inode;           /* Serial number of the node. */
 
     unsigned short depth;   /* The depth of this node in the tree. */
 
@@ -280,17 +281,19 @@ EXTERN Rp_TreeKey Rp_TreeGetKey _ANSI_ARGS_((CONST char *string));
 EXTERN Rp_TreeNode Rp_TreeCreateNode _ANSI_ARGS_((Rp_Tree tree,
         Rp_TreeNode parent, CONST char *name, int position));
 EXTERN Rp_TreeNode Rp_TreeCreateNodeWithId _ANSI_ARGS_((Rp_Tree tree,
-        Rp_TreeNode parent, CONST char *name, int position, int inode));
+        Rp_TreeNode parent, CONST char *name, size_t inode, int position));
 
 EXTERN int Rp_TreeDeleteNode _ANSI_ARGS_((Rp_Tree tree, Rp_TreeNode node));
 
 EXTERN int Rp_TreeMoveNode _ANSI_ARGS_((Rp_Tree tree, Rp_TreeNode node,
         Rp_TreeNode parent, Rp_TreeNode before));
 
-EXTERN Rp_TreeNode Rp_TreeGetNode _ANSI_ARGS_((Rp_Tree tree,
-        unsigned int inode));
+EXTERN Rp_TreeNode Rp_TreeGetNode _ANSI_ARGS_((Rp_Tree tree, size_t inode));
 
 EXTERN Rp_TreeNode Rp_TreeFindChild _ANSI_ARGS_((Rp_TreeNode parent,
+        CONST char *name));
+
+EXTERN Rp_TreeNode Rp_TreeFindChildNext _ANSI_ARGS_((Rp_TreeNode child,
         CONST char *name));
 
 EXTERN Rp_TreeNode Rp_TreeFirstChild _ANSI_ARGS_((Rp_TreeNode parent));
@@ -390,6 +393,9 @@ EXTERN int Rp_TreeApplyDFS _ANSI_ARGS_((Rp_TreeNode root,
 EXTERN int Rp_TreeApplyBFS _ANSI_ARGS_((Rp_TreeNode root,
         Rp_TreeApplyProc *proc, ClientData clientData));
 
+EXTERN int Rp_TreeApplyXML _ANSI_ARGS_((Rp_TreeNode root,
+        Rp_TreeApplyProc *proc, ClientData clientData));
+
 EXTERN int Rp_TreeSortNode _ANSI_ARGS_((Rp_Tree tree, Rp_TreeNode node,
         Rp_TreeCompareNodesProc *proc));
 
@@ -398,8 +404,11 @@ EXTERN int Rp_TreeCreate _ANSI_ARGS_((CONST char *name,
 
 // EXTERN int Rp_TreeExists _ANSI_ARGS_((CONST char *name));
 
-EXTERN int Rp_TreeGetToken _ANSI_ARGS_((CONST char *name,
-        Rp_Tree *treePtr));
+// EXTERN int Rp_TreeGetToken _ANSI_ARGS_((CONST char *name,
+//         Rp_Tree *treePtr));
+
+EXTERN int Rp_TreeGetTokenFromToken _ANSI_ARGS_((
+        CONST Rp_Tree tree, Rp_Tree *newToken));
 
 EXTERN void Rp_TreeReleaseToken _ANSI_ARGS_((Rp_Tree tree));
 

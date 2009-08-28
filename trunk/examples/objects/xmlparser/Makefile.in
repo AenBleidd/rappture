@@ -33,6 +33,9 @@ CC_SWITCHES     = $(CFLAGS) $(INCLUDES) $(DEFINES)
 
 FILES   = \
 		$(srcdir)/xmlparser.cc \
+		$(srcdir)/xmlparser_1_0_in.xml \
+		$(srcdir)/xmlparser_1_0_out.xml \
+		$(srcdir)/xmlparser_2_0_in.xml \
 		$(srcdir)/tool.xml \
 		Makefile
 

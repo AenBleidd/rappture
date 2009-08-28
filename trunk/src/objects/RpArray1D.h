@@ -40,7 +40,7 @@ public:
 
     static const char type[];
 
-    const char *xml(void);
+    const char *xml(size_t indent, size_t tabstop);
     const int is(void) const;
 
 protected:
