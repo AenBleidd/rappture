@@ -17,8 +17,6 @@ RM              = rm -f
 examples = \
 		axis \
 		curve \
-		dxReader \
-		dxWriter \
 		floatBuffer \
 		histogram \
 		number \
