@@ -73,24 +73,21 @@ int main(int argc, char * argv[]) {
     const char *curveDesc = "Plot of Fermi-Dirac Calculation";
 
     // do it the easy way,
-    // create a plot to add to the library
+    // create a plot and add to the library
     // p1->add(nPts,xArr,yArr,format,curveLabel,curveDesc);
 
-    Rappture::Plot *p1 = new Rappture::Plot();
+    Rappture::Plot *p1 = new Rappture::Plot(lib);
     p1->add(nPts,fArr,EArr,"",curveLabel,curveDesc);
     p1.propstr("xlabel","Fermi-Dirac Factor");
     p1.propstr("ylabel","Energy");
     p1.propstr("yunits","eV");
-
-    // add the plot to the library
-    lib.put(p1);
 
 
     // or do it the harder way,
     // create a curve to add to the library
     // c1->axis("xaxis","xlabel","xdesc","units","scale",dataArr,nPts);
 
-    Rappture::Curve *c1 = new Rappture::Curve("output.curve(FDF)");
+    Rappture::Curve *c1 = new Rappture::Curve(lib,"FDF");
     c1->label(curveLabel);
     c1->desc(curveDesc);
     c1->axis("xaxis","Fermi-Dirac Factor","","","",fArr,nPts);

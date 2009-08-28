@@ -1,6 +1,9 @@
 #include <iostream>
 #include "RpCurve.h"
 
+size_t indent = 0;
+size_t tabstop = 4;
+
 int test(
     const char *testname,
     const char *desc,
@@ -33,7 +36,7 @@ printCurve(Rappture::Curve *n)
         std::cout << "a[" << i << "] = " << a->label() << std::endl;
     }
 
-    std::cout << "xml: " << n->xml() << std::endl;
+    std::cout << "xml: " << n->xml(indent,tabstop) << std::endl;
     return 0;
 }
 

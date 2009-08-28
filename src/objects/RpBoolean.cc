@@ -64,23 +64,27 @@ Boolean::~Boolean ()
  */
 
 const char *
-Boolean::xml()
+Boolean::xml(size_t indent, size_t tabstop)
 {
+    size_t l1width = indent + tabstop;
+    size_t l2width = indent + (2*tabstop);
+    const char *sp = "";
+
     Path p(path());
     _tmpBuf.clear();
 
     // FIXME: boolean should print yes/no
 
     _tmpBuf.appendf(
-"<boolean id=\"%s\">\n\
-    <about>\n\
-        <label>%s</label>\n\
-        <description>%s</description>\n\
-    </about>\n\
-    <default>%i</default>\n\
-    <current>%i</current>\n\
-</boolean>",
-       p.id(),label(),desc(),def(),cur());
+"%9$*6$s<boolean id=\"%1$s\">\n\
+%9$*7$s<about>\n\
+%9$*8$s<label>%2$s</label>\n\
+%9$*8$s<description>%3$s</description>\n\
+%9$*7$s</about>\n\
+%9$*7$s<default>%4$i</default>\n\
+%9$*7$s<current>%5$i</current>\n\
+%9$*6$s</boolean>",
+       p.id(),label(),desc(),def(),cur(),indent,l1width,l2width,sp);
 
     return _tmpBuf.bytes();
 }

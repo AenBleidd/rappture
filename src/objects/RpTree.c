@@ -219,7 +219,7 @@ GetTreeInterpData(Tcl_Interp *interp)
  * -------------------------------------------------------------- 
  */
 static Node *
-NewNode(TreeObject *treeObjPtr, CONST char *name, int inode)
+NewNode(TreeObject *treeObjPtr, CONST char *name, size_t inode)
 {
     Node *nodePtr;
 
@@ -839,7 +839,7 @@ Rp_TreeCreateNode(
     Node *beforePtr;
     Node *nodePtr;  /* Node to be inserted. */
     TreeObject *treeObjPtr;
-    int inode;
+    size_t inode;
     int isNew;
 
     treeObjPtr = parentPtr->treeObject;
@@ -889,7 +889,7 @@ Rp_TreeCreateNodeWithId(
     Node *parentPtr,        /* Parent node where the new node will
                              * be inserted. */
     CONST char *name,       /* Name of node. */
-    int inode,              /* Requested id of the new node. If a
+    size_t inode,           /* Requested id of the new node. If a
                              * node by this id already exists in the
                              * tree, no node is created. */
     int position)           /* Position in the parent's list of children
@@ -1003,7 +1003,7 @@ Rp_TreeDeleteNode(TreeClient *clientPtr, Node *nodePtr)
 }
 
 Rp_TreeNode
-Rp_TreeGetNode(TreeClient *clientPtr, unsigned int inode)
+Rp_TreeGetNode(TreeClient *clientPtr, size_t inode)
 {
     TreeObject *treeObjPtr = clientPtr->treeObject;
     Rp_HashEntry *hPtr;
@@ -1098,6 +1098,34 @@ Rp_TreeFindChild(Node *parentPtr, CONST char *string)
 
     label = Rp_TreeGetKey(string);
     for (nodePtr = parentPtr->first; nodePtr != NULL; nodePtr = nodePtr->next) {
+        if (label == nodePtr->label) {
+            return nodePtr;
+        }
+    }
+    return NULL;
+}
+
+/*
+ *----------------------------------------------------------------------
+ *
+ * Rp_TreeFindChildNext --
+ *
+ *  Searches for the next named node in a parent's chain of siblings.
+ *
+ *
+ * Results:
+ *  If found, the child node is returned, otherwise NULL.
+ *
+ *----------------------------------------------------------------------
+ */
+Rp_TreeNode
+Rp_TreeFindChildNext(Node *childPtr, CONST char *string)
+{
+    Rp_TreeKey label;
+    register Node *nodePtr;
+
+    label = Rp_TreeGetKey(string);
+    for (nodePtr = childPtr->next; nodePtr != NULL; nodePtr = nodePtr->next) {
         if (label == nodePtr->label) {
             return nodePtr;
         }
@@ -1480,14 +1508,19 @@ Rp_TreeUnsetValueByKey(
     return RP_OK;
 }
 
+/*
+ * commented out to avoid compiler warnings about function not being used
+ */
+/*
 static int
 ParseParentheses(
     CONST char *string,
     char **leftPtr,
     char **rightPtr)
 {
-    register char *p;
-    char *left, *right;
+    register char *p = NULL;
+    char *left = NULL;
+    char *right = NULL;
 
     left = right = NULL;
     for (p = (char *)string; *p != '\0'; p++) {
@@ -1509,103 +1542,110 @@ ParseParentheses(
     *rightPtr = right;
     return RP_OK;
 }
+*/
 
 //FIXME: commented out because it calls Rp_TreeGetArrayValue
-//int
-//Rp_TreeGetValue(
-//    TreeClient *clientPtr,
-//    Node *nodePtr,
-//    CONST char *string,     /* String identifying the field in node. */
-//    void **objPtrPtr)
-//{
-//    char *left, *right;
-//    int result;
-//
+int
+Rp_TreeGetValue(
+    TreeClient *clientPtr,
+    Node *nodePtr,
+    CONST char *string,     /* String identifying the field in node. */
+    void **objPtrPtr)
+{
+    char *left = NULL;
+    char *right = NULL;
+    int result;
+
+// uncomment after Rp_TreeGetArrayValue is fixed
 //    if (ParseParentheses(string, &left, &right) != TCL_OK) {
 //        return TCL_ERROR;
 //    }
-//    if (left != NULL) {
-//        *left = *right = '\0';
-//        result = Rp_TreeGetArrayValue(clientPtr, nodePtr, string, left + 1, objPtrPtr);
-//        *left = '(', *right = ')';
-//    } else {
-//        result = Rp_TreeGetValueByKey(clientPtr, nodePtr,
-//                    Rp_TreeGetKey(string), objPtrPtr);
-//    }
-//    return result;
-//}
+    if (left != NULL) {
+        *left = *right = '\0';
+        // result = Rp_TreeGetArrayValue(clientPtr, nodePtr, string, left + 1, objPtrPtr);
+        *left = '(', *right = ')';
+    } else {
+        result = Rp_TreeGetValueByKey(clientPtr, nodePtr,
+                    Rp_TreeGetKey(string), objPtrPtr);
+    }
+    return result;
+}
 
 //FIXME: commented out because it calls Rp_TreeSetArrayValue
-//int
-//Rp_TreeSetValue(
-//    TreeClient *clientPtr,
-//    Node *nodePtr,          /* Node to be updated. */
-//    CONST char *string,     /* String identifying the field in node. */
-//    void *valueObjPtr)      /* New value of field. If NULL, field
-//                             * is deleted. */
-//{
-//    char *left, *right;
-//    int result;
-//
+int
+Rp_TreeSetValue(
+    TreeClient *clientPtr,
+    Node *nodePtr,          /* Node to be updated. */
+    CONST char *string,     /* String identifying the field in node. */
+    void *valueObjPtr)      /* New value of field. If NULL, field
+                             * is deleted. */
+{
+    char *left = NULL;
+    char *right = NULL;
+    int result;
+
+// uncomment after Rp_TreeSetArrayValue is fixed
 //    if (ParseParentheses(string, &left, &right) != RP_OK) {
 //        return RP_ERROR;
 //    }
-//    if (left != NULL) {
-//        *left = *right = '\0';
-//        result = Rp_TreeSetArrayValue(clientPtr, nodePtr, string, left + 1, valueObjPtr);
-//        fprintf(stderr, "Rp_TreeSetArrayValue not supported\n", name);
-//
-//        *left = '(', *right = ')';
-//    } else {
-//        result = Rp_TreeSetValueByKey(clientPtr, nodePtr,
-//                    Rp_TreeGetKey(string), valueObjPtr);
-//    }
-//    return result;
-//}
+    if (left != NULL) {
+        *left = *right = '\0';
+        //result = Rp_TreeSetArrayValue(clientPtr, nodePtr, string, left + 1, valueObjPtr);
+        *left = '(', *right = ')';
+    } else {
+        result = Rp_TreeSetValueByKey(clientPtr, nodePtr,
+                    Rp_TreeGetKey(string), valueObjPtr);
+    }
+    return result;
+}
 
 //FIXME: commented out because it calls Rp_TreeUnsetArrayValue
-//int
-//Rp_TreeUnsetValue(
-//    TreeClient *clientPtr,
-//    Node *nodePtr,          /* Node to be updated. */
-//    CONST char *string)     /* String identifying the field in node. */
-//{
-//    char *left, *right;
-//    int result;
-//
+int
+Rp_TreeUnsetValue(
+    TreeClient *clientPtr,
+    Node *nodePtr,          /* Node to be updated. */
+    CONST char *string)     /* String identifying the field in node. */
+{
+    char *left = NULL;
+    char *right = NULL;
+    int result;
+
+// uncomment after Rp_TreeUnsetArrayValue is fixed
 //    if (ParseParentheses(string, &left, &right) != RP_OK) {
 //        return RP_ERROR;
 //    }
-//    if (left != NULL) {
-//        *left = *right = '\0';
-//        result = Rp_TreeUnsetArrayValue(clientPtr, nodePtr, string, left + 1);
-//        *left = '(', *right = ')';
-//    } else {
-//        result = Rp_TreeUnsetValueByKey(clientPtr, nodePtr, Rp_TreeGetKey(string));
-//    }
-//    return result;
-//}
+    if (left != NULL) {
+        *left = *right = '\0';
+        // result = Rp_TreeUnsetArrayValue(clientPtr, nodePtr, string, left + 1);
+        *left = '(', *right = ')';
+    } else {
+        result = Rp_TreeUnsetValueByKey(clientPtr, nodePtr, Rp_TreeGetKey(string));
+    }
+    return result;
+}
 
 //FIXME: commented out because it calls Rp_TreeArrayValueExists
-//int
-//Rp_TreeValueExists(TreeClient *clientPtr, Node *nodePtr, CONST char *string)
-//{
-//    char *left, *right;
-//    int result;
-//
+int
+Rp_TreeValueExists(TreeClient *clientPtr, Node *nodePtr, CONST char *string)
+{
+    char *left = NULL;
+    char *right = NULL;
+    int result;
+
+// uncomment after Rp_TreeArrayValueExists is fixed
 //    if (ParseParentheses(string, &left, &right) != RP_OK) {
 //        return FALSE;
 //    }
-//    if (left != NULL) {
-//        *left = *right = '\0';
-//        result = Rp_TreeArrayValueExists(clientPtr, nodePtr, string, left + 1);
-//        *left = '(', *right = ')';
-//    } else {
-//        result = Rp_TreeValueExistsByKey(clientPtr, nodePtr,
-//                Rp_TreeGetKey(string));
-//    }
-//    return result;
-//}
+    if (left != NULL) {
+        *left = *right = '\0';
+        // result = Rp_TreeArrayValueExists(clientPtr, nodePtr, string, left + 1);
+        *left = '(', *right = ')';
+    } else {
+        result = Rp_TreeValueExistsByKey(clientPtr, nodePtr,
+                Rp_TreeGetKey(string));
+    }
+    return result;
+}
 
 Rp_TreeKey
 Rp_TreeFirstKey(
@@ -1954,6 +1994,34 @@ Rp_TreeCreate(
 //    *clientPtrPtr = clientPtr;
 //    return RP_OK;
 //}
+
+int
+Rp_TreeGetTokenFromToken(
+    TreeClient *fromClientPtr, // old client from which to base the new client
+    TreeClient **clientPtrPtr) // new client
+{
+    TreeClient *clientPtr;
+    TreeObject *treeObjPtr;
+
+    if (fromClientPtr == NULL) {
+        fprintf(stderr, "can't create new token from null token\n");
+        return RP_ERROR;
+    }
+
+    treeObjPtr = fromClientPtr->treeObject;
+    if (treeObjPtr == NULL) {
+        fprintf(stderr, "can't find a tree object based on provided client\n");
+        return RP_ERROR;
+    }
+    clientPtr = NewTreeClient(treeObjPtr);
+    if (clientPtr == NULL) {
+        fprintf(stderr, "can't allocate token for tree \"%s\"",
+            treeObjPtr->name);
+        return RP_ERROR;
+    }
+    *clientPtrPtr = clientPtr;
+    return RP_OK;
+}
 
 void
 Rp_TreeReleaseToken(TreeClient *clientPtr)
@@ -3030,7 +3098,7 @@ TreeCreateValue(
         if ((unsigned int)nodePtr->nValues >= (nBuckets * 3)) {
             RebuildTable(nodePtr);
         }
-        } else {
+    } else {
         Value *prevPtr;
 
         prevPtr = NULL;

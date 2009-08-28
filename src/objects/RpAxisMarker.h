@@ -38,7 +38,7 @@ class AxisMarker : public Object
         void at (double a);
         double at (void) const;
 
-        const char *xml();
+        const char *xml(size_t indent, size_t tabstop);
         const int is(void) const;
 
     protected:

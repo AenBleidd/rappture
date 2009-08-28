@@ -314,8 +314,12 @@ Histogram::marker(const char *axisName, double at, const char *label,
  */
 
 const char *
-Histogram::xml()
+Histogram::xml(size_t indent, size_t tabstop)
 {
+    size_t l1width = indent + tabstop;
+    size_t l2width = indent + (2*tabstop);
+    const char *sp = "";
+
     Path p(path());
 
     Array1D *tmpAxis = NULL;
@@ -326,12 +330,13 @@ Histogram::xml()
     _tmpBuf.clear();
 
     _tmpBuf.appendf(
-"<histogram id=\"%s\">\n\
-    <about>\n\
-        <group>%s</group>\n\
-        <label>%s</label>\n\
-        <description>%s</description>\n\
-    </about>\n", p.id(),group(),label(),desc());
+"%8$*5$s<histogram id=\"%1$s\">\n\
+%8$*6$s<about>\n\
+%8$*7$s<group>%2$s</group>\n\
+%8$*7$s<label>%3$s</label>\n\
+%8$*7$s<description>%4$s</description>\n\
+%8$*6$s</about>\n",
+        p.id(),group(),label(),desc(),indent,l1width,l2width,sp);
 
     for (size_t dim=0; dim < dims(); dim++) {
         tmpAxis = getNthAxis(dim);
@@ -341,36 +346,36 @@ Histogram::xml()
             continue;
         }
         _tmpBuf.appendf(
-"    <%s>\n\
-        <label>%s</label>\n\
-        <description>%s</description>\n\
-        <units>%s</units>\n\
-        <scale>%s</scale>\n",
+"%8$*6$s<%1$s>\n\
+%8$*7$s<label>%2$s</label>\n\
+%8$*7$s<description>%3$s</description>\n\
+%8$*7$s<units>%4$s</units>\n\
+%8$*7$s<scale>%5$s</scale>\n",
         tmpAxis->name(), tmpAxis->label(), tmpAxis->desc(),
-        tmpAxis->units(), tmpAxis->scale());
+        tmpAxis->units(), tmpAxis->scale(),l1width,l2width,sp);
 
         if (_markerList != NULL) {
             Rp_ChainLink *l = Rp_ChainFirstLink(_markerList);
             while (l != NULL) {
                 AxisMarker *m = (AxisMarker *) Rp_ChainGetValue(l);
                 if (strcmp(tmpAxis->name(),m->axisName()) == 0) {
-                    _tmpBuf.append(m->xml());
+                    _tmpBuf.append(m->xml(indent+tabstop,tabstop));
                 }
                 l = Rp_ChainNextLink(l);
             }
         }
-        _tmpBuf.appendf("    </%s>\n",tmpAxis->name());
+        _tmpBuf.appendf("%3$*2$s</%1$s>\n",tmpAxis->name(),l1width,sp);
     }
 
-    _tmpBuf.append("    <component>\n        <xhw>\n");
+    _tmpBuf.appendf("%3$*1$s<component>\n%3$*2$s<xhw>\n",l1width,l2width,sp);
     for (size_t idx=0; idx < nmemb; idx++) {
         for (size_t dim=0; dim < dims(); dim++) {
             _tmpBuf.appendf("%10g",dataArr[dim][idx]);
         }
         _tmpBuf.append("\n",1);
     }
-    _tmpBuf.append("        </xhw>\n    </component>\n</curve>");
-    _tmpBuf.append("\0",1);
+    _tmpBuf.appendf("%4$*3$s</xhw>\n%4$*2$s</component>\n%4$*1$s</curve>",
+        indent,l1width,l2width,sp);
 
     return _tmpBuf.bytes();
 }

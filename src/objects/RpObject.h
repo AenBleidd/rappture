@@ -23,13 +23,17 @@ class Object
 {
     public:
         Object ();
-        Object (const char *path,
+        Object (const char *name,
+                const char *path,
                 const char *label,
                 const char *desc,
                 const char *hints,
                 const char *color);
         Object (const Object& o);
         virtual ~Object();
+
+        const char *name(void) const;
+        void name(const char *p);
 
         const char *path(void) const;
         void path(const char *p);
@@ -44,7 +48,7 @@ class Object
         void hints(const char *p);
 
         const char *color(void) const;
-        void color(const char *);
+        void color(const char *p);
 
         // void *icon(void) const;
         // void icon(void *p, size_t nbytes);
@@ -65,7 +69,7 @@ class Object
         void propremove (const char *key);
 
         // get the Rappture1.1 xml text for this object
-        virtual const char *xml() const;
+        virtual const char *xml(size_t indent, size_t tabstop) const;
 
         // set the object properties based on Rappture1.1 xml text
         virtual void xml(const char *xmltext);

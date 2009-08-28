@@ -1,0 +1,32 @@
+<?xml version="1.0"?>
+<run>
+    <tool>
+        <about>Press Simulate to view results.</about>
+        <command>tclsh @tool/fermi.tcl @driver</command>
+    </tool>
+    <input>
+        <number id="Ef">
+            <about>
+                <label>Fermi Level</label>
+                <description>Energy at center of distribution.</description>
+            </about>
+            <units>eV</units>
+            <min>-10eV</min>
+            <max>10eV</max>
+            <default>0eV</default>
+            <current>0eV</current>
+            <preset>
+                <value>300K</value>
+                <label>300K (room temperature)</label>
+            </preset>
+            <preset>
+                <value>77K</value>
+                <label>77K (liquid nitrogen)</label>
+            </preset>
+            <preset>
+                <value>4.2K</value>
+                <label>4.2K (liquid helium)</label>
+            </preset>
+        </number>
+    </input>
+</run>

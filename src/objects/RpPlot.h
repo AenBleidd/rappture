@@ -41,7 +41,7 @@ class Plot : public Object
         Curve *curve (const char* name) const;
         Curve *getNthCurve(size_t n) const;
 
-        const char *xml();
+        const char *xml(size_t indent, size_t tabstop);
         const int is() const;
 
     private:

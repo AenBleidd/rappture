@@ -179,7 +179,7 @@ Array1D::data() const
  */
 
 const char *
-Array1D::xml()
+Array1D::xml(size_t indent, size_t tabstop)
 {
     return "";
 }

@@ -70,6 +70,10 @@ template <> inline
 void
 Accessor<const char *>::operator() (const char *val)
 {
+    if (val == NULL) {
+        return;
+    }
+
     size_t len = strlen(val);
     char *tmp = new char[len+1];
     if (tmp == NULL) {

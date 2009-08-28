@@ -1,200 +1,312 @@
-#include <stdio.h>
-#include <expat.h>
-#include <string.h>
-#include "RpInt.h"
-#include "RpChain.h"
-#include "RpPath.h"
-#include "RpNumber.h"
+#include <iostream>
+#include <errno.h>
+#include <fstream>
+#include <sys/stat.h>
+#include "RpParserXML.h"
 
-#define BUFFSIZE        8192
-
-char Buff[BUFFSIZE];
-
-typedef struct {
-    int skip;
-    int depth;
-    Rappture::Path *path;
-    Rp_Chain *c;
-    void *lastObj;
-    int lastObjType;
-    Rappture::Object *v;
-} Parseinfo;
-
-void
-init_info(Parseinfo *info) {
-    info->skip = 0;
-    info->depth = 1;
-    info->path = new Rappture::Path();
-    info->c = Rp_ChainCreate();
-    info->lastObj = NULL;
-    info->lastObjType = 0;
-    info->v = NULL;
-}
-
-int
-should_skip(Parseinfo *inf, const char *el, const char **attr) {
-    int skip = 0;
-
-    if ( (*el == 's') && (strcmp("string",el) == 0) ) {
-        skip = 1;
-    }
-
-    return skip;
-}
-
-static void XMLCALL
-start(void *data, const char *el, const char **attr)
+size_t
+readFile (
+    const char *filePath,
+    const char **buf)
 {
-    Parseinfo *inf = (Parseinfo *) data;
-
-    if ( (*el == 'i') && (strcmp("input",el) == 0) ) {
-        inf->path->add(el);
-    } else if ( (*el == 'n') && (strcmp("number",el) == 0) ) {
-        inf->path->add(el);
-        // null units kills number
-        // Rappture::Number *n = new Rappture::Number(inf->path->path(NULL),NULL,0.0);
-        Rappture::Number *n = new Rappture::Number(inf->path->path(),"",0.0);
-        Rp_ChainAppend(inf->c,n);
-        inf->v = n;
-    } else {
-        // add the tags to the hash table of the last object we created.
-        // this means new objects must be declared here,
-        // or they will become part of the last recognized object
-        // this could lead to major problems.
-        // we have no way to ignore stuff we don't recognize
-
-        inf->path->add(el);
-        if (inf->v) {
-            // inf->v->property(el,);
-        }
+    if (buf == NULL) {
+        fprintf(stderr,"buf is NULL while opening file \"%s\"", filePath);
+        return 0;
     }
 
-    inf->depth++;
+    FILE *f;
+    f = fopen(filePath, "rb");
+    if (f == NULL) {
+        fprintf(stderr,"can't open \"%s\": %s", filePath, strerror(errno));
+        return 0;
+    }
+    struct stat stat;
+    if (fstat(fileno(f), &stat) < 0) {
+        fprintf(stderr,"can't stat \"%s\": %s", filePath, strerror(errno));
+        return 0;
+    }
+    off_t size;
+    size = stat.st_size;
+    char* memblock;
+    memblock = new char [size+1];
+    if (memblock == NULL) {
+        fprintf(stderr,"can't allocate %zu bytes for file \"%s\": %s",
+            size, filePath, strerror(errno));
+        fclose(f);
+        return 0;
+    }
+
+    size_t nRead;
+    nRead = fread(memblock, sizeof(char), size, f);
+    fclose(f);
+
+    if (nRead != (size_t)size) {
+        fprintf(stderr,"can't read %zu bytes from \"%s\": %s", size, filePath,
+            strerror(errno));
+        return 0;
+    }
+
+    memblock[size] = '\0';
+    *buf = memblock;
+    return nRead;
 }
 
-static void XMLCALL
-end(void *data, const char *el)
+int xmlparser_0_0 ()
 {
-    Parseinfo *inf = (Parseinfo *) data;
-    inf->path->del();
-    inf->depth--;
-    // pop object off the end of the inf->c chain
-    // add object to the tree object
+    const char *desc = "test creating xml parser";
+    const char *testname = "xmlparser_0_0";
+    int retVal = 0;
+
+    const char *expected = "initialized ParserXml Object";
+    const char *received = NULL;
+
+    Rp_ParserXml *p = NULL;
+
+    p = Rp_ParserXmlCreate();
+
+    if (p == NULL) {
+        printf("Error: %s\n", testname);
+        printf("\t%s\n", desc);
+        printf("\texpected \"%s\"\n",expected);
+        printf("\treceived \"%s\"\n",received);
+        retVal = 1;
+    }
+
+    if (p) {
+        Rp_ParserXmlDestroy(&p);
+    }
+
+    return retVal;
 }
 
-void
-rawstart(void *data, const char *el, const char **attr) {
-    Parseinfo *inf = (Parseinfo *) data;
-
-    if (! inf->skip) {
-        if (should_skip(inf, el, attr)) {
-            inf->skip = inf->depth;
-        }
-        else {
-            start(inf, el, attr);     /* This does rest of start handling */
-        }
-    }
-
-    inf->depth++;
-}  /* End of rawstart */
-
-void
-rawend(void *data, const char *el) {
-    Parseinfo *inf = (Parseinfo *) data;
-
-    inf->depth--;
-
-    if (! inf->skip) {
-        end(inf, el);              /* This does rest of end handling */
-    }
-
-    if (inf->skip == inf->depth) {
-        inf->skip = 0;
-    }
-}  /* End rawend */
-
-/*
-void
-char_handler(void* data, XML_Char const* s, int len)
+int xmlparser_1_0 ()
 {
-    int total = 0;
-    int total_old = 0;
-    scew_element* current = NULL;
-    Parseinfo *inf = (Parseinfo *) data;
+    const char *desc = "test sending xml text to xml parser";
+    const char *testname = "xmlparser_1_0";
+    const char *infile = "xmlparser_1_0_in.xml";
+    const char *outfile = "xmlparser_1_0_out.xml";
+    int retVal = 0;
 
-    if (inf == NULL) {
-        return;
+    const char *xmltext = NULL;
+    const char *expected = NULL;
+
+    readFile(infile,&xmltext);
+    readFile(outfile,&expected);
+
+    const char *received = NULL;
+
+    Rp_ParserXml *p = NULL;
+
+    p = Rp_ParserXmlCreate();
+
+    Rp_ParserXmlParse(p, xmltext);
+
+    received = Rp_ParserXmlXml(p);
+
+
+    if (strcmp(expected,received) != 0) {
+        printf("Error: %s\n", testname);
+        printf("\t%s\n", desc);
+        printf("\texpected %zu bytes: \"%s\"\n",strlen(expected), expected);
+        printf("\treceived %zu bytes: \"%s\"\n",strlen(received), received);
+        retVal = 1;
     }
 
-    if (inf->v == NULL)
-    {
-        return;
+    if (p) {
+        Rp_ParserXmlDestroy(&p);
     }
 
-    if (current->contents != NULL)
-    {
-        total_old = scew_strlen(current->contents);
-    }
-    total = (total_old + len + 1) * sizeof(XML_Char);
-    current->contents = (XML_Char*) realloc(current->contents, total);
-
-    if (total_old == 0)
-    {
-        current->contents[0] = '\0';
-    }
-
-    scew_strncat(current->contents, s, len);
+    return retVal;
 }
-*/
 
 
-int
-main(int argc, char *argv[])
+int xmlparser_2_0 ()
 {
-    Parseinfo info;
-    XML_Parser p = XML_ParserCreate(NULL);
-    if (! p) {
-        fprintf(stderr, "Couldn't allocate memory for parser\n");
-        exit(-1);
+    const char *desc = "test printing xml as path/val combos";
+    const char *testname = "xmlparser_2_0";
+    const char *infile = "xmlparser_2_0_in.xml";
+    int retVal = 0;
+
+    const char *xmltext = NULL;
+
+    readFile(infile,&xmltext);
+
+    const char *expected = "\
+run.tool.about Press Simulate to view results.\n\
+run.tool.command tclsh @tool/fermi.tcl @driver\n\
+run.input.number(Ef).about.label Fermi Level\n\
+run.input.number(Ef).about.description Energy at center of distribution.\n\
+run.input.number(Ef).units eV\n\
+run.input.number(Ef).min -10eV\n\
+run.input.number(Ef).max 10eV\n\
+run.input.number(Ef).default 0eV\n\
+run.input.number(Ef).current 0eV\n";
+
+    const char *received = NULL;
+
+    Rp_ParserXml *p = NULL;
+
+    p = Rp_ParserXmlCreate();
+
+    Rp_ParserXmlParse(p, xmltext);
+
+    received = Rp_ParserXmlPathVal(p);
+
+
+    if (strcmp(expected,received) != 0) {
+        printf("Error: %s\n", testname);
+        printf("\t%s\n", desc);
+        printf("\texpected %zu bytes: \"%s\"\n",strlen(expected), expected);
+        printf("\treceived %zu bytes: \"%s\"\n",strlen(received), received);
+        retVal = 1;
     }
 
-    init_info(&info);
-    XML_SetUserData(p,&info);
-
-    XML_SetElementHandler(p, rawstart, rawend);
-    //XML_SetDefaultHandler(p, char_handler);
-
-    for (;;) {
-        int done;
-        int len;
-
-        len = fread(Buff, 1, BUFFSIZE, stdin);
-        if (ferror(stdin)) {
-            fprintf(stderr, "Read error\n");
-            exit(-1);
-        }
-        done = feof(stdin);
-
-        if (XML_Parse(p, Buff, len, done) == XML_STATUS_ERROR) {
-            fprintf(stderr, "Parse error at line %lu:\n%s\n",
-                    XML_GetCurrentLineNumber(p),
-                    XML_ErrorString(XML_GetErrorCode(p)));
-            exit(-1);
-        }
-
-        if (done) {
-            break;
-        }
+    if (p) {
+        Rp_ParserXmlDestroy(&p);
     }
 
-    Rp_ChainLink *lv = NULL;
-    Rappture::Number *n = NULL;
-    lv = Rp_ChainFirstLink(info.c);
-    while (lv) {
-        n = (Rappture::Number *) Rp_ChainGetValue(lv);
-        printf("%s\n",n->xml());
-        lv = Rp_ChainNextLink(lv);
+    return retVal;
+}
+
+int xmlparser_3_0 ()
+{
+    const char *desc = "test getting xml value";
+    const char *testname = "xmlparser_3_0";
+    const char *infile = "xmlparser_2_0_in.xml";
+    int retVal = 0;
+
+    const char *xmltext = NULL;
+
+    readFile(infile,&xmltext);
+
+    const char *expected = "0eV";
+
+    const char *received = NULL;
+
+    Rp_ParserXml *p = NULL;
+
+    p = Rp_ParserXmlCreate();
+
+    Rp_ParserXmlParse(p, xmltext);
+
+    received = Rp_ParserXmlGet(p,"input.number(Ef).current");
+
+
+    if (strcmp(expected,received) != 0) {
+        printf("Error: %s\n", testname);
+        printf("\t%s\n", desc);
+        printf("\texpected %zu bytes: \"%s\"\n",strlen(expected), expected);
+        printf("\treceived %zu bytes: \"%s\"\n",strlen(received), received);
+        retVal = 1;
     }
+
+    if (p) {
+        Rp_ParserXmlDestroy(&p);
+    }
+
+    return retVal;
+}
+
+int xmlparser_4_0 ()
+{
+    const char *desc = "test putting xml value";
+    const char *testname = "xmlparser_4_0";
+    const char *infile = "xmlparser_2_0_in.xml";
+    int retVal = 0;
+
+    const char *xmltext = NULL;
+
+    readFile(infile,&xmltext);
+
+    const char *expected = "hi mom";
+
+    const char *received = NULL;
+
+    Rp_ParserXml *p = NULL;
+
+    p = Rp_ParserXmlCreate();
+
+    Rp_ParserXmlParse(p, xmltext);
+
+    Rp_ParserXmlPut(p,"input.number(gg).current","hi mom",0);
+    received = Rp_ParserXmlGet(p,"input.number(gg).current");
+
+    if (strcmp(expected,received) != 0) {
+        printf("Error: %s\n", testname);
+        printf("\t%s\n", desc);
+        printf("\texpected %zu bytes: \"%s\"\n",strlen(expected), expected);
+        printf("\treceived %zu bytes: \"%s\"\n",strlen(received), received);
+        retVal = 1;
+    }
+
+    if (p) {
+        Rp_ParserXmlDestroy(&p);
+    }
+
+    return retVal;
+}
+
+int xmlparser_5_0 ()
+{
+    const char *desc = "test printing xml with degrees of presets";
+    const char *testname = "xmlparser_5_0";
+    const char *infile = "xmlparser_5_0_in.xml";
+    int retVal = 0;
+
+    const char *xmltext = NULL;
+
+    readFile(infile,&xmltext);
+
+    const char *expected = "\
+run.tool.about Press Simulate to view results.\n\
+run.tool.command tclsh @tool/fermi.tcl @driver\n\
+run.input.number(Ef).about.label Fermi Level\n\
+run.input.number(Ef).about.description Energy at center of distribution.\n\
+run.input.number(Ef).units eV\n\
+run.input.number(Ef).min -10eV\n\
+run.input.number(Ef).max 10eV\n\
+run.input.number(Ef).default 0eV\n\
+run.input.number(Ef).current 0eV\n";
+
+    const char *received = NULL;
+
+    Rp_ParserXml *p = NULL;
+
+    p = Rp_ParserXmlCreate();
+
+    Rp_ParserXmlParse(p, xmltext);
+
+    received = Rp_ParserXmlPathVal(p);
+
+
+    if (strcmp(expected,received) != 0) {
+        printf("Error: %s\n", testname);
+        printf("\t%s\n", desc);
+        printf("\texpected %zu bytes: \"%s\"\n",strlen(expected), expected);
+        printf("\treceived %zu bytes: \"%s\"\n",strlen(received), received);
+        retVal = 1;
+    }
+
+    if (p) {
+        Rp_ParserXmlDestroy(&p);
+    }
+
+    return retVal;
+}
+
+// FIXME: test what happens when parser sees self closing tag <tag/>
+// FIXME: test get function
+// FIXME: test put function
+// FIXME: look into why Rp_ParserXmlPathVal hits some nodes twice in gdb
+
+int main()
+{
+    xmlparser_0_0();
+    xmlparser_1_0();
+    xmlparser_2_0();
+    xmlparser_3_0();
+    xmlparser_4_0();
+    xmlparser_5_0();
 
     return 0;
 }

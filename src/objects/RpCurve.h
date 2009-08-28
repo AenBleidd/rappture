@@ -47,7 +47,7 @@ class Curve : public Object
         Accessor <const char *> group;
         size_t dims() const;
 
-        const char *xml();
+        const char *xml(size_t indent, size_t tabstop);
         const int is() const;
 
         static const char x[];

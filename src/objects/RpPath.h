@@ -47,22 +47,33 @@ public:
     const char *ifs(const char *el);    // set/get comp separator
     Path& add(const char *el);  // turns input into input.number(blah)
     Path& del();                // turns input.number(blah) into input
+    bool eof();
+
+    Path& first();
+    Path& prev();
+    Path& next();
+    Path& last();
+    size_t count();
 
     // turns input.number(blah) into number(blah)
-    const char *component(void);    // get component of the path
-    void component(const char *p);  // set component of the path
+    const char *component(void);    // get component of the current component
+    void component(const char *p);  // set component of the current component
 
     // turns input.number(blah) into blah
-    const char *id(void);       // get the id of the path
-    void id(const char *p);     // set the id of the path
+    const char *id(void);       // get the id of the current component
+    void id(const char *p);     // set the id of the current component
 
     // turns input.number(blah) into number
-    const char *type(void);     // get the type of the path
-    void type(const char *p);   // set the type of the path
+    const char *type(void);     // get the type of the current component
+    void type(const char *p);   // set the type of the current component
 
     // turns input.number(blah) into input
-    const char *parent(void);   // get the parent of the path
-    void parent(const char *p); // set the parent of the path
+    const char *parent(void);   // get the parent of the current component
+    void parent(const char *p); // set the parent of the current component
+
+    // turns input.number2(blah) into 2
+    size_t degree(void);        // get the degree of the current component
+    void degree(size_t degree); // set the degree of the current component
 
     const char *path(void);     // get the path
     void path(const char *p);   // set the path
@@ -72,6 +83,7 @@ private:
     typedef struct {
         const char *type;
         const char *id;
+        size_t degree;
     } componentStruct;
 
     void __pathInit();
@@ -79,11 +91,13 @@ private:
     void __updateBuffer();
     Rp_Chain *__parse(const char *p);
     componentStruct *__createComponent(const char *p, int start,
-                        int end, int idOpenParen, int idCloseParen);
+                        int end, int idOpenParen, int idCloseParen,
+                        size_t degree);
     void __deleteComponent(componentStruct *c);
 
     char _ifs;
     Rp_Chain *_pathList;
+    Rp_ChainLink *_currLink;
     SimpleCharBuffer b;
     SimpleCharBuffer tmpBuf;
 

@@ -32,7 +32,7 @@ class Scatter : public Curve
 
         virtual ~Scatter();
 
-        const char *xml();
+        // const char *xml();
         const int is() const;
 
     protected:

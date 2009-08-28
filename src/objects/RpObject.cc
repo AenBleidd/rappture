@@ -24,12 +24,14 @@ Object::Object()
 }
 
 Object::Object (
+    const char *name,
     const char *path,
     const char *label,
     const char *desc,
     const char *hints,
     const char *color   )
 {
+    this->name(name);
     this->path(path);
     this->label(label);
     this->desc(desc);
@@ -39,6 +41,7 @@ Object::Object (
 
 Object::Object(const Object& o)
 {
+    name(o.name());
     path(o.path());
     label(o.label());
     desc(o.desc());
@@ -54,6 +57,18 @@ Object::Object(const Object& o)
 Object::~Object()
 {
     __clear();
+}
+
+const char*
+Object::name() const
+{
+    return propstr("name");
+}
+
+void
+Object::name(const char *p)
+{
+    propstr("name",p);
 }
 
 const char*
@@ -200,10 +215,17 @@ Object::propstr(const char *key, const char *val)
         Rp_InitHashTable(_h,RP_STRING_KEYS);
     }
 
+    if (val == NULL) {
+        // no value provided, no value stored.
+        // FIXME: raise error.
+        return;
+    }
+
     // set the value
     // FIXME: this is suspect,
     // want to use void's and void*'s but c++ wont let me
     // g++ says there is no delete[] for void*
+    // FIXME: can probably just get the length and use property() fxn
     size_t l = strlen(val);
     str = new char[l+1];
     strcpy(str,val);
@@ -275,7 +297,7 @@ Object::__clear()
 }
 
 const char *
-Object::xml() const
+Object::xml(size_t indent, size_t tabstop) const
 {
     return NULL;
 }

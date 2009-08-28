@@ -33,7 +33,7 @@ class Boolean : public Object
         Accessor<int> def;
         Accessor<int> cur;
 
-        const char *xml();
+        const char *xml(size_t indent, size_t tabstop);
         const int is() const;
 };
 

@@ -35,10 +35,12 @@ int main()
     h3->xaxis("xlabel3","xdesc3","xunits3");
     h3->yaxis("ylabel3","ydesc3","yunits3");
 
+    size_t indent = 0;
+    size_t tabstop = 4;
 
-    std::printf("xml: %s\n",h1->xml());
-    std::printf("xml: %s\n",h2->xml());
-    std::printf("xml: %s\n",h3->xml());
+    std::printf("xml: %s\n",h1->xml(indent,tabstop));
+    std::printf("xml: %s\n",h2->xml(indent,tabstop));
+    std::printf("xml: %s\n",h3->xml(indent,tabstop));
 
     return 0;
 }
