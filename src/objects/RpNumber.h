@@ -56,13 +56,10 @@ class Number : public Object
 
         Number& delPreset(const char *label);
 
-        const char* xml(size_t indent, size_t tabstop);
-        void xml(const char *xmltext);
 
-        /*
-        Rp_TreeNode tree();
-        void tree(Rp_TreeNode root);
-        */
+        void configure(size_t as, ClientData p);
+        void dump(size_t as, ClientData p);
+        // const char* xml(size_t indent, size_t tabstop);
 
         const int is() const;
 
@@ -87,6 +84,10 @@ class Number : public Object
             Accessor<double> val;
         };
 
+        void __configureFromXml(const char *p);
+        void __configureFromTree(Rp_ParserXml *p);
+        void __dumpToXml(ClientData c);
+        void __dumpToTree(ClientData c);
 };
 
 } // namespace Rappture

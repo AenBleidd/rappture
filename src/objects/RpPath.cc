@@ -4,7 +4,7 @@
  *
  *  AUTHOR:  Derrick Kearney, Purdue University
  *
- *  Copyright (c) 2004-2008  Purdue Research Foundation
+ *  Copyright (c) 2005-2009  Purdue Research Foundation
  * ----------------------------------------------------------------------
  *  See the file "license.terms" for information on usage and
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -327,9 +327,12 @@ Path&
 Path::add (const char *el)
 {
     Rp_Chain *addList = NULL;
+    Rp_ChainLink *tmpLink = NULL;
 
     addList = __parse(el);
-    Rp_ChainConcat(_pathList,addList);
+    tmpLink = Rp_ChainLastLink(addList);
+    Rp_ChainInsertChainAfter(_pathList,addList,_currLink);
+    _currLink = tmpLink;
 
     __updateBuffer();
 
@@ -341,12 +344,24 @@ Path::del ()
 {
     Rp_ChainLink *l = NULL;
 
-    l = Rp_ChainLastLink(_pathList);
+    // l = Rp_ChainLastLink(_pathList);
+
+    if (_currLink != NULL) {
+        l = _currLink;
+    } else {
+        l = Rp_ChainLastLink(_pathList);
+    }
 
     if (l != NULL) {
         componentStruct *c = (componentStruct *) Rp_ChainGetValue(l);
         __deleteComponent(c);
         c = NULL;
+        _currLink = Rp_ChainPrevLink(l);
+        if (_currLink == NULL) {
+            // don't go off the beginning of the list
+            _currLink = Rp_ChainNextLink(l);
+            // if _currLink is still NULL, it means the list is blank
+        }
         Rp_ChainDeleteLink(_pathList,l);
     }
 
@@ -766,62 +781,17 @@ Path::parent()
 void
 Path::parent(const char *p)
 {
-// FIXME: 
-/*
-    if (p == NULL) {
-        return;
-    }
-
     Rp_Chain *addList = NULL;
-    Rp_ChainLink *l = NULL;
+    Rp_ChainLink *tmpLink = NULL;
 
     addList = __parse(p);
-
-    if (addList == NULL) {
-        // no parent path?
-        return;
-    }
-
-    // get the last component of pathList
-    l = Rp_ChainLastLink(_pathList);
-
-    if (l == NULL) {
-        // nothing to add
-        Rp_ChainDestroy(addList);
-        return;
-    }
-
-    componentStruct *aLcomp = (componentStruct *) Rp_ChainGetValue(l);
-    Rp_ChainDeleteLink(_pathList,l);
-
-    // delete addList
-    l = Rp_ChainFirstLink(addList);
-    while (l != NULL) {
-        componentStruct *c = (componentStruct *) Rp_ChainGetValue(l);
-        delete c;
-        l = Rp_ChainNextLink(l);
-    }
-    Rp_ChainDestroy(addList);
-
-    // update the last component from the current path
-    l = Rp_ChainLastLink(_pathList);
-
-    if (l != NULL) {
-        componentStruct *last = (componentStruct *) Rp_ChainGetValue(l);
-        Rp_ChainDeleteLink(_pathList,l);
-        delete last->type;
-        last->type = aLcomp->type;
-        delete aLcomp->type;
-        delete aLcomp;
-    } else {
-        // append the new component onto the current path
-        delete aLcomp->id;
-        Rp_ChainAppend(_pathList,aLcomp);
-    }
+    // maybe make this an input flag, FirstLink (default) or LastLink
+    tmpLink = Rp_ChainFirstLink(addList);
+    Rp_ChainInsertChainBefore(_pathList,addList,_currLink);
+    _currLink = tmpLink;
 
     __updateBuffer();
 
-*/
     return;
 }
 

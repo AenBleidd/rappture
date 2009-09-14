@@ -556,6 +556,7 @@ AC_CONFIG_FILES([
     examples/objects/dxWriter/Makefile
     examples/objects/floatBuffer/Makefile
     examples/objects/histogram/Makefile
+    examples/objects/library/Makefile
     examples/objects/number/Makefile
     examples/objects/path/Makefile
     examples/objects/plot/Makefile

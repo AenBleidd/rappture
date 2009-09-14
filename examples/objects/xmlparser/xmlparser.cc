@@ -266,7 +266,14 @@ run.input.number(Ef).units eV\n\
 run.input.number(Ef).min -10eV\n\
 run.input.number(Ef).max 10eV\n\
 run.input.number(Ef).default 0eV\n\
-run.input.number(Ef).current 0eV\n";
+run.input.number(Ef).current 0eV\n\
+run.input.number(Ef).preset.value 300K\n\
+run.input.number(Ef).preset.label 300K (room temperature)\n\
+run.input.number(Ef).preset.value 77K\n\
+run.input.number(Ef).preset.label 77K (liquid nitrogen)\n\
+run.input.number(Ef).preset.value 4.2K\n\
+run.input.number(Ef).preset.label 4.2K (liquid helium)\n\
+";
 
     const char *received = NULL;
 
@@ -297,6 +304,8 @@ run.input.number(Ef).current 0eV\n";
 // FIXME: test what happens when parser sees self closing tag <tag/>
 // FIXME: test get function
 // FIXME: test put function
+// FIXME: test putf function
+// FIXME: test appendf function
 // FIXME: look into why Rp_ParserXmlPathVal hits some nodes twice in gdb
 
 int main()

@@ -7,9 +7,6 @@
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  * ======================================================================
  */
-#include <errno.h>
-#include <expat.h>
-#include <string.h>
 #include "RpTree.h"
 #include "RpChain.h"
 
@@ -23,6 +20,7 @@ enum RapptureParserXmlFlags {
     RPXML_APPEND=(1<<1),    /* Append data to the data already available. */
 };
 
+extern const char *Rp_ParserXml_Field_ID;
 
 typedef struct Rp_ParserXmlStruct Rp_ParserXml;
 
@@ -32,8 +30,9 @@ void Rp_ParserXmlDestroy(Rp_ParserXml **p);
 void Rp_ParserXmlParse(Rp_ParserXml *p, const char *xml);
 Rp_TreeNode Rp_ParserXmlSearch( Rp_ParserXml *p, const char *path, int create);
 const char *Rp_ParserXmlGet(Rp_ParserXml *p, const char *path);
-void Rp_ParserXmlPut(Rp_ParserXml *p, const char *path, const char *val,
-    int append);
+void Rp_ParserXmlPut(Rp_ParserXml *p, const char *path, const char *val, int append);
+void Rp_ParserXmlPutF(Rp_ParserXml *p, const char *path, const char *val, ...);
+void Rp_ParserXmlAppendF(Rp_ParserXml *p, const char *path, const char *val, ...);
 
 Rp_Tree Rp_ParserXmlTreeClient(Rp_ParserXml *p);
 
@@ -45,7 +44,7 @@ size_t Rp_ParserXmlNumberChildren(Rp_ParserXml *p, const char *path,
     const char *type);
 void Rp_ParserXmlBaseNode(Rp_ParserXml *p, Rp_TreeNode node);
 
-// const char *Rp_ParserXmlNodePath(Rp_ParserXml *p, Rp_TreeNode node);
+const char *Rp_ParserXmlNodePath(Rp_ParserXml *p, Rp_TreeNode node);
 const char *Rp_ParserXmlNodeId(Rp_ParserXml *p, Rp_TreeNode node);
 
 const char *Rp_ParserXmlXml(Rp_ParserXml *p);

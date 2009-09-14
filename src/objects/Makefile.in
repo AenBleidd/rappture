@@ -63,6 +63,7 @@ HEADERS = \
 		RpInt.h \
 		RpHashHelper.h \
 		RpHistogram.h \
+		RpLibObj.h \
 		RpNumber.h \
 		RpParserXML.h \
 		RpPath.h \
@@ -71,6 +72,7 @@ HEADERS = \
 		RpScatter.h \
 		RpString.h \
 		RpTree.h \
+		RpObjConfig.h \
 		RpObject.h
 
 LOCAL_HEADERS = \
@@ -91,6 +93,7 @@ OBJS = \
 		RpHash.o \
 		RpHashHelper.o \
 		RpHistogram.o \
+		RpLibObj.o \
 		RpNumber.o \
 		RpParserXML.o \
 		RpPath.o \
@@ -114,7 +117,7 @@ build_lib: $(lib) $(shared_lib)
 $(shared_lib): $(OBJS)
 	$(RM) $@
 	$(SHLIB_LD) $(SHLIB_LDFLAGS) -o $@ $(OBJS) \
-		$(LIB_SEARCH_DIRS) $(LIBS)  -lstdc++
+		$(LIB_SEARCH_DIRS) $(LIBS)  -lstdc++ -lexpat
 
 $(lib): $(OBJS)
 	$(RM) $@

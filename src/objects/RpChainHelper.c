@@ -61,6 +61,58 @@ Rp_ChainConcat (
     return c1;
 }
 
+Rp_Chain *
+Rp_ChainInsertChainAfter (
+    Rp_Chain *c1,
+    Rp_Chain *c2,
+    Rp_ChainLink *at)
+{
+    Rp_ChainLink *l = NULL;
+
+    if (c1 == NULL) {
+        return c2;
+    }
+
+    if (c2 == NULL) {
+        return c1;
+    }
+
+    l = Rp_ChainLastLink(c2);
+    while (l != NULL) {
+        Rp_ChainUnlinkLink(c2,l);
+        Rp_ChainLinkAfter(c1,l,at);
+        l = Rp_ChainLastLink(c2);
+    }
+
+    return c1;
+}
+
+Rp_Chain *
+Rp_ChainInsertChainBefore (
+    Rp_Chain *c1,
+    Rp_Chain *c2,
+    Rp_ChainLink *at)
+{
+    Rp_ChainLink *l = NULL;
+
+    if (c1 == NULL) {
+        return c2;
+    }
+
+    if (c2 == NULL) {
+        return c1;
+    }
+
+    l = Rp_ChainFirstLink(c2);
+    while (l != NULL) {
+        Rp_ChainUnlinkLink(c2,l);
+        Rp_ChainLinkBefore(c1,l,at);
+        l = Rp_ChainFirstLink(c2);
+    }
+
+    return c1;
+}
+
 int
 Rp_ChainCopy (
     Rp_Chain *c1,

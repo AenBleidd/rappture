@@ -302,8 +302,22 @@ Object::xml(size_t indent, size_t tabstop) const
     return NULL;
 }
 
+/*
 void
 Object::xml(const char *xmltext)
+{
+    return;
+}
+*/
+
+void
+Object::configure(size_t as, void *p)
+{
+    return;
+}
+
+void
+Object::dump(size_t as, void *p)
 {
     return;
 }

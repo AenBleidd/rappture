@@ -11,13 +11,13 @@
  * ======================================================================
  */
 
+#include <errno.h>
+#include <expat.h>
+#include <string.h>
+#include <stdarg.h>
 #include "RpParserXML.h"
 #include "RpSimpleBuffer.h"
 #include "RpPath.h"
-
-static const char *Rp_ParserXml_Field_ID = "id";
-static const char *Rp_ParserXml_Field_VALUE = "value";
-static const char *Rp_ParserXml_Field_VISITED = "visited";
 
 struct Rp_ParserXmlStruct {
     Rp_Tree tree;
@@ -26,6 +26,10 @@ struct Rp_ParserXmlStruct {
     Rappture::SimpleCharBuffer *buf;
 };
 
+const char *Rp_ParserXml_Field_ID = "id";
+const char *Rp_ParserXml_Field_VALUE = "value";
+const char *Rp_ParserXml_Field_VISITED = "visited";
+const char *Rp_ParserXml_TreeRootName = "rapptureTree";
 
 static void XMLCALL
 Rp_ParserXmlStartHandler(
@@ -126,7 +130,7 @@ Rp_ParserXmlCreate()
 {
     Rp_ParserXml *p = new Rp_ParserXml();
 
-    Rp_TreeCreate("rapptureTree",&(p->tree));
+    Rp_TreeCreate(Rp_ParserXml_TreeRootName,&(p->tree));
     p->curr = Rp_TreeRootNode(p->tree);
     p->path = new Rappture::Path();
     p->buf = new Rappture::SimpleCharBuffer();
@@ -339,43 +343,185 @@ Rp_ParserXmlPut(
 
     Rp_TreeNode child = Rp_ParserXmlSearch(p, path, 1);
 
-    if (child != NULL) {
-        // check to see if there is already a value
-        if (RP_OK == Rp_TreeGetValue(p->tree,child,
-                        Rp_ParserXml_Field_VALUE,
-                        (void **)&oldval)) {
-            if (oldval != NULL) {
-                // FIXME: use the RPXML_APPEND flag
-                if (append) {
-                    oldval_len = strlen(oldval);
-                    val_len = strlen(val);
-                    newval = new char[oldval_len + val_len + 1];
-                    strncpy(newval,oldval,oldval_len);
-                }
-                // free the old data
-                delete(oldval);
-                oldval = NULL;
+    if (child == NULL) {
+        // error while searching for node?
+        return;
+    }
+
+    // check to see if there is already a value
+    if (RP_OK == Rp_TreeGetValue(p->tree,child,
+                    Rp_ParserXml_Field_VALUE,
+                    (void **)&oldval)) {
+        if (oldval != NULL) {
+            // FIXME: use the RPXML_APPEND flag
+            if (append) {
+                oldval_len = strlen(oldval);
+                val_len = strlen(val);
+                newval = new char[oldval_len + val_len + 1];
+                strncpy(newval,oldval,oldval_len);
             }
-        }
-
-        // allocate space for our new value if needed
-        if (newval == NULL) {
-            // set the new value for the node
-            val_len = strlen(val);
-            newval = new char[val_len + 1];
-        }
-
-        strcpy(newval+oldval_len,val);
-
-        // set the value of the child node
-        if (RP_ERROR == Rp_TreeSetValue(p->tree,child,
-                            Rp_ParserXml_Field_VALUE,
-                            (void *)newval)) {
-            fprintf(stderr,"error while setting value of %s\n",path);
+            // free the old data
+            delete(oldval);
+            oldval = NULL;
         }
     }
+
+    // allocate space for our new value if needed
+    if (newval == NULL) {
+        // set the new value for the node
+        val_len = strlen(val);
+        newval = new char[val_len + 1];
+    }
+
+    strcpy(newval+oldval_len,val);
+
+    // set the value of the child node
+    if (RP_ERROR == Rp_TreeSetValue(p->tree,child,
+                        Rp_ParserXml_Field_VALUE,
+                        (void *)newval)) {
+        fprintf(stderr,"error while setting value of %s\n",path);
+    }
+
+    /*
+    if (p->curr == p->root) {
+        // reset the root node
+        p->curr = Rp_TreeFirstChild(p->root);
+    }
+    */
+
     return;
 }
+
+void
+Rp_ParserXmlPutF(
+    Rp_ParserXml *p,
+    const char *path,
+    const char *format,
+    ...)
+{
+    if (format == NULL) {
+        // no value, do nothing
+        return;
+    }
+
+    Rp_TreeNode child = Rp_ParserXmlSearch(p, path, 1);
+
+    if (child == NULL) {
+        fprintf(stderr, "child node %s does not exist", path);
+        return;
+    }
+
+    // check to see if there is already a value
+    const char *oldval = NULL;
+    if (RP_OK == Rp_TreeGetValue(p->tree,child,
+                    Rp_ParserXml_Field_VALUE,
+                    (void **)&oldval)) {
+        if (oldval != NULL) {
+            // free the old data
+            delete(oldval);
+            oldval = NULL;
+        }
+    }
+
+    // store the formatted string in the tree node
+    size_t stackSize = 1024;
+    char *stackSpace = new char[stackSize];
+    va_list lst;
+    size_t n;
+
+    va_start(lst, format);
+    n = vsnprintf(stackSpace, stackSize, format, lst);
+    if (n >= stackSize) {
+        delete stackSpace;
+        stackSpace = new char[n];
+        vsnprintf(stackSpace, n, format, lst);
+    }
+
+    // set the value of the child node
+    if (RP_ERROR == Rp_TreeSetValue(p->tree,child,
+                        Rp_ParserXml_Field_VALUE,
+                        (void *)stackSpace)) {
+        fprintf(stderr,"error while setting value of %s\n",path);
+    }
+
+    /*
+    if (p->curr == p->root) {
+        // reset the root node
+        p->curr = Rp_TreeFirstChild(p->root);
+    }
+    */
+
+    return;
+}
+
+void
+Rp_ParserXmlAppendF(
+    Rp_ParserXml *p,
+    const char *path,
+    const char *format,
+    ...)
+{
+    if (format == NULL) {
+        // no value, do nothing
+        return;
+    }
+
+    Rp_TreeNode child = Rp_ParserXmlSearch(p, path, 1);
+
+    if (child == NULL) {
+        fprintf(stderr, "child node %s does not exist", path);
+        return;
+    }
+
+    // check to see if there is already a value
+    const char *oldval = NULL;
+    Rp_TreeGetValue(p->tree,child, Rp_ParserXml_Field_VALUE, (void **)&oldval);
+
+    // get the formatted string
+    size_t stackSize = 1024;
+    char *stackSpace = new char[stackSize];
+    va_list lst;
+    size_t n;
+
+    va_start(lst, format);
+    n = vsnprintf(stackSpace, stackSize, format, lst);
+    if (n >= stackSize) {
+        delete stackSpace;
+        stackSpace = new char[n];
+        vsnprintf(stackSpace, n, format, lst);
+    }
+
+    // concatenate the formatted string and the old value
+    char *newval = stackSpace;
+    if (oldval != NULL) {
+        size_t oldval_len = strlen(oldval);
+        newval = new char[n+oldval_len+1];
+        strcpy(newval, oldval);
+        strcat(newval,stackSpace);
+        // free the old data
+        delete(oldval);
+        oldval = NULL;
+        delete(stackSpace);
+        stackSpace = NULL;
+    }
+
+    // set the value of the child node
+    if (RP_ERROR == Rp_TreeSetValue(p->tree,child,
+                        Rp_ParserXml_Field_VALUE,
+                        (void *)newval)) {
+        fprintf(stderr,"error while setting value of %s\n",path);
+    }
+
+    /*
+    if (p->curr == p->root) {
+        // reset the root node
+        p->curr = Rp_TreeFirstChild(p->root);
+    }
+    */
+
+    return;
+}
+
 
 Rp_Tree
 Rp_ParserXmlTreeClient(
@@ -407,7 +553,10 @@ printXmlData(
     int *visited = NULL;
 
     Rp_TreeGetValue(p->tree,node,Rp_ParserXml_Field_VALUE,(void **)&value);
-    size_t valLen = strlen(value);
+    size_t valLen = 0;
+    if (value != NULL) {
+        valLen = strlen(value);
+    }
 
     if (!Rp_TreeValueExists(p->tree,node,Rp_ParserXml_Field_VISITED)) {
         visited = new int();
@@ -467,7 +616,13 @@ Rp_ParserXmlXml(
     p->buf->clear();
     p->buf->appendf("<?xml version=\"1.0\"?>\n");
 
-    Rp_TreeNode root = p->curr;
+    Rp_TreeNode root = Rp_TreeRootNode(p->tree);
+    if (p->curr == root) {
+        // reset the root node
+        root = Rp_TreeFirstChild(root);
+    } else {
+        root = p->curr;
+    }
 
     Rp_TreeApplyDFS(root, printXmlData, (ClientData)p, TREE_PREORDER|TREE_POSTORDER);
 
@@ -539,7 +694,14 @@ Rp_ParserXmlPathVal(
     Rappture::Path *tmpPath = p->path;
     p->path = new Rappture::Path();
 
-    Rp_TreeNode root = p->curr;
+    // Rp_TreeNode root = p->curr;
+    Rp_TreeNode root = Rp_TreeRootNode(p->tree);
+    if (p->curr == root) {
+        // reset the root node
+        root = Rp_TreeFirstChild(root);
+    } else {
+        root = p->curr;
+    }
 
     Rp_TreeApplyDFS(root, printPathVal, (ClientData)p, TREE_PREORDER|TREE_POSTORDER);
 
@@ -598,7 +760,18 @@ Rp_ParserXmlChildren(
 
     Rp_TreeNode node = Rp_ParserXmlSearch(p,path,!RPXML_CREATE);
 
-    if (node != NULL) {
+    if (node == NULL) {
+        return count;
+    }
+
+    if (type == NULL) {
+        node = Rp_TreeFirstChild(node);
+        while (node != NULL) {
+            count++;
+            Rp_ChainAppend(children,(void*)node);
+            node = Rp_TreeNextSibling(node);
+        }
+    } else {
         node = Rp_TreeFindChild(node,type);
         while (node != NULL) {
             count++;
@@ -606,6 +779,7 @@ Rp_ParserXmlChildren(
             node = Rp_TreeFindChildNext(node,type);
         }
     }
+
     return count;
 }
 
@@ -647,34 +821,37 @@ Rp_ParserXmlBaseNode(
     }
 }
 
-/*
 const char *
 Rp_ParserXmlNodePath(
     Rp_ParserXml *p,
     Rp_TreeNode node)
 {
-    Path pathObj("junk");
+    Rappture::Path pathObj;
 
     const char *type = NULL;
     const char *id = NULL;
 
-    // FIXME: path's add and del don't work on the current node
     if (p != NULL) {
-        while (node != p->curr) {
-            type = Rp_TreeNodeLabel(node)
-            Rp_TreeGetValue(p->tree,child, Rp_ParserXml_Field_ID,(void **)&id);
-            pathObj.first();
-            pathObj.add(type);
-            pathObj.id(id);
+        while (node != NULL) {
+            type = Rp_TreeNodeLabel(node);
+            pathObj.parent(type);
+            if (RP_OK == Rp_TreeGetValue(p->tree,node,
+                            Rp_ParserXml_Field_ID,(void **)&id)) {
+                pathObj.id(id);
+            }
             node = Rp_TreeNodeParent(node);
         }
     }
 
+    // remove the tree name from the path
     pathObj.first();
     pathObj.del();
-    return path
+    // remove the <run> tag from the path
+    // pathObj.del();
+
+    p->path->path(pathObj.path());
+    return p->path->path();
 }
-*/
 
 const char *
 Rp_ParserXmlNodeId(

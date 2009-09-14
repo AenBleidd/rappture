@@ -17,7 +17,7 @@ using namespace Rappture;
 /**
  *  Create a negative outcome, with the given error message.
  */
-Outcome::Outcome(const char *errmsg) : 
+Outcome::Outcome(const char *errmsg) :
     _status(0)
 {
     if (errmsg) {
@@ -26,7 +26,7 @@ Outcome::Outcome(const char *errmsg) :
 }
 
 /// Copy constructor
-Outcome::Outcome(const Outcome& oc) : 
+Outcome::Outcome(const Outcome& oc) :
     _status(oc._status),
     _remark(oc._remark),
     _context(oc._context)
@@ -70,20 +70,20 @@ Outcome::addError(const char* format, ...)
     bufPtr = stackSpace;
     n = vsnprintf(bufPtr, 1024, format, lst);
     if (n >= 1024) {
-	bufPtr = (char *)malloc(n);
-	vsnprintf(bufPtr, n, format, lst);
+        bufPtr = (char *)malloc(n);
+        vsnprintf(bufPtr, n, format, lst);
     }
     if (_remark == "") {
-	_remark = _context;
-	_remark.append(":\n");
-	_remark.append(bufPtr);
+        _remark = _context;
+        _remark.append(":\n");
+        _remark.append(bufPtr);
     } else {
         _remark.append("\n");
-	_remark.append(bufPtr);
+        _remark.append(bufPtr);
     }
-    _status = 1;		/* Set to error */
+    _status = 1;                /* Set to error */
     if (bufPtr != stackSpace) {
-	free(bufPtr);
+        free(bufPtr);
     }
     return *this;
 }
@@ -167,8 +167,8 @@ Outcome::pushContext(const char* format, ...)
     bufPtr = stackSpace;
     n = vsnprintf(bufPtr, 1024, format, lst);
     if (n >= 1024) {
-	bufPtr = (char *)malloc(n);
-	vsnprintf(bufPtr, n, format, lst);
+        bufPtr = (char *)malloc(n);
+        vsnprintf(bufPtr, n, format, lst);
     }
     _contexts.push_front(bufPtr);
 }
@@ -186,9 +186,9 @@ void
 Outcome::printContext(void)
 {
     list<const char *>::interator iter;
-    
+
     for (iter = _contexts.begin(); iter != _contexts.end(); iter++) {
-	fprintf(stderr, "Called from %s\n", *iter);
+        fprintf(stderr, "Called from %s\n", *iter);
     }
 }
 

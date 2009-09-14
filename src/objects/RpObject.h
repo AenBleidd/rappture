@@ -16,6 +16,8 @@
 #include "RpAccessor.h"
 #include "RpBuffer.h"
 #include "RpPath.h"
+#include "RpParserXML.h"
+#include "RpObjConfig.h"
 
 namespace Rappture {
 
@@ -72,7 +74,11 @@ class Object
         virtual const char *xml(size_t indent, size_t tabstop) const;
 
         // set the object properties based on Rappture1.1 xml text
-        virtual void xml(const char *xmltext);
+        // virtual void xml(const char *xmltext);
+
+        // configure the object properties based on Rappture1.1 xml text
+        virtual void configure(size_t as, void *p);
+        virtual void dump(size_t as, void *p);
 
         virtual const int is() const;
 

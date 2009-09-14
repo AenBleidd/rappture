@@ -19,7 +19,7 @@ printNumber(Rappture::Number *n)
     std::cout << "min: " << n->min() << std::endl;
     std::cout << "max: " << n->max() << std::endl;
     std::cout << "units: " << n->units() << std::endl;
-    std::cout << "xml:\n" << n->xml(indent,tabstop) << std::endl;
+    // std::cout << "xml:\n" << n->xml(indent,tabstop) << std::endl;
     return 0;
 }
 
@@ -84,7 +84,7 @@ readFile (
     memblock = new char [size+1];
     if (memblock == NULL) {
         fprintf(stderr,"can't allocate %zu bytes for file \"%s\": %s",
-            size, filePath, strerror(errno));
+            (size_t)size, filePath, strerror(errno));
         fclose(f);
         return 0;
     }
@@ -94,8 +94,8 @@ readFile (
     fclose(f);
 
     if (nRead != (size_t)size) {
-        fprintf(stderr,"can't read %zu bytes from \"%s\": %s", size, filePath,
-            strerror(errno));
+        fprintf(stderr,"can't read %zu bytes from \"%s\": %s",
+            (size_t) size, filePath, strerror(errno));
         return 0;
     }
 
@@ -196,7 +196,7 @@ int number_1_0 ()
 
     Rappture::Number n;
 
-    n.xml(buf);
+    n.configure(Rappture::RPCONFIG_XML,(void*)buf);
 
     retVal |= testStringVal(testname,testdesc,name,n.name());
     retVal |= testStringVal(testname,testdesc,units,n.units());
