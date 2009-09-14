@@ -357,7 +357,7 @@ Expect(PymolProxy *proxyPtr, char *match, char *out, int maxSize)
     if (proxyPtr->status != TCL_OK) {
         return proxyPtr->status;
     }
-#ifdef notdef
+#ifndef notdef
     trace("Entering Expect(want=%s, maxSize=%d)\n", match, maxSize);
 #endif
     c = match[0];
@@ -368,7 +368,7 @@ Expect(PymolProxy *proxyPtr, char *match, char *out, int maxSize)
 
 	line = GetLine(&proxyPtr->server, &nBytes);
 	if (line != NULL) {
-#ifdef notdef
+#ifndef notdef
 	    trace("pymol says:%.*s", nBytes, out);
 #endif
 	    if ((c == line[0]) && (strncmp(line, match, length) == 0)) {
@@ -377,7 +377,7 @@ Expect(PymolProxy *proxyPtr, char *match, char *out, int maxSize)
 		}
 		memcpy(out, line, nBytes);
 		clear_error(proxyPtr);
-#ifdef notdef
+#ifndef notdef
 		trace("Leaving Expect: got (%.*s)\n", nBytes, out);
 #endif
 		return BUFFER_OK;
@@ -663,10 +663,10 @@ Pymol(PymolProxy *proxyPtr, const char *format, ...)
     }
     
     va_start(ap, format);
-    vsnprintf(buffer, BUFSIZ-1, format, ap);
+    result = vsnprintf(buffer, BUFSIZ-1, format, ap);
     va_end(ap);
     
-    trace("to-pymol>(%s)", buffer);
+    trace("to-pymol>(%s) code=%d", buffer, result);
     
     /* Write the command out to the server. */
     length = strlen(buffer);
@@ -1224,7 +1224,7 @@ PrintCmd(ClientData clientData, Tcl_Interp *interp, int argc,
     size_t length;
     Image *imgPtr;
     int width, height;
-    const char *token;
+    const char *token, *bgcolor;
 
     clear_error(proxyPtr);
 
@@ -1233,9 +1233,9 @@ PrintCmd(ClientData clientData, Tcl_Interp *interp, int argc,
 
     proxyPtr->flags &= ~(UPDATE_PENDING | FORCE_UPDATE | INVALIDATE_CACHE);
 
-    if (argc != 4) {
+    if (argc != 5) {
 	Tcl_AppendResult(interp, "wrong # arguments: should be \"", 
-			 argv[0], " token width height\"", (char *)NULL);
+			 argv[0], " token width height color\"", (char *)NULL);
 	return TCL_ERROR;
     }
     token = argv[1];
@@ -1245,12 +1245,13 @@ PrintCmd(ClientData clientData, Tcl_Interp *interp, int argc,
     if (Tcl_GetInt(interp, argv[3], &height) != TCL_OK) {
 	return TCL_ERROR;
     }
+    bgcolor = argv[4];
     /* Force pymol to update the current scene. */
-    Pymol(proxyPtr, "refresh\n");
-    Pymol(proxyPtr, 
-	  "ray %d,%d\n"
-	  "png -,dpi=300\n", 
-	  width, height);
+    Pymol(proxyPtr, "bg_color %s\nrefresh\n", bgcolor);
+    Pymol(proxyPtr, "ray %d,%d\n", width, height);
+    Expect(proxyPtr, " Ray:", buffer, 800);
+
+    Pymol(proxyPtr, "png -,dpi=300\nbg_color black\n");
     Expect(proxyPtr, "png image follows: ", buffer, 800);
 
     if (sscanf(buffer, "png image follows: %d\n", &nBytes) != 1) {
@@ -1260,6 +1261,7 @@ PrintCmd(ClientData clientData, Tcl_Interp *interp, int argc,
     }
     sprintf(buffer, "nv>image %d print \"%s\" %d\n", nBytes, token, 
 	    proxyPtr->rockOffset);
+    trace("header is png is (%s)\n", buffer);
     length = strlen(buffer);
     imgPtr = NewImage(proxyPtr, nBytes + length);
     strcpy(imgPtr->data, buffer);
@@ -1404,48 +1406,53 @@ RepresentationCmd(ClientData clientData, Tcl_Interp *interp, int argc,
     if (push) {
 	proxyPtr->flags |= FORCE_UPDATE;
     }
-    if (strcmp(rep, "ballnstick") == 0) { 
-	/* Ball 'n Stick */
-	Pymol(proxyPtr, "set stick_color,white,%s\n", model);
+    if (strcmp(rep, "ballnstick") == 0) { /* Ball 'n Stick */
 	Pymol(proxyPtr, 
-	      "hide lines,%s\n"
+	      "set stick_color,white,%s\n"
 	      "show sticks,%s\n"
-	      "show spheres,%s\n", 
-	      model, model, model);
-    } else if (strcmp(rep, "spheres") == 0) { 
-	/* spheres */    
+	      "show spheres,%s\n"
+	      "hide lines,%s\n"
+	      "hide cartoon,%s\n",
+	      model, model, model, model, model);
+    } else if (strcmp(rep, "spheres") == 0) { /* spheres */    
 	Pymol(proxyPtr, 
 	      "hide sticks,%s\n"
+	      "show spheres,%s\n"
 	      "hide lines,%s\n"
-	      "show spheres,%s\n", 
-	      model, model, model);
-	Pymol(proxyPtr, 
+	      "hide cartoon,%s\n"
 	      "set sphere_quality,2,%s\n"
 	      "set ambient,.2,%s\n", 
-	      model, model);
-    } else if (strcmp(rep, "none") == 0) { 
-	/* nothing */    
+	      model, model, model, model, model, model);
+    } else if (strcmp(rep, "none") == 0) { /* nothing */    
 	Pymol(proxyPtr, 
-	      "hide spheres,%s\n"
-	      "hide lines,%s\n"
 	      "hide sticks,%s\n", 
-	      model, model, model);
-    } else if (strcmp(rep, "sticks") == 0) { 
-	/* sticks */    
-	Pymol(proxyPtr, "set stick_color,white,%s\n", model);
-	Pymol(proxyPtr, 
 	      "hide spheres,%s\n"
 	      "hide lines,%s\n"
-	      "show sticks,%s\n", 
-	      model, model, model);
-    } else if (strcmp(rep, "lines") == 0) { 
-	/* lines */    
+	      "hide cartoon,%s\n",
+	      model, model, model, model);
+    } else if (strcmp(rep, "sticks") == 0) { /* sticks */    
 	Pymol(proxyPtr, 
+	      "set stick_color,white,%s\n"
+	      "show sticks,%s\n"
 	      "hide spheres,%s\n"
+	      "hide lines,%s\n"
+	      "hide cartoon,%s\n",
+	      model, model, model, model, model);
+    } else if (strcmp(rep, "lines") == 0) { /* lines */    
+	Pymol(proxyPtr, 
 	      "hide sticks,%s\n"
-	      "show lines,%s\n", 
-	      model, model, model);
-    }
+	      "hide spheres,%s\n"
+	      "show lines,%s\n"
+	      "hide cartoon,%s\n",
+	      model, model, model, model);
+    } else if (strcmp(rep, "cartoon") == 0) { /* cartoon */    
+	Pymol(proxyPtr, 
+	      "hide sticks,%s\n"
+	      "hide spheres,%s\n"
+	      "hide lines,%s\n"
+	      "show cartoon,%s\n", 
+	      model, model, model, model);
+    } 
     return proxyPtr->status;
 }
 
