@@ -46,7 +46,6 @@ itcl::class Rappture::Curve {
 
     private variable _xmarkers "";# list of {x,label,options} triplets.
     private variable _ymarkers "";# list of {y,label,options} triplets.
-
     private common _counter 0    ;# counter for unique vector names
 }
 
@@ -238,8 +237,8 @@ itcl::body Rappture::Curve::hints {{keyword ""}} {
             # pop-up help for each curve
             set _hints(tooltip) $_hints(label)
         }
+	set _hints(xmlobj) $_xmlobj
     }
-
     if {$keyword != ""} {
         if {[info exists _hints($keyword)]} {
             return $_hints($keyword)

@@ -90,7 +90,7 @@ itcl::class Rappture::XyResult {
     protected method _zoom {option args}
     protected method _hilite {state x y}
     protected method _axis {option args}
-    protected method _getAxes {xydata}
+    protected method _getAxes {curve}
     protected method _getLineMarkerOptions { style } 
     protected method _getTextMarkerOptions { style } 
     protected method _enterMarker { g name x y text }
@@ -434,16 +434,16 @@ itcl::body Rappture::XyResult::scale {args} {
     }
 
     catch {unset _limits}
-    foreach xydata $args {
+    foreach curve $args {
         # find the axes for this curve (e.g., {x y2})
-        foreach {map(x) map(y)} [_getAxes $xydata] break
+        foreach {map(x) map(y)} [_getAxes $curve] break
 
         foreach axis {x y} {
             # get defaults for both linear and log scales
             foreach type {lin log} {
                 # store results -- ex: _limits(x2log-min)
                 set id $map($axis)$type
-                foreach {min max} [$xydata limits $axis$type] break
+                foreach {min max} [$curve limits $axis$type] break
                 if {"" != $min && "" != $max} {
                     if {![info exists _limits($id-min)]} {
                         set _limits($id-min) $min
@@ -459,7 +459,7 @@ itcl::body Rappture::XyResult::scale {args} {
                 }
             }
 
-            if {[$xydata hints ${axis}scale] == "log"} {
+            if {[$curve hints ${axis}scale] == "log"} {
                 _axis scale $map($axis) log
             }
         }
@@ -632,9 +632,9 @@ itcl::body Rappture::XyResult::_rebuild {} {
     #
     set anum(x) 0
     set anum(y) 0
-    foreach xydata [get] {
+    foreach curve [get] {
         foreach ax {x y} {
-            set label [$xydata hints ${ax}label]
+            set label [$curve hints ${ax}label]
             if {"" != $label} {
                 if {![info exists _label2axis($ax-$label)]} {
                     switch [incr anum($ax)] {
@@ -650,7 +650,7 @@ itcl::body Rappture::XyResult::_rebuild {} {
                     set _label2axis($ax-$label) $axis
 
                     # if this axis has a description, add it as a tooltip
-                    set desc [string trim [$xydata hints ${ax}desc]]
+                    set desc [string trim [$curve hints ${ax}desc]]
                     Rappture::Tooltip::text $g-$axis $desc
                 }
             }
@@ -697,31 +697,31 @@ itcl::body Rappture::XyResult::_rebuild {} {
     # Plot all of the curves.
     #
     set count 0
-    foreach xydata $_clist {
-        set label [$xydata hints label]
-        foreach {mapx mapy} [_getAxes $xydata] break
+    foreach curve $_clist {
+        set label [$curve hints label]
+        foreach {mapx mapy} [_getAxes $curve] break
 
-        foreach comp [$xydata components] {
-            set xv [$xydata mesh $comp]
-            set yv [$xydata values $comp]
+        foreach comp [$curve components] {
+            set xv [$curve mesh $comp]
+            set yv [$curve values $comp]
 
-            if {[info exists _curve2color($xydata)]} {
-                set color $_curve2color($xydata)
+            if {[info exists _curve2color($curve)]} {
+                set color $_curve2color($curve)
             } else {
-                set color [$xydata hints color]
+                set color [$curve hints color]
                 if {"" == $color} {
                     set color black
                 }
             }
 
-            if {[info exists _curve2width($xydata)]} {
-                set lwidth $_curve2width($xydata)
+            if {[info exists _curve2width($curve)]} {
+                set lwidth $_curve2width($curve)
             } else {
                 set lwidth 2
             }
 
-            if {[info exists _curve2dashes($xydata)]} {
-                set dashes $_curve2dashes($xydata)
+            if {[info exists _curve2dashes($curve)]} {
+                set dashes $_curve2dashes($curve)
             } else {
                 set dashes ""
             }
@@ -735,16 +735,31 @@ itcl::body Rappture::XyResult::_rebuild {} {
             }
 
             set elem "elem[incr count]"
-            set _elem2curve($elem) $xydata
-
+            set _elem2curve($elem) $curve
+	    lappend label2elem($label) $elem
             $g element create $elem -x $xv -y $yv \
-                -symbol $sym -pixels $pixels -linewidth $lwidth -label $label \
+                -symbol $sym -pixels $pixels -linewidth $lwidth \
+		-label $label \
                 -color $color -dashes $dashes \
                 -mapx $mapx -mapy $mapy
         }
     }
 
-    foreach xydata $_clist {
+    # Fix duplicate labels by appending the simulation number
+    foreach label [array names label2elem] {
+	if { [llength $label2elem($label)] == 1 } {
+	    continue
+	}
+	foreach elem $label2elem($label) {
+	    set curve $_elem2curve($elem)
+	    scan [$curve hints xmlobj] "::libraryObj%d" suffix
+	    incr suffix
+	    set elabel [format "%s \#%d" $label $suffix]
+	    $g element configure $elem -label $elabel
+	}
+    }	
+
+    foreach curve $_clist {
         set xmin -Inf
         set ymin -Inf
         set xmax Inf
@@ -752,7 +767,7 @@ itcl::body Rappture::XyResult::_rebuild {} {
         # 
         # Create text/line markers for each *axis.marker specified. 
         # 
-        foreach m [$xydata xmarkers] {
+        foreach m [$curve xmarkers] {
             foreach {at label style} $m break
             set id [$g marker create line -coords [list $at $ymin $at $ymax]]
             $g marker bind $id <Enter> \
@@ -772,7 +787,7 @@ itcl::body Rappture::XyResult::_rebuild {} {
                 }
             }
         }
-        foreach m [$xydata ymarkers] {
+        foreach m [$curve ymarkers] {
             foreach {at label style} $m break
             set id [$g marker create line -coords [list $xmin $at $xmax $at]]
             $g marker bind $id <Enter> \
@@ -1520,7 +1535,7 @@ itcl::body Rappture::XyResult::_getTextMarkerOptions {style} {
 # <curveObj>.  Returns a list of the form {x y}, where x is the
 # x-axis name (x, x2, x3, etc.), and y is the y-axis name.
 # ----------------------------------------------------------------------
-itcl::body Rappture::XyResult::_getAxes {xydata} {
+itcl::body Rappture::XyResult::_getAxes {curve} {
     # rebuild if needed, so we know about the axes
     if {[$_dispatcher ispending !rebuild]} {
         $_dispatcher cancel !rebuild
@@ -1528,7 +1543,7 @@ itcl::body Rappture::XyResult::_getAxes {xydata} {
     }
 
     # what is the x axis?  x? x2? x3? ...
-    set xlabel [$xydata hints xlabel]
+    set xlabel [$curve hints xlabel]
     if {[info exists _label2axis(x-$xlabel)]} {
         set mapx $_label2axis(x-$xlabel)
     } else {
@@ -1536,7 +1551,7 @@ itcl::body Rappture::XyResult::_getAxes {xydata} {
     }
 
     # what is the y axis?  y? y2? y3? ...
-    set ylabel [$xydata hints ylabel]
+    set ylabel [$curve hints ylabel]
     if {[info exists _label2axis(y-$ylabel)]} {
         set mapy $_label2axis(y-$ylabel)
     } else {
