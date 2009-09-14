@@ -1247,7 +1247,13 @@ PrintCmd(ClientData clientData, Tcl_Interp *interp, int argc,
     }
     bgcolor = argv[4];
     /* Force pymol to update the current scene. */
-    Pymol(proxyPtr, "bg_color %s\nrefresh\n", bgcolor);
+    if (strcmp(bgcolor, "none") == 0) {
+	Pymol(proxyPtr, "set ray_opaque_background,off\n");
+	Pymol(proxyPtr, "refresh\n", bgcolor);
+    } else {
+	Pymol(proxyPtr, "set ray_opaque_background,on\n");
+	Pymol(proxyPtr, "bg_color %s\nrefresh\n", bgcolor);
+    }
     Pymol(proxyPtr, "ray %d,%d\n", width, height);
     Expect(proxyPtr, " Ray:", buffer, 800);
 
