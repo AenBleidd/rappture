@@ -17,10 +17,15 @@ CFLAGS          = @CFLAGS@
 CXX             = @CXX@
 CXXFLAGS        = @CFLAGS@
 DEFINES         = -g -Wall
-INCLUDES        = -I../../../src/core \
-                  -I../../../src/objects \
-                  -I$(srcdir)/../../../src/core \
+#INCLUDES        = -I../../../src/core \
+#                  -I../../../src/objects \
+#                  -I$(srcdir)/../../../src/core \
+#                  -I$(srcdir)/../../../src/objects \
+#                  -I$(includedir)
+INCLUDES        = -I../../../src/objects \
+                  -I../../../src/core \
                   -I$(srcdir)/../../../src/objects \
+                  -I$(srcdir)/../../../src/core \
                   -I$(includedir)
 LIBS    = \
 		-L../../../src/core -lrappture \
@@ -32,23 +37,19 @@ CXX_SWITCHES    = $(CXXFLAGS) $(INCLUDES) $(DEFINES)
 CC_SWITCHES     = $(CFLAGS) $(INCLUDES) $(DEFINES)
 
 FILES   = \
-		$(srcdir)/xmlparser.cc \
-		$(srcdir)/xmlparser_1_0_in.xml \
-		$(srcdir)/xmlparser_1_0_out.xml \
-		$(srcdir)/xmlparser_2_0_in.xml \
-		$(srcdir)/xmlparser_5_0_in.xml \
-		$(srcdir)/tool.xml \
+		$(srcdir)/library.cc \
+		$(srcdir)/library_0_0_in.xml \
 		Makefile
 
-destdir = $(prefix)/examples/objects/xmlparser
+destdir = $(prefix)/examples/objects/library
 
 
 PROGS   = \
-		xmlparser
+		library
 
 all: $(PROGS)
 
-xmlparser: $(srcdir)/xmlparser.cc
+library: $(srcdir)/library.cc
 	$(CXX) $(CXX_SWITCHES) -o $@ $< $(LIBS)
 
 install:

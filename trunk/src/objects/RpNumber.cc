@@ -15,7 +15,6 @@
 #include "RpUnits.h"
 #include "RpSimpleBuffer.h"
 #include "RpUnitsCInterface.h"
-#include "RpParserXML.h"
 #include "RpPath.h"
 
 using namespace Rappture;
@@ -301,64 +300,57 @@ Number::delPreset(const char *label)
 }
 
 /**********************************************************************/
-// METHOD: xml()
-/// view this object's xml
+// METHOD: configure(Rp_ParserXml *p)
+/// construct a number object from the provided tree
 /**
- * View this object as an xml element returned as text.
+ * construct a number object from the provided tree
  */
 
-const char *
-Number::xml(size_t indent, size_t tabstop)
+void
+Number::configure(size_t as, void *p)
 {
-    size_t l1width = indent + (1*tabstop);
-    size_t l2width = indent + (2*tabstop);
-    const char *sp = "";
-
-    Path p(path());
-    _tmpBuf.clear();
-
-    _tmpBuf.appendf(
-"%8$*5$s<number id='%1$s'>\n\
-%8$*6$s<about>\n\
-%8$*7$s<label>%2$s</label>\n\
-%8$*7$s<description>%3$s</description>\n\
-%8$*6$s</about>\n\
-%8$*6$s<units>%4$s</units>\n",
-       p.id(),label(),desc(),units(),indent,l1width,l2width,sp);
-
-    if (_minSet) {
-        _tmpBuf.appendf("%4$*3$s<min>%1$g%2$s</min>\n", min(),units(),l1width,sp);
+    if (as == RPCONFIG_XML) {
+        __configureFromXml((const char *)p);
+    } else if (as == RPCONFIG_TREE) {
+        __configureFromTree((Rp_ParserXml *)p);
     }
-    if (_maxSet) {
-        _tmpBuf.appendf("%4$*3$s<max>%1$g%2$s</max>\n", max(),units(),l1width,sp);
-    }
-
-    _tmpBuf.appendf(
-"%6$*5$s<default>%1$g%3$s</default>\n\
-%6$*5$s<current>%2$g%3$s</current>\n\
-%6$*4$s</number>",
-       def(),cur(),units(),indent,l1width,sp);
-
-    return _tmpBuf.bytes();
 }
 
 /**********************************************************************/
-// METHOD: xml(const char *xmltext)
+// METHOD: configureFromXml(const char *xmltext)
 /// configure the object based on Rappture1.1 xmltext
 /**
  * Configure the object based on the provided xml
  */
 
 void
-Number::xml(const char *xmltext)
+Number::__configureFromXml(const char *xmltext)
 {
-    Rp_ParserXml *p = NULL;
+    if (xmltext == NULL) {
+        // FIXME: setup error
+        return;
+    }
 
-    p = Rp_ParserXmlCreate();
-
+    Rp_ParserXml *p = Rp_ParserXmlCreate();
     Rp_ParserXmlParse(p, xmltext);
+    configure(RPCONFIG_TREE, p);
+
+    return;
+}
+
+void
+Number::__configureFromTree(Rp_ParserXml *p)
+{
+    if (p == NULL) {
+        // FIXME: setup error
+        return;
+    }
 
     Rp_TreeNode node = Rp_ParserXmlElement(p,NULL);
+
+    Rappture::Path pathObj(Rp_ParserXmlNodePath(p,node));
+
+    path(pathObj.parent());
     name(Rp_ParserXmlNodeId(p,node));
     label(Rp_ParserXmlGet(p,"about.label"));
     desc(Rp_ParserXmlGet(p,"about.description"));
@@ -389,41 +381,139 @@ Number::xml(const char *xmltext)
 
     // return the base node to the tree root
     Rp_ParserXmlBaseNode(p,NULL);
+
+    return;
 }
 
 /**********************************************************************/
-// METHOD: tree()
-/// return the object as a tree
-/**
- * Represent the object as a tree.
- * An Rp_TreeNode is returned.
- */
-
-/*
-Rp_TreeNode
-tree()
-{
-    return NULL;
-}
-*/
-
-/**********************************************************************/
-// METHOD: tree(Rp_TreeNode root)
+// METHOD: dump(size_t as, void *p)
 /// construct a number object from the provided tree
 /**
  * construct a number object from the provided tree
  */
 
-/*
 void
-tree(
-    Rp_TreeNode root)
+Number::dump(size_t as, ClientData p)
 {
-    if (root == NULL) {
-        // FIXME: setup error
+    if (as == RPCONFIG_XML) {
+        __dumpToXml((clientdata_xml *)p);
+    } else if (as == RPCONFIG_TREE) {
+        __dumpToTree((clientdata_tree *)p);
     }
 }
-*/
+
+/**********************************************************************/
+// METHOD: dumpToXml(ClientData p)
+/// configure the object based on Rappture1.1 xmltext
+/**
+ * Configure the object based on the provided xml
+ */
+
+void
+Number::__dumpToXml(ClientData c)
+{
+    if (c == NULL) {
+        // FIXME: setup error
+        return;
+    }
+
+    clientdata_xml *d = (clientdata_xml *)c;
+
+    size_t l1width = d->indent + (1*d->tabstop);
+    size_t l2width = d->indent + (2*d->tabstop);
+    const char *sp = "";
+
+    Path p(path());
+    _tmpBuf.clear();
+
+    _tmpBuf.appendf(
+"%8$*5$s<number id='%1$s'>\n\
+%8$*6$s<about>\n\
+%8$*7$s<label>%2$s</label>\n\
+%8$*7$s<description>%3$s</description>\n\
+%8$*6$s</about>\n\
+%8$*6$s<units>%4$s</units>\n",
+       p.id(),label(),desc(),units(),d->indent,l1width,l2width,sp);
+
+    if (_minSet) {
+        _tmpBuf.appendf("%4$*3$s<min>%1$g%2$s</min>\n", min(),units(),l1width,sp);
+    }
+    if (_maxSet) {
+        _tmpBuf.appendf("%4$*3$s<max>%1$g%2$s</max>\n", max(),units(),l1width,sp);
+    }
+
+    _tmpBuf.appendf(
+"%6$*5$s<default>%1$g%3$s</default>\n\
+%6$*5$s<current>%2$g%3$s</current>\n\
+%6$*4$s</number>",
+       def(),cur(),units(),d->indent,l1width,sp);
+
+    d->retStr =  _tmpBuf.bytes();
+}
+
+/**********************************************************************/
+// METHOD: dumpToTree(ClientData p)
+/// dump the object to a Rappture1.1 based tree
+/**
+ * Dump the object to a Rappture1.1 based tree
+ */
+
+void
+Number::__dumpToTree(ClientData c)
+{
+    if (c == NULL) {
+        // FIXME: setup error
+        return;
+    }
+
+    Rp_ParserXml *parser = (Rp_ParserXml *)c;
+
+    Path p;
+
+    p.parent(path());
+    p.last();
+
+    p.add("number");
+    p.id(name());
+
+    p.add("about");
+
+    p.add("label");
+    Rp_ParserXmlPutF(parser,p.path(),"%s",label());
+
+    p.del();
+    p.add("description");
+    Rp_ParserXmlPutF(parser,p.path(),"%s",desc());
+
+    p.del();
+    p.del();
+    p.add("units");
+    Rp_ParserXmlPutF(parser,p.path(),"%s",units());
+
+
+    if (_minSet) {
+        p.del();
+        p.add("min");
+        Rp_ParserXmlPutF(parser,p.path(),"%g",min());
+    }
+
+    if (_maxSet) {
+        p.del();
+        p.add("max");
+        Rp_ParserXmlPutF(parser,p.path(),"%g",max());
+    }
+
+    p.del();
+    p.add("default");
+    Rp_ParserXmlPutF(parser,p.path(),"%g",def());
+
+    p.del();
+    p.add("current");
+    Rp_ParserXmlPutF(parser,p.path(),"%g",cur());
+
+    // still need to add presets
+    return;
+}
 
 /**********************************************************************/
 // METHOD: is()

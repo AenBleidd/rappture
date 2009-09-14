@@ -169,7 +169,7 @@ int tree_3_0 ()
     const char *parentNodeName = "myparentnode";
     const char *childNodeName = "mychildnode";
     const char *childNodeValue = "quick brown fox";
-    const char *expected = "quick brown fox1";
+    const char *expected = "quick brown fox";
     const char *received = NULL;
 
     Rp_Tree t;

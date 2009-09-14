@@ -14,11 +14,15 @@ INSTALL_DATA    = @INSTALL_DATA@
 VPATH           = $(srcdir)
 RM              = rm -f
 
+#		dxReader \
+#		dxWriter \
+
 examples = \
 		axis \
 		curve \
 		floatBuffer \
 		histogram \
+		library \
 		number \
 		path \
 		plot \
