@@ -54,7 +54,7 @@ itcl::class Rappture::MolvisViewer {
     private method BuildViewTab {}
     private method DoResize {} 
     private method EventuallyResize { w h } 
-    private method GetPngImage { widget width height }
+    private method GetImage { widget }
     private method ReceiveImage { size cacheid frame rock }
     private method WaitIcon { option widget }
 
@@ -80,7 +80,6 @@ itcl::class Rappture::MolvisViewer {
     public method get {}
     public method isconnected {}
     public method labels {option {model "all"}}
-    public method cartoon {option {model "all"}}
     public method cartoontrace {option {model "all"}}
     public method opacity {option {models "all"} }
     public method parameters {title args} { 
@@ -89,6 +88,9 @@ itcl::class Rappture::MolvisViewer {
     public method projection {option}
     public method representation {option {model "all"} }
     public method rock {option}
+    private method DownloadPopup { popup command } 
+    private method EnableDownload { popup what }
+
     private variable _icon 0
 
     private variable _mevent;		# info used for mouse event operations
@@ -199,7 +201,6 @@ itcl::body Rappture::MolvisViewer::constructor {hostlist args} {
     array set _settings [subst {
 	$this-spherescale 0.25
 	$this-stickradius 0.14
-	$this-cartoon   no
 	$this-cartoontrace no
 	$this-model     ballnstick
 	$this-modelimg  [Rappture::icon ballnstick]
@@ -401,7 +402,7 @@ itcl::body Rappture::MolvisViewer::BuildViewTab {} {
         -icon [Rappture::icon wrench]]
     $inner configure -borderwidth 4
 
-    label $inner.drawinglabel -text "Molecule Reprsentation" \
+    label $inner.drawinglabel -text "Molecule Representation" \
 	-font "Arial 9 bold"
 
     label $inner.pict -image $_settings($this-modelimg)
@@ -429,10 +430,17 @@ itcl::body Rappture::MolvisViewer::BuildViewTab {} {
 
     radiobutton $inner.lines -text "lines" \
 	-command [itcl::code $this representation lines all] \
-	-variable Rappture::MolvisViewer::_settings($this-model) \
+	-variable [itcl::scope _settings($this-model)] \
 	-value lines -font "Arial 9" -pady 0
     Rappture::Tooltip::for $inner.lines \
 	"Display bonds as lines. Do not display atoms."
+
+    radiobutton $inner.cartoon -text "cartoon" \
+	-command [itcl::code $this representation cartoon all] \
+	-variable [itcl::scope _settings($this-model)] \
+	-value cartoon -font "Arial 9" -pady 0
+    Rappture::Tooltip::for $inner.cartoon \
+	"Display cartoon representation of bonds (sticks)."
 
     scale $inner.spherescale -width 10 -font "Arial 9 bold" \
 	-from 0.1 -to 2.0 -resolution 0.05 -label "Sphere Scale" \
@@ -473,13 +481,6 @@ itcl::body Rappture::MolvisViewer::BuildViewTab {} {
     Rappture::Tooltip::for $inner.ortho \
 	"Toggle between orthoscopic/perspective projection modes."
 
-    checkbutton $inner.cartoon -text "Cartoon" \
-	-command [itcl::code $this cartoon update] \
-	-variable [itcl::scope _settings($this-cartoon)] \
-	-font "Arial 9 bold"
-    Rappture::Tooltip::for $inner.cartoon \
-	"Set cartoon representation of bonds (sticks)."
-
     checkbutton $inner.cartoontrace -text "Cartoon Trace" \
 	-command [itcl::code $this cartoontrace update] \
 	-variable [itcl::scope _settings($this-cartoontrace)] \
@@ -490,24 +491,24 @@ itcl::body Rappture::MolvisViewer::BuildViewTab {} {
     label $inner.spacer
     blt::table $inner \
 	0,0 $inner.drawinglabel -anchor w -columnspan 4 \
-	1,1 $inner.pict -anchor w -rowspan 4 \
+	1,1 $inner.pict -anchor w -rowspan 5 \
 	1,2 $inner.bstick -anchor w -columnspan 2 \
 	2,2 $inner.spheres -anchor w -columnspan 2 \
 	3,2 $inner.sticks -anchor w -columnspan 2 \
 	4,2 $inner.lines -anchor w -columnspan 2 \
-	5,0 $inner.labels -anchor w -columnspan 4 -pady {6 0} \
-	6,0 $inner.rock -anchor w -columnspan 4 -pady {6 0} \
-	7,0 $inner.ortho -anchor w -columnspan 4 -pady {6 0} \
-	8,1 $inner.spherescale -fill x -columnspan 4 -pady {6 0} \
-	10,1 $inner.stickradius -fill x -columnspan 4 -pady {6 0} \
-	12,0 $inner.cartoon -anchor w -columnspan 4 -pady {6 0} \
-	13,0 $inner.cartoontrace -anchor w -columnspan 4 -pady {6 0} \
+	5,2 $inner.cartoon -anchor w -columnspan 2 \
+	6,0 $inner.labels -anchor w -columnspan 4 -pady {1 0} \
+	7,0 $inner.rock -anchor w -columnspan 4 -pady {1 0} \
+	8,0 $inner.ortho -anchor w -columnspan 4 -pady {1 0} \
+	9,0 $inner.cartoontrace -anchor w -columnspan 4 -pady {1 0} \
+	10,1 $inner.spherescale -fill x -columnspan 4 -pady {1 0} \
+	11,1 $inner.stickradius -fill x -columnspan 4 -pady {1 0} \
 
     blt::table configure $inner c0 -resize expand -width 2
     blt::table configure $inner c1 c2 -resize none
     blt::table configure $inner c3 -resize expand
     blt::table configure $inner r* -resize none
-    blt::table configure $inner r14 -resize expand
+    blt::table configure $inner r13 -resize expand
 }
 
 
@@ -536,42 +537,12 @@ itcl::body Rappture::MolvisViewer::download {option args} {
 	coming {}
 	controls {
 	    set popup .molvisviewerdownload
-	    if {![winfo exists .molvisviewerdownload]} {
-		# if we haven't created the popup yet, do it now
-		Rappture::Balloon $popup \
-		    -title "[Rappture::filexfer::label downloadWord] as..."
-		set inner [$popup component inner]
-		label $inner.summary -text "" -anchor w
-		pack $inner.summary -side top
-		set img $_image(plot)
-		set res "[image width $img]x[image height $img]"
-		radiobutton $inner.draft -text "Image (draft $res)" \
-		    -variable Rappture::MolvisViewer::_downloadPopup(format) \
-		    -value draft
-		pack $inner.draft -anchor w
-
-		set res "1200x1200"
-		radiobutton $inner.medium -text "Image (standard $res)" \
-		    -variable Rappture::MolvisViewer::_downloadPopup(format) \
-		    -value $res
-		pack $inner.medium -anchor w
-
-		set res "2400x2400"
-		radiobutton $inner.high -text "Image (high quality $res)" \
-		    -variable Rappture::MolvisViewer::_downloadPopup(format) \
-		    -value $res
-		pack $inner.high -anchor w
-
-		radiobutton $inner.pdb -text "PDB File" \
-		    -variable Rappture::MolvisViewer::_downloadPopup(format) \
-		    -value pdb
-		pack $inner.pdb -anchor w
-		button $inner.go -text [Rappture::filexfer::label download] \
-		    -command [lindex $args 0]
-		pack $inner.go -pady 4
+	    if { ![winfo exists .molvisviewerdownload] } {
+		set inner [DownloadPopup $popup [lindex $args 0]]
 	    } else {
 		set inner [$popup component inner]
 	    }
+	    set _downloadPopup(image_controls) $inner.image_frame
 	    set num [llength [get]]
 	    set num [expr {($num == 1) ? "1 result" : "$num results"}]
 	    set word [Rappture::filexfer::label downloadWord]
@@ -586,22 +557,10 @@ itcl::body Rappture::MolvisViewer::download {option args} {
 		$popup deactivate
 	    }
 	    switch -- $_downloadPopup(format) {
-		draft {
-		    # Get the image data (as base64) and decode it back to
-		    # binary.  This is better than writing to temporary
-		    # files.  When we switch to the BLT picture image it
-		    # won't be necessary to decode the image data.
-		    set bytes [$_image(plot) data -format "jpeg -quality 100"]
-		    set bytes [Rappture::encoding::decode -as b64 $bytes]
-		    return [list .jpg $bytes]
+		"image" {
+		    return [$this GetImage [lindex $args 0]]
 		}
-		"2400x2400" {
-		    return [$this GetPngImage [lindex $args 0] 2400 2400]
-		}
-		"1200x1200" {
-		    return [$this GetPngImage [lindex $args 0] 1200 1200]
-		}
-		pdb {
+		"pdb" {
 		    return [list .pdb $_pdbdata]
 		}
 	    }
@@ -899,7 +858,6 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
     stickradius update
     labels update 
     opacity update 
-    cartoon update 
     cartoontrace update 
 
     projection update 
@@ -1535,14 +1493,34 @@ itcl::body Rappture::MolvisViewer::WaitIcon  { option widget } {
     }
 }
 	    
-itcl::body Rappture::MolvisViewer::GetPngImage  { widget width height } {
+itcl::body Rappture::MolvisViewer::GetImage { widget } {
     set token "print[incr _nextToken]"
     set var ::Rappture::MolvisViewer::_hardcopy($this-$token)
     set $var ""
 
+    set controls $_downloadPopup(image_controls) 
+    set combo $controls.size_combo
+    set size [$combo translate [$combo value]]
+    switch -- $size {
+	"standard" {
+	    set width 1200
+	    set height 1200
+	}
+	"highquality" {
+	    set width 2400
+	    set height 2400
+	}
+	"draft" {
+	    set width 400
+	    set height 400
+	}
+	default {
+	    error "unknown image size [$inner.image_size_combo value]"
+	}
+    }
     # Setup an automatic timeout procedure.
     $_dispatcher dispatch $this !pngtimeout "set $var {} ; list"
-
+    
     set popup .molvisviewerprint
     if { ![winfo exists $popup] } {
 	Rappture::Balloon $popup -title "Generating file..."
@@ -1563,13 +1541,15 @@ itcl::body Rappture::MolvisViewer::GetPngImage  { widget width height } {
     } else {
 	set inner [$popup component inner]
     }
-
+    set combo $controls.bgcolor_combo
+    set bgcolor [$combo translate [$combo value]]
+    
     $_dispatcher event -after 60000 !pngtimeout
     WaitIcon start $inner.icon
     grab set -local $inner
     focus $inner.cancel
-
-    SendCmd "print $token $width $height"
+    
+    SendCmd "print $token $width $height $bgcolor"
 
     $popup activate $widget below
     # We wait here for either 
@@ -1586,7 +1566,25 @@ itcl::body Rappture::MolvisViewer::GetPngImage  { widget width height } {
     update
 
     if { $_hardcopy($this-$token) != "" } {
-	return [list .png $_hardcopy($this-$token)]
+	set combo $controls.type_combo
+	set type [$combo translate [$combo value]]
+	switch -- $type {
+	    "jpg" {
+		set img [image create photo -data $_hardcopy($this-$token)]
+		set bytes [$img data -format "jpeg -quality 100"]
+		set bytes [Rappture::encoding::decode -as b64 $bytes]
+		return [list .jpg $bytes]
+	    }
+	    "gif" {
+		set img [image create photo -data $_hardcopy($this-$token)]
+		set bytes [$img data -format "gif"]
+		set bytes [Rappture::encoding::decode -as b64 $bytes]
+		return [list .gif $bytes]
+	    }
+	    "png" {
+		return [list .png $_hardcopy($this-$token)]
+	    }
+	}
     }
     return ""
 }
@@ -1728,36 +1726,6 @@ itcl::body Rappture::MolvisViewer::labels {option {models "all"}} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: cartoon on|off|toggle
-# USAGE: cartoon update
-#
-# Used internally to turn labels associated with atoms on/off, and to
-# update the positions of the labels so they sit on top of each atom.
-# ----------------------------------------------------------------------
-itcl::body Rappture::MolvisViewer::cartoon {option {models "all"}} {
-    set cartoon $_settings($this-cartoon)
-    if { $option == "update" } {
-	set cartoon $_settings($this-cartoon)
-    } elseif { [string is boolean $option] } {
-	set cartoon $option
-    } else {
-	error "bad option \"$option\""
-    }
-    set _settings($this-cartoon) $cartoon
-    if { $models == "all" } {
-	set models [array names _mlist] 
-    }
-    SendCmd "cartoon -model all off"
-    if { $cartoon } {
-	foreach model $models {
-	    if { [info exists _active($model)] } {
-		SendCmd "cartoon -model $model $cartoon"
-	    }
-	}
-    }
-}
-
-# ----------------------------------------------------------------------
 # USAGE: cartoontrace on|off|toggle
 # USAGE: cartoontrace update
 #
@@ -1783,6 +1751,95 @@ itcl::body Rappture::MolvisViewer::cartoontrace {option {models "all"}} {
 	    if { [info exists _active($model)] } {
 		SendCmd "cartoontrace -model $model $trace"
 	    }
+	}
+    }
+}
+
+itcl::body Rappture::MolvisViewer::DownloadPopup { popup command } {
+    Rappture::Balloon $popup \
+	-title "[Rappture::filexfer::label downloadWord] as..."
+    set inner [$popup component inner]
+    label $inner.summary -text "" -anchor w -font "Arial 11 bold"
+    radiobutton $inner.pdb_button -text "PDB File" \
+	-variable [itcl::scope _downloadPopup(format)] \
+	-command [itcl::code $this EnableDownload $popup pdb] \
+	-font "Arial 10 " \
+	-value pdb  
+    radiobutton $inner.image_button -text "Image File" \
+	-variable [itcl::scope _downloadPopup(format)] \
+	-command [itcl::code $this EnableDownload $popup image] \
+	-font "Arial 10 " \
+	-value image 
+
+    set controls [frame $inner.image_frame -bd 2 -relief groove]
+    label $controls.size_label -text "Size:" \
+	-font "Arial 9" 
+    set img $_image(plot)
+    set res "[image width $img]x[image height $img]"
+    Rappture::Combobox $controls.size_combo -width 20 -editable no
+    $controls.size_combo choices insert end \
+	"draft"  "Draft (400x400)"         \
+	"standard"  "Standard (1200x1200)"          \
+	"highquality"  "High Quality (2400x2400)"
+
+    label $controls.bgcolor_label -text "Background:" \
+	-font "Arial 9" 
+    Rappture::Combobox $controls.bgcolor_combo -width 20 -editable no
+    $controls.bgcolor_combo choices insert end \
+	"black"  "Black" \
+	"white"  "White"         
+
+    label $controls.type_label -text "Type:" \
+	-font "Arial 9" 
+    Rappture::Combobox $controls.type_combo -width 20 -editable no
+    $controls.type_combo choices insert end \
+	"jpg"  "JPEG Joint Photographic Experts Group Format (*.jpg)" \
+	"png"  "PNG Portable Network Graphics Format (*.png)"         
+
+    button $inner.go -text [Rappture::filexfer::label download] \
+	-command $command
+
+    blt::table $controls \
+	1,0 $controls.size_label -anchor e \
+	1,1 $controls.size_combo -anchor w \
+	2,0 $controls.bgcolor_label -anchor e \
+	2,1 $controls.bgcolor_combo -anchor w \
+	3,0 $controls.type_label -anchor e \
+	3,1 $controls.type_combo -anchor w 
+    blt::table configure $controls r0 -height 16 
+    blt::table configure $controls -padx 4 -pady {0 6}
+    blt::table $inner \
+	0,0 $inner.summary -cspan 2 \
+	1,0 $inner.pdb_button -cspan 2 -anchor w \
+	2,0 $inner.image_button -cspan 2 -rspan 2 -anchor nw \
+	3,1 $controls \
+	6,0 $inner.go -cspan 2 -pady 5
+    blt::table configure $inner c0 -width 11
+    blt::table configure $inner r2 -height 11
+    #blt::table configure $inner c1 -width 8
+    raise $inner.image_button
+    $inner.pdb_button invoke
+    $controls.bgcolor_combo value "Black"
+    $controls.size_combo value "Draft (400x400)"
+    $controls.type_combo value  "PNG Portable Network Graphics Format (*.png)" 
+    return $inner
+}
+
+itcl::body Rappture::MolvisViewer::EnableDownload { popup what } {
+    set inner [$popup component inner]
+    switch -- $what {
+	"pdb" {
+	    foreach w [winfo children $inner.image_frame] {
+		$w configure -state disabled
+	    }
+	}
+	"image" {
+	    foreach w [winfo children $inner.image_frame] {
+		$w configure -state normal
+	    }
+	}
+	default {
+	    error "unknown type of download"
 	}
     }
 }
