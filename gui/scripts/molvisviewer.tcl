@@ -1787,7 +1787,8 @@ itcl::body Rappture::MolvisViewer::DownloadPopup { popup command } {
     Rappture::Combobox $controls.bgcolor_combo -width 20 -editable no
     $controls.bgcolor_combo choices insert end \
 	"black"  "Black" \
-	"white"  "White"         
+	"white"  "White" \
+	"none"  "Transparent (PNG only)"         
 
     label $controls.type_label -text "Type:" \
 	-font "Arial 9" 
