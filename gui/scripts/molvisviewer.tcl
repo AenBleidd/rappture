@@ -1760,16 +1760,20 @@ itcl::body Rappture::MolvisViewer::DownloadPopup { popup command } {
 	-title "[Rappture::filexfer::label downloadWord] as..."
     set inner [$popup component inner]
     label $inner.summary -text "" -anchor w -font "Arial 11 bold"
-    radiobutton $inner.pdb_button -text "PDB File" \
+    radiobutton $inner.pdb_button -text "PDB Protein Data Bank Format File" \
 	-variable [itcl::scope _downloadPopup(format)] \
 	-command [itcl::code $this EnableDownload $popup pdb] \
 	-font "Arial 10 " \
 	-value pdb  
+    Rappture::Tooltip::for $inner.pdb_button \
+	"Save as PDB Protein Data Bank format file."
     radiobutton $inner.image_button -text "Image File" \
 	-variable [itcl::scope _downloadPopup(format)] \
 	-command [itcl::code $this EnableDownload $popup image] \
 	-font "Arial 10 " \
 	-value image 
+    Rappture::Tooltip::for $inner.image_button \
+	"Save as digital image."
 
     set controls [frame $inner.image_frame -bd 2 -relief groove]
     label $controls.size_label -text "Size:" \
@@ -1802,18 +1806,18 @@ itcl::body Rappture::MolvisViewer::DownloadPopup { popup command } {
 
     blt::table $controls \
 	1,0 $controls.size_label -anchor e \
-	1,1 $controls.size_combo -anchor w \
+	1,1 $controls.size_combo -anchor w -fill x \
 	2,0 $controls.bgcolor_label -anchor e \
-	2,1 $controls.bgcolor_combo -anchor w \
+	2,1 $controls.bgcolor_combo -anchor w -fill x \
 	3,0 $controls.type_label -anchor e \
-	3,1 $controls.type_combo -anchor w 
+	3,1 $controls.type_combo -anchor w -fill x  
     blt::table configure $controls r0 -height 16 
     blt::table configure $controls -padx 4 -pady {0 6}
     blt::table $inner \
 	0,0 $inner.summary -cspan 2 \
 	1,0 $inner.pdb_button -cspan 2 -anchor w \
-	2,0 $inner.image_button -cspan 2 -rspan 2 -anchor nw \
-	3,1 $controls \
+	2,0 $inner.image_button -cspan 2 -rspan 2 -anchor nw -ipadx 2 -ipady 2 \
+	3,1 $controls -fill both \
 	6,0 $inner.go -cspan 2 -pady 5
     blt::table configure $inner c0 -width 11
     blt::table configure $inner r2 -height 11
