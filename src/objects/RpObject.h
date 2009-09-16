@@ -77,8 +77,8 @@ class Object
         // virtual void xml(const char *xmltext);
 
         // configure the object properties based on Rappture1.1 xml text
-        virtual void configure(size_t as, void *p);
-        virtual void dump(size_t as, void *p);
+        virtual void configure(size_t as, ClientData c);
+        virtual void dump(size_t as, ClientData c);
 
         virtual const int is() const;
 
@@ -97,7 +97,6 @@ class Object
 
         /// close out the object, freeing its memory
         void __clear();
-
 };
 
 } // RAPPTURE_OBJECT_H

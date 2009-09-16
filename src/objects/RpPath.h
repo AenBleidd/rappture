@@ -53,6 +53,7 @@ public:
     Path& prev();
     Path& next();
     Path& last();
+    Path& clear();
     size_t count();
 
     // turns input.number(blah) into number(blah)

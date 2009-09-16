@@ -408,6 +408,14 @@ Path::last ()
     return *this;
 }
 
+Path&
+Path::clear ()
+{
+    __pathFree();
+    __pathInit();
+    return *this;
+}
+
 size_t
 Path::count ()
 {

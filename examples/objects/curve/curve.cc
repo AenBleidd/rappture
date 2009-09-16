@@ -40,27 +40,28 @@ int curve_1_0 ()
     const char *testname = "curve_1_0";
 
     const char *expected = "<?xml version=\"1.0\"?>\n\
-<curve id=\"myid\">\n\
-    <about>\n\
-        <group>mygroup</group>\n\
-        <label>mylabel</label>\n\
-        <description>mydesc</description>\n\
-        <type>(null)</type>\n\
-    </about>\n\
-    <xaxis>\n\
-        <label>xlabel</label>\n\
-        <description>xdesc</description>\n\
-        <units>xunits</units>\n\
-        <scale>xscale</scale>\n\
-    </xaxis>\n\
-    <yaxis>\n\
-        <label>ylabel</label>\n\
-        <description>ydesc</description>\n\
-        <units>yunits</units>\n\
-        <scale>yscale</scale>\n\
-    </yaxis>\n\
-    <component>\n\
-        <xy>         1         1\n\
+<run>\n\
+    <curve id=\"myid\">\n\
+        <about>\n\
+            <group>mygroup</group>\n\
+            <label>mylabel</label>\n\
+            <description>mydesc</description>\n\
+            <type>(null)</type>\n\
+        </about>\n\
+        <xaxis>\n\
+            <label>xlabel</label>\n\
+            <description>xdesc</description>\n\
+            <units>xunits</units>\n\
+            <scale>xscale</scale>\n\
+        </xaxis>\n\
+        <yaxis>\n\
+            <label>ylabel</label>\n\
+            <description>ydesc</description>\n\
+            <units>yunits</units>\n\
+            <scale>yscale</scale>\n\
+        </yaxis>\n\
+        <component>\n\
+            <xy>         1         1\n\
          2         4\n\
          3         9\n\
          4        16\n\
@@ -71,8 +72,9 @@ int curve_1_0 ()
          9        81\n\
         10       100\n\
 </xy>\n\
-    </component>\n\
-</curve>\n\
+        </component>\n\
+    </curve>\n\
+</run>\n\
 ";
     const char *received = NULL;
 
