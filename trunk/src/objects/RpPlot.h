@@ -41,12 +41,14 @@ class Plot : public Object
         Curve *curve (const char* name) const;
         Curve *getNthCurve(size_t n) const;
 
-        const char *xml(size_t indent, size_t tabstop);
+        void configure(size_t as, ClientData p);
+        void dump(size_t as, ClientData p);
+
         const int is() const;
 
     private:
 
-        // hash or linked list of preset values
+        // hash or linked list of curves
         Rp_Chain *_curveList;
 
         static const char format[];
@@ -59,6 +61,11 @@ class Plot : public Object
 
         Rp_ChainLink *__searchCurveList(const char *name) const;
         static int __curveCopyFxn(void **to, void *from);
+
+        void __configureFromXml(ClientData c);
+        void __configureFromTree(ClientData c);
+        void __dumpToXml(ClientData c);
+        void __dumpToTree(ClientData c);
 };
 
 } // namespace Rappture

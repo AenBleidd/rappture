@@ -311,13 +311,13 @@ Object::xml(const char *xmltext)
 */
 
 void
-Object::configure(size_t as, void *p)
+Object::configure(size_t as, ClientData c)
 {
     return;
 }
 
 void
-Object::dump(size_t as, void *p)
+Object::dump(size_t as, ClientData c)
 {
     return;
 }

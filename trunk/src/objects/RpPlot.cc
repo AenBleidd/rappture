@@ -33,7 +33,8 @@ Plot::Plot ()
         _curveList  (NULL)
 {
     // this->path(autopath());
-    this->path("");
+    this->name("");
+    this->path("run");
     this->label("");
     this->desc("");
 }
@@ -90,9 +91,6 @@ Plot::add(
        return *this;
     }
 
-    // Path cpath;
-    // cpath.id(name);
-    // c->path(cpath.path());
     c->name(name);
 
     // can't use "xaxis" kinda strings here have to allocate it forreal
@@ -251,21 +249,130 @@ Plot::__curveCopyFxn(void **to, void *from)
 }
 
 /**********************************************************************/
-// METHOD: xml()
-/// Return the xml of this object
+// METHOD: configure(Rp_ParserXml *c)
+/// construct a number object from the provided tree
 /**
- * returns the xml of this object
+ * construct a number object from the provided tree
  */
 
-const char *
-Plot::xml(size_t indent, size_t tabstop)
+void
+Plot::configure(size_t as, ClientData c)
 {
+    if (as == RPCONFIG_XML) {
+        __configureFromXml(c);
+    } else if (as == RPCONFIG_TREE) {
+        __configureFromTree(c);
+    }
+}
+
+/**********************************************************************/
+// METHOD: configureFromXml(const char *xmltext)
+/// configure the object based on Rappture1.1 xmltext
+/**
+ * Configure the object based on the provided xml
+ */
+
+void
+Plot::__configureFromXml(ClientData c)
+{
+    const char *xmltext = (const char *) c;
+    if (xmltext == NULL) {
+        // FIXME: setup error
+        return;
+    }
+
+    Rp_ParserXml *p = Rp_ParserXmlCreate();
+    Rp_ParserXmlParse(p, xmltext);
+    configure(RPCONFIG_TREE, p);
+
+    return;
+}
+
+// FIXME: this is an incomplete definition of how to
+//        configure a plot object from a tree because there
+//        currently is no xml description for plot objects
+void
+Plot::__configureFromTree(ClientData c)
+{
+    Rp_ParserXml *p = (Rp_ParserXml *)c;
+    if (p == NULL) {
+        // FIXME: setup error
+        return;
+    }
+
+    Rp_TreeNode node = Rp_ParserXmlElement(p,NULL);
+
+    Rappture::Path pathObj(Rp_ParserXmlNodePath(p,node));
+
+    path(pathObj.parent());
+    name(Rp_ParserXmlNodeId(p,node));
+
+    return;
+}
+
+/**********************************************************************/
+// METHOD: dump(size_t as, void *p)
+/// construct a number object from the provided tree
+/**
+ * construct a number object from the provided tree
+ */
+
+void
+Plot::dump(size_t as, ClientData c)
+{
+    if (as == RPCONFIG_XML) {
+        __dumpToXml(c);
+    } else if (as == RPCONFIG_TREE) {
+        __dumpToTree(c);
+    }
+}
+
+/**********************************************************************/
+// METHOD: dumpToXml(ClientData c)
+/// configure the object based on Rappture1.1 xmltext
+/**
+ * Configure the object based on the provided xml
+ */
+
+void
+Plot::__dumpToXml(ClientData c)
+{
+    if (c == NULL) {
+        // FIXME: setup error
+        return;
+    }
+
+    ClientDataXml *d = (ClientDataXml *) c;
+    Rp_ParserXml *parser = Rp_ParserXmlCreate();
+    __dumpToTree(parser);
+    _tmpBuf.appendf("%s",Rp_ParserXmlXml(parser));
+    d->retStr = _tmpBuf.bytes();
+    Rp_ParserXmlDestroy(&parser);
+}
+
+/**********************************************************************/
+// METHOD: dumpToTree(ClientData p)
+/// dump the object to a Rappture1.1 based tree
+/**
+ * Dump the object to a Rappture1.1 based tree
+ */
+
+void
+Plot::__dumpToTree(ClientData c)
+{
+    if (c == NULL) {
+        // FIXME: setup error
+        return;
+    }
+
+    Rp_ParserXml *parser = (Rp_ParserXml *)c;
+
+    Path p;
+
+    p.parent(path());
+    p.last();
 
     Rp_ChainLink *l = NULL;
-
-    _tmpBuf.clear();
-
-    Rp_ParserXml *parser = Rp_ParserXmlCreate();
 
     l = Rp_ChainFirstLink(_curveList);
     while (l != NULL) {
@@ -278,6 +385,11 @@ Plot::xml(size_t indent, size_t tabstop)
             (strcmp(ccreator,"plot") == 0)) {
             // FIXME: check fields to see if the user specified value
             // plot defined curve, use plot's labels in curve's xml
+            c->group(label());
+            c->label(label());
+            c->desc(desc());
+
+
             const char *xlabel = propstr("xlabel");
             const char *xdesc  = propstr("xdesc");
             const char *xunits = propstr("xunits");
@@ -302,20 +414,12 @@ Plot::xml(size_t indent, size_t tabstop)
                 cyaxis->units(yunits);
                 cyaxis->scale(yscale);
             }
+
         }
 
         c->dump(RPCONFIG_TREE,parser);
         l = Rp_ChainNextLink(l);
     }
-    _tmpBuf.appendf("%s",Rp_ParserXmlXml(parser));
-    Rp_ParserXmlDestroy(&parser);
-
-    // remove trailing newline
-    //_tmpBuf.remove(1);
-    // append terminating null character
-    //_tmpBuf.append("\0",1);
-
-    return _tmpBuf.bytes();
 }
 
 /**********************************************************************/

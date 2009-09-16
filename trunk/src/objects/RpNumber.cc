@@ -27,7 +27,7 @@ Number::Number()
 {
     // FIXME: empty names should be autoname'd
     this->name("");
-    this->path("");
+    this->path("run");
     this->label("");
     this->desc("");
     this->def(0.0);
@@ -47,7 +47,7 @@ Number::Number(const char *name, const char *units, double val)
     const RpUnits *u = NULL;
 
     this->name(name);
-    this->path("");
+    this->path("run");
     this->label("");
     this->desc("");
     this->def(val);
@@ -73,7 +73,7 @@ Number::Number(const char *name, const char *units, double val,
     const RpUnits *u = NULL;
 
     this->name(name);
-    this->path("");
+    this->path("run");
     this->label(label);
     this->desc(desc);
     this->def(val);
@@ -300,19 +300,19 @@ Number::delPreset(const char *label)
 }
 
 /**********************************************************************/
-// METHOD: configure(Rp_ParserXml *p)
+// METHOD: configure(ClientData c)
 /// construct a number object from the provided tree
 /**
  * construct a number object from the provided tree
  */
 
 void
-Number::configure(size_t as, void *p)
+Number::configure(size_t as, ClientData c)
 {
     if (as == RPCONFIG_XML) {
-        __configureFromXml((const char *)p);
+        __configureFromXml(c);
     } else if (as == RPCONFIG_TREE) {
-        __configureFromTree((Rp_ParserXml *)p);
+        __configureFromTree(c);
     }
 }
 
@@ -324,8 +324,9 @@ Number::configure(size_t as, void *p)
  */
 
 void
-Number::__configureFromXml(const char *xmltext)
+Number::__configureFromXml(ClientData c)
 {
+    const char *xmltext = (const char *)c;
     if (xmltext == NULL) {
         // FIXME: setup error
         return;
@@ -339,8 +340,9 @@ Number::__configureFromXml(const char *xmltext)
 }
 
 void
-Number::__configureFromTree(Rp_ParserXml *p)
+Number::__configureFromTree(ClientData c)
 {
+    Rp_ParserXml *p = (Rp_ParserXml *)c;
     if (p == NULL) {
         // FIXME: setup error
         return;
@@ -352,8 +354,13 @@ Number::__configureFromTree(Rp_ParserXml *p)
 
     path(pathObj.parent());
     name(Rp_ParserXmlNodeId(p,node));
-    label(Rp_ParserXmlGet(p,"about.label"));
-    desc(Rp_ParserXmlGet(p,"about.description"));
+
+    pathObj.clear();
+    pathObj.add("about");
+    pathObj.add("label");
+    label(Rp_ParserXmlGet(p,pathObj.path()));
+    pathObj.type("description");
+    desc(Rp_ParserXmlGet(p,pathObj.path()));
     units(Rp_ParserXmlGet(p,"units"));
     minFromStr(Rp_ParserXmlGet(p,"min"));
     maxFromStr(Rp_ParserXmlGet(p,"max"));
@@ -417,10 +424,11 @@ Number::__dumpToXml(ClientData c)
         return;
     }
 
+    ClientDataXml *d = (ClientDataXml *)c;
     Rp_ParserXml *parser = Rp_ParserXmlCreate();
     __dumpToTree(parser);
-    const char *xmltext = Rp_ParserXmlXml(parser);
-    _tmpBuf.appendf("%s",xmltext);
+    _tmpBuf.appendf("%s",Rp_ParserXmlXml(parser));
+    d->retStr = _tmpBuf.bytes();
     Rp_ParserXmlDestroy(&parser);
 }
 

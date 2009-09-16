@@ -28,7 +28,7 @@ Curve::Curve ()
       _axisList (NULL)
 {
     this->name("");
-    this->path("");
+    this->path("run");
     this->label("");
     this->desc("");
     this->group("");
@@ -39,7 +39,7 @@ Curve::Curve (const char *name)
       _axisList (NULL)
 {
     this->name(name);
-    this->path("");
+    this->path("run");
     this->label("");
     this->desc("");
     this->group("");
@@ -51,7 +51,7 @@ Curve::Curve (const char *name, const char *label, const char *desc,
       _axisList (NULL)
 {
     this->name(name);
-    this->path("");
+    this->path("run");
     this->label(label);
     this->desc(desc);
     this->group(group);
@@ -311,22 +311,54 @@ Curve::__configureFromTree(Rp_ParserXml *p)
 
     path(pathObj.parent());
     name(Rp_ParserXmlNodeId(p,node));
-    label(Rp_ParserXmlGet(p,"about.label"));
-    desc(Rp_ParserXmlGet(p,"about.description"));
 
-    Array1D *xaxis = axis("xaxis","","","","",NULL,0);
-    xaxis->label(Rp_ParserXmlGet(p,"xaxis.label"));
-    xaxis->desc(Rp_ParserXmlGet(p,"xaxis.description"));
-    xaxis->units(Rp_ParserXmlGet(p,"xaxis.units"));
-    xaxis->scale(Rp_ParserXmlGet(p,"xaxis.scale"));
+    pathObj.clear();
+    pathObj.add("about");
+    pathObj.add("label");
+    label(Rp_ParserXmlGet(p,pathObj.path()));
 
-    Array1D *yaxis = axis("yaxis","","","","",NULL,0);
-    yaxis->label(Rp_ParserXmlGet(p,"yaxis.label"));
-    yaxis->desc(Rp_ParserXmlGet(p,"yaxis.description"));
-    yaxis->units(Rp_ParserXmlGet(p,"yaxis.units"));
-    yaxis->scale(Rp_ParserXmlGet(p,"yaxis.scale"));
+    pathObj.del();
+    pathObj.add("description");
+    desc(Rp_ParserXmlGet(p,pathObj.path()));
 
-    const char *values = Rp_ParserXmlGet(p,"component.xy");
+
+    Array1D *xaxis = axis(Curve::x,"","","","",NULL,0);
+    pathObj.del();
+    pathObj.del();
+    pathObj.add(Curve::x);
+    pathObj.add("label");
+    xaxis->label(Rp_ParserXmlGet(p,pathObj.path()));
+    pathObj.del();
+    pathObj.add("description");
+    xaxis->desc(Rp_ParserXmlGet(p,pathObj.path()));
+    pathObj.del();
+    pathObj.add("units");
+    xaxis->units(Rp_ParserXmlGet(p,pathObj.path()));
+    pathObj.del();
+    pathObj.add("scale");
+    xaxis->scale(Rp_ParserXmlGet(p,pathObj.path()));
+
+    Array1D *yaxis = axis(Curve::y,"","","","",NULL,0);
+    pathObj.del();
+    pathObj.del();
+    pathObj.add(Curve::y);
+    pathObj.add("label");
+    yaxis->label(Rp_ParserXmlGet(p,pathObj.path()));
+    pathObj.del();
+    pathObj.add("description");
+    yaxis->desc(Rp_ParserXmlGet(p,pathObj.path()));
+    pathObj.del();
+    pathObj.add("units");
+    yaxis->units(Rp_ParserXmlGet(p,pathObj.path()));
+    pathObj.del();
+    pathObj.add("scale");
+    yaxis->scale(Rp_ParserXmlGet(p,pathObj.path()));
+
+    pathObj.del();
+    pathObj.del();
+    pathObj.add("component");
+    pathObj.add("xy");
+    const char *values = Rp_ParserXmlGet(p,pathObj.path());
 
     double x,y;
     int n;
@@ -459,7 +491,8 @@ Curve::__dumpToTree(ClientData c)
         }
         tmpBuf.appendf("\n");
     }
-    p.add("component.xy");
+    p.add("component");
+    p.add("xy");
     Rp_ParserXmlPutF(parser,p.path(),"%s",tmpBuf.bytes());
 
     return;
