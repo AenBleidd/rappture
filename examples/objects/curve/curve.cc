@@ -20,58 +20,84 @@ int test(
     return 0;
 }
 
-int
-printCurve(Rappture::Curve *n)
-{
-    std::cout << "path: " << n->path() << std::endl;
-    std::cout << "label: " << n->label() << std::endl;
-    std::cout << "desc: " << n->desc() << std::endl;
-    std::cout << "group: " << n->group() << std::endl;
-    std::cout << "dims: " << n->dims() << std::endl;
-
-    const Rappture::Array1D *a = NULL;
-
-    for (size_t i = 0; i < n->dims(); i++) {
-        a = n->getNthAxis(i);
-        std::cout << "a[" << i << "] = " << a->label() << std::endl;
-    }
-
-    std::cout << "xml: " << n->xml(indent,tabstop) << std::endl;
-    return 0;
-}
-
 int curve_0_0 ()
 {
     const char *desc = "test basic constructor";
     const char *testname = "curve_0_0";
 
-    const char *expected = "output.curve(myid)";
+    const char *expected = "myid";
     const char *received = NULL;
 
     Rappture::Curve c(expected);
-    received = c.path();
+    received = c.name();
+
+    return test(testname,desc,expected,received);
+}
+
+int curve_1_0 ()
+{
+    const char *desc = "test generating xml text for curve object";
+    const char *testname = "curve_1_0";
+
+    const char *expected = "<?xml version=\"1.0\"?>\n\
+<curve id=\"myid\">\n\
+    <about>\n\
+        <group>mygroup</group>\n\
+        <label>mylabel</label>\n\
+        <description>mydesc</description>\n\
+        <type>(null)</type>\n\
+    </about>\n\
+    <xaxis>\n\
+        <label>xlabel</label>\n\
+        <description>xdesc</description>\n\
+        <units>xunits</units>\n\
+        <scale>xscale</scale>\n\
+    </xaxis>\n\
+    <yaxis>\n\
+        <label>ylabel</label>\n\
+        <description>ydesc</description>\n\
+        <units>yunits</units>\n\
+        <scale>yscale</scale>\n\
+    </yaxis>\n\
+    <component>\n\
+        <xy>         1         1\n\
+         2         4\n\
+         3         9\n\
+         4        16\n\
+         5        25\n\
+         6        36\n\
+         7        49\n\
+         8        64\n\
+         9        81\n\
+        10       100\n\
+</xy>\n\
+    </component>\n\
+</curve>\n\
+";
+    const char *received = NULL;
+
+    Rappture::Curve *c = NULL;
+    double x[] = {1,2,3,4,5,6,7,8,9,10};
+    double y[] = {1,4,9,16,25,36,49,64,81,100};
+
+    c = new Rappture::Curve("myid","mylabel","mydesc","mygroup");
+
+    c->axis("xaxis","xlabel","xdesc","xunits","xscale",x,10);
+    c->axis("yaxis","ylabel","ydesc","yunits","yscale",y,10);
+
+    Rappture::ClientDataXml xmldata;
+    xmldata.indent = indent;
+    xmldata.tabstop = tabstop;
+    xmldata.retStr = NULL;
+    c->dump(Rappture::RPCONFIG_XML,&xmldata);
+    received = xmldata.retStr;
 
     return test(testname,desc,expected,received);
 }
 
 int main()
 {
-    Rappture::Curve *n = NULL;
-    double x[] = {1,2,3,4,5,6,7,8,9,10};
-    double z[] = {1,2,3,4,5,6,7,8,9,10};
-    double y[] = {1,4,9,16,25,36,49,64,91,100};
-
-    n = new Rappture::Curve("output.curve(temperature)","mylabel",
-                            "mydesc","mygroup");
-
-    n->axis("xaxis","xlabel","xdesc","xunits","xscale",x,10);
-    n->axis("yaxis","ylabel","ydesc","yunits","yscale",y,10);
-    n->axis("zaxis","zlabel","zdesc","zunits","zscale",z,10);
-    printCurve(n);
-    n->delAxis("zlabel");
-    n->delAxis("xzylabel");
-    printCurve(n);
-
-    delete n;
+    curve_0_0 ();
+    curve_1_0 ();
     return 0;
 }

@@ -154,7 +154,7 @@ Rp_ParserXmlDestroy(Rp_ParserXml **p)
     delete (*p)->buf;
     delete (*p)->path;
     delete *p;
-    p = NULL;
+    *p = NULL;
 }
 
 void

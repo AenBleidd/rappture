@@ -90,9 +90,10 @@ Plot::add(
        return *this;
     }
 
-    Path cpath;
-    cpath.id(name);
-    c->path(cpath.path());
+    // Path cpath;
+    // cpath.id(name);
+    // c->path(cpath.path());
+    c->name(name);
 
     // can't use "xaxis" kinda strings here have to allocate it forreal
     c->axis(Plot::xaxis,"","","","",x,nPts);
@@ -264,6 +265,8 @@ Plot::xml(size_t indent, size_t tabstop)
 
     _tmpBuf.clear();
 
+    Rp_ParserXml *parser = Rp_ParserXmlCreate();
+
     l = Rp_ChainFirstLink(_curveList);
     while (l != NULL) {
         Curve *c = (Curve *) Rp_ChainGetValue(l);
@@ -301,15 +304,16 @@ Plot::xml(size_t indent, size_t tabstop)
             }
         }
 
-        _tmpBuf.append(c->xml(indent,tabstop));
-        _tmpBuf.append("\n",1);
+        c->dump(RPCONFIG_TREE,parser);
         l = Rp_ChainNextLink(l);
     }
+    _tmpBuf.appendf("%s",Rp_ParserXmlXml(parser));
+    Rp_ParserXmlDestroy(&parser);
 
     // remove trailing newline
-    _tmpBuf.remove(1);
+    //_tmpBuf.remove(1);
     // append terminating null character
-    _tmpBuf.append("\0",1);
+    //_tmpBuf.append("\0",1);
 
     return _tmpBuf.bytes();
 }

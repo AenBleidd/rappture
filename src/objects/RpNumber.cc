@@ -396,9 +396,9 @@ void
 Number::dump(size_t as, ClientData p)
 {
     if (as == RPCONFIG_XML) {
-        __dumpToXml((clientdata_xml *)p);
+        __dumpToXml(p);
     } else if (as == RPCONFIG_TREE) {
-        __dumpToTree((clientdata_tree *)p);
+        __dumpToTree(p);
     }
 }
 
@@ -417,38 +417,11 @@ Number::__dumpToXml(ClientData c)
         return;
     }
 
-    clientdata_xml *d = (clientdata_xml *)c;
-
-    size_t l1width = d->indent + (1*d->tabstop);
-    size_t l2width = d->indent + (2*d->tabstop);
-    const char *sp = "";
-
-    Path p(path());
-    _tmpBuf.clear();
-
-    _tmpBuf.appendf(
-"%8$*5$s<number id='%1$s'>\n\
-%8$*6$s<about>\n\
-%8$*7$s<label>%2$s</label>\n\
-%8$*7$s<description>%3$s</description>\n\
-%8$*6$s</about>\n\
-%8$*6$s<units>%4$s</units>\n",
-       p.id(),label(),desc(),units(),d->indent,l1width,l2width,sp);
-
-    if (_minSet) {
-        _tmpBuf.appendf("%4$*3$s<min>%1$g%2$s</min>\n", min(),units(),l1width,sp);
-    }
-    if (_maxSet) {
-        _tmpBuf.appendf("%4$*3$s<max>%1$g%2$s</max>\n", max(),units(),l1width,sp);
-    }
-
-    _tmpBuf.appendf(
-"%6$*5$s<default>%1$g%3$s</default>\n\
-%6$*5$s<current>%2$g%3$s</current>\n\
-%6$*4$s</number>",
-       def(),cur(),units(),d->indent,l1width,sp);
-
-    d->retStr =  _tmpBuf.bytes();
+    Rp_ParserXml *parser = Rp_ParserXmlCreate();
+    __dumpToTree(parser);
+    const char *xmltext = Rp_ParserXmlXml(parser);
+    _tmpBuf.appendf("%s",xmltext);
+    Rp_ParserXmlDestroy(&parser);
 }
 
 /**********************************************************************/

@@ -22,11 +22,7 @@ typedef struct {
     size_t indent;
     size_t tabstop;
     const char *retStr;
-} clientdata_xml;
-
-typedef struct {
-    const char *retStr;
-} clientdata_tree;
+} ClientDataXml;
 
 } // end namespace Rappture
 

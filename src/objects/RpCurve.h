@@ -23,9 +23,9 @@ class Curve : public Object
 
         Curve();
 
-        Curve(const char *path);
+        Curve(const char *name);
 
-        Curve(const char *path, const char *label, const char *desc,
+        Curve(const char *name, const char *label, const char *desc,
               const char *group);
 
         Curve(const Curve& o);
@@ -47,7 +47,9 @@ class Curve : public Object
         Accessor <const char *> group;
         size_t dims() const;
 
-        const char *xml(size_t indent, size_t tabstop);
+        void configure(size_t as, ClientData p);
+        void dump(size_t as, ClientData p);
+
         const int is() const;
 
         static const char x[];
@@ -59,6 +61,11 @@ class Curve : public Object
         Rp_Chain *_axisList;
 
         Rp_ChainLink *__searchAxisList(const char * name) const;
+
+        void __configureFromXml(const char *p);
+        void __configureFromTree(Rp_ParserXml *p);
+        void __dumpToXml(ClientData c);
+        void __dumpToTree(ClientData c);
 };
 
 
