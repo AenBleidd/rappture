@@ -27,28 +27,31 @@ Curve::Curve ()
     : Object (),
       _axisList (NULL)
 {
+    this->name("");
     this->path("");
     this->label("");
     this->desc("");
     this->group("");
 }
 
-Curve::Curve (const char *path)
+Curve::Curve (const char *name)
     : Object (),
       _axisList (NULL)
 {
-    this->path(path);
+    this->name(name);
+    this->path("");
     this->label("");
     this->desc("");
     this->group("");
 }
 
-Curve::Curve (const char *path, const char *label, const char *desc,
+Curve::Curve (const char *name, const char *label, const char *desc,
               const char *group)
     : Object (),
       _axisList (NULL)
 {
-    this->path(path);
+    this->name(name);
+    this->path("");
     this->label(label);
     this->desc(desc);
     this->group(group);
@@ -58,6 +61,7 @@ Curve::Curve (const char *path, const char *label, const char *desc,
 Curve::Curve ( const Curve& o )
     :   Object(o)
 {
+    this->name(o.name());
     this->path(o.path());
     this->label(o.label());
     this->desc(o.desc());
@@ -251,65 +255,214 @@ Curve::dims() const
 }
 
 /**********************************************************************/
-// METHOD: xml()
-/// Return the xml of the object
+// METHOD: configure(Rp_ParserXml *p)
+/// construct a number object from the provided tree
 /**
- * Return the xml of the object
+ * construct a number object from the provided tree
  */
 
-const char *
-Curve::xml(size_t indent, size_t tabstop)
+void
+Curve::configure(size_t as, void *p)
 {
-    size_t l1width = indent + tabstop;
-    size_t l2width = indent + (2*tabstop);
-    const char *sp = "";
+    if (as == RPCONFIG_XML) {
+        __configureFromXml((const char *)p);
+    } else if (as == RPCONFIG_TREE) {
+        __configureFromTree((Rp_ParserXml *)p);
+    }
+}
 
-    Path p(path());
+/**********************************************************************/
+// METHOD: configureFromXml(const char *xmltext)
+/// configure the object based on Rappture1.1 xmltext
+/**
+ * Configure the object based on the provided xml
+ */
 
-    Array1D *tmpAxis = NULL;
-    size_t nmemb = 0;
+void
+Curve::__configureFromXml(const char *xmltext)
+{
+    if (xmltext == NULL) {
+        // FIXME: setup error
+        return;
+    }
+
+    Rp_ParserXml *p = Rp_ParserXmlCreate();
+    Rp_ParserXmlParse(p, xmltext);
+    configure(RPCONFIG_TREE, p);
+
+    return;
+}
+
+
+// This is really, __configureFromTree_1.0
+// because it only allows for an xaxis and yaxis
+// and component.xy formated data
+void
+Curve::__configureFromTree(Rp_ParserXml *p)
+{
+    if (p == NULL) {
+        // FIXME: setup error
+        return;
+    }
+
+    Rp_TreeNode node = Rp_ParserXmlElement(p,NULL);
+
+    Rappture::Path pathObj(Rp_ParserXmlNodePath(p,node));
+
+    path(pathObj.parent());
+    name(Rp_ParserXmlNodeId(p,node));
+    label(Rp_ParserXmlGet(p,"about.label"));
+    desc(Rp_ParserXmlGet(p,"about.description"));
+
+    Array1D *xaxis = axis("xaxis","","","","",NULL,0);
+    xaxis->label(Rp_ParserXmlGet(p,"xaxis.label"));
+    xaxis->desc(Rp_ParserXmlGet(p,"xaxis.description"));
+    xaxis->units(Rp_ParserXmlGet(p,"xaxis.units"));
+    xaxis->scale(Rp_ParserXmlGet(p,"xaxis.scale"));
+
+    Array1D *yaxis = axis("yaxis","","","","",NULL,0);
+    yaxis->label(Rp_ParserXmlGet(p,"yaxis.label"));
+    yaxis->desc(Rp_ParserXmlGet(p,"yaxis.description"));
+    yaxis->units(Rp_ParserXmlGet(p,"yaxis.units"));
+    yaxis->scale(Rp_ParserXmlGet(p,"yaxis.scale"));
+
+    const char *values = Rp_ParserXmlGet(p,"component.xy");
+
+    double x,y;
+    int n;
+    while (sscanf(values,"%lf%lf%n",&x,&y,&n) == 2) {
+        xaxis->append(&x,1);
+        yaxis->append(&y,1);
+        values += n;
+    }
+
+    return;
+}
+
+/**********************************************************************/
+// METHOD: dump(size_t as, void *p)
+/// construct a number object from the provided tree
+/**
+ * construct a number object from the provided tree
+ */
+
+void
+Curve::dump(size_t as, ClientData p)
+{
+    if (as == RPCONFIG_XML) {
+        __dumpToXml(p);
+    } else if (as == RPCONFIG_TREE) {
+        __dumpToTree(p);
+    }
+}
+
+/**********************************************************************/
+// METHOD: dumpToXml(ClientData p)
+/// configure the object based on Rappture1.1 xmltext
+/**
+ * Configure the object based on the provided xml
+ */
+
+void
+Curve::__dumpToXml(ClientData c)
+{
+    if (c == NULL) {
+        // FIXME: setup error
+        return;
+    }
+
+    ClientDataXml *d = (ClientDataXml *)c;
+    Rp_ParserXml *parser = Rp_ParserXmlCreate();
+    __dumpToTree(parser);
+    const char *xmltext = Rp_ParserXmlXml(parser);
+    _tmpBuf.appendf("%s",xmltext);
+    Rp_ParserXmlDestroy(&parser);
+    d->retStr = _tmpBuf.bytes();
+}
+
+/**********************************************************************/
+// METHOD: dumpToTree(ClientData p)
+/// dump the object to a Rappture1.1 based tree
+/**
+ * Dump the object to a Rappture1.1 based tree
+ */
+
+void
+Curve::__dumpToTree(ClientData c)
+{
+    if (c == NULL) {
+        // FIXME: setup error
+        return;
+    }
+
+    Rp_ParserXml *parser = (Rp_ParserXml *)c;
+
+    Path p;
+
+    p.parent(path());
+    p.last();
+
+    p.add("curve");
+    p.id(name());
+
+    p.add("about");
+
+    p.add("group");
+    Rp_ParserXmlPutF(parser,p.path(),"%s",group());
+
+    p.del();
+    p.add("label");
+    Rp_ParserXmlPutF(parser,p.path(),"%s",label());
+
+    p.del();
+    p.add("description");
+    Rp_ParserXmlPutF(parser,p.path(),"%s",desc());
+
+    p.del();
+    p.add("type");
+    Rp_ParserXmlPutF(parser,p.path(),"%s",propstr("type"));
+
+    p.del();
+    p.del();
 
     const double *dataArr[dims()];
-    const char *type = propstr("type");
+    size_t nmemb = 0;
+    for (size_t dim = 0; dim < dims(); dim++) {
+        Array1D *a = getNthAxis(dim);
+        nmemb = a->nmemb();
+        dataArr[dim] = a->data();
+        p.add(a->name());
 
-    _tmpBuf.clear();
+        p.add("label");
+        Rp_ParserXmlPutF(parser,p.path(),"%s",a->label());
+        p.del();
 
-    _tmpBuf.appendf(
-"%9$*6$s<curve id=\"%1$s\">\n\
-%9$*7$s<about>\n\
-%9$*8$s<group>%2$s</group>\n\
-%9$*8$s<label>%3$s</label>\n\
-%9$*8$s<description>%4$s</description>\n\
-%9$*8$s<type>%5$s</type>\n\
-%9$*7$s</about>\n",
-        p.id(),group(),label(),desc(),type,indent,l1width,l2width,sp);
+        p.add("description");
+        Rp_ParserXmlPutF(parser,p.path(),"%s",a->desc());
+        p.del();
 
-    for (size_t dim=0; dim < dims(); dim++) {
-        tmpAxis = getNthAxis(dim);
-        nmemb = tmpAxis->nmemb();
-        dataArr[dim] = tmpAxis->data();
-        _tmpBuf.appendf(
-"%8$*6$s<%1$s>\n\
-%8$*7$s<label>%2$s</label>\n\
-%8$*7$s<description>%3$s</description>\n\
-%8$*7$s<units>%4$s</units>\n\
-%8$*7$s<scale>%5$s</scale>\n\
-%8$*6$s</%1$s>\n",
-        tmpAxis->name(), tmpAxis->label(), tmpAxis->desc(),
-        tmpAxis->units(), tmpAxis->scale(),l1width,l2width,sp);
+        p.add("units");
+        Rp_ParserXmlPutF(parser,p.path(),"%s",a->units());
+        p.del();
+
+        p.add("scale");
+        Rp_ParserXmlPutF(parser,p.path(),"%s",a->scale());
+        p.del();
+
+        p.del();
     }
 
-    _tmpBuf.appendf("%3$*1$s<component>\n%3$*2$s<xy>\n",l1width,l2width,sp);
+    SimpleCharBuffer tmpBuf;
     for (size_t idx=0; idx < nmemb; idx++) {
         for(size_t dim=0; dim < dims(); dim++) {
-            _tmpBuf.appendf("%10g",dataArr[dim][idx]);
+            tmpBuf.appendf("%10g",dataArr[dim][idx]);
         }
-        _tmpBuf.append("\n",1);
+        tmpBuf.appendf("\n");
     }
-    _tmpBuf.appendf("%4$*3$s</xy>\n%4$*2$s</component>\n%4$*1$s</curve>",
-        indent, l1width, l2width, sp);
+    p.add("component.xy");
+    Rp_ParserXmlPutF(parser,p.path(),"%s",tmpBuf.bytes());
 
-    return _tmpBuf.bytes();
+    return;
 }
 
 /**********************************************************************/
